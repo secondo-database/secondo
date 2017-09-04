@@ -82,6 +82,10 @@ namespace temporalalgebra {
         
       void Segment2DTest1();
       void Segment2DTest2();
+      
+      void RationalSegment2DTest1();
+      void RationalSegment2DTest2();
+      
         
       void Point3DContainerTest();
         
@@ -118,6 +122,7 @@ namespace temporalalgebra {
       void PFaceTest7();
       void PFaceTest8();
       void PFaceTest9();
+      void PFaceTest10();
         
       void GlobalTimeValuesTest1();
       void GlobalTimeValuesTest2();
@@ -149,10 +154,10 @@ namespace temporalalgebra {
       void UnitsTest5();
       void UnitsTest6();
       void UnitsTest7();
+      void UnitsTest8();
       
       void SourceUnitPairTest1();
-      
-      
+            
       void IntersectionSegmentTest4();
 
       void assert_(std::string test,  std::string message, bool success);

@@ -288,8 +288,10 @@ Print the object values to stream.
 6.3.7 transform   
 
 */                              
-      Point2D transform(const RationalPoint3D& point) const;
-      Segment2D transform(const RationalSegment3D& segment) const;
+      RationalPoint2D transform(const RationalPoint3D& point) const;
+     
+      RationalSegment2D transform(const RationalSegment3D& segment) const;
+            
     private:
 /*
 6.4 Private methods
@@ -604,7 +606,7 @@ A ~std::list~ to store the active ~IntersectionSegments~ and the a
 orthogonal ~IntersectionSegments~during the plane-sweep.
 
 */
-      std::list<IntersectionSegment*> orthogonal;
+ //     std::list<IntersectionSegment*> orthogonal;
       std::list<IntersectionSegment*> active;   
     };
 /*
@@ -820,6 +822,10 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
                        SourceFlag source, Predicate predicate);   
       
       Point3D getMidPoint()const;
+      
+      Segment3D getLeft() const;
+      
+      Segment3D getRight() const;
       
       Predicate getPredicate()const;
       
@@ -1080,6 +1086,9 @@ Print the object values to stream.
 Computes the intersection of this ~PFace~ with pf. 
 
 */
+      bool intersectionOnPlane(PFace& other, const RationalPlane3D& planeSelf,
+                               GlobalTimeValues &timeValues);
+
       bool intersection(PFace& other,GlobalTimeValues &timeValues);
 /*
 18.3.5 toString
@@ -1155,7 +1164,7 @@ Computes the intersection of this ~PFace~ with pf.
 
 */      
       IntSegContainer    intSegs;
-      ResultUnitFactory factory;
+      ResultUnitFactory  factory;
       State              state;
       size_t             left;
       size_t             right;  
@@ -1226,7 +1235,7 @@ Computes the intersection of this ~PFace~ with pf.
       bool intersection(SourceUnit& other, GlobalTimeValues& timeValues); 
       
       bool finalize(Point3DContainer& points, GlobalTimeValues& timeValues,
-                    Predicate predicate);
+                    Predicate predicateconst, const SourceUnit& other);
       
       void getResultUnit(size_t slide, Predicate predicate,bool reverse, 
                          const Point3DContainer& points, ResultUnit& unit,
@@ -1274,10 +1283,11 @@ Print the object values to stream.
 20.3 Attributes
 
 */       
-      std::vector<size_t> itersectedPFace;
+
       std::vector<PFace*> pFaces;
+      mmrtree::RtreeT<2, size_t> pFaceTree; 
       SegmentContainer segments;
-      mmrtree::RtreeT<2, size_t> pFaceTree;      
+      std::vector<size_t> itersectedPFace;
       Region testRegion;
       bool   testRegionDefined;      
       std::vector<std::vector<FaceCycleInfo>> faceCycleInfo;

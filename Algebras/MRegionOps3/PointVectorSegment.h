@@ -70,6 +70,7 @@ namespace temporalalgebra {
 */    
     enum Predicate { 
       UNDEFINED,
+      TEST,
       LEFT_IS_INNER,
       RIGHT_IS_INNER,
       INSIDE,
@@ -102,8 +103,21 @@ It's components are represented by three double values.
       double getX() const; 
       double getY() const;
       double getZ() const;
-      RationalPoint3D getR()const;
-      Rectangle<3> getBoundingBox()const;
+/*
+3.2.1 getR()
+
+Return the object with double representaion in rational representation
+
+*/      
+      RationalPoint3D getR() const;
+/*
+3.2.2 getBoundigBox()
+
+Return the bounding box for the point object.
+
+*/
+      
+      Rectangle<3> getBoundingBox() const;
 /*
 3.3 Operators and Predicates
     
@@ -112,7 +126,7 @@ It's components are represented by three double values.
 */
       bool operator !=(const Point3D& point) const;
       bool operator ==(const Point3D& point) const;
-      bool operator <(const Point3D& point) const;
+      bool operator < (const Point3D& point) const;
 /*
 3.3.2 operator =
     
@@ -121,7 +135,7 @@ It's components are represented by three double values.
 /*
 3.3.3 Operator <<
     
-Print the object values to stream.
+Overloaded output operators.
 
 */         
       friend std::ostream& operator <<(std::ostream& os, const Point3D& point);
@@ -129,7 +143,7 @@ Print the object values to stream.
 /*
 3.4 Private methods
 
-3.4.1 set
+3.4.1 setter methods
 
 */    
       void set(const Point3D& point);
@@ -167,6 +181,12 @@ It's components are represented by three rational values.
       mpq_class getX() const; 
       mpq_class getY() const;
       mpq_class getZ() const;
+/*
+4.2.1 getD()
+
+Return the object with rational representaion in double representation
+
+*/         
       Point3D getD()const;  
 /*
 4.3 Methods, operators and predicates
@@ -184,7 +204,7 @@ It's components are represented by three rational values.
 /*
 4.3.3 Operator <<
     
-Print the object values to stream.
+Overloaded output operators.
 
 */         
       friend std::ostream& operator <<(std::ostream& os, 
@@ -213,14 +233,14 @@ Returns the Vector3D pointing from point to this.
 /*
 4.3.7 distance
     
-Returns the distance between this and point.
+Returns the distance between this and point as double value.
 
 */ 
       double distance(const RationalPoint3D& point)const;
 /*
 4.3.8 distance2
     
-Returns the quadratic distance between this and point.
+Returns the quadratic distance between this and point as rational value.
 
 */
       mpq_class distance2(const RationalPoint3D& point)const;
@@ -228,7 +248,7 @@ Returns the quadratic distance between this and point.
 /*
 4.4 Private methods
 
-4.4.1 set
+4.4.1 Setter methods
 
 */  
       void set(const Point3D& point);
@@ -283,7 +303,7 @@ It's components are represented by three rational values.
 /*
 5.3.3 Operator <<
     
-Print the object values to stream.
+Overloaded output operators.
 
 */         
       friend std::ostream& operator <<(std::ostream& os, 
@@ -308,14 +328,14 @@ Returns the negative of this vector.
 /*
 5.3.6 Operator [*] 
 
-Returns the dot product of this and w.
+Returns the dot product of this and vector.
 
 */
       mpq_class operator *(const RationalVector3D& vector) const; 
 /*
 5.3.7 Operator power
     
-Returns the cross product of this and w.
+Returns the cross product of this and vector.
 
 */
       RationalVector3D operator ^(const RationalVector3D& vector) const;
@@ -345,7 +365,7 @@ Returns the quadratic length of this vector.
 /*
 5.4 Private methods
 
-5.4.1 set
+5.4.1 Setter methods
 
 */    
       void set(const RationalVector3D& vector);  
@@ -381,13 +401,19 @@ It's start- and endpoint is represented by a Point3D each.
 */
       Point3D getHead() const; 
       Point3D getTail() const; 
+/*
+6.2.1 getR()
+
+Return the object with doube representaion in rational representation
+
+*/       
       RationalSegment3D getR() const;
 /*
 6.3 Operators and predicates
         
 6.3.1 Operator <<
     
-Print the object values to stream.
+Overloaded output operators.
 
 */    
       friend std::ostream& operator <<(std::ostream& os, 
@@ -406,7 +432,7 @@ Print the object values to stream.
 /*
 6.4 Private methods
 
-6.4.1 set
+6.4.1 Setter methods
 
 */
       void set(const Segment3D& segment);
@@ -441,13 +467,19 @@ It's start- and endpoint is represented by a RationalPoint3D each.
 */
       RationalPoint3D getHead() const; 
       RationalPoint3D getTail() const; 
+/*
+4.2.1 getD()
+
+Return the object with rational representaion in double representation
+
+*/       
       Segment3D getD() const;
 /*
 7.3 Operators and predicates
 
 7.3.1 Operator <<
     
-Print the object values to stream.
+Overloaded output operators.
 
 */        
       friend std::ostream& operator <<(std::ostream& os, 
@@ -467,7 +499,7 @@ Print the object values to stream.
 /*
 7.4 Private methods
 
-7.4.1 set
+7.4.1 Setter methods
 
 */     
       void set(const RationalSegment3D& segment);
@@ -593,6 +625,7 @@ Returns the Vector2D pointing from p to this.
 
 */       
       RationalVector2D operator -(const RationalPoint2D& point) const;
+      
     private:  
 /*
 9.4 Private methods
@@ -666,6 +699,8 @@ Returns the perp product of this and vector: a scalar.
 
 */   
       mpq_class operator |(const RationalVector2D& vector) const; 
+      
+      double length() const;
     private:  
 /*
 10.4 Private methods
@@ -689,6 +724,7 @@ This class provides an oriented segment in the euclidian plane.
 It's start- and endpoint is represented by a Point2D each.
 
 */
+    class RationalSegment2D;
     class Segment2D {
     public:
 /*
@@ -697,12 +733,14 @@ It's start- and endpoint is represented by a Point2D each.
 */       
       Segment2D();
       Segment2D(const Point2D& tail, const Point2D& head);
+      Segment2D(const RationalSegment2D& segment);
 /*
 11.2 Getter methods.
 
 */
       Point2D getHead() const; 
       Point2D getTail() const; 
+      RationalSegment2D getR()const;
 /*
 11.3 Methods, operators and predicates
         
@@ -727,7 +765,8 @@ Print the object values to stream.
 11.3.3 isLeft
 
 */      
-      bool isLeft(const Point2D& point) const;    
+      bool isLeft(const Point2D& point) const;   
+      
     protected:
 /*
 11.4 Attributes
@@ -736,6 +775,60 @@ Print the object values to stream.
       Point2D tail;
       Point2D head;
     };// Segment2D   
+    
+/*
+11 Class RationalSegment2D
+
+This class provides an oriented segment in the euclidian plane.
+It's start- and endpoint is represented by a RationalPoint2D each.
+
+*/
+    class RationalSegment2D {
+    public:
+/*
+11.1 Constructors
+
+*/       
+      RationalSegment2D();
+      RationalSegment2D(const RationalPoint2D& tail, 
+                        const RationalPoint2D& head);
+      RationalSegment2D(const Segment2D& segment);
+/*
+11.2 Getter methods.
+
+*/
+      RationalPoint2D getHead() const; 
+      RationalPoint2D getTail() const; 
+      
+      Segment2D getD()const; 
+      
+/*
+11.3 Methods, operators and predicates
+        
+11.3.1 Operator <<
+
+Print the object values to stream.
+
+*/        
+      friend std::ostream& operator <<(std::ostream& os, 
+                                       const RationalSegment2D& segment);   
+/*      
+11.3.2 Operator for comparison.
+
+*/
+      bool operator ==(const RationalSegment2D& segment) const; 
+ 
+      bool intersection(const RationalSegment2D& other, 
+                        RationalPoint2D& intersectionPoint);
+      
+    protected:
+/*
+11.4 Attributes
+
+*/       
+      RationalPoint2D tail;
+      RationalPoint2D head;
+    };// RationalSegment2D 
     
 /*
 12 Class Point3DContainer
@@ -758,7 +851,7 @@ This class provides a containervector for Point3d values.
       Point3D  get(size_t index)const;
       size_t   size()const;
 /*
-12.3 Methods, oOperators and predicates
+12.3 Methods, Operators and predicates
         
 12.3.1 Operator <<
 
