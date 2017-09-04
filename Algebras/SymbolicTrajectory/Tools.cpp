@@ -423,6 +423,7 @@ int Tools::getKey(const string& type, Tuple *tuple /* = 0 */,
 
 string Tools::getDataType(const int key) {
   switch (key) {
+    case -2: return MBool::BasicType();
     case -1: return CcBool::BasicType();
     case 0: return Label::BasicType();
     case 1: return Place::BasicType();
@@ -1188,12 +1189,14 @@ pair<QueryProcessor*, OpTree> Tools::processQueryStr(string query, int type) {
     result.second = 0;
     return result;
   }
-  if (nl->ToString(rType) != Tools::getDataType(type)) {
-    cout << "incorrect result type: " << nl->ToString(rType) << "; should be "
-         << Tools::getDataType(type) << " (" << type << ")" << endl;
-    delete result.first;
-    result.first = 0;
-    result.second = 0;
+  if (nl->ToString(rType) != getDataType(type)) {
+    if (nl->ToString(rType) != getDataType(-2)) {
+      cout << "incorrect result type: " << nl->ToString(rType) << "; should be "
+           << getDataType(type) << " or " << getDataType(-2) << endl;
+      delete result.first;
+      result.first = 0;
+      result.second = 0;
+    }
   }
   return result;
 }

@@ -797,7 +797,7 @@ bool Condition::initOpTree(Tuple *tuple /* = 0 */, ListExpr ttype /* = 0 */) {
       ptrs.push_back(strAttr.second);
       toReplace = getVar(i) + getType(getKey(i), tuple, ttype);
       q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
-      cout << "§ " << q << endl;
+      cout << "init op tree for § " << q << endl;
     }
     pair<QueryProcessor*, OpTree> qp_optree = Tools::processQueryStr(q, -1);
     if (!qp_optree.first) {
@@ -2627,37 +2627,40 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans,
 void TMatchIndexLI::extendBinding2(Periods *per, const int elem, 
                                   const bool totalMatch, IndexMatchInfo2& imi) {
   if (imi.binding.find(elem) == imi.binding.end()) { // elem not bound yet
-    imi.binding[elem] = *per;
+    imi.binding.insert(make_pair(elem, *per));
     Periods inter(true);
-    SecInterval iv(true);
+    Instant start(datetime::instanttype), end(datetime::instanttype);
     if (elem == 0) { // *X (__)* ...
-      iv.start.ToMinimum();
-      per->Minimum(iv.end);
+      start.ToMinimum();
+      per->Minimum(end);
+      SecInterval iv(start, end, false, false);
       inter.Add(iv);
     }
     else { // ... *Y (__)* ...
       Periods lastBinding(true), unionResult(true);
       imi.getBinding(elem - 1, lastBinding);
-      lastBinding.Minimum(iv.start);
-      per->Maximum(iv.end);
+      lastBinding.Minimum(start);
+      per->Maximum(end);
+      SecInterval iv(start, end, false, false);
       inter.Add(iv);
       lastBinding.Union(*per, unionResult);
-      inter.Minus(unionResult, inter); // [p_B.start, p_B.end] \ (p_B U p_D)
-    }
-    imi.binding[-1 * elem - 1] = inter; // bind intervals between elements
+      inter.Minus(unionResult); // [p_B.start, p_D.end] \ (p_B U p_D)
+    } // bind intervals between elements
+    imi.binding.insert(make_pair(-1 * elem - 1, inter));
     if (totalMatch && elem == p->getNoElems() - 1) { // ... *X (__)*
       Periods after(true);
-      per->Maximum(iv.start);
-      iv.end.ToMaximum();
+      per->Maximum(start);
+      end.ToMaximum();
+      SecInterval iv(start, end, false, false);
       after.Add(iv);
-      imi.binding[-1 * elem - 2] = after;
+      imi.binding.insert(make_pair(-1 * elem - 2, after));
     }
   }
   else { // extend existing binding; ... X [(__) | (__) (__) *(__)*] ...
     Periods unionResult(true);
     imi.binding[elem].Union(*per, imi.binding[elem]);
   }
-  cout << "elem " << elem << ": "; imi.print();
+//   cout << "elem " << elem << ": "; imi.print();
 }
 
 /*
@@ -2968,13 +2971,15 @@ bool TMatchIndexLI::condsMatch(Tuple *t, const IndexMatchInfo2& imi) {
   }
   Word qResult;
   vector<Condition> *conds = p->getConds();
-  Periods per(true);
+  Periods bindPer(true), interResult(true), tempPer(true);
+  interResult.Clear();
+  MBool mbool(true);
   for (unsigned int i = 0; i < conds->size(); i++) {
     cout << "evaluate cond " << i << " % " << conds->at(i).getText() << endl;
 //     conds->at(i).evaluate(t, imi);
     for (int j = 0; j < conds->at(i).getVarKeysSize(); j++) {
       int elem = p->getElemFromVar(conds->at(i).getVar(j));
-      if (!imi.getBinding(elem, per)) {
+      if (!imi.getBinding(elem, bindPer)) {
         cout << "ERROR, binding for elem " << elem << " does not exist" << endl;
         return false;
       }
@@ -2983,11 +2988,12 @@ bool TMatchIndexLI::condsMatch(Tuple *t, const IndexMatchInfo2& imi) {
 //            << elem << " $ " << iv << endl;
       if (key > 99) { // reference to attribute, e.g., X.Pos
         if (!t) {
+          cout << "tuple not found" << endl;
           return false;
         }
         if (Tools::isMovingAttr(ttList, key - 99)) {
-          cout << "restrict ptr to " << per << endl;
-          conds->at(i).copyAndRestrictPtr(j, t, ttList, key - 99, per);
+//           cout << "restrict ptr to " << bindPer << endl;
+          conds->at(i).copyAndRestrictPtr(j, t, ttList, key - 99, bindPer);
         }
         else { // constant attribute type
           if (!conds->at(i).copyPtrFromAttr(j, t->GetAttribute(key - 100))) {
@@ -2997,11 +3003,37 @@ bool TMatchIndexLI::condsMatch(Tuple *t, const IndexMatchInfo2& imi) {
         }
       }
       else { // X.time, X.start, X.end, X.leftclosed, X.rightclosed
-        conds->at(i).setPtrToTimeValue(j, per);
+        conds->at(i).setPtrToTimeValue(j, bindPer);
       }
     }
     conds->at(i).getQP()->EvalS(conds->at(i).getOpTree(), qResult, OPEN);
-    if (!((CcBool*)qResult.addr)->GetValue()) {
+    if (((MBool*)qResult.addr)->IsDefined()) { // MBool type
+      cout << "MBOOL" << endl;
+      CcBool *cctrue = new CcBool(true, true);
+      ((MBool*)qResult.addr)->At(*cctrue, mbool);
+      cctrue->DeleteIfAllowed();
+      if (interResult.IsEmpty()) { // no intermediate result existing
+        mbool.DefTime(interResult);
+      }
+      else { // compute intersection with previous result
+        mbool.DefTime(tempPer);
+        interResult.Intersection(tempPer, interResult);
+      }
+      if (interResult.IsEmpty()) {
+        cout << "empty intersection result after cond #" << i << endl;
+        return false;
+      }
+      cout << "intersection after cond #" << i << ": " << interResult << endl;
+    }
+    else if (((CcBool*)qResult.addr)->IsDefined()) {
+      cout << "CcBool" << endl;
+      if (!((CcBool*)qResult.addr)->GetValue()) {
+        cout << "CcBool is defined and false" << endl;
+        return false;
+      }
+    }
+    else {
+      cout << "invalid result type for condition #" << i << endl;
       return false;
     }
   }
@@ -3042,11 +3074,10 @@ bool TMatchIndexLI::atomMatch2(const int state, std::pair<int, int> trans) {
           imiPtr = &matchInfo2[state][id]->imis[i];
           if (imiPtr->checkPeriods(per)) {
             Tuple *t = rel->GetTuple(id, false);
-            // TODO: check if symbolic times specs match
             IndexMatchInfo2 newIMI(imiPtr, per);
             bool match = geoMatch(trans.first, t, per) &&
                          easyCondsMatch(trans.first, t, per);
-//             && symTimesMatch();
+// TODO:          && symbolicTimesMatch();
             if (match) {
               transition = true;
               totalMatch = p->isFinalState(trans.second);
