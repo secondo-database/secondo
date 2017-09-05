@@ -695,7 +695,7 @@ compare_tpc_idx :-
 
 
 checkAll :-
-  clearflag(runMode),
+  clearflag(printQueryOnlyMode),
   findall(X, showExperiment(X,_), L),
   checklist(call, L).
 

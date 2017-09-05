@@ -351,7 +351,6 @@ display(Type, Value) :-
   pretty_print(Value),
   nl.
 
-
 displayString([]).
 
 displayString([Char | Rest]) :-
@@ -1034,7 +1033,7 @@ showflags :-
 2.5 Running Queries
 
 The clause ~runQuery~ can be used to execute or just print queries
-depending on the flag ~runMode~.
+depending on the flag ~printQueryOnlyMode~.
 
 */
 
@@ -1042,24 +1041,25 @@ showQuery(Q) :-
   nl, write(Q), nl.
 
 runQuery(Q) :-
-  flag(runMode, on),
-  nl, write('Executing '), write(Q), write(' ...'), nl,
-  secondo(Q), !.
-
-runQuery(Q) :-
-  showQuery(Q).
-
-
-runQuery(Q, Res) :-
-  flag(runMode, on),
-  nl, write('Executing '), write(Q), write(' ...'), nl,
-  secondo(Q, [_, Res]),
-  nl, write('Result: '), write(Res), nl, !.
+  ( flag(printQueryOnlyMode, on) 
+    -> ( showQuery(Q) 
+       )
+    ;  ( nl, write('Executing '), write(Q), write(' ...'), nl, secondo(Q) 
+       )
+  ), !.
+  
 
 runQuery(Q, Res) :-
-  showQuery(Q),
-  Res = 999,
-  nl, write('Dummy-Result: '), write(Res), nl.
+  ( flag(printQueryOnlyMode, on)
+    -> (   showQuery(Q),
+           Res = 999,
+           nl, write('Dummy-Result: '), write(Res), nl
+       )
+    ; (  nl, write('Executing '), write(Q), write(' ...'), nl,
+         secondo(Q, [_, Res]),
+         nl, write('Result: '), write(Res), nl
+      )
+  ), !.
 
 /*
 3.0 Stop Watch Predicate
