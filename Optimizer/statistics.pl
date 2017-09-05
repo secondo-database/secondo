@@ -1611,9 +1611,13 @@ readStoredSels :-
 /*
 
 The following functions are auxiliary functions for ~writeStoredSels~. Their
-purpose is to convert a list of character codes (e.g. [100, 99, 100]) to
-an atom (e.g. "dcd"), which makes the stored selectitivities more
-readable.
+purpose is to convert ~string~ and ~text~ values into a "save" format in order 
+to write it to a file, that can be parsed by the Prolog system without e.g. 
+mismatching a capital starting letter with a Prolog variable.
+Therefor, strings should be (1) converted from list of 
+character codes (e.g. [100, 99, 100]) to an atom (e.g. "dcd"), which makes the 
+stored selectitivities more readable. (2) the string atom should be written as 
+a quoted literal.
 
 */
 
@@ -1626,6 +1630,16 @@ isIntList([X | Rest]) :-
 charListToAtom(CharList, Atom) :-
   atom_codes(A, CharList),
   my_concat_atom([' "', A, '"'], Atom).
+
+%handle string values in order to avoid problems with starting capital letters
+replaceCharList(value_expr(string,InString), value_expr(string,OutString)) :-
+  term_string(InString,OutString),
+  !.
+
+%handle text values in order to avoid problems with starting capital letters
+replaceCharList(value_expr(text,InText), value_expr(text,OutString)) :-
+  term_string(InText,OutString),
+  !.
 
 replaceCharList(InTerm, OutTerm) :-
   isIntList(InTerm),
@@ -2634,12 +2648,12 @@ getTypeTree(Expr,Rels,[Op,ArgsTypes,TypeDC]) :-
     -> ( % Alternative I: using operator 'getTypeNL'
          findall(T,member([_,_,T],ArgTree),ArgTypes),
          % create a valid expression using defined null values
-         createNullValues(ArgsTypes,NullArgs),
+         createNullValues(ArgTypes,NullArgs),
          % send getTypeNL-query to Secondo to infer the signature
          NullQueryExpr =.. [Op|NullArgs],
          plan_to_atom(getTypeNL(NullQueryExpr),NullQueryAtom),
          my_concat_atom(['query ',NullQueryAtom],'',Query),
-         dm(selectivity,['getTypeNL-Query = ',Query]),nl,
+         dm(selectivity,['getTypeNL-Query = ',Query,'\n']),
          secondo(Query,[text,TypeDC])
        )
     ;  ( % Alternative II: using operator 'matchingOperators'
@@ -2648,15 +2662,15 @@ getTypeTree(Expr,Rels,[Op,ArgsTypes,TypeDC]) :-
          my_concat_atom(['query matchingOperators( ',ArgTypesText,
                       ' ) filter[.OperatorName="',Op,
                       '"] extract[ResultType]'],'',Query),
-         dm(selectivity,['matchingOperators-Query = ',Query]),nl,
+         dm(selectivity,['matchingOperators-Query = ',Query,'\n']),
          secondo(Query,[text,TypeDC])
        )
   ),
+  dm(selectivity,['getTypeTree: TypeDC = ',TypeDC,'\n']),
   % store signature in fact base
   assert(queriedOpSignature(Op,ArgTypes,TypeDC,[])),
 %   dm(selectivity,['$$$ getTypeTree: ',Expr,': ',TypeDC]),nl,
   assert(tmpStoredTypeTree(Expr,[Op,ArgsTypes,TypeDC])),
-  write_list(['XRIS: finished\n']),
   !.
 
 getTypeTree(A,B,C) :-
@@ -2743,7 +2757,7 @@ transformed: [\_, \_, T] [->] T. The result tree is returned in ~DataTypeTree~.
 ----
 
 */
-trav([],[]).
+trav([],[]) :- !.
 trav( [TreeH| TreeRest] ,[ResH| ResRest]) :-
   travChild(TreeH,ResH),
   trav(TreeRest, ResRest).
