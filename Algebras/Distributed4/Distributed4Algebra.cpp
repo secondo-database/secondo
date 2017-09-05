@@ -19,35 +19,40 @@ SECONDO; if not, write to the Free Software Foundation, Inc., 59 Temple Place,
 Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph [1] title: [{\Large \bf] [}]
+//paragraph [10] title: [{\Large \bf] [}]
+//characters [1] tt: [\texttt{] [}]
+//[secondo] [{\sc Secondo}]
 
-[1] Distributed4 Algebra, Implementation
+[10] Algebra Distributed4
 
 2017-08-14: Sebastian J. Bronner $<$sebastian@bronner.name$>$
 
-\tableofcontents
+The type constructors and operators of this algebra are assigned in this file.
+They are implemented in other files as follows:
 
-1 One
+  * Types in "Distributed4Types.cpp"[1] and corresponding class files
+    ("TypeName.h/cpp/ipp"[1]).
+
+  * Operators in "Distributed4Operators.cpp"[1]
 
 */
-
-#include "Distributed4Algebra.h"
-
-using namespace std;
+#include "Algebra.h"
 
 namespace distributed4 {
-  Distributed4Algebra* algInstance;
+  extern TypeConstructor dstructTC;
+  extern Operator addWorkerOp, inspectDArrayOp;
 
-  Distributed4Algebra::Distributed4Algebra() {
-  }
-
-  Distributed4Algebra::~Distributed4Algebra() {
-  }
+  class Distributed4Algebra: public Algebra {
+    public:
+      Distributed4Algebra() {
+        AddTypeConstructor(&dstructTC);
+        AddOperator(&addWorkerOp);
+        AddOperator(&inspectDArrayOp);
+      }
+  };
 }
 
 extern "C"
-Algebra* InitializeDistributed4Algebra(NestedList* nlRef, QueryProcessor*
-    qpRef, AlgebraManager* amRef) {
-  distributed4::algInstance = new distributed4::Distributed4Algebra();
-  return distributed4::algInstance;
+Algebra* InitializeDistributed4Algebra(NestedList*, QueryProcessor*) {
+  return new distributed4::Distributed4Algebra;
 }

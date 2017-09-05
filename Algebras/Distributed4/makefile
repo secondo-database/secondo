@@ -16,8 +16,8 @@
 # SECONDO; if not, write to the Free Software Foundation, Inc., 59 Temple
 # Place, Suite 330, Boston, MA  02111-1307  USA
 
-CURRENT_ALGEBRA := PSTAlgebra
-ALGEBRA_DEPENDENCIES := StandardAlgebra
+CURRENT_ALGEBRA := Distributed4Algebra
+ALGEBRA_DEPENDENCIES := StandardAlgebra Distributed2Algebra FText
 
 include ../../makefile.env
 

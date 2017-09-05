@@ -1,0 +1,14 @@
+Database : berlintest
+Restore  : No 
+
+Operator : addWorker
+Number   : 1
+Signature: dstruct x {string,text} x int x {string,text} -> bool
+Example  : query addWorker([const dstruct value (ds 4 (("s1" 1234 "cfg.ini") ("s2" 1234 "cfg.ini")))], "snew", 1234, "cfg.ini")
+Result   : TRUE
+
+Operator : inspectDArray
+Number   : 2
+Signature: d[f]array -> bool
+Example  : query inspectDArray([const darray(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))])
+Result   : TRUE
