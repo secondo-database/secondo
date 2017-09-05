@@ -108,7 +108,7 @@ only check the main type (~dstruct~) but the complete type expression.
 
 8 Operators Depending on DStruct
 
-"operator<<"[1] allows something alown the lines of the following:
+"operator<<"[1] allows something along the lines of the following:
 
 ---- DStruct ds;
      cout << "debug: " << ds;
@@ -132,31 +132,31 @@ point.
 namespace distributed4 {
   class DStruct {
     protected:
-      std::map<double,size_t> partitioning;
+      std::map<double,uint32_t> partitioning;
       //TODO: for multi-dimensional partitions, use either a vector of vectors
       //(of vectors) or a map<int,int> of maps<int,int> (of maps<int,int>).
-      std::vector<size_t> allocation;
+      std::vector<uint32_t> allocation;
       std::vector<distributed2::DArrayElement> workers;
       std::string slotbasename;
 
     public:
       DStruct();
       DStruct(const DStruct&);
-      DStruct(const std::map<double,size_t>&, const std::vector<size_t>&, const
-          std::vector<distributed2::DArrayElement>&, const std::string&);
-      DStruct(const std::map<double,size_t>&, const distributed2::DArray&);
+      DStruct(const std::map<double,uint32_t>&, const std::vector<uint32_t>&,
+          const std::vector<distributed2::DArrayElement>&, const std::string&);
+      DStruct(const std::map<double,uint32_t>&, const distributed2::DArray&);
       DStruct(ListExpr);
       ListExpr listExpr();
       void addWorker(const std::string&, int, const std::string&);
       void removeWorker();
-      size_t slot(double) const;
+      uint32_t slot(double) const;
       distributed2::DArray getDArray() const;
       void print(std::ostream&) const;
       static std::string BasicType();
       static bool checkType(ListExpr, ListExpr&);
   };
 
-  std::ostream& operator<<(std::ostream&, const std::map<double,size_t>&);
+  std::ostream& operator<<(std::ostream&, const std::map<double,uint32_t>&);
   template<typename T> std::ostream& operator<<(std::ostream&, const
       std::vector<T>&);
   std::ostream& operator<<(std::ostream&, const DStruct&);

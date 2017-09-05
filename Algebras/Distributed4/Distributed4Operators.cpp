@@ -161,7 +161,7 @@ Make the changes permanent and provide a return value.
     cout << *da << endl;
     result = qp->ResultStorage(s);
     static_cast<CcBool*>(result.addr)->Set(true, da->IsDefined());
-    std::map<double,size_t> m; m[3] = 47; m[7] = 21;
+    std::map<double,uint32_t> m; m[3] = 47; m[7] = 21;
     DStruct test(m, DArray(0));
     cout << "debug: " << test << endl;
     for(int i{0}; i < 9; ++i)

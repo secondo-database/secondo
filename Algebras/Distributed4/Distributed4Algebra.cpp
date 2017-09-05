@@ -37,6 +37,7 @@ They are implemented in other files as follows:
 
 */
 #include "Algebra.h"
+#include "Symbols.h"
 
 namespace distributed4 {
   extern TypeConstructor dstructTC;
@@ -46,6 +47,8 @@ namespace distributed4 {
     public:
       Distributed4Algebra() {
         AddTypeConstructor(&dstructTC);
+        dstructTC.AssociateKind(Kind::SIMPLE());
+
         AddOperator(&addWorkerOp);
         AddOperator(&inspectDArrayOp);
       }

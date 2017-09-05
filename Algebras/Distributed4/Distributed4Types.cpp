@@ -48,9 +48,9 @@ namespace distributed4 {
         NList().stringAtom("-> SIMPLE"),
         NList().stringAtom("(dstruct int)"),
         NList().textAtom("(<partitioning map> <allocation list> <worker list> "
-          "slotbasename)"),
-        NList().textAtom("(((39 2) (101 1)) (0 1 0) ((\"s0\" 1234 0 "
-          "\"cfg.ini\") (\"s1\" 1234 1 \"cfg.ini\")) Primes)"),
+          "<slotbasename>)"),
+        NList().textAtom("(((39 2) (101 1)) (0 1 0) (('s0' 1234 'cfg.ini') "
+          "('s1' 1234 'cfg.ini')) \"Primes\")"),
         NList().textAtom("This type extends the concept of darrays to make it "
           "possible to use regular database operations on distributed data "
           "(insert, update, delete, etc.). Furthermore, this type provides "
@@ -70,9 +70,10 @@ namespace distributed4 {
     try {
       addr = new DStruct{instance};
       correct = true;
-    } catch(std::runtime_error&) {
+    } catch(std::runtime_error& err) {
       addr = 0;
       correct = false;
+      cmsg.inFunError(err.what());
     }
     return Word{addr};
   }
@@ -98,30 +99,3 @@ namespace distributed4 {
     dstructIn, 0, 0, dstructCreate, dstructDelete, 0, 0, dstructDelete,
     dstructClone, 0, dstructSize, DStruct::checkType};
 }
-
-//Notes:
-//
-//DStruct for a DArray of a rel
-//(
-//  dstruct
-//  (
-//    (Code int)
-//    (
-//      rel
-//      (
-//        tuple
-//        (
-//          (Osm_id string)
-//          (Code int)
-//          ...
-//        )
-//      )
-//    )
-//  )
-//)
-//
-//DStruct for a DArray of an atomic type
-//(
-//  dstruct
-//  int
-//)
