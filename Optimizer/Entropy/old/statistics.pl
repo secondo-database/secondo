@@ -451,6 +451,16 @@ charListToAtom(CharList, Atom) :-
   atom_codes(A, CharList),
   my_concat_atom([' "', A, '"'], Atom).
 
+%handle string values in order to avoid problems with starting capital letters
+replaceCharList(value_expr(string,InString), value_expr(string,OutString)) :-
+  term_string(InString,OutString),
+  !.
+
+%handle text values in order to avoid problems with starting capital letters
+replaceCharList(value_expr(text,InText), value_expr(text,OutString)) :-
+  term_string(InText,OutString),
+  !.
+
 replaceCharList(InTerm, OutTerm) :-
   isIntList(InTerm),
   !,
