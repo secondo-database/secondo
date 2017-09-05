@@ -194,7 +194,9 @@ int calcEMDVM(Word* args, Word& result,
 		fst2.push_back(fs2->GetFeatureSignatureTuple(i));
 	}
     
-    res->Set(true, emdCalc.calcEMD(fst1, fst2));
+    double dist = emdCalc.calcEMD(fst1, fst2);
+    //std::cout << "dist:" << dist << std::endl;
+    res->Set(true, dist);
         
     return 0;
 }
