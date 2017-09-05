@@ -2549,7 +2549,8 @@ transformed: [\_, \_, T] [->] T. The result tree is returned in ~DataTypeTree~.
 ----
 
 */
-trav([],[]).
+trav([],[]) :- !.
+
 trav( [TreeH| TreeRest] ,[ResH| ResRest]) :-
   travChild(TreeH,ResH),
   trav(TreeRest, ResRest).
