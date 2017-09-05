@@ -6002,7 +6002,7 @@ URegion::URegion(vector<MSegmentData> linelist, const Interval<Instant>& tiv) :
     linelist.erase(linelist.begin() + index);
     index = findNextToRight(linelist, first);
     MSegmentData next = linelist[index];
-    AddSegment(next);
+    //AddSegment(next);
 #ifdef MR_DEBUG
     cout<<"Next: "<<next.ToString()<<endl;
 #endif
