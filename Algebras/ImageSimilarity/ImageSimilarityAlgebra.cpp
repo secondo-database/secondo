@@ -103,7 +103,6 @@ ListExpr calcSQFDTM(ListExpr args)
 int calcSQFDVM(Word* args, Word& result,
                    int message, Word& local, Supplier s)
 {
-    //res = static_cast<double*>(result.addr);
     //res->ClearDBArray();
     FeatureSignature* fs1 = static_cast<FeatureSignature*>(args[0].addr);
     FeatureSignature* fs2 = static_cast<FeatureSignature*>(args[1].addr);
