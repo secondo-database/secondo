@@ -32,7 +32,7 @@ Suite 330, Boston, MA  02111-1307  USA
 1 Preliminary Setup
 
 */
-#include "DStruct.h"
+#include "DTable.h"
 #include "DArray.h"
 #include "FTextAlgebra.h"
 #include "NList.h"
@@ -59,12 +59,12 @@ the number of arguments. (2) Verify the type of arguments.
 
 */
   ListExpr addWorkerTM(ListExpr args) {
-    string err = "dstruct x {string,text} x int x {string,text} expected";
+    string err = "dtable x {string,text} x int x {string,text} expected";
     NList l{args};
     if(
         !l.checkLength(4, err) ||
         !l.isList(1) ||
-        l.first() != DStruct::BasicType() ||
+        l.first() != DTable::BasicType() ||
         l.third() != CcInt::BasicType())
       return NList::typeError(err);
     for(NList e: {l.second(), l.fourth()})
@@ -98,19 +98,18 @@ process input data (args) and post the result (result).
   template<class HostType, class ConfType> int addWorkerVM(Word*
       args, Word& result, int message, Word& local, Supplier s) {
     // Convert passed values.
-    DStruct* ds{static_cast<DStruct*>(args[0].addr)};
-    //TODO: determine type of DStruct ^
+    DTable* ds{static_cast<DTable*>(args[0].addr)};
     string host{static_cast<HostType*>(args[1].addr)->GetValue()};
     int port{static_cast<CcInt*>(args[2].addr)->GetValue()};
     string conf{static_cast<ConfType*>(args[3].addr)->GetValue()};
     result = qp->ResultStorage(s);
     CcBool* res{static_cast<CcBool*>(result.addr)};
 /*
-Before modifying the DStruct, it is necessary to find out if this operator is
+Before modifying the DTable, it is necessary to find out if this operator is
 being run on a master or a supervisor. On a master, the command should first be
 forwarded to the supervisor, on a supervisor, it should first be forwarded to
 all inserters. Only when those operations have indicated success, may the local
-DStruct be modified.
+DTable be modified.
 
 */
     auto ds_meta_name{(string)"Ds" + "_adaptive"};
@@ -162,7 +161,7 @@ Make the changes permanent and provide a return value.
     result = qp->ResultStorage(s);
     static_cast<CcBool*>(result.addr)->Set(true, da->IsDefined());
     std::map<double,uint32_t> m; m[3] = 47; m[7] = 21;
-    DStruct test(m, DArray(0));
+    DTable test(m, DArray(0));
     cout << "debug: " << test << endl;
     for(int i{0}; i < 9; ++i)
       cout << "debug: test[" << i << "] = " << test.slot(i) << endl;
@@ -219,14 +218,14 @@ the following order:
 
 */
   OperatorSpec addWorkerSpec{
-    DStruct::BasicType() + " x {" + CcString::BasicType() + "," +
+    DTable::BasicType() + " x {" + CcString::BasicType() + "," +
       FText::BasicType() + "} x " + CcInt::BasicType() + " x {" +
       CcString::BasicType() + "," + FText::BasicType() + "} -> " +
       CcBool::BasicType(),
     "addWorker(ds, host, port, conffile)",
     "Adds a worker given by host, port, and conffile to ds. No slots are "
       "mapped to the new worker at this time, though.",
-    "query addWorker([const " + DStruct::BasicType() + " value (ds 4 ((\"s1\" "
+    "query addWorker([const " + DTable::BasicType() + " value (ds 4 ((\"s1\" "
       "1234 \"cfg.ini\") (\"s2\" 1234 \"cfg.ini\")))], \"snew\", 1234, "
       "\"cfg.ini\")",
   };

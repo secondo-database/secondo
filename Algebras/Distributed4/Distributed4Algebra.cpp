@@ -27,11 +27,11 @@ Suite 330, Boston, MA  02111-1307  USA
 
 2017-08-14: Sebastian J. Bronner $<$sebastian@bronner.name$>$
 
-The type constructors and operators of this algebra are assigned in this file.
-They are implemented in other files as follows:
+The type constructors and operators of this algebra are assigned to the algebra
+in this file. However, they are implemented in other files as follows:
 
   * Types in "Distributed4Types.cpp"[1] and corresponding class files
-    ("TypeName.h/cpp/ipp"[1]).
+    ("TypeName.cpp"[1] and "TypeName.h)"[1]).
 
   * Operators in "Distributed4Operators.cpp"[1]
 
@@ -40,21 +40,47 @@ They are implemented in other files as follows:
 #include "Symbols.h"
 
 namespace distributed4 {
-  extern TypeConstructor dstructTC;
-  extern Operator addWorkerOp, inspectDArrayOp;
+/*
+Types and operators are instantiated as objects in the accompanying files.
+These objects are declared here as "extern"[1] so that the linker will find
+them.
 
+*/
+  extern TypeConstructor dtableTC;
+  extern Operator addWorkerOp, inspectDArrayOp;
+/*
+"Distributed4Algebra"[1] is derived from "Algebra"[1], just like every other
+algebra here. The default constructor is redefined to add this algebra's types
+and operators.
+
+It is not possible simply to create an object of type Algebra and add the types
+and objects to that object because the methods "AddTypeConstructor"[1] and
+"AddOperator"[1] are "protected"[1] in "Algebra"[1].
+
+*/
   class Distributed4Algebra: public Algebra {
     public:
       Distributed4Algebra() {
-        AddTypeConstructor(&dstructTC);
-        dstructTC.AssociateKind(Kind::SIMPLE());
+/*
+Type Constructors
 
+*/
+        AddTypeConstructor(&dtableTC);
+        dtableTC.AssociateKind(Kind::SIMPLE());
+/*
+Operators
+
+*/
         AddOperator(&addWorkerOp);
         AddOperator(&inspectDArrayOp);
       }
   };
 }
+/*
+This function is called by [secondo] during initialization. The algebra is
+instantiated and passed to [secondo].
 
+*/
 extern "C"
 Algebra* InitializeDistributed4Algebra(NestedList*, QueryProcessor*) {
   return new distributed4::Distributed4Algebra;
