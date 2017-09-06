@@ -6010,7 +6010,7 @@ URegion::URegion(vector<MSegmentData> linelist, const Interval<Instant>& tiv) :
     while(1 == 1)
     {
       MSegmentData nextins;
-      if(matchesLeft(next, linelist[index]) || counter == 1)
+      if(matchesLeft(next, linelist[index]) || counter == 2)
       {
                nextins = MSegmentData(linelist[index].GetFaceNo(),
            linelist[index].GetCycleNo(), counter, true,
@@ -9817,6 +9817,9 @@ Operator mregtimeshift( "timeshift",
                          MRegTimeShiftMap,
                          Operator::SimpleSelect,
                          MRegTimeShiftTM );
+
+
+
 /*
 Used for unit testing only.
 
@@ -9885,7 +9888,7 @@ public:
     AddOperator(&movingregionops::vertextrajectory);
     AddOperator(&movingregionops::mraunits);
     AddOperator(&movingregionops::mregtimeshift);
-
+    
 #ifdef MRA_TRAVERSED
     AddOperator(&movingregionops::traversed);
 #endif // MRA_TRAVERSED
