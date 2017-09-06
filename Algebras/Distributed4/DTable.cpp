@@ -1,4 +1,5 @@
 /*
+----
 This file is part of SECONDO.
 
 Copyright (C) 2017, Faculty of Mathematics and Computer Science, Database
@@ -16,36 +17,70 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 SECONDO; if not, write to the Free Software Foundation, Inc., 59 Temple Place,
 Suite 330, Boston, MA  02111-1307  USA
+----
+
+//paragraph [10] title: [{\Large \bf] [}]
+//characters [1] tt: [\texttt{] [}]
+//[secondo] [{\sc Secondo}]
+
+[10] Implementation of Class DTable
+
+2017-08-14: Sebastian J. Bronner $<$sebastian@bronner.name$>$
+
+\tableofcontents
+
+1 Preliminary Setup
 
 */
-#include "DStruct.h"
+#include "DTable.h"
 #include "FTextAlgebra.h"
 
-using std::map;
-using std::ostream;
-using std::runtime_error;
-using std::string;
-using std::to_string;
-using std::vector;
-using distributed2::DArray;
-using distributed2::DArrayElement;
-
 namespace distributed4 {
-  DStruct::DStruct() {}
+  using std::map;
+  using std::ostream;
+  using std::runtime_error;
+  using std::string;
+  using std::to_string;
+  using std::vector;
+  using distributed2::DArray;
+  using distributed2::DArrayElement;
+/*
+5 Constructors
 
-  DStruct::DStruct(const DStruct& src): partitioning{src.partitioning},
+Default Constructor. This constructor creates a completely empty (and therefore
+unusable) instance. Its only use is the ~cast~ function.
+
+*/
+  DTable::DTable() {}
+/*
+Copy Constructor. The contents of the member variables of the passed
+"DTable"[1] are copied over.
+
+*/
+  DTable::DTable(const DTable& src): partitioning{src.partitioning},
     allocation{src.allocation}, workers{src.workers},
     slotbasename{src.slotbasename} {}
+/*
+Copy Constructor. The passed "map"[1], "vector"[1]s and "string"[1] are copied
+to the respective member variables of the newly constructed "DTable"[1].
 
-  DStruct::DStruct(const map<double,uint32_t>& p, const vector<uint32_t>& a,
+*/
+  DTable::DTable(const map<double,uint32_t>& p, const vector<uint32_t>& a,
       const vector<DArrayElement>& w, const string& n): partitioning{p},
     allocation{a}, workers{w}, slotbasename{n} {}
+/*
+Copy Constructor. The passed "map"[1] and the member variables of the passed
+"DArray"[][1] are copied over.
 
-  DStruct::DStruct(const map<double,uint32_t>& p, const DArray& da):
+*/
+  DTable::DTable(const map<double,uint32_t>& p, const DArray& da):
     partitioning{p}, allocation{da.getMap()}, workers{da.getWorkers()},
     slotbasename{da.getName()} {}
+/*
+TODO
 
-  DStruct::DStruct(ListExpr instance) {
+*/
+  DTable::DTable(ListExpr instance) {
     NList e;
 /*
 Validate the top-level structure of the nested list. The rest of the structure
@@ -120,8 +155,13 @@ Validate and read the slotbasename string from the nested list.
           "list needs to be a string or text atom.");
     slotbasename = l.fourth().str();
   }
+/*
+6 Member Methods
 
-  ListExpr DStruct::listExpr() {
+TODO
+
+*/
+  ListExpr DTable::listExpr() {
     NList pl, al, wl, sl;
     for(auto it{partitioning.begin()}; it != partitioning.end(); ++it)
       pl.append(NList(NList(it->first), NList(static_cast<int>(it->second))));
@@ -132,55 +172,87 @@ Validate and read the slotbasename string from the nested list.
     sl = NList().stringAtom(slotbasename);
     return NList(pl, al, wl, sl).listExpr();
   }
+/*
+TODO
 
-  void DStruct::addWorker(const string& host, int port, const string& conf) {
+*/
+  void DTable::addWorker(const string& host, int port, const string& conf) {
     for(DArrayElement w: workers)
       if(w.getHost() == host && w.getPort() == port)
         throw runtime_error("Worker already exists.");
     auto num{workers.back().getNum() + 1};
     workers.emplace_back(host, port, num, conf);
   }
+/*
+TODO
 
-  void DStruct::removeWorker() {}
+*/
+  void DTable::removeWorker() {}
+/*
+TODO
 
-  uint32_t DStruct::slot(double key) const {
-    // The upper_bound method determines the next slot after the one being
-    // looked for, as it looks for a key in the map that is greater than the
-    // key passed.
+*/
+  uint32_t DTable::slot(double key) const {
+/*
+The upper\_bound method determines the next slot after the one being looked
+for, as it looks for a key in the map that is greater than the key passed.
+
+*/
     auto it{partitioning.upper_bound(key)};
+/*
+If the slot found happens to be the slot at the beginning of the map, that
+means that the value passed in key is below all keys in the map.  That is all
+slots whose left borders are defined. That means that the passed key is
+somewhere between negative infinity and the first defined slot border. That is
+always slot 0. In all other cases, the slot for the value passed in key is the
+slot one before the slot found.
 
-    // If the slot found happens to be the slot at the beginning of the map,
-    // that means that the value passed in key is below all keys in the map.
-    // That is all slots whose left borders are defined. That means that the
-    // passed key is somewhere between negative infinity and the first defined
-    // slot border. That is always slot 0. In all other cases, the slot for the
-    // value passed in key is the slot one before the slot found.
+*/
     if(it == partitioning.begin()) {
       return 0;
     } else {
       return (--it)->second;
     }
   }
+/*
+TODO
 
-  DArray DStruct::getDArray() const {
+*/
+  DArray DTable::getDArray() const {
     DArray da{DArray(allocation, slotbasename)};
     da.set(slotbasename, workers);
     return da;
   }
+/*
+For easier debugging and/or output of the contents of a DTable, this method
+will push all details to a passed ostream. This makes it usable by
+"operator<<"[1], which is also defined.
 
-  void DStruct::print(ostream& os) const {
-    os << "DStruct" << endl;
+*/
+  void DTable::print(ostream& os) const {
+    os << "DTable" << endl;
     os << "partitioning: " << partitioning << endl;
     os << "allocation: " << allocation << endl;
     os << "workers: " << workers << endl;
     os << "slotbasename: " << slotbasename << endl;
   }
+/*
+7 Static Methods
 
-  string DStruct::BasicType() {
-    return "dstruct";
+"BasicType"[1] is required by [secondo]. It returns [secondo]'s basic type for
+this class.
+
+*/
+  string DTable::BasicType() {
+    return "dtable";
   }
+/*
+"checkType"[1] is required by [secondo] as well. It checks the passed ListExpr
+to make sure that it is a valid type description for this class. It doesn't
+only check the main type (~dtable~) but the complete type expression.
 
-  bool DStruct::checkType(ListExpr type, ListExpr& errorInfo) {
+*/
+  bool DTable::checkType(ListExpr type, ListExpr& errorInfo) {
     NList t{type};
     const vector<string> supported{CcInt::BasicType(), CcReal::BasicType(),
       CcString::BasicType(), FText::BasicType()};
@@ -190,21 +262,21 @@ Identity Check
 
 */
     if(t.length() < 1 || !t.first().isSymbol() || t.first().str() !=
-        DStruct::BasicType()) {
+        DTable::BasicType()) {
       cmsg.typeError("The type expression needs to be a nested list beginning "
-          "with the symbol " + DStruct::BasicType() + ".");
+          "with the symbol " + DTable::BasicType() + ".");
       return false;
     }
 /*
-A dstruct of a simple type contains two elements, i.e. (dstruct int). A dstruct
-of a rel(tuple) contains three elements, i.e. (dstruct (Code int) (rel (tuple
+A dtable of a simple type contains two elements, i.e. (dtable int). A dtable
+of a rel(tuple) contains three elements, i.e. (dtable (Code int) (rel (tuple
 ((Osm\_id string) (Code int) (Fclass string))))). Anything else is invalid.
 
 */
     if(t.length() == 2) {
       if(!t.second().isSymbol()) {
         cmsg.typeError("The type expression looks like a " +
-            DStruct::BasicType() + " of a simple type. In this case, the type "
+            DTable::BasicType() + " of a simple type. In this case, the type "
             "expression needs to have a symbol as its second element.");
         return false;
       }
@@ -215,7 +287,7 @@ of a rel(tuple) contains three elements, i.e. (dstruct (Code int) (rel (tuple
           !attr.second().isSymbol() || !am->CheckKind(Kind::REL(),
             t.third().listExpr(), errorInfo)) {
         cmsg.typeError("The type expression looks like a " +
-            DStruct::BasicType() + " of a " + Relation::BasicType() + "(" +
+            DTable::BasicType() + " of a " + Relation::BasicType() + "(" +
             Tuple::BasicType() + "). In this case, the type expression needs "
             "to have an attribute of that " + Relation::BasicType() + "(" +
             Tuple::BasicType() + ") as its second element and the "
@@ -235,24 +307,30 @@ of a rel(tuple) contains three elements, i.e. (dstruct (Code int) (rel (tuple
       }
     } else {
       cmsg.typeError("The type expression must be a nested list of two or "
-          "three elements, depending on whether the " + DStruct::BasicType() +
+          "three elements, depending on whether the " + DTable::BasicType() +
           " is of a simple type or of a " + Relation::BasicType() + "(" +
           Tuple::BasicType() + ").");
       return false;
     }
 /*
 The type or attribute that determines partitioning must be supported by
-DStruct.
+DTable.
 
 */
     for(auto it{supported.begin()}; it != supported.end(); ++it)
       if(partitioning_type == *it)
         return true;
     cmsg.typeError("The type " + partitioning_type + " is not supported by " +
-        DStruct::BasicType() + ".");
+        DTable::BasicType() + ".");
     return false;
   }
+/*
+3 Stream Operators Used by DTable
 
+"<< map<double,uint32\_t>"[1] allows pushing the pairs in a map to a character
+stream in an understandable way.
+
+*/
   ostream& operator<<(ostream& os, const map<double,uint32_t>& m) {
     os << "{";
     for(auto it = m.begin(); it != m.end(); ++it) {
@@ -262,7 +340,10 @@ DStruct.
     os << "}";
     return os;
   }
+/*
+"<< vector<T>"[1] allows pushing the values in a vector to a character stream.
 
+*/
   template<typename T> ostream& operator<<(ostream& os, const vector<T>& v) {
     os << "[";
     for(auto it = v.begin(); it != v.end(); ++it) {
@@ -272,8 +353,15 @@ DStruct.
     os << "]";
     return os;
   }
+/*
+"operator<<"[1] allows something along the lines of the following:
 
-  ostream& operator<<(ostream& os, const DStruct& ds) {
+---- DTable ds;
+     cout << "debug: " << ds;
+----
+
+*/
+  ostream& operator<<(ostream& os, const DTable& ds) {
     ds.print(os);
     return os;
   }
