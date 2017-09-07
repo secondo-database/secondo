@@ -26,7 +26,7 @@ where [
 	o:ort contains "o",
 	o:bevt > 200,
 	o:bevt < 700, 
-	p3:plz = p2:plz + 40]
+	p3:plz = p2:plz + 40].
 
 writeSizes.
 
