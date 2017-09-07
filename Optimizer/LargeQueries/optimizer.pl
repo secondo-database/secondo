@@ -1475,12 +1475,13 @@ plan_to_atom(pr(P,_,_), Result) :-
 
 plan_to_atom([], '').
 
+% Handle atomic value expressions (constants)
 % string atom
 plan_to_atom(value_expr(string,undefined), X) :-
   nullValue(string,undefined,X), !.
 plan_to_atom(value_expr(string,Term), Result) :-
     catch((atom_codes(TermRes, Term), Test = ok),_,Test = failed), Test = ok,
-    my_concat_atom(['"', TermRes, '"'], '', Result).
+    my_concat_atom(['"', TermRes, '"'], '', Result),!.
 plan_to_atom(value_expr(string,Term),Result) :-
   my_concat_atom(['Invalid string constant: ',Term],ErrMsg),
   throw(error_Internal(optimizer_plan_to_atom(value_expr(string,Term),Result)
@@ -1493,10 +1494,10 @@ plan_to_atom(value_expr(text,undefined), X) :-
 plan_to_atom(value_expr(text,Term), Result) :-
     is_list(Term),
     catch((atom_codes(TermRes, Term), Test = ok),_,Test = failed), Test = ok,
-    my_concat_atom(['\'', TermRes, '\''], '', Result).
+    my_concat_atom(['\'', TermRes, '\''], '', Result),!.
 plan_to_atom(value_expr(text,Term), Result) :-
     atomic(Term),
-    my_concat_atom(['\'', Term, '\''], '', Result).
+    my_concat_atom(['\'', Term, '\''], '', Result),!.
 plan_to_atom(value_expr(text,X),Result) :-
   my_concat_atom(['Invalid text constant: ',X],ErrMsg),
   throw(error_Internal(optimizer_plan_to_atom(value_expr(text,X),Result)
@@ -1505,7 +1506,7 @@ plan_to_atom(value_expr(text,X),Result) :-
 
 % int atom
 plan_to_atom(value_expr(int,Result), Result) :-
-  integer(Result).
+  integer(Result), !.
 plan_to_atom(value_expr(int,undefined), X) :-
   nullValue(int,undefined,X), !.
 plan_to_atom(value_expr(int,X),Result) :-
@@ -1516,7 +1517,7 @@ plan_to_atom(value_expr(int,X),Result) :-
 
 % real atom
 plan_to_atom(value_expr(real,Result), Result) :-
-  float(Result).
+  float(Result), !.
 plan_to_atom(value_expr(real,undefined), X) :-
   nullValue(real,undefined,X), !.
 plan_to_atom(value_expr(real,X),Result) :-
@@ -1541,7 +1542,7 @@ plan_to_atom(value_expr(bool,X), Result) :-
                 )
             )
        )
-  ).
+  ),!.
 
 % constant value expression
 plan_to_atom(value_expr(Type,Value), Result) :-
@@ -1551,11 +1552,11 @@ plan_to_atom(value_expr(Type,Value), Result) :-
   ( nullValue(Type,Value,X)  % registered value (null, empty, error, default)
     -> Result = X
     ; my_concat_atom(['[const',TypeA,'value',ValueA,']'],' ',Result)
-  ).
+  ),!.
 
 % type expression
 plan_to_atom(type_expr(Term), Result) :-
-  term_to_atom(Term, Result).
+  term_to_atom(Term, Result),!.
 
 /*
 Handle Implicit arguments in parameter functions:
@@ -2139,12 +2140,12 @@ plan_to_atom(varfuncquery(Stream, Var, Expr), Result) :-
   plan_to_atom(Stream, Stream2),
   plan_to_atom(Expr, Expr2),
   my_concat_atom([Expr2, ' within[fun(', Var, ':ANY) ', Stream2, ']'],
-       Result).
+       Result),!.
 
 plan_to_atom(createtmpbtree(Rel, Attr), Result) :-
   rel_to_atom(Rel, Rel2),
   plan_to_atom(attrname(Attr), Attr2),
-  my_concat_atom([Rel2, ' createbtree[', Attr2, ']'], Result).
+  my_concat_atom([Rel2, ' createbtree[', Attr2, ']'], Result),!.
 
 % Section:Start:plan_to_atom_2_m
 % Section:End:plan_to_atom_2_m
@@ -6688,8 +6689,6 @@ lookupPred1(Term, value_expr(string,Term), RelsBefore, RelsBefore) :-
   !.
 
 %% Primitive: generic atom (constant expression)
-%lookupPred1(Term, value_expr(text,Term), RelsBefore, RelsBefore) :-
-%  atom(Term), !.
 lookupPred1(const(Type,Value), value_expr(Type,Value), RelsBefore, RelsBefore):-
   ground(Type), ground(Value),
   ( atom(Type)
