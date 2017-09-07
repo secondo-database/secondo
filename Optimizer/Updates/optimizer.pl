@@ -1432,28 +1432,28 @@ plan_to_atom(SubqueryPred, Result) :-
   !.
 
 plan_to_atom(pr(P,_), Result) :-
-   plan_to_atom(P, Result).
+   plan_to_atom(P, Result),!.
 
 plan_to_atom(pr(P,_,_), Result) :-
-   plan_to_atom(P, Result).
+   plan_to_atom(P, Result),!.
 
-plan_to_atom([], '').
+plan_to_atom([], '') :- !.
 
 % string atom
 plan_to_atom(value_expr(string,Term), Result) :-
     atom_codes(TermRes, Term),
-    my_concat_atom(['"', TermRes, '"'], '', Result).
+    my_concat_atom(['"', TermRes, '"'], '', Result),!.
 
 % text atom
 plan_to_atom(value_expr(text,Term), Result) :-
     atom_codes(TermRes, Term),
-    my_concat_atom(['\'', TermRes, '\''], '', Result).
+    my_concat_atom(['\'', TermRes, '\''], '', Result),!.
 
 % int atom
-plan_to_atom(value_expr(int,Result), Result).
+plan_to_atom(value_expr(int,Result), Result) :- !.
 
 % real atom
-plan_to_atom(value_expr(real,Result), Result).
+plan_to_atom(value_expr(real,Result), Result) :- !.
 
 % bool atom
 plan_to_atom(value_expr(bool,Term), Result) :-
@@ -1463,18 +1463,18 @@ plan_to_atom(value_expr(bool,Term), Result) :-
          -> ' FALSE '
          ;  fail
        )
-  ).
+  ),!.
 
 % constant value expression
 plan_to_atom(value_expr(Type,Value), Result) :-
   \+ member(Type,[int,real,text,string,bool]), % special rules for these
   term_to_atom(Type,TypeA),
   term_to_atom(Value,ValueA),
-  my_concat_atom(['[const', TypeA, 'value', ValueA, ']'], ' ', Result).
+  my_concat_atom(['[const', TypeA, 'value', ValueA, ']'], ' ', Result),!.
 
 % type expression
 plan_to_atom(type_expr(Term), Result) :-
-  term_to_atom(Term, Result).
+  term_to_atom(Term, Result),!.
 
 /*
 Handle Implicit arguments in parameter functions:
@@ -2057,12 +2057,12 @@ plan_to_atom(varfuncquery(Stream, Var, Expr), Result) :-
   plan_to_atom(Stream, Stream2),
   plan_to_atom(Expr, Expr2),
   my_concat_atom([Expr2, ' within[fun(', Var, ':ANY) ', Stream2, ']'],
-       Result).
+       Result),!.
 
 plan_to_atom(createtmpbtree(Rel, Attr), Result) :-
   rel_to_atom(Rel, Rel2),
   plan_to_atom(attrname(Attr), Attr2),
-  my_concat_atom([Rel2, ' createbtree[', Attr2, ']'], Result).
+  my_concat_atom([Rel2, ' createbtree[', Attr2, ']'], Result),!.
 
 % Section:Start:plan_to_atom_2_m
 % Section:End:plan_to_atom_2_m
