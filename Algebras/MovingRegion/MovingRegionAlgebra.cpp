@@ -5965,21 +5965,38 @@ URegion::URegion(unsigned int n) :
              << endl;
 }
 
-URegion::URegion(vector<MSegmentData> linelist, const Interval<Instant>& tiv) :
+bool msegcompare(const MSegmentData& s1, const MSegmentData& s2){
+  if(s1.GetFaceNo() < s1.GetFaceNo()) return true;
+  if(s1.GetFaceNo() > s1.GetFaceNo()) return false;
+  if(s1.GetCycleNo() < s1.GetCycleNo()) return true;
+  if(s1.GetCycleNo() > s1.GetCycleNo()) return false;
+  if(s1.GetSegmentNo() < s1.GetSegmentNo()) return true;
+  if(s1.GetSegmentNo() > s1.GetSegmentNo()) return false;
+  // should be unique
+  return false;
+
+}
+
+URegion::URegion(vector<MSegmentData> linelist, const Interval<Instant>& tiv,
+                 bool simple) :
    SpatialTemporalUnit<Region, 3>(true),
    segments(0)
 {
   Interval<Instant> newTiv;
   newTiv.CopyFrom(tiv);
-    uremb= URegionEmb(newTiv, 0);
-    timeInterval = newTiv;
-//    for(unsigned int i = 0; i < linelist.size(); i++)
-//    {
-//      MSegmentData newSeg = MSegmentData(linelist[i]);
-//      cout<<i<<"  :"<<linelist[i].ToString()<<endl;
-////      AddSegment(linelist[i]);
-//    }
-//    assert(false);
+  uremb= URegionEmb(newTiv, 0);
+  timeInterval = newTiv;
+  if(simple){
+    sort(linelist.begin(),linelist.end(), msegcompare);
+    vector<MSegmentData>::iterator it;
+    for(it = linelist.begin(); it != linelist.end(); it++){
+      AddSegment(*it);
+    }
+    SetDefined(true);
+    return;
+  }
+
+
   while(linelist.size() > 0)
   {
     int index = getLeftLower(linelist);

@@ -881,7 +881,8 @@ This constructor creates a URegion by a given list of MSegments. The MSegments a
 
 
 */
-    URegion(std::vector<MSegmentData> linelist,const Interval<Instant> &tiv);
+    URegion(std::vector<MSegmentData> linelist,const Interval<Instant> &tiv,
+            bool simple = false);
 
 /*
   Use the following constructor to declare temporal object variables etc.
