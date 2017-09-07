@@ -1896,7 +1896,7 @@ writeStoredRels :-
 
 writeStoredRel(Stream) :-
   storedRel(DB, X, Y),
-  write(Stream, storedRel(DB, X, Y)),
+  writeq(Stream, storedRel(DB, X, Y)),
   write(Stream, '.\n').
 
 showStoredRel :-
@@ -2183,7 +2183,7 @@ writeStoredSpells :-
 
 writeStoredSpell(Stream) :-
   storedSpell(DB, X, Y),
-  write(Stream, storedSpell(DB, X, Y)),
+  writeq(Stream, storedSpell(DB, X, Y)),
   write(Stream, '.\n').
 
 :-
@@ -2256,7 +2256,7 @@ writeStoredCards :-
 
 writeStoredCard(Stream) :-
   storedCard(DB, X, Y),
-  write(Stream, storedCard(DB, X, Y)),
+  writeq(Stream, storedCard(DB, X, Y)),
   write(Stream, '.\n').
 
 :-
@@ -2380,17 +2380,21 @@ writeStoredIndexes :-
 
 writeStoredIndex(Stream) :-
   storedIndex(DB, U, V, W, X),
-  write(Stream, storedIndex(DB, U, V, W, X)),
+  writeq(Stream, storedIndex(DB, U, V, W, X)),
   write(Stream, '.\n').
 
 writeStoredNoIndex(Stream) :-
   storedNoIndex(DB, U, V),
-  write(Stream, storedNoIndex(DB, U, V)),
+  writeq(Stream, storedNoIndex(DB, U, V)),
   write(Stream, '.\n').
 
 writeStoredIndexStatistics(Stream) :-
   storedIndexStat(DB, DCindex, DCrel, U, V),
-  write(Stream, storedIndexStat(DB, DCindex, DCrel, U, V)),
+  ( ( memberchk(U,[filename,filepurpose]), is_list(V) )
+    -> string_chars(Vwrite,V)
+    ;  Vwrite = V
+  ),
+  writeq(Stream, storedIndexStat(DB, DCindex, DCrel, U, Vwrite)),
   write(Stream, '.\n').
 
 
@@ -2682,6 +2686,8 @@ logicalIndexType(constuni, constuni(btree), btree,
     undefined,
     undefined).
 
+% The following entry for inverse file index type does not seem to be correct:
+% there is an anomymous var (_) within the accepted key type list!
 logicalIndexType(invfile, invfile, invfile, [rel|[tuple|_]],
     ['__REL__', 'createtrie[', '__ATTR__', ']'],
     undefined, undefined, undefined).
@@ -4587,7 +4593,7 @@ writeStoredTupleSizes :-
 
 writeStoredTupleSize(Stream) :-
   storedTupleSize(DB, DCrel, Mem, Core, LOB),
-  write(Stream, storedTupleSize(DB, DCrel, Mem, Core, LOB)),
+  writeq(Stream, storedTupleSize(DB, DCrel, Mem, Core, LOB)),
   write(Stream, '.\n').
 
 :-
@@ -4804,7 +4810,7 @@ writeStoredAttrSizes :-
 
 writeStoredAttrSize(Stream) :-
   storedAttrSize(Database, Rel, Attr, Type, MemSize, CoreSize, LOBSize),
-  write(Stream, storedAttrSize(Database, Rel, Attr, Type, MemSize,
+  writeq(Stream, storedAttrSize(Database, Rel, Attr, Type, MemSize,
                                CoreSize, LOBSize)),
   write(Stream, '.\n').
 
@@ -4903,7 +4909,7 @@ writeStoredOrders :-
 
 writeStoredOrder(Stream) :-
   storedOrder(DB, Rel, Attr),
-  write(Stream, storedOrder(DB, Rel, Attr)),
+  writeq(Stream, storedOrder(DB, Rel, Attr)),
   write(Stream, '.\n').
 
 /*
