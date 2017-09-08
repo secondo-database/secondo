@@ -79,9 +79,23 @@ namespace temporalalgebra {
       return NList::typeError(errMsg);
     }// 
     
+    // Type mapping for predicate operations
+    ListExpr predicateTypeMap(ListExpr args) {
+      NList type(args);
+      const std::string errMsg = "Expecting two movingregions.";
+      if (type.length() != 2)
+        return NList::typeError(errMsg);
+      // movingregion x movingregion -> mbool
+      if (type.first().isSymbol(MRegion::BasicType()) &&
+          type.second().isSymbol(MRegion::BasicType())) {
+        return NList(MBool::BasicType()).listExpr();
+      }// if  
+      return NList::typeError(errMsg);
+    }// 
+    
     // Type mapping for Operator selftest
     ListExpr selftestTM(ListExpr args){
-      std::string err = " no paramters expected";
+      std::string err = "No paramters expected";
       if(!nl->HasLength(args,0)){ 
         return listutils::typeError(err);
       }// if
@@ -101,7 +115,7 @@ namespace temporalalgebra {
       SetOperator so(mrA, mrB, res);
       so.operate(INTERSECTION);
       return 0;
-    }// Intersection
+    }// intersectionValueMap
     
     // Value mapping for operator Union
     int unionValueMap(Word* args, Word& result, int message, Word& local,
@@ -113,7 +127,7 @@ namespace temporalalgebra {
       SetOperator so(mrA, mrB, res);
       so.operate(UNION);
       return 0;
-    }// Union
+    }// unionValueMap
 
     // Value Mapping for operator Minus
     int minusValueMap(Word* args, Word& result, int message, Word& local,
@@ -125,25 +139,43 @@ namespace temporalalgebra {
       SetOperator so(mrA, mrB, res);
       so.operate(MINUS);
       return 0;
-    }// Minus
+    }// minusValueMap
     
-    // Value mapping for operator Selftets'
-    int selftestVM(Word* args, Word& result, int message, Word& local, 
+    // Value Mapping for predicate Intersects
+    int intersectsValueMap(Word* args, Word& result, int message, Word& local,
+                           Supplier s) {
+      MRegion* mrA = static_cast<MRegion*>(args[0].addr );
+      MRegion* mrB = static_cast<MRegion*>(args[1].addr );
+      result = qp->ResultStorage(s);
+      MBool* res = static_cast<MBool*>(result.addr );
+      PredicateOperator po(mrA, mrB, res);
+      po.operate(INTERSECTS);
+      return 0;
+    }// intersectsValueMap
+    
+    // Value Mapping for predicate Inside
+    int insideValueMap(Word* args, Word& result, int message, Word& local,
+                           Supplier s) {
+      MRegion* mrA = static_cast<MRegion*>(args[0].addr );
+      MRegion* mrB = static_cast<MRegion*>(args[1].addr );
+      result = qp->ResultStorage(s);
+      MBool* res = static_cast<MBool*>(result.addr );
+      PredicateOperator po(mrA, mrB, res);
+      po.operate(INSIDE);
+      return 0;
+    }// insideValueMap
+    
+    // Value mapping for operator Selftest
+    int mregionops3testVM(Word* args, Word& result, int message, Word& local, 
                   Supplier s){ 
       Selftest test;
       bool res;
-      // Selbstest ausführen
-      try {
-        res = test.run();
-      }// try
-      catch (NumericFailure e){
-        std::cerr << endl << "!!! "<< e.what()<< endl << endl;
-      }// catch
+      res = test.run();
       result = qp->ResultStorage(s);
       CcBool* b = (CcBool*) result.addr;    
       b->Set(true,res);
       return 0;
-    }// ValueMapping
+    }// mregionops3testVM
 /*
 5 Operator Descriptions
 
@@ -177,34 +209,32 @@ namespace temporalalgebra {
       }// MinusInfo            
     };// struct MinusInfo   
     
-    struct SelftestInfo:OperatorInfo {
-      SelftestInfo(){
-        name      = "selftest";
-        signature = "selftest -> bool";
-        syntax    = "selftest";
-        meaning   = "Selftest for all classes in this algebra.";
-      }// MinusInfo            
-    };// struct MinusInfo 
+    struct IntersectsInfo:OperatorInfo {
+      IntersectsInfo() {
+        name      = "intersects";
+        signature = "mregion x mregion -> mbool";
+        syntax    = "_ intersects _";
+        meaning   = "predicate intersects for two moving regions.";
+      }// IntersectsInfo            
+    };// struct IntersectsInfo  
     
-/*    // Angaben zum Operator 'selftest'
-    OperatorSpec selftestSpec(
-      "selftest->bool", 
-      "selftest ()", 
-      "Selftest for MRegionOp3", 
-      "query selftest()"
-    );
-
-    // Operator zusammensetzen
-    Operator* getSelftestPtr(){
-      return new Operator(
-        "selftest",
-        selftestSpec.getStr(),
-        selftestVM,
-        Operator::SimpleSelect,
-        selftestTM
-      );
-    }// getSelftestPtr  */  
-
+    struct InsideInfo:OperatorInfo {
+      InsideInfo() {
+        name      = "inside";
+        signature = "mregion x mregion -> mbool";
+        syntax    = "_ inside _";
+        meaning   = "predicate inside for two moving regions.";
+      }// InsideInfo            
+    };// struct InsideInfo 
+        
+    struct Mregionops3testInfo:OperatorInfo {
+      Mregionops3testInfo(){
+        name      = "mregionops3test";
+        signature = " x -> bool";
+        syntax    = "selftest";
+        meaning   = "tests all classes in this algebra.";
+      }// Mregionops3testInfo            
+    };// struct Mregionops3testInfo 
 
 /*
 6 Implementation of the algebra class
@@ -216,9 +246,9 @@ namespace temporalalgebra {
         AddOperator(IntersectionInfo(), intersectionValueMap, setOpTypeMap);
         AddOperator(UnionInfo(), unionValueMap, setOpTypeMap);
         AddOperator(MinusInfo(), minusValueMap, setOpTypeMap);
-        AddOperator(SelftestInfo(),selftestVM, selftestTM);
-//         // Selftetest for the Algebra 
-//         AddOperator(getSelftestPtr(), true); 
+        AddOperator(Mregionops3testInfo(),mregionops3testVM, selftestTM);
+        AddOperator(IntersectsInfo(),intersectsValueMap,predicateTypeMap);
+        AddOperator(InsideInfo(),insideValueMap,predicateTypeMap);
       }// Konstruktor
           
       ~MRegionOps3Algebra() {

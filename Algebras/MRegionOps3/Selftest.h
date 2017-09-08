@@ -142,6 +142,8 @@ namespace temporalalgebra {
       void ResultUnitFactoryTest3();
       void ResultUnitFactoryTest4();
       void ResultUnitFactoryTest5();
+      void ResultUnitFactoryTest6();
+      void ResultUnitFactoryTest7();
         
       void SegmentContainerTest1();
        
@@ -155,10 +157,10 @@ namespace temporalalgebra {
       void UnitsTest6();
       void UnitsTest7();
       void UnitsTest8();
+      void UnitsTest9();
+      void UnitsTest10();
       
       void SourceUnitPairTest1();
-            
-      void IntersectionSegmentTest4();
 
       void assert_(std::string test,  std::string message, bool success);
       

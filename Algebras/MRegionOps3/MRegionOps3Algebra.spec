@@ -17,10 +17,12 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator selftest alias SELFTEST pattern op ()
+operator mregionops3test alias MREGIONOPS3TEST pattern op ()
 operator intersection alias INTERSECTION pattern op ( _ , _)
 operator minus alias MINUS pattern _ infixop _
 operator union alias UNION pattern _ infixop _
+operator intersects alias INTERSECTS pattern _ infixop _
+operator inside alias INSIDE pattern _ infixop _
 
 
 

@@ -102,6 +102,11 @@ Used in the class ~PFace~ to indicate it's current state.
       UNION,
       MINUS
     };
+    
+    enum PredicateOp {
+      INTERSECTS,
+      INSIDE
+    };
 /*
 4 Class RationalPoint3DExt
 
@@ -606,7 +611,6 @@ A ~std::list~ to store the active ~IntersectionSegments~ and the a
 orthogonal ~IntersectionSegments~during the plane-sweep.
 
 */
- //     std::list<IntersectionSegment*> orthogonal;
       std::list<IntersectionSegment*> active;   
     };
 /*
@@ -685,12 +689,13 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
 */        
       bool scaledNext(double& t1, double& t2); 
       
-      bool orginalNext(double& t1, double& t2);       
-      
-    private:             
+      bool orginalNext(double& t1, double& t2);    
       
       Interval<Instant> createInterval(double start, double end) const;
       
+    private:             
+      
+
       double computeOrginalTimeValue(double scaledTimeValue)const;
 /*
 13.4 Attributes
@@ -959,7 +964,7 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
        
       ResultUnitFactory();
        
-      ResultUnitFactory(size_t size);
+      ResultUnitFactory(size_t size, bool isCritcal = false);
  
       ResultUnitFactory(Point3DContainer& points,
                         GlobalTimeValues &timeValues,
@@ -986,6 +991,11 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
       void getResultUnit(size_t slide, Predicate predicate, bool reverse, 
                          const Point3DContainer& points, ResultUnit& unit, 
                          State pfState, SourceFlag source);
+      
+      bool intersects(std::vector<bool>& predicate);
+      
+      bool inside(std::vector<bool>& predicate);
+
 /*
 17.3.2 operator <<
 
@@ -1024,6 +1034,14 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
       void evaluate(size_t i);
                           
       void setSlidePredicates(Predicate predicate,size_t i, size_t touch);
+      
+      Predicate calculateAreaPredicate(const Segment& left, 
+                                       const Segment& right)const;
+      
+      bool intersects(size_t slide, bool& predicate) const;
+      
+      bool inside(size_t slide, bool& predicate) const;
+      
 /*
 17.4 Attributes
 
@@ -1058,9 +1076,9 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
 18.2 Setter and Getter methods
 
 */
-      void    set(const PFace& pf);
-      void    setState(State state);
-      State   getState() const;
+      void set(const PFace& pf);
+      void setState(State state);
+      State getState() const;
 /*
 18.3 Methods, operators and predicates
 
@@ -1149,6 +1167,12 @@ Computes the intersection of this ~PFace~ with pf.
       bool finalize(Point3DContainer& points, SegmentContainer& segments, 
                     GlobalTimeValues& timeValues);
       
+      bool intersects(Point3DContainer& points, GlobalTimeValues& timeValues,
+                      std::vector<bool>& predicate);
+      
+      bool inside(Point3DContainer& points, GlobalTimeValues& timeValues,
+                  std::vector<bool>& predicate);
+      
       void getResultUnit(size_t slide, Predicate predicate, bool reverse, 
                          const Point3DContainer& points, ResultUnit& unit,
                          SourceFlag source);
@@ -1235,7 +1259,13 @@ Computes the intersection of this ~PFace~ with pf.
       bool intersection(SourceUnit& other, GlobalTimeValues& timeValues); 
       
       bool finalize(Point3DContainer& points, GlobalTimeValues& timeValues,
-                    Predicate predicateconst, const SourceUnit& other);
+                    Predicate predicateconst, SourceUnit& other);
+      
+      void intersects(Point3DContainer& points, GlobalTimeValues& timeValues,
+                      SourceUnit& other, std::vector<bool>& predicate);
+      
+      void inside(Point3DContainer& points, GlobalTimeValues& timeValues,
+                  SourceUnit& other, std::vector<bool>& predicate);
       
       void getResultUnit(size_t slide, Predicate predicate,bool reverse, 
                          const Point3DContainer& points, ResultUnit& unit,
@@ -1260,7 +1290,7 @@ Print the object values to stream.
       
       void createTestRegion();
       
-      bool isInside(const PFace* pFace)const;
+      bool isInside(const PFace* pFace);
             
       void createFaceCycleEntry(const PFace* pf, size_t index);
       
@@ -1283,15 +1313,13 @@ Print the object values to stream.
 20.3 Attributes
 
 */       
-
       std::vector<PFace*> pFaces;
       mmrtree::RtreeT<2, size_t> pFaceTree; 
       SegmentContainer segments;
       std::vector<size_t> itersectedPFace;
       Region testRegion;
       bool   testRegionDefined;      
-      std::vector<std::vector<FaceCycleInfo>> faceCycleInfo;
-      
+      std::vector<std::vector<FaceCycleInfo>> faceCycleInfo;            
     };// class SourceUnit 
 /*
 21 Class SourceUnitPair
@@ -1312,6 +1340,8 @@ Print the object values to stream.
       
       bool operate(SetOp setOp);
       
+      bool predicate(PredicateOp predicateOp);
+      
       std::ostream& print(std::ostream& os, std::string prefix)const;
       
       friend std::ostream& operator <<(std::ostream& os, 
@@ -1322,6 +1352,11 @@ Print the object values to stream.
       ResultUnit getResultUnit(size_t slide)const;
       
       void createResultMRegion( MRegion* resMRegion);
+      
+      void createResultMBool(MBool* resMBool );
+      
+      void createSourceUnit(const Interval<Instant>& interval, MRegion* mregion,
+                            SourceFlag sourceFlag);
 
     private:      
 /*
@@ -1331,7 +1366,7 @@ Print the object values to stream.
       SourceUnit unitA;
       SourceUnit unitB;
       std::vector<ResultUnit> result;
-      
+      std::vector<bool> predicates;      
       GlobalTimeValues timeValues;        
       Point3DContainer points; 
     };
@@ -1347,12 +1382,7 @@ Print the object values to stream.
       
       void operate(SetOp setOp);    
 
-    private:
-      
-      void createSourceUnit(const Interval<Instant>& interval, 
-                            MRegion* mregion,
-                            SourceFlag sourceFlag, 
-                            SourceUnitPair& unitPair);      
+    private: 
 /*
 22.4 Attributes
 
@@ -1361,6 +1391,28 @@ Print the object values to stream.
       MRegion* const mRegionB;
       MRegion* const mRegionResult;
     }; // class SetOperator
+
+/*
+23 class SetOperator
+
+*/
+    class PredicateOperator {
+    public:  
+
+      PredicateOperator(MRegion* const _mRegionA, MRegion* const _mRegionB, 
+                        MBool* const  _mBool);
+      
+      void operate(PredicateOp predicateOp);    
+
+    private: 
+/*
+22.4 Attributes
+
+*/
+      MRegion* const mRegionA;
+      MRegion* const mRegionB;
+      MBool*   const mBool;
+    }; // class PredicateOperator    
 
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra

@@ -90,6 +90,7 @@ namespace temporalalgebra {
       else os << "UNIT_B)";
       return os; 
     }// operator <<
+    
 /*
 5 Class RationalPoint3DExtSet
 
@@ -138,6 +139,7 @@ namespace temporalalgebra {
       os << prefix << ")" << endl;
       return os;
     }// print
+    
 /*
 6 Class RationalPlane3D
 
@@ -414,6 +416,7 @@ namespace temporalalgebra {
              NumericUtil::nearlyEqual(this->z, point.z) &&
              NumericUtil::nearlyEqual(this->w, point.w);
     }// Operator ==
+    
 /*
 8 Class IntersectionSegment
 
@@ -574,7 +577,8 @@ namespace temporalalgebra {
       return this->head == segment.head && 
              this->tail == segment.tail &&
              this->predicate == segment.predicate;
-    }// Operator ==       
+    }// Operator == 
+    
 /*
 9 Struct IntSegCompare
 
@@ -603,7 +607,8 @@ namespace temporalalgebra {
       // head1.getT() == head2.getT(), head1.getW() == head2.getW() 
       if(segment1->getPredicate() < segment2->getPredicate())  return true;
       return false;
-    }// IntSegCompare   
+    }// IntSegCompare  
+    
 /*
 10 Class PlaneSweepAccess
 
@@ -624,6 +629,7 @@ namespace temporalalgebra {
     
     PlaneSweepAccess::~PlaneSweepAccess(){
     }// Destruktor
+    
 /*
 11 class IntSegContainer
 
@@ -761,7 +767,8 @@ namespace temporalalgebra {
         Predicate predicate = segment->getPredicate();
         segments.add(Segment(p1,p2,predicate),pFaceIsCritical);   
       }// for   
-    }// next     
+    }// next    
+    
 /*
 12 struct DoubleCompare
 
@@ -769,6 +776,7 @@ namespace temporalalgebra {
     bool DoubleCompare::operator()(const double& d1, const double& d2) const{ 
         return NumericUtil::lower(d1, d2);
     }// Operator
+    
 /*
 13 class GlobalTimeValues
 
@@ -1188,7 +1196,8 @@ namespace temporalalgebra {
     MSegment& MSegment::operator =(const MSegment& mSegment){
       set(mSegment);
       return *this;
-    }// Operator =    
+    }// Operator = 
+    
 /*
 14 class CriticalMSegment 
  
@@ -1462,7 +1471,7 @@ namespace temporalalgebra {
       Region region(mSegments.size());
       region.StartBulkLoad();
       for (size_t i = 0; i < mSegments.size(); i++) {
-//        cout << mSegments[i].getMedianHS() << endl;
+        // cout << mSegments[i].getMedianHS() << endl;
         region.Put(i, mSegments[i].getMedianHS());
       }// for
       // Note: Sorting is already done.
@@ -1477,7 +1486,7 @@ namespace temporalalgebra {
       }// for
       // Sort mSegments by faceno, cycleno and segmentno:
       sort(mSegments.begin(), mSegments.end(), ResultUnit::logicLess);
-//      this->Print();
+      //  this->Print();
       // Erase the second half of mSegments, 
       // which contains all MSegments with right dominating point:
       mSegments.erase(mSegments.begin() + mSegments.size() / 2, 
@@ -1510,17 +1519,17 @@ namespace temporalalgebra {
     
     void ResultUnit::copyCriticalMSegmens(const CriticalMSegment& cmSeg, 
                                           SetOp setOp){
-      if (setOp == UNION && cmSeg.getPredicate() == OUTSIDE) {
+      if (setOp == UNION && cmSeg.getPredicate() == OUTER) {
         addMSegment(cmSeg); 
         return;
       }// if
-      if (setOp == INTERSECTION && cmSeg.getPredicate() == INSIDE) {
+      if (setOp == INTERSECTION && cmSeg.getPredicate() == INNER) {
         addMSegment(cmSeg);  
         return; 
       }// if
       if ( setOp == MINUS && 
-          ((cmSeg.isPartOfUnitA() && cmSeg.getPredicate() == OUTSIDE)||
-          (!cmSeg.isPartOfUnitA() && cmSeg.getPredicate() == INSIDE))) {
+          ((cmSeg.isPartOfUnitA() && cmSeg.getPredicate() == OUTER)||
+          (!cmSeg.isPartOfUnitA() && cmSeg.getPredicate() == INNER))) {
         addMSegment(cmSeg);  
         return;
       }// if
@@ -1569,7 +1578,8 @@ namespace temporalalgebra {
       set(other);
     }// Konstruktor
  
-    ResultUnitFactory::ResultUnitFactory(size_t size):pFaceIsCritical(false){
+    ResultUnitFactory::ResultUnitFactory(
+        size_t size,bool isCritical /*= false*/):pFaceIsCritical(isCritical){
       inittialize(size);
     }// Konstruktor    
      
@@ -1797,8 +1807,8 @@ namespace temporalalgebra {
            segments.get(*first).getPredicate() == UNDEFINED) {
          predicate =createPredicate(predicate, LEFT);
          if (touch%2 == 1) {
-           if (predicate == OUTSIDE) predicate = INSIDE;
-           else predicate = OUTSIDE;
+           if (predicate == OUTER) predicate = INNER;
+           else predicate = OUTER;
          }// if
          for (iter = nonOrthogonalEdges[slide].begin(); 
               iter != nonOrthogonalEdges[slide].end(); iter++) {
@@ -1872,7 +1882,7 @@ namespace temporalalgebra {
             // ausgwertet werden
             if (leftSegment.getTail() == orthogonalSegment.getTail() && 
                 rightSegment.getTail()== orthogonalSegment.getHead()) {
-//              cout << "Bottom" <<endl;
+              //  cout << "Bottom" <<endl;
               // orthogonale Kante als rechte Kante für eine PFace 
               // auswerten
               checkPredicate(orthogonalSegment,RIGHT,predicate); 
@@ -1895,7 +1905,7 @@ namespace temporalalgebra {
             // ausgwertet werden
             if (leftSegment.getHead()  == orthogonalSegment.getTail() && 
                 rightSegment.getHead() == orthogonalSegment.getHead()) {
-//              cout << "Top" <<endl;
+              //  cout << "Top" <<endl;
               // orthogonale Kante als linke Kante für eine mögliches 
               // PFace auswerten
               checkPredicate(orthogonalSegment,LEFT,predicate);
@@ -1978,11 +1988,11 @@ namespace temporalalgebra {
                                                  const Border border)const{
       Predicate predicate;
       switch (source) {        
-        case LEFT_IS_INNER:  if(border == LEFT) predicate = OUTSIDE;
-                             else predicate = INSIDE;
+        case LEFT_IS_INNER:  if(border == LEFT) predicate = OUTER;
+                             else predicate = INNER;
                              break;    
-        case RIGHT_IS_INNER: if(border == LEFT) predicate = INSIDE;
-                             else predicate = OUTSIDE;
+        case RIGHT_IS_INNER: if(border == LEFT) predicate = INNER;
+                             else predicate = OUTER;
                              break;     
         default:             predicate = source;         
       }// switch
@@ -1993,7 +2003,7 @@ namespace temporalalgebra {
                                            const Border border, 
                                            Predicate& result)const{
       Predicate predicate = createPredicate(segment.getPredicate(), border);
-      if (predicate == INSIDE || predicate == OUTSIDE) {
+      if (predicate == INNER || predicate == OUTER) {
         if (result == UNDEFINED) result = predicate;
         else if (!(result == predicate)) {
           cerr << *this;
@@ -2115,6 +2125,178 @@ namespace temporalalgebra {
         }//if
       }// if
     }// getResultPFace  
+    
+    Predicate ResultUnitFactory::calculateAreaPredicate(
+        const Segment& left, const Segment& right)const{
+      Predicate leftP      = left.getPredicate();
+      Predicate rightP     = right.getPredicate();
+      // Segmente definieren den Bereich als Innen
+      if (leftP == RIGHT_IS_INNER || rightP == LEFT_IS_INNER || 
+        leftP == INNER || rightP == INNER){
+        // existieren Wiedersrüche
+        if (leftP == LEFT_IS_INNER || rightP == RIGHT_IS_INNER ||  
+            leftP == OUTER || rightP == OUTER){
+          cerr << "Left Segment :=" << left << endl;
+          cerr << "Right Segment:=" << right<< endl;
+          NUM_FAIL ("Predicate on left and right segment are controvert.");
+        }// if                
+        return INNER;
+       }// if
+       // Segmente definieren den Bereich als Außen
+       // Wiedersprpche sind nicht möglich
+       else if (rightP == RIGHT_IS_INNER || leftP == LEFT_IS_INNER || 
+                leftP  == OUTER || rightP == OUTER){          
+          return OUTER;
+       }// else if
+       return UNDEFINED;
+    }// calculateAreaPredicate
+        
+    bool ResultUnitFactory::intersects(size_t slide, bool& predicate)const{
+      // Anzahl der Einträge bestimmen
+      size_t size = this->nonOrthogonalEdges[slide].size();
+      if(size < 2) {
+        NUM_FAIL ("At least two segments are necessary."); 
+      }// if
+      // Status "RELEVANT" mit mehr als zwei Segmenten
+      if(!pFaceIsCritical && size > 2){
+        // Schnitt leigt vor
+        predicate = true;
+        // Ergebnis konnte ermittelt werden
+        return true;
+      }// if
+      list<size_t>::const_iterator left  = nonOrthogonalEdges[slide].begin();
+      list<size_t>::const_iterator right = left;
+      right++;
+      // Status "RELEVANT" mit genau zwei Segmenten
+      if (!pFaceIsCritical && size == 2){
+        Predicate result = calculateAreaPredicate(segments.get(*left),
+                                                  segments.get(*right));
+        // cout << "Prädikate:=" << mregionops3::toString(result) << endl;
+        if (result == INNER) {
+          predicate = true;
+          return true;
+        }// if
+        else if (result == OUTER) {
+          predicate = false;
+          return true;
+        }// else if
+      }// if
+      else { 
+        // Status "CRITICAL"
+        Predicate oldPredicate = UNDEFINED;
+        for (;right != nonOrthogonalEdges[slide].end();right++){
+          Predicate newPredicate = calculateAreaPredicate(segments.get(*left),
+                                                          segments.get(*right));
+          // cout << "Old Predicate:=";  
+          // cout << mregionops3::toString(oldPredicate) << endl;
+          // cout << "New Predicate:=";   
+          // cout << mregionops3::toString(newPredicate) << endl;
+          // cout << "Left segment.="   << segments.get(*left) << endl;
+          // cout << "Right segments:=" << segments.get(*right) << endl;
+          if (newPredicate == INNER) {
+            predicate = true;
+            return true;
+          }// if
+          // neues Prädikat übernhmen, wenn es gültig ist
+          if(newPredicate != UNDEFINED) oldPredicate = newPredicate;
+          // rechtes Segment ist jetzt linkes Segment
+          left = right;;
+        }// for
+        if(oldPredicate == OUTER){
+            predicate = false;
+            return true;
+        }// if          
+      }// else
+      predicate = false;
+      return false;
+    }// intersects
+    
+    bool ResultUnitFactory::inside(size_t slide, bool& predicate)const{
+      // Anzahl der Einträge bestimmen
+      size_t size = this->nonOrthogonalEdges[slide].size();
+      if(size < 2) {
+        NUM_FAIL ("At least two segments are necessary."); 
+      }// if
+      // Status "RELEVANT" mit mehr als zwei Segmenten
+      if(!pFaceIsCritical && size > 2){
+        // Schnitt liegt vor, kann nicht mehr innen liegen
+        predicate = false;
+        // Ergebnis konnte ermittelt werden
+        return true;
+      }// if
+      list<size_t>::const_iterator left  = nonOrthogonalEdges[slide].begin();
+      list<size_t>::const_iterator right = left;
+      right++;
+      // Status "RELEVANT" mit genau zwei Segmenten
+      if (!pFaceIsCritical && size == 2){
+        Predicate result = calculateAreaPredicate(segments.get(*left),
+                                                  segments.get(*right));
+        // cout << "Prädikate:=" << mregionops3::toString(result) << endl;
+        if (result == INNER) {
+          predicate = true;
+          return true;
+        }// if
+        else if (result == OUTER) {
+          predicate = false;
+          return true;
+        }// else if
+      }// if
+      else { 
+        // Status "CRITICAL"
+        Predicate oldPredicate = UNDEFINED;
+        for (;right != nonOrthogonalEdges[slide].end();right++){
+          Predicate newPredicate = calculateAreaPredicate(segments.get(*left),
+                                                          segments.get(*right));
+          // cout << "Old Predicate:=";  
+          // cout << mregionops3::toString(oldPredicate) << endl;
+          // cout << "New Predicate:=";   
+          // cout << mregionops3::toString(newPredicate) << endl;
+          // cout << "Left segment.="   << segments.get(*left) << endl;
+          // cout << "Right segments:=" << segments.get(*right) << endl;
+          if (newPredicate == OUTER) {
+            predicate = false;
+            return true;
+          }// if
+          // neues Prädikat übernhmen, wenn es gültig ist
+          if(newPredicate != UNDEFINED) oldPredicate = newPredicate;
+          // rechtes Segment ist jetzt linkes Segment
+          left = right;;
+        }// for
+        if(oldPredicate == INNER){
+            predicate = true;
+            return true;
+        }// if          
+      }// else
+      predicate = false;
+      return false;
+    }// inside
+
+    bool ResultUnitFactory::intersects(std::vector<bool>& predicate){
+      if(nonOrthogonalEdges.size() != predicate.size()){
+        NUM_FAIL ("vector for predicates has a wrong size."); 
+      }// if
+      for (size_t i = 0; i < nonOrthogonalEdges.size(); i++){
+        bool value;
+        bool result  = intersects(i, value); 
+        predicate[i] = value;
+        if(!result)return false;
+      }// for
+      return true;
+    }// intersects
+    
+    bool ResultUnitFactory::inside(std::vector<bool>& predicate){
+      if(nonOrthogonalEdges.size() != predicate.size()){
+        NUM_FAIL ("vector for predicates has a wrong size."); 
+      }// if
+      for (size_t i = 0; i < nonOrthogonalEdges.size(); i++){
+        bool value;
+        bool result  = inside(i, value); 
+        predicate[i] = value;
+        if(!result)return false;
+      }// for
+      return true;
+    }// inside
+     
 /*
 15 Class PFace
 
@@ -2264,7 +2446,6 @@ namespace temporalalgebra {
       return IntersectionSegment(segment3D,segment2D,predicate);
     }// createBorder 
     
-    
     // Kernfunktion
     void PFace::addBorder(const RationalPlane3D &plane,
                           GlobalTimeValues &timeValues, 
@@ -2334,9 +2515,7 @@ namespace temporalalgebra {
       Predicate leftPredicate  = segments.get(this->left).getPredicate();
       Predicate rightPredicate = segments.get(this->right).getPredicate();      
       if (leftPredicate == UNDEFINED) segments.set(this->left,predicate);
-//      else NUM_FAIL("Left border predicate for PFace should not be set.");
       if (rightPredicate == UNDEFINED) segments.set(this->right,predicate);
-//      else NUM_FAIL("Right border predicate for PFace should not be set.");
     }// setBorderPredicate   
     
     bool PFace::intersectionOnPlane(PFace& other,
@@ -2437,14 +2616,12 @@ namespace temporalalgebra {
     }// intersection   
     
     void PFace::first(double t1, double t2, Point3DContainer& points,
-                                            SegmentContainer& segments,
-                                            bool pFaceIsCritical){ 
+                       SegmentContainer& segments, bool pFaceIsCritical){ 
       intSegs.first(t1, t2, points, segments, pFaceIsCritical);
     }// first
       
     void PFace::next(double t1, double t2, Point3DContainer& points, 
-                                           SegmentContainer& segments,
-                                           bool pFaceIsCritical){
+                     SegmentContainer& segments,bool  pFaceIsCritical){
       intSegs.next(t1, t2, points, segments, pFaceIsCritical); 
     }// next
     
@@ -2512,9 +2689,9 @@ namespace temporalalgebra {
         leftPredicate  = segments.get(this->left).getPredicate();
         // Prädikat der rechten Kante bestimmen
         rightPredicate = segments.get(this->right).getPredicate();
-        // die Prädikate "INSIDE" und "OUTSIDE" werden von der linken Kante
+        // die Prädikate "INNER" und "OUTER" werden von der linken Kante
         // auf die rechte Kante übernommen, falls erforderlich
-        if (leftPredicate == INSIDE || leftPredicate == OUTSIDE) {
+        if (leftPredicate == INNER || leftPredicate == OUTER) {
           // Prädikat ändern, wenn dieses "UNDEFINED"
           if (rightPredicate == UNDEFINED) {
             // Prädikat der rechten kante setzen
@@ -2523,9 +2700,9 @@ namespace temporalalgebra {
           // Kanteninformation des PFace ist vollständig
           result = true;
         }// if
-        // die Prädikate "INSIDE" und "OUTSIDE" werden von der rechten Kante
+        // die Prädikate "INNER" und "OUTER" werden von der rechten Kante
         // auf die linke Kante übernommen, falls erforderlich
-        if (rightPredicate == INSIDE || rightPredicate == OUTSIDE) {
+        if (rightPredicate == INNER || rightPredicate == OUTER) {
           // Prädikat ändern, falls dieses "UNDEFINED" ist
           if (leftPredicate == UNDEFINED) {
             // Prädikat der linken Kante setzen
@@ -2540,10 +2717,47 @@ namespace temporalalgebra {
       return result;
     }// finalize
     
+    
+    bool PFace::intersects(Point3DContainer& points, 
+                           GlobalTimeValues& timeValues,
+                           std::vector<bool>& predicate){
+      // Für relevante und Kritrsche PFaces
+      if (this->state == RELEVANT || this->state == CRITICAL) {
+        bool pFaceIsCritical = false;
+        if(this->state == CRITICAL) pFaceIsCritical = true;
+        // Ergebnis Factory erstellen
+        this->factory = ResultUnitFactory(
+          points, timeValues, *this, pFaceIsCritical);
+        // Ergbnis vervollständigen
+        this->factory.evaluate();
+        // Ergebnis Factory auswerten
+        return this->factory.intersects(predicate);
+      }// if
+      return false;
+    }// intersects
+    
+    bool PFace::inside(Point3DContainer& points, 
+                       GlobalTimeValues& timeValues,
+                       std::vector<bool>& predicate){
+      // Für relevante und Kritrsche PFaces
+      if (this->state == RELEVANT || this->state == CRITICAL) {
+        bool pFaceIsCritical = false;
+        if(this->state == CRITICAL) pFaceIsCritical = true;
+        // Ergebnis Factory erstellen
+        this->factory = ResultUnitFactory(
+          points, timeValues, *this, pFaceIsCritical);
+        // Ergbnis vervollständigen
+        this->factory.evaluate();
+        // Ergebnis Factory auswerten
+        return this->factory.inside(predicate);
+      }// if
+      return false;
+    }// inside
+    
     void PFace::getResultUnit(size_t slide, Predicate predicate,
-                               bool reverse, 
-                               const Point3DContainer& points, 
-                               ResultUnit& unit, SourceFlag source){
+                              bool reverse, 
+                              const Point3DContainer& points, 
+                              ResultUnit& unit, SourceFlag source){
       this->factory.getResultUnit(slide,predicate,reverse,points,unit,
                                   this->state,source);
     }// getResultPFace   
@@ -2691,7 +2905,7 @@ namespace temporalalgebra {
     bool SourceUnit::finalize(Point3DContainer& points, 
                               GlobalTimeValues& timeValues, 
                               Predicate predicate,
-                              const SourceUnit& other ){
+                               SourceUnit& other){
       // Vektor mit Bool-Werten für den Bearbeitungsstand der PFaces
       vector<bool> ok = vector<bool>(pFaces.size(),false);
       // 
@@ -2701,7 +2915,7 @@ namespace temporalalgebra {
       for (size_t i = 0; i < this->itersectedPFace.size(); i++) {
         // index eines geschnittenden PFace laden
         size_t index = itersectedPFace[i];
-        // wurde die Kante noch nicht behandelt
+        // wurde das PFace noch nicht behandelt
         if (!ok[index]) {
           // Ergebnis ermitteln
           bool result = this->pFaces[index]->finalize(
@@ -2753,16 +2967,15 @@ namespace temporalalgebra {
             if (!ok[i] && this->pFaces[i]->getState() != CRITICAL){  
               // liegt es innerhalb der andern SourceUnit            
               if (other.isInside(this->pFaces[i])) {
-                this->pFaces[i]->setBorderPredicate(segments,INSIDE);
+                this->pFaces[i]->setBorderPredicate(segments,INNER);
               }// if
               else {
-                this->pFaces[i]->setBorderPredicate(segments,OUTSIDE);
+                this->pFaces[i]->setBorderPredicate(segments,OUTER);
               }// else
             }// if
           }// for
         }// if
         if(j > 4){
- //         return false;
           cerr << " Finalized Pfaces:= ";
           for (size_t i = 0; i< ok.size(); i++) {
              cerr << ok[i];
@@ -2774,6 +2987,151 @@ namespace temporalalgebra {
       } while (!finalize);
       return true;
     }// finalize
+    
+    void SourceUnit::intersects(Point3DContainer& points, 
+                                GlobalTimeValues& timeValues,
+                                SourceUnit& other,
+                                std::vector<bool>& predicates){
+      // Vektor mit bool-Werten für den Bearbeitungsstand der PFaces
+      vector<bool> ok = vector<bool>(pFaces.size(),false);
+      // Vektor mit Zwischenergbnissen für das Prädikat "intersects"
+      std::vector<bool> resultPredicates(timeValues.size()-1);
+      // Vektor mit Endergebnissen für das Prädikat "intersects"
+      predicates = std::vector<bool>(timeValues.size()-1,false);
+      // Ergebnisstand
+      bool result = false;
+      // Auswertung aller PFaces mit Schnitten von UnitA
+      for (size_t i = 0; i < this->itersectedPFace.size(); i++) {
+        // index eines geschnittenden PFace laden
+        size_t index = this->itersectedPFace[i];
+        // kann das Predicate bestimmt werden 
+        if(this->pFaces[index]->intersects(points, timeValues, 
+                                           resultPredicates)){
+          // Ergebnis übernehmen
+          for(size_t i = 0; i < resultPredicates.size(); i++){
+            // if(predicates[i]){
+            //  cout << "Predicate intersects for slide " << i;
+            //  cout << ", true" <<endl;
+            // }// if
+            // else {
+            //   cout << "Predicate intersects for slide " << i;
+            //   cout << ", false" <<endl;
+            // }// else          
+            predicates[i] = predicates[i] || resultPredicates[i];
+          }// for
+          result = true;
+        }// if
+        // PFace wurde verarbeitet        
+        ok[i] = true;  
+      }// for
+      // Auswertung aller PFaces mit Schnitten von UnitB
+      for (size_t i = 0; i < other.itersectedPFace.size(); i++) {
+        // index eines geschnittenden PFace laden
+        size_t index = other.itersectedPFace[i];
+        // kann das Predicate bestimmt werden 
+        if(other.pFaces[index]->intersects(points, timeValues, 
+                                           resultPredicates)){
+          // Ergebnis übernehmen
+          for(size_t i = 0; i < resultPredicates.size(); i++){
+            // if(predicates[i]){
+            //  cout << "Predicate intersects for slide " << i;
+            //  cout << ", true" <<endl;
+            // }// if
+            // else {
+            //   cout << "Predicate intersects for slide " << i;
+            //   cout << ", false" <<endl;
+            // }// else          
+            predicates[i] = predicates[i] || resultPredicates[i];
+          }// for
+          result = true;
+        }// if
+        // PFace wurde verarbeitet        
+        ok[i] = true;  
+      }// for
+      // Gibt es ein Ergebnis
+      if (result) return;
+      // Bisher liegt kein Ergebnis vor
+      // Ein weiteres PFace auswerten, da es kein Ergebnis gibt
+      for (size_t i = 0; i < this->pFaces.size(); i++) {
+        // PFace wurde noch nicht verarbeitet und ist nicht kritisch
+        if (!ok[i] && this->pFaces[i]->getState() != CRITICAL){  
+          // liegt es innerhalb der andern SourceUnit            
+          if (other.isInside(this->pFaces[i])) {
+            this->pFaces[i]->setBorderPredicate(segments,INNER);
+          }// if
+          else {
+            this->pFaces[i]->setBorderPredicate(segments,OUTER);
+          }// else
+          this->pFaces[i]->intersects(points,timeValues,predicates);
+          return;
+        }// if
+      }// for
+      // Obwohl alle PFace der SourceUnit verarbeitet wurden, konnte der
+      // Status nicht geklärt werden. Beide SourceUnits beschreiben das gleiche
+      // Objekt. 
+      predicates = std::vector<bool>(timeValues.size()-1,true);
+    }// intersects
+    
+    void SourceUnit::inside(Point3DContainer& points, 
+                            GlobalTimeValues& timeValues,
+                            SourceUnit& other,
+                            std::vector<bool>& predicates){
+      // Vektor mit bool-Werten für den Bearbeitungsstand der PFaces
+      vector<bool> ok = vector<bool>(pFaces.size(),false);
+      // Vektor mit Zwischenergbnissen für das Prädikat "inside"
+      std::vector<bool> resultPredicates(timeValues.size()-1);
+      // Vektor mit Endergebnissen für das Prädikkat "inside"
+      predicates = std::vector<bool>(timeValues.size()-1,true);
+      // Ergebnisstand
+      bool result = false;
+      // Auswertung aller PFaces mit Schnitten
+      for (size_t i = 0; i < this->itersectedPFace.size(); i++) {
+        // index eines geschnittenden PFace laden
+        size_t index = itersectedPFace[i];
+        // kann das Predicate bestimmt werden 
+        if(this->pFaces[index]->inside(points, timeValues, 
+                                       resultPredicates)){
+          // Ergebnis übernehmen
+          for(size_t i = 0; i < resultPredicates.size(); i++){
+            // if(predicates[i]){
+            //  cout << "Predicate inside for slide " << i;
+            //  cout << ", true" <<endl;
+            // }// if
+            // else {
+            //  cout << "Predicate inside for slide " << i;
+            //  cout << ", false" <<endl;
+            // }// else          
+            predicates[i] = predicates[i] && resultPredicates[i];
+          }// for
+          result = true;
+        }// if
+        // PFace wurde verarbeitet        
+        ok[i] = true;  
+      }// for
+      // Gibt es ein Ergebnis
+      if (result) return;
+      // Bisher liegt kein Ergebnis vor
+      // Ein weiteres PFace auswerten, da es kein Ergebnis gibt
+      for (size_t i = 0; i < this->pFaces.size(); i++) {
+        // PFace wurde noch nicht verarbeitet und ist nicht kritisch
+        if (!ok[i] && this->pFaces[i]->getState() != CRITICAL){  
+          // liegt es innerhalb der andern SourceUnit            
+          if (other.isInside(this->pFaces[i])) {
+            this->pFaces[i]->setBorderPredicate(segments,INNER);
+          }// if
+          else {
+            this->pFaces[i]->setBorderPredicate(segments,OUTER);
+          }// else
+          this->pFaces[i]->inside(points,timeValues,predicates);
+          return;
+        }// if
+      }// for
+      // Obwohl alle PFace der SourceUnit verarbeitet wurden, konnte der
+      // Status nicht geklärt werden. Beide SourceUnits beschreiben das gleiche
+      // Objekt. 
+      predicates = std::vector<bool>(timeValues.size()-1,true);
+    }// inside
+    
         
     void SourceUnit::getResultUnit(size_t slide, Predicate predicate,
                               bool reverse, 
@@ -2985,10 +3343,10 @@ namespace temporalalgebra {
             }// if
             PFace* pFace = pFaces[info.getFirstIndex()];
             if (other.isInside(pFace)) {
-              pFace->setBorderPredicate(this->segments,INSIDE);
+              pFace->setBorderPredicate(this->segments,INNER);
             }// if
             else {
-              pFace->setBorderPredicate(this->segments,OUTSIDE);
+              pFace->setBorderPredicate(this->segments,OUTER);
             }// else
           }// if
         }// for
@@ -3027,14 +3385,32 @@ namespace temporalalgebra {
       this->testRegionDefined = true;
     }// createTestRegion
     
-    bool SourceUnit::isInside(const PFace* pFace)const {
+    bool SourceUnit::isInside(const PFace* pFace) {
       if (!(this->testRegionDefined)) {
-        NUM_FAIL ("Test region is not defined.");
+        createTestRegion();
+//        NUM_FAIL ("Test region is not defined.");
       }// if
       HalfSegment halfSegment = pFace->getMedianHS();
-      Point middle = halfSegment.middlePoint();
-      return testRegion.Contains(middle);
-    }// isInside    
+      Point left      = halfSegment.GetLeftPoint();
+      Point middle    = halfSegment.middlePoint();
+      Point right     = halfSegment.GetRightPoint();
+      Point nearleft  = Point(true,(left.GetX()+middle.GetX())/2,
+                                   (left.GetY()+middle.GetY())/2);
+      Point nearright = Point(true,(right.GetX()+middle.GetX())/2,
+                                   (right.GetY()+middle.GetY())/2);
+      bool result1 = testRegion.Contains(nearleft);
+      bool result2 = testRegion.Contains(middle);
+      if(result1 == result2){
+        return result1;
+      }// if
+      else {
+        bool result3 = testRegion.Contains(nearright);
+        if (result1 == result2) return result1;
+        else if (result1 == result3) return result1;
+        return result2;
+      }// else  
+    }// isInside  
+    
 /*
 Class SourceUnitPair      
 
@@ -3050,7 +3426,7 @@ Class SourceUnitPair
     }// Konstruktor
     
     void SourceUnitPair::setScaleFactor(double scale){
-//      cout << "Scale:=" << scale << endl;
+      // cout << "Scale:=" << scale << endl;
       timeValues.setScaleFactor(scale);
     }// setScaleFactor
           
@@ -3151,24 +3527,24 @@ Class SourceUnitPair
       unitA.intersection(unitB, timeValues);
       // Finalize
       bool inverseB = false;
-      Predicate predicateA = OUTSIDE;
-      Predicate predicateB = OUTSIDE;
+      Predicate predicateA = OUTER;
+      Predicate predicateB = OUTER;
       if (setOp == MINUS){
         inverseB   = true;
-        predicateB = INSIDE;
+        predicateB = INNER;
       }// if
       else if (setOp == INTERSECTION){
-        predicateA = INSIDE;
-        predicateB = INSIDE;
+        predicateA = INNER;
+        predicateB = INNER;
       }// else if        
-//       cout << points;
-//       cout << timeValues;
-//       cout << unitA;
-//       cout << unitB;      
+      // cout << points;
+      // cout << timeValues;
+      // cout << unitA;
+      // cout << unitB;      
       unitA.finalize(points, timeValues, predicateA, unitB);  
-//       cout << unitA;       
+      // cout << unitA;       
       unitB.finalize(points, timeValues, predicateB, unitA);      
-//       cout << unitB;      
+      // cout << unitB;      
       // get result Units          
       if (timeValues.size() > 1){
         result = vector<ResultUnit>(timeValues.size()-1, ResultUnit());
@@ -3177,19 +3553,48 @@ Class SourceUnitPair
         timeValues.orginalFirst(t1,t2);
         do{
           result[i] = ResultUnit(t1,t2);
-          unitA.getResultUnit(i, predicateA, false,    points, result[i], 
-                              UNIT_A);
-          unitB.getResultUnit(i, predicateB, inverseB, points, result[i], 
-                              UNIT_B);
-//          cout << result[i] <<endl;
+          unitA.getResultUnit(i,predicateA,false,   points,result[i],UNIT_A);
+          unitB.getResultUnit(i,predicateB,inverseB,points,result[i],UNIT_B);
+          // cout << result[i] <<endl;
           result[i].evaluateCriticalMSegmens(setOp);
-//          cout << result[i] <<endl;
+          // cout << result[i] <<endl;
           result[i].finalize();
           i++;
-        } while (timeValues.orginalNext(t1, t2));// while    
+        } while (timeValues.orginalNext(t1, t2));  
       }// if
       return false;      
     }// operate
+    
+    void SourceUnitPair::createSourceUnit(const Interval<Instant>& interval, 
+                          MRegion* mregion,
+                          SourceFlag sourceFlag){
+      MRegion* temp;
+      URegionEmb unitRestrict;
+      URegionEmb* unit;
+      const DbArray<MSegmentData>* array;     
+
+      Periods intervalAsPeriod(1);
+      intervalAsPeriod.Add(interval);        
+      temp = new MRegion(1);
+      temp->AtPeriods(&intervalAsPeriod, mregion);
+      temp->Get(0, unitRestrict);        
+      array = temp->GetMSegmentData();      
+      unit = new URegionEmb(unitRestrict.timeInterval,
+                            unitRestrict.GetStartPos());
+      unit->SetSegmentsNum(unitRestrict.GetSegmentsNum());
+      unit->SetBBox(unitRestrict.BoundingBox());
+      if(sourceFlag == UNIT_A) {
+        Rectangle<3> bBox = unitRestrict.BoundingBox();
+        setScaleFactor(bBox.MaxD(0) - bBox.MinD(0));
+      }// if
+      MSegmentData segment;
+      for(int i = 0; i < unit->GetSegmentsNum();i++){
+        unit->GetSegment(array, i, segment);
+        addMSegmentData(segment, sourceFlag);
+      }// for  
+      delete temp;
+      delete unit;        
+    }// CreateSourceUnit
     
     void SourceUnitPair::createResultMRegion(MRegion* resMRegion){
       DbArray<MSegmentData>* array = 
@@ -3210,6 +3615,57 @@ Class SourceUnitPair
     ResultUnit SourceUnitPair::getResultUnit(size_t slide)const{
       return result[slide];
     }// getResultUnit 
+    
+    bool SourceUnitPair::predicate(PredicateOp predicateOp){  
+      if (unitA.isEmpty()|| unitB.isEmpty()){
+        return false;
+      }// if
+      // Intersection
+      unitA.intersection(unitB, timeValues);
+      if (predicateOp == INTERSECTS){ 
+        unitA.intersects(points,timeValues,unitB,predicates);
+      }// if
+      else {
+        unitA.inside(points,timeValues,unitB,predicates);
+      }// else
+      return false;      
+    }// predicate    
+
+    void SourceUnitPair::createResultMBool( MBool* resMBool ){
+      if (timeValues.size() > 1){
+        double t1,t2,t3;
+        // cout << " timeValues " << timeValues <<endl;
+        this->timeValues.orginalFirst(t1,t2);
+        bool value = predicates[0];
+        size_t i = 1;
+        while (timeValues.orginalNext(t2, t3)){
+          // cout << "t1:=" << t1 << endl;
+          // cout << "t2:=" << t2 << endl;
+          // if (predicates[i]) cout << "value:= true"  << endl;
+          // else               cout << "value:= false" << endl; 
+          if(value != predicates[i]){
+            CcBool predicate(true, value);        
+            UBool ubool(timeValues.createInterval(t1,t2), predicate, predicate);
+            resMBool->Add(ubool);
+            value = predicates[i];
+            t1 = t2;         
+          }// if
+          t2 = t3;
+          i++; 
+        }// while  
+        CcBool predicate(true, value);        
+        UBool ubool(timeValues.createInterval(t1,t2), predicate, predicate);
+        resMBool->Add(ubool);
+      }// if
+      else {
+        double t1 = timeValues.getOrginalStartTime();
+        double t2 = timeValues.getOrginalEndTime();  
+        CcBool predicate(true, false);
+        UBool ubool(timeValues.createInterval(t1,t2), predicate, predicate);
+        resMBool->Add(ubool);
+      }// else 
+    }// createResultMBool
+    
 /*
 class SetOperator
 
@@ -3231,7 +3687,7 @@ class SetOperator
       // Compute the RefinementPartition of the two MRegions
       RefinementPartition< MRegion, MRegion, URegionEmb, URegionEmb> 
         rp(*mRegionA, *mRegionB);
-//      cout << "RefinementPartition with " << rp.Size() << " units created.";
+      // cout << "RefinementPartition with " << rp.Size() << " units created.";
       // MRegion des Ergebnisses löschen
       mRegionResult->Clear();
       // Speicherbereich der MSegmentData löschen
@@ -3253,49 +3709,63 @@ class SetOperator
         bIsEmpty = (bPos == -1);
         // Vereinfachungen suchen     
         if (!aIsEmpty) {
-          createSourceUnit(interval, mRegionA, UNIT_A, unitPair);
+          unitPair.createSourceUnit(interval, mRegionA, UNIT_A);
         }// if
         if (!bIsEmpty) {
-          createSourceUnit(interval, mRegionB, UNIT_B, unitPair);
+          unitPair.createSourceUnit(interval, mRegionB, UNIT_B);
         }// if
         unitPair.operate(setOp);        
-//        cout << unitPair;               
+        // cout << unitPair;               
         unitPair.createResultMRegion( mRegionResult);        
       }// for
       mRegionResult->EndBulkLoad(false);
     }// operate  
     
-    void SetOperator::createSourceUnit(const Interval<Instant>& interval, 
-                          MRegion* mregion,
-                          SourceFlag sourceFlag, 
-                          SourceUnitPair& unitPair){
-      MRegion* temp;
-      URegionEmb unitRestrict;
-      URegionEmb* unit;
-      const DbArray<MSegmentData>* array;     
-
-      Periods intervalAsPeriod(1);
-      intervalAsPeriod.Add(interval);        
-      temp = new MRegion(1);
-      temp->AtPeriods(&intervalAsPeriod, mregion);
-      temp->Get(0, unitRestrict);        
-      array = temp->GetMSegmentData();      
-      unit = new URegionEmb(unitRestrict.timeInterval,
-                            unitRestrict.GetStartPos());
-      unit->SetSegmentsNum(unitRestrict.GetSegmentsNum());
-      unit->SetBBox(unitRestrict.BoundingBox());
-      if(sourceFlag == UNIT_A) {
-        Rectangle<3> bBox = unitRestrict.BoundingBox();
-        unitPair.setScaleFactor(bBox.MaxD(0) - bBox.MinD(0));
+    PredicateOperator::PredicateOperator(MRegion* const _mRegionA, 
+                                         MRegion* const _mRegionB,
+                                         MBool* const  _mBool):
+        mRegionA(_mRegionA), 
+        mRegionB(_mRegionB), 
+        mBool(_mBool){
+    }// Konstruktor
+    
+    void PredicateOperator::operate(PredicateOp predicateOp){
+      // Beide MRegionen müssen definiert sein
+      if (!mRegionA->IsDefined() || !mRegionB->IsDefined()) {
+        mBool->SetDefined(false);
+        return;
       }// if
-      MSegmentData segment;
-      for(int i = 0; i < unit->GetSegmentsNum();i++){
-        unit->GetSegment(array, i, segment);
-        unitPair.addMSegmentData(segment, sourceFlag);
-      }// for  
-      delete temp;
-      delete unit;        
-    }// CreateSourceUnit
+      // Compute the RefinementPartition of the two MRegions
+      RefinementPartition< MRegion, MRegion, URegionEmb, URegionEmb> 
+        rp(*mRegionA, *mRegionB);
+      // cout << "RefinementPartition with " << rp.Size() << " units created.";
+      // MBool des Ergebnisses löschen
+      mBool->Clear();
+      // For each interval of the refinement partition
+      for (unsigned int i = 0; i < rp.Size(); i++) {
+        Interval<Instant> interval;
+        int aPos, bPos;
+        bool aIsEmpty, bIsEmpty;
+        // liefere den entsprechenden Eintrag
+        rp.Get(i, interval, aPos, bPos);         
+        SourceUnitPair unitPair(interval);
+        // Zeitspanne ist 0, dieser Fall trat beim Test auf
+        if(interval.start == interval.end) continue;
+        // Bestimmen ob eine der beiden zu erzuegenden Units leer ist  
+        aIsEmpty = (aPos == -1);
+        bIsEmpty = (bPos == -1);
+        // Vereinfachungen suchen     
+        if (!aIsEmpty) {
+          unitPair.createSourceUnit(interval, mRegionA, UNIT_A);
+        }// if
+        if (!bIsEmpty) {
+          unitPair.createSourceUnit(interval, mRegionB, UNIT_B);
+        }// if
+        unitPair.predicate(predicateOp);        
+        // cout << unitPair;               
+        unitPair.createResultMBool(mBool);        
+      }// for
+    }// operate  
 
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra

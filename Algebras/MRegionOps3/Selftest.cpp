@@ -138,30 +138,26 @@ namespace temporalalgebra {
         ResultUnitFactoryTest4();
         ResultUnitFactoryTest5();
         
+        ResultUnitFactoryTest6();
+        ResultUnitFactoryTest7();
+        
         SegmentContainerTest1();
      
         SourceUnitTest4();        
 
         UnitsTest1();
         UnitsTest2();
-        UnitsTest3();
-       
-        UnitsTest4();
- 
-// Die zweite SourceUnitt liegt innerhalb der ersten SourceUnit.
-// Der Test kann derzeitig nicht erfolgreich ausgeführt werden.  
-//        
-//        UnitsTest5();
-        
+        UnitsTest3();       
+        UnitsTest4();     
+        UnitsTest5();        
         UnitsTest6();
         UnitsTest7();
         UnitsTest8();
-        
+        UnitsTest9();
+        UnitsTest10();
 
         SourceUnitPairTest1();   
-        
-        IntersectionSegmentTest4();
-       
+     
         cerr << endl;
         cerr << numberOfTestsRun << " tests run, ";
         cerr << numberOfTestsFailed << " tests failed." << endl <<endl;  
@@ -994,9 +990,9 @@ namespace temporalalgebra {
         Segment3D segment0( Point3D(6,1,0), Point3D(0,4,5));
         Segment3D segment1( Point3D(9,1,0), Point3D(3,4,5));
         CriticalMSegment cmSegment0;        
-        CriticalMSegment cmSegment1(segment0,segment1,UNIT_B,INSIDE);
+        CriticalMSegment cmSegment1(segment0,segment1,UNIT_B,INNER);
         CriticalMSegment cmSegment2 = cmSegment1;
-        CriticalMSegment cmSegment3(segment1,segment0,UNIT_A,INSIDE);
+        CriticalMSegment cmSegment3(segment1,segment0,UNIT_A,INNER);
         Point3D point = cmSegment2.getMidPoint();
         assert_("CriticalMSegmentTest 1.1",
                 "Critical MSegments don't equal.",
@@ -1393,15 +1389,15 @@ namespace temporalalgebra {
         factory2.evaluate();        
         ResultUnitFactory factory3(3),factory4(3);
         factory3.addNonOrthogonalEdges(0,Segment(0,7,LEFT_IS_INNER));
-        factory3.addNonOrthogonalEdges(0,Segment(2,8,OUTSIDE));
-        factory3.addNonOrthogonalEdges(1,Segment(7,1,OUTSIDE));
-        factory3.addNonOrthogonalEdges(1,Segment(8,3,OUTSIDE));
+        factory3.addNonOrthogonalEdges(0,Segment(2,8,OUTER));
+        factory3.addNonOrthogonalEdges(1,Segment(7,1,OUTER));
+        factory3.addNonOrthogonalEdges(1,Segment(8,3,OUTER));
         
-        factory4.addNonOrthogonalEdges(0,Segment(0,9,OUTSIDE));
+        factory4.addNonOrthogonalEdges(0,Segment(0,9,OUTER));
         factory4.addNonOrthogonalEdges(0,Segment(0,7,RIGHT_IS_INNER));
-        factory4.addNonOrthogonalEdges(0,Segment(5,7,INSIDE));
-        factory4.addNonOrthogonalEdges(1,Segment(9,4,OUTSIDE));
-        factory4.addNonOrthogonalEdges(1,Segment(7,6,OUTSIDE));
+        factory4.addNonOrthogonalEdges(0,Segment(5,7,INNER));
+        factory4.addNonOrthogonalEdges(1,Segment(9,4,OUTER));
+        factory4.addNonOrthogonalEdges(1,Segment(7,6,OUTER));
         factory4.setTouchsOnLeftBorder(0,1);
         assert_("PFaceTest 9.1", "factorys are equal.",
                 factory1 == factory3);
@@ -1946,8 +1942,8 @@ namespace temporalalgebra {
 */
       void Selftest::SegmentTest(){
         Segment segment1;
-        Segment segment2(3,7,INSIDE);
-        Segment segment3(5,6,OUTSIDE);
+        Segment segment2(3,7,INNER);
+        Segment segment3(5,6,OUTER);
         Segment segment4(segment3);
         segment1 = segment2;
         
@@ -1962,7 +1958,7 @@ namespace temporalalgebra {
         assert_("SegmentTest 1.5", "value are equal.",
                 segment3.getTail()== 5);   
         assert_("SegmentTest 1.6", "predicate are equal.",
-                segment3.getPredicate()== OUTSIDE);  
+                segment3.getPredicate()== OUTER);  
         // cout << segment1 << endl;
         // cout << segment2 << endl;
         // cout << segment3 << endl;
@@ -2239,27 +2235,27 @@ namespace temporalalgebra {
         factory1.addOrthogonalEdges(5,   Segment(12, 13, RIGHT_IS_INNER));
         factory1.evaluate();
         // result
-        factory2.addNonOrthogonalEdges(0, Segment (14, 2, OUTSIDE)); 
+        factory2.addNonOrthogonalEdges(0, Segment (14, 2, OUTER)); 
         factory2.addNonOrthogonalEdges(0, Segment (0, 2, RIGHT_IS_INNER));
         factory2.addNonOrthogonalEdges(0, Segment (1, 3, LEFT_IS_INNER));
-        factory2.addNonOrthogonalEdges(0, Segment (15, 16, OUTSIDE));
+        factory2.addNonOrthogonalEdges(0, Segment (15, 16, OUTER));
         factory2.addOrthogonalEdges(0, Segment (0, 1, LEFT_IS_INNER));
-        factory2.addNonOrthogonalEdges(1, Segment (2, 17, OUTSIDE));
+        factory2.addNonOrthogonalEdges(1, Segment (2, 17, OUTER));
         factory2.addNonOrthogonalEdges(1, Segment (2, 4, RIGHT_IS_INNER));
         factory2.addNonOrthogonalEdges(1, Segment (3, 6, LEFT_IS_INNER));       
-        factory2.addNonOrthogonalEdges(1, Segment (16, 6, OUTSIDE));
-        factory2.addNonOrthogonalEdges(2, Segment (17, 18, OUTSIDE));
+        factory2.addNonOrthogonalEdges(1, Segment (16, 6, OUTER));
+        factory2.addNonOrthogonalEdges(2, Segment (17, 18, OUTER));
         factory2.addNonOrthogonalEdges(2, Segment (4, 7, RIGHT_IS_INNER));
         factory2.addNonOrthogonalEdges(2, Segment (5, 8, LEFT_IS_INNER));
         factory2.addNonOrthogonalEdges(2, Segment (5, 9, RIGHT_IS_INNER));
-        factory2.addNonOrthogonalEdges(2, Segment (6, 9, INSIDE));
-        factory2.addNonOrthogonalEdges(3, Segment (18, 10, OUTSIDE));
+        factory2.addNonOrthogonalEdges(2, Segment (6, 9, INNER));
+        factory2.addNonOrthogonalEdges(3, Segment (18, 10, OUTER));
         factory2.addNonOrthogonalEdges(3, Segment (7, 10, RIGHT_IS_INNER));
         factory2.addNonOrthogonalEdges(3, Segment (8, 11, LEFT_IS_INNER)); 
-        factory2.addNonOrthogonalEdges(3, Segment (9, 19, OUTSIDE));
-        factory2.addNonOrthogonalEdges(4, Segment (10, 12, INSIDE)); 
+        factory2.addNonOrthogonalEdges(3, Segment (9, 19, OUTER));
+        factory2.addNonOrthogonalEdges(4, Segment (10, 12, INNER)); 
         factory2.addNonOrthogonalEdges(4, Segment (11, 13, LEFT_IS_INNER)); 
-        factory2.addNonOrthogonalEdges(4, Segment (19, 20, OUTSIDE));
+        factory2.addNonOrthogonalEdges(4, Segment (19, 20, OUTER));
         factory2.addOrthogonalEdges(5, Segment (12, 13, RIGHT_IS_INNER));
         factory2.setTouchsOnLeftBorder(1,2);
         factory2.setTouchsOnLeftBorder(4,1);
@@ -2291,18 +2287,18 @@ namespace temporalalgebra {
         factory1.addNonOrthogonalEdges(2, Segment (9, 12));
         factory1.evaluate();
         // result
-        factory2.addNonOrthogonalEdges(0, Segment (0, 3, OUTSIDE)); 
-        factory2.addNonOrthogonalEdges(0, Segment (1, 4, OUTSIDE));
-        factory2.addNonOrthogonalEdges(0, Segment (2, 5, OUTSIDE));
-        factory2.addNonOrthogonalEdges(1, Segment (3, 6, OUTSIDE));
-        factory2.addNonOrthogonalEdges(1, Segment (4, 7, OUTSIDE));
+        factory2.addNonOrthogonalEdges(0, Segment (0, 3, OUTER)); 
+        factory2.addNonOrthogonalEdges(0, Segment (1, 4, OUTER));
+        factory2.addNonOrthogonalEdges(0, Segment (2, 5, OUTER));
+        factory2.addNonOrthogonalEdges(1, Segment (3, 6, OUTER));
+        factory2.addNonOrthogonalEdges(1, Segment (4, 7, OUTER));
         factory2.addNonOrthogonalEdges(1, Segment (5, 8, RIGHT_IS_INNER));
-        factory2.addNonOrthogonalEdges(1, Segment (5, 9, INSIDE));
-        factory2.addNonOrthogonalEdges(2, Segment (6, 10, OUTSIDE));
-        factory2.addNonOrthogonalEdges(2, Segment (6, 11, OUTSIDE));
-        factory2.addNonOrthogonalEdges(2, Segment (7, 11, OUTSIDE));
+        factory2.addNonOrthogonalEdges(1, Segment (5, 9, INNER));
+        factory2.addNonOrthogonalEdges(2, Segment (6, 10, OUTER));
+        factory2.addNonOrthogonalEdges(2, Segment (6, 11, OUTER));
+        factory2.addNonOrthogonalEdges(2, Segment (7, 11, OUTER));
         factory2.addOrthogonalEdges(2, Segment (8, 9, RIGHT_IS_INNER)); 
-        factory2.addNonOrthogonalEdges(2, Segment (9, 12, OUTSIDE));
+        factory2.addNonOrthogonalEdges(2, Segment (9, 12, OUTER));
         Predicate left, right;
         factory1.getBorderPredicates(left,right);
         assert_("ResultUnitFactoryTest 5.1",
@@ -2310,7 +2306,7 @@ namespace temporalalgebra {
                  factory1 == factory2);
         assert_("ResultUnitFactoryTest 5.2",
                 " Border predicates from Factory are incorrect.",
-                 left == OUTSIDE && right == INTERSECT);
+                 left == OUTER && right == INTERSECT);
         // cout << factory1 << endl;
         // cout << factory2 << endl; 
         // cout << "Predicate on left border:=" << toString(left) << endl;
@@ -2884,7 +2880,7 @@ namespace temporalalgebra {
         pf1.finalize(points,segments,timeValues);
         pf2.finalize(points,segments,timeValues);
         // pface without intersection
-        pf0.addBorder(timeValues,segments,INSIDE);
+        pf0.addBorder(timeValues,segments,INNER);
         pf0.finalize(points,segments,timeValues);   
         // result from pface 2
         // pface with Intersection
@@ -2894,12 +2890,12 @@ namespace temporalalgebra {
         vector<ResultUnit> units = 
           vector<ResultUnit>(timeValues.size()-1, ResultUnit());
         for(size_t i = 0; i < timeValues.size()-1; i++){  
-          pf0.getResultUnit(i,INSIDE,false,points,units[i],UNIT_A);
-          pf1.getResultUnit(i,INSIDE,false,points,units[i],UNIT_A);
-          pf2.getResultUnit(i,INSIDE,false,points,units[i],UNIT_A);
-          pf3.getResultUnit(i,INSIDE,false,points,units[i],UNIT_B);
-          pf4.getResultUnit(i,INSIDE,false,points,units[i],UNIT_B);
-          pf5.getResultUnit(i,INSIDE,false,points,units[i],UNIT_B);
+          pf0.getResultUnit(i,INNER,false,points,units[i],UNIT_A);
+          pf1.getResultUnit(i,INNER,false,points,units[i],UNIT_A);
+          pf2.getResultUnit(i,INNER,false,points,units[i],UNIT_A);
+          pf3.getResultUnit(i,INNER,false,points,units[i],UNIT_B);
+          pf4.getResultUnit(i,INNER,false,points,units[i],UNIT_B);
+          pf5.getResultUnit(i,INNER,false,points,units[i],UNIT_B);
         }// for
         vector<ResultUnit> result = vector<ResultUnit>(5,ResultUnit());        
         Segment3D segment0(Point3D(4.666666667, 1.666666667, 1.111111111), 
@@ -3036,14 +3032,14 @@ namespace temporalalgebra {
         // unit0.printFaceCycleEntrys();
         // unit1.printFaceCycleEntrys();        
         // Finalize
-        unit0.finalize(points,timeValues,OUTSIDE,unit1);
-        unit1.finalize(points,timeValues,INSIDE,unit0);
+        unit0.finalize(points,timeValues,OUTER,unit1);
+        unit1.finalize(points,timeValues,INNER,unit0);
         // get result Units
         vector<ResultUnit> units = vector<ResultUnit>(
           timeValues.size()-1, ResultUnit());
         for(size_t i = 0; i < timeValues.size()-1; i++){  
-          unit0.getResultUnit(i,OUTSIDE,false,points,units[i],UNIT_A);
-          unit1.getResultUnit(i,INSIDE,true,points,units[i],UNIT_B);
+          unit0.getResultUnit(i,OUTER,false,points,units[i],UNIT_A);
+          unit1.getResultUnit(i,INNER,true,points,units[i],UNIT_B);
           units[i].evaluateCriticalMSegmens(MINUS);
           units[i].finalize();  
         }// for        
@@ -3343,14 +3339,14 @@ namespace temporalalgebra {
         // Intersection
         unit0.intersection(unit1,timeValues);
         // Finalize
-        unit0.finalize(points,timeValues,INSIDE,unit1);
-        unit1.finalize(points,timeValues,INSIDE,unit0);
+        unit0.finalize(points,timeValues,INNER,unit1);
+        unit1.finalize(points,timeValues,INNER,unit0);
         // get result Units
         vector<ResultUnit> units = vector<ResultUnit>(timeValues.size()-1,
                                                       ResultUnit());
         for(size_t i = 0; i < timeValues.size()-1; i++){  
-           unit0.getResultUnit(i,INSIDE,false,points,units[i],UNIT_A);
-           unit1.getResultUnit(i,INSIDE,false,points,units[i],UNIT_B);
+           unit0.getResultUnit(i,INNER,false,points,units[i],UNIT_A);
+           unit1.getResultUnit(i,INNER,false,points,units[i],UNIT_B);
         }// for
         vector<ResultUnit> result = vector<ResultUnit>(5,ResultUnit());        
         Segment3D segment10(Point3D(4.666666667, 1.666666667, 1.111111111), 
@@ -3461,17 +3457,17 @@ namespace temporalalgebra {
         // Finalize
         // cout << unit0;
         // cout << unit1;        
-        unit0.finalize(points,timeValues,OUTSIDE,unit1);
+        unit0.finalize(points,timeValues,OUTER,unit1);
         // cout << unit0;
-        unit1.finalize(points,timeValues,INSIDE,unit0);
+        unit1.finalize(points,timeValues,INNER,unit0);
         // cout << points;
         // cout << unit1;
         // get result Units
         vector<ResultUnit> units = vector<ResultUnit>(timeValues.size()-1,
                                                        ResultUnit());
         for(size_t i = 0; i < timeValues.size()-1; i++){  
-          unit0.getResultUnit(i,OUTSIDE,false,points, units[i],UNIT_A);
-          unit1.getResultUnit(i,INSIDE,true,points, units[i],UNIT_B);
+          unit0.getResultUnit(i,OUTER,false,points, units[i],UNIT_A);
+          unit1.getResultUnit(i,INNER,true,points, units[i],UNIT_B);
           units[i].evaluateCriticalMSegmens(MINUS);
           units[i].finalize();  
         }// for
@@ -3542,18 +3538,18 @@ namespace temporalalgebra {
         // Intersection
         unit0.intersection(unit1,timeValues);        
         // Finalize
-         cout << unit0;
-         cout << unit1; 
-        unit0.finalize(points,timeValues,OUTSIDE,unit1);
-         cout << unit0;
-        unit1.finalize(points,timeValues,OUTSIDE,unit0);                
-         cout << unit1;  
+        // cout << unit0;
+        // cout << unit1; 
+        unit0.finalize(points,timeValues,OUTER,unit1);
+        // cout << unit0;
+        unit1.finalize(points,timeValues,OUTER,unit0);                
+        // cout << unit1;  
         // cout << timeValues;
         vector<ResultUnit> units = vector<ResultUnit>(
           timeValues.size()-1, ResultUnit());
         for(size_t i = 0; i < timeValues.size()-1; i++){  
-          unit0.getResultUnit(i,OUTSIDE,false,points,units[i],UNIT_A);
-          unit1.getResultUnit(i,OUTSIDE,false,points,units[i],UNIT_B);
+          unit0.getResultUnit(i,OUTER,false,points,units[i],UNIT_A);
+          unit1.getResultUnit(i,OUTER,false,points,units[i],UNIT_B);
           units[i].evaluateCriticalMSegmens(UNION);
           units[i].finalize();  
           // cout << units[i];
@@ -3630,16 +3626,16 @@ namespace temporalalgebra {
         // Intersection
         unit0.intersection(unit1, timeValues);        
         // Finalize
-        unit0.finalize(points,timeValues,OUTSIDE,unit1);
-        unit1.finalize(points,timeValues,OUTSIDE,unit0);
+        unit0.finalize(points,timeValues,OUTER,unit1);
+        unit1.finalize(points,timeValues,OUTER,unit0);
         // cout << unit0;
         // cout << unit1;  
         // cout << timeValues;
         vector<ResultUnit> units = vector<ResultUnit>(
           timeValues.size()-1, ResultUnit());
         for(size_t i = 0; i < timeValues.size()-1; i++){  
-          unit0.getResultUnit(i,OUTSIDE,false,points,units[i],UNIT_A);
-          unit1.getResultUnit(i,OUTSIDE,false,points,units[i],UNIT_B);
+          unit0.getResultUnit(i,OUTER,false,points,units[i],UNIT_A);
+          unit1.getResultUnit(i,OUTER,false,points,units[i],UNIT_B);
           units[i].evaluateCriticalMSegmens(UNION);
           units[i].finalize();  
           // cout << units[i];
@@ -3707,16 +3703,16 @@ namespace temporalalgebra {
         // cout << unit1;  
         // cout << timeValues;
         // Finalize
-        unit0.finalize(points,timeValues,OUTSIDE,unit1);
-        unit1.finalize(points,timeValues,OUTSIDE,unit0);
+        unit0.finalize(points,timeValues,OUTER,unit1);
+        unit1.finalize(points,timeValues,OUTER,unit0);
         // cout << unit0;
         // cout << unit1;  
         // cout << timeValues;
         vector<ResultUnit> units = vector<ResultUnit>(
           timeValues.size()-1, ResultUnit());
         for(size_t i = 0; i < timeValues.size()-1; i++){  
-          unit0.getResultUnit(i,OUTSIDE,false,points,units[i],UNIT_A);
-          unit1.getResultUnit(i,OUTSIDE,false,points,units[i],UNIT_B);
+          unit0.getResultUnit(i,OUTER,false,points,units[i],UNIT_A);
+          unit1.getResultUnit(i,OUTER,false,points,units[i],UNIT_B);
           units[i].evaluateCriticalMSegmens(UNION);
           units[i].finalize();  
           // cout << units[i];
@@ -3788,15 +3784,15 @@ namespace temporalalgebra {
         // unit0.printFaceCycleEntrys();
         // unit1.printFaceCycleEntrys(); 
         // Finalize
-        unit0.finalize(points,timeValues,OUTSIDE,unit1);
-        unit1.finalize(points,timeValues,INSIDE,unit0);  
+        unit0.finalize(points,timeValues,OUTER,unit1);
+        unit1.finalize(points,timeValues,INNER,unit0);  
         // cout << unit0;
         // cout << unit1; 
         vector<ResultUnit> units = vector<ResultUnit>(
         timeValues.size()-1, ResultUnit());
         for(size_t i = 0; i < timeValues.size()-1; i++){  
-          unit0.getResultUnit(i,OUTSIDE,false,points,units[i],UNIT_A);
-          unit1.getResultUnit(i,INSIDE,true,points,units[i],UNIT_B);
+          unit0.getResultUnit(i,OUTER,false,points,units[i],UNIT_A);
+          unit1.getResultUnit(i,INNER,true,points,units[i],UNIT_B);
           units[i].evaluateCriticalMSegmens(MINUS);
           units[i].finalize();  
           // cout << units[i];
@@ -3931,9 +3927,351 @@ namespace temporalalgebra {
         // cout << result10;
       }// SourceUnitPairTest1
       
-      void Selftest::IntersectionSegmentTest4() {
-        
-      }
+      void Selftest::ResultUnitFactoryTest6() {
+        ResultUnitFactory factory1(10),factory2(2);
+        std::vector<bool> predicate1(9),predicate2(9); 
+        std::vector<bool> predicate3(1),predicate4(1);   
+        // Outside
+        factory1.addNonOrthogonalEdges(0,Segment(0, 1, LEFT_IS_INNER)); 
+        factory1.addNonOrthogonalEdges(0,Segment(2, 3, RIGHT_IS_INNER));  
+        // Outside
+        factory1.addNonOrthogonalEdges(1,Segment(4, 5, LEFT_IS_INNER));
+        factory1.addNonOrthogonalEdges(1,Segment(6, 7));
+        // Inside
+        factory1.addNonOrthogonalEdges(2,Segment(8, 9, RIGHT_IS_INNER));
+        factory1.addNonOrthogonalEdges(2,Segment(10, 11));
+        // Inside
+        factory1.addNonOrthogonalEdges(3,Segment(12, 13));
+        factory1.addNonOrthogonalEdges(3,Segment(14, 15, LEFT_IS_INNER));
+        // Outside
+        factory1.addNonOrthogonalEdges(4,Segment(16, 17, INTERSECT));
+        factory1.addNonOrthogonalEdges(4,Segment(18, 19, RIGHT_IS_INNER));
+        // three segments
+        factory1.addNonOrthogonalEdges(5,Segment(20, 21, LEFT_IS_INNER));
+        factory1.addNonOrthogonalEdges(5,Segment(20, 23, RIGHT_IS_INNER));
+        factory1.addNonOrthogonalEdges(5,Segment(22, 23));
+        // three segments
+        factory1.addNonOrthogonalEdges(6,Segment(24, 25, RIGHT_IS_INNER));
+        factory1.addNonOrthogonalEdges(6,Segment(24, 27, INTERSECT));
+        factory1.addNonOrthogonalEdges(6,Segment(26, 27));
+        // Inside
+        factory1.addNonOrthogonalEdges(7,Segment(28, 29, INTERSECT));
+        factory1.addNonOrthogonalEdges(7,Segment(30, 31, INNER));
+        // Outside
+        factory1.addNonOrthogonalEdges(8,Segment(32, 33));
+        factory1.addNonOrthogonalEdges(8,Segment(33, 34, OUTER));
+        // Undefined
+        factory2.addNonOrthogonalEdges(0,Segment(0, 1)); 
+        factory2.addNonOrthogonalEdges(0,Segment(2, 3)); 
+        // cout << factory1;
+        std::vector<bool> predicate5 = {false, false, true, true, false, 
+                                        true, true, true, false};
+        bool result = factory1.intersects(predicate1);
+        assert_("ResultUnitFactoryTest 6.1", 
+                "An intersection result is available.",
+                (result)); 
+        result = true;      
+        for(size_t i = 0; i < predicate1.size(); i++){
+          if(predicate1[i] != predicate5[i])  result = false;
+        //  if(predicate1[i]){
+        //    cout << "Predikat intersects for slide " << i;
+        //    cout << ", true" <<endl;
+        //  }// if
+        //  else {
+        //    cout << "Predikat intersects for slide " << i;
+        //    cout << ", false" <<endl;
+        //  }// else          
+        }// for
+        assert_("ResultUnitFactoryTest 6.2", 
+                "An intersection result isn't equal.",
+                (result));  
+        result = factory2.intersects(predicate3);
+        assert_("ResultUnitFactoryTest 6.3", 
+                "An intersection result isn't available.",
+                (!result)); 
+        // Tests for inside
+        std::vector<bool> predicate6 = {false, false, true, true, false, 
+                                        false, false, true, false};
+        result = factory1.inside(predicate2);
+        assert_("ResultUnitFactoryTest 6.4", 
+                "An intersection result is available.",
+                (result)); 
+        result = true;      
+        for(size_t i = 0; i < predicate2.size(); i++){
+          if(predicate2[i] != predicate6[i])  result = false;
+        //  if(predicate2[i]){
+        //    cout << "Predikat intersects for slide " << i;
+        //    cout << ", true" <<endl;
+        //  }// if
+        //  else {
+        //    cout << "Predikat intersects for slide " << i;
+        //    cout << ", false" <<endl;
+        //   }// else          
+        }// for
+        assert_("ResultUnitFactoryTest 6.5", 
+                "An intersection result isn't equal.",
+                (result));  
+        result = factory2.inside(predicate4);
+        assert_("ResultUnitFactoryTest 6.6", 
+                "An intersection result isn't available.",
+                (!result));  
+      }// ResultUnitFactoryTest6
+      
+      void Selftest::ResultUnitFactoryTest7() {
+        ResultUnitFactory factory1(10,true),factory2(2,true);
+        std::vector<bool> predicate1(9),predicate2(9); 
+        std::vector<bool> predicate3(1),predicate4(1);   
+        // Inside
+        factory1.addNonOrthogonalEdges(0,Segment(0, 1, RIGHT_IS_INNER)); 
+        factory1.addNonOrthogonalEdges(0,Segment(2, 3, INTERSECT));
+        // Outside
+        factory1.addNonOrthogonalEdges(1,Segment(4, 5, LEFT_IS_INNER)); 
+        factory1.addNonOrthogonalEdges(1,Segment(6, 7, INTERSECT));
+        // Inside
+        factory1.addNonOrthogonalEdges(2,Segment(8, 9, INTERSECT));        
+        factory1.addNonOrthogonalEdges(2,Segment(10, 11, LEFT_IS_INNER)); 
+        // Outside
+        factory1.addNonOrthogonalEdges(3,Segment(12, 13, INTERSECT));
+        factory1.addNonOrthogonalEdges(3,Segment(14, 15, RIGHT_IS_INNER));
+        // Outside/Inside
+        factory1.addNonOrthogonalEdges(4,Segment(16, 17)); 
+        factory1.addNonOrthogonalEdges(4,Segment(18, 19, RIGHT_IS_INNER)); 
+        factory1.addNonOrthogonalEdges(4,Segment(20, 21, INTERSECT));
+        // Inside/Outside
+        factory1.addNonOrthogonalEdges(5,Segment(22, 23, INTERSECT));
+        factory1.addNonOrthogonalEdges(5,Segment(24, 25, LEFT_IS_INNER));
+        factory1.addNonOrthogonalEdges(5,Segment(26, 27));
+        // Outside/Inside
+        factory1.addNonOrthogonalEdges(6,Segment(28, 29)); 
+        factory1.addNonOrthogonalEdges(6,Segment(30, 31, TEST)); 
+        factory1.addNonOrthogonalEdges(6,Segment(32, 33, RIGHT_IS_INNER)); 
+        factory1.addNonOrthogonalEdges(6,Segment(34, 35, TEST)); 
+        factory1.addNonOrthogonalEdges(6,Segment(36, 37, INTERSECT));
+        // Inside/Outside
+        factory1.addNonOrthogonalEdges(7,Segment(38, 39, INTERSECT)); 
+        factory1.addNonOrthogonalEdges(7,Segment(40, 41, TEST)); 
+        factory1.addNonOrthogonalEdges(7,Segment(42, 43, LEFT_IS_INNER)); 
+        factory1.addNonOrthogonalEdges(7,Segment(44, 45, TEST)); 
+        factory1.addNonOrthogonalEdges(7,Segment(46, 47));
+        // Outside
+        factory1.addNonOrthogonalEdges(8,Segment(48, 49, INTERSECT)); 
+        factory1.addNonOrthogonalEdges(8,Segment(50, 51, TEST)); 
+        factory1.addNonOrthogonalEdges(8,Segment(52, 53, TEST)); 
+        factory1.addNonOrthogonalEdges(8,Segment(54, 55, RIGHT_IS_INNER));
+        // Undefined
+        factory2.addNonOrthogonalEdges(0,Segment(0, 1, INTERSECT)); 
+        factory2.addNonOrthogonalEdges(0,Segment(2, 3, INTERSECT)); 
+        // cout << factory1;        
+        std::vector<bool> predicate5 = {true, false, true, false, true, 
+                                        true, true, true, false};
+        bool result = factory1.intersects(predicate1);
+        assert_("ResultUnitFactoryTest 7.1", 
+                "An intersection result is available.",
+                (result));
+        result = true;      
+        for(size_t i = 0; i < predicate1.size(); i++){
+          if(predicate1[i] != predicate5[i])  result = false;
+        //   if(predicate1[i]){
+        //      cout << "Predikat intersects for slide " << i;
+        //      cout << ", true" <<endl;
+        //   }// if
+        //   else {
+        //      cout << "Predikat intersects for slide " << i;
+        //      cout << ", false" <<endl;
+        //   }// else          
+        }// for
+        assert_("ResultUnitFactoryTest 7.2", 
+                "An intersection result isn't equal.",
+                (result));
+        std::vector<bool> predicate6 = {true, false, true, false, false, 
+                                        false, false, false, false};
+        result = factory2.intersects(predicate3);        
+        assert_("ResultUnitFactoryTest 7.3", 
+                "An intersection result isn't available.",
+                (!result)); 
+        // Test for inside
+        result = factory1.inside(predicate2);
+        assert_("ResultUnitFactoryTest 7.4", 
+                "An inside result is available.",
+                (result));
+        result = true;      
+        for(size_t i = 0; i < predicate2.size(); i++){
+          if(predicate2[i] != predicate6[i])  result = false;
+        //  if(predicate2[i]){
+        //    cout << "Predikat intersects for slide " << i;
+        //    cout << ", true" <<endl;
+        //  }// if
+        //  else {
+        //    cout << "Predikat intersects for slide " << i;
+        //    cout << ", false" <<endl;
+        //  }// else          
+        }// for
+        assert_("ResultUnitFactoryTest 7.5", 
+                "An intersection result isn't equal.",
+                (result));
+        result = factory2.inside(predicate4);
+        assert_("ResultUnitFactoryTest 7.6", 
+                "An inside result isn't available.",
+                (!result));   
+      }// ResultUnitFactoryTest7
+      
+
+      void Selftest::UnitsTest9(){
+        Point3DContainer points;
+        GlobalTimeValues timeValues(5);
+        std::vector<bool> predicates1,predicates2;
+        // points for unit 0 
+        points.add(Point3D(2,1,0));// 0
+        points.add(Point3D(5,1,0));         
+        points.add(Point3D(3.5,4,0));
+        points.add(Point3D(2,1,5));
+        points.add(Point3D(5,1,5));         
+        points.add(Point3D(3.5,4,5));
+        // points for unit 1
+        points.add(Point3D(6,1,0));// 6
+        points.add(Point3D(9,1,0));         
+        points.add(Point3D(7.5,4,0));
+        points.add(Point3D(0,4,5));
+        points.add(Point3D(3,4,5));         
+        points.add(Point3D(1.5,7,5));
+        // segments for pfaces 0, 1, 2
+        Segment segment0(0,3);
+        Segment segment1(1,4);
+        Segment segment2(2,5);
+        // segments for pfaces 3, 4, 5
+        Segment segment3(6,9);
+        Segment segment4(7,10); 
+        Segment segment5(8,11);   
+        // Build unit 0
+        SourceUnit unit0;        
+        unit0.addPFace(segment0,segment1,points);
+        unit0.addPFace(segment1,segment2,points);
+        unit0.addPFace(segment2,segment0,points);
+        // Build unit 1
+        SourceUnit unit1;        
+        unit1.addPFace(segment3,segment4,points);
+        unit1.addPFace(segment4,segment5,points);
+        unit1.addPFace(segment5,segment3,points);
+        // Intersection
+        unit0.intersection(unit1,timeValues);
+        unit0.reSort();
+        unit1.reSort(); 
+        // Prädikat intersects bestimmen
+        unit0.intersects(points,timeValues,unit1,predicates1);
+        // cout << unit0;
+        std::vector<bool> predicates3 = {false, true, true, true, false};
+        bool result = true;      
+        for(size_t i = 0; i < predicates1.size(); i++){
+          if(predicates1[i] != predicates3[i])  result = false; 
+          // if(predicates1[i]){
+          //   cout << "Predikat intersects for slide " << i;
+          //   cout << ", true" <<endl;
+          // }// if
+          // else {
+          //   cout << "Predikat intersects for slide " << i;
+          //   cout << ", false" <<endl;
+          // }// else          
+        }// for          
+        assert_("UnitsTest 9.1", 
+                "An intersection result isn't equal.",
+                (result)); 
+        unit0.inside(points,timeValues,unit1,predicates2);
+        std::vector<bool> predicates4 = {false, false, false, false, false};
+        result = true;      
+        for(size_t i = 0; i < predicates2.size(); i++){
+          if(predicates2[i] != predicates4[i])  result = false; 
+          // if(predicates2[i]){
+          //   cout << "Predikat inside for slide " << i;
+          //  cout << ", true" <<endl;
+          // }// if
+          // else {
+          //   cout << "Predikat inside for slide " << i;
+          //   cout << ", false" <<endl;
+          // }// else          
+        }// for  
+        assert_("UnitsTest 9.2", 
+                "An intersection result isn't equal.",
+                (result));
+      }// UnitsTest9
+      
+      void Selftest::UnitsTest10(){
+        Point3DContainer points;
+        GlobalTimeValues timeValues(5);
+        std::vector<bool> predicates1,predicates2;
+                // points for unit 1
+        points.add(Point3D(6,1,0));// 6
+        points.add(Point3D(7,1,0));         
+        points.add(Point3D(6.5,2,0));
+        points.add(Point3D(0,1,5));        
+        points.add(Point3D(1,1,5));
+        points.add(Point3D(0.5,2,5)); 
+        // points for unit 0 
+        points.add(Point3D(2,1,0));// 0
+        points.add(Point3D(5,1,0));         
+        points.add(Point3D(3.5,4,0));
+        points.add(Point3D(2,1,5));
+        points.add(Point3D(5,1,5));         
+        points.add(Point3D(3.5,4,5));
+
+        // segments for pfaces 0, 1, 2
+        Segment segment0(0,3);
+        Segment segment1(1,4);
+        Segment segment2(2,5);
+        // segments for pfaces 3, 4, 5
+        Segment segment3(6,9);
+        Segment segment4(7,10); 
+        Segment segment5(8,11);   
+        // Build unit 0
+        SourceUnit unit0;        
+        unit0.addPFace(segment0,segment1,points);
+        unit0.addPFace(segment1,segment2,points);
+        unit0.addPFace(segment2,segment0,points);
+        // Build unit 1
+        SourceUnit unit1;        
+        unit1.addPFace(segment3,segment4,points);
+        unit1.addPFace(segment4,segment5,points);
+        unit1.addPFace(segment5,segment3,points);
+        // Intersection      
+        unit0.intersection(unit1,timeValues);
+        // cout << unit0 << endl;
+        // cout << unit1 << endl;        
+        // Prädikat intersects bestimmen
+        unit0.intersects(points,timeValues,unit1,predicates1);
+        // cout << unit0;       
+        std::vector<bool> predicates3 = {false, true, true, true, false};      
+        bool result = true;      
+        for(size_t i = 0; i < predicates1.size(); i++){
+          if(predicates1[i] != predicates3[i])  result = false; 
+          // if(predicates1[i]){
+          //   cout << "Predikat intersects for slide " << i;
+          //   cout << ", true" <<endl;
+          // }// if
+          // else {
+          //   cout << "Predikat intersects for slide " << i;
+          //   cout << ", false" <<endl;
+          // }// else          
+        }// for        
+        assert_("UnitsTest 10.1", 
+                "An intersection result isn't equal.",
+                (result));               
+        unit0.inside(points,timeValues,unit1,predicates2);
+        std::vector<bool> predicates4 = {false, false, true, false, false};
+        result = true;      
+        for(size_t i = 0; i < predicates2.size(); i++){
+          if(predicates2[i] != predicates4[i])  result = false; 
+          // if(predicates2[i]){
+          //   cout << "Predikat inside for slide " << i;
+          //   cout << ", true" <<endl;
+          // }// if
+          // else {
+          //   cout << "Predikat inside for slide " << i;
+          //   cout << ", false" <<endl;
+          // }// else          
+        }// for  
+        assert_("UnitsTest 10.2", 
+                "An intersection result isn't equal.",
+                (result));
+      }// UnitsTest10
               
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra

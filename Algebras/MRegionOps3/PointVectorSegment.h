@@ -73,8 +73,8 @@ namespace temporalalgebra {
       TEST,
       LEFT_IS_INNER,
       RIGHT_IS_INNER,
-      INSIDE,
-      OUTSIDE,
+      INNER,
+      OUTER,
       INTERSECT
     };
     

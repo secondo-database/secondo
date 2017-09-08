@@ -1,10 +1,10 @@
 Database : berlintest
 Restore  : NO
 
-Operator : selftest
+Operator : mregionops3test
 Number   : 1
 Signature: x -> bool
-Example  : query selftest()
+Example  : query mregionops3test()
 Result   : TRUE 
 
 Operator : intersection
@@ -26,6 +26,16 @@ Signature:
 Example  : query no_segments(val((mrain minus mrain3) atinstant(six30)))
 Result   : 20
 
+Operator : intersects
+Number   : 1
+Signature: 
+Example  : query val ((mrain intersects mrain3) atinstant(six30))
+Result   : TRUE
 
+Operator : inside
+Number   : 1
+Signature: 
+Example  : query val ((mrain inside mrain3) atinstant(six30))
+Result   : FALSE
 
 

@@ -52,8 +52,8 @@ namespace temporalalgebra{
         case UNDEFINED: return "UNDEFINED";
         case LEFT_IS_INNER:   return "LEFT_IS_INNER";
         case RIGHT_IS_INNER:  return "RIGHT_IS_INNER";
-        case INSIDE: return "INSIDE";
-        case OUTSIDE: return "OUTSIDE";
+        case INNER: return "INNER";
+        case OUTER: return "OUTER";
         case INTERSECT: return "INTERSECT";
         case TEST: return "TEST";
         default: return "";
@@ -1046,8 +1046,8 @@ namespace temporalalgebra{
               return *iterator;
             }// else if         
             else if (other.getPredicate()   == UNDEFINED && (
-                     segment.getPredicate() == INSIDE ||
-                     segment.getPredicate() == OUTSIDE||
+                     segment.getPredicate() == INNER ||
+                     segment.getPredicate() == OUTER||
                      segment.getPredicate() == INTERSECT)){
                segments[*iterator] = segment;
                return *iterator; 
