@@ -144,7 +144,10 @@ UnixSocket::UnixSocket( int newFd )
 
 UnixSocket::~UnixSocket()
 {
-  Close();
+  try{
+     Close();
+  } catch(...) {}
+
   if ( createFile )
   {
     char name[MAX_HOST_NAME];
@@ -152,12 +155,17 @@ UnixSocket::~UnixSocket()
     unlink( name );
   }
   if ( ioSocketStream != 0 )
-  {
-    delete ioSocketStream;
+  { try{
+       delete ioSocketStream;
+    } catch(...) {}
+    ioSocketStream=0;
   }
   if ( ioSocketBuffer != 0 )
   {
-    delete ioSocketBuffer;
+    try{
+        delete ioSocketBuffer;
+    } catch(...) {}
+    ioSocketBuffer=0;
   }
 }
 
@@ -684,7 +692,7 @@ UnixSocket::Write( void const* buf, size_t size )
        usleep(100); 
        sleepCtr++; 
     }
-    
+   
     if ( rc == 0 || errno == EPIPE)
     {
       cerr << "Broken Pipe!" << endl;
