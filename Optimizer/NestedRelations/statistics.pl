@@ -54,10 +54,9 @@ commute(Term,_,Commuted) :-
 % special rules inferred from operator characteristics
 commute(Term,ResList,Commuted) :-
   optimizerOption(determinePredSig),
-  Term =.. [Op, Arg1, Arg2],
+  Term =.. [Op, Arg1, Arg2], % only binary operators may commute!
   getTypeTree(Term,ResList,[_,Args,_]),
-  trav(Args,ArgTypes),
-%findall(T,member([_,_,T],Args),ArgTypes),
+  extractSignature(Args,ArgTypes), % extract argument types
   checkOpProperty(Op,ArgTypes,comm), % is commutative op
   Commuted =.. [Op, Arg2, Arg1], !.
 % old rule - still using old ~isCommutativeOP/1~-facts
@@ -71,9 +70,9 @@ commute(Pred1, _, Pred2) :-
 
 % binary version - extracting rellist from predicate descriptor
 commute(Pred1, Pred2) :-
-  ( Pred1 = pr(P,A)
+  ( Pred1 = pr(_ ,A)
     -> RL = [(1,A)]
-    ; ( Pred1 = pr(P,A,B)
+    ; ( Pred1 = pr(_ ,A,B)
         -> RL = [(1,A),(2,B)]
         ; fail
       )
@@ -572,8 +571,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
   Pred =.. [OP, Arg1, Arg2],
   ( optimizerOption(determinePredSig)
     -> ( getTypeTree(Pred,[(1,Rel)],[OP,ArgsTrees,bool]),
-         trav(ArgsTrees,ArgsTypeList),
-         %findall(T,member([_,_,T],ArgsTrees),ArgsTypeList),
+         extractSignature(ArgsTrees,ArgsTypeList),
          isBBoxOperator(OP,ArgsTypeList,Dim),
          getBBoxIntersectionTerm(Arg1,Arg2,Dim,BBoxPred),
          ArgsTrees = [Arg1Tree,Arg2Tree],
@@ -651,8 +649,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard, InputCard) :-
   Pred =.. [OP|_],
   ( optimizerOption(determinePredSig)
     -> ( getTypeTree(Pred,[(1,Rel)],[OP,ArgsTrees,bool]),
-         trav(ArgsTrees,ArgsTypeList),
-         %findall(T,member([_,_,T],ArgsTrees),ArgsTypeList),
+         extractSignature(ArgsTrees,ArgsTypeList),
          not(isBBoxOperator(OP,ArgsTypeList,_))
        )
     ;  not(isBBoxPredicate(OP))
@@ -730,8 +727,7 @@ selectivityQueryJoin(Pred,Rel1,Rel2,QueryTime1, BBoxResCard1,
   Pred =.. [OP, Arg01, Arg02],
   ( optimizerOption(determinePredSig)
     -> ( getTypeTree(Pred,[(1,Rel1),(2,Rel2)],[OP,ArgsTrees,bool]),
-         trav(ArgsTrees,ArgsTypeList),
-         %findall(T,member([ _, _, T],ArgsTrees),ArgsTypeList),
+         extractSignature(ArgsTrees,ArgsTypeList),
          isBBoxOperator(OP,ArgsTypeList,Dim),
          ArgsTrees = [Arg1Tree,Arg2Tree],
          bboxSizeQueryJoin(Arg01,Rel1,Rel2,Arg1Tree,_),
@@ -862,8 +858,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, noBBox,
   Pred =.. [OP|_],
   ( optimizerOption(determinePredSig)
     -> ( getTypeTree(Pred,[(1,Rel1),(2,Rel2)],[OP,ArgsTrees,bool]),
-         trav(ArgsTrees,ArgsTypeList),
-         %findall(T,member([_,_,T],ArgsTrees),ArgsTypeList),
+         extractSignature(ArgsTrees,ArgsTypeList),
          not(isBBoxOperator(OP,ArgsTypeList,_))
        )
     ;  not(isBBoxPredicate(OP))
@@ -1206,8 +1201,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   ( optimizerOption(determinePredSig)
     -> (
           getTypeTree(Pred, [(1,Rel1),(2,Rel2)], [Op,Args,ResultType]),
-          trav(Args,ArgTypeList),
-%findall(T,(member([_,_,T],Args)),ArgTypeList),
+          extractSignature(Args,ArgTypeList),
           Signature =.. [Op|ArgTypeList],
           assert(storedPredicateSignature(DB, PSimple, [Op,Args,ResultType])),
           dm(selectivity,['The topmost signature for ',Pred,' is:\t',
@@ -1247,8 +1241,7 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   ( optimizerOption(determinePredSig)
       -> (
            getTypeTree(Pred, [(1,Rel)], [Op,Args,ResultType]),
-           trav(Args,ArgTypeList),
-%findall(T,(member([_,_,T],Args)),ArgTypeList),
+           extractSignature(Args,ArgTypeList),
            Signature =.. [Op|ArgTypeList],
            assert(storedPredicateSignature(DB, PSimple, [Op,Args,ResultType])),
            dm(selectivity,['The topmost signature for ',Pred,' is:\t',
@@ -1291,8 +1284,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   ( optimizerOption(determinePredSig)
       -> (
            getTypeTree(Pred, [(1,Rel1),(2,Rel2)], [Op,Args,ResultType]),
-           trav(Args,ArgTypeList),
-%findall(T,(member([_,_,T],Args)),ArgTypeList),
+           extractSignature(Args,ArgTypeList),
            Signature =.. [Op|ArgTypeList],
            assert(storedPredicateSignature(DB, PSimple, [Op,Args,ResultType])),
            dm(selectivity,['The topmost signature for ',Pred,' is:\t',
@@ -1332,8 +1324,7 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   ( optimizerOption(determinePredSig)
       -> (
           getTypeTree(Pred, [(1,Rel)], [Op,Args,ResultType]),
-          trav(Args,ArgTypeList),
-%findall(T,(member([_,_,T],Args)),ArgTypeList),
+          extractSignature(Args,ArgTypeList),
           Signature =.. [Op|ArgTypeList],
           assert(storedPredicateSignature(DB, PSimple, [Op,Args,ResultType])),
           dm(selectivity,['The topmost signature for ',Pred,' is:\t',
@@ -1417,9 +1408,24 @@ readStoredSels :-
 /*
 
 The following functions are auxiliary functions for ~writeStoredSels~. Their
-purpose is to convert a list of character codes (e.g. [100, 99, 100]) to
-an atom (e.g. "dcd"), which makes the stored selectitivities more
-readable.
+purpose is to convert ~string~ and ~text~ values into a "save" format in order 
+to write it to a file, that can be parsed by the Prolog system without e.g. 
+mismatching a capital starting letter with a Prolog variable.
+Therefor, strings should be (1) converted from list of 
+character codes (e.g. [100, 99, 100]) to an atom (e.g. "dcd"), which makes the 
+stored selectitivities more readable. (2) the string atom should be written as 
+a quoted literal.
+
+----
+    replaceCharList(+In,?Out)
+    isIntList(+T) 
+    charListToAtom(+CL,?Atom)
+----
+is deprecated. It was used to avoid character code lists within output.
+
+However, correct handling of string and text atoms - including proper 
+quoting - can be ensured using built-in predicates writeq/1, writeq/2, and 
+format option ~q~ within predicates format/2 and format/3.
 
 */
 
@@ -1447,6 +1453,17 @@ replaceCharList(InTerm, OutTerm) :-
 
 replaceCharList(X, X).
 
+replaceCharListTree([],[]) :- !.
+replaceCharListTree([H|T],[HR|TR]) :- 
+  replaceCharListTreeElem(H,HR),
+  replaceCharListTree(T,TR), !.
+
+replaceCharListTreeElem([const, Value, Type],[const, ValueR, Type] :-
+  replaceCharList(Value,ValueR), !.
+
+replaceCharListTreeElem([Op,ArgTrees,RType],[Op,ArgTreesR,ResType]) :-
+  replaceCharListTree[ArgTrees,ArgTreesR], !.
+
 writeStoredSels :-
   open('storedSels.pl', write, FD),
   write(FD,
@@ -1456,43 +1473,40 @@ writeStoredSels :-
 
 writeStoredSel(Stream) :-
   storedSel(DB, X, Y),
-  replaceCharList(X, XReplaced),
-  write(Stream, storedSel(DB, XReplaced, Y)), write(Stream, '.\n').
+  %replaceCharList(X, XReplaced),
+  writeq(Stream, storedSel(DB, X, Y)), write(Stream, '.\n').
 
 writeStoredSel(Stream) :-
   storedBBoxSel(DB, X, Y),
-  replaceCharList(X, XReplaced),
-  write(Stream, storedBBoxSel(DB, XReplaced, Y)), write(Stream, '.\n').
+  %replaceCharList(X, XReplaced),
+  write(Stream, storedBBoxSel(DB, X, Y)), write(Stream, '.\n').
 
 writeStoredSel(Stream) :-
   storedPredicateSignature(DB, X, [Y1,Y2,Y3]),
-  replaceCharList(X, XReplaced),
-  write(Stream, storedPredicateSignature(DB, XReplaced, [Y1,Y2,Y3])),
+  %replaceCharList(X, XReplaced),
+  write(Stream, storedPredicateSignature(DB, X, [Y1,Y2,Y3])),
   write(Stream, '.\n').
 
 writeStoredSel(Stream) :-
   storedBBoxSize(DB,X,Y),
-  replaceCharList(X, XReplaced),
-  write(Stream, storedBBoxSize(DB, XReplaced, Y)),
+  %replaceCharList(X, XReplaced),
+  write(Stream, storedBBoxSize(DB, X, Y)),
   write(Stream, '.\n').
 
 showSel :-
   storedSel(DB, X, Y),
-  replaceCharList(X, XRepl),
-  format('  ~w~16|~w.~w~n',[Y,DB,XRepl]).
-%  write(Y), write('\t\t'), write(DB), write('.'), write(X), nl.
+  %replaceCharList(X, XRepl),
+  format('  ~w~16|~w.~q~n',[Y,DB,X]).
 
 showBBoxSel :-
   storedBBoxSel(DB, X, Y),
-  replaceCharList(X, XRepl),
-  format('  ~w~16|~w.~w~n',[Y,DB,XRepl]).
-%  write(Y), write('\t\t'), write(DB), write('.'), write(X), nl.
+  %replaceCharList(X, XRepl),
+  format('  ~w~16|~w.~q~n',[Y,DB,X]).
 
 showBBoxSize :-
   storedBBoxSize(DB, X, Y),
-  replaceCharList(X, XRepl),
-  format('  ~w~16|~w.~w~n',[Y,DB,XRepl]).
-%  write(Y), write('\t\t'), write(DB), write('.'), write(X), nl.
+  %replaceCharList(X, XRepl),
+  format('  ~w~16|~w.~q~n',[Y,DB,X]).
 
 :-assert(helpLine(showSels,0,[],'Display known selectivities.')).
 showSels :-
@@ -1525,8 +1539,8 @@ writeStoredPETs :-
 
 writeStoredPET(Stream) :-
   storedPET(DB, X, Y, Z),
-  replaceCharList(X, XReplaced),
-  write(Stream, storedPET(DB, XReplaced, Y, Z)), write(Stream, '.\n').
+  %replaceCharList(X, XReplaced),
+  writeq(Stream, storedPET(DB, X, Y, Z)), write(Stream, '.\n').
 
 :-assert(helpLine(showPETs,0,[],'Display known predicate evaluation times.')).
 showPETs :-
@@ -1536,8 +1550,8 @@ showPETs :-
 
 showPET :-
   storedPET(DB, P, Calc, Exp),
-  replaceCharList(P, PRepl),
-  format('  ~w~18|~w~34|~w.~w~n',[Calc, Exp, DB, PRepl]).
+  %replaceCharList(P, PRepl),
+  format('  ~w~18|~w~34|~w.~q~n',[Calc, Exp, DB, P]).
 
 :-
   dynamic(storedPET/4),
@@ -1549,9 +1563,9 @@ writePETs :-
 
 writePET :-
   storedPET(DB, X, Y, Z),
-  replaceCharList(X, XReplaced),
+  %replaceCharList(X, XReplaced),
   write('DB: '), write(DB),
-  write(', Predicate: '), write(XReplaced),
+  write(', Predicate: '), writeq(X),
   write(', Cost: '), write(Y), write('/'), write(Z), write(' ms\n').
 
 
@@ -1569,8 +1583,8 @@ writeStoredPredicateSignatures :-
 
 writeStoredPredicateSignature(Stream) :-
   storedPredicateSignature(DB, X, [Y1,Y2,Y3]),
-  replaceCharList(X, XReplaced),
-  write(Stream, storedPredicateSignature(DB, XReplaced, [Y1,Y2,Y3])),
+  %replaceCharList(X, XReplaced),
+  write(Stream, storedPredicateSignatureq(DB, X, [Y1,Y2,Y3])),
   write(Stream, '.\n').
 
 :-assert(helpLine(showStoredPredicateSignatures,0,[],
@@ -1582,8 +1596,8 @@ showStoredPredicateSignatures :-
 
 showStoredPredicateSignature :-
   storedPredicateSignature(DB, P, S),
-  replaceCharList(P, PRepl),
-  format('  ~w~12|~w~36|~w~n',[DB, PRepl, S]).
+  %replaceCharList(P, PRepl),
+  format('  ~w~12|~q~36|~w~n',[DB, P, S]).
 
 
 /*
@@ -2416,8 +2430,7 @@ getTypeTree(Expr,Rels,[Op,ArgTree,TypeDC]) :-
   not(is_list(Expr)),
   Expr =.. [Op|Args],
   getTypeTree(arglist(Args),Rels,ArgTree),
-  trav(ArgTree,ArgTypes),
-%  findall(T,member([_,_,T],ArgTree),ArgTypes), % extract types from ArgTree
+  extractSignature(ArgTree,ArgTypes),
   (   opSignature(Op,_,ArgTypes,TypeDC,_)
     ; queriedOpSignature(Op,ArgTypes,TypeDC,_)
   ),
@@ -2432,10 +2445,9 @@ getTypeTree(Expr,Rels,[Op,ArgsTypes,TypeDC]) :-
   write_list(['XRIS: Finally got here for Expr = ',Expr,'\n']),
   Expr =.. [Op|Args],
   write_list(['XRIS: Op = ',Op,' Args = ',Args,'\n']),
-%  getTypeTree(Args,Rels,ArgTree),         %% XRIS: original line
-  getTypeTree(arglist(Args),Rels,ArgTree), %% XRIS: changed line
+  getTypeTree(arglist(Args),Rels,ArgTree),
      % extract types from ArgTree
-  trav(ArgTree,ArgTypes),
+  extractSignature(ArgTree,ArgTypes),
   ( \+(optimizerOption(use_matchingOperators))
     -> ( % Alternative I: using operator 'getTypeNL'
          findall(T,member([_,_,T],ArgTree),ArgTypes),
@@ -2541,25 +2553,27 @@ valueTypeExpr2valueTypeExprAtom(Term,Result) :-
   !.
 
 /*
-The following predicate extracts the type information from a ~TypeTree~,
-maintaining the tree's general structure. Only the leaf nodes are
-transformed: [\_, \_, T] [->] T. The result tree is returned in ~DataTypeTree~.
+The following predicate extracts an operator's signature (a list of it's 
+argument types) from its argument list, which is given as a list of ~TypeTree~s
 
----- trav(+TypeTree,-DataTypeTree)
+---- extractSignature(+TypeTreeList,-DataTypeList)
 ----
 
 */
-trav([],[]) :- !.
+extractSignature([],[]) :- !.
+extractSignature([ArgsHead|ArgsRest],[TypesHead|TypesRest]) :-
+ extractSignatureElement(ArgsHead,TypesHead),
+ extractSignature(ArgsRest,TypesRest), !.
+extractSignature(A,B) :-
+    throw(error_Internal(statistics_extractSignature(A,B)
+                         ::malformedTypeTreeList)),
+    !, fail.
 
-trav( [TreeH| TreeRest] ,[ResH| ResRest]) :-
-  travChild(TreeH,ResH),
-  trav(TreeRest, ResRest).
-
-travChild([Fun,_,T],T):-
-  atomic(Fun),!.
-
-travChild(Tree, Res):-
-  trav(Tree, Res).
+extractSignatureElement([_, _, Type],Type) :- !.
+extractSignatureElement(A,B) :-
+    throw(error_Internal(statistics_extractSignatureElement(A,B)
+                         ::nonMatchingTypeTreeListElement)),
+    !, fail.
 
 /*
 The next predicate creates a list of Null Values for a given type list.
