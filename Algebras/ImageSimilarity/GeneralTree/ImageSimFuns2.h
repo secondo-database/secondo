@@ -66,22 +66,22 @@ August 2017, Michael Loris
 double euclidDist(FeatureSignatureTuple ist1,
                     FeatureSignatureTuple ist2)
 {
-	double tmpRes = 0.0;
+    double tmpRes = 0.0;
     
-	tmpRes += std::pow(ist1.centroid.x - ist2.centroid.x, 2);
-	tmpRes += std::pow(ist1.centroid.y - ist2.centroid.y, 2);
-	tmpRes += std::pow(ist1.centroid.colorValue1 
+    tmpRes += std::pow(ist1.centroid.x - ist2.centroid.x, 2);
+    tmpRes += std::pow(ist1.centroid.y - ist2.centroid.y, 2);
+    tmpRes += std::pow(ist1.centroid.colorValue1 
     - ist2.centroid.colorValue1, 2);
-	tmpRes += std::pow(ist1.centroid.colorValue2 
+    tmpRes += std::pow(ist1.centroid.colorValue2 
     - ist2.centroid.colorValue2, 2);
-	tmpRes += std::pow(ist1.centroid.colorValue3 
+    tmpRes += std::pow(ist1.centroid.colorValue3 
     - ist2.centroid.colorValue3, 2);
-	tmpRes += std::pow(ist1.centroid.coarseness 
+    tmpRes += std::pow(ist1.centroid.coarseness 
     - ist2.centroid.coarseness, 2);
-	tmpRes += std::pow(ist1.centroid.contrast 
+    tmpRes += std::pow(ist1.centroid.contrast 
     - ist2.centroid.contrast, 2);
-	
-	return std::sqrt(tmpRes);	
+    
+    return std::sqrt(tmpRes);    
 }
 
 /*
@@ -206,8 +206,8 @@ bool MiniGraph::dfs(int v, int p)
     {
        if (!this->visited[this->g[v][i]])
        {
-		   //std::cout << "p:" << p << std::endl;
-		   //this->path.push_back(p);
+           //std::cout << "p:" << p << std::endl;
+           //this->path.push_back(p);
            dfs(this->g[v][i], v);
            return true;
        }
@@ -243,11 +243,11 @@ struct IIEntry
 
 
 struct MyCoord
-	{
-		int x;
-		int y;
-		bool visited;
-	};
+    {
+        int x;
+        int y;
+        bool visited;
+    };
 
 /*
 1.8 Data type for the transportation problem
@@ -277,7 +277,7 @@ public:
     
     int getRowLowestCost(int row);
     int getColLowestCost(int col);
-	void calcRowPenalties();
+    void calcRowPenalties();
     void calcColPenalties();
     std::vector<FeatureSignatureTuple> sup;
     std::vector<FeatureSignatureTuple> dem;
@@ -329,29 +329,29 @@ public:
     void findSteppingStones(); // takes coordidates of entering cell
     
      
-	void bfs(MyCoord start, MyCoord destination);
-	std::vector<MyCoord>path;
+    void bfs(MyCoord start, MyCoord destination);
+    std::vector<MyCoord>path;
 
-	int* parents;
-	int* colors;
-	int** adjList;
-	bool* visited;
-	int* path2;
-	
-	void getPathes(int s, int d);
-	void getPathesUtil(int u, int d, int pathIdx, 
+    int* parents;
+    int* colors;
+    int** adjList;
+    bool* visited;
+    int* path2;
+    
+    void getPathes(int s, int d);
+    void getPathesUtil(int u, int d, int pathIdx, 
     std::vector<std::vector<int>> g);
-	
-	void dfs(int v);
+    
+    void dfs(int v);
     //void dfsRun(int v, bool visited[],std::vector<std::vector<int>> g);
     void dfsRun(int v, bool visited[], std::vector<std::vector<int>> g, 
     std::stack<int>* vis);
 
-	bool visitVertex(int v, int parent, 
-    std::vector<std::vector<int>> g);	
-	void printCycle(int v, int u);
+    bool visitVertex(int v, int parent, 
+    std::vector<std::vector<int>> g);    
+    void printCycle(int v, int u);
    
-	std::stack<int> st;
+    std::stack<int> st;
     int* vis;
     void depth_first_search(int u, std::vector<std::vector<int>> g);
     void 
@@ -361,11 +361,11 @@ public:
     std::vector<Cell>loop;
     void findSimpleLoop(int x, int y);
     
-	void updateSolution();
-	
-	double currentDistance;
-	double newDistance;
-	
+    void updateSolution();
+    
+    double currentDistance;
+    double newDistance;
+    
 };
 
 
@@ -388,135 +388,135 @@ TransportProblem::TransportProblem() : visitedSteppingStones(false),
 
 void TransportProblem::findSimpleLoop(int x, int y)
 {
-	
-	std::vector<Cell> xBasics;
-	for (int j = 0; j < (int) this->supSize; j++)
-	{
-		for (int i = 0; i < (int) this->demSize; i++)
-		{	
-			if (this->basicsMatrix[j][i])
-			{	
-				Cell yb = {i, j, this->distanceMatrix[j][x]};
-				basics.push_back(yb);
-			}
-		}
-	}
-
-
-
-	
-	std::vector<Cell>xEntries;
-	for (int i = 0; i < (int)this->demSize; i++)
-	{
-		if (this->basicsMatrix[y][i])
-		{
-			Cell xb = {i, y, this->distanceMatrix[i][x]};
-			xEntries.push_back(xb);
-		}
-	}
-	
-	
-	std::vector<Cell>yEntries;
-	for (int j = 0; j < (int)this->supSize; j++)
-	{
-		if (this->basicsMatrix[j][x])
-
-		{			
-			Cell xb = {x, j, this->distanceMatrix[j][x]};
-			yEntries.push_back(xb);
-		}
-	}
-	
-	Cell candidate;
-	Cell yEntry;
-	Cell xEntry;
-	for (auto c : xEntries)
-	{
-		for (auto b : basics)
-		{
-			if ((c.x == b.x) && (c.y != b.y))
-			{
-				// for each match check if there's a yEntry
-				for (auto ye : yEntries)
-				{
-					if (b.y == ye.y)
-					{
-						candidate = {b.x, b.y, 
-                            this->distanceMatrix[b.y][b.x]};
-						yEntry = {ye.x, ye.y, 
-                            this->distanceMatrix[ye.y][ye.x]};
-						xEntry = {c.x, c.y, 
-                            this->distanceMatrix[c.y][c.x]};
-						break;
-					}
-				}
-			}
-		}
-	}
-	
-	this->loop.push_back({x, y, this->distanceMatrix[y][x]});	
-	this->loop.push_back({xEntry.x, xEntry.y, xEntry.val});
-	this->loop.push_back({candidate.x, candidate.y, candidate.val});
-	
-	
-	this->loop.push_back({yEntry.x, yEntry.y, yEntry.val});
-	
-	
-	// find all basics in same row
-	//std::vector<Cell> xBasics;
-	for (int i = 0; i < (int) this->demSize; i++)
-	{
-		if (this->basicsMatrix[y][i])
-		{
-			Cell xb = {i, y, this->distanceMatrix[y][i]};
-			xBasics.push_back(xb);			
-		}
-	}
-	// find all basics in same column
-	std::vector<Cell> yBasics;
-	for (int j = 0; j < (int) this->supSize; j++)
-	{
-		if (this->basicsMatrix[j][x])
-		{
-			Cell yb = {x, j, this->distanceMatrix[j][x]};
-			yBasics.push_back(yb);
-				
-		}
-	}
-	
     
-	std::vector<Cell> candidates;
-	for (auto c : xBasics)
-	{
-		for (int j = 0; j < (int)this->supSize;j++)
-		{			
-			if (this->basicsMatrix[j][c.x]
-			&& (c.y != j)
-			) 			
-			{
-				Cell cc = {c.x, j, 0};
-				candidates.push_back(cc);
+    std::vector<Cell> xBasics;
+    for (int j = 0; j < (int) this->supSize; j++)
+    {
+        for (int i = 0; i < (int) this->demSize; i++)
+        {    
+            if (this->basicsMatrix[j][i])
+            {    
+                Cell yb = {i, j, this->distanceMatrix[j][x]};
+                basics.push_back(yb);
             }
-		}
-	//	std::cout << std::endl;	
-	}
-	
+        }
+    }
+
+
+
     
-	std::vector<Cell> solution;
-	for (auto c : candidates)
-	{
-		for (int i = 0; i < (int)this->demSize; i++)
-		{
-			if (this->basicsMatrix[c.y][i] &&
-			(c.x != i)
-			) 	
-			{
-				Cell s = {i,c.y, 0};
-				solution.push_back(s);
-			}
-		}
-	}
-	
+    std::vector<Cell>xEntries;
+    for (int i = 0; i < (int)this->demSize; i++)
+    {
+        if (this->basicsMatrix[y][i])
+        {
+            Cell xb = {i, y, this->distanceMatrix[i][x]};
+            xEntries.push_back(xb);
+        }
+    }
+    
+    
+    std::vector<Cell>yEntries;
+    for (int j = 0; j < (int)this->supSize; j++)
+    {
+        if (this->basicsMatrix[j][x])
+
+        {            
+            Cell xb = {x, j, this->distanceMatrix[j][x]};
+            yEntries.push_back(xb);
+        }
+    }
+    
+    Cell candidate;
+    Cell yEntry;
+    Cell xEntry;
+    for (auto c : xEntries)
+    {
+        for (auto b : basics)
+        {
+            if ((c.x == b.x) && (c.y != b.y))
+            {
+                // for each match check if there's a yEntry
+                for (auto ye : yEntries)
+                {
+                    if (b.y == ye.y)
+                    {
+                        candidate = {b.x, b.y, 
+                            this->distanceMatrix[b.y][b.x]};
+                        yEntry = {ye.x, ye.y, 
+                            this->distanceMatrix[ye.y][ye.x]};
+                        xEntry = {c.x, c.y, 
+                            this->distanceMatrix[c.y][c.x]};
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    this->loop.push_back({x, y, this->distanceMatrix[y][x]});    
+    this->loop.push_back({xEntry.x, xEntry.y, xEntry.val});
+    this->loop.push_back({candidate.x, candidate.y, candidate.val});
+    
+    
+    this->loop.push_back({yEntry.x, yEntry.y, yEntry.val});
+    
+    
+    // find all basics in same row
+    //std::vector<Cell> xBasics;
+    for (int i = 0; i < (int) this->demSize; i++)
+    {
+        if (this->basicsMatrix[y][i])
+        {
+            Cell xb = {i, y, this->distanceMatrix[y][i]};
+            xBasics.push_back(xb);            
+        }
+    }
+    // find all basics in same column
+    std::vector<Cell> yBasics;
+    for (int j = 0; j < (int) this->supSize; j++)
+    {
+        if (this->basicsMatrix[j][x])
+        {
+            Cell yb = {x, j, this->distanceMatrix[j][x]};
+            yBasics.push_back(yb);
+                
+        }
+    }
+    
+    
+    std::vector<Cell> candidates;
+    for (auto c : xBasics)
+    {
+        for (int j = 0; j < (int)this->supSize;j++)
+        {            
+            if (this->basicsMatrix[j][c.x]
+            && (c.y != j)
+            )             
+            {
+                Cell cc = {c.x, j, 0};
+                candidates.push_back(cc);
+            }
+        }
+    //    std::cout << std::endl;    
+    }
+    
+    
+    std::vector<Cell> solution;
+    for (auto c : candidates)
+    {
+        for (int i = 0; i < (int)this->demSize; i++)
+        {
+            if (this->basicsMatrix[c.y][i] &&
+            (c.x != i)
+            )     
+            {
+                Cell s = {i,c.y, 0};
+                solution.push_back(s);
+            }
+        }
+    }
+    
    
 }
 
@@ -531,27 +531,27 @@ std::vector<std::vector<int>> g)
 void TransportProblem::dfs_visit(int u, int dest, int time, 
 std::vector<std::vector<int>> g)
 {
-	
+    
     this->vis[u] = 1; // gray
     this->st.push(u);
     for (int i = 0; i < (int)g[u].size(); i++)
-	{
-		if (g[u][i] == dest)
-		{
-			std::cout << "found dest" << std::endl;
-			std::cout << "(" << st.size() << " elements)\n";
+    {
+        if (g[u][i] == dest)
+        {
+            std::cout << "found dest" << std::endl;
+            std::cout << "(" << st.size() << " elements)\n";
             for (std::stack<int> dump = st; !dump.empty(); dump.pop())
             {
                 std::cout << dump.top() << '\n';
             }
-			std::cout << "displaying vertices" << std::endl;
-		}
-		if (vis[g[u][i]] == 0) // white
-		{
-			 //this->parents[g[u][i]] = u;
-			dfs_visit(g[u][i], dest, 1, g);
-		}
-		
+            std::cout << "displaying vertices" << std::endl;
+        }
+        if (vis[g[u][i]] == 0) // white
+        {
+             //this->parents[g[u][i]] = u;
+            dfs_visit(g[u][i], dest, 1, g);
+        }
+        
     }
     //this->st.pop();
     this->colors[u] = 3; // black
@@ -597,57 +597,57 @@ std::vector<std::vector<int>> g, std::stack<int>* vis)
 
 void TransportProblem::dfs(int s)
 {
-	//this->visited = new bool[this->mg->vertices.size()];
+    //this->visited = new bool[this->mg->vertices.size()];
     std::vector<std::vector<int>> g(this->mg->vertices.size());
     
     std::vector<int> p;
     
     for (int i = 0; i < (int)this->mg->vertices.size(); i++)
-	{
-		for (int j = 0; j < (int)this->mg->vertices.size(); j++)
-		{
-			if (
+    {
+        for (int j = 0; j < (int)this->mg->vertices.size(); j++)
+        {
+            if (
             (this->mg->vertices[i]._x == this->mg->vertices[j]._x) ||
-            (this->mg->vertices[i]._y == this->mg->vertices[j]._y))	
-			{
-				if (j != i)
-				{
+            (this->mg->vertices[i]._y == this->mg->vertices[j]._y))    
+            {
+                if (j != i)
+                {
                     g[i].push_back(j);
                 }
-			
-			}
-		}
-	}
+            
+            }
+        }
+    }
     
     std::cout << "displaying list before:" << std::endl;
-	for (int i = 0; i < (int)this->mg->vertices.size(); i++)
-	{
-		std::cout << i << ":";
-		for (int j = 0; j < (int)g.at(i).size(); j++)
-		{
-			std::cout << g[i][j] << ",";
-		}
-		std::cout << std::endl;
-	}
+    for (int i = 0; i < (int)this->mg->vertices.size(); i++)
+    {
+        std::cout << i << ":";
+        for (int j = 0; j < (int)g.at(i).size(); j++)
+        {
+            std::cout << g[i][j] << ",";
+        }
+        std::cout << std::endl;
+    }
     
-	std::cout << "displaying vertices" << std::endl;
-	for (int i = 0; i < (int)this->mg->vertices.size(); i++)
-	{
-		std::cout 
-		<< "vert " << i << " :"
-		<< this->mg->vertices[i]._y
-		<< ","
-		<< this->mg->vertices[i]._x
-		<< std::endl;
-		
-	}
+    std::cout << "displaying vertices" << std::endl;
+    for (int i = 0; i < (int)this->mg->vertices.size(); i++)
+    {
+        std::cout 
+        << "vert " << i << " :"
+        << this->mg->vertices[i]._y
+        << ","
+        << this->mg->vertices[i]._x
+        << std::endl;
+        
+    }
     
     
     this->visited = new bool[this->mg->vertices.size()]{false};
   
     
     for (int i = 0; i < (int)this->mg->vertices.size(); i++)
-	{
+    {
         std::cout << this->parents[i] << ", ";
     }
     
@@ -708,99 +708,99 @@ bool TransportProblem::compareIIEntries(
 
 void TransportProblem::getPathes(int s, int d)
 {
-	std::vector<std::vector<int>> g(this->mg->vertices.size());
-	
-	
-	this->parents = new int[this->mg->vertices.size()]{};	
-	this->colors = new int[this->mg->vertices.size()]{0}; // white
-	
-	
-	// build adjacency list	
-	for (int i = 0; i < (int)this->mg->vertices.size(); i++)
-	{
-		for (int j = 0; j < (int)this->mg->vertices.size(); j++)
-		{
-			if (
+    std::vector<std::vector<int>> g(this->mg->vertices.size());
+    
+    
+    this->parents = new int[this->mg->vertices.size()]{};    
+    this->colors = new int[this->mg->vertices.size()]{0}; // white
+    
+    
+    // build adjacency list    
+    for (int i = 0; i < (int)this->mg->vertices.size(); i++)
+    {
+        for (int j = 0; j < (int)this->mg->vertices.size(); j++)
+        {
+            if (
             (this->mg->vertices[i]._x == this->mg->vertices[j]._x) ||
-            (this->mg->vertices[i]._y == this->mg->vertices[j]._y))	
-			{
-				if (j != i)
-				{
+            (this->mg->vertices[i]._y == this->mg->vertices[j]._y))    
+            {
+                if (j != i)
+                {
                     g[i].push_back(j);
                 }
-			}
-		}
-	}
-	// now I cut all vertical edges from the entering cell, so that
-	// no cycle exists
-	// the destination points will be the basic cells which are
-	// on the same column
-	Vertex sVert = this->mg->vertices[s];
-//	Vertex dVert = this->mg->vertices[d];
-	
-	for (int i = 0; i < (int)g[s].size(); i++)
-	{
-		for (int j = 0; j < (int)g[s].size(); j++)
-		{
-			if (this->mg->vertices[j]._y == sVert._y)
-			{
-				g[s].erase(g[s].begin() + j);
-			}
-		}
-	}
-	std::cout << std::endl;
-	
-	
-//	std::cout << "dfs displaying list:" << std::endl;
-	for (int i = 0; i < (int)this->mg->vertices.size(); i++)
-	{
-		std::cout << i << ":";
-		for (int j = 0; j < (int)g.at(i).size(); j++)
-		{
-			std::cout << g[i][j] << ",";
-		}
-		std::cout << std::endl;
-	}
-	std::cout << std::endl;
-	
-	
-	this->visited = new bool[this->mg->vertices.size()]{false};
-	
-	this->path2 = new int[this->mg->vertices.size()]{};
-	
-	int pathIdx = 0;
-	
-	this->getPathesUtil(s, d, pathIdx, g);
-	
+            }
+        }
+    }
+    // now I cut all vertical edges from the entering cell, so that
+    // no cycle exists
+    // the destination points will be the basic cells which are
+    // on the same column
+    Vertex sVert = this->mg->vertices[s];
+//    Vertex dVert = this->mg->vertices[d];
+    
+    for (int i = 0; i < (int)g[s].size(); i++)
+    {
+        for (int j = 0; j < (int)g[s].size(); j++)
+        {
+            if (this->mg->vertices[j]._y == sVert._y)
+            {
+                g[s].erase(g[s].begin() + j);
+            }
+        }
+    }
+    std::cout << std::endl;
+    
+    
+//    std::cout << "dfs displaying list:" << std::endl;
+    for (int i = 0; i < (int)this->mg->vertices.size(); i++)
+    {
+        std::cout << i << ":";
+        for (int j = 0; j < (int)g.at(i).size(); j++)
+        {
+            std::cout << g[i][j] << ",";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
+    
+    
+    this->visited = new bool[this->mg->vertices.size()]{false};
+    
+    this->path2 = new int[this->mg->vertices.size()]{};
+    
+    int pathIdx = 0;
+    
+    this->getPathesUtil(s, d, pathIdx, g);
+    
 }
 
 void TransportProblem::getPathesUtil(int u, int d, int pathIdx, 
 std::vector<std::vector<int>> g)
 {
-	this->visited[u] = true;
-	this->path2[pathIdx] = u;
-	pathIdx++;
-	
-	if (u == d)
-	{		
-		for (int i = 0; i < pathIdx; i++)
-		{
-			std::cout << this->path2[i] << " ";
-		}
-		std::cout << std::endl;
-	}
-	else
-	{
-		for (int i = 0; i < (int)g[u].size(); i++)
-		{
-			if (!this->visited[i])
-			{
-				getPathesUtil(i, d, pathIdx, g);
-			}
-		}
-	}
-	pathIdx--;
-	this->visited[u] = false;
+    this->visited[u] = true;
+    this->path2[pathIdx] = u;
+    pathIdx++;
+    
+    if (u == d)
+    {        
+        for (int i = 0; i < pathIdx; i++)
+        {
+            std::cout << this->path2[i] << " ";
+        }
+        std::cout << std::endl;
+    }
+    else
+    {
+        for (int i = 0; i < (int)g[u].size(); i++)
+        {
+            if (!this->visited[i])
+            {
+                getPathesUtil(i, d, pathIdx, g);
+            }
+        }
+    }
+    pathIdx--;
+    this->visited[u] = false;
 }
 
 
@@ -809,168 +809,168 @@ std::vector<std::vector<int>> g)
 
 void TransportProblem::printCycle(int v, int u)
 {
-	std::cout << "print cycle: u:" << u << " v:" << v << std::endl;
-	do
-	{
-		std::cout << u << ",";
-		u = this->parents[u];
-	}
-	while (u != v);
+    std::cout << "print cycle: u:" << u << " v:" << v << std::endl;
+    do
+    {
+        std::cout << u << ",";
+        u = this->parents[u];
+    }
+    while (u != v);
 }
 
 void TransportProblem::bfs(MyCoord start, MyCoord destination)
 {
 
-	std::vector<std::vector<int>> g(this->mg->vertices.size());
-	int n; // number of vertices
-	int s; // start point
-	int to;
-	
-	
-	n =  (int)this->mg->vertices.size();
-	
-	//std::cout << "displaying s" << std::endl;
-	
-	// find index of s
-	s = 0;
-	for (int i = 0; i < (int)this->mg->vertices.size(); i++)
-	{
-		if ((this->mg->vertices[i]._x == start.x) &&
-		(this->mg->vertices[i]._y == start.y))
-		{
-			s = i;
-			break;
-		}
-		
-	}
-	
-	//std::cout << "displaying to" << std::endl;
-	// find index of to
-	to = 0;
-	for (int i = 0; i < (int)this->mg->vertices.size(); i++)
-	{
-		if ((this->mg->vertices[i]._x == destination.x) &&
-		(this->mg->vertices[i]._y == destination.y))
-		{
-			to = i;
-			break;
-		}
-		
-	}
-	
-	
-	//std::cout << "building list" << std::endl;
-	// create adjacency list 
-	// the connection between must be broken
-	
-	for (int i = 0; i < (int)this->mg->vertices.size(); i++)
-	{
-		for (int j = 0; j < (int)this->mg->vertices.size(); j++)
-		{
+    std::vector<std::vector<int>> g(this->mg->vertices.size());
+    int n; // number of vertices
+    int s; // start point
+    int to;
+    
+    
+    n =  (int)this->mg->vertices.size();
+    
+    //std::cout << "displaying s" << std::endl;
+    
+    // find index of s
+    s = 0;
+    for (int i = 0; i < (int)this->mg->vertices.size(); i++)
+    {
+        if ((this->mg->vertices[i]._x == start.x) &&
+        (this->mg->vertices[i]._y == start.y))
+        {
+            s = i;
+            break;
+        }
+        
+    }
+    
+    //std::cout << "displaying to" << std::endl;
+    // find index of to
+    to = 0;
+    for (int i = 0; i < (int)this->mg->vertices.size(); i++)
+    {
+        if ((this->mg->vertices[i]._x == destination.x) &&
+        (this->mg->vertices[i]._y == destination.y))
+        {
+            to = i;
+            break;
+        }
+        
+    }
+    
+    
+    //std::cout << "building list" << std::endl;
+    // create adjacency list 
+    // the connection between must be broken
+    
+    for (int i = 0; i < (int)this->mg->vertices.size(); i++)
+    {
+        for (int j = 0; j < (int)this->mg->vertices.size(); j++)
+        {
             if (
             (this->mg->vertices[i]._x == this->mg->vertices[j]._x) ||
             (this->mg->vertices[i]._y == this->mg->vertices[j]._y))
             {
-				if (j != i)
-				{
-					if (!((i == s) && (j == to)))
+                if (j != i)
+                {
+                    if (!((i == s) && (j == to)))
                     {
-						g[i].push_back(j);
+                        g[i].push_back(j);
                     }
-				}
-			
-			}
-		}
-	}
-	
+                }
+            
+            }
+        }
+    }
     
-	std::cout << "displaying list" << std::endl;
-	for (int i = 0; i < (int)this->mg->vertices.size(); i++)
-	{
-		std::cout << i << ":";
-		for (int j = 0; j < (int)g.at(i).size(); j++)
-		{
-			std::cout << g[i][j] << ",";
-		}
-		std::cout << std::endl;
-	}
-	
-	std::cout << "destination y:" << destination.y << " x:" 
+    
+    std::cout << "displaying list" << std::endl;
+    for (int i = 0; i < (int)this->mg->vertices.size(); i++)
+    {
+        std::cout << i << ":";
+        for (int j = 0; j < (int)g.at(i).size(); j++)
+        {
+            std::cout << g[i][j] << ",";
+        }
+        std::cout << std::endl;
+    }
+    
+    std::cout << "destination y:" << destination.y << " x:" 
     << destination.x << std::endl;
-	
-	std::cout << "displaying vertices" << std::endl;
-	for (int i = 0; i < (int)this->mg->vertices.size(); i++)
-	{
-		std::cout 
-		<< "vert " << i << " :"
-		<< this->mg->vertices[i]._y
-		<< ","
-		<< this->mg->vertices[i]._x
-		<< std::endl;
-		
-	}
-	
-		
-	
-		
-	
-	std::queue<int> q;
-	q.push(s);
-	
-	std::vector<bool> used(n);
-	std::vector<int> d(n);
-	std::vector<int> p(n);
-	used[s] = true;
-	p[s] = -1; // parent
-
-	//std::cout << "starting queue" << std::endl;
-	
-	while (!q.empty())
-	{
-		int v = q.front();
-		q.pop();
-		
-		for (int i = 0; i < (int)g[v].size(); ++i)
-		{
-			int to = g[v][i];
-			if (!used[to])
-			{
-				used[to] = true;
-				q.push(to);
-				d[to] = d[v] + 1;
-				p[to] = v;
-			}
-		}
-	}
-	
     
-	//std::cout << "displaying path" << std::endl;
+    std::cout << "displaying vertices" << std::endl;
+    for (int i = 0; i < (int)this->mg->vertices.size(); i++)
+    {
+        std::cout 
+        << "vert " << i << " :"
+        << this->mg->vertices[i]._y
+        << ","
+        << this->mg->vertices[i]._x
+        << std::endl;
+        
+    }
+    
+        
+    
+        
+    
+    std::queue<int> q;
+    q.push(s);
+    
+    std::vector<bool> used(n);
+    std::vector<int> d(n);
+    std::vector<int> p(n);
+    used[s] = true;
+    p[s] = -1; // parent
 
-	if (!used[to])
-	{
-		// no path
-		//std::cout << "no path" << std::endl; 
+    //std::cout << "starting queue" << std::endl;
+    
+    while (!q.empty())
+    {
+        int v = q.front();
+        q.pop();
+        
+        for (int i = 0; i < (int)g[v].size(); ++i)
+        {
+            int to = g[v][i];
+            if (!used[to])
+            {
+                used[to] = true;
+                q.push(to);
+                d[to] = d[v] + 1;
+                p[to] = v;
+            }
+        }
+    }
+    
+    
+    //std::cout << "displaying path" << std::endl;
+
+    if (!used[to])
+    {
+        // no path
+        //std::cout << "no path" << std::endl; 
         ;       
-	}
-	else
-	{
-		std::vector<int> path;
-		for (int v = to; v != -1; v = p[v])
-		{
-			path.push_back(v);
-			int xv = this->mg->vertices[v]._x;
-			int yv = this->mg->vertices[v]._y;
-			MyCoord c = {xv, yv};
-			this->path.push_back(c);
-		}
-		reverse(path.begin(), path.end());
-		reverse(this->path.begin(), this->path.end());
-		
+    }
+    else
+    {
+        std::vector<int> path;
+        for (int v = to; v != -1; v = p[v])
+        {
+            path.push_back(v);
+            int xv = this->mg->vertices[v]._x;
+            int yv = this->mg->vertices[v]._y;
+            MyCoord c = {xv, yv};
+            this->path.push_back(c);
+        }
+        reverse(path.begin(), path.end());
+        reverse(this->path.begin(), this->path.end());
+        
     
-	}
-	
-	
-	
+    }
+    
+    
+    
 }
 
 
@@ -980,16 +980,16 @@ void TransportProblem::bfs(MyCoord start, MyCoord destination)
 
 */
 
-	
+    
 
 
 void TransportProblem::findSteppingStones()
 {
 //
-	//std::cout << "starting stepping stones" << std::endl;
-	
-	//let's modify the tableau to test MODI
-	
+    //std::cout << "starting stepping stones" << std::endl;
+    
+    //let's modify the tableau to test MODI
+    
     
     
    
@@ -1000,9 +1000,9 @@ void TransportProblem::findSteppingStones()
 //    this->adjMatrix = new bool*[cntVert];
 //    for (int i = 0; i < cntVert; i++)
 //    {
-//		adjMatrix[i] = new bool[cntVert]{false};
-//	}
-	
+//        adjMatrix[i] = new bool[cntVert]{false};
+//    }
+    
     
    
    this->mg->vertices.erase(this->mg->vertices.begin(), 
@@ -1045,54 +1045,54 @@ void TransportProblem::findSteppingStones()
    
   // std::cout << "adding edges" << std::endl;
 
-	int half = (int)this->mg->vertices.size() / 2;
-	
-	//std::cout << "half:" << half << std::endl;
+    int half = (int)this->mg->vertices.size() / 2;
     
-	for (int i = 0; i < half ; i++)
-	{
-		for (int j = 0; j < half; j++)
-		{
-			if (j != i)
-			{
-				if (this->mg->vertices[i]._x == 
+    //std::cout << "half:" << half << std::endl;
+    
+    for (int i = 0; i < half ; i++)
+    {
+        for (int j = 0; j < half; j++)
+        {
+            if (j != i)
+            {
+                if (this->mg->vertices[i]._x == 
                 this->mg->vertices[j]._x)
-				{
+                {
                     this->mg->g[i].push_back(j+half);
                 }
-			}
-		}
-	}
-	
+            }
+        }
+    }
+    
    
    //std::cout << "adding second batch of edges" << std::endl;
    for (int i = 0; i < half ; i++)
-	{
-		for (int j = 0; j < half; j++)
-		{
-			if (j != i)
-			{
-				if (this->mg->vertices[i]._y == 
+    {
+        for (int j = 0; j < half; j++)
+        {
+            if (j != i)
+            {
+                if (this->mg->vertices[i]._y == 
                 this->mg->vertices[j]._y)
-				{
+                {
                     //std::cout << "i:" << i << " j:" << j << std::endl;
                     this->mg->g[i+half].push_back(j);
                 }
-			}
-		}
-	}
-	
+            }
+        }
+    }
+    
    
     
     mg->visited = new bool[mg->vertices.size()]{false};
-	//mg->g.resize(mg->vertices.size());
-	
-	int pos = this->mg->vertices.size() -1;	
-	
+    //mg->g.resize(mg->vertices.size());
+    
+    int pos = this->mg->vertices.size() -1;    
+    
     if (!this->mg->dfs(pos, -1))
     {
-		this->basicsError = true;
-	}
+        this->basicsError = true;
+    }
     
     return;
 }
@@ -1105,8 +1105,8 @@ void TransportProblem::findSteppingStones()
 
 void TransportProblem::updateSolution()
 {
-	
-	// find theta
+    
+    // find theta
     // it's the smallest amount
     // 
     std::vector<int>tmpPath;
@@ -1117,17 +1117,17 @@ void TransportProblem::updateSolution()
     
     
    // for (auto l : tmpPath)
-//	{
-	//	std::cout << " tmp loop:" << this->mg->vertices[l]._x << "," 
+//    {
+    //    std::cout << " tmp loop:" << this->mg->vertices[l]._x << "," 
     //<< this->mg->vertices[l]._y << std::endl;
-	//}
+    //}
     //std::cout << "tmp loop size:" << tmpPath.size() << std::endl;
     
-	
+    
     int minBasicVal = std::numeric_limits<int>::max();
     int idxMinVal = 0;
     
-	for (int i = 0; i < (int)this->mg->vertices.size(); i += 2)
+    for (int i = 0; i < (int)this->mg->vertices.size(); i += 2)
     {
         Vertex min = this->mg->vertices[i];
         int minVal = this->amountMatrix[min._y][min._x];
@@ -1143,34 +1143,34 @@ void TransportProblem::updateSolution()
     
     Vertex minBasicCell = this->mg->vertices[idxMinVal];    
         
-	double theta = this->amountMatrix[minBasicCell._y][minBasicCell._x];
-	
-	int x;
-	int y;
-	int ii = 0;
+    double theta = this->amountMatrix[minBasicCell._y][minBasicCell._x];
+    
+    int x;
+    int y;
+    int ii = 0;
     
     
-	for (auto p : tmpPath)
-	{
+    for (auto p : tmpPath)
+    {
         //std::cout << "reducing theta" << std::endl;
-		x = this->mg->vertices[p]._x;
-		y = this->mg->vertices[p]._y;
-		if ((ii % 2) == 0)
-		{	
-            //std::cout << "adding theta" << std::endl;	
-			this->amountMatrix[y][x] += theta;		
-		}
-		else
-		{			
+        x = this->mg->vertices[p]._x;
+        y = this->mg->vertices[p]._y;
+        if ((ii % 2) == 0)
+        {    
+            //std::cout << "adding theta" << std::endl;    
+            this->amountMatrix[y][x] += theta;        
+        }
+        else
+        {            
            // std::cout << "removing theta" << std::endl;
-			this->amountMatrix[y][x] -= theta;		
-		}
-		ii++;
-	}
-	
+            this->amountMatrix[y][x] -= theta;        
+        }
+        ii++;
+    }
     
-	// let's calculate the new distance
-	
+    
+    // let's calculate the new distance
+    
     
     
     int dist = 0;
@@ -1191,8 +1191,8 @@ void TransportProblem::updateSolution()
     }
     
     //std::cout << "new dist:" << this->newDistance << std::endl;
-	this->newDistance = dist;
-	
+    this->newDistance = dist;
+    
 }
 
     
@@ -1224,7 +1224,7 @@ void TransportProblem::calcShadowCosts()
     for ( int x = 0; x < (int)this->demSize; x++)
     { 
         if (this->basicsMatrix[0][x])
-        {			
+        {            
             vcost[x] = this->distanceMatrix[0][x];
         }
     }
@@ -1304,60 +1304,60 @@ void TransportProblem::calcShadowCosts()
 
 void TransportProblem::calcColPenalties()
 {
- 	 
-	   for ( int x =  0; x < (int)this->demSize; x++) 
-	   {    
+      
+       for ( int x =  0; x < (int)this->demSize; x++) 
+       {    
           int min = std::numeric_limits<int>::max();
-		   int min2 = std::numeric_limits<int>::max();
-		   for ( int y = 0; y < (int)this->supSize; y++) // vertical
-		   {
+           int min2 = std::numeric_limits<int>::max();
+           for ( int y = 0; y < (int)this->supSize; y++) // vertical
+           {
              bool satisfied = rowSat[y];
                
-			   if (!satisfied)
-			   {		
-			   	if (this->distanceMatrix[y][x] < min2)
-					{
+               if (!satisfied)
+               {        
+                   if (this->distanceMatrix[y][x] < min2)
+                    {
                         if (this->distanceMatrix[y][x] < min)
                         {
                             min2 = min;
                             min = this->distanceMatrix[y][x];
-						}
-						else
-						{
+                        }
+                        else
+                        {
                             min2 = this->distanceMatrix[y][x];
                         }
-					}               
-				}			
-		   }
+                    }               
+                }            
+           }
            if (min2 != std::numeric_limits<int>::max())
-		   {
-			   int tmpPen = min2 - min;
+           {
+               int tmpPen = min2 - min;
                this->colPen[x] = tmpPen;
             }
-			else
-			{			
-				this->colPen[x] = min;
-			}
-		
-		//   delete [] tmpv;          
-	   }
+            else
+            {            
+                this->colPen[x] = min;
+            }
+        
+        //   delete [] tmpv;          
+       }
        // std::cout << std::endl;
               
-	   int max = std::numeric_limits<int>::min();
-	 //  int idx = 0;
-	  // std::cout << "col penalties:";
-	   for ( int i = 0; i < (int)this->demSize; i++)
-	   {
+       int max = std::numeric_limits<int>::min();
+     //  int idx = 0;
+      // std::cout << "col penalties:";
+       for ( int i = 0; i < (int)this->demSize; i++)
+       {
           // std::cout << this->colPen[i] << ",";
            if (max < this->colPen[i])
-		   {
-			   max = this->colPen[i];
-		//	   idx = i;
-		   }
+           {
+               max = this->colPen[i];
+        //       idx = i;
+           }
             
-	   }
+       }
        
-	   
+       
 }
 
 
@@ -1369,62 +1369,62 @@ void TransportProblem::calcColPenalties()
 
 void TransportProblem::calcRowPenalties()
 {
-	
+    
     // std::cout << "calc row penalties:" << std::endl;;   
      
-	   for ( int y = 0; y < (int)this->supSize; y++) // horizontal
+       for ( int y = 0; y < (int)this->supSize; y++) // horizontal
         {
-    		int min = std::numeric_limits<int>::max();
-			int min2 = std::numeric_limits<int>::max();
-		   
-		   for ( int x =  0; x < (int)this->demSize; x++) 
-		   {
-			   bool satisfied = colSat[x];
+            int min = std::numeric_limits<int>::max();
+            int min2 = std::numeric_limits<int>::max();
+           
+           for ( int x =  0; x < (int)this->demSize; x++) 
+           {
+               bool satisfied = colSat[x];
 
-			   if (!satisfied)
-			   {				
-					if (this->distanceMatrix[y][x] < min2)
-					{
+               if (!satisfied)
+               {                
+                    if (this->distanceMatrix[y][x] < min2)
+                    {
                         if (this->distanceMatrix[y][x] < min)
                         {
-							min2 = min;
+                            min2 = min;
                             min = this->distanceMatrix[y][x];
                         }
-						else
-						{
+                        else
+                        {
                             min2 = this->distanceMatrix[y][x];
                         }
-					}
-				}          
-		   }
-		   if (min2 != std::numeric_limits<int>::max())
-		   { 
-				int tmpPen = min2 - min;
+                    }
+                }          
+           }
+           if (min2 != std::numeric_limits<int>::max())
+           { 
+                int tmpPen = min2 - min;
                 this->rowPen[y] = tmpPen;
-			}
-			else
-			{
-				this->rowPen[y] = min;
-			}
-			
-	   }
-	   
-	   int max = std::numeric_limits<int>::min();
-	  // int idx = 0;
-	 //  std::cout << "row penalties:";
-	   for ( int i = 0; i < (int)this->supSize; i++)
-	   {
+            }
+            else
+            {
+                this->rowPen[y] = min;
+            }
+            
+       }
+       
+       int max = std::numeric_limits<int>::min();
+      // int idx = 0;
+     //  std::cout << "row penalties:";
+       for ( int i = 0; i < (int)this->supSize; i++)
+       {
            //std::cout << this->rowPen[i] << ",";
            if (max < this->rowPen[i])
-		   {
-			   max = this->rowPen[i];
-		//	   idx = i;
-		   }
+           {
+               max = this->rowPen[i];
+        //       idx = i;
+           }
        }
-	   //std::cout << std::endl;
-	   
-	 //  return idx;
-       	
+       //std::cout << std::endl;
+       
+     //  return idx;
+           
 }
 
 /*
@@ -1435,13 +1435,13 @@ void TransportProblem::calcRowPenalties()
 
 int TransportProblem::getColLowestCost(int row)
 {
-	int min = std::numeric_limits<int>::max();		 
-	int idx;
-	//std::cout << "getColLowestCost in row:" << row << std::endl;
-	for (int x = 0; x < (int)this->demSize; x++)
-	{
+    int min = std::numeric_limits<int>::max();         
+    int idx;
+    //std::cout << "getColLowestCost in row:" << row << std::endl;
+    for (int x = 0; x < (int)this->demSize; x++)
+    {
         //std::cout << "x:" << x << std::endl;
-		if (this->colSat[x])
+        if (this->colSat[x])
         {
             continue;
         }
@@ -1449,79 +1449,79 @@ int TransportProblem::getColLowestCost(int row)
        // std::cout << this->distanceMatrix[row][x] << ",";
             
        // std::cout << " min:" << min << " ";
-		if (this->distanceMatrix[row][x] < min)
-		{
+        if (this->distanceMatrix[row][x] < min)
+        {
                 min = distanceMatrix[row][x];
                 idx = x;
-		}
-	}
-	return idx;
+        }
+    }
+    return idx;
 }
 
 int TransportProblem::getRowLowestCost(int col)
 {
     //std::cout << std::endl;
-	int min = std::numeric_limits<int>::max();		 
-	int idx;
-	//std::cout << "getRowLowestCost in col:" << col << std::endl;
-	for ( int y = 0; y < (int)this->supSize; y++)
-	{
+    int min = std::numeric_limits<int>::max();         
+    int idx;
+    //std::cout << "getRowLowestCost in col:" << col << std::endl;
+    for ( int y = 0; y < (int)this->supSize; y++)
+    {
         if (this->rowSat[y])
-		{
-			continue;
-		}
-		//std::cout << this->distanceMatrix[y][col] << ",";
+        {
+            continue;
+        }
+        //std::cout << this->distanceMatrix[y][col] << ",";
         
             
-		if (this->distanceMatrix[y][col] < min)
-		{
+        if (this->distanceMatrix[y][col] < min)
+        {
                 min = distanceMatrix[y][col];
                 idx = y;
             
-		}
-	}
-	return idx;
+        }
+    }
+    return idx;
 }
 
 
 int TransportProblem::maxRowPenIdx()
 {
-	int idx = 0;
-	int maxVal = 0;
-	for ( int i = 0; i < (int)this->supSize; i++)
-	{
-		if (!this->rowSat[i])
-		{
-			if (maxVal < this->rowPen[i])
-			{
-				maxVal = this->rowPen[i];
-				idx = i;
-			}
-		}
-	}
-	return idx;
+    int idx = 0;
+    int maxVal = 0;
+    for ( int i = 0; i < (int)this->supSize; i++)
+    {
+        if (!this->rowSat[i])
+        {
+            if (maxVal < this->rowPen[i])
+            {
+                maxVal = this->rowPen[i];
+                idx = i;
+            }
+        }
+    }
+    return idx;
 }
 
 int TransportProblem::maxColPenIdx()
 {
-	int idx = 0;
-	int maxVal = 0;
-	for ( int i = 0; i < (int)this->demSize; i++)
-	{
+    int idx = 0;
+    int maxVal = 0;
+    for ( int i = 0; i < (int)this->demSize; i++)
+    {
      //   std::cout << "colPenalty:" << this->colPen[i] << ",";
         //std::cout << std::endl;
-		if (!this->colSat[i])
-		{
-			if (maxVal < this->colPen[i])
-			{
-				maxVal = this->colPen[i];
-				idx = i;
-			}
-		}
-	}
-	//std::cout << std::endl;
+        if (!this->colSat[i])
+        {
+            if (maxVal < this->colPen[i])
+            {
+                maxVal = this->colPen[i];
+                idx = i;
+            }
+        }
+    }
+    //std::cout << std::endl;
     //std::cout << "maxColPenIdx:" << idx << std::endl;
-	return idx;
+    return idx;
 }
 
 
@@ -1536,7 +1536,7 @@ std::vector<FeatureSignatureTuple> fst1,
     std::vector<FeatureSignatureTuple> fst2)
 {
     sup = fst1;
-	dem = fst2;   
+    dem = fst2;   
     
 
     this->sup = sup;
@@ -1551,21 +1551,21 @@ std::vector<FeatureSignatureTuple> fst1,
     for (auto fst : dem)
         sumDem += fst.weight;
         
-	
     
-	//std::cout << "supWeights:" ;
+    
+    //std::cout << "supWeights:" ;
     std::vector<long>supWeights;
     for (int i = 0; i < (int)sup.size(); i++)
     {
-		supWeights.push_back((long)round(sup[i].weight * 10000.0) );
-	}
-		
-	std::vector<long>demWeights;
-	 for (int i = 0; i < (int)dem.size(); i++)
+        supWeights.push_back((long)round(sup[i].weight * 10000.0) );
+    }
+        
+    std::vector<long>demWeights;
+     for (int i = 0; i < (int)dem.size(); i++)
     {
-		demWeights.push_back((long)round(dem[i].weight * 10000.0) );
-	}
-	
+        demWeights.push_back((long)round(dem[i].weight * 10000.0) );
+    }
+    
        for (auto fst : supWeights)
         sumSup += fst;
         
@@ -1575,7 +1575,7 @@ std::vector<FeatureSignatureTuple> fst1,
     //std::cout << "sumSup: before:" << sumSup << std::endl;
     //std::cout << "sumDem before :" << sumDem << std::endl;
   
-	
+    
     
     if (sumSup > sumDem)
     {
@@ -1671,9 +1671,9 @@ std::vector<FeatureSignatureTuple> fst1,
    this->colSat = new bool[this->demSize]{false};
    
     
-	
-	calcRowPenalties(); // vertical penalties
-	int rowPenIdx;      
+    
+    calcRowPenalties(); // vertical penalties
+    int rowPenIdx;      
     rowPenIdx = maxRowPenIdx(); // idx of the biggest penalty
     int rowMinIdx = getColLowestCost(rowPenIdx); 
      
@@ -1685,7 +1685,7 @@ std::vector<FeatureSignatureTuple> fst1,
      
     int colMinIdx = getRowLowestCost(colPenIdx);
     
- 	
+     
         
     //https://e-maxx-eng.appspot.com/graph/breadth-first-search.html//  
 
@@ -1716,8 +1716,8 @@ std::vector<FeatureSignatureTuple> fst1,
         }
         
         if (allCols && allRows)
-        {		
-			//std::cout << "breaking good" << std::endl;
+        {        
+            //std::cout << "breaking good" << std::endl;
             break;
         }
         
@@ -1726,7 +1726,7 @@ std::vector<FeatureSignatureTuple> fst1,
        // std::cout << "main fog 1:" << std::endl;
         
         colPenIdx = maxColPenIdx();
-		
+        
        // std::cout << "main fog 2:" << std::endl;
         rowPenIdx = maxRowPenIdx();
         
@@ -1818,103 +1818,103 @@ std::vector<FeatureSignatureTuple> fst1,
             
             
             
-			if (supWeights[rowPenIdx] > demWeights[rowMinIdx])
+            if (supWeights[rowPenIdx] > demWeights[rowMinIdx])
             {
         //std::cout << "supply is larger, send all demand" << std::endl;
-				//this->rowSat[rowPenIdx] = true;
-				this->colSat[rowMinIdx] = true;
-				//std::cout << "f1:" << std::endl;
-				this->amountMatrix[rowPenIdx][rowMinIdx] 
+                //this->rowSat[rowPenIdx] = true;
+                this->colSat[rowMinIdx] = true;
+                //std::cout << "f1:" << std::endl;
+                this->amountMatrix[rowPenIdx][rowMinIdx] 
                 = demWeights[rowMinIdx];
-				//std::cout << "f2:" << std::endl;
-				supWeights[rowPenIdx] -= demWeights[rowMinIdx];
-				//std::cout << "f3:" << std::endl;
-                demWeights[rowMinIdx] = 0;				
-				// calcColPenalties(); // change
-				calcRowPenalties();
-				//rowPenIdx = maxRowPenIdx();
-			}
-			else if (supWeights[rowPenIdx] < demWeights[rowMinIdx])
-			{ // -- done
+                //std::cout << "f2:" << std::endl;
+                supWeights[rowPenIdx] -= demWeights[rowMinIdx];
+                //std::cout << "f3:" << std::endl;
+                demWeights[rowMinIdx] = 0;                
+                // calcColPenalties(); // change
+                calcRowPenalties();
+                //rowPenIdx = maxRowPenIdx();
+            }
+            else if (supWeights[rowPenIdx] < demWeights[rowMinIdx])
+            { // -- done
         //std::cout << "demand is larger, send all supply" << std::endl;
     //std::cout << " again: sup[rowPenIdx]:" << supWeights[rowPenIdx]
-				//<< " dem[rowMinIdx]:" << demWeights[rowMinIdx]
-				//<< std::endl;				
-			
-				this->rowSat[rowPenIdx] = true;
-				this->amountMatrix[rowPenIdx][rowMinIdx] 
+                //<< " dem[rowMinIdx]:" << demWeights[rowMinIdx]
+                //<< std::endl;                
+            
+                this->rowSat[rowPenIdx] = true;
+                this->amountMatrix[rowPenIdx][rowMinIdx] 
                 = supWeights[rowPenIdx];
-				demWeights[rowMinIdx] -= supWeights[rowPenIdx];
-                supWeights[rowPenIdx] = 0;				
-				calcColPenalties();
-			//	rowPenIdx = maxRowPenIdx();
-			}
-			else 
-			{
+                demWeights[rowMinIdx] -= supWeights[rowPenIdx];
+                supWeights[rowPenIdx] = 0;                
+                calcColPenalties();
+            //    rowPenIdx = maxRowPenIdx();
+            }
+            else 
+            {
                 //  std::cout << "demand equals supply" << std::endl;
                 this->rowSat[rowPenIdx] = true;
-				this->colSat[rowMinIdx] = true;
-				this->amountMatrix[rowPenIdx][rowMinIdx] 
+                this->colSat[rowMinIdx] = true;
+                this->amountMatrix[rowPenIdx][rowMinIdx] 
                 = supWeights[rowPenIdx];
-				demWeights[rowMinIdx] = 0;
-                supWeights[rowPenIdx] = 0;				
-				calcColPenalties();
-				calcRowPenalties();
-			}	
-						
+                demWeights[rowMinIdx] = 0;
+                supWeights[rowPenIdx] = 0;                
+                calcColPenalties();
+                calcRowPenalties();
+            }    
+                        
           
         }
         else
-        {			
+        {            
           //  std::cout << "max col is larger  ";
           // std::cout << "col sup[rowMinIdx]:" << supWeights[colMinIdx]
-			//	<< " dem[colPenIdx]:" << demWeights[colPenIdx]
-			//	<< std::endl;
-			
+            //    << " dem[colPenIdx]:" << demWeights[colPenIdx]
+            //    << std::endl;
+            
             if (supWeights[colMinIdx] > demWeights[colPenIdx])
             {
         //std::cout << "supply is larger, send all demand" << std::endl;
             // std::cout << "sup[rowPenIdx]:" << supWeights[rowMinIdx]
-				//<< " dem[colMinIdx]:" << demWeights[colPenIdx]
-			//	<< std::endl;
-								
-				this->colSat[colPenIdx] = true;
-				this->amountMatrix[colMinIdx][colPenIdx] 
-                = demWeights[colPenIdx];				
-				supWeights[colMinIdx] -= demWeights[colPenIdx];
-				demWeights[colPenIdx] = 0;
-				calcRowPenalties();
-			//	colPenIdx = maxColPenIdx();
-				
-			}
-			else if (supWeights[colMinIdx] < demWeights[colPenIdx])
-			{
+                //<< " dem[colMinIdx]:" << demWeights[colPenIdx]
+            //    << std::endl;
+                                
+                this->colSat[colPenIdx] = true;
+                this->amountMatrix[colMinIdx][colPenIdx] 
+                = demWeights[colPenIdx];                
+                supWeights[colMinIdx] -= demWeights[colPenIdx];
+                demWeights[colPenIdx] = 0;
+                calcRowPenalties();
+            //    colPenIdx = maxColPenIdx();
+                
+            }
+            else if (supWeights[colMinIdx] < demWeights[colPenIdx])
+            {
         //std::cout << "demand is larger, send all supply" << std::endl;
             //std::cout << "sup[rowPenIdx]:" << supWeights[rowMinIdx]
-				//<< " dem[colMinIdx]:" << demWeights[colPenIdx]
-				//<< std::endl;
-				//this->colSat[colPenIdx] = true;
-				this->rowSat[colMinIdx] = true;
-            	this->amountMatrix[colMinIdx][colPenIdx] 
+                //<< " dem[colMinIdx]:" << demWeights[colPenIdx]
+                //<< std::endl;
+                //this->colSat[colPenIdx] = true;
+                this->rowSat[colMinIdx] = true;
+                this->amountMatrix[colMinIdx][colPenIdx] 
                 = supWeights[colMinIdx];
-            	demWeights[colPenIdx] -= supWeights[colMinIdx];
-				supWeights[colMinIdx] = 0;
-            	calcColPenalties(); // changed
-            //	colPenIdx = maxColPenIdx();
-			}
+                demWeights[colPenIdx] -= supWeights[colMinIdx];
+                supWeights[colMinIdx] = 0;
+                calcColPenalties(); // changed
+            //    colPenIdx = maxColPenIdx();
+            }
             else
             {
                 //std::cout << "demand equals supply" << std::endl;
             //std::cout << "sup[colPenIdx]:" << supWeights[colPenIdx]
-				//<< " dem[colMinIdx]:" << demWeights[colMinIdx]
-				//<< std::endl;
-				//this->colSat[colPenIdx] = true;
-				this->rowSat[colMinIdx] = true;
+                //<< " dem[colMinIdx]:" << demWeights[colMinIdx]
+                //<< std::endl;
+                //this->colSat[colPenIdx] = true;
+                this->rowSat[colMinIdx] = true;
                 this->colSat[colPenIdx] = true;
-				this->amountMatrix[colMinIdx][colPenIdx] 
+                this->amountMatrix[colMinIdx][colPenIdx] 
                 = supWeights[colMinIdx];
-				demWeights[colPenIdx] = 0;
-				supWeights[colMinIdx] = 0;
+                demWeights[colPenIdx] = 0;
+                supWeights[colMinIdx] = 0;
                 calcRowPenalties();
                 calcColPenalties();
             }
@@ -1925,12 +1925,12 @@ std::vector<FeatureSignatureTuple> fst1,
         
         
     }
-	
-	        
+    
+            
    //std::cout << "distance:" << std::endl;
    //std::cout << std::endl;
    
-	long dist = 0;
+    long dist = 0;
     
     for ( int y = 0; y < (int)this->supSize; y++) // rows
     {
@@ -1951,9 +1951,9 @@ std::vector<FeatureSignatureTuple> fst1,
     //std::cout << "dist:" << dist << std::endl;
     
     this->newDistance = (double)(dist / 1);
-	
+    
     this->currentDistance = (double)(dist / 1);
-	
+    
 }
 
 
