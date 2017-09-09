@@ -1026,7 +1026,70 @@ namespace ColumnMovingAlgebra
     return 0;
   }
 
+/*
 
+Index Operator
 
+*/
+
+  const OperatorInfo IndexOperator::info = OperatorInfo(
+      "index",
+      "mpoints x [int, int] -> mpoints",
+      "_ index [_, _]",
+      "returns an mpoints with the data of the mpoints given as first \n"
+      "argument. the new mpoints is indexed with a grid index, which splits \n"
+      "the time dimension and location dimension \n"
+      "as often as determined by the second and third argument",
+      "query movingPoints index [100, 100]");
+
+  ValueMapping IndexOperator::valueMappings[] = {
+    ValueMapping0,
+    nullptr
+  };
+
+  ListExpr IndexOperator::TypeMapping(ListExpr args) {
+    if(!nl->HasLength(args,3)) 
+      return NList::typeError("Three arguments expected.");
+
+    const ListExpr firstArg = nl->First(args);
+
+    CRelAlgebra::AttrArrayTypeConstructor *typeConstructorA =
+      CRelAlgebra::AttrArray::GetTypeConstructor(firstArg);
+
+    if (typeConstructorA == nullptr) 
+      return NList::typeError("First Argument isn't of kind ATTRARRAY.");
+
+    const ListExpr attributeType = typeConstructorA->GetAttributeType(firstArg,
+                                                                        false);
+
+    if (!nl->IsEqual(attributeType, temporalalgebra::MPoint::BasicType())) 
+      return NList::typeError(
+        "First Argument isn't of type ATTRARRAY(MPOINT)");
+
+    const ListExpr secondArg = nl->Second(args);
+
+    if (!nl->IsEqual(secondArg, CcInt::BasicType())) 
+      return NList::typeError("Second Argument isn't of type INT");
+        
+    const ListExpr thirdArg = nl->Third(args);
+
+    if (!nl->IsEqual(thirdArg, CcInt::BasicType())) 
+      return NList::typeError("Third Argument isn't of type INT");
+
+    return MPointsType::TI(false).GetTypeExpr();       
+  }
+
+  int IndexOperator::SelectValueMapping(ListExpr args) {
+    return 0;
+  }
+  
+  int IndexOperator::ValueMapping0(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MPoints*>(args[0].addr)->index( 
+        *static_cast<CcInt*>(args[1].addr), *static_cast<CcInt*>(args[2].addr), 
+        qp->ResultStorage<MPoints>(result, s) );
+    return 0;
+  }
 
 }
