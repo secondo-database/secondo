@@ -163,11 +163,11 @@ class FeatureSignature : public Attribute
         const int percentSamples, 
         const int noClusters);
 
-	// operator for calculating SQFD of two signatures
+    // operator for calculating SQFD of two signatures
     double calcSQFD(Word* args, Word& result, int message,
-					Word& local, Supplier s);
-					
-	
+                    Word& local, Supplier s);
+                    
+    
     std::string GetFileName() const { return fileName; };
     void SetFileName(const std::string _fileName) 
     { 
