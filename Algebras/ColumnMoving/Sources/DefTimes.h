@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
-#include <cassert>
+#include "Check.h"
 #include "Array.h"
 #include "Interval.h"
 
@@ -39,19 +39,23 @@ namespace ColumnMovingAlgebra
     int savedSize();
 
     void addRow();
+    void addInterval(Interval interval);
     void removeRow();
     void clear();
 
-    void addInterval(Interval interval);
+    bool present(int row, Instant instant);
+    bool present(int row, temporalalgebra::Periods periods);
+    void getLimits(int64_t &minimum, int64_t &maximum);
 
-    bool present(int collection, Instant instant);
-    bool present(int collection, temporalalgebra::Periods periods);
+    int rowCount();
+    int intervalFirst(int row);
+    int intervalAfterLast(int row);
+    int intervalCount(int row);
+    Interval interval(int index);
 
   private:
-    Array<int> m_CollectionsFirstIndizes;
+    Array<int> m_Rows;
     Array<Interval> m_Intervals;
-
-    int collectionsLastIndizes(int collection);
   };
 
 
@@ -59,48 +63,34 @@ namespace ColumnMovingAlgebra
 
   inline DefTimes::DefTimes(CRelAlgebra::Reader & source)
   {
-    m_CollectionsFirstIndizes.load(source);
+    m_Rows.load(source);
     m_Intervals.load(source);
   }
 
   inline void DefTimes::save(CRelAlgebra::Writer & target)
   {
-    m_CollectionsFirstIndizes.save(target);
+    m_Rows.save(target);
     m_Intervals.save(target);
   }
 
   inline int DefTimes::savedSize()
   {
-    return m_CollectionsFirstIndizes.savedSize() + m_Intervals.savedSize();
+    return m_Rows.savedSize() + m_Intervals.savedSize();
   }
 
   inline void DefTimes::addRow()
   {
-    m_CollectionsFirstIndizes.push_back(m_Intervals.size());
-  }
-
-  inline void DefTimes::removeRow()
-  {
-    while ((int)m_Intervals.size() > m_CollectionsFirstIndizes.back())
-      m_Intervals.pop_back();
-
-    m_CollectionsFirstIndizes.pop_back();
-  }
-
-  inline void DefTimes::clear()
-  {
-    m_CollectionsFirstIndizes.clear();
-    m_Intervals.clear();
+    m_Rows.push_back(m_Intervals.size());
   }
 
   inline void DefTimes::addInterval(Interval interval)
   {
-    if (m_CollectionsFirstIndizes.back() < (int)m_Intervals.size() - 1) {
+    if (m_Rows.back() < (int)m_Intervals.size() - 1) {
       Interval & last = m_Intervals.back();
-      assert(last.e <= interval.s);
+      check(last.e <= interval.s, "intervals not disjoint and ordered");
 
       if (last.e == interval.s && (last.rc || interval.lc)) {
-        assert(!last.rc || !interval.lc);
+        check(!last.rc || !interval.lc, "intervals not disjoint");
         last.e = interval.e;
         last.rc = interval.rc;
         return;
@@ -114,15 +104,29 @@ namespace ColumnMovingAlgebra
     }
   }
 
-  inline bool DefTimes::present(int collection, Instant instant)
+  inline void DefTimes::removeRow()
+  {
+    while ((int)m_Intervals.size() > m_Rows.back())
+      m_Intervals.pop_back();
+
+    m_Rows.pop_back();
+  }
+
+  inline void DefTimes::clear()
+  {
+    m_Rows.clear();
+    m_Intervals.clear();
+  }
+
+  inline bool DefTimes::present(int row, Instant instant)
   {
     if (!instant.IsDefined())
       return false;
 
     int64_t t = instant.millisecondsToNull();
 
-    int l = m_CollectionsFirstIndizes[collection];
-    int h = collectionsLastIndizes(collection);
+    int l = intervalFirst(row);
+    int h = intervalAfterLast(row) - 1;
 
     while (l <= h) {
       int m = (l + h) / 2;
@@ -139,14 +143,14 @@ namespace ColumnMovingAlgebra
     return false;
   }
 
-  inline bool DefTimes::present(int collection, 
+  inline bool DefTimes::present(int row, 
     temporalalgebra::Periods periods)
   {
     if (!periods.IsDefined())
       return false;
 
-    int iA = m_CollectionsFirstIndizes[collection];
-    int lastA = collectionsLastIndizes(collection);
+    int iA = intervalFirst(row);
+    int lastA = intervalAfterLast(row) - 1;
     int iB = 0;
     int lastB = periods.GetNoComponents() - 1;
 
@@ -166,12 +170,48 @@ namespace ColumnMovingAlgebra
 
     return false;
   }
-
-  inline int DefTimes::collectionsLastIndizes(int collection)
+  
+  inline void DefTimes::getLimits(int64_t &minimum, int64_t &maximum)
   {
-    if (collection == static_cast<int>(m_CollectionsFirstIndizes.size()) - 1)
-      return m_Intervals.size() - 1;
+    if (m_Intervals.size() == 0) {
+      minimum = 0;
+      maximum = 0;
+      return;
+    }
+    
+    minimum = std::numeric_limits<int64_t>::max();
+    maximum = std::numeric_limits<int64_t>::min();
+
+    for (auto & i : m_Intervals) {
+      minimum = std::min(minimum, i.s);
+      maximum = std::max(maximum, i.e);
+    }
+  }
+
+  inline int DefTimes::rowCount()
+  {
+    return m_Rows.size();
+  }
+
+  inline int DefTimes::intervalFirst(int row)
+  {
+    return m_Rows[row];
+  }
+
+  inline int DefTimes::intervalAfterLast(int row)
+  {
+    if (row == rowCount() - 1)
+      return m_Intervals.size();
     else
-      return m_CollectionsFirstIndizes[collection + 1] - 1;
+      return m_Rows[row + 1];
+  }
+
+  inline int DefTimes::intervalCount(int row)
+  {
+    return intervalAfterLast(row) - intervalFirst(row);
+  }
+  
+  inline Interval DefTimes::interval(int index) {
+    return m_Intervals[index];
   }
 }

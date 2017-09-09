@@ -29,42 +29,42 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace ColumnMovingAlgebra
 {
-  class IIntEntry
+  class IRealEntry 
   {
   public:
-    typedef temporalalgebra::IInt AttributeType;
+    typedef temporalalgebra::IReal AttributeType;
 
     static const bool isPrecise = true;
 
-    IIntEntry() = default;
-    IIntEntry(bool defined, int64_t time, int value);
-    IIntEntry(const temporalalgebra::IInt &value);
+    IRealEntry() = default;
+    IRealEntry(bool defined, int64_t time, double value);
+    IRealEntry(const temporalalgebra::IReal &value);
 
     bool IsDefined() const;
     int64_t GetTime() const;
-    int GetValue() const;
+    double GetValue() const;
 
-    int Compare(const IIntEntry &value) const;
-    int Compare(const temporalalgebra::IInt &value) const;
-    bool Equals(const IIntEntry &value) const;
-    bool Equals(const temporalalgebra::IInt &value) const;
+    int Compare(const IRealEntry &value) const;
+    int Compare(const temporalalgebra::IReal &value) const;
+    bool Equals(const IRealEntry &value) const;
+    bool Equals(const temporalalgebra::IReal &value) const;
 
     size_t GetHash() const;
 
-    temporalalgebra::IInt *GetAttribute(bool clone = true) const;
+    temporalalgebra::IReal *GetAttribute(bool clone = true) const;
 
   private:
     
     bool m_Defined, m_ValueDefined;
     int64_t m_Time;
-    int m_Value;
+    double m_Value;
   };
 
-  typedef CRelAlgebra::SimpleFSAttrArray<IIntEntry> IInts;
-  typedef CRelAlgebra::SimpleFSAttrArrayIterator<IIntEntry> IIntsIterator;
+  typedef CRelAlgebra::SimpleFSAttrArray<IRealEntry> IReals;
+  typedef CRelAlgebra::SimpleFSAttrArrayIterator<IRealEntry> IRealsIterator;
 
 
-  inline IIntEntry::IIntEntry(bool defined, int64_t time, int value) :
+  inline IRealEntry::IRealEntry(bool defined, int64_t time, double value) :
     m_Defined(defined),
     m_ValueDefined(true),
     m_Time(time),
@@ -72,28 +72,28 @@ namespace ColumnMovingAlgebra
   {
   }
 
-  inline IIntEntry::IIntEntry(const temporalalgebra::IInt &value) :
+  inline IRealEntry::IRealEntry(const temporalalgebra::IReal &value) :
     m_Defined(value.IsDefined()),
     m_ValueDefined(value.value.IsDefined()),
     m_Time(value.instant.millisecondsToNull()),
-    m_Value(value.value.GetIntval())
+    m_Value(value.value.GetValue())
   {
   }
 
-  inline bool IIntEntry::IsDefined() const
+  inline bool IRealEntry::IsDefined() const
   {
     return m_Defined;
   }
 
-  inline int64_t IIntEntry::GetTime() const {
+  inline int64_t IRealEntry::GetTime() const {
     return m_Time;
   }
 
-  inline int IIntEntry::GetValue() const {
+  inline double IRealEntry::GetValue() const {
     return m_Value;
   }
 
-  inline int IIntEntry::Compare(const IIntEntry &value) const
+  inline int IRealEntry::Compare(const IRealEntry &value) const
   {
     if (!m_Defined)
       return !value.m_Defined ? 0 : -1;
@@ -109,30 +109,30 @@ namespace ColumnMovingAlgebra
     else if (!value.m_ValueDefined)
       return 1;
 
-    int iDiff = m_Value - value.m_Value;
-    if (iDiff != 0)
-      return iDiff < 0 ? -1 : 1;
+    double dDiff = m_Value - value.m_Value;
+    if (dDiff != 0)
+      return dDiff < 0 ? -1 : 1;
 
     return 0;
   }
 
-  inline int IIntEntry::Compare(const temporalalgebra::IInt &value) const
+  inline int IRealEntry::Compare(const temporalalgebra::IReal &value) const
   {
-    IIntEntry b(value);
+    IRealEntry b(value);
     return Compare(b);
   }
 
-  inline bool IIntEntry::Equals(const IIntEntry &value) const
+  inline bool IRealEntry::Equals(const IRealEntry &value) const
   {
     return Compare(value) == 0;
   }
 
-  inline bool IIntEntry::Equals(const temporalalgebra::IInt &value) const
+  inline bool IRealEntry::Equals(const temporalalgebra::IReal &value) const
   {
     return Compare(value) == 0;
   }
 
-  inline size_t IIntEntry::GetHash() const
+  inline size_t IRealEntry::GetHash() const
   {
     if (!m_Defined)
       return 0;
@@ -140,18 +140,18 @@ namespace ColumnMovingAlgebra
     return static_cast<size_t>(m_Value) ^ static_cast<size_t>(m_Time);
   }
 
-  inline temporalalgebra::IInt *IIntEntry::GetAttribute(bool clone) const
+  inline temporalalgebra::IReal *IRealEntry::GetAttribute(bool clone) const
   {
     if (!m_Defined)
-      return new temporalalgebra::IInt(false);
+      return new temporalalgebra::IReal(false);
       
     if (!m_ValueDefined) {
-      CcInt r(2);
+      CcReal r(2.0);
       r.SetDefined(false);
-      return new temporalalgebra::IInt(Instant(m_Time), r);
+      return new temporalalgebra::IReal(Instant(m_Time), r);
     }
         
-    return new temporalalgebra::IInt(Instant(m_Time), CcInt(m_Value));
+    return new temporalalgebra::IReal(Instant(m_Time), CcReal(m_Value));
   }
 
 }

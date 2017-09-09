@@ -240,7 +240,8 @@ namespace ColumnMovingAlgebra {
       if (b.count > 1) {
         b.count--;
       } else {
-        assert(b.nextBlock == static_cast<int>(m_Blocks.size()) - 1);
+        check(b.nextBlock == static_cast<int>(m_Blocks.size()) - 1, 
+                                              "rollback error");
         b = m_Blocks[b.nextBlock];
         m_Blocks.pop_back();
       }

@@ -22,6 +22,8 @@ operator atinstant alias PRESENT pattern _ infixop _
 operator atperiods alias PRESENT pattern _ infixop _
 operator passes alias PRESENT pattern _ infixop _
 operator at alias PRESENT pattern _ infixop _
+operator intersection alias INTERSECTION pattern op ( _ , _)
 operator addrandom alias PRESENT pattern _ infixop _
 operator index alias INDEX pattern _ op [_,_]
-
+operator inside alias INSIDE pattern _ infixop _
+operator cextend alias CEXTEND pattern _ op [ funlist ] implicit parameter streamelem type STREAMELEM !!

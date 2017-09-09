@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AlmostEqual.h"
 #include "Array.h"
 #include "Interval.h"
+#include "Check.h"
 
 namespace ColumnMovingAlgebra {
 
@@ -271,9 +272,10 @@ namespace ColumnMovingAlgebra {
   inline void MPointsData::addUnit(Interval interval, double x0, double y0, 
     double x1, double y1, int & unitId)
   {
-    assert(interval.s <= interval.e);
-    assert(interval.s != interval.e || (interval.lc && interval.rc));
-    assert(m_Rows.size() > 0);
+    check(interval.s <= interval.e, "interval must start before its end");
+    check(interval.s != interval.e || (interval.lc && interval.rc), 
+          "point interval must be left and right closed");
+    check(m_Rows.size() > 0, "addRow must be called before addUnit");
 
     m_Frames.emplace_back();
     Frame & f0 = m_Rows.back().unitCount > 0 ? 
@@ -281,20 +283,23 @@ namespace ColumnMovingAlgebra {
       m_Frames.back();
     Frame & f1 = m_Frames.back();
 
-    assert(m_Rows.back().unitCount == 0 || f0.type == RIGHT_CLOSED || 
-           f0.type == RIGHT_OPEN || f0.type == LEFT_AND_RIGHT_CLOSED);
-    assert(m_Rows.back().unitCount == 0 || f0.time <= interval.s);
+    check(m_Rows.back().unitCount == 0 || f0.type == RIGHT_CLOSED || 
+          f0.type == RIGHT_OPEN || f0.type == LEFT_AND_RIGHT_CLOSED,
+          "last interval not finished");
+    check(m_Rows.back().unitCount == 0 || f0.time <= interval.s,
+          "intervals not disjoint and ordered");
 
     if ( m_Rows.back().unitCount == 0 || 
-       f0.time != interval.s || f0.x != x0 || f0.y != y0 || 
-      (f0.type == RIGHT_OPEN && !interval.lc) ) 
+         f0.time != interval.s || f0.x != x0 || f0.y != y0 || 
+         (f0.type == RIGHT_OPEN && !interval.lc) ) 
     {
-      assert(m_Rows.back().unitCount == 0 || f0.time != interval.s || 
-             f0.type == RIGHT_OPEN || !interval.lc);
+      check(m_Rows.back().unitCount == 0 || f0.time != interval.s || 
+            f0.type == RIGHT_OPEN || !interval.lc, "intervals overlap");
       unitId = m_Frames.size() - 1;
 
       if (interval.s == interval.e) {
-        assert(AlmostEqual(x0, x1) && AlmostEqual(y0, y1));
+        check(AlmostEqual(x0, x1) && AlmostEqual(y0, y1), 
+              "point interval must start and end at the same point");
         f1.time = interval.s;
         f1.x = x0;
         f1.y = y0;
@@ -314,7 +319,7 @@ namespace ColumnMovingAlgebra {
         f2.type = interval.rc ? RIGHT_CLOSED : RIGHT_OPEN;
       }
     } else {
-      assert(f0.type == RIGHT_OPEN || !interval.lc);
+      check(f0.type == RIGHT_OPEN || !interval.lc, "intervals overlap");
       unitId = m_Frames.size() - 2;
 
       f0.type = CHAINED;
@@ -418,7 +423,8 @@ namespace ColumnMovingAlgebra {
     int & firstFrameOfNextUnit)
   {
     Frame & f0 = m_Frames[firstFrameOfUnit];
-    assert(f0.type != RIGHT_CLOSED && f0.type != RIGHT_OPEN);
+    check(f0.type != RIGHT_CLOSED && f0.type != RIGHT_OPEN, 
+          "frame is not start of a unit");
 
     if (f0.type == LEFT_AND_RIGHT_CLOSED) {
       firstFrameOfNextUnit = firstFrameOfUnit + 1;
@@ -433,10 +439,11 @@ namespace ColumnMovingAlgebra {
       unit.x1 = f0.x;
       unit.y1 = f0.y;
     } else {
-      assert(firstFrameOfUnit < static_cast<int>(m_Frames.size()) - 1);
+      checkr(firstFrameOfUnit < static_cast<int>(m_Frames.size()) - 1,
+            "frame is not start of a unit");
       Frame & f1 = m_Frames[firstFrameOfUnit + 1];
-      assert(f1.type != LEFT_CLOSED && f1.type != LEFT_OPEN && 
-             f1.type != LEFT_AND_RIGHT_CLOSED);
+      check(f1.type != LEFT_CLOSED && f1.type != LEFT_OPEN && 
+            f1.type != LEFT_AND_RIGHT_CLOSED, "frames inconsistant");
 
       bool lc, rc;
       if (f0.type == LEFT_CLOSED) {

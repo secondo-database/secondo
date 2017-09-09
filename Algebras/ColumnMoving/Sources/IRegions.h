@@ -288,23 +288,29 @@ namespace ColumnMovingAlgebra
     }
 
     Region r(m_HalfSegmentsCount);
-    r.StartBulkLoad();
+    
+    if (m_HalfSegmentsCount == 0) {
+      r.SetDefined(false);
+    } else {
+      r.StartBulkLoad();
 
-    for (int i = 0; i < m_HalfSegmentsCount; i++) {
-      HalfSegment & h = m_HalfSegments[i];
-      ::Point lp(true, h.lp.x, h.lp.y);
-      ::Point rp(true, h.rp.x, h.rp.y);
-      ::HalfSegment hr(h.ldp, lp, rp);
-      hr.attr.faceno = h.faceno;
-      hr.attr.cycleno = h.cycleno;
-      hr.attr.edgeno = h.edgeno;
-      hr.attr.coverageno = h.coverageno;
-      hr.attr.partnerno = h.partnerno;
-      hr.attr.insideAbove = h.insideAbove;
-      r.Put(i, hr);
+      for (int i = 0; i < m_HalfSegmentsCount; i++) {
+        HalfSegment & h = m_HalfSegments[i];
+        ::Point lp(true, h.lp.x, h.lp.y);
+        ::Point rp(true, h.rp.x, h.rp.y);
+        ::HalfSegment hr(h.ldp, lp, rp);
+        hr.attr.faceno = h.faceno;
+        hr.attr.cycleno = h.cycleno;
+        hr.attr.edgeno = h.edgeno;
+        hr.attr.coverageno = h.coverageno;
+        hr.attr.partnerno = h.partnerno;
+        hr.attr.insideAbove = h.insideAbove;
+        r.Put(i, hr);
+      }
+
+      r.EndBulkLoad();
     }
-
-    r.EndBulkLoad();
+    
     return new temporalalgebra::IRegion(m_Time, r);
   }
 }

@@ -24,157 +24,158 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
-#include <memory>
-#include "AttrArray.h"
-#include "DefTimes.h"
-#include "Bools.h"
+#include "AlmostEqual.h"
+#include "MFsObjects.h"
 #include "IInts.h"
 
 namespace ColumnMovingAlgebra
 {
-  class MInts : public CRelAlgebra::AttrArray
+  class IntUnit;
+
+  typedef MFsObjects<IntUnit> MInts;
+
+  class IntUnit
   {
   public:
-    inline MInts();
-    inline MInts(CRelAlgebra::Reader& source);
-    inline MInts(CRelAlgebra::Reader& source, size_t rowsCount);
-    inline MInts(const MInts &array,
-      const CRelAlgebra::SharedArray<const size_t> &filter);
-    virtual ~MInts() { }
+    typedef int Value;
+    typedef IInts Instants;
+    typedef CcInt Attr;
+    typedef temporalalgebra::RInt RAttr;
+    typedef temporalalgebra::MInt MAttr;
+    
+    IntUnit() = default;
+    IntUnit(temporalalgebra::MInt mint, int unit);
+    IntUnit(Interval interval, int m_Value);
 
-    virtual AttrArray* Filter(CRelAlgebra::SharedArray<const size_t> filter)
-      const;
-
-    virtual size_t GetCount() const;
-    virtual size_t GetSize() const;
-    virtual Attribute *GetAttribute(size_t row, bool clone = true) const;
-
-    virtual void Save(CRelAlgebra::Writer &target, bool includeHeader = true)
-      const;
-
-    virtual void Append(const CRelAlgebra::AttrArray & array, size_t row);
-    virtual void Append(Attribute & value);
-    virtual void Remove();
-    virtual void Clear();
-
-    virtual bool IsDefined(size_t row) const;
-
-    virtual int  Compare(size_t rowA, const AttrArray& arrayB, 
-                         size_t rowB) const;
-    virtual int  CompareAlmost(size_t rowA, const AttrArray &arrayB, 
-                         size_t rowB) const;
-    virtual bool Equals(size_t rowA, const AttrArray &arrayB, 
-                         size_t rowB) const;
-    virtual bool EqualsAlmost(size_t rowA, const AttrArray &arrayB, 
-                         size_t rowB) const;
-
-    virtual int  Compare(size_t row, Attribute &value) const;
-    virtual int  CompareAlmost(size_t row, Attribute &value) const;
-    virtual bool Equals(size_t row, Attribute &value) const;
-    virtual bool EqualsAlmost(size_t row, Attribute &value) const;
-
-    virtual size_t GetHash(size_t row) const;
-
-    void present(::Instant instant, Bools & result);
-    void present(temporalalgebra::Periods periods, Bools & result);
-    void atInstant(Instant instant, IInts & result);
-    void atPeriods(temporalalgebra::Periods periods, MInts & result);
-    void passes(CcInt & value, Bools & result);
-    void at(CcInt & value, MInts & result);
-    void at(temporalalgebra::RInt & value, MInts & result);
-
-    void addRow();
-    void addUnit(int64_t s, int64_t e, bool lc, bool rc, int value);
-    int unitCount(int row) const;
+    Value minimum() const;
+    Value maximum() const;
+    Interval interval() const;
+    void appendTo(temporalalgebra::MInt & mint);
+    int compareValue(const IntUnit & intUnit);
+    temporalalgebra::IInt atInstant(Instant instant);
+    IntUnit restrictToInterval(Interval unitInterval);
+    bool passes(CcInt ccInt);
+    bool passes(temporalalgebra::RInt rInt);
+    void at(CcInt ccInt, MInts & result);
+    void at(temporalalgebra::RInt rInt, MInts & result);
+    
+    static CcInt undefinedAttr();
+    static int compare(Value value, Attr attr);
 
   private:
-    struct Unit {
-      Interval interval;
-      int value;
-    };
-
-    struct Row {
-      int firstUnitIndex;
-    };
-
-    std::shared_ptr<DefTimes> m_DefTimes;
-    std::shared_ptr<Array<Unit>> m_Units;
-    std::shared_ptr<Array<Row>> m_Rows;
-
-    int firstUnitIndex(int row) const;
-    int lastUnitIndex(int row) const;
+    Interval m_Interval;
+    int m_Value;
   };
 
 
 
+  inline IntUnit::IntUnit(temporalalgebra::MInt mint, int unit)
+  {
+    temporalalgebra::UInt u;
+    mint.Get(unit, u);
+    m_Interval = u.timeInterval;
+    m_Value = u.constValue.GetValue();
+  }
 
-  MInts::MInts() :
-    m_DefTimes         (std::make_shared<DefTimes   >()),
-    m_Units            (std::make_shared<Array<Unit>>()),
-    m_Rows             (std::make_shared<Array<Row> >())
+  inline IntUnit::IntUnit(Interval interval, int value) :
+    m_Interval(interval),
+    m_Value(value)
   {
   }
 
-  MInts::MInts(CRelAlgebra::Reader& source)
+  inline IntUnit::Value IntUnit::minimum() const
   {
-    m_DefTimes          = std::make_shared<DefTimes   >(source);
-    m_Units             = std::make_shared<Array<Unit>>(source);
-    m_Rows              = std::make_shared<Array<Row> >(source);
+    return m_Value;
+  }
+  
+  inline IntUnit::Value IntUnit::maximum() const
+  {
+    return m_Value;
+  }
+  
+  inline Interval IntUnit::interval() const
+  {
+    return m_Interval;
+  }
+  
+  inline void IntUnit::appendTo(
+    temporalalgebra::MInt & mint)
+  {
+    mint.Add(temporalalgebra::UInt(m_Interval.convert(), CcInt(m_Value)));
+  }
+  
+  inline int IntUnit::compareValue(const IntUnit & intUnit)
+  {
+    int iDiff;
+
+    iDiff = m_Value - intUnit.m_Value;
+    if (iDiff != 0.0)
+      return iDiff < 0.0 ? -1 : 1;
+
+    return 0;
   }
 
-  MInts::MInts(CRelAlgebra::Reader& source, size_t rowsCount)
+  inline temporalalgebra::IInt IntUnit::atInstant(Instant instant)
   {
-    m_DefTimes          = std::make_shared<DefTimes   >(source);
-    m_Units             = std::make_shared<Array<Unit>>(source);
-    m_Rows              = std::make_shared<Array<Row> >(source, rowsCount);
+    return temporalalgebra::IInt(instant, CcInt(true, m_Value));
   }
 
-  MInts::MInts(const MInts &array, 
-               const CRelAlgebra::SharedArray<const size_t> &filter) :
-    AttrArray(filter),
-    m_DefTimes(array.m_DefTimes),
-    m_Units(array.m_Units),
-    m_Rows(array.m_Rows)
+  inline IntUnit IntUnit::restrictToInterval(Interval unitInterval)
   {
+    IntUnit u;
+    u.m_Interval = unitInterval;
+    u.m_Value = m_Value;
+    return u;
   }
 
-  inline void MInts::addUnit(int64_t s, int64_t e, bool lc, bool rc, int value) 
+  inline bool IntUnit::passes(CcInt ccInt)
   {
-    Unit unit;
-    unit.value = value;
-
-    Interval & interval = unit.interval;
-    interval.s  = s;
-    interval.e  = e;
-    interval.lc = lc;
-    interval.rc = rc;
-
-    m_Units->push_back(unit);
-
-    m_DefTimes->addInterval(interval);
+    return m_Value == ccInt.GetValue();
   }
 
-  inline void MInts::addRow() {
-    m_Rows->emplace_back();
-    m_Rows->back().firstUnitIndex = m_Units->size();
-    m_DefTimes->addRow();
+  inline bool IntUnit::passes(temporalalgebra::RInt rInt)
+  {
+    for (int index = 0; index < rInt.GetNoComponents(); index++) {
+      temporalalgebra::Interval<CcInt> ri;
+      rInt.Get(index, ri);
+
+      int s = ri.start.GetValue(), e = ri.end.GetValue();
+      bool is = ri.lc, ie = ri.rc;
+      
+      if (m_Value < s || (m_Value == s && !is))
+        continue;
+      
+      if (m_Value > e || (m_Value == e && !ie))
+        continue;
+        
+      return true;
+    }
+    
+    return false;
   }
 
-  inline int MInts::firstUnitIndex(int row) const
+  inline void IntUnit::at(CcInt ccInt, MInts & result)
   {
-    return (*m_Rows)[row].firstUnitIndex;
+    if (passes(ccInt)) 
+      result.addUnit(*this);
   }
 
-  inline int MInts::lastUnitIndex(int row) const
+  inline void IntUnit::at(temporalalgebra::RInt rInt, MInts & result)
   {
-    if (row == static_cast<int>(m_Rows->size()) - 1)
-      return m_Units->size() - 1;
-    else
-      return (*m_Rows)[row + 1].firstUnitIndex - 1;
+    if (passes(rInt))
+      result.addUnit(*this);
   }
 
-  inline int MInts::unitCount(int row) const
+  inline CcInt IntUnit::undefinedAttr()
   {
-    return lastUnitIndex(row) - (*m_Rows)[row].firstUnitIndex + 1;
+    CcInt r(1);
+    r.SetDefined(false);
+    return r;
+  }
+
+  inline int IntUnit::compare(Value value, Attr attr)
+  {
+    int b = attr.GetValue();
+    return value < b ? -1 : (value == b ? 0 : 1);
   }
 }

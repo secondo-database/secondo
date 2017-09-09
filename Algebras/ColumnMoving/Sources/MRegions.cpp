@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "stdafx.h"
 #include "MRegions.h"
-#include "RegionTools.h"
 
 using namespace std;
 
@@ -40,6 +39,8 @@ extern NestedList* nl;
 
 namespace ColumnMovingAlgebra
 {
+  const double MRegions::SMALL_NUM = 1e-8;
+
   CRelAlgebra::AttrArray* MRegions::Filter(
     CRelAlgebra::SharedArray<const size_t> filter) const
   {
@@ -96,8 +97,8 @@ namespace ColumnMovingAlgebra
   void MRegions::Append(Attribute & value)
   {
     auto & m = static_cast<temporalalgebra::MRegion&>(value);
-    auto segments = static_cast<DbArray<temporalalgebra::MSegmentData>*>(
-      m.GetFLOB(1));
+    auto segments = static_cast<DbArray<temporalalgebra::MSegmentData>*>
+      (m.GetFLOB(1));
 
     addMRegion();
 
@@ -126,11 +127,13 @@ namespace ColumnMovingAlgebra
           addCycle();
           lastCycle = dms.GetCycleNo();
         }
-
+                      
         addEdge(Edge{ { dms.GetInitialStartX(), dms.GetInitialStartY() },
                       { dms.GetFinalStartX(),   dms.GetFinalStartY()   } });
       }
     }
+
+    checkMRegion(m_MRegions->size() - 1);
   }
 
   void MRegions::Remove()
@@ -234,39 +237,6 @@ namespace ColumnMovingAlgebra
     return Compare(row, mrs, 0);
   }
 
-  int MRegions::CompareAlmost(size_t rowA, const CRelAlgebra::AttrArray 
-    &arrayB, size_t rowB) const
-  {
-    return Compare(rowA, arrayB, rowB);
-  }
-
-  int MRegions::CompareAlmost(size_t row, Attribute &value) const
-  {
-    return Compare(row, value);
-  }
-
-  bool MRegions::Equals(size_t rowA, const CRelAlgebra::AttrArray &arrayB,
-    size_t rowB) const
-  {
-    return Compare(rowA, arrayB, rowB) == 0;
-  }
-
-  bool MRegions::Equals(size_t row, Attribute &value) const
-  {
-    return Compare(row, value) == 0;
-  }
-
-  bool MRegions::EqualsAlmost(size_t rowA, 
-    const CRelAlgebra::AttrArray &arrayB, size_t rowB) const
-  {
-    return Compare(rowA, arrayB, rowB) == 0;
-  }
-
-  bool MRegions::EqualsAlmost(size_t row, Attribute &value) const
-  {
-    return Compare(row, value) == 0;
-  }
-
   size_t MRegions::GetHash(size_t row) const
   {
     if (m_Units->size() == 0)
@@ -278,208 +248,49 @@ namespace ColumnMovingAlgebra
 
   Attribute * MRegions::GetAttribute(size_t row, bool clone) const
   {
-    ListExpr mrsll, mrsl = nl->TheEmptyList();
+    temporalalgebra::MRegion* mr = new temporalalgebra::MRegion(0);
 
     for (int ui = unitFirst(row); ui < unitAfterLast(row); ui++) {
-      ListExpr rll, rl = nl->TheEmptyList();
+      std::vector<temporalalgebra::MSegmentData> linelist;    
 
-      for (int fi = faceFirst(ui); fi < faceAfterLast(ui); fi++) {
-        ListExpr fll, fl = nl->TheEmptyList();
+      for (int fi = faceFirst(ui), fii = 0; 
+           fi < faceAfterLast(ui); fi++, fii++) 
+      {
+        for (int ci = cycleFirst(fi), cii = 0; 
+             ci < cycleAfterLast(fi); ci++, cii++) 
+        {          
+          for (int i = 0; i < edgeCount(ci); i++) {
+            int ei0 = edgeFirst(ci) + (i % edgeCount(ci));
+            int ei1 = edgeFirst(ci) + ((i + 1) % edgeCount(ci));
 
-        for (int ci = cycleFirst(fi); ci < cycleAfterLast(fi); ci++) {
-          ListExpr cll, cl = nl->TheEmptyList();
-
-          for (int ei = edgeFirst(ci); ei < edgeAfterLast(ci); ei++) {
-            Point & s = edge(ei).s, &e = edge(ei).e;
-            ListExpr p = nl->FourElemList(nl->RealAtom(s.x), nl->RealAtom(s.y),
-              nl->RealAtom(e.x), nl->RealAtom(e.y));
-
-            if (cl == nl->TheEmptyList())
-              cll = cl = nl->OneElemList(p);
-            else
-              cll = nl->Append(cll, p);
-          }
-
-          if (fl == nl->TheEmptyList())
-            fll = fl = nl->OneElemList(cl);
-          else
-            fll = nl->Append(fll, cl);
-        }
-
-        if (rl == nl->TheEmptyList())
-          rll = rl = nl->OneElemList(fl);
-        else
-          rll = nl->Append(rll, fl);
-      }
-
-      temporalalgebra::Interval<Instant> interval = 
-        unit(ui).interval.convert();
-        
-      ListExpr ul = nl->TwoElemList(nl->FourElemList(
-        nl->StringAtom(interval.start.ToString()),
-        nl->StringAtom(interval.end.ToString()),
-        nl->BoolAtom(interval.lc),
-        nl->BoolAtom(interval.rc)),
-        rl);
-
-      if (mrsl == nl->TheEmptyList())
-        mrsll = mrsl = nl->OneElemList(ul);
-      else
-        mrsll = nl->Append(mrsll, ul);
-    }
-
-    ListExpr e;
-    bool c;
-    return static_cast<Attribute*>(
-      temporalalgebra::InMRegion(nl->TheEmptyList(), mrsl, 0, e, c).addr);
-  }
-
-  void MRegions::present(Instant instant, CRelAlgebra::LongInts & result)
-  {
-    result.Clear();
-    
-    for (auto & iterator : GetFilter()) {
-      int i = iterator.GetRow();
-      
-      if (m_DefTimes->present(i, instant))
-        result.Append(i);
-    }
-  }
-
-  void MRegions::present(temporalalgebra::Periods periods, 
-    CRelAlgebra::LongInts & result)
-  {
-    result.Clear();
-
-    for (auto & iterator : GetFilter()) {
-      int i = iterator.GetRow();
-      
-      if (m_DefTimes->present(i, periods))
-        result.Append(i);
-    }
-  }
-
-  void MRegions::atInstant(Instant instant, IRegions & result)
-  {
-    temporalalgebra::IRegion undefined(false);
-    undefined.SetDefined(false);
-
-    if (!instant.IsDefined()) {
-      for (size_t i = 0; i < GetFilter().GetCount(); i++)
-        result.Append(undefined);
-
-      return;
-    }
-
-    int64_t time = instant.millisecondsToNull();
-    
-
-    for (auto & iterator : GetFilter()) {
-      int i = iterator.GetRow();
-
-      Unit * first = m_Units->data() + unitFirst(i);
-      Unit * afterLast = m_Units->data() + unitAfterLast(i);
-      Unit * u = lower_bound(first, afterLast, time,
-        [] (const Unit & a, const int64_t & b) -> bool { 
-          return a.interval.e < b || (a.interval.e == b && !a.interval.rc); 
-        });
-
-      if ( u == afterLast || u->interval.s > time || 
-          (u->interval.s == time && !u->interval.lc)) {
-        result.Append(undefined);
-        continue;
-      }
-
-      Interval & iv = u->interval;
-      double d = iv.e - iv.s;
-      double f = d == 0.0 ? 1.0 : (time - iv.s) / d;
-      
-      vector<vector<::Point>> cycles;
-
-      int afterLastFace = u == &m_Units->back() ? 
-        m_Faces->size() : 
-        (u + 1)->firstFace;
-        
-      for (int fi = u->firstFace; fi < afterLastFace; fi++) {
-        for (int ci = cycleFirst(fi); ci < cycleAfterLast(fi); ci++) {
-          cycles.emplace_back();
-
-          for (int ei = edgeFirst(ci); ei < edgeAfterLast(ci); ei++) {
-            Edge & e = edge(ei);
-            double x = (1.0 - f) * e.s.x + f * e.e.x;
-            double y = (1.0 - f) * e.s.y + f * e.e.y;
-            cycles.back().emplace_back(::Point(true, x, y));
-          }
-          
-          if (cycles.back().size() > 0)
-            cycles.back().push_back(cycles.back().front());
-
-          if ((ci == cycleFirst(fi)) != getDir(cycles.back()))
-            reverseCycle(cycles.back());
-        }
-      }
-
-      Region * r = buildRegion(cycles);
-      auto ir = temporalalgebra::IRegion(time, *r);
-      result.Append(ir);
-      delete r;
-    }
-  }
-
-  void MRegions::atPeriods(temporalalgebra::Periods periods, MRegions & result)
-  {
-    if (!periods.IsDefined() || periods.GetNoComponents() == 0) {
-      for (size_t i = 0; i < GetFilter().GetCount(); i++)
-        result.addMRegion();
-
-      return;
-    }
-    
-    for (auto & iterator : GetFilter()) {
-      int row = iterator.GetRow();
-      result.addMRegion();
-
-      int ai = 0, bi = unitFirst(row);
-
-      while (ai < periods.GetNoComponents() && bi < unitAfterLast(row)) {
-        temporalalgebra::Interval<Instant> period;
-        periods.Get(ai, period);
-        Interval a = period;
-        Interval & b = unit(bi).interval;
-
-        if (a.intersects(b)) {
-          Interval c = a.intersection(b);
-          result.addUnit(c);
-
-          double d = b.e - b.s;
-          double fs = d == 0.0 ? 1.0 : (c.s - b.s) / d;
-          double fe = d == 0.0 ? 1.0 : (c.e - b.s) / d;
-
-          for (int fi = faceFirst(bi); fi < faceAfterLast(bi); fi++) {
-            result.addFace();
-
-            for (int ci = cycleFirst(fi); ci < cycleAfterLast(fi); ci++) {
-              result.addCycle();
-
-              for (int ei = edgeFirst(ci); ei < edgeAfterLast(ci); ei++) {
-                Edge & e = edge(ei);
-                Edge f;
-                f.s.x = (1.0 - fs) * e.s.x + fs * e.e.x;
-                f.s.y = (1.0 - fs) * e.s.y + fs * e.e.y;
-                f.e.x = (1.0 - fe) * e.s.x + fe * e.e.x;
-                f.e.y = (1.0 - fe) * e.s.y + fe * e.e.y;
-                result.addEdge(f);
-              }
+            Edge & e0 = edge(ei0);
+            Edge & e1 = edge(ei1);
+            
+            bool insideAbove;
+            
+            if (AlmostEqual(e0.s.x, e1.s.x) && AlmostEqual(e0.s.y, e1.s.y)) {
+              bool eqx = AlmostEqual(e0.e.x, e1.e.x);
+              insideAbove = (!eqx && (e0.e.x < e1.e.x) ) ||
+                (eqx && !AlmostEqual(e0.e.y, e1.e.y) && (e0.e.y < e1.e.y));
+            } else {
+              bool eqx = AlmostEqual(e0.s.x, e1.s.x);
+              insideAbove = (!eqx && (e0.s.x < e1.s.x) ) ||
+                (eqx && !AlmostEqual(e0.s.y, e1.s.y) && (e0.s.y < e1.s.y));
             }
+            insideAbove = insideAbove == (ci == cycleFirst(fi));
+                 
+            linelist.emplace_back(fii, cii, i, insideAbove, 
+              e0.s.x, e0.s.y, e1.s.x, e1.s.y,
+              e0.e.x, e0.e.y, e1.e.x, e1.e.y);
           }
         }
-
-        if (a.e < b.e || (a.e == b.e && b.rc))
-          ai++;
-        else
-          bi++;
       }
-    }
-  }
 
+      temporalalgebra::URegion ur(linelist, unit(ui).interval.convert(), true);
+      mr->AddURegion(ur);
+    }
+
+    return mr;
+  }
+  
 }

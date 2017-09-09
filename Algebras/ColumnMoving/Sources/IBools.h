@@ -29,42 +29,42 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace ColumnMovingAlgebra
 {
-  class IIntEntry
+  class IBoolEntry
   {
   public:
-    typedef temporalalgebra::IInt AttributeType;
+    typedef temporalalgebra::IBool AttributeType;
 
     static const bool isPrecise = true;
 
-    IIntEntry() = default;
-    IIntEntry(bool defined, int64_t time, int value);
-    IIntEntry(const temporalalgebra::IInt &value);
+    IBoolEntry() = default;
+    IBoolEntry(bool defined, int64_t time, bool value);
+    IBoolEntry(const temporalalgebra::IBool &value);
 
     bool IsDefined() const;
     int64_t GetTime() const;
-    int GetValue() const;
+    bool GetValue() const;
 
-    int Compare(const IIntEntry &value) const;
-    int Compare(const temporalalgebra::IInt &value) const;
-    bool Equals(const IIntEntry &value) const;
-    bool Equals(const temporalalgebra::IInt &value) const;
+    int Compare(const IBoolEntry &value) const;
+    int Compare(const temporalalgebra::IBool &value) const;
+    bool Equals(const IBoolEntry &value) const;
+    bool Equals(const temporalalgebra::IBool &value) const;
 
     size_t GetHash() const;
 
-    temporalalgebra::IInt *GetAttribute(bool clone = true) const;
+    temporalalgebra::IBool *GetAttribute(bool clone = true) const;
 
   private:
     
     bool m_Defined, m_ValueDefined;
     int64_t m_Time;
-    int m_Value;
+    bool m_Value;
   };
 
-  typedef CRelAlgebra::SimpleFSAttrArray<IIntEntry> IInts;
-  typedef CRelAlgebra::SimpleFSAttrArrayIterator<IIntEntry> IIntsIterator;
+  typedef CRelAlgebra::SimpleFSAttrArray<IBoolEntry> IBools;
+  typedef CRelAlgebra::SimpleFSAttrArrayIterator<IBoolEntry> IBoolsIterator;
 
 
-  inline IIntEntry::IIntEntry(bool defined, int64_t time, int value) :
+  inline IBoolEntry::IBoolEntry(bool defined, int64_t time, bool value) :
     m_Defined(defined),
     m_ValueDefined(true),
     m_Time(time),
@@ -72,28 +72,28 @@ namespace ColumnMovingAlgebra
   {
   }
 
-  inline IIntEntry::IIntEntry(const temporalalgebra::IInt &value) :
+  inline IBoolEntry::IBoolEntry(const temporalalgebra::IBool &value) :
     m_Defined(value.IsDefined()),
     m_ValueDefined(value.value.IsDefined()),
     m_Time(value.instant.millisecondsToNull()),
-    m_Value(value.value.GetIntval())
+    m_Value(value.value.GetValue())
   {
   }
 
-  inline bool IIntEntry::IsDefined() const
+  inline bool IBoolEntry::IsDefined() const
   {
     return m_Defined;
   }
 
-  inline int64_t IIntEntry::GetTime() const {
+  inline int64_t IBoolEntry::GetTime() const {
     return m_Time;
   }
 
-  inline int IIntEntry::GetValue() const {
+  inline bool IBoolEntry::GetValue() const {
     return m_Value;
   }
 
-  inline int IIntEntry::Compare(const IIntEntry &value) const
+  inline int IBoolEntry::Compare(const IBoolEntry &value) const
   {
     if (!m_Defined)
       return !value.m_Defined ? 0 : -1;
@@ -109,30 +109,30 @@ namespace ColumnMovingAlgebra
     else if (!value.m_ValueDefined)
       return 1;
 
-    int iDiff = m_Value - value.m_Value;
+    int iDiff = (m_Value ? 1 : 0) - (value.m_Value ? 1 : 0);
     if (iDiff != 0)
       return iDiff < 0 ? -1 : 1;
 
     return 0;
   }
 
-  inline int IIntEntry::Compare(const temporalalgebra::IInt &value) const
+  inline int IBoolEntry::Compare(const temporalalgebra::IBool &value) const
   {
-    IIntEntry b(value);
+    IBoolEntry b(value);
     return Compare(b);
   }
 
-  inline bool IIntEntry::Equals(const IIntEntry &value) const
+  inline bool IBoolEntry::Equals(const IBoolEntry &value) const
   {
     return Compare(value) == 0;
   }
 
-  inline bool IIntEntry::Equals(const temporalalgebra::IInt &value) const
+  inline bool IBoolEntry::Equals(const temporalalgebra::IBool &value) const
   {
     return Compare(value) == 0;
   }
 
-  inline size_t IIntEntry::GetHash() const
+  inline size_t IBoolEntry::GetHash() const
   {
     if (!m_Defined)
       return 0;
@@ -140,18 +140,18 @@ namespace ColumnMovingAlgebra
     return static_cast<size_t>(m_Value) ^ static_cast<size_t>(m_Time);
   }
 
-  inline temporalalgebra::IInt *IIntEntry::GetAttribute(bool clone) const
+  inline temporalalgebra::IBool *IBoolEntry::GetAttribute(bool clone) const
   {
     if (!m_Defined)
-      return new temporalalgebra::IInt(false);
+      return new temporalalgebra::IBool(false);
       
     if (!m_ValueDefined) {
-      CcInt r(2);
+      CcBool r(false);
       r.SetDefined(false);
-      return new temporalalgebra::IInt(Instant(m_Time), r);
+      return new temporalalgebra::IBool(Instant(m_Time), r);
     }
         
-    return new temporalalgebra::IInt(Instant(m_Time), CcInt(m_Value));
+    return new temporalalgebra::IBool(Instant(m_Time), CcBool(true, m_Value));
   }
 
 }

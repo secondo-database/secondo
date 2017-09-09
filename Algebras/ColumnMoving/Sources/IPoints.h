@@ -26,20 +26,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "SimpleAttrArray.h"
 #include "TemporalAlgebra.h"
-#include "SimpleFSAttrArrayIntimeEntry.h"
 
 namespace ColumnMovingAlgebra
 {
-  struct IPointEntryValue { 
-    double x, y;  
-    IPointEntryValue(double x, double y);
-  };
 
-  class IPointEntry : 
-    public SimpleFSAttrArrayIntimeEntry<IPointEntryValue, 
-                                        temporalalgebra::IPoint>
+  class IPointEntry
   {
   public:
+    typedef temporalalgebra::IPoint AttributeType;
+    static const bool isPrecise = true;
+
     IPointEntry() = default;
     IPointEntry(bool defined, int64_t time, double x, double y);
     IPointEntry(const temporalalgebra::IPoint &value);
@@ -49,9 +45,15 @@ namespace ColumnMovingAlgebra
     bool Equals(const IPointEntry &value) const;
     bool Equals(const temporalalgebra::IPoint &value) const;
 
-
+    bool IsDefined() const;
+    int64_t GetTime() const;
     size_t GetHash() const;
     temporalalgebra::IPoint *GetAttribute(bool clone = true) const;
+
+  private:
+    bool m_Defined, m_ValueDefined;
+    int64_t m_Time;
+    double m_X, m_Y;  
   };
 
   typedef CRelAlgebra::SimpleFSAttrArray<IPointEntry> IPoints;
@@ -59,42 +61,46 @@ namespace ColumnMovingAlgebra
 
 
 
-  inline IPointEntryValue::IPointEntryValue(double x, double y) :
-    x(x), 
-    y(y) 
-  {
-  }
-
-
   inline IPointEntry::IPointEntry(bool defined, int64_t time, 
                                   double x, double y) :
-    SimpleFSAttrArrayIntimeEntry(defined, time, IPointEntryValue(x, y))
+    m_Defined(defined),
+    m_ValueDefined(true),
+    m_Time(time),
+    m_X(x),
+    m_Y(y)
   {
   }
 
   inline IPointEntry::IPointEntry(const temporalalgebra::IPoint &value) :
-    SimpleFSAttrArrayIntimeEntry(value.IsDefined(), 
-                                 value.instant.millisecondsToNull(), 
-                                 IPointEntryValue(value.value.GetX(), 
-                                 value.value.GetY()))
+    m_Defined(value.IsDefined()),
+    m_ValueDefined(value.value.IsDefined()),
+    m_Time(value.instant.millisecondsToNull()),
+    m_X(value.value.GetX()),
+    m_Y(value.value.GetY())
   {
   }
 
   inline int IPointEntry::Compare(const IPointEntry &value) const
   {
-    int iDiff = (m_Defined ? 1 : 0) - (value.m_Defined ? 1 : 0);
-    if (iDiff != 0)
-      return iDiff < 0 ? -1 : 1;
+    if (!m_Defined)
+      return !value.m_Defined ? 0 : -1;
+    else if (!value.m_Defined)
+      return 1;
 
     int64_t tDiff = m_Time - value.m_Time;
     if (tDiff != 0)
       return tDiff < 0 ? -1 : 1;
 
-    double dDiff = m_Value.x - value.m_Value.x;
+    if (!m_ValueDefined)
+      return !value.m_ValueDefined ? 0 : -1;
+    else if (!value.m_ValueDefined)
+      return 1;
+
+    double dDiff = m_X - value.m_X;
     if (dDiff != 0)
       return dDiff < 0 ? -1 : 1;
 
-    dDiff = m_Value.y - value.m_Value.y;
+    dDiff = m_Y - value.m_Y;
     if (dDiff != 0)
       return dDiff < 0 ? -1 : 1;
 
@@ -117,23 +123,38 @@ namespace ColumnMovingAlgebra
     return Compare(value) == 0;
   }
 
+  inline bool IPointEntry::IsDefined() const
+  {
+    return m_Defined;
+  }
+
+  inline int64_t IPointEntry::GetTime() const {
+    return m_Time;
+  }
+
   inline size_t IPointEntry::GetHash() const
   {
     if (!m_Defined)
       return 0;
 
-    return static_cast<size_t>(m_Value.x) ^ 
-           static_cast<size_t>(m_Value.y) ^ 
+    return static_cast<size_t>(m_X) ^ 
+           static_cast<size_t>(m_Y) ^ 
            static_cast<size_t>(m_Time);
   }
 
   inline temporalalgebra::IPoint *IPointEntry::GetAttribute(bool clone) const
   {
-    if (m_Defined)
-      return new temporalalgebra::IPoint(Instant(m_Time), 
-                                         Point(true, m_Value.x, m_Value.y));
-    else
+    if (!m_Defined)
       return new temporalalgebra::IPoint(0);
+      
+    if (!m_ValueDefined) {
+      Point r;
+      r.SetDefined(false);
+      return new temporalalgebra::IPoint(Instant(m_Time), r);
+    }
+        
+    return new temporalalgebra::IPoint(Instant(m_Time), 
+                                       Point(true, m_X, m_Y));
   }
 
 }
