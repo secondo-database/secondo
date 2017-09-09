@@ -114,10 +114,8 @@ class FeatureSignature : public Attribute
     void Complete();
     bool Correct();
     void Destroy();
-    //int GetNoEdges() const { return GetNoFeatureSignatureTuples(); }
     int GetNoFeatureSignatureTuples() const;
     FeatureSignatureTuple GetFeatureSignatureTuple(int i) const;
-    //int GetNoImageSignatureTuples() const;
     const bool IsEmpty() const;
     void CopyFrom(const Attribute* right);
     size_t HashValue() const;
@@ -144,7 +142,7 @@ class FeatureSignature : public Attribute
     static int      SizeOfObj();
     static ListExpr Property();
     static void* Cast(void* addr);
-    static const std::string BasicType() { return "FeatureSignature"; }
+    static const std::string BasicType() { return "featuresignature"; }
     static const bool checkType(const ListExpr type)
     {
       return listutils::isSymbol(type, BasicType());
@@ -158,12 +156,18 @@ class FeatureSignature : public Attribute
                         
     
     bool readSignatureFromFile(const std::string _fileName, 
-        const int colorSpace, 
-        const int texRange, 
+        const int colorSpace,
+        const int coaRange,
+        const int conRange,
         const int patchSize, 
         const int percentSamples, 
         const int noClusters);
 
+	// operator for calculating SQFD of two signatures
+	double calcSQFD(Word* args, Word& result, int message,
+					Word& local, Supplier s);
+					
+	
     std::string GetFileName() const { return fileName; };
     void SetFileName(const std::string _fileName) 
     { 

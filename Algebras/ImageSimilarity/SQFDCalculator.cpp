@@ -52,21 +52,21 @@ multiple files, including external files for k-means clustering.
 static double euclidDist(FeatureSignatureTuple ist1,
                     FeatureSignatureTuple ist2)
 {
-	double tmpRes = 0.0;
-		
-	tmpRes += pow((int)ist1.centroid.x - (int)ist2.centroid.x, 2);
-	tmpRes += pow((int)ist1.centroid.y - (int)ist2.centroid.y, 2);
-	tmpRes += pow(ist1.centroid.colorValue1 
+    double tmpRes = 0.0;
+        
+    tmpRes += pow((int)ist1.centroid.x - (int)ist2.centroid.x, 2);
+    tmpRes += pow((int)ist1.centroid.y - (int)ist2.centroid.y, 2);
+    tmpRes += pow(ist1.centroid.colorValue1 
     - ist2.centroid.colorValue1, 2);
-	tmpRes += pow(ist1.centroid.colorValue2 
+    tmpRes += pow(ist1.centroid.colorValue2 
     - ist2.centroid.colorValue2, 2);
-	tmpRes += pow(ist1.centroid.colorValue3 
+    tmpRes += pow(ist1.centroid.colorValue3 
     - ist2.centroid.colorValue3, 2);
-	tmpRes += pow((double)ist1.centroid.coarseness 
+    tmpRes += pow((double)ist1.centroid.coarseness 
     - (double)ist2.centroid.coarseness, 2);
-	tmpRes += pow((double)ist1.centroid.contrast 
+    tmpRes += pow((double)ist1.centroid.contrast 
     - (double)ist2.centroid.contrast, 2);
-	return sqrt(tmpRes);	
+    return sqrt(tmpRes);    
 }
 
 
@@ -88,22 +88,22 @@ static double euclidDist(FeatureSignatureTuple ist1,
 static double f_s(FeatureSignatureTuple fst1,
                     FeatureSignatureTuple fst2)
 {
-	const double alpha = 2.0;
-	double eucDist = euclidDist(fst1, fst2);		
-	double res = 1.0 /  (alpha + eucDist);
-	return res;
+    const double alpha = 2.0;
+    double eucDist = euclidDist(fst1, fst2);        
+    double res = 1.0 /  (alpha + eucDist);
+    return res;
 }
 
 
 double SQFDCalculator::calcSQFD(std::vector<FeatureSignatureTuple> fst1,
                     std::vector<FeatureSignatureTuple> fst2)
 {
-		
-	//const double scale = 0.01;
+        
+    //const double scale = 0.01;
 
     int width = fst1.size() + fst2.size();    
 
-	// build up weight vector
+    // build up weight vector
     long* arr1 = new long[width];
     for (unsigned int i = 0; i < fst1.size(); i++)
     {
@@ -139,18 +139,18 @@ double SQFDCalculator::calcSQFD(std::vector<FeatureSignatureTuple> fst1,
     //std::cout << "distance matrix:" << std::endl;
     //for (int i = 0; i < width; i++)
     //{
-	//		std::cout << arr1[i] << "|";
-	//}
-			
-	//std::cout << std::endl;
-	
+    //        std::cout << arr1[i] << "|";
+    //}
+            
+    //std::cout << std::endl;
+    
     for (int y = 0; y < width; y++)
     {
-		//std::cout << y << ":";
+        //std::cout << y << ":";
         for (int x = 0; x < width; x++)
         {   
-			double tmpDist =  f_s(ist.at(y), ist.at(x));        
-			//mat[y][x] = floor(tmpDist / scale + 0.5) * scale;
+            double tmpDist =  f_s(ist.at(y), ist.at(x));        
+            //mat[y][x] = floor(tmpDist / scale + 0.5) * scale;
             mat[y][x] = round(tmpDist * 100000);
           //  std::cout << mat[y][x] << "|";            
         }
@@ -159,7 +159,7 @@ double SQFDCalculator::calcSQFD(std::vector<FeatureSignatureTuple> fst1,
     
         //std::cout << std::endl;
          //   std::cout << std::endl;
-	
+    
     // init temporary matrix (weight vector * mat)
     long* resMat = new long[width];
     for (int x = 0; x < width; x++)
@@ -173,23 +173,23 @@ double SQFDCalculator::calcSQFD(std::vector<FeatureSignatureTuple> fst1,
     
     for (int x = 0; x < width; x++)
     {
-		
+        
         for (int y = 0; y < width; y++)
         {
-			double tmp = abs(arr1[y]) * abs(mat[y][x]); 
-			if (!(arr1[y] > 0 && mat[y][x] > 0))
-			{
-				tmp = -tmp;
-			}
-			resMat[x] += tmp; //arr1[y] * mat[y][x]; 
+            double tmp = abs(arr1[y]) * abs(mat[y][x]); 
+            if (!(arr1[y] > 0 && mat[y][x] > 0))
+            {
+                tmp = -tmp;
+            }
+            resMat[x] += tmp; //arr1[y] * mat[y][x]; 
         }
         //std::cout << std::endl;
     }
 
-	std::cout << std::endl;
-	
-	// multiply temporary matrix with transposed weight vector
-	// 
+    std::cout << std::endl;
+    
+    // multiply temporary matrix with transposed weight vector
+    // 
     //double distance = 0.0;
     long distance = 0;
     for (int x = 0; x < width; x++)
@@ -202,7 +202,7 @@ double SQFDCalculator::calcSQFD(std::vector<FeatureSignatureTuple> fst1,
     
     delete[] resMat;
     for (int i = 0; i < width; i++)
-		delete [] mat[i];
+        delete [] mat[i];
     
     delete[] mat;
     
