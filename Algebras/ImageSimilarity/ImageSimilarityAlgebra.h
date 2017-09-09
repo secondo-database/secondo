@@ -164,7 +164,7 @@ class FeatureSignature : public Attribute
         const int noClusters);
 
 	// operator for calculating SQFD of two signatures
-	double calcSQFD(Word* args, Word& result, int message,
+    double calcSQFD(Word* args, Word& result, int message,
 					Word& local, Supplier s);
 					
 	
