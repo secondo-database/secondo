@@ -63,6 +63,20 @@ double euclidDistance(FeatureSignatureTuple ist1,
 }
 
 
+
+ 
+// Alternatively, the negative function can be used as similarity
+// function 
+ 
+//double f_negative(FeatureSignatureTuple fst1,
+//                    FeatureSignatureTuple fst2)
+//{
+//	double dist = euclidDist(fst1, fst2);
+//	return -dist;
+//}
+ 
+
+
 // heuristic similarity function
 double f_s(FeatureSignatureTuple fst1,
                     FeatureSignatureTuple fst2)
