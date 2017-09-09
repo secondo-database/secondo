@@ -13,8 +13,8 @@ Signature: featuresignature x featuresignature -> real
 Example: query calcSQFD(sig1, sig2) consume;
 Result: 23.0
 
-Operator: calcSQFD
+Operator: calcEMD
 Number: 3
 Signature: featuresignature x featuresignature -> real
-Example: query calcSQFD(sig1, sig2) consume;
+Example: query calcEMD(sig1, sig2) consume;
 Result: 99000.0
