@@ -25,7 +25,53 @@ Signature: mregions x periods -> longints
 Example  : query mrs present [const periods value (("1999-01-01" "2000-01-01" TRUE FALSE) ("2000-01-05" "2001-01-01" TRUE TRUE))];
 Result   : (longints (1))
 
+Operator : present
+Number   : 4
+Signature: mreals x instant -> longints
+Example  : query mrls present [const instant value "2000-05-31"];
+Result   : (longints (0))
 
+Operator : present
+Number   : 5
+Signature: mreals x periods -> longints
+Example  : query mrls present [const periods value (("2000-01-01" "2000-03-31" TRUE FALSE) ("2000-05-31" "2000-05-31" TRUE TRUE))];
+Result   : (longints (0))
+
+Operator : present
+Number   : 6
+Signature: mints x instant -> longints
+Example  : query mis present [const instant value "2000-01-02-12:00"];
+Result   : (longints (0))
+
+Operator : present
+Number   : 7
+Signature: mtints x periods -> longints
+Example  : query mis present [const periods value (("2000-01-01" "2000-01-02" TRUE TRUE))];
+Result   : (longints (0))
+
+Operator : present
+Number   : 8
+Signature: mstrings x instant -> longints
+Example  : query mstrs present [const instant value "2000-01-02"];
+Result   : (longints (0))
+
+Operator : present
+Number   : 9
+Signature: mstrings x periods -> longints
+Example  : query mstrs present [const periods value (("2000-01-01" "2000-01-02" TRUE TRUE))];
+Result   : (longints (0))
+
+Operator : present
+Number   : 10
+Signature: mbools x instant -> longints
+Example  : query mbs present [const instant value "2000-01-02"];
+Result   : (longints (0))
+
+Operator : present
+Number   : 11
+Signature: mbools x periods -> longints
+Example  : query mbs present [const periods value (("2000-01-03" "2000-01-04" FALSE TRUE))];
+Result   : (longints (0 1))
 
 Operator : atinstant
 Number   : 0
@@ -39,7 +85,29 @@ Signature: mregions x instant -> iregion
 Example  : query mrs atinstant [const instant value "2000-01-02"];
 Result   : ( iregions ( ("2000-01-02" (((( 0.5 -0.5) (-0.5 -0.5) (-0.5  0.5) ( 0.5  0.5)))) ) ("2000-01-02" (((( 2.0 -1.0) (-0.5 -1.0) (-0.5  1.0) ( 2.0  1.0)))) )  ) )
 
+Operator : atinstant
+Number   : 2
+Signature: mreals x instant -> ireals
+Example  : query mrls atinstant [const instant value "2000-05-06"];
+Result   : (ireals (("2000-05-06" 0.0) ("2000-05-06" undefined)))
 
+Operator : atinstant
+Number   : 3
+Signature: mints x instant -> iints
+Example  : query mis atinstant [const instant value "2000-01-02-12:00"];
+Result   : (iints (("2000-01-02-12:00" 2) ("2000-01-02-12:00" undefined)))
+
+Operator : atinstant
+Number   : 4
+Signature: mstrings x instant -> istrings
+Example  : query mstrs atinstant [const instant value "2000-01-04"];
+Result   : (istrings (("2000-01-04" "1") ("2000-01-04" "def")))
+
+Operator : atinstant
+Number   : 5
+Signature: mbools x instant -> ibools
+Example  : query mbs atinstant [const instant value "2000-01-02-12:00"];
+Result   : (ibools (("2000-01-02-12:00" TRUE) ("2000-01-02-12:00" undefined)))
 
 Operator : atperiods
 Number   : 0
@@ -47,7 +115,29 @@ Signature: mpoints x periods -> mpoints
 Example  : query mps atperiods [const periods value (("2000-01-03" "2000-01-05" FALSE TRUE) ("2001-01-01" "2001-01-01" TRUE TRUE))];
 Result   : (   mpoints ( ((("2000-01-03" "2000-01-04" FALSE TRUE) (4.0 0.0 5.0 -4.0)) (("2000-01-04" "2000-01-05" FALSE TRUE) (1.0 2.0 2.0 3.0))) ((("2001-01-01" "2001-01-01" TRUE TRUE) (4.0 5.0 4.0 5.0))) )   )
 
+Operator : atperiods
+Number   : 1
+Signature: mreals x periods -> mreals
+Example  : query mrls atperiods [const periods value (("2000-05-04" "2000-05-31" TRUE TRUE))];
+Result   :  (mreals (( (("2000-05-04" "2000-05-06" TRUE TRUE) (0.5 0.0 -2.0 FALSE)) (("2000-05-31" "2000-05-31" TRUE TRUE) (0.0 0.0 6.0 FALSE)))()))
 
+Operator : atperiods
+Number   : 2
+Signature: mints x periods -> mints
+Example  : query mis atperiods [const periods value (("2000-01-03" "2000-01-04" FALSE TRUE))];
+Result   :  (mints ( ( (("2000-01-03" "2000-01-04" FALSE TRUE) -1) ) ( (("2000-01-04" "2000-01-04" TRUE TRUE) 0) ) ))
+
+Operator : atperiods
+Number   : 3
+Signature: mstrings x periods -> mstrings
+Example  : query mstrs atperiods [const periods value (("2000-01-01" "2000-01-02" TRUE TRUE))];
+Result   : (mstrings ( ( (("2000-01-01" "2000-01-01" TRUE TRUE) "abc") (("2000-01-02" "2000-01-02" TRUE TRUE) "test") ) ( ) ))
+
+Operator : atperiods
+Number   : 4
+Signature: mbools x periods -> mbools
+Example  : query mbs atperiods [const periods value (("2000-01-01" "2000-01-02" TRUE TRUE))];
+Result   : (mbools ( ( (("2000-01-01" "2000-01-01" TRUE TRUE) TRUE) (("2000-01-02" "2000-01-02" TRUE TRUE) TRUE) ) ( ) ))
 
 Operator : passes
 Number   : 0
@@ -61,7 +151,53 @@ Signature: mpoints x region -> longints
 Example  : query mps passes [const region value ((((1.0 2.0)(1.1 2.0)(1.0 2.1))))];
 Result   : (longints (0))
 
+Operator : passes
+Number   : 2
+Signature: mreals x real -> longints
+Example  : query mrls0 passes 6.0;
+Result   : (longints (0   2 3 4 5))
 
+Operator : passes
+Number   : 3
+Signature: mreals x rreal -> longints
+Example  : query mrls1 passes [const rreal value ((-11.0 -10.0 FALSE FALSE)(2.5 7.0 FALSE FALSE))];
+Result   : (longints (0   2 3))
+
+Operator : passes
+Number   : 4
+Signature: mints x int -> longints
+Example  : query mis passes -1;
+Result   : (longints (0))
+
+Operator : passes
+Number   : 5
+Signature: mints x rint -> longints
+Example  : query mis passes [const rint value ((0 2 TRUE FALSE) (3 3 TRUE TRUE))];
+Result   : (longints (0 1))
+
+Operator : passes
+Number   : 6
+Signature: mstrings x string -> longints
+Example  : query mstrs passes "1";
+Result   : (longints (0))
+
+Operator : passes
+Number   : 7
+Signature: mstrings x rstring -> longints
+Example  : query mstrs passes [const rstring value (("1" "abc" TRUE FALSE) ("def" "def" TRUE TRUE))];
+Result   : (longints (0 1))
+
+Operator : passes
+Number   : 8
+Signature: mbools x bool -> longints
+Example  : query mbs passes FALSE;
+Result   : (longints (0))
+
+Operator : passes
+Number   : 9
+Signature: mbools x rbool -> longints
+Example  : query mbs passes [const rbool value ((TRUE TRUE TRUE TRUE))];
+Result   : (longints (0 1))
 
 Operator : at
 Number   : 0
@@ -75,8 +211,101 @@ Signature: mpoints x region -> mpoints
 Example  : query mps at [const region value ((((1.0 0.0)(2.0 1.0)(2.0 -1.0))))];
 Result   : (   mpoints (  (  )  ( (("2001-01-13" "2001-01-14" TRUE FALSE) (1.0 0.0 2.0 0.0)) )  )   )
 
+Operator : at
+Number   : 2
+Signature: mreals x real -> mreals
+Example  : query mrls1 at -1.5;
+Result   : (mreals ( () () ((("2000-07-03" "2000-07-03" TRUE TRUE) (0.0 0.0 -1.5 FALSE)) (("2000-07-05" "2000-07-05" TRUE TRUE) (0.0 0.0 -1.5 FALSE))) () ))
 
+Operator : at
+Number   : 3
+Signature: mreals x rreal -> mreals
+Example  : query mrls1 at [const rreal value ((-20.0 -9.0 FALSE FALSE)(-2.0 -1.5 FALSE TRUE))];
+Result   : (mreals ( ((("2000-03-31" "2000-04-02" TRUE TRUE) (0.0 -1.0 -10.0 FALSE))) () ((("2000-07-03" "2000-07-04" TRUE FALSE) (0.5 -1.0 -1.5 FALSE)) (("2000-07-04" "2000-07-05" FALSE TRUE) (0.5 0.0 -2.0 FALSE))) () ))
 
+Operator : at
+Number   : 4
+Signature: mints x int -> mints
+Example  : query mis at -1;
+Result   : (mints ( ( (("2000-01-03" "2000-01-04" FALSE TRUE) -1) ) ( ) ))
+
+Operator : at
+Number   : 5
+Signature: mints x rint -> mints
+Example  : query mis at [const rint value ((0 2 TRUE FALSE) (3 3 TRUE TRUE))];
+Result   : (mints ( ( (("2000-01-01" "2000-01-01" TRUE TRUE) 3) ) ( (("2000-01-04" "2000-01-05" TRUE FALSE) 0) ) ))
+
+Operator : at
+Number   : 6
+Signature: mstrings x string -> mstrings
+Example  : query mstrs at "1";
+Result   : (mstrings ( ( (("2000-01-03" "2000-01-04" FALSE TRUE) "1") ) ( ) ))
+
+Operator : at
+Number   : 7
+Signature: mstrings x rstrings -> mstrings
+Example  : query mstrs at [const rstring value (("1" "abc" TRUE FALSE) ("def" "def" TRUE TRUE))];
+Result   : (mstrings ( ( (("2000-01-03" "2000-01-04" FALSE TRUE) "1") ) ( (("2000-01-04" "2000-01-05" TRUE FALSE) "def") ) ))
+
+Operator : at
+Number   : 8
+Signature: mbools x bool -> mbools
+Example  : query mbs at FALSE;
+Result   : (mbools ( ( (("2000-01-03" "2000-01-04" FALSE TRUE) FALSE) ) ( ) ))
+
+Operator : at
+Number   : 9
+Signature: mbools x rbools -> mbools
+Example  : query mbs at [const rbool value ((TRUE TRUE TRUE TRUE))];
+Result   : (mbools ( ( (("2000-01-01" "2000-01-01" TRUE TRUE) TRUE) (("2000-01-02" "2000-01-03" TRUE FALSE) TRUE) ) ( (("2000-01-04" "2000-01-05" TRUE FALSE) TRUE) ) ))
+
+Operator : intersection
+Number   : 0
+Signature: mpoints x mregions -> mpoints
+Example  : query intersection(mps5, mrs0);
+Result   : (mpoints ( () () () ( ( ("2000-10-02" "2000-10-02" TRUE TRUE) (-1.0 -1.0 -1.0 -1.0))) ( ( ("2001-10-03" "2001-10-03" TRUE TRUE) (-10.0 -10.0 -10.0 -10.0))))) 
+
+Operator : intersection
+Number   : 1
+Signature: mpoints x mregion -> mpoints
+Example  : query intersection(mps0, mr0);
+Result   : (mpoints ( ( ( ("2000-01-01" "2000-01-02" FALSE TRUE) (20.0 0.0 19.999 0.001)) ( ("2000-01-31" "2000-02-01" FALSE TRUE) (21.0 -1.0 22.0 -1.5))) () () () ())) 
+
+Operator : intersection
+Number   : 2
+Signature: mpoint x mregions -> mpoints
+Example  : query intersection(mp0, mrs0);
+Result   : (mpoints ( () ( ( ("2000-10-02" "2000-10-02" TRUE TRUE) (-1.0 -1.0 -1.0 -1.0))) () ( ( ("2000-10-02" "2000-10-02" TRUE TRUE) (-1.0 -1.0 -1.0 -1.0))) ())) 
+
+Operator : intersection
+Number   : 3
+Signature: mpoints x region -> mpoints
+Example  : query intersection(mps0, r0);
+Result   : (mpoints ( () () () () ( ( ("2001-10-03" "2001-10-03" TRUE TRUE) (-10.0 -10.0 -10.0 -10.0))))) 
+
+Operator : inside
+Number   : 0
+Signature: mpoints x mregions -> mpoints
+Example  : query mps7 inside mrs1;
+Result   : (mbools ( ( ( ("2000-01-31" "2000-02-01" FALSE FALSE) FALSE) ( ("2000-02-01" "2000-02-03" TRUE TRUE) TRUE) ( ("2000-02-03" "2000-02-05" FALSE FALSE) FALSE) ( ("2000-02-05" "2000-02-07" TRUE TRUE) TRUE) ( ("2000-02-07" "2000-02-09" FALSE FALSE) FALSE) ( ("2000-02-09" "2000-02-11" TRUE TRUE) TRUE) ( ("2000-02-11" "2000-02-12" FALSE FALSE) FALSE)) ( ( ("2020-01-31" "2020-02-02" TRUE TRUE) TRUE) ( ("2020-02-02" "2020-02-04" FALSE FALSE) FALSE) ( ("2020-02-04" "2020-02-06" TRUE TRUE) TRUE) ( ("2020-02-06" "2020-02-08" FALSE FALSE) FALSE) ( ("2020-02-08" "2020-02-09" TRUE TRUE) TRUE)) ))
+
+Operator : inside
+Number   : 1
+Signature: mpoints x mregion -> mpoints
+Example  : query mps7 inside mr1;
+Result   : (mbools ( ( ( ("2000-01-31" "2000-02-01" FALSE FALSE) FALSE) ( ("2000-02-01" "2000-02-03" TRUE TRUE) TRUE) ( ("2000-02-03" "2000-02-05" FALSE FALSE) FALSE) ( ("2000-02-05" "2000-02-07" TRUE TRUE) TRUE) ( ("2000-02-07" "2000-02-09" FALSE FALSE) FALSE) ( ("2000-02-09" "2000-02-11" TRUE TRUE) TRUE) ( ("2000-02-11" "2000-02-12" FALSE FALSE) FALSE)) ( ( ("2020-01-31" "2020-02-09" TRUE TRUE) FALSE)) ))
+
+Operator : inside
+Number   : 2
+Signature: mpoint x mregions -> mpoints
+Example  : query mp1 inside mrs1;
+Result   : (mbools ( ( ( ("2000-01-31" "2000-02-01" TRUE FALSE) TRUE) ( ("2000-02-01" "2000-02-02" TRUE FALSE) TRUE) ( ("2000-02-03" "2000-02-03" TRUE TRUE) TRUE) ( ("2000-02-03" "2000-02-04" FALSE FALSE) FALSE)) ))
+
+Operator : inside
+Number   : 3
+Signature: mpoints x region -> mpoints
+Example  : query mps7 inside r1;
+Result   : (mbools ( ( ( ("2000-01-31" "2000-02-01" FALSE FALSE) FALSE) ( ("2000-02-01" "2000-02-03" TRUE TRUE) TRUE) ( ("2000-02-03" "2000-02-05" FALSE FALSE) FALSE) ( ("2000-02-05" "2000-02-07" TRUE TRUE) TRUE) ( ("2000-02-07" "2000-02-09" FALSE FALSE) FALSE) ( ("2000-02-09" "2000-02-11" TRUE TRUE) TRUE) ( ("2000-02-11" "2000-02-12" FALSE FALSE) FALSE)) ( ( ("2020-01-31" "2020-02-02" TRUE TRUE) TRUE) ( ("2020-02-02" "2020-02-04" FALSE FALSE) FALSE) ( ("2020-02-04" "2020-02-06" TRUE TRUE) TRUE) ( ("2020-02-06" "2020-02-08" FALSE FALSE) FALSE) ( ("2020-02-08" "2020-02-09" TRUE TRUE) TRUE)) ))
 
 Operator : addrandom
 Number   : 0
@@ -87,5 +316,11 @@ Result   : (mpoints ())
 Operator : index
 Number   : 0
 Signature: mpoints x int x int -> mpoints
-Example  : query [const mpoints value ()] index [100, 100]
+Example  : query [const mpoints value ()] index [100, 100];
 Result   : (mpoints ())
+
+Operator : cextend
+Number   : 0
+Signature: stream(tblock) x ( ( Name (map tblock attrarray) )* ) -> stream(tblock)
+Example  : query cr0 feed filter[.I passes 3] cextend[NP: .P at [const point value (0.0 0.0)]] consume;
+Result   : ( (crel (1 (tblock (10 ( (P mpoints) (I mints) (NP mpoints)))))) ( ( ( ( ("2000-01-31" "2000-02-12" FALSE FALSE) (-2.0 0.0 2.0 0.0))) ( ( ("2000-01-01" "2000-01-02" TRUE FALSE) 3) ( ("2000-01-02" "2000-01-03" TRUE TRUE) 4)) ( ( ("2000-02-06" "2000-02-06" TRUE TRUE) (0.0 0.0 0.0 0.0))))))

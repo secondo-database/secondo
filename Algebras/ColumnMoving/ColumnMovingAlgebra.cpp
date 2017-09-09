@@ -29,13 +29,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Types.h"
 #include "Operators.h"
+#include "ExtendOperator.h"
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
 
 using namespace ColumnMovingAlgebra;
 
+/*
+Registrierung der Typkonstruktoren und Operatoren
 
+*/
 
 
 extern "C" Algebra *InitializeColumnMovingAlgebra(NestedList *nlRef,
@@ -47,13 +51,18 @@ extern "C" Algebra *InitializeColumnMovingAlgebra(NestedList *nlRef,
     CustomAlgebra() :
       Algebra()
     {
-      AddTypeConstructor(new BoolsType::TC(), true);
       AddTypeConstructor(new IIntsType::TC(), true);
       AddTypeConstructor(new MIntsType::TC(), true);
       AddTypeConstructor(new IPointsType::TC(), true);
       AddTypeConstructor(new MPointsType::TC(), true);
       AddTypeConstructor(new IRegionsType::TC(), true);
       AddTypeConstructor(new MRegionsType::TC(), true);
+      AddTypeConstructor(new IRealsType::TC(), true);
+      AddTypeConstructor(new MRealsType::TC(), true);
+      AddTypeConstructor(new IBoolsType::TC(), true);
+      AddTypeConstructor(new MBoolsType::TC(), true);
+      AddTypeConstructor(new IStringsType::TC(), true);
+      AddTypeConstructor(new MStringsType::TC(), true);
       AddOperator(new PresentOperator(), true);
       AddOperator(new AtInstantOperator(), true);
       AddOperator(new AtPeriodsOperator(), true);
@@ -61,18 +70,27 @@ extern "C" Algebra *InitializeColumnMovingAlgebra(NestedList *nlRef,
       AddOperator(new AtOperator(), true);
       AddOperator(new AddRandomOperator(), true);
       AddOperator(new IndexOperator(), true);
+      AddOperator(new IntersectionOperator(), true);
+      AddOperator(new InsideOperator(), true);
+
+      AddOperator(new CRelAlgebra::Operators::ExtendOperator(), true);
     }
   };
 
   DisplayTTY &display = DisplayTTY::GetInstance();
 
-  display.Insert(BoolsType::TC::name, new CRelAlgebra::DisplayAttrArray());
   display.Insert(IIntsType::TC::name, new CRelAlgebra::DisplayAttrArray());
   display.Insert(MIntsType::TC::name, new CRelAlgebra::DisplayAttrArray());
   display.Insert(IPointsType::TC::name, new CRelAlgebra::DisplayAttrArray());
   display.Insert(MPointsType::TC::name, new CRelAlgebra::DisplayAttrArray());
   display.Insert(IRegionsType::TC::name, new CRelAlgebra::DisplayAttrArray());
   display.Insert(MRegionsType::TC::name, new CRelAlgebra::DisplayAttrArray());
+  display.Insert(IRealsType::TC::name, new CRelAlgebra::DisplayAttrArray());
+  display.Insert(MRealsType::TC::name, new CRelAlgebra::DisplayAttrArray());
+  display.Insert(IBoolsType::TC::name, new CRelAlgebra::DisplayAttrArray());
+  display.Insert(MBoolsType::TC::name, new CRelAlgebra::DisplayAttrArray());
+  display.Insert(IStringsType::TC::name, new CRelAlgebra::DisplayAttrArray());
+  display.Insert(MStringsType::TC::name, new CRelAlgebra::DisplayAttrArray());
 
   return new CustomAlgebra();
 }

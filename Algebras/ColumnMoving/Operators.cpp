@@ -34,7 +34,12 @@ namespace ColumnMovingAlgebra
 
   const OperatorInfo PresentOperator::info = OperatorInfo(
       "present",
-      "(mpoints | mregions) x (instant | periods) -> (longints)",
+      "mbools   x (instant | periods) -> longints \n"
+      "mints    x (instant | periods) -> longints \n"
+      "mstrings x (instant | periods) -> longints \n"
+      "mreals   x (instant | periods) -> longints \n"
+      "mpoints  x (instant | periods) -> longints \n"
+      "mregions x (instant | periods) -> longints",
       "_ present _",
       "returns the indices for all moving objects, \n"
       "that are defined at the given instant or periods",
@@ -47,6 +52,12 @@ namespace ColumnMovingAlgebra
     ValueMapping11,
     ValueMapping20,
     ValueMapping21,
+    ValueMapping30,
+    ValueMapping31,
+    ValueMapping40,
+    ValueMapping41,
+    ValueMapping50,
+    ValueMapping51,
     nullptr
   };
 
@@ -60,18 +71,42 @@ namespace ColumnMovingAlgebra
   
   list<AttrArrayOperatorSignatur> PresentOperator::signatures() {
     return list<AttrArrayOperatorSignatur> {
-      { temporalalgebra::MInt::BasicType(), Instant::BasicType(), 
-        BoolsType::TI(false).GetTypeExpr() },
-      { temporalalgebra::MInt::BasicType(), temporalalgebra::Periods
-        ::BasicType(), BoolsType::TI(false).GetTypeExpr() },
-      { temporalalgebra::MPoint::BasicType(), Instant::BasicType(), 
+      { temporalalgebra::MInt::BasicType(), 
+        Instant::BasicType(), 
         CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
-      { temporalalgebra::MPoint::BasicType(), temporalalgebra::Periods::
-        BasicType(), CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
-      { temporalalgebra::MRegion::BasicType(), Instant::BasicType(), 
+      { temporalalgebra::MInt::BasicType(), 
+        temporalalgebra::Periods::BasicType(), 
         CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
-      { temporalalgebra::MRegion::BasicType(), temporalalgebra::Periods::
-        BasicType(), CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
+      { temporalalgebra::MPoint::BasicType(), 
+        Instant::BasicType(), 
+        CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
+      { temporalalgebra::MPoint::BasicType(), 
+        temporalalgebra::Periods::BasicType(), 
+        CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
+      { temporalalgebra::MRegion::BasicType(), 
+        Instant::BasicType(), 
+        CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
+      { temporalalgebra::MRegion::BasicType(), 
+        temporalalgebra::Periods::BasicType(), 
+        CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
+      { temporalalgebra::MReal::BasicType(), 
+        Instant::BasicType(), 
+        CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
+      { temporalalgebra::MReal::BasicType(), 
+        temporalalgebra::Periods::BasicType(), 
+        CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
+      { temporalalgebra::MBool::BasicType(), 
+        Instant::BasicType(), 
+        CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
+      { temporalalgebra::MBool::BasicType(), 
+        temporalalgebra::Periods::BasicType(), 
+        CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
+      { temporalalgebra::MString::BasicType(), 
+        Instant::BasicType(), 
+        CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
+      { temporalalgebra::MString::BasicType(), 
+        temporalalgebra::Periods::BasicType(), 
+        CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
     };
   }
   
@@ -80,7 +115,7 @@ namespace ColumnMovingAlgebra
   {
     static_cast<MInts*>(args[0].addr)->present( 
         *static_cast<Instant*>(args[1].addr), 
-        qp->ResultStorage<Bools>(result, s) );
+        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
     return 0;
   }
 
@@ -89,7 +124,7 @@ namespace ColumnMovingAlgebra
   {
     static_cast<MInts*>(args[0].addr)->present( 
         *static_cast<temporalalgebra::Periods*>(args[1].addr), 
-        qp->ResultStorage<Bools>(result, s) );
+        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
     return 0;
   }
   
@@ -128,12 +163,71 @@ namespace ColumnMovingAlgebra
         qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
     return 0;
   }
+  
+  int PresentOperator::ValueMapping30(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MReals*>(args[0].addr)->present( 
+        *static_cast<Instant*>(args[1].addr), 
+        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+    return 0;
+  }
+
+  int PresentOperator::ValueMapping31(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MReals*>(args[0].addr)->present( 
+        *static_cast<temporalalgebra::Periods*>(args[1].addr), 
+        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+    return 0;
+  }
+  
+  int PresentOperator::ValueMapping40(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MBools*>(args[0].addr)->present( 
+        *static_cast<Instant*>(args[1].addr), 
+        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+    return 0;
+  }
+
+  int PresentOperator::ValueMapping41(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MBools*>(args[0].addr)->present( 
+        *static_cast<temporalalgebra::Periods*>(args[1].addr), 
+        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+    return 0;
+  }
+  
+  int PresentOperator::ValueMapping50(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MStrings*>(args[0].addr)->present( 
+        *static_cast<Instant*>(args[1].addr), 
+        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+    return 0;
+  }
+
+  int PresentOperator::ValueMapping51(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MStrings*>(args[0].addr)->present( 
+        *static_cast<temporalalgebra::Periods*>(args[1].addr), 
+        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+    return 0;
+  }
 
 
 
   const OperatorInfo AtInstantOperator::info = OperatorInfo(
       "atinstant",
-      "(mpoints | mregions) x instant -> (ipoint | iregion)",
+      "mbools   x instant -> ibools  \n"
+      "mints    x instant -> iints  \n"
+      "mstrings x instant -> istrings  \n"
+      "mreals   x instant -> ireals   \n"
+      "mpoints  x instant -> ipoints  \n"
+      "mregions x instant -> iregions ",
       "_ atinstant _",
       "returns the value of the moving objects for the given instant",
       "query mpts atinstant [const instant value \"2005-11-20-07:01:44\"]");
@@ -142,6 +236,9 @@ namespace ColumnMovingAlgebra
     ValueMapping0,
     ValueMapping1,
     ValueMapping2,
+    ValueMapping3,
+    ValueMapping4,
+    ValueMapping5,
     nullptr
   };
 
@@ -155,12 +252,24 @@ namespace ColumnMovingAlgebra
   
   list<AttrArrayOperatorSignatur> AtInstantOperator::signatures() {
     return list<AttrArrayOperatorSignatur> {
-      { temporalalgebra::MInt::BasicType(), Instant::BasicType(), 
+      { temporalalgebra::MInt::BasicType(), 
+        Instant::BasicType(), 
         IIntsType::TI(false).GetTypeExpr() },
-      { temporalalgebra::MPoint::BasicType(), Instant::BasicType(), 
+      { temporalalgebra::MPoint::BasicType(), 
+        Instant::BasicType(), 
         IPointsType::TI(false).GetTypeExpr() },
-      { temporalalgebra::MRegion::BasicType(), Instant::BasicType(), 
+      { temporalalgebra::MRegion::BasicType(), 
+        Instant::BasicType(), 
         IRegionsType::TI(false).GetTypeExpr() },
+      { temporalalgebra::MReal::BasicType(), 
+        Instant::BasicType(), 
+        IRealsType::TI(false).GetTypeExpr() },
+      { temporalalgebra::MBool::BasicType(), 
+        Instant::BasicType(), 
+        IBoolsType::TI(false).GetTypeExpr() },
+      { temporalalgebra::MString::BasicType(), 
+        Instant::BasicType(), 
+        IStringsType::TI(false).GetTypeExpr() },
     };
   }
   
@@ -190,12 +299,44 @@ namespace ColumnMovingAlgebra
         qp->ResultStorage<IRegions>(result, s) );
     return 0;
   }
+  
+  int AtInstantOperator::ValueMapping3(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MReals*>(args[0].addr)->atInstant( 
+        *static_cast<Instant*>(args[1].addr), 
+        qp->ResultStorage<IReals>(result, s) );
+    return 0;
+  }
+  
+  int AtInstantOperator::ValueMapping4(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MBools*>(args[0].addr)->atInstant( 
+        *static_cast<Instant*>(args[1].addr), 
+        qp->ResultStorage<IBools>(result, s) );
+    return 0;
+  }
+  
+  int AtInstantOperator::ValueMapping5(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MStrings*>(args[0].addr)->atInstant( 
+        *static_cast<Instant*>(args[1].addr), 
+        qp->ResultStorage<IStrings>(result, s) );
+    return 0;
+  }
 
 
 
   const OperatorInfo AtPeriodsOperator::info = OperatorInfo(
       "atperiods",
-      "(mpoints | mregions) x periods -> (mpoints | mregions)",
+      "mbools   x periods -> mbools  \n"
+      "mints    x periods -> mints  \n"
+      "mstrings x periods -> mstrings  \n"
+      "mreals   x periods -> mreals   \n"
+      "mpoints  x periods -> mpoints  \n"
+      "mregions x periods -> mregions ",
       "_ atperiods _",
       "restricts the moving objects to the given periods",
       "query movingIntegers atperiods [const periods value \n"
@@ -205,6 +346,9 @@ namespace ColumnMovingAlgebra
     ValueMapping0,
     ValueMapping1,
     ValueMapping2,
+    ValueMapping3,
+    ValueMapping4,
+    ValueMapping5,
     nullptr
   };
 
@@ -218,12 +362,24 @@ namespace ColumnMovingAlgebra
   
   list<AttrArrayOperatorSignatur> AtPeriodsOperator::signatures() {
     return list<AttrArrayOperatorSignatur> {
-      { temporalalgebra::MInt::BasicType(),   temporalalgebra::Periods::
-        BasicType(), MIntsType::TI(false).GetTypeExpr() },
-      { temporalalgebra::MPoint::BasicType(), temporalalgebra::Periods::
-        BasicType(), MPointsType::TI(false).GetTypeExpr() },
-      { temporalalgebra::MRegion::BasicType(), temporalalgebra::Periods::
-        BasicType(), MRegionsType::TI(false).GetTypeExpr() },
+      { temporalalgebra::MInt::BasicType(),   
+        temporalalgebra::Periods::BasicType(), 
+        MIntsType::TI(false).GetTypeExpr() },
+      { temporalalgebra::MPoint::BasicType(), 
+        temporalalgebra::Periods::BasicType(), 
+        MPointsType::TI(false).GetTypeExpr() },
+      { temporalalgebra::MRegion::BasicType(), 
+        temporalalgebra::Periods::BasicType(), 
+        MRegionsType::TI(false).GetTypeExpr() },
+      { temporalalgebra::MReal::BasicType(), 
+        temporalalgebra::Periods::BasicType(), 
+        MRealsType::TI(false).GetTypeExpr() },
+      { temporalalgebra::MBool::BasicType(), 
+        temporalalgebra::Periods::BasicType(), 
+        MBoolsType::TI(false).GetTypeExpr() },
+      { temporalalgebra::MString::BasicType(), 
+        temporalalgebra::Periods::BasicType(), 
+        MStringsType::TI(false).GetTypeExpr() },
     };
   }
   
@@ -253,21 +409,59 @@ namespace ColumnMovingAlgebra
         qp->ResultStorage<MRegions>(result, s) );
     return 0;
   }
+  
+  int AtPeriodsOperator::ValueMapping3(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MReals*>(args[0].addr)->atPeriods( 
+        *static_cast<temporalalgebra::Periods*>(args[1].addr), 
+        qp->ResultStorage<MReals>(result, s) );
+    return 0;
+  }
+  
+  int AtPeriodsOperator::ValueMapping4(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MBools*>(args[0].addr)->atPeriods( 
+        *static_cast<temporalalgebra::Periods*>(args[1].addr), 
+        qp->ResultStorage<MBools>(result, s) );
+    return 0;
+  }
+  
+  int AtPeriodsOperator::ValueMapping5(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MStrings*>(args[0].addr)->atPeriods( 
+        *static_cast<temporalalgebra::Periods*>(args[1].addr), 
+        qp->ResultStorage<MStrings>(result, s) );
+    return 0;
+  }
 
 
 
   const OperatorInfo PassesOperator::info = OperatorInfo(
       "passes",
-      "(mints | mpoints) x (int | (point | region)) -> (bools | longints)",
+      "mbools  x (bool   | rbool  ) -> longints \n"
+      "mints   x (int    | rint   ) -> longints \n"
+      "mstrins x (string | rstring) -> longints \n"
+      "mreals  x (real   | rreal  ) -> longints \n"
+      "mpoints x (point  | region ) -> longints ",
       "_ passes _",
-      "returns true | the indices for all moving objects, \n"
+      "returns the indices for all moving objects, \n"
       "that pass the given value at any time",
       "query movingIntegers passes 1");
 
   ValueMapping PassesOperator::valueMappings[] = {
-    ValueMapping0,
+    ValueMapping00,
+    ValueMapping01,
     ValueMapping10,
     ValueMapping11,
+    ValueMapping20,
+    ValueMapping21,
+    ValueMapping30,
+    ValueMapping31,
+    ValueMapping40,
+    ValueMapping41,
     nullptr
   };
 
@@ -281,21 +475,54 @@ namespace ColumnMovingAlgebra
   
   list<AttrArrayOperatorSignatur> PassesOperator::signatures() {
     return list<AttrArrayOperatorSignatur> {
-      { temporalalgebra::MInt::BasicType(),   CcInt::BasicType(), 
-        BoolsType::TI(false).GetTypeExpr() },
-      { temporalalgebra::MPoint::BasicType(), Point::BasicType(), 
+      { temporalalgebra::MInt::BasicType(),   
+        CcInt::BasicType(), 
         CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
-      { temporalalgebra::MPoint::BasicType(), Region::BasicType(), 
+      { temporalalgebra::MInt::BasicType(),   
+        temporalalgebra::RInt::BasicType(), 
+        CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
+      { temporalalgebra::MPoint::BasicType(), 
+        Point::BasicType(), 
+        CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
+      { temporalalgebra::MPoint::BasicType(), 
+        Region::BasicType(), 
+        CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
+      { temporalalgebra::MReal::BasicType(), 
+        CcReal::BasicType(), 
+        CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
+      { temporalalgebra::MReal::BasicType(), 
+        temporalalgebra::RReal::BasicType(), 
+        CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
+      { temporalalgebra::MBool::BasicType(), 
+        CcBool::BasicType(), 
+        CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
+      { temporalalgebra::MBool::BasicType(), 
+        temporalalgebra::RBool::BasicType(), 
+        CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
+      { temporalalgebra::MString::BasicType(), 
+        CcString::BasicType(), 
+        CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
+      { temporalalgebra::MString::BasicType(), 
+        temporalalgebra::RString::BasicType(), 
         CRelAlgebra::LongIntsTI(false).GetTypeExpr() },
     };
   }
   
-  int PassesOperator::ValueMapping0(ArgVector args, Word &result, int message, 
+  int PassesOperator::ValueMapping00(ArgVector args, Word &result, int message, 
     Word &local, Supplier s) 
   {
     static_cast<MInts*>(args[0].addr)->passes( 
         *static_cast<CcInt*>(args[1].addr), 
-        qp->ResultStorage<Bools>(result, s) );
+        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+    return 0;
+  }
+  
+  int PassesOperator::ValueMapping01(ArgVector args, Word &result, int message, 
+    Word &local, Supplier s) 
+  {
+    static_cast<MInts*>(args[0].addr)->passes( 
+        *static_cast<temporalalgebra::RInt*>(args[1].addr), 
+        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
     return 0;
   }
   
@@ -316,14 +543,70 @@ namespace ColumnMovingAlgebra
         qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
     return 0;
   }
+  
+  int PassesOperator::ValueMapping20(ArgVector args, Word &result, int message, 
+    Word &local, Supplier s) 
+  {
+    static_cast<MReals*>(args[0].addr)->passes( 
+        *static_cast<CcReal*>(args[1].addr), 
+        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+    return 0;
+  }
+  
+  int PassesOperator::ValueMapping21(ArgVector args, Word &result, int message, 
+    Word &local, Supplier s) 
+  {
+    static_cast<MReals*>(args[0].addr)->passes( 
+        *static_cast<temporalalgebra::RReal*>(args[1].addr), 
+        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+    return 0;
+  }
+  
+  int PassesOperator::ValueMapping30(ArgVector args, Word &result, int message, 
+    Word &local, Supplier s) 
+  {
+    static_cast<MBools*>(args[0].addr)->passes( 
+        *static_cast<CcBool*>(args[1].addr), 
+        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+    return 0;
+  }
+  
+  int PassesOperator::ValueMapping31(ArgVector args, Word &result, int message, 
+    Word &local, Supplier s) 
+  {
+    static_cast<MBools*>(args[0].addr)->passes( 
+        *static_cast<temporalalgebra::RBool*>(args[1].addr), 
+        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+    return 0;
+  }
+  
+  int PassesOperator::ValueMapping40(ArgVector args, Word &result, int message, 
+    Word &local, Supplier s) 
+  {
+    static_cast<MStrings*>(args[0].addr)->passes( 
+        *static_cast<CcString*>(args[1].addr), 
+        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+    return 0;
+  }
+  
+  int PassesOperator::ValueMapping41(ArgVector args, Word &result, int message, 
+    Word &local, Supplier s) 
+  {
+    static_cast<MStrings*>(args[0].addr)->passes( 
+        *static_cast<temporalalgebra::RString*>(args[1].addr), 
+        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+    return 0;
+  }
 
 
 
   const OperatorInfo AtOperator::info = OperatorInfo(
       "at",
-      "(mints | mpoints) \n"
-      "x ((int | rint) | (point | region)) \n"
-      "-> (mints | mpoints)",
+      "mbools   x (bool   | rbool   ) -> mbools  \n"
+      "mints    x (int    | rint    ) -> mints  \n"
+      "mstrings x (string | rstring ) -> mstrings  \n"
+      "mreals   x (real   | real    ) -> mreals \n"
+      "mpoints  x (point  | region  ) -> mpoints",
       "_ at _",
       "restricts the given moving objects to the given value or ranges",
       "query movingIntegers at 1");
@@ -333,6 +616,12 @@ namespace ColumnMovingAlgebra
     ValueMapping01,
     ValueMapping10,
     ValueMapping11,
+    ValueMapping20,
+    ValueMapping21,
+    ValueMapping30,
+    ValueMapping31,
+    ValueMapping40,
+    ValueMapping41,
     nullptr
   };
 
@@ -346,14 +635,36 @@ namespace ColumnMovingAlgebra
   
   list<AttrArrayOperatorSignatur> AtOperator::signatures() {
     return list<AttrArrayOperatorSignatur> {
-      { temporalalgebra::MInt::BasicType(), CcInt::BasicType(), 
+      { temporalalgebra::MInt::BasicType(), 
+        CcInt::BasicType(), 
         MIntsType::TI(false).GetTypeExpr() },
-      { temporalalgebra::MInt::BasicType(), temporalalgebra::RInt::
-        BasicType(), MIntsType::TI(false).GetTypeExpr() },
-      { temporalalgebra::MPoint::BasicType(), Point::BasicType(), 
+      { temporalalgebra::MInt::BasicType(), 
+        temporalalgebra::RInt::BasicType(), 
+        MIntsType::TI(false).GetTypeExpr() },
+      { temporalalgebra::MPoint::BasicType(), 
+        Point::BasicType(), 
         MPointsType::TI(false).GetTypeExpr() },
-      { temporalalgebra::MPoint::BasicType(), Region::BasicType(), 
+      { temporalalgebra::MPoint::BasicType(), 
+        Region::BasicType(), 
         MPointsType::TI(false).GetTypeExpr() },
+      { temporalalgebra::MReal::BasicType(), 
+        CcReal::BasicType(), 
+        MRealsType::TI(false).GetTypeExpr() },
+      { temporalalgebra::MReal::BasicType(), 
+        temporalalgebra::RReal::BasicType(), 
+        MRealsType::TI(false).GetTypeExpr() },
+      { temporalalgebra::MBool::BasicType(), 
+        CcBool::BasicType(), 
+        MBoolsType::TI(false).GetTypeExpr() },
+      { temporalalgebra::MBool::BasicType(), 
+        temporalalgebra::RBool::BasicType(), 
+        MBoolsType::TI(false).GetTypeExpr() },
+      { temporalalgebra::MString::BasicType(), 
+        CcString::BasicType(), 
+        MStringsType::TI(false).GetTypeExpr() },
+      { temporalalgebra::MString::BasicType(), 
+        temporalalgebra::RString::BasicType(), 
+        MStringsType::TI(false).GetTypeExpr() },
     };
   }
   
@@ -390,6 +701,290 @@ namespace ColumnMovingAlgebra
     static_cast<MPoints*>(args[0].addr)->at( 
         *static_cast<Region*>(args[1].addr), 
         qp->ResultStorage<MPoints>(result, s) );
+    return 0;
+  }
+
+  int AtOperator::ValueMapping20(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MReals*>(args[0].addr)->at( 
+        *static_cast<CcReal*>(args[1].addr), 
+        qp->ResultStorage<MReals>(result, s) );
+    return 0;
+  }
+  
+  int AtOperator::ValueMapping21(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MReals*>(args[0].addr)->at( 
+        *static_cast<temporalalgebra::RReal*>(args[1].addr), 
+        qp->ResultStorage<MReals>(result, s) );
+    return 0;
+  }
+
+  int AtOperator::ValueMapping30(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MBools*>(args[0].addr)->at( 
+        *static_cast<CcBool*>(args[1].addr), 
+        qp->ResultStorage<MBools>(result, s) );
+    return 0;
+  }
+  
+  int AtOperator::ValueMapping31(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MBools*>(args[0].addr)->at( 
+        *static_cast<temporalalgebra::RBool*>(args[1].addr), 
+        qp->ResultStorage<MBools>(result, s) );
+    return 0;
+  }
+
+  int AtOperator::ValueMapping40(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MStrings*>(args[0].addr)->at( 
+        *static_cast<CcString*>(args[1].addr), 
+        qp->ResultStorage<MStrings>(result, s) );
+    return 0;
+  }
+  
+  int AtOperator::ValueMapping41(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MStrings*>(args[0].addr)->at( 
+        *static_cast<temporalalgebra::RString*>(args[1].addr), 
+        qp->ResultStorage<MStrings>(result, s) );
+    return 0;
+  }
+  
+
+
+  const OperatorInfo InsideOperator::info = OperatorInfo(
+      "inside",
+      "mpoint  x mregions -> mbools \n"
+      "mpoints x region   -> mbools \n"
+      "mpoints x mregion  -> mbools \n"
+      "mpoints x mregions -> mbools ",
+      "_ inside _",
+      "returns a mbools which indicates, when the given moving points \n"
+      "are inside the given region or mregion",
+      "query movingPoints inside myRegion");
+
+  ValueMapping InsideOperator::valueMappings[] = {
+    ValueMapping0,
+    ValueMapping1,
+    ValueMapping2,
+    ValueMapping3,
+    nullptr
+  };
+
+  ListExpr InsideOperator::TypeMapping(ListExpr args) {
+    int r = IntersectionOperator::mapping(args);
+           
+    if (r == -1)
+      return NList::typeError("\nExpected one of the following operants:\n"
+        "mpoints x region\n"
+        "mpoints x mregion\n"
+        "mpoint  x mregions\n"
+        "mpoints x mregions");
+    
+    return MBoolsType::TI(false).GetTypeExpr();       
+  }
+
+  int InsideOperator::SelectValueMapping(ListExpr args) {
+    int r = IntersectionOperator::mapping(args);
+    assert(r != -1);
+    return r;
+  }
+  
+  int InsideOperator::ValueMapping0(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    auto mps = static_cast<MPoints*>(args[0].addr);
+    auto r   = static_cast<Region*>(args[1].addr);
+    int64_t min, max;
+    mps->getDefTimeLimits(min, max);
+    MRegions mrs;
+    mrs.addConstMRegion(*r, Interval { min, max, true, true } );
+    MPoints intermediate;
+    mrs.intersection(*mps, intermediate);
+    mps->defTimeIntersection(intermediate, 
+                             qp->ResultStorage<MBools>(result, s));
+    return 0;
+  }
+  
+  int InsideOperator::ValueMapping1(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    auto mps = static_cast<MPoints*>(args[0].addr);
+    auto mr  = static_cast<temporalalgebra::MRegion*>(args[1].addr);
+    MRegions mrs;
+    mrs.Append(*mr);
+    MPoints intermediate;
+    mrs.intersection(*mps, intermediate);
+    mps->defTimeIntersection(intermediate, 
+                             qp->ResultStorage<MBools>(result, s));
+    return 0;
+  }
+  
+  int InsideOperator::ValueMapping2(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    auto mp  = static_cast<temporalalgebra::MPoint*>(args[0].addr);
+    auto mrs = static_cast<MRegions*>(args[1].addr);
+    MPoints mps;
+    mps.Append(*mp);
+    MPoints intermediate;
+    mrs->intersection(mps, intermediate);
+    mps.defTimeIntersection(intermediate, 
+                            qp->ResultStorage<MBools>(result, s));
+    return 0;
+  }
+  
+  int InsideOperator::ValueMapping3(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    auto mps = static_cast<MPoints*>(args[0].addr);
+    auto mrs = static_cast<MRegions*>(args[1].addr);
+    MPoints intermediate;
+    mrs->intersection(*mps, intermediate);
+    mps->defTimeIntersection(intermediate, 
+                             qp->ResultStorage<MBools>(result, s));
+    return 0;
+  }
+  
+
+
+  const OperatorInfo IntersectionOperator::info = OperatorInfo(
+      "intersection",
+      "mpoint  x mregions -> mpoints \n"
+      "mpoints x region   -> mpoints \n"
+      "mpoints x mregion  -> mpoints \n"
+      "mpoints x mregions -> mpoints ",
+      "intersection (_, _)",
+      "restricts the moving point to the given region or mregion",
+      "query intersection (movingPoints, myRegion)");
+
+  ValueMapping IntersectionOperator::valueMappings[] = {
+    ValueMapping0,
+    ValueMapping1,
+    ValueMapping2,
+    ValueMapping3,
+    nullptr
+  };
+
+  int IntersectionOperator::mapping(ListExpr args) {
+    if(!nl->HasLength(args,2)) 
+      return -1;
+
+    const ListExpr a = nl->First(args);
+    const ListExpr b = nl->Second(args);
+
+    if (nl->IsEqual(a, temporalalgebra::MPoint::BasicType())) {
+      CRelAlgebra::AttrArrayTypeConstructor *bTC =
+        CRelAlgebra::AttrArray::GetTypeConstructor(b);
+
+      if (bTC == nullptr) 
+        return -1;
+
+      const ListExpr bAttrT = bTC->GetAttributeType(b, false);
+
+      if (nl->IsEqual(bAttrT, temporalalgebra::MRegion::BasicType())) 
+        return 2;
+    } else {
+      CRelAlgebra::AttrArrayTypeConstructor *aTC =
+        CRelAlgebra::AttrArray::GetTypeConstructor(a);
+
+      if (aTC == nullptr) 
+        return -1;
+
+      const ListExpr aAttrT = aTC->GetAttributeType(b, false);
+
+      if (!nl->IsEqual(aAttrT, temporalalgebra::MPoint::BasicType())) 
+        return -1;
+        
+      if (nl->IsEqual(b, Region::BasicType())) 
+        return 0;
+      
+      if (nl->IsEqual(b, temporalalgebra::MRegion::BasicType())) 
+        return 1;
+
+      CRelAlgebra::AttrArrayTypeConstructor *bTC =
+        CRelAlgebra::AttrArray::GetTypeConstructor(b);
+
+      if (bTC == nullptr) 
+        return -1;
+
+      const ListExpr bAttrT = bTC->GetAttributeType(b, false);
+
+      if (nl->IsEqual(bAttrT, temporalalgebra::MRegion::BasicType())) 
+        return 3;
+    }
+
+    return -1;
+  }
+
+  ListExpr IntersectionOperator::TypeMapping(ListExpr args) {
+    int r = mapping(args);
+           
+    if (r == -1)
+      return NList::typeError("\nExpected one of the following operants:\n"
+        "mpoints x region\n"
+        "mpoints x mregion\n"
+        "mpoint  x mregions\n"
+        "mpoints x mregions");
+    
+    return MPointsType::TI(false).GetTypeExpr();       
+  }
+
+  int IntersectionOperator::SelectValueMapping(ListExpr args) {
+    int r = mapping(args);
+    assert(r != -1);
+    return r;
+  }
+  
+  int IntersectionOperator::ValueMapping0(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    auto mps = static_cast<MPoints*>(args[0].addr);
+    auto r   = static_cast<Region*>(args[1].addr);
+    int64_t min, max;
+    mps->getDefTimeLimits(min, max);
+    MRegions mrs;
+    mrs.addConstMRegion(*r, Interval { min, max, true, true } );
+    mrs.intersection(*mps, qp->ResultStorage<MPoints>(result, s));
+    return 0;
+  }
+  
+  int IntersectionOperator::ValueMapping1(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    auto mps = static_cast<MPoints*>(args[0].addr);
+    auto mr  = static_cast<temporalalgebra::MRegion*>(args[1].addr);
+    MRegions mrs;
+    mrs.Append(*mr);
+    mrs.intersection(*mps, qp->ResultStorage<MPoints>(result, s));
+    return 0;
+  }
+  
+  int IntersectionOperator::ValueMapping2(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    auto mp  = static_cast<temporalalgebra::MPoint*>(args[0].addr);
+    auto mrs = static_cast<MRegions*>(args[1].addr);
+    MPoints mps;
+    mps.Append(*mp);
+    mrs->intersection(mps, qp->ResultStorage<MPoints>(result, s));
+    return 0;
+  }
+  
+  int IntersectionOperator::ValueMapping3(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    auto mps = static_cast<MPoints*>(args[0].addr);
+    auto mrs = static_cast<MRegions*>(args[1].addr);
+    mrs->intersection(*mps, qp->ResultStorage<MPoints>(result, s));
     return 0;
   }
 
@@ -433,63 +1028,5 @@ namespace ColumnMovingAlgebra
 
 
 
-  const OperatorInfo IndexOperator::info = OperatorInfo(
-      "index",
-      "mpoints x [int, int] -> mpoints",
-      "_ index [_, _]",
-      "returns an mpoints with the data of the mpoints given as first \n"
-      "argument. the new mpoints is indexed with a grid index, which splits \n"
-      "the time dimension and location dimension \n"
-      "as often as determined by the second and third argument",
-      "query movingPoints index [100, 100]");
-
-  ValueMapping IndexOperator::valueMappings[] = {
-    ValueMapping0,
-    nullptr
-  };
-
-  ListExpr IndexOperator::TypeMapping(ListExpr args) {
-    if(!nl->HasLength(args,3)) 
-      return NList::typeError("Three arguments expected.");
-
-    const ListExpr firstArg = nl->First(args);
-
-    CRelAlgebra::AttrArrayTypeConstructor *typeConstructorA =
-      CRelAlgebra::AttrArray::GetTypeConstructor(firstArg);
-
-    if (typeConstructorA == nullptr) 
-      return NList::typeError("First Argument isn't of kind ATTRARRAY.");
-
-    const ListExpr attributeType = typeConstructorA->GetAttributeType(firstArg,
-                                                                        false);
-
-    if (!nl->IsEqual(attributeType, temporalalgebra::MPoint::BasicType())) 
-      return NList::typeError("First Argument isn't of type ATTRARRAY(MPOINT)");
-
-    const ListExpr secondArg = nl->Second(args);
-
-    if (!nl->IsEqual(secondArg, CcInt::BasicType())) 
-      return NList::typeError("Second Argument isn't of type INT");
-        
-    const ListExpr thirdArg = nl->Third(args);
-
-    if (!nl->IsEqual(thirdArg, CcInt::BasicType())) 
-      return NList::typeError("Third Argument isn't of type INT");
-
-    return MPointsType::TI(false).GetTypeExpr();       
-  }
-
-  int IndexOperator::SelectValueMapping(ListExpr args) {
-    return 0;
-  }
-  
-  int IndexOperator::ValueMapping0(ArgVector args, Word &result, 
-    int message, Word &local, Supplier s) 
-  {
-    static_cast<MPoints*>(args[0].addr)->index( 
-        *static_cast<CcInt*>(args[1].addr), *static_cast<CcInt*>(args[2].addr), 
-        qp->ResultStorage<MPoints>(result, s) );
-    return 0;
-  }
 
 }

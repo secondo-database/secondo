@@ -25,21 +25,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #pragma once
 
 #include "AttrArrayType.h"
-#include "Sources/Bools.h"
 #include "Sources/IInts.h"
 #include "Sources/MInts.h"
 #include "Sources/IPoints.h"
 #include "Sources/MPoints.h"
 #include "Sources/IRegions.h"
 #include "Sources/MRegions.h"
+#include "Sources/IReals.h"
+#include "Sources/MReals.h"
+#include "Sources/IBools.h"
+#include "Sources/MBools.h"
+#include "Sources/IStrings.h"
+#include "Sources/MStrings.h"
 
 namespace ColumnMovingAlgebra {
-  extern char boolsName[]; 
-  extern char boolsInfo[];
-  extern char boolsExample[];
-  typedef AttrArrayType<Bools, CcBool, boolsName, boolsInfo, 
-    boolsExample> BoolsType;
-
   extern char iintsName[]; 
   extern char iintsInfo[];
   extern char iintsExample[];
@@ -75,6 +74,42 @@ namespace ColumnMovingAlgebra {
   extern char mregionsExample[];
   typedef AttrArrayType<MRegions, temporalalgebra::MRegion, mregionsName, 
     mregionsInfo, mregionsExample> MRegionsType;
+
+  extern char irealsName[]; 
+  extern char irealsInfo[];
+  extern char irealsExample[];
+  typedef AttrArrayType<IReals, temporalalgebra::IReal, irealsName, 
+    irealsInfo, irealsExample> IRealsType;
+
+  extern char mrealsName[]; 
+  extern char mrealsInfo[];
+  extern char mrealsExample[];
+  typedef AttrArrayType<MReals, temporalalgebra::MReal, mrealsName, 
+    mrealsInfo, mrealsExample> MRealsType;
+
+  extern char iboolsName[]; 
+  extern char iboolsInfo[];
+  extern char iboolsExample[];
+  typedef AttrArrayType<IBools, temporalalgebra::IBool, iboolsName, 
+    iboolsInfo, iboolsExample> IBoolsType;
+
+  extern char mboolsName[]; 
+  extern char mboolsInfo[];
+  extern char mboolsExample[];
+  typedef AttrArrayType<MBools, temporalalgebra::MBool, mboolsName, 
+    mboolsInfo, mboolsExample> MBoolsType;
+
+  extern char istringsName[]; 
+  extern char istringsInfo[];
+  extern char istringsExample[];
+  typedef AttrArrayType<IStrings, temporalalgebra::IString, istringsName, 
+    istringsInfo, istringsExample> IStringsType;
+
+  extern char mstringsName[]; 
+  extern char mstringsInfo[];
+  extern char mstringsExample[];
+  typedef AttrArrayType<MStrings, temporalalgebra::MString, mstringsName, 
+    mstringsInfo, mstringsExample> MStringsType;
 
 }
 

@@ -205,6 +205,45 @@ query mrs atinstant [const instant value "2000-01-02"];
 #yields error
 query mrs atinstant 1;
 
+#testcase mregionsAtInstantInstantWithHoles
+#yields ( iregions ( \
+  ( \
+    "2000-01-04" \
+    ( \
+      ( \
+        ((-0.5 -1.0) (-1.0 -0.5) (-0.5 -0.5)) \
+      ) \
+      ( \
+        (( 0.5  0.0) ( 0.0  0.0) ( 0.0  0.5) ( 0.5  0.5)) \
+        (( 0.2  0.1) ( 0.1  0.1) ( 0.1  0.2)) \
+        (( 0.4  0.3) ( 0.3  0.3) ( 0.3  0.4)) \
+      ) \
+    ) \
+  ) \
+  undefined  \
+) )
+query mrs atinstant [const instant value "2000-01-04"];
+
+#testcase mregionsAtInstantIntervalEndPoint
+#yields ( iregions ( \
+  ( \
+    "2000-01-03" \
+    ( \
+      ( \
+        ((-1.0 -2.0) (-2.0 -1.0) (-1.0 -1.0)) \
+      ) \
+      ( \
+        (( 1.0  0.0) ( 0.0  0.0) ( 0.0  1.0) ( 1.0  1.0)) \
+        (( 0.4  0.2) ( 0.2  0.2) ( 0.2  0.4)) \
+        (( 0.8  0.6) ( 0.6  0.6) ( 0.6  0.8)) \
+      ) \
+    ) \
+  ) \
+   undefined \
+) )
+query mrs atinstant [const instant value "2000-01-03"];
+
+
 
 #testcase mregionsAtPeriodsUndefined
 #yields (   mregions ( () () )   )
@@ -223,11 +262,11 @@ query mrs atperiods [const periods value undefined];
       ( \
         ( \
           (( 0.0  0.0  0.0  0.0) ( 1.0  0.0  0.5  0.0) ( 1.0  1.0  0.5  0.5) ( 0.0  1.0  0.0  0.5)) \
-          (( 0.2  0.2  0.1  0.1) ( 0.4  0.2  0.2  0.1) ( 0.2  0.4  0.1  0.2)) \
-          (( 0.6  0.6  0.3  0.3) ( 0.8  0.6  0.4  0.3) ( 0.6  0.8  0.3  0.4)) \
+          (( 0.4  0.2  0.2  0.1) ( 0.2  0.2  0.1  0.1) ( 0.2  0.4  0.1  0.2)) \
+          (( 0.8  0.6  0.4  0.3) ( 0.6  0.6  0.3  0.3) ( 0.6  0.8  0.3  0.4)) \
         ) \
         ( \
-          ((-1.0 -1.0 -0.5 -0.5) (-1.0 -2.0 -0.5 -1.0) (-2.0 -1.0 -1.0 -0.5)) \
+          ((-1.0 -2.0 -0.5 -1.0) (-1.0 -1.0 -0.5 -0.5) (-2.0 -1.0 -1.0 -0.5)) \
         ) \
       ) \
     ) \
@@ -250,10 +289,957 @@ query mrs atperiods [const periods value (("2000-01-02" "2000-01-04" FALSE TRUE)
 query mrs atperiods 1;
 
 
-
 #testcase addRandom
 #yields (mpoints ())
 query [const mpoints value ()] addrandom 0;
+
+
+#testcase intersection1
+#yields *mps6
+query intersection(mps5, mrs0);
+
+#testcase intersection0
+#yields error
+query intersection(0, mrs0);
+
+# tolerance_real %0.1
+
+#testcase intersection1
+#yields *mps1
+query intersection(mps0, mrs0);
+
+#testcase intersection1
+#yields *mps2
+query intersection(mps0, mr0);
+
+#testcase intersection1
+#yields *mps3
+query intersection(mp0, mrs0);
+
+#testcase intersection1
+#yields *mps4
+query intersection(mps0, r0);
+
+
+
+#testcase mrealsAtInstant0
+#yields error
+query mrls atinstant 1;
+
+#testcase mrealsAtInstant1
+#yields (ireals (undefined undefined))
+query mrls atinstant [const instant value undefined];
+
+#testcase mrealsAtInstant2
+#yields (ireals (("2000-03-31" 6.0) ("2000-03-31" 3.0)))
+query mrls atinstant [const instant value "2000-03-31"];
+
+# tolerance_real %0.1
+
+#testcase mrealsAtInstant3
+#yields (ireals (("2000-04-06" undefined) ("2000-04-06" undefined)))
+query mrls atinstant [const instant value "2000-04-06"];
+
+#testcase mrealsAtInstant4
+#yields (ireals (("2000-04-30" undefined) ("2000-04-30" undefined)))
+query mrls atinstant [const instant value "2000-04-30"];
+
+#testcase mrealsAtInstant5
+#yields (ireals (("2000-05-06" 0.0) ("2000-05-06" undefined)))
+query mrls atinstant [const instant value "2000-05-06"];
+
+#testcase mrealsPresent0
+#yields error
+query mrls present 1;
+
+#testcase mrealsPresent1
+#yields (longints ())
+query mrls present [const instant value undefined];
+
+#testcase mrealsPresent2
+#yields (longints (0))
+query mrls present [const instant value "2000-05-31"];
+
+#testcase mrealsPresent3
+#yields (longints ())
+query mrls present [const periods value undefined];
+
+#testcase mrealsPresent4
+#yields (longints (0))
+query mrls present [const periods value (("2000-01-01" "2000-03-31" TRUE FALSE) ("2000-05-31" "2000-05-31" TRUE TRUE))];
+
+#testcase mrealsAtperiods0
+#yields error
+query mrls atperiods 1;
+
+#testcase mrealsAtperiods1
+#yields (mreals (() ()))
+query mrls atperiods [const periods value undefined];
+
+#testcase mrealsAtperiods2
+#yields (mreals (\
+(\
+  (("2000-03-31" "2000-04-05" TRUE TRUE) (0.5 -4.0 6.0 FALSE))\
+)\
+(\
+  (("2000-03-31" "2000-04-05" TRUE TRUE) (0.5 -4.0 9.0 TRUE))\
+)\
+))
+query mrls atperiods [const periods value (("2000-01-01" "2000-04-05" FALSE TRUE))];
+
+#testcase mrealsAtperiods3
+#yields (mreals (\
+(\
+  (("2000-05-04" "2000-05-06" TRUE TRUE) (0.5 0.0 -2.0 FALSE))\
+  (("2000-05-31" "2000-05-31" TRUE TRUE) (0.0 0.0 6.0 FALSE))\
+)\
+(\
+)\
+))
+query mrls atperiods [const periods value (("2000-05-04" "2000-05-31" TRUE TRUE))];
+
+#testcase mrealsPasses0
+#yields error
+query mrls0 passes [const instant value "2000-05-31"];
+
+#testcase mrealsPasses1
+#yields (longints ())
+query mrls0 passes [const real value undefined];
+
+#testcase mrealsPasses2
+#yields (longints (0   2 3 4 5))
+query mrls0 passes 6.0;
+
+#testcase mrealsPasses3
+#yields (longints (0 1 2      ))
+query mrls0 passes -2.0;
+
+#testcase mrealsPasses4
+#yields (longints (0 1 2 3 4  ))
+query mrls0 passes 0.0;
+
+#testcase mrealsPasses5
+#yields (longints (0))
+query mrls passes 4.0;
+
+#testcase mrealsPasses6
+#yields (longints ())
+query mrls1 passes [const rreal value undefined];
+
+#testcase mrealsPasses7
+#yields (longints (0   2 3))
+query mrls1 passes [const rreal value (
+(-11.0 -10.0 FALSE FALSE)
+(2.5 7.0 FALSE FALSE)
+)];
+
+#testcase mrealsPasses8
+#yields (longints (  1 2 3))
+query mrls1 passes [const rreal value (
+(-20.0 -20.0 TRUE TRUE)
+(-1.5 2.5 TRUE TRUE)
+)];
+
+#testcase mrealsPasses9
+#yields (longints (0 1 2  ))
+query mrls1 passes [const rreal value (
+(-21.0 -9.0 FALSE FALSE)
+(-2.0 -1.5 TRUE TRUE)
+)];
+
+#testcase mrealsPasses10
+#yields (longints (0   2  ))
+query mrls1 passes [const rreal value (
+(-20.0 -9.0 FALSE FALSE)
+(-2.0 -1.5 FALSE TRUE)
+)];
+
+#testcase mrealsAt0
+#yields error
+query mrls0 at [const instant value "2000-05-31"];
+
+#testcase mrealsAt1
+#yields (mreals (() () () ()))
+query mrls1 at [const real value undefined];
+
+#testcase mrealsAt2
+#yields (mreals ( \
+  ((("2000-04-02" "2000-04-02" TRUE TRUE) (0.0 0.0 -12.0 FALSE)))  \
+  () \
+  () \
+  () \
+))
+query mrls1 at -12.0;
+
+#testcase mrealsAt3
+#yields (mreals ( \
+  ()  \
+  ((("2000-04-30" "2000-05-01" TRUE TRUE) (0.0 0.0 -20.0 FALSE)))  \
+  ()  \
+  ()  \
+))
+query mrls1 at -20.0;
+
+#testcase mrealsAt4
+#yields (mreals ( \
+  ()  \
+  ()  \
+  ((("2000-07-04" "2000-07-04" TRUE TRUE) (0.0 0.0 -2.0 FALSE)))  \
+  ()  \
+))
+query mrls1 at -2.0;
+
+#testcase mrealsAt5
+#yields (mreals ( \
+  ()  \
+  ()  \
+  ((("2000-07-03" "2000-07-03" TRUE TRUE) (0.0 0.0 -1.5 FALSE)) \
+   (("2000-07-05" "2000-07-05" TRUE TRUE) (0.0 0.0 -1.5 FALSE)))  \
+  ()  \
+))
+query mrls1 at -1.5;
+
+#testcase mrealsAt6
+#yields (mreals ( \
+  ()  \
+  ()  \
+  ((("2000-07-01" "2000-07-01" TRUE TRUE) (0.0 0.0 2.5 FALSE))) \
+  ((("2000-08-01" "2000-08-01" TRUE TRUE) (0.0 0.0 2.5 FALSE)))  \
+))
+query mrls1 at 2.5;
+
+#testcase mrealsAt7
+#yields (mreals ( \
+  ()  \
+  ()  \
+  ((("2000-06-30" "2000-06-30" TRUE TRUE) (0.0 0.0 6.0 FALSE))) \
+  ()  \
+))
+query mrls1 at 6.0;
+
+#testcase mrealsAt8
+#yields (mreals (() () () ()))
+query mrls1 at [const rreal value undefined];
+
+#testcase mrealsAt9
+#yields (mreals ( \
+  ((("2000-03-31" "2000-04-01" FALSE FALSE) (0.0 -1.0 -10.0 FALSE)))  \
+  () \
+  ((("2000-06-30" "2000-07-01" TRUE FALSE) (0.5 -4.0 6.0 FALSE))) \
+  ((("2000-07-31" "2000-08-01" FALSE FALSE) (0.5 -4.0 6.0 FALSE))) \
+))
+query mrls1 at [const rreal value (
+(-11.0 -10.0 FALSE FALSE)
+(2.5 7.0 FALSE FALSE)
+)];
+
+#testcase mrealsAt10
+#yields (mreals ( \
+  ()  \
+  ((("2000-04-30" "2000-05-01" TRUE TRUE) (0.0 0.0 -20.0 FALSE)))  \
+  ((("2000-07-01" "2000-07-03" TRUE TRUE) (0.5 -3.0 2.5 FALSE))   \
+   (("2000-07-05" "2000-07-06" TRUE FALSE) (0.5 1.0 -1.5 FALSE)))  \
+  ((("2000-08-01" "2000-08-02" TRUE TRUE) (0.5 -3.0 2.5 FALSE))) \
+))
+query mrls1 at [const rreal value (
+(-20.0 -20.0 TRUE TRUE)
+(-1.5 2.5 TRUE TRUE)
+)];
+
+#testcase mrealsAt11
+#yields (mreals ( \
+  ((("2000-03-31" "2000-04-02" TRUE TRUE) (0.0 -1.0 -10.0 FALSE)))  \
+  ((("2000-04-30" "2000-05-01" TRUE TRUE) (0.0 0.0 -20.0 FALSE)))  \
+  ((("2000-07-03" "2000-07-05" TRUE TRUE) (0.5 -1.0 -1.5 FALSE)))  \
+  () \
+))
+query mrls1 at [const rreal value (
+(-21.0 -9.0 FALSE FALSE)
+(-2.0 -1.5 TRUE TRUE)
+)];
+
+#testcase mrealsAt12
+#yields (mreals ( \
+  ((("2000-03-31" "2000-04-02" TRUE TRUE) (0.0 -1.0 -10.0 FALSE)))  \
+  ()  \
+  ((("2000-07-03" "2000-07-04" TRUE FALSE) (0.5 -1.0 -1.5 FALSE)) \
+   (("2000-07-04" "2000-07-05" FALSE TRUE) (0.5 0.0 -2.0 FALSE)))  \
+  () \
+))
+query mrls1 at [const rreal value (
+(-20.0 -9.0 FALSE FALSE)
+(-2.0 -1.5 FALSE TRUE)
+)];
+
+#testcase mrealsAt12
+#yields (mreals ( \
+  ()  \
+  ()  \
+  ((("2000-07-03" "2000-07-03" TRUE TRUE) (0.0 0.0 -1.5 FALSE)) \
+   (("2000-07-05" "2000-07-05" TRUE TRUE) (0.0 0.0 -1.5 FALSE)))  \
+  () \
+))
+query mrls1 at [const rreal value (
+(-1.5 -1.5 TRUE TRUE)
+)];
+
+
+#testcase mints_atinstant_0
+#yields error
+query mis atinstant 1;
+
+#testcase mints_atinstant_1
+#yields (iints (undefined undefined))
+query mis atinstant [const instant value undefined];
+
+#testcase mints_atinstant_2
+#yields (iints (("2000-01-01" 3) ("2000-01-01" undefined)))
+query mis atinstant [const instant value "2000-01-01"];
+
+#testcase mints_atinstant_3
+#yields (iints (("2000-01-02-12:00" 2) ("2000-01-02-12:00" undefined)))
+query mis atinstant [const instant value "2000-01-02-12:00"];
+
+#testcase mints_atinstant_4
+#yields (iints (("2000-01-04" -1) ("2000-01-04" 0)))
+query mis atinstant [const instant value "2000-01-04"];
+
+
+#testcase mints_present_instant_0
+#yields error
+query mis present 1;
+
+#testcase mints_present_instant_1
+#yields (longints ())
+query mis present [const instant value undefined];
+
+#testcase mints_present_instant_2
+#yields (longints (0))
+query mis present [const instant value "2000-01-02"];
+
+#testcase mints_present_instant_3
+#yields (longints (0))
+query mis present [const instant value "2000-01-02-12:00"];
+
+#testcase mints_present_instant_4
+#yields (longints (0 1))
+query mis present [const instant value "2000-01-04"];
+
+
+#testcase mints_atperiods_0
+#yields error
+query mis atperiods 1;
+
+#testcase mints_atperiods_1
+#yields (mints (() ()))
+query mis atperiods [const periods value undefined];
+
+#testcase mints_atperiods_2
+#yields (mints (\
+(\
+  (("2000-01-01" "2000-01-01" TRUE TRUE) 3)\
+  (("2000-01-02" "2000-01-02" TRUE TRUE) 2)\
+)\
+(\
+)\
+))
+query mis atperiods [const periods value (("2000-01-01" "2000-01-02" TRUE TRUE))];
+
+#testcase mints_atperiods_3
+#yields (mints (\
+(\
+  (("2000-01-03" "2000-01-04" FALSE TRUE) -1)\
+)\
+(\
+  (("2000-01-04" "2000-01-04" TRUE TRUE) 0)\
+)\
+))
+query mis atperiods [const periods value (("2000-01-03" "2000-01-04" FALSE TRUE))];
+
+
+#testcase mints_present_periods_0
+#yields error
+query mis present 1;
+
+#testcase mints_present_periods_1
+#yields (longints ())
+query mis present [const periods value undefined];
+
+#testcase mints_present_periods_2
+#yields (longints (0))
+query mis present [const periods value (("2000-01-01" "2000-01-02" TRUE TRUE))];
+
+#testcase mints_present_periods_3
+#yields (longints (0 1))
+query mis present [const periods value (("2000-01-03" "2000-01-04" FALSE TRUE))];
+
+
+#testcase mints_at_value_0
+#yields error
+query mis at "test";
+
+#testcase mints_at_value_1
+#yields (mints (\
+(\
+)\
+(\
+)\
+))
+query mis at [const int value undefined];
+
+#testcase mints_at_value_2
+#yields (mints (\
+(\
+  (("2000-01-03" "2000-01-04" FALSE TRUE) -1)\
+)\
+(\
+)\
+))
+query mis at -1;
+
+#testcase mints_at_range_0
+#yields (mints (\
+(\
+)\
+(\
+)\
+))
+query mis at [const rint value undefined];
+
+#testcase mints_at_range_1
+#yields (mints (\
+(\
+  (("2000-01-01" "2000-01-01" TRUE TRUE) 3)\
+)\
+(\
+  (("2000-01-04" "2000-01-05" TRUE FALSE) 0)\
+)\
+))
+query mis at [const rint value ((0 2 TRUE FALSE) (3 3 TRUE TRUE))];
+
+
+#testcase mints_passes_value_0
+#yields error
+query mis passes "test";
+
+#testcase mints_passes_value_1
+#yields (longints ())
+query mis passes [const int value undefined];
+
+#testcase mints_passes_value_2
+#yields (longints (0))
+query mis passes -1;
+
+#testcase mints_passes_range_0
+#yields (longints ())
+query mis passes [const rint value undefined];
+
+#testcase mints_passes_range_1
+#yields (longints (0 1))
+query mis passes [const rint value ((0 2 TRUE FALSE) (3 3 TRUE TRUE))];
+
+
+
+
+#testcase mstrings_atinstant_0
+#yields error
+query mstrs atinstant 1;
+
+#testcase mstrings_atinstant_1
+#yields (istrings (undefined undefined))
+query mstrs atinstant [const instant value undefined];
+
+#testcase mstrings_atinstant_2
+#yields (istrings (("2000-01-01" "abc") ("2000-01-01" undefined)))
+query mstrs atinstant [const instant value "2000-01-01"];
+
+#testcase mstrings_atinstant_3
+#yields (istrings (("2000-01-02-12:00" "test") ("2000-01-02-12:00" undefined)))
+query mstrs atinstant [const instant value "2000-01-02-12:00"];
+
+#testcase mstrings_atinstant_4
+#yields (istrings (("2000-01-04" "1") ("2000-01-04" "def")))
+query mstrs atinstant [const instant value "2000-01-04"];
+
+
+#testcase mstrings_present_instant_0
+#yields error
+query mstrs present 1;
+
+#testcase mstrings_present_instant_1
+#yields (longints ())
+query mstrs present [const instant value undefined];
+
+#testcase mstrings_present_instant_2
+#yields (longints (0))
+query mstrs present [const instant value "2000-01-02"];
+
+#testcase mstrings_present_instant_3
+#yields (longints (0))
+query mstrs present [const instant value "2000-01-02-12:00"];
+
+#testcase mstrings_present_instant_4
+#yields (longints (0 1))
+query mstrs present [const instant value "2000-01-04"];
+
+
+#testcase mstrings_atperiods_0
+#yields error
+query mstrs atperiods 1;
+
+#testcase mstrings_atperiods_1
+#yields (mstrings (() ()))
+query mstrs atperiods [const periods value undefined];
+
+#testcase mstrings_atperiods_2
+#yields (mstrings (\
+(\
+  (("2000-01-01" "2000-01-01" TRUE TRUE) "abc")\
+  (("2000-01-02" "2000-01-02" TRUE TRUE) "test")\
+)\
+(\
+)\
+))
+query mstrs atperiods [const periods value (("2000-01-01" "2000-01-02" TRUE TRUE))];
+
+#testcase mstrings_atperiods_3
+#yields (mstrings (\
+(\
+  (("2000-01-03" "2000-01-04" FALSE TRUE) "1")\
+)\
+(\
+  (("2000-01-04" "2000-01-04" TRUE TRUE) "def")\
+)\
+))
+query mstrs atperiods [const periods value (("2000-01-03" "2000-01-04" FALSE TRUE))];
+
+
+#testcase mstrings_present_periods_0
+#yields error
+query mstrs present 1;
+
+#testcase mstrings_present_periods_1
+#yields (longints ())
+query mstrs present [const periods value undefined];
+
+#testcase mstrings_present_periods_2
+#yields (longints (0))
+query mstrs present [const periods value (("2000-01-01" "2000-01-02" TRUE TRUE))];
+
+#testcase mstrings_present_periods_3
+#yields (longints (0 1))
+query mstrs present [const periods value (("2000-01-03" "2000-01-04" FALSE TRUE))];
+
+
+#testcase mstrings_at_value_0
+#yields error
+query mstrs at 1;
+
+#testcase mstrings_at_value_1
+#yields (mstrings (\
+(\
+)\
+(\
+)\
+))
+query mstrs at [const string value undefined];
+
+#testcase mstrings_at_value_2
+#yields (mstrings (\
+(\
+  (("2000-01-03" "2000-01-04" FALSE TRUE) "1")\
+)\
+(\
+)\
+))
+query mstrs at "1";
+
+#testcase mstrings_at_range_0
+#yields (mstrings (\
+(\
+)\
+(\
+)\
+))
+query mstrs at [const rstring value undefined];
+
+#testcase mstrings_at_range_1
+#yields (mstrings (\
+(\
+  (("2000-01-03" "2000-01-04" FALSE TRUE) "1")\
+)\
+(\
+  (("2000-01-04" "2000-01-05" TRUE FALSE) "def")\
+)\
+))
+query mstrs at [const rstring value (("1" "abc" TRUE FALSE) ("def" "def" TRUE TRUE))];
+
+
+#testcase mstrings_passes_value_0
+#yields error
+query mstrs passes 1;
+
+#testcase mstrings_passes_value_1
+#yields (longints ())
+query mstrs passes [const string value undefined];
+
+#testcase mstrings_passes_value_2
+#yields (longints (0))
+query mstrs passes "1";
+
+#testcase mstrings_passes_range_0
+#yields (longints ())
+query mstrs passes [const rstring value undefined];
+
+#testcase mstrings_passes_range_1
+#yields (longints (0 1))
+query mstrs passes [const rstring value (("1" "abc" TRUE FALSE) ("def" "def" TRUE TRUE))];
+
+
+
+
+
+
+#testcase mbools_atinstant_0
+#yields error
+query mbs atinstant 1;
+
+#testcase mbools_atinstant_1
+#yields (ibools (undefined undefined))
+query mbs atinstant [const instant value undefined];
+
+#testcase mbools_atinstant_2
+#yields (ibools (("2000-01-01" TRUE) ("2000-01-01" undefined)))
+query mbs atinstant [const instant value "2000-01-01"];
+
+#testcase mbools_atinstant_3
+#yields (ibools (("2000-01-02-12:00" TRUE) ("2000-01-02-12:00" undefined)))
+query mbs atinstant [const instant value "2000-01-02-12:00"];
+
+#testcase mbools_atinstant_4
+#yields (ibools (("2000-01-04" FALSE) ("2000-01-04" TRUE)))
+query mbs atinstant [const instant value "2000-01-04"];
+
+
+#testcase mbools_present_instant_0
+#yields error
+query mbs present 1;
+
+#testcase mbools_present_instant_1
+#yields (longints ())
+query mbs present [const instant value undefined];
+
+#testcase mbools_present_instant_2
+#yields (longints (0))
+query mbs present [const instant value "2000-01-02"];
+
+#testcase mbools_present_instant_3
+#yields (longints (0))
+query mbs present [const instant value "2000-01-02-12:00"];
+
+#testcase mbools_present_instant_4
+#yields (longints (0 1))
+query mbs present [const instant value "2000-01-04"];
+
+
+#testcase mbools_atperiods_0
+#yields error
+query mbs atperiods 1;
+
+#testcase mbools_atperiods_1
+#yields (mbools (() ()))
+query mbs atperiods [const periods value undefined];
+
+#testcase mbools_atperiods_2
+#yields (mbools (\
+(\
+  (("2000-01-01" "2000-01-01" TRUE TRUE) TRUE)\
+  (("2000-01-02" "2000-01-02" TRUE TRUE) TRUE)\
+)\
+(\
+)\
+))
+query mbs atperiods [const periods value (("2000-01-01" "2000-01-02" TRUE TRUE))];
+
+#testcase mbools_atperiods_3
+#yields (mbools (\
+(\
+  (("2000-01-03" "2000-01-04" FALSE TRUE) FALSE)\
+)\
+(\
+  (("2000-01-04" "2000-01-04" TRUE TRUE) TRUE)\
+)\
+))
+query mbs atperiods [const periods value (("2000-01-03" "2000-01-04" FALSE TRUE))];
+
+
+#testcase mbools_present_periods_0
+#yields error
+query mbs present 1;
+
+#testcase mbools_present_periods_1
+#yields (longints ())
+query mbs present [const periods value undefined];
+
+#testcase mbools_present_periods_2
+#yields (longints (0))
+query mbs present [const periods value (("2000-01-01" "2000-01-02" TRUE TRUE))];
+
+#testcase mbools_present_periods_3
+#yields (longints (0 1))
+query mbs present [const periods value (("2000-01-03" "2000-01-04" FALSE TRUE))];
+
+
+#testcase mbools_at_value_0
+#yields error
+query mbs at 1;
+
+#testcase mbools_at_value_1
+#yields (mbools (\
+(\
+)\
+(\
+)\
+))
+query mbs at [const bool value undefined];
+
+#testcase mbools_at_value_2
+#yields (mbools (\
+(\
+  (("2000-01-03" "2000-01-04" FALSE TRUE) FALSE)\
+)\
+(\
+)\
+))
+query mbs at FALSE;
+
+#testcase mbools_at_range_0
+#yields (mbools (\
+(\
+)\
+(\
+)\
+))
+query mbs at [const rbool value undefined];
+
+#testcase mbools_at_range_1
+#yields (mbools (\
+(\
+  (("2000-01-01" "2000-01-01" TRUE TRUE) TRUE)\
+  (("2000-01-02" "2000-01-03" TRUE FALSE) TRUE)\
+)\
+(\
+  (("2000-01-04" "2000-01-05" TRUE FALSE) TRUE)\
+)\
+))
+query mbs at [const rbool value ((TRUE TRUE TRUE TRUE))];
+
+
+#testcase mbools_passes_value_0
+#yields error
+query mbs passes 1;
+
+#testcase mbools_passes_value_1
+#yields (longints ())
+query mbs passes [const bool value undefined];
+
+#testcase mbools_passes_value_2
+#yields (longints (0))
+query mbs passes FALSE;
+
+#testcase mbools_passes_range_0
+#yields (longints ())
+query mbs passes [const rbool value undefined];
+
+#testcase mbools_passes_range_1
+#yields (longints (0 1))
+query mbs passes [const rbool value ((TRUE TRUE TRUE TRUE))];
+
+
+
+
+#testcase inside_0
+#yields error
+query mps7 inside 1;
+
+# tolerance_real %0.1
+
+#testcase inside_1
+#yields (mbools ( \
+(\
+    (\
+        ("2000-01-31" "2000-02-01" FALSE FALSE) \
+        FALSE) \
+    (\
+        ("2000-02-01" "2000-02-03" TRUE TRUE) \
+        TRUE) \
+    (\
+        ("2000-02-03" "2000-02-05" FALSE FALSE) \
+        FALSE) \
+    (\
+        ("2000-02-05" "2000-02-07" TRUE TRUE) \
+        TRUE) \
+    (\
+        ("2000-02-07" "2000-02-09" FALSE FALSE) \
+        FALSE) \
+    (\
+        ("2000-02-09" "2000-02-11" TRUE TRUE) \
+        TRUE) \
+    (\
+        ("2000-02-11" "2000-02-12" FALSE FALSE) \
+        FALSE))\
+(\
+    (\
+        ("2020-01-31" "2020-02-02" TRUE TRUE) \
+        TRUE) \
+    (\
+        ("2020-02-02" "2020-02-04" FALSE FALSE) \
+        FALSE) \
+    (\
+        ("2020-02-04" "2020-02-06" TRUE TRUE) \
+        TRUE) \
+    (\
+        ("2020-02-06" "2020-02-08" FALSE FALSE) \
+        FALSE) \
+    (\
+        ("2020-02-08" "2020-02-09" TRUE TRUE) \
+        TRUE))\
+))
+query mps7 inside mrs1;
+
+#testcase inside_2
+#yields  (mbools ( \
+(\
+    (\
+        ("2000-01-31" "2000-02-01" FALSE FALSE) \
+        FALSE) \
+    (\
+        ("2000-02-01" "2000-02-03" TRUE TRUE) \
+        TRUE) \
+    (\
+        ("2000-02-03" "2000-02-05" FALSE FALSE) \
+        FALSE) \
+    (\
+        ("2000-02-05" "2000-02-07" TRUE TRUE) \
+        TRUE) \
+    (\
+        ("2000-02-07" "2000-02-09" FALSE FALSE) \
+        FALSE) \
+    (\
+        ("2000-02-09" "2000-02-11" TRUE TRUE) \
+        TRUE) \
+    (\
+        ("2000-02-11" "2000-02-12" FALSE FALSE) \
+        FALSE))\
+(\
+    (\
+        ("2020-01-31" "2020-02-09" TRUE TRUE) \
+        FALSE))\
+))
+query mps7 inside mr1;
+
+#testcase inside_3
+#yields  (mbools ( \
+(\
+    (\
+        ("2000-01-31" "2000-02-01" TRUE FALSE) \
+        TRUE) \
+    (\
+        ("2000-02-01" "2000-02-02" TRUE FALSE) \
+        TRUE) \
+    (\
+        ("2000-02-03" "2000-02-03" TRUE TRUE) \
+        TRUE) \
+    (\
+        ("2000-02-03" "2000-02-04" FALSE FALSE) \
+        FALSE))\
+))
+query mp1 inside mrs1;
+
+#testcase inside_4
+#yields  (mbools ( \
+(\
+    (\
+        ("2000-01-31" "2000-02-01" FALSE FALSE) \
+        FALSE) \
+    (\
+        ("2000-02-01" "2000-02-03" TRUE TRUE) \
+        TRUE) \
+    (\
+        ("2000-02-03" "2000-02-05" FALSE FALSE) \
+        FALSE) \
+    (\
+        ("2000-02-05" "2000-02-07" TRUE TRUE) \
+        TRUE) \
+    (\
+        ("2000-02-07" "2000-02-09" FALSE FALSE) \
+        FALSE) \
+    (\
+        ("2000-02-09" "2000-02-11" TRUE TRUE) \
+        TRUE) \
+    (\
+        ("2000-02-11" "2000-02-12" FALSE FALSE) \
+        FALSE))\
+(\
+    (\
+        ("2020-01-31" "2020-02-02" TRUE TRUE) \
+        TRUE) \
+    (\
+        ("2020-02-02" "2020-02-04" FALSE FALSE) \
+        FALSE) \
+    (\
+        ("2020-02-04" "2020-02-06" TRUE TRUE) \
+        TRUE) \
+    (\
+        ("2020-02-06" "2020-02-08" FALSE FALSE) \
+        FALSE) \
+    (\
+        ("2020-02-08" "2020-02-09" TRUE TRUE) \
+        TRUE))\
+))
+query mps7 inside r1;
+
+
+
+#testcase extend_0
+#yields error
+query cr0 feed filter[.I passes 3] cextend[1] consume
+
+#testcase extend_1
+#yields error
+query cr0 feed filter[.I passes 3] cextend[P: .P at [const point value (0.0 0.0)]] consume
+
+#testcase extend_2
+#yields (\
+    (crel \
+        (1 \
+            (tblock \
+                (10 \
+                    (\
+                        (P mpoints) \
+                        (I mints) \
+                        (NP mpoints)))))) \
+    (\
+        (\
+            (\
+                (\
+                    ("2000-01-31" "2000-02-12" FALSE FALSE) \
+                    (-2.0 0.0 2.0 0.0))) \
+            (\
+                (\
+                    ("2000-01-01" "2000-01-02" TRUE FALSE) \
+                    3) \
+                (\
+                    ("2000-01-02" "2000-01-03" TRUE TRUE) \
+                    4)) \
+            (\
+                (\
+                    ("2000-02-06" "2000-02-06" TRUE TRUE) \
+                    (0.0 0.0 0.0 0.0))))))
+query cr0 feed filter[.I passes 3] cextend[NP: .P at [const point value (0.0 0.0)]] consume
+
+
+
 
 #teardown
 

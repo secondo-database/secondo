@@ -30,12 +30,12 @@ namespace ColumnMovingAlgebra
 {
   class PresentOperator : public AttrArrayOperator
   {
-    public:
+  public:
     
     PresentOperator() : AttrArrayOperator(info, valueMappings, 
                                           SelectValueMapping, TypeMapping) {}
                                           
-    private:
+  private:
     
     static const OperatorInfo info;
     static ValueMapping valueMappings[];
@@ -55,16 +55,28 @@ namespace ColumnMovingAlgebra
                               Word &local, Supplier s);
     static int ValueMapping21(ArgVector args, Word &result, int message, 
                               Word &local, Supplier s);
+    static int ValueMapping30(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping31(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping40(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping41(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping50(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping51(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
   };
   
   class AtInstantOperator : public AttrArrayOperator
   {
-    public:
+  public:
     
     AtInstantOperator() : AttrArrayOperator(info, valueMappings,  
                                             SelectValueMapping, TypeMapping) {}
 
-    private:
+  private:
     
     static const OperatorInfo info;
     static ValueMapping valueMappings[];
@@ -77,17 +89,23 @@ namespace ColumnMovingAlgebra
     static int ValueMapping1(ArgVector args, Word &result, int message, 
                               Word &local, Supplier s);
     static int ValueMapping2(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping3(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping4(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping5(ArgVector args, Word &result, int message, 
                               Word &local, Supplier s);
   };
   
   class AtPeriodsOperator : public AttrArrayOperator
   {
-    public:
+  public:
     
     AtPeriodsOperator() : AttrArrayOperator(info, valueMappings,  
                                             SelectValueMapping, TypeMapping) {}
 
-    private:
+  private:
     
     static const OperatorInfo info;
     static ValueMapping valueMappings[];
@@ -101,39 +119,22 @@ namespace ColumnMovingAlgebra
                              Word &local, Supplier s);
     static int ValueMapping2(ArgVector args, Word &result, int message, 
                              Word &local, Supplier s);
+    static int ValueMapping3(ArgVector args, Word &result, int message, 
+                             Word &local, Supplier s);
+    static int ValueMapping4(ArgVector args, Word &result, int message, 
+                             Word &local, Supplier s);
+    static int ValueMapping5(ArgVector args, Word &result, int message, 
+                             Word &local, Supplier s);
   };
   
   class PassesOperator : public AttrArrayOperator
   {
-    public:
+  public:
     
     PassesOperator() : AttrArrayOperator(info, valueMappings,  
                                          SelectValueMapping, TypeMapping) {}
 
-    private:
-    
-    static const OperatorInfo info;
-    static ValueMapping valueMappings[];
-    
-    static list<AttrArrayOperatorSignatur> signatures();
-    static ListExpr TypeMapping(ListExpr args);
-    static int SelectValueMapping(ListExpr args);
-    static int ValueMapping0(ArgVector args, Word &result, int message, 
-                              Word &local, Supplier s);
-    static int ValueMapping10(ArgVector args, Word &result, int message, 
-                              Word &local, Supplier s);
-    static int ValueMapping11(ArgVector args, Word &result, int message, 
-                              Word &local, Supplier s);
-  };
-  
-  class AtOperator : public AttrArrayOperator
-  {
-    public:
-    
-    AtOperator() : AttrArrayOperator(info, valueMappings, SelectValueMapping,  
-                                     TypeMapping) {}
-
-    private:
+  private:
     
     static const OperatorInfo info;
     static ValueMapping valueMappings[];
@@ -149,16 +150,116 @@ namespace ColumnMovingAlgebra
                               Word &local, Supplier s);
     static int ValueMapping11(ArgVector args, Word &result, int message, 
                               Word &local, Supplier s);
+    static int ValueMapping20(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping21(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping30(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping31(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping40(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping41(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+  };
+  
+  class AtOperator : public AttrArrayOperator
+  {
+  public:
+    
+    AtOperator() : AttrArrayOperator(info, valueMappings, SelectValueMapping,  
+                                     TypeMapping) {}
+
+  private:
+    
+    static const OperatorInfo info;
+    static ValueMapping valueMappings[];
+    
+    static list<AttrArrayOperatorSignatur> signatures();
+    static ListExpr TypeMapping(ListExpr args);
+    static int SelectValueMapping(ListExpr args);
+    static int ValueMapping00(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping01(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping10(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping11(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping20(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping21(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping30(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping31(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping40(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping41(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+  };
+  
+  class InsideOperator : public Operator
+  {
+  public:
+    
+    InsideOperator() : Operator(info, valueMappings, SelectValueMapping,  
+                                TypeMapping) {}
+
+  private:
+    
+    static const OperatorInfo info;
+    static ValueMapping valueMappings[];
+    
+    static int mapping(ListExpr args);
+    static ListExpr TypeMapping(ListExpr args);
+    static int SelectValueMapping(ListExpr args);
+    static int ValueMapping0(ArgVector args, Word &result, int message, 
+                             Word &local, Supplier s);
+    static int ValueMapping1(ArgVector args, Word &result, int message, 
+                             Word &local, Supplier s);
+    static int ValueMapping2(ArgVector args, Word &result, int message, 
+                             Word &local, Supplier s);
+    static int ValueMapping3(ArgVector args, Word &result, int message, 
+                             Word &local, Supplier s);
+  };
+  
+  class IntersectionOperator : public Operator
+  {
+  public:
+    
+    IntersectionOperator() : Operator(info, valueMappings, SelectValueMapping,  
+                                TypeMapping) {}
+
+    static int mapping(ListExpr args);
+
+  private:
+    
+    static const OperatorInfo info;
+    static ValueMapping valueMappings[];
+    
+    static ListExpr TypeMapping(ListExpr args);
+    static int SelectValueMapping(ListExpr args);
+    static int ValueMapping0(ArgVector args, Word &result, int message, 
+                             Word &local, Supplier s);
+    static int ValueMapping1(ArgVector args, Word &result, int message, 
+                             Word &local, Supplier s);
+    static int ValueMapping2(ArgVector args, Word &result, int message, 
+                             Word &local, Supplier s);
+    static int ValueMapping3(ArgVector args, Word &result, int message, 
+                             Word &local, Supplier s);
   };
   
   class AddRandomOperator : public AttrArrayOperator
   {
-    public:
+  public:
     
     AddRandomOperator() : AttrArrayOperator(info, valueMappings,  
                                             SelectValueMapping, TypeMapping) {}
 
-    private:
+  private:
     
     static const OperatorInfo info;
     static ValueMapping valueMappings[];
@@ -172,12 +273,12 @@ namespace ColumnMovingAlgebra
   
   class IndexOperator : public Operator
   {
-    public:
+  public:
     
     IndexOperator() : Operator(info, valueMappings,  
                                SelectValueMapping, TypeMapping) {}
 
-    private:
+  private:
     
     static const OperatorInfo info;
     static ValueMapping valueMappings[];
