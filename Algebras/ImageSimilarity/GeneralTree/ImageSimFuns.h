@@ -44,22 +44,22 @@ June 2017, Michael Loris
 double euclidDistance(FeatureSignatureTuple ist1,
                     FeatureSignatureTuple ist2)
 {
-	double tmpRes = 0.0;
+    double tmpRes = 0.0;
     
-	tmpRes += std::pow(ist1.centroid.x - ist2.centroid.x, 2);
-	tmpRes += std::pow(ist1.centroid.y - ist2.centroid.y, 2);
-	tmpRes += std::pow(ist1.centroid.colorValue1 
+    tmpRes += std::pow(ist1.centroid.x - ist2.centroid.x, 2);
+    tmpRes += std::pow(ist1.centroid.y - ist2.centroid.y, 2);
+    tmpRes += std::pow(ist1.centroid.colorValue1 
     - ist2.centroid.colorValue1, 2);
-	tmpRes += std::pow(ist1.centroid.colorValue2 
+    tmpRes += std::pow(ist1.centroid.colorValue2 
     - ist2.centroid.colorValue2, 2);
-	tmpRes += std::pow(ist1.centroid.colorValue3 
+    tmpRes += std::pow(ist1.centroid.colorValue3 
     - ist2.centroid.colorValue3, 2);
-	tmpRes += std::pow(ist1.centroid.coarseness 
+    tmpRes += std::pow(ist1.centroid.coarseness 
     - ist2.centroid.coarseness, 2);
-	tmpRes += std::pow(ist1.centroid.contrast 
+    tmpRes += std::pow(ist1.centroid.contrast 
     - ist2.centroid.contrast, 2);
-	
-	return std::sqrt(tmpRes);	
+    
+    return std::sqrt(tmpRes);    
 }
 
 
@@ -71,8 +71,8 @@ double euclidDistance(FeatureSignatureTuple ist1,
 //double f_negative(FeatureSignatureTuple fst1,
 //                    FeatureSignatureTuple fst2)
 //{
-//	double dist = euclidDist(fst1, fst2);
-//	return -dist;
+//    double dist = euclidDist(fst1, fst2);
+//    return -dist;
 //}
  
 
@@ -81,11 +81,11 @@ double euclidDistance(FeatureSignatureTuple ist1,
 double f_s(FeatureSignatureTuple fst1,
                     FeatureSignatureTuple fst2)
 {
-	const double alpha = 2.0;
-	double eucDist = euclidDistance(fst1, fst2);		
-			
-	double res = 1.0 /  (alpha + eucDist);
-	return res;
+    const double alpha = 2.0;
+    double eucDist = euclidDistance(fst1, fst2);        
+            
+    double res = 1.0 /  (alpha + eucDist);
+    return res;
 }
 
 
