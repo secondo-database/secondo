@@ -166,6 +166,9 @@ class FeatureSignature : public Attribute
     // operator for calculating SQFD of two signatures
     double calcSQFD(Word* args, Word& result, int message,
                     Word& local, Supplier s);
+    
+    double calEMD(Word* args, Word& result, int message,
+                    Word& local, Supplier s);
                     
     
     std::string GetFileName() const { return fileName; };
