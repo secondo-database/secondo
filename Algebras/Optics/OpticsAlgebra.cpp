@@ -912,9 +912,9 @@ class extractLocal{
             resTuple->CopyAttribute(i,inTuple,i);
          }
          inTuple->DeleteIfAllowed();
-         CcReal* Eps = (CcReal*) inTuple->GetAttribute(epsPos);
-         CcReal* ReachDist = (CcReal*) inTuple->GetAttribute(reachDistPos);
-         CcReal* CoreDist = (CcReal*) inTuple->GetAttribute(coreDistPos);
+         CcReal* Eps = (CcReal*) resTuple->GetAttribute(epsPos);
+         CcReal* ReachDist = (CcReal*) resTuple->GetAttribute(reachDistPos);
+         CcReal* CoreDist = (CcReal*) resTuple->GetAttribute(coreDistPos);
          // optics never creates undefined attributes.
          // undefined is simulated by a value < 0
          if(    !Eps->IsDefined() || !ReachDist->IsDefined()
