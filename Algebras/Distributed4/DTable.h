@@ -89,7 +89,7 @@ slot number being accessed.
       DTable(const std::map<double,uint32_t>&, const std::vector<uint32_t>&,
           const std::vector<distributed2::DArrayElement>&, const std::string&);
       DTable(const std::map<double,uint32_t>&, const distributed2::DArray&);
-      DTable(ListExpr);
+      DTable(const NList&);
       ListExpr listExpr();
       void addWorker(const std::string&, int, const std::string&);
       void removeWorker();

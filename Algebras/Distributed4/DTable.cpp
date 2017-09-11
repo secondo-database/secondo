@@ -80,22 +80,21 @@ Copy Constructor. The passed "map"[1] and the member variables of the passed
 TODO
 
 */
-  DTable::DTable(ListExpr instance) {
+  DTable::DTable(const NList& list) {
     NList e;
 /*
 Validate the top-level structure of the nested list. The rest of the structure
 will be validated further along.
 
 */
-    NList l{instance};
-    if(l.length() != 4)
+    if(list.length() != 4)
       throw runtime_error("The passed value needs to be a nested list with 4 "
           "elements.");
 /*
 Validate and read the partitioning map from the nested list.
 
 */
-    NList pl{l.first()};
+    NList pl{list.first()};
     if(!pl.isList())
       throw runtime_error("The first element in the passed nested list needs "
           "to be a nested list containing pairs.");
@@ -116,7 +115,7 @@ Validate and read the partitioning map from the nested list.
 Validate and read the allocation vector from the nested list.
 
 */
-    NList al{l.second()};
+    NList al{list.second()};
     if(!al.isList())
       throw runtime_error("The second element in the passed nested list needs "
           "to be a list of non-negative integer atoms.");
@@ -131,7 +130,7 @@ Validate and read the allocation vector from the nested list.
 Validate and read the workers vector from the nested list.
 
 */
-    NList wl{l.third()};
+    NList wl{list.third()};
     if(!wl.isList())
       throw runtime_error("The third element in the passed nested list needs "
           "to be a nested list of workers (host, port, cfgfile).");
@@ -149,11 +148,11 @@ Validate and read the workers vector from the nested list.
 Validate and read the slotbasename string from the nested list.
 
 */
-    NList sl{l.fourth()};
+    NList sl{list.fourth()};
     if(!(sl.isString() || sl.isText()))
       throw runtime_error("The fourth and last element in the passed nested "
           "list needs to be a string or text atom.");
-    slotbasename = l.fourth().str();
+    slotbasename = list.fourth().str();
   }
 /*
 6 Member Methods
@@ -331,15 +330,15 @@ DTable.
 stream in an understandable way.
 
 */
-  ostream& operator<<(ostream& os, const map<double,uint32_t>& m) {
-    os << "{";
-    for(auto it = m.begin(); it != m.end(); ++it) {
-      if(it != m.begin()) os << ", ";
-      os << it->first << " -> " << it->second;
-    }
-    os << "}";
-    return os;
-  }
+  //ostream& operator<<(ostream& os, const map<double,uint32_t>& m) {
+  //  os << "{";
+  //  for(auto it = m.begin(); it != m.end(); ++it) {
+  //    if(it != m.begin()) os << ", ";
+  //    os << it->first << " -> " << it->second;
+  //  }
+  //  os << "}";
+  //  return os;
+  //}
 /*
 "<< vector<T>"[1] allows pushing the values in a vector to a character stream.
 
@@ -356,13 +355,13 @@ stream in an understandable way.
 /*
 "operator<<"[1] allows something along the lines of the following:
 
----- DTable ds;
-     cout << "debug: " << ds;
+---- DTable dt;
+     cout << "debug: " << dt;
 ----
 
 */
-  ostream& operator<<(ostream& os, const DTable& ds) {
-    ds.print(os);
+  ostream& operator<<(ostream& os, const DTable& dt) {
+    dt.print(os);
     return os;
   }
 }

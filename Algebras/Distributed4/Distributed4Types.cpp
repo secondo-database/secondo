@@ -33,6 +33,7 @@ Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include "DTable.h"
+#include "DPartition.h"
 
 namespace distributed4 {
 /*
@@ -76,6 +77,28 @@ chose to forego using "ConstructorInfo"[1] here.
       }
     }.listExpr();
   }
+  ListExpr dpartitionProperty() {
+    return NList{
+      NList{
+        NList().stringAtom("Signature"),
+        NList().stringAtom("Example Type List"),
+        NList().stringAtom("List Rep"),
+        NList().stringAtom("Example List"),
+        NList().stringAtom("Remarks"),
+      },
+      NList{
+        NList().stringAtom("-> SIMPLE"),
+        NList().stringAtom("(dpartition int)"),
+        NList().stringAtom("(<partitioning map> <darrayname>)"),
+        NList().stringAtom("(((39 2) (101 1)) \"Primes\")"),
+        NList().textAtom("This type provides partitioning of values into "
+          "slots found in a matching d[f]array. This makes it possible to use "
+          "regular database operations on distributed data (insert, update, "
+          "delete, etc.). Furthermore, this type provides the facilities "
+          "required for dynamic reallocation of slots."),
+      }
+    }.listExpr();
+  }
 /*
 3 Out Function
 
@@ -86,8 +109,12 @@ the form of a "ListExpr"[1]. The passed type expression is commonly ignored.
 
 */
   ListExpr dtableOut(ListExpr, Word value) {
-    DTable* ds{static_cast<DTable*>(value.addr)};
-    return ds->listExpr();
+    DTable* dt{static_cast<DTable*>(value.addr)};
+    return dt->listExpr();
+  }
+  ListExpr dpartitionOut(ListExpr, Word value) {
+    DPartition* dp{static_cast<DPartition*>(value.addr)};
+    return dp->listExpr();
   }
 /*
 4 In Function
@@ -111,6 +138,83 @@ a pointer to an object instantiated based on the passed value expression.
     }
     return Word{addr};
   }
+  Word dpartitionIn(const ListExpr typeInfo, const ListExpr instance, const
+      int, ListExpr&, bool& correct) {
+    Word nothing{nullptr};
+    correct = false;
+/*
+Make sure that the "typeInfo"[1] and "instance"[1] expressions fit together.
+Specifically, check that the ~d[f]array~ named in "instance"[1] fits the
+subtype. For a ~d[f]array~ over a ~rel(tuple)~ the subtype must be an attribute
+that exists in the relation. For a ~darray~ over a container of simple types
+the subtype must match the type of the values in the container.
+
+"typeInfo"[1] contains the type expression with an important modification: all
+mentioned type symbols ("int"[1], "real"[1], etc.) are converted to pairs of
+algebra and type ID. Therefore, if the subtype's second element is a list (pair
+of numbers), the subtype is an attribute of a "rel(tuple)"[1]. Otherwise the
+subtype is just a pair of numbers and thus represents a simple type.
+
+*/
+    SecondoCatalog* ctlg{SecondoSystem::GetCatalog()};
+    NList subtypeInfo{NList{typeInfo}.second()}, inst{instance},
+          darraytype{ctlg->GetObjectTypeExpr(inst.second().str())};
+    if(darraytype.length() < 2 || (darraytype.first().str() != "darray" &&
+          darraytype.first().str() != "dfarray") ||
+        darraytype.second().length() < 2) {
+      cmsg.inFunError("The named database object needs to be a d[f]array over "
+          "a rel(tuple) or a container of simple types.");
+      return nothing;
+    }
+    NList darraysubtype{darraytype.second()};
+    if(subtypeInfo.second().isList())
+    {
+      NList subtype{subtypeInfo.first(),
+        ctlg->GetTypeName(subtypeInfo.second().first().intval(),
+            subtypeInfo.second().second().intval())};
+      if(darraysubtype.first().str() != "rel" ||
+          darraysubtype.second().length() < 2 ||
+          darraysubtype.second().first().str() != "tuple" ||
+          !darraysubtype.second().second().isList())
+      {
+        cmsg.inFunError("The type expression of the named d[f]array does not "
+            "match the given subtype. It must be a d[f]array over a "
+            "rel(tuple)");
+        return nothing;
+      }
+      NList attrlist{darraytype.second().second().second()};
+      Cardinal i{1};
+      while(i <= attrlist.length() && subtype != attrlist.elem(i))
+        ++i;
+      if(i > attrlist.length()) {
+        cmsg.inFunError("The attribute list of the d[f]array's rel(tuple) "
+            "does not contain the attribute given in the subtype.");
+        return nothing;
+      }
+    } else {
+      NList subtype{ctlg->GetTypeName(subtypeInfo.first().intval(),
+          subtypeInfo.second().intval())};
+      if(!darraysubtype.second().isSymbol() || darraysubtype.second() !=
+          subtype) {
+        cmsg.inFunError("The type expression of the named d[f]array does not "
+            "match the given subtype. It must be a d[f]array over a container "
+            "of the simple type given in the subtype.");
+        return nothing;
+      }
+    }
+/*
+Create the object in memory.
+
+*/
+    try {
+      DPartition* addr{new DPartition{inst}};
+      correct = true;
+      return Word{addr};
+    } catch(std::runtime_error& err) {
+      cmsg.inFunError(err.what());
+      return nothing;
+    }
+  }
 /*
 5 Create Function
 
@@ -120,6 +224,9 @@ containing a pointer to a newly instantiated, but empty object.
 */
   Word dtableCreate(const ListExpr) {
     return Word{new DTable};
+  }
+  Word dpartitionCreate(const ListExpr) {
+    return Word{new DPartition};
   }
 /*
 6 Delete Function
@@ -133,6 +240,10 @@ returns nothing.
     delete static_cast<DTable*>(w.addr);
     w.addr = 0;
   }
+  void dpartitionDelete(const ListExpr, Word& w) {
+    delete static_cast<DPartition*>(w.addr);
+    w.addr = 0;
+  }
 /*
 7 Clone Function
 
@@ -144,6 +255,9 @@ the passed object and returns its address in "Word"[1].
   Word dtableClone(const ListExpr, const Word& w) {
     return Word{new DTable{*static_cast<DTable*>(w.addr)}};
   }
+  Word dpartitionClone(const ListExpr, const Word& w) {
+    return Word{new DPartition{*static_cast<DPartition*>(w.addr)}};
+  }
 /*
 8 Size Function
 
@@ -152,6 +266,9 @@ The Size function simply returns the size of an object of the relevant type.
 */
   int dtableSize() {
     return sizeof(DTable);
+  }
+  int dpartitionSize() {
+    return sizeof(DPartition);
   }
 /*
 9 Type Constructor
@@ -164,4 +281,8 @@ are passed as 0s. This type constructor is used by the algebra constructor.
   TypeConstructor dtableTC{DTable::BasicType(), dtableProperty, dtableOut,
     dtableIn, 0, 0, dtableCreate, dtableDelete, 0, 0, dtableDelete,
     dtableClone, 0, dtableSize, DTable::checkType};
+  TypeConstructor dpartitionTC{DPartition::BasicType(), dpartitionProperty,
+    dpartitionOut, dpartitionIn, 0, 0, dpartitionCreate, dpartitionDelete, 0,
+    0, dpartitionDelete, dpartitionClone, 0, dpartitionSize,
+    DPartition::checkType};
 }

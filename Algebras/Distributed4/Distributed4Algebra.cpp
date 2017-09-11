@@ -47,6 +47,7 @@ them.
 
 */
   extern TypeConstructor dtableTC;
+  extern TypeConstructor dpartitionTC;
   extern Operator addWorkerOp, inspectDArrayOp;
 /*
 "Distributed4Algebra"[1] is derived from "Algebra"[1], just like every other
@@ -67,6 +68,8 @@ Type Constructors
 */
         AddTypeConstructor(&dtableTC);
         dtableTC.AssociateKind(Kind::SIMPLE());
+        AddTypeConstructor(&dpartitionTC);
+        dpartitionTC.AssociateKind(Kind::SIMPLE());
 /*
 Operators
 
