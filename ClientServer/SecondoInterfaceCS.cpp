@@ -75,6 +75,9 @@ SecondoInterfaceCS::SecondoInterfaceCS(bool isServer, /*= false*/
     secHost = "";
     secPort= "";
     secConfig ="";
+    user = "";
+    pswd = "";
+    multiUser = false;
  }
 
 
@@ -96,11 +99,15 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
                               string& parmFile, string& errorMsg,
                               const bool multiUser)
 {
+  this->user = user;
+  this->pswd = pswd;
+  this->multiUser = multiUser;
   secHost = host;
   secPort = port;
   secConfig = parmFile;
   string line = "";
-  server_pid = -1;  
+  server_pid = -1; 
+
   if ( !initialized )
   {
     if(verbose){
@@ -166,6 +173,15 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
       }
       server = Socket::Connect( secHost, secPort, Socket::SockGlobalDomain,
                                 maxAttempts, timeout );
+
+      if(!server) {
+         cout << "Socket::Connect failed" << endl;
+      }
+      if( server && !server->IsOk()){
+         cout << "got a server but the server is not ok" << endl;
+      }
+
+
       if ( server != 0 && server->IsOk() )
       {
         iostream& iosock = server->GetSocketStream();
@@ -173,57 +189,61 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
           delete csp;
         }
         csp = new CSProtocol(nl, iosock);
-        getline( iosock, line );
-        if ( line == "<SecondoOk/>" )
-        {
-          iosock << "<Connect>" << endl
-                 << user <<  endl
-                 << pswd  << endl
-                 << "</Connect>" << endl;
+
+        cout << "created new CSProtocol" << endl;
+        try{
           getline( iosock, line );
-          if ( line == "<SecondoIntro>" )
+          if ( line == "<SecondoOk/>" )
           {
-            do
+            iosock << "<Connect>" << endl
+                   << user <<  endl
+                   << pswd  << endl
+                   << "</Connect>" << endl;
+            getline( iosock, line );
+            if ( line == "<SecondoIntro>" )
             {
-              getline( iosock, line );
-              if ( line != "</SecondoIntro>" )
+              do
               {
-                if(verbose){
-                  cout << line << endl;
+                getline( iosock, line );
+                if ( line != "</SecondoIntro>" )
+                {
+                  if(verbose){
+                    cout << line << endl;
+                  }
                 }
               }
+              while (line != "</SecondoIntro>");
+              initialized = true;
             }
-            while (line != "</SecondoIntro>");
-            initialized = true;
+            else if ( line == "<SecondoError>" )
+            {
+              getline( iosock, line );
+              cout << "Server-Error: " << line << endl;
+              getline( iosock, line );
+            }
+            else
+            {
+              cout << "Unidentifiable response from server: " << line << endl;
+              cout << "accepted are" << "<SecondoIntro>" << endl;
+              cout << "         and" << "<SecondoError>" << endl;
+            }
           }
-          else if ( line == "<SecondoError>" )
-          {
+          else if ( line == "<SecondoError>" ) {
             getline( iosock, line );
             cout << "Server-Error: " << line << endl;
             getline( iosock, line );
-          }
-          else
-          {
+          } else {
             cout << "Unidentifiable response from server: " << line << endl;
+            cout << "accepted are" << "<SecondoOk/>" << endl;
+            cout << "         and" << "<SecondoError>" << endl;
           }
+        } catch(...){
+           cout << "some exception occurred" << endl;
         }
-        else if ( line == "<SecondoError>" )
-        {
-          getline( iosock, line );
-          cout << "Server-Error: " << line << endl;
-          getline( iosock, line );
-        }
-        else
-        {
-          cout << "Unidentifiable response from server: " << line << endl;
-        }
+      } else {
+        cout << "connect failed." << endl;
       }
-      else
-      {
-        cout << "failed." << endl;
-      }
-      if ( !initialized && server != 0)
-      {
+      if ( !initialized && server != 0) {
         server->Close();
         delete server;
         server = 0;
@@ -248,9 +268,15 @@ SecondoInterfaceCS::Terminate()
   if ( server != 0 )
   {
     iostream& iosock = server->GetSocketStream();
-    iosock << "<Disconnect/>" << endl;
-    server->Close();
-    delete server;
+    try{
+       iosock << "<Disconnect/>" << endl;
+       server->Close();
+    } catch(...) {}
+    try{
+        delete server;
+    } catch(...){
+       cerr << "Exception during deleting server" << endl;
+    } 
     server = 0;
 
   }
@@ -265,6 +291,7 @@ SecondoInterfaceCS::Terminate()
     if(!externalNL){
       delete nl;
       SmiEnvironment::DeleteTmpEnvironment();
+      nl = 0;
     }
     al = 0;
     initialized = false;
@@ -329,9 +356,10 @@ For an explanation of the error codes refer to SecondoInterface.h
   {
     dwriter.write(debugSecondoMethod, cout, this, pid, "server does not exist");
     errorCode = ERR_IN_SECONDO_PROTOCOL;
-  }
-  else
-  {
+    errorMessage = "no connection found";
+    errorPos = 0;
+    return;
+  } else {
     switch (commandType)
     {
       case 0:  // list form
@@ -373,10 +401,16 @@ For an explanation of the error codes refer to SecondoInterface.h
   }
 
   string line;
-  iostream& iosock = server->GetSocketStream();
 
+  iostream& iosock = server->GetSocketStream();
   ios_base::iostate s = iosock.exceptions();
-  iosock.exceptions(ios_base::failbit|ios_base::badbit|ios_base::eofbit);
+
+  try{
+     iosock.exceptions(ios_base::failbit|ios_base::badbit|ios_base::eofbit);
+  } catch(...){
+     errorCode = ERR_CONNECTION_TO_SERVER_LOST;
+     return;
+  }
 
   if ( iosock.fail() )
   {
@@ -994,6 +1028,9 @@ string SecondoInterfaceCS::getRequestFileFolder(){
 }
 
 string SecondoInterfaceCS::getRequestFilePath(){
+   if(!server){
+     return "";
+   }
    iostream& iosock = server->GetSocketStream();
    iosock << "<REQUEST_FILE_PATH>" << endl;
    iosock.flush();
@@ -1024,6 +1061,9 @@ int SecondoInterfaceCS::getPid(){
 
    if(server_pid > 0){
      return server_pid;
+   }
+   if(!server){
+     return 0;
    }
 
    iostream& iosock = server->GetSocketStream();

@@ -47,6 +47,18 @@ public:
                    const bool multiUser = false );
   
   virtual void Terminate();
+
+  bool reconnect(std::string& errMsg){
+    try{
+        Terminate();
+    } catch(...) {
+      std::cerr << "################### " << std::endl;
+      std::cerr << "Exception occured during terminate " << std::endl;
+      initialized = false;
+    }
+    return Initialize(user, pswd, secHost, secPort, secConfig, 
+                      errMsg, multiUser);
+  }
   
   virtual void Secondo( const std::string& commandText,
                 const ListExpr commandLE,
@@ -222,7 +234,9 @@ public:
      std::string secHost;
      std::string secPort;
      std::string secConfig;
-
+     std::string user;
+     std::string pswd;
+     bool multiUser;
 };
 
 #endif
