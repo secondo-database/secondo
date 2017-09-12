@@ -1252,6 +1252,8 @@ the\_unit: T x instant x instant x bool x bool -> uT,
 
 */
 ListExpr the_unitSymbolicTM(ListExpr args) {
+  if(!(nl->HasMinLength(args,1))) 
+     return listutils::typeError("Operator requires 1 argument at least!");
   if (nl->Equal(nl->Rest(args), nl->FourElemList(
     nl->SymbolAtom(Instant::BasicType()), nl->SymbolAtom(Instant::BasicType()),
     nl->SymbolAtom(CcBool::BasicType()), nl->SymbolAtom(CcBool::BasicType())))
@@ -3522,6 +3524,8 @@ Operator indextmatches2("indextmatches2", indextmatches2Spec, 2,
 ListExpr indexrewriteTM(ListExpr args) {
   string err = "the expected syntax is: tupleindex x rel x attrname x "
                "(text | pattern)";
+  if (!nl->HasMinLength(args,1))
+    return listutils::typeError("Operator requires 1 Argument at least!");
   if (!TupleIndex<UnitPos, UnitPos>::checkType(nl->First(args))) {
     return listutils::typeError(err + " (first argument is not a tupleindex)");
   }
