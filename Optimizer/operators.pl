@@ -282,41 +282,66 @@ i-th mapping.
 
 ~Flags~ is a list of flags indicating that the operator has specific properties:
 
-   * comm: ~Op~ is binary and commutative. Used to normalize predicates
+  * comm: ~Op~ is binary and commutative,i.e $\forall x,y: Op(x,y) = Op(y,X)$. 
+     Used to normalize predicates.
 
-   * ass: ~Op~ is binary and associative. Could be used for algebraic simplification.
+  * ass: ~Op~ is binary and associative. i.e. $\forall x,y,z: 
+     Op(Op(x,y),z) = Op(x,Op(y,z)$. Could be used for algebraic simplification.
 
-   * trans: ~Op~ is binary and transitive. Could be used for algebraic simplification.
+  * trans: ~Op~ is a binary and transitive predicate, i.e. $\forall x,y,z: $
+     $Op(x,y) \land Op(y,z) \Rightarrow Op(x,z)$. 
+     Could be used for algebraic simplification.
 
-   * idem: ~Op~ is unary and idempotent. Could be used for algebraic simplification.
+  * idem: ~Op~ is unary and idempotent, i.e. $\forall x: Op(Op(x)) = Op(x)$.
+     Could be used for algebraic simplification.
 
-   * bbox(D): ~Op~ implements a predicate (~Resulttype~ is ~bool~) using a filter and refinement approach with D-dimensional MBRs
+  * bbox(D): ~Op~ implements a predicate (~Resulttype~ is ~bool~) using a filter 
+    and refinement approach with D-dimensional MBRs
 
-   * block: ~Op~ is a blocking stream operator
+  * block: ~Op~ is a blocking stream operator
 
-   * aggr: ~Op~ somehow aggregates a stream to a scalar object. Used to identify aggregation expressions.
+  * aggr: ~Op~ somehow aggregates a stream to a scalar object. Used to identify 
+    aggregation expressions.
 
-   * sidefx: ~Op~ may have side effects (modifies state of pseudo random number generators, creates output on terminal, creates/modifies the filesystem).
+  * sidefx: ~Op~ may have side effects (modifies state of pseudo random number 
+    generators, creates output on terminal, creates/modifies the filesystem).
 
-   * itract: ~Op~ is interactive, e.g. waiting for external events, like user interaction, network events, etc.
+  * itract: ~Op~ is interactive, e.g. waiting for external events, like user 
+    interaction, network events, etc.
 
-   * exp: ~Op~ is expensive. Only operations with a result from kind DATA may be marked as being expensive! Used during CSE rewriting.
+  * exp: ~Op~ is expensive. Only operations with a result from kind DATA may be 
+    marked as being expensive! Used during CSE rewriting.
 
-   * join: ~Op~ is a join operator (joins two streams). Used during CSE rewriting.
+  * join: ~Op~ is a join operator (joins two streams). Used during CSE 
+    rewriting.
 
-   * typemapop: ~Op~ is a type mapping operator.
+  * typemapop: ~Op~ is a type mapping operator.
 
-   * liftedspatialrange: ~Op~ is a lifted predicate returning whether a spatial moving object is within a given spatial range. Used for optimizing spatio-temporal pattern queries.
+  * liftedspatialrange: ~Op~ is a lifted predicate returning whether a spatial 
+    moving object is within a given spatial range. Used for optimizing 
+    spatio-temporal pattern queries.
 
-   * liftedequality: ~Op~ is a lifted predicate returnning whether a non-spatial moving object equals to a given value. Used for optimizing spatio-temporal pattern queries.
+  * liftedequality: ~Op~ is a lifted predicate returnning whether a non-spatial 
+    moving object equals to a given value. Used for optimizing spatio-temporal 
+    pattern queries.
 
-   * liftedrange: ~Op~ is a lifted predicate returnning whether a non-spatial moving object is within a given range. Used for optimizing spatio-temporal pattern queries.
+  * liftedrange: ~Op~ is a lifted predicate returnning whether a non-spatial 
+    moving object is within a given range. Used for optimizing spatio-temporal 
+    pattern queries.
 
-   * liftedleftrange: ~Op~ is a lifted predicate returnning whether a non-spatial moving object is less or equal a given value. Used for optimizing spatio-temporal pattern queries.
+  * liftedleftrange: ~Op~ is a lifted predicate returnning whether a non-spatial 
+    moving object is less or equal a given value. Used for optimizing 
+    spatio-temporal pattern queries.
 
-   * liftedrightrange: ~Op~ is a lifted predicate returnning whether a non-spatial moving object is greater or equal a given value. Used for optimizing spatio-temporal pattern queries.
+  * liftedrightrange: ~Op~ is a lifted predicate returnning whether a 
+     non-spatial moving object is greater or equal a given value. Used for 
+     optimizing spatio-temporal pattern queries.
 
-   * (list may be extended as required)
+  * comparator: ~Op~ is a binary comparison operator $T_1 \times T_2 
+    \rightarrow$ bool. This information is required for processing subqueries.
+
+  * (list may be extended as required)
+
 
 % Section:Start:opSignature_5_s
 % Section:End:opSignature_5_s
@@ -361,47 +386,47 @@ opSignature(seqinit, standard, [int],bool,[sidefx]).
 opSignature(seqnext, standard, [],int,[sidefx]).
 opSignature(log, standard, [int],int,[]).
 
-opSignature((<), standard, [int,int],bool,[]).
-opSignature((<), standard, [int,real],bool,[]).
-opSignature((<), standard, [real,int],bool,[]).
-opSignature((<), standard, [real,real],bool,[]).
-opSignature((<), standard, [bool,bool],bool,[]).
-opSignature((<), standard, [string,string],bool,[]).
+opSignature((<), standard, [int,int],bool,[comparator,trans]).
+opSignature((<), standard, [int,real],bool,[comparator,trans]).
+opSignature((<), standard, [real,int],bool,[comparator,trans]).
+opSignature((<), standard, [real,real],bool,[comparator,trans]).
+opSignature((<), standard, [bool,bool],bool,[comparator,trans]).
+opSignature((<), standard, [string,string],bool,[comparator,trans]).
 
-opSignature((>), standard, [int,int],bool,[]).
-opSignature((>), standard, [int,real],bool,[]).
-opSignature((>), standard, [real,int],bool,[]).
-opSignature((>), standard, [real,real],bool,[]).
-opSignature((>), standard, [bool,bool],bool,[]).
-opSignature((>), standard, [string,string],bool,[]).
+opSignature((>), standard, [int,int],bool,[comparator,trans]).
+opSignature((>), standard, [int,real],bool,[comparator,trans]).
+opSignature((>), standard, [real,int],bool,[comparator,trans]).
+opSignature((>), standard, [real,real],bool,[comparator,trans]).
+opSignature((>), standard, [bool,bool],bool,[comparator,trans]).
+opSignature((>), standard, [string,string],bool,[comparator,trans]).
 
-opSignature((<=), standard, [int,int],bool,[]).
-opSignature((<=), standard, [int,real],bool,[]).
-opSignature((<=), standard, [real,int],bool,[]).
-opSignature((<=), standard, [real,real],bool,[]).
-opSignature((<=), standard, [bool,bool],bool,[]).
-opSignature((<=), standard, [string,string],bool,[]).
+opSignature((<=), standard, [int,int],bool,[comparator,trans]).
+opSignature((<=), standard, [int,real],bool,[comparator,trans]).
+opSignature((<=), standard, [real,int],bool,[comparator,trans]).
+opSignature((<=), standard, [real,real],bool,[comparator,trans]).
+opSignature((<=), standard, [bool,bool],bool,[comparator,trans]).
+opSignature((<=), standard, [string,string],bool,[comparator,trans]).
 
-opSignature((>=), standard, [int,int],bool,[]).
-opSignature((>=), standard, [int,real],bool,[]).
-opSignature((>=), standard, [real,int],bool,[]).
-opSignature((>=), standard, [real,real],bool,[]).
-opSignature((>=), standard, [bool,bool],bool,[]).
-opSignature((>=), standard, [string,string],bool,[]).
+opSignature((>=), standard, [int,int],bool,[comparator,trans]).
+opSignature((>=), standard, [int,real],bool,[comparator,trans]).
+opSignature((>=), standard, [real,int],bool,[comparator,trans]).
+opSignature((>=), standard, [real,real],bool,[comparator,trans]).
+opSignature((>=), standard, [bool,bool],bool,[comparator,trans]).
+opSignature((>=), standard, [string,string],bool,[comparator,trans]).
 
-opSignature((=), standard, [int,int],bool,[comm]).
-opSignature((=), standard, [int,real],bool,[comm]).
-opSignature((=), standard, [real,int],bool,[comm]).
-opSignature((=), standard, [real,real],bool,[comm]).
-opSignature((=), standard, [bool,bool],bool,[comm]).
-opSignature((=), standard, [string,string],bool,[comm]).
+opSignature((=), standard, [int,int],bool,[comm,comparator,trans]).
+opSignature((=), standard, [int,real],bool,[comm,comparator,trans]).
+opSignature((=), standard, [real,int],bool,[comm,comparator,trans]).
+opSignature((=), standard, [real,real],bool,[comm,comparator,trans]).
+opSignature((=), standard, [bool,bool],bool,[comm,comparator,trans]).
+opSignature((=), standard, [string,string],bool,[comm,comparator,trans]).
 
-opSignature((#), standard, [int,int],bool,[comm]).
-opSignature((#), standard, [int,real],bool,[comm]).
-opSignature((#), standard, [real,int],bool,[comm]).
-opSignature((#), standard, [real,real],bool,[comm]).
-opSignature((#), standard, [bool,bool],bool,[comm]).
-opSignature((#), standard, [string,string],bool,[comm]).
+opSignature((#), standard, [int,int],bool,[comm,comparator]).
+opSignature((#), standard, [int,real],bool,[comm,comparator]).
+opSignature((#), standard, [real,int],bool,[comm,comparator]).
+opSignature((#), standard, [real,real],bool,[comm,comparator]).
+opSignature((#), standard, [bool,bool],bool,[comm,comparator]).
+opSignature((#), standard, [string,string],bool,[comm,comparator]).
 
 opSignature(starts,   standard, [string,string],bool,[]).
 opSignature(contains, standard, [string,string],bool,[]).
@@ -435,7 +460,13 @@ opSignature(keywords, standard, [string],[stream,string],[]).
 opSignature(ifthenelse, standard, [bool,T,T],T,[]) :- isData(T).
 opSignature(ifthenelse2, standard, [bool,T,T],T,[]) :- isData(T).
 
-opSignature(between, standard, [T,T,T],bool,[]) :- isData(T).
+opSignature(between, standard, [T1,T2,T3],bool,[]) :- 
+    member(T1,[int,real]),
+    member(T2,[int,real]),
+    member(T3,[int,real]).
+opSignature(between, standard, [T,T,T],bool,[]) :- 
+    member(T,[string,bool]).
+
 opSignature(ldistance, standard, [string,string],int,[]).
 opSignature(hashvalue, standard, [T,int],int,[]) :- isData(T).
 opSignature(round, standard, [real,int],real,[]).
@@ -523,29 +554,29 @@ opSignature((+), ftext, [text,text],text,[comm,ass]).
 opSignature((+), ftext, [text,string],text,[comm,ass]).
 opSignature((+), ftext, [string,text],text,[comm,ass]).
 
-opSignature((<), ftext, [text,text],bool,[]).
-opSignature((<), ftext, [text,string],bool,[]).
-opSignature((<), ftext, [string,text],bool,[]).
+opSignature((<), ftext, [text,text],bool,[comparator,trans]).
+opSignature((<), ftext, [text,string],bool,[comparator,trans]).
+opSignature((<), ftext, [string,text],bool,[comparator,trans]).
 
-opSignature((<=), ftext, [text,text],bool,[]).
-opSignature((<=), ftext, [text,string],bool,[]).
-opSignature((<=), ftext, [string,text],bool,[]).
+opSignature((<=), ftext, [text,text],bool,[comparator,trans]).
+opSignature((<=), ftext, [text,string],bool,[comparator,trans]).
+opSignature((<=), ftext, [string,text],bool,[comparator,trans]).
 
-opSignature((=), ftext, [text,text],bool,[comm]).
-opSignature((=), ftext, [text,string],bool,[comm]).
-opSignature((=), ftext, [string,text],bool,[comm]).
+opSignature((=), ftext, [text,text],bool,[comm,comparator,trans]).
+opSignature((=), ftext, [text,string],bool,[comm,comparator,trans]).
+opSignature((=), ftext, [string,text],bool,[comm,comparator,trans]).
 
-opSignature((>=), ftext, [text,text],bool,[]).
-opSignature((>=), ftext, [text,string],bool,[]).
-opSignature((>=), ftext, [string,text],bool,[]).
+opSignature((>=), ftext, [text,text],bool,[comparator,trans]).
+opSignature((>=), ftext, [text,string],bool,[comparator,trans]).
+opSignature((>=), ftext, [string,text],bool,[comparator,trans]).
 
-opSignature((>), ftext, [text,text],bool,[]).
-opSignature((>), ftext, [text,string],bool,[]).
-opSignature((>), ftext, [string,text],bool,[]).
+opSignature((>), ftext, [text,text],bool,[comparator,trans]).
+opSignature((>), ftext, [text,string],bool,[comparator,trans]).
+opSignature((>), ftext, [string,text],bool,[comparator,trans]).
 
-opSignature((#), ftext, [text,text],bool,[comm]).
-opSignature((#), ftext, [text,string],bool,[comm]).
-opSignature((#), ftext, [string,text],bool,[comm]).
+opSignature((#), ftext, [text,text],bool,[comm,comparator]).
+opSignature((#), ftext, [text,string],bool,[comm,comparator]).
+opSignature((#), ftext, [string,text],bool,[comm,comparator]).
 
 opSignature(evaluate, ftext, [text],[stream,[tuple,[[cmdstr,text],
         [success,bool],[evaluable,bool],[defined,bool],[isfunction,bool],
@@ -705,12 +736,12 @@ opSignature((+), datetime, [duration,duration],duration,[comm,ass]).
 opSignature((-), datetime, [instant,instant],duration,[]).
 opSignature((-), datetime, [instant,duration],instant,[]).
 opSignature((-), datetime, [duration,duration],duration,[]).
-opSignature((=), datetime, [duration,duration],bool,[comm]).
-opSignature((=), datetime, [instant,instant],bool,[comm]).
-opSignature((<), datetime, [duration,duration],bool,[]).
-opSignature((<), datetime, [instant,instant],bool,[]).
-opSignature((>), datetime, [duration,duration],bool,[]).
-opSignature((>), datetime, [instant,instant],bool,[]).
+opSignature((=), datetime, [duration,duration],bool,[comm,comparator,trans]).
+opSignature((=), datetime, [instant,instant],bool,[comm,comparator,trans]).
+opSignature((<), datetime, [duration,duration],bool,[comparator,trans]).
+opSignature((<), datetime, [instant,instant],bool,[comparator,trans]).
+opSignature((>), datetime, [duration,duration],bool,[comparator,trans]).
+opSignature((>), datetime, [instant,instant],bool,[comparator,trans]).
 opSignature((*), datetime, [duration,real],duration,[]).
 opSignature(weekday_of, datetime, [instant],string,[]).
 opSignature(leapyear, datetime, [int],bool,[]).
@@ -749,9 +780,9 @@ opSignature(tostring, datetime, [duration],string,[]).
 */
 opSignature(isempty, spatial, [T],bool,[]) :-
   memberchk(T,[point,points,line,sline,region]),!.
-opSignature((=), spatial, [T,T],bool,[comm,bbox(2)]) :-
+opSignature((=), spatial, [T,T],bool,[comm,bbox(2),comparator,trans]) :-
   memberchk(T,[point,points,line,sline,region]),!.
-opSignature((#), spatial, [T,T],bool,[comm,bbox(2)]) :-
+opSignature((#), spatial, [T,T],bool,[comm,bbox(2),comparator]) :-
   memberchk(T,[point,points,line,sline,region]),!.
 opSignature(intersects, spatial, [T1,T2],bool,[comm,bbox(2)]) :-
   (   (memberchk(T1,[points,line,region]), memberchk(T2,[points,line,region]))
@@ -900,20 +931,20 @@ opSignature(isempty, temporal, [T],bool,[]) :-
   memberchk(T,[instant,rbool,rint,rreal,periods,rstring,
                        ubool,uint,ureal,upoint,ustring,
                        ibool,iint,ireal,ipoint,istring]),!.
-opSignature((=), temporal, [T,T],bool,[comm]) :-
+opSignature((=), temporal, [T,T],bool,[comm,comparator,trans]) :-
   memberchk(T,[instant,rbool,rint,rreal,periods,rstring,
                        ibool,iint,ireal,ipoint,istring]),!.
-opSignature((#), temporal, [T,T],bool,[comm]) :-
+opSignature((#), temporal, [T,T],bool,[comm,comparator]) :-
   memberchk(T,[instant,rbool,rint,rreal,periods,rstring,
                        ibool,iint,ireal,ipoint,istring]),!.
-opSignature(nonequal, temporal, [T,T],bool,[comm]) :-
+opSignature(nonequal, temporal, [T,T],bool,[comm,comparator]) :-
   memberchk(T,[mbool,mint,mreal,mpoint,mstring]),!.
-opSignature(equal, temporal, [T,T],bool,[comm]) :-
+opSignature(equal, temporal, [T,T],bool,[comm,comparator,trans]) :-
   memberchk(T,[mbool,mint,mreal,mpoint,mstring]),!.
-opSignature((<), temporal, [instant,instant],bool,[]).
-opSignature((<=), temporal, [instant,instant],bool,[]).
-opSignature((>), temporal, [instant,instant],bool,[]).
-opSignature((>=), temporal, [instant,instant],bool,[]).
+opSignature((<), temporal, [instant,instant],bool,[comparator,trans]).
+opSignature((<=), temporal, [instant,instant],bool,[comparator,trans]).
+opSignature((>), temporal, [instant,instant],bool,[comparator,trans]).
+opSignature((>=), temporal, [instant,instant],bool,[comparator,trans]).
 opSignature(intersects, temporal, [T,T],bool,[comm]) :-
   memberchk(T,[rbool,rint,rreal,periods,rstring]),!.
 opSignature(inside, temporal, [instant,period],bool,[]).
@@ -1172,55 +1203,65 @@ opSignature(everNearerThan, temporalext, [point,mpoint,real],bool,[exp]).
 2.7.6 TemporalLiftedAlgebra
 
 */
-opSignature((=), temporallifted, [T,T],mbool,[comm,exp]) :-
+opSignature((=), temporallifted, [T,T],mbool,[comm,exp,comparator,trans]) :-
   memberchk(T,[mbool,mint,mstring,mreal,mpoint,mregion]),!.
-opSignature((=), temporallifted, [T1,T2],mbool,[comm,exp,liftedequality]) :-
+opSignature((=), temporallifted, 
+            [T1,T2],mbool,[comm,exp,liftedequality,comparator,trans]) :-
   (   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real)])
     ; memberchk((T2,T1),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real)])
   ),!.
-opSignature((=), temporallifted, [T1,T2],mbool,[comm,exp,liftedspatialrange]) :-
+opSignature((=), temporallifted, 
+            [T1,T2],mbool,[comm,exp,liftedspatialrange,comparator,trans]) :-
   (   memberchk((T1,T2),[(mpoint,point),(mregion,region)])
     ; memberchk((T2,T1),[(mpoint,point),(mregion,region)])
   ),!.
-opSignature((#), temporallifted, [T,T],mbool,[comm,exp]) :-
+opSignature((#), temporallifted, [T,T],mbool,[comm,exp,comparator]) :-
   memberchk(T,[mbool,mint,mstring,mreal,mpoint,mregion]),!.
-opSignature((#), temporallifted, [T1,T2],mbool,[comm,exp]) :-
+opSignature((#), temporallifted, [T1,T2],mbool,[comm,exp,comparator]) :-
   (   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real),(mpoint,point),(mregion,region)])
     ; memberchk((T2,T1),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real),(mpoint,point),(mregion,region)])
   ),!.
-opSignature((<), temporallifted, [T1,T2],mbool,[exp,liftedleftrange]) :-
+opSignature((<), temporallifted, [T1,T2],mbool,
+            [exp,liftedleftrange,comparator,trans]) :-
   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real)])
   ,!.
-opSignature((<), temporallifted, [T1,T2],mbool,[exp,liftedrightrange]) :-
+opSignature((<), temporallifted, 
+            [T1,T2],mbool,[exp,liftedrightrange,comparator,trans]) :-
   memberchk((T1,T2),[(bool,mbool),(int,mint),(string,mstring),
                          (real,mreal)])
   ,!.
-opSignature((<=), temporallifted, [T1,T2],mbool,[exp,liftedleftrange]) :-
+opSignature((<=), temporallifted, 
+            [T1,T2],mbool,[exp,liftedleftrange,comparator,trans]) :-
   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real)])
   ,!.
-opSignature((<=), temporallifted, [T1,T2],mbool,[exp,liftedrightrange]) :-
+opSignature((<=), temporallifted, 
+            [T1,T2],mbool,[exp,liftedrightrange,comparator,trans]) :-
   memberchk((T1,T2),[(bool,mbool),(int,mint),(string,mstring),
                          (real,mreal)])
   ,!.
-opSignature((>), temporallifted, [T1,T2],mbool,[exp,liftedrightrange]) :-
+opSignature((>), temporallifted, 
+            [T1,T2],mbool,[exp,liftedrightrange,comparator,trans]) :-
   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real)])
   ,!.
-opSignature((>), temporallifted, [T1,T2],mbool,[exp,liftedleftrange]) :-
+opSignature((>), temporallifted, [T1,T2],mbool,
+            [exp,liftedleftrange,comparator,trans]) :-
   memberchk((T1,T2),[(bool,mbool),(int,mint),(string,mstring),
                          (real,mreal)])
   ,!.
-opSignature((>=), temporallifted, [T1,T2],mbool,[exp,liftedrightrange]) :-
+opSignature((>=), temporallifted, 
+            [T1,T2],mbool,[exp,liftedrightrange,comparator,trans]) :-
   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real)])
   ,!.
-opSignature((>=), temporallifted, [T1,T2],mbool,[exp,liftedleftrange]) :-
+opSignature((>=), temporallifted, 
+            [T1,T2],mbool,[exp,liftedleftrange,comparator,trans]) :-
   memberchk((T1,T2),[(bool,mbool),(int,mint),(string,mstring),
                          (real,mreal)])
   ,!.
@@ -1387,36 +1428,37 @@ opSignature(never, temporalunit, [ubool],bool,[]).
 opSignature(never, temporalunit, [[stream,ubool]],bool,[block,aggr,exp]).
 opSignature(always, temporalunit, [ubool],bool,[]).
 opSignature(always, temporalunit, [[stream,ubool]],bool,[block,aggr,exp]).
-opSignature(==, temporalunit, [T,T],bool,[comm]) :-
+opSignature(==, temporalunit, [T,T],bool,[comm,comparator,trans]) :-
   memberchk(T,[ubool,uint,ureal,upoint,ustring,uregion]), !.
-opSignature((##), temporalunit, [T,T],bool,[comm]) :-
+opSignature((##), temporalunit, [T,T],bool,[comm,comparator]) :-
   memberchk(T,[ubool,uint,ureal,upoint,ustring,uregion]), !.
-opSignature((<<), temporalunit, [T,T],bool,[]) :-
+opSignature((<<), temporalunit, [T,T],bool,[comparator,trans]) :-
   memberchk(T,[ubool,uint,ureal,upoint,ustring,uregion]), !.
-opSignature((>>), temporalunit, [T,T],bool,[]) :-
+opSignature((>>), temporalunit, [T,T],bool,[comparator,trans]) :-
   memberchk(T,[ubool,uint,ureal,upoint,ustring,uregion]), !.
-opSignature((<<==), temporalunit, [T,T],bool,[]) :-
+opSignature((<<==), temporalunit, [T,T],bool,[comparator,trans]) :-
   memberchk(T,[ubool,uint,ureal,upoint,ustring,uregion]), !.
-opSignature((>>==), temporalunit, [T,T],bool,[]) :-
+opSignature((>>==), temporalunit, [T,T],bool,[comparator,trans]) :-
   memberchk(T,[ubool,uint,ureal,upoint,ustring,uregion]), !.
-opSignature((=), temporalunit, [T1,T2],[stream,ubool],[comm]) :-
+opSignature((=), temporalunit, [T1,T2],[stream,ubool],
+            [comm,comparator,trans]) :-
   member((TI1,TI2),[(ubool,bool),(uint,int),(ureal,real),(ustring,string),
                      (upoint,point),(uregion,region)]),
   ((T1=TI1,T2=TI2);(T1=TI2,T2=TI1);(T1=T2,T1=TI1)), !.
-opSignature((#), temporalunit, [T1,T2],[stream,ubool],[comm]) :-
+opSignature((#), temporalunit, [T1,T2],[stream,ubool],[comm,comparator]) :-
   member((TI1,TI2),[(ubool,bool),(uint,int),(ureal,real),(ustring,string),
                      (upoint,point),(uregion,region)]),
   ((T1=TI1,T2=TI2);(T1=TI2,T2=TI1);(T1=T2,T1=TI1)), !.
-opSignature((<), temporalunit, [T1,T2],[stream,ubool],[]) :-
+opSignature((<), temporalunit, [T1,T2],[stream,ubool],[comparator,trans]) :-
   member((TI1,TI2),[(ubool,bool),(uint,int),(ureal,real),(ustring,string)]),
   ((T1=TI1,T2=TI2);(T1=TI2,T2=TI1);(T1=T2,T1=TI1)), !.
-opSignature((>), temporalunit, [T1,T2],[stream,ubool],[]) :-
+opSignature((>), temporalunit, [T1,T2],[stream,ubool],[comparator,trans]) :-
   member((TI1,TI2),[(ubool,bool),(uint,int),(ureal,real),(ustring,string)]),
   ((T1=TI1,T2=TI2);(T1=TI2,T2=TI1);(T1=T2,T1=TI1)), !.
-opSignature((<=), temporalunit, [T1,T2],[stream,ubool],[]) :-
+opSignature((<=), temporalunit, [T1,T2],[stream,ubool],[comparator,trans]) :-
   member((TI1,TI2),[(ubool,bool),(uint,int),(ureal,real),(ustring,string)]),
   ((T1=TI1,T2=TI2);(T1=TI2,T2=TI1);(T1=T2,T1=TI1)), !.
-opSignature((>=), temporalunit, [T1,T2],[stream,ubool],[]) :-
+opSignature((>=), temporalunit, [T1,T2],[stream,ubool],[comparator,trans]) :-
   member((TI1,TI2),[(ubool,bool),(uint,int),(ureal,real),(ustring,string)]),
   ((T1=TI1,T2=TI2);(T1=TI2,T2=TI1);(T1=T2,T1=TI1)), !.
 opSignature(uint2ureal, temporalunit, [uint],ureal,[]).
@@ -1471,9 +1513,9 @@ opSignature(units, mregion, [mregion],[stream,uregion],[]).
 */
 opSignature(isempty, rectangle, [T],bool,[]) :-
   memberchk(T,[rect,rect2,rect3,rect4,rect8]),!.
-opSignature((=), rectangle, [T,T],bool,[comm]) :-
+opSignature((=), rectangle, [T,T],bool,[comm,comparator,trans]) :-
   memberchk(T,[rect,rect2,rect3,rect4,rect8]),!.
-opSignature((#), rectangle, [T,T],bool,[comm]) :-
+opSignature((#), rectangle, [T,T],bool,[comm,comparator]) :-
   memberchk(T,[rect,rect2,rect3,rect4,rect8]),!.
 opSignature(intersects, rectangle, [T,T],bool,[comm]) :-
   memberchk(T,[rect,rect2,rect3,rect4,rect8]),!.
@@ -1600,12 +1642,12 @@ opSignature(tupleid, tupleidentifier, [[tuple,_]],tid,[]).
 opSignature(addtupleid, tupleidentifier, [[stream,[tuple,AttrList]]],
       [stream,[tuple,AttrList2]],[]) :-
   append(AttrList,[[id,tid]],AttrList2), !.
-opSignature((=), tupleidentifier, [tid,tid],bool,[comm]).
-opSignature((#), tupleidentifier, [tid,tid],bool,[comm]).
-opSignature((<), tupleidentifier, [tid,tid],bool,[]).
-opSignature((<=), tupleidentifier, [tid,tid],bool,[]).
-opSignature((>), tupleidentifier, [tid,tid],bool,[]).
-opSignature((>=), tupleidentifier, [tid,tid],bool,[]).
+opSignature((=), tupleidentifier, [tid,tid],bool,[comm,comparator,trans]).
+opSignature((#), tupleidentifier, [tid,tid],bool,[comm,comparator]).
+opSignature((<), tupleidentifier, [tid,tid],bool,[comparator,trans]).
+opSignature((<=), tupleidentifier, [tid,tid],bool,[comparator,trans]).
+opSignature((>), tupleidentifier, [tid,tid],bool,[comparator,trans]).
+opSignature((>=), tupleidentifier, [tid,tid],bool,[comparator,trans]).
 opSignature(tid2int, tupleidentifier, [tid],int,[]).
 opSignature(int2tid, tupleidentifier, [int],tid,[]).
 
@@ -1812,17 +1854,29 @@ opSignature(difference, collection, [[multiset,T],[multiset,T]],[multiset,T],
 opSignature(size, collection, [[set,T]],int,[]) :- isData(T),!.
 opSignature(size, collection, [[multiset,T]],int,[]) :- isData(T),!.
 opSignature(size, collection, [[vector,T]],int,[]) :- isData(T),!.
-opSignature((=), collection, [[set,T],[set,T]],bool,[comm]) :- isData(T),!.
-opSignature((=), collection, [[multiset,T],[multiset,T]],bool,[comm])
-        :- isData(T),!.
-opSignature((>), collection, [[set,T],[set,T]],bool,[]) :- isData(T),!.
-opSignature((>), collection, [[multiset,T],[multiset,T]],bool,[]):-isData(T),!.
-opSignature((<), collection, [[set,T],[set,T]],bool,[]) :- isData(T),!.
-opSignature((<), collection, [[multiset,T],[multiset,T]],bool,[]):-isData(T),!.
-opSignature((>=), collection, [[set,T],[set,T]],bool,[]) :- isData(T),!.
-opSignature((>=), collection, [[multiset,T],[multiset,T]],bool,[]):-isData(T),!.
-opSignature((<=), collection, [[set,T],[set,T]],bool,[]) :- isData(T),!.
-opSignature((<=), collection, [[multiset,T],[multiset,T]],bool,[]):-isData(T),!.
+opSignature((=), collection, [[set,T],[set,T]],bool,[comm,comparator,trans]) :- 
+  isData(T),!.
+opSignature((=), collection, [[multiset,T],[multiset,T]],bool,
+            [comm,comparator,trans]) :- isData(T),!.
+opSignature((>), collection, [[set,T],[set,T]],bool,
+            [comparator,trans]) :- isData(T),!.
+opSignature((>), collection, [[multiset,T],[multiset,T]],bool,
+            [comparator,trans]):-isData(T),!.
+opSignature((<), collection, [[set,T],[set,T]],bool,[comparator,trans]) :- 
+  isData(T),!.
+opSignature((<), collection,[[multiset,T],[multiset,T]],bool,
+            [comparator,trans]) :- 
+isData(T),!.
+opSignature((>=), collection, [[set,T],[set,T]],bool,[comparator,trans]) :- 
+isData(T),!.
+opSignature((>=), collection, [[multiset,T],[multiset,T]],bool,
+            [comparator,trans]) :- 
+isData(T),!.
+opSignature((<=), collection, [[set,T],[set,T]],bool,[comparator,trans]) :- 
+isData(T),!.
+opSignature((<=), collection, [[multiset,T],[multiset,T]],bool,
+            [comparator,trans]) :- 
+isData(T),!.
 opSignature(is_defined, collection, [[set,T]],bool,[]) :- isData(T),!.
 opSignature(is_defined, collection, [[multiset,T]],bool,[]) :- isData(T),!.
 opSignature(is_defined, collection, [[vector,T]],bool,[]) :- isData(T),!.
@@ -2280,11 +2334,11 @@ opSignature(constgraphpoints, graph, [[stream,[tuple,X]],A1,A2,[map,[tuple,X],
         real],P1,P2],graph,[block,aggr,exp]) :-
   memberchk([A1,int],X),memberchk([A2,int],X),
   memberchk([P1,point],X),memberchk([P2,point],X),!.
-opSignature((=), graph, [vertex,vertex],bool,[comm]).
-opSignature((=), graph, [edge,edge],bool,[comm]).
-opSignature((=), graph, [path,path],bool,[comm]).
-opSignature((=), graph, [graph,graph],bool,[comm,exp]).
-opSignature(equalway, graph, [path,path],bool,[comm,exp]).
+opSignature((=), graph, [vertex,vertex],bool,[comm,comparator,trans]).
+opSignature((=), graph, [edge,edge],bool,[comm,comparator,trans]).
+opSignature((=), graph, [path,path],bool,[comm,comparator,trans]).
+opSignature((=), graph, [graph,graph],bool,[comm,exp,comparator,trans]).
+opSignature(equalway, graph, [path,path],bool,[comm,exp,comparator,trans]).
 
 
 /*
@@ -2375,9 +2429,10 @@ opSignature(restrict, toprel, [cluster,text],cluster,[]).
 opSignature(relax, toprel, [cluster,string],cluster,[]).
 opSignature(relax, toprel, [cluster,text],cluster,[]).
 opSignature(stdpgroup, toprel, [],predicategroup,[]).
-opSignature((=), toprel, [int9m,int9m],bool,[comm]).
-opSignature((=), toprel, [cluster,cluster],bool,[comm]).
-opSignature((=), toprel, [predicategroup,predicategroup],bool,[comm]).
+opSignature((=), toprel, [int9m,int9m],bool,[comm,comparator,trans]).
+opSignature((=), toprel, [cluster,cluster],bool,[comm,comparator,trans]).
+opSignature((=), toprel, [predicategroup,predicategroup],bool,
+            [comm,comparator,trans]).
 opSignature(getcluster, toprel, [predicategroup,string],cluster,[]).
 
 
@@ -3082,9 +3137,11 @@ isAggregationOP(extract).
 isAggregationOP(var).
 
 % For later extensions (though needing separate cost functions):
-isAggregationOP(aggregate).  % the cost of the provided function should be applied, works lineary
-isAggregationOP(aggregateB). % the cost of the provided function should be applied,
-                             %   Additionally, the operator works balanced (in log(CX) steps).
+% the cost of the provided function should be applied, works 
+linearyisAggregationOP(aggregate).
+% the cost of the provided function should be applied,
+%   Additionally, the operator works balanced (in log(CX) steps).
+isAggregationOP(aggregateB). 
 ----
 
 */
@@ -3176,6 +3233,38 @@ maintainsOrderOP(sortmergejoin,    special).
 
 % Section:Start:maintainsOrderOP_2_e
 % Section:End:maintainsOrderOP_2_e
+
+/*
+2.2.6 Comparators
+
+Comparators --- also called comparison operators --- are binary operators that 
+return a boolean value. They are usually used to check for the (in-) 
+equality of two values or to check for a strict or partial ordering of their 
+arguments.
+
+The according operator property flag is ~comparator~.
+
+This property is used by the subquery extension of the optimizer in 
+order to identify valid subqueries.
+
+*/
+
+isComparatorOp(Op,ArgsTypeList) :-
+  opSignature(Op, _, ArgsTypeList, _, Flags),
+  memberchk(comparator,Flags),!.
+
+isComparatorOp(Term) :-
+  optimizerOption(determinePredSig),
+  compound(Term), not(is_list(Term)),
+  checkOpProperty(Term,comparator), !.
+
+isComparatorOp(Op) :-
+  atom(Op),
+  opSignature(Op, _, _, _, Flags),
+  memberchk(comparator,Flags),
+  dm(gettypetree,['INFO:\tOperator name matching used to determine ',
+              'isComparatorOp(',Op,').\n']),
+  !.
 
 
 /*
