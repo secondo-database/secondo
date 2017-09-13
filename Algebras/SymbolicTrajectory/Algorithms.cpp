@@ -771,9 +771,9 @@ For a pattern with conditions, an operator tree structure is prepared.
 bool Pattern::initCondOpTrees(Tuple *tuple /* = 0 */, ListExpr ttype /* = 0 */,
                               const bool mainAttr) {
   for (unsigned int i = 0; i < conds.size(); i++) { // opTrees for conditions
-    if (!mainAttr) {
-      conds[i].collectInstantVars(varToElem);
-    }
+//     if (!mainAttr) {
+//       conds[i].collectInstantVars(varToElem);
+//     }
     if (!conds[i].initOpTree(tuple, ttype)) {
       cout << "Operator tree for condition " << i << " uninitialized" << endl;
       return false;
@@ -797,7 +797,7 @@ bool Condition::initOpTree(Tuple *tuple /* = 0 */, ListExpr ttype /* = 0 */) {
       ptrs.push_back(strAttr.second);
       toReplace = getVar(i) + getType(getKey(i), tuple, ttype);
       q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
-      cout << "init op tree for § " << q << endl;
+//       cout << "init op tree for | " << q << endl;
     }
     pair<QueryProcessor*, OpTree> qp_optree = Tools::processQueryStr(q, -1);
     if (!qp_optree.first) {
@@ -1560,6 +1560,7 @@ TMatchIndexLI::TMatchIndexLI(Relation *r, ListExpr tt,
     TupleType *tupletype = rel->GetTupleType();
     int dummy = INT_MIN;
     relevantAttrs = Tools::getRelevantAttrs(tupletype, -1, dummy);
+    
 //     tupletype->DeleteIfAllowed();
 }
 
@@ -2630,7 +2631,7 @@ void TMatchIndexLI::extendBinding2(Periods *per, const int elem,
     imi.binding.insert(make_pair(elem, *per));
     Periods inter(true);
     Instant start(datetime::instanttype), end(datetime::instanttype);
-    if (elem == 0) { // *X (__)* ...
+    if (elem == 0) { // *X Y (__)* ...
       start.ToMinimum();
       per->Minimum(end);
       SecInterval iv(start, end, false, false);
@@ -2647,11 +2648,17 @@ void TMatchIndexLI::extendBinding2(Periods *per, const int elem,
       inter.Minus(unionResult); // [p_B.start, p_D.end] \ (p_B U p_D)
     } // bind intervals between elements
     imi.binding.insert(make_pair(-1 * elem - 1, inter));
-    if (totalMatch && elem == p->getNoElems() - 1) { // ... *X (__)*
+    if (totalMatch && elem == p->getNoElems() - 1) { // ... *X (__)* Y
       Periods after(true);
+      bool leftclosed = false;
       per->Maximum(start);
       end.ToMaximum();
-      SecInterval iv(start, end, false, false);
+      if (!per->IsEmpty()) {
+        SecInterval previousIv(start, end, false, false);
+        per->Get(per->GetNoComponents() - 1, previousIv);
+        leftclosed = !previousIv.rc;
+      }
+      SecInterval iv(start, end, leftclosed, false);
       after.Add(iv);
       imi.binding.insert(make_pair(-1 * elem - 2, after));
     }
@@ -2927,6 +2934,14 @@ Used for indextmatches2.
 void Condition::setPtrToTimeValue(const int pos, const Periods& per) {
   SecInterval iv(true);
   Instant inst(datetime::instanttype);
+  if (!per.IsDefined()) {
+    clearTimePtr(pos);
+    return;
+  }
+  if (per.IsEmpty()) {
+    clearTimePtr(pos);
+    return;
+  }
   switch (getKey(pos)) {
     case 2: { // time
       clearTimePtr(pos);
@@ -2935,21 +2950,23 @@ void Condition::setPtrToTimeValue(const int pos, const Periods& per) {
     }
     case 3: { // start
       per.Minimum(inst);
-      setStartEndPtr(pos, iv.start);
+      setStartEndPtr(pos, inst);
       break;
     }
     case 4: { // end
       per.Maximum(inst);
-      setStartEndPtr(pos, iv.end);
+      setStartEndPtr(pos, inst);
       break;
     }
     case 5: { // leftclosed
-      per.Minimum(inst);
+      Interval<Instant> iv(true);
+      per.Get(0, iv);
       setLeftRightclosedPtr(pos, iv.lc);
       break;
     }
     case 6: { // rightclosed
-      per.Maximum(inst);
+      Interval<Instant> iv(true);
+      per.Get(per.GetNoComponents() - 1, iv);
       setLeftRightclosedPtr(pos, iv.rc);
       break;
     }
@@ -2975,7 +2992,7 @@ bool TMatchIndexLI::condsMatch(Tuple *t, const IndexMatchInfo2& imi) {
   interResult.Clear();
   MBool mbool(true);
   for (unsigned int i = 0; i < conds->size(); i++) {
-    cout << "evaluate cond " << i << " % " << conds->at(i).getText() << endl;
+//     cout << "evaluate cond " << i << " % " << conds->at(i).getText() << endl;
 //     conds->at(i).evaluate(t, imi);
     for (int j = 0; j < conds->at(i).getVarKeysSize(); j++) {
       int elem = p->getElemFromVar(conds->at(i).getVar(j));
@@ -3007,8 +3024,8 @@ bool TMatchIndexLI::condsMatch(Tuple *t, const IndexMatchInfo2& imi) {
       }
     }
     conds->at(i).getQP()->EvalS(conds->at(i).getOpTree(), qResult, OPEN);
-    if (((MBool*)qResult.addr)->IsDefined()) { // MBool type
-      cout << "MBOOL" << endl;
+    if (((MBool*)qResult.addr)->IsDefined() && 
+        ((MBool*)qResult.addr)->IsOrdered()) {
       CcBool *cctrue = new CcBool(true, true);
       ((MBool*)qResult.addr)->At(*cctrue, mbool);
       cctrue->DeleteIfAllowed();
@@ -3026,9 +3043,8 @@ bool TMatchIndexLI::condsMatch(Tuple *t, const IndexMatchInfo2& imi) {
       cout << "intersection after cond #" << i << ": " << interResult << endl;
     }
     else if (((CcBool*)qResult.addr)->IsDefined()) {
-      cout << "CcBool" << endl;
       if (!((CcBool*)qResult.addr)->GetValue()) {
-        cout << "CcBool is defined and false" << endl;
+//         cout << "CcBool is defined and false" << endl;
         return false;
       }
     }
@@ -3081,13 +3097,13 @@ bool TMatchIndexLI::atomMatch2(const int state, std::pair<int, int> trans) {
             if (match) {
               transition = true;
               totalMatch = p->isFinalState(trans.second);
-              if (p->hasConds()) {
+//               if (p->hasConds()) {
                 extendBinding2(per, p->getElemFromAtom(trans.first), totalMatch,
                                newIMI);
                 if (totalMatch && p->hasConds()) {
                   totalMatch = condsMatch(t, newIMI);
                 }
-              }
+//               }
               if (totalMatch) {
                 matches.push_back(id); // complete match
 //                 cout << "MATCH for id " << id << endl;
@@ -3207,8 +3223,8 @@ void TMatchIndexLI::applyNFA(const bool mainAttr,
   map<int, int>::reverse_iterator im;
   if (mainAttr) {
     while ((activeTuples > 0) && !states.empty()) {
-      cout << "WHILE loop: activeTuples=" << activeTuples << "; " 
-          << matches.size() - 1 << " matches" << endl;
+//       cout << "WHILE loop: activeTuples=" << activeTuples << "; " 
+//           << matches.size() - 1 << " matches" << endl;
       for (is = states.rbegin(); is != states.rend(); is++) {
         map<int, int> trans = p->getTransitions(*is);
         for (im = trans.rbegin(); im != trans.rend() && activeTuples > 0; im++){

@@ -1295,12 +1295,28 @@ struct IndexMatchInfo2 {
   
   void print() {
     cout << "inst: " << inst << " | binding: ";
-    for (map<int, temporalalgebra::Periods>::iterator it = binding.begin(); 
-         it != binding.end(); it++) {
+    bool hasSucc = true;
+    int pos = 0;
+    std::map<int, temporalalgebra::Periods>::iterator it;
+    while (hasSucc) {
+      it = binding.find(-1 * pos - 1);
+      if (it != binding.end()) {
+        cout << it->first << " ---> " << it->second << " |   ";
+      }
+      it = binding.find(pos);
+      if (it != binding.end()) {
+        cout << it->first << " ---> " << it->second << " |   ";
+      }
+      else {
+        hasSucc = false;
+      }
+      pos++;
+    }
+    it = binding.find(pos);
+    if (it != binding.end()) {
       cout << it->first << " ---> " << it->second << " |   ";
     }
-    cout << endl;
-}
+  }
   
   bool getBinding(const int elem, temporalalgebra::Periods& result) const {
     if (binding.find(elem) == binding.end()) { // not found
