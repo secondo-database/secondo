@@ -25,9 +25,6 @@ In the sasl_passwd.db you have to edit (default port 25):
 
 [smtp.isp.example]:25  username:password
 
-For example:
-
-[bassi.fernuni-hagen.de]:25	klaus:strenggeheim
 
 In the main.cf you have to adapt the entries to your purposes (smtp Server without tls).
 
