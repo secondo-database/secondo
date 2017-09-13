@@ -1489,22 +1489,34 @@ Type mapping for ~between~ is
 
 */
 
-const string maps_between[4][4] =
+const string maps_between[10][4] =
 {
-  {CcInt::BasicType(),    CcInt::BasicType(),
-                                    CcInt::BasicType(),    CcBool::BasicType()},
-  {CcReal::BasicType(),   CcReal::BasicType(),
-                                    CcReal::BasicType(),   CcBool::BasicType()},
-  {CcString::BasicType(), CcString::BasicType(),
-                                    CcString::BasicType(), CcBool::BasicType()},
-  {CcBool::BasicType(),   CcBool::BasicType(),
-                                    CcBool::BasicType(),   CcBool::BasicType()},
+  {CcInt::BasicType(), CcInt::BasicType(), CcInt::BasicType(),
+   CcBool::BasicType()},
+  {CcReal::BasicType(), CcReal::BasicType(), CcReal::BasicType(),
+   CcBool::BasicType()},
+  {CcString::BasicType(), CcString::BasicType(), CcString::BasicType(),
+   CcBool::BasicType()},
+  {CcBool::BasicType(), CcBool::BasicType(), CcBool::BasicType(),
+   CcBool::BasicType()},
+  {CcInt::BasicType(), CcInt::BasicType(), CcReal::BasicType(),
+   CcBool::BasicType()},
+  {CcInt::BasicType(), CcReal::BasicType(), CcInt::BasicType(),
+   CcBool::BasicType()},
+  {CcInt::BasicType(), CcReal::BasicType(), CcReal::BasicType(),
+   CcBool::BasicType()},
+  {CcReal::BasicType(), CcInt::BasicType(), CcInt::BasicType(),
+   CcBool::BasicType()},
+  {CcReal::BasicType(), CcInt::BasicType(), CcReal::BasicType(),
+   CcBool::BasicType()},
+  {CcReal::BasicType(), CcReal::BasicType(), CcInt::BasicType(),
+   CcBool::BasicType()}
 };
 
 ListExpr
 CcBetweenTypeMap( ListExpr args )
 {
-  return SimpleMaps<4,4>(maps_between, args);
+  return SimpleMaps<10,4>(maps_between, args);
 }
 
 /*
@@ -1514,7 +1526,7 @@ CcBetweenTypeMap( ListExpr args )
 int
 CcBetweenSelect( ListExpr args )
 {
-  return SimpleSelect<4,4>(maps_between, args);
+  return SimpleSelect<10,4>(maps_between, args);
 }
 
 /*
@@ -3625,27 +3637,30 @@ ifthenelse2Fun(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 
-template<class T>
+template<class T1, class T2, class T3>
 int
 CcBetween( Word* args, Word& result, int message, Word& local,
            Supplier s)
 {
   result = qp->ResultStorage( s );
-  if ( ((T*)args[0].addr)->IsDefined() &&
-       ((T*)args[1].addr)->IsDefined() &&
-        ((T*)args[2].addr)->IsDefined() )
+  CcBool* res = (CcBool*) result.addr;
+  if ( ((T1*)args[0].addr)->IsDefined() &&
+       ((T2*)args[1].addr)->IsDefined() &&
+       ((T3*)args[2].addr)->IsDefined() )
   {
-    if ( ((T*)args[1].addr)->GetValue()
-        <= ((T*)args[2].addr)->GetValue() )
+    if ( ((T2*)args[1].addr)->GetValue()
+        <= ((T3*)args[2].addr)->GetValue() )
     {
       ((CcBool *)result.addr)->Set( true, (
-        ((T*)args[0].addr)->GetValue() >=
-        ((T*)args[1].addr)->GetValue()) &&
-       (((T*)args[0].addr)->GetValue() <=
-        ((T*)args[2].addr)->GetValue()));
-    }
-    else cerr << "ERROR in operator between: second argument must be less or"
+        ((T1*)args[0].addr)->GetValue() >=
+        ((T2*)args[1].addr)->GetValue()) &&
+       (((T1*)args[0].addr)->GetValue() <=
+        ((T3*)args[2].addr)->GetValue()));
+    } else {
+         cerr << "ERROR in operator between: second argument must be less or"
                  " equal third argument!" << endl;
+         res->SetDefined(false);
+    }
   }
   else
   {
@@ -4656,8 +4671,17 @@ ValueMapping ccsetminusmap[] =
 ValueMapping ccoprelcountmap[] = { RelcountFun };
 ValueMapping ccoprelcountmap2[] = { RelcountFun2 };
 ValueMapping cckeywordsmap[] = { keywordsFun };
-ValueMapping ccbetweenmap[] = { CcBetween<CcInt>, CcBetween<CcReal>,
-                                CcBetween<CcString>, CcBetween<CcBool> };
+ValueMapping ccbetweenmap[] = { CcBetween<CcInt,CcInt,CcInt>, 
+                                CcBetween<CcReal,CcReal, CcReal>,
+                                CcBetween<CcString, CcString, CcString>, 
+                                CcBetween<CcBool,CcBool,CcBool>, 
+                                CcBetween<CcInt,CcInt,CcReal>, 
+                                CcBetween<CcInt,CcReal,CcInt>, 
+                                CcBetween<CcInt,CcReal,CcReal>, 
+                                CcBetween<CcReal,CcInt,CcInt>, 
+                                CcBetween<CcReal,CcInt,CcReal>, 
+                                CcBetween<CcReal, CcReal, CcInt>};
+
 //ValueMapping cchashvaluemap[] = { CcHashValue<CcInt>, CcHashValue<CcReal>,
                                 //CcHashValue<CcString>, CcHashValue<CcBool> };
 ValueMapping cchashvaluemap[] = { CcHashValue };
@@ -5544,7 +5568,7 @@ Operator ccopifthenelse( "ifthenelse", CCSpecIfthenelse, 2, ifthenelseVM,
 Operator ccopifthenelse2( "ifthenelse2", CCSpecIfthenelse2, ifthenelse2Fun,
                          Operator::SimpleSelect, ifthenelse2Type );
 
-Operator ccbetween( "between", CCSpecBetween, 4, ccbetweenmap,
+Operator ccbetween( "between", CCSpecBetween, 10, ccbetweenmap,
                     CcBetweenSelect, CcBetweenTypeMap );
 
 Operator ccelapsedtime( "elapsedtime", CCSpecElapsed, ccelapsedfun,
