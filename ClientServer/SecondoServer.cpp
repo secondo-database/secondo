@@ -171,7 +171,7 @@ SecondoServer::WriteResponse( const int errorCode, const int errorPos,
   iosock << "<SecondoResponse>" << endl;
   csp::sendList(iosock,nl, list);  
   iosock << "</SecondoResponse>" << endl;
-  
+  iosock.flush(); 
 }
 
 void
@@ -230,6 +230,7 @@ SecondoServer::CallNumericType()
            << "SECONDO-0080 Protocol error: </NUMERICTYPE> expected." << endl
            << "</SecondoError>" << endl;
   }
+  iosock.flush();
 }
 
 
@@ -272,6 +273,7 @@ SecondoServer::CallGetTypeId()
            << "SECONDO-0080 Protocol error: </GetTypeId> expected." << endl
            << "</SecondoError>" << endl;
   }
+  iosock.flush();
 }
 
 void
@@ -299,6 +301,7 @@ SecondoServer::CallLookUpType()
            << "SECONDO-0080 Protocol error: </LookUpType> expected." << endl
            << "</SecondoError>" << endl;
   }
+  iosock.flush();
 }
 
 
@@ -342,6 +345,7 @@ void SecondoServer::CallGetOperatorIndexes(){
            << " received '" << cmdEnd << "'" << endl
            << "</SecondoError>" << endl;
    }
+  iosock.flush();
 }
 
 void SecondoServer::CallGetCosts(){
@@ -357,6 +361,7 @@ void SecondoServer::CallGetCosts(){
            << "SECONDO-0080 Protocol error: getCosts "
            << "can handle only 2 streams" << endl
            << "</SecondoError>" << endl;
+     iosock.flush();
      return;
    }
    // operator identifier
@@ -411,6 +416,7 @@ void SecondoServer::CallGetCosts(){
              << " expected" << endl
              << " received '" << line << "'" << endl
              << "</SecondoError>" << endl;
+      iosock.flush();
       return;
    }
    iosock << "<COSTRESPONSE>" << endl;
@@ -436,6 +442,7 @@ void SecondoServer::CallGetLinearCostFun(){
            << "SECONDO-0080 Protocol error: getCosts "
            << "can handle only 2 streams" << endl
            << "</SecondoError>" << endl;
+     iosock.flush();
      return;
    }
    getline(iosock,line);
@@ -490,6 +497,7 @@ void SecondoServer::CallGetLinearCostFun(){
              << " expected" << endl
              << " received '" << line << "'" << endl
              << "</SecondoError>" << endl;
+      iosock.flush();
       return;
    }
    stringstream ss;
@@ -556,6 +564,7 @@ void SecondoServer::CallGetCostFun(){
            << "SECONDO-0080 Protocol error: getCosts "
            << "can handle only 2 streams" << endl
            << "</SecondoError>" << endl;
+     iosock.flush();
      return;
    }
    getline(iosock,line);
@@ -611,6 +620,7 @@ void SecondoServer::CallGetCostFun(){
              << " expected" << endl
              << " received '" << line << "'" << endl
              << "</SecondoError>" << endl;
+      iosock.flush();
       return;
    }
    stringstream ss;
@@ -935,6 +945,7 @@ SecondoServer::CallRequestFile(){
   iosock << "<SecondoOK>" << endl;
   iosock.flush();
   csp->SendFile(fullFileName);  
+  iosock.flush();
 }
 
 
@@ -1124,6 +1135,7 @@ int SecondoServer::Execute() {
               << "</SecondoError>" << endl;
       rc = -1;
     }
+    iosock.flush();
   }
 
   si->Terminate();
