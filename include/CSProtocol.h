@@ -813,11 +813,18 @@ ReadResponse( ListExpr& resultList,
   std::string line="";
   try{
       getline( iosock, line );
-  } catch(...){
+  } catch(std::ios_base::failure& ex){
+    
     dwriter.write(debug, std::cerr, caller, callerID, "exception occured");
-    std::cerr << "Exception occurred during reading response from server"; 
+    std::cerr << "Exception occurred during reading response from server" 
+              << std::endl; 
+    std::cerr << "Exceptionm is " << ex.what() << std::endl;
     errorCode = ERR_IN_SECONDO_PROTOCOL;
-    iosock.clear();
+    try{
+       iosock.clear();
+    } catch(...){
+       std::cerr << "clear failed" << endl;
+    }
     return errorCode;
   }
   dwriter.write(debug, cout, caller, callerID, "read first line");
