@@ -109,12 +109,12 @@ double SQFDCalculator::calcSQFD(std::vector<FeatureSignatureTuple> fst1,
     {
         //arr1[i] = floor(fst1.at(i).weight / scale + 0.5) * scale;
         arr1[i] = round(fst1.at(i).weight * 100000);
-        std::cout << "arr1:" << arr1[i] << std::endl;
+        //std::cout << "arr1:" << arr1[i] << std::endl;
     }
     for (int i = fst1.size(); i < width; i++)
     {    
         arr1[i] = -round(fst2.at(i - fst1.size()).weight * 100000);
-        std::cout << "arr1:" << arr1[i] << std::endl;
+        //std::cout << "arr1:" << arr1[i] << std::endl;
     }     
         
     
