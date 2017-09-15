@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] title: [{\Large \bf ]  [}]
 //[->] [$\rightarrow$]
 //[toc] [\tableofcontents]
-
+//[star] [$\star$]
 
 [10] Statistics
 
@@ -45,6 +45,15 @@ evaluation times (PETs), and type inference for expressions.
 ~isCommutativeOP/1~ is defined in file ``operators.pl''.
 
 */
+
+% safeguards against commuting optimizer notations
+commute(rel(_,_),        _,_) :- !, fail.
+commute(attr(_,_,_),     _,_) :- !, fail.
+commute(attrname(_,_,_), _,_) :- !, fail.
+commute(value_expr(_,_), _,_) :- !, fail.
+commute(type_expr(_),    _,_) :- !, fail.
+commute(dbobject(_),     _,_) :- !, fail.
+commute(newattr(_,_),    _,_) :- !, fail.
 
 % general rules of commution
 commute(Term,_,Commuted) :-
@@ -87,14 +96,53 @@ Simple forms of predicates are stored in predicate ~sel~ or
 in predicate ~storedSel~.
 
 
-----	simple(+Term, +ArgRelList, -Simple) :-
-----
+ ----      simple(+Term, +ArgRelList, -Simple)
+ ----
 
-The simple form of a term ~Term~ containing attributes of ~Rel1~ and/or ~Rel2~
-is ~Simple~.
+The simple form of a term ~Term~ containing attributes of relations in 
+~ArgRelList~ is ~Simple~.
 
-Commutative predicates are transformed to the minimum equivalent expression
-regarding lexicographical order on the arguments, e.g.
+The ~ArgRelList~ contains elements of form: 
+
+(Index,rel(RelNameDC,Var)), where ~Index~ is the relation's index according to 
+its appearance in the predicate expression (1: left relation/stream, 2: right 
+relation/stream, 0: added attribute), ~RelNameDC~ is either the relations 
+DC-name or an irrel/7 term (see below), and ~Var~ is the alias name used for 
+the relation (or [star] if none is used).
+
+An irrel/7 term represents an intermediate result relation and has format 
+~irrel(+Type, +Stream, +TOP, +Card, +SizeTerm +AttrList, +TypeSpec)~: 
+Such expressions are added by predicate ~nrLookupIRRel/2~. The fields' meaning 
+is:
+
+  * ~Type~: relation, arel, nest, unnest, query
+
+  * ~Stream~: Executable plan describing the relation
+
+  * ~TOP~: (=Transformation Operator): Operator to use if ~unnest~ or ~nest~ is 
+    to be applied to the stream
+
+  * ~Card~: The relation's cardinality
+
+  * ~SizeTerm~ description of the relation's tuple size
+
+  * ~AttrList~: relation's attribute descriptions with enrties of form 
+   ~[DCAttr, Spelling, Case, DCFQN, Type, ArelDesc, SizeTerm]~, where ~DCAttr~ 
+   is the downcased attribute name, ~Spelling~ the correctly spelled 
+   attribute name with downcased starting letter, ~Case~ indicates whether 
+   the attribute name's correct starting letter is upper or lower case, ~DCFQN~ 
+   is the fully qualified DC-name of the attribute (including its relation) or 
+   ~fqn(no)~, if the attribute does not come from a relation. ~Type~ ist the 
+   attribute's type, ~ARelDesc~ represents an AttrList if the attribute type is 
+   arel. ~SizeTerm~ ist the attribute's size description.
+
+  * ~TypeSpec~: may provide additional information, depending on ~Type~
+
+
+The predicat ~Term~ is translated into a standardized form, which is unified 
+with ~Simple~. Commutative predicates in ~Term~ are transformed to the 
+minimum equivalent expression regarding lexicographical order on the arguments, 
+e.g.
 
 --- op(b,a)
 ---
@@ -104,11 +152,15 @@ is transformed into
 --- op(a,b)
 ---
 
+if ~op~ is flagged to be commutative in its operator description in file 
+~operators.pl~.
 
 */
 
 % NVK ADDED NR
 % Reflect the nested relations
+
+% case: intermediate result relation with alias (for nested relations)
 simple(attr(Attr, Index, _), RelList, rel(RelT, Var):Attr2) :-
   optimizerOption(nestedRelations),
   (Index=0 -> I2=1 ; I2 is Index),
@@ -116,21 +168,29 @@ simple(attr(Attr, Index, _), RelList, rel(RelT, Var):Attr2) :-
   RelT=..[irrel|_],
   downcaseAttributeList(Attr, Attr2), !.
 
+% case: intermediate result relation without alias (for nested relations) 
 simple(rel(RelT, Var), _, rel(RelT, Var)) :-
   RelT=..[irrel|_].
+
+% case: calculated attribute with alias (for nested relations)
 simple(attr(Var:Attr, 0, _), RelList, Rel2:Attr2) :-
   optimizerOption(nestedRelations),
   memberchk((1,rel(Rel, Var)),RelList),
   downcaseAttributeList(Rel,Rel2), downcaseAttributeList(Attr,Attr2), !.
+
+% case: calculated attribute without alias (for nested relations)
 simple(attr(Attr, 0, _), RelList, Rel2:Attr2) :-
   optimizerOption(nestedRelations),
   memberchk((1,rel(Rel, *)),RelList),
   downcaseAttributeList(Rel,Rel2), downcaseAttributeList(Attr,Attr2), !.
 
+% case: relation attribute with alias (for nested relations)
 simple(attr(Var:Attr, ArgNo, _), RelList, Rel2:Attr2) :-
   optimizerOption(nestedRelations),
   memberchk((ArgNo,rel(Rel, Var)),RelList),
   downcaseAttributeList(Rel,Rel2), downcaseAttributeList(Attr,Attr2), !.
+
+% case: relation attribute without alias (for nested relations)
 simple(attr(Attr, ArgNo, _), RelList, Rel2:Attr2) :-
   optimizerOption(nestedRelations),
   memberchk((ArgNo,rel(Rel, *)),RelList),
@@ -160,14 +220,15 @@ simple([A|Rest], RelList, [Asimple|RestSimple]) :-
   simple(Rest,RelList,RestSimple),
   !.
 
-% Normalize simple predicates, if possible
+% Normalize simple predicates, if necessary
 simple(Term,RelList,Simple) :-
   compound(Term),
   Term =.. [_,Arg1,Arg2],
   compare(>,Arg1,Arg2),
   commute(Term,RelList,Term2),
   simple(Term2,RelList,Simple),
-% dm(selectivity,['Commuting arguments: ',Term, ' changed to ',Simple,'.\n']),
+  dm(selectivity,['Simple/2 - Commuting arguments: ',Term, ' changed to', 
+                  Simple,'.\n']),
   !.
 
 simple(Term, RelList, Simple) :-
@@ -210,8 +271,9 @@ simplePred(pr(fakePred(Sel,BboxSel,CalcPET,ExpPET)),
 simplePred(pr(P, A, B), Simple) :-
   not(optimizerOption(determinePredSig)),
   optimizerOption(subqueries),
-  % simpleSubqueryPred(pr(P, A, B), Simple),  % does not work correctly
-  simple(P, A, B, Simple),
+                                             %  (Does not work correctly:)
+  %simpleSubqueryPred(pr(P, A, B), Simple),  % < Gueting 06-Jun-14 r 1.126
+  simple(P, A, B, Simple), %                 % > Gueting 06-Jun-14 r 1.126
   !.
 
 simplePred(pr(P, A, B), Simple) :-
@@ -1012,9 +1074,6 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, noBBox, _,
   ( optimizerOption(determinePredSig)
     -> ( getTypeTree(Pred,[(1,Rel1),(2,Rel2)],[OP,ArgsTrees,bool]),
          extractSignature(ArgsTrees,ArgsTypeList),
-         write_list(['XRIS: selectivity_join: extractSignature(',
-                     ArgsTrees,', ', 
-                     ArgsTypeList,')\n']),
          not(isBBoxOperator(OP,ArgsTypeList,_))
        )
     ;  not(isBBoxPredicate(OP))
@@ -2325,7 +2384,7 @@ primitive.
 Newly created (calculated) attributes are marked with ~newattr~.
 
 Facts describing known operator signatures are defined in file ~operators.pl~.
-The all have format
+They all have format
 
 ---- opSignature(+Operator, +Algebra, +ArgTypeList, -Resulttype, -Flags).
 ----
@@ -2559,6 +2618,40 @@ getTypeTree(attr(Attr, Arg, Y),Rels,[attr,attr(Attr, Arg, Y),DCType]) :-
                           [attr,attr(Attr, Arg, Y),DCType])),
   !.
 
+% Primitive: renamed attribute (user level syntax)
+getTypeTree(RenRelName:Attr,RelList,
+        [attr,attr(RenRelName:Attr, Arg, Z),DCType]) :-
+  memberchk((Arg,Rel),RelList),
+  Rel = rel(DCrelName,RenRelName),
+  downcase_atom(Attr,DCAttr),
+  databaseName(DB),
+  storedRel(DB,DCrelName,AttrList),
+  memberchk(DCAttr,AttrList),
+  storedAttrSize(DB,DCrelName,DCAttr,DCType,_,_,_),
+  storedSpell(DB,DCrelName:DCAttr,AttrSpelled),
+  ( compound(AttrSpelled) -> Z = l ; Z = u ),
+%   dm(selectivity,['$$$ getTypeTree: ',attr(RenRelName:Attr, Arg, Z),
+%   ': ',DCType]),nl,
+  assert(tmpStoredTypeTree(RenRelName:Attr,
+                          [attr,attr(RenRelName:Attr, Arg, Z),DCType])),
+  !.
+
+% Primitive: non renamed attribute (user level syntax)
+getTypeTree(Attr,Rels,[attr,attr(Attr, Arg, Y),DCType]) :-
+  downcase_atom(Attr,DCAttr),
+  memberchk((Arg,Rel),Rels),
+  Rel = rel(DCrelName, _),
+  databaseName(DB),
+  storedRel(DB,DCrelName,AttrList),
+  memberchk(DCAttr,AttrList),
+  storedAttrSize(DB,DCrelName,DCAttr,DCType,_,_,_),
+  storedSpell(DB,DCrelName:DCAttr,AttrSpelled),
+  ( compound(AttrSpelled) -> Y = l ; Y = u ),
+%   dm(selectivity,['$$$ getTypeTree: ',attr(Attr, Arg, Y),': ',DCType]),nl,
+  assert(tmpStoredTypeTree(DCrelName:Attr,
+                          [attr,attr(Attr, Arg, Y),DCType])),
+  !.
+
 % Primitive: attribute-name-descriptor
 getTypeTree(attrname(attr(X:Name, Y, Z)),_,[attrname,
         attrname(attr(X:Name, Y, Z)),DCType]) :-
@@ -2608,12 +2701,15 @@ getTypeTree(Op,_Rels,[Op,[],TypeDC]) :-
 % Expression is a null-ary operator using unknown operator signature
 % Needs special treatment since PROLOG does not allow for empty parameter lists
 getTypeTree(Op,_Rels,[Op,[],TypeDC]) :-
-  atom(Op),
+  atom(Op), 
   secondoOp(Op, prefix, 0),
   systemIdentifier(Op, _),
   ( \+(optimizerOption(use_matchingOperators))
     -> ( % Alternative I: using operator 'getTypeNL'
-         plan_to_atom(getTypeNL(Op),NullQueryAtom),
+         createNullValues([],NullArgs),
+         % send getTypeNL-query to Secondo to infer the signature
+         NullQueryExpr =.. [Op|NullArgs],
+         plan_to_atom(getTypeNL(NullQueryExpr),NullQueryAtom),
          my_concat_atom(['query ',NullQueryAtom],'',Query),
          dm(selectivity,['getTypeNL-Query = ',Query]),nl,
          secondo(Query,[text,TypeDC])
@@ -2637,6 +2733,7 @@ getTypeTree(Expr,Rels,[Op,ArgTree,TypeDC]) :-
   compound(Expr),
   not(is_list(Expr)),
   Expr =.. [Op|Args],
+  Op \= (:), % this is not a valid operator!
   getTypeTree(arglist(Args),Rels,ArgTree),
   extractSignature(ArgTree,ArgTypes),
   (   opSignature(Op,_,ArgTypes,TypeDC,_)
@@ -2651,11 +2748,13 @@ getTypeTree(Expr,Rels,[Op,ArgTree,TypeDC]) :-
   compound(Expr),
   not(is_list(Expr)),
   Expr =.. [Op|Args],
+  Op \= (:), % this is not a valid operator!
   getTypeTree(arglist(Args),Rels,ArgTree),
   extractSignature(ArgTree,ArgTypes),
   ( \+(optimizerOption(use_matchingOperators))
     -> ( % Alternative I: using operator 'getTypeNL'
-         findall(T,member([_,_,T],ArgTree),ArgTypes),
+         extractSignature(ArgTree,ArgTypes),
+         %findall(T,member([_,_,T],ArgTree),ArgTypes),
          % create a valid expression using defined null values
          createNullValues(ArgTypes,NullArgs),
          % send getTypeNL-query to Secondo to infer the signature
@@ -2666,7 +2765,8 @@ getTypeTree(Expr,Rels,[Op,ArgTree,TypeDC]) :-
          secondo(Query,[text,TypeDC])
        )
     ;  ( % Alternative II: using operator 'matchingOperators'
-         findall(T,member([_,_,T],ArgTree),ArgTypes),
+         extractSignature(ArgTree,ArgTypes),
+         %findall(T,member([_,_,T],ArgTree),ArgTypes),
          my_concat_atom(ArgTypes, ', ', ArgTypesText),
          my_concat_atom(['query matchingOperators( ',ArgTypesText,
                       ' ) filter[.OperatorName="',Op,
@@ -2758,7 +2858,7 @@ valueTypeExpr2valueTypeExprAtom(Term,Result) :-
   !.
 
 /*
-The following predicate extracts an operator's signature (a list of it's 
+The following predicate extracts an operator's signature (a list of its 
 argument types) from its argument list, which is given as a list of ~TypeTree~s.
 
 ---- extractSignature(+TypeTreeList,-DataTypeList)
