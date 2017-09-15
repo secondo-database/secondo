@@ -1486,24 +1486,10 @@ plan_to_atom(res(N), Result) :-
   atom_concat(Res1, ')', Result),
   !.
 
-/*
-NVK NOTE: changed varname from SubqueryPred to Subquery because it is not in every case a predicate.
-
-*/
 plan_to_atom(Subquery, Result) :-
   optimizerOption(subqueries),
   subquery_plan_to_atom(Subquery, Result),
   !.
-/*
-NVK MODIFIED NR
-Removed, don't know why this is called twice and i can't see a reason for this.
-plan\_to\_atom(SubqueryPred, Result) :-
-  optimizerOption(subqueries),
-  subquery\_plan\_to\_atom(SubqueryPred, Result),
-  !.
-NVK MODIFIED NR END
-
-*/
 
 plan_to_atom(pr(P,_), Result) :-
    plan_to_atom(P, Result).
@@ -6850,7 +6836,7 @@ callLookup(Query, Query2) :-
   lookup(Query, Query2), !.
 
 /*
-  Intended for subquery lookup's.
+  Intended for subquery lookups.
 
 */
 callSubqueryLookup(Query, Query2) :-
@@ -7354,7 +7340,7 @@ lookupAttr(const(Type,Value), Y) :-
 % renamed attribute
 lookupAttr(Var:Attr, attr(Var:Attr2, 0, Case)) :-
   \+ optimizerOption(nestedRelations), % NVK ADDED
-	!,
+  !,
   atomic(Var),  %% changed code FIXME
   atomic(Attr), %% changed code FIXME
   variable(Var, Rel2),
@@ -7422,6 +7408,10 @@ lookupAttr(Term, Result) :-
   Result =.. [AggrOp, Term2Res, Op, Type, DefaultRes],
   !.
 
+/*
+Generic lookupAttr/2-rule for functors of arbitrary arity using Univ (=../2):
+
+*/
 lookupAttr(T, T2) :-
   compound(T),
   T =.. [Op, Expr],
@@ -7431,11 +7421,6 @@ lookupAttr(T, T2) :-
   !.
 
 
-
-/*
-Generic lookupAttr/2-rule for functors of arbitrary arity using Univ (=../2):
-
-*/
 lookupAttr(Name, attr(Name, 0, u)) :-
   queryAttr(attr(Name, 0, u)),
   !.
@@ -7445,15 +7430,16 @@ lookupAttr(Name, attr(Name, 0, u)) :-
 % are marked up in double quotes, which Prolog handles as strings, that are
 % represented as charactercode lists...
 
-lookupAttr(Term, value_expr(string, Term)) :-
-  is_list(Term), % list represents a string (list of characters)
-  catch((my_string_to_list(_,Term), Test = ok),_,Test = failed), Test = ok,
-  retractall(onlyAttribute), !.
-
+% new rule helps prevent that string chaos
 lookupAttr(Term, value_expr(string, Term)) :-
   string(Term),
   !.
 
+% old rule for backward compatibility with old code. May be removed later...
+lookupAttr(Term, value_expr(string, Term)) :-
+  is_list(Term), % list represents a string (list of characters)
+  catch((my_string_to_list(_,Term), Test = ok),_,Test = failed), Test = ok,
+  retractall(onlyAttribute), !.
 
 % string constant
 % lookupAttr(Term, Term) :-
@@ -7515,7 +7501,8 @@ lookupAttr(Term, Term) :-
   fail.
 
 % Fallback clause
-lookupAttr(Term, Term) :- !.
+lookupAttr(Term, Term) :- 
+  !.
 
 lookupAttr1([],[]) :- !.
 
@@ -7576,8 +7563,6 @@ lookupPred(Pred, pr(Pred2, Rel)) :-
   nextCounter(selectionPred,_),
   lookupPred1(Pred, Pred2, [], [Rel]),
   (isTmatchesQuery(Pred2) -> assert(isStarQuery)), !.
-
-
 
 lookupPred(Pred, pr(Pred2, Rel)) :-
   nextCounter(selectionPred,_),
@@ -7671,8 +7656,7 @@ lookupPred1(InTerm, OutTerm, RelsBefore, RelsAfter) :-
   !.
 % NVK ADDED NR END
 
-lookupPred1(Var:Attr, attr(Var:Attr2, Index, Case), RelsBefore, RelsAfter)
-  :-
+lookupPred1(Var:Attr, attr(Var:Attr2, Index, Case), RelsBefore, RelsAfter) :-
   \+ optimizerOption(nestedRelations), % NVK ADDED
   variable(Var, Rel2), !, Rel2 = rel(Rel, Var),
   downcase_atom(Rel,RelDC),
@@ -7686,6 +7670,31 @@ lookupPred1(Var:Attr, attr(Var:Attr2, Index, Case), RelsBefore, RelsAfter)
   (   usedAttr(Rel2, attr(Attr2, X, Case))
     ; assert(usedAttr(Rel2, attr(Attr2, X, Case)))
   ), !.
+
+lookupPred1(Var:Attr, attr(Var:Attr2, _, Case), _, _) :-
+  \+ optimizerOption(nestedRelations), % NVK ADDED
+  \+ (variable(Var, Rel2), Rel2 = rel(Rel, Var),
+      downcase_atom(Rel,RelDC),
+      downcase_atom(Attr,AttrDC),
+      spelled(RelDC:AttrDC, attr(Attr2, _, Case))
+     ),
+  findall((V,R),variable(V,R),RelRenBindings),
+  findall((QR,QR2),queryRel(QR,QR2),RelNonRenBindings),
+  findall(AGen,queryAttr(AGen),AttrsGen),
+  findall((AU1,AU2),usedAttr(AU1,AU2),AttrsUsed),  
+  write_list(['WARNING: lookupPred1/2 encountered renamed attribute ',
+              ' but did not find a matching renamed rel - variable/2 fact!\n',
+              '\tFor input = ', Var:Attr,' \n',
+              '\tRenamed rels for WHERE clause - variable/2:', 
+              RelRenBindings,'\n',
+              '\tNon-renamed rels for WHERE clause - queryRel/2:', 
+              RelNonRenBindings,'.\n',
+              '\tGenerated attributes - queryAttr/1: ',
+              AttrsGen,'\n',
+              '\tAttrs referenced within FROM clause - usedAttr/2: ',
+              AttrsUsed,'\n',
+              '\tIs it a correlated attribute in a nested query?\n']),
+              fail.
 
 lookupPred1(Attr, attr(Attr2, Index, Case), RelsBefore, RelsAfter) :-
   \+ optimizerOption(nestedRelations), % NVK ADDED
@@ -7719,13 +7728,17 @@ lookupPred1(RealAtom, value_expr(real,RealAtom), RelsBefore, RelsBefore) :-
 % Primitive: string-atom (they regularly cause problems since they
 % are marked up in double quotes, which Prolog handles as strings, that are
 % represented as charactercode lists...)
+
+% new SWI-Prolog version handles strings smarter:
+lookupPred1(Term, value_expr(string,Term), RelsBefore, RelsBefore) :-
+  string(Term), 
+  !.
+
+% Old rule maintained to handle terms that may have been injected by other 
+% optimzer rules. May be removed later...
 lookupPred1(Term, value_expr(string,Term), RelsBefore, RelsBefore) :-
   is_list(Term), % list represents a string (list of characters)
   catch((my_string_to_list(_,Term), Test = ok),_,Test = failed), Test = ok,
-  !.
-
-lookupPred1(Term, value_expr(string,Term), RelsBefore, RelsBefore) :-
-  string(Term), 
   !.
 
 %% Primitive: generic atom (constant expression)
@@ -7794,7 +7807,8 @@ lookupPred1(Term, dbobject(TermDC), Rels, Rels) :-
 % Primitive: text-atom.
 lookupPred1(Term, value_expr(text,Term), RelsBefore, RelsBefore) :-
   atom(Term),
-  not(is_list(Term)), !.
+  not(is_list(Term)), 
+  !.
 
 lookupPred1(Term, Term, Rels, Rels) :-
  atom(Term),
@@ -7806,8 +7820,9 @@ lookupPred1(Term, Term, Rels, Rels) :-
  throw(error_SQL(optimizer_lookupPred1(Term, Term)::unknownIdentifier::ErrMsg)).
 
 % fallback clause for non-atoms
-lookupPred1(Term, Term, RelsBefore, RelsBefore).
+lookupPred1(Term, Term, RelsBefore, RelsBefore) :- !.
 
+% handlings lists for lookupPred1/2 
 lookupPred2([], [], RelsBefore, RelsBefore).
 
 lookupPred2([Me|Others], [Me2|Others2], RelsBefore, RelsAfter) :-

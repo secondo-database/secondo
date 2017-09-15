@@ -75,12 +75,16 @@ Facts about comparison operators
 
 */
 
-isComparisonOp(=).
-isComparisonOp(<=).
-isComparisonOp(>=).
-isComparisonOp(<).
-isComparisonOp(>).
-isComparisonOp(<>).
+%isComparisonOp(=).
+%isComparisonOp(<=).
+%isComparisonOp(>=).
+%isComparisonOp(<).
+%isComparisonOp(>).
+%isComparisonOp(<>).
+
+% use operator properties based rules from ~operators.pl~
+isComparisonOp(<>) :- isComparatorOp(#), !. % match prolog op to secondo op name
+isComparisonOp(T)  :- isComparatorOp(T), !.
 
 /*
 
@@ -2716,7 +2720,7 @@ transformQuery(_,_,_,count(timeout(filter(counter(loopjoin(Q, Fun), C), P), T)),
     count(timeout(filter(counter(loopjoin(head(Q,JoinSize),Fun), C), P), T))) :-
   not(optimizerOption(subqueries)).
 
-% XRIS: case symmjoin for nested non-bbox selection predicates
+% case symmjoin for nested non-bbox selection predicates
 transformQuery(_, _, _,
     count(symmjoin(Query1,Query2,Pred)), JoinSize,
     count(symmjoin(head(Query1,JoinSize),Query2,Pred))) :-
@@ -2727,7 +2731,7 @@ transformQuery(_, _, _,
     count(timeout(symmjoin(head(Query1,JoinSize),Query2,Pred),T))) :-
   not(optimizerOption(subqueries)).
 
-% XRIS: case symmjoin for nested bbox selection predicates
+% case symmjoin for nested bbox selection predicates
 transformQuery(_, _, _,
     count(filter(counter(
       symmjoin(Query1,Query2,P1),C1),P2)), JoinSize,
@@ -2756,7 +2760,7 @@ transformQuery(_, _, Pred, count(timeout(loopsel(Query, Fun),T)), JoinSize,
     count(timeout(loopsel(head(Query, JoinSize), Fun),T))) :-
   not(isSubqueryPred1(Pred)).
 
-% XRIS: case symmjoin for nested non-bbox selection predicates
+% case symmjoin for nested non-bbox selection predicates
 transformQuery(_, _, Pred, count(symmjoin(Q1,Q2,P)), JoinSize,
     count(symmjoin(head(Q1,JoinSize),Q2,P))) :-
   not(isSubqueryPred1(Pred)).
@@ -2765,7 +2769,7 @@ transformQuery(_, _, Pred, count(timeout(symmjoin(Q1,Q2,P),TO)), JoinSize,
     count(timeout(symmjoin(head(Q1,JoinSize),Q2,P),TO))) :-
   not(isSubqueryPred1(Pred)).
 
-% XRIS: case symmjoin for nested bbox selection predicates
+% case symmjoin for nested bbox selection predicates
 transformQuery(_, _, Pred,
     count(filter(counter(symmjoin(Q1,Q2,P2),C1),P1)), JoinSize,
     count(filter(counter(
