@@ -103,6 +103,7 @@ today               & [->] instant
 #include "SecondoSystem.h"
 #include "Attribute.h"
 #include "StandardTypes.h"
+#include "LongInt.h"
 #include "FTextAlgebra.h"
 #include <math.h>
 #include <time.h>
@@ -2190,18 +2191,25 @@ ListExpr CreateDurationTM(ListExpr args){
       return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
-  if(nl->ListLength(args)==2){
-    if(!CcInt::checkType(nl->First(args))){
-      return listutils::typeError("first arg is not an int");
-    }
-    if(!CcInt::checkType(nl->Second(args)) &&
-       !CcString::checkType(nl->Second(args))){
-      return listutils::typeError("second arg not of int or string");
-    }
+  if(!nl->HasLength(args,2)){
+   return listutils::typeError("one or two arguments required");
+  }
+  ListExpr first = nl->First(args);
+  ListExpr second = nl->Second(args);
+  if(CcInt::checkType(first) && CcInt::checkType(second)){
     return listutils::basicSymbol<Duration>();
   }
-  ErrorReporter::ReportError("One or two arguments required\n");
-  return nl->SymbolAtom(Symbol::TYPEERROR());
+
+  if(CcInt::checkType(first) && CcString::checkType(second)){
+    return listutils::basicSymbol<Duration>();
+  }
+
+  if(LongInt::checkType(first) && CcString::checkType(second)){
+    return listutils::basicSymbol<Duration>();
+  }
+
+  return listutils::typeError("real or (int x int ) or "
+                              "([int,longint} x string) required");
 }
 
 ListExpr CreateInstantTM(ListExpr args){
@@ -2721,10 +2729,11 @@ int CreateDurationFromIntIntFun(Word* args, Word& result, int message,
     return 0;
 }
 
+template<class IT>
 int CreateDurationFromIntStringFun(Word* args, Word& result, int message,
                                 Word& local, Supplier s){
     result = qp->ResultStorage(s);
-    CcInt* value = (CcInt*) args[0].addr;
+    IT* value = (IT*) args[0].addr;
     CcString* unit = (CcString*) args[1].addr;
     DateTime* res = (DateTime*)result.addr;
 
@@ -2733,8 +2742,8 @@ int CreateDurationFromIntStringFun(Word* args, Word& result, int message,
       return 0;
     }
     string u = unit->GetValue();
-    int factor = 1;
-    int64_t v = value->GetIntval();
+    int64_t factor = 1;
+    int64_t v = value->GetValue();
     if(u=="ms"){
        factor = 1;
     } else if(u=="s"){
@@ -3129,7 +3138,8 @@ ValueMapping TheInstantValueMap[] = {
 ValueMapping CreateDurationValueMap[] = {
         CreateDurationFromRealFun,
         CreateDurationFromIntIntFun,
-        CreateDurationFromIntStringFun};
+        CreateDurationFromIntStringFun<CcInt>,
+        CreateDurationFromIntStringFun<LongInt>};
 
 ValueMapping CreateInstantValueMap[] = {
         CreateInstantFromRealFun,
@@ -3162,9 +3172,13 @@ static int TheInstantSelect(ListExpr args){
 
 static int create_durationSelect(ListExpr args){
   if(nl->HasLength(args,1)){
-    return 0;
+    return 0;  // real
   }
-  return CcInt::checkType(nl->Second(args))?1:2;
+  if(CcInt::checkType(nl->Second(args))){
+    return 1; // int x int
+  }  
+  // int x string || longint x string
+  return CcInt::checkType(nl->First(args))?2:3;
 }
 
 static int InstantOrDurationIntSelect(ListExpr args){
@@ -3384,7 +3398,7 @@ Operator dt_instant2real(
 Operator dt_create_duration(
        "create_duration",          // name
        CreateDurationSpec,         // specification
-       3,                          // number of functions
+       4,                          // number of functions
        CreateDurationValueMap,
        create_durationSelect,
        CreateDurationTM);
