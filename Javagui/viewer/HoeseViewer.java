@@ -2749,7 +2749,7 @@ public class HoeseViewer extends SecondoViewer {
 											// painted ?
 		private boolean isEnabled = false;
 		private boolean selectionEnabled = true;
-                private BasicStroke rstroke = new BasicStroke(6.0f);
+                private BasicStroke rstroke = new BasicStroke(2.0f);
 
 		public void drawRectangle() {
 			if (!isEnabled)
