@@ -9958,33 +9958,47 @@ ListExpr MovingTypeMapGetUnit( ListExpr args )
 */
 
 ListExpr MovingTypeMapSimplify(ListExpr args){
+
+
+   // Signatures are
+   // mpoint x real [x geoid] -> mpoint 
+   // mpoint x real x duration [x geoid] 
+   // mreal x real -> mreal 
+
    int len = nl->ListLength(args);
+   if(len<2 || len > 4){
+     return listutils::typeError("2 until 4 arguments required");
+   }
+   if(!CcReal::checkType(nl->Second(args))){
+     return listutils::typeError("second argument has to be a real");
+   }
+   ListExpr first = nl->First(args);
+   if(MReal::checkType(first)){
+     if(len!=2){
+      return listutils::typeError("simplifying an mreal requires "
+                                  "exactly 2 arguments"); 
+     }
+     return first;
+   }
+   if(!MPoint::checkType(first)){
+     return listutils::typeError("simplify requires an mreal or an "
+                                 "mpoint as it's first argument");
+   }
+   ListExpr third = nl->Third(args);
+   if(len==3){
+     if(!Duration::checkType(third) && !Geoid::checkType(third)){
+       return listutils::typeError("third argument must be a "
+                                   "duration or an mpoint");
+     }
+     return first;
+   }
+   // len = 4
+   if(!Duration::checkType(third) || !Geoid::checkType(nl->Fourth(args))){
+    return listutils::typeError("third arg not of type duration or "
+                                "fourth arg not of type geoid");
+   } 
+   return first;   
 
-   if((len!=2) && (len !=3)){
-       ErrorReporter::ReportError("two or three arguments expected");
-       return nl->SymbolAtom(Symbol::TYPEERROR());
-   }
-   ListExpr arg1 = nl->First(args);
-   ListExpr arg2 = nl->Second(args);
-   if(nl->IsEqual(arg1,MPoint::BasicType()) &&
-      nl->IsEqual(arg2,CcReal::BasicType())){
-        if(len==2){
-           return nl->SymbolAtom(MPoint::BasicType());
-        } else { // check the third argument
-          ListExpr arg3 = nl->Third(args);
-          if(nl->IsEqual(arg3,Duration::BasicType())){
-             return nl->SymbolAtom(MPoint::BasicType());
-          }
-        }
-   }
-   if( (len==2) && (nl->IsEqual(arg1,MReal::BasicType())) &&
-       (nl->IsEqual(arg2,CcReal::BasicType()))){
-       return nl->SymbolAtom(MReal::BasicType());
-   }
-
-   ErrorReporter::ReportError(" (mpoint x real [ x duration])"
-                             "  or (mreal x real) expected");
-   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -11981,18 +11995,14 @@ int ExtDeftimeSelect(ListExpr args){
 
 */
 int SimplifySelect(ListExpr args){
-   int len = nl->ListLength(args);
-   if(len==2){
-       // mpoint x real
-       if(nl->IsEqual(nl->First(args),MPoint::BasicType())){
-           return 0;
-       } else { // mreal x real
-           return 2;
-       }
-   }
-   // mpoint x real x duration
-   if(len==3) return 1;
-   return -1;
+   // Signatures are
+   // mpoint x real [x geoid] -> mpoint : 0
+   // mpoint x real x duration [x geoid] : 1
+   // mreal x real -> mreal : 2
+
+   if(MReal::checkType(nl->First(args))) return 2;
+   if(Duration::checkType(nl->Third(args))) return 1;
+   return 0;
 }
 
 /*
