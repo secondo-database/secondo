@@ -7117,17 +7117,28 @@ ListExpr PolylinesMap(ListExpr args){
 */
 ListExpr SimplifyTypeMap(ListExpr args){
    int len = nl->ListLength(args);
-   if((len!=2) && (len!=3)){
+   if((len!=2) && (len!=3) && (len!=4)){
      return listutils::typeError("invalid number of"
-                                 " arguments (has to be 2 or 3 )");
+                                 " arguments (has to be 2,3, or 4 )");
    }
    if(!nl->IsEqual(nl->First(args),Line::BasicType()) ||
       !nl->IsEqual(nl->Second(args),CcReal::BasicType())){
-     return listutils::typeError("line x real [x points] expected");
+     return listutils::typeError("line x real [x points] [x geoid] expected");
    }
-   if( (len==3) &&
-       !(nl->IsEqual(nl->Third(args),Points::BasicType()))){
-     return listutils::typeError("line x real [ x points] expected");
+   if(len==2){
+     return nl->SymbolAtom(Line::BasicType());
+   }
+   ListExpr third = nl->Third(args);
+   if(len==3){
+      if(!Points::checkType(third) && !Geoid::checkType(third)){
+        return listutils::typeError("line x real [x points][x geoid] expected");
+      } else {
+        return nl->SymbolAtom(Line::BasicType());
+      }
+   }
+   // len == 4
+   if(!Points::checkType(third) || !Geoid::checkType(nl->Fourth(args))){
+        return listutils::typeError("line x real[ x points][x geoid] expected");
    }
    return nl->SymbolAtom(Line::BasicType());
 }
@@ -8115,8 +8126,10 @@ int SpatialBoundarySelect( ListExpr args )
 int SpatialSimplifySelect(ListExpr args){
    if(nl->ListLength(args)==2){ // line x real
       return 0;
+   } else if (Points::checkType(nl->Third(args))){
+      return 1; // line x real x points [x geoid]
    } else {
-      return 1; // line x real x points
+      return 0; //line x real x geoid
    }
 
 }
@@ -10005,9 +10018,17 @@ int SpatialSimplify_LReal(Word* args, Word& result, int message,
    Line*   res     = static_cast<Line*>(result.addr);
    Line*   line    = static_cast<Line*>(args[0].addr);
    CcReal* epsilon = static_cast<CcReal*>(args[1].addr);
+   Geoid* geoid = 0;
+   if(qp->GetNoSons(s)==3){
+      geoid = static_cast<Geoid*>(args[2].addr);
+      if(!geoid->IsDefined()){
+         res->SetDefined(false);
+         return 0;
+      }
+   }
    if( line->IsDefined() && epsilon->IsDefined() ){
      Points* ps= new Points(0);
-     line->Simplify( *res, epsilon->GetRealval(),*ps );
+     line->Simplify( *res, epsilon->GetRealval(),*ps,geoid );
      ps->DeleteIfAllowed();
    } else {
       res->SetDefined( false );
@@ -10022,8 +10043,16 @@ int SpatialSimplify_LRealPs(Word* args, Word& result, int message,
    Line*   line    = static_cast<Line*>(args[0].addr);
    CcReal* epsilon = static_cast<CcReal*>(args[1].addr);
    Points* ps      = static_cast<Points*>(args[2].addr);
+   Geoid* geoid = 0;
+   if(qp->GetNoSons(s)==4){
+      geoid = static_cast<Geoid*>(args[3].addr);
+       if(!geoid->IsDefined()){
+          res->SetDefined(0);
+          return 0;
+       }
+   }
    if( line->IsDefined() && epsilon->IsDefined() && ps->IsDefined() )
-     line->Simplify( *res, epsilon->GetRealval(), *ps);
+     line->Simplify( *res, epsilon->GetRealval(), *ps,geoid);
    else
      res->SetDefined( false );
    return 0;
@@ -11732,7 +11761,7 @@ const string SpatialSpecPolylinesC  =
 
 const string SpatialSpecSimplify  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>line  x real [x points] -> line </text--->"
+    "( <text>line  x real [x points x [geoid] ] -> line </text--->"
     "<text> simplify( line, epsilon, [, ips ] ) </text--->"
     "<text>Simplifies a line value, using a maximum error of 'epsilon'. The "
     "points value 'ips' marks important points, that must be kept. </text--->"
