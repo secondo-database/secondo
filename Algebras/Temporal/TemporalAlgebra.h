@@ -3141,6 +3141,23 @@ Returns true, iff this unit is defined and not moving during its definition time
    
    void Clear() {}
 
+   void gk(int zone, UPoint& result) const{
+      if(!IsDefined()){
+         result.SetDefined(false);
+      }
+      static WGSGK gk;
+      gk.setMeridian(zone);
+      result = *this;
+      gk.project(p0,result.p0);
+      gk.project(p1,result.p1);
+      if(!result.p0.IsDefined() || !result.p1.IsDefined()){
+         result.p0.Set(true,0,0);
+         result.p1.Set(true,0,0);
+         result.SetDefined(false);
+      }
+   }
+
+
 /*
 3.8.4 Attributes
 
@@ -3988,7 +4005,8 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
 
    void Simplify(const double epsilon, MPoint& result,
                  const bool checkBreakPoints,
-                 const datetime::DateTime& duration) const;
+                 const datetime::DateTime& duration,
+                 const Geoid* geoid) const;
 
 /*
 3.10.5.5 Operation ~BreakPoints~
@@ -4204,7 +4222,8 @@ private:
         double* second, int secondSize, int& count );
    void Simplify(const int min, const int max,
                  bool* useleft, bool* useright,
-                 const double epsilon) const;
+                 const double epsilon,
+                 const Geoid* geoid) const;
 
    Rectangle<3> bbox;
 };

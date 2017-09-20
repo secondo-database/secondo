@@ -5317,7 +5317,8 @@ on the Douglas Peucker algorithm for line simplification.
 
 void MPoint::Simplify(const double epsilon, MPoint& result,
                       const bool checkBreakPoints,
-                      const DateTime& dur) const{
+                      const DateTime& dur,
+                      const Geoid* geoid) const{
    result.Clear();
 
    // check for defined state
@@ -5325,6 +5326,10 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
      result.SetDefined(false);
      return;
    }
+   if(geoid && !geoid->IsDefined()){
+     result.SetDefined(false);
+     return;
+   } 
    result.SetDefined(true);
 
    unsigned int size = GetNoComponents();
@@ -5356,27 +5361,27 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
 
       if( checkBreakPoints && IsBreakPoint(&u1,dur)){
          if(last-1 > first){
-            Simplify(first,last-2,useleft,useright,epsilon);
+            Simplify(first,last-2,useleft,useright,epsilon,geoid);
          }
-         Simplify(last-1, last-1, useleft, useright, epsilon);
+         Simplify(last-1, last-1, useleft, useright, epsilon,geoid);
          first = last;
          last++;
       } else if( checkBreakPoints && IsBreakPoint(&u2,dur)){
-         Simplify(first,last-1,useleft,useright,epsilon);
+         Simplify(first,last-1,useleft,useright,epsilon,geoid);
          last++;
-         Simplify(last-1, last-1,useleft,useright,epsilon);
+         Simplify(last-1, last-1,useleft,useright,epsilon,geoid);
          first = last;
          last++;
       } else if(connected(&u1,&u2)){ // enlarge the sequence
          last++;
       } else {
-          Simplify(first,last-1,useleft, useright, epsilon);
+          Simplify(first,last-1,useleft, useright, epsilon,geoid);
           first=last;
           last++;
       }
    }
    // process the last recognized sequence
-   Simplify(first,last-1,useleft, useright,epsilon);
+   Simplify(first,last-1,useleft, useright,epsilon,geoid);
 
 
    // count the number of units
@@ -5440,7 +5445,8 @@ void MPoint::Simplify(const int min,
                  const int max,
                  bool* useleft,
                  bool* useright,
-                 const double epsilon) const {
+                 const double epsilon,
+                 const Geoid* geoid) const {
 
   // the endpoints are used in each case
   useleft[min] = true;
@@ -5471,7 +5477,7 @@ void MPoint::Simplify(const int min,
   for(int i=min+1;i<=max;i++){
      Get(i,u);
      upoint.TemporalFunction(u.timeInterval.start,p_simple, true);
-     distance  = p_simple.Distance(u.p0);
+     distance  = p_simple.Distance(u.p0,geoid);
      if(distance>maxDist){ // new maximum found
         maxDist = distance;
         maxIndex = i;
@@ -5486,8 +5492,8 @@ void MPoint::Simplify(const int min,
   }
 
   // split at the left point of maxIndex
-  Simplify(min,maxIndex-1,useleft,useright,epsilon);
-  Simplify(maxIndex,max,useleft,useright,epsilon);
+  Simplify(min,maxIndex-1,useleft,useright,epsilon,geoid);
+  Simplify(maxIndex,max,useleft,useright,epsilon,geoid);
 }
 
 
@@ -10041,16 +10047,16 @@ ListExpr MovingTypeMapgk(ListExpr args){
     return nl->TypeError();
   }
   ListExpr arg1 = nl->First(args);
-  if(!nl->IsEqual(arg1,MPoint::BasicType())){
+  if(!MPoint::checkType(arg1) && !UPoint::checkType(arg1)){
     ErrorReporter::ReportError("mpoint expected");
     return nl->TypeError();
   }
   if( (len==2) && nl->IsEqual(nl->Second(args),CcInt::BasicType()) ) {
-      return nl->SymbolAtom(MPoint::BasicType()); // Zone provided by user
+      return arg1; // Zone provided by user
   } else if (len==1){
     return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
            nl->OneElemList(nl->IntAtom(2)),  // standard zone for Hagen
-           nl->SymbolAtom(MPoint::BasicType()));
+           arg1);
   }
   ErrorReporter::ReportError("No match.");
   return nl->TypeError();
@@ -12639,9 +12645,13 @@ int MPointSimplify(Word* args, Word& result,
   result = qp->ResultStorage( s );
   double epsilon = ((CcReal*)args[1].addr)->GetRealval();
   DateTime dur(durationtype);
+  Geoid* geoid = 0;
+  if(qp->GetNoSons(s)==3){
+    geoid = (Geoid*) args[2].addr;
+  } 
   ((MPoint*)args[0].addr)->Simplify( epsilon,
                                      *((MPoint*)result.addr),
-                                     false,dur );
+                                     false,dur,geoid );
   return 0;
 }
 
@@ -12651,9 +12661,13 @@ int MPointSimplify2(Word* args, Word& result,
   result = qp->ResultStorage( s );
   double epsilon = ((CcReal*)args[1].addr)->GetRealval();
   DateTime* dur = (DateTime*)args[2].addr;
+  Geoid* geoid = 0;
+  if(qp->GetNoSons(s)==4){
+    geoid = (Geoid*) args[3].addr;
+  }
   ((MPoint*)args[0].addr)->Simplify( epsilon,
                                      *((MPoint*)result.addr),
-                                     true,*dur );
+                                     true,*dur, geoid );
   return 0;
 }
 
@@ -12969,19 +12983,30 @@ int breaksVM(Word* args, Word& result,
 16.3.29 Value mapping function for the operator ~gk~
 
 */
-int gkVM(Word* args, Word& result,
+template<class T>
+int gkVMT(Word* args, Word& result,
          int message, Word& local,
          Supplier s){
   result = qp->ResultStorage( s );
-  MPoint* argmp = static_cast<MPoint*>(args[0].addr);
+  T* arg = static_cast<T*>(args[0].addr);
   CcInt*  zone  = static_cast<CcInt*>(args[1].addr);
   if(!zone->IsDefined()){
-    ((MPoint*)result.addr)->SetDefined(false);
+    ((T*)result.addr)->SetDefined(false);
   } else {
-    argmp->gk(zone->GetValue(), *((MPoint*)result.addr));
+    arg->gk(zone->GetValue(), *((T*)result.addr));
   }
   return 0;
 }
+
+ValueMapping gkVM[] = {
+   gkVMT<MPoint>,
+   gkVMT<UPoint>
+};
+
+int gkSelect(ListExpr args){
+  return MPoint::checkType(nl->First(args))?0:1;
+}
+
 /*
 16.3.29 Value mapping function for the operator ~vertices~
 
@@ -16037,7 +16062,7 @@ const string breaksSpec =
 */
 const string TemporalSpecgk =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mpoint [ x int ] -> mpoint</text--->"
+  "( <text>{mpoint,upoint} [ x int ] -> {mpoint,upoint}</text--->"
   "<text>gk( mp [, zone] ) </text--->"
   "<text>Projects the argument 'mp' using the Gauss Krueger projection "
   "with center meridian 'zone'. Zone width is 3°. If 0 <= 'zone' <= 119 is not"
@@ -16814,8 +16839,9 @@ Operator breaks( "breaks",
 
 Operator temporalgk( "gk",
                      TemporalSpecgk,
+                     2,
                      gkVM,
-                     Operator::SimpleSelect,
+                     gkSelect,
                      MovingTypeMapgk );
 
 Operator temporalvertices( "vertices",
