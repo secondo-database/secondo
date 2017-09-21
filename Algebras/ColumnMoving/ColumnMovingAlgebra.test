@@ -1203,11 +1203,11 @@ query mps7 inside r1;
 
 #testcase extend_0
 #yields error
-query cr0 feed filter[.I passes 3] cextend[1] consume
+query cr0 feed filter[.I passes 3] cprojectextend[;1] consume
 
 #testcase extend_1
 #yields error
-query cr0 feed filter[.I passes 3] cextend[P: .P at [const point value (0.0 0.0)]] consume
+query cr0 feed filter[.I passes 3] cprojectextend[I;I: .P at [const point value (0.0 0.0)]] consume
 
 #testcase extend_2
 #yields (\
@@ -1236,7 +1236,7 @@ query cr0 feed filter[.I passes 3] cextend[P: .P at [const point value (0.0 0.0)
                 (\
                     ("2000-02-06" "2000-02-06" TRUE TRUE) \
                     (0.0 0.0 0.0 0.0))))))
-query cr0 feed filter[.I passes 3] cextend[NP: .P at [const point value (0.0 0.0)]] consume
+query cr0 feed filter[.I passes 3] cprojectextend[P, I; NP: .P at [const point value (0.0 0.0)]] consume
 
 
 

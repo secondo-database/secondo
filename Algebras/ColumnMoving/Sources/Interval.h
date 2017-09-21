@@ -20,6 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+1 Interval.h
+
 */
 
 #pragma once
@@ -28,29 +30,109 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace ColumnMovingAlgebra
 {
+/*
+1.1 Declaration of struct ~Interval~
+
+~Interval~ represents a time interval
+
+*/
   struct Interval {
+/*
+~s~ and ~e~ represent the left and right boundary of the time interval.
+~lc~ and ~rc~ determine, wether the interval is left closed respectively
+right closed
+
+
+*/  
     int64_t s, e;
     bool lc, rc;
 
+/*
+default constructor
+
+*/    
     Interval() = default;
+/*
+constructor with explicit values
+
+*/
     Interval(int64_t s, int64_t e, bool lc, bool rc);
+/*
+constructor for conversion from the time interval class of the Temporal algebra
+
+*/
     Interval(temporalalgebra::Interval<Instant> i);
+/*
+~convert~ convertes the time interval to the representation used in the
+Temporal algebra
+
+*/
     temporalalgebra::Interval<Instant> convert();
 
+/*
+~length~ returns the duration of the time interval
+
+*/
     int64_t length();
+/*
+~before~ returns true, iff ~instant~ is before the start of the time interval
+
+*/
     bool before(int64_t instant);
+/*
+~after~ returns true, iff ~instant~ is after the end of the time interval
+
+*/
     bool after(int64_t instant);
+/*
+~contains~ returns true, iff ~instant~ is in the time interval
+
+*/
     bool contains(int64_t instant);
+/*
+~before~ returns true, iff this interval ends before ~b~ starts
+
+*/
     bool before(Interval & b);
+/*
+~after~ returns true, iff this interval starts after ~b~ ends
+
+*/
     bool after(Interval & b);
+/*
+~intersects~ returns true, iff the intersection of this interval and ~b~
+is not empty
+
+*/
     bool intersects(Interval & b);
+/*
+~intersection~ returns the intersection of this interval and ~b~
+
+*/
     Interval intersection(Interval & b);
+/*
+~endsFirstComparedTo~ returns true, iff this interval ends before ~b~ ends
+
+*/
     bool endsFirstComparedTo(Interval & b);
+/*
+~compare~ defines a ordering relation on time intervals.
+returns -1 if this interval is smaller than b.
+returns  0 if this interval is equal to b.
+returns  1 if this interval is greater than b.
+
+*/
     int compare(Interval b);
   };
 
 
 
+/*
+1.1 Implementation of struct ~Interval~
+
+constructor with explicit values
+
+*/
   inline Interval::Interval(int64_t s, int64_t e, bool lc, bool rc) :
     s(s),
     e(e),
@@ -58,7 +140,10 @@ namespace ColumnMovingAlgebra
     rc(rc)
   {
   }
+/*
+constructor for conversion from the time interval class of the Temporal algebra
 
+*/
   inline Interval::Interval(temporalalgebra::Interval<Instant> i) :
     s(i.start.millisecondsToNull()),
     e(i.end.millisecondsToNull()),
@@ -67,46 +152,84 @@ namespace ColumnMovingAlgebra
   {
   }
 
+/*
+~convert~ convertes the time interval to the representation used in the
+Temporal algebra
+
+*/
   inline temporalalgebra::Interval<Instant> Interval::convert()
   {
     return temporalalgebra::Interval<Instant>(s, e, lc, rc);
   }
 
+/*
+~length~ returns the duration of the time interval
+
+*/
   inline int64_t ColumnMovingAlgebra::Interval::length()
   {
     return e - s;
   }
 
+/*
+~before~ returns true, iff ~instant~ is before the start of the time interval
+
+*/
   inline bool Interval::before(int64_t instant)
   {
     return e < instant || (e == instant && !rc);
   }
 
+/*
+~after~ returns true, iff ~instant~ is after the end of the time interval
+
+*/
   inline bool Interval::after(int64_t instant)
   {
     return s > instant || (s == instant && !lc);
   }
 
+/*
+~contains~ returns true, iff ~instant~ is in the time interval
+
+*/
   inline bool ColumnMovingAlgebra::Interval::contains(int64_t instant)
   {
     return !before(instant) && !after(instant);
   }
 
+/*
+~before~ returns true, iff this interval ends before ~b~ starts
+
+*/
   inline bool Interval::before(Interval & b)
   {
     return e < b.s || (e == b.s && (!rc || !b.lc));
   }
 
+/*
+~after~ returns true, iff this interval starts after ~b~ ends
+
+*/
   inline bool Interval::after(Interval & b)
   {
     return s > b.e || (s == b.e && (!lc || !b.rc));
   }
 
+/*
+~intersects~ returns true, iff the intersection of this interval and ~b~
+is not empty
+
+*/
   inline bool Interval::intersects(Interval & b)
   {
     return !before(b) && !after(b);
   }
 
+/*
+~intersection~ returns the intersection of this interval and ~b~
+
+*/
   inline Interval Interval::intersection(Interval & b)
   {
     Interval i;
@@ -137,11 +260,22 @@ namespace ColumnMovingAlgebra
     return i;
   }
 
+/*
+~endsFirstComparedTo~ returns true, iff this interval ends before ~b~ ends
+
+*/
   inline bool Interval::endsFirstComparedTo(Interval & b)
   {
     return e < b.e || (e == b.e && !rc && b.rc);
   }
 
+/*
+~compare~ defines a ordering relation on time intervals.
+returns -1 if this interval is smaller than b.
+returns  0 if this interval is equal to b.
+returns  1 if this interval is greater than b.
+
+*/
   inline int Interval::compare(Interval b)
   {
     int64_t tDiff;

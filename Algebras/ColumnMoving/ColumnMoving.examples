@@ -309,18 +309,42 @@ Result   : (mbools ( ( ( ("2000-01-31" "2000-02-01" FALSE FALSE) FALSE) ( ("2000
 
 Operator : addrandom
 Number   : 0
+Signature: mbools x int -> mbools
+Example  : query [const mbools value ()] addrandom 0;
+Result   : (mbools ())
+
+Operator : addrandom
+Number   : 1
+Signature: mints x int -> mints
+Example  : query [const mints value ()] addrandom 0;
+Result   : (mints ())
+
+Operator : addrandom
+Number   : 2
+Signature: mstrings x int -> mstrings
+Example  : query [const mstrings value ()] addrandom 0;
+Result   : (mstrings ())
+
+Operator : addrandom
+Number   : 3
+Signature: mreals x int -> mreals
+Example  : query [const mreals value ()] addrandom 0;
+Result   : (mreals ())
+
+Operator : addrandom
+Number   : 4
 Signature: mpoints x int -> mpoints
 Example  : query [const mpoints value ()] addrandom 0;
 Result   : (mpoints ())
 
 Operator : index
 Number   : 0
-Signature: mpoints x int x int -> mpoints
-Example  : query [const mpoints value ()] index [100, 100];
+Signature: mpoints x real x real x int x real x real x int x instant x instant x int -> mpoints
+Example  : query [const mpoints value ()] index [0.0, 100.0, 10, 0.0, 100.0, 10, [const instant value "2000-01-01"], [const instant value "2010-01-01"], 10];
 Result   : (mpoints ())
 
-Operator : cextend
+Operator : cprojectextend
 Number   : 0
 Signature: stream(tblock) x ( ( Name (map tblock attrarray) )* ) -> stream(tblock)
-Example  : query cr0 feed filter[.I passes 3] cextend[NP: .P at [const point value (0.0 0.0)]] consume;
+Example  : query cr0 feed filter[.I passes 3] cprojectextend[P, I; NP: .P at [const point value (0.0 0.0)]] consume;
 Result   : ( (crel (1 (tblock (10 ( (P mpoints) (I mints) (NP mpoints)))))) ( ( ( ( ("2000-01-31" "2000-02-12" FALSE FALSE) (-2.0 0.0 2.0 0.0))) ( ( ("2000-01-01" "2000-01-02" TRUE FALSE) 3) ( ("2000-01-02" "2000-01-03" TRUE TRUE) 4)) ( ( ("2000-02-06" "2000-02-06" TRUE TRUE) (0.0 0.0 0.0 0.0))))))

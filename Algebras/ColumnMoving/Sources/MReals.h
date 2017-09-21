@@ -20,6 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+1 MReals.h
+
 */
 
 #pragma once
@@ -30,10 +32,26 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace ColumnMovingAlgebra
 {
+/*
+1.1 Forward Declaration of ~RealUnit~
+
+~RealUnit~ represents a moving real unit
+
+*/
   class RealUnit;
 
+/*
+1.1 Declaration of ~MReals~
+
+~MReals~ represents a moving real
+
+*/
   typedef MFsObjects<RealUnit> MReals;
 
+/*
+1.2 Declaration of class ~RealUnit~
+
+*/
   class RealUnit
   {
   public:
@@ -43,39 +61,151 @@ namespace ColumnMovingAlgebra
     typedef temporalalgebra::RReal RAttr;
     typedef temporalalgebra::MReal MAttr;
 
+/*
+constructors
+
+*/
     RealUnit() = default;
     RealUnit(temporalalgebra::MReal mreal, int unit);
     RealUnit(Interval interval, double a, double b, double c, bool r);
 
-    Value minimum() const;
-    Value maximum() const;
+/*
+~interval~ returns the definition interval of this unit
+
+*/
     Interval interval() const;
+/*
+~minimum~ returns the minimum value of the mapping function during the
+definition interval
+
+*/
+    Value minimum() const;
+/*
+~maximum~ returns the maximum value of the mapping function during the
+definition interval
+
+*/
+    Value maximum() const;
+/*
+~appendTo~ adds this unit to a moving object in the temporal algebra
+
+*/
     void appendTo(temporalalgebra::MReal & mreal);
+/*
+~compareValue~ compares this unit
+
+*/
     int compareValue(const RealUnit & realUnit);
+/*
+~atInstant~ returns an intime for ~instant~
+
+*/
     temporalalgebra::IReal atInstant(Instant instant);
+/*
+~restrictToInterval~ restricts the unit to ~unitInterval~
+
+*/
     RealUnit restrictToInterval(Interval interval);
+/*
+~passes~ returns true, iff this this unit has the same value 
+
+*/
     bool passes(CcReal ccReal);
+/*
+or iff the value is in the specified range
+
+*/
     bool passes(temporalalgebra::RReal rReal);
+/*
+~at~ adds this unit to ~result~ iff it has the same value as specified
+
+*/
     void at(CcReal ccReal, MReals & result);
+/*
+of iff its value is in the specified range
+
+*/
     void at(temporalalgebra::RReal rReal, MReals & result);
     
+/*
+~undefinedAttr~ returns an undefined attribute
+
+*/
     static CcReal undefinedAttr();
+/*
+~compare~ 
+returns -1 if ~value~ smaller ~attr~,
+returns  0 if ~value~ equal ~attr~, 
+returns  1 if ~value~ greater ~attr~ 
+
+*/
     static int compare(Value value, Attr attr);
+/*
+~random~ returns a unit with the specified interval and a random value
+
+*/
+    static RealUnit random(Interval interval);
     
   private:
+/*
+~mInterval~ represents the definition interval of this unit
+
+*/
     Interval m_Interval;
+/*
+iff ~mR~ is true, the mapping function f(t) of this unit is
+~mA~ t t + ~mB~ t + ~mC~.
+Otherwise the mapping function of this unit is
+sqrt(~mA~ t t + ~mB~ t + ~mC~).
+~mMinimum~ and ~mMaximum~ represent the minimum and maximum
+of the mapping function on the definition interval of this unit.
+as minimum and maximum value might be on the boundaries of the 
+definition interval and the definition interval is not necessarily left and 
+right closed, we also need ~mMinIncluded~ and ~mMaxIncluded~ to determine,
+whether the mapping function ever has the value ~mMinimum~ and ~mMaximum~
+on the definition interval or only converges
+
+*/
     double m_A, m_B, m_C, m_Minimum, m_Maximum;
     bool m_R, m_MinIncluded, m_MaxIncluded;
 
+/*
+~calculateExtrema~ 
+sets the values ~mMinimum~, ~mMaximum~, ~mMinIncluded~ and ~mMaxIncluded~
+
+*/
     void calculateExtrema();
+/* 
+~timeToDouble~ converts ~t~ to double
+
+*/
     double timeToDouble(int64_t t);
+/*
+~doubleToTime~ converts ~x~ to time value
+
+*/
     int64_t doubleToTime(double x);
+ /*
+ ~solveLinear~ solves a linear mapping function
+ 
+ */
     void solveLinear(double y, int64_t & t);
+ /*
+ ~solveQuadratic~ solves a quadratic mapping function. returns the
+ number of found solutions.
+ 
+ */
     int solveQuadratic(double y, int64_t & t0, int64_t & t1);
   };
 
 
 
+/*
+1.2 Implementation of class ~RealUnit~
+
+constructors
+
+*/
   inline RealUnit::RealUnit(temporalalgebra::MReal mreal, int unit)
   {
     temporalalgebra::UReal u;
@@ -100,27 +230,49 @@ namespace ColumnMovingAlgebra
     calculateExtrema();
   }
 
+/*
+~minimum~ returns the minimum value of the mapping function during the
+definition interval
+
+*/
   inline RealUnit::Value RealUnit::minimum() const
   {
     return m_Minimum;
   }
   
+/*
+~maximum~ returns the maximum value of the mapping function during the
+definition interval
+
+*/
   inline RealUnit::Value RealUnit::maximum() const
   {
     return m_Maximum;
   }
   
+/*
+~interval~ returns the definition interval of this unit
+
+*/
   inline Interval RealUnit::interval() const
   {
     return m_Interval;
   }
   
+/*
+~appendTo~ adds this unit to a moving object in the temporal algebra
+
+*/
   inline void RealUnit::appendTo(
     temporalalgebra::MReal & mreal)
   {
     mreal.Add(temporalalgebra::UReal(m_Interval.convert(), m_A, m_B, m_C, m_R));
   }
   
+/*
+~compareValue~ compares this unit
+
+*/
   inline int RealUnit::compareValue(const RealUnit & realUnit)
   {
     double dDiff;
@@ -143,6 +295,10 @@ namespace ColumnMovingAlgebra
     return 0;
   }
 
+/*
+~atInstant~ returns an intime for ~instant~
+
+*/
   inline temporalalgebra::IReal RealUnit::atInstant(Instant instant)
   {
     double x = timeToDouble(instant.millisecondsToNull());
@@ -160,6 +316,10 @@ namespace ColumnMovingAlgebra
     return temporalalgebra::IReal(instant, CcReal(true, result));
   }
 
+/*
+~restrictToInterval~ restricts the unit to ~unitInterval~
+
+*/
   inline RealUnit RealUnit::restrictToInterval(Interval newInterval)
   {
     double x = timeToDouble(newInterval.s);
@@ -173,6 +333,10 @@ namespace ColumnMovingAlgebra
     }
   }
 
+/*
+~passes~ returns true, iff this this unit has the same value 
+
+*/
   inline bool RealUnit::passes(CcReal ccReal)
   {
     double y = ccReal.GetValue();
@@ -186,6 +350,10 @@ namespace ColumnMovingAlgebra
     return true;
   }
 
+/*
+or iff the value is in the specified range
+
+*/
   inline bool RealUnit::passes(temporalalgebra::RReal rReal)
   {
     for (int index = 0; index < rReal.GetNoComponents(); index++) {
@@ -207,6 +375,10 @@ namespace ColumnMovingAlgebra
     return false;
   }
 
+/*
+~at~ adds this unit to ~result~ iff it has the same value as specified
+
+*/
   inline void RealUnit::at(CcReal ccReal, MReals & result)
   {
     if (passes(ccReal)) {
@@ -241,6 +413,10 @@ namespace ColumnMovingAlgebra
     }
   }
 
+/*
+of iff its value is in the specified range
+
+*/
   inline void RealUnit::at(temporalalgebra::RReal rReal, MReals & result)
   {
     temporalalgebra::Interval<CcReal> ri;
@@ -334,6 +510,11 @@ namespace ColumnMovingAlgebra
       }
   }
 
+/*
+~calculateExtrema~ 
+sets the values ~mMinimum~, ~mMaximum~, ~mMinIncluded~ and ~mMaxIncluded~
+
+*/
   inline void RealUnit::calculateExtrema()
   {
     m_Minimum = m_Maximum = m_C;
@@ -384,18 +565,30 @@ namespace ColumnMovingAlgebra
     }
   }
 
+/* 
+~timeToDouble~ converts ~t~ to double
+
+*/
   inline double RealUnit::timeToDouble(int64_t t)
   {
     return static_cast<double>(t - m_Interval.s) / 
            static_cast<double>(MILLISECONDS);
   }
 
+/*
+~doubleToTime~ converts ~x~ to time value
+
+*/
   inline int64_t RealUnit::doubleToTime(double x)
   {
     return static_cast<int64_t>(x * static_cast<double>(MILLISECONDS)) +
            m_Interval.s;
   }
 
+/*
+~solveLinear~ solves a linear mapping function
+
+*/
   inline void RealUnit::solveLinear(double y, int64_t & t)
   {
     if (m_R)
@@ -404,6 +597,11 @@ namespace ColumnMovingAlgebra
     t = doubleToTime((y - m_C) / m_B);
   }
 
+/*
+~solveQuadratic~ solves a quadratic mapping function. returns the
+number of found solutions.
+
+*/
   inline int RealUnit::solveQuadratic(double y, int64_t & t0, int64_t & t1)
   {
     if (m_R)
@@ -424,6 +622,10 @@ namespace ColumnMovingAlgebra
     return t0 != t1 ? 2 : 1;
   }
   
+/*
+~undefinedAttr~ returns an undefined attribute
+
+*/
   inline CcReal RealUnit::undefinedAttr()
   {
     CcReal r(1.0);
@@ -431,9 +633,28 @@ namespace ColumnMovingAlgebra
     return r;
   }
   
+/*
+~compare~ 
+returns -1 if ~value~ smaller ~attr~,
+returns  0 if ~value~ equal ~attr~, 
+returns  1 if ~value~ greater ~attr~ 
+
+*/
   inline int RealUnit::compare(Value value, Attr attr)
   {
     double b = attr.GetValue();
     return value < b ? -1 : (value == b ? 0 : 1);
+  }
+  
+/*
+~random~ returns a unit with the specified interval and a random value
+
+*/
+ inline RealUnit RealUnit::random(Interval interval)
+  {
+    return RealUnit(interval, static_cast<double>(rand()) / RAND_MAX,
+                              static_cast<double>(rand()) / RAND_MAX,
+                              static_cast<double>(rand()) / RAND_MAX,
+                              (rand() % 2) == 1);
   }
 }

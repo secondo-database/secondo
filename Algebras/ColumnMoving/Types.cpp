@@ -20,11 +20,20 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+1 Types.cpp
+
 */
 
 #include "Types.h"
 
 namespace ColumnMovingAlgebra {
+
+/*
+In this file we define the static strings for the description of our
+attribut array types.
+
+*/
+
   char iintsName[] = "iints"; 
   char iintsInfo[] = "(ai*) where ai is a iint";
   char iintsExample[] = "((\"2001-10-10\" 5) (\"2002-10-10\" 7)) \n";

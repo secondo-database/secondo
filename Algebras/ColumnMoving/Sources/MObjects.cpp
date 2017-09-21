@@ -20,14 +20,26 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+1 MObjects.cpp
+
 */
 
-#include "stdafx.h"
 #include "AlmostEqual.h"
 #include "MObjects.h"
 
 namespace ColumnMovingAlgebra
 {
+/*
+1.1 Implementation of virtual functions for ~MObjects~
+
+The crel algebra requires all attribute arrays to implement eight 
+different comparison functions. To ease the implementation of our
+attribute arrays we provide six of the eight required functions in
+this base class. They are generic and call the two left functions,
+which still have to be implemented by attribute arrays derived
+from this class.
+
+*/
   int MObjects::CompareAlmost(size_t rowA, const CRelAlgebra::AttrArray 
     &arrayB, size_t rowB) const
   {

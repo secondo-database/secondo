@@ -20,6 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+1 Array.h
+
 */
 
 #pragma once
@@ -28,6 +30,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <vector>
 
 namespace ColumnMovingAlgebra {
+
+/*
+1.1 Declaration of class ~Array~
+
+This class extends ~std::vector~ by functions needed by attribut arrays for
+persistant storage.
+
+*/
 
   template<class T>
   class Array : public std::vector<T> {
@@ -42,11 +52,23 @@ namespace ColumnMovingAlgebra {
     int savedSize();
     int savedSize(int count);
   };
+  
+/*
+1.1 Implementation of class ~Array~
+
+Constructor with size argument
+
+*/
 
   template<class T>
   inline Array<T>::Array(size_t count) : std::vector<T>(count) 
   {
   }
+
+/*
+constructor loading the array from persistant storage.
+
+*/
 
   template<class T>
   inline Array<T>::Array(CRelAlgebra::Reader& source)
@@ -58,6 +80,11 @@ namespace ColumnMovingAlgebra {
                                                count * sizeof(T));
   }
 
+/*
+constructor loading the array with known size from persistant storage-
+
+*/
+
   template<class T>
   inline Array<T>::Array(CRelAlgebra::Reader& source, size_t count)
   {
@@ -65,6 +92,11 @@ namespace ColumnMovingAlgebra {
     source.ReadOrThrow(reinterpret_cast<char*>(std::vector<T>::data()), 
                                                count * sizeof(T));
   }
+
+/*
+function loading the array from persistant storage.
+
+*/
 
   template<class T>
   inline void Array<T>::load(CRelAlgebra::Reader& source)
@@ -75,6 +107,11 @@ namespace ColumnMovingAlgebra {
     source.ReadOrThrow(reinterpret_cast<char*>(std::vector<T>::data()), 
                                                count * sizeof(T));
   }
+
+/*
+saving the array from persistant storage.
+
+*/
 
   template<class T>
   inline void Array<T>::save(CRelAlgebra::Writer &target, 
@@ -89,10 +126,21 @@ namespace ColumnMovingAlgebra {
       std::vector<T>::size() * sizeof(T));
   }
 
+/*
+returns the size needed for persistant storage of this instance
+
+*/
+
   template<class T>
   inline int Array<T>::savedSize() {
     return sizeof(size_t) + sizeof(T) * std::vector<T>::size();
   }
+
+/*
+returns the size needed for persistant storage for an array with containing
+~count~ elements
+
+*/
 
   template<class T>
   inline int Array<T>::savedSize(int count) {

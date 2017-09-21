@@ -20,6 +20,8 @@ asize_t with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+1. AttrArrayType.h
+
 */
 
 #pragma once
@@ -40,10 +42,24 @@ using namespace std;
 
 namespace ColumnMovingAlgebra
 {
+
+/*
+
+1.1 Declaration
+
+~AttrArrayType~ is a generic class for the representation of attribut array
+types compatible to the CRel algebra.
+
+*/
   template<class T, class BT, char const * tname, char const * info, 
     char const * example>
   class AttrArrayType {
   public:
+  
+/*
+The nested class ~TI~ gives type information for a attribut array.
+
+*/
   
     class TI {
     public:
@@ -57,6 +73,11 @@ namespace ColumnMovingAlgebra
       bool m_isNumeric;
     };
 
+/*
+The nested class ~TC~ is a generic type constructor.
+
+*/
+  
     class TC : public AttrArrayTypeConstructor
     {
     public:
@@ -94,6 +115,12 @@ namespace ColumnMovingAlgebra
     };
     
   private:
+
+/*
+The nested class ~Manager~ is a generic AttrArrayManager.
+
+*/
+  
       class Manager : public AttrArrayManager
       {
       public:
@@ -104,7 +131,12 @@ namespace ColumnMovingAlgebra
     
   };
   
-  
+/*
+2. Implementation
+
+The following functions connect the types to the CRel algebra.
+
+*/
   
   template<class T, class BT, char const * tname, char const * info, 
     char const * example>

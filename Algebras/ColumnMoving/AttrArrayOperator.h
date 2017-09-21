@@ -20,6 +20,12 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+1 AttrArrayOperator.h
+
+The class AttrArrayOperator is the base class for the operators present,
+atinstant, atperiods, passes, at und addrandom. It implements a generic
+type mapping and select value mapping.
+
 */
 
 #pragma once
@@ -32,17 +38,23 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StandardTypes.h"
 #include "AttrArray.h"
 
-using namespace std;
-
 extern NestedList *nl;
 extern QueryProcessor *qp;
 
-
 namespace ColumnMovingAlgebra
 {
+
+/*
+
+1.1 Declaration
+
+The struct AttrArrayOperatorSignatur contains information of one signature
+for a operator.
+
+*/
   struct AttrArrayOperatorSignatur {
-    string operandTypeA;
-    string operandTypeB;
+    std::string operandTypeA;
+    std::string operandTypeB;
     ListExpr resultType;
   };
   
@@ -50,17 +62,41 @@ namespace ColumnMovingAlgebra
   public:
     using Operator::Operator;
     
-    static bool mapping(list<AttrArrayOperatorSignatur> signatures, 
-      ListExpr args, int & signatureId, ListExpr & resultType, string & error);
-    static ListExpr typeMapping(list<AttrArrayOperatorSignatur> signatures, 
+/*
+~typeMapping~ and ~selectValueMapping~ are generic functions for type mapping 
+and select value mapping. the function ~mapping~ is a common helper method for 
+both functions.
+
+*/    
+    
+    static bool mapping(
+      std::list<AttrArrayOperatorSignatur> signatures, 
+      ListExpr args, int & signatureId, ListExpr & resultType, 
+      std::string & error);
+    static ListExpr typeMapping(
+      std::list<AttrArrayOperatorSignatur> signatures, 
       ListExpr args);
-    static int selectValueMapping(list<AttrArrayOperatorSignatur> signatures, 
+    static int selectValueMapping(
+      std::list<AttrArrayOperatorSignatur> signatures, 
       ListExpr args);
   };
   
+/*
+
+1.2 Implementation
+
+The helper function ~mapping~ searchs a matching signature for ~args~ from 
+the list ~signatures~. if successful ~signatureId~ is set to the 
+corresponding index and ~resultType~ to the corresponding result type and
+the return value is true. If not successful it sets ~error~ to a error 
+message and returns false.
+
+*/
+  
   inline bool AttrArrayOperator::mapping(
-      list<AttrArrayOperatorSignatur> signatures, 
-      ListExpr args, int & signatureId, ListExpr & resultType, string & error)
+      std::list<AttrArrayOperatorSignatur> signatures, 
+      ListExpr args, int & signatureId, ListExpr & resultType, 
+      std::string & error)
   {
     if(!nl->HasLength(args,2)) {
       error = "Two arguments expected.";
@@ -108,25 +144,35 @@ namespace ColumnMovingAlgebra
     
     return false;
   }
+  
+/*
+generic type mapping function
+
+*/  
 
   inline ListExpr AttrArrayOperator::typeMapping(
-    list<AttrArrayOperatorSignatur> signatures, ListExpr args)
+    std::list<AttrArrayOperatorSignatur> signatures, ListExpr args)
   {
     int signatureId;
     ListExpr resultType;
-    string error;
+    std::string error;
     if (!mapping(signatures, args, signatureId, resultType, error))
       return NList::typeError(error);
       
     return resultType;
   }
 
+/*
+generic select value mapping function
+
+*/  
+
   inline int AttrArrayOperator::selectValueMapping(
-    list<AttrArrayOperatorSignatur> signatures, ListExpr args)
+    std::list<AttrArrayOperatorSignatur> signatures, ListExpr args)
   {
     int signatureId;
     ListExpr resultType;
-    string error;
+    std::string error;
     bool success = mapping(signatures, args, signatureId, resultType, error);
     assert(success);
     return signatureId;

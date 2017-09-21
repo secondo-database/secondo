@@ -20,6 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+1 MObjects.h
+
 */
 
 #pragma once
@@ -32,14 +34,40 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace ColumnMovingAlgebra
 {
+
+/*
+1.1 Declaration of ~MObjects~
+
+~MObjects~ is the base class for all moving object attribute arrays.
+The term moving objects in this case means all data types, that
+are mappings from time to a certain base type so it includes moving real,
+moving boolean, moving integer and moving string.
+
+*/
   class MObjects : public CRelAlgebra::AttrArray
   {
   public:
+
+/*
+1.1.1 Constructors
+
+*/
     MObjects();
     MObjects(const MObjects &array, 
       const CRelAlgebra::SharedArray<const size_t> &filter);
     virtual ~MObjects() { }
 
+/*
+1.1.2 Comparing Functions
+
+The crel algebra requires all attribute arrays to implement eight 
+different comparison functions. To ease the implementation of our
+attribute arrays we provide six of the eight required functions in
+this base class. They are generic and call the two left functions,
+which still have to be implemented by attribute arrays derived
+from this class.
+
+*/
     virtual int  CompareAlmost(size_t rowA, const AttrArray &arrayB, 
       size_t rowB) const;
     virtual bool Equals(size_t rowA, const AttrArray &arrayB, 
@@ -51,14 +79,34 @@ namespace ColumnMovingAlgebra
     virtual bool Equals(size_t row, Attribute &value) const;
     virtual bool EqualsAlmost(size_t row, Attribute &value) const;
 
+/*
+1.1.3 Operators
+
+All moving objects share the operator present which checks whether the 
+moving objects exists at a given instant, or is ever
+present during a given set of time intervals. So we will implement the
+operator present in this base class.
+
+*/
     void present(Instant instant, CRelAlgebra::LongInts & result);
     void present(temporalalgebra::Periods periods, 
       CRelAlgebra::LongInts & result);
 
   protected:
+/*
+~mDefTimes~ represents the definition intervals of all moving object entries
+in the attribute array.
+
+*/
     std::shared_ptr<DefTimes> m_DefTimes;
   };
 
+/*
+1.2 Implementation of inline functions for ~MObjects~
+
+1.2.1 Constructors
+
+*/
   inline MObjects::MObjects() :
     m_DefTimes(std::make_shared<DefTimes>())
   {
@@ -72,6 +120,10 @@ namespace ColumnMovingAlgebra
   }
 
 
+/*
+1.2.2 Operators
+
+*/
   inline void MObjects::present(Instant instant, CRelAlgebra::LongInts & result)
   {
     result.Clear();

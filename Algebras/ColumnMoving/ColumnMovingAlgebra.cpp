@@ -20,6 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+1 ColumnMovingAlgebra.cpp
+
 */
 
 #include "Algebra.h"
@@ -29,7 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Types.h"
 #include "Operators.h"
-#include "ExtendOperator.h"
+#include "ExtendProjectOperator.h"
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
@@ -37,7 +39,8 @@ extern QueryProcessor *qp;
 using namespace ColumnMovingAlgebra;
 
 /*
-Registrierung der Typkonstruktoren und Operatoren
+~InitializeColumnMovingAlgebra~ registers the type constructors and
+operators of the ColumnMoving algebra in the algebra manager of Secondo.
 
 */
 
@@ -72,8 +75,7 @@ extern "C" Algebra *InitializeColumnMovingAlgebra(NestedList *nlRef,
       AddOperator(new IndexOperator(), true);
       AddOperator(new IntersectionOperator(), true);
       AddOperator(new InsideOperator(), true);
-
-      AddOperator(new CRelAlgebra::Operators::ExtendOperator(), true);
+      AddOperator(new CRelAlgebra::Operators::ExtendProjectOperator(), true);
     }
   };
 

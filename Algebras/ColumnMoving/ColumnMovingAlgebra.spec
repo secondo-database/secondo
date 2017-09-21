@@ -18,12 +18,12 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator present alias PRESENT pattern _ infixop _
-operator atinstant alias PRESENT pattern _ infixop _
-operator atperiods alias PRESENT pattern _ infixop _
-operator passes alias PRESENT pattern _ infixop _
-operator at alias PRESENT pattern _ infixop _
+operator atinstant alias ATINSTANT pattern _ infixop _
+operator atperiods alias ATPERIODS pattern _ infixop _
+operator passes alias PASSES pattern _ infixop _
+operator at alias AT pattern _ infixop _
 operator intersection alias INTERSECTION pattern op ( _ , _)
-operator addrandom alias PRESENT pattern _ infixop _
-operator index alias INDEX pattern _ op [_,_]
+operator addrandom alias ADDRANDOM pattern _ infixop _
+operator index alias INDEX pattern _ op [_,_,_,_,_,_,_,_,_]
 operator inside alias INSIDE pattern _ infixop _
-operator cextend alias CEXTEND pattern _ op [ funlist ] implicit parameter streamelem type STREAMELEM !!
+operator cprojectextend alias CPROJECTEXTEND pattern _ op [ list ; funlist ] implicit parameter streamelem type STREAMELEM !!

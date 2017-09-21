@@ -20,6 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+1 MPointsData.h
+
 */
 
 #pragma once
@@ -31,12 +33,36 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace ColumnMovingAlgebra {
 
+/*
+1.1 Declaration of ~MPointsData~
+
+~MPointsData~ represents the data of a moving points attribute array.
+It uses a compression algorithm to save the units. As an layer of abstraction
+to make the algorithms in MPoints independent of the actual compression 
+algorithm used we implement the compression 
+in the additional class MPointsData and 
+not directly in the class MPoints.
+
+*/
   class MPointsData {
   public:
+/*
+1.1.1 Nested Classes
+
+~Position~ represents a simple 2D-vector
+
+*/
     struct Position {
       double x, y;
     };
 
+/*
+~Unit~ represents a moving point unit. When the unit is retrieved from 
+MPointsData the member ~id~ is set to an integer
+that uniquely identifies the unit and so allows direct access to this unit.
+This is important when units shall be indexed in an grid index.
+
+*/
     struct Unit {
       int id;
       Interval interval;
@@ -45,10 +71,20 @@ namespace ColumnMovingAlgebra {
       Unit() = default;
       Unit(Interval interval, double x0, double y0, double x1, double y1);
 
+/*
+~at~ performs a linear interpolation to compute the position of the unit
+at a certain instant ~t~ or restrict the unit to a time interval
+
+*/
       Position at(int64_t t);
       Unit at(int64_t s, int64_t e, bool lc, bool rc);
     };
 
+/*
+~UnitIterator~ represents an iterator over all units of a moving point and
+is needed by operators in MPoints, that scan all units.
+
+*/
     class UnitIterator {
     public:
       bool hasNext();
@@ -63,96 +99,157 @@ namespace ColumnMovingAlgebra {
       friend MPointsData;
     };
 
+/*
+1.1.2 Constructors
+
+*/
     MPointsData() = default;
     MPointsData(CRelAlgebra::Reader& source);
 
+/*
+1.1.3 Loading and Saving
+
+The following funktions are needed in the context of persistant storage.
+
+*/
     void load(CRelAlgebra::Reader& source);
     void save(CRelAlgebra::Writer &target);
     int savedSize();
 
+/*
+1.1.4 Data Access Functions
+
+~clear~ removes all moving points
+
+*/
     void clear();
+/*
+~addRow~ adds a new moving point
+
+*/
     void addRow();
+/*
+~removeRow~ removes the last added moving point
+
+*/
     void removeRow();
+/*
+~addUnit~ adds a new unit to the the last added moving point.
+~unitId~ is set to an integer that uniquely identifies the unit 
+and so allows direct access to this unit.
+This is important when units shall be indexed in an grid index.
+
+*/
     void addUnit(Interval interval, double x0, double y0, 
                                     double x1, double y1, int & unitId);
 
+/*
+
+~rowCount~ returns the number of moving points
+
+*/
     int rowCount();
+/*
+~empty~ return true if there
+are no moving points or if there are no units in any moving point
+
+*/
+    bool empty();
+/*
+~unitCount~ returns the number of units of the moving point with index ~row~
+
+*/
     int unitCount(int row);
+/*
+~unitIterator~ returns a unit iterator for the moving point with index ~row~
+
+*/
     UnitIterator unitIterator(int row);
+/*
+~unit~ returns the unit identified by ~unitId~
+
+*/
     Unit unit(int unitId);
+/*
+~position~ implements an algorithm for the atinstant operator. if
+the moving point with index ~row~ is defined at ~time~ it returns true
+and sets ~result~ to the position of the moving point. Otherwise it returns
+false.
+
+*/
     bool position(int row, int64_t time, Position & result);
 
-    /*
-    UnitIterator unitIterator(int row, bool forward = true);
-    UnitIterator unitIterator(int row, int startAtUnitId, bool forward = true);
-
-    class Row;
-    class UnitSequence;
-
-    class UnitIterator {
-    public:
-      UnitIterator & operator ++ ();
-      Unit operator * ();
-      bool operator != (const UnitIterator & b);
-
-    private:
-      MPointsData * m_MPointsData;
-      bool m_Forward;
-      int m_unitId;
-
-      friend UnitSequence;
-    };
-
-    class UnitSequence {
-    public:
-      UnitIterator begin();
-      UnitIterator end();
-
-    private:
-      MPointsData * m_MPointsData;
-      int m_Row;
-      int m_firstUnitId;
-      int m_lastUnitId;
-
-      friend Row;
-    };
-
-    class Row {
-    public:
-      count();
-      unitSequence(bool forward = true);
-      unitSequence(int startAtUnitId, bool forward = true);
-
-    private:
-      MPointsData * m_MPointsData;
-      int m_Row;
-    };
-    Row row(int index);
-    */
-
   private:
+/*
+1.1.1 Attributes and Constants
+
+The moving point units are saved as frames. For each moving point unit a frame
+is saved for the start and end of the unit. The frame saves a x- and
+y-coordinate, a time and a type.
+The following constants can be used as type.
+They determine, if a frame belongs to the start (left side)
+or end (right side) of a unit and whether the corresponding time interval
+boundary of the unit is open or closed.
+If the time interval of a unit starts at the same time as the time interval
+of the unit before ends, then the corresponding frames are merged to one frame 
+and with the type CHAINED.
+If the start and end of a units time interval are equal, the frames can
+also be merged and the type LEFT AND RIGHT CLOSED is used.
+
+*/
     static const char LEFT_CLOSED = 0, LEFT_OPEN = 1, RIGHT_CLOSED = 2, 
       RIGHT_OPEN = 3, LEFT_AND_RIGHT_CLOSED = 4, CHAINED = 5; 
 
+/*
+~Frame~ represents a frame 
+
+*/
     struct Frame {
       int64_t time;
       double x, y;
       char type;
     };
 
+/*
+~Row~ represents a moving point. ~firstFrame~ is the index of the first
+frame that belongs to the moving point 
+
+*/
     struct Row {
       int unitCount;
       int firstFrame;
     };
 
+/*
+~mFrames~ represents all frames of all moving points 
+
+*/
     Array<Frame> m_Frames;
+/*
+~mRows~ represents all moving points
+
+*/
     Array<Row> m_Rows;
 
+/*
+1.1.1 getUnit
+
+~getUnit~ sets ~unit~ to the unit that starts with the frame with
+index ~firstFrameOfUnit~. ~firstFrameOfNextUnit~ is set to the
+index of the next unit of the same moving point.
+
+*/
     void getUnit(int firstFrameOfUnit, Unit &unit, int &firstFrameOfNextUnit);
   };
 
 
 
+/*
+1.1 Implementation of ~MPointsData~
+
+1.1.1 Implementation of Nested Class ~Unit~
+
+*/
   inline MPointsData::Unit::Unit(Interval interval, double x0, double y0, 
                                                     double x1, double y1) :
     interval(interval),
@@ -163,6 +260,11 @@ namespace ColumnMovingAlgebra {
   {
   }
 
+/*
+~at~ performs a linear interpolation to compute the position of the unit
+at a certain instant ~t~ 
+
+*/
   inline MPointsData::Position MPointsData::Unit::at(int64_t t)
   {
     Position p;
@@ -180,6 +282,10 @@ namespace ColumnMovingAlgebra {
     return p;
   }
 
+/*
+~at~ performs a linear interpolation to restrict the unit to a time interval
+
+*/
   inline MPointsData::Unit MPointsData::Unit::at(int64_t s, int64_t e, 
                                                  bool lc, bool rc)
   {
@@ -203,6 +309,10 @@ namespace ColumnMovingAlgebra {
 
 
 
+/*
+1.1.1 Implementation of Nested Class ~UnitIterator~
+
+*/
   inline bool MPointsData::UnitIterator::hasNext()
   {
     return m_CurrentFrame < m_AfterLastFrame;
@@ -227,11 +337,21 @@ namespace ColumnMovingAlgebra {
 
 
 
+/*
+1.1.1 Constructors
+
+*/
   inline MPointsData::MPointsData(CRelAlgebra::Reader& source)
   {
     load(source);
   }
 
+/*
+1.1.3 Loading and Saving
+
+The following funktions are needed in the context of persistant storage.
+
+*/
   inline void MPointsData::load(CRelAlgebra::Reader& source)
   {
     m_Frames.load(source);
@@ -249,12 +369,22 @@ namespace ColumnMovingAlgebra {
            m_Rows.savedSize();
   }
 
+/*
+1.1.4 Data Access Functions
+
+~clear~ removes all moving points
+
+*/
   inline void MPointsData::clear()
   {
     m_Frames.clear();
     m_Rows.clear();
   }
 
+/*
+~addRow~ adds a new moving point
+
+*/
   inline void MPointsData::addRow()
   {
     Row r;
@@ -263,12 +393,25 @@ namespace ColumnMovingAlgebra {
     m_Rows.push_back(r);
   }
 
+/*
+~removeRow~ removes the last added moving point
+
+*/
   inline void MPointsData::removeRow()
   {
     m_Frames.resize(m_Rows.back().firstFrame);
     m_Rows.pop_back();
   }
 
+/*
+~addUnit~ adds a new unit to the the last added moving point.
+~unitId~ is set to an integer that uniquely identifies the unit.
+When adding the unit a transformation to the compressed frame representation is
+necessary. This is performed by a case differentiation. The important
+question is, whether the unit is connected to the unit before, which
+means the end point of the last unit is identical to the start of the new unit.
+
+*/
   inline void MPointsData::addUnit(Interval interval, double x0, double y0, 
     double x1, double y1, int & unitId)
   {
@@ -293,6 +436,9 @@ namespace ColumnMovingAlgebra {
          f0.time != interval.s || f0.x != x0 || f0.y != y0 || 
          (f0.type == RIGHT_OPEN && !interval.lc) ) 
     {
+    
+      //Not connected to the last unit
+      
       check(m_Rows.back().unitCount == 0 || f0.time != interval.s || 
             f0.type == RIGHT_OPEN || !interval.lc, "intervals overlap");
       unitId = m_Frames.size() - 1;
@@ -319,6 +465,9 @@ namespace ColumnMovingAlgebra {
         f2.type = interval.rc ? RIGHT_CLOSED : RIGHT_OPEN;
       }
     } else {
+    
+      //connected to the last unit
+      
       check(f0.type == RIGHT_OPEN || !interval.lc, "intervals overlap");
       unitId = m_Frames.size() - 2;
 
@@ -333,16 +482,39 @@ namespace ColumnMovingAlgebra {
     m_Rows.back().unitCount++;
   }
 
+/*
+
+~rowCount~ returns the number of moving points
+
+*/
   inline int MPointsData::rowCount()
   {
     return m_Rows.size();
   }
 
+/*
+~empty~ return true if there
+are no moving points or if there are no units in any moving point
+
+*/
+  inline bool MPointsData::empty()
+  {
+    return m_Frames.size() == 0;
+  }
+
+/*
+~unitCount~ returns the number of units of the moving point with index ~row~
+
+*/
   inline int MPointsData::unitCount(int row)
   {
     return m_Rows[row].unitCount;
   }
+  
+/*
+~unit~ returns the unit identified by ~unitId~
 
+*/
   inline MPointsData::Unit MPointsData::unit(int unitId)
   {
     Unit unit;
@@ -351,6 +523,14 @@ namespace ColumnMovingAlgebra {
     return unit;
   }
 
+/*
+~position~ implements an algorithm for the atinstant operator. if
+the moving point with index ~row~ is defined at ~time~ it returns true
+and sets ~result~ to the position of the moving point. Otherwise it returns
+false. The search for the unit overlapping ~time~ is implemented as a binary
+search on the frames.
+
+*/
   inline bool MPointsData::position(int row, int64_t time, Position & result)
   {
     int iFirst = m_Rows[row].firstFrame;
@@ -410,6 +590,10 @@ namespace ColumnMovingAlgebra {
     return true;
   }
 
+/*
+~unitIterator~ returns a unit iterator for the moving point with index ~row~
+
+*/
   inline MPointsData::UnitIterator MPointsData::unitIterator(int row)
   {
     int afterLastUnit = row < static_cast<int>(m_Rows.size()) - 1 ?
@@ -419,6 +603,14 @@ namespace ColumnMovingAlgebra {
     return UnitIterator(this, m_Rows[row].firstFrame, afterLastUnit);
   }
 
+/*
+1.1.1 getUnit
+
+~getUnit~ sets ~unit~ to the unit that starts with the frame with
+index ~firstFrameOfUnit~. ~firstFrameOfNextUnit~ is set to the
+index of the next unit of the same moving point.
+
+*/
   inline void MPointsData::getUnit(int firstFrameOfUnit, Unit & unit, 
     int & firstFrameOfNextUnit)
   {

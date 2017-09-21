@@ -20,6 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+1 Operators.h
+
 */
 
 #pragma once
@@ -28,6 +30,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace ColumnMovingAlgebra
 {
+
+/*
+1.1 Declaration of the class PresentOperator
+
+The following declarations of operators are very similar. They consist of
+a ~OperatorInfo~ structure which contains information for the user interface,
+a list of value mapping functions, a type mapping function and value mapping
+function, a function that returns all signatures of the operator and finally 
+the value mapping functions. 
+
+*/
+
   class PresentOperator : public AttrArrayOperator
   {
   public:
@@ -40,7 +54,7 @@ namespace ColumnMovingAlgebra
     static const OperatorInfo info;
     static ValueMapping valueMappings[];
     
-    static list<AttrArrayOperatorSignatur> signatures();
+    static std::list<AttrArrayOperatorSignatur> signatures();
     static ListExpr TypeMapping(ListExpr args);
     static int SelectValueMapping(ListExpr args);
     static int ValueMapping00(ArgVector args, Word &result, int message, 
@@ -68,7 +82,12 @@ namespace ColumnMovingAlgebra
     static int ValueMapping51(ArgVector args, Word &result, int message, 
                               Word &local, Supplier s);
   };
-  
+
+/*
+1.2 Declaration of the class AtInstantOperator
+
+*/
+ 
   class AtInstantOperator : public AttrArrayOperator
   {
   public:
@@ -81,7 +100,7 @@ namespace ColumnMovingAlgebra
     static const OperatorInfo info;
     static ValueMapping valueMappings[];
     
-    static list<AttrArrayOperatorSignatur> signatures();
+    static std::list<AttrArrayOperatorSignatur> signatures();
     static ListExpr TypeMapping(ListExpr args);
     static int SelectValueMapping(ListExpr args);
     static int ValueMapping0(ArgVector args, Word &result, int message, 
@@ -97,7 +116,12 @@ namespace ColumnMovingAlgebra
     static int ValueMapping5(ArgVector args, Word &result, int message, 
                               Word &local, Supplier s);
   };
-  
+
+/*
+1.3 Declaration of the class AtPeriodsOperator
+
+*/
+ 
   class AtPeriodsOperator : public AttrArrayOperator
   {
   public:
@@ -110,7 +134,7 @@ namespace ColumnMovingAlgebra
     static const OperatorInfo info;
     static ValueMapping valueMappings[];
     
-    static list<AttrArrayOperatorSignatur> signatures();
+    static std::list<AttrArrayOperatorSignatur> signatures();
     static ListExpr TypeMapping(ListExpr args);
     static int SelectValueMapping(ListExpr args);
     static int ValueMapping0(ArgVector args, Word &result, int message, 
@@ -126,7 +150,12 @@ namespace ColumnMovingAlgebra
     static int ValueMapping5(ArgVector args, Word &result, int message, 
                              Word &local, Supplier s);
   };
-  
+
+/*
+1.4 Declaration of the class PassesOperator
+
+*/
+ 
   class PassesOperator : public AttrArrayOperator
   {
   public:
@@ -139,7 +168,7 @@ namespace ColumnMovingAlgebra
     static const OperatorInfo info;
     static ValueMapping valueMappings[];
     
-    static list<AttrArrayOperatorSignatur> signatures();
+    static std::list<AttrArrayOperatorSignatur> signatures();
     static ListExpr TypeMapping(ListExpr args);
     static int SelectValueMapping(ListExpr args);
     static int ValueMapping00(ArgVector args, Word &result, int message, 
@@ -163,7 +192,12 @@ namespace ColumnMovingAlgebra
     static int ValueMapping41(ArgVector args, Word &result, int message, 
                               Word &local, Supplier s);
   };
-  
+
+/*
+1.5 Declaration of the class AtOperator
+
+*/
+ 
   class AtOperator : public AttrArrayOperator
   {
   public:
@@ -176,7 +210,7 @@ namespace ColumnMovingAlgebra
     static const OperatorInfo info;
     static ValueMapping valueMappings[];
     
-    static list<AttrArrayOperatorSignatur> signatures();
+    static std::list<AttrArrayOperatorSignatur> signatures();
     static ListExpr TypeMapping(ListExpr args);
     static int SelectValueMapping(ListExpr args);
     static int ValueMapping00(ArgVector args, Word &result, int message, 
@@ -200,7 +234,12 @@ namespace ColumnMovingAlgebra
     static int ValueMapping41(ArgVector args, Word &result, int message, 
                               Word &local, Supplier s);
   };
-  
+
+/*
+1.6 Declaration of the class InsideOperator
+
+*/
+ 
   class InsideOperator : public Operator
   {
   public:
@@ -225,7 +264,12 @@ namespace ColumnMovingAlgebra
     static int ValueMapping3(ArgVector args, Word &result, int message, 
                              Word &local, Supplier s);
   };
-  
+
+/*
+1.7 Declaration of the class IntersectionOperator
+
+*/
+ 
   class IntersectionOperator : public Operator
   {
   public:
@@ -251,7 +295,12 @@ namespace ColumnMovingAlgebra
     static int ValueMapping3(ArgVector args, Word &result, int message, 
                              Word &local, Supplier s);
   };
-  
+
+/*
+1.8 Declaration of the class AddRandomOperator
+
+*/
+ 
   class AddRandomOperator : public AttrArrayOperator
   {
   public:
@@ -264,13 +313,29 @@ namespace ColumnMovingAlgebra
     static const OperatorInfo info;
     static ValueMapping valueMappings[];
     
-    static list<AttrArrayOperatorSignatur> signatures();
+    static std::list<AttrArrayOperatorSignatur> signatures();
     static ListExpr TypeMapping(ListExpr args);
     static int SelectValueMapping(ListExpr args);
     static int ValueMapping0(ArgVector args, Word &result, int message, 
                               Word &local, Supplier s);
+    static int ValueMapping1(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping2(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping3(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping4(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
   };
-  
+
+/*
+1.9 Declaration of the class IndexOperator
+
+The index operator is implemented differently, as it has a more complex
+signature.
+
+*/
+ 
   class IndexOperator : public Operator
   {
   public:

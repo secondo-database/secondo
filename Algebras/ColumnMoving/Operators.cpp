@@ -20,6 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+1 Operators.cpp
+
 */
 
 #include "Operators.h"
@@ -28,9 +30,24 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Types.h"
 #include "LongIntsTC.h"
 #include "Ints.h"
+#include <chrono>
 
 namespace ColumnMovingAlgebra
 {
+
+/*
+1.1 Implementation of the class PresentOperator
+
+The following implementations of operators are very similar. They consist of
+a ~OperatorInfo~ structure which contains information for the user interface,
+a list of value mapping functions, a type mapping function and value mapping
+function (which both call the generic implementation in the base class),
+a function that returns all signatures of the operator and finally the
+value mapping functions. The value mapping functions will only be responsible
+for some type casts and will then call the appropriate functions of the
+corresponding attribut arrays.
+
+*/
 
   const OperatorInfo PresentOperator::info = OperatorInfo(
       "present",
@@ -218,7 +235,10 @@ namespace ColumnMovingAlgebra
     return 0;
   }
 
+/*
+1.2 Implementation of the class AtInstantOperator
 
+*/
 
   const OperatorInfo AtInstantOperator::info = OperatorInfo(
       "atinstant",
@@ -327,7 +347,10 @@ namespace ColumnMovingAlgebra
     return 0;
   }
 
+/*
+1.2 Implementation of the class AtPeriodsOperator
 
+*/
 
   const OperatorInfo AtPeriodsOperator::info = OperatorInfo(
       "atperiods",
@@ -437,7 +460,10 @@ namespace ColumnMovingAlgebra
     return 0;
   }
 
+/*
+1.2 Implementation of the class PassesOperator
 
+*/
 
   const OperatorInfo PassesOperator::info = OperatorInfo(
       "passes",
@@ -598,7 +624,10 @@ namespace ColumnMovingAlgebra
     return 0;
   }
 
+/*
+1.2 Implementation of the class AtOperator
 
+*/
 
   const OperatorInfo AtOperator::info = OperatorInfo(
       "at",
@@ -757,8 +786,11 @@ namespace ColumnMovingAlgebra
         qp->ResultStorage<MStrings>(result, s) );
     return 0;
   }
-  
 
+/*
+1.2 Implementation of the class InsideOperator
+
+*/
 
   const OperatorInfo InsideOperator::info = OperatorInfo(
       "inside",
@@ -853,8 +885,11 @@ namespace ColumnMovingAlgebra
                              qp->ResultStorage<MBools>(result, s));
     return 0;
   }
-  
 
+/*
+1.2 Implementation of the class IntersectionOperator
+
+*/
 
   const OperatorInfo IntersectionOperator::info = OperatorInfo(
       "intersection",
@@ -988,17 +1023,29 @@ namespace ColumnMovingAlgebra
     return 0;
   }
 
+/*
+1.2 Implementation of the class AddRandomOperator
 
+*/
 
   const OperatorInfo AddRandomOperator::info = OperatorInfo(
       "addrandom",
-      "(mpoints) x int -> (mpoints)",
+      "bools   x int -> bools \n"
+      "ints    x int -> ints \n"
+      "strings x int -> strings \n"
+      "reals   x int -> reals \n"
+      "mpoints x int -> mpoints ",
       "_ addrandom _",
-      "adds random data to the moving object for testing purposes",
+      "adds random units to every moving object in the first argument. "
+      "the second argument determines the number of random units to add. ",
       "query movingPoints addrandom 100");
 
   ValueMapping AddRandomOperator::valueMappings[] = {
     ValueMapping0,
+    ValueMapping1,
+    ValueMapping2,
+    ValueMapping3,
+    ValueMapping4,
     nullptr
   };
 
@@ -1012,6 +1059,14 @@ namespace ColumnMovingAlgebra
   
   list<AttrArrayOperatorSignatur> AddRandomOperator::signatures() {
     return list<AttrArrayOperatorSignatur> {
+      { temporalalgebra::MBool::BasicType(), CcInt::BasicType(), 
+        MBoolsType::TI(false).GetTypeExpr() },
+      { temporalalgebra::MInt::BasicType(), CcInt::BasicType(), 
+        MIntsType::TI(false).GetTypeExpr() },
+      { temporalalgebra::MString::BasicType(), CcInt::BasicType(), 
+        MStringsType::TI(false).GetTypeExpr() },
+      { temporalalgebra::MReal::BasicType(), CcInt::BasicType(), 
+        MRealsType::TI(false).GetTypeExpr() },
       { temporalalgebra::MPoint::BasicType(), CcInt::BasicType(), 
         MPointsType::TI(false).GetTypeExpr() },
     };
@@ -1020,27 +1075,73 @@ namespace ColumnMovingAlgebra
   int AddRandomOperator::ValueMapping0(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
-    static_cast<MPoints*>(args[0].addr)->addRandomRows( 
+    static_cast<MBools*>(args[0].addr)->addRandomUnits( 
+        *static_cast<CcInt*>(args[1].addr), 
+        qp->ResultStorage<MBools>(result, s) );
+    return 0;
+  }
+  
+  int AddRandomOperator::ValueMapping1(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MInts*>(args[0].addr)->addRandomUnits( 
+        *static_cast<CcInt*>(args[1].addr), 
+        qp->ResultStorage<MInts>(result, s) );
+    return 0;
+  }
+  
+  int AddRandomOperator::ValueMapping2(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MStrings*>(args[0].addr)->addRandomUnits( 
+        *static_cast<CcInt*>(args[1].addr), 
+        qp->ResultStorage<MStrings>(result, s) );
+    return 0;
+  }
+  
+  int AddRandomOperator::ValueMapping3(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MReals*>(args[0].addr)->addRandomUnits( 
+        *static_cast<CcInt*>(args[1].addr), 
+        qp->ResultStorage<MReals>(result, s) );
+    return 0;
+  }
+  
+  int AddRandomOperator::ValueMapping4(ArgVector args, Word &result, 
+    int message, Word &local, Supplier s) 
+  {
+    static_cast<MPoints*>(args[0].addr)->addRandomUnits( 
         *static_cast<CcInt*>(args[1].addr), 
         qp->ResultStorage<MPoints>(result, s) );
     return 0;
   }
 
 /*
+1.2 Implementation of the class IndexOperator
 
-Index Operator
+The index operator is implemented differently, as it has a more complex
+signature.
 
 */
 
   const OperatorInfo IndexOperator::info = OperatorInfo(
       "index",
-      "mpoints x [int, int] -> mpoints",
-      "_ index [_, _]",
-      "returns an mpoints with the data of the mpoints given as first \n"
-      "argument. the new mpoints is indexed with a grid index, which splits \n"
-      "the time dimension and location dimension \n"
-      "as often as determined by the second and third argument",
-      "query movingPoints index [100, 100]");
+      "mpoints x "
+      "[real, real, int, real, real, int, instant, instant, int] -> mpoints",
+      "_ index [_, _, _, _, _, _, _, _, _]",
+      "returns an mpoints with the data of the mpoints given as first "
+      "argument. the returned mpoints is indexed with a grid index. \n"
+      "the lower boundary of the grid in the dimension x, y and t "
+      "are given by the second, fith and eights argument. \n" 
+      "the upper boundary of the grid in the dimension x, y and t "
+      "are given by the third, sixth and ninth argument. \n" 
+      "the number of splits in the dimension x, y and t "
+      "are given by the fourth, seventh and tenth argument. " ,
+      "let indexedMovingPoints = movingPoints index "
+      "[0.0, 100.0, 10, 0.0, 100.0, 10, "
+      "[const instant value \"2000-01-01\"], "
+      "[const instant value \"2010-01-01\"], 10]");
 
   ValueMapping IndexOperator::valueMappings[] = {
     ValueMapping0,
@@ -1048,8 +1149,8 @@ Index Operator
   };
 
   ListExpr IndexOperator::TypeMapping(ListExpr args) {
-    if(!nl->HasLength(args,3)) 
-      return NList::typeError("Three arguments expected.");
+    if(!nl->HasLength(args, 10)) 
+      return NList::typeError("Ten arguments expected.");
 
     const ListExpr firstArg = nl->First(args);
 
@@ -1066,15 +1167,23 @@ Index Operator
       return NList::typeError(
         "First Argument isn't of type ATTRARRAY(MPOINT)");
 
-    const ListExpr secondArg = nl->Second(args);
+    for (int i : (const int []) {2, 3, 5 ,6})
+      if (!nl->IsEqual(nl->Nth(i, args), CcReal::BasicType())) {
+        return NList::typeError("Argument " + std::to_string(i) + 
+                                " is not of type REAL");
+    }
 
-    if (!nl->IsEqual(secondArg, CcInt::BasicType())) 
-      return NList::typeError("Second Argument isn't of type INT");
-        
-    const ListExpr thirdArg = nl->Third(args);
+    for (int i : (const int []) {4, 7, 10})
+      if (!nl->IsEqual(nl->Nth(i, args), CcInt::BasicType())) {
+        return NList::typeError("Argument " + std::to_string(i) + 
+                                " is not of type INT");
+    }
 
-    if (!nl->IsEqual(thirdArg, CcInt::BasicType())) 
-      return NList::typeError("Third Argument isn't of type INT");
+    for (int i : (const int []) {8, 9})
+      if (!Instant::checkType(nl->Nth(i, args))) {
+        return NList::typeError("Argument " + std::to_string(i) + 
+                                " is not of type INSTANT");
+    }
 
     return MPointsType::TI(false).GetTypeExpr();       
   }
@@ -1087,7 +1196,15 @@ Index Operator
     int message, Word &local, Supplier s) 
   {
     static_cast<MPoints*>(args[0].addr)->index( 
-        *static_cast<CcInt*>(args[1].addr), *static_cast<CcInt*>(args[2].addr), 
+        *static_cast<CcReal*> (args[1].addr), 
+        *static_cast<CcReal*> (args[2].addr), 
+        *static_cast<CcInt*>  (args[3].addr), 
+        *static_cast<CcReal*> (args[4].addr), 
+        *static_cast<CcReal*> (args[5].addr), 
+        *static_cast<CcInt*>  (args[6].addr), 
+        *static_cast<Instant*>(args[7].addr), 
+        *static_cast<Instant*>(args[8].addr), 
+        *static_cast<CcInt*>  (args[9].addr), 
         qp->ResultStorage<MPoints>(result, s) );
     return 0;
   }

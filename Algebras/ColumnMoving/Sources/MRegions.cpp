@@ -20,38 +20,56 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+1 MRegions.cpp
+
 */
 
-#include "stdafx.h"
 #include "MRegions.h"
 
 using namespace std;
-
-namespace temporalalgebra {
-Word InMRegion(const ListExpr typeInfo,
-  const ListExpr instance,
-  const int errorPos,
-  ListExpr& errorInfo,
-  bool& correct);
-}
 
 extern NestedList* nl;
 
 namespace ColumnMovingAlgebra
 {
+/*
+1.1 Implementation of Constants for ~MRegions~
+
+~SMALLNUM~ represents a small number as cut off value in the intersection
+calculations
+
+*/
   const double MRegions::SMALL_NUM = 1e-8;
 
+/*
+1.1 Implementation of Virtual Functions for ~MRegions~
+
+the following functions are required by the crel algebra for all attribute 
+arrays.
+
+~Filter~ returns a duplicate of this attribut array with the speficied filter.
+ 
+*/
   CRelAlgebra::AttrArray* MRegions::Filter(
     CRelAlgebra::SharedArray<const size_t> filter) const
   {
     return new MRegions(*this, filter);
   }
 
+/*
+~GetCount~ returns the number of entries in the attribut array.
+
+*/
   size_t MRegions::GetCount() const
   {
     return m_MRegions->size();
   }
 
+/*
+~GetSize~ returns the amount of space needed to save this attribut array
+to persistant storage.
+
+*/
   size_t MRegions::GetSize() const
   {
     return  m_Edges->savedSize() +
@@ -62,6 +80,11 @@ namespace ColumnMovingAlgebra
             m_DefTimes->savedSize();
   }
 
+/*
+~Save~ saves this attribut array
+to persistant storage.
+
+*/
   void MRegions::Save(CRelAlgebra::Writer &target, bool includeHeader) const
   {
     m_Edges->save(target);
@@ -72,6 +95,10 @@ namespace ColumnMovingAlgebra
     m_DefTimes->save(target);
   }
 
+/*
+~Append~ adds the moving point at index ~row~ of the attribut array ~array~
+
+*/
   void MRegions::Append(const CRelAlgebra::AttrArray & array, size_t row)
   {
     const MRegions & mrs = static_cast<const MRegions &>(array);
@@ -94,6 +121,10 @@ namespace ColumnMovingAlgebra
     }
   }
 
+/*
+~Append~ adds the row orientied MPoint ~value~
+
+*/
   void MRegions::Append(Attribute & value)
   {
     auto & m = static_cast<temporalalgebra::MRegion&>(value);
@@ -136,6 +167,10 @@ namespace ColumnMovingAlgebra
     checkMRegion(m_MRegions->size() - 1);
   }
 
+/*
+~Remove~ removes the last added moving point
+
+*/
   void MRegions::Remove()
   {
     MRegion & r = m_MRegions->back();
@@ -152,6 +187,10 @@ namespace ColumnMovingAlgebra
     m_DefTimes->removeRow();
   }
 
+/*
+~Clear~ removes all moving points
+
+*/
   void MRegions::Clear()
   {
     m_Edges->clear();
@@ -163,11 +202,20 @@ namespace ColumnMovingAlgebra
     m_DefTimes->clear();
   }
 
+/*
+~IsDefined~ returns true, iff the moving point with index ~row~ has any units
+
+*/
   bool MRegions::IsDefined(size_t row) const
   {
     return unitCount(row) > 0;
   }
 
+/*
+~Compare~ compares the moving point at index ~rowA~ with the moving point
+at index ~rowB~ in ~arrayB~
+
+*/
   int MRegions::Compare(size_t rowA, const CRelAlgebra::AttrArray &arrayB,
     size_t rowB) const
   {
@@ -230,6 +278,11 @@ namespace ColumnMovingAlgebra
     return 0;
   }
 
+/*
+~Compare~ compares the moving point at index ~rowA~ with the row oriented
+attribute ~value~
+
+*/
   int MRegions::Compare(size_t row, Attribute &value) const
   {
     MRegions mrs;
@@ -237,6 +290,10 @@ namespace ColumnMovingAlgebra
     return Compare(row, mrs, 0);
   }
 
+/*
+~GetHash~ returns a hash value for the moving point at index ~row~
+
+*/
   size_t MRegions::GetHash(size_t row) const
   {
     if (m_Units->size() == 0)
@@ -246,6 +303,12 @@ namespace ColumnMovingAlgebra
   }
 
 
+/*
+~GetAttribute~ converts the moving point 
+in ~row~ to an MPoint as defined in the temporal algebra for row oriented
+relations and returns it.
+
+*/
   Attribute * MRegions::GetAttribute(size_t row, bool clone) const
   {
     temporalalgebra::MRegion* mr = new temporalalgebra::MRegion(0);

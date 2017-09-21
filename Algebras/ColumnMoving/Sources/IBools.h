@@ -20,6 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+1 IBools.h
+
 */
 
 #pragma once
@@ -29,6 +31,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace ColumnMovingAlgebra
 {
+/*
+1.1 Declaration of class IBoolEntry 
+
+~IBoolEntry~ represents an intime bool in an attribut array
+
+*/
+
   class IBoolEntry
   {
   public:
@@ -36,34 +45,107 @@ namespace ColumnMovingAlgebra
 
     static const bool isPrecise = true;
 
+/*
+default constructors
+
+*/
     IBoolEntry() = default;
+/*
+constructor for specific time and value
+
+*/
     IBoolEntry(bool defined, int64_t time, bool value);
+/*
+constructor for conversion of the corresponding attribute type
+
+*/
     IBoolEntry(const temporalalgebra::IBool &value);
 
+/*
+~IsDefined~ returns wether the entry is defined
+
+*/
     bool IsDefined() const;
+/*
+~GetTime~ returns the time point represented by this entry
+
+*/
     int64_t GetTime() const;
+/*
+~GetValue~ returns the value at this time point
+
+*/
     bool GetValue() const;
 
+/*
+~Compare~ compares with another attribut array entry
+
+*/
     int Compare(const IBoolEntry &value) const;
+/*
+or compares with the corresponding attribute type
+
+*/
     int Compare(const temporalalgebra::IBool &value) const;
+/*
+~Equals~ checks for equality with another attribut array entry
+
+*/
     bool Equals(const IBoolEntry &value) const;
+/*
+or checks for equality with with the corresponding attribute type
+
+*/
     bool Equals(const temporalalgebra::IBool &value) const;
 
+/*
+~GetHash~ returns a hash value for the entry
+
+*/
     size_t GetHash() const;
 
+/*
+~GetAttribute~ conversion to the corresponding attribute type
+
+*/
     temporalalgebra::IBool *GetAttribute(bool clone = true) const;
 
   private:
     
+/*
+~mDefined~ determines whether the entry is defined
+~mValueDefined~ dertermines whether the value of the entry is defined
+
+*/
     bool m_Defined, m_ValueDefined;
+/*
+~mTime~ represents the time, if ~mDefined~ is true
+
+*/
     int64_t m_Time;
+/*
+~mValue~ represents the value, if ~mValueDefined~ is true
+
+*/
     bool m_Value;
   };
 
+/*
+1.2 Declaration of IBools
+
+*/
   typedef CRelAlgebra::SimpleFSAttrArray<IBoolEntry> IBools;
+/*
+1.2 Declaration of IBoolsIterator
+
+*/
   typedef CRelAlgebra::SimpleFSAttrArrayIterator<IBoolEntry> IBoolsIterator;
+/*
+1.1 Implementation of class IBoolEntry 
 
+constructor for specific time and value
 
+*/
   inline IBoolEntry::IBoolEntry(bool defined, int64_t time, bool value) :
     m_Defined(defined),
     m_ValueDefined(true),
@@ -71,7 +153,10 @@ namespace ColumnMovingAlgebra
     m_Value(value)
   {
   }
+/*
+constructor for conversion of the corresponding attribute type
 
+*/
   inline IBoolEntry::IBoolEntry(const temporalalgebra::IBool &value) :
     m_Defined(value.IsDefined()),
     m_ValueDefined(value.value.IsDefined()),
@@ -79,20 +164,32 @@ namespace ColumnMovingAlgebra
     m_Value(value.value.GetValue())
   {
   }
+/*
+~IsDefined~ returns wether the entry is defined
 
+*/
   inline bool IBoolEntry::IsDefined() const
   {
     return m_Defined;
   }
+/*
+~GetTime~ returns the time point represented by this entry
 
+*/
   inline int64_t IBoolEntry::GetTime() const {
     return m_Time;
   }
+/*
+~GetValue~ returns the value at this time point
 
+*/
   inline bool IBoolEntry::GetValue() const {
     return m_Value;
   }
+/*
+~Compare~ compares with another attribut array entry
 
+*/
   inline int IBoolEntry::Compare(const IBoolEntry &value) const
   {
     if (!m_Defined)
@@ -115,23 +212,35 @@ namespace ColumnMovingAlgebra
 
     return 0;
   }
+/*
+or compares with the corresponding attribute type
 
+*/
   inline int IBoolEntry::Compare(const temporalalgebra::IBool &value) const
   {
     IBoolEntry b(value);
     return Compare(b);
   }
+/*
+~Equals~ checks for equality with another attribut array entry
 
+*/
   inline bool IBoolEntry::Equals(const IBoolEntry &value) const
   {
     return Compare(value) == 0;
   }
+/*
+or checks for equality with with the corresponding attribute type
 
+*/
   inline bool IBoolEntry::Equals(const temporalalgebra::IBool &value) const
   {
     return Compare(value) == 0;
   }
+/*
+~GetHash~ returns a hash value for the entry
 
+*/
   inline size_t IBoolEntry::GetHash() const
   {
     if (!m_Defined)
@@ -139,7 +248,10 @@ namespace ColumnMovingAlgebra
 
     return static_cast<size_t>(m_Value) ^ static_cast<size_t>(m_Time);
   }
+/*
+~GetAttribute~ conversion to the corresponding attribute type
 
+*/
   inline temporalalgebra::IBool *IBoolEntry::GetAttribute(bool clone) const
   {
     if (!m_Defined)

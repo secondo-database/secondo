@@ -22,24 +22,42 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "stdafx.h"
 #include "MPoints.h"
 
 using namespace std;
 
 namespace ColumnMovingAlgebra
 {
+/*
+1.1.3 CRel Algebra Interface
+
+the following functions are required by the crel algebra for all attribute 
+arrays.
+
+~Filter~ returns a duplicate of this attribut array with the speficied filter.
+
+ 
+*/
   CRelAlgebra::AttrArray* MPoints::Filter(
     CRelAlgebra::SharedArray<const size_t> filter) const
   {
     return new MPoints(*this, filter);
   }
 
+/*
+~GetCount~ returns the number of entries in the attribut array.
+
+*/
   size_t MPoints::GetCount() const
   {
     return m_MPointsData->rowCount();
   }
 
+/*
+~GetSize~ returns the amount of space needed to save this attribut array
+to persistant storage.
+
+*/
   size_t MPoints::GetSize() const
   {
     return m_MPointsData->savedSize() +
@@ -49,6 +67,11 @@ namespace ColumnMovingAlgebra
            (m_GridIndex.get() != 0 ? m_GridIndex->savedSize() : 0);
   }
 
+/*
+~Save~ saves this attribut array
+to persistant storage.
+
+*/
   void MPoints::Save(CRelAlgebra::Writer &target, bool includeHeader) const
   {
     m_MPointsData->save(target);
@@ -63,9 +86,22 @@ namespace ColumnMovingAlgebra
       m_GridIndex->save(target);
   }
 
+/*
+~Append~ adds the moving point at index ~row~ of the attribut array ~array~
+
+*/
   void MPoints::Append(const CRelAlgebra::AttrArray & array, size_t row)
   {
     MPoints mpoints = static_cast<const MPoints &>(array);
+    
+    if (m_MPointsData->rowCount() == 0) {
+      if (m_GridIndex.get() == 0 && mpoints.m_GridIndex.get() != 0) {
+        GridIndex & g = *mpoints.m_GridIndex;
+        m_GridIndex = std::make_shared<GridIndex>(g.offset(), g.cellSize(), 
+                                                  g.splits());
+        cout << " cre ";
+      }
+    }
 
     addRow();
 
@@ -76,6 +112,10 @@ namespace ColumnMovingAlgebra
     }
   }
 
+/*
+~Append~ adds the row orientied MPoint ~value~
+
+*/
   void MPoints::Append(Attribute & value)
   {
     temporalalgebra::MPoint & a = static_cast<temporalalgebra::MPoint&>(value);
@@ -92,6 +132,10 @@ namespace ColumnMovingAlgebra
     }
   }
 
+/*
+~Remove~ removes the last added moving point
+
+*/
   void MPoints::Remove()
   {
     m_MPointsData->removeRow();
@@ -101,6 +145,10 @@ namespace ColumnMovingAlgebra
       m_GridIndex->removeRow();
   }
 
+/*
+~Clear~ removes all moving points
+
+*/
   void MPoints::Clear()
   {
     m_MPointsData->clear();
@@ -110,11 +158,20 @@ namespace ColumnMovingAlgebra
       m_GridIndex->clear();
   }
 
+/*
+~IsDefined~ returns true, iff the moving point with index ~row~ has any units
+
+*/
   bool MPoints::IsDefined(size_t row) const
   {
     return m_MPointsData->unitCount(row) > 0;
   }
 
+/*
+~Compare~ compares the moving point at index ~rowA~ with the moving point
+at index ~rowB~ in ~arrayB~
+
+*/
   int MPoints::Compare(size_t rowA, const CRelAlgebra::AttrArray &arrayB,
     size_t rowB) const
   {
@@ -165,6 +222,11 @@ namespace ColumnMovingAlgebra
     return 0;
   }
 
+/*
+~Compare~ compares the moving point at index ~rowA~ with the row oriented
+attribute ~value~
+
+*/
   int MPoints::Compare(size_t row, Attribute &value) const
   {
     auto mpointB = static_cast<temporalalgebra::MPoint&>(value);
@@ -219,6 +281,10 @@ namespace ColumnMovingAlgebra
     return 0;
   }
 
+/*
+~GetHash~ returns a hash value for the moving point at index ~row~
+
+*/
   size_t MPoints::GetHash(size_t row) const
   {
     if (m_MPointsData->unitCount(row) == 0)
@@ -230,6 +296,12 @@ namespace ColumnMovingAlgebra
     return (size_t)(u.interval.s ^ u.interval.e);
   }
 
+/*
+~GetAttribute~ converts the moving point 
+in ~row~ to an MPoint as defined in the temporal algebra for row oriented
+relations and returns it.
+
+*/
   Attribute * MPoints::GetAttribute(size_t row, bool clone) const
   {
     temporalalgebra::MPoint * attribute = 

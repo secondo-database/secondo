@@ -20,6 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+1 DefTimes.h
+
 */
 
 #pragma once
@@ -30,36 +32,127 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace ColumnMovingAlgebra
 {
+
+/*
+1.1 Declaration of ~DefTimes~
+
+This class manages the time intervals on which moving objects in an
+attribut array are defined.
+
+*/
+
   class DefTimes {
   public:
+/*
+default constructor
+
+*/
     DefTimes() = default;
+/*
+~DefTimes(CRelAlgebra::Reader)~ loads from persistant storage
+
+*/
     DefTimes(CRelAlgebra::Reader& source);
 
+/*
+saves to persistant storage
+
+*/
     void save(CRelAlgebra::Writer &target);
+/*
+~savedSize~ returns the size needed for saving on persistant storage
+
+*/
     int savedSize();
 
+/*
+~addRow~ adds a moving object for which the definition time is to manage
+
+*/
     void addRow();
+/*
+~addInterval~ adds a new definition time interval for the last added row
+
+*/
     void addInterval(Interval interval);
+/*
+~removeRow~ removes the last added row
+
+*/
     void removeRow();
+/*
+~clear~ removes all rows
+
+*/
     void clear();
 
+/*
+~present~ checks wether the object corresponding to ~row~ is present at 
+~instant~
+
+*/
     bool present(int row, Instant instant);
+/*
+~present~ checks wether the object corresponding to ~row~ is present at 
+~periods~
+
+*/
     bool present(int row, temporalalgebra::Periods periods);
+/*
+~getLimits~ returns the minimum and maximum definition time for all 
+managed definition intervals
+
+*/
     void getLimits(int64_t &minimum, int64_t &maximum);
 
+/*
+~rowCount~ returns the number of managed moving objects
+
+*/
     int rowCount();
+/*
+~intervalFirst~ returns the index of the first interval belonging to this row
+
+*/
     int intervalFirst(int row);
+/*
+~intervalAfterLast~ returns one more than the index of the last interval 
+belonging to this row
+
+*/
     int intervalAfterLast(int row);
+/*
+~intervalCount~ returns the number of definition intervals belonging to this
+row
+
+*/
     int intervalCount(int row);
+/*
+~interval~ returns the interval with the given index
+
+*/
     Interval interval(int index);
 
   private:
+/* 
+~mRows~ saves the indices of the first element in ~mIntervals~ that belongs 
+to a moving object of the attribut array which owns the instance of ~DefTimes~
+
+*/
     Array<int> m_Rows;
+/*
+~mIntervals~ contains the intervals on which moving objects in an
+attribut array are defined.
+
+*/
     Array<Interval> m_Intervals;
   };
 
 
+/*
+1.2 Implementation of the class  ~DefTimes~
 
+*/
 
   inline DefTimes::DefTimes(CRelAlgebra::Reader & source)
   {

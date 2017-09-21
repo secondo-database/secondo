@@ -20,6 +20,11 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+1 Check.h
+
+These helper functions check a condition and write an error message to the 
+std::cout, if the condition is not met
+
 */
 
 #pragma once

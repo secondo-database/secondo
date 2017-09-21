@@ -20,6 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+1 MFsObjects.h
+
 */
 
 #pragma once
@@ -29,65 +31,215 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace ColumnMovingAlgebra
 {
 
+/*
+1.1 Declaration of ~MFsObjects~
+
+~MFsObjects~ is a template class for attribute arrays of one-dimensional
+moving objects.
+It is used to build the attribute arrays for moving booleans, moving
+integers moving reals and moving strings. 
+
+*/
   template<class Unit>
   class MFsObjects : public MObjects
   {
   public:
+/*
+constructors required by the crel algebra for all attribute arrays.
+
+*/
     MFsObjects();
     MFsObjects(CRelAlgebra::Reader& source);
     MFsObjects(CRelAlgebra::Reader& source, size_t rowsCount);
     MFsObjects(const MFsObjects &array, 
       const CRelAlgebra::SharedArray<const size_t> &filter);
+/*
+destructor
+
+*/
     virtual ~MFsObjects() { }
 
+/*
+1.1.1 CRel Algebra Interface
+
+the following functions are required by the crel algebra for all attribute 
+arrays.
+
+~Filter~ returns a duplicate of this attribut array with the speficied filter.
+
+ 
+*/
     virtual AttrArray* Filter(
       CRelAlgebra::SharedArray<const size_t> filter) const;
 
+/*
+~GetAttribute~ converts the entry in ~row~ to a attribute for row oriented
+relations.
+
+*/
     virtual Attribute *GetAttribute(size_t row, bool clone = true) const;
+/*
+~GetCount~ returns the number of entries in the attribut array.
+
+*/
     virtual size_t GetCount() const;
+/*
+~GetSize~ returns the amount of space needed to save this attribut array
+to persistant storage.
+
+*/
     virtual size_t GetSize() const;
 
+/*
+~Save~ saves this attribut array
+to persistant storage.
+
+*/
     virtual void Save(CRelAlgebra::Writer &target, 
       bool includeHeader = true) const;
 
+/*
+~Append~ adds the entry at index ~row~ of the attribut array ~array~
+
+*/
     virtual void Append(const CRelAlgebra::AttrArray & array, size_t row);
+/*
+~Append~ adds the row orientied attribute ~value~
+
+*/
     virtual void Append(Attribute & value);
+/*
+~Remove~ removes the last added entry
+
+*/
     virtual void Remove();
+/*
+~Clear~ removes all entries
+
+*/
     virtual void Clear();
 
+/*
+~IsDefined~ returns true, iff the entry with index ~row~ is defined
+
+*/
     virtual bool IsDefined(size_t row) const;
 
+/*
+~Compare~ compares the entry at index ~rowA~ with the entry at index
+~rowB~ in ~arrayB~
+
+*/
     virtual int  Compare(size_t rowA, const AttrArray& arrayB, 
       size_t rowB) const;
+/*
+~Compare~ compares the entry at index ~rowA~ with the row oriented
+attribute ~value~
+
+*/
     virtual int  Compare(size_t row, Attribute &value) const;
 
+/*
+~GetHash~ returns a hash value for the entry at index ~row~
+
+*/
     virtual size_t GetHash(size_t row) const;
 
+/*
+1.1.2 Operators
+
+The following functions implement the operators supported by the attribut
+array.
+
+~atInstant~ is a timeslice operator and computes an intime for moving object
+entry in the attribute array and adds them to ~result~
+
+*/
     void atInstant(Instant instant, typename Unit::Instants & result);
+/*
+~atPeriods~ restricts the moving object entries to a given set of time 
+intervals and adds the resulting units to ~result~.
+
+*/
     void atPeriods(temporalalgebra::Periods periods, MFsObjects & result);
+/*
+~passes~ adds the indices of all moving object entries to ~result~, which
+ever assume the specified value or a value in the specified range. 
+
+*/
     void passes(typename Unit::Attr & value, CRelAlgebra::LongInts & result);
     void passes(typename Unit::RAttr & value, CRelAlgebra::LongInts & result);
+/*
+~at~ restricts the all moving object entries to the specified value or 
+the specified range. the computed new units are added to ~result~
+
+*/
     void at(typename Unit::Attr & value, MFsObjects & result);
     void at(typename Unit::RAttr & value, MFsObjects & result);
+/*
+~addRandomUnits~ adds random units to every moving object entry
 
+*/
+    void addRandomUnits(CcInt& size, MFsObjects & result);
+
+/*
+~addMObject~ adds a new moving object entry to the attribute array
+
+*/
     void addMObject();
+/*
+~addUnit~ adds a new unit to the last added moving object entry
+
+*/
     void addUnit(Unit & unit);
 
   protected:
+/*
+1.1.3 Attributes
+
+~MObject~ represents a moving object entry. ~firstUnit~ is the index of the
+first unit that belongs to the moving object in the array ~mUnits~.
+~minimum~ and ~maximum~ are the extremes of the value of the moving object.
+
+*/
     struct MObject { 
       int firstUnit; 
       typename Unit::Value minimum, maximum;
     };
 
+/*
+~mUnits~ represents the units of all moving object entries.
+
+*/
     std::shared_ptr<Array<Unit>> m_Units;
+/*
+~mMObjects~ represents the moving object entries.
+
+*/
     std::shared_ptr<Array<MObject>> m_MObjects;
 
+/*
+1.1.4 Helper Functions
+
+The following functions are for convenience. They return the number of units,
+the index of the first unit and one more than the last unit 
+of a moving object entry and also the unit for a specified unit index.
+
+*/
     int unitFirst(int mobject) const;
     int unitAfterLast(int mobject) const;
     int unitCount(int mobject) const;
     Unit & unit(int index) const;
   };
 
+/*
+1.2 Implementation of ~MFsObjects~
+
+1.2.1 Constructors
+
+These constructors are required by the crel algebra
+
+*/
   template<class Unit>
   MFsObjects<Unit>::MFsObjects() :
     m_Units(std::make_shared<Array<Unit>>()),
@@ -121,6 +273,15 @@ namespace ColumnMovingAlgebra
   {
   }
   
+/*
+1.2.2 CRel Algebra Interface
+
+the following functions are required by the crel algebra for all attribute 
+arrays.
+
+~Filter~ returns a duplicate of this attribut array with the speficied filter.
+
+*/
   template<class Unit>
   CRelAlgebra::AttrArray* MFsObjects<Unit>::Filter(
     CRelAlgebra::SharedArray<const size_t> filter) const
@@ -129,6 +290,11 @@ namespace ColumnMovingAlgebra
       (*this, filter);
   }
 
+/*
+~GetAttribute~ converts the entry in ~row~ to a attribute for row oriented
+relations.
+
+*/
   template<class Unit>
   Attribute * MFsObjects<Unit>::GetAttribute(size_t row, bool clone) const
   {
@@ -142,12 +308,21 @@ namespace ColumnMovingAlgebra
     return mattr;
   }
 
+/*
+~GetCount~ returns the number of entries in the attribut array.
+
+*/
   template<class Unit>
   size_t MFsObjects<Unit>::GetCount() const
   {
     return m_MObjects->size();
   }
 
+/*
+~GetSize~ returns the amount of space needed to save this attribut array
+to persistant storage.
+
+*/
   template<class Unit>
   size_t MFsObjects<Unit>::
   GetSize() const
@@ -157,6 +332,11 @@ namespace ColumnMovingAlgebra
             m_DefTimes->savedSize();
   }
 
+/*
+~Save~ saves this attribut array
+to persistant storage.
+
+*/
   template<class Unit>
   void MFsObjects<Unit>::Save(CRelAlgebra::Writer &target, 
     bool includeHeader) const
@@ -166,6 +346,10 @@ namespace ColumnMovingAlgebra
     m_DefTimes->save(target);
   }
 
+/*
+~Append~ adds the entry at index ~row~ of the attribut array ~array~
+
+*/
   template<class Unit>
   void MFsObjects<Unit>::Append(const CRelAlgebra::AttrArray & array, 
     size_t row)
@@ -180,6 +364,10 @@ namespace ColumnMovingAlgebra
       addUnit(m.unit(ui));
   }
 
+/*
+~Append~ adds the row orientied attribute ~value~
+
+*/
   template<class Unit>
   void MFsObjects<Unit>::Append(Attribute & value)
   {
@@ -196,6 +384,10 @@ namespace ColumnMovingAlgebra
     }
   }
 
+/*
+~Remove~ removes the last added entry
+
+*/
   template<class Unit>
   void MFsObjects<Unit>::Remove()
   {
@@ -206,6 +398,10 @@ namespace ColumnMovingAlgebra
     m_DefTimes->removeRow();
   }
 
+/*
+~Clear~ removes all entries
+
+*/
   template<class Unit>
   void MFsObjects<Unit>::Clear()
   {
@@ -215,12 +411,21 @@ namespace ColumnMovingAlgebra
     m_DefTimes->clear();
   }
 
+/*
+~IsDefined~ returns true, iff the entry with index ~row~ is defined
+
+*/
   template<class Unit>
   bool MFsObjects<Unit>::IsDefined(size_t row) const
   {
     return unitCount(row) > 0;
   }
 
+/*
+~Compare~ compares the entry at index ~rowA~ with the entry at index
+~rowB~ in ~arrayB~
+
+*/
   template<class Unit>
   int MFsObjects<Unit>::Compare(size_t rowA, 
     const CRelAlgebra::AttrArray &arrayB, size_t rowB) 
@@ -252,6 +457,11 @@ namespace ColumnMovingAlgebra
     return 0;
   }
 
+/*
+~Compare~ compares the entry at index ~rowA~ with the row oriented
+attribute ~value~
+
+*/
   template<class Unit>
   int MFsObjects<Unit>::Compare(size_t row, Attribute &value) const
   {
@@ -260,6 +470,10 @@ namespace ColumnMovingAlgebra
     return Compare(row, mrs, 0);
   }
 
+/*
+~GetHash~ returns a hash value for the entry at index ~row~
+
+*/
   template<class Unit>
   size_t MFsObjects<Unit>::
   GetHash(size_t row) const
@@ -270,6 +484,19 @@ namespace ColumnMovingAlgebra
     return (size_t)(unit(0).interval().s ^ unit(0).interval().e);
   }
 
+/*
+1.1.2 Operators
+
+The following functions implement the operators supported by the attribut
+array.
+
+~atInstant~ is a timeslice operator and computes an intime for each 
+moving object entry in the attribute array and adds them to ~result~. It does a
+binary search on all units of each moving object entry and if it finds
+a unit it calls the function ~atInstant~ for this unit to get the corresponding
+intime.
+
+*/
   template<class Unit>
   void MFsObjects<Unit>::atInstant(Instant instant, 
     typename Unit::Instants & result)
@@ -306,6 +533,16 @@ namespace ColumnMovingAlgebra
     }
   }
 
+/*
+~atPeriods~ restricts the moving object entries to a given set of time 
+intervals and adds the resulting units to ~result~. It performs a parallel
+scan of the provided time intervalls and all units of each moving object entry.
+if an overlapping pair of a time interval and a unit definition interval is
+found the intersection is calculated and used as the parameter for 
+a call to ~restrictToInterval~ for the unit. The returned unit is added
+to ~result~.
+
+*/
   template<class Unit>
   void MFsObjects<Unit>::
   atPeriods(temporalalgebra::Periods periods, MFsObjects & result)
@@ -343,6 +580,13 @@ namespace ColumnMovingAlgebra
     }
   }
 
+/*
+~passes~ adds the indices of all moving object entries to ~result~, which
+ever assume the specified value. It checks the value against the minimum
+and maximum of the moving object first and if the value is between, then 
+iterates over all units of the moving object entry.
+
+*/
   template<class Unit>
   void MFsObjects<Unit>::passes(typename Unit::Attr & value, 
     CRelAlgebra::LongInts & result)
@@ -368,6 +612,14 @@ namespace ColumnMovingAlgebra
     }
   }
 
+/*
+~passes~ adds the indices of all moving object entries to ~result~, which
+ever assume a value in the specified range. 
+It checks the range against the minimum
+and maximum of the moving object first and in case of overlap, then 
+iterates over all units of the moving object entry.
+
+*/
   template<class Unit>
   void MFsObjects<Unit>::passes(typename Unit::RAttr & value, 
     CRelAlgebra::LongInts & result)
@@ -397,6 +649,11 @@ namespace ColumnMovingAlgebra
     }
   }
 
+/*
+~at~ restricts the all moving object entries to the specified value. 
+the computed new units are added to ~result~
+
+*/
   template<class Unit>
   void MFsObjects<Unit>::at(typename Unit::Attr & value, MFsObjects & result)
   {
@@ -422,6 +679,11 @@ namespace ColumnMovingAlgebra
     }
   }
 
+/*
+~at~ restricts the all moving object entries to the specified 
+range. the computed new units are added to ~result~
+
+*/
   template<class Unit>
   void MFsObjects<Unit>::at(typename Unit::RAttr & value, MFsObjects & result)
   {
@@ -452,6 +714,10 @@ namespace ColumnMovingAlgebra
   }
 
 
+/*
+~addMObject~ adds a new moving object entry to the attribute array
+
+*/
   template<class Unit>
   void MFsObjects<Unit>::addMObject()
   {
@@ -459,6 +725,11 @@ namespace ColumnMovingAlgebra
     m_DefTimes->addRow();
   }
 
+/*
+~addUnit~ adds a new unit to the last added moving object entry.
+minimum and maximum of the moving object entry are updated.
+
+*/
   template<class Unit>
   void MFsObjects<Unit>::addUnit(Unit & unit)
   {
@@ -478,12 +749,63 @@ namespace ColumnMovingAlgebra
     }
   }
   
+  
+/*
+~addRandomUnits~ adds random units to every moving object entry
+
+*/
+  template<class Unit>
+  void MFsObjects<Unit>::addRandomUnits(CcInt& size, MFsObjects & result)
+  {
+    if (!size.IsDefined()) 
+      return;
+      
+    int count = size.GetValue();
+    
+    for (auto & iterator : GetFilter()) {
+      int row = iterator.GetRow();
+
+      Interval interval {0, 0, true, false};
+
+      if (!unitCount(row) == 0) {
+        Unit& u = unit(unitAfterLast(row) - 1);
+        interval.s = (static_cast<int64_t>(u.interval().e * 1.1) 
+                     / MILLISECONDS + 1) * MILLISECONDS;
+      }
+
+      result.Append(*this, row);
+      
+      for (int i = 0; i < count; i++) {
+        interval.e = interval.s + (5 + (rand() % 5)) * MILLISECONDS;
+        Unit u = Unit::random(interval);
+        result.addUnit(u);
+        interval.s = interval.e;
+      }
+    }
+  }
+
+  
+/*
+1.2.4 Helper Functions
+
+The following functions are for convenience. 
+
+~unitFirst~ returns the index of the first unit of the moving object entry 
+with index ~mobject~
+
+*/
   template<class Unit>
   int MFsObjects<Unit>::unitFirst(int mobject) const
   {
     return (*m_MObjects)[mobject].firstUnit;
   }
 
+/*
+~unitAfterLast~ returns one more than the index of the last unit of 
+the moving object entry 
+with index ~mobject~
+
+*/
   template<class Unit>
   int MFsObjects<Unit>::unitAfterLast(int mobject) const
   {
@@ -492,12 +814,21 @@ namespace ColumnMovingAlgebra
       m_Units->size();
   }
 
+/*
+~unitCount~ returns the number of units of the moving object entry 
+with index ~mobject~
+
+*/
   template<class Unit>
   int MFsObjects<Unit>::unitCount(int mobject) const
   {
     return unitAfterLast(mobject) - unitFirst(mobject);
   }
 
+/*
+~unit~ returns unit for a specified unit index
+
+*/
   template<class Unit>
   Unit & MFsObjects<Unit>::unit(int index) const
   {

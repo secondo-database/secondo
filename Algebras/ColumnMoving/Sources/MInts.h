@@ -20,6 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+1 MInts.h
+
 */
 
 #pragma once
@@ -30,10 +32,26 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace ColumnMovingAlgebra
 {
+/*
+1.1 Forward Declaration of ~IntUnit~
+
+~IntUnit~ represents a moving integer unit
+
+*/
   class IntUnit;
 
+/*
+1.1 Declaration of ~MInts~
+
+~MInts~ represents a moving integer
+
+*/
   typedef MFsObjects<IntUnit> MInts;
 
+/*
+1.2 Declaration of class ~IntUnit~
+
+*/
   class IntUnit
   {
   public:
@@ -43,32 +61,112 @@ namespace ColumnMovingAlgebra
     typedef temporalalgebra::RInt RAttr;
     typedef temporalalgebra::MInt MAttr;
     
+/*
+constructors
+
+*/
     IntUnit() = default;
     IntUnit(temporalalgebra::MInt mint, int unit);
     IntUnit(Interval interval, int m_Value);
 
-    Value minimum() const;
-    Value maximum() const;
+/*
+~interval~ returns the definition interval of this unit
+
+*/
     Interval interval() const;
+/*
+~minimum~ returns the minimum value of the mapping function during the
+definition interval
+
+*/
+    Value minimum() const;
+/*
+~maximum~ returns the maximum value of the mapping function during the
+definition interval
+
+*/
+    Value maximum() const;
+/*
+~appendTo~ adds this unit to a moving object in the temporal algebra
+
+*/
     void appendTo(temporalalgebra::MInt & mint);
+/*
+~compareValue~ compares this unit
+
+*/
     int compareValue(const IntUnit & intUnit);
+/*
+~atInstant~ returns an intime for ~instant~
+
+*/
     temporalalgebra::IInt atInstant(Instant instant);
+/*
+~restrictToInterval~ restricts the unit to ~unitInterval~
+
+*/
     IntUnit restrictToInterval(Interval unitInterval);
+/*
+~passes~ returns true, iff this this unit has the same value 
+
+*/
     bool passes(CcInt ccInt);
+/*
+or iff the value is in the specified range
+
+*/
     bool passes(temporalalgebra::RInt rInt);
+/*
+~at~ adds this unit to ~result~ iff it has the same value as specified
+
+*/
     void at(CcInt ccInt, MInts & result);
+/*
+of iff its value is in the specified range
+
+*/
     void at(temporalalgebra::RInt rInt, MInts & result);
     
+/*
+~undefinedAttr~ returns an undefined attribute
+
+*/
     static CcInt undefinedAttr();
+/*
+~compare~ 
+returns -1 if ~value~ smaller ~attr~,
+returns  0 if ~value~ equal ~attr~, 
+returns  1 if ~value~ greater ~attr~ 
+
+*/
     static int compare(Value value, Attr attr);
+/*
+~random~ returns a unit with the specified interval and a random value
+
+*/
+    static IntUnit random(Interval interval);
 
   private:
+/*
+~mInterval~ represents the definition interval of this unit
+
+*/
     Interval m_Interval;
+/*
+~mValue~ represents the value of this unit
+
+*/
     int m_Value;
   };
 
 
 
+/*
+1.2 Implementation of class ~IntUnit~
+
+constructors
+
+*/
   inline IntUnit::IntUnit(temporalalgebra::MInt mint, int unit)
   {
     temporalalgebra::UInt u;
@@ -83,27 +181,49 @@ namespace ColumnMovingAlgebra
   {
   }
 
+/*
+~minimum~ returns the minimum value of the mapping function during the
+definition interval
+
+*/
   inline IntUnit::Value IntUnit::minimum() const
   {
     return m_Value;
   }
   
+/*
+~maximum~ returns the maximum value of the mapping function during the
+definition interval
+
+*/
   inline IntUnit::Value IntUnit::maximum() const
   {
     return m_Value;
   }
   
+/*
+~interval~ returns the definition interval of this unit
+
+*/
   inline Interval IntUnit::interval() const
   {
     return m_Interval;
   }
   
+/*
+~appendTo~ adds this unit to a moving object in the temporal algebra
+
+*/
   inline void IntUnit::appendTo(
     temporalalgebra::MInt & mint)
   {
     mint.Add(temporalalgebra::UInt(m_Interval.convert(), CcInt(m_Value)));
   }
   
+/*
+~compareValue~ compares this unit
+
+*/
   inline int IntUnit::compareValue(const IntUnit & intUnit)
   {
     int iDiff;
@@ -115,11 +235,19 @@ namespace ColumnMovingAlgebra
     return 0;
   }
 
+/*
+~atInstant~ returns an intime for ~instant~
+
+*/
   inline temporalalgebra::IInt IntUnit::atInstant(Instant instant)
   {
     return temporalalgebra::IInt(instant, CcInt(true, m_Value));
   }
 
+/*
+~restrictToInterval~ restricts the unit to ~unitInterval~
+
+*/
   inline IntUnit IntUnit::restrictToInterval(Interval unitInterval)
   {
     IntUnit u;
@@ -128,11 +256,19 @@ namespace ColumnMovingAlgebra
     return u;
   }
 
+/*
+~passes~ returns true, iff this this unit has the same value 
+
+*/
   inline bool IntUnit::passes(CcInt ccInt)
   {
     return m_Value == ccInt.GetValue();
   }
 
+/*
+or iff the value is in the specified range
+
+*/
   inline bool IntUnit::passes(temporalalgebra::RInt rInt)
   {
     for (int index = 0; index < rInt.GetNoComponents(); index++) {
@@ -154,18 +290,30 @@ namespace ColumnMovingAlgebra
     return false;
   }
 
+/*
+~at~ adds this unit to ~result~ iff it has the same value as specified
+
+*/
   inline void IntUnit::at(CcInt ccInt, MInts & result)
   {
     if (passes(ccInt)) 
       result.addUnit(*this);
   }
 
+/*
+of iff its value is in the specified range
+
+*/
   inline void IntUnit::at(temporalalgebra::RInt rInt, MInts & result)
   {
     if (passes(rInt))
       result.addUnit(*this);
   }
 
+/*
+~undefinedAttr~ returns an undefined attribute
+
+*/
   inline CcInt IntUnit::undefinedAttr()
   {
     CcInt r(1);
@@ -173,9 +321,25 @@ namespace ColumnMovingAlgebra
     return r;
   }
 
+/*
+~compare~ 
+returns -1 if ~value~ smaller ~attr~,
+returns  0 if ~value~ equal ~attr~, 
+returns  1 if ~value~ greater ~attr~ 
+
+*/
   inline int IntUnit::compare(Value value, Attr attr)
   {
     int b = attr.GetValue();
     return value < b ? -1 : (value == b ? 0 : 1);
+  }
+  
+/*
+~random~ returns a unit with the specified interval and a random value
+
+*/
+  inline IntUnit IntUnit::random(Interval interval)
+  {
+    return IntUnit(interval, rand());
   }
 }

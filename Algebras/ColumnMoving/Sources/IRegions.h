@@ -20,6 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+1 IRegions.h
+
 */
 
 #pragma once
@@ -30,6 +32,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace ColumnMovingAlgebra
 {
+/*
+1.1 Declaration of class IRegionEntry 
+
+~IRegionEntry~ represents an intime real in an attribut array
+
+*/
+
   class IRegionEntry
   {
   public:
@@ -37,19 +46,63 @@ namespace ColumnMovingAlgebra
 
     static const bool isPrecise = true;
 
+/*
+~GetSize~ returns the size needed to save ~value~ as an attribut array entry
+
+*/
     static size_t GetSize(const temporalalgebra::IRegion & value);
+/*
+~Write~ saves ~value~ as an attribut array entry
+
+*/
     static void Write(CRelAlgebra::SimpleVSAttrArrayEntry target, 
                       const temporalalgebra::IRegion & value);
 
+/*
+default constructors
+
+*/
     IRegionEntry();
+/*
+constructor for loading from persistant storage
+
+*/
     IRegionEntry(const CRelAlgebra::SimpleVSAttrArrayEntry & value);
 
+/*
+~IsDefined~ returns wether the entry is defined
+
+*/
     bool IsDefined() const;
+/*
+~Compare~ compares with another attribut array entry
+
+*/
     int Compare(const IRegionEntry & value) const;
+/*
+or compares with the corresponding attribute type
+
+*/
     int Compare(const temporalalgebra::IRegion & value) const;
+/*
+~Equals~ checks for equality with another attribut array entry
+
+*/
     bool Equals(const IRegionEntry & value) const;
+/*
+or checks for equality with with the corresponding attribute type
+
+*/
     bool Equals(const temporalalgebra::IRegion & value) const;
+/*
+~GetHash~ returns a hash value for the entry
+
+*/
     size_t GetHash() const;
+/*
+~GetAttribute~ converts the entry to the corresponding attribute type
+
+*/
     temporalalgebra::IRegion * GetAttribute(bool clone = true) const;
 
   private:
@@ -60,15 +113,35 @@ namespace ColumnMovingAlgebra
       bool insideAbove;
     };
 
+/*
+~mDefined~ determines whether the entry is defined
+
+*/
     bool m_Defined;
+/*
+~mTime~ represents the time, if ~mDefined~ is true
+
+*/
     int64_t m_Time;
+/*
+the region is represented by half segments
+
+*/
     int m_HalfSegmentsCount;
     HalfSegment * m_HalfSegments;
   };
 
+/*
+1.2 Declaration of IRegions
+
+*/
   typedef CRelAlgebra::SimpleVSAttrArray<IRegionEntry> IRegions;
+/*
+1.3 Implementation of class IRegionEntry 
 
+~GetSize~ returns the size needed to save ~value~ as an attribut array entry
 
+*/
   inline size_t IRegionEntry::GetSize(const temporalalgebra::IRegion &value)
   {
     if (value.IsDefined())
@@ -76,7 +149,10 @@ namespace ColumnMovingAlgebra
 
     return 0;
   }
+/*
+~Write~ saves ~value~ as an attribut array entry
 
+*/
   inline void IRegionEntry::Write(CRelAlgebra::SimpleVSAttrArrayEntry target, 
                                   const temporalalgebra::IRegion &value)
   {
@@ -105,11 +181,17 @@ namespace ColumnMovingAlgebra
       d1->insideAbove = h.attr.insideAbove;
     }
   }
+/*
+default constructor
 
+*/
   inline IRegionEntry::IRegionEntry()
   {
   }
+/*
+constructor for reading from persistant storage
 
+*/
   inline IRegionEntry::IRegionEntry(
     const CRelAlgebra::SimpleVSAttrArrayEntry &value) :
     m_Defined(value.size != 0),
@@ -126,12 +208,18 @@ namespace ColumnMovingAlgebra
       m_HalfSegments = d1;
     }
   }
+/*
+~IsDefined~ returns wether the entry is defined
 
+*/
   inline bool IRegionEntry::IsDefined() const
   {
     return m_Defined;
   }
+/*
+~Compare~ compares with another attribut array entry
 
+*/
   inline int IRegionEntry::Compare(const IRegionEntry &value) const
   {
     if (!m_Defined)
@@ -194,7 +282,10 @@ namespace ColumnMovingAlgebra
 
     return 0;
   }
+/*
+or compares with the corresponding attribute type
 
+*/
   inline int IRegionEntry::Compare(const temporalalgebra::IRegion &value) const
   {
     if (!m_Defined)
@@ -260,17 +351,26 @@ namespace ColumnMovingAlgebra
 
     return 0;
   }
+/*
+~Equals~ checks for equality with another attribut array entry
 
+*/
   inline bool IRegionEntry::Equals(const IRegionEntry &value) const
   {
     return Compare(value) == 0;
   }
+/*
+or checks for equality with with the corresponding attribute type
 
+*/
   inline bool IRegionEntry::Equals(const temporalalgebra::IRegion &value) const
   {
     return Compare(value) == 0;
   }
+/*
+~GetHash~ returns a hash value for the entry
 
+*/
   inline size_t IRegionEntry::GetHash() const
   {
     if (!m_Defined)
@@ -278,7 +378,10 @@ namespace ColumnMovingAlgebra
 
     return static_cast<size_t>(m_Time ^ m_HalfSegmentsCount);
   }
+/*
+~GetAttribute~ conversion to the corresponding attribute type
 
+*/
   inline temporalalgebra::IRegion *IRegionEntry::GetAttribute(bool clone) const
   {
     if (!m_Defined) {

@@ -20,6 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+1 MPoints.h
+
 */
 
 #pragma once
@@ -32,73 +34,241 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "MPointsData.h"
 #include "Grid.h"
 #include "MBools.h"
+#include <chrono>
 
 namespace ColumnMovingAlgebra
 {
+
+/*
+1.1 Declaration of the class ~MPoints~
+
+~MPoints~ represents a moving point attribute array.
+
+*/
   class MPoints : public MObjects
   {
   public:
+/*
+1.1.1 Constructors 
+
+The following constructor signatures are required by the crel algebra for all 
+attribute arrays.
+
+*/
     MPoints();
     MPoints(CRelAlgebra::Reader& source);
     MPoints(CRelAlgebra::Reader& source, size_t rowsCount);
     MPoints(const MPoints &array, 
             const CRelAlgebra::SharedArray<const size_t> &filter);
+/*
+1.1.2 Destructor
+
+*/
     virtual ~MPoints() { }
 
+/*
+1.1.3 CRel Algebra Interface
+
+the following functions are required by the crel algebra for all attribute 
+arrays.
+
+~Filter~ returns a duplicate of this attribut array with the speficied filter.
+
+ 
+*/
     virtual AttrArray* Filter(CRelAlgebra::SharedArray<const size_t> 
                               filter) const;
 
+/*
+~GetCount~ returns the number of entries in the attribut array.
+
+*/
     virtual size_t GetCount() const;
+/*
+~GetSize~ returns the amount of space needed to save this attribut array
+to persistant storage.
+
+*/
     virtual size_t GetSize() const;
+/*
+~GetAttribute~ converts the moving point 
+in ~row~ to an MPoint as defined in the temporal algebra for row oriented
+relations and returns it.
+
+*/
     virtual Attribute *GetAttribute(size_t row, bool clone = true) const;
 
+/*
+~Save~ saves this attribut array
+to persistant storage.
+
+*/
     virtual void Save(CRelAlgebra::Writer &target, 
                       bool includeHeader = true) const;
 
+/*
+~Append~ adds the moving point at index ~row~ of the attribut array ~array~
+
+*/
     virtual void Append(const CRelAlgebra::AttrArray & array, size_t row);
+/*
+or adds the row orientied MPoint ~value~
+
+*/
     virtual void Append(Attribute & value);
+/*
+~Remove~ removes the last added moving point
+
+*/
     virtual void Remove();
+/*
+~Clear~ removes all moving points
+
+*/
     virtual void Clear();
 
+/*
+~IsDefined~ returns true, iff the moving point with index ~row~ has any units
+
+*/
     virtual bool IsDefined(size_t row) const;
 
+/*
+~Compare~ compares the moving point at index ~rowA~ with the moving point
+at index ~rowB~ in ~arrayB~
+
+*/
     virtual int Compare(size_t rowA, const AttrArray& arrayB, 
       size_t rowB) const;
+/*
+~Compare~ compares the moving point at index ~rowA~ with the row oriented
+attribute ~value~
+
+*/
     virtual int Compare(size_t row, Attribute &value) const;
 
+/*
+~GetHash~ returns a hash value for the moving point at index ~row~
+
+*/
     virtual size_t GetHash(size_t row) const;
 
+/*
+1.1.2 Operators
+
+The following functions implement the operators supported by moving points
+attribute array. The operators atinstant, atperiods, passes and at are
+implemented in two versions for moving point attribute arrays with and 
+without a grid index.
+
+~atInstant~ is a timeslice operator and computes an intime for all 
+moving points in the attribute array and adds them to ~result~
+
+*/
     void atInstant(Instant instant, IPoints & result);
     void atInstantIndexed(Instant instant, IPoints & result);
     
+/*
+~atPeriods~ restricts the moving points to a given set of time 
+intervals and adds the resulting units to ~result~.
+
+*/
     void atPeriods(temporalalgebra::Periods periods, MPoints & result);
     void atPeriodsIndexed(temporalalgebra::Periods periods, MPoints & result);
     
+/*
+~passes~ adds the indices of all moving points to ~result~, which
+ever assume the specified value or intersect the specified region. 
+
+*/
     void passes(Point & value, CRelAlgebra::LongInts & result);
     void passesIndexed(Point & value, CRelAlgebra::LongInts & result);
     void passes(Region & value, CRelAlgebra::LongInts & result);
     void passesIndexed(Region & value, CRelAlgebra::LongInts & result);
     
+/*
+~at~ restricts the all moving points to the specified value or 
+the specified region. the computed new units are added to ~result~
+
+*/
     void at(Point & value, MPoints & result);
     void atIndexed(Point & value, MPoints & result);
     void at(Region & value, MPoints & result);
     void atIndexed(Region & value, MPoints & result);
     
-    void addRandomRows(CcInt& size, MPoints & result);
+/*
+~addRandomUnits~ adds random units to every moving point 
+
+*/
+    void addRandomUnits(CcInt& size, MPoints & result);
     
-    void index(CcInt& temporalSplits, CcInt& spatialSplits, MPoints & result);
+/*
+~index~ creates a new moving points attribute array with a grid index.
+the index will cover the rectangular region specified by ~xMin~, ~xMax~,
+~yMin~ and ~yMax~ and covers the time interval from ~tMin~ to ~tMax~. The
+created grid is an infinite grid, so it will also index units which are
+not within these boundaries, but this will be ineffective in most cases.
+The number of grid cells in each dimension is determined by ~xSplits~, 
+~ySplits~ and ~tSplits~. 
+
+*/
+    void index(CcReal& xMin, CcReal& xMax, CcInt& xSplits,
+               CcReal& yMin, CcReal& yMax, CcInt& ySplits, 
+               Instant& tMin, Instant& tMax, 
+               CcInt& tSplits, MPoints & result);
     
+/*
+1.1.3 Data access
+
+~addRow~ adds a new moving point to the attribute array
+
+*/
     void addRow();
+/*
+~addUnit~ adds a new unit to the last added moving point
+
+*/
     void addUnit(Interval interval, double x0, double y0, 
                                     double x1, double y1);
 
+/*
+~unitIterator~ returns an iterator over the units of the moving
+point with index ~row~
+
+*/
     MPointsData::UnitIterator unitIterator(int row);
     
+/*
+~getDefTimeLimits~ returns the minimum start and maximum end of all
+units of all moving points in this attribute array
+
+*/
     void getDefTimeLimits(int64_t &minimum, int64_t &maximum);
     
+/*
+1.1.4 Intersection of Definition Time
+
+~defTimeIntersection~ is a helper function for the operator inside.
+inside has a moving point operand and a moving region operand and
+computes a moving boolean which is set to true respectively false
+for all time intervals in which
+the moving point is located inside respectively outside the moving region.
+To compute this result inside first calls intersection on the two operands.
+Then it calls ~defTimeIntersection~ on the moving point operand and uses
+the result of intersection as parameter for ~defTimeIntersection~. 
+This function then performs an intersection on the definition times of 
+both moving points to calculate the result for inside.
+
+*/
     void defTimeIntersection(MPoints &subset, MBools &result);
     
   private:
+/*
+1.1.5 Attributes
+
+~GridEntry~ represents an entry in the grid index. 
+
+*/
     struct GridEntry {
       int row, unitId;
       bool operator==(const GridEntry & b) const;
@@ -107,14 +277,35 @@ namespace ColumnMovingAlgebra
 
     typedef Grid<3, 31, GridEntry> GridIndex;
 
+/*
+~mMPointsData~ represents the data of all moving points in this attribute
+array.
+
+*/
     std::shared_ptr<MPointsData> m_MPointsData;
+/*
+~mMbr~ is the minimum bounding volume for all moving points in this attribute
+array.
+
+*/
     GridIndex::Mbr m_Mbr;
+/*
+~mGridIndex~ represents the grid index of all units of all moving points.
+It is set to null if the moving points attribut array has no index.
+
+*/
     std::shared_ptr<GridIndex> m_GridIndex;
   };
 
+/*
+1.2 Implementation of the inline functions for class ~MPoints~
 
+1.2.1 Constructors 
 
+The following constructor signatures are required by the crel algebra for all 
+attribute arrays.
 
+*/
   inline MPoints::MPoints() :
     m_MPointsData(std::make_shared<MPointsData>())
   {
@@ -122,6 +313,7 @@ namespace ColumnMovingAlgebra
 
   inline MPoints::MPoints(CRelAlgebra::Reader& source)
   {
+    cout << " load ";
     m_MPointsData = std::make_shared<MPointsData>(source);
     m_DefTimes = std::make_shared<DefTimes>(source);
     source.ReadOrThrow(reinterpret_cast<char*>(&m_Mbr), sizeof(m_Mbr));
@@ -153,6 +345,12 @@ namespace ColumnMovingAlgebra
   {
   }
 
+/*
+1.2.2 Data access
+
+~addRow~ adds a new moving point to the attribute array
+
+*/
   inline void MPoints::addRow()
   {
     m_MPointsData->addRow();
@@ -162,14 +360,15 @@ namespace ColumnMovingAlgebra
       m_GridIndex->addRow();
   }
 
+/*
+~addUnit~ adds a new unit to the last added moving point. The minimum bounding
+volume of the attribute array is updated and the new unit is indexed if
+the attribute array has a grid index.
+
+*/
   inline void MPoints::addUnit(Interval interval, double x0, double y0, 
                                                   double x1, double y1)
   {
-    int unitId;
-    m_MPointsData->addUnit(interval, x0, y0, x1, y1, unitId);
-
-    m_DefTimes->addInterval(interval);
-
     GridIndex::Mbr mbr;
     mbr.l[0] = std::min(x0, x1);
     mbr.h[0] = std::max(x0, x1);
@@ -177,30 +376,60 @@ namespace ColumnMovingAlgebra
     mbr.h[1] = std::max(y0, y1);
     mbr.l[2] = static_cast<double>(interval.s);
     mbr.h[2] = static_cast<double>(interval.e);
+
+    if (m_MPointsData->empty())
+      m_Mbr = mbr;
+    else
+      m_Mbr = m_Mbr.unite(mbr);
     
+    int unitId;
+    m_MPointsData->addUnit(interval, x0, y0, x1, y1, unitId);
+
+    m_DefTimes->addInterval(interval);
+
     GridEntry e;
     e.row = m_MPointsData->rowCount() - 1;
     e.unitId = unitId;
 
     if (m_GridIndex.get() != 0)
       m_GridIndex->add(mbr, e);
-
-    if (m_MPointsData->rowCount() == 1 && m_MPointsData->unitCount(0) == 0)
-      m_Mbr = mbr;
-    else
-      m_Mbr = m_Mbr.unite(mbr);
   }
 
+/*
+~unitIterator~ returns an iterator over the units of the moving
+point with index ~row~
+
+*/
   inline MPointsData::UnitIterator MPoints::unitIterator(int row)
   {
     return m_MPointsData->unitIterator(row);
   }
   
+/*
+~getDefTimeLimits~ returns the minimum start and maximum end of all
+units of all moving points in this attribute array
+
+*/
   inline void MPoints::getDefTimeLimits(int64_t &minimum, int64_t &maximum)
   {
     m_DefTimes->getLimits(minimum, maximum);
   }
   
+/*
+1.2.3 Intersection of Definition Time
+
+~defTimeIntersection~ is a helper function for the operator inside.
+inside has a moving point operand and a moving region operand and
+computes a moving boolean which is set to true respectively false
+for all time intervals in which
+the moving point is located inside respectively outside the moving region.
+To compute this result inside first calls intersection on the two operands.
+Then it calls ~defTimeIntersection~ on the moving point operand and uses
+the result of intersection as parameter for ~defTimeIntersection~. 
+This function then performs an intersection on the definition times of 
+both moving points to calculate the result for inside.
+
+*/
   inline void MPoints::defTimeIntersection(MPoints &subset, MBools &result)
   {
     checkr(m_DefTimes->rowCount() == subset.m_DefTimes->rowCount(),
@@ -250,23 +479,19 @@ namespace ColumnMovingAlgebra
     }
   }
 
-  inline bool MPoints::GridEntry::operator==(const GridEntry & b) const
-  {
-    return row == b.row && unitId == b.unitId;
-  }
+/*
+1.1.4 Operators
 
-  inline bool MPoints::GridEntry::operator< (const GridEntry & b) const
-  {
-    if (row < b.row)
-      return true;
-    if (row > b.row)
-      return false;
-    
-    return unitId < b.unitId;
-  }
-  
-  
-  
+The following functions implement the operators supported by moving points
+attribute array. The operators atinstant, atperiods, passes and at are
+implemented in two versions for moving point attribute arrays with and 
+without a grid index.
+
+~atInstant~ is a timeslice operator and computes an intime for all 
+moving points in the attribute array and adds them to ~result~. The 
+actual algorithm is implemented in the class MPointsData
+
+*/
   inline void MPoints::atInstant(Instant instant, IPoints & result)
   {
     if (!instant.IsDefined()) {
@@ -293,6 +518,10 @@ namespace ColumnMovingAlgebra
     }
   }
 
+/*
+~atInstantIndexed~ is the version of atinstant that uses the grid index.
+
+*/
   inline void MPoints::atInstantIndexed(Instant instant, IPoints & result)
   {
     typedef std::map<int, MPointsData::Position> RowMap;
@@ -300,14 +529,23 @@ namespace ColumnMovingAlgebra
 
     RowMap rows;
 
-    GridIndex::Mbr mbr = m_GridIndex->mbr();
+    //first we construct a search volume
+    
+    GridIndex::Mbr mbr = m_Mbr;
     mbr.l[2] = mbr.h[2] = static_cast<double>(instant.millisecondsToNull());
 
+    //then we find all units within that volume with the help of the grid index
+    //for each unit we check for intersection with the instant
+    //the results are added to a map because we need them ordered
+    //by moving point index
+    
     for (auto & e : m_GridIndex->selection(mbr)) {
       MPointsData::Unit u = m_MPointsData->unit(e.unitId);
       if (u.interval.contains(instant.millisecondsToNull()))
         rows.insert(RowMapPair(e.row, u.at(instant.millisecondsToNull())));
     }
+    
+    //now we can construct the result
 
     std::map<int, MPointsData::Position>::iterator si = rows.begin();
     for (auto & iterator : GetFilter()) {
@@ -323,6 +561,11 @@ namespace ColumnMovingAlgebra
     }
   }
   
+/*
+~atPeriods~ restricts the moving points to a given set of time 
+intervals and adds the resulting units to ~result~.
+
+*/
   inline void MPoints::atPeriods(temporalalgebra::Periods periods, 
     MPoints & result)
   {
@@ -342,6 +585,9 @@ namespace ColumnMovingAlgebra
       int i = iterator.GetRow();
 
       result.addRow();
+      
+      //we perform a parallel scan on the given time intervals and the
+      //units of each moving point
 
       temporalalgebra::Interval<Instant> period;
       int iPeriod = 0; 
@@ -388,6 +634,10 @@ namespace ColumnMovingAlgebra
     }
   }
 
+/*
+~atPeriodsIndexed~ is the version of atperiods that uses the grid index.
+
+*/
   inline void MPoints::atPeriodsIndexed(temporalalgebra::Periods periods, 
     MPoints & result)
   {
@@ -398,7 +648,9 @@ namespace ColumnMovingAlgebra
 
     RowMap rows;
 
-    GridIndex::Mbr mbr = m_GridIndex->mbr();
+    //first we construct a search volume
+    
+    GridIndex::Mbr mbr = m_Mbr;
 
     Instant instant;
     periods.Minimum(instant);
@@ -406,6 +658,11 @@ namespace ColumnMovingAlgebra
     periods.Maximum(instant);
     mbr.h[2] = static_cast<double>(instant.millisecondsToNull());
 
+    //then we find all units within that volume with the help of the grid index
+    //for each unit we check for intersection with the periods
+    //the results are added to a map because we need them ordered
+    //by moving point index and time
+    
     for (auto & e : m_GridIndex->selection(mbr)) {
       RowMap::iterator r = rows.find(e.row);
       if (r == rows.end())
@@ -431,6 +688,8 @@ namespace ColumnMovingAlgebra
       }
     }
 
+    //now we can construct the result
+
     RowMap::iterator si = rows.begin();
     for (auto & iterator : GetFilter()) {
       int i = iterator.GetRow();
@@ -447,6 +706,11 @@ namespace ColumnMovingAlgebra
     }
   }
   
+/*
+~passes~ adds the indices of all moving points to ~result~, which
+ever assume the specified value. 
+
+*/
   inline void MPoints::passes(Point & value, CRelAlgebra::LongInts & result)
   {
     result.Clear();
@@ -482,16 +746,27 @@ namespace ColumnMovingAlgebra
     }
   }
   
+/*
+~passesIndexed~ is the version of passes that uses the grid index.
+
+*/
   inline void MPoints::passesIndexed(Point & value, 
     CRelAlgebra::LongInts & result)
   {
     typedef std::set<int> Rows;
     Rows rows;
 
-    GridIndex::Mbr mbr = m_GridIndex->mbr();
+    //first we construct a search volume
+    
+    GridIndex::Mbr mbr = m_Mbr;
     mbr.l[0] = mbr.h[0] = value.GetX();
     mbr.l[1] = mbr.h[1] = value.GetY();
 
+    //then we find all units within that volume with the help of the grid index
+    //for each unit we check for intersection with the value
+    //the results are added to a map because we need them ordered
+    //by moving point index
+    
     for (auto & e : m_GridIndex->selection(mbr)) {
       MPointsData::Unit unit = m_MPointsData->unit(e.unitId);
       temporalalgebra::UPoint upoint(unit.interval.convert(), 
@@ -500,6 +775,8 @@ namespace ColumnMovingAlgebra
       if (upoint.Passes(value))
         rows.insert(e.row);
     }
+
+    //now we can construct the result
 
     Rows::iterator si = rows.begin();
     for (auto & iterator : GetFilter()) {
@@ -512,6 +789,11 @@ namespace ColumnMovingAlgebra
     }
   }
   
+/*
+~passes~ adds the indices of all moving points to ~result~, which
+ever intersect the specified region. 
+
+*/
   inline void MPoints::passes(Region & value, CRelAlgebra::LongInts & result)
   {
     result.Clear();
@@ -547,19 +829,30 @@ namespace ColumnMovingAlgebra
     }
   }
   
+/*
+~passesIndexed~ is the version of passes that uses the grid index.
+
+*/
   inline void MPoints::passesIndexed(Region & value, 
     CRelAlgebra::LongInts & result)
   {
     typedef std::set<int> Rows;
     Rows rows;
 
-    GridIndex::Mbr mbr = m_GridIndex->mbr();
+    //first we construct a search volume
+    
+    GridIndex::Mbr mbr = m_Mbr;
     Rectangle<2> rect = value.BoundingBox();
     for (int i = 0; i < 2; i++) {
       mbr.l[i] = rect.MinD(i);
       mbr.h[i] = rect.MaxD(i);
     }
 
+    //then we find all units within that volume with the help of the grid index
+    //for each unit we check for intersection with the region
+    //the results are added to a map because we need them ordered
+    //by moving point index
+    
     for (auto & e : m_GridIndex->selection(mbr)) {
       MPointsData::Unit unit = m_MPointsData->unit(e.unitId);
       temporalalgebra::UPoint upoint(unit.interval.convert(), 
@@ -568,6 +861,8 @@ namespace ColumnMovingAlgebra
       if (upoint.Passes(value))
         rows.insert(e.row);
     }
+
+    //now we can construct the result
 
     Rows::iterator si = rows.begin();
     for (auto & iterator : GetFilter()) {
@@ -580,6 +875,11 @@ namespace ColumnMovingAlgebra
     }
   }
 
+/*
+~at~ restricts the all moving points to the specified value. 
+the computed new units are added to ~result~
+
+*/
   inline void MPoints::at(Point & value, MPoints & result)
   {
     if (!value.IsDefined()) {
@@ -614,6 +914,10 @@ namespace ColumnMovingAlgebra
     }
   }
 
+/*
+~atIndexed~ is the version of at that uses the grid index.
+
+*/
   inline void MPoints::atIndexed(Point & value, MPoints & result)
   {
     typedef std::map<int64_t, MPointsData::Unit> UnitMap;
@@ -623,10 +927,17 @@ namespace ColumnMovingAlgebra
 
     RowMap rows;
 
-    GridIndex::Mbr mbr = m_GridIndex->mbr();
+    //first we construct a search volume
+    
+    GridIndex::Mbr mbr = m_Mbr;
     mbr.l[0] = mbr.h[0] = value.GetX();
     mbr.l[1] = mbr.h[1] = value.GetY();
 
+    //then we find all units within that volume with the help of the grid index
+    //for each unit we check for intersection with the value
+    //the results are added to a map because we need them ordered
+    //by moving point index and time
+    
     for (auto & e : m_GridIndex->selection(mbr)) {
       MPointsData::Unit unit = m_MPointsData->unit(e.unitId);
       temporalalgebra::UPoint upoint(unit.interval.convert(), 
@@ -646,6 +957,8 @@ namespace ColumnMovingAlgebra
       }
     }
 
+    //now we can construct the result
+
     RowMap::iterator si = rows.begin();
     for (auto & iterator : GetFilter()) {
       int i = iterator.GetRow();
@@ -663,6 +976,11 @@ namespace ColumnMovingAlgebra
     }
   }
 
+/*
+~at~ restricts the all moving points to the specified 
+the specified region. the computed new units are added to ~result~
+
+*/
   inline void MPoints::at(Region & value, MPoints & result)
   {
     if (!value.IsDefined()) {
@@ -699,6 +1017,10 @@ namespace ColumnMovingAlgebra
     }
   }
 
+/*
+~atIndexed~ is the version of at that uses the grid index.
+
+*/
   inline void MPoints::atIndexed(Region & value, MPoints & result)
   {
     typedef std::map<int64_t, MPointsData::Unit> UnitMap;
@@ -708,13 +1030,20 @@ namespace ColumnMovingAlgebra
 
     RowMap rows;
 
-    GridIndex::Mbr mbr = m_GridIndex->mbr();
+    //first we construct a search volume
+    
+    GridIndex::Mbr mbr = m_Mbr;
     Rectangle<2> rect = value.BoundingBox();
     for (int i = 0; i < 2; i++) {
       mbr.l[i] = rect.MinD(i);
       mbr.h[i] = rect.MaxD(i);
     }
 
+    //then we find all units within that volume with the help of the grid index
+    //for each unit we check for intersection with the region
+    //the results are added to a map because we need them ordered
+    //by moving point index and time
+    
     for (auto & e : m_GridIndex->selection(mbr)) {
       MPointsData::Unit unit = m_MPointsData->unit(e.unitId);
       temporalalgebra::UPoint upoint(unit.interval.convert(), 
@@ -738,6 +1067,8 @@ namespace ColumnMovingAlgebra
       }
     }
 
+    //now we can construct the result
+
     RowMap::iterator si = rows.begin();
     for (auto & iterator : GetFilter()) {
       int i = iterator.GetRow();
@@ -755,52 +1086,86 @@ namespace ColumnMovingAlgebra
     }
   }
 
-  inline void MPoints::index(CcInt & temporalSplits, CcInt & spatialSplits, 
-    MPoints & result)
+/*
+~index~ creates a new moving points attribute array with a grid index.
+the index will cover the rectangular region specified by ~xMin~, ~xMax~,
+~yMin~ and ~yMax~ and covers the time interval from ~tMin~ to ~tMax~. The
+created grid is an infinite grid, so it will also index units which are
+not within these boundaries, but this will be ineffective in most cases.
+The number of grid cells in each dimension is determined by ~xSplits~, 
+~ySplits~ and ~tSplits~. 
+
+*/
+  inline void MPoints::index(CcReal& xMin, CcReal& xMax, CcInt& xSplits,
+    CcReal& yMin, CcReal& yMax, CcInt& ySplits, 
+    Instant& tMin, Instant& tMax, 
+    CcInt& tSplits, MPoints & result)
   {
     GridIndex::IVector splits;
-    splits.p[0] = splits.p[1] = spatialSplits.GetIntval();
-    splits.p[2] = temporalSplits.GetIntval();
+    splits.p[0] = xSplits.GetValue();
+    splits.p[1] = ySplits.GetValue();
+    splits.p[2] = tSplits.GetValue();
 
-    GridIndex::DVector cellSize;
-    for (int i = 0; i < 3; i++)
-      cellSize.s[i] = (m_Mbr.h[i] - m_Mbr.l[i]) / splits.p[i];
+    GridIndex::DVector min;
+    min.s[0] = xMin.GetValue();
+    min.s[1] = yMin.GetValue();
+    min.s[2] = static_cast<double>(tMin.millisecondsToNull());
 
-    result.m_GridIndex = std::make_shared<GridIndex>(splits, cellSize);
+    GridIndex::DVector max;
+    max.s[0] = xMax.GetValue();
+    max.s[1] = yMax.GetValue();
+    max.s[2] = static_cast<double>(tMax.millisecondsToNull());
+
+    GridIndex::DVector delta = max - min, cellSize;
+    
+    for (int i = 0; i < 3; i++) {
+      check(splits.p[i] >= 1, "the number of splits must be greater or equal "
+                              "one.");
+      cellSize.s[i] = delta.s[i] / std::max(1, splits.p[i]);
+    }
+
+    result.m_GridIndex = std::make_shared<GridIndex>(min, cellSize, splits);
 
     for (auto & iterator : GetFilter()) {
       int i = iterator.GetRow();
-      result.Append(*GetAttribute(i));
+      result.Append(*this, i);
     }
   }
 
-  inline void MPoints::addRandomRows(CcInt& size, MPoints & result)
+/*
+~addRandomUnits~ adds random units to every moving point 
+
+*/
+  inline void MPoints::addRandomUnits(CcInt& size, MPoints & result)
   {
+    cout << " random ";
+    
+    int64_t t0 = 0;
+    
+    if (!m_MPointsData->empty()) {
+      t0 = (static_cast<int64_t>(m_Mbr.h[2] * 1.1) / MILLISECONDS + 1)
+           * MILLISECONDS;
+    }
+
     for (auto & iterator : GetFilter()) {
       int i = iterator.GetRow();
-      result.Append(*GetAttribute(i));
-    }
+      result.Append(*this, i);
  
-    if (!size.IsDefined())
-      return;
-    
-    int rows = size.GetIntval(), units = size.GetIntval();
+      if (!size.IsDefined())
+        continue;
       
-    srand(1);
-
-    for (int i = 0; i < rows; i++) {
-      result.addRow();
-
+      int units = size.GetIntval();
+        
       double p[2], v[2];
-      int64_t t = 1;
+      int64_t t = t0;
 
       for (int d = 0; d < 2; d++) {
         p[d] = static_cast<double>(rand()) / RAND_MAX * 100.0;
-        v[d] = static_cast<double>(rand()) / RAND_MAX * 5.0;
+        v[d] = static_cast<double>(rand()) / RAND_MAX * 1.0;
       }
 
       for (int u = 0; u < units; u++) {
-        int64_t dt = 5 + (rand() % 5);
+        int64_t dt = (20 + (rand() % 5)) * MILLISECONDS;
         result.addUnit(Interval(t, t + dt, true, false), 
                        p[0], p[1], p[0] + v[0], p[1] + v[1]);
 
@@ -810,12 +1175,34 @@ namespace ColumnMovingAlgebra
           p[d] += v[d];
 
           if (p[d] > 100.0)
-            v[d] = -std::abs(v[d]);
+            v[d] = -static_cast<double>(rand()) / RAND_MAX * 1.0;
           if (p[d] < 0.0)
-            v[d] = std::abs(v[d]);
+            v[d] = static_cast<double>(rand()) / RAND_MAX * 1.0;
         }
       }
     }
   }
 
+/*
+1.1.5 Implementation of Nested Class GridEntry 
+
+*/
+  inline bool MPoints::GridEntry::operator==(const GridEntry & b) const
+  {
+    return row == b.row && unitId == b.unitId;
+  }
+
+  inline bool MPoints::GridEntry::operator< (const GridEntry & b) const
+  {
+    if (row < b.row)
+      return true;
+    if (row > b.row)
+      return false;
+    
+    return unitId < b.unitId;
+  }
+  
+
 }
+
+

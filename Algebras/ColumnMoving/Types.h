@@ -20,6 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+1 Types.h
+
 */
 
 #pragma once
@@ -39,6 +41,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Sources/MStrings.h"
 
 namespace ColumnMovingAlgebra {
+/*
+In this file we declare the types of our attribut arrays. The types are
+declared by typedefs of the generic class ~AttrArrayType~, which provides
+a generic implementation for our types. As template parameter we give
+the class that implements the attribut array, the corresponding class
+for row oriented relations and strings providing information for
+the user interface.
+
+*/
+
   extern char iintsName[]; 
   extern char iintsInfo[];
   extern char iintsExample[];
