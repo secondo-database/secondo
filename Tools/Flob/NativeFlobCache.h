@@ -342,14 +342,13 @@ bool getData(
       }
       slotNo++;
       slotOffset = 0;  // slotoffset only neeeded for the first slot
-      // TODO : remove the following debugging output
-      if(bufferOffset < size){
-         std::cout << "Required second slot for Flob" << std::endl;
-         std::cout << "bufferoffset: " << bufferOffset  << std::endl;
-         std::cout << "required size: " << size  << std::endl;
-         std::cout << "flob. size " << flob.size << std::endl;
-         std::cout << "initial offset : " << offset << std::endl;
-      }
+      //if(bufferOffset < size){
+      //   std::cout << "Required second slot for Flob" << std::endl;
+      //   std::cout << "bufferoffset: " << bufferOffset  << std::endl;
+      //   std::cout << "required size: " << size  << std::endl;
+      //   std::cout << "flob. size " << flob.size << std::endl;
+      //   std::cout << "initial offset : " << offset << std::endl;
+      // }
     }
     //assert(check());
     return true;
