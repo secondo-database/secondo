@@ -9984,6 +9984,9 @@ ListExpr MovingTypeMapSimplify(ListExpr args){
      return listutils::typeError("simplify requires an mreal or an "
                                  "mpoint as it's first argument");
    }
+   if(len==2){
+     return first;
+   }
    ListExpr third = nl->Third(args);
    if(len==3){
      if(!Duration::checkType(third) && !Geoid::checkType(third)){
@@ -12001,6 +12004,7 @@ int SimplifySelect(ListExpr args){
    // mreal x real -> mreal : 2
 
    if(MReal::checkType(nl->First(args))) return 2;
+   if(nl->HasLength(args,2)) return 0;
    if(Duration::checkType(nl->Third(args))) return 1;
    return 0;
 }
