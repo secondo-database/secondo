@@ -1135,7 +1135,7 @@ int SecondoServer::Execute() {
               << "</SecondoError>" << endl;
       rc = -1;
     }
-    iosock.flush();
+    //iosock.flush();
   }
 
   si->Terminate();
