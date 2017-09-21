@@ -43,6 +43,6 @@ operator center alias CENTER pattern op ( _ )
 operator partitionRect alias PARTITIONRECT pattern op (_,_,_)
 operator topleftclass alias TOPLEFTCLASS pattern op ( _ , _ )
 
-operator extendGeo alias EXTENDGEO pattern _ op [_]
+operator extendGeo alias EXTENDGEO pattern _ op [_,_]
 operator perimeter alias PERIMETER pattern op(_)
 operator scale alias SCALE pattern _ op [_,_]

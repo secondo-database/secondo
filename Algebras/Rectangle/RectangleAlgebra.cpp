@@ -3637,19 +3637,39 @@ is given in geo coordinates.
 
 */
 ListExpr extendGeoTM(ListExpr args){
-   string err = "rect x {real,int} expected";
-   if(!nl->HasLength(args,2)){
+   string err = "rect x {real,int}  or "
+                "rect3 x {real,int} [x {real,int} expected";
+   if(!nl->HasLength(args,2) && !nl->HasLength(args,3)){
      return listutils::typeError(err+" (invalid number of args)");
    }
    
-   if(!Rectangle<2>::checkType(nl->First(args))){
-     return listutils::typeError(err + " (fisrt arg is not an rect");
-   }
    if(  !CcInt::checkType(nl->Second(args)) 
       &&!CcReal::checkType(nl->Second(args))){
      return listutils::typeError(err + " (invalid type in 2nd arg.)");
    }
-   return nl->First(args);
+   if(Rectangle<2>::checkType(nl->First(args))){
+     if(!nl->HasLength(args,2)){
+       return listutils::typeError("for a rect only one further "
+                                   "argument is allowed");
+     }
+     return nl->First(args);
+   }
+   if(!Rectangle<3>::checkType(nl->First(args))){
+     return listutils::typeError("the first arg must be "
+                                 "of type rect or rect3");
+   }
+   if(nl->HasLength(args,3)){
+     if(  !CcInt::checkType(nl->Third(args)) 
+        &&!CcReal::checkType(nl->Third(args))){
+        return listutils::typeError(err + " (invalid type in 3nd arg.)");
+     }
+     return nl->First(args);
+   } 
+   // rect3 with one further argument
+   return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                            nl->OneElemList(nl->RealAtom(0.0)),
+                            nl->First(args));
+
 }
 
 
@@ -3657,13 +3677,14 @@ static double earthradius = 6378137.0;  // eath radius in meters
 static double earthperimeter = 2.0*M_PI*earthradius;
 
 
-template<class E>
+template<class R, class E, class E2>
 int extendGeoVMT(Word* args, Word& result,
                 int message, Word& local, Supplier s){
-   Rectangle<2>* rect = (Rectangle<2>*) args[0].addr;
+
+   R* rect = (R*) args[0].addr;
    E* Eps = (E*) args[1].addr;
    result = qp->ResultStorage(s);
-   Rectangle<2>* res = (Rectangle<2>*) result.addr;
+   R* res = (R*) result.addr;
    if(!rect->IsDefined() || !Eps->IsDefined()){
      res->SetDefined(0);
      return 0;
@@ -3709,40 +3730,67 @@ int extendGeoVMT(Word* args, Word& result,
      res->SetDefined(false);
      return 0;
    }
-   double Min[] = {minX,minY};
-   double Max[] = {maxX,maxY};
-    
- 
+
+   if(R::GetDim()==2){
+      double Min[] = {minX,minY};
+      double Max[] = {maxX,maxY};
+      res->Set(true,Min,Max);
+      return 0;
+   }
+
+   minZ -= e;
+   maxZ += e;
+   if(minZ>=maxZ){
+     res->SetDefined(false);
+     return 0;
+   }
+   double Min[] = {minX,minY,minZ};
+   double Max[] = {maxX,maxY,maxZ};
    res->Set(true,Min,Max);
-   return 0;
+   return 0; 
 }
 
 
 ValueMapping extendGeoVM[] = {
-   extendGeoVMT<CcInt>,
-   extendGeoVMT<CcReal>
+   extendGeoVMT<Rectangle<2>,CcInt,CcInt>, //3rd arg does'n matter
+   extendGeoVMT<Rectangle<2>,CcReal,CcInt>, // for rectangle 2D
+   extendGeoVMT<Rectangle<3>, CcInt, CcInt>,
+   extendGeoVMT<Rectangle<3>, CcInt, CcReal>,
+   extendGeoVMT<Rectangle<3>, CcReal, CcInt>,
+   extendGeoVMT<Rectangle<3>, CcReal, CcReal>
 };
 
 int extendGeoSelect(ListExpr args){
-   return CcInt::checkType(nl->Second(args))?0:1;
+   if(Rectangle<2>::checkType(nl->First(args))){
+      return CcInt::checkType(nl->Second(args))?0:1;
+   }
+   // rectangle 3 version
+   int offset = 2;
+   int n1 = CcInt::checkType(nl->Second(args))?0:2;
+   int n2 = 1;  // default for not present value is real
+   if(nl->HasLength(args,3)){
+     n2 = CcInt::checkType(nl->Third(args))?0:1;
+   } 
+   return offset +  n1 + n2;
 }
 
 OperatorSpec extendGeoSpec(
-  " rext x {int,real} -> rect ",
-  " _ extendGeo [_] ",
+  " rext x {int,real} -> rect || rect3 x {int,real} [ x {int,real] -> rect3 ",
+  " _ extendGeo [_,_] ",
   " Extends a rectangle using geographic coordinates "
-  " approximative with a border given in meters.",
+  " approximative with a border given in meters. For a 3 dimensional rectangle,"
+  "the first two dimensions are extended in this way, the third diemsnion is"
+  " extended by the given optional value or 0 if not present.",
   " query bbox(geoobj) extendGeo[300]"
 );
 
 Operator extendGeoOp(
   "extendGeo",
   extendGeoSpec.getStr(),
-  2,
+  6,
   extendGeoVM,
   extendGeoSelect,
   extendGeoTM
-
 );
 
 /*
