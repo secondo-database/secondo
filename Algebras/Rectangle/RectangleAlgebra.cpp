@@ -3737,7 +3737,16 @@ int extendGeoVMT(Word* args, Word& result,
       res->Set(true,Min,Max);
       return 0;
    }
+   // 3d version
+   E2* e2 = (E2*) args[2].addr;
+   if(!e2->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+   }
+   double e = e2->GetValue();
 
+   double minZ = rect->MinD(2);
+   double maxZ = rect->MaxD(2);
    minZ -= e;
    maxZ += e;
    if(minZ>=maxZ){
