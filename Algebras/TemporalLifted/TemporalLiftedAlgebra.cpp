@@ -5211,6 +5211,12 @@ MovingDistanceTypeMapMReal( ListExpr args )
     if( nl->IsEqual( arg1, CcReal::BasicType() )
      && nl->IsEqual( arg2, MReal::BasicType() ) )
       return nl->SymbolAtom( MReal::BasicType() );
+    if(UPoint::checkType(arg1) && UPoint::checkType(arg2))
+      return nl->SymbolAtom( MReal::BasicType() );
+    if(UPoint::checkType(arg1) && Point::checkType(arg2))
+      return nl->SymbolAtom( MReal::BasicType() );
+    if(Point::checkType(arg1) && UPoint::checkType(arg2))
+      return nl->SymbolAtom( MReal::BasicType() );
 
   }
   return nl->SymbolAtom( Symbol::TYPEERROR() );
@@ -5927,6 +5933,12 @@ MovingDistanceSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == CcReal::BasicType()
    && nl->SymbolValue( arg2 ) == MReal::BasicType() )
     return 3;
+  if(UPoint::checkType(arg1) && UPoint::checkType(arg2))
+    return 4;
+  if(UPoint::checkType(arg1) && Point::checkType(arg2))
+    return 5;
+  if(Point::checkType(arg1) && UPoint::checkType(arg2))
+    return 6;
 
   return -1; // This point should never be reached
 }
@@ -7502,6 +7514,53 @@ int MPointMMDistance( Word* args, Word& result, int message,
   return 0;
 }
 
+int UPointMMDistance( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  UPoint* u1 = (UPoint*) args[0].addr;
+  UPoint* u2 = (UPoint*) args[1].addr;
+  UReal* ur = (UReal*) result.addr;
+  if(!u1->IsDefined() || !u2->IsDefined()){
+    ur->SetDefined(false);
+  } else {
+    u1->Distance(*u2,*ur);
+  }
+
+  return 0;
+}
+
+int UPointMSDistance( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  UPoint* u1 = (UPoint*) args[0].addr;
+  Point* p2 = (Point*) args[1].addr;
+  UReal* ur = (UReal*) result.addr;
+  if(!u1->IsDefined() || !p2->IsDefined()){
+    ur->SetDefined(false);
+  } else {
+    u1->Distance(*p2,*ur);
+  }
+
+  return 0;
+}
+
+int UPointSMDistance( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Point* p1 = (Point*) args[0].addr;
+  UPoint* u2 = (UPoint*) args[1].addr;
+  UReal* ur = (UReal*) result.addr;
+  if(!p1->IsDefined() || !u2->IsDefined()){
+    ur->SetDefined(false);
+  } else {
+    u2->Distance(*p1,*ur);
+  }
+
+  return 0;
+}
 /*
 16.3 Value mapping of operator ~distance~ for mreal/mreal
 
@@ -8192,7 +8251,10 @@ static ValueMapping temporaldistancemap[] = {
                 MPointMMDistance,
                 MRealMMDistance,
                 MRealMSDistance,
-                MRealSMDistance};
+                MRealSMDistance,
+                UPointMMDistance,
+                UPointMSDistance,
+                UPointSMDistance};
 
 static ValueMapping temporalandmap[] = {
                 TemporalMMLogic<1>,
@@ -8412,7 +8474,8 @@ const string TemporalLiftSpecDistance
            = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              "\"Example\" ) "
              "( <text>T in {real), mpoint x mpoint -> mreal, mT x mT"
-             " -> mreal, mT x T -> mreal, T x mT -> mreal</text--->"
+             " -> mreal, mT x T -> mreal, T x mT -> mreal,"
+             " [u]point x [u]point -> ureal</text--->"
              "<text> distance( _, _ ) </text--->"
              "<text>returns the moving distance</text--->"
              "<text>distance( mpoint1, point1 )</text--->"
@@ -8639,7 +8702,7 @@ static Operator area("area",
 
 static Operator temporalmdistance( "distance",
                             TemporalLiftSpecDistance,
-                            4,
+                            7,
                             temporaldistancemap,
                             MovingDistanceSelect,
                             MovingDistanceTypeMapMReal );
