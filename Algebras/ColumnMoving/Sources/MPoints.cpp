@@ -99,7 +99,6 @@ to persistant storage.
         GridIndex & g = *mpoints.m_GridIndex;
         m_GridIndex = std::make_shared<GridIndex>(g.offset(), g.cellSize(), 
                                                   g.splits());
-        cout << " cre ";
       }
     }
 

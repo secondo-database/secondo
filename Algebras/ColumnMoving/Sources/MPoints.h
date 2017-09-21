@@ -313,7 +313,6 @@ attribute arrays.
 
   inline MPoints::MPoints(CRelAlgebra::Reader& source)
   {
-    cout << " load ";
     m_MPointsData = std::make_shared<MPointsData>(source);
     m_DefTimes = std::make_shared<DefTimes>(source);
     source.ReadOrThrow(reinterpret_cast<char*>(&m_Mbr), sizeof(m_Mbr));
@@ -1138,8 +1137,6 @@ The number of grid cells in each dimension is determined by ~xSplits~,
 */
   inline void MPoints::addRandomUnits(CcInt& size, MPoints & result)
   {
-    cout << " random ";
-    
     int64_t t0 = 0;
     
     if (!m_MPointsData->empty()) {
