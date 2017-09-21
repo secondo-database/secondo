@@ -10376,14 +10376,6 @@ ListExpr TypeMapApproximate(ListExpr args){
      }
    }
 
-   // the make continuous boolean can only be set, if the type is real or point
-   if(boolIndex >0){
-     if(!Point::checkType(type) && !CcReal::checkType(type)){
-      return listutils::typeError("the make continuous flag is only "
-                                  "applicable to real and point");
-     }
-   }
-
   ListExpr indexes = nl->FiveElemList(
                        nl->IntAtom(index1-1),
                        nl->IntAtom(index2-1),
@@ -12861,7 +12853,7 @@ int ApproximateMvalue(Word* args, Word& result,
          res->SetDefined(false);
          return 0;
        }
-       makeContinious = MC->GetValue();
+       makeContinious += MC->GetValue();
    }
    if(durindex>=0){
      dur.CopyFrom(static_cast<Attribute*>(args[durindex].addr));
@@ -12901,7 +12893,7 @@ int ApproximateMvalue(Word* args, Word& result,
             if(!(split1 && (currentInstant - lastInstant) > dur )) {
               Interval<Instant> interval(lastInstant, currentInstant,
                                          true ,false);
-              if(makeContinious){
+              if(isContinious){
                 UType unit(interval,lastValue,currentValue);
                 res->MergeAdd(unit);
               } else {
@@ -19408,6 +19400,73 @@ Operator removeOp(
 );
 
 
+/*
+Operator ~getGKZone~
+
+returns teh gauss krueger zone for a given real or point.
+
+*/
+ListExpr getGKZoneTM(ListExpr args){
+   if(!nl->HasLength(args,1)){
+     return listutils::typeError("exactly one argument required");
+   }
+   ListExpr arg1 = nl->First(args);
+   if(!CcReal::checkType(arg1) && !Point::checkType(arg1)){
+     return listutils::typeError("real or point expected");
+   }
+   return listutils::basicSymbol<CcInt>();
+}
+
+inline double getX(Point* p){ return p->GetX(); }
+inline double getX(CcReal* p){ return p->GetValue(); }
+
+
+template<class T>
+int getGKZoneVMT( Word* args, Word& result, int message, Word&
+               local, Supplier s ){
+  result = qp->ResultStorage(s);
+  CcInt* res = (CcInt*) result.addr;
+  T* arg = (T*) args[0].addr;
+  if(!arg->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }   
+  double x = getX(arg); 
+  if(x<-180 || x>180){
+    res->SetDefined(false);
+    return 0;
+  }
+  if(x<0) x = x + 360;
+  res->Set(true, (int)(x / 3));
+  return 0; 
+}
+
+ValueMapping getGKZoneVM[] = {
+   getGKZoneVMT<CcReal>,
+   getGKZoneVMT<Point>
+};
+
+int getGKZoneSelect(ListExpr args){
+  return CcReal::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec getGKZoneSpec(
+  "{real, point} -> int",
+  "getGKZone(_)",
+  "retrieves the zone for Gauss Krueger projektion dor a given Longitude.",
+  "query getGKZone(7.41)"
+);
+
+Operator getGKZoneOp(
+  "getGKZone",
+   getGKZoneSpec.getStr(),
+   2,
+   getGKZoneVM,
+   getGKZoneSelect,
+   getGKZoneTM
+);
+
+
 
 } // end of namespace ct
 
@@ -19591,6 +19650,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&ct::containsOP);
     AddOperator(&ct::replaceOp);
     AddOperator(&ct::removeOp);
+    AddOperator(&ct::getGKZoneOp);
 
 
 #ifdef USE_PROGRESS

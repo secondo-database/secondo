@@ -107,4 +107,4 @@ operator replace alias REPLACE pattern op(_,_,_)
 
 operator removePeriods alias REMOVEPERIODS pattern _ op [_,_] 
 
-
+operator getGKZone alias GETGKZONE pattern op(_)

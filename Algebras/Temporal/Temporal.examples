@@ -761,4 +761,8 @@ Signature : X x periods -> X, X in {mpoint, mint, mreal, mstring, mbool, periods
 Example   : query deftime(train6 removePeriods[deftime(train1)]) = (deftime(train6) minus deftime(train1))
 Result    : TRUE
 
-
+Operator : getGKZone
+Number   : 1
+Signature : {real, point} -> int
+Example   : query getGKZone(7.41)
+Result    : 2 
