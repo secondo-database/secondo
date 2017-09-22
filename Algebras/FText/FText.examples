@@ -1331,3 +1331,11 @@ Number    : 1
 Signature : {string,tex} [x {string,text}] -> regex2
 Example   : query regexmatches("Berlin", like2regex("%lin") )
 Result    : TRUE
+
+
+Operator : getObjects
+Number   : 1
+Signature : DATA -> stream(Tuple(DATA , string))
+Example   : query getObjects(thecenter) count > 0
+Result    : TRUE
+

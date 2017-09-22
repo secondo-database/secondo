@@ -10371,6 +10371,126 @@ Operator getObjectOP(
   getObjectTM
 );
 
+/*
+4.37 Operator ~getObjects~
+
+*/
+ListExpr getObjectsTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one argment expected");
+  }
+  ListExpr arg1 = nl->First(args);
+  if(!Attribute::checkType(arg1)){
+    return listutils::typeError("argument not in kind DATA");
+  }
+  ListExpr attrList = nl->TwoElemList(
+                          nl->TwoElemList(nl->SymbolAtom("Object"), arg1),
+                          nl->TwoElemList(nl->SymbolAtom("Name"), 
+                                          listutils::basicSymbol<CcString>())
+                      );
+  return nl->TwoElemList(
+           nl->SymbolAtom(Stream<Tuple>::BasicType()),
+           nl->TwoElemList(
+              nl->SymbolAtom(Tuple::BasicType()),
+              attrList));
+
+}
+
+class getObjectsInfo{
+
+ public:
+    getObjectsInfo(ListExpr _type, TupleType* _tt): type(_type), tt(_tt){
+       ctlg = SecondoSystem::GetCatalog();
+       theObjects = ctlg->ListObjects();
+       theObjects = nl->Rest(theObjects); // remove leading OBJECTS
+       tt->IncReference();
+    }
+
+    ~getObjectsInfo(){
+       tt->DeleteIfAllowed();
+    }
+
+
+    Tuple* next(){
+       while(!nl->IsEmpty(theObjects)){
+         ListExpr object  = nl->First(theObjects);
+         theObjects = nl->Rest(theObjects);
+         ListExpr otype = nl->First(nl->Fourth(object));
+         if(nl->Equal(type,otype)){
+           Tuple* t = createTuple(nl->SymbolValue(nl->Second(object)));
+           if(t) return t;
+         }
+       }
+       return 0;
+    }
+
+ private:
+    ListExpr type;
+    SecondoCatalog* ctlg;
+    ListExpr theObjects;
+    TupleType* tt;
+
+    Tuple* createTuple(const string& name){
+      Word word;
+      bool defined;
+      if(!ctlg->GetObject(name,word,defined)){
+         return 0;
+      }
+      if(!defined) return 0;
+      Tuple* res = new Tuple(tt);
+      res->PutAttribute(0, (Attribute*) word.addr);
+      res->PutAttribute(1, new CcString(true,name));
+      return res;     
+ 
+    }
+
+
+};
+
+
+int getObjectsVM( Word* args, Word& result, int message,
+                  Word& local, Supplier s ){
+
+   getObjectsInfo* li = (getObjectsInfo*) local.addr;
+   switch(message){
+      case OPEN: {
+         ListExpr theType = qp->GetType(qp->GetSon(s,0));
+         TupleType* resType = new TupleType(nl->Second(GetTupleResultType(s)));
+         if(li) delete li;
+         local.addr = new getObjectsInfo(theType, resType);
+         resType->DeleteIfAllowed();
+         return 0;
+      }
+      case REQUEST: 
+         result.addr = li?li->next():0;
+         return result.addr?YIELD:CANCEL;
+      case CLOSE:
+         if(li){
+           delete li;
+           local.addr = 0;
+         }
+         return 0;
+         
+   }
+   return -1;
+}
+
+OperatorSpec getObjectsSpec(
+   "DATA x stream(tuple(DATA, string))",
+   "getObjects(_)",
+   "Returns all objects having given type as tuple stream. "
+   "Restricted to attribute data types.",
+   "query getObjects(theCenter) count"
+);
+
+Operator getObjectsOp(
+  "getObjects",
+  getObjectsSpec.getStr(),
+  getObjectsVM,
+  Operator::SimpleSelect,
+  getObjectsTM
+);
+
 
 
 /*
@@ -13380,6 +13500,7 @@ Operator like2regexOp(
       AddOperator(&pointerTest);
       
       AddOperator(&getObjectOP);
+      AddOperator(&getObjectsOp);
       getObjectOP.SetUsesArgsInTypeMapping();     
 
       AddOperator(&flobInfoOP);
