@@ -88,7 +88,7 @@ enum ExtBool {ST_FALSE, ST_TRUE, ST_UNDEF};
 enum Wildcard {NO, STAR, PLUS};
 enum IndexType {TRIE, BTREE, RTREE1, RTREE2, NONE};
 enum DistanceFunction {FIRST, LAST, FIRST_LAST, ALL, ALL_DURATION, 
-                       ALL_INTERVALS};
+                       ALL_INTERVALS, EQUAL_LABELS};
 
 /*
 \section{Class ~IBasic~}
@@ -285,6 +285,8 @@ class MBasic : public Attribute {
   double Distance_ALL_DURATION(const MBasic<B>& mb, const LabelFunction lf)
          const;
   double Distance_ALL_INTERVALS(const MBasic<B>& mb, const LabelFunction lf)
+         const;
+  double Distance_EQUAL_LABELS(const MBasic<B>& mb, const LabelFunction lf)
          const;
   double Distance(const MBasic<B>& mb) const;
   
@@ -3368,6 +3370,23 @@ double MBasic<B>::Distance_ALL_INTERVALS(const MBasic<B>& mb,
   return 0.0;  
 }
 
+template<class B>
+double MBasic<B>::Distance_EQUAL_LABELS(const MBasic<B>& mb,
+                                        const LabelFunction lf) const {
+  if (GetNoComponents() != mb.GetNoComponents()) {
+    return false;
+  }
+  typename B::base b1, b2;
+  for (int i = 0; i < GetNoComponents(); i++) {
+    GetValue(i, b1);
+    mb.GetValue(i, b2);
+    if (Tools::distance(b1, b2, lf)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 
 /*
 \subsection{Function ~Distance~}
@@ -3387,7 +3406,7 @@ double MBasic<B>::Distance(const MBasic<B>& mb) const {
   if (IsEmpty() || mb.IsEmpty()) {
     return 1.0;
   }
-  DistanceFunction df = ALL; // TODO: change
+  DistanceFunction df = EQUAL_LABELS; // TODO: change
   LabelFunction lf = TRIVIAL;
   typename B::base b1, b2, bs1, bs2, be1, be2;
   switch (df) {
@@ -3408,6 +3427,9 @@ double MBasic<B>::Distance(const MBasic<B>& mb) const {
     }
     case ALL_INTERVALS: {
       return this->Distance_ALL_INTERVALS(mb, lf);
+    }
+    case EQUAL_LABELS: {
+      return this->Distance_EQUAL_LABELS(mb, lf);
     }
     default: {
       return -1.0;
