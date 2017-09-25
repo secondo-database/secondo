@@ -111,8 +111,8 @@ Result   : (labels ('Reus'))
 
 Operator : distance
 Number   : 1
-Signature: T x T -> bool,   where T in {label(s), place(s)}
-Example  : query distance([const labels value ('Reus' 'Kagawa')], [const labels value ('Kagawa ' 'Reus')])
+Signature: T x T -> bool,   where T in {(m)label(s), (m)place(s)}
+Example  : query distance([const label value "Yarmolenko"], [const label value "Yarmolenko"])
 Result   : 0.0
 
 Operator : the_unit
