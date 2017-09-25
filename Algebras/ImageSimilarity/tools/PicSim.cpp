@@ -79,9 +79,9 @@ int main(int argc, char* argv[])
    
     std::string outfile = argv[2];
     const char* out_file = outfile.c_str();
-    const char* out_file2 =  "a_grayscale_outfile.jpg";
-    const char* out_file3 =  "a_coarseness_outfile.jpg";
-    const char* out_file4 =  "a_contrast_outfile.jpg";
+    const char* out_file2 = "a_grayscale_outfile.jpg";
+    const char* out_file3 = "a_coarseness_outfile.jpg";
+    const char* out_file4 = "a_contrast_outfile.jpg";
     const char* out_file5 = "a_clustered_outfile.jpg";
  
     unsigned int colorSpace = atoi(argv[3]);
