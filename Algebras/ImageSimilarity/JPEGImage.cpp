@@ -69,8 +69,14 @@ January 2017 Michael Loris
 
 #define DIMENSIONS 7
 
-namespace conversion {
 
+/*
+1.5 Conversion functions, taken from the Picture algebra
+
+*/
+
+namespace conversion {
+// taken from picture algebra
 Lab::Lab (unsigned char r_, unsigned char g_, unsigned char b_)
 {
     double R, G, B;
@@ -139,7 +145,7 @@ Lab::Lab (unsigned char r_, unsigned char g_, unsigned char b_)
 }
 
 
-
+// taken from picture algebra
 HSV::HSV (unsigned char r, unsigned char g, unsigned char b)
 {
     unsigned char rgbMin = std::min (std::min (r, g), b);
@@ -182,17 +188,24 @@ HSV::HSV (unsigned char r, unsigned char g, unsigned char b)
 
 } // end namespace
 
-// required for jpeg import 
+
+/*
+1.6 Functions required from jpeglib
+
+*/
+
+
+// required for jpeg import, taken from jpeg6 library 
 struct my_error_mgr
 {
     struct jpeg_error_mgr pub;    /* "public" fields */
     jmp_buf setjmp_buffer;    /* for return to caller */
 };
 
-// required for jpeg import 
+// required for jpeg import, taken from jpeg6 library 
 typedef struct my_error_mgr* my_error_ptr;
 
-// required for jpeg import 
+// required for jpeg import,taken from jpeg6 library 
 void my_error_exit (j_common_ptr cinfo)
 {
     my_error_ptr myerr = (my_error_ptr) cinfo->err;
@@ -200,15 +213,144 @@ void my_error_exit (j_common_ptr cinfo)
     longjmp(myerr->setjmp_buffer, 1);
 }
 
+
+
 /*
-Destructor for JPEGImage class
+1.7 Functions to scale values of features
+
+*/
+
+
+/*
+Scale all values of all dimensions, not just contrast
+
+*/
+template<typename A>
+double scale(A val, A min, A max, A a, A b)
+{
+    //double a = -10000.0;
+    //double b = 10000.0;
+    return (((b - a) * (val - min)) / ( max - min )) + a;
+}
+
+void JPEGImage::scalePCTDimensions()
+{
+    int minX = std::numeric_limits<int>::min();
+    int maxX = std::numeric_limits<int>::max();
+    int minY = std::numeric_limits<int>::min();
+    int maxY = std::numeric_limits<int>::max();
+    
+    double minC1 = std::numeric_limits<double>::min();
+    double maxC1 = std::numeric_limits<double>::max();
+    double minC2 = std::numeric_limits<double>::min();
+    double maxC2 = std::numeric_limits<double>::max();
+    double minC3 = std::numeric_limits<double>::min();
+    double maxC3 = std::numeric_limits<double>::max();
+    double minCoa = std::numeric_limits<double>::min();
+    double maxCoa = std::numeric_limits<double>::max();
+    double minCon = std::numeric_limits<double>::min();
+    double maxCon = std::numeric_limits<double>::max();
+    
+    for (auto tuple : this->signature)
+    {
+        if (tuple.centroid.x <= maxX)
+            maxX = tuple.centroid.x;
+            
+        if (tuple.centroid.x >= minX)
+            minX = tuple.centroid.x;
+            
+        if (tuple.centroid.y <= maxY)
+            maxY = tuple.centroid.y;
+            
+        if (tuple.centroid.y >= minY)
+            minY = tuple.centroid.y;
+        
+        
+        if (tuple.centroid.colorValue1 <= maxC1)
+            maxC1 = tuple.centroid.colorValue1;
+            
+        if (tuple.centroid.colorValue1 >= minC1)
+            minC1 = tuple.centroid.colorValue1;
+            
+        if (tuple.centroid.colorValue2 <= maxC2)
+            maxC2 = tuple.centroid.colorValue2;
+            
+        if (tuple.centroid.colorValue2 >= minC2)
+            minC2 = tuple.centroid.colorValue2;
+            
+        if (tuple.centroid.colorValue3 <= maxC3)
+            maxC3 = tuple.centroid.colorValue3;
+            
+        if (tuple.centroid.colorValue3 >= minC3)
+            minC3 = tuple.centroid.colorValue3;
+            
+        if (tuple.centroid.coarseness <= maxCoa)
+            maxCoa = tuple.centroid.coarseness;
+            
+        if (tuple.centroid.coarseness >= minCoa)
+            minCoa = tuple.centroid.coarseness;
+            
+        if (tuple.centroid.contrast <= maxCon)
+            maxCon = tuple.centroid.contrast;
+            
+        if (tuple.centroid.contrast >= minCon)
+            minCon = tuple.centroid.contrast;
+    }
+    
+
+    for (auto tuple : this->signature)
+    {
+        int i1 = scale(tuple.centroid.x, minX, maxX, 0, 10000);
+        int i2  = scale(tuple.centroid.y, minY, maxY, 0, 10000);
+        
+        double d1 
+        = scale(tuple.centroid.colorValue1, minC1, maxC1, 0.0, 10000.0);
+        double d2 
+        = scale(tuple.centroid.colorValue2, minC2, maxC2, 0.0, 10000.0);
+        double d3 
+        = scale(tuple.centroid.colorValue3, minC3, maxC3, 0.0, 10000.0);
+        double d4 
+    = scale(tuple.centroid.coarseness, minCoa, maxCoa, 0.0, 10000.0);
+        double d5 
+        = scale(tuple.centroid.contrast, minCon, maxCon, 0.0, 10000.0);
+        
+        //std::cout << minX << " " << maxX << " " << minC1 << " " 
+        //<< maxC1 << " " << minC2 << " " << maxC2 << " " 
+        //<< minC1 << " " << maxC2 
+        //<< " " << minCoa << " " << maxCoa << " " 
+        //<< minCon << " " << maxCoa << std::endl; 
+        
+        std::cout << i1 << " " << i2 << " " 
+        << d1 << " " << d2 << " " << d3 << " " 
+        << d4 << " " << d5 << std::endl;
+        
+        tuple.centroid.colorValue1 
+        = scale(tuple.centroid.x, minX, maxX, 0, 10000);
+        tuple.centroid.colorValue2 
+        = scale(tuple.centroid.y, minY, maxY, 0, 10000);
+        
+        tuple.centroid.colorValue1 
+        = scale(tuple.centroid.colorValue1, minC1, maxC1, 0.0, 10000.0);
+        tuple.centroid.colorValue2 
+        = scale(tuple.centroid.colorValue2, minC2, maxC2, 0.0, 10000.0);
+        tuple.centroid.colorValue3 
+        = scale(tuple.centroid.colorValue3, minC3, maxC3, 0.0, 10000.0);
+        tuple.centroid.coarseness 
+    = scale(tuple.centroid.coarseness, minCoa, maxCoa, 0.0, 10000.0);
+        tuple.centroid.contrast
+         = scale(tuple.centroid.contrast, minCon, maxCon, 0.0, 10000.0);
+    }
+}
+
+
+
+/*
+ 2.0 Destructor for JPEGImage class
 
 */ 
  
 JPEGImage::~JPEGImage() 
 {
-    //delete[] centersX;  // output of k-kmeans
-    //delete[] centersY;  // output of k-means
     delete[] colorValues1;
     delete[] colorValues2;
     delete[] colorValues3;
@@ -237,8 +379,8 @@ JPEGImage::~JPEGImage()
     
     delete [] samplesX;
     delete [] samplesY;    
-    delete [] coarsenesses;
-    delete [] contrasts;
+    //delete [] coarsenesses;
+    //delete [] contrasts;
     
  
     
@@ -261,43 +403,52 @@ JPEGImage::~JPEGImage()
      
 };
 
+/*
+  3.0 Function to import an jpg file
+  
+*/
+
 
 void JPEGImage::importJPEGFile(const std::string _fileName,
-    const int colorSpace = 1,
-    const int picRange = 3, 
-    const int patchSize = 10, 
-    const int percentSamples = 10,
-    const int noClusters = 50) 
+    const int colorSpace,
+    const int coaRange, 
+    const int conRange, 
+    const int patchSize, 
+    const int percentSamples,
+    const int noClusters) 
 {
+    
+    this->fileName = _fileName;
 
     auto t1 = std::chrono::high_resolution_clock::now();
             
     const char* fileName = _fileName.c_str();
     
     std::cout << "filename:" << fileName << std::endl;
-    struct jpeg_decompress_struct cinfo;
-    struct my_error_mgr jerr;
-    FILE * infile;
-    int row_stride;
+    
+    struct jpeg_decompress_struct cinfo; // taken from jpeg library
+    struct my_error_mgr jerr; // taken from jpeg library
+    FILE * infile; // taken from jpeg library
+    int row_stride; // taken from jpeg library
 
     if ((infile = fopen(fileName, "rb")) == NULL) {
         fprintf(stderr, "can't open %s\n", fileName);
         return;
     }
 
-    cinfo.err = jpeg_std_error(&jerr.pub);
-    jerr.pub.error_exit = my_error_exit;
+    cinfo.err = jpeg_std_error(&jerr.pub); // taken from jpeg library
+    jerr.pub.error_exit = my_error_exit; // taken from jpeg library
 
-    if (setjmp(jerr.setjmp_buffer)) {
-        jpeg_destroy_decompress(&cinfo);
-        fclose(infile);
-        return;
+    if (setjmp(jerr.setjmp_buffer)) { // taken from jpeg library
+        jpeg_destroy_decompress(&cinfo); // taken from jpeg library
+        fclose(infile); // taken from jpeg library
+        return; // taken from jpeg library
     }
 
-    jpeg_create_decompress(&cinfo);
-    jpeg_stdio_src(&cinfo, infile);
-    (void) jpeg_read_header(&cinfo, TRUE);
-    (void) jpeg_start_decompress(&cinfo);
+    jpeg_create_decompress(&cinfo); // taken from jpeg library
+    jpeg_stdio_src(&cinfo, infile); // taken from jpeg library
+    (void) jpeg_read_header(&cinfo, TRUE); // taken from jpeg library
+    (void) jpeg_start_decompress(&cinfo); // taken from jpeg library
 
     row_stride = cinfo.output_width * cinfo.output_components;
     this->width = cinfo.output_width;
@@ -319,9 +470,6 @@ void JPEGImage::importJPEGFile(const std::string _fileName,
     
     this->noSamples = static_cast<unsigned int>(this->noDataPoints 
         / (double)(this->patchSize * this->patchSize));
-    
-    this->coarsenesses = new double[this->noSamples]; 
-    this->contrasts = new double[this->noSamples]; 
     
     this->colorSpace = colorSpace;
     
@@ -357,6 +505,9 @@ void JPEGImage::importJPEGFile(const std::string _fileName,
         }
     }
     
+    // this array is used to write images
+    // first a white 'canvas is drawn'
+    // the the sampled pixels will be written
     this->pixMat4 = new unsigned char**[this->height];
     for (int i = 0; i < this->height; i++)  
     {
@@ -404,10 +555,9 @@ void JPEGImage::importJPEGFile(const std::string _fileName,
             
             // always grab a grayscale image, 
             //as it's needed for the texture features
-            
-            // average method
+            // The average method
             //this->pixMat5[cnt][i][6] = (double) (output_data[c] + 
-            //    output_data[c+1] + output_data[c+2]) / 3.0;
+            //    (double)output_data[c+1] + (double)output_data[c+2]) / 3.0;
             
             // emphasis on green 
             //http://docs.opencv.org/3.1.0/de/d25/imgproc_color_conversions.html
@@ -435,9 +585,14 @@ void JPEGImage::importJPEGFile(const std::string _fileName,
 
 
 
+/*
+  3.0 Function to cluster the extracted vectors using the Baylor ML 
+  library.
+  
+*/
+
 // this method uses the Baylor ML code to cluster the 
-// selected features using the Annulus algorithm 
-//todo: why annulus: quick experiment
+// selected features using the Hamerly algorithm 
 void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions, 
     unsigned int noDataPoints) 
 {
@@ -506,7 +661,6 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
     
     delete c;
     // 3. setting up parameters
-    //Kmeans* algorithm = new AnnulusKmeans();
     Kmeans* algorithm = new HamerlyKmeans();
 
     int numThreads = 0;
@@ -604,10 +758,10 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
     this->colorValues1 = new double[k];
     this->colorValues2 = new double[k];
     this->colorValues3 = new double[k];
-    this->coa = new double[k];
-    this->con = new double[k];
+    this->coa = new double[k]{}; 
+    this->con = new double[k]{};
     
-    this->weights = new double[k];
+    this->weights = new double[k]{};
 
     int kk = 0;
     for (unsigned int l = 0; l < this->clusters->size(); l++)  
@@ -645,19 +799,24 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
        this->weights[l] = (double)this->clusters->at(l).size() 
                         / this->noDataPoints;
        
-        if (this->weights[l] > 0) 
+        if (this->weights[l] > 0.0) 
         {
-            //std::cout << "weight:" << this->weights[l] << std::endl; 
+            
             Feature tmpCentroid = {this->centersX[l], this->centersY[l],
-            this->colorValues1[l], this->colorValues2[l], 
-            this->colorValues3[l],
+            this->colorValues1[l], 
+            this->colorValues2[l], this->colorValues3[l],
             this->coa[l], this->con[l]};   
             this->signature.push_back({this->weights[l], tmpCentroid});
             kk++;
             
         }
     }
-
+    
+   
+    // scale all CT features to a range from -10000 to 10000
+    //this->scalePCTDimensions();
+    
+    
     auto t2 = std::chrono::high_resolution_clock::now();
     std::cout << "clustering() took "
     << 
@@ -674,8 +833,11 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
 }
 
  
+/*
+  4.0 Function to write a color image from the features extracted
+  
+*/
 
-/////////////////// write image-xyz methods /////////////////////
 void JPEGImage::writeColorImage(const char* fileName)
 {
 
@@ -779,6 +941,11 @@ void JPEGImage::writeColorImage(const char* fileName)
 }
 
 
+/*
+  5.0 Function to write a gray scale image from the features extracted
+  
+*/
+
 void JPEGImage::writeGrayscaleImage(const char* fileName) 
 {
     auto t1 = std::chrono::high_resolution_clock::now();
@@ -868,6 +1035,12 @@ void JPEGImage::writeGrayscaleImage(const char* fileName)
 }
 
 
+/*
+  6.0 Function to write an image from the contrast features extracted
+  
+*/
+
+
 void JPEGImage::writeContrastImage(const char* filename, 
     double normalization)
 {
@@ -928,7 +1101,6 @@ void JPEGImage::writeContrastImage(const char* filename,
                     = static_cast<unsigned char>(
                     (this->pixMat5[tmpY+k][tmpX+n][4]) * normalization);
                     // todo: fix parameter
-                   // std::cout << "const:" << this->pixMat5[tmpY+k][tmpX+n][4] 
                    // * normalization << std::endl;  
                 }
             }
@@ -964,6 +1136,10 @@ void JPEGImage::writeContrastImage(const char* filename,
 
 
 
+/*
+  7.0 Function to write an image from the coarseness features extracted
+  
+*/
 
 void JPEGImage::writeCoarsenessImage(const char* filename, 
     double normalization)
@@ -1061,6 +1237,12 @@ void JPEGImage::writeCoarsenessImage(const char* filename,
     << " milliseconds\n";    
 }
 
+/*
+  7.0 Function to draw a circle. Needed to write a cluster image.
+  Clusters are shown as circles -> following the example
+  from Beecks' papers
+   
+*/  
 
 void JPEGImage::drawCircle(int x0, int y0, int radius)
 {    
@@ -1090,6 +1272,11 @@ void JPEGImage::drawCircle(int x0, int y0, int radius)
     }
 }
 
+
+/*
+  7.0 Function to write an image from the clustered features
+   
+*/
 
 void JPEGImage::writeClusterImage(const char* fileName, 
     double normalization)
@@ -1175,13 +1362,20 @@ void JPEGImage::writeClusterImage(const char* fileName,
 }
 
 
+/*
+  8.0 Helper functions for coarsness
+   
+  
+*/
 
 double JPEGImage::ak(int x, int y, unsigned int k)
 {
     double tmpSum = 0.0;
-    for (int i = (-1) * pow(2,k-1);  i < pow(2, k-1) - 1; i++) 
+    //for (int i = -pow(2,k-1);  i < pow(2, k-1) - 1; i++) 
+    for (int i = -(1 << (k - 1));  i < (1 << (k - 1)) - 1; i++) 
     {
-        for (int j = (-1) * pow(2, k-1); j < pow(2, k-1) - 1; j++)
+        //for (int j = -pow(2, k-1); j < pow(2, k-1) - 1; j++)
+        for (int j = -(1 << (k - 1)); j < (1 << (k - 1)) - 1; j++)
         {
             if (((x+i) < this->width) && 
             ((y+j) < this->height) &&
@@ -1192,14 +1386,17 @@ double JPEGImage::ak(int x, int y, unsigned int k)
             }
         }
     }
+    
     return (1.0/(double)pow(2, 2*k))  * tmpSum;
+    //return (1.0 / ((1 << (2 * k)) * tmpSum));
 }
 
 
 double JPEGImage::ekh(int x, int y, unsigned int k)
 {
     double res 
-    = std::abs(ak(x + pow(2, k-1), y, k) - ak(x - pow(2, k-1), y, k));
+    //= std::abs(ak(x + pow(2, k-1), y, k) - ak(x - pow(2, k-1), y, k));
+    = std::abs(ak(x + (1 << (k - 1)), y, k) - ak(x - (1 << (k - 1)), y, k));
     return res;
 }
 
@@ -1207,7 +1404,8 @@ double JPEGImage::ekh(int x, int y, unsigned int k)
 double JPEGImage::ekv(int x, int y, unsigned int k)
 {
     double res 
-    = std::abs(ak(x, y + pow(2, k-1), k) - ak(x, y - pow(2, k-1), k));
+    //= std::abs(ak(x, y + pow(2, k-1), k) - ak(x, y - pow(2, k-1), k));
+    = std::abs(ak(x, y + (1 << (k - 1)), k) - ak(x, y - (1 << (k - 1)), k));
     return res;
 }
 
@@ -1215,34 +1413,43 @@ double JPEGImage::ekv(int x, int y, unsigned int k)
 
 double JPEGImage::localCoarseness(int x, int y, const int range)  
 {
-    unsigned int maxK = 0;
+    double maxK = 0.0;
     double maxE = 0.0;
     
-    for (int k = 1; k <= 5; k++)
+    for (int k = 1; k <= range; k++)
     {
         double tmpE = std::max(ekv(x, y, k), ekh(x, y, k));
-        
-        if (tmpE > maxE)
+        if (!std::isnan(tmpE))
         {
-              maxE = tmpE;
-            maxK = k;
+            if (tmpE > maxE)
+            {
+                maxE = tmpE;
+                maxK = static_cast<double>(k);
+                //std::cout << "printing k:" << k << std::endl;
+            }
         }
     }
 
     if (std::isnan(maxE))
+    {
+        std::cout << "ugh, maxK is not a number:" << maxK << std::endl;
         return 0.0;
+    }
     else
-        return (double)maxK;
+    {
+        //std::cout << "maxK:" << maxK << std::endl;
+        return maxK;
+    }
 }
 
-void JPEGImage::computeCoarsenessValues(bool parallel, 
-    const int range)
+void JPEGImage::computeCoarsenessValues(const int range)
 {
-    const double normalize = 1;
+    const double normalize = 1.0;  // this has to tried out
+                                    
     
     auto t1 = std::chrono::high_resolution_clock::now();
   
- 
+    int cnt = 0;
     for (int z = 0; z < this->noSamples; z++)
     {
         if (this->samplesX[z] >= 0 && 
@@ -1254,22 +1461,33 @@ void JPEGImage::computeCoarsenessValues(bool parallel,
                 int tmpX = this->samplesX[z];
                 int tmpY = this->samplesY[z];
                             
-                for (int k = 0; k < this->patchSize; k++) 
+                for (int k = 0; k < this->patchSize; k++)
                 {
                     for (int n = 0; n < this->patchSize; n++) 
                     {
                         if (((tmpY + k) < this->height) 
                             && ((tmpX + n) < this->width))
                         {    
-                            double coa = localCoarseness((tmpX+k),
-                                (tmpY+n), range);
+                            double coa = localCoarseness((tmpX + k),
+                                (tmpY + n), range);
+                                
+                            //std::cout << " coa:" << coa << " norm" 
+                            //<< normalize << " sum: " 
+                            //<< (coa * normalize);
                             this->pixMat5[tmpY+k][tmpX+n][3] 
-                                = coa * normalize;
+                                = (coa * normalize);
+                            cnt++;
                         }
                     }
                 }
         }           
-    }        
+    }
+    
+    
+    //double min_norm = 0;
+    //double max_norm = 255;
+    //double res = (maxK - min)  * ((max_norm - min_norm) / (max - min));
+                
         
     auto t2 = std::chrono::high_resolution_clock::now();
     std::cout << "coarseness() took "
@@ -1279,11 +1497,22 @@ void JPEGImage::computeCoarsenessValues(bool parallel,
     
 }
 
+
+/*
+  9.0 Helper functions for extracting contrast
+   
+  
+*/
+
 double JPEGImage::my(int x, int y, const int range)
 {
 
-    int firstHalfRange = (-1) * (range / 2); 
-    int secondHalfRange = range - (-1) * firstHalfRange;
+    //int firstHalfRange = (-1) * (range / 2); 
+    //int secondHalfRange = range - (-1) * firstHalfRange;
+    int firstHalfRange = -(range / 2); 
+    //int secondHalfRange = range - (-1) * firstHalfRange;
+    int secondHalfRange = range + firstHalfRange;
+  
     
     double tmpSum = 0.0;
     for (int j = firstHalfRange; j <= secondHalfRange; j++) 
@@ -1300,7 +1529,7 @@ double JPEGImage::my(int x, int y, const int range)
         }
     }
     //return (1.0 / 9.0) * tmpSum;
-    double tmpDev = static_cast<double>(range);
+    double tmpDev = static_cast<double>(pow(range,2));
     return (1.0 / tmpDev) * tmpSum;
 }
 
@@ -1308,9 +1537,9 @@ double JPEGImage::my(int x, int y, const int range)
 double JPEGImage::sigma(int x, int y, const int range)
 {    
     //int firstHalfRange = (-1) * (range / 2); 
-    //int secondHalfRange = range / 2;
-    int firstHalfRange = (-1) * (range / 2); 
-    int secondHalfRange = range - (-1) * firstHalfRange;
+    int firstHalfRange = -(range / 2); 
+    //int secondHalfRange = range - (-1) * firstHalfRange;
+    int secondHalfRange = range + firstHalfRange;
   
     double tmpSum = 0.0;
     
@@ -1328,7 +1557,7 @@ double JPEGImage::sigma(int x, int y, const int range)
             }
         }
     }
-    double tmpDev = static_cast<double>(range);
+    double tmpDev = static_cast<double>(pow(range,2));
     return sqrt((1.0/tmpDev) * tmpSum);
     //return sqrt((1.0/9.0) * tmpSum);
 }
@@ -1338,8 +1567,12 @@ double JPEGImage::eta(int x, int y, const int range)
 {
     //int firstHalfRange = (-1) * (range / 2); 
     //int secondHalfRange = range / 2;
-    int firstHalfRange = (-1) * (range / 2); 
-    int secondHalfRange = range - (-1) * firstHalfRange;
+    //int firstHalfRange = (-1) * (range / 2); 
+    //int secondHalfRange = range - (-1) * firstHalfRange;
+    int firstHalfRange = -(range / 2); 
+    //int secondHalfRange = range - (-1) * firstHalfRange;
+    int secondHalfRange = range + firstHalfRange;
+  
   
     
     double tmpSum = 0.0;
@@ -1357,7 +1590,7 @@ double JPEGImage::eta(int x, int y, const int range)
                 }
         }
     }
-    double tmpDev = static_cast<double>(range);
+    double tmpDev = static_cast<double>(pow(range,2));
     return (1.0/tmpDev) * tmpSum;
     //return (1.0/9.0) * tmpSum;
 }
@@ -1378,11 +1611,9 @@ double JPEGImage::localContrast(int x, int y, const int range)
 }
 
 
-void JPEGImage::computeContrastValues(bool parallel, 
-    const int range)
+void JPEGImage::computeContrastValues(const int range)
 {
     
-    const double normalize = 0.01;
     
     auto t1 = std::chrono::high_resolution_clock::now();
     
@@ -1407,7 +1638,7 @@ void JPEGImage::computeContrastValues(bool parallel,
                         double con = localContrast((tmpX+k), 
                             (tmpY+n), range);
                         this->pixMat5[tmpY+k][tmpX+n][4] 
-                            = (con * normalize);
+                            = (con);
                     }
                 }
             }

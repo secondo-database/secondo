@@ -88,32 +88,32 @@ struct Feature
 
 struct FeatureSignatureTuple
 {
-	FeatureSignatureTuple() {}
+    FeatureSignatureTuple() {}
 
-	FeatureSignatureTuple(double _weight, int _x, int _y, 
-				double _colorValue1, double _colorValue2, 
-				double _colorValue3, 
-				double _coa, double _con)
-	{
-		weight = _weight;
-		centroid.x = _x;
-		centroid.y = _y;
-		centroid.colorValue1 = _colorValue1;
-		centroid.colorValue2 = _colorValue2;
-		centroid.colorValue3 = _colorValue3;
-		centroid.coarseness = _coa;
-		centroid.contrast = _con;
-	}	
-	FeatureSignatureTuple(double _weight, Feature _centroid):
+    FeatureSignatureTuple(double _weight, int _x, int _y, 
+                double _colorValue1, double _colorValue2, 
+                double _colorValue3, 
+                double _coa, double _con)
+    {
+        weight = _weight;
+        centroid.x = _x;
+        centroid.y = _y;
+        centroid.colorValue1 = _colorValue1;
+        centroid.colorValue2 = _colorValue2;
+        centroid.colorValue3 = _colorValue3;
+        centroid.coarseness = _coa;
+        centroid.contrast = _con;
+    }    
+    FeatureSignatureTuple(double _weight, Feature _centroid):
     weight(_weight), centroid(_centroid) {}
-	FeatureSignatureTuple(const FeatureSignatureTuple& fst) : 
+    FeatureSignatureTuple(const FeatureSignatureTuple& fst) : 
     weight(fst.weight), centroid(fst.centroid) {}    
-	FeatureSignatureTuple& operator=(const FeatureSignatureTuple& fst)
-	{
-		weight = fst.weight;		
-		centroid = fst.centroid;
-		return *this;
-	}
+    FeatureSignatureTuple& operator=(const FeatureSignatureTuple& fst)
+    {
+        weight = fst.weight;        
+        centroid = fst.centroid;
+        return *this;
+    }
 
   ~FeatureSignatureTuple(){}
 
@@ -133,13 +133,14 @@ class JPEGImage
 public:    
     void importJPEGFile(const std::string _fileName, 
                         const int colorSpace, 
-                        const int picRange,
+                        const int coaRange,
+                        const int conRange,
                         const int patchSize,
                         const int percentSamples,
                         const int noClusters);
     
-    void computeCoarsenessValues(bool parallel, const int range);
-    void computeContrastValues(bool parallel, const int range);
+    void computeCoarsenessValues(const int range);
+    void computeContrastValues(const int range);
     void getRandomRepresentants(const unsigned int r);
     void clusterFeatures(const unsigned int k, 
             unsigned int dimensions, 
@@ -147,8 +148,7 @@ public:
     
     void writeColorImage(const char* fileName);
     void writeGrayscaleImage(const char* fileName);
-    void writeCoarsenessImage(
-        const char* fileName, double normalization);
+    void writeCoarsenessImage(const char* fileName, double normalization);
     void writeContrastImage(const char* fileName, double normalization);
     void writeClusterImage(const char* fileName, double normalization);
     
@@ -163,9 +163,7 @@ public:
     double* coa; // coarseness as array
     double* con; // constrast as array
     
-    double* weights; // weights of centroids/representants
-    
-    //void createSignature();
+    double* weights; // weights of centroids/representants    
     
     std::vector<FeatureSignatureTuple> signature;
     int getNoDataPoints() { return this->noDataPoints; };
@@ -174,9 +172,10 @@ public:
     
 private:
     bool isGrayscale;
-    unsigned char* pixels;
+    unsigned char* pixels; // store pixles as array during import
     unsigned char*** pixMat4;  // write clustered circle image
-    double*** pixMat5; 			// stores features
+    double*** pixMat5;             // stores features
+    std::string fileName;
 
     double ak( int x, int y, unsigned int k);
     double ekh(int x, int y, unsigned int k);
@@ -199,7 +198,9 @@ private:
     double* contrasts;
     int colorSpace;
     int patchSize; // size of sub images to be extracted
-    int noDataPoints;    
+    int noDataPoints; 
+    
+    void scalePCTDimensions();
 };
 
 
