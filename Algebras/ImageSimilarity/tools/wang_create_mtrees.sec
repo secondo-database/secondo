@@ -1,0 +1,7 @@
+let WANG_SQFD_153 = WANG_1_5_3_1_30_100 createmtree3[Sig,default,sqfd,default];
+let WANG_SQFD_253 = WANG_2_5_3_1_30_100 createmtree3[Sig,default,sqfd,default];
+let WANG_SQFD_353 = WANG_3_5_3_1_30_100 createmtree3[Sig,default,sqfd,default];
+let WANG_EMD_153 = WANG_1_5_3_1_30_100 createmtree3[Sig,default,emd,default];
+let WANG_EMD_253 = WANG_2_5_3_1_30_100 createmtree3[Sig,default,emd,default];
+let WANG_EMD_353 = WANG_3_5_3_1_30_100 createmtree3[Sig,default,emd,default];
+
