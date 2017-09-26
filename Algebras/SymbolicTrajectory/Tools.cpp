@@ -1487,6 +1487,26 @@ double Tools::distance(set<pair<string, unsigned int> >& values1,
                         max(values1.size(), values2.size())) / 2;
 }
 
+DistanceFunSym Tools::getDistanceFunSym(std::string funName) {
+  std::transform(funName.begin(), funName.end(), funName.begin(),
+            (int (*)(int))::tolower);
+  if (funName == "equallabels") {
+    return EQUALLABELS;
+  }
+  else if (funName == "prefix") {
+    return PREFIX;
+  }
+  else if (funName == "suffix") {
+    return SUFFIX;
+  }
+  else if (funName == "prefixsuffix") {
+    return PREFIXSUFFIX;
+  }
+  else {
+    return ERROR;
+  }
+}
+
 bool Tools::getGeoFromORel(const std::string& relName, const unsigned int ref,
                            const bool bbox, Word& geo, std::string& type) {
   if (ref == 0) {

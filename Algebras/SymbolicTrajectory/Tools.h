@@ -49,6 +49,7 @@ Started July 2014, Fabio Vald\'{e}s
    
  enum SetRel {STANDARD, DISJOINT, SUPERSET, EQUAL, INTERSECT};
  enum DataType {MLABEL, MLABELS, MPLACE, MPLACES};
+ enum DistanceFunSym {ERROR = -1, EQUALLABELS, PREFIX, SUFFIX, PREFIXSUFFIX};
  
  struct NFAtransition {
   int oldState;
@@ -274,6 +275,7 @@ class Tools {
                          std::set<std::pair<std::string, 
                          unsigned int> >& values2,
                          const int fun, const LabelFunction lf);
+  static DistanceFunSym getDistanceFunSym(std::string funName);
   static bool getGeoFromORel(const std::string& relName, const unsigned int ref,
                              const bool bbox, Word& geo, std::string& type);
   static bool getRectFromOrel(const std::string& relName,const unsigned int ref,

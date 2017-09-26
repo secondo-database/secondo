@@ -111,9 +111,15 @@ Result   : (labels ('Reus'))
 
 Operator : distance
 Number   : 1
-Signature: T x T -> bool,   where T in {(m)label(s), (m)place(s)}
+Signature: T x T -> real,   where T in {(m)label(s), (m)place(s)}
 Example  : query distance([const label value "Yarmolenko"], [const label value "Yarmolenko"])
 Result   : 0.0
+
+Operator : distancesym
+Number   : 1
+Signature: T x T x F -> real,   where T in {mlabel(s), mplace(s)}
+Example  : query distancesym(Dotraj feed filter[.No=4] extract[Trajectory], Dotraj feed filter[.No=6] extract[Trajectory], "prefix")
+Result   : 0.5
 
 Operator : the_unit
 Number   : 6

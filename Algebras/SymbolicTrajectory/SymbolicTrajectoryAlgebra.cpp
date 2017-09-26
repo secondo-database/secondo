@@ -1239,6 +1239,87 @@ struct distanceInfo : OperatorInfo {
 };
 
 /*
+\section{Operator ~distancesym~}
+
+distance: T x T -> double,   where T in {mplace(s), mlabel(s)}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr distancesymTM(ListExpr args) {
+  if (nl->ListLength(args) != 3) {
+    return NList::typeError("Expecting three arguments.");
+  }
+  ListExpr first = nl->First(args);
+  ListExpr second = nl->Second(args);
+  if ((MLabel::checkType(first)  && MLabel::checkType(second))  || 
+      (MLabels::checkType(first) && MLabels::checkType(second)) || 
+      (MPlace::checkType(first)  && MPlace::checkType(second))  || 
+      (MPlaces::checkType(first) && MPlaces::checkType(second))) {
+    if (CcString::checkType(nl->Third(args))) {
+      return nl->SymbolAtom(CcReal::BasicType());
+    }
+  }
+  return NList::typeError("Expecting T x T x string, where T in {mplace(s), "
+                          "mlabel(s)}");
+}
+
+/*
+\subsection{Selection Function}
+
+*/
+int distancesymSelect(ListExpr args) {
+  if (MLabel::checkType(nl->First(args)))  return 0; 
+  if (MLabels::checkType(nl->First(args))) return 1;
+  if (MPlace::checkType(nl->First(args)))  return 2; 
+  if (MPlaces::checkType(nl->First(args))) return 3;
+  return -1;
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+template<class T>
+int distancesymVM(Word* args, Word& result, int message, Word& local, 
+                  Supplier s) {
+  T *first = static_cast<T*>(args[0].addr);
+  T *second = static_cast<T*>(args[1].addr);
+  CcString *distfuncc = static_cast<CcString*>(args[2].addr);
+  result = qp->ResultStorage(s);
+  CcReal *res = static_cast<CcReal*>(result.addr);
+  if (first->IsDefined() && second->IsDefined() && distfuncc->IsDefined()) {
+    DistanceFunSym distfun = Tools::getDistanceFunSym(distfuncc->GetValue());
+    if (distfun != ERROR) {
+      res->Set(true, first->DistanceSym(*second, distfun));
+    }
+    else {
+      cout << "\'" + distfuncc->GetValue() + "\' is not a valid distance "
+              "function" << endl;
+      res->SetDefined(false);
+    }
+  }
+  else {
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct distancesymInfo : OperatorInfo {
+  distancesymInfo() {
+    name      = "distancesym";
+    signature = "T x T x string -> real,   where T in {mlabel(s), mplace(s)}";
+    syntax    = "distance(_ , _ , _);";
+    meaning   = "Computes a distance between the objects.";
+  }
+};
+
+
+/*
 \section{Generic operators for ~[i|m|u] [label|place] [s]?~}
 
 \subsection{Operator ~the\_unit~}
@@ -5324,6 +5405,11 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     distanceVM<Place>, distanceVM<Places>, distanceVM<MLabel>,
     distanceVM<MLabels>, distanceVM<MPlace>, distanceVM<MPlaces>, 0};
   AddOperator(distanceInfo(), distanceVMs, distanceSelect, distanceTM);
+  
+  ValueMapping distancesymVMs[] = {distancesymVM<MLabel>, 
+      distancesymVM<MLabels>, distancesymVM<MPlace>, distancesymVM<MPlaces>, 0};
+  AddOperator(distancesymInfo(), distancesymVMs, distancesymSelect, 
+              distancesymTM);
 
   ValueMapping the_unitSymbolicVMs[] = {the_unitSymbolicVM<Label, ULabel>,
     the_unitSymbolicVM<Labels, ULabels>, the_unitSymbolicVM<Place, UPlace>,

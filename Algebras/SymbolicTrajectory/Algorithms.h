@@ -289,6 +289,8 @@ class MBasic : public Attribute {
   double Distance_EQUAL_LABELS(const MBasic<B>& mb, const LabelFunction lf)
          const;
   double Distance(const MBasic<B>& mb) const;
+  int LongestCommonPrefixSuffix(const MBasic<B>& mb, const bool prefix);
+  double DistanceSym(const MBasic<B>& mb, const DistanceFunSym distfun);
   
  protected:
   Flob values;
@@ -373,6 +375,8 @@ class MBasics : public Attribute {
   void Compress(MBasics<B>& result) const;
   std::ostream& Print(std::ostream& os) const;
   double Distance(const MBasics<B>& mbs) const;
+  int LongestCommonPrefixSuffix(const MBasics<B>& mbs, const bool prefix);
+  double DistanceSym(const MBasics<B>& mbs, const DistanceFunSym distfun);
   
  protected:
   Flob values;
@@ -3438,6 +3442,96 @@ double MBasic<B>::Distance(const MBasic<B>& mb) const {
 }
 
 /*
+\subsection{Function ~LongestCommonPrefixSuffix~}
+
+*/
+template<class B>
+int MBasic<B>::LongestCommonPrefixSuffix(const MBasic<B>& mb, 
+                                         const bool prefix) {
+  typename B::base b1, b2;
+  int result = 0;
+  int minLength = std::min(GetNoComponents(), mb.GetNoComponents());
+  if (prefix) {
+    for (int i = 0; i < minLength; i++) {
+      GetValue(i, b1);
+      mb.GetValue(i, b2);
+      if (b1 == b2) {
+        result++;
+      }
+      else {
+        return result;
+      }
+    }
+  }
+  else {
+    for (int i = 1; i <= minLength; i++) {
+      GetValue(GetNoComponents() - i, b1);
+      mb.GetValue(mb.GetNoComponents() - i, b2);
+      if (b1 == b2) {
+        result++;
+      }
+      else {
+        return result;
+      }
+    }
+  }
+  return result;
+}
+
+/*
+\subsection{Function ~DistanceSym~}
+
+*/
+template<class B>
+double MBasic<B>::DistanceSym(const MBasic<B>& mb, 
+                              const DistanceFunSym distfun) {
+  if (IsEmpty() && mb.IsEmpty()) {
+    return 0.0;
+  }
+  typename B::base b1, b2;
+  switch (distfun) {
+    case EQUALLABELS: {
+      if (GetNoComponents() != mb.GetNoComponents()) {
+        return 1.0;
+      }
+      for (int i = 0; i < GetNoComponents(); i++) {
+        GetValue(i, b1);
+        mb.GetValue(i, b2);
+        if (b1 != b2) {
+          return 1.0;
+        }
+      }
+      return 0.0;
+    }
+    case PREFIX: {
+      int prefix = LongestCommonPrefixSuffix(mb, true);
+      if (prefix == std::min(GetNoComponents(), mb.GetNoComponents())) {
+        return 0.0;
+      }
+      return (prefix == 0 ? 2.0 : 1.0 / prefix);
+    }
+    case SUFFIX: {
+      int suffix = LongestCommonPrefixSuffix(mb, false);
+      if (suffix == std::min(GetNoComponents(), mb.GetNoComponents())) {
+        return 0.0;
+      }
+      return (suffix == 0 ? 2.0 : 1.0 / suffix);
+    }
+    case PREFIXSUFFIX: {
+      int prefix = LongestCommonPrefixSuffix(mb, true);
+      int suffix = LongestCommonPrefixSuffix(mb, false);
+      if (prefix+suffix >= std::min(GetNoComponents(), mb.GetNoComponents())) {
+        return 0.0;
+      }
+      return (prefix + suffix == 0 ? 2.0 : 1.0 / (prefix + suffix));
+    }
+    default: {
+      return -1.0;
+    }
+  }
+}
+
+/*
 \section{Implementation of class ~MBasics~}
 
 \subsection{Constructors}
@@ -4522,6 +4616,82 @@ double MBasics<B>::Distance(const MBasics<B>& mbs) const {
     }
   }
   return dp[n - 1][m - 1] / std::max(n, m);
+}
+
+/*
+\subsection{Function ~LongestCommonPrefixSuffix~}
+
+*/
+template<class B>
+int MBasics<B>::LongestCommonPrefixSuffix(const MBasics<B>& mbs, 
+                                          const bool prefix) {
+  std::set<typename B::base> b1, b2;
+  int result = 0;
+  int minLength = std::min(GetNoComponents(), mbs.GetNoComponents());
+  for (int i = 0; i < minLength; i++) {
+    GetValues(i, b1);
+    mbs.GetValues(i, b2);
+    if (b1 == b2) {
+      result++;
+    }
+    else {
+      return result;
+    }
+  }
+  return result;
+}
+
+/*
+\subsection{Function ~DistanceSym~}
+
+*/
+template<class B>
+double MBasics<B>::DistanceSym(const MBasics<B>& mbs, 
+                               const DistanceFunSym distfun) {
+  if (IsEmpty() && mbs.IsEmpty()) {
+    return 0.0;
+  }
+  std::set<typename B::base> b1, b2;
+  switch (distfun) {
+    case EQUALLABELS: {
+      if (GetNoComponents() != mbs.GetNoComponents()) {
+        return 1.0;
+      }
+      for (int i = 0; i < GetNoComponents(); i++) {
+        GetValues(i, b1);
+        mbs.GetValues(i, b2);
+        if (b1 != b2) {
+          return 1.0;
+        }
+      }
+      return 0.0;
+    }
+    case PREFIX: {
+      int prefix = LongestCommonPrefixSuffix(mbs, true);
+      if (prefix == std::min(GetNoComponents(), mbs.GetNoComponents())) {
+        return 0.0;
+      }
+      return (prefix == 0 ? 2.0 : 1.0 / prefix);
+    }
+    case SUFFIX: {
+      int suffix = LongestCommonPrefixSuffix(mbs, false);
+      if (suffix == std::min(GetNoComponents(), mbs.GetNoComponents())) {
+        return 0.0;
+      }
+      return (suffix == 0 ? 2.0 : 1.0 / suffix);
+    }
+    case PREFIXSUFFIX: {
+      int prefix = LongestCommonPrefixSuffix(mbs, true);
+      int suffix = LongestCommonPrefixSuffix(mbs, false);
+      if (prefix+suffix >= std::min(GetNoComponents(), mbs.GetNoComponents())) {
+        return 0.0;
+      }
+      return (prefix + suffix == 0 ? 2.0 : 1.0 / (prefix + suffix));
+    }
+    default: {
+      return -1.0;
+    }
+  }
 }
 
 /*
