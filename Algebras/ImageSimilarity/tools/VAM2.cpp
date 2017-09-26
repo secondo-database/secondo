@@ -82,22 +82,22 @@ multiple files, including external files for k-means clustering.
 double euclidDist(FeatureSignatureTuple ist1,
                     FeatureSignatureTuple ist2)
 {
-	double tmpRes = 0.0;
-	
-	tmpRes += pow(ist1.weight - ist2.weight, 2);
-	tmpRes += pow(ist1.centroid.x - ist2.centroid.x, 2);
-	tmpRes += pow(ist1.centroid.y - ist2.centroid.y, 2);
-	tmpRes += pow(ist1.centroid.colorValue1 
+    double tmpRes = 0.0;
+    
+    tmpRes += pow(ist1.weight - ist2.weight, 2);
+    tmpRes += pow(ist1.centroid.x - ist2.centroid.x, 2);
+    tmpRes += pow(ist1.centroid.y - ist2.centroid.y, 2);
+    tmpRes += pow(ist1.centroid.colorValue1 
     - ist2.centroid.colorValue1, 2);
-	tmpRes += pow(ist1.centroid.colorValue2
+    tmpRes += pow(ist1.centroid.colorValue2
     - ist2.centroid.colorValue2, 2);
-	tmpRes += pow(ist1.centroid.colorValue3 
+    tmpRes += pow(ist1.centroid.colorValue3 
     - ist2.centroid.colorValue3, 2);
-	tmpRes += pow(ist1.centroid.coarseness 
+    tmpRes += pow(ist1.centroid.coarseness 
     - ist2.centroid.coarseness, 2);
-	tmpRes += pow(ist1.centroid.contrast - ist2.centroid.contrast, 2);
-	
-	return sqrt(tmpRes);
+    tmpRes += pow(ist1.centroid.contrast - ist2.centroid.contrast, 2);
+    
+    return sqrt(tmpRes);
 }
 
 
@@ -216,8 +216,8 @@ bool MiniGraph::dfs(int v, int p)
     {
        if (!this->visited[this->g[v][i]])
        {
-		   //std::cout << "p:" << p << std::endl;
-		   //this->path.push_back(p);
+           //std::cout << "p:" << p << std::endl;
+           //this->path.push_back(p);
            dfs(this->g[v][i], v);
            return true;
        }
@@ -247,11 +247,11 @@ struct IIEntry
 
 
 struct MyCoord
-	{
-		int x;
-		int y;
-		bool visited;
-	};
+    {
+        int x;
+        int y;
+        bool visited;
+    };
 
 
 /*
@@ -281,7 +281,7 @@ public:
     
     int getRowLowestCost(int row);
     int getColLowestCost(int col);
-	void calcRowPenalties();
+    void calcRowPenalties();
     void calcColPenalties();
     std::vector<FeatureSignatureTuple> sup;
     std::vector<FeatureSignatureTuple> dem;
@@ -347,35 +347,35 @@ public:
     void findSteppingStones(); // takes coordidates of entering cell
     
      
-	void bfs(MyCoord start, MyCoord destination);
-	std::vector<MyCoord>path;
+    void bfs(MyCoord start, MyCoord destination);
+    std::vector<MyCoord>path;
 
-	int* parents;
-	int* colors;
-	int** adjList;
-	bool* visited;
-	int* path2;
-	
-	void getPathes(int s, int d);
-	void getPathesUtil(int u, int d, int pathIdx, 
+    int* parents;
+    int* colors;
+    int** adjList;
+    bool* visited;
+    int* path2;
+    
+    void getPathes(int s, int d);
+    void getPathesUtil(int u, int d, int pathIdx, 
     std::vector<std::vector<int>> g);
-	
-	void dfs(int v);
+    
+    void dfs(int v);
     //void dfsRun(int v, bool visited[],
     //std::vector<std::vector<int>> g);
     void dfsRun(int v, bool visited[], std::vector<std::vector<int>> g, 
     std::stack<int>* vis);
 
-	bool visitVertex(int v, int parent, 
-    std::vector<std::vector<int>> g);	
-	void printCycle(int v, int u);
+    bool visitVertex(int v, int parent, 
+    std::vector<std::vector<int>> g);    
+    void printCycle(int v, int u);
     //void triggerChainReaction(Vertex start, MiniGraph* g);
     //void runPath(Cell c, Cell dest, bool horizontal, int x, int y, 
     //std::vector<Cell>* path);    
     //void scanRow(int x, int y, Cell dest);
-	//void scanCol(int x, int y, Cell dest);
-	
-	std::stack<int> st;
+    //void scanCol(int x, int y, Cell dest);
+    
+    std::stack<int> st;
     int* vis;
     void depth_first_search(int u, std::vector<std::vector<int>> g);
     void 
@@ -385,11 +385,11 @@ public:
     std::vector<Cell>loop;
     void findSimpleLoop(int x, int y);
     
-	void updateSolution();
-	
-	double currentDistance;
-	double newDistance;
-	
+    void updateSolution();
+    
+    double currentDistance;
+    double newDistance;
+    
 };
 
 
@@ -406,137 +406,137 @@ TransportProblem::TransportProblem() : visitedSteppingStones(false),
 
 void TransportProblem::findSimpleLoop(int x, int y)
 {
-	
-	std::vector<Cell> xBasics;
-	for (int j = 0; j < (int) this->supSize; j++)
-	{
-		for (int i = 0; i < (int) this->demSize; i++)
-		{	
-			if (this->basicsMatrix[j][i])
-			{	
-				Cell yb = {i, j, this->distanceMatrix[j][x]};
-				basics.push_back(yb);
-			}
-		}
-	}
-
-
-
-	
-	std::vector<Cell>xEntries;
-	for (int i = 0; i < (int)this->demSize; i++)
-	{
-		if (this->basicsMatrix[y][i])
-		{
-			Cell xb = {i, y, this->distanceMatrix[i][x]};
-			xEntries.push_back(xb);
-		}
-	}
-	
-	
-	std::vector<Cell>yEntries;
-	for (int j = 0; j < (int)this->supSize; j++)
-	{
-		if (this->basicsMatrix[j][x])
-
-		{			
-			Cell xb = {x, j, this->distanceMatrix[j][x]};
-			yEntries.push_back(xb);
-		}
-	}
-	
-	Cell candidate;
-	Cell yEntry;
-	Cell xEntry;
-	for (auto c : xEntries)
-	{
-		for (auto b : basics)
-		{
-			if ((c.x == b.x) && (c.y != b.y))
-			{
-				// for each match check if there's a yEntry
-				for (auto ye : yEntries)
-				{
-					if (b.y == ye.y)
-					{
-						candidate = {b.x, b.y, 
-                            this->distanceMatrix[b.y][b.x]};
-						yEntry = {ye.x, ye.y, 
-                            this->distanceMatrix[ye.y][ye.x]};
-						xEntry = {c.x, c.y, 
-                            this->distanceMatrix[c.y][c.x]};
-						break;
-					}
-				}
-			}
-		}
-	}
-	
-	this->loop.push_back({x, y, this->distanceMatrix[y][x]});	
-	this->loop.push_back({xEntry.x, xEntry.y, xEntry.val});
-	this->loop.push_back({candidate.x, candidate.y, candidate.val});
-	
-	
-	this->loop.push_back({yEntry.x, yEntry.y, yEntry.val});
-	
-	
-	// find all basics in same row
-	//std::vector<Cell> xBasics;
-	for (int i = 0; i < (int) this->demSize; i++)
-	{
-		if (this->basicsMatrix[y][i])
-		{
-			Cell xb = {i, y, this->distanceMatrix[y][i]};
-			xBasics.push_back(xb);			
-		}
-	}
-	// find all basics in same column
-	std::vector<Cell> yBasics;
-	for (int j = 0; j < (int) this->supSize; j++)
-	{
-		if (this->basicsMatrix[j][x])
-		{
-			Cell yb = {x, j, this->distanceMatrix[j][x]};
-			yBasics.push_back(yb);
-				
-		}
-	}
-	
-     
-	std::vector<Cell> candidates;
-	for (auto c : xBasics)
-	{
-		//std::cout << "checking xBasics: x:" << c.x << ", " 
-        //<< c.y << std::endl;
-		for (int j = 0; j < (int)this->supSize;j++)
-		{			
-			if (this->basicsMatrix[j][c.x]
-			&& (c.y != j)
-			) 			
-			{
-				Cell cc = {c.x, j, 0};
-				candidates.push_back(cc);
-            }
-		}
-	//	std::cout << std::endl;	
-	}
-	
     
-	std::vector<Cell> solution;
-	for (auto c : candidates)
-	{
-		for (int i = 0; i < (int)this->demSize; i++)
-		{
-			if (this->basicsMatrix[c.y][i] &&
-			(c.x != i)
-			) 	
-			{
-				Cell s = {i,c.y, 0};
-				solution.push_back(s);
-			}
-		}
-	}
-	
+    std::vector<Cell> xBasics;
+    for (int j = 0; j < (int) this->supSize; j++)
+    {
+        for (int i = 0; i < (int) this->demSize; i++)
+        {    
+            if (this->basicsMatrix[j][i])
+            {    
+                Cell yb = {i, j, this->distanceMatrix[j][x]};
+                basics.push_back(yb);
+            }
+        }
+    }
+
+
+
+    
+    std::vector<Cell>xEntries;
+    for (int i = 0; i < (int)this->demSize; i++)
+    {
+        if (this->basicsMatrix[y][i])
+        {
+            Cell xb = {i, y, this->distanceMatrix[i][x]};
+            xEntries.push_back(xb);
+        }
+    }
+    
+    
+    std::vector<Cell>yEntries;
+    for (int j = 0; j < (int)this->supSize; j++)
+    {
+        if (this->basicsMatrix[j][x])
+
+        {            
+            Cell xb = {x, j, this->distanceMatrix[j][x]};
+            yEntries.push_back(xb);
+        }
+    }
+    
+    Cell candidate;
+    Cell yEntry;
+    Cell xEntry;
+    for (auto c : xEntries)
+    {
+        for (auto b : basics)
+        {
+            if ((c.x == b.x) && (c.y != b.y))
+            {
+                // for each match check if there's a yEntry
+                for (auto ye : yEntries)
+                {
+                    if (b.y == ye.y)
+                    {
+                        candidate = {b.x, b.y, 
+                            this->distanceMatrix[b.y][b.x]};
+                        yEntry = {ye.x, ye.y, 
+                            this->distanceMatrix[ye.y][ye.x]};
+                        xEntry = {c.x, c.y, 
+                            this->distanceMatrix[c.y][c.x]};
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    this->loop.push_back({x, y, this->distanceMatrix[y][x]});    
+    this->loop.push_back({xEntry.x, xEntry.y, xEntry.val});
+    this->loop.push_back({candidate.x, candidate.y, candidate.val});
+    
+    
+    this->loop.push_back({yEntry.x, yEntry.y, yEntry.val});
+    
+    
+    // find all basics in same row
+    //std::vector<Cell> xBasics;
+    for (int i = 0; i < (int) this->demSize; i++)
+    {
+        if (this->basicsMatrix[y][i])
+        {
+            Cell xb = {i, y, this->distanceMatrix[y][i]};
+            xBasics.push_back(xb);            
+        }
+    }
+    // find all basics in same column
+    std::vector<Cell> yBasics;
+    for (int j = 0; j < (int) this->supSize; j++)
+    {
+        if (this->basicsMatrix[j][x])
+        {
+            Cell yb = {x, j, this->distanceMatrix[j][x]};
+            yBasics.push_back(yb);
+                
+        }
+    }
+    
+     
+    std::vector<Cell> candidates;
+    for (auto c : xBasics)
+    {
+        //std::cout << "checking xBasics: x:" << c.x << ", " 
+        //<< c.y << std::endl;
+        for (int j = 0; j < (int)this->supSize;j++)
+        {            
+            if (this->basicsMatrix[j][c.x]
+            && (c.y != j)
+            )             
+            {
+                Cell cc = {c.x, j, 0};
+                candidates.push_back(cc);
+            }
+        }
+    //    std::cout << std::endl;    
+    }
+    
+    
+    std::vector<Cell> solution;
+    for (auto c : candidates)
+    {
+        for (int i = 0; i < (int)this->demSize; i++)
+        {
+            if (this->basicsMatrix[c.y][i] &&
+            (c.x != i)
+            )     
+            {
+                Cell s = {i,c.y, 0};
+                solution.push_back(s);
+            }
+        }
+    }
+    
 }
 
 /*
@@ -599,48 +599,48 @@ std::vector<std::vector<int>> g, std::stack<int>* vis)
 
 void TransportProblem::dfs(int s)
 {
-	//this->visited = new bool[this->mg->vertices.size()];
+    //this->visited = new bool[this->mg->vertices.size()];
     std::vector<std::vector<int>> g(this->mg->vertices.size());
     
     std::vector<int> p;
     
     for (int i = 0; i < (int)this->mg->vertices.size(); i++)
-	{
-		for (int j = 0; j < (int)this->mg->vertices.size(); j++)
-		{
+    {
+        for (int j = 0; j < (int)this->mg->vertices.size(); j++)
+        {
             if ((this->mg->vertices[i]._x == this->mg->vertices[j]._x) 
             ||(this->mg->vertices[i]._y == this->mg->vertices[j]._y)) {
-				if (j != i)
-				{
+                if (j != i)
+                {
                     g[i].push_back(j);
                 }
-			
-			}
-		}
-	}
+            
+            }
+        }
+    }
     
     std::cout << "displaying list before:" << std::endl;
-	for (int i = 0; i < (int)this->mg->vertices.size(); i++)
-	{
-		std::cout << i << ":";
-		for (int j = 0; j < (int)g.at(i).size(); j++)
-		{
-			std::cout << g[i][j] << ",";
-		}
-		std::cout << std::endl;
-	}
+    for (int i = 0; i < (int)this->mg->vertices.size(); i++)
+    {
+        std::cout << i << ":";
+        for (int j = 0; j < (int)g.at(i).size(); j++)
+        {
+            std::cout << g[i][j] << ",";
+        }
+        std::cout << std::endl;
+    }
     
-	std::cout << "displaying vertices" << std::endl;
-	for (int i = 0; i < (int)this->mg->vertices.size(); i++)
-	{
-		std::cout 
-		<< "vert " << i << " :"
-		<< this->mg->vertices[i]._y
-		<< ","
-		<< this->mg->vertices[i]._x
-		<< std::endl;
-		
-	}
+    std::cout << "displaying vertices" << std::endl;
+    for (int i = 0; i < (int)this->mg->vertices.size(); i++)
+    {
+        std::cout 
+        << "vert " << i << " :"
+        << this->mg->vertices[i]._y
+        << ","
+        << this->mg->vertices[i]._x
+        << std::endl;
+        
+    }
     
     
     this->visited = new bool[this->mg->vertices.size()]{false};
@@ -654,7 +654,7 @@ void TransportProblem::dfs(int s)
     std::cout << "end of dfs" << std::endl;
     
     for (int i = 0; i < (int)this->mg->vertices.size(); i++)
-	{
+    {
         std::cout << this->parents[i] << ", ";
     }
     
@@ -721,98 +721,98 @@ bool TransportProblem::compareIIEntries(
 
 void TransportProblem::getPathes(int s, int d)
 {
-	std::vector<std::vector<int>> g(this->mg->vertices.size());
-	
-	
-	this->parents = new int[this->mg->vertices.size()]{};	
-	this->colors = new int[this->mg->vertices.size()]{0}; // white
-	
-	
-	// build adjacency list	
-	for (int i = 0; i < (int)this->mg->vertices.size(); i++)
-	{
-		for (int j = 0; j < (int)this->mg->vertices.size(); j++)
-		{
-			if (
+    std::vector<std::vector<int>> g(this->mg->vertices.size());
+    
+    
+    this->parents = new int[this->mg->vertices.size()]{};    
+    this->colors = new int[this->mg->vertices.size()]{0}; // white
+    
+    
+    // build adjacency list    
+    for (int i = 0; i < (int)this->mg->vertices.size(); i++)
+    {
+        for (int j = 0; j < (int)this->mg->vertices.size(); j++)
+        {
+            if (
             (this->mg->vertices[i]._x == this->mg->vertices[j]._x) ||
             (this->mg->vertices[i]._y == this->mg->vertices[j]._y)) {
-				if (j != i)
-				{
-						g[i].push_back(j);
+                if (j != i)
+                {
+                        g[i].push_back(j);
                 }
-			}
-		}
-	}
-	// now I cut all vertical edges from the entering cell, so that
-	// no cycle exists
-	// the destination points will be the basic cells which are
-	// on the same column
-	Vertex sVert = this->mg->vertices[s];
-//	Vertex dVert = this->mg->vertices[d];
-	
-	for (int i = 0; i < (int)g[s].size(); i++)
-	{
-		for (int j = 0; j < (int)g[s].size(); j++)
-		{
-			if (this->mg->vertices[j]._y == sVert._y)
-			{
-				g[s].erase(g[s].begin() + j);
-			}
-		}
-	}
-	std::cout << std::endl;
-	
-	
-//	std::cout << "dfs displaying list:" << std::endl;
-	for (int i = 0; i < (int)this->mg->vertices.size(); i++)
-	{
-		std::cout << i << ":";
-		for (int j = 0; j < (int)g.at(i).size(); j++)
-		{
-			std::cout << g[i][j] << ",";
-		}
-		std::cout << std::endl;
-	}
-	std::cout << std::endl;
-	
-	
-	this->visited = new bool[this->mg->vertices.size()]{false};
-	
-	this->path2 = new int[this->mg->vertices.size()]{};
-	
-	int pathIdx = 0;
-	
-	this->getPathesUtil(s, d, pathIdx, g);
-	
+            }
+        }
+    }
+    // now I cut all vertical edges from the entering cell, so that
+    // no cycle exists
+    // the destination points will be the basic cells which are
+    // on the same column
+    Vertex sVert = this->mg->vertices[s];
+//    Vertex dVert = this->mg->vertices[d];
+    
+    for (int i = 0; i < (int)g[s].size(); i++)
+    {
+        for (int j = 0; j < (int)g[s].size(); j++)
+        {
+            if (this->mg->vertices[j]._y == sVert._y)
+            {
+                g[s].erase(g[s].begin() + j);
+            }
+        }
+    }
+    std::cout << std::endl;
+    
+    
+//    std::cout << "dfs displaying list:" << std::endl;
+    for (int i = 0; i < (int)this->mg->vertices.size(); i++)
+    {
+        std::cout << i << ":";
+        for (int j = 0; j < (int)g.at(i).size(); j++)
+        {
+            std::cout << g[i][j] << ",";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
+    
+    
+    this->visited = new bool[this->mg->vertices.size()]{false};
+    
+    this->path2 = new int[this->mg->vertices.size()]{};
+    
+    int pathIdx = 0;
+    
+    this->getPathesUtil(s, d, pathIdx, g);
+    
 }
 
 void TransportProblem::getPathesUtil(int u, int d, int pathIdx, 
 std::vector<std::vector<int>> g)
 {
-	this->visited[u] = true;
-	this->path2[pathIdx] = u;
-	pathIdx++;
-	
-	if (u == d)
-	{		
-		for (int i = 0; i < pathIdx; i++)
-		{
-			std::cout << this->path2[i] << " ";
-		}
-		std::cout << std::endl;
-	}
-	else
-	{
-		for (int i = 0; i < (int)g[u].size(); i++)
-		{
-			if (!this->visited[i])
-			{
-				getPathesUtil(i, d, pathIdx, g);
-			}
-		}
-	}
-	pathIdx--;
-	this->visited[u] = false;
+    this->visited[u] = true;
+    this->path2[pathIdx] = u;
+    pathIdx++;
+    
+    if (u == d)
+    {        
+        for (int i = 0; i < pathIdx; i++)
+        {
+            std::cout << this->path2[i] << " ";
+        }
+        std::cout << std::endl;
+    }
+    else
+    {
+        for (int i = 0; i < (int)g[u].size(); i++)
+        {
+            if (!this->visited[i])
+            {
+                getPathesUtil(i, d, pathIdx, g);
+            }
+        }
+    }
+    pathIdx--;
+    this->visited[u] = false;
 }
 
 
@@ -821,173 +821,173 @@ std::vector<std::vector<int>> g)
 
 void TransportProblem::printCycle(int v, int u)
 {
-	std::cout << "print cycle: u:" << u << " v:" << v << std::endl;
-	do
-	{
-		std::cout << u << ",";
-		u = this->parents[u];
-	}
-	while (u != v);
+    std::cout << "print cycle: u:" << u << " v:" << v << std::endl;
+    do
+    {
+        std::cout << u << ",";
+        u = this->parents[u];
+    }
+    while (u != v);
 }
 
 void TransportProblem::bfs(MyCoord start, MyCoord destination)
 {
 
-	std::vector<std::vector<int>> g(this->mg->vertices.size());
-	int n; // number of vertices
-	int s; // start point
-	int to;
-	
-	
-	n =  (int)this->mg->vertices.size();
-	
-	//std::cout << "displaying s" << std::endl;
-	
-	// find index of s
-	s = 0;
-	for (int i = 0; i < (int)this->mg->vertices.size(); i++)
-	{
-		if ((this->mg->vertices[i]._x == start.x) &&
-		(this->mg->vertices[i]._y == start.y))
-		{
-			s = i;
-			break;
-		}
-		
-	}
-	
-	//std::cout << "displaying to" << std::endl;
-	// find index of to
-	to = 0;
-	for (int i = 0; i < (int)this->mg->vertices.size(); i++)
-	{
-		if ((this->mg->vertices[i]._x == destination.x) &&
-		(this->mg->vertices[i]._y == destination.y))
-		{
-			to = i;
-			break;
-		}
-		
-	}
-	
-	
-	//std::cout << "building list" << std::endl;
-	// create adjacency list 
-	// the connection between must be broken
-	
-	for (int i = 0; i < (int)this->mg->vertices.size(); i++)
-	{
-		for (int j = 0; j < (int)this->mg->vertices.size(); j++)
-		{
-			if (
+    std::vector<std::vector<int>> g(this->mg->vertices.size());
+    int n; // number of vertices
+    int s; // start point
+    int to;
+    
+    
+    n =  (int)this->mg->vertices.size();
+    
+    //std::cout << "displaying s" << std::endl;
+    
+    // find index of s
+    s = 0;
+    for (int i = 0; i < (int)this->mg->vertices.size(); i++)
+    {
+        if ((this->mg->vertices[i]._x == start.x) &&
+        (this->mg->vertices[i]._y == start.y))
+        {
+            s = i;
+            break;
+        }
+        
+    }
+    
+    //std::cout << "displaying to" << std::endl;
+    // find index of to
+    to = 0;
+    for (int i = 0; i < (int)this->mg->vertices.size(); i++)
+    {
+        if ((this->mg->vertices[i]._x == destination.x) &&
+        (this->mg->vertices[i]._y == destination.y))
+        {
+            to = i;
+            break;
+        }
+        
+    }
+    
+    
+    //std::cout << "building list" << std::endl;
+    // create adjacency list 
+    // the connection between must be broken
+    
+    for (int i = 0; i < (int)this->mg->vertices.size(); i++)
+    {
+        for (int j = 0; j < (int)this->mg->vertices.size(); j++)
+        {
+            if (
             (this->mg->vertices[i]._x == this->mg->vertices[j]._x) ||
-            (this->mg->vertices[i]._y == this->mg->vertices[j]._y))	{
-				if (j != i)
-				{
-					if (!((i == s) && (j == to)))
-					{
-						g[i].push_back(j);
+            (this->mg->vertices[i]._y == this->mg->vertices[j]._y))    {
+                if (j != i)
+                {
+                    if (!((i == s) && (j == to)))
+                    {
+                        g[i].push_back(j);
                     }
-				}
-			
-			}
-		}
-	}
-	
+                }
+            
+            }
+        }
+    }
     
-	std::cout << "displaying list" << std::endl;
-	for (int i = 0; i < (int)this->mg->vertices.size(); i++)
-	{
-		std::cout << i << ":";
-		for (int j = 0; j < (int)g.at(i).size(); j++)
-		{
-			std::cout << g[i][j] << ",";
-		}
-		std::cout << std::endl;
-	}
-	
-	std::cout << "destination y:" << destination.y << " x:" 
+    
+    std::cout << "displaying list" << std::endl;
+    for (int i = 0; i < (int)this->mg->vertices.size(); i++)
+    {
+        std::cout << i << ":";
+        for (int j = 0; j < (int)g.at(i).size(); j++)
+        {
+            std::cout << g[i][j] << ",";
+        }
+        std::cout << std::endl;
+    }
+    
+    std::cout << "destination y:" << destination.y << " x:" 
     << destination.x << std::endl;
-	
-	std::cout << "displaying vertices" << std::endl;
-	for (int i = 0; i < (int)this->mg->vertices.size(); i++)
-	{
-		std::cout 
-		<< "vert " << i << " :"
-		<< this->mg->vertices[i]._y
-		<< ","
-		<< this->mg->vertices[i]._x
-		<< std::endl;
-		
-	}
-	
-		
-	
-		
-	
-	std::queue<int> q;
-	q.push(s);
-	
-	std::vector<bool> used(n);
-	std::vector<int> d(n);
-	std::vector<int> p(n);
-	used[s] = true;
-	p[s] = -1; // parent
-
-	//std::cout << "starting queue" << std::endl;
-	
-	while (!q.empty())
-	{
-		int v = q.front();
-		q.pop();
-		
-		for (int i = 0; i < (int)g[v].size(); ++i)
-		{
-			int to = g[v][i];
-			if (!used[to])
-			{
-				used[to] = true;
-				q.push(to);
-				d[to] = d[v] + 1;
-				p[to] = v;
-			}
-		}
-	}
-	
     
-	//std::cout << "displaying path" << std::endl;
+    std::cout << "displaying vertices" << std::endl;
+    for (int i = 0; i < (int)this->mg->vertices.size(); i++)
+    {
+        std::cout 
+        << "vert " << i << " :"
+        << this->mg->vertices[i]._y
+        << ","
+        << this->mg->vertices[i]._x
+        << std::endl;
+        
+    }
+    
+        
+    
+        
+    
+    std::queue<int> q;
+    q.push(s);
+    
+    std::vector<bool> used(n);
+    std::vector<int> d(n);
+    std::vector<int> p(n);
+    used[s] = true;
+    p[s] = -1; // parent
 
-	if (!used[to])
-	{
-		// no path
-		//std::cout << "no path" << std::endl; 
+    //std::cout << "starting queue" << std::endl;
+    
+    while (!q.empty())
+    {
+        int v = q.front();
+        q.pop();
+        
+        for (int i = 0; i < (int)g[v].size(); ++i)
+        {
+            int to = g[v][i];
+            if (!used[to])
+            {
+                used[to] = true;
+                q.push(to);
+                d[to] = d[v] + 1;
+                p[to] = v;
+            }
+        }
+    }
+    
+    
+    //std::cout << "displaying path" << std::endl;
+
+    if (!used[to])
+    {
+        // no path
+        //std::cout << "no path" << std::endl; 
         ;       
-	}
-	else
-	{
-		std::vector<int> path;
-		for (int v = to; v != -1; v = p[v])
-		{
-			path.push_back(v);
-			int xv = this->mg->vertices[v]._x;
-			int yv = this->mg->vertices[v]._y;
-			MyCoord c = {xv, yv};
-			this->path.push_back(c);
-		}
-		reverse(path.begin(), path.end());
-		reverse(this->path.begin(), this->path.end());
-		
+    }
+    else
+    {
+        std::vector<int> path;
+        for (int v = to; v != -1; v = p[v])
+        {
+            path.push_back(v);
+            int xv = this->mg->vertices[v]._x;
+            int yv = this->mg->vertices[v]._y;
+            MyCoord c = {xv, yv};
+            this->path.push_back(c);
+        }
+        reverse(path.begin(), path.end());
+        reverse(this->path.begin(), this->path.end());
+        
         /*
-		std::cout << "path:" << std::endl;
-		for (int i = 0; i < (int)path.size(); i++)
-		{
-			std::cout << path[i] << ", ";
-		}
+        std::cout << "path:" << std::endl;
+        for (int i = 0; i < (int)path.size(); i++)
+        {
+            std::cout << path[i] << ", ";
+        }
         */
-	}
-	
-	
-	
+    }
+    
+    
+    
 }
 
 
@@ -1044,52 +1044,52 @@ void TransportProblem::findSteppingStones()
    
   // std::cout << "adding edges" << std::endl;
 
-	int half = (int)this->mg->vertices.size() / 2;
-	
-	//std::cout << "half:" << half << std::endl;
+    int half = (int)this->mg->vertices.size() / 2;
     
-	for (int i = 0; i < half ; i++)
-	{
-		for (int j = 0; j < half; j++)
-		{
-			if (j != i)
-			{
-				if (this->mg->vertices[i]._x 
+    //std::cout << "half:" << half << std::endl;
+    
+    for (int i = 0; i < half ; i++)
+    {
+        for (int j = 0; j < half; j++)
+        {
+            if (j != i)
+            {
+                if (this->mg->vertices[i]._x 
                 == this->mg->vertices[j]._x)
-				{
-					this->mg->g[i].push_back(j+half);
+                {
+                    this->mg->g[i].push_back(j+half);
                 }
-			}
-		}
-	}
-	
+            }
+        }
+    }
+    
    
    //std::cout << "adding second batch of edges" << std::endl;
    for (int i = 0; i < half ; i++)
-	{
-		for (int j = 0; j < half; j++)
-		{
-			if (j != i)
-			{
-				if (this->mg->vertices[i]._y 
+    {
+        for (int j = 0; j < half; j++)
+        {
+            if (j != i)
+            {
+                if (this->mg->vertices[i]._y 
                 == this->mg->vertices[j]._y)
-				{
+                {
                     this->mg->g[i+half].push_back(j);
                 }
-			}
-		}
-	}
-	
+            }
+        }
+    }
+    
   
     mg->visited = new bool[mg->vertices.size()]{false};
-	//mg->g.resize(mg->vertices.size());
-	
-	int pos = this->mg->vertices.size() -1;	
-	
+    //mg->g.resize(mg->vertices.size());
+    
+    int pos = this->mg->vertices.size() -1;    
+    
     if (!this->mg->dfs(pos, -1))
     {
-		this->basicsError = true;
-	}
+        this->basicsError = true;
+    }
     
   
     return;
@@ -1104,8 +1104,8 @@ void TransportProblem::findSteppingStones()
 
 void TransportProblem::updateSolution()
 {
-	
-	  std::vector<int>tmpPath;
+    
+      std::vector<int>tmpPath;
     for (int i = 1; i < this->mg->path.size() / 2; i++)
     {
         tmpPath.push_back(this->mg->path[i]);
@@ -1113,17 +1113,17 @@ void TransportProblem::updateSolution()
     
     
    // for (auto l : tmpPath)
-//	{
-	//	std::cout << " tmp loop:" << this->mg->vertices[l]._x << "," 
+//    {
+    //    std::cout << " tmp loop:" << this->mg->vertices[l]._x << "," 
     //<< this->mg->vertices[l]._y << std::endl;
-	//}
+    //}
     //std::cout << "tmp loop size:" << tmpPath.size() << std::endl;
     
-	
+    
     int minBasicVal = std::numeric_limits<int>::max();
     int idxMinVal = 0;
     
-	for (int i = 0; i < this->mg->vertices.size(); i += 2)
+    for (int i = 0; i < this->mg->vertices.size(); i += 2)
     {
         Vertex min = this->mg->vertices[i];
         int minVal = this->amountMatrix[min._y][min._x];
@@ -1139,35 +1139,35 @@ void TransportProblem::updateSolution()
     
     Vertex minBasicCell = this->mg->vertices[idxMinVal];    
         
-	double theta = this->amountMatrix[minBasicCell._y][minBasicCell._x];
-	
-	//std::cout << "theta:" << theta << std::endl;
-	
-	
+    double theta = this->amountMatrix[minBasicCell._y][minBasicCell._x];
+    
+    //std::cout << "theta:" << theta << std::endl;
+    
+    
 
-	int x;
-	int y;
-	int ii = 0;
+    int x;
+    int y;
+    int ii = 0;
     
     
-	for (auto p : tmpPath)
-	{
+    for (auto p : tmpPath)
+    {
         //std::cout << "reducing theta" << std::endl;
-		x = this->mg->vertices[p]._x;
-		y = this->mg->vertices[p]._y;
-		if ((ii % 2) == 0)
-		{	
-            //std::cout << "adding theta" << std::endl;	
-			this->amountMatrix[y][x] += theta;		
-		}
-		else
-		{			
+        x = this->mg->vertices[p]._x;
+        y = this->mg->vertices[p]._y;
+        if ((ii % 2) == 0)
+        {    
+            //std::cout << "adding theta" << std::endl;    
+            this->amountMatrix[y][x] += theta;        
+        }
+        else
+        {            
            // std::cout << "removing theta" << std::endl;
-			this->amountMatrix[y][x] -= theta;		
-		}
-		ii++;
-	}
-	
+            this->amountMatrix[y][x] -= theta;        
+        }
+        ii++;
+    }
+    
     
     int dist = 0;
     for ( int y = 0; y < (int)this->supSize; y++) // rows
@@ -1187,8 +1187,8 @@ void TransportProblem::updateSolution()
     }
     
     //std::cout << "new dist:" << this->newDistance << std::endl;
-	this->newDistance = dist;
-	
+    this->newDistance = dist;
+    
 }
 
     
@@ -1218,7 +1218,7 @@ void TransportProblem::calcShadowCosts()
     for ( int x = 0; x < (int)this->demSize; x++)
     { 
         if (this->basicsMatrix[0][x])
-        {			
+        {            
             vcost[x] = this->distanceMatrix[0][x];
         }
     }
@@ -1276,7 +1276,7 @@ void TransportProblem::calcShadowCosts()
     }
     //std::cout << std::endl;
 
-	// 
+    // 
    // std::cout << "enteringCell.x:" << enteringCell.x 
    //<< ", " << enteringCell.y << " " 
    //<< enteringCell.val << std::endl;
@@ -1306,67 +1306,67 @@ void TransportProblem::calcShadowCosts()
 void TransportProblem::calcColPenalties()
 {
     
-		//std::cout << "calc col penalties:" << std::endl; ;   
-	 
-	   for ( int x =  0; x < (int)this->demSize; x++) 
-	   {    
+        //std::cout << "calc col penalties:" << std::endl; ;   
+     
+       for ( int x =  0; x < (int)this->demSize; x++) 
+       {    
           int min = std::numeric_limits<int>::max();
-		   int min2 = std::numeric_limits<int>::max();
-		   for ( int y = 0; y < (int)this->supSize; y++) // vertical
-		   {
+           int min2 = std::numeric_limits<int>::max();
+           for ( int y = 0; y < (int)this->supSize; y++) // vertical
+           {
              bool satisfied = rowSat[y];
                
-			   if (!satisfied)
-			   {		
-			   	if (this->distanceMatrix[y][x] < min2)
-					{
+               if (!satisfied)
+               {        
+                   if (this->distanceMatrix[y][x] < min2)
+                    {
                         if (this->distanceMatrix[y][x] < min)
                         {
-							min2 = min;
+                            min2 = min;
                             min = this->distanceMatrix[y][x];
                         }
-						else
-						{
+                        else
+                        {
                             min2 = this->distanceMatrix[y][x];
                         }
-					}
-                }			
-		   }
+                    }
+                }            
+           }
            if (min2 != std::numeric_limits<int>::max())
-		   {
-			   int tmpPen = min2 - min;
-				this->colPen[x] = tmpPen;
+           {
+               int tmpPen = min2 - min;
+                this->colPen[x] = tmpPen;
             }
-			else
-			{			
-				this->colPen[x] = min;
-			}
-		
-		//   delete [] tmpv;          
-	   }
+            else
+            {            
+                this->colPen[x] = min;
+            }
+        
+        //   delete [] tmpv;          
+       }
        // std::cout << std::endl;
               
-	   int max = std::numeric_limits<int>::min();
-	 //  int idx = 0;
-	  // std::cout << "col penalties:";
-	   for ( int i = 0; i < (int)this->demSize; i++)
-	   {
+       int max = std::numeric_limits<int>::min();
+     //  int idx = 0;
+      // std::cout << "col penalties:";
+       for ( int i = 0; i < (int)this->demSize; i++)
+       {
           // std::cout << this->colPen[i] << ",";
            if (max < this->colPen[i])
-		   {
-			   max = this->colPen[i];
-		//	   idx = i;
-		   }
+           {
+               max = this->colPen[i];
+        //       idx = i;
+           }
             
-	   }
+       }
        
 //std::cout << std::endl;
           
-	 
-	//   std:: cout << "found max col:" << max << " at:" 
+     
+    //   std:: cout << "found max col:" << max << " at:" 
     //<< idx << std::endl;
-	 //  return idx;
-	   
+     //  return idx;
+       
 }
 
 /*
@@ -1378,64 +1378,64 @@ void TransportProblem::calcColPenalties()
 
 void TransportProblem::calcRowPenalties()
 {
-	
+    
     // std::cout << "calc row penalties:" << std::endl;;   
      
-	   for ( int y = 0; y < (int)this->supSize; y++) // horizontal
+       for ( int y = 0; y < (int)this->supSize; y++) // horizontal
         {
-    		int min = std::numeric_limits<int>::max();
-			int min2 = std::numeric_limits<int>::max();
-		   
-		   for ( int x =  0; x < (int)this->demSize; x++) 
-		   {
-			   bool satisfied = colSat[x];
+            int min = std::numeric_limits<int>::max();
+            int min2 = std::numeric_limits<int>::max();
+           
+           for ( int x =  0; x < (int)this->demSize; x++) 
+           {
+               bool satisfied = colSat[x];
 
-			   if (!satisfied)
-			   {				
+               if (!satisfied)
+               {                
                     if (this->distanceMatrix[y][x] < min2)
-					{
+                    {
                         if (this->distanceMatrix[y][x] < min)
                         {
                             min2 = min;
                             min = this->distanceMatrix[y][x];
                         }
-						else
-						{
+                        else
+                        {
                             min2 = this->distanceMatrix[y][x];
                         }
-					}
-				}          
-		   }
-		   if (min2 != std::numeric_limits<int>::max())
-		   { 
-				int tmpPen = min2 - min;
+                    }
+                }          
+           }
+           if (min2 != std::numeric_limits<int>::max())
+           { 
+                int tmpPen = min2 - min;
                 this->rowPen[y] = tmpPen;
-			}
-			else
-			{
-				this->rowPen[y] = min;
-			}
-			
-	   }
-	   
-	   int max = std::numeric_limits<int>::min();
-	  // int idx = 0;
-	 //  std::cout << "row penalties:";
-	   for ( int i = 0; i < (int)this->supSize; i++)
-	   {
+            }
+            else
+            {
+                this->rowPen[y] = min;
+            }
+            
+       }
+       
+       int max = std::numeric_limits<int>::min();
+      // int idx = 0;
+     //  std::cout << "row penalties:";
+       for ( int i = 0; i < (int)this->supSize; i++)
+       {
            //std::cout << this->rowPen[i] << ",";
            if (max < this->rowPen[i])
-		   {
-			   max = this->rowPen[i];
-		//	   idx = i;
-		   }
+           {
+               max = this->rowPen[i];
+        //       idx = i;
+           }
        }
-	   //std::cout << std::endl;
-	   
-	 //  std:: cout << "found max row:" << max << " at:" << idx 
+       //std::cout << std::endl;
+       
+     //  std:: cout << "found max row:" << max << " at:" << idx 
      //<< std::endl;
-	 //  return idx;
-       	
+     //  return idx;
+           
 }
 
 
@@ -1447,13 +1447,13 @@ void TransportProblem::calcRowPenalties()
 
 int TransportProblem::getColLowestCost(int row)
 {
-	int min = std::numeric_limits<int>::max();		 
-	int idx;
-	//std::cout << "getColLowestCost in row:" << row << std::endl;
-	for (int x = 0; x < (int)this->demSize; x++)
-	{
+    int min = std::numeric_limits<int>::max();         
+    int idx;
+    //std::cout << "getColLowestCost in row:" << row << std::endl;
+    for (int x = 0; x < (int)this->demSize; x++)
+    {
         //std::cout << "x:" << x << std::endl;
-		if (this->colSat[x])
+        if (this->colSat[x])
         {
             continue;
         }
@@ -1461,15 +1461,15 @@ int TransportProblem::getColLowestCost(int row)
        // std::cout << this->distanceMatrix[row][x] << ",";
             
        // std::cout << " min:" << min << " ";
-		if (this->distanceMatrix[row][x] < min)
-		{
+        if (this->distanceMatrix[row][x] < min)
+        {
                 min = distanceMatrix[row][x];
                 idx = x;
-		}
-	}
-//	std::cout << "min cost col idx:" << idx << " val:" 
+        }
+    }
+//    std::cout << "min cost col idx:" << idx << " val:" 
 //<< distanceMatrix[row][idx] << std::endl;
-	return idx;
+    return idx;
 }
 
 
@@ -1481,68 +1481,68 @@ int TransportProblem::getColLowestCost(int row)
 int TransportProblem::getRowLowestCost(int col)
 {
     //std::cout << std::endl;
-	int min = std::numeric_limits<int>::max();		 
-	int idx;
-	//std::cout << "getRowLowestCost in col:" << col << std::endl;
-	for ( int y = 0; y < (int)this->supSize; y++)
-	{
+    int min = std::numeric_limits<int>::max();         
+    int idx;
+    //std::cout << "getRowLowestCost in col:" << col << std::endl;
+    for ( int y = 0; y < (int)this->supSize; y++)
+    {
         if (this->rowSat[y])
-		{
-			continue;
-		}
-		//std::cout << this->distanceMatrix[y][col] << ",";
+        {
+            continue;
+        }
+        //std::cout << this->distanceMatrix[y][col] << ",";
         
             
-		if (this->distanceMatrix[y][col] < min)
-		{
+        if (this->distanceMatrix[y][col] < min)
+        {
                 min = distanceMatrix[y][col];
                 idx = y;
             
-		}
-	}
-//	std::cout << "min cost row idx:" << idx << " val:"
+        }
+    }
+//    std::cout << "min cost row idx:" << idx << " val:"
 // << distanceMatrix[idx][col] << std::endl;
-	return idx;
+    return idx;
 }
 
 int TransportProblem::maxRowPenIdx()
 {
-	int idx = 0;
-	int maxVal = 0;
-	for ( int i = 0; i < (int)this->supSize; i++)
-	{
-		if (!this->rowSat[i])
-		{
-			if (maxVal < this->rowPen[i])
-			{
-				maxVal = this->rowPen[i];
-				idx = i;
-			}
-		}
-	}
-	return idx;
+    int idx = 0;
+    int maxVal = 0;
+    for ( int i = 0; i < (int)this->supSize; i++)
+    {
+        if (!this->rowSat[i])
+        {
+            if (maxVal < this->rowPen[i])
+            {
+                maxVal = this->rowPen[i];
+                idx = i;
+            }
+        }
+    }
+    return idx;
 }
 
 int TransportProblem::maxColPenIdx()
 {
-	int idx = 0;
-	int maxVal = 0;
-	for ( int i = 0; i < (int)this->demSize; i++)
-	{
+    int idx = 0;
+    int maxVal = 0;
+    for ( int i = 0; i < (int)this->demSize; i++)
+    {
      //   std::cout << "colPenalty:" << this->colPen[i] << ",";
         //std::cout << std::endl;
-		if (!this->colSat[i])
-		{
-			if (maxVal < this->colPen[i])
-			{
-				maxVal = this->colPen[i];
-				idx = i;
-			}
-		}
-	}
-	//std::cout << std::endl;
+        if (!this->colSat[i])
+        {
+            if (maxVal < this->colPen[i])
+            {
+                maxVal = this->colPen[i];
+                idx = i;
+            }
+        }
+    }
+    //std::cout << std::endl;
     //std::cout << "maxColPenIdx:" << idx << std::endl;
-	return idx;
+    return idx;
 }
 
 
@@ -1558,7 +1558,7 @@ std::vector<FeatureSignatureTuple> fst1,
     std::vector<FeatureSignatureTuple> fst2)
 {
     sup = fst1;
-	dem = fst2;   
+    dem = fst2;   
     
    
     
@@ -1578,23 +1578,23 @@ std::vector<FeatureSignatureTuple> fst1,
     for (auto fst : dem)
         sumDem += fst.weight;
         
-	
     
-	//std::cout << "supWeights:" ;
+    
+    //std::cout << "supWeights:" ;
     std::vector<long>supWeights;
     for (int i = 0; i < (int)sup.size(); i++)
     {
-	//	std::cout << (long)round(sup[i].weight * 10000.0)   
+    //    std::cout << (long)round(sup[i].weight * 10000.0)   
     //<< std::endl;
-		supWeights.push_back((long)round(sup[i].weight * 10000.0) );
-	}
-		
-	std::vector<long>demWeights;
-	 for (int i = 0; i < (int)dem.size(); i++)
+        supWeights.push_back((long)round(sup[i].weight * 10000.0) );
+    }
+        
+    std::vector<long>demWeights;
+     for (int i = 0; i < (int)dem.size(); i++)
     {
-		demWeights.push_back((long)round(dem[i].weight * 10000.0) );
-	}
-	
+        demWeights.push_back((long)round(dem[i].weight * 10000.0) );
+    }
+    
        for (auto fst : supWeights)
         sumSup += fst;
         
@@ -1604,7 +1604,7 @@ std::vector<FeatureSignatureTuple> fst1,
     //std::cout << "sumSup: before:" << sumSup << std::endl;
     //std::cout << "sumDem before :" << sumDem << std::endl;
   
-	
+    
     
     if (sumSup > sumDem)
     {
@@ -1702,9 +1702,9 @@ std::vector<FeatureSignatureTuple> fst1,
    
  //  std::cout << "fog 7" << std::endl;
     
-	
-	calcRowPenalties(); // vertical penalties
-	int rowPenIdx;      
+    
+    calcRowPenalties(); // vertical penalties
+    int rowPenIdx;      
     rowPenIdx = maxRowPenIdx(); // idx of the biggest penalty
     int rowMinIdx = getColLowestCost(rowPenIdx); 
     
@@ -1747,13 +1747,13 @@ std::vector<FeatureSignatureTuple> fst1,
         }
         
         if (allCols && allRows)
-        {		
-			//std::cout << "breaking good" << std::endl;
+        {        
+            //std::cout << "breaking good" << std::endl;
             break;
         }
         
         colPenIdx = maxColPenIdx();
-		
+        
         rowPenIdx = maxRowPenIdx();
         
         colMinIdx = getRowLowestCost(colPenIdx);
@@ -1773,81 +1773,81 @@ std::vector<FeatureSignatureTuple> fst1,
             
             
             
-			if (supWeights[rowPenIdx] > demWeights[rowMinIdx])
+            if (supWeights[rowPenIdx] > demWeights[rowMinIdx])
             {
-				this->colSat[rowMinIdx] = true;
-				//std::cout << "f1:" << std::endl;
-				this->amountMatrix[rowPenIdx][rowMinIdx] 
+                this->colSat[rowMinIdx] = true;
+                //std::cout << "f1:" << std::endl;
+                this->amountMatrix[rowPenIdx][rowMinIdx] 
                 = demWeights[rowMinIdx];
-				//std::cout << "f2:" << std::endl;
-				supWeights[rowPenIdx] -= demWeights[rowMinIdx];
-				//std::cout << "f3:" << std::endl;
-				demWeights[rowMinIdx] = 0;
+                //std::cout << "f2:" << std::endl;
+                supWeights[rowPenIdx] -= demWeights[rowMinIdx];
+                //std::cout << "f3:" << std::endl;
+                demWeights[rowMinIdx] = 0;
                 // calcColPenalties(); // change
-				calcRowPenalties();
-				//rowPenIdx = maxRowPenIdx();
-			}
-			else if (supWeights[rowPenIdx] < demWeights[rowMinIdx])
-			{ // -- done
-				this->rowSat[rowPenIdx] = true;
-				this->amountMatrix[rowPenIdx][rowMinIdx] 
-                = supWeights[rowPenIdx];
-				demWeights[rowMinIdx] -= supWeights[rowPenIdx];
-				supWeights[rowPenIdx] = 0;
-                calcColPenalties();
-			//	rowPenIdx = maxRowPenIdx();
-			}
-			else 
-			{
+                calcRowPenalties();
+                //rowPenIdx = maxRowPenIdx();
+            }
+            else if (supWeights[rowPenIdx] < demWeights[rowMinIdx])
+            { // -- done
                 this->rowSat[rowPenIdx] = true;
-				this->colSat[rowMinIdx] = true;
-				this->amountMatrix[rowPenIdx][rowMinIdx] 
+                this->amountMatrix[rowPenIdx][rowMinIdx] 
                 = supWeights[rowPenIdx];
-				demWeights[rowMinIdx] = 0;
-				supWeights[rowPenIdx] = 0;
+                demWeights[rowMinIdx] -= supWeights[rowPenIdx];
+                supWeights[rowPenIdx] = 0;
                 calcColPenalties();
-				calcRowPenalties();
-			}	
-						
+            //    rowPenIdx = maxRowPenIdx();
+            }
+            else 
+            {
+                this->rowSat[rowPenIdx] = true;
+                this->colSat[rowMinIdx] = true;
+                this->amountMatrix[rowPenIdx][rowMinIdx] 
+                = supWeights[rowPenIdx];
+                demWeights[rowMinIdx] = 0;
+                supWeights[rowPenIdx] = 0;
+                calcColPenalties();
+                calcRowPenalties();
+            }    
+                        
           
         }
         else
-        {			
+        {            
           //  std::cout << "max col is larger  ";
           //  std::cout << "col sup[rowMinIdx]:" 
           //<< supWeights[colMinIdx]
-			//	<< " dem[colPenIdx]:" << demWeights[colPenIdx]
-			//	<< std::endl;
-			
+            //    << " dem[colPenIdx]:" << demWeights[colPenIdx]
+            //    << std::endl;
+            
             if (supWeights[colMinIdx] > demWeights[colPenIdx])
             {
                 this->colSat[colPenIdx] = true;
-				this->amountMatrix[colMinIdx][colPenIdx] 
-                = demWeights[colPenIdx];				
-				supWeights[colMinIdx] -= demWeights[colPenIdx];
-				demWeights[colPenIdx] = 0;
-				calcRowPenalties();
-			//	colPenIdx = maxColPenIdx();
-				
-			}
-			else if (supWeights[colMinIdx] < demWeights[colPenIdx])
-			{
-				this->rowSat[colMinIdx] = true;
-            	this->amountMatrix[colMinIdx][colPenIdx] 
+                this->amountMatrix[colMinIdx][colPenIdx] 
+                = demWeights[colPenIdx];                
+                supWeights[colMinIdx] -= demWeights[colPenIdx];
+                demWeights[colPenIdx] = 0;
+                calcRowPenalties();
+            //    colPenIdx = maxColPenIdx();
+                
+            }
+            else if (supWeights[colMinIdx] < demWeights[colPenIdx])
+            {
+                this->rowSat[colMinIdx] = true;
+                this->amountMatrix[colMinIdx][colPenIdx] 
                 = supWeights[colMinIdx];
-            	demWeights[colPenIdx] -= supWeights[colMinIdx];
-				supWeights[colMinIdx] = 0;
-            	calcColPenalties(); // changed
-            //	colPenIdx = maxColPenIdx();
-			}
+                demWeights[colPenIdx] -= supWeights[colMinIdx];
+                supWeights[colMinIdx] = 0;
+                calcColPenalties(); // changed
+            //    colPenIdx = maxColPenIdx();
+            }
             else
             {
-				this->rowSat[colMinIdx] = true;
+                this->rowSat[colMinIdx] = true;
                 this->colSat[colPenIdx] = true;
-				this->amountMatrix[colMinIdx][colPenIdx] 
+                this->amountMatrix[colMinIdx][colPenIdx] 
                 = supWeights[colMinIdx];
-				demWeights[colPenIdx] = 0;
-				supWeights[colMinIdx] = 0;
+                demWeights[colPenIdx] = 0;
+                supWeights[colMinIdx] = 0;
                 calcRowPenalties();
                 calcColPenalties();
             }
@@ -1857,8 +1857,8 @@ std::vector<FeatureSignatureTuple> fst1,
         
         
     }
-	   
-	long dist = 0;
+       
+    long dist = 0;
     
     for ( int y = 0; y < (int)this->supSize; y++) // rows
     {
@@ -1869,9 +1869,9 @@ std::vector<FeatureSignatureTuple> fst1,
         } 
     }
     
-    this->newDistance = (double)(dist / 1);	
+    this->newDistance = (double)(dist / 1);    
     this->currentDistance = (double)(dist / 1);
-	
+    
 }
 
 
@@ -1890,7 +1890,7 @@ int main(int argc, char** argv)
         
         
         
-	double w;
+    double w;
     int x, y;    
     double r,g,b;
     double coa, con;
@@ -1899,14 +1899,14 @@ int main(int argc, char** argv)
     std::string std;
     //int counter = 0;
     while (infile >> w >> x >> y >> r >> g >> b >> coa >> con)
-    {        	
-		ist1.push_back({w, x, y, r, g, b, coa, con});	
+    {            
+        ist1.push_back({w, x, y, r, g, b, coa, con});    
     }
     
     std::ifstream infile2(argv[2]);
     while (infile2 >> w >> x >> y >> r >> g >> b >> coa >> con)
-    {	
-		ist2.push_back({w, x, y, r, g, b, coa, con});	
+    {    
+        ist2.push_back({w, x, y, r, g, b, coa, con});    
     }
     
     
@@ -1933,7 +1933,7 @@ int main(int argc, char** argv)
             break;
         }
         
-				
+                
         try
         {
             tp.calcShadowCosts();
@@ -1954,29 +1954,29 @@ int main(int argc, char** argv)
             if (!tp.basicsError)
             {
                 tp.visitedUpdateSolution = true;
-				tp.updateSolution();
-			}
-			else
-			{
-				break;
-			}
+                tp.updateSolution();
+            }
+            else
+            {
+                break;
+            }
         }
         catch (std::exception& e)
         {
             std::cout << e.what() << '\n';
             std::cout << argv[1] << " " << argv[2] << std::endl;
         }
-		
- 		if (tp.currentDistance > tp.newDistance)
-		{
+        
+         if (tp.currentDistance > tp.newDistance)
+        {
             tp.currentDistance = tp.newDistance;
         }
-		else
-		{
+        else
+        {
             break;
-        }		
-	}
-	
+        }        
+    }
+    
     
      std::cout << "current distance:" 
      <<  tp.currentDistance << std::endl;
