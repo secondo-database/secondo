@@ -289,7 +289,7 @@ class MBasic : public Attribute {
   double Distance_EQUAL_LABELS(const MBasic<B>& mb, const LabelFunction lf)
          const;
   double Distance(const MBasic<B>& mb) const;
-  int LongestCommonPrefixSuffix(const MBasic<B>& mb, const bool prefix);
+  int CommonPrefixSuffix(const MBasic<B>& mb, const bool prefix);
   double DistanceSym(const MBasic<B>& mb, const DistanceFunSym distfun);
   
  protected:
@@ -375,7 +375,7 @@ class MBasics : public Attribute {
   void Compress(MBasics<B>& result) const;
   std::ostream& Print(std::ostream& os) const;
   double Distance(const MBasics<B>& mbs) const;
-  int LongestCommonPrefixSuffix(const MBasics<B>& mbs, const bool prefix);
+  int CommonPrefixSuffix(const MBasics<B>& mbs, const bool prefix);
   double DistanceSym(const MBasics<B>& mbs, const DistanceFunSym distfun);
   
  protected:
@@ -3442,12 +3442,11 @@ double MBasic<B>::Distance(const MBasic<B>& mb) const {
 }
 
 /*
-\subsection{Function ~LongestCommonPrefixSuffix~}
+\subsection{Function ~CommonPrefixSuffix~}
 
 */
 template<class B>
-int MBasic<B>::LongestCommonPrefixSuffix(const MBasic<B>& mb, 
-                                         const bool prefix) {
+int MBasic<B>::CommonPrefixSuffix(const MBasic<B>& mb, const bool prefix) {
   typename B::base b1, b2;
   int result = 0;
   int minLength = std::min(GetNoComponents(), mb.GetNoComponents());
@@ -3504,22 +3503,22 @@ double MBasic<B>::DistanceSym(const MBasic<B>& mb,
       return 0.0;
     }
     case PREFIX: {
-      int prefix = LongestCommonPrefixSuffix(mb, true);
+      int prefix = CommonPrefixSuffix(mb, true);
       if (prefix == std::min(GetNoComponents(), mb.GetNoComponents())) {
         return 0.0;
       }
       return (prefix == 0 ? 2.0 : 1.0 / prefix);
     }
     case SUFFIX: {
-      int suffix = LongestCommonPrefixSuffix(mb, false);
+      int suffix = CommonPrefixSuffix(mb, false);
       if (suffix == std::min(GetNoComponents(), mb.GetNoComponents())) {
         return 0.0;
       }
       return (suffix == 0 ? 2.0 : 1.0 / suffix);
     }
     case PREFIXSUFFIX: {
-      int prefix = LongestCommonPrefixSuffix(mb, true);
-      int suffix = LongestCommonPrefixSuffix(mb, false);
+      int prefix = CommonPrefixSuffix(mb, true);
+      int suffix = CommonPrefixSuffix(mb, false);
       if (prefix+suffix >= std::min(GetNoComponents(), mb.GetNoComponents())) {
         return 0.0;
       }
@@ -4619,12 +4618,11 @@ double MBasics<B>::Distance(const MBasics<B>& mbs) const {
 }
 
 /*
-\subsection{Function ~LongestCommonPrefixSuffix~}
+\subsection{Function ~CommonPrefixSuffix~}
 
 */
 template<class B>
-int MBasics<B>::LongestCommonPrefixSuffix(const MBasics<B>& mbs, 
-                                          const bool prefix) {
+int MBasics<B>::CommonPrefixSuffix(const MBasics<B>& mbs, const bool prefix) {
   std::set<typename B::base> b1, b2;
   int result = 0;
   int minLength = std::min(GetNoComponents(), mbs.GetNoComponents());
@@ -4667,22 +4665,22 @@ double MBasics<B>::DistanceSym(const MBasics<B>& mbs,
       return 0.0;
     }
     case PREFIX: {
-      int prefix = LongestCommonPrefixSuffix(mbs, true);
+      int prefix = CommonPrefixSuffix(mbs, true);
       if (prefix == std::min(GetNoComponents(), mbs.GetNoComponents())) {
         return 0.0;
       }
       return (prefix == 0 ? 2.0 : 1.0 / prefix);
     }
     case SUFFIX: {
-      int suffix = LongestCommonPrefixSuffix(mbs, false);
+      int suffix = CommonPrefixSuffix(mbs, false);
       if (suffix == std::min(GetNoComponents(), mbs.GetNoComponents())) {
         return 0.0;
       }
       return (suffix == 0 ? 2.0 : 1.0 / suffix);
     }
     case PREFIXSUFFIX: {
-      int prefix = LongestCommonPrefixSuffix(mbs, true);
-      int suffix = LongestCommonPrefixSuffix(mbs, false);
+      int prefix = CommonPrefixSuffix(mbs, true);
+      int suffix = CommonPrefixSuffix(mbs, false);
       if (prefix+suffix >= std::min(GetNoComponents(), mbs.GetNoComponents())) {
         return 0.0;
       }

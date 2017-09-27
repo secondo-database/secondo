@@ -1314,7 +1314,20 @@ struct distancesymInfo : OperatorInfo {
     name      = "distancesym";
     signature = "T x T x string -> real,   where T in {mlabel(s), mplace(s)}";
     syntax    = "distance(_ , _ , _);";
-    meaning   = "Computes a distance between the objects.";
+    meaning   = "Computes a distance between two symbolic trajectories. "
+                "Currently, the following distance functions are available:\n"
+                "\"EQUALLABELS\": returns 0 if the sequences of labels are "
+                "identical; 1 otherwise\n"
+                "\"PREFIX\": returns 0 if the sequences of labels are identical"
+                "; 2 if they have no common prefix; 1/p otherwise, where p is "
+                "the length of the common prefix\n"
+                "\"SUFFIX\": returns 0 if the sequences of labels are identical"
+                "; 2 if they have no common suffix; 1/s otherwise, where s is "
+                "the length of the common suffix\n"
+                "\"PREFIXSUFFIX\": returns 0 if the sequences of labels are "
+                "identical; 2 if they have no common prefix and no common "
+                "suffix; 1/(p+s) otherwise, where p is the length of the common"
+                " prefix and s is the length of the common suffix";
   }
 };
 
