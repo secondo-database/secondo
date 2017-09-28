@@ -45,46 +45,19 @@ January-May 2008, Mirko Dibbert
 //----------------------------------
 #endif
 
-
 #ifndef NO_IMAGESIMILARITY
-
 #include "../ImageSimilarity/JPEGImage.h"
 #include "../ImageSimilarity/ImageSimilarityAlgebra.h"
 #include <vector>
 #include <math.h>
 #include <iostream>
-
-
-
-static double l_2(int x1, int y1, int x2, int y2) // euclidean ground distance
-{
-    return sqrt(((x1 - x2) * (x1 - x2)) + ((y1 - y2) * (y1 - y2)));
-}
-
-
-static double f_s(int x1, int y1, int x2, int y2)
-{
-  return 1.0 / (1.0 + l_2(x1, y1, x2, y2));
-}
-
-
-struct Flow
-{
-    double fromWeight;
-    double distance;
-    double toWeight;
-};
-
-
-
-static double euclid(double p, double q)
-{
-    double res = std::pow((p - q), 2);
-    return std::sqrt(res);
-}
-
-
+#include "ImageSimFuns.h"
+#include "ImageSimFuns2.h"
+#include <chrono>
 #endif
+
+
+
 
 
 using namespace gta;
@@ -570,260 +543,368 @@ void DistfunReg::euclidFVector(
 //------------------------------------------
 #endif
 
-#ifndef NO_IMAGESIMILARITY
+
 
 /*
 Method ~DistfunReg::sqfdImageSignature~:
 
 */
-
-void DistfunReg::sqfdImageSignature(
-    const DistData* data1, const DistData* data2,
-    double &result)
-{    
-  if(data1->size() == 0 && data2->size() == 0)
+#ifndef NO_IMAGESIMILARITY
+void DistfunReg::sqfdFeatureSignature(
+		const DistData* data1, 
+        const DistData* data2,
+		double &result)
+{   
+    //std::cout << "entered distance fun" << std::endl;
+     
+	if(data1->size() == 0 && data2->size() == 0)
     {
-       result = 0;
-       return ;
+        result = 0;
+        return ;
     }
-          
-  std::vector<ImageSignatureTuple> istVector1;
-    std::vector<ImageSignatureTuple> istVector2;    
-    size_t offset;
     
-    
-    
-    // init ist vectors 
-    offset = 0;
-    for (unsigned int i = 0; i < data1->size(); i++)
+    if (data1->size() == 0 || data2->size() == 0) 
     {
-    ImageSignatureTuple ist = {};
-    memcpy(&ist.weight, (char*)data1->value() + offset, 
-        sizeof(double));
-        offset += sizeof(double);
-    memcpy(&ist.centroidXpos, (char*)data1->value() + offset, 
-        sizeof(int));
-        offset += sizeof(int);
-    memcpy(&ist.centroidYpos, (char*)data1->value() + offset, 
-        sizeof(int));
-        offset += sizeof(int);
+        result = numeric_limits<double>::max();
+        return;
+    }
     
-        istVector1.push_back(ist);
-  }
-     
-    offset = 0;
-    for (unsigned int i = 0; i < data2->size(); i++)
+    std::vector<FeatureSignatureTuple> fst1;
+    std::vector<FeatureSignatureTuple> fst2;      
+    
+    //unsigned int d = 0;
+    size_t o1 = 0;
+    
+    //std::cout << "parameter 1" << std::endl;
+    
+    while (o1 < data1->size())
     {
-    ImageSignatureTuple ist = {};
-    memcpy(&ist.weight, (char*)data2->value(), sizeof(double));
-        offset += sizeof(double);
-    memcpy(&ist.centroidXpos, (char*)data2->value(), sizeof(int));
-        offset += sizeof(int);
-    memcpy(&ist.centroidYpos, (char*)data2->value(), sizeof(int));
-        offset += sizeof(int);
+        FeatureSignatureTuple fst;
+        memcpy(&fst,(char*)data1->value() + o1, sizeof(FeatureSignatureTuple));
+        o1 += sizeof(FeatureSignatureTuple); 
+        fst1.push_back(fst);
+    }
     
-        istVector2.push_back(ist);
-  }
-     
-    int width = data1->size() + data2->size();
-  
-  // init arr1
-  double* arr1 = new double[width + 1];
-  
-  // fill arr1
-  for (unsigned int i = 0; i < istVector1.size(); i++)
-    arr1[i] = istVector1.at(i).weight;
-  
-  for (int i = istVector1.size(); i < width; i++)
-  {  
-    arr1[i] = (-1.0) * istVector2.at(i - istVector1.size()).weight;
-  }   
     
-  // set up matrix
-  double** mat = new double*[width]; 
-     
-  for (int i = 0; i < width; i++)
-    mat[i] = new double[width];
-  
-  std::vector<ImageSignatureTuple> ist; 
-  
-  for (auto i : istVector1)
-    ist.push_back(i);
-  for (auto i: istVector2)
-    ist.push_back(i);
-      
-  int i;
-  int j;
-  for (int y = 0; y < width; y++)
-  {
+    size_t o2 = 0;
+    while (o2 < data2->size())
+    {
+        FeatureSignatureTuple fst;
+        memcpy(&fst,(char*)data2->value() + o2, sizeof(FeatureSignatureTuple));
+        o2 += sizeof(FeatureSignatureTuple); 
+        fst2.push_back(fst);
+    }
+    
+    /*
+    while (o1 < data1->size())
+    {
+        double weight;
+        int x, y;
+        double r, g, b;
+        double coa, con;
+        memcpy(&weight,(char*)data1->value() + o1, sizeof(double));
+        o1 += sizeof(double);
+        memcpy(&x,(char*)data1->value() + o1, sizeof(int));
+        o1 += sizeof(int);
+        memcpy(&y,(char*)data1->value() + o1, sizeof(int));
+        o1 += sizeof(int);
+        memcpy(&r,(double*)data1->value() + o1, sizeof(double));
+        o1 += sizeof(double);
+        memcpy(&g,(char*)data1->value() + o1, sizeof(double));
+        o1 += sizeof(double);
+        memcpy(&b,(char*)data1->value() + o1, sizeof(double));
+        o1 += sizeof(double);
+        memcpy(&coa,(double*)data1->value() + o1, sizeof(double));
+        o1 += sizeof(double);
+        memcpy(&con,(char*)data1->value() + o1, sizeof(double));
+        o1 += sizeof(double);
+        
+        FeatureSignatureTuple fst = {weight, x, y, r, g, b, coa, con};
+        
+        
+        std::cout << fst.weight << "   " << fst.centroid.x 
+        << " " << fst.centroid.y << " " 
+        << fst.centroid.colorValue1 
+        << " " 
+        << fst.centroid.colorValue2 
+        << " " << fst.centroid.colorValue3 
+        << " " << fst.centroid.coarseness << " " 
+        << fst.centroid.contrast << std::endl;
+        
+        
+        fst1.push_back(fst);
+		//d += o1;
+    }
+    */
+    
+   // std::cout << "data1 size: " << data1->size() << " o1:" << o1 << std::endl;
+    
+    
+   //  std::cout << "parameter 2" << std::endl;
+   /*
+    size_t o2 = 0;
+    while (o2 < data2->size())
+    {
+        double weight;
+        int x, y;
+        double r, g, b;
+        double coa, con;
+        memcpy(&weight,(char*)data2->value() + o2, sizeof(double));
+        o2 += sizeof(double);
+        memcpy(&x,(char*)data2->value() + o2, sizeof(int));
+        o2 += sizeof(int);
+        memcpy(&y,(char*)data2->value() + o2, sizeof(int));
+        o2 += sizeof(int);
+        memcpy(&r,(char*)data2->value() + o2, sizeof(double));
+        o2 += sizeof(double);
+        memcpy(&g,(char*)data2->value() + o2, sizeof(double));
+        o2 += sizeof(double);
+        memcpy(&b,(char*)data2->value() + o2, sizeof(double));
+        o2 += sizeof(double);
+        memcpy(&coa,(char*)data2->value() + o2, sizeof(double));
+        o2 += sizeof(double);
+        memcpy(&con,(char*)data2->value() + o2, sizeof(double));
+        o2 += sizeof(double);
+        
+        FeatureSignatureTuple fst = {weight, x, y, r, g, b, coa, con};
+        
+        std::cout << fst.weight << "   " << fst.centroid.x 
+        << " " << fst.centroid.y << " " << fst.centroid.colorValue1 << " " 
+        << fst.centroid.colorValue2 << " " << fst.centroid.colorValue3 
+        << " " << fst.centroid.coarseness << " " 
+        << fst.centroid.contrast << std::endl;
+        
+        
+        fst2.push_back(fst);
+		//d += o2;
+    }
+    */
+    //std::cout << "data2 size: " << data2->size() << " o2:" << o2 << std::endl;
+    
+    
+    int width = fst1.size() + fst2.size();    
+
+	// build up weight vector
+    long* arr1 = new long[width];
+    for (unsigned int i = 0; i < fst1.size(); i++)
+    {
+        //arr1[i] = fst1.at(i).weight;
+        arr1[i] = round(fst1.at(i).weight * 100000);
+    }
+    
+    for (int i = fst1.size(); i < width; i++)
+    {    
+        //arr1[i] = (-1.0) * fst2.at(i - fst1.size()).weight;
+      //arr1[i] = -floor(fst2.at(i - fst1.size()).weight / scale + 0.5) * scale;
+        arr1[i] = -round(fst2.at(i - fst1.size()).weight * 100000);
+    }     
+        
+    
+    // init distance matrix
+    long** mat = new long*[width]; 
+       
+    for (int i = 0; i < width; i++)
+        mat[i] = new long[width];
+    
+    
+    // fill vector with features to be compared
+    std::vector<FeatureSignatureTuple> ist;
+    
+    for (auto i : fst1)
+        ist.push_back(i);
+        
+    for (auto i: fst2)
+        ist.push_back(i);
+        
+        
+    // calculate distance matrix
+    //std::cout << "distance matrix:" << std::endl;
+    for (int y = 0; y < width; y++)
+    {
+        for (int x = 0; x < width; x++)
+        {   
+			double tmpDist =  f_s(ist.at(y), ist.at(x));        
+			//mat[y][x] = tmpDist;
+            //mat[y][x] = floor(tmpDist / scale + 0.5) * scale;
+            mat[y][x] = round(tmpDist * 100000);
+            //std::cout << mat[y][x] << "|";            
+        }
+        //std::cout << std::endl;
+    }
+
+    // init temporary matrix (weight vector * mat)
+    long* resMat = new long[width];
     for (int x = 0; x < width; x++)
     {
-      i = y;
-      j = x;      
-      mat[y][x] = f_s(ist.at(i).centroidXpos,
-              ist.at(i).centroidYpos,  
-              ist.at(j).centroidXpos,
-              ist.at(j).centroidYpos);      
-    }    
-  }
-  
-  // 1. multiply array arr1 with A_f_s
-  // init result matrix / array
-  double* resMat = new double[width];
-  for (int x = 0; x < width; x++)
-  {
-    resMat[x] = 0.0;
-  }   
-  
-  // multiply arr1 with mat
-  for (int x = 0; x < width; x++)
-  {
-    for (int y = 0; y < width; y++)
-    {    
-      resMat[x] += (arr1[y] * (double)mat[y][x]);
-    }  
-  }      
-  
-  // 2. multiply mat with arr`T
-  double distance = 0.0;
-  for (int x = 0; x < width; x++)
-  {
-    distance += (arr1[x] * resMat[x]);
-  }
-  
-  delete[] resMat;
-  delete arr1;          
-    for (int i = 0; i < width; i++)
-    delete mat[i];    
-    delete [] mat;
+        resMat[x] = 0.0;
+    }   
     
-  result = sqrt(distance);
-  return;
-}    
+    
+    // multiply weight vector with dist matrix
+    for (int x = 0; x < width; x++)
+    {
+        for (int y = 0; y < width; y++)
+        {
+            //double tmpProduct = std::abs(arr1[y]) * std::abs(mat[y][x]);
+            //if (arr1[y] < 0.0 || mat[y][x] < 0.0)
+            //    tmpProduct = -tmpProduct;
+			//resMat[x] += tmpProduct; 
+            double tmp = std::abs(arr1[y]) * std::abs(mat[y][x]); 
+			if (!(arr1[y] > 0 && mat[y][x] > 0))
+			{
+				tmp = -tmp;
+			}
+			resMat[x] += tmp; //arr1[y] * mat[y][x];
+			//std::cout << "resMat:" << resMat[x] << "|"; 
+        }
+        //std::cout << std::endl;
+    }
+
+
+	// multiply temporary matrix with transposed weight vector
+	// 
+    long distance = 0;
+    for (int x = 0; x < width; x++)
+    {
+        //double tmpProduct = std::abs(resMat[x]) * std::abs(arr1[x]);
+        //if (resMat[x] < 0.0 || arr1[x] < 0.0)
+        //    tmpProduct = -tmpProduct;
+        distance += resMat[x] * arr1[x];
+        //distance += (long)round(tmpProduct);         
+    }
+    
+    
+    delete[] resMat;
+    for (int i = 0; i < width; i++)
+		delete [] mat[i];
+    
+    delete[] mat;
+    delete[] arr1;
+    
+    // return square root
+    
+    result =  sqrt(distance/100000);
+    
+    //std::cout << "result:" << result << std::endl;
+    
+    return;
+
+}		
 
 
 /*
-Earth Mover's distance function for ImageSignatures
+Earth Mover's distance function for FeatureSignatures
 
 */
 
 
-void DistfunReg::emdImageSignature(
-    const DistData* data1, 
-    const DistData* data2,
-    double &result)
+void DistfunReg::emdFeatureSignature(
+		const DistData* data1, 
+		const DistData* data2,
+		double &result)
 {
-   if(data1->size() == 0 && data2->size() == 0){
+	 if(data1->size() == 0 && data2->size() == 0)
+     {
         result = 0;
         return ;
      }
      
-     if(data1->size() == 0 || data2->size() == 0){
+     if(data1->size() == 0 || data2->size() == 0)
+     {
         result = numeric_limits<double>::max(); 
         return;
      }
-          
-    std::vector<ImageSignatureTuple> ist1;
-    std::vector<ImageSignatureTuple> ist2;
     
-    size_t offset;
+    std::vector<FeatureSignatureTuple> fst1;
+    std::vector<FeatureSignatureTuple> fst2;
     
-    // init ist vectors 
-    offset = 0;
-    for (unsigned int i = 0; i < data1->size(); i++)
+    size_t o1 = 0;    
+    while (o1 < data1->size())
     {
-    ImageSignatureTuple ist = {};
-    memcpy(&ist, data1->value(), sizeof(ist));
-    ist1.push_back(ist);
-    offset += sizeof(ist);
-  }
-     
-    offset = 0;
-    for (unsigned int i = 0; i < data2->size(); i++) 
-    {
-    ImageSignatureTuple ist = {};
-    memcpy(&ist, data2->value(), sizeof(ist));
-    ist2.push_back(ist);
-    offset += sizeof(ist);
-  }
-    
-      
-    std::vector<ImageSignatureTuple> p;
-    std::vector<ImageSignatureTuple> q;
-
-  if (ist1.size() > ist2.size())
-  {
-    p = ist1;
-    q = ist2;
-  }
-  else
-  {
-    p = ist2;
-    q = ist1;
-  }
-    
-    double** distMat = new double*[q.size()];
-    for (unsigned int i = 0; i < q.size(); i++)
-    distMat[i] = new double[p.size()];
-   
-    // fill distance matrix
-    for (unsigned int i = 0; i < q.size(); i++) // rows
-    {
-    for (unsigned int j = 0; j < p.size(); j++) // columns
-    {
-      distMat[i][j] = euclid(q.at(i).weight, p.at(j).weight);           
-    }  
+        FeatureSignatureTuple fst;
+        memcpy(&fst,(char*)data1->value() + o1, sizeof(FeatureSignatureTuple));
+        o1 += sizeof(FeatureSignatureTuple); 
+        fst1.push_back(fst);
     }
+    
+    size_t o2 = 0;
+    while (o2 < data2->size())
+    {
+        FeatureSignatureTuple fst;
+        memcpy(&fst,(char*)data2->value() + o2, sizeof(FeatureSignatureTuple));
+        o2 += sizeof(FeatureSignatureTuple); 
+        fst2.push_back(fst);
+    }
+    
+  
+    TransportProblem tp;
+     
+    tp.initialVAM(fst1, fst2);
 
-    // side preliminaries
-    // 1. indices start with 1
-    // 2. no negative signs
-    double cost =  0.0;
-    unsigned int i = 0;
-    unsigned int j = 0;
-  
-  
-    // start in top left corner
-    // supply and demand are equal -> no costs, move one down
-    // supply < demand -> move one down,
-    // supply > demand -> move one right, adjust supply(demand - supply)    
-  while (i < q.size() && j < p.size())
-  {
-    if (p.at(j).weight > q.at(i).weight) // supply higher
-      {      
-      p.at(j).weight -= q.at(i).weight;
-        cost += distMat[i][j] * q.at(i).weight;
-      q.at(i).weight = 0;
-          i++;
-      }
-      else if (p.at(j).weight < q.at(i).weight) // demand higher
-      {    
-      q.at(i).weight -= p.at(j).weight;
-        cost += distMat[i][j] * q.at(j).weight;
-      p.at(j).weight = 0;
-          j++;
-      }
-      else
-      {    
-        distMat[i][j] *= q.at(i).weight; 
-      p.at(j).weight = 0;
-      q.at(i).weight = 0;
-          j++;
-      }
-  }
+   
+    const int maxIterations = 50; // how often does the algorithm cycle
+    int actualIterations = 0; // just a counter
+    tp.basicsError = false;
+    
+   for (int i = 0; i < maxIterations; i++)
+    {
+        actualIterations++;
+        
+        if (tp.currentDistance == 0)
+        {
+            break;
+        }
+        
+				
+        try
+        {
+            tp.calcShadowCosts();
+            tp.visitedShadowCosts = true;
+        
       
-    for (unsigned int i = 0; i < q.size(); i++)
-    delete [] distMat[i];
+            if (tp.enteringCell.val > -1)
+            {
+                break; // solution is already optimal
+            }
+        
+        
+            tp.visitedSteppingStones = true;
+            tp.findSteppingStones();
+            
+            
+            
+            if (!tp.basicsError)
+            {
+                tp.visitedUpdateSolution = true;
+				tp.updateSolution();
+			}
+			else
+			{
+				break;
+			}
+        }
+        catch (std::exception& e)
+        {
+            std::cout << e.what() << '\n';
+        }
+		
+ 		if (tp.currentDistance > tp.newDistance)
+		{
+      tp.currentDistance = tp.newDistance;      
+		}
+		else
+		{
+      break; // end here currentDistance is the smallest distance
+		}		
+	}
+	
     
-    delete [] distMat;
-    
-  result = cost;
+    result = tp.currentDistance;
     return;
+  
+  
 }
-
 #endif
-
-
 
 /********************************************************************
 Method ~DistfunReg::initialize~:
@@ -930,21 +1011,22 @@ void DistfunReg::initialize()
 //---------------------------------------------------
 #endif
 
-
 #ifndef NO_IMAGESIMILARITY
-  addInfo(DistfunInfo(
+	addInfo(DistfunInfo(
         DFUN_SQFD, DFUN_SQFD_DESCR,
-        sqfdImageSignature,
+        sqfdFeatureSignature,
         DistDataReg::getInfo(
-        ImageSignaturealg::ImageSignature::BasicType(), DDATA_NATIVE),
+        FeatureSignaturealg::
+        FeatureSignature::BasicType(), DDATA_NATIVE),
         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 
 
-  addInfo(DistfunInfo(
+	addInfo(DistfunInfo(
        DFUN_EMD, DFUN_EMD_DESCR,
-       emdImageSignature,
+       emdFeatureSignature,
         DistDataReg::getInfo(
-        ImageSignaturealg::ImageSignature::BasicType(), DDATA_NATIVE),
+        FeatureSignaturealg::
+        FeatureSignature::BasicType(), DDATA_NATIVE),
         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 #endif
 

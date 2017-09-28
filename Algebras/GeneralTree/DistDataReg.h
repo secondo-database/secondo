@@ -69,6 +69,13 @@ New distdata-types must be registered in the "DistDataReg::initialize"[4] method
 #include "ListUtils.h"
 
 
+#ifndef NO_IMAGESIMILARITY
+#include "../ImageSimilarity/JPEGImage.h"
+#include "../ImageSimilarity/ImageSimilarityAlgebra.h"
+#include "../../Tools/Flob/DbArray.h"
+#endif
+
+
 
 namespace gta
 {
@@ -712,13 +719,14 @@ Getdata function for the symbolic trajectory type constructors.
  //--------------------cru------------------------
 #endif
 
+
 #ifndef NO_IMAGESIMILARITY
 
 /*
 GetData function for the ~ImageSignature~ type
 
 */
-	static DistData* getImageSignature(const void* attr);
+    static DistData* getFeatureSignature(const void* attr);
     
 #endif
 

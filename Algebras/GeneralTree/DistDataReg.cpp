@@ -250,56 +250,48 @@ string DistDataReg::definedNames(const string& typeName)
     return result.str();
 }
 
+
 #ifndef NO_IMAGESIMILARITY
 /*
-Method ~DistDataReg::getImageSignature~:
-Dbarray<ImageSignatureTuple> will be used 
+Method ~DistDataReg::getFeatureSignature~:
+Dbarray<FeatureSignatureTuple> will be used 
 
 */
 
-DistData* DistDataReg::getImageSignature(const void* attr)
+DistData* DistDataReg::getFeatureSignature(const void* attr)
 {
-  const ImageSignaturealg::ImageSignature* sig 
-        = static_cast<const ImageSignaturealg::ImageSignature*>(attr);
-  if (!sig->IsDefined())
-  {
-    char def = 0;
-    return new DistData(1, &def);
-  }
+	const FeatureSignaturealg::FeatureSignature* sig 
+    = static_cast<const FeatureSignaturealg::FeatureSignature*>(attr);
     
-  if (sig->GetNoImageSignatureTuples() == 0)
-    return new DistData(0, 0);
-  
-  size_t siz = 2 * sig->GetNoImageSignatureTuples() 
-                    * sizeof(ImageSignatureTuple);
-  char* buffer = new char[siz];
-  size_t offset = 0;
-  
-  ImageSignatureTuple ist;    
+	if (!sig->IsDefined())
+	{
+		char def = 0;
+		return new DistData(1, &def);
+	}
     
-  for (int i = 0; i < sig->GetNoImageSignatureTuples(); i++)
-  {
-    ist = sig->GetImageSignatureTuple(i);
-       /* 
-        int x = ist.centroidXpos;
-        int y = ist.centroidYpos;
-        double w = ist.weight;
-        memcpy(buffer + offset, &w, sizeof(double));
-        offset += sizeof(double);
-    memcpy(buffer + offset, &x, sizeof(int));
-    offset += sizeof(int);
-        memcpy(buffer + offset, &y, sizeof(int));
-        offset += sizeof(int);
-        */
-        memcpy(buffer + offset, &ist, sizeof(ImageSignatureTuple));
-        offset += sizeof(ImageSignatureTuple);
-  }
-  
+	if (sig->GetNoFeatureSignatureTuples() == 0)
+		return new DistData(0, 0);
+	
+	
+    size_t siz = sig->GetNoFeatureSignatureTuples() 
+                    * sizeof(FeatureSignatureTuple);
+                    
+	char* buffer = new char[siz];   
+	size_t offset = 0;
+	
+	for (int i = 0; i < sig->GetNoFeatureSignatureTuples(); i++)
+	{
+        FeatureSignatureTuple fst;
+		fst = sig->GetFeatureSignatureTuple(i);
+		
+        memcpy(buffer + offset, &fst, sizeof(FeatureSignatureTuple));
+        offset += sizeof(FeatureSignatureTuple);
+	}
+	
     DistData* res = new DistData(siz, buffer);
-  delete[] buffer;
-  return res;
+	delete[] buffer;
+	return res;
 }
-
 #endif
 
 
@@ -500,6 +492,15 @@ void DistDataReg::initialize()
                          FVector::BasicType(), getDataFVector));
 //------------------------------------------
 #endif
+
+#ifndef NO_IMAGESIMILARITY
+    addInfo(DistDataInfo(
+       DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
+       //FeatureSignaturealg::
+       FeatureSignature::BasicType(), 
+       getFeatureSignature));
+#endif
+
     addInfo(DistDataInfo(
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
                          CcInt::BasicType(), getDataInt));
@@ -538,15 +539,8 @@ void DistDataReg::initialize()
     addInfo(DistDataInfo(
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
         stj::MPlaces::BasicType(), getDataSymTraj<stj::MPlaces>));
-       
-#ifndef NO_IMAGESIMILARITY 
-    // data type for ImageSignature
-    addInfo(DistDataInfo(
-       DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
-       ImageSignaturealg::ImageSignature::BasicType(), 
-       getImageSignature));
-#endif
-
+        
+ 
 
     PictureFuns::initDistData();
 

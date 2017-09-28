@@ -403,21 +403,21 @@ Euclidean distance function for the ~fvector~ type constructor.
 //--------------------------------------------------------
 #endif
 
-#ifndef NO_IMAGESIMILARITY
-
 /*
-First distance function (SQFD) for the ~ImageSignature~ data type
+First distance function (SQFD) for the ~FeatureSignature~ data type
 
 */
-static void sqfdImageSignature(
+
+#ifndef NO_IMAGESIMILARITY
+static void sqfdFeatureSignature(
             const DistData* data1, const DistData* data2,
             double &result);
 
 /*
-Second distance function (EMD) for the ~ImageSignature~ data type
+Second distance function (EMD) for the ~FeatureSignature~ data type
 
 */
-static void emdImageSignature(
+static void emdFeatureSignature(
             const DistData* data1, const DistData* data2,
             double &result);
 
