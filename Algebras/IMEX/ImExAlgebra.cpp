@@ -85,6 +85,7 @@ This file contains the implementation import / export operators.
 #include "RegionTools.h"
 #include "NMEAImporter.h"
 #include "Stream.h"
+#include "aisdecode.h"
 
 
 extern NestedList* nl;
@@ -1583,7 +1584,8 @@ first line of the csv file and all elements are assumed to be of type string.
 
 The signature is:
 
- ftext x int x string x string x bool -> stream(tuple( (X string) (Y string) ...))
+ ftext x int x string x string x bool -> 
+ stream(tuple( (X string) (Y string) ...))
 
  filename, headersize, comment, separator, uses quotes, multiline
 
@@ -5058,7 +5060,8 @@ Operator removeFile ( "removeFile",
 
 10.2  Operator ~rtf2text~
 
-This operator converts a given rtf file into a text file and save it in txt format 
+This operator converts a given rtf file into a text file and 
+save it in txt format 
 
 10.2.1 Type Mapping for ~rtf2txtfile~
 
@@ -9301,6 +9304,803 @@ Operator splitDB3Op(
 
 );
 
+/*
+24.99 Operator ~aisimport~
+
+24.99.1 Type Mapping
+
+*/
+ListExpr importaisTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("two Arguments expected");
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if(!nl->HasLength(arg1,2) || !nl->HasLength(arg2,2)){
+    return listutils::typeError("internal error");
+  }
+  arg1 = nl->First(arg1); // extract type
+
+  if(!CcString::checkType(arg1) && !FText::checkType(arg1)){
+    return listutils::typeError("expected string or text as first argument");
+  }
+  if(!CcString::checkType(nl->First(arg2))){
+    return listutils::typeError("expected string as second argument");
+  }
+
+  arg2 = nl->Second(arg2);
+  if(nl->AtomType(arg2)!=StringType){
+     return listutils::typeError("second argument must be a constant string");
+  }
+  string prefix = nl->StringValue(arg2);
+  if(!stringutils::isIdent(prefix)){
+     return listutils::typeError("second argument is not an valid identifier");
+  }
+
+  SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+  // check for the 27 message types whether there is already a relation
+  for(int mt  = 1 ; mt <28; mt++){
+     string rname = prefix + "_" + stringutils::int2str(mt);
+     if(ctlg->IsObjectName(rname)){
+       return listutils::typeError(rname + " is already present");
+     }
+  }
+  return listutils::basicSymbol<CcInt>();
+}
+
+
+/*
+24.99.2 Info class
+
+*/
+class aisimportInfo{
+
+  public:
+    aisimportInfo(const string& _filename,
+                  const string&  _prefix): filename(_filename),
+                                           prefix(_prefix),
+                                           decoder(_filename),
+                                           time(datetime::instanttype,0)
+                                            {
+      cout << "decode file " << _filename << endl;
+      for(int i=0;i<27;i++){
+        relations.push_back(0);
+        tupleTypes.push_back(0);
+      }
+      ctlg = SecondoSystem::GetCatalog();
+    }
+
+    ~aisimportInfo(){
+      for(int i=0;i<27;i++){
+         if(relations[i]){
+           //relations[i]->Close(); // used by catalog
+           tupleTypes[i]->DeleteIfAllowed();
+         }
+      }
+    }
+
+    int operator()(){
+       count =0;
+       aisdecode::MessageBase* msg;
+       while( (msg = decoder.getNextMessage())){
+          time = time + datetime::DateTime(datetime::durationtype,1);
+          count++;
+          processMessage(msg);
+          delete msg;
+       }
+       return count;
+    }
+
+
+
+  private:
+    string filename;
+    string prefix;
+    aisdecode::aisdecoder decoder;
+    Instant time;
+    vector<Relation*> relations;
+    vector<TupleType*> tupleTypes;
+    SecondoCatalog* ctlg;
+    size_t count;
+
+  void createRelationForType(int type, ListExpr attrList){
+        ListExpr tupleList  = nl->TwoElemList(listutils::basicSymbol<Tuple>(),
+                                          attrList);
+        ListExpr relType = nl->TwoElemList(listutils::basicSymbol<Relation>(),
+                                           tupleList);
+        TupleType* tt = new TupleType(ctlg->NumericType(nl->Second(relType)));
+        tupleTypes[type-1] = tt;
+        relations[type-1] = new Relation(tt);
+        Word relWord;
+        relWord.setAddr(relations[type-1]);
+        string name = prefix+"_" + stringutils::int2str(type);
+        if(!ctlg->InsertObject( name, "", 
+                                relType, relWord,true)){
+           cerr << "prolem in inserting relation " << name << "_" << endl;
+           assert(false);
+        }
+  }
+
+
+
+/*
+Message types 1-3
+
+*/
+   void processMessage(aisdecode::Message1_3* msg){
+      if(relations[0] == 0){ // relation not present
+        ListExpr attrList = nl->OneElemList(
+                                nl->TwoElemList(nl->SymbolAtom("Type"), 
+                                     listutils::basicSymbol<CcInt>()));
+        ListExpr last = attrList;
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Repeat"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MMSI"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Status"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Rot"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("SOG"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Accuracy"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Longitude"),
+                                     listutils::basicSymbol<CcReal>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Latitude"),
+                                     listutils::basicSymbol<CcReal>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("COG"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Heading"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Time"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Maneuver"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Raim"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Radio"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("TimeStamp"),
+                                     listutils::basicSymbol<Instant>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MessageNo"),
+                                     listutils::basicSymbol<CcInt>()));
+        createRelationForType(1,attrList);
+      }
+      Tuple* tuple = new Tuple(tupleTypes[0]);
+      tuple->PutAttribute(0, new CcInt(true,msg->messageType)); 
+      tuple->PutAttribute(1, new CcInt(true,msg->repeatIndicator)); 
+      tuple->PutAttribute(2, new CcInt(true,msg->mmsi)); 
+      tuple->PutAttribute(3, new CcInt(true,msg->status)); 
+      tuple->PutAttribute(4, new CcInt(true,msg->rot)); 
+      tuple->PutAttribute(5, new CcInt(true,msg->sog)); 
+      tuple->PutAttribute(6, new CcInt(true,msg->accuracy)); 
+      tuple->PutAttribute(7, new CcReal(true,msg->longitude)); 
+      tuple->PutAttribute(8, new CcReal(true,msg->latitude)); 
+      tuple->PutAttribute(9, new CcInt(true,msg->cog)); 
+      tuple->PutAttribute(10, new CcInt(true,msg->heading)); 
+      tuple->PutAttribute(11, new CcInt(true,msg->time)); 
+      tuple->PutAttribute(12, new CcInt(true,msg->maneuver)); 
+      tuple->PutAttribute(13, new CcInt(true,msg->raim)); 
+      tuple->PutAttribute(14, new CcInt(true,msg->rstatus)); 
+      tuple->PutAttribute(15, new datetime::DateTime(time)); 
+      tuple->PutAttribute(16, new CcInt(true,count)); 
+      relations[0]->AppendTuple(tuple);
+      tuple->DeleteIfAllowed();
+   }
+
+/*
+Message type 4
+
+*/
+   void processMessage(aisdecode::Message4* msg){
+      if(relations[3]==0){
+        ListExpr attrList = nl->OneElemList(
+                                nl->TwoElemList(nl->SymbolAtom("Type"), 
+                                     listutils::basicSymbol<CcInt>()));
+        ListExpr last = attrList;
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Repeat"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MMSI"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Year"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Month"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Day"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Hour"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Minute"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Second"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Fix"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Longitude"),
+                                     listutils::basicSymbol<CcReal>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Latitude"),
+                                     listutils::basicSymbol<CcReal>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("EPFD"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Raim"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("SotDMA"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("TimeStamp"),
+                                listutils::basicSymbol<datetime::DateTime>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MessageNo"),
+                                     listutils::basicSymbol<CcInt>()));
+        createRelationForType(4,attrList);
+      }
+      Tuple* tuple = new Tuple(tupleTypes[3]);
+      tuple->PutAttribute(0, new CcInt(true,msg->type));      
+      tuple->PutAttribute(1, new CcInt(true,msg->repeat));      
+      tuple->PutAttribute(2, new CcInt(true,msg->mmsi));      
+      tuple->PutAttribute(3, new CcInt(true,msg->year));      
+      tuple->PutAttribute(4, new CcInt(true,msg->month));      
+      tuple->PutAttribute(5, new CcInt(true,msg->day));      
+      tuple->PutAttribute(6, new CcInt(true,msg->hour));      
+      tuple->PutAttribute(7, new CcInt(true,msg->minute));      
+      tuple->PutAttribute(8, new CcInt(true,msg->second));      
+      tuple->PutAttribute(9, new CcInt(true,msg->fix));      
+      tuple->PutAttribute(10, new CcReal(true,msg->longitude));      
+      tuple->PutAttribute(11, new CcReal(true,msg->latitude));      
+      tuple->PutAttribute(12, new CcInt(true,msg->epfd));      
+      tuple->PutAttribute(13, new CcInt(true,msg->raim));      
+      tuple->PutAttribute(14, new CcInt(true,msg->sotdma));      
+      tuple->PutAttribute(15, new Instant(time));      
+      tuple->PutAttribute(16, new CcInt(true,count)); 
+      relations[3]->AppendTuple(tuple);
+      tuple->DeleteIfAllowed();
+   }
+
+/*
+Message type 5
+
+*/
+   void processMessage(aisdecode::Message5* msg){
+     if(relations[4] == 0){
+        ListExpr attrList = nl->OneElemList(
+                                nl->TwoElemList(nl->SymbolAtom("Type"), 
+                                     listutils::basicSymbol<CcInt>()));
+        ListExpr last = attrList;
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Repeat"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MMSI"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("AisVersion"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("IMO"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("CallSign"),
+                                     listutils::basicSymbol<CcString>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("VesselName"),
+                                     listutils::basicSymbol<CcString>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("ShipType"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("DimToBow"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("DimToStern"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("DimToPort"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(
+                                     nl->SymbolAtom("DimToStarboard"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Epfd"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("ETA_Month"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("ETA_Day"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("ETA_HOUR"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("ETA_Minute"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Draught"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Destination"),
+                                     listutils::basicSymbol<CcString>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("DTE"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("TimeStamp"),
+                                     listutils::basicSymbol<Instant>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MessageNo"),
+                                     listutils::basicSymbol<CcInt>()));
+
+        createRelationForType(5,attrList);
+     }
+     Tuple* tuple = new Tuple(tupleTypes[4]);
+     tuple->PutAttribute(0, new CcInt(true,msg->type));
+     tuple->PutAttribute(1, new CcInt(true,msg->repeat));
+     tuple->PutAttribute(2, new CcInt(true,msg->mmsi));
+     tuple->PutAttribute(3, new CcInt(true,msg->ais_version));
+     tuple->PutAttribute(4, new CcInt(true,msg->imo));
+     tuple->PutAttribute(5, new CcString(true,msg->callSign));
+     tuple->PutAttribute(6, new CcString(true,msg->vesselName));
+     tuple->PutAttribute(7, new CcInt(true,msg->shipType));
+     tuple->PutAttribute(8, new CcInt(true,msg->dimToBow));
+     tuple->PutAttribute(9, new CcInt(true,msg->dimToStern));
+     tuple->PutAttribute(10, new CcInt(true,msg->dimToPort));
+     tuple->PutAttribute(11, new CcInt(true,msg->dimToStarboard));
+     tuple->PutAttribute(12, new CcInt(true,msg->epfd));
+     tuple->PutAttribute(13, new CcInt(true,msg->month));
+     tuple->PutAttribute(14, new CcInt(true,msg->day));
+     tuple->PutAttribute(15, new CcInt(true,msg->hour));
+     tuple->PutAttribute(16, new CcInt(true,msg->minute));
+     tuple->PutAttribute(17, new CcInt(true,msg->draught));
+     tuple->PutAttribute(18, new CcString(true,msg->destination));
+     tuple->PutAttribute(19, new CcInt(true,msg->dte));
+     tuple->PutAttribute(20, new Instant(time));
+     tuple->PutAttribute(21, new CcInt(true,count));
+     relations[4]->AppendTuple(tuple);
+     tuple->DeleteIfAllowed();
+   }
+
+
+/*
+Message type 9
+
+*/
+   void processMessage(aisdecode::Message9* msg){
+      if(relations[8]==0){
+        ListExpr attrList = nl->OneElemList(
+                                nl->TwoElemList(nl->SymbolAtom("Type"), 
+                                     listutils::basicSymbol<CcInt>()));
+        ListExpr last = attrList;
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Repeat"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MMSI"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Alt"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("SOG"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Accuracy"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Longitude"),
+                                     listutils::basicSymbol<CcReal>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Latitude"),
+                                     listutils::basicSymbol<CcReal>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("COG"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Second"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("DTE"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Assigned"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Raim"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Radio"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("TimeStamp"),
+                                     listutils::basicSymbol<Instant>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MessageNo"),
+                                     listutils::basicSymbol<CcInt>()));
+
+        createRelationForType(9,attrList);
+      }
+     Tuple* tuple = new Tuple(tupleTypes[8]);
+     tuple->PutAttribute(0, new CcInt(true,msg->type));
+     tuple->PutAttribute(1, new CcInt(true,msg->repeat));
+     tuple->PutAttribute(2, new CcInt(true,msg->mmsi));
+     tuple->PutAttribute(3, new CcInt(true,msg->alt));
+     tuple->PutAttribute(4, new CcInt(true,msg->sog));
+     tuple->PutAttribute(5, new CcInt(true,msg->accuracy));
+     tuple->PutAttribute(6, new CcReal(true,msg->longitude));
+     tuple->PutAttribute(7, new CcReal(true,msg->latitude));
+     tuple->PutAttribute(8, new CcInt(true,msg->cog));
+     tuple->PutAttribute(9, new CcInt(true,msg->second));
+     tuple->PutAttribute(10, new CcInt(true,msg->dte));
+     tuple->PutAttribute(11, new CcInt(true,msg->assigned));
+     tuple->PutAttribute(12, new CcInt(true,msg->raim));
+     tuple->PutAttribute(13, new CcInt(true,msg->radio));
+     tuple->PutAttribute(14, new Instant(time));
+     tuple->PutAttribute(15, new CcInt(true,count));
+     relations[8]->AppendTuple(tuple);
+     tuple->DeleteIfAllowed();
+   }
+
+/*
+Message type 12
+
+*/
+   void processMessage(aisdecode::Message12* msg){
+      if(relations[11]==0){
+        ListExpr attrList = nl->OneElemList(
+                                nl->TwoElemList(nl->SymbolAtom("Type"), 
+                                     listutils::basicSymbol<CcInt>()));
+        ListExpr last = attrList;
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Repeat"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MMSI"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("SeqNo"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Dest_MMSI"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Retransmit"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Text"),
+                                     listutils::basicSymbol<FText>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("TimeStamp"),
+                                     listutils::basicSymbol<Instant>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MessageNo"),
+                                     listutils::basicSymbol<CcInt>()));
+        createRelationForType(12,attrList);
+      }
+     Tuple* tuple = new Tuple(tupleTypes[11]);
+     tuple->PutAttribute(0, new CcInt(true,msg->type));
+     tuple->PutAttribute(1, new CcInt(true,msg->repeat));
+     tuple->PutAttribute(2, new CcInt(true,msg->source_mmsi));
+     tuple->PutAttribute(3, new CcInt(true,msg->sequence_number));
+     tuple->PutAttribute(4, new CcInt(true,msg->dest_mmsi));
+     tuple->PutAttribute(5, new CcInt(true,msg->retransmit));
+     tuple->PutAttribute(6, new FText(true,msg->text));
+     tuple->PutAttribute(7, new Instant(time));
+     tuple->PutAttribute(8, new CcInt(true,count));
+     relations[11]->AppendTuple(tuple);
+     tuple->DeleteIfAllowed();
+   }
+
+/*
+Message type 14
+
+*/
+   void processMessage(aisdecode::Message14* msg){
+     if(relations[13]==0){
+        ListExpr attrList = nl->OneElemList(
+                                nl->TwoElemList(nl->SymbolAtom("Type"), 
+                                     listutils::basicSymbol<CcInt>()));
+        ListExpr last = attrList;
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Repeat"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MMSI"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Text"),
+                                     listutils::basicSymbol<FText>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("TimeStamp"),
+                                     listutils::basicSymbol<Instant>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MessageNo"),
+                                     listutils::basicSymbol<CcInt>()));
+        createRelationForType(14,attrList);
+     }
+     Tuple* tuple = new Tuple(tupleTypes[13]);
+     tuple->PutAttribute(0, new CcInt(true,msg->type));
+     tuple->PutAttribute(1, new CcInt(true,msg->repeat));
+     tuple->PutAttribute(2, new CcInt(true,msg->mmsi));
+     tuple->PutAttribute(3, new FText(true,msg->text));
+     tuple->PutAttribute(4, new Instant(time));
+     tuple->PutAttribute(5, new CcInt(true,count));
+
+     relations[13]->AppendTuple(tuple);
+     tuple->DeleteIfAllowed();
+   }
+
+
+/*
+Message type 18
+
+*/
+   void processMessage(aisdecode::Message18* msg){
+      if(relations[17]==0){
+        ListExpr attrList = nl->OneElemList(
+                                nl->TwoElemList(nl->SymbolAtom("Type"), 
+                                     listutils::basicSymbol<CcInt>()));
+        ListExpr last = attrList;
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Repeat"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MMSI"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("SOG"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Accuracy"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Longitude"),
+                                     listutils::basicSymbol<CcReal>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Latitude"),
+                                     listutils::basicSymbol<CcReal>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("COG"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Heading"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Second"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("CS"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Display"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("DSC"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Band"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Msg22"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Assigned"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Raim"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Radio"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("TimeStamp"),
+                                     listutils::basicSymbol<Instant>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MessageNo"),
+                                     listutils::basicSymbol<CcInt>()));
+ 
+        createRelationForType(18,attrList);
+      }
+     Tuple* tuple = new Tuple(tupleTypes[17]);
+     tuple->PutAttribute(0, new CcInt(true,msg->type));
+     tuple->PutAttribute(1, new CcInt(true,msg->repeat));
+     tuple->PutAttribute(2, new CcInt(true,msg->mmsi));
+     tuple->PutAttribute(3, new CcInt(true,msg->sog));
+     tuple->PutAttribute(4, new CcInt(true,msg->accuracy));
+     tuple->PutAttribute(5, new CcReal(true,msg->longitude));
+     tuple->PutAttribute(6, new CcReal(true,msg->latitude));
+     tuple->PutAttribute(7, new CcInt(true,msg->cog));
+     tuple->PutAttribute(8, new CcInt(true,msg->heading));
+     tuple->PutAttribute(9, new CcInt(true,msg->second));
+     tuple->PutAttribute(10, new CcInt(true,msg->cs));
+     tuple->PutAttribute(11, new CcInt(true,msg->display));
+     tuple->PutAttribute(12, new CcInt(true,msg->dsc));
+     tuple->PutAttribute(13, new CcInt(true,msg->band));
+     tuple->PutAttribute(14, new CcInt(true,msg->msg22));
+     tuple->PutAttribute(15, new CcInt(true,msg->assigned));
+     tuple->PutAttribute(16, new CcInt(true,msg->raim));
+     tuple->PutAttribute(17, new CcInt(true,msg->radio));
+     tuple->PutAttribute(18, new Instant(time));
+     tuple->PutAttribute(19, new CcInt(true,count));
+     relations[17]->AppendTuple(tuple);
+     tuple->DeleteIfAllowed();
+   }
+
+
+/*
+Message type 19
+
+*/
+    void processMessage(aisdecode::Message19* msg){
+      if(relations[18]==0){
+        ListExpr attrList = nl->OneElemList(
+                                nl->TwoElemList(nl->SymbolAtom("Type"), 
+                                     listutils::basicSymbol<CcInt>()));
+        ListExpr last = attrList;
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Repeat"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MMSI"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("SOG"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Accuracy"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Longitude"),
+                                     listutils::basicSymbol<CcReal>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Latitude"),
+                                     listutils::basicSymbol<CcReal>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("COG"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Heading"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Second"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Name"),
+                                     listutils::basicSymbol<CcString>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("ShipType"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("DimToBow"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("DimToStern"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("DimToPort"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(
+                                     nl->SymbolAtom("DimToStarboard"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("EPFD"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Raim"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("DTE"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Assigned"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("TimeStamp"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MessageNo"),
+                                     listutils::basicSymbol<CcInt>()));
+
+        createRelationForType(19,attrList);
+      }
+     Tuple* tuple = new Tuple(tupleTypes[18]);
+     tuple->PutAttribute(0, new CcInt(true,msg->type));
+     tuple->PutAttribute(1, new CcInt(true,msg->repeat));
+     tuple->PutAttribute(2, new CcInt(true,msg->mmsi));
+     tuple->PutAttribute(3, new CcInt(true,msg->sog));
+     tuple->PutAttribute(4, new CcInt(true,msg->accuracy));
+     tuple->PutAttribute(5, new CcReal(true,msg->longitude));
+     tuple->PutAttribute(6, new CcReal(true,msg->latitude));
+     tuple->PutAttribute(7, new CcInt(true,msg->cog));
+     tuple->PutAttribute(8, new CcInt(true,msg->heading));
+     tuple->PutAttribute(9, new CcInt(true,msg->timestamp));
+     tuple->PutAttribute(10, new CcString(true,msg->name));
+     tuple->PutAttribute(11, new CcInt(true,msg->shiptype));
+     tuple->PutAttribute(12, new CcInt(true,msg->dimToBow));
+     tuple->PutAttribute(13, new CcInt(true,msg->dimToStern));
+     tuple->PutAttribute(14, new CcInt(true,msg->dimToPort));
+     tuple->PutAttribute(15, new CcInt(true,msg->dimToStarboard));
+     tuple->PutAttribute(16, new CcInt(true,msg->epfd));
+     tuple->PutAttribute(17, new CcInt(true,msg->raim));
+     tuple->PutAttribute(18, new CcInt(true,msg->dte));
+     tuple->PutAttribute(19, new CcInt(true,msg->assigned));
+     tuple->PutAttribute(20, new Instant(time));
+     tuple->PutAttribute(21, new CcInt(true,count));
+     relations[18]->AppendTuple(tuple);
+     tuple->DeleteIfAllowed();
+    }
+
+/*
+Message type 24
+
+*/
+    void processMessage(aisdecode::Message24* msg){
+      if(relations[23]==0){
+        ListExpr attrList = nl->OneElemList(
+                                nl->TwoElemList(nl->SymbolAtom("Type"), 
+                                     listutils::basicSymbol<CcInt>()));
+        ListExpr last = attrList;
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Repeat"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MMSI"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("PartNo"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("ShipName"),
+                                     listutils::basicSymbol<CcString>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("ShipType"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("VendorId"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Model"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Serial"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("CallSign"),
+                                     listutils::basicSymbol<CcString>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("DimToBow"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("DimToStern"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("DimToPort"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(
+                                     nl->SymbolAtom("DimToStarboard"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(
+                                     nl->SymbolAtom("Mothership_MMSI"),
+                                     listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("TimeStamp"),
+                                     listutils::basicSymbol<Instant>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MessageNo"),
+                                     listutils::basicSymbol<CcInt>()));
+        createRelationForType(24,attrList);
+      }
+     Tuple* tuple = new Tuple(tupleTypes[23]);
+     tuple->PutAttribute(0, new CcInt(true,msg->type));
+     tuple->PutAttribute(1, new CcInt(true,msg->repeat));
+     tuple->PutAttribute(2, new CcInt(true,msg->mmsi));
+     tuple->PutAttribute(3, new CcInt(true,msg->partno));
+     tuple->PutAttribute(4, new CcString(true,msg->shipsname));
+     tuple->PutAttribute(5, new CcInt(true,msg->shiptype));
+     tuple->PutAttribute(6, new CcInt(true,msg->vendorid));
+     tuple->PutAttribute(7, new CcInt(true,msg->model));
+     tuple->PutAttribute(8, new CcInt(true,msg->serial));
+     tuple->PutAttribute(9, new CcString(true,msg->callsign));
+     tuple->PutAttribute(10, new CcInt(true,msg->dimToBow));
+     tuple->PutAttribute(11, new CcInt(true,msg->dimToStern));
+     tuple->PutAttribute(12, new CcInt(true,msg->dimToPort));
+     tuple->PutAttribute(13, new CcInt(true,msg->dimToStarboard));
+     tuple->PutAttribute(14, new CcInt(true,msg->mothership_mmsi));
+     tuple->PutAttribute(15, new Instant(time));
+     tuple->PutAttribute(16, new CcInt(true,count));
+     relations[23]->AppendTuple(tuple);
+     tuple->DeleteIfAllowed();
+    }
+
+
+/*
+General distribution of messages accorsing to their types.
+
+*/
+
+    void processMessage(aisdecode::MessageBase* msg){
+       int type = msg->getType();
+       switch(type){
+         case 1:
+         case 2:
+         case 3: return processMessage((aisdecode::Message1_3*)msg);
+         case 4: return processMessage((aisdecode::Message4*)msg);
+         case 5: return processMessage((aisdecode::Message5*)msg);
+         case 9: return processMessage((aisdecode::Message9*)msg);
+         case 12: return processMessage((aisdecode::Message12*)msg);
+         case 14: return processMessage((aisdecode::Message14*)msg);
+         case 18: return processMessage((aisdecode::Message18*)msg);
+         case 19: return processMessage((aisdecode::Message19*)msg);
+         case 24: return processMessage((aisdecode::Message24*)msg);
+         default: cerr << "Secondo: message type " << type 
+                       << "not implemented yet" << endl;
+       }
+   }
+};
+
+/*
+24.99.6 Value Mapping
+
+*/
+template<class T>
+int importaisVMT(Word* args, Word& result,
+                int message, Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  CcInt* res = (CcInt*) result.addr;
+  T* filename = (T*) args[0].addr;
+  if(!filename->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }  
+  CcString* prefix = (CcString*) args[1].addr;
+  if(!prefix->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  aisimportInfo ais(filename->GetValue(), prefix->GetValue());
+  res->Set(true,ais());
+  return 0;
+}
+
+ValueMapping importaisVM[] = {
+    importaisVMT<CcString>,
+    importaisVMT<FText>
+};
+
+/*
+24.99.7 Selection Function
+
+*/
+int importaisSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+/*
+24.99.7  Specifikation
+
+*/
+OperatorSpec importaisSpec(
+   "{string, text} x string -> int ",
+   "importais(filename, prefix)",
+   "Creates a set of relations prefixed by prefix according "
+   "to ais messages found in the file. Returns the total amount "
+   "of messages in the file.",
+   "query importais('aisexample.txt',\"AIS\")"
+);
+
+/*
+24.99.7 Operator instance 
+
+*/
+Operator importaisOp(
+  "importais",
+  importaisSpec.getStr(),
+  2,
+  importaisVM,
+  importaisSelect,
+  importaisTM
+);
+
+
+
 
 
 
@@ -9370,6 +10170,9 @@ public:
 
     AddOperator(&splitShpOp);
     AddOperator(&splitDB3Op);
+
+    AddOperator(&importaisOp);
+    importaisOp.SetUsesArgsInTypeMapping();
 
   }
   ~ImExAlgebra() {};

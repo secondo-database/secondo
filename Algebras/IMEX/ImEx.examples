@@ -447,4 +447,8 @@ Signature : {string, text} x int  -> int
 Example   : query splitDB3('ten.dbf', 3)
 Result    : 4
 
-
+Operator  : importais
+Number    : 70
+Signature : {string,text} x string -> int
+Example   : query importais('nothing.txt', "AIS");
+Result    : 0
