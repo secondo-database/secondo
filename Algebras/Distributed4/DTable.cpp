@@ -33,7 +33,7 @@ Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include "DTable.h"
-#include "FTextAlgebra.h"
+#include "../FText/FTextAlgebra.h"
 
 namespace distributed4 {
   using std::map;
@@ -356,7 +356,7 @@ stream in an understandable way.
 "operator<<"[1] allows something along the lines of the following:
 
 ---- DTable dt;
-     cout << "debug: " << dt;
+     cerr << "debug: " << dt;
 ----
 
 */

@@ -47,7 +47,7 @@ comparable in defined dimensions.
 #ifndef ALGEBRAS_DISTRIBUTED4_DTABLE_H
 #define ALGEBRAS_DISTRIBUTED4_DTABLE_H
 
-#include "DArray.h"
+#include "../Distributed2/DArray.h"
 
 namespace distributed4 {
   class DTable {

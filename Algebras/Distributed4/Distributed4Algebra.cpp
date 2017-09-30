@@ -46,9 +46,8 @@ These objects are declared here as "extern"[1] so that the linker will find
 them.
 
 */
-  extern TypeConstructor dtableTC;
   extern TypeConstructor dpartitionTC;
-  extern Operator addWorkerOp, inspectDArrayOp;
+  extern Operator lockOp, unlockOp, addworkerOp;
 /*
 "Distributed4Algebra"[1] is derived from "Algebra"[1], just like every other
 algebra here. The default constructor is redefined to add this algebra's types
@@ -63,19 +62,27 @@ and objects to that object because the methods "AddTypeConstructor"[1] and
     public:
       Distributed4Algebra() {
 /*
-Type Constructors
+Configure Type Constructors
 
 */
-        AddTypeConstructor(&dtableTC);
-        dtableTC.AssociateKind(Kind::SIMPLE());
-        AddTypeConstructor(&dpartitionTC);
         dpartitionTC.AssociateKind(Kind::SIMPLE());
 /*
-Operators
+Add Type Constructors
 
 */
-        AddOperator(&addWorkerOp);
-        AddOperator(&inspectDArrayOp);
+        AddTypeConstructor(&dpartitionTC);
+/*
+Configure Operators
+
+*/
+        addworkerOp.SetUsesArgsInTypeMapping();
+/*
+Add Operators
+
+*/
+        AddOperator(&lockOp);
+        AddOperator(&unlockOp);
+        AddOperator(&addworkerOp);
       }
   };
 }

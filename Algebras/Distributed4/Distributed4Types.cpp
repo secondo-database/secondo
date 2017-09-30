@@ -32,12 +32,13 @@ Suite 330, Boston, MA  02111-1307  USA
 1 Preliminary Setup
 
 */
-#include "DTable.h"
 #include "DPartition.h"
 
 namespace distributed4 {
+  using std::cerr;
+  using std::runtime_error;
 /*
-This file defines a single type constructor: "dtable"[1].
+This file defines a single type constructor: "dpartition"[1].
 
 2 Type Description
 
@@ -54,30 +55,8 @@ however, to pass the functions to "TypeConstructor"[1] directly and therefore
 chose to forego using "ConstructorInfo"[1] here.
 
 */
-  ListExpr dtableProperty() {
-    return NList{
-      NList{
-        NList().stringAtom("Signature"),
-        NList().stringAtom("Example Type List"),
-        NList().stringAtom("List Rep"),
-        NList().stringAtom("Example List"),
-        NList().stringAtom("Remarks"),
-      },
-      NList{
-        NList().stringAtom("-> SIMPLE"),
-        NList().stringAtom("(dtable int)"),
-        NList().textAtom("(<partitioning map> <allocation list> <worker list> "
-          "<slotbasename>)"),
-        NList().textAtom("(((39 2) (101 1)) (0 1 0) (('s0' 1234 'cfg.ini') "
-          "('s1' 1234 'cfg.ini')) \"Primes\")"),
-        NList().textAtom("This type extends the concept of darrays to make it "
-          "possible to use regular database operations on distributed data "
-          "(insert, update, delete, etc.). Furthermore, this type provides "
-          "the facilities required for dynamic reallocation of slots."),
-      }
-    }.listExpr();
-  }
   ListExpr dpartitionProperty() {
+    cerr << "debug(Property)" << endl;
     return NList{
       NList{
         NList().stringAtom("Signature"),
@@ -108,12 +87,9 @@ represented by the instance as a nested list value expression. This is done in
 the form of a "ListExpr"[1]. The passed type expression is commonly ignored.
 
 */
-  ListExpr dtableOut(ListExpr, Word value) {
-    DTable* dt{static_cast<DTable*>(value.addr)};
-    return dt->listExpr();
-  }
   ListExpr dpartitionOut(ListExpr, Word value) {
     DPartition* dp{static_cast<DPartition*>(value.addr)};
+    cerr << "debug(Out): " << NList{dp->listExpr()} << endl;
     return dp->listExpr();
   }
 /*
@@ -125,21 +101,10 @@ expression, and a boolean correctness value. It returns a "Word"[1] containing
 a pointer to an object instantiated based on the passed value expression.
 
 */
-  Word dtableIn(const ListExpr, const ListExpr instance, const int, ListExpr&,
-      bool& correct) {
-    DTable* addr;
-    try {
-      addr = new DTable{instance};
-      correct = true;
-    } catch(std::runtime_error& err) {
-      addr = 0;
-      correct = false;
-      cmsg.inFunError(err.what());
-    }
-    return Word{addr};
-  }
   Word dpartitionIn(const ListExpr typeInfo, const ListExpr instance, const
       int, ListExpr&, bool& correct) {
+    NList ti{typeInfo}, inst{instance};
+    cerr << "debug(In): " << ti << ", " << inst << endl;
     Word nothing{nullptr};
     correct = false;
 /*
@@ -149,57 +114,105 @@ subtype. For a ~d[f]array~ over a ~rel(tuple)~ the subtype must be an attribute
 that exists in the relation. For a ~darray~ over a container of simple types
 the subtype must match the type of the values in the container.
 
-"typeInfo"[1] contains the type expression with an important modification: all
-mentioned type symbols ("int"[1], "real"[1], etc.) are converted to pairs of
-algebra and type ID. Therefore, if the subtype's second element is a list (pair
-of numbers), the subtype is an attribute of a "rel(tuple)"[1]. Otherwise the
-subtype is just a pair of numbers and thus represents a simple type.
+"typeInfo"[1] is a bit enigmatic. When the object is created from a "[const ...
+value ...]"[1] expression or with a "restore from ..."[1] command, it contains
+both the basic type and any subtypes. This information is checked by checkType
+before being processed here. When the object is opened from the database,
+however, there will be no subtype, just the basic type. Just to keep things
+interesting, the type is passed in a modified form: all mentioned type symbols
+("dpartition"[1], "int"[1], "real"[1], etc.) are converted to pairs of algebra
+and type ID.
+
+This, the following cases need to be considered:
+
+  * If "typeInfo"[1] is a pair of "int"[1]s, the object is being opened from
+    the database and doesn't need to be (nor can it be) checked. 
+
+  * Otherwise "typeInfo"[1] is a list containing the basic type (as first
+    element) and the subtype (as second element).
+
+  * If the subtype is a pair of "int"[1]s, the corresponding ~d[f]array~ must
+    be over a container of a simple types given by the subtype.
+
+  * Otherwise the subtype is a list containing an attribute name and type. The
+    corresponding ~d[f]array~ must be over a "rel(tuple)"[1] containing a
+    matching attribute.
+
+First, check if the object is being opened from the database or if it is a new
+object.
 
 */
-    SecondoCatalog* ctlg{SecondoSystem::GetCatalog()};
-    NList subtypeInfo{NList{typeInfo}.second()}, inst{instance},
-          darraytype{ctlg->GetObjectTypeExpr(inst.second().str())};
-    if(darraytype.length() < 2 || (darraytype.first().str() != "darray" &&
-          darraytype.first().str() != "dfarray") ||
-        darraytype.second().length() < 2) {
-      cmsg.inFunError("The named database object needs to be a d[f]array over "
-          "a rel(tuple) or a container of simple types.");
-      return nothing;
-    }
-    NList darraysubtype{darraytype.second()};
-    if(subtypeInfo.second().isList())
-    {
-      NList subtype{subtypeInfo.first(),
-        ctlg->GetTypeName(subtypeInfo.second().first().intval(),
-            subtypeInfo.second().second().intval())};
-      if(darraysubtype.first().str() != "rel" ||
-          darraysubtype.second().length() < 2 ||
-          darraysubtype.second().first().str() != "tuple" ||
-          !darraysubtype.second().second().isList())
+    if(ti.length() != 2 || !ti.first().isInt() || !ti.second().isInt()) {
+/*
+If execution continues here, that means that the object is a new object and
+needs to be checked against the named ~d[f]array~.
+
+Check the named ~d[f]array~ for general consistency with ~dpartition~ objects.
+
+*/
+      SecondoCatalog* ctlg{SecondoSystem::GetCatalog()};
+      NList darraytype{ctlg->GetObjectTypeExpr(inst.second().str())};
+      if(darraytype.length() < 2 || (darraytype.first().str() != "darray" &&
+            darraytype.first().str() != "dfarray") ||
+          darraytype.second().length() < 2) {
+        cmsg.inFunError("The named database object needs to be a d[f]array "
+            "over a rel(tuple) or over a container of simple types.");
+        return nothing;
+      }
+/*
+Proceed with further checks depending on whether the subtype represents an
+attribute name and type or a simple type.
+
+*/
+      NList darraysubtype{darraytype.second()};
+      if(ti.second().second().isList())
       {
-        cmsg.inFunError("The type expression of the named d[f]array does not "
-            "match the given subtype. It must be a d[f]array over a "
-            "rel(tuple)");
-        return nothing;
-      }
-      NList attrlist{darraytype.second().second().second()};
-      Cardinal i{1};
-      while(i <= attrlist.length() && subtype != attrlist.elem(i))
-        ++i;
-      if(i > attrlist.length()) {
-        cmsg.inFunError("The attribute list of the d[f]array's rel(tuple) "
-            "does not contain the attribute given in the subtype.");
-        return nothing;
-      }
-    } else {
-      NList subtype{ctlg->GetTypeName(subtypeInfo.first().intval(),
-          subtypeInfo.second().intval())};
-      if(!darraysubtype.second().isSymbol() || darraysubtype.second() !=
-          subtype) {
-        cmsg.inFunError("The type expression of the named d[f]array does not "
-            "match the given subtype. It must be a d[f]array over a container "
-            "of the simple type given in the subtype.");
-        return nothing;
+/*
+The subtype represents an attribute name and type. Make sure the ~d[f]array~ is
+over a "rel(tuple)"[1].
+
+*/
+        NList subtype{ti.second().first(),
+          ctlg->GetTypeName(ti.second().second().first().intval(),
+              ti.second().second().second().intval())};
+        if(darraysubtype.first().str() != "rel" ||
+            darraysubtype.second().length() < 2 ||
+            darraysubtype.second().first().str() != "tuple" ||
+            !darraysubtype.second().second().isList())
+        {
+          cmsg.inFunError("The type expression of the named d[f]array does "
+              "not match the given subtype. It must be a d[f]array over a "
+              "rel(tuple)");
+          return nothing;
+        }
+/*
+Make sure the "rel(tuple)"[1] has an attribute matching that of the subtype.
+
+*/
+        NList attrlist{darraytype.second().second().second()};
+        Cardinal i{1};
+        while(i <= attrlist.length() && subtype != attrlist.elem(i))
+          ++i;
+        if(i > attrlist.length()) {
+          cmsg.inFunError("The attribute list of the d[f]array's rel(tuple) "
+              "does not contain the attribute given in the subtype.");
+          return nothing;
+        }
+      } else {
+/*
+Alternately, the subtype represents a simple type. Make sure the ~d[f]array~ is
+over a container containing that type.
+
+*/
+        NList subtype{ctlg->GetTypeName(ti.second().first().intval(),
+            ti.second().second().intval())};
+        if(!darraysubtype.second().isSymbol() || darraysubtype.second() !=
+            subtype) {
+          cmsg.inFunError("The type expression of the named d[f]array does "
+              "not match the given subtype. It must be a d[f]array over a "
+              "container of the simple type given in the subtype.");
+          return nothing;
+        }
       }
     }
 /*
@@ -210,7 +223,7 @@ Create the object in memory.
       DPartition* addr{new DPartition{inst}};
       correct = true;
       return Word{addr};
-    } catch(std::runtime_error& err) {
+    } catch(runtime_error& err) {
       cmsg.inFunError(err.what());
       return nothing;
     }
@@ -222,10 +235,8 @@ The Create function takes a nested list type expression and returns a "Word"[1]
 containing a pointer to a newly instantiated, but empty object.
 
 */
-  Word dtableCreate(const ListExpr) {
-    return Word{new DTable};
-  }
   Word dpartitionCreate(const ListExpr) {
+    cerr << "debug(Create)" << endl;
     return Word{new DPartition};
   }
 /*
@@ -236,11 +247,8 @@ containing a pointer to an object. It removes that object from memory and
 returns nothing.
 
 */
-  void dtableDelete(const ListExpr, Word& w) {
-    delete static_cast<DTable*>(w.addr);
-    w.addr = 0;
-  }
   void dpartitionDelete(const ListExpr, Word& w) {
+    cerr << "debug(Delete)" << endl;
     delete static_cast<DPartition*>(w.addr);
     w.addr = 0;
   }
@@ -252,10 +260,8 @@ containing a pointer to an object. It creates a new object as a duplicate of
 the passed object and returns its address in "Word"[1].
 
 */
-  Word dtableClone(const ListExpr, const Word& w) {
-    return Word{new DTable{*static_cast<DTable*>(w.addr)}};
-  }
   Word dpartitionClone(const ListExpr, const Word& w) {
+    cerr << "debug(Clone)" << endl;
     return Word{new DPartition{*static_cast<DPartition*>(w.addr)}};
   }
 /*
@@ -264,10 +270,8 @@ the passed object and returns its address in "Word"[1].
 The Size function simply returns the size of an object of the relevant type.
 
 */
-  int dtableSize() {
-    return sizeof(DTable);
-  }
   int dpartitionSize() {
+    cerr << "debug(Size)" << endl;
     return sizeof(DPartition);
   }
 /*
@@ -278,9 +282,6 @@ Functions that the type constructor can take, but are not defined for a type
 are passed as 0s. This type constructor is used by the algebra constructor.
 
 */
-  TypeConstructor dtableTC{DTable::BasicType(), dtableProperty, dtableOut,
-    dtableIn, 0, 0, dtableCreate, dtableDelete, 0, 0, dtableDelete,
-    dtableClone, 0, dtableSize, DTable::checkType};
   TypeConstructor dpartitionTC{DPartition::BasicType(), dpartitionProperty,
     dpartitionOut, dpartitionIn, 0, 0, dpartitionCreate, dpartitionDelete, 0,
     0, dpartitionDelete, dpartitionClone, 0, dpartitionSize,

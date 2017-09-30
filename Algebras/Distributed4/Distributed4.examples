@@ -1,14 +1,20 @@
 Database : berlintest
 Restore  : No 
 
-Operator : addWorker
+Operator : lock
 Number   : 1
-Signature: dtable x {string,text} x int x {string,text} -> bool
-Example  : query addWorker([const dtable value (ds 4 (("s1" 1234 "cfg.ini") ("s2" 1234 "cfg.ini")))], "snew", 1234, "cfg.ini")
+Signature: string x bool -> bool
+Example  : query lock("Da", TRUE)
 Result   : TRUE
 
-Operator : inspectDArray
-Number   : 2
-Signature: d[f]array -> bool
-Example  : query inspectDArray([const darray(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))])
+Operator : unlock
+Number   : 1
+Signature: string -> bool
+Example  : query unlock("Da")
+Result   : TRUE
+
+Operator : addworker
+Number   : 1
+Signature: d[f]array x string x int x string x rel(tuple([Host: string, Port: int, Config: string])) -> bool
+Example  : query addworker(Da, "s3", 1234, "cfg.ini", Peers)
 Result   : TRUE

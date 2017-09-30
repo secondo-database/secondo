@@ -16,26 +16,12 @@
 # SECONDO; if not, write to the Free Software Foundation, Inc., 59 Temple
 # Place, Suite 330, Boston, MA  02111-1307  USA
 
-CURRENT_ALGEBRA := Distributed4Algebra
-ALGEBRA_DEPENDENCIES := StandardAlgebra Distributed2Algebra FTextAlgebra \
-	RelationAlgebra
-
-include ../../makefile.env
-
-CCFLAGS += -std=c++14 -Werror
+CPPFLAGS += -std=c++14 -Werror
+LDFLAGS += -lrt -lpthread
 
 .PHONY: all
-all: check_dependencies $(OBJECTS) $(LIBOBJ)
-
-.PHONY: check_dependencies
-check_dependencies:
-	$(check-algebra-dependencies)
+all: mutexset
 
 .PHONY: clean
 clean:
-	$(clean-algebra)
-
-include $(DEP_FILES)
-
-$(LIBOBJ): $(OBJECTS)
-	$(create-lib)
+	rm mutexset
