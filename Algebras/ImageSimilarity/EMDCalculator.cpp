@@ -677,9 +677,15 @@ void TransportProblem::findSteppingStones()
         }
     }
     
-   
-   
-    mg->visited = new bool[mg->vertices.size()]{false};
+	//constexpr int visSize = (int)mg->vertices.size();
+	mg->visited = new bool[mg->vertices.size()]; //{false};
+	
+	for (int i = 0; i < (int)mg->vertices.size(); i++)
+	{
+		mg->visited[i] = false;
+	}
+    
+    //mg->visited = new bool[mg->vertices.size()]{false};
     //mg->g.resize(mg->vertices.size());
     
     int pos = this->mg->vertices.size() -1;    
@@ -799,8 +805,18 @@ void TransportProblem::updateSolution()
 void TransportProblem::calcShadowCosts()
 {
     
-    this->ucost = new int[this->supSize]{0};
-    this->vcost = new int[this->demSize]{0};
+    this->ucost = new int[this->supSize]; //{0};
+    for (int i = 0; i < this->supSize; i++)
+    {
+		this->ucost = 0;
+	}
+    
+    this->vcost = new int[this->demSize]; //{0};
+    for (int i = 0; i < this->demSize; i++)
+    {
+		this->vcost = 0;
+	}
+	
     this->visitedShadowCosts = true;
     
     ucost[0] = 0;
@@ -1247,7 +1263,16 @@ void TransportProblem::initialVAM(
        
     this->basicsMatrix = new bool*[this->supSize];
     for ( int y = 0; y < (int)this->supSize; y++)
-        this->basicsMatrix[y] = new bool[this->demSize]{false};
+        this->basicsMatrix[y] = new bool[this->demSize]; //{false};
+    
+    
+    for (int y = 0; y < (int)this->supSize; y++)
+    {
+		for (int x = 0; x < (int)this->demSize; x++)
+		{
+			this->basicsMatrix[y][x] = false;
+		}
+	}
     
     //std::cout << "fog 6" << std::endl;
     
@@ -1258,11 +1283,29 @@ void TransportProblem::initialVAM(
         this->amountMatrix[y] = new long[this->demSize]{};
         
         
-   this->rowPen = new int[this->supSize]{0};
-   this->colPen = new int[this->demSize]{0};
+   this->rowPen = new int[this->supSize]; //{0};
+   for (int i = 0; i < this->supSize; i++)
+   {
+	   this->rowPen[i] = 0;
+   }
    
-   this->rowSat = new bool[this->supSize]{false};
-   this->colSat = new bool[this->demSize]{false};
+   this->colPen = new int[this->demSize]; //{0};
+   for (int i = 0; i < this->demSize; i++)
+   {
+	   this->demSize = 0;
+   }
+   
+   this->rowSat = new bool[this->supSize]; //{false};
+   for (int i = 0; i < this->supSize; i++)
+   {
+	   this->rowSat[i] = false;
+   }
+   
+   this->colSat = new bool[this->demSize]; //{false};
+   for (int i = 0; i < this->demSize; i++)
+   {
+	   this->colSat[i] = false;
+   }
    
      
     calcRowPenalties(); // vertical penalties
