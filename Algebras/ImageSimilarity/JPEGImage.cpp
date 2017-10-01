@@ -1444,7 +1444,7 @@ double JPEGImage::localCoarseness(int x, int y, const int range)
 
 void JPEGImage::computeCoarsenessValues(const int range)
 {
-    const double normalize = 1.0;  // this has to tried out
+    const double normalize = 50.0;  // this has to tried out
                                     
     
     auto t1 = std::chrono::high_resolution_clock::now();
