@@ -1,0 +1,32 @@
+Database : salrtest
+Restore  : NO
+
+Operator  : lr_moveto
+Number    : 1
+Signature : line2 x real x real -> line2
+Example   : query [const line2 value(2 4 (0 1) (1.0 1.0 2.0 2.0))] lr_moveto [3.0, 3.0]
+Result    : (line2(3 6 (0 1 0) (1.0 1.0 2.0 2.0 3.0 3.0)))
+
+Operator  : lineTo
+Number    : 1
+Signature : line2 x real x real -> line2
+Example   : query [const line2 value(2 4 (0 1) (1.0 1.0 2.0 2.0))] lineTo [3.0, 3.0]
+Result    : (line2(3 6 (0 1 1) (1.0 1.0 2.0 2.0 3.0 3.0)))
+
+Operator  : quadTo
+Number    : 1
+Signature : line2 x real x real x real x real -> line2
+Example   : query [const line2 value(2 4 (0 1) (1.0 1.0 2.0 2.0))] quadTo [3.0, 3.0, 3.0, 4.0]
+Result    : (line2(3 8 (0 1 2) (1.0 1.0 2.0 2.0 3.0 3.0 3.0 4.0)))
+
+Operator  : closeLine
+Number    : 1
+Signature : line2 -> line2
+Example   : query [const line2 value(2 4 (0 1) (1.0 1.0 2.0 2.0))] closeLine
+Result    : (line2(3 4 (0 1 4) (1.0 1.0 2.0 2.0)))
+
+Operator  : toRegion
+Number    : 1
+Signature : line2 -> region2
+Example   : query [const line2 value(5 10 (0 1 1 1 1) (1.0 1.0 1.0 2.0 2.0 2.0 2.0 1.0 1.0 1.0))] toRegion
+Result    : (region2(5 10 (0 1 1 1 1) (1.0 1.0 1.0 2.0 2.0 2.0 2.0 1.0 1.0 1.0)))
