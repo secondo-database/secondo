@@ -1567,8 +1567,24 @@ struct DisplayDuration : DisplayFunction {
               if(msv>0)
                 cout <<" + ";
             }
-            if(msv > 0)
+            if(msv > 0) {
+              int h = msv / 3600000;
+              if(h!=0){
+                 cout << h << " h ";
+              }
+              msv = msv % 3600000;
+              int m = msv / 60000;
+              if(h!=0 || m!=0){
+                 cout << m << " m ";
+              }
+              msv = msv % 60000;
+              int s = msv / 1000;
+              if(h!=0 || m!=0 || s!=0){
+                 cout << s << " s ";
+              }
+              msv = msv%1000;
               cout << msv <<" ms";
+            }
           }
 
              }
