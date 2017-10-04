@@ -217,7 +217,7 @@ void Message1_3::print()const{
    std::cout << "latitude " << latitude << std::endl;
    std::cout << "course over ground " << cog  << std::endl;
    std::cout << "heading " << heading << std::endl;
-   std::cout << "second  " << time << std::endl;
+   std::cout << "second  " << second << std::endl;
    std::cout << "maneuver " <<  maneuver << std::endl;
    std::cout << "spare " << spare << std::endl;
    std::cout << "raim " << raim << std::endl;
@@ -243,7 +243,7 @@ void Message1_3::extractInfos(){
    latitude = computeLat(lat);
    cog = extract(116,127);
    heading = extract(128,136);
-   time    = extract(137,142);
+   second    = extract(137,142);
    maneuver = extract(143,144);
    spare = extract(145,147);
    raim = extract(148,148);
@@ -522,7 +522,7 @@ void Message19::print()const{
    std::cout << "latitude " << latitude << std::endl;
    std::cout << "cog " << cog  << std::endl;
    std::cout << "heading " << heading  << std::endl;
-   std::cout << "second " << timestamp  << std::endl;
+   std::cout << "second " << second  << std::endl;
    std::cout << "reserved2 " << reserved2 << std::endl;
    std::cout << "name " << name << std::endl;
    std::cout << "shiptype " << shiptype  << std::endl;
@@ -547,7 +547,7 @@ void Message19::extractInfos(){
    latitude = computeLat(extract(85,111));
    cog = extract(112,123);
    heading = extract(124,132);
-   timestamp = extract(133,138);
+   second = extract(133,138);
    reserved2 = extract(139,142);
    name = extractString(143,262);
    shiptype = extract(263,270);

@@ -127,7 +127,7 @@ class Message1_3: public Message<168>{
      double latitude;
      int cog;
      int heading;
-     int time   ;
+     int second  ;
      int maneuver;
      int spare;
      int raim;
@@ -347,7 +347,7 @@ class Message19 : public Message<312>{
     double latitude;
     int cog;
     int heading;
-    int timestamp;
+    int second;
     int reserved2;
     std::string name;
     int shiptype;

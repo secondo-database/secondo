@@ -9364,17 +9364,20 @@ class aisimportInfo{
                                            time(datetime::instanttype,0)
                                             {
       cout << "decode file " << _filename << endl;
+      time.SetDefined(false);
       for(int i=0;i<27;i++){
         relations.push_back(0);
         tupleTypes.push_back(0);
       }
       ctlg = SecondoSystem::GetCatalog();
+      secbase = 10; // use 10 messages for deriving a seconds value
+      seconds = 61; // seconds not available  yet
     }
 
     ~aisimportInfo(){
       for(int i=0;i<27;i++){
          if(relations[i]){
-           //relations[i]->Close(); // used by catalog
+           // relation deletion is handled by catalog
            tupleTypes[i]->DeleteIfAllowed();
          }
       }
@@ -9384,10 +9387,9 @@ class aisimportInfo{
        count =0;
        aisdecode::MessageBase* msg;
        while( (msg = decoder.getNextMessage())){
-          time = time + datetime::DateTime(datetime::durationtype,1);
           count++;
-          processMessage(msg);
-          delete msg;
+          processMessage1(msg);
+          //delete msg;
        }
        return count;
     }
@@ -9403,6 +9405,10 @@ class aisimportInfo{
     vector<TupleType*> tupleTypes;
     SecondoCatalog* ctlg;
     size_t count;
+    size_t secbase; // how many messages are used for deriving seconds
+    size_t seconds; // the last derived seconds
+    list<aisdecode::MessageBase*> messages; 
+                    // collected messages of type 1-3,18,19,4
 
   void createRelationForType(int type, ListExpr attrList){
         ListExpr tupleList  = nl->TwoElemList(listutils::basicSymbol<Tuple>(),
@@ -9428,7 +9434,7 @@ class aisimportInfo{
 Message types 1-3
 
 */
-   void processMessage(aisdecode::Message1_3* msg){
+   void writeMessage(aisdecode::Message1_3* msg){
       if(relations[0] == 0){ // relation not present
         ListExpr attrList = nl->OneElemList(
                                 nl->TwoElemList(nl->SymbolAtom("Type"), 
@@ -9480,7 +9486,7 @@ Message types 1-3
       tuple->PutAttribute(8, new CcReal(true,msg->latitude)); 
       tuple->PutAttribute(9, new CcInt(true,msg->cog)); 
       tuple->PutAttribute(10, new CcInt(true,msg->heading)); 
-      tuple->PutAttribute(11, new CcInt(true,msg->time)); 
+      tuple->PutAttribute(11, new CcInt(true,msg->second)); 
       tuple->PutAttribute(12, new CcInt(true,msg->maneuver)); 
       tuple->PutAttribute(13, new CcInt(true,msg->raim)); 
       tuple->PutAttribute(14, new CcInt(true,msg->rstatus)); 
@@ -9494,7 +9500,7 @@ Message types 1-3
 Message type 4
 
 */
-   void processMessage(aisdecode::Message4* msg){
+   void writeMessage(aisdecode::Message4* msg){
       if(relations[3]==0){
         ListExpr attrList = nl->OneElemList(
                                 nl->TwoElemList(nl->SymbolAtom("Type"), 
@@ -9560,7 +9566,7 @@ Message type 4
 Message type 5
 
 */
-   void processMessage(aisdecode::Message5* msg){
+   void writeMessage(aisdecode::Message5* msg){
      if(relations[4] == 0){
         ListExpr attrList = nl->OneElemList(
                                 nl->TwoElemList(nl->SymbolAtom("Type"), 
@@ -9644,7 +9650,7 @@ Message type 5
 Message type 9
 
 */
-   void processMessage(aisdecode::Message9* msg){
+   void writeMessage(aisdecode::Message9* msg){
       if(relations[8]==0){
         ListExpr attrList = nl->OneElemList(
                                 nl->TwoElemList(nl->SymbolAtom("Type"), 
@@ -9708,7 +9714,7 @@ Message type 9
 Message type 12
 
 */
-   void processMessage(aisdecode::Message12* msg){
+   void writeMessage(aisdecode::Message12* msg){
       if(relations[11]==0){
         ListExpr attrList = nl->OneElemList(
                                 nl->TwoElemList(nl->SymbolAtom("Type"), 
@@ -9750,7 +9756,7 @@ Message type 12
 Message type 14
 
 */
-   void processMessage(aisdecode::Message14* msg){
+   void writeMessage(aisdecode::Message14* msg){
      if(relations[13]==0){
         ListExpr attrList = nl->OneElemList(
                                 nl->TwoElemList(nl->SymbolAtom("Type"), 
@@ -9785,7 +9791,7 @@ Message type 14
 Message type 18
 
 */
-   void processMessage(aisdecode::Message18* msg){
+   void writeMessage(aisdecode::Message18* msg){
       if(relations[17]==0){
         ListExpr attrList = nl->OneElemList(
                                 nl->TwoElemList(nl->SymbolAtom("Type"), 
@@ -9862,7 +9868,7 @@ Message type 18
 Message type 19
 
 */
-    void processMessage(aisdecode::Message19* msg){
+    void writeMessage(aisdecode::Message19* msg){
       if(relations[18]==0){
         ListExpr attrList = nl->OneElemList(
                                 nl->TwoElemList(nl->SymbolAtom("Type"), 
@@ -9924,7 +9930,7 @@ Message type 19
      tuple->PutAttribute(6, new CcReal(true,msg->latitude));
      tuple->PutAttribute(7, new CcInt(true,msg->cog));
      tuple->PutAttribute(8, new CcInt(true,msg->heading));
-     tuple->PutAttribute(9, new CcInt(true,msg->timestamp));
+     tuple->PutAttribute(9, new CcInt(true,msg->second));
      tuple->PutAttribute(10, new CcString(true,msg->name));
      tuple->PutAttribute(11, new CcInt(true,msg->shiptype));
      tuple->PutAttribute(12, new CcInt(true,msg->dimToBow));
@@ -9945,7 +9951,7 @@ Message type 19
 Message type 24
 
 */
-    void processMessage(aisdecode::Message24* msg){
+    void writeMessage(aisdecode::Message24* msg){
       if(relations[23]==0){
         ListExpr attrList = nl->OneElemList(
                                 nl->TwoElemList(nl->SymbolAtom("Type"), 
@@ -10015,22 +10021,202 @@ General distribution of messages accorsing to their types.
 
 */
 
-    void processMessage(aisdecode::MessageBase* msg){
+   void processMessage2(aisdecode::MessageBase* msg){
+      int t = msg->getType();
+       switch(t){
+             case 1:
+             case 2:
+             case 3: writeMessage( (aisdecode::Message1_3*)msg);
+                     break;
+             case 4: writeMessage((aisdecode::Message4*)msg);
+                     break;
+             case 9: writeMessage((aisdecode::Message9*)msg);
+                     break;
+             case 18: writeMessage((aisdecode::Message18*) msg);
+                      break;
+             case 19: writeMessage((aisdecode::Message19*) msg);
+                      break;
+             default: cerr << "found message type " << t 
+                           << "in processMessages" << endl;
+      }
+   }
+
+    void processMessages2(){
+       while(!messages.empty()){
+           aisdecode::MessageBase* msg = messages.front();
+           processMessage2(msg);
+           messages.pop_front();
+           delete msg;
+       }
+    }
+
+
+    int getSeconds(aisdecode::MessageBase* msg){
+        int t = msg->getType();
+        switch(t){
+           case 1:
+           case 2:
+           case 3: return ( (aisdecode::Message1_3*)msg)->second;
+           case 4: return ((aisdecode::Message4*)msg)->second;
+           case 9: return ((aisdecode::Message9*)msg)->second;
+           case 18: return ((aisdecode::Message18*) msg)->second;
+           case 19: return ((aisdecode::Message19*) msg)->second;
+           default: cerr << "found message type " << t 
+                           << "in processMessages2" << endl;
+                    return 61;
+         }
+     }
+
+
+     void deriveTime(){
+        // first derive seconds from entries in messages
+        map<int,int> m;
+        list<aisdecode::MessageBase*>::iterator it;
+        map<int,int>::iterator it2;
+        for(it=messages.begin();it!=messages.end();it++){
+           int s = getSeconds(*it);
+           it2 = m.find(s);
+           if(it2!=m.end()){
+              it2->second++;
+           } else {
+              m[s] = 1;
+           }
+        }
+        int sec = -1;
+        int c = 0;
+        for(it2=m.begin();it2!=m.end();it2++){
+            if(it2->second>c){
+               sec = it2->first;
+               c = it2->second;
+            }
+        }
+        // sec stores now a possible second value, look, 
+        // whether time goes forward
+        int sec2 = time.GetSecond();
+        
+        if(sec==sec2){
+           return; // no change in time
+        }
+        if(sec < sec2){ // allow only if minute switch
+           if(sec > 10 || sec2 < 50){
+             // cout << "Current time is " << sec2 
+             // << " new sec is " << sec << endl;
+             // cout << "do not change time" << endl;
+              return;
+           }
+           sec += 60;
+        }
+        assert(sec>=sec2);
+        //cout << "correct time " << (sec -sec2) << " seconds " << endl;
+        datetime::DateTime diff(datetime::durationtype,1000*( sec-sec2));
+        time = time + diff;
+     }
+
+     bool isValidSecond(aisdecode::MessageBase* msg){
+       int s = getSeconds(msg);
+       return s>=0 && s<=60;
+     }
+
+
+    template<class T>
+    void processMessage(T* msg){
+       if(!isValidSecond(msg)){
+          writeMessage(msg);
+          delete msg;
+          return;
+       }
+       // less than secbase time messages
+       if(messages.size()<secbase){
+          messages.push_back(msg);
+          return;
+       } 
+       // we have secbase messages but no absolute time information
+       if(!time.IsDefined()){
+           processMessage2(messages.front());
+           delete messages.front(); // remove older messages
+           messages.pop_front();
+           messages.push_back(msg);
+           return;
+       }
+       // both is available, absolute time and enough 
+       // messages for deriving seconds
+       deriveTime();
+       processMessages2();
+    }
+
+    void processMessage(aisdecode::Message4* msg){
+       // check for valid date
+       int year = msg->year;
+       int month = msg->month;
+       int day   = msg->day;
+       if(!time.IsValid(year,month,day)){
+           //cout << "invalid date"; msg->print() ;
+           delete msg;
+           return;
+       }
+       int hour = msg->hour;
+       int minute = msg->minute;  
+       int second = msg->second;
+       if( hour > 23 || minute>59 || second > 59){
+          // cout << "invalidi time"; msg->print() ;
+           delete msg;
+           return;
+       }
+       if(!time.IsDefined()){
+         time.SetDefined(true);
+         time.Set(year,month,day,hour,minute,second);
+         //int mmsi = msg->mmsi;
+         //cout << "set start time to " << time << " from " << mmsi << endl;
+       }
+
+      /* else {
+          datetime::DateTime ct(datetime::instanttype);
+          ct.Set(year,month,day,hour,minute,second);
+          datetime::DateTime d = (ct - time);
+          if(!d.IsZero()){
+            cout << "time difference is " << d << endl;
+          }
+       }
+      */
+       messages.push_back(msg);
+       if(messages.size()>=secbase){
+         deriveTime();
+         processMessages2();
+       }
+    }
+
+
+
+    void processMessage1(aisdecode::MessageBase* msg){
        int type = msg->getType();
        switch(type){
          case 1:
          case 2:
-         case 3: return processMessage((aisdecode::Message1_3*)msg);
-         case 4: return processMessage((aisdecode::Message4*)msg);
-         case 5: return processMessage((aisdecode::Message5*)msg);
-         case 9: return processMessage((aisdecode::Message9*)msg);
-         case 12: return processMessage((aisdecode::Message12*)msg);
-         case 14: return processMessage((aisdecode::Message14*)msg);
-         case 18: return processMessage((aisdecode::Message18*)msg);
-         case 19: return processMessage((aisdecode::Message19*)msg);
-         case 24: return processMessage((aisdecode::Message24*)msg);
+         case 3: processMessage((aisdecode::Message1_3*)msg);
+                 break;
+         case 4: processMessage((aisdecode::Message4*)msg);
+                 break;
+         case 5: writeMessage((aisdecode::Message5*)msg);
+                 delete msg;
+                 break;
+         case 9: processMessage((aisdecode::Message9*)msg);
+                 break;
+         case 12: writeMessage((aisdecode::Message12*)msg);
+                  delete msg;
+                  break;
+         case 14: writeMessage((aisdecode::Message14*)msg);
+                  delete msg;
+                  break;
+         case 18: processMessage((aisdecode::Message18*)msg);
+                  break;
+         case 19: processMessage((aisdecode::Message19*)msg);
+                  break;
+         case 24: writeMessage((aisdecode::Message24*)msg);
+                  delete msg;
+                  break;
          default: cerr << "Secondo: message type " << type 
                        << "not implemented yet" << endl;
+                   delete msg;
        }
    }
 };
