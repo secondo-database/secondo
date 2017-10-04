@@ -9370,8 +9370,6 @@ class aisimportInfo{
         tupleTypes.push_back(0);
       }
       ctlg = SecondoSystem::GetCatalog();
-      secbase = 10; // use 10 messages for deriving a seconds value
-      seconds = 61; // seconds not available  yet
     }
 
     ~aisimportInfo(){
@@ -9404,11 +9402,8 @@ class aisimportInfo{
     vector<Relation*> relations;
     vector<TupleType*> tupleTypes;
     SecondoCatalog* ctlg;
-    size_t count;
-    size_t secbase; // how many messages are used for deriving seconds
-    size_t seconds; // the last derived seconds
-    list<aisdecode::MessageBase*> messages; 
-                    // collected messages of type 1-3,18,19,4
+    size_t count; // total number of messages
+    map<int, pair<datetime::DateTime, datetime::DateTime> > lastTimes;
 
   void createRelationForType(int type, ListExpr attrList){
         ListExpr tupleList  = nl->TwoElemList(listutils::basicSymbol<Tuple>(),
@@ -10041,148 +10036,25 @@ General distribution of messages accorsing to their types.
       }
    }
 
-    void processMessages2(){
-       while(!messages.empty()){
-           aisdecode::MessageBase* msg = messages.front();
-           processMessage2(msg);
-           messages.pop_front();
-           delete msg;
-       }
-    }
+   template<class T>
+   int getSeconds(T* msg){
+      return msg->second;
+   }
 
-
-    int getSeconds(aisdecode::MessageBase* msg){
-        int t = msg->getType();
-        switch(t){
-           case 1:
-           case 2:
-           case 3: return ( (aisdecode::Message1_3*)msg)->second;
-           case 4: return ((aisdecode::Message4*)msg)->second;
-           case 9: return ((aisdecode::Message9*)msg)->second;
-           case 18: return ((aisdecode::Message18*) msg)->second;
-           case 19: return ((aisdecode::Message19*) msg)->second;
-           default: cerr << "found message type " << t 
-                           << "in processMessages2" << endl;
-                    return 61;
-         }
-     }
-
-
-     void deriveTime(){
-        // first derive seconds from entries in messages
-        map<int,int> m;
-        list<aisdecode::MessageBase*>::iterator it;
-        map<int,int>::iterator it2;
-        for(it=messages.begin();it!=messages.end();it++){
-           int s = getSeconds(*it);
-           it2 = m.find(s);
-           if(it2!=m.end()){
-              it2->second++;
-           } else {
-              m[s] = 1;
-           }
-        }
-        int sec = -1;
-        int c = 0;
-        for(it2=m.begin();it2!=m.end();it2++){
-            if(it2->second>c){
-               sec = it2->first;
-               c = it2->second;
-            }
-        }
-        // sec stores now a possible second value, look, 
-        // whether time goes forward
-        int sec2 = time.GetSecond();
-        
-        if(sec==sec2){
-           return; // no change in time
-        }
-        if(sec < sec2){ // allow only if minute switch
-           if(sec > 10 || sec2 < 50){
-             // cout << "Current time is " << sec2 
-             // << " new sec is " << sec << endl;
-             // cout << "do not change time" << endl;
-              return;
-           }
-           sec += 60;
-        }
-        assert(sec>=sec2);
-        //cout << "correct time " << (sec -sec2) << " seconds " << endl;
-        datetime::DateTime diff(datetime::durationtype,1000*( sec-sec2));
-        time = time + diff;
-     }
-
-     bool isValidSecond(aisdecode::MessageBase* msg){
+   template<class T>
+   bool isValidSecond(T* msg){
        int s = getSeconds(msg);
        return s>=0 && s<=60;
-     }
+   }
 
 
     template<class T>
     void processMessage(T* msg){
-       if(!isValidSecond(msg)){
-          writeMessage(msg);
-          delete msg;
-          return;
-       }
-       // less than secbase time messages
-       if(messages.size()<secbase){
-          messages.push_back(msg);
-          return;
-       } 
-       // we have secbase messages but no absolute time information
-       if(!time.IsDefined()){
-           processMessage2(messages.front());
-           delete messages.front(); // remove older messages
-           messages.pop_front();
-           messages.push_back(msg);
-           return;
-       }
-       // both is available, absolute time and enough 
-       // messages for deriving seconds
-       deriveTime();
-       processMessages2();
+       processMessage2(msg);
     }
 
     void processMessage(aisdecode::Message4* msg){
-       // check for valid date
-       int year = msg->year;
-       int month = msg->month;
-       int day   = msg->day;
-       if(!time.IsValid(year,month,day)){
-           //cout << "invalid date"; msg->print() ;
-           delete msg;
-           return;
-       }
-       int hour = msg->hour;
-       int minute = msg->minute;  
-       int second = msg->second;
-       if( hour > 23 || minute>59 || second > 59){
-          // cout << "invalidi time"; msg->print() ;
-           delete msg;
-           return;
-       }
-       if(!time.IsDefined()){
-         time.SetDefined(true);
-         time.Set(year,month,day,hour,minute,second);
-         //int mmsi = msg->mmsi;
-         //cout << "set start time to " << time << " from " << mmsi << endl;
-       }
-
-      /* else {
-          datetime::DateTime ct(datetime::instanttype);
-          ct.Set(year,month,day,hour,minute,second);
-          datetime::DateTime d = (ct - time);
-          if(!d.IsZero()){
-            cout << "time difference is " << d << endl;
-          }
-       }
-      */
-       messages.push_back(msg);
-       if(messages.size()>=secbase){
-         deriveTime();
-         processMessages2();
-       }
+      processMessage2(msg);
     }
 
 
