@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 [1] Implementation of the MRegionOpsAlgebra
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
+Mai - November 2017, U. Wiesecke for master thesis.
 
 [TOC]
 
@@ -340,8 +341,8 @@ namespace temporalalgebra {
     IntersectionPoint::IntersectionPoint(const Point3D& point3D, 
                                          const Point2D& point2D){
       if (!NumericUtil::nearlyEqual(point3D.getZ(), point2D.getY())) {
-        cout << "Point3D:=" << point3D << endl;
-        cout << "Point2D:=" << point2D << endl;
+        cerr << "Point3D:=" << point3D << endl;
+        cerr << "Point2D:=" << point2D << endl;
         NUM_FAIL("Point3D and Point2D don't discribe the same.");
       }// if
       this->x = point3D.getX();
@@ -849,7 +850,9 @@ namespace temporalalgebra {
         time.insert(t);
       }// if
       else {
+        cerr << setprecision(9);
         cerr << *this;
+        cerr << setprecision(9);
         cerr << t << endl;
         NUM_FAIL ("Time value don,t be between starttime und endtime");
       }// else  
@@ -1810,10 +1813,11 @@ namespace temporalalgebra {
            if (predicate == OUTER) predicate = INNER;
            else predicate = OUTER;
          }// if
-         for (iter = nonOrthogonalEdges[slide].begin(); 
+         for (iter  = nonOrthogonalEdges[slide].begin(); 
               iter != nonOrthogonalEdges[slide].end(); iter++) {
-           if (segments.get(*iter).getPredicate() == UNDEFINED) {
-               setPredicate(*iter,predicate);
+           Predicate oldPredicate = segments.get(*iter).getPredicate();
+           if (oldPredicate == UNDEFINED || oldPredicate == NO_INTERSECT) {
+               segments.set(*iter,predicate);
            }// if
            // alle Schnitte sind gesetzt
            // geändert für Prädikat "INTERSECT"
@@ -1916,9 +1920,9 @@ namespace temporalalgebra {
           }// for
         }// if
         // Predikat der linken Kante setzen, falls erforderlich
-        setPredicate(*left, predicate);
+        segments.set(*left, predicate);
         // Predicate der rechten Kante setzen, falls erforderlich
-        setPredicate(*right, predicate);
+        segments.set(*right, predicate);
         // in der nächsten Runde, ist die ehemals rechte Kante, jetzt die
         // linke Kante
         left = right; 
@@ -1959,31 +1963,16 @@ namespace temporalalgebra {
             Predicate predicate =
               createPredicate(rightSegment.getPredicate(), LEFT);
             // Die Prädikat "UNDEFINED"
-            if (predicate != UNDEFINED) {
-              // Die Prädikate "TEST" und "INTERSECT" werden
-              // nicht auf andere Kanten übertragen 
-              if (predicate != INTERSECT && predicate != TEST) {
-                // Predikat setzen
-                setPredicate(*riter, predicate);
-              }// if
+            if (predicate != UNDEFINED && predicate != INTERSECT) {
+              // Predikat setzen
+              segments.set(*riter, predicate);
             }// if
-            else {
-              NUM_FAIL("Predicate UNDEFINED ist not allowed.");
-            }// else
           }// if
           last++;
         }// for
       }// if
     }// evaluate   
-     
-    void ResultUnitFactory::setPredicate(size_t index, 
-                                          Predicate& predicate){
-      if (segments.get(index).getPredicate() == UNDEFINED || 
-          segments.get(index).getPredicate() == TEST) {        
-        segments.set(index,predicate);
-      }// if
-    }// setPredicate
-     
+          
     Predicate ResultUnitFactory::createPredicate(const Predicate source,
                                                  const Border border)const{
       Predicate predicate;
@@ -1993,7 +1982,9 @@ namespace temporalalgebra {
                              break;    
         case RIGHT_IS_INNER: if(border == LEFT) predicate = INNER;
                              else predicate = OUTER;
-                             break;     
+                             break; 
+        case NO_INTERSECT:   predicate = UNDEFINED;
+                             break;   
         default:             predicate = source;         
       }// switch
       return predicate;   
@@ -2118,6 +2109,7 @@ namespace temporalalgebra {
               cerr << mregionops3::toString(predicate) <<endl;
               cerr << "Left Segment :=" << leftSegment << endl;
               cerr << "Right Segment:=" << rightSegment<< endl;
+              cerr << *this;
               NUM_FAIL ("Predicate on left and right border are different.");
             }// else  
             left = right;
@@ -2132,8 +2124,8 @@ namespace temporalalgebra {
       Predicate rightP     = right.getPredicate();
       // Segmente definieren den Bereich als Innen
       if (leftP == RIGHT_IS_INNER || rightP == LEFT_IS_INNER || 
-        leftP == INNER || rightP == INNER){
-        // existieren Wiedersrüche
+          leftP == INNER || rightP == INNER){
+        // existieren Wiedersprüche
         if (leftP == LEFT_IS_INNER || rightP == RIGHT_IS_INNER ||  
             leftP == OUTER || rightP == OUTER){
           cerr << "Left Segment :=" << left << endl;
@@ -2482,17 +2474,6 @@ namespace temporalalgebra {
           addBorder(plane,timeValues,predicate);          
         }// if
         else {
-          if(leftPredicate == INTERSECT || (leftPredicate != rightPredicate)){
-            cerr << *this;
-            cerr << "Left predicate: ";
-            cerr << mregionops3::toString(leftPredicate) << endl;
-            cerr << "Right predicate: ";
-            cerr << mregionops3::toString(rightPredicate) << endl;
-            cerr << "Looking for predicate: ";
-            cerr << mregionops3::toString(predicate) << endl;
-            // assert(false);
-            NUM_FAIL("Ups !!");
-          }// if
           state = NOT_RELEVANT;          
         }// if
       }// if
@@ -2547,33 +2528,48 @@ namespace temporalalgebra {
       borders.push_back(RationalSegment2D(leftEnd,rightEnd));
       // Verschneidung durchführen
       for (size_t i = 0; i < segments2D.size(); i++){
-        vector<RationalPoint2D> points;
+        std::set<RationalPoint2D> points;
         for (size_t j = 0; j < borders.size(); j++){
           RationalPoint2D iPoint;
-          if(segments2D[i] == borders[i])break;
+          if(segments2D[i] == borders[i]){
+            points.clear();
+            break;
+          }// if
           bool result = segments2D[i].intersection(borders[j],iPoint);
           if(result) {            
-            points.push_back(iPoint);          
+            points.insert(iPoint);  
           }// if  
         }// for
-        if(points.size() > 1 && (!(points[0] == points[1]))){
+        if(points.size() > 1 ){    
+          std::set<RationalPoint2D>::iterator first,second;
+          second = first = points.begin();
+          second++;
           mpq_class length  = (segments2D[i].getHead() - 
                                segments2D[i].getTail()).length();
-          mpq_class length0 = (points[0] - segments2D[i].getTail()).length(); 
-          mpq_class length1 = (points[1] - segments2D[i].getTail()).length(); 
+          mpq_class length0 = (*first - segments2D[i].getTail()).length(); 
+          mpq_class length1 = (*second - segments2D[i].getTail()).length(); 
           RationalVector3D vector = segments3D[i].getHead() - 
                                     segments3D[i].getTail();
           Point3D tail3D = segments3D[i].getTail() + length0/length*vector;
           Point3D head3D = segments3D[i].getTail() + length1/length*vector;
           // Schnittsegment bestimmen in 2D
-          Point2D tail2D = points[0].getD();
-          Point2D head2D = points[1].getD();      
+          Point2D tail2D = (*first).getD();
+          Point2D head2D = (*second).getD();      
           IntersectionSegment iSegment(IntersectionPoint(tail3D,tail2D),
                                        IntersectionPoint(head3D,head2D),
-                                       TEST);
-          timeValues.addTimeValue(iSegment.getTail().getT());
-          timeValues.addTimeValue(iSegment.getHead().getT());
-          addIntSeg(iSegment);
+                                       NO_INTERSECT);
+          // cout << Segment3D(this->leftStart, this->leftEnd)<< endl;
+          // cout << Segment3D(this->rightStart, this->rightEnd)<< endl;
+          // cout << iSegment.getSegment3D()<< endl << endl;
+          Segment3D segment = iSegment.getSegment3D();
+          if(!((segment.getHead() == this->leftEnd && 
+                segment.getTail() == this->leftStart) || 
+               (segment.getHead() == this->rightEnd && 
+                segment.getTail() == this->rightStart))){
+            timeValues.addTimeValue(iSegment.getTail().getT());
+            timeValues.addTimeValue(iSegment.getHead().getT());
+            addIntSeg(iSegment);
+          }// if
         }// if
       }// for 
       this->state = CRITICAL;

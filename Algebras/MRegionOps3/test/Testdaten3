@@ -1,0 +1,57 @@
+open database opt;
+
+delete t0A;
+
+delete t0B;
+
+delete t1A;
+
+delete t1B;
+
+delete t0;
+
+delete t1;
+
+delete noSamples;
+
+delete step;
+
+delete samples;
+
+delete tolerance;
+
+delete aIb;
+
+
+let noSamples = 100.0;
+
+let t0A = instant2real(inst(initial(m1)));
+
+let t0B = instant2real(inst(initial(m3)));
+
+let t1A = instant2real(inst(final(m1)));
+
+let t1B = instant2real(inst(final(m3)));
+
+let t0 = ifthenelse(t0A < t0B, t0A, t0B);
+
+let t1 = ifthenelse(t1A > t1B, t1A, t1B);
+
+let step = (abs(t1 - t0)) / noSamples;
+
+let samples = realstream(t0, t1, step) 
+              use[fun(t: real) create_instant(t)] transformstream consume;
+
+let tolerance = 0.1;
+
+let aIb = intersection(m1, m3);
+
+
+query samples feed transformstream 
+use[ fun(t: instant) 
+abs( 
+area(val(aIb atinstant t)) 
+- 
+area(intersection(val(m1 atinstant t), val(m3 atinstant t)))
+)]
+ transformstream max[Elem] < tolerance;

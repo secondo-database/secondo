@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 [1] Implementation of the MRegionOpsAlgebra
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
+Mai - November 2017, U. Wiesecke for master thesis.
 
 [TOC]
 
@@ -1022,8 +1023,6 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
                  
       bool iSEqual(const std::vector<std::list<size_t>>& edges1,
                    const std::vector<std::list<size_t>>& edges2)const;
-      
-      void setPredicate(size_t index, Predicate& predicate);
       
       Predicate createPredicate(const Predicate source,
                                 const Border border)const;

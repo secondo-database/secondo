@@ -30,6 +30,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Implementation of the MRegionOps3Algebra
 
+Mai - November 2017, U. Wiesecke for master thesis.
+
 [TOC]
 
 1 Introduction
@@ -117,8 +119,9 @@ namespace temporalalgebra {
         PFaceTest7();
         PFaceTest8();
         PFaceTest9();
-        PFaceTest10();
-       
+        PFaceTest10();       
+        PFaceTest11();
+        
         GlobalTimeValuesTest1();
         GlobalTimeValuesTest2();
              
@@ -137,9 +140,10 @@ namespace temporalalgebra {
         ResultUnitFactoryTest3();       
         ResultUnitFactoryTest4();
         ResultUnitFactoryTest5();
-        
         ResultUnitFactoryTest6();
         ResultUnitFactoryTest7();
+        
+        ResultUnitFactoryTest8();
         
         SegmentContainerTest1();
      
@@ -157,7 +161,7 @@ namespace temporalalgebra {
         UnitsTest10();
 
         SourceUnitPairTest1();   
-     
+    
         cerr << endl;
         cerr << numberOfTestsRun << " tests run, ";
         cerr << numberOfTestsFailed << " tests failed." << endl <<endl;  
@@ -1445,7 +1449,7 @@ namespace temporalalgebra {
         pf2.addIntSeg(IntersectionSegment (
           IntersectionPoint (8, 1, 0, 8), 
           IntersectionPoint (2, 4, 5, 2), 
-          TEST));
+          NO_INTERSECT));
         pf2.setState(CRITICAL);
         pf3.setState(CRITICAL); 
         assert_("PFaceTest 10.1", "PFaces don't equal.",
@@ -1457,6 +1461,52 @@ namespace temporalalgebra {
         // cout << pf2;
         // cout << pf3;        
       }// PFaceTest10
+      
+      void Selftest::PFaceTest11() {  
+        Point3DContainer points;
+        SegmentContainer segments1,segments2;
+        GlobalTimeValues timeValues(5);
+        // points for pface 0 
+        size_t i0 = points.add(Point3D(1.2, 3.4, 0));// 0
+        size_t i1 = points.add(Point3D(0.666666667, 3.666666667, 4.333333333));
+        size_t i2 = points.add(Point3D(3.2, 3.4, 0));
+        size_t i3 = points.add(Point3D(2.666666667, 3.666666667, 4.333333333)); 
+        size_t i4 = points.add(Point3D(1.2, 3.4, 0));// 1
+        size_t i5 = points.add(Point3D(0.666666667, 3.666666667, 4.333333333));
+        size_t i6 = points.add(Point3D(3.2, 3.4, 0));
+        size_t i7 = points.add(Point3D(3.333333333, 3.666666667, 4.333333333)); 
+        // segments for pface 0
+        segments1.add(Segment(i0,i1));
+        segments1.add(Segment(i2,i3));
+        // segments for pface 1
+        segments2.add(Segment(i4,i5));
+        segments2.add(Segment(i6,i7)); 
+        // create pface
+        PFace pf0(0,1,points,segments1);
+        PFace pf1(0,1,points,segments2);
+        PFace pf2(pf0);
+        PFace pf3(pf1);
+        // create plane for intersection
+        RationalPlane3D plane0(pf0);
+        RationalPlane3D plane1(pf1);
+        // intersection on plane
+        pf0.intersectionOnPlane(pf1,plane0,timeValues);   
+        pf1.intersectionOnPlane(pf0,plane1,timeValues);   
+        pf3.addIntSeg(IntersectionSegment (
+          IntersectionPoint(3.2, 3.4, 0, 3.2),
+          IntersectionPoint(2.666666667, 3.666666667, 4.333333333, 2.666666667),
+          NO_INTERSECT));
+        pf2.setState(CRITICAL);
+        pf3.setState(CRITICAL); 
+        assert_("PFaceTest 10.1", "PFaces don't equal.",
+                pf0 == pf2);
+        assert_("PFaceTest 10.2", "PFaces don't equal.",
+                pf1 == pf3);
+        // cout << pf0;
+        // cout << pf1;
+        // cout << pf2;
+        // cout << pf3;        
+      }// PFaceTest11
 /*
 18 Test GlobalTimeValues
 
@@ -2312,6 +2362,31 @@ namespace temporalalgebra {
         // cout << "Predicate on left border:=" << toString(left) << endl;
         // cout << "Predicate on right border:=" << toString(right) << endl;
       }// ResultUnitFactoryTest5  
+      
+      void Selftest::ResultUnitFactoryTest8(){
+        ResultUnitFactory factory1(4),factory2(4);
+        factory1.addNonOrthogonalEdges(0, Segment (0, 9,OUTER)); 
+        factory1.addNonOrthogonalEdges(0, Segment (3, 12));
+        factory1.addNonOrthogonalEdges(1, Segment (4, 13));
+        factory1.addNonOrthogonalEdges(1, Segment (5, 14,NO_INTERSECT));
+        factory1.addNonOrthogonalEdges(1, Segment (6, 15));
+        factory1.addNonOrthogonalEdges(2, Segment (7, 16));
+        factory1.addNonOrthogonalEdges(2, Segment (8, 17));
+        factory1.evaluate();
+        factory2.addNonOrthogonalEdges(0, Segment (0, 9,OUTER)); 
+        factory2.addNonOrthogonalEdges(0, Segment (3, 12,OUTER));
+        factory2.addNonOrthogonalEdges(1, Segment (4, 13,OUTER));
+        factory2.addNonOrthogonalEdges(1, Segment (5, 14,OUTER));
+        factory2.addNonOrthogonalEdges(1, Segment (6, 15,OUTER));
+        factory2.addNonOrthogonalEdges(2, Segment (7, 16,OUTER));
+        factory2.addNonOrthogonalEdges(2, Segment (8, 17,OUTER));
+        assert_("ResultUnitFactoryTest 8",
+                " Content in Factory is incorrect.",
+                 factory1 == factory2);
+        // cout << factory1;
+        // cout << factory2;
+      }// ResultUnitFactoryTest8
+      
 /*
 19 Test SegmentContainer
 
@@ -4043,20 +4118,20 @@ namespace temporalalgebra {
         factory1.addNonOrthogonalEdges(5,Segment(26, 27));
         // Outside/Inside
         factory1.addNonOrthogonalEdges(6,Segment(28, 29)); 
-        factory1.addNonOrthogonalEdges(6,Segment(30, 31, TEST)); 
+        factory1.addNonOrthogonalEdges(6,Segment(30, 31, NO_INTERSECT)); 
         factory1.addNonOrthogonalEdges(6,Segment(32, 33, RIGHT_IS_INNER)); 
-        factory1.addNonOrthogonalEdges(6,Segment(34, 35, TEST)); 
+        factory1.addNonOrthogonalEdges(6,Segment(34, 35, NO_INTERSECT)); 
         factory1.addNonOrthogonalEdges(6,Segment(36, 37, INTERSECT));
         // Inside/Outside
         factory1.addNonOrthogonalEdges(7,Segment(38, 39, INTERSECT)); 
-        factory1.addNonOrthogonalEdges(7,Segment(40, 41, TEST)); 
+        factory1.addNonOrthogonalEdges(7,Segment(40, 41, NO_INTERSECT)); 
         factory1.addNonOrthogonalEdges(7,Segment(42, 43, LEFT_IS_INNER)); 
-        factory1.addNonOrthogonalEdges(7,Segment(44, 45, TEST)); 
+        factory1.addNonOrthogonalEdges(7,Segment(44, 45, NO_INTERSECT)); 
         factory1.addNonOrthogonalEdges(7,Segment(46, 47));
         // Outside
         factory1.addNonOrthogonalEdges(8,Segment(48, 49, INTERSECT)); 
-        factory1.addNonOrthogonalEdges(8,Segment(50, 51, TEST)); 
-        factory1.addNonOrthogonalEdges(8,Segment(52, 53, TEST)); 
+        factory1.addNonOrthogonalEdges(8,Segment(50, 51, NO_INTERSECT)); 
+        factory1.addNonOrthogonalEdges(8,Segment(52, 53, NO_INTERSECT)); 
         factory1.addNonOrthogonalEdges(8,Segment(54, 55, RIGHT_IS_INNER));
         // Undefined
         factory2.addNonOrthogonalEdges(0,Segment(0, 1, INTERSECT)); 

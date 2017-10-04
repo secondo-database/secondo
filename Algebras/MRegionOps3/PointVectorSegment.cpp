@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 [1] Implementation of the MRegionOpsAlgebra
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
+Mai - November 2017, U. Wiesecke for master thesis.
 
 [TOC]
 
@@ -55,7 +56,7 @@ namespace temporalalgebra{
         case INNER: return "INNER";
         case OUTER: return "OUTER";
         case INTERSECT: return "INTERSECT";
-        case TEST: return "TEST";
+        case NO_INTERSECT: return "NO_INTERSECT";
         default: return "";
       }// switch
     }// toString
@@ -119,7 +120,7 @@ namespace temporalalgebra{
     }// getBoundingBox 
     
     std::ostream& operator <<(std::ostream& os, const Point3D& point){
-      os << "Point3D (" << point.x;
+      os << "Point3D(" << point.x;
       os << ", " << point.y;
       os << ", " << point.z << ")";
       return os; 
@@ -205,7 +206,7 @@ namespace temporalalgebra{
     }// get
     
     std::ostream& operator <<(std::ostream& os, const RationalPoint3D& point){
-      os << "RationalPoint3D (" << point.x.get_d();
+      os << "RationalPoint3D(" << point.x.get_d();
       os << ", " << point.y.get_d();
       os << ", " << point.z.get_d() << ")";
       return os; 
@@ -254,7 +255,7 @@ namespace temporalalgebra{
        return (point - *this).length2();      
     }// distance2
       
-    double RationalPoint3D::distance(const RationalPoint3D& point)const{
+    mpq_class RationalPoint3D::distance(const RationalPoint3D& point)const{
        return (point - *this).length();      
     }// distance     
 /*
@@ -315,7 +316,7 @@ namespace temporalalgebra{
     }// Operator =  
     
     std::ostream& operator <<(std::ostream& os,const RationalVector3D& vector){
-      os << "RationalVector3D ( "<< vector.x.get_d();
+      os << "RationalVector3D( "<< vector.x.get_d();
       os << ", " << vector.y.get_d();
       os << ", " << vector.z.get_d()<<")";
       return os; 
@@ -358,10 +359,11 @@ namespace temporalalgebra{
     }// Operatopr ^ 
        
     void RationalVector3D::normalize(){
-      mpq_class len2 = this->x * this->x + 
+      mpf_class len2 = this->x * this->x + 
                        this->y * this->y + 
-                       this->z * this->z;                       
-      double len = sqrt(len2.get_d());
+                       this->z * this->z;    
+                       
+      mpf_class len = sqrt(len2);                 
       if (len != 0.0) {
         x /= len;
         y /= len;
@@ -373,8 +375,9 @@ namespace temporalalgebra{
       return x*x + y*y + z*z;
     }// length2
     
-    double RationalVector3D::length() const{
-      return sqrt(length2().get_d());    
+    mpq_class RationalVector3D::length() const{
+      mpf_class tmp = length2();
+      return mpq_class(sqrt(tmp));     
     }// length  
 /*
 6 Class Segment3D
@@ -415,7 +418,7 @@ namespace temporalalgebra{
     }// getR
           
     std::ostream& operator <<(std::ostream& os, const Segment3D& segment){
-      os << "Segment3D (" << segment.tail << ", " << segment.head << ")";
+      os << "Segment3D(" << segment.tail << ", " << segment.head << ")";
       return os; 
     }// operator <<
     
@@ -468,7 +471,7 @@ namespace temporalalgebra{
     
     std::ostream& operator <<(std::ostream& os, 
                               const RationalSegment3D& segment){
-       os << "RationalSegment3D (" << segment.tail << ", ";
+       os << "RationalSegment3D(" << segment.tail << ", ";
        os << segment.head << ")";
       return os; 
     }// Operator << 
@@ -535,7 +538,7 @@ namespace temporalalgebra{
     }// Operator =
          
     std::ostream& operator <<(std::ostream& os, const Point2D& point){
-      os << "Point2D (" << point.x;
+      os << "Point2D(" << point.x;
       os << ", " << point.y << ")";
       return os; 
     }// Operator <<
@@ -600,15 +603,25 @@ namespace temporalalgebra{
     }// Operator =
     
     std::ostream& operator <<(std::ostream& os, const RationalPoint2D& point){
-      os << "RationalPoint2D (" << point.x.get_d();
+      os << "RationalPoint2D(" << point.x.get_d();
       os << ", " << point.y.get_d() << ")";
       return os; 
     }// Oparator <<
+    
+    bool RationalPoint2D::operator <(const RationalPoint2D& point) const {
+      if (NumericUtil::lower(x, point.x))
+        return true;
+      if (NumericUtil::greater(x, point.x))
+        return false;           
+      return NumericUtil::lower(y, point.y);
+    }// Operator <
     
     RationalVector2D RationalPoint2D::operator -(
         const RationalPoint2D& point) const{
       return RationalVector2D(x - point.x, y - point.y);
     }// Operator -  
+    
+    
 /*
 10 Class RationalVector2D
 
@@ -657,30 +670,30 @@ namespace temporalalgebra{
     
     std::ostream& operator <<(std::ostream& os, 
                               const RationalVector2D& vector){
-      os << "RationalVector2D (" << vector.x.get_d();
+      os << "RationalVector2D(" << vector.x.get_d();
       os << ", " << vector.y.get_d() << ")";
       return os; 
     }// Oparator <<
     
     void RationalVector2D::normalize(){
-      mpq_class len2 = this->x * this->x + 
+      mpf_class len2 = this->x * this->x + 
                        this->y * this->y;                       
-      double len = sqrt(len2.get_d());
+      mpf_class len = sqrt(len2);
       if (len != 0.0) {
         x /= len;
         y /= len;
       }// if
     }// normalize
-   
+
      mpq_class RationalVector2D::operator |(
          const RationalVector2D& vector) const{
        return (x * vector.y - y * vector.x);    
      }// operator |
      
-     double RationalVector2D::length() const{
-       mpq_class len2 = this->x * this->x + 
-                        this->y * this->y;                       
-      return sqrt(len2.get_d());
+     mpq_class RationalVector2D::length() const{
+      mpf_class len2 = this->x * this->x + 
+                       this->y * this->y; 
+      return mpq_class(sqrt(len2));                        
     }// length2
 /*
 11 Class Segment2D
@@ -712,7 +725,7 @@ namespace temporalalgebra{
     }// getR
       
     std::ostream& operator <<(std::ostream& os, const Segment2D& segment){
-      os << "Segment2D (" << segment.tail << ", " << segment.head << ")";
+      os << "Segment2D(" << segment.tail << ", " << segment.head << ")";
       return os; 
     }// Opaerator 
     
@@ -866,7 +879,7 @@ namespace temporalalgebra{
 
     std::ostream& Point3DContainer::print(
         std::ostream& os, std::string prefix)const{ 
-      os << "Point3DContainer( " << endl;
+      os << "Point3DContainer(" << endl;
       for(size_t i = 0; i< points.size(); i++){
         os << prefix + "  Index:="<< i<<", " << points[i] << endl; 
       }// for
@@ -942,7 +955,7 @@ namespace temporalalgebra{
     }// setPredicate
     
     std::ostream& operator <<(std::ostream& os, const Segment& segment){
-      os << "Segment (" << segment.getTail() << ", " << segment.getHead();
+      os << "Segment(" << segment.getTail() << ", " << segment.getHead();
       os << ", ";
       os << toString(segment.getPredicate()) <<")";
       return os;
@@ -964,7 +977,7 @@ namespace temporalalgebra{
 
 */      
     SegmentContainer::SegmentContainer():
-       segmentBuckets(vector<list<size_t>>(buckets,list<size_t>())){
+       segmentBuckets(vector<vector<size_t>>(buckets,vector<size_t>())){
     }// Konstruktor
       
     SegmentContainer::SegmentContainer(const SegmentContainer& other){
@@ -972,7 +985,7 @@ namespace temporalalgebra{
     }// Konstruktor
     
     void SegmentContainer::clear(){
-      this->segmentBuckets = vector<list<size_t>>(buckets,list<size_t>());
+      this->segmentBuckets = vector<vector<size_t>>(buckets,vector<size_t>());
       this->segments       = vector<Segment>();    
     }// clear
     
@@ -993,10 +1006,9 @@ namespace temporalalgebra{
     size_t SegmentContainer::add(const Segment& segment, 
                                  bool pFaceIsCritical /* = false*/){
       size_t hash = getHash(segment);
-      std::list<size_t>::const_iterator iterator;
-      for(iterator =  segmentBuckets[hash].begin(); 
-          iterator != segmentBuckets[hash].end(); iterator ++){
-        Segment other = segments[*iterator];
+      for(size_t i = 0; i< segmentBuckets[hash].size();i++){
+        size_t j = segmentBuckets[hash][i];
+        Segment other = segments[j];
         // two segment with equal tail und head
         if( other.getTail() == segment.getTail() &&
             other.getHead() == segment.getHead()){          
@@ -1008,18 +1020,19 @@ namespace temporalalgebra{
             if((segment.getPredicate() == RIGHT_IS_INNER && 
                 other.getPredicate()   == LEFT_IS_INNER) || 
                (segment.getPredicate() == LEFT_IS_INNER && 
-                other.getPredicate()   == RIGHT_IS_INNER)){
-              segments[*iterator].setPredicate(UNDEFINED);  
-              return *iterator;  
+                other.getPredicate()   == RIGHT_IS_INNER)){             
+              segments[j].setPredicate(UNDEFINED);  
+              return j;
+ 
             }//if
             // old intersection predicate ist UNDEFINED
             else if (other.getPredicate() == UNDEFINED) {
-              segments[*iterator] = segment;
-              return *iterator;             
+              segments[j] = segment;
+              return j; 
             }// else if 
-            // old and new predecate are the same - only in selftest
+            // old and new predecate are the same
             else if (other.getPredicate() == segment.getPredicate()){
-              return *iterator;
+              return j;
             }// else if                 
             cerr << "old segment:=" << other << endl;
             cerr << "new segment:=" << segment << endl;
@@ -1027,37 +1040,34 @@ namespace temporalalgebra{
           }// if  
           else {
             // Startpunkt oder Endpunkt des Segments mit einem Schnitt
-            if(other.getPredicate()   == UNDEFINED && (
-               segment.getPredicate() == RIGHT_IS_INNER ||
-               segment.getPredicate() == LEFT_IS_INNER)){
-              segments[*iterator].setPredicate(INTERSECT);
-              return *iterator; 
+            if (other.getPredicate()   == UNDEFINED && (
+                segment.getPredicate() == RIGHT_IS_INNER ||
+                segment.getPredicate() == LEFT_IS_INNER)){
+              segments[j].setPredicate(INTERSECT);
+              return j; 
             }// if
             // Schnitt innerhalb des kritschen Segments
             // Schnitt übernehmen
-            else if (other.getPredicate()   == TEST && 
+            else if (other.getPredicate()   == NO_INTERSECT && 
                     (segment.getPredicate() == RIGHT_IS_INNER ||
                      segment.getPredicate() == LEFT_IS_INNER)){
-              segments[*iterator] = segment;
-              return *iterator;
+              segments[j] = segment;
+              return j;
             }// else if
-            // old and new predecate are the same - ??
+            // old and new predecate are the same 
             else if (other.getPredicate() == segment.getPredicate()){
-              return *iterator;
+              return j;
             }// else if         
             else if (other.getPredicate()   == UNDEFINED && (
                      segment.getPredicate() == INNER ||
                      segment.getPredicate() == OUTER||
                      segment.getPredicate() == INTERSECT)){
-               segments[*iterator] = segment;
-               return *iterator; 
+              segments[j] = segment;
+              return j; 
             }// if         
-            else if(other.getPredicate()   == UNDEFINED && 
-                    segment.getPredicate() == TEST){
-               return *iterator; 
-            }// if 
             cerr << "old segment:=" << other << endl;
             cerr << "new segment:=" << segment << endl;
+            cerr << *this;
             NUM_FAIL("Predicates from critical segments don't combinable.");
           }// else - segments form critical pface
         }// if - two equal segments 
@@ -1070,14 +1080,13 @@ namespace temporalalgebra{
       
     void SegmentContainer::set(size_t index, Predicate predicate){
       if(index < segments.size()){
-        if((segments[index].getPredicate() == UNDEFINED) || 
-           (predicate == INTERSECT)){
-          segments[index].setPredicate(predicate);
+        Predicate oldPredicate = segments[index].getPredicate();
+        if(segments[index].getPredicate() == predicate) return;
+        else if(oldPredicate == UNDEFINED || oldPredicate == NO_INTERSECT){
+          if(predicate != UNDEFINED && predicate != NO_INTERSECT) {
+            segments[index].setPredicate(predicate);
+          }// if
         }// if  
-        else if(segments[index].getPredicate() == predicate) return;
-        else {
-          segments[index].setPredicate(INTERSECT);
-        }// else
       }// if
       else NUM_FAIL("Index is out of range.");        
     }// set
@@ -1096,7 +1105,7 @@ namespace temporalalgebra{
       
     std::ostream& SegmentContainer::print(std::ostream& os, 
                                           std::string prefix)const{
-      os <<  "SegmentContainer ( " << endl;
+      os <<  "SegmentContainer(" << endl;
       for(size_t i = 0; i < segments.size(); i++){
         os << prefix + "  Index:=" << i << ", " << segments[i] << endl;
       }// for

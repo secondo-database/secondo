@@ -1,0 +1,19 @@
+delete tripu5;
+delete tripU8a;
+delete mpA;
+delete mpB;
+delete rA;
+delete rB;
+delete mrA;
+delete mrB;
+
+
+
+restore tripU5 from '../Algebras/MRegionOps/test/tripU5';
+restore tripU8a from '../Algebras/MRegionOps/test/tripU8a';
+let mpA = tripU5;
+let mpB = tripU8a;
+let rA = union_new(westhafen rotate[5500.0, 14600.0, 0.0] scale[3.0], westhafen rotate[5500.0, 14600.0, 50.0] scale[3.0]);
+let rB = grunewald scale[0.75] translate[19000.0, 39000.0];
+let mrA = move(mpA, rA);
+let mrB = move(mpB, rB);

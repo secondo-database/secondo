@@ -30,6 +30,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Implementation of the MRegionOps3Algebra
 
+Mai - November 2017, U. Wiesecke for master thesis.
+
 [TOC]
 
 1 Introduction
@@ -60,7 +62,7 @@ namespace temporalalgebra {
       ~Selftest();
       bool run();
     private:  
-      
+     
       void Point3DTest1();
       void Point2DTest1();
         
@@ -122,8 +124,9 @@ namespace temporalalgebra {
       void PFaceTest7();
       void PFaceTest8();
       void PFaceTest9();
-      void PFaceTest10();
-        
+      void PFaceTest10();     
+      void PFaceTest11();
+       
       void GlobalTimeValuesTest1();
       void GlobalTimeValuesTest2();
         
@@ -144,6 +147,7 @@ namespace temporalalgebra {
       void ResultUnitFactoryTest5();
       void ResultUnitFactoryTest6();
       void ResultUnitFactoryTest7();
+      void ResultUnitFactoryTest8();
         
       void SegmentContainerTest1();
        

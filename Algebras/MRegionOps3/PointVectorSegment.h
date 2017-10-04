@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 [1] Implementation of the MRegionOpsAlgebra
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
+Mai - November 2017, U. Wiesecke for master thesis.
 
 [TOC]
 
@@ -70,7 +71,7 @@ namespace temporalalgebra {
 */    
     enum Predicate { 
       UNDEFINED,
-      TEST,
+      NO_INTERSECT,
       LEFT_IS_INNER,
       RIGHT_IS_INNER,
       INNER,
@@ -236,7 +237,7 @@ Returns the Vector3D pointing from point to this.
 Returns the distance between this and point as double value.
 
 */ 
-      double distance(const RationalPoint3D& point)const;
+      mpq_class distance(const RationalPoint3D& point)const;
 /*
 4.3.8 distance2
     
@@ -352,7 +353,7 @@ Normalize this vector to length one.
 Returns the length of this vector.
 
 */
-      double length() const;   
+      mpq_class length() const;   
 /*
 5.3.10 length2
     
@@ -618,6 +619,8 @@ Print the object values to stream.
 */         
       friend std::ostream& operator <<(std::ostream& os, 
                                        const RationalPoint2D& point);
+      bool operator <(const RationalPoint2D& point) const;
+      
 /*
 9.3.4 operator -
     
@@ -700,7 +703,7 @@ Returns the perp product of this and vector: a scalar.
 */   
       mpq_class operator |(const RationalVector2D& vector) const; 
       
-      double length() const;
+      mpq_class length() const;
     private:  
 /*
 10.4 Private methods
@@ -988,7 +991,7 @@ Print the object values to stream.
       
       const size_t buckets = 47;
       
-      std::vector<std::list<size_t>> segmentBuckets;
+      std::vector<std::vector<size_t>> segmentBuckets;
       std::vector<Segment> segments; 
     }; //SegmentContainer
 

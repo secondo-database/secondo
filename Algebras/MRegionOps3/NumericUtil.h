@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 [1] Definition and Implementation of the class ~NumericUtil~
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
+Mai - November 2017, U. Wiesecke for master thesis.
 
 [TOC]
 

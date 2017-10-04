@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 [1] Definition and Implementation of the class ~NumericUtil~
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
+Mai - November 2017, U. Wiesecke for master thesis.
 
 [TOC]
 
@@ -55,7 +56,7 @@ namespace temporalalgebra {
 
 */    
     bool NumericUtil::nearlyEqual(double a, double b){
-      return fabs(a - b) <= eps;  
+      return fabs(a - b) <= eps2;  
     }// nearlyEqual
     
     bool NumericUtil::nearlyEqual(const mpq_class& a, 
@@ -64,7 +65,7 @@ namespace temporalalgebra {
     }// nearlyEqual
     
     bool NumericUtil::lower(double a, double b){
-      return a < b - eps;  
+      return a < b - eps2;  
     }// lower
         
     bool NumericUtil::lower(const mpq_class& a, const mpq_class& b){
@@ -81,7 +82,7 @@ namespace temporalalgebra {
     }// lowerOrNearlyEqual
    
     bool NumericUtil::greater(double a, double b){
-      return a > b + eps;
+      return a > b + eps2;
     }// greater
  
     bool NumericUtil::greater(const mpq_class& a, const mpq_class& b){

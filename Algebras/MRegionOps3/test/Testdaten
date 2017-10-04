@@ -101,7 +101,32 @@ let mrainX0 =[const mregion value (
                     (4.666666666666666 1.666666666666667 4.229166666666666 2.541666666666667) 
                     (5.0 1.0 5.0 1.0))))))];
                     
-# Neu definition                    
+# Neu definition  
+
+open database opt;
+
+delete m1;
+
+delete m2;
+
+delete m3;
+
+delete m4;
+
+delete m5;
+
+delete m6;
+
+delete m7;
+
+delete m8;
+
+delete m9;
+
+delete mr1;
+
+delete mr2;
+
 let m1 = [const mregion value (((0.0 5.0 TRUE TRUE)
                                 ((((2.0 1.0 2.0 1.0)
                                    (3.5 4.0 3.5 4.0)
@@ -111,23 +136,23 @@ let m2 = [const mregion value (((0.0 5.0 TRUE TRUE)
                                 ((((6.0 1.0 0.0 4.0)                                   
                                    (7.0 3.5 1.0 6.5)
                                    (8.0 1.0 2.0 4.0))))))];
-                                   
+
 let m3 = [const mregion value (((0.0 5.0 TRUE TRUE)
                                 ((((6.0 1.0 0.0 4.0)
                                    (7.5 4.0 1.5 7.0)
                                    (9.0 1.0 3.0 4.0))))))]; 
-                                   
+
 let m4 = [const mregion value (((0.0 10.0 TRUE TRUE)
                                 ((((6.0 1.0 0.0 4.0)                                   
                                    (7.5 4.0 1.5 7.0)
                                    (9.0 1.0 3.0 4.0))))))];   
-                                   
+
 let m5 = [const mregion value (((0.0 5.0 TRUE TRUE)
                                 ((((2.0 11.0 2.0 11.0)
                                    (3.5 14.0 3.5 14.0)
                                    (5.0 11.0 5.0 11.0) )))))];  
-                                   
- let m9= [const  mregion value((("2000-01-04-02:40" "2000-01-05-16:00" TRUE FALSE) 
+
+let m9= [const  mregion value((("2000-01-04-02:40" "2000-01-05-16:00" TRUE FALSE) 
         (
             (
                 (
@@ -138,7 +163,7 @@ let m5 = [const mregion value (((0.0 5.0 TRUE TRUE)
                     (7.666666666666666 1.666666666666667 5.8 2.6) 
                     (4.666666666666666 1.666666666666667 4.199999999999999 2.6) 
                     (5.0 1.0 5.0 1.0))))))];
-                    
+
 let mr1 = [const mregion value (((0.0 10.0 TRUE TRUE)
                                    ((((1.0 3.5 1.5 1.5)
                                       (2.0 5.5 3.0 4.5)
@@ -153,7 +178,7 @@ let mr1 = [const mregion value (((0.0 10.0 TRUE TRUE)
                                       (2.0 4.0 3.0 3.0)
                                       (3.0 4.0 4.0 3.0)
                                       (3.0 3.0 4.0 2.0))))))];
-                                      
+
 let mr2 = [const mregion value (((0.0 10.0 TRUE TRUE)
                                    ((((1.0 3.5 1.5 1.5)
                                       (2.0 5.5 3.0 4.5)
@@ -163,6 +188,18 @@ let mr2 = [const mregion value (((0.0 10.0 TRUE TRUE)
                                       (5.0 4.5 7.5 2.5)
                                       (5.0 2.5 7.5 1.0)
                                       (4.0 1.5 7.0 0.5)
-                                      (3.0 1.5 2.5 0.5))))))];                                      
+                                      (3.0 1.5 2.5 0.5))))))];   
+
+let m6 = m1 union m5;
+
+let m7 = m3 union m2;
+
+let m8 = m1 union m3;
+
+let m10 = m1 union m2 union m3;
+
+query m1 union m2 union m3 union m4 union m5 union m6 union m7 union m8 union m9 union m10;
+
+
                                       
                     
