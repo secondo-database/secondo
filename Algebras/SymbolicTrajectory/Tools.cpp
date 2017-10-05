@@ -602,12 +602,11 @@ of ~text~.
 */
 bool Tools::checkSemanticDate(const string &text, const SecInterval &uIv,
                               const bool eval) {
-  string weekdays[7] = {"monday", "tuesday", "wednesday", "thursday", "friday",
-                        "saturday", "sunday"};
-  string months[12] = {"january", "february", "march", "april", "may", "june",
-                       "july", "august", "september", "october", "november",
-                       "december"};
-  string daytimes[4] = {"morning", "afternoon", "evening", "night"};
+  std::string weekdays[7] = {"monday", "tuesday", "wednesday", "thursday", 
+                             "friday", "saturday", "sunday"};
+  std::string months[12] = {"january", "february", "march", "april", "may", 
+      "june", "july", "august", "september", "october", "november", "december"};
+  std::string daytimes[4] = {"morning", "afternoon", "evening", "night"};
   Instant uStart = uIv.start;
   Instant uEnd = uIv.end;
   bool isSemanticDate = false;
@@ -733,17 +732,134 @@ bool Tools::checkDaytime(const string& text, const SecInterval& uIv) {
 
 */
 bool Tools::isInterval(const string& str) {
+  if (str.empty()) {
+    return false;
+  }
   if ((str[0] > 96) && (str[0] < 123)) { // 1st case: semantic date/time
     return false;
   }
+  if (isDaytime(str)) {
+    return false;
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~isDaytime~}
+
+*/
+bool Tools::isDaytime(const string& str) {
   if ((str.find('-') == string::npos) // 2nd case: 19:09~22:00
           && ((str.find(':') < str.find('~')) // on each side of [~],
               || (str[0] == '~')) // there has to be either xx:yy or nothing
           && ((str.find(':', str.find('~')) != string::npos)
-              || str[str.size() - 1] == '~')) {
-    return false;
+              || str[str.size() - 1] == '~' || str.find('~') == string::npos)) {
+    return true;
   }
-  return true;
+  return false;
+}
+
+/*
+\subsection{Function ~semanticToTimePer~}
+
+*/
+void Tools::semanticToTimePer(const string& spec, 
+                      const NewPair<int64_t, int64_t> limits, Periods& result) {
+  std::string weekdays[7] = {"monday", "tuesday", "wednesday", "thursday", 
+                             "friday", "saturday", "sunday"};
+  std::string months[12] = {"january", "february", "march", "april", "may", 
+      "june", "july", "august", "september", "october", "november", "december"};
+  std::string daytimes[4] = {"morning", "afternoon", "evening", "night"};
+  Periods tempResult(true);
+  Instant leftLimit(limits.first), rightLimit(limits.second);
+  Instant startTemp(instanttype), endTemp(instanttype);
+  Interval<Instant> limitsIv(leftLimit, rightLimit, true, true);
+  cout << "limits from multi-index are " << leftLimit << ", " << rightLimit
+       << endl;
+  bool found = false;
+  for (int i = 0; i < 7 && !found; i++) {
+    if (spec == weekdays[i]) {
+      found = true;
+      int firstDay;
+      if (i >= leftLimit.GetWeekday()) {
+        firstDay = leftLimit.GetDay() + i - leftLimit.GetWeekday();
+      }
+      else {
+        firstDay = leftLimit.GetDay() + 7 - (leftLimit.GetWeekday() - i);
+      }
+      for (int d = firstDay; d <= rightLimit.GetDay(); d = d + 7) {
+        Instant startTmp(d, 0, instanttype), endTmp(d, 86399999, instanttype);
+        Interval<Instant> ivTemp(startTmp, endTmp, true, true);
+        tempResult.MergeAdd(ivTemp);
+      }
+    }
+  }
+  for (int i = 0; i < 12 && !found; i++) {
+    if (spec == months[i]) {
+      found = true;
+      for (int y = leftLimit.GetYear(); y <= rightLimit.GetYear(); y++) {
+        startTemp.Set(y, i + 1, 1, 0, 0, 0, 0);
+        endTemp.Set(y, i + 1, 31, 23, 59, 59, 999);
+        if (endTemp.GetGregDay() < 31) {
+          endTemp.Set(y, i + 1, 31 - endTemp.GetGregDay(), 23, 59, 59, 999);
+        }
+        Interval<Instant> ivTemp(startTemp, endTemp, true, true);
+        tempResult.MergeAdd(ivTemp);
+      }
+    }
+  }
+  for (int i = 0; i < 4 && !found; i++) {
+    if (spec == daytimes[i]) {
+      int startHours[5] = {0, 12, 17, 20, 24};
+      found = true;
+      for (int d = leftLimit.GetDay(); d <= rightLimit.GetDay(); d++) {
+        Instant startTmp(d, 0, instanttype), endTmp(d, 0, instanttype);
+        startTmp.Set(startTmp.GetYear(), startTmp.GetMonth(), 
+                     startTmp.GetGregDay(), startHours[i], 0, 0, 0);
+        endTmp.Set(endTmp.GetYear(), endTmp.GetMonth(), endTmp.GetGregDay(),
+                   startHours[i + 1] - 1, 59, 59, 999);
+        Interval<Instant> ivTemp(startTmp, endTmp, true, true);
+        tempResult.MergeAdd(ivTemp);
+      }
+    }
+  }
+  if (!found) {
+    result.SetDefined(false);
+  }
+  else {
+    tempResult.Intersection(limitsIv, result);
+    cout << "sTTP result: " << result << endl;
+  }
+}
+
+/*
+\subsection{Function ~specToPeriods~}
+
+*/
+void Tools::specToPeriods(const string& spec, 
+                      const NewPair<int64_t, int64_t> limits, Periods& result) {
+  cout << "start sTP with |" << spec << "|" << endl;
+  result.Clear();
+  Instant first(limits.first), last(limits.second);
+  if (spec.empty()) {
+    result.SetDefined(false);
+  }
+  else if (isInterval(spec)) {
+    cout << "Interval" << endl;
+    result.SetDefined(true);
+    SecInterval iv(first, last, true, true);
+    stringToInterval(spec, iv);
+    result.Add(iv);
+  }
+  else if (isDaytime(spec)) {
+    cout << "Daytime" << endl;
+    result.SetDefined(true);
+    stringToDaytimePer(spec, limits, result);
+  }
+  else {
+    cout << spec << " is a semantic specification" << endl;
+    semanticToTimePer(spec, limits, result);
+  }
 }
 
 /*
@@ -774,6 +890,112 @@ void Tools::stringToInterval(const string& str, SecInterval& result) {
     pEnd.ReadFrom(extendDate(str.substr(str.find('~') + 1), false));
   }
   result.Set(pStart, pEnd, true, true);
+}
+
+/*
+\subsection{Function ~setDaytime~}
+
+*/
+void Tools::setDaytime(const string& str, const bool isStart, Instant& result) {
+  cout << "setDaytime(" << str << ", " << isStart << ")" << endl;
+  string src(str);
+  size_t pos = 0;
+  int hour(-1), minute(-1), second(-1), millisecond(-1);
+  pos = src.find(":");
+  if (pos != string::npos) {
+    istringstream istr(src.substr(0, pos));
+    istr >> hour;
+    cout << "found hour. " << hour << endl;
+    src = src.substr(pos + 1);
+    pos = src.find(':');
+    if (pos != string::npos) {
+      istr.clear();
+      istringstream istr(src.substr(0, pos));
+      istr >> minute;
+      cout << "found minute. " << minute << endl;
+      src = src.substr(pos + 1);
+      pos = src.find('.');
+      if (pos != string::npos) { // all values given, 19:09:09.009
+        istr.clear();
+        istringstream istr(src.substr(0, pos));
+        istr >> second;
+        cout << "found second. " << second << endl;
+        istringstream iistr(src.substr(pos + 1));
+        iistr >> millisecond;
+        cout << "found millisecond " << millisecond << endl;
+      }
+      else { // no millisecond, 19:09:09
+        istr.clear();
+        istringstream istr(src.substr(0, src.find('~')));
+        istr >> second;
+        cout << "found second " << second << endl;
+        millisecond = (isStart ? 0 : 999);
+      }
+    }
+    else { // no second, 19:09
+      istringstream istr(src.substr(0, src.find('~')));
+      istr >> minute;
+      cout << "found minute " << minute << endl;
+      second = (isStart ? 0 : 59);
+      millisecond = (isStart ? 0 : 999);
+    }
+  }
+  else {
+    istringstream istr(src.substr(0, src.find('~')));
+    istr >> hour;
+    cout << "found hour " << hour << endl;
+    minute = (isStart ? 0 : 59);
+    second = (isStart ? 0 : 59);
+    millisecond = (isStart ? 0 : 999);
+  }
+  result.Set(result.GetYear(), result.GetMonth(), result.GetGregDay(), hour, 
+             minute, second, millisecond);
+  cout << "result of setDaytime: " << result << endl;
+}
+
+/*
+\subsection{Function ~stringToDaytmePer~}
+
+*/
+void Tools::stringToDaytimePer(const string& str, 
+                      const NewPair<int64_t, int64_t> limits, Periods& result) {
+  Instant leftLimit(limits.first), rightLimit(limits.second);
+  Interval<Instant> limitsIv(leftLimit, rightLimit, true, true);
+  cout << "limits are " << leftLimit << ", " << rightLimit << endl;
+  Instant leftDummy(leftLimit), rightDummy(rightLimit);
+  leftDummy.Set(leftLimit.GetYear(), leftLimit.GetMonth(), 
+                leftLimit.GetGregDay(), 0, 0, 0, 0);
+  rightDummy.Set(rightLimit.GetYear(), rightLimit.GetMonth(),
+                 rightLimit.GetGregDay(), 23, 59, 59, 999);
+  size_t pos = str.find('~');
+  if (pos == 0) { // ~19:09; left limit remains unchanged
+    setDaytime(str.substr(1), false, rightDummy);
+  }
+  else if (pos == string::npos) { // 19:09
+    setDaytime(str, true, leftDummy);
+    setDaytime(str, false, rightDummy);
+  }
+  else if (pos == str.length() - 1) { // 19:09~ ; right limit remains unchanged
+    setDaytime(str.substr(0, pos), true, leftDummy);
+  }
+  else { // 19:09~20:15
+    setDaytime(str.substr(0, pos), true, leftDummy);
+    setDaytime(str.substr(pos + 1), false, rightDummy);
+  }
+  int startDay = std::floor(leftDummy.ToDouble());
+  int endDay = std::floor(rightDummy.ToDouble());
+  double startDaytime = leftDummy.ToDouble() - std::floor(leftDummy.ToDouble());
+  double endDaytime = rightDummy.ToDouble() - std::floor(rightDummy.ToDouble());
+  Periods tempResult(true);
+  for (int i = startDay; i <= endDay; i++) {
+    Instant startTemp(startDaytime + i);
+    Instant endTemp(endDaytime + i);
+    Interval<Instant> iv(startTemp, endTemp, true, true);
+    tempResult.MergeAdd(iv);
+  }
+  cout << "temp result: " << tempResult << endl;
+  cout << "intersect with " << limitsIv << endl;  
+  tempResult.Intersection(limitsIv, result);
 }
 
 /*
@@ -815,17 +1037,21 @@ bool Tools::parseInterval(const string& input, bool &isEmpty, int &pos,
     cout << "invalid interval" << endl;
     return false;
   }
+  bool lc = true;
+  bool rc = true;
+  if (input.find('>', pos) > input.find(' ', pos)) { // <x y lc rc>
+    if (input[pos] != 't' && input[pos] != 'f') {
+      cout << "\"t\" or \"f\" expected for interval, instead of \"" 
+          << input[pos] << "\"" << endl;
+      return false;
+    }
+    lc = (input[pos] == 't');
+    pos = input.find_first_not_of(' ', pos + 1);
+    rc = (input[pos] == 't');
+    pos = input.find('>', pos) + 1;
+  }
   endpos = input.find(' ', pos);
   pos = input.find_first_not_of(' ', endpos);
-  if (input[pos] != 't' && input[pos] != 'f') {
-    cout << "\"t\" or \"f\" expected for interval, instead of \"" 
-        << input[pos] << "\"" << endl;
-    return false;
-  }
-  bool lc = (input[pos] == 't');
-  pos = input.find_first_not_of(' ', pos + 1);
-  bool rc = (input[pos] == 't');
-  pos = input.find('>', pos) + 1;
   CcReal ccleft(left);
   CcReal ccright(right);
   Interval<CcReal> iv(ccleft, ccright, lc, rc);

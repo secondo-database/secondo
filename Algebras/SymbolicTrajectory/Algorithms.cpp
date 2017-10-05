@@ -2070,8 +2070,35 @@ void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
     }
   }
   else { // version for indextmatches2
-    SecInterval ivAtom(true);
+    set<string> ivsAtom;
+    atom.getI(ivsAtom);
+    set<string>::iterator it = ivsAtom.begin();
+    Periods perAtom(true), perSpec(true);
+//     cout << "call sTP(" << *it;
+//     cout << ", (" << ti2->timeLimits.first << ", ";
+//     cout << ti2->timeLimits.second << "), ";
+//     cout << perSpec << ")" << endl;
+    
+    if (ivsAtom.empty()) {
+      perSpec.SetDefined(false);
+    }
+    else {
+      Tools::specToPeriods(*it, ti2->timeLimits, perSpec);
+      cout << "RESULT: " << perSpec << endl;
+      it++;
+      while (it != ivsAtom.end()) {
+        cout << "process |" << *it << "|" << endl;
+        Tools::specToPeriods(*it, ti2->timeLimits, perSpec);
+        it++;
+      }
+    }
+    
+    
+    
+    
+    
     Periods per(true);
+    SecInterval ivAtom(true);
     atom.getInterval(ivAtom);
     if (prevCrucial == -1) {
       for (int i = 1; i <= rel->GetNoTuples(); i++) {
@@ -2098,6 +2125,8 @@ void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
           if (!periods[i]->IsEmpty()) { // prev. index result exists
             indexResult2[atomNo][pred]->succ = i; // refresh succ of pred
             if (ivAtom.IsDefined()) {
+              cout << *(periods[i]) << endl 
+                   << endl << ivAtom << endl;
               periods[i]->Intersection(ivAtom, per);
               periods[i]->CopyFrom(&per);
             }

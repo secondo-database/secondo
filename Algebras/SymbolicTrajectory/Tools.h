@@ -224,8 +224,17 @@ class Tools {
   static bool checkDaytime(const std::string& text, 
                            const temporalalgebra::SecInterval& uIv);
   static bool isInterval(const std::string& str);
+  static bool isDaytime(const std::string& str);
   static void stringToInterval(const std::string& str, 
                                temporalalgebra::SecInterval& result);
+  static void setDaytime(const std::string& str, const bool isStart,
+                         Instant& result);
+  static void stringToDaytimePer(const std::string& str,
+      const NewPair<int64_t, int64_t> limits, temporalalgebra::Periods& result);
+  static void semanticToTimePer(const std::string& spec, 
+      const NewPair<int64_t, int64_t> limits, temporalalgebra::Periods& result);
+  static void specToPeriods(const std::string& spec, 
+      const NewPair<int64_t, int64_t> limits, temporalalgebra::Periods& result);
   static bool orderCheckInsert(temporalalgebra::Range<CcReal> *range,
                                const temporalalgebra::Interval<CcReal> &iv);
   static bool parseInterval(const std::string& input, bool &isEmpty, int &pos,
