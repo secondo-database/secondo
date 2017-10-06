@@ -2073,26 +2073,26 @@ void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
     set<string> ivsAtom;
     atom.getI(ivsAtom);
     set<string>::iterator it = ivsAtom.begin();
-    Periods perAtom(true), perSpec(true);
-//     cout << "call sTP(" << *it;
-//     cout << ", (" << ti2->timeLimits.first << ", ";
-//     cout << ti2->timeLimits.second << "), ";
-//     cout << perSpec << ")" << endl;
-    
-    if (ivsAtom.empty()) {
-      perSpec.SetDefined(false);
+    Periods perAtom(false), perSpec(false), perTemp(true);
+    if (!ivsAtom.empty()) {
+      perAtom.SetDefined(true);
     }
-    else {
+    while (it != ivsAtom.end()) {
+      cout << "process |" << *it << "|" << endl;
       Tools::specToPeriods(*it, ti2->timeLimits, perSpec);
-      cout << "RESULT: " << perSpec << endl;
-      it++;
-      while (it != ivsAtom.end()) {
-        cout << "process |" << *it << "|" << endl;
-        Tools::specToPeriods(*it, ti2->timeLimits, perSpec);
-        it++;
+      if (it == ivsAtom.begin()) { // first specification
+        perAtom.CopyFrom(&perSpec);
+        cout << "1st RESULT: " << perSpec << endl;
       }
+      else {
+        perAtom.Intersection(perSpec, perTemp);
+        perAtom.CopyFrom(&perTemp);
+        perTemp.Clear();
+        cout << "intermediate RESULT: " << perAtom << endl;
+      }
+      it++;
     }
-    
+    cout << "FINAL result: " << perAtom << endl;
     
     
     

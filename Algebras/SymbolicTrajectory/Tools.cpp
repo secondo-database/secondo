@@ -857,7 +857,6 @@ void Tools::specToPeriods(const string& spec,
     stringToDaytimePer(spec, limits, result);
   }
   else {
-    cout << spec << " is a semantic specification" << endl;
     semanticToTimePer(spec, limits, result);
   }
 }
