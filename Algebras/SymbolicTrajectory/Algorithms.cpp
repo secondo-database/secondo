@@ -2074,7 +2074,10 @@ void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
     atom.getI(ivsAtom);
     set<string>::iterator it = ivsAtom.begin();
     Periods perAtom(false), perSpec(false), perTemp(true);
-    if (!ivsAtom.empty()) {
+    if (ivsAtom.empty()) {
+      perAtom.SetDefined(false);
+    }
+    else {
       perAtom.SetDefined(true);
     }
     while (it != ivsAtom.end()) {
@@ -2093,21 +2096,16 @@ void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
       it++;
     }
     cout << "FINAL result: " << perAtom << endl;
-    
-    
-    
-    
-    Periods per(true);
-    SecInterval ivAtom(true);
-    atom.getInterval(ivAtom);
     if (prevCrucial == -1) {
       for (int i = 1; i <= rel->GetNoTuples(); i++) {
         if (periods[i]) {
           if (!periods[i]->IsEmpty()) { // index result exists
             indexResult2[atomNo][pred]->succ = i;
-            if (ivAtom.IsDefined()) {
-              periods[i]->Intersection(ivAtom, per);
-              periods[i]->CopyFrom(&per);
+            if (perAtom.IsDefined()) {
+              periods[i]->EndBulkLoad(false, false);
+              periods[i]->Intersection(perAtom, perTemp);
+              periods[i]->CopyFrom(&perTemp);
+              cout << "intersection: " << *(periods[i]) << endl;
             }
             indexResult2[atomNo][i] = new IndexRetrieval2(pred, 0, periods[i]);
             noResults++;
@@ -2124,11 +2122,11 @@ void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
         if (indexResult2[prevCrucial][i] != 0 && periods[i] != 0) {
           if (!periods[i]->IsEmpty()) { // prev. index result exists
             indexResult2[atomNo][pred]->succ = i; // refresh succ of pred
-            if (ivAtom.IsDefined()) {
-              cout << *(periods[i]) << endl 
-                   << endl << ivAtom << endl;
-              periods[i]->Intersection(ivAtom, per);
-              periods[i]->CopyFrom(&per);
+            if (perAtom.IsDefined()) {
+              periods[i]->EndBulkLoad(false, false);
+              periods[i]->Intersection(perAtom, perTemp);
+              periods[i]->CopyFrom(&perTemp);
+              cout << "*** intersection: " << *(periods[i]) << endl;
             }
             indexResult2[atomNo][i] = new IndexRetrieval2(pred, 0, periods[i]);
             noResults++;
