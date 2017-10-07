@@ -723,7 +723,7 @@ Getdata function for the symbolic trajectory type constructors.
 #ifndef NO_IMAGESIMILARITY
 
 /*
-GetData function for the ~ImageSignature~ type
+GetData function for the ~featuresignature~ type
 
 */
     static DistData* getFeatureSignature(const void* attr);

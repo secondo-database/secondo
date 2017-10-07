@@ -496,8 +496,7 @@ void DistDataReg::initialize()
 #ifndef NO_IMAGESIMILARITY
     addInfo(DistDataInfo(
        DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
-       //FeatureSignaturealg::
-       FeatureSignature::BasicType(), 
+		FeatureSignaturealg::FeatureSignature::BasicType(), 
        getFeatureSignature));
 #endif
 

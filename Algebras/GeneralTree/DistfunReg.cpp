@@ -39,6 +39,7 @@ January-May 2008, Mirko Dibbert
 #include "SpatialAlgebra.h"
 #include "Algorithms.h"
 #include "PictureFuns.h"
+
 #ifndef NO_MP3
 //---------------cru----------------
 #include "FVector.h"
@@ -551,13 +552,13 @@ Method ~DistfunReg::sqfdImageSignature~:
 */
 #ifndef NO_IMAGESIMILARITY
 void DistfunReg::sqfdFeatureSignature(
-		const DistData* data1, 
+    const DistData* data1, 
         const DistData* data2,
-		double &result)
+    double &result)
 {   
     //std::cout << "entered distance fun" << std::endl;
      
-	if(data1->size() == 0 && data2->size() == 0)
+  if(data1->size() == 0 && data2->size() == 0)
     {
         result = 0;
         return ;
@@ -633,7 +634,7 @@ void DistfunReg::sqfdFeatureSignature(
         
         
         fst1.push_back(fst);
-		//d += o1;
+    //d += o1;
     }
     */
     
@@ -676,7 +677,7 @@ void DistfunReg::sqfdFeatureSignature(
         
         
         fst2.push_back(fst);
-		//d += o2;
+    //d += o2;
     }
     */
     //std::cout << "data2 size: " << data2->size() << " o2:" << o2 << std::endl;
@@ -684,7 +685,7 @@ void DistfunReg::sqfdFeatureSignature(
     
     int width = fst1.size() + fst2.size();    
 
-	// build up weight vector
+  // build up weight vector
     long* arr1 = new long[width];
     for (unsigned int i = 0; i < fst1.size(); i++)
     {
@@ -694,7 +695,7 @@ void DistfunReg::sqfdFeatureSignature(
     
     for (int i = fst1.size(); i < width; i++)
     {    
-        //arr1[i] = (-1.0) * fst2.at(i - fst1.size()).weight;
+      //arr1[i] = (-1.0) * fst2.at(i - fst1.size()).weight;
       //arr1[i] = -floor(fst2.at(i - fst1.size()).weight / scale + 0.5) * scale;
         arr1[i] = -round(fst2.at(i - fst1.size()).weight * 100000);
     }     
@@ -723,8 +724,8 @@ void DistfunReg::sqfdFeatureSignature(
     {
         for (int x = 0; x < width; x++)
         {   
-			double tmpDist =  f_s(ist.at(y), ist.at(x));        
-			//mat[y][x] = tmpDist;
+      double tmpDist =  f_s(ist.at(y), ist.at(x));        
+      //mat[y][x] = tmpDist;
             //mat[y][x] = floor(tmpDist / scale + 0.5) * scale;
             mat[y][x] = round(tmpDist * 100000);
             //std::cout << mat[y][x] << "|";            
@@ -748,21 +749,21 @@ void DistfunReg::sqfdFeatureSignature(
             //double tmpProduct = std::abs(arr1[y]) * std::abs(mat[y][x]);
             //if (arr1[y] < 0.0 || mat[y][x] < 0.0)
             //    tmpProduct = -tmpProduct;
-			//resMat[x] += tmpProduct; 
+      //resMat[x] += tmpProduct; 
             double tmp = std::abs(arr1[y]) * std::abs(mat[y][x]); 
-			if (!(arr1[y] > 0 && mat[y][x] > 0))
-			{
-				tmp = -tmp;
-			}
-			resMat[x] += tmp; //arr1[y] * mat[y][x];
-			//std::cout << "resMat:" << resMat[x] << "|"; 
+      if (!(arr1[y] > 0 && mat[y][x] > 0))
+      {
+        tmp = -tmp;
+      }
+      resMat[x] += tmp; //arr1[y] * mat[y][x];
+      //std::cout << "resMat:" << resMat[x] << "|";                       
         }
         //std::cout << std::endl;
     }
 
 
-	// multiply temporary matrix with transposed weight vector
-	// 
+  // multiply temporary matrix with transposed weight vector
+  // 
     long distance = 0;
     for (int x = 0; x < width; x++)
     {
@@ -776,7 +777,7 @@ void DistfunReg::sqfdFeatureSignature(
     
     delete[] resMat;
     for (int i = 0; i < width; i++)
-		delete [] mat[i];
+    delete [] mat[i];
     
     delete[] mat;
     delete[] arr1;
@@ -789,7 +790,7 @@ void DistfunReg::sqfdFeatureSignature(
     
     return;
 
-}		
+}    
 
 
 /*
@@ -799,11 +800,11 @@ Earth Mover's distance function for FeatureSignatures
 
 
 void DistfunReg::emdFeatureSignature(
-		const DistData* data1, 
-		const DistData* data2,
-		double &result)
+    const DistData* data1, 
+    const DistData* data2,
+    double &result)
 {
-	 if(data1->size() == 0 && data2->size() == 0)
+   if(data1->size() == 0 && data2->size() == 0)
      {
         result = 0;
         return ;
@@ -855,7 +856,7 @@ void DistfunReg::emdFeatureSignature(
             break;
         }
         
-				
+        
         try
         {
             tp.calcShadowCosts();
@@ -876,28 +877,28 @@ void DistfunReg::emdFeatureSignature(
             if (!tp.basicsError)
             {
                 tp.visitedUpdateSolution = true;
-				tp.updateSolution();
-			}
-			else
-			{
-				break;
-			}
+        tp.updateSolution();
+      }
+      else
+      {
+        break;
+      }
         }
         catch (std::exception& e)
         {
             std::cout << e.what() << '\n';
         }
-		
- 		if (tp.currentDistance > tp.newDistance)
-		{
+    
+     if (tp.currentDistance > tp.newDistance)
+    {
       tp.currentDistance = tp.newDistance;      
-		}
-		else
-		{
+    }
+    else
+    {
       break; // end here currentDistance is the smallest distance
-		}		
-	}
-	
+    }    
+  }
+  
     
     result = tp.currentDistance;
     return;
@@ -1012,7 +1013,7 @@ void DistfunReg::initialize()
 #endif
 
 #ifndef NO_IMAGESIMILARITY
-	addInfo(DistfunInfo(
+  addInfo(DistfunInfo(
         DFUN_SQFD, DFUN_SQFD_DESCR,
         sqfdFeatureSignature,
         DistDataReg::getInfo(
@@ -1021,7 +1022,7 @@ void DistfunReg::initialize()
         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 
 
-	addInfo(DistfunInfo(
+  addInfo(DistfunInfo(
        DFUN_EMD, DFUN_EMD_DESCR,
        emdFeatureSignature,
         DistDataReg::getInfo(
