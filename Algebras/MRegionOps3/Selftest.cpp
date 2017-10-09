@@ -120,8 +120,9 @@ namespace temporalalgebra {
         PFaceTest8();
         PFaceTest9();
         PFaceTest10();       
-        PFaceTest11();
-        
+        PFaceTest11();        
+        PFaceTest12();
+       
         GlobalTimeValuesTest1();
         GlobalTimeValuesTest2();
              
@@ -161,7 +162,7 @@ namespace temporalalgebra {
         UnitsTest10();
 
         SourceUnitPairTest1();   
-    
+   
         cerr << endl;
         cerr << numberOfTestsRun << " tests run, ";
         cerr << numberOfTestsFailed << " tests failed." << endl <<endl;  
@@ -1498,15 +1499,64 @@ namespace temporalalgebra {
           NO_INTERSECT));
         pf2.setState(CRITICAL);
         pf3.setState(CRITICAL); 
-        assert_("PFaceTest 10.1", "PFaces don't equal.",
+        assert_("PFaceTest 11.1", "PFaces don't equal.",
                 pf0 == pf2);
-        assert_("PFaceTest 10.2", "PFaces don't equal.",
+        assert_("PFaceTest 11.2", "PFaces don't equal.",
                 pf1 == pf3);
         // cout << pf0;
         // cout << pf1;
         // cout << pf2;
         // cout << pf3;        
       }// PFaceTest11
+      
+      void Selftest::PFaceTest12() {        
+        Point3DContainer points;
+        SegmentContainer segments1,segments2,segments3;
+        GlobalTimeValues timeValues(5);
+        // points for pface 0 and 2 
+        size_t  i0 = points.add(Point3D(6.21621622222, 1.89189188889, 0));// 0
+        size_t  i1 = points.add(Point3D(5.6, 2.2, 2.61621622222));
+        size_t  i2 = points.add(Point3D(5.21621622222, 4.39189188889, 0));
+        size_t  i3 = points.add(Point3D(4.6, 4.7, 2.61621622222)); 
+        // points for pface 1 
+        size_t  i4 = points.add(Point3D(4.98648648649, 1.89189189189, 0));// 1
+        size_t  i5 = points.add(Point3D(5.5, 2.2, 2.61621622222));
+        size_t  i6 = points.add(Point3D(7.21621621622, 1.89189189189, 0));
+        size_t  i7 = points.add(Point3D(6.6, 2.2, 2.61621622222)); 
+        // points for pface 3 
+        size_t  i8 = points.add(Point3D(4.98648648649, 1.891891892, 0));// 3
+        size_t  i9 = points.add(Point3D(5.5, 2.2, 2.61621622222));
+        size_t i10 = points.add(Point3D(7.21621621622, 1.89189189189, 0));
+        size_t i11 = points.add(Point3D(6.6, 2.2, 2.61621622222)); 
+        // segments for pface 0
+        segments1.add(Segment(i0,i1));
+        segments1.add(Segment(i2,i3));
+        // segments for pface 1
+        segments2.add(Segment(i4,i5));
+        segments2.add(Segment(i6,i7)); 
+        // segments for pface 2
+        segments3.add(Segment(i8,i9));
+        segments3.add(Segment(i10,i11));         
+        // create pface
+        PFace pf0(0,1,points,segments1);
+        PFace pf1(0,1,points,segments2);
+        PFace pf2(pf0);
+        PFace pf3(0,1,points,segments3);
+        // intersection
+        pf0.intersection(pf1,timeValues);
+        pf2.intersection(pf3,timeValues);
+        assert_("PFaceTest 12.1", "PFaces don't equal.",
+                pf0 == pf2);
+        assert_("PFaceTest 12.2", "PFaces don't equal.",
+                pf1 == pf3);
+        // cout << setprecision(12) << points;
+        // cout << setprecision(12) << pf0;
+        // cout << setprecision(12) << pf1;
+        // cout << setprecision(12) << pf2;
+        // cout << setprecision(12) << pf3;
+      }// PFaceTest12
+      
+      
 /*
 18 Test GlobalTimeValues
 
@@ -4347,6 +4397,6 @@ namespace temporalalgebra {
                 "An intersection result isn't equal.",
                 (result));
       }// UnitsTest10
-              
+               
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra

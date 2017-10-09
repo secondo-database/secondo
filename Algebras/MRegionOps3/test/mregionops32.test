@@ -1,0 +1,119 @@
+#
+# MRegionOps3Algebra-Testfile
+#
+# November 2008, M. Hoeger
+# November 2017, U. Wiesecke
+#
+# *
+# * Note: Call this testscript as follows:
+# * TestRunner --no-tmp -i ../Algebras/MRegionOps3/test/mregionops32.test
+# *
+################################################################################
+# *
+# * Preparing the test database
+# *
+################################################################################
+#testcase create database berlintest
+#yields success
+#create database berlintest;
+#testcase open database berlintest
+#yields success
+open database berlintest;
+
+delete tripU5;
+delete tripU8a;
+delete mpA;
+delete mpB;
+delete rA;
+delete rB;
+delete mrA;
+delete mrB;
+
+################################################################################
+# *
+# * Create test data
+# *
+################################################################################
+restore tripU5 from '../Algebras/MRegionOps3/test/tripU5';
+restore tripU8a from '../Algebras/MRegionOps3/test/tripU8a';
+let mpA = tripU5;
+let mpB = tripU8a;
+let rA = union_new(westhafen rotate[5500.0, 14600.0, 0.0] scale[3.0], 
+ westhafen rotate[5500.0, 14600.0, 50.0] scale[3.0]);
+let rB = grunewald scale[0.75] translate[19000.0, 39000.0];
+let mrA = move(mpA, rA);
+let mrB = move(mpB, rB);
+################################################################################
+# *
+# * Detailed test, preparation
+# *
+################################################################################
+delete t0A;
+delete t0B;
+delete t1A;
+delete t1B;
+delete t0;
+delete t1;
+delete noSamples;
+delete step;
+delete samples;
+delete tolerance;
+delete aUb;
+delete aIb;
+delete aMb;
+
+let noSamples = 101.0;
+let t0A = instant2real(inst(initial(mrA)));
+let t0B = instant2real(inst(initial(mrB)));
+let t1A = instant2real(inst(final(mrA)));
+let t1B = instant2real(inst(final(mrB)));
+let t0 = ifthenelse(t0A < t0B, t0A, t0B);
+let t1 = ifthenelse(t1A > t1B, t1A, t1B);
+let step = (abs(t1 - t0)) / noSamples;
+let samples = realstream(t0, t1, step) 
+              use[fun(t: real) create_instant(t)] transformstream consume;
+let tolerance = 0.1;
+################################################################################
+# *
+# * Detailed test, Union
+# *
+################################################################################
+#testcase mrA union mrB
+#yields ()
+let aUb = mrA union mrB;
+
+#yields (bool TRUE)
+query samples feed transformstream 
+use[ fun(t: instant) abs( area(val(aUb atinstant t)) - 
+area( val(mrA atinstant t) union val(mrB atinstant t))
+)] transformstream max[Elem] < tolerance;
+################################################################################
+# *
+# * Detailed test, Intersection
+# *
+################################################################################
+#testcase intersection(mrA, mrB)
+#yields ()
+let aIb = intersection(mrA, mrB);
+
+#yields (bool TRUE)
+query samples feed transformstream 
+use[ fun(t: instant) abs( area(val(aIb atinstant t)) - 
+area( intersection(val(mrA atinstant t), val(mrB atinstant t)))
+)] transformstream max[Elem] < tolerance;
+################################################################################
+# *
+# * Detailed test, Minus
+# *
+################################################################################
+#testcase mrA minus mrB
+#yields ()
+let aMb = mrA minus mrB;
+
+#yields (bool TRUE)
+query samples feed transformstream 
+use[ fun(t: instant) abs( area(val(aMb atinstant t)) - 
+area( val(mrA atinstant t) minus val(mrB atinstant t))
+)] transformstream max[Elem] < tolerance;
+
+

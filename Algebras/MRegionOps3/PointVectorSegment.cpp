@@ -60,7 +60,6 @@ namespace temporalalgebra{
         default: return "";
       }// switch
     }// toString
-    
 /*
 3 Class Point3D
 
@@ -247,16 +246,17 @@ namespace temporalalgebra{
     
     RationalVector3D RationalPoint3D::operator -(
         const RationalPoint3D& point) const{
+      RationalVector3D result;    
       return RationalVector3D(this->x - point.x, this->y - point.y, 
-                              this->z - point.z);
+                               this->z - point.z);
     }// Operator -
          
     mpq_class RationalPoint3D::distance2(const RationalPoint3D& point)const{
-       return (point - *this).length2();      
+      return (point - *this).length2();      
     }// distance2
       
     mpq_class RationalPoint3D::distance(const RationalPoint3D& point)const{
-       return (point - *this).length();      
+      return (point - *this).length();      
     }// distance     
 /*
 5 Class RationalVector3D
@@ -620,8 +620,6 @@ namespace temporalalgebra{
         const RationalPoint2D& point) const{
       return RationalVector2D(x - point.x, y - point.y);
     }// Operator -  
-    
-    
 /*
 10 Class RationalVector2D
 
@@ -749,10 +747,9 @@ namespace temporalalgebra{
     
     bool Segment2D::isLeft(const Point2D& point)const{
       return NumericUtil::greater(whichSide(point), 0.0); 
-    }// isLeft
-    
+    }// isLeft  
 /*
-11 Class RationalSegment2D
+12 Class RationalSegment2D
 
 */      
     RationalSegment2D::RationalSegment2D(){
@@ -832,9 +829,8 @@ namespace temporalalgebra{
       }// else
       return true;
     }// intersection
-
 /*
-12 Class Point3DContainer
+13 Class Point3DContainer
 
 */       
     Point3DContainer::Point3DContainer():pointsTree(4, 8){
@@ -912,7 +908,7 @@ namespace temporalalgebra{
       return container.print(os,"");
     }// Operator << 
 /*
-13 class Segment
+14 class Segment
 
 */      
     Segment::Segment (){
@@ -973,7 +969,7 @@ namespace temporalalgebra{
       return *this;
     }// Operator = 
 /*
-14 class SegmentContainer
+15 class SegmentContainer
 
 */      
     SegmentContainer::SegmentContainer():
@@ -1057,14 +1053,21 @@ namespace temporalalgebra{
             // old and new predecate are the same 
             else if (other.getPredicate() == segment.getPredicate()){
               return j;
-            }// else if         
+            }// else if 
+            // Segment wird ein zweites Mal mit Definition hinzugefügt
             else if (other.getPredicate()   == UNDEFINED && (
                      segment.getPredicate() == INNER ||
                      segment.getPredicate() == OUTER||
                      segment.getPredicate() == INTERSECT)){
               segments[j] = segment;
               return j; 
-            }// if         
+            }// if  
+            // Schnittsegment soll gesetzt werden
+            else if (other.getPredicate()   == INTERSECT && (
+                     segment.getPredicate() == INNER ||
+                     segment.getPredicate() == OUTER)){
+              return j;
+            }// if            
             cerr << "old segment:=" << other << endl;
             cerr << "new segment:=" << segment << endl;
             cerr << *this;
@@ -1086,7 +1089,11 @@ namespace temporalalgebra{
           if(predicate != UNDEFINED && predicate != NO_INTERSECT) {
             segments[index].setPredicate(predicate);
           }// if
-        }// if  
+        }// else if
+        else if ((oldPredicate == INNER && predicate == OUTER) ||
+                 (oldPredicate == OUTER && predicate == INNER)) { 
+          segments[index].setPredicate(INTERSECT);
+        }// else
       }// if
       else NUM_FAIL("Index is out of range.");        
     }// set

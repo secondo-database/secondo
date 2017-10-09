@@ -126,6 +126,7 @@ namespace temporalalgebra {
       void PFaceTest9();
       void PFaceTest10();     
       void PFaceTest11();
+      void PFaceTest12();
        
       void GlobalTimeValuesTest1();
       void GlobalTimeValuesTest2();

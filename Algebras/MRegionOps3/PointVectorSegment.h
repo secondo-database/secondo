@@ -64,7 +64,6 @@ namespace temporalalgebra {
     class RationalSegment3D;
     class RationalPoint2D;
     class RationalVector2D;
-    
 /*
 2.3 Enumeration Predicate
 
@@ -117,7 +116,6 @@ Return the object with double representaion in rational representation
 Return the bounding box for the point object.
 
 */
-      
       Rectangle<3> getBoundingBox() const;
 /*
 3.3 Operators and Predicates
@@ -262,8 +260,7 @@ Returns the quadratic distance between this and point as rational value.
       mpq_class x;
       mpq_class y;
       mpq_class z;
-    };// RationalPoint3D
-    
+    };// RationalPoint3D 
 /*
 5 Class RationalVector3D
 
@@ -780,7 +777,7 @@ Print the object values to stream.
     };// Segment2D   
     
 /*
-11 Class RationalSegment2D
+12 Class RationalSegment2D
 
 This class provides an oriented segment in the euclidian plane.
 It's start- and endpoint is represented by a RationalPoint2D each.
@@ -789,7 +786,7 @@ It's start- and endpoint is represented by a RationalPoint2D each.
     class RationalSegment2D {
     public:
 /*
-11.1 Constructors
+12.1 Constructors
 
 */       
       RationalSegment2D();
@@ -797,7 +794,7 @@ It's start- and endpoint is represented by a RationalPoint2D each.
                         const RationalPoint2D& head);
       RationalSegment2D(const Segment2D& segment);
 /*
-11.2 Getter methods.
+12.2 Getter methods.
 
 */
       RationalPoint2D getHead() const; 
@@ -806,9 +803,9 @@ It's start- and endpoint is represented by a RationalPoint2D each.
       Segment2D getD()const; 
       
 /*
-11.3 Methods, operators and predicates
+12.3 Methods, operators and predicates
         
-11.3.1 Operator <<
+12.3.1 Operator <<
 
 Print the object values to stream.
 
@@ -816,7 +813,7 @@ Print the object values to stream.
       friend std::ostream& operator <<(std::ostream& os, 
                                        const RationalSegment2D& segment);   
 /*      
-11.3.2 Operator for comparison.
+12.3.2 Operator for comparison.
 
 */
       bool operator ==(const RationalSegment2D& segment) const; 
@@ -826,7 +823,7 @@ Print the object values to stream.
       
     protected:
 /*
-11.4 Attributes
+12.4 Attributes
 
 */       
       RationalPoint2D tail;
@@ -834,7 +831,7 @@ Print the object values to stream.
     };// RationalSegment2D 
     
 /*
-12 Class Point3DContainer
+13 Class Point3DContainer
 
 This class provides a containervector for Point3d values.
 
@@ -842,21 +839,21 @@ This class provides a containervector for Point3d values.
     class Point3DContainer{
     public:
 /*
-12.1 Constructors
+13.1 Constructors
 
 */    
       Point3DContainer();
       Point3DContainer(const Point3DContainer& points);
 /*
-12.2 Getter methods.
+13.2 Getter methods.
 
 */     
       Point3D  get(size_t index)const;
       size_t   size()const;
 /*
-12.3 Methods, Operators and predicates
+13.3 Methods, Operators and predicates
         
-12.3.1 Operator <<
+13.3.1 Operator <<
 
 Print the object values to stream.
 
@@ -864,35 +861,35 @@ Print the object values to stream.
       friend std::ostream& operator<<( std::ostream& os, 
                                        const Point3DContainer& container); 
 /*      
-12.3.2 Operator for comparison.
+13.3.2 Operator for comparison.
 
 */      
       bool operator == (const Point3DContainer& points)const;
 /*
-12.3.3 operator =
+13.3.3 operator =
     
 */      
       Point3DContainer& operator = (const Point3DContainer& points);
 /*
-12.3.4 add.
+13.3.4 add.
 
 */       
       size_t add(const Point3D& point);
 /*
-12.3.5 print.
+13.3.5 print.
 
 */       
       std::ostream& print(std::ostream& os, std::string prefix)const;           
     private:
 /*
-12.4 Private methods
+13.4 Private methods
 
 12.4.1 set
 
 */      
       void set(const Point3DContainer& points);
 /*
-12.5 Attributes
+13.5 Attributes
 
 */        
       std::vector<Point3D> points; 
@@ -900,13 +897,13 @@ Print the object values to stream.
     };// Point3DContainer
     
 /*
-3 class Segment
+14 class Segment
 
 */     
     class Segment {
     public:
 /*
-3.1 Constructor
+14.1 Constructor
 
 */        
       Segment ();
@@ -914,7 +911,7 @@ Print the object values to stream.
                const Predicate& predicate = UNDEFINED);
       Segment (const Segment& segment);
 /*
-3.2 Getter methods
+14.2 Getter methods
 
 */     
       void setPredicate(Predicate predicate);
@@ -922,9 +919,9 @@ Print the object values to stream.
       size_t getTail()const;
       Predicate getPredicate() const;
 /*
-3.3 Methods, Operators and Predicates
+14.3 Methods, Operators and Predicates
 
-3.3.1 Operator <<
+14.3.1 Operator <<
     
 Print the object values to stream.
 
@@ -932,65 +929,111 @@ Print the object values to stream.
       friend std::ostream& operator <<(std::ostream& os, 
                                        const Segment& segment);
 /*      
-3.3.2 Operator for comparison.
+14.3.2 Operator for comparison.
 
 */
       bool operator ==(const Segment& segment) const; 
 /*
-3.3.3 operator =
+14.3.3 operator =
     
 */
       Segment& operator =(const Segment& segment);     
     private:
 /*
-3.4 Private methods
+14.4 Private methods
 
-3.4.1 set
+14.4.1 set
 
 */        
       void set(const Segment& segment);  
 /*
-3.5 Attributes
+14.5 Attributes
 
 */
       size_t head;
       size_t tail;
       Predicate predicate;
-    };// Segment     
-    
+    };// Segment       
+/*
+15 class SegmentContainer
+
+*/      
     class SegmentContainer {
     public:  
-      // Konstruktor
-      SegmentContainer();
-      
-      SegmentContainer(const SegmentContainer& other);
-      
-      size_t size()const;
+/*
+15.1 Constructor
 
+*/  
+      SegmentContainer();
+      SegmentContainer(const SegmentContainer& other);
+/*
+15.2 Methods, Operators and Predicates
+
+15.2.1 size
+
+*/
+      size_t size()const;      
+/*
+15.2.2 add
+
+*/
       size_t add(const Segment& segment, bool pFaceIsCritical = false);
-      
+/*
+15.2.3 clear
+
+*/      
       void clear();
-      
+/*
+15.2.4 set
+
+*/      
       void set(size_t index, Predicate predicate);
-      
+/*
+15.2.5 get
+
+*/      
       Segment   get(size_t index)const;
-      
+/*
+15.2.6 print
+
+*/      
       std::ostream& print(std::ostream& os, std::string prefix)const;
-      
+/*      
+15.2.7 Operator <<
+    
+Print the object values to stream.
+
+*/      
       friend std::ostream& operator<<( std::ostream& os, 
                                        const SegmentContainer& container); 
-      
+/*      
+15.2.8 Operator for comparison.
+
+*/      
       bool operator == (const SegmentContainer& segments)const;
-      
+/*
+15.2.9 operator =
+    
+*/      
       SegmentContainer& operator = (const SegmentContainer& segments);
     private:  
-      
+/*
+15.3 Private methods
+
+15.3.1 getHash
+
+*/       
       size_t getHash(const Segment& segment)const;
-      
+/*
+15.3.2 set
+
+*/            
       void set(const SegmentContainer& other);
-      
-      const size_t buckets = 47;
-      
+/*
+15.4 Attributes
+
+*/      
+      const size_t buckets = 47;      
       std::vector<std::vector<size_t>> segmentBuckets;
       std::vector<Segment> segments; 
     }; //SegmentContainer

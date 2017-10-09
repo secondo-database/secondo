@@ -1,0 +1,214 @@
+#
+# MRegionOps3Algebra-Testfile
+#
+# November 2017, U. Wiesecke
+#
+# *
+# * Note: Call this testscript as follows:
+# * TestRunner --no-tmp -i ../Algebras/MRegionOps3/test/mregionops31.test
+# *
+################################################################################
+# *
+# * Preparing the test database
+# *
+################################################################################
+#testcase create database opt
+#yields success
+#create database opt;
+#testcase open database opt
+#yields success
+open database opt;
+delete m1;
+delete m2;
+delete m3;
+delete m4;
+delete m5;
+delete m6;
+delete m7;
+delete m8;
+delete m9;
+delete m10;
+delete mr1;
+delete mr2;
+################################################################################
+# *
+# * Self test
+# *
+################################################################################
+#testcase selftest
+#yields (bool TRUE)
+query mregionops3test();
+################################################################################
+# *
+# * Create test data
+# *
+################################################################################
+#testcase create m1
+#yields success
+let m1 = [const mregion value (((0.0 5.0 TRUE TRUE)
+                                ((((2.0 1.0 2.0 1.0)
+                                   (3.5 4.0 3.5 4.0)
+                                   (5.0 1.0 5.0 1.0))))))];
+#testcase create m2
+#yields success
+let m2 = [const mregion value (((0.0 5.0 TRUE TRUE)
+                                ((((6.0 1.0 0.0 4.0)                                   
+                                   (7.0 3.5 1.0 6.5)
+                                   (8.0 1.0 2.0 4.0))))))];
+#testcase create m3
+#yields success
+let m3 = [const mregion value (((0.0 5.0 TRUE TRUE)
+                                ((((6.0 1.0 0.0 4.0)
+                                   (7.5 4.0 1.5 7.0)
+                                   (9.0 1.0 3.0 4.0))))))];
+#testcase create m4
+#yields success
+let m4 = [const mregion value (((0.0 10.0 TRUE TRUE)
+                                ((((6.0 1.0 0.0 4.0)                                   
+                                   (7.5 4.0 1.5 7.0)
+                                   (9.0 1.0 3.0 4.0))))))];
+#testcase create m5
+#yields success                                   
+let m5 = [const mregion value (((0.0 5.0 TRUE TRUE)
+                                ((((2.0 11.0 2.0 11.0)
+                                   (3.5 14.0 3.5 14.0)
+                                   (5.0 11.0 5.0 11.0) )))))];
+#testcase create m9
+#yields success                                   
+let m9 = [const  mregion value((("2000-01-04-02:40" 
+                                 "2000-01-05-16:00" TRUE TRUE) 
+        (
+            (
+                (
+                    (2.0 1.0 2.0 1.0) 
+                    (3.5 4.0 3.5 4.0) 
+                    (4.666666666666666 1.666666666666667 3.5 4.0) 
+                    (6.166666666666666 4.666666666666666 4.3 5.6) 
+                    (7.666666666666666 1.666666666666667 5.8 2.6) 
+                    (4.666666666666666 1.666666666666667 4.199999999999999 2.6)
+                    (5.0 1.0 5.0 1.0))))))];
+#testcase create mr1
+#yields success                    
+let mr1 = [const mregion value (((0.0 10.0 TRUE TRUE)
+                                   ((((1.0 3.5 1.5 1.5)
+                                      (2.0 5.5 3.0 4.5)
+                                      (3.0 6.5 3.5 5.0)
+                                      (4.0 6.5 5.5 5.0)
+                                      (4.0 5.5 5.5 4.5)
+                                      (5.0 4.5 7.5 2.5)
+                                      (5.0 2.5 7.5 1.0)
+                                      (4.0 1.5 7.0 0.5)
+                                      (3.0 1.5 2.5 0.5))
+                                     ((2.0 3.0 3.0 2.0)
+                                      (2.0 4.0 3.0 3.0)
+                                      (3.0 4.0 4.0 3.0)
+                                      (3.0 3.0 4.0 2.0))))))];
+#testcase create mr2
+#yields success
+let mr2 = [const mregion value (((0.0 10.0 TRUE TRUE)
+                                   ((((1.0 3.5 1.5 1.5)
+                                      (2.0 5.5 3.0 4.5)
+                                      (3.0 6.5 3.5 5.0)
+                                      (4.0 6.5 5.5 5.0)
+                                      (4.0 5.5 5.5 4.5)
+                                      (5.0 4.5 7.5 2.5)
+                                      (5.0 2.5 7.5 1.0)
+                                      (4.0 1.5 7.0 0.5)
+                                      (3.0 1.5 2.5 0.5))))))];
+################################################################################
+# *
+# * General functional test
+# *
+################################################################################
+#testcase m1 union m5
+#yields ()
+let m6 = m1 union m5;
+
+#testcase m3 union m2
+#yields ()
+let m7 = m3 union m2;
+
+#testcase m1 union m3
+#yields ()
+let m8 = m1 union m3;
+
+#testcase m1 union m2 union m3
+#yields ()
+let m10 = m1 union m2 union m3;
+
+#testcase union all
+#yields success
+query m1 union m2 union m3 union m4 union m5 union m6 union m7 union m8 union m9
+union m10;
+################################################################################
+# *
+# * Detailed test, preparation
+# *
+################################################################################
+delete t0A;
+delete t0B;
+delete t1A;
+delete t1B;
+delete t0;
+delete t1;
+delete noSamples;
+delete step;
+delete samples;
+delete tolerance;
+delete aUb;
+delete aIb;
+delete aMb;
+
+let noSamples = 101.0;
+let t0A = instant2real(inst(initial(mr1)));
+let t0B = instant2real(inst(initial(m3)));
+let t1A = instant2real(inst(final(mr1)));
+let t1B = instant2real(inst(final(m3)));
+let t0 = ifthenelse(t0A < t0B, t0A, t0B);
+let t1 = ifthenelse(t1A > t1B, t1A, t1B);
+let step = (abs(t1 - t0)) / noSamples;
+let samples = realstream(t0, t1, step) 
+              use[fun(t: real) create_instant(t)] transformstream consume;
+let tolerance = 0.1;
+################################################################################
+# *
+# * Detailed test, Union
+# *
+################################################################################
+#testcase mr1 union m3
+#yields ()
+let aUb = mr1 union m3;
+
+#yields (bool TRUE)
+query samples feed transformstream 
+use[ fun(t: instant) abs( area(val(aUb atinstant t)) - 
+area( val(mr1 atinstant t) union val(m3 atinstant t))
+)] transformstream max[Elem] < tolerance;
+################################################################################
+# *
+# * Detailed test, Intersection
+# *
+################################################################################
+#testcase intersection(mr1, m3)
+#yields ()
+let aIb = intersection(mr1, m3);
+
+#yields (bool TRUE)
+query samples feed transformstream 
+use[ fun(t: instant) abs( area(val(aIb atinstant t)) - 
+area( intersection(val(mr1 atinstant t), val(m3 atinstant t)))
+)] transformstream max[Elem] < tolerance;
+################################################################################
+# *
+# * Detailed test, Minus
+# *
+################################################################################
+#testcase mr1 minus m3
+#yields ()
+let aMb = mr1 minus m3;
+
+#yields (bool TRUE)
+query samples feed transformstream 
+use[ fun(t: instant) abs( area(val(aMb atinstant t)) - 
+area( val(mr1 atinstant t) minus val(m3 atinstant t))
+)] transformstream max[Elem] < tolerance;
