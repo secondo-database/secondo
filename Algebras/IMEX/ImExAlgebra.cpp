@@ -9387,7 +9387,7 @@ struct ClusterInfo{
         minTime = cl.minTime;
      }
      if(maxTime < cl.maxTime){
-					maxTime = cl.maxTime;
+        maxTime = cl.maxTime;
      }
      count += cl.count;
   }
@@ -9719,6 +9719,10 @@ class aisimportInfo{
           processMessage1(msg);
        }
        delete dec;
+       if(time.IsDefined()){
+          processPosMessages(time,time);
+       }
+
        return count;
     }
 
@@ -10394,29 +10398,30 @@ General distribution of messages accorsing to their types.
 
     template<class T>
     void processMessageWS(T* msg){
-       updateSecond(msg->second);
-       processMessage2(msg);
+       if(time.IsDefined()){
+          posMessages.push_back(msg);
+       } else {
+          processMessage2(msg);
+       }
     }
 
-    void updateSecond(int second){
-       if(!time.IsDefined()){ // nothing to update
-          return; 
-       }
-       int cs = time.GetSecond();
-       if(cs > 50 && second < 10){
-           second = second +60;
-       }
-       if(second < cs){ // do no go back in time
+    void processPosMessages(datetime::DateTime & old, datetime::DateTime now){
+       if(posMessages.empty()){
           return;
+       } 
+       size_t numMessages = posMessages.size();
+       datetime::DateTime timeDiff = now - old;
+       datetime::DateTime timeDiffPerMsg = timeDiff / numMessages;
+       for(size_t i=0;i<numMessages;i++){
+            time += timeDiffPerMsg;
+            assert(time <= now);
+            processMessage2(posMessages[i]);
+            delete posMessages[i];
        }
-       int timediff = (second - cs) * 1000;
-       if(timediff > 20000){ // do not allow jumps with more than 20 seconds,
-                             //  good idea???
-          return;
-       }
-       datetime::DateTime diff(datetime::durationtype, timediff);
-       time += diff;
+       posMessages.clear();
+
     }
+
 
 
     void processMessage(aisdecode::Message4* msg){
@@ -10501,6 +10506,7 @@ General distribution of messages accorsing to their types.
              writeMessage(msg);
              return;
           }
+          processPosMessages(time, msgtime);
           time = msgtime;
        } else { // msgtime < time
          ;
