@@ -3438,8 +3438,47 @@ Operator transformDateTime(
     );
 
 
+/*
+Operator abs
+
+*/
+ListExpr absTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+     return listutils::typeError("one argument expected");
+  }
+  if(!Duration::checkType(nl->First(args))){
+    return listutils::typeError("expected duration");
+  }
+  return nl->First(args);
+}
 
 
+
+int absVM(Word* args, Word& result, int message,
+                                Word& local, Supplier s){
+
+   result = qp->ResultStorage(s);
+   DateTime* arg = (DateTime*) args[0].addr;
+   DateTime* res = (DateTime*) result.addr;
+   *res = *arg;
+   res->Abs();
+   return  0;
+}
+
+OperatorSpec absSpec(
+  "duration -> duration",
+  "abs(_)",
+  "Computes the absolute duration.",
+  "query abs([const duration value -1]);"
+);
+
+Operator absOp(
+  "abs",
+  absSpec.getStr(),
+  absVM,
+  Operator::SimpleSelect,
+  absTM
+);
 
 
 
@@ -3496,6 +3535,7 @@ class DateTimeAlgebra : public Algebra
     AddOperator(&dt_tostring);
     AddOperator(&str2instant);
     AddOperator(&transformDateTime);
+    AddOperator(&absOp);
   }
   ~DateTimeAlgebra() {};
 };
