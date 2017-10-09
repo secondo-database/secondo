@@ -442,7 +442,9 @@ class aisdecoder{
      }
   }
 
-   MessageBase* getNextMessage();
+  MessageBase* getNextMessage();
+
+  MessageBase* getNextMessage(const int type);
 
 
  private:
@@ -452,9 +454,9 @@ class aisdecoder{
     std::string line;
 
 
-   MessageBase* decodeLine(const std::string& line);
+   MessageBase* decodeLine(const std::string& line, const int type);
 
-   MessageBase* decodevdms(const std::string& line);
+   MessageBase* decodevdms(const std::string& line, const int type);
    MessageBase* decodeLine(std::string& talker, 
                             int fragmentcount, 
                             int fragmentnumber,  

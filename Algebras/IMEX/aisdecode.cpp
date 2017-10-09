@@ -624,7 +624,26 @@ MessageBase* aisdecoder::getNextMessage(){
     getline(in,line);
     MessageBase* msg = 0;
     try{
-       msg = decodeLine(line);
+       msg = decodeLine(line,0);
+    } catch(...){
+       std::cerr << "Exception during decoding line " << line << std::endl;
+    }
+    if(msg){
+       return msg;
+    }
+  }
+  try{
+     in.close();
+  } catch(...) {}
+  return 0;
+}
+
+MessageBase* aisdecoder::getNextMessage(const int type){
+  while(!in.eof() && in.good()){
+    getline(in,line);
+    MessageBase* msg = 0;
+    try{
+       msg = decodeLine(line,type);
     } catch(...){
        std::cerr << "Exception during decoding line " << line << std::endl;
     }
@@ -639,7 +658,7 @@ MessageBase* aisdecoder::getNextMessage(){
 }
 
 
-MessageBase* aisdecoder::decodeLine(const std::string& line){
+MessageBase* aisdecoder::decodeLine(const std::string& line, const int type){
    if(line.size()==0){ // ignore empty lines
      return 0;
    }   
@@ -651,7 +670,7 @@ MessageBase* aisdecoder::decodeLine(const std::string& line){
    }
    std::string talker = line.substr(0,pos);
    if(talker.length()==6 && talker[0]=='!' && talker.substr(3,2)=="VD"){
-      return decodevdms(line);
+      return decodevdms(line, type);
    } else if(talker=="$PVOL"){
       return 0; // heartbeat message, ignore
    } else {
@@ -660,7 +679,7 @@ MessageBase* aisdecoder::decodeLine(const std::string& line){
    }
 }
 
-MessageBase* aisdecoder::decodevdms(const std::string& line){
+MessageBase* aisdecoder::decodevdms(const std::string& line, const int type){
    std::string talker = line.substr(1,2);
    size_t pos1 = 0;
    size_t pos2 = line.find(",");
@@ -695,7 +714,18 @@ MessageBase* aisdecoder::decodevdms(const std::string& line){
      std::cerr << "line is " << line << std::endl; 
      return 0;
    }
-   std::string msg = tmp; 
+   std::string msg = tmp;
+   if(msg.length()<1){
+       return 0;
+   }
+   // extract type and filter out if type not fits
+   int t = msg[0] - '0';
+   if(t>40) t -= 8;
+   if(type>0 && t!=type){
+       return 0;
+   }
+
+ 
    pos1 = pos2;
    pos1++;
    pos2 = line.find(",",pos1);

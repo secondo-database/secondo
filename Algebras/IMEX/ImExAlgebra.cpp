@@ -9354,13 +9354,269 @@ ListExpr importaisTM(ListExpr args){
 24.99.2 Info class
 
 */
+struct ClusterInfo{
+
+
+  bool operator<(const ClusterInfo& ci) const{
+    if(minTime < ci.minTime) return true;
+    if(minTime > ci.minTime) return false;
+    if(maxTime < ci.maxTime) return true;
+    if(maxTime > ci.maxTime) return false;
+    return count < ci.count;
+  }
+
+
+  datetime::DateTime minTime;
+  datetime::DateTime maxTime;
+  size_t count;
+
+  ostream& print(ostream& out)const{
+    out << "[ " << minTime << " , " << maxTime << "] : " << count;
+    return out;
+  }
+
+  bool contains(const datetime::DateTime& time) const{
+    return (time>=minTime) && (time<=maxTime);
+  }
+
+
+  ClusterInfo(datetime::DateTime& dt): minTime(dt), maxTime(dt), count(1){}
+
+  void add(const ClusterInfo& cl){
+     if(minTime > cl.minTime){
+        minTime = cl.minTime;
+     }
+     if(maxTime < cl.maxTime){
+					maxTime = cl.maxTime;
+     }
+     count += cl.count;
+  }
+
+  void add(const datetime::DateTime& dt){
+     count++;
+     if(dt < minTime){
+        minTime = dt;
+        return;
+     }
+     if(dt > maxTime) {
+        maxTime = dt;
+     }
+  }
+
+  datetime::DateTime distance(const datetime::DateTime& dt)const{
+     if(dt<minTime){
+       return minTime - dt;
+     }
+     if(dt > maxTime){
+       return dt - maxTime;
+     }
+     datetime::DateTime r(datetime::durationtype, 0);
+     return r;
+  }
+   
+  datetime::DateTime distance(const ClusterInfo& ci) const{
+     if(minTime > ci.maxTime){
+         return minTime - ci.maxTime;
+     }
+     if(maxTime < ci.minTime){
+         return ci.minTime - maxTime;
+     }
+     return datetime::DateTime(datetime::durationtype,0);
+  }
+
+};
+
+
+ostream& operator<<(ostream& o, const ClusterInfo& ci){
+   return ci.print(o);
+}
+
+
+struct Type4Info{
+
+Type4Info():mmsi(0),count(0),failed(0),clusters(){
+  uint64_t t = 1000*60*60;
+  threshold =datetime::DateTime(datetime::durationtype,t);
+}
+
+Type4Info(aisdecode::Message4* msg): mmsi(msg->mmsi), count(0), failed(0), 
+                                     clusters(){
+  uint64_t t = 1000*60*60;
+  threshold =datetime::DateTime(datetime::durationtype,t);
+  add(msg);
+}
+
+Type4Info(const Type4Info& ti): mmsi(ti.mmsi), count(ti.count), 
+                               failed(ti.failed), clusters(ti.clusters){
+  uint64_t t = 1000*60*60;
+  threshold =datetime::DateTime(datetime::durationtype,t);
+}
+
+bool contains(const datetime::DateTime& time){
+   for(size_t i=0;i<clusters.size();i++){
+      if(clusters[i].contains(time)){
+          return true;
+      }
+   }
+   return false;
+}
+
+
+Type4Info& operator=(const Type4Info& ti){
+  mmsi = ti.mmsi;
+  count = ti.count;
+  failed = ti.failed;
+  clusters = ti.clusters;
+  return *this;
+}
+
+
+
+void add(aisdecode::Message4* msg) {
+   assert(msg->mmsi==this->mmsi);
+   count++;
+   if(msg->year<1 || msg->month<1 || msg->day<1){
+      failed++;
+      return;
+   }
+   if(msg->year>9999 || msg->month>12 || msg->day>31){
+      failed++;
+      return;   
+   }
+   if(msg->hour > 23 || msg->minute>59 || msg->second>59){
+      failed++;
+      return;
+   }
+
+   datetime::DateTime time(datetime::instanttype);
+   if(!time.IsValid(msg->year, msg->month, msg->day)){
+      failed++;
+      return;
+   }
+   time.Set(msg->year, msg->month, msg->day, msg->hour, msg->minute, 
+            msg->second);
+      
+   insert(time); 
+}
+
+/*
+If the is a cluster containing time, the count of the cluster is increased..
+otherwise the nearest cluster is determined. if the distance is smaller than a 
+threshold, the clustr
+
+*/
+void insert(datetime::DateTime& time){
+  if(clusters.empty()){
+    ClusterInfo ci(time);
+    clusters.push_back(ci);
+    return;
+  }
+  int minIndex = 0;
+  datetime::DateTime minDist = clusters[0].distance(time);
+  for(size_t i=1;i<clusters.size();i++){
+    datetime::DateTime dist = clusters[i].distance(time);
+    if(dist < minDist){
+        minIndex = i;
+        minDist = dist;
+    }
+  }
+  // threshold 1 hour
+  if(minDist < threshold){
+    clusters[minIndex].add(time);
+  } else {
+    clusters.push_back(ClusterInfo(time));
+  }
+}
+
+ostream& print(ostream& out)const{
+  out << "---------" << endl;
+  out << "MMSI : " << mmsi << endl;
+  out << "#messages : " << count << endl;
+  out << "invalid messages : " << failed << endl;
+  out << "clusters" << endl;
+  for(size_t i=0;i<clusters.size();i++){
+     out << "   " << clusters[i] << endl;
+  }
+  out << "---------" << endl;
+  return out;
+};
+
+void mergeCluster(){
+   if(clusters.size() < 2) return;
+   sort(clusters.begin(),clusters.end());
+   vector<ClusterInfo> merged;
+   merged.push_back(clusters[0]);
+   int pos = 0;
+   for(size_t i=1;i<clusters.size();i++){
+      datetime::DateTime dist = merged[pos].distance(clusters[i]);
+      if(dist<threshold){
+         merged[pos].add(clusters[i]);
+      } else {
+         merged.push_back(clusters[i]);
+         pos++;
+      }
+   }
+   swap(clusters, merged);
+}
+
+size_t largestClusterSize() const{
+  size_t res = 0;
+  for(size_t i=0;i<clusters.size();i++){
+     if(clusters[i].count > res){
+        res = clusters[i].count;
+     }
+  }
+  return res;
+} 
+
+
+void add(const Type4Info& t4i){
+   count += t4i.count;
+   failed += t4i.failed;
+   for(size_t i=0;i<t4i.clusters.size();i++){
+      clusters.push_back(t4i.clusters[i]);
+   }
+}
+
+
+void purge(){
+   double minClusterSize = largestClusterSize()* 0.01;
+   vector<ClusterInfo> purged;
+   for(size_t i=0;i<clusters.size();i++){
+      if(clusters[i].count >= minClusterSize){
+         purged.push_back(clusters[i]);
+      }
+   }
+   swap(purged,clusters);
+}
+
+void clear(){
+  mmsi = 0;
+  count = 0;
+  failed = 0;
+  clusters.clear();
+}  
+
+int mmsi;
+size_t count;
+size_t failed;
+vector<ClusterInfo> clusters;
+datetime::DateTime threshold;
+
+};
+
+
+ostream& operator<<(ostream& o, const Type4Info& ti){
+  return ti.print(o);
+}
+
+
 class aisimportInfo{
 
   public:
     aisimportInfo(const string& _filename,
                   const string&  _prefix): filename(_filename),
                                            prefix(_prefix),
-                                           decoder(_filename),
                                            time(datetime::instanttype,0)
                                             {
       cout << "decode file " << _filename << endl;
@@ -9370,6 +9626,7 @@ class aisimportInfo{
         tupleTypes.push_back(0);
       }
       ctlg = SecondoSystem::GetCatalog();
+      noUsedReason=0;
     }
 
     ~aisimportInfo(){
@@ -9382,13 +9639,86 @@ class aisimportInfo{
     }
 
     int operator()(){
+
        count =0;
        aisdecode::MessageBase* msg;
-       while( (msg = decoder.getNextMessage())){
+       aisdecode::aisdecoder* dec = new aisdecode::aisdecoder(filename);
+       // proprocessing of type 4 messages
+       map<int,Type4Info> mmsicount;
+       map<int,Type4Info>::iterator it;
+       while( (msg = dec->getNextMessage(4))){
+         count++;
+         aisdecode::Message4* msg4 = (aisdecode::Message4*) msg;
+         it = mmsicount.find(msg4->mmsi);
+         if(it==mmsicount.end()){
+            mmsicount[msg4->mmsi] = Type4Info(msg4);
+         } else {
+            it->second.add(msg4);
+         }
+         delete msg;
+       }
+       // connect cluster for each mmsi
+       for(it=mmsicount.begin(); it!=mmsicount.end();it++){
+         it->second.mergeCluster();
+       }
+
+       // build a set of forbidden mmsi
+       // an mmsi is forbidden if
+       //  number of messages < 2 
+       //  number of messages < 10% than the average per mmsi
+       //  number of invalid messages > 10% for this mmsi
+       //  the largest cluster has less than 5% messages in average
+       forbidden.clear();
+
+       double average =   count *1.0 / mmsicount.size();
+       double min = average * 0.1;
+       if(min < 2) min = 2.5;
+       double minCluster = average * 0.05;
+
+       for(it=mmsicount.begin(); it!=mmsicount.end();it++){
+           if(it->second.count < average){
+              forbidden.insert(it->first);
+           } else {
+              if( (it->second.failed*1.0 / it->second.count) > 0.1){
+                 forbidden.insert(it->first);
+              } else {
+                  if(it->second.largestClusterSize() < minCluster){
+                      forbidden.insert(it->first);
+                  }
+              }
+           }
+       }
+
+
+
+       // for the remaining mmsi
+       // union all clusters
+       // remove clusters with too less entries
+       complete.clear();
+       for(it=mmsicount.begin(); it!=mmsicount.end();it++){
+          if(forbidden.find(it->first)==forbidden.end()){
+              complete.add(it->second);
+          }
+       }
+       complete.mergeCluster();
+       complete.purge();
+
+       cout << "ignore type 4 messages of " << forbidden.size() 
+            << " mmsis" << endl;
+       cout << "allow only time in the intervals " << complete << endl;
+
+
+       count =0;
+       delete dec;
+
+       posMessages.clear();
+
+       dec = new aisdecode::aisdecoder(filename); 
+       while( (msg = dec->getNextMessage())){
           count++;
           processMessage1(msg);
-          //delete msg;
        }
+       delete dec;
        return count;
     }
 
@@ -9397,13 +9727,19 @@ class aisimportInfo{
   private:
     string filename;
     string prefix;
-    aisdecode::aisdecoder decoder;
     Instant time;
     vector<Relation*> relations;
     vector<TupleType*> tupleTypes;
     SecondoCatalog* ctlg;
     size_t count; // total number of messages
-    map<int, pair<datetime::DateTime, datetime::DateTime> > lastTimes;
+    map<int, datetime::DateTime> lastTimes;
+    set<int> forbidden; // excluded mmsi for type 4 messages
+    Type4Info complete;
+    int noUsedReason; // integer coded reason why a type 4 message has
+                      //  been ignored
+    vector<aisdecode::MessageBase*> posMessages;
+
+
 
   void createRelationForType(int type, ListExpr attrList){
         ListExpr tupleList  = nl->TwoElemList(listutils::basicSymbol<Tuple>(),
@@ -9533,6 +9869,8 @@ Message type 4
                                 listutils::basicSymbol<datetime::DateTime>()));
         last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MessageNo"),
                                      listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("NoUsedReason"),
+                                     listutils::basicSymbol<CcInt>()));
         createRelationForType(4,attrList);
       }
       Tuple* tuple = new Tuple(tupleTypes[3]);
@@ -9553,6 +9891,7 @@ Message type 4
       tuple->PutAttribute(14, new CcInt(true,msg->sotdma));      
       tuple->PutAttribute(15, new Instant(time));      
       tuple->PutAttribute(16, new CcInt(true,count)); 
+      tuple->PutAttribute(17, new CcInt(true,noUsedReason)); 
       relations[3]->AppendTuple(tuple);
       tuple->DeleteIfAllowed();
    }
@@ -10053,8 +10392,122 @@ General distribution of messages accorsing to their types.
        processMessage2(msg);
     }
 
+    template<class T>
+    void processMessageWS(T* msg){
+       updateSecond(msg->second);
+       processMessage2(msg);
+    }
+
+    void updateSecond(int second){
+       if(!time.IsDefined()){ // nothing to update
+          return; 
+       }
+       int cs = time.GetSecond();
+       if(cs > 50 && second < 10){
+           second = second +60;
+       }
+       if(second < cs){ // do no go back in time
+          return;
+       }
+       int timediff = (second - cs) * 1000;
+       if(timediff > 20000){ // do not allow jumps with more than 20 seconds,
+                             //  good idea???
+          return;
+       }
+       datetime::DateTime diff(datetime::durationtype, timediff);
+       time += diff;
+    }
+
+
     void processMessage(aisdecode::Message4* msg){
-      processMessage2(msg);
+              
+       // invalid date
+       if(   msg->year < 1 || msg->day<1 || msg->month<1 || msg->day>31 
+          || msg->month>12){
+          noUsedReason=1;
+          writeMessage(msg);
+          return;
+       }
+
+       if(forbidden.find(msg->mmsi)!=forbidden.end()){ // mmsi not allowed
+         noUsedReason=2;
+         writeMessage(msg);
+         return;
+       }
+
+
+       if(!time.IsValid(msg->year, msg->month, msg->day)){
+          // invalid date
+          noUsedReason=3;
+          writeMessage(msg);
+          return;
+       }
+       if(msg->hour>23 || msg->minute>59 || msg->second>59){
+          // imvalid time
+          noUsedReason=4;
+          writeMessage(msg);
+          return;
+       }
+
+       datetime::DateTime t(datetime::instanttype);
+       t.Set(msg->year, msg->month, msg->day, msg->hour, msg->minute, 
+             msg->second);
+       if(!complete.contains(t)){ // time stamp not allowed
+         noUsedReason=5;
+         writeMessage(msg);
+         return;
+       }
+
+       noUsedReason=0;
+       if(!time.IsDefined()){ 
+          // this is the first valid type 4 message
+          // this ais will be the master of time
+          time=t;
+          assert(lastTimes.empty());
+          lastTimes[msg->mmsi] =time;
+          writeMessage(msg);
+          return;
+       }       
+       assert(!lastTimes.empty());
+
+       datetime::DateTime msgtime(datetime::instanttype);
+       msgtime = t;
+
+       map<int, datetime::DateTime>:: iterator it;
+       it = lastTimes.find(msg->mmsi);
+       if(it==lastTimes.end()){
+          // this ist the first message from this mmsi
+          //datetime::DateTime timediff = time - msgtime;
+          lastTimes[msg->mmsi] = msgtime;
+          writeMessage(msg);
+          it = lastTimes.find(msg->mmsi);
+       } else {
+         if(msgtime <= it->second){
+            cout << "MMSI " << msg->mmsi << " goes back in time from " 
+                 << it->second << " to " << msgtime << endl;
+            noUsedReason=6;
+            writeMessage(msg);
+            return;
+         }       
+      }
+
+       // we have already stored a time for this mmsi
+       // compute the time according to the message time
+      it->second = msgtime;
+       if(msgtime >= time){
+          datetime::DateTime diff = msgtime - time;
+          if(diff>complete.threshold){
+             noUsedReason = 7;
+             writeMessage(msg);
+             return;
+          }
+          time = msgtime;
+       } else { // msgtime < time
+         ;
+         //cout << msg->mmsi << ": back in time for " << (time - msgtime) 
+         // << endl;
+       }
+       writeMessage(msg); 
     }
 
 
@@ -10064,7 +10517,7 @@ General distribution of messages accorsing to their types.
        switch(type){
          case 1:
          case 2:
-         case 3: processMessage((aisdecode::Message1_3*)msg);
+         case 3: processMessageWS((aisdecode::Message1_3*)msg);
                  break;
          case 4: processMessage((aisdecode::Message4*)msg);
                  break;
@@ -10079,9 +10532,9 @@ General distribution of messages accorsing to their types.
          case 14: writeMessage((aisdecode::Message14*)msg);
                   delete msg;
                   break;
-         case 18: processMessage((aisdecode::Message18*)msg);
+         case 18: processMessageWS((aisdecode::Message18*)msg);
                   break;
-         case 19: processMessage((aisdecode::Message19*)msg);
+         case 19: processMessageWS((aisdecode::Message19*)msg);
                   break;
          case 24: writeMessage((aisdecode::Message24*)msg);
                   delete msg;
