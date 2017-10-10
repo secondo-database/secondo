@@ -9721,6 +9721,8 @@ class aisimportInfo{
        delete dec;
        if(time.IsDefined()){
           processPosMessages(time,time);
+       } else {
+           assert(posMessages.empty());
        }
 
        return count;
@@ -10402,6 +10404,7 @@ General distribution of messages accorsing to their types.
           posMessages.push_back(msg);
        } else {
           processMessage2(msg);
+          delete msg;
        }
     }
 
@@ -10424,7 +10427,7 @@ General distribution of messages accorsing to their types.
 
 
 
-    void processMessage(aisdecode::Message4* msg){
+    void processMessage4(aisdecode::Message4* msg){
               
        // invalid date
        if(   msg->year < 1 || msg->day<1 || msg->month<1 || msg->day>31 
@@ -10489,7 +10492,8 @@ General distribution of messages accorsing to their types.
        } else {
          if(msgtime <= it->second){
             cout << "MMSI " << msg->mmsi << " goes back in time from " 
-                 << it->second << " to " << msgtime << endl;
+                 << it->second << " to " << msgtime 
+                 <<  "(" << (it->second - msgtime) << ")" << endl;
             noUsedReason=6;
             writeMessage(msg);
             return;
@@ -10525,12 +10529,13 @@ General distribution of messages accorsing to their types.
          case 2:
          case 3: processMessageWS((aisdecode::Message1_3*)msg);
                  break;
-         case 4: processMessage((aisdecode::Message4*)msg);
+         case 4: processMessage4((aisdecode::Message4*)msg);
+                 delete msg;
                  break;
          case 5: writeMessage((aisdecode::Message5*)msg);
                  delete msg;
                  break;
-         case 9: processMessage((aisdecode::Message9*)msg);
+         case 9: processMessageWS((aisdecode::Message9*)msg);
                  break;
          case 12: writeMessage((aisdecode::Message12*)msg);
                   delete msg;
