@@ -78,6 +78,14 @@ static string requestFolder  = "";
 static string transferFolder = "";
 
 
+//#define DEBUG_SERVER true
+#define DEBUG_SERVER false
+
+#define debug_server(a) if(DEBUG_SERVER){cout << "getline '"  << a \
+                << "' in function '" << __PRETTY_FUNCTION__ << endl;}
+
+
+
 void initTransferFolders(){
   if(!currentFolder.empty()){
     return;
@@ -181,12 +189,14 @@ SecondoServer::CallSecondo()
   iostream& iosock = client->GetSocketStream();
   int type=0;
   iosock >> type;
+  debug_server(type);
   csp->skipRestOfLine();
   csp->IgnoreMsg(false);
   bool ready=false;
   do
   {
     getline( iosock, line );
+    debug_server(line);
     ready = (line == "</Secondo>");
     if ( !ready )
     {
@@ -211,7 +221,9 @@ SecondoServer::CallNumericType()
   iostream& iosock = client->GetSocketStream();
   iosock.clear();
   getline( iosock, typeStr );
+  debug_server(typeStr);
   getline( iosock, cmdEnd );
+  debug_server(cmdEnd);
   if ( cmdEnd == "</NumericType>" )
   {
     ListExpr typeList = 0;
@@ -249,8 +261,10 @@ SecondoServer::CallGetTypeId()
   iostream& iosock = client->GetSocketStream();
   iosock.clear();
   iosock >> name;
+  debug_server(name);
   csp->skipRestOfLine();
   getline( iosock, cmdEnd );
+  debug_server(cmdEnd);
   if ( cmdEnd == "</GetTypeId>" )
   {
     bool ok = si->GetTypeId( name, algebraId, typeId );
@@ -283,7 +297,9 @@ SecondoServer::CallLookUpType()
   int algebraId, typeId;
   iostream& iosock = client->GetSocketStream();
   getline( iosock, typeStr );
+  debug_server(typeStr);
   getline( iosock, cmdEnd );
+  debug_server(cmdEnd);
   if ( cmdEnd == "</LookUpType>" )
   {
     ListExpr typeList;
@@ -311,6 +327,7 @@ void SecondoServer::CallGetOperatorIndexes(){
    ListExpr args;
    iostream& iosock = client->GetSocketStream();
    getline(iosock,name);
+   debug_server(name);
    AlgebraManager* am = SecondoSystem::GetAlgebraManager();
    //NestedList* nl = am->getListStorage();
    NestedList* nl1 = SecondoSystem::GetNestedList(); 
@@ -319,6 +336,7 @@ void SecondoServer::CallGetOperatorIndexes(){
 
    string cmdEnd;
    getline(iosock, cmdEnd);
+   debug_server(cmdEnd);
    if(cmdEnd=="</REQUESTOPERATORINDEXES>"){
        iosock << "<OPERATORINDEXESRESPONSE>" << endl;
        int algId;
@@ -354,6 +372,7 @@ void SecondoServer::CallGetCosts(){
    iostream& iosock = client->GetSocketStream();
    string line;
    getline(iosock,line);
+   debug_server(line);
 
    int noStreams = atoi(line.c_str());
    if((noStreams!=1) && (noStreams!=2)){
@@ -366,25 +385,33 @@ void SecondoServer::CallGetCosts(){
    }
    // operator identifier
    getline(iosock,line);
+   debug_server(line);
    int algId = atoi(line.c_str());
    getline(iosock,line);
+   debug_server(line);
    int opId = atoi(line.c_str());
    getline(iosock,line);
+   debug_server(line);
    int funId = atoi(line.c_str());
    // informations about the first tuple stream
    // there is at least one
    getline(iosock,line);
+   debug_server(line);
    int noTuples1 =  atoi(line.c_str());
    getline(iosock,line);
+   debug_server(line);
    int sizeOfTuple1 = atoi(line.c_str());
    getline(iosock,line);
+   debug_server(line);
    int noAttributes1 = atoi(line.c_str());
    size_t costs;
    bool ok;
    if(noStreams==1){ // there is only 1 stream
       getline(iosock,line);
+      debug_server(line);
       double selectivity = atof(line.c_str());
       getline(iosock,line);
+      debug_server(line);
       int memoryMB = atoi(line.c_str());
       ok = am->getCosts(algId,opId,funId,
                         noTuples1,sizeOfTuple1, noAttributes1, 
@@ -392,14 +419,19 @@ void SecondoServer::CallGetCosts(){
    } else {
       // get information about stream 2
       getline(iosock,line);
+      debug_server(line);
       int noTuples2 = atoi(line.c_str());
       getline(iosock,line);
+      debug_server(line);
       int sizeOfTuple2 = atoi(line.c_str());
       getline(iosock,line);
+      debug_server(line);
       int noAttributes2 = atof(line.c_str());
       getline(iosock,line);
+      debug_server(line);
       double selectivity = atof(line.c_str());
       getline(iosock,line);
+      debug_server(line);
       int memoryMB = atoi(line.c_str());
 
       ok = am->getCosts(algId,opId,funId,
@@ -410,6 +442,7 @@ void SecondoServer::CallGetCosts(){
  
     
    getline(iosock,line);
+   debug_server(line);
    if(line!="</GETCOSTS>"){
       iosock << "<SecondoError>" << endl
              << "SECONDO-0080 Protocol error: </GETCOSTS> "
@@ -436,6 +469,7 @@ void SecondoServer::CallGetLinearCostFun(){
    
    string line;
    getline(iosock,line);
+   debug_server(line);
    int noStreams = atoi(line.c_str());
    if((noStreams!=1) && (noStreams!=2)){
     iosock << "<SecondoError>" << endl
@@ -446,16 +480,22 @@ void SecondoServer::CallGetLinearCostFun(){
      return;
    }
    getline(iosock,line);
+   debug_server(line);
    int algId = atoi(line.c_str());
    getline(iosock,line);
+   debug_server(line);
    int opId = atoi(line.c_str());
    getline(iosock,line);
+   debug_server(line);
    int funId = atoi(line.c_str());
    getline(iosock,line);
+   debug_server(line);
    int noTuples1 =  atoi(line.c_str());
    getline(iosock,line);
+   debug_server(line);
    int sizeOfTuple1 = atoi(line.c_str());
    getline(iosock,line);
+   debug_server(line);
    int noAttributes1 = atoi(line.c_str());
    
    
@@ -469,6 +509,7 @@ void SecondoServer::CallGetLinearCostFun(){
    double timeAt16MB;
    if(noStreams==1){
       getline(iosock,line);
+      debug_server(line);
       double selectivity = atof(line.c_str());
       ok = am->getLinearParams(algId,opId,funId,
                                noTuples1,sizeOfTuple1, noAttributes1,
@@ -476,12 +517,16 @@ void SecondoServer::CallGetLinearCostFun(){
                                sufficientMemory,timeAtSuffMemory,timeAt16MB);
    } else {
       getline(iosock,line);
+      debug_server(line);
       int noTuples2 = atoi(line.c_str());
       getline(iosock,line);
+      debug_server(line);
       int sizeOfTuple2 = atoi(line.c_str());
       getline(iosock,line);
+      debug_server(line);
       int noAttributes2 = atoi(line.c_str());
       getline(iosock,line);
+      debug_server(line);
       double selectivity = atof(line.c_str());
 
       ok = am->getLinearParams(algId, opId, funId,
@@ -491,6 +536,7 @@ void SecondoServer::CallGetLinearCostFun(){
                                sufficientMemory,timeAtSuffMemory,timeAt16MB);
    }
    getline(iosock,line);
+   debug_server(line);
    if(line!="</GETLINEARCOSTFUN>"){
       iosock << "<SecondoError>" << endl
              << "SECONDO-0080 Protocol error: </GETCOSTS> "
@@ -522,8 +568,10 @@ void SecondoServer::CallCancelQuery() {
     iostream& iosock = client->GetSocketStream();
     string line;
     getline(iosock,line);
+    debug_server(line);
     int pid = atoi(line.c_str());
     getline(iosock,line);
+    debug_server(line);
     
     // Ensure that we only send the signal to SecondoBDB processes
     // Otherwise an attacker could send the signal to every process
@@ -558,6 +606,7 @@ void SecondoServer::CallGetCostFun(){
    iostream& iosock = client->GetSocketStream();
    string line;
    getline(iosock,line);
+   debug_server(line);
    int noStreams = atoi(line.c_str());
    if((noStreams!=1) && (noStreams!=2)){
     iosock << "<SecondoError>" << endl
@@ -568,16 +617,22 @@ void SecondoServer::CallGetCostFun(){
      return;
    }
    getline(iosock,line);
+   debug_server(line);
    int algId = atoi(line.c_str());
    getline(iosock,line);
+   debug_server(line);
    int opId = atoi(line.c_str());
    getline(iosock,line);
+   debug_server(line);
    int funId = atoi(line.c_str());
    getline(iosock,line);
+   debug_server(line);
    int noTuples1 =  atoi(line.c_str());
    getline(iosock,line);
+   debug_server(line);
    int sizeOfTuple1 = atoi(line.c_str());
    getline(iosock,line);
+   debug_server(line);
    int noAttributes1 = atoi(line.c_str());
    bool ok;
    int funType;
@@ -590,6 +645,7 @@ void SecondoServer::CallGetCostFun(){
    double d;
    if(noStreams==1){
       getline(iosock,line);
+      debug_server(line);
       double selectivity  =  atof(line.c_str());
       ok = am->getFunction(algId, opId, funId,
                            noTuples1, sizeOfTuple1, noAttributes1,
@@ -598,12 +654,16 @@ void SecondoServer::CallGetCostFun(){
                            a,b,c,d);
    } else { // nostreams ==2
       getline(iosock,line);
+      debug_server(line);
       int noTuples2 = atoi(line.c_str());
       getline(iosock,line);
+      debug_server(line);
       int sizeOfTuple2 = atoi(line.c_str());
       getline(iosock,line);
+      debug_server(line);
       int noAttributes2 = atoi(line.c_str());
       getline(iosock,line);
+      debug_server(line);
       double selectivity = atof(line.c_str()); 
 
       ok = am->getFunction(algId, opId, funId,
@@ -614,6 +674,7 @@ void SecondoServer::CallGetCostFun(){
                            a,b,c,d);
    }
    getline(iosock,line);
+   debug_server(line);
    if(line!="</GETCOSTFUN>"){
       iosock << "<SecondoError>" << endl
              << "SECONDO-0080 Protocol error: </GETCOSTS> "
@@ -668,6 +729,7 @@ SecondoServer::CallSave(const string& tag, bool database /*=false*/)
     iostream& iosock = client->GetSocketStream();
     string name = "";
     iosock >> name;
+    debug_server(name);
     csp->skipRestOfLine();
 
     if(!csp->nextLine("</"+tag+">", errorMessage))
@@ -731,6 +793,7 @@ SecondoServer::CallRestore(const string& tag, bool database/*=false*/)
   iostream& iosock = client->GetSocketStream();
   string name = "";
   iosock >> name;
+  debug_server(name);
   csp->skipRestOfLine();
   
   //cout << "Begin CallRestore()" << endl;
@@ -810,9 +873,11 @@ SecondoServer::CallFileTransfer() {
   iostream& iosock = client->GetSocketStream();
   string serverFileName = "";
   iosock >> serverFileName;
+  debug_server(serverFileName);
   csp->skipRestOfLine();
   string allowOverwriteS;
   getline(iosock, allowOverwriteS);
+  debug_server(allowOverwriteS);
   bool allowOverwrite = allowOverwriteS == "<ALLOW_OVERWRITE>"; 
   
   stringutils::trim(serverFileName);
@@ -914,6 +979,7 @@ SecondoServer::CallRequestFile(){
   iostream& iosock = client->GetSocketStream();
   string serverFileName = "";
   iosock >> serverFileName;
+  debug_server(serverFileName);
   csp->skipRestOfLine();
   string errorMessage="";
   if(!csp->nextLine(csp->endRequestFile, errorMessage)){
@@ -956,11 +1022,13 @@ SecondoServer::Connect()
   iostream& iosock = client->GetSocketStream();
   string line;
   getline( iosock, user );
+  debug_server(user);
   getline( iosock, pswd );
+  debug_server(pswd);
   //cout << "user = " << user << endl;
   //cout << "passwd = " << pswd << endl;
   getline( iosock, line ); //eat up </USER> ?
-  
+  debug_server(line);
 }
 
 void
@@ -1030,6 +1098,7 @@ int SecondoServer::Execute() {
     try {
         string cmd;
         getline( iosock, cmd );
+        debug_server(cmd); 
         cmdPos = commandTable.find( cmd );
         if ( cmdPos != commandTable.end() )
         {
@@ -1052,7 +1121,7 @@ int SecondoServer::Execute() {
     
       } catch (ios_base::failure) {
         cerr << endl 
-             << "I/O error on socket stream object!" 
+             << "I/O error on socket stream object during initialization!" 
              << endl;
         if ( !client->IsOk() ) {
            cerr << "Socket Error: " << client->GetErrorText() << endl;  
@@ -1089,6 +1158,7 @@ int SecondoServer::Execute() {
       try {
         string cmd;
         getline( iosock, cmd );
+        debug_server(cmd); 
         cmdPos = commandTable.find( cmd );
         if ( cmdPos != commandTable.end() )
         {
@@ -1111,7 +1181,7 @@ int SecondoServer::Execute() {
     
       } catch (ios_base::failure) {
         cerr << endl 
-             << "I/O error on socket stream object!" 
+             << "I/O error on socket stream object during processing commands!" 
              << endl;
         if ( !client->IsOk() ) {
            cerr << "Socket Error: " << client->GetErrorText() << endl;  
