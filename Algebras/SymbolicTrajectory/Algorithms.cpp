@@ -2081,31 +2081,31 @@ void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
       perAtom.SetDefined(true);
     }
     while (it != ivsAtom.end()) {
-      cout << "process |" << *it << "|" << endl;
+//       cout << "process |" << *it << "|" << endl;
       Tools::specToPeriods(*it, ti2->timeLimits, perSpec);
       if (it == ivsAtom.begin()) { // first specification
         perAtom.CopyFrom(&perSpec);
-        cout << "1st RESULT: " << perSpec << endl;
+//         cout << "1st RESULT: " << perSpec << endl;
       }
       else {
         perAtom.Intersection(perSpec, perTemp);
         perAtom.CopyFrom(&perTemp);
         perTemp.Clear();
-        cout << "intermediate RESULT: " << perAtom << endl;
+//         cout << "intermediate RESULT: " << perAtom << endl;
       }
       it++;
     }
-    cout << "FINAL result: " << perAtom << endl;
     if (prevCrucial == -1) {
       for (int i = 1; i <= rel->GetNoTuples(); i++) {
         if (periods[i]) {
           if (!periods[i]->IsEmpty()) { // index result exists
             indexResult2[atomNo][pred]->succ = i;
             if (perAtom.IsDefined()) {
-              periods[i]->EndBulkLoad(false, false);
+              if (!periods[i]->IsOrdered()) {
+                periods[i]->EndBulkLoad(false, false);
+              }
               periods[i]->Intersection(perAtom, perTemp);
               periods[i]->CopyFrom(&perTemp);
-              cout << "intersection: " << *(periods[i]) << endl;
             }
             indexResult2[atomNo][i] = new IndexRetrieval2(pred, 0, periods[i]);
             noResults++;
@@ -2123,10 +2123,11 @@ void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
           if (!periods[i]->IsEmpty()) { // prev. index result exists
             indexResult2[atomNo][pred]->succ = i; // refresh succ of pred
             if (perAtom.IsDefined()) {
-              periods[i]->EndBulkLoad(false, false);
+              if (!periods[i]->IsOrdered()) {
+                periods[i]->EndBulkLoad(false, false);
+              }
               periods[i]->Intersection(perAtom, perTemp);
               periods[i]->CopyFrom(&perTemp);
-              cout << "*** intersection: " << *(periods[i]) << endl;
             }
             indexResult2[atomNo][i] = new IndexRetrieval2(pred, 0, periods[i]);
             noResults++;
@@ -3274,8 +3275,8 @@ void TMatchIndexLI::applyNFA(const bool mainAttr,
   }
   else {
     while ((activeTuples > 0) && !states.empty()) {
-      cout << "WHILE loop: activeTuples=" << activeTuples << "; " 
-           << matches.size() - 1 << " matches" << endl;
+//       cout << "WHILE loop: activeTuples=" << activeTuples << "; " 
+//            << matches.size() - 1 << " matches" << endl;
       for (is = states.rbegin(); is != states.rend(); is++) {
         map<int, int> trans = p->getTransitions(*is);
         for (im = trans.rbegin(); im != trans.rend() && activeTuples > 0; im++){

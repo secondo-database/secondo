@@ -838,21 +838,19 @@ void Tools::semanticToTimePer(const string& spec,
 */
 void Tools::specToPeriods(const string& spec, 
                       const NewPair<int64_t, int64_t> limits, Periods& result) {
-  cout << "start sTP with |" << spec << "|" << endl;
+//   cout << "start sTP with |" << spec << "|" << endl;
   result.Clear();
   Instant first(limits.first), last(limits.second);
   if (spec.empty()) {
     result.SetDefined(false);
   }
   else if (isInterval(spec)) {
-    cout << "Interval" << endl;
     result.SetDefined(true);
     SecInterval iv(first, last, true, true);
     stringToInterval(spec, iv);
     result.Add(iv);
   }
   else if (isDaytime(spec)) {
-    cout << "Daytime" << endl;
     result.SetDefined(true);
     stringToDaytimePer(spec, limits, result);
   }
@@ -896,7 +894,7 @@ void Tools::stringToInterval(const string& str, SecInterval& result) {
 
 */
 void Tools::setDaytime(const string& str, const bool isStart, Instant& result) {
-  cout << "setDaytime(" << str << ", " << isStart << ")" << endl;
+//   cout << "setDaytime(" << str << ", " << isStart << ")" << endl;
   string src(str);
   size_t pos = 0;
   int hour(-1), minute(-1), second(-1), millisecond(-1);
@@ -904,37 +902,37 @@ void Tools::setDaytime(const string& str, const bool isStart, Instant& result) {
   if (pos != string::npos) {
     istringstream istr(src.substr(0, pos));
     istr >> hour;
-    cout << "found hour. " << hour << endl;
+//     cout << "found hour. " << hour << endl;
     src = src.substr(pos + 1);
     pos = src.find(':');
     if (pos != string::npos) {
       istr.clear();
       istringstream istr(src.substr(0, pos));
       istr >> minute;
-      cout << "found minute. " << minute << endl;
+//       cout << "found minute. " << minute << endl;
       src = src.substr(pos + 1);
       pos = src.find('.');
       if (pos != string::npos) { // all values given, 19:09:09.009
         istr.clear();
         istringstream istr(src.substr(0, pos));
         istr >> second;
-        cout << "found second. " << second << endl;
+//         cout << "found second. " << second << endl;
         istringstream iistr(src.substr(pos + 1));
         iistr >> millisecond;
-        cout << "found millisecond " << millisecond << endl;
+//         cout << "found millisecond " << millisecond << endl;
       }
       else { // no millisecond, 19:09:09
         istr.clear();
         istringstream istr(src.substr(0, src.find('~')));
         istr >> second;
-        cout << "found second " << second << endl;
+//         cout << "found second " << second << endl;
         millisecond = (isStart ? 0 : 999);
       }
     }
     else { // no second, 19:09
       istringstream istr(src.substr(0, src.find('~')));
       istr >> minute;
-      cout << "found minute " << minute << endl;
+//       cout << "found minute " << minute << endl;
       second = (isStart ? 0 : 59);
       millisecond = (isStart ? 0 : 999);
     }
@@ -942,14 +940,14 @@ void Tools::setDaytime(const string& str, const bool isStart, Instant& result) {
   else {
     istringstream istr(src.substr(0, src.find('~')));
     istr >> hour;
-    cout << "found hour " << hour << endl;
+//     cout << "found hour " << hour << endl;
     minute = (isStart ? 0 : 59);
     second = (isStart ? 0 : 59);
     millisecond = (isStart ? 0 : 999);
   }
   result.Set(result.GetYear(), result.GetMonth(), result.GetGregDay(), hour, 
              minute, second, millisecond);
-  cout << "result of setDaytime: " << result << endl;
+//   cout << "result of setDaytime: " << result << endl;
 }
 
 /*
@@ -960,7 +958,6 @@ void Tools::stringToDaytimePer(const string& str,
                       const NewPair<int64_t, int64_t> limits, Periods& result) {
   Instant leftLimit(limits.first), rightLimit(limits.second);
   Interval<Instant> limitsIv(leftLimit, rightLimit, true, true);
-  cout << "limits are " << leftLimit << ", " << rightLimit << endl;
   Instant leftDummy(leftLimit), rightDummy(rightLimit);
   leftDummy.Set(leftLimit.GetYear(), leftLimit.GetMonth(), 
                 leftLimit.GetGregDay(), 0, 0, 0, 0);
@@ -992,8 +989,6 @@ void Tools::stringToDaytimePer(const string& str,
     Interval<Instant> iv(startTemp, endTemp, true, true);
     tempResult.MergeAdd(iv);
   }
-  cout << "temp result: " << tempResult << endl;
-  cout << "intersect with " << limitsIv << endl;  
   tempResult.Intersection(limitsIv, result);
 }
 
