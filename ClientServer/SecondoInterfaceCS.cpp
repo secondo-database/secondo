@@ -345,7 +345,7 @@ For an explanation of the error codes refer to SecondoInterface.h
  int pid = getPid();
 
   dwriter.write(debugSecondoMethod, cout, this, pid, 
-                 "::called Secondo with command " + commandText); 
+                 "called Secondo "); 
 
 
   string cmdText="";
@@ -354,8 +354,6 @@ For an explanation of the error codes refer to SecondoInterface.h
   errorMessage = "";
   errorCode    = 0;
   resultList   = nl->TheEmptyList();
-
-  dwriter.write(debugSecondoMethod, cout, this, pid, "start");
 
   if ( server == 0 )
   {
@@ -408,11 +406,14 @@ For an explanation of the error codes refer to SecondoInterface.h
   string line;
 
   iostream& iosock = server->GetSocketStream();
-  ios_base::iostate s = iosock.exceptions();
+  ios_base::iostate s = iosock.exceptions(); //store execption mask
 
   try{
      iosock.exceptions(ios_base::failbit|ios_base::badbit|ios_base::eofbit);
   } catch(...){
+     dwriter.write(debugSecondoMethod, cout, this, pid, 
+                      "error during setting exception flags");
+     iosock.exceptions(s);
      errorCode = ERR_CONNECTION_TO_SERVER_LOST;
      return;
   }
@@ -423,6 +424,10 @@ For an explanation of the error codes refer to SecondoInterface.h
   }
   if ( errorCode != 0 )
   {
+    iosock.exceptions(s);
+    stringstream tmp;
+    tmp << "there is some error " << errorCode;
+    dwriter.write(debugSecondoMethod, cout, this, pid, tmp.str());
     return;
   }
 
@@ -760,25 +765,43 @@ For an explanation of the error codes refer to SecondoInterface.h
 
     try {
        // Send Secondo command
-       iosock << "<Secondo>" << endl
-           << commandType << endl
-           << cmdText << endl
-           << "</Secondo>" << endl;
+       dwriter.write(debugSecondoMethod, cout, this, pid, 
+                     " send command to server");
+       iosock << "<Secondo>" << endl;
+       dwriter.write(debugSecondoMethod, cout, this, pid, "<Secondo> send ");
+       iosock  << commandType << endl;
+       dwriter.write(debugSecondoMethod, cout, this, pid, "CommandType send ");
+       iosock <<  cmdText << endl;
+       dwriter.write(debugSecondoMethod, cout, this, pid, "CommandText send ");
+       iosock << "</Secondo>" << endl;
+       dwriter.write(debugSecondoMethod, cout, this, pid, 
+                     "command transmitted completely, read response");
  
        // Receive result
        errorCode = csp->ReadResponse( resultList,
                                    errorCode, errorPos,
                                    errorMessage , id, 
                                    debugSecondoMethod, this, pid );
+
+       dwriter.write(debugSecondoMethod, cout, this, pid, "response received");
        if(errorCode == ERR_IN_SECONDO_PROTOCOL ){
           dwriter.write(true, cout, this, pid,
               "Remote server possible crashed " + getConnectionInfo());
+       } else {
+         dwriter.write(debugSecondoMethod, cout, this, pid, 
+                       "command processed");
        }
 
     } catch (ifstream::failure &ex) {
          errorCode = ERR_SYSTEM_DIED;
          dwriter.write(true, cout, this, pid,
-          "Remote server possible crashed " + getConnectionInfo());
+          "Remote server possible crashed (exception) '" 
+          + string(ex.what()) + "' " + getConnectionInfo());
+         stringstream tmp;
+         tmp << "failbit " << iosock.fail() << endl;
+         tmp << ", badbit " << iosock.bad() << endl;
+         tmp << ", eofbit " << iosock.eof() << endl;
+         dwriter.write(true, cout, this, pid, tmp.str());
     }
     
     dwriter.write(debugSecondoMethod, cout, this, pid, 
