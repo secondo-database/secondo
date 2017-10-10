@@ -613,7 +613,9 @@ bool Distributed2Algebra::serverExists(int s){
                                        const DArrayElement& info,
                                        const string& dbname,
                                        CommandLogger* log ){
-
+     
+     static boost::mutex gwcmtx; // allow only one thread to call this fun
+     boost::lock_guard<boost::mutex> guard0(gwcmtx);
      boost::lock_guard<boost::mutex> guard(workerMtx);
      map<DArrayElement, pair<string, ConnectionInfo*> >::iterator it;
      it = workerconnections.find(info);
