@@ -602,8 +602,36 @@ string DateTime::ToString(const bool sql92conform /*=false*/ ) const{
     return Symbol::UNDEFINED();
   }
   if(type == (durationtype)){ //a duration
-    tmp << GetDay() << ";";
-    tmp << GetAllMilliSeconds();
+    int days = GetDay();
+    int ms = GetAllMilliSeconds();
+    int hours = ms / (1000*60*60);
+    ms = ms % (1000*60*60);
+    int minutes = ms / 60000;
+    ms = ms % 60000;
+    int seconds = ms / 1000;
+    ms = ms % 1000;
+    if(days > 0){
+      tmp << days << " d ";
+    } 
+    if(days!=0 || hours!=0){
+      tmp << hours << " h ";
+    }
+    if(days!=0 || hours !=0 || minutes!=0){
+      tmp << minutes << " m ";
+    }
+    // seconds are given if seconds > 0 
+    // or milliseconds > 0 and days, hour, minutes is given
+    if(seconds > 0 || ( (ms>0 && (days!=0 || hours!=0 || minutes!=0)))){
+       tmp << seconds << " s ";
+    }
+    if(ms > 0){
+       tmp << ms << " ms";
+    }
+
+
+
+
+
   }else if(type ==(instanttype)){ // an instant
      if(IsMinimum()){
        return begin_of_time;
@@ -1708,17 +1736,6 @@ void DateTime::ReadFrom( const char *src )
 {
   ReadFrom( string(src) );
 }
-
-/*
-~Stream Operator~
-
-*/
-
-ostream& operator<<(ostream& o, const DateTime& DT){
-   o << DT.ToString();
-   return o;
-}
-
 
 
 /*
