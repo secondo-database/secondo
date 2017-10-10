@@ -281,11 +281,11 @@ the given index.
 */
     arrayType getType() const = 0;
 
-
+   
     const std::vector<uint32_t> getMap()const{
        return map;
     }
-
+   
 
     size_t getSize() const;
 
@@ -458,6 +458,7 @@ for connecting with the worker.
 
   protected:
     std::vector<uint32_t> map;  // map from index to worker
+    mutable boost::recursive_mutex mapmtx;
 
 
 /*

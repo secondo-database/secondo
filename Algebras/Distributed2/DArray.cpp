@@ -312,6 +312,7 @@ DArrayBase::DArrayBase(const std::vector<uint32_t>& _map,
 
 
 size_t DArrayBase::getSize() const{
+  boost::lock_guard<boost::recursive_mutex> guard(mapmtx);
   return map.size();
 }
 
@@ -340,6 +341,7 @@ DArrayBase::DArrayBase(const DArrayBase& src):
  
 
 DArrayBase& DArrayBase::operator=(const DArrayBase& src) {
+   boost::lock_guard<boost::recursive_mutex> guard(mapmtx);
    DistTypeBase::operator=(src);
    this->map = src.map;
    return *this;
@@ -347,11 +349,13 @@ DArrayBase& DArrayBase::operator=(const DArrayBase& src) {
 
 void DArrayBase::set(const std::string& name, 
                     const std::vector<DArrayElement>& worker){
+   boost::lock_guard<boost::recursive_mutex> guard(mapmtx);
    DistTypeBase::set(name, worker);
    this->map = createStdMap(worker.size(),worker.size());
 }
 void DArrayBase::set(const size_t size, const std::string& name, 
          const std::vector<DArrayElement>& worker){
+   boost::lock_guard<boost::recursive_mutex> guard(mapmtx);
    DistTypeBase::set(name, worker);
    this->map = createStdMap(size,worker.size());
 }
@@ -360,6 +364,7 @@ bool DArrayBase::equalMapping(DArrayBase& a, bool ignoreSize )const{
    if(getType()==DFMATRIXXX){
        return false;
    }
+   boost::lock_guard<boost::recursive_mutex> guard(mapmtx);
    const vector<uint32_t> m = a.getMap();
 
    if(!ignoreSize && (map.size()!=m.size())){
@@ -383,6 +388,7 @@ void DArrayBase::set(const std::vector<uint32_t>& m,
       makeUndefined(); 
       return;
    }
+   boost::lock_guard<boost::recursive_mutex> guard(mapmtx);
    defined = true;
    this->name = name;
    this->map = m;
@@ -395,6 +401,7 @@ void DArrayBase::set(const std::vector<uint32_t>& m,
 
 
 void DArrayBase::setStdMap(size_t size){
+    boost::lock_guard<boost::recursive_mutex> guard(mapmtx);
     map = createStdMap(size, worker.size());
 }
 
@@ -405,10 +412,12 @@ DArrayElement DArrayBase::getWorkerForSlot(int i){
       cerr << "number of workers is " << map.size() << endl;
       assert(false);
    }
+   boost::lock_guard<boost::recursive_mutex> guard(mapmtx);
    return getWorker(map[i]);
 }
 
 size_t DArrayBase::getWorkerIndexForSlot(int i){
+  boost::lock_guard<boost::recursive_mutex> guard(mapmtx);
    if(i<0 || i>= (int)map.size()){
       assert(false);
    }
@@ -418,6 +427,7 @@ size_t DArrayBase::getWorkerIndexForSlot(int i){
 
 
 void DArrayBase::setResponsible(size_t slot, size_t _worker){
+  boost::lock_guard<boost::recursive_mutex> guard(mapmtx);
   assert(slot < map.size());
   assert(_worker < worker.size());
   map[slot] = _worker;
@@ -440,6 +450,7 @@ ListExpr DArrayBase::toListExpr() const{
         last = nl->Append(last, worker[i].toListExpr());
       }
   }
+  boost::lock_guard<boost::recursive_mutex> guard(mapmtx);
   if(isStdMap()){ 
      return nl->ThreeElemList(nl->SymbolAtom(name), 
                               nl->IntAtom(getSize()), 
@@ -602,6 +613,7 @@ bool DArrayBase::save(SmiRecord& valueRecord, size_t& offset,
       return false;
     }
     // map
+    boost::lock_guard<boost::recursive_mutex> guard(a->mapmtx);
     for(size_t i=0;i<a->map.size();i++){
         if(!writeVar(a->map[i], valueRecord,offset)){
            return false;
@@ -636,6 +648,7 @@ void DArrayBase::print(std::ostream& out)const{
      return;
   }
 
+  boost::lock_guard<boost::recursive_mutex> guard(mapmtx);
   out << "Name : " << name <<", size : " << map.size()
       << " workers : [" ;
   for(size_t i =0;i<worker.size();i++){
@@ -654,6 +667,7 @@ void DArrayBase::print(std::ostream& out)const{
 }
 
 void DArrayBase::makeUndefined(){
+   boost::lock_guard<boost::recursive_mutex> guard(mapmtx);
    DistTypeBase::makeUndefined();
    map.clear();
 }
@@ -663,6 +677,7 @@ void DArrayBase::makeUndefined(){
 
 
  bool DArrayBase::checkMap(){
+     boost::lock_guard<boost::recursive_mutex> guard(mapmtx);
      for(size_t i=0;i<map.size();i++){
        if(map[i] >= worker.size()){
          return false;
@@ -672,6 +687,7 @@ void DArrayBase::makeUndefined(){
    }
 
 bool DArrayBase::isStdMap() const{
+  boost::lock_guard<boost::recursive_mutex> guard(mapmtx);
   int s = worker.size();
   for(size_t i=0;i<map.size();i++){
     if(map[i]!= i%s){
