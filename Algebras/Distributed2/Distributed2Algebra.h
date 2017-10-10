@@ -304,7 +304,6 @@ opened database and the ConnectionInfo are returned.
     bool workerConnection(const DArrayElement& elem, std::string& dbname,
                           ConnectionInfo*& ci);
 
-
 /*
 workersIterator
 
@@ -359,6 +358,16 @@ connections.
 */
     void cleanUp();
 
+
+    inline bool tryReconnect() const{
+      return tryReconnectFlag;
+    }
+
+    inline void setReconnect(const bool enable){
+       tryReconnectFlag = enable;
+    }
+
+
     ErrorWriter errorWriter;
 
   private:
@@ -380,6 +389,8 @@ connections.
 
     PProgressView* pprogView;
 
+    bool tryReconnectFlag;
+
 
     // returns a unique number
     size_t nextNameNumber();
@@ -388,6 +399,9 @@ connections.
     bool createWorkerConnection(const DArrayElement& worker,
             std::pair<std::string,
             ConnectionInfo*>& res);
+
+
+
 };
 
 }

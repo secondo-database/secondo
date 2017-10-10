@@ -608,6 +608,7 @@ bool Distributed2Algebra::serverExists(int s){
     }
 
 
+
   ConnectionInfo* Distributed2Algebra::getWorkerConnection(
                                        const DArrayElement& info,
                                        const string& dbname,
@@ -618,24 +619,29 @@ bool Distributed2Algebra::serverExists(int s){
      it = workerconnections.find(info);
      pair<string,ConnectionInfo*> pr("",0);
      if(it==workerconnections.end()){
+        cout << "Create a new worker connection" << endl;
         if(!createWorkerConnection(info,pr)){
              return 0;
         }
         workerconnections[info] = pr;
         it = workerconnections.find(info);
      } else {
+         cout << "worker connection already there" << endl;
          pr = it->second;
      }
      pr.second->setLogger(log);
      pr.second->setNum(info.getNum());
      string wdbname = dbname;
      if(pr.first!=wdbname){
+         cout << "change database to " << wdbname << endl;
          if(!pr.second->switchDatabase(wdbname,true, showCommands)){
             it->second.first="";
             return 0;
          } else {
              it->second.first=dbname;
          }
+     } else {
+        cout << "database already opened" << endl; 
      }
      return pr.second;
   }
@@ -682,8 +688,8 @@ bool Distributed2Algebra::serverExists(int s){
 
   bool Distributed2Algebra::workerConnection(const DArrayElement& elem,
                                              string& dbname,
-                                                 ConnectionInfo*& ci){
-    boost::lock_guard<boost::mutex> guard(workerMtx);
+                                             ConnectionInfo*& ci){
+     boost::lock_guard<boost::mutex> guard(workerMtx);
      map<DArrayElement, pair<string,ConnectionInfo*> >::iterator it;
      it = workerconnections.find(elem);
      if(it == workerconnections.end()){
@@ -7992,7 +7998,7 @@ class showWorkersInfo{
       res->PutAttribute(2, new FText(true, elem.getConfig()));
       res->PutAttribute(3, new CcInt(true, elem.getNum()));
       res->PutAttribute(4, new CcString(true, dbname));
-      res->PutAttribute(5, new CcInt(true, ci->serverPid()));
+      res->PutAttribute(5, new CcInt(true,ci?ci->serverPid():-1));
       bool ok = ci?ci->check(showCommands, logOn, commandLog):false;
       res->PutAttribute(6, new CcBool(true,ok));
       return res;
@@ -11066,6 +11072,37 @@ something other).
 
 */
 
+ConnectionInfo* changeWorker1(DArrayBase* array, size_t  slotNo, 
+                             set<size_t>& usedWorkers) {
+
+   static boost::mutex cwmtx;
+   boost::lock_guard<boost::mutex> guard(cwmtx);
+
+   size_t old = array->getWorkerIndexForSlot(slotNo) ;
+   // take an arbitrary worker that is not listed in usedWorkers
+   int index = -1;
+   for(size_t i=0;i<array->numOfWorkers() && index < 0;i++){
+     if(usedWorkers.find(i)==usedWorkers.end() && i != old){
+       index = i;
+     } 
+   }
+
+   if(index<0) {
+       cout << "no worker found" << endl;
+       return 0; // no more workers available
+   }
+   
+   cout << "changed worker for slot " << slotNo << " from " 
+        << old << " to " << index << endl;   
+
+   array->setResponsible(slotNo,index);
+   DArrayElement e = array->getWorker(index);
+   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+
+   return algInstance->getWorkerConnection(e, dbname);   
+}
+
+
 ListExpr dmapTM(ListExpr args){
   string err = "d[f]array(X)  x string x fun expected";
   if(!nl->HasLength(args,3)){
@@ -11207,21 +11244,29 @@ class Mapper{
          }
          return;
        }
+       // the result array has the same value as the
+       // argument array only the type may be different
+       // the name will be changed later
+       // the mapping from slot to worker may change in the 
+       // future if workers di
        if(!log){ 
           *resArray = (*array);
        }
+       // without any worker, we cannot do anything
        if(array->numOfWorkers()<1){
          if(!log){
              resArray->makeUndefined();
          }
          return;
        }
+       // create a new name for the result array 
        if(!ccname->IsDefined() || ccname->GetValue().length()==0){
           algInstance->getWorkerConnection(array->getWorker(0),dbname);
           name = algInstance->getTempName();            
        } else {
           name = ccname->GetValue();
        }
+       // check whether the name is valid
        if(!stringutils::isIdent(name)){
            if(!log){
               resArray->makeUndefined();
@@ -11235,13 +11280,17 @@ class Mapper{
           // no slots -> nothing to do
           return;
        }
+
+
        vector<rtype*> w;
        vector<boost::thread*> runners;
 
        for( size_t i=0;i< array->getSize();i++){
           ConnectionInfo* ci = algInstance->getWorkerConnection(
                                  array->getWorkerForSlot(i), dbname);
-          ci->setLogger(log);
+          if(ci){
+             ci->setLogger(log);
+          }
           rtype* r = new rtype(ci,dbname, i, this);
           w.push_back(r);
           boost::thread* runner = new boost::thread(&rtype::run, r);
@@ -11253,12 +11302,21 @@ class Mapper{
           delete runners[i];
           delete w[i];
        }
-       for( size_t i=0;i< array->getSize();i++){
-          ConnectionInfo* ci = algInstance->getWorkerConnection(
-                                 array->getWorkerForSlot(i), dbname);
-          ci->setLogger(0);
+       if(log){ // reset logger
+         for( size_t i=0;i< array->getSize();i++){
+            ConnectionInfo* ci = algInstance->getWorkerConnection(
+                                   array->getWorkerForSlot(i), dbname);
+            ci->setLogger(0);
+         }
        }
     }
+
+    ConnectionInfo* changeWorker(size_t slotNo, 
+                                 set<size_t>& usedWorkers){
+       DArrayBase* array = darray?(DArrayBase*)darray:(DArrayBase*)dfarray;
+       ConnectionInfo* ci=  changeWorker1(array, slotNo, usedWorkers);
+       return ci;
+    } 
 
    
     class fRun{
@@ -11271,10 +11329,6 @@ class Mapper{
            if(!ci){
              return;
            }
-
-           // create temporal function
-           //string funName = "tmpfun_"+stringutils::int2str(ci->serverPid())
-           //                  + "_"+ stringutils::int2str(nr);
 
            string fun = mapper->funText->GetValue();
 
@@ -11316,7 +11370,10 @@ class Mapper{
                              showCommands, logOn, commandLog);
            if(err){
              cerr << "creating directory failed, cmd = " << cd << endl;
-             cerr << errMsg << endl;
+             cerr << "message : " << errMsg << endl;
+             cerr << "code : " << err << endl;
+             cerr << "meaning : " << SecondoInterface::GetErrorMessage(err)
+                  << endl;
              writeLog(ci,cmd,errMsg);
            }
 
@@ -11340,9 +11397,6 @@ class Mapper{
               showError(ci,cmd,err,errMsg);
               writeLog(ci,cmd,errMsg);
            }
-         //  ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime,
-         //                    showCommands, logOn, commandLog);
-
         }
 
       private:
@@ -11361,76 +11415,88 @@ class Mapper{
            ci(_ci), dbname(_dbname), nr(_nr), mapper(_mapper) {}
 
         void run(){
-          if(!ci){
-             return;
-          }
-          int numtries = 8;
-          bool allWorkersTried = false;
-          do {
-
+          bool reconnectGlobal = algInstance->tryReconnect();
+          int maxtries = 8; // TODO: make configurable this constant
+          int numtries = maxtries;
+          set<size_t> usedWorkers;
+          bool reconnect = true;
           string fundef =  mapper->funText->GetValue();
-          int err; string errMsg; string r;
-          double runtime;
-          string funarg;
+          // name of argument
           string n = mapper->array->getName()+"_"+stringutils::int2str(nr);
-
-          if(mapper->array->getType()==DFARRAY){  
-              string fname1 = mapper->array->getFilePath(ci->getSecondoHome(
-                                                         showCommands,
-                                                         commandLog),
-                                                         mapper->dbname,
-                                                         nr);
-               ListExpr frelType = nl->TwoElemList(
-                                     listutils::basicSymbol<frel>(),
-                                     nl->Second(nl->Second(mapper->aType))); 
-               funarg = "( " + nl->ToString(frelType) + " " 
-                             + "'" + fname1 + "')";
-          } else {
-               funarg = n + " ";
-          }
-
-          vector<string> funargs;
-          funargs.push_back(funarg);
-          ListExpr funCmdList = fun2cmd(fundef, funargs);
-          
-
-
+          // name of result
           string name2 = mapper->name + "_" + stringutils::int2str(nr);
-          //string cmd = "(let "+ name2 +" = (" + fundef +" " + funarg + " ))";
 
-          funCmdList = replaceWrite(funCmdList, "write2",name2);
-          funCmdList = replaceWrite(funCmdList, "write3",n);
-          string funcmd = nl->ToString(funCmdList);
+          do {
+            if(!ci) {
+              return; 
+            }
+            {  
+              int err; string errMsg; string r;
+              double runtime;
+              string funarg;
 
-          string cmd = "(let " + name2 + " = " + funcmd + ")";
-          
-          ci->simpleCommandFromList(cmd,err,errMsg,r,false, runtime,
-                                    showCommands, logOn, commandLog);
-          if((err!=0)  ){ 
-             showError(ci,cmd,err,errMsg);
-             writeLog(ci,cmd,errMsg);
-             // TODO: 
-             // if err==80 and number of tries < 2: try reconnect and try 
-             // the command again
-             // may be is a temporarly crash
-             // otherwise delegate command to another server
-             // step 1: replace the ConnectionInfo
-             // step 2: repeat until maximum number of tries is reached or 
-             //         all workers are down
-             // step 3: change assigment of slot to worker in result array
-              
-          } else { // successful finished command
-             return;   
-          }
+              if(mapper->array->getType()==DFARRAY){  
+                  string path = ci->getSecondoHome(showCommands,commandLog);
+                  cout << "retrieve secondo home of df array" << endl;
+                  string fname1 = mapper->array->getFilePath(path,
+                                                             dbname,
+                                                             nr);
+                  ListExpr frelType = nl->TwoElemList(
+                                       listutils::basicSymbol<frel>(),
+                                       nl->Second(nl->Second(mapper->aType))); 
+                  funarg = "( " + nl->ToString(frelType) + " " 
+                                + "'" + fname1 + "')";
+              } else {
+                   funarg = n + " ";
+              }
+
+              // convert function to command
+              vector<string> funargs;
+              funargs.push_back(funarg);
+              ListExpr funCmdList = fun2cmd(fundef, funargs);
+            
+              funCmdList = replaceWrite(funCmdList, "write2",name2);
+              funCmdList = replaceWrite(funCmdList, "write3",n);
+              string funcmd = nl->ToString(funCmdList);
+
+              string cmd = "(let " + name2 + " = " + funcmd + ")";
+              err = nr; 
+              ci->simpleCommandFromList(cmd,err,errMsg,r,false, runtime,
+                                        showCommands, logOn, commandLog);
+              if((err!=0)  ){ 
+                 showError(ci,cmd,err,errMsg);
+                 writeLog(ci,cmd,errMsg);
+                 if(reconnect && reconnectGlobal){
+                    if(!ci->reconnect(showCommands,commandLog)){
+                      reconnect = false;
+                      cout << "reconnect failed" << endl;
+                      numtries--;
+                    }
+                 } 
+                 if(!reconnect ||  !reconnectGlobal){
+                   size_t workernum = mapper->darray->getWorkerIndexForSlot(nr);
+                   usedWorkers.insert(workernum);
+                   ci = mapper->changeWorker(nr, usedWorkers);
+                   if(!ci){
+                       cerr << "change worker has returned 0, give up" << endl;
+                       return;
+                   }
+                 }
+                 reconnect = !reconnect;
+              } else { // successful finished command
+                 return;   
+              }
+              usleep(100);
               numtries--;
-          } while(numtries>0 && !allWorkersTried); 
+            }
+          } while(numtries>0); 
         }
 
       private:
-        ConnectionInfo* ci;
-        string dbname;
-        size_t nr;
-        Mapper* mapper;
+        ConnectionInfo* ci; // current connection info, may change
+        string dbname;      // dbname
+        size_t nr;          // slot number
+        Mapper* mapper;     // the calling mapper
     };
 };
 
@@ -11447,6 +11513,7 @@ int dmapVMT(Word* args, Word& result, int message,
   Mapper<A> mapper(array, qp->GetType(qp->GetSon(s,0)), name, funText, 
                    isRel, isStream, result.addr, 0);
   mapper.start();
+  
   return 0;
 }
 
@@ -19285,6 +19352,56 @@ Operator write3Op(
 );
 
 
+/*
+Operator ~db2tryReconnect~
+
+*/
+ListExpr db2tryReconnectTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one argument expected");
+  }
+  if(!CcBool::checkType(nl->First(args))){
+    return listutils::typeError("bool expected");
+  }
+  return nl->First(args);
+}
+
+int db2tryReconnectVM(Word* args, Word& result, int message,
+               Word& local, Supplier s) {
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  CcBool* arg = (CcBool*) args[0].addr;
+  if(!arg->IsDefined()){
+    res->SetDefined(false);
+  }  else {
+    bool v = arg->GetValue();
+    algInstance->setReconnect(v);
+    res->Set(true,v);
+  }
+  return 0;
+}
+
+OperatorSpec db2tryReconnectSpec(
+  "bool -> bool",
+  "db2tryReconnect(_)",
+  "Just copies the argument to the result. "
+  "As a side effect, a flag in the Distributed2Algebra is set "
+  "to the value of the argument. "
+  "If this flag is true, some opertors of the distributes2algebra "
+  "will try to reconnect to a worker if a broken connection is "
+  "detected. ",
+  "query db2tryReconnect(TRUE)"
+);
+
+Operator db2tryReconnectOp(
+  "db2tryReconnect",
+  db2tryReconnectSpec.getStr(),
+  db2tryReconnectVM,
+  Operator::SimpleSelect,
+  db2tryReconnectTM
+);
+
+
 
 /*
 3 Implementation of the Algebra
@@ -19292,6 +19409,7 @@ Operator write3Op(
 */
 Distributed2Algebra::Distributed2Algebra(){
    namecounter = 0;
+   tryReconnectFlag = false;
 
    AddTypeConstructor(&DArrayTC);
    DArrayTC.AssociateKind(Kind::SIMPLE());
@@ -19496,6 +19614,7 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&write2Op);
    AddOperator(&write3Op);
 
+   AddOperator(&db2tryReconnectOp);
 
    pprogView = new PProgressView();
    MessageCenter::GetInstance()->AddHandler(pprogView);

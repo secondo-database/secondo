@@ -701,5 +701,10 @@ Signature : stream(tuple(X)) -> real(tuple(X))
 Example   : query ten feed write3 count
 Result    : 10
 
+Operator  : db2tryReconnect
+Number    : 1
+Signature : bool -> bool
+Example   : query db2tryReconnect(TRUE)
+Result    : TRUE
 
 
