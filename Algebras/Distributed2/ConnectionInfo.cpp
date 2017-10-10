@@ -54,19 +54,66 @@ ConnectionInfo::ConnectionInfo(const string& _host,
     mynl = _mynl;
     secondoHome = "";
     requestFolder = "";
+    requestPath = "";
     sendFolder = "";
     sendPath = "";
     serverPID=0;
     num = -1;
     cmdLog = 0; 
+    guard_type guard(simtx);
     if(si!=0){
       try{
         serverPID = si->getPid();
+        secondoHome = si->getHome();
+        sendFolder = si->getSendFileFolder();
+        requestFolder = si->getRequestFileFolder();
+        requestPath = si->getRequestFilePath();
+        sendPath = si->getSendFilePath();
       } catch(...){
-
+        cerr << " Problem in ConnectionInfo constructor" << endl;
       }
     }
 }
+
+bool ConnectionInfo::reconnect(bool showCommands, CommandLog& log){
+    guard_type guard(simtx);
+    try{
+       this->si->Terminate();
+    } catch(...) {
+       cerr << "reconnect: Exception during terminate" << endl;
+    }
+    try{
+       delete this->si;
+    } catch(...) {
+       cerr << "reconnect: Exception during deletion of si " << endl;
+    }
+    si = new SecondoInterfaceCS(true, mynl, true);
+    string user = "";
+    string passwd = "";
+    string errMsg;
+    si->setMaxAttempts(4);
+    si->setTimeout(2);
+    if (!si->Initialize(user, passwd, host, stringutils::int2str(port), config,
+                        errMsg, true)) {
+      cerr << "reconnect: Initialisation of newly created "
+              "secondoInterface failed" << endl;
+      cerr << "Error : " << errMsg << endl;
+      return false;
+    }
+    if(si!=0){
+      try{
+        serverPID = si->getPid();
+        switchDatabase(SecondoSystem::GetInstance()->GetDatabaseName(), 
+                       true, false, true);
+        retrieveSecondoHome(showCommands,log);
+      } catch(...){
+        cerr << "error during collecting standard information" << endl;
+        return false;
+      }
+    }
+    return si!=0;
+}
+
 
 /*
  1.2 Destructor
@@ -77,7 +124,7 @@ ConnectionInfo::ConnectionInfo(const string& _host,
 ConnectionInfo::~ConnectionInfo()
 {
     {
-        boost::lock_guard < boost::recursive_mutex > guard(simtx);
+        guard_type guard(simtx);
         si->Terminate();
     }
     delete si;
@@ -132,15 +179,24 @@ bool ConnectionInfo::check(bool showCommands, bool logOn,
     string cmd = "list databases";
     SecErrInfo err;
     {
-        boost::lock_guard < boost::recursive_mutex > guard(simtx);
+        guard_type guard(simtx);
         showCommand(si, host, port, cmd, true, showCommands);
         StopWatch sw;
         si->Secondo(cmd, res, err);
+        if(err.code){
+           cerr << "Secondo function used during check() returns an error"
+                << endl;
+           cerr << "Code is " << err.code << endl;
+           cerr << "This means " << err.msg << endl;
+        }
+
+
         double rt = sw.diffSecondsReal();
         if (logOn)
-        {
+        {   
+            string home = this->getSecondoHome(showCommands, commandLog);
             commandLog.insert(this, this->getHost(), 
-                              this->getSecondoHome(showCommands, commandLog),
+                              home,
                               cmd, rt, err.code);
         }
         showCommand(si, host, port, cmd, false, showCommands);
@@ -156,10 +212,9 @@ bool ConnectionInfo::check(bool showCommands, bool logOn,
 */
 void ConnectionInfo::setId(const int i)
 {
-    if (si)
-    {
+    guard_type guard(simtx);
+    if (si) {
         si->setId(i);
-        ;
     }
 }
 
@@ -191,7 +246,7 @@ void ConnectionInfo::simpleCommand(string command1,
     SecErrInfo serr;
     ListExpr resList;
     {
-        boost::lock_guard < boost::recursive_mutex > guard(simtx);
+        guard_type guard(simtx);
         StopWatch sw;
         showCommand(si, host, port, command, true, showCommands);
         if(!cmdLog || forceExec){
@@ -230,11 +285,6 @@ void ConnectionInfo::simpleCommand(string command1,
 string ConnectionInfo::getSecondoHome(bool showCommands,
                                       CommandLog& commandLog)
 {
-    if (secondoHome.length() == 0)
-    {
-        retrieveSecondoHome(showCommands,
-                            commandLog);
-    }
     return secondoHome;
 }
 
@@ -251,7 +301,8 @@ string ConnectionInfo::getSecondoHome(bool showCommands,
 bool ConnectionInfo::cleanUp(bool showCommands,
                              bool logOn,
                              CommandLog& commandLog)
-{
+{   
+    //guard_type guard(simtx);
     // first step : remove database objects
     string command = "query getcatalog() "
             "filter[.ObjectName startsWith \"TMP_\"] "
@@ -293,8 +344,8 @@ bool ConnectionInfo::switchDatabase(const string& dbname,
                                     bool showCommands,
                                     bool forceExec)
 {
-    boost::lock_guard < boost::recursive_mutex > guard(simtx);
-    ;
+    guard_type guard(simtx);
+    
     // close database ignore errors
     SecErrInfo serr;
     ListExpr resList;
@@ -368,7 +419,7 @@ void ConnectionInfo::simpleCommand(const string& command1,
         command = command1;
     }
     {
-        boost::lock_guard < boost::recursive_mutex > guard(simtx);
+        guard_type guard(simtx);
         ;
         SecErrInfo serr;
         ListExpr myResList = mynl->TheEmptyList();
@@ -415,7 +466,8 @@ void ConnectionInfo::simpleCommandFromList(const string& command1,
                                            CommandLog& commandLog,
                                            bool forceExec)
 {
-
+   try{
+    guard_type guard(simtx);
     string command;
     if (rewrite)
     {
@@ -424,7 +476,7 @@ void ConnectionInfo::simpleCommandFromList(const string& command1,
     {
         command = command1;
     }
-    boost::lock_guard < boost::recursive_mutex > guard(simtx);
+
     ListExpr cmd = mynl->TheEmptyList();
     {
         boost::lock_guard < boost::mutex > guard(nlparsemtx);
@@ -447,6 +499,13 @@ void ConnectionInfo::simpleCommandFromList(const string& command1,
        serr.code = 0;
        serr.msg = "command not executed";
     }
+    if(serr.code != 0){
+       cerr << "error during secondo command" << endl;
+       cerr << "code : " << serr.code << endl;
+       cerr << "msg : " << serr.msg << endl;
+    }
+
+
     showCommand(si, host, port, command, false, showCommands);
     runtime = sw.diffSecondsReal();
     if (logOn)
@@ -467,6 +526,9 @@ void ConnectionInfo::simpleCommandFromList(const string& command1,
     {
         mynl->Destroy(myResList);
     }
+  } catch(...){
+     cerr << "Exception during simpleCommandFromList " << endl;
+  }
 
 }
 
@@ -497,7 +559,7 @@ void ConnectionInfo::simpleCommand(const string& command1,
     {
         command = command1;
     }
-    boost::lock_guard < boost::recursive_mutex > guard(simtx);
+    guard_type guard(simtx);
     ;
     SecErrInfo serr;
     ListExpr myResList = mynl->TheEmptyList();
@@ -538,11 +600,6 @@ void ConnectionInfo::simpleCommand(const string& command1,
 */
 int ConnectionInfo::serverPid()
 {
-    boost::lock_guard < boost::recursive_mutex > guard(simtx);
-    if (serverPID == 0)
-    {
-        serverPID = si->getPid();
-    }
     return serverPID;
 }
 
@@ -557,7 +614,7 @@ int ConnectionInfo::sendFile(const string& local,
                              const string& remote,
                              const bool allowOverwrite)
 {
-    boost::lock_guard < boost::recursive_mutex > guard(simtx);
+    guard_type guard(simtx);
     int res = si->sendFile(local, remote, allowOverwrite);
     return res;
 }
@@ -572,7 +629,7 @@ int ConnectionInfo::requestFile(const string& remote,
                                 const string& local,
                                 const bool allowOverwrite)
 {
-    boost::lock_guard < boost::recursive_mutex > guard(simtx);
+    guard_type guard(simtx);
     int res = si->requestFile(remote, local, allowOverwrite);
     return res;
 }
@@ -585,11 +642,6 @@ int ConnectionInfo::requestFile(const string& remote,
 */
 string ConnectionInfo::getRequestFolder()
 {
-    if (requestFolder.length() == 0)
-    {
-        boost::lock_guard < boost::recursive_mutex > guard(simtx);
-        requestFolder = si->getRequestFileFolder();
-    }
     return requestFolder;
 }
 
@@ -602,11 +654,6 @@ string ConnectionInfo::getRequestFolder()
 */
 string ConnectionInfo::getSendFolder()
 {
-    if (sendFolder.length() == 0)
-    {
-        boost::lock_guard < boost::recursive_mutex > guard(simtx);
-        sendFolder = si->getSendFileFolder();
-    }
     return sendFolder;
 }
 
@@ -619,11 +666,6 @@ string ConnectionInfo::getSendFolder()
 
 string ConnectionInfo::getSendPath()
 {
-    if (sendPath.length() == 0)
-    {
-        boost::lock_guard < boost::recursive_mutex > guard(simtx);
-        sendPath = si->getSendFilePath();
-    }
     return sendPath;
 }
 
@@ -676,7 +718,7 @@ bool ConnectionInfo::createOrUpdateObject(const string& name,
                                       showCommands, logOn, commandLog);
     }
 
-    boost::lock_guard < boost::recursive_mutex > guard(simtx);
+    guard_type guard(simtx);
     SecErrInfo serr;
     ListExpr resList;
     string cmd = "delete " + name;
@@ -741,6 +783,7 @@ bool ConnectionInfo::createOrUpdateRelation(const string& name,
                                             bool forceExec)
 {
 
+    //guard_type guard(simtx);
     // write relation to a file
     string filename = name + "_" + stringutils::int2str(WinUnix::getpid())
             + ".bin";
@@ -773,7 +816,7 @@ bool ConnectionInfo::createOrUpdateRelationFromBinFile(const string& name,
                                                      const bool allowOverwrite,
                                                      bool forceExec)
 {
-    boost::lock_guard < boost::recursive_mutex > guard(simtx);
+    guard_type guard(simtx);
 
     SecErrInfo serr;
     ListExpr resList;
@@ -785,7 +828,7 @@ bool ConnectionInfo::createOrUpdateRelationFromBinFile(const string& name,
     }
 
     // retrieve folder from which the filename can be read
-    string sendFolder = si->getSendFilePath();
+    string sendFolder = sendPath;
 
     string rfilename = sendFolder + "/" + filename;
     // delete existing object
@@ -872,7 +915,7 @@ bool ConnectionInfo::createOrUpdateAttributeFromBinFile(const string& name,
                                                      const bool allowOverwrite,
                                                      bool forceExec)
 {
-    boost::lock_guard < boost::recursive_mutex > guard(simtx);
+    guard_type guard(simtx);
 
     SecErrInfo serr;
     ListExpr resList;
@@ -884,7 +927,7 @@ bool ConnectionInfo::createOrUpdateAttributeFromBinFile(const string& name,
     }
 
     // retrieve folder from which the filename can be read
-    string sendFolder = si->getSendFilePath();
+    string sendFolder = sendPath;
 
     string rfilename = sendFolder + "/" + filename;
     // delete existing object
@@ -1039,7 +1082,6 @@ bool ConnectionInfo::retrieve(const string& objName,
                               CommandLog& commandLog,
                               bool forceExec)
 {
-    boost::lock_guard < boost::recursive_mutex > guard(simtx);
     if (Relation::checkType(resType))
     {
         if (retrieveRelation(objName, resType, result, 
@@ -1047,67 +1089,68 @@ bool ConnectionInfo::retrieve(const string& objName,
         {
             return true;
         }
-        cerr << "Could not use fast retrieval for a " << " relation, failback"
-                << endl;
+        cerr << "Could not use fast retrieval for a relation, failback" << endl;
     }
-
-    SecErrInfo serr;
-    ListExpr myResList;
-    string cmd = "query " + objName;
-    showCommand(si, host, port, cmd, true, showCommands);
-    StopWatch sw;
-    if(!cmdLog || forceExec){
-       si->Secondo(cmd, myResList, serr);
-    } else {
-       cmdLog->insert(this, cmd);
-       myResList = mynl->TheEmptyList();
-       serr.code = 0;
-       serr.msg = "command not executed";
-    }
-    double runtime = sw.diffSecondsReal();
-    if (logOn)
     {
-        commandLog.insert(this, this->getHost(), 
-                          this->getSecondoHome(showCommands, commandLog), cmd,
-                          runtime, serr.code);
+      guard_type  guard(simtx);
+      SecErrInfo serr;
+      ListExpr myResList;
+      string cmd = "query " + objName;
+      showCommand(si, host, port, cmd, true, showCommands);
+      StopWatch sw;
+      if(!cmdLog || forceExec){
+         si->Secondo(cmd, myResList, serr);
+      } else {
+         cmdLog->insert(this, cmd);
+         myResList = mynl->TheEmptyList();
+         serr.code = 0;
+         serr.msg = "command not executed";
+      }
+      double runtime = sw.diffSecondsReal();
+      if (logOn)
+      {
+          commandLog.insert(this, this->getHost(), 
+                            this->getSecondoHome(showCommands, commandLog), cmd,
+                            runtime, serr.code);
+      }
+      showCommand(si, host, port, cmd, false, showCommands);
+      SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+      if (serr.code != 0)
+      {
+          return false;
+      }
+      if (!mynl->HasLength(myResList, 2))
+      {
+          return false;
+      }
+      // copy result list into global list memory
+      ListExpr resList;
+      {
+          boost::lock_guard < boost::mutex > guard(copylistmutex);
+          resList = mynl->CopyList(myResList, nl);
+          mynl->Destroy(myResList);
+      }
+      ListExpr resType2 = nl->First(resList);
+      if (checkType && !nl->Equal(resType, resType2))
+      {
+          // other type than expected
+          return false;
+      }
+      ListExpr value = nl->Second(resList);
+  
+      int errorPos = 0;
+      ListExpr errorInfo = listutils::emptyErrorInfo();
+      bool correct;
+      {
+          boost::lock_guard < boost::mutex > guard(createRelMut);
+          result = ctlg->InObject(resType, value, errorPos, errorInfo, correct);
+      }
+      if (!correct)
+      {
+          result.addr = 0;
+      }
+      return correct;
     }
-    showCommand(si, host, port, cmd, false, showCommands);
-    SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
-    if (serr.code != 0)
-    {
-        return false;
-    }
-    if (!mynl->HasLength(myResList, 2))
-    {
-        return false;
-    }
-    // copy result list into global list memory
-    ListExpr resList;
-    {
-        boost::lock_guard < boost::mutex > guard(copylistmutex);
-        resList = mynl->CopyList(myResList, nl);
-        mynl->Destroy(myResList);
-    }
-    ListExpr resType2 = nl->First(resList);
-    if (checkType && !nl->Equal(resType, resType2))
-    {
-        // other type than expected
-        return false;
-    }
-    ListExpr value = nl->Second(resList);
-
-    int errorPos = 0;
-    ListExpr errorInfo = listutils::emptyErrorInfo();
-    bool correct;
-    {
-        boost::lock_guard < boost::mutex > guard(createRelMut);
-        result = ctlg->InObject(resType, value, errorPos, errorInfo, correct);
-    }
-    if (!correct)
-    {
-        result.addr = 0;
-    }
-    return correct;
 }
 /*
  1.30 retrieveRelation
@@ -1124,6 +1167,7 @@ bool ConnectionInfo::retrieveRelation(const string& objName,
                                       bool forceExec)
 {
 
+    //guard_type guard(simtx);
     string fname1 = objName + ".bin";
     if (!retrieveRelationFile(objName, fname1, showCommands, logOn, 
                               commandLog, forceExec))
@@ -1149,10 +1193,15 @@ bool ConnectionInfo::retrieveRelationInFile(const string& fileName,
                                             CommandLog& commandLog,
                                             bool forceExec)
 {
-    boost::lock_guard < boost::recursive_mutex > guard(simtx);
+    guard_type guard(simtx);
     result.addr = 0;
     // get the full path for requesting files
-    string rfpath = si->getRequestFilePath() + "/";
+    string rfpath;
+    try{
+       rfpath = requestPath + "/";
+    } catch(...){
+       return false;
+    }
     string base = FileSystem::Basename(fileName);
     if (stringutils::startsWith(fileName, rfpath))
     {
@@ -1260,13 +1309,17 @@ bool ConnectionInfo::retrieveRelationFile(const string& objName,
                                           CommandLog& commandLog,
                                           bool forceExec)
 {
-    boost::lock_guard < boost::recursive_mutex > guard(simtx);
-
-    string rfname = si->getRequestFilePath() + "/" + fname1;
+    guard_type guard(simtx);
+    string rfname;
+    try{
+      rfname = requestPath + "/" + fname1;
+    } catch(...){
+      return false;
+    }
     // save the remove relation into a binary file
     SecErrInfo serr;
     ListExpr resList;
-    string cmd = "query createDirectory('" + si->getRequestFilePath()
+    string cmd = "query createDirectory('" + requestPath 
             + "', TRUE) ";
     showCommand(si, host, port, cmd, true, showCommands);
     StopWatch sw;
@@ -1290,6 +1343,8 @@ bool ConnectionInfo::retrieveRelationFile(const string& objName,
     if (serr.code != 0)
     {
         cerr << "Creating filetransfer directory failed" << endl;
+        cerr << "serr.code = " << serr.code << endl;
+        cerr << "serr.Msg = " << serr.msg << endl;
         return false;
     }
 
@@ -1360,6 +1415,7 @@ bool ConnectionInfo::retrieveAnyFile(const string& remoteName,
                                      CommandLog& commandLog,
                                      bool forceExec)
 {
+    guard_type guard(simtx);
     string rf = getRequestFolder();
     bool copyRequired = !stringutils::startsWith(remoteName, rf);
     string cn;
@@ -1439,7 +1495,7 @@ Word ConnectionInfo::createRelationFromFile(const string& fname,
                                             ListExpr& resType)
 {
 
-    boost::lock_guard < boost::recursive_mutex > guard(simtx);
+    // guard_type guard(simtx);
 
     Word result((void*) 0);
     // create result relation
@@ -1458,7 +1514,7 @@ Word ConnectionInfo::createRelationFromFile(const string& fname,
     ListExpr typeInFile = reader.getRelType();
     if (!nl->Equal(resType, typeInFile))
     {
-        cerr << "Type conflict between expected type and tyoe in file" << endl;
+        cerr << "Type conflict between expected type and type in file" << endl;
         cerr << "Expected : " << nl->ToString(resType) << endl;
         cerr << "Type in  File " << nl->ToString(typeInFile) << endl;
         tt->DeleteIfAllowed();
@@ -1492,8 +1548,17 @@ ostream& ConnectionInfo::print(ostream& o) const
 void ConnectionInfo::retrieveSecondoHome(bool showCommands,
                                          CommandLog& commandLog)
 {
+   guard_type guard(simtx);
    secondoHome = si?si->getHome():"";
 }
+
+void ConnectionInfo::retrieveSecondoHome()
+{
+   guard_type guard(simtx);
+   secondoHome = si?si->getHome():"";
+}
+
+
 
 std::ostream& operator<<(std::ostream& o, const ConnectionInfo& sc)
 {

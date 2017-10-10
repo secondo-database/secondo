@@ -84,6 +84,8 @@ public:
                    NestedList* _mynl);
     virtual ~ConnectionInfo();
 
+    bool reconnect(bool showCommands, CommandLog& log);
+
     std::string getHost() const;
 
     int getPort() const;
@@ -261,6 +263,11 @@ public:
     void setLogger(CommandLogger* cmdlog){
       this->cmdLog = cmdlog;
     }
+    
+
+    CommandLogger* getLogger() const{
+      return cmdLog;
+    }
 
     void setNum(const int num){
        this->num = num;
@@ -270,9 +277,12 @@ public:
       return num;
     }
 
+
 private:
     void retrieveSecondoHome(bool showCommands,
                              CommandLog& commandLog);
+
+    void retrieveSecondoHome();
 
     std::string host;
     int port;
@@ -282,14 +292,21 @@ private:
     int serverPID;
     std::string secondoHome;
     std::string requestFolder;
+    std::string requestPath;
     std::string sendFolder;
     std::string sendPath;
-    boost::recursive_mutex simtx; // mutex for synchronizing 
+
+    typedef boost::mutex mutex_type;
+    typedef boost::lock_guard<mutex_type> guard_type;
+
+    mutex_type simtx; // mutex for synchronizing 
                                   // access to the interface
     CommandLogger* cmdLog;  // if this is nor null, commands are
                          // written to log instead of sending
                          // to the server
     int num; // some number that can be used to store additional information
+
+   
 
 };
 
