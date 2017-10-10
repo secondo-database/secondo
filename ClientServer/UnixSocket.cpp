@@ -683,6 +683,7 @@ UnixSocket::Write( void const* buf, size_t size )
 #define MSG_NOSIGNAL SO_NOSIGPIPE
 #endif
 #endif
+
     while ((rc = ::send(fd, buf, size, MSG_NOSIGNAL)) < 0) {
 
        if(errno != EINTR) {
@@ -693,9 +694,11 @@ UnixSocket::Write( void const* buf, size_t size )
        sleepCtr++; 
     }
    
-    if ( rc == 0 || errno == EPIPE)
+    if ( (rc <=0 ) &&  (errno == EPIPE))
     {
       cerr << "Broken Pipe!" << endl;
+      cerr << "rc = " << rc << ", errno = " << errno 
+           << ", size = " << size << endl;
       SetStreamState( ios::failbit | ios::eofbit );
       lastError = EC_BROKEN_PIPE;
       return (false);
