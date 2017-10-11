@@ -272,6 +272,10 @@ recognized during annotation of a query, its value is entered into array
 const int MAXVALUES    = 200;
 const int MAXFUNCTIONS =  30;
 
+ListExpr heartbeatList1;
+
+
+
 /*
 1.2.2 Tables for Variables
 
@@ -3971,6 +3975,8 @@ QueryProcessor::EvalP( void* node,
                       const int __attribute__((unused)) message)
 {
   //progressView = new ProgressView();
+  heartbeatList1 = nl->TwoElemList(nl->SymbolAtom("heartbeat"), 
+                               nl->IntAtom(1));
   allowProgress = true;
   try
   {
@@ -3984,6 +3990,11 @@ QueryProcessor::EvalP( void* node,
 
   allowProgress = false;
   progressView->FinishProgressView();
+  // mark end of heartbeats
+  ListExpr l = nl->TwoElemList(nl->SymbolAtom("heartbeat"), 
+                               nl->IntAtom(0));
+  static MessageCenter* msg = MessageCenter::GetInstance();
+  msg->Send(nl,l,-1);
   //delete progressView;
   //progressView=0;
 }
@@ -4271,6 +4282,8 @@ Then call the operator's value mapping function.
 #ifdef USE_PROGRESS
           CheckProgress();
 #endif
+          CheckHeartbeat();
+
           if(useHeartbeat){
               HeartBeat();
           }
@@ -4405,6 +4418,37 @@ a multiple of the one defined here.
     progressCtr = progressDelta;
   }
 }
+
+void QueryProcessor::CheckHeartbeat(){
+    int h1 = SecondoSystem::GetInstance()->getHeart1();
+    if(h1<1){
+      return;
+    }
+    static clock_t clockDelta = CLOCKS_PER_SEC ;
+    static clock_t lastClock = clock();
+
+    // Do a clock check only after some calls of this code branch.
+    static const int heartbeatDelta = 100;
+
+    static int heartbeatCtr = heartbeatDelta;
+
+    heartbeatCtr--;
+
+    if ( heartbeatCtr == 0) {
+
+      if ( clock() < lastClock ) {
+          lastClock = 0;
+      }
+
+      if ( (clock() - lastClock) > clockDelta * h1) {
+        static MessageCenter* msg = MessageCenter::GetInstance();
+        msg->Send(nl,heartbeatList1,-1);
+        lastClock = clock();
+      }
+      heartbeatCtr = heartbeatDelta;
+    }
+}
+
 
 
 void QueryProcessor::HeartBeat(){

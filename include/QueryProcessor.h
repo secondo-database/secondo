@@ -393,6 +393,8 @@ Update the progress bar to the current progress value.
 
   void CheckProgress();
 
+  void CheckHeartbeat();
+
 /*
 Trigger a progress query if the time has come to do so.
 

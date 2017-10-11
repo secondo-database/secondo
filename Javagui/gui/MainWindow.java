@@ -101,6 +101,13 @@ private JMenuItem MI_Snapshot;
 
 private JMenu ServerMenu;
 private JMenuItem MI_Connect;
+private JMenu M_SetHeartbeat;
+private JMenuItem MI_Heartbeat0;
+private JMenuItem MI_Heartbeat1;
+private JMenuItem MI_Heartbeat2;
+private JMenuItem MI_Heartbeat5;
+private JMenuItem MI_Heartbeat10;
+
 private JMenuItem MI_Disconnect;
 private JMenuItem MI_Settings;
 private JMenuItem MI_User;
@@ -193,6 +200,7 @@ private String ObjectDirectory ="./"; // where search for Objects
 
 private ProgressView progressView;
 private ProgressTimer progressTimer;
+private HeartbeatListener heartbeatListener;
 
 private String configFile;
 
@@ -251,7 +259,9 @@ public MainWindow(String Title,String user,String passwd, String configFile){
 
   progressTimer = new ProgressTimer();
   ComPanel.addMessageListener(progressTimer);
-  
+ 
+  heartbeatListener = new HeartbeatListener();
+  ComPanel.addMessageListener(heartbeatListener); 
 
 
   PanelTop.add(HSplitPane);
@@ -1231,6 +1241,7 @@ private void setViewer(SecondoViewer SV){
            MainMenu.add(MenuExtension.get(i));
        } 
     }
+    MainMenu.add(heartbeatListener);
     MainMenu.add(progressTimer);
 
     invalidate();
@@ -2107,6 +2118,7 @@ public void updateMenu(){
         Reporter.showError("error when update the menu");
      }
    }
+   MainMenu.add(heartbeatListener);
    MainMenu.add(progressTimer); 
 }
 
@@ -2765,10 +2777,11 @@ private void createMenuBar(){
         if(ComPanel.isConnected()){
            MI_Connect.setEnabled(false);
            MI_Disconnect.setEnabled(true);
-        }
-        else{
+           M_SetHeartbeat.setEnabled(true);
+        } else{
            MI_Connect.setEnabled(true);
            MI_Disconnect.setEnabled(false);
+           M_SetHeartbeat.setEnabled(false);
         }
      }
      public void menuDeselected(MenuEvent evt){}
@@ -2781,6 +2794,49 @@ private void createMenuBar(){
    MI_Disconnect = ServerMenu.add("Disconnect");
    MI_Settings = ServerMenu.add("Settings");
    MI_User = ServerMenu.add("User settings");
+   M_SetHeartbeat = new JMenu("Heartbeat");
+   ServerMenu.add(M_SetHeartbeat);
+   MI_Heartbeat0 = new JMenuItem("off");
+   MI_Heartbeat0.setEnabled(false);
+   MI_Heartbeat1 = new JMenuItem("1 sec");
+   MI_Heartbeat2 = new JMenuItem("2 sec");
+   MI_Heartbeat5 = new JMenuItem("5 sec");
+   MI_Heartbeat10 = new JMenuItem("10 sec");
+   M_SetHeartbeat.add(MI_Heartbeat0);
+   M_SetHeartbeat.add(MI_Heartbeat1);
+   M_SetHeartbeat.add(MI_Heartbeat2);
+   M_SetHeartbeat.add(MI_Heartbeat5);
+   M_SetHeartbeat.add(MI_Heartbeat10);
+
+   ActionListener hbListener = new ActionListener(){
+     public void actionPerformed(ActionEvent evt){
+        JMenuItem s = (JMenuItem) evt.getSource();
+        int heart = 0;
+        String t = s.getText();
+        if(!t.equals("off")){
+          StringTokenizer st = new StringTokenizer(t);
+          heart = Integer.parseInt(st.nextToken());
+        }
+        if(ComPanel.setHeartbeat(heart,heart)){
+           MI_Heartbeat0.setEnabled(true);  
+           MI_Heartbeat1.setEnabled(true);  
+           MI_Heartbeat2.setEnabled(true);  
+           MI_Heartbeat5.setEnabled(true);  
+           MI_Heartbeat10.setEnabled(true);  
+           s.setEnabled(false);
+        } else {
+           Reporter.showError("problem  in setting heartbeat");
+        }
+     }
+   };
+   MI_Heartbeat0.addActionListener(hbListener);
+   MI_Heartbeat1.addActionListener(hbListener);
+   MI_Heartbeat2.addActionListener(hbListener);
+   MI_Heartbeat5.addActionListener(hbListener);
+   MI_Heartbeat10.addActionListener(hbListener);
+   
+   
+   
 
    MI_Connect.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
@@ -3399,6 +3455,7 @@ private void cleanMenu( boolean addProgress){
    MainMenu.add(HelpMenu);
    MMDBUserInterfaceController.getInstance().addMMDBMenu(MainMenu);
    MainMenu.add(Viewers);
+   MainMenu.add(heartbeatListener);
    if(addProgress){
      MainMenu.add(progressTimer);
    }

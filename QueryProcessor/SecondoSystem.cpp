@@ -785,6 +785,8 @@ SecondoSystem::SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc )
   catalog        = 0;
   initialized    = false;
   testMode       = false; // Todo: Should be configurable in SecondoConfig.ini
+  heart1 = 0;
+  heart2 = 0;
 }
 
 SecondoSystem::~SecondoSystem()
@@ -929,4 +931,17 @@ SecondoSystem::AbortTransaction(const bool closeObjects)
   TRACE_LEAVE
   return (SmiEnvironment::AbortTransaction());
 }
+
+bool
+SecondoSystem::SetHeartbeat(const int _heart1, const int _heart2){
+  if(_heart1<0 || _heart2 < 0){
+     return false;
+  }
+  this->heart1 = _heart1;
+  this->heart2 = _heart2;
+  return true;
+}
+
+
+
 

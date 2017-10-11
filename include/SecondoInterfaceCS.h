@@ -210,6 +210,9 @@ public:
    std::string getRequestFileFolder();
    std::string getRequestFilePath();
 
+   bool setHeartbeat(const int heart1, const int heart2);
+
+
    virtual int getPid();
    virtual bool cancelQuery(int pid);
 

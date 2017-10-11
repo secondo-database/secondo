@@ -317,6 +317,10 @@ bool SecondoInterfaceCS::connectionOK() const{
 
 
 
+
+
+
+
 /**************************************************************************
 3.1 The Secondo Procedure
 
@@ -1120,7 +1124,17 @@ std::string SecondoInterfaceCS::getHome(){
    return line;
 }
 
-
+bool SecondoInterfaceCS::setHeartbeat(const int heart1, const int heart2){
+   iostream& iosock = server->GetSocketStream();
+   iosock << "<HEARTBEAT>" << endl;
+   iosock << stringutils::int2str(heart1) << endl;
+   iosock << stringutils::int2str(heart2) << endl;
+   iosock << "</HEARTBEAT>" << endl;
+   iosock.flush();
+   string line;
+   getline(iosock,line);
+   return line=="<YES>";
+}
 
 bool SecondoInterfaceCS::cancelQuery(int pid){
    iostream& iosock = server->GetSocketStream();

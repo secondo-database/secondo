@@ -318,6 +318,10 @@ Aborts a transaction.
 
 */
 
+  bool SetHeartbeat(const int heart1, const int heart2);
+  inline int getHeart1() const{ return heart1;}
+  inline int getHeart2() const{ return heart2;}
+
  
  private:
   SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc );
@@ -342,6 +346,9 @@ Are internal methods for restoring a database.
 
   bool            testMode;
   bool            initialized;
+
+  bool heart1;
+  bool heart2;
 
 
 #ifdef SECONDO_WIN32 

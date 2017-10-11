@@ -672,6 +672,21 @@ protected void secondo(String command,
   }
 }
 
+public boolean setHeartbeat(int heart1, int heart2){
+   try{
+     outSocketStream.write("<HEARTBEAT>\n");
+     outSocketStream.write("" + heart1 + "\n");
+     outSocketStream.write("" + heart2 + "\n");
+     outSocketStream.write("</HEARTBEAT>\n");
+     outSocketStream.flush();
+     String line = inSocketStream.readLine();
+     return "<YES>".equals(line); 
+  } catch(IOException e){
+     return false;
+  }
+}
+
+
 /*
 1.3 Procedure ~NumericTypeExpr~
 

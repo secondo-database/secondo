@@ -140,6 +140,7 @@ class SecondoServer : public Application
   void CallGetLinearCostFun();
   void CallGetCostFun();
   void CallCancelQuery();
+  void CallHeartbeat();
   
  private:
 
@@ -250,6 +251,27 @@ void SecondoServer::CallGetHome(){
    iostream& iosock = client->GetSocketStream();
    iosock << SmiEnvironment::GetSecondoHome() << endl;
    iosock.flush();
+}
+
+void SecondoServer::CallHeartbeat(){
+  iostream& iosock = client->GetSocketStream();
+  string line;
+  getline(iosock,line);
+  int heart1 = atoi(line.c_str());
+  getline(iosock, line);
+  int heart2 = atoi(line.c_str());
+  getline(iosock,line);
+  if(line!="</HEARTBEAT>"){
+     cerr << "missing </HEARTBEAT>" << endl; 
+     heart1 = -1;
+     heart2 = -1;
+  }
+  bool ok = SecondoSystem::GetInstance()->SetHeartbeat(heart1,heart2);
+  if(ok){
+     iosock << "<YES>" << endl;
+  } else {
+     iosock << "<NO>" << endl;
+  }
 }
 
 
@@ -1076,6 +1098,7 @@ int SecondoServer::Execute() {
   commandTable["<GETCOSTFUN>"] = &SecondoServer::CallGetCostFun;
   commandTable["<CANCEL_QUERY>"] = &SecondoServer::CallCancelQuery;
   commandTable["<GET_HOME>"] = &SecondoServer::CallGetHome;
+  commandTable["<HEARTBEAT>"] = &SecondoServer::CallHeartbeat;
   
   string logMsgList = SmiProfile::GetParameter( "Environment", 
                                                 "RTFlags", "", parmFile );

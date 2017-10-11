@@ -136,6 +136,10 @@ public class CommandPanel extends JScrollPane {
     Secondointerface.addMessageListener(ml);
   }
 
+  public boolean setHeartbeat(int heart1, int heart2){
+    return Secondointerface.setHeartbeat(heart1, heart2);
+  }
+
   public void setAutoUpdateCatalog(boolean auc){
      autoUpdateCatalog = auc;
   }
