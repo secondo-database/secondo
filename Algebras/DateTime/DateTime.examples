@@ -310,7 +310,7 @@ Operator : tostring
 Number   : 2
 Signature: duration -> string
 Example  : query tostring([const duration value (15 2000)])
-Result   : (string "15;2000")
+Result   : "15 d 0 h 0 m 2 s"
 
 Operator  : str2instant
 Number    : 1

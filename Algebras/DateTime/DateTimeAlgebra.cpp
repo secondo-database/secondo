@@ -627,11 +627,6 @@ string DateTime::ToString(const bool sql92conform /*=false*/ ) const{
     if(ms > 0){
        tmp << ms << " ms";
     }
-
-
-
-
-
   }else if(type ==(instanttype)){ // an instant
      if(IsMinimum()){
        return begin_of_time;
@@ -711,7 +706,9 @@ string DateTime::ToString(const bool sql92conform /*=false*/ ) const{
         << " type=" << GetType() << " day = " << GetDay() << " ms = "
         << GetAllMilliSeconds();
   }
-  return tmp.str();
+  string res = tmp.str();
+  stringutils::trim(res);
+  return res;
 }
 
 ostream& DateTime::Print(ostream &os) const
