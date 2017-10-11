@@ -801,6 +801,7 @@ ReadResponse( ListExpr& resultList,
               int& errorCode,
               int& errorPos,
               std::string& errorMessage,
+              MessageHandler* msgHandler = 0,
               int source  = -1,
               bool debug = false,
               void* caller = 0,
@@ -843,6 +844,9 @@ ReadResponse( ListExpr& resultList,
     if (success) {
       dwriter.write(debug, cout, caller, callerID, "send message to center");
       msg->Send(nl,messageList, source);
+      if(msgHandler){
+          msgHandler->handleMsg(nl, messageList, source);
+      }
       getline( iosock, line );
       badbit = iosock.bad();
       dwriter.write(debug, cout, caller, callerID, "sending message finished");

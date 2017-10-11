@@ -489,7 +489,7 @@ For an explanation of the error codes refer to SecondoInterface.h
 
         errorCode = csp->ReadResponse( resultList,
                                        errorCode, errorPos,
-                                       errorMessage , id,
+                                       errorMessage , this, id,
                                        debugSecondoMethod, this, pid );
 
         dwriter.write(debugSecondoMethod, cout, this, pid, 
@@ -574,7 +574,7 @@ For an explanation of the error codes refer to SecondoInterface.h
 
         errorCode = csp->ReadResponse( resultList,
                                        errorCode, errorPos,
-                                       errorMessage , id, 
+                                       errorMessage , this, id, 
                                        debugSecondoMethod, this, pid  );
         dwriter.write(debugSecondoMethod, cout, this, pid, 
                       "communication finished" );
@@ -659,7 +659,7 @@ For an explanation of the error codes refer to SecondoInterface.h
 
         errorCode = csp->ReadResponse( resultList,
                                        errorCode, errorPos,
-                                       errorMessage , id, 
+                                       errorMessage , this, id, 
                                        debugSecondoMethod, this, pid );
         dwriter.write(debugSecondoMethod, cout, this, pid, 
                        "communication finished");
@@ -737,7 +737,7 @@ For an explanation of the error codes refer to SecondoInterface.h
 
         errorCode = csp->ReadResponse( resultList,
                                        errorCode, errorPos,
-                                       errorMessage , id, 
+                                       errorMessage , this, id, 
                                        debugSecondoMethod, this, pid );
 
         dwriter.write(debugSecondoMethod, cout, this, pid, 
@@ -784,7 +784,7 @@ For an explanation of the error codes refer to SecondoInterface.h
        // Receive result
        errorCode = csp->ReadResponse( resultList,
                                    errorCode, errorPos,
-                                   errorMessage , id, 
+                                   errorMessage , this, id, 
                                    debugSecondoMethod, this, pid );
 
        dwriter.write(debugSecondoMethod, cout, this, pid, "response received");
@@ -999,7 +999,7 @@ int SecondoInterfaceCS::sendFile( const string& localfilename,
    string errorMessage;
    errorCode = csp->ReadResponse( resultList,
                                   errorCode, errorPos,
-                                  errorMessage , id        );
+                                  errorMessage , this, id        );
    if(errorCode == ERR_IN_SECONDO_PROTOCOL ){
        dwriter.write(true, cout, this, -1,
           "Remote server possible crashed " + getConnectionInfo());
@@ -1579,6 +1579,14 @@ std::string SecondoInterfaceCS::getConnectionInfo() const{
   return ss.str();
 }
 
+
+bool SecondoInterfaceCS::handleMsg(NestedList* nl, ListExpr msg, int source){
+   bool ok = false;
+   for(size_t i=0;i<messageListener.size();i++){
+     ok = ok || messageListener[i]->handleMsg(nl, msg, source);
+   }
+   return ok;
+}
 
 
 

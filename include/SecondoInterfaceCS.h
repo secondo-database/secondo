@@ -29,9 +29,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define SECONDO_INTERFACE_CS_H
 
 #include "SecondoInterface.h"
+#include "Messages.h"
 
 
-class SecondoInterfaceCS : public SecondoInterface{
+class SecondoInterfaceCS : public SecondoInterface , MessageHandler {
   
   
 public:
@@ -224,6 +225,29 @@ public:
 
    bool connectionOK() const;
 
+   void addMessageHandler(MessageHandler* msgH){
+      if(!msgH) return;
+      for(size_t i=0;i<messageListener.size();i++){
+         if(messageListener[i]==msgH){
+           return;
+         }
+      }
+      messageListener.push_back(msgH);
+   }
+
+   void removeMessageHandler(MessageHandler* msgH){
+      std::vector<MessageHandler*>::iterator it;
+      for(it=messageListener.begin(); it!=messageListener.end();it++){
+         if(*it == msgH){
+             messageListener.erase(it);
+             return;
+         }
+      }
+   }
+
+   bool handleMsg(NestedList* nl, ListExpr msg, int source);
+
+
  protected:
      Socket*     server;     // used in C/S version only
      CSProtocol* csp;
@@ -240,6 +264,7 @@ public:
      std::string user;
      std::string pswd;
      bool multiUser;
+     std::vector<MessageHandler*> messageListener;
 };
 
 #endif
