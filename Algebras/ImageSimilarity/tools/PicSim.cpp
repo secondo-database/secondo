@@ -113,7 +113,7 @@ int main(int argc, char* argv[])
     ji.computeCoarsenessValues(coaRange);
  
     std::cout << "writing coarseness file" << std::endl;
-    ji.writeCoarsenessImage(out_file3, 1.0);
+    ji.writeCoarsenessImage(out_file3, 10.0);
 
     std::cout << "computing contrasts:" << std::endl;
     ji.computeContrastValues(conRange);
@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
     ji.clusterFeatures(noClusters, dimensions, noDataPoints);
     std::cout << "clustering finished" << std::endl;    
     
-    ji.writeClusterImage(out_file5, 500.0);
+    ji.writeClusterImage(out_file5, 2500.0);
 
     std::cout << "done" << std::endl;
     
