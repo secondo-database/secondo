@@ -835,7 +835,7 @@ bool Pattern::initEasyCondOpTrees(const bool mainAttr, Tuple *tuple /* = 0 */,
         toReplace = easyConds[i].getVar(j)
                   + Condition::getType(easyConds[i].getKey(j), tuple, ttype);
         q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
-        cout << "# " << q << endl;
+//         cout << "# " << q << endl;
       }
       pair<QueryProcessor*, OpTree> qp_optree = Tools::processQueryStr(q, -1);
       if (!qp_optree.first) {
@@ -2818,7 +2818,7 @@ bool Condition::evaluateInstant(const ListExpr tt, Tuple *t,
 */
 bool Condition::evaluatePeriods(const ListExpr tt, Tuple *t, Periods *per) {
   Word qResult;
-//   cout << "evaluate cond | " << text << endl;
+//   cout << "evaluate cond |" << text << "| ;" << *per << endl;
   for (int i = 0; i < getVarKeysSize(); i++) {
     int key = getKey(i);
     if (key > 99) { // reference to attribute of tuple, e.g., X.Trip
@@ -2831,13 +2831,52 @@ bool Condition::evaluatePeriods(const ListExpr tt, Tuple *t, Periods *per) {
       }
     }
     else {
-      ((Periods*)pointers[i])->CopyFrom(per);
+      Interval<Instant> iv(true);
+      switch (key) {
+        case 2: {
+          ((Periods*)pointers[i])->CopyFrom(per);
+          break;
+        }
+        case 3: {
+          per->Minimum(*((Instant*)pointers[i]));
+          break;
+        }
+        case 4: {
+          per->Maximum(*((Instant*)pointers[i]));
+          break;
+        }
+        case 5: {
+          if (per->IsEmpty()) {
+            ((CcBool*)pointers[i])->SetDefined(false);
+          }
+          else {
+            per->Get(0, iv);
+            ((CcBool*)pointers[i])->Set(true, iv.lc);
+          }
+          break;
+        }
+        case 6: {
+          if (per->IsEmpty()) {
+            ((CcBool*)pointers[i])->SetDefined(false);
+          }
+          else {
+            per->Get(per->GetNoComponents() - 1, iv);
+            ((CcBool*)pointers[i])->Set(true, iv.rc);
+          }
+          break;
+        }
+        default: {
+          cout << "Error: invalid key " << key << " in condition" << endl;
+          return false;
+        }
+      }
     }
   }
-  getQP()->EvalS(getOpTree(), qResult, OPEN);
+  return true;
+//   getQP()->EvalS(getOpTree(), qResult, OPEN);
 //   cout << "result for |" << text << "| is "
 //        << (((CcBool*)qResult.addr)->GetValue() ? "TRUE" : "FALSE") << endl;
-  return ((CcBool*)qResult.addr)->GetValue();
+//   return ((CcBool*)qResult.addr)->GetValue();
 }
 
 /*
@@ -2851,11 +2890,50 @@ bool TMatchIndexLI::easyCondsMatch(const int atomNo, Tuple *t, Periods *per) {
   if (pos.empty() || p->easyConds.empty()) {
     return true;
   }
+  MBool mbool(true);
+  Periods tempPer(true), interResult(true);
+  Word qResult;
   for (set<int>::iterator it = pos.begin(); it != pos.end(); it++) {
 //     if (!p->easyConds[*it].evaluateInstant(ttList, t, imi)) {
 //       return false;
 //     }
     if (!p->easyConds[*it].evaluatePeriods(ttList, t, per)) {
+      return false;
+    }
+    p->easyConds[*it].getQP()->EvalS(p->easyConds[*it].getOpTree(), qResult, 
+                                     OPEN);
+    if (((MBool*)qResult.addr)->IsDefined() && 
+        ((MBool*)qResult.addr)->IsOrdered()) {
+      CcBool *cctrue = new CcBool(true, true);
+      ((MBool*)qResult.addr)->At(*cctrue, mbool);
+      cctrue->DeleteIfAllowed();
+      if (mbool.IsEmpty()) {
+        return false;
+      }
+      else {
+        if (interResult.IsEmpty()) { // no intermediate result existing
+          mbool.DefTime(interResult);
+        }
+        else { // compute intersection with previous result
+          mbool.DefTime(tempPer);
+          interResult.Intersection(tempPer, interResult);
+        }
+        if (interResult.IsEmpty()) {
+//           cout << "empty intersection result after cond #" << *it << endl;
+          return false;
+        }
+//         cout << "intersection after easy cond #" << *it << ": "
+//              << interResult << endl;
+      }
+    }
+    else if (((CcBool*)qResult.addr)->IsDefined()) {
+      if (!((CcBool*)qResult.addr)->GetValue()) {
+//         cout << "CcBool is defined and false" << endl;
+        return false;
+      }
+    }
+    else {
+      cout << "invalid result type for condition #" << *it << endl;
       return false;
     }
   }
@@ -3121,7 +3199,6 @@ bool TMatchIndexLI::atomMatch2(const int state, std::pair<int, int> trans) {
             IndexMatchInfo2 newIMI(imiPtr, per);
             bool match = geoMatch(trans.first, t, per) &&
                          easyCondsMatch(trans.first, t, per);
-// TODO:          && symbolicTimesMatch();
             if (match) {
               transition = true;
               totalMatch = p->isFinalState(trans.second);

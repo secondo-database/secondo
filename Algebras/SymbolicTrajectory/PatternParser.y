@@ -672,7 +672,6 @@ bool PatElem::hasRealInterval() const {
 
 */
 bool PatElem::extractValues(string &input, Tuple *tuple) {
-/*   cout << "#" << input << "#" << endl; */
   if (input.empty()) {
     return false;
   }
@@ -703,6 +702,7 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
   bool isEmpty = true;
   // TODO: handle place(s)
   while (ok && pos >= 0 && pos < (int)input.length()) {
+/*     cout << "first char is |" << input[pos] << "|" << endl; */
     switch (input[pos]) {
       case '_': {
         pos = input.find_first_not_of(' ', pos + 1);
@@ -717,8 +717,8 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
         type = Range<CcReal>::BasicType();
         break;
       }
-      case '"': {
-        endpos = input.find('"', pos + 1);
+      case '\"': {
+        endpos = input.find('\"', pos + 1);
         if (value.addr == 0) {
           value.addr = new Labels(true);
         }
@@ -737,12 +737,28 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
         type = Labels::BasicType();
         break;
       }
+      case '0': {}
+      case '1': {}
+      case '2': {}
+      case '3': {}
+      case '4': {}
+      case '5': {}
+      case '6': {}
+      case '7': {}
+      case '8': {}
+      case '9': {
+        if (!Tools::parseInterval(input, isEmpty, pos, endpos, value)) {
+          return false;
+        }
+        type = Range<CcReal>::BasicType();
+        break;
+      }
       case '{': {
         while (ok && pos >= 0 && input[pos] != '}') {
           pos = input.find_first_not_of("{ ", pos);
           switch (input[pos]) {
-            case '"': {
-              endpos = input.find('"', pos + 1);
+            case '\"': {
+              endpos = input.find('\"', pos + 1);
               if (isEmpty) {
                 value.addr = new Labels(true);
                 isEmpty = false;

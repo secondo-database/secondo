@@ -1741,17 +1741,22 @@ ListExpr passesSymbolicTM(ListExpr args) {
   if (nl->HasLength(args, 2)) {
     ListExpr first(nl->First(args)), second(nl->Second(args));
     if ((MLabel::checkType(first) && Label::checkType(second)) ||
+        (MLabel::checkType(first) && CcString::checkType(second)) ||
+        (MLabel::checkType(first) && FText::checkType(second)) ||
         (MLabels::checkType(first) && Label::checkType(second)) ||
         (MLabels::checkType(first) && Labels::checkType(second)) ||
+        (MLabels::checkType(first) && CcString::checkType(second)) ||
+        (MLabels::checkType(first) && FText::checkType(second)) ||
         (MPlace::checkType(first) && Place::checkType(second)) ||
         (MPlaces::checkType(first) && Place::checkType(second)) ||
         (MPlaces::checkType(first) && Places::checkType(second))) {
       return nl->SymbolAtom(CcBool::BasicType());
     }
   }
-  return listutils::typeError("Correct signatures:  mlabel x label -> bool,   "
-    "mlabels x label -> bool,   mlabels x labels -> bool,   "
-    "mplace x place -> bool,   mplaces x place -> bool,   "
+  return listutils::typeError("Correct signatures:  mlabel x label -> bool,  "
+    "mlabel x string -> bool,  mlabel x text -> bool,  mlabels x label -> bool,"
+    "  mlabels x labels -> bool,  mlabels x string -> bool,  mlabels x text -> "
+    "bool,  mplace x place -> bool,  mplaces x place -> bool,  "
     "mplaces x places -> bool");
 }
 
@@ -1760,12 +1765,20 @@ ListExpr passesSymbolicTM(ListExpr args) {
 
 */
 int atPassesSymbolicSelect(ListExpr args) {
-  if (MLabel::checkType(nl->First(args))) return 0;
-  if (Label::checkType(nl->Second(args))) return 1;
-  if (Labels::checkType(nl->Second(args))) return 2;
-  if (MPlace::checkType(nl->First(args))) return 3;
-  if (Place::checkType(nl->Second(args))) return 4;
-  if (Places::checkType(nl->Second(args))) return 5;
+  if (MLabel::checkType(nl->First(args))) {
+    if (Label::checkType(nl->Second(args)))    return 0;
+    if (CcString::checkType(nl->Second(args))) return 1;
+    if (FText::checkType(nl->Second(args)))    return 2;
+  }
+  if (MLabels::checkType(nl->First(args))) {
+    if (Label::checkType(nl->Second(args)))    return 3;
+    if (Labels::checkType(nl->Second(args)))   return 4;
+    if (CcString::checkType(nl->Second(args))) return 5;
+    if (FText::checkType(nl->Second(args)))    return 6;
+  }
+  if (MPlace::checkType(nl->First(args)))  return 7;
+  if (Place::checkType(nl->Second(args)))  return 8;
+  if (Places::checkType(nl->Second(args))) return 9;
   return -1;
 }
 
@@ -1824,11 +1837,15 @@ at: mplaces x places -> mplace
 ListExpr atSymbolicTM(ListExpr args) {
   if (nl->HasLength(args, 2)) {
     ListExpr first(nl->First(args)), second(nl->Second(args));
-    if (MLabel::checkType(first) && Label::checkType(second)) {
+    if ((MLabel::checkType(first) && Label::checkType(second)) ||
+        (MLabel::checkType(first) && CcString::checkType(second)) ||
+        (MLabel::checkType(first) && FText::checkType(second))) {
       return nl->SymbolAtom(MLabel::BasicType());
     }
     if ((MLabels::checkType(first) && Label::checkType(second)) ||
-        (MLabels::checkType(first) && Labels::checkType(second))) {
+        (MLabels::checkType(first) && Labels::checkType(second)) ||
+        (MLabels::checkType(first) && CcString::checkType(second)) ||
+        (MLabels::checkType(first) && FText::checkType(second))) {
       return nl->SymbolAtom(MLabels::BasicType());
     }
     if (MPlace::checkType(first) && Place::checkType(second)) {
@@ -1839,10 +1856,11 @@ ListExpr atSymbolicTM(ListExpr args) {
       return nl->SymbolAtom(MPlaces::BasicType());
     }
   }
-  return listutils::typeError("Correct signatures: mlabel x label -> mlabel,   "
-    "mlabels x label -> mlabels,   mlabels x labels -> mlabels,   "
-    "mplace x place -> mplace,   mplaces x place -> mplaces,   "
-    "mplaces x places -> mplaces");
+  return listutils::typeError("Correct signatures: mlabel x label -> mlabel,  "
+    "mlabel x string -> mlabel,  mlabel x text -> mlabel,  mlabels x label -> "
+    "mlabels,  mlabels x labels -> mlabels,  mlabels x string -> mlabel,  "
+    "mlabels x text -> mlabel,  mplace x place -> mplace,  mplaces x place -> "
+    "mplaces,  mplaces x places -> mplaces");
 }
 
 /*
@@ -5446,14 +5464,18 @@ class SymbolicTrajectoryAlgebra : public Algebra {
               makemvalueSymbolicSelect, makemvalueSymbolic_TM);
   
   ValueMapping passesSymbolicVMs[] = {passesSymbolicVM<MLabel, Label>,
+    passesSymbolicVM<MLabel, CcString>, passesSymbolicVM<MLabel, FText>,
     passesSymbolicVM<MLabels, Label>, passesSymbolicVM<MLabels, Labels>,
+    passesSymbolicVM<MLabels, CcString>, passesSymbolicVM<MLabels, FText>,
     passesSymbolicVM<MPlace, Place>, passesSymbolicVM<MPlaces, Place>,
     passesSymbolicVM<MPlaces, Places>, 0};
   AddOperator(passesSymbolicInfo(), passesSymbolicVMs, atPassesSymbolicSelect,
               passesSymbolicTM);
   
   ValueMapping atSymbolicVMs[] = {atSymbolicVM<MLabel, Label>,
+    atSymbolicVM<MLabel, CcString>, atSymbolicVM<MLabel, FText>,
     atSymbolicVM<MLabels, Label>, atSymbolicVM<MLabels, Labels>,
+    atSymbolicVM<MLabels, CcString>, atSymbolicVM<MLabels, FText>,
     atSymbolicVM<MPlace, Place>, atSymbolicVM<MPlaces, Place>,
     atSymbolicVM<MPlaces, Places>, 0};
   AddOperator(atSymbolicInfo(), atSymbolicVMs, atPassesSymbolicSelect, 

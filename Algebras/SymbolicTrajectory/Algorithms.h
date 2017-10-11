@@ -265,7 +265,11 @@ class MBasic : public Attribute {
   void Add(const UBasic<B>& ub);
   void MergeAdd(const UBasic<B>& ub);
   bool Passes(const B& basic) const;
+  template<class T>
+  bool Passes(const T& value) const;
   void At(const B& basic, MBasic<B>& result) const;
+  template<class T>
+  void At(const T& value, MBasic<B>& result) const;
   void DefTime(temporalalgebra::Periods& per) const;
   void AtInstant(const Instant& inst, IBasic<B>& result) const;
   void AtPeriods(const temporalalgebra::Periods& per, MBasic<B>& result) const;
@@ -363,8 +367,12 @@ class MBasics : public Attribute {
   void MergeAdd(const temporalalgebra::SecInterval& iv, const B& values);
   bool Passes(const typename B::single& sg) const;
   bool Passes(const B& bs) const;
+  template<class T>
+  bool Passes(const T& value) const;
   void At(const typename B::single& sg, MBasics<B>& result) const;
   void At(const B& bs, MBasics<B>& result) const;
+  template<class T>
+  void At(const T& value, MBasics<B>& result) const;
   void DefTime(temporalalgebra::Periods& per) const;
   void AtInstant(const Instant& inst, IBasics<B>& result) const;
   void AtPeriods(const temporalalgebra::Periods& per, MBasics<B>& result) const;
@@ -396,7 +404,7 @@ class MLabel : public MBasic<Label> {
  public:
   MLabel() {}
   MLabel(unsigned int n) : MBasic<Label>(n) {}
-   
+
   void createML(const int size, const int number, 
                 std::vector<std::string>& labels);
   void convertFromMString(const temporalalgebra::MString& source);
@@ -410,8 +418,8 @@ typedef UBasic<Label> ULabel;
 typedef UBasic<Place> UPlace;
 typedef UBasics<Labels> ULabels;
 typedef UBasics<Places> UPlaces;
-typedef MBasic<Place> MPlace;
 typedef MBasics<Labels> MLabels;
+typedef MBasic<Place> MPlace;
 typedef MBasics<Places> MPlaces;
 
 class ExprList {
@@ -2973,6 +2981,16 @@ bool MBasic<B>::Passes(const B& basic) const {
   return false;
 }
 
+template<class B>
+template<class T>
+bool MBasic<B>::Passes(const T& value) const {
+  if (!IsDefined() || !value.IsDefined()) {
+    return false;
+  }
+  Label lb(value.GetValue());
+  return Passes(lb);
+}
+
 /*
 \subsection{Function ~At~}
 
@@ -2998,6 +3016,13 @@ void MBasic<B>::At(const B& basic, MBasic<B>& result) const {
                                           B::getList(value1)));
     }
   }
+}
+
+template<class B>
+template<class T>
+void MBasic<B>::At(const T& value, MBasic<B>& result) const {
+  Label lb(value.GetValue());
+  At(lb, result);
 }
 
 /*
@@ -4269,6 +4294,16 @@ bool MBasics<B>::Passes(const typename B::single& sg) const {
   return false;
 }
 
+template<class B>
+template<class T>
+bool MBasics<B>::Passes(const T& value) const {
+  if (!IsDefined() || !value.IsDefined()) {
+    return false;
+  }
+  Label lb(value.GetValue());
+  return Passes(lb);
+}
+
 /*
 \subsection{Function ~Passes~}
 
@@ -4341,6 +4376,14 @@ void MBasics<B>::At(const B& bs, MBasics<B>& result) const {
     }
   }
 }
+
+template<class B>
+template<class T>
+void MBasics<B>::At(const T& value, MBasics<B>& result) const {
+  Label lb(value.GetValue());
+  At(lb, result);
+}
+
 
 /*
 \subsection{Function ~DefTime~}

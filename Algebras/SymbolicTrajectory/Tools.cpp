@@ -774,8 +774,8 @@ void Tools::semanticToTimePer(const string& spec,
   Instant leftLimit(limits.first), rightLimit(limits.second);
   Instant startTemp(instanttype), endTemp(instanttype);
   Interval<Instant> limitsIv(leftLimit, rightLimit, true, true);
-  cout << "limits from multi-index are " << leftLimit << ", " << rightLimit
-       << endl;
+//   cout << "limits from multi-index are " << leftLimit << ", " << rightLimit
+//        << endl;
   bool found = false;
   for (int i = 0; i < 7 && !found; i++) {
     if (spec == weekdays[i]) {
@@ -828,7 +828,7 @@ void Tools::semanticToTimePer(const string& spec,
   }
   else {
     tempResult.Intersection(limitsIv, result);
-    cout << "sTTP result: " << result << endl;
+//     cout << "sTTP result: " << result << endl;
   }
 }
 
@@ -1018,34 +1018,38 @@ bool Tools::orderCheckInsert(Range<CcReal> *range, const Interval<CcReal> &iv) {
 */
 bool Tools::parseInterval(const string& input, bool &isEmpty, int &pos, 
                           int &endpos, Word &value) {
+  double left(0.0), right(0.0);
+  bool lc(true), rc(true);
   endpos = input.find(' ', pos);
   stringstream leftss(input.substr(pos + 1, endpos));
-  double left = 0.0;
   leftss >> left;
-  pos = input.find_first_not_of(' ', endpos);
-  endpos = input.find(' ', pos);
-  stringstream rightss(input.substr(pos, endpos - 1));
-  double right = 0.0;
-  rightss >> right;
-  if (right < left) {
-    cout << "invalid interval" << endl;
-    return false;
-  }
-  bool lc = true;
-  bool rc = true;
-  if (input.find('>', pos) > input.find(' ', pos)) { // <x y lc rc>
-    if (input[pos] != 't' && input[pos] != 'f') {
-      cout << "\"t\" or \"f\" expected for interval, instead of \"" 
-          << input[pos] << "\"" << endl;
+  if (input[pos] == '<') { // interval
+    pos = input.find_first_not_of(' ', endpos);
+    endpos = input.find(' ', pos);
+    stringstream rightss(input.substr(pos, endpos - 1));
+    rightss >> right;
+    if (right < left) {
+      cout << "invalid interval" << endl;
       return false;
     }
-    lc = (input[pos] == 't');
-    pos = input.find_first_not_of(' ', pos + 1);
-    rc = (input[pos] == 't');
-    pos = input.find('>', pos) + 1;
+    if (input.find('>', pos) > input.find(' ', pos)) { // <x y lc rc>
+      if (input[pos] != 't' && input[pos] != 'f') {
+        cout << "\"t\" or \"f\" expected for interval, instead of \"" 
+            << input[pos] << "\"" << endl;
+        return false;
+      }
+      lc = (input[pos] == 't');
+      pos = input.find_first_not_of(' ', pos + 1);
+      rc = (input[pos] == 't');
+      pos = input.find('>', pos) + 1;
+    }
+    endpos = input.find(' ', pos);
+    pos = input.find_first_not_of(' ', endpos);
   }
-  endpos = input.find(' ', pos);
-  pos = input.find_first_not_of(' ', endpos);
+  else { // single value
+    right = left;
+    pos = input.find_first_not_of(' ', endpos);
+  }
   CcReal ccleft(left);
   CcReal ccright(right);
   Interval<CcReal> iv(ccleft, ccright, lc, rc);

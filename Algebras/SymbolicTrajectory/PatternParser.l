@@ -60,7 +60,7 @@ si [+-]?[0-9]+
 ui [0-9]+
 real {si}+(\.{ui}+)?
 num {si}|{ui}|{real}
-numinterval <{num}{num}(t\ f)?>
+numinterval <{num}{num}(t\ f)?>|<{num}{num}>|{num}
 star \*
 plus \+
 attr [A-Z][a-zA-Z]*
