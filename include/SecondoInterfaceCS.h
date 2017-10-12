@@ -225,6 +225,9 @@ public:
 
    bool connectionOK() const;
 
+
+   void killConnection();
+
    void addMessageHandler(MessageHandler* msgH){
       if(!msgH) return;
       for(size_t i=0;i<messageListener.size();i++){

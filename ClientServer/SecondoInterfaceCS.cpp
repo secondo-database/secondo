@@ -1588,5 +1588,15 @@ bool SecondoInterfaceCS::handleMsg(NestedList* nl, ListExpr msg, int source){
    return ok;
 }
 
+void SecondoInterfaceCS::killConnection(){
+    if(server){
+       try{
+         iostream& iosock = server->GetSocketStream();
+         iosock.setstate(ios_base::failbit|ios_base::badbit|ios_base::eofbit);
+       } catch(...){}
+    }
+}
+
+
 
 
