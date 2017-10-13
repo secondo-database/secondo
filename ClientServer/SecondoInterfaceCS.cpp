@@ -195,7 +195,6 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
         }
         csp = new CSProtocol(nl, iosock);
 
-        cout << "created new CSProtocol" << endl;
         try{
           getline( iosock, line );
           if ( line == "<SecondoOk/>" )
