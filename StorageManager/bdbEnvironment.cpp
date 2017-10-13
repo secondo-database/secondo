@@ -957,9 +957,9 @@ SmiEnvironment::Implementation::EraseFiles( bool onCommit,
 	Db* dbp = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
 
 	string file = ConstructFileName( entry.fileId );
-	cerr << "Erasing file " << file << endl;
-	cerr << "onCommit:" << onCommit << endl;
-	cerr << "entry:" << entry.dropOnCommit << endl;
+	//cerr << "Erasing file " << file << endl;
+	//cerr << "onCommit:" << onCommit << endl;
+	//cerr << "entry:" << entry.dropOnCommit << endl;
 	rc = dbp->remove( file.c_str(), 0, 0 );
   if(rc!=0 && !dontReportError){
     SetBDBError(rc);
