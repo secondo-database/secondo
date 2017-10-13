@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 */
+#include <Timeout.h>
 
 #include "ConnectionInfo.h"
 #include "Dist2Helper.h"
@@ -39,6 +40,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
+
 
 extern boost::mutex nlparsemtx;
 
@@ -621,30 +623,25 @@ bool Distributed2Algebra::serverExists(int s){
      it = workerconnections.find(info);
      pair<string,ConnectionInfo*> pr("",0);
      if(it==workerconnections.end()){
-        cout << "Create a new worker connection" << endl;
         if(!createWorkerConnection(info,pr)){
              return 0;
         }
         workerconnections[info] = pr;
         it = workerconnections.find(info);
      } else {
-         cout << "worker connection already there" << endl;
          pr = it->second;
      }
      pr.second->setLogger(log);
      pr.second->setNum(info.getNum());
      string wdbname = dbname;
      if(pr.first!=wdbname){
-         cout << "change database to " << wdbname << endl;
          if(!pr.second->switchDatabase(wdbname,true, showCommands)){
             it->second.first="";
             return 0;
          } else {
              it->second.first=dbname;
          }
-     } else {
-        cout << "database already opened" << endl; 
-     }
+     } 
      return pr.second;
   }
 
@@ -840,6 +837,8 @@ bool Distributed2Algebra::serverExists(int s){
 
   // Algebra instance
 Distributed2Algebra* algInstance;
+
+
 
 
 
@@ -11409,14 +11408,32 @@ class Mapper{
 
     };
 
+    class RunFlag{
+      public:
+         RunFlag(bool& f):mf(&f){
+            f = true;
+         }
+
+         ~RunFlag(){ *mf = false; }
+
+      private:
+         bool* mf;
+
+    };
+
+
  
     class dRun{
       public:
         dRun(ConnectionInfo* _ci, const string& _dbname, int _nr, 
              Mapper* _mapper):
-           ci(_ci), dbname(_dbname), nr(_nr), mapper(_mapper) {}
+           ci(_ci), dbname(_dbname), nr(_nr), mapper(_mapper) {
+          running = false;
+        }
+
 
         void run(){
+          RunFlag rf(running);
           bool reconnectGlobal = algInstance->tryReconnect();
           int maxtries = 8; // TODO: make configurable this constant
           int numtries = maxtries;
@@ -11464,7 +11481,7 @@ class Mapper{
               string cmd = "(let " + name2 + " = " + funcmd + ")";
               err = nr; 
               ci->simpleCommandFromList(cmd,err,errMsg,r,false, runtime,
-                                        showCommands, logOn, commandLog);
+                                     showCommands, logOn, commandLog, false,20);
               if((err!=0)  ){ 
                  showError(ci,cmd,err,errMsg);
                  writeLog(ci,cmd,errMsg);
@@ -11492,6 +11509,7 @@ class Mapper{
               numtries--;
             }
           } while(numtries>0); 
+          running = false;
         }
 
       private:
@@ -11499,6 +11517,7 @@ class Mapper{
         string dbname;      // dbname
         size_t nr;          // slot number
         Mapper* mapper;     // the calling mapper
+        bool running;
     };
 };
 

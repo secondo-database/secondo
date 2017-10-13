@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "ConnectionInfo.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Timeout.h"
 
 using namespace std;
 
@@ -61,6 +62,8 @@ ConnectionInfo::ConnectionInfo(const string& _host,
     num = -1;
     cmdLog = 0; 
     guard_type guard(simtx);
+    tonotifier = new TimeoutNotifier<ConnectionInfo>(this);
+    hbobserver = new HeartbeatObserver<ConnectionInfo>(this);
     if(si!=0){
       try{
         serverPID = si->getPid();
@@ -106,6 +109,7 @@ bool ConnectionInfo::reconnect(bool showCommands, CommandLog& log){
         switchDatabase(SecondoSystem::GetInstance()->GetDatabaseName(), 
                        true, false, true);
         retrieveSecondoHome(showCommands,log);
+        si->setHeartbeat(4,4);
       } catch(...){
         cerr << "error during collecting standard information" << endl;
         return false;
@@ -130,6 +134,8 @@ ConnectionInfo::~ConnectionInfo()
     delete si;
     si = 0;
     delete mynl;
+    delete hbobserver;
+    delete tonotifier;
 }
 
 /*
@@ -464,10 +470,14 @@ void ConnectionInfo::simpleCommandFromList(const string& command1,
                                            bool showCommands,
                                            bool logOn,
                                            CommandLog& commandLog,
-                                           bool forceExec)
+                                           bool forceExec,
+                                           int timeout)
 {
+   guard_type guard(simtx);
+   if(timeout>0){
+       startTimeout(timeout,true);
+   }
    try{
-    guard_type guard(simtx);
     string command;
     if (rewrite)
     {
@@ -529,7 +539,9 @@ void ConnectionInfo::simpleCommandFromList(const string& command1,
   } catch(...){
      cerr << "Exception during simpleCommandFromList " << endl;
   }
-
+  if(timeout>0){
+      stopTimeout(true);
+  }
 }
 
 /*
@@ -1556,6 +1568,36 @@ void ConnectionInfo::retrieveSecondoHome()
 {
    guard_type guard(simtx);
    secondoHome = si?si->getHome():"";
+}
+
+void ConnectionInfo::killConnection(){
+   if(si){
+     si->killConnection();
+   }
+}
+
+void ConnectionInfo::timeout(){
+  std::cout << "received timeout signal" << endl;
+  killConnection();
+}
+
+
+void ConnectionInfo::startTimeout(int second, bool withMessages){
+   if(withMessages){
+      hbobserver->stop();
+      hbobserver->start(second);
+   } else {
+      tonotifier->stop();
+      tonotifier->start(second);
+   }
+}
+
+void ConnectionInfo::stopTimeout(const bool msg){
+   if(msg){
+     hbobserver->stop();
+   } else {
+     tonotifier->stop();
+   }
 }
 
 

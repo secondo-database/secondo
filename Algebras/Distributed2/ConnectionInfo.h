@@ -63,8 +63,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "CommandLog.h"
 #include "CommandLogger.h"
 
+
+
+
+
 namespace distributed2
 {
+
+template<class T>class TimeoutNotifier;
+template<class T>class HeartbeatObserver;
+
 
 /*
 
@@ -140,7 +148,8 @@ public:
                                bool showCommands,
                                bool logOn,
                                CommandLog& commandLog,
-                               bool forceExec = false);
+                               bool forceExec = false,
+                               const int timeout = 0);
 
     void simpleCommand(const std::string& command1,
                        int& error,
@@ -277,6 +286,10 @@ public:
       return num;
     }
 
+    void killConnection();
+
+    void timeout();
+
 
 private:
     void retrieveSecondoHome(bool showCommands,
@@ -305,6 +318,15 @@ private:
                          // written to log instead of sending
                          // to the server
     int num; // some number that can be used to store additional information
+
+
+    HeartbeatObserver<ConnectionInfo>* hbobserver;
+    TimeoutNotifier<ConnectionInfo>* tonotifier;
+
+
+    void startTimeout(int seconds, bool acceptMessages);
+    void stopTimeout(const bool msg);
+
 
    
 
