@@ -1162,6 +1162,74 @@ struct minusInfo : OperatorInfo {
 };
 
 /*
+\section{Operator ~recode~}
+
+recode: T x string x string -> T,   where T in {mlabel, mlabels}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr recodeTM(ListExpr args){
+   string err = " T x string x string -> T,  T in {mlabel, mlabels} expected";
+   if (!nl->HasLength(args, 3)) {
+     return listutils::typeError(err);
+   }
+   if (!MLabel::checkType(nl->First(args)) && 
+       !MLabels::checkType(nl->First(args))) {
+     return listutils::typeError(err);
+   }
+   if (!CcString::checkType(nl->Second(args)) ||
+       !CcString::checkType(nl->Third(args))) {
+     return listutils::typeError(err);
+   }
+   return nl->First(args);
+}
+
+/*
+\subsection{Selection Function}
+
+*/
+int recodeSelect(ListExpr args) {
+  if (MLabel::checkType(nl->First(args)))  return 0;
+  if (MLabels::checkType(nl->First(args))) return 1;
+  return -1;
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+template<class T>
+int recodeVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  result = qp->ResultStorage(s);
+  T *src = static_cast<T*>(args[0].addr);
+  CcString *from = static_cast<CcString*>(args[1].addr);
+  CcString *to = static_cast<CcString*>(args[2].addr);
+  T *res = static_cast<T*>(result.addr);
+  if (!src->IsDefined() || !from->IsDefined() || !to->IsDefined()) {
+    res->SetDefined(false);
+    return 0;
+  }
+  else {
+    src->Recode(from->GetValue(), to->GetValue(), *res);
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct recodeInfo : OperatorInfo {
+  recodeInfo() {
+    name      = "recode";
+    signature = "T x string x string -> T,   where T in {mlabel, mlabels}";
+    syntax    = "_ recode [ _, _ ];";
+    meaning   = "Recodes an mlabel(s) from one charset to another one.";
+  }
+};
+
+/*
 \section{Operator ~distance~}
 
 distance: T x T -> double,   where T in {place(s), label(s)}
@@ -5431,6 +5499,9 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   ValueMapping minusVMs[] = {minusVM<Labels, Label>, minusVM<Labels, Labels>,
     minusVM<Places, Place>, minusVM<Places, Places>, 0};
   AddOperator(minusInfo(), minusVMs, minusSelect, minusTM);
+  
+  ValueMapping recodeVMs[] = {recodeVM<MLabel>, recodeVM<MLabels>, 0};
+  AddOperator(recodeInfo(), recodeVMs, recodeSelect, recodeTM);
   
   ValueMapping distanceVMs[] = {distanceVM<Label>, distanceVM<Labels>,
     distanceVM<Place>, distanceVM<Places>, distanceVM<MLabel>,

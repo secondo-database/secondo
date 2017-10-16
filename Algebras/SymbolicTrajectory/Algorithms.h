@@ -282,6 +282,7 @@ class MBasic : public Attribute {
   void Fill(MBasic<B>& result, datetime::DateTime& duration) const;
   void Concat(const MBasic<B>& src1, const MBasic<B>& src2);
   void Compress(MBasic<B>& result) const;
+  void Recode(const std::string& from, const std::string& to,MBasic<B>& result);
   std::ostream& Print(std::ostream& os) const;  
   double Distance_FIRST(const MBasic<B>& mb) const;
   double Distance_LAST(const MBasic<B>& mb) const;
@@ -383,6 +384,7 @@ class MBasics : public Attribute {
   void Fill(MBasics<B>& result, datetime::DateTime& duration) const;
   void Concat(const MBasics<B>& src1, const MBasics<B>& src2);
   void Compress(MBasics<B>& result) const;
+  void Recode(const std::string& from,const std::string& to,MBasics<B>& result);
   std::ostream& Print(std::ostream& os) const;
   double Distance(const MBasics<B>& mbs) const;
   int CommonPrefixSuffix(const MBasics<B>& mbs, const bool prefix);
@@ -3299,6 +3301,34 @@ void MBasic<B>::Compress(MBasic<B>& result) const {
 }
 
 /*
+\subsection{Function ~Recode~}
+
+*/
+template<class B>
+void MBasic<B>::Recode(const std::string& from, const std::string& to,
+                       MBasic<B>& result) {
+  result.SetDefined(IsDefined());
+  if (!IsDefined()) {
+    return;
+  }
+  result.Clear();
+  typename B::base value, recoded;
+  temporalalgebra::SecInterval iv(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    GetInterval(i, iv);
+    GetValue(i, value);
+    if (!Tools::recode(value, from, to, recoded)) {
+      result.SetDefined(false);
+      return;
+    }
+    else {
+      B val(recoded);
+      result.Add(iv, val);
+    }
+  }
+}
+
+/*
 \subsection{Function ~Print~}
 
 */
@@ -4630,6 +4660,31 @@ void MBasics<B>::Compress(MBasics<B>& result) const {
   for (int i = 0; i < GetNoComponents(); i++) {
     Get(i, ub);
     result.MergeAdd(ub);
+  }
+}
+
+/*
+\subsection{Function ~Recode~}
+
+*/
+template<class B>
+void MBasics<B>::Recode(const std::string& from, const std::string& to,
+                        MBasics<B>& result) {
+  result.SetDefined(IsDefined());
+  if (!IsDefined()) {
+    return;
+  }
+  result.Clear();
+  B values(true), recoded_values(true);
+  temporalalgebra::SecInterval iv(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    GetInterval(i, iv);
+    GetBasics(i, values);
+    if (!values.Recode(from, to, recoded_values)) {
+      result.SetDefined(false);
+      return;
+    }
+    result.Add(iv, recoded_values);
   }
 }
 

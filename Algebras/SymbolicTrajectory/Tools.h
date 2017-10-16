@@ -31,7 +31,6 @@ Started July 2014, Fabio Vald\'{e}s
 #ifndef SYMB_TOOLS_H
 #define SYMB_TOOLS_H
 
-
 #include "RelationAlgebra.h"
 #include "TemporalUnitAlgebra.h"
 #include "MovingRegionAlgebra.h"
@@ -43,6 +42,7 @@ Started July 2014, Fabio Vald\'{e}s
 #include "LongInt.h"
 #include "Geoid.h"
 #include "OrderedRelationAlgebra.h"
+
  
  
  namespace stj {
@@ -180,6 +180,8 @@ struct ivCmp {
  
 class Tools {
  public:
+  static bool recode(const std::string &src, const std::string &from,
+                     const std::string &to, std::string &result);
   static void intersect(const std::vector<std::set<TupleId> >& tidsets, 
                         std::set<TupleId>& result);
   static void intersectPairs(

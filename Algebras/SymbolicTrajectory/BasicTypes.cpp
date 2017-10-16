@@ -543,13 +543,36 @@ void Labels::Minus(const set<string>& values1, const set<string>& values2) {
 }
 
 /*
+\subsection{Function ~Recode~}
+
+*/
+bool Labels::Recode(const std::string& from, const std::string& to, 
+                    Labels& result) {
+  result.SetDefined(IsDefined());
+  if (!IsDefined()) {
+    return true;
+  }
+  result.Clean();
+  string value, recoded;
+  for (int i = 0; i < GetNoValues(); i++) {
+    GetValue(i, value);
+    if (!Tools::recode(value, from, to, recoded)) {
+      result.SetDefined(false);
+      return false;
+    }
+    result.Append(recoded);
+  }
+  return true;
+}
+
+/*
 \subsection{Operator ~<<~}
 
 */
 ostream& operator<<(ostream& os, const Labels& lbs) {
   Label lb(true);
   string text;
-  for(int i = 0; i < lbs.GetNoValues() - 1; i++) {
+  for (int i = 0; i < lbs.GetNoValues() - 1; i++) {
     lbs.GetValue(i, text);
     os << text << " ";
   }

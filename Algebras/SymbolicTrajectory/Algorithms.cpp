@@ -2966,20 +2966,20 @@ void Condition::copyAndRestrictPtr(const int pos, Tuple *tuple,
                                         nl->Second(ttype))));
   if (instantVars.find(getVar(pos)) == instantVars.end()) { // interval variable
     if (attrtype == "mbool") {
-      ((temporalalgebra::MBool*)tuple->GetAttribute(key - 1))->AtPeriods(per,
-                                    *((temporalalgebra::MBool*)pointers[pos]));
+      ((MBool*)tuple->GetAttribute(key - 1))->AtPeriods(per,
+                                                      *((MBool*)pointers[pos]));
     }
     else if (attrtype == "mint") {
-      ((temporalalgebra::MInt*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
-                                    *((temporalalgebra::MInt*)pointers[pos]));
+      ((MInt*)tuple->GetAttribute(key - 1))->AtPeriods(per,
+                                                       *((MInt*)pointers[pos]));
     }
     else if (attrtype == "mlabel") {
       ((MLabel*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
-                                    *((MLabel*)pointers[pos]));
+                                                     *((MLabel*)pointers[pos]));
     }
     else if (attrtype == "mlabels") {
       ((MLabels*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
-                                    *((MLabels*)pointers[pos]));
+                                                    *((MLabels*)pointers[pos]));
     }
     else if (attrtype == "mplace") {
       MPlace mp(true);
