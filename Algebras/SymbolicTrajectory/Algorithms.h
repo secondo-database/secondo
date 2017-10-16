@@ -7057,7 +7057,7 @@ bool TupleIndex<PosType, PosType2>::Open(SmiRecord& valueRecord, size_t& offset,
   offset += sizeof(unsigned int);
 //   cout << "There are " << noComponents << " btrees, ";
   tList = nl->ThreeElemList(nl->SymbolAtom(BTreeTI::BasicType()), nl->Empty(),
-                           sc->NumericType(nl->SymbolAtom("composite")));
+                           sc->NumericType(nl->SymbolAtom(CcInt::BasicType())));
   for (unsigned int i = 0; i < noComponents; i++) {
     BTreeTI *bt = BTreeTI::Open(valueRecord, offset, tList);
     if (!bt) {
@@ -7256,7 +7256,7 @@ void TupleIndex<PosType, PosType2>::initialize(TupleType *ttype, int _mainAttr){
     else if (name == "mint") {
       attrToIndex[i] = std::make_pair(BTREE, (int)btrees.size());
       indexToAttr[std::make_pair(BTREE, (int)btrees.size())] = i;
-      BTreeTI *btree = new BTreeTI(SmiKey::Composite);
+      BTreeTI *btree = new BTreeTI(SmiKey::Integer);
       btrees.push_back(btree);
       cout << "BTree for attr " << i << " created and appended" << endl;
     }
