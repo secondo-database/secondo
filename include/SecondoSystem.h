@@ -347,8 +347,8 @@ Are internal methods for restoring a database.
   bool            testMode;
   bool            initialized;
 
-  bool heart1;
-  bool heart2;
+  int heart1;
+  int heart2;
 
 
 #ifdef SECONDO_WIN32 
