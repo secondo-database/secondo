@@ -542,6 +542,7 @@ void Labels::Minus(const set<string>& values1, const set<string>& values2) {
   Append(difference);
 }
 
+#ifdef RECODE
 /*
 \subsection{Function ~Recode~}
 
@@ -564,6 +565,7 @@ bool Labels::Recode(const std::string& from, const std::string& to,
   }
   return true;
 }
+#endif
 
 /*
 \subsection{Operator ~<<~}

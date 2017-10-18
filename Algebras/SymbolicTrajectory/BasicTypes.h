@@ -216,7 +216,9 @@ class Labels : public Attribute {
                     const std::set<std::string>& values2);
   void Minus(const std::set<std::string>& values1, 
              const std::set<std::string>& values2);
+  #ifdef RECODE
   bool Recode(const std::string& from, const std::string& to, Labels& result);
+  #endif
   friend std::ostream& operator<<(std::ostream& os, const Labels& lbs);
   double Distance(const Labels& lbs) const {
     return Distance(lbs, 0, TRIVIAL);
