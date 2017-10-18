@@ -29,6 +29,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ConnectionInfo.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Timeout.h"
+#include "Dist2Helper.h"
+#include "FileSystem.h"
+#include "FileRelations.h"
+#include "FileAttribute.h"
 
 using namespace std;
 
@@ -49,7 +53,8 @@ ConnectionInfo::ConnectionInfo(const string& _host,
                                const int _port,
                                const string& _config,
                                SecondoInterfaceCS* _si,
-                               NestedList* _mynl) :
+                               NestedList* _mynl,
+                               const size_t timeout) :
         host(_host), port(_port), config(_config), si(_si)
 {
     mynl = _mynl;
@@ -65,21 +70,34 @@ ConnectionInfo::ConnectionInfo(const string& _host,
     tonotifier = new TimeoutNotifier<ConnectionInfo>(this);
     hbobserver = new HeartbeatObserver<ConnectionInfo>(this);
     if(si!=0){
+      si->setHeartbeat(4,4);
+      si->addMessageHandler(hbobserver);
       try{
+        if(timeout>0){
+           startTimeout(timeout,false);
+        }
         serverPID = si->getPid();
         secondoHome = si->getHome();
         sendFolder = si->getSendFileFolder();
         requestFolder = si->getRequestFileFolder();
         requestPath = si->getRequestFilePath();
         sendPath = si->getSendFilePath();
+        if(timeout>0){
+           stopTimeout(false);
+        }
       } catch(...){
         cerr << " Problem in ConnectionInfo constructor" << endl;
+        if(timeout>0){
+           stopTimeout(false);
+        }
       }
     }
 }
 
-bool ConnectionInfo::reconnect(bool showCommands, CommandLog& log){
+bool ConnectionInfo::reconnect(bool showCommands, CommandLog& log, 
+                               const size_t timeout){
     guard_type guard(simtx);
+    si->removeMessageHandler(hbobserver);
     try{
        this->si->Terminate();
     } catch(...) {
@@ -91,6 +109,7 @@ bool ConnectionInfo::reconnect(bool showCommands, CommandLog& log){
        cerr << "reconnect: Exception during deletion of si " << endl;
     }
     si = new SecondoInterfaceCS(true, mynl, true);
+    si->addMessageHandler(hbobserver);
     string user = "";
     string passwd = "";
     string errMsg;
@@ -105,13 +124,22 @@ bool ConnectionInfo::reconnect(bool showCommands, CommandLog& log){
     }
     if(si!=0){
       try{
+        if(timeout>0){
+           startTimeout(timeout,false);
+        }
         serverPID = si->getPid();
         switchDatabase(SecondoSystem::GetInstance()->GetDatabaseName(), 
                        true, false, true);
         retrieveSecondoHome(showCommands,log);
         si->setHeartbeat(4,4);
+        if(timeout>0){
+           stopTimeout(false);
+        }
       } catch(...){
         cerr << "error during collecting standard information" << endl;
+        if(timeout>0){
+           stopTimeout(false);
+        }
         return false;
       }
     }
@@ -179,7 +207,8 @@ string ConnectionInfo::getConfig() const
 
 */
 bool ConnectionInfo::check(bool showCommands, bool logOn, 
-                           CommandLog& commandLog)
+                           CommandLog& commandLog,
+                           const size_t timeout)
 {
     ListExpr res;
     string cmd = "list databases";
@@ -188,6 +217,9 @@ bool ConnectionInfo::check(bool showCommands, bool logOn,
         guard_type guard(simtx);
         showCommand(si, host, port, cmd, true, showCommands);
         StopWatch sw;
+        if(timeout>0){
+           startTimeout(timeout,true);
+        }
         si->Secondo(cmd, res, err);
         if(err.code){
            cerr << "Secondo function used during check() returns an error"
@@ -206,6 +238,9 @@ bool ConnectionInfo::check(bool showCommands, bool logOn,
                               cmd, rt, err.code);
         }
         showCommand(si, host, port, cmd, false, showCommands);
+        if(timeout>0){
+          stopTimeout(true);
+        }
     }
     return err.code == 0;
 }
@@ -239,7 +274,8 @@ void ConnectionInfo::simpleCommand(string command1,
                                    bool showCommands,
                                    bool logOn,
                                    CommandLog& commandLog,
-                                   bool forceExec /*=false*/)
+                                   bool forceExec /*=false*/,
+                                   const size_t timeout /*=0*/)
 {
     string command;
     if (rewrite)
@@ -256,7 +292,13 @@ void ConnectionInfo::simpleCommand(string command1,
         StopWatch sw;
         showCommand(si, host, port, command, true, showCommands);
         if(!cmdLog || forceExec){
+          if(timeout>0){
+             startTimeout(timeout,true);
+          }
           si->Secondo(command, resList, serr);
+          if(timeout>0){
+             stopTimeout(true);
+          }
         } else {
           cmdLog->insert(this, command);
           serr.code = 0;
@@ -306,7 +348,8 @@ string ConnectionInfo::getSecondoHome(bool showCommands,
 
 bool ConnectionInfo::cleanUp(bool showCommands,
                              bool logOn,
-                             CommandLog& commandLog)
+                             CommandLog& commandLog, 
+                             const size_t timeout)
 {   
     //guard_type guard(simtx);
     // first step : remove database objects
@@ -318,7 +361,7 @@ bool ConnectionInfo::cleanUp(bool showCommands,
     string res;
     double rt;
     simpleCommand(command, err, res, false, rt, showCommands, 
-                  logOn, commandLog);
+                  logOn, commandLog, timeout);
     bool result = err == 0;
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
     string path = getSecondoHome(showCommands, commandLog) 
@@ -328,15 +371,15 @@ bool ConnectionInfo::cleanUp(bool showCommands,
             "namedtransformstream[F] "
             "extend[ OK : removeDirectory(.F, TRUE)] count";
     simpleCommand(command, err, res, false, rt, showCommands, 
-                  logOn, commandLog);
+                  logOn, commandLog, timeout);
     result = result && (err == 0);
     return result;
 }
 
 
-bool ConnectionInfo::cleanUp1() {
+bool ConnectionInfo::cleanUp1(const size_t timeout) {
    static CommandLog log;
-   return cleanUp(false,false,log);
+   return cleanUp(false,false,log, timeout);
 }
 
 /*
@@ -348,7 +391,8 @@ bool ConnectionInfo::cleanUp1() {
 bool ConnectionInfo::switchDatabase(const string& dbname,
                                     bool createifnotexists,
                                     bool showCommands,
-                                    bool forceExec)
+                                    bool forceExec,
+                                    const size_t timeout)
 {
     guard_type guard(simtx);
     
@@ -357,6 +401,9 @@ bool ConnectionInfo::switchDatabase(const string& dbname,
     ListExpr resList;
     string cmd = "close database";
     showCommand(si, host, port, cmd, true, showCommands);
+    if(timeout>0){
+       startTimeout(timeout,false);
+    }
     if(!cmdLog || forceExec){
        si->Secondo(cmd, resList, serr);
     } else {
@@ -394,6 +441,9 @@ bool ConnectionInfo::switchDatabase(const string& dbname,
     }
     showCommand(si, host, port, cmd, false, showCommands);
     bool res = serr.code == 0;
+    if(timeout>0){
+      stopTimeout(false);
+    }
     return res;
 }
 
@@ -413,7 +463,8 @@ void ConnectionInfo::simpleCommand(const string& command1,
                                    bool showCommands,
                                    bool logOn,
                                    CommandLog& commandLog,
-                                   bool forceExec)
+                                   bool forceExec,
+                                   const size_t timeout)
 {
 
     string command;
@@ -426,7 +477,9 @@ void ConnectionInfo::simpleCommand(const string& command1,
     }
     {
         guard_type guard(simtx);
-        ;
+        if(timeout>0){
+          startTimeout(timeout,true);
+        } 
         SecErrInfo serr;
         ListExpr myResList = mynl->TheEmptyList();
         StopWatch sw;
@@ -439,6 +492,10 @@ void ConnectionInfo::simpleCommand(const string& command1,
            serr.code = 0;
            serr.msg = "command not executed";
         }
+        if(timeout>0){
+          stopTimeout(true);
+        }
+
         showCommand(si, host, port, command, false, showCommands);
         runtime = sw.diffSecondsReal();
         if (logOn)
@@ -560,7 +617,8 @@ void ConnectionInfo::simpleCommand(const string& command1,
                                    bool showCommands,
                                    bool logOn,
                                    CommandLog& commandLog,
-                                   bool forceExec)
+                                   bool forceExec,
+                                   const size_t timeout)
 {
 
     string command;
@@ -572,7 +630,9 @@ void ConnectionInfo::simpleCommand(const string& command1,
         command = command1;
     }
     guard_type guard(simtx);
-    ;
+    if(timeout>0){
+       startTimeout(timeout,true);
+    } 
     SecErrInfo serr;
     ListExpr myResList = mynl->TheEmptyList();
     StopWatch sw;
@@ -585,6 +645,9 @@ void ConnectionInfo::simpleCommand(const string& command1,
        serr.code = 0;
        serr.msg = "command not executed";
     }
+    if(timeout>0){
+       stopTimeout(true);
+    } 
     showCommand(si, host, port, command, false, showCommands);
     runtime = sw.diffSecondsReal();
     if (logOn)
@@ -624,10 +687,17 @@ int ConnectionInfo::serverPid()
 */
 int ConnectionInfo::sendFile(const string& local,
                              const string& remote,
-                             const bool allowOverwrite)
+                             const bool allowOverwrite,
+                             const size_t timeout)
 {
     guard_type guard(simtx);
+    if(timeout>0){
+      startTimeout(timeout,false);
+    }
     int res = si->sendFile(local, remote, allowOverwrite);
+    if(timeout>0){
+      stopTimeout(false);
+    }
     return res;
 }
 
@@ -639,10 +709,17 @@ int ConnectionInfo::sendFile(const string& local,
 */
 int ConnectionInfo::requestFile(const string& remote,
                                 const string& local,
-                                const bool allowOverwrite)
+                                const bool allowOverwrite,
+                                const size_t timeout)
 {
     guard_type guard(simtx);
+    if(timeout>0){
+      startTimeout(timeout,false);
+    }
     int res = si->requestFile(remote, local, allowOverwrite);
+    if(timeout>0){
+      stopTimeout(false);
+    }
     return res;
 }
 
@@ -687,7 +764,8 @@ string ConnectionInfo::getSendPath()
 */
 ConnectionInfo* ConnectionInfo::createConnection(const string& host,
                                                  const int port,
-                                                 string& config)
+                                                 string& config,
+                                                 const size_t timeout)
 {
 
     NestedList* mynl = new NestedList();
@@ -706,7 +784,7 @@ ConnectionInfo* ConnectionInfo::createConnection(const string& host,
         return 0;
     } else
     {
-        return new ConnectionInfo(host, port, config, si, mynl);
+        return new ConnectionInfo(host, port, config, si, mynl, timeout);
     }
 }
 
@@ -722,12 +800,14 @@ bool ConnectionInfo::createOrUpdateObject(const string& name,
                                           bool showCommands,
                                           bool logOn,
                                           CommandLog& commandLog,
-                                          bool forceExec)
+                                          bool forceExec,
+                                          const size_t timeout)
 {
     if (Relation::checkType(typelist))
     {
         return createOrUpdateRelation(name, typelist, value, 
-                                      showCommands, logOn, commandLog);
+                                      showCommands, logOn, commandLog,
+                                      timeout);
     }
 
     guard_type guard(simtx);
@@ -736,6 +816,9 @@ bool ConnectionInfo::createOrUpdateObject(const string& name,
     string cmd = "delete " + name;
     showCommand(si, host, port, cmd, true, showCommands);
     StopWatch sw;
+    if(timeout>0){
+       startTimeout(timeout,false);
+    }
     if(!cmdLog || forceExec){
        si->Secondo(cmd, resList, serr);
     } else {
@@ -777,6 +860,9 @@ bool ConnectionInfo::createOrUpdateObject(const string& name,
     }
     showCommand(si, host, port, cmd, false, showCommands);
     FileSystem::DeleteFileOrFolder(filename);
+    if(timeout>0){
+       stopTimeout(false);
+    }
     return serr.code == 0;
 }
 
@@ -792,7 +878,8 @@ bool ConnectionInfo::createOrUpdateRelation(const string& name,
                                             bool showCommands,
                                             bool logOn,
                                             CommandLog& commandLog,
-                                            bool forceExec)
+                                            bool forceExec,
+                                            const size_t timeout)
 {
 
     //guard_type guard(simtx);
@@ -806,7 +893,7 @@ bool ConnectionInfo::createOrUpdateRelation(const string& name,
     // restore remote relation from local file
     bool ok = createOrUpdateRelationFromBinFile(name, filename, 
                                    showCommands, logOn, commandLog,
-                                   forceExec);
+                                   forceExec, timeout);
     // remove temporarly file
     FileSystem::DeleteFileOrFolder(filename);
     return ok;
@@ -826,16 +913,23 @@ bool ConnectionInfo::createOrUpdateRelationFromBinFile(const string& name,
                                                      bool logOn,
                                                      CommandLog& commandLog,
                                                      const bool allowOverwrite,
-                                                     bool forceExec)
+                                                     bool forceExec,
+                                                     const size_t timeout)
 {
     guard_type guard(simtx);
 
+    if(timeout>0){
+      startTimeout(timeout,false);
+    }
     SecErrInfo serr;
     ListExpr resList;
     // transfer file to remote server
     int error = si->sendFile(filename, filename, true);
     if (error != 0)
     {
+        if(timeout>0){
+          stopTimeout(false);
+        }
         return false;
     }
 
@@ -908,6 +1002,9 @@ bool ConnectionInfo::createOrUpdateRelationFromBinFile(const string& name,
                           this->getSecondoHome(showCommands, commandLog), cmd,
                           runtime, serr.code);
     }
+    if(timeout>0){
+       stopTimeout(false);
+    }
 
     return ok;
 }
@@ -925,9 +1022,14 @@ bool ConnectionInfo::createOrUpdateAttributeFromBinFile(const string& name,
                                                      bool logOn,
                                                      CommandLog& commandLog,
                                                      const bool allowOverwrite,
-                                                     bool forceExec)
+                                                     bool forceExec,
+                                                     const size_t timeout)
 {
     guard_type guard(simtx);
+
+    if(timeout>0){
+       startTimeout(timeout,false);
+    }
 
     SecErrInfo serr;
     ListExpr resList;
@@ -935,6 +1037,9 @@ bool ConnectionInfo::createOrUpdateAttributeFromBinFile(const string& name,
     int error = si->sendFile(filename, filename, true);
     if (error != 0)
     {
+        if(timeout>0){
+          stopTimeout(false);
+        }
         return false;
     }
 
@@ -999,6 +1104,9 @@ bool ConnectionInfo::createOrUpdateAttributeFromBinFile(const string& name,
        resList = mynl->TheEmptyList();
        serr.code = 0;
        serr.msg = "command not executed";
+    }
+    if(timeout>0){
+      stopTimeout(false);
     }
 
     return ok;
@@ -1092,12 +1200,13 @@ bool ConnectionInfo::retrieve(const string& objName,
                               bool showCommands,
                               bool logOn,
                               CommandLog& commandLog,
-                              bool forceExec)
+                              bool forceExec,
+                              const size_t timeout)
 {
     if (Relation::checkType(resType))
     {
         if (retrieveRelation(objName, resType, result, 
-                             showCommands, logOn, commandLog))
+                             showCommands, logOn, commandLog, false, timeout))
         {
             return true;
         }
@@ -1105,6 +1214,9 @@ bool ConnectionInfo::retrieve(const string& objName,
     }
     {
       guard_type  guard(simtx);
+      if(timeout>0){
+         startTimeout(timeout,false);
+      }
       SecErrInfo serr;
       ListExpr myResList;
       string cmd = "query " + objName;
@@ -1117,6 +1229,10 @@ bool ConnectionInfo::retrieve(const string& objName,
          myResList = mynl->TheEmptyList();
          serr.code = 0;
          serr.msg = "command not executed";
+      }
+      
+      if(timeout>0){
+         stopTimeout(false);
       }
       double runtime = sw.diffSecondsReal();
       if (logOn)
@@ -1176,13 +1292,14 @@ bool ConnectionInfo::retrieveRelation(const string& objName,
                                       bool showCommands,
                                       bool logOn,
                                       CommandLog& commandLog,
-                                      bool forceExec)
+                                      bool forceExec,
+                                      const size_t timeout)
 {
 
     //guard_type guard(simtx);
     string fname1 = objName + ".bin";
     if (!retrieveRelationFile(objName, fname1, showCommands, logOn, 
-                              commandLog, forceExec))
+                              commandLog, forceExec,timeout))
     {
         return false;
     }
@@ -1203,7 +1320,8 @@ bool ConnectionInfo::retrieveRelationInFile(const string& fileName,
                                             bool showCommands,
                                             bool logOn,
                                             CommandLog& commandLog,
-                                            bool forceExec)
+                                            bool forceExec,
+                                            const size_t timeout)
 {
     guard_type guard(simtx);
     result.addr = 0;
@@ -1217,10 +1335,18 @@ bool ConnectionInfo::retrieveRelationInFile(const string& fileName,
     string base = FileSystem::Basename(fileName);
     if (stringutils::startsWith(fileName, rfpath))
     {
+        if(timeout>0){
+           startTimeout(timeout,false);
+        }
+        bool ok = si->requestFile(fileName.substr(rfpath.length()), 
+                                  base + ".tmp",
+                                  true);
+        if(timeout>0){
+           stopTimeout(false);
+        }
+
         // we can just get the file without copying it
-        if (!si->requestFile(fileName.substr(rfpath.length()), base + ".tmp",
-                             true))
-        {
+        if (!ok) {
             return false;
         }
         result = createRelationFromFile(base + ".tmp", resType);
@@ -1235,6 +1361,9 @@ bool ConnectionInfo::retrieveRelationInFile(const string& fileName,
     ListExpr resList;
     showCommand(si, host, port, cmd, true, showCommands);
     StopWatch sw;
+    if(timeout>0){
+       startTimeout(timeout,false);
+    }
     if(!cmdLog || forceExec){
        si->Secondo(cmd, resList, serr);
     } else {
@@ -1242,6 +1371,9 @@ bool ConnectionInfo::retrieveRelationInFile(const string& fileName,
        resList = mynl->TheEmptyList();
        serr.code = 0;
        serr.msg = "command not executed";
+    }
+    if(timeout>0){
+       stopTimeout(false);
     }
     double runtime = sw.diffSecondsReal();
     if (logOn)
@@ -1284,6 +1416,9 @@ bool ConnectionInfo::retrieveRelationInFile(const string& fileName,
     cmd = "query removeFile('" + rfpath + base + ".tmp' )";
     showCommand(si, host, port, cmd, true, showCommands);
     sw.start();
+    if(timeout>0){
+       startTimeout(timeout,false);
+    }
     if(!cmdLog || forceExec){
        si->Secondo(cmd, resList, serr);
     } else {
@@ -1291,6 +1426,9 @@ bool ConnectionInfo::retrieveRelationInFile(const string& fileName,
        resList = mynl->TheEmptyList();
        serr.code = 0;
        serr.msg = "command not executed";
+    }
+    if(timeout>0){
+       stopTimeout(false);
     }
     runtime = sw.diffSecondsReal();
     if (logOn)
@@ -1319,7 +1457,8 @@ bool ConnectionInfo::retrieveRelationFile(const string& objName,
                                           bool showCommands,
                                           bool logOn,
                                           CommandLog& commandLog,
-                                          bool forceExec)
+                                          bool forceExec, 
+                                          const size_t timeout)
 {
     guard_type guard(simtx);
     string rfname;
@@ -1335,6 +1474,11 @@ bool ConnectionInfo::retrieveRelationFile(const string& objName,
             + "', TRUE) ";
     showCommand(si, host, port, cmd, true, showCommands);
     StopWatch sw;
+
+    if(timeout>0){
+       startTimeout(timeout,false);
+    }
+
     if(!cmdLog || forceExec){
        si->Secondo(cmd, resList, serr);
     } else {
@@ -1357,6 +1501,9 @@ bool ConnectionInfo::retrieveRelationFile(const string& objName,
         cerr << "Creating filetransfer directory failed" << endl;
         cerr << "serr.code = " << serr.code << endl;
         cerr << "serr.Msg = " << serr.msg << endl;
+        if(timeout>0){
+          stopTimeout(false);
+        }
         return false;
     }
 
@@ -1382,6 +1529,9 @@ bool ConnectionInfo::retrieveRelationFile(const string& objName,
 
     if (serr.code != 0)
     {
+        if(timeout>0){
+          stopTimeout(false);
+        }
         return false;
     }
 
@@ -1410,6 +1560,9 @@ bool ConnectionInfo::retrieveRelationFile(const string& objName,
                           runtime, serr.code);
     }
     showCommand(si, host, port, cmd, false, showCommands);
+    if(timeout>0){
+      stopTimeout(false);
+    }
     return true;
 }
 
@@ -1425,7 +1578,8 @@ bool ConnectionInfo::retrieveAnyFile(const string& remoteName,
                                      bool showCommands,
                                      bool logOn,
                                      CommandLog& commandLog,
-                                     bool forceExec)
+                                     bool forceExec,
+                                     const size_t timeout)
 {
     guard_type guard(simtx);
     string rf = getRequestFolder();
@@ -1443,7 +1597,7 @@ bool ConnectionInfo::retrieveAnyFile(const string& remoteName,
         // create request dir
         string cmd = "query createDirectory('" + rf + "', TRUE)";
         simpleCommand(cmd, err, errMsg, result, false, rt, 
-                      showCommands, logOn, commandLog, forceExec);
+                      showCommands, logOn, commandLog, forceExec, timeout);
         if (err)
         {
             showError(this, cmd, err, errMsg);
@@ -1455,7 +1609,7 @@ bool ConnectionInfo::retrieveAnyFile(const string& remoteName,
                   + "/" + rf + "/" + cn;
         cmd = "query copyFile('" + remoteName + "','" + cf + "')";
         simpleCommand(cmd, err, errMsg, result, false, rt, showCommands, 
-                      logOn, commandLog, forceExec);
+                      logOn, commandLog, forceExec, timeout);
         if (err)
         {
             cerr << "command " << cmd << " failed" << endl;
@@ -1483,14 +1637,14 @@ bool ConnectionInfo::retrieveAnyFile(const string& remoteName,
 
     }
 
-    int errres = requestFile(cn, localName, true);
+    int errres = requestFile(cn, localName, true, timeout);
 
     if (copyRequired)
     {
         // remove copy
         string cmd = "query removeFile('" + cn + "')";
         simpleCommand(cmd, err, errMsg, result, false, rt, showCommands, 
-                      logOn, commandLog, forceExec);
+                      logOn, commandLog, forceExec, timeout);
         if (err)
         {
             cerr << "command " << cmd << " failed" << endl;

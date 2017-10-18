@@ -35,6 +35,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/date_time.hpp>
 
 #include "Algebras/Standard-C++/LongInt.h"
+#include "Algebras/FText/FTextAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+
+class TupleType;
 
 namespace distributed2
 {

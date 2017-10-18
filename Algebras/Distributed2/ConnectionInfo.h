@@ -29,41 +29,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef ALGEBRAS_DISTRIBUTED2_CONNECTIONINFO_H_
 #define ALGEBRAS_DISTRIBUTED2_CONNECTIONINFO_H_
 
-#include "semaphore.h"
-
-#include "fsrel.h"
-#include "DArray.h"
-#include "frel.h"
-#include "fobj.h"
-#include <iostream>
-#include <vector>
-#include <list>
-
-#include "SecondoInterface.h"
 #include "SecondoInterfaceCS.h"
-#include "FileSystem.h"
-#include "Algebra.h"
 #include "NestedList.h"
-#include "StandardTypes.h"
-#include "Algebras/FText/FTextAlgebra.h"
-#include "ListUtils.h"
-#include "Algebras/Stream/Stream.h"
-#include "NList.h"
-#include "Algebras/Array/ArrayAlgebra.h"
-#include "SocketIO.h"
-#include "StopWatch.h"
-
-#include "Algebras/Standard-C++/LongInt.h"
-
-#include "Bash.h"
-#include "DebugWriter.h"
-
-#include "FileRelations.h"
-#include "FileAttribute.h"
 #include "CommandLog.h"
 #include "CommandLogger.h"
-
-
 
 
 
@@ -89,10 +58,12 @@ public:
                    const int _port,
                    const std::string& _config,
                    SecondoInterfaceCS* _si,
-                   NestedList* _mynl);
+                   NestedList* _mynl,
+                   const size_t timeout = 0);
+
     virtual ~ConnectionInfo();
 
-    bool reconnect(bool showCommands, CommandLog& log);
+    bool reconnect(bool showCommands, CommandLog& log, const size_t timeout=0);
 
     std::string getHost() const;
 
@@ -100,7 +71,8 @@ public:
 
     std::string getConfig() const;
 
-    bool check(bool showCommands, bool logOn, CommandLog& commandLog);
+    bool check(bool showCommands, bool logOn, CommandLog& commandLog,
+               const size_t timeout=0);
 
     void setId(const int i);
 
@@ -112,21 +84,24 @@ public:
                        bool showCommands,
                        bool logOn,
                        CommandLog& commandLog,
-                       bool forceExec = false);
+                       bool forceExec = false,
+                       const size_t timeout=0);
 
     std::string getSecondoHome(bool showCommands,
                                CommandLog& commandLog);
 
     bool cleanUp(bool showCommands,
                  bool logOn,
-                 CommandLog& commandLog);
+                 CommandLog& commandLog,
+                 const size_t timeout=0);
 
-    bool cleanUp1();
+    bool cleanUp1( const size_t timeout=0);
 
     bool switchDatabase(const std::string& dbname,
                         bool createifnotexists,
                         bool showCommands,
-                        bool forceExec = false);
+                        bool forceExec = false,
+                        const size_t timeout=0);
 
     void simpleCommand(const std::string& command1,
                        int& error,
@@ -137,7 +112,8 @@ public:
                        bool log,
                        bool showCommands,
                        CommandLog& commandLog,
-                       bool forceExec = false);
+                       bool forceExec = false,
+                       const size_t timeout=0);
 
     void simpleCommandFromList(const std::string& command1,
                                int& error,
@@ -160,17 +136,20 @@ public:
                        bool showCommands,
                        bool logOn,
                        CommandLog& commandLog,
-                       bool forceExec = false);
+                       bool forceExec = false,
+                       const size_t timeout=0);
 
     int serverPid();
 
     int sendFile(const std::string& local,
                  const std::string& remote,
-                 const bool allowOverwrite);
+                 const bool allowOverwrite,
+                 const size_t timeout=0);
 
     int requestFile(const std::string& remote,
                     const std::string& local,
-                    const bool allowOverwrite);
+                    const bool allowOverwrite,
+                    const size_t timeout=0);
 
     std::string getRequestFolder();
 
@@ -180,7 +159,8 @@ public:
 
     static ConnectionInfo* createConnection(const std::string& host,
                                             const int port,
-                                            std::string& config);
+                                            std::string& config,
+                                            const size_t timeout=0);
 
     bool createOrUpdateObject(const std::string& name,
                               ListExpr typelist,
@@ -188,7 +168,8 @@ public:
                               bool showCommands,
                               bool logOn,
                               CommandLog& commandLog,
-                              bool forceExec = false);
+                              bool forceExec = false,
+                              const size_t timeout=0);
 
     bool createOrUpdateRelation(const std::string& name,
                                 ListExpr typeList,
@@ -196,7 +177,8 @@ public:
                                 bool showCommands,
                                 bool logOn,
                                 CommandLog& commandLog,
-                                bool forceExec = false);
+                                bool forceExec = false,
+                                const size_t timeout=0);
 
     bool createOrUpdateRelationFromBinFile(const std::string& name,
                                            const std::string& filename,
@@ -204,7 +186,8 @@ public:
                                            bool logOn,
                                            CommandLog& commandLog,
                                            const bool allowOverwrite = true,
-                                           bool forceExec = false);
+                                           bool forceExec = false,
+                                           const size_t timeout=0);
 
     bool createOrUpdateAttributeFromBinFile(const std::string& name,
                                             const std::string& filename,
@@ -212,11 +195,13 @@ public:
                                             bool logOn,
                                             CommandLog& commandLog,
                                             const bool allowOverwrite = true,
-                                            bool forceExec = false);
+                                            bool forceExec = false,
+                                            const size_t timeout=0);
 
     bool saveRelationToFile(ListExpr relType,
                             Word& value,
                             const std::string& filename);
+
     bool saveAttributeToFile(ListExpr type,
                              Word& value,
                              const std::string& filename);
@@ -233,7 +218,8 @@ public:
                   bool showCommands,
                   bool logOn,
                   CommandLog& commandLog,
-                  bool forceExec = false);
+                  bool forceExec = false,
+                  const size_t timeout=0);
 
     bool retrieveRelation(const std::string& objName,
                           ListExpr& resType,
@@ -241,7 +227,8 @@ public:
                           bool showCommands,
                           bool logOn,
                           CommandLog& commandLog,
-                          bool forceExec = false);
+                          bool forceExec = false,
+                          const size_t timeout=0);
 
     bool retrieveRelationInFile(const std::string& fileName,
                                 ListExpr& resType,
@@ -249,21 +236,25 @@ public:
                                 bool showCommands,
                                 bool logOn,
                                 CommandLog& commandLog,
-                                bool forceExec = false);
+                                bool forceExec = false,
+                                const size_t timeout=0);
 
     bool retrieveRelationFile(const std::string& objName,
                               const std::string& fname1,
                               bool showCommands,
                               bool logOn,
                               CommandLog& commandLog,
-                              bool forceExec = false);
+                              bool forceExec = false,
+                              const size_t timeout=0);
 
     bool retrieveAnyFile(const std::string& remoteName,
                          const std::string& localName,
                          bool showCommands,
                          bool logOn,
                          CommandLog& commandLog,
-                         bool forceExec = false);
+                         bool forceExec = false,
+                         const size_t timeout=0);
+
     Word createRelationFromFile(const std::string& fname, ListExpr& resType);
 
     std::ostream& print(std::ostream& o) const;
@@ -326,9 +317,6 @@ private:
 
     void startTimeout(int seconds, bool acceptMessages);
     void stopTimeout(const bool msg);
-
-
-   
 
 };
 

@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 */
-#include <Timeout.h>
+#include "./Timeout.h"
 
 #include "ConnectionInfo.h"
 #include "Dist2Helper.h"
@@ -36,7 +36,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SocketIO.h"
 #include "CommandLogger.h"
 #include "Algebras/Relation-C++/OperatorConsume.h"
-
+#include "Bash.h"
+#include "fsrel.h"
+#include "fobj.h"
+#include "FileRelations.h"
+#include "FileSystem.h"
+#include "Algebras/Array/ArrayAlgebra.h"
+#include "FileAttribute.h"
 
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
@@ -806,7 +812,7 @@ bool Distributed2Algebra::serverExists(int s){
         //boost::thread* r = new boost::thread(&ConnectionInfo::cleanUp, ci);
         boost::thread* r = new boost::thread(
                 boost::bind(&ConnectionInfo::cleanUp,ci,
-                            showCommands, logOn, boost::ref(commandLog)));
+                            showCommands, logOn, boost::ref(commandLog),0));
         runners.push_back(r);
      }
      for(size_t i=0;i<runners.size();i++){
@@ -10600,7 +10606,7 @@ int cleanUpVMT(Word* args, Word& result, int message,
            //boost::thread* r = new boost::thread(&ConnectionInfo::cleanUp,ci);
              boost::thread* r = new boost::thread(
                      boost::bind(&ConnectionInfo::cleanUp, ci,
-                                 showCommands, logOn, boost::ref(commandLog)));
+                              showCommands, logOn, boost::ref(commandLog),0));
              runners.push_back(r);
          }
       }

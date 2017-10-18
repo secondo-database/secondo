@@ -104,9 +104,10 @@ class HeartbeatObserver : public MessageHandler,  public TimeoutNotifier<T>{
     }
 
     bool handleMsg(NestedList* nl, ListExpr msg, int source){
-       if(! nl->HasLength(msg,2)) { return false; }
+
+       if(! nl->HasLength(msg,2)) {  return false; }
        if(    (nl->AtomType(nl->First(msg))!=SymbolType)
-           || (nl->AtomType(nl->First(msg))!=IntType)){
+           || (nl->AtomType(nl->Second(msg))!=IntType)){
            return false;
        }
        if(  (nl->SymbolValue(nl->First(msg))!="heartbeat")) {
