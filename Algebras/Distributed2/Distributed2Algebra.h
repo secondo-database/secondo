@@ -369,6 +369,16 @@ connections.
     }
 
 
+    bool setHeartbeat(int heartbeat);
+
+    inline int getHeartbeat() const{
+      return heartbeat;
+    }
+
+    inline int getTimeout() const{
+      return timeout;
+    }
+
     ErrorWriter errorWriter;
 
   private:
@@ -391,6 +401,9 @@ connections.
     PProgressView* pprogView;
 
     bool tryReconnectFlag;
+
+    int heartbeat;
+    int timeout;
 
 
     // returns a unique number

@@ -835,11 +835,39 @@ bool Distributed2Algebra::serverExists(int s){
       string host = worker.getHost();
       int port = worker.getPort();
       string config = worker.getConfig();
-      ConnectionInfo* ci = ConnectionInfo::createConnection(host, port, config);
+      ConnectionInfo* ci = ConnectionInfo::createConnection(host, port, config, 
+                                                            timeout, heartbeat);
       res.first="";
       res.second = ci;
       return ci!=0;
     }
+
+    // sets the heartbeat for all new and all existing connections
+    bool Distributed2Algebra::setHeartbeat(int _heartbeat){
+         if(_heartbeat<0) return false;
+         heartbeat = _heartbeat;
+         {
+           boost::lock_guard<boost::mutex> guard(mtx);
+           for(size_t i=0;i<connections.size();i++){
+              cout << "set heartbeat for user connection to " 
+                   << heartbeat << endl;
+              connections[i]->setHeartbeat(heartbeat, heartbeat);
+           }
+         } 
+         {
+          boost::lock_guard<boost::mutex> guard(workerMtx);
+          map<DArrayElement,
+               pair<string,ConnectionInfo*> >::iterator it;
+          for(it = workerconnections.begin(); it!=workerconnections.end();it++){
+              cout << "set heartbeat for worker connection to " 
+                   << heartbeat << endl;
+              it->second.second->setHeartbeat(heartbeat,heartbeat);
+          }
+         }
+         return true;
+    }
+  
+
 
   // Algebra instance
 Distributed2Algebra* algInstance;
@@ -1164,7 +1192,9 @@ int connectVMT( Word* args, Word& result, int message,
      res->Set(true,false);
    } else {
      res->Set(true,true);
-     ConnectionInfo* ci= new ConnectionInfo(host, port, file, si, mynl);
+     ConnectionInfo* ci= new ConnectionInfo(host, port, file, si, mynl, 
+                                            algInstance->getTimeout(), 
+                                            algInstance->getHeartbeat());
      algInstance->addConnection(ci);     
    }
    return 0;
@@ -3544,7 +3574,9 @@ class Connector{
            si = 0;
            delete mynl;
         } else {
-           ConnectionInfo* ci = new ConnectionInfo(host,port,config,si,mynl);
+           ConnectionInfo* ci = new ConnectionInfo(host,port,config,si,mynl, 
+                                                   algInstance->getTimeout(), 
+                                                   algInstance->getHeartbeat());
            listener->connectionDone(inTuple, inTupleNo, ci);
         }
      }
@@ -19428,6 +19460,64 @@ Operator db2tryReconnectOp(
   db2tryReconnectTM
 );
 
+/*
+Operator ~setHeartbeat~
+
+This operator will set the heartbeat of all existing and all new 
+connections to a new value.
+
+*/
+ListExpr setHeartbeatTM(ListExpr args){
+   if(!nl->HasLength(args,1)){
+     return listutils::typeError("wrong number of arguments");
+   }
+   if(!CcInt::checkType(nl->First(args))){
+     return listutils::typeError("int expected");
+   }
+   return listutils::basicSymbol<CcBool>();
+}
+
+
+int setHeartbeatVM(Word* args, Word& result, int message,
+               Word& local, Supplier s) {
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  CcInt* arg = (CcInt*) args[0].addr;
+  if(!arg->IsDefined()){
+    res->SetDefined(false);
+  }  else {
+    int v = arg->GetValue();
+    bool r = algInstance->setHeartbeat(v);
+    res->Set(true,r);
+  }
+  return 0;
+}
+
+OperatorSpec setHeartbeatSpec(
+  "int -> bool",
+  "setHeartbeat(_)",
+  "Sets the heartbeat for all existing connections and all later "
+  "created connections within the Distributed2Algebra "
+  "to the specified value in seconds. "
+  "A value of 0 means to switch off heartbeat messages completely."
+  "Values smaller than 0 are not accepted.",
+  "query setHeartbeat(4)"
+);
+
+Operator setHeartbeatOp(
+  "setHeartbeat",
+  setHeartbeatSpec.getStr(),
+  setHeartbeatVM,
+  Operator::SimpleSelect,
+  setHeartbeatTM
+);
+
+
+
+
+
+
+
 
 
 /*
@@ -19437,6 +19527,8 @@ Operator db2tryReconnectOp(
 Distributed2Algebra::Distributed2Algebra(){
    namecounter = 0;
    tryReconnectFlag = false;
+   heartbeat = 4;
+   timeout = 15;
 
    AddTypeConstructor(&DArrayTC);
    DArrayTC.AssociateKind(Kind::SIMPLE());
@@ -19642,6 +19734,7 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&write3Op);
 
    AddOperator(&db2tryReconnectOp);
+   AddOperator(&setHeartbeatOp);
 
    pprogView = new PProgressView();
    MessageCenter::GetInstance()->AddHandler(pprogView);

@@ -54,7 +54,8 @@ ConnectionInfo::ConnectionInfo(const string& _host,
                                const string& _config,
                                SecondoInterfaceCS* _si,
                                NestedList* _mynl,
-                               const size_t timeout) :
+                               const size_t timeout,
+                               const int heartbeat) :
         host(_host), port(_port), config(_config), si(_si)
 {
     mynl = _mynl;
@@ -70,7 +71,7 @@ ConnectionInfo::ConnectionInfo(const string& _host,
     tonotifier = new TimeoutNotifier<ConnectionInfo>(this);
     hbobserver = new HeartbeatObserver<ConnectionInfo>(this);
     if(si!=0){
-      si->setHeartbeat(4,4);
+      si->setHeartbeat(heartbeat,heartbeat);
       si->addMessageHandler(hbobserver);
       try{
         if(timeout>0){
@@ -95,7 +96,8 @@ ConnectionInfo::ConnectionInfo(const string& _host,
 }
 
 bool ConnectionInfo::reconnect(bool showCommands, CommandLog& log, 
-                               const size_t timeout){
+                               const size_t timeout,
+                               const int heartbeat){
     guard_type guard(simtx);
     si->removeMessageHandler(hbobserver);
     try{
@@ -131,7 +133,7 @@ bool ConnectionInfo::reconnect(bool showCommands, CommandLog& log,
         switchDatabase(SecondoSystem::GetInstance()->GetDatabaseName(), 
                        true, false, true);
         retrieveSecondoHome(showCommands,log);
-        si->setHeartbeat(4,4);
+        si->setHeartbeat(heartbeat, heartbeat);
         if(timeout>0){
            stopTimeout(false);
         }
@@ -765,7 +767,8 @@ string ConnectionInfo::getSendPath()
 ConnectionInfo* ConnectionInfo::createConnection(const string& host,
                                                  const int port,
                                                  string& config,
-                                                 const size_t timeout)
+                                                 const size_t timeout,
+                                                 const int heartbeat)
 {
 
     NestedList* mynl = new NestedList();
@@ -784,7 +787,8 @@ ConnectionInfo* ConnectionInfo::createConnection(const string& host,
         return 0;
     } else
     {
-        return new ConnectionInfo(host, port, config, si, mynl, timeout);
+        return new ConnectionInfo(host, port, config, si, mynl, 
+                                  timeout, heartbeat);
     }
 }
 
@@ -893,6 +897,7 @@ bool ConnectionInfo::createOrUpdateRelation(const string& name,
     // restore remote relation from local file
     bool ok = createOrUpdateRelationFromBinFile(name, filename, 
                                    showCommands, logOn, commandLog,
+                                   true,
                                    forceExec, timeout);
     // remove temporarly file
     FileSystem::DeleteFileOrFolder(filename);

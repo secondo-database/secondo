@@ -708,3 +708,9 @@ Example   : query db2tryReconnect(TRUE)
 Result    : TRUE
 
 
+Operator : setHeartbeat
+Number   : 1
+Signature : int -> bool
+Example  : query setHeartbeat(4)
+Result   : TRUE
+

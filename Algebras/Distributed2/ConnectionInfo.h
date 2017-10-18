@@ -59,11 +59,13 @@ public:
                    const std::string& _config,
                    SecondoInterfaceCS* _si,
                    NestedList* _mynl,
-                   const size_t timeout = 0);
+                   const size_t timeout = 0,
+                   const int heartbeat=0);
 
     virtual ~ConnectionInfo();
 
-    bool reconnect(bool showCommands, CommandLog& log, const size_t timeout=0);
+    bool reconnect(bool showCommands, CommandLog& log, const size_t timeout=0,
+                   const int heartbeat=0);
 
     std::string getHost() const;
 
@@ -160,7 +162,8 @@ public:
     static ConnectionInfo* createConnection(const std::string& host,
                                             const int port,
                                             std::string& config,
-                                            const size_t timeout=0);
+                                            const size_t timeout=0,
+                                            const int heartbeat=0);
 
     bool createOrUpdateObject(const std::string& name,
                               ListExpr typelist,
@@ -280,6 +283,12 @@ public:
     void killConnection();
 
     void timeout();
+
+    bool setHeartbeat(const int hb1, const int hb2){
+        if(hb1<0 || hb2<0) return false;
+        if(!si) return false;
+        return si->setHeartbeat(hb1,hb2);
+    }
 
 
 private:
