@@ -1161,6 +1161,7 @@ struct minusInfo : OperatorInfo {
   }
 };
 
+#ifdef RECODE
 /*
 \section{Operator ~recode~}
 
@@ -1228,6 +1229,7 @@ struct recodeInfo : OperatorInfo {
     meaning   = "Recodes an mlabel(s) from one charset to another one.";
   }
 };
+#endif
 
 /*
 \section{Operator ~distance~}
@@ -5500,8 +5502,10 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     minusVM<Places, Place>, minusVM<Places, Places>, 0};
   AddOperator(minusInfo(), minusVMs, minusSelect, minusTM);
   
+  #ifdef RECODE
   ValueMapping recodeVMs[] = {recodeVM<MLabel>, recodeVM<MLabels>, 0};
   AddOperator(recodeInfo(), recodeVMs, recodeSelect, recodeTM);
+  #endif
   
   ValueMapping distanceVMs[] = {distanceVM<Label>, distanceVM<Labels>,
     distanceVM<Place>, distanceVM<Places>, distanceVM<MLabel>,

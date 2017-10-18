@@ -282,7 +282,9 @@ class MBasic : public Attribute {
   void Fill(MBasic<B>& result, datetime::DateTime& duration) const;
   void Concat(const MBasic<B>& src1, const MBasic<B>& src2);
   void Compress(MBasic<B>& result) const;
+  #ifdef RECODE
   void Recode(const std::string& from, const std::string& to,MBasic<B>& result);
+  #endif
   std::ostream& Print(std::ostream& os) const;  
   double Distance_FIRST(const MBasic<B>& mb) const;
   double Distance_LAST(const MBasic<B>& mb) const;
@@ -384,7 +386,9 @@ class MBasics : public Attribute {
   void Fill(MBasics<B>& result, datetime::DateTime& duration) const;
   void Concat(const MBasics<B>& src1, const MBasics<B>& src2);
   void Compress(MBasics<B>& result) const;
+  #ifdef RECODE
   void Recode(const std::string& from,const std::string& to,MBasics<B>& result);
+  #endif
   std::ostream& Print(std::ostream& os) const;
   double Distance(const MBasics<B>& mbs) const;
   int CommonPrefixSuffix(const MBasics<B>& mbs, const bool prefix);
@@ -3300,6 +3304,7 @@ void MBasic<B>::Compress(MBasic<B>& result) const {
   }
 }
 
+#ifdef RECODE
 /*
 \subsection{Function ~Recode~}
 
@@ -3327,6 +3332,7 @@ void MBasic<B>::Recode(const std::string& from, const std::string& to,
     }
   }
 }
+#endif
 
 /*
 \subsection{Function ~Print~}
@@ -4663,6 +4669,7 @@ void MBasics<B>::Compress(MBasics<B>& result) const {
   }
 }
 
+#ifdef RECODE
 /*
 \subsection{Function ~Recode~}
 
@@ -4687,6 +4694,7 @@ void MBasics<B>::Recode(const std::string& from, const std::string& to,
     result.Add(iv, recoded_values);
   }
 }
+#endif
 
 /*
 \subsection{Function ~Print~}

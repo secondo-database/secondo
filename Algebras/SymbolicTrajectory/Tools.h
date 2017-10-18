@@ -180,8 +180,10 @@ struct ivCmp {
  
 class Tools {
  public:
+  #ifdef RECODE
   static bool recode(const std::string &src, const std::string &from,
                      const std::string &to, std::string &result);
+  #endif
   static void intersect(const std::vector<std::set<TupleId> >& tidsets, 
                         std::set<TupleId>& result);
   static void intersectPairs(
