@@ -44,6 +44,7 @@ namespace stj {
 \subsection{Function ~recode~}
 
 */
+#ifdef RECODE
 bool Tools::recode(const string &src, const string &from, const string &to,
                    string &result) {
   string rs = trim(from)+".."+trim(to);
@@ -72,6 +73,7 @@ bool Tools::recode(const string &src, const string &from, const string &to,
   free(recoded);
   return true;
 }
+#endif
 
 /*
 \subsection{Function ~intersect~}
@@ -1187,7 +1189,7 @@ bool Tools::parseBoolorObj(const string& input, bool &isEmpty, int &pos,
         Region res(true);
         ((Region*)value.addr)->Union(rect, res);
         ((Region*)value.addr)->DeleteIfAllowed();
-        ((Region*)value.addr)->CopyFrom((Attribute*)(&res));
+        ((Region*)value.addr)->CopyFrom(&res);
 //         ((Region*)value.addr)->Print(cout); cout << endl;
       }
     }
@@ -1199,7 +1201,19 @@ bool Tools::parseBoolorObj(const string& input, bool &isEmpty, int &pos,
         Region res(true);
         ((Region*)value.addr)->Union(*((Region*)valuePart.addr), res);
         ((Region*)valuePart.addr)->DeleteIfAllowed();
-        ((Region*)value.addr)->CopyFrom((Attribute*)(&res));
+        ((Region*)value.addr)->CopyFrom(&res);
+      }
+    }
+    else if (type == "line") {
+      Region res(true);
+      if (isEmpty) {
+        Region emptyReg(true);
+        emptyReg.Union(*((Line*)valuePart.addr), res);
+        ((Line*)valuePart.addr)->DeleteIfAllowed();
+        value.addr = new Region(res);
+      }
+      else {
+        ((Region*)value.addr)->Union(*((Line*)valuePart.addr), res);
       }
     }
     else if (type == "label") {
