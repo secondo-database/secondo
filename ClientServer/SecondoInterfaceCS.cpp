@@ -800,11 +800,6 @@ For an explanation of the error codes refer to SecondoInterface.h
          dwriter.write(true, cout, this, pid,
           "Remote server possible crashed (exception) '" 
           + string(ex.what()) + "' " + getConnectionInfo());
-         stringstream tmp;
-         tmp << "failbit " << iosock.fail() << endl;
-         tmp << ", badbit " << iosock.bad() << endl;
-         tmp << ", eofbit " << iosock.eof() << endl;
-         dwriter.write(true, cout, this, pid, tmp.str());
     }
     
     dwriter.write(debugSecondoMethod, cout, this, pid, 
@@ -1580,6 +1575,7 @@ std::string SecondoInterfaceCS::getConnectionInfo() const{
 
 
 bool SecondoInterfaceCS::handleMsg(NestedList* nl, ListExpr msg, int source){
+
    bool ok = false;
    for(size_t i=0;i<messageListener.size();i++){
      ok = ok || messageListener[i]->handleMsg(nl, msg, source);
