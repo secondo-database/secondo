@@ -435,7 +435,7 @@ bool Distributed2Algebra::serverExists(int s){
       if(!c){
          return -3;
       }
-      return c->sendFile(local,remote, allowOverwrite);
+      return c->sendFile(local,remote, allowOverwrite, getTimeout());
     }
     
 
@@ -458,7 +458,7 @@ bool Distributed2Algebra::serverExists(int s){
       if(!c){
         return -3;
       }
-      return c->requestFile(remote,local, allowOverwrite);
+      return c->requestFile(remote,local, allowOverwrite, getTimeout());
     }
 
     string Distributed2Algebra::getRequestFolder( int con){
@@ -556,7 +556,7 @@ bool Distributed2Algebra::serverExists(int s){
          c = connections[con];
       }
       if(!c) return false;
-      return c->check(showCommands, logOn, commandLog);
+      return c->check(showCommands, logOn, commandLog, getTimeout());
     }
 
     bool Distributed2Algebra::simpleCommand(int con, const string& cmd,
@@ -583,7 +583,7 @@ bool Distributed2Algebra::serverExists(int s){
          return false;
       }
         c->simpleCommand(cmd, error, errMsg, resList, rewrite, runtime,
-                         showCommands, logOn, commandLog);
+                         showCommands, logOn, commandLog, false, getTimeout());
         return true;
     }
     
@@ -611,7 +611,7 @@ bool Distributed2Algebra::serverExists(int s){
          return false;
       }
         c->simpleCommand(cmd, error, errMsg, resList, rewrite, runtime,
-                         showCommands, logOn, commandLog);
+                         showCommands, logOn, commandLog, false, getTimeout());
         return true;
     }
 
@@ -641,7 +641,8 @@ bool Distributed2Algebra::serverExists(int s){
      pr.second->setNum(info.getNum());
      string wdbname = dbname;
      if(pr.first!=wdbname){
-         if(!pr.second->switchDatabase(wdbname,true, showCommands)){
+         if(!pr.second->switchDatabase(wdbname,true, showCommands, false,
+                                       getTimeout())){
             it->second.first="";
             return 0;
          } else {
@@ -5069,7 +5070,8 @@ int putVMA(Word* args, Word& result, int message,
   if(! ci->createOrUpdateObject(  array->getName() + "_" 
                                 + stringutils::int2str(i),
                                 nl->Second(qp->GetType(s)),
-                                args[2], showCommands, logOn, commandLog)){
+                                args[2], showCommands, logOn, commandLog, 
+                                false, algInstance->getTimeout())){
       res->makeUndefined();
       return 0;
   }
@@ -5116,7 +5118,7 @@ int putVMFA(Word* args, Word& result, int message,
      return 0;
   }
   // send file
-  if(ci->sendFile(fname,fname,true)!=0){
+  if(ci->sendFile(fname,fname,true, algInstance->getTimeout())!=0){
      cerr << "error in sending file" << fname << endl;
      res->makeUndefined();
      return 0;
@@ -5134,7 +5136,8 @@ int putVMFA(Word* args, Word& result, int message,
   ListExpr resList;
     double runtime;
     ci->simpleCommand(cmd,err,errMsg,resList,false, runtime,
-                      showCommands, logOn, commandLog);
+                      showCommands, logOn, commandLog, false, 
+                      algInstance->getTimeout());
   if(err){
     cerr << "creating targetdirectory " << targetDir << " failed" << endl;
     cerr << "cmd : " << cmd << endl;
@@ -5148,7 +5151,8 @@ int putVMFA(Word* args, Word& result, int message,
   cmd = "query moveFile('"+f1+"', '"+ f2 +"')";
 
   ci->simpleCommand(cmd,err,errMsg,resList,false, runtime,
-                    showCommands, logOn, commandLog);
+                    showCommands, logOn, commandLog, false, 
+                    algInstance->getTimeout());
   if(err!=0){
      cerr << "error in command " << cmd << endl;
      cerr << " error code : " << err << endl;
@@ -5297,7 +5301,8 @@ int getVMDA(Word* args, Word& result, int message,
   bool ok =  ci->retrieve(array->getName() + "_"
                                 + stringutils::int2str(i),
                                 resType, r, true,
-                                showCommands, logOn, commandLog);
+                                showCommands, logOn, commandLog, 
+                                false, algInstance->getTimeout());
 
   if(!ok){ // in case of an error, res.addr point to 0A
      if(isData){
@@ -5360,7 +5365,8 @@ int getVMDFA(Word* args, Word& result, int message,
                     + array->getName()+"_"+stringutils::int2str(pos)+".bin";  
   Word relResult;
   ci->retrieveRelationInFile(fileName, resType, relResult,
-                             showCommands, logOn, commandLog);
+                             showCommands, logOn, commandLog, false, 
+                             algInstance->getTimeout());
   if(relResult.addr == 0){
      return 0;
   }
@@ -6325,7 +6331,8 @@ int createDArrayVMT(Word* args, Word& result, int message,
        string errMsg;
        double runtime; 
        ci->simpleCommand(query, err, errMsg, reslist, false, runtime,
-                         showCommands, logOn, commandLog);
+                         showCommands, logOn, commandLog, false,
+                         algInstance->getTimeout());
        if(err!=0){
           if(trace){
             sendMessage("createDArray: command " + query + " failed");
@@ -6537,7 +6544,8 @@ class SinglePutter{
       } 
       string objname = array->getName() + "_"+stringutils::int2str(arrayIndex); 
       ci->createOrUpdateObject(objname, type, value,
-                               showCommands, logOn, commandLog);
+                               showCommands, logOn, commandLog, false,
+                               algInstance->getTimeout());
     }
 
 
@@ -6820,8 +6828,11 @@ class RelFileRestorer{
            string& objName = objNames[i];
            string& filename = filenames[i];
            res = ci->createOrUpdateRelationFromBinFile(objName,filename,
-                                                       showCommands,
-                                                       logOn, commandLog);
+                                                  showCommands,
+                                                  logOn, commandLog,
+                                                  true, // allowOverwrite
+                                                  false, // forceExec
+                                                  algInstance->getTimeout());
            if(!res){
              cerr << "createorUpdateObject failed" << endl;
            }
@@ -6915,7 +6926,7 @@ class FRelCopy{
         for(size_t i=0;i<names.size();i++){
           string& name = names[i];
           // send file to remote server
-          ci->sendFile(name,name,true);
+          ci->sendFile(name,name,true, algInstance->getTimeout());
           // get target directory
           int err;
           string errmsg;
@@ -6932,7 +6943,8 @@ class FRelCopy{
           string target = targetDir+"/"+name;
           string cmd = "query moveFile('"+src+"','"+target+"', TRUE)";
           ci->simpleCommand(cmd,err,errmsg, result,false, runtime,
-                            showCommands, logOn, commandLog);
+                            showCommands, logOn, commandLog, false,
+                            algInstance->getTimeout());
           if(err!=0){
               cerr << "command " << cmd << " failed" << endl;
               cerr << err << " : " << errmsg << endl;
@@ -8038,7 +8050,10 @@ class showWorkersInfo{
       res->PutAttribute(3, new CcInt(true, elem.getNum()));
       res->PutAttribute(4, new CcString(true, dbname));
       res->PutAttribute(5, new CcInt(true,ci?ci->serverPid():-1));
-      bool ok = ci?ci->check(showCommands, logOn, commandLog):false;
+      bool ok = ci
+                ?ci->check(showCommands, logOn, commandLog,
+                           algInstance->getTimeout())
+                :false;
       res->PutAttribute(6, new CcBool(true,ok));
       return res;
     }
@@ -8269,13 +8284,15 @@ class dloopInfo{
           funarg ="(" + nl->ToString(ft) + " '"+fn+"')";
        }
        ci->simpleCommand("delete "+ bn, err,strres, false, runtime,
-                         showCommands, logOn, commandLog);
+                         showCommands, logOn, commandLog, false, 
+                         algInstance->getTimeout());
        // ignore failure, because normally the object does not exists
 
        // create new object by applying the function
        string cmd =   "(let "+bn+" = ("+fun+" " +  funarg +"))";
        ci->simpleCommandFromList(cmd, err,errMsg, strres, false, runtime,
-                                 showCommands, logOn, commandLog);
+                                 showCommands, logOn, commandLog, false, 
+                                 algInstance->getTimeout());
        if(err!=0){ 
            writeLog(ci,cmd,errMsg);
            sendMessage(" Problem in command " + cmd + ":" + errMsg);
@@ -8510,7 +8527,8 @@ class dsummarizeAttrInfoRunner{
          } 
          Word result;
          bool ok = ci->retrieve(objName,resType, result,true,
-                                showCommands, logOn, commandLog);
+                                showCommands, logOn, commandLog, false,
+                                algInstance->getTimeout());
          if(!ok){
            listener->jobDone(index,false);
          } else {
@@ -8638,7 +8656,8 @@ class RelationFileGetter{
        string objName = array->getName()+"_"+stringutils::int2str(index);
        string fname = objName+".bin";
        if(!ci->retrieveRelationFile(objName,fname,
-                                    showCommands, logOn, commandLog)){
+                                    showCommands, logOn, commandLog, false, 
+                                    algInstance->getTimeout())){
           listener->connectionFailed(index);
           return;
        }
@@ -8653,7 +8672,8 @@ class RelationFileGetter{
                      + array->getName() + "/" + rname;
 
        string lname = rname;
-       if(!ci->retrieveAnyFile(path,lname, showCommands, logOn, commandLog)){
+       if(!ci->retrieveAnyFile(path,lname, showCommands, logOn, commandLog, 
+                              false, algInstance->getTimeout())){
           listener->connectionFailed(index);
           return;
        }
@@ -8893,7 +8913,8 @@ class getValueGetter{
           return;
       }
       string name = array->getName()+"_"+stringutils::int2str(index);
-      ci->retrieve(name, resType, res,true, showCommands, logOn, commandLog);
+      ci->retrieve(name, resType, res,true, showCommands, logOn, commandLog,
+                   false, algInstance->getTimeout());
       listener->jobDone(index,res); 
    }
 
@@ -8933,7 +8954,8 @@ class getValueFGetter{
       string fname = home +"/dfarrays/"+dbname+"/"+array->getName()
                      + "/" + name + ".bin"; 
       ci->retrieveRelationInFile(fname, resType, res,
-                                 showCommands, logOn, commandLog);
+                                 showCommands, logOn, commandLog, false,
+                                 algInstance->getTimeout());
       listener->jobDone(index,res); 
    }
 
@@ -9183,13 +9205,15 @@ class dloop2Runner{
       string tname = rname + "_" + stringutils::int2str(index);
       // remove old stuff, ignore error it's normal
       ci->simpleCommand("delete " + tname , err,errMsg, strres, false, runtime,
-                        showCommands, logOn, commandLog);
+                        showCommands, logOn, commandLog, false, 
+                        algInstance->getTimeout());
       // create new one
       string a1o = a1->getName()+"_"+stringutils::int2str(index);
       string a2o = a2->getName()+"_"+stringutils::int2str(index);
       string cmd ="(let " + tname + " = ( " + fun + " " + a1o + " " + a2o +"))";
       ci->simpleCommandFromList(cmd, err,errMsg, strres, false, runtime,
-                                showCommands, logOn, commandLog);
+                                showCommands, logOn, commandLog, false,
+                                algInstance->getTimeout());
       if(err!=0){
          cerr << "error in creating result via " << cmd << endl;
          cerr << errMsg << endl;
@@ -9820,7 +9844,8 @@ class Object_Del{
         string resstr;
         double runtime;
         ci->simpleCommand("delete " + objName, err, errMsg, resstr, 
-                          false, runtime, showCommands, logOn, commandLog);
+                          false, runtime, showCommands, logOn, commandLog,
+                          false, algInstance->getTimeout());
         if(err==0){
           del = 1;
         }
@@ -9851,7 +9876,8 @@ class Object_Del{
         double runtime;
         ci->simpleCommand("query removeFile('"+fileName+"')", err, 
                           errMsg, resstr, false, runtime,
-                          showCommands, logOn, commandLog);
+                          showCommands, logOn, commandLog, false,
+                          algInstance->getTimeout());
         if(err==0){
           del = 1;
         }
@@ -9947,7 +9973,8 @@ class MatrixKiller{
           double runtime;
           string res;
           ci->simpleCommand(cmd, err, errMsg, res, false, runtime,
-                            showCommands, logOn, commandLog);
+                            showCommands, logOn, commandLog, false,
+                            algInstance->getTimeout());
           if(err){
             cerr << "command failed: " << cmd << endl;
             cerr << errMsg << endl;
@@ -10096,7 +10123,8 @@ class cloneTask{
         string cmd = "let " + newName + " = " + objName;
         ci->simpleCommand(cmd , 
                           err, errMsg, resstr, false, runtime,
-                          showCommands, logOn, commandLog);
+                          showCommands, logOn, commandLog, false,
+                          algInstance->getTimeout());
         if(err!=0){
            writeLog(ci,cmd,errMsg);
         }
@@ -10129,7 +10157,8 @@ class cloneTask{
         double runtime;
         string cmd = "query createDirectory('"+tpath+"', TRUE)";
         ci->simpleCommand(cmd,  err, errMsg, resstr, false, runtime,
-                          showCommands, logOn, commandLog);
+                          showCommands, logOn, commandLog, false,
+                          algInstance->getTimeout());
         if(err){
            cerr << "error in creating directory " + tpath << endl;
            cerr << "by command " << cmd << endl;
@@ -10139,7 +10168,8 @@ class cloneTask{
 
         cmd = "query copyFile('"+spath+objName+"', '"+tpath+newName+"')";
         ci->simpleCommand(cmd,  err, errMsg, resstr, false, runtime,
-                          showCommands, logOn, commandLog);
+                          showCommands, logOn, commandLog, false,
+                          algInstance->getTimeout());
         if(err!=0){
            showError(ci,cmd,err,errMsg);
            writeLog(ci,cmd,errMsg);
@@ -10298,13 +10328,17 @@ class shareRunner{
          bool r = ci->createOrUpdateRelationFromBinFile(objName, 
                                                  fileName,
                                                  showCommands, logOn,
-                                                 commandLog, allowOverwrite);
+                                                 commandLog, allowOverwrite,
+                                                 false,
+                                                 algInstance->getTimeout());
          listener->jobDone(id,r);
       } else if(attribute){
          bool r = ci->createOrUpdateAttributeFromBinFile(objName, 
                                                  fileName, showCommands,
                                                  logOn, commandLog,
-                                                 allowOverwrite);
+                                                 allowOverwrite, 
+                                                 false,
+                                                 algInstance->getTimeout());
          listener->jobDone(id,r);
       } else {
           int err;
@@ -10313,12 +10347,14 @@ class shareRunner{
           double runtime;
           if(allowOverwrite){
              ci->simpleCommand(cmd,err,res, false, runtime,
-                               showCommands, logOn, commandLog);
+                               showCommands, logOn, commandLog, false,
+                               algInstance->getTimeout());
           }
           // ignore error because object normally does not exist
           cmd = "restore " +  objName + " from '" + fileName +"'";           
           ci->simpleCommand(cmd,err,res,false, runtime,
-                            showCommands, logOn, commandLog);
+                            showCommands, logOn, commandLog, false, 
+                            algInstance->getTimeout());
           if(err!=0){
             writeLog(ci,cmd,res);
           }
@@ -10435,7 +10471,8 @@ class shareInfo: public successListener{
        for(size_t i=0; i< algInstance->noConnections(); i++){
            ConnectionInfo* ci = algInstance->getConnection(i);
            if(ci){
-              ci->switchDatabase(dbname, true, showCommands);
+              ci->switchDatabase(dbname, true, showCommands, false,
+                                 algInstance->getTimeout());
               share(ci); 
            }
        } 
@@ -11406,7 +11443,8 @@ class Mapper{
            string r;
            double runtime;
            ci->simpleCommand(cd, err, errMsg,r, false, runtime,
-                             showCommands, logOn, commandLog);
+                             showCommands, logOn, commandLog, false,
+                             algInstance->getTimeout());
            if(err){
              cerr << "creating directory failed, cmd = " << cd << endl;
              cerr << "message : " << errMsg << endl;
@@ -11431,7 +11469,8 @@ class Mapper{
            }
 
            ci->simpleCommandFromList(cmd,err,errMsg,r,false, runtime,
-                                     showCommands, logOn, commandLog);
+                                     showCommands, logOn, commandLog, false,
+                                     algInstance->getTimeout());
            if((err!=0) ){ 
               showError(ci,cmd,err,errMsg);
               writeLog(ci,cmd,errMsg);
@@ -11519,12 +11558,15 @@ class Mapper{
               string cmd = "(let " + name2 + " = " + funcmd + ")";
               err = nr; 
               ci->simpleCommandFromList(cmd,err,errMsg,r,false, runtime,
-                                     showCommands, logOn, commandLog, false,20);
+                                     showCommands, logOn, commandLog, false,
+                                     algInstance->getTimeout());
               if((err!=0)  ){ 
                  showError(ci,cmd,err,errMsg);
                  writeLog(ci,cmd,errMsg);
                  if(reconnect && reconnectGlobal){
-                    if(!ci->reconnect(showCommands,commandLog)){
+                    if(!ci->reconnect(showCommands,commandLog, 
+                                      algInstance->getTimeout(), 
+                                      algInstance->getHeartbeat())){
                       reconnect = false;
                       cout << "reconnect failed" << endl;
                       numtries--;
@@ -11695,7 +11737,8 @@ class transferatorStarter{
         string res;
         double runtime;
         ci->simpleCommand(cmd, err,errMsg, res, false, runtime,
-                          showCommands, logOn, commandLog);
+                          showCommands, logOn, commandLog, false,
+                          algInstance->getTimeout());
         if(err!=0){
            showError(ci,cmd,err,errMsg);
            writeLog(ci,cmd,errMsg);
@@ -12020,7 +12063,8 @@ funargs.
                               + fileNameOnI+ "']";
               
                  ci->simpleCommand(cmd, errorCode, errMsg, resList, false, rt,
-                                   showCommands, logOn, commandLog);
+                                   showCommands, logOn, commandLog, false,
+                                   algInstance->getTimeout());
                  if(errorCode){
                     cerr << __FILE__ << "@"  << __LINE__ << endl;
                     showError(ci,cmd,errorCode,errMsg);
@@ -12055,7 +12099,8 @@ funargs.
                          + fileNameOn0 + "', TRUE)";
               }
               c0->simpleCommand(cmd, errorCode, errMsg, resList, false, rt,
-                                showCommands, logOn, commandLog);
+                                showCommands, logOn, commandLog, false,
+                                algInstance->getTimeout());
               if(errorCode){
                  cerr << __FILE__ << "@"  << __LINE__ << endl;
                  showError(c0, cmd, errorCode, errMsg);
@@ -12067,7 +12112,8 @@ funargs.
              if(formerObject && !moved){
                  string cmd = "query removeFile('" + fileNameOnI+ "')";
                  ci->simpleCommand(cmd, errorCode, errMsg, resList, false, rt,
-                                   showCommands, logOn, commandLog);
+                                   showCommands, logOn, commandLog, false,
+                                   algInstance->getTimeout());
                  if(errorCode){
                     cerr << __FILE__ << "@"  << __LINE__ << endl;
                     showError(ci,cmd,errorCode, errMsg);
@@ -12083,7 +12129,8 @@ funargs.
                 string cmd = "let " + oname + " =  '"+fileNameOn0
                               +"' getObjectFromFile " + end;
                 c0->simpleCommand(cmd, errorCode, errMsg, resList, false, rt,
-                                  showCommands, logOn, commandLog);
+                                  showCommands, logOn, commandLog, false,
+                                  algInstance->getTimeout());
                 if(errorCode){
                     cerr << __FILE__ << "@"  << __LINE__ << endl;
                     showError(c0,cmd,errorCode,errMsg);
@@ -12092,7 +12139,8 @@ funargs.
                  }
                  cmd = "query removeFile('" + fileNameOn0+ "')";
                  c0->simpleCommand(cmd, errorCode, errMsg, resList, false, rt,
-                                   showCommands, logOn, commandLog);
+                                   showCommands, logOn, commandLog, false,
+                                   algInstance->getTimeout());
                  if(errorCode){
                     cerr << __FILE__ << "@"  << __LINE__ << endl;
                     showError(c0,cmd,errorCode,errMsg);
@@ -12310,7 +12358,8 @@ the result for their slot.
                double rt;
                string result;
                ci->simpleCommand(q, err, errMsg, result, false, rt,
-                                 showCommands, logOn, commandLog);
+                                 showCommands, logOn, commandLog, false,
+                                 algInstance->getTimeout());
                if(err){
                     cerr << __FILE__ << "@" << __LINE__ << endl;
                     showError(ci,q,err,errMsg);
@@ -12377,7 +12426,8 @@ Does what the name says.
          double rt;
          ListExpr result;
          ci->simpleCommand(cmd, err, errMsg, result, false, rt,
-                           showCommands, logOn, commandLog);
+                           showCommands, logOn, commandLog, false,
+                           algInstance->getTimeout());
          if(err){
             cerr << __FILE__ << "@"  << __LINE__ << endl;
             showError(ci,cmd,err,errMsg);
@@ -12477,12 +12527,14 @@ the sources and the correspnding function arguments are created.
            if(info->res->getType()==DARRAY){
                string n = info->res->getObjectNameForSlot(slot);
                c0->simpleCommand("delete " + n,err,errMsg, result, false, rt,
-                                 showCommands, logOn, commandLog);
+                                 showCommands, logOn, commandLog, false,
+                                 algInstance->getTimeout());
                // ignore error, may be there is no such an object
            }
  
            c0->simpleCommandFromList(cmd, err, errMsg, result, false, rt,
-                                     showCommands, logOn, commandLog);
+                                     showCommands, logOn, commandLog, false,
+                                     algInstance->getTimeout());
            if(err){
               cerr << __FILE__ << "@"  << __LINE__ << endl;
               cerr << "could not compute result for slot " << slot << endl;
@@ -12573,7 +12625,8 @@ from other than the result worker.
           double rt;
           string result;
           ci->simpleCommand(cmd, err, errMsg, result, false, rt,
-                            showCommands, logOn, commandLog);
+                            showCommands, logOn, commandLog, false,
+                            algInstance->getTimeout());
           if(err){
             cerr << "could not remove temporal object of argument " << arg 
                  << " for slot " << slot << endl;
@@ -12928,7 +12981,8 @@ void performCommand(ConnectionInfo* ci, const string& cmd){
      double rt;
      string res;
      ci->simpleCommand(cmd, errorCode, errorMsg, res, false, rt,
-                       showCommands, logOn, commandLog);
+                       showCommands, logOn, commandLog, false,
+                       algInstance->getTimeout());
      if(errorCode){
        showError(ci,cmd, errorCode, errorMsg);
        writeLog(ci,cmd,errorMsg);
@@ -12942,7 +12996,8 @@ void performListCommand(ConnectionInfo* ci, const string& cmd){
      double rt;
      string res;
      ci->simpleCommandFromList(cmd, errorCode, errorMsg, res, false, rt,
-                               showCommands, logOn, commandLog);
+                               showCommands, logOn, commandLog, false,
+                               algInstance->getTimeout());
      if(errorCode){
        showError(ci,cmd, errorCode, errorMsg);
        writeLog(ci,cmd,errorMsg);
@@ -13262,7 +13317,8 @@ class dproductInfo{
                double rt;
                string res;
                ci->simpleCommand(cmd, errCode, errMsg, res, false, rt,
-                                 showCommands, logOn, commandLog);
+                                 showCommands, logOn, commandLog, false,
+                                 algInstance->getTimeout());
                if(errCode){
                   showError(ci, cmd, errCode, errMsg);
                   writeLog(ci,cmd,errMsg);
@@ -13556,7 +13612,8 @@ class dproductInfo{
               double rt;
               string resList;
               c0->simpleCommandFromList(cmd, ec, errMsg, resList, false, rt,
-                                        showCommands, logOn, commandLog);
+                                        showCommands, logOn, commandLog, false,
+                                        algInstance->getTimeout());
               if(ec){
                   cout << __FILE__ << "@" << __LINE__ << endl;
                   showError(c0,cmd,ec,errMsg);
@@ -14248,7 +14305,8 @@ class FileTransferServerStarter{
         string result;
         double runtime;
         ci->simpleCommand(serverQuery,err,errMsg,result,false, runtime,
-                          showCommands, logOn, commandLog);
+                          showCommands, logOn, commandLog, false,
+                          algInstance->getTimeout());
         if(err){
           showError(ci,serverQuery,err,errMsg);
           writeLog(ci,serverQuery, errMsg);
@@ -14329,7 +14387,7 @@ int transferFileVMT(Word* args, Word& result, int message,
       ListExpr resList;
       double runtime;
       ci1->simpleCommand(q,err,errMsg,resList,false, runtime, showCommands,
-                         logOn, commandLog);
+                         logOn, commandLog, false, algInstance->getTimeout());
       if(err!=0){
           cerr << __FILE__ << "@"  << __LINE__ << endl;
           showError(ci1,q,err,errMsg);
@@ -14360,7 +14418,8 @@ int transferFileVMT(Word* args, Word& result, int message,
   ListExpr resList;
   double runtime;
   ci2->simpleCommand(clientQuery, err,errMsg, resList, false, runtime,
-                     showCommands, logOn, commandLog);
+                     showCommands, logOn, commandLog, false,
+                     algInstance->getTimeout());
   if(err!=0){
      cerr << __FILE__ << "@"  << __LINE__ << endl;
      showError(ci2,clientQuery, err, errMsg);
@@ -15525,7 +15584,7 @@ class partitionInfo{
         ci->simpleCommand(cmd, 
                           err, errMsg, 
                           resList, false,runtime, showCommands, logOn,
-                          commandLog);
+                          commandLog, false, algInstance->getTimeout());
         if(err!=0){
            cerr << __FILE__ << "@"  << __LINE__ << endl;
            showError(ci, cmd, err,errMsg);
@@ -15553,7 +15612,8 @@ class partitionInfo{
         }
         string res;
         ci->simpleCommandFromList(cmd, err,errMsg, res, false, runtime,
-                                  showCommands, logOn, commandLog);
+                                  showCommands, logOn, commandLog, false,
+                                  algInstance->getTimeout());
         if(err!=0){
            cerr << __FILE__ << "@"  << __LINE__ << endl;
            showError(ci,cmd,err,errMsg);
@@ -16333,7 +16393,8 @@ class AReduceTask{
           double runtime;
           string cmd="query createDirectory('"+dir+"', TRUE)";
           ci->simpleCommand(cmd, err, errMsg, res, false, runtime,
-                            showCommands, logOn, commandLog);
+                            showCommands, logOn, commandLog, false,
+                            algInstance->getTimeout());
           if(err){
                cerr << "creating directory " << dir << " on worker " 
                     << worker << "failed" << endl;
@@ -16387,7 +16448,8 @@ class AReduceTask{
           cmd =   "query " + rel + " feed extend[ OK : getFileTCP( .R, .IP, " 
                 + stringutils::int2str(port) + ", TRUE, .L)] count";
           ci->simpleCommand(cmd, err, errMsg, res, false, runtime, showCommands,
-                            logOn, commandLog);
+                            logOn, commandLog, false, 
+                            algInstance->getTimeout());
           if(err){
                cerr << "command  " << cmd  << " on worker " 
                     << worker << "failed" << endl;
@@ -16437,7 +16499,8 @@ class AReduceTask{
               string objname =    result->getName() + "_" 
                                 + stringutils::int2str(currentSlot);
               ci->simpleCommand("delete " + objname, err, errMsg, res, false, 
-                                runtime, showCommands, logOn, commandLog);
+                                runtime, showCommands, logOn, commandLog, false,
+                                algInstance->getTimeout());
               // ignore error about non existent object
               cmd =   "( let " + objname+"  =  (" + funtext + " "
                     + tuplestream1 +  tuplestream2 + "))";
@@ -16454,7 +16517,7 @@ class AReduceTask{
               cmd = "query createDirectory('"+tdir+"', TRUE)";
               ci->simpleCommand(cmd, err, errMsg, res, false, runtime,
                                 showCommands, logOn,
-                                commandLog);
+                                commandLog, false, algInstance->getTimeout());
               if(err){
                       cerr << "command  " << cmd  << " on worker " 
                            << worker << "failed" << endl;
@@ -16466,7 +16529,8 @@ class AReduceTask{
                     + filename + "')))";
           }
           ci->simpleCommandFromList(cmd,err,errMsg, res, false, runtime,
-                                    showCommands, logOn, commandLog);
+                                    showCommands, logOn, commandLog, false,
+                                    algInstance->getTimeout());
           if(err){
               cerr << __FILE__ << "@"  << __LINE__ << endl;
               showError(ci,cmd,err,errMsg);
@@ -16475,7 +16539,8 @@ class AReduceTask{
          
           cmd="query removeDirectory('"+dir+"', TRUE)";
           ci->simpleCommand(cmd, err, errMsg, res, false, runtime,
-                            showCommands, logOn, commandLog);
+                            showCommands, logOn, commandLog, false,
+                            algInstance->getTimeout());
           if(err){
                cerr << "removing directory " << dir << " on worker " 
                     << worker << "failed" << endl;
@@ -16962,7 +17027,8 @@ class slotGetter{
        string res;
        string cmd = "query createDirectory('"+dir+"',TRUE)";
        ci->simpleCommand(cmd, err, errMsg, res, false, runtime,
-                         showCommands, logOn, commandLog);
+                         showCommands, logOn, commandLog, false, 
+                         algInstance->getTimeout());
        if(err!=0){
           cerr << "error during cmd " << cmd << endl;
           writeLog(ci,cmd,errMsg);
@@ -16970,7 +17036,8 @@ class slotGetter{
        }
        cmd = "query createDirectory('"+tdir+"',TRUE)";
        ci->simpleCommand(cmd, err, errMsg, res, false, runtime,
-                         showCommands, logOn, commandLog);
+                         showCommands, logOn, commandLog, false,
+                         algInstance->getTimeout());
        if(err!=0){
           cerr << "error during cmd " << cmd << endl;
           writeLog(ci,cmd,errMsg);
@@ -16991,7 +17058,8 @@ class slotGetter{
 
        cmd = "query  removeDirectory('"+dir+"', TRUE)";
        ci->simpleCommand(cmd, err, errMsg, res, false, runtime,
-                         showCommands, logOn, commandLog);
+                         showCommands, logOn, commandLog, false,
+                         algInstance->getTimeout());
        if(err){
           cerr << "Error in command " << cmd << endl;
           writeLog(ci,cmd,errMsg);
@@ -17034,7 +17102,8 @@ class slotGetter{
 
          
          ci->simpleCommand(cmd, err, errMsg, res, false, runtime,
-                           showCommands, logOn, commandLog);
+                           showCommands, logOn, commandLog, false,
+                           algInstance->getTimeout());
          if(err){
             cerr << "Error in command " << cmd << endl;
             cerr << errMsg;
@@ -17056,7 +17125,8 @@ class slotGetter{
        double runtime;
        string res;
        ci->simpleCommand(cmd, err, errMsg, res, false, runtime,
-                         showCommands, logOn, commandLog);
+                         showCommands, logOn, commandLog, false,
+                         algInstance->getTimeout());
        if(err!=0){
           cerr << __FILE__ << "@"  << __LINE__ << endl;
           showError(ci,cmd,err,errMsg);
@@ -19513,6 +19583,56 @@ Operator setHeartbeatOp(
 );
 
 
+/*
+Operator ~setTimeout~
+
+This operator will set the timeout value for new commands.
+
+*/
+ListExpr setTimeoutTM(ListExpr args){
+   if(!nl->HasLength(args,1)){
+     return listutils::typeError("wrong number of arguments");
+   }
+   if(!CcInt::checkType(nl->First(args))){
+     return listutils::typeError("int expected");
+   }
+   return listutils::basicSymbol<CcBool>();
+}
+
+
+int setTimeoutVM(Word* args, Word& result, int message,
+                 Word& local, Supplier s) {
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  CcInt* arg = (CcInt*) args[0].addr;
+  if(!arg->IsDefined()){
+    res->SetDefined(false);
+  }  else {
+    int v = arg->GetValue();
+    bool r = algInstance->setTimeout(v);
+    res->Set(true,r);
+  }
+  return 0;
+}
+
+OperatorSpec setTimeoutSpec(
+  "int -> bool",
+  "setTimeout(_)",
+  "Sets the timeout for operations. Note that the timeout will be  "
+  "extended by incoming heartbeat messages."
+  "A value of 0 means to switch off timeout completely. "
+  "Values smaller than 0 are not accepted.",
+  "query setTimeout(15)"
+);
+
+Operator setTimeoutOp(
+  "setTimeout",
+  setTimeoutSpec.getStr(),
+  setTimeoutVM,
+  Operator::SimpleSelect,
+  setTimeoutTM
+);
+
 
 
 
@@ -19528,7 +19648,7 @@ Distributed2Algebra::Distributed2Algebra(){
    namecounter = 0;
    tryReconnectFlag = false;
    heartbeat = 4;
-   timeout = 15;
+   timeout = 0; // switch off time out
 
    AddTypeConstructor(&DArrayTC);
    DArrayTC.AssociateKind(Kind::SIMPLE());
@@ -19735,6 +19855,7 @@ Distributed2Algebra::Distributed2Algebra(){
 
    AddOperator(&db2tryReconnectOp);
    AddOperator(&setHeartbeatOp);
+   AddOperator(&setTimeoutOp);
 
    pprogView = new PProgressView();
    MessageCenter::GetInstance()->AddHandler(pprogView);

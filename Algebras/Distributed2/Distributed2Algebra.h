@@ -375,6 +375,12 @@ connections.
       return heartbeat;
     }
 
+    bool setTimeout(int _timeout) {
+       if(_timeout<0) return false;
+       timeout = _timeout;
+       return true;
+    }
+
     inline int getTimeout() const{
       return timeout;
     }

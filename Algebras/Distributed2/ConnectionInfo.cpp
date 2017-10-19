@@ -131,7 +131,7 @@ bool ConnectionInfo::reconnect(bool showCommands, CommandLog& log,
         }
         serverPID = si->getPid();
         switchDatabase(SecondoSystem::GetInstance()->GetDatabaseName(), 
-                       true, false, true);
+                       true, false, true, timeout);
         retrieveSecondoHome(showCommands,log);
         si->setHeartbeat(heartbeat, heartbeat);
         if(timeout>0){
@@ -363,7 +363,7 @@ bool ConnectionInfo::cleanUp(bool showCommands,
     string res;
     double rt;
     simpleCommand(command, err, res, false, rt, showCommands, 
-                  logOn, commandLog, timeout);
+                  logOn, commandLog, false,timeout);
     bool result = err == 0;
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
     string path = getSecondoHome(showCommands, commandLog) 
@@ -373,7 +373,7 @@ bool ConnectionInfo::cleanUp(bool showCommands,
             "namedtransformstream[F] "
             "extend[ OK : removeDirectory(.F, TRUE)] count";
     simpleCommand(command, err, res, false, rt, showCommands, 
-                  logOn, commandLog, timeout);
+                  logOn, commandLog, false, timeout);
     result = result && (err == 0);
     return result;
 }
@@ -811,6 +811,7 @@ bool ConnectionInfo::createOrUpdateObject(const string& name,
     {
         return createOrUpdateRelation(name, typelist, value, 
                                       showCommands, logOn, commandLog,
+                                      forceExec,
                                       timeout);
     }
 
