@@ -87,6 +87,10 @@ the client.
 
 */
 protected:
+    int communicate(){ 
+       return FileTransferServer::communicate();
+    }
+
     int communicate(std::iostream& io);
 
 /*

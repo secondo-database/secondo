@@ -389,8 +389,8 @@ bool DBServicePersistenceAccessor::updateLocationMapping(
                 stringutils::int2str(connID) }
     };
     AttributeInfoWithValue valueToUpdate =
-    {AttributeType::BOOL, string("Replicated"),
-            replicated ? string("TRUE") : string("FALSE") };
+    {{AttributeType::BOOL, string("Replicated")},
+            (replicated ? string("TRUE") : string("FALSE")) };
 
     return SecondoUtilsLocal::executeQuery2(
             CommandBuilder::buildUpdateCommand(
