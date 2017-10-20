@@ -714,3 +714,10 @@ Signature : int -> bool
 Example  : query setHeartbeat(4)
 Result   : TRUE
 
+Operator : setTimeout
+Number   : 1
+Signature : int -> bool
+Example   : query setTimeout(15)
+Result    : TRUE
+
+
