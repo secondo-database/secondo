@@ -86,40 +86,7 @@ ListExpr OperatorWrite::mapType(ListExpr nestedList)
 
     print("consumeTypeMapResult", consumeTypeMapResult);
 
-    const string databaseName =
-            SecondoSystem::GetInstance()->GetDatabaseName();
-
-    if(databaseName.find(RelationInfo::getSeparator()) != string::npos)
-    {
-        stringstream ss;
-        ss << "database name contains invalid character sequence '" <<
-                RelationInfo::getSeparator() << "'";
-        ErrorReporter::ReportError(
-                ss.str());
-        return nl->TypeError();
-    }
-
-    const string relationName =
-            nl->StringValue(nl->Second(nl->Second(nestedList)));
-
-    if(relationName.find(RelationInfo::getSeparator()) != string::npos)
-    {
-        stringstream ss;
-        ss << "relationName name contains invalid character sequence '" <<
-                RelationInfo::getSeparator() << "'";
-        ErrorReporter::ReportError(
-                ss.str());
-        return nl->TypeError();
-    }
-
-    if(DBServiceClient::getInstance()->relationExists(
-            databaseName, relationName))
-    {
-        ErrorReporter::ReportError(
-                "relation already exists in DBService");
-        return nl->TypeError();
-    }
-
+    
     return consumeTypeMapResult;
 }
 
