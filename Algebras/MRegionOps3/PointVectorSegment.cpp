@@ -1092,6 +1092,10 @@ namespace temporalalgebra{
         }// else if
         else if ((oldPredicate == INNER && predicate == OUTER) ||
                  (oldPredicate == OUTER && predicate == INNER)) { 
+   //       cerr << "old segment:="   << segments[index] << endl;
+   //       cerr << "new predicate:=" << toString(predicate) << endl;
+   //       cerr << *this;
+   //       NUM_FAIL("Predicates from segments don't combinable.");
           segments[index].setPredicate(INTERSECT);
         }// else
       }// if

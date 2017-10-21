@@ -951,107 +951,296 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
       double orginalStartTime;
       double orginalEndTime;      
     };// ResultUnit        
+    
+    class Layer {
+    public:
 /*
-17 class ResultUnitFactory
-
-*/      
-    class ResultUnitFactory {
-    public:  
-/*
-17.1 Constructor
-
-*/        
-      ResultUnitFactory(const ResultUnitFactory& other);
-       
-      ResultUnitFactory();
-       
-      ResultUnitFactory(size_t size, bool isCritcal = false);
- 
-      ResultUnitFactory(Point3DContainer& points,
-                        GlobalTimeValues &timeValues,
-                        PlaneSweepAccess &access,
-                        bool isCritcal);    
-/*
-17.3 Methods, Operators and Predicates
+Constructor
 
 */
-      ResultUnitFactory& operator =(const ResultUnitFactory& other);
+      Layer(bool iscritical = false);
+      
+      Layer(const Layer& layer); 
+/*
+Method addOrthSegment 
+ 
+Adds an orthogonal segment to the layer
 
-      void addNonOrthogonalEdges(size_t slide, const Segment& segment);
-      
-      void addOrthogonalEdges(size_t slide,const Segment& segment);
-      
-      void setTouchsOnLeftBorder(size_t slide, size_t value);
-      
-      bool operator ==(const ResultUnitFactory& factory)const;
-      
+*/
+      void addOrthSegment(const Segment& segment);
+/*
+Method addNonOrthSegment
+
+Adds a non-orthogonal segment to layer
+
+*/
+      void addNonOrthSegment(const Segment& segment);  
+/*
+Method setPredicateFromPredeccor
+
+Sets the predicate of the segment at the left boundary according 
+to the information of the predecessor      
+
+*/
+      void setPredicateFromPredecessor(Predicate predicate);      
+/*
+Method setPredicateFromSuccessor
+
+Sets the predicate of the segment at the left boundary according 
+to the information of the successor
+
+*/      
+      void setPredicateFromSuccessor(Predicate predicate);
+/* 
+Method getPredicateForPredecessor     
+
+Returns the predicate for the left segment of the successor
+
+*/
+      Predicate getPredicateForPredecessor()const;
+/*  
+Method getPredicateForSuccessor
+ 
+Returns the predicate for the left segment of the predecessor
+ 
+*/
+      Predicate getPredicateForSuccessor()const;
+/*
+Method getBorderPredicate
+
+Returns the predicates for the left and right border
+
+*/
       void getBorderPredicates(Predicate& left, Predicate& right)const;
-   
-      void evaluate();
-      
-      void getResultUnit(size_t slide, Predicate predicate, bool reverse, 
-                         const Point3DContainer& points, ResultUnit& unit, 
-                         State pfState, SourceFlag source);
-      
-      bool intersects(std::vector<bool>& predicate);
-      
-      bool inside(std::vector<bool>& predicate);
+/*
+Method setBorderPrediacte
+
+sets the predicates for the left and right border
+
+*/
+      void setBorderPrediactes(Predicate left, Predicate right); 
+/*
+Method evaluate
+
+Determines the predicates of all segments of a layer with the help 
+of the intersegment segments
+
+*/
+      bool evaluate();
 
 /*
-17.3.2 operator <<
+Method print
 
-*/     
-      friend std::ostream& operator <<(std::ostream& os, 
-                                       const ResultUnitFactory& unit);
-/*
-17.3.3 print
+Output the content into a stream
 
-*/     
+*/
       std::ostream& print(std::ostream& os,std::string prefix)const;
-
-    private: 
-      
-      void inittialize(size_t size);
-      
-      void set(      std::vector<std::list<size_t>>& edges1,
-               const std::vector<std::list<size_t>>& edges2);
-       
-      void set(const ResultUnitFactory& other);
-      
-      void print(std::ostream& os,std::string prefix,
-                 std::vector<std::list<size_t>> edges)const;
-                 
-      bool iSEqual(const std::vector<std::list<size_t>>& edges1,
-                   const std::vector<std::list<size_t>>& edges2)const;
-      
-      Predicate createPredicate(const Predicate source,
-                                const Border border)const;
-      
-      void checkPredicate(const Segment& segment, const Border border,
-                          Predicate& result)const;
-      
-      void evaluate(size_t i);
-                          
-      void setSlidePredicates(Predicate predicate,size_t i, size_t touch);
-      
-      Predicate calculateAreaPredicate(const Segment& left, 
-                                       const Segment& right)const;
-      
-      bool intersects(size_t slide, bool& predicate) const;
-      
-      bool inside(size_t slide, bool& predicate) const;
-      
 /*
-17.4 Attributes
+Operator <<
+
+*/      
+      friend std::ostream& operator <<(std::ostream& os, const Layer& layer);
+/*
+Operator ==
+
+Comparison operator, compare two objects for equality.
+
+*/        
+      bool operator ==(const Layer& layer)const;   
+/*
+Operator ==
+
+Assignment operator
+
+*/            
+      Layer& operator =(const Layer& other);  
+/*
+Method intersects 
+ 
+The method determines whether an intersection is within a layer. The result is
+returned via the reference predicate. If an evaluation of the layer is possible,
+the return value is "true"     
+
+*/
+      bool intersects(bool& predicate)const;
+/*
+Method inside
+
+The method determines whether a layer is within the other region unit. 
+The result is returned via the reference predicate. If an evaluation of the 
+layer is possible, the return value is "true"
+
+*/      
+      bool inside(bool& predicate)const;
+/*
+ Method getResultUnit
+ 
+ In the result unit, the moving segments of the layer are created and stored 
+ which correspond to the desired predicate. Critical moving segments are 
+ recorded seperately in the results unit.
+ 
+*/
+      void getResultUnit(Predicate soughtPredicate, bool reverse, 
+                         const Point3DContainer& points, ResultUnit& unit,
+                         SourceFlag source)const;        
+
+    private:
+/*
+Method getBorderPredicate
+
+Returns the predicate of the area bounded by the segment
+
+*/
+      Predicate getBorderPredicate(const Segment& segment, Border border)const;
+/*
+Method getAreaPredicate
+
+Returns the predicate of the surface bounded by the left and right segments
+
+*/
+      Predicate getAreaPredicate(size_t left, size_t right, size_t orthogonal, 
+                                 bool orthSegmentExist)const;      
+/*
+Method print
+
+Outputs a vector into a stream
+
+*/      
+      void print(std::ostream& os, std::vector<size_t> values)const;
+/*
+Method set
+
+Applies the attributes of another object of the same class
+
+*/            
+      void set(const Layer& layer);    
+/*
+Attributes
+
+*/      
+      // Attribute
+      SegmentContainer     segments;
+      std::vector<size_t>  orthSegments;
+      std::vector<size_t>  nonOrthSegments;
+      size_t               touchAbove;
+      size_t               touchBelow;
+      bool                 isCritical;      
+    }; // class Layer
+    
+    
+    
+    class LayerContainer {
+    public:
+/*
+Constructor
+
+*/      
+      LayerContainer(size_t size = 0, bool isCritcal = false);
+      
+      LayerContainer(const LayerContainer& other);
+      
+      LayerContainer(Point3DContainer& points,
+                     GlobalTimeValues &timeValues,
+                     PlaneSweepAccess &access,
+                     bool isCritcal);
+/*
+Method addOrthSegment 
+ 
+Add the orthogonal segment to the specified layer
+
+*/
+      void addOrthSegment(size_t layer, const Segment& segment);
+/*
+Method addNonOrthSegment
+
+Add the non-orthogonal segment to the specified layer
+
+*/
+      void addNonOrthSegment(size_t layer, const Segment& segment); 
+/*
+Method print
+
+Output the content into a stream
+
+*/
+      std::ostream& print(std::ostream& os,std::string prefix)const;
+/*
+Operator <<
+
+*/      
+      friend std::ostream& operator <<(std::ostream& os, 
+                                       const LayerContainer& layerContainer);
+/*
+Method evaluate
+
+In all layers of a P-Face, the predicates of the intersegment segments or 
+boundaries are evaluated. If all layers of the P-PFace could be evaluated, 
+the return value is "true".
+
+*/
+      bool evaluate();
+/*
+Method getBorderPredicates
+
+Returns the predicate for the left and right boundary of the layers 
+of a P-Faces.
+
+*/
+      void getBorderPredicates(Predicate& left, Predicate& right)const;
+/*
+Operator ==
+
+Comparison operator, compare two objects for equality.
+
+
+*/      
+      bool operator ==(const LayerContainer& other)const;
+/*
+Operator =
+
+Assignment operator
+
+*/
+      LayerContainer& operator =(const LayerContainer& other);  
+/*
+Method intersects
 
 */    
-      bool pFaceIsCritical;
-      SegmentContainer segments;
-      std::vector<std::list<size_t>> nonOrthogonalEdges;
-      std::vector<std::list<size_t>> orthogonalEdges;
-      std::vector<size_t> touchsOnLeftBorder;
-    }; // ResultUnitFactory 
+      bool intersects(std::vector<bool>& predicate)const;
+/*
+Method inside
+
+*/      
+      bool inside(std::vector<bool>& predicate)const; 
  
+/*
+Method getResultUnit
+ 
+In the result unit, the moving segments of the given layer are created 
+and stored, which correspond to the desired predicate. Critical moving 
+segments are recorded seperately in the results unit.
+ 
+*/      
+      void getResultUnit(size_t layer, Predicate soughtPredicate,
+        bool reverse, const Point3DContainer& points, 
+        ResultUnit& unit, SourceFlag source)const;
+      
+    private:
+/*
+Method set
+
+Applies the attributes of another object of the same class
+
+*/      
+      void set(const LayerContainer& other);      
+/*
+Attributes
+
+*/      
+      std::vector<Layer> layers;  
+    
+    };// LayerContainer
+        
 /*
 18 Class PFace
 
@@ -1187,7 +1376,8 @@ Computes the intersection of this ~PFace~ with pf.
 
 */      
       IntSegContainer    intSegs;
-      ResultUnitFactory  factory;
+      LayerContainer     layers;
+//      ResultUnitFactory  factory;
       State              state;
       size_t             left;
       size_t             right;  

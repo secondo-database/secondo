@@ -127,6 +127,7 @@ namespace temporalalgebra {
       void PFaceTest10();     
       void PFaceTest11();
       void PFaceTest12();
+      void PFaceTest13();
        
       void GlobalTimeValuesTest1();
       void GlobalTimeValuesTest2();
@@ -141,14 +142,14 @@ namespace temporalalgebra {
         
       void SegmentTest();
     
-      void ResultUnitFactoryTest1();
-      void ResultUnitFactoryTest2();
-      void ResultUnitFactoryTest3();
-      void ResultUnitFactoryTest4();
-      void ResultUnitFactoryTest5();
-      void ResultUnitFactoryTest6();
-      void ResultUnitFactoryTest7();
-      void ResultUnitFactoryTest8();
+//      void ResultUnitFactoryTest1();
+//      void ResultUnitFactoryTest2();
+//      void ResultUnitFactoryTest3();
+//      void ResultUnitFactoryTest4();
+//      void ResultUnitFactoryTest5();
+//      void ResultUnitFactoryTest6();
+//      void ResultUnitFactoryTest7();
+//      void ResultUnitFactoryTest8();
         
       void SegmentContainerTest1();
        
@@ -166,6 +167,21 @@ namespace temporalalgebra {
       void UnitsTest10();
       
       void SourceUnitPairTest1();
+      
+      
+      void LayerTest1();
+      void LayerTest2();
+      void LayerTest3();
+      
+      void LayerContainerTest1();
+      void LayerContainerTest2();
+      void LayerContainerTest3();
+      void LayerContainerTest4();
+      void LayerContainerTest5();
+      void LayerContainerTest6();
+      void LayerContainerTest7();
+      void LayerContainerTest8();
+      void LayerContainerTest9();
 
       void assert_(std::string test,  std::string message, bool success);
       

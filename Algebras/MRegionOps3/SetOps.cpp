@@ -90,8 +90,7 @@ namespace temporalalgebra {
       if (point.sourceFlag == UNIT_A) os << "UNIT_A)";
       else os << "UNIT_B)";
       return os; 
-    }// operator <<
-    
+    }// operator <<    
 /*
 5 Class RationalPoint3DExtSet
 
@@ -109,6 +108,7 @@ namespace temporalalgebra {
 
     bool RationalPoint3DExtSet::getIntersectionSegment(
         RationalSegment3D& result)const{
+      // cout << *this << endl;    
       if (this->points.size() != 4) return false;
       set<RationalPoint3DExt>::iterator it = this->points.begin();
       RationalPoint3DExt point1 = *it;
@@ -139,8 +139,7 @@ namespace temporalalgebra {
       }// for
       os << prefix << ")" << endl;
       return os;
-    }// print
-    
+    }// print    
 /*
 6 Class RationalPlane3D
 
@@ -152,7 +151,6 @@ namespace temporalalgebra {
       set(plane);
     }// konstruktor
     
-
     RationalPlane3D::RationalPlane3D(const PFace& pf){
       RationalPoint3D leftStart = pf.getLeftStart().getR();
       RationalPoint3D leftEnd   = pf.getLeftEnd().getR();
@@ -234,6 +232,9 @@ namespace temporalalgebra {
                                        RationalPoint3D& result)const{
       RationalPoint3D head = segment.getHead();
       RationalPoint3D tail = segment.getTail();
+      // do not evaluate a segment that is parallel to the plane
+      if (NumericUtil::nearlyEqual(distance2ToPlane(head), 0.0) &&
+          NumericUtil::nearlyEqual(distance2ToPlane(tail), 0.0)) return false;
       // We compute the intersection point of the plane 
       // - defined by the PFace - and the segment.
       RationalVector3D u = head - tail;
@@ -244,11 +245,9 @@ namespace temporalalgebra {
       if (NumericUtil::nearlyEqual(d, 0.0))  return false;
       mpq_class s = n / d;
       // No intersection point, if s < -eps or s > 1 + eps.
-
-      mpq_class test = 0.000001;      
+      mpq_class test = NumericUtil::eps2;      
       if(NumericUtil::between(   -test, s, test))     s = 0.0;
-      if(NumericUtil::between(1 - test, s, 1 + test)) s = 1.0; 
-      
+      if(NumericUtil::between(1 - test, s, 1 + test)) s = 1.0;       
       if (NumericUtil::lower(s, 0.0) || NumericUtil::greater(s, 1.0)) 
         return false;      
       // Compute segment intersection point
@@ -289,7 +288,7 @@ namespace temporalalgebra {
       // Intersect the plane - defined by the other PFace - 
       // with all edges of this PFace:
       RationalPoint3DExt temp;
-      for (size_t i = 0, j = 0 ; j < 2 && i < edgesPFace.size();i++) {        
+      for (size_t i = 0, j = 0 ; /*j < 2 && */i < edgesPFace.size();i++) {
         if (intersection(edgesPFace[i], intPoint)) {          
           intPoint.setSourceFlag(sourceFlag);
           intPointSet.insert(intPoint); 
@@ -301,7 +300,8 @@ namespace temporalalgebra {
             j++;           
           }// else if                    
         }// if
-      }// for      
+      }// for  
+      // cout << setprecision(9) << intPointSet << endl;
     }// intersection
     
     bool RationalPlane3D::isLeftSideInner(const RationalSegment3D segment,
@@ -332,7 +332,6 @@ namespace temporalalgebra {
       return RationalSegment2D(transform(segment.getTail()),
                                transform(segment.getHead())); 
     }// transform
-
 /*
 7 Class IntersectionPoint
 
@@ -422,8 +421,7 @@ namespace temporalalgebra {
              NumericUtil::nearlyEqual(this->y, point.y) && 
              NumericUtil::nearlyEqual(this->z, point.z) &&
              NumericUtil::nearlyEqual(this->w, point.w);
-    }// Operator ==
-    
+    }// Operator ==    
 /*
 8 Class IntersectionSegment
 
@@ -516,8 +514,26 @@ namespace temporalalgebra {
       // this->getTail().getT() is inside the interval 
       // [intSeg.getTail().getT(), intSeg.getHead().getT()]
       // and this and intSeg don't intersect in their interior.
+      if (NumericUtil::nearlyEqual(tail2T, head2T)){
+        double head1W = this->getHead().getW();
+        double tail1W = this->getTail().getW();
+        double tail2W = intSeg.getTail().getW();
+        if (NumericUtil::nearlyEqual(tail1T, tail2T)){
+          if( NumericUtil::lower(tail2W, tail1W)) return false; 
+          else return true;
+        }// if
+        else {
+          if( NumericUtil::lower(tail2W, head1W)) return false; 
+          else return true;
+        }// else
+      }// if
       if (NumericUtil::lower(tail1T,tail2T) ||
           NumericUtil::greater(tail1T,head2T)) {
+        cerr << "this:="   << *this << endl;
+        cerr << "other:="  << intSeg << endl;
+        cerr << "tail2T:=" << tail2T << endl;
+        cerr << "tail1T:=" << tail1T << endl;
+        cerr << "head2T:=" << head2T << endl;
         NUM_FAIL ("t must between the t value form tail und haed.");
       }// if
       Segment2D segment2D1 =  this->getSegment2D();
@@ -537,6 +553,10 @@ namespace temporalalgebra {
       // Precondition:
       // t is between t on tail and haed
       if(!(NumericUtil::between(tailT, t, headT))){
+        cerr << "this:="   << *this << endl;
+        cerr << "tailT:=" << tailT << endl;
+        cerr << "t:="     << t << endl;
+        cerr << "headT:=" << headT << endl;
         NUM_FAIL ("t must between the t value form tail und haed.");
       }// if
       if (NumericUtil::nearlyEqual(t, headT)) return head3D;
@@ -634,7 +654,6 @@ namespace temporalalgebra {
     
     PlaneSweepAccess::~PlaneSweepAccess(){
     }// Destruktor
-    
 /*
 11 class IntSegContainer
 
@@ -1371,6 +1390,11 @@ namespace temporalalgebra {
     }// size(
     
     void ResultUnit::addMSegment(MSegment& mSegment, bool completely ){
+      if (mSegment.getLeftStart() == mSegment.getRightStart() &&   
+          mSegment.getLeftEnd()   == mSegment.getRightEnd()){
+        cerr << mSegment << endl;
+        NUM_FAIL("Error");
+      }// if
       if (completely) {
         mSegments.push_back(mSegment);
       }// if
@@ -1510,7 +1534,8 @@ namespace temporalalgebra {
       if(mSegments.size() > 0){      
         resultBRec = mSegments[0].getBoundingRec();
       }// if      
-      for(unsigned int i = 0; i < mSegments.size(); i++) {            
+      for(unsigned int i = 0; i < mSegments.size(); i++) {   
+         // cout << mSegments[i] << endl;
          MSegmentData msd  = mSegments[i].getMSegmentData();   
          uregion->PutSegment(segments, i, msd, true);
          Rectangle<2> bRec = mSegments[i].getBoundingRec();
@@ -1575,600 +1600,304 @@ namespace temporalalgebra {
       mCSegments.clear();      
     }// evaluateCriticalMSegmens  
 /*
-17 class ResultUnitFactory
+class Layer
 
 */  
-    ResultUnitFactory::ResultUnitFactory():pFaceIsCritical(false){
-    }// Konstruktor
-     
-    ResultUnitFactory::ResultUnitFactory(const ResultUnitFactory& other){
+    Layer::Layer(bool isCritical /*= false*/){
+      this->isCritical = isCritical;
+      this->touchBelow = 0;
+      this->touchAbove = 0;
+    }// Construktor
+    
+    Layer::Layer(const Layer& other){
       set(other);
-    }// Konstruktor
- 
-    ResultUnitFactory::ResultUnitFactory(
-        size_t size,bool isCritical /*= false*/):pFaceIsCritical(isCritical){
-      inittialize(size);
-    }// Konstruktor    
-     
-    ResultUnitFactory::ResultUnitFactory(
-        Point3DContainer& points,
-        GlobalTimeValues &timeValues,
-        PlaneSweepAccess &access,
-        bool pFaceIsCritical){
-      this->pFaceIsCritical = pFaceIsCritical;
-      inittialize(timeValues.size());
-      double t1,t2;
-      if (timeValues.scaledFirst(t1, t2) ) { 
-        // Index auf das nächte einzufügende Segment
-        size_t n = this->segments.size();
-        // Punkte und Segmente für den ersten Slide bestimmen
-        access.first(t1, t2, points, this->segments, pFaceIsCritical);
-        // Zähler für die Zeitwerte
-        size_t k;
-        // über alle Zeitwerte laufen
-        for (k = 0; k < timeValues.size(); k++) {  
-          // über die neu hinzugefügten Segmente laufen
-          for (size_t i = n; i < segments.size(); i++) {
-            Point3D head, tail;
-            Segment segment = segments.get(i);
-            head = points.get(segment.getHead());
-            tail = points.get(segment.getTail());
-            // Ist der Z-Wert von Start- und Endpunkt gleich,
-            // dann ahndelt es sich um ein orthogonales Segment
-            if (NumericUtil::nearlyEqual(head.getZ(),tail.getZ())) {
-              orthogonalEdges[k].push_back(i);
-            }// if
-            // ansonten handelt sich um ein nict orthogonales Segment
-            else {
-              // nicht orthogonale Segment, dürfen nicht
-              // beim letzten Zeitwert auftreten
-              if (k != timeValues.size()-1) {
-                nonOrthogonalEdges[k].push_back(i); 
-              }// if
-              else {
-                // assert(false);
-                NUM_FAIL("Only ortogonal segments are allowed.");
-              }// else
-            }// else
-          }// for
-          //  cout << "k:=" << k << endl;
-          //  cout << "t1:=" << t1 << ",t2:="<< t2 << endl;
-          //  cout << *this;
-          //  cout << timeValues;
-          // Zeit für die letzte Auswertung übernehmen
-          t1 = t2;
-          // im letzten Durchlauf gibt es keinen neuen Startwert
-          timeValues.scaledNext(t1, t2);
-          // Index auf das nächte einzufügende Segment
-          n = this->segments.size();
-          // nächsten Slide erfassen
-          access.next(t1, t2, points, segments, pFaceIsCritical);
-        }// for
-      }// if
-    }// Konstruktor
-
-    void ResultUnitFactory::inittialize(size_t size){
-      this->nonOrthogonalEdges = vector<list<size_t>>(size-1,list<size_t>());
-      this->orthogonalEdges    = vector<list<size_t>>(size,list<size_t>());
-      this->touchsOnLeftBorder = vector<size_t>(size,0);
-    }// inittialize
-     
-    void ResultUnitFactory::set(vector<list<size_t>>& edges1,
-                                 const vector<list<size_t>>& edges2){
-      edges1 = vector<list<size_t>>(edges2.size(),list<size_t>());
-      list<size_t>::const_iterator edgeIter;
-      for (size_t i = 0; i < edges2.size(); i++ ) {
-        for (edgeIter  = edges2[i].begin();
-            edgeIter != edges2[i].end();
-            edgeIter++) {
-          edges1[i].push_back(*edgeIter);
-        }// for
-      }//for
-    }// set
-     
-    void ResultUnitFactory::set(const ResultUnitFactory& other){
-      this->pFaceIsCritical = other.pFaceIsCritical;
-      this->segments        = other.segments;
-      set(this->nonOrthogonalEdges, other.nonOrthogonalEdges);
-      set(this->orthogonalEdges, other.orthogonalEdges);
-      this->touchsOnLeftBorder = vector<size_t>(
-        other.touchsOnLeftBorder.size(),0);
-      for (size_t i = 0; i < other.touchsOnLeftBorder.size(); i++) {
-        this->touchsOnLeftBorder[i] = other.touchsOnLeftBorder[i];
-      }// for
-    }// set
+    }// Construktor        
     
-    ResultUnitFactory& ResultUnitFactory::operator = (
-      const ResultUnitFactory& other){    
-      set(other);
-      return *this;
-    }// Operator =
-      
-    // only for Selftest
-    void ResultUnitFactory::addNonOrthogonalEdges(size_t slide, 
-                                                  const Segment& segment){
-      if (slide < nonOrthogonalEdges.size()) {
-        size_t index = segments.add(segment);
-        nonOrthogonalEdges[slide].push_back(index);
+    void Layer::addOrthSegment(const Segment& segment){
+      size_t index = this->segments.add(segment);
+      Predicate predicate = segment.getPredicate();
+      if (this->nonOrthSegments.size() > 0 && 
+          (predicate == RIGHT_IS_INNER || predicate == LEFT_IS_INNER)){
+        // the first segment is the left boundary
+        Segment leftBoder = this->segments.get(this->nonOrthSegments[0]); 
+        if(leftBoder.getHead() == segment.getTail()) this->touchAbove++;
+        if(leftBoder.getTail() == segment.getTail()) this->touchBelow++;
       }// if
-      else NUM_FAIL("Index for slide is out of range.");
-    }// addNonOrthogonalEdges
+      this->orthSegments.push_back(index);
+    }// addOrthSegment
     
-    // only for Selftest
-    void ResultUnitFactory::addOrthogonalEdges(size_t slide, 
-                                               const Segment& segment){
-      if (slide < orthogonalEdges.size()) {
-        size_t index = segments.add(segment);
-        orthogonalEdges[slide].push_back(index);
+    void Layer::addNonOrthSegment(const Segment& segment){
+      size_t index = this->segments.add(segment); 
+      Predicate predicate = segment.getPredicate();
+      if (this->nonOrthSegments.size() > 0 && 
+          (predicate == RIGHT_IS_INNER || predicate == LEFT_IS_INNER)){
+        // the first segment is the left boundary
+        Segment leftBoder = this->segments.get(this->nonOrthSegments[0]);  
+        if(leftBoder.getHead() == segment.getHead()) this->touchAbove++;
+        if(leftBoder.getTail() == segment.getTail()) this->touchBelow++;
       }// if
-      else NUM_FAIL("Index for slide is out of range.");
-    }// addOrthogonalEdge
+      this->nonOrthSegments.push_back(index);
+    }// addNonOrthSegment
     
-    void ResultUnitFactory::setTouchsOnLeftBorder(size_t slide, size_t value){
-      if (slide < touchsOnLeftBorder.size()) touchsOnLeftBorder[slide] = value;
-      else NUM_FAIL("Index for slide is out of range.");
-    }// setTouch
+    void Layer::print(std::ostream& os, const vector<size_t> values)const{
+      for( size_t i = 0; i < values.size(); i++){
+        os << values[i];
+        if(i != values.size() -1) os << ", ";
+      }// for
+    }// print
     
-    bool ResultUnitFactory::iSEqual(const vector<list<size_t>>& edges1,
-                                     const vector<list<size_t>>& edges2)const{
-      if (edges1.size() != edges2.size()) return false;
-      list<size_t>::const_iterator edge1Iter,edge2Iter;
-      for (size_t i = 0; i < edges1.size(); i++) {
-        if (edges1[i].size() != edges2[i].size()) return false;
-        size_t j = 0;
-        for (edge1Iter  = edges1[i].begin(), 
-            edge2Iter  = edges2[i].begin();
-            edge1Iter != edges1[i].end();
-            edge1Iter++,edge2Iter++){
-          if (!(*edge1Iter == *edge2Iter)) {
-            return false;
-          }// if
-          j++;
-        }// for
-      }// for  
-      return true;
-    }// compare
-
-    bool ResultUnitFactory::operator == (
-        const ResultUnitFactory& other)const{  
-      if (!(this->segments == other.segments)) return false;     
-      if (!(iSEqual(this->orthogonalEdges,other.orthogonalEdges))) 
-        return false;
-      if (!(iSEqual(this->nonOrthogonalEdges,other.nonOrthogonalEdges)))
-        return false;
-      vector<size_t>::const_iterator iter1,iter2;
-      if (this->touchsOnLeftBorder.size() != other.touchsOnLeftBorder.size())
-        return false;
-      for (iter1  = this->touchsOnLeftBorder.begin(), 
-          iter2 = other.touchsOnLeftBorder.begin();
-          iter1 != this->touchsOnLeftBorder.end(); iter1++, iter2 ++) {
-         if (*iter1 != *iter2) return false;
-      }// for
-      return true;
-    }// Operator ==
-     
-    void ResultUnitFactory::evaluate(){
-      list<size_t>::iterator first;
-      list<size_t>::reverse_iterator last; 
-      for (size_t i = 0; i < nonOrthogonalEdges.size(); i++) {
-        evaluate(i);
-      }// for
-      for (size_t i = 1; i < nonOrthogonalEdges.size(); i++) {
-        if (nonOrthogonalEdges[i-1].size() < 2) break;
-        first = nonOrthogonalEdges[i-1].begin();
-         Predicate predicate = segments.get(*first).getPredicate();
-         setSlidePredicates(predicate, i, touchsOnLeftBorder[i]);
-       }// for  
-       for (int i = nonOrthogonalEdges.size()-2; i >= 0; i--) {
-         if (nonOrthogonalEdges[i+1].size() < 2) break;
-         first = nonOrthogonalEdges[i+1].begin();
-         Predicate predicate = segments.get(*first).getPredicate();
-         setSlidePredicates(predicate, i, touchsOnLeftBorder[i+1]);
-       }// for  
-    }// evaluate
-    
-    void ResultUnitFactory::getBorderPredicates(Predicate& left, 
-                                                Predicate& right)const{
-      // Index für die erste und letzte Kante
-      size_t first,last;
-      // aktuelle Prädikat
-      Predicate predicate;
-      // Prädikat für die linke kante
-      left  = UNDEFINED;
-      // Prädikat für die rechte Kante
-      right = UNDEFINED;
-      // existieren Segmente
-      if (segments.size() != 0) {
-        // über alle Slides  
-        for (size_t i = 0; i < nonOrthogonalEdges.size(); i++) {
-          // erste Kante
-          first = *nonOrthogonalEdges[i].begin();
-          // Bestimme das Prädikat der ersten Kante
-          predicate = createPredicate(segments.get(first).getPredicate(),LEFT);
-          // Prädikat übernehmen, wenn bisher kein Prädikat festgelegt war
-          if (left == UNDEFINED) left = predicate;
-          // waren bisher keine Schnitte auf der Kante vermerkt und wurde 
-          // jetzt ein abweichendes Prädikat ermittelt, 
-          // dann das Pädikat "INTERSECT" setzen
-          else if (left != INTERSECT && left != predicate) left = INTERSECT;  
-          // letztes Kante
-          last = *nonOrthogonalEdges[i].rbegin();
-          // Bestimme das Prädikat der letzten Kante
-          predicate = createPredicate(segments.get(last).getPredicate(),RIGHT);
-          // Prädikat übernehmen, wenn bisher kein Prädikat festgelegt war
-          if (right == UNDEFINED) right = predicate;
-          // waren bisher keine Schnitte auf der Kante vermerkt und wurde 
-          // jetzt ein abweichendes Prädikat ermittelt, 
-          // dann das Pädikat "INTERSECT" setzen
-          else if (right != INTERSECT && right != predicate) right = INTERSECT;
-        }// for
-      }// if
-    }// getBorderPredicates
-       
-    void ResultUnitFactory::setSlidePredicates(Predicate predicate,
-                                                size_t slide, size_t touch){
-       list<size_t>::iterator first, iter;
-       if (nonOrthogonalEdges[slide].size() < 2) return;
-       first = nonOrthogonalEdges[slide].begin();
-       if (predicate != UNDEFINED &&
-           segments.get(*first).getPredicate() == UNDEFINED) {
-         predicate =createPredicate(predicate, LEFT);
-         if (touch%2 == 1) {
-           if (predicate == OUTER) predicate = INNER;
-           else predicate = OUTER;
-         }// if
-         for (iter  = nonOrthogonalEdges[slide].begin(); 
-              iter != nonOrthogonalEdges[slide].end(); iter++) {
-           Predicate oldPredicate = segments.get(*iter).getPredicate();
-           if (oldPredicate == UNDEFINED || oldPredicate == NO_INTERSECT) {
-               segments.set(*iter,predicate);
-           }// if
-           // alle Schnitte sind gesetzt
-           // geändert für Prädikat "INTERSECT"
-           else break;
-        }// for
-      }// if
-    }// setSlidePredicates
-       
-    void ResultUnitFactory::evaluate(size_t i ){      
-      list<size_t>::iterator first, left, right, orthogonal;
-      Segment firstSegment, leftSegment, rightSegment, orthogonalSegment;
-      // Existieren weniger als zwei Kanten, Funktion verlassen
-      if (nonOrthogonalEdges[i].size()< 2) return;
-      // Index (Iterator) der erste kante der Slide bestimmen
-      first = nonOrthogonalEdges[i].begin();
-      // Index (Iterator) auch für die linke und rechte Kante vwerwenden
-      right = left = first;  
-      // Erste Kante betimmen
-      firstSegment = segments.get(*first);
-      // Die Schleife solange abarbeiten, bis die rechte die letzte Kante 
-      // der Slide ist
-      for (right++; right !=  nonOrthogonalEdges[i].end(); 
-           right++) {
-        // Prädicat vorbelegen
-        Predicate predicate = UNDEFINED;
-        // linke Kante bestimmen
-        leftSegment  = segments.get(*left);
-        // rechte Kante bestimmen
-        rightSegment = segments.get(*right);
-        // Prädikat der Kante als mögliche linke Kante eines
-        // PFace auswerten und Ergebnis übernehmen
-        checkPredicate(leftSegment,LEFT,predicate); 
-        // Prädikat der Kante als mögliche rechte Kante eines
-        // PFace auswerten und Ergebnis übernehmen
-        checkPredicate(rightSegment,RIGHT,predicate); 
-        // ist das Prädikat der linken Kante nicht UNDEFINED,
-        // so muss überprüft werden, ob die linke Kante die erste 
-        // Kante der Slide berührt. 
-        if (left != first && leftSegment.getPredicate() != UNDEFINED) {
-          // berühren sich das Ende der ersten und das Ende der linken
-          // Kante aber die Anfänge nicht
-          if (firstSegment.getTail() == leftSegment.getTail()){
-            // Berührung registrieren (Anfang der Slide)
-            touchsOnLeftBorder[i]++;
-          }// if
-          // berühren sich der Anfang der ersten uud der Anfang der 
-          // letzten Kante 
-          if (firstSegment.getHead() == leftSegment.getHead()) {
-            // Berührung registrieren (Ende der Slide)
-            touchsOnLeftBorder[i+1]++;
-          }// if
-        }// if
-        // konnte kein Predicate ermittelt werden
-        if (predicate == UNDEFINED) {
-          // check bottom 
-          // Die orthogonalen Kanten auswerten,
-          // zuerst die orthogonalen Kanten am Boden
-          for (orthogonal  = orthogonalEdges[i].begin(); 
-               orthogonal != orthogonalEdges[i].end(); 
-               orthogonal ++) {  
-            // ortogonale Kante laden
-            orthogonalSegment = segments.get(*orthogonal);
-            // berühren sich das Ende der linken Kante und das
-            // Ende der ortogonalen Kante und das Ende der rechten Kante
-            // und das Ende der orthogonalen Kante, dann sollte die Kante
-            // ausgwertet werden
-            if (leftSegment.getTail() == orthogonalSegment.getTail() && 
-                rightSegment.getTail()== orthogonalSegment.getHead()) {
-              //  cout << "Bottom" <<endl;
-              // orthogonale Kante als rechte Kante für eine PFace 
-              // auswerten
-              checkPredicate(orthogonalSegment,RIGHT,predicate); 
-              // Nach dem das Predicate bestimmt wurde, kann die
-              // Schleife verlassen werden
-              break;
-            }// if
-          }// for          
-          // check top
-          // Die orthogonalen Kanten auswerten,
-          // jetzt die oberen Kanten
-          for (orthogonal  = orthogonalEdges[i+1].begin(); 
-               orthogonal != orthogonalEdges[i+1].end(); 
-               orthogonal ++) {
-            // orthogonale Kante laden
-            orthogonalSegment = segments.get(*orthogonal);
-            // berühren sich der Anfang der linken Kante und der Anfang 
-            // der orthogonalen Kanten und der Anfang der rechten Kante
-            // und der Anfang der orthogonalen Kante, dann sollte die Kante
-            // ausgwertet werden
-            if (leftSegment.getHead()  == orthogonalSegment.getTail() && 
-                rightSegment.getHead() == orthogonalSegment.getHead()) {
-              //  cout << "Top" <<endl;
-              // orthogonale Kante als linke Kante für eine mögliches 
-              // PFace auswerten
-              checkPredicate(orthogonalSegment,LEFT,predicate);
-              // nachdem ein Predicat bestimmt wurde, kann die Schleife 
-              // verlassen werden
-              break;
-            }// if
-          }// for
-        }// if
-        // Predikat der linken Kante setzen, falls erforderlich
-        segments.set(*left, predicate);
-        // Predicate der rechten Kante setzen, falls erforderlich
-        segments.set(*right, predicate);
-        // in der nächsten Runde, ist die ehemals rechte Kante, jetzt die
-        // linke Kante
-        left = right; 
-      }// for
-      // Berührungen der orthogonalen Kanten mit der ersten kante auswerten
-      if (orthogonalEdges[i].size()!=0) {
-        // orthogonale Kante bestimmen 
-        orthogonalSegment = segments.get(*orthogonalEdges[i].begin());      
-        // berührt das Ende der orthogonale Kante, das Ende
-        // das ersten Kante der Slide ???
-        if (firstSegment.getTail() == orthogonalSegment.getTail()) {
-          // Berührung vermerken
-          touchsOnLeftBorder[i]++;
-        }// if 
-      }// if
-      // Falls erforderlich den Slide mit Prädikaten auffüllen 
-      // Hierbi wird von letzten Element zum ersten Element iteriert
-      list<size_t>::reverse_iterator last, riter;
-      // Iteerator auf das letzte Element setzen
-      riter = last = nonOrthogonalEdges[i].rbegin();
-      // Letzte Kante laden
-      rightSegment = segments.get(*last); 
-      // Ist die erste Kante auf "UNDEFINED" gesetzt und hat die
-      // letzte Kante ein von UNDEFINED abweichendes Prädikat, dann den Slide
-      // durchlaufen
-      if (firstSegment.getPredicate() == UNDEFINED && 
-          rightSegment.getPredicate() != UNDEFINED) {
-        // von der letzten zur ersten Kante
-        for (riter++; riter != nonOrthogonalEdges[i].rend(); riter++) {
-          // rechte Kante laden
-          rightSegment= segments.get(*last);
-          // linke Kante laden
-          leftSegment = segments.get(*riter);
-          // ist die linke Kante nicht gesetzt
-          if (leftSegment.getPredicate() == UNDEFINED) {
-            // Prädikat für die linke Kante aus der rechten Kante
-            // bestimmen
-            Predicate predicate =
-              createPredicate(rightSegment.getPredicate(), LEFT);
-            // Die Prädikat "UNDEFINED"
-            if (predicate != UNDEFINED && predicate != INTERSECT) {
-              // Predikat setzen
-              segments.set(*riter, predicate);
-            }// if
-          }// if
-          last++;
-        }// for
-      }// if
-    }// evaluate   
-          
-    Predicate ResultUnitFactory::createPredicate(const Predicate source,
-                                                 const Border border)const{
-      Predicate predicate;
-      switch (source) {        
-        case LEFT_IS_INNER:  if(border == LEFT) predicate = OUTER;
-                             else predicate = INNER;
-                             break;    
-        case RIGHT_IS_INNER: if(border == LEFT) predicate = INNER;
-                             else predicate = OUTER;
-                             break; 
-        case NO_INTERSECT:   predicate = UNDEFINED;
-                             break;   
-        default:             predicate = source;         
-      }// switch
-      return predicate;   
-    }// createPredicate
-         
-    void ResultUnitFactory::checkPredicate(const Segment& segment,
-                                           const Border border, 
-                                           Predicate& result)const{
-      Predicate predicate = createPredicate(segment.getPredicate(), border);
-      if (predicate == INNER || predicate == OUTER) {
-        if (result == UNDEFINED) result = predicate;
-        else if (!(result == predicate)&& (!pFaceIsCritical)) {
-          cerr << *this;
-          cerr << "Segment "<< segment <<endl;
-          cerr << "Aktuelle Prädikat " << toString(predicate) << endl;
-          cerr << "Zielprädikat " << toString(result) <<endl;
-          NUM_FAIL("Different Predicates on edges.");
-          // assert(false);
-        }// else if 
-      }// if
-    }// checkPredicate
-         
-    void ResultUnitFactory::print(std::ostream& os, 
-                                   std::string prefix,
-                                   vector<list<size_t>> edges)const{
-      list<size_t>::const_iterator iter;
-      for (size_t i = 0; i < edges.size();i++) {
-        os << prefix << "     Index:=" << i << " (";
-        for (iter = edges[i].begin(); iter != edges[i].end();) {
-          os << *iter; 
-          iter++;
-          if (iter != edges[i].end()) os << ", ";           
-        }// for  
-        os << ")" << endl;
-      }// for
-      os << prefix << "  )" << endl;
-    }// print  
-
-    std::ostream& ResultUnitFactory::print(std::ostream& os, 
-                                           std::string prefix)const{
-      os << "ResultUnitFactory(";
-      if (segments.size() == 0) os << "is empty)" << endl;
+    std::ostream& Layer::print(std::ostream& os,std::string prefix)const{
+      os << "Layer(";
+      if (this->segments.size() == 0) os << "is empty)" << endl;
       else {
         os << endl;
-        if(this->pFaceIsCritical){
-          os << prefix + "Source PFace is critical" << endl;
+        if(this->isCritical){
+          os << prefix + "  Source PFace is critical" << endl;
         }// if
-        else os << prefix + "Source PFace is not critical" <<endl;
+        else os << prefix + "  Source PFace is not critical" <<endl;        
         os << prefix + "  ";
-        segments.print(os, prefix+"  ");
-        os << prefix + "  Non orthogonal edge for MSegments (" << endl;
-        print(os, prefix, nonOrthogonalEdges);
-        os << prefix + "  Orthogonal edge for MSegments (" << endl;
-        print(os, prefix, orthogonalEdges);
-        vector<size_t>::const_iterator iter;       
-        os << prefix + "  Touch on left border(" << endl;
-        for (size_t i = 0; i < touchsOnLeftBorder.size(); i++) {
-          os << prefix << "    Index:="<< i << " (";
-          os << touchsOnLeftBorder[i] << ")" << endl;
-        }// for
-        os << prefix << "  )" << endl;
+        segments.print(os, prefix+"  ");         
+        os << prefix + "  Non orthogonal segments("; 
+        print(os, this->nonOrthSegments);
+        os << ")" << endl;
+        os << prefix + "  Orthogonal segments(";
+        print(os, this->orthSegments);
+        os << ")" << endl;
+        os << prefix + "  Touch on the left border below := ";
+        os << this->touchBelow << endl;
+        os << prefix + "  Touch on the left border above := ";
+        os << this->touchAbove << endl;
         os << prefix << ")" << endl;
       }// else
-       return os;
-    }// operator <<
-     
-    std::ostream& operator <<(std::ostream& os, 
-                              const ResultUnitFactory& factory){   
-      return factory.print(os,"");
-    }// operator 
+      return os;       
+    }// print
     
-    void ResultUnitFactory::getResultUnit(size_t slide, Predicate predicate,
-                                           bool reverse, 
-                                           const Point3DContainer& points, 
-                                           ResultUnit& unit, State pfState, 
-                                           SourceFlag source){ 
-      list<size_t>::const_iterator left, right;
-      if (slide < nonOrthogonalEdges.size()) {
-        if (nonOrthogonalEdges[slide].size() > 1) {
-          left = right = nonOrthogonalEdges[slide].begin();
-          for (right++; right != nonOrthogonalEdges[slide].end(); right++) {
-            Segment leftSegment  = segments.get(*left);
-            Segment rightSegment = segments.get(*right);
-            Predicate leftPredicate  = 
-              createPredicate(leftSegment.getPredicate(),LEFT);
-            Predicate rightPredicate = 
-              createPredicate(rightSegment.getPredicate(),RIGHT);
-            // Prädikat für die linke und rechte Kante müssen gleich sein
-            // oder eins der Prädikate muss "INTERSECT" sein
-            if ((leftPredicate == rightPredicate)|| 
-               ((leftPredicate == INTERSECT && rightPredicate != INTERSECT)||
-                (leftPredicate != INTERSECT && rightPredicate == INTERSECT))||
-                 pfState == CRITICAL) {
-              if ((leftPredicate == predicate)||(rightPredicate == predicate)||
-                  pfState == CRITICAL) {
-                if (reverse) {
-                  Segment temp = leftSegment;
-                  leftSegment  = rightSegment;
-                  rightSegment = temp;
-                }// if
-                Point3D leftTail  = points.get(leftSegment.getTail());
-                Point3D leftHead  = points.get(leftSegment.getHead());
-                Point3D rightTail = points.get(rightSegment.getTail());
-                Point3D rightHead = points.get(rightSegment.getHead());
-                Segment3D left    = Segment3D(leftTail,leftHead);
-                Segment3D right   = Segment3D(rightTail,rightHead);
-                if (pfState == CRITICAL) {
-                  Predicate p = leftPredicate;
-                  if (p == INTERSECT) p = rightPredicate;
-                  CriticalMSegment segment(left,right,source,p);
-                  unit.addCMSegment(segment);
-                }// if
-                else {
-                  MSegment segment(left, right);                  
-                  unit.addMSegment(segment,false);
-                }// else 
-              }// if
-            }// if
-            else {
-              if (pFaceIsCritical) cerr << "PFace is critical" << endl;
-              else cerr << "PFace is not critical" << endl;
-              cerr << "gesuchte Predikat:=" ;
-              cerr << mregionops3::toString(predicate) <<endl;
-              cerr << "Left Segment :=" << leftSegment << endl;
-              cerr << "Right Segment:=" << rightSegment<< endl;
-              cerr << *this;
-              NUM_FAIL ("Predicate on left and right border are different.");
-            }// else  
-            left = right;
-          }// for
-        }//if
-      }// if
-    }// getResultPFace  
-    
-    Predicate ResultUnitFactory::calculateAreaPredicate(
-        const Segment& left, const Segment& right)const{
-      Predicate leftP      = left.getPredicate();
-      Predicate rightP     = right.getPredicate();
-      // Segmente definieren den Bereich als Innen
-      if (leftP == RIGHT_IS_INNER || rightP == LEFT_IS_INNER || 
-          leftP == INNER || rightP == INNER){
-        // existieren Wiedersprüche
-        if (leftP == LEFT_IS_INNER || rightP == RIGHT_IS_INNER ||  
-            leftP == OUTER || rightP == OUTER){
-          cerr << "Left Segment :=" << left << endl;
-          cerr << "Right Segment:=" << right<< endl;
-          NUM_FAIL ("Predicate on left and right segment are controvert.");
-        }// if                
-        return INNER;
-       }// if
-       // Segmente definieren den Bereich als Außen
-       // Wiedersprpche sind nicht möglich
-       else if (rightP == RIGHT_IS_INNER || leftP == LEFT_IS_INNER || 
-                leftP  == OUTER || rightP == OUTER){          
-          return OUTER;
-       }// else if
-       return UNDEFINED;
-    }// calculateAreaPredicate
+    std::ostream& operator <<(std::ostream& os, const Layer& layer){
+       return layer.print(os,"");      
+    }// Operator  <<
         
-    bool ResultUnitFactory::intersects(size_t slide, bool& predicate)const{
-      // Anzahl der Einträge bestimmen
-      size_t size = this->nonOrthogonalEdges[slide].size();
-      if(size < 2) {
-        NUM_FAIL ("At least two segments are necessary."); 
+    Predicate Layer::getBorderPredicate(const Segment& segment, 
+                                        Border border)const{
+      Predicate predicate = segment.getPredicate();
+      if (predicate == LEFT_IS_INNER){
+        if (border ==  LEFT) return OUTER;
+        else return INNER;                
       }// if
-      // Status "RELEVANT" mit mehr als zwei Segmenten
-      if(!pFaceIsCritical && size > 2){
-        // Schnitt leigt vor
+      else if (predicate == RIGHT_IS_INNER){
+        if (border ==  LEFT) return INNER;
+        else return OUTER;
+      }// else if
+      else if (predicate == INNER || predicate == OUTER) return predicate;
+      else return UNDEFINED;
+    }// getBorderPredicate
+    
+    Predicate Layer::getAreaPredicate(size_t left, 
+                                      size_t right,
+                                      size_t orthogonal, 
+                                      bool orthSegmentExist)const{
+      Segment leftSegment  = this->segments.get(left);
+      Segment rightSegment = this->segments.get(right); 
+      Segment orthSegment  = this->segments.get(orthogonal);
+      // cout << "Left:= " << leftSegment << endl;
+      // cout << "Right:= " << rightSegment << endl;
+      // if( orthSegmentExist) {
+      //  cout << "Orthogonal:= " << orthSegment << endl;
+      // }// if      
+      Predicate result = UNDEFINED;
+      Predicate predicateLeft  = getBorderPredicate(leftSegment, LEFT);
+      Predicate predicateRight = getBorderPredicate(rightSegment, RIGHT);
+      // cout << "Left Predicate:=" << toString(predicateLeft) << endl;
+      // cout << "Right Predicate:=" << toString(predicateRight) << endl;      
+      if (predicateLeft != UNDEFINED) {
+        if (predicateRight != UNDEFINED) {
+          if (predicateLeft == predicateRight) {
+            result = predicateLeft;
+          }// if
+          // possibly no predicate can be determined for critical P-Faces
+          else if(this->isCritical) {
+            result = INTERSECT;
+          }// if
+          else {
+            NUM_FAIL("Different predicates at the edges of a area");
+          }// else
+        }// else
+        // right boundary is undefined
+        else result = predicateLeft;
+      }// if
+      else {
+        // right boundary is undefined
+        result = predicateRight;
+      }// else
+      // if necessary, the orthogonal segments must be evaluated
+      if (result == UNDEFINED && orthSegmentExist){
+        result = getBorderPredicate(orthSegment, RIGHT);
+      }// if
+      // cout << "Predicate:=" << toString(result) << endl;
+      // cout << endl;
+      return result;
+    }// getAreaPredicate  
+    
+    void Layer::getBorderPredicates(Predicate& left, Predicate& right)const{
+      size_t first  = this->nonOrthSegments[0];
+      size_t last = this->nonOrthSegments[this->nonOrthSegments.size()-1];      
+      left  = getBorderPredicate(this->segments.get(first),LEFT);
+      right = getBorderPredicate(this->segments.get(last),RIGHT);
+    }// getBorderPredicate
+      
+    bool Layer::evaluate(){
+      // orthogonal segments
+      size_t j = 0;
+      size_t orthogonal = 0;
+      bool orthSegmentExist = false;
+      // left border      
+      size_t left = this->nonOrthSegments[0];
+      size_t right;
+      // over all non-orthogonal segments
+      for(size_t i = 1; i < this->nonOrthSegments.size(); i++ ){
+        // right border
+        right =  this->nonOrthSegments[i];
+        // do orthogonal segments exist? 
+        if( j < orthSegments.size()){
+          orthogonal = this->orthSegments[j];
+          // does the orthogonal segment touch the left border?
+          if (this->segments.get(left).getTail() == 
+              this->segments.get(orthogonal).getTail()) {
+            orthSegmentExist = true;
+            j++;
+          }// if
+          else orthSegmentExist = false;
+        }// if        
+        Predicate predicate = getAreaPredicate(left, right,
+          orthogonal,orthSegmentExist);
+        segments.set(left, predicate);
+        segments.set(right, predicate);
+        left = right;
+      }// for
+      // is the predicate of the right segment not undefined but the predicate 
+      // of the left segment is set to undefined?
+      Predicate leftPredicate, rightPredicate;
+      getBorderPredicates(leftPredicate, rightPredicate);
+      if(leftPredicate == UNDEFINED && rightPredicate != UNDEFINED){    
+        // right border
+        right = this->nonOrthSegments[this->nonOrthSegments.size()-1];
+        orthogonal = 0;
+        for(int i = this->nonOrthSegments.size()-2; i >= 0; i--){
+          // left border
+          size_t left =  this->nonOrthSegments[i];
+          Predicate predicate = getAreaPredicate(left, right,
+            orthogonal, orthSegmentExist);
+          segments.set(left, predicate);
+          segments.set(right, predicate);
+          right = left;
+        }// for
+      }// if
+      size_t first   = this->nonOrthSegments[0];
+      size_t last    = this->nonOrthSegments[this->nonOrthSegments.size()-1];
+      leftPredicate  = this->segments.get(first).getPredicate();
+      rightPredicate = this->segments.get(last).getPredicate();
+      return (leftPredicate != UNDEFINED && rightPredicate != UNDEFINED);
+    }// evaluate
+    
+    bool Layer::operator ==(const Layer& layer)const{
+      if(!(this->segments == layer.segments)) return false;
+      if(this->orthSegments.size() != layer.orthSegments.size()) 
+        return false;
+      for(size_t i = 0; i < this->orthSegments.size(); i++){
+        if(this->orthSegments[i] != layer.orthSegments[i]) return false;
+      }// for
+      if(this->nonOrthSegments.size() != layer.nonOrthSegments.size()) 
+        return false;
+      for(size_t i = 0; i < this->nonOrthSegments.size(); i++){
+        if(this->nonOrthSegments[i] != layer.nonOrthSegments[i]) return false;
+      }// for
+      if(this->touchAbove != layer.touchAbove) return false;
+      if(this->touchBelow != layer.touchBelow) return false;
+      if(this->isCritical != layer.isCritical) return false;
+      return true;
+    }// Operator ==
+    
+    void Layer::set(const Layer& layer){
+      this->segments        = layer.segments;
+      this->orthSegments    = layer.orthSegments;
+      this->nonOrthSegments = layer.nonOrthSegments;
+      this->touchAbove      = layer.touchAbove;
+      this->touchBelow      = layer.touchBelow;
+      this->isCritical      = layer.isCritical;       
+    }// set
+    
+    Layer& Layer::operator =(const Layer& layer){
+      set(layer);
+      return *this;
+    }// Operator =
+    
+    Predicate Layer::getPredicateForSuccessor()const{
+      if (this->nonOrthSegments.size() < 2) return UNDEFINED;
+      size_t first  = this->nonOrthSegments[0];
+      size_t second = this->nonOrthSegments[1];            
+      Predicate predicate = getAreaPredicate(first, second, first, false);
+      if (predicate != UNDEFINED){
+        if (touchAbove%2 == 1){
+          if (predicate == INNER) return OUTER;
+          else return INNER;
+        }// if
+      }// if
+      return predicate;
+    }// getSuccessorPredicate
+    
+    Predicate Layer::getPredicateForPredecessor()const{
+     if (this->nonOrthSegments.size() < 2) return UNDEFINED;
+      size_t first  = this->nonOrthSegments[0];
+      size_t second = this->nonOrthSegments[1];  
+      Predicate predicate = getAreaPredicate(first, second, first, false);
+      if (predicate != UNDEFINED){
+        if (touchBelow%2 == 1){
+          if (predicate == INNER) return OUTER;
+          else return INNER;
+        }// if
+      }// if
+      return predicate; 
+    }// getPredecessorPredicate
+    
+    void Layer::setPredicateFromSuccessor(Predicate predicate){
+      if (predicate == UNDEFINED || this->nonOrthSegments.size() < 2) return;
+      if (touchAbove%2 == 1){
+        if (predicate == INNER) predicate = OUTER;
+        else predicate = INNER;
+      }// if
+      size_t first   = this->nonOrthSegments[0];
+      size_t second = this->nonOrthSegments[1];
+      segments.set(first, predicate);
+      segments.set(second, predicate);
+    }// setPredicateFromPredecessor
+    
+    void Layer::setPredicateFromPredecessor(Predicate predicate){
+      if (predicate == UNDEFINED || this->nonOrthSegments.size() < 2) return;
+      if (touchBelow%2 == 1){
+        if (predicate == INNER) predicate = OUTER;
+        else predicate = INNER;
+      }// if
+      size_t first  = this->nonOrthSegments[0];
+      size_t second = this->nonOrthSegments[1];
+      segments.set(first, predicate);
+      segments.set(second, predicate);
+    }// setPredicateFromPredecessor  
+    
+    bool Layer::intersects(bool& predicate)const{
+      size_t size = this->nonOrthSegments.size();
+      if(size < 2) {
+        NUM_FAIL ("there must be at least two segments."); 
+      }// if      
+      // relevantes P-Face with more than two segments
+      if (!this->isCritical && size > 2){
         predicate = true;
-        // Ergebnis konnte ermittelt werden
         return true;
       }// if
-      list<size_t>::const_iterator left  = nonOrthogonalEdges[slide].begin();
-      list<size_t>::const_iterator right = left;
-      right++;
-      // Status "RELEVANT" mit genau zwei Segmenten
-      if (!pFaceIsCritical && size == 2){
-        Predicate result = calculateAreaPredicate(segments.get(*left),
-                                                  segments.get(*right));
-        // cout << "Prädikate:=" << mregionops3::toString(result) << endl;
+      // relevantes P-Face with exactly two segments
+      if (!this->isCritical && size == 2){
+        size_t first     = this->nonOrthSegments[0];
+        size_t second    = this->nonOrthSegments[1]; 
+        Predicate result = getAreaPredicate(first, second, first, false);
+        // cout << "Predicate:=" << toString(result) << endl;
         if (result == INNER) {
           predicate = true;
           return true;
@@ -2179,25 +1908,22 @@ namespace temporalalgebra {
         }// else if
       }// if
       else { 
-        // Status "CRITICAL"
+        //critical P-Face
         Predicate oldPredicate = UNDEFINED;
-        for (;right != nonOrthogonalEdges[slide].end();right++){
-          Predicate newPredicate = calculateAreaPredicate(segments.get(*left),
-                                                          segments.get(*right));
-          // cout << "Old Predicate:=";  
-          // cout << mregionops3::toString(oldPredicate) << endl;
-          // cout << "New Predicate:=";   
-          // cout << mregionops3::toString(newPredicate) << endl;
-          // cout << "Left segment.="   << segments.get(*left) << endl;
-          // cout << "Right segments:=" << segments.get(*right) << endl;
+        for (size_t i = 0; i < size-1; i++){
+          Predicate newPredicate = getAreaPredicate(this->nonOrthSegments[i],
+            this->nonOrthSegments[i+1],this->nonOrthSegments[i], false);
+          // cout << "Old Predicate:=" << toString(oldPredicate) << endl;
+          // cout << "New Predicate:=" << toString(newPredicate) << endl;
+          // cout << "Left segment.=";
+          // cout << this->segments.get(this->nonOrthSegments[i]) << endl;
+          // cout << "Right segments:=";
+          // cout << this->segments.get(this->nonOrthSegments[i+1]) << endl;
           if (newPredicate == INNER) {
             predicate = true;
             return true;
           }// if
-          // neues Prädikat übernhmen, wenn es gültig ist
           if(newPredicate != UNDEFINED) oldPredicate = newPredicate;
-          // rechtes Segment ist jetzt linkes Segment
-          left = right;;
         }// for
         if(oldPredicate == OUTER){
             predicate = false;
@@ -2208,27 +1934,22 @@ namespace temporalalgebra {
       return false;
     }// intersects
     
-    bool ResultUnitFactory::inside(size_t slide, bool& predicate)const{
-      // Anzahl der Einträge bestimmen
-      size_t size = this->nonOrthogonalEdges[slide].size();
+    bool Layer::inside(bool& predicate)const{
+      size_t size = this->nonOrthSegments.size();
       if(size < 2) {
-        NUM_FAIL ("At least two segments are necessary."); 
-      }// if
-      // Status "RELEVANT" mit mehr als zwei Segmenten
-      if(!pFaceIsCritical && size > 2){
-        // Schnitt liegt vor, kann nicht mehr innen liegen
+        NUM_FAIL ("there must be at least two segments."); 
+      }// if      
+      // relevantes P-Face with more than two segments
+      if (!this->isCritical && size > 2){
         predicate = false;
-        // Ergebnis konnte ermittelt werden
         return true;
       }// if
-      list<size_t>::const_iterator left  = nonOrthogonalEdges[slide].begin();
-      list<size_t>::const_iterator right = left;
-      right++;
-      // Status "RELEVANT" mit genau zwei Segmenten
-      if (!pFaceIsCritical && size == 2){
-        Predicate result = calculateAreaPredicate(segments.get(*left),
-                                                  segments.get(*right));
-        // cout << "Prädikate:=" << mregionops3::toString(result) << endl;
+      // relevantes P-Face with exactly than two segments
+      if (!isCritical && size == 2){
+        size_t first     = this->nonOrthSegments[0];
+        size_t second    = this->nonOrthSegments[1]; 
+        Predicate result = getAreaPredicate(first, second, first, false);
+        // cout << "Predicate:=" << toString(result) << endl;
         if (result == INNER) {
           predicate = true;
           return true;
@@ -2239,25 +1960,22 @@ namespace temporalalgebra {
         }// else if
       }// if
       else { 
-        // Status "CRITICAL"
+        //critical P-Face
         Predicate oldPredicate = UNDEFINED;
-        for (;right != nonOrthogonalEdges[slide].end();right++){
-          Predicate newPredicate = calculateAreaPredicate(segments.get(*left),
-                                                          segments.get(*right));
-          // cout << "Old Predicate:=";  
-          // cout << mregionops3::toString(oldPredicate) << endl;
-          // cout << "New Predicate:=";   
-          // cout << mregionops3::toString(newPredicate) << endl;
-          // cout << "Left segment.="   << segments.get(*left) << endl;
-          // cout << "Right segments:=" << segments.get(*right) << endl;
+        for (size_t i = 0; i < size-1; i++){
+          Predicate newPredicate = getAreaPredicate(this->nonOrthSegments[i],
+            this->nonOrthSegments[i+1],this->nonOrthSegments[i], false);
+          // cout << "Old Predicate:=" << toString(oldPredicate) << endl;
+          // cout << "New Predicate:=" << toString(newPredicate) << endl;
+          // cout << "Left segment.=";
+          // cout << this->segments.get(this->nonOrthSegments[i]) << endl;
+          // cout << "Right segments:=";
+          // cout << this->segments.get(this->nonOrthSegments[i+1]) << endl;
           if (newPredicate == OUTER) {
             predicate = false;
             return true;
           }// if
-          // neues Prädikat übernhmen, wenn es gültig ist
           if(newPredicate != UNDEFINED) oldPredicate = newPredicate;
-          // rechtes Segment ist jetzt linkes Segment
-          left = right;;
         }// for
         if(oldPredicate == INNER){
             predicate = true;
@@ -2266,34 +1984,227 @@ namespace temporalalgebra {
       }// else
       predicate = false;
       return false;
-    }// inside
+    }// inside  
+    
+    void Layer::getResultUnit(Predicate soughtPredicate, bool reverse, 
+        const Point3DContainer& points, ResultUnit& unit, 
+        SourceFlag source)const { 
+      for(size_t i = 0; i < this->nonOrthSegments.size()-1; i++){
+        size_t left  = this->nonOrthSegments[i];
+        size_t right = this->nonOrthSegments[i+1];
+        Segment leftSegment  = this->segments.get(left);
+        Segment rightSegment = this->segments.get(right);
+        Predicate predicate  = getAreaPredicate(left, right,
+          left, false);
+        if (predicate == soughtPredicate || this->isCritical){
+          if (reverse) {
+            Segment temp = leftSegment;
+            leftSegment  = rightSegment;
+            rightSegment = temp;
+          }// if
+          Point3D leftTail  = points.get(leftSegment.getTail());
+          Point3D leftHead  = points.get(leftSegment.getHead());
+          Point3D rightTail = points.get(rightSegment.getTail());
+          Point3D rightHead = points.get(rightSegment.getHead());
+          Segment3D left    = Segment3D(leftTail,leftHead);
+          Segment3D right   = Segment3D(rightTail,rightHead);
+          if (this->isCritical) {
+            CriticalMSegment segment(left,right,source,predicate);
+            unit.addCMSegment(segment);
+          }// if
+          else {
+            MSegment segment(left, right);                  
+            unit.addMSegment(segment,false);
+          }// else 
+        }// if
+      }// for
+    }// getResultUnit  
+/*
+class LayerContainer
 
-    bool ResultUnitFactory::intersects(std::vector<bool>& predicate){
-      if(nonOrthogonalEdges.size() != predicate.size()){
-        NUM_FAIL ("vector for predicates has a wrong size."); 
+*/
+    LayerContainer::LayerContainer(size_t size /* = 0 */, 
+                                   bool isCritcal /* = false*/){
+       this->layers = std::vector<Layer>(size,Layer(isCritcal));
+    }// Constructor
+    
+    LayerContainer::LayerContainer(const LayerContainer& other){
+      set(other);
+    }// Constructor
+    
+    LayerContainer::LayerContainer(
+        Point3DContainer& points,
+        GlobalTimeValues &timeValues,
+        PlaneSweepAccess &access,
+        bool pFaceIsCritical){      
+      size_t size = timeValues.size()-1;
+      this->layers = vector<Layer>(size,Layer(pFaceIsCritical));
+      double t1,t2;
+      SegmentContainer segments; 
+      if (timeValues.scaledFirst(t1, t2) ) { 
+        access.first(t1, t2, points, segments, pFaceIsCritical);
+        // over all time periods
+        for (size_t i = 0; i < size; i++) { 
+          // over all segments
+          for (size_t j = 0; j < segments.size(); j++) {
+            Point3D head, tail;
+            Segment segment = segments.get(j);
+            head = points.get(segment.getHead());
+            tail = points.get(segment.getTail());            
+            if (NumericUtil::nearlyEqual(head.getZ(),tail.getZ())) {
+              addOrthSegment(i, segment);
+            }// if
+            else {
+              addNonOrthSegment(i, segment);
+            }// else
+          }// for
+          //  cout << "i:=" << i << endl;
+          //  cout << "t1:=" << t1 << ",t2:="<< t2 << endl;
+          //  cout << *this;
+          //  cout << timeValues;
+          t1 = t2;
+          timeValues.scaledNext(t1, t2);
+          segments.clear();
+          access.next(t1, t2, points, segments, pFaceIsCritical);
+        }// for
       }// if
-      for (size_t i = 0; i < nonOrthogonalEdges.size(); i++){
+    }// Konstruktor
+    
+    void LayerContainer::set(const LayerContainer& other){
+       this->layers = other.layers; 
+    }// set
+    
+    void LayerContainer::addOrthSegment(size_t layer, 
+                                        const Segment& segment){
+     if (layer < this->layers.size()) {
+        this->layers[layer].addOrthSegment(segment);
+      }// if
+      else NUM_FAIL("Index of layer is out of range.");      
+    }// addOrthSegment
+    
+    void LayerContainer::addNonOrthSegment(size_t layer, 
+                                           const Segment& segment){
+      if (layer < this->layers.size()) {
+        this->layers[layer].addNonOrthSegment(segment);
+      }// if
+      else NUM_FAIL("Index of layer is out of range.");      
+    }// addNonOrthSegment
+    
+    std::ostream& LayerContainer::print(std::ostream& os,
+                                        std::string prefix)const{
+      os <<  "LayerContainer(" << endl;
+      for(size_t i = 0; i < this->layers.size(); i++){
+        os << prefix + "  Index:=" << i << ", ";
+        layers[i].print(os,prefix + "  ");       
+      }// for
+      os << prefix + ")" << endl;
+      return os;
+    }// print 
+    
+    std::ostream& operator<<( std::ostream& os,
+                              const LayerContainer& container){
+      return container.print(os,"");
+    }// Operator <<
+    
+    bool LayerContainer::evaluate(){
+      bool status = true;
+      vector<bool> evaluated(layers.size(),false);
+      // Pass all layers forward
+      Predicate predicate = UNDEFINED;      
+      for (size_t i = 0; i < layers.size(); i++){
+        bool result = layers[i].evaluate();
+        // Can a predicate be taken from the predecessor?
+        if (!result && predicate != UNDEFINED){
+          layers[i].setPredicateFromPredecessor(predicate);
+          result = layers[i].evaluate();
+          if(!result){
+            cerr << *this;
+            NUM_FAIL("The processing of the intersections was not successful.");
+          }// if
+        }// if
+        evaluated[i] = result;
+        predicate = layers[i].getPredicateForSuccessor();
+      }// for 
+      // Pass all layers backward
+      predicate = UNDEFINED;
+      for(int i = layers.size()-1; i >= 0; i--){
+        // Can a predicate be taken from the successor?
+        if (!evaluated[i] && predicate != UNDEFINED){
+          layers[i].setPredicateFromSuccessor(predicate);
+          bool result  = layers[i].evaluate();
+          evaluated[i] = result;
+          if(!result){
+            cerr << *this;
+            NUM_FAIL("The processing of the intersections was not successful.");
+          }// if          
+        }// if       
+        predicate = this->layers[i].getPredicateForPredecessor();
+        status    = status && evaluated[i];
+      }// for
+      return status;
+    }// evaluate
+    
+    void LayerContainer::getBorderPredicates(Predicate& left, 
+                                             Predicate& right)const{
+      left  = UNDEFINED;
+      right = UNDEFINED;
+      if (this->layers.size() > 0){
+        layers[0].getBorderPredicates(left,right);
+        for( size_t i = 1; i < this->layers.size(); i ++){
+          Predicate tmpLeft, tmpRight;
+          layers[i].getBorderPredicates(tmpLeft,tmpRight);
+          if (right != tmpRight) right = INTERSECT;
+          if (left  != tmpLeft)  left  = INTERSECT;
+        }// for        
+      }// if
+    }// getBorderPredicate
+    
+    bool LayerContainer::operator ==(const LayerContainer& other)const{
+      if (this->layers.size() != other.layers.size()) return false;
+      for (size_t i = 0 ; i < this->layers.size(); i ++){
+        if(!(this->layers[i] == other.layers[i])) return false;          
+      }// for
+      return true;
+    }// Operator ==
+    
+    LayerContainer& LayerContainer::operator =(const LayerContainer& other){
+      set(other);
+      return *this;
+    }// Operator =
+    
+    bool LayerContainer::intersects(std::vector<bool>& predicate)const{
+      for(size_t i = 0; i < this->layers.size(); i ++){
         bool value;
-        bool result  = intersects(i, value); 
+        bool result  = this->layers[i].intersects(value); 
         predicate[i] = value;
         if(!result)return false;
       }// for
       return true;
     }// intersects
     
-    bool ResultUnitFactory::inside(std::vector<bool>& predicate){
-      if(nonOrthogonalEdges.size() != predicate.size()){
-        NUM_FAIL ("vector for predicates has a wrong size."); 
-      }// if
-      for (size_t i = 0; i < nonOrthogonalEdges.size(); i++){
+    bool LayerContainer::inside(std::vector<bool>& predicate)const{
+      for(size_t i = 0; i < this->layers.size(); i ++){
         bool value;
-        bool result  = inside(i, value); 
+        bool result  = this->layers[i].inside(value); 
         predicate[i] = value;
         if(!result)return false;
       }// for
       return true;
     }// inside
-     
+    
+    void LayerContainer::getResultUnit(size_t layer, Predicate soughtPredicate,
+      bool reverse, const Point3DContainer& points, ResultUnit& unit, 
+      SourceFlag source)const { 
+      if(layer <  this->layers.size()){
+        this->layers[layer].getResultUnit(soughtPredicate, reverse, points, 
+                                          unit, source);  
+      }// if
+      else { 
+        cerr << "Index:=" << layer <<endl;
+        cerr << *this;
+        NUM_FAIL("Index is out of range");
+      }// if
+    }// getResultUnit     
 /*
 18 Class PFace
 
@@ -2392,7 +2303,6 @@ namespace temporalalgebra {
       this->state = UNKNOWN;
     }// Konstruktor
        
-    
     PFace::PFace(const PFace& pf){
       set(pf);
     }// Konstruktor
@@ -2406,7 +2316,7 @@ namespace temporalalgebra {
       this->medianHS    = pf.medianHS;
       this->boundingRect= pf.boundingRect;
       this->intSegs     = pf.intSegs; 
-      this->factory     = pf.factory; 
+      this->layers      = pf.layers;
       this->state       = pf.state;
       this->left        = pf.left;
       this->right       = pf.right;       
@@ -2451,7 +2361,7 @@ namespace temporalalgebra {
       os << prefix + "  ";
       this->intSegs.print(os,"  "+prefix);
       os << prefix + "  ";
-      this->factory.print(os,"  "+prefix);
+      this->layers.print(os,"  "+prefix);
       os << prefix + ")" << endl;
       return os;
     }// print
@@ -2666,6 +2576,8 @@ namespace temporalalgebra {
          other.intersectionOnPlane(*this,planeOther,timeValues);  
         }// if 
         else { }// else
+        // cout << setprecision(12) << *this;
+        // cout << setprecision(12) << other <<endl;
         return false;
       }// if
       RationalPoint3DExtSet intPointSet;    
@@ -2675,11 +2587,14 @@ namespace temporalalgebra {
       planeOther.intersection(*this, UNIT_B, intPointSet);    
       // There is no intersection
       RationalSegment3D intSeg;
+      // cout << intPointSet;
       if (!intPointSet.getIntersectionSegment(intSeg)) return false;  
       IntersectionSegment iSeg;
       // create and save result segments
       addIntSeg(planeSelf,planeOther,intSeg,timeValues);
       other.addIntSeg(planeOther,planeSelf,intSeg,timeValues); 
+      // cout << setprecision(12) << *this;
+      // cout << setprecision(12) << other <<endl;
       return true;    
     }// intersection   
     
@@ -2695,59 +2610,28 @@ namespace temporalalgebra {
     
     bool PFace::finalize(Point3DContainer& points, SegmentContainer& segments, 
                          GlobalTimeValues& timeValues){
-      // Variable für das rechte und linke Prädikat
       Predicate leftPredicate, rightPredicate;
-      // Variable für das Ergebnis
       bool result;
-      // Für relevante und Kritrsche PFaces
       if (this->state == RELEVANT || this->state == CRITICAL) {
-        bool pFaceIsCritical = false;
-        if(this->state == CRITICAL) pFaceIsCritical = true;
-        // Ergebnis Factory erstellen
-        this->factory = ResultUnitFactory(points, timeValues, *this, 
-                                          pFaceIsCritical);
-        // Ergebnis Factory auswerten
-        this->factory.evaluate();
-        // Grenzen des Ergebnisses bestimmen
-        this->factory.getBorderPredicates(leftPredicate,rightPredicate); 
-        // Wird für die Kanten kein definierter Wert geleifert, ist die 
-        // Berechnung nicht erfolgreich geweseniefern 
-        if (leftPredicate == UNDEFINED && rightPredicate == UNDEFINED) {
-          // Berechnung war nicht erfolgreich 
+        bool isCritical = false;
+        if(this->state == CRITICAL) isCritical = true;
+        this->layers = LayerContainer(points, timeValues, *this, isCritical);
+        this->layers.evaluate();
+        this->layers.getBorderPredicates(leftPredicate,rightPredicate);
+        if (leftPredicate == UNDEFINED && rightPredicate == UNDEFINED && 
+            !isCritical) {
           result = false;
         }// if
-        // wird für beide Kanten ein definierter Wert geliefert,
-        // so kann  dieser Wert übernommen werden
-        else if (leftPredicate != UNDEFINED && rightPredicate != UNDEFINED) {
-          // Wert übernehmen
-          segments.set(this->left,leftPredicate);
-          segments.set(this->right,rightPredicate); 
-          // Berechnung war erfolgreich 
-          result =true;
-        }// else if
-        // für eine der Kanten wird das Prädikat undefiert ermittelt
         else {
-          // wird für die linke Kante das Prädikat "INTERSECT" geliefert,
-          // dann dieses übernehmen
-          if (leftPredicate == INTERSECT) {
-            // Segment entsprechend setzen
+          if (leftPredicate != UNDEFINED){
             segments.set(this->left,leftPredicate);
-            // Ergebnis wurde noch nicht vollständig ermittelt.
-            // Die Kanteninformation muss an der anderen Kante 
-            // hinzugefügt werden
-            result = false;                
+            result = true;
           }// if
-          // wird für die rechte Kante das Prädikat "INTERSECT" geleifert,
-          // dan dieses übernehmen
-          if (rightPredicate == INTERSECT) {
-            // segment entsprechend setzen
-            segments.set(this->right,rightPredicate);
-            // Ergebnis wurde noch nicht vollständig ermittelt.
-            // Die Kanteninformation muss an der anderen Kante 
-            // hinzugefügt werden
-            result = false;
+          if (rightPredicate != UNDEFINED){
+            segments.set(this->right,rightPredicate); 
+            result = true;
           }// if
-        }// else      
+        }// else     
       }// if
       else if (this->state == NOT_RELEVANT) result = true;
       // Für PFaces ohne Schnitte wird das Prädikat von der einen kante
@@ -2767,7 +2651,7 @@ namespace temporalalgebra {
           }// if
           // Kanteninformation des PFace ist vollständig
           result = true;
-        }// if
+        }// if        
         // die Prädikate "INNER" und "OUTER" werden von der rechten Kante
         // auf die linke Kante übernommen, falls erforderlich
         if (rightPredicate == INNER || rightPredicate == OUTER) {
@@ -2790,15 +2674,11 @@ namespace temporalalgebra {
                            std::vector<bool>& predicate){
       // Für relevante und Kritrsche PFaces
       if (this->state == RELEVANT || this->state == CRITICAL) {
-        bool pFaceIsCritical = false;
-        if(this->state == CRITICAL) pFaceIsCritical = true;
-        // Ergebnis Factory erstellen
-        this->factory = ResultUnitFactory(
-          points, timeValues, *this, pFaceIsCritical);
-        // Ergbnis vervollständigen
-        this->factory.evaluate();
-        // Ergebnis Factory auswerten
-        return this->factory.intersects(predicate);
+        bool isCritical = false;
+        if(this->state == CRITICAL) isCritical = true;
+        this->layers = LayerContainer(points, timeValues, *this, isCritical);
+        this->layers.evaluate();
+        return this->layers.intersects(predicate);     
       }// if
       return false;
     }// intersects
@@ -2808,15 +2688,11 @@ namespace temporalalgebra {
                        std::vector<bool>& predicate){
       // Für relevante und Kritrsche PFaces
       if (this->state == RELEVANT || this->state == CRITICAL) {
-        bool pFaceIsCritical = false;
-        if(this->state == CRITICAL) pFaceIsCritical = true;
-        // Ergebnis Factory erstellen
-        this->factory = ResultUnitFactory(
-          points, timeValues, *this, pFaceIsCritical);
-        // Ergbnis vervollständigen
-        this->factory.evaluate();
-        // Ergebnis Factory auswerten
-        return this->factory.inside(predicate);
+        bool isCritical = false;
+        if(this->state == CRITICAL) isCritical = true;
+        this->layers = LayerContainer(points, timeValues, *this, isCritical);
+        this->layers.evaluate();
+        return this->layers.inside(predicate);
       }// if
       return false;
     }// inside
@@ -2825,8 +2701,9 @@ namespace temporalalgebra {
                               bool reverse, 
                               const Point3DContainer& points, 
                               ResultUnit& unit, SourceFlag source){
-      this->factory.getResultUnit(slide,predicate,reverse,points,unit,
-                                  this->state,source);
+      if (this->state == RELEVANT || this->state == CRITICAL) {
+        this->layers.getResultUnit(slide,predicate,reverse,points,unit,source);
+      }// if  
     }// getResultPFace   
 /*
 19 class FaceCycleInfo
@@ -2850,7 +2727,6 @@ namespace temporalalgebra {
     size_t FaceCycleInfo::getFirstIndex() const{
       return this->firstIndex;
     }// getFirstIndex
-    
 /*
 20 class SourceUnit
 
@@ -2946,11 +2822,9 @@ namespace temporalalgebra {
         size_t const* j;  
         while ((j = it->next()) != 0) {
           PFace* pFaceB = other.pFaces[*j];
-          pFaceA->intersection(*pFaceB,timeValues);
-                 
-        //  cout << "A:" << endl << setprecision(12) << *pFaceA;
-        //  cout << "B:" << endl << setprecision(12) << *pFaceB;
-          
+          pFaceA->intersection(*pFaceB,timeValues);                 
+          //  cout << "A:" << endl << setprecision(12) << *pFaceA;
+          //  cout << "B:" << endl << setprecision(12) << *pFaceB;          
         }// while
         if (pFaceA->existsIntSegs() || pFaceA->getState()==CRITICAL) {
           pFaceA->addBorder(timeValues);
@@ -3207,8 +3081,7 @@ namespace temporalalgebra {
       // Objekt. 
       predicates = std::vector<bool>(timeValues.size()-1,true);
     }// inside
-    
-        
+         
     void SourceUnit::getResultUnit(size_t slide, Predicate predicate,
                               bool reverse, 
                               const Point3DContainer& points, 
@@ -3485,7 +3358,6 @@ namespace temporalalgebra {
         return result2;
       }// else  
     }// isInside  
-    
 /*
 21 Class SourceUnitPair      
 
@@ -3613,7 +3485,7 @@ namespace temporalalgebra {
         predicateB = INNER;
       }// else if        
       // cout << points;
-      // cout << timeValues;
+      // cout << setprecision(9) << timeValues;
       // cout << unitA;
       // cout << unitB;      
       unitA.finalize(points, timeValues, predicateA, unitB);  
@@ -3739,8 +3611,7 @@ namespace temporalalgebra {
         UBool ubool(timeValues.createInterval(t1,t2), predicate, predicate);
         resMBool->Add(ubool);
       }// else 
-    }// createResultMBool
-    
+    }// createResultMBool  
 /*
 22 class SetOperator
 

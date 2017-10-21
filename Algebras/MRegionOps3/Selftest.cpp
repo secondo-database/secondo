@@ -56,7 +56,7 @@ namespace temporalalgebra {
       }// Destruktortor
     
       bool Selftest::run(){
-
+        
         Point3DTest1();
         Point2DTest1();
         
@@ -122,7 +122,8 @@ namespace temporalalgebra {
         PFaceTest10();       
         PFaceTest11();        
         PFaceTest12();
-       
+        PFaceTest13();
+      
         GlobalTimeValuesTest1();
         GlobalTimeValuesTest2();
              
@@ -136,15 +137,14 @@ namespace temporalalgebra {
         
         SegmentTest();
    
-        ResultUnitFactoryTest1();
-        ResultUnitFactoryTest2();
-        ResultUnitFactoryTest3();       
-        ResultUnitFactoryTest4();
-        ResultUnitFactoryTest5();
-        ResultUnitFactoryTest6();
-        ResultUnitFactoryTest7();
-        
-        ResultUnitFactoryTest8();
+//       ResultUnitFactoryTest1();
+//        ResultUnitFactoryTest2();
+//        ResultUnitFactoryTest3();       
+//        ResultUnitFactoryTest4();
+//        ResultUnitFactoryTest5();
+//        ResultUnitFactoryTest6();
+//        ResultUnitFactoryTest7();        
+//        ResultUnitFactoryTest8();
         
         SegmentContainerTest1();
      
@@ -162,7 +162,21 @@ namespace temporalalgebra {
         UnitsTest10();
 
         SourceUnitPairTest1();   
-   
+        
+        LayerTest1();
+        LayerTest2();
+        LayerTest3();
+        
+        LayerContainerTest1();
+        LayerContainerTest2();
+        LayerContainerTest3();
+        LayerContainerTest4();
+        LayerContainerTest5();
+        LayerContainerTest6();
+        LayerContainerTest7();
+        LayerContainerTest8();
+        LayerContainerTest9();
+  
         cerr << endl;
         cerr << numberOfTestsRun << " tests run, ";
         cerr << numberOfTestsFailed << " tests failed." << endl <<endl;  
@@ -1388,32 +1402,30 @@ namespace temporalalgebra {
         pf0.addBorder(timeValues);
         pf1.addBorder(timeValues);
         // Build result factory
-        ResultUnitFactory factory1(points,timeValues,pf0,false);
-        ResultUnitFactory factory2(points,timeValues,pf1,false);
-        factory1.evaluate();
-        factory2.evaluate();        
-        ResultUnitFactory factory3(3),factory4(3);
-        factory3.addNonOrthogonalEdges(0,Segment(0,7,LEFT_IS_INNER));
-        factory3.addNonOrthogonalEdges(0,Segment(2,8,OUTER));
-        factory3.addNonOrthogonalEdges(1,Segment(7,1,OUTER));
-        factory3.addNonOrthogonalEdges(1,Segment(8,3,OUTER));
-        
-        factory4.addNonOrthogonalEdges(0,Segment(0,9,OUTER));
-        factory4.addNonOrthogonalEdges(0,Segment(0,7,RIGHT_IS_INNER));
-        factory4.addNonOrthogonalEdges(0,Segment(5,7,INNER));
-        factory4.addNonOrthogonalEdges(1,Segment(9,4,OUTER));
-        factory4.addNonOrthogonalEdges(1,Segment(7,6,OUTER));
-        factory4.setTouchsOnLeftBorder(0,1);
+        LayerContainer layer1(points,timeValues,pf0,false);
+        LayerContainer layer2(points,timeValues,pf1,false);
+        layer1.evaluate();
+        layer2.evaluate();        
+        LayerContainer layer3(2),layer4(2);
+        layer3.addNonOrthSegment(0,Segment(0,7,LEFT_IS_INNER));
+        layer3.addNonOrthSegment(0,Segment(2,8,OUTER));
+        layer3.addNonOrthSegment(1,Segment(7,1,OUTER));
+        layer3.addNonOrthSegment(1,Segment(8,3,OUTER));        
+        layer4.addNonOrthSegment(0,Segment(0,9,OUTER));
+        layer4.addNonOrthSegment(0,Segment(0,7,RIGHT_IS_INNER));
+        layer4.addNonOrthSegment(0,Segment(5,7,INNER));
+        layer4.addNonOrthSegment(1,Segment(9,4,OUTER));
+        layer4.addNonOrthSegment(1,Segment(7,6,OUTER));
         assert_("PFaceTest 9.1", "factorys are equal.",
-                factory1 == factory3);
+                layer1 == layer3);
         assert_("PFaceTest 9.2", "factorys are equal.",
-                factory2 == factory4);
+                layer2 == layer4);
         // cout << points;
         // cout << segments;
         // cout << pf0;
         // cout << pf1;
-        // cout << factory1;
-        // cout << factory2;
+        // cout << layer1;
+        // cout << layer2;
       }// PFaceTest9
       
       void Selftest::PFaceTest10() {  
@@ -2068,6 +2080,7 @@ namespace temporalalgebra {
 18 Test ResultUnitFactoryTest
 
 */ 
+/*
       void Selftest::ResultUnitFactoryTest1(){
         ResultUnitFactory factory1(4),factory2(4);
         assert_("ResultUnitFactoryTest 1.1", "factorys are equal.",
@@ -2094,7 +2107,9 @@ namespace temporalalgebra {
         // cout << factory1 << endl;
         // cout << factory2 << endl;
       }// ResultUnitFactoryTest1
- 
+*/ 
+
+/*
       void Selftest::ResultUnitFactoryTest2(){
         GlobalTimeValues timeValues(5);
         IntSegContainer container;
@@ -2167,7 +2182,8 @@ namespace temporalalgebra {
         // cout << factory1 << endl;
         // cout << factory2 << endl;
       }// ResultUnitFactoryTest2
-         
+*/
+/*
       void Selftest::ResultUnitFactoryTest3(){
         Point3DContainer points;
         SegmentContainer segments;
@@ -2308,7 +2324,8 @@ namespace temporalalgebra {
         // cout << factory2 << endl;
         // cout << factory5 << endl;
       }// ResultUnitFactoryTest3
- 
+*/      
+/*
       void Selftest::ResultUnitFactoryTest4(){
         ResultUnitFactory factory1(6),factory2(6);
         factory1.addNonOrthogonalEdges(0,Segment(14, 2)); 
@@ -2370,7 +2387,9 @@ namespace temporalalgebra {
         // cout << factory1 << endl;
         // cout << factory2 << endl;     
       }// ResultUnitFactoryTest4
-      
+*/
+ 
+/* 
       void Selftest::ResultUnitFactoryTest5(){
         ResultUnitFactory factory1(4),factory2(4);
         factory1.addNonOrthogonalEdges(0, Segment (0, 3)); 
@@ -2412,7 +2431,9 @@ namespace temporalalgebra {
         // cout << "Predicate on left border:=" << toString(left) << endl;
         // cout << "Predicate on right border:=" << toString(right) << endl;
       }// ResultUnitFactoryTest5  
-      
+*/
+
+/*
       void Selftest::ResultUnitFactoryTest8(){
         ResultUnitFactory factory1(4),factory2(4);
         factory1.addNonOrthogonalEdges(0, Segment (0, 9,OUTER)); 
@@ -2436,6 +2457,7 @@ namespace temporalalgebra {
         // cout << factory1;
         // cout << factory2;
       }// ResultUnitFactoryTest8
+*/      
       
 /*
 19 Test SegmentContainer
@@ -3006,12 +3028,12 @@ namespace temporalalgebra {
         pf2.finalize(points,segments,timeValues);
         // pface without intersection
         pf0.addBorder(timeValues,segments,INNER);
-        pf0.finalize(points,segments,timeValues);   
+        pf0.finalize(points,segments,timeValues);  
         // result from pface 2
         // pface with Intersection
         pf3.finalize(points,segments,timeValues);
         pf4.finalize(points,segments,timeValues);
-        pf5.finalize(points,segments,timeValues);        
+        pf5.finalize(points,segments,timeValues);
         vector<ResultUnit> units = 
           vector<ResultUnit>(timeValues.size()-1, ResultUnit());
         for(size_t i = 0; i < timeValues.size()-1; i++){  
@@ -3593,6 +3615,7 @@ namespace temporalalgebra {
         for(size_t i = 0; i < timeValues.size()-1; i++){  
           unit0.getResultUnit(i,OUTER,false,points, units[i],UNIT_A);
           unit1.getResultUnit(i,INNER,true,points, units[i],UNIT_B);
+          // cout << units[i];
           units[i].evaluateCriticalMSegmens(MINUS);
           units[i].finalize();  
         }// for
@@ -4051,7 +4074,7 @@ namespace temporalalgebra {
         // cout << result9;
         // cout << result10;
       }// SourceUnitPairTest1
-      
+/*      
       void Selftest::ResultUnitFactoryTest6() {
         ResultUnitFactory factory1(10),factory2(2);
         std::vector<bool> predicate1(9),predicate2(9); 
@@ -4141,7 +4164,8 @@ namespace temporalalgebra {
                 "An intersection result isn't available.",
                 (!result));  
       }// ResultUnitFactoryTest6
-      
+*/
+/*
       void Selftest::ResultUnitFactoryTest7() {
         ResultUnitFactory factory1(10,true),factory2(2,true);
         std::vector<bool> predicate1(9),predicate2(9); 
@@ -4239,7 +4263,7 @@ namespace temporalalgebra {
                 "An inside result isn't available.",
                 (!result));   
       }// ResultUnitFactoryTest7
-      
+*/      
 
       void Selftest::UnitsTest9(){
         Point3DContainer points;
@@ -4397,6 +4421,849 @@ namespace temporalalgebra {
                 "An intersection result isn't equal.",
                 (result));
       }// UnitsTest10
-               
+      
+
+     void Selftest::LayerTest1(){
+       Layer layer1, layer2, layer3, layer4, layer5, layer6, layer7;       
+       layer1.addNonOrthSegment(Segment(0, 1));
+       layer1.addNonOrthSegment(Segment(2, 3, LEFT_IS_INNER));
+       layer1.addNonOrthSegment(Segment(4, 5, RIGHT_IS_INNER));
+       layer1.addOrthSegment(Segment(0, 6, LEFT_IS_INNER));
+       layer1.addOrthSegment(Segment(1, 7, RIGHT_IS_INNER));
+       // Result layer
+       layer4.addNonOrthSegment(Segment(0, 1, INNER));
+       layer4.addNonOrthSegment(Segment(2, 3, LEFT_IS_INNER));
+       layer4.addNonOrthSegment(Segment(4, 5, RIGHT_IS_INNER));
+       layer4.addOrthSegment(Segment(0, 6, LEFT_IS_INNER));
+       layer4.addOrthSegment(Segment(1, 7, RIGHT_IS_INNER));
+       bool result = layer1.evaluate();
+       assert_("LayerTest 1.1", 
+               "Evaluation of the layer is not complete.",
+               result);       
+       assert_("LayerTest 1.2", 
+               "The layers are different.",
+               layer1 == layer4);       
+       // cout << layer1;
+       // cout << layer4;       
+       layer2.addNonOrthSegment(Segment(0, 1));
+       layer2.addNonOrthSegment(Segment(2, 3));
+       layer2.addNonOrthSegment(Segment(4, 5, RIGHT_IS_INNER));
+       layer2.addNonOrthSegment(Segment(6, 7));
+       layer2.addNonOrthSegment(Segment(8, 9));
+       // Result layer
+       layer5.addNonOrthSegment(Segment(0, 1, OUTER));
+       layer5.addNonOrthSegment(Segment(2, 3, OUTER));
+       layer5.addNonOrthSegment(Segment(4, 5, RIGHT_IS_INNER));
+       layer5.addNonOrthSegment(Segment(6, 7, INNER));
+       layer5.addNonOrthSegment(Segment(8, 9, INNER));
+       result = layer2.evaluate();
+       assert_("LayerTest 1.3", 
+               "Evaluation of the layer is not complete.",
+               result);   
+       assert_("LayerTest 1.4", 
+               "The layers are different.",
+               layer2 == layer5);
+       // cout << layer2;
+       // cout << layer5;       
+       layer3.addNonOrthSegment(Segment(0, 1));
+       layer3.addOrthSegment(Segment(0, 2, LEFT_IS_INNER));
+       layer3.addOrthSegment(Segment(1, 3, RIGHT_IS_INNER));
+       layer3.addNonOrthSegment(Segment(2, 3));
+       // Result layer
+       layer6.addNonOrthSegment(Segment(0, 1, INNER));
+       layer6.addOrthSegment(Segment(0, 2, LEFT_IS_INNER));
+       layer6.addOrthSegment(Segment(1, 3, RIGHT_IS_INNER));
+       layer6.addNonOrthSegment(Segment(2, 3, INNER));
+       result = layer3.evaluate();
+       assert_("LayerTest 1.5", 
+               "Evaluation of the layer is not complete.",
+               result);   
+       assert_("LayerTest 1.6", 
+               "The layers are different.",
+               layer3 == layer6);
+       // cout << layer3;
+       // cout << layer6;    
+       layer7.addNonOrthSegment(Segment(0, 1));
+       layer7.addNonOrthSegment(Segment(2, 3));
+       result = layer7.evaluate();
+       assert_("LayerTest 1.7",
+               "Evaluation of the layer is not complete.",
+               (!result)); 
+     }// LayerTest1
+     
+     void Selftest::LayerTest2(){
+       Layer layer1;      
+       layer1.addNonOrthSegment(Segment(0, 1));
+       layer1.addNonOrthSegment(Segment(2, 3, LEFT_IS_INNER));
+       layer1.addNonOrthSegment(Segment(4, 5, RIGHT_IS_INNER));
+       layer1.addOrthSegment(Segment(0, 6, LEFT_IS_INNER));
+       layer1.addOrthSegment(Segment(1, 7, RIGHT_IS_INNER));
+       Layer layer2 = layer1;
+       Layer layer3(layer1);
+       assert_("LayerTest 2", 
+               "The layers are different.",
+               layer2 == layer2);    
+     }// LayerTest2
+     
+     void Selftest::LayerTest3(){
+       Layer layer1, layer2, layer3;      
+       layer1.addNonOrthSegment(Segment(0, 1));
+       layer1.addNonOrthSegment(Segment(0, 2));
+       layer1.addOrthSegment(Segment(0, 3, LEFT_IS_INNER));       
+       layer1.addNonOrthSegment(Segment(3, 4));
+       bool result = layer1.evaluate();
+       Predicate predecessor = layer1.getPredicateForPredecessor();
+       Predicate successor   = layer1.getPredicateForSuccessor();
+       assert_("LayerTest 3.1", 
+               "Evaluation of the layer is not complete.",
+               result);  
+       assert_("LayerTest 3.2", 
+               "Predecessor predicate is wrong.",
+               predecessor == OUTER);
+       assert_("LayerTest 3.3", 
+               "Successor predicate is wrong.",
+               successor == INNER);
+       layer2.addNonOrthSegment(Segment(5, 6));
+       layer2.addNonOrthSegment(Segment(7, 8));
+       layer2.addNonOrthSegment(Segment(9, 10));
+       layer2.setPredicateFromSuccessor(successor);
+       layer2.evaluate();   
+       // Result layer
+       layer3.addNonOrthSegment(Segment(5, 6, INNER));
+       layer3.addNonOrthSegment(Segment(7, 8, INNER));
+       layer3.addNonOrthSegment(Segment(9, 10, INNER));
+       assert_("LayerTest 3.4", 
+               "The layers are different.",
+               layer2 == layer2);        
+       // cout << layer1;
+       // cout << "Predeccesor predicate:=" << toString(predecessor) << endl;
+       // cout << "Successor predicate:=" << toString(successor) << endl;
+       // cout << layer2;    
+     }// LayerTest2
+
+     void Selftest::LayerContainerTest1(){
+        LayerContainer layerContainer1(4), layerContainer2;
+        assert_("LayerContainerTest 1.1", 
+                "The layer containers are different.",
+                (!(layerContainer1 == layerContainer2)));        
+        layerContainer1.addNonOrthSegment(0,Segment(0,1));
+        layerContainer1.addNonOrthSegment(0,Segment(2,3));
+        layerContainer1.addNonOrthSegment(1,Segment(4,5,LEFT_IS_INNER));
+        layerContainer1.addNonOrthSegment(2,Segment(5,6));
+        layerContainer1.addOrthSegment(0,Segment(7,8,LEFT_IS_INNER));
+        layerContainer1.addOrthSegment(3,Segment(9,10,LEFT_IS_INNER));
+        layerContainer2 = layerContainer1;
+        LayerContainer layerContainer3(layerContainer1);
+        assert_("LayerContainerTest 1.2", 
+                "The layer containers are equal.",
+                (layerContainer1 == layerContainer2));
+        assert_("LayerContainerTest 1.3", 
+                "The layer containers are equal.",
+                (layerContainer1 == layerContainer3));
+        // cout << layerContainer1 << endl;
+        // cout << layerContainer2 << endl
+        // cout << layerContainer2 << endl
+     }// LayerContainerTest1
+     
+     void Selftest::LayerContainerTest2(){
+        LayerContainer layerContainer1(4), layerContainer2(4);
+        layerContainer1.addNonOrthSegment(0,Segment(0,1));
+        layerContainer1.addNonOrthSegment(0,Segment(2,3));        
+        layerContainer1.addNonOrthSegment(1,Segment(1,4,LEFT_IS_INNER));
+        layerContainer1.addOrthSegment(1,Segment(1,3,RIGHT_IS_INNER));
+        layerContainer1.addNonOrthSegment(1,Segment(3,5));        
+        layerContainer1.addNonOrthSegment(2,Segment(4,6,LEFT_IS_INNER));
+        layerContainer1.addNonOrthSegment(2,Segment(5,7)); 
+        layerContainer1.addNonOrthSegment(3,Segment(6,8));
+        layerContainer1.addNonOrthSegment(3,Segment(7,9));
+        // Result layer conatiner
+        layerContainer2.addNonOrthSegment(0,Segment(0,1,INNER));
+        layerContainer2.addNonOrthSegment(0,Segment(2,3,INNER));        
+        layerContainer2.addNonOrthSegment(1,Segment(1,4,LEFT_IS_INNER));
+        layerContainer2.addOrthSegment(1,Segment(1,3,RIGHT_IS_INNER));
+        layerContainer2.addNonOrthSegment(1,Segment(3,5,OUTER));        
+        layerContainer2.addNonOrthSegment(2,Segment(4,6,LEFT_IS_INNER));
+        layerContainer2.addNonOrthSegment(2,Segment(5,7,OUTER));
+        layerContainer2.addNonOrthSegment(3,Segment(6,8,OUTER));
+        layerContainer2.addNonOrthSegment(3,Segment(7,9,OUTER));        
+        // cout << layerContainer1;        
+        bool result = layerContainer1.evaluate();
+        assert_("LayerContainerTest 2.1", 
+                "Evaluation of the layer conatainer is not complete.",
+                result); 
+        assert_("LayerContainerTest 2.2", 
+                "The layer containers are equal.",
+               layerContainer1 == layerContainer2);
+        Predicate left, right;
+        layerContainer1.getBorderPredicates(left, right);
+        assert_("LayerContainerTest 2.3", 
+                "The predicates at the border are not correct..",
+               (left == INTERSECT && right == INTERSECT));
+        // cout << layerContainer1;
+        // cout << layerContainer2;
+        // cout << "Left border:=" << toString(left) << endl;
+        // cout << "Right border:=" << toString(right) << endl;
+     }// LayerContainerTest2
+     
+     void Selftest::LayerContainerTest3(){
+        LayerContainer layerContainer1(3), layerContainer2(3);
+        layerContainer1.addNonOrthSegment(0,Segment(0,3)); 
+        layerContainer1.addNonOrthSegment(0,Segment(1,4));
+        layerContainer1.addNonOrthSegment(0,Segment(2,5));
+        layerContainer1.addNonOrthSegment(1,Segment(3,6));
+        layerContainer1.addNonOrthSegment(1,Segment(4,7));
+        layerContainer1.addNonOrthSegment(1,Segment(5,8, RIGHT_IS_INNER));
+        layerContainer1.addNonOrthSegment(1,Segment(5,9));
+        layerContainer1.addNonOrthSegment(2,Segment(6,10));
+        layerContainer1.addNonOrthSegment(2,Segment(6,11));
+        layerContainer1.addNonOrthSegment(2,Segment(7,11));
+        layerContainer1.addOrthSegment(2,Segment(8,9,RIGHT_IS_INNER)); 
+        layerContainer1.addNonOrthSegment(2,Segment(9,12));
+        bool result = layerContainer1.evaluate();
+        // result
+        layerContainer2.addNonOrthSegment(0,Segment(0,3,OUTER)); 
+        layerContainer2.addNonOrthSegment(0,Segment(1,4,OUTER));
+        layerContainer2.addNonOrthSegment(0,Segment(2,5,OUTER));
+        layerContainer2.addNonOrthSegment(1,Segment(3,6,OUTER));
+        layerContainer2.addNonOrthSegment(1,Segment(4,7,OUTER));
+        layerContainer2.addNonOrthSegment(1,Segment(5,8,RIGHT_IS_INNER));
+        layerContainer2.addNonOrthSegment(1,Segment(5,9,INNER));
+        layerContainer2.addNonOrthSegment(2,Segment(6,10,OUTER));
+        layerContainer2.addNonOrthSegment(2,Segment(6,11,OUTER));
+        layerContainer2.addNonOrthSegment(2,Segment(7,11,OUTER));
+        layerContainer2.addOrthSegment(2,Segment(8, 9,RIGHT_IS_INNER)); 
+        layerContainer2.addNonOrthSegment(2,Segment(9,12,OUTER));
+        Predicate left, right;
+        layerContainer1.getBorderPredicates(left,right); 
+        assert_("LayerContainerTest 3.1", 
+                "Evaluation of the layer conatainer is not complete.",
+                result); 
+        assert_("LayerContainerTest 3.2", 
+                "The layer containers are equal.",
+               layerContainer1 == layerContainer2);
+        assert_("LayerContainerTest 3.3", 
+                "The predicates at the border are not correct..",
+               (left == OUTER && right == INTERSECT));
+        // cout << layerContainer1 << endl;
+        // cout << layerContainer2 << endl; 
+        // cout << "Predicate on left border:=" << toString(left) << endl;
+        // cout << "Predicate on right border:=" << toString(right) << endl;
+      }// LayerContainerTest3  
+      
+      void Selftest::LayerContainerTest4(){
+        LayerContainer layerContainer1(5), layerContainer2(5);
+        layerContainer1.addNonOrthSegment(0,Segment(14,2)); 
+        layerContainer1.addNonOrthSegment(0,Segment(0,2,RIGHT_IS_INNER));
+        layerContainer1.addNonOrthSegment(0,Segment(1,3,LEFT_IS_INNER));
+        layerContainer1.addNonOrthSegment(0,Segment(15,16));
+        layerContainer1.addOrthSegment(0,Segment(0,1,LEFT_IS_INNER));        
+        layerContainer1.addNonOrthSegment(1,Segment(2,17));
+        layerContainer1.addNonOrthSegment(1,Segment(2,4,RIGHT_IS_INNER));
+        layerContainer1.addNonOrthSegment(1,Segment(3,6,LEFT_IS_INNER));       
+        layerContainer1.addNonOrthSegment(1,Segment(16,6));        
+        layerContainer1.addNonOrthSegment(2,Segment(17,18));
+        layerContainer1.addNonOrthSegment(2,Segment(4,7,RIGHT_IS_INNER));
+        layerContainer1.addNonOrthSegment(2,Segment(5,8,LEFT_IS_INNER));
+        layerContainer1.addNonOrthSegment(2,Segment(5,9,RIGHT_IS_INNER));
+        layerContainer1.addNonOrthSegment(2,Segment(6,9));
+        layerContainer1.addNonOrthSegment(3,Segment(18,10));
+        layerContainer1.addNonOrthSegment(3,Segment(7,10,RIGHT_IS_INNER));
+        layerContainer1.addNonOrthSegment(3,Segment(8,11,LEFT_IS_INNER)); 
+        layerContainer1.addNonOrthSegment(3,Segment(9,19));
+        layerContainer1.addNonOrthSegment(4,Segment(10,12)); 
+        layerContainer1.addNonOrthSegment(4,Segment(11,13, LEFT_IS_INNER)); 
+        layerContainer1.addNonOrthSegment(4,Segment(19,20));
+        bool result = layerContainer1.evaluate();
+        // result
+        layerContainer2.addNonOrthSegment(0,Segment(14,2,OUTER)); 
+        layerContainer2.addNonOrthSegment(0,Segment(0,2,RIGHT_IS_INNER));
+        layerContainer2.addNonOrthSegment(0,Segment(1,3,LEFT_IS_INNER));
+        layerContainer2.addNonOrthSegment(0,Segment(15,16,OUTER));
+        layerContainer2.addOrthSegment(0,Segment(0,1,LEFT_IS_INNER));
+        layerContainer2.addNonOrthSegment(1,Segment(2,17,OUTER));
+        layerContainer2.addNonOrthSegment(1,Segment(2,4,RIGHT_IS_INNER));
+        layerContainer2.addNonOrthSegment(1,Segment(3,6,LEFT_IS_INNER));       
+        layerContainer2.addNonOrthSegment(1,Segment(16,6,OUTER));
+        layerContainer2.addNonOrthSegment(2,Segment(17,18,OUTER));
+        layerContainer2.addNonOrthSegment(2,Segment(4,7,RIGHT_IS_INNER));
+        layerContainer2.addNonOrthSegment(2,Segment(5,8,LEFT_IS_INNER));
+        layerContainer2.addNonOrthSegment(2,Segment(5,9,RIGHT_IS_INNER));
+        layerContainer2.addNonOrthSegment(2,Segment(6,9,INNER));
+        layerContainer2.addNonOrthSegment(3,Segment(18,10,OUTER));
+        layerContainer2.addNonOrthSegment(3,Segment(7,10,RIGHT_IS_INNER));
+        layerContainer2.addNonOrthSegment(3,Segment(8,11,LEFT_IS_INNER)); 
+        layerContainer2.addNonOrthSegment(3,Segment(9,19,OUTER));
+        layerContainer2.addNonOrthSegment(4,Segment(10,12,INNER)); 
+        layerContainer2.addNonOrthSegment(4,Segment(11,13,LEFT_IS_INNER)); 
+        layerContainer2.addNonOrthSegment(4,Segment(19,20,OUTER));
+        Predicate left, right;
+        layerContainer1.getBorderPredicates(left,right);
+        assert_("LayerContainerTest 4.1", 
+                "Evaluation of the layer conatainer is not complete.",
+                result); 
+         assert_("LayerContainerTest 4.2", 
+                "The layer containers are equal.",
+               layerContainer1 == layerContainer2);
+        assert_("LayerContainerTest 4.3", 
+                "The predicates at the border are not correct..",
+               (left == INTERSECT && right == INTERSECT));
+        // cout << layerContainer1 << endl;
+        // cout << layerContainer2 << endl;  
+        // cout << "Predicate on left border:=" << toString(left) << endl;
+        // cout << "Predicate on right border:=" << toString(right) << endl;
+      }// LayerContainerTest4
+      
+      void Selftest::LayerContainerTest5(){
+        LayerContainer layerContainer1(3), layerContainer2(3);
+        layerContainer1.addNonOrthSegment(0, Segment (0, 9,OUTER)); 
+        layerContainer1.addNonOrthSegment(0, Segment (3, 12));
+        layerContainer1.addNonOrthSegment(1, Segment (4, 13));
+        layerContainer1.addNonOrthSegment(1, Segment (5, 14,NO_INTERSECT));
+        layerContainer1.addNonOrthSegment(1, Segment (6, 15));
+        layerContainer1.addNonOrthSegment(2, Segment (7, 16));
+        layerContainer1.addNonOrthSegment(2, Segment (8, 17));
+        bool result = layerContainer1.evaluate();
+        layerContainer2.addNonOrthSegment(0, Segment (0, 9,OUTER)); 
+        layerContainer2.addNonOrthSegment(0, Segment (3, 12,OUTER));
+        layerContainer2.addNonOrthSegment(1, Segment (4, 13,OUTER));
+        layerContainer2.addNonOrthSegment(1, Segment (5, 14,OUTER));
+        layerContainer2.addNonOrthSegment(1, Segment (6, 15,OUTER));
+        layerContainer2.addNonOrthSegment(2, Segment (7, 16,OUTER));
+        layerContainer2.addNonOrthSegment(2, Segment (8, 17,OUTER));
+        Predicate left, right;
+        layerContainer1.getBorderPredicates(left,right);
+        assert_("LayerContainerTest 5.1", 
+                "Evaluation of the layer conatainer is not complete.",
+                result); 
+        assert_("LayerContainerTest 5.2", 
+                "The layer containers are equal.",
+               layerContainer1 == layerContainer2);
+        assert_("LayerContainerTest 5.3", 
+                "The predicates at the border are not correct..",
+               (left == OUTER && right == OUTER));
+        // cout << layerContainer1 << endl;
+        // cout << layerContainer2 << endl;  
+        // cout << "Predicate on left border:=" << toString(left) << endl;
+        // cout << "Predicate on right border:=" << toString(right) << endl;
+      }// LayerContainerTest5
+      
+      void Selftest::LayerContainerTest6(){
+        GlobalTimeValues timeValues(5);
+        IntSegContainer container;
+        Point3DContainer points1,points2;
+        container.addIntSeg(IntersectionSegment(
+          IntersectionPoint(2,1,0,1.78885438), 
+          IntersectionPoint(2,1,5,1.78885438)));
+        container.addIntSeg(IntersectionSegment(
+          IntersectionPoint(3.5,4,0,5.14295635), 
+          IntersectionPoint(3.5,4,5,5.14295635)));
+        container.addIntSeg(IntersectionSegment(
+          IntersectionPoint(2.8,2.6,2.66666667,3.57770876), 
+          IntersectionPoint(3.4,3.8,4.66666667,4.91934955), 
+          RIGHT_IS_INNER));
+        container.addIntSeg(IntersectionSegment(
+          IntersectionPoint(2.8,2.6,2.66666667,3.57770876), 
+          IntersectionPoint(3.5,4,2.66666667,5.14295635), 
+          LEFT_IS_INNER));
+        container.addIntSeg(IntersectionSegment(
+          IntersectionPoint(3.5,4,4.44444444, 5.14295635), 
+          IntersectionPoint(3.4,3.8,4.66666667,4.91934955), 
+          LEFT_IS_INNER));  
+        timeValues.addTimeValue(0);
+        timeValues.addTimeValue(1.11111111);
+        timeValues.addTimeValue(2.66666667); 
+        timeValues.addTimeValue(4.44444444);
+        timeValues.addTimeValue(4.66666667);
+        timeValues.addTimeValue(5); 
+        // Determine the result
+        LayerContainer layerContainer1(points1,timeValues,container,false);
+        LayerContainer layerContainer2(5),layerContainer3(5);
+        points2.add(Point3D(2,1,0));
+        points2.add(Point3D(2,1,1.11111111));
+        points2.add(Point3D(3.5,4,0));
+        points2.add(Point3D(3.5,4,1.11111111));
+        points2.add(Point3D(2,1,2.66666667));
+        points2.add(Point3D(3.5,4,2.66666667));
+        points2.add(Point3D(2,1,4.44444444));
+        points2.add(Point3D(2.8,2.6,2.66666667));
+        points2.add(Point3D(3.33333333, 3.66666666, 4.44444444));
+        points2.add(Point3D(3.5,4, 4.44444444));
+        points2.add(Point3D(2,1,4.66666667));
+        points2.add(Point3D(3.4,3.8,4.66666667));
+        points2.add(Point3D(3.5,4,4.66666667));
+        points2.add(Point3D(2,1,5));
+        points2.add(Point3D(3.5,4,5));
+        assert_("LayerContainerTest 6.1","points are equal.",
+                 points1 == points2);
+        layerContainer2.addNonOrthSegment(0,Segment(0,1));
+        layerContainer2.addNonOrthSegment(0,Segment(2,3));
+        layerContainer2.addNonOrthSegment(1,Segment(1,4));
+        layerContainer2.addNonOrthSegment(1,Segment(3,5));
+        layerContainer2.addNonOrthSegment(2,Segment(4,6));
+        layerContainer2.addNonOrthSegment(2,Segment(7,8,RIGHT_IS_INNER));
+        layerContainer2.addOrthSegment(2,Segment(7,5,LEFT_IS_INNER));
+        layerContainer2.addNonOrthSegment(2,Segment(5,9));
+        layerContainer2.addNonOrthSegment(3,Segment(6,10));
+        layerContainer2.addNonOrthSegment(3,Segment(8,11,RIGHT_IS_INNER));
+        layerContainer2.addNonOrthSegment(3,Segment(9,11,LEFT_IS_INNER));
+        layerContainer2.addNonOrthSegment(3,Segment(9,12));
+        layerContainer2.addNonOrthSegment(4,Segment(10,13));
+        layerContainer2.addNonOrthSegment(4,Segment(12,14));
+        assert_("LayerContainerTest 6.2", 
+                "The layer containers are equal.",
+                 layerContainer1 == layerContainer2);  
+        // cout << setprecision(9);
+        // cout << container << endl;
+        // cout << timeValues << endl;
+        // cout << points1 << endl;
+        // cout << points2 << endl;
+        // cout << layerContainer1 << endl;
+        // cout << layerContainer2 << endl;
+        layerContainer3.addNonOrthSegment(0,Segment(0,1,OUTER));
+        layerContainer3.addNonOrthSegment(0,Segment(2,3,OUTER));
+        layerContainer3.addNonOrthSegment(1,Segment(1,4,OUTER));
+        layerContainer3.addNonOrthSegment(1,Segment(3,5,OUTER));
+        layerContainer3.addNonOrthSegment(2,Segment(4,6,OUTER));
+        layerContainer3.addNonOrthSegment(2,Segment(7,8,RIGHT_IS_INNER));
+        layerContainer3.addOrthSegment(2,Segment(7,5,LEFT_IS_INNER));
+        layerContainer3.addNonOrthSegment(2,Segment(5,9,INNER));
+        layerContainer3.addNonOrthSegment(3,Segment(6,10,OUTER));
+        layerContainer3.addNonOrthSegment(3,Segment(8,11,RIGHT_IS_INNER));
+        layerContainer3.addNonOrthSegment(3,Segment(9,11,LEFT_IS_INNER));
+        layerContainer3.addNonOrthSegment(3,Segment(9,12,OUTER));
+        layerContainer3.addNonOrthSegment(4,Segment(10,13,OUTER));
+        layerContainer3.addNonOrthSegment(4,Segment(12,14,OUTER));
+        bool result = layerContainer1.evaluate();
+        Predicate left, right;
+        layerContainer1.getBorderPredicates(left,right);
+        assert_("LayerContainerTest 6.3", 
+                "Evaluation of the layer conatainer is not complete.",
+                result); 
+        assert_("LayerContainerTest 6.4", 
+                "The layer containers are equal.",
+               layerContainer1 == layerContainer3);
+        assert_("LayerContainerTest 6.5", 
+                "The predicates at the border are not correct..",
+               (left == OUTER && right == INTERSECT));
+        // cout << layerContainer1 << endl;
+        // cout << layerContainer3 << endl;  
+        // cout << "Predicate on left border:=" << toString(left) << endl;
+        // cout << "Predicate on right border:=" << toString(right) << endl;
+      }// LayerContainerTest6
+      
+      void Selftest::LayerContainerTest7(){
+        Point3DContainer points;
+        SegmentContainer segments;
+        Point3DContainer points1,points2,points3;
+        GlobalTimeValues timeValues1(5);
+        GlobalTimeValues timeValues2(5);
+        // points for unit 1 
+        points1.add(Point3D(2,1,0));// 0
+        points1.add(Point3D(5,1,0));         
+        points1.add(Point3D(3.5,4,0));
+        points1.add(Point3D(2,1,5));
+        points1.add(Point3D(5,1,5));         
+        points1.add(Point3D(3.5,4,5));
+        // points for unit 2 
+        points1.add(Point3D(6,1,0));// 6
+        points1.add(Point3D(9,1,0));         
+        points1.add(Point3D(7.5,4,0));
+        points1.add(Point3D(0,4,5));
+        points1.add(Point3D(3,4,5));         
+        points1.add(Point3D(1.5,7,5));
+        // segments for pface 1
+        segments.add(Segment(0,3));
+        segments.add(Segment(1,4));
+        segments.add(Segment(2,5));
+        // segments for pface 2
+        segments.add(Segment(6,9));
+        segments.add(Segment(7,10)); 
+        segments.add(Segment(8,11));        
+        // add pfaces to unit 1 
+        PFace pf0(0,1,points1,segments);
+        PFace pf1(1,2,points1,segments);
+        PFace pf2(2,0,points1,segments);
+        // add pfaces to unit 2
+        PFace pf3(3,4,points1,segments);
+        PFace pf4(4,5,points1,segments);
+        PFace pf5(5,3,points1,segments);        
+        // intersection
+        pf0.intersection(pf3,timeValues1);
+        pf0.intersection(pf4,timeValues1);
+        pf0.intersection(pf5,timeValues1);
+        pf0.addBorder(timeValues1);
+        pf1.intersection(pf3,timeValues1);
+        pf1.intersection(pf4,timeValues1);
+        pf1.intersection(pf5,timeValues1);
+        pf1.addBorder(timeValues1);
+        pf2.intersection(pf3,timeValues1);
+        pf2.intersection(pf4,timeValues1);
+        pf2.intersection(pf5,timeValues1);
+        pf2.addBorder(timeValues1);
+        pf3.addBorder(timeValues1);
+        pf4.addBorder(timeValues1);
+        pf5.addBorder(timeValues1);
+        LayerContainer layerContainer0(points2,timeValues1,pf0,false);
+        LayerContainer layerContainer1(points2,timeValues1,pf1,false);
+        LayerContainer layerContainer2(points2,timeValues1,pf2,false);
+        LayerContainer layerContainer3(5),layerContainer4(5),layerContainer5(5);
+        // Results       
+        points3.add(Point3D(2,1,0));
+        points3.add(Point3D(2,1,1.11111111));
+        points3.add(Point3D(5,1,0));
+        points3.add(Point3D(5,1,1.11111111));
+        points3.add(Point3D(2,1,2.66666667));
+        points3.add(Point3D(5,1,2.66666667));
+        points3.add(Point3D(2,1,4.44444444));
+        points3.add(Point3D(5,1,4.44444444));
+        points3.add(Point3D(2,1,4.66666667));
+        points3.add(Point3D(5,1,4.66666667));
+        points3.add(Point3D(2,1,5));
+        points3.add(Point3D(5,1,5));
+        points3.add(Point3D(3.5,4,0));
+        points3.add(Point3D(3.5,4,1.11111111));
+        points3.add(Point3D(4.66666667,1.66666667,1.11111111));
+        points3.add(Point3D(4.2,2.6,2.66666667));
+        points3.add(Point3D(3.5,4,2.66666667));
+        points3.add(Point3D(3.66666667, 3.66666667,4.44444444));
+        points3.add(Point3D(3.5,4,4.44444444));
+        points3.add(Point3D(3.5,4,4.66666667));
+        points3.add(Point3D(3.5,4,5));
+        points3.add(Point3D(2.8,2.6,2.66666667));
+        points3.add(Point3D(3.33333333,3.66666667,4.44444444));
+        points3.add(Point3D(3.4,3.8,4.66666667));
+        assert_("LayerContainerTest 7.1", "points are equal.",
+                points2 == points3);
+        // cout << setprecision(9);
+        // cout << points2 << endl;
+        // cout << points3 << endl;
+        layerContainer3.addNonOrthSegment(0,Segment(0,1)); 
+        layerContainer3.addNonOrthSegment(0,Segment(2,3));
+        layerContainer3.addNonOrthSegment(1,Segment(1,4));
+        layerContainer3.addNonOrthSegment(1,Segment(3,5));
+        layerContainer3.addNonOrthSegment(2,Segment(4,6));
+        layerContainer3.addNonOrthSegment(2,Segment(5,7));
+        layerContainer3.addNonOrthSegment(3,Segment(6,8)); 
+        layerContainer3.addNonOrthSegment(3,Segment(7,9));
+        layerContainer3.addNonOrthSegment(4,Segment(8,10)); 
+        layerContainer3.addNonOrthSegment(4,Segment(9,11));
+        layerContainer4.addNonOrthSegment(0,Segment(2,3));
+        layerContainer4.addNonOrthSegment(0,Segment(12,13));
+        layerContainer4.addNonOrthSegment(1,Segment(3,5));
+        layerContainer4.addNonOrthSegment(1,Segment(14,15,RIGHT_IS_INNER));
+        layerContainer4.addNonOrthSegment(1,Segment(14,16,LEFT_IS_INNER));
+        layerContainer4.addNonOrthSegment(1,Segment(13,16));
+        layerContainer4.addNonOrthSegment(2,Segment(5,7));
+        layerContainer4.addNonOrthSegment(2,Segment(15,17,RIGHT_IS_INNER));
+        layerContainer4.addNonOrthSegment(2,Segment(16,18));
+        layerContainer4.addNonOrthSegment(3,Segment(7,9));
+        layerContainer4.addOrthSegment(3,Segment(17,18,RIGHT_IS_INNER));
+        layerContainer4.addNonOrthSegment(3,Segment(18,19));
+        layerContainer4.addNonOrthSegment(4,Segment(9,11));        
+        layerContainer4.addNonOrthSegment(4,Segment(19,20));  
+        layerContainer5.addNonOrthSegment(0,Segment(12,13));
+        layerContainer5.addNonOrthSegment(0,Segment(0,1));
+        layerContainer5.addNonOrthSegment(1,Segment(13,16));
+        layerContainer5.addNonOrthSegment(1,Segment(1,4));
+        layerContainer5.addNonOrthSegment(2,Segment(16,18));
+        layerContainer5.addOrthSegment(2,Segment(16,21,LEFT_IS_INNER));
+        layerContainer5.addNonOrthSegment(2,Segment(21,22,LEFT_IS_INNER));
+        layerContainer5.addNonOrthSegment(2,Segment(4,6));
+        layerContainer5.addNonOrthSegment(3,Segment(18,19));
+        layerContainer5.addNonOrthSegment(3,Segment(18,23,RIGHT_IS_INNER));
+        layerContainer5.addNonOrthSegment(3,Segment(22,23,LEFT_IS_INNER));
+        layerContainer5.addNonOrthSegment(3,Segment(6,8));
+        layerContainer5.addNonOrthSegment(4,Segment(19,20));
+        layerContainer5.addNonOrthSegment(4,Segment(8,10));
+        assert_("LayerContainerTest 7.2", 
+                " The layer containers are equal",
+                layerContainer0 == layerContainer3);
+        // cout << layerContainer0 << endl;
+        // cout << layerContainer3 << endl;
+        assert_("LayerContainerTest 7.3", 
+                " The layer containers are equal",
+                layerContainer1 == layerContainer4);;
+        // cout << layerContainer1 << endl;
+        // cout << layerContainer4 << endl;
+        assert_("LayerContainerTest 7.4", 
+                " The layer containers are equal",
+                layerContainer2 == layerContainer5);
+        // cout << layerContainer2 << endl;
+        // cout << layerContainer5 << endl;
+      }// LayerContainerTest7
+      
+      void Selftest::LayerContainerTest8() {
+        LayerContainer layerContainer1(9), layerContainer2(1);
+        std::vector<bool> predicate1(9),predicate2(9); 
+        std::vector<bool> predicate3(1),predicate4(1);   
+        // Outside
+        layerContainer1.addNonOrthSegment(0,Segment(0,1,LEFT_IS_INNER)); 
+        layerContainer1.addNonOrthSegment(0,Segment(2,3,RIGHT_IS_INNER));  
+        // Outside
+        layerContainer1.addNonOrthSegment(1,Segment(4,5,LEFT_IS_INNER));
+        layerContainer1.addNonOrthSegment(1,Segment(6,7));
+        // Inside
+        layerContainer1.addNonOrthSegment(2,Segment(8,9,RIGHT_IS_INNER));
+        layerContainer1.addNonOrthSegment(2,Segment(10,11));
+        // Inside
+        layerContainer1.addNonOrthSegment(3,Segment(12,13));
+        layerContainer1.addNonOrthSegment(3,Segment(14,15,LEFT_IS_INNER));
+        // Outside
+        layerContainer1.addNonOrthSegment(4,Segment(16,17,INTERSECT));
+        layerContainer1.addNonOrthSegment(4,Segment(18,19,RIGHT_IS_INNER));
+        // three segments
+        layerContainer1.addNonOrthSegment(5,Segment(20,21,LEFT_IS_INNER));
+        layerContainer1.addNonOrthSegment(5,Segment(20,23,RIGHT_IS_INNER));
+        layerContainer1.addNonOrthSegment(5,Segment(22,23));
+        // three segments
+        layerContainer1.addNonOrthSegment(6,Segment(24,25,RIGHT_IS_INNER));
+        layerContainer1.addNonOrthSegment(6,Segment(24,27,INTERSECT));
+        layerContainer1.addNonOrthSegment(6,Segment(26,27));
+        // Inside
+        layerContainer1.addNonOrthSegment(7,Segment(28,29,INTERSECT));
+        layerContainer1.addNonOrthSegment(7,Segment(30,31,INNER));
+        // Outside
+        layerContainer1.addNonOrthSegment(8,Segment(32,33));
+        layerContainer1.addNonOrthSegment(8,Segment(33,34,OUTER));
+        // Undefined
+        layerContainer2.addNonOrthSegment(0,Segment(0,1)); 
+        layerContainer2.addNonOrthSegment(0,Segment(2,3)); 
+        // cout << layerContainer1;
+        std::vector<bool> predicate5 = {false, false, true, true, false, 
+                                        true, true, true, false};
+        bool result = layerContainer1.intersects(predicate1);
+        assert_("LayerContainerTest 8.1", 
+                "A intersection result are available.",
+                (result)); 
+        result = true;      
+        for(size_t i = 0; i < predicate1.size(); i++){
+          if(predicate1[i] != predicate5[i])  result = false;
+        //  if(predicate1[i]){
+        //    cout << "Predikat intersects for slide " << i;
+        //    cout << ", true" <<endl;
+        //  }// if
+        //  else {
+        //    cout << "Predikat intersects for slide " << i;
+        //    cout << ", false" <<endl;
+        //   }// else          
+        }// for
+        assert_("LayerContainerTest 8.2", 
+                "A intersection result is not the same.",
+                (result));  
+        result = layerContainer2.intersects(predicate3);
+        assert_("LayerContainerTest 8.3", 
+                "A intersection result isn't available.",
+                (!result)); 
+        // Tests for inside
+        std::vector<bool> predicate6 = {false, false, true, true, false, 
+                                        false, false, true, false};
+        result = layerContainer1.inside(predicate2);
+        assert_("LayerContainerTest 8.4", 
+                "A intersection result is available.",
+                (result)); 
+        result = true;      
+        for(size_t i = 0; i < predicate2.size(); i++){
+          if(predicate2[i] != predicate6[i])  result = false;
+        //  if(predicate2[i]){
+        //    cout << "Predikat intersects for slide " << i;
+        //    cout << ", true" <<endl;
+        //  }// if
+        //  else {
+        //    cout << "Predikat intersects for slide " << i;
+        //    cout << ", false" <<endl;
+        //   }// else          
+        }// for
+        assert_("LayerContainerTest 8.5", 
+                "A intersection result is not the same.",
+                (result));  
+        result = layerContainer2.inside(predicate4);
+        assert_("LayerContainerTest 8.6", 
+                "An intersection result isn't available.",
+                (!result));  
+      }// LayerContainerTest8
+       
+      void Selftest::LayerContainerTest9() {
+         LayerContainer layerContainer1(9,true),layerContainer2(9,true);
+        std::vector<bool> predicate1(9),predicate2(9); 
+        std::vector<bool> predicate3(1),predicate4(1);   
+        // Inside
+        layerContainer1.addNonOrthSegment(0,Segment(0,1,RIGHT_IS_INNER)); 
+        layerContainer1.addNonOrthSegment(0,Segment(2,3,INTERSECT));
+        // Outside
+        layerContainer1.addNonOrthSegment(1,Segment(4,5,LEFT_IS_INNER)); 
+        layerContainer1.addNonOrthSegment(1,Segment(6,7,INTERSECT));
+        // Inside
+        layerContainer1.addNonOrthSegment(2,Segment(8,9,INTERSECT));        
+        layerContainer1.addNonOrthSegment(2,Segment(10,11,LEFT_IS_INNER)); 
+        // Outside
+        layerContainer1.addNonOrthSegment(3,Segment(12,13,INTERSECT));
+        layerContainer1.addNonOrthSegment(3,Segment(14,15,RIGHT_IS_INNER));
+        // Outside/Inside
+        layerContainer1.addNonOrthSegment(4,Segment(16,17)); 
+        layerContainer1.addNonOrthSegment(4,Segment(18,19,RIGHT_IS_INNER)); 
+        layerContainer1.addNonOrthSegment(4,Segment(20,21,INTERSECT));
+        // Inside/Outside
+        layerContainer1.addNonOrthSegment(5,Segment(22,23,INTERSECT));
+        layerContainer1.addNonOrthSegment(5,Segment(24,25,LEFT_IS_INNER));
+        layerContainer1.addNonOrthSegment(5,Segment(26,27));
+        // Outside/Inside
+        layerContainer1.addNonOrthSegment(6,Segment(28,29)); 
+        layerContainer1.addNonOrthSegment(6,Segment(30,31,NO_INTERSECT)); 
+        layerContainer1.addNonOrthSegment(6,Segment(32,33,RIGHT_IS_INNER)); 
+        layerContainer1.addNonOrthSegment(6,Segment(34,35,NO_INTERSECT)); 
+        layerContainer1.addNonOrthSegment(6,Segment(36,37,INTERSECT));
+        // Inside/Outside
+        layerContainer1.addNonOrthSegment(7,Segment(38,39,INTERSECT)); 
+        layerContainer1.addNonOrthSegment(7,Segment(40,41,NO_INTERSECT)); 
+        layerContainer1.addNonOrthSegment(7,Segment(42,43,LEFT_IS_INNER)); 
+        layerContainer1.addNonOrthSegment(7,Segment(44,45,NO_INTERSECT)); 
+        layerContainer1.addNonOrthSegment(7,Segment(46,47));
+        // Outside
+        layerContainer1.addNonOrthSegment(8,Segment(48,49,INTERSECT)); 
+        layerContainer1.addNonOrthSegment(8,Segment(50,51,NO_INTERSECT)); 
+        layerContainer1.addNonOrthSegment(8,Segment(52,53,NO_INTERSECT)); 
+        layerContainer1.addNonOrthSegment(8,Segment(54,55,RIGHT_IS_INNER));
+        // Undefined
+        layerContainer2.addNonOrthSegment(0,Segment(0,1,INTERSECT)); 
+        layerContainer2.addNonOrthSegment(0,Segment(2,3,INTERSECT)); 
+        // cout << factory1;        
+        std::vector<bool> predicate5 = {true, false, true, false, true, 
+                                        true, true, true, false};
+        bool result = layerContainer1.intersects(predicate1);
+        assert_("LayerContainerTest 9.1", 
+                "A intersection result is available.",
+                (result));
+        result = true;      
+        for(size_t i = 0; i < predicate1.size(); i++){
+          if(predicate1[i] != predicate5[i])  result = false;
+        //   if(predicate1[i]){
+        //      cout << "Intersect predicate for layer " << i;
+        //      cout << ", true" <<endl;
+        //   }// if
+        //   else {
+        //      cout << "Intersect predicate for layer " << i;
+        //      cout << ", false" <<endl;
+        //   }// else          
+        }// for
+        assert_("LayerContainerTest 9.2", 
+                "A intersection result isn't equal.",
+                (result));
+        std::vector<bool> predicate6 = {true, false, true, false, false, 
+                                        false, false, false, false};
+        result = layerContainer2.intersects(predicate3);        
+        assert_("LayerContainerTest 9.3", 
+                "A intersection result isn't available.",
+                (!result)); 
+        // Test for inside
+        result = layerContainer1.inside(predicate2);
+        assert_("LayerContainerTest 9.4", 
+                "A inside result is available.",
+                (result));
+        result = true;      
+        for(size_t i = 0; i < predicate2.size(); i++){
+          if(predicate2[i] != predicate6[i])  result = false;
+        //  if(predicate2[i]){
+        //    cout << "Inside predicate for layer " << i;
+        //    cout << ", true" <<endl;
+        //  }// if
+        //  else {
+        //    cout << "Inside predicate for layer " << i;
+        //    cout << ", false" <<endl;
+        //  }// else          
+        }// for
+        assert_("ResultUnitFactoryTest 7.5", 
+                "An intersection result isn't equal.",
+                (result));
+        result = layerContainer2.inside(predicate4);
+        assert_("ResultUnitFactoryTest 7.6", 
+                "An inside result isn't available.",
+                (!result));   
+      }// LayerContainerTest9
+      
+      
+      void Selftest::PFaceTest13(){
+        Point3DContainer points1;
+        SegmentContainer segments1,segments2;
+        GlobalTimeValues timeValues(2.24250325);
+        // Points for pface 0
+        size_t i0 = points1.add(
+          Point3D(5.61538461111, 4.19230769444, 0));
+        size_t i1 = points1.add(
+          Point3D(5.37288136111, 4.31355931944, 2.24250325));
+        size_t i2 = points1.add(
+          Point3D(4.61538461111, 1.69230769444, 0));
+        size_t i3 = points1.add(
+          Point3D(4.37288136111, 1.81355931944, 2.24250325));
+        // Points for pface 1
+        size_t i4 = points1.add(
+          Point3D(5.28846153846, 3.375, 0));
+        size_t i5 = points1.add(
+          Point3D(5.33898305085, 4.22881355932, 2.24250325));
+        size_t i6 = points1.add(
+          Point3D(5.28846153846, 4.26923076923, 0));
+        size_t i7 = points1.add(
+          Point3D(5.33898305085, 4.22881355932, 2.24250325));
+        // Points for pface 2
+        size_t i8 = points1.add(
+          Point3D(5.61538461111, 4.19230769444, 0));
+        size_t i9 = points1.add(
+          Point3D(5.37288136111, 4.31355931944, 2.24250325));
+        size_t i10 = points1.add(
+          Point3D(5.28846153846, 3.375, 0));
+        size_t i11 = points1.add(
+          Point3D(5.33898305085, 4.22881355932, 2.24250325));
+        // segments for pface 0
+        size_t is0 = segments1.add(Segment(i0,i1));
+        size_t is1 = segments1.add(Segment(i2,i3));
+        // segments for pface 1
+        size_t is2 = segments2.add(Segment(i4,i5));
+        size_t is3 = segments2.add(Segment(i6,i7));    
+        // segments for pface 1
+        size_t is4 = segments2.add(Segment(i8,i9));
+        size_t is5 = segments2.add(Segment(i10,i11));   
+        // create pface
+        PFace pf0(is0,is1,points1,segments1);
+        PFace pf1(is2,is3,points1,segments2);
+        PFace pf2(is4,is5,points1,segments2);
+        PFace pf3 = pf0;
+        PFace pf4 = pf1;
+        PFace pf5 = pf2;
+        // intersection
+        pf0.intersection(pf1,timeValues);
+        pf0.intersection(pf2,timeValues);
+        // result  
+        pf3.addIntSeg(IntersectionSegment(
+          IntersectionPoint(5.2884615, 3.375, 0, -5.0976941), 
+          IntersectionPoint(5.3389831, 4.2288136, 2.2425032, -5.9092033),
+          NO_INTERSECT));
+        pf3.addIntSeg(IntersectionSegment(
+          IntersectionPoint(5.2884615, 3.375, 0, -5.0976942), 
+          IntersectionPoint(5.3389831, 4.2288135, 2.2425032, -5.9092033),
+          RIGHT_IS_INNER));
+        pf3.setState(CRITICAL);
+        pf4.addIntSeg(IntersectionSegment(
+          IntersectionPoint(5.2884615, 3.375, 0, 3.375), 
+          IntersectionPoint(5.3389831, 4.2288135, 2.2425032, 4.2288135),
+          LEFT_IS_INNER));
+        pf4.setState(RELEVANT);
+        pf5.setState(CRITICAL);
+        assert_("PFaceTest 13.1", 
+                "the P-faces are the same.",
+                (pf0 == pf3));
+        assert_("PFaceTest 13.2", 
+                "the P-faces are the same.",
+                (pf1 == pf4));
+        assert_("PFaceTest 13.3", 
+                "the P-faces are the same.",
+                (pf2 == pf5));
+        // cout << setprecision(9);
+        // cout << points1;
+        // cout << segments1;
+        // cout << segments2;
+        // cout << pf0;
+        // cout << pf1;
+        // cout << pf2;
+      }// PFaceTest13
+     
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra
