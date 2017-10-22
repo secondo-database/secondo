@@ -125,6 +125,7 @@ namespace salr {
     double ytop;
     double ybot;
     int etag;
+    bool hasNext;
 
     CurveLink* next;
   };

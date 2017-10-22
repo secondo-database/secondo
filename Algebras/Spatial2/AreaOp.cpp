@@ -80,7 +80,12 @@ namespace salr {
       }
       return 0 - other->lastResult;
     }
-    int ret = curve->compareTo(other->curve, yrange);
+    int ret;
+    if(curve->getOrder() == 1) {
+      ret = (dynamic_cast<LineCurve *>(curve))->compareTo(other->curve, yrange);
+    } else  {
+      ret = curve->compareTo(other->curve, yrange);
+    }
     lastEdge = other;
     lastLimit = yrange[1];
     lastResult = ret;
@@ -113,6 +118,7 @@ namespace salr {
 
   CurveLink::CurveLink(Curve *c, double ystart, double yend, int etag) :
                         curve(c), ytop(ystart), ybot(yend), etag(etag) {
+    hasNext = false;
     if (ytop < c->getYTop() || ybot > c->getYBot()) {
       stringstream sstm;
       sstm << "bad curvelink [" << ytop << "=>" << ybot << "] for " << &c;
@@ -184,10 +190,14 @@ namespace salr {
 
   void CurveLink::setNext(CurveLink *link) {
     this->next = link;
+    hasNext = true;
   }
 
   CurveLink *CurveLink::getNext() {
-    return next;
+    if (hasNext) {
+      return next;
+    }
+    return NULL;
   }
 
   ChainEnd::ChainEnd(CurveLink* first, ChainEnd* partner) :
@@ -322,19 +332,23 @@ namespace salr {
   }
 
   void AreaOp::resolveLinks(vector<CurveLink*> *subcurves,
-                           vector<ChainEnd*> *chains,
-                           vector<CurveLink*> *links)
+                            vector<ChainEnd*> *chains,
+                            vector<CurveLink*> *links)
   {
     int numlinks = links->size();
     if (numlinks == 0 && (numlinks & 1) != 0) {
       throw runtime_error("Odd number of new curves!");
     }
     vector<CurveLink*> linklist(*links);
+    linklist.push_back(NULL);
+    linklist.push_back(NULL);
     int numchains = chains->size();
     if (numlinks == 0 && (numchains & 1) != 0) {
       throw runtime_error("Odd number of chains!");
     }
     vector<ChainEnd*> endlist(*chains);
+    endlist.push_back(NULL);
+    endlist.push_back(NULL);
     int curchain = 0;
     int curlink = 0;
     chains->clear();
@@ -394,7 +408,7 @@ namespace salr {
         chains->push_back(closeend);
         curlink += 2;
         link = linklist.at(curlink);
-        nextlink = linklist.at(curlink+1);
+        nextlink = linklist.at(curlink + 1);
       }
       if (!connectchains && !connectlinks) {
         chain->addLink(link);
@@ -415,18 +429,21 @@ namespace salr {
   void AreaOp::calculate(vector<Curve*>* left,
                                     vector<Curve*>* right,
                                     vector<Curve*>* result) {
-    vector<Edge*> edges;
-    addEdges(&edges, left, AreaOp::CTAG_LEFT);
-    addEdges(&edges, right, AreaOp::CTAG_RIGHT);
-    pruneEdges(&edges, result);
+    vector<Edge*> *edges = new vector<Edge*>(0);
+    addEdges(edges, left, AreaOp::CTAG_LEFT);
+    addEdges(edges, right, AreaOp::CTAG_RIGHT);
+    pruneEdges(edges, result);
+    delete edges;
   }
 
   void AreaOp::addEdges(vector<Edge*>* edges,
                        vector<Curve*>* curves, int curvetag) {
-    for(unsigned int i = 0; i < curves->size(); i++) {
-      Curve* c = curves->at(i);
-      if(c->getOrder() > 0) {
-        edges->push_back(new Edge(c, curvetag));
+    if(curves != NULL) {
+      for(unsigned int i = 0; i < curves->size(); i++) {
+        Curve* c = curves->at(i);
+        if(c->getOrder() > 0) {
+          edges->push_back(new Edge(c, curvetag));
+        }
       }
     }
   }
@@ -436,9 +453,8 @@ namespace salr {
     if (numedges < 2) {
       return;
     }
-    Edge* edgelist[numedges];
-    copy(edges->begin(), edges->end(), edgelist);
-    sort(edgelist, edgelist + numedges);
+    vector<Edge*> edgelist = *(new vector<Edge*>(*edges));
+    sort(edgelist.begin(), edgelist.end());
     Edge* e;
     int left = 0;
     int right = 0;

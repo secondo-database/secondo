@@ -46,6 +46,7 @@ This header file defines the class Region.
 #include "GenericTC.h"
 #include "Curve.h"
 #include "Line.h"
+#include "RectangleBB.h"
 
 #include <vector>
 
@@ -95,6 +96,12 @@ namespace salr {
     bool ReadFrom(ListExpr LE, const ListExpr typeInfo);
 
     ListExpr ToListExpr(ListExpr typeInfo) const;
+
+    RectangleBB* getBounds();
+
+    bool contains(double x, double y);
+
+    bool intersects(RectangleBB *bbox);
 
   private:
     std::vector<Curve*> curves;

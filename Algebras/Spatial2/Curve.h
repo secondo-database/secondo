@@ -41,9 +41,13 @@ This header file defines the abstract class Curve and it's child classes.
 #ifndef SECONDO_CURVE_H
 #define SECONDO_CURVE_H
 
+#include "RectangleBB.h"
+
 #include <vector>
 
 namespace salr {
+
+  class Crossings;
 
   class Curve {
 
@@ -208,6 +212,8 @@ namespace salr {
 
     virtual Curve *getSubCurve(double ystart, double yend, int dir) = 0;
 
+    virtual bool accumulateCrossings(Crossings *c) = 0;
+
     virtual int getSegment(double *coords) = 0;
 
   protected:
@@ -259,6 +265,10 @@ namespace salr {
     Curve *getSubCurve(double ystart, double yend, int dir);
 
     Curve *getReversedCurve();
+
+    void enlarge(RectangleBB *rec);
+
+    bool accumulateCrossings(Crossings *c);
 
     int getSegment(double *coords);
 
@@ -312,6 +322,10 @@ namespace salr {
     Curve *getReversedCurve();
 
     int compareTo(Curve *other, double *yrange);
+
+    void enlarge(RectangleBB *rec);
+
+    bool accumulateCrossings(Crossings *c);
 
     int getSegment(double *coords);
 
@@ -392,6 +406,10 @@ namespace salr {
     Curve *getSubCurve(double ystart, double yend, int dir);
 
     Curve *getReversedCurve();
+
+    void enlarge(RectangleBB *rec);
+
+    bool accumulateCrossings(Crossings *c);
 
     int getSegment(double *coords);
 

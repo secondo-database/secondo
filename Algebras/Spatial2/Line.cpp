@@ -28,6 +28,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Curve.h"
 #include "NestedList.h"
 #include "ListUtils.h"
+#include "RectangleBB.h"
+
+#include <vector>
 
 namespace salr {
 
@@ -253,8 +256,54 @@ namespace salr {
     }
   }
 
+  RectangleBB* Line::getBounds() {
+    double x1, y1, x2, y2;
+    int i = coords.Size();
+    if (i > 0) {
+      y1 = y2 = getCoord(--i);
+      x1 = x2 = getCoord(--i);
+      while (i > 0) {
+        double y = getCoord(--i);
+        double x = getCoord(--i);
+        if (x < x1) x1 = x;
+        if (y < y1) y1 = y;
+        if (x > x2) x2 = x;
+        if (y > y2) y2 = y;
+      }
+    } else {
+      x1 = y1 = x2 = y2 = 0.0;
+    }
+    return new RectangleBB(x1, y1, x2 - x1, y2 - y1);
+  }
+
+  bool Line::contains(double x, double y) {
+    if (x * 0.0 + y * 0.0 == 0.0) {
+      /* N * 0.0 is 0.0 only if N is finite.
+       * Here we know that both x and y are finite.
+       */
+      if (pointTypes.Size() < 2) {
+        return false;
+      }
+      return ((pointCrossings(x, y) & -1) != 0);
+    } else {
+      return false;
+    }
+  }
+
+  bool Line::intersects(RectangleBB *bbox) {
+    if (bbox->width <= 0 || bbox->height <= 0) {
+      return false;
+    }
+    int crossings = rectCrossings(bbox->x, bbox->y,
+                                  bbox->x+bbox->width, bbox->y+bbox->height);
+    return (crossings == Curve::RECT_INTERSECTS ||
+            (crossings & -1) != 0);
+  }
+
   void Line::nextSegment(int offset, int pointType, double *result) const {
-    if(pointType == Curve::SEG_MOVETO || pointType == Curve::SEG_LINETO) {
+    if(pointType == Curve::SEG_MOVETO
+       || pointType == Curve::SEG_LINETO
+       || pointType == Curve::SEG_QUADTO) {
       result[0] = getCoord(offset);
       result[1] = getCoord(offset + 1);
     }
@@ -275,16 +324,16 @@ namespace salr {
       return 0;
     }
     double movx, movy, curx, cury, endx, endy;
-    DbArray<double> loc_coords = coords;
-    loc_coords.Get(0, &movx);
-    loc_coords.Get(1, &movy);
-    curx = movx;
-    cury = movy;
+    std::vector<double> loc_coords;
+    for(int i = 0; i < coords.Size(); i++) {
+      loc_coords.push_back(getCoord(i));
+    }
+    curx = movx = loc_coords.at(0);
+    cury = movy = loc_coords.at(1);
     int crossings = 0;
     int ci = 2;
     for (int i = 1; i < pointTypes.Size(); i++) {
-      int pointTyp;
-      pointTypes.Get(i, &pointTyp);
+      int pointTyp = getPointType(i);
       switch (pointTyp) {
         case Curve::SEG_MOVETO:
           if (cury != movy) {
@@ -293,14 +342,12 @@ namespace salr {
                                            curx, cury,
                                            movx, movy);
           }
-          loc_coords.Get(ci++, &curx);
-          loc_coords.Get(ci++, &cury);
-          movx = curx;
-          movy = cury;
+          movx = curx = loc_coords.at(ci++);
+          movy = cury = loc_coords.at(ci++);
           break;
         case Curve::SEG_LINETO:
-          loc_coords.Get(ci++, &endx);
-          loc_coords.Get(ci++, &endy);
+          endx = loc_coords.at(ci++);
+          endy = loc_coords.at(ci++);
           crossings +=
             Curve::pointCrossingsForLine(px, py,
                                          curx, cury,
@@ -310,10 +357,11 @@ namespace salr {
           break;
         case Curve::SEG_QUADTO:
           double tmpx, tmpy;
-          loc_coords.Get(ci++, &tmpx);
-          loc_coords.Get(ci++, &tmpy);
-          loc_coords.Get(ci++, &endx);
-          loc_coords.Get(ci++, &endy);
+          tmpx = loc_coords.at(ci++);
+          tmpy = loc_coords.at(ci++);
+          endx = loc_coords.at(ci++);
+          endy = loc_coords.at(ci++);
+
           crossings +=
             Curve::pointCrossingsForQuad(px, py,
                                          curx, cury,
@@ -348,18 +396,18 @@ namespace salr {
     if (pointTypes.Size() == 0) {
       return 0;
     }
-    DbArray<double> loc_coords = coords;
     double curx, cury, movx, movy, endx, endy;
-    loc_coords.Get(0, &movx);
-    loc_coords.Get(1, &movy);
-    curx = movx;
-    cury = movy;
+    std::vector<double> loc_coords;
+    for(int i = 0; i < coords.Size(); i++) {
+      loc_coords.push_back(getCoord(i));
+    }
+    curx = movx = loc_coords.at(0);
+    cury = movy = loc_coords.at(1);
     int crossings = 0;
     int ci = 2;
     for (int i = 1;
          crossings != Curve::RECT_INTERSECTS && i < pointTypes.Size(); i++) {
-      int pointTyp;
-      pointTypes.Get(i, &pointTyp);
+      int pointTyp = getPointType(i);
       switch (pointTyp) {
         case Curve::SEG_MOVETO:
           if (curx != movx || cury != movy) {
@@ -370,14 +418,12 @@ namespace salr {
                                           curx, cury,
                                           movx, movy);
           }
-          loc_coords.Get(ci++, &curx);
-          loc_coords.Get(ci++, &cury);
-          movx = curx;
-          movy = cury;
+          movx = curx = loc_coords.at(ci++);
+          movy = cury = loc_coords.at(ci++);
           break;
         case Curve::SEG_LINETO:
-          loc_coords.Get(ci++, &endx);
-          loc_coords.Get(ci++, &endy);
+          endx = loc_coords.at(ci++);
+          endy = loc_coords.at(ci++);
           crossings =
             Curve::rectCrossingsForLine(crossings,
                                         rxmin, rymin,
@@ -389,10 +435,10 @@ namespace salr {
           break;
         case Curve::SEG_QUADTO:
           double tmpx, tmpy;
-          loc_coords.Get(ci++, &tmpx);
-          loc_coords.Get(ci++, &tmpy);
-          loc_coords.Get(ci++, &endx);
-          loc_coords.Get(ci++, &endy);
+          tmpx = loc_coords.at(ci++);
+          tmpy = loc_coords.at(ci++);
+          endx = loc_coords.at(ci++);
+          endy = loc_coords.at(ci++);
           crossings =
             Curve::rectCrossingsForQuad(crossings,
                                         rxmin, rymin,

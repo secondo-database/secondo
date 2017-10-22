@@ -65,6 +65,7 @@ namespace salr {
     Line *line = (Line *) args[0].addr;
     const CcReal *tx = (CcReal *) args[1].addr;
     const CcReal *ty = (CcReal *) args[2].addr;
+    line->getPointType(0); // without this line we get an error
     line->getCoord(0); // without this line we get an error
     line->moveTo(tx->GetValue(), ty->GetValue());
     result.addr = line;
@@ -104,6 +105,7 @@ namespace salr {
     Line *line = (Line *) args[0].addr;
     const CcReal *tx = (CcReal *) args[1].addr;
     const CcReal *ty = (CcReal *) args[2].addr;
+    line->getPointType(0); // without this line we get an error
     line->getCoord(0); // without this line we get an error
     line->lineTo(tx->GetValue(), ty->GetValue());
     result.addr = line;
@@ -147,6 +149,7 @@ namespace salr {
     const CcReal *ty1 = (CcReal *) args[2].addr;
     const CcReal *tx2 = (CcReal *) args[3].addr;
     const CcReal *ty2 = (CcReal *) args[4].addr;
+    line->getPointType(0); // without this line we get an error
     line->getCoord(0); // without this line we get an error
     line->quadTo(tx1->GetValue(), ty1->GetValue(), tx2->GetValue(),
                  ty2->GetValue());

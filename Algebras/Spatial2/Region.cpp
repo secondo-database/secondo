@@ -26,9 +26,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Region.h"
 #include "Curve.h"
+#include "Crossings.h"
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "AreaOp.h"
+#include "RectangleBB.h"
 
 
 using namespace std;
@@ -54,7 +56,7 @@ namespace salr {
 
   Region::Region(const Line &line) :
     Attribute(line.IsDefined()),
-    curves(line.pointTypes.Size()),
+    curves(0),
     coords(line.coords.Size()),
     pointTypes(line.pointTypes.Size())
   {
@@ -232,6 +234,58 @@ namespace salr {
     return result;
   }
 
+  RectangleBB* Region::getBounds() {
+    RectangleBB* r = new RectangleBB(0, 0 ,0 ,0);
+    if (curves.size() > 0) {
+      Curve* c = curves.at(0);
+      // First point is always an order 0 curve (moveto)
+      r->x = c->getX0();
+      r->y = c->getY0();
+      for (unsigned int i = 1; i < curves.size(); i++) {
+        Curve* tmp = curves.at(i);
+        if(tmp->getOrder() == Curve::SEG_MOVETO) {
+          (dynamic_cast<MoveCurve *>(tmp))->enlarge(r);
+        } else if(tmp->getOrder() == Curve::SEG_LINETO) {
+          (dynamic_cast<LineCurve *>(tmp))->enlarge(r);
+        } else if(tmp->getOrder() == Curve::SEG_QUADTO) {
+          (dynamic_cast<QuadCurve *>(tmp))->enlarge(r);
+        }
+      }
+    }
+    return r;
+  }
+
+  bool Region::contains(double x, double y) {
+    if (getBounds()->contains(x, y)) {
+      return false;
+    }
+    int crossings = 0;
+    for(unsigned int i = 0; i < curves.size(); i++) {
+      Curve* c = curves.at(i);
+      if(c->getOrder() == Curve::SEG_MOVETO) {
+        crossings += (dynamic_cast<MoveCurve *>(c))->crossingsFor(x, y);
+      } else {
+        crossings += c->crossingsFor(x, y);
+      }
+    }
+    return ((crossings & 1) == 1);
+  }
+
+  bool Region::intersects(RectangleBB *bbox) {
+    double x, y, w, h;
+    x = bbox->x;
+    y = bbox->y;
+    w = bbox->width;
+    h = bbox->height;
+    if (w < 0 || h < 0) {
+      return false;
+    }
+    if (!getBounds()->intersects(x, y, w, h)) {
+      return false;
+    }
+    return Crossings::findCrossings(&curves, x, y, x+w, y+h);
+  }
+
   void Region::createCurves() {
     if(pointTypes.Size() <= 0) {
       return;
@@ -287,20 +341,26 @@ namespace salr {
   void Region::updateFLOBs() {
     coords.clean();
     pointTypes.clean();
+    Curve *lastcurve;
     for (unsigned int i = 0; i < curves.size(); i++) {
-      pointTypes.Append(curves.at(i)->getOrder());
       Curve *curve = curves.at(i);
       if (curve->getOrder() == Curve::SEG_MOVETO) {
+        if(i > 0 && lastcurve->getOrder() != Curve::SEG_MOVETO) {
+          pointTypes.Append((int) Curve::SEG_CLOSE);
+        }
         coords.Append(curve->getX0());
         coords.Append(curve->getY0());
       } else if (curve->getOrder() == Curve::SEG_LINETO) {
-        if (curve->getDirection() == Curve::INCREASING) {
-          coords.Append(curve->getX1());
-          coords.Append(curve->getY1());
-        } else {
+        if(getPointType(pointTypes.Size() - 1) == Curve::SEG_LINETO
+          && (getCoord(coords.Size()-2) != curve->getX0()
+          || getCoord(coords.Size()-1) != curve->getY0())) {
+          // horizontal lines are added again
+          pointTypes.Append((int) Curve::SEG_LINETO);
           coords.Append(curve->getX0());
           coords.Append(curve->getY0());
         }
+        coords.Append(curve->getX1());
+        coords.Append(curve->getY1());
       } else if (curve->getOrder() == Curve::SEG_QUADTO) {
         QuadCurve *quadCurve = (QuadCurve *) curve;
         coords.Append(quadCurve->getSeedX0());
@@ -308,11 +368,15 @@ namespace salr {
         coords.Append(quadCurve->getSeedX1());
         coords.Append(quadCurve->getSeedY1());
       }
+      pointTypes.Append(curves.at(i)->getOrder());
+      lastcurve = curve;
     }
   }
 
   void Region::nextSegment(int offset, int pointType, double *result) const {
-    if (pointType == Curve::SEG_MOVETO || pointType == Curve::SEG_LINETO) {
+    if (pointType == Curve::SEG_MOVETO
+        || pointType == Curve::SEG_LINETO
+        || pointType == Curve::SEG_QUADTO){
       result[0] = getCoord(offset);
       result[1] = getCoord(offset + 1);
     }

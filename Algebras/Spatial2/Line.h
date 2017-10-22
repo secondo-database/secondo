@@ -44,6 +44,7 @@ This header file defines the class Line and it's child classes.
 #include "../../Tools/Flob/DbArray.h"
 #include "Attribute.h"
 #include "GenericTC.h"
+#include "RectangleBB.h"
 
 namespace salr {
 
@@ -103,12 +104,24 @@ namespace salr {
 
     void closeLine();
 
+    RectangleBB* getBounds();
+
+    bool contains(double x, double y);
+
+    bool intersects(RectangleBB *bbox);
+
     void nextSegment(int offset, int pointType, double *result) const;
 
     double getCoord(int i) const {
       double coord;
       coords.Get(i, &coord);
       return coord;
+    }
+
+    int getPointType(int i) const {
+      int pointType;
+      pointTypes.Get(i, &pointType);
+      return pointType;
     }
 
   private:
@@ -122,12 +135,6 @@ namespace salr {
 
     void appendType(int x) {
       pointTypes.Append(x);
-    }
-
-    int getPointType(int i) const {
-      int pointType;
-      pointTypes.Get(i, &pointType);
-      return pointType;
     }
 
     void hasInitialMove();
