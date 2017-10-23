@@ -138,6 +138,7 @@ string DBServiceClient::retrieveReplicaAndGetFileName(
     printFunction("DBServiceClient::retrieveReplicaAndGetFileName");
     print("databaseName", databaseName);
     print("relationName", relationName);
+    print("function", functionAsNestedListString);
 
     string host;
     string transferPort;
