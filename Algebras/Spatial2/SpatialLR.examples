@@ -29,4 +29,52 @@ Operator  : toRegion
 Number    : 1
 Signature : line2 -> region2
 Example   : query [const line2 value(5 10 (0 1 1 1 1) (1.0 1.0 1.0 2.0 2.0 2.0 2.0 1.0 1.0 1.0))] toRegion
-Result    : (region2(5 10 (0 1 1 1 1) (1.0 1.0 1.0 2.0 2.0 2.0 2.0 1.0 1.0 1.0)))
+Result    : (region2(4 8 (0 1 1 1) (1.0 1.0 1.0 2.0 2.0 2.0 2.0 1.0)))
+
+Operator  : lr_contains
+Number    : 1
+Signature : line2 x real x real -> bool
+Example   : query [const line2 value(3 6 (0 1 1) (0.0 0.0 1.0 1.0 2.0 0.0))] lr_contains [1.0, 0.5]
+Result    : TRUE
+
+Operator  : lr_contains
+Number    : 2
+Signature : line2 x real x real -> bool
+Example   : query [const line2 value(3 6 (0 1 1) (0.0 0.0 1.0 1.0 2.0 0.0))] lr_contains [1.0, 2.5]
+Result    : FALSE
+
+Operator  : lr_contains
+Number    : 3
+Signature : region2 x real x real -> bool
+Example   : query [const region2 value(5 10 (0 1 1 1 1) (0.0 0.0 0.0 1.0 1.0 1.0 1.0 0.0 0.0 0.0))] lr_contains [0.5, 0.5]
+Result    : TRUE
+
+Operator  : lr_contains
+Number    : 4
+Signature : region2 x real x real -> bool
+Example   : query [const region2 value(5 10 (0 1 1 1 1) (0.0 0.0 0.0 1.0 1.0 1.0 1.0 0.0 0.0 0.0))] lr_contains [1.5, 1.5]
+Result    : FALSE
+
+Operator  : lr_intersects
+Number    : 1
+Signature : line2 x rectangleBB -> bool
+Example   : query [const line2 value(2 4 (0 1) (1.0 1.0 3.0 3.0))] lr_intersects [const rectangleBB value(0.0 0.0 2.0 2.0)]
+Result    : TRUE
+
+Operator  : lr_intersects
+Number    : 2
+Signature : line2 x rectangleBB -> bool
+Example   : query [const line2 value(2 4 (0 1) (1.0 1.0 3.0 3.0))] lr_intersects [const rectangleBB value(0.0 0.0 0.5 0.5)]
+Result    : FALSE
+
+Operator  : lr_intersects
+Number    : 3
+Signature : region2 x rectangleBB -> bool
+Example   : query [const region2 value(5 10 (0 1 1 1 1) (0.0 0.0 0.0 1.0 1.0 1.0 1.0 0.0 0.0 0.0))] lr_intersects [const rectangleBB value(-1.0 -1.0 2.0 2.0)]
+Result    : TRUE
+
+Operator  : lr_intersects
+Number    : 4
+Signature : region2 x rectangleBB -> bool
+Example   : query [const region2 value(5 10 (0 1 1 1 1) (0.0 0.0 0.0 1.0 1.0 1.0 1.0 0.0 0.0 0.0))] lr_intersects [const rectangleBB value(2.0 2.0 2.0 2.0)]
+Result    : FALSE

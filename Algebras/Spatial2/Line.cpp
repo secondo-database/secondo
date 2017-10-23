@@ -337,10 +337,8 @@ namespace salr {
       switch (pointTyp) {
         case Curve::SEG_MOVETO:
           if (cury != movy) {
-            crossings +=
-              Curve::pointCrossingsForLine(px, py,
-                                           curx, cury,
-                                           movx, movy);
+            crossings += Curve::pointCrossingsForLine(px, py,
+                                         curx, cury, movx, movy);
           }
           movx = curx = loc_coords.at(ci++);
           movy = cury = loc_coords.at(ci++);
@@ -348,10 +346,8 @@ namespace salr {
         case Curve::SEG_LINETO:
           endx = loc_coords.at(ci++);
           endy = loc_coords.at(ci++);
-          crossings +=
-            Curve::pointCrossingsForLine(px, py,
-                                         curx, cury,
-                                         endx, endy);
+          crossings += Curve::pointCrossingsForLine(px, py,
+                                         curx, cury, endx, endy);
           curx = endx;
           cury = endy;
           break;
@@ -362,20 +358,15 @@ namespace salr {
           endx = loc_coords.at(ci++);
           endy = loc_coords.at(ci++);
 
-          crossings +=
-            Curve::pointCrossingsForQuad(px, py,
-                                         curx, cury,
-                                         tmpx, tmpy,
-                                         endx, endy, 0);
+          crossings +=Curve::pointCrossingsForQuad(px, py, curx, cury,
+                                         tmpx, tmpy, endx, endy, 0);
           curx = endx;
           cury = endy;
           break;
         case Curve::SEG_CLOSE:
           if (cury != movy) {
-            crossings +=
-              Curve::pointCrossingsForLine(px, py,
-                                           curx, cury,
-                                           movx, movy);
+            crossings += Curve::pointCrossingsForLine(px, py,
+                                           curx, cury, movx, movy);
           }
           curx = movx;
           cury = movy;
@@ -383,10 +374,8 @@ namespace salr {
       }
     }
     if (cury != movy) {
-      crossings +=
-        Curve::pointCrossingsForLine(px, py,
-                                     curx, cury,
-                                     movx, movy);
+      crossings += Curve::pointCrossingsForLine(px, py,
+                                     curx, cury, movx, movy);
     }
     return crossings;
   }
@@ -411,12 +400,9 @@ namespace salr {
       switch (pointTyp) {
         case Curve::SEG_MOVETO:
           if (curx != movx || cury != movy) {
-            crossings =
-              Curve::rectCrossingsForLine(crossings,
-                                          rxmin, rymin,
-                                          rxmax, rymax,
-                                          curx, cury,
-                                          movx, movy);
+            crossings = Curve::rectCrossingsForLine(crossings,
+                                          rxmin, rymin, rxmax, rymax,
+                                          curx, cury, movx, movy);
           }
           movx = curx = loc_coords.at(ci++);
           movy = cury = loc_coords.at(ci++);
@@ -424,12 +410,9 @@ namespace salr {
         case Curve::SEG_LINETO:
           endx = loc_coords.at(ci++);
           endy = loc_coords.at(ci++);
-          crossings =
-            Curve::rectCrossingsForLine(crossings,
-                                        rxmin, rymin,
-                                        rxmax, rymax,
-                                        curx, cury,
-                                        endx, endy);
+          crossings = Curve::rectCrossingsForLine(crossings,
+                                        rxmin, rymin, rxmax, rymax,
+                                        curx, cury, endx, endy);
           curx = endx;
           cury = endy;
           break;
@@ -439,24 +422,18 @@ namespace salr {
           tmpy = loc_coords.at(ci++);
           endx = loc_coords.at(ci++);
           endy = loc_coords.at(ci++);
-          crossings =
-            Curve::rectCrossingsForQuad(crossings,
-                                        rxmin, rymin,
-                                        rxmax, rymax,
-                                        curx, cury,
-                                        tmpx, tmpy,
+          crossings = Curve::rectCrossingsForQuad(crossings,
+                                        rxmin, rymin, rxmax, rymax,
+                                        curx, cury, tmpx, tmpy,
                                         endx, endy, 0);
           curx = endx;
           cury = endy;
           break;
         case Curve::SEG_CLOSE:
           if (curx != movx || cury != movy) {
-            crossings =
-              Curve::rectCrossingsForLine(crossings,
-                                          rxmin, rymin,
-                                          rxmax, rymax,
-                                          curx, cury,
-                                          movx, movy);
+            crossings = Curve::rectCrossingsForLine(crossings,
+                                          rxmin, rymin, rxmax, rymax,
+                                          curx, cury, movx, movy);
           }
           curx = movx;
           cury = movy;
@@ -466,12 +443,9 @@ namespace salr {
     }
     if (crossings != Curve::RECT_INTERSECTS &&
         (curx != movx || cury != movy)) {
-      crossings =
-        Curve::rectCrossingsForLine(crossings,
-                                    rxmin, rymin,
-                                    rxmax, rymax,
-                                    curx, cury,
-                                    movx, movy);
+      crossings = Curve::rectCrossingsForLine(crossings,
+                                    rxmin, rymin, rxmax, rymax,
+                                    curx, cury, movx, movy);
     }
     // Count should always be a multiple of 2 here.
     return crossings;

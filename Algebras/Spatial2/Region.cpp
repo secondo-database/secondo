@@ -256,7 +256,7 @@ namespace salr {
   }
 
   bool Region::contains(double x, double y) {
-    if (getBounds()->contains(x, y)) {
+    if (!getBounds()->contains(x, y)) {
       return false;
     }
     int crossings = 0;

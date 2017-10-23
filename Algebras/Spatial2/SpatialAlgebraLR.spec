@@ -22,3 +22,5 @@ operator lineTo alias LINETO pattern _ op [_, _]
 operator quadTo alias QUADTO pattern _ op [_, _, _, _]
 operator closeLine alias CLOSELINE pattern _ op
 operator toRegion alias TOREGION pattern _ op
+operator lr_contains alias LR_CONTAINS pattern _ op [_, _]
+operator lr_intersects alias LR_INTERSECTS pattern _ infixop _

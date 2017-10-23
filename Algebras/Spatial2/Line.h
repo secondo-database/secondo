@@ -44,9 +44,10 @@ This header file defines the class Line and it's child classes.
 #include "../../Tools/Flob/DbArray.h"
 #include "Attribute.h"
 #include "GenericTC.h"
-#include "RectangleBB.h"
 
 namespace salr {
+
+  class RectangleBB;
 
   class Line : public Attribute {
   public:

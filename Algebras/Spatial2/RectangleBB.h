@@ -40,22 +40,65 @@ This header file defines the class RectangleBB.
 #ifndef SECONDO_RECTANGLEBB_H
 #define SECONDO_RECTANGLEBB_H
 
+#include "Attribute.h"
+#include "GenericTC.h"
+#include "NestedList.h"
+
+#include <string>
+
 namespace salr {
 
-  class RectangleBB {
+  class RectangleBB : public Attribute {
   public:
     double x, y, width, height;
 
+    inline RectangleBB() {};
+
+    RectangleBB(int init);
+
     RectangleBB(double x, double y, double width, double height);
 
+    ~RectangleBB();
+
+    static const std::string BasicType();
+
+    static const bool checkType(const ListExpr type);
+
+    // Attribute methods
+    int NumOfFLOBs() const;
+
+    Flob *GetFLOB(const int i);
+
+    int Compare(const Attribute *arg) const;
+
+    bool Adjacent(const Attribute *arg) const;
+
+    size_t Sizeof() const;
+
+    size_t HashValue() const;
+
+    void CopyFrom(const Attribute *arg);
+
+    Attribute *Clone() const;
+
+    static ListExpr Property() {
+      return gentc::GenProperty("-> DATA",
+                                BasicType(),
+                                "double double double double",
+                                "(1.0 1.0 1.0 1.0)");
+    }
+
+    static bool CheckKind(ListExpr type, ListExpr &errorInfo);
+
+    bool ReadFrom(ListExpr LE, const ListExpr typeInfo);
+
+    ListExpr ToListExpr(ListExpr typeInfo) const;
+
+    // Custom methods
     bool contains(double x1, double y1);
-
     bool isEmpty();
-
     void add(double newx, double newy);
-
     void setRect(double x1, double y1, double w, double h);
-
     bool intersects(double x1, double y1, double w, double h);
 
   };

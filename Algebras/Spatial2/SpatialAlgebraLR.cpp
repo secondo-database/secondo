@@ -42,9 +42,12 @@ declaring the needed type constructors.
 #include "QueryProcessor.h"
 #include "Line.h"
 #include "Region.h"
+#include "RectangleBB.h"
 #include "GenericTC.h"
 #include "Symbols.h"
 #include "StandardTypes.h"
+
+#include <string>
 
 namespace salr {
 
@@ -65,11 +68,9 @@ namespace salr {
     Line *line = (Line *) args[0].addr;
     const CcReal *tx = (CcReal *) args[1].addr;
     const CcReal *ty = (CcReal *) args[2].addr;
-    line->getPointType(0); // without this line we get an error
-    line->getCoord(0); // without this line we get an error
-    line->moveTo(tx->GetValue(), ty->GetValue());
-    result.addr = line;
-    qp->SetModified(qp->GetSon(s, 0));
+    Line* newLine = new Line(*line);
+    newLine->moveTo(tx->GetValue(), ty->GetValue());
+    result.addr = newLine;
     return 0;
   }
 
@@ -105,11 +106,9 @@ namespace salr {
     Line *line = (Line *) args[0].addr;
     const CcReal *tx = (CcReal *) args[1].addr;
     const CcReal *ty = (CcReal *) args[2].addr;
-    line->getPointType(0); // without this line we get an error
-    line->getCoord(0); // without this line we get an error
-    line->lineTo(tx->GetValue(), ty->GetValue());
-    result.addr = line;
-    qp->SetModified(qp->GetSon(s, 0));
+    Line* newLine = new Line(*line);
+    newLine->lineTo(tx->GetValue(), ty->GetValue());
+    result.addr = newLine;
     return 0;
   }
 
@@ -149,12 +148,10 @@ namespace salr {
     const CcReal *ty1 = (CcReal *) args[2].addr;
     const CcReal *tx2 = (CcReal *) args[3].addr;
     const CcReal *ty2 = (CcReal *) args[4].addr;
-    line->getPointType(0); // without this line we get an error
-    line->getCoord(0); // without this line we get an error
-    line->quadTo(tx1->GetValue(), ty1->GetValue(), tx2->GetValue(),
+    Line* newLine = new Line(*line);
+    newLine->quadTo(tx1->GetValue(), ty1->GetValue(), tx2->GetValue(),
                  ty2->GetValue());
-    result.addr = line;
-    qp->SetModified(qp->GetSon(s, 0));
+    result.addr = newLine;
     return 0;
   }
 
@@ -187,9 +184,9 @@ namespace salr {
   closeLineVM(Word *args, Word &result, int message, Word &local, Supplier s) {
     result = qp->ResultStorage(s);
     Line *line = (Line *) args[0].addr;
-    line->closeLine();
-    result.addr = line;
-    qp->SetModified(qp->GetSon(s, 0));
+    Line* newLine = new Line(*line);
+    newLine->closeLine();
+    result.addr = newLine;
     return 0;
   }
 
@@ -243,8 +240,129 @@ namespace salr {
     lineToRegionTM
   );
 
+  int containsFun_L (Word* args, Word& result, int message,
+                Word& local, Supplier s)
+  {
+    result = qp->ResultStorage(s);
+    Line *line = (Line *) args[0].addr;
+    const CcReal *tx = (CcReal *) args[1].addr;
+    const CcReal *ty = (CcReal *) args[2].addr;
+    CcBool* b = static_cast<CcBool*>(result.addr);
+    b->Set(true, line->contains(tx->GetValue(), ty->GetValue()));
+    return 0;
+  }
+
+  int containsFun_R (Word* args, Word& result, int message,
+                Word& local, Supplier s)
+  {
+    result = qp->ResultStorage(s);
+    Region *region = (Region *) args[0].addr;
+    const CcReal *tx = (CcReal *) args[1].addr;
+    const CcReal *ty = (CcReal *) args[2].addr;
+    CcBool* b = static_cast<CcBool*>(result.addr);
+    b->Set(true, region->contains(tx->GetValue(), ty->GetValue()));
+    return 0;
+  }
+
+  ListExpr containsTypeMap(ListExpr args)
+  {
+    NList type(args);
+    const std::string errMsg = "Expecting line or region with two double.";
+    if (type == NList(Line::BasicType(), CcReal::BasicType(),
+                       CcReal::BasicType())) {
+      return NList(CcBool::BasicType()).listExpr();
+    }
+    if (type == NList(Region::BasicType(), CcReal::BasicType(),
+                      CcReal::BasicType())) {
+      return NList(CcBool::BasicType()).listExpr();
+    }
+    return NList::typeError(errMsg);
+  }
+
+  int containsSelect(ListExpr args) {
+    NList type(args);
+    if (type.first().isSymbol( Line::BasicType()))
+      return 0;
+    else if(type.first().isSymbol( Region::BasicType()))
+      return 1;
+    else
+      return 3;
+  }
+
+  struct containsInfo : OperatorInfo {
+    containsInfo()
+    {
+      name      = "lr_contains";
+      signature = Line::BasicType() + " x " + CcReal::BasicType() + " x " +
+          CcReal::BasicType() + " -> " +CcBool::BasicType();
+      appendSignature(Region::BasicType() + " x "+ CcReal::BasicType() + " x " +
+               CcReal::BasicType() + " -> " +CcBool::BasicType());
+      syntax    = "_ lr_contains [_, _]";
+      meaning   = "Contains predicate.";
+    }
+  };
+
+  int intersectFun_L (Word* args, Word& result, int message,
+                     Word& local, Supplier s)
+  {
+    result = qp->ResultStorage(s);
+    Line *line = (Line *) args[0].addr;
+    RectangleBB *rec = (RectangleBB *) args[1].addr;
+    CcBool* b = static_cast<CcBool*>(result.addr);
+    b->Set(true, line->intersects(rec));
+    return 0;
+  }
+
+  int intersectFun_R (Word* args, Word& result, int message,
+                     Word& local, Supplier s)
+  {
+    result = qp->ResultStorage(s);
+    Region *region = (Region *) args[0].addr;
+    RectangleBB *rec = (RectangleBB *) args[1].addr;
+    CcBool* b = static_cast<CcBool*>(result.addr);
+    b->Set(true, region->intersects(rec));
+    return 0;
+  }
+
+  ListExpr intersectTypeMap(ListExpr args)
+  {
+    NList type(args);
+    const std::string errMsg = "Expecting line or region with rectangleBB.";
+    if (type == NList(Line::BasicType(), RectangleBB::BasicType())) {
+      return NList(CcBool::BasicType()).listExpr();
+    }
+    if (type == NList(Region::BasicType(), RectangleBB::BasicType())) {
+      return NList(CcBool::BasicType()).listExpr();
+    }
+    return NList::typeError(errMsg);
+  }
+
+  int intersectSelect(ListExpr args) {
+    NList type(args);
+    if (type.first().isSymbol( Line::BasicType()))
+      return 0;
+    else if(type.first().isSymbol( Region::BasicType()))
+      return 1;
+    else
+      return 3;
+  }
+
+  struct intersectInfo : OperatorInfo {
+    intersectInfo()
+    {
+      name      = "lr_intersects";
+      signature = Line::BasicType() + " x " + RectangleBB::BasicType()
+                  + " -> " +CcBool::BasicType();
+      appendSignature(Region::BasicType() + " x "+ RectangleBB::BasicType()
+                      + " -> " +CcBool::BasicType());
+      syntax    = "_ lr_intersects [_, _]";
+      meaning   = "Intersection predicate.";
+    }
+  };
+
   GenTC <Line> LineTC;
   GenTC <Region> RegionTC;
+  GenTC <RectangleBB> RectangleBBTC;
 
   class SpatialLRAlgebra : public Algebra {
   public:
@@ -255,11 +373,21 @@ namespace salr {
       AddTypeConstructor(&RegionTC);
       RegionTC.AssociateKind(Kind::DATA());
 
+      AddTypeConstructor(&RectangleBBTC);
+      RectangleBBTC.AssociateKind(Kind::DATA());
+
       AddOperator(&moveToOp);
       AddOperator(&lineToOp);
       AddOperator(&quadToOp);
       AddOperator(&closeLineOp);
       AddOperator(&lineToRegionOp);
+
+      ValueMapping containsFuns[] = {containsFun_L, containsFun_R, 0};
+      AddOperator(containsInfo(), containsFuns, containsSelect,containsTypeMap);
+
+      ValueMapping intersectFuns[] = {intersectFun_L, intersectFun_R, 0};
+      AddOperator(intersectInfo(), intersectFuns,
+                  intersectSelect, intersectTypeMap);
     }
 
     ~SpatialLRAlgebra() {};

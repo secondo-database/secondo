@@ -25,6 +25,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "RectangleBB.h"
+#include "NestedList.h"
+#include "ListUtils.h"
 
 #include <algorithm>
 
@@ -33,7 +35,121 @@ using namespace std;
 namespace salr {
 
   RectangleBB::RectangleBB(double x, double y, double width, double height) :
-    x(x), y(y), width(width), height(height) {
+    Attribute(true), x(x), y(y), width(width), height(height) {
+  }
+
+  RectangleBB::RectangleBB(int init) :
+    Attribute(true), x(0), y(0), width(0), height(0) {
+  }
+
+  RectangleBB::~RectangleBB() {
+  }
+
+  const std::string RectangleBB::BasicType() {
+    return "rectangleBB";
+  }
+
+  const bool RectangleBB::checkType(const ListExpr type) {
+    return listutils::isSymbol(type, BasicType());
+  }
+
+  int RectangleBB::NumOfFLOBs() const {
+    return 0;
+  }
+
+  Flob* RectangleBB::GetFLOB(const int i) {
+    return NULL;
+  }
+
+  int RectangleBB::Compare(const Attribute *arg) const {
+    const RectangleBB &l = *((const RectangleBB *) arg);
+    if (!IsDefined() && !l.IsDefined()) {
+      return 0;
+    }
+    if (!IsDefined()) {
+      return -1;
+    }
+    if (!l.IsDefined()) {
+      return 1;
+    }
+
+    if (x > l.x)
+      return 1;
+    if (x < l.x)
+      return -1;
+    if (y > l.y)
+      return 1;
+    if (y < l.y)
+      return -1;
+    return 0;
+  }
+
+  bool RectangleBB::Adjacent(const Attribute *arg) const {
+    return false;
+  }
+
+  size_t RectangleBB::Sizeof() const {
+    return sizeof(*this);
+  }
+
+  size_t RectangleBB::HashValue() const {
+    size_t h = 17 * x;
+    h += 13 * y;
+    h += 7 + width;
+    h += 5 * height;
+    return h;
+  }
+
+  void RectangleBB::CopyFrom(const Attribute *arg) {
+    *this = *((RectangleBB *) arg);
+  }
+
+  Attribute *RectangleBB::Clone() const {
+    return new RectangleBB(this->x, this->y, this->width, this->height);
+  }
+
+  bool RectangleBB::CheckKind(ListExpr type, ListExpr &errorInfo) {
+    return checkType(type);
+  }
+
+  bool RectangleBB::ReadFrom(ListExpr LE, const ListExpr typeInfo) {
+    if (listutils::isSymbolUndefined(LE)) {
+      SetDefined(false);
+      return true;
+    }
+
+    if (!nl->HasLength(LE, 4)) {
+      cmsg.inFunError("List in ReadFrom-Function wrong size");
+      return false;
+    }
+    if (!listutils::isNumeric(nl->First(LE))
+        || !listutils::isNumeric(nl->Second(LE))
+        || !listutils::isNumeric(nl->Third(LE))
+        || !listutils::isNumeric(nl->Fourth(LE))) {
+      cmsg.inFunError("All elements must be numeric");
+      return false;
+    }
+
+    x = nl->RealValue(nl->First(LE));
+    double y = nl->RealValue(nl->Second(LE));
+    double width = nl->RealValue(nl->Third(LE));
+    double height = nl->RealValue(nl->Fourth(LE));
+
+    this->setRect(x, y, width, height);
+
+    SetDefined(true);
+    return true;
+  }
+
+  ListExpr RectangleBB::ToListExpr(ListExpr typeInfo) const {
+    if (!IsDefined()) {
+      return listutils::getUndefined();
+    }
+
+    ListExpr result = nl->FourElemList(nl->RealAtom(x), nl->RealAtom(y),
+                                nl->RealAtom(width), nl->RealAtom(height));
+
+    return result;
   }
 
   bool RectangleBB::contains(double x1, double y1) {
