@@ -52,6 +52,8 @@ public:
 
 */
     static ListExpr getStreamType(ListExpr nestedList, bool& locallyAvailable);
+    
+    static ListExpr getRelType(ListExpr nestedList, bool& locallyAvailable);
 };
 
 } /* namespace DBService */

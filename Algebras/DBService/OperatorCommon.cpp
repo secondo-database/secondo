@@ -29,10 +29,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StandardTypes.h"
 
 #include "Algebras/Relation-C++/OperatorFeed.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
 #include "Algebras/DBService/DBServiceClient.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/OperatorCommon.hpp"
+#include "Algebras/Stream/Stream.h"
 
 using namespace std;
 
@@ -93,6 +95,20 @@ ListExpr OperatorCommon::getStreamType(
     }
     print("feedTypeMapResult", feedTypeMapResult);
     return feedTypeMapResult;
+}
+
+
+ListExpr OperatorCommon::getRelType(
+        ListExpr nestedList,
+        bool& locallyAvailable)
+{
+  ListExpr tr = getStreamType(nestedList, locallyAvailable);
+  if(!Stream<Tuple>::checkType(tr)){
+     return tr;
+  }
+  return nl->TwoElemList( listutils::basicSymbol<Relation>(),
+                          nl->Second(tr)); 
+
 }
 
 } /* namespace DBService */
