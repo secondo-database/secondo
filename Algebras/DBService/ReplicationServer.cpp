@@ -201,6 +201,7 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
     traceWriter->writeFunction(
             tid, "ReplicationServer::applyFunctionAndCreateNewFile");
 
+    traceWriter->write(tid, "FunctionList " , function); 
 
     NestedList* nl = SecondoSystem::GetNestedList();
     ListExpr funlist;
@@ -208,6 +209,9 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
       traceWriter->write("cannot parse function list");
       return;
     }
+
+
+
     if(!nl->HasLength(funlist,3)){
       traceWriter->write("invalid function definition, not an unary function");
       return;
@@ -218,7 +222,7 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
       return;
     }
     ListExpr argname = nl->First(args);
-    if(nl->AtomType(argname != SymbolType)){
+    if(nl->AtomType(argname) != SymbolType){
       traceWriter->write("invalid name for function argument");
       return;
     }
@@ -254,10 +258,16 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
     bool evaluable;
     bool defined;
     bool isFunction;
-    
+   
+ 
+    traceWriter->write(tid, "Execute Query" );
+
     bool ok = QueryProcessor::ExecuteQuery(
                  command,queryRes,typeStr,errMsg,correct,
                  evaluable,defined,isFunction);
+
+    traceWriter->write(tid, "Query executed with result " , ok );
+
 
     if(ok){
        CcInt* result = (CcInt*) queryRes.addr;
