@@ -203,4 +203,20 @@ void TraceWriter::write(
     }
 }
 
+
+void TraceWriter::write(
+        const boost::thread::id tid,
+        const char* text,
+        const bool value)
+{
+    std::string v = value?"true":"false";
+    print(tid,text, v);
+    if(TraceSettings::getInstance()->isFileTraceOn())
+    {
+        *traceFile << "[Thread " << tid << "] " << endl;
+        *traceFile << text << endl;
+        *traceFile << v << endl;
+    }
+}
+
 } /* namespace DBService */

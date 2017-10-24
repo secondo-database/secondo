@@ -217,7 +217,6 @@ to determine selectivities of predicates while processing a query. Furthermore s
 #include "CostEstimation.h"
 #include "NameIndex.h"
 #include "NestedList.h"
-#include "NList.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
 #include "SecondoCatalog.h"
@@ -225,7 +224,6 @@ to determine selectivities of predicates while processing a query. Furthermore s
 #include "SecondoSMI.h"
 #include "LogMsg.h"
 #include "CharTransform.h"
-#include "NList.h"
 #include "Profiles.h"
 #include "ProgressView.h"
 #include "Progress.h"
@@ -236,6 +234,7 @@ to determine selectivities of predicates while processing a query. Furthermore s
 #include "StandardTypes.h"
 #include "../Algebras/FText/FTextAlgebra.h"
 #include "Application.h"
+#include "NList.h"
 
 // force a failed assertion. This will imply to print a stack trace
 #define qp_assert if( RTFlag::isActive("QP:assert") ) assert(false)
@@ -2655,6 +2654,7 @@ QueryProcessor::TestOverloadedOperators( const string&
                                          bool traceMode )
 {
   ListExpr resultType = nl->TheEmptyList();
+  NestedList* nl1 = NList::getNLRef();
 
   static const int width=70;
   static const string sepLine = "\n" + string(width,'-') + "\n";
@@ -2667,7 +2667,7 @@ QueryProcessor::TestOverloadedOperators( const string&
 
   string typeErrorMsg =
    "Type map error for operator " + operatorSymbolStr + "!" + sepLine
-   + wordWrap("Input: ", width, NList(typeList).convertToString()) + sepLine
+   + wordWrap("Input: ", width, nl->ToString(typeList) + sepLine)
    + wordWrap("Short: ", width, getMainTypesAsString(typeList))
    + sepLine + "Error Message(s):" + sepLine;
 
@@ -2687,7 +2687,8 @@ QueryProcessor::TestOverloadedOperators( const string&
     // "UsesArgumentsInTypeMapping"
     // It is demonstrated with the filter operator in the relation
     // algebra.
-  
+ 
+    NList::setNLRef(nl); 
     if ( !algebraManager->
                getOperator( alId, opId )->UsesArgsInTypeMapping() )
       resultType = algebraManager->TransformType( alId, opId, typeList );
@@ -2695,6 +2696,8 @@ QueryProcessor::TestOverloadedOperators( const string&
       resultType = algebraManager->TransformType( alId, opId, typeArgList );
     
     string algName = algebraManager->GetAlgebraName(alId);
+
+    NList::setNLRef(nl1);
 
     if( traceMode )
     {
@@ -2750,7 +2753,9 @@ QueryProcessor::TestOverloadedOperators( const string&
      */
     if ( checkFunId )
     {
+      NList::setNLRef(nl);
       opFunId = algebraManager->Select( alId, opId, typeList );
+      NList::setNLRef(nl1);
       selFunIndex = opFunId;
       opFunId = opFunId * 65536 + opId;
 
@@ -2766,9 +2771,9 @@ QueryProcessor::TestOverloadedOperators( const string&
 
   if ( traceMode )
   {
-    cout << wordWrap( "IN: ", width, NList(typeList).convertToString() )
+    cout << wordWrap( "IN: ", width, nl->ToString(typeList) )
          << endl
-         << wordWrap( "OUT: ", width, NList(resultType).convertToString() )
+         << wordWrap( "OUT: ", width, nl->ToString(resultType) )
          << endl
          << "SelectionFunction: index = " << selFunIndex << endl
          << sepLine << endl;
@@ -2899,11 +2904,11 @@ arguments preceding this function argument in an operator application.
       {
         paramtype = nl->Second( nl->First( expr ) );
       }
-      NList param(paramtype);
+      ListExpr param = paramtype;
       bool typeOk = false;
-      if (param.isList() && param.first().isSymbol("stream"))
+      if( nl->HasMinLength(param,2) && nl->IsEqual(nl->First(param), "stream")) 
       {
-        typeOk = IsCorrectTypeExpr( param.second().listExpr() );
+        typeOk = IsCorrectTypeExpr( nl->Second(param)  );
       }
       else
       {
@@ -2927,7 +2932,7 @@ arguments preceding this function argument in an operator application.
       else
       {
         cmsg.error() << fn << ": Wrong parameter type "
-                     << NList(paramtype) << endl;
+                     << nl->ToString(paramtype) << endl;
         return (nl->TwoElemList(
                   nl->SymbolAtom( "functionerror" ),
                   nl->SymbolAtom( "typeerror" ) ));
@@ -5294,13 +5299,16 @@ bool
                                   Word& queryResult,
                                   const size_t availableMemory 
                                     /* = DEFAULT_GLOBAL_MEMORY */,
-                                  const int debugLevel /*=0*/)
+                                  const int debugLevel /*=0*/,
+                                  NestedList* nli /*=0*/)
 {
   string typeString(""), errorString("");
   bool success = true;
   bool correct = false, evaluable = false, defined = false, isFunction = false;
   ListExpr queryList;
-  NestedList* nli = SecondoSystem::GetNestedList();
+  if(nli==0){
+     nli = SecondoSystem::GetNestedList();
+  }
   success = nli->ReadFromString( queryListStr, queryList );
   if (!success)
   {
@@ -5340,7 +5348,8 @@ QueryProcessor::ExecuteQuery( const ListExpr& commandList,
                               bool& isFunction,
                               const size_t availableMemory 
                                 /* = DEFAULT_GLOBAL_MEMORY */,
-                              const int debugLevel /*=0*/ )
+                              const int debugLevel /*=0*/,
+                              NestedList* nli /*=0*/ )
 { // reset return parameters
   errorString  = "";
   correct      = false;
@@ -5350,7 +5359,9 @@ QueryProcessor::ExecuteQuery( const ListExpr& commandList,
   // initialise local objects
   OpTree tree  = 0;
   string errorMessage = "";
-  NestedList* nli = SecondoSystem::GetNestedList();
+  if(!nli){
+     nli = SecondoSystem::GetNestedList();
+  }
   ListExpr resultType = nli->TheEmptyList();
 //   ErrorReporter::GetErrorMessage(errorMessage); // clear
   QueryProcessor* qpp =
@@ -5397,13 +5408,15 @@ QueryProcessor::ExecuteQuery( const ListExpr& commandList,
 }
 
 bool
-QueryProcessor::GetNLArgValueInTM(const NList& arg, NList& value,
+QueryProcessor::GetNLArgValueInTM(const ListExpr& arg, ListExpr& value,
                                   const size_t availableMemory 
-                                  /* = DEFAULT_GLOBAL_MEMORY */)
+                                  /* = DEFAULT_GLOBAL_MEMORY */,
+                                  NestedList* nli /*=0*/)
 {
-  if ((arg.isList()) || (arg.isSymbol()))
+  int at = nli->AtomType(arg);
+  if( (at == NoAtom) || (at == SymbolType)) 
   {
-    ListExpr queryList = arg.listExpr();
+    ListExpr queryList = arg;
     Word queryresultword;
     string typestring   = "";
     string errorstring   = "";
@@ -5421,7 +5434,9 @@ QueryProcessor::GetNLArgValueInTM(const NList& arg, NList& value,
                                       isFunction,
                                       availableMemory);
     ListExpr queryResType;
-    NestedList* nli = SecondoSystem::GetNestedList();
+    if(!nli){
+      nli = SecondoSystem::GetNestedList();
+    }
     if (!nli->ReadFromString(typestring, queryResType))
     {
       cerr << "ERROR! Invalid argument type. "
@@ -5444,7 +5459,7 @@ QueryProcessor::GetNLArgValueInTM(const NList& arg, NList& value,
             SecondoSystem::GetCatalog()->DeleteObj(queryResType, 
                                                     queryresultword);
         }
-        value = NList(valueList);
+        value = valueList;
         return true;
       }
       cerr << "ERROR! Incorrect evaluation for arguments in TM.\n";

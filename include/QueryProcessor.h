@@ -175,7 +175,6 @@ such as "ArgVectorPointer"[4], "Supplier"[4], "Word"[4], "Address"[4], etc.
 #include "LogMsg.h"
 #include "StopWatch.h"
 #include "DotSpec.h"
-#include "NList.h"
 
 
 #define DEFAULT_GLOBAL_MEMORY 128
@@ -641,7 +640,8 @@ Returns a short name for a given supplier.
   static bool ExecuteQuery( const std::string& queryListStr,
                             Word& queryResult,
                    const size_t availableMemory = DEFAULT_GLOBAL_MEMORY,
-                   const int debugLevel = 0);
+                   const int debugLevel = 0,
+                   NestedList* nli =0 );
 /*
   Executes a Secondo query, given in nested list syntax of type string 
 and returns
@@ -661,7 +661,8 @@ and returns
                           bool& defined,
                           bool& isFunction,
                     const size_t availableMemory = DEFAULT_GLOBAL_MEMORY,
-                    const int debugLevel = 0);
+                    const int debugLevel = 0,
+                    NestedList* nli=0);
 /*
 Just as before, but if an error occurs, it is written to argument
   ~errorString~.
@@ -675,8 +676,9 @@ Also, the result's type expression is in returned in parameter ~typeString~.
 
 */
 
-  static bool GetNLArgValueInTM(const NList& arg, NList& value, 
-                  const size_t availableMemory = DEFAULT_GLOBAL_MEMORY );
+  static bool GetNLArgValueInTM(const ListExpr& arg, ListExpr& value, 
+                  const size_t availableMemory = DEFAULT_GLOBAL_MEMORY,
+                  NestedList* nli=0 );
 /*
 A method to evaluate an argument ~arg~ within a type mapping. The
 argument is given as a nested list, evaluated by a new instance of

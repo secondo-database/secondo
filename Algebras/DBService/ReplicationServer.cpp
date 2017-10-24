@@ -258,13 +258,22 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
     bool evaluable;
     bool defined;
     bool isFunction;
-   
  
     traceWriter->write(tid, "Execute Query" );
 
-    bool ok = QueryProcessor::ExecuteQuery(
+   bool ok = false;
+   try{
+      ok = QueryProcessor::ExecuteQuery(
                  command,queryRes,typeStr,errMsg,correct,
-                 evaluable,defined,isFunction);
+                 evaluable,defined,isFunction,DEFAULT_GLOBAL_MEMORY,0, nl);
+   } catch(...){
+       ok = false;
+       traceWriter->write("Exception during query execution");
+       return;
+   }
+
+   traceWriter->write(tid, "construction successful"); 
+
 
     traceWriter->write(tid, "Query executed with result " , ok );
 

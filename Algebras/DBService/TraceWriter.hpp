@@ -93,6 +93,10 @@ for all necessary data types.
             const boost::thread::id tid,
             const char* text,
             ListExpr nestedList);
+    void write(
+            const boost::thread::id tid,
+            const char* text,
+            bool value);
 
 /*
 
