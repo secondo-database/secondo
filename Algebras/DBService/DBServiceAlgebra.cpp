@@ -74,10 +74,13 @@ DBServiceAlgebra::DBServiceAlgebra() :
                 OperatorPingDBService::mapType);
     AddOperator(Read2Info(),
                 OperatorRead2::mapValue,
-                OperatorRead2::mapType);
+                OperatorRead2::mapType)->SetUsesArgsInTypeMapping();
+
+
     AddOperator(Read3Info(),
                 OperatorRead3::mapValue,
                 OperatorRead3::mapType);
+
     AddOperator(DBSARGInfo(),
                 0,
                 OperatorDBSARG::mapType);

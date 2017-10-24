@@ -30,8 +30,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
-#ifndef ALGEBRAS_DBSERVICE_OPERATORREAD2_HPP_
-#define ALGEBRAS_DBSERVICE_OPERATORREAD2_HPP_
+#ifndef ALGEBRAS_DBSERVICE_OperatorRead2_HPP_
+#define ALGEBRAS_DBSERVICE_OperatorRead2_HPP_
 
 #include "Operator.h"
 
@@ -52,7 +52,8 @@ struct Read2Info: OperatorInfo
         syntax = "read(rel, fun)";
         meaning = "read a tuple stream from a relation and fall back to the "
                   "replica provided by the DBService if necessary";
-        example = "query myRelation read2[Host : node3; Host, Port] consume";
+        example = "query myRelation read2[. filter[.Host = 'node2'] "
+                "project[Host, Port]] consume";
         remark = "requires a DBService system";
         usesArgsInTypeMapping = false;
     }

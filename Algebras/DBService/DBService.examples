@@ -45,9 +45,9 @@ Remark    : None
 
 Operator  : read2
 Number    : 1
-Signature : rel(tuple(X)) x map(attr, value) x list(attrnames) -> stream(tuple(X))
-Example   : query myRelation read2[Host : node3; Host, Port] consume
-Result    : (stream(tuple))
+Signature : rel(tuple(X)) x map(stream(tuple(X)) -> stream(tuple(Y))  -> stream(tuple(Y))
+Example   : query plz read2[ . filter[.PLZ > 5000] project[Ort] ] = plz feed filter[.PLZ > 5000] project[Ort]
+Result    : TRUE
 Remark    : None
 
 Operator  : read3
