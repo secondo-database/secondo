@@ -200,86 +200,80 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
 {
     traceWriter->writeFunction(
             tid, "ReplicationServer::applyFunctionAndCreateNewFile");
-    ffeed5Info* oldFileInfo = new ffeed5Info(oldFileName);
-    if(!oldFileInfo->isOK())
-    {
-        traceWriter->write("Could not read file");
-        delete oldFileInfo;
-        return;
+
+
+    NestedList* nl = SecondoSystem::GetNestedList();
+    ListExpr funlist;
+    if(!nl->ReadFromString(function,funlist)){
+      traceWriter->write("cannot parse function list");
+      return;
     }
-    traceWriter->write("File opened");
-    ListExpr relType = oldFileInfo->getRelType();
-    traceWriter->write(tid, "relType", relType);
-    if(!Relation::checkType(relType))
-    {
-        traceWriter->write("file does not contain a relation");
-        delete oldFileInfo;
-        return;
+    if(!nl->HasLength(funlist,3)){
+      traceWriter->write("invalid function definition, not an unary function");
+      return;
     }
-    traceWriter->write("relType ok");
+    ListExpr args = nl->Second(funlist);
+    if(!nl->HasLength(args,2)){
+      traceWriter->write("invalid function arguments");
+      return;
+    }
+    ListExpr argname = nl->First(args);
+    if(nl->AtomType(argname != SymbolType)){
+      traceWriter->write("invalid name for function argument");
+      return;
+    }
+    ListExpr funarg = nl->TwoElemList(
+                            nl->SymbolAtom("ffeed5"),
+                            nl->TextAtom(oldFileName));
+    ListExpr fundef = nl->Third(funlist);
+    
+    ListExpr command = listutils::replaceSymbol(fundef, 
+                                  nl->SymbolValue(argname), funarg, nl);
 
-    NestedList* nli = SecondoSystem::GetNestedList();
-    QueryProcessor* queryProcessor = new QueryProcessor(nli,
-            SecondoSystem::GetAlgebraManager(),
-            DEFAULT_GLOBAL_MEMORY);
+    // now, command produces a stream. 
+    // write the stream into a file and just count it
+   
+    command = nl->ThreeElemList(
+                     nl->SymbolAtom("fconsume5"),
+                     command,
+                     nl->TextAtom(newFileName));
+ 
+    command = nl->TwoElemList(
+                     nl->SymbolAtom("count"),
+                     command);
 
-    ofstream out(newFileName.c_str(),ios::out|ios::binary);
 
-    Tuple* tuple = oldFileInfo->next();
+   
+    traceWriter->write(tid, "QueryCommand", command);
 
-    if(tuple)
-    {
-        traceWriter->write("found tuple in file");
-        ListExpr functionAsNestedList;
-        if(!nli->ReadFromString(function, functionAsNestedList))
-        {
-            traceWriter->write("not a valid function");
-            return;
-        }
-        traceWriter->write(tid, "functionAsNestedList", functionAsNestedList);
-        Word fun(functionAsNestedList);
-        Word funResult;
-        Tuple* resultTuple = nullptr;
-        applyFunction(queryProcessor, tuple, fun, funResult, resultTuple);
-        if(resultTuple)
-        {
-            // TODO determine new rel type depending on resulting tuple type
+ 
+    Word queryRes;
+    std::string typeStr;
+    std::string errMsg;
+    bool correct;
+    bool evaluable;
+    bool defined;
+    bool isFunction;
+    
+    bool ok = QueryProcessor::ExecuteQuery(
+                 command,queryRes,typeStr,errMsg,correct,
+                 evaluable,defined,isFunction);
 
-//            TupleType* tupleType = resultTuple->GetTupleType();
-//            stringstream ss;
-//            ss << "rel( " << tupleType << ")";
-//            traceWriter->write("new rel type", ss.str());
-//            if(!nli->ReadFromString(ss.str(), relType))
-//            {
-//                traceWriter->write("file does not contain a relation");
-//                return;
-//            }
-
-            traceWriter->write("relType", relType);
-            BinRelWriter::writeHeader(out, relType);
-
-            while ((tuple = oldFileInfo->next()))
-            {
-                traceWriter->write("next tuple");
-                applyFunction(
-                        queryProcessor, tuple, fun, funResult, resultTuple);
-                if(resultTuple)
-                {
-                    BinRelWriter::writeNextTuple(out, resultTuple);
-                }
-            }
-        }else
-        {
-            traceWriter->write("resultTuple is nullptr");
-        }
-        out.close();
-    }else
-    {
-        traceWriter->write("empty rel file");
+    if(ok){
+       CcInt* result = (CcInt*) queryRes.addr;
+       result->DeleteIfAllowed();
+       traceWriter->write("Creating derived file successful");
+       return;
     }
 
-    delete oldFileInfo;
-    oldFileInfo = 0;
+    // query not successful
+    traceWriter->write(tid, "Command not successful", command);
+    traceWriter->write(tid, "correct", correct);
+    traceWriter->write(tid, "evaluable", evaluable);
+    traceWriter->write(tid, "defined", defined);
+    traceWriter->write(tid, "isFunction", isFunction);
+    traceWriter->write(tid, "error message", errMsg);
+    
 }
 
 void ReplicationServer::applyFunction(
