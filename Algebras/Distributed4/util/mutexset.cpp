@@ -177,7 +177,7 @@ Interpret the first argument ("shmpath"[1]).
   named_sharable_mutex* mutex;
   try {
     mutex = new named_sharable_mutex{open_only, shmname.c_str()};
-  } catch(interprocess_exception& e) {
+  } catch(const interprocess_exception& e) {
     return die(e.what());
   }
 /*

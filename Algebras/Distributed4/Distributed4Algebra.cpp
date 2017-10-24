@@ -30,59 +30,66 @@ Suite 330, Boston, MA  02111-1307  USA
 The type constructors and operators of this algebra are assigned to the algebra
 in this file. However, they are implemented in other files as follows:
 
-  * Types in "Distributed4Types.cpp"[1] and corresponding class files
-    ("TypeName.cpp"[1] and "TypeName.h)"[1]).
+  * Types in corresponding class files ("TypeName.cpp"[1] and
+    "TypeName.h)"[1])
 
-  * Operators in "Distributed4Operators.cpp"[1]
+  * Operators in "Operators.cpp"[1] and "Operators.h"[1]
 
 */
+#include "DPartition.h"
+#include "Operators.h"
 #include "Algebra.h"
 #include "Symbols.h"
 
 namespace distributed4 {
 /*
-Types and operators are instantiated as objects in the accompanying files.
-These objects are declared here as "extern"[1] so that the linker will find
-them.
-
-*/
-  extern TypeConstructor dpartitionTC;
-  extern Operator lockOp, unlockOp, addworkerOp;
-/*
 "Distributed4Algebra"[1] is derived from "Algebra"[1], just like every other
 algebra here. The default constructor is redefined to add this algebra's types
 and operators.
 
-It is not possible simply to create an object of type Algebra and add the types
-and objects to that object because the methods "AddTypeConstructor"[1] and
-"AddOperator"[1] are "protected"[1] in "Algebra"[1].
+It is not possible simply to create an instance of the class "Algebra"[1] and
+add the type constructors and operators to that object because the member
+functions "AddTypeConstructor"[1] and "AddOperator"[1] are "protected"[1] in
+"Algebra"[1].
 
 */
   class Distributed4Algebra: public Algebra {
-    public:
-      Distributed4Algebra() {
 /*
-Configure Type Constructors
+Define Type Constructors
 
 */
-        dpartitionTC.AssociateKind(Kind::SIMPLE());
+    protected:
+      TypeConstructor tc{DPartition::Info{}, DPartition::Functions{}};
+
+    public:
+      Distributed4Algebra() {
 /*
 Add Type Constructors
 
 */
-        AddTypeConstructor(&dpartitionTC);
-/*
-Configure Operators
-
-*/
-        addworkerOp.SetUsesArgsInTypeMapping();
+        tc.AssociateKind(Kind::SIMPLE());
+        AddTypeConstructor(&tc);
 /*
 Add Operators
 
+The "Operator"[1] class takes care of putting together operator instances given
+values and functions for an operator. The constructor expects the following
+elements: name of operator, specification of operator, value mapping function
+(for overloaded operators, the number of available value mapping functions and
+an array of those functions are supplied instead), selection function (simple
+operators use "Operator::SimpleSelect"[1]), type mapping function.
+
+The "OperatorSpec"[1] class formats human-readable specification for the
+operators in a consistent way. The constructor expects four or five strings in
+the following order: signature, syntax, meaning, example, remark (optional).
+
 */
-        AddOperator(&lockOp);
-        AddOperator(&unlockOp);
-        AddOperator(&addworkerOp);
+        AddOperator(lockInfo(), lockVM, lockTM);
+        AddOperator(trylockInfo(), trylockVM, lockTM);
+        AddOperator(unlockInfo(), unlockVM, unlockTM);
+        AddOperator(addworkerInfo(), addworkerVM, addworkerTM);
+        AddOperator(removeworkerInfo(), removeworkerVM, removeworkerTM);
+        AddOperator(moveslotInfo(), moveslotVM, moveslotTM);
       }
   };
 }

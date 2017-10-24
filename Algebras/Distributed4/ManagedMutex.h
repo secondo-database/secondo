@@ -36,6 +36,12 @@ adds the property that the corresponding shared memory segment is removed when
 it is no longer used. The implementation is specific to Linux and requires
 careful checks in both the constructor and the destructor.
 
+By default an instance of "ManagedMutex"[1] will unlock any lock held when it
+is destroyed. This protects against unexpected out-of-scope situations that
+might arise in the face of exceptions. And it also simplifies code. When the
+mutex should remain locked past the lifetime of the object, the automatic
+unlocking can be disabled by calling "noautounlock()".
+
 */
 #ifndef ALGEBRAS_DISTRIBUTED4_MANAGEDMUTEX_H
 #define ALGEBRAS_DISTRIBUTED4_MANAGEDMUTEX_H
@@ -51,27 +57,29 @@ namespace distributed4 {
 
 */
       const boost::filesystem::path shm_target;
-      boost::interprocess::named_sharable_mutex* mutex{nullptr};
+      std::unique_ptr<boost::interprocess::named_sharable_mutex> mutex;
       bool owned{false};
       bool exclusive;
+      bool autounlock{true};
 /*
 "shm\_target"[1] is initialized with the path to the shared memory segment in
 the file system. It is used when checking what processes have mapped the shared
 memory segment when creating and removing the shared memory segment.
 "mutex"[1] is a pointer to the mutex that provides the actual locking.
 "owned"[1] tracks whether the current instance owns (holds a lock on) the
-"mutex"[1]. And "exclusive"[1] tracks the type of lock held.
+"mutex"[1]. "exclusive"[1] tracks the type of lock held. And "autounlock"[1]
+tells the destructor whether to unlock the mutex when the object is destroyed.
 
 3 Member Functions
 
 */
     public:
+      ManagedMutex(const std::string&, bool, bool = true);
       ManagedMutex(const std::string&);
-      ManagedMutex(const std::string&, bool);
       ~ManagedMutex();
-      void lock(bool);
+      void noautounlock();
+      void lock(bool, bool = true);
       void unlock();
-      static void unlock(const std::string&);
 
     protected:
       static std::string getSHMPath(const std::string&);

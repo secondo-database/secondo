@@ -32,8 +32,8 @@ Suite 330, Boston, MA  02111-1307  USA
 1 About this Class
 
 This class provides all the logic for the [secondo] type ~dpartition~. The
-individual methods, static functions, and supporting functions are documented
-with the implementation, in "DPartition.cpp"[1].
+individual member functions, static member functions, and supporting functions
+are documented with the implementation, in "DPartition.cpp"[1].
 
 The type ~dpartition~ provides partitioning of values into slots of a ~darray~
 or ~dfarray~. There are two cases that need to be kept apart here. If the
@@ -61,28 +61,56 @@ namespace distributed4 {
       //TODO: for multi-dimensional partitions, use either a vector of vectors
       //(of vectors) or a map<int,int> of maps<int,int> (of maps<int,int>).
       std::string darrayname;
+      std::pair<double,uint32_t>
+        bufpartition{std::numeric_limits<double>::quiet_NaN(), 0};
 /*
-"partitioning"[1] contains all necessary boundary information to correlate any
-value with a slot. Each entry maps a lower value boundary to a slot number. The
-lowest entry in "partitioning"[1] maps values beginning with negative infinity
-to a slot. This entry must always exist.
+  * "partitioning"[1] contains all necessary boundary information to correlate
+    any value with a slot. Each entry maps a lower value boundary to a slot
+    number.
 
-"darrayname"[1] is the name of the ~d[f]array~ managing the slots of the data
-being partitioned.
+  * "darrayname"[1] is the name of the ~d[f]array~ managing the slots of the
+    data being partitioned.
+
+  * "bufpartition"[1] is used when the values belonging to a partition from
+    "partitioning"[1] are present in two slots. This happens when using
+    ~moveslot~ and similar operators. The special value NaN signifies that
+    "bufpartition"[1] is not in use.
 
 */
     public:
-      DPartition();
       DPartition(const std::map<double,uint32_t>&, const std::string&);
-      DPartition(const NList&);
+      DPartition(const NList&, const NList&);
       uint32_t slot(double) const;
       ListExpr listExpr() const;
       void print(std::ostream&) const;
+      double getPartition(uint32_t) const;
+      std::string getDArrayName() const;
+      distributed2::DArrayBase* getDArray() const;
+      uint32_t allocateSlot(uint32_t, distributed2::DArrayBase*);
+      void setPartition(double, uint32_t);
+      void setBufferPartition(double, uint32_t);
+      void clearBufferPartition();
       static std::string BasicType();
-      static bool checkType(ListExpr, ListExpr&);
+      static ListExpr Out(ListExpr, Word);
+      static Word In(ListExpr, ListExpr, int, ListExpr&, bool&);
+      static Word Create(ListExpr);
+      static void Delete(ListExpr, Word&);
+      static Word Clone(ListExpr, const Word&);
+      static int Size();
+      static bool checkType(ListExpr);
+      static bool checkType(ListExpr, ListExpr&);  // for dpartitionTC
+      struct Info: ConstructorInfo { Info(); };
+      struct Functions: ConstructorFunctions<DPartition> {Functions();};
+
+    protected:
+      DPartition();
+
+    friend Word ConstructorFunctions<DPartition>::Create(const ListExpr);
+    friend void* ConstructorFunctions<DPartition>::Cast(void*);
   };
 
-  std::ostream& operator<<(std::ostream&, const std::map<double,uint32_t>&);
+  std::ostream& operator<<(std::ostream&, const
+      std::map<double,uint32_t>&);
   std::ostream& operator<<(std::ostream&, const DPartition&);
 }
 

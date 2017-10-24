@@ -4,17 +4,35 @@ Restore  : No
 Operator : lock
 Number   : 1
 Signature: string x bool -> bool
-Example  : query lock("Da", TRUE)
+Example  : query lock("da", TRUE)
+Result   : TRUE
+
+Operator : trylock
+Number   : 1
+Signature: string x bool -> bool
+Example  : query trylock("da", TRUE)
 Result   : TRUE
 
 Operator : unlock
 Number   : 1
 Signature: string -> bool
-Example  : query unlock("Da")
+Example  : query unlock("da")
 Result   : TRUE
 
 Operator : addworker
 Number   : 1
 Signature: d[f]array x string x int x string x rel(tuple([Host: string, Port: int, Config: string])) -> bool
-Example  : query addworker(Da, "s3", 1234, "cfg.ini", Peers)
+Example  : query addworker(da, "snew", 1234, "cfg.ini", peers)
 Result   : TRUE
+
+Operator : removeworker
+Number   : 1
+Signature: d[f]array x int x rel(tuple([Host: string, Port: int, Config: string])) -> bool
+Example  : query removeworker(da, 2, peers)
+Result   : TRUE
+
+Operator : moveslot
+Number   : 1
+Signature: dpartition x int x int x rel(tuple([Host: string, Port: int, Config: string])) -> int
+Example  : query moveslot(dp, 7, 2, peers)
+Result   : 13

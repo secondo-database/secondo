@@ -53,76 +53,102 @@ namespace distributed4 {
 /*
 2 Constructors
 
-2.1 "ManagedMutex(const string\&)"[1]
+2.1 "ManagedMutex"[1] (locking constructor)
 
-This constructor takes the name of an object as a parameter. That name is used
-as a basis for the name of the underlying named sharable mutex (and its shared
-memory segment). The ManagedMutex is instantiated and left unlocked.
+This constructor takes the "name"[1] of an object and whether it is to be
+locked for "exclusive"[1] access, or not as parameters. An additional optional
+argument specifies if the function is to "wait"[1] until a lock can be acquired
+or abort if no lock can be acquired immediately. The default is to wait ("wait
+== true"[1]). That passed "name"[1] is used as a basis for the name of the
+underlying named sharable mutex and its shared memory (SHM) segment.
+
+*/
+  ManagedMutex::ManagedMutex(const string& name, bool exclusive, bool wait):
+    shm_target{getSHMPath(name)} {
+/*
+Make sure "name"[1] refers to a real database object.
+
+*/
+    if(!SecondoSystem::GetCatalog()->IsObjectName(name))
+      throw runtime_error{"The object \"" + name + "\" couldn't be locked "
+        "because it doesn't exist."};
+/*
+A race condition exists where it is possible for this process to map the SHM
+segment and another process to remove that SHM segment. This happens when the
+other process checked for mapped references before the SHM segment was mapped
+in this process and subsequently removed it. This race condition is mitigated
+here. After mapping the shared memory segment, the mutex is locked and a check
+is performed to see if the mapping is still valid. If it isn't, the race
+condition happened, and the mutex is re-mapped. This is repeated as often as
+necessary for the mapping to remain valid after the mutex is locked.
+
+*/
+    const string shm_name{shm_target.filename().c_str()};
+    directory_iterator it;
+    while(it == dit_end) {
+      if(mutex)
+        unlock();
+      mutex.reset(new named_sharable_mutex{open_or_create, shm_name.c_str(),
+          0600});
+      lock(exclusive, wait);
+      for(it = directory_iterator{map_files}; it != dit_end; ++it)
+        if(read_symlink(*it) == shm_target)
+          break;
+    }
+  }
+/*
+2.2 "ManagedMutex"[1] (takeover constructor)
+
+This constructor takes the name of an object as a parameter. It will access a
+named sharable mutex that *must* already be locked and assume responsibility
+for it (take over ownership). If the mutex is found not to be locked, it will
+abort.
 
 */
   ManagedMutex::ManagedMutex(const string& name): shm_target{getSHMPath(name)}
   {
-    const char* shm_name{shm_target.filename().c_str()};
 /*
-A race condition exists where it is possible for this process to map the shared
-memory segment for the mutex and another process to remove that same shared
-memory segment. That happens when the other process checked for mapped
-references before the shared memery segment was mapped in this process. This
-race condition is mitigated here. After mapping the shared memory segment, the
-mutex is locked and a check is performed to see if the mapping is still valid.
-If it isn't, the race condition happened, and the mutex is re-mapped.
+Make sure "name"[1] refers to a real database object.
 
 */
-    directory_iterator it;
-    while(it == dit_end) {
-      if(mutex)
-        delete mutex;
-      mutex = new named_sharable_mutex{open_or_create, shm_name, 0600};
-      lock(false);
-      for(it = directory_iterator{map_files}; it != dit_end; ++it)
-        if(read_symlink(*it) == shm_target)
-          break;
-      unlock();
+    if(!SecondoSystem::GetCatalog()->IsObjectName(name))
+      throw runtime_error{"The lock for the object \"" + name + "\" couldn't "
+        "be accessed because the object doesn't exist."};
+/*
+Map the corresponding "named\_sharable\_mutex"[1], throwing an
+"interprocess\_exception"[1] if it doesn't exist.
+
+*/
+    mutex.reset(new named_sharable_mutex{open_only,
+        shm_target.filename().c_str()});
+/*
+Make sure that the mutex is in fact already locked.
+
+*/
+    if(mutex->try_lock()) {
+      mutex->unlock();
+      throw runtime_error{"The mutex at \"" + string{shm_target.c_str()} +
+        "\" couldn't be taken over because it isn't locked."};
     }
-  }
 /*
-2.1 "ManagedMutex(const string\&, bool)"[1]
-
-In addition to the name of an object, this constructor also takes a boolean
-value, "exclusive"[1]. The ManagedMutex is instantiated and locked for
-exclusive ownership when "exclusive"[1] is "true"[1], and for sharable
-ownership when "false"[1].
+Figure out if it is locked for exclusive or sharable ownership and claim it.
 
 */
-  ManagedMutex::ManagedMutex(const string& name, bool exclusive):
-    shm_target{getSHMPath(name)} {
-    const string shm_name{shm_target.filename().c_str()};
-/*
-The race condition mentioned in the first constructor is handled slightly
-differently here: (1) The mutex is not unlocked at the end of the loop, and
-instead unlocked at the beginning of the loop starting with the second
-iteration. (2) The mutex is directly locked for the type of ownership specified
-by the parameter "exclusive"[1].
-
-*/
-    directory_iterator it;
-    while(it == dit_end) {
-      if(mutex) {
-        unlock();
-        delete mutex;
-      }
-      mutex = new named_sharable_mutex{open_or_create, shm_name.c_str(), 0600};
-      lock(exclusive);
-      for(it = directory_iterator{map_files}; it != dit_end; ++it)
-        if(read_symlink(*it) == shm_target)
-          break;
+    if(mutex->try_lock_sharable()) {
+      mutex->unlock_sharable();
+      exclusive = false;
+    } else {
+      exclusive = true;
     }
+    owned = true;
   }
 /*
 3 Destructor
 
 */
   ManagedMutex::~ManagedMutex() {
+    if(autounlock && owned)
+      unlock();
 /*
 Checking and removing the shared memory segment requires locking the mutex to
 avoid most race conditions. If a lock can't be acquired, the mutex is being
@@ -130,14 +156,12 @@ used and may not be removed. In that case, no further checking is necessary and
 the underlying shared memory segment will not be removed.
 
 */
-    if(!mutex->try_lock()) {
-      delete mutex;
+    if(!mutex->try_lock())
       return;
-    }
 /*
 Having acquired a lock on the mutex, all running processes of the process uid
 are checked to see if the shared memory segment is mapped to any of them. The
-processes checked are limited to the process uid by the kernel's permissions on
+processes checked are limited by the kernel's permissions on
 "/proc/.../map\_files"[1].
 
 */
@@ -154,12 +178,12 @@ processes checked are limited to the process uid by the kernel's permissions on
         for(mit = directory_iterator{map_files}; mit != dit_end; ++mit)
           if(read_symlink(*mit) == shm_target)
             break;
-      } catch(filesystem_error&) {}
+      } catch(const filesystem_error&) {}
       if(mit != dit_end)
         break;
     }
 /*
-The value of "mit"[1] tells whether a mapped reference was found, or not.  When
+The value of "mit"[1] tells whether a mapped reference was found, or not. When
 "mit"[1] is equal to "dit\_end"[1], all directories were searched and the
 iterator reached the end of the directory. In that case, no mapped reference
 was found. When "mit"[1] has some other value, it points to the directory
@@ -169,114 +193,68 @@ segment for the mutex is removed.
 
 */
     if(mit == dit_end)
-      named_sharable_mutex::remove(shm_target.c_str());
+      unlink(shm_target.c_str());
     mutex->unlock();
-    delete mutex;
   }
 /*
-4 Member Methods
+4 Member Functions
 
-4.1 "lock"[1]
+4.1 "noautounlock"[1]
 
-Unlike other mutex implementations that offer ~seperate methods~ for exclusive
-and sharable locking, this "lock"[1] method takes an ~argument~ indicating the
-desired lock type: "true"[1] for an exclusive lock or "false"[1] for a sharable
-lock. If a process tries to lock a mutex more than once, a "runtime\_error"[1]
-exception is thrown.
+By default, the "ManagedMutex"[1] will be automatically released when the mutex
+object is destroyed. This helps to avoid stuck locks after exceptions. As this
+is not always the desired behavior, it can be prevented by calling this
+function.
 
 */
-  void ManagedMutex::lock(bool exclusive) {
-    if(owned)
-      throw runtime_error("Attempted to lock a mutex that is already owned.");
+  void ManagedMutex::noautounlock() {
+    autounlock = false;
+  }
+/*
+4.2 "lock"[1]
 
-    if(exclusive) {
-      if(!mutex->try_lock()) {
-        cmsg.info() << "The mutex at " << shm_target << " is currently "
-          "locked. Waiting for exclusive ownership." << endl;
-        cmsg.send();
-        mutex->lock();
-      }
-    } else {
-      if(!mutex->try_lock_sharable()) {
-        cmsg.info() << "The mutex at " << shm_target << " is currently "
-          "locked. Waiting for sharable ownership." << endl;
-        cmsg.send();
-        mutex->lock_sharable();
-      }
+Unlike other mutex implementations that offer ~seperate member functions~ for
+exclusive and sharable locking, "lock"[1] takes an ~argument~ indicating the
+desired lock type: "true"[1] for an exclusive lock or "false"[1] for a sharable
+lock. An additional optional argument specifies if the function is to "wait"[1]
+until a lock can be acquired or abort if no lock can be acquired immediately.
+The default is to wait ("wait == true"[1]). If a process tries to lock a mutex
+more than once, a "runtime\_error"[1] exception is thrown.
+
+*/
+  void ManagedMutex::lock(bool exclusive, bool wait) {
+    if(owned)
+      throw runtime_error{"Attempted to lock a mutex that is already owned."};
+
+    if(!(exclusive ? mutex->try_lock() : mutex->try_lock_sharable())) {
+      const string err{"The mutex at " + shm_target.string() +
+        " is already locked."};
+      if(!wait)
+        throw runtime_error{err};
+      cmsg.info() << err << " Waiting for " << (exclusive ? "exclusive" :
+          "sharable") << " ownership." << endl;
+      cmsg.send();
+      exclusive ? mutex->lock() : mutex->lock_sharable();
     }
 
     this->exclusive = exclusive;
     owned = true;
   }
 /*
-4.2 "unlock"[1]
+4.3 "unlock"[1]
 
 The state of the lock is tracked. Therefore, it is not necessary to distinguish
 between unlocking a sharable lock and an exclusive one when calling
-"unlock()"[1]. There is just this one method to unlock both lock types. If a
-process tries to unlock a mutex that is not locked, a "runtime\_error"[1]
-exception is thrown.
+"unlock()"[1]. There is just this one member function to unlock both lock
+types. If a process tries to unlock a mutex that is not locked, a
+"runtime\_error"[1] exception is thrown.
 
 */
   void ManagedMutex::unlock() {
     if(!owned)
-      throw runtime_error("Attempted to unlock an unowned mutex.");
-
-    if(exclusive)
-      mutex->unlock();
-    else
-      mutex->unlock_sharable();
-
+      throw runtime_error{"Attempted to unlock an unowned mutex."};
+    exclusive ? mutex->unlock() : mutex->unlock_sharable();
     owned = false;
-  }
-/*
-4.3 "static unlock"[1]
-
-This static member function is for the situation where the current process does
-not already have an instance of ManagedMutex for the named object, the
-corresponding mutex is known to be locked, and the process is responsible for
-unlocking it (i.e. when the user calls "query unlock(objname)"[1].
-
-*/
-  void ManagedMutex::unlock(const string& name) {
-    const path shm_target{getSHMPath(name)};
-/*
-Make sure that the current process does not hold a reference to the
-corresponding shared memory segment.
-
-*/
-    for(directory_iterator it{map_files}; it != dit_end; ++it)
-      if(read_symlink(*it) == shm_target)
-        throw runtime_error("Illegal use of ManagedMutex::unlock while "
-            "holding a reference to \"" + string{shm_target.c_str()} + "\".");
-/*
-Map the corresponding "named\_sharable\_mutex"[1], throwing an
-"interprocess\_exception"[1] if it doesn't exist.
-
-*/
-    named_sharable_mutex mutex{open_only, shm_target.filename().c_str()};
-/*
-Make sure that the mutex is in fact already locked.
-
-*/
-    if(mutex.try_lock())
-    {
-      mutex.unlock();
-      throw runtime_error("Attempted to use ManagedMutex::unlock to unlock \""
-          + string{shm_target.c_str()} + "\", which wasn't locked.");
-    }
-/*
-Figure out if it is locked for exclusive or sharable ownership and unlock it
-accordingly.
-
-*/
-    if(mutex.try_lock_sharable())
-    {
-      mutex.unlock_sharable();
-      mutex.unlock_sharable();
-    } else {
-      mutex.unlock();
-    }
   }
 /*
 4.4 "getSHMPath"[1]
