@@ -154,7 +154,13 @@ DBServiceManager* DBServiceManager::getInstance()
     {
         _instance = new DBServiceManager();
     }
+    active = true;
     return _instance;
+}
+
+bool DBServiceManager::isActive()
+{
+    return active;
 }
 
 ConnectionID DBServiceManager::getNextFreeConnectionID()
@@ -565,5 +571,6 @@ void DBServiceManager::setOriginalLocationTransferPort(
 }
 
 DBServiceManager* DBServiceManager::_instance = nullptr;
+bool DBServiceManager::active = false;
 
 } /* namespace DBService */

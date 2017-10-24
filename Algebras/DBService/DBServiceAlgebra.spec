@@ -9,5 +9,6 @@ operator read3 alias READ3 pattern _ op [fun] implicit parameter elem type DBSAR
 operator ddelete alias DDELETE pattern op(_,_)
 operator settracelevel alias SETTRACELEVEL pattern op(_)
 operator pingdbservice alias PINGDBSERVICE pattern op()
+operator startdbservice alias STARTDBSERVICE pattern op()
 
 

@@ -83,3 +83,10 @@ Signature : -> bool
 Example   : query pingdbservice()
 Result    : TRUE
 Remark    : None
+
+Operator  : startdbservice
+Number    : 1
+Signature : -> bool
+Example   : query startdbservice()
+Result    : TRUE
+Remark    : None

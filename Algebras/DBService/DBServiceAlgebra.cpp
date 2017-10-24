@@ -37,6 +37,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/OperatorRead2.hpp"
 #include "Algebras/DBService/OperatorRead3.hpp"
 #include "Algebras/DBService/OperatorSetTraceLevel.hpp"
+#include "Algebras/DBService/OperatorStartDBService.hpp"
 #include "Algebras/DBService/OperatorWrite.hpp"
 
 namespace DBService
@@ -75,6 +76,9 @@ DBServiceAlgebra::DBServiceAlgebra() :
     AddOperator(Read2Info(),
                 OperatorRead2::mapValue,
                 OperatorRead2::mapType)->SetUsesArgsInTypeMapping();
+    AddOperator(StartDBServiceInfo(),
+                OperatorStartDBService::mapValue,
+                OperatorStartDBService::mapType);
 
 
     AddOperator(Read3Info(),

@@ -95,6 +95,15 @@ Returns the DBServiceManager instance (singleton).
 
 /*
 
+1.1.1.1 isActive
+
+Returns whether the DBServiceManager is considered as active.
+
+*/
+    static bool isActive();
+
+/*
+
 1.1.1.1 \textit{addNode}
 
 This function adds a node to the connection manager's pool that can be used for
@@ -428,6 +437,17 @@ Mutex used to coordinate multi-threaded access by different servers.
 */
 
 boost::mutex managerMutex;
+
+/*
+
+1.1.1.1 ~active~
+
+Indicates whether the DBService is active in terms of loaded metadata and open
+connections to all workers.
+
+*/
+
+static bool active;
 
 };
 

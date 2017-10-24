@@ -1,7 +1,4 @@
 /*
-
-1.1.1 Class Implementation
-
 ----
 This file is part of SECONDO.
 
@@ -25,17 +22,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
-#include "NestedList.h"
-#include "StandardTypes.h"
+#include "Algebras/Distributed2/Dist2Helper.h"
 
 #include "Algebras/DBService/DBServiceManager.hpp"
-#include "Algebras/DBService/OperatorCheckDBServiceStatus.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
+#include "Algebras/DBService/OperatorStartDBService.hpp"
+
+using namespace std;
 
 namespace DBService
 {
 
-ListExpr OperatorCheckDBServiceStatus::mapType(ListExpr nestedList)
+ListExpr OperatorStartDBService::mapType(ListExpr nestedList)
 {
     print(nestedList);
 
@@ -49,22 +47,19 @@ ListExpr OperatorCheckDBServiceStatus::mapType(ListExpr nestedList)
     return listutils::basicSymbol<CcBool>();
 }
 
-int OperatorCheckDBServiceStatus::mapValue(Word* args,
-                              Word& result,
-                              int message,
-                              Word& local,
-                              Supplier s)
+int OperatorStartDBService::mapValue(Word* args,
+                               Word& result,
+                               int message,
+                               Word& local,
+                               Supplier s)
 {
     bool dbServiceStarted = DBServiceManager::isActive();
-    if(dbServiceStarted)
-    {
-        DBServiceManager* dbService = DBServiceManager::getInstance();
-        dbService->printMetadata();
-    }
-
+    DBServiceManager::getInstance();
     result = qp->ResultStorage(s);
-    static_cast<CcBool*>(result.addr)->Set(true,dbServiceStarted);
+    // return whether the DBService had to be started (i.e. was inactive before
+    // operator call
+    static_cast<CcBool*>(result.addr)->Set(true,!dbServiceStarted);
     return 0;
 }
 
-} /* namespace DBService */
+}

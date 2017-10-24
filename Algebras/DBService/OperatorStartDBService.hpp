@@ -1,10 +1,4 @@
 /*
-
-1.1 ~OperatorCheckDBServiceStatus~
-
-This operator allows to check the status of the ~DBService~. It checks and
-prints the stored metadata and reconnects the ~DBService~ workers if applicable.
-
 ----
 This file is part of SECONDO.
 
@@ -28,8 +22,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
-#ifndef ALGEBRAS_DBSERVICE_OperatorCheckDBServiceStatus_HPP_
-#define ALGEBRAS_DBSERVICE_OperatorCheckDBServiceStatus_HPP_
+#ifndef ALGEBRAS_DBSERVICE_OPERATORSTARTDBSERVICE_HPP_
+#define ALGEBRAS_DBSERVICE_OPERATORSTARTDBSERVICE_HPP_
 
 #include "Operator.h"
 
@@ -42,16 +36,16 @@ namespace DBService
 
 */
 
-struct CheckDBServiceStatusInfo: OperatorInfo
+struct StartDBServiceInfo : OperatorInfo
 {
-    CheckDBServiceStatusInfo()
+    StartDBServiceInfo()
     {
-        name = "checkdbservicestatus";
+        name = "startdbservice";
         signature = "-> bool";
-        syntax = "checkdbservicestatus()";
-        meaning = "check status of DBService and "
-                "print currently stored metadata to the command line";
-        example = "query checkdbservicestatus()";
+        syntax = "startdbservice()";
+        meaning = "start the DBService by restoring metadata and reconnecting "
+                "worker nodes";
+        example = "query startdbservice()";
         remark = "needs to be executed on a DBService system";
         usesArgsInTypeMapping = false;
     }
@@ -63,9 +57,10 @@ struct CheckDBServiceStatusInfo: OperatorInfo
 
 */
 
-class OperatorCheckDBServiceStatus
+class OperatorStartDBService
 {
 public:
+
 /*
 
 1.1.1.1 Type Mapping Function
@@ -86,5 +81,4 @@ public:
 };
 
 } /* namespace DBService */
-
-#endif /* ALGEBRAS_DBSERVICE_OperatorCheckDBServiceStatus_HPP_ */
+#endif
