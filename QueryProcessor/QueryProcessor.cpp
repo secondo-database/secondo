@@ -3622,7 +3622,8 @@ QueryProcessor::Construct( const ListExpr expr,
                            bool& defined,
                            bool& isFunction,
                            OpTree& tree,
-                           ListExpr& resultType )
+                           ListExpr& resultType,
+                           bool allowIncomplete )
 {
 /*
 Builds an operator tree ~tree~ from a given list expression ~expr~ by
@@ -3777,11 +3778,14 @@ the function in a database object.
   isFunction = (tree->nodetype == Operator) ?
      tree->u.op.isFun : false;
 
-  if (!evaluable && !isFunction ) {
-    Destroy(tree, true);
-    tree=0;
-    throw ERR_EXPR_NOT_EVALUABLE;
+  if(!allowIncomplete){ 
+     if (!evaluable && !isFunction ) {
+       Destroy(tree, true);
+       tree=0;
+       throw ERR_EXPR_NOT_EVALUABLE;
+     }
   }
+  
 
   if(tree){
      InitTree(tree);

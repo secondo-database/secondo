@@ -237,7 +237,8 @@ Stores a ~ProgressView~ instance pointer to show progress.
   void Construct( const ListExpr expr, bool& correct,
                   bool& evaluable, bool& defined,
                   bool& isFunction,
-                  OpTree& tree, ListExpr& resultType );
+                  OpTree& tree, ListExpr& resultType,
+                  bool allowIncomplete=false );
 /*
 Builds an operator tree ~tree~ from a given list expression ~expr~ by
 calling the procedures ~annotateX~ and ~subtreeX~. The tree is only
