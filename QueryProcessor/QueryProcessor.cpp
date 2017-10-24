@@ -3669,6 +3669,14 @@ the function in a database object.
   {
     cmsg.error() << r.what() << endl;
     cmsg.send();
+    correct = false;
+    return;
+  }
+  catch(...){
+    cmsg.error() << "Exception during AnnotateX"  << endl;
+    cmsg.send();
+    correct = false;
+    return;
   }
 
   if ( nl->ListLength( list ) < 2 ) {
