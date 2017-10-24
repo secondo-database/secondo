@@ -384,6 +384,9 @@ alway use const string Symbol::UNDEFINED()!
 
   bool containsSymbol(ListExpr list, const std::string& symb);
 
+  ListExpr replaceSymbol(ListExpr list, const std::string& symb,
+                         ListExpr replacement,  NestedList* nl);
+
 
 
 

@@ -905,4 +905,39 @@ Checks whether the list represents a stream.
   }
 
 
+  ListExpr replaceSymbol(ListExpr list, const std::string& symb, 
+                         ListExpr replacement, NestedList* nl){
+
+     int t = nl->AtomType(list);
+     switch(t){
+       case IntType : 
+       case RealType : 
+       case BoolType :
+       case StringType : 
+       case TextType : return list;
+       case SymbolType : {
+                            std::string s = nl->SymbolValue(list);
+                            return s==symb? replacement: list;
+                         }
+       case NoAtom : {
+               if(nl->IsEmpty(list)) return list;
+               ListExpr cp = nl->OneElemList(replaceSymbol(nl->First(list),
+                                             symb, replacement, nl));
+               ListExpr last = cp;
+               ListExpr rest = nl->Rest(list);
+               while(!nl->IsEmpty(rest)){
+                 last = nl->Append(last,
+                              replaceSymbol(nl->First(rest),symb, 
+                                            replacement, nl));
+                 rest = nl->Rest(rest);
+               }
+               return cp;
+            }
+       default: assert(false);
+                return nl->TheEmptyList();
+
+     }
+  }
+
+
 } // end of namespace listutils
