@@ -11,4 +11,3 @@
 *.toc
 .*.sw?
 compile_commands.json
-util/mutexset
