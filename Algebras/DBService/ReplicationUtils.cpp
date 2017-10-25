@@ -69,6 +69,16 @@ void ReplicationUtils::parseFileName(const std::string& fileName,
     relationName = fileName.substr(relNameStartPos, relNameLength);
 }
 
+
+std::string ReplicationUtils::getRelName(const std::string& filename){
+    // currently just remove the ".bin"
+    if(filename.size()>4){
+      return filename.substr(0,filename.size()-4);
+    }
+    return filename;
+}
+
+
 string ReplicationUtils::separator("xDBSx");
 
 } /* namespace DBService */

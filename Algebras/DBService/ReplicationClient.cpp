@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/CommunicationUtils.hpp"
 #include "Algebras/DBService/ReplicationClient.hpp"
 #include "Algebras/DBService/SecondoUtilsLocal.hpp"
+#include "Algebras/DBService/ReplicationUtils.hpp"
 
 using namespace std;
 using namespace distributed2;
@@ -122,9 +123,55 @@ int ReplicationClient::receiveReplica()
 
         if(receiveFileFromServer())
         {
+            traceWriter->write("file received, create relation");
+            ListExpr command = nl->TwoElemList(
+                                 nl->SymbolAtom("consume"),
+                                 nl->TwoElemList(
+                                   nl->SymbolAtom("ffeed5"),
+                                   nl->TextAtom(fileNameDBS)));
+
+            Word result((void*)0);
+            string typeString,errorString;
+            bool correct,evaluable,defined,isFunction;
+            SecondoSystem::BeginTransaction();
+
+            try{
+                QueryProcessor::ExecuteQuery(command, result, typeString,
+                                  errorString,correct,evaluable,defined,
+                                  isFunction);
+            } catch(...){
+                correct = false;
+            }
+            if(!correct){
+               traceWriter->write("Error in creating relation from file");
+               SecondoSystem::AbortTransaction(true);
+               return 1;
+            }
+            ListExpr typeExpr;
+            nl->ReadFromString(typeString,typeExpr);
+            SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+            string relName = ReplicationUtils::getRelName(fileNameDBS);
+
+            bool ok = ctlg->InsertObject (relName,"",typeExpr,result,true);
+            if(!ok){
+              traceWriter->write("Insertion relation " + relName + " failed");
+              SecondoSystem::AbortTransaction(true);
+              return 1;
+            }
+            ok = ctlg->CleanUp(false,true);
+            if(!ok){
+               traceWriter->write("catalog->CleanUp failed");
+               SecondoSystem::AbortTransaction(true);
+            } else {
+               traceWriter->write("Inserting relation " + relName 
+                                  + " successful");
+               SecondoSystem::CommitTransaction(true);
+            }
             traceWriter->write(
                     "Replication successful, notifying DBService master");
-            reportSuccessfulReplication();
+            if(ok){
+               reportSuccessfulReplication();
+            }
         }
     } catch (...)
     {

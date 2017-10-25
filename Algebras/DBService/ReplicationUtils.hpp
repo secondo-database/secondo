@@ -80,6 +80,17 @@ relation name.
             std::string& databaseName,
             std::string& relationName);
 
+
+/*
+1.1.1.2 getRelName
+
+Returns a relation name derived from a filename;
+
+*/
+   static std::string getRelName(
+              const std::string& filename);
+
+
 /*
 
 1.1.1.1 ~separator~
