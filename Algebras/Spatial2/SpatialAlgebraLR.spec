@@ -24,3 +24,4 @@ operator closeLine alias CLOSELINE pattern _ op
 operator toRegion alias TOREGION pattern _ op
 operator lr_contains alias LR_CONTAINS pattern _ op [_, _]
 operator lr_intersects alias LR_INTERSECTS pattern _ infixop _
+operator getbounds alias GETBOUNDS pattern _ op

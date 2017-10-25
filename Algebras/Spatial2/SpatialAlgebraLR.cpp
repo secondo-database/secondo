@@ -360,6 +360,58 @@ namespace salr {
     }
   };
 
+  int boundsFun_L (Word* args, Word& result, int message,
+                      Word& local, Supplier s)
+  {
+    result = qp->ResultStorage(s);
+    Line *line = (Line *) args[0].addr;
+    result.addr = line->getBounds();
+    return 0;
+  }
+
+  int boundsFun_R (Word* args, Word& result, int message,
+                      Word& local, Supplier s)
+  {
+    result = qp->ResultStorage(s);
+    Region *region = (Region *) args[0].addr;
+    result.addr = region->getBounds();
+    return 0;
+  }
+
+  ListExpr boundsTypeMap(ListExpr args)
+  {
+    NList type(args);
+    const std::string errMsg = "Expecting line or region";
+    if (type.first().isSymbol(Line::BasicType())) {
+      return NList(RectangleBB::BasicType()).listExpr();
+    }
+    if (type.first().isSymbol(Region::BasicType())) {
+      return NList(RectangleBB::BasicType()).listExpr();
+    }
+    return NList::typeError(errMsg);
+  }
+
+  int boundsSelect(ListExpr args) {
+    NList type(args);
+    if (type.first().isSymbol( Line::BasicType()))
+      return 0;
+    else if(type.first().isSymbol( Region::BasicType()))
+      return 1;
+    else
+      return 3;
+  }
+
+  struct boundsInfo : OperatorInfo {
+    boundsInfo()
+    {
+      name      = "getbounds";
+      signature = Line::BasicType() + " -> " + RectangleBB::BasicType();
+      appendSignature(Region::BasicType() + " -> "+ RectangleBB::BasicType());
+      syntax    = "_ getbounds";
+      meaning   = "Get Boundary.";
+    }
+  };
+
   GenTC <Line> LineTC;
   GenTC <Region> RegionTC;
   GenTC <RectangleBB> RectangleBBTC;
@@ -388,6 +440,9 @@ namespace salr {
       ValueMapping intersectFuns[] = {intersectFun_L, intersectFun_R, 0};
       AddOperator(intersectInfo(), intersectFuns,
                   intersectSelect, intersectTypeMap);
+
+      ValueMapping boundsFuns[] = {boundsFun_L, boundsFun_R, 0};
+      AddOperator(boundsInfo(), boundsFuns, boundsSelect, boundsTypeMap);
     }
 
     ~SpatialLRAlgebra() {};

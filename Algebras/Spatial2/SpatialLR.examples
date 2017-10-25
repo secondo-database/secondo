@@ -78,3 +78,15 @@ Number    : 4
 Signature : region2 x rectangleBB -> bool
 Example   : query [const region2 value(5 10 (0 1 1 1 1) (0.0 0.0 0.0 1.0 1.0 1.0 1.0 0.0 0.0 0.0))] lr_intersects [const rectangleBB value(2.0 2.0 2.0 2.0)]
 Result    : FALSE
+
+Operator  : getbounds
+Number    : 1
+Signature : line2 -> rectangleBB
+Example   : query [const line2 value(2 4 (0 1) (1.0 1.0 2.0 2.0))] getbounds
+Result    : (rectangleBB(1.0 1.0 1.0 1.0))
+
+Operator  : getbounds
+Number    : 2
+Signature : region2 -> rectangleBB
+Example   : query [const region2 value(5 10 (0 1 1 1 1) (0.0 0.0 0.0 1.0 1.0 1.0 1.0 0.0 0.0 0.0))] getbounds
+Result    : (rectangleBB(0.0 0.0 1.0 1.0))
