@@ -120,20 +120,6 @@ the resulting tuple stream in a new file.
             const std::string& oldFileName,
             const std::string& newFileName,
             const boost::thread::id tid);
-
-/*
-
-1.1.1.1 ~applyFunctionAndCreateNewFile~
-
-This function applies a function to a tuple stream.
-
-*/
-    void applyFunction(
-            QueryProcessor* qp,
-            Tuple* input,
-            Word function,
-            Word funResult,
-            Tuple* output);
 };
 
 } /* namespace DBService */

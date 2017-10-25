@@ -295,25 +295,5 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
     
 }
 
-void ReplicationServer::applyFunction(
-        QueryProcessor* qp,
-        Tuple* input,
-        Word function,
-        Word funResult,
-        Tuple* output)
-{
-    traceWriter->writeFunction("ReplicationServer::applyFunction");
-    output = input;
-//    ArgVectorPointer funArg = qp->Argument(function.addr);
-//    (*funArg)[0].addr = input;
-//    qp->Request(function.addr, funResult);
-//    if(funResult.addr)
-//    {
-//        output = (Tuple*)funResult.addr;
-//    }else
-//    {
-//        output = nullptr;
-//    }
-}
 
 } /* namespace DBService */
