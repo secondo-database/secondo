@@ -39,29 +39,15 @@ Remark    : None
 Operator  : read
 Number    : 1
 Signature : rel(tuple(X)) -> stream(tuple(X))
-Example   : query read(myRelation)
-Result    : (stream(tuple))
-Remark    : None
+Example   : query read(plz) count = plz count
+Result    : TRUE
 
 Operator  : read2
 Number    : 1
 Signature : rel(tuple(X)) x map(stream(tuple(X)) -> stream(tuple(Y))  -> stream(tuple(Y))
 Example   : query plz read2[ . filter[.PLZ > 5000] project[Ort] ] = plz feed filter[.PLZ > 5000] project[Ort]
 Result    : TRUE
-Remark    : None
 
-Operator  : read3
-Number    : 1
-Signature : rel(tuple(X)) x fun -> stream(tuple(X))
-Example   : query myRelation read3[. filter[.Host = "node3"] project[Host, Port]] consume
-Result    : (stream(tuple))
-Remark    : None
-
-Operator : DBSARG
-Number   : 1
-Signature: (rel(tuple(X)))) -> (stream(tuple(X)))
-Example  : query myRelation
-Result   : 1
 
 Operator  : ddelete
 Number    : 1
