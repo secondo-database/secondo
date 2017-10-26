@@ -704,6 +704,9 @@ Can only be calles if s is an operator.
 
 */
 
+
+ void GetDBObjects( OpNode* s, std::vector<std::string> & result);
+
  private:
 
   void saveModified(OpTree t);

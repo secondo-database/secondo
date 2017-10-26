@@ -5473,6 +5473,22 @@ QueryProcessor::GetNLArgValueInTM(const ListExpr& arg, ListExpr& value,
   }
 }
 
+void QueryProcessor::GetDBObjects(OpNode* s, std::vector<std::string>& result){
+
+  int nosons = (s->nodetype == Operator)? GetNoSons(s) :0;
+  for(int i=0;i<nosons;i++){
+     Supplier son = GetSon(s,i);
+     GetDBObjects((OpNode*)son,result);
+  }  
+  if(   s->nodetype==Object && !s->u.dobj.isConstant 
+     && (nl->AtomType(s->u.symbol)==SymbolType)){
+     result.push_back(nl->ToString(s->u.symbol));
+  }
+
+}
+
+
+
 bool ErrorReporter::receivedMessage = false;
 bool ErrorReporter::TypeMapError = false;
 
