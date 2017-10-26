@@ -130,3 +130,5 @@ operator executeScript alias EXECUTESCRIPT pattern op(_,_,_)
 operator like2regex alias LIKE2REGEX pattern op(_,_)
 
 operator getObjects alias GETOBJECTS pattern op(_)
+
+operator dbobjects alias DBOBJECTS pattern op(_,_)

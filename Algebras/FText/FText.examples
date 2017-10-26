@@ -1339,3 +1339,10 @@ Signature : DATA -> stream(Tuple(DATA , string))
 Example   : query getObjects(thecenter) count > 0
 Result    : TRUE
 
+
+Operator : dbobjects
+Number   : 1
+Signature : ANY -> stream(string)
+Example   : query dbobjects(1,ten) count
+Result    : 1
+

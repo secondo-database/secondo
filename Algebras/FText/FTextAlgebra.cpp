@@ -13379,7 +13379,80 @@ Operator like2regexOp(
   like2regexTM
 );
 
+/*
 
+Operator dbobjects
+
+*/
+ListExpr dbobjectsTM(ListExpr args){
+   ListExpr err = listutils::typeError();
+   while(!nl->IsEmpty(args)){
+     if(nl->Equal(err,nl->First(args))){
+        return listutils::typeError("detected type error as an argument");
+     }
+     args = nl->Rest(args);
+   }
+   return nl->TwoElemList(
+                listutils::basicSymbol<Stream<CcString> >(),
+                listutils::basicSymbol<CcString>());
+}
+
+class dbobjectsInfo{
+  public:
+     dbobjectsInfo(Supplier s){
+        qp->GetDBObjects((OpNode*)s, names);
+        pos = 0;
+     }
+     CcString* next(){
+        if(pos>=names.size()) return 0;
+        pos++;
+        return new CcString(true, names[pos-1]);
+     }
+
+  private:
+     vector<string> names;
+     size_t pos;
+
+};
+
+
+int dbobjectsVM( Word* args, Word& result, int message, 
+                 Word& local, Supplier s ) {
+
+  dbobjectsInfo* li = (dbobjectsInfo*) local.addr;
+  switch(message){
+     case OPEN: if(li){
+                   delete li;
+                }
+                local.addr = new dbobjectsInfo(s);
+                return 0;
+     case REQUEST:
+                result.addr = li?li->next():0;
+                return result.addr?YIELD:CANCEL;
+     case CLOSE :
+                if(li){
+                   delete li;
+                   local.addr = 0;
+                }
+                return 0;
+  }
+  return -1;
+}
+
+OperatorSpec dbobjectsSpec(
+   "ANY -> stream(string)",
+   "dbobjects(_,_,...) ",
+   "Returns the names of the subtree rootet by this operator.",
+   "query dbobjects(1,ten) count"
+);
+
+Operator dbobjectsOp(
+   "dbobjects",
+   dbobjectsSpec.getStr(),
+   dbobjectsVM,
+   Operator::SimpleSelect,
+   dbobjectsTM
+);
 
 /*
 5 Creating the algebra
@@ -13533,7 +13606,7 @@ Operator like2regexOp(
       AddOperator(&executeScriptOP);
       AddOperator(&like2regexOp);
 
-
+      AddOperator(&dbobjectsOp);
 
 #ifdef RECODE
       AddOperator(&recode);
