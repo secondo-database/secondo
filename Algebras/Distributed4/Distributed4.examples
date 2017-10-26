@@ -37,6 +37,12 @@ Signature: dpartition x int x int x rel(tuple([Host: string, Port: int, Config: 
 Example  : query moveslot(dp, 7, 2, peers)
 Result   : 13
 
+Operator : splitslot
+Number   : 1
+Signature: dpartition x int x rel(tuple([Host: string, Port: int, Config: string])) -> int
+Example  : query splitslot(dp, 7, peers)
+Result   : 13
+
 Operator : getworkerindex
 Number   : 1
 Signature: d[f]array x string x int -> int

@@ -90,6 +90,7 @@ the following order: signature, syntax, meaning, example, remark (optional).
         AddOperator(addworkerInfo(), addworkerVM, addworkerTM);
         AddOperator(removeworkerInfo(), removeworkerVM, removeworkerTM);
         AddOperator(moveslotInfo(), moveslotVM, moveslotTM);
+        AddOperator(splitslotInfo(), splitslotVM, splitslotTM);
         AddOperator(getworkerindexInfo(), getworkerindexVM, getworkerindexTM);
       }
   };

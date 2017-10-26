@@ -87,7 +87,8 @@ namespace distributed4 {
       std::string getDArrayName() const;
       distributed2::DArrayBase* getDArray() const;
       uint32_t allocateSlot(uint32_t, distributed2::DArrayBase*);
-      void setPartition(double, uint32_t);
+      void insertPartition(double, uint32_t);
+      void resetPartition(double, uint32_t);
       void setBufferPartition(double, uint32_t);
       void clearBufferPartition();
       static std::string BasicType();

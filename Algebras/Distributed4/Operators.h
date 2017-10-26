@@ -47,6 +47,7 @@ Type Mapping Functions
   ListExpr addworkerTM(ListExpr);
   ListExpr removeworkerTM(ListExpr);
   ListExpr moveslotTM(ListExpr);
+  ListExpr splitslotTM(ListExpr);
   ListExpr getworkerindexTM(ListExpr);
 /*
 Value Mapping Functions
@@ -58,6 +59,7 @@ Value Mapping Functions
   int addworkerVM(Word*, Word&, int, Word&, Supplier);
   int removeworkerVM(Word*, Word&, int, Word&, Supplier);
   int moveslotVM(Word*, Word&, int, Word&, Supplier);
+  int splitslotVM(Word*, Word&, int, Word&, Supplier);
   int getworkerindexVM(Word*, Word&, int, Word&, Supplier);
 /*
 Operator Descriptions
@@ -69,6 +71,7 @@ Operator Descriptions
   struct addworkerInfo: OperatorInfo { addworkerInfo(); };
   struct removeworkerInfo: OperatorInfo { removeworkerInfo(); };
   struct moveslotInfo: OperatorInfo { moveslotInfo(); };
+  struct splitslotInfo: OperatorInfo { splitslotInfo(); };
   struct getworkerindexInfo: OperatorInfo { getworkerindexInfo(); };
 }
 

@@ -87,6 +87,11 @@ implication the caller).
       void switchDatabase(const std::string& =
           SecondoSystem::GetInstance()->GetDatabaseName());
       void createEmpty(const std::string&, const NList&);
+      NList queryValue(std::string);
+      double queryReal(const std::string&);
+      int queryInt(const std::string&);
+      std::string queryString(const std::string&);
+      double queryNum(const std::string&);
   };
 }
 

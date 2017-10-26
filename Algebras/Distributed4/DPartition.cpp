@@ -369,13 +369,7 @@ The procedure for allocating a new slot mirrors the complexity mentioned above:
     if(exists) {
       ConnectionSession s{d2->getWorkerConnection(da->getWorkerForSlot(slot),
           dbname)};
-      NList result{s.run("query " + slotname + " count")};
-      if(!(result.length() == 2 && result.first().isSymbol() &&
-            result.first().str() == CcInt::BasicType() &&
-            result.second().isInt()))
-        throw runtime_error{"Received an invalid record count for slot " +
-          to_string(slot) + ": \"" + result.convertToString() + "\"."};
-      int count{result.second().intval()};
+      int count{s.queryInt(slotname + " count")};
       if(count > 0)
         throw runtime_error{"The slot " + to_string(slot) + " contains " +
           to_string(count) + " records. It should be empty. The procedure "
@@ -411,22 +405,37 @@ Return the slot number that was allocated.
     return slot;
   }
 /*
-4.8 "setPartition"[1]
+4.8 "insertPartition"[1]
+
+Add a new partition beginning at "start"[1]. The partition immediately below
+this one is effectively reduced in size.
+
+*/
+  void DPartition::insertPartition(double start, uint32_t slot) {
+    auto res{partitioning.emplace(start, slot)};
+    if(!res.second)  // insertion failed
+      throw runtime_error{"The partition (" + to_string(start) + " -> " +
+        to_string(slot) + ") could not be inserted because a partition with "
+          "that starting point already exists."};
+  }
+/*
+4.9 "resetPartition"[1]
 
 Set the target "slot"[1] of the existing partition beginning at "start"[1]. The
 former target slot is discarded.
 
 */
-  void DPartition::setPartition(double start, uint32_t slot) {
+  void DPartition::resetPartition(double start, uint32_t slot) {
     try {
       partitioning.at(start) = slot;
     } catch(const out_of_range&) {
-      throw runtime_error{"No partition exists here that begins at " +
-        to_string(start) + "."};
+      throw runtime_error{"The partition at " + to_string(start) +
+        " could not be reset to map to slot " + to_string(slot) +
+          " because it doesn't exist."};
     }
   }
 /*
-4.9 "setBufferPartition"[1]
+4.10 "setBufferPartition"[1]
 
 Set the so-called buffer partition to map "start"[1] to "slot"[1]. The buffer
 partition is a side storage area designed for use while the DPartition is being
@@ -444,7 +453,7 @@ dpartition to avoid race conditions.
     bufpartition = {start, slot};
   }
 /*
-4.10 "clearBufferPartition"[1]
+4.11 "clearBufferPartition"[1]
 
 Clear the so-called buffer partition. This operation is unprotected and will
 succeed no matter whether the buffer partition was previously in use or not.

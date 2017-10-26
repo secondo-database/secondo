@@ -236,4 +236,78 @@ that any future rollback will only be performed on new commands.
     run("let " + name + " = [const " + type.convertToString() + " value ()]");
     rollback.push_back("delete " + name);
   }
+/*
+4.13 "queryValue"[1]
+
+Determine the response from any query that responds with a simple value. If the
+response is more complex than that, "runtime\_error"[1] is thrown.
+
+If "cmd"[1] may be given without the keyword "query"[1]. In that case it is
+added to "cmd"[1] before running the command on "ci"[1].
+
+*/
+  NList ConnectionSession::queryValue(std::string cmd) {
+    if(cmd.substr(0, 6) != "query ")
+      cmd = "query " + cmd;
+    NList resp{run(cmd)};
+    if(!(resp.length() == 2 && resp.first().isSymbol()))
+      throw runtime_error{"Received a response from " + ci->getHost() + ":" +
+        to_string(ci->getPort()) + " that is not a (simple) value: " + cmd +
+          " -> " + resp.convertToString()};
+    return resp;
+  }
+/*
+4.14 "queryReal"[1]
+
+*/
+  double ConnectionSession::queryReal(const std::string& cmd) {
+    NList resp{queryValue(cmd)};
+    if(!(resp.first().str() == CcReal::BasicType() && resp.second().isReal()))
+      throw runtime_error{"Received a value from " + ci->getHost() + ":" +
+        to_string(ci->getPort()) + " that is not a real: " + cmd + " -> " +
+          resp.convertToString()};
+    return resp.second().realval();
+  }
+/*
+4.15 "queryInt"[1]
+
+*/
+  int ConnectionSession::queryInt(const std::string& cmd) {
+    NList resp{queryValue(cmd)};
+    if(!(resp.first().str() == CcInt::BasicType() && resp.second().isInt()))
+      throw runtime_error{"Received a value from " + ci->getHost() + ":" +
+        to_string(ci->getPort()) + " that is not an integer: " + cmd + " -> " +
+          resp.convertToString()};
+    return resp.second().intval();
+  }
+/*
+4.16 "queryString"[1]
+
+*/
+  string ConnectionSession::queryString(const std::string& cmd) {
+    NList resp{queryValue(cmd)};
+    if(!(resp.first().str() == CcString::BasicType() &&
+          resp.second().isString()))
+      throw runtime_error{"Received a value from " + ci->getHost() + ":" +
+        to_string(ci->getPort()) + " that is not a string: " + cmd + " -> " +
+          resp.convertToString()};
+    return resp.second().str();
+  }
+/*
+4.17 "queryNum"[1]
+
+*/
+  double ConnectionSession::queryNum(const std::string& cmd) {
+    try {
+      return queryReal(cmd);
+    } catch(const runtime_error&) {
+      try {
+        return static_cast<double>(queryInt(cmd));
+      } catch(const runtime_error&) {
+        throw runtime_error{"Received a value from " + ci->getHost() + ":" +
+          to_string(ci->getPort()) + " that is neither a real nor an integer: "
+            + cmd};
+      }
+    }
+  }
 }

@@ -79,12 +79,11 @@ Create an extended return type from "l"[1] that includes the name and the type
 of the first argument.
 
 */
-  ListExpr extended_return_type(const string& type, const NList& l) {
-    return NList{
-      NList{Symbol::APPEND()},
-      l.first().second().toStringAtom().enclose(),
-      NList{type}
-    }.listExpr();
+  ListExpr extended_return_type(const string& type, const NList& l, const
+      NList& more = NList{}) {
+    NList append{l.first().second().toStringAtom().enclose()};
+    append.concat(more);
+    return NList{NList{Symbol::APPEND()}, append, NList{type}}.listExpr();
   }
 /*
 3 Type Mapping Functions
@@ -166,7 +165,22 @@ the number of arguments. (2) Verify the type of arguments.
     return extended_return_type(CcInt::BasicType(), l);
   }
 /*
-3.6 ~getworkerindex~ Type Mapping
+3.6 ~splitslot~ Type Mapping
+
+*/
+  ListExpr splitslotTM(ListExpr args) {
+    NList l{args};
+    string err = "dpartition x int x rel(tuple([Host: string, Port: int, "
+      "Config: string])) expected";
+    if(!(is_common_type(l, 3, err) &&
+          DPartition::checkType(l.first().first().listExpr()) &&
+          CcInt::checkType(l.second().first().listExpr())))
+      return NList::typeError(err);
+    return extended_return_type(CcInt::BasicType(), l,
+        l.first().first().second().first().toStringAtom());
+  }
+/*
+3.7 ~getworkerindex~ Type Mapping
 
 */
   ListExpr getworkerindexTM(ListExpr args) {
@@ -502,7 +516,9 @@ placed on and assigned to "worker"[1] and removed from wherever it was before.
     Peers peers{static_cast<Relation*>(args[3].addr)};
     peers.exec([&](auto& p){ p->lockObject(dp->getDArrayName(), true); });
     uint32_t dst{dp->allocateSlot(worker, da.get())};
-    peers.exec([&](auto& p){ p->updateObject(dp->getDArrayName(), da.get()); });
+    peers.exec([&](auto& p){
+        p->updateObject(dp->getDArrayName(), da.get());
+        });
     peers.exec([&](auto& p){
         p->clearRollback();
         p->unlockObject(dp->getDArrayName());
@@ -522,7 +538,7 @@ access to the data it holds.
 */
     peers.exec([&](auto& p){ p->lockObject(dpname, true); });
     dp->setBufferPartition(partition_start, src);
-    dp->setPartition(partition_start, dst);
+    dp->resetPartition(partition_start, dst);
     qp->SetModified(qp->GetSon(s, 0));
     peers.exec([&](auto& p){ p->updateObject(dpname, dp); });
     peers.exec([&](auto& p){
@@ -564,14 +580,14 @@ Otherwise future attempts to reuse it will fail.
         "query removeFile('" + filename + "')");
     src_s.run("query connect('" + dst_s.getHost() + "', " +
         to_string(dst_s.getPort()) + ", '" + dst_s.getConfig() + "')");
-    string dstsendfolder{src_s.run("query getSendFolder(checkConnections() "
-        "count - 1)").second().str()};
+    string dstsendfolder{src_s.queryString("getSendFolder(checkConnections() "
+        "count - 1)")};
     if(dstsendfolder.empty())
       throw runtime_error{"The source instance, " + src_s.getHost() + ":" +
         to_string(src_s.getPort()) + ", did not receive the path of the "
           "SendFolder from the destination instance, " + dst_s.getHost() + ":"
           + to_string(dst_s.getPort()) + "."};
-    string dsthome{dst_s.run("query secondoHome()").second().str()};
+    string dsthome{dst_s.queryString("secondoHome()")};
     string dstfilepath{dsthome + "/" + dstsendfolder + "/" + filename};
     src_s.run("query sendFile(0, '" + filename + "', '" + filename +
         "', TRUE)",
@@ -635,7 +651,170 @@ moved. Save the changes made to "da"[1] and return the new slot number,
     return 0;
   }
 /*
-4.7 ~getworkerindex~ Value Mapping
+4.7 ~splitslot~ Value Mapping
+
+*/
+  int splitslotVM(Word* args, Word& result, int, Word&, Supplier s) {
+    CcInt* res{&qp->template ResultStorage<CcInt>(result, s)};
+/*
+Lock "dpname"[1] and the referenced ~d[f]array~. This must be done as soon as
+possible to avoid race conditions between the checks and updates.
+
+*/
+    string dpname{static_cast<CcString*>(args[3].addr)->GetValue()};
+    ManagedMutex mutex_dp{dpname, true};
+    DPartition* dp{static_cast<DPartition*>(args[0].addr)};
+    ManagedMutex mutex_da{dp->getDArrayName(), true};
+/*
+Before proceeding, the following checks are performed on the input values and
+database state:
+
+  * Make sure the slot number was passed as a positive value and put it in
+    "src"[1].
+
+*/
+    int arg{static_cast<CcInt*>(args[1].addr)->GetValue()};
+    if(arg < 0)
+      throw runtime_error{"A negative number was given for the slot to be "
+        "split."};
+    uint32_t src{static_cast<uint32_t>(arg)};
+/*
+  * Make sure the ~d[f]array~ referenced in "dp"[1] can be read and put it in
+    "da"[1].
+
+*/
+    unique_ptr<DArrayBase> da{dp->getDArray()};
+/*
+  * Make sure "src"[1] exists in "da"[1].
+
+*/
+    if(src >= da->getSize())
+      throw runtime_error{"The specified slot is out of range in \"" +
+        dp->getDArrayName() + "\"."};
+/*
+  * Make sure "src"[1] is in use by "dp"[1]. This is done by retrieving its
+    value-to-slot mapping (throws if no mapping to "src"[1] exists).
+
+*/
+    dp->getPartition(src);
+/*
+Splitting "src"[1] will proceed using the following steps. Any intricacies
+and error conditions will be documented with the implementation below:
+
+  1 Allocate a (new or recycled) slot as "dst"[1] and update "da"[1] on all
+    peers.
+
+  2 Determine the value of the first (sorted) tuple or element past the
+    midpoint of the slot.
+
+  3 Add the value mapping for "dst"[1] and mark "src"[1] as an additional
+    temporary target to be used when *reading* values. Update "dp"[1] on all
+    peers.
+
+  4 Copy the matching contents of "src"[1] to "dst"[1], deleting them from
+    "src"[1].
+
+  5 Remove the additional temporary value mapping target status for "src"[1]
+    and update "dp"[1] on all peers.
+
+Step 1: Allocate a (new or recycled) slot as "dst"[1] and update "da"[1] on all
+peers.
+
+This requires an exclusive global lock on "da"[1]. An existing slot may be
+recycled, or a new slot created. In the case of a recycled slot, it will be
+placed on and assigned to the worker containing "src"[1] and removed from
+wherever it was before.
+
+*/
+    Peers peers{static_cast<Relation*>(args[2].addr)};
+    peers.exec([&](auto& p){ p->lockObject(dp->getDArrayName(), true); });
+    uint32_t worker{static_cast<uint32_t>(da->getWorkerIndexForSlot(src))};
+    uint32_t dst{dp->allocateSlot(worker, da.get())};
+    peers.exec([&](auto& p){
+        p->updateObject(dp->getDArrayName(), da.get());
+        });
+    peers.exec([&](auto& p){
+        p->clearRollback();
+        p->unlockObject(dp->getDArrayName());
+        });
+/*
+Step 2: Determine the value of the first (sorted) tuple or element past the
+midpoint of the slot.
+
+No lock is required for this. It makes no difference if parallel modifications
+to the slot push the midpoint to a neighboring value.
+
+*/
+    Distributed2Algebra* d2{static_cast<Distributed2Algebra*>(SecondoSystem::
+        GetAlgebraManager()->getAlgebra("Distributed2Algebra"))};
+    const string dbname{SecondoSystem::GetInstance()->GetDatabaseName()};
+    string src_name{da->getObjectNameForSlot(src)};
+    string dst_name{da->getObjectNameForSlot(dst)};
+    string attr_name{static_cast<CcString*>(args[4].addr)->GetValue()};
+    ConnectionSession sess{d2->getWorkerConnection(da->getWorkerForSlot(src),
+        dbname)};
+    double partition_start{sess.queryNum(src_name + " feed kbiggest[real2int("
+        + src_name + " count / 2); " + attr_name + "] tail[1] extract[" +
+        attr_name + "]")};
+/*
+Step 3: Add the value mapping for "dst"[1] and mark "src"[1] as an additional
+temporary target to be used when *reading* values. Update "dp"[1] on all peers.
+
+This requires an exclusive global lock on "dp"[1]. Since "dst"[1] effectively
+takes over part of the value range that was mapped to "src"[1] so far, any new
+data in that range will be inserted in "dst"[1] instead of "src"[1].  Having
+"src"[1] marked as an additional temporary target for the same value mapping as
+"dst"[1] allows normal access to the data it holds.
+
+*/
+    peers.exec([&](auto& p){ p->lockObject(dpname, true); });
+    dp->setBufferPartition(partition_start, src);
+    dp->insertPartition(partition_start, dst);
+    qp->SetModified(qp->GetSon(s, 0));
+    peers.exec([&](auto& p){ p->updateObject(dpname, dp); });
+    peers.exec([&](auto& p){
+        p->clearRollback();
+        p->unlockObject(dpname);
+        });
+/*
+Step 4: Copy the matching contents of "src"[1] to "dst"[1], deleting them from
+"src"[1].
+
+No lock is required for this. The copy-and-delete procedure is handled in a
+single operator tree and should be consistent enough only using SMI
+transactions.
+
+*/
+    sess.run("query " + src_name + " feed filter[." + attr_name + " >= " +
+        to_string(partition_start) + "] " + src_name +
+        " deletedirect remove[TID] " + dst_name + " insert count");
+/*
+Step 5: Remove the additional temporary value mapping target status for
+"src"[1] and update "dp"[1] on all peers.
+
+*/
+    peers.exec([&](auto& p){ p->lockObject(dpname, true); });
+    dp->clearBufferPartition();
+    peers.exec([&](auto& p){ p->updateObject(dpname, dp); });
+    peers.exec([&](auto& p){
+        p->clearRollback();
+        p->unlockObject(dpname);
+        });
+/*
+The contents and mapping of "src"[1] have now been successfully and completely
+split. Save the changes made to "da"[1] and return the new slot number,
+"dst"[1].
+
+*/
+    if(!SecondoSystem::GetCatalog()->UpdateObject(dp->getDArrayName(),
+          Word{da.get()}))
+      throw runtime_error{"Could not update " + dp->getDArrayName() + "."};
+    da.release();  // UpdateObject uses the pointer after this scope ends
+    res->Set(dst);
+    return 0;
+  }
+/*
+4.8 ~getworkerindex~ Value Mapping
 
 */
   int getworkerindexVM(Word* args, Word& result, int, Word&, Supplier s) {
@@ -743,15 +922,32 @@ derived here to keep "Distributed4Algebra.cpp"[1] clean.
       CcInt::BasicType() + ", Config: " + CcString::BasicType() + "])) -> " +
       CcInt::BasicType();
     syntax = "moveslot(dp, slot, worker, peers)";
-    meaning = "Moves the contents slot number \"slot\" to the worker at index "
-      "\"worker\" in the d[f]array referenced from \"dp\". The result is that "
-      "slot number \"slot\" will be empty and taken out of use and the "
-      "contents will be in the slot given by the return value.";
+    meaning = "Moves the contents of slot number \"slot\" to the worker at "
+      "index \"worker\" in the d[f]array referenced from \"dp\". The result "
+      "is that slot number \"slot\" will be empty and taken out of use and "
+      "the contents will be in the slot given by the return value.";
     example = "query moveslot(dp, 7, 2, peers)";
     usesArgsInTypeMapping = true;
   }
 /*
-5.7 ~getworkerindex~ Description
+5.7 ~splitslot~ Description
+
+*/
+  splitslotInfo::splitslotInfo() {
+    name = "splitslot";
+    signature = DPartition::BasicType() + " x " + CcInt::BasicType() +
+      Relation::BasicType() + "(" + Tuple::BasicType() + "([Host: " +
+      CcString::BasicType() + ", Port: " + CcInt::BasicType() + ", Config: " +
+      CcString::BasicType() + "])) -> " + CcInt::BasicType();
+    syntax = "splitslot(dp, slot, peers)";
+    meaning = "Splits the slot so that half of the containing elements remain "
+      "and the other half are moved to a new slot on the same worker. The "
+      "number of the new slot is returned.";
+    example = "query splitslot(dp, 7, peers)";
+    usesArgsInTypeMapping = true;
+  }
+/*
+5.8 ~getworkerindex~ Description
 
 */
   getworkerindexInfo::getworkerindexInfo() {
