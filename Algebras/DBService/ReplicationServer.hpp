@@ -120,6 +120,9 @@ the resulting tuple stream in a new file.
             const std::string& oldFileName,
             const std::string& newFileName,
             const boost::thread::id tid);
+
+    bool createFileFromRelation(const std::string& filename);
+
 };
 
 } /* namespace DBService */

@@ -90,14 +90,15 @@ int ReplicationServer::communicate(iostream& io)
         string fileName = receiveBuffer.front();
         receiveBuffer.pop();
 
-        if(!FileSystem::FileOrFolderExists(fileName))
-        {
-            traceWriter->write(tid, "file not found, notifying client");
-            CommunicationUtils::sendLine(io,
-                    distributed2::FileTransferKeywords::FileNotFound());
-        }
         if(purpose == CommunicationProtocol::SendReplicaForStorage())
         {
+            if(!FileSystem::FileOrFolderExists(fileName) &&
+               !createFileFromRelation(fileName))
+            {
+               traceWriter->write(tid, "file not found, notifying client");
+               CommunicationUtils::sendLine(io,
+                    distributed2::FileTransferKeywords::FileNotFound());
+            }
             sendFileToClient(io, true, tid);
         }else if(purpose == CommunicationProtocol::SendReplicaForUsage())
         {
@@ -107,6 +108,17 @@ int ReplicationServer::communicate(iostream& io)
             CommunicationUtils::receiveLine(io, function);
             if(function == CommunicationProtocol::None())
             {
+                traceWriter->write("request file " + fileName 
+                                    + " without function");
+                if(!FileSystem::FileOrFolderExists(fileName) &&
+                   !createFileFromRelation(fileName))
+                {
+                   traceWriter->write(tid, "file not found, notifying client");
+                   CommunicationUtils::sendLine(io,
+                   distributed2::FileTransferKeywords::FileNotFound());
+                } else {
+                   traceWriter->write("file " + fileName + " found or created");
+                }
                 sendFileToClient(io, true, tid);
             }else
             {
@@ -115,14 +127,6 @@ int ReplicationServer::communicate(iostream& io)
 
                 string replicaFileName;
                 CommunicationUtils::receiveLine(io, replicaFileName);
-                if(!FileSystem::FileOrFolderExists(replicaFileName))
-                {
-                    traceWriter->write(tid, "file not found, notifying client");
-                    CommunicationUtils::sendLine(io,
-                            distributed2::FileTransferKeywords::FileNotFound());
-                    return 6;
-                }
-
                 CommunicationUtils::sendLine(io,
                         CommunicationProtocol::FileName());
 
@@ -226,9 +230,18 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
       traceWriter->write("invalid name for function argument");
       return;
     }
-    ListExpr funarg = nl->TwoElemList(
-                            nl->SymbolAtom("ffeed5"),
-                            nl->TextAtom(oldFileName));
+    ListExpr argtype = nl->Second(args);
+    ListExpr funarg;
+    // funarg may be a tuple stream or a relation
+    string relName = ReplicationUtils::getRelName(oldFileName);
+    if(nl->HasLength(argtype,2) && nl->IsEqual(nl->First(argtype),"stream")){
+       funarg = nl->TwoElemList(
+                            nl->SymbolAtom("feed"),
+                            nl->SymbolAtom(relName));
+    } else {
+       funarg = nl->SymbolAtom(relName);
+    }
+
     ListExpr fundef = nl->Third(funlist);
     
     ListExpr command = listutils::replaceSymbol(fundef, 
@@ -295,5 +308,21 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
     
 }
 
+
+bool ReplicationServer::createFileFromRelation(const std::string& filename){
+   string relname = ReplicationUtils::getRelName(filename);
+   string cmd = "(count (fconsume5 ( feed "+relname+") '"+filename+"'))";
+   Word result;
+   if(QueryProcessor::ExecuteQuery(cmd,result)){
+      traceWriter->write("file created from relation");
+      CcInt* res = (CcInt*) result.addr;
+      res->DeleteIfAllowed();
+      return true;
+   } else {
+      traceWriter->write("problem in creating file from relation with command'"
+                         + cmd + "'");
+      return false;
+   }
+}
 
 } /* namespace DBService */

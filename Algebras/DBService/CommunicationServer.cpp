@@ -484,16 +484,20 @@ bool CommunicationServer::handleRelTypeRequest(
                         relationName);
 
     traceWriter->write("fileName", fileName);
-
-    ffeed5Info info(fileName);
-    if(info.isOK()){
-       ListExpr type = nl->TwoElemList(
-               nl->SymbolAtom(Symbol::STREAM()),
-               nl->Second(info.getRelType()));
-       CommunicationUtils::sendLine(io, nl->ToString(type));
-    }else
-    {
+    string relname = ReplicationUtils::getRelName(fileName);
+    traceWriter->write("relName ", relname);
+    SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+    if(!ctlg->IsObjectName(relname)){
+        traceWriter->write(relname + " is not a database object");
         CommunicationUtils::sendLine(io, CommunicationProtocol::None());
+    } else {
+        traceWriter->write(relname + " is a database object");
+        ListExpr type = ctlg->GetObjectTypeExpr(relname);
+        traceWriter->write("relType is " , nl->ToString(type));
+        type = nl->TwoElemList(
+               nl->SymbolAtom(Symbol::STREAM()),
+               nl->Second(type));
+        CommunicationUtils::sendLine(io, nl->ToString(type));
     }
     return true;
 }
