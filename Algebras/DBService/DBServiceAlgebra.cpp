@@ -30,15 +30,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/OperatorCheckDBServiceStatus.hpp"
 #include "Algebras/DBService/OperatorDBSARG.hpp"
 #include "Algebras/DBService/OperatorDBRARG.hpp"
+#include "Algebras/DBService/OperatorRELARG.hpp"
 #include "Algebras/DBService/OperatorDDelete.hpp"
 #include "Algebras/DBService/OperatorGetConfigParam.hpp"
 #include "Algebras/DBService/OperatorInitDBServiceWorker.hpp"
 #include "Algebras/DBService/OperatorPingDBService.hpp"
 #include "Algebras/DBService/OperatorRead.hpp"
 #include "Algebras/DBService/OperatorRead2.hpp"
+#include "Algebras/DBService/OperatorRead3.hpp"
 #include "Algebras/DBService/OperatorSetTraceLevel.hpp"
 #include "Algebras/DBService/OperatorStartDBService.hpp"
 #include "Algebras/DBService/OperatorWrite.hpp"
+#include "Algebras/DBService/OperatorRderive.hpp"
 
 namespace DBService
 {
@@ -76,6 +79,9 @@ DBServiceAlgebra::DBServiceAlgebra() :
     AddOperator(Read2Info(),
                 OperatorRead2::mapValue,
                 OperatorRead2::mapType)->SetUsesArgsInTypeMapping();
+    AddOperator(Read3Info(),
+                OperatorRead3::mapValue,
+                OperatorRead3::mapType)->SetUsesArgsInTypeMapping();
     AddOperator(StartDBServiceInfo(),
                 OperatorStartDBService::mapValue,
                 OperatorStartDBService::mapType);
@@ -86,6 +92,13 @@ DBServiceAlgebra::DBServiceAlgebra() :
     AddOperator(DBRARGInfo(),
                 0,
                 OperatorDBRARG::mapType);
+
+    AddOperator(RELARGInfo(),
+                0,
+                OperatorRELARG::mapType);
+    AddOperator(RderiveInfo(),
+                OperatorRderive::mapValue,
+                OperatorRderive::mapType);
 }
 
 } /* namespace DBService */

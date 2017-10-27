@@ -48,6 +48,12 @@ Signature : rel(tuple(X)) x map(stream(tuple(X)) -> stream(tuple(Y))  -> stream(
 Example   : query plz read2[ . filter[.PLZ > 5000] project[Ort] ] = plz feed filter[.PLZ > 5000] project[Ort]
 Result    : TRUE
 
+Operator  : read3
+Number    : 1
+Signature : rel(tuple(X)) x map(rel(tuple(X)) -> stream(tuple(Y))  -> stream(tuple(Y))
+Example   : query plz readr3[ . feed filter[.PLZ > 5000] project[Ort] ] = plz feed filter[.PLZ > 5000] project[Ort]
+Result    : TRUE
+
 
 Operator  : ddelete
 Number    : 1
@@ -76,3 +82,13 @@ Signature : -> bool
 Example   : query startdbservice()
 Result    : TRUE
 Remark    : None
+
+Operator : rderive
+Number   : 1
+Signature : rel x string x fun(rel->X) -> X
+Example   : query plz rderive["plz_count", . count]
+Result    : 42167
+Remark    : Requires running DBService
+
+
+
