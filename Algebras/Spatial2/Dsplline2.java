@@ -81,16 +81,16 @@ public class Dsplline2 extends DisplayGraph {
        GP=null;
        return false;
     }
-    if (expr.listLength() != 4) {
-        Reporter.writeError("Invalid line2 expression: 4 elements needed");
+    if (expr.listLength() != 2) {
+        Reporter.writeError("Invalid line2 expression: 2 elements needed");
         err = true;
         return false;
     }
 
     defined=true;
     GP = new GeneralPath();
-    ListExpr types = expr.third();
-    ListExpr coords = expr.fourth();
+    ListExpr types = expr.first();
+    ListExpr coords = expr.second();
     int offsetCoords = 0;
     double x1, x2, y1, y2 = 0;
 

@@ -4,89 +4,113 @@ Restore  : NO
 Operator  : lr_moveto
 Number    : 1
 Signature : line2 x real x real -> line2
-Example   : query [const line2 value(2 4 (0 1) (1.0 1.0 2.0 2.0))] lr_moveto [3.0, 3.0]
-Result    : (line2(3 6 (0 1 0) (1.0 1.0 2.0 2.0 3.0 3.0)))
+Example   : query [const line2 value((0 1) (100 100 200 200))] lr_moveto [300.0, 300.0]
+Result    : (line2((0 1 0) (100.0 100.0 200.0 200.0 300.0 300.0)))
 
 Operator  : lineTo
 Number    : 1
 Signature : line2 x real x real -> line2
-Example   : query [const line2 value(2 4 (0 1) (1.0 1.0 2.0 2.0))] lineTo [3.0, 3.0]
-Result    : (line2(3 6 (0 1 1) (1.0 1.0 2.0 2.0 3.0 3.0)))
+Example   : query [const line2 value((0 1) (100 100 200 200))] lineTo [300.0, 300.0]
+Result    : (line2((0 1 1) (100.0 100.0 200.0 200.0 300.0 300.0)))
 
 Operator  : quadTo
 Number    : 1
 Signature : line2 x real x real x real x real -> line2
-Example   : query [const line2 value(2 4 (0 1) (1.0 1.0 2.0 2.0))] quadTo [3.0, 3.0, 3.0, 4.0]
-Result    : (line2(3 8 (0 1 2) (1.0 1.0 2.0 2.0 3.0 3.0 3.0 4.0)))
+Example   : query [const line2 value((0 1) (100 100 200 200))] quadTo [300.0, 300.0, 300.0, 400.0]
+Result    : (line2((0 1 2) (100.0 100.0 200.0 200.0 300.0 300.0 300.0 400.0)))
 
 Operator  : closeLine
 Number    : 1
 Signature : line2 -> line2
-Example   : query [const line2 value(2 4 (0 1) (1.0 1.0 2.0 2.0))] closeLine
-Result    : (line2(3 4 (0 1 4) (1.0 1.0 2.0 2.0)))
+Example   : query [const line2 value((0 1) (100 100 200 200))] closeLine
+Result    : (line2((0 1 4) (100.0 100.0 200.0 200.0)))
 
 Operator  : toRegion
 Number    : 1
 Signature : line2 -> region2
-Example   : query [const line2 value(5 10 (0 1 1 1 1) (1.0 1.0 1.0 2.0 2.0 2.0 2.0 1.0 1.0 1.0))] toRegion
-Result    : (region2(4 8 (0 1 1 1) (1.0 1.0 1.0 2.0 2.0 2.0 2.0 1.0)))
+Example   : query [const line2 value((0 1 1 1 4) (100 100 100 200 200 200 200 100))] toRegion
+Result    : (region2((0 1 1 1 4) (100.0 100.0 100.0 200.0 200.0 200.0 200.0 100.0)))
 
-Operator  : lr_contains
+Operator  : toline2
 Number    : 1
-Signature : line2 x real x real -> bool
-Example   : query [const line2 value(3 6 (0 1 1) (0.0 0.0 1.0 1.0 2.0 0.0))] lr_contains [1.0, 0.5]
-Result    : TRUE
+Signature : line -> line2
+Example   : query toline2 ([const line value ((100 100 200 200) (200 200 400 400))])
+Result    : (line2((0 1 1) (100.0 100.0 200.0 200.0 400.0 400.0)))
 
-Operator  : lr_contains
+Operator  : toline
+Number    : 1
+Signature : line2 -> line
+Example   : query toline ([const line2 value ((0 1 1) (100.0 100.0 200.0 200.0 400.0 400.0))])
+Result    : (line((100.0 100.0 200.0 200.0) (200.0 200.0 400.0 400.0)))
+
+Operator  : toregion2
+Number    : 1
+Signature : region -> region2
+Example   : query toregion2 ([const region value ((((300 0)(0 0)(0 300)(300 300))))])
+Result    : (region2((0 1 1 1 4) (0.0 0.0 0.0 300.0 300.0 300.0 300.0 0.0)))
+
+Operator  : toregion2
 Number    : 2
-Signature : line2 x real x real -> bool
-Example   : query [const line2 value(3 6 (0 1 1) (0.0 0.0 1.0 1.0 2.0 0.0))] lr_contains [1.0, 2.5]
-Result    : FALSE
-
-Operator  : lr_contains
-Number    : 3
-Signature : region2 x real x real -> bool
-Example   : query [const region2 value(5 10 (0 1 1 1 1) (0.0 0.0 0.0 1.0 1.0 1.0 1.0 0.0 0.0 0.0))] lr_contains [0.5, 0.5]
-Result    : TRUE
-
-Operator  : lr_contains
-Number    : 4
-Signature : region2 x real x real -> bool
-Example   : query [const region2 value(5 10 (0 1 1 1 1) (0.0 0.0 0.0 1.0 1.0 1.0 1.0 0.0 0.0 0.0))] lr_contains [1.5, 1.5]
-Result    : FALSE
+Signature : region -> region2
+Example   : query toregion2 ([const region value ((((300.0 0.0)(0.0 0.0)(0.0 300.0)(300.0 300.0))((200.0 100.0)(100.0 100.0)(100.0 200.0)(200.0 200.0))))])
+Result    : (region2((0 1 1 1 4 0 1 1 1 4)(200.0 100.0 200.0 200.0 100.0 200.0 100.0 100.0 0.0 0.0 0.0 300.0 300.0 300.0 300.0 0.0)))
 
 Operator  : lr_intersects
 Number    : 1
 Signature : line2 x rectangleBB -> bool
-Example   : query [const line2 value(2 4 (0 1) (1.0 1.0 3.0 3.0))] lr_intersects [const rectangleBB value(0.0 0.0 2.0 2.0)]
+Example   : query [const line2 value((0 1) (100 100 300 300))] lr_intersects [const rectangleBB value(0 0 200 200)]
 Result    : TRUE
 
 Operator  : lr_intersects
 Number    : 2
 Signature : line2 x rectangleBB -> bool
-Example   : query [const line2 value(2 4 (0 1) (1.0 1.0 3.0 3.0))] lr_intersects [const rectangleBB value(0.0 0.0 0.5 0.5)]
+Example   : query [const line2 value((0 1) (100 100 300 300))] lr_intersects [const rectangleBB value(0 0 50 50)]
 Result    : FALSE
 
 Operator  : lr_intersects
 Number    : 3
 Signature : region2 x rectangleBB -> bool
-Example   : query [const region2 value(5 10 (0 1 1 1 1) (0.0 0.0 0.0 1.0 1.0 1.0 1.0 0.0 0.0 0.0))] lr_intersects [const rectangleBB value(-1.0 -1.0 2.0 2.0)]
+Example   : query [const region2 value((0 1 1 1 1) (0 0 0 100 100 100 100 0 0 0))] lr_intersects [const rectangleBB value(-100 -100 200 200)]
 Result    : TRUE
 
 Operator  : lr_intersects
 Number    : 4
 Signature : region2 x rectangleBB -> bool
-Example   : query [const region2 value(5 10 (0 1 1 1 1) (0.0 0.0 0.0 1.0 1.0 1.0 1.0 0.0 0.0 0.0))] lr_intersects [const rectangleBB value(2.0 2.0 2.0 2.0)]
+Example   : query [const region2 value((0 1 1 1 1) (0 0 0 100 100 100 100 0 0 0))] lr_intersects [const rectangleBB value(200 200 200 200)]
 Result    : FALSE
 
 Operator  : getbounds
 Number    : 1
 Signature : line2 -> rectangleBB
-Example   : query [const line2 value(2 4 (0 1) (1.0 1.0 2.0 2.0))] getbounds
-Result    : (rectangleBB(1.0 1.0 1.0 1.0))
+Example   : query [const line2 value((0 1) (100 100 200 200))] getbounds
+Result    : (rectangleBB(100.0 100.0 100.0 100.0))
 
 Operator  : getbounds
 Number    : 2
 Signature : region2 -> rectangleBB
-Example   : query [const region2 value(5 10 (0 1 1 1 1) (0.0 0.0 0.0 1.0 1.0 1.0 1.0 0.0 0.0 0.0))] getbounds
-Result    : (rectangleBB(0.0 0.0 1.0 1.0))
+Example   : query [const region2 value((0 1 1 1 1) (0 0 0 100 100 100 100 0 0 0))] getbounds
+Result    : (rectangleBB(0.0 0.0 100.0 100.0))
+
+Operator  : union1
+Number    : 1
+Signature : region2 x region2 -> region2
+Example   : query [const region2 value((0 1 1 1 4) (0 0 0 100 100 100 100 0 0 0))] union1 [const region2 value((0 1 1 1 4) (200 0 200 100 300 100 300 0))]
+Result    : (region2((0 1 1 1 4 0 1 1 1 4) (0.0 0.0 0.0 100.0 100.0 100.0 100.0 0.0 200.0 0.0 200.0 100.0 300.0 100.0 300.0 0.0)))
+
+Operator  : minus1
+Number    : 1
+Signature : region2 x region2 -> region2
+Example   : query [const region2 value((0 1 1 1 4) (0 0 0 100 200 100 200 0))] minus1 [const region2 value((0 1 1 1 4) (100 0 100 100 300 100 300 0))]
+Result    : (region2((0 1 1 1 4) (0.0 0.0 0.0 100.0 100.0 100.0 100.0 0.0)))
+
+Operator  : intersects1
+Number    : 1
+Signature : region2 x region2 -> region2
+Example   : query [const region2 value((0 1 1 1 4) (0 0 0 100 200 100 200 0))] intersects1 [const region2 value((0 1 1 1 4) (100 0 100 100 300 100 300 0))]
+Result    : (region2((0 1 1 1 4) (100.0 0.0 100.0 100.0 200.0 100.0 200.0 0.0)))
+
+Operator  : xor1
+Number    : 1
+Signature : region2 x region2 -> region2
+Example   : query [const region2 value((0 1 1 1 4) (0 0 0 100 200 100 200 0))] xor1 [const region2 value((0 1 1 1 4) (100 0 100 100 300 100 300 0))]
+Result    : (region2((0 1 1 1 4 0 1 1 1 4) (0.0 0.0 0.0 100.0 100.0 100.0 100.0 0.0 200.0 0.0 200.0 100.0 300.0 100.0 300.0 0.0)))

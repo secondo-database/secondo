@@ -70,12 +70,7 @@ namespace salr {
 
     bool isActiveFor(double y, int etag);
 
-    bool operator< (const Edge& str) const;
-
   private:
-    static const int INIT_PARTS = 4;
-    static const int GROW_PARTS = 10;
-
     Curve* curve;
     int ctag;
     int etag;
@@ -159,7 +154,6 @@ namespace salr {
 
   class AreaOp {
   public:
-
     /* Constants to tag the left and right curves in the edge list */
     static const int CTAG_LEFT = 0;
     static const int CTAG_RIGHT = 1;
@@ -173,11 +167,9 @@ namespace salr {
     static const int RSTAG_INSIDE = 1;
     static const int RSTAG_OUTSIDE = -1;
 
-    void newRow();
-
-    int classify(Edge* e);
-
-    int getState();
+    virtual void newRow() = 0;
+    virtual int classify(Edge* e) = 0;
+    virtual int getState() = 0;
 
     static void finalizeSubCurves(std::vector<CurveLink*>* subcurves,
                                   std::vector<ChainEnd*>* chains);
@@ -200,18 +192,70 @@ namespace salr {
                              std::vector<ChainEnd*> *chains,
                              std::vector<CurveLink*> *links);
 
-    void calculate(std::vector<Curve*>* left,
-                   std::vector<Curve*>* right,
-                   std::vector<Curve*>* result);
+    void calculate(std::vector<Curve*>* left, std::vector<Curve*>* right);
 
-  private:
-    int count;
-
+  protected:
     static void addEdges(std::vector<Edge*> *edges,
                          std::vector<Curve*> *curves, int curvetag);
 
-   void pruneEdges(std::vector<Edge*>* edges, std::vector<Curve*>* result);
+    void pruneEdges(std::vector<Edge*>* edges, std::vector<Curve*>* result);
 
+  };
+
+  class NZWindOp : public AreaOp {
+  public:
+
+    void newRow();
+    int classify(Edge* e);
+    int getState();
+
+  private:
+    int count;
+  };
+
+  class EOWindOp : public AreaOp {
+  public:
+
+    void newRow();
+    int classify(Edge* e);
+    int getState();
+
+  private:
+    bool inside;
+  };
+
+  class CAGOp : public AreaOp {
+  public:
+
+    void newRow();
+    int classify(Edge* e);
+    int getState();
+    virtual bool newClassification(bool inLeft, bool inRight) = 0;
+
+  private:
+    bool inLeft;
+    bool inRight;
+    bool inResult;
+  };
+
+  class UnionOp : public CAGOp {
+  public:
+    bool newClassification(bool inLeft, bool inRight);
+  };
+
+  class MinusOp : public CAGOp {
+  public:
+    bool newClassification(bool inLeft, bool inRight);
+  };
+
+  class IntersectsOp : public CAGOp {
+  public:
+    bool newClassification(bool inLeft, bool inRight);
+  };
+
+  class XorOp : public CAGOp {
+  public:
+    bool newClassification(bool inLeft, bool inRight);
   };
 
 }

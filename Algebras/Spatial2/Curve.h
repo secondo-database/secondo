@@ -103,27 +103,9 @@ namespace salr {
     static void insertMove(std::vector<Curve*> *curves, double x, double y);
     static void insertLine(std::vector<Curve*> *curves, double x0, double y0,
                            double x1, double y1);
-    static void insertQuad(std::vector<Curve*> * curves, double x0, double y0,
-                           double *coords);
 
     static void copyCurves(const std::vector<Curve*>* source,
                            std::vector<Curve*>* target);
-
-    static int pointCrossingsForLine(double px, double py,
-                                     double x0, double y0,
-                                     double x1, double y1);
-
-    static int pointCrossingsForQuad(double px, double py,
-                                     double x0, double y0,
-                                     double xc, double yc,
-                                     double x1, double y1,
-                                     int level);
-
-    static int pointCrossingsForCubic(double px, double py,
-                                      double x0, double y0,
-                                      double xc0, double yc0,
-                                      double xc1, double yc1,
-                                      double x1, double y1, int level);
 
     static int rectCrossingsForLine(int crossings,
                                     double rxmin, double rymin,
@@ -139,22 +121,11 @@ namespace salr {
                                     double x1, double y1,
                                     int level);
 
-    static int rectCrossingsForCubic(int crossings,
-                                     double rxmin, double rymin,
-                                     double rxmax, double rymax,
-                                     double x0, double y0,
-                                     double xc0, double yc0,
-                                     double xc1, double yc1,
-                                     double x1, double y1,
-                                     int level);
-
     Curve(int direction) : direction(direction) {}
 
     int getDirection();
 
     Curve *getWithDirection(int direction);
-
-    virtual int crossingsFor(double x, double y);
 
     static int orderof(double x1, double x2);
 
@@ -162,7 +133,9 @@ namespace salr {
 
     bool fairlyClose(double v1, double v2);
 
-    int compareTo(Curve *that, double *yrange);
+    virtual int compareTo(Curve *that, double *yrange);
+
+    virtual void enlarge(RectangleBB *rec) = 0;
 
     bool findIntersect(Curve *that, double *yrange, double ymin,
                        int slevel, int tlevel,
@@ -260,8 +233,6 @@ namespace salr {
 
     double nextVertical(double t0, double t1);
 
-    int crossingsFor(double x, double y);
-
     Curve *getSubCurve(double ystart, double yend, int dir);
 
     Curve *getReversedCurve();
@@ -336,108 +307,6 @@ namespace salr {
     double y1;
     double xmin;
     double xmax;
-  };
-
-  class QuadCurve : public Curve {
-  public:
-    QuadCurve(double x0, double y0, double cx0, double cy0,
-              double x1, double y1, int direction);
-
-    static void insert(std::vector<Curve*> *curves, double *tmp,
-                       double x0, double y0,
-                       double cx0, double cy0,
-                       double x1, double y1,
-                       int direction);
-
-    static void addInstance(std::vector<Curve*> *curves,
-                            double x0, double y0,
-                            double cx0, double cy0,
-                            double x1, double y1,
-                            int direction);
-
-    static int
-    getHorizontalParams(double c0, double cp, double c1, double *ret);
-
-    static void split(double *coords, int pos, double t);
-
-    static double
-    TforY(double y, double ycoeff0, double ycoeff1, double ycoeff2);
-
-    int getOrder();
-
-    double getXTop();
-
-    double getYTop();
-
-    double getXBot();
-
-    double getYBot();
-
-    double getXMin();
-
-    double getXMax();
-
-    double getX0();
-
-    double getY0();
-
-    double getCX0();
-
-    double getCY0();
-
-    double getX1();
-
-    double getY1();
-
-    double XforY(double y);
-
-    double TforY(double y);
-
-    double XforT(double t);
-
-    double YforT(double t);
-
-    double dXforT(double t, int deriv);
-
-    double dYforT(double t, int deriv);
-
-    double nextVertical(double t0, double t1);
-
-    Curve *getSubCurve(double ystart, double yend, int dir);
-
-    Curve *getReversedCurve();
-
-    void enlarge(RectangleBB *rec);
-
-    bool accumulateCrossings(Crossings *c);
-
-    int getSegment(double *coords);
-
-    void setSeedCoords(double x0, double y0, double x1, double y1);
-
-    double getSeedX0();
-    double getSeedY0();
-    double getSeedX1();
-    double getSeedY1();
-
-  private:
-    double x0;
-    double y0;
-    double cx0;
-    double cy0;
-    double x1;
-    double y1;
-    double xmin;
-    double xmax;
-
-    double xcoeff0;
-    double xcoeff1;
-    double xcoeff2;
-    double ycoeff0;
-    double ycoeff1;
-    double ycoeff2;
-
-    double seedCoords[4];
   };
 
 }

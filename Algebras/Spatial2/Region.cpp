@@ -37,7 +37,7 @@ using namespace std;
 
 namespace salr {
 
-  Region::Region(const Region &other) :
+  Region2::Region2(const Region2 &other) :
     Attribute(other.IsDefined()),
     curves(other.curves.size()),
     coords(other.coords.Size()),
@@ -54,40 +54,45 @@ namespace salr {
     }
   }
 
-  Region::Region(const Line &line) :
+  Region2::Region2(const Line2 &line) :
     Attribute(line.IsDefined()),
     curves(0),
     coords(line.coords.Size()),
     pointTypes(line.pointTypes.Size())
   {
-    if (line.IsDefined() && line.pointTypes.Size() > 0) {
-      for (int i = 0; i < line.pointTypes.Size(); i++) {
-        appendType(line.getPointType(i));
+    if(line.hasQuads) {
+      cerr << "Can't transform line2 with quad-segment to region2" << endl;
+      SetDefined(false);
+    } else {
+      if (line.IsDefined() && line.pointTypes.Size() > 0) {
+        for (int i = 0; i < line.pointTypes.Size(); i++) {
+          appendType(line.getPointType(i));
+        }
+        for (int i = 0; i < line.coords.Size(); i++) {
+          appendCoord(line.getCoord(i));
+        }
+        createCurves();
+        updateFLOBs();
       }
-      for (int i = 0; i < line.coords.Size(); i++) {
-        appendCoord(line.getCoord(i));
-      }
-      createCurves();
-      updateFLOBs();
     }
   }
 
-  Region::~Region() {
+  Region2::~Region2() {
   }
 
-  const std::string Region::BasicType() {
+  const string Region2::BasicType() {
     return "region2";
   }
 
-  const bool Region::checkType(const ListExpr type) {
+  const bool Region2::checkType(const ListExpr type) {
     return listutils::isSymbol(type, BasicType());
   }
 
-  int Region::NumOfFLOBs() const {
+  int Region2::NumOfFLOBs() const {
     return 2;
   }
 
-  Flob *Region::GetFLOB(const int i) {
+  Flob *Region2::GetFLOB(const int i) {
     assert(i >= 0 && i < NumOfFLOBs());
     if (i == 1) {
       return &coords;
@@ -96,8 +101,8 @@ namespace salr {
     }
   }
 
-  int Region::Compare(const Attribute *arg) const {
-    const Region &l = *((const Region *) arg);
+  int Region2::Compare(const Attribute *arg) const {
+    const Region2 &l = *((const Region2 *) arg);
     if (!IsDefined() && !l.IsDefined()) {
       return 0;
     }
@@ -115,15 +120,15 @@ namespace salr {
     return 0;
   }
 
-  bool Region::Adjacent(const Attribute *arg) const {
+  bool Region2::Adjacent(const Attribute *arg) const {
     return false;
   }
 
-  size_t Region::Sizeof() const {
+  size_t Region2::Sizeof() const {
     return sizeof(*this);
   }
 
-  size_t Region::HashValue() const {
+  size_t Region2::HashValue() const {
     if (pointTypes.Size() == 0) return 0;
 
     size_t h = 17 * (coords.Size() + pointTypes.Size());
@@ -136,66 +141,68 @@ namespace salr {
     return h;
   }
 
-  void Region::CopyFrom(const Attribute *arg) {
-    *this = *((Region *) arg);
+  void Region2::CopyFrom(const Attribute *arg) {
+    *this = *((Region2 *) arg);
   }
 
-  Attribute *Region::Clone() const {
-    return new Region(*this);
+  Attribute *Region2::Clone() const {
+    return new Region2(*this);
   }
 
-  bool Region::CheckKind(ListExpr type, ListExpr &errorInfo) {
+  bool Region2::CheckKind(ListExpr type, ListExpr &errorInfo) {
     return checkType(type);
   }
 
-  bool Region::ReadFrom(ListExpr LE, const ListExpr typeInfo) {
+  bool Region2::ReadFrom(ListExpr LE, const ListExpr typeInfo) {
     if (listutils::isSymbolUndefined(LE)) {
       SetDefined(false);
       return true;
     }
 
-    if (!nl->HasLength(LE, 4)) {
+    if (!nl->HasLength(LE, 2)) {
       cmsg.inFunError("List in ReadFrom-Function wrong size");
       return false;
     }
-    if (!listutils::isNumeric(nl->First(LE))
-        || !listutils::isNumeric(nl->Second(LE))) {
-      cmsg.inFunError("First two elements must be numeric");
-      return false;
-    }
 
-    int numTypes = nl->IntValue(nl->First(LE));
-    int numCoords = nl->IntValue(nl->Second(LE));
+    int numTypes = nl->ListLength(nl->First(LE));
+    int numCoords = nl->ListLength(nl->Second(LE));
     if (numTypes == 0 || numCoords == 0) {
       cmsg.inFunError("None of the num variables can be 0");
       return false;
     }
-    if (!nl->HasLength(nl->Third(LE), numTypes)) {
-      cmsg.inFunError("PointTypes list length does not match numTypes element");
-      return false;
-    }
-    if (!nl->HasLength(nl->Fourth(LE), numCoords)) {
-      cmsg.inFunError("Coords list length does not match numCoords element");
-      return false;
-    }
 
-    ListExpr pointTypesList = nl->Third(LE);
+    ListExpr pointTypesList = nl->First(LE);
     for (int i = 1; i <= numTypes; i++) {
       ListExpr current = nl->Nth(i, pointTypesList);
       if (!(nl->IsAtom(current) && nl->AtomType(current) == IntType)) {
         cmsg.inFunError("All pointType values must be of IntType");
         return false;
       }
-      this->appendType(nl->IntValue(current));
-    }
-    ListExpr coordsList = nl->Fourth(LE);
-    for (int i = 1; i <= numCoords; i++) {
-      ListExpr current = nl->Nth(i, coordsList);
-      if (!(nl->IsAtom(current) && nl->AtomType(current) == RealType)) {
-        cmsg.inFunError("All coord values must be of RealType");
+      int pointType = nl->IntValue(current);
+      if(pointType != Curve::SEG_MOVETO && pointType != Curve::SEG_LINETO
+         && pointType != Curve::SEG_CLOSE) {
+        cmsg.inFunError("Allowed pointType values: 0, 1 or 4");
         return false;
       }
-      this->appendCoord(nl->RealValue(current));
+      this->appendType(pointType);
+    }
+    if (this->pointTypes.Size() > 0
+        && this->getPointType(0) != Curve::SEG_MOVETO) {
+      cmsg.inFunError("First pointType must be a moveTo");
+      return false;
+    }
+
+    ListExpr coordsList = nl->Second(LE);
+    for (int i = 1; i <= numCoords; i++) {
+      ListExpr current = nl->Nth(i, coordsList);
+      if (!listutils::isNumeric(current)) {
+        cmsg.inFunError("All coord values must be of numeric");
+        return false;
+      } else if (nl->AtomType(current) == IntType) {
+        this->appendCoord((double)nl->IntValue(current));
+      } else if (nl->AtomType(current) == RealType) {
+        this->appendCoord(nl->RealValue(current));
+      }
     }
 
     this->createCurves();
@@ -204,7 +211,7 @@ namespace salr {
     return true;
   }
 
-  ListExpr Region::ToListExpr(ListExpr typeInfo) const {
+  ListExpr Region2::ToListExpr(ListExpr typeInfo) const {
     if (!IsDefined()) {
       return listutils::getUndefined();
     }
@@ -228,13 +235,11 @@ namespace salr {
       }
     }
 
-    ListExpr result = nl->FourElemList(nl->IntAtom(pointTypes.Size()),
-                                       nl->IntAtom(coords.Size()),
-                                       typesList, coordsList);
+    ListExpr result = nl->TwoElemList(typesList, coordsList);
     return result;
   }
 
-  RectangleBB* Region::getBounds() {
+  RectangleBB* Region2::getBounds() {
     RectangleBB* r = new RectangleBB(0, 0 ,0 ,0);
     if (curves.size() > 0) {
       Curve* c = curves.at(0);
@@ -242,36 +247,21 @@ namespace salr {
       r->x = c->getX0();
       r->y = c->getY0();
       for (unsigned int i = 1; i < curves.size(); i++) {
-        Curve* tmp = curves.at(i);
-        if(tmp->getOrder() == Curve::SEG_MOVETO) {
-          (dynamic_cast<MoveCurve *>(tmp))->enlarge(r);
-        } else if(tmp->getOrder() == Curve::SEG_LINETO) {
-          (dynamic_cast<LineCurve *>(tmp))->enlarge(r);
-        } else if(tmp->getOrder() == Curve::SEG_QUADTO) {
-          (dynamic_cast<QuadCurve *>(tmp))->enlarge(r);
-        }
+        curves.at(i)->enlarge(r);
+//        Curve* tmp = curves.at(i);
+//        if(tmp->getOrder() == Curve::SEG_MOVETO) {
+//          (dynamic_cast<MoveCurve *>(tmp))->enlarge(r);
+//        } else if(tmp->getOrder() == Curve::SEG_LINETO) {
+//          (dynamic_cast<LineCurve *>(tmp))->enlarge(r);
+//        } else if(tmp->getOrder() == Curve::SEG_QUADTO) {
+//          (dynamic_cast<QuadCurve *>(tmp))->enlarge(r);
+//        }
       }
     }
     return r;
   }
 
-  bool Region::contains(double x, double y) {
-    if (!getBounds()->contains(x, y)) {
-      return false;
-    }
-    int crossings = 0;
-    for(unsigned int i = 0; i < curves.size(); i++) {
-      Curve* c = curves.at(i);
-      if(c->getOrder() == Curve::SEG_MOVETO) {
-        crossings += (dynamic_cast<MoveCurve *>(c))->crossingsFor(x, y);
-      } else {
-        crossings += c->crossingsFor(x, y);
-      }
-    }
-    return ((crossings & 1) == 1);
-  }
-
-  bool Region::intersects(RectangleBB *bbox) {
+  bool Region2::intersects(RectangleBB *bbox) {
     double x, y, w, h;
     x = bbox->x;
     y = bbox->y;
@@ -286,12 +276,63 @@ namespace salr {
     return Crossings::findCrossings(&curves, x, y, x+w, y+h);
   }
 
-  void Region::createCurves() {
+  Region2* Region2::union1(Region2 *rhs) {
+    UnionOp op;
+//    cout << "lhs: " << curves.size() << endl;
+//    for(unsigned int i = 0; i < curves.size(); i++) {
+//      cout << i+1 << ": " << curves.at(i)->getOrder() << endl;
+//      cout << "x0/y0: " << curves.at(i)->getX0() << "/" <<
+//           curves.at(i)->getY0() << endl;
+//      cout << "x1/y1: " << curves.at(i)->getX1() << "/" <<
+//           curves.at(i)->getY1() << endl;
+//    }
+//    cout << "rhs: " << rhs->curves.size() << endl;
+//    for(unsigned int i = 0; i < rhs->curves.size(); i++) {
+//      cout << i+1 << ": " << rhs->curves.at(i)->getOrder() << endl;
+//      cout << "x0/y0: " << rhs->curves.at(i)->getX0() << "/" <<
+//           rhs->curves.at(i)->getY0() << endl;
+//      cout << "x1/y1: " << rhs->curves.at(i)->getX1() << "/" <<
+//           rhs->curves.at(i)->getY1() << endl;
+//    }
+    op.calculate(&curves, &rhs->curves);
+//    cout << "result: " << curves.size() << endl;
+//    for(unsigned int i = 0; i < curves.size(); i++) {
+//      cout << i+1 << ": " << curves.at(i)->getOrder() << endl;
+//      cout << "x0/y0: " << curves.at(i)->getX0() << "/" <<
+//           curves.at(i)->getY0() << endl;
+//      cout << "x1/y1: " << curves.at(i)->getX1() << "/" <<
+//           curves.at(i)->getY1() << endl;
+//    }
+    this->updateFLOBs();
+    return this;
+  }
+
+  Region2* Region2::minus1(Region2 *rhs) {
+    MinusOp op;
+    op.calculate(&curves, &rhs->curves);
+    this->updateFLOBs();
+    return this;
+  }
+
+  Region2* Region2::intersects1(Region2 *rhs) {
+    IntersectsOp op;
+    op.calculate(&curves, &rhs->curves);
+    this->updateFLOBs();
+    return this;
+  }
+
+  Region2* Region2::xor1(Region2 *rhs) {
+    XorOp op;
+    op.calculate(&curves, &rhs->curves);
+    this->updateFLOBs();
+    return this;
+  }
+
+  void Region2::createCurves() {
     if(pointTypes.Size() <= 0) {
       return;
     }
     vector<Curve*> c(this->curves.size());
-    copy(this->curves.begin(), this->curves.end(), c.begin());
     double coords[10];
     double movx = 0, movy = 0, curx = 0, cury = 0;
     double newx, newy;
@@ -301,44 +342,33 @@ namespace salr {
         case Curve::SEG_MOVETO:
           nextSegment(offset, Curve::SEG_MOVETO, coords);
           offset += 2;
-          Curve::insertLine(&c, curx, cury, movx, movy);
+          Curve::insertLine(&curves, curx, cury, movx, movy);
           curx = movx = coords[0];
           cury = movy = coords[1];
-          Curve::insertMove(&c, movx, movy);
+          Curve::insertMove(&curves, movx, movy);
           break;
         case Curve::SEG_LINETO:
           nextSegment(offset, Curve::SEG_LINETO, coords);
           offset += 2;
           newx = coords[0];
           newy = coords[1];
-          Curve::insertLine(&c, curx, cury, newx, newy);
+          Curve::insertLine(&curves, curx, cury, newx, newy);
           curx = newx;
           cury = newy;
-          break;
-        case Curve::SEG_QUADTO:
-          nextSegment(offset, Curve::SEG_QUADTO, coords);
-          offset += 4;
-          newx = coords[2];
-          newy = coords[3];
-          Curve::insertQuad(&c, curx, cury, coords);
-          curx = newx;
-          cury = newy;
-          ((QuadCurve *) c.back())->setSeedCoords(coords[0], coords[1],
-                                                  coords[2], coords[3]);
           break;
         case Curve::SEG_CLOSE:
-          Curve::insertLine(&c, curx, cury, movx, movy);
+          Curve::insertLine(&curves, curx, cury, movx, movy);
           curx = movx;
           cury = movy;
           break;
       }
     }
-    Curve::insertLine(&c, curx, cury, movx, movy);
-    AreaOp op = AreaOp();
-    op.calculate(&c, NULL, &(this->curves));
+    Curve::insertLine(&curves, curx, cury, movx, movy);
+    EOWindOp op;
+    op.calculate(&curves, NULL);
   }
 
-  void Region::updateFLOBs() {
+  void Region2::updateFLOBs() {
     coords.clean();
     pointTypes.clean();
     Curve *lastcurve;
@@ -361,28 +391,20 @@ namespace salr {
         }
         coords.Append(curve->getX1());
         coords.Append(curve->getY1());
-      } else if (curve->getOrder() == Curve::SEG_QUADTO) {
-        QuadCurve *quadCurve = (QuadCurve *) curve;
-        coords.Append(quadCurve->getSeedX0());
-        coords.Append(quadCurve->getSeedY0());
-        coords.Append(quadCurve->getSeedX1());
-        coords.Append(quadCurve->getSeedY1());
       }
       pointTypes.Append(curves.at(i)->getOrder());
       lastcurve = curve;
     }
+    if(lastcurve->getOrder() != Curve::SEG_CLOSE) {
+      pointTypes.Append((int) Curve::SEG_CLOSE);
+    }
   }
 
-  void Region::nextSegment(int offset, int pointType, double *result) const {
+  void Region2::nextSegment(int offset, int pointType, double *result) const {
     if (pointType == Curve::SEG_MOVETO
-        || pointType == Curve::SEG_LINETO
-        || pointType == Curve::SEG_QUADTO){
+        || pointType == Curve::SEG_LINETO){
       result[0] = getCoord(offset);
       result[1] = getCoord(offset + 1);
-    }
-    if (pointType == Curve::SEG_QUADTO) {
-      result[2] = getCoord(offset + 2);
-      result[3] = getCoord(offset + 3);
     }
   }
 

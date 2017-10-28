@@ -47,61 +47,55 @@ This header file defines the class Region.
 #include "Curve.h"
 #include "Line.h"
 #include "RectangleBB.h"
+#include "RegionT.h"
+#include "PointsT.h"
 
 #include <vector>
 
 namespace salr {
 
-  class Region : public Attribute {
+  typedef RegionT<DbArray>Region;
+  typedef PointsT<DbArray>Points;
+
+  class Region2 : public Attribute {
   public:
 
-    inline Region() {};
-
-    Region(const Line &line);
-
-    Region(const Region &other);
-
-    ~Region();
+    inline Region2() {};
+    Region2(const Line2 &line);
+    Region2(const Region2 &other);
+    Region2(const Region &r);
+    ~Region2();
 
     static const std::string BasicType();
-
     static const bool checkType(const ListExpr type);
 
     // Attribute methods
     int NumOfFLOBs() const;
-
     Flob *GetFLOB(const int i);
-
     int Compare(const Attribute *arg) const;
-
     bool Adjacent(const Attribute *arg) const;
-
     size_t Sizeof() const;
-
     size_t HashValue() const;
-
     void CopyFrom(const Attribute *arg);
-
     Attribute *Clone() const;
 
     static ListExpr Property() {
       return gentc::GenProperty("-> DATA",
                                 BasicType(),
                                 "int int DbArry<int> DbArry<real>",
-                                "(1 2 (0 1) (1.5 2.5 2.0 3.0))");
+                                "((0 1) (1.5 2.5 2.0 3.0))");
     }
 
     static bool CheckKind(ListExpr type, ListExpr &errorInfo);
-
     bool ReadFrom(ListExpr LE, const ListExpr typeInfo);
-
     ListExpr ToListExpr(ListExpr typeInfo) const;
 
     RectangleBB* getBounds();
-
-    bool contains(double x, double y);
-
     bool intersects(RectangleBB *bbox);
+    Region2* union1(Region2 *rhs);
+    Region2* minus1(Region2 *rhs);
+    Region2* intersects1(Region2 *rhs);
+    Region2* xor1(Region2 *rhs);
 
   private:
     std::vector<Curve*> curves;

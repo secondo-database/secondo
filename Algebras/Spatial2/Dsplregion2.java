@@ -56,7 +56,7 @@ public class Dsplregion2 extends DisplayGraph {
             areas=null;
             return false;
         }
-        if (expr.listLength() != 4) {
+        if (expr.listLength() != 2) {
             Reporter.writeError("Invalid line2 expression: 4 elements needed");
             err = true;
             return false;
@@ -64,8 +64,8 @@ public class Dsplregion2 extends DisplayGraph {
 
         defined=true;
         GeneralPath gp = new GeneralPath();
-        ListExpr types = expr.third();
-        ListExpr coords = expr.fourth();
+        ListExpr types = expr.first();
+        ListExpr coords = expr.second();
         int offsetCoords = 0;
         double x1, x2, y1, y2 = 0;
 

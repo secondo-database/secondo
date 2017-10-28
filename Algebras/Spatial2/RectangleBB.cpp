@@ -130,10 +130,26 @@ namespace salr {
       return false;
     }
 
-    x = nl->RealValue(nl->First(LE));
-    double y = nl->RealValue(nl->Second(LE));
-    double width = nl->RealValue(nl->Third(LE));
-    double height = nl->RealValue(nl->Fourth(LE));
+    if(nl->AtomType(nl->First(LE)) == IntType) {
+      x = nl->IntValue(nl->First(LE));
+    } else {
+      x = nl->RealValue(nl->First(LE));
+    }
+    if(nl->AtomType(nl->Second(LE)) == IntType) {
+      y = nl->IntValue(nl->Second(LE));
+    } else {
+      y = nl->RealValue(nl->Second(LE));
+    }
+    if(nl->AtomType(nl->Third(LE)) == IntType) {
+      width = nl->IntValue(nl->Third(LE));
+    } else {
+      width = nl->RealValue(nl->Third(LE));
+    }
+    if(nl->AtomType(nl->Fourth(LE)) == IntType) {
+      height = nl->IntValue(nl->Fourth(LE));
+    } else {
+      height = nl->RealValue(nl->Fourth(LE));
+    }
 
     this->setRect(x, y, width, height);
 

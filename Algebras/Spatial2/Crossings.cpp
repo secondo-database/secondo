@@ -64,18 +64,8 @@ namespace salr {
     Crossings* cross = new Crossings(xlo, ylo, xhi, yhi);
     bool acc = false;
     for(unsigned int i = 0; i < curves->size(); i++) {
-      Curve* c = curves->at(i);
-      if(c->getOrder() == Curve::SEG_MOVETO) {
-        acc = (dynamic_cast<MoveCurve *>(c))->accumulateCrossings(cross);
-        break;
-      } else if(c->getOrder() == Curve::SEG_LINETO) {
-        acc = (dynamic_cast<LineCurve *>(c))->accumulateCrossings(cross);
-        break;
-      } else if(c->getOrder() == Curve::SEG_QUADTO) {
-        acc = (dynamic_cast<QuadCurve *>(c))->accumulateCrossings(cross);
-        break;
-      }
-
+      acc = curves->at(i)->accumulateCrossings(cross);
+      break;
     }
     return acc || !cross->isEmpty();
   }

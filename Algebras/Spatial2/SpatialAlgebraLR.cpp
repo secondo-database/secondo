@@ -46,6 +46,7 @@ declaring the needed type constructors.
 #include "GenericTC.h"
 #include "Symbols.h"
 #include "StandardTypes.h"
+#include "SpatialAlgebra.h"
 
 #include <string>
 
@@ -55,20 +56,20 @@ namespace salr {
     if (!nl->HasLength(args, 3)) {
       return listutils::typeError("Wrong number of arguments");
     }
-    if (!Line::checkType(nl->First(args))
+    if (!Line2::checkType(nl->First(args))
         || !CcReal::checkType(nl->Second(args))
         || !CcReal::checkType(nl->Third(args))) {
       return listutils::typeError("line2 x real x real expected");
     }
-    return nl->SymbolAtom(Line::BasicType());
+    return nl->SymbolAtom(Line2::BasicType());
   }
 
   int moveToVM(Word *args, Word &result, int message, Word &local, Supplier s) {
     result = qp->ResultStorage(s);
-    Line *line = (Line *) args[0].addr;
+    Line2 *line = (Line2 *) args[0].addr;
     const CcReal *tx = (CcReal *) args[1].addr;
     const CcReal *ty = (CcReal *) args[2].addr;
-    Line* newLine = new Line(*line);
+    Line2* newLine = new Line2(*line);
     newLine->moveTo(tx->GetValue(), ty->GetValue());
     result.addr = newLine;
     return 0;
@@ -93,20 +94,20 @@ namespace salr {
     if (!nl->HasLength(args, 3)) {
       return listutils::typeError("Wrong number of arguments");
     }
-    if (!Line::checkType(nl->First(args))
+    if (!Line2::checkType(nl->First(args))
         || !CcReal::checkType(nl->Second(args))
         || !CcReal::checkType(nl->Third(args))) {
       return listutils::typeError("line2 x real x real expected");
     }
-    return nl->SymbolAtom(Line::BasicType());
+    return nl->SymbolAtom(Line2::BasicType());
   }
 
   int lineToVM(Word *args, Word &result, int message, Word &local, Supplier s) {
     result = qp->ResultStorage(s);
-    Line *line = (Line *) args[0].addr;
+    Line2 *line = (Line2 *) args[0].addr;
     const CcReal *tx = (CcReal *) args[1].addr;
     const CcReal *ty = (CcReal *) args[2].addr;
-    Line* newLine = new Line(*line);
+    Line2* newLine = new Line2(*line);
     newLine->lineTo(tx->GetValue(), ty->GetValue());
     result.addr = newLine;
     return 0;
@@ -131,24 +132,24 @@ namespace salr {
     if (!nl->HasLength(args, 5)) {
       return listutils::typeError("Wrong number of arguments");
     }
-    if (!Line::checkType(nl->First(args))
+    if (!Line2::checkType(nl->First(args))
         || !CcReal::checkType(nl->Second(args))
         || !CcReal::checkType(nl->Third(args))
         || !CcReal::checkType(nl->Fourth(args))
         || !CcReal::checkType(nl->Fifth(args))) {
       return listutils::typeError("line2 x real x real x real x real expected");
     }
-    return nl->SymbolAtom(Line::BasicType());
+    return nl->SymbolAtom(Line2::BasicType());
   }
 
   int quadToVM(Word *args, Word &result, int message, Word &local, Supplier s) {
     result = qp->ResultStorage(s);
-    Line *line = (Line *) args[0].addr;
+    Line2 *line = (Line2 *) args[0].addr;
     const CcReal *tx1 = (CcReal *) args[1].addr;
     const CcReal *ty1 = (CcReal *) args[2].addr;
     const CcReal *tx2 = (CcReal *) args[3].addr;
     const CcReal *ty2 = (CcReal *) args[4].addr;
-    Line* newLine = new Line(*line);
+    Line2* newLine = new Line2(*line);
     newLine->quadTo(tx1->GetValue(), ty1->GetValue(), tx2->GetValue(),
                  ty2->GetValue());
     result.addr = newLine;
@@ -174,17 +175,17 @@ namespace salr {
     if (!nl->HasLength(args, 1)) {
       return listutils::typeError("Wrong number of arguments");
     }
-    if (!Line::checkType(nl->First(args))) {
+    if (!Line2::checkType(nl->First(args))) {
       return listutils::typeError("line2 expected");
     }
-    return nl->SymbolAtom(Line::BasicType());
+    return nl->SymbolAtom(Line2::BasicType());
   }
 
   int
   closeLineVM(Word *args, Word &result, int message, Word &local, Supplier s) {
     result = qp->ResultStorage(s);
-    Line *line = (Line *) args[0].addr;
-    Line* newLine = new Line(*line);
+    Line2 *line = (Line2 *) args[0].addr;
+    Line2* newLine = new Line2(*line);
     newLine->closeLine();
     result.addr = newLine;
     return 0;
@@ -209,19 +210,19 @@ namespace salr {
     if (!nl->HasLength(args, 1)) {
       return listutils::typeError("Wrong number of arguments");
     }
-    if (!Line::checkType(nl->First(args))) {
+    if (!Line2::checkType(nl->First(args))) {
       return listutils::typeError("line2 expected");
     }
-    return nl->SymbolAtom(Region::BasicType());
+    return nl->SymbolAtom(Region2::BasicType());
   }
 
   int
   lineToRegionVM(Word *args, Word &result, int message, Word &local, Supplier s)
   {
     result = qp->ResultStorage(s);
-    Region* res = static_cast<Region*>(result.addr);
-    Line *line = (Line *) args[0].addr;
-    *res = Region(*line);
+    Region2* res = static_cast<Region2*>(result.addr);
+    Line2 *line = (Line2 *) args[0].addr;
+    *res = Region2(*line);
     return 0;
   }
 
@@ -240,73 +241,118 @@ namespace salr {
     lineToRegionTM
   );
 
-  int containsFun_L (Word* args, Word& result, int message,
-                Word& local, Supplier s)
+  ListExpr lineToLine2TM(ListExpr args) {
+    if (!nl->HasLength(args, 1)) {
+      return listutils::typeError("Wrong number of arguments");
+    }
+    if (!Line::checkType(nl->First(args))) {
+      return listutils::typeError("line expected");
+    }
+    return nl->SymbolAtom(Line2::BasicType());
+  }
+
+  int
+  lineToLine2VM(Word *args, Word &result, int message, Word &local, Supplier s)
   {
     result = qp->ResultStorage(s);
+    Line2* res = static_cast<Line2*>(result.addr);
     Line *line = (Line *) args[0].addr;
-    const CcReal *tx = (CcReal *) args[1].addr;
-    const CcReal *ty = (CcReal *) args[2].addr;
-    CcBool* b = static_cast<CcBool*>(result.addr);
-    b->Set(true, line->contains(tx->GetValue(), ty->GetValue()));
+    *res = Line(*line);
     return 0;
   }
 
-  int containsFun_R (Word* args, Word& result, int message,
-                Word& local, Supplier s)
+  OperatorSpec lineToLine2Spec(
+    "line -> line2",
+    "_ toline2",
+    "Creates a line2 from a line",
+    "query l1 toline2"
+  );
+
+  Operator lineToLine2Op(
+    "toline2",
+    lineToLine2Spec.getStr(),
+    lineToLine2VM,
+    Operator::SimpleSelect,
+    lineToLine2TM
+  );
+
+  ListExpr line2ToLineTM(ListExpr args) {
+    if (!nl->HasLength(args, 1)) {
+      return listutils::typeError("Wrong number of arguments");
+    }
+    if (!Line2::checkType(nl->First(args))) {
+      return listutils::typeError("line2 expected");
+    }
+    return nl->SymbolAtom(Line::BasicType());
+  }
+
+  int
+  line2ToLineVM(Word *args, Word &result, int message, Word &local, Supplier s)
   {
     result = qp->ResultStorage(s);
-    Region *region = (Region *) args[0].addr;
-    const CcReal *tx = (CcReal *) args[1].addr;
-    const CcReal *ty = (CcReal *) args[2].addr;
-    CcBool* b = static_cast<CcBool*>(result.addr);
-    b->Set(true, region->contains(tx->GetValue(), ty->GetValue()));
+    Line2 *line = (Line2 *) args[0].addr;
+    result.addr = line->toLine();
     return 0;
   }
 
-  ListExpr containsTypeMap(ListExpr args)
+  OperatorSpec line2ToLineSpec(
+    "line2 -> line",
+    "_ toline",
+    "Creates a line from a line2",
+    "query l1 toline"
+  );
+
+  Operator line2ToLineOp(
+    "toline",
+    line2ToLineSpec.getStr(),
+    line2ToLineVM,
+    Operator::SimpleSelect,
+    line2ToLineTM
+  );
+
+  ListExpr regionToRegion2TM(ListExpr args) {
+    if (!nl->HasLength(args, 1)) {
+      return listutils::typeError("Wrong number of arguments");
+    }
+    if (!Region::checkType(nl->First(args))) {
+      return listutils::typeError("region expected");
+    }
+    return nl->SymbolAtom(Region2::BasicType());
+  }
+
+  int
+  regionToRegion2VM(Word *args, Word &result, int message, Word &local,
+                    Supplier s)
   {
-    NList type(args);
-    const std::string errMsg = "Expecting line or region with two double.";
-    if (type == NList(Line::BasicType(), CcReal::BasicType(),
-                       CcReal::BasicType())) {
-      return NList(CcBool::BasicType()).listExpr();
-    }
-    if (type == NList(Region::BasicType(), CcReal::BasicType(),
-                      CcReal::BasicType())) {
-      return NList(CcBool::BasicType()).listExpr();
-    }
-    return NList::typeError(errMsg);
+    result = qp->ResultStorage(s);
+    Region2* res = static_cast<Region2*>(result.addr);
+    ListExpr le = ::OutRegion(0, args[0]);
+    Region *region = (Region *) args[0].addr;
+    Line2 line = Line2(le, region->Size());
+    *res = Region2(line);
+    return 0;
   }
 
-  int containsSelect(ListExpr args) {
-    NList type(args);
-    if (type.first().isSymbol( Line::BasicType()))
-      return 0;
-    else if(type.first().isSymbol( Region::BasicType()))
-      return 1;
-    else
-      return 3;
-  }
+  OperatorSpec regionToRegion2Spec(
+    "region -> region2",
+    "_ toregion2",
+    "Creates a region2 from a region",
+    "query r1 toRegion2"
+  );
 
-  struct containsInfo : OperatorInfo {
-    containsInfo()
-    {
-      name      = "lr_contains";
-      signature = Line::BasicType() + " x " + CcReal::BasicType() + " x " +
-          CcReal::BasicType() + " -> " +CcBool::BasicType();
-      appendSignature(Region::BasicType() + " x "+ CcReal::BasicType() + " x " +
-               CcReal::BasicType() + " -> " +CcBool::BasicType());
-      syntax    = "_ lr_contains [_, _]";
-      meaning   = "Contains predicate.";
-    }
-  };
+  Operator regionToRegion2Op(
+    "toregion2",
+    regionToRegion2Spec.getStr(),
+    regionToRegion2VM,
+    Operator::SimpleSelect,
+    regionToRegion2TM
+  );
 
   int intersectFun_L (Word* args, Word& result, int message,
                      Word& local, Supplier s)
   {
     result = qp->ResultStorage(s);
-    Line *line = (Line *) args[0].addr;
+    Line2 *line = (Line2 *) args[0].addr;
     RectangleBB *rec = (RectangleBB *) args[1].addr;
     CcBool* b = static_cast<CcBool*>(result.addr);
     b->Set(true, line->intersects(rec));
@@ -317,7 +363,7 @@ namespace salr {
                      Word& local, Supplier s)
   {
     result = qp->ResultStorage(s);
-    Region *region = (Region *) args[0].addr;
+    Region2 *region = (Region2 *) args[0].addr;
     RectangleBB *rec = (RectangleBB *) args[1].addr;
     CcBool* b = static_cast<CcBool*>(result.addr);
     b->Set(true, region->intersects(rec));
@@ -328,10 +374,10 @@ namespace salr {
   {
     NList type(args);
     const std::string errMsg = "Expecting line or region with rectangleBB.";
-    if (type == NList(Line::BasicType(), RectangleBB::BasicType())) {
+    if (type == NList(Line2::BasicType(), RectangleBB::BasicType())) {
       return NList(CcBool::BasicType()).listExpr();
     }
-    if (type == NList(Region::BasicType(), RectangleBB::BasicType())) {
+    if (type == NList(Region2::BasicType(), RectangleBB::BasicType())) {
       return NList(CcBool::BasicType()).listExpr();
     }
     return NList::typeError(errMsg);
@@ -339,9 +385,9 @@ namespace salr {
 
   int intersectSelect(ListExpr args) {
     NList type(args);
-    if (type.first().isSymbol( Line::BasicType()))
+    if (type.first().isSymbol( Line2::BasicType()))
       return 0;
-    else if(type.first().isSymbol( Region::BasicType()))
+    else if(type.first().isSymbol( Region2::BasicType()))
       return 1;
     else
       return 3;
@@ -351,9 +397,9 @@ namespace salr {
     intersectInfo()
     {
       name      = "lr_intersects";
-      signature = Line::BasicType() + " x " + RectangleBB::BasicType()
+      signature = Line2::BasicType() + " x " + RectangleBB::BasicType()
                   + " -> " +CcBool::BasicType();
-      appendSignature(Region::BasicType() + " x "+ RectangleBB::BasicType()
+      appendSignature(Region2::BasicType() + " x "+ RectangleBB::BasicType()
                       + " -> " +CcBool::BasicType());
       syntax    = "_ lr_intersects [_, _]";
       meaning   = "Intersection predicate.";
@@ -364,7 +410,7 @@ namespace salr {
                       Word& local, Supplier s)
   {
     result = qp->ResultStorage(s);
-    Line *line = (Line *) args[0].addr;
+    Line2 *line = (Line2 *) args[0].addr;
     result.addr = line->getBounds();
     return 0;
   }
@@ -373,7 +419,7 @@ namespace salr {
                       Word& local, Supplier s)
   {
     result = qp->ResultStorage(s);
-    Region *region = (Region *) args[0].addr;
+    Region2 *region = (Region2 *) args[0].addr;
     result.addr = region->getBounds();
     return 0;
   }
@@ -382,10 +428,10 @@ namespace salr {
   {
     NList type(args);
     const std::string errMsg = "Expecting line or region";
-    if (type.first().isSymbol(Line::BasicType())) {
+    if (type.first().isSymbol(Line2::BasicType())) {
       return NList(RectangleBB::BasicType()).listExpr();
     }
-    if (type.first().isSymbol(Region::BasicType())) {
+    if (type.first().isSymbol(Region2::BasicType())) {
       return NList(RectangleBB::BasicType()).listExpr();
     }
     return NList::typeError(errMsg);
@@ -393,9 +439,9 @@ namespace salr {
 
   int boundsSelect(ListExpr args) {
     NList type(args);
-    if (type.first().isSymbol( Line::BasicType()))
+    if (type.first().isSymbol( Line2::BasicType()))
       return 0;
-    else if(type.first().isSymbol( Region::BasicType()))
+    else if(type.first().isSymbol( Region2::BasicType()))
       return 1;
     else
       return 3;
@@ -405,15 +451,159 @@ namespace salr {
     boundsInfo()
     {
       name      = "getbounds";
-      signature = Line::BasicType() + " -> " + RectangleBB::BasicType();
-      appendSignature(Region::BasicType() + " -> "+ RectangleBB::BasicType());
+      signature = Line2::BasicType() + " -> " + RectangleBB::BasicType();
+      appendSignature(Region2::BasicType() + " -> "+ RectangleBB::BasicType());
       syntax    = "_ getbounds";
       meaning   = "Get Boundary.";
     }
   };
 
-  GenTC <Line> LineTC;
-  GenTC <Region> RegionTC;
+  ListExpr unionTM(ListExpr args) {
+    if (!nl->HasLength(args, 2)) {
+      return listutils::typeError("Wrong number of arguments");
+    }
+    if (!Region2::checkType(nl->First(args))
+        || !Region2::checkType(nl->Second(args))) {
+      return listutils::typeError("region2 x region2 expected");
+    }
+    return nl->SymbolAtom(Region2::BasicType());
+  }
+
+  int
+  unionVM(Word *args, Word &result, int message, Word &local, Supplier s)
+  {
+    result = qp->ResultStorage(s);
+    Region2 *r1 = (Region2 *) args[0].addr;
+    Region2 *r2 = (Region2 *) args[1].addr;
+    result.addr = r1->union1(r2);
+    return 0;
+  }
+
+  OperatorSpec unionSpec(
+    "region2 x region2 -> region2",
+    "_ union1 _",
+    "Creates the union of two region2",
+    "query r1 union1 r2"
+  );
+
+  Operator unionOp(
+    "union1",
+    unionSpec.getStr(),
+    unionVM,
+    Operator::SimpleSelect,
+    unionTM
+  );
+
+  ListExpr minusTM(ListExpr args) {
+    if (!nl->HasLength(args, 2)) {
+      return listutils::typeError("Wrong number of arguments");
+    }
+    if (!Region2::checkType(nl->First(args))
+        || !Region2::checkType(nl->Second(args))) {
+      return listutils::typeError("region2 x region2 expected");
+    }
+    return nl->SymbolAtom(Region2::BasicType());
+  }
+
+  int
+  minusVM(Word *args, Word &result, int message, Word &local, Supplier s)
+  {
+    result = qp->ResultStorage(s);
+    Region2 *r1 = (Region2 *) args[0].addr;
+    Region2 *r2 = (Region2 *) args[1].addr;
+    result.addr = r1->minus1(r2);
+    return 0;
+  }
+
+  OperatorSpec minusSpec(
+    "region2 x region2 -> region2",
+    "_ minus1 _",
+    "Returns the part of r1 which does not intersect with r2.",
+    "query r1 minus1 r2"
+  );
+
+  Operator minusOp(
+    "minus1",
+    minusSpec.getStr(),
+    minusVM,
+    Operator::SimpleSelect,
+    minusTM
+  );
+
+  ListExpr intersectsTM(ListExpr args) {
+    if (!nl->HasLength(args, 2)) {
+      return listutils::typeError("Wrong number of arguments");
+    }
+    if (!Region2::checkType(nl->First(args))
+        || !Region2::checkType(nl->Second(args))) {
+      return listutils::typeError("region2 x region2 expected");
+    }
+    return nl->SymbolAtom(Region2::BasicType());
+  }
+
+  int
+  intersectsVM(Word *args, Word &result, int message, Word &local, Supplier s)
+  {
+    result = qp->ResultStorage(s);
+    Region2 *r1 = (Region2 *) args[0].addr;
+    Region2 *r2 = (Region2 *) args[1].addr;
+    result.addr = r1->intersects1(r2);
+    return 0;
+  }
+
+  OperatorSpec intersectsSpec(
+    "region2 x region2 -> region2",
+    "_ intersects1 _",
+    "Returns the region in which r1 and r2 intersect.",
+    "query r1 intersects1 r2"
+  );
+
+  Operator intersectsOp(
+    "intersects1",
+    intersectsSpec.getStr(),
+    intersectsVM,
+    Operator::SimpleSelect,
+    intersectsTM
+  );
+
+  ListExpr xorTM(ListExpr args) {
+    if (!nl->HasLength(args, 2)) {
+      return listutils::typeError("Wrong number of arguments");
+    }
+    if (!Region2::checkType(nl->First(args))
+        || !Region2::checkType(nl->Second(args))) {
+      return listutils::typeError("region2 x region2 expected");
+    }
+    return nl->SymbolAtom(Region2::BasicType());
+  }
+
+  int
+  xorVM(Word *args, Word &result, int message, Word &local, Supplier s)
+  {
+    result = qp->ResultStorage(s);
+    Region2 *r1 = (Region2 *) args[0].addr;
+    Region2 *r2 = (Region2 *) args[1].addr;
+    result.addr = r1->xor1(r2);
+    return 0;
+  }
+
+  OperatorSpec xorSpec(
+    "region2 x region2 -> region2",
+    "_ xor1 _",
+    "Returns the region in which r1 and r2 don't intersect.",
+    "query r1 xor1 r2"
+  );
+
+  Operator xorOp(
+    "xor1",
+    xorSpec.getStr(),
+    xorVM,
+    Operator::SimpleSelect,
+    xorTM
+  );
+
+  GenTC <Line2> LineTC;
+  GenTC <Region2> RegionTC;
   GenTC <RectangleBB> RectangleBBTC;
 
   class SpatialLRAlgebra : public Algebra {
@@ -433,9 +623,13 @@ namespace salr {
       AddOperator(&quadToOp);
       AddOperator(&closeLineOp);
       AddOperator(&lineToRegionOp);
-
-      ValueMapping containsFuns[] = {containsFun_L, containsFun_R, 0};
-      AddOperator(containsInfo(), containsFuns, containsSelect,containsTypeMap);
+      AddOperator(&lineToLine2Op);
+      AddOperator(&line2ToLineOp);
+      AddOperator(&regionToRegion2Op);
+      AddOperator(&unionOp);
+      AddOperator(&minusOp);
+      AddOperator(&intersectsOp);
+      AddOperator(&xorOp);
 
       ValueMapping intersectFuns[] = {intersectFun_L, intersectFun_R, 0};
       AddOperator(intersectInfo(), intersectFuns,

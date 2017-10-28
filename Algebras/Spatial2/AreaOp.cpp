@@ -101,19 +101,20 @@ namespace salr {
     return (this->etag == etag && this->activey >= y);
   }
 
-  bool Edge::operator<(const Edge &str) const {
-    Curve *c1 = getCurve();
-    Curve *c2 = str.getCurve();
+  bool comparator(const Edge *l, const Edge *r) {
+    Curve *c1 = l->getCurve();
+    Curve *c2 = r->getCurve();
     double v1, v2;
+    v1 = v2 = 0;
     if ((v1 = c1->getYTop()) == (v2 = c2->getYTop())) {
       if ((v1 = c1->getXTop()) == (v2 = c2->getXTop())) {
         return 0;
       }
     }
     if (v1 < v2) {
-      return -1;
+      return 1;
     }
-    return 1;
+    return 0;
   }
 
   CurveLink::CurveLink(Curve *c, double ystart, double yend, int etag) :
@@ -277,22 +278,6 @@ namespace salr {
     }
   }
 
-  void AreaOp::newRow() {
-    count = 0;
-  }
-
-  int AreaOp::classify(Edge* e) {
-    int newCount = count;
-    int type = (newCount == 0 ? ETAG_ENTER : ETAG_IGNORE);
-    newCount += e->getCurve()->getDirection();
-    count = newCount;
-    return (newCount == 0 ? ETAG_EXIT : type);
-  }
-
-  int AreaOp::getState() {
-    return ((count == 0) ? RSTAG_OUTSIDE : RSTAG_INSIDE);
-  }
-
   void AreaOp::finalizeSubCurves(vector<CurveLink*>* subcurves,
                                  vector<ChainEnd*>* chains) {
     int numchains = chains->size();
@@ -426,13 +411,11 @@ namespace salr {
     }
   }
 
-  void AreaOp::calculate(vector<Curve*>* left,
-                                    vector<Curve*>* right,
-                                    vector<Curve*>* result) {
-    vector<Edge*> *edges = new vector<Edge*>(0);
+  void AreaOp::calculate(vector<Curve*>* left, vector<Curve*>* right) {
+    vector < Edge * > *edges = new vector<Edge *>(0);
     addEdges(edges, left, AreaOp::CTAG_LEFT);
     addEdges(edges, right, AreaOp::CTAG_RIGHT);
-    pruneEdges(edges, result);
+    pruneEdges(edges, left);
     delete edges;
   }
 
@@ -454,7 +437,7 @@ namespace salr {
       return;
     }
     vector<Edge*> edgelist = *(new vector<Edge*>(*edges));
-    sort(edgelist.begin(), edgelist.end());
+    sort(edgelist.begin(), edgelist.end(), comparator);
     Edge* e;
     int left = 0;
     int right = 0;
@@ -635,6 +618,74 @@ namespace salr {
       }
       result->push_back(link->getSubCurve());
     }
+  }
+
+  void NZWindOp::newRow() {
+    count = 0;
+  }
+
+  int NZWindOp::classify(Edge* e) {
+    int newCount = count;
+    int type = (newCount == 0 ? ETAG_ENTER : ETAG_IGNORE);
+    newCount += e->getCurve()->getDirection();
+    count = newCount;
+    return (newCount == 0 ? ETAG_EXIT : type);
+  }
+
+  int NZWindOp::getState() {
+    return ((count == 0) ? RSTAG_OUTSIDE : RSTAG_INSIDE);
+  }
+
+  void EOWindOp::newRow() {
+    inside = false;
+  }
+
+  int EOWindOp::classify(Edge* e) {
+    bool newInside = !inside;
+    inside = newInside;
+    return (newInside ? ETAG_ENTER : ETAG_EXIT);
+  }
+
+  int EOWindOp::getState() {
+    return (inside ? RSTAG_INSIDE : RSTAG_OUTSIDE);
+  }
+
+  void CAGOp::newRow() {
+    inLeft = inRight = inResult = false;
+  }
+
+  int CAGOp::classify(Edge* e) {
+    if (e->getCurveTag() == CTAG_LEFT) {
+      inLeft = !inLeft;
+    } else {
+      inRight = !inRight;
+    }
+    bool newClass = newClassification(inLeft, inRight);
+    if (inResult == newClass) {
+      return ETAG_IGNORE;
+    }
+    inResult = newClass;
+    return (newClass ? ETAG_ENTER : ETAG_EXIT);
+  }
+
+  int CAGOp::getState() {
+    return (inResult ? RSTAG_INSIDE : RSTAG_OUTSIDE);
+  }
+
+  bool UnionOp::newClassification(bool inLeft, bool inRight) {
+    return (inLeft || inRight);
+  }
+
+  bool MinusOp::newClassification(bool inLeft, bool inRight) {
+    return (inLeft && !inRight);
+  }
+
+  bool IntersectsOp::newClassification(bool inLeft, bool inRight) {
+    return (inLeft && inRight);
+  }
+
+  bool XorOp::newClassification(bool inLeft, bool inRight) {
+    return (inLeft != inRight);
   }
 
 }

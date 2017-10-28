@@ -44,74 +44,64 @@ This header file defines the class Line and it's child classes.
 #include "../../Tools/Flob/DbArray.h"
 #include "Attribute.h"
 #include "GenericTC.h"
+#include "LineT.h"
+#include "NestedList.h"
 
 namespace salr {
 
   class RectangleBB;
+  typedef LineT<DbArray>Line;
 
-  class Line : public Attribute {
+  class Line2 : public Attribute {
   public:
 
-    friend class Region;
+    friend class Region2;
 
-    inline Line() {};
+    inline Line2() {};
 
-    Line(const Line &other);
+    Line2(const Line2 &other);
 
-    Line(int initialCapacity);
+    Line2(int initialCapacity);
 
-    ~Line();
+    Line2(const Line &l);
+
+    Line2(ListExpr le, int s);
+
+    ~Line2();
 
     static const std::string BasicType();
-
     static const bool checkType(const ListExpr type);
 
     // Attribute methods
     int NumOfFLOBs() const;
-
     Flob *GetFLOB(const int i);
-
     int Compare(const Attribute *arg) const;
-
     bool Adjacent(const Attribute *arg) const;
-
     size_t Sizeof() const;
-
     size_t HashValue() const;
-
     void CopyFrom(const Attribute *arg);
-
     Attribute *Clone() const;
 
     static ListExpr Property() {
       return gentc::GenProperty("-> DATA",
                                 BasicType(),
                                 "int int DbArry<int> DbArry<real>",
-                                "(1 2 (0 1) (1.5 2.5 2.0 3.0))");
+                                "((0 1) (1.5 2.5 2.0 3.0))");
     }
 
     static bool CheckKind(ListExpr type, ListExpr &errorInfo);
-
     bool ReadFrom(ListExpr LE, const ListExpr typeInfo);
-
     ListExpr ToListExpr(ListExpr typeInfo) const;
 
     // custom methods
     void moveTo(double x, double y);
-
     void lineTo(double x, double y);
-
     void quadTo(double x1, double y1, double x2, double y2);
-
     void closeLine();
-
     RectangleBB* getBounds();
-
-    bool contains(double x, double y);
-
     bool intersects(RectangleBB *bbox);
-
     void nextSegment(int offset, int pointType, double *result) const;
+    Line* toLine();
 
     double getCoord(int i) const {
       double coord;
@@ -130,6 +120,8 @@ namespace salr {
     DbArray<double> coords;
     DbArray<int> pointTypes;
 
+    bool hasQuads;
+
     void appendCoord(double x) {
       coords.Append(x);
     }
@@ -139,9 +131,6 @@ namespace salr {
     }
 
     void hasInitialMove();
-
-    int pointCrossings(double px, double py);
-
     int rectCrossings(double rxmin, double rymin, double rxmax, double rymax);
   };
 
