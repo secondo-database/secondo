@@ -60,6 +60,8 @@ namespace salr {
   class Region2 : public Attribute {
   public:
 
+    friend class Line2;
+
     inline Region2() {};
     Region2(const Line2 &line);
     Region2(const Region2 &other);

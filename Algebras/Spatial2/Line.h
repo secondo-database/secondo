@@ -50,6 +50,7 @@ This header file defines the class Line and it's child classes.
 namespace salr {
 
   class RectangleBB;
+  class Region2;
   typedef LineT<DbArray>Line;
 
   class Line2 : public Attribute {
@@ -60,12 +61,10 @@ namespace salr {
     inline Line2() {};
 
     Line2(const Line2 &other);
-
     Line2(int initialCapacity);
-
     Line2(const Line &l);
-
     Line2(ListExpr le, int s);
+    Line2(const Region2 &r);
 
     ~Line2();
 

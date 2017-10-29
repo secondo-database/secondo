@@ -21,10 +21,10 @@ operator lr_moveto alias LR_MOVETO pattern _ op [_, _]
 operator lineTo alias LINETO pattern _ op [_, _]
 operator quadTo alias QUADTO pattern _ op [_, _, _, _]
 operator closeLine alias CLOSELINE pattern _ op
-operator toRegion alias TOREGION pattern _ op
 operator toline2 alias TOLINE2 pattern op (_)
 operator toline alias TOLINE pattern op (_)
 operator toregion2 alias TOREGION2 pattern op (_)
+operator toregion alias TOREGION pattern _ op
 operator lr_intersects alias LR_INTERSECTS pattern _ infixop _
 operator getbounds alias GETBOUNDS pattern _ op
 operator union1 alias UNION1 pattern _ infixop _

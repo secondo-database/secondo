@@ -278,31 +278,7 @@ namespace salr {
 
   Region2* Region2::union1(Region2 *rhs) {
     UnionOp op;
-//    cout << "lhs: " << curves.size() << endl;
-//    for(unsigned int i = 0; i < curves.size(); i++) {
-//      cout << i+1 << ": " << curves.at(i)->getOrder() << endl;
-//      cout << "x0/y0: " << curves.at(i)->getX0() << "/" <<
-//           curves.at(i)->getY0() << endl;
-//      cout << "x1/y1: " << curves.at(i)->getX1() << "/" <<
-//           curves.at(i)->getY1() << endl;
-//    }
-//    cout << "rhs: " << rhs->curves.size() << endl;
-//    for(unsigned int i = 0; i < rhs->curves.size(); i++) {
-//      cout << i+1 << ": " << rhs->curves.at(i)->getOrder() << endl;
-//      cout << "x0/y0: " << rhs->curves.at(i)->getX0() << "/" <<
-//           rhs->curves.at(i)->getY0() << endl;
-//      cout << "x1/y1: " << rhs->curves.at(i)->getX1() << "/" <<
-//           rhs->curves.at(i)->getY1() << endl;
-//    }
     op.calculate(&curves, &rhs->curves);
-//    cout << "result: " << curves.size() << endl;
-//    for(unsigned int i = 0; i < curves.size(); i++) {
-//      cout << i+1 << ": " << curves.at(i)->getOrder() << endl;
-//      cout << "x0/y0: " << curves.at(i)->getX0() << "/" <<
-//           curves.at(i)->getY0() << endl;
-//      cout << "x1/y1: " << curves.at(i)->getX1() << "/" <<
-//           curves.at(i)->getY1() << endl;
-//    }
     this->updateFLOBs();
     return this;
   }

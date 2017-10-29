@@ -228,13 +228,13 @@ namespace salr {
 
   OperatorSpec lineToRegionSpec(
     "line2 -> region2",
-    "_ toRegion",
+    "toregion2 (_)",
     "Creates a region2 to from a line2",
-    "query l1 toRegion"
+    "query l1 toregion2"
   );
 
   Operator lineToRegionOp(
-    "toRegion",
+    "toregion2",
     lineToRegionSpec.getStr(),
     lineToRegionVM,
     Operator::SimpleSelect,
@@ -263,7 +263,7 @@ namespace salr {
 
   OperatorSpec lineToLine2Spec(
     "line -> line2",
-    "_ toline2",
+    "toline2 (_)",
     "Creates a line2 from a line",
     "query l1 toline2"
   );
@@ -297,7 +297,7 @@ namespace salr {
 
   OperatorSpec line2ToLineSpec(
     "line2 -> line",
-    "_ toline",
+    "toline (_)",
     "Creates a line from a line2",
     "query l1 toline"
   );
@@ -335,9 +335,9 @@ namespace salr {
 
   OperatorSpec regionToRegion2Spec(
     "region -> region2",
-    "_ toregion2",
+    "toregion2 (_)",
     "Creates a region2 from a region",
-    "query r1 toRegion2"
+    "query r1 toregion2"
   );
 
   Operator regionToRegion2Op(
@@ -346,6 +346,45 @@ namespace salr {
     regionToRegion2VM,
     Operator::SimpleSelect,
     regionToRegion2TM
+  );
+
+  ListExpr region2ToRegionTM(ListExpr args) {
+    if (!nl->HasLength(args, 1)) {
+      return listutils::typeError("Wrong number of arguments");
+    }
+    if (!Region2::checkType(nl->First(args))) {
+      return listutils::typeError("region2 expected");
+    }
+    return nl->SymbolAtom(Region::BasicType());
+  }
+
+  int
+  region2ToRegionVM(Word *args, Word &result, int message, Word &local,
+                    Supplier s)
+  {
+    result = qp->ResultStorage(s);
+    Region2 *region = (Region2 *)args[0].addr;
+    Line2 line = Line2(*region);
+    Line *cl = line.toLine();
+    Region *pResult = (Region *)result.addr;
+    pResult->Clear();
+    cl->Transform( *pResult );
+    return 0;
+  }
+
+  OperatorSpec region2ToRegionSpec(
+    "region2 -> region",
+    "_ toregion",
+    "Creates a region from a region2",
+    "query r1 toregion"
+  );
+
+  Operator region2ToRegionOp(
+    "toregion",
+    region2ToRegionSpec.getStr(),
+    region2ToRegionVM,
+    Operator::SimpleSelect,
+    region2ToRegionTM
   );
 
   int intersectFun_L (Word* args, Word& result, int message,
@@ -401,7 +440,7 @@ namespace salr {
                   + " -> " +CcBool::BasicType();
       appendSignature(Region2::BasicType() + " x "+ RectangleBB::BasicType()
                       + " -> " +CcBool::BasicType());
-      syntax    = "_ lr_intersects [_, _]";
+      syntax    = "_ lr_intersects _";
       meaning   = "Intersection predicate.";
     }
   };
@@ -626,6 +665,7 @@ namespace salr {
       AddOperator(&lineToLine2Op);
       AddOperator(&line2ToLineOp);
       AddOperator(&regionToRegion2Op);
+      AddOperator(&region2ToRegionOp);
       AddOperator(&unionOp);
       AddOperator(&minusOp);
       AddOperator(&intersectsOp);

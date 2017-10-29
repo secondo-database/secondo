@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "Line.h"
+#include "Region.h"
 #include "Curve.h"
 #include "NestedList.h"
 #include "ListUtils.h"
@@ -121,6 +122,19 @@ namespace salr {
         }
         closeLine();
       }
+    }
+  }
+
+  Line2::Line2(const Region2 &r) :
+    Attribute(r.IsDefined()),
+    coords(r.coords.Size()),
+    pointTypes(r.pointTypes.Size()),
+    hasQuads(false){
+    for (int i = 0; i < r.pointTypes.Size(); i++) {
+      appendType(r.getPointType(i));
+    }
+    for (int i = 0; i < r.coords.Size(); i++) {
+      appendCoord(r.getCoord(i));
     }
   }
 
