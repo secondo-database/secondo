@@ -71,6 +71,13 @@ public:
     static std::string TriggerReplicaDeletion();
     static std::string TriggerReplication();
     static std::string StartingSignal();
+    static std::string TriggerDerivation();
+    static std::string DerivationRequest();
+    static std::string ObjectExists();
+    static std::string RelationNotExists();
+    static std::string DerivationTriggered();
+    static std::string CreateDerivation();
+
 };
 
 } /* namespace DBService */

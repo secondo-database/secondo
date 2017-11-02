@@ -212,6 +212,28 @@ which a replica is stored in the ~DBService~.
                 std::iostream& io,
                 const boost::thread::id tid);
 
+
+
+/*
+1.1.1.1 ~handleTriggerDerivation~
+
+This function handles a triggerDerivation message.
+
+*/
+     bool handleTriggerDerivation(
+             std::iostream& io,
+             const boost::thread::id tid);
+
+/*
+1.1.1.1 ~handleCreateDerivation~
+
+This function handles a triggerDerivation message.
+
+*/
+     bool handleCreateDerivation(
+             std::iostream& io,
+             const boost::thread::id tid);
+
 /*
 
 1.1.1.1 \textit{lookupMinimumReplicaCount}

@@ -205,6 +205,20 @@ provides the corresponding tuple type in this case.
 
     bool getRelType(const std::string& relID, std::string& nestedListAsString);
 
+
+/*
+1.1.1.3 ~triggerDerivation~
+
+This function triggers an creation of a new object using a relation as well as
+a function definition.
+
+*/
+    bool triggerDerivation( const std::string& databaseName,
+                            const std::string& targetName,
+                            const std::string& relName,
+                            const std::string& fundef);
+
+
 /*
 1.1.1.2 \textit{getLocationParameter}
 

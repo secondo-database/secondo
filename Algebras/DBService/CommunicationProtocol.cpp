@@ -155,4 +155,35 @@ string CommunicationProtocol::FileName()
     return "<FILENAME>";
 }
 
+
+string CommunicationProtocol::TriggerDerivation()
+{
+    return "<TRIGGERDERIVATION>";
+}
+
+string CommunicationProtocol::DerivationRequest()
+{
+   return "<DERIVATIONREQUEST>";
+}
+
+string CommunicationProtocol::ObjectExists()
+{
+  return "<OBJECTEXISTS>";
+}
+
+string CommunicationProtocol::RelationNotExists() 
+{
+  return "<RELATIONNOTEXISTS>";
+}
+
+string CommunicationProtocol::DerivationTriggered()
+{
+  return "<DERIVATIONTRIGGERED>";
+}
+
+string CommunicationProtocol::CreateDerivation()
+{
+  return "<CREATEDERIVATION>";
+}
+
 } /* namespace DBService */

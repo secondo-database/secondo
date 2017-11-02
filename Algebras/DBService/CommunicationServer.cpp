@@ -29,6 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "FileSystem.h"
 #include "StringUtils.h"
 
+#include "SecondoCatalog.h"
+#include "SecondoSystem.h"
+
 #include "Algebras/Distributed2/FileRelations.h"
 
 #include "Algebras/DBService/CommunicationProtocol.hpp"
@@ -40,6 +43,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/SecondoUtilsLocal.hpp"
 #include "Algebras/DBService/TriggerFileTransferRunnable.hpp"
 #include "Algebras/DBService/TriggerReplicaDeletionRunnable.hpp"
+#include "Algebras/DBService/DerivationClient.hpp"
 
 using namespace distributed2;
 using namespace std;
@@ -142,6 +146,14 @@ int CommunicationServer::communicate(iostream& io)
                 CommunicationProtocol::RelTypeRequest())
         {
             handleRelTypeRequest(io, tid);
+        }else if(request ==
+                CommunicationProtocol::TriggerDerivation())
+        { 
+            handleTriggerDerivation(io,tid);
+        }else if(request ==
+                 CommunicationProtocol::CreateDerivation())
+        {
+           handleCreateDerivation(io,tid);
         }else
         {
             traceWriter->write(
@@ -441,14 +453,21 @@ bool CommunicationServer::handleTriggerReplicaDeletion(
     string relID;
     CommunicationUtils::receiveLine(io, relID);
 
+    // remove file
     string databaseName;
     string relationName;
     RelationInfo::parseIdentifier(relID, databaseName, relationName);
 
-    FileSystem::DeleteFileOrFolder(
-            ReplicationUtils::getFileNameOnDBServiceWorker(
-                    databaseName,
-                    relationName));
+    string filename = ReplicationUtils::getFileNameOnDBServiceWorker(
+                                  databaseName,
+                                  relationName);
+    FileSystem::DeleteFileOrFolder( filename );
+
+    // delete stored object
+    SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+    string relname = ReplicationUtils::getRelName(filename);
+    ctlg->DeleteObject(relname);    
+
 
     //TODO check return code etc
     //TODO tracing
@@ -501,5 +520,90 @@ bool CommunicationServer::handleRelTypeRequest(
     }
     return true;
 }
+
+
+bool CommunicationServer::handleTriggerDerivation(
+        std::iostream& io, const boost::thread::id tid)
+{
+    traceWriter->writeFunction(tid,
+            "CommunicationServer::handleTriggerDerivation");
+    CommunicationUtils::sendLine(io,
+            CommunicationProtocol::DerivationRequest());
+
+    queue<string> receiveBuffer;
+    CommunicationUtils::receiveLines(io, 4, receiveBuffer);
+
+    string databaseName = receiveBuffer.front();
+    receiveBuffer.pop();
+    string targetName = receiveBuffer.front();
+    receiveBuffer.pop();
+    string relName = receiveBuffer.front();
+    receiveBuffer.pop();
+    string fundef = receiveBuffer.front();
+    receiveBuffer.pop();
+
+    traceWriter->write(tid, "databaseName", databaseName);
+    traceWriter->write(tid, "targetName", targetName);
+    traceWriter->write(tid, "relationName", relName);
+    traceWriter->write(tid, "fundef", fundef);
+
+    DBServiceManager* dbService = DBServiceManager::getInstance();
+    if(!dbService->replicaExists(databaseName, relName))
+    {
+        CommunicationUtils::sendLine(io,
+                CommunicationProtocol::RelationNotExists());
+        return false;
+    }
+    if(dbService->replicaExists(databaseName, targetName)){
+        CommunicationUtils::sendLine(io, 
+                 CommunicationProtocol::ObjectExists());
+        return false;
+    }
+
+    // for all workers holding a replica of the relation
+    // send command to the worker to derive the object
+    string relId = MetadataObject::getIdentifier(databaseName, relName);
+    ReplicaLocations rl;
+    dbService->getReplicaLocations(relId, rl);
+    // TODO: send createDerivation to each of the workers 
+       
+
+
+    CommunicationUtils::sendLine(io, 
+              CommunicationProtocol::DerivationTriggered());
+    return true;
+}
+
+
+bool CommunicationServer::handleCreateDerivation(
+        std::iostream& io, const boost::thread::id tid)
+{
+    traceWriter->writeFunction(tid,
+            "CommunicationServer::handleCreateDerivation");
+    CommunicationUtils::sendLine(io,
+            CommunicationProtocol::DerivationRequest());
+
+    queue<string> receiveBuffer;
+    CommunicationUtils::receiveLines(io, 4, receiveBuffer);
+
+    string databaseName = receiveBuffer.front();
+    receiveBuffer.pop();
+    string targetName = receiveBuffer.front();
+    receiveBuffer.pop();
+    string relName = receiveBuffer.front();
+    receiveBuffer.pop();
+    string fundef = receiveBuffer.front();
+    receiveBuffer.pop();
+
+    traceWriter->write(tid, "databaseName", databaseName);
+    traceWriter->write(tid, "targetName", targetName);
+    traceWriter->write(tid, "relationName", relName);
+    traceWriter->write(tid, "fundef", fundef);
+
+    DerivationClient dc(databaseName, targetName, relName, fundef);
+    dc.start();
+    return true;
+}
+
 
 } /* namespace DBService */
