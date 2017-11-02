@@ -200,6 +200,9 @@ displayString([Char | Rest]) :-
   put(Char), 
   displayString(Rest).
 
+displayString(S) :-
+  write(S).
+
 displayTuples(_, [], _).
 
 displayTuples(Attrs, [Tuple | Rest], AttrLength) :-
