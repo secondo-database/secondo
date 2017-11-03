@@ -606,4 +606,58 @@ bool CommunicationClient::triggerDerivation(const string& databaseName,
     return true;
 }
 
+
+bool CommunicationClient::createDerivation(const string& databaseName,
+                                            const string& targetName,
+                                            const string& relName,
+                                            const string& fundef)
+{
+    traceWriter->writeFunction("CommunicationClient::createDerivation");
+
+    if(start() != 0)
+    {
+        traceWriter->write("Could not connect to Server");
+        return false;
+    }
+    iostream& io = socket->GetSocketStream();
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::CommunicationServer()))
+    {
+        traceWriter->write("Not connected to CommunicationServer");
+        return false;
+    }
+
+    queue<string> sendBuffer;
+    sendBuffer.push(CommunicationProtocol::CommunicationClient());
+    sendBuffer.push(CommunicationProtocol::CreateDerivation());
+    CommunicationUtils::sendBatch(io, sendBuffer);
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::DerivationRequest()))
+    {
+        traceWriter->write("Did not receive expected DerivationRequest "
+                           "keyword");
+        return false;
+    }
+    sendBuffer.push(databaseName);
+    sendBuffer.push(targetName);
+    sendBuffer.push(relName);
+    // remove line ends from function definition
+    string fundef1 = stringutils::replaceAll(fundef,"\n","");
+    sendBuffer.push(fundef1);
+    CommunicationUtils::sendBatch(io, sendBuffer);
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::CreateDerivateSuccessful()))
+    {
+        traceWriter->write("Creation of drivate failed ");
+        return false;
+    }
+
+    return true;
+}
+
+
+
 } /* namespace DBService */

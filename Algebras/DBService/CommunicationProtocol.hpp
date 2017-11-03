@@ -77,6 +77,7 @@ public:
     static std::string RelationNotExists();
     static std::string DerivationTriggered();
     static std::string CreateDerivation();
+    static std::string CreateDerivateSuccessful();
 
 };
 

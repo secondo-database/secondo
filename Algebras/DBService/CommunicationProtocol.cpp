@@ -186,4 +186,9 @@ string CommunicationProtocol::CreateDerivation()
   return "<CREATEDERIVATION>";
 }
 
+string CommunicationProtocol::CreateDerivateSuccessful()
+{
+  return "<CREATEDERIVATESUCCESSFUL>";
+}
+
 } /* namespace DBService */

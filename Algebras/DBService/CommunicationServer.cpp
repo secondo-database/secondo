@@ -44,6 +44,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/TriggerFileTransferRunnable.hpp"
 #include "Algebras/DBService/TriggerReplicaDeletionRunnable.hpp"
 #include "Algebras/DBService/DerivationClient.hpp"
+#include "Algebras/DBService/CreateDerivateRunnable.hpp"
 
 using namespace distributed2;
 using namespace std;
@@ -565,10 +566,23 @@ bool CommunicationServer::handleTriggerDerivation(
     string relId = MetadataObject::getIdentifier(databaseName, relName);
     ReplicaLocations rl;
     dbService->getReplicaLocations(relId, rl);
-    // TODO: send createDerivation to each of the workers 
+    // TODO: insert new objects to replica table
        
-
-
+    ReplicaLocations::iterator it;
+    for(it = rl.begin(); it!=rl.end();it++){
+       if(it->second){ // relation is replicated
+          ConnectionID cid = it->first;
+          LocationInfo& li = dbService->getLocation(cid);
+          CreateDerivateRunnable cdr(li.getHost(),
+                                     atoi(li.getCommPort().c_str()),
+                                     databaseName,
+                                     targetName,
+                                     relName,
+                                     fundef);
+          cdr.run();
+                                     
+       }
+    }
     CommunicationUtils::sendLine(io, 
               CommunicationProtocol::DerivationTriggered());
     return true;

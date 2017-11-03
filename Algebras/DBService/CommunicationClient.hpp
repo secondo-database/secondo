@@ -220,6 +220,19 @@ a function definition.
 
 
 /*
+1.1.1.4 ~createDerivation~
+
+This function sends the command for creating a derivated object from a 
+relation to the connected server   
+
+*/
+    bool createDerivation( const std::string& databaseName,
+                            const std::string& targetName,
+                            const std::string& relName,
+                            const std::string& fundef);
+
+
+/*
 1.1.1.2 \textit{getLocationParameter}
 
 This function simplifies reading information from the "Environment" section of
