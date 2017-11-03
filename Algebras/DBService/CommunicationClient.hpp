@@ -159,6 +159,21 @@ master and executes the function \textit{reportSuccessfulReplication}.
             const std::string& relationName);
 
 /*
+1.1.1.3 \textit{reportSuccessfulDerivation}
+
+Once ain object was successfully derived from a relation, 
+the \textit{DBService} worker node has to notify the 
+\textit{DBService} master so that the corresponding metadata
+can be updated. Therefore a \textit{CommunicationClient} needs to be
+instantiated that connects to the \textit{CommunicationServer} on the DBService
+master and executes the function \textit{reportSuccessfulDerivation}.
+
+*/
+    bool reportSuccessfulDerivation(
+            const std::string& databaseName,
+            const std::string& objectName);
+
+/*
 1.1.1.2 \textit{requestReplicaDeletion}
 
 If a relation is deleted at its original location, it does not make sense to

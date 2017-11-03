@@ -570,6 +570,23 @@ void DBServiceManager::setOriginalLocationTransferPort(
     }
 }
 
+
+void DBServiceManager::maintainSuccessfulDerivation(
+        const string& objectID,
+        const string& replicaLocationHost,
+        const string& replicaLocationPort)
+{
+    printFunction("DBServiceManager::maintainSuccessfulDerivation");
+    boost::lock_guard<boost::mutex> lock(managerMutex);
+    print("ObjectID", objectID);
+    print("replicaLocationHost", replicaLocationHost);
+    print("replicaLocationPort", replicaLocationPort);
+    bool isImplemented = false;
+    assert(isImplemented); // requires change of table format or 
+                           // an additional table
+}
+
+
 DBServiceManager* DBServiceManager::_instance = nullptr;
 bool DBServiceManager::active = false;
 

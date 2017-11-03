@@ -256,6 +256,20 @@ already existing ~RelationInfo~ object maintained by the ~DBServiceManager~.
                 const std::string& relID,
                 const std::string& transferPort);
 
+
+/*
+1.1.1.1 ~maintainSuccessfulDerivation~
+
+This function is called after a successful creation of a derivate.
+
+*/
+        void maintainSuccessfulDerivation(
+            const std::string& objectID,
+            const std::string& replicaLocationHost,
+            const std::string& replicaLocationPort);
+
+
+
 /*
 1.1.1.1 Constructor
 

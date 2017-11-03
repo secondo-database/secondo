@@ -77,6 +77,17 @@ This function needs to be called if a relation shall be replicated.
 
 
 /*
+1.1.1.1 triggerDerivation
+
+*/
+   bool triggerDerivation(
+            const std::string& databaseName,
+            const std::string& targetName,
+            const std::string& relName,
+            const std::string& fundef);
+
+
+/*
 1.1.1.1 \textit{retrieveReplicaAndGetFileName}
 
 This function triggers the transfer of a file containing the replica of the

@@ -153,7 +153,11 @@ int OperatorRderive::mapValue(Word* args,
    cout << "relname" << relname << endl;
    cout << "fundef" << fundef << endl;
    cout << "remotename " << remotename << endl;
-   // TODO: trigger object creation on dbservice
+   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+   DBServiceClient::getInstance()->triggerDerivation(dbname,
+                                                               remotename,
+                                                               relname,
+                                                               fundef);
 
    // local function evaluation
    Relation* rel = (Relation*) args[0].addr;

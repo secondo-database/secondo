@@ -155,6 +155,9 @@ int CommunicationServer::communicate(iostream& io)
                  CommunicationProtocol::CreateDerivation())
         {
            handleCreateDerivation(io,tid);
+        }else if(request ==
+                 CommunicationProtocol::CreateDerivateSuccessful()){
+           reportSuccessfulDerivation(io,tid);
         }else
         {
             traceWriter->write(
@@ -618,6 +621,39 @@ bool CommunicationServer::handleCreateDerivation(
     dc.start();
     return true;
 }
+
+bool CommunicationServer::reportSuccessfulDerivation(
+       std::iostream& io, const boost::thread::id tid){
+
+    traceWriter->writeFunction(tid,
+            "CommunicationServer::reportSuccessfulDerivation");
+
+    CommunicationUtils::sendLine(io,
+            CommunicationProtocol::ObjectRequest());
+
+    string objectID;
+    CommunicationUtils::receiveLine(io, objectID);
+    traceWriter->write(tid, "objectID", objectID);
+
+    CommunicationUtils::sendLine(io,
+            CommunicationProtocol::LocationRequest());
+
+    queue<string> receiveBuffer;
+    CommunicationUtils::receiveLines(io, 2, receiveBuffer);
+    string host = receiveBuffer.front();
+    receiveBuffer.pop();
+    string port = receiveBuffer.front();
+    receiveBuffer.pop();
+
+    traceWriter->write(tid, "host", host);
+    traceWriter->write(tid, "port", port);
+
+    DBServiceManager::getInstance()->maintainSuccessfulDerivation(
+            objectID, host, port);
+    return true;
+}
+
+
 
 
 } /* namespace DBService */

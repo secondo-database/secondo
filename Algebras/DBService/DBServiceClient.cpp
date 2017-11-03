@@ -110,6 +110,33 @@ bool DBServiceClient::triggerReplication(const std::string& databaseName,
     return true;
 }
 
+
+bool DBServiceClient::triggerDerivation(const std::string& databaseName,
+                                        const std::string& targetName,
+                                        const std::string& relationName,
+                                        const std::string& fundef)
+{
+    printFunction("DBServiceClient::triggerDerivation");
+    print("databaseName", databaseName);
+    print("targetName", targetName);
+    print("relationName", relationName);
+    print("fundef", fundef);
+
+    CommunicationClient dbServiceMasterClient(dbServiceHost,
+                                              atoi(dbServicePort.c_str()),
+                                              0);
+
+    dbServiceMasterClient.triggerDerivation(
+            databaseName,
+            targetName,
+            relationName,
+            fundef);
+    return true;
+}
+
+
+
+
 bool DBServiceClient::getReplicaLocation(
         const string& databaseName,
         const string& relationName,

@@ -29,6 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/DBService/DerivationClient.hpp"
 #include "Algebras/DBService/MetadataObject.hpp"
+#include "Algebras/DBService/SecondoUtilsLocal.hpp"
+#include "Algebras/DBService/CommunicationClient.hpp"
 #include "SecondoSystem.h"
 #include "NestedList.h"
 #include "ListUtils.h"
@@ -128,7 +130,23 @@ void DerivationClient::derivationFailed(const std::string& error){
 }
 
 void DerivationClient::derivationSuccessful(){
-  // TODO: inform DBService master about successful derivation
+
+    std::string dbServiceHost;
+    std::string dbServicePort;
+    if(!SecondoUtilsLocal::lookupDBServiceLocation(
+            dbServiceHost,
+            dbServicePort))
+    {
+        throw new SecondoException("Unable to connect to DBService");
+    }
+
+    CommunicationClient clientToDBServiceMaster(
+            dbServiceHost,
+            atoi(dbServicePort.c_str()),
+            0);
+    clientToDBServiceMaster.reportSuccessfulDerivation(
+            DBName,
+            targetName);
 }
 
 

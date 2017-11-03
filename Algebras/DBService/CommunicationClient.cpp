@@ -372,6 +372,59 @@ bool CommunicationClient::reportSuccessfulReplication(
 }
 
 
+bool CommunicationClient::reportSuccessfulDerivation(
+        const string& databaseName,
+        const string& objectName)
+{
+    traceWriter->writeFunction(
+            "CommunicationClient::reportSuccessfulDerivation");
+
+    if(start() != 0)
+    {
+        traceWriter->write("Could not connect to Server");
+        return false;
+    }
+
+    iostream& io = socket->GetSocketStream();
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::CommunicationServer()))
+    {
+        traceWriter->write("Not connected to CommunicationServer");
+        return false;
+    }
+    queue<string> sendBuffer;
+    sendBuffer.push(CommunicationProtocol::CommunicationClient());
+    sendBuffer.push(CommunicationProtocol::CreateDerivateSuccessful());
+    CommunicationUtils::sendBatch(io, sendBuffer);
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::ObjectRequest()))
+    {
+        traceWriter->write("Expected ObjectRequest");
+        return false;
+    }
+
+    CommunicationUtils::sendLine(io,
+            RelationInfo::getIdentifier(databaseName, objectName));
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::LocationRequest()))
+    {
+        traceWriter->write("Expected LocationRequest");
+        return false;
+    }
+
+    string replicaLocation;
+    getLocationParameter(replicaLocation, "SecondoHost");
+    sendBuffer.push(replicaLocation);
+    getLocationParameter(replicaLocation, "SecondoPort");
+    sendBuffer.push(replicaLocation);
+    CommunicationUtils::sendBatch(io, sendBuffer);
+    return true;
+}
+
+
 bool CommunicationClient::requestReplicaDeletion(
         const string& databaseName,
         const string& relationName)

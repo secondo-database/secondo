@@ -191,4 +191,9 @@ string CommunicationProtocol::CreateDerivateSuccessful()
   return "<CREATEDERIVATESUCCESSFUL>";
 }
 
+string CommunicationProtocol::ObjectRequest()
+{
+  return "<OBJECTREQUEST>";
+}
+
 } /* namespace DBService */

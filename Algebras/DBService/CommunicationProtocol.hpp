@@ -78,6 +78,7 @@ public:
     static std::string DerivationTriggered();
     static std::string CreateDerivation();
     static std::string CreateDerivateSuccessful();
+    static std::string ObjectRequest();
 
 };
 

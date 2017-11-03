@@ -235,6 +235,19 @@ This function handles a triggerDerivation message.
              const boost::thread::id tid);
 
 /*
+1.1.1.1 ~reportSuccessfulDerivation~
+
+This function informs the dbservice manager about a 
+successful derivation.
+
+*/
+
+    bool reportSuccessfulDerivation(
+            std::iostream& io,
+            const boost::thread::id tid);
+
+
+/*
 
 1.1.1.1 \textit{lookupMinimumReplicaCount}
 
