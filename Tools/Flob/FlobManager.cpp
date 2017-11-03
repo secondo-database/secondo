@@ -380,7 +380,7 @@ bool FlobManager::resize(Flob& flob, const SmiSize& newSize,
 
     if(!isTemp || (fileId != nativeFlobs)){
       // the allocated memory for the slot may be too small now
-      std::cerr << "Warning resize a persistent Flob" << std::endl;
+      std::cerr << "Warning: Resize a persistent Flob" << std::endl;
       #ifdef THREAD_SAFE
       pcmtx.lock();
       #endif
@@ -982,7 +982,7 @@ bool FlobManager::putData(Flob& dest,         // destination flob
 
   if(!ignoreCache){
     if(fileId!=nativeFlobs || !isTemp){
-      std::cerr << "Warning maipulate a perisistent Flob" << std::endl;
+      std::cerr << "Warning: Manipulate a persistent Flob" << std::endl;
      #ifdef THREAD_SAFE
      pcmtx.lock();
      #endif
@@ -1184,7 +1184,7 @@ Warning: this function does not change the dataPointer.
    SmiRecordId recId;
   
   if(size > 536870912){ // 512 MB
-    std::cerr << "Warning try to cretae a very big flob , size = " 
+    std::cerr << "Warning: Try to cretae a very big flob , size = " 
               << size <<std::endl;
     //assert(false);
 
