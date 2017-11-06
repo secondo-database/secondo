@@ -63,7 +63,7 @@ jsrc:
 	make -C $(JPLVER) all
 
 regSecondo.o: regSecondo.c
-	$(CC) -c -fPIC -g -o $@ $(INCLUDEFLAGS) $<
+	$(CC) -c -fPIC -g -ggdb -o $@ $(INCLUDEFLAGS) $<
 
 LINKFILES += $(PL_DLL)
 
