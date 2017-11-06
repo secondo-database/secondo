@@ -63,7 +63,8 @@ DebugWriter dwriter;
 SecondoInterfaceCS::SecondoInterfaceCS(bool isServer, /*= false*/
                                        NestedList* _nl, /*=0 */
                                        bool _verbose /*=true*/ ):
- SecondoInterface(isServer,_nl) {
+ SecondoInterface(isServer,_nl),
+ MessageHandler() {
     server = 0;
     csp=0;
     externalNL = _nl!=0;
@@ -87,9 +88,6 @@ SecondoInterfaceCS::~SecondoInterfaceCS()
   {
     Terminate();
   }
-  server_pid = -1;
-  secHost = "Not Connected";
-  secPort = "0";
 }
 
 
