@@ -125,7 +125,7 @@ bool TTYParameter::getEnvValue(const string& var, string& value)
     if ( envValue != 0 )
     {
       value = envValue;
-      cout << "Using " << var << " = " << value << endl;
+      //cout << "Using " << var << " = " << value << endl;
       return true;
     }
   }
