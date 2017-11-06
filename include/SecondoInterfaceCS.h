@@ -36,8 +36,8 @@ class SecondoInterfaceCS : public SecondoInterface , MessageHandler {
   
   
 public:
-  SecondoInterfaceCS(bool isServer = false, NestedList* _nl=0, 
-                     bool verbose=true);
+  SecondoInterfaceCS(bool isServer, NestedList* _nl, 
+                     bool verbose);
   
   ~SecondoInterfaceCS();
   
@@ -268,6 +268,9 @@ public:
      std::string pswd;
      bool multiUser;
      std::vector<MessageHandler*> messageListener;
+
+     SecondoInterfaceCS() ;
+
 };
 
 #endif

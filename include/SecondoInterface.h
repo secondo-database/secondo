@@ -168,7 +168,7 @@ struct SecErrInfo {
 class SecondoInterface
 {
  public:
-  SecondoInterface(bool isServer=false, NestedList* _nl = 0);
+  SecondoInterface(bool isServer, NestedList* _nl);
 /*
 Constructs a "Secondo"[3] interface. Depending on the implementation of
 the interface different member variables are initialized.
@@ -1120,6 +1120,9 @@ virtual std::string getHome() = 0;
   double outObjReal;
   double copyReal;
   int    id;   // id of this interface
+
+  private:
+     SecondoInterface();
 
 };
 

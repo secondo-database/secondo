@@ -87,7 +87,7 @@ for later use in replay import.
 
 SecondoInterfaceREPLAY::SecondoInterfaceREPLAY(bool isServer, /*= false*/
                                                NestedList* _nl /*=0 */):
-  SecondoInterfaceCS(isServer, _nl) { }
+  SecondoInterfaceCS(isServer, _nl, false) { }
 
 SecondoInterfaceREPLAY::~SecondoInterfaceREPLAY() {
 }

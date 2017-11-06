@@ -770,11 +770,12 @@ SecondoTTY::Execute()
   si = new SecondoInterfaceTTY(false);
   #elif defined(SECONDO_CLIENT_SERVER)
 
-  //cout << "create a new SecondoInterfaceCS " << endl;
-
+  cout << "create a new SecondoInterfaceCS " << endl;
+  //SecondoInterfaceCS* si1 = new SecondoInterfaceCS(true,0,true);
+  //si = si1;
   si = new SecondoInterfaceCS(true,0,true);
 
-  //cout << "finished Creattion of SecondoInterfaceCS" << endl;
+  cout << "finished Creattion of SecondoInterfaceCS" << endl;
 
 
   #elif defined(REPLAY)

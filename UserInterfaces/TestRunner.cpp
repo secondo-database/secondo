@@ -1476,11 +1476,11 @@ TestRunner::Execute()
     #if !defined(SECONDO_CLIENT_SERVER) && !defined(REPLAY)
     si = new SecondoInterfaceTTY(false);
     #elif defined(SECONDO_CLIENT_SERVER)
-    si = new SecondoInterfaceCS(false,0);
+    si = new SecondoInterfaceCS(false,0, true);
     #elif defined(REPLAY)
     si = new SecondoInterfaceREPLAY(false,0);
     #else
-    si = new SecondoInterfaceCS(false,0);
+    si = new SecondoInterfaceCS(false,0,true);
     #endif
 
     string errorMsg("");

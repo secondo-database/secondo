@@ -1319,11 +1319,11 @@ StartSecondoC(TTYParameter& tp)
   #if !defined(SECONDO_CLIENT_SERVER) && !defined(REPLAY)
   si = new SecondoInterfaceTTY();
   #elif defined(SECONDO_CLIENT_SERVER)
-  si = new SecondoInterfaceCS();
+  si = new SecondoInterfaceCS(false,0,true);
   #elif defined(REPLAY)
   si = new SecondoInterfaceREPLAY();
   #else
-  si = new SecondoInterfaceCS();
+  si = new SecondoInterfaceCS(false,0,true);
   #endif
   string errorMsg("");
   if(si->Initialize(tp.user, tp.pswd, tp.host, tp.port, tp.parmFile, errorMsg))
