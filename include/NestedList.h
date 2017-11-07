@@ -1094,6 +1094,11 @@ Returns the number of characters of ~textAtom~.
 void Text2String( const ListExpr& textAtom, std::string& resultStr ) const;
 std::string Text2String( const ListExpr& textAtom) const;
 
+inline
+std::string TextValue( const ListExpr& textAtom) const {
+   return Text2String(textAtom);
+}
+
 /*
 Transforms the text atom into C++ string object
 
