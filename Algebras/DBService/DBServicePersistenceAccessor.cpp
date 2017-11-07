@@ -215,6 +215,38 @@ bool DBServicePersistenceAccessor::persistLocationMapping(
     return resultOk;
 }
 
+
+bool DBServicePersistenceAccessor::persistDerivateInfo(
+        DerivateInfo& derivateInfo)
+{
+    printFunction(__PRETTY_FUNCTION__);
+
+    string relationName("derivate_DBSP");
+
+    vector<string> value =
+    {
+       derivateInfo.getName(),
+       derivateInfo.getSource(),
+       derivateInfo.getFun()
+    };
+
+    bool resultOk =
+            createOrInsert(relationName, derivates, {value});
+    if(resultOk)
+    {
+        print("RelationInfo persisted");
+        resultOk = persistLocationMapping(
+                   derivateInfo.toString(),
+                   derivateInfo.nodesBegin(),
+                   derivateInfo.nodesEnd());
+    }else
+    {
+        print("Could not persist DerivateInfo. Skipping mapping.");
+    }
+    return resultOk;
+}
+
+
 bool DBServicePersistenceAccessor::restoreLocationInfo(
         map<ConnectionID, LocationInfo>& locations)
 {
@@ -323,6 +355,60 @@ bool DBServicePersistenceAccessor::restoreRelationInfo(
     return resultOk;
 }
 
+
+bool DBServicePersistenceAccessor::restoreDerivateInfo(
+        DBServiceDerivates& derivates)
+{
+    printFunction(__PRETTY_FUNCTION__);
+
+    bool resultOk = true;
+    string relName ("derivate_DBSP");
+    if(SecondoSystem::GetCatalog()->IsObjectName(relName))
+    {
+        string query("query " + relName);
+        string errorMessage;
+        ListExpr resultList;
+        resultOk = SecondoUtilsLocal::executeQueryCommand(
+                query, resultList, errorMessage);
+        if(resultOk)
+        {
+            print("resultList", resultList);
+            ListExpr resultData = nl->Second(resultList);
+            print("resultData", resultData);
+
+            int resultCount = nl->ListLength(resultData);
+            print(resultCount);
+
+            for(int i = 0; i < resultCount; i++)
+            {
+                if(!nl->IsEmpty(resultData))
+                {
+                    print("resultData", resultData);
+                    ListExpr currentRow = nl->First(resultData);
+                    string objectName(nl->StringValue(nl->First(currentRow)));
+                    string source(nl->StringValue(nl->Second(currentRow)));
+                    string fun(nl->TextValue(nl->Third(currentRow)));
+                    DerivateInfo derivateInfo(objectName, source, fun);
+                    print(derivateInfo);
+                    string did = derivateInfo.toString();
+                    derivates.insert(
+                            pair<string, DerivateInfo>(did, derivateInfo));
+                    resultData = nl->Rest(resultData);
+                }
+            }
+        }else
+        {
+            print(errorMessage);
+        }
+    }else
+    {
+        print(relName + " not found -> nothing to restore");
+    }
+    return resultOk;
+}
+
+
+
 bool DBServicePersistenceAccessor::restoreLocationMapping(
         queue<pair<string, pair<ConnectionID, bool> > >& mapping)
 {
@@ -350,15 +436,15 @@ bool DBServicePersistenceAccessor::restoreLocationMapping(
                 {
                     print("resultData", resultData);
                     ListExpr currentRow = nl->First(resultData);
-                    string relID(nl->StringValue(nl->First(currentRow)));
+                    string objectID(nl->StringValue(nl->First(currentRow)));
                     int conn = nl->IntValue(nl->Second(currentRow));
                     bool replicated = nl->BoolValue(nl->Third(currentRow));
-                    print("RelationID: ", relID);
+                    print("ObjectID: ", objectID);
                     print("ConnectionID: ", conn);
                     print("Replicated: ", replicated);
                     mapping.push(
                             pair<string, pair<ConnectionID, bool> >(
-                                    relID, make_pair(conn, replicated)));
+                                    objectID, make_pair(conn, replicated)));
                     resultData = nl->Rest(resultData);
                 }
             }
@@ -374,7 +460,7 @@ bool DBServicePersistenceAccessor::restoreLocationMapping(
 }
 
 bool DBServicePersistenceAccessor::updateLocationMapping(
-        string relationID,
+        string objectID,
         ConnectionID connID,
         bool replicated)
 {
@@ -384,7 +470,7 @@ bool DBServicePersistenceAccessor::updateLocationMapping(
 
     FilterConditions filterConditions =
     {
-        { {AttributeType::STRING, string("RelationID")}, relationID },
+        { {AttributeType::STRING, string("ObjectID")}, objectID },
         { {AttributeType::INT, string("ConnectionID")},
                 stringutils::int2str(connID) }
     };
@@ -409,7 +495,7 @@ bool DBServicePersistenceAccessor::deleteRelationInfo(
     string relationID = relationInfo.toString();
     FilterConditions filterConditions =
     {
-        { { AttributeType::STRING, string("RelationID")}, relationID },
+        { { AttributeType::STRING, string("ObjectID")}, relationID },
     };
 
     bool resultOk = SecondoUtilsLocal::executeQuery2(
@@ -420,7 +506,7 @@ bool DBServicePersistenceAccessor::deleteRelationInfo(
     if(!resultOk)
     {
         print("Could not delete relation metadata");
-        print("RelationID: ", relationID);
+        print("ObjectID: ", relationID);
     }
 
     return resultOk && deleteLocationMapping(
@@ -429,12 +515,59 @@ bool DBServicePersistenceAccessor::deleteRelationInfo(
             relationInfo.nodesEnd());
 }
 
+bool DBServicePersistenceAccessor::deleteDerivateInfo(
+        DerivateInfo& derivateInfo,
+        RelationInfo& source)
+{
+    printFunction("DBServicePersistenceAccessor::deleteRelationInfo");
+
+    if(derivateInfo.getSource() != source.toString()){
+        print("relationInfo is not the source of the derivate.");
+        print(derivateInfo);
+        print(source);
+        return false;
+    }
+
+    string relationName("derivate_DBSP");
+    SecondoUtilsLocal::adjustDatabase(source.getDatabaseName());
+
+    string objectName = derivateInfo.getName();
+    string sourceName = derivateInfo.getSource();
+    FilterConditions filterConditions =
+    {
+        { { AttributeType::STRING, string("ObjectName")}, objectName },
+        { { AttributeType::STRING, string("Source")}, sourceName }
+
+    };
+
+    bool resultOk = SecondoUtilsLocal::executeQuery2(
+            CommandBuilder::buildDeleteCommand(
+                    relationName,
+                    filterConditions));
+
+    if(!resultOk)
+    {
+        print("Could not delete  metadata");
+        print("ObjectName: ", objectName);
+    }
+    string objectId = derivateInfo.toString();
+
+    return resultOk && deleteLocationMapping(
+            objectId , 
+            derivateInfo.nodesBegin(),
+            derivateInfo.nodesEnd());
+}
+
+
+
 bool DBServicePersistenceAccessor::deleteLocationMapping(
-        string relID,
+        string objectID,
         ReplicaLocations::const_iterator nodesBegin,
         ReplicaLocations::const_iterator nodesEnd)
 {
     printFunction("DBServicePersistenceAccessor::deleteLocationMapping");
+
+  /* // seems to be wrong, not sure, waiting for answer from Saskia
     string dbName;
     string relName;
     RelationInfo::parseIdentifier(
@@ -443,6 +576,7 @@ bool DBServicePersistenceAccessor::deleteLocationMapping(
             relName);
 
     SecondoUtilsLocal::adjustDatabase(dbName);
+  */
 
     string relationName("mapping_DBSP");
     bool resultOk = true;
@@ -451,7 +585,7 @@ bool DBServicePersistenceAccessor::deleteLocationMapping(
     {
         FilterConditions filterConditions =
         {
-            { {AttributeType::STRING, string("RelationID") }, relID },
+            { {AttributeType::STRING, string("ObjectID") }, objectID },
             { {AttributeType::INT, string("ConnectionID") },
                     stringutils::int2str(it->first) }
         };
@@ -463,7 +597,7 @@ bool DBServicePersistenceAccessor::deleteLocationMapping(
         if(!resultOk)
         {
             print("Could not delete mapping");
-            print("RelationID: ", relID);
+            print("ObjectID: ", objectID);
             print("ConnectionID: ", it->first);
         }
     }
@@ -541,13 +675,58 @@ bool DBServicePersistenceAccessor::persistAllRelations(
                     mappingValues);
 }
 
+
+bool DBServicePersistenceAccessor::persistAllDerivates(
+        DBServiceDerivates& dbsderivates)
+{
+    printFunction(__PRETTY_FUNCTION__);
+    vector<vector<string> > derivateValues;
+    vector<vector<string> > mappingValues;
+    if(!dbsderivates.empty())
+    {
+        for(const auto& derivate : dbsderivates)
+        {
+            const DerivateInfo& derivateInfo = derivate.second;
+            vector<string> value = {
+                derivateInfo.getName(),
+                derivateInfo.getSource(),
+                derivateInfo.getFun()
+            };
+            derivateValues.push_back(value);
+            string id = derivateInfo.toString();
+            for(ReplicaLocations::const_iterator it =
+                    derivateInfo.nodesBegin();
+                    it != derivateInfo.nodesEnd(); it++)
+            {
+                vector<string> mapping = {
+                        id,
+                        stringutils::int2str(it->first),
+                        it->second ? string("TRUE") : string("FALSE")
+                };
+                mappingValues.push_back(mapping);
+            }
+        }
+    }
+    return deleteAndCreate(
+               string("derivates_DBSP"),
+               derivates,
+               derivateValues)
+            && deleteAndCreate(
+                 string("mapping_DBSP"),
+                 mapping,
+                 mappingValues);
+}
+
+
+
 size_t getRecordCount(const string& databaseName, const string& relationName)
 {
     printFunction("DBServicePersistenceAccessor::getRecordCount");
     print(databaseName);
     print(relationName);
 
-    SecondoUtilsLocal::adjustDatabase(databaseName);
+   // seems to be wrong, waiting for answer
+   // SecondoUtilsLocal::adjustDatabase(databaseName);
     return 0;
 }
 
@@ -574,9 +753,17 @@ RelationDefinition DBServicePersistenceAccessor::relations =
 
 RelationDefinition DBServicePersistenceAccessor::mapping =
 {
-    { AttributeType::STRING, "RelationID" },
+    { AttributeType::STRING, "ObjectID" },
     { AttributeType::INT, "ConnectionID" },
     { AttributeType::BOOL, "Replicated" }
+};
+
+
+RelationDefinition DBServicePersistenceAccessor::derivates =
+{
+    { AttributeType::STRING, "ObjectName" },
+    { AttributeType::STRING, "DependsOn" },
+    { AttributeType::TEXT, "FunDef" }
 };
 
 } /* namespace DBService */

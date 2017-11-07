@@ -43,6 +43,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/DBServiceManager.hpp"
 #include "Algebras/DBService/LocationInfo.hpp"
 #include "Algebras/DBService/RelationInfo.hpp"
+#include "Algebras/DBService/DerivateInfo.hpp"
 
 namespace DBService {
 
@@ -77,6 +78,19 @@ respective SECONDO relation.
     static bool persistRelationInfo(
             RelationInfo& relationInfo);
 
+
+
+/*
+1.1.1.1 ~persistDerivateInfo~
+
+This function persists the provide ~DerivateInfo~ object into the
+respective SECONDO relation.
+
+*/
+   static bool persistDerivateInfo(
+              DerivateInfo& derivateInfo);
+
+
 /*
 
 1.1.1.1 \textit{restoreLocationInfo}
@@ -98,7 +112,15 @@ respective SECONDO relation.
 
 */
     static bool restoreRelationInfo(
-            std::map<std::string, RelationInfo>& relations);
+            DBServiceRelations& relations);
+
+/*
+1.1.1.1 ~restoreDerivateInfo~
+
+*/
+    static bool restoreDerivateInfo(
+              DBServiceDerivates& derivates);
+
 
 /*
 
@@ -135,6 +157,19 @@ the deletion of the corresponding location mapping.
 */
     static bool deleteRelationInfo(RelationInfo& relationInfo);
 
+
+/*
+1.1.1 ~deleteDerivateInfo~
+
+This function deletes a persisted ~DerivateInfo~ object and also triggers 
+the deletion of the corresponding location mapping. Note that the 
+relation from that the derivateInfo depends on must be available.
+
+*/
+   static bool deleteDerivateInfo(DerivateInfo& derivateInfo,
+                                  RelationInfo& source);
+
+
 /*
 
 1.1.1.1 ~persistAllLocations~
@@ -154,6 +189,16 @@ was persisted prior to the call of this function will be lost.
 
 */
     static bool persistAllRelations(DBServiceRelations dbsRelations);
+
+/*
+1.1.1.1 ~persistAllDerivates~
+
+This function persists all derivates passed as argument at once. All data that
+was persisted prior to the call of this function will be lost.
+
+*/
+    static bool persistAllDerivates(DBServiceDerivates& dbsDerivates);
+
 
 /*
 
@@ -247,6 +292,16 @@ persisting the mapping of relations to locations.
 
 */
     static RelationDefinition mapping;
+
+/*
+1.1.1.1 ~derivate~
+
+This member specifies the attributes of the SECONDO relation that is 
+used for persisting the derivates of a relation.
+
+*/
+    static RelationDefinition derivates;
+
 };
 
 } /* namespace DBService */
