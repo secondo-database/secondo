@@ -39,6 +39,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/DBService/LocationInfo.hpp"
 #include "Algebras/DBService/RelationInfo.hpp"
+#include "Algebras/DBService/DerivateInfo.hpp"
 
 namespace DBService
 {
@@ -67,8 +68,10 @@ void print(boost::thread::id tid, const char* text1, const std::string& text2);
 void print(const std::string& text1, const char* text2);
 void print(const LocationInfo& locationInfo);
 void print(const RelationInfo& relationInfo);
+void print(const DerivateInfo& derivateInfo);
 void printLocationInfo(const LocationInfo& locationInfo);
 void printRelationInfo(const RelationInfo& relationInfo);
+void printDerivateInfo(const DerivateInfo& derivateInfo);
 
 }
 

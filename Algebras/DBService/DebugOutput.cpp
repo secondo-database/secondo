@@ -171,6 +171,16 @@ void print(const RelationInfo& relationInfo)
     }
 }
 
+
+void print(const DerivateInfo& derivateInfo)
+{
+    if(TraceSettings::getInstance()->isDebugTraceOn())
+    {
+        cout << "DerivateInfo:" << endl;
+        printDerivateInfo(derivateInfo);
+    }
+}
+
 void printRelationInfo(const RelationInfo& relationInfo)
 {
     cout << "DatabaseName:\t" << relationInfo.getDatabaseName() << endl;
@@ -186,5 +196,21 @@ void printRelationInfo(const RelationInfo& relationInfo)
                 << endl;
     }
 }
+
+
+void printDerivateInfo(const DerivateInfo& derivateInfo)
+{
+    cout << "ObjectName:\t" << derivateInfo.getName() << endl;
+    cout << "DependsOn:\t" << derivateInfo.getSource() << endl;
+    cout << "Fun:\t\t"     << derivateInfo.getFun() << endl;
+    for(ReplicaLocations::const_iterator it
+            = derivateInfo.nodesBegin(); it != derivateInfo.nodesEnd(); it++)
+    {
+        cout << "Node:\t\t" << it->first << " (Replicated: " <<
+                (it->second ? "TRUE" : "FALSE") << ")"
+                << endl;
+    }
+}
+
 
 }
