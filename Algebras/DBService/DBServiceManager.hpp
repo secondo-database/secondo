@@ -42,6 +42,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/CommunicationServer.hpp"
 #include "Algebras/DBService/LocationInfo.hpp"
 #include "Algebras/DBService/RelationInfo.hpp"
+#include "Algebras/DBService/DerivateInfo.hpp"
 
 
 /*
@@ -73,6 +74,14 @@ Maps a relation identified to the corresponding ~RelationInfo~ object.
 
 */
 typedef std::map<std::string, RelationInfo> DBServiceRelations;
+
+
+/*
+1.1.1.1 ~DBServiceDerivates~
+
+*/
+typedef std::map<std::string, DerivateInfo> DBServiceDerivates;
+
 
 /*
 
@@ -413,6 +422,18 @@ This member maps a relation identifier to the corresponding
 
 */
     DBServiceRelations relations;
+
+/*
+1.1.1.1 ~derivates~
+
+This manager maps a derivate identifier to the corresponding
+~DerivateInfo~ object.
+
+*/
+   DBServiceDerivates derivates;
+
+
+
 
 /*
 
