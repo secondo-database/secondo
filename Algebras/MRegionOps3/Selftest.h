@@ -110,10 +110,10 @@ namespace temporalalgebra {
       void IntSegContainerTest1();
       void IntSegContainerTest2();
       
-      void MSegmentTest1();
-      void MSegmentTest2();
+      void PResultFaceTest1();
+      void PResultFaceTest2();
       
-      void CriticalMSegmentTest1();
+      void CriticalPResultFaceTest1();
      
       void PFaceTest1();        
       void PFaceTest2();

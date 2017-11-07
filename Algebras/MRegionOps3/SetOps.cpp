@@ -332,6 +332,14 @@ namespace temporalalgebra {
       return RationalSegment2D(transform(segment.getTail()),
                                transform(segment.getHead())); 
     }// transform
+    
+     void RationalPlane3D::transform(
+         const vector<RationalSegment3D>& segment3D,
+         vector<RationalSegment2D>& segment2D) const{
+       for(size_t i = 0; i < segment3D.size(); i++){
+         segment2D.push_back(transform(segment3D[i]));
+       }// for 
+     }// transform
 /*
 7 Class IntersectionPoint
 
@@ -885,6 +893,11 @@ namespace temporalalgebra {
       }// else  
     }// addTimeValue
     
+    void GlobalTimeValues::addStartAndEndtime(){
+      time.insert(0);
+      time.insert(this->scale);
+    }// addStartAndEndtime
+    
     size_t GlobalTimeValues::size()const{
       return time.size();
     }// size
@@ -976,23 +989,23 @@ namespace temporalalgebra {
       return false;
     }// orginalFirst
 /*
-14 class MSegment 
+14 class PResultFace 
  
 */
-    MSegment::MSegment(){  
+    PResultFace::PResultFace(){  
       set(Point3D(0,0,0),Point3D(0,0,0),
           Point3D(1,0,0),Point3D(1,0,0));
     }// Konstruktor
     
-    MSegment::MSegment(const MSegment& msegment){
-      set(msegment);      
+    PResultFace::PResultFace(const PResultFace& other){
+      set(other);      
     }// Konstruktor
 
-    MSegment::MSegment(const Segment3D& left, const Segment3D& right){
+    PResultFace::PResultFace(const Segment3D& left, const Segment3D& right){
       set(left.getTail(),left.getHead(),right.getTail(),right.getHead());
     }// Konstruktor
 
-    MSegment::MSegment(const Segment3D& left, 
+    PResultFace::PResultFace(const Segment3D& left, 
                        const Segment3D& right,
                        int   faceno,
                        int   cycleno,
@@ -1007,8 +1020,8 @@ namespace temporalalgebra {
       this->insideAbove = medianHS.attr.insideAbove = insideAbove;
     }// Konstruktor
     
-    MSegment::MSegment(const MSegmentData& mSeg, 
-                       const GlobalTimeValues& timeValues){
+    PResultFace::PResultFace(const MSegmentData& mSeg, 
+                             const GlobalTimeValues& timeValues){
       Point2D start;
       Point2D end;
       double startTime = timeValues.getScaledStartTime(); 
@@ -1067,8 +1080,8 @@ namespace temporalalgebra {
       boundingRect.Extend(getBoundingRec(rightEnd));       
     }// KonstruktorCreate           
 
-    void MSegment::set(const Point3D leftStart, const Point3D leftEnd,
-                       const Point3D rightStart, const Point3D rightEnd){
+    void PResultFace::set(const Point3D leftStart, const Point3D leftEnd,
+                          const Point3D rightStart, const Point3D rightEnd){
       this->leftStart   = leftStart;
       this->leftEnd     = leftEnd;
       this->rightStart  = rightStart;
@@ -1085,20 +1098,20 @@ namespace temporalalgebra {
       boundingRect.Extend(getBoundingRec(rightEnd)); 
     }// set
         
-    void MSegment::set(const MSegment& mSegment){
-      this->leftStart   = mSegment.leftStart;
-      this->leftEnd     = mSegment.leftEnd;     
-      this->rightStart  = mSegment.rightStart;
-      this->rightEnd    = mSegment.rightEnd;
-      this->medianHS    = mSegment.medianHS;
-      this->insideAbove = mSegment.insideAbove;
+    void PResultFace::set(const PResultFace& prFace){
+      this->leftStart   = prFace.leftStart;
+      this->leftEnd     = prFace.leftEnd;     
+      this->rightStart  = prFace.rightStart;
+      this->rightEnd    = prFace.rightEnd;
+      this->medianHS    = prFace.medianHS;
+      this->insideAbove = prFace.insideAbove;
       boundingRect = getBoundingRec(leftStart);
       boundingRect.Extend(getBoundingRec(leftEnd));
       boundingRect.Extend(getBoundingRec(rightStart));
       boundingRect.Extend(getBoundingRec(rightEnd)); 
     }// set
     
-    void MSegment::createMedianHS(){
+    void PResultFace::createMedianHS(){
       double medianStartX = (this->leftStart.getX() + 
                              this->leftEnd.getX())/2;
       double medianStartY = (this->leftStart.getY() + 
@@ -1113,52 +1126,52 @@ namespace temporalalgebra {
       insideAbove = medianHS.attr.insideAbove = !(medianStart > medianEnd);
     }// createMedianHS
     
-    int MSegment::getFaceNo() const{
+    int PResultFace::getFaceNo() const{
       return medianHS.attr.faceno;
     }// getFaceNo
     
-    int MSegment::getCycleNo() const{
+    int PResultFace::getCycleNo() const{
       return medianHS.attr.cycleno;
     }// getCycleNo
     
-    int MSegment::getSegmentNo() const{
+    int PResultFace::getSegmentNo() const{
       return medianHS.attr.edgeno;
     }// getSegmentNo
     
-    bool MSegment::getInsideAbove() const{
+    bool PResultFace::getInsideAbove() const{
       return insideAbove;
     }// getInsideAbove
             
-    HalfSegment MSegment::getMedianHS() const{
+    HalfSegment PResultFace::getMedianHS() const{
       return medianHS;
     }// getMedianHS        
         
-    Point3D MSegment::getLeftStart() const{
+    Point3D PResultFace::getLeftStart() const{
       return leftStart;
     }// getLeftStart
     
-    Point3D MSegment::getLeftEnd() const{
+    Point3D PResultFace::getLeftEnd() const{
       return leftEnd;
     }// getLeftEnd
     
-    Point3D MSegment::getRightStart() const{
+    Point3D PResultFace::getRightStart() const{
       return rightStart;
     }// getRightStart
     
-    Point3D MSegment::getRightEnd() const{
+    Point3D PResultFace::getRightEnd() const{
       return rightEnd;
     }// getRightEnd
     
-    Rectangle<2> MSegment::getBoundingRec(const Point3D& point)const{
+    Rectangle<2> PResultFace::getBoundingRec(const Point3D& point)const{
       double array[2] = {point.getX(),point.getY()};
       return Rectangle<2>(true,array,array);
     }// getBoundingBox 
     
-    Rectangle<2> MSegment::getBoundingRec()const{
+    Rectangle<2> PResultFace::getBoundingRec()const{
       return boundingRect;
     }// getBoundingBox 
     
-    MSegmentData MSegment::getMSegmentData() const{
+    MSegmentData PResultFace::getMSegmentData() const{
        MSegmentData msd(getFaceNo(), getCycleNo(), getSegmentNo(), 
                         getInsideAbove(),
                         leftStart.getX(),leftStart.getY(), 
@@ -1170,36 +1183,36 @@ namespace temporalalgebra {
        return msd;
     }// getMSegmentData
     
-    bool MSegment::isLeftDomPoint() const{
+    bool PResultFace::isLeftDomPoint() const{
       return medianHS.IsLeftDomPoint();
     }// isLeftDomPoint
       
-    void MSegment::setSegmentNo(int sn){
+    void PResultFace::setSegmentNo(int sn){
       medianHS.attr.edgeno = sn;
     }// setSegmentNo
     
-    void MSegment::setLeftDomPoint(bool ldp){
+    void PResultFace::setLeftDomPoint(bool ldp){
        medianHS.SetLeftDomPoint(ldp);
     }// setLeftDomPoint
     
-    bool MSegment::lessByMedianHS(const MSegment& other) const {
+    bool PResultFace::lessByMedianHS(const PResultFace& other) const {
       return this->medianHS < other.medianHS;
     }// lessByMedianHS
         
-    bool MSegment::logicLess(const MSegment& other) const {
+    bool PResultFace::logicLess(const PResultFace& other) const {
       if (isLeftDomPoint() != other.isLeftDomPoint())
         return isLeftDomPoint() > other.isLeftDomPoint();
       return this->medianHS.LogicCompare(other.medianHS) == -1;
     }// logicLess       
     
-    void MSegment::copyIndicesFrom(const HalfSegment* hs) {
+    void PResultFace::copyIndicesFrom(const HalfSegment* hs) {
       medianHS.attr.faceno  = hs->attr.faceno;
       medianHS.attr.cycleno = hs->attr.cycleno;
       medianHS.attr.edgeno  = hs->attr.edgeno;
     }// copyIndicesFrom
     
-    std::ostream& MSegment::print(std::ostream& os, std::string prefix)const{
-      os << "MSegment(" << endl;
+    std::ostream& PResultFace::print(std::ostream& os, std::string prefix)const{
+      os << "PResultFace(" << endl;
       os << prefix << "  Left:=    " << Segment3D(leftStart, leftEnd) << endl;
       os << prefix << "  Right:=   " << Segment3D(rightStart, rightEnd) << endl;
       os << prefix << "  MedianHS:=" << this->medianHS << endl;
@@ -1207,55 +1220,56 @@ namespace temporalalgebra {
       return os;
     }// print
 
-    std::ostream& operator <<(std::ostream& os, const MSegment& mSegment){
-      mSegment.print(os,"");
+    std::ostream& operator <<(std::ostream& os, const PResultFace& prFace){
+      prFace.print(os,"");
       return os;
     }// Operator <<
    
-    bool MSegment::operator ==(const MSegment& mSegment)const{
-      if((this->leftStart   == mSegment.leftStart) &&
-         (this->leftEnd     == mSegment.leftEnd) &&
-         (this->rightStart  == mSegment.rightStart) &&
-         (this->rightEnd    == mSegment.rightEnd) &&
-         (this->medianHS    == mSegment.medianHS)&&
-         (this->insideAbove == mSegment.insideAbove)) return true;
+    bool PResultFace::operator ==(const PResultFace& prFace)const{
+      if((this->leftStart   == prFace.leftStart) &&
+         (this->leftEnd     == prFace.leftEnd) &&
+         (this->rightStart  == prFace.rightStart) &&
+         (this->rightEnd    == prFace.rightEnd) &&
+         (this->medianHS    == prFace.medianHS)&&
+         (this->insideAbove == prFace.insideAbove)) return true;
       return false;
     }// Operator ==
    
-    MSegment& MSegment::operator =(const MSegment& mSegment){
-      set(mSegment);
+    PResultFace& PResultFace::operator =(const PResultFace& prFace){
+      set(prFace);
       return *this;
     }// Operator = 
 /*
-15 class CriticalMSegment 
+15 class CriticalPResultFace 
  
 */        
-    CriticalMSegment::CriticalMSegment():
+    CriticalPResultFace::CriticalPResultFace():
         source(UNIT_A),predicate(UNDEFINED){      
     }// Konstruktor
     
-    CriticalMSegment::CriticalMSegment(const CriticalMSegment& cmsegment){
+    CriticalPResultFace::CriticalPResultFace(
+        const CriticalPResultFace& cmsegment){
       set(cmsegment);
     }// Konstruktor
    
-    CriticalMSegment::CriticalMSegment(const Segment3D& left, 
+    CriticalPResultFace::CriticalPResultFace(const Segment3D& left, 
                                        const Segment3D& right, 
                                        SourceFlag source,
                                        Predicate predicate){
       set(left, right, source,predicate);      
     }// Konstruktor
     
-    void CriticalMSegment::set(const CriticalMSegment& cmSegment){
-      this->left        = cmSegment.left;
-      this->right       = cmSegment.right;
-      this->source      = cmSegment.source; 
-      this->midPoint    = cmSegment.midPoint;
-      this->normalVector= cmSegment.normalVector;
-      this->predicate   = cmSegment.predicate;
+    void CriticalPResultFace::set(const CriticalPResultFace& cprFace){
+      this->left        = cprFace.left;
+      this->right       = cprFace.right;
+      this->source      = cprFace.source; 
+      this->midPoint    = cprFace.midPoint;
+      this->normalVector= cprFace.normalVector;
+      this->predicate   = cprFace.predicate;
     }// set
     
-    void CriticalMSegment::set(const Segment3D& left, const Segment3D& right,
-                               SourceFlag source, Predicate predicate){ 
+    void CriticalPResultFace::set(const Segment3D& left, const Segment3D& right,
+                                  SourceFlag source, Predicate predicate){ 
       this->left = left;
       this->right = right;      
       RationalPoint3D initialStart = left.getTail().getR();
@@ -1285,21 +1299,21 @@ namespace temporalalgebra {
       this->predicate = predicate;
     }// set
     
-    Point3D CriticalMSegment::getMidPoint()const{
+    Point3D CriticalPResultFace::getMidPoint()const{
       return midPoint;
     }// getMidPoint 
     
-    Segment3D CriticalMSegment::getLeft() const{
+    Segment3D CriticalPResultFace::getLeft() const{
       return left;
     }// getLeft
       
-    Segment3D CriticalMSegment::getRight() const{
+    Segment3D CriticalPResultFace::getRight() const{
       return right;
     }// getRight
     
-    std::ostream& CriticalMSegment::print(std::ostream& os, 
+    std::ostream& CriticalPResultFace::print(std::ostream& os, 
                                           std::string prefix)const{
-      os << "CriticalMSegment(" << endl;
+      os << "CriticalPResultFace(" << endl;
       os << prefix << "  Left:=" <<  this->left << endl;
       os << prefix << "  Right:="<<  this->right << endl;
       if(this->source == UNIT_A) os << prefix << "  Source:= UNIT A"  << endl;
@@ -1312,48 +1326,50 @@ namespace temporalalgebra {
     }// print
     
     std::ostream& operator <<(std::ostream& os, 
-                              const CriticalMSegment& cmSegment){
-      cmSegment.print(os,"");
+                              const CriticalPResultFace& cprFace){
+      cprFace.print(os,"");
       return os;
     }// Operator <<
    
-    bool CriticalMSegment::operator ==(const CriticalMSegment& cmSegment)const{
-      if((this->left  == cmSegment.left) &&
-         (this->right == cmSegment.right) &&       
-         (this->source == cmSegment.source)&&
-         (this->predicate == cmSegment.predicate)) return true;
+    bool CriticalPResultFace::operator ==(
+        const CriticalPResultFace& cprFace)const{
+      if((this->left  == cprFace.left) &&
+         (this->right == cprFace.right) &&       
+         (this->source == cprFace.source)&&
+         (this->predicate == cprFace.predicate)) return true;
       return false;
     }// Operator ==
     
-    CriticalMSegment& CriticalMSegment::operator =(
-        const CriticalMSegment& cmSegment){
-      set(cmSegment);
+    CriticalPResultFace& CriticalPResultFace::operator =(
+        const CriticalPResultFace& cprFace){
+      set(cprFace);
       return *this;
     }// Operator =            
     
-    bool CriticalMSegment::isPartOfUnitA() const{
+    bool CriticalPResultFace::isPartOfUnitA() const{
       return source == UNIT_A;
     }// isPartOfUnitA
       
-    bool CriticalMSegment::hasEqualNormalVector(
-        const CriticalMSegment& other) const{  
+    bool CriticalPResultFace::hasEqualNormalVector(
+        const CriticalPResultFace& other) const{  
       // Precondition: this is parallel to other.
       // The normal vectors are equal, iff
       // the cosinus of the angle between them is positive:
       return NumericUtil::greater(normalVector * other.normalVector, 0.0);
     }// hasEqualNormalVectors
       
-    bool CriticalMSegment::operator <(const CriticalMSegment& cmSegment)const{
-      return this->midPoint < cmSegment.midPoint;      
+    bool CriticalPResultFace::operator <(
+        const CriticalPResultFace& cprFace)const{
+      return this->midPoint < cprFace.midPoint;      
     }// Operator <
     
-    Predicate CriticalMSegment::getPredicate() const {
+    Predicate CriticalPResultFace::getPredicate() const {
       return this->predicate;      
     }// getPredicate
     
-    MSegment CriticalMSegment::getMSegment()const{
-      return MSegment(left,right);
-    }// getMSegment
+    PResultFace CriticalPResultFace::getPResultFace()const{
+      return PResultFace(left,right);
+    }// getPResultFace
 /*
 16 class ResultUnit 
  
@@ -1373,12 +1389,12 @@ namespace temporalalgebra {
     }// Konstruktor
     
     void ResultUnit::set(const ResultUnit& other){
-      this->mSegments  = std::vector<MSegment>();
-      this->mCSegments = std::vector<CriticalMSegment>(); 
+      this->prFaces  = std::vector<PResultFace>();
+      this->mCSegments = std::vector<CriticalPResultFace>(); 
       this->orginalStartTime = other.orginalStartTime;
       this->orginalEndTime   = other.orginalEndTime;   
-      for (size_t i = 0; i < other.mSegments.size(); i++) {
-        this->mSegments.push_back(other.mSegments[i]);
+      for (size_t i = 0; i < other.prFaces.size(); i++) {
+        this->prFaces.push_back(other.prFaces[i]);
       }// for
       for (size_t i = 0; i < other.mCSegments.size(); i++) {
         this->mCSegments.push_back(other.mCSegments[i]);
@@ -1386,35 +1402,35 @@ namespace temporalalgebra {
     }// set
     
     size_t ResultUnit::size(){
-      return mSegments.size();
+      return prFaces.size();
     }// size(
     
-    void ResultUnit::addMSegment(MSegment& mSegment, bool completely ){
-      if (mSegment.getLeftStart() == mSegment.getRightStart() &&   
-          mSegment.getLeftEnd()   == mSegment.getRightEnd()){
-        cerr << mSegment << endl;
+    void ResultUnit::addPResultFace(PResultFace& prFace, bool completely ){
+      if (prFace.getLeftStart() == prFace.getRightStart() &&   
+          prFace.getLeftEnd()   == prFace.getRightEnd()){
+        cerr << prFace << endl;
         NUM_FAIL("Error");
       }// if
       if (completely) {
-        mSegments.push_back(mSegment);
+        prFaces.push_back(prFace);
       }// if
       else {
-        mSegment.setSegmentNo(this->mSegments.size()/2);
-        mSegment.setLeftDomPoint(true);
-        mSegments.push_back(mSegment);
-        mSegment.setLeftDomPoint(false);
-        mSegments.push_back(mSegment);
+        prFace.setSegmentNo(this->prFaces.size()/2);
+        prFace.setLeftDomPoint(true);
+        prFaces.push_back(prFace);
+        prFace.setLeftDomPoint(false);
+        prFaces.push_back(prFace);
       }// else
-    }// addMSegment
+    }// addPResultFace
     
-    void ResultUnit::addMSegment(const CriticalMSegment& mCSegment){
-      MSegment mSegment = mCSegment.getMSegment();
-      addMSegment(mSegment,false);      
-    }// addMSegment
+    void ResultUnit::addPResultFace(const CriticalPResultFace& mCSegment){
+      PResultFace prFace = mCSegment.getPResultFace();
+      addPResultFace(prFace,false);      
+    }// addPResultFace
     
-    void ResultUnit::addCMSegment(const CriticalMSegment& mSegment){
-      mCSegments.push_back(mSegment);
-    }// addMSegment
+    void ResultUnit::addCPResultFace(const CriticalPResultFace& prFace){
+      mCSegments.push_back(prFace);
+    }// addPResultFace
     
     Interval<Instant> ResultUnit::getTimeInterval() const {
       Instant start(datetime::instanttype);
@@ -1428,17 +1444,17 @@ namespace temporalalgebra {
       os << "ResultUnit(" << endl;
       os << prefix + "  Startime:=" << this->orginalStartTime;
       os << ", EndTime:=" << this->orginalEndTime << endl;
-      os << prefix +  "  MSegments (";
-      if (this->mSegments.size() == 0) os << "is empty)" << endl;
+      os << prefix +  "  PResultFaces (";
+      if (this->prFaces.size() == 0) os << "is empty)" << endl;
       else {
         os << endl;
-        for (size_t i = 0; i < this->mSegments.size(); i++) {
+        for (size_t i = 0; i < this->prFaces.size(); i++) {
           os << prefix + "    Index:=" << i << ", "; 
-          this->mSegments[i].print(os,prefix + "    ");
+          this->prFaces[i].print(os,prefix + "    ");
         }// for
         os << prefix + "  )" << endl;
       }// else
-      os << prefix + "  CriticalMSegment (";  
+      os << prefix + "  CriticalPResultFace (";  
       if (this->mCSegments.size() == 0) os << "is empty)" << endl;
       else {  
         os << endl;
@@ -1465,13 +1481,13 @@ namespace temporalalgebra {
         cerr << "Start time or end time not equal" << endl;
         return false;
       }// if
-      if (this->mSegments.size() != other.mSegments.size()) {
-        cerr << "Size of mSegments is differnt" << endl; 
+      if (this->prFaces.size() != other.prFaces.size()) {
+        cerr << "Size of prFaces is differnt" << endl; 
         return false;  
       }// if
-      for (size_t i = 0; i < this->mSegments.size(); i++) {
-        if (!(this->mSegments[i] == other.mSegments[i])) {
-          cerr << "ResultUnit is not equal on Index for MSegment:=";
+      for (size_t i = 0; i < this->prFaces.size(); i++) {
+        if (!(this->prFaces[i] == other.prFaces[i])) {
+          cerr << "ResultUnit is not equal on Index for PResultFace:=";
           cerr << i << endl;
           return false;
         }// if
@@ -1484,45 +1500,46 @@ namespace temporalalgebra {
       return *this;
     }// Operator =
     
-    bool ResultUnit::less(const MSegment& ms1, const MSegment& ms2) {
-      return ms1.lessByMedianHS(ms2);
+    bool ResultUnit::less(const PResultFace& prf1, const PResultFace& prf2) {
+      return prf1.lessByMedianHS(prf2);
     }// less
 
-    bool ResultUnit::logicLess(const MSegment& ms1, const MSegment& ms2) {
-      return ms1.logicLess(ms2);
+    bool ResultUnit::logicLess(const PResultFace& prf1, 
+                               const PResultFace& prf2) {
+      return prf1.logicLess(prf2);
     }// logicLess
     
     void ResultUnit::finalize(){
-      if(mSegments.size() == 0) return;
-      // First, we sort the mSegments of this unit by their 
+      if(prFaces.size() == 0) return;
+      // First, we sort the prFaces of this unit by their 
       // median-halfsegments. Comparison between halfsegments
       // is done by the < operator, implemented in the SpatialAlgebra.
-      sort(mSegments.begin(), mSegments.end(), ResultUnit::less);
+      sort(prFaces.begin(), prFaces.end(), ResultUnit::less);
       // Second, we construct a region from all median-halfsegments
       // of each msegment of this unit:
-      Region region(mSegments.size());
+      Region region(prFaces.size());
       region.StartBulkLoad();
-      for (size_t i = 0; i < mSegments.size(); i++) {
-        // cout << mSegments[i].getMedianHS() << endl;
-        region.Put(i, mSegments[i].getMedianHS());
+      for (size_t i = 0; i < prFaces.size(); i++) {
+        // cout << prFaces[i].getMedianHS() << endl;
+        region.Put(i, prFaces[i].getMedianHS());
       }// for
       // Note: Sorting is already done.
       region.EndBulkLoad(false, true, true, true);
       // Third, we retrive the faceNo, cycleNo and edgeNo of
       // each halfsegment from the region, computed in the 
       // Region::EndBulkLoad procedure:
-      for (unsigned int i = 0; i < mSegments.size(); i++) {
+      for (unsigned int i = 0; i < prFaces.size(); i++) {
         HalfSegment halfSegment;
         region.Get(i, halfSegment);
-        mSegments[i].copyIndicesFrom(&halfSegment);
+        prFaces[i].copyIndicesFrom(&halfSegment);
       }// for
-      // Sort mSegments by faceno, cycleno and segmentno:
-      sort(mSegments.begin(), mSegments.end(), ResultUnit::logicLess);
+      // Sort prFaces by faceno, cycleno and segmentno:
+      sort(prFaces.begin(), prFaces.end(), ResultUnit::logicLess);
       //  this->Print();
-      // Erase the second half of mSegments, 
-      // which contains all MSegments with right dominating point:
-      mSegments.erase(mSegments.begin() + mSegments.size() / 2, 
-                      mSegments.end());
+      // Erase the second half of prFaces, 
+      // which contains all PResultFaces with right dominating point:
+      prFaces.erase(prFaces.begin() + prFaces.size() / 2, 
+                      prFaces.end());
     }// finalize
 
     URegionEmb* ResultUnit::convertToURegionEmb(
@@ -1531,14 +1548,14 @@ namespace temporalalgebra {
       URegionEmb* uregion     = new URegionEmb(getTimeInterval(), 
                                                segmentsStartPos);
       Rectangle<2> resultBRec;      
-      if(mSegments.size() > 0){      
-        resultBRec = mSegments[0].getBoundingRec();
+      if(prFaces.size() > 0){      
+        resultBRec = prFaces[0].getBoundingRec();
       }// if      
-      for(unsigned int i = 0; i < mSegments.size(); i++) {   
-         // cout << mSegments[i] << endl;
-         MSegmentData msd  = mSegments[i].getMSegmentData();   
+      for(unsigned int i = 0; i < prFaces.size(); i++) {   
+         // cout << prFaces[i] << endl;
+         MSegmentData msd  = prFaces[i].getMSegmentData();   
          uregion->PutSegment(segments, i, msd, true);
-         Rectangle<2> bRec = mSegments[i].getBoundingRec();
+         Rectangle<2> bRec = prFaces[i].getBoundingRec();
          resultBRec.Extend(bRec);
       }// for
       // Set the bbox           
@@ -1550,20 +1567,20 @@ namespace temporalalgebra {
       return uregion;
     }// convertToURegionEmb
     
-    void ResultUnit::copyCriticalMSegmens(const CriticalMSegment& cmSeg, 
+    void ResultUnit::copyCriticalMSegmens(const CriticalPResultFace& cmSeg, 
                                           SetOp setOp){
       if (setOp == UNION && cmSeg.getPredicate() == OUTER) {
-        addMSegment(cmSeg); 
+        addPResultFace(cmSeg); 
         return;
       }// if
       if (setOp == INTERSECTION && cmSeg.getPredicate() == INNER) {
-        addMSegment(cmSeg);  
+        addPResultFace(cmSeg);  
         return; 
       }// if
       if ( setOp == MINUS && 
           ((cmSeg.isPartOfUnitA() && cmSeg.getPredicate() == OUTER)||
           (!cmSeg.isPartOfUnitA() && cmSeg.getPredicate() == INNER))) {
-        addMSegment(cmSeg);  
+        addPResultFace(cmSeg);  
         return;
       }// if
     }// CopyCriticalMSegmens
@@ -1576,12 +1593,12 @@ namespace temporalalgebra {
         // über alle Segmente
         size_t i;
         for (i = 0; i < mCSegments.size()-1; i++) {
-          CriticalMSegment cmSeg0 = mCSegments[i];
-          CriticalMSegment cmSeg1 = mCSegments[i+1];
+          CriticalPResultFace cmSeg0 = mCSegments[i];
+          CriticalPResultFace cmSeg1 = mCSegments[i+1];
           // besitze die beiden Segmente den gleichen Mittelpunkt
           if(cmSeg0.getMidPoint() == cmSeg1.getMidPoint()) {
             if (cmSeg0.hasEqualNormalVector(cmSeg1)) {
-              addMSegment(cmSeg0);
+              addPResultFace(cmSeg0);
             }// if
             // zweites Segment berücksichtigen
             i++;
@@ -1593,7 +1610,7 @@ namespace temporalalgebra {
         }// for
         if (i == mCSegments.size()-1) {
           // Letztes Segment hat auch keinen Partner
-          CriticalMSegment cmSeg = mCSegments[i];
+          CriticalPResultFace cmSeg = mCSegments[i];
           copyCriticalMSegmens(cmSeg,setOp);
         }// if
       }// if
@@ -1718,6 +1735,7 @@ class Layer
             result = INTERSECT;
           }// if
           else {
+            cerr << *this;
             NUM_FAIL("Different predicates at the edges of a area");
           }// else
         }// else
@@ -2009,12 +2027,12 @@ class Layer
           Segment3D left    = Segment3D(leftTail,leftHead);
           Segment3D right   = Segment3D(rightTail,rightHead);
           if (this->isCritical) {
-            CriticalMSegment segment(left,right,source,predicate);
-            unit.addCMSegment(segment);
+            CriticalPResultFace segment(left,right,source,predicate);
+            unit.addCPResultFace(segment);
           }// if
           else {
-            MSegment segment(left, right);                  
-            unit.addMSegment(segment,false);
+            PResultFace segment(left, right);                  
+            unit.addPResultFace(segment,false);
           }// else 
         }// if
       }// for
@@ -2213,7 +2231,7 @@ class LayerContainer
             const SegmentContainer& segments){
       Segment borderLeft  = segments.get(left);
       Segment borderRight = segments.get(right);
-      MSegment::set(points.get(borderLeft.getTail()),
+      PResultFace::set(points.get(borderLeft.getTail()),
                     points.get(borderLeft.getHead()),
                     points.get(borderRight.getTail()),
                     points.get(borderRight.getHead())); 
@@ -2418,49 +2436,32 @@ class LayerContainer
       return IntersectionSegment(segment3D,segment2D,predicate);
     }// createBorder 
     
-    // Kernfunktion
     void PFace::addBorder(const RationalPlane3D &plane,
-                          GlobalTimeValues &timeValues, 
                           Predicate predicate){
       IntersectionSegment iSeg = createBorder(plane,LEFT,predicate);
-      timeValues.addTimeValue(iSeg.getTail().getT());
-      timeValues.addTimeValue(iSeg.getHead().getT());
       addIntSeg(iSeg); 
       iSeg = createBorder(plane,RIGHT,predicate);
-      timeValues.addTimeValue(iSeg.getTail().getT());
-      timeValues.addTimeValue(iSeg.getHead().getT());
       addIntSeg(iSeg); 
     }// addBorder   
     
-    // for pFace with intersection
-    void PFace::addBorder(GlobalTimeValues &timeValues){
-      RationalPlane3D plane(*this);       
-      addBorder(plane,timeValues,UNDEFINED);
-    }// addBorder 
-    
-    // for pFace without intersection
-    void PFace::addBorder(GlobalTimeValues &timeValues, 
-                          const SegmentContainer& segments, 
+    void PFace::addBorder(const SegmentContainer& segments, 
                           Predicate predicate){
       Predicate leftPredicate  = segments.get(left).getPredicate();
       Predicate rightPredicate = segments.get(right).getPredicate();  
-
       if (state == UNKNOWN && 
           leftPredicate  != UNDEFINED && 
           rightPredicate != UNDEFINED) {
         if (leftPredicate == predicate || rightPredicate == predicate) {
           state = RELEVANT;
           RationalPlane3D plane(*this);
-          addBorder(plane,timeValues,predicate);          
+          addBorder(plane,predicate);   
         }// if
         else {
           state = NOT_RELEVANT;          
         }// if
       }// if
-
-      // Ein Pface mit einem Schnitt konnte in einer vorhergehenden 
-      // Runde nicht bearbeitet werden. Die Kanten werden mit
-      // ihren Predikaten erneut hinzugefügt
+      // A P-Face with a intersection cut could not be processed 
+      // in a previous round. The edges are re-added with their predicates
       else if ((state == RELEVANT || state == CRITICAL) && 
               (leftPredicate != UNDEFINED || rightPredicate != UNDEFINED)) {
         RationalPlane3D plane(*this);        
@@ -2479,73 +2480,90 @@ class LayerContainer
       if (rightPredicate == UNDEFINED) segments.set(this->right,predicate);
     }// setBorderPredicate   
     
+    void PFace::getBorderSegments(bool all, vector<RationalSegment3D>& borders){
+      borders.push_back(RationalSegment3D(this->leftStart,this->leftEnd));
+      borders.push_back(RationalSegment3D(this->rightStart,this->rightEnd));
+      if(all) {
+        borders.push_back(RationalSegment3D(this->leftStart,this->rightStart));
+        borders.push_back(RationalSegment3D(this->leftEnd,this->rightEnd));
+      }// if
+    }// getBorderSegments
+    
+    bool PFace::intersection(const vector<RationalSegment2D>& borders, 
+                             const RationalSegment2D& segment, 
+                             RationalSegment2D& result){
+      std::set<RationalPoint2D> points;
+      std::set<RationalPoint2D>::iterator first,second;
+      for (size_t i = 0; i < borders.size(); i++){
+        RationalPoint2D iPoint;
+        if(segment == borders[i]){
+          continue;
+        }// if
+        bool result = segment.intersection(borders[i],iPoint);
+        if(result){ 
+          // cout << segment << endl;
+          // cout << borders[i] << endl;
+          // cout << iPoint << endl;
+          points.insert(iPoint); 
+        }// if
+      }// for
+      if(points.size() > 1 ){
+        second = first = points.begin();
+        second++;
+        // The intersections points  were sorted in the set "points" 
+        // according to the sizes of x, y. 
+        // Undo this sorting
+        if(first->getY() < second->getY()){
+          result = RationalSegment2D(*first,*second);
+        }// if
+        else {
+          result = RationalSegment2D(*second,*first);
+        }// else
+        return true;
+      }// if
+      return false;
+    }// intersection
+    
+    RationalSegment3D PFace::map(const RationalSegment3D& orginal3D, 
+                         const RationalSegment2D& orginal2D, 
+                         const RationalSegment2D& intersection){
+      mpq_class length  = (orginal2D.getHead() - 
+                           orginal2D.getTail()).length();                      
+      mpq_class length0 = (intersection.getTail() - 
+                           orginal2D.getTail()).length(); 
+      mpq_class length1 = (intersection.getHead() - 
+                           orginal2D.getTail()).length(); 
+      RationalVector3D vector = orginal3D.getHead() - orginal3D.getTail();
+      RationalPoint3D  tail3D = orginal3D.getTail() + length0/length*vector;
+      RationalPoint3D  head3D = orginal3D.getTail() + length1/length*vector;
+      return RationalSegment3D(tail3D,head3D);
+    }// map
+    
     bool PFace::intersectionOnPlane(PFace& other,
                                     const RationalPlane3D& planeSelf,
                                     GlobalTimeValues &timeValues){
-      vector<RationalSegment3D> segments3D;
-      vector<RationalSegment2D> segments2D;
-      vector<RationalSegment2D> borders;
-      // Segment speichern
-      segments3D.push_back(RationalSegment3D(other.leftStart,other.leftEnd));
-      segments3D.push_back(RationalSegment3D(other.rightStart,other.rightEnd));
-      // Punkte transformieren               
-      RationalPoint2D leftStart  = planeSelf.transform(other.leftStart);      
-      RationalPoint2D leftEnd    = planeSelf.transform(other.leftEnd);       
-      RationalPoint2D rightStart = planeSelf.transform(other.rightStart);      
-      RationalPoint2D rightEnd   = planeSelf.transform(other.rightEnd); 
-      // Segment erstellen und speichern
-      segments2D.push_back(RationalSegment2D(leftStart,leftEnd));
-      segments2D.push_back(RationalSegment2D(rightStart,rightEnd));
-      // Punkte transformieren
-      leftStart  = planeSelf.transform(this->leftStart);      
-      leftEnd    = planeSelf.transform(this->leftEnd);       
-      rightStart = planeSelf.transform(this->rightStart);      
-      rightEnd   = planeSelf.transform(this->rightEnd); 
-      // Segment erstellen und speichern
-      borders.push_back(RationalSegment2D(leftStart,leftEnd));
-      borders.push_back(RationalSegment2D(rightStart,rightEnd));
-      borders.push_back(RationalSegment2D(leftStart,rightStart));
-      borders.push_back(RationalSegment2D(leftEnd,rightEnd));
-      // Verschneidung durchführen
-      for (size_t i = 0; i < segments2D.size(); i++){
-        std::set<RationalPoint2D> points;
-        for (size_t j = 0; j < borders.size(); j++){
-          RationalPoint2D iPoint;
-          if(segments2D[i] == borders[i]){
-            points.clear();
-            break;
-          }// if
-          bool result = segments2D[i].intersection(borders[j],iPoint);
-          if(result) {            
-            points.insert(iPoint);  
-          }// if  
-        }// for
-        if(points.size() > 1 ){    
-          std::set<RationalPoint2D>::iterator first,second;
-          second = first = points.begin();
-          second++;
-          mpq_class length  = (segments2D[i].getHead() - 
-                               segments2D[i].getTail()).length();
-          mpq_class length0 = (*first - segments2D[i].getTail()).length(); 
-          mpq_class length1 = (*second - segments2D[i].getTail()).length(); 
-          RationalVector3D vector = segments3D[i].getHead() - 
-                                    segments3D[i].getTail();
-          Point3D tail3D = segments3D[i].getTail() + length0/length*vector;
-          Point3D head3D = segments3D[i].getTail() + length1/length*vector;
-          // Schnittsegment bestimmen in 2D
-          Point2D tail2D = (*first).getD();
-          Point2D head2D = (*second).getD();      
-          IntersectionSegment iSegment(IntersectionPoint(tail3D,tail2D),
-                                       IntersectionPoint(head3D,head2D),
-                                       NO_INTERSECT);
-          // cout << Segment3D(this->leftStart, this->leftEnd)<< endl;
-          // cout << Segment3D(this->rightStart, this->rightEnd)<< endl;
-          // cout << iSegment.getSegment3D()<< endl << endl;
-          Segment3D segment = iSegment.getSegment3D();
-          if(!((segment.getHead() == this->leftEnd && 
-                segment.getTail() == this->leftStart) || 
-               (segment.getHead() == this->rightEnd && 
-                segment.getTail() == this->rightStart))){
+      vector<RationalSegment3D> self3D;
+      vector<RationalSegment2D> self2D;
+      vector<RationalSegment3D> other3D;
+      vector<RationalSegment2D> other2D;
+      // create segments
+      other.getBorderSegments(false, other3D); 
+      this->getBorderSegments(true, self3D); 
+      // transform segments
+      planeSelf.transform(other3D,other2D);
+      planeSelf.transform(self3D,self2D);
+      // calculate the intersegment segments
+      for (size_t i = 0; i < other2D.size(); i++){
+        RationalSegment2D segment2D;  
+        bool result = intersection(self2D, other2D[i], segment2D);
+        if (result) {
+          RationalSegment3D segment3D = map(other3D[i], other2D[i],segment2D);
+          // cout << "Segment2D:=" << segment2D << endl;
+          // cout << "Ssegment3D:=" << segment3D << endl;
+          if (!(segment3D == self3D[0] || 
+                segment3D == self3D[1])){
+            IntersectionSegment iSegment(segment3D,segment2D, NO_INTERSECT);
+            // cout << "Schnittsegment:=" << iSegment << endl;
             timeValues.addTimeValue(iSegment.getTail().getT());
             timeValues.addTimeValue(iSegment.getHead().getT());
             addIntSeg(iSegment);
@@ -2558,26 +2576,20 @@ class LayerContainer
       
     bool PFace::intersection(PFace& other,GlobalTimeValues &timeValues){
       Rectangle<2> bRec = boundingRect;
-      // Boundingbox etwas vergrößern
       bRec.Extend(NumericUtil::eps2);
-      // check bounding rectangles
+      // No intersection if the bounding boxes do not intersect
       if (!(this->boundingRect.Intersects(other.boundingRect))) {
-         return false; 
+        return false; 
       }// if
       // create planes
       RationalPlane3D planeSelf(*this);
-      RationalPlane3D planeOther(other);      
-      // cout << setprecision(12) << planeSelf << endl;
-      // cout << setprecision(12) << planeOther << endl;                  
+      RationalPlane3D planeOther(other);                      
       // check planes
       if (planeSelf.isParallelTo(planeOther)) {
         if (planeSelf.isCoplanarTo(planeOther)) {   
-         intersectionOnPlane(other,planeSelf,timeValues);
-         other.intersectionOnPlane(*this,planeOther,timeValues);  
+          intersectionOnPlane(other,planeSelf,timeValues);
+          other.intersectionOnPlane(*this,planeOther,timeValues);  
         }// if 
-        else { }// else
-        // cout << setprecision(12) << *this;
-        // cout << setprecision(12) << other <<endl;
         return false;
       }// if
       RationalPoint3DExtSet intPointSet;    
@@ -2585,7 +2597,6 @@ class LayerContainer
       // We need exactly two intersection points.
       if (intPointSet.size() != 2) return false;    
       planeOther.intersection(*this, UNIT_B, intPointSet);    
-      // There is no intersection
       RationalSegment3D intSeg;
       // cout << intPointSet;
       if (!intPointSet.getIntersectionSegment(intSeg)) return false;  
@@ -2593,8 +2604,6 @@ class LayerContainer
       // create and save result segments
       addIntSeg(planeSelf,planeOther,intSeg,timeValues);
       other.addIntSeg(planeOther,planeSelf,intSeg,timeValues); 
-      // cout << setprecision(12) << *this;
-      // cout << setprecision(12) << other <<endl;
       return true;    
     }// intersection   
     
@@ -2803,20 +2812,19 @@ class LayerContainer
             
     void SourceUnit::addToResultUnit(ResultUnit& result)const{
       for (size_t i = 0; i < pFaces.size(); i ++) {
-        MSegment msegment = static_cast<MSegment> (*pFaces[i]);
-        result.addMSegment(msegment,false);
+        PResultFace msegment = static_cast<PResultFace> (*pFaces[i]);
+        result.addPResultFace(msegment,false);
       }// for
     }// addToResult
     
-    bool SourceUnit::intersection(SourceUnit& other, 
+    void SourceUnit::intersection(SourceUnit& other, 
                                   GlobalTimeValues& timeValues){
-      bool result =false;
+      // Over all P-Face of the source.
       for (size_t i = 0; i < this->pFaces.size(); i++) {
         PFace* pFaceA = this->pFaces[i];
         Rectangle<2> bRec = (*pFaceA).getBoundingRec();
-        // Boundingbox etwas vergrößern
         bRec.Extend(NumericUtil::eps2);
-        // Iterator über die gefundenen PFaces erstellen
+        // Iterator over all found P-PFace
         std::unique_ptr<mmrtree::RtreeT<2, size_t>::iterator> 
           it(other.pFaceTree.find(bRec)); 
         size_t const* j;  
@@ -2827,7 +2835,8 @@ class LayerContainer
           //  cout << "B:" << endl << setprecision(12) << *pFaceB;          
         }// while
         if (pFaceA->existsIntSegs() || pFaceA->getState()==CRITICAL) {
-          pFaceA->addBorder(timeValues);
+          RationalPlane3D plane(*pFaceA);       
+          pFaceA->addBorder(plane,UNDEFINED);
           this->itersectedPFace.push_back(i);
           touchFaceCycleEntry(pFaceA);
         }// if
@@ -2835,17 +2844,82 @@ class LayerContainer
       for (size_t j = 0; j < other.pFaces.size(); j++) {
         PFace* pFaceB =other.pFaces[j];
         if (pFaceB->existsIntSegs() || pFaceB->getState()==CRITICAL) {
-          pFaceB->addBorder(timeValues);
+          RationalPlane3D plane(*pFaceB);       
+          pFaceB->addBorder(plane,UNDEFINED);
           other.itersectedPFace.push_back(j);
           other.touchFaceCycleEntry(pFaceB);
         }// if
       }// for
-      // Für Zyklen ohne Schnitte, jetzt für ein PFace 
-      // Bezugsprädikate einfügen 
+      // For cycles without cuts, a P-Face with reference predicates 
+      // is now inserted.
       checkFaceCycleEntrys(other);
       other.checkFaceCycleEntrys(*this);      
-      return result;
     }// intersection
+    
+
+    void SourceUnit::intersectionFast(SourceUnit& other,
+                                      GlobalTimeValues& timeValues){
+       // Over all P-Face of the source.
+      for (size_t i = 0; i < this->pFaces.size(); i++) {
+        PFace* pFaceA = this->pFaces[i];
+        Rectangle<2> bRec = (*pFaceA).getBoundingRec();
+        bRec.Extend(NumericUtil::eps2);
+        RationalPlane3D planeSelf(*pFaceA);
+        // Iterator over all found P-PFace
+        std::unique_ptr<mmrtree::RtreeT<2, size_t>::iterator> 
+          it(other.pFaceTree.find(bRec)); 
+        size_t const* j;  
+        while ((j = it->next()) != 0) {
+          PFace* pFaceB = other.pFaces[*j];
+          // No intersection if the bounding boxes do not intersect
+          if (!(pFaceA->getBoundingRec().Intersects(
+                pFaceB->getBoundingRec()))) {
+            continue; 
+          }// if
+          RationalPlane3D planeOther(*pFaceB);                      
+          // check planes
+          if (planeSelf.isParallelTo(planeOther)) {
+            if (planeSelf.isCoplanarTo(planeOther)) {   
+              pFaceA->intersectionOnPlane(*pFaceB,planeSelf,timeValues);
+              pFaceB->intersectionOnPlane(*pFaceA,planeOther,timeValues);  
+            }// if 
+            continue;
+          }// if
+          RationalPoint3DExtSet intPointSet;    
+          planeSelf.intersection(*pFaceB, UNIT_A, intPointSet);  
+          // We need exactly two intersection points.
+          if (intPointSet.size() != 2) continue;    
+          planeOther.intersection(*pFaceA, UNIT_B, intPointSet);    
+          RationalSegment3D intSeg;
+          // cout << intPointSet;
+          if (!intPointSet.getIntersectionSegment(intSeg)) continue;  
+          IntersectionSegment iSeg;
+          // create and save result segments
+          pFaceA->addIntSeg(planeSelf,planeOther,intSeg,timeValues);
+          pFaceB->addIntSeg(planeOther,planeSelf,intSeg,timeValues); 
+        }// while
+        if (pFaceA->existsIntSegs() || pFaceA->getState()==CRITICAL) {     
+          pFaceA->addBorder(planeSelf,UNDEFINED);
+          this->itersectedPFace.push_back(i);
+          touchFaceCycleEntry(pFaceA);
+        }// if
+      }//for 
+      for (size_t j = 0; j < other.pFaces.size(); j++) {
+        PFace* pFaceB =other.pFaces[j];
+        if (pFaceB->existsIntSegs() || pFaceB->getState()==CRITICAL) {
+          RationalPlane3D planeOther(*pFaceB);       
+          pFaceB->addBorder(planeOther,UNDEFINED);
+          other.itersectedPFace.push_back(j);
+          other.touchFaceCycleEntry(pFaceB);
+        }// if
+      }// for
+      // For cycles without cuts, a P-Face with reference predicates 
+      // is now inserted.
+      checkFaceCycleEntrys(other);
+      other.checkFaceCycleEntrys(*this);  
+      // cout << *this;
+      // cout << other;
+    }// intersectionFast
     
     bool SourceUnit::finalize(Point3DContainer& points, 
                               GlobalTimeValues& timeValues, 
@@ -2892,7 +2966,7 @@ class LayerContainer
           if (!ok[i]) {
             // Grenzen des PFace dem Ergebnis hinzufügen bzw. die
             // Grenzen aktualisieren
-            this->pFaces[i]->addBorder(timeValues,segments,predicate);
+            this->pFaces[i]->addBorder(segments,predicate);
             // Ergebnis ermitteln
             bool result = this->pFaces[i]->finalize(
               points,this->segments,timeValues);
@@ -3092,59 +3166,7 @@ class LayerContainer
        }// for
     }// getResultPFace
 
-/*
-    bool SourceUnit::intersection(SourceUnit& other, GlobalTimeValues& timeValues){
-      bool result =false;
-      vector<PFace*>::iterator iter;
-      for (iter = this->pFaces.begin(); iter != this->pFaces.end(); iter++) {
-        PFace* pFaceA = *iter;
-        Rectangle<2> bRec = (*pFaceA).getBoundingRec();
-        // Boundingbox etwas vergrößern
-        bRec.Extend(NumericUtil::eps2);
-        RationalPlane3D planeSelf(*pFaceA);
-        // Iterator über die gefundenen Dreiecke erstellen
-        std::unique_ptr<mmrtree::RtreeT<2, size_t>::iterator> 
-          it(other.pFaceTree.find(bRec));      
-        size_t const *bRecIndex;
-        while((bRecIndex = it->next()) != 0) {
-          PFace* pFaceB = other.pFaces[*bRecIndex];
-          RationalPlane3D planeOther(*pFaceB);
-          // check planes
-          if (planeSelf.isParallelTo(planeOther)) {
-            if(planeSelf.isCoplanarTo(planeOther)) {
-              pFaceA->setState(CRITICAL);
-              pFaceB->setState(CRITICAL);           
-            }// if 
-            break;
-          }// if
-          RationalPoint3DExtSet intPointSet;
-          planeSelf.intersection(*pFaceB, PFACE_A, intPointSet);
-          // We need exactly two intersection points.
-          if (intPointSet.size() != 2) break; 
-          planeOther.intersection(*pFaceA, PFACE_B, intPointSet);  
-          // There is no intersection
-          RationalSegment3D intSeg;
-          if(!intPointSet.getIntersectionSegment(intSeg)) break;  
-          IntersectionSegment iSeg;
-          // create and save result segments  
-          pFaceA->addIntSeg(planeSelf,planeOther,intSeg,timeValues);
-          pFaceB->addIntSeg(planeOther,planeSelf,intSeg,timeValues);      
-          result = true;
-        }// while
-        if(pFaceA->existsIntSegs()){
-          pFaceA->addBorder(planeSelf, timeValues, UNDEFINED);
-        }// if
-      }// for
-      for (iter = other.pFaces.begin(); iter != other.pFaces.end(); iter++) {
-        PFace* pFaceB = *iter;
-        if(pFaceB->existsIntSegs()){
-          RationalPlane3D planeOther(*pFaceB);
-          pFaceB->addBorder(planeOther, timeValues,UNDEFINED);
-        }// if
-      }// for
-      return result;
-    }// intersection
-*/    
+   
 
     std::ostream& SourceUnit::print(std::ostream& os, std::string prefix)const{
       os << "SourceUnit (";
@@ -3184,11 +3206,11 @@ class LayerContainer
     }// Operator =
     
     bool SourceUnit::lessByMedianHS(const PFace* pf1, const PFace *pf2){
-      return pf1->lessByMedianHS(static_cast<MSegment>(*pf2));
+      return pf1->lessByMedianHS(static_cast<PResultFace>(*pf2));
     }// return
     
     bool SourceUnit::logicLess(const PFace* pf1, const PFace *pf2){
-      return pf1->logicLess(static_cast<MSegment>(*pf2));
+      return pf1->logicLess(static_cast<PResultFace>(*pf2));
     }// return
     
     void SourceUnit::reSort(){
@@ -3235,8 +3257,8 @@ class LayerContainer
       }// for
       // Sort pFaces by faceno, cycleno and segmentno:
       sort(pFaces.begin(), pFaces.end(), SourceUnit::logicLess);
-      // Erase the second half of mSegments, 
-      // which contains all MSegments with right dominating point:
+      // Erase the second half of prFaces, 
+      // which contains all PResultFaces with right dominating point:
       for (size_t i = pFaces.size()/2; i < pFaces.size(); i++) {
         delete pFaces[i];
       }// for
@@ -3366,6 +3388,7 @@ class LayerContainer
                                    double orginalEndTime   /* = 1 */,
                                    double scale /*= 1*/):
         timeValues(scale, orginalStartTime,orginalEndTime){
+      timeValues.addStartAndEndtime();    
     }// Konstruktor
     
     SourceUnitPair::SourceUnitPair(const Interval<Instant>& orginalInterval):
@@ -3375,6 +3398,7 @@ class LayerContainer
     void SourceUnitPair::setScaleFactor(double scale){
       // cout << "Scale:=" << scale << endl;
       timeValues.setScaleFactor(scale);
+      timeValues.addStartAndEndtime();
     }// setScaleFactor
           
     void SourceUnitPair::addPFace(SourceFlag flag, Segment3D& leftSegment, 
@@ -3471,7 +3495,8 @@ class LayerContainer
         return false;
       }// if
       // Intersection
-      unitA.intersection(unitB, timeValues);
+      // unitA.intersectionFast(unitB, timeValues);
+      unitA.intersection(unitB, timeValues); 
       // Finalize
       bool inverseB = false;
       Predicate predicateA = OUTER;

@@ -819,7 +819,7 @@ Print the object values to stream.
       bool operator ==(const RationalSegment2D& segment) const; 
  
       bool intersection(const RationalSegment2D& other, 
-                        RationalPoint2D& intersectionPoint);
+                        RationalPoint2D& intersectionPoint)const;
       
     protected:
 /*

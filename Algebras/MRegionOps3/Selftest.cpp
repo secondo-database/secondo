@@ -56,7 +56,7 @@ namespace temporalalgebra {
       }// Destruktortor
     
       bool Selftest::run(){
-        
+      
         Point3DTest1();
         Point2DTest1();
         
@@ -105,10 +105,10 @@ namespace temporalalgebra {
         IntSegContainerTest1();
         IntSegContainerTest2();
      
-        MSegmentTest1();
-        MSegmentTest2(); 
+        PResultFaceTest1();
+        PResultFaceTest2(); 
         
-        CriticalMSegmentTest1();
+        CriticalPResultFaceTest1();
      
         PFaceTest1();           
         PFaceTest2();
@@ -118,8 +118,8 @@ namespace temporalalgebra {
         PFaceTest6();
         PFaceTest7();
         PFaceTest8();
-        PFaceTest9();
-        PFaceTest10();       
+        PFaceTest9();      
+        PFaceTest10();   
         PFaceTest11();        
         PFaceTest12();
         PFaceTest13();
@@ -137,15 +137,6 @@ namespace temporalalgebra {
         
         SegmentTest();
    
-//       ResultUnitFactoryTest1();
-//        ResultUnitFactoryTest2();
-//        ResultUnitFactoryTest3();       
-//        ResultUnitFactoryTest4();
-//        ResultUnitFactoryTest5();
-//        ResultUnitFactoryTest6();
-//        ResultUnitFactoryTest7();        
-//        ResultUnitFactoryTest8();
-        
         SegmentContainerTest1();
      
         SourceUnitTest4();        
@@ -935,36 +926,36 @@ namespace temporalalgebra {
          // cout << container2;
       }// IntSegContainerTest2       
 /*
-16 Test MSegment
+16 Test PResultFace
 
 */      
-      void Selftest::MSegmentTest1(){
+      void Selftest::PResultFaceTest1(){
         Point3D point0(1,1,0);
         Point3D point1(1,2,5);
         Point3D point2(1,5,0);
         Point3D point3(1,4,5);
         Segment3D segment0(point0,point1);
         Segment3D segment1(point2,point3);
-        MSegment msegment0;
-        MSegment msegment1(segment0, segment1);
-        MSegment msegment2 = msegment1;
-        MSegment msegment3(msegment1);
-        assert_("MSegmentTest1 1.1", 
-                " MSegments are different.",
+        PResultFace msegment0;
+        PResultFace msegment1(segment0, segment1);
+        PResultFace msegment2 = msegment1;
+        PResultFace msegment3(msegment1);
+        assert_("PResultFaceTest1 1.1", 
+                " PResultFaces are different.",
                 (!(msegment0==msegment1)));
-        assert_("MSegmentTest1 1.2", 
-                " MSegments are equal.",
+        assert_("PResultFaceTest1 1.2", 
+                " PResultFaces are equal.",
                 msegment1==msegment2);
-        assert_("MSegmentTest1 1.3", 
-                " MSegments are equal.",
+        assert_("PResultFaceTest1 1.3", 
+                " PResultFaces are equal.",
                 msegment1==msegment3);
         // cout << msegment0 << endl;
         // cout << msegment1 << endl;
         // cout << msegment2 << endl;
         // cout << msegment3 << endl;
-      }// MSegmentTest
+      }// PResultFaceTest
 
-      void Selftest::MSegmentTest2(){
+      void Selftest::PResultFaceTest2(){
         ResultUnit result1;
         Segment3D segment0(Point3D (4.666666667, 1.666666667, 0), 
                            Point3D (4.2, 2.6, 1));            
@@ -978,71 +969,71 @@ namespace temporalalgebra {
                            Point3D (3.5, 4, 1));
         Segment3D segment5(Point3D (4.666666667, 1.666666667, 0), 
                            Point3D (2.8, 2.6, 1));
-        MSegment mSegment0(segment0,segment1);
-        MSegment mSegment1(segment2,segment3);
-        MSegment mSegment2(segment4,segment5);       
-        result1.addMSegment(mSegment0,false);
-        result1.addMSegment(mSegment1,false);
-        result1.addMSegment(mSegment2,false);
+        PResultFace prf0(segment0,segment1);
+        PResultFace prf1(segment2,segment3);
+        PResultFace prf2(segment4,segment5);       
+        result1.addPResultFace(prf0,false);
+        result1.addPResultFace(prf1,false);
+        result1.addPResultFace(prf2,false);
         // cout << result1; 
         result1.finalize();
         // result
         ResultUnit result2;
-        MSegment mSegment3(segment0,segment1,0,0,0,true,false);
-        MSegment mSegment4(segment2,segment3,0,0,1,true,true);
-        MSegment mSegment5(segment4,segment5,0,0,2,true,false); 
+        PResultFace prf3(segment0,segment1,0,0,0,true,false);
+        PResultFace prf4(segment2,segment3,0,0,1,true,true);
+        PResultFace prf5(segment4,segment5,0,0,2,true,false); 
         // Reihenfolge der Segmente werden getauscht
-        result2.addMSegment(mSegment4,true);
-        result2.addMSegment(mSegment5,true);
-        result2.addMSegment(mSegment3,true);
-        assert_("MSegmentTest 2.1", "Msegments don't equal.",
+        result2.addPResultFace(prf4,true);
+        result2.addPResultFace(prf5,true);
+        result2.addPResultFace(prf3,true);
+        assert_("PResultFaceTest 2.1", "Msegments don't equal.",
                 result1 == result2); 
         // cout << result1;
         // cout << result2;
-      }// MSegmentTest2  
+      }// PResultFaceTest2  
       
 /*
-16 Test CriticalMSegment
+16 Test CriticalPResultFace
 
 */       
-      void Selftest::CriticalMSegmentTest1(){
+      void Selftest::CriticalPResultFaceTest1(){
         Segment3D segment0( Point3D(6,1,0), Point3D(0,4,5));
         Segment3D segment1( Point3D(9,1,0), Point3D(3,4,5));
-        CriticalMSegment cmSegment0;        
-        CriticalMSegment cmSegment1(segment0,segment1,UNIT_B,INNER);
-        CriticalMSegment cmSegment2 = cmSegment1;
-        CriticalMSegment cmSegment3(segment1,segment0,UNIT_A,INNER);
-        Point3D point = cmSegment2.getMidPoint();
-        assert_("CriticalMSegmentTest 1.1",
-                "Critical MSegments don't equal.",
-                !(cmSegment0 == cmSegment1)); 
-        assert_("CriticalMSegmentTest 1.2", 
-                "Critical MSegments does equal.",
-                cmSegment1 == cmSegment2); 
-        assert_("CriticalMSegmentTest 1.3", 
-                "Critical MSegments don't equal.",
-                !(cmSegment2 == cmSegment3)); 
-        assert_("CriticalMSegmentTest 1.4", 
+        CriticalPResultFace cprf0;        
+        CriticalPResultFace cprf1(segment0,segment1,UNIT_B,INNER);
+        CriticalPResultFace cprf2 = cprf1;
+        CriticalPResultFace cprf3(segment1,segment0,UNIT_A,INNER);
+        Point3D point = cprf2.getMidPoint();
+        assert_("CriticalPResultFaceTest 1.1",
+                "Critical PResultFaces don't equal.",
+                !(cprf0 == cprf1)); 
+        assert_("CriticalPResultFaceTest 1.2", 
+                "Critical PResultFaces does equal.",
+                cprf1 == cprf2); 
+        assert_("CriticalPResultFaceTest 1.3", 
+                "Critical PResultFaces don't equal.",
+                !(cprf2 == cprf3)); 
+        assert_("CriticalPResultFaceTest 1.4", 
                 "Mid points does equal.",
                 point == Point3D(4.5,2.5,2.5)); 
-        assert_("CriticalMSegmentTest 1.5", 
-                "Critical MSegments is not a part of unit A.",
-                !(cmSegment1.isPartOfUnitA())); 
-        assert_("CriticalMSegmentTest 1.6", 
-                "Critical MSegments is not a part of unit A.",
-                cmSegment3.isPartOfUnitA()); 
-        assert_("CriticalMSegmentTest 1.7", 
-                "Critical MSegments does have equal normalvectors.",
-                cmSegment1.hasEqualNormalVector(cmSegment2)); 
-        assert_("CriticalMSegmentTest 1.8", 
-                "Critical MSegments don't have equal normalvectors.",
-                !(cmSegment1.hasEqualNormalVector(cmSegment3))); 
-        // cout << cmSegment0;
-        // cout << cmSegment1;
-        // cout << cmSegment2;
-        // cout << cmSegment3;
+        assert_("CriticalPResultFaceTest 1.5", 
+                "Critical PResultFaces is not a part of unit A.",
+                !(cprf1.isPartOfUnitA())); 
+        assert_("CriticalPResultFaceTest 1.6", 
+                "Critical PResultFaces is not a part of unit A.",
+                cprf3.isPartOfUnitA()); 
+        assert_("CriticalPResultFaceTest 1.7", 
+                "Critical PResultFaces does have equal normalvectors.",
+                cprf1.hasEqualNormalVector(cprf2)); 
+        assert_("CriticalPResultFaceTest 1.8", 
+                "Critical PResultFaces don't have equal normalvectors.",
+                !(cprf1.hasEqualNormalVector(cprf3))); 
+        // cout << cprf0;
+        // cout << cprf1;
+        // cout << cprf2;
+        // cout << cprf3;
         // cout << point << endl;
-      }// CriticalMSegmentTest1
+      }// CriticalPResultFaceTest1
       
 /*
 17 Test PFace
@@ -1370,7 +1361,8 @@ namespace temporalalgebra {
       void Selftest::PFaceTest9(){        
         Point3DContainer points;
         SegmentContainer segments1,segments2;
-        GlobalTimeValues timeValues(6);
+        GlobalTimeValues timeValues(5.133333333);
+        timeValues.addStartAndEndtime();
         // points for pface 1
         Point3D point0(2.8, 2.6, 0);
         Point3D point1(3.333333333, 3.666666667, 5.133333333);
@@ -1399,8 +1391,8 @@ namespace temporalalgebra {
         PFace pf0(0,1,points,segments1);
         PFace pf1(0,1,points,segments2);
         pf0.intersection(pf1,timeValues); 
-        pf0.addBorder(timeValues);
-        pf1.addBorder(timeValues);
+        pf0.addBorder(RationalPlane3D(pf0),UNDEFINED);
+        pf1.addBorder(RationalPlane3D(pf1),UNDEFINED);
         // Build result factory
         LayerContainer layer1(points,timeValues,pf0,false);
         LayerContainer layer2(points,timeValues,pf1,false);
@@ -2075,390 +2067,7 @@ namespace temporalalgebra {
         // cout << segment2 << endl;
         // cout << segment3 << endl;
         // cout << segment4 << endl;
-      }// SegmentTest   
-/*
-18 Test ResultUnitFactoryTest
-
-*/ 
-/*
-      void Selftest::ResultUnitFactoryTest1(){
-        ResultUnitFactory factory1(4),factory2(4);
-        assert_("ResultUnitFactoryTest 1.1", "factorys are equal.",
-                 factory1 == factory2);
-        factory1.addNonOrthogonalEdges(0,Segment(0,1));
-        factory1.addNonOrthogonalEdges(0,Segment(2,3));
-        factory1.addNonOrthogonalEdges(1,Segment(4,5,LEFT_IS_INNER));
-        factory1.addNonOrthogonalEdges(2,Segment(5,6));
-        factory1.addOrthogonalEdges(0,Segment(7,8,LEFT_IS_INNER));
-        factory1.addOrthogonalEdges(3,Segment(9,10,LEFT_IS_INNER));
-        factory1.setTouchsOnLeftBorder(1,2);
-        assert_("ResultUnitFactoryTest 1.2", "factorys aren't equal.",
-                (!(factory1 == factory2)));
-        // result
-        factory2.addNonOrthogonalEdges(0,Segment(0,1));
-        factory2.addNonOrthogonalEdges(0,Segment(2,3));
-        factory2.addNonOrthogonalEdges(1,Segment(4,5,LEFT_IS_INNER));
-        factory2.addNonOrthogonalEdges(2,Segment(5,6));
-        factory2.addOrthogonalEdges(0,Segment(7,8,LEFT_IS_INNER));
-        factory2.addOrthogonalEdges(3,Segment(9,10,LEFT_IS_INNER));
-        factory2.setTouchsOnLeftBorder(1,2); 
-        assert_("ResultUnitFactoryTest 1.3", "factorys are equal.",
-                 factory1 == factory2);
-        // cout << factory1 << endl;
-        // cout << factory2 << endl;
-      }// ResultUnitFactoryTest1
-*/ 
-
-/*
-      void Selftest::ResultUnitFactoryTest2(){
-        GlobalTimeValues timeValues(5);
-        IntSegContainer container;
-        Point3DContainer points1,points2;
-        container.addIntSeg(IntersectionSegment(
-          IntersectionPoint(2, 1, 0, 1.78885438), 
-          IntersectionPoint(2, 1, 5, 1.78885438)));
-        container.addIntSeg(IntersectionSegment(
-          IntersectionPoint(3.5, 4, 0, 5.14295635), 
-          IntersectionPoint (3.5, 4, 5, 5.14295635)));
-        container.addIntSeg(IntersectionSegment(
-          IntersectionPoint(2.8, 2.6, 2.66666667, 3.57770876), 
-          IntersectionPoint(3.4, 3.8, 4.66666667, 4.91934955), 
-          RIGHT_IS_INNER));
-        container.addIntSeg(IntersectionSegment(
-          IntersectionPoint(2.8, 2.6, 2.66666667, 3.57770876), 
-          IntersectionPoint(3.5, 4, 2.66666667, 5.14295635), 
-          LEFT_IS_INNER));
-        container.addIntSeg(IntersectionSegment(
-          IntersectionPoint(3.5, 4, 4.44444444, 5.14295635), 
-          IntersectionPoint(3.4, 3.8, 4.66666667, 4.91934955), 
-          LEFT_IS_INNER));  
-        timeValues.addTimeValue(0);
-        timeValues.addTimeValue(1.11111111);
-        timeValues.addTimeValue(2.66666667); 
-        timeValues.addTimeValue(4.44444444);
-        timeValues.addTimeValue(4.66666667);
-        timeValues.addTimeValue(5); 
-        // Ergebnissatz bestimmen
-        ResultUnitFactory factory1(points1,timeValues,container,false);
-        ResultUnitFactory factory2(6);
-        points2.add(Point3D (2, 1, 0));
-        points2.add(Point3D (2, 1, 1.11111111));
-        points2.add(Point3D (3.5, 4, 0));
-        points2.add(Point3D (3.5, 4, 1.11111111));
-        points2.add(Point3D (2, 1, 2.66666667));
-        points2.add(Point3D (3.5, 4, 2.66666667));
-        points2.add(Point3D (2, 1, 4.44444444));
-        points2.add(Point3D (2.8, 2.6, 2.66666667));
-        points2.add(Point3D (3.33333333, 3.66666666, 4.44444444));
-        points2.add(Point3D (3.5, 4, 4.44444444));
-        points2.add(Point3D (2, 1, 4.66666667));
-        points2.add(Point3D (3.4, 3.8, 4.66666667));
-        points2.add(Point3D (3.5, 4, 4.66666667));
-        points2.add(Point3D (2, 1, 5));
-        points2.add(Point3D (3.5, 4, 5));
-        assert_("ResultUnitFactoryTest 2.1", "points are equal.",
-                 points1 == points2);
-        factory2.addNonOrthogonalEdges(0,Segment(0,1));
-        factory2.addNonOrthogonalEdges(0,Segment(2,3));
-        factory2.addNonOrthogonalEdges(1,Segment (1, 4));
-        factory2.addNonOrthogonalEdges(1,Segment (3, 5));
-        factory2.addNonOrthogonalEdges(2,Segment (4, 6));
-        factory2.addNonOrthogonalEdges(2, Segment (7, 8, RIGHT_IS_INNER));
-        factory2.addOrthogonalEdges(2,Segment (7, 5, LEFT_IS_INNER));
-        factory2.addNonOrthogonalEdges(2,Segment (5, 9));
-        factory2.addNonOrthogonalEdges(3,Segment (6, 10));
-        factory2.addNonOrthogonalEdges(3,Segment (8, 11, RIGHT_IS_INNER));
-        factory2.addNonOrthogonalEdges(3,Segment (9, 11, LEFT_IS_INNER));
-        factory2.addNonOrthogonalEdges(3,Segment (9, 12));
-        factory2.addNonOrthogonalEdges(4,Segment (10, 13));
-        factory2.addNonOrthogonalEdges(4,Segment (12, 14));
-        assert_("ResultUnitFactoryTest 2.2", "factorys are equal.",
-                 factory1 == factory2);                 
-        // cout << setprecision(9);
-        // cout << container << endl;
-        // cout << timeValues << endl;
-        // cout << points1 << endl;
-        // cout << points2 << endl;
-        // cout << factory1 << endl;
-        // cout << factory2 << endl;
-      }// ResultUnitFactoryTest2
-*/
-/*
-      void Selftest::ResultUnitFactoryTest3(){
-        Point3DContainer points;
-        SegmentContainer segments;
-        Point3DContainer points1,points2,points3;
-        GlobalTimeValues timeValues1(5);
-        GlobalTimeValues timeValues2(5);
-        // points for unit 1 
-        points1.add(Point3D(2,1,0));// 0
-        points1.add(Point3D(5,1,0));         
-        points1.add(Point3D(3.5,4,0));
-        points1.add(Point3D(2,1,5));
-        points1.add(Point3D(5,1,5));         
-        points1.add(Point3D(3.5,4,5));
-        // points for unit 2 
-        points1.add(Point3D(6,1,0));// 6
-        points1.add(Point3D(9,1,0));         
-        points1.add(Point3D(7.5,4,0));
-        points1.add(Point3D(0,4,5));
-        points1.add(Point3D(3,4,5));         
-        points1.add(Point3D(1.5,7,5));
-        // segments for pface 1
-        segments.add(Segment(0,3));
-        segments.add(Segment(1,4));
-        segments.add(Segment(2,5));
-        // segments for pface 2
-        segments.add(Segment(6,9));
-        segments.add(Segment(7,10)); 
-        segments.add(Segment(8,11));        
-        // add pfaces to unit 1 
-        PFace pf0(0,1,points1,segments);
-        PFace pf1(1,2,points1,segments);
-        PFace pf2(2,0,points1,segments);
-        // add pfaces to unit 2
-        PFace pf3(3,4,points1,segments);
-        PFace pf4(4,5,points1,segments);
-        PFace pf5(5,3,points1,segments);        
-        // intersection
-        pf0.intersection(pf3,timeValues1);
-        pf0.intersection(pf4,timeValues1);
-        pf0.intersection(pf5,timeValues1);
-        pf0.addBorder(timeValues1);
-        pf1.intersection(pf3,timeValues1);
-        pf1.intersection(pf4,timeValues1);
-        pf1.intersection(pf5,timeValues1);
-        pf1.addBorder(timeValues1);
-        pf2.intersection(pf3,timeValues1);
-        pf2.intersection(pf4,timeValues1);
-        pf2.intersection(pf5,timeValues1);
-        pf2.addBorder(timeValues1);
-        pf3.addBorder(timeValues1);
-        pf4.addBorder(timeValues1);
-        pf5.addBorder(timeValues1);
-        ResultUnitFactory factory0(points2,timeValues1,pf0,false);
-        ResultUnitFactory factory1(points2,timeValues1,pf1,false);
-        ResultUnitFactory factory2(points2,timeValues1,pf2,false);
-        // Results
-        ResultUnitFactory factory3(6), factory4(6),factory5(6);        
-        points3.add(Point3D(2, 1, 0));
-        points3.add(Point3D(2, 1, 1.11111111));
-        points3.add(Point3D(5, 1, 0));
-        points3.add(Point3D(5, 1, 1.11111111));
-        points3.add(Point3D(2, 1, 2.66666667));
-        points3.add(Point3D(5, 1, 2.66666667));
-        points3.add(Point3D(2, 1, 4.44444444));
-        points3.add(Point3D(5, 1, 4.44444444));
-        points3.add(Point3D(2, 1, 4.66666667));
-        points3.add(Point3D(5, 1, 4.66666667));
-        points3.add(Point3D(2, 1, 5));
-        points3.add(Point3D(5, 1, 5));
-        points3.add(Point3D(3.5, 4, 0));
-        points3.add(Point3D(3.5, 4, 1.11111111));
-        points3.add(Point3D(4.66666667, 1.66666667, 1.11111111));
-        points3.add(Point3D(4.2, 2.6, 2.66666667));
-        points3.add(Point3D(3.5, 4, 2.66666667));
-        points3.add(Point3D(3.66666667, 3.66666667, 4.44444444));
-        points3.add(Point3D(3.5, 4, 4.44444444));
-        points3.add(Point3D(3.5, 4, 4.66666667));
-        points3.add(Point3D(3.5, 4, 5));
-        points3.add(Point3D(2.8, 2.6, 2.66666667));
-        points3.add(Point3D(3.33333333, 3.66666667, 4.44444444));
-        points3.add(Point3D(3.4, 3.8, 4.66666667));
-        assert_("ResultUnitFactoryTest 3.1", "points are equal.",
-                points2 == points3);
-        // cout << setprecision(9);
-        // cout << points2 << endl;
-        // cout << points3 << endl;
-        factory3.addNonOrthogonalEdges(0,Segment(0, 1)); 
-        factory3.addNonOrthogonalEdges(0,Segment(2, 3));
-        factory3.addNonOrthogonalEdges(1,Segment(1, 4));
-        factory3.addNonOrthogonalEdges(1,Segment(3, 5));
-        factory3.addNonOrthogonalEdges(2,Segment(4, 6));
-        factory3.addNonOrthogonalEdges(2,Segment(5, 7));
-        factory3.addNonOrthogonalEdges(3,Segment(6, 8)); 
-        factory3.addNonOrthogonalEdges(3,Segment(7, 9));
-        factory3.addNonOrthogonalEdges(4,Segment(8, 10)); 
-        factory3.addNonOrthogonalEdges(4,Segment(9, 11));        
-        factory4.addNonOrthogonalEdges(0,Segment(2, 3));
-        factory4.addNonOrthogonalEdges(0,Segment(12, 13));
-        factory4.addNonOrthogonalEdges(1,Segment(3, 5));
-        factory4.addNonOrthogonalEdges(1,Segment(14, 15, RIGHT_IS_INNER));
-        factory4.addNonOrthogonalEdges(1,Segment(14, 16, LEFT_IS_INNER));
-        factory4.addNonOrthogonalEdges(1,Segment(13, 16));
-        factory4.addNonOrthogonalEdges(2,Segment(5, 7));
-        factory4.addNonOrthogonalEdges(2,Segment(15, 17, RIGHT_IS_INNER));
-        factory4.addNonOrthogonalEdges(2,Segment(16, 18));
-        factory4.addNonOrthogonalEdges(3,Segment(7, 9));
-        factory4.addOrthogonalEdges(   3,Segment(17, 18, RIGHT_IS_INNER));
-        factory4.addNonOrthogonalEdges(3,Segment(18, 19));
-        factory4.addNonOrthogonalEdges(4,Segment(9, 11));        
-        factory4.addNonOrthogonalEdges(4,Segment(19, 20));  
-        factory5.addNonOrthogonalEdges(0,Segment(12, 13));
-        factory5.addNonOrthogonalEdges(0,Segment(0, 1));
-        factory5.addNonOrthogonalEdges(1,Segment(13, 16));
-        factory5.addNonOrthogonalEdges(1,Segment(1, 4));
-        factory5.addNonOrthogonalEdges(2,Segment(16, 18));
-        factory5.addOrthogonalEdges(2,   Segment(16, 21, LEFT_IS_INNER));
-        factory5.addNonOrthogonalEdges(2,Segment(21, 22, LEFT_IS_INNER));
-        factory5.addNonOrthogonalEdges(2,Segment(4, 6));
-        factory5.addNonOrthogonalEdges(3,Segment(18, 19));
-        factory5.addNonOrthogonalEdges(3,Segment(18, 23, RIGHT_IS_INNER));
-        factory5.addNonOrthogonalEdges(3,Segment(22, 23, LEFT_IS_INNER));
-        factory5.addNonOrthogonalEdges(3,Segment(6, 8));
-        factory5.addNonOrthogonalEdges(4,Segment(19, 20));
-        factory5.addNonOrthogonalEdges(4,Segment(8, 10));
-        assert_("ResultUnitFactoryTest 3.2", 
-                " Content in Factory  is incorrect.",
-                factory0 == factory3);
-        // cout << factory0 << endl;
-        // cout << factory3 << endl;
-        assert_("ResultUnitFactoryTest 3.3", 
-                " Content in Factory is incorrect.",
-                 factory1 == factory4);;
-        // cout << factory1 << endl;
-        // cout << factory4 << endl;
-        assert_("ResultUnitFactoryTest 3.4", 
-                " Content in Factory is incorrect.",
-                 factory2 == factory5);
-        // cout << factory2 << endl;
-        // cout << factory5 << endl;
-      }// ResultUnitFactoryTest3
-*/      
-/*
-      void Selftest::ResultUnitFactoryTest4(){
-        ResultUnitFactory factory1(6),factory2(6);
-        factory1.addNonOrthogonalEdges(0,Segment(14, 2)); 
-        factory1.addNonOrthogonalEdges(0,Segment(0, 2, RIGHT_IS_INNER));
-        factory1.addNonOrthogonalEdges(0,Segment(1, 3, LEFT_IS_INNER));
-        factory1.addNonOrthogonalEdges(0,Segment(15, 16));
-        factory1.addOrthogonalEdges(0,   Segment(0, 1, LEFT_IS_INNER));
-        factory1.addNonOrthogonalEdges(1,Segment(2, 17));
-        factory1.addNonOrthogonalEdges(1,Segment(2, 4, RIGHT_IS_INNER));
-        factory1.addNonOrthogonalEdges(1,Segment(3, 6, LEFT_IS_INNER));       
-        factory1.addNonOrthogonalEdges(1,Segment(16, 6));
-        factory1.addNonOrthogonalEdges(2,Segment(17, 18));
-        factory1.addNonOrthogonalEdges(2,Segment(4, 7, RIGHT_IS_INNER));
-        factory1.addNonOrthogonalEdges(2,Segment(5, 8, LEFT_IS_INNER));
-        factory1.addNonOrthogonalEdges(2,Segment(5, 9, RIGHT_IS_INNER));
-        factory1.addNonOrthogonalEdges(2,Segment(6, 9));
-        factory1.addNonOrthogonalEdges(3,Segment(18, 10));
-        factory1.addNonOrthogonalEdges(3,Segment(7, 10, RIGHT_IS_INNER));
-        factory1.addNonOrthogonalEdges(3,Segment(8, 11, LEFT_IS_INNER)); 
-        factory1.addNonOrthogonalEdges(3,Segment(9, 19));
-        factory1.addNonOrthogonalEdges(4,Segment(10, 12)); 
-        factory1.addNonOrthogonalEdges(4,Segment(11, 13, LEFT_IS_INNER)); 
-        factory1.addNonOrthogonalEdges(4,Segment(19, 20));
-        factory1.addOrthogonalEdges(5,   Segment(12, 13, RIGHT_IS_INNER));
-        factory1.evaluate();
-        // result
-        factory2.addNonOrthogonalEdges(0, Segment (14, 2, OUTER)); 
-        factory2.addNonOrthogonalEdges(0, Segment (0, 2, RIGHT_IS_INNER));
-        factory2.addNonOrthogonalEdges(0, Segment (1, 3, LEFT_IS_INNER));
-        factory2.addNonOrthogonalEdges(0, Segment (15, 16, OUTER));
-        factory2.addOrthogonalEdges(0, Segment (0, 1, LEFT_IS_INNER));
-        factory2.addNonOrthogonalEdges(1, Segment (2, 17, OUTER));
-        factory2.addNonOrthogonalEdges(1, Segment (2, 4, RIGHT_IS_INNER));
-        factory2.addNonOrthogonalEdges(1, Segment (3, 6, LEFT_IS_INNER));       
-        factory2.addNonOrthogonalEdges(1, Segment (16, 6, OUTER));
-        factory2.addNonOrthogonalEdges(2, Segment (17, 18, OUTER));
-        factory2.addNonOrthogonalEdges(2, Segment (4, 7, RIGHT_IS_INNER));
-        factory2.addNonOrthogonalEdges(2, Segment (5, 8, LEFT_IS_INNER));
-        factory2.addNonOrthogonalEdges(2, Segment (5, 9, RIGHT_IS_INNER));
-        factory2.addNonOrthogonalEdges(2, Segment (6, 9, INNER));
-        factory2.addNonOrthogonalEdges(3, Segment (18, 10, OUTER));
-        factory2.addNonOrthogonalEdges(3, Segment (7, 10, RIGHT_IS_INNER));
-        factory2.addNonOrthogonalEdges(3, Segment (8, 11, LEFT_IS_INNER)); 
-        factory2.addNonOrthogonalEdges(3, Segment (9, 19, OUTER));
-        factory2.addNonOrthogonalEdges(4, Segment (10, 12, INNER)); 
-        factory2.addNonOrthogonalEdges(4, Segment (11, 13, LEFT_IS_INNER)); 
-        factory2.addNonOrthogonalEdges(4, Segment (19, 20, OUTER));
-        factory2.addOrthogonalEdges(5, Segment (12, 13, RIGHT_IS_INNER));
-        factory2.setTouchsOnLeftBorder(1,2);
-        factory2.setTouchsOnLeftBorder(4,1);
-        Predicate left, right;
-        factory1.getBorderPredicates(left,right);
-        assert_("ResultUnitFactoryTest 4.1",
-                " Content in Factory is incorrect.",
-                 factory1 == factory2);
-        assert_("ResultUnitFactoryTest 4.2",
-                " Border predicates from Factory are incorrect.",
-                 left == INTERSECT && right == INTERSECT);
-        // cout << factory1 << endl;
-        // cout << factory2 << endl;     
-      }// ResultUnitFactoryTest4
-*/
- 
-/* 
-      void Selftest::ResultUnitFactoryTest5(){
-        ResultUnitFactory factory1(4),factory2(4);
-        factory1.addNonOrthogonalEdges(0, Segment (0, 3)); 
-        factory1.addNonOrthogonalEdges(0, Segment (1, 4));
-        factory1.addNonOrthogonalEdges(0, Segment (2, 5));
-        factory1.addNonOrthogonalEdges(1, Segment (3, 6));
-        factory1.addNonOrthogonalEdges(1, Segment (4, 7));
-        factory1.addNonOrthogonalEdges(1, Segment (5, 8, RIGHT_IS_INNER));
-        factory1.addNonOrthogonalEdges(1, Segment (5, 9));
-        factory1.addNonOrthogonalEdges(2, Segment (6, 10));
-        factory1.addNonOrthogonalEdges(2, Segment (6, 11));
-        factory1.addNonOrthogonalEdges(2, Segment (7, 11));
-        factory1.addOrthogonalEdges(2, Segment (8, 9, RIGHT_IS_INNER)); 
-        factory1.addNonOrthogonalEdges(2, Segment (9, 12));
-        factory1.evaluate();
-        // result
-        factory2.addNonOrthogonalEdges(0, Segment (0, 3, OUTER)); 
-        factory2.addNonOrthogonalEdges(0, Segment (1, 4, OUTER));
-        factory2.addNonOrthogonalEdges(0, Segment (2, 5, OUTER));
-        factory2.addNonOrthogonalEdges(1, Segment (3, 6, OUTER));
-        factory2.addNonOrthogonalEdges(1, Segment (4, 7, OUTER));
-        factory2.addNonOrthogonalEdges(1, Segment (5, 8, RIGHT_IS_INNER));
-        factory2.addNonOrthogonalEdges(1, Segment (5, 9, INNER));
-        factory2.addNonOrthogonalEdges(2, Segment (6, 10, OUTER));
-        factory2.addNonOrthogonalEdges(2, Segment (6, 11, OUTER));
-        factory2.addNonOrthogonalEdges(2, Segment (7, 11, OUTER));
-        factory2.addOrthogonalEdges(2, Segment (8, 9, RIGHT_IS_INNER)); 
-        factory2.addNonOrthogonalEdges(2, Segment (9, 12, OUTER));
-        Predicate left, right;
-        factory1.getBorderPredicates(left,right);
-        assert_("ResultUnitFactoryTest 5.1",
-                " Content in Factory is incorrect.",
-                 factory1 == factory2);
-        assert_("ResultUnitFactoryTest 5.2",
-                " Border predicates from Factory are incorrect.",
-                 left == OUTER && right == INTERSECT);
-        // cout << factory1 << endl;
-        // cout << factory2 << endl; 
-        // cout << "Predicate on left border:=" << toString(left) << endl;
-        // cout << "Predicate on right border:=" << toString(right) << endl;
-      }// ResultUnitFactoryTest5  
-*/
-
-/*
-      void Selftest::ResultUnitFactoryTest8(){
-        ResultUnitFactory factory1(4),factory2(4);
-        factory1.addNonOrthogonalEdges(0, Segment (0, 9,OUTER)); 
-        factory1.addNonOrthogonalEdges(0, Segment (3, 12));
-        factory1.addNonOrthogonalEdges(1, Segment (4, 13));
-        factory1.addNonOrthogonalEdges(1, Segment (5, 14,NO_INTERSECT));
-        factory1.addNonOrthogonalEdges(1, Segment (6, 15));
-        factory1.addNonOrthogonalEdges(2, Segment (7, 16));
-        factory1.addNonOrthogonalEdges(2, Segment (8, 17));
-        factory1.evaluate();
-        factory2.addNonOrthogonalEdges(0, Segment (0, 9,OUTER)); 
-        factory2.addNonOrthogonalEdges(0, Segment (3, 12,OUTER));
-        factory2.addNonOrthogonalEdges(1, Segment (4, 13,OUTER));
-        factory2.addNonOrthogonalEdges(1, Segment (5, 14,OUTER));
-        factory2.addNonOrthogonalEdges(1, Segment (6, 15,OUTER));
-        factory2.addNonOrthogonalEdges(2, Segment (7, 16,OUTER));
-        factory2.addNonOrthogonalEdges(2, Segment (8, 17,OUTER));
-        assert_("ResultUnitFactoryTest 8",
-                " Content in Factory is incorrect.",
-                 factory1 == factory2);
-        // cout << factory1;
-        // cout << factory2;
-      }// ResultUnitFactoryTest8
-*/      
-      
+      }// SegmentTest      
 /*
 19 Test SegmentContainer
 
@@ -2527,8 +2136,8 @@ namespace temporalalgebra {
         PFace pf1(0,1,points,segments);
         PFace pf2(2,3,points,segments);
         pf1.intersection(pf2,timeValues1);
-        pf1.addBorder(timeValues1);
-        pf2.addBorder(timeValues1);
+        pf1.addBorder(RationalPlane3D(pf1),UNDEFINED);
+        pf2.addBorder(RationalPlane3D(pf2),UNDEFINED);
         PFace pf3(0,1,points,segments);
         PFace pf4(2,3,points,segments);
         // Intersection points
@@ -2583,7 +2192,9 @@ namespace temporalalgebra {
         Point3DContainer points;
         SegmentContainer segments;
         GlobalTimeValues timeValues1(5);
+        timeValues1.addStartAndEndtime();
         GlobalTimeValues timeValues2(5);
+        timeValues2.addStartAndEndtime();
         // points for unit 1 
         points.add(Point3D(2,1,0));// 0
         points.add(Point3D(5,1,0));         
@@ -2617,18 +2228,18 @@ namespace temporalalgebra {
         // intersection
         pf0.intersection(pf4,timeValues1);
         pf0.intersection(pf5,timeValues1);
-        pf0.addBorder(timeValues1);
+        pf0.addBorder(RationalPlane3D(pf0),UNDEFINED);
         pf1.intersection(pf3,timeValues1);
         pf1.intersection(pf4,timeValues1);
         pf1.intersection(pf5,timeValues1);
-        pf1.addBorder(timeValues1);
+        pf1.addBorder(RationalPlane3D(pf1),UNDEFINED);
         pf2.intersection(pf3,timeValues1);
         pf2.intersection(pf4,timeValues1);
         pf2.intersection(pf5,timeValues1);
-        pf2.addBorder(timeValues1);
-        pf3.addBorder(timeValues1);
-        pf4.addBorder(timeValues1);
-        pf5.addBorder(timeValues1);
+        pf2.addBorder(RationalPlane3D(pf2),UNDEFINED);
+        pf3.addBorder(RationalPlane3D(pf3),UNDEFINED);
+        pf4.addBorder(RationalPlane3D(pf4),UNDEFINED);
+        pf5.addBorder(RationalPlane3D(pf5),UNDEFINED);
         // pfaces from result unit 3
         PFace pf6(0, 1, points,segments);
         pf6.addIntSeg(IntersectionSegment(
@@ -2763,7 +2374,9 @@ namespace temporalalgebra {
         Point3DContainer points;
         SegmentContainer segments;
         GlobalTimeValues timeValues1(5);
+        timeValues1.addStartAndEndtime();
         GlobalTimeValues timeValues2(5);
+        timeValues2.addStartAndEndtime();
         // points for unit 1 
         points.add(Point3D(2,1,0));// 0
         points.add(Point3D(5,1,0));         
@@ -2798,18 +2411,18 @@ namespace temporalalgebra {
         pf0.intersection(pf3,timeValues1);
         pf0.intersection(pf4,timeValues1);
         pf0.intersection(pf5,timeValues1);
-        pf0.addBorder(timeValues1);
+        pf0.addBorder(RationalPlane3D(pf0),UNDEFINED);
         pf1.intersection(pf3,timeValues1);
         pf1.intersection(pf4,timeValues1);
         pf1.intersection(pf5,timeValues1);
-        pf1.addBorder(timeValues1);
+        pf1.addBorder(RationalPlane3D(pf1),UNDEFINED);
         pf2.intersection(pf3,timeValues1);
         pf2.intersection(pf4,timeValues1);
         pf2.intersection(pf5,timeValues1);
-        pf2.addBorder(timeValues1);
-        pf3.addBorder(timeValues1);
-        pf4.addBorder(timeValues1);
-        pf5.addBorder(timeValues1);
+        pf2.addBorder(RationalPlane3D(pf2),UNDEFINED);
+        pf3.addBorder(RationalPlane3D(pf3),UNDEFINED);
+        pf4.addBorder(RationalPlane3D(pf4),UNDEFINED);
+        pf5.addBorder(RationalPlane3D(pf5),UNDEFINED);
         PFace pf6(0,1,points,segments);
         pf6.addIntSeg(IntersectionSegment(
           IntersectionPoint (2, 1, 0, 2), 
@@ -2975,6 +2588,7 @@ namespace temporalalgebra {
         Point3DContainer points;
         SegmentContainer segments;
         GlobalTimeValues timeValues(5);
+        timeValues.addStartAndEndtime();
         // points for unit 1 
         points.add(Point3D(2,1,0));// 0
         points.add(Point3D(5,1,0));         
@@ -3017,17 +2631,17 @@ namespace temporalalgebra {
         pf2.intersection(pf3,timeValues);
         pf2.intersection(pf4,timeValues);
         pf2.intersection(pf5,timeValues);
-        pf1.addBorder(timeValues);
-        pf2.addBorder(timeValues);
-        pf3.addBorder(timeValues);
-        pf4.addBorder(timeValues);
-        pf5.addBorder(timeValues);
+        pf1.addBorder(RationalPlane3D(pf1),UNDEFINED);
+        pf2.addBorder(RationalPlane3D(pf2),UNDEFINED);
+        pf3.addBorder(RationalPlane3D(pf3),UNDEFINED);
+        pf4.addBorder(RationalPlane3D(pf4),UNDEFINED);
+        pf5.addBorder(RationalPlane3D(pf5),UNDEFINED);
         // result from pface 1
         // pface with Intersection
         pf1.finalize(points,segments,timeValues);
         pf2.finalize(points,segments,timeValues);
         // pface without intersection
-        pf0.addBorder(timeValues,segments,INNER);
+        pf0.addBorder(segments,INNER);
         pf0.finalize(points,segments,timeValues);  
         // result from pface 2
         // pface with Intersection
@@ -3057,12 +2671,12 @@ namespace temporalalgebra {
                            Point3D(3.5, 4, 2.666666667));
         Segment3D segment5(Point3D(4.666666667, 1.666666667, 1.111111111), 
                            Point3D(2.8, 2.6, 2.666666667));
-        MSegment mSegment0(segment0,segment1);
-        MSegment mSegment1(segment2,segment3);
-        MSegment mSegment2(segment4,segment5);       
-        result[1].addMSegment(mSegment0,false);
-        result[1].addMSegment(mSegment1,false);
-        result[1].addMSegment(mSegment2,false);   
+        PResultFace prf0(segment0,segment1);
+        PResultFace prf1(segment2,segment3);
+        PResultFace prf2(segment4,segment5);       
+        result[1].addPResultFace(prf0,false);
+        result[1].addPResultFace(prf1,false);
+        result[1].addPResultFace(prf2,false);   
         Segment3D segment6(Point3D(4.2, 2.6, 2.666666667), 
                            Point3D(3.666666667, 3.666666667, 4.444444444));  
         Segment3D segment7(Point3D(3.5, 4, 2.666666667), 
@@ -3075,12 +2689,12 @@ namespace temporalalgebra {
                             Point3D(3.333333333, 3.666666667, 4.444444444));   
         Segment3D segment11(Point3D(4.2, 2.6, 2.666666667), 
                             Point3D(3.666666667, 3.666666667, 4.444444444));
-        MSegment mSegment3(segment6,segment7);
-        MSegment mSegment4(segment8,segment9);
-        MSegment mSegment5(segment10,segment11);  
-        result[2].addMSegment(mSegment3,false);
-        result[2].addMSegment(mSegment4,false);
-        result[2].addMSegment(mSegment5,false);       
+        PResultFace prf3(segment6,segment7);
+        PResultFace prf4(segment8,segment9);
+        PResultFace prf5(segment10,segment11);  
+        result[2].addPResultFace(prf3,false);
+        result[2].addPResultFace(prf4,false);
+        result[2].addPResultFace(prf5,false);       
         Segment3D segment12(Point3D(3.5, 4, 4.444444444), 
                             Point3D(3.4, 3.8, 4.666666667));
         Segment3D segment13(Point3D(3.333333333, 3.666666667, 4.444444444), 
@@ -3093,12 +2707,12 @@ namespace temporalalgebra {
                             Point3D(3.4, 3.8, 4.666666667)); 
         Segment3D segment17(Point3D(3.5, 4, 4.444444444), 
                             Point3D(3.4, 3.8, 4.666666667));
-        MSegment mSegment6(segment12,segment13);
-        MSegment mSegment7(segment14,segment15);
-        MSegment mSegment8(segment16,segment17);  
-        result[3].addMSegment(mSegment6,false);
-        result[3].addMSegment(mSegment7,false);
-        result[3].addMSegment(mSegment8,false);   
+        PResultFace prf6(segment12,segment13);
+        PResultFace prf7(segment14,segment15);
+        PResultFace prf8(segment16,segment17);  
+        result[3].addPResultFace(prf6,false);
+        result[3].addPResultFace(prf7,false);
+        result[3].addPResultFace(prf8,false);   
         assert_("UnitsTest 1.1", 
                 " size of units vectors are different.",
                  units.size() == result.size());
@@ -3121,6 +2735,7 @@ namespace temporalalgebra {
       
       void Selftest::UnitsTest2(){
         GlobalTimeValues timeValues(5);
+        timeValues.addStartAndEndtime();
         Point3DContainer points;
         SegmentContainer segments;
         // points for unit 0 
@@ -3200,38 +2815,38 @@ namespace temporalalgebra {
                             Point3D(2, 1, 1.111111111));
         Segment3D segment11(Point3D(5, 1, 0), 
                             Point3D(5, 1, 1.111111111));
-        MSegment mSegment0(segment10,segment11,0,0,0,true,true);
-        result1.addMSegment(mSegment0,true);
+        PResultFace prf0(segment10,segment11,0,0,0,true,true);
+        result1.addPResultFace(prf0,true);
         Segment3D segment12(Point3D(3.5, 4, 0),
                             Point3D(3.5, 4, 1.111111111));
         Segment3D segment13(Point3D(2, 1, 0), 
                             Point3D(2, 1, 1.111111111));
-        MSegment mSegment1(segment12,segment13,0,0,1,true,false);
-        result1.addMSegment(mSegment1,true);
+        PResultFace prf1(segment12,segment13,0,0,1,true,false);
+        result1.addPResultFace(prf1,true);
         Segment3D segment14(Point3D(5, 1, 0),
                             Point3D(5, 1, 1.111111111));
         Segment3D segment15(Point3D(3.5, 4, 0), 
                             Point3D(3.5, 4, 1.111111111));
-        MSegment mSegment2(segment14,segment15,0,0,2,true,false);
-        result1.addMSegment(mSegment2,true);
+        PResultFace prf2(segment14,segment15,0,0,2,true,false);
+        result1.addPResultFace(prf2,true);
         Segment3D segment16(Point3D(12, 1, 0),
                             Point3D(12, 1, 1.111111111));
         Segment3D segment17(Point3D(15, 1, 0),
                             Point3D(15, 1, 1.111111111));
-        MSegment mSegment3(segment16,segment17,1,0,0,true,true);
-        result1.addMSegment(mSegment3,true);
+        PResultFace prf3(segment16,segment17,1,0,0,true,true);
+        result1.addPResultFace(prf3,true);
         Segment3D segment18(Point3D(13.5, 4, 0),
                             Point3D(13.5, 4, 1.111111111));
         Segment3D segment19(Point3D(12, 1, 0), 
                             Point3D(12, 1, 1.111111111));
-        MSegment mSegment4(segment18,segment19,1,0,1,true,false);
-        result1.addMSegment(mSegment4,true);
+        PResultFace prf4(segment18,segment19,1,0,1,true,false);
+        result1.addPResultFace(prf4,true);
         Segment3D segment20(Point3D(15, 1, 0),
                             Point3D(15, 1, 1.111111111));
         Segment3D segment21(Point3D(13.5, 4, 0), 
                             Point3D(13.5, 4, 1.111111111));
-        MSegment mSegment5(segment20,segment21,1,0,2,true,false);
-        result1.addMSegment(mSegment5,true);
+        PResultFace prf5(segment20,segment21,1,0,2,true,false);
+        result1.addPResultFace(prf5,true);
         assert_("UnitsTest 2.1", "ResultUnits don't equal.",
                 result0 == result1); 
         // cout << result0;
@@ -3242,56 +2857,56 @@ namespace temporalalgebra {
                             Point3D(2, 1, 2.666666667));
         Segment3D segment23(Point3D(5, 1, 1.111111111), 
                             Point3D(5, 1, 2.666666667));
-        MSegment mSegment6(segment22,segment23,0,0,0,true,true);
-        result3.addMSegment(mSegment6,true);
+        PResultFace prf6(segment22,segment23,0,0,0,true,true);
+        result3.addPResultFace(prf6,true);
         Segment3D segment24(Point3D(3.5, 4, 1.111111111), 
                             Point3D(3.5, 4, 2.666666667));
         Segment3D segment25(Point3D(2, 1, 1.111111111), 
                             Point3D(2, 1, 2.666666667));
-        MSegment mSegment7(segment24,segment25,0,0,1,true,false);
-        result3.addMSegment(mSegment7,true);
+        PResultFace prf7(segment24,segment25,0,0,1,true,false);
+        result3.addPResultFace(prf7,true);
         Segment3D segment26(Point3D(4.666666667, 1.666666667, 1.111111111), 
                             Point3D(3.5, 4, 2.666666667));
         Segment3D segment27(Point3D(3.5, 4, 1.111111111), 
                             Point3D (3.5, 4, 2.666666667));
-        MSegment mSegment8(segment26,segment27,0,0,2,true,false);
-        result3.addMSegment(mSegment8,true);
+        PResultFace prf8(segment26,segment27,0,0,2,true,false);
+        result3.addPResultFace(prf8,true);
         Segment3D segment28(Point3D(4.666666667, 1.666666667, 1.111111111), 
                             Point3D(2.8, 2.6, 2.666666667));
         Segment3D segment29(Point3D(4.666666667, 1.666666667, 1.111111111), 
                             Point3D(3.5, 4, 2.666666667));
-        MSegment mSegment9(segment28,segment29,0,0,3,true,true);
-        result3.addMSegment(mSegment9,true);
+        PResultFace prf9(segment28,segment29,0,0,3,true,true);
+        result3.addPResultFace(prf9,true);
         Segment3D segment30(Point3D(4.666666667, 1.666666667, 1.111111111), 
                             Point3D(4.2, 2.6, 2.666666667));
         Segment3D segment31(Point3D(4.666666667, 1.666666667, 1.111111111), 
                             Point3D(2.8, 2.6, 2.666666667));
-        MSegment mSegment10(segment30,segment31,0,0,4,true,false);
-        result3.addMSegment(mSegment10,true);
+        PResultFace prf10(segment30,segment31,0,0,4,true,false);
+        result3.addPResultFace(prf10,true);
         Segment3D segment32(Point3D(5, 1, 1.111111111), 
                             Point3D(5, 1, 2.666666667));
         Segment3D segment33(Point3D(4.666666667, 1.666666667, 1.111111111), 
                             Point3D (4.2, 2.6, 2.666666667));
-        MSegment mSegment11(segment32,segment33,0,0,5,true,false);
-        result3.addMSegment(mSegment11,true);
+        PResultFace prf11(segment32,segment33,0,0,5,true,false);
+        result3.addPResultFace(prf11,true);
         Segment3D segment34(Point3D(12, 1, 1.111111111), 
                             Point3D(12, 1, 2.66666667));
         Segment3D segment35(Point3D(15, 1, 1.111111111), 
                             Point3D(15, 1, 2.666666667));
-        MSegment mSegment12(segment34,segment35,1,0,0,true,true);
-        result3.addMSegment(mSegment12,true);
+        PResultFace prf12(segment34,segment35,1,0,0,true,true);
+        result3.addPResultFace(prf12,true);
         Segment3D segment36(Point3D(13.5, 4, 1.111111111), 
                             Point3D(13.5, 4, 2.666666667));
         Segment3D segment37(Point3D(12, 1, 1.111111111), 
                             Point3D(12, 1, 2.666666667));
-        MSegment mSegment13(segment36,segment37,1,0,1,true,false);
-        result3.addMSegment(mSegment13,true);
+        PResultFace prf13(segment36,segment37,1,0,1,true,false);
+        result3.addPResultFace(prf13,true);
         Segment3D segment38(Point3D(15, 1, 1.111111111), 
                             Point3D(15, 1, 2.666666667));
         Segment3D segment39(Point3D(13.5, 4, 1.111111111), 
                             Point3D(13.5, 4, 2.666666667));
-        MSegment mSegment14(segment38,segment39,1,0,2,true,false);
-        result3.addMSegment(mSegment14,true);
+        PResultFace prf14(segment38,segment39,1,0,2,true,false);
+        result3.addPResultFace(prf14,true);
         assert_("UnitsTest 2.2", "ResultUnits don't equal.",
                 result2 == result3); 
         // cout << result2;
@@ -3302,44 +2917,44 @@ namespace temporalalgebra {
                             Point3D(2, 1, 4.444444444));
         Segment3D segment41(Point3D(5, 1, 2.666666667), 
                             Point3D(5, 1, 4.444444444));        
-        MSegment mSegment15(segment40,segment41,0,0,0,true,true);
-        result5.addMSegment(mSegment15,true);        
+        PResultFace prf15(segment40,segment41,0,0,0,true,true);
+        result5.addPResultFace(prf15,true);        
         Segment3D segment42(Point3D(2.8, 2.6, 2.666666667), 
                             Point3D(3.333333333, 3.666666667, 4.444444444));
         Segment3D segment43(Point3D(2, 1, 2.666666667), 
                             Point3D(2, 1, 4.444444444));
-        MSegment mSegment16(segment42,segment43,0,0,1,true,false);
-        result5.addMSegment(mSegment16,true); 
+        PResultFace prf16(segment42,segment43,0,0,1,true,false);
+        result5.addPResultFace(prf16,true); 
         Segment3D segment44(Point3D(4.2, 2.6, 2.666666667), 
                             Point3D(3.666666667, 3.666666667, 4.444444444));
         Segment3D segment45(Point3D(2.8, 2.6, 2.666666667), 
                             Point3D(3.333333333, 3.666666667, 4.444444444));
-        MSegment mSegment17(segment44,segment45,0,0,2,true,false);
-        result5.addMSegment(mSegment17,true); 
+        PResultFace prf17(segment44,segment45,0,0,2,true,false);
+        result5.addPResultFace(prf17,true); 
         Segment3D segment46(Point3D(5, 1, 2.666666667), 
                             Point3D(5, 1, 4.444444444));
         Segment3D segment47(Point3D(4.2, 2.6, 2.666666667), 
                             Point3D(3.666666667, 3.666666667, 4.444444444));
-        MSegment mSegment18(segment46,segment47,0,0,3,true,false);
-        result5.addMSegment(mSegment18,true); 
+        PResultFace prf18(segment46,segment47,0,0,3,true,false);
+        result5.addPResultFace(prf18,true); 
         Segment3D segment48(Point3D(12, 1, 2.666666667), 
                             Point3D(12, 1, 4.444444444));
         Segment3D segment49(Point3D(15, 1, 2.666666667), 
                             Point3D(15, 1, 4.444444444));
-        MSegment mSegment19(segment48,segment49,1,0,0,true,true);
-        result5.addMSegment(mSegment19,true);
+        PResultFace prf19(segment48,segment49,1,0,0,true,true);
+        result5.addPResultFace(prf19,true);
         Segment3D segment50(Point3D(13.5, 4, 2.666666667), 
                             Point3D(13.5, 4, 4.444444444));
         Segment3D segment51(Point3D(12, 1, 2.666666667), 
                             Point3D(12, 1, 4.444444444));
-        MSegment mSegment20(segment50,segment51,1,0,1,true,false);
-        result5.addMSegment(mSegment20,true);
+        PResultFace prf20(segment50,segment51,1,0,1,true,false);
+        result5.addPResultFace(prf20,true);
         Segment3D segment52(Point3D(15, 1, 2.666666667), 
                             Point3D(15, 1, 4.444444444));
         Segment3D segment53(Point3D(13.5, 4, 2.666666667), 
                             Point3D(13.5, 4, 4.444444444));
-        MSegment mSegment21(segment52,segment53,1,0,2,true,false);
-        result5.addMSegment(mSegment21,true);
+        PResultFace prf21(segment52,segment53,1,0,2,true,false);
+        result5.addPResultFace(prf21,true);
         assert_("UnitsTest 2.3", "ResultUnits don't equal.",
                 result4 == result5); 
         // cout << result4;
@@ -3350,56 +2965,56 @@ namespace temporalalgebra {
                             Point3D(2, 1, 4.666666667));
         Segment3D segment55(Point3D(5, 1, 4.444444444), 
                             Point3D(5, 1, 4.666666667));
-        MSegment mSegment22(segment54,segment55,0,0,0,true,true);
-        result7.addMSegment(mSegment22,true);
+        PResultFace prf22(segment54,segment55,0,0,0,true,true);
+        result7.addPResultFace(prf22,true);
         Segment3D segment56(Point3D(3.333333333, 3.666666667, 4.444444444), 
                             Point3D(3.4, 3.8, 4.666666667));
         Segment3D segment57(Point3D(2, 1, 4.444444444),
                             Point3D(2, 1, 4.666666667));
-        MSegment mSegment23(segment56,segment57,0,0,1,true,false);
-        result7.addMSegment(mSegment23,true);
+        PResultFace prf23(segment56,segment57,0,0,1,true,false);
+        result7.addPResultFace(prf23,true);
         Segment3D segment58(Point3D(3.666666667, 3.666666667, 4.444444444), 
                             Point3D(3.4, 3.8, 4.666666667));
         Segment3D segment59(Point3D(3.333333333, 3.666666667, 4.444444444), 
                             Point3D(3.4, 3.8, 4.666666667));
-        MSegment mSegment24(segment58,segment59,0,0,2,true,false);
-        result7.addMSegment(mSegment24,true);
+        PResultFace prf24(segment58,segment59,0,0,2,true,false);
+        result7.addPResultFace(prf24,true);
         Segment3D segment60(Point3D(3.5, 4, 4.444444444), 
                             Point3D(3.4, 3.8, 4.666666667));
         Segment3D segment61(Point3D(3.666666667, 3.666666667, 4.444444444), 
                             Point3D(3.4, 3.8, 4.666666667));
-        MSegment mSegment25(segment60,segment61,0,0,3,true,true);
-        result7.addMSegment(mSegment25,true);
+        PResultFace prf25(segment60,segment61,0,0,3,true,true);
+        result7.addPResultFace(prf25,true);
         Segment3D segment62(Point3D(3.5, 4, 4.444444444), 
                             Point3D(3.5, 4, 4.666666667));
         Segment3D segment63(Point3D(3.5, 4, 4.444444444), 
                             Point3D(3.4, 3.8, 4.666666667));
-        MSegment mSegment26(segment62,segment63,0,0,4,true,false);
-        result7.addMSegment(mSegment26,true);
+        PResultFace prf26(segment62,segment63,0,0,4,true,false);
+        result7.addPResultFace(prf26,true);
         Segment3D segment64(Point3D(5, 1, 4.444444444), 
                             Point3D(5, 1, 4.666666667));
         Segment3D segment65(Point3D(3.5, 4, 4.444444444), 
                             Point3D(3.5, 4, 4.666666667));
-        MSegment mSegment27(segment64,segment65,0,0,5,true,false);
-        result7.addMSegment(mSegment27,true);
+        PResultFace prf27(segment64,segment65,0,0,5,true,false);
+        result7.addPResultFace(prf27,true);
         Segment3D segment66(Point3D(12, 1, 4.444444444), 
                             Point3D(12, 1, 4.66666667));
         Segment3D segment67(Point3D(15, 1, 4.444444444), 
                             Point3D(15, 1, 4.666666667));
-        MSegment mSegment28(segment66,segment67,1,0,0,true,true);
-        result7.addMSegment(mSegment28,true);
+        PResultFace prf28(segment66,segment67,1,0,0,true,true);
+        result7.addPResultFace(prf28,true);
         Segment3D segment68(Point3D(13.5, 4, 4.444444444), 
                             Point3D(13.5, 4, 4.666666667));
         Segment3D segment69(Point3D(12, 1, 4.444444444), 
                             Point3D(12, 1, 4.666666667));
-        MSegment mSegment29(segment68,segment69,1,0,1,true,false);
-        result7.addMSegment(mSegment29,true);
+        PResultFace prf29(segment68,segment69,1,0,1,true,false);
+        result7.addPResultFace(prf29,true);
         Segment3D segment70(Point3D(15, 1, 4.444444444), 
                             Point3D(15, 1, 4.666666667));
         Segment3D segment71(Point3D(13.5, 4, 4.444444444), 
                             Point3D(13.5, 4, 4.666666667));
-        MSegment mSegment30(segment70,segment71,1,0,2,true,false);
-        result7.addMSegment(mSegment30,true);
+        PResultFace prf30(segment70,segment71,1,0,2,true,false);
+        result7.addPResultFace(prf30,true);
         assert_("UnitsTest 2.4", "ResultUnits don't equal.",
                 result6 == result7); 
         // cout << result6;
@@ -3410,38 +3025,38 @@ namespace temporalalgebra {
                             Point3D(2, 1, 5));
         Segment3D segment73(Point3D(5, 1, 4.666666667), 
                             Point3D(5, 1, 5));
-        MSegment mSegment31(segment72,segment73,0,0,0,true,true);
-        result9.addMSegment(mSegment31,true);
+        PResultFace prf31(segment72,segment73,0,0,0,true,true);
+        result9.addPResultFace(prf31,true);
         Segment3D segment74(Point3D(3.5, 4, 4.66666667), 
                             Point3D(3.5, 4, 5));
         Segment3D segment75(Point3D(2, 1, 4.666666667), 
                             Point3D(2, 1, 5));
-        MSegment mSegment32(segment74,segment75,0,0,1,true,false);
-        result9.addMSegment(mSegment32,true);
+        PResultFace prf32(segment74,segment75,0,0,1,true,false);
+        result9.addPResultFace(prf32,true);
         Segment3D segment76(Point3D(5, 1, 4.666666667), 
                             Point3D(5, 1, 5));
         Segment3D segment77(Point3D(3.5, 4, 4.666666667), 
                             Point3D(3.5, 4, 5));
-        MSegment mSegment33(segment76,segment77,0,0,2,true,false);
-        result9.addMSegment(mSegment33,true);
+        PResultFace prf33(segment76,segment77,0,0,2,true,false);
+        result9.addPResultFace(prf33,true);
         Segment3D segment78(Point3D(12, 1, 4.666666667), 
                             Point3D(12, 1, 5));
         Segment3D segment79(Point3D(15, 1, 4.666666667), 
                             Point3D(15, 1, 5));
-        MSegment mSegment34(segment78,segment79,1,0,0,true,true);
-        result9.addMSegment(mSegment34,true);
+        PResultFace prf34(segment78,segment79,1,0,0,true,true);
+        result9.addPResultFace(prf34,true);
         Segment3D segment80(Point3D(13.5, 4, 4.666666667), 
                             Point3D(13.5, 4, 5));
         Segment3D segment81(Point3D(12, 1, 4.666666667), 
                             Point3D(12, 1, 5));
-        MSegment mSegment35(segment80,segment81,1,0,1,true,false);
-        result9.addMSegment(mSegment35,true);
+        PResultFace prf35(segment80,segment81,1,0,1,true,false);
+        result9.addPResultFace(prf35,true);
         Segment3D segment82(Point3D(15, 1, 4.666666667), 
                             Point3D(15, 1, 5));
         Segment3D segment83(Point3D(13.5, 4, 4.666666667), 
                             Point3D(13.5, 4, 5));
-        MSegment mSegment36(segment82,segment83,1,0,2,true,false);
-        result9.addMSegment(mSegment36,true);
+        PResultFace prf36(segment82,segment83,1,0,2,true,false);
+        result9.addPResultFace(prf36,true);
         assert_("UnitsTest 2.5", "ResultUnits don't equal.",
                 result8 == result9); 
         // cout << result8;
@@ -3451,6 +3066,7 @@ namespace temporalalgebra {
       void Selftest::UnitsTest3(){
         Point3DContainer points;
         GlobalTimeValues timeValues(5);
+        timeValues.addStartAndEndtime();
         // points for unit 0 
         points.add(Point3D(2,1,0));// 0
         points.add(Point3D(5,1,0));         
@@ -3508,12 +3124,12 @@ namespace temporalalgebra {
                             Point3D(3.5, 4, 2.666666667));
         Segment3D segment15(Point3D(4.666666667, 1.666666667, 1.111111111), 
                             Point3D(2.8, 2.6, 2.666666667));
-        MSegment mSegment0(segment10,segment11);
-        MSegment mSegment1(segment12,segment13);
-        MSegment mSegment2(segment14,segment15);       
-        result[1].addMSegment(mSegment0,false);
-        result[1].addMSegment(mSegment1,false);
-        result[1].addMSegment(mSegment2,false);   
+        PResultFace prf0(segment10,segment11);
+        PResultFace prf1(segment12,segment13);
+        PResultFace prf2(segment14,segment15);       
+        result[1].addPResultFace(prf0,false);
+        result[1].addPResultFace(prf1,false);
+        result[1].addPResultFace(prf2,false);   
         Segment3D segment16(Point3D(4.2, 2.6, 2.666666667), 
                             Point3D(3.666666667, 3.666666667, 4.444444444));  
         Segment3D segment17(Point3D(3.5, 4, 2.666666667), 
@@ -3526,12 +3142,12 @@ namespace temporalalgebra {
                             Point3D(3.333333333, 3.666666667, 4.444444444));   
         Segment3D segment21(Point3D(4.2, 2.6, 2.666666667), 
                             Point3D(3.666666667, 3.666666667, 4.444444444));
-        MSegment mSegment3(segment16,segment17);
-        MSegment mSegment4(segment18,segment19);
-        MSegment mSegment5(segment20,segment21);  
-        result[2].addMSegment(mSegment3,false);
-        result[2].addMSegment(mSegment4,false);
-        result[2].addMSegment(mSegment5,false);       
+        PResultFace prf3(segment16,segment17);
+        PResultFace prf4(segment18,segment19);
+        PResultFace prf5(segment20,segment21);  
+        result[2].addPResultFace(prf3,false);
+        result[2].addPResultFace(prf4,false);
+        result[2].addPResultFace(prf5,false);       
         Segment3D segment22(Point3D(3.5, 4, 4.444444444), 
                             Point3D(3.4, 3.8, 4.666666667));
         Segment3D segment23(Point3D(3.333333333, 3.666666667, 4.444444444), 
@@ -3544,12 +3160,12 @@ namespace temporalalgebra {
                             Point3D(3.4, 3.8, 4.666666667)); 
         Segment3D segment27(Point3D(3.5, 4, 4.444444444), 
                             Point3D(3.4, 3.8, 4.666666667));
-        MSegment mSegment6(segment22,segment23);
-        MSegment mSegment7(segment24,segment25);
-        MSegment mSegment8(segment26,segment27);  
-        result[3].addMSegment(mSegment6,false);
-        result[3].addMSegment(mSegment7,false);
-        result[3].addMSegment(mSegment8,false);        
+        PResultFace prf6(segment22,segment23);
+        PResultFace prf7(segment24,segment25);
+        PResultFace prf8(segment26,segment27);  
+        result[3].addPResultFace(prf6,false);
+        result[3].addPResultFace(prf7,false);
+        result[3].addPResultFace(prf8,false);        
         assert_("UnitsTest 3.1", 
                 " size of units vectors are different.",
                  units.size() == result.size());
@@ -3567,6 +3183,7 @@ namespace temporalalgebra {
       void Selftest::UnitsTest4(){
         Point3DContainer points;
         GlobalTimeValues timeValues(5);
+        timeValues.addStartAndEndtime();
         // points for unit 0 
         size_t i0 = points.add(Point3D(6,1,0));// 0
         size_t i1 = points.add(Point3D(9,1,0));         
@@ -3630,14 +3247,14 @@ namespace temporalalgebra {
         Segment3D segment15(Point3D(7.5, 4, 0), Point3D(1.5, 7, 5));
         Segment3D segment16(Point3D(8, 1, 0), Point3D(2, 4, 5));
         Segment3D segment17(Point3D(9, 1, 0), Point3D(3, 4, 5));
-        MSegment mSegment0(segment10,segment11,0,0,0,true,true);
-        MSegment mSegment1(segment12,segment13,0,0,1,true,false);
-        MSegment mSegment2(segment14,segment15,0,0,2,true,false); 
-        MSegment mSegment3(segment16,segment17,0,0,3,true,true);
-        result.addMSegment(mSegment0,true);
-        result.addMSegment(mSegment1,true);
-        result.addMSegment(mSegment2,true);
-        result.addMSegment(mSegment3,true);
+        PResultFace prf0(segment10,segment11,0,0,0,true,true);
+        PResultFace prf1(segment12,segment13,0,0,1,true,false);
+        PResultFace prf2(segment14,segment15,0,0,2,true,false); 
+        PResultFace prf3(segment16,segment17,0,0,3,true,true);
+        result.addPResultFace(prf0,true);
+        result.addPResultFace(prf1,true);
+        result.addPResultFace(prf2,true);
+        result.addPResultFace(prf3,true);
         assert_("UnitsTest 4", "ResultUnits don't equal.",
                 result == units[0]); 
         // cout << unit0;
@@ -3650,6 +3267,7 @@ namespace temporalalgebra {
         Point3DContainer points;
         SegmentContainer segments;
         GlobalTimeValues timeValues(5);
+        timeValues.addStartAndEndtime();
         // points for pface 0, 1, 2 
         points.add(Point3D(1,1,0));
         points.add(Point3D(5,1,0));         
@@ -3704,30 +3322,30 @@ namespace temporalalgebra {
         }// for          
         ResultUnit result0 = units[0];
         ResultUnit result1; 
-        MSegment mSegment0(Segment3D(Point3D(1, 1, 0), Point3D(1, 1, 5)),
+        PResultFace prf0(Segment3D(Point3D(1, 1, 0), Point3D(1, 1, 5)),
                            Segment3D(Point3D(3, 1, 0), Point3D(3, 1, 5)), 
                            0,0,0,true, true);
-        result1.addMSegment(mSegment0,true);
-        MSegment mSegment1(Segment3D(Point3D(2, 3, 0), Point3D(2, 3, 5)),
+        result1.addPResultFace(prf0,true);
+        PResultFace prf1(Segment3D(Point3D(2, 3, 0), Point3D(2, 3, 5)),
                            Segment3D(Point3D(1, 1, 0), Point3D(1, 1, 5)),
                            0,0,1,true, false);
-        result1.addMSegment(mSegment1,true);
-        MSegment mSegment2(Segment3D(Point3D(3, 5, 0), Point3D(3, 5, 5)),
+        result1.addPResultFace(prf1,true);
+        PResultFace prf2(Segment3D(Point3D(3, 5, 0), Point3D(3, 5, 5)),
                            Segment3D(Point3D(2, 3, 0), Point3D(2, 3, 5)),
                            0,0,2,true, false);
-        result1.addMSegment(mSegment2,true);
-        MSegment mSegment3(Segment3D(Point3D(4, 3, 0), Point3D(4, 3, 5)),
+        result1.addPResultFace(prf2,true);
+        PResultFace prf3(Segment3D(Point3D(4, 3, 0), Point3D(4, 3, 5)),
                            Segment3D(Point3D(3, 5, 0), Point3D(3, 5, 5)),
                            0,0,3,true, false);
-        result1.addMSegment(mSegment3,true);
-        MSegment mSegment4(Segment3D(Point3D(5, 1, 0), Point3D(5, 1, 5)),
+        result1.addPResultFace(prf3,true);
+        PResultFace prf4(Segment3D(Point3D(5, 1, 0), Point3D(5, 1, 5)),
                            Segment3D(Point3D(4, 3, 0), Point3D(4, 3, 5)),
                            0,0,4,true, false);
-        result1.addMSegment(mSegment4,true);
-        MSegment mSegment5(Segment3D(Point3D(3, 1, 0), Point3D(3, 1, 5)),
+        result1.addPResultFace(prf4,true);
+        PResultFace prf5(Segment3D(Point3D(3, 1, 0), Point3D(3, 1, 5)),
                            Segment3D(Point3D(5, 1, 0), Point3D(5, 1, 5)),
                            0,0,5,true,true);
-        result1.addMSegment(mSegment5,true);
+        result1.addPResultFace(prf5,true);
         assert_("UnitsTest 5", "ResultUnits don't be equal.",
                 result0 == result1); 
         // cout << result0;
@@ -3738,6 +3356,7 @@ namespace temporalalgebra {
         Point3DContainer points;
         SegmentContainer segments;
         GlobalTimeValues timeValues(5);
+        timeValues.addStartAndEndtime();
         // points for pface 0, 1, 2 
         points.add(Point3D(1,1,0));
         points.add(Point3D(5,1,0));         
@@ -3790,18 +3409,18 @@ namespace temporalalgebra {
         }// for  
         ResultUnit result0 = units[0];
         ResultUnit result1; 
-        MSegment mSegment0(Segment3D(Point3D (1, 1, 0), Point3D(1, 1, 5)),
+        PResultFace prf0(Segment3D(Point3D (1, 1, 0), Point3D(1, 1, 5)),
                            Segment3D(Point3D (5, 1, 0), Point3D(5, 1, 5)),
                            0,0,0,true, true);
-        result1.addMSegment(mSegment0,true);
-        MSegment mSegment1(Segment3D(Point3D (3, 5, 0), Point3D(3, 5, 5)),
+        result1.addPResultFace(prf0,true);
+        PResultFace prf1(Segment3D(Point3D (3, 5, 0), Point3D(3, 5, 5)),
                            Segment3D(Point3D (1, 1, 0), Point3D(1, 1, 5)),
                            0,0,1,true, false);
-        result1.addMSegment(mSegment1,true);                           
-        MSegment mSegment2(Segment3D(Point3D (5, 1, 0), Point3D(5, 1, 5)),
+        result1.addPResultFace(prf1,true);                           
+        PResultFace prf2(Segment3D(Point3D (5, 1, 0), Point3D(5, 1, 5)),
                            Segment3D(Point3D (3, 5, 0), Point3D(3, 5, 5)),
                            0,0,2,true, false);
-        result1.addMSegment(mSegment2,true);                     
+        result1.addPResultFace(prf2,true);                     
         assert_("UnitsTest 6", "ResultUnits don't be equal.",
                 result0 == result1); 
         // cout << result0;
@@ -3812,6 +3431,7 @@ namespace temporalalgebra {
         Point3DContainer points;
         SegmentContainer segments;
         GlobalTimeValues timeValues(5);
+        timeValues.addStartAndEndtime();
         // points for pface 0, 1, 2 
         points.add(Point3D(1,1,0));
         points.add(Point3D(5,1,0));         
@@ -3867,26 +3487,26 @@ namespace temporalalgebra {
         }// for  
         ResultUnit result0 = units[0];
         ResultUnit result1; 
-        MSegment mSegment0(Segment3D(Point3D(1, 1, 0), Point3D(1, 1, 5)),
+        PResultFace prf0(Segment3D(Point3D(1, 1, 0), Point3D(1, 1, 5)),
                            Segment3D(Point3D(5, 1, 0), Point3D(5, 1, 5)),
                            0,0,0,true, true);
-        result1.addMSegment(mSegment0,true);
-        MSegment mSegment1(Segment3D(Point3D(2, 3, 0), Point3D(2, 3, 5)),
+        result1.addPResultFace(prf0,true);
+        PResultFace prf1(Segment3D(Point3D(2, 3, 0), Point3D(2, 3, 5)),
                            Segment3D(Point3D(1, 1, 0), Point3D(1, 1, 5)),
                            0,0,1,true, false);
-        result1.addMSegment(mSegment1,true);                    
-        MSegment mSegment2(Segment3D(Point3D(3, 5, 0), Point3D(3, 5, 5)),
+        result1.addPResultFace(prf1,true);                    
+        PResultFace prf2(Segment3D(Point3D(3, 5, 0), Point3D(3, 5, 5)),
                            Segment3D(Point3D(2, 3, 0), Point3D(2, 3, 5)),
                            0,0,2,true, false);
-        result1.addMSegment(mSegment2,true);
-        MSegment mSegment3(Segment3D(Point3D(4, 3, 0), Point3D(4, 3, 5)),
+        result1.addPResultFace(prf2,true);
+        PResultFace prf3(Segment3D(Point3D(4, 3, 0), Point3D(4, 3, 5)),
                            Segment3D(Point3D(3, 5, 0), Point3D(3, 5, 5)),
                            0,0,3,true, false);
-        result1.addMSegment(mSegment3,true);          
-        MSegment mSegment4(Segment3D(Point3D(5, 1, 0), Point3D(5, 1, 5)),
+        result1.addPResultFace(prf3,true);          
+        PResultFace prf4(Segment3D(Point3D(5, 1, 0), Point3D(5, 1, 5)),
                            Segment3D(Point3D(4, 3, 0), Point3D(4, 3, 5)),
                            0,0,4,true, false);
-        result1.addMSegment(mSegment4,true);
+        result1.addPResultFace(prf4,true);
         assert_("UnitsTest 7", "ResultUnits don't be equal.",
                 result0 == result1); 
         // cout << result0;
@@ -3897,6 +3517,7 @@ namespace temporalalgebra {
          Point3DContainer points;
         SegmentContainer segments;
         GlobalTimeValues timeValues(5);
+        timeValues.addStartAndEndtime();
         // points for pface 0, 1, 2 
         points.add(Point3D(1,1,0));
         points.add(Point3D(5,1,0));         
@@ -3947,22 +3568,22 @@ namespace temporalalgebra {
         }// for  
         ResultUnit result0 = units[0];
         ResultUnit result1; 
-        MSegment mSegment0(Segment3D(Point3D(1, 1, 0), Point3D(1, 1, 5)),
+        PResultFace prf0(Segment3D(Point3D(1, 1, 0), Point3D(1, 1, 5)),
                            Segment3D(Point3D(3, 3, 0), Point3D(3, 3, 5)),
                            0,0,0,true, true);
-        result1.addMSegment(mSegment0,true);
-        MSegment mSegment1(Segment3D(Point3D(3, 5, 0), Point3D(3, 5, 5)),
+        result1.addPResultFace(prf0,true);
+        PResultFace prf1(Segment3D(Point3D(3, 5, 0), Point3D(3, 5, 5)),
                            Segment3D(Point3D(1, 1, 0), Point3D(1, 1, 5)),
                            0,0,1,true, false);
-        result1.addMSegment(mSegment1,true);                    
-        MSegment mSegment2(Segment3D(Point3D(5, 1, 0), Point3D(5, 1, 5)),
+        result1.addPResultFace(prf1,true);                    
+        PResultFace prf2(Segment3D(Point3D(5, 1, 0), Point3D(5, 1, 5)),
                            Segment3D(Point3D(3, 5, 0), Point3D(3, 5, 5)),
                            0,0,2,true, false);
-        result1.addMSegment(mSegment2,true);
-        MSegment mSegment3(Segment3D(Point3D(3, 3, 0), Point3D(3, 3, 5)),
+        result1.addPResultFace(prf2,true);
+        PResultFace prf3(Segment3D(Point3D(3, 3, 0), Point3D(3, 3, 5)),
                            Segment3D(Point3D(5, 1, 0), Point3D(5, 1, 5)),
                            0,0,3,true, true);
-        result1.addMSegment(mSegment3,true);          
+        result1.addPResultFace(prf3,true);          
         assert_("UnitsTest 8", "ResultUnits don't be equal.",
                 result0 == result1);
       }// UnitsTest8
@@ -4009,12 +3630,12 @@ namespace temporalalgebra {
                             Point3D(3.5, 4, 2.666666667));
         Segment3D segment15(Point3D(4.666666667, 1.666666667, 1.111111111), 
                             Point3D(2.8, 2.6, 2.666666667));
-        MSegment mSegment2(segment10,segment11,0,0,2,true,false);
-        MSegment mSegment0(segment12,segment13,0,0,0,true,true);
-        MSegment mSegment1(segment14,segment15,0,0,1,true,false);       
-        result4.addMSegment(mSegment0,true);
-        result4.addMSegment(mSegment1,true);
-        result4.addMSegment(mSegment2,true);
+        PResultFace prf2(segment10,segment11,0,0,2,true,false);
+        PResultFace prf0(segment12,segment13,0,0,0,true,true);
+        PResultFace prf1(segment14,segment15,0,0,1,true,false);       
+        result4.addPResultFace(prf0,true);
+        result4.addPResultFace(prf1,true);
+        result4.addPResultFace(prf2,true);
         assert_("SourceUnitPairTest 1.2", "ResultUnits don't equal.",
                 result3 == result4); 
         // cout << result3;
@@ -4033,12 +3654,12 @@ namespace temporalalgebra {
                             Point3D(3.333333333, 3.666666667, 4.444444444));   
         Segment3D segment21(Point3D(4.2, 2.6, 2.666666667), 
                             Point3D(3.666666667, 3.666666667, 4.444444444));
-        MSegment mSegment5(segment16,segment17,0,0,0,true,false);
-        MSegment mSegment4(segment18,segment19,0,0,1,true,false);
-        MSegment mSegment3(segment20,segment21,0,0,2,true,true);  
-        result6.addMSegment(mSegment3,true);
-        result6.addMSegment(mSegment4,true);
-        result6.addMSegment(mSegment5,true); 
+        PResultFace prf5(segment16,segment17,0,0,0,true,false);
+        PResultFace prf4(segment18,segment19,0,0,1,true,false);
+        PResultFace prf3(segment20,segment21,0,0,2,true,true);  
+        result6.addPResultFace(prf3,true);
+        result6.addPResultFace(prf4,true);
+        result6.addPResultFace(prf5,true); 
         assert_("SourceUnitPairTest 1.3", "ResultUnits don't equal.",
                 result5 == result6); 
         // cout << result5;
@@ -4057,12 +3678,12 @@ namespace temporalalgebra {
                             Point3D(3.4, 3.8, 4.666666667)); 
         Segment3D segment27(Point3D(3.5, 4, 4.444444444), 
                             Point3D(3.4, 3.8, 4.666666667));
-        MSegment mSegment6(segment22,segment23,0,0,0,true,false);
-        MSegment mSegment7(segment24,segment25,0,0,1,true,true);
-        MSegment mSegment8(segment26,segment27,0,0,2,true,false);  
-        result8.addMSegment(mSegment7,true);
-        result8.addMSegment(mSegment6,true);
-        result8.addMSegment(mSegment8,true);
+        PResultFace prf6(segment22,segment23,0,0,0,true,false);
+        PResultFace prf7(segment24,segment25,0,0,1,true,true);
+        PResultFace prf8(segment26,segment27,0,0,2,true,false);  
+        result8.addPResultFace(prf7,true);
+        result8.addPResultFace(prf6,true);
+        result8.addPResultFace(prf8,true);
         assert_("SourceUnitPairTest 1.4", "ResultUnits don't equal.",
                 result7 == result8);  
         // cout << result7;
@@ -4074,200 +3695,11 @@ namespace temporalalgebra {
         // cout << result9;
         // cout << result10;
       }// SourceUnitPairTest1
-/*      
-      void Selftest::ResultUnitFactoryTest6() {
-        ResultUnitFactory factory1(10),factory2(2);
-        std::vector<bool> predicate1(9),predicate2(9); 
-        std::vector<bool> predicate3(1),predicate4(1);   
-        // Outside
-        factory1.addNonOrthogonalEdges(0,Segment(0, 1, LEFT_IS_INNER)); 
-        factory1.addNonOrthogonalEdges(0,Segment(2, 3, RIGHT_IS_INNER));  
-        // Outside
-        factory1.addNonOrthogonalEdges(1,Segment(4, 5, LEFT_IS_INNER));
-        factory1.addNonOrthogonalEdges(1,Segment(6, 7));
-        // Inside
-        factory1.addNonOrthogonalEdges(2,Segment(8, 9, RIGHT_IS_INNER));
-        factory1.addNonOrthogonalEdges(2,Segment(10, 11));
-        // Inside
-        factory1.addNonOrthogonalEdges(3,Segment(12, 13));
-        factory1.addNonOrthogonalEdges(3,Segment(14, 15, LEFT_IS_INNER));
-        // Outside
-        factory1.addNonOrthogonalEdges(4,Segment(16, 17, INTERSECT));
-        factory1.addNonOrthogonalEdges(4,Segment(18, 19, RIGHT_IS_INNER));
-        // three segments
-        factory1.addNonOrthogonalEdges(5,Segment(20, 21, LEFT_IS_INNER));
-        factory1.addNonOrthogonalEdges(5,Segment(20, 23, RIGHT_IS_INNER));
-        factory1.addNonOrthogonalEdges(5,Segment(22, 23));
-        // three segments
-        factory1.addNonOrthogonalEdges(6,Segment(24, 25, RIGHT_IS_INNER));
-        factory1.addNonOrthogonalEdges(6,Segment(24, 27, INTERSECT));
-        factory1.addNonOrthogonalEdges(6,Segment(26, 27));
-        // Inside
-        factory1.addNonOrthogonalEdges(7,Segment(28, 29, INTERSECT));
-        factory1.addNonOrthogonalEdges(7,Segment(30, 31, INNER));
-        // Outside
-        factory1.addNonOrthogonalEdges(8,Segment(32, 33));
-        factory1.addNonOrthogonalEdges(8,Segment(33, 34, OUTER));
-        // Undefined
-        factory2.addNonOrthogonalEdges(0,Segment(0, 1)); 
-        factory2.addNonOrthogonalEdges(0,Segment(2, 3)); 
-        // cout << factory1;
-        std::vector<bool> predicate5 = {false, false, true, true, false, 
-                                        true, true, true, false};
-        bool result = factory1.intersects(predicate1);
-        assert_("ResultUnitFactoryTest 6.1", 
-                "An intersection result is available.",
-                (result)); 
-        result = true;      
-        for(size_t i = 0; i < predicate1.size(); i++){
-          if(predicate1[i] != predicate5[i])  result = false;
-        //  if(predicate1[i]){
-        //    cout << "Predikat intersects for slide " << i;
-        //    cout << ", true" <<endl;
-        //  }// if
-        //  else {
-        //    cout << "Predikat intersects for slide " << i;
-        //    cout << ", false" <<endl;
-        //  }// else          
-        }// for
-        assert_("ResultUnitFactoryTest 6.2", 
-                "An intersection result isn't equal.",
-                (result));  
-        result = factory2.intersects(predicate3);
-        assert_("ResultUnitFactoryTest 6.3", 
-                "An intersection result isn't available.",
-                (!result)); 
-        // Tests for inside
-        std::vector<bool> predicate6 = {false, false, true, true, false, 
-                                        false, false, true, false};
-        result = factory1.inside(predicate2);
-        assert_("ResultUnitFactoryTest 6.4", 
-                "An intersection result is available.",
-                (result)); 
-        result = true;      
-        for(size_t i = 0; i < predicate2.size(); i++){
-          if(predicate2[i] != predicate6[i])  result = false;
-        //  if(predicate2[i]){
-        //    cout << "Predikat intersects for slide " << i;
-        //    cout << ", true" <<endl;
-        //  }// if
-        //  else {
-        //    cout << "Predikat intersects for slide " << i;
-        //    cout << ", false" <<endl;
-        //   }// else          
-        }// for
-        assert_("ResultUnitFactoryTest 6.5", 
-                "An intersection result isn't equal.",
-                (result));  
-        result = factory2.inside(predicate4);
-        assert_("ResultUnitFactoryTest 6.6", 
-                "An intersection result isn't available.",
-                (!result));  
-      }// ResultUnitFactoryTest6
-*/
-/*
-      void Selftest::ResultUnitFactoryTest7() {
-        ResultUnitFactory factory1(10,true),factory2(2,true);
-        std::vector<bool> predicate1(9),predicate2(9); 
-        std::vector<bool> predicate3(1),predicate4(1);   
-        // Inside
-        factory1.addNonOrthogonalEdges(0,Segment(0, 1, RIGHT_IS_INNER)); 
-        factory1.addNonOrthogonalEdges(0,Segment(2, 3, INTERSECT));
-        // Outside
-        factory1.addNonOrthogonalEdges(1,Segment(4, 5, LEFT_IS_INNER)); 
-        factory1.addNonOrthogonalEdges(1,Segment(6, 7, INTERSECT));
-        // Inside
-        factory1.addNonOrthogonalEdges(2,Segment(8, 9, INTERSECT));        
-        factory1.addNonOrthogonalEdges(2,Segment(10, 11, LEFT_IS_INNER)); 
-        // Outside
-        factory1.addNonOrthogonalEdges(3,Segment(12, 13, INTERSECT));
-        factory1.addNonOrthogonalEdges(3,Segment(14, 15, RIGHT_IS_INNER));
-        // Outside/Inside
-        factory1.addNonOrthogonalEdges(4,Segment(16, 17)); 
-        factory1.addNonOrthogonalEdges(4,Segment(18, 19, RIGHT_IS_INNER)); 
-        factory1.addNonOrthogonalEdges(4,Segment(20, 21, INTERSECT));
-        // Inside/Outside
-        factory1.addNonOrthogonalEdges(5,Segment(22, 23, INTERSECT));
-        factory1.addNonOrthogonalEdges(5,Segment(24, 25, LEFT_IS_INNER));
-        factory1.addNonOrthogonalEdges(5,Segment(26, 27));
-        // Outside/Inside
-        factory1.addNonOrthogonalEdges(6,Segment(28, 29)); 
-        factory1.addNonOrthogonalEdges(6,Segment(30, 31, NO_INTERSECT)); 
-        factory1.addNonOrthogonalEdges(6,Segment(32, 33, RIGHT_IS_INNER)); 
-        factory1.addNonOrthogonalEdges(6,Segment(34, 35, NO_INTERSECT)); 
-        factory1.addNonOrthogonalEdges(6,Segment(36, 37, INTERSECT));
-        // Inside/Outside
-        factory1.addNonOrthogonalEdges(7,Segment(38, 39, INTERSECT)); 
-        factory1.addNonOrthogonalEdges(7,Segment(40, 41, NO_INTERSECT)); 
-        factory1.addNonOrthogonalEdges(7,Segment(42, 43, LEFT_IS_INNER)); 
-        factory1.addNonOrthogonalEdges(7,Segment(44, 45, NO_INTERSECT)); 
-        factory1.addNonOrthogonalEdges(7,Segment(46, 47));
-        // Outside
-        factory1.addNonOrthogonalEdges(8,Segment(48, 49, INTERSECT)); 
-        factory1.addNonOrthogonalEdges(8,Segment(50, 51, NO_INTERSECT)); 
-        factory1.addNonOrthogonalEdges(8,Segment(52, 53, NO_INTERSECT)); 
-        factory1.addNonOrthogonalEdges(8,Segment(54, 55, RIGHT_IS_INNER));
-        // Undefined
-        factory2.addNonOrthogonalEdges(0,Segment(0, 1, INTERSECT)); 
-        factory2.addNonOrthogonalEdges(0,Segment(2, 3, INTERSECT)); 
-        // cout << factory1;        
-        std::vector<bool> predicate5 = {true, false, true, false, true, 
-                                        true, true, true, false};
-        bool result = factory1.intersects(predicate1);
-        assert_("ResultUnitFactoryTest 7.1", 
-                "An intersection result is available.",
-                (result));
-        result = true;      
-        for(size_t i = 0; i < predicate1.size(); i++){
-          if(predicate1[i] != predicate5[i])  result = false;
-        //   if(predicate1[i]){
-        //      cout << "Predikat intersects for slide " << i;
-        //      cout << ", true" <<endl;
-        //   }// if
-        //   else {
-        //      cout << "Predikat intersects for slide " << i;
-        //      cout << ", false" <<endl;
-        //   }// else          
-        }// for
-        assert_("ResultUnitFactoryTest 7.2", 
-                "An intersection result isn't equal.",
-                (result));
-        std::vector<bool> predicate6 = {true, false, true, false, false, 
-                                        false, false, false, false};
-        result = factory2.intersects(predicate3);        
-        assert_("ResultUnitFactoryTest 7.3", 
-                "An intersection result isn't available.",
-                (!result)); 
-        // Test for inside
-        result = factory1.inside(predicate2);
-        assert_("ResultUnitFactoryTest 7.4", 
-                "An inside result is available.",
-                (result));
-        result = true;      
-        for(size_t i = 0; i < predicate2.size(); i++){
-          if(predicate2[i] != predicate6[i])  result = false;
-        //  if(predicate2[i]){
-        //    cout << "Predikat intersects for slide " << i;
-        //    cout << ", true" <<endl;
-        //  }// if
-        //  else {
-        //    cout << "Predikat intersects for slide " << i;
-        //    cout << ", false" <<endl;
-        //  }// else          
-        }// for
-        assert_("ResultUnitFactoryTest 7.5", 
-                "An intersection result isn't equal.",
-                (result));
-        result = factory2.inside(predicate4);
-        assert_("ResultUnitFactoryTest 7.6", 
-                "An inside result isn't available.",
-                (!result));   
-      }// ResultUnitFactoryTest7
-*/      
 
       void Selftest::UnitsTest9(){
         Point3DContainer points;
         GlobalTimeValues timeValues(5);
+        timeValues.addStartAndEndtime();
         std::vector<bool> predicates1,predicates2;
         // points for unit 0 
         points.add(Point3D(2,1,0));// 0
@@ -4346,6 +3778,7 @@ namespace temporalalgebra {
       void Selftest::UnitsTest10(){
         Point3DContainer points;
         GlobalTimeValues timeValues(5);
+        timeValues.addStartAndEndtime();
         std::vector<bool> predicates1,predicates2;
                 // points for unit 1
         points.add(Point3D(6,1,0));// 6
@@ -4423,123 +3856,123 @@ namespace temporalalgebra {
       }// UnitsTest10
       
 
-     void Selftest::LayerTest1(){
-       Layer layer1, layer2, layer3, layer4, layer5, layer6, layer7;       
-       layer1.addNonOrthSegment(Segment(0, 1));
-       layer1.addNonOrthSegment(Segment(2, 3, LEFT_IS_INNER));
-       layer1.addNonOrthSegment(Segment(4, 5, RIGHT_IS_INNER));
-       layer1.addOrthSegment(Segment(0, 6, LEFT_IS_INNER));
-       layer1.addOrthSegment(Segment(1, 7, RIGHT_IS_INNER));
-       // Result layer
-       layer4.addNonOrthSegment(Segment(0, 1, INNER));
-       layer4.addNonOrthSegment(Segment(2, 3, LEFT_IS_INNER));
-       layer4.addNonOrthSegment(Segment(4, 5, RIGHT_IS_INNER));
-       layer4.addOrthSegment(Segment(0, 6, LEFT_IS_INNER));
-       layer4.addOrthSegment(Segment(1, 7, RIGHT_IS_INNER));
-       bool result = layer1.evaluate();
-       assert_("LayerTest 1.1", 
-               "Evaluation of the layer is not complete.",
-               result);       
-       assert_("LayerTest 1.2", 
-               "The layers are different.",
-               layer1 == layer4);       
-       // cout << layer1;
-       // cout << layer4;       
-       layer2.addNonOrthSegment(Segment(0, 1));
-       layer2.addNonOrthSegment(Segment(2, 3));
-       layer2.addNonOrthSegment(Segment(4, 5, RIGHT_IS_INNER));
-       layer2.addNonOrthSegment(Segment(6, 7));
-       layer2.addNonOrthSegment(Segment(8, 9));
-       // Result layer
-       layer5.addNonOrthSegment(Segment(0, 1, OUTER));
-       layer5.addNonOrthSegment(Segment(2, 3, OUTER));
-       layer5.addNonOrthSegment(Segment(4, 5, RIGHT_IS_INNER));
-       layer5.addNonOrthSegment(Segment(6, 7, INNER));
-       layer5.addNonOrthSegment(Segment(8, 9, INNER));
-       result = layer2.evaluate();
-       assert_("LayerTest 1.3", 
-               "Evaluation of the layer is not complete.",
-               result);   
-       assert_("LayerTest 1.4", 
-               "The layers are different.",
-               layer2 == layer5);
-       // cout << layer2;
-       // cout << layer5;       
-       layer3.addNonOrthSegment(Segment(0, 1));
-       layer3.addOrthSegment(Segment(0, 2, LEFT_IS_INNER));
-       layer3.addOrthSegment(Segment(1, 3, RIGHT_IS_INNER));
-       layer3.addNonOrthSegment(Segment(2, 3));
-       // Result layer
-       layer6.addNonOrthSegment(Segment(0, 1, INNER));
-       layer6.addOrthSegment(Segment(0, 2, LEFT_IS_INNER));
-       layer6.addOrthSegment(Segment(1, 3, RIGHT_IS_INNER));
-       layer6.addNonOrthSegment(Segment(2, 3, INNER));
-       result = layer3.evaluate();
-       assert_("LayerTest 1.5", 
-               "Evaluation of the layer is not complete.",
-               result);   
-       assert_("LayerTest 1.6", 
-               "The layers are different.",
-               layer3 == layer6);
-       // cout << layer3;
-       // cout << layer6;    
-       layer7.addNonOrthSegment(Segment(0, 1));
-       layer7.addNonOrthSegment(Segment(2, 3));
-       result = layer7.evaluate();
-       assert_("LayerTest 1.7",
-               "Evaluation of the layer is not complete.",
-               (!result)); 
-     }// LayerTest1
+      void Selftest::LayerTest1(){
+        Layer layer1, layer2, layer3, layer4, layer5, layer6, layer7;       
+        layer1.addNonOrthSegment(Segment(0, 1));
+        layer1.addNonOrthSegment(Segment(2, 3, LEFT_IS_INNER));
+        layer1.addNonOrthSegment(Segment(4, 5, RIGHT_IS_INNER));
+        layer1.addOrthSegment(Segment(0, 6, LEFT_IS_INNER));
+        layer1.addOrthSegment(Segment(1, 7, RIGHT_IS_INNER));
+        // Result layer
+        layer4.addNonOrthSegment(Segment(0, 1, INNER));
+        layer4.addNonOrthSegment(Segment(2, 3, LEFT_IS_INNER));
+        layer4.addNonOrthSegment(Segment(4, 5, RIGHT_IS_INNER));
+        layer4.addOrthSegment(Segment(0, 6, LEFT_IS_INNER));
+        layer4.addOrthSegment(Segment(1, 7, RIGHT_IS_INNER));
+        bool result = layer1.evaluate();
+        assert_("LayerTest 1.1", 
+                "Evaluation of the layer is not complete.",
+                result);       
+        assert_("LayerTest 1.2", 
+                "The layers are different.",
+                layer1 == layer4);       
+        // cout << layer1;
+        // cout << layer4;       
+        layer2.addNonOrthSegment(Segment(0, 1));
+        layer2.addNonOrthSegment(Segment(2, 3));
+        layer2.addNonOrthSegment(Segment(4, 5, RIGHT_IS_INNER));
+        layer2.addNonOrthSegment(Segment(6, 7));
+        layer2.addNonOrthSegment(Segment(8, 9));
+        // Result layer
+        layer5.addNonOrthSegment(Segment(0, 1, OUTER));
+        layer5.addNonOrthSegment(Segment(2, 3, OUTER));
+        layer5.addNonOrthSegment(Segment(4, 5, RIGHT_IS_INNER));
+        layer5.addNonOrthSegment(Segment(6, 7, INNER));
+        layer5.addNonOrthSegment(Segment(8, 9, INNER));
+        result = layer2.evaluate();
+        assert_("LayerTest 1.3", 
+                "Evaluation of the layer is not complete.",
+                result);   
+        assert_("LayerTest 1.4", 
+                "The layers are different.",
+                layer2 == layer5);
+        // cout << layer2;
+        // cout << layer5;       
+        layer3.addNonOrthSegment(Segment(0, 1));
+        layer3.addOrthSegment(Segment(0, 2, LEFT_IS_INNER));
+        layer3.addOrthSegment(Segment(1, 3, RIGHT_IS_INNER));
+        layer3.addNonOrthSegment(Segment(2, 3));
+        // Result layer
+        layer6.addNonOrthSegment(Segment(0, 1, INNER));
+        layer6.addOrthSegment(Segment(0, 2, LEFT_IS_INNER));
+        layer6.addOrthSegment(Segment(1, 3, RIGHT_IS_INNER));
+        layer6.addNonOrthSegment(Segment(2, 3, INNER));
+        result = layer3.evaluate();
+        assert_("LayerTest 1.5", 
+                "Evaluation of the layer is not complete.",
+                result);   
+        assert_("LayerTest 1.6", 
+                "The layers are different.",
+                layer3 == layer6);
+        // cout << layer3;
+        // cout << layer6;    
+        layer7.addNonOrthSegment(Segment(0, 1));
+        layer7.addNonOrthSegment(Segment(2, 3));
+        result = layer7.evaluate();
+        assert_("LayerTest 1.7",
+                "Evaluation of the layer is not complete.",
+                (!result)); 
+      }// LayerTest1
      
-     void Selftest::LayerTest2(){
-       Layer layer1;      
-       layer1.addNonOrthSegment(Segment(0, 1));
-       layer1.addNonOrthSegment(Segment(2, 3, LEFT_IS_INNER));
-       layer1.addNonOrthSegment(Segment(4, 5, RIGHT_IS_INNER));
-       layer1.addOrthSegment(Segment(0, 6, LEFT_IS_INNER));
-       layer1.addOrthSegment(Segment(1, 7, RIGHT_IS_INNER));
-       Layer layer2 = layer1;
-       Layer layer3(layer1);
-       assert_("LayerTest 2", 
-               "The layers are different.",
-               layer2 == layer2);    
-     }// LayerTest2
+      void Selftest::LayerTest2(){
+        Layer layer1;      
+        layer1.addNonOrthSegment(Segment(0, 1));
+        layer1.addNonOrthSegment(Segment(2, 3, LEFT_IS_INNER));
+        layer1.addNonOrthSegment(Segment(4, 5, RIGHT_IS_INNER));
+        layer1.addOrthSegment(Segment(0, 6, LEFT_IS_INNER));
+        layer1.addOrthSegment(Segment(1, 7, RIGHT_IS_INNER));
+        Layer layer2 = layer1;
+        Layer layer3(layer1);
+        assert_("LayerTest 2", 
+                "The layers are different.",
+                layer2 == layer2);    
+      }// LayerTest2
      
-     void Selftest::LayerTest3(){
-       Layer layer1, layer2, layer3;      
-       layer1.addNonOrthSegment(Segment(0, 1));
-       layer1.addNonOrthSegment(Segment(0, 2));
-       layer1.addOrthSegment(Segment(0, 3, LEFT_IS_INNER));       
-       layer1.addNonOrthSegment(Segment(3, 4));
-       bool result = layer1.evaluate();
-       Predicate predecessor = layer1.getPredicateForPredecessor();
-       Predicate successor   = layer1.getPredicateForSuccessor();
-       assert_("LayerTest 3.1", 
-               "Evaluation of the layer is not complete.",
-               result);  
-       assert_("LayerTest 3.2", 
-               "Predecessor predicate is wrong.",
-               predecessor == OUTER);
-       assert_("LayerTest 3.3", 
-               "Successor predicate is wrong.",
-               successor == INNER);
-       layer2.addNonOrthSegment(Segment(5, 6));
-       layer2.addNonOrthSegment(Segment(7, 8));
-       layer2.addNonOrthSegment(Segment(9, 10));
-       layer2.setPredicateFromSuccessor(successor);
-       layer2.evaluate();   
-       // Result layer
-       layer3.addNonOrthSegment(Segment(5, 6, INNER));
-       layer3.addNonOrthSegment(Segment(7, 8, INNER));
-       layer3.addNonOrthSegment(Segment(9, 10, INNER));
-       assert_("LayerTest 3.4", 
-               "The layers are different.",
-               layer2 == layer2);        
-       // cout << layer1;
-       // cout << "Predeccesor predicate:=" << toString(predecessor) << endl;
-       // cout << "Successor predicate:=" << toString(successor) << endl;
-       // cout << layer2;    
-     }// LayerTest2
+      void Selftest::LayerTest3(){
+        Layer layer1, layer2, layer3;      
+        layer1.addNonOrthSegment(Segment(0, 1));
+        layer1.addNonOrthSegment(Segment(0, 2));
+        layer1.addOrthSegment(Segment(0, 3, LEFT_IS_INNER));       
+        layer1.addNonOrthSegment(Segment(3, 4));
+        bool result = layer1.evaluate();
+        Predicate predecessor = layer1.getPredicateForPredecessor();
+        Predicate successor   = layer1.getPredicateForSuccessor();
+        assert_("LayerTest 3.1", 
+                "Evaluation of the layer is not complete.",
+                result);  
+        assert_("LayerTest 3.2", 
+                "Predecessor predicate is wrong.",
+                predecessor == OUTER);
+        assert_("LayerTest 3.3", 
+                "Successor predicate is wrong.",
+                successor == INNER);
+        layer2.addNonOrthSegment(Segment(5, 6));
+        layer2.addNonOrthSegment(Segment(7, 8));
+        layer2.addNonOrthSegment(Segment(9, 10));
+        layer2.setPredicateFromSuccessor(successor);
+        layer2.evaluate();   
+        // Result layer
+        layer3.addNonOrthSegment(Segment(5, 6, INNER));
+        layer3.addNonOrthSegment(Segment(7, 8, INNER));
+        layer3.addNonOrthSegment(Segment(9, 10, INNER));
+        assert_("LayerTest 3.4", 
+                "The layers are different.",
+                layer2 == layer2);        
+        // cout << layer1;
+        // cout << "Predeccesor predicate:=" << toString(predecessor) << endl;
+        // cout << "Successor predicate:=" << toString(successor) << endl;
+        // cout << layer2;    
+      }// LayerTest2
 
      void Selftest::LayerContainerTest1(){
         LayerContainer layerContainer1(4), layerContainer2;
@@ -4563,9 +3996,9 @@ namespace temporalalgebra {
         // cout << layerContainer1 << endl;
         // cout << layerContainer2 << endl
         // cout << layerContainer2 << endl
-     }// LayerContainerTest1
+      }// LayerContainerTest1
      
-     void Selftest::LayerContainerTest2(){
+      void Selftest::LayerContainerTest2(){
         LayerContainer layerContainer1(4), layerContainer2(4);
         layerContainer1.addNonOrthSegment(0,Segment(0,1));
         layerContainer1.addNonOrthSegment(0,Segment(2,3));        
@@ -4593,19 +4026,19 @@ namespace temporalalgebra {
                 result); 
         assert_("LayerContainerTest 2.2", 
                 "The layer containers are equal.",
-               layerContainer1 == layerContainer2);
+                layerContainer1 == layerContainer2);
         Predicate left, right;
         layerContainer1.getBorderPredicates(left, right);
         assert_("LayerContainerTest 2.3", 
                 "The predicates at the border are not correct..",
-               (left == INTERSECT && right == INTERSECT));
+                (left == INTERSECT && right == INTERSECT));
         // cout << layerContainer1;
         // cout << layerContainer2;
         // cout << "Left border:=" << toString(left) << endl;
         // cout << "Right border:=" << toString(right) << endl;
-     }// LayerContainerTest2
+      }// LayerContainerTest2
      
-     void Selftest::LayerContainerTest3(){
+      void Selftest::LayerContainerTest3(){
         LayerContainer layerContainer1(3), layerContainer2(3);
         layerContainer1.addNonOrthSegment(0,Segment(0,3)); 
         layerContainer1.addNonOrthSegment(0,Segment(1,4));
@@ -4856,7 +4289,9 @@ namespace temporalalgebra {
         SegmentContainer segments;
         Point3DContainer points1,points2,points3;
         GlobalTimeValues timeValues1(5);
+        timeValues1.addStartAndEndtime();
         GlobalTimeValues timeValues2(5);
+        timeValues2.addStartAndEndtime();
         // points for unit 1 
         points1.add(Point3D(2,1,0));// 0
         points1.add(Point3D(5,1,0));         
@@ -4891,18 +4326,18 @@ namespace temporalalgebra {
         pf0.intersection(pf3,timeValues1);
         pf0.intersection(pf4,timeValues1);
         pf0.intersection(pf5,timeValues1);
-        pf0.addBorder(timeValues1);
+        pf0.addBorder(RationalPlane3D(pf0),UNDEFINED);
         pf1.intersection(pf3,timeValues1);
         pf1.intersection(pf4,timeValues1);
         pf1.intersection(pf5,timeValues1);
-        pf1.addBorder(timeValues1);
+        pf1.addBorder(RationalPlane3D(pf1),UNDEFINED);
         pf2.intersection(pf3,timeValues1);
         pf2.intersection(pf4,timeValues1);
         pf2.intersection(pf5,timeValues1);
-        pf2.addBorder(timeValues1);
-        pf3.addBorder(timeValues1);
-        pf4.addBorder(timeValues1);
-        pf5.addBorder(timeValues1);
+        pf2.addBorder(RationalPlane3D(pf2),UNDEFINED);
+        pf3.addBorder(RationalPlane3D(pf3),UNDEFINED);
+        pf4.addBorder(RationalPlane3D(pf4),UNDEFINED);
+        pf5.addBorder(RationalPlane3D(pf5),UNDEFINED);
         LayerContainer layerContainer0(points2,timeValues1,pf0,false);
         LayerContainer layerContainer1(points2,timeValues1,pf1,false);
         LayerContainer layerContainer2(points2,timeValues1,pf2,false);
@@ -5185,6 +4620,7 @@ namespace temporalalgebra {
         Point3DContainer points1;
         SegmentContainer segments1,segments2;
         GlobalTimeValues timeValues(2.24250325);
+        timeValues.addStartAndEndtime();
         // Points for pface 0
         size_t i0 = points1.add(
           Point3D(5.61538461111, 4.19230769444, 0));

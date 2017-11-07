@@ -793,7 +793,7 @@ namespace temporalalgebra{
         
     bool RationalSegment2D::intersection(const 
         RationalSegment2D& other, 
-        RationalPoint2D& intersectionPoint){
+        RationalPoint2D& intersectionPoint)const{
       mpq_class relDistanceFromTail = 0; 
       mpq_class x00 = this->tail.getX();
       mpq_class y00 = this->tail.getY();
@@ -1005,13 +1005,13 @@ namespace temporalalgebra{
       for(size_t i = 0; i< segmentBuckets[hash].size();i++){
         size_t j = segmentBuckets[hash][i];
         Segment other = segments[j];
-        // two segment with equal tail und head
+        // Two segments with equal tail und head
         if( other.getTail() == segment.getTail() &&
             other.getHead() == segment.getHead()){          
           // cout << other << endl;
           // cout << segment << endl; 
-          // bei einem nichtkritschen Schnitt sin
-          // old and new interesction predicate differnt
+          // In the case of a noncritical intersection, 
+          // the old and the new predicate are distinguishable.
           if(!pFaceIsCritical){
             if((segment.getPredicate() == RIGHT_IS_INNER && 
                 other.getPredicate()   == LEFT_IS_INNER) || 
@@ -1019,42 +1019,41 @@ namespace temporalalgebra{
                 other.getPredicate()   == RIGHT_IS_INNER)){             
               segments[j].setPredicate(UNDEFINED);  
               return j;
- 
             }//if
-            // old intersection predicate ist UNDEFINED
+            // Old predicate is undefined
             else if (other.getPredicate() == UNDEFINED) {
               segments[j] = segment;
               return j; 
             }// else if 
-            // old and new predecate are the same
+            // Old and new predicates are the same
             else if (other.getPredicate() == segment.getPredicate()){
               return j;
             }// else if                 
             cerr << "old segment:=" << other << endl;
             cerr << "new segment:=" << segment << endl;
             NUM_FAIL("Predicates from non critical segments don't combinable");
-          }// if  
+          }// if            
           else {
-            // Startpunkt oder Endpunkt des Segments mit einem Schnitt
+            // Start or end point have an intersection
             if (other.getPredicate()   == UNDEFINED && (
                 segment.getPredicate() == RIGHT_IS_INNER ||
                 segment.getPredicate() == LEFT_IS_INNER)){
               segments[j].setPredicate(INTERSECT);
               return j; 
             }// if
-            // Schnitt innerhalb des kritschen Segments
-            // Schnitt übernehmen
+            // Cut within the critical segment
+            // Take the predicate.
             else if (other.getPredicate()   == NO_INTERSECT && 
                     (segment.getPredicate() == RIGHT_IS_INNER ||
                      segment.getPredicate() == LEFT_IS_INNER)){
               segments[j] = segment;
               return j;
             }// else if
-            // old and new predecate are the same 
+            // Old and new predecate are the same 
             else if (other.getPredicate() == segment.getPredicate()){
               return j;
             }// else if 
-            // Segment wird ein zweites Mal mit Definition hinzugefügt
+            // Segment is added one more time
             else if (other.getPredicate()   == UNDEFINED && (
                      segment.getPredicate() == INNER ||
                      segment.getPredicate() == OUTER||
@@ -1062,7 +1061,7 @@ namespace temporalalgebra{
               segments[j] = segment;
               return j; 
             }// if  
-            // Schnittsegment soll gesetzt werden
+            // Segment with contradictory predicate is to be set.
             else if (other.getPredicate()   == INTERSECT && (
                      segment.getPredicate() == INNER ||
                      segment.getPredicate() == OUTER)){
@@ -1092,10 +1091,6 @@ namespace temporalalgebra{
         }// else if
         else if ((oldPredicate == INNER && predicate == OUTER) ||
                  (oldPredicate == OUTER && predicate == INNER)) { 
-   //       cerr << "old segment:="   << segments[index] << endl;
-   //       cerr << "new predicate:=" << toString(predicate) << endl;
-   //       cerr << *this;
-   //       NUM_FAIL("Predicates from segments don't combinable.");
           segments[index].setPredicate(INTERSECT);
         }// else
       }// if
