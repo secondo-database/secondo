@@ -31,7 +31,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef ALGEBRAS_DBSERVICE_RELATIONINFO_HPP_
 #define ALGEBRAS_DBSERVICE_RELATIONINFO_HPP_
 
-#include <map>
 #include <string>
 #include <vector>
 
