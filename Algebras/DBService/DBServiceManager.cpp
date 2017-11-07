@@ -70,6 +70,7 @@ DBServiceManager::~DBServiceManager()
     printFunction("DBServiceManager::~DBServiceManager");
     DBServicePersistenceAccessor::persistAllLocations(connections);
     DBServicePersistenceAccessor::persistAllRelations(relations);
+    DBServicePersistenceAccessor::persistAllDerivates(derivates);
 }
 
 void DBServiceManager::restoreConfiguration()
@@ -125,6 +126,7 @@ void DBServiceManager::restoreReplicaInformation()
     }
 
     DBServicePersistenceAccessor::restoreRelationInfo(relations);
+    DBServicePersistenceAccessor::restoreDerivateInfo(derivates);
 
     queue<pair<string, pair<ConnectionID, bool> > > mapping;
     DBServicePersistenceAccessor::restoreLocationMapping(mapping);
@@ -132,9 +134,23 @@ void DBServiceManager::restoreReplicaInformation()
     while(!mapping.empty())
     {
         const auto& currentMapping = mapping.front();
-        relations.at(currentMapping.first).
-                addNode(currentMapping.second.first,
-                        currentMapping.second.second);
+        string objectId = currentMapping.first;
+        DBServiceRelations::iterator it1 = relations.find(objectId);
+        if(it1 != relations.end()){
+            it1->second.addNode(currentMapping.second.first,
+                               currentMapping.second.second);
+        } else {
+           DBServiceDerivates::iterator it2 = derivates.find(objectId);
+           if(it2!=derivates.end()){
+              it2->second.addNode(
+                    currentMapping.second.first,
+                    currentMapping.second.second);
+           } else {
+              print("found location for object with id " + objectId + 
+                    " but there is neigther a relation nor a derivate "
+                    " stored with this id.");
+           }
+        }
         mapping.pop();
     }
 
@@ -146,6 +162,9 @@ void DBServiceManager::restoreReplicaInformation()
                 const_cast<RelationInfo*>(&(it->second))->getNodeCount());
     }
 }
+
+
+
 
 DBServiceManager* DBServiceManager::getInstance()
 {
@@ -335,6 +354,13 @@ void DBServiceManager::deleteReplicaLocations(const string& databaseName,
     relations.erase(RelationInfo::getIdentifier(databaseName, relationName));
 }
 
+
+void DBServiceManager::deleteDerivateLocations(const string& objectId)
+{
+    boost::lock_guard<boost::mutex> lock(managerMutex);
+    derivates.erase(objectId);
+}
+
 void DBServiceManager::persistReplicaLocations(const string& databaseName,
                                                const string& relationName)
 {
@@ -348,6 +374,18 @@ void DBServiceManager::persistReplicaLocations(const string& databaseName,
         print("Could not persist DBService relations");
     }
 }
+
+void DBServiceManager::persistDerivateLocations(const string& ObjectId)
+{
+    boost::lock_guard<boost::mutex> lock(managerMutex);
+    DerivateInfo derivateInfo = derivates.at(ObjectId);
+    //DBServicePersistenceAccessor::persistDerivateInfo(derivateInfo);
+    if(!DBServicePersistenceAccessor::persistAllDerivates(derivates))
+    {
+        print("Could not persist DBService derivates");
+    }
+}
+
 
 void DBServiceManager::getReplicaLocations(
         const string& relationAsString,
@@ -363,6 +401,24 @@ void DBServiceManager::getReplicaLocations(
         print("RelationInfo does not exist");
     }
 }
+
+
+void DBServiceManager::getDerivateLocations(
+        const string& objectId,
+        ReplicaLocations& ids)
+{
+    printFunction("DBServiceManager::getDerivateLocations");
+    try
+    {
+        DerivateInfo& derInfo = getDerivateInfo(objectId);
+        ids.insert(ids.begin(), derInfo.nodesBegin(), derInfo.nodesEnd());
+    }catch(...)
+    {
+        print("DerivateInfo does not exist");
+    }
+}
+
+
 
 void DBServiceManager::addToPossibleReplicaLocations(
         const ConnectionID connectionID,
@@ -454,6 +510,13 @@ RelationInfo& DBServiceManager::getRelationInfo(const string& relationAsString)
     return relations.at(relationAsString);
 }
 
+DerivateInfo& DBServiceManager::getDerivateInfo(const string& objectId)
+{
+    printFunction(__PRETTY_FUNCTION__);
+    print("objectId", objectId);
+    return derivates.at(objectId);
+}
+
 void DBServiceManager::maintainSuccessfulReplication(
         const string& relID,
         const string& replicaLocationHost,
@@ -496,6 +559,50 @@ void DBServiceManager::maintainSuccessfulReplication(
     }
 }
 
+
+void DBServiceManager::maintainSuccessfulDerivation(
+        const string& objectID,
+        const string& replicaLocationHost,
+        const string& replicaLocationPort)
+{
+    printFunction("DBServiceManager::maintainSuccessfulDerivation");
+    boost::lock_guard<boost::mutex> lock(managerMutex);
+    print("ObjectID", objectID);
+    print("replicaLocationHost", replicaLocationHost);
+    print("replicaLocationPort", replicaLocationPort);
+    try
+    {
+        DerivateInfo& derInfo = getDerivateInfo(objectID);
+
+        for(ReplicaLocations::const_iterator it
+                = derInfo.nodesBegin(); it != derInfo.nodesEnd(); it++)
+        {
+            LocationInfo& location = getLocation(it->first);
+            if(location.isSameWorker(replicaLocationHost, replicaLocationPort))
+            {
+                derInfo.updateReplicationStatus(it->first, true);
+//                if(!DBServicePersistenceAccessor::updateLocationMapping(
+//                        objectID,
+//                        it->first,
+//                        true))
+//                {
+//                    print("Could not update location mapping");
+//                }
+                break;
+            }
+        }
+    }catch(...)
+    {
+        print("DerivateInfo does not exist");
+    }
+    if(!DBServicePersistenceAccessor::persistAllDerivates(derivates))
+    {
+        print("Could not persist DBService derivates");
+    }
+}
+
+
+
 void DBServiceManager::deleteReplicaMetadata(const string& relID)
 {
     printFunction("DBServiceManager::deleteReplicaMetadata");
@@ -514,6 +621,28 @@ void DBServiceManager::deleteReplicaMetadata(const string& relID)
         print("Could not persist DBService relations");
     }
 }
+
+
+void DBServiceManager::deleteDerivateMetadata(const string& objectID)
+{
+    printFunction("DBServiceManager::deleteDerivateMetadata");
+    boost::lock_guard<boost::mutex> lock(managerMutex);
+    try
+    {
+//        DBServicePersistenceAccessor::deleteDerivateInfo(
+//                getDerivateInfo(objectID));
+        derivates.erase(objectID);
+    }catch(...)
+    {
+        print("RelationInfo does not exist");
+    }
+    if(!DBServicePersistenceAccessor::persistAllDerivates(derivates))
+    {
+        print("Could not persist DBService derivates");
+    }
+}
+
+
 
 void DBServiceManager::printMetadata()
 {
@@ -543,6 +672,19 @@ void DBServiceManager::printMetadata()
         printRelationInfo(relation.second);
         cout << endl;
     }
+    cout << "********************************" << endl;
+    cout << "* DERIVATES                    *" << endl;
+    cout << "********************************" << endl;
+    if(derivates.empty())
+    {
+        cout << "*** NONE ***" << endl;
+    }
+    for(const auto& derivate : derivates)
+    {
+        cout << "ObjectID:\t" << derivate.first << endl;
+        printDerivateInfo(derivate.second);
+        cout << endl;
+    }
 }
 
 bool DBServiceManager::replicaExists(
@@ -555,6 +697,14 @@ bool DBServiceManager::replicaExists(
                     relationName));
     return it != relations.end();
 }
+
+bool DBServiceManager::derivateExists(const string& objectId)
+{
+    DBServiceDerivates::const_iterator it =
+            derivates.find( objectId);
+    return it != derivates.end();
+}
+
 
 void DBServiceManager::setOriginalLocationTransferPort(
         const string& relID,
@@ -571,20 +721,6 @@ void DBServiceManager::setOriginalLocationTransferPort(
 }
 
 
-void DBServiceManager::maintainSuccessfulDerivation(
-        const string& objectID,
-        const string& replicaLocationHost,
-        const string& replicaLocationPort)
-{
-    printFunction("DBServiceManager::maintainSuccessfulDerivation");
-    boost::lock_guard<boost::mutex> lock(managerMutex);
-    print("ObjectID", objectID);
-    print("replicaLocationHost", replicaLocationHost);
-    print("replicaLocationPort", replicaLocationPort);
-    bool isImplemented = false;
-    assert(isImplemented); // requires change of table format or 
-                           // an additional table
-}
 
 
 DBServiceManager* DBServiceManager::_instance = nullptr;

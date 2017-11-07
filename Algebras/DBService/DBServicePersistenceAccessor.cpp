@@ -490,7 +490,8 @@ bool DBServicePersistenceAccessor::deleteRelationInfo(
 {
     printFunction("DBServicePersistenceAccessor::deleteRelationInfo");
     string relationName("relations_DBSP");
-    SecondoUtilsLocal::adjustDatabase(relationInfo.getDatabaseName());
+
+  //    SecondoUtilsLocal::adjustDatabase(relationInfo.getDatabaseName());
 
     string relationID = relationInfo.toString();
     FilterConditions filterConditions =

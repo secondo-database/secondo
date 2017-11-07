@@ -154,6 +154,17 @@ by the specified string.
     RelationInfo& getRelationInfo(const std::string& relationAsString);
 
 /*
+1.1.1.1 ~getDerivateInfo~
+
+This function returns a reference to the ~DerivateInfo~ object 
+identified by the specified string.
+
+*/
+   DerivateInfo& getDerivateInfo(const std::string& objectId);
+
+
+
+/*
 
 1.1.1.1 \textit{determineReplicaLocations}
 
@@ -183,6 +194,17 @@ as well as adding them to internal data structures.
             const std::string& relationName);
 
 /*
+1.1.1.1 ~persistDerivateLocations~
+
+This function persists the locations of the derivate identified by
+the specified string. 
+
+*/
+    void persistDerivateLocations(const std::string& objectId);
+
+
+
+/*
 
 1.1.1.1 \textit{getReplicaLocations}
 
@@ -194,6 +216,19 @@ given string and stores them in the provided vector.
             const std::string& relationAsString,
             ReplicaLocations& ids);
 
+
+/*
+1.1.1.1 ~getDerivateLocations~
+
+This function retrieves all replica locations of the derivate identified by the
+given string and stores them into the provided vector.
+
+*/
+  void getDerivateLocations(
+           const std::string& objectId,
+           ReplicaLocations& locations);
+
+
 /*
 
 1.1.1.1 \textit{deleteReplicaLocations}
@@ -204,6 +239,18 @@ the internal data structures.
 */
     void deleteReplicaLocations(const std::string& databaseName,
                                 const std::string& relationName);
+
+
+/*
+1.1.1.1 ~deleteDerivateLocations~
+
+This function removes the location information of the specified
+derivate from internal data structures.
+
+*/
+    void deleteDerivateLocations(
+              const std::string& objectId);
+
 
 /*
 
@@ -229,6 +276,17 @@ structures and from the persistent metadata relations.
 */
     void deleteReplicaMetadata(const std::string& relID);
 
+
+/*
+1.1.1.1 ~deleteDerivateMetadata~
+
+This function removes the metadata of a certain derivate from the internal
+data structures and from the persistent metadata relations.
+
+*/
+    void deleteDerivateMetadata(const std::string& objectId);
+
+
 /*
 
 1.1.1.1 ~printMetadata~
@@ -250,6 +308,15 @@ database and relation name.
         bool replicaExists(
                 const std::string& databaseName,
                 const std::string& relationName);
+
+
+/*
+1.1.1.1 ~derivateExists~
+
+This function checks whether a derivate with given id exists.
+
+*/
+    bool derivateExists(const std::string& objectId);
 
 
 /*
@@ -377,10 +444,14 @@ available connections.
 1.1.1.1 \textit{restoreReplicaInformation}
 
 On \textit{DBServiceManager} instantiation, this function restores all replica
-information from the persistent relations in case they exist.
+information from the persistent relations in case they exist. This includes
+relations, connections, derivates, and mappings.
 
 */
     void restoreReplicaInformation();
+
+
+
 /*
 
 1.1.1.1 \textit{\_instance}
