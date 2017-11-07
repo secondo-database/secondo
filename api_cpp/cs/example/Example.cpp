@@ -52,7 +52,7 @@ int main(int argc, char** argv){
 
    // create an interface to the secondo server
    // the paramneter must be true to communicate as client
-   SecondoInterface* si = new SecondoInterfaceCS(true);
+   SecondoInterface* si = new SecondoInterfaceCS(true,0,false);
 
    // define the name of the configuration file
    string config = "Config.ini";
