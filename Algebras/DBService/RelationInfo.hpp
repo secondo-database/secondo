@@ -36,19 +36,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "LocationInfo.hpp"
 #include "MetadataObject.hpp"
+#include "ReplicaLocations.hpp"
 
 namespace DBService
 {
-
-/*
-
-1.1.1 Type Definitions
-
-*/
-
-typedef size_t ConnectionID;
-
-typedef std::vector<std::pair<ConnectionID, bool> > ReplicaLocations;
 
 /*
 
