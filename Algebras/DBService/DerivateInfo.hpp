@@ -39,6 +39,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define DERIVATEINFO_HPP
 
 #include "Algebras/DBService/MetadataObject.hpp"
+#include "Algebras/DBService/ReplicaLocations.hpp"
 #include <string>
 
 namespace DBService
@@ -73,7 +74,7 @@ depends on.
    const std::string& getSource() const;
 
 /*
-1.2.3 ~getFun~
+1.1.3 ~getFun~
 
 Returns the function that is used to create the object from
 the source relation.
@@ -81,12 +82,66 @@ the source relation.
 */
    const std::string& getFun() const;
 
+/*
+1.1.4 ~addNode~
+
+*/
+   void addNode(ConnectionID id);
+
+   void addNode(ConnectionID id, bool replicated);
+
+/*
+1.1.5 ~addNodes~
+
+Adds several nodes at once.
+
+*/
+   void addNodes(std::vector<ConnectionID>& nodesToAdd);
+
+/*
+1.1.6 ~nodesBegin~
+
+Returns an iterator to the begin of the nodes.
+
+*/
+    const ReplicaLocations::const_iterator nodesBegin() const;
+
+/*
+1.1.7 ~nodesEnd~
+
+This function returns an iterator to the end of the nodes.    
+
+*/
+   const ReplicaLocations::const_iterator nodesEnd() const;
+
+
+/*
+1.1.8 ~toString~
+
+*/
+   std::string toString() const;
+
+
+/*
+1.1.9 ~getNodeCount~
+
+Returns the number of nodes.
+
+*/
+   size_t getNodeCount() const;
+
+/*
+1.1.10 ~updateReplicationStatus~
+
+*/
+  void updateReplicationStatus(ConnectionID id, bool replicated);
 
  private:
     std::string objectName;
     std::string dependsOn;
     std::string fundef;
 
+    ReplicaLocations nodes;
 
 };
 

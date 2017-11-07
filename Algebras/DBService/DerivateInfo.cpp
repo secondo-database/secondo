@@ -56,6 +56,58 @@ const std::string& DerivateInfo::getFun() const
   return fundef;
 }
 
+void DerivateInfo::addNode(ConnectionID id)
+{
+   addNode(id,false);
+}
+
+void DerivateInfo::addNode(ConnectionID id, bool replicated)
+{
+    nodes.push_back(std::pair<ConnectionID, bool>(id, replicated));
+}
+
+void DerivateInfo::addNodes(std::vector<ConnectionID>& nodesToAdd)
+{
+    for (std::vector<ConnectionID>::const_iterator i = nodesToAdd.begin();
+            i != nodesToAdd.end(); ++i)
+    {   
+        nodes.push_back(std::pair<ConnectionID, bool>(*i, false));
+    }   
+}
+
+const ReplicaLocations::const_iterator DerivateInfo::nodesBegin() const
+{
+    return nodes.begin();
+}
+
+const ReplicaLocations::const_iterator DerivateInfo::nodesEnd() const
+{
+    return nodes.end();
+}
+
+size_t DerivateInfo::getNodeCount() const
+{
+    return nodes.size();
+}
+
+std::string DerivateInfo::toString() const
+{
+    return MetadataObject::getIdentifier(dependsOn, objectName);
+}
+
+void DerivateInfo::updateReplicationStatus(ConnectionID connID, bool replicated)
+{
+    for(auto& node : nodes)
+    {   
+        if(node.first == connID)
+        {   
+            node.second = replicated;
+        }   
+    }   
+}
+
+
+
 } // end of namespace
 
 
