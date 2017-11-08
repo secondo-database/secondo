@@ -68,7 +68,8 @@ This function creates a new object using arguments given in constructor.
      std::string targetName;
      std::string relName;
      std::string fundef;
-     std::string relId;
+     std::string relIdOnWorker;
+     std::string rid;
      std::string targetId;
 
      void derivationFailed(const std::string& error);

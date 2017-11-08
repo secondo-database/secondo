@@ -99,6 +99,11 @@ Returns a relation name derived from a filename;
              const std::string& databaseName,
              const std::string& relationName);
 
+   static const std::string getRelId(
+        const std::string& databaseName,
+        const std::string& relationName);
+
+
 /*
 
 1.1.1.1 ~separator~

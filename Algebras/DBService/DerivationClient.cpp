@@ -47,8 +47,10 @@ DerivationClient::DerivationClient(
          const std::string& _fundef): DBName(_DBName), targetName(_targetName),
                                       relName(_relName), fundef(_fundef){
     printFunction(__PRETTY_FUNCTION__);
-    relId = ReplicationUtils::getRelNameOnDBServiceWorker(DBName, relName);
-    targetId = MetadataObject::getIdentifier(DBName, targetName);
+    relIdOnWorker = ReplicationUtils::getRelNameOnDBServiceWorker(DBName,
+                                                                  relName);
+    rid = ReplicationUtils::getRelId(DBName, relName); 
+    targetId = MetadataObject::getIdentifier(rid, targetName);
 }
 
 
@@ -63,8 +65,8 @@ void DerivationClient::start() {
        derivationFailed("target " + targetName + " already exists");
        return;
      }
-     if(!ctlg->IsObjectName(relId)){
-       derivationFailed("argument relation " + relId + " does not exist");
+     if(!ctlg->IsObjectName(relIdOnWorker)){
+       derivationFailed("argument relation " + relName + " does not exist");
        return;
      }
   
@@ -93,7 +95,7 @@ void DerivationClient::start() {
      // definition by the relation's id
      std::string argName = nl->SymbolValue(argNameL);
      ListExpr fundeflist = nl->Third(funlist);
-     ListExpr relSymb = nl->SymbolAtom(relId);
+     ListExpr relSymb = nl->SymbolAtom(relIdOnWorker);
      fundeflist = listutils::replaceSymbol(fundeflist,argName, relSymb,nl);
  
      // try to evaluate the function
