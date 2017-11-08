@@ -188,16 +188,9 @@ This function persists all relations passed as argument at once. All data that
 was persisted prior to the call of this function will be lost.
 
 */
-    static bool persistAllRelations(DBServiceRelations dbsRelations);
+    static bool persistAllReplicas(DBServiceRelations dbsRelations,
+                                   DBServiceDerivates dbsDerivates);
 
-/*
-1.1.1.1 ~persistAllDerivates~
-
-This function persists all derivates passed as argument at once. All data that
-was persisted prior to the call of this function will be lost.
-
-*/
-    static bool persistAllDerivates(DBServiceDerivates& dbsDerivates);
 
 
 /*

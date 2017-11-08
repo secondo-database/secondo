@@ -633,8 +633,9 @@ bool DBServicePersistenceAccessor::persistAllLocations(
             values);
 }
 
-bool DBServicePersistenceAccessor::persistAllRelations(
-        DBServiceRelations dbsRelations)
+bool DBServicePersistenceAccessor::persistAllReplicas(
+        DBServiceRelations dbsRelations,
+        DBServiceDerivates dbsDerivates)
 {
     printFunction("DBServicePersistenceAccessor::persistAllRelations");
     vector<vector<string> > relationValues;
@@ -666,26 +667,12 @@ bool DBServicePersistenceAccessor::persistAllRelations(
             }
         }
     }
-    return deleteAndCreate(
-            string("relations_DBSP"),
-            relations,
-            relationValues)
-            && deleteAndCreate(
-                    string("mapping_DBSP"),
-                    mapping,
-                    mappingValues);
-}
 
-
-bool DBServicePersistenceAccessor::persistAllDerivates(
-        DBServiceDerivates& dbsderivates)
-{
-    printFunction(__PRETTY_FUNCTION__);
     vector<vector<string> > derivateValues;
-    vector<vector<string> > mappingValues;
-    if(!dbsderivates.empty())
+
+    if(!dbsDerivates.empty())
     {
-        for(const auto& derivate : dbsderivates)
+        for(const auto& derivate : dbsDerivates)
         {
             const DerivateInfo& derivateInfo = derivate.second;
             vector<string> value = {
@@ -708,16 +695,21 @@ bool DBServicePersistenceAccessor::persistAllDerivates(
             }
         }
     }
-    return deleteAndCreate(
-               string("derivates_DBSP"),
-               derivates,
-               derivateValues)
-            && deleteAndCreate(
-                 string("mapping_DBSP"),
-                 mapping,
-                 mappingValues);
-}
 
+
+    return     deleteAndCreate(
+                 string("relations_DBSP"),
+                 relations,
+                 relationValues)
+           && deleteAndCreate(
+                 string("derivates_DBSP"),
+                 derivates,
+                 derivateValues)
+           && deleteAndCreate(
+                    string("mapping_DBSP"),
+                    mapping,
+                    mappingValues);
+}
 
 
 size_t getRecordCount(const string& databaseName, const string& relationName)

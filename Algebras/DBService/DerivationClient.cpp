@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/MetadataObject.hpp"
 #include "Algebras/DBService/SecondoUtilsLocal.hpp"
 #include "Algebras/DBService/CommunicationClient.hpp"
+#include "Algebras/DBService/DebugOutput.hpp"
 #include "SecondoSystem.h"
 #include "NestedList.h"
 #include "ListUtils.h"
@@ -44,6 +45,7 @@ DerivationClient::DerivationClient(
          const std::string& _relName,
          const std::string& _fundef): DBName(_DBName), targetName(_targetName),
                                       relName(_relName), fundef(_fundef){
+    printFunction(__PRETTY_FUNCTION__);
     relId = MetadataObject::getIdentifier(DBName, relName);
     targetId = MetadataObject::getIdentifier(DBName, targetName);
 }
@@ -51,85 +53,92 @@ DerivationClient::DerivationClient(
 
 void DerivationClient::start() {
 
-   SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
-   // some basic checks
-   if(ctlg->IsObjectName(targetId)){
-     derivationFailed("target " + targetName + " already exists");
-     return;
-   }
-   if(!ctlg->IsObjectName(relId)){
-     derivationFailed("argument relation " + relName + " does not exist");
-     return;
-   }
-  
-   // convert function string into nested list
-   // and check for valid format
-   ListExpr funlist;
-   if(!nl->ReadFromString(fundef, funlist)){
-       derivationFailed("cannot parse function definition");
-       return;
-   }  
-   if(!nl->HasLength(funlist,3)){
-       derivationFailed("invalid function description");
-       return;
-   }
-   ListExpr funarg = nl->Second(funlist);
-   if(!nl->HasLength(funarg,2)){
-       derivationFailed("invalid function description");
-       return;
-   }
-   ListExpr argNameL = nl->First(funarg);
-   if(nl->AtomType(argNameL)!=SymbolType){
-      derivationFailed("invalid argument name");
-   }
+   printFunction(__PRETTY_FUNCTION__);
 
-   // replace the argument's name in the function 
-   // definition by the relation's id
-   std::string argName = nl->SymbolValue(argNameL);
-   ListExpr fundeflist = nl->Third(funlist);
-   ListExpr relSymb = nl->SymbolAtom(relId);
-   fundeflist = listutils::replaceSymbol(fundeflist,argName, relSymb,nl);
-
-   // try to evaluate the function
-   Word QueryResult;
-   std::string typeString, errorString;
-   bool correct, evaluable, defined, isFunction;
-
-   SecondoSystem::BeginTransaction();
    try{
-     QueryProcessor::ExecuteQuery(fundeflist, QueryResult, typeString, 
-                                  errorString, correct, 
-                                  evaluable,defined, isFunction);
-   } catch(...){
-      correct = false;
-      errorString = "exception during executeQuery";
-   }
-   if(!correct){
-      derivationFailed(errorString);
-      return;
-   }
-
-   // insert result into the database
-   ListExpr typeExpr;
-   nl->ReadFromString(typeString, typeExpr);
-
-   if(!ctlg->InsertObject(targetId, "",typeExpr, QueryResult, true)) {
-       derivationFailed("could not insert target object");
+     SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+     // some basic checks
+     if(ctlg->IsObjectName(targetId)){
+       derivationFailed("target " + targetName + " already exists");
        return;
-   }
-   ctlg->CleanUp(false,true);
-   SecondoSystem::CommitTransaction(true);
-   // report success of operation
-   derivationSuccessful();
+     }
+     if(!ctlg->IsObjectName(relId)){
+       derivationFailed("argument relation " + relName + " does not exist");
+       return;
+     }
+  
+     // convert function string into nested list
+     // and check for valid format
+     ListExpr funlist;
+     if(!nl->ReadFromString(fundef, funlist)){
+         derivationFailed("cannot parse function definition");
+         return;
+     }  
+     if(!nl->HasLength(funlist,3)){
+       derivationFailed("invalid function description");
+       return;
+     }
+     ListExpr funarg = nl->Second(funlist);
+     if(!nl->HasLength(funarg,2)){
+         derivationFailed("invalid function description");
+         return;
+     }
+     ListExpr argNameL = nl->First(funarg);
+     if(nl->AtomType(argNameL)!=SymbolType){
+        derivationFailed("invalid argument name");
+     }
+
+     // replace the argument's name in the function 
+     // definition by the relation's id
+     std::string argName = nl->SymbolValue(argNameL);
+     ListExpr fundeflist = nl->Third(funlist);
+     ListExpr relSymb = nl->SymbolAtom(relId);
+     fundeflist = listutils::replaceSymbol(fundeflist,argName, relSymb,nl);
+ 
+     // try to evaluate the function
+     Word QueryResult;
+     std::string typeString, errorString;
+     bool correct, evaluable, defined, isFunction;
+  
+     SecondoSystem::BeginTransaction();
+     try{
+       QueryProcessor::ExecuteQuery(fundeflist, QueryResult, typeString, 
+                                    errorString, correct, 
+                                    evaluable,defined, isFunction);
+     } catch(...){
+        correct = false;
+        errorString = "exception during executeQuery";
+     }
+     if(!correct){
+        derivationFailed(errorString);
+        return;
+     }
+
+     // insert result into the database
+     ListExpr typeExpr;
+     nl->ReadFromString(typeString, typeExpr);
+
+     if(!ctlg->InsertObject(targetId, "",typeExpr, QueryResult, true)) {
+         derivationFailed("could not insert target object");
+         return;
+     }
+     ctlg->CleanUp(false,true);
+     SecondoSystem::CommitTransaction(true);
+     // report success of operation
+     derivationSuccessful();
+ } catch(...){
+    derivationFailed("Exception during start function");
+ }
 }
          
 
 
 void DerivationClient::derivationFailed(const std::string& error){
-  // ignore in the moment
+   print("derivation failed: " + error);
 }
 
 void DerivationClient::derivationSuccessful(){
+    printFunction(__PRETTY_FUNCTION__);
 
     std::string dbServiceHost;
     std::string dbServicePort;
@@ -137,6 +146,7 @@ void DerivationClient::derivationSuccessful(){
             dbServiceHost,
             dbServicePort))
     {
+        print("Error during lookupDBServiceLocation");
         throw new SecondoException("Unable to connect to DBService");
     }
 
@@ -147,6 +157,7 @@ void DerivationClient::derivationSuccessful(){
     clientToDBServiceMaster.reportSuccessfulDerivation(
             DBName,
             targetName);
+    print("derivationSuccessful reported");
 }
 
 

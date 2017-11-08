@@ -69,8 +69,7 @@ DBServiceManager::~DBServiceManager()
 {
     printFunction("DBServiceManager::~DBServiceManager");
     DBServicePersistenceAccessor::persistAllLocations(connections);
-    DBServicePersistenceAccessor::persistAllRelations(relations);
-    DBServicePersistenceAccessor::persistAllDerivates(derivates);
+    DBServicePersistenceAccessor::persistAllReplicas(relations, derivates);
 }
 
 void DBServiceManager::restoreConfiguration()
@@ -392,7 +391,7 @@ void DBServiceManager::persistReplicaLocations(const string& databaseName,
             relations.at(
                     RelationInfo::getIdentifier(databaseName, relationName));
     //DBServicePersistenceAccessor::persistRelationInfo(relationInfo);
-    if(!DBServicePersistenceAccessor::persistAllRelations(relations))
+    if(!DBServicePersistenceAccessor::persistAllReplicas(relations, derivates))
     {
         print("Could not persist DBService relations");
     }
@@ -403,7 +402,7 @@ void DBServiceManager::persistDerivateLocations(const string& ObjectId)
     boost::lock_guard<boost::mutex> lock(managerMutex);
     DerivateInfo derivateInfo = derivates.at(ObjectId);
     //DBServicePersistenceAccessor::persistDerivateInfo(derivateInfo);
-    if(!DBServicePersistenceAccessor::persistAllDerivates(derivates))
+    if(!DBServicePersistenceAccessor::persistAllReplicas(relations,derivates))
     {
         print("Could not persist DBService derivates");
     }
@@ -576,7 +575,7 @@ void DBServiceManager::maintainSuccessfulReplication(
     {
         print("RelationInfo does not exist");
     }
-    if(!DBServicePersistenceAccessor::persistAllRelations(relations))
+    if(!DBServicePersistenceAccessor::persistAllReplicas(relations, derivates))
     {
         print("Could not persist DBService relations");
     }
@@ -618,7 +617,7 @@ void DBServiceManager::maintainSuccessfulDerivation(
     {
         print("DerivateInfo does not exist");
     }
-    if(!DBServicePersistenceAccessor::persistAllDerivates(derivates))
+    if(!DBServicePersistenceAccessor::persistAllReplicas(relations,derivates))
     {
         print("Could not persist DBService derivates");
     }
@@ -639,7 +638,7 @@ void DBServiceManager::deleteReplicaMetadata(const string& relID)
     {
         print("RelationInfo does not exist");
     }
-    if(!DBServicePersistenceAccessor::persistAllRelations(relations))
+    if(!DBServicePersistenceAccessor::persistAllReplicas(relations, derivates))
     {
         print("Could not persist DBService relations");
     }
@@ -659,7 +658,7 @@ void DBServiceManager::deleteDerivateMetadata(const string& objectID)
     {
         print("RelationInfo does not exist");
     }
-    if(!DBServicePersistenceAccessor::persistAllDerivates(derivates))
+    if(!DBServicePersistenceAccessor::persistAllReplicas(relations,derivates))
     {
         print("Could not persist DBService derivates");
     }
