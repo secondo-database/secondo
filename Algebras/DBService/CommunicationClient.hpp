@@ -169,9 +169,7 @@ instantiated that connects to the \textit{CommunicationServer} on the DBService
 master and executes the function \textit{reportSuccessfulDerivation}.
 
 */
-    bool reportSuccessfulDerivation(
-            const std::string& databaseName,
-            const std::string& objectName);
+    bool reportSuccessfulDerivation(const std::string& objectId);
 
 /*
 1.1.1.2 \textit{requestReplicaDeletion}

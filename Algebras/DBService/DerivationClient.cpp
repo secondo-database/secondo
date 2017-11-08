@@ -158,8 +158,7 @@ void DerivationClient::derivationSuccessful(){
             atoi(dbServicePort.c_str()),
             0);
     clientToDBServiceMaster.reportSuccessfulDerivation(
-            DBName,
-            targetName);
+            targetId);
     print("derivationSuccessful reported");
 }
 

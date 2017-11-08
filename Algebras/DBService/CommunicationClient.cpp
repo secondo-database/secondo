@@ -373,8 +373,7 @@ bool CommunicationClient::reportSuccessfulReplication(
 
 
 bool CommunicationClient::reportSuccessfulDerivation(
-        const string& databaseName,
-        const string& objectName)
+        const string& objectId)
 {
     traceWriter->writeFunction(
             "CommunicationClient::reportSuccessfulDerivation");
@@ -405,8 +404,7 @@ bool CommunicationClient::reportSuccessfulDerivation(
         return false;
     }
 
-    CommunicationUtils::sendLine(io,
-            RelationInfo::getIdentifier(databaseName, objectName));
+    CommunicationUtils::sendLine(io, objectId);
 
     if(!CommunicationUtils::receivedExpectedLine(io,
             CommunicationProtocol::LocationRequest()))
