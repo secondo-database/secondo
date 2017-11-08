@@ -181,6 +181,21 @@ relevant information on the original location.
             const std::string& disk);
 
 /*
+1.1.1.1 ~determineDerivateLocations~
+
+This function determines the locations of the source relations,
+creates a new DerivateInfo object from the arguments and these
+locations, and inserts this derivateInfo into the main memory map.
+
+*/
+
+std::string determineDerivateLocations(
+              const std::string& targetname,
+              const std::string& relationId,
+              const std::string& fundef);
+
+
+/*
 
 1.1.1.1 \textit{persistReplicaLocations}
 

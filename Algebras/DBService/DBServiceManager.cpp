@@ -347,6 +347,29 @@ void DBServiceManager::determineReplicaLocations(const string& databaseName,
             relationInfo));
 }
 
+
+
+string DBServiceManager::determineDerivateLocations(
+                                         const string& targetname,
+                                         const string& relationId,
+                                         const string& fundef)
+{
+    printFunction("DBServiceManager::determineDerivateLocations");
+    boost::lock_guard<boost::mutex> lock(managerMutex);
+    DerivateInfo derivateInfo(targetname, relationId, fundef);
+    ReplicaLocations locations;
+    getReplicaLocations(relationId, locations);
+    vector<ConnectionID> v;
+    for(const auto& loc : locations)
+    {
+       v.push_back(loc.first);
+    }
+    derivateInfo.addNodes(v);
+    string id = derivateInfo.toString();
+    derivates.insert( pair<string, DerivateInfo>(id, derivateInfo));
+    return id;
+}
+
 void DBServiceManager::deleteReplicaLocations(const string& databaseName,
                                               const string& relationName)
 {

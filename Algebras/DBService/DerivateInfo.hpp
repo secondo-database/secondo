@@ -98,6 +98,7 @@ Adds several nodes at once.
 */
    void addNodes(std::vector<ConnectionID>& nodesToAdd);
 
+
 /*
 1.1.6 ~nodesBegin~
 

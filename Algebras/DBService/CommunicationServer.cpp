@@ -531,6 +531,8 @@ bool CommunicationServer::handleTriggerDerivation(
 {
     traceWriter->writeFunction(tid,
             "CommunicationServer::handleTriggerDerivation");
+
+    // request derivation information
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::DerivationRequest());
 
@@ -558,7 +560,7 @@ bool CommunicationServer::handleTriggerDerivation(
                 CommunicationProtocol::RelationNotExists());
         return false;
     }
-    if(dbService->replicaExists(databaseName, targetName)){
+    if(dbService->derivateExists(targetName)){
         CommunicationUtils::sendLine(io, 
                  CommunicationProtocol::ObjectExists());
         return false;
@@ -568,9 +570,12 @@ bool CommunicationServer::handleTriggerDerivation(
     // send command to the worker to derive the object
     string relId = MetadataObject::getIdentifier(databaseName, relName);
     ReplicaLocations rl;
+    string  derId = dbService->determineDerivateLocations(targetName, relId,
+                                                          fundef);
+    dbService->persistDerivateLocations(derId);
+    
+
     dbService->getReplicaLocations(relId, rl);
-    // TODO: insert new objects to replica table
-       
     ReplicaLocations::iterator it;
     for(it = rl.begin(); it!=rl.end();it++){
        if(it->second){ // relation is replicated
