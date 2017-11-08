@@ -56,6 +56,14 @@ const std::string ReplicationUtils::getFileNameOnDBServiceWorker(
     return fileName.str();
 }
 
+const std::string ReplicationUtils::getRelNameOnDBServiceWorker(
+           const string& databaseName,
+           const string& relationName){
+   stringstream relname;
+   relname << databaseName << separator << relationName << "xRPLCTD";
+   return relname.str();
+}
+
 void ReplicationUtils::parseFileName(const std::string& fileName,
         std::string& databaseName,
         std::string& relationName)

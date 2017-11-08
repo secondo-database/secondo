@@ -92,6 +92,14 @@ Returns a relation name derived from a filename;
 
 
 /*
+1.1.1.2 ~getRelnameonDBServiceWorker~
+
+*/
+   static const std::string getRelNameOnDBServiceWorker(
+             const std::string& databaseName,
+             const std::string& relationName);
+
+/*
 
 1.1.1.1 ~separator~
 

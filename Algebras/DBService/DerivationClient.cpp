@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/SecondoUtilsLocal.hpp"
 #include "Algebras/DBService/CommunicationClient.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
+#include "Algebras/DBService/ReplicationUtils.hpp"
 #include "SecondoSystem.h"
 #include "NestedList.h"
 #include "ListUtils.h"
@@ -46,7 +47,7 @@ DerivationClient::DerivationClient(
          const std::string& _fundef): DBName(_DBName), targetName(_targetName),
                                       relName(_relName), fundef(_fundef){
     printFunction(__PRETTY_FUNCTION__);
-    relId = MetadataObject::getIdentifier(DBName, relName);
+    relId = ReplicationUtils::getRelNameOnDBServiceWorker(DBName, relName);
     targetId = MetadataObject::getIdentifier(DBName, targetName);
 }
 
@@ -63,7 +64,7 @@ void DerivationClient::start() {
        return;
      }
      if(!ctlg->IsObjectName(relId)){
-       derivationFailed("argument relation " + relName + " does not exist");
+       derivationFailed("argument relation " + relId + " does not exist");
        return;
      }
   
