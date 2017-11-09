@@ -51,7 +51,7 @@ Result    : TRUE
 Operator  : read3
 Number    : 1
 Signature : rel(tuple(X)) x map(rel(tuple(X)) -> stream(tuple(Y))  -> stream(tuple(Y))
-Example   : query plz readr3[ . feed filter[.PLZ > 5000] project[Ort] ] = plz feed filter[.PLZ > 5000] project[Ort]
+Example   : query plz read3[ . feed filter[.PLZ > 5000] project[Ort] ] = plz feed filter[.PLZ > 5000] project[Ort]
 Result    : TRUE
 
 
