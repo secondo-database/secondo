@@ -150,14 +150,12 @@ int OperatorRderive::mapValue(Word* args,
    string fundef = ((FText*) args[4].addr)->GetValue();
    string remotename = ((CcString*)args[1].addr)->GetValue();
 
-   cout << "relname" << relname << endl;
-   cout << "fundef" << fundef << endl;
-   cout << "remotename " << remotename << endl;
+ // remote creation of derivative on db service
    string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
    DBServiceClient::getInstance()->triggerDerivation(dbname,
-                                                               remotename,
-                                                               relname,
-                                                               fundef);
+                                                     remotename,
+                                                     relname,
+                                                     fundef);
 
    // local function evaluation
    Relation* rel = (Relation*) args[0].addr;
@@ -165,6 +163,10 @@ int OperatorRderive::mapValue(Word* args,
    ArgVectorPointer funArg = qp->Argument(fun);
    (*funArg)[0] = rel;
    qp->Request(fun,result);
+   // swap result storage from fun and s 
+   Word myResultStorage = qp->ResultStorage(s);
+   qp->ChangeResultStorage(fun, myResultStorage);    
+   qp->ChangeResultStorage(s, result);
    return 0; 
 }
 
