@@ -5053,18 +5053,13 @@ QueryProcessor::ReInitResultStorage( const Supplier s )
     throw qp_error("Nodetype != Operator");
   }
 
-  //cerr << "u.op.isFun = " << tree->u.op.isFun << endl;
-  //ListExpr type = (tree->u.op.isFun) ? nl->Third(tree->typeExpr)
-  //                             : tree->typeExpr;
-
   int algId = tree->u.op.resultAlgId;
   int typeId = tree->u.op.resultTypeId;
   ListExpr numType = tree->numTypeExpr;
 
-
-  //cerr << "typeExpr " << nl->ToString(tree->typeExpr) << endl;
-
-
+  if(tree->u.op.isFun){
+      numType = nl->Third(numType);
+  }
 
   if ( (algId == 0) && (typeId == 0) )
   {
