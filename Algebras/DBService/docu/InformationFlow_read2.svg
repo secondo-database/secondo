@@ -1,0 +1,426 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 744.09448819 1052.3622047"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="InformationFlow_read2.svg">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.98994949"
+     inkscape:cx="425.85833"
+     inkscape:cy="582.52494"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1680"
+     inkscape:window-height="1021"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="75.714287"
+       y="157.3622"
+       id="text4186"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         x="75.714287"
+         y="157.3622"
+         id="tspan4190" /></text>
+    <g
+       id="g4169"
+       transform="translate(12.857143,-2.0316065e-8)">
+      <text
+         sodipodi:linespacing="125%"
+         id="text4155"
+         y="38.076488"
+         x="15"
+         style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="38.076488"
+           x="15"
+           id="tspan4157"
+           sodipodi:role="line">OperatorRead2::mapValue</tspan><tspan
+           style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:'sans-serif Italic'"
+           id="tspan4159"
+           y="56.826488"
+           x="15"
+           sodipodi:role="line">     - if relation is present locally, process mapping completly locally</tspan><tspan
+           style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:'sans-serif Italic'"
+           id="tspan4163"
+           y="75.576492"
+           x="15"
+           sodipodi:role="line">     - otherwise, <tspan
+   id="tspan4165"
+   style="font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold Italic'">get File </tspan>in OPEN method and process this locally afterwards</tspan><tspan
+           id="tspan4161"
+           y="94.326492"
+           x="15"
+           sodipodi:role="line" /></text>
+      <rect
+         y="20.933632"
+         x="11.428572"
+         height="64.285713"
+         width="505"
+         id="rect4167"
+         style="fill:none;stroke:#000000;stroke-opacity:1" />
+    </g>
+    <g
+       id="g4202"
+       transform="translate(-4.2857143,-8.5714286)">
+      <text
+         sodipodi:linespacing="125%"
+         id="text4178"
+         y="120.21935"
+         x="35"
+         style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="120.21935"
+           x="35"
+           id="tspan4180"
+           sodipodi:role="line">DBServiceClient::retrieveReplicaAndGetFilename</tspan><tspan
+           id="tspan4184"
+           y="138.96936"
+           x="35"
+           sodipodi:role="line">     - check whether and where the replica is </tspan><tspan
+           y="157.71935"
+           x="35"
+           sodipodi:role="line"
+           id="tspan4271">       available using getReplicaLocation function</tspan></text>
+      <rect
+         y="102.3341"
+         x="30.68619"
+         height="62.199043"
+         width="350.05618"
+         id="rect4200"
+         style="fill:none;stroke:#000000;stroke-width:0.9438104;stroke-opacity:1" />
+    </g>
+    <g
+       id="g4210"
+       transform="translate(455.71428,85.714286)">
+      <g
+         id="g4273">
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="33.57143"
+           y="167.3622"
+           id="text4196"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan4198"
+             x="33.57143"
+             y="167.3622">ReplicationClient:: requestReplica</tspan></text>
+        <rect
+           style="fill:none;stroke:#000000;stroke-opacity:1"
+           id="rect4208"
+           width="236.42857"
+           height="23.571428"
+           x="28.57143"
+           y="152.3622" />
+      </g>
+    </g>
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:1.19791961;stroke-opacity:1"
+       id="rect4215"
+       width="715.51642"
+       height="258.3735"
+       x="12.956102"
+       y="10.318306" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="567.14288"
+       y="34.505062"
+       id="text4217"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan4219"
+         x="567.14288"
+         y="34.505062"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold'">Original-System</tspan></text>
+    <flowRoot
+       xml:space="preserve"
+       id="flowRoot4221"
+       style="fill:black;stroke:none;stroke-opacity:1;stroke-width:1px;stroke-linejoin:miter;stroke-linecap:butt;fill-opacity:1;font-family:sans-serif;font-style:normal;font-weight:normal;font-size:15px;line-height:125%;letter-spacing:0px;word-spacing:0px"><flowRegion
+         id="flowRegion4223"><rect
+           id="rect4225"
+           width="784.28571"
+           height="251.42857"
+           x="-33.57143"
+           y="-45.494938" /></flowRegion><flowPara
+         id="flowPara4227" /></flowRoot>    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="42.857143"
+       y="180.93362"
+       id="text4278"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan4280"
+         x="42.857143"
+         y="180.93362" /></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="39.39595"
+       y="190.7021"
+       id="text4282"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan4284"
+         x="39.39595"
+         y="190.7021">CommunicationClient.getReplicatLocation</tspan></text>
+    <rect
+       style="fill:none;stroke:#000000;stroke-opacity:1"
+       id="rect4286"
+       width="308.09653"
+       height="29.294424"
+       x="33.335033"
+       y="172.51935" />
+    <g
+       id="g4422"
+       transform="translate(-7.0710678,0)">
+      <g
+         id="g4393">
+        <g
+           id="g4313"
+           transform="translate(10.101525,-7.0711067)">
+          <text
+             xml:space="preserve"
+             style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+             x="23.233509"
+             y="323.03207"
+             id="text4293"
+             sodipodi:linespacing="125%"><tspan
+               sodipodi:role="line"
+               x="23.233509"
+               y="323.03207"
+               id="tspan4299">CommunicationServer::communicate</tspan></text>
+          <rect
+             style="fill:none;stroke:#000000;stroke-opacity:1"
+             id="rect4309"
+             width="261.62952"
+             height="32.324883"
+             x="16.162441"
+             y="299.79855" />
+        </g>
+        <g
+           transform="translate(14.142135,-2.5254391)"
+           id="g4318">
+          <text
+             xml:space="preserve"
+             style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+             x="26.263966"
+             y="360.40771"
+             id="text4305"
+             sodipodi:linespacing="125%"><tspan
+               sodipodi:role="line"
+               id="tspan4307"
+               x="26.263966"
+               y="360.40771">CommunicationServer::handleProvideReplicaLocationRequest</tspan></text>
+          <rect
+             style="fill:none;stroke:#000000;stroke-opacity:1"
+             id="rect4311"
+             width="433.35544"
+             height="27.274118"
+             x="12.121831"
+             y="342.22498" />
+        </g>
+        <g
+           id="g4374"
+           transform="translate(-2.0203037,-11.111722)">
+          <text
+             xml:space="preserve"
+             style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+             x="39.39595"
+             y="412.93564"
+             id="text4323"
+             sodipodi:linespacing="125%"><tspan
+               sodipodi:role="line"
+               x="39.39595"
+               y="412.93564"
+               id="tspan4329">DBServiceManager::getRelationInfo</tspan></text>
+          <g
+             transform="translate(10.101525,-7.0710678)"
+             id="g4333">
+            <rect
+               y="399.80365"
+               x="18.182745"
+               height="30.304577"
+               width="283.85287"
+               id="rect4331"
+               style="fill:none;stroke:#000000;stroke-opacity:1" />
+          </g>
+        </g>
+        <g
+           id="g4368"
+           transform="translate(-6.0609144,13.131954)">
+          <g
+             id="g4338"
+             transform="translate(12.12183,23.233508)">
+            <rect
+               y="438.18945"
+               x="20.203051"
+               height="34.345192"
+               width="234.35538"
+               id="rect4336"
+               style="fill:none;stroke:#000000;stroke-opacity:1" />
+          </g>
+          <text
+             sodipodi:linespacing="125%"
+             id="text4364"
+             y="484.59555"
+             x="41.51778"
+             style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+             xml:space="preserve"><tspan
+               y="484.59555"
+               x="41.51778"
+               id="tspan4366"
+               sodipodi:role="line">DBServiceManager::getLocation</tspan></text>
+        </g>
+        <g
+           id="g4386"
+           transform="translate(-17.172592,-5.5558975)">
+          <text
+             sodipodi:linespacing="125%"
+             id="text4380"
+             y="451.32144"
+             x="51.51778"
+             style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+             xml:space="preserve"><tspan
+               y="451.32144"
+               x="51.51778"
+               id="tspan4382"
+               sodipodi:role="line">RelationInfo::getRandomReplicaLocation</tspan></text>
+          <rect
+             y="432.12854"
+             x="43.436558"
+             height="33.335033"
+             width="285.87317"
+             id="rect4384"
+             style="fill:none;stroke:#000000;stroke-opacity:1" />
+        </g>
+        <rect
+           style="fill:none;stroke:#000000;stroke-opacity:1"
+           id="rect4391"
+           width="477.80215"
+           height="238.396"
+           x="19.192898"
+           y="284.64627" />
+      </g>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4418"
+         y="312.93054"
+         x="318.19806"
+         style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold'"
+           y="312.93054"
+           x="318.19806"
+           id="tspan4420"
+           sodipodi:role="line">DBService-Master</tspan></text>
+    </g>
+    <g
+       id="g4456"
+       transform="translate(15.152288,-4.0406102)">
+      <text
+         sodipodi:linespacing="125%"
+         id="text4450"
+         y="589.71234"
+         x="410.12192"
+         style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="589.71234"
+           x="410.12192"
+           id="tspan4452"
+           sodipodi:role="line">ReplicationServer::Communicate</tspan></text>
+      <rect
+         y="571.5296"
+         x="402.04071"
+         height="28.284271"
+         width="234.35539"
+         id="rect4454"
+         style="fill:none;stroke:#000000;stroke-opacity:1" />
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="441.43665"
+       y="627.08795"
+       id="text4461"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan4463"
+         x="441.43665"
+         y="627.08795">applyFunctionAndCreateNewFile</tspan><tspan
+         sodipodi:role="line"
+         x="441.43665"
+         y="645.83795"
+         id="tspan4465" /><tspan
+         sodipodi:role="line"
+         x="441.43665"
+         y="664.58795"
+         id="tspan4467">sendFileToClient</tspan><tspan
+         sodipodi:role="line"
+         x="441.43665"
+         y="683.33795"
+         id="tspan4469" /></text>
+    <rect
+       style="fill:none;stroke:#000000;stroke-opacity:1"
+       id="rect4202"
+       width="380.82751"
+       height="186.87822"
+       x="342.44171"
+       y="545.26562" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:15px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="404.06104"
+       y="706.89001"
+       id="text4204"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan4206"
+         x="404.06104"
+         y="706.89001"
+         style="-inkscape-font-specification:'sans-serif Bold';font-family:sans-serif;font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal">DBService-Worker</tspan></text>
+  </g>
+</svg>
