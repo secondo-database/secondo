@@ -19,32 +19,44 @@ Signature: string -> bool
 Example  : query unlock("da")
 Result   : TRUE
 
+Operator : addpeer
+Number   : 1
+Signature: adist x string x int x string -> bool
+Example  : query addpeer(ad, "snew", 1234, "cfg.ini")
+Result   : TRUE
+
+Operator : removepeer
+Number   : 1
+Signature: adist x {int, string x int} -> bool
+Example  : query removepeer(ad, 2)
+Result   : TRUE
+
 Operator : addworker
 Number   : 1
-Signature: d[f]array x string x int x string x rel(tuple([Host: string, Port: int, Config: string])) -> bool
-Example  : query addworker(da, "snew", 1234, "cfg.ini", peers)
+Signature: adist x string x int x string -> bool
+Example  : query addworker(ad, "snew", 1234, "cfg.ini")
 Result   : TRUE
 
 Operator : removeworker
 Number   : 1
-Signature: d[f]array x int x rel(tuple([Host: string, Port: int, Config: string])) -> bool
-Example  : query removeworker(da, 2, peers)
+Signature: adist x int -> bool
+Example  : query removeworker(ad, 2)
 Result   : TRUE
 
 Operator : moveslot
 Number   : 1
-Signature: dpartition x int x int x rel(tuple([Host: string, Port: int, Config: string])) -> int
-Example  : query moveslot(dp, 7, 2, peers)
+Signature: adist x int x int -> int
+Example  : query moveslot(ad, 7, 2)
 Result   : 13
 
 Operator : splitslot
 Number   : 1
-Signature: dpartition x int x rel(tuple([Host: string, Port: int, Config: string])) -> int
-Example  : query splitslot(dp, 7, peers)
+Signature: adist x int -> int
+Example  : query splitslot(ad, 7)
 Result   : 13
 
-Operator : getworkerindex
+Operator : mergeslots
 Number   : 1
-Signature: d[f]array x string x int -> int
-Example  : query getworkerindex(da, "s1", 1234)
-Result   : 0
+Signature: adist x int x int -> int
+Example  : query mergeslots(ad, 8, 3)
+Result   : 3

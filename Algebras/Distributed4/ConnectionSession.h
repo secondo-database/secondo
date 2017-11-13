@@ -25,7 +25,7 @@ Suite 330, Boston, MA  02111-1307  USA
 
 [10] Definition of Class ConnectionSession
 
-2017-08-14: Sebastian J. Bronner $<$sebastian@bronner.name$>$
+2017-10-29: Sebastian J. Bronner $<$sebastian@bronner.name$>$
 
 \tableofcontents
 
@@ -72,26 +72,36 @@ implication the caller).
 */
     public:
       ConnectionSession(distributed2::ConnectionInfo*, bool = false);
-      ConnectionSession(const std::string&, int, std::string&);
+      ConnectionSession(const std::string&, int, const std::string&);
       ~ConnectionSession();
+
       std::string getHost() const;
       int getPort() const;
       std::string getConfig() const;
+
       NList run(const std::string&, const std::string& = "");
       void clearRollback();
-      void updateObject(const std::string&, const Address);
-      void lockObject(const std::string&, bool);
-      void unlockObject(const std::string&);
-      void beginTransaction();
-      void commitTransaction();
       void switchDatabase(const std::string& =
           SecondoSystem::GetInstance()->GetDatabaseName());
-      void createEmpty(const std::string&, const NList&);
-      NList queryValue(std::string);
-      double queryReal(const std::string&);
-      int queryInt(const std::string&);
+      void beginTransaction();
+      void commitTransaction();
+
+      void updateObject(const std::string&, const Address);
+      void letObject(const std::string&, const Address = nullptr, NList =
+          NList{});
+      void deleteObject(const std::string&);
+      void lockObject(const std::string&, bool);
+      void unlockObject(const std::string&);
+
+      NList queryAtom(std::string);
+      std::string querySymbol(const std::string&);
       std::string queryString(const std::string&);
-      double queryNum(const std::string&);
+      std::string queryText(const std::string&);
+      int queryInt(const std::string&);
+      double queryReal(const std::string&);
+      bool queryBool(const std::string&);
+      double queryNumeric(const std::string&);
+      std::string queryTextual(const std::string&);
   };
 }
 

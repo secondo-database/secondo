@@ -25,7 +25,7 @@ Suite 330, Boston, MA  02111-1307  USA
 
 [10] Implementation of Class ManagedMutex
 
-2017-08-14: Sebastian J. Bronner $<$sebastian@bronner.name$>$
+2017-10-24: Sebastian J. Bronner $<$sebastian@bronner.name$>$
 
 \tableofcontents
 

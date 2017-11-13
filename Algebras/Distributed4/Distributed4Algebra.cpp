@@ -25,7 +25,7 @@ Suite 330, Boston, MA  02111-1307  USA
 
 [10] Algebra Distributed4
 
-2017-08-14: Sebastian J. Bronner $<$sebastian@bronner.name$>$
+2017-10-31: Sebastian J. Bronner $<$sebastian@bronner.name$>$
 
 The type constructors and operators of this algebra are assigned to the algebra
 in this file. However, they are implemented in other files as follows:
@@ -37,11 +37,13 @@ in this file. However, they are implemented in other files as follows:
 
 */
 #include "DPartition.h"
+#include "ADist.h"
 #include "Operators.h"
 #include "Algebra.h"
 #include "Symbols.h"
 
 namespace distributed4 {
+  using std::move;
 /*
 "Distributed4Algebra"[1] is derived from "Algebra"[1], just like every other
 algebra here. The default constructor is redefined to add this algebra's types
@@ -59,7 +61,9 @@ Define Type Constructors
 
 */
     protected:
-      TypeConstructor tc{DPartition::Info{}, DPartition::Functions{}};
+      TypeConstructor dpartitionTC{DPartition::Info{},
+        DPartition::Functions{}};
+      TypeConstructor adistTC{ADist::Info{}, ADist::Functions{}};
 
     public:
       Distributed4Algebra() {
@@ -67,8 +71,10 @@ Define Type Constructors
 Add Type Constructors
 
 */
-        tc.AssociateKind(Kind::SIMPLE());
-        AddTypeConstructor(&tc);
+        dpartitionTC.AssociateKind(Kind::SIMPLE());
+        adistTC.AssociateKind(Kind::SIMPLE());
+        AddTypeConstructor(&dpartitionTC);
+        AddTypeConstructor(&adistTC);
 /*
 Add Operators
 
@@ -87,11 +93,17 @@ the following order: signature, syntax, meaning, example, remark (optional).
         AddOperator(lockInfo(), lockVM, lockTM);
         AddOperator(trylockInfo(), trylockVM, lockTM);
         AddOperator(unlockInfo(), unlockVM, unlockTM);
-        AddOperator(addworkerInfo(), addworkerVM, addworkerTM);
-        AddOperator(removeworkerInfo(), removeworkerVM, removeworkerTM);
-        AddOperator(moveslotInfo(), moveslotVM, moveslotTM);
+        AddOperator(addpeerInfo(), addpeerVM, addhostTM);
+        AddOperator(removepeerInfo(), move((ValueMapping[]){removepeerVM_Index,
+            removepeerVM_HostPort, 0}), removehostSel, removehostTM);
+        AddOperator(addworkerInfo(), addworkerVM, addhostTM);
+        AddOperator(removeworkerInfo(),
+            move((ValueMapping[]){removeworkerVM_Index,
+              removeworkerVM_HostPort, 0}), removehostSel, removehostTM);
+        AddOperator(moveslotInfo(), move((ValueMapping[]){moveslotVM_Index,
+              moveslotVM_HostPort, 0}), moveslotSel, moveslotTM);
         AddOperator(splitslotInfo(), splitslotVM, splitslotTM);
-        AddOperator(getworkerindexInfo(), getworkerindexVM, getworkerindexTM);
+        AddOperator(mergeslotsInfo(), mergeslotsVM, mergeslotsTM);
       }
   };
 }

@@ -25,7 +25,9 @@ Suite 330, Boston, MA  02111-1307  USA
 
 [10] Implementation of Class DPartition
 
-2017-08-14: Sebastian J. Bronner $<$sebastian@bronner.name$>$
+Distributed Partition
+
+2017-11-13: Sebastian J. Bronner $<$sebastian@bronner.name$>$
 
 \tableofcontents
 
@@ -119,8 +121,9 @@ The passed "map"[1] and "string"[1] are copied to the respective member
 variables of the newly constructed "DPartition"[1].
 
 */
-  DPartition::DPartition(const map<double,uint32_t>& p, const string& n):
-    partitioning{p}, darrayname{n} {}
+  DPartition::DPartition(const map<double,uint32_t>& p, const string& n, const
+      pair<double,uint32_t>& b): partitioning{p}, darray_name{n},
+    bufpartition{b} {}
 /*
 3.3 "DPartition(NList, NList)"[1]
 
@@ -163,19 +166,19 @@ Validate and read the name of the referenced ~d[f]array~ from the nested list.
     if(!l.isSymbol())
       throw runtime_error{"The second element, \"" + l.convertToString() +
         "\", needs to be a symbol atom."};
-    darrayname = l.str();
+    darray_name = l.str();
 /*
-Make sure "darrayname"[1] really refers to a ~d[f]array~.
+Make sure "darray\_name"[1] really refers to a ~d[f]array~.
 
 */
     SecondoCatalog* ctlg{SecondoSystem::GetCatalog()};
-    NList darraytype{ctlg->GetObjectTypeExpr(darrayname)};
-    if(!DArray::checkType(darraytype.listExpr()) &&
-        !DFArray::checkType(darraytype.listExpr()))
-      throw runtime_error{"The named database object, \"" + darrayname +
+    NList darray_type{ctlg->GetObjectTypeExpr(darray_name)};
+    if(!DArray::checkType(darray_type.listExpr()) &&
+        !DFArray::checkType(darray_type.listExpr()))
+      throw runtime_error{"The named database object, \"" + darray_name +
         "\", is not a d[f]array."};
 /*
-Validate "darraytype"[1] if possible ("subtype"[1] is not empty). If
+Validate "darray\_type"[1] if possible ("subtype"[1] is not empty). If
 "subtype"[1] is an attribute name and type, make sure the ~d[f]array~ is over a
 "rel(tuple)"[1] and that it has a matching attribute. If, alternately, the
 subtype represents a simple type, make sure the ~d[f]array~ is over a container
@@ -183,7 +186,7 @@ containing that type.
 
 */
     if(!subtype.isEmpty()) {
-      NList dasubtype{darraytype.second()};
+      NList dasubtype{darray_type.second()};
       if(subtype.isList()) {
         if(!Relation::checkType(dasubtype.listExpr()))
           throw runtime_error{"The subtype of the referenced d[f]array needs "
@@ -218,9 +221,35 @@ Check for and read the optional partitioning pair if present.
     }
   }
 /*
-4 Member Functions
+4 Read-Only Member Functions
 
-4.1 "slot"[1]
+4.1 "listExpr"[1]
+
+The "DPartition"[1] instance is converted into its nested list representation.
+
+*/
+  ListExpr DPartition::listExpr() const {
+    NList l;
+    for(auto it{partitioning.begin()}; it != partitioning.end(); ++it)
+      l.append(partition2nlist(*it));
+    l.enclose().append(darray_name);
+    if(!isnan(bufpartition.first))
+      l.append(partition2nlist(bufpartition));
+    return l.listExpr();
+  }
+/*
+4.2 "print"[1]
+
+For easier debugging and/or output of the contents of a DPartition, push all
+details to a passed "ostream"[1]. This makes it usable by the "operator<<"[1]
+defined below.
+
+*/
+  void DPartition::print(ostream& os) const {
+    os << "DPartition " << partitioning << " with " << darray_name;
+  }
+/*
+4.3 "slot"[1]
 
 The "partitioning"[1] map is applied to the passed key to determine to which
 slot that key corresponds.
@@ -249,38 +278,12 @@ slot one before the slot found.
     }
   }
 /*
-4.2 "listExpr"[1]
-
-The "DPartition" instance is converted into its nested list representation.
-
-*/
-  ListExpr DPartition::listExpr() const {
-    NList l;
-    for(auto it{partitioning.begin()}; it != partitioning.end(); ++it)
-      l.append(partition2nlist(*it));
-    l.enclose().append(darrayname);
-    if(!isnan(bufpartition.first))
-      l.append(partition2nlist(bufpartition));
-    return l.listExpr();
-  }
-/*
-4.3 "print"[1]
-
-For easier debugging and/or output of the contents of a DPartition, push all
-details to a passed ostream. This makes it usable by "operator<<"[1], which
-defined below.
-
-*/
-  void DPartition::print(ostream& os) const {
-    os << "DPartition " << partitioning << " with " << darrayname;
-  }
-/*
-4.4 "getPartition"[1]
+4.4 "partition"[1]
 
 Retrieve the beginning of the value range mapped to "slot"[1].
 
 */
-  double DPartition::getPartition(uint32_t slot) const {
+  double DPartition::partition(uint32_t slot) const {
     for(auto p: partitioning)
       if(p.second == slot)
         return p.first;
@@ -288,31 +291,60 @@ Retrieve the beginning of the value range mapped to "slot"[1].
       "partitioning value."};
   }
 /*
-4.5 "getDArrayName"[1]
+4.5 "darrayName"[1]
 
 */
-  string DPartition::getDArrayName() const {
-    return darrayname;
+  string DPartition::darrayName() const {
+    return darray_name;
   }
 /*
-4.6 "getDArray"[1]
+4.6 "darray"[1]
 
-Retrieve the ~d[f]array~ named in "darrayname"[1]. The caller is responsible
+Retrieve the ~d[f]array~ named in "darray\_name"[1]. The caller is responsible
 for deleting the instantiated object.
 
 */
-  DArrayBase* DPartition::getDArray() const {
+  DArrayBase* DPartition::darray() const {
     Word ref;
     bool isdefined;
-    if(!SecondoSystem::GetCatalog()->GetObject(darrayname, ref, isdefined))
-      throw runtime_error{"The d[f]array " + darrayname +
+    if(!SecondoSystem::GetCatalog()->GetObject(darray_name, ref, isdefined))
+      throw runtime_error{"The d[f]array " + darray_name +
           " couldn't be opened."};
     if(!isdefined)
-      throw runtime_error{"The d[f]array " + darrayname + " is undefined."};
+      throw runtime_error{"The d[f]array " + darray_name + " is undefined."};
     return static_cast<DArrayBase*>(ref.addr);
   }
 /*
-4.7 "allocateSlot"[1]
+4.7 "checkContiguous"[1]
+
+Check to make sure that "slot1"[1] and "slot2"[1] have contiguous value regions
+mapped to them. If that isn't the case, a "runtime\_error"[1] is thrown with an
+appropriate error message.
+
+*/
+  void DPartition::checkContiguous(double start1, double start2) const {
+    if(start1 == start2)
+      throw runtime_error{"The partitions starting with " + to_string(start1) +
+        " and " + to_string(start2) + " are not contiguous because they are "
+          "identical."};
+    double lower, upper;
+    if(start1 < start2) {
+      lower = start1;
+      upper = start2;
+    } else {
+      lower = start2;
+      upper = start1;
+    }
+    auto it{partitioning.find(lower)};
+    ++it;
+    if(it->first != upper)
+      throw runtime_error{"The partitions starting with " + to_string(start1) +
+        " and " + to_string(start2) + " are not contiguous."};
+  }
+/*
+5 Modifying Member Functions
+
+5.1 "allocateSlot"[1]
 
 There are several different occasions when a new or recycled slot in a
 ~d[f]array~ is needed. The most direct examples are the operators ~moveslot~
@@ -360,7 +392,7 @@ The procedure for allocating a new slot mirrors the complexity mentioned above:
     Distributed2Algebra* d2{static_cast<Distributed2Algebra*>(SecondoSystem::
         GetAlgebraManager()->getAlgebra("Distributed2Algebra"))};
 /*
-  * If "slot"[1] already exists in the ~d[f]array~ named in "darrayname"[1],
+  * If "slot"[1] already exists in the ~d[f]array~ named in "darray\_name"[1],
     make sure it is empty and then remove it. If the slot still does contain
     data, there appears to be some inconsistency.  In that case, the procedure
     is aborted with an exception.
@@ -381,13 +413,13 @@ The procedure for allocating a new slot mirrors the complexity mentioned above:
 
 */
     NList rel_type{NList{SecondoSystem::GetCatalog()->GetObjectTypeExpr(
-        darrayname)}.second()};
+        darray_name)}.second()};
     ConnectionSession s{d2->getWorkerConnection(da->getWorker(worker),
         dbname)};
-    s.createEmpty(slotname, rel_type);
+    s.letObject(slotname, nullptr, rel_type);
 /*
   * Assign "slot"[1] to "worker"[1] in the ~d[f]array~ named in
-    "darrayname"[1], unless it was already so assigned.
+    "darray\_name"[1], unless it was already so assigned.
 
 */
     if(!exists) {
@@ -405,21 +437,7 @@ Return the slot number that was allocated.
     return slot;
   }
 /*
-4.8 "insertPartition"[1]
-
-Add a new partition beginning at "start"[1]. The partition immediately below
-this one is effectively reduced in size.
-
-*/
-  void DPartition::insertPartition(double start, uint32_t slot) {
-    auto res{partitioning.emplace(start, slot)};
-    if(!res.second)  // insertion failed
-      throw runtime_error{"The partition (" + to_string(start) + " -> " +
-        to_string(slot) + ") could not be inserted because a partition with "
-          "that starting point already exists."};
-  }
-/*
-4.9 "resetPartition"[1]
+5.2 "resetPartition"[1]
 
 Set the target "slot"[1] of the existing partition beginning at "start"[1]. The
 former target slot is discarded.
@@ -435,7 +453,32 @@ former target slot is discarded.
     }
   }
 /*
-4.10 "setBufferPartition"[1]
+5.3 "insertPartition"[1]
+
+Add a new partition beginning at "start"[1]. The partition immediately below
+this one is effectively reduced in size.
+
+*/
+  void DPartition::insertPartition(double start, uint32_t slot) {
+    if(!partitioning.emplace(start, slot).second)  // insertion failed
+      throw runtime_error{"The partition (" + to_string(start) + " -> " +
+        to_string(slot) + ") could not be inserted because a partition with "
+          "that starting point already exists."};
+  }
+/*
+5.4 "removePartition"[1]
+
+Remove an existing partition beginning at "start"[1]. The partition immediately
+below this one is effectively increased in size.
+
+*/
+  void DPartition::removePartition(double start) {
+    if(partitioning.erase(start) != 1)
+      throw runtime_error{"The partition starting with " + to_string(start) +
+        " could not be removed because it doesn't exist."};
+  }
+/*
+5.5 "setBufferPartition"[1]
 
 Set the so-called buffer partition to map "start"[1] to "slot"[1]. The buffer
 partition is a side storage area designed for use while the DPartition is being
@@ -453,7 +496,7 @@ dpartition to avoid race conditions.
     bufpartition = {start, slot};
   }
 /*
-4.11 "clearBufferPartition"[1]
+5.6 "clearBufferPartition"[1]
 
 Clear the so-called buffer partition. This operation is unprotected and will
 succeed no matter whether the buffer partition was previously in use or not.
@@ -463,9 +506,9 @@ succeed no matter whether the buffer partition was previously in use or not.
     bufpartition = {numeric_limits<double>::quiet_NaN(), 0};
   }
 /*
-5 Static Member Functions
+6 Static Member Functions
 
-5.1 "BasicType"[1]
+6.1 "BasicType"[1]
 
 "BasicType"[1] is required by [secondo]. It returns [secondo]'s basic type for
 this class.
@@ -475,7 +518,7 @@ this class.
     return "dpartition";
   }
 /*
-5.2 "Out"[1]
+6.2 "Out"[1]
 
 The Out function takes a nested list type expression and a "Word"[1] containing
 a pointer to an instance of that type as arguments. It returns the value
@@ -487,7 +530,7 @@ the form of a "ListExpr"[1]. The passed type expression is commonly ignored.
     return static_cast<DPartition*>(value.addr)->listExpr();
   }
 /*
-5.3 "In"[1]
+6.3 "In"[1]
 
 The In function takes a nested list type expression, a nested list value
 expression, and an integer position. It passes back a nested list error
@@ -497,8 +540,8 @@ a pointer to an object instantiated based on the passed value expression.
 */
   Word DPartition::In(ListExpr typeInfo, ListExpr instance, int, ListExpr&,
       bool& correct) {
-    NList ti{typeInfo}, inst{instance};
     correct = false;
+    NList ti{typeInfo}, inst{instance};
 /*
 "typeInfo"[1] is a bit enigmatic. When the object is created from a "[const ...
 value ...]"[1] expression or with a "restore from ..."[1] command, it contains
@@ -540,15 +583,14 @@ Create the object in memory.
     return Word{addr};
   }
 /*
-5.4 "checkType"[1]
+6.4 "checkType"[1]
 
-"checkType"[1] is required by [secondo] as well. It checks the passed ListExpr
-to make sure that it is a valid type description for this class. It doesn't
-only check the basic type (~dpartition~) but the complete type expression.
+Check the passed "NList"[1] to make sure that it is a valid type description
+for this class. It doesn't only check the basic type (~dpartition~) but the
+complete type expression.
 
 */
-  bool DPartition::checkType(ListExpr type) {
-    NList t{type};
+  bool DPartition::checkType(const NList& type) {
     const unordered_set<string> supported{CcInt::BasicType(),
       CcReal::BasicType(), CcString::BasicType(), FText::BasicType()};
     string partitioning_type;
@@ -556,8 +598,8 @@ only check the basic type (~dpartition~) but the complete type expression.
 A dpartition type contains two elements: the basic type and a subtype.
 
 */
-    if(t.length() != 2 || !t.first().isSymbol() || t.first().str() !=
-        DPartition::BasicType())
+    if(type.length() != 2 || !type.first().isSymbol() || type.first().str() !=
+        BasicType())
       throw runtime_error{"The type expression needs to be a nested list "
         "beginning with the symbol " + DPartition::BasicType() + " followed "
           "by a symbol or a pair of symbols."};
@@ -569,7 +611,7 @@ over a container of simple types specifies its subtype as the type that is
 contained in the ~d[f]array~, i.e. "(dpartition int)"[1].
 
 */
-    NList subtype{t.second()};
+    NList subtype{type.second()};
     if(subtype.isList()) {
       if(subtype.length() != 2 || !subtype.first().isSymbol() ||
           !subtype.second().isSymbol())
@@ -599,19 +641,23 @@ DPartition.
     return true;
   }
 /*
-5.5 "checkType"[1] (wrapper)
+6.4 "checkType"[1] (wrapper for consistency with other types)
 
-Call the above "checkType"[1] function. It is used by the type constructor and
-takes a reference that is superfluous in this case.
+*/
+  bool DPartition::checkType(ListExpr type) {
+    return checkType(NList{type});
+  }
+/*
+6.5 "checkType"[1] (wrapper for "Functions"[1])
 
 */
   bool DPartition::checkType(ListExpr type, ListExpr&) {
-    return DPartition::checkType(type);
+    return checkType(NList{type});
   }
 /*
-6 Member Structs
+7 Member Structs
 
-6.1 "Info"[1]
+7.1 "Info"[1]
 
 This struct inherits from "ConstructorInfo"[1] and is responsible for
 formatting information about the type constructor for the database user.
@@ -621,15 +667,14 @@ formatting information about the type constructor for the database user.
     name = BasicType();
     signature = "-> SIMPLE";
     typeExample = "(dpartition int)";
-    listRep = "(<partitioning map> <d[f]arrayname> [<partitioning pair>])";
+    listRep = "(<partitioning map> <d[f]array> [<partitioning pair>])";
     valueExample = "(((0) (-0.3 2) (0.1 1)) da)";
     remarks = "This type provides partitioning of values into slots found in "
-      "a matching d[f]array. This makes it possible to use value-oriented "
-      "database operations on distributed data (insert, update, delete, "
-      "etc.).";
+      "<d[f]array>. This makes it possible to use value-oriented database "
+      "operations on distributed data (insert, update, delete, etc.).";
   }
 /*
-6.2 "Functions"[1]
+7.2 "Functions"[1]
 
 This struct inherits from "ConstructorFunctions"[1] and defines the functions
 needed by a type constructor.
@@ -642,9 +687,9 @@ needed by a type constructor.
     kindCheck = DPartition::checkType;
   }
 /*
-7 Stream Operators Used by DPartition
+8 Stream Operators Used by DPartition
 
-7.1 "operator<<"[1] (map)
+8.1 "operator<<"[1] ("map"[1])
 
 This operator allows formatting the pairs in a map for a character stream.
 
@@ -659,13 +704,7 @@ This operator allows formatting the pairs in a map for a character stream.
     return os;
   }
 /*
-7.2 "operator<<"[1] (DPartition)
-
-This operator allows something like the following:
-
----- DPartition dp;
-     cerr << "debug: " << dp;
-----
+8.2 "operator<<"[1] ("DPartition"[1])
 
 */
   ostream& operator<<(ostream& os, const DPartition& dp) {

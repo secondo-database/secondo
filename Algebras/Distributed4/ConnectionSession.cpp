@@ -25,7 +25,7 @@ Suite 330, Boston, MA  02111-1307  USA
 
 [10] Implementation of Class ConnectionSession
 
-2017-08-14: Sebastian J. Bronner $<$sebastian@bronner.name$>$
+2017-10-28: Sebastian J. Bronner $<$sebastian@bronner.name$>$
 
 \tableofcontents
 
@@ -65,9 +65,15 @@ pointer).
   ConnectionSession::ConnectionSession(ConnectionInfo* ci, bool d): ci{ci},
     deleteci{d} {
     if(!ci)
-      throw runtime_error{"The passed connection is invalid. No identifying "
-        "information is available."};
-    switchDatabase();
+      throw runtime_error{"The ConnectionInfo pointer passed to "
+        "ConnectionSession is invalid."};
+    try {
+      switchDatabase();
+    } catch(const runtime_error&) {
+      if(d)
+        delete ci;
+      throw;
+    }
   }
 /*
 2.2 "ConnectionSession(const string, int, const string)"[1]
@@ -77,12 +83,19 @@ connection should be established. That connection is established and the
 database changed to the current local database.
 
 */
-  ConnectionSession::ConnectionSession(const string& host, int port, string&
-      config): ci{ConnectionInfo::createConnection(host, port, config)} {
+  ConnectionSession::ConnectionSession(const string& host, int port, const
+      string& config) {
+    string config_temp{config};  // because non-const in createConnection
+    ci = ConnectionInfo::createConnection(host, port, config_temp);
     if(!ci)
       throw runtime_error{"A connection to " + host + ":" + to_string(port) +
         " could not be established."};
-    switchDatabase();
+    try {
+      switchDatabase();
+    } catch(const runtime_error&) {
+      delete ci;
+      throw;
+    }
   }
 /*
 3 Destructor
@@ -110,7 +123,7 @@ Which is the case is tracked in "deleteci"[1].
       delete ci;
   }
 /*
-4 Member Functions
+4 Informational Member Functions
 
 4.1 "getHost"[1]
 
@@ -133,7 +146,12 @@ Which is the case is tracked in "deleteci"[1].
     return ci->getConfig();
   }
 /*
-4.4 "run"[1]
+
+5 Active Member Functions
+
+These member functions perform some action on the connected [secondo] instance.
+
+5.1 "run"[1]
 
 The command passed in "cmd"[1] will be executed via "ci"[1]. If "uncmd"[1] is
 specified (is not the empty string), it is added to "rollback"[1] after
@@ -158,7 +176,7 @@ consequence of leaving scope.
     return NList{res};
   }
 /*
-4.5 "clearRollback"[1]
+5.2 "clearRollback"[1]
 
 After running a sequence of commands, the caller may reach a state where it is
 no longer desirable (or necessary) to perform a rollback. That is where
@@ -170,7 +188,33 @@ that any future rollback will only be performed on new commands.
     rollback.clear();
   }
 /*
-4.6 "updateObject"[1]
+5.3 "switchDatabase"[1]
+
+*/
+  void ConnectionSession::switchDatabase(const string& dbname) {
+    if(!ci->switchDatabase(dbname, false, showCommands))
+      throw runtime_error{"The database \"" + dbname + "\" could not be "
+        "opened on " + ci->getHost() + ":" + to_string(ci->getPort()) + "."};
+  }
+/*
+5.4 "beginTransaction"[1]
+
+*/
+  void ConnectionSession::beginTransaction() {
+    run("begin transaction", "abort transaction");
+  }
+/*
+5.5 "commitTransaction"[1]
+
+*/
+  void ConnectionSession::commitTransaction() {
+    clearRollback();
+    run("commit transaction");
+  }
+/*
+6 Object Manipulation Member Functions
+
+6.1 "updateObject"[1]
 
 */
   void ConnectionSession::updateObject(const string& name, const Address
@@ -182,7 +226,39 @@ that any future rollback will only be performed on new commands.
         value.convertToString() + "]");
   }
 /*
-4.7 "lockObject"[1]
+6.2 "letObject"[1]
+
+Create a new object named "name"[1] of type "type"[1] with the value at
+"address"[1]. Specifying the type is optional; if it is not specified, it is
+derived from a local object named "name"[1]. It is also possible to specify
+that an object is to be created with an empty value (but defined). This is
+indicated by passing "nullptr"[1] in "address"[1] (or not specifying it at all
+if "type"[1] is also not specified). In this case an attempt is made to create
+the object by instantiating it with the nested list "()". This is not possible
+for all objects, though, and will abort with an error for those objects. It is
+useful, though, for example, to create relations with no tuples in them.
+
+*/
+  void ConnectionSession::letObject(const string& name, const Address address,
+      NList type)
+  {
+    SecondoCatalog* ctlg{SecondoSystem::GetCatalog()};
+    if(type.isEmpty())
+      type = NList{ctlg->GetObjectTypeExpr(name)};
+    NList value{address ? ctlg->OutObject(type.listExpr(), Word{address}) :
+      NList{}};
+    run("let " + name + " = [const " + type.convertToString() + " value " +
+        value.convertToString() + "]", "delete " + name);
+  }
+/*
+6.3 "deleteObject"[1]
+
+*/
+  void ConnectionSession::deleteObject(const string& name) {
+    run("delete " + name);
+  }
+/*
+6.4 "lockObject"[1]
 
 */
   void ConnectionSession::lockObject(const string& name, bool exclusive) {
@@ -198,94 +274,53 @@ that any future rollback will only be performed on new commands.
     }
   }
 /*
-4.8 "unlockObject"[1]
+6.5 "unlockObject"[1]
 
 */
   void ConnectionSession::unlockObject(const string& name) {
     run("query unlock(\"" + name + "\")");
   }
 /*
-4.9 "beginTransaction"[1]
+7 Atom Query Member Functions
 
-*/
-  void ConnectionSession::beginTransaction() {
-    run("begin transaction", "abort transaction");
-  }
-/*
-4.10 "commitTransaction"[1]
+These member functions handle the common case where a single value atom is
+expected as a response to a query.
 
-*/
-  void ConnectionSession::commitTransaction() {
-    run("commit transaction");
-  }
-/*
-4.11 "switchDatabase"[1]
-
-*/
-  void ConnectionSession::switchDatabase(const string& dbname) {
-    if(!ci->switchDatabase(dbname, false, showCommands))
-      throw runtime_error{"The database \"" + dbname + "\" could not be "
-        "opened on " + ci->getHost() + ":" + to_string(ci->getPort()) + "."};
-  }
-/*
-4.12 "createEmpty"[1]
-
-*/
-  void ConnectionSession::createEmpty(const std::string& name, const NList&
-      type) {
-    run("let " + name + " = [const " + type.convertToString() + " value ()]");
-    rollback.push_back("delete " + name);
-  }
-/*
-4.13 "queryValue"[1]
+7.1 "queryAtom"[1]
 
 Determine the response from any query that responds with a simple value. If the
-response is more complex than that, "runtime\_error"[1] is thrown.
-
-If "cmd"[1] may be given without the keyword "query"[1]. In that case it is
-added to "cmd"[1] before running the command on "ci"[1].
+response is more complex than that, "runtime\_error"[1] is thrown. "cmd"[1] may
+be given without the keyword "query"[1].
 
 */
-  NList ConnectionSession::queryValue(std::string cmd) {
+  NList ConnectionSession::queryAtom(string cmd) {
     if(cmd.substr(0, 6) != "query ")
       cmd = "query " + cmd;
     NList resp{run(cmd)};
     if(!(resp.length() == 2 && resp.first().isSymbol()))
       throw runtime_error{"Received a response from " + ci->getHost() + ":" +
-        to_string(ci->getPort()) + " that is not a (simple) value: " + cmd +
-          " -> " + resp.convertToString()};
+        to_string(ci->getPort()) + " that is not an atom: " + cmd + " -> " +
+          resp.convertToString()};
     return resp;
   }
 /*
-4.14 "queryReal"[1]
+7.2 "querySymbol"[1]
 
 */
-  double ConnectionSession::queryReal(const std::string& cmd) {
-    NList resp{queryValue(cmd)};
-    if(!(resp.first().str() == CcReal::BasicType() && resp.second().isReal()))
+  string ConnectionSession::querySymbol(const string& cmd) {
+    NList resp{queryAtom(cmd)};
+    if(!(resp.first().str() == "symbol" && resp.second().isSymbol()))
       throw runtime_error{"Received a value from " + ci->getHost() + ":" +
-        to_string(ci->getPort()) + " that is not a real: " + cmd + " -> " +
+        to_string(ci->getPort()) + " that is not a symbol: " + cmd + " -> " +
           resp.convertToString()};
-    return resp.second().realval();
+    return resp.second().str();
   }
 /*
-4.15 "queryInt"[1]
+7.3 "queryString"[1]
 
 */
-  int ConnectionSession::queryInt(const std::string& cmd) {
-    NList resp{queryValue(cmd)};
-    if(!(resp.first().str() == CcInt::BasicType() && resp.second().isInt()))
-      throw runtime_error{"Received a value from " + ci->getHost() + ":" +
-        to_string(ci->getPort()) + " that is not an integer: " + cmd + " -> " +
-          resp.convertToString()};
-    return resp.second().intval();
-  }
-/*
-4.16 "queryString"[1]
-
-*/
-  string ConnectionSession::queryString(const std::string& cmd) {
-    NList resp{queryValue(cmd)};
+  string ConnectionSession::queryString(const string& cmd) {
+    NList resp{queryAtom(cmd)};
     if(!(resp.first().str() == CcString::BasicType() &&
           resp.second().isString()))
       throw runtime_error{"Received a value from " + ci->getHost() + ":" +
@@ -294,10 +329,58 @@ added to "cmd"[1] before running the command on "ci"[1].
     return resp.second().str();
   }
 /*
-4.17 "queryNum"[1]
+7.4 "queryText"[1]
 
 */
-  double ConnectionSession::queryNum(const std::string& cmd) {
+  string ConnectionSession::queryText(const string& cmd) {
+    NList resp{queryAtom(cmd)};
+    if(!(resp.first().str() == FText::BasicType() && resp.second().isText()))
+      throw runtime_error{"Received a value from " + ci->getHost() + ":" +
+        to_string(ci->getPort()) + " that is not a text: " + cmd + " -> " +
+          resp.convertToString()};
+    return resp.second().str();
+  }
+/*
+7.5 "queryInt"[1]
+
+*/
+  int ConnectionSession::queryInt(const string& cmd) {
+    NList resp{queryAtom(cmd)};
+    if(!(resp.first().str() == CcInt::BasicType() && resp.second().isInt()))
+      throw runtime_error{"Received a value from " + ci->getHost() + ":" +
+        to_string(ci->getPort()) + " that is not an integer: " + cmd + " -> " +
+          resp.convertToString()};
+    return resp.second().intval();
+  }
+/*
+7.6 "queryReal"[1]
+
+*/
+  double ConnectionSession::queryReal(const string& cmd) {
+    NList resp{queryAtom(cmd)};
+    if(!(resp.first().str() == CcReal::BasicType() && resp.second().isReal()))
+      throw runtime_error{"Received a value from " + ci->getHost() + ":" +
+        to_string(ci->getPort()) + " that is not a real: " + cmd + " -> " +
+          resp.convertToString()};
+    return resp.second().realval();
+  }
+/*
+7.7 "queryBool"[1]
+
+*/
+  bool ConnectionSession::queryBool(const string& cmd) {
+    NList resp{queryAtom(cmd)};
+    if(!(resp.first().str() == CcBool::BasicType() && resp.second().isBool()))
+      throw runtime_error{"Received a value from " + ci->getHost() + ":" +
+        to_string(ci->getPort()) + " that is not a bool: " + cmd + " -> " +
+          resp.convertToString()};
+    return resp.second().boolval();
+  }
+/*
+7.8 "queryNumeric"[1]
+
+*/
+  double ConnectionSession::queryNumeric(const string& cmd) {
     try {
       return queryReal(cmd);
     } catch(const runtime_error&) {
@@ -306,6 +389,23 @@ added to "cmd"[1] before running the command on "ci"[1].
       } catch(const runtime_error&) {
         throw runtime_error{"Received a value from " + ci->getHost() + ":" +
           to_string(ci->getPort()) + " that is neither a real nor an integer: "
+            + cmd};
+      }
+    }
+  }
+/*
+7.9 "queryTextual"[1]
+
+*/
+  string ConnectionSession::queryTextual(const string& cmd) {
+    try {
+      return queryString(cmd);
+    } catch(const runtime_error&) {
+      try {
+        return queryText(cmd);
+      } catch(const runtime_error&) {
+        throw runtime_error{"Received a value from " + ci->getHost() + ":" +
+          to_string(ci->getPort()) + " that is neither a string nor a text: "
             + cmd};
       }
     }

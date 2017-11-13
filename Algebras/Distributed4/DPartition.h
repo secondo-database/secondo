@@ -25,7 +25,9 @@ Suite 330, Boston, MA  02111-1307  USA
 
 [10] Definition of Class DPartition
 
-2017-08-14: Sebastian J. Bronner $<$sebastian@bronner.name$>$
+Distributed Partition
+
+2017-11-13: Sebastian J. Bronner $<$sebastian@bronner.name$>$
 
 \tableofcontents
 
@@ -60,7 +62,7 @@ namespace distributed4 {
       std::map<double,uint32_t> partitioning;
       //TODO: for multi-dimensional partitions, use either a vector of vectors
       //(of vectors) or a map<int,int> of maps<int,int> (of maps<int,int>).
-      std::string darrayname;
+      std::string darray_name;
       std::pair<double,uint32_t>
         bufpartition{std::numeric_limits<double>::quiet_NaN(), 0};
 /*
@@ -68,7 +70,7 @@ namespace distributed4 {
     any value with a slot. Each entry maps a lower value boundary to a slot
     number.
 
-  * "darrayname"[1] is the name of the ~d[f]array~ managing the slots of the
+  * "darray\_name"[1] is the name of the ~d[f]array~ managing the slots of the
     data being partitioned.
 
   * "bufpartition"[1] is used when the values belonging to a partition from
@@ -78,30 +80,34 @@ namespace distributed4 {
 
 */
     public:
-      DPartition(const std::map<double,uint32_t>&, const std::string&);
+      DPartition(const std::map<double,uint32_t>&, const std::string&, const
+          std::pair<double,uint32_t>& = std::pair<double,uint32_t>{});
       DPartition(const NList&, const NList&);
-      uint32_t slot(double) const;
+
       ListExpr listExpr() const;
       void print(std::ostream&) const;
-      double getPartition(uint32_t) const;
-      std::string getDArrayName() const;
-      distributed2::DArrayBase* getDArray() const;
+      uint32_t slot(double) const;
+      double partition(uint32_t) const;
+      std::string darrayName() const;
+      distributed2::DArrayBase* darray() const;
+      void checkContiguous(double, double) const;
+
       uint32_t allocateSlot(uint32_t, distributed2::DArrayBase*);
-      void insertPartition(double, uint32_t);
       void resetPartition(double, uint32_t);
+      void insertPartition(double, uint32_t);
+      void removePartition(double);
       void setBufferPartition(double, uint32_t);
       void clearBufferPartition();
+
       static std::string BasicType();
       static ListExpr Out(ListExpr, Word);
       static Word In(ListExpr, ListExpr, int, ListExpr&, bool&);
-      static Word Create(ListExpr);
-      static void Delete(ListExpr, Word&);
-      static Word Clone(ListExpr, const Word&);
-      static int Size();
-      static bool checkType(ListExpr);
-      static bool checkType(ListExpr, ListExpr&);  // for dpartitionTC
+      static bool checkType(const NList&);
+      static bool checkType(ListExpr);  // for consistency with other types
+      static bool checkType(ListExpr, ListExpr&);  // for "Functions"
+
       struct Info: ConstructorInfo { Info(); };
-      struct Functions: ConstructorFunctions<DPartition> {Functions();};
+      struct Functions: ConstructorFunctions<DPartition> { Functions(); };
 
     protected:
       DPartition();

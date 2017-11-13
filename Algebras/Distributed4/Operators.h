@@ -23,9 +23,9 @@ Suite 330, Boston, MA  02111-1307  USA
 //characters [1] tt: [\texttt{] [}]
 //[secondo] [{\sc Secondo}]
 
-[10] Operator Definitions of Algebra Distributed4
+[10] Definition of Operators in Algebra Distributed4
 
-2017-08-14: Sebastian J. Bronner $<$sebastian@bronner.name$>$
+2017-11-13: Sebastian J. Bronner $<$sebastian@bronner.name$>$
 
 Please see "Operators.cpp"[1] for documentation on the following.
 
@@ -44,11 +44,17 @@ Type Mapping Functions
 */
   ListExpr lockTM(ListExpr);
   ListExpr unlockTM(ListExpr);
-  ListExpr addworkerTM(ListExpr);
-  ListExpr removeworkerTM(ListExpr);
+  ListExpr addhostTM(ListExpr);
+  ListExpr removehostTM(ListExpr);
   ListExpr moveslotTM(ListExpr);
   ListExpr splitslotTM(ListExpr);
-  ListExpr getworkerindexTM(ListExpr);
+  ListExpr mergeslotsTM(ListExpr);
+/*
+Selection Functions
+
+*/
+  int removehostSel(ListExpr);
+  int moveslotSel(ListExpr);
 /*
 Value Mapping Functions
 
@@ -56,11 +62,16 @@ Value Mapping Functions
   int lockVM(Word*, Word&, int, Word&, Supplier);
   int trylockVM(Word*, Word&, int, Word&, Supplier);
   int unlockVM(Word*, Word&, int, Word&, Supplier);
+  int addpeerVM(Word*, Word&, int, Word&, Supplier);
+  int removepeerVM_Index(Word*, Word&, int, Word&, Supplier);
+  int removepeerVM_HostPort(Word*, Word&, int, Word&, Supplier);
   int addworkerVM(Word*, Word&, int, Word&, Supplier);
-  int removeworkerVM(Word*, Word&, int, Word&, Supplier);
-  int moveslotVM(Word*, Word&, int, Word&, Supplier);
+  int removeworkerVM_Index(Word*, Word&, int, Word&, Supplier);
+  int removeworkerVM_HostPort(Word*, Word&, int, Word&, Supplier);
+  int moveslotVM_Index(Word*, Word&, int, Word&, Supplier);
+  int moveslotVM_HostPort(Word*, Word&, int, Word&, Supplier);
   int splitslotVM(Word*, Word&, int, Word&, Supplier);
-  int getworkerindexVM(Word*, Word&, int, Word&, Supplier);
+  int mergeslotsVM(Word*, Word&, int, Word&, Supplier);
 /*
 Operator Descriptions
 
@@ -68,11 +79,13 @@ Operator Descriptions
   struct lockInfo: OperatorInfo { lockInfo(); };
   struct trylockInfo: OperatorInfo { trylockInfo(); };
   struct unlockInfo: OperatorInfo { unlockInfo(); };
+  struct addpeerInfo: OperatorInfo { addpeerInfo(); };
+  struct removepeerInfo: OperatorInfo { removepeerInfo(); };
   struct addworkerInfo: OperatorInfo { addworkerInfo(); };
   struct removeworkerInfo: OperatorInfo { removeworkerInfo(); };
   struct moveslotInfo: OperatorInfo { moveslotInfo(); };
   struct splitslotInfo: OperatorInfo { splitslotInfo(); };
-  struct getworkerindexInfo: OperatorInfo { getworkerindexInfo(); };
+  struct mergeslotsInfo: OperatorInfo { mergeslotsInfo(); };
 }
 
 #endif
