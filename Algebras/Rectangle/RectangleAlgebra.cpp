@@ -2138,8 +2138,7 @@ int RectangleToprightclassValueMap ( Word* args, Word& result, int message,
   r2 = (Rectangle<dim> *) args[1].addr;
   int value = 0;
 
-  if ( r1->MinD(0) <= r2->MaxD(0) && 
-       (r1->MaxD(0) >= r2->MaxD(0) ) ) value++;
+  if ( r1->MaxD(0) >= r2->MaxD(0) ) value++;
   if ( r1->MaxD(1) >= r2->MaxD(1) ) value += 2; 
 
   res->Set( true, value); 
