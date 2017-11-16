@@ -843,7 +843,7 @@ RectRectTypeMapReal( ListExpr args )
 /*
 4.1.7 Type mapping function ~RectRectTypeMapInt~
 
-Used for ~topleftclass~.
+Used for ~toprightclass~.
 
 */
 ListExpr
@@ -2123,7 +2123,7 @@ int scalerectValueMap( Word* args, Word& result, int message,
 
 
 /*
-4.4.13 Value mapping functions of operator ~topleftclass~
+4.4.13 Value mapping functions of operator ~toprightclass~
 
 */
 
@@ -2138,7 +2138,7 @@ int RectangleTopleftclassValueMap ( Word* args, Word& result, int message,
   r2 = (Rectangle<dim> *) args[1].addr;
   int value = 0;
 
-  if ( r1->MinD(0) <= r2->MinD(0) ) value++;
+  if ( r1->MinD(0) >= r2->MinD(0) ) value++;
   if ( r1->MaxD(1) >= r2->MaxD(1) ) value += 2; 
 
   res->Set( true, value); 
@@ -2827,7 +2827,7 @@ ValueMapping rectanglerectangle4map[] = { RectangleValueMap<CcInt, 4>,
 ValueMapping rectanglerectangle8map[] = { Rectangle8ValueMap<CcInt, 8>,
                                           Rectangle8ValueMap<CcReal, 8> };
 
-ValueMapping rectangletopleftclassmap[] = { RectangleTopleftclassValueMap<2>,
+ValueMapping rectangletoprightclassmap[] = { RectangleTopleftclassValueMap<2>,
                                           RectangleTopleftclassValueMap<3>,
                                           RectangleTopleftclassValueMap<4>,
                                           RectangleTopleftclassValueMap<8>};
@@ -3171,18 +3171,18 @@ const string RectangleSpecBboxIntersects  =
         ") )";
 
     
-const string RectangleSpecTopleftclass  =
+const string RectangleSpecToprightclass  =
         "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
         "( <text>(rect<d> x rect<d>) -> int</text--->"
-        "<text>topleftclass( _ , _ )</text--->"
+        "<text>toprightclass( _ , _ )</text--->"
         "<text>returns the Top-Left-Class Value of two rectangles. "
         "whereat the first rect is the reference for the second one: "
         "Scoring 2 for Top-Edge intersection of the second rect " 
         "with the first rect," 
-        "scoring 1 for Left-Edge intersection," 
+        "scoring 1 for Right-Edge intersection," 
         "scoring 3 for both " 
         "and scoring 0 for none of this.</text--->"        
-        "<text>query topleftclass(rect1, rect2)</text--->"
+        "<text>query toprightclass(rect1, rect2)</text--->"
         "<text></text--->"
         ") )";
     
@@ -3291,10 +3291,10 @@ Operator rectangledistance( "distance",
                           RectRectTypeMapReal );
 
 
-Operator rectangletopleftclass( "topleftclass",
-                          RectangleSpecTopleftclass,
+Operator rectangletoprightclass( "toprightclass",
+                          RectangleSpecToprightclass,
                           4,
-                          rectangletopleftclassmap,
+                          rectangletoprightclassmap,
                           RectangleBinarySelect,
                           RectRectTypeMapInt );
 
@@ -3977,7 +3977,7 @@ class RectangleAlgebra : public Algebra
     AddOperator( &rectangleintersection );
     AddOperator( &rectangletranslate );
     AddOperator( &rectangledistance );
-    AddOperator( &rectangletopleftclass);
+    AddOperator( &rectangletoprightclass);
     AddOperator( &rectanglerectangle1 );
     AddOperator( &rectanglerectangle2 );
     AddOperator( &rectanglerectangle3 );
