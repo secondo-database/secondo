@@ -2128,7 +2128,7 @@ int scalerectValueMap( Word* args, Word& result, int message,
 */
 
 template<unsigned int dim>
-int RectangleTopleftclassValueMap ( Word* args, Word& result, int message,
+int RectangleToprightclassValueMap ( Word* args, Word& result, int message,
                                Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2827,10 +2827,10 @@ ValueMapping rectanglerectangle4map[] = { RectangleValueMap<CcInt, 4>,
 ValueMapping rectanglerectangle8map[] = { Rectangle8ValueMap<CcInt, 8>,
                                           Rectangle8ValueMap<CcReal, 8> };
 
-ValueMapping rectangletoprightclassmap[] = { RectangleTopleftclassValueMap<2>,
-                                          RectangleTopleftclassValueMap<3>,
-                                          RectangleTopleftclassValueMap<4>,
-                                          RectangleTopleftclassValueMap<8>};
+ValueMapping rectangletoprightclassmap[] = { RectangleToprightclassValueMap<2>,
+                                          RectangleToprightclassValueMap<3>,
+                                          RectangleToprightclassValueMap<4>,
+                                          RectangleToprightclassValueMap<8>};
                                         
                                         
                                         
