@@ -840,6 +840,14 @@ RectRectTypeMapReal( ListExpr args )
 
 
 
+
+
+
+
+
+
+
+
 /*
 4.1.7 Type mapping function ~RectRectTypeMapInt~
 
@@ -864,7 +872,6 @@ RectRectTypeMapInt( ListExpr args )
   }
   return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
-
 
 
 
@@ -1404,6 +1411,31 @@ if( !l.elem(1).isSymbol(Rectangle<2>::BasicType()) ){
   }
   return NList(Point::BasicType()).listExpr();
 }
+
+
+/*
+4.1.22 Type mapping for operator ~report~
+
+*/
+
+
+ListExpr
+reportTM(ListExpr args )
+{ 
+  NList l(args);
+  int len = l.length();
+
+  if(len==2){
+    if(!listutils::isSymbol(nl->First(args), CcInt::BasicType()) &
+       !listutils::isSymbol(nl->Second(args),CcInt::BasicType() ) )
+      return listutils::typeError("Two int values expected");
+    }
+    return nl->SymbolAtom(CcBool::BasicType());
+  }
+
+
+
+
 
 /*
 4.2 Selection functions
@@ -2148,6 +2180,54 @@ int RectangleToprightclassValueMap ( Word* args, Word& result, int message,
 }
   
 
+  
+
+  
+
+int reportVM ( Word* args, Word& result, int message,
+                               Word& local, Supplier s )
+{ 
+  result = qp->ResultStorage( s );
+  CcBool *res = (CcBool*) result.addr;
+  CcInt* firstarg = static_cast<CcInt*>(args[0].addr);
+  CcInt* secondarg = static_cast<CcInt*>(args[1].addr);  
+  bool boolval = false;
+  int value;
+  
+  if ( (!firstarg->IsDefined()) || 
+       (!secondarg->IsDefined()) )
+     {
+        res->SetDefined(false);
+        return 0;
+     }
+  
+  
+  int first = firstarg->GetIntval();
+  int second = secondarg->GetIntval();
+    
+  
+  value = first & second;
+  
+  if (value == 0)
+   {boolval = true; 
+    res->Set( true, boolval); 
+    return 0;  
+     
+   }
+  
+    
+  res->Set( true, boolval); 
+  return 0;
+
+  
+}
+  
+  
+  
+  
+  
+  
+  
 /*
 4.4.4.1 Value mapping functions of operator ~bboxintersects~
 
@@ -2834,7 +2914,9 @@ ValueMapping rectangletoprightclassmap[] = { RectangleToprightclassValueMap<2>,
                                           RectangleToprightclassValueMap<4>,
                                           RectangleToprightclassValueMap<8>};
                                         
-                                        
+                            
+                                     
+                                          
                                         
                                         
  ValueMapping rectangledistancemap[] = { RectangleDistanceValueMap<2>,
@@ -3190,6 +3272,13 @@ const string RectangleSpecToprightclass  =
         ") )";
     
 
+    
+
+  
+    
+    
+    
+    
 /*
 4.5.3 Definition of the operators
 
@@ -3299,6 +3388,14 @@ Operator rectangletoprightclass( "toprightclass",
                           rectangletoprightclassmap,
                           RectangleBinarySelect,
                           RectRectTypeMapInt );
+
+
+
+
+
+
+
+
 
 
 
@@ -3428,6 +3525,34 @@ Operator rectanglecenter( RectangleCenter_INFO,
                           RectangleCenter_vm,
                           RectangleCenter_TM
 );
+
+
+
+
+struct report_Info : OperatorInfo {
+
+  report_Info() : OperatorInfo()
+  {
+    name = "report";
+    signature =
+        "int x int -> bool\n";
+    syntax = "report(int1, int2)";
+    meaning = "Return TRUE if the bitwise logical and "
+    "of the two integers is false for all bit positions. "
+    "Otherwise FALSE is returned.";
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
 
 
 /*
@@ -4001,7 +4126,11 @@ class RectangleAlgebra : public Algebra
     AddOperator( &partitionRect);
     AddOperator( &extendGeoOp);
     AddOperator( &perimeterOp);
-    AddOperator( &scaleOp);
+    AddOperator( &scaleOp);    
+    AddOperator (report_Info(), reportVM, reportTM);
+    
+    
+    
   }
   ~RectangleAlgebra() {};
 };
