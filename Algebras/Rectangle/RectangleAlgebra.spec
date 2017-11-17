@@ -46,3 +46,4 @@ operator toprightclass alias TOPRIGHTCLASS pattern op ( _ , _ )
 operator extendGeo alias EXTENDGEO pattern _ op [_,_]
 operator perimeter alias PERIMETER pattern op(_)
 operator scale alias SCALE pattern _ op [_,_]
+operator report alias REPORT  pattern op ( _ , _ )

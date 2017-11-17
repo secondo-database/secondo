@@ -1413,10 +1413,10 @@ if( !l.elem(1).isSymbol(Rectangle<2>::BasicType()) ){
 }
 
 
-/*
-4.1.22 Type mapping for operator ~report~
 
-*/
+//4.1.22 Type mapping for operator ~report~
+
+
 
 
 ListExpr
@@ -2180,7 +2180,7 @@ int RectangleToprightclassValueMap ( Word* args, Word& result, int message,
 }
   
 
-  
+// 4.4.14 Value Mapping for operator ~report~  
 
   
 
