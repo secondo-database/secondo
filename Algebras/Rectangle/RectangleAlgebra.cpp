@@ -2138,8 +2138,10 @@ int RectangleToprightclassValueMap ( Word* args, Word& result, int message,
   r2 = (Rectangle<dim> *) args[1].addr;
   int value = 0;
 
-  if ( r1->MaxD(0) >= r2->MaxD(0) ) value++;
-  if ( r1->MaxD(1) >= r2->MaxD(1) ) value += 2; 
+  if ( r1->MaxD(0) >= r2->MaxD(0) ) 
+   {value++;}
+  if ( r1->MaxD(1) >= r2->MaxD(1) ) {
+    value += 2;} 
 
   res->Set( true, value); 
   return 0;  
@@ -3171,20 +3173,21 @@ const string RectangleSpecBboxIntersects  =
         ") )";
 
     
+
 const string RectangleSpecToprightclass  =
         "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
         "( <text>(rect<d> x rect<d>) -> int</text--->"
         "<text>toprightclass( _ , _ )</text--->"
-        "<text>returns the Top-Left-Class Value of two rectangles. "
-        "whereat the first rect intersects the the second one: "
-        "Scoring 2 for Top-Edge intersection." 
-        "Scoring 1 for Right-Edge intersection." 
-        "Scoring 3 for both " 
+        "<text>returns the Top-Right-Class Value of two rectangles. "
+        "whereat the first rect references the second one: "
+        "Scoring 2 if the first rect intersects the Top-Edge " 
+        "of the second rect," 
+        "scoring 1 for Right-Edge intersection," 
+        "scoring 3 for both " 
         "and scoring 0 for none of this.</text--->"        
         "<text>query toprightclass(rect1, rect2)</text--->"
         "<text></text--->"
         ") )";
-    
     
 
 /*
