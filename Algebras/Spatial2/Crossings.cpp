@@ -21,6 +21,9 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+7.3 Implementation of ~Crossings~ methods
+
+Defines and includes.
 
 */
 
@@ -33,11 +36,19 @@ using namespace std;
 
 namespace salr {
 
+/*
+Implementation of constructor
+
+*/
   Crossings::Crossings(double x1, double y1, double x2, double y2) :
       xlo(x1), ylo(y1), xhi(x2), yhi(y2) {
     limit = 0;
   }
 
+/*
+Implementation of access methods.
+
+*/
   double Crossings::getXLo() {
     return xlo;
   }
@@ -58,22 +69,35 @@ namespace salr {
     return (limit == 0);
   }
 
-  bool Crossings::findCrossings(vector<Curve*> *curves,
+/*
+Finds the number of intersections between all curves inside the vector and
+ the rectangle defined by xlo, ylo, xhi and yhi.
+
+*/
+  Crossings* Crossings::findCrossings(vector<Curve*> *curves,
                            double xlo, double ylo,
                            double xhi, double yhi) {
     Crossings* cross = new Crossings(xlo, ylo, xhi, yhi);
-    bool acc = false;
     for(unsigned int i = 0; i < curves->size(); i++) {
-      acc = curves->at(i)->accumulateCrossings(cross);
-      break;
+      if(curves->at(i)->accumulateCrossings(cross)) {
+        return 0;
+      }
     }
-    return acc || !cross->isEmpty();
+    return cross;
   }
 
+/*
+Checks if this ~Crossings~ is inside the range defined by ystart and yend.
+
+*/
   bool Crossings::covers(double ystart, double yend) {
     return (limit == 2 && yranges[0] <= ystart && yranges[1] >= yend);
   }
 
+/*
+Adds a new pair of yrange to this ~Crossings~.
+
+*/
   void Crossings::record(double ystart, double yend, int direction) {
     if (ystart >= yend) {
       return;

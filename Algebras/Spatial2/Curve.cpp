@@ -21,6 +21,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+Defines and includes.
 
 */
 
@@ -38,11 +39,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 
 namespace salr {
+/*
+5.5 Implementation of ~Curve~ methods
 
+Adds a ~MoveCurve~ to the ~curves~ vector.
+
+*/
   void Curve::insertMove(vector<Curve*> *curves, double x, double y) {
     curves->push_back(new MoveCurve(x, y));
   }
 
+/*
+Adds a ~LineCurve~ to the ~curves~ vector.
+
+*/
   void Curve::insertLine(vector<Curve*> *curves, double x0, double y0,
                                       double x1, double y1) {
     if (y0<y1) {
@@ -54,6 +64,10 @@ namespace salr {
     }
   }
 
+/*
+Saves a copy of all curves inside the first vector inside the second vector.
+
+*/
 void Curve::copyCurves(const vector<Curve *> *source, vector<Curve *> *target) {
   for (unsigned int i = 0; i < source->size(); i++) {
     Curve *sc = source->at(i);
@@ -63,8 +77,8 @@ void Curve::copyCurves(const vector<Curve *> *source, vector<Curve *> *target) {
         tc = new MoveCurve(sc->getX0(), sc->getY0());
         break;
       case SEG_LINETO:
-        tc = new LineCurve(sc->getX0(), sc->getY0(),
-                           sc->getX1(), sc->getY1(),
+        tc = new LineCurve(sc->getXTop(), sc->getYTop(),
+                           sc->getXBot(), sc->getYBot(),
                            sc->getDirection());
         break;
     }
@@ -73,6 +87,13 @@ void Curve::copyCurves(const vector<Curve *> *source, vector<Curve *> *target) {
 }
 
 
+/*
+Checks how often a line segment crosses a rectangle.
+
+rxmin, rymin, rxmax and rymax define the rectangle.
+x0, y0, x1 and y1 define the endpoints of the line.
+
+*/
 int Curve::rectCrossingsForLine(int crossings,
                                 double rxmin, double rymin,
                                 double rxmax, double rymax,
@@ -140,6 +161,14 @@ int Curve::rectCrossingsForLine(int crossings,
   return RECT_INTERSECTS;
 }
 
+/*
+Checks how often a quad segment crosses a rectangle.
+
+rxmin, rymin, rxmax and rymax define the rectangle.
+x0, y0, x1 and y1 define the endpoints of the quad.
+xc and yc define the change point of the quad.
+
+*/
 int Curve::rectCrossingsForQuad(int crossings,
                                 double rxmin, double rymin,
                                 double rxmax, double rymax,
@@ -213,6 +242,12 @@ int Curve::getDirection() {
   return direction;
 }
 
+/*
+Implementation of destructor.
+
+*/
+Curve::~Curve() {};
+
 Curve *Curve::getWithDirection(int direction) {
   return (this->direction == direction ? this : getReversedCurve());
 }
@@ -251,6 +286,11 @@ bool Curve::fairlyClose(double v1, double v2) {
           max(abs(v1), abs(v2)) * 1E-10);
 }
 
+/*
+Checks if ~Curve~ in arguments intersects with this instance within a given
+ ~yrange~.
+
+*/
 bool Curve::findIntersect(Curve *that, double *yrange, double ymin,
                           int slevel, int tlevel,
                           double s0, double xs0, double ys0,
@@ -377,6 +417,10 @@ bool Curve::findIntersect(Curve *that, double *yrange, double ymin,
   return false;
 }
 
+/*
+Compares ~Curve~ in arguments with this instance within the given ~yrange~.
+
+*/
 int Curve::compareTo(Curve *that, double *yrange) {
   double y0 = yrange[0];
   double y1 = yrange[1];
@@ -504,12 +548,23 @@ int Curve::compareTo(Curve *that, double *yrange) {
   double ymid = (yrange[0] + yrange[1]) / 2;
   return orderof(this->XforY(ymid), that->XforY(ymid));
 }
+/*
+5.6 Implementation of ~MoveCurve~ methods
 
+Implementation of constructor initializing the fields.
+
+*/
 MoveCurve::MoveCurve(double x, double y) :
   Curve(INCREASING),
   x(x), y(y) {
 }
 
+MoveCurve::~MoveCurve() {}
+
+/*
+Implementation of ~MoveCurve~ access methods.
+
+*/
 int MoveCurve::getOrder() {
   return SEG_MOVETO;
 }
@@ -590,10 +645,18 @@ Curve *MoveCurve::getReversedCurve() {
   return this;
 }
 
+/*
+Adds this segment to the ~RectangleBB~, enlarging it if necessary.
+
+*/
 void MoveCurve::enlarge(RectangleBB *r) {
   r->add(x, y);
 }
 
+/*
+Checks if this ~MoveCurve~ is within the area of the ~Crossings~
+
+*/
 bool MoveCurve::accumulateCrossings(Crossings *c) {
   return (x > c->getXLo() &&
           x < c->getXHi() &&
@@ -606,7 +669,12 @@ int MoveCurve::getSegment(double *coords) {
   coords[1] = y;
   return Curve::SEG_MOVETO;
 }
+/*
+5.6 Implementation of ~LineCurve~ methods
 
+Implementation of constructor initializing the fields.
+
+*/
 LineCurve::LineCurve(double x0, double y0, double x1, double y1,
                      int direction) :
   Curve(direction),
@@ -620,6 +688,12 @@ LineCurve::LineCurve(double x0, double y0, double x1, double y1,
   }
 }
 
+LineCurve::~LineCurve() {}
+
+/*
+Implementation of ~LineCurve~ access methods.
+
+*/
 int LineCurve::getOrder() {
   return SEG_LINETO;
 }
@@ -737,6 +811,10 @@ Curve *LineCurve::getReversedCurve() {
   return new LineCurve(x0, y0, x1, y1, -direction);
 }
 
+/*
+Compares ~LineCurve~ in arguments with this instance within the given ~yrange~.
+
+*/
 int LineCurve::compareTo(Curve *other, double *yrange) {
   if (other == NULL || other->getOrder() != 1) {
     return Curve::compareTo(other, yrange);
@@ -793,11 +871,20 @@ int LineCurve::compareTo(Curve *other, double *yrange) {
   return orderof(XforY(y), c1->XforY(y));
 }
 
+/*
+Adds this segment to the ~RectangleBB~, enlarging it if necessary.
+
+*/
 void LineCurve::enlarge(RectangleBB *r) {
   r->add(x0, y0);
   r->add(x1, y1);
 }
 
+/*
+Checks if this ~LineCurve~ is within the area of the ~Crossings~.
+Adds its coordinates to the ~Crossings~ otherwise.
+
+*/
 bool LineCurve::accumulateCrossings(Crossings *c) {
   double xlo = c->getXLo();
   double ylo = c->getYLo();

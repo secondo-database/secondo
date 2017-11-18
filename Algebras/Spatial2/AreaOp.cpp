@@ -21,6 +21,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+Defines and includes.
 
 */
 
@@ -35,14 +36,25 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 
 namespace salr {
+/*
+6.6 Implementation of ~Edge~ methods
 
+Implementation of constructors.
+
+*/
   Edge::Edge(Curve *c, int ctag) :
         curve(c), ctag(ctag), etag(AreaOp::ETAG_IGNORE) {
+    lastEdge = 0;
   }
 
   Edge::Edge(Curve *c, int ctag, int etag) : curve(c), ctag(ctag), etag(etag) {
+    lastEdge = 0;
   }
 
+/*
+Implementation of access methods.
+
+*/
   Curve *Edge::getCurve() const {
     return curve;
   }
@@ -67,6 +79,10 @@ namespace salr {
     equivalence = eq;
   }
 
+/*
+Compares ~Edge~ in arguments with this instance within the given ~yrange~.
+
+*/
   int Edge::compareTo(Edge *other, double *yrange) {
     if (other == lastEdge && yrange[0] < lastLimit) {
       if (yrange[1] > lastLimit) {
@@ -101,6 +117,10 @@ namespace salr {
     return (this->etag == etag && this->activey >= y);
   }
 
+/*
+Comparator used to sort two ~Edge~ by their highest y coordinate.
+
+*/
   bool comparator(const Edge *l, const Edge *r) {
     Curve *c1 = l->getCurve();
     Curve *c2 = r->getCurve();
@@ -117,9 +137,16 @@ namespace salr {
     return 0;
   }
 
+/*
+6.7 Implementation of ~CurveLink~ methods
+
+Implementation of constructor.
+
+*/
   CurveLink::CurveLink(Curve *c, double ystart, double yend, int etag) :
                         curve(c), ytop(ystart), ybot(yend), etag(etag) {
     hasNext = false;
+    next = 0;
     if (ytop < c->getYTop() || ybot > c->getYBot()) {
       stringstream sstm;
       sstm << "bad curvelink [" << ytop << "=>" << ybot << "] for " << &c;
@@ -131,6 +158,10 @@ namespace salr {
     return absorb(link->curve, link->ytop, link->ybot, link->etag);
   }
 
+/*
+Changes ~ytop~ and ~ybot~ if criteria are met.
+
+*/
   bool CurveLink::absorb(Curve *curve, double ystart, double yend, int etag) {
     if (this->curve != curve || this->etag != etag ||
         ybot < ystart || ytop > yend) {
@@ -150,6 +181,10 @@ namespace salr {
     return (ytop == ybot);
   }
 
+/*
+Implementation of access methods.
+
+*/
   Curve *CurveLink::getCurve() {
     return curve;
   }
@@ -201,10 +236,20 @@ namespace salr {
     return NULL;
   }
 
+/*
+6.8 Implementation of ~ChainEnd~ methods
+
+Implementation of constructor.
+
+*/
   ChainEnd::ChainEnd(CurveLink* first, ChainEnd* partner) :
         head(first), tail(first), partner(partner), etag(first->getEdgeTag()) {
   }
 
+/*
+Implementation of access methods.
+
+*/
   CurveLink* ChainEnd::getChain() {
     return head;
   }
@@ -217,6 +262,11 @@ namespace salr {
     return partner;
   }
 
+/*
+Returns head of a complete chain to be added to subcurves or null if the
+ links did not complete such a chain.
+
+*/
   CurveLink* ChainEnd::linkTo(ChainEnd* that) {
     if (etag == AreaOp::ETAG_IGNORE ||
         that->etag == AreaOp::ETAG_IGNORE)
@@ -278,6 +328,13 @@ namespace salr {
     }
   }
 
+/*
+6.9 Implementation of ~AreaOp~ methods
+
+Used to finalize the subcurves by iterating over all remaining ~ChainEnd~ and
+ closing unfinished subcurves.
+
+*/
   void AreaOp::finalizeSubCurves(vector<CurveLink*>* subcurves,
                                  vector<ChainEnd*>* chains) {
     int numchains = chains->size();
@@ -297,25 +354,27 @@ namespace salr {
         subcurves->push_back(subcurve);
       }
     }
+    for(unsigned int i = 0; i < chains->size(); i++) {
+      ChainEnd* ce = chains->at(i);
+      delete ce;
+    }
     chains->clear();
   }
 
-  /*
-   * Does the position of the next edge at v1 "obstruct" the
-   * connectivity between current edge and the potential
-   * partner edge which is positioned at v2?
-   *
-   * Phase tells us whether we are testing for a transition
-   * into or out of the interior part of the resulting area.
-   *
-   * Require 4-connected continuity if this edge and the partner
-   * edge are both "entering into" type edges
-   * Allow 8-connected continuity for "exiting from" type edges
-   */
+/*
+Checks if the position of the next edge at v1 "obstruct" the connectivity
+ between current edge and the potential partner edge which is positioned at v2.
+
+*/
   bool AreaOp::obstructs(double v1, double v2, int phase) {
     return (((phase & 1) == 0) ? (v1 <= v2) : (v1 < v2));
   }
 
+/*
+Used to connect matching CurveLinks with each other. Creates new ChainEnds
+ for newly created subcurves. Adds newly created subcurves to ~subcurves~.
+
+*/
   void AreaOp::resolveLinks(vector<CurveLink*> *subcurves,
                             vector<ChainEnd*> *chains,
                             vector<CurveLink*> *links)
@@ -411,14 +470,28 @@ namespace salr {
     }
   }
 
+/*
+Calculates the new area modelled by the two curve vectors depending on the
+ typ of the current instance.
+
+*/
   void AreaOp::calculate(vector<Curve*>* left, vector<Curve*>* right) {
     vector < Edge * > *edges = new vector<Edge *>(0);
     addEdges(edges, left, AreaOp::CTAG_LEFT);
     addEdges(edges, right, AreaOp::CTAG_RIGHT);
     pruneEdges(edges, left);
+    for(unsigned int i = 0; i < edges->size(); i++) {
+      Edge* e = edges->at(i);
+      delete e;
+    }
     delete edges;
   }
 
+/*
+Wraps each curve inside an ~Edge~ and adds all edges to a vector. Tags each
+ edge according to which region it came from.
+
+*/
   void AreaOp::addEdges(vector<Edge*>* edges,
                        vector<Curve*>* curves, int curvetag) {
     if(curves != NULL) {
@@ -431,6 +504,11 @@ namespace salr {
     }
   }
 
+/*
+Removes edges which are not needed for the result area. Checks for
+ intersections between edges and changes underlying ~Curve~ if necessary.
+
+*/
   void AreaOp::pruneEdges(vector<Edge*>* edges, vector<Curve*>* result) {
     int numedges = edges->size();
     if (numedges < 2) {
@@ -578,26 +656,6 @@ namespace salr {
           links.push_back(new CurveLink(e->getCurve(), ystart, yend, etag));
         }
       }
-      if (getState() != AreaOp::RSTAG_OUTSIDE) {
-        cout << "Still inside at end of active edge list!" << endl;
-        cout << "num curves = " << right-left << endl;
-        cout << "num links = " << links.size() << endl;
-        cout << "y top = " << yrange[0] << endl;
-        if (right < numedges) {
-          cout << "y top of next curve = " <<
-               edgelist[right]->getCurve()->getYTop() << endl;
-        } else {
-          cout << "no more curves" << endl;
-        }
-        for (cur = left; cur < right; cur++) {
-          e = edgelist[cur];
-          cout << &e << endl;
-          int eq = e->getEquivalence();
-          if (eq != 0) {
-            cout << "  was equal to " << eq << "..." << endl;
-          }
-        }
-      }
       resolveLinks(&subcurves, &chains, &links);
       links.clear();
       // Finally capture the bottom of the valid Y range as the top
@@ -613,13 +671,21 @@ namespace salr {
       while((nextlink = nextlink->getNext()) != NULL) {
         if (!link->absorb(nextlink)) {
           result->push_back(link->getSubCurve());
+          delete link;
           link = nextlink;
         }
       }
       result->push_back(link->getSubCurve());
+      delete link;
     }
   }
 
+/*
+6.10 Implementation of child class methods
+
+Methods used by ~NZWindOp~ to classify an ~Edge~.
+
+*/
   void NZWindOp::newRow() {
     count = 0;
   }
@@ -636,6 +702,10 @@ namespace salr {
     return ((count == 0) ? RSTAG_OUTSIDE : RSTAG_INSIDE);
   }
 
+/*
+Methods used by ~EOWindOp~ to classify an ~Edge~.
+
+*/
   void EOWindOp::newRow() {
     inside = false;
   }
@@ -650,6 +720,10 @@ namespace salr {
     return (inside ? RSTAG_INSIDE : RSTAG_OUTSIDE);
   }
 
+/*
+Methods used by ~CAGOp~ to classify an ~Edge~.
+
+*/
   void CAGOp::newRow() {
     inLeft = inRight = inResult = false;
   }
@@ -672,18 +746,34 @@ namespace salr {
     return (inResult ? RSTAG_INSIDE : RSTAG_OUTSIDE);
   }
 
+/*
+Classification criteria for union operation.
+
+*/
   bool UnionOp::newClassification(bool inLeft, bool inRight) {
     return (inLeft || inRight);
   }
 
+/*
+Classification criteria for minus operation.
+
+*/
   bool MinusOp::newClassification(bool inLeft, bool inRight) {
     return (inLeft && !inRight);
   }
 
+/*
+Classification criteria for intersection operation.
+
+*/
   bool IntersectsOp::newClassification(bool inLeft, bool inRight) {
     return (inLeft && inRight);
   }
 
+/*
+Classification criteria for xor operation.
+
+*/
   bool XorOp::newClassification(bool inLeft, bool inRight) {
     return (inLeft != inRight);
   }

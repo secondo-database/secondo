@@ -17,6 +17,16 @@
 //along with SECONDO; if not, write to the Free Software
 //Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+/*
+8 Dsplline2
+
+8.1 Overview
+
+This file contains the implementation to add the new type ~Line2~ of the
+~SpatialLRAlgebra~ to the ~HoeseViewer~.
+
+*/
+
 package  viewer.hoese.algebras;
 
 import  java.awt.geom.*;
@@ -28,19 +38,34 @@ import viewer.hoese.*;
 import tools.Reporter;
 
 
-/**
- * The displayclass of the line datatype (Rose algebra).
- */
+/*
+8.2 Class ~Dsplline2
+
+*/
 public class Dsplline2 extends DisplayGraph {
-  /** The shape representing this line */
+/*
+The shape representing this line
+
+*/
   GeneralPath GP;
-  /** boolean flag indicating the defined state*/
+
+/*
+boolean flag indicating the defined state
+
+*/
   boolean defined;
-  /** The textual representation of this line **/
+
+/*
+The textual representation of this line2
+
+*/
   String entry;
 
 
-  /** returns true because this type is a line **/
+/*
+returns true because this type is a line
+
+*/
   public boolean isLineType(int num){
     return true;
   }
@@ -58,7 +83,10 @@ public class Dsplline2 extends DisplayGraph {
   }
 
 
-  /** returns the string for the textual representation of this **/
+/*
+returns the string for the textual representation of this
+
+*/
   public String toString(){
      if(err || !defined){
         return entry;
@@ -69,12 +97,10 @@ public class Dsplline2 extends DisplayGraph {
 
   }
 
- /**
-   * Scans the representation of the line datatype and constucts the lines Vector.
-   * @param v A list of segments
-   * @see sj.lang.ListExpr
-   * @see <a href="Dspllinesrc.html#ScanValue">Source</a>
-  */
+/*
+Creates an instance of ~GeneralPath~ form the ~ListExpr~.
+
+*/
   public boolean ScanValue (ListExpr expr) {
     if(isUndefined(expr)){
        defined=false;
@@ -125,6 +151,10 @@ public class Dsplline2 extends DisplayGraph {
     return true;
   }
 
+/*
+Gets called by ~HoeseViewer~ to change a list expr to a java object.
+
+*/
   public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value, QueryResult qr) {
     AttrName = extendString(name,nameWidth, indent);
 

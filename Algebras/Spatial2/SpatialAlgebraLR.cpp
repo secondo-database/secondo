@@ -22,20 +22,22 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 //[TOC] [\tableofcontents]
-//[_] [\_]
 
-[1] File of the Spatial Algebra LR
+[1] Files of SpatialLRAlgebra
 
-September, 20017 Torsten Weidmann
+November, 2017 Torsten Weidmann
 
 [TOC]
 
-1 Overview
+1 SpatialLRAlgebra
 
-This file build the Spatial Algebra LR by implementing all operators and
-declaring the needed type constructors.
+1.1 Overview
 
-2 Defines and includes
+This file contains the declaration of the SpatialLRAlgebra as well as all
+ associated types and operations. All methods necessary for these operations
+ are implemented here as well.
+
+Defines and includes.
 
 */
 
@@ -52,6 +54,12 @@ declaring the needed type constructors.
 
 namespace salr {
 
+/*
+1.2 Begin of method declarations.
+
+Methods for the *moveTo* operation.
+
+*/
   ListExpr moveToTM(ListExpr args) {
     if (!nl->HasLength(args, 3)) {
       return listutils::typeError("Wrong number of arguments");
@@ -90,6 +98,10 @@ namespace salr {
     moveToTM
   );
 
+/*
+Methods for the *lineTo* operation.
+
+*/
   ListExpr lineToTM(ListExpr args) {
     if (!nl->HasLength(args, 3)) {
       return listutils::typeError("Wrong number of arguments");
@@ -128,6 +140,10 @@ namespace salr {
     lineToTM
   );
 
+/*
+Methods for the *quadTo* operation.
+
+*/
   ListExpr quadToTM(ListExpr args) {
     if (!nl->HasLength(args, 5)) {
       return listutils::typeError("Wrong number of arguments");
@@ -171,6 +187,10 @@ namespace salr {
     quadToTM
   );
 
+/*
+Methods for the *closeLine* operation.
+
+*/
   ListExpr closeLineTM(ListExpr args) {
     if (!nl->HasLength(args, 1)) {
       return listutils::typeError("Wrong number of arguments");
@@ -206,6 +226,10 @@ namespace salr {
     closeLineTM
   );
 
+/*
+Methods for the *toregion2* operation, with line2 as argument.
+
+*/
   ListExpr lineToRegionTM(ListExpr args) {
     if (!nl->HasLength(args, 1)) {
       return listutils::typeError("Wrong number of arguments");
@@ -230,7 +254,7 @@ namespace salr {
     "line2 -> region2",
     "toregion2 (_)",
     "Creates a region2 to from a line2",
-    "query l1 toregion2"
+    "query toregion2 (l1)"
   );
 
   Operator lineToRegionOp(
@@ -241,6 +265,10 @@ namespace salr {
     lineToRegionTM
   );
 
+/*
+Methods for the *toline2* operation.
+
+*/
   ListExpr lineToLine2TM(ListExpr args) {
     if (!nl->HasLength(args, 1)) {
       return listutils::typeError("Wrong number of arguments");
@@ -257,7 +285,7 @@ namespace salr {
     result = qp->ResultStorage(s);
     Line2* res = static_cast<Line2*>(result.addr);
     Line *line = (Line *) args[0].addr;
-    *res = Line(*line);
+    *res = Line2(*line);
     return 0;
   }
 
@@ -265,7 +293,7 @@ namespace salr {
     "line -> line2",
     "toline2 (_)",
     "Creates a line2 from a line",
-    "query l1 toline2"
+    "query toline2 (l1)"
   );
 
   Operator lineToLine2Op(
@@ -276,6 +304,10 @@ namespace salr {
     lineToLine2TM
   );
 
+/*
+Methods for the *toline* operation.
+
+*/
   ListExpr line2ToLineTM(ListExpr args) {
     if (!nl->HasLength(args, 1)) {
       return listutils::typeError("Wrong number of arguments");
@@ -299,7 +331,7 @@ namespace salr {
     "line2 -> line",
     "toline (_)",
     "Creates a line from a line2",
-    "query l1 toline"
+    "query toline (l1)"
   );
 
   Operator line2ToLineOp(
@@ -310,6 +342,10 @@ namespace salr {
     line2ToLineTM
   );
 
+/*
+Methods for the *toregion2* operation, with region as argument.
+
+*/
   ListExpr regionToRegion2TM(ListExpr args) {
     if (!nl->HasLength(args, 1)) {
       return listutils::typeError("Wrong number of arguments");
@@ -326,10 +362,8 @@ namespace salr {
   {
     result = qp->ResultStorage(s);
     Region2* res = static_cast<Region2*>(result.addr);
-    ListExpr le = ::OutRegion(0, args[0]);
     Region *region = (Region *) args[0].addr;
-    Line2 line = Line2(le, region->Size());
-    *res = Region2(line);
+    *res = Region2(*region);
     return 0;
   }
 
@@ -337,7 +371,7 @@ namespace salr {
     "region -> region2",
     "toregion2 (_)",
     "Creates a region2 from a region",
-    "query r1 toregion2"
+    "query toregion2 (r1)"
   );
 
   Operator regionToRegion2Op(
@@ -348,6 +382,10 @@ namespace salr {
     regionToRegion2TM
   );
 
+/*
+Methods for the *toregion* operation.
+
+*/
   ListExpr region2ToRegionTM(ListExpr args) {
     if (!nl->HasLength(args, 1)) {
       return listutils::typeError("Wrong number of arguments");
@@ -364,6 +402,7 @@ namespace salr {
   {
     result = qp->ResultStorage(s);
     Region2 *region = (Region2 *)args[0].addr;
+    region->updateCurves();
     Line2 line = Line2(*region);
     Line *cl = line.toLine();
     Region *pResult = (Region *)result.addr;
@@ -376,7 +415,7 @@ namespace salr {
     "region2 -> region",
     "_ toregion",
     "Creates a region from a region2",
-    "query r1 toregion"
+    "query toregion (r2)"
   );
 
   Operator region2ToRegionOp(
@@ -387,6 +426,10 @@ namespace salr {
     region2ToRegionTM
   );
 
+/*
+Methods for the *lr\_intersects* operation.
+
+*/
   int intersectFun_L (Word* args, Word& result, int message,
                      Word& local, Supplier s)
   {
@@ -403,6 +446,7 @@ namespace salr {
   {
     result = qp->ResultStorage(s);
     Region2 *region = (Region2 *) args[0].addr;
+    region->updateCurves();
     RectangleBB *rec = (RectangleBB *) args[1].addr;
     CcBool* b = static_cast<CcBool*>(result.addr);
     b->Set(true, region->intersects(rec));
@@ -445,6 +489,10 @@ namespace salr {
     }
   };
 
+/*
+Methods for the *getbounds* operation.
+
+*/
   int boundsFun_L (Word* args, Word& result, int message,
                       Word& local, Supplier s)
   {
@@ -459,6 +507,7 @@ namespace salr {
   {
     result = qp->ResultStorage(s);
     Region2 *region = (Region2 *) args[0].addr;
+    region->updateCurves();
     result.addr = region->getBounds();
     return 0;
   }
@@ -497,6 +546,10 @@ namespace salr {
     }
   };
 
+/*
+Methods for the *union1* operation.
+
+*/
   ListExpr unionTM(ListExpr args) {
     if (!nl->HasLength(args, 2)) {
       return listutils::typeError("Wrong number of arguments");
@@ -513,8 +566,11 @@ namespace salr {
   {
     result = qp->ResultStorage(s);
     Region2 *r1 = (Region2 *) args[0].addr;
+    r1->updateCurves();
     Region2 *r2 = (Region2 *) args[1].addr;
-    result.addr = r1->union1(r2);
+    r2->updateCurves();
+    Region2* r = new Region2(*r1);
+    result.addr = r->union1(r2);
     return 0;
   }
 
@@ -533,6 +589,10 @@ namespace salr {
     unionTM
   );
 
+/*
+Methods for the *minus1* operation.
+
+*/
   ListExpr minusTM(ListExpr args) {
     if (!nl->HasLength(args, 2)) {
       return listutils::typeError("Wrong number of arguments");
@@ -549,8 +609,11 @@ namespace salr {
   {
     result = qp->ResultStorage(s);
     Region2 *r1 = (Region2 *) args[0].addr;
+    r1->updateCurves();
     Region2 *r2 = (Region2 *) args[1].addr;
-    result.addr = r1->minus1(r2);
+    r2->updateCurves();
+    Region2* r = new Region2(*r1);
+    result.addr = r->minus1(r2);
     return 0;
   }
 
@@ -569,7 +632,11 @@ namespace salr {
     minusTM
   );
 
-  ListExpr intersectsTM(ListExpr args) {
+/*
+Methods for the *intersection1* operation.
+
+*/
+  ListExpr intersectionTM(ListExpr args) {
     if (!nl->HasLength(args, 2)) {
       return listutils::typeError("Wrong number of arguments");
     }
@@ -581,30 +648,37 @@ namespace salr {
   }
 
   int
-  intersectsVM(Word *args, Word &result, int message, Word &local, Supplier s)
+  intersectionVM(Word *args, Word &result, int message, Word &local, Supplier s)
   {
     result = qp->ResultStorage(s);
     Region2 *r1 = (Region2 *) args[0].addr;
+    r1->updateCurves();
     Region2 *r2 = (Region2 *) args[1].addr;
-    result.addr = r1->intersects1(r2);
+    r2->updateCurves();
+    Region2* r = new Region2(*r1);
+    result.addr = r->intersection1(r2);
     return 0;
   }
 
-  OperatorSpec intersectsSpec(
+  OperatorSpec intersectionSpec(
     "region2 x region2 -> region2",
-    "_ intersects1 _",
+    "intersection1 (_, _)",
     "Returns the region in which r1 and r2 intersect.",
-    "query r1 intersects1 r2"
+    "query intersection1(r1, r2)"
   );
 
-  Operator intersectsOp(
-    "intersects1",
-    intersectsSpec.getStr(),
-    intersectsVM,
+  Operator intersectionOp(
+    "intersection1",
+    intersectionSpec.getStr(),
+    intersectionVM,
     Operator::SimpleSelect,
-    intersectsTM
+    intersectionTM
   );
 
+/*
+Methods for the *xor1* operation.
+
+*/
   ListExpr xorTM(ListExpr args) {
     if (!nl->HasLength(args, 2)) {
       return listutils::typeError("Wrong number of arguments");
@@ -621,8 +695,11 @@ namespace salr {
   {
     result = qp->ResultStorage(s);
     Region2 *r1 = (Region2 *) args[0].addr;
+    r1->updateCurves();
     Region2 *r2 = (Region2 *) args[1].addr;
-    result.addr = r1->xor1(r2);
+    r2->updateCurves();
+    Region2* r = new Region2(*r1);
+    result.addr = r->xor1(r2);
     return 0;
   }
 
@@ -641,22 +718,36 @@ namespace salr {
     xorTM
   );
 
+/*
+1.3 Declarations of constructors for new data types.
+
+*/
   GenTC <Line2> LineTC;
   GenTC <Region2> RegionTC;
   GenTC <RectangleBB> RectangleBBTC;
 
+/*
+1.4 Class ~SpatialLRAlgebra~
+
+*/
   class SpatialLRAlgebra : public Algebra {
   public:
     SpatialLRAlgebra() : Algebra() {
+/*
+Adding type constructors to algebra.
+
+*/
       AddTypeConstructor(&LineTC);
       LineTC.AssociateKind(Kind::DATA());
-
       AddTypeConstructor(&RegionTC);
       RegionTC.AssociateKind(Kind::DATA());
-
       AddTypeConstructor(&RectangleBBTC);
       RectangleBBTC.AssociateKind(Kind::DATA());
 
+/*
+Adding operators to algebra.
+
+*/
       AddOperator(&moveToOp);
       AddOperator(&lineToOp);
       AddOperator(&quadToOp);
@@ -668,9 +759,13 @@ namespace salr {
       AddOperator(&region2ToRegionOp);
       AddOperator(&unionOp);
       AddOperator(&minusOp);
-      AddOperator(&intersectsOp);
+      AddOperator(&intersectionOp);
       AddOperator(&xorOp);
 
+/*
+Adding value mappings for overloaded operators to algebra.
+
+*/
       ValueMapping intersectFuns[] = {intersectFun_L, intersectFun_R, 0};
       AddOperator(intersectInfo(), intersectFuns,
                   intersectSelect, intersectTypeMap);
@@ -679,10 +774,18 @@ namespace salr {
       AddOperator(boundsInfo(), boundsFuns, boundsSelect, boundsTypeMap);
     }
 
+/*
+Destructor.
+
+*/
     ~SpatialLRAlgebra() {};
   };
 }
 
+/*
+Initialize the algebra.
+
+*/
 extern "C"
 Algebra *
 InitializeSpatialLRAlgebra(NestedList *nlRef, QueryProcessor *qpRef) {

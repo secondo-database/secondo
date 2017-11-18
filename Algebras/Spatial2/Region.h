@@ -20,21 +20,13 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
-//[TOC] [\tableofcontents]
-//[_] [\_]
+3 Region2
 
-[1] Header file of the Region
+3.1 Overview
 
-September, 20017 Torsten Weidmann
+This file defines the class ~Region2~ and its methods.
 
-[TOC]
-
-1 Overview
-
-This header file defines the class Region.
-
-2 Defines and includes
+Defines and includes.
 
 */
 
@@ -54,24 +46,45 @@ This header file defines the class Region.
 
 namespace salr {
 
+/*
+Forward declarations and typedef.
+
+*/
   typedef RegionT<DbArray>Region;
   typedef PointsT<DbArray>Points;
 
+/*
+2.2 Class ~Region2~
+
+Can be used as an alternative to ~Region~ from ~SpatialAlgebra~ for some use
+ cases.
+
+*/
   class Region2 : public Attribute {
   public:
 
     friend class Line2;
 
+/*
+Declaration of constructors.
+
+*/
     inline Region2() {};
     Region2(const Line2 &line);
     Region2(const Region2 &other);
     Region2(const Region &r);
+/*
+Declaration of destructor.
+
+*/
     ~Region2();
 
+/*
+Declaration of system methods.
+
+*/
     static const std::string BasicType();
     static const bool checkType(const ListExpr type);
-
-    // Attribute methods
     int NumOfFLOBs() const;
     Flob *GetFLOB(const int i);
     int Compare(const Attribute *arg) const;
@@ -80,54 +93,48 @@ namespace salr {
     size_t HashValue() const;
     void CopyFrom(const Attribute *arg);
     Attribute *Clone() const;
-
-    static ListExpr Property() {
-      return gentc::GenProperty("-> DATA",
-                                BasicType(),
-                                "int int DbArry<int> DbArry<real>",
-                                "((0 1) (1.5 2.5 2.0 3.0))");
-    }
-
+    static ListExpr Property();
     static bool CheckKind(ListExpr type, ListExpr &errorInfo);
     bool ReadFrom(ListExpr LE, const ListExpr typeInfo);
     ListExpr ToListExpr(ListExpr typeInfo) const;
 
+/*
+Declaration of custom methods.
+
+*/
     RectangleBB* getBounds();
     bool intersects(RectangleBB *bbox);
     Region2* union1(Region2 *rhs);
     Region2* minus1(Region2 *rhs);
-    Region2* intersects1(Region2 *rhs);
+    Region2* intersection1(Region2 *rhs);
     Region2* xor1(Region2 *rhs);
+    void updateCurves();
 
   private:
+/*
+Declaration of fields.
+
+  * ~curves~: Stores all segements in a vector containing pointer to ~Curve~.
+  * ~coords~: Stores all coordinates that make up this region.
+  * ~pointTypes~: Stores the types of segments.
+
+*/
     std::vector<Curve*> curves;
 
     DbArray<double> coords;
     DbArray<int> pointTypes;
 
+/*
+Declaration of private methods.
+
+*/
     void createCurves();
     void updateFLOBs();
     void nextSegment(int offset, int pointType, double *result) const;
-
-    void appendCoord(double x) {
-      coords.Append(x);
-    }
-
-    void appendType(int x) {
-      pointTypes.Append(x);
-    }
-
-    int getPointType(int i) const {
-      int pointType;
-      pointTypes.Get(i, &pointType);
-      return pointType;
-    }
-
-    double getCoord(int i) const {
-      double coord;
-      coords.Get(i, &coord);
-      return coord;
-    }
+    void appendCoord(double x);
+    void appendType(int x);
+    int getPointType(int i) const;
+    double getCoord(int i) const;
   };
 
 }

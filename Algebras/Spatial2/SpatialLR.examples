@@ -115,10 +115,10 @@ Signature : region2 x region2 -> region2
 Example   : query [const region2 value((0 1 1 1 4) (0 0 0 100 200 100 200 0))] minus1 [const region2 value((0 1 1 1 4) (100 0 100 100 300 100 300 0))]
 Result    : (region2((0 1 1 1 4) (0.0 0.0 0.0 100.0 100.0 100.0 100.0 0.0)))
 
-Operator  : intersects1
+Operator  : intersection1
 Number    : 1
 Signature : region2 x region2 -> region2
-Example   : query [const region2 value((0 1 1 1 4) (0 0 0 100 200 100 200 0))] intersects1 [const region2 value((0 1 1 1 4) (100 0 100 100 300 100 300 0))]
+Example   : query intersection1([const region2 value((0 1 1 1 4) (0 0 0 100 200 100 200 0))],  [const region2 value((0 1 1 1 4) (100 0 100 100 300 100 300 0))])
 Result    : (region2((0 1 1 1 4) (100.0 0.0 100.0 100.0 200.0 100.0 200.0 0.0)))
 
 Operator  : xor1

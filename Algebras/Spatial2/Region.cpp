@@ -21,6 +21,9 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+3.3 Implementation of ~Region2~ methods
+
+Defines and includes.
 
 */
 
@@ -37,9 +40,13 @@ using namespace std;
 
 namespace salr {
 
+/*
+Implementation of copy constructor.
+
+*/
   Region2::Region2(const Region2 &other) :
     Attribute(other.IsDefined()),
-    curves(other.curves.size()),
+    curves(0),
     coords(other.coords.Size()),
     pointTypes(other.pointTypes.Size())
   {
@@ -54,6 +61,10 @@ namespace salr {
     }
   }
 
+/*
+Implementation of constructor using ~Line2~.
+
+*/
   Region2::Region2(const Line2 &line) :
     Attribute(line.IsDefined()),
     curves(0),
@@ -77,9 +88,45 @@ namespace salr {
     }
   }
 
+/*
+Implementation of constructor using ~Region~.
+
+*/
+  Region2::Region2(const Region &r) :
+    Attribute(r.IsDefined()),
+    curves(0),
+    coords(r.Size()),
+    pointTypes(r.Size())
+  {
+    if (IsDefined()) {
+      HalfSegment hs;
+      for(int i = 0; i < r.Size(); i++) {
+        r.Get(i, hs);
+        if(hs.IsLeftDomPoint()) {
+          double x0 = hs.GetLeftPoint().GetX();
+          double y0 = hs.GetLeftPoint().GetY();
+          double x1 = hs.GetRightPoint().GetX();
+          double y1 = hs.GetRightPoint().GetY();
+          Curve::insertLine(&curves, x0, y0, x1, y1);
+        }
+      }
+      EOWindOp op;
+      op.calculate(&curves, NULL);
+      updateFLOBs();
+    }
+  }
+
+/*
+Implementation of destructor.
+
+*/
   Region2::~Region2() {
   }
 
+/*
+Implementation of system methods.
+
+*/
   const string Region2::BasicType() {
     return "region2";
   }
@@ -128,6 +175,19 @@ namespace salr {
     return sizeof(*this);
   }
 
+  ListExpr Region2::Property() {
+    return gentc::GenProperty("-> DATA",
+                    BasicType(),
+                    "((<pointTypes>)(<coords>))",
+                    "((0 1 1 1 4) (0 0 0 300 300.0 300 300 0))",
+                    "The lists pointTypes and coords need to be konsistent.\n"
+                    "For each int in pointTypes the correct number of int\n"
+                    "or real must be in coords: \n"
+                    "Type=0: 2 Elements in coords\n"
+                    "Type=1: 2 Elements in coords\n"
+                    "Type=4: 0 Elements in coords\n");
+  }
+
   size_t Region2::HashValue() const {
     if (pointTypes.Size() == 0) return 0;
 
@@ -153,6 +213,11 @@ namespace salr {
     return checkType(type);
   }
 
+/*
+Implementation of readFrom method. Creates an instance from a list
+ representation.
+
+*/
   bool Region2::ReadFrom(ListExpr LE, const ListExpr typeInfo) {
     if (listutils::isSymbolUndefined(LE)) {
       SetDefined(false);
@@ -211,6 +276,11 @@ namespace salr {
     return true;
   }
 
+/*
+Implementation of toListExpr method. Returns a list representation of this
+ object.
+
+*/
   ListExpr Region2::ToListExpr(ListExpr typeInfo) const {
     if (!IsDefined()) {
       return listutils::getUndefined();
@@ -239,6 +309,10 @@ namespace salr {
     return result;
   }
 
+/*
+Returns a ~RectangleBB~ representing the bounding box of this region2.
+
+*/
   RectangleBB* Region2::getBounds() {
     RectangleBB* r = new RectangleBB(0, 0 ,0 ,0);
     if (curves.size() > 0) {
@@ -248,19 +322,15 @@ namespace salr {
       r->y = c->getY0();
       for (unsigned int i = 1; i < curves.size(); i++) {
         curves.at(i)->enlarge(r);
-//        Curve* tmp = curves.at(i);
-//        if(tmp->getOrder() == Curve::SEG_MOVETO) {
-//          (dynamic_cast<MoveCurve *>(tmp))->enlarge(r);
-//        } else if(tmp->getOrder() == Curve::SEG_LINETO) {
-//          (dynamic_cast<LineCurve *>(tmp))->enlarge(r);
-//        } else if(tmp->getOrder() == Curve::SEG_QUADTO) {
-//          (dynamic_cast<QuadCurve *>(tmp))->enlarge(r);
-//        }
       }
     }
     return r;
   }
 
+/*
+Checks if this line2 intersects with the ~RectangleBB~ in the argument.
+
+*/
   bool Region2::intersects(RectangleBB *bbox) {
     double x, y, w, h;
     x = bbox->x;
@@ -273,9 +343,16 @@ namespace salr {
     if (!getBounds()->intersects(x, y, w, h)) {
       return false;
     }
-    return Crossings::findCrossings(&curves, x, y, x+w, y+h);
+    Crossings* cross = Crossings::findCrossings(&curves, x, y, x+w, y+h);
+    bool result = cross == 0 || !cross->isEmpty();
+    delete cross;
+    return result;
   }
 
+/*
+Returns a ~Region2~ containing the area of this region2 and the argument.
+
+*/
   Region2* Region2::union1(Region2 *rhs) {
     UnionOp op;
     op.calculate(&curves, &rhs->curves);
@@ -283,6 +360,11 @@ namespace salr {
     return this;
   }
 
+/*
+Returns a ~Region2~ containing the area from this region2 which is not
+ contained in the argument.
+
+*/
   Region2* Region2::minus1(Region2 *rhs) {
     MinusOp op;
     op.calculate(&curves, &rhs->curves);
@@ -290,13 +372,23 @@ namespace salr {
     return this;
   }
 
-  Region2* Region2::intersects1(Region2 *rhs) {
+/*
+Returns a ~Region2~ containing the area contained in both, this region2 and
+ the argument.
+
+*/
+  Region2* Region2::intersection1(Region2 *rhs) {
     IntersectsOp op;
     op.calculate(&curves, &rhs->curves);
     this->updateFLOBs();
     return this;
   }
 
+/*
+Returns a ~Region2~ containing the area contained either in this region2 or in
+ the argument.
+
+*/
   Region2* Region2::xor1(Region2 *rhs) {
     XorOp op;
     op.calculate(&curves, &rhs->curves);
@@ -304,11 +396,15 @@ namespace salr {
     return this;
   }
 
+/*
+Adds a ~MoveCurve~ or a ~LineCurve~ to ~curves~ for each segment contained in
+ ~pointTypes~.
+
+*/
   void Region2::createCurves() {
     if(pointTypes.Size() <= 0) {
       return;
     }
-    vector<Curve*> c(this->curves.size());
     double coords[10];
     double movx = 0, movy = 0, curx = 0, cury = 0;
     double newx, newy;
@@ -344,6 +440,22 @@ namespace salr {
     op.calculate(&curves, NULL);
   }
 
+
+/*
+Calls the ~createCurves()~ method if ~curves~ is empty and ~pointTypes~ is not.
+
+*/
+  void Region2::updateCurves() {
+    if(curves.size() == 0 && pointTypes.Size() > 0) {
+      createCurves();
+    }
+  }
+
+/*
+Clears all segments from ~coords~ and ~pointTypes~ and then adds them again
+ using the current state of ~curves~.
+
+*/
   void Region2::updateFLOBs() {
     coords.clean();
     pointTypes.clean();
@@ -376,12 +488,53 @@ namespace salr {
     }
   }
 
+/*
+Helper method: Returns the coordinates for the next segment from ~coords~
+ depending on its pointType and an offset passed as arguments.
+
+*/
   void Region2::nextSegment(int offset, int pointType, double *result) const {
     if (pointType == Curve::SEG_MOVETO
         || pointType == Curve::SEG_LINETO){
       result[0] = getCoord(offset);
       result[1] = getCoord(offset + 1);
     }
+  }
+
+/*
+Helper method: Appends a coordinate to ~coords~.
+
+*/
+  void Region2::appendCoord(double x) {
+    coords.Append(x);
+  }
+
+/*
+Helper method: Appends a type to ~pointTypes~.
+
+*/
+  void Region2::appendType(int x) {
+    pointTypes.Append(x);
+  }
+
+/*
+Helper method: Returns index *i* from ~pointTypes~.
+
+*/
+  int Region2::getPointType(int i) const {
+    int pointType;
+    pointTypes.Get(i, &pointType);
+    return pointType;
+  }
+
+/*
+Helper method: Returns index *i* from ~coords~.
+
+*/
+  double Region2::getCoord(int i) const {
+    double coord;
+    coords.Get(i, &coord);
+    return coord;
   }
 
 }

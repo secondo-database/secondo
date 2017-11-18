@@ -21,12 +21,16 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+4.3 Implementation of ~RectangleBB~ methods
+
+Defines and includes.
 
 */
 
 #include "RectangleBB.h"
 #include "NestedList.h"
 #include "ListUtils.h"
+#include "GenericTC.h"
 
 #include <algorithm>
 
@@ -34,17 +38,33 @@ using namespace std;
 
 namespace salr {
 
+/*
+Implementation of constructor setting all field to custom values.
+
+*/
   RectangleBB::RectangleBB(double x, double y, double width, double height) :
     Attribute(true), x(x), y(y), width(width), height(height) {
   }
 
+/*
+Implementation of constructor setting all fields to default values.
+
+*/
   RectangleBB::RectangleBB(int init) :
     Attribute(true), x(0), y(0), width(0), height(0) {
   }
 
+/*
+Implementation of destructor.
+
+*/
   RectangleBB::~RectangleBB() {
   }
 
+/*
+Implementation of system methods.
+
+*/
   const std::string RectangleBB::BasicType() {
     return "rectangleBB";
   }
@@ -112,6 +132,18 @@ namespace salr {
     return checkType(type);
   }
 
+  ListExpr RectangleBB::Property() {
+    return gentc::GenProperty("-> DATA",
+                              BasicType(),
+                              "(double double double double)",
+                              "(1.0 1.0 1.0 1.0)");
+  }
+
+/*
+Implementation of readFrom method. Creates an instance from a list
+ representation.
+
+*/
   bool RectangleBB::ReadFrom(ListExpr LE, const ListExpr typeInfo) {
     if (listutils::isSymbolUndefined(LE)) {
       SetDefined(false);
@@ -157,6 +189,11 @@ namespace salr {
     return true;
   }
 
+/*
+Implementation of toListExpr method. Returns a list representation of this
+ object.
+
+*/
   ListExpr RectangleBB::ToListExpr(ListExpr typeInfo) const {
     if (!IsDefined()) {
       return listutils::getUndefined();
@@ -168,15 +205,27 @@ namespace salr {
     return result;
   }
 
+/*
+Checks if this rectangle contains a point.
+
+*/
   bool RectangleBB::contains(double x1, double y1) {
     return (x1 >= x && y1 >= y &&
             x1 < x + width && y1 < y + height);
   }
 
+/*
+Checks if this rectangle is empty.
+
+*/
   bool RectangleBB::isEmpty() {
     return (width <= 0.0) || (height <= 0.0);
   }
 
+/*
+Changes all fields of this rectangle.
+
+*/
   void RectangleBB::setRect(double x1, double y1, double w, double h) {
     x = x1;
     y = y1;
@@ -184,6 +233,11 @@ namespace salr {
     height = h;
   }
 
+
+/*
+Changes this ~RectangleBB~ to include a new point.
+
+*/
   void RectangleBB::add(double newx, double newy) {
     double x1 = min(x, newx);
     double x2 = max(x + width, newx);
@@ -192,6 +246,12 @@ namespace salr {
     setRect(x1, y1, x2 - x1, y2 - y1);
   }
 
+
+/*
+Checks if this instance of ~RectangelBB~ intersects with the rectangle
+ defined by the 4 points in the arguments.
+
+*/
   bool RectangleBB::intersects(double x1, double y1, double w, double h) {
     if (isEmpty() || w <= 0 || h <= 0) {
       return false;

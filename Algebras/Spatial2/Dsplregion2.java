@@ -17,6 +17,16 @@
 //along with SECONDO; if not, write to the Free Software
 //Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+/*
+9 Dsplregion2
+
+9.1 Overview
+
+This file contains the implementation to add the new type ~Region2~ of the
+~SpatialLRAlgebra~ to the ~HoeseViewer~.
+
+*/
+
 package  viewer.hoese.algebras;
 
 import  java.awt.geom.*;
@@ -29,13 +39,27 @@ import viewer.hoese.*;
 import tools.Reporter;
 
 
-/**
- * The displayclass of the region2 datatype (SpatialLR algebra).
- */
+/*
+9.2 Class ~Dsplregion2
+
+*/
 public class Dsplregion2 extends DisplayGraph {
-  /** The internal datastructure of the region2 datatype */
+/*
+The internal datastructure of the region2 datatype
+
+*/
   Area areas;
+
+/*
+boolean flag indicating the defined state
+
+*/
   boolean defined;
+
+/*
+The textual representation of this region2
+
+*/
   String entry;
 
   public int numberOfShapes(){
@@ -50,7 +74,11 @@ public class Dsplregion2 extends DisplayGraph {
     }
   }
 
-    public boolean ScanValue (ListExpr expr) {
+/*
+Creates an instance of ~Area~ form the ~ListExpr~.
+
+*/
+  public boolean ScanValue (ListExpr expr) {
         if(isUndefined(expr)){
             defined=false;
             areas=null;
@@ -82,16 +110,6 @@ public class Dsplregion2 extends DisplayGraph {
                 y1 = LEUtils.readNumeric(coords.first());
                 coords = coords.rest();
                 gp.lineTo(x1,y1);
-            } else if(LEUtils.readNumeric(types.first()) == 2) {
-                x1 = LEUtils.readNumeric(coords.first());
-                coords = coords.rest();
-                y1 = LEUtils.readNumeric(coords.first());
-                coords = coords.rest();
-                x2 = LEUtils.readNumeric(coords.first());
-                coords = coords.rest();
-                y2 = LEUtils.readNumeric(coords.first());
-                coords = coords.rest();
-                gp.quadTo(x1,y1,x2,y2);
             } else if(LEUtils.readNumeric(types.first()) == 4) {
                 gp.closePath();
             }
@@ -100,9 +118,13 @@ public class Dsplregion2 extends DisplayGraph {
         gp.closePath();
         areas = new Area(gp);
         return true;
-    }
+  }
 
-    public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value, QueryResult qr) {
+/*
+Gets called by ~HoeseViewer~ to change a list expr to a java object.
+
+*/
+  public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value, QueryResult qr) {
         AttrName = extendString(name,nameWidth, indent);
 
         ScanValue(value);
@@ -123,7 +145,7 @@ public class Dsplregion2 extends DisplayGraph {
         defined=areas!=null;
         err=false;
         qr.addEntry(this);
-    }
+  }
 }
 
 

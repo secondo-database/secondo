@@ -21,6 +21,9 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+2.3 Implementation of ~Line2~ methods
+
+Defines and includes.
 
 */
 
@@ -31,11 +34,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ListUtils.h"
 #include "RectangleBB.h"
 #include "SpatialAlgebra.h"
+#include "AlmostEqual.h"
 
 #include <vector>
 
 namespace salr {
 
+/*
+Implementation of copy constructor.
+
+*/
   Line2::Line2(const Line2 &other) :
     Attribute(other.IsDefined()),
     coords(other.coords.Size()),
@@ -49,6 +57,10 @@ namespace salr {
     }
   }
 
+/*
+Implementation of int constructor.
+
+*/
   Line2::Line2(int initialCapacity) :
     Attribute(true),
     coords(initialCapacity * 2),
@@ -56,6 +68,10 @@ namespace salr {
     hasQuads(false)
   {}
 
+/*
+Implementation of constructor using ~Line~.
+
+*/
   Line2::Line2(const Line& l) :
     Attribute(l.IsDefined()),
     coords(l.Size()),
@@ -71,60 +87,36 @@ namespace salr {
       double lasty = y0;
       moveTo(x0, y0);
 
-      for(int i = 0; i < l.Size(); i=i+2) {
+      for(int i = 0; i < l.Size(); i++) {
         l.Get(i, hs);
-        double x0 = hs.GetLeftPoint().GetX();
-        double y0 = hs.GetLeftPoint().GetY();
-        double x1 = hs.GetRightPoint().GetX();
-        double y1 = hs.GetRightPoint().GetY();
-        if(x0 == lastx || y0 == lasty) {
-          lineTo(x1, y1);
-          lastx = x1;
-          lasty = y1;
-        } else if(x1 == lastx || y1 == lasty) {
-          lineTo(x0, y0);
-          lastx = x0;
-          lasty = y0;
-        } else {
-          moveTo(x0, y0);
-          lineTo(x1, y1);
-          lastx = x1;
-          lasty = y1;
-        }
-      }
-    }
-  }
-
-  Line2::Line2(ListExpr LE, int s) :
-    Attribute(true),
-    coords(s),
-    pointTypes(s),
-    hasQuads(false)
-  {
-    while(!nl->IsEmpty(LE)){
-      ListExpr Face = nl->First(LE);
-      LE = nl->Rest(LE);
-      while(!nl->IsEmpty(Face)){
-        ListExpr Cycle = nl->First(Face);
-        Face = nl->Rest(Face);
-        bool isFirstPoint = true;
-        while(!nl->IsEmpty(Cycle)){
-          ListExpr P = nl->First(Cycle);
-          Cycle = nl->Rest(Cycle);
-          double x1 = nl->RealValue(nl->First(P));
-          double y1 = nl->RealValue(nl->Second(P));
-          if(isFirstPoint){
-            moveTo(x1,y1);
-            isFirstPoint = false;
-          }else{
-            lineTo(x1,y1);
+        if(hs.IsLeftDomPoint()) {
+          double x0 = hs.GetLeftPoint().GetX();
+          double y0 = hs.GetLeftPoint().GetY();
+          double x1 = hs.GetRightPoint().GetX();
+          double y1 = hs.GetRightPoint().GetY();
+          if (x0 == lastx && y0 == lasty) {
+            lineTo(x1, y1);
+            lastx = x1;
+            lasty = y1;
+          } else if (x1 == lastx && y1 == lasty) {
+            lineTo(x0, y0);
+            lastx = x0;
+            lasty = y0;
+          } else {
+            moveTo(x0, y0);
+            lineTo(x1, y1);
+            lastx = x1;
+            lasty = y1;
           }
         }
-        closeLine();
       }
     }
   }
 
+/*
+Implementation of constructor using ~Region2~.
+
+*/
   Line2::Line2(const Region2 &r) :
     Attribute(r.IsDefined()),
     coords(r.coords.Size()),
@@ -138,9 +130,17 @@ namespace salr {
     }
   }
 
+/*
+Implementation of destructor.
+
+*/
   Line2::~Line2() {
   }
 
+/*
+Implementation of system methods.
+
+*/
   const std::string Line2::BasicType() {
     return "line2";
   }
@@ -181,6 +181,20 @@ namespace salr {
     return 0;
   }
 
+  ListExpr Line2::Property() {
+    return gentc::GenProperty("-> DATA",
+               BasicType(),
+               "((<pointTypes>)(<coords>))",
+               "((0 1 2) (1.5 2.5 2 3 3 4 4 3))",
+               "The lists pointTypes and coords need to be konsistent.\n"
+               "For each int in pointTypes the correct number of int\n"
+               "or real must be in coords: \n"
+               "Type=0: 2 Elements in coords\n"
+               "Type=1: 2 Elements in coords\n"
+               "Type=2: 4 Elements in coords\n"
+               "Type=4: 0 Elements in coords\n");
+  }
+
   bool Line2::Adjacent(const Attribute *arg) const {
     return false;
   }
@@ -214,6 +228,11 @@ namespace salr {
     return checkType(type);
   }
 
+/*
+Implementation of readFrom method. Creates an instance from a list
+ representation.
+
+*/
   bool Line2::ReadFrom(ListExpr LE, const ListExpr typeInfo) {
     if (listutils::isSymbolUndefined(LE)) {
       SetDefined(false);
@@ -275,6 +294,11 @@ namespace salr {
     return true;
   }
 
+/*
+Implementation of toListExpr method. Returns a list representation of this
+ object.
+
+*/
   ListExpr Line2::ToListExpr(ListExpr typeInfo) const {
     if (!IsDefined()) {
       return listutils::getUndefined();
@@ -303,6 +327,11 @@ namespace salr {
     return result;
   }
 
+
+/*
+Adds a move segment to this line2.
+
+*/
   void Line2::moveTo(double x, double y) {
     if (pointTypes.Size() > 0 &&
         getPointType(pointTypes.Size() - 1) == Curve::SEG_MOVETO) {
@@ -315,6 +344,10 @@ namespace salr {
     }
   }
 
+/*
+Adds a line segment to this line2.
+
+*/
   void Line2::lineTo(double x, double y) {
     hasInitialMove();
     pointTypes.Append((int) Curve::SEG_LINETO);
@@ -322,6 +355,10 @@ namespace salr {
     coords.Append(y);
   }
 
+/*
+Adds a quad segment to this line2.
+
+*/
   void Line2::quadTo(double x1, double y1, double x2, double y2) {
     hasInitialMove();
     pointTypes.Append((int) Curve::SEG_QUADTO);
@@ -332,6 +369,10 @@ namespace salr {
     hasQuads = true;
   }
 
+/*
+Adds a close segment to this line2.
+
+*/
   void Line2::closeLine() {
     if (pointTypes.Size() == 0 ||
         getPointType(pointTypes.Size() - 1) != Curve::SEG_CLOSE) {
@@ -340,6 +381,10 @@ namespace salr {
     }
   }
 
+/*
+Returns a ~RectangleBB~ representing the bounding box of this line2.
+
+*/
   RectangleBB* Line2::getBounds() {
     double x1, y1, x2, y2;
     int i = coords.Size();
@@ -360,6 +405,10 @@ namespace salr {
     return new RectangleBB(x1, y1, x2 - x1, y2 - y1);
   }
 
+/*
+Checks if this line2 intersects with the ~RectangleBB~ in the argument.
+
+*/
   bool Line2::intersects(RectangleBB *bbox) {
     if (bbox->width <= 0 || bbox->height <= 0) {
       return false;
@@ -370,6 +419,11 @@ namespace salr {
             (crossings & -1) != 0);
   }
 
+/*
+Helper method: Returns the coordinates for the next segment from ~coords~
+ depending on its pointType and an offset passed as arguments.
+
+*/
   void Line2::nextSegment(int offset, int pointType, double *result) const {
     if(pointType == Curve::SEG_MOVETO
        || pointType == Curve::SEG_LINETO
@@ -383,6 +437,10 @@ namespace salr {
     }
   }
 
+/*
+Transforms this ~Line2~ to a ~Line~.
+
+*/
   Line* Line2::toLine() {
     if(hasQuads) {
       cerr << "Line2 contains quad-segment. Invalid transformation." << endl;
@@ -411,6 +469,9 @@ namespace salr {
           offset += 2;
           x1 = coords[0];
           y1 = coords[1];
+          if(AlmostEqual(x0, x1) && AlmostEqual(y0, y1)) {
+            continue;
+          }
           lp = new Point(true, x0, y0);
           rp = new Point(true, x1, y1);
           hs = new HalfSegment(true, *lp, *rp);
@@ -424,6 +485,9 @@ namespace salr {
         case Curve::SEG_CLOSE:
           x1 = movx;
           y1 = movy;
+          if(AlmostEqual(x0, x1) && AlmostEqual(y0, y1)) {
+            continue;
+          }
           lp = new Point(true, x0, y0);
           rp = new Point(true, x1, y1);
           hs = new HalfSegment(true, *lp, *rp);
@@ -443,12 +507,58 @@ namespace salr {
     return l;
   }
 
+/*
+Helper method: Returns index *i* from ~coords~.
+
+*/
+  double Line2::getCoord(int i) const {
+    double coord;
+    coords.Get(i, &coord);
+    return coord;
+  }
+
+/*
+Helper method: Returns index *i* from ~pointTypes~.
+
+*/
+  int Line2::getPointType(int i) const {
+    int pointType;
+    pointTypes.Get(i, &pointType);
+    return pointType;
+  }
+
+/*
+Adds a move segment to this line2 if it is empty.
+
+*/
   void Line2::hasInitialMove() {
     if (pointTypes.Size() == 0) {
       moveTo(0, 0);
     }
   }
 
+/*
+Helper method: Appends a coordinate to ~coords~.
+
+*/
+  void Line2::appendCoord(double x) {
+    coords.Append(x);
+  }
+
+/*
+Helper method: Appends a type to ~pointTypes~.
+
+*/
+  void Line2::appendType(int x) {
+    pointTypes.Append(x);
+  }
+
+
+/*
+Checks if this line2 intersects with the rectangle defined by ~rxmin~,
+ ~rymin~, ~rxmax~ and ~rymax~. Returns the number of intersections.
+
+*/
   int
   Line2::rectCrossings(double rxmin, double rymin, double rxmax, double rymax) {
     if (pointTypes.Size() == 0) {
@@ -506,7 +616,6 @@ namespace salr {
           }
           curx = movx;
           cury = movy;
-          // Count should always be a multiple of 2 here.
           break;
       }
     }
@@ -516,7 +625,6 @@ namespace salr {
                                     rxmin, rymin, rxmax, rymax,
                                     curx, cury, movx, movy);
     }
-    // Count should always be a multiple of 2 here.
     return crossings;
   }
 

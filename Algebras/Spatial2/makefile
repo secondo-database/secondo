@@ -26,6 +26,9 @@
 # inlcude global definitions
 include ../../makefile.env
 
+CURRENT_ALGEBRA := SpatialLRAlgebra
+ALGEBRA_DEPENDENCIES += SpatialAlgebra
+
 # expand compile flags if necessary
 CCFLAGS += $(ALG_INC_DIRS) -Werror 
 

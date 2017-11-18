@@ -20,21 +20,13 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
-//[TOC] [\tableofcontents]
-//[_] [\_]
+2 Line2
 
-[1] Header file of the Line
+2.1 Overview
 
-September, 20017 Torsten Weidmann
+This file defines the class ~Line2~ and its methods.
 
-[TOC]
-
-1 Overview
-
-This header file defines the class Line and it's child classes.
-
-2 Defines and includes
+Defines and includes.
 
 */
 
@@ -45,33 +37,52 @@ This header file defines the class Line and it's child classes.
 #include "Attribute.h"
 #include "GenericTC.h"
 #include "LineT.h"
-#include "NestedList.h"
 
 namespace salr {
 
+/*
+Forward declarations and typedef.
+
+*/
   class RectangleBB;
   class Region2;
   typedef LineT<DbArray>Line;
 
+/*
+2.2 Class ~Line2~
+
+Can be used as an alternative to ~Line~ from ~SpatialAlgebra~ for some use
+ cases.
+
+*/
   class Line2 : public Attribute {
   public:
 
     friend class Region2;
 
+/*
+Declaration of constructors.
+
+*/
     inline Line2() {};
 
     Line2(const Line2 &other);
     Line2(int initialCapacity);
     Line2(const Line &l);
-    Line2(ListExpr le, int s);
     Line2(const Region2 &r);
+/*
+Declaration of destructor.
 
+*/
     ~Line2();
 
+/*
+Declaration of system methods.
+
+*/
     static const std::string BasicType();
     static const bool checkType(const ListExpr type);
 
-    // Attribute methods
     int NumOfFLOBs() const;
     Flob *GetFLOB(const int i);
     int Compare(const Attribute *arg) const;
@@ -80,19 +91,15 @@ namespace salr {
     size_t HashValue() const;
     void CopyFrom(const Attribute *arg);
     Attribute *Clone() const;
-
-    static ListExpr Property() {
-      return gentc::GenProperty("-> DATA",
-                                BasicType(),
-                                "int int DbArry<int> DbArry<real>",
-                                "((0 1) (1.5 2.5 2.0 3.0))");
-    }
-
+    static ListExpr Property();
     static bool CheckKind(ListExpr type, ListExpr &errorInfo);
     bool ReadFrom(ListExpr LE, const ListExpr typeInfo);
     ListExpr ToListExpr(ListExpr typeInfo) const;
 
-    // custom methods
+/*
+Declaration of custom methods.
+
+*/
     void moveTo(double x, double y);
     void lineTo(double x, double y);
     void quadTo(double x1, double y1, double x2, double y2);
@@ -101,34 +108,29 @@ namespace salr {
     bool intersects(RectangleBB *bbox);
     void nextSegment(int offset, int pointType, double *result) const;
     Line* toLine();
-
-    double getCoord(int i) const {
-      double coord;
-      coords.Get(i, &coord);
-      return coord;
-    }
-
-    int getPointType(int i) const {
-      int pointType;
-      pointTypes.Get(i, &pointType);
-      return pointType;
-    }
+    double getCoord(int i) const;
+    int getPointType(int i) const;
 
   private:
+/*
+Declaration of fields.
 
+  * ~coords~: Stores all coordinates that make up this line.
+  * ~pointTypes~: Stores the types of line segments.
+  * ~hasQuads~: Indicates if this line contains a quad segment.
+
+*/
     DbArray<double> coords;
     DbArray<int> pointTypes;
 
     bool hasQuads;
 
-    void appendCoord(double x) {
-      coords.Append(x);
-    }
+/*
+Declaration of private methods.
 
-    void appendType(int x) {
-      pointTypes.Append(x);
-    }
-
+*/
+    void appendCoord(double x);
+    void appendType(int x);
     void hasInitialMove();
     int rectCrossings(double rxmin, double rymin, double rxmax, double rymax);
   };

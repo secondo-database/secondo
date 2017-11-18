@@ -29,5 +29,5 @@ operator lr_intersects alias LR_INTERSECTS pattern _ infixop _
 operator getbounds alias GETBOUNDS pattern _ op
 operator union1 alias UNION1 pattern _ infixop _
 operator minus1 alias MINUS1 pattern _ infixop _
-operator intersects1 alias INTERSECTS1 pattern _ infixop _
+operator intersection1 alias INTERSECTION1 pattern op(_,_)
 operator xor1 alias XOR1 pattern _ infixop _

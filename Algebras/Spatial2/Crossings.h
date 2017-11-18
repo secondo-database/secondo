@@ -20,21 +20,13 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
-//[TOC] [\tableofcontents]
-//[_] [\_]
+7 Crossings
 
-[1] Header file of the Crossings
+7.1 Overview
 
-October, 2017 Torsten Weidmann
+This file defines the class ~Crossings~ and its methods.
 
-[TOC]
-
-1 Overview
-
-This header file defines the class Crossings.
-
-2 Defines and includes
+Defines and includes.
 
 */
 
@@ -45,29 +37,49 @@ This header file defines the class Crossings.
 
 namespace salr {
 
+/*
+Forward declaration.
+
+*/
   class Curve;
 
+/*
+7.2 Class ~Crossings~
+
+Used to find intersections between segments and store information about them.
+
+*/
   class Crossings {
   public:
 
+/*
+Declaration of constructor.
+
+*/
     Crossings(double x1, double y1, double x2, double y2);
 
+/*
+Declaration of custom methods.
+
+*/
     double getXLo();
     double getYLo();
     double getXHi();
     double getYHi();
-
     bool isEmpty();
-
-    static bool findCrossings(std::vector<Curve*> *curves,
+    static Crossings* findCrossings(std::vector<Curve*> *curves,
                             double xlo, double ylo,
                             double xhi, double yhi);
 
     bool covers(double ystart, double yend);
-
     void record(double ystart, double yend, int direction);
 
   private:
+/*
+Fields used to store information about the crossings found so far by this
+ instance.
+
+*/
     int limit;
     std::vector<double> yranges;
     double xlo, ylo, xhi, yhi;
