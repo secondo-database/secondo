@@ -1423,13 +1423,19 @@ ListExpr
 reportTM(ListExpr args )
 { 
   NList l(args);
-  int len = l.length();
-
+  int len = l.length();  
+  
   if(len==2){
-    if(!listutils::isSymbol(nl->First(args), CcInt::BasicType()) &
-       !listutils::isSymbol(nl->Second(args),CcInt::BasicType() ) )
-      return listutils::typeError("Two int values expected");
-    }
+    if(!listutils::isSymbol(nl->First(args), CcInt::BasicType()) ||
+       !listutils::isSymbol(nl->Second(args), CcInt::BasicType())){
+      return listutils::typeError("two int values expected");
+       }
+      }
+     else {          
+           return listutils::typeError("only two int values expected");
+          } 
+  
+   
     return nl->SymbolAtom(CcBool::BasicType());
   }
 
