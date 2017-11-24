@@ -122,6 +122,7 @@ This file contains the implementation of the stream operators.
 #include <fstream>
 #include <time.h>
 #include <errno.h>
+#include <utility>
 
 
 
@@ -6440,6 +6441,102 @@ Operator progOp(
 
 
 /*
+1.23 Operator ~delayS~
+
+
+*/
+ListExpr delaySTM(ListExpr args){
+   if(!nl->HasLength(args,2) && !nl->HasLength(args,3)){
+     return listutils::typeError("2 or 3 arguments required");
+   }
+   if(!listutils::isStream(nl->First(args))){
+     return listutils::typeError("first argument has to be a stream");
+   }
+   if(!CcInt::checkType(nl->Second(args))){
+     return listutils::typeError("second argument is not an int");
+   }
+   if(nl->HasLength(args,3) && !CcInt::checkType(nl->Third(args))){
+     return listutils::typeError("third argument is not an int");
+   }
+   return nl->First(args);
+}
+
+int delaySVM(Word* args, Word& result,
+              int message, Word& local, Supplier s){
+
+   std::pair<size_t,size_t>* li = (std::pair<size_t,size_t>*) local.addr; 
+
+   switch(message){
+     case OPEN: 
+           {    qp->Open(args[0].addr);
+                if(li){
+                   delete li;
+                   local.addr = 0;
+                }
+                CcInt* T1 = (CcInt*) args[1].addr;
+                if(!T1->IsDefined()) return 0;
+                int t1 = T1->GetValue();
+                if(t1<0) return 0;
+                int t2 = t1;
+                if(qp->GetNoSons(s)==3){
+                   T1 = (CcInt*) args[2].addr;
+                   if(!T1->IsDefined()){
+                      return 0;
+                   }
+                   t2 = T1->GetValue();
+                }
+                if(t1>t2){
+                   return 0;
+                }
+                local.addr = new pair<size_t,size_t>( ((size_t)t1), 
+                                                      ((size_t)t2));
+                return 0;
+            }
+
+     case REQUEST:
+             qp->Request(args[0].addr, result);
+             if(!qp->Received(args[0].addr)) return CANCEL;
+             if(li){
+                size_t t;
+                if(li->first==li->second){
+                   t = li->first;
+                } else {
+                   t = rand() % (li->second - li->first) + li->first;
+                }
+                usleep(((size_t)t)*1000u);
+             }
+             return YIELD;
+     case CLOSE : if(li){
+                     delete li;
+                     local.addr = 0;
+                  }
+                  return 0;
+
+   }
+   return -1;
+}
+
+
+OperatorSpec delaySSpec(
+  "stream(X) x int [x int] -> stream(X)",
+  "_ delayS[_,_]",
+  "Delays the transfer of each element in the stream by a "
+  "certain duration (in millisecond). If the oprional "
+  "argument is present, the delay will be a random number "
+  "between the first and the second number.",
+  "query plz feed delayS[100,500] printstream count;"
+);
+
+
+Operator delaySOp(
+   "delayS",
+   delaySSpec.getStr(),
+   delaySVM,
+   Operator::SimpleSelect,
+   delaySTM
+);
+
+/*
 7 Creating the Algebra
 
 */
@@ -6491,6 +6588,7 @@ public:
     AddOperator(&asOp);
     AddOperator(&streamfunOp);
     AddOperator(&progOp);
+    AddOperator(&delaySOp);
 
 #ifdef USE_PROGRESS
     streamcount.EnableProgress();

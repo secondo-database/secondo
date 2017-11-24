@@ -362,6 +362,11 @@ Signature : stream(T) x fun(T->NONSTREAM) x int -> stream(T), T in {DATA,TUPLE}
 Example   : query intstream(1,10) prog[ TRUE echo[num2string(.)], 4 ] count
 Result    : 10
 
+Operator : delayS
+Number   : 1
+Signature : stream(X) x int [x int] -> stream(X)
+Example   : query plz feed head[1000] delayS[100,1000] printstream count
+Result    : 1000
 
 
 
