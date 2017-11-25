@@ -71,6 +71,8 @@ bool showCommands;
 CommandLog commandLog;
 bool logOn = false;
 
+const int defaultTimeout = 0; 
+
 /*
 2 CommandListener
 
@@ -1181,7 +1183,7 @@ int connectVMT( Word* args, Word& result, int message,
    string errMsg;
    MessageCenter* msgcenter = MessageCenter::GetInstance();
    si->setMaxAttempts(4);
-   si->setTimeout(1);
+   si->setTimeout(defaultTimeout);
    if(! si->Initialize(user, passwd, host, 
                        stringutils::int2str(port), file, 
                        errMsg, true)){
@@ -3566,7 +3568,7 @@ class Connector{
         NestedList* mynl = new NestedList();
         SecondoInterfaceCS* si = new SecondoInterfaceCS(false, mynl,true);
         si->setMaxAttempts(4);
-        si->setTimeout(1);
+        si->setTimeout(defaultTimeout);
         string errMsg;
         if(!si->Initialize( "", "", host, stringutils::int2str(port),
                            config,errMsg, true)){
@@ -19206,7 +19208,7 @@ class deleteRemoteDatabasesInfo{
         string user="";
         string passwd = "";
         si->setMaxAttempts(4);
-        si->setTimeout(1);
+        si->setTimeout(defaultTimeout);
         if(! si->Initialize(user, passwd, host,
                             stringutils::int2str(port), 
                             config,
@@ -19648,7 +19650,7 @@ Distributed2Algebra::Distributed2Algebra(){
    namecounter = 0;
    tryReconnectFlag = false;
    heartbeat = 4;
-   timeout = 0; // switch off time out
+   timeout = defaultTimeout; // switch off time out
 
    AddTypeConstructor(&DArrayTC);
    DArrayTC.AssociateKind(Kind::SIMPLE());
