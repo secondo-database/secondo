@@ -115,7 +115,6 @@ class HeartbeatObserver : public MessageHandler,  public TimeoutNotifier<T>{
        } 
        int v = nl->IntValue(nl->Second(msg));
        beatReceived = true;
-       std::cout << " -- boom -- " << std::endl;
        if(v==0){ TimeoutNotifier<T>::quit = true; }
        return true;
      }
