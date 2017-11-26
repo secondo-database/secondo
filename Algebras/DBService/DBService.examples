@@ -90,5 +90,9 @@ Example   : query plz rderive["plz_count", . count]
 Result    : 42167
 Remark    : Requires running DBService
 
-
-
+Operator : useincrementalmetadataupdate
+Number   : 1
+Signature : bool -> bool
+Example   : query useincrementalmetadataupdate(TRUE)
+Result    : FALSE
+Remark    : None

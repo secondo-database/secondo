@@ -11,5 +11,4 @@ operator settracelevel alias SETTRACELEVEL pattern op(_)
 operator pingdbservice alias PINGDBSERVICE pattern op()
 operator startdbservice alias STARTDBSERVICE pattern op()
 operator rderive alias RDERIVE pattern _ op[_,fun] implicit parameter elem type RELARG
-
-
+operator useincrementalmetadataupdate alias USEINCREMENTALMETADATAUPDATE pattern op(_)

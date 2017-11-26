@@ -113,6 +113,24 @@ Returns whether the DBServiceManager is considered as active.
 
 /*
 
+1.1.1.1 isUsingIncrementalMetadataUpdate
+
+Returns whether the DBServiceManager is updating the metadata incrementally
+
+*/
+    static bool isUsingIncrementalMetadataUpdate();
+
+/*
+
+1.1.1.1 useIncrementalMetadataUpdate
+
+Specify whether or not to update metadata incrementally.
+
+ */
+    static void useIncrementalMetadataUpdate(bool use);
+
+/*
+
 1.1.1.1 \textit{addNode}
 
 This function adds a node to the connection manager's pool that can be used for
@@ -569,6 +587,17 @@ connections to all workers.
 */
 
 static bool active;
+
+/*
+
+1.1.1.1 ~useIncrementalMetadataUpdate~
+
+Indicates whether the DBService updates the metadata incrementally instead of
+deleting and recreating it on each change.
+
+*/
+
+static bool usesIncrementalMetadataUpdate;
 
 };
 

@@ -42,6 +42,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/OperatorStartDBService.hpp"
 #include "Algebras/DBService/OperatorWrite.hpp"
 #include "Algebras/DBService/OperatorRderive.hpp"
+#include "Algebras/DBService/OperatorUseIncrementalMetadataUpdate.hpp"
 
 namespace DBService
 {
@@ -85,6 +86,9 @@ DBServiceAlgebra::DBServiceAlgebra() :
     AddOperator(StartDBServiceInfo(),
                 OperatorStartDBService::mapValue,
                 OperatorStartDBService::mapType);
+    AddOperator(UseIncrementalMetadataUpdateInfo(),
+                OperatorUseIncrementalMetadataUpdate::mapValue,
+                OperatorUseIncrementalMetadataUpdate::mapType);
 
     AddOperator(DBSARGInfo(),
                 0,

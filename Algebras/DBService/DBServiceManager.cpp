@@ -162,9 +162,6 @@ void DBServiceManager::restoreReplicaInformation()
     }
 }
 
-
-
-
 DBServiceManager* DBServiceManager::getInstance()
 {
     printFunction("DBServiceManager::getInstance");
@@ -180,6 +177,17 @@ bool DBServiceManager::isActive()
 {
     return active;
 }
+
+bool DBServiceManager::isUsingIncrementalMetadataUpdate()
+{
+    return usesIncrementalMetadataUpdate;
+}
+
+void DBServiceManager::useIncrementalMetadataUpdate(bool use)
+{
+    usesIncrementalMetadataUpdate = use;
+}
+
 
 ConnectionID DBServiceManager::getNextFreeConnectionID()
 {
@@ -742,10 +750,8 @@ void DBServiceManager::setOriginalLocationTransferPort(
     }
 }
 
-
-
-
 DBServiceManager* DBServiceManager::_instance = nullptr;
 bool DBServiceManager::active = false;
+bool DBServiceManager::usesIncrementalMetadataUpdate = false;
 
 } /* namespace DBService */
