@@ -327,9 +327,15 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
       ok = QueryProcessor::ExecuteQuery(
                  command,queryRes,typeStr,errMsg,correct,
                  evaluable,defined,isFunction,DEFAULT_GLOBAL_MEMORY,0, nl);
+   } catch(runtime_error qpe){
+       ok = false;
+       traceWriter->write("Exception during query execution");
+       traceWriter->write(qpe.what());
+       traceWriter->write("failed command " , command);
    } catch(...){
        ok = false;
        traceWriter->write("Exception during query execution");
+       traceWriter->write("failed command " , command);
        return;
    }
 
