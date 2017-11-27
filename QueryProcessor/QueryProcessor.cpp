@@ -2095,7 +2095,7 @@ function index.
           if(GetCatalog()->LookUpTypeExpr(expr, typeName, algId,typeId)){
              string errMsg  = "Type name '" + typeName + 
                               "' used as an indentifier.";
-             throw runtime_error(errMsg);
+             throw qp_error(errMsg);
              return (nl->TheEmptyList());
            }          
            return (nl->TwoElemList(
@@ -3686,7 +3686,7 @@ the function in a database object.
 
   if ( nl->ListLength( list ) < 2 ) {
     DestroyValuesArray();
-    throw ERR_IN_QUERY_EXPR;
+    throw qp_error("Error in query expression");
   }
 
   resultType = nl->Second( list );
@@ -3698,28 +3698,28 @@ the function in a database object.
     ListExpr tmp = nl->First(list);
     if(!nl->HasMinLength(tmp,3)){
       DestroyValuesArray();
-      throw ERR_IN_QUERY_EXPR;
+      throw qp_error("error in query expression");
     }
     tmp = nl->Third(tmp);
     if(!nl->HasMinLength(tmp,2)){
       DestroyValuesArray();
-      throw ERR_IN_QUERY_EXPR;
+      throw qp_error("error in query expression");
     }
     tmp = nl->Second(tmp);
     if(!nl->HasMinLength(tmp,1)){
       DestroyValuesArray();
-      throw ERR_IN_QUERY_EXPR;
+      throw qp_error("error in query expression");
     } 
     tmp = nl->First(tmp);
     if(!nl->HasMinLength(tmp,2)){
       DestroyValuesArray();
-      throw ERR_IN_QUERY_EXPR;
+      throw qp_error("error in query expression");
     }
     type = nl->Second(tmp); 
     if (nl->ToString(type) != "pointer") {
         DestroyValuesArray();
     }
-    throw ERR_IN_QUERY_EXPR;
+    throw qp_error("error in query expression");
   }
 
   // Make a consistency check of the annotated list structure.
@@ -3743,7 +3743,7 @@ the function in a database object.
         "Maybe there is a bug in some operators type map "
         "function or in the annotate function of the "
         "query processor." << endl;
-      throw ERR_IN_QUERY_EXPR;
+      throw qp_error("error in query expression");
     }
   }
 
@@ -3751,7 +3751,7 @@ the function in a database object.
   if( !defined )
   {
     DestroyValuesArray();
-    throw ERR_UNDEF_OBJ_VALUE;
+    throw qp_error("undefined object value");
   }
 
   tree = SubtreeX( list );
@@ -3795,7 +3795,7 @@ the function in a database object.
      if (!evaluable && !isFunction ) {
        Destroy(tree, true);
        tree=0;
-       throw ERR_EXPR_NOT_EVALUABLE;
+       throw qp_error("expression not evaluable");
      }
   }
   
