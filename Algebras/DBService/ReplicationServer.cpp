@@ -283,12 +283,12 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
       
     }    
 
-
-
-
+    fundef = nl->First(fundef);
     
     ListExpr command = listutils::replaceSymbol(fundef, 
                                   nl->SymbolValue(argname), funarg1, nl);
+
+
 
     for( auto p : otherReplacements){
         command = listutils::replaceSymbol(command, p.first, p.second,nl);
