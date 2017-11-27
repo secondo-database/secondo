@@ -134,7 +134,7 @@ ListExpr OperatorRead3_X<X>::mapType(ListExpr args)
     if(nl->Equal(nl->First(rel), nl->Second(rel))){
        // type could not be extracted, meaning relation is not available locally
        locallyAvailable = false;
-       relType = OperatorCommon::getRelType(nl->First(rel), locallyAvailable); 
+       relType = OperatorCommon::getRelType(nl->OneElemList(nl->First(rel)), locallyAvailable); 
     } else {
        locallyAvailable = true;
        relType = nl->First(rel);
@@ -173,7 +173,7 @@ ListExpr OperatorRead3_X<X>::mapType(ListExpr args)
            derivates.push_back(types[i].second.second);
        }
        if(!OperatorCommon::allExists(databasename, relName, derivates)){
-          return listutils::typeError("All required objects are neight locally "
+          return listutils::typeError("All required objects are neighter locally "
                    "available nor provided by DBService");
        }
     }
