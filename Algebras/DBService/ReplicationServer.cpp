@@ -219,6 +219,9 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
 {
     traceWriter->writeFunction(
             tid, "ReplicationServer::applyFunctionAndCreateNewFile");
+    traceWriter->write("oldFileName ", oldFileName);
+    traceWriter->write("newFileName ", newFileName);
+
 
     traceWriter->write(tid, "FunctionList " , function); 
 
