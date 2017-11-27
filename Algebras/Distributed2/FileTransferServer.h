@@ -44,6 +44,7 @@ public:
 protected:
     virtual int communicate();
     virtual int sendFile(std::iostream& io);
+    virtual int sendFile(std::iostream& io, std::string& outFileName);
     virtual bool receiveFile(std::iostream& io);
 
 };

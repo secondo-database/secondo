@@ -11535,7 +11535,6 @@ class Mapper{
 
               if(mapper->array->getType()==DFARRAY){  
                   string path = ci->getSecondoHome(showCommands,commandLog);
-                  cout << "retrieve secondo home of df array" << endl;
                   string fname1 = mapper->array->getFilePath(path,
                                                              dbname,
                                                              nr);

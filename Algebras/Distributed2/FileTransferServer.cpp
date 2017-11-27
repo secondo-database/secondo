@@ -83,11 +83,15 @@ int FileTransferServer::communicate() {
     }
 }
 
-int FileTransferServer::sendFile(iostream& io) {
+int FileTransferServer::sendFile(iostream& io){
+   string filename;
+   return sendFile(io,filename);
+}
+
+int FileTransferServer::sendFile(iostream& io, std::string& outfilename) {
     // client ask for a file
-    string filename;
-    getline(io, filename);
-    ifstream in(filename.c_str(), ios::binary);
+    getline(io, outfilename);
+    ifstream in(outfilename.c_str(), ios::binary);
     if (!in) {
         io << FileTransferKeywords::FileNotFound() << endl;
         io.flush();
