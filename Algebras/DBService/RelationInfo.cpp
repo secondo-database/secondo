@@ -126,6 +126,18 @@ void RelationInfo::updateReplicationStatus(ConnectionID connID, bool replicated)
     }
 }
 
+
+void RelationInfo::getAllLocations(std::vector<ConnectionID>& result){
+    result.clear();
+    for(const auto& node : nodes)
+    {
+        if(node.second)
+        {
+            result.push_back(node.first);
+        }
+    }
+}
+
 void RelationInfo::setTransferPortOfOriginalLocation(std::string& newPort)
 {
     originalLocation.setTransferPort(newPort);

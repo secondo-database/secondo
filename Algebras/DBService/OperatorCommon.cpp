@@ -47,54 +47,52 @@ ListExpr OperatorCommon::getStreamType(
     printFunction("OperatorCommon::getStreamType");
     print(nestedList);
 
-    if(!nl->HasLength(nestedList, 1))
+    if(!nl->HasMinLength(nestedList, 1))
     {
         ErrorReporter::ReportError(
-                "expected one argument");
+                "expected at least one argument");
                 return nl->TypeError();
     }
 
-    ListExpr feedTypeMapResult = OperatorFeed::FeedTypeMap(nestedList);
-    print("feedTypeMapResult", feedTypeMapResult);
-
-    bool relationLocallyAvailable = (feedTypeMapResult != nl->TypeError());
-    print("relationLocallyAvailable",
-            string(relationLocallyAvailable ? "TRUE" : "FALSE"));
-
-    locallyAvailable = relationLocallyAvailable;
-
-    if(!relationLocallyAvailable)
-    {
-        print("Relation not available locally");
-        if(!nl->IsAtom(nl->First(nestedList)))
-        {
-            ErrorReporter::ReportError(
-                    "expected symbol atom");
-                    return nl->TypeError();
-        }
-        const string relationName = nl->ToString(nl->First(nestedList));
-        print("relationName", relationName);
-        string nestedListString;
-        if(!DBServiceClient::getInstance()->getStreamType(
-                SecondoSystem::GetInstance()->GetDatabaseName(),
-                relationName,
-                nestedListString))
-        {
-            ErrorReporter::ReportError(
-                    "Could not connect to DBService");
-                    return nl->TypeError();
-        }
-
-        print("nestedListString", nestedListString);
-
-        if(!nl->ReadFromString(nestedListString, feedTypeMapResult))
-        {
-            print("could not read nested list from string");
-            return nl->TypeError();
-        }
+    ListExpr arg1 = nl->First(nestedList);
+    if(Relation::checkType(arg1)){
+      locallyAvailable = true;
+      return nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
+                              nl->Second(arg1));
     }
-    print("feedTypeMapResult", feedTypeMapResult);
-    return feedTypeMapResult;
+
+
+    locallyAvailable = false;
+    print("Relation not available locally");
+    if(nl->AtomType(arg1)!=SymbolType)
+    {
+        ErrorReporter::ReportError(
+                "expected symbol atom");
+                return nl->TypeError();
+    }
+    const string relationName = nl->SymbolValue(arg1);
+    print("relationName", relationName);
+    string nestedListString;
+    if(!DBServiceClient::getInstance()->getStreamType(
+            SecondoSystem::GetInstance()->GetDatabaseName(),
+            relationName,
+            nestedListString))
+    {
+        ErrorReporter::ReportError(
+                "Could not connect to DBService");
+                return nl->TypeError();
+    }
+
+    print("nestedListString", nestedListString);
+    ListExpr result;
+
+    if(!nl->ReadFromString(nestedListString, result))
+    {
+        print("could not read nested list from string");
+        return nl->TypeError();
+    }
+    print("result", result);
+    return result;
 }
 
 
@@ -110,5 +108,78 @@ ListExpr OperatorCommon::getRelType(
                           nl->Second(tr)); 
 
 }
+
+ListExpr OperatorCommon::getDerivedType(
+            ListExpr args, 
+            int X,
+            bool & locallyAvailable){
+
+  locallyAvailable = false;
+  if(!nl->HasMinLength(args,X+1))
+  {
+     return listutils::typeError("too less arguments");
+  }
+  // extract relation and the x-th argument
+  ListExpr rel = nl->First(args);
+  for(int i=0;i<X;i++) 
+  {
+    args = nl->Rest(args);
+  }
+  ListExpr arg = nl->First(args);
+  if(!nl->HasLength(rel,2) || !nl->HasLength(arg,2))
+  {
+     // uses args in type mapping
+     return listutils::typeError("internal error");
+  }
+  ListExpr at = nl->First(arg);
+  ListExpr aq = nl->Second(arg);
+  if(nl->AtomType(aq) != SymbolType)
+  {
+     return listutils::typeError("The argument is not a database object");
+  }
+  if(!nl->Equal(at,aq))
+  { // type is extracted from symbol =>
+    // object is  locally present
+    locallyAvailable = true;
+    return at;
+  }
+  // type must be retrieved from dbservice
+  rel = nl->Second(rel); // name of the relation
+  if(nl->AtomType(rel) != SymbolType)
+  {
+     return listutils::typeError("first argument is not a database "
+                                 "object name");
+  }
+  string relName = nl->SymbolValue(rel);
+  string argName = nl->SymbolValue(aq);
+  string nestedListString;
+  if(!DBServiceClient::getInstance()->getDerivedType(
+                SecondoSystem::GetInstance()->GetDatabaseName(),
+                relName,
+                argName,
+                nestedListString)) 
+  {
+    return listutils::typeError("Could not connect to DBService");
+  }
+
+  print("nestedListString", nestedListString);
+  ListExpr resultType;
+  if(!nl->ReadFromString(nestedListString, resultType))
+  {
+     return listutils::typeError("could not read nested list from string");
+  }
+  return  resultType;
+}
+
+
+bool OperatorCommon::allExists( 
+                          const std::string& dbName,
+                          const std::string& relName,
+                          const std::vector<std::string>& derivates) {
+   return DBServiceClient::getInstance()->allExists( dbName, relName, 
+                                                     derivates); 
+}
+
+
 
 } /* namespace DBService */

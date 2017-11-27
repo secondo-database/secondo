@@ -68,11 +68,13 @@ ListExpr OperatorRead::mapType(ListExpr nestedList)
         const string relationName = nl->ToString(nl->First(nestedList));
         print("databaseName", databaseName);
         print("relationName", relationName);
+        vector<string> otherObjects;
         fileName =
                 DBServiceClient::getInstance()->
                 retrieveReplicaAndGetFileName(
                         databaseName,
                         relationName,
+                        otherObjects,
                         string(""));
         if(fileName.empty())
         {

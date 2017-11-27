@@ -122,6 +122,17 @@ int ReplicationServer::communicate(iostream& io)
                 sendFileToClient(io, true, tid);
             }else
             {
+                // read additional function arguments
+                string n;
+                CommunicationUtils::receiveLine(io,n);
+                bool correct;
+                int number = stringutils::str2int<int>(n,correct);
+                if(number<0) number = 0;
+                queue<string> otherObjects;
+                if(number > 0){
+                    CommunicationUtils::receiveLines(io,number,otherObjects);
+                }                
+
                 CommunicationUtils::sendLine(io,
                         CommunicationProtocol::FileName());
 
@@ -138,7 +149,8 @@ int ReplicationServer::communicate(iostream& io)
                         fileName.str());
 
                 applyFunctionAndCreateNewFile(
-                        io, function, replicaFileName, fileName.str(), tid);
+                        io, function, otherObjects, replicaFileName, 
+                        fileName.str(), tid);
             }
             sendFileToClient(io, true, tid);
         }else
@@ -198,6 +210,7 @@ void ReplicationServer::sendFileToClient(
 void ReplicationServer::applyFunctionAndCreateNewFile(
         iostream& io,
         const string& function,
+        queue<string>& otherObjects,
         const string& oldFileName,
         const string& newFileName,
         const boost::thread::id tid)
@@ -214,13 +227,14 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
       return;
     }
 
+    
 
-
-    if(!nl->HasLength(funlist,3)){
-      traceWriter->write("invalid function definition, not an unary function");
+    if(!nl->HasLength(funlist,3 + otherObjects.size() )){
+      traceWriter->write("invalid function definition, not a function"
+                         " with correct number of arguments");
       return;
     }
-    ListExpr args = nl->Second(funlist);
+    ListExpr args = nl->Second(funlist);  // relation argument
     if(!nl->HasLength(args,2)){
       traceWriter->write("invalid function arguments");
       return;
@@ -231,21 +245,50 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
       return;
     }
     ListExpr argtype = nl->Second(args);
-    ListExpr funarg;
+    ListExpr funarg1;
     // funarg may be a tuple stream or a relation
     string relName = ReplicationUtils::getRelName(oldFileName);
     if(nl->HasLength(argtype,2) && nl->IsEqual(nl->First(argtype),"stream")){
-       funarg = nl->TwoElemList(
+       funarg1 = nl->TwoElemList(
                             nl->SymbolAtom("feed"),
                             nl->SymbolAtom(relName));
     } else {
-       funarg = nl->SymbolAtom(relName);
+       funarg1 = nl->SymbolAtom(relName);
     }
 
-    ListExpr fundef = nl->Third(funlist);
+    vector<pair<string,ListExpr> > otherReplacements;
+    ListExpr fundef = nl->Rest(nl->Rest(funlist));
+    while(!nl->HasLength(fundef,1)){
+       ListExpr argx = nl->First(fundef);
+       fundef = nl->Rest(fundef);
+       if(!nl->HasLength(argx,2)){
+          traceWriter->write("invalid function argument");
+          return;
+       } 
+       argx = nl->First(argx); // ignore type
+       if(nl->AtomType(argx)!=SymbolType){
+          return;
+       }
+       string argxs = nl->SymbolValue(argx);
+       string argName = otherObjects.front();
+       otherObjects.pop();
+       argName = MetadataObject::getIdentifier(relName, argName);
+       otherReplacements.push_back( 
+                      pair<string,ListExpr>(argxs,nl->SymbolAtom(argName)));
+      
+    }    
+
+
+
+
     
     ListExpr command = listutils::replaceSymbol(fundef, 
-                                  nl->SymbolValue(argname), funarg, nl);
+                                  nl->SymbolValue(argname), funarg1, nl);
+
+    for( auto p : otherReplacements){
+        command = listutils::replaceSymbol(command, p.first, p.second,nl);
+    }
+
 
     // now, command produces a stream. 
     // write the stream into a file and just count it

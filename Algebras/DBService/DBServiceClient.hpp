@@ -34,6 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define ALGEBRAS_DBSERVICE_DBSERVICECLIENT_HPP_
 
 #include <string>
+#include <vector>
 
 #include <boost/shared_ptr.hpp>
 
@@ -98,6 +99,7 @@ then be used to read a tuple stream from the file.
     std::string retrieveReplicaAndGetFileName(
             const std::string& databaseName,
             const std::string& relationName,
+            const std::vector<std::string>& otherObjects,
             const std::string&
             functionAsNestedListString);
 
@@ -133,6 +135,20 @@ the corresponding tuple type if applicable.
             const std::string& relationName,
             std::string& nestedListAsString);
 
+
+/*
+1.1.1.1 ~getDerivedType~
+
+This function checks whether a derived object exists in the ~DBService~ and 
+provides the type if applicable.
+
+*/
+   bool getDerivedType(
+           const std::string& databaseName,
+           const std::string& relationName,
+           const std::string& derivedName,
+           std::string& nestedListAsString);
+
 /*
 1.1.1.1 ~relationExists~
 
@@ -142,6 +158,12 @@ This function returns whether or not a relation exists in the ~DBService~.
     bool relationExists(
             const std::string& databaseName,
             const std::string& relationName);
+
+
+    bool allExists(
+            const std::string& databaseName,
+            const std::string& relationName,
+            const std::vector<std::string>& derivates);
 
 private:
 /*
@@ -176,6 +198,7 @@ This function retrieves one of the replica locations of a relation from the
     bool getReplicaLocation(
             const std::string& databaseName,
             const std::string& relationName,
+            const std::vector<std::string>& otherObjects,
             std::string& host,
             std::string& transferPort,
             std::string& commPort);

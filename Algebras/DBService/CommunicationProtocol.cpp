@@ -150,6 +150,11 @@ string CommunicationProtocol::RelTypeRequest()
     return "<RELTYPEREQUEST>";
 }
 
+string CommunicationProtocol::DerivedTypeRequest()
+{
+    return "<DERIVEDTYPEREQUEST>";
+}
+
 string CommunicationProtocol::FileName()
 {
     return "<FILENAME>";

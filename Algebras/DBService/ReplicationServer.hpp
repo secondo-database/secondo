@@ -117,6 +117,7 @@ the resulting tuple stream in a new file.
     void applyFunctionAndCreateNewFile(
             std::iostream& io,
             const std::string& function,
+            std::queue<std::string>& otherObjects,
             const std::string& oldFileName,
             const std::string& newFileName,
             const boost::thread::id tid);

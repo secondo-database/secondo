@@ -97,6 +97,16 @@ std::string ReplicationUtils::getRelName(const std::string& filename){
 }
 
 
+std::string ReplicationUtils::getDerivedName(
+      const std::string& databasename,
+      const std::string& relationname,
+      const std::string& derivedName){
+    stringstream r;
+    r << databasename << separator << relationname << separator << derivedName;
+    return r.str();
+}
+
+
 string ReplicationUtils::separator("xDBSx");
 
 } /* namespace DBService */

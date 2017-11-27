@@ -115,6 +115,7 @@ the host and the transfer port of the node that holds the replica.
     bool getReplicaLocation(
             const std::string& databaseName,
             const std::string& relationName,
+            const std::vector<std::string>& otherObjects,
             std::string& host,
             std::string& transferPort,
             std::string& commPort);
@@ -218,6 +219,16 @@ provides the corresponding tuple type in this case.
 
     bool getRelType(const std::string& relID, std::string& nestedListAsString);
 
+/*
+1.1.1.1 ~getDerivedType~
+
+This operator retrieves the type of a derived object from connected server.
+
+*/
+
+bool getDerivedType( const std::string& relID, 
+                     const std::string& derivedName, 
+                     std::string& nestedListAsString);
 
 /*
 1.1.1.3 ~triggerDerivation~

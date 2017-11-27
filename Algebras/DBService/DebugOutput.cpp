@@ -212,5 +212,17 @@ void printDerivateInfo(const DerivateInfo& derivateInfo)
     }
 }
 
+void print(const char* text, const vector<string>& values)
+{
+    if(TraceSettings::getInstance()->isDebugTraceOn())
+    {
+       cout << text << endl << endl;
+       for(auto &t : values){
+          cout << t << endl;
+       }
+       cout << "-----" << endl;
+    }  
+}
+
 
 }

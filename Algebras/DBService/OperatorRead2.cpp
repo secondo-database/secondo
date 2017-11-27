@@ -224,11 +224,13 @@ int OperatorRead2::mapValue(Word* args,
             print("databaseName", databaseName);
             print("relationName", relationName);
             string funText = ((FText*) args[3].addr)->GetValue();
+            vector<string> otherobjects; 
             string fileName =
                 DBServiceClient::getInstance()->
                 retrieveReplicaAndGetFileName(
                         databaseName,
                         relationName,
+                        otherobjects,
                         funText);
             if(fileName.empty())
             {

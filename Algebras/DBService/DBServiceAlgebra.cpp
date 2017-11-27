@@ -42,6 +42,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/OperatorStartDBService.hpp"
 #include "Algebras/DBService/OperatorWrite.hpp"
 #include "Algebras/DBService/OperatorRderive.hpp"
+#include "Algebras/DBService/OperatorDBIARG.hpp"
+#include "Algebras/DBService/OperatorRead3_X.hpp"
 #include "Algebras/DBService/OperatorUseIncrementalMetadataUpdate.hpp"
 
 namespace DBService
@@ -103,6 +105,16 @@ DBServiceAlgebra::DBServiceAlgebra() :
     AddOperator(RderiveInfo(),
                 OperatorRderive::mapValue,
                 OperatorRderive::mapType);
+
+    AddOperator(DBIARGInfo<1>(),
+                0,
+                OperatorDBIARG<1>::mapType);
+
+    AddOperator(Read3_XInfo<1>(),
+                OperatorRead3_X<1>::mapValue,
+                OperatorRead3_X<1>::mapType);
+
+
 }
 
 } /* namespace DBService */

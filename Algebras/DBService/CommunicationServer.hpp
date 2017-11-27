@@ -212,6 +212,16 @@ which a replica is stored in the ~DBService~.
                 std::iostream& io,
                 const boost::thread::id tid);
 
+/*
+
+1.1.1.1 ~handleDerivedTypeRequest~
+
+Retrieves the type of a derived object.
+
+*/
+        bool handleDerivedTypeRequest(
+                std::iostream& io,
+                const boost::thread::id tid);
 
 
 /*

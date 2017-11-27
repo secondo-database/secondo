@@ -353,6 +353,21 @@ This function checks whether a derivate with given id exists.
 
 
 /*
+1.1.1.1 ~locationExists~
+
+This function checks whether there is a location where can 
+found the relation and all derived objects.
+
+*/
+    bool locationExists(const std::string& databaseName,
+                        const std::string& relationName,
+                        const std::vector<std::string>& derivedObjects);
+
+
+
+
+
+/*
 
 1.1.1.1 ~setOriginalLocationTransferPort~
 

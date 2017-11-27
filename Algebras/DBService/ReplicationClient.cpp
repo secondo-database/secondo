@@ -182,7 +182,8 @@ int ReplicationClient::receiveReplica()
 }
 
 int ReplicationClient::requestReplica(const string& functionAsNestedListString,
-                                      std::string& fileName)
+                                 std::string& fileName,
+                                 const std::vector<std::string>& otherObjects)
 {
     traceWriter->writeFunction("ReplicationClient::requestReplica");
     try
@@ -217,6 +218,15 @@ int ReplicationClient::requestReplica(const string& functionAsNestedListString,
         }else
         {
             CommunicationUtils::sendLine(io, functionAsNestedListString);
+
+            queue<string> sendBuffer2;
+            sendBuffer2.push(stringutils::int2str(otherObjects.size()));
+            for(auto & o : otherObjects)
+            {
+               sendBuffer2.push(o);
+            }
+            CommunicationUtils::sendBatch(io,sendBuffer2);
+
             if(!CommunicationUtils::receivedExpectedLine(io,
                     CommunicationProtocol::FileName()))
             {

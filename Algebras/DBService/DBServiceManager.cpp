@@ -735,6 +735,55 @@ bool DBServiceManager::derivateExists(const string& objectId)
     return it != derivates.end();
 }
 
+bool DBServiceManager::locationExists(
+                  const string& databaseName,
+                  const string& relation,
+                  const vector<string>& derivates){
+
+    string relId = MetadataObject::getIdentifier(databaseName, relation);
+    DBServiceRelations::const_iterator rit = relations.find(relId);
+    if(rit==relations.end()){
+        return false;
+    }
+    vector<int> locations;
+    ReplicaLocations::const_iterator nit;
+    for(nit=rit->second.nodesBegin(); nit!=rit->second.nodesEnd();nit++){
+         if(nit->second){ // replicated flag set
+            locations.push_back(nit->first);
+         }
+    }
+
+    sort(locations.begin(), locations.end());
+    
+    for( auto& der : derivates){
+      string derId = MetadataObject::getIdentifier(relId, der);
+      DBServiceDerivates::const_iterator dit = this->derivates.find(derId);
+      if(dit==this->derivates.end()){
+         return false; // derived object not managed
+      }
+      // collect all replica locations of this derived object
+      vector<int> dlocs;
+      ReplicaLocations::const_iterator nit;
+      for(nit = dit->second.nodesBegin(); nit!=dit->second.nodesEnd(); nit++){
+          if(nit->second){
+            dlocs.push_back(nit->first);
+          }
+      }
+      sort(dlocs.begin(), dlocs.end());
+      vector<int> tmp;
+      set_intersection(locations.begin(), locations.end(),
+                       dlocs.begin(), dlocs.end(),
+                       tmp.begin());
+      if(tmp.empty()){
+        return false;
+      } 
+      swap(locations,tmp);
+    }
+    return true;
+
+}
+
+
 
 void DBServiceManager::setOriginalLocationTransferPort(
         const string& relID,

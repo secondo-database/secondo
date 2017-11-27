@@ -148,6 +148,10 @@ int CommunicationServer::communicate(iostream& io)
         {
             handleRelTypeRequest(io, tid);
         }else if(request ==
+                CommunicationProtocol::DerivedTypeRequest())
+        {
+            handleDerivedTypeRequest(io, tid);
+        }else if(request ==
                 CommunicationProtocol::TriggerDerivation())
         { 
             handleTriggerDerivation(io,tid);
@@ -340,6 +344,17 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
     queue<string> receiveBuffer;
     CommunicationUtils::receiveLines(io, 2, receiveBuffer);
 
+    // read number of other objects
+    string n;
+    CommunicationUtils::receiveLine(io, n);
+    bool correct;
+    int number = stringutils::str2int<int>(n,correct); //TODO: error handling
+    if(number<0) number = 0;
+    queue<string> otherObjects;
+    if(number>0){
+      CommunicationUtils::receiveLines(io,number,otherObjects);
+    }
+    
     string databaseName = receiveBuffer.front();
     receiveBuffer.pop();
     string relationName = receiveBuffer.front();
@@ -350,6 +365,8 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
 
     DBServiceManager* dbService = DBServiceManager::getInstance();
     ConnectionID randomReplicaLocation = 0;
+
+    /*
     try
     {
         randomReplicaLocation =
@@ -360,6 +377,38 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
     {
         traceWriter->write(tid, "RelationInfo does not exist");
     }
+    */
+    try
+    {
+       vector<ConnectionID> possibleLocations;
+       string relName = RelationInfo::getIdentifier(databaseName, relationName);
+       RelationInfo relInfo =dbService->getRelationInfo(relName);
+       relInfo.getAllLocations(possibleLocations);
+       std::sort(possibleLocations.begin(), possibleLocations.end());
+       while(!otherObjects.empty() && !possibleLocations.empty())
+       {
+          string n = otherObjects.front();
+          otherObjects.pop();
+          string oname = DerivateInfo::getIdentifier(relName, n);
+          DerivateInfo derInfo = dbService->getDerivateInfo(relName);
+          vector<ConnectionID> derLocs;
+          derInfo.getAllLocations(derLocs);
+          sort(derLocs.begin(), derLocs.end());
+          vector<ConnectionID> inter;
+          set_intersection(possibleLocations.begin(), possibleLocations.end(),
+                           derLocs.begin(), derLocs.end(), inter.begin());
+          inter.swap(possibleLocations);
+       }
+       if(!possibleLocations.empty()){
+          random_shuffle(possibleLocations.begin(), possibleLocations.end());
+          randomReplicaLocation = possibleLocations.front(); 
+       }
+       
+    } catch(...)
+    {
+       traceWriter->write(tid, "No location found");
+    }
+
     queue<string> sendBuffer;
     if(randomReplicaLocation == 0)
     {
@@ -525,6 +574,42 @@ bool CommunicationServer::handleRelTypeRequest(
     return true;
 }
 
+bool CommunicationServer::handleDerivedTypeRequest(
+        std::iostream& io, const boost::thread::id tid)
+{
+    traceWriter->writeFunction(tid,
+            "CommunicationServer::handleDerivedTypeRequest");
+    string relID;
+    CommunicationUtils::receiveLine(io, relID);
+    string derivedName;
+    CommunicationUtils::receiveLine(io, derivedName);
+    string databaseName;
+    string relationName;
+    RelationInfo::parseIdentifier(relID, databaseName, relationName);
+    traceWriter->write("databaseName", databaseName);
+    traceWriter->write("relationName", relationName);
+    traceWriter->write("derivedName ", derivedName);
+
+    string objectName = ReplicationUtils::getDerivedName(
+                                           databaseName,
+                                           relationName,
+                                           derivedName);
+    traceWriter->write("ObjectName ", objectName);
+
+
+
+    SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+    if(!ctlg->IsObjectName(objectName)){
+        traceWriter->write(objectName + " is not a database object");
+        CommunicationUtils::sendLine(io, CommunicationProtocol::None());
+    } else {
+        traceWriter->write(objectName + " is a database object");
+        ListExpr type = ctlg->GetObjectTypeExpr(objectName);
+        traceWriter->write("objectName is " , nl->ToString(type));
+        CommunicationUtils::sendLine(io, nl->ToString(type));
+    }
+    return true;
+}
 
 bool CommunicationServer::handleTriggerDerivation(
         std::iostream& io, const boost::thread::id tid)

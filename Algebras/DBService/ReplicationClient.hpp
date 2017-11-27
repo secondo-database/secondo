@@ -32,6 +32,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef ALGEBRAS_DBSERVICE_REPLICATIONCLIENT_HPP_
 #define ALGEBRAS_DBSERVICE_REPLICATIONCLIENT_HPP_
 
+#include <string>
+#include <vector>
+
 #include "Algebras/Distributed2/FileTransferClient.h"
 
 #include "Algebras/DBService/LocationInfo.hpp"
@@ -98,7 +101,8 @@ the ~DBService~ worker node.
 */
     int requestReplica(
             const std::string& functionAsNestedListString,
-            std::string& fileName);
+            std::string& fileName,
+            const std::vector<std::string>& otherObjects);
 
 /*
 

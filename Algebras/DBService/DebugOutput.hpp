@@ -32,6 +32,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_
 
 #include <sstream>
+#include <string>
+#include <vector>
 
 #include <boost/thread.hpp>
 
@@ -64,6 +66,7 @@ void print(const char* text, int number);
 void print(const char* text, ListExpr nestedList);
 void print(const char* text1, std::string& text2);
 void print(const char* text1, const std::string& text2);
+void print(const char* text, const std::vector<std::string>& values);
 void print(boost::thread::id tid, const char* text1, const std::string& text2);
 void print(const std::string& text1, const char* text2);
 void print(const LocationInfo& locationInfo);

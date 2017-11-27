@@ -106,6 +106,16 @@ void DerivateInfo::updateReplicationStatus(ConnectionID connID, bool replicated)
     }   
 }
 
+void DerivateInfo::getAllLocations(std::vector<ConnectionID>& result){
+    result.clear();
+    for(const auto& node : nodes)
+    {
+        if(node.second)
+        {
+            result.push_back(node.first);
+        }
+    }
+}
 
 
 } // end of namespace

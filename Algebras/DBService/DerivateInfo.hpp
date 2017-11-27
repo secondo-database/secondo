@@ -137,6 +137,13 @@ Returns the number of nodes.
 */
   void updateReplicationStatus(ConnectionID id, bool replicated);
 
+
+/*
+1.1.2 ~getAllLocations~
+
+*/
+void getAllLocations(std::vector<ConnectionID>& result);
+
  private:
     std::string objectName;
     std::string dependsOn;

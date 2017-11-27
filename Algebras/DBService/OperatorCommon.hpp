@@ -48,12 +48,52 @@ public:
 
 /*
 
-1.1.1.1 Type Mapping Function
+1.1.1.1 ~getStreamType~
+
+Returns the stream type  if applying the feed operator
+to the relation specified in nextedList. The nestedList may
+contains either a full description of the relation type 
+or just a symbol specifying the relation's name. In the second
+case, the type is retrieved from the DBService.
 
 */
     static ListExpr getStreamType(ListExpr nestedList, bool& locallyAvailable);
     
+/*
+1.1.1.1 ~getRelType~
+
+If nestedList is a correct decription of a relation type, this type is 
+returned. Otherwise nestedList has to be a symbol contains the relation's
+name. In this case, the type is requested from the DBService.
+
+*/
     static ListExpr getRelType(ListExpr nestedList, bool& locallyAvailable);
+
+
+/*
+1.1.1.1 ~getDerivedType~
+
+This operator returns the type of the X-th argument stored in the ~args~ 
+nested list. X must be greater than one. The first element in args
+must be the relation from that the argument is derived. ~args~ must be 
+formatted as a list of arguments each having format (type expr) as
+created for type mappings if UsesArgsInTypeMapping is activated.
+
+*/
+    static ListExpr getDerivedType(ListExpr args, int X, bool & locallyAvailable);
+
+/*
+1.1.1.1 ~allExists~
+
+This Operator checks whether the relation and all derived objects are
+managed by the DBService at a single node.
+
+*/
+   static bool allExists( const std::string& dbName,
+                          const std::string& relName,
+                          const std::vector<std::string>& derivates);
+
+
 };
 
 } /* namespace DBService */

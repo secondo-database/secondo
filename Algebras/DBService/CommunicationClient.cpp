@@ -260,6 +260,7 @@ void CommunicationClient::getLocationParameter(
 
 bool CommunicationClient::getReplicaLocation(const string& databaseName,
                                              const string& relationName,
+                                             const vector<string>& otherObjects,
                                              string& host,
                                              string& transferPort,
                                              string& commPort)
@@ -296,6 +297,12 @@ bool CommunicationClient::getReplicaLocation(const string& databaseName,
 
     sendBuffer.push(databaseName);
     sendBuffer.push(relationName);
+    sendBuffer.push(stringutils::int2str(otherObjects.size()));
+    for( auto s: otherObjects)
+    {
+      sendBuffer.push(s);
+    }    
+
     CommunicationUtils::sendBatch(io, sendBuffer);
 
     traceWriter->write("Sent relation details to DBService master");
@@ -587,6 +594,50 @@ bool CommunicationClient::getRelType(
     traceWriter->write("Relation does not exist in DBService");
     return false;
 }
+
+
+bool CommunicationClient::getDerivedType(
+        const string& relID,
+        const string& derivedName,
+        string& nestedListAsString)
+{
+    traceWriter->writeFunction("CommunicationClient::getDerivedType");
+    traceWriter->write("relID", relID);
+    traceWriter->write("derivedName", derivedName);
+
+    if(start() != 0)
+    {
+        traceWriter->write("Could not connect to Server");
+        return false;
+    }
+
+    iostream& io = socket->GetSocketStream();
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::CommunicationServer()))
+    {
+        traceWriter->write("Not connected to CommunicationServer");
+        return false;
+    }
+    queue<string> sendBuffer;
+    sendBuffer.push(CommunicationProtocol::CommunicationClient());
+    sendBuffer.push(CommunicationProtocol::DerivedTypeRequest());
+    sendBuffer.push(relID);
+    sendBuffer.push(derivedName);
+    CommunicationUtils::sendBatch(io, sendBuffer);
+    traceWriter->write("Sent relID and deriveName");
+
+    CommunicationUtils::receiveLine(io, nestedListAsString);
+    if(nestedListAsString != CommunicationProtocol::None())
+    {
+        traceWriter->write("Derived type", nestedListAsString);
+        return true;
+    }
+    traceWriter->write("Derived object does not exist in DBService");
+    return false;
+}
+
+
 
 bool CommunicationClient::triggerDerivation(const string& databaseName,
                                             const string& targetName,

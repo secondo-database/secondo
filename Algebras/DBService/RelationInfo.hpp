@@ -179,6 +179,15 @@ This function picks a random node and returns it.
     const ConnectionID getRandomReplicaLocation();
 
 /*
+1.1.1.1 ~getAllLocations~
+
+Returns the connection ids of all nodes having the
+replica flag set to be true.
+
+*/
+    void getAllLocations(std::vector<ConnectionID>& result);
+
+/*
 
 1.1.1.1 ~updateReplicationStatus~
 

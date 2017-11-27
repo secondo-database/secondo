@@ -56,6 +56,7 @@ public:
     static std::string Ping();
     static std::string RelationRequest();
     static std::string RelTypeRequest();
+    static std::string DerivedTypeRequest();
     static std::string ReplicaExists();
     static std::string ReplicaLocationRequest();
     static std::string ReplicationCanceled();

@@ -38,7 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/OperatorRead3.hpp"
 #include "Algebras/DBService/ReplicationUtils.hpp"
 #include "Algebras/DBService/SecondoUtilsLocal.hpp"
-#include "DBServiceClient.hpp"
+#include "Algebras/DBService/DBServiceClient.hpp"
 #include "Algebras/Stream/Stream.h"
 
 using namespace std;
@@ -182,11 +182,13 @@ int OperatorRead3::mapValue(Word* args,
             const string databaseName =
                      SecondoSystem::GetInstance()->GetDatabaseName();
             string funText = ((FText*) args[3].addr)->GetValue();
+            vector<string> otherObjects;
             string fileName =
                 DBServiceClient::getInstance()->
                 retrieveReplicaAndGetFileName(
                         databaseName,
                         relationName,
+                        otherObjects,
                         funText);
             if(fileName.empty())
             {
