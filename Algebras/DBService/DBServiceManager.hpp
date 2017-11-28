@@ -180,6 +180,16 @@ identified by the specified string.
 */
    DerivateInfo& getDerivateInfo(const std::string& objectId);
 
+/*
+1.1.1.1 ~printDerivates~
+
+Debug method. prints all known derivates.
+
+*/
+   void printDerivates() const;
+
+
+
 
 
 /*

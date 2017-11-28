@@ -547,6 +547,17 @@ DerivateInfo& DBServiceManager::getDerivateInfo(const string& objectId)
     return derivates.at(objectId);
 }
 
+void DBServiceManager::printDerivates() const{
+   printFunction(__PRETTY_FUNCTION__);
+   print("available derivates:", stringutils::int2str(derivates.size()));
+   for(auto& t : derivates){
+      print(t.first);
+      print(t.second);
+   }
+   print("---------------");
+}
+
+
 void DBServiceManager::maintainSuccessfulReplication(
         const string& relID,
         const string& replicaLocationHost,
@@ -773,7 +784,7 @@ bool DBServiceManager::locationExists(
       vector<int> tmp;
       set_intersection(locations.begin(), locations.end(),
                        dlocs.begin(), dlocs.end(),
-                       tmp.begin());
+                       back_inserter(tmp));
       if(tmp.empty()){
         return false;
       } 

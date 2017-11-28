@@ -366,18 +366,6 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
     DBServiceManager* dbService = DBServiceManager::getInstance();
     ConnectionID randomReplicaLocation = 0;
 
-    /*
-    try
-    {
-        randomReplicaLocation =
-            dbService->getRelationInfo(
-                RelationInfo::getIdentifier(databaseName, relationName)).
-                        getRandomReplicaLocation();
-    }catch(...)
-    {
-        traceWriter->write(tid, "RelationInfo does not exist");
-    }
-    */
     try
     {
        vector<ConnectionID> possibleLocations;
@@ -385,28 +373,42 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
        RelationInfo relInfo =dbService->getRelationInfo(relName);
        relInfo.getAllLocations(possibleLocations);
        std::sort(possibleLocations.begin(), possibleLocations.end());
+
+       traceWriter->write("check for presence of derived objects");
        while(!otherObjects.empty() && !possibleLocations.empty())
        {
           string n = otherObjects.front();
           otherObjects.pop();
+          traceWriter->write(tid, "look for derivate " , n);
           string oname = DerivateInfo::getIdentifier(relName, n);
-          DerivateInfo derInfo = dbService->getDerivateInfo(relName);
+          traceWriter->write("derivateID : " , oname);
+          DerivateInfo derInfo = dbService->getDerivateInfo(oname);
+          traceWriter->write("derivateInfo found");
+
           vector<ConnectionID> derLocs;
           derInfo.getAllLocations(derLocs);
           sort(derLocs.begin(), derLocs.end());
+
+
           vector<ConnectionID> inter;
           set_intersection(possibleLocations.begin(), possibleLocations.end(),
-                           derLocs.begin(), derLocs.end(), inter.begin());
+                           derLocs.begin(), derLocs.end(), 
+                           back_inserter(inter));
           inter.swap(possibleLocations);
        }
        if(!possibleLocations.empty()){
+          traceWriter->write(tid, "choose random location"); 
           random_shuffle(possibleLocations.begin(), possibleLocations.end());
           randomReplicaLocation = possibleLocations.front(); 
+       } else {
+           traceWriter->write(tid, "No locations available");
+           dbService->printDerivates();
        }
        
     } catch(...)
     {
-       traceWriter->write(tid, "No location found");
+       traceWriter->write(tid, "Exception: No location found");
+       dbService->printDerivates();
     }
 
     queue<string> sendBuffer;

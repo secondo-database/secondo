@@ -41,6 +41,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/DBService/LocationInfo.hpp"
 #include "Algebras/DBService/RelationInfo.hpp"
+#include "Algebras/DBService/DebugOutput.hpp"
+#include "Algebras/DBService/TraceSettings.hpp"
 
 namespace DBService {
 
@@ -97,6 +99,24 @@ for all necessary data types.
             const boost::thread::id tid,
             const char* text,
             bool value);
+
+    template<class T>
+    void write(const std::string& text,
+               const std::vector<T>& value){
+         
+         print(text);
+         for(auto& v : value){
+           print(v);
+         }
+         if(TraceSettings::getInstance()->isFileTraceOn())
+         {
+            *traceFile << text << endl;
+            for(auto& v : value){
+              *traceFile << v << endl;
+            }
+         }
+    }
+
 
 /*
 

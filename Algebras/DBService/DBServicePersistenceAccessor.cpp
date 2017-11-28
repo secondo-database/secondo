@@ -362,7 +362,7 @@ bool DBServicePersistenceAccessor::restoreDerivateInfo(
     printFunction(__PRETTY_FUNCTION__);
 
     bool resultOk = true;
-    string relName ("derivate_DBSP");
+    string relName ("derivates_DBSP");
     if(SecondoSystem::GetCatalog()->IsObjectName(relName))
     {
         string query("query " + relName);
