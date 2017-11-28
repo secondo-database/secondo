@@ -261,6 +261,10 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
        funarg1 = nl->SymbolAtom(relName);
     }
 
+    if(stringutils::endsWith(relName, "xRPLCTD")){
+       relName = relName.substr(0,relName.size()-7);
+    }
+
     vector<pair<string,ListExpr> > otherReplacements;
     ListExpr fundef = nl->Rest(nl->Rest(funlist));
     while(!nl->HasLength(fundef,1)){
