@@ -287,7 +287,9 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
       
     }    
 
-    fundef = nl->First(fundef);
+    while(nl->HasLength(fundef,1)){ // unpack
+      fundef = nl->First(fundef);
+    }
     
     ListExpr command = listutils::replaceSymbol(fundef, 
                                   nl->SymbolValue(argname), funarg1, nl);
