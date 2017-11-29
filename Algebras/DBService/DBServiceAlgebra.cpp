@@ -37,7 +37,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/OperatorPingDBService.hpp"
 #include "Algebras/DBService/OperatorRead.hpp"
 #include "Algebras/DBService/OperatorRead2.hpp"
-#include "Algebras/DBService/OperatorRead3.hpp"
 #include "Algebras/DBService/OperatorSetTraceLevel.hpp"
 #include "Algebras/DBService/OperatorStartDBService.hpp"
 #include "Algebras/DBService/OperatorWrite.hpp"
@@ -82,9 +81,6 @@ DBServiceAlgebra::DBServiceAlgebra() :
     AddOperator(Read2Info(),
                 OperatorRead2::mapValue,
                 OperatorRead2::mapType)->SetUsesArgsInTypeMapping();
-    AddOperator(Read3Info(),
-                OperatorRead3::mapValue,
-                OperatorRead3::mapType)->SetUsesArgsInTypeMapping();
     AddOperator(StartDBServiceInfo(),
                 OperatorStartDBService::mapValue,
                 OperatorStartDBService::mapType);
@@ -105,6 +101,11 @@ DBServiceAlgebra::DBServiceAlgebra() :
     AddOperator(RderiveInfo(),
                 OperatorRderive::mapValue,
                 OperatorRderive::mapType);
+    
+
+    AddOperator(Read3_XInfo<0>(),
+                OperatorRead3_X<0>::mapValue,
+                OperatorRead3_X<0>::mapType);
 
     AddOperator(DBIARGInfo<1>(),
                 0,

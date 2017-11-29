@@ -55,15 +55,38 @@ struct Read3_XInfo: OperatorInfo
 {
     Read3_XInfo()
     {   std::string x = stringutils::int2str(X);
-        name = "read3_"+x;
-        signature = "rel(tuple)  x Index^" + x + " x fun -> stream(tuple)";
-        syntax = "Rel x Index read3_1[fun] ";
-        meaning = "read a tuple stream from a relation and fall back to the "
-                  "replica provided by the DBService if necessary";
-        example = "query myRelation myIndex  read3_1[ .. . exactmatch[4000]  "
-                "project[Host, Port] ] consume";
-        remark = "requires a DBService system";
-        usesArgsInTypeMapping = true;
+        if(X==0){
+          name = "read3";
+          signature = "rel(tuple) x fun -> stream(tuple)";
+          syntax = "rel read3[fun] ";
+          meaning = "Applies a function to a relation. If the relation "
+                    "is not locally available, the function is "
+                    "evaluated by the dbservice.";
+          example = "query plz read3[ . feed filter[.PLZ < 5000] count ";
+        }  else {
+           name = "read3_"+x;
+           signature = "rel(tuple)  x Index^" + x + " x fun -> stream(tuple)";
+           syntax = "Rel";
+           for(int i=0;i<X;i++){
+             syntax += " x INDEX"+stringutils::int2str(i+1);
+           }
+           syntax += "read3_"+x+"[fun] ";
+           meaning = "Applies a function to a set of objects (relation"
+                     " + indexes). If one of the objects is locally not "
+                     "available, the DBService is used for that.";
+           example = "query myRelation";
+           for(int i=0;i<X;i++){
+             example += " myIndex"+stringutils::int2str(i+1);
+           }
+           example += " read3_"+x+"[";
+           for(int i=0;i<X;i++){
+             example += " $"+stringutils::int2str(i+1) + " exactmatch[1000] sort";
+             if(i>0) example += " mergesec ";
+           }
+           example += "] count";
+       }
+       remark = "requires a DBService system";
+       usesArgsInTypeMapping = true;
     }
 };
 
@@ -152,10 +175,11 @@ ListExpr OperatorRead3_X<X>::mapType(ListExpr args)
                                       + " is not a basic object description");
        }
        std::string indexName = nl->SymbolValue(nl->Second(index));
+
        ListExpr indexType;
        if(nl->Equal(nl->First(index), nl->Second(index))){
            locallyAvailable = false;
-           indexType = OperatorCommon::getDerivedType(args,X,locallyAvailable);
+           indexType = OperatorCommon::getDerivedType(args,i+1,locallyAvailable);
        } else {
            indexType = nl->First(index);
            locallyAvailable = true;
@@ -191,6 +215,7 @@ ListExpr OperatorRead3_X<X>::mapType(ListExpr args)
     }
 
     ListExpr fargs = nl->Rest(nl->First(fun));
+
     for(int i=0;i<X+1;i++){
        ListExpr farg = nl->First(fargs);
        fargs = nl->Rest(fargs);
