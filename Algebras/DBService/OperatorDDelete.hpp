@@ -50,7 +50,9 @@ struct DDeleteInfo: OperatorInfo
         name = "ddelete";
         signature = "string x bool -> bool";
         syntax = "ddelete(string, bool)";
-        meaning = "delete the replicas of a relation";
+        meaning = "Deletes the replicas of a relation. If the second "
+                  "argument is true, also the local object having this "
+                  "name will be deleted. ";
         example = "query ddelete('myRelation', TRUE)";
         remark = "needs a DBService system";
         usesArgsInTypeMapping = false;
