@@ -96,6 +96,13 @@ Signature : rel x K x fun(rel x K -> stream(tuple(X))) -> stream(tuple(X))
 Example   : query (plz plz_PLZ_btree read3_1[.. . exactmatch[1000]] count) =  (plz feed filter[.PLZ=1000] count)
 Result    : TRUE
 
+Operator  : read3_1
+Number    : 1
+Signature : rel x K1 x K2 x fun(rel x K1 x K2 -> stream(tuple(X))) -> stream(tuple(X))
+Example   : query plz2 plz2_PLZ plz2_Ort read3_2[ .. leftrangeS[5000] sort $3 rightrangeS["G"] sort mergesec . gettuples] count
+Result    : 1447
+
+
 Operator : useincrementalmetadataupdate
 Number   : 1
 Signature : bool -> bool

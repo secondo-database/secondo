@@ -114,6 +114,13 @@ DBServiceAlgebra::DBServiceAlgebra() :
                 OperatorRead3_X<1>::mapValue,
                 OperatorRead3_X<1>::mapType);
 
+    AddOperator(DBIARGInfo<2>(),
+                0,
+                OperatorDBIARG<2>::mapType);
+
+    AddOperator(Read3_XInfo<2>(),
+                OperatorRead3_X<2>::mapValue,
+                OperatorRead3_X<2>::mapType);
 
 }
 
