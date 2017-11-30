@@ -212,7 +212,8 @@ bool DBServiceClient::deleteReplicas(const string& databaseName,
                                               0);
     if(!dbServiceMasterClient.requestReplicaDeletion(
             databaseName,
-            relationName))
+            relationName,
+            ""))
     {
         return false;
     }

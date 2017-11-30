@@ -644,38 +644,54 @@ void DBServiceManager::maintainSuccessfulDerivation(
 
 
 
-void DBServiceManager::deleteReplicaMetadata(const string& relID)
+void DBServiceManager::deleteReplicaMetadata(const string& database,
+                                             const string& relation,
+                                             const string& derivateName)
 {
     printFunction("DBServiceManager::deleteReplicaMetadata");
+
     boost::lock_guard<boost::mutex> lock(managerMutex);
     try
-    {
-//        DBServicePersistenceAccessor::deleteRelationInfo(
-//                getRelationInfo(relID));
-        relations.erase(relID);
+    { 
+  //        DBServicePersistenceAccessor::deleteRelationInfo(
+  //                getRelationInfo(relID));
+        if(derivateName.empty()){
+            string relId = RelationInfo::getIdentifier(database, relation);
+            RelationInfo relinfo = getRelationInfo(relId);
+            DBServicePersistenceAccessor::deleteLocationMapping(relId,
+                                     relinfo.nodesBegin(), relinfo.nodesEnd());
+            relations.erase(relId);
+            possibleReplicaLocations.erase(relId);
+            vector<string> derivatestoremove;
+            findDerivates(database, relation, derivatestoremove);
+            for( auto& t : derivatestoremove){
+               DerivateInfo derinfo = getDerivateInfo(t);
+               DBServicePersistenceAccessor::deleteLocationMapping(t, 
+                                        derinfo.nodesBegin(), 
+                                        derinfo.nodesEnd());
+               possibleReplicaLocations.erase(t);
+               derivates.erase(t);
+            }
+        } else {
+            string derId = DerivateInfo::getIdentifier(database, relation, 
+                                                       derivateName);
+            DerivateInfo derinfo = getDerivateInfo(derId);
+            DBServicePersistenceAccessor::deleteLocationMapping(derId, 
+                                         derinfo.nodesBegin(), 
+                                         derinfo.nodesEnd());
+            derivates.erase(derId);
+            possibleReplicaLocations.erase(derId);
+        }
     }catch(...)
     {
         print("RelationInfo does not exist");
     }
-    if(!DBServicePersistenceAccessor::persistAllReplicas(relations, derivates))
+    if(!derivateName.empty())
     {
+      if(!DBServicePersistenceAccessor::persistAllReplicas(relations,derivates))
+      {
         print("Could not persist DBService relations");
-    }
-}
-
-
-void DBServiceManager::deleteDerivateMetadata(const string& objectID)
-{
-    printFunction("DBServiceManager::deleteDerivateMetadata");
-    boost::lock_guard<boost::mutex> lock(managerMutex);
-    try
-    {
-//        DBServicePersistenceAccessor::deleteDerivateInfo(
-//                getDerivateInfo(objectID));
-        derivates.erase(objectID);
-    }catch(...)
-    {
-        print("RelationInfo does not exist");
+      }
     }
     if(!DBServicePersistenceAccessor::persistAllReplicas(relations,derivates))
     {
@@ -751,7 +767,7 @@ bool DBServiceManager::locationExists(
                   const string& relation,
                   const vector<string>& derivates){
 
-    string relId = MetadataObject::getIdentifier(databaseName, relation);
+    string relId = RelationInfo::getIdentifier(databaseName, relation);
     DBServiceRelations::const_iterator rit = relations.find(relId);
     if(rit==relations.end()){
         return false;
@@ -767,7 +783,7 @@ bool DBServiceManager::locationExists(
     sort(locations.begin(), locations.end());
     
     for( auto& der : derivates){
-      string derId = MetadataObject::getIdentifier(relId, der);
+      string derId = RelationInfo::getIdentifier(relId, der);
       DBServiceDerivates::const_iterator dit = this->derivates.find(derId);
       if(dit==this->derivates.end()){
          return false; // derived object not managed
@@ -794,7 +810,17 @@ bool DBServiceManager::locationExists(
 
 }
 
+void DBServiceManager::findDerivates(const string& relID,
+                                     vector<string>& result){
 
+  result.clear();
+  for(auto& t : derivates){
+        if(t.second.getSource()==relID){
+           result.push_back(t.first);
+        }
+  }
+
+}  
 
 void DBServiceManager::setOriginalLocationTransferPort(
         const string& relID,

@@ -432,7 +432,8 @@ bool CommunicationClient::reportSuccessfulDerivation(
 
 bool CommunicationClient::requestReplicaDeletion(
         const string& databaseName,
-        const string& relationName)
+        const string& relationName,
+        const string& derivateName)
 {
     traceWriter->writeFunction("CommunicationClient::requestReplicaDeletion");
     traceWriter->write("databaseName: ", databaseName);
@@ -461,16 +462,22 @@ bool CommunicationClient::requestReplicaDeletion(
     queue<string> sendBuffer;
     sendBuffer.push(CommunicationProtocol::CommunicationClient());
     sendBuffer.push(CommunicationProtocol::DeleteReplicaRequest());
-    sendBuffer.push(RelationInfo::getIdentifier(databaseName, relationName));
+    sendBuffer.push(databaseName);
+    sendBuffer.push(relationName);
+    sendBuffer.push(derivateName);
     CommunicationUtils::sendBatch(io, sendBuffer);
     return true;
 }
 
 bool CommunicationClient::triggerReplicaDeletion(
-        const string& relID)
+        const string& databaseName,
+        const string& relationName,
+        const string& derivateName)
 {
     traceWriter->writeFunction("CommunicationClient::triggerReplicaDeletion");
-    traceWriter->write("relID", relID);
+    traceWriter->write("database", databaseName);
+    traceWriter->write("relation", relationName);
+    traceWriter->write("derivate", derivateName);
 
     if(start() != 0)
     {
@@ -489,7 +496,9 @@ bool CommunicationClient::triggerReplicaDeletion(
     queue<string> sendBuffer;
     sendBuffer.push(CommunicationProtocol::CommunicationClient());
     sendBuffer.push(CommunicationProtocol::TriggerReplicaDeletion());
-    sendBuffer.push(relID);
+    sendBuffer.push(databaseName);
+    sendBuffer.push(relationName);
+    sendBuffer.push(derivateName);
     CommunicationUtils::sendBatch(io, sendBuffer);
 
     return true;

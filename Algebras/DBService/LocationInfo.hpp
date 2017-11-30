@@ -159,6 +159,14 @@ same disk as the data of the stored one.
     bool isSameDisk(
             const std::string& cmpHost, const std::string& cmpDisk) const;
 
+
+    inline static std::string getIdentifier(const std::string& host,
+                                            const std::string& disk)
+    {
+       return host + separator + disk;
+    }
+
+
 /*
 
 1.1.1.1 \textit{host}

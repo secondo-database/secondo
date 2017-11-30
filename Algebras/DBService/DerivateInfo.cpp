@@ -92,7 +92,7 @@ size_t DerivateInfo::getNodeCount() const
 
 std::string DerivateInfo::toString() const
 {
-    return MetadataObject::getIdentifier(dependsOn, objectName);
+    return getIdentifier(dependsOn, objectName);
 }
 
 void DerivateInfo::updateReplicationStatus(ConnectionID connID, bool replicated)

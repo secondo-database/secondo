@@ -567,18 +567,6 @@ bool DBServicePersistenceAccessor::deleteLocationMapping(
         ReplicaLocations::const_iterator nodesEnd)
 {
     printFunction("DBServicePersistenceAccessor::deleteLocationMapping");
-
-  /* // seems to be wrong, not sure, waiting for answer from Saskia
-    string dbName;
-    string relName;
-    RelationInfo::parseIdentifier(
-            relID,
-            dbName,
-            relName);
-
-    SecondoUtilsLocal::adjustDatabase(dbName);
-  */
-
     string relationName("mapping_DBSP");
     bool resultOk = true;
     for(ReplicaLocations::const_iterator it = nodesBegin;

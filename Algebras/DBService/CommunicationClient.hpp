@@ -184,7 +184,8 @@ the \textit{CommunicationServer} on the DBService master.
 */
     bool requestReplicaDeletion(
             const std::string& databaseName,
-            const std::string& relationName);
+            const std::string& relationName,
+            const std::string& derivateName);
 
 
 /*
@@ -194,12 +195,15 @@ Once the deletion of a replica has been requested, the \textit{DBService}
 master will determine the replica locations and instantiate
 \textit{CommunicationClients} to establish connections to each of them in order
 to trigger the deletion of the replicas by calling function
-\textit{triggerReplicaDeletion}.
+\textit{triggerReplicaDeletion}. If derivateName is empty, the relation will 
+be removed.
 
 
 */
     bool triggerReplicaDeletion(
-            const std::string& relID);
+            const std::string& databaseName,
+            const std::string& relationName,
+            const std::string& derivateName);
 
 /*
 1.1.1.2 ~pingDBService~

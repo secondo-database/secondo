@@ -37,13 +37,17 @@ using namespace std;
 namespace DBService {
 
 TriggerReplicaDeletionRunnable::TriggerReplicaDeletionRunnable(
-                               string dbServiceWorkerHost,
-                               int dbServiceWorkerCommPort,
-                               std::string relID)
+                               string _dbServiceWorkerHost,
+                               int _dbServiceWorkerCommPort,
+                               const std::string& _database,
+                               const std::string& _relation,
+                               const std::string& _derivate)
 :runner(0),
- dbServiceWorkerHost(dbServiceWorkerHost),
- dbServiceWorkerCommPort(dbServiceWorkerCommPort),
- relID(relID)
+ dbServiceWorkerHost(_dbServiceWorkerHost),
+ dbServiceWorkerCommPort(_dbServiceWorkerCommPort),
+ database(_database),
+ relation(_relation),
+ derivate(_derivate)
 {
     printFunction(
             "TriggerReplicaDeletionRunnable::TriggerReplicaDeletionRunnable");
@@ -67,16 +71,22 @@ void TriggerReplicaDeletionRunnable::run()
             this,
             dbServiceWorkerHost,
             dbServiceWorkerCommPort,
-            relID));
+            database, relation, derivate));
 }
+
+
 void TriggerReplicaDeletionRunnable::createClient(
         string dbServiceWorkerHost,
         int dbServiceWorkerCommPort,
-        std::string relID)
+        const std::string& database,
+        const std::string& relationname,
+        const std::string& derivate
+        )
 {
     printFunction("TriggerReplicaDeletionRunnable::createClient");
     CommunicationClient client(dbServiceWorkerHost, dbServiceWorkerCommPort, 0);
-    client.triggerReplicaDeletion(relID); // TODO check return value
+    client.triggerReplicaDeletion(database, relationname, derivate); 
+    // TODO check return value
 }
 
 } /* namespace DBService */

@@ -33,11 +33,6 @@ using namespace std;
 
 namespace DBService {
 
-string MetadataObject::getIdentifier(const string& prefix,
-                                     const string& suffix)
-{
-    return prefix + separator + suffix;
-}
 
 void MetadataObject::parseIdentifier(
         const string& identifier,

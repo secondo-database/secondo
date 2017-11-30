@@ -315,19 +315,13 @@ relations accordingly.
 
 This function removes the metadata of a certain relation from the internal data
 structures and from the persistent metadata relations.
+If the derivbateName is empty, the relation and all depending objects 
+will be removed.
 
 */
-    void deleteReplicaMetadata(const std::string& relID);
-
-
-/*
-1.1.1.1 ~deleteDerivateMetadata~
-
-This function removes the metadata of a certain derivate from the internal
-data structures and from the persistent metadata relations.
-
-*/
-    void deleteDerivateMetadata(const std::string& objectId);
+    void deleteReplicaMetadata(const std::string& database,
+                               const std::string& relation,
+                               const std::string& derivateName);
 
 
 /*
@@ -338,7 +332,7 @@ This function prints all DBService metadata used for replica provisioning to
 the command line.
 
 */
-        void printMetadata();
+    void printMetadata();
 
 /*
 
@@ -403,6 +397,24 @@ This function is called after a successful creation of a derivate.
             const std::string& replicaLocationPort);
 
 
+
+/*
+1.1.1.1 ~findDerivates~
+
+This fundtion returns the ids of all derivates that depend on
+the given relationID.
+
+*/
+void findDerivates(const std::string& relID,
+                   std::vector<std::string> & result);
+
+
+inline void findDerivates(const std::string& database,
+                          const std::string& relation,
+                   std::vector<std::string>& result)
+{
+   findDerivates(RelationInfo::getIdentifier(database, relation), result);
+}
 
 /*
 1.1.1.1 Constructor

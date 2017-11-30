@@ -49,8 +49,8 @@ DerivationClient::DerivationClient(
     printFunction(__PRETTY_FUNCTION__);
     relIdOnWorker = ReplicationUtils::getRelNameOnDBServiceWorker(DBName,
                                                                   relName);
-    rid = ReplicationUtils::getRelId(DBName, relName); 
-    targetId = MetadataObject::getIdentifier(rid, targetName);
+    rid = RelationInfo::getIdentifier(DBName, relName); 
+    targetId = DerivateInfo::getIdentifier(rid, targetName);
 }
 
 

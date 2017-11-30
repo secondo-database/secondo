@@ -51,7 +51,9 @@ public:
     TriggerReplicaDeletionRunnable(
             std::string dbServiceWorkerHost,
             int dbServiceWorkerCommPort,
-            std::string relID);
+            const std::string& _database,
+            const std::string& relation,
+            const std::string& derivate);
 
 /*
 
@@ -83,7 +85,9 @@ private:
     void createClient(
             std::string dbServiceWorkerHost,
             int dbServiceWorkerCommPort,
-            std::string relID);
+            const std::string& database,
+            const std::string& relation,
+            const std::string& derivate);
 
 /*
 
@@ -119,7 +123,9 @@ Stores the communication port of the ~DBService~ worker that holds the replica.
 Stores the identifier of the relation that shall be deleted.
 
 */
-    std::string relID;
+    std::string database;
+    std::string relation;
+    std::string derivate;
 };
 
 } /* namespace DBService */

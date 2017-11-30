@@ -469,26 +469,74 @@ bool CommunicationServer::handleRequestReplicaDeletion(
     traceWriter->writeFunction(tid,
                 "CommunicationServer::handleRequestReplicaDeletion");
 
-    string relID;
-    CommunicationUtils::receiveLine(io, relID);
+    string databaseName;
+    string relationName;
+    string derivateName; 
+    CommunicationUtils::receiveLine(io, databaseName);
+    CommunicationUtils::receiveLine(io, relationName);
+    CommunicationUtils::receiveLine(io, derivateName);
+    // if the relation and all derivates should be removed,
+    // the derivateName will be empty
 
     DBServiceManager* dbService = DBServiceManager::getInstance();
     try{
-        RelationInfo& relationInfo = dbService->getRelationInfo(relID);
-        for(ReplicaLocations::const_iterator it =
-                relationInfo.nodesBegin(); it != relationInfo.nodesEnd(); it++)
-        {
-            if(it->second)
+        string relId = RelationInfo::getIdentifier(databaseName, relationName);
+        if(derivateName.empty()){
+            RelationInfo& relationInfo = dbService->getRelationInfo(relId);
+            for(ReplicaLocations::const_iterator it =
+                   relationInfo.nodesBegin(); it!=relationInfo.nodesEnd(); it++)
             {
-                LocationInfo& locationInfo = dbService->getLocation(it->first);
-                TriggerReplicaDeletionRunnable replicaEraser(
-                        locationInfo.getHost(),
+              if(it->second)
+              {
+                 LocationInfo& locationInfo = dbService->getLocation(it->first);
+                 TriggerReplicaDeletionRunnable replicaEraser(
+                       locationInfo.getHost(),
                         atoi(locationInfo.getCommPort().c_str()),
-                        relID);
-                replicaEraser.run();
+                        databaseName, relationName, derivateName);
+                 replicaEraser.run();
+              }
             }
-            dbService->deleteReplicaMetadata(relID);
+            // delete all derivates that depend on relation
+            vector<string> derivates;
+            dbService->findDerivates(relId, derivates);
+            for(auto& t: derivates)
+            {
+              DerivateInfo& derInfo = dbService->getDerivateInfo(t);
+              for(ReplicaLocations::const_iterator it =
+                       derInfo.nodesBegin(); it != derInfo.nodesEnd(); it++)
+              {
+                if(it->second)
+                {
+                  LocationInfo& locationInfo =dbService->getLocation(it->first);
+                  TriggerReplicaDeletionRunnable replicaEraser(
+                      locationInfo.getHost(),
+                       atoi(locationInfo.getCommPort().c_str()),
+                       databaseName, relationName, derivateName);
+                  replicaEraser.run();
+               }
+              }
+            }
+            
+
+        } else {
+           string derId = DerivateInfo::getIdentifier(relId, derivateName);
+           DerivateInfo& derInfo = dbService->getDerivateInfo(derId);
+           for(ReplicaLocations::const_iterator it =
+                 derInfo.nodesBegin(); it != derInfo.nodesEnd(); it++)
+           {
+               if(it->second)
+               {
+                  LocationInfo& locationInfo =dbService->getLocation(it->first);
+                  TriggerReplicaDeletionRunnable replicaEraser(
+                      locationInfo.getHost(),
+                       atoi(locationInfo.getCommPort().c_str()),
+                       databaseName, relationName, derivateName);
+                  replicaEraser.run();
+               }
+           }
         }
+        dbService->deleteReplicaMetadata(databaseName,relationName,
+                                         derivateName);
     }catch(...)
     {
         traceWriter->write(tid, "Relation does not exist");
@@ -505,14 +553,14 @@ bool CommunicationServer::handleTriggerReplicaDeletion(
     traceWriter->writeFunction(tid,
                 "CommunicationServer::handleTriggerReplicaDeletion");
 
-    string relID;
-    CommunicationUtils::receiveLine(io, relID);
-
-    // remove file
     string databaseName;
     string relationName;
-    RelationInfo::parseIdentifier(relID, databaseName, relationName);
+    string derivateName;
+    CommunicationUtils::receiveLine(io, databaseName);
+    CommunicationUtils::receiveLine(io, relationName);
+    CommunicationUtils::receiveLine(io, derivateName);
 
+    // remove File
     string filename = ReplicationUtils::getFileNameOnDBServiceWorker(
                                   databaseName,
                                   relationName);
@@ -520,9 +568,17 @@ bool CommunicationServer::handleTriggerReplicaDeletion(
 
     // delete stored object
     SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
-    string relname = ReplicationUtils::getRelName(filename);
-    ctlg->DeleteObject(relname);    
-
+    string victim;
+    if(derivateName.empty())
+    {
+       victim = ReplicationUtils::getRelName(filename);
+    } 
+    else
+    {
+       string relId = RelationInfo::getIdentifier(databaseName, relationName);
+       victim = DerivateInfo::getIdentifier(relId, derivateName);
+    }
+    ctlg->DeleteObject(victim);    
 
     //TODO check return code etc
     //TODO tracing
@@ -655,7 +711,7 @@ bool CommunicationServer::handleTriggerDerivation(
 
     // for all workers holding a replica of the relation
     // send command to the worker to derive the object
-    string relId = MetadataObject::getIdentifier(databaseName, relName);
+    string relId = RelationInfo::getIdentifier(databaseName, relName);
     ReplicaLocations rl;
     string  derId = dbService->determineDerivateLocations(targetName, relId,
                                                           fundef);

@@ -39,8 +39,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define DERIVATEINFO_HPP
 
 #include "Algebras/DBService/MetadataObject.hpp"
+#include "Algebras/DBService/RelationInfo.hpp"
 #include "Algebras/DBService/ReplicaLocations.hpp"
 #include <string>
+
 
 namespace DBService
 {
@@ -136,6 +138,25 @@ Returns the number of nodes.
 
 */
   void updateReplicationStatus(ConnectionID id, bool replicated);
+
+
+/*
+1.1.11 ~getIdentifier~
+
+*/
+  inline static std::string getIdentifier(const std::string& relationId,
+                            const std::string& derivateName){
+     return relationId + separator + derivateName;
+  }
+  
+
+  inline static std::string getIdentifier(
+                            const std::string& database,
+                            const std::string& relation,
+                            const std::string& derivateName){
+     return getIdentifier( RelationInfo::getIdentifier(database,relation),
+                           derivateName) ;
+  }
 
 
 /*

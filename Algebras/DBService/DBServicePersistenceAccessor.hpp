@@ -204,6 +204,17 @@ Retrieve the number of tuples that the specifies relation contains.
             const std::string& databaseName,
             const std::string& relationName);
 
+/*
+
+1.1.1.1 \textit{deleteLocationMapping}
+
+This function deletes the mapping of relation to location for a specified
+relation identifier and a given range of connections.
+
+*/
+    static bool deleteLocationMapping(std::string relationID,
+            ReplicaLocations::const_iterator nodesBegin,
+            ReplicaLocations::const_iterator nodesEnd);
 private:
 
 /*
@@ -244,17 +255,6 @@ given values.
             const RelationDefinition& rel,
             const std::vector<std::vector<std::string> >& values);
 
-/*
-
-1.1.1.1 \textit{deleteLocationMapping}
-
-This function deletes the mapping of relation to location for a specified
-relation identifier and a given range of connections.
-
-*/
-    static bool deleteLocationMapping(std::string relationID,
-            ReplicaLocations::const_iterator nodesBegin,
-            ReplicaLocations::const_iterator nodesEnd);
 
 /*
 

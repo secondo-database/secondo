@@ -196,6 +196,17 @@ This function updates the replication status with regards to a certain replica.
 */
     void updateReplicationStatus(ConnectionID connID, bool replicated);
 
+
+/*
+1.1.1.1 ~getIdentifier~
+
+*/
+   inline static std::string getIdentifier(const std::string& database,
+                                    const std::string& relation){
+      return database + separator + relation;
+   }
+
+
 /*
 
 1.1.1.1 ~databaseName~

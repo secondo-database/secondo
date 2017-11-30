@@ -281,7 +281,7 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
        string argxs = nl->SymbolValue(argx);
        string argName = otherObjects.front();
        otherObjects.pop();
-       argName = MetadataObject::getIdentifier(relName, argName);
+       argName = DerivateInfo::getIdentifier(relName, argName);
        otherReplacements.push_back( 
                       pair<string,ListExpr>(argxs,nl->SymbolAtom(argName)));
       

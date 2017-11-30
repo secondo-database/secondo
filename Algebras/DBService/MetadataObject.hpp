@@ -50,16 +50,6 @@ public:
 */
     MetadataObject(){};
 
-/*
-
-1.1.1.1 ~getIdentifier~
-
-This function creates an identifier for an arbitrary metadata object using
-the provided prefix and suffix.
-
-*/
-    static std::string getIdentifier(const std::string& prefix,
-                                     const std::string& suffix);
 
 /*
 
