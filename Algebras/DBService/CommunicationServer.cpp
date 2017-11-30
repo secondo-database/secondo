@@ -477,6 +477,11 @@ bool CommunicationServer::handleRequestReplicaDeletion(
     CommunicationUtils::receiveLine(io, derivateName);
     // if the relation and all derivates should be removed,
     // the derivateName will be empty
+    traceWriter->write("database", databaseName);
+    traceWriter->write("relation", relationName);
+    traceWriter->write("derived", derivateName);
+    
+
 
     DBServiceManager* dbService = DBServiceManager::getInstance();
     try{
@@ -499,8 +504,10 @@ bool CommunicationServer::handleRequestReplicaDeletion(
             // delete all derivates that depend on relation
             vector<string> derivates;
             dbService->findDerivates(relId, derivates);
+
             for(auto& t: derivates)
             {
+              traceWriter->write("delete derivate " , t);
               DerivateInfo& derInfo = dbService->getDerivateInfo(t);
               for(ReplicaLocations::const_iterator it =
                        derInfo.nodesBegin(); it != derInfo.nodesEnd(); it++)
