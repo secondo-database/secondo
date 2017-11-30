@@ -76,7 +76,7 @@ LOG_EXP (print())
 LOGP
 }
 
-Triangle::Triangle(AbstractVertexContainer* vc, void * buff,
+Triangle::Triangle(AbstractVertexContainer* vc, char* buff,
   uint32_t & offset, TinPart * imyPart) {
  LOGP
  FILE_VERTEX_POINTER lv1, lv2, lv3;
@@ -905,7 +905,7 @@ const Vertex* Triangle::isTriangle_sec(const Vertex* iv1,
 
 //v1 and v2  etc. in the same place
  if (*iv1 == *iv2 || *iv1 == *iv3 || *iv2 == *iv3) {
-  return false; //always secure
+  return 0; //always secure
  }
 
  SecureOperator::startSecureCalc();

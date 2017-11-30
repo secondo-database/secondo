@@ -879,7 +879,7 @@ TinPart* TinPart::getInstanceFromDisc(Tin* tt, SmiRecord& valueRecord,
  return part;
 }
 TinPart* TinPart::getInstanceFromBuffer(Tin* tt, char* buffer,
-  uint32_t &offset, bool bulkload, const TinConfiguration& conf) {
+  size_t &offset, bool bulkload, const TinConfiguration& conf) {
  LOGP
  LOG(conf.abstractType)
 

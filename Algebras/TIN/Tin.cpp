@@ -1352,7 +1352,7 @@ bool Tin::openParts(bool bulkload) {
 
  for (int i = 0; i < noParts; i++) {
   tinParts[i] = TinPart::getInstanceFromBuffer(this, buffer,
-    (uint32_t &) offset, bulkload, config);
+    (size_t &) offset, bulkload, config);
  }
 
  delete[] buffer;
