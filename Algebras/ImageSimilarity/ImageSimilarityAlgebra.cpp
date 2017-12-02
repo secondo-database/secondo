@@ -131,13 +131,13 @@ int calcSQFDVM(Word* args, Word& result,
 
 OperatorSpec calcSQFDSpec(
 	"featuresignature x featuresignature -> real",
-	"calcSQFD(_,_)",
+	"sqfd(_,_)",
 	"Computes the SQFD between two signatures",
-	"query calcSQFD (sig1, sig2)"
+	"query sqfd (sig1, sig2)"
 );
 
 Operator calcSQFDOp(
-	"calcSQFD",
+	"sqfd",
 	calcSQFDSpec.getStr(),
 	calcSQFDVM,
 	Operator::SimpleSelect,
@@ -202,13 +202,13 @@ int calcEMDVM(Word* args, Word& result,
 
 OperatorSpec calcEMDSpec(
 	"featuresignature x featuresignature -> real",
-	"calcEMD(_,_)",
+	"emd(_,_)",
 	"Computes the EMD between two signatures",
-	"query calcEMD (sig1, sig2)"
+	"query emd (sig1, sig2)"
 );
 
 Operator calcEMDOp(
-	"calcEMD",
+	"emd",
 	calcEMDSpec.getStr(),
 	calcEMDVM,
 	Operator::SimpleSelect,
@@ -389,10 +389,10 @@ static const std::string readSignatureFromFileSpec  =
     "<text>readSignatureFromFile(fileName, colorSpace, coarseness, "
     "contrast, patch, percent, cluster) </text--->"
      "<text>Creates a feature signature from a jpeg file. The "
-     "colorSpace parameter allows following settings: 1 for RGB, 2 "
+     "colorSpace parameter allows the following settings: 1 for RGB, 2 "
      "for HSV, 3 for CIELAB. "
      "The coarseness parameter defines the edge length of a square of "
-     "neighbor pixels which should be analyzed. This paramter strongly "
+     "neighbor pixels which should be analyzed. This parameter strongly "
      "affects performance. Good values are between 1 and 7. "
      "The contrast parameter defines the edge length of a square of "
      "neighbor pixels which should be analyzed. Good values are between"
