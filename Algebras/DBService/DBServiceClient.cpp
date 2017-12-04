@@ -204,7 +204,8 @@ string DBServiceClient::retrieveReplicaAndGetFileName(
 }
 
 bool DBServiceClient::deleteReplicas(const string& databaseName,
-                                        const string& relationName)
+                                     const string& relationName,
+                                     const string& derivateName)
 {
     printFunction("DBServiceClient::deleteReplicas");
     CommunicationClient dbServiceMasterClient(dbServiceHost,
@@ -213,7 +214,7 @@ bool DBServiceClient::deleteReplicas(const string& databaseName,
     if(!dbServiceMasterClient.requestReplicaDeletion(
             databaseName,
             relationName,
-            ""))
+            derivateName))
     {
         return false;
     }

@@ -113,7 +113,8 @@ all metadata related to this relation on the \textit{DBService} master node.
 */
     bool deleteReplicas(
             const std::string& databaseName,
-            const std::string& relationName);
+            const std::string& relationName,
+            const std::string& derivateName);
 
 /*
 1.1.1.1 ~pingDBService~

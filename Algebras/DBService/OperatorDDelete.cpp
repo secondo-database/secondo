@@ -43,7 +43,7 @@ ListExpr OperatorDDelete::mapType(ListExpr nestedList)
 {
     print(nestedList);
 
-    if (!nl->HasLength(nestedList, 2))
+    if (!nl->HasLength(nestedList, 2) && !nl->HasLength(nestedList,3))
     {
         ErrorReporter::ReportError(
                 "expected signature: string x bool");
@@ -56,12 +56,20 @@ ListExpr OperatorDDelete::mapType(ListExpr nestedList)
                 "first argument must be: string");
         return nl->TypeError();
     }
-
-    if(!CcBool::checkType(nl->Second(nestedList)))
-    {
+    if(nl->HasLength(nestedList,2)){
+      if(!CcBool::checkType(nl->Second(nestedList)))
+      {
         ErrorReporter::ReportError(
                 "second argument must be: bool");
         return nl->TypeError();
+      }
+    } else {
+        if(!CcString::checkType(nl->Second(nestedList))){
+           return listutils::typeError("second arg is not a string");
+        }
+        if(!CcBool::checkType(nl->Third(nestedList))){
+           return listutils::typeError("last argument is not of type bool");
+        }
     }
 
     return listutils::basicSymbol<CcBool>();
@@ -74,9 +82,19 @@ int OperatorDDelete::mapValue(Word* args,
                               Supplier s)
 {
     string relationName = static_cast<CcString*>(args[0].addr)->GetValue();
-    bool deleteLocalRelation = static_cast<CcBool*>(args[1].addr)->GetValue();
+    bool deleteLocalRelation;
+    string derivateName = "";
+    if(qp->GetNoSons(s)==2)
+    {
+      deleteLocalRelation = static_cast<CcBool*>(args[1].addr)->GetValue();
+    } else 
+    {
+      derivateName = static_cast<CcString*>(args[1].addr)->GetValue();
+      deleteLocalRelation = static_cast<CcBool*>(args[2].addr)->GetValue();
+    }
 
     print("relationName", relationName);
+    print("derivateName", derivateName);
     print("deleteLocalRelation", deleteLocalRelation);
 
     FileSystem::DeleteFileOrFolder(
@@ -87,7 +105,8 @@ int OperatorDDelete::mapValue(Word* args,
     bool success =
             DBServiceClient::getInstance()->deleteReplicas(
                     SecondoSystem::GetInstance()->GetDatabaseName(),
-                    relationName);
+                    relationName,
+                    derivateName);
 
     if(deleteLocalRelation)
     {

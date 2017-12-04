@@ -438,6 +438,7 @@ bool CommunicationClient::requestReplicaDeletion(
     traceWriter->writeFunction("CommunicationClient::requestReplicaDeletion");
     traceWriter->write("databaseName: ", databaseName);
     traceWriter->write("relationName: ", relationName);
+    traceWriter->write("derivateName: ", derivateName);
 
     if(!connectionTargetIsDBServiceMaster())
     {
