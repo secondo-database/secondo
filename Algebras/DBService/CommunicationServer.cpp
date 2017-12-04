@@ -566,18 +566,16 @@ bool CommunicationServer::handleTriggerReplicaDeletion(
     CommunicationUtils::receiveLine(io, databaseName);
     CommunicationUtils::receiveLine(io, relationName);
     CommunicationUtils::receiveLine(io, derivateName);
-
-    // remove File
-    string filename = ReplicationUtils::getFileNameOnDBServiceWorker(
-                                  databaseName,
-                                  relationName);
-    FileSystem::DeleteFileOrFolder( filename );
-
-    // delete stored object
-    SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+    
     string victim;
+
     if(derivateName.empty())
     {
+       // remove File
+       string filename = ReplicationUtils::getFileNameOnDBServiceWorker(
+                                  databaseName,
+                                  relationName);
+       FileSystem::DeleteFileOrFolder( filename );
        victim = ReplicationUtils::getRelName(filename);
     } 
     else
@@ -585,7 +583,22 @@ bool CommunicationServer::handleTriggerReplicaDeletion(
        string relId = RelationInfo::getIdentifier(databaseName, relationName);
        victim = DerivateInfo::getIdentifier(relId, derivateName);
     }
+   
+    // ensure to have only one access to the catalog
+    static boost::mutex mtx;
+    boost::lock_guard<boost::mutex> guard(mtx);
+ 
+
+    traceWriter->write("database", databaseName);
+    traceWriter->write("relation", relationName),
+    traceWriter->write("derivate", derivateName);
+    traceWriter->write("victim", victim);
+
+    SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+    SecondoSystem::BeginTransaction();
     ctlg->DeleteObject(victim);    
+    ctlg->CleanUp(false,true);
+    SecondoSystem::CommitTransaction(false);
 
     //TODO check return code etc
     //TODO tracing
