@@ -58,6 +58,14 @@ SECONDO to use ~Picture~ plus basic SECONDO operators on ~picture~.
 #include "FTextAlgebra.h"
 #include "ListUtils.h"
 
+
+#include <iostream>
+#include <iomanip>
+#include <ctime>
+#include <sstream>
+
+
+
 using namespace std;
 
 extern NestedList* nl;
@@ -1158,11 +1166,25 @@ int PictureImportpictureValueMap(Word* args,
    in.read (buffer,len);   
    in.close(); 
    
-    pic->Set(buffer,len,"test", "test", false, "unknown"); 
+  
+  std::array<char, 64> buf;
+  buf.fill(0);
+  time_t rawtime;
+  time(&rawtime);
+  const auto timeinfo = localtime(&rawtime);
+  strftime(buf.data(), sizeof(buf), "%Y-%m-%d-%H:%M:%S", timeinfo);
+  std::string timeStr(buf.data());
+   
+   
+   
+    pic->Set(buffer,len,"test", "unknown", false, timeStr); 
+    
     delete[] buffer;
+    
      
     return 0;
 }
+
 
 
 
