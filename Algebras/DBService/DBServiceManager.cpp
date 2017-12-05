@@ -377,7 +377,7 @@ string DBServiceManager::determineDerivateLocations(
     return id;
 }
 
-void DBServiceManager::deleteReplicaLocations(const string& databaseName,
+void DBServiceManager::deleteRelationLocations(const string& databaseName,
                                               const string& relationName)
 {
     boost::lock_guard<boost::mutex> lock(managerMutex);
@@ -658,27 +658,32 @@ void DBServiceManager::deleteReplicaMetadata(const string& database,
         if(derivateName.empty()){
             string relId = RelationInfo::getIdentifier(database, relation);
             RelationInfo relinfo = getRelationInfo(relId);
+            /*
             DBServicePersistenceAccessor::deleteLocationMapping(relId,
                                      relinfo.nodesBegin(), relinfo.nodesEnd());
+            */
             relations.erase(relId);
             possibleReplicaLocations.erase(relId);
             vector<string> derivatestoremove;
             findDerivates(database, relation, derivatestoremove);
             for( auto& t : derivatestoremove){
-               DerivateInfo derinfo = getDerivateInfo(t);
+               /*DerivateInfo derinfo = getDerivateInfo(t);
                DBServicePersistenceAccessor::deleteLocationMapping(t, 
                                         derinfo.nodesBegin(), 
                                         derinfo.nodesEnd());
-               possibleReplicaLocations.erase(t);
+               */
                derivates.erase(t);
+               possibleReplicaLocations.erase(t);
             }
         } else {
             string derId = DerivateInfo::getIdentifier(database, relation, 
                                                        derivateName);
+            /*
             DerivateInfo derinfo = getDerivateInfo(derId);
             DBServicePersistenceAccessor::deleteLocationMapping(derId, 
                                          derinfo.nodesBegin(), 
                                          derinfo.nodesEnd());
+            */
             derivates.erase(derId);
             possibleReplicaLocations.erase(derId);
         }
@@ -686,16 +691,9 @@ void DBServiceManager::deleteReplicaMetadata(const string& database,
     {
         print("RelationInfo does not exist");
     }
-    if(!derivateName.empty())
-    {
-      if(!DBServicePersistenceAccessor::persistAllReplicas(relations,derivates))
-      {
-        print("Could not persist DBService relations");
-      }
-    }
     if(!DBServicePersistenceAccessor::persistAllReplicas(relations,derivates))
     {
-        print("Could not persist DBService derivates");
+        print("Could not persist DBService relations or derivates");
     }
 }
 

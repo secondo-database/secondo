@@ -274,13 +274,13 @@ given string and stores them into the provided vector.
 
 /*
 
-1.1.1.1 \textit{deleteReplicaLocations}
+1.1.1.1 \textit{deleteRelationLocations}
 
 This function deletes the replica information of the specified relation from
 the internal data structures.
 
 */
-    void deleteReplicaLocations(const std::string& databaseName,
+    void deleteRelationLocations(const std::string& databaseName,
                                 const std::string& relationName);
 
 
