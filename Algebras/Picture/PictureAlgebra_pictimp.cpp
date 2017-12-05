@@ -55,6 +55,9 @@ SECONDO to use ~Picture~ plus basic SECONDO operators on ~picture~.
 #include "../../Tools/Flob/Flob.h"
 #include "StringUtils.h"
 
+#include "FTextAlgebra.h"
+#include "ListUtils.h"
+
 using namespace std;
 
 extern NestedList* nl;
@@ -879,6 +882,8 @@ ListExpr PictureDateTypeMap(ListExpr args) {
     return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
+
+
 ListExpr PictureExportTypeMap(ListExpr args) {
     if (PA_DEBUG) cerr << "PictureExportTypeMap() called" << endl;
 
@@ -904,8 +909,52 @@ ListExpr PictureExportTypeMap(ListExpr args) {
             "expected two arguments but received "
             +stringutils::int2str(nl->ListLength(args)));
 
-    return nl->SymbolAtom(Symbol::TYPEERROR());
+    return nl->SymbolAtom(Symbol::TYPEERROR());       
+    
 }
+
+
+
+
+
+
+ListExpr PictureImportpictureTypeMap(ListExpr args) {
+    if (PA_DEBUG) cerr << "PicturereadpictureTypeMap() called" << endl;
+
+    string lexpr;
+
+    if (nl->ListLength(args) == 1) {
+        ListExpr first = nl->First(args);
+        if (!FText::checkType(first)) {
+            nl->WriteToString(lexpr, nl->First(args));
+            ErrorReporter::ReportError(
+                "expected text as first argument but received '"
+                +lexpr
+                +"'");
+             return nl->SymbolAtom(Symbol::TYPEERROR());       
+          }
+         } 
+         else { ErrorReporter::ReportError(
+             "expected one argument but received "
+             +stringutils::int2str(nl->ListLength(args)));
+             return nl->SymbolAtom(Symbol::TYPEERROR());       
+         
+                
+              }
+            
+         
+      return nl->SymbolAtom(Picture::BasicType());
+   
+}
+
+
+
+
+
+
+
+
+
 
 ListExpr PictureSimpleEqualsTypeMap(ListExpr args) {
     if (PA_DEBUG) cerr << "PictureSimpleEqualTypeMap() called" << endl;
@@ -1043,6 +1092,10 @@ int PictureDisplayValueMap(Word* args,
     return 0;
 }
 
+
+
+
+
 int PictureExportValueMap(Word* args,
                           Word& result,
                           int message,
@@ -1063,6 +1116,63 @@ int PictureExportValueMap(Word* args,
 
     return 0;
 }
+
+
+
+
+
+
+
+int PictureImportpictureValueMap(Word* args,
+                          Word& result,
+                          int message,
+                          Word& local,
+                          Supplier s) {
+    if (PA_DEBUG) cerr << "PictureImportpictureValueMap() called" << endl;
+
+    FText* str  = static_cast<FText*>(args[0].addr);
+    result = qp->ResultStorage(s);
+    Picture* pic =  static_cast<Picture*>( result.addr );
+    
+    if(!str->IsDefined()){
+        pic->SetDefined(false);
+        return 0;
+    }    
+    
+    
+      
+   string name = str->GetValue();
+    
+   ifstream  in (name.c_str(), ios::binary | ios::in); 
+   
+   if(!in){ 
+      pic->SetDefined(false);   
+      return 0;
+   }
+   
+   in.seekg (0, in.end);
+   size_t len = in.tellg();
+   in.seekg (0, in.beg);     
+  
+   char* buffer = new char [len];   
+   in.read (buffer,len);   
+   in.close(); 
+   
+    pic->Set(buffer,len,"test", "test", false, "unknown"); 
+    delete[] buffer;
+     
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
 
 int PictureSimpleEqualsValueMap(Word* args,
                                 Word& result,

@@ -259,6 +259,24 @@ static const string pictureExportSpec =
     "<text>Save picture to file, return TRUE on success.</text--->"
     "<text>pic export [ \"/tmp/schmuh.jpg\" ]</text--->"
     ") )";
+    
+    
+    
+static const string pictureImportpictureSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>string text -> picture</text--->"
+    "<text>_ importpicture [ _ ]</text--->"
+    "<text>Load jpeg-picture from file, return a picture on success.</text--->"
+    "<text>importpicture ( \"/tmp/schmuh.jpg\" ]</text--->"
+    ") )";
+    
+    
+    
+    
+    
+    
+    
+    
 
 /*
 
@@ -277,6 +295,7 @@ Each of the following sub-sections contain the declarations for one module.
 ListExpr PictureDateTypeMap(ListExpr args);
 ListExpr PictureExportTypeMap(ListExpr args);
 ListExpr PictureSimpleEqualsTypeMap(ListExpr args);
+ListExpr PictureImportpictureTypeMap(ListExpr args);
 
 int PictureFilenameValueMap(Word* args,
                             Word& result,
@@ -313,6 +332,15 @@ int PictureSimpleEqualsValueMap(Word* args,
                                 int message,
                                 Word& local,
                                 Supplier s);
+
+
+int PictureImportpictureValueMap(Word* args,
+                          Word& result,
+                          int message,
+                          Word& local,
+                          Supplier s);
+
+
 
 extern TypeConstructor* picture;
 extern void initPicture();
@@ -578,6 +606,20 @@ static Operator exportop(
     SimpleSelect,                          //mapping selection function
     PictureExportTypeMap                   //type mapping
 );
+
+
+
+static Operator importpictureop(
+    "importpicture",                              //name
+    pictureImportpictureSpec,                     //specification
+    PictureImportpictureValueMap,                 //value mapping
+    SimpleSelect,                                 //mapping selection function
+    PictureImportpictureTypeMap                   //type mapping
+);
+
+
+
+
 
 
 /*
@@ -1097,6 +1139,9 @@ public:
         AddOperator(&getHistHsv128Op);
         AddOperator(&getHistHsv256Op);
         AddOperator(&getHistLab256Op);
+        
+        AddOperator(&importpictureop);
+
 
         initLabOffsetTable();
 

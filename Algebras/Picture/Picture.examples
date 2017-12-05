@@ -65,6 +65,14 @@ Example  : query paper getHeight
 Result   : 533
 
 
+Operator : importpicture
+Number   : 1
+Signature: text -> picture
+Example  : query theater simpleequals importpicture ('theater.jpg')
+Result   : TRUE
+
+
+
 Operator : isgrayscale
 Number   : 1
 Signature: picture -> bool

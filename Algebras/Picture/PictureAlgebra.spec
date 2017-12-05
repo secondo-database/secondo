@@ -26,3 +26,4 @@ operator getHistHsv128 alias GETHISTHSV128 pattern op(_)
 operator getHistHsv256 alias GETHISTHSV256 pattern op(_)
 operator getHistLab256 alias GETHISTLAB256 pattern op(_)
 
+operator importpicture alias IMPORTPICTURE pattern op(_)
