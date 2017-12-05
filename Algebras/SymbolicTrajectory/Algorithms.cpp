@@ -829,7 +829,6 @@ bool Pattern::initEasyCondOpTrees(const bool mainAttr, Tuple *tuple /* = 0 */,
 //        cout << "|" << easyConds[i].getVar(j) << "|" << easyConds[i].getKey(j)
 //             << "|" << varPos[easyConds[i].getVar(j)].first << " " 
 //             << varPos[easyConds[i].getVar(j)].second << endl;
-        
         strAttr = getPointer(easyConds[i].getKey(j), !mainAttr, tuple);
         ptrs.push_back(strAttr.second);
         toReplace = easyConds[i].getVar(j)
@@ -1871,6 +1870,11 @@ bool TMatchIndexLI::getResultForAtomTime(const int atomNo,
   if (ivs.empty()) {
     return false;
   }
+  for (set<string>::iterator it = ivs.begin(); it != ivs.end(); it++) {
+    if (!Tools::isInterval(*it)) {
+      return false;
+    }
+  }
   SecInterval ivInst(true);
   CcReal start(true, 0);
   CcReal end(true, 0);
@@ -1981,6 +1985,7 @@ void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
   while (it != (ti != 0 ? ti->attrToIndex.end() : ti2->attrToIndex.end())) {
     if (!intersect && it->second.second != -1 && 
         atom.values[pos].first.addr != 0) {
+//       cout << "call gRFAP " << it->first << endl;
       getResultForAtomPart(*it, atom.values[pos], atom.types[pos], temp, 
                            periods, prevCrucial, mainAttr);
       intersect = true;
@@ -3143,10 +3148,10 @@ bool TMatchIndexLI::condsMatch(Tuple *t, const IndexMatchInfo2& imi) {
         interResult.Intersection(tempPer, interResult);
       }
       if (interResult.IsEmpty()) {
-        cout << "empty intersection result after cond #" << i << endl;
+//         cout << "empty intersection result after cond #" << i << endl;
         return false;
       }
-      cout << "intersection after cond #" << i << ": " << interResult << endl;
+//      cout << "intersection after cond #" << i << ": " << interResult << endl;
     }
     else if (((CcBool*)qResult.addr)->IsDefined()) {
       if (!((CcBool*)qResult.addr)->GetValue()) {
@@ -3167,7 +3172,7 @@ bool TMatchIndexLI::condsMatch(Tuple *t, const IndexMatchInfo2& imi) {
 
 */
 bool TMatchIndexLI::atomMatch2(const int state, std::pair<int, int> trans) {
-  //   cout << "atomMatch(" << state << ", " << trans.first << ", " 
+//     cout << "atomMatch(" << state << ", " << trans.first << ", " 
 //        << trans.second << ") called" << endl;
   PatElem atom;
   set<string> ivs;
@@ -3178,7 +3183,7 @@ bool TMatchIndexLI::atomMatch2(const int state, std::pair<int, int> trans) {
   bool transition = false;
   IndexMatchInfo2 *imiPtr = 0;
   Periods *per = 0;
-  if (atom.isRelevantForTupleIndex()) {
+//   if (atom.isRelevantForTupleIndex()) {
     if (indexResult2[trans.first] == 0) { // no index result found yet
       int noResults;
       storeIndexResult(trans.first, -1, false, noResults);
@@ -3248,70 +3253,70 @@ bool TMatchIndexLI::atomMatch2(const int state, std::pair<int, int> trans) {
     if (minInst.millisecondsToNull() > (*firstEnd)[0] && !minInst.IsMaximum()) {
       (*firstEnd)[0] = minInst.millisecondsToNull();
     } // set global limit to minimum of index results
-  }
-  else { // consider all existing imi instances
-    TupleId id = matchInfo2[state][0]->succ; // first active tuple id
-    while (id > 0) {
-//        cout << ": " << matchInfo[state][id]->imis.size() 
-//             << " IMIs, state=" << state << ", id=" << id << endl;
-      unsigned int numOfIMIs = (matchInfo2[state][id] != 0 ? 
-                                matchInfo2[state][id]->imis.size() : 0);
-      unsigned int i = 0;
-      while (active[id] && i < numOfIMIs) {
-        bool totalMatch = false;
-        imiPtr = &(matchInfo2[state][id]->imis[i]);
-        Tuple *t = rel->GetTuple(id, false);
-        // TODO: check symbolic time specs and easy conditions
-//         TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, valueNo);
-        bool match = true;
-//         match = tmatch.valuesMatch(imiPtr->next, trans.first, false) &&
-//                 Tools::timesMatch(iv, ivs) &&
-//                 tmatch.easyCondsMatch(imiPtr->next, trans.first);
-        if (match) {
-          transition = true;
-          IndexMatchInfo2 newIMI(imiPtr);
-          totalMatch = p->isFinalState(trans.second);
-          if (p->hasConds()) {
-            extendBinding2(per, p->getElemFromAtom(trans.first), totalMatch, 
-                           newIMI);
-            if (totalMatch && p->hasConds()) {
-              totalMatch = condsMatch(t, newIMI);
-            }
-          }
-          if (totalMatch) {
-            matches.push_back(id); // complete match
-            toRemove.push_back(id);
-  //         cout << id << " removed (wild match) " << activeTuples 
-  //              << " active tuples" << endl;
-            i = numOfIMIs; // stop processing this tuple id
-            active[id] = false;
-          }
-          else if (!newIMI.exhausted((*firstEnd)[id])) { // continue
-            newMatchInfo2[trans.second][id]->imis.push_back(newIMI);
-          }
-        }
-        else {
-          if (canBeDeactivated2(id, state, trans.first)) {
-//                   cout << "*Deactivate id " << id << endl;
-            toRemove.push_back(id);
-          }
-        }
-        t->DeleteIfAllowed();
-        i++;
-      }
-      if (active[id]) {
-        if (!hasIdIMIs(id, false, state)) { // no IMIs for id and state
-          if (!hasIdIMIs(id, false)) { // no IMIs at all for id
-            toRemove.push_back(id);
-    //         cout << id << " removed (wild mismatch) " << activeTuples 
-    //              << " active tuples" << endl;
-          }
-        }
-      }
-      id = matchInfo2[state][id]->succ;
-      remove(toRemove, false);
-    }
-  }
+//   }
+//   else { // consider all existing imi instances
+//     TupleId id = matchInfo2[state][0]->succ; // first active tuple id
+//     while (id > 0) {
+// //        cout << ": " << matchInfo[state][id]->imis.size() 
+// //             << " IMIs, state=" << state << ", id=" << id << endl;
+//       unsigned int numOfIMIs = (matchInfo2[state][id] != 0 ? 
+//                                 matchInfo2[state][id]->imis.size() : 0);
+//       unsigned int i = 0;
+//       while (active[id] && i < numOfIMIs) {
+//         bool totalMatch = false;
+//         imiPtr = &(matchInfo2[state][id]->imis[i]);
+//         Tuple *t = rel->GetTuple(id, false);
+//         // TODO: check symbolic time specs and easy conditions
+// //         TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, valueNo);
+//         bool match = true;
+// //         match = tmatch.valuesMatch(imiPtr->next, trans.first, false) &&
+// //                 Tools::timesMatch(iv, ivs) &&
+// //                 tmatch.easyCondsMatch(imiPtr->next, trans.first);
+//         if (match) {
+//           transition = true;
+//           IndexMatchInfo2 newIMI(imiPtr);
+//           totalMatch = p->isFinalState(trans.second);
+//           if (p->hasConds()) {
+//             extendBinding2(per, p->getElemFromAtom(trans.first), totalMatch, 
+//                            newIMI);
+//             if (totalMatch && p->hasConds()) {
+//               totalMatch = condsMatch(t, newIMI);
+//             }
+//           }
+//           if (totalMatch) {
+//             matches.push_back(id); // complete match
+//             toRemove.push_back(id);
+//   //         cout << id << " removed (wild match) " << activeTuples 
+//   //              << " active tuples" << endl;
+//             i = numOfIMIs; // stop processing this tuple id
+//             active[id] = false;
+//           }
+//           else if (!newIMI.exhausted((*firstEnd)[id])) { // continue
+//             newMatchInfo2[trans.second][id]->imis.push_back(newIMI);
+//           }
+//         }
+//         else {
+//           if (canBeDeactivated2(id, state, trans.first)) {
+// //                   cout << "*Deactivate id " << id << endl;
+//             toRemove.push_back(id);
+//           }
+//         }
+//         t->DeleteIfAllowed();
+//         i++;
+//       }
+//       if (active[id]) {
+//         if (!hasIdIMIs(id, false, state)) { // no IMIs for id and state
+//           if (!hasIdIMIs(id, false)) { // no IMIs at all for id
+//             toRemove.push_back(id);
+//     //         cout << id << " removed (wild mismatch) " << activeTuples 
+//     //              << " active tuples" << endl;
+//           }
+//         }
+//       }
+//       id = matchInfo2[state][id]->succ;
+//       remove(toRemove, false);
+//     }
+//   }
 //   cout << "........ return " << (transition ? "TRUE" : "FALSE") << endl;
   return transition;
 }

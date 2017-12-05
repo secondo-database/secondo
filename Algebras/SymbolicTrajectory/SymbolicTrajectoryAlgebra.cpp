@@ -4297,7 +4297,7 @@ int rewriteVM(Word* args, Word& result, int message, Word& local, Supplier s) {
           cout << "No result specified." << endl;
         }
         else {
-          if (p->initAssignOpTrees() && p->initEasyCondOpTrees(true)) {
+          if (p->initAssignOpTrees() && p->initEasyCondOpTrees(false)) {
             rewriteLI = new RewriteLI<M>(source, p);
           }
         }

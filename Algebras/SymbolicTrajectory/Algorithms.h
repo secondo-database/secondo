@@ -258,7 +258,7 @@ class MBasic : public Attribute {
   bool IsEmpty() const {return units.Size() == 0;}
   int GetNoComponents() const {return units.Size();}
   bool IsValid() const;
-  void Clear() {values.clean(); units.clean();}
+  void Clear() {values.clean(); units.clean(); noChars = 0;}
   void StartBulkLoad() {assert(IsDefined());}
   void EndBulkLoad(const bool sort = true, const bool checkvalid = true);
   void Add(const temporalalgebra::SecInterval& iv, const B& value);
@@ -4191,6 +4191,7 @@ void MBasics<B>::Clear() {
   units.clean();
   values.clean();
   pos.clean();
+  noChars = 0;
 }
 
 /*
