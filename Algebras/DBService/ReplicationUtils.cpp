@@ -107,6 +107,25 @@ std::string ReplicationUtils::getDerivedName(
     return r.str();
 }
 
+
+ bool ReplicationUtils::extractRelationInfo(
+         const std::string& derivedId,
+         std::string& database,
+         std::string& relation)
+         
+{
+      size_t pos = derivedId.find(separator);
+      if(pos==string::npos){
+          return false;
+      }
+      database = derivedId.substr(0, pos);
+      size_t restPos = pos+separator.length();
+      relation = derivedId.substr(restPos);
+      return true;
+ }
+
+
+
  bool ReplicationUtils::extractDerivateInfo(
          const std::string& derivedId,
          std::string& database,

@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/OperatorDBRARG.hpp"
 #include "Algebras/DBService/OperatorRELARG.hpp"
 #include "Algebras/DBService/OperatorDDelete.hpp"
+#include "Algebras/DBService/OperatorDDeleteDB.hpp"
 #include "Algebras/DBService/OperatorGetConfigParam.hpp"
 #include "Algebras/DBService/OperatorInitDBServiceWorker.hpp"
 #include "Algebras/DBService/OperatorPingDBService.hpp"
@@ -72,6 +73,10 @@ DBServiceAlgebra::DBServiceAlgebra() :
     AddOperator(DDeleteInfo(),
                 OperatorDDelete::mapValue,
                 OperatorDDelete::mapType);
+
+    AddOperator(DDeleteDBInfo(),
+                OperatorDDeleteDB::mapValue,
+                OperatorDDeleteDB::mapType);
     AddOperator(SetTraceLevelInfo(),
                 OperatorSetTraceLevel::mapValue,
                 OperatorSetTraceLevel::mapType);

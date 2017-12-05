@@ -397,6 +397,15 @@ This function is called after a successful creation of a derivate.
             const std::string& replicaLocationPort);
 
 
+/*
+1.1.1.1 ~findRelations~
+
+Stores all relation identifiers stored in the given database into result.
+
+*/
+void findRelations(const std::string& databaseName,
+                   std::vector<std::string>& result);
+
 
 /*
 1.1.1.1 ~findDerivates~
@@ -415,6 +424,10 @@ inline void findDerivates(const std::string& database,
 {
    findDerivates(RelationInfo::getIdentifier(database, relation), result);
 }
+
+void findDerivatesInDatabase(const std::string& databaseName,
+                             std::vector<std::string>& result);
+
 
 /*
 1.1.1.1 Constructor

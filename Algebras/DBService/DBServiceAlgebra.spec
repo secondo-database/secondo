@@ -7,6 +7,7 @@ operator read alias READ pattern op(_)
 operator read2 alias READ2 pattern _ op [fun] implicit parameter elem type DBSARG
 operator read3 alias READ3 pattern _ op [fun] implicit parameter elem type DBRARG
 operator ddelete alias DDELETE pattern op(_,_)
+operator ddeleteDB alias DDELETEDB pattern op(_,_)
 operator settracelevel alias SETTRACELEVEL pattern op(_)
 operator pingdbservice alias PINGDBSERVICE pattern op()
 operator startdbservice alias STARTDBSERVICE pattern op()

@@ -50,6 +50,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/SecondoUtilsLocal.hpp"
 #include "Algebras/DBService/SecondoUtilsRemote.hpp"
 #include "Algebras/DBService/ServerRunnable.hpp"
+#include "Algebras/DBService/ReplicationUtils.hpp"
 
 using namespace std;
 using namespace distributed2;
@@ -653,9 +654,20 @@ void DBServiceManager::deleteReplicaMetadata(const string& database,
     boost::lock_guard<boost::mutex> lock(managerMutex);
     try
     { 
-  //        DBServicePersistenceAccessor::deleteRelationInfo(
-  //                getRelationInfo(relID));
-        if(derivateName.empty()){
+        if(relation.empty()){
+            vector<string> rel;
+            findRelations(database, rel);
+            for(auto& t : rel){
+               relations.erase(t);
+               possibleReplicaLocations.erase(t);
+            }     
+            vector<string> der;
+            findDerivatesInDatabase(database,der);
+            for(auto& d : der){
+               derivates.erase(d);
+               possibleReplicaLocations.erase(d);
+            }
+        } else if(derivateName.empty()){
             string relId = RelationInfo::getIdentifier(database, relation);
             RelationInfo relinfo = getRelationInfo(relId);
             /*
@@ -689,7 +701,7 @@ void DBServiceManager::deleteReplicaMetadata(const string& database,
         }
     }catch(...)
     {
-        print("RelationInfo does not exist");
+        print("Object to remove not found");
     }
     if(!DBServicePersistenceAccessor::persistAllReplicas(relations,derivates))
     {
@@ -808,6 +820,22 @@ bool DBServiceManager::locationExists(
 
 }
 
+
+void DBServiceManager::findRelations(const string& databaseName, 
+                                     vector<string>& result) {
+
+
+  result.clear();
+  string start = ReplicationUtils::getDBStart(databaseName);
+  DBServiceRelations::const_iterator it = relations.lower_bound(start); 
+  while(it!=relations.end() && it->first.find(start)==0){
+     result.push_back(it->first);
+     it++;
+  }
+
+}
+
+
 void DBServiceManager::findDerivates(const string& relID,
                                      vector<string>& result){
 
@@ -819,6 +847,19 @@ void DBServiceManager::findDerivates(const string& relID,
   }
 
 }  
+
+void DBServiceManager::findDerivatesInDatabase(
+                             const std::string& databaseName,
+                             std::vector<std::string>& result){
+   result.clear();
+   string start = ReplicationUtils::getDBStart(databaseName);
+   DBServiceDerivates::const_iterator it = derivates.lower_bound(start);
+   while(it!=derivates.end() && it->first.find(start)==0){
+       result.push_back(it->first);
+       it++;
+   } 
+
+}
 
 void DBServiceManager::setOriginalLocationTransferPort(
         const string& relID,

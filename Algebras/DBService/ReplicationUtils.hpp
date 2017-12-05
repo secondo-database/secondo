@@ -110,12 +110,30 @@ Returns a relation name derived from a filename;
              const std::string& derivedName);
 
 
+
+   static bool extractRelationInfo(
+            const std::string& relationID,
+            std::string& dbName,
+            std::string& relationName);
+
    static bool extractDerivateInfo(
        const std::string& derivedID,
        std::string& databaseName,
        std::string& relationName,
        std::string& derivedName);
-   
+  
+
+/*
+1.1.1.1 ~getDBStart~
+
+Returns the string that is the start of all objects stored in 
+the given database.
+
+*/
+   static inline std::string getDBStart(const std::string& database){
+     return database + separator;
+   }
+ 
 
 /*
 

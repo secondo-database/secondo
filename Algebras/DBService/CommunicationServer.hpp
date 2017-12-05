@@ -280,6 +280,42 @@ master node.
 
 */
     int minimumReplicaCount;
+
+
+/*
+1.1.1.1 ~deleteRemoteDerivate~
+
+This function will trigger the deletion of a derivate on all dbservice-workers
+storing this derivate.
+
+*/
+   void deleteRemoteDerivate(
+        const std::string& databaseName,
+        const std::string& relationName,
+        const std::string& derivateName);
+
+/*
+1.1.1.1 ~deleteRemoteRelation~
+
+This fucntion triggers the deletion of a relation and all
+depending objects on all servers storing this relation.
+
+*/
+     void deleteRemoteRelation(
+           const std::string& databaseName,
+           const std::string& relationName);
+
+/*
+1.1.1.1 ~deleteRemoteDatabase~
+
+This function triggers the deletion of all objects within a
+database on all workers storing this database.
+
+*/
+
+     void deleteRemoteDatabase(const std::string& databaseName);
+
+
 };
 
 } /* namespace DBService */

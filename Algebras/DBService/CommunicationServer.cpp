@@ -463,6 +463,82 @@ bool CommunicationServer::reportSuccessfulReplication(
 }
 
 
+
+void CommunicationServer::deleteRemoteDerivate(
+        const string& databaseName,
+        const string& relationName,
+        const string& derivateName){
+
+   string derId = DerivateInfo::getIdentifier(databaseName,relationName, 
+                                              derivateName);
+   DBServiceManager* dbService = DBServiceManager::getInstance();
+   DerivateInfo& derInfo = dbService->getDerivateInfo(derId);
+   for(ReplicaLocations::const_iterator it =
+         derInfo.nodesBegin(); it != derInfo.nodesEnd(); it++)
+   {
+       if(it->second)
+       {
+          LocationInfo& locationInfo =dbService->getLocation(it->first);
+          TriggerReplicaDeletionRunnable replicaEraser(
+              locationInfo.getHost(),
+               atoi(locationInfo.getCommPort().c_str()),
+               databaseName, relationName, derivateName);
+          replicaEraser.run();
+      }
+  }
+}
+
+void CommunicationServer::deleteRemoteRelation(
+        const string& databaseName,
+        const string& relationName)
+{
+   string relId = RelationInfo::getIdentifier(databaseName, relationName);
+   DBServiceManager* dbService = DBServiceManager::getInstance();
+   RelationInfo& relationInfo = dbService->getRelationInfo(relId);
+   // remove the relation itselfs 
+   for(ReplicaLocations::const_iterator it =
+       relationInfo.nodesBegin(); it!=relationInfo.nodesEnd(); it++)
+   {
+       if(it->second)
+       {
+          LocationInfo& locationInfo = dbService->getLocation(it->first);
+          TriggerReplicaDeletionRunnable replicaEraser(
+                locationInfo.getHost(),
+                atoi(locationInfo.getCommPort().c_str()),
+                databaseName, relationName,"");
+          replicaEraser.run();
+       }
+   }
+   // delete all derivates that depend on relation
+   vector<string> derivates;
+   dbService->findDerivates(relId, derivates);
+   for(auto& t: derivates)
+   {
+       string db, rel, der;
+       if(!ReplicationUtils::extractDerivateInfo(t, db, rel, der)){
+                traceWriter->write("problem in extracting derivate info " 
+                                   "from id");
+       } else {
+           deleteRemoteDerivate(db,rel,der);
+       }
+   }
+}
+
+void CommunicationServer::deleteRemoteDatabase(const string& databaseName){
+
+    DBServiceManager* dbService = DBServiceManager::getInstance();
+    vector<string> relations;
+    dbService->findRelations(databaseName, relations);
+    for(auto& r: relations){
+        string db;
+        string rel;
+        if(ReplicationUtils::extractRelationInfo(r,db,rel)){
+          deleteRemoteRelation(db,rel);
+        }
+    }
+}
+
+
 bool CommunicationServer::handleRequestReplicaDeletion(
         iostream& io, const boost::thread::id tid)
 {
@@ -481,78 +557,16 @@ bool CommunicationServer::handleRequestReplicaDeletion(
     traceWriter->write("relation", relationName);
     traceWriter->write("derived", derivateName);
     
-
-
     DBServiceManager* dbService = DBServiceManager::getInstance();
     try{
-        string relId = RelationInfo::getIdentifier(databaseName, relationName);
-        if(derivateName.empty()){
-            RelationInfo& relationInfo = dbService->getRelationInfo(relId);
-            for(ReplicaLocations::const_iterator it =
-                   relationInfo.nodesBegin(); it!=relationInfo.nodesEnd(); it++)
-            {
-              if(it->second)
-              {
-                 LocationInfo& locationInfo = dbService->getLocation(it->first);
-                 TriggerReplicaDeletionRunnable replicaEraser(
-                       locationInfo.getHost(),
-                        atoi(locationInfo.getCommPort().c_str()),
-                        databaseName, relationName, derivateName);
-                 replicaEraser.run();
-              }
-            }
-            // delete all derivates that depend on relation
-            vector<string> derivates;
-            dbService->findDerivates(relId, derivates);
-
-            for(auto& t: derivates)
-            {
-              traceWriter->write("delete derivate " , t);
-              DerivateInfo& derInfo = dbService->getDerivateInfo(t);
-              string db;
-              string rel;
-              string der;
-              if(!ReplicationUtils::extractDerivateInfo(t, db, rel, der)){
-                traceWriter->write("problem in extracting derivate info " 
-                                   "from id");
-              }
-              traceWriter->write("db",db);
-              traceWriter->write("rel",rel);
-              traceWriter->write("der",der);
-              for(ReplicaLocations::const_iterator it =
-                       derInfo.nodesBegin(); it != derInfo.nodesEnd(); it++)
-              {
-                if(it->second)
-                {
-                  LocationInfo& locationInfo =dbService->getLocation(it->first);
-                  TriggerReplicaDeletionRunnable replicaEraser(
-                      locationInfo.getHost(),
-                       atoi(locationInfo.getCommPort().c_str()),
-                       databaseName, relationName, der);
-                  replicaEraser.run();
-               }
-              }
-            }
-            
-
-        } else {
-           string derId = DerivateInfo::getIdentifier(relId, derivateName);
-           DerivateInfo& derInfo = dbService->getDerivateInfo(derId);
-           for(ReplicaLocations::const_iterator it =
-                 derInfo.nodesBegin(); it != derInfo.nodesEnd(); it++)
-           {
-               if(it->second)
-               {
-                  LocationInfo& locationInfo =dbService->getLocation(it->first);
-                  TriggerReplicaDeletionRunnable replicaEraser(
-                      locationInfo.getHost(),
-                       atoi(locationInfo.getCommPort().c_str()),
-                       databaseName, relationName, derivateName);
-                  replicaEraser.run();
-               }
-           }
-        }
-        dbService->deleteReplicaMetadata(databaseName,relationName,
+      if(relationName.empty()){
+          deleteRemoteDatabase(databaseName);
+      } else if(derivateName.empty()){
+          deleteRemoteRelation(databaseName, relationName);
+      } else {
+          deleteRemoteDerivate(databaseName, relationName, derivateName);
+      }
+      dbService->deleteReplicaMetadata(databaseName,relationName,
                                          derivateName);
     }catch(...)
     {
