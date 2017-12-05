@@ -65,10 +65,10 @@ Example  : query paper getHeight
 Result   : 533
 
 
-Operator : importpicture
+Operator : importPicture
 Number   : 1
 Signature: text -> picture
-Example  : query theater simpleequals importpicture ('theater.jpg')
+Example  : query theater simpleequals importPicture ('theater.jpg')
 Result   : TRUE
 
 
