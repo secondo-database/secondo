@@ -211,14 +211,10 @@ bool DBServiceClient::deleteReplicas(const string& databaseName,
     CommunicationClient dbServiceMasterClient(dbServiceHost,
                                               atoi(dbServicePort.c_str()),
                                               0);
-    if(!dbServiceMasterClient.requestReplicaDeletion(
+    return dbServiceMasterClient.requestReplicaDeletion(
             databaseName,
             relationName,
-            derivateName))
-    {
-        return false;
-    }
-    return true;
+            derivateName);
 }
 
 bool DBServiceClient::pingDBService()
