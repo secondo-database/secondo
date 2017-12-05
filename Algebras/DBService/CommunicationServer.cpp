@@ -236,7 +236,7 @@ bool CommunicationServer::handleTriggerReplicationRequest(
 
     if(locations.size() < (size_t)minimumReplicaCount)
     {
-        dbService->deleteReplicaLocations(databaseName, relationName);
+        dbService->deleteRelationLocations(databaseName, relationName);
         CommunicationUtils::sendLine(io,
                 CommunicationProtocol::ReplicationCanceled());
     }else
@@ -509,6 +509,16 @@ bool CommunicationServer::handleRequestReplicaDeletion(
             {
               traceWriter->write("delete derivate " , t);
               DerivateInfo& derInfo = dbService->getDerivateInfo(t);
+              string db;
+              string rel;
+              string der;
+              if(!ReplicationUtils::extractDerivateInfo(t, db, rel, der)){
+                traceWriter->write("problem in extracting derivate info " 
+                                   "from id");
+              }
+              traceWriter->write("db",db);
+              traceWriter->write("rel",rel);
+              traceWriter->write("der",der);
               for(ReplicaLocations::const_iterator it =
                        derInfo.nodesBegin(); it != derInfo.nodesEnd(); it++)
               {
@@ -518,7 +528,7 @@ bool CommunicationServer::handleRequestReplicaDeletion(
                   TriggerReplicaDeletionRunnable replicaEraser(
                       locationInfo.getHost(),
                        atoi(locationInfo.getCommPort().c_str()),
-                       databaseName, relationName, derivateName);
+                       databaseName, relationName, der);
                   replicaEraser.run();
                }
               }
