@@ -264,10 +264,11 @@ static const string pictureExportSpec =
     
 static const string pictureImportpictureSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>string text -> picture</text--->"
-    "<text>_ importpicture [ _ ]</text--->"
-    "<text>Load jpeg-picture from file, return a picture on success.</text--->"
-    "<text>importpicture ( \"/tmp/schmuh.jpg\" ]</text--->"
+    "( <text>text -> picture</text--->"
+    "<text>importPicture( _ )</text--->"
+    "<text>Load jpeg-picture from file, returns a picture on success. "
+    "In the other case the result is undefined. </text--->"    
+    "<text>importPicture( \"/tmp/schmuh.jpg\" ]</text--->"
     ") )";
     
     
@@ -610,7 +611,7 @@ static Operator exportop(
 
 
 static Operator importpictureop(
-    "importpicture",                              //name
+    "importPicture",                              //name
     pictureImportpictureSpec,                     //specification
     PictureImportpictureValueMap,                 //value mapping
     SimpleSelect,                                 //mapping selection function
