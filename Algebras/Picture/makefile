@@ -26,6 +26,13 @@
 # inlcude global definitions
 include ../../makefile.env
 
+
+# expand compile flags if necessary
+CCFLAGS +=  $(ALG_INC_DIRS)  -Werror
+ifneq ($(platform),mac_osx)
+  CCFLAGS += -std=c++0x
+endif
+
 # expand compile flags if necessary
 CCFLAGS += $(ALG_INC_DIRS) -Werror
 ifeq ($(platform),android)
