@@ -109,6 +109,14 @@ Returns a relation name derived from a filename;
              const std::string& relationName,
              const std::string& derivedName);
 
+
+   static bool extractDerivateInfo(
+       const std::string& derivedID,
+       std::string& databaseName,
+       std::string& relationName,
+       std::string& derivedName);
+   
+
 /*
 
 1.1.1.1 ~separator~

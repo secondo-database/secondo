@@ -100,11 +100,37 @@ std::string ReplicationUtils::getRelName(const std::string& filename){
 std::string ReplicationUtils::getDerivedName(
       const std::string& databasename,
       const std::string& relationname,
-      const std::string& derivedName){
+      const std::string& derivedName)
+{
     stringstream r;
     r << databasename << separator << relationname << separator << derivedName;
     return r.str();
 }
+
+ bool ReplicationUtils::extractDerivateInfo(
+         const std::string& derivedId,
+         std::string& database,
+         std::string& relation,
+         std::string& derivate)
+{
+
+      size_t pos = derivedId.find(separator);
+      if(pos==string::npos){
+          return false;
+      }
+      database = derivedId.substr(0, pos);
+      size_t restPos = pos+separator.length();
+      string rest = derivedId.substr(restPos);
+      pos = rest.find(separator);
+      if(pos==string::npos){
+         return false;
+      }
+      relation = rest.substr(0,pos);
+      pos += separator.length();
+      derivate = rest.substr(pos);
+      return true;
+ }
+
 
 
 string ReplicationUtils::separator("xDBSx");
