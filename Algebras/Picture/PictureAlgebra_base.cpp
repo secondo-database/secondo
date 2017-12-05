@@ -265,7 +265,7 @@ static const string pictureExportSpec =
 static const string pictureImportpictureSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>text -> picture</text--->"
-    "<text>importPicture( _ )</text--->"
+    "<text>importPicture( text )</text--->"
     "<text>Load jpeg-picture from file, returns a picture on success. "
     "In the other case the result is undefined. </text--->"    
     "<text>importPicture( \"/tmp/schmuh.jpg\" ]</text--->"
