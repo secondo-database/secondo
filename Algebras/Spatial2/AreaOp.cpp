@@ -521,7 +521,8 @@ Removes edges which are not needed for the result area. Checks for
     int right = 0;
     int cur = 0;
     int next = 0;
-    double yrange[2];
+    double mindouble = numeric_limits<double>::min();
+    double yrange[2] = {mindouble, mindouble};
     vector<CurveLink*> subcurves;
     vector<ChainEnd*> chains;
     vector<CurveLink*> links;
