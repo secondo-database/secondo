@@ -1141,6 +1141,7 @@ int PictureImportpictureValueMap(Word* args,
     FText* str  = static_cast<FText*>(args[0].addr);
     result = qp->ResultStorage(s);
     Picture* pic =  static_cast<Picture*>( result.addr );
+    bool portrait = false;
     
     if(!str->IsDefined()){
         pic->SetDefined(false);
@@ -1174,11 +1175,20 @@ int PictureImportpictureValueMap(Word* args,
   const auto timeinfo = localtime(&rawtime);
   strftime(buf.data(), sizeof(buf), "%Y-%m-%d-%H:%M:%S", timeinfo);
   std::string timeStr(buf.data());
-   
-   
-   
-    pic->Set(buffer,len,"test", "unknown", false, timeStr); 
+  
+  int height =  (int) pic->GetHeight();
+  int width =  (int) pic->GetWidth();
+  
+  if (height > width)
+    {
+      portrait = true;
+    } 
     
+    
+   
+    pic->Set(buffer,len,"test", "unknown", portrait, timeStr); 
+    
+   
     delete[] buffer;
     
      
