@@ -1142,7 +1142,7 @@ int PictureImportpictureValueMap(Word* args,
     result = qp->ResultStorage(s);
     Picture* pic =  static_cast<Picture*>( result.addr );
     bool portrait = false;
-    string file = "";
+    string file;
     
     if(!str->IsDefined()){
         pic->SetDefined(false);
@@ -1185,11 +1185,14 @@ int PictureImportpictureValueMap(Word* args,
       portrait = true;
     } 
     
-   file = (string) pic->GetFilename ();
+   
+  
+  
+   
+    pic->Set(buffer,len, "file","unknown",portrait,timeStr); 
     
     
    
-    pic->Set(buffer,len,"test", "unknown", portrait, timeStr); 
     
    
     delete[] buffer;
