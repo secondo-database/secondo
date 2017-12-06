@@ -1144,6 +1144,7 @@ int PictureImportpictureValueMap(Word* args,
     bool portrait = false;
     string file;
     
+    
     if(!str->IsDefined()){
         pic->SetDefined(false);
         return 0;
@@ -1186,10 +1187,30 @@ int PictureImportpictureValueMap(Word* args,
     } 
     
    
+   
+   
+  size_t count1 = std::count(name.begin(), name.end(), '/');
   
+  if (count1 == 0)
+   {           
+        size_t end = name.find_last_of('/');
+        size_t lens = 0;
+        file  = name.substr(lens, end);	
+        
+       
+        
+   }   
+   
+  else { 
+        size_t begin = name.find_first_of('/');
+        size_t end = name.find_last_of('/');
+        size_t lens = end - begin;
+        file  = name.substr(lens+1,end);	
+       }
+    
   
    
-    pic->Set(buffer,len, "file","unknown",portrait,timeStr); 
+    pic->Set(buffer,len, file,"unknown",portrait,timeStr); 
     
     
    
