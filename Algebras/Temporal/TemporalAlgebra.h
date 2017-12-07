@@ -859,7 +859,15 @@ Changes this Range value to contain the current intervals without the given ones
     int GetNoComponents() const;
 
 /*
-3.3.5.15 Operation ~bbox~ for ~range~-types
+3.3.5.15 Function ~compress~
+
+Creates a compressed version of this range.
+
+*/
+   Range<Alpha>* compress() const;
+
+/*
+3.3.5.16 Operation ~bbox~ for ~range~-types
 
 *Precondition:* ~X.IsOrdered() $\&\&$ Result.IsEmpty()~
 
@@ -6039,6 +6047,22 @@ int Range<Alpha>::GetNoComponents() const
 {
   assert( IsDefined() );
   return intervals.Size();
+}
+
+template<class Alpha>
+Range<Alpha>* Range<Alpha>::compress() const{
+    Range<Alpha>* result = new Range<Alpha>(true);
+    if (!IsDefined()) {
+      result->SetDefined(false);
+      return result;
+    }
+    result->SetDefined(true);
+    Interval<Alpha> u(true);
+    for (int i = 0; i < GetNoComponents() ; i++) {
+      Get(i, u);
+      result->MergeAdd(u);
+    }
+    return result;
 }
 
 template <class Alpha>
