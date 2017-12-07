@@ -1185,7 +1185,7 @@ int PictureImportpictureValueMap(Word* args,
   int width =  (int) pic->GetWidth();
   
   
-  cout << "height: " << height << "   width: " << width << endl; 
+  
   
   if (height > width)
     {
