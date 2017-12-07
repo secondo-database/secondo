@@ -32,6 +32,7 @@ Defines and includes.
 #include <algorithm>
 #include <sstream>
 #include <iostream>
+#include <limits>
 
 using namespace std;
 
