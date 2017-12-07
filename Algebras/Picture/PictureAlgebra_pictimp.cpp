@@ -1178,8 +1178,14 @@ int PictureImportpictureValueMap(Word* args,
   strftime(buf.data(), sizeof(buf), "%Y-%m-%d-%H:%M:%S", timeinfo);
   std::string timeStr(buf.data());
   
+  
+  pic->Set(buffer,len, "unknown","unknown",false,timeStr); 
+  
   int height =  (int) pic->GetHeight();
   int width =  (int) pic->GetWidth();
+  
+  
+  cout << "height: " << height << "   width: " << width << endl; 
   
   if (height > width)
     {
