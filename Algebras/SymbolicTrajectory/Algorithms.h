@@ -1124,12 +1124,18 @@ struct IndexRetrieval2 {
                                                      pred(p), succ(s), per(0) {}
   IndexRetrieval2(const unsigned int p, const unsigned int s, 
                   const temporalalgebra::SecInterval& iv) : pred(p), succ(s) {
-                    per = new temporalalgebra::Periods(1);
-                    per->Add(iv);
+    per = new temporalalgebra::Periods(1);
+    per->Add(iv);
                   }
   IndexRetrieval2(const unsigned int p, const unsigned int s, 
                   temporalalgebra::Periods *_per) : 
-                     pred(p), succ(s), per(_per) {} // no new instance, copy ref
+                     pred(p), succ(s) {
+    if (!_per->IsValid()) {
+      _per->EndBulkLoad(true);
+    }
+    per = (temporalalgebra::Periods*)_per->compress();
+    _per->DeleteIfAllowed();
+  } 
 
   ~IndexRetrieval2() {
     if (per != 0) {

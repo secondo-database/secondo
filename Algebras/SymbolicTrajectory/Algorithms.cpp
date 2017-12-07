@@ -1744,14 +1744,17 @@ void TMatchIndexLI::getResultForAtomPart(pair<int, pair<IndexType, int> >
           Periods pertmp(true);
           for (int i = 1; i <= rel->GetNoTuples(); i++) {
             if (result[i] != 0 && tempp2[i] != 0) {
-              result[i]->EndBulkLoad();
-              tempp2[i]->EndBulkLoad();
+              result[i]->EndBulkLoad(true);
+              tempp2[i]->EndBulkLoad(true);
               result[i]->Union(*(tempp2[i]), pertmp);
-              result[i]->CopyFrom(&pertmp);
+//               result[i]->CopyFrom(&pertmp);
+              result[i]->DeleteIfAllowed();
+              result[i] = (Periods*)pertmp.compress();
             }  
             else if (result[i] == 0 && tempp2[i] != 0) {
-              tempp2[i]->EndBulkLoad();
-              result[i] = new Periods(*(tempp2[i]));
+              tempp2[i]->EndBulkLoad(true);
+//               result[i] = new Periods(*(tempp2[i]));
+              result[i] = (Periods*)(tempp2[i])->compress();
             }
           }
         }
@@ -1770,8 +1773,8 @@ void TMatchIndexLI::getResultForAtomPart(pair<int, pair<IndexType, int> >
           Periods pertmp(true);
           for (int i = 1; i <= rel->GetNoTuples(); i++) {
             if (result[i] != 0 && tempp2[i] != 0) {
-              result[i]->EndBulkLoad();
-              tempp2[i]->EndBulkLoad();
+              result[i]->EndBulkLoad(true);
+              tempp2[i]->EndBulkLoad(true);
               result[i]->Intersection(*(tempp2[i]), pertmp);
               result[i]->CopyFrom(&pertmp);
             }
@@ -2004,10 +2007,10 @@ void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
         for (int i = 1; i <= rel->GetNoTuples(); i++) {
           if (periods[i] && temp[i]) {
             if (!periods[i]->IsOrdered()) {
-              periods[i]->EndBulkLoad();
+              periods[i]->EndBulkLoad(true);
             }
             if (!temp[i]->IsOrdered()) {
-              temp[i]->EndBulkLoad();
+              temp[i]->EndBulkLoad(true);
             }
             periods[i]->Intersection(*temp[i], tmp);
             periods[i]->CopyFrom(&tmp);
@@ -2107,7 +2110,7 @@ void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
             indexResult2[atomNo][pred]->succ = i;
             if (perAtom.IsDefined()) {
               if (!periods[i]->IsOrdered()) {
-                periods[i]->EndBulkLoad(false, false);
+                periods[i]->EndBulkLoad(true, false);
               }
               periods[i]->Intersection(perAtom, perTemp);
               periods[i]->CopyFrom(&perTemp);
@@ -2129,7 +2132,7 @@ void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
             indexResult2[atomNo][pred]->succ = i; // refresh succ of pred
             if (perAtom.IsDefined()) {
               if (!periods[i]->IsOrdered()) {
-                periods[i]->EndBulkLoad(false, false);
+                periods[i]->EndBulkLoad(true, false);
               }
               periods[i]->Intersection(perAtom, perTemp);
               periods[i]->CopyFrom(&perTemp);
@@ -2677,6 +2680,11 @@ void TMatchIndexLI::extendBinding2(Periods *per, const int elem,
       per->Maximum(end);
       SecInterval iv(start, end, false, false);
       inter.Add(iv);
+      if (!lastBinding.IsOrdered()) {
+        cout << "sort now" << endl;
+        lastBinding.EndBulkLoad(true, false);
+        cout << lastBinding.IsOrdered() << endl;
+      }
       lastBinding.Union(*per, unionResult);
       inter.Minus(unionResult); // [p_B.start, p_D.end] \ (p_B U p_D)
     } // bind intervals between elements
