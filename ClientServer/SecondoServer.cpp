@@ -1255,17 +1255,25 @@ int SecondoServerMode( const int argc, const char* argv[] )
 
   streambuf* backup1 = cout.rdbuf();   // back up cout's streambuf
   streambuf* backup2 = cerr.rdbuf();   
+  streambuf* backup3 = clog.rdbuf();   
 
   cout.rdbuf(fmsg.rdbuf());   // assign streambuf to cout and cerr
   cerr.rdbuf(fmsg.rdbuf());
+  clog.rdbuf(fmsg.rdbuf());
+
+  freopen(msgfolder.c_str(),"a", stdout);
+  freopen(msgfolder.c_str(),"a", stderr);
 
   SecondoServer* appPointer = new SecondoServer( argc, argv );
   int rc = appPointer->Execute();
   delete appPointer;
 
-  fmsg.close();
   cout.rdbuf(backup1);
   cerr.rdbuf(backup2);
+  clog.rdbuf(backup3);
+  fmsg.close();
+  fclose(stdout);
+  fclose(stderr);
 
   return (rc);
 }
