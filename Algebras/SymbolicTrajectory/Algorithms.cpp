@@ -664,7 +664,6 @@ Static function invoked by ~initCondOpTrees~ or ~initAssignOpTrees~
 */
 pair<string, Attribute*> Pattern::getPointer(const int key, 
                    const bool isInterval /* = true */, Tuple *tuple /* = 0 */) {
-//   cout << "getPointer: " << key << " " << isInterval << endl;
   pair<string, Attribute*> result;
   if (key > 99) { // attribute name
     SecondoCatalog* sc = SecondoSystem::GetCatalog();
@@ -829,7 +828,7 @@ bool Pattern::initEasyCondOpTrees(const bool mainAttr, Tuple *tuple /* = 0 */,
 //        cout << "|" << easyConds[i].getVar(j) << "|" << easyConds[i].getKey(j)
 //             << "|" << varPos[easyConds[i].getVar(j)].first << " " 
 //             << varPos[easyConds[i].getVar(j)].second << endl;
-        strAttr = getPointer(easyConds[i].getKey(j), !mainAttr, tuple);
+        strAttr = getPointer(easyConds[i].getKey(j), true, tuple);
         ptrs.push_back(strAttr.second);
         toReplace = easyConds[i].getVar(j)
                   + Condition::getType(easyConds[i].getKey(j), tuple, ttype);
