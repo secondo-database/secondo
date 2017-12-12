@@ -602,7 +602,7 @@ member variables are provided for convenience.
 
     template <typename T, typename Helper>
     std::string stype<T, Helper>::BasicType() {
-        return Helper::BasicType();
+        return Helper::name;
     }
 
     template <typename T, typename Helper>
