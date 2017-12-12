@@ -225,7 +225,7 @@ uint64_t WinUnix::convertEndian(const uint64_t n){
 /* Write a string to stdout */
 void 
 WinUnix::string2stdout(const char* string) {
-    write (1, string, strlen(string));
+   write(fileno(stdout),string, strlen(string)); 
 }
     
 /* Obtain a backtrace and print it to stdout. */
@@ -238,7 +238,7 @@ WinUnix::stacktrace(const char* appName, const char* stacktraceOutput)
      string2stdout(" ************ BEGIN STACKTRACE ************\n");
      
      void *stacktrace[256];
-     int fd = 1; // File descriptor for stacktrace output (1 = stdout)
+     int fd = fileno(stdout); // File descriptor for stacktrace output
      int entries = backtrace (stacktrace, 256);
 
      if(stacktraceOutput != NULL) {
@@ -259,7 +259,7 @@ WinUnix::stacktrace(const char* appName, const char* stacktraceOutput)
          string2stdout("dumping stacktrace to stdout\n");
          
          // Dump stacktrace to stdout
-         backtrace_symbols_fd(stacktrace, entries, 1);
+         backtrace_symbols_fd(stacktrace, entries, fileno(stdout));
          
          // Generate a hint, how to decode the addresses
          char** stacktraceString = backtrace_symbols(stacktrace, entries);
@@ -285,7 +285,7 @@ WinUnix::stacktrace(const char* appName, const char* stacktraceOutput)
                     }
                     
                     if(print) {
-                        write(1, &line[pos], 1);
+                        write(fileno(stdout), &line[pos], 1);
                     }
                 }
             }
