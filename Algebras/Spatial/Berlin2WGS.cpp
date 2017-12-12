@@ -53,6 +53,30 @@ void Berlin2WGS::convert(const Point* source, Point* result) {
               ((source->GetX()-x0)*y1-(source->GetY()-y0)*x1)/(x2*y1-x1*y2));
 }
 
+void Berlin2WGS::convert(const Rectangle<2>* source, Rectangle<2>* result) {
+  double minX = source->MinD(0);
+  double minY = source->MinD(1);
+  double maxX = source->MaxD(0);
+  double maxY = source->MaxD(1);
+  Point src1(true, minX, minY), src2(true, maxX, maxY), res1(true), res2(true);
+  convert(&src1, &res1);
+  convert(&src2, &res2);
+  double *min = new double[2];
+  min[0] = res1.GetX();
+  min[1] = res1.GetY();
+  double *max = new double[2];
+  max[0] = res2.GetX();
+  max[1] = res2.GetY();
+  if (res1.IsDefined() && res2.IsDefined()) {
+    result->Set(true, min, max);
+  }
+  else {
+    result->SetDefined(false);
+  }
+  delete[] min;
+  delete[] max;
+}
+
 template<template<typename T>class Array>
 void Berlin2WGS::convert(const LineT<Array>* source, LineT<Array>* result) {
   result->Clear();

@@ -46,6 +46,8 @@ class Berlin2WGS {
  public:
   Berlin2WGS();
   void convert(const Point* source, Point* result);
+  void convert(const Rectangle<2>* source, Rectangle<2>* result);
+  
   template<template<typename T>class Array>
   void convert(const PointsT<Array>* source, 
                          PointsT<Array>* result) {
@@ -56,7 +58,6 @@ class Berlin2WGS {
     convert(&src, &res);
     *result += res;
   }
-
 }
   template<template<typename T>class Array>
   void convert(const LineT<Array>* source, LineT<Array>* result);

@@ -53,6 +53,7 @@ struct ~Rectangle~, and the definitions of the type constructur
 #include "Symbols.h"
 #include "CellGrid.h"
 #include "Point.h"
+#include "Algebras/Spatial/Berlin2WGS.h"
 
 #include <math.h>
 
@@ -4067,6 +4068,56 @@ Operator scaleOp(
   scaleTM
 );
 
+/*
+\section{Operator ~berlin2wgs~}
+
+Converts a rect of coordinates from bbbike / BerlinMOD format into WGS84
+
+\subsection{Type Mapping}
+
+*/
+ListExpr berlin2wgsTM(ListExpr args) {
+  if (!nl->HasLength(args, 1)) {
+    return listutils::typeError("Exactly one argument expected.");
+  }
+  if (Rectangle<2>::checkType(nl->First(args))) {
+    return nl->First(args);
+  }
+  return listutils::typeError("type rect expected.");
+}
+
+int berlin2wgsVM(Word* args, Word& result, int message, Word& local,Supplier s){
+  Rectangle<2>* src = (Rectangle<2>*)args[0].addr;
+  result = qp->ResultStorage(s);
+  Rectangle<2>* res = (Rectangle<2>*)result.addr;
+  if (src->IsDefined()) {
+    Berlin2WGS converter;
+    converter.convert(src, res);
+  }
+  else {
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+OperatorSpec berlin2wgsSpec(
+  " rect -> rect",
+  " berlin2wgs( _ )",
+  " Converts coordinates from bbbike/BerlinMOD format into WGS84 coordinates.",
+  " query berlin2wgs(rectangle2(17000, 14300, 12000, 13100))"
+);
+
+/*
+\subsection{Operator instance}
+
+*/
+Operator berlin2wgs(
+  "berlin2wgs",
+  berlin2wgsSpec.getStr(),
+  berlin2wgsVM,
+  Operator::SimpleSelect,
+  berlin2wgsTM
+);
 
 
 /*
@@ -4134,6 +4185,7 @@ class RectangleAlgebra : public Algebra
     AddOperator( &perimeterOp);
     AddOperator( &scaleOp);    
     AddOperator (report_Info(), reportVM, reportTM);
+    AddOperator( &berlin2wgs);
     
     
     
