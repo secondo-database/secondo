@@ -112,7 +112,7 @@ Remark    : None
 Operator : ddeleteDB
 Number   : 1
 Signature : -> bool | string -> bool
-Example   : ddeleteDB("unknown");
+Example   : query ddeleteDB("unknown");
 Result    : TRUE
 
 
