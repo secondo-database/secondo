@@ -115,6 +115,25 @@ RTFlags += SI:ShowCommandTime
 # This flag controls if binary encoded or textual lists are transferred.
 RTFlags +=  Server:BinaryTransfer
 
+# trace network communicaion
+# Tracing Server
+# The the filename given here is extended by an 
+# underscore, the processid, and .log
+# Note that the server sends also binary coded nested
+# lists. The file for TraceServerOut may be very large
+# and unreadable by usual text editors
+#TraceServerIn=traceserverin
+#TraceServerOut=traceserverout
+
+# Tracing clients
+# Th filename given here will be extended by an
+# underscore, the process id, a further underscore,
+# a running number, and .log
+# Note that for TraceClientIn hold the same as for the
+# TraceServerOut. 
+#TraceClientIn=traceclientin
+#TraceClientOut=traceclientout
+
 # If set, a result.bnl file is created on the server side.
 #RTFlags += Server:ResultFile
 
