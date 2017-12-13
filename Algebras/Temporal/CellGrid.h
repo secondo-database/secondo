@@ -39,7 +39,7 @@ is open in y direction.
 #include <limits>
 #include "Attribute.h"
 #include "NestedList.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "ListUtils.h"
 
 

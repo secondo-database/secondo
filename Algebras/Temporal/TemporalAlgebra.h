@@ -84,20 +84,20 @@ The type system of the Temporal Algebra can be seen below.
 #include "Algebra.h"
 #include "Attribute.h"
 #include "StandardTypes.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "NestedList.h"
 //#include "DBArray.h"
 #include "../../Tools/Flob/DbArray.h"
 #include "Progress.h"
-#include "CellGrid.h"
+#include "Algebras/Temporal/CellGrid.h"
 
 
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "DateTime.h"
 #include "AlmostEqual.h"
-#include "Geoid.h"
+#include "Algebras/Spatial/Geoid.h"
 #include "ListUtils.h"
-#include "../../include/CharTransform.h"
+#include "CharTransform.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
