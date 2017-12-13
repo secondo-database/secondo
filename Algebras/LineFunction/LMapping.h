@@ -37,7 +37,7 @@ April 2015 - Rene Steinbrueck
 #ifndef LMAPPING_H
 #define LMAPPING_H
 
-#include "../../../Tools/Flob/DbArray.h"
+#include "../../Tools/Flob/DbArray.h"
 #include "ConstLengthUnit.h"
 #include "LUReal.h"
 /*
