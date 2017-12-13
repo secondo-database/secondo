@@ -293,7 +293,10 @@ Destroys a socket.
                            const int maxAttempts =
                              DEFAULT_CONNECT_MAX_ATTEMPTS,
                            const time_t timeout =
-                             DEFAULT_RECONNECT_TIMEOUT );
+                             DEFAULT_RECONNECT_TIMEOUT,
+                           std::ostream* traceInStream=0,
+                           std::ostream* traceOutStream=0,
+                           bool destroyStreams = false  );
 
 /*
 Establishes a connection to a server. This method will do at most
@@ -322,7 +325,10 @@ first checked by its ~IsOk~ method.
 */
   static Socket*  CreateLocal( const std::string& address,
                                const int listenQueueSize =
-                                 DEFAULT_LISTEN_QUEUE_SIZE);
+                                 DEFAULT_LISTEN_QUEUE_SIZE,
+                                 std::ostream* traceInStream=0,
+                                 std::ostream* traceOutStream=0,
+                                 bool destroyStreams = false);
 /*
 Creates and opens a socket in the local domain at the server side.
 The parameter ~address~ specifies the name to be assigned to the socket.
@@ -337,7 +343,10 @@ first checked by its ~IsOk~ method.
   static Socket*  CreateGlobal( const std::string& address,
                                 const std::string& port,
                                 const int listenQueueSize =
-                                  DEFAULT_LISTEN_QUEUE_SIZE );
+                                  DEFAULT_LISTEN_QUEUE_SIZE,
+                                std::ostream* traceInStream=0,
+                                std::ostream* traceOutStream=0,
+                                bool destroyStreams = false);
 /*
 Creates and opens a socket in the global (internet) domain at the server side.
 The parameter ~address~ specifies the name to be assigned to the socket.
@@ -355,7 +364,10 @@ Returns the socket descriptor of the socket. This socket descriptor may be
 inherited by a child process later on.
 
 */
-  static Socket*  CreateClient( const SocketDescriptor sd );
+  static Socket*  CreateClient( const SocketDescriptor sd,
+                                std::ostream* traceInStream=0,
+                                std::ostream* traceOutStream=0,
+                                bool destroyStreams=false );
 /*
 (Re)creates a socket instance for the socket descriptor ~sd~, created by
 the ~Accept~ method.
@@ -421,7 +433,9 @@ Returns the IP address of the socket to which this socket is connected
 in string representation.
 
 */
-  virtual Socket* Accept() = 0;
+  virtual Socket* Accept( std::ostream* traceInStream=0,
+                          std::ostream* traceOutStream=0,
+                          bool destroyStreams=false) = 0;
 /*
 Is called by a server to establish a pending client connection.
 When the client executes the ~Connect~ method and accesses the server's
@@ -482,6 +496,12 @@ An I/O stream is available only for sockets created by the methods
 ~Connect~ and ~Accept~.
 
 */
+
+   virtual void setTraceStreams( std::ostream* traceInStream,
+                         std::ostream* traceOutStream,
+                         bool destroyStreams)=0;
+
+
  protected:
   enum { SS_OPEN, SS_SHUTDOWN, SS_CLOSE } state;
 /*
@@ -736,7 +756,7 @@ for sockets. Separate buffers for reading and writing are implemented.
 class SDB_EXPORT SocketBuffer : public std::streambuf
 {
  public:
-  SocketBuffer( Socket& socket );
+  SocketBuffer( Socket& socket); 
 /*
 Creates a socket buffer associated with the socket ~socket~.
 
@@ -777,6 +797,7 @@ Allows faster writing onto the socket of a string consisting on ~n~ characters.
 Allows faster reading from the socket of a string consisting on ~n~ characters.
 
 */
+
  protected:
   virtual int overflow( int ch = EOF );
 /*
@@ -824,7 +845,7 @@ Disallows to unget a character.
 
 */
  private:
-  SocketBuffer( const SocketBuffer& );
+  SocketBuffer( const SocketBuffer&);
   SocketBuffer& operator=( const SocketBuffer& );
 
   Socket* socketHandle; // Handle of associated socket

@@ -79,6 +79,10 @@ SecondoInterfaceCS::SecondoInterfaceCS(bool isServer, /*= false*/
     user = "";
     pswd = "";
     multiUser = false;
+    traceSocketIn = 0;
+    traceSocketOut = 0;
+    
+
  }
 
 
@@ -89,6 +93,9 @@ SecondoInterfaceCS::~SecondoInterfaceCS()
     Terminate();
   }
 }
+
+
+int SecondoInterfaceCS::initNo = 0;
 
 
 bool
@@ -120,6 +127,51 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
     
     debugSecondoMethod = RTFlag::isActive("SI:DebugSecondoMethod");
 
+    string traceIn = SmiProfile::GetParameter("Environment", "TraceClientIn",
+                                              "",parmFile);
+    string traceOut = SmiProfile::GetParameter("Environment", "TraceClientOut",
+                                               "",parmFile);
+
+    // remove old trace streams
+    if(traceSocketIn){
+      if(traceSocketIn == traceSocketOut){
+         traceSocketOut = 0;
+      }
+      delete traceSocketIn;
+      traceSocketIn = 0;
+    }
+    if(traceSocketOut){
+      delete traceSocketOut;
+      traceSocketOut = 0;
+    }
+  
+    // create new trace streams if entry in SecondoConfig.ini found  
+ 
+    if(!traceIn.empty()){
+      string fname = traceIn + "_" + stringutils::int2str(WinUnix::getpid())
+                   + "_" + stringutils::int2str(initNo) + ".log";
+      traceSocketIn = new ofstream(fname.c_str(),ios::binary | ios::app);
+      if(!traceSocketIn->good()){
+        delete traceSocketIn;
+        traceSocketIn = 0;
+      }
+    }
+    if(!traceOut.empty()){
+       if(traceIn==traceOut){
+          traceSocketOut = traceSocketIn;
+       } else {
+          string fname = traceOut + "_" 
+                       + stringutils::int2str(WinUnix::getpid()) + "_"
+                       + stringutils::int2str(initNo)+".log";
+          traceSocketOut = new ofstream(fname.c_str(),ios::binary | ios::app);
+          if(!traceSocketOut->good()){
+            delete traceSocketOut;
+            traceSocketOut = 0;
+          }
+       }
+    }
+    initNo++;
+    
     bool ok=false;
     if(externalNL){
       if(verbose){
@@ -170,7 +222,8 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
              << secPort << " ..." << endl;
       }
       server = Socket::Connect( secHost, secPort, Socket::SockGlobalDomain,
-                                maxAttempts, timeout );
+                                maxAttempts, timeout, 
+                                traceSocketIn, traceSocketOut, false );
 
       if(!server) {
          cout << "Socket::Connect failed" << endl;
@@ -298,6 +351,23 @@ SecondoInterfaceCS::Terminate()
     al = 0;
     initialized = false;
   }
+  if(traceSocketIn){
+    if(traceSocketIn==traceSocketOut){
+        traceSocketOut = 0;
+    }
+    delete traceSocketIn;
+    traceSocketIn = 0;
+  }
+  if(traceSocketOut){
+    delete traceSocketOut;
+    traceSocketOut = 0;
+  }
+
+
+
+
+
+
 }
 
 
@@ -1582,6 +1652,8 @@ bool SecondoInterfaceCS::handleMsg(NestedList* nl, ListExpr msg, int source){
 }
 
 void SecondoInterfaceCS::killConnection(){
+    cout << "called " << __PRETTY_FUNCTION__ << endl;
+
     if(server){
        try{
          iostream& iosock = server->GetSocketStream();

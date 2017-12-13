@@ -43,8 +43,14 @@ class UnixSocket : public Socket
  public:
   UnixSocket( const std::string& address,
               const std::string& port,
-              const SocketDomain domain );
-  UnixSocket( int newSocketDescriptor );
+              const SocketDomain domain,
+              std::ostream* traceInStream=0,
+              std::ostream* traceOutStream=0,
+              bool destroyStreams = false );
+  UnixSocket( int newSocketDescriptor,
+              std::ostream* traceInStream=0,
+              std::ostream* traceOutStream=0,
+              bool destroyStreams = false);
   ~UnixSocket();
   SocketDescriptor GetDescriptor();
   bool    Open( const int listenQueueSize,
@@ -58,10 +64,20 @@ class UnixSocket : public Socket
   std::string  GetErrorText();
   std::string  GetSocketAddress() const;
   std::string  GetPeerAddress() const;
-  Socket* Accept();
+  Socket* Accept( std::ostream* traceInStream=0,
+                  std::ostream* traceOutStream=0,
+                  bool destroyStreams=false);
   bool    CancelAccept();
   bool    Close();
   bool    ShutDown();
+
+  void setTraceStreams( std::ostream* traceInStream,
+                        std::ostream* traceOutStream,
+                        bool destroyStreams);
+
+
+
+
  protected:
   void    SetStreamState( std::ios::iostate newState );
 
@@ -81,6 +97,13 @@ class UnixSocket : public Socket
     EC_INVALID_ACCESS_MODE = -5,
     EC_MESSAGE_TRUNCATED   = -6
   };
+
+  private:
+    std::ostream* traceInStream;
+    std::ostream* traceOutStream;
+    bool destroyStreams;
+    void destroyTracing();
+
 };
 
 #endif

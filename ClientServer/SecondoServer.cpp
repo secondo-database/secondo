@@ -110,7 +110,7 @@ class SecondoServer : public Application
       if(si) delete si;
       if(csp) delete csp;
       if(client) delete client;
-     // the nö pointer is free'd  during destruction of si
+     // the nl pointer is free'd  during destruction of si
   };
   int Execute();
   void CallSecondo();
@@ -581,7 +581,8 @@ void SecondoServer::CallGetLinearCostFun(){
 
 /*
  * Cancel a running query by sending SIGUSR1 to the query processor 
- */
+
+*/
 void SecondoServer::CallCancelQuery() {
 #ifdef SECONDO_WIN32
     // Canceling query is currently not supported on windows 
@@ -1109,6 +1110,31 @@ int SecondoServer::Execute() {
   if(!client){
     rc = -2;
   } else {
+     ostream* traceInS = 0;
+     ostream* traceOutS = 0;
+     string traceIn = SmiProfile::GetParameter("Environment",
+                                               "TraceServerIn",
+                                                "", parmFile);           
+     string traceOut = SmiProfile::GetParameter("Environment",
+                                               "TraceServerOut",
+                                                "", parmFile);
+     if(!traceIn.empty()){
+        string fn = traceIn+"_"+stringutils::int2str(WinUnix::getpid())+".log";
+        traceInS = new ofstream(fn.c_str(),ios::binary);
+     }         
+     if(!traceOut.empty()){
+         if(traceIn==traceOut){
+             traceOutS = traceInS;
+         } else {
+           string fn = traceOut+"_"+ stringutils::int2str(WinUnix::getpid())
+                     + ".log";
+           traceOutS = new ofstream(fn.c_str(),ios::binary);
+         }
+     }
+     if(traceInS || traceOutS){
+        client->setTraceStreams(traceInS, traceOutS, true);
+     }
+
     iostream& iosock = client->GetSocketStream();
     csp = new CSProtocol(nl, iosock, true);
     //si->SetProtocolPtr(csp);

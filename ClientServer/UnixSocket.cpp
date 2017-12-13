@@ -41,6 +41,7 @@ For a description of the public interface see the ~SocketIO~ header file.
 #define ACHMANNPATCH
 
 #include "SecondoConfig.h"
+#include "WinUnix.h"
 
 #if defined(__svr4__)
 #define mutex system_mutex
@@ -110,7 +111,10 @@ Socket::IsLibraryInitialized()
 
 */
 UnixSocket::UnixSocket( const string& addr,
-                        const string& port, const SocketDomain domain )
+                        const string& port, const SocketDomain domain,
+                        std::ostream* _traceInStream,
+                        std::ostream* _traceOutStream,
+                        bool _destroyStreams )
 {
   hostAddress    = addr;
   hostPort       = port;
@@ -127,9 +131,16 @@ UnixSocket::UnixSocket( const string& addr,
   lastError      = EC_OK;
   ioSocketBuffer = 0;
   ioSocketStream = 0;
+  traceInStream = _traceInStream;
+  traceOutStream = _traceOutStream;
+  destroyStreams = _destroyStreams;
+
 }
 
-UnixSocket::UnixSocket( int newFd )
+UnixSocket::UnixSocket( int newFd,
+                        ostream* _traceInStream,
+                        ostream* _traceOutStream,
+                        bool _destroyStreams )
 {
   fd = newFd;
   hostAddress = "";
@@ -137,10 +148,15 @@ UnixSocket::UnixSocket( int newFd )
   createFile = false;
   state = SS_OPEN;
   lastError = EC_OK;
-  ioSocketBuffer = new SocketBuffer( *this );
+  traceInStream = _traceInStream;
+  traceOutStream = _traceOutStream;
+  destroyStreams = _destroyStreams;
+  ioSocketBuffer = new SocketBuffer(*this);
   ioSocketStream = new iostream( ioSocketBuffer );
   ioSocketStream->clear();
 }
+
+
 
 UnixSocket::~UnixSocket()
 {
@@ -167,7 +183,38 @@ UnixSocket::~UnixSocket()
     } catch(...) {}
     ioSocketBuffer=0;
   }
+  destroyTracing();
 }
+
+void UnixSocket::destroyTracing(){ 
+  if(destroyStreams){
+      if(traceInStream==traceOutStream){
+         traceOutStream = 0;
+      }
+      if(traceInStream){
+         delete traceInStream;
+         traceInStream = 0;
+      }
+      if(traceOutStream){
+          delete traceOutStream;
+          traceOutStream = 0;
+      }
+  }
+}
+
+void UnixSocket::setTraceStreams( std::ostream* _traceInStream,
+                      std::ostream* _traceOutStream,
+                      bool _destroyStreams) {
+   destroyTracing();
+   traceInStream = _traceInStream;
+   traceOutStream = _traceOutStream;
+   destroyStreams = _destroyStreams;
+}
+
+
+
+
+
 
 bool
 UnixSocket::Open( const int listenQueueSize,
@@ -361,8 +408,11 @@ UnixSocket::GetPeerAddress() const
 }
 
 Socket*
-UnixSocket::Accept()
+UnixSocket::Accept( ostream* traceInStream,
+                    ostream* traceOutStream,
+                    bool destroyStreams)
 {
+  
   int s;
 
   if ( state != SS_OPEN )
@@ -404,7 +454,7 @@ UnixSocket::Accept()
       return (NULL);
     }
     lastError = EC_OK;
-    return (new UnixSocket( s ));
+    return (new UnixSocket( s, traceInStream, traceOutStream, destroyStreams));
   }
 }
 
@@ -610,10 +660,15 @@ UnixSocket::Read( void* buf, size_t minSize, size_t maxSize, time_t timeout )
     }
     else
     {
+      if(traceInStream){
+        traceInStream->write((char*)buf+size,rc);
+        traceInStream->flush();
+      }
       size += rc;
     }
   }
   while (size < minSize);
+
 
   return ((int) size);
 }
@@ -646,6 +701,10 @@ UnixSocket::Read( void* buf, size_t size )
     }
     else
     {
+      if(traceInStream){
+        traceInStream->write((char*)buf,rc);
+        traceInStream->flush();
+      }
       buf = (char*) buf + rc;
       size -= rc;
     }
@@ -714,6 +773,11 @@ UnixSocket::Write( void const* buf, size_t size )
     { // the cast below is necessary to avoid a warning of
       // comparison of signed and unsigned values.
       if ( ((size_t) rc) < size ) { writeAttempts++; }
+      if(traceOutStream){
+         traceOutStream->write((char*)buf,rc);
+         traceOutStream->flush();
+      }
+
       buf = (char*) buf + rc;
       size -= rc;
     }
@@ -780,26 +844,40 @@ UnixSocket::SetStreamState( ios::iostate newState )
 }
 
 Socket*
-Socket::CreateLocal( const string& address, const int listenQueueSize )
+Socket::CreateLocal( const string& address, const int listenQueueSize,
+                     ostream* traceInStream,
+                     ostream* traceOutStream,
+                     bool destroyStreams )
 {
-  UnixSocket* sock = new UnixSocket( address, "0", SockLocalDomain );
+  UnixSocket* sock = new UnixSocket( address, "0", SockLocalDomain ,
+                                    traceInStream, traceOutStream, 
+                                    destroyStreams);
   sock->Open( listenQueueSize, SOCK_STREAM );
   return (sock);
 }
 
 Socket*
 Socket::CreateGlobal( const string& address,
-                      const string& port, const int listenQueueSize )
+                      const string& port, const int listenQueueSize,
+                      ostream* traceInStream,
+                      ostream* traceOutStream,
+                      bool destroyStreams )
 {
-  UnixSocket* sock = new UnixSocket( address, port, SockGlobalDomain );
+  UnixSocket* sock = new UnixSocket( address, port, SockGlobalDomain,
+                                     traceInStream, traceOutStream,
+                                     destroyStreams );
   sock->Open( listenQueueSize, SOCK_STREAM );
   return (sock);
 }
 
 Socket*
-Socket::CreateClient( const SocketDescriptor sd )
+Socket::CreateClient( const SocketDescriptor sd,
+                      ostream* traceInStream,
+                      ostream* traceOutStream,
+                      bool destroyStreams )
 {
-  UnixSocket* sock = new UnixSocket( sd );
+  UnixSocket* sock = new UnixSocket( sd, traceInStream, traceOutStream, 
+                                     destroyStreams);
   return (sock);
 }
 
@@ -845,10 +923,15 @@ Socket::GetHostname( const string& ipAddress )
 Socket*
 Socket::Connect( const string& address, const string& port,
                  const SocketDomain domain,
-                 const int maxAttempts, const time_t timeout )
+                 const int maxAttempts, const time_t timeout,
+                 ostream* traceInStream,
+                 ostream* traceOutStream,
+                 bool destroyStreams )
 {
-  UnixSocket* sock = new UnixSocket( address, port, domain );
-  sock->Connect( maxAttempts, timeout );
+  UnixSocket* sock = new UnixSocket( address, port, domain, 
+                                     traceInStream, traceOutStream,
+                                     destroyStreams );
+  sock->Connect( maxAttempts, timeout);
   return (sock);
 }
 

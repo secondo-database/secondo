@@ -269,7 +269,12 @@ public:
      bool multiUser;
      std::vector<MessageHandler*> messageListener;
 
-     SecondoInterfaceCS() ;
+     std::ostream* traceSocketIn;
+     std::ostream* traceSocketOut;
+
+     SecondoInterfaceCS() ; 
+
+     static int initNo; // counter for initialize calls
 
 };
 
