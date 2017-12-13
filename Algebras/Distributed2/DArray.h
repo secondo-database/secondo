@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define DARRAY_H
 
 #include <string>
+#include <boost/thread/recursive_mutex.hpp>
 #include "NestedList.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 
