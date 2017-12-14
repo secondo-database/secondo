@@ -1,0 +1,101 @@
+#
+# MRegionOps3Algebra-Testfile
+#
+# November 2017, U. Wiesecke
+#
+# *
+# * Note: Call this testscript as follows:
+# * TestRunner --no-tmp -i ../Algebras/MRegionOps3/test/mregionops34.test
+# *
+################################################################################
+# *
+# * Preparing the test database
+# *
+################################################################################
+#testcase create database opt
+#yields success
+#create database opt;
+#testcase open database opt
+#yields success
+open database opt;
+delete m3;
+delete mr2;
+################################################################################
+# *
+# * Create test data
+# *
+################################################################################
+#testcase create m3
+#yields success
+let m3 = [const mregion value (((0.0 5.0 TRUE TRUE)
+                                ((((6.0 1.0 0.0 4.0)
+                                   (7.5 4.0 1.5 7.0)
+                                   (9.0 1.0 3.0 4.0))))))];
+#testcase create mr2
+#yields success
+let mr2 = [const mregion value (((0.0 10.0 TRUE TRUE)
+                                   ((((1.0 3.5 1.5 1.5)
+                                      (2.0 5.5 3.0 4.5)
+                                      (3.0 6.5 3.5 5.0)
+                                      (4.0 6.5 5.5 5.0)
+                                      (4.0 5.5 5.5 4.5)
+                                      (5.0 4.5 7.5 2.5)
+                                      (5.0 2.5 7.5 1.0)
+                                      (4.0 1.5 7.0 0.5)
+                                      (3.0 1.5 2.5 0.5))))))];
+################################################################################
+# *
+# * Detailed test, preparation
+# *
+################################################################################
+delete t0A;
+delete t0B;
+delete t1A;
+delete t1B;
+delete t0;
+delete t1;
+delete noSamples;
+delete step;
+delete samples;
+delete bInsidea;
+delete bIntersectsa;
+let noSamples = 101.0;
+let t0A = instant2real(inst(initial(m3)));
+let t0B = instant2real(inst(initial(mr2)));
+let t1A = instant2real(inst(final(m3)));
+let t1B = instant2real(inst(final(mr2)));
+let t0 = ifthenelse(t0A < t0B, t0A, t0B);
+let t1 = ifthenelse(t1A > t1B, t1A, t1B);
+let step = (abs(t1 - t0)) / noSamples;
+let samples = realstream(t0, t1, step) 
+              use[fun(t: real) create_instant(t)] transformstream consume;
+################################################################################
+# *
+# * Detailed test, intersects
+# *
+################################################################################
+#testcase m3 intersects mr2
+#yields ()
+let bIntersectsa = m3 intersects mr2;
+#yields (bool TRUE)
+query samples feed transformstream 
+use[ fun(t: instant) val(bIntersectsa atinstant t) = 
+val(m3 atinstant t) intersects val(mr2 atinstant t)
+] transformstream min[Elem];   
+################################################################################
+# *
+# * Detailed test, inside
+# *
+################################################################################
+#testcase m3 inside mr2
+#yields ()
+let bInsidea = m3 inside mr2;
+#yields (bool TRUE)
+query samples feed transformstream 
+use[ fun(t: instant) val(bInsidea atinstant t) = 
+val(m3 atinstant t) inside val(mr2 atinstant t)
+] transformstream min[Elem];
+
+
+
+

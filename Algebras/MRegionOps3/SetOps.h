@@ -714,7 +714,8 @@ Inserts the start and end time of the time interval
       
       bool orginalNext(double& t1, double& t2);    
       
-      Interval<Instant> createInterval(double start, double end) const;
+      Interval<Instant> createInterval(double start, double end, 
+                                       bool rightClosed = false) const;
       
     private:             
       
@@ -1611,7 +1612,7 @@ Print the object values to stream.
       
       void createResultMRegion( MRegion* resMRegion);
       
-      void createResultMBool(MBool* resMBool );
+      void createResultMBool(MBool* resMBool, bool last );
       
       void createSourceUnit(const Interval<Instant>& interval, MRegion* mregion,
                             SourceFlag sourceFlag);

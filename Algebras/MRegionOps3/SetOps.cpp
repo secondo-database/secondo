@@ -857,13 +857,13 @@ namespace temporalalgebra {
       return this->scale;
     }// getScaledEndTime
     
-    Interval<Instant> GlobalTimeValues::createInterval(double start, 
-                                                       double end) const{
+    Interval<Instant> GlobalTimeValues::createInterval(
+        double start, double end, bool rightClosed/*=false*/) const{
       Instant starttime(datetime::instanttype);
       Instant endtime(datetime::instanttype);
       starttime.ReadFrom(start);
       endtime.ReadFrom(end);
-      return (Interval<Instant>(starttime, endtime, true, false));
+      return (Interval<Instant>(starttime, endtime, true, rightClosed));
     }// createInterval
     
     double GlobalTimeValues::computeOrginalTimeValue(
@@ -3016,22 +3016,14 @@ class LayerContainer
                                 GlobalTimeValues& timeValues,
                                 SourceUnit& other,
                                 std::vector<bool>& predicates){
-      // Vektor mit bool-Werten für den Bearbeitungsstand der PFaces
       vector<bool> ok = vector<bool>(pFaces.size(),false);
-      // Vektor mit Zwischenergbnissen für das Prädikat "intersects"
       std::vector<bool> resultPredicates(timeValues.size()-1);
-      // Vektor mit Endergebnissen für das Prädikat "intersects"
       predicates = std::vector<bool>(timeValues.size()-1,false);
-      // Ergebnisstand
       bool result = false;
-      // Auswertung aller PFaces mit Schnitten von UnitA
       for (size_t i = 0; i < this->itersectedPFace.size(); i++) {
-        // index eines geschnittenden PFace laden
         size_t index = this->itersectedPFace[i];
-        // kann das Predicate bestimmt werden 
         if(this->pFaces[index]->intersects(points, timeValues, 
                                            resultPredicates)){
-          // Ergebnis übernehmen
           for(size_t i = 0; i < resultPredicates.size(); i++){
             // if(predicates[i]){
             //  cout << "Predicate intersects for slide " << i;
@@ -3044,18 +3036,13 @@ class LayerContainer
             predicates[i] = predicates[i] || resultPredicates[i];
           }// for
           result = true;
-        }// if
-        // PFace wurde verarbeitet        
+        }// if       
         ok[i] = true;  
       }// for
-      // Auswertung aller PFaces mit Schnitten von UnitB
       for (size_t i = 0; i < other.itersectedPFace.size(); i++) {
-        // index eines geschnittenden PFace laden
         size_t index = other.itersectedPFace[i];
-        // kann das Predicate bestimmt werden 
         if(other.pFaces[index]->intersects(points, timeValues, 
                                            resultPredicates)){
-          // Ergebnis übernehmen
           for(size_t i = 0; i < resultPredicates.size(); i++){
             // if(predicates[i]){
             //  cout << "Predicate intersects for slide " << i;
@@ -3068,18 +3055,12 @@ class LayerContainer
             predicates[i] = predicates[i] || resultPredicates[i];
           }// for
           result = true;
-        }// if
-        // PFace wurde verarbeitet        
+        }// if      
         ok[i] = true;  
       }// for
-      // Gibt es ein Ergebnis
       if (result) return;
-      // Bisher liegt kein Ergebnis vor
-      // Ein weiteres PFace auswerten, da es kein Ergebnis gibt
       for (size_t i = 0; i < this->pFaces.size(); i++) {
-        // PFace wurde noch nicht verarbeitet und ist nicht kritisch
-        if (!ok[i] && this->pFaces[i]->getState() != CRITICAL){  
-          // liegt es innerhalb der andern SourceUnit            
+        if (!ok[i] && this->pFaces[i]->getState() != CRITICAL){             
           if (other.isInside(this->pFaces[i])) {
             this->pFaces[i]->setBorderPredicate(segments,INNER);
           }// if
@@ -3090,9 +3071,6 @@ class LayerContainer
           return;
         }// if
       }// for
-      // Obwohl alle PFace der SourceUnit verarbeitet wurden, konnte der
-      // Status nicht geklärt werden. Beide SourceUnits beschreiben das gleiche
-      // Objekt. 
       predicates = std::vector<bool>(timeValues.size()-1,true);
     }// intersects
     
@@ -3100,22 +3078,14 @@ class LayerContainer
                             GlobalTimeValues& timeValues,
                             SourceUnit& other,
                             std::vector<bool>& predicates){
-      // Vektor mit bool-Werten für den Bearbeitungsstand der PFaces
       vector<bool> ok = vector<bool>(pFaces.size(),false);
-      // Vektor mit Zwischenergbnissen für das Prädikat "inside"
       std::vector<bool> resultPredicates(timeValues.size()-1);
-      // Vektor mit Endergebnissen für das Prädikkat "inside"
       predicates = std::vector<bool>(timeValues.size()-1,true);
-      // Ergebnisstand
       bool result = false;
-      // Auswertung aller PFaces mit Schnitten
       for (size_t i = 0; i < this->itersectedPFace.size(); i++) {
-        // index eines geschnittenden PFace laden
         size_t index = itersectedPFace[i];
-        // kann das Predicate bestimmt werden 
         if(this->pFaces[index]->inside(points, timeValues, 
                                        resultPredicates)){
-          // Ergebnis übernehmen
           for(size_t i = 0; i < resultPredicates.size(); i++){
             // if(predicates[i]){
             //  cout << "Predicate inside for slide " << i;
@@ -3128,18 +3098,12 @@ class LayerContainer
             predicates[i] = predicates[i] && resultPredicates[i];
           }// for
           result = true;
-        }// if
-        // PFace wurde verarbeitet        
+        }// if       
         ok[i] = true;  
       }// for
-      // Gibt es ein Ergebnis
       if (result) return;
-      // Bisher liegt kein Ergebnis vor
-      // Ein weiteres PFace auswerten, da es kein Ergebnis gibt
       for (size_t i = 0; i < this->pFaces.size(); i++) {
-        // PFace wurde noch nicht verarbeitet und ist nicht kritisch
-        if (!ok[i] && this->pFaces[i]->getState() != CRITICAL){  
-          // liegt es innerhalb der andern SourceUnit            
+        if (!ok[i] && this->pFaces[i]->getState() != CRITICAL){             
           if (other.isInside(this->pFaces[i])) {
             this->pFaces[i]->setBorderPredicate(segments,INNER);
           }// if
@@ -3150,9 +3114,6 @@ class LayerContainer
           return;
         }// if
       }// for
-      // Obwohl alle PFace der SourceUnit verarbeitet wurden, konnte der
-      // Status nicht geklärt werden. Beide SourceUnits beschreiben das gleiche
-      // Objekt. 
       predicates = std::vector<bool>(timeValues.size()-1,true);
     }// inside
          
@@ -3165,8 +3126,6 @@ class LayerContainer
                                         source);
        }// for
     }// getResultPFace
-
-   
 
     std::ostream& SourceUnit::print(std::ostream& os, std::string prefix)const{
       os << "SourceUnit (";
@@ -3214,42 +3173,26 @@ class LayerContainer
     }// return
     
     void SourceUnit::reSort(){
-      // Alte Einträge im R-Tree löschen
       size_t size = pFaces.size();
       for (size_t i = 0; i < size; i++) {
-        // PFace laden
         PFace* pf1 = pFaces[i];
-        // Boundingbox bestimmen
         Rectangle<2> boundigRec = pf1->getBoundingRec();
-        // Eintrag löschen
-        pFaceTree.erase(boundigRec,i);
-        // PFace-Eintrage für das erste Halbsegment    
+        pFaceTree.erase(boundigRec,i);   
         pf1->setLeftDomPoint(true);
-        // Kantennummer setzen
         pf1->setSegmentNo(i);
-        // Zurückschreiben
         pFaces[i] = pf1;
-        // PFace für das zweite Halbsegment erzeugen
-        PFace* pf2 = new PFace(*pf1); 
-        // PFace-Eintrage für das zweite Halbsegment    
+        PFace* pf2 = new PFace(*pf1);   
         pf2->setLeftDomPoint(false);
-        // PFace einfügen
         pFaces.push_back(pf2);  
       }// for      
-      // PFaces neu sortieren
       sort(pFaces.begin(),pFaces.end(),SourceUnit::lessByMedianHS);
-      // Testregion aufbauen
-      this->testRegion.StartBulkLoad();
-      // über alle PFaces      
+      this->testRegion.StartBulkLoad();  
       for (size_t i = 0; i < pFaces.size(); i++) {
-        // Halbsegment des PFaces zur Testregion hinzufügen
         this->testRegion += pFaces[i]->getMedianHS();
       }// for
       // Note: Sorting is already done.
       this->testRegion.EndBulkLoad(false, true, true, true);
-      // Testregion ist jetzt definiert
-      this->testRegionDefined = true;
-      // Ergebnis aus der Testregion in die PFaces eintragen     
+      this->testRegionDefined = true;    
       for (size_t i = 0; i < pFaces.size(); i++) {
         HalfSegment halfSegment;
         this->testRegion.Get(i, halfSegment);
@@ -3266,11 +3209,8 @@ class LayerContainer
       // Rebuild R-Tree
       for (size_t i = 0; i < pFaces.size(); i++) {
         PFace* pf1 = pFaces[i];
-        // Boundingbox bestimmen
         Rectangle<2> boundigRec = pf1->getBoundingRec();
-        // Eintrag löschen
         pFaceTree.insert(boundigRec,i);
-        // Indizes des PFace überprüfen
         createFaceCycleEntry(pf1,i);
       }// for       
     }// reSort
@@ -3588,7 +3528,7 @@ class LayerContainer
       return result[slide];
     }// getResultUnit 
     
-    bool SourceUnitPair::predicate(PredicateOp predicateOp){  
+    bool SourceUnitPair::predicate(PredicateOp predicateOp){        
       if (unitA.isEmpty()|| unitB.isEmpty()){
         return false;
       }// if
@@ -3603,8 +3543,8 @@ class LayerContainer
       return false;      
     }// predicate    
 
-    void SourceUnitPair::createResultMBool( MBool* resMBool ){
-      if (timeValues.size() > 1){
+    void SourceUnitPair::createResultMBool( MBool* resMBool, bool last){
+      if ((timeValues.size() > 1) && predicates.size() > 0){
         double t1,t2,t3;
         // cout << " timeValues " << timeValues <<endl;
         this->timeValues.orginalFirst(t1,t2);
@@ -3617,7 +3557,7 @@ class LayerContainer
           // else               cout << "value:= false" << endl; 
           if(value != predicates[i]){
             CcBool predicate(true, value);        
-            UBool ubool(timeValues.createInterval(t1,t2), predicate, predicate);
+            UBool ubool(timeValues.createInterval(t1,t2), predicate);
             resMBool->Add(ubool);
             value = predicates[i];
             t1 = t2;         
@@ -3626,16 +3566,9 @@ class LayerContainer
           i++; 
         }// while  
         CcBool predicate(true, value);        
-        UBool ubool(timeValues.createInterval(t1,t2), predicate, predicate);
+        UBool ubool(timeValues.createInterval(t1,t2, last), predicate);
         resMBool->Add(ubool);
       }// if
-      else {
-        double t1 = timeValues.getOrginalStartTime();
-        double t2 = timeValues.getOrginalEndTime();  
-        CcBool predicate(true, false);
-        UBool ubool(timeValues.createInterval(t1,t2), predicate, predicate);
-        resMBool->Add(ubool);
-      }// else 
     }// createResultMBool  
 /*
 22 class SetOperator
@@ -3650,7 +3583,6 @@ class LayerContainer
     }// Konstruktor
 
     void SetOperator::operate(SetOp setOp){
-      // Beide MRegionen müssen definiert sein
       if (!mRegionA->IsDefined() || !mRegionB->IsDefined()) {
         mRegionResult->SetDefined(false);
         return;
@@ -3659,26 +3591,19 @@ class LayerContainer
       RefinementPartition< MRegion, MRegion, URegionEmb, URegionEmb> 
         rp(*mRegionA, *mRegionB);
       // cout << "RefinementPartition with " << rp.Size() << " units created.";
-      // MRegion des Ergebnisses löschen
       mRegionResult->Clear();
-      // Speicherbereich der MSegmentData löschen
       ((DbArray<MSegmentData>*)mRegionResult->GetFLOB(1))->clean();
-      // Füllvorgang beginnt
       mRegionResult->StartBulkLoad();
       // For each interval of the refinement partition
       for (unsigned int i = 0; i < rp.Size(); i++) {
         Interval<Instant> interval;
         int aPos, bPos;
         bool aIsEmpty, bIsEmpty;
-        // liefere den entsprechenden Eintrag
         rp.Get(i, interval, aPos, bPos);         
         SourceUnitPair unitPair(interval);
-        // Zeitspanne ist 0, dieser Fall trat beim Test auf
         if(interval.start == interval.end) continue;
-        // Bestimmen ob eine der beiden zu erzuegenden Units leer ist  
         aIsEmpty = (aPos == -1);
-        bIsEmpty = (bPos == -1);
-        // Vereinfachungen suchen     
+        bIsEmpty = (bPos == -1);   
         if (!aIsEmpty) {
           unitPair.createSourceUnit(interval, mRegionA, UNIT_A);
         }// if
@@ -3701,7 +3626,6 @@ class LayerContainer
     }// Konstruktor
     
     void PredicateOperator::operate(PredicateOp predicateOp){
-      // Beide MRegionen müssen definiert sein
       if (!mRegionA->IsDefined() || !mRegionB->IsDefined()) {
         mBool->SetDefined(false);
         return;
@@ -3710,31 +3634,26 @@ class LayerContainer
       RefinementPartition< MRegion, MRegion, URegionEmb, URegionEmb> 
         rp(*mRegionA, *mRegionB);
       // cout << "RefinementPartition with " << rp.Size() << " units created.";
-      // MBool des Ergebnisses löschen
       mBool->Clear();
       // For each interval of the refinement partition
       for (unsigned int i = 0; i < rp.Size(); i++) {
         Interval<Instant> interval;
         int aPos, bPos;
         bool aIsEmpty, bIsEmpty;
-        // liefere den entsprechenden Eintrag
         rp.Get(i, interval, aPos, bPos);         
         SourceUnitPair unitPair(interval);
-        // Zeitspanne ist 0, dieser Fall trat beim Test auf
-        if(interval.start == interval.end) continue;
-        // Bestimmen ob eine der beiden zu erzuegenden Units leer ist  
+        if(interval.start == interval.end) continue; 
         aIsEmpty = (aPos == -1);
-        bIsEmpty = (bPos == -1);
-        // Vereinfachungen suchen     
+        bIsEmpty = (bPos == -1);    
         if (!aIsEmpty) {
           unitPair.createSourceUnit(interval, mRegionA, UNIT_A);
         }// if
         if (!bIsEmpty) {
           unitPair.createSourceUnit(interval, mRegionB, UNIT_B);
-        }// if
-        unitPair.predicate(predicateOp);        
-        // cout << unitPair;               
-        unitPair.createResultMBool(mBool);        
+        }// if        
+        bool last = (i == rp.Size()-1);
+        unitPair.predicate(predicateOp);                       
+        unitPair.createResultMBool(mBool,last);        
       }// for
     }// operate  
 
