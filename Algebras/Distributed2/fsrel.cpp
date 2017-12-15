@@ -197,7 +197,8 @@ void fsrel::Close(const ListExpr __attribute__((unused)) typeInfo, Word& w){
 }
 Word fsrel::Clone(const ListExpr __attribute__((unused)) typeInfo, 
                   const Word& v){
-  Word res( new fsrel( *((fsrel*) v.addr)));
+  Word res;
+  res.addr = new fsrel( *((fsrel*) v.addr));
   return res;
 }
 

@@ -943,15 +943,39 @@ ListExpr replaceSymbols(ListExpr list,
 }
 
 
-ListExpr fun2cmd(const string& fundef, const vector<string>& funargs){
-  ListExpr funlist; 
-  {
-     boost::lock_guard<boost::mutex> guard(nlparsemtx);
-     if(!nl->ReadFromString(fundef,funlist)){
-       cerr << "Function is not a nested list" << endl;
-       return nl->TheEmptyList();
-     }
+ListExpr replaceSymbols(ListExpr list, 
+                        const map<string,ListExpr>& replacements){
+
+  if(nl->IsEmpty(list)){
+     return nl->TheEmptyList();
   }
+  switch(nl->AtomType(list)){
+     case SymbolType: {
+       string symb = nl->SymbolValue(list);
+       map<string,ListExpr>::const_iterator it = replacements.find(symb);
+       if(it==replacements.end()){
+         return list;
+       } else {
+         return it->second;
+       }
+     }
+     case NoAtom: {
+       ListExpr first = nl->OneElemList( replaceSymbols(nl->First(list),
+                                               replacements));
+       ListExpr last = first;
+       list = nl->Rest(list);
+       while(!nl->IsEmpty(list)){
+          last = nl->Append(last, replaceSymbols(nl->First(list),replacements));
+          list = nl->Rest(list);
+       }
+       return first;
+     }
+     default: return list;    
+  } 
+}
+
+template<typename T>
+ListExpr fun2cmd(ListExpr funlist, const vector<T>& funargs){
   if(!nl->HasLength(funlist, 2+ funargs.size())){
     cout << "invalid length of list" << endl;
     return nl->TheEmptyList();
@@ -960,7 +984,7 @@ ListExpr fun2cmd(const string& fundef, const vector<string>& funargs){
     return nl->TheEmptyList();
   }
   funlist = nl->Rest(funlist);
-  map<string,string> replacements;
+  map<string,T> replacements;
   int pos = 0;
   while(!nl->HasLength(funlist,1)){
      ListExpr first = nl->First(funlist);
@@ -977,8 +1001,21 @@ ListExpr fun2cmd(const string& fundef, const vector<string>& funargs){
      pos++;
   }
   ListExpr rep = replaceSymbols(nl->First(funlist), replacements);
-  return rep;}
+  return rep;
+}
 
+template<typename T>
+ListExpr fun2cmd(const string& fundef, const vector<T>& funargs){
+  ListExpr funlist; 
+  {
+     boost::lock_guard<boost::mutex> guard(nlparsemtx);
+     if(!nl->ReadFromString(fundef,funlist)){
+       cerr << "Function is not a nested list" << endl;
+       return nl->TheEmptyList();
+     }
+  }
+  return fun2cmd<T>(funlist, funargs);
+}
 
 ListExpr replaceWrite(ListExpr list, const string& writeVer, 
                       const string& name){
@@ -8674,13 +8711,13 @@ class RelationFileGetter{
                      + array->getName() + "/" + rname;
 
        string lname = rname;
+
        if(!ci->retrieveAnyFile(path,lname, showCommands, logOn, commandLog, 
                               false, algInstance->getTimeout())){
           listener->connectionFailed(index);
           return;
        }
        listener->fileAvailable(index, lname);
-        
      }
 
 
@@ -8714,11 +8751,13 @@ class dsummarizeRelInfo: public dsummarizeRelListener{
            }
            if(currentIndex >= array->getSize()){
              return 0;
-           }  
-           boost::unique_lock<boost::mutex> lock(mtx);
-           while(getters[currentIndex]){
-               cond.wait(lock);
            }
+ 
+           // wait until runner for current slot is finished
+           // file is available then or connection is broken 
+           runners[currentIndex]->join();
+           delete runners[currentIndex];
+           runners[currentIndex] = 0;
            if(filenames[currentIndex].length()>0){
               ListExpr tType = 
                   SecondoSystem::GetCatalog()->NumericType(resType);
@@ -8746,24 +8785,13 @@ class dsummarizeRelInfo: public dsummarizeRelListener{
 
      } 
 
-     void connectionFailed(int index){
-       { boost::lock_guard<boost::mutex> guard(mtx);
-        delete getters[index];
-        getters[index] = 0;
-       }
-       cond.notify_one();
-     }
-
      void fileAvailable(int index, const string& filename){
-       { boost::lock_guard<boost::mutex> guard(mtx);
-         filenames[index] = filename;
-         delete getters[index];
-         getters[index] = 0;
-        }
-        cond.notify_one();
+       boost::lock_guard<boost::mutex> guard(mtx);
+       filenames[index] = filename;
      }
 
 
+      void connectionFailed(int id){};
 
 
   private:
@@ -8775,7 +8803,6 @@ class dsummarizeRelInfo: public dsummarizeRelListener{
      vector<RelationFileGetter<A>*> getters;
      vector<string> filenames;
      boost::mutex mtx;
-     boost::condition_variable cond;
 
 
      void start(){
@@ -10463,7 +10490,12 @@ class shareInfo: public successListener{
        for(size_t i=0;i<array->numOfWorkers();i++){
           ConnectionInfo* ci = algInstance->getWorkerConnection(
                               array->getWorker(i),dbname);
-          share(ci);
+          if(ci){
+             share(ci);
+          } else {
+             cout << "cannot create connection to " 
+                  << array->getWorker(i) << endl;
+          }
        }
     }
 
@@ -14668,7 +14700,7 @@ class staticFileTransferator{
 
       void listen(){
         while(running){
-           Socket* socket = listener->Accept();
+           Socket* socket = listener->Accept(0,0,false);
            if(socket){
                if(!socket->IsOk()){
                   delete socket;
@@ -16503,8 +16535,17 @@ class AReduceTask{
                                 runtime, showCommands, logOn, commandLog, false,
                                 algInstance->getTimeout());
               // ignore error about non existent object
-              cmd =   "( let " + objname+"  =  (" + funtext + " "
-                    + tuplestream1 +  tuplestream2 + "))";
+
+              // version using a function
+              //cmd =   "( let " + objname+"  =  (" + funtext + " "
+              //      + tuplestream1 +  tuplestream2 + "))";
+              // version with extracted function
+              vector<string> argsv;
+              argsv.push_back(tuplestream1);
+              argsv.push_back(tuplestream2);
+              ListExpr k = fun2cmd(funtext,argsv);
+              cmd = nl->ToString(k);
+              cmd ="( let " + objname + " = " + cmd + ")";
           } else {
 
               string feed1 =isStream?"":" feed (";
@@ -16525,9 +16566,20 @@ class AReduceTask{
                       cerr << errMsg << endl;
                       writeLog(ci,cmd,errMsg);
               }
-              cmd =   "( query ( count ( fconsume5 (" + feed1 +  "" + funtext 
-                    + " " + tuplestream1 + tuplestream2 + " )" + feed2 + "'" 
+              // version using a function
+              //cmd =   "( query ( count ( fconsume5 (" + feed1 +  "" + funtext 
+              //      + " " + tuplestream1 + tuplestream2 + " )" + feed2 + "'" 
+              //      + filename + "')))";
+              // version with extracted function
+              vector<string> argsv;
+              argsv.push_back(tuplestream1);
+              argsv.push_back(tuplestream2);
+              ListExpr k = fun2cmd(funtext, argsv);
+              string kt = nl->ToString(k);
+              cmd =   "( query ( count ( fconsume5 (" + feed1 +  "" + kt
+                    + " )" + feed2 + "'" 
                     + filename + "')))";
+
           }
           ci->simpleCommandFromList(cmd,err,errMsg, res, false, runtime,
                                     showCommands, logOn, commandLog, false,
@@ -19114,16 +19166,25 @@ Operator ~deleteRemoteDatabases~
 */
 ListExpr deleteRemoteDatabasesTM(ListExpr args){
    // required dbname and worker relation
-   if(!nl->HasLength(args,2)){
-     return listutils::typeError("two arguments expected");
+   if(!nl->HasLength(args,2) && !nl->HasLength(args,1)){
+     return listutils::typeError("one or two arguments expected");
    } 
-   if(!CcString::checkType(nl->First(args))){
-     return listutils::typeError("first arg must be a relation");
+   ListExpr rel;
+   if(nl->HasLength(args,2)){
+     if(!CcString::checkType(nl->First(args))){
+        return listutils::typeError("first arg must be a relation");
+     }
+     rel = nl->Second(args);
+   } else {
+     rel = nl->First(args);
    }
+
+
+
    ListExpr positions, types;
    string err;
-   if(!isWorkerRelDesc(nl->Second(args), positions, types, err)){
-      return listutils::typeError("Second arg is not a worker relation: "
+   if(!isWorkerRelDesc(rel, positions, types, err)){
+      return listutils::typeError("arg is not a worker relation: "
                                   + err);
    }
 
@@ -19132,7 +19193,7 @@ ListExpr deleteRemoteDatabasesTM(ListExpr args){
                                             listutils::basicSymbol<CcBool>()),
                            nl->TwoElemList( nl->SymbolAtom("Msg"),
                                             listutils::basicSymbol<FText>()));
-   ListExpr attrList = nl->Second(nl->Second(nl->Second(args)));
+   ListExpr attrList = nl->Second(nl->Second(rel));
    ListExpr resType = nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
                           nl->TwoElemList( listutils::basicSymbol<Tuple>(),
                                  listutils::concat(attrList, appendList)));
@@ -19296,19 +19357,25 @@ int deleteRemoteDatabasesVMT(Word* args, Word& result, int message,
                local.addr = 0;
              }
 
-             CcString* dbname = (CcString*) args[0].addr;
-             if(!dbname->IsDefined()){
-                return 0;
+             string n = SecondoSystem::GetInstance()->GetDatabaseName();
+             int relPos = 0;
+             if(qp->GetNoSons(s)==5){
+               CcString* dbname = (CcString*) args[0].addr;
+               if(!dbname->IsDefined()){
+                  return 0;
+               } 
+               n = dbname->GetValue();
+               if(!stringutils::isIdent(n)){
+                  return 0;
+               }
+               relPos = 1;
              } 
-             string n = dbname->GetValue();
-             if(!stringutils::isIdent(n)){
-                return 0;
-             }
-             Relation* r = (Relation*) args[1].addr;
+
+             Relation* r = (Relation*) args[relPos].addr;
              ListExpr t = nl->Second(GetTupleResultType(s));
-             int hpos = ((CcInt*)args[2].addr)->GetValue();
-             int ppos = ((CcInt*)args[3].addr)->GetValue();
-             int cpos = ((CcInt*)args[4].addr)->GetValue();
+             int hpos = ((CcInt*)args[relPos+1].addr)->GetValue();
+             int ppos = ((CcInt*)args[relPos+2].addr)->GetValue();
+             int cpos = ((CcInt*)args[relPos+3].addr)->GetValue();
              local.addr = new deleteRemoteDatabasesInfo<H,C>(n,r,
                                              hpos,ppos,cpos,t);
              return 0;
@@ -19337,7 +19404,8 @@ int deleteRemoteDatabasesSelect(ListExpr args){
   
    ListExpr pos, types;
    string err;
-   if(!isWorkerRelDesc(nl->Second(args),pos,types,err)){
+   ListExpr rel = nl->HasLength(args,1)?nl->First(args):nl->Second(args);
+   if(!isWorkerRelDesc(rel,pos,types,err)){
      return -1;
    }
    ListExpr H = nl->First(types);

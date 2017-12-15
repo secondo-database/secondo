@@ -309,7 +309,7 @@ private:
     std::string sendFolder;
     std::string sendPath;
 
-    typedef boost::mutex mutex_type;
+    typedef boost::recursive_mutex mutex_type;
     typedef boost::lock_guard<mutex_type> guard_type;
 
     mutex_type simtx; // mutex for synchronizing 

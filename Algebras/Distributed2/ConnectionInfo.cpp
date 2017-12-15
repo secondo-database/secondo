@@ -353,7 +353,7 @@ bool ConnectionInfo::cleanUp(bool showCommands,
                              CommandLog& commandLog, 
                              const size_t timeout)
 {   
-    //guard_type guard(simtx);
+    guard_type guard(simtx);
     // first step : remove database objects
     string command = "query getcatalog() "
             "filter[.ObjectName startsWith \"TMP_\"] "
