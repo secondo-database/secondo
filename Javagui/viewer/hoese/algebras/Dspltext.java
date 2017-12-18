@@ -87,7 +87,7 @@ public void init (String name, int nameWidth, int indent, ListExpr type,ListExpr
      }
      T=extendString(T,nameWidth, indent);
      String Text = V;
-     computeType(Text);
+     computeType(type, Text);
 
      if(Type==PLAIN_TYPE){
         if(Text.length()<=MAX_DIRECT_DISPLAY_LENGTH){ // short Text
@@ -151,7 +151,7 @@ private boolean checkForHtml(String Text,int offset){
 /** sets the type of this Text 
   * depending on some keywords 
   **/
-private void computeType(String Text){
+protected void computeType(ListExpr type, String Text){
      if(Text.startsWith("JVBE") ){ // base 64 encodes "%PD"
          Type = PDF_TYPE;
          return;
@@ -203,15 +203,15 @@ private static TextViewerFrame Display=null;
 private String Entry;
 private ListExpr theList;
 
-private int Type; // contains the type which is the text (probably)
+protected int Type; // contains the type which is the text (probably)
 
 
 
 
-private static final int PLAIN_TYPE=0;
-private static final int HTML_TYPE=1;
-private static final int RTF_TYPE=2;
-private static final int PDF_TYPE=3;
+protected static final int PLAIN_TYPE=0;
+protected static final int HTML_TYPE=1;
+protected static final int RTF_TYPE=2;
+protected static final int PDF_TYPE=3;
 
 private static final int MAX_DIRECT_DISPLAY_LENGTH = 30;
 
