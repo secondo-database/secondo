@@ -53,6 +53,7 @@ An operator to save the contents into a file is provided.
 #include "Base64.h"
 #include "BinaryFileAlgebra.h"
 #include "FTextAlgebra.h"
+#include "GenericTC.h"
 #include <cstdlib>
 #include <string>
 
@@ -220,10 +221,10 @@ void BinaryFile::Put(const size_t offset, const size_t size, const char* bytes){
   binData.write( bytes, offset, size );
 }
 
-bool BinaryFile::SaveToFile( const char *fileName ) const{
+bool BinaryFile::SaveToFile( const string& fileName ) const{
   if( !IsDefined() ){ return false; }
 
-  FILE *f = fopen( fileName, "wb" );
+  FILE *f = fopen( fileName.c_str(), "wb" );
   if( f == NULL ) { return false; }
 
   cout << "write " << binData.getSize() << " bytes " << endl;
@@ -500,14 +501,218 @@ TypeConstructor filepath(
   CastFText,                      //cast function
   SizeOfFText,                    //sizeof function
   CheckFilePath );                     //kind checking function
-/*
-4 Operators
 
-4.1 Operator ~saveto~
+/*
+5 document datatype
+
+A document is mainly a binary file storing it's type within the 
+type description, e.g. document(pdf) will be a
+valid type.
+
+*/
+bool isValidDocType(const string& v){
+  if(v=="pdf") return true;
+  if(v=="doc") return true;
+  return false;
+}
+
+bool isValidDocType(ListExpr list){
+  if(nl->AtomType(list)!=SymbolType){
+     return false;
+  }
+  string v = nl->SymbolValue(list);
+  return isValidDocType(v);
+}
+
+
+class Document: public Attribute{
+  public:
+      Document(){}
+      Document(int i): Attribute(false),bindata(0) {}
+ 
+      Document(const Document& doc) : Attribute(doc),
+                                      bindata(doc.bindata.getSize()){
+        bindata.copyFrom(doc.bindata);
+      }
+
+      Document& operator=(const Document& doc){
+         Attribute::operator=(doc);
+         bindata.copyFrom(doc.bindata);
+         return *this;
+      }
+
+      ~Document(){}
+
+      static const string BasicType(){ return "document";}
+      static const bool checkType(const ListExpr list){
+        if(!nl->HasLength(list,2)) return false;
+        if(!listutils::isSymbol(nl->First(list),BasicType())) return false;
+        if(!isValidDocType(nl->Second(list))) return false;
+        return true;
+      }
+
+      inline virtual int NumOfFLOBs() const{
+        return 1;
+      }
+      inline virtual Flob* GetFLOB(const int i){
+         assert(i==0);
+         return &bindata;
+      }
+
+      int Compare(const Attribute* arg1) const{
+          if(!IsDefined()){
+            return arg1->IsDefined()?-1:0;
+          }
+          if(!arg1->IsDefined()){
+            return 1;
+          }
+          Document* arg = (Document*) arg1;
+          if(bindata.getSize() < arg->bindata.getSize()) {
+            return -1;
+          }
+          if(bindata.getSize() > arg->bindata.getSize()){
+            return 1;
+          }
+          char* buffer1 = bindata.getData();
+          char* buffer2 = arg->bindata.getData();
+          int cmp = 0;
+          int size = bindata.getSize();
+          for(int i=0; (i<size) && (cmp==0);i++){
+             if(buffer1[i] < buffer2[i]) {
+               cmp = -1;
+             } else if(buffer1[i]>buffer2[i]){
+               cmp = 1;
+             }
+          }
+          delete[] buffer1;
+          delete[] buffer2;
+          return cmp;
+      }
+
+      bool Adjacent(const Attribute* arg) const{
+        return false;
+      }
+
+      size_t Sizeof() const{
+         return sizeof(*this);
+      }
+
+      size_t HashValue() const{
+         if(!IsDefined()){ return 0; }
+         size_t hash = bindata.getSize();
+         int m = hash>13?13:hash;
+         char buffer[m];
+         bindata.read(buffer,m);
+         for(int i=0;i<m;i++){
+           hash += buffer[i];
+         }
+         return hash;
+      }
+
+      void CopyFrom(const Attribute* arg){
+         *this = *((Document*) arg);
+      }
+
+      Attribute* Clone() const{
+        return new Document(*this);
+      }
+
+      static ListExpr Property(){
+        return gentc::GenProperty(
+                 "->DATA",
+                 "doc(doctype)",
+                 "base64 format",
+                 "...");
+      }
+
+      static bool CheckKind(ListExpr type, ListExpr& errorInfo){
+         return checkType(type);
+      }
+
+      bool ReadFrom(ListExpr LE, const ListExpr typeInfo){
+          if(listutils::isSymbolUndefined(LE)){
+            SetDefined(false);
+            return true;
+          }
+          if(nl->AtomType(LE)!=TextType){
+            cmsg.inFunError("text expected");
+            return false;
+          }
+          string text = nl->TextValue(LE);
+          Base64 decoder;
+          int size = decoder.sizeDecoded(text.length());
+          char* buffer = new char[size];
+          size = decoder.decode(text, buffer);
+          bindata.write(buffer, size);
+          delete[] buffer;
+          SetDefined(true);
+          return true;
+      }        
+
+      ListExpr ToListExpr(ListExpr typeInfo) const{
+         if(!IsDefined()){
+            return listutils::getUndefined();
+         }
+         char* buffer = bindata.getData();
+         string encoded;
+         Base64 encoder;
+         encoder.encode(buffer, bindata.getSize(), encoded);
+         delete[] buffer;
+         return nl->TextAtom(encoded);
+      }
+
+      bool SaveToFile(const string& filename) const{
+         if(!IsDefined()) return false;
+         ofstream out(filename.c_str(), ios::binary |  ios::trunc);
+         if(!out.good()){
+           return false;
+         }
+         char* buffer = bindata.getData();
+         out.write(buffer, bindata.getSize());
+         out.close();
+         delete[] buffer;
+         return out.good();
+      }
+
+      void ReadFromFile(const string& filename){
+         ifstream in(filename.c_str(), ios::binary);
+         if(!in.good()){
+            SetDefined(false);
+            bindata.clean();
+            return;
+         }
+         in.seekg(0,ios_base::end);
+         size_t size = in.tellg();
+         in.seekg(0,ios_base::beg);
+         char* buffer = new char[size];
+         in.read(buffer,size);
+         in.close();
+         bindata.write(buffer,size);
+         SetDefined(true);
+         delete[] buffer;
+      }
+
+
+      int GetSize() const{
+        return IsDefined()?bindata.getSize():-1;
+      }
+
+  private:
+     Flob bindata;
+
+};
+
+
+GenTC<Document> documentTC;
+
+/*
+6 Operators
+
+6.1 Operator ~saveto~
 
 Saves the bynary contents of into a file.
 
-5.6.1 Type mapping function of operator ~saveto~
+6.1.1 Type mapping function of operator ~saveto~
 
 Operator ~saveto~ accepts a binary file object and a string
 representing the name of the file, and returns a boolean meaning
@@ -517,19 +722,22 @@ success or not.
 ----
 
 */
-ListExpr
-SaveToTypeMap( ListExpr args )
-{
-  ListExpr arg1, arg2;
-  if ( nl->ListLength(args) == 2 )
-  {
-    arg1 = nl->First(args);
-    arg2 = nl->Second(args);
-    if ( nl->IsEqual(arg1, BinaryFile::BasicType()) &&
-         nl->IsEqual(arg2, CcString::BasicType()) )
-    return nl->SymbolAtom(CcBool::BasicType());
+ListExpr saveToTypeMap( ListExpr args ) {
+
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("expected 2 arguments");
   }
-  return nl->SymbolAtom(Symbol::TYPEERROR());
+  ListExpr arg1 = nl->First(args);
+  if(!BinaryFile::checkType(arg1) && !Document::checkType(arg1)){
+    return listutils::typeError("binfile or document expected as the "
+                                "first argument");
+  }
+  ListExpr arg2 = nl->Second(args);
+  if(!CcString::checkType(arg2) && !FText::checkType(arg2)){
+     return listutils::typeError("string or text expected as the second "
+                                 "argument");
+  }
+  return listutils::basicSymbol<CcBool>();
 }
 
 /*
@@ -537,22 +745,36 @@ SaveToTypeMap( ListExpr args )
 4.1.2 Value mapping function of operator ~saveto~
 
 */
-int
-SaveToFun(Word* args, Word& result, int message,
+template<class B, class N>
+int saveToVMT(Word* args, Word& result, int message,
           Word& local, Supplier s)
 {
   result = qp->ResultStorage( s );
-  BinaryFile *binFile = static_cast<BinaryFile*>(args[0].addr);
-  CcString *fileName = static_cast<CcString*>(args[1].addr);
+  B *binFile = static_cast<B*>(args[0].addr);
+  N *fileName = static_cast<N*>(args[1].addr);
+  CcBool* res = (CcBool*) result.addr;
 
   if( !binFile->IsDefined() || !fileName->IsDefined() ){
-    (static_cast<CcBool*>(result.addr))->Set( false, false );
-  } else if( binFile->SaveToFile( *(fileName->GetStringval()) ) )
-    (static_cast<CcBool*>(result.addr))->Set( true, true );
-  else
-    (static_cast<CcBool*>(result.addr))->Set( true, false );
-
+    res->Set( false, false );
+  } else if( binFile->SaveToFile( fileName->GetValue() )){
+    res->Set( true, true );
+  } else {
+    res->Set( true, false );
+  }
   return 0;
+}
+
+ValueMapping saveToVM[] = {
+    saveToVMT<BinaryFile,CcString>,
+    saveToVMT<BinaryFile,FText>,
+    saveToVMT<Document,CcString>,
+    saveToVMT<Document, FText>
+};
+
+int saveToSelect(ListExpr args){
+  int n1 = BinaryFile::checkType(nl->First(args))?0:2;
+  int n2 = CcString::checkType(nl->Second(args))?0:1;
+  return n1 + n2;
 }
 
 /*
@@ -563,7 +785,7 @@ SaveToFun(Word* args, Word& result, int message,
 const string SaveToSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text>(binfile string) -> bool"
+  "( <text>{binfile, document} x {string, text} -> bool"
   "</text--->"
   "<text>_ saveto _</text--->"
   "<text>Saves the contents of the object into a "
@@ -581,10 +803,176 @@ const string SaveToSpec  =
 Operator saveto (
         "saveto",               //name
         SaveToSpec,             //specification
-        SaveToFun,              //value mapping
-        Operator::SimpleSelect, //trivial selection function
-        SaveToTypeMap           //type mapping
+        4,
+        saveToVM,              //value mapping
+        saveToSelect,
+        saveToTypeMap           //type mapping
 );
+
+
+/*
+5.2 Operator readDoc
+
+*/
+ListExpr readDocTM(ListExpr args){
+
+  // filename or filename x doctype expected
+  // if doctype is missing, the filename must be a constant
+  // coding the type as the extension
+  if(!nl->HasLength(args,1) && !nl->HasLength(args,2)){
+     return listutils::typeError("one or two arguments expected");
+  }
+  ListExpr arg1 = nl->First(args);
+  // check uses args in type mapping
+  if(!nl->HasLength(arg1,2) ){
+    return listutils::typeError("internal error");
+  }
+  if(nl->HasLength(args,2)){
+     ListExpr arg2 = nl->Second(args);
+     if(!nl->HasLength(arg2,2) ){
+        return listutils::typeError("internal error");
+     }
+     // type given explicitely
+     if(!isValidDocType(nl->Second(arg2))){
+        return listutils::typeError("second argument is not a valid "
+                                    "document type");
+     }
+     arg1 = nl->First(arg1);
+     if(!CcString::checkType(arg1) && !FText::checkType(arg1)){
+       return listutils::typeError("first argument must be of type text "
+                                   "or string");
+     } 
+     return nl->TwoElemList( listutils::basicSymbol<Document>(),
+                             nl->Second(arg2));
+  }
+  // only one argument
+  arg1 = nl->Second(arg1);
+  int at = nl->AtomType(arg1);
+  string fn;
+  if(at==StringType){
+    fn = nl->StringValue(arg1);
+  } else if(at==TextType){
+    fn = nl->TextValue(arg1);
+  } else {
+    return listutils::typeError("filename is not a constant string or text");
+  }
+  size_t last = fn.find_last_of(".");
+  if(last==string::npos){
+    return listutils::typeError("no file extension found for extracting "
+                                "doc type");
+  }
+  string extension = fn.substr(last+1);
+  stringutils::toLower(extension);
+  if(!isValidDocType(extension)){
+     return listutils::typeError("file extension '" + extension
+                                 + "'does not represent a "
+                                 "valid document type");
+  } 
+  return nl->TwoElemList( listutils::basicSymbol<Document>(),
+                             nl->SymbolAtom(extension));
+}
+
+
+template<class N>
+int readDocVMT(Word* args, Word& result, int message,
+          Word& local, Supplier s)
+{
+  result = qp->ResultStorage(s);
+  Document* doc = (Document*) result.addr;
+  N* filename = (N*) args[0].addr;
+  if(!filename->IsDefined()){
+    doc->SetDefined(false);
+    return 0;
+  }
+  doc->ReadFromFile(filename->GetValue());
+  return 0;
+}
+
+ValueMapping readDocVM[] = {
+  readDocVMT<CcString>,
+  readDocVMT<FText>
+};
+
+int readDocSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec readDocSpec(
+  "{string, text} [ x symbol ] -> document(symbol) ",
+  "readDoc(_[,_])",
+  "Reads a document from a file. The first argument specifies the "
+  "filename. If it is the only argument, the filename must be "
+  "constant. The document type is extracted from the file extension. "
+  "If there are two arguments, the document type is taken from "
+  " the second argument. ",
+  "query readDoc('myfile.pdf',pdf)");
+
+Operator readDocOp (
+        "readDoc",               //name
+        readDocSpec.getStr(),   //specification
+        2,
+        readDocVM,              //value mapping
+        readDocSelect,
+        readDocTM           //type mapping
+);
+
+
+/*
+5.3 operator ~size~
+
+*/
+ListExpr sizeTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+   return listutils::typeError("one argument expected");
+  }
+  ListExpr arg1 = nl->First(args);
+  if(!BinaryFile::checkType(arg1) && !Document::checkType(arg1)){
+    return listutils::typeError("binfile or document expected");
+  }
+  return listutils::basicSymbol<CcInt>();
+}
+
+
+template<class B>
+int sizeVMT(Word* args, Word& result, int message,
+          Word& local, Supplier s)
+{
+  result = qp->ResultStorage(s);
+  CcInt*  res = (CcInt*) result.addr;
+  B* file = (B*) args[0].addr;
+  if(!file->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  res->Set(true, file->GetSize());
+  return 0;
+}
+
+ValueMapping sizeVM[] = {
+  sizeVMT<BinaryFile>,
+  sizeVMT<Document>
+};
+
+int sizeSelect(ListExpr args){
+  return BinaryFile::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec sizeSpec(
+  "{binfile, document} -> int",
+  "size(_)",
+  "retrieves the size of a binfile or a document.",
+  "query size(doc)"
+);
+
+Operator sizeOp(
+  "size",
+  sizeSpec.getStr(),
+  2,
+  sizeVM,
+  sizeSelect,
+  sizeTM
+);
+
 
 
 /*
@@ -601,10 +989,18 @@ class BinaryFileAlgebra : public Algebra
     binfile.AssociateKind(Kind::DATA());
     binfile.AssociateKind(Kind::FILE());
 
+    AddTypeConstructor(&documentTC);
+    documentTC.AssociateKind(Kind::DATA());
+
     AddTypeConstructor( &filepath );
     filepath.AssociateKind(Kind::DATA());
 
     AddOperator( &saveto );
+
+    AddOperator( &readDocOp);
+    readDocOp.SetUsesArgsInTypeMapping();
+
+    AddOperator(&sizeOp);
 
   }
   ~BinaryFileAlgebra() {};

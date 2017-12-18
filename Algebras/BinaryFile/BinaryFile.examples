@@ -8,3 +8,22 @@ Example  : query [const binfile value 'U0VDT05ETwo='] saveto "secname.txt"
 Result   : TRUE
 
 
+Operator  : readDoc
+Number    : 1
+Signature : {string,text} -> document(X)
+Example   : query isdefined(readDoc('../Documents/SecondoManual.pdf'));
+Result    : TRUE
+
+Operator  : readDoc
+Number    : 2
+Signature : {string,text}  x IDENT -> document(ident)
+Example   : query isdefined(readDoc('../Documents/SecondoManual.pdf', pdf));
+Result    : TRUE
+
+
+Operator  : size
+Number    : 1
+Signature : {binfile, document} -> int
+Example   : query size(readDoc('../Document/SecondoManual.pdf',pdf)) = fileSize('../Document/SecondoManual.pdf')
+Result    : TRUE
+

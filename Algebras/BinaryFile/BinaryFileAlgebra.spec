@@ -18,3 +18,9 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator saveto alias SAVETO pattern _ infixop _
+
+operator readDoc alias READDOC pattern op(_,_)
+
+
+operator size alias SIZE pattern op(_)
+

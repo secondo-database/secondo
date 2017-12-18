@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef BINARYFILE_H
 #define BINARYFILE_H
 
+#include <string>
 #include "Attribute.h"
 #include "ListUtils.h"
 #include "../../Tools/Flob/Flob.h"
@@ -53,7 +54,7 @@ class BinaryFile : public Attribute
 
     void Encode( std::string& textBytes ) const;
     void Decode( const std::string& textBytes );
-    bool SaveToFile( const char *fileName ) const;
+    bool SaveToFile( const std::string& fileName ) const;
 
     int GetSize() const;
     void Get(const size_t offset, const size_t size, char* bytes) const;
