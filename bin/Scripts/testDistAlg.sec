@@ -19,6 +19,9 @@
 
 # @Scripts/testDistAlgBUndo.sec
 
+# Define the file transfer port
+let ftport = 1334
+
 @@Scripts/testDistAlgA.sec
 
 @@Scripts/testDistAlgB.sec

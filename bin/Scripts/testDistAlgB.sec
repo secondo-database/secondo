@@ -53,7 +53,7 @@ let BuildingsB4_GeoData = BuildingsB4 dloop["",
 query BuildingsB4_GeoData BuildingsB4
   dmap2["", . .. windowintersects[eichlinghofen]
     filter[.Original]
-    filter[.GeoData intersects eichlinghofen], 1238
+    filter[.GeoData intersects eichlinghofen], ftport 
   ]
   dsummarize consume count 
 
@@ -81,7 +81,7 @@ let NaturalB1 = Natural feed
 
 query NaturalB1 partitionF["",  . feed filter[isdefined(.Name)],
   hashvalue(..Name, 999997), 0]
-  collect2["", 1238]
+  collect2["", ftport]
   dmap["", 
   . feed {n1} . feed {n2} itHashJoin[Name_n1, Name_n2]   
   filter[.Osm_id_n1 < .Osm_id_n2]]
@@ -102,7 +102,7 @@ query RoadsB4 WaterwaysB4 dmap2["",
   filter[.Cell_r = .Cell_w]
   filter[gridintersects(grid, bbox(.GeoData_r),
     bbox(.GeoData_w), .Cell_r)]
-  filter[.GeoData_r intersects .GeoData_w] count, 1238 ]
+  filter[.GeoData_r intersects .GeoData_w] count, ftport ]
   getValue tie[. + ..]
 
 ##################################################################
@@ -123,7 +123,7 @@ query
     filter[.Cell_r = .Cell_w]
     filter[gridintersects(grid, bbox(.GeoData_r),
       bbox(.GeoData_w), .Cell_r)]
-    filter[.GeoData_r intersects .GeoData_w] count, 1238 ]
+    filter[.GeoData_r intersects .GeoData_w] count, ftport ]
   getValue tie[. + ..]
 
 
@@ -136,7 +136,7 @@ query RoadsB4 WaterwaysB4 dmap2["",
   filter[.Cell_r = .Cell_w]
   filter[gridintersects(grid, bbox(.GeoData_r),
     bbox(.GeoData_w), .Cell_r)]
-  filter[.GeoData_r intersects .GeoData_w], 1238 ]
+  filter[.GeoData_r intersects .GeoData_w], ftport ]
   dsummarize
   projectextend[Osm_id_r, Name_r, GeoData_r, Osm_id_w, Name_w, GeoData_w; 
     BridgePosition: crossings(.GeoData_r, .GeoData_w)]
@@ -149,7 +149,7 @@ query RoadsB4 WaterwaysB4 dmap2["",
     bbox(.GeoData_w), .Cell_r)]
   filter[.GeoData_r intersects .GeoData_w]
   projectextend[Osm_id_r, Name_r, Osm_id_w, Name_w; BridgePosition:
-    crossings(.GeoData_r, .GeoData_w)], 1238
+    crossings(.GeoData_r, .GeoData_w)],ftport 
   ]
   dsummarize
   consume count
@@ -170,7 +170,7 @@ query RoadsB1 dmap["", . feed filter[isdefined(.Name)]
 query RoadsB1 WaterwaysB1 dproduct["", . feed 
 	filter[isdefined(.Name)] filter[.Fclass = "pedestrian"] {r}
   .. feed filter[.Fclass = "river"] {w}
-	symmjoin[.Name_r contains ..Name_w], 1238]
+	symmjoin[.Name_r contains ..Name_w], ftport]
 	dsummarize
 	consume count
 
@@ -183,7 +183,7 @@ let RoadsB3_Name = RoadsB3 dloop["RoadsB3_Name", . createbtree[Name]]
 query RoadsB3 RoadsB3_Name RoadsB3 dmap3["", $1 feed 
 	filter[.Fclass = "pedestrian"] {r1} 
 	loopjoin[$2 $3 exactmatch[.Name_r1] filter[.Fclass = "pedestrian"]] 
-	filter[.Osm_id_r1 < .Osm_id], 1238] 
+	filter[.Osm_id_r1 < .Osm_id], ftport] 
 	dsummarize 
   consume count
 
@@ -196,7 +196,7 @@ query RoadsB4 BuildingsB4_GeoData BuildingsB4 dmap3["",
 		filter[.Cell_r = .Cell_b]
 		filter[gridintersects(grid, bbox(.GeoData_r), .EnlargedBox_b, 
 			.Cell_r)]
-  		filter[distance(gk(.GeoData_r), gk(.GeoData_b)) < 500] count, 1238]
+  		filter[distance(gk(.GeoData_r), gk(.GeoData_b)) < 500] count, ftport]
 		getValue tie[. + ..]
 
 query RoadsB4 BuildingsB4_GeoData BuildingsB4 dmap3["", 
@@ -204,7 +204,7 @@ query RoadsB4 BuildingsB4_GeoData BuildingsB4 dmap3["",
     loopjoin[$2 $3 windowintersects[.GeoData_r] {b}] 
 		filter[.Cell_r = .Cell_b] 
 		filter[gridintersects(grid, bbox(.GeoData_r), .EnlargedBox_b,  
-			.Cell_r)] count, 1238] 
+			.Cell_r)] count, ftport] 
 		getValue tie[. + ..]
 
 

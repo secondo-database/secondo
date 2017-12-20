@@ -2,7 +2,7 @@
 
 # next 2 lines to be adapted
 
-restore WORKERS from Workers14
+restore WORKERS from Workers14 
 
 let NSlots = 50
 
@@ -86,7 +86,7 @@ let BuildingsB4a = BuildingsB1 partitionF["",
   extend[Original: .Cell = cellnumber(.EnlargedBox, grid)
     transformstream extract[Elem] ],
   ..Cell, 0]
-  collect2["BuildingsB4a", 1238]
+  collect2["BuildingsB4a", ftport]
 
 
 
