@@ -10,8 +10,14 @@
 # running times shown from Apple MacBook with SSD disk
 
 
+
+# define the directory containing the data
 let dir = '/home/ralf/Schreibtisch/Maritime/SECONDO/'
 
+
+# import raw csv data
+# the constant relation used in this command
+# corresponds to the schema in the csv file
 let Nari =  
 [const rel(tuple([
   Mmsi: int,
@@ -30,9 +36,20 @@ csvimport[dir + 'AIS Data/nari_dynamic.csv', 1, ""] consume
 # about 6 minutes
 # result size 19035630
 
+# The ais data use as a time stamp an integer value
+# meaning seconds to the start time used in Unix.
+# For using in secondo, we have to convert this format
+# into a datetime
 
 let UnixStart = [const instant value "1970-1-1"]
 
+
+# We convert the raw trajectory data into moving points.
+# Here, we just use the positional data.
+# For each Mmsi, a single trip is created from the 
+# sequence of (time, position) pairs. If there is 
+# a gap of 380 seconds between two reported positions,
+# the trip contains also a gap.
 
 let NariD = Nari feed 
   sortby[Mmsi, Time]
@@ -47,6 +64,8 @@ let NariD = Nari feed
 # about 2 - 3 minutes
 # result size 5055
 
+# Define the position of the antenna that is connected
+# the the receiver recording the ais data.
 
 let Antenna = [const point value (-4.57091 48.35923)]
 
@@ -59,6 +78,10 @@ let NariTrips = NariD feed
 
 # 1:25 min
 # result size 94281
+
+# Here, also trips are created from an object trajectory.
+# A counter for the trip number is added 
+# for each object.
 
 let NariTrips2 = NariD feed 
   loopsel[fun(t: TUPLE)
@@ -73,6 +96,13 @@ let NariTrips2 = NariD feed
 # 1:28 min
 # result size 94281
 
+# We simplify each trip using a variant of Douglas Peucker
+# using a maximum derivation of 30 meters to the original
+# trajectory. 
+# For checking the 'compression' rate, we add the number of 
+# units of the original trajectory and the simplified
+# trajectory. 
+
 let NariTrips3 = NariTrips2 feed extend[Old: no_components(.Trip)]
   projectextend[Mmsi, TripNo, Old
   ; Trip: simplify(.Trip, 30.0, [const geoid value WGS1984]) ]
@@ -81,6 +111,7 @@ let NariTrips3 = NariTrips2 feed extend[Old: no_components(.Trip)]
 
 # 2:00 min
 
+# Convert the simplified trips into a unit representation.
 
 let NariUnits = NariTrips3 feed 
   projectextendstream[Mmsi; UTrip: units(.Trip)] 
@@ -95,6 +126,9 @@ let NariUnits = NariTrips3 feed
 # 8.6 seconds
 # result size 615453
 
+# create a btree for easy finsing all units belonging
+# to a certain mmsi
+
 let NariUnits_Mmsi_btree = NariUnits createbtree[Mmsi]
 
 # old
@@ -103,6 +137,8 @@ let NariUnits_Mmsi_btree = NariUnits createbtree[Mmsi]
 # new
 # 3.9 seconds
 
+
+# Import some non-moving data from a csv file.
 
 let NariS = 
 [const rel(tuple([
@@ -128,14 +164,19 @@ csvimport[dir + 'AIS Data/nari_static.csv', 1, ""] consume
 # result size 1078617 
 
 # How many ships?
+# Some mmsi are present multiple times in the csv file, e.g.,
+# with a different destination, thus, we have to remove 
+# duplicates.
 
 query NariS feedproject[SourceMMSI] sort rdup count
 
 # 11 seconds
 # result 4842
 
+# Extract the pure static ship data.
 let Ships = NariS feedproject[SourceMMSI, IMO, CallSign, ShipName, ShipType] sort rdup consume
 
+# Create an index for the ships.
 let Ships_SourceMMSI_btree = Ships createbtree[SourceMMSI]
 
 
@@ -150,7 +191,9 @@ query NariUnits feed extend[BBox: bbox(.UTrip), Box: bbox2d(.UTrip)]
   extend[Box3: box3d(.Box2, deftime(.UTrip))]
   head[3] consume
 
-
+# For a near collision, the bounding boxes must not overlap.
+# To exploit an r-tree for this purpose, we extend one of the
+# bouding boxes by 500 meters.
 query 
   NariUnits feed extend[Box: bbox(.UTrip)] {u1}
   NariUnits feed extend[Box: 
@@ -161,7 +204,7 @@ query
 # 1:41 min
 # result 3145061
 
-# Matching units must come from different ships:
+# Matching units must come from different ships.
 
 query
   NariUnits feed extend[Box: bbox(.UTrip)] {u1}
@@ -174,6 +217,9 @@ query
 # 1:43 min
 # result 737637
 
+# Instead of only counting the candidates, we collect them
+# into a relation here.
+
 let Nearby =   
   NariUnits feed extend[Box: bbox(.UTrip)] {u1}
   NariUnits feed extend[Box: 
@@ -184,6 +230,10 @@ let Nearby =
 
 # 1:58 min
 
+# Do the same thing as before.
+# Here, a variant of the extendGeo operator is used instead of
+# building the 3D-box manually.
+
 let Nearby2 =   
   NariUnits feed extend[Box: bbox(.UTrip)] {u1}
   NariUnits feed extend[Box: bbox(.UTrip) extendGeo[500]] {u2}
@@ -191,62 +241,89 @@ let Nearby2 =
   filter[.Mmsi_u1 < .Mmsi_u2]
   consume
 
-
+# Define the standard geod used in the data as an object.
 let wgs1984 = create_geoid("WGS1984")
 
-# Look at pairs of matching units. Select one by number. Reduce units to the overlap time.
+# Look at pairs of matching units. Select one by number. 
+# Reduce units to the overlap time.
+# For testing, just take the one result. 
 
-query Nearby feed extend[Speed1: val(final(speed(.UTrip_u1, wgs1984))) * 3.6 / 1.852, 
-    Speed2: val(final(speed(.UTrip_u2, wgs1984))) * 3.6 / 1.852,
-    CommonTime: intersection(deftime(.UTrip_u1), deftime(.UTrip_u2))]
-  projectextend[Speed1, Speed2; Mmsi1: .Mmsi_u1, Mmsi2: .Mmsi_u2,
-    UTrip1: (.UTrip_u1 atperiods .CommonTime) transformstream extract[Elem], 
-    UTrip2: (.UTrip_u2 atperiods .CommonTime) transformstream extract[Elem]]
-  addcounter[No, 1] filter[.No = 2]
-  head[1] consume
+query Nearby feed 
+     extend[Speed1: val(final(speed(.UTrip_u1, wgs1984))) * 3.6 / 1.852, 
+            Speed2: val(final(speed(.UTrip_u2, wgs1984))) * 3.6 / 1.852,
+            CommonTime: intersection(deftime(.UTrip_u1), deftime(.UTrip_u2))]
+     projectextend[
+            Speed1, Speed2; Mmsi1: .Mmsi_u1, Mmsi2: .Mmsi_u2,
+            UTrip1: (.UTrip_u1 atperiods .CommonTime) transformstream extract[Elem], 
+            UTrip2: (.UTrip_u2 atperiods .CommonTime) transformstream extract[Elem]]
+     addcounter[No, 1] 
+     filter[.No = 2]
+     head[1] 
+     consume
 
-# additionally consider direction
+# additionally consider direction and projection to space
 
-query Nearby feed extend[Speed1: val(final(speed(.UTrip_u1, wgs1984))) * 3.6 / 1.852, 
-    Speed2: val(final(speed(.UTrip_u2, wgs1984))) * 3.6 / 1.852,
-    CommonTime: intersection(deftime(.UTrip_u1), deftime(.UTrip_u2))]
-  projectextend[Speed1, Speed2; Mmsi1: .Mmsi_u1, Mmsi2: .Mmsi_u2,
-    UTrip1: (.UTrip_u1 atperiods .CommonTime) transformstream extract[Elem], 
-    UTrip2: (.UTrip_u2 atperiods .CommonTime) transformstream extract[Elem]]
-  extend[Heading1: direction2heading(direction(val(initial(.UTrip1)), 
-    val(final(.UTrip1))))]
-  extend[Heading2: direction2heading(direction(val(initial(.UTrip2)), 
-    val(final(.UTrip2))))]
-  extend[Traj1: trajectory(.UTrip1)]
-  extend[Traj2: trajectory(.UTrip2)]
-  addcounter[No, 1] filter[.No = 1]
-  head[1] consume
-
-
-
+query Nearby feed 
+        extend[
+          Speed1: val(final(speed(.UTrip_u1, wgs1984))) * 3.6 / 1.852, 
+          Speed2: val(final(speed(.UTrip_u2, wgs1984))) * 3.6 / 1.852,
+          CommonTime: intersection(deftime(.UTrip_u1), deftime(.UTrip_u2))]
+        projectextend[Speed1, Speed2; Mmsi1: .Mmsi_u1, Mmsi2: .Mmsi_u2,
+          UTrip1: (.UTrip_u1 atperiods .CommonTime) transformstream extract[Elem], 
+          UTrip2: (.UTrip_u2 atperiods .CommonTime) transformstream extract[Elem]]
+        extend[Heading1: direction2heading(direction(val(initial(.UTrip1)), 
+                                                     val(final(.UTrip1))))]
+        extend[Heading2: direction2heading(direction(val(initial(.UTrip2)), 
+                                                     val(final(.UTrip2))))]
+        extend[Traj1: trajectory(.UTrip1)]
+        extend[Traj2: trajectory(.UTrip2)]
+        addcounter[No, 1] 
+        filter[.No = 1]
+        head[1] 
+        consume
 
 # Importing environmental data
 # adapt local directory
 
+let AnchorageAreas =  
+          dbimport2(dir+'/Anchorage Areas/Anchorage Areas.dbf') 
+          shpimport2(dir + 'Anchorage Areas/Anchorage Areas.shp') namedtransformstream[Area] 
+          obojoin 
+          consume
+
+let EuropeCoastline =  
+          dbimport2(dir+'/European Coastline/Europe Coastline.dbf') 
+          shpimport2(dir + '/European Coastline/Europe Coastline.shp' ) namedtransformstream[Coast]
+          obojoin 
+          consume
+
+let WorldSeas =  
+          dbimport2(dir+'/IHO World Seas/World_Seas.dbf') 
+          shpimport2(dir + '/IHO World Seas/World_Seas.shp' ) namedtransformstream[Sea] 
+          obojoin 
+          consume
+
+let ports =  
+          dbimport2(dir+'/Ports of Brittany/port.dbf') 
+          shpimport2(dir + '/Ports of Brittany/port.shp' ) namedtransformstream[Port] 
+          obojoin 
+          consume
+
+let tssQuessant =  
+          dbimport2(dir+'/TSS Ouessant/TSS Ouessant.dbf') 
+          shpimport2(dir + '/TSS Ouessant/TSS Ouessant.shp' ) namedtransformstream[Quessant] 
+          obojoin 
+          consume
 
 
-let AnchorageAreas =  dbimport2(dir+'/Anchorage Areas/Anchorage Areas.dbf') shpimport2(dir + 'Anchorage Areas/Anchorage Areas.shp') namedtransformstream[Area] obojoin consume
-
-let EuropeCoastline =  dbimport2(dir+'/European Coastline/Europe Coastline.dbf') shpimport2(dir + '/European Coastline/Europe Coastline.shp' ) namedtransformstream[Coast] obojoin consume
-
-let WorldSeas =  dbimport2(dir+'/IHO World Seas/World_Seas.dbf') shpimport2(dir + '/IHO World Seas/World_Seas.shp' ) namedtransformstream[Sea] obojoin consume
-
-let ports =  dbimport2(dir+'/Ports of Brittany/port.dbf') shpimport2(dir + '/Ports of Brittany/port.shp' ) namedtransformstream[Port] obojoin consume
-
-let tssQuessant =  dbimport2(dir+'/TSS Ouessant/TSS Ouessant.dbf') shpimport2(dir + '/TSS Ouessant/TSS Ouessant.shp' ) namedtransformstream[Quessant] obojoin consume
-
-
-
+# define another directory containing source data
 let dir2 = dir + 'AIS Data/Status, Codes and Types/'
 
+# Import some csv files. 
+# First define the schema used in the file as an empty relation
+# and then actually import the data.
 
 let MmsiCountryCodesT = [ const rel(tuple([Code : int, Country : text])) value ()]
-
 
 let MmsiCountryCodes = MmsiCountryCodesT csvimport[dir2+'MMSI Country Codes.csv',1,""] consume
 
@@ -254,14 +331,20 @@ let NaviStatusT = [ const rel(tuple([Code : int, Status : text])) value ()]
 
 let NaviStatus = NaviStatusT csvimport[dir2+'Navigational Status.csv',1,""] consume
 
-let shipTypeT = [const rel(tuple([ID_shipType : int, Shiptype_min : int, ShipType_max : int, Type_Name : text, Ais_type_summary : text])) value ()]
+let shipTypeT = [const rel(tuple([ID_shipType : int, Shiptype_min : int, ShipType_max : int, 
+                                  Type_Name : text, Ais_type_summary : text])) 
+                 value ()]
 
 let shipType = shipTypeT csvimport[dir2+'Ship Types List.csv',1,""] consume
 
-let shipTypeDetailT = [const rel(tuple([Id_DetailedType : int, Detailed_Type : text, Id_ShipType : int])) value () ]
+let shipTypeDetailT = [const rel(tuple([Id_DetailedType : int, Detailed_Type : text, 
+                                        Id_ShipType : int])) 
+                       value () ]
 
 let shipTypeDetail = shipTypeDetailT csvimport[dir2+'Ship Types Detailled List.csv',1,""] consume
 
+
+# Devide the coast line of Europe into single segments
 
 let EuropeCoast = EuropeCoastline feed projectextendstream[; Seg: segments(.Coast)] consume
 
@@ -295,21 +378,28 @@ let EuropeCoast = EuropeCoastline feed projectextendstream[; Seg: segments(.Coas
 
 restore Areas from Areas
 
+# Extract a single object from the relation of areas.
 let Transrade = Areas feed filter[.Label = "Transrade"] extract[Area]
 
+# find all trips passing the Transrade Area
 let R1 = NariTrips3 feed extend[Box: bbox2d(.Trip)]
   Areas feed extend[Box2: bbox(.Area)]
   itSpatialJoin[Box, Box2]
   filter[.Trip passes .Area]
   consume
 
+
+# Collect the units of the trips that intersect an area of the Areas relation.
+
 let R2 = R1 feed extendstream[Piece: components(.Trip at .Area)] consume
 
+# Append the currently passed Area as a moving label.
 let R3 = R2 feed extend[Time0: inst(initial(.Piece))] 
   extend[Unit: the_unit(.Label, getIntervals(deftime(.Piece)) transformstream extract[Elem])]
   sortby[Mmsi, TripNo, Time0]
   groupby[Mmsi, TripNo; Symbolic: group feed makemvalue[Unit]]
   consume
+
 
 
 #             Name: matches
@@ -319,7 +409,8 @@ let R3 = R2 feed extend[Time0: inst(initial(.Piece))]
 #                   P.
 #          Example: query mlabel1 matches '(_ "Eving") * (_ "Innenstadt-Ost") +'
 
-
+# R3 contains only the parts of a trip that are inside an area.
+# Here, append the whole trip.
 let NariTrips4 = NariTrips3 feed {n}
   R3 feed
   itHashJoin[Mmsi_n, Mmsi]
@@ -344,8 +435,6 @@ let NariTrips4 = NariTrips3 feed {n}
 # find trips only in Douarnenez at night
 
 # query NariTrips4 feed filter[.Symbolic matches '(night "Douarnenez")'] extend[Traj: trajectory3(.Trip_n)] consume
-
-
 
 
 
