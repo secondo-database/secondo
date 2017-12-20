@@ -2805,8 +2805,10 @@ streamCountFun (Word* args, Word& result, int message, Word& local, Supplier s)
     case OPEN:
     case CLOSE:
     case REQUEST: {
-      li = new streamCountFunLocalInfo();
-      local.addr = li;
+      if(!li){
+         li = new streamCountFunLocalInfo();
+         local.addr = li;
+      }
       qp->Open(args[0].addr);
       qp->Request(args[0].addr, elem);
       while ( qp->Received(args[0].addr) ){
