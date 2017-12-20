@@ -12,7 +12,7 @@
 #
 ###########################################################################
 
-query fullosmimport('/home/ralf/Daten/arnsberg-regbez-latest.osm', "City")
+query fullosmimport('arnsberg-regbez-latest.osm', "City")
 
 
 let CityNodesNew = CityNodes feed
