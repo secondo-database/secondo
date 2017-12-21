@@ -101,7 +101,8 @@ class SMI_EXPORT SmiProfile
   static std::string GetParameter( const std::string& sectionName,
                               const std::string& keyName,
                               const std::string& defaultValue,
-			      const std::string& fileName );
+                              const std::string& fileName,
+                              const bool expand=true );
 /*
 Searches the profile ~fileName~ for the key ~keyName~ under the section heading
 ~sectionName~. If found, the associated string is returned, else the

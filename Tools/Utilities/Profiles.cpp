@@ -34,6 +34,7 @@ Jan 2005, M. Spiekermann. Changes in getParameter.
 #include <stdio.h>
 #include <unistd.h>
 #include "Profiles.h"
+#include "CharTransform.h"
 
 
 #ifdef SECONDO_WIN32
@@ -44,14 +45,27 @@ using namespace std;
 static bool              CmpSec( const string& line, const string& appName );
 static string::size_type CmpKey( const string& line, const string& keyName );
 
+
 // --- GetParameter : Gets a string parameter from a profile
 
 string SmiProfile::GetParameter( const string& sectionName,
                                  const string& keyName,
                                  const string& defaultValue,
-                                 const string& fileName )
+                                 const string& fileName,
+                                 const bool expand /*=false*/ )
 {
+  // overrule parameter if environment variable is set
   string resultString( "" );
+  char* envStr = 0;
+  envStr= getenv( ("SECONDO_PARAM_"+keyName).c_str() );
+  if (envStr) {
+      resultString = string(envStr);
+      if(expand){
+        expandVarRef(resultString); 
+      }
+      return resultString;
+  }
+
   string line;
   ifstream inf( fileName.c_str() );
 
@@ -90,11 +104,8 @@ string SmiProfile::GetParameter( const string& sectionName,
     resultString = defaultValue;
   }
 
-  // overrule parameter if environment variable is set
-  char* envStr = 0;
-  envStr= getenv( ("SECONDO_PARAM_"+keyName).c_str() );
-  if (envStr) {
-      resultString = string(envStr);
+  if(expand){
+     expandVarRef(resultString); 
   }
 
   return resultString;
