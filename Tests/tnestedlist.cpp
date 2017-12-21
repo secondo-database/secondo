@@ -137,8 +137,8 @@ int
 TestNLCopy()
 {
    int testcase = 0;
-   NestedList nA(rf);
-   NestedList nB(rf);
+   NestedList nA;
+   NestedList nB;
 
    TestCase("Copy Lists between NL-Instances nA, nB");
 
@@ -194,7 +194,7 @@ void
 StringAtom_bug() {
 
    //NestedList nl(10,10,10,10);
-   NestedList nl(rf);
+   NestedList nl;
 
    cout << "Test of String Atoms." << endl << endl;
    cout << "MemoryModel: " << nl.MemoryModel() << endl;
@@ -222,7 +222,7 @@ void
 ConcatLists_bug() {
 
    //NestedList Nl(10,10,10,10);
-   NestedList Nl(rf);
+   NestedList Nl;
    nl = &Nl;
 
    cout << "Test of String Atoms." << endl << endl;
@@ -253,7 +253,7 @@ ConcatLists_bug() {
 
 void empty_textResult() {
 
-   NestedList nl(rf);
+   NestedList nl;
 
    //string s1("(0 0 <text></text---> ())");
    string s1("()");
@@ -297,7 +297,7 @@ TestBasicOperations()
    TextScan TextScan1;
 
    
-   NestedList nl(rf);
+   NestedList nl;
 
    ListExpr sym2 = nl.OneElemList(nl.SymbolAtom("ERRORS"));
    nl.ReadFromString( "(open database opt)", sym2 );
@@ -750,7 +750,7 @@ TestFile(const string& dir, const string& fileBaseName, NestedList& nl) {
 void
 TestInputOutput() {
 
-   NestedList nl(rf);
+   NestedList nl;
 
    TestCase("Input/OutPut of Complex Expressions");
 

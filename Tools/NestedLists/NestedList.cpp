@@ -164,7 +164,7 @@ you comment out the line below.
    boost::mutex smtx;
 #endif
 
-NestedList::NestedList( SmiRecordFile* ptr2RecFile )
+NestedList::NestedList( )
 {
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::mutex> guard1(smtx);

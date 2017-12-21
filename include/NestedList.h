@@ -541,7 +541,7 @@ class TextScanInfo{
 class NestedList
 {
  public:
-  NestedList( SmiRecordFile* ptr2RecFile = 0 );
+  NestedList();
 /*
 Creates an instance of a nested list container.
 
