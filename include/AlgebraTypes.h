@@ -59,6 +59,7 @@ modules but also throughout the whole "Secondo"[3] system.
 #define ALGEBRA_TYPES_H
 
 #include "NestedList.h"
+#include "SecondoSMI.h"
 
 #ifndef TYPE_ADDRESS_DEFINED
 #define TYPE_ADDRESS_DEFINED
