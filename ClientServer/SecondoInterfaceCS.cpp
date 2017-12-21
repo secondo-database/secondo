@@ -172,34 +172,12 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
     }
     initNo++;
     
-    bool ok=false;
-    if(externalNL){
-      if(verbose){
+    if(verbose){
+       if(externalNL){
           cout << "use already existing nested list storage" << endl;
-      }
-    } else {
-      if(verbose){
-         cout << "Setting up temporary Berkeley-DB envinronment" << endl;
-      }
-      if ( SmiEnvironment::SetHomeDir(parmFile) ) {
-           SmiEnvironment::SetUser( user ); // TODO: Check for valid user/pswd
-           ok = true;
       } else {
-           string errMsg;
-           SmiEnvironment::GetLastErrorCode( errMsg );
-            cout  << "Error: " << errMsg << endl;
-            errorMsg += errMsg +"\n";
-            ok=false;
-       }
-
-       if (ok)
-          ok = (SmiEnvironment::CreateTmpEnvironment( cerr ) == 0);
-
-       if (!ok) {
-           cerr << "Error: No Berkeley-DB environment! "
-                << "Persistent nested lists not available!"
-               << endl;
-       }
+         cout << "use newly created nested list storage" << endl;
+      }
     }
 
     // Connect with server, needed host and port
@@ -345,7 +323,6 @@ SecondoInterfaceCS::Terminate()
   {
     if(!externalNL){
       delete nl;
-      SmiEnvironment::DeleteTmpEnvironment();
       nl = 0;
     }
     al = 0;
