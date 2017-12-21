@@ -244,7 +244,6 @@ works with both implementaions.
 #include <float.h>
 
 #include "../Tools/BigArray/BigArray.h"
-#include "SecondoSMI.h"
 
 #ifdef THREAD_SAFE
 #include <boost/thread.hpp>
