@@ -620,7 +620,7 @@ class Document: public Attribute{
       static ListExpr Property(){
         return gentc::GenProperty(
                  "->DATA",
-                 "doc(doctype)",
+                 "(doc doctype)",
                  "base64 format",
                  "...");
       }
