@@ -217,6 +217,10 @@ ListExpr ccPartHashJoin::TypeMapping(ListExpr args)
   //Check for duplicate column-names.
 
   TBlockTI tblockResultInfo = TBlockTI(false);
+  tblockResultInfo.SetDesiredBlockSize(
+    (tblockRInfo.GetDesiredBlockSize() > tblockSInfo.GetDesiredBlockSize()) ?
+     tblockRInfo.GetDesiredBlockSize() :
+     tblockSInfo.GetDesiredBlockSize());
   set<string> columnNames;
 
   for (const TBlockTI::ColumnInfo &columnInfo : tblockRInfo.columnInfos)
