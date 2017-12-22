@@ -82,9 +82,9 @@ class SecondoRegistrar : public Application
   const int EXIT_REGISTRAR_ABORT;
 
   typedef enum {  REGISTER, UNREGISTER, 
-	  LOCK, UNLOCK, 
-	  LOGIN, LOGOUT, LOGMSG, 
-	  SHOWMSGS, SHOWUSERS, SHOWLOCKS, SHOWDATABASES } cmdTok;	
+    LOCK, UNLOCK, 
+    LOGIN, LOGOUT, LOGMSG, 
+    SHOWMSGS, SHOWUSERS, SHOWLOCKS, SHOWDATABASES } cmdTok;  
 };
 
 bool
@@ -328,10 +328,9 @@ SecondoRegistrar::ProcessCommands()
       iostream& ss = request->GetSocketStream();
       string cmd;
       ss >> cmd;
-      trace.out(cmd);	    
+      trace.out(cmd);      
       transform( cmd.begin(), cmd.end(), cmd.begin(), ToUpperProperFunction );
       cmdPos = commandTable.find( cmd );
-          
       if ( cmdPos != commandTable.end() )
       {
         switch (cmdPos->second) {
@@ -340,38 +339,35 @@ SecondoRegistrar::ProcessCommands()
 
           case UNREGISTER: ExecUnregister(); break;
 
-	  case LOCK:       ExecLock(); break;
+          case LOCK:       ExecLock(); break;
 
-	  case UNLOCK:     ExecUnlock(); break;
+          case UNLOCK:     ExecUnlock(); break;
 
-	  case LOGIN:      ExecLogin(); break;
+          case LOGIN:      ExecLogin(); break;
+ 
+          case LOGOUT:     ExecLogout(); break;
 
-	  case LOGOUT:     ExecLogout(); break;
+          case LOGMSG:     ExecLogMsg(); break;
 
-	  case LOGMSG:     ExecLogMsg(); break;
+          case SHOWMSGS:   ExecShowMsgs(); break;
 
-	  case SHOWMSGS:   ExecShowMsgs(); break;
+          case SHOWUSERS:  ExecShowUsers(); break;
 
-	  case SHOWUSERS:  ExecShowUsers(); break;
+          case SHOWLOCKS:  ExecShowLocks(); break;
 
-	  case SHOWLOCKS:  ExecShowLocks(); break;
-
-	  case SHOWDATABASES: ExecShowDatabases(); break;
+          case SHOWDATABASES: ExecShowDatabases(); break;
 
           default:
-	    trace.out("Invalid Command");      
+            trace.out("Invalid Command");      
             ss << "-2 Registrar: Invalid Command " << cmd << endl;
-	}	
-
-      }
-      else
-      {
-	trace.out("Invalid Command");      
+       }  
+     } else {
+        trace.out("Invalid Command");      
         ss << "-2 Registrar: Invalid Command " << cmd << endl;
       }
 
     }
-    delete request;
+    if(request) delete request;
     if ( Application::Instance()->ShouldAbort() )
     {
       rc = EXIT_REGISTRAR_ABORT;
@@ -401,6 +397,7 @@ SecondoRegistrar::Execute()
   {
     parmFile = "SecondoConfig.ini";
   }
+
   trace.show( VAL(parmFile) );
   string msgQueue = SmiProfile::GetUniqueSocketName( parmFile );
 
@@ -415,7 +412,7 @@ SecondoRegistrar::Execute()
   else
   {
     cerr << "REGISTRAR: Error! local socket is *not* ok." << endl;
-  }	  
+  }    
   delete msgSocket;
   cerr << "REGISTRAR is going down with rc = " << rc << endl;
   return (rc);
