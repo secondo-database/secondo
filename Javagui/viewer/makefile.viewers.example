@@ -18,6 +18,7 @@ VIEWER_CLASSES +=   UpdateViewer2.class
 VIEWER_CLASSES +=   QueryconstructionViewer.class
 VIEWER_CLASSES +=   MessageViewer.class
 VIEWER_CLASSES +=   NestedRelationViewer.class
+VIEWER_CLASSES +=   PDFRelCreator.class
 #VIEWER_CLASSES +=   Spatial3DViewer.class
 #VIEWER_CLASSES +=   GrappaViewer.class
 #VIEWER_CLASSES +=   SvgViewer.class
