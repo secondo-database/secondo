@@ -114,16 +114,9 @@ searched.
 */
 
 
-  static std::string GetUniqueSocketName(const std::string& fileName)
-  {
-    std::stringstream sname;
-    sname << GetParameter("Environment", "RegistrarSocketNamePrefix", 
-			  "SECREGIS", fileName); 
-    sname << "_port";
-    sname << GetParameter("Environment", "SecondoPort",
-		          "SECREGIS", fileName);
-    return sname.str();
-  }	  
+  static std::string GetUniqueSocketName(const std::string& fileName);
+
+
 /*
 If many Secondo installations are placed on the same server, the name of the 
 socket used to communicate with the SecondoRegistrar process needs to be 
