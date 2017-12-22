@@ -33,26 +33,26 @@ restore database CREL2MYTEST from '../Algebras/CRel2/CRel2TestData';
 
 #testcase ccPartHashJoinTypeMapping01
 #yields success
-query CityNode feed CityWay feed ccPartHashJoin[NodeId, NodeRef] totuples count;
+query CityNode feed CityWay feed ccPartHashJoin[NodeId, NodeRef] count;
 
 #testcase ccPartHashJoinTypeMapping02
 #comment: Same column names in both tblock streams.
 #yields error
-query CityNode feed CityNode feed ccPartHashJoin[NodeId, NodeId] totuples count;
+query CityNode feed CityNode feed ccPartHashJoin[NodeId, NodeId] count;
 
 #testcase ccPartHashJoinTypeMapping03
 #comment: First argument is not a stream of tuple blocks.
 #yields error
-query CityNode feed totuples CityWay feed ccPartHashJoin[NodeId, NodeRef] totuples count;
+query CityNode feed totuples CityWay feed ccPartHashJoin[NodeId, NodeRef] count;
 
 #testcase ccPartHashJoinTypeMapping04
 #comment: Second join attribute does not exist.
 #yields error
-query CityNode feed CityWay feed ccPartHashJoin[NodeId, NodeRefs] totuples count
+query CityNode feed CityWay feed ccPartHashJoin[NodeId, NodeRefs] count
 
 #testcase ccPartHashJoinValueMapping01
-#yields (int 61)
-query CityNode feed CityWay feed ccPartHashJoin[NodeId, NodeRef] totuples count;
+#yields (longint 61)
+query CityNode feed CityWay feed ccPartHashJoin[NodeId, NodeRef] count;
 
 #teardown
 close database;

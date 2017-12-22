@@ -104,7 +104,7 @@ public:
       "hash join on two tuple-streams, where xi and yj are the names "
       "of the join attributes of the first and second stream, respectively.";
     example = "query CityNode feed CityWay feed "
-                "ccPartHashJoin[NodeId, NodeRef] totuples count";
+                "ccPartHashJoin[NodeId, NodeRef] count";
     remark = "myRemark";  // optional
   }
 };
