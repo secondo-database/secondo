@@ -4,5 +4,5 @@ Restore  : No
 Operator : ccPartHashJoin
 Number   : 1
 Signature: stream(tblock) x stream(tblock) x symbol x symbol -> stream(tblock)
-Example  : query CityNode feed CityWay feed ccPartHashJoin[NodeId, NodeRef] totuples count
-Result   : 61
+Example  : query CityNode feed CityWay feed ccPartHashJoin[NodeId, NodeRef] count
+Result   : (longint 61)
