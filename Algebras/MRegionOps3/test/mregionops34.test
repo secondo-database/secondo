@@ -58,7 +58,9 @@ delete noSamples;
 delete step;
 delete samples;
 delete bInsidea;
+delete aInsideb;
 delete bIntersectsa;
+delete aIntersectsb;
 let noSamples = 101.0;
 let t0A = instant2real(inst(initial(m3)));
 let t0B = instant2real(inst(initial(mr2)));
@@ -71,7 +73,7 @@ let samples = realstream(t0, t1, step)
               use[fun(t: real) create_instant(t)] transformstream consume;
 ################################################################################
 # *
-# * Detailed test, intersects
+# * Detailed test, intersects (1)
 # *
 ################################################################################
 #testcase m3 intersects mr2
@@ -84,7 +86,20 @@ val(m3 atinstant t) intersects val(mr2 atinstant t)
 ] transformstream min[Elem];   
 ################################################################################
 # *
-# * Detailed test, inside
+# * Detailed test, intersects (2)
+# *
+################################################################################
+#testcase mr2 intersects m3
+#yields ()
+let aIntersectsb = mr2 intersects m3;
+#yields (bool TRUE)
+query samples feed transformstream 
+use[ fun(t: instant) val(aIntersectsb atinstant t) = 
+val(mr2 atinstant t) intersects val(m3 atinstant t)
+] transformstream min[Elem]; 
+################################################################################
+# *
+# * Detailed test, inside (1)
 # *
 ################################################################################
 #testcase m3 inside mr2
@@ -95,7 +110,19 @@ query samples feed transformstream
 use[ fun(t: instant) val(bInsidea atinstant t) = 
 val(m3 atinstant t) inside val(mr2 atinstant t)
 ] transformstream min[Elem];
-
+################################################################################
+# *
+# * Detailed test, inside (1)
+# *
+################################################################################
+#testcase mr2 inside m3
+#yields ()
+let aInsideb = mr2 inside m3;
+#yields (bool TRUE)
+query samples feed transformstream 
+use[ fun(t: instant) val(aInsideb atinstant t) = 
+val(mr2 atinstant t) inside val(m3 atinstant t)
+] transformstream min[Elem];
 
 
 

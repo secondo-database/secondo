@@ -4464,7 +4464,7 @@ namespace temporalalgebra {
         layerContainer2.addNonOrthSegment(0,Segment(0,1)); 
         layerContainer2.addNonOrthSegment(0,Segment(2,3)); 
         // cout << layerContainer1;
-        std::vector<bool> predicate5 = {false, false, true, true, false, 
+        std::vector<bool> predicate5 = {false, false, true, true, true, 
                                         true, true, true, false};
         bool result = layerContainer1.intersects(predicate1);
         assert_("LayerContainerTest 8.1", 
@@ -4480,7 +4480,7 @@ namespace temporalalgebra {
         //  else {
         //    cout << "Predikat intersects for slide " << i;
         //    cout << ", false" <<endl;
-        //   }// else          
+        //  }// else          
         }// for
         assert_("LayerContainerTest 8.2", 
                 "A intersection result is not the same.",
@@ -4518,19 +4518,19 @@ namespace temporalalgebra {
       }// LayerContainerTest8
        
       void Selftest::LayerContainerTest9() {
-         LayerContainer layerContainer1(9,true),layerContainer2(9,true);
+         LayerContainer layerContainer1(9,true),layerContainer2(1,true);
         std::vector<bool> predicate1(9),predicate2(9); 
         std::vector<bool> predicate3(1),predicate4(1);   
-        // Inside
+        // Inside - critical 
         layerContainer1.addNonOrthSegment(0,Segment(0,1,RIGHT_IS_INNER)); 
         layerContainer1.addNonOrthSegment(0,Segment(2,3,INTERSECT));
-        // Outside
+        // Outside - critical
         layerContainer1.addNonOrthSegment(1,Segment(4,5,LEFT_IS_INNER)); 
         layerContainer1.addNonOrthSegment(1,Segment(6,7,INTERSECT));
-        // Inside
+        // Inside - critical
         layerContainer1.addNonOrthSegment(2,Segment(8,9,INTERSECT));        
         layerContainer1.addNonOrthSegment(2,Segment(10,11,LEFT_IS_INNER)); 
-        // Outside
+        // Outside - critical
         layerContainer1.addNonOrthSegment(3,Segment(12,13,INTERSECT));
         layerContainer1.addNonOrthSegment(3,Segment(14,15,RIGHT_IS_INNER));
         // Outside/Inside
@@ -4558,12 +4558,12 @@ namespace temporalalgebra {
         layerContainer1.addNonOrthSegment(8,Segment(50,51,NO_INTERSECT)); 
         layerContainer1.addNonOrthSegment(8,Segment(52,53,NO_INTERSECT)); 
         layerContainer1.addNonOrthSegment(8,Segment(54,55,RIGHT_IS_INNER));
-        // Undefined
+        // Undefined - critical
         layerContainer2.addNonOrthSegment(0,Segment(0,1,INTERSECT)); 
         layerContainer2.addNonOrthSegment(0,Segment(2,3,INTERSECT)); 
         // cout << factory1;        
-        std::vector<bool> predicate5 = {true, false, true, false, true, 
-                                        true, true, true, false};
+        std::vector<bool> predicate5 = {true, true, true, true, true, 
+                                        true, true, true, true};
         bool result = layerContainer1.intersects(predicate1);
         assert_("LayerContainerTest 9.1", 
                 "A intersection result is available.",
@@ -4583,13 +4583,13 @@ namespace temporalalgebra {
         assert_("LayerContainerTest 9.2", 
                 "A intersection result isn't equal.",
                 (result));
-        std::vector<bool> predicate6 = {true, false, true, false, false, 
-                                        false, false, false, false};
-        result = layerContainer2.intersects(predicate3);        
+                result = layerContainer2.intersects(predicate3);        
         assert_("LayerContainerTest 9.3", 
                 "A intersection result isn't available.",
-                (!result)); 
+                (result)); 
         // Test for inside
+        std::vector<bool> predicate6 = {true, false, true, false, false, 
+                                        false, false, false, false};
         result = layerContainer1.inside(predicate2);
         assert_("LayerContainerTest 9.4", 
                 "A inside result is available.",

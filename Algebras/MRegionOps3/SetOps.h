@@ -37,6 +37,12 @@ Mai - November 2017, U. Wiesecke for master thesis.
 
 1 Introduction
 
+This file essentially contains the definitions of several classes which
+provides the core functionality of the three set operators
+~intersection~, ~union~ and ~minus~ with the signature \\
+mregion [x] mregion [->] mregion \\
+used in the ~MovingRegionAlgebra~.
+
 2 Defines and Includes
 
 */
@@ -56,12 +62,7 @@ Mai - November 2017, U. Wiesecke for master thesis.
 #ifndef SETOPS_H
 #define SETOPS_H
 
-/*
-2 Enumeration SetOp
 
-Indicates the kind of set operation.
-
-*/
 namespace temporalalgebra {
   namespace mregionops3 {
     class PFace;
@@ -715,7 +716,7 @@ Inserts the start and end time of the time interval
       bool orginalNext(double& t1, double& t2);    
       
       Interval<Instant> createInterval(double start, double end, 
-                                       bool rightClosed = false) const;
+                                       bool lc = true, bool rc = false) const;
       
     private:             
       
@@ -839,7 +840,6 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
       Rectangle<2> boundingRect;  
     }; // PResultFace  
 /*
-
 15 Class CriticalPResultFace
 
 */    
@@ -975,32 +975,35 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
       double orginalStartTime;
       double orginalEndTime;      
     };// ResultUnit        
-    
+/*
+17 class Layer
+
+*/        
     class Layer {
     public:
 /*
-Constructor
+17.1 Constructor
 
 */
       Layer(bool iscritical = false);
       
       Layer(const Layer& layer); 
 /*
-Method addOrthSegment 
+17.3.1 Method addOrthSegment 
  
 Adds an orthogonal segment to the layer
 
 */
       void addOrthSegment(const Segment& segment);
 /*
-Method addNonOrthSegment
+17.3.4 Method addNonOrthSegment
 
 Adds a non-orthogonal segment to layer
 
 */
       void addNonOrthSegment(const Segment& segment);  
 /*
-Method setPredicateFromPredeccor
+17.3.5 Method setPredicateFromPredeccor
 
 Sets the predicate of the segment at the left boundary according 
 to the information of the predecessor      
@@ -1008,7 +1011,7 @@ to the information of the predecessor
 */
       void setPredicateFromPredecessor(Predicate predicate);      
 /*
-Method setPredicateFromSuccessor
+17.3.6 Method setPredicateFromSuccessor
 
 Sets the predicate of the segment at the left boundary according 
 to the information of the successor
@@ -1016,35 +1019,35 @@ to the information of the successor
 */      
       void setPredicateFromSuccessor(Predicate predicate);
 /* 
-Method getPredicateForPredecessor     
+17.3.7 Method getPredicateForPredecessor     
 
 Returns the predicate for the left segment of the successor
 
 */
       Predicate getPredicateForPredecessor()const;
 /*  
-Method getPredicateForSuccessor
+17.3.8 Method getPredicateForSuccessor
  
 Returns the predicate for the left segment of the predecessor
  
 */
       Predicate getPredicateForSuccessor()const;
 /*
-Method getBorderPredicate
+17.3.9 Method getBorderPredicate
 
 Returns the predicates for the left and right border
 
 */
       void getBorderPredicates(Predicate& left, Predicate& right)const;
 /*
-Method setBorderPrediacte
+17.3.10 Method setBorderPrediacte
 
 sets the predicates for the left and right border
 
 */
       void setBorderPrediactes(Predicate left, Predicate right); 
 /*
-Method evaluate
+17.3.11 Method evaluate
 
 Determines the predicates of all segments of a layer with the help 
 of the intersegment segments
@@ -1053,33 +1056,33 @@ of the intersegment segments
       bool evaluate();
 
 /*
-Method print
+17.3.12 Method print
 
 Output the content into a stream
 
 */
       std::ostream& print(std::ostream& os,std::string prefix)const;
 /*
-Operator <<
+17.3.13 Operator <<
 
 */      
       friend std::ostream& operator <<(std::ostream& os, const Layer& layer);
 /*
-Operator ==
+17.3.14 Operator ==
 
 Comparison operator, compare two objects for equality.
 
 */        
       bool operator ==(const Layer& layer)const;   
 /*
-Operator ==
+17.3.15 Operator ==
 
 Assignment operator
 
 */            
       Layer& operator =(const Layer& other);  
 /*
-Method intersects 
+17.3.16 Method intersects 
  
 The method determines whether an intersection is within a layer. The result is
 returned via the reference predicate. If an evaluation of the layer is possible,
@@ -1088,7 +1091,7 @@ the return value is "true"
 */
       bool intersects(bool& predicate)const;
 /*
-Method inside
+17.3.17 Method inside
 
 The method determines whether a layer is within the other region unit. 
 The result is returned via the reference predicate. If an evaluation of the 
@@ -1097,7 +1100,7 @@ layer is possible, the return value is "true"
 */      
       bool inside(bool& predicate)const;
 /*
- Method getResultUnit
+17.3.18 Method getResultUnit
  
  In the result unit, the moving segments of the layer are created and stored 
  which correspond to the desired predicate. Critical moving segments are 
@@ -1110,14 +1113,14 @@ layer is possible, the return value is "true"
 
     private:
 /*
-Method getBorderPredicate
+17.4.1 Method getBorderPredicate
 
 Returns the predicate of the area bounded by the segment
 
 */
       Predicate getBorderPredicate(const Segment& segment, Border border)const;
 /*
-Method getAreaPredicate
+17.4.2 Method getAreaPredicate
 
 Returns the predicate of the surface bounded by the left and right segments
 
@@ -1125,24 +1128,23 @@ Returns the predicate of the surface bounded by the left and right segments
       Predicate getAreaPredicate(size_t left, size_t right, size_t orthogonal, 
                                  bool orthSegmentExist)const;      
 /*
-Method print
+17.4.3 Method print
 
 Outputs a vector into a stream
 
 */      
       void print(std::ostream& os, std::vector<size_t> values)const;
 /*
-Method set
+17.4.4 Method set
 
 Applies the attributes of another object of the same class
 
 */            
       void set(const Layer& layer);    
 /*
-Attributes
+17.5 Attributes
 
 */      
-      // Attribute
       SegmentContainer     segments;
       std::vector<size_t>  orthSegments;
       std::vector<size_t>  nonOrthSegments;
@@ -1151,12 +1153,14 @@ Attributes
       bool                 isCritical;      
     }; // class Layer
     
-    
-    
+/*
+18 class LayerContainer
+
+*/          
     class LayerContainer {
     public:
 /*
-Constructor
+18.1 Constructor
 
 */      
       LayerContainer(size_t size = 0, bool isCritcal = false);
@@ -1168,34 +1172,34 @@ Constructor
                      PlaneSweepAccess &access,
                      bool isCritcal);
 /*
-Method addOrthSegment 
+18.3.1 Method addOrthSegment 
  
 Add the orthogonal segment to the specified layer
 
 */
       void addOrthSegment(size_t layer, const Segment& segment);
 /*
-Method addNonOrthSegment
+18.3.2 Method addNonOrthSegment
 
 Add the non-orthogonal segment to the specified layer
 
 */
       void addNonOrthSegment(size_t layer, const Segment& segment); 
 /*
-Method print
+18.3.3 Method print
 
 Output the content into a stream
 
 */
       std::ostream& print(std::ostream& os,std::string prefix)const;
 /*
-Operator <<
+18.3.4 Operator <<
 
 */      
       friend std::ostream& operator <<(std::ostream& os, 
                                        const LayerContainer& layerContainer);
 /*
-Method evaluate
+18.3.5 Method evaluate
 
 In all layers of a P-Face, the predicates of the intersegment segments or 
 boundaries are evaluated. If all layers of the P-PFace could be evaluated, 
@@ -1204,7 +1208,7 @@ the return value is "true".
 */
       bool evaluate();
 /*
-Method getBorderPredicates
+18.3.6 Method getBorderPredicates
 
 Returns the predicate for the left and right boundary of the layers 
 of a P-Faces.
@@ -1212,33 +1216,32 @@ of a P-Faces.
 */
       void getBorderPredicates(Predicate& left, Predicate& right)const;
 /*
-Operator ==
+18.3.7 Operator ==
 
 Comparison operator, compare two objects for equality.
-
 
 */      
       bool operator ==(const LayerContainer& other)const;
 /*
-Operator =
+18.3.8 Operator =
 
 Assignment operator
 
 */
       LayerContainer& operator =(const LayerContainer& other);  
 /*
-Method intersects
+18.3.9 Method intersects
 
 */    
       bool intersects(std::vector<bool>& predicate)const;
 /*
-Method inside
+18.3.10 Method inside
 
 */      
       bool inside(std::vector<bool>& predicate)const; 
  
 /*
-Method getResultUnit
+18.3.11 Method getResultUnit
  
 In the result unit, the moving segments of the given layer are created 
 and stored, which correspond to the desired predicate. Critical moving 
@@ -1246,19 +1249,19 @@ segments are recorded seperately in the results unit.
  
 */      
       void getResultUnit(size_t layer, Predicate soughtPredicate,
-        bool reverse, const Point3DContainer& points, 
-        ResultUnit& unit, SourceFlag source)const;
+      bool reverse, const Point3DContainer& points, 
+      ResultUnit& unit, SourceFlag source)const;
       
     private:
 /*
-Method set
+18.4.1 Method set
 
 Applies the attributes of another object of the same class
 
 */      
       void set(const LayerContainer& other);      
 /*
-Attributes
+18.5 Attributes
 
 */      
       std::vector<Layer> layers;  
@@ -1266,14 +1269,14 @@ Attributes
     };// LayerContainer
         
 /*
-18 Class PFace
+19 Class PFace
 
 */    
     class PFace: public PResultFace, public PlaneSweepAccess {
     friend class Selftest;    
     public:
 /*
-18.1 Constructors
+19.1 Constructors
 
 */
       PFace(size_t left, size_t right,const Point3DContainer& points, 
@@ -1285,33 +1288,33 @@ Attributes
             
       PFace(const PFace& pf); 
 /*
-18.2 Setter and Getter methods
+19.2 Setter and Getter methods
 
 */
       void set(const PFace& pf);
       void setState(State state);
       State getState() const;
 /*
-18.3 Methods, operators and predicates
+19.3 Methods, operators and predicates
 
-18.3.1 existsIntSegs
+19.3.1 existsIntSegs
 
 */
       bool existsIntSegs()const;
 /*
-18.3.2 print
+19.3.2 print
 
 */        
       std::ostream& print(std::ostream& os, std::string prefix)const;     
 /*
-18.3.3 Operator <<
+19.3.3 Operator <<
     
 Print the object values to stream.
 
 */            
       friend std::ostream& operator <<(std::ostream& os, const PFace& pf);      
 /*
-18.3.4 intersection
+19.3.4 intersection
 
 Computes the intersection of this ~PFace~ with pf. 
 
@@ -1322,12 +1325,12 @@ Computes the intersection of this ~PFace~ with pf.
 
       bool intersection(PFace& other,GlobalTimeValues &timeValues);
 /*
-18.3.5 toString
+19.3.5 toString
 
 */      
       static std::string toString(State state);
 /*
-18.3.6 addIntSeg
+19.3.6 addIntSeg
 
 */       
       // für den Selbsttest
@@ -1338,7 +1341,7 @@ Computes the intersection of this ~PFace~ with pf.
                      const RationalSegment3D &intSeg,
                      GlobalTimeValues &timeValues);
 /*
-18.3.7 Method addBorder
+19.3.7 Method addBorder
 
 The method adds the left and right border of the P-Face to the 
 intersection segments.Te predicate "Undefined" is used.
@@ -1363,24 +1366,24 @@ of the border segments of the P-Face.
  */
       void setBorderPredicate(SegmentContainer& segment, Predicate predicate);
 /*
-18.3.8 Operator =
+19.3.8 Operator =
 
 */  
       PFace& operator =(const PFace& pf);
 /*
-18.3.9 Operator ==
+19.3.9 Operator ==
 
 */        
       bool operator ==(const PFace& pf)const;
 /*
-18.3.10 first
+19.3.10 first
     
 */    
       void first(double t1, double t2, Point3DContainer& points,
                                        SegmentContainer& segments,
                                        bool pFaceIsCritical);
 /*
-18.3.11 next
+19.3.11 next
     
 */     
       void next(double t1, double t2, Point3DContainer& points, 
@@ -1401,7 +1404,7 @@ of the border segments of the P-Face.
                          SourceFlag source);
     private:  
 /*
-Method getBorderSegments
+19.4.1 Method getBorderSegments
 
 The method determines all or only the segments for the left and right edges 
 of a P-Face, depending on the boolean variable "all".
@@ -1409,7 +1412,7 @@ of a P-Face, depending on the boolean variable "all".
 */
       void getBorderSegments(bool all, std::vector<RationalSegment3D>& borders);
 /*
-Method intersection
+19.4.2 Method intersection
 
 The method calculates the segment of the intersection for the edge segments
 of a P-Face and a segment. All segments are exists on the plane of the 
@@ -1420,7 +1423,7 @@ P-Face. If a section segment exists, the return value is "true".
                         const RationalSegment2D& segment, 
                         RationalSegment2D& result);
 /*
-Method map
+19.4.3 Method map
 
 The method transfers the points of a segment in the plane to a segment
 in the (x, y, t) space. The points of the intersection must lie on the 
@@ -1432,7 +1435,7 @@ transformation of the segment in space.
                             const RationalSegment2D& orginal2D, 
                             const RationalSegment2D& intersection);
 /*
-18.4.3 createBorder
+19.4.4 createBorder
 
 Creates a segment for the boder of a P-Face. Whether it is the left or 
 right edge is defined by the value of "border".
@@ -1441,7 +1444,7 @@ right edge is defined by the value of "border".
       IntersectionSegment createBorder(const RationalPlane3D &planeSelf,
                                        Border border, Predicate predicate);
 /*
-18.5 Attributes
+19.5 Attributes
 
 */      
       IntSegContainer    intSegs;
@@ -1452,7 +1455,7 @@ right edge is defined by the value of "border".
     };// class PFace  
     
 /*
-19 Class FaceCycleInfo
+20 Class FaceCycleInfo
 
 */
     class FaceCycleInfo {
@@ -1466,7 +1469,7 @@ right edge is defined by the value of "border".
       
     private:
 /*
-19.5 Attributes
+20.5 Attributes
 
 */        
       size_t firstIndex;
@@ -1474,26 +1477,22 @@ right edge is defined by the value of "border".
     };
     
 /*
-20 class SourceUnit
+21 class SourceUnit
 
 */        
     class SourceUnit{
     public:
 /*
-20.1 Constructor
+21.1 Constructors and Destructor
 
 */       
       SourceUnit();
-      SourceUnit(const SourceUnit& other);
-/*
-20.1 Destructor
-
-*/       
+      SourceUnit(const SourceUnit& other);     
       ~SourceUnit();
 /*
-20.2 Methods, operators and predicates
+21.2 Methods, operators and predicates
 
-20.2.3 addPFace
+21.2.3 addPFace
     
 */      
       void addPFace(const Segment& left, const Segment& right, 
@@ -1510,7 +1509,7 @@ right edge is defined by the value of "border".
       void addToResultUnit(ResultUnit& result)const;
       
 /*
-20.2.4 intersection
+21.2.4 intersection
     
 */       
       void intersection(SourceUnit& other, GlobalTimeValues& timeValues); 
@@ -1532,7 +1531,7 @@ right edge is defined by the value of "border".
       
       std::ostream& print(std::ostream& os, std::string prefix)const;
 /*
-20.2.5 Operator <<
+21.2.5 Operator <<
     
 Print the object values to stream.
 
@@ -1540,7 +1539,7 @@ Print the object values to stream.
       friend std::ostream& operator <<(std::ostream& os, 
                                        const SourceUnit& unit);
 /*
-20.2.6 Operator ==  
+21.2.6 Operator ==  
 
 */       
       bool operator ==(const SourceUnit& unit)const; 
@@ -1569,7 +1568,7 @@ Print the object values to stream.
       
       void set(const SourceUnit& other);
 /*
-20.3 Attributes
+21.5 Attributes
 
 */       
       std::vector<PFace*> pFaces;
@@ -1581,7 +1580,7 @@ Print the object values to stream.
       std::vector<std::vector<FaceCycleInfo>> faceCycleInfo;            
     };// class SourceUnit 
 /*
-21 Class SourceUnitPair
+22 Class SourceUnitPair
 
 */ 
     class SourceUnitPair {
@@ -1612,14 +1611,14 @@ Print the object values to stream.
       
       void createResultMRegion( MRegion* resMRegion);
       
-      void createResultMBool(MBool* resMBool, bool last );
+      void createResultMBool(MBool* resMBool, bool lc, bool rc );
       
       void createSourceUnit(const Interval<Instant>& interval, MRegion* mregion,
                             SourceFlag sourceFlag);
 
     private:      
 /*
-21.4 Attributes
+22.4 Attributes
 
 */
       SourceUnit unitA;
@@ -1630,7 +1629,7 @@ Print the object values to stream.
       Point3DContainer points; 
     };
 /*
-22 class SetOperator
+23 class SetOperator
 
 */
     class SetOperator {
@@ -1643,7 +1642,7 @@ Print the object values to stream.
 
     private: 
 /*
-22.4 Attributes
+23.4 Attributes
 
 */
       MRegion* const mRegionA;
@@ -1652,7 +1651,7 @@ Print the object values to stream.
     }; // class SetOperator
 
 /*
-23 class SetOperator
+24 class SetOperator
 
 */
     class PredicateOperator {
@@ -1665,7 +1664,7 @@ Print the object values to stream.
 
     private: 
 /*
-22.4 Attributes
+24.4 Attributes
 
 */
       MRegion* const mRegionA;

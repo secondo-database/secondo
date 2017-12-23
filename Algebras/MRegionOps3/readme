@@ -1,0 +1,11 @@
+The MRegionOps3Algebra uses the GMP-library, so the following needs to be done:
+In the file makefile.optimizer the option -lgmpxx has to be added at line 67: -lgmpxx
+
+LD_GMP := -lgmpxx -lgmp
+
+or use the switch in the makefile.algebras file:
+
+ALGEBRA_DIRS += MRegionOps3
+ALGEBRAS     += MRegionOps3Algebra
+ALGEBRA_DEPS += gmpxx gmp
+

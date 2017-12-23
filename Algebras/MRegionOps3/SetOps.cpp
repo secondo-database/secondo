@@ -858,12 +858,12 @@ namespace temporalalgebra {
     }// getScaledEndTime
     
     Interval<Instant> GlobalTimeValues::createInterval(
-        double start, double end, bool rightClosed/*=false*/) const{
+        double start, double end, bool lc/*=true*/, bool rc/*=false*/) const{
       Instant starttime(datetime::instanttype);
       Instant endtime(datetime::instanttype);
       starttime.ReadFrom(start);
       endtime.ReadFrom(end);
-      return (Interval<Instant>(starttime, endtime, true, rightClosed));
+      return (Interval<Instant>(starttime, endtime, lc, rc));
     }// createInterval
     
     double GlobalTimeValues::computeOrginalTimeValue(
@@ -1026,18 +1026,18 @@ namespace temporalalgebra {
       Point2D end;
       double startTime = timeValues.getScaledStartTime(); 
       double endTime   = timeValues.getScaledEndTime();
-      // Fallen die Initialpunkte zusammen
+      // Fall the initial points together
       if (!mSeg.GetPointInitial()) {
-        // Start und Endpunkt am initialen Sgement bestimmen
+        // Determine startpoint and endpoint on the initial segment
         start = Point2D(mSeg.GetInitialStartX(), mSeg.GetInitialStartY());
         end   = Point2D(mSeg.GetInitialEndX(), mSeg.GetInitialEndY());        
       }// if
       else {
-        // Start und Endpunkt an dem finalen Segment bestimmen
+        // Determine startpoint and endpoint on the final segment
         start = Point2D(mSeg.GetFinalStartX(), mSeg.GetFinalStartY());
         end   = Point2D(mSeg.GetFinalEndX(), mSeg.GetFinalEndY());
       }// else
-      // Startpunkte festlegen
+      // Set start points
       if ((start < end) == mSeg.GetInsideAbove()) {                     
         this->leftStart  = Point3D(mSeg.GetInitialStartX(), 
                                    mSeg.GetInitialStartY(),
@@ -1066,9 +1066,9 @@ namespace temporalalgebra {
                                    mSeg.GetFinalStartY(),
                                    endTime);        
       }// else 
-      // mittleres Halbsegment berechnen
+      // Calculate middle halfsegment
       createMedianHS();
-      // Indizes setzen
+      // Set indexes
       medianHS.attr.faceno  = mSeg.GetFaceNo();
       medianHS.attr.edgeno  = mSeg.GetSegmentNo();
       medianHS.attr.cycleno = mSeg.GetCycleNo();
@@ -1533,11 +1533,11 @@ namespace temporalalgebra {
         region.Get(i, halfSegment);
         prFaces[i].copyIndicesFrom(&halfSegment);
       }// for
-      // Sort prFaces by faceno, cycleno and segmentno:
+      // Sort prFaces by faceno, cycleno and segmentno
       sort(prFaces.begin(), prFaces.end(), ResultUnit::logicLess);
       //  this->Print();
       // Erase the second half of prFaces, 
-      // which contains all PResultFaces with right dominating point:
+      // which contains all PResultFaces with right dominating point
       prFaces.erase(prFaces.begin() + prFaces.size() / 2, 
                       prFaces.end());
     }// finalize
@@ -1588,28 +1588,22 @@ namespace temporalalgebra {
     void ResultUnit::evaluateCriticalMSegmens(SetOp setOp){
       // Sort by midpoints:
       sort(mCSegments.begin(), mCSegments.end());
-      // Existieren kritische Segmente
       if (mCSegments.size() > 0) {
-        // über alle Segmente
         size_t i;
         for (i = 0; i < mCSegments.size()-1; i++) {
           CriticalPResultFace cmSeg0 = mCSegments[i];
           CriticalPResultFace cmSeg1 = mCSegments[i+1];
-          // besitze die beiden Segmente den gleichen Mittelpunkt
           if(cmSeg0.getMidPoint() == cmSeg1.getMidPoint()) {
             if (cmSeg0.hasEqualNormalVector(cmSeg1)) {
               addPResultFace(cmSeg0);
             }// if
-            // zweites Segment berücksichtigen
             i++;
           }// if  
           else {
-            // zu diesem Segment gibt es kein zweites Segment
             copyCriticalMSegmens(cmSeg0,setOp);
           }// else          
         }// for
         if (i == mCSegments.size()-1) {
-          // Letztes Segment hat auch keinen Partner
           CriticalPResultFace cmSeg = mCSegments[i];
           copyCriticalMSegmens(cmSeg,setOp);
         }// if
@@ -1617,7 +1611,7 @@ namespace temporalalgebra {
       mCSegments.clear();      
     }// evaluateCriticalMSegmens  
 /*
-class Layer
+17 class Layer
 
 */  
     Layer::Layer(bool isCritical /*= false*/){
@@ -1906,17 +1900,22 @@ class Layer
         NUM_FAIL ("there must be at least two segments."); 
       }// if      
       // relevantes P-Face with more than two segments
-      if (!this->isCritical && size > 2){
+      if (/*!this->isCritical && */ size > 2){
         predicate = true;
         return true;
       }// if
       // relevantes P-Face with exactly two segments
-      if (!this->isCritical && size == 2){
+      if (/*!this->isCritical && */size == 2){
         size_t first     = this->nonOrthSegments[0];
-        size_t second    = this->nonOrthSegments[1]; 
+        size_t second    = this->nonOrthSegments[1];
         Predicate result = getAreaPredicate(first, second, first, false);
         // cout << "Predicate:=" << toString(result) << endl;
-        if (result == INNER) {
+        if ( segments.get(first).getPredicate()  == INTERSECT ||
+             segments.get(second).getPredicate() == INTERSECT){
+          predicate = true;
+          return true;  
+        }// if 
+        else if (result == INNER) {
           predicate = true;
           return true;
         }// if
@@ -1924,30 +1923,7 @@ class Layer
           predicate = false;
           return true;
         }// else if
-      }// if
-      else { 
-        //critical P-Face
-        Predicate oldPredicate = UNDEFINED;
-        for (size_t i = 0; i < size-1; i++){
-          Predicate newPredicate = getAreaPredicate(this->nonOrthSegments[i],
-            this->nonOrthSegments[i+1],this->nonOrthSegments[i], false);
-          // cout << "Old Predicate:=" << toString(oldPredicate) << endl;
-          // cout << "New Predicate:=" << toString(newPredicate) << endl;
-          // cout << "Left segment.=";
-          // cout << this->segments.get(this->nonOrthSegments[i]) << endl;
-          // cout << "Right segments:=";
-          // cout << this->segments.get(this->nonOrthSegments[i+1]) << endl;
-          if (newPredicate == INNER) {
-            predicate = true;
-            return true;
-          }// if
-          if(newPredicate != UNDEFINED) oldPredicate = newPredicate;
-        }// for
-        if(oldPredicate == OUTER){
-            predicate = false;
-            return true;
-        }// if          
-      }// else
+      }// if     
       predicate = false;
       return false;
     }// intersects
@@ -2038,7 +2014,7 @@ class Layer
       }// for
     }// getResultUnit  
 /*
-class LayerContainer
+18 class LayerContainer
 
 */
     LayerContainer::LayerContainer(size_t size /* = 0 */, 
@@ -2224,7 +2200,7 @@ class LayerContainer
       }// if
     }// getResultUnit     
 /*
-18 Class PFace
+19 Class PFace
 
 */  
     PFace::PFace(size_t left, size_t right, const Point3DContainer& points, 
@@ -2249,18 +2225,14 @@ class LayerContainer
       Point2D end;
       double startTime = timeValues.getScaledStartTime(); 
       double endTime   = timeValues.getScaledEndTime();
-      // Fallen die Initialpunkte zusammen
       if (!mSeg.GetPointInitial()) {
-        // Start und Endpunkt am initialen Sgement bestimmen
         start = Point2D(mSeg.GetInitialStartX(), mSeg.GetInitialStartY());
         end   = Point2D(mSeg.GetInitialEndX(), mSeg.GetInitialEndY());        
       }// if
       else {
-        // Start und Endpunkt an dem finalen Segment bestimmen
         start = Point2D(mSeg.GetFinalStartX(), mSeg.GetFinalStartY());
         end   = Point2D(mSeg.GetFinalEndX(), mSeg.GetFinalEndY());
       }// else
-      // Startpunkte festlegen
       Point3D leftStart, rightStart, leftEnd, rightEnd;
       if ((start < end) == mSeg.GetInsideAbove()) {                     
         leftStart  = Point3D(mSeg.GetInitialStartX(), 
@@ -2301,9 +2273,7 @@ class LayerContainer
       this->rightStart  = points.get(iRightStart);
       this->rightEnd    = points.get(iRightEnd);
            
-      // mittleres Halbsegment berechnen
       createMedianHS();
-      // Indizes setzen
       medianHS.attr.faceno  = mSeg.GetFaceNo();
       medianHS.attr.edgeno  = mSeg.GetSegmentNo();
       medianHS.attr.cycleno = mSeg.GetCycleNo();
@@ -2643,36 +2613,21 @@ class LayerContainer
         }// else     
       }// if
       else if (this->state == NOT_RELEVANT) result = true;
-      // Für PFaces ohne Schnitte wird das Prädikat von der einen kante
-      // zur anderen Kante weiter gereicht
       else {
-        // Prädikat der linken Kante bestimmen
         leftPredicate  = segments.get(this->left).getPredicate();
-        // Prädikat der rechten Kante bestimmen
         rightPredicate = segments.get(this->right).getPredicate();
-        // die Prädikate "INNER" und "OUTER" werden von der linken Kante
-        // auf die rechte Kante übernommen, falls erforderlich
         if (leftPredicate == INNER || leftPredicate == OUTER) {
-          // Prädikat ändern, wenn dieses "UNDEFINED"
           if (rightPredicate == UNDEFINED) {
-            // Prädikat der rechten kante setzen
             segments.set(this->right,leftPredicate);
           }// if
-          // Kanteninformation des PFace ist vollständig
           result = true;
         }// if        
-        // die Prädikate "INNER" und "OUTER" werden von der rechten Kante
-        // auf die linke Kante übernommen, falls erforderlich
         if (rightPredicate == INNER || rightPredicate == OUTER) {
-          // Prädikat ändern, falls dieses "UNDEFINED" ist
           if (leftPredicate == UNDEFINED) {
-            // Prädikat der linken Kante setzen
             segments.set(this->left,rightPredicate);
           }// if
-          // Kanteninformation des PFace ist volständig
           result = true;
         }// if
-        // Information für das PFace ist bereits vollständig
         result = false;
       }// else 
       return result;
@@ -2681,7 +2636,6 @@ class LayerContainer
     bool PFace::intersects(Point3DContainer& points, 
                            GlobalTimeValues& timeValues,
                            std::vector<bool>& predicate){
-      // Für relevante und Kritrsche PFaces
       if (this->state == RELEVANT || this->state == CRITICAL) {
         bool isCritical = false;
         if(this->state == CRITICAL) isCritical = true;
@@ -2695,7 +2649,6 @@ class LayerContainer
     bool PFace::inside(Point3DContainer& points, 
                        GlobalTimeValues& timeValues,
                        std::vector<bool>& predicate){
-      // Für relevante und Kritrsche PFaces
       if (this->state == RELEVANT || this->state == CRITICAL) {
         bool isCritical = false;
         if(this->state == CRITICAL) isCritical = true;
@@ -2715,7 +2668,7 @@ class LayerContainer
       }// if  
     }// getResultPFace   
 /*
-19 class FaceCycleInfo
+20 class FaceCycleInfo
 
 */      
     FaceCycleInfo::FaceCycleInfo():touch(false){
@@ -2737,7 +2690,7 @@ class LayerContainer
       return this->firstIndex;
     }// getFirstIndex
 /*
-20 class SourceUnit
+21 class SourceUnit
 
 */          
     SourceUnit::SourceUnit():pFaceTree(4,8),testRegion(0),
@@ -2856,7 +2809,6 @@ class LayerContainer
       other.checkFaceCycleEntrys(*this);      
     }// intersection
     
-
     void SourceUnit::intersectionFast(SourceUnit& other,
                                       GlobalTimeValues& timeValues){
        // Over all P-Face of the source.
@@ -2925,91 +2877,76 @@ class LayerContainer
                               GlobalTimeValues& timeValues, 
                               Predicate predicate,
                                SourceUnit& other){
-      // Vektor mit Bool-Werten für den Bearbeitungsstand der PFaces
       vector<bool> ok = vector<bool>(pFaces.size(),false);
-      // 
-      // zuerst alle PFaces mit Schnitten
-      //
-      // über alle PFaces, welche an Schnitten beteidigt sind
+      // first process all P-Face with intersectionsegments
       for (size_t i = 0; i < this->itersectedPFace.size(); i++) {
-        // index eines geschnittenden PFace laden
         size_t index = itersectedPFace[i];
-        // wurde das PFace noch nicht behandelt
-        
         // cout << *this;     
-        
         if (!ok[index]) {
-          // Ergebnis ermitteln
-          bool result = this->pFaces[index]->finalize(
+          ok[index] = this->pFaces[index]->finalize(
             points, this->segments,timeValues); 
-          // erfolgreiche Bearbeitung vermerken
-          ok[index] = result;
         }// if
-      }// for       
-      //
-      // jetzt alle PFaces ohne Schnitte und die Pfaces welche nicht
-      // verarbeitet werden konnten, verarbeiten
-      // 
-      bool finalize;
-      size_t j = 0;
-      // zwei Durchläufe, falls nach dem ersten Durchlauf noch 
-      // kein Ergebnis vorliegt
-      
-      // cout << *this;      
-      
-      do {
-        // Ergebnis ist korrekt 
-        finalize = true;
-        // über alle PFaces
-        for (size_t i = 0; i < this->pFaces.size(); i++) {
-          // wurde das PFace bereits erfolgreich bearbeitet
-          if (!ok[i]) {
-            // Grenzen des PFace dem Ergebnis hinzufügen bzw. die
-            // Grenzen aktualisieren
-            this->pFaces[i]->addBorder(segments,predicate);
-            // Ergebnis ermitteln
-            bool result = this->pFaces[i]->finalize(
-              points,this->segments,timeValues);
-            // hier ist kein weiteres Ergebnis zu erwarten
-            if( this->pFaces[i]->getState() == CRITICAL && 
-                j == 3 &&  result == false){
-              result = true;              
-            }// if            
-            // war die operation erolgreich
-            if (result != true) finalize = false;
-            // erfolgreiche Verarbeitung vermerken
-            else ok[i] = result;                        
+      }// for      
+      // then process all P-Face without cutting segments forward
+      bool finalize = true;
+      for (size_t i = 0; i < this->pFaces.size(); i++) {
+        if (!ok[i]) {
+          this->pFaces[i]->addBorder(segments,predicate);
+          bool result  = this->pFaces[i]->finalize(
+            points, this->segments,timeValues); 
+          if (!result) finalize = false;
+          else ok[i] = result;
+        }// if
+      }// for  
+      if (finalize) return true;
+      // and backward
+      finalize = true;
+      for (int i = this->pFaces.size()-1; i >= 0; i--) {
+        if (!ok[i]) {
+          this->pFaces[i]->addBorder(segments,predicate);
+          bool result = this->pFaces[i]->finalize(
+            points, this->segments,timeValues);  
+          if (!result) finalize = false;
+          else ok[i] = result;
+        }// if
+      }// for  
+      if (finalize) return true;
+      // Determine the position of the p-Face explicitly
+      finalize = true;
+      for (size_t i = 0; i < this->pFaces.size(); i++) {
+        if (!ok[i] && this->pFaces[i]->getState() != CRITICAL){  
+          // for non critical P-faces
+          if (other.isInside(this->pFaces[i])) {
+            this->pFaces[i]->setBorderPredicate(segments,INNER);
           }// if
-        }// for  
-        // Anzahl der Durchläufe erhöhen
-        j++;
-        // zwei Durchläufe werden maximal benötigt. Der dritte
-        // Durchlauf läuft ohne Bearbeitung durch
-        if (j == 3 ) {  
-          for (size_t i = 0; i < this->pFaces.size(); i++) {
-            // wurde das PFace bereits erfolgreich bearbeitet
-            if (!ok[i] && this->pFaces[i]->getState() != CRITICAL){  
-              // liegt es innerhalb der andern SourceUnit            
-              if (other.isInside(this->pFaces[i])) {
-                this->pFaces[i]->setBorderPredicate(segments,INNER);
-              }// if
-              else {
-                this->pFaces[i]->setBorderPredicate(segments,OUTER);
-              }// else
-            }// if
-          }// for
+          else {
+            this->pFaces[i]->setBorderPredicate(segments,OUTER);
+          }// else
+          this->pFaces[i]->addBorder(segments,predicate);
+          bool result = this->pFaces[i]->finalize(
+          points, this->segments,timeValues); 
+          if (!result) finalize = false;
+          else ok[i] = result;
         }// if
-        if(j > 4){
-          cerr << " Finalized Pfaces:= ";
-          for (size_t i = 0; i< ok.size(); i++) {
-             cerr << ok[i];
-          }// for
-          cerr << endl;
-          cerr << *this;
-          NUM_FAIL("Finalize for Source Unit is not possible.");
+      }// for
+      for (size_t i = 0; i < this->pFaces.size(); i++) {
+        if (!ok[i] && this->pFaces[i]->getState() == CRITICAL){  
+          // for critical P-faces
+          this->pFaces[i]->addBorder(segments,predicate);
+          bool result = this->pFaces[i]->finalize(
+          points, this->segments,timeValues); 
+          if (result) ok[i] = result;
         }// if
-      } while (!finalize);
-      return true;
+      }// for            
+      if (finalize) return true;
+      cerr << " Finalized Pfaces:= ";
+      for (size_t i = 0; i< ok.size(); i++) {
+        cerr << ok[i];
+      }// for
+      cerr << endl;
+      cerr << *this;      
+      NUM_FAIL("Finalize for Source Unit is not possible.");      
+      return false;
     }// finalize
     
     void SourceUnit::intersects(Point3DContainer& points, 
@@ -3038,27 +2975,8 @@ class LayerContainer
           result = true;
         }// if       
         ok[i] = true;  
-      }// for
-      for (size_t i = 0; i < other.itersectedPFace.size(); i++) {
-        size_t index = other.itersectedPFace[i];
-        if(other.pFaces[index]->intersects(points, timeValues, 
-                                           resultPredicates)){
-          for(size_t i = 0; i < resultPredicates.size(); i++){
-            // if(predicates[i]){
-            //  cout << "Predicate intersects for slide " << i;
-            //  cout << ", true" <<endl;
-            // }// if
-            // else {
-            //   cout << "Predicate intersects for slide " << i;
-            //   cout << ", false" <<endl;
-            // }// else          
-            predicates[i] = predicates[i] || resultPredicates[i];
-          }// for
-          result = true;
-        }// if      
-        ok[i] = true;  
-      }// for
-      if (result) return;
+      }// for  
+      if (result) return;      
       for (size_t i = 0; i < this->pFaces.size(); i++) {
         if (!ok[i] && this->pFaces[i]->getState() != CRITICAL){             
           if (other.isInside(this->pFaces[i])) {
@@ -3321,7 +3239,7 @@ class LayerContainer
       }// else  
     }// isInside  
 /*
-21 Class SourceUnitPair      
+22 Class SourceUnitPair      
 
 */     
     SourceUnitPair::SourceUnitPair(double orginalStartTime /* = 0*/,
@@ -3543,12 +3461,13 @@ class LayerContainer
       return false;      
     }// predicate    
 
-    void SourceUnitPair::createResultMBool( MBool* resMBool, bool last){
+    void SourceUnitPair::createResultMBool( MBool* resMBool, bool lc, bool rc){
       if ((timeValues.size() > 1) && predicates.size() > 0){
         double t1,t2,t3;
         // cout << " timeValues " << timeValues <<endl;
         this->timeValues.orginalFirst(t1,t2);
         bool value = predicates[0];
+        bool left  = lc;
         size_t i = 1;
         while (timeValues.orginalNext(t2, t3)){
           // cout << "t1:=" << t1 << endl;
@@ -3557,21 +3476,22 @@ class LayerContainer
           // else               cout << "value:= false" << endl; 
           if(value != predicates[i]){
             CcBool predicate(true, value);        
-            UBool ubool(timeValues.createInterval(t1,t2), predicate);
+            UBool ubool(timeValues.createInterval(t1,t2,left,false),predicate);
             resMBool->Add(ubool);
+            left  = true;
             value = predicates[i];
-            t1 = t2;         
+            t1    = t2;         
           }// if
           t2 = t3;
           i++; 
         }// while  
         CcBool predicate(true, value);        
-        UBool ubool(timeValues.createInterval(t1,t2, last), predicate);
+        UBool ubool(timeValues.createInterval(t1,t2,true,rc), predicate);
         resMBool->Add(ubool);
       }// if
     }// createResultMBool  
 /*
-22 class SetOperator
+23 class SetOperator
 
 */
     SetOperator::SetOperator(MRegion* const _mRegionA, 
@@ -3616,7 +3536,10 @@ class LayerContainer
       }// for
       mRegionResult->EndBulkLoad(false);
     }// operate  
-    
+/*
+24 class PredicateOperator
+
+*/      
     PredicateOperator::PredicateOperator(MRegion* const _mRegionA, 
                                          MRegion* const _mRegionB,
                                          MBool* const  _mBool):
@@ -3650,10 +3573,9 @@ class LayerContainer
         }// if
         if (!bIsEmpty) {
           unitPair.createSourceUnit(interval, mRegionB, UNIT_B);
-        }// if        
-        bool last = (i == rp.Size()-1);
+        }// if     
         unitPair.predicate(predicateOp);                       
-        unitPair.createResultMBool(mBool,last);        
+        unitPair.createResultMBool(mBool,interval.lc,interval.rc);        
       }// for
     }// operate  
 
