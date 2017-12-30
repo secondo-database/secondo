@@ -93,18 +93,30 @@ Used in the class ~PFace~ to indicate it's current state.
 /*
 3.3 Enumeration Border
 
+Used in the class ~PFace~ to indicate the border.
+
 */        
     enum Border {
       LEFT,
       RIGHT
     };
-    
+/*
+3.4 Enumeration SetOp
+
+Indicates the kind of set operation.
+
+*/    
     enum SetOp {
       INTERSECTION,
       UNION,
       MINUS
     };
-    
+/*
+3.5 Enumeration SetOp
+
+Indicates the kind of predicate operation.
+
+*/    
     enum PredicateOp {
       INTERSECTS,
       INSIDE
@@ -226,6 +238,10 @@ A ~std::set~, using the overloaded operator $<$ for comparison.
 /*
 6 Class RationalPlane3D
 
+The class implements operations for planes in the (x, y, t)-Space.
+Here, methods and operators were realized that support the intersection 
+of two P-Faces.
+
 */   
     class RationalPlane3D{
     public:
@@ -267,9 +283,16 @@ Returns ~true~, if this ~RationalPlane3D~ is coplanar to the argument.
 /*
 6.3.4 intersection
 
+The method determines the intersection of a segment in the (x, y, t)-
+Space with the plane of a p-face.
 
 */           
       bool intersection(const Segment3D segment, RationalPoint3D& result)const;
+/*
+The method determines the intersections of another P-Face in the (x, y, t)-
+space with the plane of a P-Face.
+
+*/      
       void intersection(const PFace& other, SourceFlag sourceFlag, 
                         RationalPoint3DExtSet& intPointSet)const;
 /*
@@ -286,7 +309,10 @@ Print the object values to stream.
       friend std::ostream& operator <<(std::ostream& os, 
                                        const RationalPlane3D& plane);
 /*
-6.3.6 isLeftSideInner   
+6.3.6 isLeftSideInner 
+
+The method determines, for a directed intersection segment, whether the left 
+side of the segment is inside the plane of the other P-Face.
 
 */       
       bool isLeftSideInner(const RationalSegment3D segment,
@@ -317,7 +343,7 @@ of the P-Face as two-dimensional segments.
 /*
 6.4 Private methods
 
-6.4.1 set
+6.4.1 Setter methods
 
 */       
       void set(const RationalVector3D& normalVector,
@@ -333,6 +359,14 @@ of the P-Face as two-dimensional segments.
     };
 /*
 7 Class IntersectionPoint
+
+The class implements the representation of a point in the (x, y, t, w)-space.
+The coordinates of the point include its position in the (x, y, t)-space and 
+the local coordinates that the point has on the surface of a P-Face in the 
+(w, t)-Space. The specified point belongs to a intersection segment associated 
+with a P-Face. The position of the point in the (w, t) coordinate system is 
+needed for sorting the intersection segments and in the (x, y, t) coordinate 
+system for performing the plane sweep.
 
 */       
     class IntersectionPoint {
@@ -397,6 +431,11 @@ Print the object values to stream.
 /*
 8 Class IntersectionSegment
 
+The class implements the representation of a intersection segment with start 
+and end points in (x, y, t, w) space. The coordinate components for the 
+surface always refer to a certain P-Face. A intersection segment also has 
+a predicate that specifies more information about the intersection segment.
+
 */      
     class IntersectionSegment{
     public:
@@ -444,20 +483,29 @@ Print the object values to stream.
 /*
 8.3.5 isOrthogonalToTAxis
 
+Returns ~true~, if this is parallel to the xy-plane.
+
 */      
       bool isOrthogonalToTAxis()const;  
 /*
 8.3.6 isOutOfRange
+
+Returns ~true~, if this is out of the t-value.
 
 */       
       bool isOutOfRange(double t) const;
 /*      
 8.3.7 isLeftOf
 
+Returns ~true~, if this is left of intSeg.
+
 */      
       bool isLeftOf(const IntersectionSegment& intSeg) const;
+      
 /*
 8.3.8 evaluate
+
+Returns the point (in xyt-coords) on this segment with t-coord t.
 
 */       
       Point3D evaluate(double t) const;     
@@ -465,14 +513,14 @@ Print the object values to stream.
 /*
 8.4 Private methods
 
-8.4.1 set
+8.4.1 Setter methods
 
 */       
       void set(const IntersectionPoint& tail,const IntersectionPoint& head,
                const Predicate& predicate);
       void set(const IntersectionSegment& segment);
 /*
-8.6 Attributes
+8.5 Attributes
  
 */
       IntersectionPoint tail;
@@ -494,6 +542,8 @@ used in ~IntSegContainer~.
     };    
 /*
 10 Class PlaneSweepAccess
+
+The class defines an interface for methods of the class Selftest.
 
 */     
     class PlaneSweepAccess {
@@ -527,8 +577,11 @@ next step in the Plane Sweep.
 /*    
 11 Class IntSegContainer
 
-This class is used by the class ~PFace~ and provides essentially
-an ordered set of ~IntersectionSegments~
+This class implemented a container object in which intersection segments
+are stored. The saved intersection segments are sorted.
+Same intersection segments are not recorded multiple times. 
+The class provides all the methods needed for the plane sweep to 
+form the segments of the PResultFace.
 
 */
     class IntSegContainer: public PlaneSweepAccess{
@@ -583,6 +636,9 @@ Adds seg to the set of ~IntersectionSegments~.
       IntSegContainer& operator =(const IntSegContainer& container);  
 /*
 11.3.7 first
+
+The method determines all segments in decomposed form for the first step 
+during the plane sweep.
     
 */       
       void first(double t1, double t2, Point3DContainer& points,
@@ -590,12 +646,14 @@ Adds seg to the set of ~IntersectionSegments~.
                                        bool pFaceIsCritical);
 /*
 11.3.8 next
+
+The method determines all segments in decomposed form for all further steps 
+during the plane sweep.
     
 */  
       void next(double t1, double t2, Point3DContainer& points, 
                                       SegmentContainer& segments,
                                       bool pFaceIsCritical);
-
     private:
 /*
 11.4 Private methods
@@ -632,12 +690,23 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
 /*
 12 struct DoubleCompare
 
+The structure supports the class GlobalTimeValues in sorting the 
+time instants with structure changes.
+
 */    
     struct DoubleCompare {
       bool operator()(const double& d1, const double& d2) const;
     };
 /*
 13 class GlobalTimeValues
+
+All times at which structural changes take place are recorded in an object
+of this class. These time values are retrieved during the plan sweep 
+to determine the segments for the result P-Fcae.
+
+This class is also used to support scaling of the t-axis using appropriate
+methods. There are methods for this which, in addition to the scaled time 
+values, can also determine and process the original time values.
 
 */     
     class GlobalTimeValues{
@@ -649,81 +718,92 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
       GlobalTimeValues(double scale = 1,
                        double orginalStartTime = 0,
                        double orginalEndTime = 1);
-      
       GlobalTimeValues(const Interval<Instant>& orginalInterval);
+/*
+13.2 Getter and setter methods
+
+*/        
+      void setScaleFactor(double scaleFactor);
+      Interval<Instant> getOrginalInterval()const;        
+      Interval<Instant> getScaledInterval()const;        
+      double getOrginalStartTime()const;     
+      double getOrginalEndTime()const;     
+      double getScaledStartTime()const;       
+      double getScaledEndTime()const;
 /*
 13.3 Methods, operators and predicates
 
-13.3.1 addTimeValue
+13.3.1 Method addTimeValue
 
 */      
       void addTimeValue(double t);
       
 /*
-Method addStartAndEndtime
+13.2.2 addStartAndEndtime
 
 Inserts the start and end time of the time interval
 
 */    
-      void addStartAndEndtime();
-      
-      void setScaleFactor(double scaleFactor);
-      
-      Interval<Instant> getOrginalInterval()const;
-      
-      Interval<Instant> getScaledInterval()const;
-      
-      double getOrginalStartTime()const;
-    
-      double getOrginalEndTime()const;
-    
-      double getScaledStartTime()const;
-    
-      double getScaledEndTime()const;
-         
+      void addStartAndEndtime();        
 /*
-13.3.2 size
+13.3.3 size
 
 */      
       size_t size()const; 
-      
+/*
+13.3.4 print 
+
+*/          
       std::ostream& print(std::ostream& os, std::string prefix) const;
       
 /*
-13.3.3 Operator <<
+13.3.5 Operator <<
 
 */       
       friend std::ostream& operator <<(std::ostream& os, 
                                        const GlobalTimeValues& timeValues);
 /*
-13.3.4 Operator ==
+13.3.6 Operator ==
 
 */                                        
       bool operator ==(const GlobalTimeValues& other)const; 
 /*
-13.3.2 first
+13.3.7 scaledFirst
 
 */        
       bool scaledFirst(double& t1, double& t2);
-      
+/*
+13.3.8 orginalFirst 
+
+*/          
       bool orginalFirst(double& t1, double& t2);
 /*
-13.3.2 next
+13.3.9 scaledNext
 
 */        
       bool scaledNext(double& t1, double& t2); 
-      
+/*
+13.3.10 orginalNext 
+
+*/          
       bool orginalNext(double& t1, double& t2);    
-      
+/*
+13.3.11 createInterval 
+
+*/          
       Interval<Instant> createInterval(double start, double end, 
                                        bool lc = true, bool rc = false) const;
-      
     private:             
-      
+/*
+13.4 Private methods
+
+13.4.1 computeOrginalTimeValue 
+
+*/         
 
       double computeOrginalTimeValue(double scaledTimeValue)const;
 /*
-13.4 Attributes
+13.5 Attributes
 
 */      
       std::set<double, DoubleCompare> time;
@@ -739,22 +819,31 @@ Inserts the start and end time of the time interval
 /*
 14 class PResultFace
 
+This class implements the representation of the result P-Face. In contrast to
+the P-Faces, the result  P-Faces are not stored in decomposed form (segments, 
+points). Objects of these classes are formed from the layers of P-Faces if 
+they belong to the result. This class provides methods that support the 
+creation of the results region unit.
+
 */ 
     class PResultFace{
-    public:  
+    public: 
+/*      
+14.1 Constructors    
+
+*/
       PResultFace(); 
-      
       PResultFace(const PResultFace& other); 
-      
-      PResultFace(const Segment3D& left, const Segment3D& right);  
-           
+      PResultFace(const Segment3D& left, const Segment3D& right);     
       PResultFace(const Segment3D& left,  const Segment3D& right,
                   int faceno, int cycleno, int edgeno, bool leftDomPoint, 
                   bool insideAbove);
-      
       PResultFace(const MSegmentData& mSeg, 
                   const GlobalTimeValues& timeValues);
-                  
+/*
+14.2 Getter and setter methods
+
+*/                    
       int getFaceNo() const; 
       int getCycleNo() const;
       int getSegmentNo() const;       
@@ -764,20 +853,20 @@ Inserts the start and end time of the time interval
       Point3D getRightStart() const;
       Point3D getRightEnd() const;
       HalfSegment getMedianHS() const;
-      
       Rectangle<2> getBoundingRec()const;
-      
       MSegmentData getMSegmentData() const;
-      
       bool isLeftDomPoint() const;
-      
       void setLeftDomPoint(bool ldp);
-      
       void setSegmentNo(int sn);
-      
+/*
+14.3 Methods, operators and predicates
+
+14.3.1 copyIndicesFrom
+
+*/       
       void copyIndicesFrom(const HalfSegment* hs);
 /*
-14.1.1 LessByMedianHS
+14.3.2 LessByMedianHS
 
 Returns ~true~, if the median ~HalfSegment~ of this is
 lower than the median ~HalfSegment~ of ms,
@@ -786,7 +875,7 @@ according to the ~HalfSegment~ order, specified in the ~SpatialAlgebra~.
 */
       bool lessByMedianHS(const PResultFace& other) const; 
 /*
-14.1.1 LogicLess
+14.3.3 LogicLess
 
 Returns ~true~, if the median ~HalfSegment~ of this is
 lower than the median ~HalfSegment~ of ms,
@@ -795,40 +884,49 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
 */
       bool logicLess(const PResultFace& other) const; 
 /*
-14.3.3 print
+14.3.4 print
     
 */    
       std::ostream& print(std::ostream& os, std::string prefix)const; 
 /*
-14.3.4 operator <<
+14.3.5 operator <<
 
 */
       friend std::ostream& operator <<(std::ostream& os, 
                                        const PResultFace& prFace);
 /*
-14.3.5 operator ==
+14.3.6 operator ==
     
 */     
       bool operator ==(const PResultFace& other)const; 
 /*
-14.3.6 operator =
+14.3.7 operator =
     
 */       
       PResultFace& operator =(const PResultFace& other);  
                   
-
     protected:
-      
-      void set(const PResultFace& other);
+/*
+14.4 Private methods
 
+14.4.1 Setter Methods
+
+*/      
+      void set(const PResultFace& other);
       void set(const Point3D leftStart, const Point3D leftEnd,
                const Point3D rightStart, const Point3D rightEnd);
-      
+/*
+14.4.2 createMedianHS
+    
+*/       
       void createMedianHS();
-      
+/*
+14.4.3 getBoundingRec
+    
+*/       
       Rectangle<2> getBoundingRec(const Point3D& point)const; 
 /*
-14.4 Attributes
+14.5 Attributes
 
 */               
       Point3D leftStart;
@@ -842,29 +940,43 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
 /*
 15 Class CriticalPResultFace
 
+When intersecting two coplanar P-Paces, the resulting result P-faces are 
+stored as critical result P-faces. For objects of this class, after acquiring
+all critical result P-Faces, another processing step is necessary. 
+All necessary methods for this processing step are implemented in the class.
+
 */    
     class CriticalPResultFace {
     public:
-      
+/*      
+15.1 Constructors    
+
+*/      
       CriticalPResultFace();      
       CriticalPResultFace(const CriticalPResultFace& other);      
       CriticalPResultFace(const Segment3D& left, const Segment3D& right, 
                           SourceFlag source, Predicate predicate);   
-      
+/*
+15.2 Getter methods
+
+*/         
       Point3D getMidPoint()const;
-      
       Segment3D getLeft() const;
-      
       Segment3D getRight() const;
-      
       Predicate getPredicate()const;
-      
       PResultFace getPResultFace()const;
-      
+/*
+15.3 Methods, operators and predicates
+
+15.3.1 isPartOfUnitA
+
+*/    
       bool isPartOfUnitA() const;
-      
-      bool hasEqualNormalVector(const CriticalPResultFace& other) const;
-      
+/*
+15.3.2 createMedianHS
+    
+*/        
+      bool hasEqualNormalVector(const CriticalPResultFace& other) const; 
 /*
 15.3.3 print
     
@@ -886,15 +998,20 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
     
 */       
       CriticalPResultFace& operator =(const CriticalPResultFace& other); 
-      
-     
-      
+/*
+15.3.7 print
+    
+*/       
       bool operator <(const CriticalPResultFace& other) const;
       
     private:
-      
+/*
+15.4 Private methods
+
+15.4.1 Setter Methods 
+
+*/        
       void set(const CriticalPResultFace& other);
-      
       void set(const Segment3D& left, const Segment3D& right, 
                SourceFlag source, Predicate predicate);
 /*
@@ -912,59 +1029,101 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
 /*
 16 class ResultUnit
 
+In order to be able to generate a result region unit, result P-Faces and 
+critical result P-Faces are formed from all layers that exist in the same 
+time interval and assigned to an object of this type. After the critical 
+result P-Faces have been processed, moving segments may be generated 
+from the result P-Faces of the object to produce a result region unit.
+The class provides methods for all these functions.
+
 */     
     class ResultUnit{
     public:
+/*      
+16.1 Constructors    
+
+*/
       ResultUnit();
-
       ResultUnit(double orginalStartTime,double orginalEndTime);
-      
       ResultUnit(const ResultUnit& other);
-      
-      void addPResultFace(PResultFace& prFace, bool completely);
-      
-      void addPResultFace(const CriticalPResultFace& cprFace);
-      
-      void addCPResultFace(const CriticalPResultFace& cprFace);
-      
-      Interval<Instant> getTimeInterval() const;
+/*
+16.2 Methods, operators and predicates
 
+16.2.1 addPResultFace
+
+*/         
+      void addPResultFace(PResultFace& prFace, bool completely);
+      void addPResultFace(const CriticalPResultFace& cprFace);
+      void addCPResultFace(const CriticalPResultFace& cprFace);
+/*
+16.2.2 getTimeInterval
+    
+*/       
+      Interval<Instant> getTimeInterval() const;
+/*
+15.2.3 size
+    
+*/ 
       size_t size();
 /*
-16.3.3 print
+16.2.4 print
     
 */    
       std::ostream& print(std::ostream& os, std::string prefix)const; 
 /*
-16.3.4 operator <<
+16.2.5 operator <<
 
 */
       friend std::ostream& operator <<(std::ostream& os, 
                                        const ResultUnit& unit);
 /*
-16.3.5 operator ==
+16.2.6 operator ==
     
 */     
       bool operator ==(const ResultUnit& unit) const; 
 /*
-16.3.6 operator =
+16.2.7 operator =
     
 */       
       ResultUnit& operator = (const ResultUnit& unit);  
-
+/*
+16.2.4 finalize
+    
+*/ 
       void finalize();
-      
+/*
+16.2.4 convertToURegionEmb
+    
+*/       
       URegionEmb* convertToURegionEmb(DbArray<MSegmentData>* segments) const;
-      
+/*
+16.2.4 evaluateCriticalMSegmens
+    
+*/       
       void evaluateCriticalMSegmens(SetOp setOp);
             
     private:
-      void set(const ResultUnit& other);
-      
-      static bool less(const PResultFace& prf1, const PResultFace& prf2);
+/*
+16.3 Private methods
 
+16.3.1 set 
+
+*/       
+      void set(const ResultUnit& other);
+/*
+16.3.2 less
+    
+*/       
+      static bool less(const PResultFace& prf1, const PResultFace& prf2);
+/*
+16.3.3 logicLess
+    
+*/ 
       static bool logicLess(const PResultFace& prf1, const PResultFace& prf2); 
-      
+/*
+16.3.4 copyCriticalMSegmens
+    
+*/       
       void copyCriticalMSegmens(const CriticalPResultFace& cprf, SetOp setOp);
 /*
 16.4 Attributes
@@ -978,6 +1137,14 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
 /*
 17 class Layer
 
+The segments that are created in the sweep plan belong to different result units
+depending on the time interval in which they are defined. An object of the class 
+Layer represents within a P-Face a layer that records all segments of a time 
+interval. Using methods of this class, the determination and passing on of 
+predicates is realized. From the stored segments, the result P-Faces or the 
+critical result P-Faces are finally formed. For all these functions, the class 
+provides appropriate methods.
+
 */        
     class Layer {
     public:
@@ -986,7 +1153,6 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
 
 */
       Layer(bool iscritical = false);
-      
       Layer(const Layer& layer); 
 /*
 17.3.1 Method addOrthSegment 
@@ -1054,7 +1220,6 @@ of the intersegment segments
 
 */
       bool evaluate();
-
 /*
 17.3.12 Method print
 
@@ -1156,6 +1321,11 @@ Applies the attributes of another object of the same class
 /*
 18 class LayerContainer
 
+Within a P-Face, a layer of segments is generated for each time interval used 
+in the plane sweep. All layers within a P-Face are stored in an object of the
+class LayerContainer. The class provides appropriate methods for identifying 
+and passing predicates between layers and beyond the boundaries of the P-Face.
+
 */          
     class LayerContainer {
     public:
@@ -1164,9 +1334,7 @@ Applies the attributes of another object of the same class
 
 */      
       LayerContainer(size_t size = 0, bool isCritcal = false);
-      
       LayerContainer(const LayerContainer& other);
-      
       LayerContainer(Point3DContainer& points,
                      GlobalTimeValues &timeValues,
                      PlaneSweepAccess &access,
@@ -1254,6 +1422,8 @@ segments are recorded seperately in the results unit.
       
     private:
 /*
+18.4 Private methods
+
 18.4.1 Method set
 
 Applies the attributes of another object of the same class
@@ -1271,6 +1441,15 @@ Applies the attributes of another object of the same class
 /*
 19 Class PFace
 
+Objects of this class and the components contained in them represent the main
+processing objects of the implemented algorithms. For this purpose, the cuts 
+between P-Faces are determined and the generated intersection segments are 
+assigned to the relevant P-faces. In the next step, layers with segments of 
+the result P-Faces are formed from the intersection segments during the plane 
+sweep. The determination and passing on of the predicates in the layers and 
+beyond the P-Faces are also organized at the level of the P-Faces. For all these
+functions, appropriate methods are implemented in the class.
+
 */    
     class PFace: public PResultFace, public PlaneSweepAccess {
     friend class Selftest;    
@@ -1281,11 +1460,9 @@ Applies the attributes of another object of the same class
 */
       PFace(size_t left, size_t right,const Point3DContainer& points, 
             const SegmentContainer& segments);
-      
       PFace(const MSegmentData& mSeg, const GlobalTimeValues& timeValues,
             Point3DContainer& points, 
-            SegmentContainer& segments);
-            
+            SegmentContainer& segments);    
       PFace(const PFace& pf); 
 /*
 19.2 Setter and Getter methods
@@ -1314,34 +1491,35 @@ Print the object values to stream.
 */            
       friend std::ostream& operator <<(std::ostream& os, const PFace& pf);      
 /*
-19.3.4 intersection
-
-Computes the intersection of this ~PFace~ with pf. 
+19.3.4 intersectionOnPlane
 
 */
       bool intersectionOnPlane(PFace& other, 
                                const RationalPlane3D& planeSelf,
                                GlobalTimeValues &timeValues);
+/*
+19.3.5 intersection
 
+Computes the intersection of this ~PFace~ with other. 
+
+*/
       bool intersection(PFace& other,GlobalTimeValues &timeValues);
 /*
-19.3.5 toString
+19.3.6 toString
 
 */      
       static std::string toString(State state);
 /*
-19.3.6 addIntSeg
+19.3.7 addIntSeg
 
 */       
-      // für den Selbsttest
-      void addIntSeg(const IntersectionSegment& seg);
-      
+      void addIntSeg(const IntersectionSegment& seg);     
       void addIntSeg(const RationalPlane3D &planeSelf, 
                      const RationalPlane3D &planeOther,
                      const RationalSegment3D &intSeg,
                      GlobalTimeValues &timeValues);
 /*
-19.3.7 Method addBorder
+19.3.8 addBorder
 
 The method adds the left and right border of the P-Face to the 
 intersection segments.Te predicate "Undefined" is used.
@@ -1358,52 +1536,66 @@ of the border segments of the P-Face.
       void addBorder(const SegmentContainer& segments, 
                      Predicate predicate);
 /*
- Method setBorderPredicate
+19.3.9 setBorderPredicate
  
- The method sets the predicate of the border segment sof the P-Face 
- to the specified value.
+The method sets the predicate of the border segment of the P-Face 
+to the specified value.
  
- */
+*/
       void setBorderPredicate(SegmentContainer& segment, Predicate predicate);
 /*
-19.3.8 Operator =
+19.3.10 Operator =
 
 */  
       PFace& operator =(const PFace& pf);
 /*
-19.3.9 Operator ==
+19.3.11 Operator ==
 
 */        
       bool operator ==(const PFace& pf)const;
 /*
-19.3.10 first
+19.3.12 first
     
 */    
       void first(double t1, double t2, Point3DContainer& points,
                                        SegmentContainer& segments,
                                        bool pFaceIsCritical);
 /*
-19.3.11 next
+19.3.13 next
     
 */     
       void next(double t1, double t2, Point3DContainer& points, 
                                       SegmentContainer& segments,
                                       bool pFaceIsCritical);
-      
+/*
+19.3.14 finalize
+    
+*/       
       bool finalize(Point3DContainer& points, SegmentContainer& segments, 
                     GlobalTimeValues& timeValues);
-      
+/*
+19.3.15 intersects
+    
+*/       
       bool intersects(Point3DContainer& points, GlobalTimeValues& timeValues,
                       std::vector<bool>& predicate);
-      
+/*
+19.3.16 inside
+    
+*/       
       bool inside(Point3DContainer& points, GlobalTimeValues& timeValues,
                   std::vector<bool>& predicate);
-      
+/*
+19.3.17 getResultUnit
+    
+*/       
       void getResultUnit(size_t slide, Predicate predicate, bool reverse, 
                          const Point3DContainer& points, ResultUnit& unit,
                          SourceFlag source);
     private:  
 /*
+19.4 Private methods
+
 19.4.1 Method getBorderSegments
 
 The method determines all or only the segments for the left and right edges 
@@ -1457,19 +1649,31 @@ right edge is defined by the value of "border".
 /*
 20 Class FaceCycleInfo
 
+In order to ensure the functionality of the algorithm, information about faces
+and cycles of the input region units in the source units must be acquired. 
+Objects of this class ensure that intersection information is generated for at
+least one P-Face of each face and cycle of the region unit. The class provides 
+suitable methods for the necessary functions.
+
 */
     class FaceCycleInfo {
     public:
+/*
+20.1 Constructor
+
+*/      
       FaceCycleInfo();
-      
+/*
+20.2 Setter and Getter methods
+
+*/      
       void   setFirstIndex(size_t firstIndex);
       void   setTouch();
       bool   getTouch() const;
-      size_t getFirstIndex() const;
-      
+      size_t getFirstIndex() const;  
     private:
 /*
-20.5 Attributes
+20.3 Attributes
 
 */        
       size_t firstIndex;
@@ -1478,6 +1682,13 @@ right edge is defined by the value of "border".
     
 /*
 21 class SourceUnit
+
+The input region units are mapped as objects of this class to perform the 
+desired operations. The moving segments of the input region units are 
+stored as P-Faces in the objects. This class provides methods for 
+bundling the described algorithms for the P-Faces at the next higher 
+level of abstraction and providing appropriate functions for the set 
+operations.
 
 */        
     class SourceUnit{
@@ -1492,46 +1703,76 @@ right edge is defined by the value of "border".
 /*
 21.2 Methods, operators and predicates
 
-21.2.3 addPFace
+21.2.1 addPFace
     
 */      
       void addPFace(const Segment& left, const Segment& right, 
                     const Point3DContainer& points);
-      
+/*
+21.2.2 addMSegmentData
+    
+*/  
       void addMSegmentData(const MSegmentData& mSeg, 
                            const GlobalTimeValues& timeValues,
                            Point3DContainer& points);
-      
+/*
+21.2.3 isEmpty
+    
+*/  
       bool isEmpty()const;
-      
+/*
+21.2.4 intersect
+    
+*/  
       bool intersect(const SourceUnit& other)const;
-
+/*
+21.2.5 addToResultUnit
+    
+*/  
       void addToResultUnit(ResultUnit& result)const;
       
 /*
-21.2.4 intersection
+21.2.6 intersection
     
 */       
       void intersection(SourceUnit& other, GlobalTimeValues& timeValues); 
-      
+/*
+21.2.7 intersectionFast
+    
+*/  
       void intersectionFast(SourceUnit& other, GlobalTimeValues& timeValues);
-      
+/*
+21.2.8 finalize
+    
+*/  
       bool finalize(Point3DContainer& points, GlobalTimeValues& timeValues,
                     Predicate predicateconst, SourceUnit& other);
-      
+/*
+21.2.9 intersects
+    
+*/  
       void intersects(Point3DContainer& points, GlobalTimeValues& timeValues,
                       SourceUnit& other, std::vector<bool>& predicate);
-      
+/*
+21.2.10 inside
+    
+*/  
       void inside(Point3DContainer& points, GlobalTimeValues& timeValues,
                   SourceUnit& other, std::vector<bool>& predicate);
-      
+/*
+21.2.11 getResultUnit
+    
+*/  
       void getResultUnit(size_t slide, Predicate predicate,bool reverse, 
                          const Point3DContainer& points, ResultUnit& unit,
                          SourceFlag source);
-      
+/*
+21.2.12 print
+    
+*/  
       std::ostream& print(std::ostream& os, std::string prefix)const;
 /*
-21.2.5 Operator <<
+21.2.13 Operator <<
     
 Print the object values to stream.
 
@@ -1539,36 +1780,71 @@ Print the object values to stream.
       friend std::ostream& operator <<(std::ostream& os, 
                                        const SourceUnit& unit);
 /*
-21.2.6 Operator ==  
+21.2.14 Operator ==  
 
 */       
       bool operator ==(const SourceUnit& unit)const; 
-      
+/*
+21.2.15 operator =
+    
+*/        
       SourceUnit& operator =(const SourceUnit& unit);
-      
+/*
+21.2.16 createTestRegion
+    
+*/        
       void createTestRegion();
-      
+/*
+21.2.17 isInside
+    
+*/        
       bool isInside(const PFace* pFace);
-            
+/*
+21.2.18 createFaceCycleEntry
+    
+*/              
       void createFaceCycleEntry(const PFace* pf, size_t index);
-      
+/*
+21.2.19 touchFaceCycleEntry
+    
+*/        
       void touchFaceCycleEntry(const PFace* pf);
-      
+/*
+21.2.20 checkFaceCycleEntrys
+    
+*/        
       void checkFaceCycleEntrys(SourceUnit& other);
-      
+/*
+21.2.21 printFaceCycleEntrys
+    
+*/        
       void printFaceCycleEntrys();
-
+/*
+21.2.22 reSort
+    
+*/  
       void reSort();      
            
     private: 
-      
+/*      
+21.3 Private methods  
+
+21.3.1 lessByMedianHS
+
+*/
       static bool lessByMedianHS(const PFace* pf1, const PFace *pf2);
-             
+/*
+21.3.2 logicLess
+    
+*/               
       static bool logicLess(const PFace* pf1, const PFace *pf2);
-      
+/*
+21.3.3 set
+    
+*/       
       void set(const SourceUnit& other);
 /*
-21.5 Attributes
+21.4 Attributes
 
 */       
       std::vector<PFace*> pFaces;
@@ -1582,43 +1858,102 @@ Print the object values to stream.
 /*
 22 Class SourceUnitPair
 
+In this class, processing is performed for set operations from the two source
+units to the result unit. For this purpose, an object of the class has two 
+source units, from which one or more result units are calculated. The class 
+provides suitable methods for the set operations to be performed, which 
+exclusively relate to the internal representation. Methods are also provided 
+for storing or reading out region units into the internal data structure.
+
 */ 
     class SourceUnitPair {
     public:
+/*
+22.1 Constructors
+
+*/        
       SourceUnitPair(double orginalStartTime = 0,double orginalEndTime = 1, 
                      double scale = 1);
-      
       SourceUnitPair(const Interval<Instant>& orginalInterval);
-      
+/*
+22.2 Methods, operators and predicates
+
+22.2.1 setScaleFactor
+    
+*/          
       void setScaleFactor(double scale);
-                  
+/*
+
+22.2.2 addPFace
+    
+*/                   
       void addPFace(SourceFlag flag, Segment3D& left, Segment3D& right);
-      
+/*
+
+22.2.3 addMSegmentData
+    
+*/                      
       void addMSegmentData(const MSegmentData& mSeg, SourceFlag sourceFlag);
-      
+/*
+
+22.2.4 operate
+    
+*/                      
       bool operate(SetOp setOp);
-      
+/*
+
+22.2.5 predicate
+    
+*/                     
       bool predicate(PredicateOp predicateOp);
-      
+/*
+
+22.2.6 print
+    
+*/ 
       std::ostream& print(std::ostream& os, std::string prefix)const;
-      
+/*
+
+22.2.7 operator <<
+    
+*/ 
       friend std::ostream& operator <<(std::ostream& os, 
                                        const SourceUnitPair& unitPair);
-      
+/*
+
+22.2.8 countResultUnits
+    
+*/ 
       size_t countResultUnits()const;
-      
+/*
+
+22.2.9 getResultUnit
+    
+*/ 
       ResultUnit getResultUnit(size_t slide)const;
-      
+/*
+
+22.2.10 createResultMRegion
+    
+*/ 
       void createResultMRegion( MRegion* resMRegion);
-      
+/*
+
+22.2.11 createResultMBool
+    
+*/ 
       void createResultMBool(MBool* resMBool, bool lc, bool rc );
-      
+/*
+
+22.2.12 createSourceUnit
+    
+*/ 
       void createSourceUnit(const Interval<Instant>& interval, MRegion* mregion,
                             SourceFlag sourceFlag);
 
     private:      
 /*
-22.4 Attributes
+22.3 Attributes
 
 */
       SourceUnit unitA;
@@ -1631,18 +1966,31 @@ Print the object values to stream.
 /*
 23 class SetOperator
 
+In this class, the processing for set operations from moving input regions to
+moving result regions is realized. For this purpose, the refinement partition 
+first generates pairs of source region units defined over the same time
+interval. An object of the SourceUnitPair class organizes the processing of 
+the two source units until the result is several result units. From these, 
+region units are formed and added to the moving region of the result.
+
 */
     class SetOperator {
     public:  
+/*
+23.1 Constructors
 
+*/  
       SetOperator(MRegion* const _mRegionA, MRegion* const _mRegionB, 
                   MRegion* const _mRegionResult);
-      
+/*
+23.2 Method operate
+    
+*/        
       void operate(SetOp setOp);    
 
     private: 
 /*
-23.4 Attributes
+23.3 Attributes
 
 */
       MRegion* const mRegionA;
@@ -1651,15 +1999,24 @@ Print the object values to stream.
     }; // class SetOperator
 
 /*
-24 class SetOperator
+24 class PredicateOperator
+
+In this class, the processing of the predicate operations from moving input 
+regions to a moving Boolean value is realized.
 
 */
     class PredicateOperator {
     public:  
+/*
+24.1 Constructors
 
+*/   
       PredicateOperator(MRegion* const _mRegionA, MRegion* const _mRegionB, 
                         MBool* const  _mBool);
-      
+/*
+23.2 Method operate
+    
+*/      
       void operate(PredicateOp predicateOp);    
 
     private: 

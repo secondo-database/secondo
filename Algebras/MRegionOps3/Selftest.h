@@ -56,6 +56,17 @@ Mai - November 2017, U. Wiesecke for master thesis.
 namespace temporalalgebra {
   namespace mregionops3 {
     
+/*
+
+3 Class Selftest
+
+In order to be able to check the functionality of the individual classes 
+during the development at any time, the implementation of test functions 
+was unavoidable. In the more than 300 tests implemented, the functionality 
+of the auxiliary classes is checked in the same way as the implementation of 
+the set operation at the level of the SourceUnitPair class.
+
+*/
     class Selftest {
     public:  
       Selftest();      
@@ -88,7 +99,6 @@ namespace temporalalgebra {
       void RationalSegment2DTest1();
       void RationalSegment2DTest2();
       
-        
       void Point3DContainerTest();
         
       void RationalPoint3DExtTest();
@@ -141,15 +151,6 @@ namespace temporalalgebra {
       void IntSegContainerTest5();
         
       void SegmentTest();
-    
-//      void ResultUnitFactoryTest1();
-//      void ResultUnitFactoryTest2();
-//      void ResultUnitFactoryTest3();
-//      void ResultUnitFactoryTest4();
-//      void ResultUnitFactoryTest5();
-//      void ResultUnitFactoryTest6();
-//      void ResultUnitFactoryTest7();
-//      void ResultUnitFactoryTest8();
         
       void SegmentContainerTest1();
        
@@ -167,7 +168,6 @@ namespace temporalalgebra {
       void UnitsTest10();
       
       void SourceUnitPairTest1();
-      
       
       void LayerTest1();
       void LayerTest2();

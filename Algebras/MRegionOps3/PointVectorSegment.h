@@ -871,12 +871,12 @@ Print the object values to stream.
 */      
       Point3DContainer& operator = (const Point3DContainer& points);
 /*
-13.3.4 add.
+13.3.4 add
 
 */       
       size_t add(const Point3D& point);
 /*
-13.3.5 print.
+13.3.5 print
 
 */       
       std::ostream& print(std::ostream& os, std::string prefix)const;           
