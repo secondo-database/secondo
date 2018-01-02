@@ -914,10 +914,10 @@ int main( int argc, char* argv[] )
 
   if ( RTFlag::isActive("SMI:NoTransactions") ) {
     rc = SmiEnvironment::StartUp( SmiEnvironment::SingleUserSimple,
-                                  paramFile, cerr );
+                                  paramFile, "", cerr );
   } else {
     rc = SmiEnvironment::StartUp( SmiEnvironment::SingleUser,
-                                  paramFile, cerr );
+                                  paramFile, "", cerr );
   }
 
   cout << "StartUp rc=" << rc << endl;

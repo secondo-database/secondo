@@ -1326,7 +1326,8 @@ StartSecondoC(TTYParameter& tp)
   si = new SecondoInterfaceCS(false,0,true);
   #endif
   string errorMsg("");
-  if(si->Initialize(tp.user, tp.pswd, tp.host, tp.port, tp.parmFile, errorMsg))
+  if(si->Initialize(tp.user, tp.pswd, tp.host, tp.port, tp.parmFile, tp.home,
+                    errorMsg))
   {
     plnl = si->GetNestedList();
     NList::setNLRef(plnl);

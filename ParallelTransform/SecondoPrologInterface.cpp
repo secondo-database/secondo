@@ -104,7 +104,7 @@ SecondoPrologInterface::callPrologQueryTransform(ListExpr expr, NestedList* nl)
         term_t t0 = PL_new_term_refs(2);
         
         PL_put_term(t0+0, prologList);
-        int rval;
+        //int rval;
 
         if(PL_call_predicate(NULL, PL_Q_NORMAL, pred, t0)) {
         PL_put_term(result, t0+1);

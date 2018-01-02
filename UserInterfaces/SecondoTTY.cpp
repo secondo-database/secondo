@@ -132,6 +132,7 @@ class SecondoTTY : public Application
   string ReadCommand(istringstream& is) const;
 
   string parmFile;
+  string home;
   string user;
   string pswd;
   string host;
@@ -170,6 +171,7 @@ SecondoTTY::SecondoTTY( const TTYParameter& t )
     prompt_next("Secondo -> ")
 {
   parmFile = t.parmFile;
+  home = t.home;
   user = t.user;
   pswd = t.pswd;
   host = t.host;
@@ -786,7 +788,7 @@ SecondoTTY::Execute()
   #endif
 
   string errorMsg("");
-  if ( si->Initialize( user, pswd, host, port, parmFile, errorMsg  ) )
+  if ( si->Initialize( user, pswd, host, port, parmFile,home, errorMsg  ) )
   {
 
     // initialize the pointer to the nested list instance

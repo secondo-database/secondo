@@ -405,108 +405,87 @@ SecondoMonitor::CheckConfiguration()
     }
     pos++;
   }
-  if (cfgFile.length() > 0) {
-    cout << "Configuration file '" << cfgFile;
-    found = FileSystem::FileOrFolderExists(cfgFile);
-    if (found) {
-      cout << "':" << endl;
-      WinUnix::setenv("SECONDO_CONFIG", cfgFile.c_str());
-    }
-    else {
-      cout << "' not found!" << endl;
-    }
-  }
-  if (!found) {
-    cout << "Searching environment for configuration file ..." << endl;
+
+  // arguments are processed
+  if (cfgFile.empty()) { // no cfgFile in argument list, search in environment
     char* config = getenv( "SECONDO_CONFIG" );
     if (config != 0) {
       cfgFile = config;
-      cout << "Configuration file '" << cfgFile;
-      found = FileSystem::FileOrFolderExists(cfgFile);
-      if (found) {
-        cout << "':" << endl;
-      }
-      else {
-        cout << "' not found!" << endl;
-      }
+      cout << "Configuration file from environment variable: " 
+           << cfgFile << endl;
     }
-    else {
-      cout << "Environment variable SECONDO_CONFIG not defined." << endl;
-    }
+  } else {
+    cout << "Configuration file from command line : " << cfgFile << endl;
   }
-  if (!found) {
-    cout << "Searching current directory for configuration file ..."
-          << endl;
+  if (cfgFile.empty()) { // no cfgFile in argument or environment
     string cwd = FileSystem::GetCurrentFolder();
     FileSystem::AppendSlash(cwd);
     cfgFile = cwd + "SecondoConfig.ini";
-    cout << "Configuration file '" << cfgFile;
-    found = FileSystem::FileOrFolderExists(cfgFile);
-    if (found) {
-      cout << "':" << endl;
-    }
-    else {
-      cout << "' not found!" << endl;
-    }
+    cout << "No configuration file specified, use default one: " 
+         << cfgFile << endl;
   }
+  found = FileSystem::FileOrFolderExists(cfgFile);
   if (found) {
+    // set SecondoHome
     string value, foundValue;
-    if (dbDir.length() > 0) {
-      found = FileSystem::FileOrFolderExists(dbDir);
+    if(dbDir.empty()){
+       char* home = getenv( "SECONDO_HOME" );
+       if (home != 0) {
+         dbDir = home;
+       }
+       if(dbDir.empty()){
+         dbDir = SmiProfile::GetParameter("Environment",
+                                          "SecondoHome", "", cfgFile); 
+       }
+       if(dbDir.empty()){
+         cerr << "SecondoHome not specified" << endl;
+         return false;
+       }
     }
-    if (!found) {
-      cout << "Directory " << dbDir << " not found; using " << cfgFile << endl;
-      dbDir.clear();
-      if (SmiProfile::GetParameter("Environment",
-                                   "SecondoHome", "", cfgFile) == "") {
-        cout << "Error: Secondo home directory not specified." << endl;
-        found = false;
+    found = FileSystem::FileOrFolderExists(dbDir);
+    if(!found){
+      found = FileSystem::CreateFolderEx(dbDir);
+      if(!found){
+         cerr << "SecondoHome '" << dbDir 
+              << "' does not exists and could not be created" << endl;
+         return false;
       }
-      found = true;
+    } else if(!FileSystem::IsDirectory(dbDir)){
+        cerr << "SecondoHome '" << dbDir << "' exists but is not "
+             << " a directory" << endl;
+        return false;
     }
-    if (port.length() > 0) {
-      istringstream iss(port);
-      int portNum = 0;
-      if ((iss >> portNum).fail()) {
-        cout << "Invalid port " << port << endl;
-        found = false;
-      }
+    // process port
+    if(port.empty()){
+      port = SmiProfile::GetParameter("Environment", 
+                                      "SecondoPort", "", cfgFile);
     }
-    else {
-      if (SmiProfile::GetParameter("Environment", 
-                                 "SecondoPort", "", cfgFile) == "") {
-        cout << "Error: Secondo port not specified." << endl;
-        found = false;
-      }
-      found = true;
+    if(port.empty()){
+      cerr << "port not specified as command line argument and not found in " 
+           << cfgFile << endl;
+      return false;
     }
-    if (SmiProfile::GetParameter("Environment", 
-                                 "SecondoHost", "", cfgFile) == "") {
-      cout << "Error: Secondo host not specified." << endl;
-      found = false;
+    if(host.empty()){
+       host = SmiProfile::GetParameter("Environment", 
+                                  "SecondoHost", "", cfgFile);
     }
     if (smiType == SmiEnvironment::SmiBerkeleyDB) {
       value = SmiProfile::GetParameter("BerkeleyDB", "ServerProgram", "", 
                                        cfgFile);
       if (value == "" || !FileSystem::SearchPath(value, foundValue)) {
         cout << "Error: Server program '" << value << "' not found." << endl;
-        found = false;
+        return false;
       }
     } 
     else {
       cout << "Unknown SMI-Type" << endl;
       exit(1);
     } 
-    if (found) {
-      cout << "Configuration seems to be ok." << endl << endl;
-    }
-    else {
-      cout << "Sorry, configuration parameters missing. Terminating program."
-           << endl;
-    }
+    cout << "Configuration seems to be ok." << endl << endl;
   }
   else {
-    cout << "Sorry, no configuration file found. Terminating program." << endl;
+    cout << "Sorry, configuration file '" << cfgFile 
+         << "' not found. Terminating program." << endl;
   }
   return found;
 }
@@ -527,7 +506,7 @@ SecondoMonitor::Initialize()
   // --- Check storage management interface
   cout << "Initializing storage management interface ... " << endl;
   if (SmiEnvironment::StartUp(SmiEnvironment::MultiUserMaster, 
-                              cfgFile, cout, dbDir)) {
+                              cfgFile, dbDir, cout)) {
     cout << "completed." << endl;
 
     dbDir = SmiEnvironment::GetSecondoHome();
@@ -653,13 +632,14 @@ int main( const int argc, const char* argv[] )
   bool done = false;
   bool autostartup = false;
 
-  for(int i=1; i<argc && !done ;i++){ // start at 1, 0 is the program name
+  int pos = 1;
+  while(pos<argc && !done){ // start at 1, 0 is the program name
      string arg;
-     arg = argv[i];
+     arg = argv[pos];
      if((arg=="-s") || (arg=="-startup")) {
-        done = true;
         execute = true;
         autostartup = true;
+        pos++;
      } 
      else if (arg == "--help") {
         // list allowed arguments
@@ -684,14 +664,23 @@ int main( const int argc, const char* argv[] )
      else if ((arg == "-V") || (arg == "-version")) {
        cout << argv[0] << " version " << VersionInfo << endl;
        execute = false;
+       done = true;
      }
      else if ((arg == "-c") || (arg == "-d") || (arg == "-p")) {
-       done = true;
+       pos++;
+       if(pos>=argc){
+          cout << "missing argument to option " << arg << endl;
+          execute = false;
+          done = true;
+          return -1;
+       }
+       pos++; // jump over argument
     }
      else { // unknown command
         cout << "unknown command line argument" << endl;
         cout << "try " << argv[0] << " --help" << endl;
         execute = false;
+        done = true;
         return -1;
      }
   }

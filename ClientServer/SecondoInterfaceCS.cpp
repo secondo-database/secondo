@@ -101,7 +101,9 @@ int SecondoInterfaceCS::initNo = 0;
 bool
 SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
                               const string& host, const string& port,
-                              string& parmFile, string& errorMsg,
+                              const string& parmFile, 
+                              const string& home,
+                              string& errorMsg,
                               const bool multiUser)
 {
   this->user = user;
@@ -181,21 +183,24 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
     }
 
     // Connect with server, needed host and port
-    if ( secHost.length() == 0 || secPort.length() == 0 )
+    if ( secHost.empty() && !parmFile.empty() ) 
     {
-      if ( parmFile.length() != 0 )
-      {
         secHost = SmiProfile::GetParameter( "Environment",
                                             "SecondoHost",
                                             "", parmFile );
-
+    }
+    if(secPort.empty() && !parmFile.empty())
+    {
         secPort = SmiProfile::GetParameter( "Environment",
                                             "SecondoPort",
                                             "", parmFile );
-      }
     }
+
+
     if ( secHost.length() > 0 && secPort.length() > 0 )
-    { if(verbose){
+    { 
+      if(verbose)
+      {
         cout << "Connecting with Secondo server '" << secHost << "' on port "
              << secPort << " ..." << endl;
       }

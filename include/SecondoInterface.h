@@ -179,9 +179,13 @@ the interface different member variables are initialized.
 Destroys a "Secondo"[3] interface.
 
 */
-  virtual bool Initialize( const std::string& user, const std::string& pswd,
-                   const std::string& host, const std::string& port,
-                   std::string& profile,
+  virtual bool Initialize( 
+                   const std::string& user, 
+                   const std::string& pswd,
+                   const std::string& host, 
+                   const std::string& port,
+                   const std::string& profile,
+                   const std::string& home,
                    std::string& errorMsg,
                    const bool multiUser = false ) = 0;
 

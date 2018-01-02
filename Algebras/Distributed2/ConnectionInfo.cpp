@@ -118,7 +118,7 @@ bool ConnectionInfo::reconnect(bool showCommands, CommandLog& log,
     si->setMaxAttempts(4);
     si->setTimeout(2);
     if (!si->Initialize(user, passwd, host, stringutils::int2str(port), config,
-                        errMsg, true)) {
+                        "",errMsg, true)) {
       cerr << "reconnect: Initialisation of newly created "
               "secondoInterface failed" << endl;
       cerr << "Error : " << errMsg << endl;
@@ -779,7 +779,7 @@ ConnectionInfo* ConnectionInfo::createConnection(const string& host,
     si->setMaxAttempts(4);
     si->setTimeout(1);
     if (!si->Initialize(user, passwd, host, stringutils::int2str(port), config,
-                        errMsg, true))
+                        "",errMsg, true))
     {
         delete si;
         si = 0;

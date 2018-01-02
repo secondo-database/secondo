@@ -140,6 +140,7 @@ SecondoListener::Execute()
   if (!ProcessFactory::StartUp()) {
     return (EXIT_LISTENER_NOPF);
   }
+
   // --- Create listener socket
   gate = Socket::CreateGlobal(host, port);
   if (gate && gate->IsOk()) {

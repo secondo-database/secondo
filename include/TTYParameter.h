@@ -59,6 +59,7 @@ struct TTYParameter
   char** argValues;
   
   std::string parmFile;
+  std::string home;
   std::string user;
   std::string pswd;
   std::string host;

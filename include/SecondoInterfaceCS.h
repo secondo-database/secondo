@@ -43,7 +43,8 @@ public:
   
   virtual bool Initialize( const std::string& user, const std::string& pswd,
                    const std::string& host, const std::string& port,
-                   std::string& profile,
+                   const std::string& profile, 
+                   const std::string& home,
                    std::string& errorMsg,
                    const bool multiUser = false );
   
@@ -57,7 +58,7 @@ public:
       std::cerr << "Exception occured during terminate " << std::endl;
       initialized = false;
     }
-    return Initialize(user, pswd, secHost, secPort, secConfig, 
+    return Initialize(user, pswd, secHost, secPort, secConfig, "", 
                       errMsg, multiUser);
   }
   

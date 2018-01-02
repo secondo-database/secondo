@@ -246,7 +246,9 @@ SecondoInterfaceTTY::Initialize( const string& user,
                                  const string& pswd,
                                  const string __attribute__((unused))& host,
                                  const string __attribute__((unused))& port,
-                              string& parmFile, string& errorMsg,
+                                 const string& parmFile, 
+                                 const string& home,
+                                 string& errorMsg,
                               const bool multiUser
                               )
 {
@@ -286,18 +288,19 @@ SecondoInterfaceTTY::Initialize( const string& user,
                 "FU", "%s\n",dbversion.str().c_str());
 #endif
   string cfgFile = parmFile;
-  string dbDir;
-  if (parmFile.find('|') != string::npos) {
-    cfgFile = parmFile.substr(0, parmFile.find('|'));
-    dbDir = parmFile.substr(parmFile.find('|') + 1);
+  string dbDir = home;
+  if(dbDir.empty()){
+     dbDir = SmiProfile::GetParameter("Environment", 
+                                      "SecondoHome", 
+                                      "", 
+                                      cfgFile);
   }
 
   // initialize runtime flags
   InitRTFlags(cfgFile);
 
   string value, foundValue;
-  if (SmiProfile::GetParameter("Environment", "SecondoHome", "", cfgFile) == ""
-      && dbDir.empty()) {
+  if( dbDir.empty()) {
 #ifndef SECONDO_ANDROID
     cout << "Error: Secondo home directory not specified." << endl;
 #else
@@ -306,6 +309,7 @@ SecondoInterfaceTTY::Initialize( const string& user,
 #endif
 
     errorMsg += "Secondo home directory not specified\n";
+    ok = false;
   }
   else {
 #ifdef SECONDO_ANDROID
@@ -438,7 +442,7 @@ SecondoInterfaceTTY::Initialize( const string& user,
                           : SmiEnvironment::SingleUser;
     }
 
-    if ( SmiEnvironment::StartUp( mode, parmFile, cout ) )
+    if ( SmiEnvironment::StartUp( mode, parmFile, dbDir, cout ) )
     {
       SmiEnvironment::SetUser( user ); // TODO: Check for valid user/pswd
       ok = true;

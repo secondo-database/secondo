@@ -820,7 +820,7 @@ TestRun_Persistent() {
    SmiError rc = 0;
    
    rc = SmiEnvironment::StartUp( SmiEnvironment::MultiUser,
-   "SecondoConfig.ini", cerr );
+   "SecondoConfig.ini", "", cerr );
    listDB();
    //pause();
 

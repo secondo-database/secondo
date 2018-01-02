@@ -158,6 +158,7 @@ class TestRunner : public Application
                        ListExpr outList ); 
 
   string            parmFile;
+  string            home;
   string            user;
   string            pswd;
   string            host;
@@ -230,6 +231,7 @@ TestRunner::TestRunner( const TTYParameter& tp )
   : Application( tp.numArgs, (const char**)tp.argValues )
 {
   parmFile      = tp.parmFile;
+  home          = tp.home;
   user          = tp.user;
   pswd          = tp.pswd;
   host          = tp.host;
@@ -1484,7 +1486,7 @@ TestRunner::Execute()
     #endif
 
     string errorMsg("");
-    if ( si->Initialize( user, pswd, host, port, parmFile, errorMsg ) )
+    if ( si->Initialize( user, pswd, host, port, parmFile, home, errorMsg ) )
     {
       if ( iFileName.length() > 0 )
       {

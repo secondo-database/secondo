@@ -787,7 +787,8 @@ SecondoInterfaceREPLAY::Initialize(const string& user,
                                    const string& pswd,
                                    const string& host,
                                    const string& port,
-                                   string& parmFile,
+                                   const string& parmFile,
+                                   const string& home,
                                    string& errorMsg,
                                    const bool multiUser)
 {

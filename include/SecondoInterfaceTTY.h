@@ -41,7 +41,7 @@ public:
   
   virtual bool Initialize( const std::string& user, const std::string& pswd,
                    const std::string& host, const std::string& port,
-                   std::string& profile,
+                   const std::string& profile, const std::string& home,
                    std::string& errorMsg,
                    const bool multiUser = false );
   

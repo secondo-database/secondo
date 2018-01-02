@@ -142,6 +142,7 @@ removes the first argument if present.
 TTYParameter::TTYParameter(const int argc, char** argv)
 {
   parmFile      = "";
+  home          = "";
   user          = "";
   pswd          = "";
   host          = "";
@@ -162,17 +163,18 @@ TTYParameter::TTYParameter(const int argc, char** argv)
 
 void TTYParameter::Print(ostream& os)
 {
-  os << "parmFile  = " << parmFile << endl;
-  os << "user      = " << user << endl;
-  os << "pswd      = " << pswd << endl;
-  os << "host      = " << host << endl;
-  os << "port      = " << port << endl;
-  os << "replayFile = " << replayFile << endl;
-  os << "iFileName = " << iFileName << endl;
-  os << "oFileName = " << oFileName << endl;
-  os << "num       = " << num << endl;
-  os << "numArgs   = " << numArgs << endl;
-  os << "runMode   = " << runMode << endl;
+  os << "parmFile  =   " << parmFile << endl;
+  os << "home      =   " << home << endl;
+  os << "user      =   " << user << endl;
+  os << "pswd      =   " << pswd << endl;
+  os << "host      =   " << host << endl;
+  os << "port      =   " << port << endl;
+  os << "replayFile =  " << replayFile << endl;
+  os << "iFileName =   " << iFileName << endl;
+  os << "oFileName =   " << oFileName << endl;
+  os << "num       =   " << num << endl;
+  os << "numArgs   =   " << numArgs << endl;
+  os << "runMode   =   " << runMode << endl;
   os << "runExamples = " << runExamples << endl;
 }	  
 
@@ -243,7 +245,7 @@ TTYParameter::CheckConfiguration()
   "\n" <<
   "Note: Command line options overrule environment variables.\n";
 
-  // check comamnd options 
+  // check command options 
   while (i < numArgs)
   {
     argSwitch = argValues[i];
@@ -257,6 +259,7 @@ TTYParameter::CheckConfiguration()
       argValue = "";
       argOk = false;
     }
+
     if ( argSwitch == "-?" || argSwitch == "--help")  // Help
     {
       cout << usageMsg.str() << endl;
@@ -265,6 +268,10 @@ TTYParameter::CheckConfiguration()
     else if ( argOk && argSwitch == "-c" )  // Configuration file
     {
       parmFile = argValue;
+    }
+    else if ( argOk && argSwitch == "-d" )  // Configuration file
+    {
+      home = argValue;
     }
     else if ( argOk && argSwitch == "-i" )  // Input file
     {
@@ -358,10 +365,11 @@ TTYParameter::CheckConfiguration()
   
   // check if parameter values are empty and environment variables are set
   getEnvValue("SECONDO_CONFIG", parmFile);
-  getEnvValue("SECONDO_USER", user);
-  getEnvValue("SECONDO_PSWD", pswd);
-  getEnvValue("SECONDO_HOST", host);
-  getEnvValue("SECONDO_PORT", port);
+  getEnvValue("SECONDO_HOME"  , home);
+  getEnvValue("SECONDO_USER"  , user);
+  getEnvValue("SECONDO_PSWD"  , pswd);
+  getEnvValue("SECONDO_HOST"  , host);
+  getEnvValue("SECONDO_PORT"  , port);
   
   if ( needIdent ) // Is user identification needed?
   {
@@ -393,11 +401,6 @@ TTYParameter::CheckConfiguration()
       }
     }
   }
-//  else
-//  {
-//    user = "SECONDO";
-//    pswd = "SECONDO";
-//  }
 
   // check if parmfile is no present try default
   if ( parmFile.empty() )
@@ -412,12 +415,13 @@ TTYParameter::CheckConfiguration()
   bool found = FileSystem::FileOrFolderExists( parmFile );
   if ( !found ) // try environment variable 
   {
-    cmsg.error() << "Configuration file does not exist" << endl;
+    cmsg.error() << "Configuration file '" << parmFile 
+                 << "' does not exist" << endl;
     ok = false;
   }
   else
   {
-    cmsg.info() << "Using configuration file" << parmFile << endl;
+    cmsg.info() << "Using configuration file " << parmFile << endl;
     WinUnix::setenv("SECONDO_CONFIG", parmFile.c_str());
   } 
   cmsg.send();

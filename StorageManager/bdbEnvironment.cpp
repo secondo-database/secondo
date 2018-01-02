@@ -1180,52 +1180,24 @@ SmiEnvironment::SetSmiError( const SmiError smiErr,
 }
 
 bool
-SmiEnvironment::SetHomeDir(const string& parmFile)
+SmiEnvironment::SetHomeDir(const string& dbDir)
 {
-    string parentDir = FileSystem::GetParentFolder(
-                                     FileSystem::GetCurrentFolder(), 2 );
-    FileSystem::AppendSlash(parentDir);
-    string defaultHome = parentDir + "secondo-databases";
-    string secondoHome = SmiProfile::GetParameter( "Environment",
-                                                   "SecondoHome",
-                                                   "", parmFile.c_str() );
-
-    bool useDefaultHome = false;
-    if ( secondoHome == "" ) {
-      cerr << "Warning: Missing definition of "
-           << "SecondoHome in the configuration file!" << endl;
-      useDefaultHome = true;
-
-    } else { // SecondoHome is defined
-
-      if (!FileSystem::FileOrFolderExists(secondoHome)) {
-        cerr << "Warning: The folder SecondoHome='" << secondoHome
-             << "' does not exist!" << endl;
-        useDefaultHome = true;
-      }
+    string home = dbDir;
+    if(home.empty()){
+       cerr << "missing specification of SecondoHome" << endl;
+       return false;
     }
 
-    if ( useDefaultHome ) {
-
-      secondoHome = defaultHome;
-
-      if (!FileSystem::FileOrFolderExists(secondoHome)) {
-        cerr << "Creating default directory ..." << endl;
-        if (!FileSystem::CreateFolder(secondoHome)) {
-          cerr << "Error: Could not create folder '" << secondoHome
-               <<"'." << endl;
+    if (!FileSystem::FileOrFolderExists(home)) {
+        cout << "Creating directory " << home << endl;
+        if (!FileSystem::CreateFolderEx(home)) {
+          cerr << "Error: Could not create folder '" << home
+               << "'." << endl;
           return false;
         }
-      } else {
-        cerr << "Using default directory ..." << endl;
-      }
-    }
-    // Tests for a bug concerning assert, refer to
-    // SecondoConfig.ini for details!
-    //assert(false); -> aborts as expected!
-    cerr << "Database directory: SecondoHome='" << secondoHome << "'." << endl;
-    //assert(false); ** call of __assert_fail causes a SIGSEGV!
-    instance.impl->bdbHome = secondoHome;
+    } 
+    cout << "Database directory: SecondoHome='" << home << "'." << endl;
+    instance.impl->bdbHome = home;
     return true;
 }
 
@@ -1319,7 +1291,8 @@ SmiEnvironment::DeleteTmpEnvironment()
 
 
 bool SmiEnvironment::StartUp(const RunMode mode, const string& parmFile,
-                             ostream& errStream, string dbDir /* = "" */) {
+                             const string& dbDir,
+                             ostream& errStream) {
   #ifdef THREAD_SAFE
      boost::lock_guard<boost::recursive_mutex> guard(env_mtx);
   #endif
@@ -1335,16 +1308,10 @@ bool SmiEnvironment::StartUp(const RunMode mode, const string& parmFile,
   int errors = GetNumOfErrors();
   DbEnv* dbenv = instance.impl->bdbEnv;
   assert(dbenv);
-  if (parmFile.find('|') != string::npos) {
-    configFile = parmFile.substr(0, parmFile.find('|'));
-    if (dbDir.empty()) {
-      dbDir = parmFile.substr(parmFile.find('|') + 1);
-    }
-  }
-  else {
-    configFile = parmFile;
-  }
+  configFile = parmFile;
+  
   // --- Set the name of the registrar for registering and locking databases
+
   registrar = SmiProfile::GetUniqueSocketName(configFile);
   // --- Set output stream for error messages from Berkeley DB
   //     and the prefix string for these messages
@@ -1416,13 +1383,15 @@ bool SmiEnvironment::StartUp(const RunMode mode, const string& parmFile,
     rc = dbenv->set_lg_bsize(lBufSize * 1024);
     SetBDBError(rc);
   }
+  string home = dbDir;
+  if(home.empty()){
+    home = SmiProfile::GetParameter("SecondoHome", "Environment","",
+                                      configFile.c_str());
+  }
+
   // --- Open Berkeley DB environment
   if (rc == 0) {
-    if (dbDir.length() > 0) {
-      instance.impl->bdbHome = dbDir;
-      cout << "DBDIR set to " << dbDir << "." << endl;
-    }
-    else if (!SetHomeDir(configFile)) {
+    if (!SetHomeDir(home)) {
       return false;
     }
     u_int32_t flags = 0;

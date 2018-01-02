@@ -1222,7 +1222,7 @@ int connectVMT( Word* args, Word& result, int message,
    si->setMaxAttempts(4);
    si->setTimeout(defaultTimeout);
    if(! si->Initialize(user, passwd, host, 
-                       stringutils::int2str(port), file, 
+                       stringutils::int2str(port), file,"", 
                        errMsg, true)){
       msgcenter->Send(nl, nl->TwoElemList( nl->SymbolAtom("simple"),
                                        nl->TextAtom(errMsg)));
@@ -3608,7 +3608,7 @@ class Connector{
         si->setTimeout(defaultTimeout);
         string errMsg;
         if(!si->Initialize( "", "", host, stringutils::int2str(port),
-                           config,errMsg, true)){
+                           config,"",errMsg, true)){
            listener->connectionDone(inTuple, inTupleNo, 0);
            delete si;
            si = 0;
@@ -19271,7 +19271,7 @@ class deleteRemoteDatabasesInfo{
         si->setTimeout(defaultTimeout);
         if(! si->Initialize(user, passwd, host,
                             stringutils::int2str(port), 
-                            config,
+                            config,"",
                             msg, true)){
            
            delete si;

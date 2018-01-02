@@ -1007,8 +1007,6 @@ Returns a pointer to the "Secondo"[3] Storage Management Environment
 
 */
 
-  static bool SetHomeDir(const std::string& parmFile);
-
   static std::string GetSecondoHome();
 
   static std::string ConfigFile();
@@ -1018,8 +1016,8 @@ Returns a pointer to the "Secondo"[3] Storage Management Environment
 
   static bool StartUp( const RunMode mode,
                        const std::string& parmFile,
-                       std::ostream& errStream,
-                       std::string dbDir = "");
+                       const std::string& dbDir,
+                       std::ostream& errStream);
 /*
 Initializes the ~SmiEnvironment~ of the storage manager interface.
 Parameters are read from the configuration file ~parmFile~.
@@ -1201,6 +1199,11 @@ character has to be alphabetic.
 Database names are *not* case sensitive.
 
 */
+
+  static bool SetHomeDir(const std::string& dbDir);
+
+
+
   static bool InitializeDatabase();
 /*
 Initializes a new database.
@@ -1246,7 +1249,6 @@ or if the application runs in single user mode.
 
   static bool CallRegistrar( const std::string& dbname, 
       const std::string& cmd, std::string& answer );
-
 
 
 
