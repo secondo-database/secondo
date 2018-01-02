@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[x] [$\times $]
 //[->] [$\rightarrow $]
 
-[1] Implementation of the MRegionOpsAlgebra
+[1] Implementation of the MRegionOps3Algebra
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
 Mai - November 2017, U. Wiesecke for master thesis.
