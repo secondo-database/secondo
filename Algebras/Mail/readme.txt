@@ -21,7 +21,7 @@ If the latter one does not exist, you need to create it.
 
 
 
-In the sasl_passwd.db you have to edit (default port 25):
+In the sasl_passwd you have to edit (default port 25):
 
 [smtp.isp.example]:25  username:password
 
