@@ -72,7 +72,7 @@ int main(int argc, char** argv){
   bool   multiUser=true;
 
   // try to connect
-  if(!si->Initialize(user,passwd,host,port,config,errMsg,multiUser)){
+  if(!si->Initialize(user,passwd,host,port,config,"",errMsg,multiUser)){
      // connection failed, handle error
      cerr << "Cannot initialize secondo system" << endl;
      cerr << "Error message = " << errMsg << endl;
