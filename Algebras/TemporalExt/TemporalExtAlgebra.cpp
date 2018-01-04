@@ -45,6 +45,7 @@ inclusion of header files concerning Secondo.
 #include "TemporalExtAlgebra.h"
 #include "RefinementStream.h"
 #include "Geoid.h"
+#include "Algorithms.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -1961,6 +1962,49 @@ MBool MPointExt::Inside( const Region& r ) const
 }
 
 /*
+\subsection{Local Info Class for ~splitAtGaps~}
+
+*/
+template<class T, class U>
+class SplitAtGapsLI {
+ public:
+  SplitAtGapsLI(T *src, DateTime *dur) : counter(0) {
+    U unit(true), lastUnit(true);
+    T *res = new T(true);
+    if (!src->IsEmpty()) {
+      src->Get(0, lastUnit);
+      res->Add(lastUnit);
+      if (src->GetNoComponents() > 1) {
+        for (int i = 1; i < src->GetNoComponents(); i++) {
+          src->Get(i, unit);
+          if (unit.timeInterval.start == lastUnit.timeInterval.end) {
+            res->MergeAdd(unit);
+          }
+          else {
+            result.push_back(res);
+            res = new T(true);
+          }
+          lastUnit = unit;
+        }
+      }
+    }
+    result.push_back(res);
+  }
+  
+  T* nextResult() {
+    counter++;
+    if (counter - 1 >= result.size()) {
+      return 0;
+    }
+    return result[counter - 1];
+  }
+
+ private:
+  vector<T*> result;
+  int counter;
+};
+
+/*
 4 Auxiliary Functions
 
 4.1 Aux. Function ~CheckURealDerivable~
@@ -2914,6 +2958,35 @@ ListExpr berlin2wgsTM_lifted(ListExpr args) {
 }
 
 /*
+\subsubsection{Type Mapping for ~splitAtGaps~}
+
+signatures:
+  mT (x duration) -> stream(mT), for T in {bool, int, real, string, label(s),
+                                           place(s), point, region}
+
+*/
+ListExpr splitatgapsTM(ListExpr args) {
+  if (!(nl->HasLength(args, 1) || nl->HasLength(args, 2))) {
+    return listutils::typeError("Either one or two arguments expected");
+  }
+  ListExpr a1 = nl->First(args);
+  if (!(MBool::checkType(a1) || MInt::checkType(a1) || MReal::checkType(a1) ||
+        MString::checkType(a1) || stj::MLabel::checkType(a1) || 
+        stj::MLabels::checkType(a1) || stj::MPlace::checkType(a1) || 
+        stj::MPlaces::checkType(a1) || MPoint::checkType(a1) || 
+        MRegion::checkType(a1))) {
+    return listutils::typeError("First argument must have one of the types "
+      "{mbool, mint, mreal, mstring, mlabel(s), mplace(s), mpoint, mregion}");
+  }
+  if (nl->HasLength(args, 2)) {
+    if (!Duration::checkType(nl->Second(args))) {
+      return listutils::typeError("Second argument must be a duration");
+    }
+  }
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), a1);
+}
+
+/*
 9.2 Selection function
 
 A selection function is quite similar to a type mapping function. The only
@@ -3166,6 +3239,24 @@ int berlin2wgsSelect_lifted(ListExpr args) {
   if (IPoint::checkType(nl->First(args))) return 0;
   if (UPoint::checkType(nl->First(args))) return 1;
   if (MPoint::checkType(nl->First(args))) return 2;
+  return -1;
+}
+
+/*
+\subsubsection{Selection Function for ~splitAtGaps~}
+
+*/
+int splitatgapsSelect(ListExpr args) {
+  if (MBool::checkType(nl->First(args)))        return 0;
+  if (MInt::checkType(nl->First(args)))         return 1;
+  if (MReal::checkType(nl->First(args)))        return 2;
+  if (MString::checkType(nl->First(args)))      return 3;
+  if (stj::MLabel::checkType(nl->First(args)))  return 4;
+  if (stj::MLabels::checkType(nl->First(args))) return 5;
+  if (stj::MPlace::checkType(nl->First(args)))  return 6;
+  if (stj::MPlaces::checkType(nl->First(args))) return 7;
+  if (MPoint::checkType(nl->First(args)))       return 8;
+  if (MRegion::checkType(nl->First(args)))      return 9;
   return -1;
 }
 
@@ -4810,6 +4901,48 @@ int berlin2wgsVM_lifted(Word* args, Word& result, int message, Word& local,
   return 0;
 }
 
+template<class T, class U>
+int splitatgapsVM(Word* args, Word& result, int message, Word& local,
+                  Supplier s) {
+  SplitAtGapsLI<T, U> *li = (SplitAtGapsLI<T, U>*)local.addr;
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        li = 0;
+        local.addr = 0;
+      }
+      T *src = (T*)args[0].addr;
+      if (!src->IsDefined()) {
+        return 0;
+      }
+      DateTime *dur = 0;
+      if (qp->GetNoSons(s) == 2) {
+        dur = (DateTime*)args[1].addr;
+        if (!dur->IsDefined()) {
+          return 0;
+        }
+      }
+      local.addr = new SplitAtGapsLI<T, U>(src, dur);
+    }
+    case REQUEST: {
+      result.addr = li ? li->nextResult() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+    default: {
+      return -1;
+    }
+  }
+
+}
+
 /*
 9.4 Definition of operators
 
@@ -4932,14 +5065,24 @@ ValueMapping EverNearerThan_vms[] =
 {
   EverNearerThan_vm<MPoint,MPoint>,
   EverNearerThan_vm<MPoint, Point>,
-  EverNearerThan_vm<Point, MPoint>
-};
+  EverNearerThan_vm<Point, MPoint>};
 
 ValueMapping berlin2wgsVMs_lifted[] = {
   berlin2wgsVM_lifted<IPoint>,
   berlin2wgsVM_lifted<UPoint>,
-  berlin2wgsVM_lifted<MPoint>
-};
+  berlin2wgsVM_lifted<MPoint>};
+
+ValueMapping splitatgapsVMs[] = {
+  splitatgapsVM<MBool, UBool>,
+  splitatgapsVM<MInt, UInt>,
+  splitatgapsVM<MReal, UReal>,
+  splitatgapsVM<MString, UString>,
+  splitatgapsVM<stj::MLabel, stj::ULabel>,
+  splitatgapsVM<stj::MLabels, stj::ULabels>,
+  splitatgapsVM<stj::MPlace, stj::UPlace>,
+  splitatgapsVM<stj::MPlaces, stj::UPlaces>,
+  splitatgapsVM<MPoint, UPoint>,
+  splitatgapsVM<MRegion, URegionEmb>};
 
 /*
 9.5 Specification strings
@@ -5231,6 +5374,16 @@ const string berlin2wgsSpec_lifted =
   "<text>query berlin2wgs([const point value (13132, 10876)])</text--->"
   ") )";
 
+const string splitatgapsSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mT (x duration) -> stream(mT), where T in {bool, int, real, string, "
+  "label(s), place(s), point, region} </text---> "
+  "<text> splitatgaps( _ ) </text--->"
+  "<text>Splits an mT at its temporal gaps. The object will not be splitted at "
+  "gaps with a duration shorter than the second parameter. </text--->"
+  "<text>query splitatgaps(train7) count</text--->"
+  ") )";
+
 struct EverNearerThanInfo : OperatorInfo {
 
   EverNearerThanInfo() : OperatorInfo()
@@ -5476,9 +5629,15 @@ Operator berlin2wgs_lifted(
     3,
     berlin2wgsVMs_lifted,
     berlin2wgsSelect_lifted,
-    berlin2wgsTM_lifted
-);
+    berlin2wgsTM_lifted);
 
+Operator splitatgaps(
+    "splitAtGaps",
+    splitatgapsSpec,
+    10,
+    splitatgapsVMs,
+    splitatgapsSelect,
+    splitatgapsTM);
 
 
 class TemporalExtAlgebra : public Algebra
@@ -5545,6 +5704,7 @@ class TemporalExtAlgebra : public Algebra
         AddOperator(&inside);
         
         AddOperator(&berlin2wgs_lifted);
+        AddOperator(&splitatgaps);
 
     }
     ~TemporalExtAlgebra() {}
