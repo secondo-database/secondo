@@ -48,12 +48,12 @@ sockets.
 
 */
 
-using namespace std;
 
 #include "RemoteStreamAlgebra.h"
 #include "Symbols.h"
 #include "StringUtils.h"
 
+using namespace std;
 using stringutils::int2str;
 
 //#include "../HadoopParallel/HadoopParallelAlgebra.h"
@@ -139,10 +139,10 @@ TSendTypeMap(ListExpr args)
 
   if (!l.second().first().isSymbol(Symbols::INT()))
     return l.typeError(typeErr);
-  NList pList;
-  if (!QueryProcessor::GetNLArgValueInTM(l.second().second(), pList))
+  ListExpr pList;
+  if (!QueryProcessor::GetNLArgValueInTM(l.second().second().listExpr(),pList))
     return l.typeError(evaErr + "port number");
-  int port = pList.intval();
+  int port = NList(pList).intval();
   if (port < min_PortNum || port > max_PorNum)
   {
     cerr << "The present port number is: " << port << endl;
@@ -237,14 +237,14 @@ TReceiveTypeMap(ListExpr args)
     return l.typeError(typeErr);
 
   string host, streamTypeStr;
-  NList hList;
-  if (!QueryProcessor::GetNLArgValueInTM(l.first().second(), hList))
+  ListExpr hList;
+  if (!QueryProcessor::GetNLArgValueInTM(l.first().second().listExpr(), hList))
     return l.typeError(evaErr + "host name");
-  host = hList.str();
-  NList pList;
-  if (!QueryProcessor::GetNLArgValueInTM(l.second().second(), pList))
+  host = NList(hList).str();
+  ListExpr pList;
+  if (!QueryProcessor::GetNLArgValueInTM(l.second().second().listExpr(),pList))
     return l.typeError(evaErr + "port number");
-  int port = pList.intval();
+  int port = NList(pList).intval();
   if (port < min_PortNum || port > max_PorNum)
     return l.typeError(portErr);
 
@@ -707,7 +707,7 @@ TReceiveStream(Word* args, Word& result,
         if (tupleBlockSize > 0)
         {
           tuple = new Tuple(tupleType);
-          tuple->ReadFromBin(buf + offset);
+          tuple->ReadFromBin(0,buf + offset);
           offset += tupleBlockSize;
 
           tupleBuffer->AppendTuple(tuple);
