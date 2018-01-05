@@ -432,7 +432,7 @@ bool fList::Open(SmiRecord& valueRecord,
                  const ListExpr typeInfo,
                  Word& value)
 {
-  int valueLen;
+  size_t valueLen;
   string valueStr = "";
   ListExpr valueList = 0;
   char *buf = 0;
@@ -889,20 +889,20 @@ ListExpr SpreadTypeMap(ListExpr args){
       if (pp.isSymbol(CcString::BasicType()))
       {
         //Set the file name
-        NList fnList;
-        if (!QueryProcessor::GetNLArgValueInTM(pv, fnList)){
+        ListExpr fnList;
+        if (!QueryProcessor::GetNLArgValueInTM(pv.listExpr(), fnList)){
           return l.typeError(err[2] + "fileName");
         }
-        fileName = fnList.str();
+        fileName = NList(fnList).str();
       }
       else if (pp.isSymbol(FText::BasicType()))
       {
         //Set the file path
-        NList fpList;
-        if (!QueryProcessor::GetNLArgValueInTM(pv, fpList)){
+        ListExpr fpList;
+        if (!QueryProcessor::GetNLArgValueInTM(pv.listExpr(), fpList)){
           return l.typeError(err[2] + "filePath");
         }
-        filePath = fpList.str();
+        filePath = NList(fpList).str();
       }
       else if (!pp.isSymbol(CcInt::BasicType())){
         return l.typeError(err[1]);
@@ -1411,8 +1411,8 @@ bool SpreadLocalInfo::closeAllPartFiles()
               != 0 ){
             cerr << "Warning! Duplicate files "
                 << filePaths << " to " << endl
-                << remotePath << " fails. " << endl
-                << strerror(error) << endl;
+                << remotePath << " fails. " << endl;
+                //<< strerror(error) << endl;
           }
           else
             break;
@@ -1770,11 +1770,11 @@ ListExpr CollectTypeMap(ListExpr args)
         return l.typeError(err[0]);
       }
   
-      NList opVal;
-      if (!qp->GetNLArgValueInTM(pValue.first(), opVal)){
+      ListExpr opVal;
+      if (!qp->GetNLArgValueInTM(pValue.first().listExpr(), opVal)){
         return l.typeError(err[1]);
       }else{
-        int rowNum = opVal.intval();
+        int rowNum = NList(opVal).intval();
         if (rowNum < 0){
           return l.typeError(err[2]);
         }
@@ -1784,10 +1784,10 @@ ListExpr CollectTypeMap(ListExpr args)
         if (!pType.first().isSymbol(CcInt::BasicType())){
           return l.typeError(err[0]);
         }
-        if (!qp->GetNLArgValueInTM(pValue.second(), opVal)){
+        if (!qp->GetNLArgValueInTM(pValue.second().listExpr(), opVal)){
           return l.typeError(err[1]);
         }else{
-          int columnNum = opVal.intval();
+          int columnNum = NList(opVal).intval();
           if (columnNum < 0){
             return l.typeError(err[2]);
           }
@@ -2679,29 +2679,29 @@ ListExpr pffeedTypeMap(ListExpr args, bool noFlob)
      }
      if (!pType.fourth().isSymbol(CcString::BasicType()))
        return l.typeError(firstPLErr);
-     NList fnList;
-     if (!QueryProcessor::GetNLArgValueInTM(pValue.fourth(), fnList))
+     ListExpr fnList;
+     if (!QueryProcessor::GetNLArgValueInTM(pValue.fourth().listExpr(),fnList))
        return l.typeError(ifeErr + "fileName");
-     fileName = fnList.str();
+     fileName = NList(fnList).str();
      // text, int, or text x int
      Cardinal opIdx = 5;
      while (opIdx <= pType.length())
      {
        if (pType.elem(opIdx).isSymbol(FText::BasicType()))
        {
-         NList fpList;
+         ListExpr fpList;
          if (!QueryProcessor::GetNLArgValueInTM(
-               pValue.elem(opIdx), fpList))
+               pValue.elem(opIdx).listExpr(), fpList))
            return l.typeError(ifeErr + "filePath");
-         filePath = fpList.str();
+         filePath = NList(fpList).str();
        }
        else if (pType.elem(opIdx).isSymbol(CcInt::BasicType()))
        {
-         NList atList;
+         ListExpr atList;
          if (!QueryProcessor::GetNLArgValueInTM(
-               pValue.elem(opIdx), atList))
+               pValue.elem(opIdx).listExpr(), atList))
            return l.typeError(ifeErr + "attemptTimes");
-         attTimes = atList.intval();
+         attTimes = NList(atList).intval();
          if (attTimes < 1)
            return l.typeError(iatErr);
        }
@@ -2720,11 +2720,11 @@ ListExpr pffeedTypeMap(ListExpr args, bool noFlob)
      {
        if (!pType.elem(pIdx + 1).isSymbol(CcInt::BasicType()))
          return l.typeError(secondPLErr);
-       NList tnList;
-       if (!QueryProcessor::GetNLArgValueInTM(pValue.elem(pIdx + 1),
+       ListExpr tnList;
+       if (!QueryProcessor::GetNLArgValueInTM(pValue.elem(pIdx + 1).listExpr(),
            tnList))
          return l.typeError(ifeErr + "type node");
-       typeNode[pIdx] = tnList.intval();
+       typeNode[pIdx] = NList(tnList).intval();
        pIdx++;
      }
    
@@ -3384,29 +3384,29 @@ ListExpr hadoopMapTypeMap(ListExpr args){
          if (pp.isSymbol(CcString::BasicType()))
          {
            //ObjectName defined.
-           NList fnList;
-           if (!QueryProcessor::GetNLArgValueInTM(pv, fnList)){
+           ListExpr fnList;
+           if (!QueryProcessor::GetNLArgValueInTM(pv.listExpr(), fnList)){
              return l.typeError(ifaErr + "objName");
            }
-           objName = fnList.str();
+           objName = NList(fnList).str();
          }
          else if (pp.isSymbol(FText::BasicType()))
          {
            //FilePath defined
-           NList fpList;
-           if (!QueryProcessor::GetNLArgValueInTM(pv, fpList)){
+           ListExpr fpList;
+           if (!QueryProcessor::GetNLArgValueInTM(pv.listExpr(), fpList)){
              return l.typeError(ifaErr + "filePath");
            }
-           filePath = fpList.str();
+           filePath = NList(fpList).str();
          }
          else if (pp.isSymbol(CcInt::BasicType()))
          {
            //mapTaskNum
-           NList mtnList;
-           if (!QueryProcessor::GetNLArgValueInTM(pv, mtnList)){
+           ListExpr mtnList;
+           if (!QueryProcessor::GetNLArgValueInTM(pv.listExpr(), mtnList)){
              return l.typeError(ifaErr + "mapTaskNum");
            }
-           mapTaskNum = mtnList.intval();
+           mapTaskNum = NList(mtnList).intval();
          }
          else if (pp.isSymbol("DLF")){
            kind = DLF;
@@ -3415,11 +3415,11 @@ ListExpr hadoopMapTypeMap(ListExpr args){
            kind = DLO;
          }
          else if (pp.isSymbol(CcBool::BasicType())){
-           NList etList;
-           if (!QueryProcessor::GetNLArgValueInTM(pv, etList)){
+           ListExpr etList;
+           if (!QueryProcessor::GetNLArgValueInTM(pv.listExpr(), etList)){
              return l.typeError(ifaErr + "executed");
            }
-           executed = etList.boolval();
+           executed = NList(etList).boolval();
          }
          else{
            return l.typeError(typErr);
@@ -3904,28 +3904,28 @@ ListExpr hadoopMap2TypeMap(ListExpr args) {
 
         if (paraType.isSymbol(CcString::BasicType())) {
           //ObjectName defined.
-          NList fnList;
-          if (!QueryProcessor::GetNLArgValueInTM(paraValue, fnList)) {
+          ListExpr fnList;
+          if (!QueryProcessor::GetNLArgValueInTM(paraValue.listExpr(),fnList)) {
             return l.typeError(ifaErr + "objName");
           }
-          objName = fnList.str();
+          objName = NList(fnList).str();
         } else if (paraType.isSymbol(FText::BasicType())) {
           //FilePath defined
-          NList fpList;
-          if (!QueryProcessor::GetNLArgValueInTM(paraValue, fpList)) {
+          ListExpr fpList;
+          if (!QueryProcessor::GetNLArgValueInTM(paraValue.listExpr(),fpList)) {
             return l.typeError(ifaErr + "filePath");
           }
-          filePath = fpList.str();
+          filePath = NList(fpList).str();
         } else if (paraType.isSymbol("DLF")) {
           kind = DLF;
         } else if (paraType.isSymbol("DLO")) {
           kind = DLO;
         } else if (paraType.isSymbol(CcBool::BasicType())) {
-          NList etList;
-          if (!QueryProcessor::GetNLArgValueInTM(paraValue, etList)) {
+          ListExpr etList;
+          if (!QueryProcessor::GetNLArgValueInTM(paraValue.listExpr(),etList)) {
             return l.typeError(ifaErr + "executed");
           }
-          executed = etList.boolval();
+          executed = NList(etList).boolval();
         } else {
           return l.typeError(typErr);
         }
@@ -4064,7 +4064,7 @@ int hadoopMap2ValueMap(Word* args, Word& result, int message, Word& local,
     NList localList2 = inputFList2->getLocList();
 
     int numOfNodes = localList1.length();
-    if (numOfNodes != localList2.length()) {
+    if (numOfNodes != (int)localList2.length()) {
       cerr << "Two Flist haven't distributed on the same nodes" << endl;
       return 0;
     }
@@ -4815,27 +4815,27 @@ ListExpr hadoopReduceTypeMap(ListExpr args){
            if (pp.isSymbol(CcString::BasicType()))
            {
              //ObjectName defined.
-             NList fnList;
-             if (!QueryProcessor::GetNLArgValueInTM(pv, fnList)){
+             ListExpr fnList;
+             if (!QueryProcessor::GetNLArgValueInTM(pv.listExpr(), fnList)){
                return l.typeError(ifaErr + "objName");
              }
-             objName = fnList.str();
+             objName = NList(fnList).str();
            }
            else if (pp.isSymbol(FText::BasicType()))
            {
              //FilePath defined
-             NList fpList;
-             if (!QueryProcessor::GetNLArgValueInTM(pv, fpList)){
+             ListExpr fpList;
+             if (!QueryProcessor::GetNLArgValueInTM(pv.listExpr(), fpList)){
                return l.typeError(ifaErr + "filePath");
              }
-             filePath = fpList.str();
+             filePath = NList(fpList).str();
            }
            else if (pp.isSymbol(CcInt::BasicType())){
-             NList rnList;
-             if (!QueryProcessor::GetNLArgValueInTM(pv, rnList)){
+             ListExpr rnList;
+             if (!QueryProcessor::GetNLArgValueInTM(pv.listExpr(), rnList)){
                return l.typeError(ifaErr + "objName");
              }
-             reduceTaskNum = rnList.intval();
+             reduceTaskNum = NList(rnList).intval();
            }
            else if (pp.isSymbol("DLF")){
              kind = DLF;
@@ -5384,34 +5384,34 @@ ListExpr hadoopReduce2TypeMap(ListExpr args){
        if (pp.isSymbol(CcString::BasicType()))
        {
          //ObjectName defined.
-         NList fnList;
-         if (!QueryProcessor::GetNLArgValueInTM(pv, fnList)){
+         ListExpr fnList;
+         if (!QueryProcessor::GetNLArgValueInTM(pv.listExpr(), fnList)){
            return l.typeError(ifaErr + "objName");
          }
-         objName = fnList.str();
+         objName = NList(fnList).str();
        }
        else if (pp.isSymbol(FText::BasicType()))
        {
          //FilePath defined
-         NList fpList;
-         if (!QueryProcessor::GetNLArgValueInTM(pv, fpList)){
+         ListExpr fpList;
+         if (!QueryProcessor::GetNLArgValueInTM(pv.listExpr(), fpList)){
            return l.typeError(ifaErr + "filePath");
          }
-         filePath = fpList.str();
+         filePath = NList(fpList).str();
        }
        else if (pp.isSymbol(CcInt::BasicType())){
-         NList rnList;
-         if (!QueryProcessor::GetNLArgValueInTM(pv, rnList)){
+         ListExpr rnList;
+         if (!QueryProcessor::GetNLArgValueInTM(pv.listExpr(), rnList)){
            return l.typeError(ifaErr + "objName");
          }
-         reduceTaskNum = rnList.intval();
+         reduceTaskNum = NList(rnList).intval();
        }
        else if (pp.isSymbol(CcBool::BasicType())){
-         NList ihList;
-         if (!QueryProcessor::GetNLArgValueInTM(pv, ihList)){
+         ListExpr ihList;
+         if (!QueryProcessor::GetNLArgValueInTM(pv.listExpr(), ihList)){
            return l.typeError(ifaErr + "isHDJ");
          }
-         isHDJ = ihList.boolval();
+         isHDJ = NList(ihList).boolval();
        }
        else if (pp.isSymbol("DLF")){
          kind = DLF;
@@ -5916,11 +5916,12 @@ ListExpr createFListTypeMap(ListExpr args){
     }
 
     //Create the type file
-    NList onList;
-    if (!QueryProcessor::GetNLArgValueInTM(l.second().second(), onList)){
+    ListExpr onList;
+    if (!QueryProcessor::GetNLArgValueInTM(l.second().second().listExpr(),
+                                           onList)){
       return l.typeError(ifaErr + "ObjectName");
     }
-    string objName = onList.str();
+    string objName = NList(onList).str();
     if (objName.length() == 0)
       objName = fList::tempName(false);
     else
