@@ -21,7 +21,7 @@ all: collectFlobServer$(EXEEXT)
 LDFLAGS:= -lpthread
 
 collectFlobServer$(EXEEXT): collectFlobServer.o
-	$(CPPC) -o collectFlobServer$(EXEEXT) collectFlobServer.o $(SECONDO_BUILD_DIR)/Tools/Utilities/Profiles.o $(LDFLAGS)
+	$(CPPC) -o collectFlobServer$(EXEEXT) collectFlobServer.o $(SECONDO_BUILD_DIR)/Tools/Utilities/Profiles.o $(SECONDO_BUILD_DIR)/Tools/Utilities/UtilFunctions.o $(SECONDO_BUILD_DIR)/Tools/Utilities/WinUnix.o $(LDFLAGS) $(COMMON_LD_FLAGS)
 	cp collectFlobServer$(EXEEXT) $(SECONDO_BUILD_DIR)/bin
 
 collectFlobServer.o: collectFlobServer.cpp

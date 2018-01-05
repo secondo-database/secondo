@@ -2235,15 +2235,19 @@ ListExpr FConsumeTypeMap(ListExpr args, bool noFlob)
            return l.typeError(err5);
        }
    
-       NList fnList;
-       if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), fnList))
+       ListExpr fnListL=nl->TheEmptyList();
+       if (!QueryProcessor::GetNLArgValueInTM(pValue.first().listExpr(), 
+                                              fnListL))
          return l.typeError(err3 + "file prefix name");
+       NList fnList(fnListL);
        filePreName = fnList.str();
        if (0 == filePreName.length())
          return l.typeError(err1);
-       NList fpList;
-       if (!QueryProcessor::GetNLArgValueInTM(pValue.second(), fpList))
+       ListExpr fpListL;
+       if (!QueryProcessor::GetNLArgValueInTM(pValue.second().listExpr(), 
+                                              fpListL))
          return l.typeError(err3 + "filePath");
+       NList fpList(fpListL);
        filePath = fpList.str();
      }
      else
@@ -2266,9 +2270,11 @@ ListExpr FConsumeTypeMap(ListExpr args, bool noFlob)
        int cnt = 0;
        while (!pValue.isEmpty())
        {
-         NList nList;
-         if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), nList))
+         ListExpr nListL;
+         if (!QueryProcessor::GetNLArgValueInTM(pValue.first().listExpr(),
+                                                 nListL))
            return l.typeError(err3 + " type node index");
+         NList nList(nListL);
          tNode[cnt++] = nList.intval();
          pValue.rest();
        }
@@ -2906,9 +2912,10 @@ ListExpr FFeedTypeMap(ListExpr args, bool noFlob)
      pValue = fn.second();
      if (!pType.isSymbol(CcString::BasicType()))
        return l.typeError(err5);
-     NList fnList;
-     if (!QueryProcessor::GetNLArgValueInTM(pValue, fnList))
+     ListExpr fnListL;
+     if (!QueryProcessor::GetNLArgValueInTM(pValue.listExpr(), fnListL))
        return l.typeError(err4 + "fileName");
+     NList fnList(fnListL);
      string fileName = fnList.str();
      if (0 == fileName.length())
        return l.typeError(err1);
@@ -2930,10 +2937,10 @@ ListExpr FFeedTypeMap(ListExpr args, bool noFlob)
          return l.typeError(err6);
      }
    
-     NList fpList;
-     if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), fpList))
+     ListExpr fpListL;
+     if (!QueryProcessor::GetNLArgValueInTM(pValue.first().listExpr(), fpListL))
        return l.typeError(err4 + "filePath");
-     string filePath = fpList.str();
+     string filePath = NList(fpListL).str();
      filePath = getLocalFilePath(filePath, fileName, "_type");
    
    
@@ -3697,11 +3704,11 @@ ListExpr hdpJoinTypeMap(ListExpr args)
      if (!l.sixth().first().isSymbol(CcString::BasicType()))
        return l.typeError(typeErr);
    
-     NList rnList;
+     ListExpr rnListL;
      if (!QueryProcessor::GetNLArgValueInTM(
-           l.sixth().second(), rnList))
+           l.sixth().second().listExpr(), rnListL))
        return l.typeError(err1 + " resultName");
-     string resultName = rnList.str();
+     string resultName = NList(rnListL).str();
    
      // Check for the data location
      NList drList = l.elem(7).first();
@@ -4114,20 +4121,20 @@ ListExpr FDistributeTypeMap(ListExpr args, bool noFlob){
      // File name
      if (!pType.first().isSymbol(CcString::BasicType()))
        return l.typeError(err4);
-     NList fnList;
-     if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), fnList))
+     ListExpr fnList;
+     if (!QueryProcessor::GetNLArgValueInTM(pValue.first().listExpr(), fnList))
        return l.typeError(err1 + "fileName");
-     string filePrefix = fnList.str();
+     string filePrefix = NList(fnList).str();
      if (0 == filePrefix.length())
        return l.typeError(err2);
    
      // File path
      if (!pType.second().isSymbol(FText::BasicType()))
        return l.typeError(err4);
-     NList fpList;
-     if (!QueryProcessor::GetNLArgValueInTM(pValue.second(), fpList))
+     ListExpr fpList;
+     if (!QueryProcessor::GetNLArgValueInTM(pValue.second().listExpr(), fpList))
        return l.typeError(err1 + "filePath");
-     string filePath = fpList.str();
+     string filePath = NList(fpList).str();
    
      // Partition attribute
      if (!pType.third().isSymbol())
@@ -4240,10 +4247,11 @@ ListExpr FDistributeTypeMap(ListExpr args, bool noFlob){
        int cnt = 0;
        while(!pValue.isEmpty())
        {
-         NList nList;
-         if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), nList))
+         ListExpr nList;
+         if (!QueryProcessor::GetNLArgValueInTM(pValue.first().listExpr(), 
+                                                nList))
            return l.typeError( err7 + " type node index");
-         tNode[cnt++] = nList.intval();
+         tNode[cnt++] = NList(nList).intval();
          pValue.rest();
        }
    
