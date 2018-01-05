@@ -54,7 +54,6 @@ September 2003, M. Spiekermann: Implementation of getpagesize()
 #include "CharTransform.h"
 #include "WinUnix.h"
 #include "LogMsg.h"
-#include "Environment.h"
 
 using namespace std;
 
@@ -120,9 +119,14 @@ WinUnix::sleep( const int seconds )
 
 string
 WinUnix::getPlatformStr() { 
-
-  Environment& env = Environment::getInstance();
-  return env.getString("SECONDO_PLATFORM", "unknown");
+  string res = "unknown";
+  char* platform=0;
+  platform = getenv( "SECONDO_PLATFORM" );
+  if ( platform != 0 )
+  {
+      res = string(platform);
+  }
+  return res;
 }
 
 void WinUnix::writeBigEndian(ostream& o, const uint32_t number){
