@@ -330,7 +330,7 @@ namespace fialgebra{
       if (*m_numberOfEntries > 0){
         m_box = new Rectangle<dim>(GetValueAt(0));
 
-        for(int i = 1; i < *m_numberOfEntries; i++){
+        for(size_t i = 1; i < *m_numberOfEntries; i++){
           *m_box = m_box->Union(GetValueAt(i));
         }
       }
@@ -388,7 +388,7 @@ namespace fialgebra{
   void RTreeNode<dim>::PrintNodeToString(){
     if(!IsLeaf()){
       cout<<"Interne Knote: ";
-      for(int i = 0; i < GetNumberOfEntries(); i++){
+      for(size_t i = 0; i < GetNumberOfEntries(); i++){
          cout<<"EntryNumber: "<<i+1<<"; EntryPageNumber: "<<GetNodeID()<<
          "; Entry: "<<GetValueAt(i)<<"   ";
        }
@@ -396,7 +396,7 @@ namespace fialgebra{
     }
     else{
       cout<<"Blatt: ";
-      for(int i = 0; i < GetNumberOfEntries(); i++){
+      for(size_t i = 0; i < GetNumberOfEntries(); i++){
          cout<<"IDNumber: "<<i+1<<"; EntryPageNumber: "<<GetNodeID()<<
          "; ID: "<<GetIDAt(i)<<"   ";
        }

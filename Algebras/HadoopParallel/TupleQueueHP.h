@@ -126,10 +126,10 @@ and hold inside the memoryBuffer.
 They are released until the memoryBuffer is cleaned.
 
 */
+  double totalMemSize;
   std::vector<Tuple*>* transportedTuples;  
   std::map<SmiRecordId, size_t> FlobRecIdRefs;
 
-  double totalMemSize;
 /*
 Size of the cached tuples in the ~mtq~. Including the small Flob.
 

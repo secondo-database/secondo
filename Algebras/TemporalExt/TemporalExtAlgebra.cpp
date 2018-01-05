@@ -2001,7 +2001,7 @@ class SplitAtGapsLI {
 
  private:
   vector<T*> result;
-  int counter;
+  size_t counter;
 };
 
 /*

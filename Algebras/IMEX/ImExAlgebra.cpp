@@ -7427,7 +7427,7 @@ class shpCollectInfo{
              uint32_t chars = length*2;
              // copy content
              while(chars>0){
-               uint32_t toCopy = chars>buffersize?buffersize:chars;
+               uint32_t toCopy = (uint32_t)(chars>buffersize?buffersize:chars);
                inshp->read(buffer,toCopy);
                outshp->write(buffer,toCopy);
                chars -= toCopy;

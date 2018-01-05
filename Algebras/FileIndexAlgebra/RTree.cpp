@@ -598,7 +598,7 @@ RTree<dim>::~RTree(){
     for( size_t i = 0; i < numberOfEntries; i++ ) {
       const Rectangle<dim>& value1 = node->GetValueAt( i );
 
-      for( int j = i + 1; j < numberOfEntries; j++ ) {
+      for( size_t j = i + 1; j < numberOfEntries; j++ ) {
         double unionArea = value1.Union( node->GetValueAt( j ) ).Area();
 
         if ( unionArea > bestUnionArea ) {
@@ -660,7 +660,7 @@ RTree<dim>::~RTree(){
         unsigned int index;
         double d;
 
-        for ( int i = 0; i < numberOfEntries; i++ ) {
+        for ( size_t i = 0; i < numberOfEntries; i++ ) {
           const Rectangle<dim>& value = node->GetValueAt( i );
           double d1 = value.Union(box1).Area() - a1,
                  d2 = value.Union(box2).Area() - a2,
@@ -849,7 +849,7 @@ template<int dim>
   RTreeNode<dim>* RTree<dim>::
   GetChildNodeByIndex(RTreeNode<dim>* node, size_t index){
 
-    int i = 0;
+    size_t i = 0;
 
     while (i< this -> AllNodesWithinRTree.size())
     {
@@ -972,7 +972,7 @@ void RTree<dim>::ReinsertNodes(RTreeNode<dim> *node){
      * its children calling ReinsertNodes for each
      * of them */
     else{
-        for(int i = 0; i<node->GetNumberOfEntries(); i++){
+        for(size_t i = 0; i<node->GetNumberOfEntries(); i++){
             ReinsertNodes(GetChildNodeByIndex(node,i));
         }
     }
@@ -1203,7 +1203,7 @@ void RTree<dim>::EndBulkload() {
 template<int dim>
 void RTree<dim>::ToString(RTreeNode<dim>* node){
   bool printed = false;
-  int i = 0;
+  size_t i = 0;
   if(!node->IsLeaf()){
     while(i < node->GetNumberOfEntries()){
       if(printed == false){
