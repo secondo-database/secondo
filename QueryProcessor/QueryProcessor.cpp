@@ -4212,17 +4212,17 @@ Then call the operator's value mapping function.
         {
             if ( ((OpNode*)(tree->u.op.sons[i].addr))->evaluable )
             {
-              if ( !tree->u.op.isStream  && (message <= CLOSE) )   
+              if ( !tree->u.op.isStream )   
               //no stream operator, normal evaluation
               {
+                 if( message <= CLOSE ) 
+                 {
                         if ( traceNodes )
                         cerr << fn << "Simple op: compute result for son["
                         << i << "]" << endl;
 
-                Eval( tree->u.op.sons[i].addr, arg[i], message );
-                 
-                //if(message!=CLOSEPROGRESS){assert(arg[i].addr);}
-
+                    Eval( tree->u.op.sons[i].addr, arg[i], message );
+                 }
               }
               else // a stream operator
               {
