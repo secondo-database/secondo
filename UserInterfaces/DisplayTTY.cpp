@@ -3521,21 +3521,28 @@ virtual void Display(ListExpr type,  ListExpr value)
         cout << "*****************************BEGIN "
              << nl->ToString(type)
              << "********************************************** \n \n";
-        ListExpr subtype = nl->TheEmptyList();
-        nl->ReadFromString(unittype, subtype);
-        if (!nl->IsEmpty(value))
-        {
-            ListExpr rest = value;
-            while (!nl->IsEmpty(rest))
-            {
-                cout << No++ << ": ";
-                DisplayTTY::GetInstance().DisplayResult(
-                    subtype, nl->First(rest));
-                rest = nl->Rest(rest);
-            }
+        if (nl->SymbolValue(value) == "undef" ||
+            nl->SymbolValue(value) == "undefined") {
+          cout << "   UNDEFINED" << endl;
         }
-        else
+        else {
+          ListExpr subtype = nl->TheEmptyList();
+          nl->ReadFromString(unittype, subtype);
+          if (!nl->IsEmpty(value))
+          {
+              ListExpr rest = value;
+              while (!nl->IsEmpty(rest))
+              {
+                  cout << No++ << ": ";
+                  DisplayTTY::GetInstance().DisplayResult(
+                      subtype, nl->First(rest));
+                  rest = nl->Rest(rest);
+              }
+          }
+          else {
             cout << "Empty LType!";
+          }
+        }
         cout << endl << "*******************************END "
              << nl->ToString(type)
              << "**********************************************"

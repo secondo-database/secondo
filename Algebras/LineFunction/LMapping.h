@@ -1079,6 +1079,14 @@ Word InLMapping( const ListExpr typeInfo, const ListExpr instance,
         numUnits = nl->ListLength(instance);
     LMapping* m = new LMapping( numUnits );
     correct = true;
+    if (listutils::isSymbolUndefined(instance)) {
+      m->SetDefined(false);
+      return SetWord(Address(m));
+    }
+    if (nl->IsEmpty(instance)) {
+      m->SetDefined(true);
+      return SetWord(Address(m));
+    }
     int unitcounter = 0;
     std::string errmsg;
 
