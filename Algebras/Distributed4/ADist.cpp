@@ -28,6 +28,7 @@ Suite 330, Boston, MA  02111-1307  USA
 Adaptive Distribution
 
 2017-11-13: Sebastian J. Bronner $<$sebastian@bronner.name$>$
+2018-01-11: SJB: fixed a bug in "moveslot"[1]
 
 \tableofcontents
 
@@ -563,7 +564,6 @@ placed on and assigned to "index"[1] and removed from wherever it was before.
           p->clearRollback();
           p->unlockObject(this->darrayName());
           });
-    }
 /*
 Step 2: Set "temp"[1] as the target of the value mapping currently used for
 "slot"[1] and mark "slot"[1] as an additional temporary target to be used when
@@ -577,7 +577,6 @@ temporary target for its previous value mapping allows normal access to the
 data it holds.
 
 */
-    if(inuse) {
       exec([&](auto& p){ p->lockObject(dpartition_name, true); });
       dpartition->setBufferPartition(partition_start, slot);
       dpartition->resetPartition(partition_start, temp);
@@ -607,6 +606,7 @@ This requires an exclusive global lock on "darray"[1].
         "rel(tuple([Host: string, Port: int, Config: string])) value ((\"" +
         workers[index].getHost() + "\" " + to_string(workers[index].getPort())
         + " \"" + workers[index].getConfig() + "\"))])");
+    darray->setResponsible(slot, index);
     exec([&](auto& p){ p->updateObject(this->darrayName(), darray.get()); });
     exec([&](auto& p){
         p->clearRollback();
@@ -615,13 +615,6 @@ This requires an exclusive global lock on "darray"[1].
     sess.run("delete " + slot_name);
     sess.clearRollback();
 /*
-The remainder of this member function may be skipped if "slot"[1] is not in
-use.
-
-*/
-    if(!inuse)
-      return;
-/*
 Step 4: Return "slot"[1] to its original value mapping and mark "temp"[1] as an
 additional temporary target to be used when *reading* values. Update
 "dpartition"[1] on all peers.
@@ -629,14 +622,16 @@ additional temporary target to be used when *reading* values. Update
 This requires an exclusive global lock on "dpartition"[1].
 
 */
-    exec([&](auto& p){ p->lockObject(dpartition_name, true); });
-    dpartition->setBufferPartition(partition_start, temp);
-    dpartition->resetPartition(partition_start, slot);
-    exec([&](auto& p){ p->updateObject(dpartition_name, dpartition.get()); });
-    exec([&](auto& p){
-        p->clearRollback();
-        p->unlockObject(dpartition_name);
-        });
+    if(inuse) {
+      exec([&](auto& p){ p->lockObject(dpartition_name, true); });
+      dpartition->clearBufferPartition();
+      dpartition->setBufferPartition(partition_start, temp);
+      dpartition->resetPartition(partition_start, slot);
+      exec([&](auto& p){ p->updateObject(dpartition_name, dpartition.get()); });
+      exec([&](auto& p){
+          p->clearRollback();
+          p->unlockObject(dpartition_name);
+          });
 /*
 Step 5: Move the contents of "temp"[1] to "slot"[1].
 
@@ -649,30 +644,30 @@ that "temp"[1] be empty at the end of this operation. Otherwise future attempts
 to reuse it will fail.
 
 */
-    sess = ConnectionSession{d2->getWorkerConnection(
-        darray->getWorker(index), dbname)};
-    string temp_name{darray->getObjectNameForSlot(temp)};
-    exec([&](auto& p){ p->lockObject(this->darrayName(), false); });
-    sess.run("query " + temp_name + " feed " + slot_name + " insert count");
-    sess.run("update " + temp_name + " := " + temp_name +
-        " feed head[0] consume");
-    exec([&](auto& p){
-        p->clearRollback();
-        p->unlockObject(this->darrayName());
-        });
-    sess.clearRollback();
+      sess = ConnectionSession{d2->getWorkerConnection(
+          darray->getWorker(index), dbname)};
+      string temp_name{darray->getObjectNameForSlot(temp)};
+      exec([&](auto& p){ p->lockObject(this->darrayName(), false); });
+      sess.run("query " + temp_name + " feed " + slot_name + " insert count");
+      sess.run("update " + temp_name + " := " + temp_name +
+          " feed head[0] consume");
+      exec([&](auto& p){
+          p->clearRollback();
+          p->unlockObject(this->darrayName());
+          });
+      sess.clearRollback();
 /*
 Step 6: Remove the temporary value mapping for "temp"[1] and update
 "dpartition"[1] on all peers.
 
 */
-    exec([&](auto& p){ p->lockObject(dpartition_name, true); });
-    dpartition->clearBufferPartition();
-    exec([&](auto& p){ p->updateObject(dpartition_name, dpartition.get()); });
-    exec([&](auto& p){
-        p->clearRollback();
-        p->unlockObject(dpartition_name);
-        });
+      exec([&](auto& p){ p->lockObject(dpartition_name, true); });
+      dpartition->clearBufferPartition();
+      exec([&](auto& p){ p->updateObject(dpartition_name, dpartition.get()); });
+      exec([&](auto& p){
+          p->clearRollback();
+          p->unlockObject(dpartition_name);
+          });
 /*
 Step 7: If "temp"[1] happens to be the last slot in "darray"[1], remove it
 completely.
@@ -681,33 +676,32 @@ This requires an exclusive global lock on "darray"[1]. Be sure to update
 "darray"[1] on all peers.
 
 */
-    if(temp == darray->getSize() - 1) {
-      auto map{darray->getMap()};
-      map.pop_back();
-      darray->set(map, darray->getName(), workers);
-      exec([&](auto& p){ p->lockObject(this->darrayName(), true); });
-      exec([&](auto& p){
-          p->beginTransaction();
-          p->updateObject(this->darrayName(), darray.get());
-          });
-      sess.beginTransaction();
-      sess.run("delete " + slot_name);
-      exec([](auto& p){ p->commitTransaction(); });
-      sess.commitTransaction();
-      exec([&](auto& p){ p->unlockObject(this->darrayName()); });
+      if(temp == darray->getSize() - 1) {
+        auto map{darray->getMap()};
+        map.pop_back();
+        darray->set(map, darray->getName(), workers);
+        exec([&](auto& p){ p->lockObject(this->darrayName(), true); });
+        exec([&](auto& p){
+            p->beginTransaction();
+            p->updateObject(this->darrayName(), darray.get());
+            });
+        sess.beginTransaction();
+        sess.run("delete " + temp_name);
+        exec([](auto& p){ p->commitTransaction(); });
+        sess.commitTransaction();
+        exec([&](auto& p){ p->unlockObject(this->darrayName()); });
+      }
     }
 /*
 "slot"[1] has now been successfully and completely moved. Save the changes made
-to "darray"[1] and "dpartition"[1].
+to "darray"[1]. All changes made to "dpartition"[1] were removed again, so it
+does not need to be written out to secondary storage.
 
 */
     SecondoCatalog* ctlg{SecondoSystem::GetCatalog()};
     if(!ctlg->UpdateObject(darrayName(), Word{darray.get()}))
       throw runtime_error{"Could not update " + darrayName() + "."};
     darray.release();  // UpdateObject uses the pointer after query is done
-    if(!ctlg->UpdateObject(dpartition_name, Word{dpartition.get()}))
-      throw runtime_error{"Could not update " + dpartition_name + "."};
-    dpartition.release();  // UpdateObject uses the pointer after query is done
   }
 /*
 4.9 "moveSlot"[1] (by worker hostname and port)
