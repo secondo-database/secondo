@@ -463,7 +463,7 @@ public TextViewerFrame(){
   ControlPanel.add(CloseBtn,BorderLayout.CENTER);
   ControlPanel.add(SaveBtn,BorderLayout.SOUTH);
 
-  getContentPane().add(ControlPanel,BorderLayout.SOUTH);
+  getContentPane().add(ControlPanel,BorderLayout.WEST);
   setSize(640,480); 
 }
 
