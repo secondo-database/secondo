@@ -217,6 +217,7 @@ void start(){
     resultList = VC.getCommandResult(cmd);
     cmd = "create database " + db; // ignore error, may be database exists
     resultList = VC.getCommandResult(cmd);
+    resultList = new ListExpr();
     cmd = "open database " + db;
     if(!VC.execCommand(cmd,errorCode,resultList,errorMessage)){
        JOptionPane.showMessageDialog(this, "problem in opening database "+db+"\n"+ errorMessage);
