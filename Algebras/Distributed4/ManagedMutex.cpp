@@ -43,6 +43,7 @@ namespace distributed4 {
   using boost::interprocess::named_sharable_mutex;
   using boost::interprocess::open_only;
   using boost::interprocess::open_or_create;
+  using boost::interprocess::interprocess_exception;
   using std::all_of;
   using std::runtime_error;
   using std::stoi;
@@ -116,11 +117,16 @@ Make sure "name"[1] refers to a real database object.
         "be accessed because the object doesn't exist."};
 /*
 Map the corresponding "named\_sharable\_mutex"[1], throwing an
-"interprocess\_exception"[1] if it doesn't exist.
+"runtime\_error"[1] if it doesn't exist.
 
 */
-    mutex.reset(new named_sharable_mutex{open_only,
-        shm_target.filename().c_str()});
+    try {
+      mutex.reset(new named_sharable_mutex{open_only,
+          shm_target.filename().c_str()});
+    } catch(const interprocess_exception&) {
+      throw runtime_error{"Attempted to unlock a non-existent mutex."};
+    }
+
 /*
 Make sure that the mutex is in fact already locked.
 
