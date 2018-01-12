@@ -1,0 +1,11 @@
+*.o
+*.a
+*.dep
+*.fm
+*.class
+makefile.algebras
+.gitignore
+.project
+.cproject
+.settings
+
