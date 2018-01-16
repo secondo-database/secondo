@@ -393,11 +393,12 @@ fi
    exit 1
 fi
 
+
 if [ -z "$rev" ]; then
-rm -f ../secondo_LAST_STABLE_PUBLIC.tgz
+rm ../secondo_LAST_STABLE_PUBLIC.tgz
 mv secondo-LAST_STABLE-LAT1.tar.gz ../secondo_LAST_STABLE_PUBLIC.tgz
 else
-rm -f ../secondo_${rev}_PUBLIC.tgz
+rm ../secondo_${rev}_PUBLIC.tgz
 mv secondo-${rev}-LAT1.tar.gz ../secondo_${rev}_PUBLIC.tgz
 fi
 
@@ -458,6 +459,20 @@ if [ "$n" != "0" ]; then
  rm -rf secondo
  exit 1
 fi
+
+# runtests successful, build a new gui binary
+
+if [ -z "$rev" ];then
+  cd ..
+  cd Javagui
+  make demo
+  cd Demo
+  zip -r JavaGui_Latest.zip *
+  scp JavaGui_Latest.zip  dna.fernuni-hagen.de:/www/pi4/secondo/files/lastversion/
+  cd .. 
+  rm -rf Demo
+fi
+
  
 cd $last_stable_dir
 rm -rf secondo
@@ -495,6 +510,9 @@ if [ "$PUBLISH" == "yes" ]; then
      echo "</div>" >>$pv
      echo "<div>" >>$pv
      echo "<a href=\"secondo_LAST.tgz\"> Download Link </a>" >> $pv
+     echo "</div>" >>$pv
+     echo "<div>" >>$pv
+     echo "<a href=\"JavaGui_Latest.zip\"> JavaGui Binaries </a>" >> $pv
      echo "</div>" >>$pv
      FD=$(fileDate secondo_LAST_STABLE_PUBLIC.tgz)
      FD=$(echo $FD |  sed "s/\..*//")
