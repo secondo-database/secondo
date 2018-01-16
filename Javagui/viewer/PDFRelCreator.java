@@ -47,7 +47,7 @@ public PDFRelCreator(){
   
   databaseName = new JTextField(30);
   JPanel dbNamePanel = new JPanel();
-  dbNamePanel.add(new JLabel("database"));
+  dbNamePanel.add(new JLabel("Database"));
   dbNamePanel.add(databaseName);
   add(dbNamePanel);
 
@@ -61,7 +61,7 @@ public PDFRelCreator(){
 
   dirField = new JTextField(30);
   dirField.setEditable(false);
-  JButton selectBtn = new JButton("select");
+  JButton selectBtn = new JButton("Select");
   selectBtn.addActionListener(new ActionListener(){
      public void actionPerformed(ActionEvent e){
         if(fileChooser.showOpenDialog(PDFRelCreator.this)==JFileChooser.APPROVE_OPTION){
@@ -70,7 +70,7 @@ public PDFRelCreator(){
         }
      }
   }); 
-  subdirCB = new JCheckBox("check subdirectories");
+  subdirCB = new JCheckBox("Check subdirectories");
   JPanel filePanel = new JPanel();
   filePanel.add(new JLabel("Directory"));
   filePanel.add(dirField);
@@ -79,7 +79,7 @@ public PDFRelCreator(){
   add(filePanel); 
 
   JPanel startPanel = new JPanel();
-  JButton startBtn = new JButton("start");
+  JButton startBtn = new JButton("Start");
   startPanel.add(startBtn);
   add(startPanel);
   startBtn.addActionListener(new ActionListener(){
