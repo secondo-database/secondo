@@ -293,7 +293,7 @@ after the error number have the following meaning:
   = "Identifier of object is not a known database object. ";
 
  errors[ERR_OBJ_NAME_IN_FILE_NEQ_IDENT]
-  = "Object name in file different from indentifier for object. ";
+  = "Object name in file different from identifier for object. ";
 
  errors[ERR_IDENT_ALREADY_KNOWN_IN_DB]
   = "Identifier of object already known in the database. ";

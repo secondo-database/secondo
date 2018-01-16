@@ -2094,7 +2094,7 @@ function index.
           int algId, typeId;
           if(GetCatalog()->LookUpTypeExpr(expr, typeName, algId,typeId)){
              string errMsg  = "Type name '" + typeName + 
-                              "' used as an indentifier.";
+                              "' used as an identifier.";
              throw runtime_error(errMsg);
              return (nl->TheEmptyList());
            }          
