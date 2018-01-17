@@ -1308,7 +1308,14 @@ bool SmiEnvironment::StartUp(const RunMode mode, const string& parmFile,
   int errors = GetNumOfErrors();
   DbEnv* dbenv = instance.impl->bdbEnv;
   assert(dbenv);
-  configFile = parmFile;
+
+  char* absoluteparm = realpath(parmFile.c_str(),0);
+  if(absoluteparm){
+     configFile = string(absoluteparm);
+     free(absoluteparm);
+  }else {
+    configFile = parmFile;
+  }
   
   // --- Set the name of the registrar for registering and locking databases
 
