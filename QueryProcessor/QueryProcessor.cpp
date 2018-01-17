@@ -3834,10 +3834,17 @@ Deletes an operator tree object.
     {
       case Operator:
       {
-        if(tree->u.op.supportsProgress){
+        bool closeProgressRequired=false;
+        if(tree->u.op.theOperator){
+          if(    tree->u.op.theOperator->SupportsProgress() 
+             && !tree->u.op.costEstimation){
+             closeProgressRequired = true;
+          }
+        }
+        if(closeProgressRequired){
           CloseProgress(tree);
         }
-        if(tree->u.op.local.addr){
+        if(!closeProgressRequired && tree->u.op.local.addr){
           static Word result; // dummy result
           (*(tree->u.op.valueMap))( tree->u.op.sons, result,CLOSE,
                                     tree->u.op.local, tree );
@@ -4638,7 +4645,8 @@ QueryProcessor::CloseProgress( const Supplier s )
 
   if ( tree->nodetype == Operator )
   {
-    if ( tree->u.op.supportsProgress )
+    if (   tree->u.op.theOperator && tree->u.op.theOperator->SupportsProgress() 
+        && !tree->u.op.costEstimation )
       Eval( tree, result, CLOSEPROGRESS );
   }
 }
