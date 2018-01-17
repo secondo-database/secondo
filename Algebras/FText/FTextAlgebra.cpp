@@ -13454,6 +13454,47 @@ Operator dbobjectsOp(
    dbobjectsTM
 );
 
+
+/*
+4.68 Operator ~configFile~
+
+Returns the name of the configurationFile used by the smi environment
+
+*/
+ListExpr configFileTM(ListExpr args){
+   if(!nl->IsEmpty(args)){
+     return  listutils::typeError("no arguments expected");
+   }
+   return listutils::basicSymbol<FText>();
+}
+
+int configFileVM( Word* args, Word& result, int message, 
+                 Word& local, Supplier s ) {
+
+  string r = SmiEnvironment::ConfigFile();
+  result = qp->ResultStorage(s);
+  FText* res = (FText*)result.addr;
+  res->Set(true,r);
+  return 0;
+}
+
+OperatorSpec configFileSpec(
+  "-> text",
+  "configFile()",
+  "Returns the configuration file used by the smi environment.",
+  "query configFile()"
+);
+
+Operator configFileOp(
+  "configFile",
+   configFileSpec.getStr(),
+   configFileVM,
+   Operator::SimpleSelect,
+   configFileTM
+);
+
+
+
 /*
 5 Creating the algebra
 
@@ -13607,6 +13648,8 @@ Operator dbobjectsOp(
       AddOperator(&like2regexOp);
 
       AddOperator(&dbobjectsOp);
+
+      AddOperator(&configFileOp);
 
 #ifdef RECODE
       AddOperator(&recode);

@@ -1346,3 +1346,10 @@ Signature : ANY -> stream(string)
 Example   : query dbobjects(1,ten) count
 Result    : 1
 
+
+Operator : configFile
+Number   : 1
+Signature : -> text
+Example  : query length(configFile())>0
+Result   : TRUE
+
