@@ -221,7 +221,7 @@ SecondoMonitor::ExecShow()
   else if ( cmdword == "DATABASES" ) cmd = "SHOWDATABASES";
   else if ( cmdword == "LOCKS"     ) cmd = "SHOWLOCKS";
  
-  string regName = SmiProfile::GetUniqueSocketName(cfgFile);
+  string regName = SmiProfile::GetUniqueSocketName(cfgFile, port);
 
   Socket* msgClient = Socket::Connect( regName, "", Socket::SockLocalDomain );
   if ( msgClient && msgClient->IsOk() )
@@ -506,7 +506,7 @@ SecondoMonitor::Initialize()
   // --- Check storage management interface
   cout << "Initializing storage management interface ... " << endl;
   if (SmiEnvironment::StartUp(SmiEnvironment::MultiUserMaster, 
-                              cfgFile, dbDir, cout)) {
+                              cfgFile, dbDir, cout, port)) {
     cout << "completed." << endl;
 
     dbDir = SmiEnvironment::GetSecondoHome();
@@ -547,7 +547,7 @@ SecondoMonitor::Initialize()
                                                     "RegistrarProgram", 
                                                     "", cfgFile );
 
-    string pgmArgs = string( "\"" ) + cfgFile + "\"";
+    string pgmArgs = string( "\"" ) + cfgFile + "\" " + port;
     if ( ProcessFactory::SpawnProcess( pgmRegistrar, 
                                        pgmArgs, pidRegistrar, true ) )
     {

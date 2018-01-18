@@ -50,12 +50,14 @@ class SecondoRegistrar : public Application
     EXIT_REGISTRAR_OK( 0 ),
     EXIT_REGISTRAR_NOQUEUE( 1 ),
     EXIT_REGISTRAR_ABORT( 2 )
-  {};
+  { };
   virtual ~SecondoRegistrar() {};
   int Execute();
   bool AbortOnSignal( int sig ) const;
  private:
   int  ProcessCommands();
+  string parmFile;
+  string  port;
   void ExecRegister();
   void ExecUnregister();
   void ExecLock();
@@ -388,7 +390,6 @@ SecondoRegistrar::Execute()
     trace.on();
   }  
   int rc = EXIT_REGISTRAR_NOQUEUE;
-  string parmFile;
   if ( GetArgCount() > 1 )
   {
     parmFile = GetArgValues()[1];
@@ -397,10 +398,10 @@ SecondoRegistrar::Execute()
   {
     parmFile = "SecondoConfig.ini";
   }
+  port = GetArgCount() > 2 ? GetArgValues()[2] : "";  
 
   trace.show( VAL(parmFile) );
-  string msgQueue = SmiProfile::GetUniqueSocketName( parmFile );
-
+  string msgQueue = SmiProfile::GetUniqueSocketName( parmFile, port );
   trace.show( VAL(msgQueue) );
   msgSocket = Socket::CreateLocal( msgQueue );
   trace.out("local socket created!");

@@ -153,6 +153,7 @@ class SecondoServer : public Application
   NestedList*       nl;
   string            parmFile;
   string            dbDir;
+  string            port; 
   bool              quit;
   string            registrar;
   string            user;
@@ -1064,8 +1065,9 @@ SecondoServer::Disconnect()
 int SecondoServer::Execute() {
   int rc = 0;
   parmFile = (GetArgCount() > 1) ? GetArgValues()[1] : "SecondoConfig.ini";
-  registrar = SmiProfile::GetUniqueSocketName( parmFile );
   dbDir = (GetArgCount() >2) ? GetArgValues()[2] : "";
+  port = (GetArgCount() > 3) ? GetArgValues()[3] : "";
+  registrar = SmiProfile::GetUniqueSocketName( parmFile , port);
 
   if(dbDir.empty()){
      dbDir = SmiProfile::GetParameter( "Environment", 
@@ -1189,7 +1191,7 @@ int SecondoServer::Execute() {
       }
     cout << "Try to initialize the secondo system " << endl; 
     string errorMsg("");
-    if ( si->Initialize( user, pswd, "", "", parmFile, dbDir,errorMsg,  true ) )
+    if( si->Initialize( user, pswd, "", port, parmFile, dbDir,errorMsg, true ))
     {
        cout << "initialization successful" << endl;
        iosock << "<SecondoIntro>" << endl

@@ -151,7 +151,7 @@ SecondoListener::Execute()
           // --- Spawn server for client
           int pidServer;
           string pgmArgs = string("\"-srv\" \"") + parmFile + "\" \"" + dbDir 
-                         + "\""; 
+                         + "\" " + port; 
           if (!ProcessFactory::SpawnProcess(server, pgmArgs, pidServer, true, 
                                             client)) {
             // --- Start of server failed
