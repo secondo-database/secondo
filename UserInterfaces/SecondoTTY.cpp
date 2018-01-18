@@ -175,7 +175,7 @@ SecondoTTY::SecondoTTY( const TTYParameter& t )
   user = t.user;
   pswd = t.pswd;
   host = t.host;
-  port = t.port ;
+  port = t.port;
   replayFile = t.replayFile;
   iFileName = t.iFileName;
   oFileName = t.oFileName;

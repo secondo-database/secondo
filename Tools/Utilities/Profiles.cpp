@@ -339,14 +339,19 @@ static string::size_type CmpKey( const string& line, const string& keyName )
 }
 
 
-  string SmiProfile::GetUniqueSocketName(const std::string& fileName)
+  string SmiProfile::GetUniqueSocketName(const std::string& fileName,
+                                         const std::string& port)
   {
     std::stringstream sname;
     sname << GetParameter("Environment", "RegistrarSocketNamePrefix", 
 			  "SECREGIS", fileName); 
     sname << "_port";
-    sname << GetParameter("Environment", "SecondoPort",
+    if(port.empty()){
+       sname << GetParameter("Environment", "SecondoPort",
 		          "SECREGIS", fileName);
+    } else {
+       sname << port;
+    }
 
 
     string res =  sname.str();

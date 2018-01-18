@@ -284,7 +284,7 @@ int main( int argc, char* argv[] )
   
   bool ok = false;
   SmiError rc = SmiEnvironment::StartUp( SmiEnvironment::MultiUser,
-                                         "SecondoConfig.ini", "",cerr );
+                                         "SecondoConfig.ini", "",cerr,"" );
   cout << "StartUp rc=" << rc << endl;
   if ( rc == 1 )
   {

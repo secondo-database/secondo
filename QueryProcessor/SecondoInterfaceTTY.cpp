@@ -245,7 +245,7 @@ bool
 SecondoInterfaceTTY::Initialize( const string& user, 
                                  const string& pswd,
                                  const string __attribute__((unused))& host,
-                                 const string __attribute__((unused))& port,
+                                 const string& port,
                                  const string& parmFile, 
                                  const string& home,
                                  string& errorMsg,
@@ -442,7 +442,7 @@ SecondoInterfaceTTY::Initialize( const string& user,
                           : SmiEnvironment::SingleUser;
     }
 
-    if ( SmiEnvironment::StartUp( mode, parmFile, dbDir, cout ) )
+    if ( SmiEnvironment::StartUp( mode, parmFile, dbDir, cout, port ) )
     {
       SmiEnvironment::SetUser( user ); // TODO: Check for valid user/pswd
       ok = true;

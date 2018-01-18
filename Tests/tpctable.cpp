@@ -217,7 +217,7 @@ main() {
   bool ok;
 
   rc = SmiEnvironment::StartUp( SmiEnvironment::MultiUser,
-                                "SecondoConfig.ini", "", cerr );
+                                "SecondoConfig.ini", "", cerr,"" );
   cout << "StartUp rc=" << rc << endl;
   if ( rc == 1 )
   {

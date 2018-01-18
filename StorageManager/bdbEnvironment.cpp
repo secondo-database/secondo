@@ -1292,7 +1292,8 @@ SmiEnvironment::DeleteTmpEnvironment()
 
 bool SmiEnvironment::StartUp(const RunMode mode, const string& parmFile,
                              const string& dbDir,
-                             ostream& errStream) {
+                             ostream& errStream,
+                             const string& port) {
   #ifdef THREAD_SAFE
      boost::lock_guard<boost::recursive_mutex> guard(env_mtx);
   #endif
@@ -1319,7 +1320,7 @@ bool SmiEnvironment::StartUp(const RunMode mode, const string& parmFile,
   
   // --- Set the name of the registrar for registering and locking databases
 
-  registrar = SmiProfile::GetUniqueSocketName(configFile);
+  registrar = SmiProfile::GetUniqueSocketName(configFile, port);
   // --- Set output stream for error messages from Berkeley DB
   //     and the prefix string for these messages
   dbenv->set_error_stream(&errStream);

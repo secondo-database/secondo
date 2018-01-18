@@ -1017,7 +1017,8 @@ Returns a pointer to the "Secondo"[3] Storage Management Environment
   static bool StartUp( const RunMode mode,
                        const std::string& parmFile,
                        const std::string& dbDir,
-                       std::ostream& errStream);
+                       std::ostream& errStream, 
+                       const std::string& port);
 /*
 Initializes the ~SmiEnvironment~ of the storage manager interface.
 Parameters are read from the configuration file ~parmFile~.

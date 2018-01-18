@@ -114,7 +114,8 @@ searched.
 */
 
 
-  static std::string GetUniqueSocketName(const std::string& fileName);
+  static std::string GetUniqueSocketName(const std::string& fileName,
+                                         const std::string& port);
 
 
 /*
