@@ -3521,8 +3521,9 @@ virtual void Display(ListExpr type,  ListExpr value)
         cout << "*****************************BEGIN "
              << nl->ToString(type)
              << "********************************************** \n \n";
-        if (nl->SymbolValue(value) == "undef" ||
-            nl->SymbolValue(value) == "undefined") {
+        if (nl->IsAtom(value) && nl->AtomType(value) == SymbolType &&
+            (nl->SymbolValue(value) == "undef" ||
+             nl->SymbolValue(value) == "undefined")) {
           cout << "   UNDEFINED" << endl;
         }
         else {
