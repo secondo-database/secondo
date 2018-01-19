@@ -695,7 +695,7 @@ public PDFPanel(){
             if(src.equals(GBtn))
                scale=scale*SCALEFACTOR;
             if(src.equals(LBtn))
-               scale=Math.max(0.01F,scale/SCALEFACTOR);
+               scale=Math.max(MINSCALE,scale/SCALEFACTOR);
             if(src.equals(FitBtn))
                scale = getFitSF();
             if(!dataAvailable){ 
@@ -789,7 +789,7 @@ private float getFitSF(){
       float sx = w / (float) img.getWidth(null);
       float sy = h / (float) img.getHeight(null);
       float s = Math.min(sx,sy);
-      return s>0?s:1;
+      return s>=MINSCALE?s:1;
    } catch(Exception e){
       return 1;
   }
@@ -812,6 +812,7 @@ private int NumberOfPages=-1;
 private boolean dataAvailable = false;
 private int page; // the number of the current page
 private float scale=1.0F;
+private final float MINSCALE = 0.001F;
 static final float SCALEFACTOR=1.2F;
 
 }
