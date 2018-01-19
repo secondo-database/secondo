@@ -642,6 +642,7 @@ public PDFPanel(){
      CommandPanel.add(new JLabel("    "));
      CommandPanel.add(GBtn);
      CommandPanel.add(LBtn);
+     CommandPanel.add(FitBtn);
      PdfScrollPane = new JScrollPane(CurrentPage);
      add(PdfScrollPane,BorderLayout.CENTER);
      add(CommandPanel,BorderLayout.SOUTH);
@@ -690,6 +691,8 @@ public PDFPanel(){
                scale=scale*SCALEFACTOR;
             if(src.equals(LBtn))
                scale=Math.max(0.01F,scale/SCALEFACTOR);
+            if(src.equals(FitBtn))
+               scale = getFitSF();
             if(!dataAvailable){ 
                return;
             }
@@ -708,6 +711,7 @@ public PDFPanel(){
          }};
      GBtn.addActionListener(Magnifier);
      LBtn.addActionListener(Magnifier);
+     FitBtn.addActionListener(Magnifier);
 }
 
 
@@ -750,12 +754,14 @@ public boolean setPdfData(byte[] data){
        NumberOfPages = pdfDocument.getNumberOfPages();
        dataAvailable=true;
        pdfRenderer = new PDFRenderer(pdfDocument);  
+       page = 0;
+       scale = getFitSF();
+       System.out.println("scale : " + scale);
        CurrentPage.setImage(pdfRenderer.renderImage(0,scale));
        PdfScrollPane.invalidate();              
        TextViewerFrame.this.invalidate();
        TextViewerFrame.this.validate();
        TextViewerFrame.this.repaint(); 
-       page = 0;
        return true;
    } catch(Exception e){
        Reporter.debug(e);
@@ -763,7 +769,27 @@ public boolean setPdfData(byte[] data){
        dataAvailable=false;
        return false;
    }
-} 
+}
+
+private float getFitSF(){
+   if(pdfRenderer == null){
+      return 1;
+   }
+   try{
+      Image img = pdfRenderer.renderImage(page,1);
+      Dimension dim = PdfScrollPane.getSize();
+      Insets in = PdfScrollPane.getInsets();
+      float w = dim.width - (in.left + in.right);
+      float h = dim.height - (in.top + in.bottom);
+      float sx = w / (float) img.getWidth(null);
+      float sy = h / (float) img.getHeight(null);
+      float s = Math.min(sx,sy);
+      return s>0?s:1;
+   } catch(Exception e){
+      return 1;
+  }
+}
+ 
 
 private PDDocument pdfDocument = null;
 private PDFRenderer pdfRenderer = null;
@@ -774,7 +800,8 @@ private JButton PrevBtn = new JButton("<");
 private JButton NextBtn = new JButton(">");
 private JButton LastBtn = new JButton(">|");
 private JButton GBtn = new JButton("(+)");
-private JButton LBtn = new JButton("(-)"); 
+private JButton LBtn = new JButton("(-)");
+private JButton FitBtn = new JButton("[]"); 
 private JLabel  Pages  = new JLabel("# pages ");
 private int NumberOfPages=-1;
 private boolean dataAvailable = false;
