@@ -664,12 +664,14 @@ public PDFPanel(){
                page=newpage;
                try{
                   CurrentPage.setImage(pdfRenderer.renderImage(page,scale));
+                  PdfScrollPane.invalidate();              
                   TextViewerFrame.this.invalidate();
                   TextViewerFrame.this.validate();
                   TextViewerFrame.this.repaint(); 
                } catch(Exception e){
                   Reporter.debug(e);
                   CurrentPage.setImage(null);
+                  PdfScrollPane.invalidate();              
                   TextViewerFrame.this.invalidate();
                   TextViewerFrame.this.validate();
                   TextViewerFrame.this.repaint(); 
@@ -693,12 +695,14 @@ public PDFPanel(){
             }
             try{
               CurrentPage.setImage(pdfRenderer.renderImage(page,scale));
+              PdfScrollPane.invalidate();              
               TextViewerFrame.this.invalidate();
               TextViewerFrame.this.validate();
               TextViewerFrame.this.repaint(); 
             }catch(Exception e){
                Reporter.debug(e);
                CurrentPage.setImage(null);
+               PdfScrollPane.invalidate();              
                PDFPanel.this.repaint();
             }
          }};
@@ -715,6 +719,9 @@ private class PicturePanel extends JPanel{
          public Dimension getPreferredSize(){
             return MyDimension;
          }          
+         public Dimension getMaximumSize(){
+            return MyDimension;
+         }          
          public Dimension getMinimumSize(){
             return MyDimension;
          }
@@ -729,7 +736,7 @@ private class PicturePanel extends JPanel{
          }
          Image image;
          Dimension MyDimension = new Dimension();
-     };
+ };
 
 private PicturePanel CurrentPage= new PicturePanel();
 
@@ -744,6 +751,7 @@ public boolean setPdfData(byte[] data){
        dataAvailable=true;
        pdfRenderer = new PDFRenderer(pdfDocument);  
        CurrentPage.setImage(pdfRenderer.renderImage(0,scale));
+       PdfScrollPane.invalidate();              
        TextViewerFrame.this.invalidate();
        TextViewerFrame.this.validate();
        TextViewerFrame.this.repaint(); 
