@@ -30,7 +30,6 @@ import javax.swing.text.EditorKit;
 import javax.swing.text.StyledEditorKit;
 import javax.swing.text.Document;
 import tools.Base64Decoder;
-import org.jpedal.*;
 import tools.Reporter;
 import java.io.*;
 import java.util.SortedMap;
@@ -38,7 +37,9 @@ import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Iterator;
 
-
+// for pdf display 
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.rendering.PDFRenderer;
 
 /**
  * A displayclass for the html formatted code 
@@ -460,7 +461,9 @@ public TextViewerFrame(){
   FormatPanel.add(PdfBtn);
   
   ControlPanel.add(FormatPanel,BorderLayout.NORTH);
-  ControlPanel.add(CloseBtn,BorderLayout.CENTER);
+  JPanel closePanel = new JPanel();
+  closePanel.add(CloseBtn);
+  ControlPanel.add(closePanel,BorderLayout.CENTER);
   ControlPanel.add(SaveBtn,BorderLayout.SOUTH);
 
   getContentPane().add(ControlPanel,BorderLayout.WEST);
@@ -649,23 +652,27 @@ public PDFPanel(){
                return;
             int newpage = page;
             if(src.equals(FirstBtn)){
-                newpage = 1;
-            } else if(src.equals(PrevBtn)&& page>1){
+                newpage = 0;
+            } else if(src.equals(PrevBtn)&& page>0){
                 newpage = page -1;
-            } else if(src.equals(NextBtn) && page < NumberOfPages){
+            } else if(src.equals(NextBtn) && page < NumberOfPages-1){
                 newpage = page+1;
             } else if(src.equals(LastBtn)){
-                newpage=NumberOfPages;
+                newpage=NumberOfPages-1;
             }
             if(newpage!=page){
                page=newpage;
                try{
-                  CurrentPage.setImage(pdf_decoder.getPageAsImage(page));
-                  PDFPanel.this.repaint(); 
+                  CurrentPage.setImage(pdfRenderer.renderImage(page,scale));
+                  TextViewerFrame.this.invalidate();
+                  TextViewerFrame.this.validate();
+                  TextViewerFrame.this.repaint(); 
                } catch(Exception e){
                   Reporter.debug(e);
                   CurrentPage.setImage(null);
-                  PDFPanel.this.repaint();
+                  TextViewerFrame.this.invalidate();
+                  TextViewerFrame.this.validate();
+                  TextViewerFrame.this.repaint(); 
                }
            }
         }
@@ -674,7 +681,6 @@ public PDFPanel(){
      PrevBtn.addActionListener(Control);
      NextBtn.addActionListener(Control);
      LastBtn.addActionListener(Control);
-     pdf_decoder.setExtractionMode(0,300,scale);
      ActionListener Magnifier = new ActionListener(){
          public void actionPerformed(ActionEvent evt){
             Object src = evt.getSource();
@@ -682,12 +688,11 @@ public PDFPanel(){
                scale=scale*SCALEFACTOR;
             if(src.equals(LBtn))
                scale=Math.max(0.01F,scale/SCALEFACTOR);
-            pdf_decoder.setExtractionMode(0,300,scale);
             if(!dataAvailable){ 
                return;
             }
             try{
-              CurrentPage.setImage(pdf_decoder.getPageAsImage(page));
+              CurrentPage.setImage(pdfRenderer.renderImage(page,scale));
               TextViewerFrame.this.invalidate();
               TextViewerFrame.this.validate();
               TextViewerFrame.this.repaint(); 
@@ -730,11 +735,19 @@ private PicturePanel CurrentPage= new PicturePanel();
 
 public boolean setPdfData(byte[] data){
    try{
-       pdf_decoder.openPdfArray(data);
-       NumberOfPages = pdf_decoder.getPageCount();
+       if(pdfDocument!=null){
+         pdfDocument.close();
+         pdfDocument = null;
+       }
+       pdfDocument = PDDocument.load(data); 
+       NumberOfPages = pdfDocument.getNumberOfPages();
        dataAvailable=true;
-       CurrentPage.setImage(pdf_decoder.getPageAsImage(1));
-       page = 1;
+       pdfRenderer = new PDFRenderer(pdfDocument);  
+       CurrentPage.setImage(pdfRenderer.renderImage(0,scale));
+       TextViewerFrame.this.invalidate();
+       TextViewerFrame.this.validate();
+       TextViewerFrame.this.repaint(); 
+       page = 0;
        return true;
    } catch(Exception e){
        Reporter.debug(e);
@@ -743,7 +756,10 @@ public boolean setPdfData(byte[] data){
        return false;
    }
 } 
-private PdfDecoder pdf_decoder=new PdfDecoder();
+
+private PDDocument pdfDocument = null;
+private PDFRenderer pdfRenderer = null;
+
 private JScrollPane PdfScrollPane;
 private JButton FirstBtn = new JButton("|<");
 private JButton PrevBtn = new JButton("<");
