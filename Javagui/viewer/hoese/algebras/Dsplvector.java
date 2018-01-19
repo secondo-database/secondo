@@ -30,7 +30,6 @@ import javax.swing.*;
 import javax.swing.text.EditorKit;
 import javax.swing.text.Document;
 import tools.Base64Decoder;
-import org.jpedal.*;
 import tools.Reporter;
 import java.io.*;
 import java.util.*;
