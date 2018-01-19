@@ -604,7 +604,10 @@ public void setSource(Dspltext S){
     } else{
        try{
           byte[] content = Base64Decoder.decode(TheText);
-          pdf_viewer.setPdfData(content);
+          if(!pdf_viewer.setPdfData(content)){
+              setToPlain(true);
+              return;
+          }
           PdfBtn.setEnabled(false);
           if(!ISPDF){
              getContentPane().remove(TextPanel);
@@ -734,6 +737,7 @@ public boolean setPdfData(byte[] data){
        page = 1;
        return true;
    } catch(Exception e){
+       Reporter.debug(e);
        NumberOfPages = -1;
        dataAvailable=false;
        return false;
