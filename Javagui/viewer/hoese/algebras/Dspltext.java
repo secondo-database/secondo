@@ -354,6 +354,7 @@ public TextViewerFrame(){
 
   ActionListener FormatSwitcher = new ActionListener(){
      public void actionPerformed(ActionEvent evt){
+         TextViewerFrame.this.setTitle("");
          Object src = evt.getSource();
          LastSearchPos=0;
          // get the text if it is editable 
@@ -761,14 +762,25 @@ public boolean setPdfData(byte[] data){
        pdfRenderer = new PDFRenderer(pdfDocument);  
        page = 0;
        scale = getFitSF();
-       System.out.println("scale : " + scale);
        CurrentPage.setImage(pdfRenderer.renderImage(0,scale));
-       PdfScrollPane.invalidate();              
+       PdfScrollPane.invalidate(); 
+       String title = pdfDocument.getDocumentInformation().getTitle();
+       if(title==null){
+          title = "";
+       }              
+       String author = pdfDocument.getDocumentInformation().getAuthor();
+       if(author==null){
+          author = "";
+       } 
+       String sep = (author.length()>0 && title.length()>0)?" : " :"";
+
+       TextViewerFrame.this.setTitle(author + sep + title);;
        TextViewerFrame.this.invalidate();
        TextViewerFrame.this.validate();
        TextViewerFrame.this.repaint(); 
        return true;
    } catch(Exception e){
+       TextViewerFrame.this.setTitle("");
        Reporter.debug(e);
        NumberOfPages = -1;
        dataAvailable=false;
