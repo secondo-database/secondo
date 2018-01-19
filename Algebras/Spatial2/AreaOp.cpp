@@ -625,7 +625,7 @@ Removes edges which are not needed for the result area. Checks for
           etag = (origstate == AreaOp::RSTAG_INSIDE
                   ? AreaOp::ETAG_EXIT
                   : AreaOp::ETAG_ENTER);
-          Edge* activematch;
+          Edge* activematch=NULL;
           Edge* longestmatch = e;
           double furthesty = yend;
           do {
