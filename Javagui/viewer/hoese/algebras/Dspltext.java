@@ -447,11 +447,14 @@ public TextViewerFrame(){
   PdfBtn.addActionListener(FormatSwitcher);
 
   JPanel ControlPanel = new JPanel(new BorderLayout());
-  
-  JPanel FormatPanel = new JPanel();
-  FormatPanel.add(new JLabel("show as : "));
-  JPanel p1 = new JPanel(new GridLayout(3,1));
+ 
+  JPanel FormatPanel1 = new JPanel();
+  FormatPanel1.setLayout(new BorderLayout());
+  FormatPanel1.add(new JLabel("show as : "), BorderLayout.NORTH);
 
+ 
+  JPanel FormatPanel = new JPanel();
+  JPanel p1 = new JPanel(new GridLayout(3,1));
   p1.add(PlainBtn);
   p1.add(encodingCB);
   p1.add(resetBtn);
@@ -459,8 +462,10 @@ public TextViewerFrame(){
   FormatPanel.add(HtmlBtn);
   FormatPanel.add(RtfBtn); 
   FormatPanel.add(PdfBtn);
+
+  FormatPanel1.add(FormatPanel, BorderLayout.CENTER);
   
-  ControlPanel.add(FormatPanel,BorderLayout.NORTH);
+  ControlPanel.add(FormatPanel1,BorderLayout.NORTH);
   JPanel closePanel = new JPanel();
   closePanel.add(CloseBtn);
   ControlPanel.add(closePanel,BorderLayout.CENTER);
