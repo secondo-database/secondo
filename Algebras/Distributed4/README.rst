@@ -339,8 +339,14 @@ from there, but there is a better solution: the companion utilitiy ``mutexset``
 in ``Algebras/Distributed4/util``.  2 locks were acquired on ``da``, so at least
 2 must be released before ``splitslot`` can proceed.
 
-From a second shell on the same server as the Secondo instance (``newton3``),
-run the following as often as necessary until you see ``splitslot`` continue::
+To use ``mutexset``, you must first compile it. It is not compiled with
+Secondo. From a second shell on the same server as the Secondo instance
+(``newton3``), run the following::
+
+  make -C ~/secondo/Algebras/Distributed4/util
+
+Then run the following as often as necessary until you see ``splitslot``
+continue::
 
   ~/secondo/Algebras/Distributed4/util/mutexset /dev/shm/secondo\:<database-dir>_D4\:da unlock
 
