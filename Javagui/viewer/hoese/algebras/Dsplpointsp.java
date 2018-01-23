@@ -6,7 +6,7 @@ import java.awt.geom.Point2D;
 import java.util.Vector;
 import java.awt.geom.Rectangle2D;
 
-public class Dsplpoints2 extends Dsplpoints{
+public class Dsplpointsp extends Dsplpoints{
 
 
   public void ScanValue (ListExpr value) {

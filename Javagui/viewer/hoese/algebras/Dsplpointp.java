@@ -9,7 +9,7 @@ import java.awt.geom.Point2D;
 
 
 
-public class Dsplpoint2 extends Dsplpoint{
+public class Dsplpointp extends Dsplpoint{
 
   public boolean fillCoords(ListExpr v, double[] coord, boolean useProjection){
      return  Dsplpoint2.fillCoordsS(v,coord,useProjection);
