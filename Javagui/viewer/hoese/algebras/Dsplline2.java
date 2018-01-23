@@ -3,29 +3,38 @@
 package viewer.hoese.algebras;
 
 import sj.lang.ListExpr;
+import java.awt.geom.AffineTransform;
+import java.awt.Shape;
+import viewer.hoese.QueryResult;
+import tools.Reporter;
 
-public class Dsplline2 extends Dsplline{
+public class Dsplline2 extends Dsplregion2{
 
-
-  protected boolean fillSegment(ListExpr v, double[] koord, boolean useProjection){
-      if (v.listLength() != 2) {
-         return super.fillSegment(v,koord,useProjection);
-      }
-      ListExpr p1 = v.first();
-      ListExpr p2 = v.second();
-      double[] pcoord = new double[2];
-      if(!Dsplpoint2.fillCoordsS(p1,pcoord,useProjection)){
-        return false;
-      }
-      koord[0] =  pcoord[0];
-      koord[1] = pcoord[1];
-      if(!Dsplpoint2.fillCoordsS(p2,pcoord,useProjection)){
-        return false;
-      }
-      koord[2] = pcoord[0];
-      koord[3] = pcoord[1];
-      return true;
+  public Shape getRenderObject(int num,AffineTransform at){
+    if(num<1){
+       return p;
+    } else{
+       return null;
+    }
   }
 
+  public boolean isLineType(int num){
+    return true;
+  }
+
+
+   public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = extendString(name, nameWidth, indent);
+    ScanValue(value);
+    if (err) {
+      Reporter.writeError("Error in ListExpr :parsing aborted");
+      qr.addEntry((AttrName)+" : Error(line2)");
+      return;
+    } else if(!defined){
+       qr.addEntry((AttrName)+" : undefined");
+       return;
+    }
+    qr.addEntry(this);
+  }
 
 }
