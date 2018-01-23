@@ -33,7 +33,15 @@ import tools.Reporter;
  * The displayclass of the region2 datatype (Rose algebra).
  */
 public class Dsplregion2 extends DisplayGraph {
+
+  private static final int MOVETO=0;
+  private static final int LINETO=1;
+  private static final int QUADTO=2;
+  private static final int CLOSE=4;
+
+
   /** The internal datastructure of the region2 datatype */
+  GeneralPath p;
   Area areas;
   boolean defined;
 
@@ -49,9 +57,56 @@ public class Dsplregion2 extends DisplayGraph {
     }
   }
 
+  private ListExpr  appendCurve(GeneralPath p, int conType, ListExpr coordList) throws Exception{
+    ListExpr res = coordList;
+    switch(conType){
+       case MOVETO:
+       case LINETO:
+               double x = LEUtils.readNumeric(res.first());
+               res = res.rest();
+               double y = LEUtils.readNumeric(res.first());
+               res = res.rest();
+               if(ProjectionManager.project(x,y,aPoint)){
+                  x =  aPoint.x;
+                  y = aPoint.y;
+               } 
+               if(conType==MOVETO){
+                  p.moveTo(x,y);
+               } else {
+                  p.lineTo(x,y);
+               }
+               return res;
+        case  QUADTO: 
+               double x1 = LEUtils.readNumeric(res.first());
+               res = res.rest();
+               double y1 = LEUtils.readNumeric(res.first());
+               res = res.rest();
+               double x2 = LEUtils.readNumeric(res.first());
+               res = res.rest();
+               double y2 = LEUtils.readNumeric(res.first());
+               res = res.rest();
+               if(ProjectionManager.project(x1,y1,aPoint)){
+                  x1 =  aPoint.x;
+                  y1 = aPoint.y;
+               } 
+               if(ProjectionManager.project(x2,y2,aPoint)){
+                  x2 =  aPoint.x;
+                  y2 = aPoint.y;
+               } 
+               p.quadTo(x1,y1,x2,y2);
+               return res;
+       case  CLOSE: p.closePath();
+                    return res;
+               
+
+    }
+    throw new Exception("invalid connection type");
+  }
+
 
   /** convert the Listrepresentation LE to a Area */
   public void ScanValue(ListExpr LE){
+     p= null;
      if(isUndefined(LE)){
         defined=false;
         err=false;
@@ -62,148 +117,36 @@ public class Dsplregion2 extends DisplayGraph {
        err=true;
        return;
      }
+     if(LE.listLength()!=2){
+       defined=false;
+       err=true;
+       return;
+     }
+
      defined=true;
      areas = null;
+     ListExpr conList = LE.first();
+     ListExpr coordList = LE.second();
+     p = new GeneralPath();
 
-     ListExpr TMP  = LE;
-     int outtype = 0;
-
-     if ( TMP.first().isAtom() ) 
-     {
-       outtype = 1;
-       TMP  = LE.second();
+     while(!conList.isEmpty()){
+        ListExpr con = conList.first();
+        conList = conList.rest();
+        if(con.atomType()!=ListExpr.INT_ATOM){
+           defined=false;
+           err=true;
+           return;
+        }
+        int c = con.intValue();
+        try{
+          coordList = appendCurve(p,c,coordList);
+        } catch(Exception e){
+           defined=false;
+           err=true;
+           return;
+        }
      }
-     else 
-     {
-       outtype = 2;
-     }
-
-     int no = 0;
-     while(!TMP.isEmpty()){
-         ListExpr Face = TMP.first();
-	 TMP = TMP.rest();
-         while(!Face.isEmpty()){
-	    no = no+Face.first().listLength()+2;
-            Face = Face.rest();
-	 }
-     }
-
-     GeneralPath GP = new GeneralPath(GeneralPath.WIND_EVEN_ODD,no);
-     BigDecimal scaleBD = new BigDecimal(0);
-     boolean empty = true;
-
-     if ( outtype == 1 )
-     {
-       int scaleFactor = LE.first().intValue();
-       scaleBD = new BigDecimal(10);
-       scaleBD = scaleBD.pow(scaleFactor);
-       LE = LE.second();
-     }
-
-     while(!LE.isEmpty()){
-        ListExpr Face = LE.first();
-        LE = LE.rest();
-	while(!Face.isEmpty()){
-           ListExpr Cycle = Face.first();
-	   Face = Face.rest();
-           boolean isFirstPoint=true;
-	   while(!Cycle.isEmpty()){
-	      ListExpr P = Cycle.first();
-	      Cycle=Cycle.rest();
-
-	      BigDecimal xBD = new BigDecimal(0);
-	      BigDecimal yBD = new BigDecimal(0);
-
-              if ( outtype == 1 )
-              {
-	      if (P.third().isEmpty())
-	      {
-	        xBD = new BigDecimal( P.first().intValue());
-	        yBD = new BigDecimal( P.second().intValue());
-	      }
-	      else
-	      {
-	        String xprecpart = P.third().first().textValue();
-	        String yprecpart = P.third().second().textValue();
-	        try {
-		  if (xprecpart.contains("/")) 
-		  {
-		    String[] xprec = xprecpart.split("/");
-	            xBD = new BigDecimal( xprec[0]);  //numerator x
-	            xBD = xBD.divide( new BigDecimal( xprec[1]), 1024, RoundingMode.HALF_UP);  //numerator x / denominator x
-		  }
-		  else
-		    xBD = new BigDecimal( xprecpart );
-
-	          if (yprecpart.contains("/")) 
-		  {
-		    String[] yprec = yprecpart.split("/");
-	            yBD = new BigDecimal( yprec[0]);  //numerator y
-	            yBD = yBD.divide( new BigDecimal( yprec[1]), 1024, RoundingMode.HALF_UP);  //numerator y / denominator y
-		  }
-		  else
-		    yBD = new BigDecimal( yprecpart );
-
-	          xBD = xBD.add( new BigDecimal( P.first().intValue()));  //
-	          yBD = yBD.add( new BigDecimal( P.second().intValue())); //
-	        }
-	        catch(Exception e) {
-	             Reporter.writeError("Error in Dividing!");
-		     err=true;
-		     return;
-	        }
-	      }
-	      try {
-	        xBD = xBD.divide(scaleBD, 1024, RoundingMode.HALF_UP);
-	        yBD = yBD.divide(scaleBD, 1024, RoundingMode.HALF_UP);
-	      }
-	      catch(Exception e) {
-	           Reporter.writeError("Error in Dividing!");
-		   err=true;
-		   return;
-	      }
-              }
-              if ( outtype == 2 )
-	      {
-	        xBD = new BigDecimal( P.first().textValue());
-	        yBD = new BigDecimal( P.second().textValue());
-	      }
-
-	      double x = xBD.doubleValue();
-	      double y = yBD.doubleValue();
-	      try{
-                if(!ProjectionManager.project(x,y,aPoint))
-                {
-                  Reporter.writeError("error in projection at ("+x+", "+y+")");
-                  err=true;
-                  return;
-                }
-                else
-                {
-	          double x1 = aPoint.x;
-	          double y1 = aPoint.y;
-                  empty = false;
-	          if (isFirstPoint) {
-	            GP.moveTo((float)x1,(float)y1);
-		    isFirstPoint=false;
-	          } else {
-	            GP.lineTo((float)x1,(float)y1);
-	          }
-	        } 
-              }catch(Exception e){
-	           Reporter.writeError("Error in Projection at ("+x+","+y+")");
-		          err=true;
-		          return;
-	      } 
-	   } 
-           GP.closePath();
-	}
-     }
-
-     if(!empty) 
-        areas= new Area(GP);
-     else
-        areas= null;
+     areas = new Area(p);
   }
 
   /**
