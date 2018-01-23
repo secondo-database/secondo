@@ -313,7 +313,7 @@ lock and fail with an error message if it isn't immediately possible::
   query trylock("da", TRUE);
 
 There it is: ``Error: The mutex at
-/dev/shm/secondo:home_bronner_dbs_governor_DEMO:da is already locked.`` The
+/dev/shm/secondo:home_<username>_dbs_supervisor_D4:da is already locked.`` The
 second argument to these operators allows gaining sharable access. Let's have a
 look at their behavior. But first, we have to unlock ``da``::
 
@@ -329,7 +329,7 @@ held (as is currently the case), it will wait until that lock is released::
   query splitslot(ad, 0);
 
 Fortunately, it provides an informational message to the user in this case:
-``The mutex at /dev/shm/secondo:home_bronner_dbs_governor_DEMO:da is already
+``The mutex at /dev/shm/secondo:home_<username>_dbs_supervisor_D4:da is already
 locked. Waiting for exclusive ownership.``
 
 But now what? The lock won't be released automatically because it was manually
@@ -348,7 +348,7 @@ Secondo. From a second shell on the same server as the Secondo instance
 Then run the following as often as necessary until you see ``splitslot``
 continue::
 
-  ~/secondo/Algebras/Distributed4/util/mutexset /dev/shm/secondo\:<database-dir>_D4\:da unlock
+  ~/secondo/Algebras/Distributed4/util/mutexset /dev/shm/secondo\:home_<username>_dbs_supervisor_D4\:da unlock
 
 That can be an invaluable tool if Secondo should ever crash while holding locks.
 When such a left-over lock is detected later, it can be manually released
