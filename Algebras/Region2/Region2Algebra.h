@@ -34,7 +34,7 @@ September 2013, first implementation by Oliver Feuer for bachelor thesis
 1 Overview
 
 This header file contains the definition of the class ~Region2~ which correspond
-to the memory representation for the type constructor ~region2~.
+to the memory representation for the type constructor ~regionp~.
 
 1 Defines and includes
 
@@ -56,7 +56,7 @@ to the memory representation for the type constructor ~region2~.
 A region is composed of a set of faces. Each face consists of a set of cycles which correspond to an outer
 cycle and a groups of holes (inner cycles).
 
-A ~Region2~ value is a set of halfsegments. In the external (nested list) representation, a ~region2~
+A ~Region2~ value is a set of halfsegments. In the external (nested list) representation, a ~regionp~
 value is expressed as a set of faces, and each face is composed of a set of cycles.  However, in the
 internal (class) representation, it is expressed as a set of sorted halfsegments, which are stored
 in persistent DbArrays.
@@ -84,7 +84,7 @@ dominating point are copied.
 */
     Region2( const Region2& r, bool onlyLeft = false );
 /*
-Creates a region2 object from a region object.
+Creates a Region2 object from a region object.
 
 */
     explicit Region2( const Region& r, const int sFactor = 0 );
@@ -172,7 +172,7 @@ Returns the bounding box of the region.
       return bbox;
     }
 /*
-Sets the scalefactor of the ~region2~ value.
+Sets the scalefactor of the ~Region2~ value.
 
 */
     inline bool SetScaleFactor(int factor, bool buildDb = true)
@@ -199,7 +199,7 @@ Sets the scalefactor of the ~region2~ value.
       return true;
     }
 /*
-Returns the scalefactor of the ~region2~ value.
+Returns the scalefactor of the ~Region2~ value.
 
 */
     inline int GetScaleFactor() const
@@ -232,7 +232,7 @@ Sets the region value to an empty, but defined object.
 */
     void SetEmpty();
 /*
-Returns whether the ~region2~ value is empty.
+Returns whether the ~Region2~ value is empty.
 
 */
     inline bool IsEmpty() const
@@ -325,7 +325,7 @@ Builds the precHSvector from the DbArrays.
 */
     void buildHSvector();
 /*
-Reads the ith halfsegment from the ~region2~ value.
+Reads the ith halfsegment from the ~Region2~ value.
 
 */
     bool Get(const unsigned int i, Reg2PreciseHalfSegment& hs) const;
@@ -389,7 +389,7 @@ Checks if the factors ~xf~ and ~yf~ causes an interger overflow.
 */
     static const std::string BasicType()
     {
-      return "region2";
+      return "regionp";
     }
 
     static const bool checkType(const ListExpr type){
@@ -594,7 +594,7 @@ Returns the region's area. The region must be defined!
 */
     double Area() const;
 /*
-The function ~validateRegion2~ checks whether a ~region2~ value is valid.
+The function ~validateRegion2~ checks whether a ~regionp~ value is valid.
 A valid region must satisfy the following conditions:
 
 1) Any two cycles of the same region must be disconnected, which means that no edges
@@ -630,7 +630,7 @@ private:
 /*
 1.1 Private atrtibutes
 
-The scalefactor of the ~region2~ value.
+The scalefactor of the ~regionp~ value.
 
 */
     int scaleFactor;
