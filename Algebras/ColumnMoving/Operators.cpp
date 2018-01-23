@@ -130,108 +130,144 @@ corresponding attribut arrays.
   int PresentOperator::ValueMapping00(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    CRelAlgebra::LongInts & r = 
+      qp->ResultStorage<CRelAlgebra::LongInts>(result, s);
+    r.Clear();
     static_cast<MInts*>(args[0].addr)->present( 
         *static_cast<Instant*>(args[1].addr), 
-        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+        r );
     return 0;
   }
 
   int PresentOperator::ValueMapping01(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    CRelAlgebra::LongInts & r = 
+      qp->ResultStorage<CRelAlgebra::LongInts>(result, s);
+    r.Clear();
     static_cast<MInts*>(args[0].addr)->present( 
         *static_cast<temporalalgebra::Periods*>(args[1].addr), 
-        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+        r );
     return 0;
   }
   
   int PresentOperator::ValueMapping10(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    CRelAlgebra::LongInts & r = 
+      qp->ResultStorage<CRelAlgebra::LongInts>(result, s);
+    r.Clear();
     static_cast<MPoints*>(args[0].addr)->present( 
         *static_cast<Instant*>(args[1].addr), 
-        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+        r );
     return 0;
   }
 
   int PresentOperator::ValueMapping11(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    CRelAlgebra::LongInts & r = 
+      qp->ResultStorage<CRelAlgebra::LongInts>(result, s);
+    r.Clear();
     static_cast<MPoints*>(args[0].addr)->present( 
         *static_cast<temporalalgebra::Periods*>(args[1].addr), 
-        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+        r );
     return 0;
   }
   
   int PresentOperator::ValueMapping20(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    CRelAlgebra::LongInts & r = 
+      qp->ResultStorage<CRelAlgebra::LongInts>(result, s);
+    r.Clear();
     static_cast<MRegions*>(args[0].addr)->present( 
         *static_cast<Instant*>(args[1].addr), 
-        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+        r );
     return 0;
   }
 
   int PresentOperator::ValueMapping21(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    CRelAlgebra::LongInts & r = 
+      qp->ResultStorage<CRelAlgebra::LongInts>(result, s);
+    r.Clear();
     static_cast<MRegions*>(args[0].addr)->present( 
         *static_cast<temporalalgebra::Periods*>(args[1].addr), 
-        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+        r );
     return 0;
   }
   
   int PresentOperator::ValueMapping30(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    CRelAlgebra::LongInts & r = 
+      qp->ResultStorage<CRelAlgebra::LongInts>(result, s);
+    r.Clear();
     static_cast<MReals*>(args[0].addr)->present( 
         *static_cast<Instant*>(args[1].addr), 
-        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+        r );
     return 0;
   }
 
   int PresentOperator::ValueMapping31(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    CRelAlgebra::LongInts & r = 
+      qp->ResultStorage<CRelAlgebra::LongInts>(result, s);
+    r.Clear();
     static_cast<MReals*>(args[0].addr)->present( 
         *static_cast<temporalalgebra::Periods*>(args[1].addr), 
-        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+        r );
     return 0;
   }
   
   int PresentOperator::ValueMapping40(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    CRelAlgebra::LongInts & r = 
+      qp->ResultStorage<CRelAlgebra::LongInts>(result, s);
+    r.Clear();
     static_cast<MBools*>(args[0].addr)->present( 
         *static_cast<Instant*>(args[1].addr), 
-        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+        r );
     return 0;
   }
 
   int PresentOperator::ValueMapping41(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    CRelAlgebra::LongInts & r = 
+      qp->ResultStorage<CRelAlgebra::LongInts>(result, s);
+    r.Clear();
     static_cast<MBools*>(args[0].addr)->present( 
         *static_cast<temporalalgebra::Periods*>(args[1].addr), 
-        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+        r );
     return 0;
   }
   
   int PresentOperator::ValueMapping50(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    CRelAlgebra::LongInts & r = 
+      qp->ResultStorage<CRelAlgebra::LongInts>(result, s);
+    r.Clear();
     static_cast<MStrings*>(args[0].addr)->present( 
         *static_cast<Instant*>(args[1].addr), 
-        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+        r );
     return 0;
   }
 
   int PresentOperator::ValueMapping51(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    CRelAlgebra::LongInts & r = 
+      qp->ResultStorage<CRelAlgebra::LongInts>(result, s);
+    r.Clear();
     static_cast<MStrings*>(args[0].addr)->present( 
         *static_cast<temporalalgebra::Periods*>(args[1].addr), 
-        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+        r );
     return 0;
   }
 
@@ -296,54 +332,66 @@ corresponding attribut arrays.
   int AtInstantOperator::ValueMapping0(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    IInts & r = qp->ResultStorage<IInts>(result, s);
+    r.Clear();
     static_cast<MInts*>(args[0].addr)->atInstant( 
         *static_cast<Instant*>(args[1].addr), 
-        qp->ResultStorage<IInts>(result, s) );
+        r );
     return 0;
   }
   
   int AtInstantOperator::ValueMapping1(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    IPoints & r = qp->ResultStorage<IPoints>(result, s);
+    r.Clear();
     static_cast<MPoints*>(args[0].addr)->atInstant( 
         *static_cast<Instant*>(args[1].addr), 
-        qp->ResultStorage<IPoints>(result, s) );
+        r );
     return 0;
   }
   
   int AtInstantOperator::ValueMapping2(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    IRegions & r = qp->ResultStorage<IRegions>(result, s);
+    r.Clear();
     static_cast<MRegions*>(args[0].addr)->atInstant( 
         *static_cast<Instant*>(args[1].addr), 
-        qp->ResultStorage<IRegions>(result, s) );
+        r );
     return 0;
   }
   
   int AtInstantOperator::ValueMapping3(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    IReals & r = qp->ResultStorage<IReals>(result, s);
+    r.Clear();
     static_cast<MReals*>(args[0].addr)->atInstant( 
         *static_cast<Instant*>(args[1].addr), 
-        qp->ResultStorage<IReals>(result, s) );
+        r );
     return 0;
   }
   
   int AtInstantOperator::ValueMapping4(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    IBools & r = qp->ResultStorage<IBools>(result, s);
+    r.Clear();
     static_cast<MBools*>(args[0].addr)->atInstant( 
         *static_cast<Instant*>(args[1].addr), 
-        qp->ResultStorage<IBools>(result, s) );
+        r );
     return 0;
   }
   
   int AtInstantOperator::ValueMapping5(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    IStrings & r = qp->ResultStorage<IStrings>(result, s);
+    r.Clear();
     static_cast<MStrings*>(args[0].addr)->atInstant( 
         *static_cast<Instant*>(args[1].addr), 
-        qp->ResultStorage<IStrings>(result, s) );
+        r );
     return 0;
   }
 
@@ -409,54 +457,66 @@ corresponding attribut arrays.
   int AtPeriodsOperator::ValueMapping0(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MInts & r = qp->ResultStorage<MInts>(result, s);
+    r.Clear();
     static_cast<MInts*>(args[0].addr)->atPeriods( 
         *static_cast<temporalalgebra::Periods*>(args[1].addr), 
-        qp->ResultStorage<MInts>(result, s) );
+        r );
     return 0;
   }
   
   int AtPeriodsOperator::ValueMapping1(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MPoints & r = qp->ResultStorage<MPoints>(result, s);
+    r.Clear();
     static_cast<MPoints*>(args[0].addr)->atPeriods( 
         *static_cast<temporalalgebra::Periods*>(args[1].addr), 
-        qp->ResultStorage<MPoints>(result, s) );
+        r );
     return 0;
   }
   
   int AtPeriodsOperator::ValueMapping2(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MRegions & r = qp->ResultStorage<MRegions>(result, s);
+    r.Clear();
     static_cast<MRegions*>(args[0].addr)->atPeriods( 
         *static_cast<temporalalgebra::Periods*>(args[1].addr), 
-        qp->ResultStorage<MRegions>(result, s) );
+        r );
     return 0;
   }
   
   int AtPeriodsOperator::ValueMapping3(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MReals & r = qp->ResultStorage<MReals>(result, s);
+    r.Clear();
     static_cast<MReals*>(args[0].addr)->atPeriods( 
         *static_cast<temporalalgebra::Periods*>(args[1].addr), 
-        qp->ResultStorage<MReals>(result, s) );
+        r );
     return 0;
   }
   
   int AtPeriodsOperator::ValueMapping4(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MBools & r = qp->ResultStorage<MBools>(result, s);
+    r.Clear();
     static_cast<MBools*>(args[0].addr)->atPeriods( 
         *static_cast<temporalalgebra::Periods*>(args[1].addr), 
-        qp->ResultStorage<MBools>(result, s) );
+        r );
     return 0;
   }
   
   int AtPeriodsOperator::ValueMapping5(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MStrings & r = qp->ResultStorage<MStrings>(result, s);
+    r.Clear();
     static_cast<MStrings*>(args[0].addr)->atPeriods( 
         *static_cast<temporalalgebra::Periods*>(args[1].addr), 
-        qp->ResultStorage<MStrings>(result, s) );
+        r );
     return 0;
   }
 
@@ -537,90 +597,120 @@ corresponding attribut arrays.
   int PassesOperator::ValueMapping00(ArgVector args, Word &result, int message, 
     Word &local, Supplier s) 
   {
+    CRelAlgebra::LongInts & r = 
+      qp->ResultStorage<CRelAlgebra::LongInts>(result, s);
+    r.Clear();
     static_cast<MInts*>(args[0].addr)->passes( 
         *static_cast<CcInt*>(args[1].addr), 
-        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+        r );
     return 0;
   }
   
   int PassesOperator::ValueMapping01(ArgVector args, Word &result, int message, 
     Word &local, Supplier s) 
   {
+    CRelAlgebra::LongInts & r = 
+      qp->ResultStorage<CRelAlgebra::LongInts>(result, s);
+    r.Clear();
     static_cast<MInts*>(args[0].addr)->passes( 
         *static_cast<temporalalgebra::RInt*>(args[1].addr), 
-        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+        r );
     return 0;
   }
   
   int PassesOperator::ValueMapping10(ArgVector args, Word &result, int message, 
     Word &local, Supplier s) 
   {
+    CRelAlgebra::LongInts & r = 
+      qp->ResultStorage<CRelAlgebra::LongInts>(result, s);
+    r.Clear();
     static_cast<MPoints*>(args[0].addr)->passes( 
         *static_cast<Point*>(args[1].addr), 
-        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+        r );
     return 0;
   }
   
   int PassesOperator::ValueMapping11(ArgVector args, Word &result, int message, 
     Word &local, Supplier s) 
   {
+    CRelAlgebra::LongInts & r = 
+      qp->ResultStorage<CRelAlgebra::LongInts>(result, s);
+    r.Clear();
     static_cast<MPoints*>(args[0].addr)->passes( 
         *static_cast<Region*>(args[1].addr), 
-        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+        r );
     return 0;
   }
   
   int PassesOperator::ValueMapping20(ArgVector args, Word &result, int message, 
     Word &local, Supplier s) 
   {
+    CRelAlgebra::LongInts & r = 
+      qp->ResultStorage<CRelAlgebra::LongInts>(result, s);
+    r.Clear();
     static_cast<MReals*>(args[0].addr)->passes( 
         *static_cast<CcReal*>(args[1].addr), 
-        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+        r );
     return 0;
   }
   
   int PassesOperator::ValueMapping21(ArgVector args, Word &result, int message, 
     Word &local, Supplier s) 
   {
+    CRelAlgebra::LongInts & r = 
+      qp->ResultStorage<CRelAlgebra::LongInts>(result, s);
+    r.Clear();
     static_cast<MReals*>(args[0].addr)->passes( 
         *static_cast<temporalalgebra::RReal*>(args[1].addr), 
-        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+        r );
     return 0;
   }
   
   int PassesOperator::ValueMapping30(ArgVector args, Word &result, int message, 
     Word &local, Supplier s) 
   {
+    CRelAlgebra::LongInts & r = 
+      qp->ResultStorage<CRelAlgebra::LongInts>(result, s);
+    r.Clear();
     static_cast<MBools*>(args[0].addr)->passes( 
         *static_cast<CcBool*>(args[1].addr), 
-        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+        r );
     return 0;
   }
   
   int PassesOperator::ValueMapping31(ArgVector args, Word &result, int message, 
     Word &local, Supplier s) 
   {
+    CRelAlgebra::LongInts & r = 
+      qp->ResultStorage<CRelAlgebra::LongInts>(result, s);
+    r.Clear();
     static_cast<MBools*>(args[0].addr)->passes( 
         *static_cast<temporalalgebra::RBool*>(args[1].addr), 
-        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+        r );
     return 0;
   }
   
   int PassesOperator::ValueMapping40(ArgVector args, Word &result, int message, 
     Word &local, Supplier s) 
   {
+    CRelAlgebra::LongInts & r = 
+      qp->ResultStorage<CRelAlgebra::LongInts>(result, s);
+    r.Clear();
     static_cast<MStrings*>(args[0].addr)->passes( 
         *static_cast<CcString*>(args[1].addr), 
-        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+        r );
     return 0;
   }
   
   int PassesOperator::ValueMapping41(ArgVector args, Word &result, int message, 
     Word &local, Supplier s) 
   {
+    CRelAlgebra::LongInts & r = 
+      qp->ResultStorage<CRelAlgebra::LongInts>(result, s);
+    r.Clear();
     static_cast<MStrings*>(args[0].addr)->passes( 
         *static_cast<temporalalgebra::RString*>(args[1].addr), 
-        qp->ResultStorage<CRelAlgebra::LongInts>(result, s) );
+        r );
     return 0;
   }
 
@@ -700,90 +790,110 @@ corresponding attribut arrays.
   int AtOperator::ValueMapping00(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MInts & r = qp->ResultStorage<MInts>(result, s);
+    r.Clear();
     static_cast<MInts*>(args[0].addr)->at( 
         *static_cast<CcInt*>(args[1].addr), 
-        qp->ResultStorage<MInts>(result, s) );
+        r );
     return 0;
   }
   
   int AtOperator::ValueMapping01(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MInts & r = qp->ResultStorage<MInts>(result, s);
+    r.Clear();
     static_cast<MInts*>(args[0].addr)->at( 
         *static_cast<temporalalgebra::RInt*>(args[1].addr), 
-        qp->ResultStorage<MInts>(result, s) );
+        r );
     return 0;
   }
   
   int AtOperator::ValueMapping10(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MPoints & r = qp->ResultStorage<MPoints>(result, s);
+    r.Clear();
     static_cast<MPoints*>(args[0].addr)->at( 
         *static_cast<Point*>(args[1].addr), 
-        qp->ResultStorage<MPoints>(result, s) );
+        r );
     return 0;
   }
   
   int AtOperator::ValueMapping11(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MPoints & r = qp->ResultStorage<MPoints>(result, s);
+    r.Clear();
     static_cast<MPoints*>(args[0].addr)->at( 
         *static_cast<Region*>(args[1].addr), 
-        qp->ResultStorage<MPoints>(result, s) );
+        r );
     return 0;
   }
 
   int AtOperator::ValueMapping20(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MReals & r = qp->ResultStorage<MReals>(result, s);
+    r.Clear();
     static_cast<MReals*>(args[0].addr)->at( 
         *static_cast<CcReal*>(args[1].addr), 
-        qp->ResultStorage<MReals>(result, s) );
+        r );
     return 0;
   }
   
   int AtOperator::ValueMapping21(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MReals & r = qp->ResultStorage<MReals>(result, s);
+    r.Clear();
     static_cast<MReals*>(args[0].addr)->at( 
         *static_cast<temporalalgebra::RReal*>(args[1].addr), 
-        qp->ResultStorage<MReals>(result, s) );
+        r );
     return 0;
   }
 
   int AtOperator::ValueMapping30(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MBools & r = qp->ResultStorage<MBools>(result, s);
+    r.Clear();
     static_cast<MBools*>(args[0].addr)->at( 
         *static_cast<CcBool*>(args[1].addr), 
-        qp->ResultStorage<MBools>(result, s) );
+        r );
     return 0;
   }
   
   int AtOperator::ValueMapping31(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MBools & r = qp->ResultStorage<MBools>(result, s);
+    r.Clear();
     static_cast<MBools*>(args[0].addr)->at( 
         *static_cast<temporalalgebra::RBool*>(args[1].addr), 
-        qp->ResultStorage<MBools>(result, s) );
+        r );
     return 0;
   }
 
   int AtOperator::ValueMapping40(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MStrings & r = qp->ResultStorage<MStrings>(result, s);
+    r.Clear();
     static_cast<MStrings*>(args[0].addr)->at( 
         *static_cast<CcString*>(args[1].addr), 
-        qp->ResultStorage<MStrings>(result, s) );
+        r );
     return 0;
   }
   
   int AtOperator::ValueMapping41(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MStrings & r = qp->ResultStorage<MStrings>(result, s);
+    r.Clear();
     static_cast<MStrings*>(args[0].addr)->at( 
         *static_cast<temporalalgebra::RString*>(args[1].addr), 
-        qp->ResultStorage<MStrings>(result, s) );
+        r );
     return 0;
   }
 
@@ -833,6 +943,8 @@ corresponding attribut arrays.
   int InsideOperator::ValueMapping0(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MBools & resultVal = qp->ResultStorage<MBools>(result, s);
+    resultVal.Clear();
     auto mps = static_cast<MPoints*>(args[0].addr);
     auto r   = static_cast<Region*>(args[1].addr);
     int64_t min, max;
@@ -842,13 +954,15 @@ corresponding attribut arrays.
     MPoints intermediate;
     mrs.intersection(*mps, intermediate);
     mps->defTimeIntersection(intermediate, 
-                             qp->ResultStorage<MBools>(result, s));
+                             resultVal);
     return 0;
   }
   
   int InsideOperator::ValueMapping1(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MBools & resultVal = qp->ResultStorage<MBools>(result, s);
+    resultVal.Clear();
     auto mps = static_cast<MPoints*>(args[0].addr);
     auto mr  = static_cast<temporalalgebra::MRegion*>(args[1].addr);
     MRegions mrs;
@@ -856,13 +970,15 @@ corresponding attribut arrays.
     MPoints intermediate;
     mrs.intersection(*mps, intermediate);
     mps->defTimeIntersection(intermediate, 
-                             qp->ResultStorage<MBools>(result, s));
+                             resultVal);
     return 0;
   }
   
   int InsideOperator::ValueMapping2(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MBools & resultVal = qp->ResultStorage<MBools>(result, s);
+    resultVal.Clear();
     auto mp  = static_cast<temporalalgebra::MPoint*>(args[0].addr);
     auto mrs = static_cast<MRegions*>(args[1].addr);
     MPoints mps;
@@ -870,19 +986,21 @@ corresponding attribut arrays.
     MPoints intermediate;
     mrs->intersection(mps, intermediate);
     mps.defTimeIntersection(intermediate, 
-                            qp->ResultStorage<MBools>(result, s));
+                            resultVal);
     return 0;
   }
   
   int InsideOperator::ValueMapping3(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MBools & resultVal = qp->ResultStorage<MBools>(result, s);
+    resultVal.Clear();
     auto mps = static_cast<MPoints*>(args[0].addr);
     auto mrs = static_cast<MRegions*>(args[1].addr);
     MPoints intermediate;
     mrs->intersection(*mps, intermediate);
     mps->defTimeIntersection(intermediate, 
-                             qp->ResultStorage<MBools>(result, s));
+                             resultVal);
     return 0;
   }
 
@@ -982,44 +1100,52 @@ corresponding attribut arrays.
   int IntersectionOperator::ValueMapping0(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MPoints & resultVal = qp->ResultStorage<MPoints>(result, s);
+    resultVal.Clear();
     auto mps = static_cast<MPoints*>(args[0].addr);
     auto r   = static_cast<Region*>(args[1].addr);
     int64_t min, max;
     mps->getDefTimeLimits(min, max);
     MRegions mrs;
     mrs.addConstMRegion(*r, Interval { min, max, true, true } );
-    mrs.intersection(*mps, qp->ResultStorage<MPoints>(result, s));
+    mrs.intersection(*mps, resultVal);
     return 0;
   }
   
   int IntersectionOperator::ValueMapping1(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MPoints & resultVal = qp->ResultStorage<MPoints>(result, s);
+    resultVal.Clear();
     auto mps = static_cast<MPoints*>(args[0].addr);
     auto mr  = static_cast<temporalalgebra::MRegion*>(args[1].addr);
     MRegions mrs;
     mrs.Append(*mr);
-    mrs.intersection(*mps, qp->ResultStorage<MPoints>(result, s));
+    mrs.intersection(*mps, resultVal);
     return 0;
   }
   
   int IntersectionOperator::ValueMapping2(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MPoints & resultVal = qp->ResultStorage<MPoints>(result, s);
+    resultVal.Clear();
     auto mp  = static_cast<temporalalgebra::MPoint*>(args[0].addr);
     auto mrs = static_cast<MRegions*>(args[1].addr);
     MPoints mps;
     mps.Append(*mp);
-    mrs->intersection(mps, qp->ResultStorage<MPoints>(result, s));
+    mrs->intersection(mps, resultVal);
     return 0;
   }
   
   int IntersectionOperator::ValueMapping3(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MPoints & resultVal = qp->ResultStorage<MPoints>(result, s);
+    resultVal.Clear();
     auto mps = static_cast<MPoints*>(args[0].addr);
     auto mrs = static_cast<MRegions*>(args[1].addr);
-    mrs->intersection(*mps, qp->ResultStorage<MPoints>(result, s));
+    mrs->intersection(*mps, resultVal);
     return 0;
   }
 
@@ -1075,45 +1201,55 @@ corresponding attribut arrays.
   int AddRandomOperator::ValueMapping0(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MBools & r = qp->ResultStorage<MBools>(result, s);
+    r.Clear();
     static_cast<MBools*>(args[0].addr)->addRandomUnits( 
         *static_cast<CcInt*>(args[1].addr), 
-        qp->ResultStorage<MBools>(result, s) );
+        r );
     return 0;
   }
   
   int AddRandomOperator::ValueMapping1(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MInts & r = qp->ResultStorage<MInts>(result, s);
+    r.Clear();
     static_cast<MInts*>(args[0].addr)->addRandomUnits( 
         *static_cast<CcInt*>(args[1].addr), 
-        qp->ResultStorage<MInts>(result, s) );
+        r );
     return 0;
   }
   
   int AddRandomOperator::ValueMapping2(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MStrings & r = qp->ResultStorage<MStrings>(result, s);
+    r.Clear();
     static_cast<MStrings*>(args[0].addr)->addRandomUnits( 
         *static_cast<CcInt*>(args[1].addr), 
-        qp->ResultStorage<MStrings>(result, s) );
+        r );
     return 0;
   }
   
   int AddRandomOperator::ValueMapping3(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MReals & r = qp->ResultStorage<MReals>(result, s);
+    r.Clear();
     static_cast<MReals*>(args[0].addr)->addRandomUnits( 
         *static_cast<CcInt*>(args[1].addr), 
-        qp->ResultStorage<MReals>(result, s) );
+        r );
     return 0;
   }
   
   int AddRandomOperator::ValueMapping4(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MPoints & r = qp->ResultStorage<MPoints>(result, s);
+    r.Clear();
     static_cast<MPoints*>(args[0].addr)->addRandomUnits( 
         *static_cast<CcInt*>(args[1].addr), 
-        qp->ResultStorage<MPoints>(result, s) );
+        r );
     return 0;
   }
 
@@ -1195,6 +1331,8 @@ signature.
   int IndexOperator::ValueMapping0(ArgVector args, Word &result, 
     int message, Word &local, Supplier s) 
   {
+    MPoints & r = qp->ResultStorage<MPoints>(result, s);
+    r.Clear();
     static_cast<MPoints*>(args[0].addr)->index( 
         *static_cast<CcReal*> (args[1].addr), 
         *static_cast<CcReal*> (args[2].addr), 
@@ -1205,7 +1343,7 @@ signature.
         *static_cast<Instant*>(args[7].addr), 
         *static_cast<Instant*>(args[8].addr), 
         *static_cast<CcInt*>  (args[9].addr), 
-        qp->ResultStorage<MPoints>(result, s) );
+        r );
     return 0;
   }
 
