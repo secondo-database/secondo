@@ -427,7 +427,7 @@ Line2();
 3.2.1 Read access methods
 
   The following functions returns the asked coordinate of the
-  ~i~-th segment of the line2-object.
+  ~i~-th segment of the Line2-object.
 
 */
  int getLeftGridX(int i) const;
@@ -449,7 +449,7 @@ Line2();
 /*
 3.2.2 ~get~
 
-  Returns the ~i~-th SegmentData-object of the line2-object.
+  Returns the ~i~-th SegmentData-object of the Line2-object.
 
 */
  void get(int i, SegmentData&) const;
@@ -467,7 +467,7 @@ Line2();
 /*
 3.2.4 ~addSegment~
 
-  Adds a segment to the line2-object.
+  Adds a segment to the Line2-object.
 
 */
  void addSegment(bool ldp, int leftX, int leftY, int rightX, int rightY,
@@ -493,7 +493,7 @@ Line2();
 /*
   ~Size~
 
-  Returns the number of segments in this line2-object.
+  Returns the number of segments in this Line2-object.
 
 */
  int Size() const;
@@ -536,14 +536,14 @@ Line2();
 */
 
 /*
-  Union computes the union of two line2-objects
+  Union computes the union of two Line2-objects
 
 */
  void unionOP(Line2& l2, Line2& res, const Geoid* geoid = 0);
  void unionWithScaling(Line2& l2, Line2& res, const Geoid* geoid = 0);
 
 /*
-  Intersection computes the intersection of two line2-objects
+  Intersection computes the intersection of two Line2-objects
 
 */
  void intersection(Line2& l2, Line2& res, const Geoid* geoid = 0);
@@ -580,7 +580,7 @@ of the StandardSpatialAttribute
 */
 
  static const std::string BasicType() {
-  return "line2";
+  return "linep";
  }
 
  static const bool checkType(const ListExpr type) {
@@ -652,7 +652,7 @@ of the StandardSpatialAttribute
 /*
 4 ~convertLineIntoLine2~
 
- This function converts a line-object in a line2-object.
+ This function converts a line-object in a Line2-object.
 
 */
 void convertLineToLine2(Line& l, Line2& result);

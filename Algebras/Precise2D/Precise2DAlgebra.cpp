@@ -181,9 +181,9 @@ void outputValueToInternalValue(int& gValue, mpq_class& pValue){
 
 
 /*
-1 List Representation of point2
+1 List Representation of pointp
 
- The list representation of a point2 is
+ The list representation of a pointp is
 
  ---- (x y (preciseX preciseY))
  where x and y are the values of the grid-point and
@@ -304,9 +304,9 @@ Word Point2::InPoint2(const ListExpr typeInfo, const ListExpr instance,
 }
 
 /*
-2 List Representation of line2
+2 List Representation of linep
 
- The list representation of a line2 is
+ The list representation of a linep is
 
  ----  $(segm_1 segm_2 ... segm_n)$, where
 
@@ -667,12 +667,12 @@ ostream& operator<<(ostream& o, const Line2& l) {
 /*
 1.1 ~union\_LLL~
 
- ~line2~ x ~line2~ [->] ~line2~
+ ~linep~ x ~linep~ [->] ~linep~
 
- ~result~ contains all segments of both ~line2~-objects. If there are
+ ~result~ contains all segments of both ~linep~-objects. If there are
  overlapping segments, ~result~ will contain only one of them.
 
- If one of the ~line2~-objects is not defined, ~result~ will be undefined too.
+ If one of the ~linep~-objects is not defined, ~result~ will be undefined too.
 
 */
 int union_LLL(Word* args, Word& result, int message, Word& local, Supplier s) {
@@ -690,10 +690,10 @@ int union_LLL(Word* args, Word& result, int message, Word& local, Supplier s) {
 /*
 1.1 ~intersection\_LLL~
 
- ~line2~ x ~line2~ [->] ~line2~
+ ~linep~ x ~linep~ [->] ~linep~
 
- ~result~ contains all overlapping segments of both ~line2~-objects.
- If one of the ~line2~-objects is not defined, ~result~ will be undefined too.
+ ~result~ contains all overlapping segments of both ~linep~-objects.
+ If one of the ~linep~-objects is not defined, ~result~ will be undefined too.
 
 */
 int intersection_LLL(Word* args, Word& result, int message, Word& local,
@@ -712,11 +712,11 @@ int intersection_LLL(Word* args, Word& result, int message, Word& local,
 /*
 1.1 ~minus\_LLL~
 
- ~line2~ x ~line2~ [->] ~line2~
+ ~linep~ x ~linep~ [->] ~linep~
 
  ~result~ contains all segments of the first argument, unless
  they are part of the second argument
- If one of the ~line2~-objects is not defined, ~result~ will be undefined too.
+ If one of the ~linep~-objects is not defined, ~result~ will be undefined too.
 
 */
 int minus_LLL(Word* args, Word& result, int message, Word& local, Supplier s) {
@@ -734,7 +734,7 @@ int minus_LLL(Word* args, Word& result, int message, Word& local, Supplier s) {
 /*
 1.1 ~intersects\_LLB~
 
- ~line2~ x ~line2~ [->] ~bool~
+ ~linep~ x ~linep~ [->] ~bool~
 
  ~result~ is true, if 2 segments of both arguments intersect, false otherwise.
 
@@ -759,7 +759,7 @@ int intersects_LLB(Word* args, Word& result, int message, Word& local,
 /*
 1.1 ~crossings\_LLP~
 
- ~line2~ x ~line2~ [->] ~points2~
+ ~linep~ x ~linep~ [->] ~points2~
 
  ~result~ contains all intersection points of the first and the second argument.
  Overlapping parts are not considered.
@@ -781,12 +781,12 @@ int crossings_LLP(Word* args, Word& result, int message, Word& local,
 /*
 1.1 ~unionWithScaling\_LLL~
 
- ~line2~ x ~line2~ [->] ~line2~
+ ~linep~ x ~linep~ [->] ~linep~
 
- ~result~ contains all segments of both ~line2~-objects. If there are
+ ~result~ contains all segments of both ~linep~-objects. If there are
  overlapping segments, ~result~ will contain only one of them.
 
- If one of the ~line2~-objects is not defined, ~result~ will be undefined too.
+ If one of the ~linep~-objects is not defined, ~result~ will be undefined too.
 
 */
 int unionWithScaling_LLL(Word* args, Word& result, int message, Word& local,
@@ -805,10 +805,10 @@ int unionWithScaling_LLL(Word* args, Word& result, int message, Word& local,
 /*
 1.1 ~intersectionWithScaling\_LLL~
 
- ~line2~ x ~line2~ [->] ~line2~
+ ~linep~ x ~linep~ [->] ~linep~
 
- ~result~ contains all overlapping segments of both ~line2~-objects.
- If one of the ~line2~-objects is not defined, ~result~ will be undefined too.
+ ~result~ contains all overlapping segments of both ~linep~-objects.
+ If one of the ~linep~-objects is not defined, ~result~ will be undefined too.
 
 */
 int intersectionWithScaling_LLL(Word* args, Word& result, int message,
@@ -828,11 +828,11 @@ int intersectionWithScaling_LLL(Word* args, Word& result, int message,
 /*
 1.1 ~minusWithScaling\_LLL~
 
- ~line2~ x ~line2~ [->] ~line2~
+ ~linep~ x ~linep~ [->] ~linep~
 
  ~result~ contains all segments of the first argument, unless
  they are part of the second argument
- If one of the ~line2~-objects is not defined, ~result~ will be undefined too.
+ If one of the ~linep~-objects is not defined, ~result~ will be undefined too.
 
 */
 int minusWithScaling_LLL(Word* args, Word& result, int message, Word& local,
@@ -851,7 +851,7 @@ int minusWithScaling_LLL(Word* args, Word& result, int message, Word& local,
 /*
 1.1 ~intersectsWithScaling\_LLB~
 
- ~line2~ x ~line2~ [->] ~bool~
+ ~linep~ x ~linep~ [->] ~bool~
 
  ~result~ is true, if 2 segments of both arguments intersect, false otherwise.
 
@@ -877,7 +877,7 @@ int intersectsWithScaling_LLB(Word* args, Word& result, int message,
 /*
 1.1 ~crossingsWithScaling\_LLP~
 
- ~line2~ x ~line2~ [->] ~points2~
+ ~linep~ x ~linep~ [->] ~points2~
 
  ~result~ contains all intersection points of the first and the second argument.
  Overlapping parts are not considered.
@@ -899,12 +899,12 @@ int crossingsWithScaling_LLP(Word* args, Word& result, int message, Word& local,
 /*
 1.1 ~union\_RRR~
 
- ~region2~ x ~region2~ [->] ~region2~
+ ~regionp~ x ~regionp~ [->] ~regionp~
 
  ~result~ contains the union-set of the first and the second argument.
 
 
- If one of the ~region2~-objects is not defined, ~result~ will be undefined too.
+ If one of the ~regionp~-objects is not defined, ~result~ will be undefined too.
 
 */
 int union_RRR(Word* args, Word& result, int message, Word& local, Supplier s) {
@@ -922,10 +922,10 @@ int union_RRR(Word* args, Word& result, int message, Word& local, Supplier s) {
 /*
 1.1 ~intersection\_RRR~
 
- ~region2~ x ~region2~ [->] ~region2~
+ ~regionp~ x ~regionp~ [->] ~regionp~
 
- ~result~ contains the intersection-set of both ~region2~-objects.
- If one of the ~region2~-objects is not defined, ~result~
+ ~result~ contains the intersection-set of both ~regionp~-objects.
+ If one of the ~regionp~-objects is not defined, ~result~
  will be undefined too.
 
 */
@@ -945,11 +945,11 @@ int intersection_RRR(Word* args, Word& result, int message, Word& local,
 /*
 1.1 ~minus\_RRR~
 
- ~region2~ x ~region2~ [->] ~region2~
+ ~regionp~ x ~regionp~ [->] ~regionp~
 
  ~result~ contains the face of the first argument, reduced to the face
  of the secondo argument
- If one of the ~line2~-objects is not defined, ~result~ will be
+ If one of the ~linep~-objects is not defined, ~result~ will be
  undefined too.
 
 */
@@ -968,9 +968,9 @@ int minus_RRR(Word* args, Word& result, int message, Word& local, Supplier s) {
 /*
 1.1 ~intersects\_RRB~
 
- ~region2~ x ~region2~ [->] ~bool~
+ ~regionp~ x ~regionp~ [->] ~bool~
 
- ~result~ is true, if the 2 given region2-objects intersect, false otherwise.
+ ~result~ is true, if the 2 given regionp-objects intersect, false otherwise.
 
 */
 int intersects_RRB(Word* args, Word& result, int message, Word& local,
@@ -993,9 +993,9 @@ int intersects_RRB(Word* args, Word& result, int message, Word& local,
 /*
 1.1  ~overlaps\_RRB~
 
- ~region2~ x ~region2~ [->] ~bool~
+ ~regionp~ x ~regionp~ [->] ~bool~
 
- ~result~ is true, if the 2 given region2-objects overlap, false otherwise.
+ ~result~ is true, if the 2 given regionp-objects overlap, false otherwise.
 
 */
 int overlaps2_RRB(Word* args, Word& result, int message, Word& local,
@@ -1018,10 +1018,10 @@ int overlaps2_RRB(Word* args, Word& result, int message, Word& local,
 /*
 1.1  ~inside\_RRB~
 
- ~region2~ x ~region2~ [->] ~bool~
+ ~regionp~ x ~regionp~ [->] ~bool~
 
- ~result~ is true, if the first one of the given region2-objects is
- completely inside the second region2-object, false otherwise.
+ ~result~ is true, if the first one of the given regionp-objects is
+ completely inside the second regionp-object, false otherwise.
 
 */
 int inside_RRB(Word* args, Word& result, int message, Word& local,
@@ -1042,12 +1042,12 @@ int inside_RRB(Word* args, Word& result, int message, Word& local,
 /*
 1.1 ~unionWithScaling\_RRR~
 
- ~region2~ x ~region2~ [->] ~region2~
+ ~regionp~ x ~regionp~ [->] ~regionp~
 
  ~result~ contains the union-set of the first and the second argument.
 
 
- If one of the ~region2~-objects is not defined, ~result~ will be undefined too.
+ If one of the ~regionp~-objects is not defined, ~result~ will be undefined too.
 
 */
 int unionWithScaling_RRR(Word* args, Word& result, int message, Word& local,
@@ -1066,10 +1066,10 @@ int unionWithScaling_RRR(Word* args, Word& result, int message, Word& local,
 /*
 1.1 ~intersectionWithScaling\_RRR~
 
- ~region2~ x ~region2~ [->] ~region2~
+ ~regionp~ x ~regionp~ [->] ~regionp~
 
- ~result~ contains the intersection-set of both ~region2~-objects.
- If one of the ~region2~-objects is not defined, ~result~
+ ~result~ contains the intersection-set of both ~regionp~-objects.
+ If one of the ~regionp~-objects is not defined, ~result~
  will be undefined too.
 
 */
@@ -1090,11 +1090,11 @@ int intersectionWithScaling_RRR(Word* args, Word& result, int message,
 /*
 1.1 ~minusWithScaling\_RRR~
 
- ~region2~ x ~region2~ [->] ~region2~
+ ~regionp~ x ~regionp~ [->] ~regionp~
 
  ~result~ contains the face of the first argument, reduced to the face
  of the secondo argument
- If one of the ~line2~-objects is not defined, ~result~ will be
+ If one of the ~linep~-objects is not defined, ~result~ will be
  undefined too.
 
 */
@@ -1114,9 +1114,9 @@ int minusWithScaling_RRR(Word* args, Word& result, int message, Word& local,
 /*
 1.1 ~intersectsWithScaling\_RRB~
 
- ~region2~ x ~region2~ [->] ~bool~
+ ~regionp~ x ~regionp~ [->] ~bool~
 
- ~result~ is true, if the 2 given region2-objects intersect, false otherwise.
+ ~result~ is true, if the 2 given regionp-objects intersect, false otherwise.
 
 */
 int intersectsWithScaling_RRB(Word* args, Word& result, int message,
@@ -1140,9 +1140,9 @@ int intersectsWithScaling_RRB(Word* args, Word& result, int message,
 /*
 1.1  ~overlapsWithScaling\_RRB~
 
- ~region2~ x ~region2~ [->] ~bool~
+ ~regionp~ x ~regionp~ [->] ~bool~
 
- ~result~ is true, if the 2 given region2-objects overlap, false otherwise.
+ ~result~ is true, if the 2 given regionp-objects overlap, false otherwise.
 
 */
 int overlapsWithScaling_RRB(Word* args, Word& result, int message, Word& local,
@@ -1165,10 +1165,10 @@ int overlapsWithScaling_RRB(Word* args, Word& result, int message, Word& local,
 /*
 1.1  ~insideWithScaling\_RRB~
 
- ~region2~ x ~region2~ [->] ~bool~
+ ~regionp~ x ~regionp~ [->] ~bool~
 
- ~result~ is true, if the first one of the given region2-objects is
- completely inside the second region2-object, false otherwise.
+ ~result~ is true, if the first one of the given regionp-objects is
+ completely inside the second regionp-object, false otherwise.
 
 */
 int insideWithScaling_RRB(Word* args, Word& result, int message, Word& local,
@@ -1191,9 +1191,9 @@ int insideWithScaling_RRB(Word* args, Word& result, int message, Word& local,
 /*
 1.1  ~lineToLine2~
 
- ~line~ [->] ~line2~
+ ~line~ [->] ~linep~
 
- This function converts a ~line~-object into a ~line2~-object.
+ This function converts a ~line~-object into a ~linep~-object.
 
 */
 int lineToLine2(Word* args, Word& result, int message, Word& local,
@@ -1212,9 +1212,9 @@ int lineToLine2(Word* args, Word& result, int message, Word& local,
 /*
 1.1  ~coarseRegion2~
 
- ~region2~ [->] ~region~
+ ~regionp~ [->] ~region~
 
- This function coarses a ~region2~-object to a ~region~object.
+ This function coarses a ~regionp~-object to a ~region~object.
 
 */
 int coarse(Word* args, Word& result, int message, Word& local,
@@ -1246,7 +1246,7 @@ int coarse2(Word* args, Word& result, int message, Word& local,
 
  The next operator are test-operators. They do the same as the analogous
  operators above. But the operator, who should return a lin2-, points2- or
- region2-object, return if the object is defined. The other operator, who
+ regionp-object, return if the object is defined. The other operator, who
  returns only a value of type bool, don't change. Additionally all following
  operators give some information, like how often decisions could be made
  without using the precise values.
@@ -1648,9 +1648,9 @@ int testMinusWithScaling_RRB(Word* args, Word& result, int message,
 /*
 1.1.1  ~testIntersectsWithScaling\_RRB~
 
- ~region2~ x ~region2~ [->] ~bool~
+ ~regionp~ x ~regionp~ [->] ~bool~
 
- ~result~ is true, if the 2 given region2-objects intersect, false otherwise.
+ ~result~ is true, if the 2 given regionp-objects intersect, false otherwise.
 
 */
 int testIntersectsWithScaling_RRB(Word* args, Word& result, int message,
@@ -1678,9 +1678,9 @@ int testIntersectsWithScaling_RRB(Word* args, Word& result, int message,
 /*
 1.1.1  ~testIntersects\_RRB~
 
- ~region2~ x ~region2~ [->] ~bool~
+ ~regionp~ x ~regionp~ [->] ~bool~
 
- ~result~ is true, if the 2 given region2-objects intersect, false otherwise.
+ ~result~ is true, if the 2 given regionp-objects intersect, false otherwise.
 
 */
 int testIntersects_RRB(Word* args, Word& result, int message, Word& local,
@@ -1769,11 +1769,11 @@ int line2BBox(Word* args, Word& result, int message,
 4.1 ~LLL\_TypeMap~
 
  Signature is
- ~line2~ x ~line2~ [->] ~line2~
+ ~linep~ x ~linep~ [->] ~linep~
 
 */
 ListExpr LLL_TypeMap(ListExpr args) {
- string err = "line2 x line2 expected.";
+ string err = "linep x linep expected.";
  if (nl->ListLength(args) != 2) {
   return listutils::typeError(err + ": wrong number of arguments");
  }
@@ -1799,11 +1799,11 @@ ListExpr LLL_TypeMap(ListExpr args) {
 /*
 4.2 ~LLB\_TypeMap~
 
- Signature is ~line2~ x ~line2~ [->] bool
+ Signature is ~linep~ x ~linep~ [->] bool
 
 */
 ListExpr LLB_TypeMap(ListExpr args) {
- string err = "line2 x line2 expected.";
+ string err = "linep x linep expected.";
  if (nl->ListLength(args) != 2) {
   return listutils::typeError(err + ": wrong number of arguments");
  }
@@ -1827,11 +1827,11 @@ ListExpr LLB_TypeMap(ListExpr args) {
 /*
 4.3 ~LLP\_TypeMap~
 
- Signature is line2 x line2 [->] points2
+ Signature is linep x linep [->] points2
 
 */
 ListExpr LLP_TypeMap(ListExpr args) {
- string err = "line2 x line2 expected.";
+ string err = "linep x linep expected.";
  if (nl->ListLength(args) != 2) {
   return listutils::typeError(err + ": wrong number of arguments");
  }
@@ -1855,7 +1855,7 @@ ListExpr LLP_TypeMap(ListExpr args) {
 /*
 4.4 ~LL2\_TypeMap~
 
- Signature is line2 x line2 [->] line2
+ Signature is linep x linep [->] linep
 
 */
 ListExpr LL2_TypeMap(ListExpr args) {
@@ -1881,11 +1881,11 @@ ListExpr LL2_TypeMap(ListExpr args) {
 4.5 ~RRR\_TypeMap~
 
  Signature is
- ~region2~ x ~region2~ [->] ~region2~
+ ~regionp~ x ~regionp~ [->] ~regionp~
 
 */
 ListExpr RRR_TypeMap(ListExpr args) {
- string err = "region2 x region2 expected. ";
+ string err = "regionp x regionp expected. ";
  if (nl->ListLength(args) != 2) {
   return listutils::typeError(err + ": wrong number of arguments");
  }
@@ -1909,11 +1909,11 @@ ListExpr RRR_TypeMap(ListExpr args) {
 /*
 4.6 ~RRB\_TypeMap~
 
- Signature is ~region2~ x ~region2~ [->] bool
+ Signature is ~regionp~ x ~regionp~ [->] bool
 
 */
 ListExpr RRB_TypeMap(ListExpr args) {
- string err = "region2 x region2 expected.";
+ string err = "regionp x regionp expected.";
  if (nl->ListLength(args) != 2) {
   return listutils::typeError(err + ": wrong number of arguments");
  }
@@ -1937,7 +1937,7 @@ ListExpr RRB_TypeMap(ListExpr args) {
 /*
 4.7 ~R2R\_TypeMap~
 
- Signature is ~region2~ [->] region
+ Signature is ~regionp~ [->] region
 
 */
 ListExpr R2R_TypeMap(ListExpr args) {
@@ -1980,7 +1980,7 @@ Spatial2Rect_TypeMap( ListExpr args )
        type != Points2::BasicType() &&
        type != Line2::BasicType() ){
     return listutils::typeError("Only one argument arg expected , "
-      "with arg in {point2, points2 or line}.");
+      "with arg in {pointp, pointsp or linep.");
   }
 
   return (nl->SymbolAtom( Rectangle<2>::BasicType() ));
@@ -1994,7 +1994,7 @@ Spatial2Rect_TypeMap( ListExpr args )
 /*
 5.1 ~union\_LLLInfo~
 
- The operator information for union of 2 line2-objects
+ The operator information for union of 2 linep-objects
 
 */
 struct union_LLLInfo: OperatorInfo {
@@ -2005,7 +2005,7 @@ struct union_LLLInfo: OperatorInfo {
   signature = Line2::BasicType() + " x " + Line2::BasicType() + " -> "
     + Line2::BasicType();
   syntax = "query arg1 union arg2";
-  meaning = "union of two line2 objects";
+  meaning = "union of two linep objects";
  }
 
 };
@@ -2013,7 +2013,7 @@ struct union_LLLInfo: OperatorInfo {
 /*
 5.2 ~intersection\_LLLInfo~
 
- The operator information for intersection of 2 line2-objects
+ The operator information for intersection of 2 linep-objects
 
 */
 struct intersection_LLLInfo: OperatorInfo {
@@ -2024,7 +2024,7 @@ struct intersection_LLLInfo: OperatorInfo {
   signature = Line2::BasicType() + " x " + Line2::BasicType() + " -> "
     + Line2::BasicType();
   syntax = "query intersection (arg1, arg2)";
-  meaning = "intersection of two line2 objects";
+  meaning = "intersection of two linep objects";
  }
 
 };
@@ -2032,7 +2032,7 @@ struct intersection_LLLInfo: OperatorInfo {
 /*
 5.3 ~minus\_LLLInfo~
 
- The operator information for the difference of 2 line2-objects
+ The operator information for the difference of 2 linep-objects
 
 */
 struct minus_LLLInfo: OperatorInfo {
@@ -2043,7 +2043,7 @@ struct minus_LLLInfo: OperatorInfo {
   signature = Line2::BasicType() + " x " + Line2::BasicType() + " -> "
     + Line2::BasicType();
   syntax = "query arg1 minus arg2";
-  meaning = "difference of two line2 objects";
+  meaning = "difference of two linep objects";
  }
 
 };
@@ -2051,7 +2051,7 @@ struct minus_LLLInfo: OperatorInfo {
 /*
 5.4 ~intersects\_LLBInfo~
 
- The operator information for the test if 2 line2-objects intersect
+ The operator information for the test if 2 linep-objects intersect
 
 */
 struct intersects_LLBInfo: OperatorInfo {
@@ -2061,7 +2061,7 @@ struct intersects_LLBInfo: OperatorInfo {
   name = "intersects";
   signature = Line2::BasicType() + " x " + Line2::BasicType() + " -> bool";
   syntax = "query arg1 intersects arg2";
-  meaning = "returns true, if both line2 "
+  meaning = "returns true, if both linep "
     "objects intersect, false otherwise.";
  }
 
@@ -2079,7 +2079,7 @@ struct crossings_LLPInfo: OperatorInfo {
   signature = Line2::BasicType() + " x "
     + Line2::BasicType() + " -> "+ Points2::BasicType();
   syntax = "query crossings(arg1, arg2)";
-  meaning = "intersection-points of two line2-objects ";
+  meaning = "intersection-points of two linep-objects ";
  }
 
 };
@@ -2087,7 +2087,7 @@ struct crossings_LLPInfo: OperatorInfo {
 /*
 5.1 ~unionWithScaling\_LLLInfo~
 
- The operator information for union of 2 line2-objects
+ The operator information for union of 2 linep-objects
 
 */
 struct unionWithScaling_LLLInfo: OperatorInfo {
@@ -2098,7 +2098,7 @@ struct unionWithScaling_LLLInfo: OperatorInfo {
   signature = Line2::BasicType() + " x " + Line2::BasicType() + " -> "
     + Line2::BasicType();
   syntax = "query arg1 unionWithScaling arg2";
-  meaning = "union of two line2 objects";
+  meaning = "union of two linep objects";
  }
 
 };
@@ -2106,7 +2106,7 @@ struct unionWithScaling_LLLInfo: OperatorInfo {
 /*
 5.2 ~intersectionWithScaling\_LLLInfo~
 
- The operator information for intersection of 2 line2-objects
+ The operator information for intersection of 2 linep-objects
 
 */
 struct intersectionWithScaling_LLLInfo: OperatorInfo {
@@ -2117,7 +2117,7 @@ struct intersectionWithScaling_LLLInfo: OperatorInfo {
   signature = Line2::BasicType() + " x " + Line2::BasicType() + " -> "
     + Line2::BasicType();
   syntax = "query intersectionWithScaling (arg1, arg2)";
-  meaning = "intersection of two line2 objects";
+  meaning = "intersection of two linep objects";
  }
 
 };
@@ -2125,7 +2125,7 @@ struct intersectionWithScaling_LLLInfo: OperatorInfo {
 /*
 5.3 ~minusWithScaling\_LLLInfo~
 
- The operator information for the difference of 2 line2-objects
+ The operator information for the difference of 2 linep-objects
 
 */
 struct minusWithScaling_LLLInfo: OperatorInfo {
@@ -2136,7 +2136,7 @@ struct minusWithScaling_LLLInfo: OperatorInfo {
   signature = Line2::BasicType() + " x " + Line2::BasicType() + " -> "
     + Line2::BasicType();
   syntax = "query arg1 minusWithScaling arg2";
-  meaning = "difference of two line2 objects";
+  meaning = "difference of two linep objects";
  }
 
 };
@@ -2144,7 +2144,7 @@ struct minusWithScaling_LLLInfo: OperatorInfo {
 /*
 5.4 ~intersectsWithScaling\_LLBInfo~
 
- The operator information for the test if 2 line2-objects intersect
+ The operator information for the test if 2 linep-objects intersect
 
 */
 struct intersectsWithScaling_LLBInfo: OperatorInfo {
@@ -2154,7 +2154,7 @@ struct intersectsWithScaling_LLBInfo: OperatorInfo {
   name = "intersectsWithScaling";
   signature = Line2::BasicType() + " x " + Line2::BasicType() + " -> bool";
   syntax = "query arg1 intersectsWithScaling arg2";
-  meaning = "returns true, if both line2 "
+  meaning = "returns true, if both linep "
     "objects intersect, false otherwise.";
  }
 
@@ -2172,7 +2172,7 @@ struct crossingsWithScaling_LLPInfo: OperatorInfo {
   signature = Line2::BasicType() + " x "
     + Line2::BasicType() + " -> "+ Points2::BasicType();
   syntax = "query crossingsWithScaling(arg1, arg2)";
-  meaning = "intersection-points of two line2-objects ";
+  meaning = "intersection-points of two linep-objects ";
  }
 
 };
@@ -2182,7 +2182,7 @@ struct crossingsWithScaling_LLPInfo: OperatorInfo {
 /*
 5.6 ~union\_RRRInfo~
 
- The operator information for union of 2 region2-objects
+ The operator information for union of 2 regionp-objects
 
 */
 struct union_RRRInfo: OperatorInfo {
@@ -2193,7 +2193,7 @@ struct union_RRRInfo: OperatorInfo {
   signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> "
     + Region2::BasicType();
   syntax = "query arg1 union arg2";
-  meaning = "union of two region2 objects";
+  meaning = "union of two regionp objects";
  }
 
 };
@@ -2201,7 +2201,7 @@ struct union_RRRInfo: OperatorInfo {
 /*
 5.7 ~intersection\_RRRInfo~
 
- The operator information for intersection of 2 region2-objects
+ The operator information for intersection of 2 regionp-objects
 
 */
 struct intersection_RRRInfo: OperatorInfo {
@@ -2212,7 +2212,7 @@ struct intersection_RRRInfo: OperatorInfo {
   signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> "
     + Region2::BasicType();
   syntax = "query intersection (arg1, arg2)";
-  meaning = "intersection of two region2 objects";
+  meaning = "intersection of two regionp objects";
  }
 
 };
@@ -2220,7 +2220,7 @@ struct intersection_RRRInfo: OperatorInfo {
 /*
 5.8 ~minus\_RRRInfo~
 
- The operator information for the difference of 2 region2-objects
+ The operator information for the difference of 2 regionp-objects
 
 */
 struct minus_RRRInfo: OperatorInfo {
@@ -2231,7 +2231,7 @@ struct minus_RRRInfo: OperatorInfo {
   signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> "
     + Region2::BasicType();
   syntax = "query arg1 minus arg2";
-  meaning = "difference of two region2 objects";
+  meaning = "difference of two regionp objects";
  }
 
 };
@@ -2239,7 +2239,7 @@ struct minus_RRRInfo: OperatorInfo {
 /*
 5.6 ~unionWithScaling\_RRRInfo~
 
- The operator information for union of 2 region2-objects
+ The operator information for union of 2 regionp-objects
 
 */
 struct unionWithScaling_RRRInfo: OperatorInfo {
@@ -2250,7 +2250,7 @@ struct unionWithScaling_RRRInfo: OperatorInfo {
   signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> "
     + Region2::BasicType();
   syntax = "query arg1 unionWithScaling arg2";
-  meaning = "union of two region2 objects";
+  meaning = "union of two regionp objects";
  }
 
 };
@@ -2258,7 +2258,7 @@ struct unionWithScaling_RRRInfo: OperatorInfo {
 /*
 5.7 ~intersectionWithScaling\_RRRInfo~
 
- The operator information for intersection of 2 region2-objects
+ The operator information for intersection of 2 regionp-objects
 
 */
 struct intersectionWithScaling_RRRInfo: OperatorInfo {
@@ -2269,7 +2269,7 @@ struct intersectionWithScaling_RRRInfo: OperatorInfo {
   signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> "
     + Region2::BasicType();
   syntax = "query intersectionWithScaling (arg1, arg2)";
-  meaning = "intersection of two region2 objects";
+  meaning = "intersection of two regionp objects";
  }
 
 };
@@ -2277,7 +2277,7 @@ struct intersectionWithScaling_RRRInfo: OperatorInfo {
 /*
 5.8 ~minusWithScaling\_RRRInfo~
 
- The operator information for the difference of 2 region2-objects
+ The operator information for the difference of 2 regionp-objects
 
 */
 struct minusWithScaling_RRRInfo: OperatorInfo {
@@ -2288,7 +2288,7 @@ struct minusWithScaling_RRRInfo: OperatorInfo {
   signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> "
     + Region2::BasicType();
   syntax = "query arg1 minusWithScaling arg2";
-  meaning = "difference of two region2 objects";
+  meaning = "difference of two regionp objects";
  }
 
 };
@@ -2296,17 +2296,17 @@ struct minusWithScaling_RRRInfo: OperatorInfo {
 /*
 5.9 ~lineToLine2Info~
 
- The operator information for union of 2 line2-objects
+ The operator information for union of 2 linep-objects
 
 */
 struct lineToLine2Info: OperatorInfo {
 
  lineToLine2Info() :
    OperatorInfo() {
-  name = "lineToLine2";
+  name = "lineToLinep";
   signature = Line::BasicType() + " -> " + Line2::BasicType();
-  syntax = "query lineToLine2(arg)";
-  meaning = "converts a line-object into a line2-object";
+  syntax = "query lineToLinep(arg)";
+  meaning = "converts a line-object into a linep-object";
  }
 
 };
@@ -2314,7 +2314,7 @@ struct lineToLine2Info: OperatorInfo {
 /*
 5.10  ~intersects\_RRBInfo~
 
- The operator information for the test if 2 region2-objects intersect
+ The operator information for the test if 2 regionp-objects intersect
 
 */
 struct intersects2_RRBInfo: OperatorInfo {
@@ -2324,7 +2324,7 @@ struct intersects2_RRBInfo: OperatorInfo {
   name = "intersects2";
   signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> bool";
   syntax = "query arg1 intersects2 arg2";
-  meaning = "returns true, if both region2 "
+  meaning = "returns true, if both regionp "
     "objects intersect, false otherwise.";
  }
 
@@ -2333,7 +2333,7 @@ struct intersects2_RRBInfo: OperatorInfo {
 /*
 5.11  ~overlaps\_RRBInfo~
 
- The operator information for the test if 2 region2-objects intersect
+ The operator information for the test if 2 regionp-objects intersect
 
 */
 struct overlaps2_RRBInfo: OperatorInfo {
@@ -2343,7 +2343,7 @@ struct overlaps2_RRBInfo: OperatorInfo {
   name = "overlaps2";
   signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> bool";
   syntax = "query arg1 overlaps2 arg2";
-  meaning = "returns true, if both region2 "
+  meaning = "returns true, if both regionp "
     "objects overlap, false otherwise.";
  }
 
@@ -2352,8 +2352,8 @@ struct overlaps2_RRBInfo: OperatorInfo {
 /*
 5.12  ~inside\_RRBInfo~
 
- The operator information for the test whether a region2-object is completely
- contained in a second region2-object.
+ The operator information for the test whether a regionp-object is completely
+ contained in a second regionp-object.
 
 */
 struct inside2_RRBInfo: OperatorInfo {
@@ -2363,8 +2363,8 @@ struct inside2_RRBInfo: OperatorInfo {
   name = "inside2";
   signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> bool";
   syntax = "query arg1 inside2 arg2";
-  meaning = "returns true, if the first region2- "
-    "object is completely contained in the second region2-object, false "
+  meaning = "returns true, if the first regionp- "
+    "object is completely contained in the second regionp-object, false "
     "otherwise.";
  }
 
@@ -2373,7 +2373,7 @@ struct inside2_RRBInfo: OperatorInfo {
 /*
 5.10  ~intersectsWithScaling\_RRBInfo~
 
- The operator information for the test if 2 region2-objects intersect
+ The operator information for the test if 2 regionp-objects intersect
 
 */
 struct intersectsWithScaling_RRBInfo: OperatorInfo {
@@ -2383,7 +2383,7 @@ struct intersectsWithScaling_RRBInfo: OperatorInfo {
   name = "intersectsWithScaling";
   signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> bool";
   syntax = "query arg1 intersectsWithScaling arg2";
-  meaning = "returns true, if both region2 "
+  meaning = "returns true, if both regionp "
     "objects intersect, false otherwise.";
  }
 
@@ -2392,7 +2392,7 @@ struct intersectsWithScaling_RRBInfo: OperatorInfo {
 /*
 5.11  ~overlapsWithScaling\_RRBInfo~
 
- The operator information for the test if 2 region2-objects intersect
+ The operator information for the test if 2 regionp-objects intersect
 
 */
 struct overlapsWithScaling_RRBInfo: OperatorInfo {
@@ -2402,7 +2402,7 @@ struct overlapsWithScaling_RRBInfo: OperatorInfo {
   name = "overlapsWithScaling";
   signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> bool";
   syntax = "query arg1 overlapsWithScaling arg2";
-  meaning = "returns true, if both region2 "
+  meaning = "returns true, if both regionp "
     "objects overlap, false otherwise.";
  }
 
@@ -2411,8 +2411,8 @@ struct overlapsWithScaling_RRBInfo: OperatorInfo {
 /*
 5.12  ~insideWithScaling\_RRBInfo~
 
- The operator information for the test whether a region2-object is completely
- contained in a second region2-object.
+ The operator information for the test whether a regionp-object is completely
+ contained in a second regionp-object.
 
 */
 struct insideWithScaling_RRBInfo: OperatorInfo {
@@ -2422,8 +2422,8 @@ struct insideWithScaling_RRBInfo: OperatorInfo {
   name = "insideWithScaling";
   signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> bool";
   syntax = "query arg1 insideWithScaling arg2";
-  meaning = "returns true, if the first region2- "
-    "object is completely contained in the second region2-object, false "
+  meaning = "returns true, if the first regionp- "
+    "object is completely contained in the second regionp-object, false "
     "otherwise.";
  }
 
@@ -2432,7 +2432,7 @@ struct insideWithScaling_RRBInfo: OperatorInfo {
 /*
 5.13  ~coarseRegion2Info~
 
- The operator a ~region2~-object to a ~region~-object
+ The operator a ~regionp~-object to a ~region~-object
 
 */
 struct coarseInfo: OperatorInfo {
@@ -2442,7 +2442,7 @@ struct coarseInfo: OperatorInfo {
   name = "coarse";
   signature = Region2::BasicType() + " -> " + Region::BasicType();
   syntax = "query coarse (arg)";
-  meaning = "coarses a region2-object to a region-object";
+  meaning = "coarses a regionp-object to a region-object";
  }
 
 };
@@ -2450,7 +2450,7 @@ struct coarseInfo: OperatorInfo {
 /*
 5.14  ~coarseRegion2Info~
 
- The operator a ~region2~-object to a ~region~-object
+ The operator a ~regionp~-object to a ~region~-object
 
 */
 struct coarse2Info: OperatorInfo {
@@ -2460,10 +2460,10 @@ struct coarse2Info: OperatorInfo {
   name = "coarse2";
   signature = Region2::BasicType() + " -> " + Region::BasicType();
   syntax = "query coarse2 (arg)";
-  meaning = "coarses a region2-object to a region-object. The difference"
+  meaning = "coarses a regionp-object to a region-object. The difference"
      "between coarse and coarse2 is that the intermediate results"
-     "of coarse2 are of type region2. coarse2 might last a little bit longer"
-     "but it uses only the set operation of region2.";
+     "of coarse2 are of type regionp. coarse2 might last a little bit longer"
+     "but it uses only the set operation of regionp.";
  }
 
 };

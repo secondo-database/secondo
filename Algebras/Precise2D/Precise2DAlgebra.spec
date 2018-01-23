@@ -27,7 +27,7 @@ operator intersects2 alias INTERSECTS pattern _ infixop _
 
 operator overlaps2 alias OVERLAPS pattern _ infixop _
 
-operator lineToLine2 alias LINETOLINE2 pattern op( _ )
+operator lineToLinep alias LINETOLINEP pattern op( _ )
 
 operator minus alias MINUS pattern _ infixop _
 

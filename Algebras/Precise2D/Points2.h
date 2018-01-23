@@ -198,7 +198,7 @@ Points2& operator=(const Points2& p);
 /*
 2.2.2 ~Size~
 
-  Return the number of points stored in the points2-object.
+  Return the number of points stored in the Points2-object.
 
 */
  int Size() const;
@@ -206,7 +206,7 @@ Points2& operator=(const Points2& p);
 /*
 2.2.2 ~StartBulkLoad~
 
-  Marks the points2-object as unsorted.
+  Marks the Points2-object as unsorted.
 
 */
  void StartBulkLoad();
@@ -214,7 +214,7 @@ Points2& operator=(const Points2& p);
 /*
 2.2.2 ~EndBulkLoad~
 
-  Sorts the points2-object and removes duplikates.
+  Sorts the Points2-object and removes duplikates.
 
 */
  void EndBulkLoad(bool sort = true, bool remDup = true, bool trim = true);
@@ -224,7 +224,7 @@ Points2& operator=(const Points2& p);
 
 */
  static const std::string BasicType() {
-  return "points2";
+  return "pointsp";
  }
 
  static const bool checkType(const ListExpr type) {

@@ -164,7 +164,7 @@ PointData& operator=(const PointData& p);
 /*
 2.2.6 ~CopyPreciseCoordinates~
 
-  Copies the precise coordinates from the given point2-object in the flob.
+  Copies the precise coordinates from the given Point2-object in the flob.
 
 */
  void CopyPreciseCoordinates(Point2* p, Flob* preciseCoordinates);
@@ -172,7 +172,7 @@ PointData& operator=(const PointData& p);
  /*
  2.2.6 ~Intersects~
 
-   Copies the precise coordinates from the given point2-object in the flob.
+   Copies the precise coordinates from the given Point2-object in the flob.
 
  */
  bool Intersects(const Rectangle<2>& rect,
@@ -248,7 +248,7 @@ Point2& operator=(const Point2& p);
 
 */
  static const std::string BasicType() {
-  return "point2";
+  return "pointp";
  }
 
  static const bool checkType(const ListExpr type) {
