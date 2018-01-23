@@ -4,14 +4,14 @@ Restore: NO
 
 Operator  : setscalefactor
 Number    : 1
-Signature : region2 x int -> region2
+Signature : regionp x int -> regionp
 Example   : query setscalefactor(reg21, 3)
-Result    : (region2 (3 ((( (10 10 ()) (0 30 ()) (10 50 ()) (30 50 ()) (60 40 ()) (50 20 ()) (30 10 ())) ((30 20 ()) (10 20 ()) (10 40 ()) (30 40 ()))))))
+Result    : (regionp (3 ((( (10 10 ()) (0 30 ()) (10 50 ()) (30 50 ()) (60 40 ()) (50 20 ()) (30 10 ())) ((30 20 ()) (10 20 ()) (10 40 ()) (30 40 ()))))))
 
-Operator  : setregion2outstyle
+Operator  : setregionpoutstyle
 Number    : 1
 Signature : int -> bool
-Example   : query setregion2outstyle(1)
+Example   : query setregionpoutstyle(1)
 Result    : TRUE
 
 
@@ -19,114 +19,114 @@ Result    : TRUE
 Operator : isempty
 Number   : 1
 Signature: point -> bool, points -> bool, line -> bool,region -> bool
-Example  : query isempty(region21)
+Example  : query isempty(regionp1)
 Result   : FALSE
 
 Operator : intersects
 Number   : 1
-Signature: region2 x region2 -> bool
+Signature: regionp x regionp -> bool
 Example  : query reg22 intersects reg24
 Result   : TRUE
 
 Operator : inside
 Number   : 1
-Signature: region2 x region2 -> bool
+Signature: regionp x regionp -> bool
 Example  : query reg21 inside reg22
 Result   : FALSE
 
 Operator : adjacent
 Number   : 1
-Signature: region2 x region2 -> bool
+Signature: regionp x regionp -> bool
 Example  : query reg24 adjacent reg22
 Result   : TRUE
 
 Operator : overlaps
 Number   : 1
-Signature: region2 x region2 -> bool
+Signature: regionp x regionp -> bool
 Example  : query reg21 overlaps reg22
 Result   : FALSE
 
 Operator : no_components
 Number   : 1
-Signature: region2 -> int
+Signature: regionp -> int
 Example  : query no_components(reg22)
 Result   : 2
 
 Operator : no_segments
 Number   : 1
-Signature: region2 -> int
+Signature: regionp -> int
 Example  : query no_segments(reg23)
 Result   : 36
 
 Operator : bbox
 Number   : 1
-Signature: region2 -> rect
+Signature: regionp -> rect
 Example  : query bbox(reg24)
 Result   : (rect (0.0 6.0 0.5 5.0))
 
 Operator : translate
 Number   : 1
-Signature: region2 x real x real -> region2
+Signature: regionp x real x real -> regionp
 Example  : query reg22 translate[10.0, 15.0]
-Result   : (region2 (0 ((((12 18 ()) (11 18 ()) (11 19 ()) (12 19 ()))) (((13 16 ()) (12 17 ()) (13 18 ('1/2' '1/2')) (15 18 ('0' '1/2')) (14 17 ('1/2' '0')))))))
+Result   : (regionp (0 ((((12 18 ()) (11 18 ()) (11 19 ()) (12 19 ()))) (((13 16 ()) (12 17 ()) (13 18 ('1/2' '1/2')) (15 18 ('0' '1/2')) (14 17 ('1/2' '0')))))))
 
 Operator : scale
 Number   : 1
-Signature: region2 x real -> region2
+Signature: regionp x real -> regionp
 Example  : query reg21 scale[10.0]
-Result   : (region2 (2 ((((10 10 ()) (0 30 ()) (10 50 ()) (30 50 ()) (60 40 ()) (50 20 ()) (30 10 ())) ((30 20 ()) (10 20 ()) (10 40 ()) (30 40 ()))))))
+Result   : (regionp (2 ((((10 10 ()) (0 30 ()) (10 50 ()) (30 50 ()) (60 40 ()) (50 20 ()) (30 10 ())) ((30 20 ()) (10 20 ()) (10 40 ()) (30 40 ()))))))
 
 Operator : scale2
 Number   : 1
-Signature: region2 x real x real -> region2
+Signature: regionp x real x real -> regionp
 Example  : query reg21 scale2[10.0, 1.0]
-Result   : (region2 (2 ((((10 1 ()) (0 3 ()) (10 5 ()) (30 5 ()) (60 4 ()) (50 2 ()) (30 1 ())) ((30 2 ()) (10 2 ()) (10 4 ()) (30 4 ()))))))
+Result   : (regionp (2 ((((10 1 ()) (0 3 ()) (10 5 ()) (30 5 ()) (60 4 ()) (50 2 ()) (30 1 ())) ((30 2 ()) (10 2 ()) (10 4 ()) (30 4 ()))))))
 
 Operator : components
 Number   : 1
-Signature: region2 -> stream(region2)
+Signature: regionp -> stream(regionp)
 Example  : query components(reg22) count
 Result   : 2
 
 Operator : getHoles
 Number   : 1
-Signature: region2 -> region2
+Signature: regionp -> regionp
 Example  : query getHoles(reg24)
-Result   : (region2 (0 ((((2 3 ()) (1 3 ()) (1 4 ()) (2 4 ()))))))
+Result   : (regionp (0 ((((2 3 ()) (1 3 ()) (1 4 ()) (2 4 ()))))))
 
-Operator : region2region2
+Operator : regionpregionp
 Number   : 1
-Signature: region -> region2
-Example  : query [const region value ((((3.5 0.8) (10.2 1.75) (3.5 1.75))((3.9 1.1) (5.45 1.35) (3.9 1.35))))] region2region2
-Result   : (region2 (0 ((((10 1 ('1/5' '3/4')) (3 0 ('1/2' '4/5')) (3 1 ('1/2' '3/4'))) ((5 1 ('9/20' '7/20')) (3 1 ('9/10' '1/10')) (3 1 ('9/10' '7/20')))))))
+Signature: region -> regionp
+Example  : query [const region value ((((3.5 0.8) (10.2 1.75) (3.5 1.75))((3.9 1.1) (5.45 1.35) (3.9 1.35))))] regionpregionp
+Result   : (regionp (0 ((((10 1 ('1/5' '3/4')) (3 0 ('1/2' '4/5')) (3 1 ('1/2' '3/4'))) ((5 1 ('9/20' '7/20')) (3 1 ('9/10' '1/10')) (3 1 ('9/10' '7/20')))))))
 
-Operator : regiontoregion2
+Operator : regiontoregionp
 Number   : 1
-Signature: region x int -> region2
-Example  : query regiontoregion2([const region value ((((3.5 0.8) (10.2 1.75) (3.5 1.75))((3.9 1.1) (5.45 1.35) (3.9 1.35))))], 2)
-Result   : (region2 (2 ((((1020 175 ()) (350 80 ()) (350 175 ())) ((545 135 ()) (390 110 ()) (390 135 ()))))))
+Signature: region x int -> regionp
+Example  : query regiontoregionp([const region value ((((3.5 0.8) (10.2 1.75) (3.5 1.75))((3.9 1.1) (5.45 1.35) (3.9 1.35))))], 2)
+Result   : (regionp (2 ((((1020 175 ()) (350 80 ()) (350 175 ())) ((545 135 ()) (390 110 ()) (390 135 ()))))))
 
-Operator : rect2region2
+Operator : rect2regionp
 Number   : 1
-Signature: rect -> region2
-Example  : query [const rect value (-100.0 200.0 -50.0 500.0)] rect2region2
-Result   : (region2 (0 ((((200 -50 ()) (-100 -50 ()) (-100 500 ()) (200 500 ()))))))
+Signature: rect -> regionp
+Example  : query [const rect value (-100.0 200.0 -50.0 500.0)] rect2regionp
+Result   : (regionp (0 ((((200 -50 ()) (-100 -50 ()) (-100 500 ()) (200 500 ()))))))
 
-Operator : recttoregion2
+Operator : recttoregionp
 Number   : 1
-Signature: rect x int -> region2
-Example  : query recttoregion2([const rect value (-100.0 200.0 -50.0 500.0)], 2)
-Result   : (region2 (2 ((((20000 -5000 ()) (-10000 -5000 ()) (-10000 50000 ()) (20000 50000 ()))))))
+Signature: rect x int -> regionp
+Example  : query recttoregionp([const rect value (-100.0 200.0 -50.0 500.0)], 2)
+Result   : (regionp (2 ((((20000 -5000 ()) (-10000 -5000 ()) (-10000 50000 ()) (20000 50000 ()))))))
 
 Operator : size
 Number   : 1
-Signature: region2 -> real
+Signature: regionp -> real
 Example  : query size(reg24)
 Result   : 14.25
 
 Operator : area
 Number   : 1
-Signature: region2 -> real
+Signature: regionp -> real
 Example  : query area(reg22)
 Result   : 5.25
 

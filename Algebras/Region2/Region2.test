@@ -1,11 +1,11 @@
 ###############################################################################
 
-create database region2testDB;
-open database region2testDB;
+create database regionptestDB;
+open database regionptestDB;
 
 ###############################################################################
 
-let reg21 = [const region2 value (2 (((
+let reg21 = [const regionp value (2 (((
                             (1 1 ()) 
                             (0 3 ()) 
                             (1 5 ()) 
@@ -18,7 +18,7 @@ let reg21 = [const region2 value (2 (((
                             (1 4 ()) 
                             (3 4 ())))))] 
 
-let reg22 = [const region2 value (0 (
+let reg22 = [const regionp value (0 (
                         ( ( (2 3 ()) 
                             (1 3 ()) 
                             (1 4 ()) 
@@ -29,7 +29,7 @@ let reg22 = [const region2 value (0 (
                             (5 3 ('0' '1/2')) 
                             (4 2 ('1/2' '0'))))))]
 
-let reg23 = [const region2 value (3 (
+let reg23 = [const regionp value (3 (
                         ( ( (2 1 ()) 
                             (1 3 ()) 
                             (1 6 ()) 
@@ -49,7 +49,7 @@ let reg23 = [const region2 value (3 (
                             (3 5 ()) 
                             (5 5 ())))))]
 
-let reg24 = [const region2 value (0 ((
+let reg24 = [const regionp value (0 ((
                           ( (0 2 ('1/2' '0')) 
                             (0 3 ('0' '1/2')) 
                             (1 5 ()) 
@@ -71,12 +71,12 @@ let reg24 = [const region2 value (0 ((
 ###############################################################################
 
 #testcase "1 - setscalefactor"
-#yields (region2 (3 ((( (10 10 ()) (0 30 ()) (10 50 ()) (30 50 ()) (60 40 ()) (50 20 ()) (30 10 ())) ((30 20 ()) (10 20 ()) (10 40 ()) (30 40 ()))))))
+#yields (regionp (3 ((( (10 10 ()) (0 30 ()) (10 50 ()) (30 50 ()) (60 40 ()) (50 20 ()) (30 10 ())) ((30 20 ()) (10 20 ()) (10 40 ()) (30 40 ()))))))
 query setscalefactor(reg21, 3);
 
-#testcase "2 - setregion2outstyle"
+#testcase "2 - setregionpoutstyle"
 #yields (bool TRUE)
-query setregion2outstyle(0);
+query setregionpoutstyle(0);
 
 #testcase "3 - isempty"
 #yields (bool FALSE)
@@ -111,15 +111,15 @@ query no_segments(reg23);
 query bbox(reg24);
 
 #testcase "11 - translate"
-#yields (region2 (0 ((((12 18 ()) (11 18 ()) (11 19 ()) (12 19 ()))) (((13 16 ()) (12 17 ()) (13 18 ('1/2' '1/2')) (15 18 ('0' '1/2')) (14 17 ('1/2' '0')))))))
+#yields (regionp (0 ((((12 18 ()) (11 18 ()) (11 19 ()) (12 19 ()))) (((13 16 ()) (12 17 ()) (13 18 ('1/2' '1/2')) (15 18 ('0' '1/2')) (14 17 ('1/2' '0')))))))
 query reg22 translate[10.0, 15.0];
 
 #testcase "12 - scale"
-#yields (region2 (2 ((((10 10 ()) (0 30 ()) (10 50 ()) (30 50 ()) (60 40 ()) (50 20 ()) (30 10 ())) ((30 20 ()) (10 20 ()) (10 40 ()) (30 40 ()))))))
+#yields (regionp (2 ((((10 10 ()) (0 30 ()) (10 50 ()) (30 50 ()) (60 40 ()) (50 20 ()) (30 10 ())) ((30 20 ()) (10 20 ()) (10 40 ()) (30 40 ()))))))
 query reg21 scale[10.0];
 
 #testcase "13 - scale2"
-#yields (region2 (2 ((((10 1 ()) (0 3 ()) (10 5 ()) (30 5 ()) (60 4 ()) (50 2 ()) (30 1 ())) ((30 2 ()) (10 2 ()) (10 4 ()) (30 4 ()))))))
+#yields (regionp (2 ((((10 1 ()) (0 3 ()) (10 5 ()) (30 5 ()) (60 4 ()) (50 2 ()) (30 1 ())) ((30 2 ()) (10 2 ()) (10 4 ()) (30 4 ()))))))
 query reg21 scale2[10.0, 1.0];
 
 #testcase "14 - components"
@@ -127,24 +127,24 @@ query reg21 scale2[10.0, 1.0];
 query components(reg22) count;
 
 #testcase "15 - getHoles"
-#yields (region2 (0 ((((2 3 ()) (1 3 ()) (1 4 ()) (2 4 ()))))))
+#yields (regionp (0 ((((2 3 ()) (1 3 ()) (1 4 ()) (2 4 ()))))))
 query getHoles(reg24);
 
-#testcase "16 - region2region2"
-#yields (region2 (0 ((((10 1 ('1/5' '3/4')) (3 0 ('1/2' '4/5')) (3 1 ('1/2' '3/4'))) ((5 1 ('9/20' '7/20')) (3 1 ('9/10' '1/10')) (3 1 ('9/10' '7/20')))))))
-query [const region value ((((3.5 0.8) (10.2 1.75) (3.5 1.75))((3.9 1.1) (5.45 1.35) (3.9 1.35))))] region2region2;
+#testcase "16 - regionpregionp"
+#yields (regionp (0 ((((10 1 ('1/5' '3/4')) (3 0 ('1/2' '4/5')) (3 1 ('1/2' '3/4'))) ((5 1 ('9/20' '7/20')) (3 1 ('9/10' '1/10')) (3 1 ('9/10' '7/20')))))))
+query [const region value ((((3.5 0.8) (10.2 1.75) (3.5 1.75))((3.9 1.1) (5.45 1.35) (3.9 1.35))))] regionpregionp;
 
-#testcase "17 - regiontoregion2"
-#yields (region2 (2 ((((1020 175 ()) (350 80 ()) (350 175 ())) ((545 135 ()) (390 110 ()) (390 135 ()))))))
-query regiontoregion2( [const region value ((((3.5 0.8) (10.2 1.75) (3.5 1.75))((3.9 1.1) (5.45 1.35) (3.9 1.35))))], 2);
+#testcase "17 - regiontoregionp"
+#yields (regionp (2 ((((1020 175 ()) (350 80 ()) (350 175 ())) ((545 135 ()) (390 110 ()) (390 135 ()))))))
+query regiontoregionp( [const region value ((((3.5 0.8) (10.2 1.75) (3.5 1.75))((3.9 1.1) (5.45 1.35) (3.9 1.35))))], 2);
 
-#testcase "18 - rect2region2"
-#yields (region2 (0 ((((200 -50 ()) (-100 -50 ()) (-100 500 ()) (200 500 ()))))))
-query [const rect value (-100.0 200.0 -50.0 500.0)] rect2region2;
+#testcase "18 - rect2regionp"
+#yields (regionp (0 ((((200 -50 ()) (-100 -50 ()) (-100 500 ()) (200 500 ()))))))
+query [const rect value (-100.0 200.0 -50.0 500.0)] rect2regionp;
 
-#testcase "19 - recttoregion2"
-#yields (region2 (2 ((((20000 -5000 ()) (-10000 -5000 ()) (-10000 50000 ()) (20000 50000 ()))))))
-query recttoregion2( [const rect value (-100.0 200.0 -50.0 500.0)], 2);
+#testcase "19 - recttoregionp"
+#yields (regionp (2 ((((20000 -5000 ()) (-10000 -5000 ()) (-10000 50000 ()) (20000 50000 ()))))))
+query recttoregionp( [const rect value (-100.0 200.0 -50.0 500.0)], 2);
 
 #testcase "20 - size"
 #yields (real 14.25)
@@ -160,4 +160,4 @@ query area(reg22);
 
 #teardown
 close database;
-delete database region2testDB;
+delete database regionptestDB;
