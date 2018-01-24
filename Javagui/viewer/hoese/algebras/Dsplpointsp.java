@@ -22,7 +22,7 @@ public class Dsplpointsp extends Dsplpoints{
 
     while (!value.isEmpty()) {
       ListExpr v = value.first();
-      if(!Dsplpoint2.fillCoordsS(v,coords,true)){
+      if(!Dsplpointp.fillCoordsS(v,coords,true)){
          err = true;
          points = null;
          bounds = null;
