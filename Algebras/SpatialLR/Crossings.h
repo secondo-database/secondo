@@ -67,7 +67,7 @@ Declaration of custom methods.
     double getXHi();
     double getYHi();
     bool isEmpty();
-    static Crossings* findCrossings(std::vector<Curve*> *curves,
+    static Crossings findCrossings(std::vector<Curve*> *curves,
                             double xlo, double ylo,
                             double xhi, double yhi);
 

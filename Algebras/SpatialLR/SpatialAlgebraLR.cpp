@@ -74,12 +74,12 @@ Methods for the *moveTo* operation.
 
   int moveToVM(Word *args, Word &result, int message, Word &local, Supplier s) {
     result = qp->ResultStorage(s);
+    Line2* res = static_cast<Line2*>(result.addr);
     Line2 *line = (Line2 *) args[0].addr;
     const CcReal *tx = (CcReal *) args[1].addr;
     const CcReal *ty = (CcReal *) args[2].addr;
-    Line2* newLine = new Line2(*line);
-    newLine->moveTo(tx->GetValue(), ty->GetValue());
-    result.addr = newLine;
+    *res = Line2(*line);
+    res->moveTo(tx->GetValue(), ty->GetValue());
     return 0;
   }
 
@@ -116,12 +116,12 @@ Methods for the *lineTo* operation.
 
   int lineToVM(Word *args, Word &result, int message, Word &local, Supplier s) {
     result = qp->ResultStorage(s);
+    Line2* res = static_cast<Line2*>(result.addr);
     Line2 *line = (Line2 *) args[0].addr;
     const CcReal *tx = (CcReal *) args[1].addr;
     const CcReal *ty = (CcReal *) args[2].addr;
-    Line2* newLine = new Line2(*line);
-    newLine->lineTo(tx->GetValue(), ty->GetValue());
-    result.addr = newLine;
+    *res = Line2(*line);
+    res->lineTo(tx->GetValue(), ty->GetValue());
     return 0;
   }
 
@@ -160,15 +160,15 @@ Methods for the *quadTo* operation.
 
   int quadToVM(Word *args, Word &result, int message, Word &local, Supplier s) {
     result = qp->ResultStorage(s);
+    Line2* res = static_cast<Line2*>(result.addr);
     Line2 *line = (Line2 *) args[0].addr;
     const CcReal *tx1 = (CcReal *) args[1].addr;
     const CcReal *ty1 = (CcReal *) args[2].addr;
     const CcReal *tx2 = (CcReal *) args[3].addr;
     const CcReal *ty2 = (CcReal *) args[4].addr;
-    Line2* newLine = new Line2(*line);
-    newLine->quadTo(tx1->GetValue(), ty1->GetValue(), tx2->GetValue(),
+    *res = Line2(*line);
+    res->quadTo(tx1->GetValue(), ty1->GetValue(), tx2->GetValue(),
                  ty2->GetValue());
-    result.addr = newLine;
     return 0;
   }
 
@@ -204,10 +204,10 @@ Methods for the *closeLine* operation.
   int
   closeLineVM(Word *args, Word &result, int message, Word &local, Supplier s) {
     result = qp->ResultStorage(s);
+    Line2* res = static_cast<Line2*>(result.addr);
     Line2 *line = (Line2 *) args[0].addr;
-    Line2* newLine = new Line2(*line);
-    newLine->closeLine();
-    result.addr = newLine;
+    *res = Line2(*line);
+    res->closeLine();
     return 0;
   }
 
@@ -322,8 +322,9 @@ Methods for the *toline* operation.
   line2ToLineVM(Word *args, Word &result, int message, Word &local, Supplier s)
   {
     result = qp->ResultStorage(s);
+    Line* res = static_cast<Line*>(result.addr);
     Line2 *line = (Line2 *) args[0].addr;
-    result.addr = line->toLine();
+    *res = line->toLine();
     return 0;
   }
 
@@ -402,12 +403,11 @@ Methods for the *toregion* operation.
   {
     result = qp->ResultStorage(s);
     Region2 *region = (Region2 *)args[0].addr;
-    region->updateCurves();
     Line2 line = Line2(*region);
-    Line *cl = line.toLine();
+    Line cl = line.toLine();
     Region *pResult = (Region *)result.addr;
     pResult->Clear();
-    cl->Transform( *pResult );
+    cl.Transform( *pResult );
     return 0;
   }
 
@@ -446,7 +446,6 @@ Methods for the *lr\_intersects* operation.
   {
     result = qp->ResultStorage(s);
     Region2 *region = (Region2 *) args[0].addr;
-    region->updateCurves();
     RectangleBB *rec = (RectangleBB *) args[1].addr;
     CcBool* b = static_cast<CcBool*>(result.addr);
     b->Set(true, region->intersects(rec));
@@ -497,8 +496,9 @@ Methods for the *getbounds* operation.
                       Word& local, Supplier s)
   {
     result = qp->ResultStorage(s);
+    RectangleBB* res = static_cast<RectangleBB*>(result.addr);
     Line2 *line = (Line2 *) args[0].addr;
-    result.addr = line->getBounds();
+    *res = line->getBounds();
     return 0;
   }
 
@@ -506,9 +506,9 @@ Methods for the *getbounds* operation.
                       Word& local, Supplier s)
   {
     result = qp->ResultStorage(s);
+    RectangleBB* res = static_cast<RectangleBB*>(result.addr);
     Region2 *region = (Region2 *) args[0].addr;
-    region->updateCurves();
-    result.addr = region->getBounds();
+    *res = region->getBounds();
     return 0;
   }
 
@@ -565,12 +565,12 @@ Methods for the *union1* operation.
   unionVM(Word *args, Word &result, int message, Word &local, Supplier s)
   {
     result = qp->ResultStorage(s);
+    Region2* res = static_cast<Region2*>(result.addr);
     Region2 *r1 = (Region2 *) args[0].addr;
-    r1->updateCurves();
     Region2 *r2 = (Region2 *) args[1].addr;
     r2->updateCurves();
-    Region2* r = new Region2(*r1);
-    result.addr = r->union1(r2);
+    *res = Region2(*r1);
+    res->union1(r2);
     return 0;
   }
 
@@ -608,12 +608,12 @@ Methods for the *minus1* operation.
   minusVM(Word *args, Word &result, int message, Word &local, Supplier s)
   {
     result = qp->ResultStorage(s);
+    Region2* res = static_cast<Region2*>(result.addr);
     Region2 *r1 = (Region2 *) args[0].addr;
-    r1->updateCurves();
     Region2 *r2 = (Region2 *) args[1].addr;
     r2->updateCurves();
-    Region2* r = new Region2(*r1);
-    result.addr = r->minus1(r2);
+    *res = Region2(*r1);
+    res->minus1(r2);
     return 0;
   }
 
@@ -651,12 +651,12 @@ Methods for the *intersection1* operation.
   intersectionVM(Word *args, Word &result, int message, Word &local, Supplier s)
   {
     result = qp->ResultStorage(s);
+    Region2* res = static_cast<Region2*>(result.addr);
     Region2 *r1 = (Region2 *) args[0].addr;
-    r1->updateCurves();
     Region2 *r2 = (Region2 *) args[1].addr;
     r2->updateCurves();
-    Region2* r = new Region2(*r1);
-    result.addr = r->intersection1(r2);
+    *res = Region2(*r1);
+    res->intersection1(r2);
     return 0;
   }
 
@@ -694,12 +694,12 @@ Methods for the *xor1* operation.
   xorVM(Word *args, Word &result, int message, Word &local, Supplier s)
   {
     result = qp->ResultStorage(s);
+    Region2* res = static_cast<Region2*>(result.addr);
     Region2 *r1 = (Region2 *) args[0].addr;
-    r1->updateCurves();
     Region2 *r2 = (Region2 *) args[1].addr;
     r2->updateCurves();
-    Region2* r = new Region2(*r1);
-    result.addr = r->xor1(r2);
+    *res = Region2(*r1);
+    res->xor1(r2);
     return 0;
   }
 

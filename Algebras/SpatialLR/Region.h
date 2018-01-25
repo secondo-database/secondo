@@ -102,13 +102,14 @@ Declaration of system methods.
 Declaration of custom methods.
 
 */
-    RectangleBB* getBounds();
+    RectangleBB getBounds();
     bool intersects(RectangleBB *bbox);
     Region2* union1(Region2 *rhs);
     Region2* minus1(Region2 *rhs);
     Region2* intersection1(Region2 *rhs);
     Region2* xor1(Region2 *rhs);
     void updateCurves();
+    void clearCurves();
 
   private:
 /*

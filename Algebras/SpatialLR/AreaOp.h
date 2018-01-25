@@ -44,6 +44,8 @@ Defines and includes.
 
 #include "Curve.h"
 
+#include <vector>
+
 namespace salr {
 
 /*
@@ -125,6 +127,7 @@ Declaration of custom methods.
     double getX();
     int getEdgeTag();
     void setNext(CurveLink* link);
+    void resetCurve();
     CurveLink* getNext();
 
   private:
@@ -227,17 +230,25 @@ Declaration of class methods.
     static void finalizeSubCurves(std::vector<CurveLink*>* subcurves,
                                   std::vector<ChainEnd*>* chains);
     static bool obstructs(double v1, double v2, int phase);
-    static void resolveLinks(std::vector<CurveLink*> *subcurves,
+    void resolveLinks(std::vector<CurveLink*> *subcurves,
                              std::vector<ChainEnd*> *chains,
                              std::vector<CurveLink*> *links);
 
     void calculate(std::vector<Curve*>* left, std::vector<Curve*>* right);
 
   protected:
-    static void addEdges(std::vector<Edge*> *edges,
+    void addEdges(std::vector<Edge*> *edges,
                          std::vector<Curve*> *curves, int curvetag);
 
     void pruneEdges(std::vector<Edge*>* edges, std::vector<Curve*>* result);
+
+  private:
+
+    std::vector<CurveLink*> allCurveLinks;
+    std::vector<ChainEnd*> allChainEnds;
+    std::vector<Curve*> startCurves;
+
+    void cleanupPointer();
 
   };
 

@@ -104,10 +104,10 @@ Declaration of custom methods.
     void lineTo(double x, double y);
     void quadTo(double x1, double y1, double x2, double y2);
     void closeLine();
-    RectangleBB* getBounds();
+    RectangleBB getBounds();
     bool intersects(RectangleBB *bbox);
     void nextSegment(int offset, int pointType, double *result) const;
-    Line* toLine();
+    Line toLine();
     double getCoord(int i) const;
     int getPointType(int i) const;
 

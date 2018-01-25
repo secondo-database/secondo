@@ -57,7 +57,6 @@ Implementation of copy constructor.
       for (int i = 0; i < other.coords.Size(); i++) {
         appendCoord(other.getCoord(i));
       }
-      Curve::copyCurves(&other.curves, &curves);
     }
   }
 
@@ -82,8 +81,6 @@ Implementation of constructor using ~Line2~.
         for (int i = 0; i < line.coords.Size(); i++) {
           appendCoord(line.getCoord(i));
         }
-        createCurves();
-        updateFLOBs();
       }
     }
   }
@@ -113,6 +110,7 @@ Implementation of constructor using ~Region~.
       EOWindOp op;
       op.calculate(&curves, NULL);
       updateFLOBs();
+      clearCurves();
     }
   }
 
@@ -160,9 +158,9 @@ Implementation of system methods.
       return 1;
     }
 
-    if (curves.size() > l.curves.size())
+    if (pointTypes.Size() > l.pointTypes.Size())
       return 1;
-    if (curves.size() < l.curves.size())
+    if (pointTypes.Size() < l.pointTypes.Size())
       return -1;
     return 0;
   }
@@ -270,8 +268,6 @@ Implementation of readFrom method. Creates an instance from a list
       }
     }
 
-    this->createCurves();
-    this->updateFLOBs();
     SetDefined(true);
     return true;
   }
@@ -313,17 +309,19 @@ Implementation of toListExpr method. Returns a list representation of this
 Returns a ~RectangleBB~ representing the bounding box of this region2.
 
 */
-  RectangleBB* Region2::getBounds() {
-    RectangleBB* r = new RectangleBB(0, 0 ,0 ,0);
+  RectangleBB Region2::getBounds() {
+    updateCurves();
+    RectangleBB r = RectangleBB(0, 0 ,0 ,0);
     if (curves.size() > 0) {
       Curve* c = curves.at(0);
       // First point is always an order 0 curve (moveto)
-      r->x = c->getX0();
-      r->y = c->getY0();
+      r.x = c->getX0();
+      r.y = c->getY0();
       for (unsigned int i = 1; i < curves.size(); i++) {
-        curves.at(i)->enlarge(r);
+        curves.at(i)->enlarge(&r);
       }
     }
+    clearCurves();
     return r;
   }
 
@@ -340,12 +338,13 @@ Checks if this line2 intersects with the ~RectangleBB~ in the argument.
     if (w < 0 || h < 0) {
       return false;
     }
-    if (!getBounds()->intersects(x, y, w, h)) {
+    if (!getBounds().intersects(x, y, w, h)) {
       return false;
     }
-    Crossings* cross = Crossings::findCrossings(&curves, x, y, x+w, y+h);
-    bool result = cross == 0 || !cross->isEmpty();
-    delete cross;
+    updateCurves();
+    Crossings cross = Crossings::findCrossings(&curves, x, y, x+w, y+h);
+    bool result = !cross.isEmpty();
+    clearCurves();
     return result;
   }
 
@@ -354,9 +353,12 @@ Returns a ~Region2~ containing the area of this region2 and the argument.
 
 */
   Region2* Region2::union1(Region2 *rhs) {
+    updateCurves();
     UnionOp op;
     op.calculate(&curves, &rhs->curves);
     this->updateFLOBs();
+    clearCurves();
+    rhs->curves.clear();
     return this;
   }
 
@@ -366,9 +368,12 @@ Returns a ~Region2~ containing the area from this region2 which is not
 
 */
   Region2* Region2::minus1(Region2 *rhs) {
+    updateCurves();
     MinusOp op;
     op.calculate(&curves, &rhs->curves);
     this->updateFLOBs();
+    clearCurves();
+    rhs->curves.clear();
     return this;
   }
 
@@ -378,9 +383,12 @@ Returns a ~Region2~ containing the area contained in both, this region2 and
 
 */
   Region2* Region2::intersection1(Region2 *rhs) {
+    updateCurves();
     IntersectsOp op;
     op.calculate(&curves, &rhs->curves);
     this->updateFLOBs();
+    clearCurves();
+    rhs->curves.clear();
     return this;
   }
 
@@ -390,9 +398,12 @@ Returns a ~Region2~ containing the area contained either in this region2 or in
 
 */
   Region2* Region2::xor1(Region2 *rhs) {
+    updateCurves();
     XorOp op;
     op.calculate(&curves, &rhs->curves);
     this->updateFLOBs();
+    clearCurves();
+    rhs->curves.clear();
     return this;
   }
 
@@ -449,6 +460,19 @@ Calls the ~createCurves()~ method if ~curves~ is empty and ~pointTypes~ is not.
     if(curves.size() == 0 && pointTypes.Size() > 0) {
       createCurves();
     }
+  }
+
+/*
+Deletes all Curves in ~curves~.
+
+*/
+  void Region2::clearCurves() {
+    for (unsigned int i = 0; i < curves.size(); i++) {
+      Curve *c = curves.at(i);
+      delete c;
+      c = 0;
+    }
+    curves.clear();
   }
 
 /*

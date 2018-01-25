@@ -385,7 +385,7 @@ Adds a close segment to this line2.
 Returns a ~RectangleBB~ representing the bounding box of this line2.
 
 */
-  RectangleBB* Line2::getBounds() {
+  RectangleBB Line2::getBounds() {
     double x1, y1, x2, y2;
     int i = coords.Size();
     if (i > 0) {
@@ -402,7 +402,7 @@ Returns a ~RectangleBB~ representing the bounding box of this line2.
     } else {
       x1 = y1 = x2 = y2 = 0.0;
     }
-    return new RectangleBB(x1, y1, x2 - x1, y2 - y1);
+    return RectangleBB(x1, y1, x2 - x1, y2 - y1);
   }
 
 /*
@@ -441,21 +441,21 @@ Helper method: Returns the coordinates for the next segment from ~coords~
 Transforms this ~Line2~ to a ~Line~.
 
 */
-  Line* Line2::toLine() {
+  Line Line2::toLine() {
     if(hasQuads) {
       cerr << "Line2 contains quad-segment. Invalid transformation." << endl;
-      Line *line = new Line(0);
-      line->SetDefined(false);
+      Line line = Line(0);
+      line.SetDefined(false);
       return line;
     }
-    Line* l = new Line(pointTypes.Size()*2);
-    l->StartBulkLoad();
+    Line l = Line(pointTypes.Size()*2);
+    l.StartBulkLoad();
     int edgeno = 0;
     double coords[2];
     double x0, x1, y0, y1, movx, movy;
     int offset = 0;
-    HalfSegment * hs;
-    Point *lp, *rp;
+    HalfSegment hs;
+    Point lp, rp;
     for(int i = 0; i < pointTypes.Size(); i++) {
       switch (getPointType(i)) {
         case Curve::SEG_MOVETO:
@@ -472,13 +472,13 @@ Transforms this ~Line2~ to a ~Line~.
           if(AlmostEqual(x0, x1) && AlmostEqual(y0, y1)) {
             continue;
           }
-          lp = new Point(true, x0, y0);
-          rp = new Point(true, x1, y1);
-          hs = new HalfSegment(true, *lp, *rp);
-          hs->attr.edgeno = edgeno++;
-          *l += *hs;
-          hs->SetLeftDomPoint( !hs->IsLeftDomPoint() );
-          *l += *hs;
+          lp = Point(true, x0, y0);
+          rp = Point(true, x1, y1);
+          hs = HalfSegment(true, lp, rp);
+          hs.attr.edgeno = edgeno++;
+          l += hs;
+          hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+          l += hs;
           x0 = x1;
           y0 = y1;
           break;
@@ -488,22 +488,19 @@ Transforms this ~Line2~ to a ~Line~.
           if(AlmostEqual(x0, x1) && AlmostEqual(y0, y1)) {
             continue;
           }
-          lp = new Point(true, x0, y0);
-          rp = new Point(true, x1, y1);
-          hs = new HalfSegment(true, *lp, *rp);
-          hs->attr.edgeno = edgeno++;
-          *l += *hs;
-          hs->SetLeftDomPoint( !hs->IsLeftDomPoint() );
-          *l += *hs;
+          lp = Point(true, x0, y0);
+          rp = Point(true, x1, y1);
+          hs = HalfSegment(true, lp, rp);
+          hs.attr.edgeno = edgeno++;
+          l += hs;
+          hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+          l += hs;
           x0 = x1;
           y0 = y1;
           break;
       }
     }
-    l->EndBulkLoad();
-    delete hs;
-    delete lp;
-    delete rp;
+    l.EndBulkLoad();
     return l;
   }
 

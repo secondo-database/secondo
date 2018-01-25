@@ -123,7 +123,7 @@ Declaration of static methods.
 Declaration of class methods.
 
 */
-    Curve(int direction) : direction(direction) {}
+    Curve(int direction) :  used(false), direction(direction) {}
     int getDirection();
     Curve *getWithDirection(int direction);
     static int orderof(double x1, double x2);
@@ -165,6 +165,8 @@ Declaration of virtual methods.
     virtual Curve *getSubCurve(double ystart, double yend, int dir) = 0;
     virtual bool accumulateCrossings(Crossings *c) = 0;
     virtual int getSegment(double *coords) = 0;
+
+    bool used;
 
   protected:
 /*

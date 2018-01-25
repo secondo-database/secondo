@@ -230,6 +230,10 @@ Implementation of access methods.
     hasNext = true;
   }
 
+  void CurveLink::resetCurve() {
+    curve = 0;
+  }
+
   CurveLink *CurveLink::getNext() {
     if (hasNext) {
       return next;
@@ -355,11 +359,6 @@ Used to finalize the subcurves by iterating over all remaining ~ChainEnd~ and
         subcurves->push_back(subcurve);
       }
     }
-    for(unsigned int i = 0; i < chains->size(); i++) {
-      ChainEnd* ce = chains->at(i);
-      delete ce;
-    }
-    chains->clear();
   }
 
 /*
@@ -448,6 +447,8 @@ Used to connect matching CurveLinks with each other. Creates new ChainEnds
       if (connectlinks) {
         ChainEnd* openend = new ChainEnd(link, 0);
         ChainEnd* closeend = new ChainEnd(nextlink, openend);
+        allChainEnds.push_back(openend);
+        allChainEnds.push_back(closeend);
         openend->setOtherEnd(closeend);
         chains->push_back(openend);
         chains->push_back(closeend);
@@ -486,6 +487,7 @@ Calculates the new area modelled by the two curve vectors depending on the
       delete e;
     }
     delete edges;
+    cleanupPointer();
   }
 
 /*
@@ -498,6 +500,8 @@ Wraps each curve inside an ~Edge~ and adds all edges to a vector. Tags each
     if(curves != NULL) {
       for(unsigned int i = 0; i < curves->size(); i++) {
         Curve* c = curves->at(i);
+        c->used = false;
+        startCurves.push_back(c);
         if(c->getOrder() > 0) {
           edges->push_back(new Edge(c, curvetag));
         }
@@ -515,7 +519,7 @@ Removes edges which are not needed for the result area. Checks for
     if (numedges < 2) {
       return;
     }
-    vector<Edge*> edgelist = *(new vector<Edge*>(*edges));
+    vector<Edge*> edgelist = *edges;
     sort(edgelist.begin(), edgelist.end(), comparator);
     Edge* e;
     int left = 0;
@@ -655,7 +659,9 @@ Removes edges which are not needed for the result area. Checks for
         }
         if (etag != AreaOp::ETAG_IGNORE) {
           e->record(yend, etag);
-          links.push_back(new CurveLink(e->getCurve(), ystart, yend, etag));
+          CurveLink* link = new CurveLink(e->getCurve(), ystart, yend, etag);
+          links.push_back(link);
+          allCurveLinks.push_back(link);
         }
       }
       resolveLinks(&subcurves, &chains, &links);
@@ -673,12 +679,33 @@ Removes edges which are not needed for the result area. Checks for
       while((nextlink = nextlink->getNext()) != NULL) {
         if (!link->absorb(nextlink)) {
           result->push_back(link->getSubCurve());
-          delete link;
           link = nextlink;
         }
       }
       result->push_back(link->getSubCurve());
+    }
+    for(unsigned int i = 0; i < result->size(); i++) {
+      result->at(i)->used = true;
+    }
+  }
+
+  void AreaOp::cleanupPointer() {
+    for(unsigned int i = 0; i < allCurveLinks.size(); i++) {
+      CurveLink* link = allCurveLinks.at(i);
       delete link;
+      link = 0;
+    }
+    for(unsigned int i = 0; i < startCurves.size(); i++) {
+      Curve* curve = startCurves.at(i);
+      if(!curve->used) {
+        delete curve;
+      }
+      curve = 0;
+    }
+    for(unsigned int i = 0; i < allChainEnds.size(); i++) {
+      ChainEnd* chainEnd = allChainEnds.at(i);
+      delete chainEnd;
+      chainEnd = 0;
     }
   }
 
