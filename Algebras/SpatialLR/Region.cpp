@@ -342,8 +342,7 @@ Checks if this line2 intersects with the ~RectangleBB~ in the argument.
       return false;
     }
     updateCurves();
-    Crossings cross = Crossings::findCrossings(&curves, x, y, x+w, y+h);
-    bool result = !cross.isEmpty();
+    bool result = Crossings::findCrossings(&curves, x, y, x+w, y+h);
     clearCurves();
     return result;
   }

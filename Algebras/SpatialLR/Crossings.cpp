@@ -74,16 +74,19 @@ Finds the number of intersections between all curves inside the vector and
  the rectangle defined by xlo, ylo, xhi and yhi.
 
 */
-  Crossings Crossings::findCrossings(vector<Curve*> *curves,
+  bool Crossings::findCrossings(vector<Curve*> *curves,
                            double xlo, double ylo,
                            double xhi, double yhi) {
-    Crossings cross = Crossings(xlo, ylo, xhi, yhi);
+    Crossings *cross = new Crossings(xlo, ylo, xhi, yhi);
     for(unsigned int i = 0; i < curves->size(); i++) {
-      if(curves->at(i)->accumulateCrossings(&cross)) {
-        return cross;
+      if(curves->at(i)->accumulateCrossings(cross)) {
+        delete cross;
+        return true;
       }
     }
-    return cross;
+    bool result = !cross->isEmpty();
+    delete cross;
+    return result;
   }
 
 /*
