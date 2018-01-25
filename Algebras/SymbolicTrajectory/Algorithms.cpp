@@ -534,10 +534,13 @@ void Condition::getConstValue(Attribute *src, const std::string& type,
   }
 }
 
-string Condition::getType(int t, Tuple *tuple /* = 0 */, 
-                          ListExpr ttype /* = 0 */) {
+string Condition::getType(const int t, const string& var,
+                          Tuple *tuple /* = 0 */, ListExpr ttype /* = 0 */) {
   if (t > 99) {
     if (tuple && ttype) {
+      if (var.empty()) {
+        return nl->ToString(nl->First(nl->Nth(t - 99, nl->Second(ttype))));
+      }
       return "." + nl->ToString(nl->First(nl->Nth(t - 99, nl->Second(ttype))));
     }
     else {
@@ -794,7 +797,7 @@ bool Condition::initOpTree(Tuple *tuple /* = 0 */, ListExpr ttype /* = 0 */) {
       bool isInterval = true;
       strAttr = Pattern::getPointer(getKey(i), isInterval, tuple);
       ptrs.push_back(strAttr.second);
-      toReplace = getVar(i) + getType(getKey(i), tuple, ttype);
+      toReplace = getVar(i) + getType(getKey(i), getVar(i), tuple, ttype);
       q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
 //       cout << "init op tree for | " << q << endl;
     }
@@ -830,8 +833,9 @@ bool Pattern::initEasyCondOpTrees(const bool mainAttr, Tuple *tuple /* = 0 */,
 //             << varPos[easyConds[i].getVar(j)].second << endl;
         strAttr = getPointer(easyConds[i].getKey(j), true, tuple);
         ptrs.push_back(strAttr.second);
-        toReplace = easyConds[i].getVar(j)
-                  + Condition::getType(easyConds[i].getKey(j), tuple, ttype);
+        string var = easyConds[i].getVar(j);
+        toReplace = var 
+                + Condition::getType(easyConds[i].getKey(j), var, tuple, ttype);
         q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
 //         cout << "# " << q << endl;
       }
@@ -1743,15 +1747,21 @@ void TMatchIndexLI::getResultForAtomPart(pair<int, pair<IndexType, int> >
           Periods pertmp(true);
           for (int i = 1; i <= rel->GetNoTuples(); i++) {
             if (result[i] != 0 && tempp2[i] != 0) {
-              result[i]->EndBulkLoad(true);
-              tempp2[i]->EndBulkLoad(true);
+              if (!result[i]->IsOrdered()) {
+                result[i]->EndBulkLoad(true);
+              }
+              if (!tempp2[i]->IsEmpty() && !tempp2[i]->IsOrdered()) {
+                tempp2[i]->EndBulkLoad(true);
+              }
               result[i]->Union(*(tempp2[i]), pertmp);
 //               result[i]->CopyFrom(&pertmp);
               result[i]->DeleteIfAllowed();
               result[i] = (Periods*)pertmp.compress();
             }  
             else if (result[i] == 0 && tempp2[i] != 0) {
-              tempp2[i]->EndBulkLoad(true);
+              if (!tempp2[i]->IsOrdered()) {
+                tempp2[i]->EndBulkLoad(true);
+              }
 //               result[i] = new Periods(*(tempp2[i]));
               result[i] = (Periods*)(tempp2[i])->compress();
             }
@@ -1779,6 +1789,7 @@ void TMatchIndexLI::getResultForAtomPart(pair<int, pair<IndexType, int> >
             }
             else if (result[i] != 0) {
               result[i]->DeleteIfAllowed();
+              result[i] = 0;
             }
           }
         }
@@ -1795,6 +1806,7 @@ void TMatchIndexLI::getResultForAtomPart(pair<int, pair<IndexType, int> >
       for (int i = 1; i <= rel->GetNoTuples(); i++) {
         if (tempp2[i] != 0) {
           tempp2[i]->DeleteIfAllowed();
+          tempp2[i] = 0;
         }
       }
     }
@@ -2182,10 +2194,10 @@ void TMatchIndexLI::initMatchInfo(const bool mainAttr) {
     if (atom.isRelevantForTupleIndex()) {
       int id = mainAttr ? indexResult[*it][0]->succ : 
                           indexResult2[*it][0]->succ;
-      if (id == 0) { // no index result
-        cout << "no index result for crucial atom " << *it << ", EXIT" << endl;
-        return;
-      }
+//       if (id == 0) { // no index result
+//         cout << "crucial atom " << *it << ": no index result; EXIT" << endl;
+//         return;
+//       }
       while (id > 0) {
         for (int i = oldId + 1; i < id; i++) {
           removeIdFromIndexResult(i, mainAttr);
@@ -2906,9 +2918,6 @@ bool TMatchIndexLI::easyCondsMatch(const int atomNo, Tuple *t, Periods *per) {
   Periods tempPer(true), interResult(true);
   Word qResult;
   for (set<int>::iterator it = pos.begin(); it != pos.end(); it++) {
-//     if (!p->easyConds[*it].evaluateInstant(ttList, t, imi)) {
-//       return false;
-//     }
     if (!p->easyConds[*it].evaluatePeriods(ttList, t, per)) {
       return false;
     }
@@ -4093,7 +4102,8 @@ bool Assign::initOpTrees() {
           strAttr = Pattern::getPointer(right[i][j].second, true);
         }
         pointers[i].push_back(strAttr.second);
-        toReplace = right[i][j].first + Condition::getType(right[i][j].second);
+        toReplace = right[i][j].first 
+                  + Condition::getType(right[i][j].second, right[i][j].first);
         q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
       }
       opTree[i] = Tools::processQueryStr(q, i);

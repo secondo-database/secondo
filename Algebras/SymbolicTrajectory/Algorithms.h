@@ -454,7 +454,8 @@ class Condition {
   std::string toString() const;
   int convertVarKey(const char *varKey, Tuple *t = 0, ListExpr tupleType = 0);
   void clear();
-  static std::string getType(int t, Tuple *tuple = 0, ListExpr ttype = 0);
+  static std::string getType(const int t, const std::string& var,
+                             Tuple *tuple = 0, ListExpr ttype = 0);
   template<class Moving, class Intime, class Constant>
   static void getConstValue(Attribute *src, const Instant& inst,
                             Attribute*& result);
@@ -6661,8 +6662,6 @@ bool TMatchIndexLI::getSingleIndexResult(
       return range->GetNoComponents() > valueNo + 1;
     }
     case RTREE2: {
-//       cout << "RTREE2, type " << type << ", pos " << indexInfo.second.second 
-//            << endl;
       if (values.first.addr == 0) {
         return false; // no content
       }

@@ -63,7 +63,7 @@ num {si}|{ui}|{real}
 numinterval <{num}{num}(t\ f)?>|<{num}{num}>|{num}
 star \*
 plus \+
-attr [A-Z][a-zA-Z]*
+attrname [A-Z][a-zA-Z]*
 setrelation disjoint|superset|equal|intersect
 wildcard {star}|{plus}
 date {si}(-{ui}(-{ui}(-{ui}(\:{ui})(\:{ui}(\.{ui})?)?)?)?)?
@@ -77,7 +77,7 @@ valueset {value}|(({setrelation})?\{{value}(\,[ ]*{value})*\})
 contents {intervalset}([\ ]*{valueset})+
 variable [A-Z][a-zA-Z0-9_\-]*
 doubleslash \/{2}
-conditiontype label|time|start|end|leftclosed|rightclosed|card|labels|extent|{attr}
+conditiontype label|time|start|end|leftclosed|rightclosed|card|labels|extent|{attrname}
 assigntype label|time|start|end|leftclosed|rightclosed|labels|ref|extent
 vardottype {variable}\.{conditiontype}
 vardottype2 {variable}\.{assigntype}
@@ -104,6 +104,7 @@ closeregex (\]\+)|(\]\*)|(\]\?)|\]
 <INITIAL>\n {return ZZEND;}
 <INITIAL>{doubleslash} {BEGIN(condition); return ZZDOUBLESLASH;}
 <condition>{vardottype} {patternlval.text = strdup(patterntext); return ZZVAR_DOT_TYPE;}
+<condition>{attrname} {patternlval.text = strdup(patterntext); return ZZATTRNAME;}
 <condition>{rightarrow} {BEGIN(result); return ZZRIGHTARROW;}
 <condition>{const_op} {patternlval.text = strdup(patterntext); return ZZCONST_OP;}
 <condition>\, {if (!openQuotes && openParentheses == 0 && openBrackets == 0) {

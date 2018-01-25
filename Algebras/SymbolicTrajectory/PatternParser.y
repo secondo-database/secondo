@@ -95,7 +95,7 @@ char* errMsg;
 
 %token ZZEND
 %token<text> ZZVARIABLE ZZCONTENTS ZZWILDCARD ZZDOUBLESLASH ZZVAR_DOT_TYPE ZZCOMMA
-             ZZRIGHTARROW ZZCONST_OP ZZASSIGN ZZOPENREGEX ZZCLOSEREGEX ZZERROR
+             ZZRIGHTARROW ZZCONST_OP ZZASSIGN ZZOPENREGEX ZZCLOSEREGEX ZZERROR ZZATTRNAME
 %type<text> variable patternelement conditionsequence condition expression
             resultsequence result assignment element separator regexseq
             results_assignments assignmentsequence
@@ -252,6 +252,26 @@ condition : expressionlist {
           ;
 
 expression : ZZVAR_DOT_TYPE {
+               if (cond.convertVarKey($1, tup, tupleType) == -1) {
+                 string varDotType($1);
+                 /*errMsg = convert("error: " + varDotType + " not accepted");
+                 yyerror(errMsg);*/
+                 YYERROR;
+                 free($1);
+               } else {
+                 if (assignNow) {
+                   if (!assign.convertVarKey($1, tup, tupleType)) {
+/*                      string varDotType($1); */
+/*                     errMsg = convert("error: " + varDotType + " not accepted");
+                     yyerror(errMsg);*/
+                     YYERROR;
+                     free($1);
+                   }
+                 }
+                 $$ = $1;
+               }
+             }
+           | ZZATTRNAME {
                if (cond.convertVarKey($1, tup, tupleType) == -1) {
                  string varDotType($1);
                  /*errMsg = convert("error: " + varDotType + " not accepted");
@@ -874,42 +894,53 @@ int Condition::convertVarKey(const char *varKey, Tuple *t /* = 0 */,
   string varInput(input.substr(0, dotpos));
   string kInput(input.substr(dotpos + 1));
   PatElem elem;
-  for (unsigned int i = 0; i < wholepat->getElems().size(); i++) {
-    wholepat->getElem(i, elem);
-    elem.getV(var);
-    if (varInput == var) {
-      key = Tools::getKey(kInput, t, tupleType);
-      if ((key < 2) && ((elem.getW() != NO)
-       || (wholepat->getVarPos(var).first < wholepat->getVarPos(var).second))) {
-        cout << "label/place condition not allowed for sequences" << endl;
-        return -1;
-      }
-      if ((key == 7) && ((elem.getW() == NO)
-                    && (wholepat->getVarPos(var).first == wholepat->getVarPos(var).second))) {
-        cout << "card condition not allowed for non-sequences" << endl;
-        return -1;
-      }
-      condVars.insert(var);
-      wholepat->addRelevantVar(var);
-      if (easyCond) {
-        if ((elem.getW() != NO) || (condVars.size() > 1) || !unitVars.count(var)) {
-          easyCond = false;
-        }
-      }
-      varKeys.push_back(make_pair(var, key));
-      return key;
-    }
-  }
-  if (wholepat->getElemFromVar(varInput) != INT_MIN) { // indextmatches2
+  if (dotpos == string::npos) { // indextmatches2: e.g., inst(initial(Trip))
     key = Tools::getKey(kInput, t, tupleType);
-    condVars.insert(varInput);
-    wholepat->addRelevantVar(varInput);
-    varKeys.push_back(make_pair(varInput, key));
-    easyCond = false;
+    if (key < 100) {
+      cout << "Error: variable required for term \"" << kInput << "\"" << endl;
+      return -1;
+    }
+    varKeys.push_back(make_pair(var, key));
     return key;
   }
-  cout << "variable " << varInput << " does not exist in the pattern" << endl;
-  return -1;
+  else {
+    for (unsigned int i = 0; i < wholepat->getElems().size(); i++) {
+      wholepat->getElem(i, elem);
+      elem.getV(var);
+      if (varInput == var) {
+        key = Tools::getKey(kInput, t, tupleType);
+        if ((key < 2) && ((elem.getW() != NO)
+        || (wholepat->getVarPos(var).first < wholepat->getVarPos(var).second))) {
+          cout << "label/place condition not allowed for sequences" << endl;
+          return -1;
+        }
+        if ((key == 7) && ((elem.getW() == NO)
+                      && (wholepat->getVarPos(var).first == wholepat->getVarPos(var).second))) {
+          cout << "card condition not allowed for non-sequences" << endl;
+          return -1;
+        }
+        condVars.insert(var);
+        wholepat->addRelevantVar(var);
+        if (easyCond) {
+          if ((elem.getW() != NO) || (condVars.size() > 1) || !unitVars.count(var)) {
+            easyCond = false;
+          }
+        }
+        varKeys.push_back(make_pair(var, key));
+        return key;
+      }
+    }
+    if (wholepat->getElemFromVar(varInput) != INT_MIN) { // indextmatches2
+      key = Tools::getKey(kInput, t, tupleType);
+      condVars.insert(varInput);
+      wholepat->addRelevantVar(varInput);
+      varKeys.push_back(make_pair(varInput, key));
+      easyCond = false;
+      return key;
+    }
+    cout << "variable " << varInput << " does not exist in the pattern" << endl;
+    return -1;
+  }
 }
 
 bool Assign::convertVarKey(const char *varKey, Tuple *tuple /* = 0 */,
