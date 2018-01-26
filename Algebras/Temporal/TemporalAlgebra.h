@@ -8473,6 +8473,26 @@ int MappingGetUnit
   return 0;
 }
 
+template<class Mapping>
+int MappingGetPosition(Word* args, Word& result, int message, Word& local, 
+                       Supplier s) {
+  result = qp->ResultStorage(s);
+  CcInt *res = static_cast<CcInt*>(result.addr);
+  Mapping *m = static_cast<Mapping*>(args[0].addr);
+  Instant *inst = static_cast<Instant*>(args[1].addr);
+  if (!m->IsDefined() || !inst->IsDefined()) {
+    res->SetDefined(false);
+    return 0;
+  }
+  int pos = m->Position(*inst);
+  if (pos == -1) {
+    res->SetDefined(false);
+    return 0;
+  }
+  res->Set(true, m->Position(*inst));
+  return 0;
+}
+
 template <class Mapping, class Unit>
 int MappingTimeShift( Word* args, Word& result,
                     int message, Word& local, Supplier s )

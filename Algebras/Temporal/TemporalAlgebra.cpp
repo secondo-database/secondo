@@ -9953,6 +9953,31 @@ ListExpr MovingTypeMapGetUnit( ListExpr args )
 }
 
 /*
+16.1.13 Type Mapping Function ~TemporalGetPositionTypeMap~
+
+It is used for the operator ~getposition~
+
+Type mapping for ~getposition~ is
+
+----    (mbool)  x instant -> (int)
+        (mint)   x instant -> (int)
+        (mreal)  x instant -> (int)
+        (mpoint) x instant -> (int)
+----
+
+*/
+ListExpr TemporalGetPositionTypeMap(ListExpr args) {
+  if (nl->ListLength(args) == 2 && Instant::checkType(nl->Second(args))) {
+    ListExpr arg1 = nl->First(args);
+    if (MBool::checkType(arg1) || MInt::checkType(arg1) ||
+        MReal::checkType(arg1) || MPoint::checkType(arg1)) {
+      return nl->SymbolAtom(CcInt::BasicType());
+    }
+  }
+  return nl->SymbolAtom(Symbol::TYPEERROR());
+}
+
+/*
 16.1.12 Type mapping for simplify operator
 
 */
@@ -11739,7 +11764,7 @@ UIntimeSimpleSelect( ListExpr args )
 16.2.3 Selection function ~MovingSimpleSelect~
 
 Is used for the ~deftime~, ~initial~, ~final~, ~inst~, ~val~, ~atinstant~,
-~atperiods~  operations.
+~atperiods~, ~getposition~  operations.
 
 */
 int
@@ -15600,6 +15625,11 @@ ValueMapping temporalgetunitmap[] = { MappingGetUnit<MBool, UBool>,
                                     MappingGetUnit<MReal, UReal>,
                                     MappingGetUnit<MPoint, UPoint> };
 
+ValueMapping temporalgetpositionmap[] = { MappingGetPosition<MBool>,
+                                          MappingGetPosition<MInt>,
+                                          MappingGetPosition<MReal>,
+                                          MappingGetPosition<MPoint> };
+
 ValueMapping temporalbox3dmap[] = { Box3d_rect,
                                     Box3d_instant,
                                     Box3d_rect_instant,
@@ -16112,6 +16142,16 @@ const string TemporalSpecGetUnit  =
   "<text>Yields the Nth unit from the moving object M."
   "</text--->"
   "<text>mpoint1 getunit( 0 )</text--->"
+  ") )";
+
+const string TemporalSpecGetPosition  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text> mT x instant -> int, where T in {bool, int, real, point}</text--->"
+  "<text> getPosition( M, I )</text--->"
+  "<text>Yields the unit position inside moving object M that corresponds to I."
+  "</text--->"
+  "<text>getPosition(train7, [const instant value \"2003-11-20-06:07\"])"
+  "</text--->"
   ") )";
 
 const string TemporalSpecBBox  =
@@ -16877,6 +16917,13 @@ Operator temporalgetunit( "getunit",
                         temporalgetunitmap,
                         MovingSimpleSelect,
                         MovingTypeMapGetUnit );
+
+Operator temporalgetposition( "getPosition",
+                        TemporalSpecGetPosition,
+                        5,
+                        temporalgetpositionmap,
+                        MovingSimpleSelect,
+                        TemporalGetPositionTypeMap );
 
 Operator temporalbbox( "bbox",
                        TemporalSpecBBox,
@@ -19574,6 +19621,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporalfinal );
     AddOperator( &temporalunits );
     AddOperator( &temporalgetunit );
+    AddOperator( &temporalgetposition );
     AddOperator( &temporalbbox );
     AddOperator( &temporalmbrange );
     AddOperator( &temporalbbox2d );
