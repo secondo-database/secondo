@@ -304,8 +304,8 @@ Implementation of toListExpr method. Returns a list representation of this
       return listutils::getUndefined();
     }
 
-    ListExpr last;
-    ListExpr typesList;
+    ListExpr last=nl->TheEmptyList();
+    ListExpr typesList = nl->TheEmptyList();
     for (int i = 0; i < pointTypes.Size(); i++) {
       if (i == 0) {
         typesList = last = nl->OneElemList(nl->IntAtom(this->getPointType(i)));
@@ -314,7 +314,7 @@ Implementation of toListExpr method. Returns a list representation of this
       }
     }
 
-    ListExpr coordsList;
+    ListExpr coordsList = nl->TheEmptyList();
     for (int i = 0; i < coords.Size(); i++) {
       if (i == 0) {
         coordsList = last = nl->OneElemList(nl->RealAtom(this->getCoord(i)));
