@@ -498,7 +498,7 @@ raster data.
             const T& undefined, SmiFileId f, SmiFileId t)
       : undef(undefined),
         file(new RasterStorageFile(false)),
-        tree(new R_Tree<dim, index_type>(t, true)),
+        tree(new R_Tree<dim, index_type>(t, true, false)),
         cache_size(10),
         cache(cache_size, tree)
     {
