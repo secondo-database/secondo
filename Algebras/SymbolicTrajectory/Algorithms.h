@@ -7096,7 +7096,7 @@ bool TupleIndex<PosType, PosType2>::Open(SmiRecord& valueRecord, size_t& offset,
       return false;
     }
     offset += sizeof(SmiFileId);
-    val.addr = new RTree1TI(fileId);
+    val.addr = new RTree1TI(fileId, false);
     ti->rtrees1.push_back((RTree1TI*)val.addr);
   }
   if (!valueRecord.Read(&noComponents, sizeof(unsigned int), offset)) {
@@ -7113,7 +7113,7 @@ bool TupleIndex<PosType, PosType2>::Open(SmiRecord& valueRecord, size_t& offset,
       return false;
     }
     offset += sizeof(SmiFileId);
-    val.addr = new RTree2TI(fileId);
+    val.addr = new RTree2TI(fileId,false);
     ti->rtrees2.push_back((RTree2TI*)val.addr);
   }
 //   if (!OpenRTree<1>(valueRecord, offset, tList, val)) {
@@ -7125,7 +7125,7 @@ bool TupleIndex<PosType, PosType2>::Open(SmiRecord& valueRecord, size_t& offset,
       return false;
     }
     offset += sizeof(SmiFileId);
-    val.addr = new RTree1TI(fileId);
+    val.addr = new RTree1TI(fileId, false);
     ti->timeIndex = (RTree1TI*)val.addr;
 //     cout << "Time index opened, ";
   }
@@ -7248,7 +7248,7 @@ void TupleIndex<PosType, PosType2>::initialize(TupleType *ttype, int _mainAttr){
     timeIndex = 0;
   }
   else { // version for tupleindex with main attribute
-    timeIndex = new R_Tree<1, NewPair<TupleId, PosType> >(4000);
+    timeIndex = new R_Tree<1, NewPair<TupleId, PosType> >(4000, false);
     cout << "RTree1 for time intervals created" << endl;
   }
   for (int i = 0; i < ttype->GetNoAttributes(); i++) {
@@ -7279,7 +7279,7 @@ void TupleIndex<PosType, PosType2>::initialize(TupleType *ttype, int _mainAttr){
       indexToAttr[std::make_pair(RTREE1, (int)rtrees1.size())] = i;
 //       R_Tree<1, NewPair<TupleId, int> > *rtree1 = 
 //                   new R_Tree<1, NewPair<TupleId, int> >(4096);
-      RTree1TI *rtree1 = new R_Tree<1, NewPair<TupleId, PosType> >(4000);
+      RTree1TI *rtree1 = new R_Tree<1, NewPair<TupleId, PosType> >(4000, false);
       rtrees1.push_back(rtree1);
       cout << "RTree1 for attr " << i << " created and appended" << endl;
     }
@@ -7288,7 +7288,7 @@ void TupleIndex<PosType, PosType2>::initialize(TupleType *ttype, int _mainAttr){
       indexToAttr[std::make_pair(RTREE2, (int)rtrees2.size())] = i;
 //       R_Tree<2, NewPair<TupleId, int> > *rtree2 = 
 //                   new R_Tree<2, NewPair<TupleId, int> >(4096);
-      RTree2TI *rtree2 = new R_Tree<2, NewPair<TupleId, PosType> >(4000);
+      RTree2TI *rtree2 = new R_Tree<2, NewPair<TupleId, PosType> >(4000, false);
       rtrees2.push_back(rtree2);
       cout << "RTree2 for attr " << i << " created and appended" << endl;
     }
@@ -7299,7 +7299,7 @@ void TupleIndex<PosType, PosType2>::initialize(TupleType *ttype, int _mainAttr){
   // now insert rtree2 for mplace(s) attributes
   for (unsigned int j = 0; j < placeAttrs.size(); j++) {
     indexToAttr[std::make_pair(RTREE2, (int)rtrees2.size())] = placeAttrs[j];
-    RTree2TI *rtree2 = new R_Tree<2, NewPair<TupleId, PosType> >(4000);
+    RTree2TI *rtree2 = new R_Tree<2, NewPair<TupleId, PosType> >(4000, false);
     rtrees2.push_back(rtree2);
     cout << "RTree2 # " << rtrees2.size() << " for attr " << placeAttrs[j] 
          << " created and appended" << endl;

@@ -1695,7 +1695,7 @@ class R_Tree
 The first constructor. Creates an empty R-tree.
 
 */
-    R_Tree( const int pageSize );
+    R_Tree( const int pageSize, const bool isTemp );
 
 /*
 Opens an existing R-tree.
@@ -1704,12 +1704,12 @@ Opens an existing R-tree.
     R_Tree( SmiRecordFile *file );
 
 
-    R_Tree( const SmiFileId fileId );
+    R_Tree( const SmiFileId fileId, const bool isTemp );
     R_Tree( SmiRecordFile *file,
             const SmiRecordId headerRecordId );
-    R_Tree( const SmiFileId fileId,bool update );
+    R_Tree( const SmiFileId fileId,bool update, const bool isTemp );
 /////////////////////////////////////////////////////////////////////////////
-    R_Tree( const SmiFileId fileid,const int);
+    R_Tree( const SmiFileId fileid,const int, const bool isTemp);
     
     void Clear();
 
@@ -2263,9 +2263,9 @@ Used by NearestNeighborAlgebra.
 */
 
 template <unsigned dim, class LeafInfo>
-R_Tree<dim, LeafInfo>::R_Tree( const int pageSize ) :
+R_Tree<dim, LeafInfo>::R_Tree( const int pageSize, const bool isTemp ) :
   fileOwner( true ),
-  file( new SmiRecordFile( true, pageSize ) ),
+  file( new SmiRecordFile( true, pageSize, isTemp) ),
   header(),
   nodePtr( NULL ),
   currLevel( -1 ),
@@ -2473,9 +2473,9 @@ R_Tree<dim, LeafInfo>::R_Tree( SmiRecordFile *file ) :
 
 
 template <unsigned dim, class LeafInfo>
-R_Tree<dim, LeafInfo>::R_Tree( const SmiFileId fileid ) :
+R_Tree<dim, LeafInfo>::R_Tree( const SmiFileId fileid , const bool isTemp) :
 fileOwner( true ),
-file( new SmiRecordFile( true ) ),
+file( new SmiRecordFile( true,0,isTemp ) ),
 header( 1 ),
 nodePtr( NULL ),
 currLevel( -1 ),
@@ -2561,9 +2561,10 @@ Open an existing R-Tree file and create a new R-Tree on it
 */
 
 template <unsigned dim, class LeafInfo>
-R_Tree<dim, LeafInfo>::R_Tree( const SmiFileId fileid,const int pageSize ) :
+R_Tree<dim, LeafInfo>::R_Tree( const SmiFileId fileid,const int pageSize,
+                               const  bool isTemp ) :
 fileOwner( true ),
-file( new SmiRecordFile( true )  ),
+file( new SmiRecordFile( true,0,isTemp )  ),
 header(),
 nodePtr( NULL ),
 currLevel( -1 ),
@@ -2629,9 +2630,10 @@ nodeIdCounter( 0 )
 
 
 template <unsigned dim, class LeafInfo>
-R_Tree<dim, LeafInfo>::R_Tree( const SmiFileId fileid, bool update ) :
+R_Tree<dim, LeafInfo>::R_Tree( const SmiFileId fileid, bool update, 
+                               const bool isTemp ) :
 fileOwner( true ),
-file( new SmiRecordFile( true ) ),
+file( new SmiRecordFile( true,0,isTemp ) ),
 header(1),
 nodePtr( NULL ),
 currLevel( -1 ),
@@ -4865,9 +4867,9 @@ Word CreateRTree( const ListExpr typeInfo )
 {
 
   if( nl->BoolValue(nl->Fourth(typeInfo)) == true )
-     return SetWord( new R_Tree<dim, TwoLayerLeafInfo>( 4000 ) );
+     return SetWord( new R_Tree<dim, TwoLayerLeafInfo>( 4000, false) );
   else
-    return SetWord( new R_Tree<dim, TupleId>( 4000 ) );
+    return SetWord( new R_Tree<dim, TupleId>( 4000, false ));
 }
 
 /*
@@ -4904,7 +4906,7 @@ Word CloneRTree( const ListExpr typeInfo, const Word& w )
 /////////////// new implementation ////////////////////////////
   R_Tree<dim,TupleId>* rtree = (R_Tree<dim,TupleId>*)w.addr;
   R_Tree<dim,TupleId>* newrtree =
-                  new R_Tree<dim,TupleId>(4000);
+                  new R_Tree<dim,TupleId>(4000, false);
 
   newrtree->Clone(rtree);
   return SetWord( newrtree);
@@ -4983,12 +4985,12 @@ bool OpenRTree( SmiRecord& valueRecord,
   if( nl->BoolValue(nl->Fourth(typeInfo)) == true )
   {
     R_Tree<dim, TwoLayerLeafInfo> *rtree =
-        new R_Tree<dim, TwoLayerLeafInfo>( fileid );
+        new R_Tree<dim, TwoLayerLeafInfo>( fileid, false );
     value = SetWord( rtree );
   }
   else
   {
-    R_Tree<dim, TupleId> *rtree = new R_Tree<dim, TupleId>( fileid );
+    R_Tree<dim, TupleId> *rtree = new R_Tree<dim, TupleId>( fileid, false );
     value = SetWord( rtree );
   }
 
@@ -5054,7 +5056,7 @@ bool R_Tree<dim, LeafInfo>::Open(SmiRecord& valueRecord,
   size_t n = sizeof(SmiFileId);
   valueRecord.Read(&fileId, n, offset);
   offset += n;
-  value = SetWord(new R_Tree<dim, LeafInfo> (fileId));
+  value = SetWord(new R_Tree<dim, LeafInfo> (fileId,false));
   return true;
 };
 

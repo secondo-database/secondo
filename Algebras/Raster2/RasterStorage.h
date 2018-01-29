@@ -473,7 +473,7 @@ necessary files to store raster data.
       : undef(undefined),
         file(new RasterStorageFile(false)),
         tree(new R_Tree<dim, index_type>(
-                WinUnix::getPageSize()-2*dim*int(sizeof(double)))),
+                WinUnix::getPageSize()-2*dim*int(sizeof(double)),false)),
         cache_size(10),
         cache(cache_size, tree)
     {
