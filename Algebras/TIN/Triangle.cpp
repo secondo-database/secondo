@@ -76,7 +76,7 @@ LOG_EXP (print())
 LOGP
 }
 
-Triangle::Triangle(AbstractVertexContainer* vc, char* buff,
+Triangle::Triangle(AbstractVertexContainer* vc, void * buff,
   uint32_t & offset, TinPart * imyPart) {
  LOGP
  FILE_VERTEX_POINTER lv1, lv2, lv3;
@@ -397,7 +397,8 @@ bool Triangle::triangleWalker::stopAtEdgeWalk(
 
 Triangle * Triangle::walkToTriangle_sec(const Point_p & destination) {
  LOGP
- Point_p * arPoints = new Point_p(destination);
+ Point_p * arPoints = new Point_p[1];
+ arPoints[0] = destination;
 
  Triangle::triangleWalker walker(this, arPoints, 1, false, false);
 
@@ -415,17 +416,23 @@ Triangle * Triangle::walkToTriangle_sec(const Point_p & destination) {
   return 0;
 
 }
-int Triangle::triangleWalker::walk_step_sec() {
+int Triangle::triangleWalker::walk_step_sec_return(Edge &edge) {
  SecureOperator::startSecureCalc();
+//  cout << "current segment: (("
+//       << currentSegment.getV1()->getX() << ", "
+//       << currentSegment.getV1()->getY() << "), ("
+//       << currentSegment.getV2()->getX() << ", "
+//       << currentSegment.getV2()->getY() << "))" << "\r\n";
  LOGP
- Edge e1 = current->getEdge(1);
+ Edge e = current->getEdge(1);
 
  LOG("Walk a step in Triangle: ")
  LOG_EXP(current->print())
 //turn to neighbor n1
- if (e1.intersects_sec(&currentSegment)
-   && e1.getSide_sec((Point_p) *currentSegment.getV2()) < 0) {
-
+ if (e.intersects_sec(&currentSegment)
+   && e.getSide_sec((Point_p) *currentSegment.getV2()) < 0) {
+   edge = e;
+//   cout << "intersect edge 1" << "\r\n";
   if (!current->n1 && !noload) {
    current->getNeighbor(1);
   }
@@ -452,9 +459,11 @@ int Triangle::triangleWalker::walk_step_sec() {
  }
 
 //turn to neighbor n2
- e1 = current->getEdge(2);
- if (e1.intersects_sec(&currentSegment)
-   && e1.getSide_sec((Point_p) *currentSegment.getV2()) < 0) {
+ e = current->getEdge(2);
+ if (e.intersects_sec(&currentSegment)
+   && e.getSide_sec((Point_p) *currentSegment.getV2()) < 0) {
+   edge = e;
+//   cout << "intersect edge 2" << "\r\n";
   if (!current->n2 && !noload) {
    current->getNeighbor(2);
   }
@@ -482,9 +491,11 @@ int Triangle::triangleWalker::walk_step_sec() {
  }
 
 //turn to neighbor n3
- e1 = current->getEdge(3);
- if (e1.intersects_sec(&currentSegment)
-   && e1.getSide_sec((Point_p) *currentSegment.getV2()) < 0) {
+ e = current->getEdge(3);
+ if (e.intersects_sec(&currentSegment)
+   && e.getSide_sec((Point_p) *currentSegment.getV2()) < 0) {
+   edge = e;
+//   cout << "intersect edge 3" << "\r\n";
   if (!current->n3 && !noload) {
    current->getNeighbor(3);
   }
@@ -515,7 +526,7 @@ int Triangle::triangleWalker::walk_step_sec() {
 
 //currentPoint is in current Triangle -> reached end of current segment
  if (currentPoint < noPoints - 1) {
-
+//   cout << "intersect none." << "\r\n";
   if (userExit)
    userExit(this, (Triangle*) END_OF_SEGMENT);
 
@@ -536,6 +547,12 @@ int Triangle::triangleWalker::walk_step_sec() {
  return END_OF_WALK;
 
 }
+
+int Triangle::triangleWalker::walk_step_sec() {
+  Edge edge;
+  return walk_step_sec_return(edge);
+}
+
 NeighborEdge Triangle::getEdge(const Edge & e) {
  if (getEdge(1).equal3D(e))
   return NeighborEdge(v1, v2, this, n1);
@@ -905,7 +922,7 @@ const Vertex* Triangle::isTriangle_sec(const Vertex* iv1,
 
 //v1 and v2  etc. in the same place
  if (*iv1 == *iv2 || *iv1 == *iv3 || *iv2 == *iv3) {
-  return 0; //always secure
+  return false; //always secure
  }
 
  SecureOperator::startSecureCalc();

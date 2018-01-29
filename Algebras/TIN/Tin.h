@@ -34,9 +34,11 @@
 #include "SecondoDependencies.h"
 #include <TinLogging.h>
 #include <string>
-using std::vector;
-using std::map;
-using std::deque;
+
+
+namespace routeplanningalgebra {
+ class TinForRoutePlanning;
+}
 
 namespace tin {
 
@@ -77,6 +79,8 @@ class Tin: public noncopyable
 #endif
  friend class EventQueue;
 
+ friend class routeplanningalgebra::TinForRoutePlanning;
+
 protected:
  deque<TinPart*> tinParts;
  TinConfiguration config;
@@ -94,8 +98,8 @@ protected:
 protected:
 ////////Construction/Destruction/////////////////////////////////
 #ifndef UNIT_TEST
- Tin() :
-   file(false) {
+ Tin(const bool isTemp) :
+   file(false,0,isTemp) {
   LOGP
   noParts = 0;
   constructionQueue = 0;
@@ -118,8 +122,9 @@ void cloneTin(Tin * result) const;
 
 public:
 Tin(VertexContainerSet * vertices,
-  const TinConfiguration &conf = TinConfiguration::DEFAULT);
-Tin(const TinConfiguration & conf);
+  const TinConfiguration &conf = TinConfiguration::DEFAULT,
+  const bool isTemp = false);
+Tin(const TinConfiguration & conf, const bool isTemp);
 ~Tin();
 ////////Manipulation/////////////////////////////////////////////
 public:
@@ -373,8 +378,7 @@ static int raster2tin_vm(Word* args, Word& result, int message,
 /////////////////////////////////////////////////////////////////
 
 #endif
-
-};
+    };
 
 #ifndef UNIT_TEST
 class TinAttribute: public Attribute, public TinPart {

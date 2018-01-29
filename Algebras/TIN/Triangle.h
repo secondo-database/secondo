@@ -64,7 +64,7 @@ public:
  ~Triangle();
  Triangle(const Vertex * v1, const Vertex * v2, const Vertex * v3,
    TinPart * imyPart = 0);
- Triangle(AbstractVertexContainer* vc, char * buff, uint32_t & offset,
+ Triangle(AbstractVertexContainer* vc, void * buff, uint32_t & offset,
    TinPart * imyPart);
  Triangle* clone();
 
@@ -272,6 +272,7 @@ public:
   }
   void walk_segment_sec();
   int walk_step_sec();
+  int walk_step_sec_return(Edge &edge);
   Triangle * getCurrentTriangle() {
    return current;
   }

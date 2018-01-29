@@ -73,8 +73,8 @@ struct tin2tinattributestreamState {
 };
 #endif
 #ifndef UNIT_TEST
-Tin::Tin(const TinConfiguration & conf) :
-  file(false)
+Tin::Tin(const TinConfiguration & conf, const bool isTemp) :
+  file(false,0, isTemp)
 #else
 Tin::Tin(const TinConfiguration & conf)
 #endif
@@ -98,8 +98,9 @@ Tin::Tin(const TinConfiguration & conf)
 }
 
 #ifndef UNIT_TEST
-Tin::Tin(VertexContainerSet * vertices, const TinConfiguration& conf) :
-  file(false)
+Tin::Tin(VertexContainerSet * vertices, const TinConfiguration& conf, 
+         const bool isTemp) :
+  file(false,0,isTemp)
 #else
 Tin::Tin(VertexContainerSet * vertices, const TinConfiguration& conf)
 #endif
@@ -192,7 +193,8 @@ Triangle::triangleWalker Tin::getWalker(const Point_p & p) {
  while (it != tinParts.end()) {
   LOGP
   if ((*it)->bbox().contains(p)) {
-   Point_p * dest = new Point_p(p);
+   Point_p * dest = new Point_p[1];
+   dest[0] = p;
    return (*it)->getWalker(dest, 1);
 LOGP }
 
@@ -319,7 +321,7 @@ void Tin::addPart(TinPart * p) {
  LOGP
  if (!rtree)
   rtree = new R_Tree<2, uint32_t>(
-    WinUnix::getPageSize() - 2 * 2 * int(sizeof(double)));
+    WinUnix::getPageSize() - 2 * 2 * int(sizeof(double)), file.IsTemp());
 
  const TinFeatures& feat = p->getFeatures();
  LOGP
@@ -704,7 +706,7 @@ void Tin::finishPart(std::pair<const ColumnKey, TinPart*>& partpair,
 
  if (!rtree)
   rtree = new R_Tree<2, uint32_t>(
-    WinUnix::getPageSize() - 2 * 2 * int(sizeof(double)));
+    WinUnix::getPageSize() - 2 * 2 * int(sizeof(double)), file.IsTemp());
 
  const TinFeatures& feat = partpair.second->getFeatures();
 
@@ -905,7 +907,7 @@ Tin * Tin::clone() const {
  LOGP
  TinConfiguration conf = config;
  conf.memoryState = INMEMORY;
- Tin * tt = new Tin(conf);
+ Tin * tt = new Tin(conf, file.IsTemp());
 
 #ifndef UNIT_TEST
  if (this->estimateMaxSizeInMemory() * 2 < OPERATE_IN_MEMORY_THRESHOLD) {
@@ -1211,7 +1213,6 @@ void TinAttribute::RebuildFromFlob() {
  char * state = new char[sz];
 
  size_t offset = 0;
- uint8_t def;
  LOGP
 
  LOG(sz)
@@ -1315,10 +1316,10 @@ bool Tin::open(SmiRecord& valueRecord, bool bypass, SmiFileId ifileid,
  LOG(fileid)
 
  if (!rtree)
-  rtree = new R_Tree<2, uint32_t>(fileid);
+  rtree = new R_Tree<2, uint32_t>(fileid, file.IsTemp());
  else {
   delete rtree;
-  rtree = new R_Tree<2, uint32_t>(fileid);
+  rtree = new R_Tree<2, uint32_t>(fileid, file.IsTemp());
  }
 
  features.open(contentRec);
@@ -1352,7 +1353,7 @@ bool Tin::openParts(bool bulkload) {
 
  for (int i = 0; i < noParts; i++) {
   tinParts[i] = TinPart::getInstanceFromBuffer(this, buffer,
-    (size_t &) offset, bulkload, config);
+    (uint32_t &) offset, bulkload, config);
  }
 
  delete[] buffer;
@@ -1406,7 +1407,7 @@ bool Tin::save(SmiRecord& valueRecord, bool bypass) {
 
  if (!rtree)
   rtree = new R_Tree<2, uint32_t>(
-    WinUnix::getPageSize() - 2 * 2 * int(sizeof(double)));
+    WinUnix::getPageSize() - 2 * 2 * int(sizeof(double)), file.IsTemp());
 
  fileid = rtree->FileId();
  LOG("rtree fileid:")
@@ -1444,7 +1445,6 @@ SmiRecordFile* Tin::getFile() {
   if (config.memoryState == INMEMORY)
    throw std::runtime_error(
      "This tin is configured stay in memory. No file.(Tin::getFile)");
-
   file.Create();
   file.AppendRecord(contentId, contentRec);
   contentRec.Finish();
@@ -1551,13 +1551,13 @@ Word Tin::Clone(const ListExpr typeInfo, const Word& w) {
 
     clone->setDefined();
    } else
-    clone = new Tin(TinConfiguration::DEFAULT);
+    clone = new Tin(TinConfiguration::DEFAULT, false);
   } else {
-   clone = new Tin(TinConfiguration::DEFAULT);
+   clone = new Tin(TinConfiguration::DEFAULT, false);
   }
  } catch (std::exception& e) {
   if (!clone)
-   clone = new Tin(TinConfiguration::DEFAULT);
+   clone = new Tin(TinConfiguration::DEFAULT, false);
 
   result.addr = clone;
 
@@ -1599,7 +1599,7 @@ bool Tin::Open(SmiRecord& valueRecord, size_t& offset,
 
  try {
 
-  tt = new Tin(TinConfiguration::DEFAULT);
+  tt = new Tin(TinConfiguration::DEFAULT, false);
   value.addr = tt;
 
   valueRecord.SetPos(offset);
@@ -1692,7 +1692,7 @@ LOGP}
 
 Word Tin::Create(const ListExpr typeInfo) {
  LOGP
- return (SetWord(new Tin(TinConfiguration::DEFAULT)));
+ return (SetWord(new Tin(TinConfiguration::DEFAULT, false)));
 }
 Word TinAttribute::Create(const ListExpr typeInfo) {
  LOGP
@@ -1852,7 +1852,7 @@ Word Tin::In(const ListExpr typeInfo, const ListExpr instance,
  try {
 
   conf = TinConfiguration::DEFAULT;
-  intin = new Tin(conf);
+  intin = new Tin(conf, false);
   obj.addr = intin;
 
   Tin::parseInTinConfig(nl->First(instance), conf);

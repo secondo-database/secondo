@@ -134,9 +134,8 @@ protected:
 #endif
  }
  TinPart(bool theEmptyConstructor) :
-   idxAtLocation(this), arTriangles(0),
-   pVertexContainer(0), config(true), features(
-     true) {
+   features(true), pVertexContainer(0), arTriangles(0), config(true), 
+   idxAtLocation(this) {
 
  }
 public:
@@ -163,7 +162,7 @@ public:
    SmiRecord& valueRecord, const uint32_t idx,
    const TinConfiguration& conf = TinConfiguration::DEFAULT);
  static TinPart* getInstanceFromBuffer(Tin* tt, char* buffer,
-   size_t &offset, bool bulkload, const TinConfiguration& conf);
+   uint32_t &offset, bool bulkload, const TinConfiguration& conf);
 #endif
 
  virtual TinPart* clone(Tin*tt);

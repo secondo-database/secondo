@@ -28,7 +28,6 @@
 #include "TinHelper.h"
 #include "Vertex.h"
 #include "AbstractVertexContainer.h"
-using std::set;
 
 namespace tin {
 
