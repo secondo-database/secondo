@@ -90,7 +90,7 @@ double getHeightAtPosition
     if (P==CC)
     {
     double res = raster.atlocation(P.GetX (), P.GetY ());
-  return (raster.isUndefined(res) ? raster2::UNDEFINED_REAL : res);
+  return (raster.isUndefined(res) ? raster2::UNDEFINED_REAL() : res);
     }
 
     Point A = CC;
@@ -284,7 +284,7 @@ double getHeightAtPosition
     if (!undefinedA && undefinedB && undefinedC)
         return (valueA);
     if (undefinedA && undefinedB && undefinedC)
-        return (raster2::UNDEFINED_REAL);
+        return (raster2::UNDEFINED_REAL());
     return ((alpha * valueA) + (beta * valueB) + (gamma * valueC));
 }
 
