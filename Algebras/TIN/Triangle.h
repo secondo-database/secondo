@@ -64,7 +64,7 @@ public:
  ~Triangle();
  Triangle(const Vertex * v1, const Vertex * v2, const Vertex * v3,
    TinPart * imyPart = 0);
- Triangle(AbstractVertexContainer* vc, void * buff, uint32_t & offset,
+ Triangle(AbstractVertexContainer* vc, char * buff, size_t & offset,
    TinPart * imyPart);
  Triangle* clone();
 
@@ -498,9 +498,9 @@ ListExpr outTriangle();
 #endif
 ///////Persistence///////////////////////////////////////////////
 static TIN_SIZE getSizeOnDisc();
-bool putSecondoRepresentation(const AbstractVertexContainer* vc, void * buff,
-  uint32_t & offset) const;
-bool putSTLbinaryRepresentation(void * buff,
+bool putSecondoRepresentation(const AbstractVertexContainer* vc, char * buff,
+  size_t & offset) const;
+bool putSTLbinaryRepresentation(char * buff,
   uint32_t & offset) const;
 /////////////////////////////////////////////////////////////////
 

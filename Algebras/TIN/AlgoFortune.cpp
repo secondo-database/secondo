@@ -691,7 +691,7 @@ BeachLineNode * BeachLineNode::remove(Triangle * t) {
  BeachLineNode * leftbp;
  BeachLineNode * rightbp;
  BeachLineNode * brother;
- BeachLineNode * changedBp;
+ BeachLineNode * changedBp=0;
 
  if (!isLeaf())
   throw std::runtime_error(E_BEACHLINENODE_REMOVE1);
@@ -834,7 +834,7 @@ BeachLineNode * BeachLineNode::removeMultiEvent(Triangle** t1,
  BeachLineNode * leftbp;
  BeachLineNode * rightbp;
  BeachLineNode * brother;
- BeachLineNode * changedBp;
+ BeachLineNode * changedBp=0;
 
  if (!isLeaf())
   throw std::runtime_error(E_BEACHLINENODE_REMOVE1);
@@ -1539,7 +1539,7 @@ void EventQueue::doFortuneAlgorithm(VertexContainerSet * currentSection,
  std::multimap<Point_p, CircleEvent*>::iterator itc;
  std::multimap<Point_p, CircleEvent*>::iterator it_end_same_circle;
  std::multimap<Point_p, CircleEvent*>::iterator it_end_same_circle_tmp;
- VERTEX_COORDINATE begin_section_y, end_section_y, end_priorsection_y;
+ VERTEX_COORDINATE begin_section_y, end_section_y, end_priorsection_y=0;
  const Vertex * v;
 
  LOG_EXP(eventId = 0)
@@ -1689,8 +1689,8 @@ void CircleEvent::print(std::ostream& os) const {
 }
 bool CircleEvent::isIdentical(CircleEvent * e) const {
 
- const Vertex * v1, *v2, *v3;
- const Vertex * ev1, *ev2, *ev3;
+ const Vertex * v1=0, *v2=0, *v3=0;
+ const Vertex * ev1=0, *ev2=0, *ev3=0;
  BeachLineNode* ln, *rn;
 
  ev1 = e->arc->getSite();

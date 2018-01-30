@@ -60,7 +60,7 @@ void VertexContainerSet::loadVertices(const Vertex* parray,
  if (parray == 0)
   throw std::invalid_argument(E_VERTEXCONTAINER_LOADVERTICES);
 
- if ((setVertices.size() + numberofvertices) > getMaxVertexCount())
+ if ((int)(setVertices.size() + numberofvertices) > getMaxVertexCount())
   throw std::runtime_error(E_VERTEXCONTAINER_LOADVERTICES2);
 
  while (numberofvertices > 0) {
@@ -89,7 +89,7 @@ const Vertex* VertexContainerSet::insertVertex(const Vertex* v,
  if (v == 0)
   throw std::invalid_argument(E_VERTEXCONTAINER_INSERTVERTEX);
 
- if ((setVertices.size() + 1) > getMaxVertexCount())
+ if ((int)(setVertices.size() + 1) > getMaxVertexCount())
   throw std::runtime_error(E_VERTEXCONTAINER_INSERTVERTEX2);
 
  std::pair<set<Vertex>::iterator, bool> r = setVertices.insert((*v));
@@ -112,7 +112,7 @@ void VertexContainerSet::resize(TIN_SIZE imaxSize) {
 
 }
 void VertexContainerSet::insertVertex_p(const Vertex* v) {
- if ((setVertices.size() + 1) > getMaxVertexCount())
+ if ((int)(setVertices.size() + 1) > getMaxVertexCount())
   throw std::runtime_error(E_VERTEXCONTAINER_INSERTVERTEX2);
 
  setVertices.insert((*v));
@@ -326,7 +326,7 @@ AbstractVertexContainer* VertexContainerSet::clone_empty() {
 }
 
 void VertexContainerSet::insertVertices(const VertexContainerSet& vc) {
- if ((setVertices.size() + vc.setVertices.size() + 1)
+ if ((int)(setVertices.size() + vc.setVertices.size() + 1)
    > getMaxVertexCount())
   throw std::runtime_error(E_VERTEXCONTAINER_INSERTVERTICES);
 
@@ -394,7 +394,7 @@ ListExpr VertexContainerSet::outContainer() const {
  LOGP
  set<Vertex>::iterator it;
  it = setVertices.begin();
- ListExpr ret, tmp, last;
+ ListExpr ret=nl->TheEmptyList(), tmp, last;
  if (it != setVertices.end()) {
   ret = nl->OneElemList((*it).outVertex());
   it++;

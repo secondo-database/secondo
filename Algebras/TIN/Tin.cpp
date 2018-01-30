@@ -1190,7 +1190,7 @@ void TinAttribute::Serialize2Flob() {
   for (int i = 0; i < noTriangles; i++) {
    LOG(i)
    arTriangles[i].putSecondoRepresentation(pVertexContainer, storage,
-     (uint32_t &) offset);
+                                          offset);
   }
 
   binData.resize(sz);
@@ -1251,7 +1251,7 @@ void TinAttribute::RebuildFromFlob() {
    for (int i = 0; i < noTriangles; i++) {
     LOG(i)
     new (&arTriangles[i]) Triangle(pVertexContainer, state,
-      (uint32_t &) offset, this);
+                                   offset, this);
    }
 
 LOGP }
@@ -1353,7 +1353,7 @@ bool Tin::openParts(bool bulkload) {
 
  for (int i = 0; i < noParts; i++) {
   tinParts[i] = TinPart::getInstanceFromBuffer(this, buffer,
-    (uint32_t &) offset, bulkload, config);
+                              offset, bulkload, config);
  }
 
  delete[] buffer;
@@ -1744,7 +1744,7 @@ ListExpr Tin::Out(ListExpr typeInfo, Word value) {
  LOGP
  Tin* t = static_cast<Tin*>(value.addr);
  LOG(t)
- ListExpr ret, last;
+ ListExpr ret, last= nl->TheEmptyList();
  deque<TinPart*>::iterator it;
  LOGP
  try {

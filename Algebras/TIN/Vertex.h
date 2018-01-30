@@ -144,7 +144,7 @@ public:
  bool open(SmiRecord& valueRecord);
  bool save(SmiRecord& valueRecord);
 #endif
- void putSTLbinaryRepresentation(void * buff, uint32_t & offset) const;
+ void putSTLbinaryRepresentation(char * buff, uint32_t & offset) const;
  static TIN_SIZE getSizeOnDisc();
 
 /////////////////////////////////////////////////////////////////

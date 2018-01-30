@@ -145,7 +145,7 @@ void VertexContainerArray::print(std::ostream& os) const {
 }
 #ifndef UNIT_TEST
 ListExpr VertexContainerArray::outContainer() const {
- ListExpr ret, tmp, last;
+ ListExpr ret=nl->TheEmptyList(), tmp, last;
  int i = 0;
  if (noVertices > 0) {
   ret = nl->OneElemList(arVertices[0].outVertex());

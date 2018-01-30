@@ -76,8 +76,8 @@ LOG_EXP (print())
 LOGP
 }
 
-Triangle::Triangle(AbstractVertexContainer* vc, void * buff,
-  uint32_t & offset, TinPart * imyPart) {
+Triangle::Triangle(AbstractVertexContainer* vc, char * buff,
+  size_t & offset, TinPart * imyPart) {
  LOGP
  FILE_VERTEX_POINTER lv1, lv2, lv3;
 
@@ -651,10 +651,10 @@ bool Triangle::isNeighbor(Triangle& iat) {
 
  SecureOperator::startSecureCalc();
 
- Vertex *cv[2] = { 0, 0 };
+ //Vertex *cv[2] = { 0, 0 };
 
  int commonVertexCnt = 0;
- int intersectCnt = 0;
+ //int intersectCnt = 0;
 
  if (iat.bbox().hasIntersection(this->bbox())) {
   for (int i = 0; i < 3; i++) {
@@ -668,7 +668,8 @@ bool Triangle::isNeighbor(Triangle& iat) {
     if (verticesIat[i3] != 0 && *verticesMe[i2] == *verticesIat[i3]) {
      if (commonVertexCnt < 2
        && verticesMe[i2]->equal3D(*verticesIat[i3])) {
-      cv[commonVertexCnt++] = verticesMe[i2];
+     // cv[commonVertexCnt++] = verticesMe[i2];
+      commonVertexCnt++;
       verticesMe[i2] = 0;
       verticesIat[i3] = 0;
       break;
@@ -723,39 +724,49 @@ void Triangle::addNeighbor(Triangle *t, bool bidirectional) {
  }
 
  if (t->hasVertices2D(*v1, *v2)) {
-  if (n1)
-   if (n1 == VORONOI_OPEN_END)
+  if (n1) {
+   if (n1 == VORONOI_OPEN_END) {
     addOpenEnd();
-   else if (n1 != t)
+   } else if (n1 != t) {
     throw std::runtime_error(
       "The added neighbor already exists! (Triangle::addNeighbor)");
-
-  if (bidirectional && !t->hasNeighbor(this))
+   }
+  }
+  if (bidirectional && !t->hasNeighbor(this)) {
    t->addNeighbor(this, false);
+  }
   n1 = t;
   return;
  }
  if (t->hasVertices2D(*v2, *v3)) {
-  if (n2)
-   if (n2 == VORONOI_OPEN_END)
+  if (n2) {
+   if (n2 == VORONOI_OPEN_END) {
     addOpenEnd();
-   else if (n2 != t)
+   } else if (n2 != t) {
     throw std::runtime_error(
       "The added neighbor already exists! (Triangle::addNeighbor)");
-  if (bidirectional && !t->hasNeighbor(this))
+   }
+  }
+  if (bidirectional && !t->hasNeighbor(this)) {
    t->addNeighbor(this, false);
+  }
   n2 = t;
   return;
  }
+
+
  if (t->hasVertices2D(*v3, *v1)) {
-  if (n3)
-   if (n3 == VORONOI_OPEN_END)
+  if (n3){
+   if (n3 == VORONOI_OPEN_END) {
     addOpenEnd();
-   else if (n3 != t)
+   } else if (n3 != t) {
     throw std::runtime_error(
       "The added neighbor already exists! (Triangle::addNeighbor)");
-  if (bidirectional && !t->hasNeighbor(this))
+   }
+  }
+  if (bidirectional && !t->hasNeighbor(this)) {
    t->addNeighbor(this, false);
+  }
   n3 = t;
   return;
  }
@@ -824,7 +835,7 @@ int Triangle::getIndexInArray() const {
   return -1;
 }
 bool Triangle::putSecondoRepresentation(const AbstractVertexContainer * vc,
-  void * buff, uint32_t & offset) const {
+  char * buff, size_t & offset) const {
  FILE_VERTEX_POINTER lv1, lv2, lv3;
 
 //first write the vertex indices to buffer
@@ -894,7 +905,7 @@ bool Triangle::putSecondoRepresentation(const AbstractVertexContainer * vc,
  return true;
 
 }
-bool Triangle::putSTLbinaryRepresentation(void * buff,
+bool Triangle::putSTLbinaryRepresentation(char * buff,
   uint32_t & offset) const {
 
 //normal vector
@@ -922,7 +933,7 @@ const Vertex* Triangle::isTriangle_sec(const Vertex* iv1,
 
 //v1 and v2  etc. in the same place
  if (*iv1 == *iv2 || *iv1 == *iv3 || *iv2 == *iv3) {
-  return false; //always secure
+  return 0; //always secure
  }
 
  SecureOperator::startSecureCalc();

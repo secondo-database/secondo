@@ -35,7 +35,7 @@ ifneq ($(platform),mac_osx)
   CCFLAGS += -std=c++0x 
 endif
 
-# CCFLAGS += -Werror
+CCFLAGS += -Werror 
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 

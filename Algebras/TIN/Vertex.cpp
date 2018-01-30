@@ -67,7 +67,7 @@ void Vertex::print(std::ostream & out) const {
  out << "\t" << std::setprecision(15) << x << "\t" << std::setprecision(15)
    << y << "\t" << std::setprecision(15) << z;
 }
-void Vertex::putSTLbinaryRepresentation(void * buff,
+void Vertex::putSTLbinaryRepresentation(char * buff,
   uint32_t & offset) const {
 
  *((float*) (buff + offset)) = (float) x;

@@ -250,7 +250,7 @@ void TinPart::save_content() {
  for (int i = 0; i < noTriangles; i++) {
   LOG(i)
   arTriangles[i].putSecondoRepresentation(pVertexContainer, buffer,
-    (uint32_t &) offset);
+                                          offset);
  }
  LOGP
 
@@ -281,7 +281,7 @@ void TinPart::open_content() {
   for (int i = 0; i < noTriangles; i++) {
    LOG(i)
    new (&arTriangles[i]) Triangle(pVertexContainer, buffer,
-     (uint32_t &) offset, this);
+                                  offset, this);
   }
 
 LOGP}
@@ -879,7 +879,7 @@ TinPart* TinPart::getInstanceFromDisc(Tin* tt, SmiRecord& valueRecord,
  return part;
 }
 TinPart* TinPart::getInstanceFromBuffer(Tin* tt, char* buffer,
-  uint32_t &offset, bool bulkload, const TinConfiguration& conf) {
+  size_t &offset, bool bulkload, const TinConfiguration& conf) {
  LOGP
  LOG(conf.abstractType)
 

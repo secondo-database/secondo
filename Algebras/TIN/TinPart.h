@@ -162,7 +162,7 @@ public:
    SmiRecord& valueRecord, const uint32_t idx,
    const TinConfiguration& conf = TinConfiguration::DEFAULT);
  static TinPart* getInstanceFromBuffer(Tin* tt, char* buffer,
-   uint32_t &offset, bool bulkload, const TinConfiguration& conf);
+   size_t &offset, bool bulkload, const TinConfiguration& conf);
 #endif
 
  virtual TinPart* clone(Tin*tt);
