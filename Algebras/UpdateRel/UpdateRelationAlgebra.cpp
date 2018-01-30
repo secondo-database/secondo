@@ -4753,7 +4753,7 @@ int deletebyid2VM(Word* args, Word& result, int message,
     case OPEN : if(li) delete li;
                 local.addr = new deletebyid2Info(args[0],
                                (Relation*) args[1].addr,
-                               ((CcInt*)args[2].addr)->GetValue(),
+                               ((CcInt*)args[3].addr)->GetValue(),
                                nl->Second(GetTupleResultType(s)));
                 return 0;
     case REQUEST:
