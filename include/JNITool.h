@@ -29,9 +29,11 @@ class JNITool{
       int jtext_atom;
       int jreal_atom;
       int jint_atom;
+      int jbool_atom;
       int jno_atom;
       jmethodID realAtomID;
       jmethodID intAtomID;
+      jmethodID boolAtomID;
       jmethodID symbolAtomID;
       jmethodID stringAtomID;
       jmethodID textAtomID;
@@ -43,6 +45,7 @@ class JNITool{
       jmethodID stringValueID;
       jmethodID textValueID;
       jmethodID realValueID;
+      jmethodID boolValueID;
       jmethodID intValueID;
       jmethodID isEmptyID;
       jmethodID firstID;
