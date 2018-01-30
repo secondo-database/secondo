@@ -22,6 +22,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "isreal.h"
 
-using namespace raster2;
+namespace raster2 {
 
-const char* istype_helper<double>::name = TYPE_NAME_ISREAL;
+std::string istype_helper<double>::name(){ return TYPE_NAME_ISREAL();} 
+
+}

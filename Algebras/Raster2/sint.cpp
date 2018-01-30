@@ -23,6 +23,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "sint.h"
 
 
-using namespace raster2;
+namespace raster2{
 
-const char* stype_helper<int>::name = TYPE_NAME_SINT;
+std::string stype_helper<int>::name(){ return TYPE_NAME_SINT();} 
+
+}
+

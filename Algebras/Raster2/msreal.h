@@ -38,7 +38,7 @@ namespace raster2
         typedef CcReal wrapper_type;
         typedef temporalalgebra::UReal unit_type;
         typedef sreal spatial_type;
-        static const char* name;
+        static string name();
         static bool check(const NList& nl)
         {
           return (nl.isReal() || nl.isInt());
@@ -64,7 +64,7 @@ namespace raster2
         static NList print(const double& d)
             { return isUndefined(d) ? NList(Symbol::UNDEFINED()) : NList(d); }
         static bool isUndefined(const double& t) { return t != t; }
-        static double getUndefined() { return UNDEFINED_REAL; }
+        static double getUndefined() { return UNDEFINED_REAL(); }
         static std::string BasicType() { return CcReal::BasicType(); }
         static wrapper_type wrap(const double& t) {
             return CcReal(!isUndefined(t), t);

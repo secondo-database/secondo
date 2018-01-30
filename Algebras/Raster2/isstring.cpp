@@ -22,6 +22,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "isstring.h"
 
-using namespace raster2;
+namespace raster2{
 
-const char* istype_helper<std::string>::name = TYPE_NAME_ISSTRING;
+std::string istype_helper<std::string>::name(){ return  TYPE_NAME_ISSTRING(); }
+
+}

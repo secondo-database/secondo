@@ -74,7 +74,7 @@ template argument to the ~mstype$<$T, Helper$>$~ class template.
         typedef T wrapper_type;
         typedef T moving_type;
         typedef T spatial_type;
-        static const char* name;
+        static std::string name();
         static bool check(const NList& nl);
         static T parse(const NList& nl);
         static NList print(const T& i);
@@ -739,7 +739,7 @@ member variables are provided for convenience.
 
     template <typename T, typename Helper>
     std::string mstype<T, Helper>::BasicType() {
-        return Helper::name;
+        return Helper::name();
     }
     
     template <typename T, typename Helper>

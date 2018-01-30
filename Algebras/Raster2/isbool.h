@@ -36,7 +36,7 @@ namespace raster2
     typedef isbool implementation_type;
     typedef sbool spatial_type;
     typedef CcBool wrapper_type;
-    static const char* name;
+    static std::string name();
     
     static bool check(const NList& nl)
     {
@@ -50,12 +50,12 @@ namespace raster2
     
     static bool isUndefined(const char& rchar)
     {
-      return rchar == UNDEFINED_BOOL;
+      return rchar == UNDEFINED_BOOL();
     }
     
     static char getUndefined()
     {
-      return UNDEFINED_BOOL;
+      return UNDEFINED_BOOL();
     }
     
     static std::string BasicType()

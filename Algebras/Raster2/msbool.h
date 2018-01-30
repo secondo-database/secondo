@@ -38,15 +38,15 @@ namespace raster2 {
         typedef CcBool wrapper_type;
         typedef temporalalgebra::UBool unit_type;
         typedef sbool spatial_type;
-        static const char* name;
+        static std::string name();
         static bool check(const NList& nl) { return nl.isBool(); }
         static char parse(const NList& nl) { return char(nl.boolval()); }
         static NList print(const char& c)
             { return isUndefined(c)
                    ? NList(Symbol::UNDEFINED())
                    : NList(bool(c), true); }
-        static bool isUndefined(const char& t) { return t == UNDEFINED_BOOL; }
-        static char getUndefined() { return UNDEFINED_BOOL; }
+        static bool isUndefined(const char& t) { return t == UNDEFINED_BOOL(); }
+        static char getUndefined() { return UNDEFINED_BOOL(); }
         static std::string BasicType() { return CcBool::BasicType(); }
         static wrapper_type wrap(const char& t) {
             return CcBool(!isUndefined(t), int(t));

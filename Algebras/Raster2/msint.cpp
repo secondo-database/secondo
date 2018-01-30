@@ -23,6 +23,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "msint.h"
 
 
-using namespace raster2;
+namespace raster2{
 
-const char* mstype_helper<int>::name = TYPE_NAME_MSINT;
+std::string mstype_helper<int>::name(){return TYPE_NAME_MSINT();}
+
+}

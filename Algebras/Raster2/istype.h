@@ -41,7 +41,7 @@ namespace raster2
     typedef T implementation_type;
     typedef T spatial_type;
     typedef T wrapper_type;
-    static const char* name;
+    static std::string name();
     static bool check(const NList& nl);
     static T parse(const NList& nl);
     static bool isUndefined(const T& t);
@@ -277,7 +277,7 @@ namespace raster2
   template <typename T, typename Helper>
   const std::string istype<T, Helper>::BasicType()
   { 
-    return Helper::name;
+    return Helper::name();
   }
 
   template <typename T, typename Helper>

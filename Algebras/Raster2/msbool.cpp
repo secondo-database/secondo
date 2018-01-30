@@ -22,6 +22,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "msbool.h"
 
-using namespace raster2;
+namespace raster2{
 
-const char* msbool_helper::name = TYPE_NAME_MSBOOL;
+std::string  msbool_helper::name(){ return  TYPE_NAME_MSBOOL(); }
+
+}

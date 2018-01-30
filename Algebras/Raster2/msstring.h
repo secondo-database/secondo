@@ -179,7 +179,7 @@ namespace raster2
     typedef msstring implementation_type;
     typedef temporalalgebra::MString moving_type;
     typedef CcString wrapper_type;
-    static const char* name;
+    static std::string name();
     
     static bool check(const NList& nl)
     {
@@ -193,12 +193,12 @@ namespace raster2
     
     static bool isUndefined(const std::string& rString)
     {
-      return rString == UNDEFINED_STRING;
+      return rString == UNDEFINED_STRING();
     }
     
     static std::string getUndefined()
     {
-      return UNDEFINED_STRING;
+      return UNDEFINED_STRING();
     }
     
     static std::string BasicType()

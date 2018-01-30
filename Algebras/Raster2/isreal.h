@@ -36,7 +36,7 @@ namespace raster2
     typedef isreal implementation_type;
     typedef sreal spatial_type;
     typedef CcReal wrapper_type;
-    static const char* name;
+    static std::string name();
     
     static bool check(const NList& nl)
     {
@@ -62,12 +62,12 @@ namespace raster2
     
     static bool isUndefined(const double& rdouble)
     {
-      return rdouble == UNDEFINED_REAL;
+      return rdouble == UNDEFINED_REAL();
     }
     
     static double getUndefined()
     {
-      return UNDEFINED_REAL;
+      return UNDEFINED_REAL();
     }
     
     static std::string BasicType()

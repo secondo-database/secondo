@@ -36,7 +36,7 @@ namespace raster2
     typedef isint implementation_type;
     typedef sint spatial_type;
     typedef CcInt wrapper_type;
-    static const char* name;
+    static std::string name();
     
     static bool check(const NList& nl)
     {
@@ -50,12 +50,12 @@ namespace raster2
     
     static bool isUndefined(const int& rint)
     {
-      return rint == UNDEFINED_INT;
+      return rint == UNDEFINED_INT();
     }
     
     static int getUndefined()
     {
-      return UNDEFINED_INT;
+      return UNDEFINED_INT();
     }
     
     static std::string BasicType()

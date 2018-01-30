@@ -30,14 +30,14 @@ using namespace std;
 namespace raster2
 {
 
-const char* stype_helper<string>::name = TYPE_NAME_SSTRING;
+std::string stype_helper<string>::name(){ return TYPE_NAME_SSTRING(); }
 
 sstring::sstring()
     : m_bDelete(false),
       m_psint(new sint()),
       m_pUniqueStringArray(new UniqueStringArray(true)),
-      m_minimum(UNDEFINED_STRING_INDEX),
-      m_maximum(UNDEFINED_STRING_INDEX)
+      m_minimum(UNDEFINED_STRING_INDEX()),
+      m_maximum(UNDEFINED_STRING_INDEX())
 {}
 
 sstring::sstring(sint* psint, UniqueStringArray* pUniqueStringArray,
@@ -61,8 +61,8 @@ sstring::~sstring()
 
 void sstring::clear(){
    m_psint->clear();
-   m_minimum=UNDEFINED_STRING_INDEX;
-   m_maximum=UNDEFINED_STRING_INDEX;
+   m_minimum=UNDEFINED_STRING_INDEX();
+   m_maximum=UNDEFINED_STRING_INDEX();
 }
 
 bool sstring::isDefined() const{
@@ -73,8 +73,8 @@ void sstring::setDefined( const bool _defined){
   if(_defined != isDefined()){
      m_psint->setDefined(_defined);
      if(!_defined){
-        m_minimum=UNDEFINED_STRING_INDEX;
-        m_maximum=UNDEFINED_STRING_INDEX;
+        m_minimum=UNDEFINED_STRING_INDEX();
+        m_maximum=UNDEFINED_STRING_INDEX();
      }
   } 
 }
@@ -92,7 +92,7 @@ sint::storage_type& sstring::getStorage()
 
 string sstring::atlocation(double x, double y) const
 {
-  string value = UNDEFINED_STRING;
+  string value = UNDEFINED_STRING();
   
   if(m_psint != 0 &&
      m_pUniqueStringArray != 0)
@@ -117,7 +117,7 @@ void sstring::setatlocation(double x, double y, const string& value)
   {
     int nStringIndex = m_pUniqueStringArray->AddString(value);
 
-    if(nStringIndex != UNDEFINED_STRING_INDEX)
+    if(nStringIndex != UNDEFINED_STRING_INDEX())
     {
       m_psint->setatlocation(x, y, nStringIndex);
     }
@@ -178,8 +178,8 @@ Rect sstring::bbox() const
 
 string sstring::getMinimum() const
 {
-  std::string result = UNDEFINED_STRING;
-  if ( (m_minimum != UNDEFINED_STRING_INDEX) && isDefined()) {
+  std::string result = UNDEFINED_STRING();
+  if ( (m_minimum != UNDEFINED_STRING_INDEX()) && isDefined()) {
     m_pUniqueStringArray->GetUniqueString(m_minimum, result);
   }
   return result;
@@ -187,8 +187,8 @@ string sstring::getMinimum() const
 
 string sstring::getMaximum() const
 {
-  std::string result = UNDEFINED_STRING;
-  if ((m_maximum != UNDEFINED_STRING_INDEX) && isDefined()) {
+  std::string result = UNDEFINED_STRING();
+  if ((m_maximum != UNDEFINED_STRING_INDEX()) && isDefined()) {
     m_pUniqueStringArray->GetUniqueString(m_maximum, result);
   }
   return result;
@@ -232,32 +232,32 @@ void sstring::set(const index_type& i, const std::string& value) {
     assert(m_psint != 0);
     assert(m_pUniqueStringArray != 0);
 
-    if (value == UNDEFINED_STRING) {
-        m_psint->getStorage()[i] = UNDEFINED_INT;
+    if (value == UNDEFINED_STRING()) {
+        m_psint->getStorage()[i] = UNDEFINED_INT();
         return;
     }
 
     int index = m_pUniqueStringArray->GetUniqueStringIndex(value);
-    if (index == UNDEFINED_STRING_INDEX) {
-        std::string minimum = UNDEFINED_STRING;
-        if (m_minimum != UNDEFINED_STRING_INDEX) {
+    if (index == UNDEFINED_STRING_INDEX()) {
+        std::string minimum = UNDEFINED_STRING();
+        if (m_minimum != UNDEFINED_STRING_INDEX()) {
           m_pUniqueStringArray->GetUniqueString(m_minimum, minimum);
         }
-        std::string maximum = UNDEFINED_STRING;
-        if (m_maximum != UNDEFINED_STRING_INDEX) {
+        std::string maximum = UNDEFINED_STRING();
+        if (m_maximum != UNDEFINED_STRING_INDEX()) {
           m_pUniqueStringArray->GetUniqueString(m_maximum, maximum);
         }
 
         index = m_pUniqueStringArray->AddString(value);
 
-        if (m_minimum == UNDEFINED_STRING_INDEX) {
+        if (m_minimum == UNDEFINED_STRING_INDEX()) {
             m_minimum = index;
         } else if (!stype_helper<std::string>::isUndefined(value)) {
             if (value < minimum) {
                 m_minimum = index;
             }
         }
-        if (m_maximum == UNDEFINED_STRING_INDEX) {
+        if (m_maximum == UNDEFINED_STRING_INDEX()) {
             m_maximum = index;
         } else if (!stype_helper<std::string>::isUndefined(value)) {
             if (value > maximum) {
@@ -290,7 +290,7 @@ void sstring::flushCache() {
 
 const string sstring::BasicType()
 { 
-  return TYPE_NAME_SSTRING;
+  return TYPE_NAME_SSTRING();
 }
 
 const bool sstring::checkType(const ListExpr type)
@@ -414,8 +414,8 @@ Word sstring::In(const ListExpr typeInfo,
 
   grid2 grid;
   std::pair<int, int> sizes;
-  string minimum = UNDEFINED_STRING;
-  string maximum = UNDEFINED_STRING;
+  string minimum = UNDEFINED_STRING();
+  string maximum = UNDEFINED_STRING();
   UniqueStringArray* pUniqueStringArray = new UniqueStringArray(true);
 
   try

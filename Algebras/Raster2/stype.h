@@ -73,7 +73,7 @@ template argument to the ~stype$<$T, Helper$>$~ class template.
     {
       typedef T implementation_type;
       typedef T wrapper_type;
-      static const char* name;
+      static string name();
       static bool check(const NList& nl);
       static T parse(const NList& nl);
       static NList print(const T& i);
@@ -602,7 +602,7 @@ member variables are provided for convenience.
 
     template <typename T, typename Helper>
     std::string stype<T, Helper>::BasicType() {
-        return Helper::name;
+        return Helper::name();
     }
 
     template <typename T, typename Helper>

@@ -138,7 +138,7 @@ std::list<string> UniqueStringArray::GetUniqueStringArray() const
 
 int UniqueStringArray::GetUniqueStringIndex(const std::string& rString) const
 {
-  int nUniqueStringIndex = UNDEFINED_STRING_INDEX;
+  int nUniqueStringIndex = UNDEFINED_STRING_INDEX();
   
   if(rString.empty() == false)
   {
@@ -174,7 +174,7 @@ int UniqueStringArray::GetUniqueStringIndex(const std::string& rString) const
 
 int UniqueStringArray::AddString(const std::string& rString)
 { 
-  int nIndex = UNDEFINED_STRING_INDEX;
+  int nIndex = UNDEFINED_STRING_INDEX();
   
   if(rString.empty() == false)
   {

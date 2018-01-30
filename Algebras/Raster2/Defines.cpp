@@ -22,6 +22,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Defines.h"
 
+using namespace std;
+
 namespace raster2
 {
 
@@ -30,105 +32,105 @@ const type name for type sint
 
 */
 
-const char* TYPE_NAME_SINT = "sint";
+string TYPE_NAME_SINT() { return  "sint"; }
 
 /*
 const type name for type sreal
 
 */
 
-const char* TYPE_NAME_SREAL = "sreal";
+string TYPE_NAME_SREAL() { return  "sreal";}
 
 /*
 const type name for type sbool
 
 */
 
-const char* TYPE_NAME_SBOOL = "sbool";
+string TYPE_NAME_SBOOL() { return  "sbool";}
 
 /*
 const type name for type sstring
 
 */
 
-const char* TYPE_NAME_SSTRING = "sstring";
+string TYPE_NAME_SSTRING(){ return  "sstring";}
 
 /*
 const type name for type msint
 
 */
 
-const char* TYPE_NAME_MSINT = "msint";
+string TYPE_NAME_MSINT() { return  "msint";}
 
 /*
 const type name for type msreal
 
 */
 
-const char* TYPE_NAME_MSREAL = "msreal";
+string TYPE_NAME_MSREAL(){ return   "msreal";}
 
 /*
 const type name for type msbool
 
 */
 
-const char* TYPE_NAME_MSBOOL = "msbool";
+string TYPE_NAME_MSBOOL(){ return  "msbool";}
 
 /*
 const type name for type msstring
 
 */
 
-const char* TYPE_NAME_MSSTRING = "msstring";
+string TYPE_NAME_MSSTRING(){ return  "msstring";}
 
 /*
 const type name for type isint
 
 */
 
-const char* TYPE_NAME_ISINT = "isint";
+string TYPE_NAME_ISINT(){ return "isint"; }
 
 /*
 const type name for type isreal
 
 */
 
-const char* TYPE_NAME_ISREAL = "isreal";
+string TYPE_NAME_ISREAL(){ return "isreal";}
 
 /*
 const type name for type isbool
 
 */
 
-const char* TYPE_NAME_ISBOOL = "isbool";
+string  TYPE_NAME_ISBOOL(){ return  "isbool";}
 
 /*
 const type name for type isstring
 
 */
 
-const char* TYPE_NAME_ISSTRING = "isstring";
+string TYPE_NAME_ISSTRING(){ return  "isstring";}
 
 /*
 const undefined value for type int
 
 */
 
-const int UNDEFINED_INT = std::numeric_limits<int>::min();
+int UNDEFINED_INT(){ return std::numeric_limits<int>::min();}
 
 /*
 const undefined value for type real
 
 */
 
-const double UNDEFINED_REAL = std::numeric_limits<double>::quiet_NaN();
+double UNDEFINED_REAL(){ return std::numeric_limits<double>::quiet_NaN();}
 
 /*
 const undefined value for type bool
 
 */
 
-const char UNDEFINED_BOOL = -1;
+ char UNDEFINED_BOOL(){ return  -1;}
 
 /*
 const undefined value for type MInt
@@ -155,20 +157,20 @@ const undefined value for type MBool
 
 */
 
-const char UNDEFINED_MBOOL = -1;
+char UNDEFINED_MBOOL(){ return -1;}
 
 /*
 const undefined value for type string
 
 */
 
-const std::string UNDEFINED_STRING = "";
+std::string UNDEFINED_STRING(){ return  ""; }
 
 /*
 const undefined string index value
 
 */
 
-const int UNDEFINED_STRING_INDEX = -1;
+int UNDEFINED_STRING_INDEX(){ return  -1;}
 
 }

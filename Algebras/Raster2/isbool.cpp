@@ -22,6 +22,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "isbool.h"
 
-using namespace raster2;
+namespace raster2 {
 
-const char* istype_helper<char>::name = TYPE_NAME_ISBOOL;
+string istype_helper<char>::name(){ return TYPE_NAME_ISBOOL();}
+
+}

@@ -22,6 +22,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "sreal.h"
 
-using namespace raster2;
+namespace raster2{
 
-const char* stype_helper<double>::name = TYPE_NAME_SREAL;
+std::string stype_helper<double>::name(){ return  TYPE_NAME_SREAL();}
+
+}
