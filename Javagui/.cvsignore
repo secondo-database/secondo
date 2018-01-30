@@ -3,3 +3,7 @@
 *.dep
 *.fm
 *.class
+.gui_history
+.gui_queries
+GBS.cfg
+gui.cfg

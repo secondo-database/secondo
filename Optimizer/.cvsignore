@@ -4,3 +4,15 @@
 *.fm
 *.class
 tmp
+config_optimizer.pl
+storedAttrSizes.pl
+storedCards.pl
+storedIndexes.pl
+storedOrderings.pl
+storedPETs.pl
+storedRels.pl
+storedSels.pl
+storedSpells.pl
+storedTupleSizes.pl
+sysDependentCostFactors.pl
+sysDependentOperatorTF.pl

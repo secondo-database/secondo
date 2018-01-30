@@ -3,3 +3,5 @@
 *.dep
 *.fm
 *.class
+Config.ini
+Config.ini-e
