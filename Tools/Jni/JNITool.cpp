@@ -33,7 +33,7 @@ This class provides some functions useful in jni calls.
 
 
 bool JNITool::initialized=false;
-using namespace std;
+
 
 
 /*
@@ -71,7 +71,11 @@ JNITool::JNITool(JNIEnv *env, NestedList *nl){
 
    fid = env->GetStaticFieldID(nlclass,"INT_ATOM","B");
    assert(fid!=0);
-   jint_atom = env->GetStaticByteField(nlclass,fid);  
+   jint_atom = env->GetStaticByteField(nlclass,fid); 
+   
+   fid = env->GetStaticFieldID(nlclass,"BOOL_ATOM","B");
+   assert(fid!=0);
+   jbool_atom = env->GetStaticByteField(nlclass,fid);   
 
    fid = env->GetStaticFieldID(nlclass,"NO_ATOM","B");
    assert(fid!=0);
@@ -84,6 +88,10 @@ JNITool::JNITool(JNIEnv *env, NestedList *nl){
    intAtomID = env->GetStaticMethodID(nlclass,"intAtom",
                                       "(I)Lsj/lang/ListExpr;");
    assert(intAtomID);
+   
+   boolAtomID = env->GetStaticMethodID(nlclass,"boolAtom",
+                                      "(Z)Lsj/lang/ListExpr;");
+   assert(boolAtomID);
   
    symbolAtomID = env->GetStaticMethodID(nlclass,"symbolAtom",
                              "(Ljava/lang/String;)Lsj/lang/ListExpr;");
@@ -175,10 +183,18 @@ jobject JNITool::GetJavaList(JNIEnv * env, ListExpr LE){
       if(!res) Error(__LINE__);
       return res;
    }
+   
+   //bool
+   if(nl->AtomType(LE)==BoolType){
+      bool bvalue = nl->BoolValue(LE);
+      res = env->CallStaticObjectMethod(nlclass,boolAtomID,bvalue);
+      if(!res) Error(__LINE__);
+      return res; 
+   }
 
    // symbol
    if(nl->AtomType(LE)==SymbolType){
-     string svalue = nl->SymbolValue(LE);
+     std::string svalue = nl->SymbolValue(LE);
      const char* cstr = svalue.c_str();
      jstring jstr = env->NewStringUTF(cstr);
      if(!jstr) Error(__LINE__);
@@ -190,7 +206,7 @@ jobject JNITool::GetJavaList(JNIEnv * env, ListExpr LE){
 
    // string
    if(nl->AtomType(LE)==StringType){
-     string svalue = nl->StringValue(LE);
+     std::string svalue = nl->StringValue(LE);
      const char* cstr = svalue.c_str();
      jstring jstr = env->NewStringUTF(cstr);
      if(!jstr) Error(__LINE__);
@@ -202,7 +218,7 @@ jobject JNITool::GetJavaList(JNIEnv * env, ListExpr LE){
 
    // text
    if(nl->AtomType(LE)== TextType){
-      string tvalue;
+      std::string tvalue;
       nl->Text2String(LE,tvalue);
       const char* cstr = tvalue.c_str();
       jstring jstr = env->NewStringUTF(cstr);
@@ -311,6 +327,11 @@ ListExpr JNITool::GetCppList(JNIEnv* env, jobject obj){
   if(type == jint_atom){
      return nl->IntAtom(env->CallIntMethod(obj,intValueID));
   }
+  
+  if(type == jbool_atom){
+     return nl->BoolAtom(env->CallBooleanMethod(obj,boolValueID));
+  }
+  
   if(type ==jno_atom){
      // check for emptyness
      if(env->CallBooleanMethod(obj,isEmptyID))
@@ -384,7 +405,8 @@ exits the program via an assert call.
 
 */
 void JNITool::Error(int line){
-   cerr << "Error occurred in file " << __FILE__ << " at line " << line << endl;
+   std::cerr << "Error occurred in file " << __FILE__ << " at line " 
+             << line << std::endl;
    if(env->ExceptionOccurred())
      env->ExceptionDescribe();
    assert(0);
