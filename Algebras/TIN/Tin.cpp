@@ -2423,6 +2423,7 @@ ListExpr Tin::tin2tinattribute_tm(ListExpr args) {
 
 }
 TinAttribute::TinAttribute(TinPart & part) :
+  Attribute(true),
   binData(0) {
  bool n;
  const Vertex * v1, *v2, *v3;
