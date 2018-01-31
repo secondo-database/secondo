@@ -40,7 +40,6 @@ namespace CRelAlgebra
     public:
       ToTuples();
 
-    private:
       class State
       {
       public:
