@@ -62,11 +62,13 @@ ValueMapping CConsume::valueMappings[] =
 {
   TBlockValueMapping,
   TupleValueMapping,
+  SimpleTupleValueMapping,
   nullptr
 };
 
 const OperatorInfo CConsume::info = OperatorInfo(
-  "cconsume", "stream(tuple | tblock) x (int | crel) x [int] -> crel",
+  "cconsume", "stream(tuple | tblock) x (int | crel) x [int] -> crel "
+  " | stream(tblock) -> stream(creal(tblock))",
   "_ cconsume[ _, _ ]",
   "Creates a column-oriented relation from a stream of tuples or tuple blocks. "
   "The second argument can be either the desired block size (int) or a "
@@ -86,10 +88,24 @@ ListExpr CConsume::TypeMapping(ListExpr args)
   //Two args?
   const uint64_t argCount = nl->ListLength(args);
 
-  if (argCount < 2 || argCount > 3)
+  if (argCount < 1 || argCount > 3)
   {
     return GetTypeError("Expected two or three arguments.");
   }
+
+  if(argCount == 1){
+    //One arg: type mapping overtaken from consume
+    ListExpr blockType;
+  
+    //Is first parameter a stream of tblock?
+    if (!IsBlockStream(nl->First(nl->First(args)), blockType))
+    {
+      return GetTypeError(0, "source", "Isn't' a stream of tblock.");
+    }
+    //Return 'crel' type
+    return CRelTI(TBlockTI(blockType, false), 1).GetTypeExpr();
+  }
+
 
   //First parameter a stream?
   ListExpr stream = nl->First(nl->First(args));
@@ -212,6 +228,11 @@ ListExpr CConsume::TypeMapping(ListExpr args)
 
 int CConsume::SelectValueMapping(ListExpr args)
 {
+  if(nl->HasLength(args,1)){
+    // former consume 
+    return 2;
+  }
+
   if (TBlockTI::Check(nl->First(args)))
   {
     return 0;
@@ -292,3 +313,44 @@ int CConsume::TupleValueMapping(ArgVector args, Word &result, int, Word&,
 
   return FAILURE;
 }
+
+int CConsume::SimpleTupleValueMapping(Word* args, Word &result, int, 
+                                      Word&, Supplier s)
+{
+  try
+  {
+    Stream<TBlock> stream = Stream<TBlock>(args[0]);
+    CRel &relation = qp->ResultStorage<CRel>(result, s);
+    TBlock *block;
+
+    if (relation.GetRowCount() > 0)
+    {
+      relation.Clear();
+    }
+
+    stream.open();
+
+    while ((block = stream.request()) != nullptr)
+    {
+      for (const TBlockEntry &tuple : block->GetFilter())
+      {
+        relation.Append(tuple);
+      }
+
+      block->DecRef();
+    }
+
+    stream.close();
+
+    return 0;
+  }
+  catch (const exception &e)
+  {
+    ErrorReporter::ReportError(e.what());
+  }
+
+  return FAILURE;
+}
+
+
+

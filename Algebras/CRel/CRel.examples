@@ -49,6 +49,14 @@ Signature: stream(tuple | tblock) x (int | crel) -> crel
 Example  : query plz feed cconsume[1] count
 Result   : (longint 41267)
 
+
+Operator : cconsume
+Number   : 1
+Signature: stream(tblock) -> crel
+Example  : query cplz feed cconsume[] count
+Result   : (longint 41267)
+
+
 Operator : cfilter
 Number   : 0
 Signature: stream(tblock) x (map tblock longints) x symbol x symbol* x real x int -> stream(tblock)

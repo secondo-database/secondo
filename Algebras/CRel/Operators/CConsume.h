@@ -69,6 +69,9 @@ namespace CRelAlgebra
       //Value mapping if first parameter is a stream of 'tuple'
       static int TupleValueMapping(ArgVector args, Word &result, int message,
                                    Word &local, Supplier s);
+      
+      static int SimpleTupleValueMapping(ArgVector args, Word &result, 
+                                         int message, Word &local, Supplier s);
     };
   }
 }
