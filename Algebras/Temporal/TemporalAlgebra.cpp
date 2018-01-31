@@ -9959,10 +9959,12 @@ It is used for the operator ~getposition~
 
 Type mapping for ~getposition~ is
 
-----    (mbool)  x instant -> (int)
-        (mint)   x instant -> (int)
-        (mreal)  x instant -> (int)
-        (mpoint) x instant -> (int)
+----    (mbool)   x instant -> (int)
+        (mint)    x instant -> (int)
+        (mreal)   x instant -> (int)
+        (mpoint)  x instant -> (int)
+        (mstring) x instant -> (int)
+        (mregion) x instant -> (int)
 ----
 
 */
@@ -9970,11 +9972,12 @@ ListExpr TemporalGetPositionTypeMap(ListExpr args) {
   if (nl->ListLength(args) == 2 && Instant::checkType(nl->Second(args))) {
     ListExpr arg1 = nl->First(args);
     if (MBool::checkType(arg1) || MInt::checkType(arg1) ||
-        MReal::checkType(arg1) || MPoint::checkType(arg1)) {
+        MReal::checkType(arg1) || MPoint::checkType(arg1) ||
+        MString::checkType(arg1) || MRegion::checkType(arg1)) {
       return nl->SymbolAtom(CcInt::BasicType());
     }
   }
-  return nl->SymbolAtom(Symbol::TYPEERROR());
+  return listutils::typeError("Expects a moving(alpha) and an instant.");
 }
 
 /*
@@ -11901,6 +11904,20 @@ int Box3dSelect(ListExpr args){
   }
   return -1; // when this occurs, the type mapping is not correct
 
+}
+
+/*
+Selection function for the getPosition operator
+
+*/
+int TemporalGetPositionSelect(ListExpr args) {
+  if (MBool::checkType(nl->First(args)))   return 0;
+  if (MInt::checkType(nl->First(args)))    return 1;
+  if (MReal::checkType(nl->First(args)))   return 2;
+  if (MPoint::checkType(nl->First(args)))  return 3;
+  if (MString::checkType(nl->First(args))) return 4;
+  if (MRegion::checkType(nl->First(args))) return 5;
+  return -1;
 }
 
 /*
@@ -15628,7 +15645,9 @@ ValueMapping temporalgetunitmap[] = { MappingGetUnit<MBool, UBool>,
 ValueMapping temporalgetpositionmap[] = { MappingGetPosition<MBool>,
                                           MappingGetPosition<MInt>,
                                           MappingGetPosition<MReal>,
-                                          MappingGetPosition<MPoint> };
+                                          MappingGetPosition<MPoint>,
+                                          MappingGetPosition<MString>,
+                                          MappingGetPosition<MRegion> };
 
 ValueMapping temporalbox3dmap[] = { Box3d_rect,
                                     Box3d_instant,
@@ -16146,7 +16165,8 @@ const string TemporalSpecGetUnit  =
 
 const string TemporalSpecGetPosition  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text> mT x instant -> int, where T in {bool, int, real, point}</text--->"
+  "( <text> mT x instant -> int, where T in {bool, int, real, point, string, "
+  "region}</text--->"
   "<text> getPosition( M, I )</text--->"
   "<text>Yields the unit position inside moving object M that corresponds to I."
   "</text--->"
@@ -16922,7 +16942,7 @@ Operator temporalgetposition( "getPosition",
                         TemporalSpecGetPosition,
                         5,
                         temporalgetpositionmap,
-                        MovingSimpleSelect,
+                        TemporalGetPositionSelect,
                         TemporalGetPositionTypeMap );
 
 Operator temporalbbox( "bbox",
