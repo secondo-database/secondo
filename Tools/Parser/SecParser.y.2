@@ -622,7 +622,8 @@ valueexprlistcomma : valueexpr
                    ;
 simplearguments : valueexprlistcomma
                   { $$ = $1; }
-                | simplearguments ';' valueexprlistcomma
+                | { $$ = NestedText::AtomC(" "); }
+                | simplearguments ';' simplearguments 
                   {$$ = NestedText::Concat($1,
                         NestedText::Concat(NestedText::AtomC(" "),$3));
                   }
