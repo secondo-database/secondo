@@ -440,7 +440,7 @@ Result   : (upoint (("2003-11-20-06:06" "2003-11-20-06:06:08.692" TRUE FALSE) (1
 
 Operator : getPosition
 Number   : 1
-Signature: mT x instant -> int, where T in {bool, int, real, point, string}
+Signature: mT x instant -> int, where T in {bool, int, real, point, string, region}
 Example  : query getPosition(train7, [const instant value "2003-11-20-06:07"])
 Result   : 7
 
