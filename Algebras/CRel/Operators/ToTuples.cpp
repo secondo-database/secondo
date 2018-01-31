@@ -90,8 +90,6 @@ ToTuples::State::State(ArgVector args, Supplier s) :
   m_tupleType(new TupleType(
     SecondoSystem::GetCatalog()->NumericType(nl->Second(qp->GetType(s)))))
 {
-  qp->DeleteResultStorage(s);
-
   m_stream.open();
 }
 
@@ -137,3 +135,5 @@ Tuple *ToTuples::State::Request()
 
   return tuple;
 }
+
+
