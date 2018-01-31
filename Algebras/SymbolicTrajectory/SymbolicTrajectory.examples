@@ -236,6 +236,12 @@ Signature: mlabel x int -> ulabel
 Example  : query getunit(mlabel1, 0)
 Result   : (ulabel (("2012-01-01" "2012-01-01-00:30" TRUE FALSE) 'Eving'))
 
+Operator : getPosition
+Number   : 2
+Signature: mlabel x instant -> int
+Example  : query getPosition(mlabel1, [const instant value "2012-01-01-00:09:09"])
+Result   : 0
+
 Operator : getInterval
 Number   : 1
 Signature: mlabel -> interval

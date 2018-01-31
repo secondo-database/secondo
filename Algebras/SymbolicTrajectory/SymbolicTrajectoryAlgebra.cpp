@@ -2388,6 +2388,83 @@ struct getunitSymbolicInfo : OperatorInfo {
 };
 
 /*
+\subsection{Operator ~getPosition~}
+
+getPosition: mlabel  x instant -> int
+getPosition: mlabels x instant -> int
+getPosition: mplace  x instant -> int
+getPosition: mplaces x instant -> int
+
+\subsubsection{Type Mapping}
+
+*/
+ListExpr getPositionSymbolicTM(ListExpr args) {
+  if (nl->HasLength(args, 2)) {
+    if (Instant::checkType(nl->Second(args))) {
+      ListExpr first = nl->First(args);
+      if (MLabel::checkType(first) || MLabels::checkType(first) ||
+          MPlace::checkType(first) || MPlaces::checkType(first)) {
+        return nl->SymbolAtom(CcInt::BasicType());
+      }
+    }
+  }
+  return listutils::typeError("Expects a moving(alpha) and an instant.");
+}
+
+/*
+\subsubsection{Selection Function}
+
+*/
+int getPositionSymbolicSelect(ListExpr args) {
+  if (MLabel::checkType(nl->First(args)))  return 0;
+  if (MLabels::checkType(nl->First(args))) return 1;
+  if (MPlace::checkType(nl->First(args)))  return 2;
+  if (MPlaces::checkType(nl->First(args))) return 3;
+  return -1;
+}
+
+/*
+\subsubsection{Value Mapping}
+
+*/
+template<class M>
+int getPositionSymbolicVM(Word* args, Word& result, int message, Word& local,
+                          Supplier s) {
+  result = qp->ResultStorage(s);
+  CcInt *res = static_cast<CcInt*>(result.addr);
+  M *m = static_cast<M*>(args[0].addr);
+  Instant *inst = static_cast<Instant*>(args[1].addr);
+  if (!m->IsDefined() || !inst->IsDefined()) {
+    res->SetDefined(false);
+    return 0;
+  }
+  int pos = m->Position(*inst);
+  if (pos == -1) {
+    res->SetDefined(false);
+    return 0;
+  }
+  res->Set(true, m->Position(*inst));
+  return 0;
+}
+
+/*
+\subsubsection{Operator Info}
+
+*/
+struct getPositionSymbolicInfo : OperatorInfo {
+  getPositionSymbolicInfo() {
+    name      = "getPosition";
+    signature = "mlabel x instant -> int";
+    appendSignature("mlabels x instant -> int");
+    appendSignature("mplace x instant -> int");
+    appendSignature("mplaces x instant -> int");
+    syntax    = "getPosition ( _, _ )";
+    meaning   = "Returns the unit position inside the moving object that "
+                "corresponds to the instant";
+  }
+};
+
+/*
 \subsection{Operator ~units~}
 
 units: mlabel -> (stream ulabel)
@@ -5594,6 +5671,12 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     getunitSymbolicVM<MPlaces, UPlaces>, 0};
   AddOperator(getunitSymbolicInfo(), getunitSymbolicVMs, symbolicSimpleSelect,
               getunitSymbolicTM);
+  
+  ValueMapping getPositionSymbolicVMs[] = {getPositionSymbolicVM<MLabel>,
+    getPositionSymbolicVM<MLabels>, getPositionSymbolicVM<MPlace>,
+    getPositionSymbolicVM<MPlaces>, 0};
+  AddOperator(getPositionSymbolicInfo(), getPositionSymbolicVMs,
+              getPositionSymbolicSelect, getPositionSymbolicTM);
   
   ValueMapping unitsSymbolicVMs[] = {unitsSymbolicVM<MLabel, ULabel>,
     unitsSymbolicVM<MLabels, ULabels>, unitsSymbolicVM<MPlace, UPlace>, 
