@@ -67,7 +67,7 @@ Operator : consume
 Number   : 0
 Signature: stream(tblock) -> crel
 Example  : query cplz feed consume count
-Result   : (longint 41267)
+Result   : 41267
 
 Operator : count
 Number   : 0

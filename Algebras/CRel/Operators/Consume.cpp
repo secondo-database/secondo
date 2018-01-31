@@ -36,6 +36,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "TBlock.h"
 #include "TBlockTC.h"
 #include "TypeUtils.h"
+#include "ToTuples.h"
+#include "StreamValueMapping.h"
 
 using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
@@ -52,64 +54,47 @@ Consume::Consume() :
 }
 
 const OperatorInfo Consume::info = OperatorInfo(
-  "consume", "stream(tblock) -> crel",
+  "consume", "stream(tblock) -> rel",
   "_ consume",
-  "Creates a column-oriented relation from a stream of tuple blocks.",
+  "Creates an ordinary relation from a stream of tuple blocks.",
   "query cities feed consume");
 
 ListExpr Consume::TypeMapping(ListExpr args)
 {
-  //One arg?
-  if (!nl->HasLength(args, 1))
-  {
-    return GetTypeError("Expected one argument.");
-  }
-
-  ListExpr blockType;
-
-  //Is first parameter a stream of tblock?
-  if (!IsBlockStream(nl->First(args), blockType))
-  {
-    return GetTypeError(0, "source", "Isn't' a stream of tblock.");
-  }
-
-  //Return 'crel' type
-  return CRelTI(TBlockTI(blockType, false), 1).GetTypeExpr();
+   ListExpr tupleStream = ToTuples::TypeMapping(args);
+   if(!Stream<Tuple>::checkType(tupleStream)){
+     // an error
+     return tupleStream;
+   }
+   ListExpr tuple = nl->Second(tupleStream);
+   return nl->TwoElemList(listutils::basicSymbol<Relation>(),
+                          tuple);
+   
+   
 }
 
-int Consume::ValueMapping(Word* args, Word &result, int, Word&, Supplier s)
+int Consume::ValueMapping(Word* args, Word &result, int message , 
+                          Word& local, Supplier s)
 {
-  try
-  {
-    Stream<TBlock> stream = Stream<TBlock>(args[0]);
-    CRel &relation = qp->ResultStorage<CRel>(result, s);
-    TBlock *block;
+ result = qp->ResultStorage(s);
+ GenericRelation* rel = (GenericRelation*) result.addr;
+ if(rel->GetNoTuples() > 0)
+ {
+     rel->Clear();
+ }
 
-    if (relation.GetRowCount() > 0)
-    {
-      relation.Clear();
-    }
+ Word res;
 
-    stream.open();
+ ::ValueMapping vm = StreamValueMapping<ToTuples::State>;
 
-    while ((block = stream.request()) != nullptr)
-    {
-      for (const TBlockEntry &tuple : block->GetFilter())
-      {
-        relation.Append(tuple);
-      }
+ vm(args,res,OPEN,local,s);
 
-      block->DecRef();
-    }
-
-    stream.close();
-
-    return 0;
-  }
-  catch (const exception &e)
-  {
-    ErrorReporter::ReportError(e.what());
-  }
-
-  return FAILURE;
+ while(vm(args,res,REQUEST,local,s)==YIELD){
+    Tuple* tup = (Tuple*) res.addr;
+    rel->AppendTuple(tup);
+    tup->DeleteIfAllowed();
+ }
+ vm(args,res,CLOSE,local,s);
+ result.setAddr(rel);
+ return 0;
 }
