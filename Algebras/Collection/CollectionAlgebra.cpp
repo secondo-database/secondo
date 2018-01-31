@@ -477,7 +477,6 @@ Creates an empty, undefined collection without subtype for the Query Processor.
 #ifdef DEBUGHEAD
 cout << "Create: " << nl->ToString(typeInfo) << endl;
 #endif
-cout << "Create: " << nl->ToString(typeInfo) << endl;
 
  if (nl -> IsEmpty(typeInfo))
    {
