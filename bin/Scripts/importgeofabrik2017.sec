@@ -1,7 +1,7 @@
 # Importing geofabrik data
 
 # change this directory
-let DIR = '/home/user/data/geofabrik/data'
+let DIR = '/home/behr/data/geofabrik/data/'
 
 let Roads = dbimport2(DIR + 'gis.osm_roads_free_1.dbf') shpimport2(DIR + 'gis.osm_roads_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
