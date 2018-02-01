@@ -148,7 +148,7 @@ Result    : 10
 Operator  : feed
 Number    : 1
 Signature : {string, text} -> stream(TUPLE) | frel(tuple(X)) -> stream(tuple(X))
-Example   : query 'ten.bin' feed  count
+Example   : query  createFrel('ten.bin') feed  count
 Result    : 10
 
 Operator  : createDArray
@@ -525,13 +525,13 @@ Remark    : depends on the existence and content of file ten.bin
 Operator  : createFrel
 Number    : 2
 Signature : {string, text} x rel(tuple(X)) -> frel(tuple(X))
-Example   : query createFrel("ten,bin", ten)
-Result    : ((frel(tuple((No int))) 'ten.bin')
+Example   : query createFrel("ten.bin", ten)
+Result    : ( (frel (tuple ( (No int)))) 'ten.bin') 
 
 Operator  : createFrel
 Number    : 3
 Signature : {string, text} x rel(tuple(X)) x bool -> frel(tuple(X))
-Example   : query createFrel("ten,bin", ten, FALSE)
+Example   : query createFrel("ten.bin", ten, FALSE)
 Result    : unpredictable
 Remark    : depends on the existence and content of file ten.bin
 
@@ -547,7 +547,8 @@ Operator  : saveObjectToFile
 Number    : 1
 Signature : D x {string, text} -> fobj(D)
 Example   : query ten saveObjectToFile["ten.file"]
-Result    : (fobj (rel(tuple( (No int)))) 'ten.file')
+Result    : ( (fobj (rel (tuple ( (No int))))) 'ten.file') 
+
 
 
 Operator  : getObjectFromFile
@@ -673,13 +674,6 @@ Signature : string x rel -> stream(tuple)
 Example   : query deleteRemoteDatabases("berlintest", workers)
 Result    : crashes
 Remark    : Not a good idea to test this dangerous operator
-
-
-Operator  : setAccount
-Number    : 1
-Signature : {string,text} x {string, text} -> bool
-Example   : query setAccount("", "");
-Result    : TRUE
 
 
 Operator : writeRel
