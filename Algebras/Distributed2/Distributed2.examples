@@ -720,4 +720,10 @@ Signature : int -> bool
 Example   : query setTimeout(15)
 Result    : TRUE
 
+Operator : db2LogToFile
+Number   : 1
+Signature : -> bool | {string, text} -> bool
+Example   : query db2LogToFile()
+Result    : TRUE
+
 

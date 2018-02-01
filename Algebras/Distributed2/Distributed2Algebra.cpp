@@ -19702,10 +19702,79 @@ Operator setTimeoutOp(
 );
 
 
+/*
+Operator db2LogToFile
 
+*/
+ListExpr db2LogToFileTM(ListExpr args){
+   if(nl->IsEmpty(args)){
+     return listutils::basicSymbol<CcBool>();
+   }
+   if(!nl->HasLength(args,1)){
+     return listutils::typeError("zero or one argument expected");
+   }
+   if(!CcString::checkType(nl->First(args)) &&
+      !FText::checkType(nl->First(args))){
+     return listutils::typeError("nor argument or text or string expected");
+   }
+   return listutils::basicSymbol<CcBool>();
+}
 
+template<class FN>
+int db2LogToFileVMT(Word* args, Word& result, int message,
+                   Word& local, Supplier s) {
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  if(qp->GetNoSons(s)==0){
+    commandLog.stopFileLogging();
+    res->Set(true,true);
+    return 0;
+  }
+  FN* filename = (FN*) args[0].addr;
+  if(!filename->IsDefined()){
+    commandLog.stopFileLogging();
+    res->Set(true,true);
+    return 0;
+  }
+  string fn = filename->GetValue();
+  if(fn.empty()){
+    commandLog.stopFileLogging();
+    res->Set(true,true);
+    return 0;
+  }
+  res->Set(true, commandLog.logToFile(fn));
+  return 0;
+}
 
+int db2LogToFileSelect(ListExpr args){
+  if(nl->IsEmpty(args)) return 0;
+  return CcString::checkType(nl->First(args))?0:1;
+}
 
+ValueMapping db2LogToFileVM[] = {
+   db2LogToFileVMT<CcString>,
+   db2LogToFileVMT<FText>
+};
+
+OperatorSpec db2LogToFileSpec(
+  " -> bool | {string,text } -> bool",
+  " db2LogToFile(_)",
+  " Enables or disables logging of the DB2Algebra into a file",
+  " Without argument, an empty string or an undefined string, "
+  "file logging of the Distributed2Algebra is disabled. "
+  "If an argument is present and non-empty, logging information "
+  "is sedn to the file named by this argument.",
+  "query db2LogToFile('DB2.log')"
+);
+
+Operator db2LogToFileOp(
+  "db2LogToFile",
+  db2LogToFileSpec.getStr(),
+  2,
+  db2LogToFileVM,
+  db2LogToFileSelect,
+  db2LogToFileTM
+);
 
 
 /*
@@ -19924,6 +19993,9 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&db2tryReconnectOp);
    AddOperator(&setHeartbeatOp);
    AddOperator(&setTimeoutOp);
+
+   AddOperator(&db2LogToFileOp);
+
 
    pprogView = new PProgressView();
    MessageCenter::GetInstance()->AddHandler(pprogView);

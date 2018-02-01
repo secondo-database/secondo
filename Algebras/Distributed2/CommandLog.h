@@ -38,7 +38,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/FText/FTextAlgebra.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 
-class TupleType;
 
 namespace distributed2
 {
@@ -87,85 +86,23 @@ public:
 
      */
 
-    CommandLog()
-    {
-       fileout=0;
-       memlog = true;
-    }
+    CommandLog();
 
-    ~CommandLog(){
-       clear();
-    }
+    ~CommandLog();
 
-    bool logToFile(const std::string& filename){
-       boost::lock_guard < boost::mutex > gurad(mtx);
-       std::ofstream* s = new std::ofstream(filename.c_str(), std::ios::trunc);
-       if(s->good()){
-         if(fileout){
-            fileout->close();
-            delete fileout;
-         }
-         fileout=s;
-         return true;      
-       } else {
-         delete s;
-         return false;
-       }
-    }
-
-    void stopFileLogging(){
-      boost::lock_guard < boost::mutex > gurad(mtx);
-      if(fileout){
-         fileout->close();
-         delete fileout;
-         fileout=0;
-      }
-    }
-
-    void setMemLog(const bool _mlog){
-       boost::lock_guard < boost::mutex > gurad(mtx);
-       memlog = _mlog;
-    }
-
-    void clear()
-    {
-        entries.clear();
-    }
+    bool logToFile(const std::string& filename);
+    void stopFileLogging();
+    void setMemLog(const bool _mlog);
+    void clear();
 
     void insert(ConnectionInfo* ci,
                 const std::string& server,
                 const std::string& home,
                 const std::string& query,
                 const double& runtime,
-                const int errorCode)
-    {
-        boost::lock_guard < boost::mutex > gurad(mtx);
-        if(memlog){
-          entries.push_back(
-                LogEntry((void*) ci, server, home, query, runtime, errorCode));
-        }
-        if(fileout){
-            
-        }
-    }
-
-    static ListExpr getTupleDescription()
-    {
-        ListExpr attrList = nl->SixElemList(
-                nl->TwoElemList(nl->SymbolAtom("ConnectionId"),
-                                listutils::basicSymbol<LongInt>()),
-                nl->TwoElemList(nl->SymbolAtom("Server"),
-                                listutils::basicSymbol<FText>()),
-                nl->TwoElemList(nl->SymbolAtom("Home"),
-                                listutils::basicSymbol<FText>()),
-                nl->TwoElemList(nl->SymbolAtom("Command"),
-                                listutils::basicSymbol<FText>()),
-                nl->TwoElemList(nl->SymbolAtom("RunTime"),
-                                listutils::basicSymbol<CcReal>()),
-                nl->TwoElemList(nl->SymbolAtom("ErrorCode"),
-                                listutils::basicSymbol<CcInt>()));
-        return nl->TwoElemList(listutils::basicSymbol<Tuple>(), attrList);
-    }
+                const int errorCode);
+    
+    static ListExpr getTupleDescription();
 
     class Iterator
     {

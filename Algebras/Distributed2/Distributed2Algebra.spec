@@ -133,4 +133,5 @@ operator writeRel alias WRITEREL pattern _ op[_]
 operator write2 alias WRITE2 pattern _ op
 operator write3 alias WRITE3 pattern _ op
 
+operator db2LogToFile alias DB2LOGTOFILE pattern op(_,_)
 
