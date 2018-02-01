@@ -64,7 +64,7 @@ bool SecondoUtilsRemote::executeQuery(
     distributed2::CommandLog commandLog;
     connectionInfo->simpleCommand(query,
             errorCode, errorMessage, result, false,
-            runtime, false, false, commandLog);
+            runtime, false, commandLog);
     //TODO better error handling
     print(errorCode);
     print(errorMessage.c_str());

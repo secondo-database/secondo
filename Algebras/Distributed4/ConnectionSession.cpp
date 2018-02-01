@@ -36,14 +36,12 @@ Suite 330, Boston, MA  02111-1307  USA
 
 namespace distributed2 {
   extern bool showCommands;
-  extern bool logOn;
   extern distributed2::CommandLog commandLog;
 }
 
 namespace distributed4 {
   using distributed2::ConnectionInfo;
   using distributed2::commandLog;
-  using distributed2::logOn;
   using distributed2::showCommands;
   using std::cerr;
   using std::runtime_error;
@@ -116,7 +114,7 @@ Which is the case is tracked in "deleteci"[1].
       ListExpr res;
       double rt;
       for(auto it{rollback.rbegin()}; it != rollback.rend(); ++it)
-        ci->simpleCommand(*it, err, msg, res, false, rt, true, logOn,
+        ci->simpleCommand(*it, err, msg, res, false, rt, true, 
             commandLog);
     }
     if(deleteci)
@@ -166,7 +164,7 @@ consequence of leaving scope.
     string msg;
     ListExpr res;
     double rt;
-    ci->simpleCommand(cmd, err, msg, res, false, rt, showCommands, logOn,
+    ci->simpleCommand(cmd, err, msg, res, false, rt, showCommands, 
         commandLog);
     if(err)
       throw runtime_error{"Peer " + ci->getHost() + ":" +

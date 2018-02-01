@@ -73,7 +73,7 @@ public:
 
     std::string getConfig() const;
 
-    bool check(bool showCommands, bool logOn, CommandLog& commandLog,
+    bool check(bool showCommands, CommandLog& commandLog,
                const size_t timeout=0);
 
     void setId(const int i);
@@ -84,7 +84,6 @@ public:
                        bool rewrite,
                        double& runtime,
                        bool showCommands,
-                       bool logOn,
                        CommandLog& commandLog,
                        bool forceExec = false,
                        const size_t timeout=0);
@@ -93,7 +92,6 @@ public:
                                CommandLog& commandLog);
 
     bool cleanUp(bool showCommands,
-                 bool logOn,
                  CommandLog& commandLog,
                  const size_t timeout=0);
 
@@ -111,7 +109,6 @@ public:
                        std::string& resList,
                        const bool rewrite,
                        double& runtime,
-                       bool log,
                        bool showCommands,
                        CommandLog& commandLog,
                        bool forceExec = false,
@@ -124,7 +121,6 @@ public:
                                const bool rewrite,
                                double& runtime,
                                bool showCommands,
-                               bool logOn,
                                CommandLog& commandLog,
                                bool forceExec = false,
                                const int timeout = 0);
@@ -136,7 +132,6 @@ public:
                        const bool rewrite,
                        double& runtime,
                        bool showCommands,
-                       bool logOn,
                        CommandLog& commandLog,
                        bool forceExec = false,
                        const size_t timeout=0);
@@ -169,7 +164,6 @@ public:
                               ListExpr typelist,
                               Word& value,
                               bool showCommands,
-                              bool logOn,
                               CommandLog& commandLog,
                               bool forceExec = false,
                               const size_t timeout=0);
@@ -178,7 +172,6 @@ public:
                                 ListExpr typeList,
                                 Word& value,
                                 bool showCommands,
-                                bool logOn,
                                 CommandLog& commandLog,
                                 bool forceExec = false,
                                 const size_t timeout=0);
@@ -186,7 +179,6 @@ public:
     bool createOrUpdateRelationFromBinFile(const std::string& name,
                                            const std::string& filename,
                                            bool showCommands,
-                                           bool logOn,
                                            CommandLog& commandLog,
                                            const bool allowOverwrite = true,
                                            bool forceExec = false,
@@ -195,7 +187,6 @@ public:
     bool createOrUpdateAttributeFromBinFile(const std::string& name,
                                             const std::string& filename,
                                             bool showCommands,
-                                            bool logOn,
                                             CommandLog& commandLog,
                                             const bool allowOverwrite = true,
                                             bool forceExec = false,
@@ -219,7 +210,6 @@ public:
                   Word& result,
                   bool checkType,
                   bool showCommands,
-                  bool logOn,
                   CommandLog& commandLog,
                   bool forceExec = false,
                   const size_t timeout=0);
@@ -228,7 +218,6 @@ public:
                           ListExpr& resType,
                           Word& result,
                           bool showCommands,
-                          bool logOn,
                           CommandLog& commandLog,
                           bool forceExec = false,
                           const size_t timeout=0);
@@ -237,7 +226,6 @@ public:
                                 ListExpr& resType,
                                 Word& result,
                                 bool showCommands,
-                                bool logOn,
                                 CommandLog& commandLog,
                                 bool forceExec = false,
                                 const size_t timeout=0);
@@ -245,7 +233,6 @@ public:
     bool retrieveRelationFile(const std::string& objName,
                               const std::string& fname1,
                               bool showCommands,
-                              bool logOn,
                               CommandLog& commandLog,
                               bool forceExec = false,
                               const size_t timeout=0);
@@ -253,7 +240,6 @@ public:
     bool retrieveAnyFile(const std::string& remoteName,
                          const std::string& localName,
                          bool showCommands,
-                         bool logOn,
                          CommandLog& commandLog,
                          bool forceExec = false,
                          const size_t timeout=0);

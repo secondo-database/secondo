@@ -75,6 +75,9 @@ private:
         int errorCode;
     };
 
+    std::ofstream* fileout;
+    bool memlog;
+
 public:
 
     /*
@@ -85,7 +88,44 @@ public:
      */
 
     CommandLog()
-    {}
+    {
+       fileout=0;
+       memlog = true;
+    }
+
+    ~CommandLog(){
+       clear();
+    }
+
+    bool logToFile(const std::string& filename){
+       boost::lock_guard < boost::mutex > gurad(mtx);
+       std::ofstream* s = new std::ofstream(filename.c_str(), std::ios::trunc);
+       if(s->good()){
+         if(fileout){
+            fileout->close();
+            delete fileout;
+         }
+         fileout=s;
+         return true;      
+       } else {
+         delete s;
+         return false;
+       }
+    }
+
+    void stopFileLogging(){
+      boost::lock_guard < boost::mutex > gurad(mtx);
+      if(fileout){
+         fileout->close();
+         delete fileout;
+         fileout=0;
+      }
+    }
+
+    void setMemLog(const bool _mlog){
+       boost::lock_guard < boost::mutex > gurad(mtx);
+       memlog = _mlog;
+    }
 
     void clear()
     {
@@ -100,8 +140,13 @@ public:
                 const int errorCode)
     {
         boost::lock_guard < boost::mutex > gurad(mtx);
-        entries.push_back(
+        if(memlog){
+          entries.push_back(
                 LogEntry((void*) ci, server, home, query, runtime, errorCode));
+        }
+        if(fileout){
+            
+        }
     }
 
     static ListExpr getTupleDescription()

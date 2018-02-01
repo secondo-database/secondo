@@ -208,7 +208,7 @@ string ConnectionInfo::getConfig() const
  Here, the command is always executed even if the command logger is not null.
 
 */
-bool ConnectionInfo::check(bool showCommands, bool logOn, 
+bool ConnectionInfo::check(bool showCommands,  
                            CommandLog& commandLog,
                            const size_t timeout)
 {
@@ -232,13 +232,10 @@ bool ConnectionInfo::check(bool showCommands, bool logOn,
 
 
         double rt = sw.diffSecondsReal();
-        if (logOn)
-        {   
-            string home = this->getSecondoHome(showCommands, commandLog);
-            commandLog.insert(this, this->getHost(), 
-                              home,
-                              cmd, rt, err.code);
-        }
+        string home = this->getSecondoHome(showCommands, commandLog);
+        commandLog.insert(this, this->getHost(), 
+                          home,
+                          cmd, rt, err.code);
         showCommand(si, host, port, cmd, false, showCommands);
         if(timeout>0){
           stopTimeout(true);
@@ -274,7 +271,6 @@ void ConnectionInfo::simpleCommand(string command1,
                                    bool rewrite,
                                    double& runtime,
                                    bool showCommands,
-                                   bool logOn,
                                    CommandLog& commandLog,
                                    bool forceExec /*=false*/,
                                    const size_t timeout /*=0*/)
@@ -310,12 +306,9 @@ void ConnectionInfo::simpleCommand(string command1,
         showCommand(si, host, port, command, false, showCommands);
         runtime = sw.diffSecondsReal();
         err = serr.code;
-        if (logOn)
-        {
-            commandLog.insert(this, this->getHost(), 
-                              this->getSecondoHome(showCommands, commandLog),
-                              command, runtime, err);
-        }
+        commandLog.insert(this, this->getHost(), 
+                          this->getSecondoHome(showCommands, commandLog),
+                          command, runtime, err);
         if (err == 0)
         {
             result = mynl->ToString(resList);
@@ -349,7 +342,6 @@ string ConnectionInfo::getSecondoHome(bool showCommands,
 */
 
 bool ConnectionInfo::cleanUp(bool showCommands,
-                             bool logOn,
                              CommandLog& commandLog, 
                              const size_t timeout)
 {   
@@ -363,7 +355,7 @@ bool ConnectionInfo::cleanUp(bool showCommands,
     string res;
     double rt;
     simpleCommand(command, err, res, false, rt, showCommands, 
-                  logOn, commandLog, false,timeout);
+                  commandLog, false,timeout);
     bool result = err == 0;
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
     string path = getSecondoHome(showCommands, commandLog) 
@@ -373,7 +365,7 @@ bool ConnectionInfo::cleanUp(bool showCommands,
             "namedtransformstream[F] "
             "extend[ OK : removeDirectory(.F, TRUE)] count";
     simpleCommand(command, err, res, false, rt, showCommands, 
-                  logOn, commandLog, false, timeout);
+                  commandLog, false, timeout);
     result = result && (err == 0);
     return result;
 }
@@ -381,7 +373,7 @@ bool ConnectionInfo::cleanUp(bool showCommands,
 
 bool ConnectionInfo::cleanUp1(const size_t timeout) {
    static CommandLog log;
-   return cleanUp(false,false,log, timeout);
+   return cleanUp(false,log, timeout);
 }
 
 /*
@@ -463,7 +455,6 @@ void ConnectionInfo::simpleCommand(const string& command1,
                                    const bool rewrite,
                                    double& runtime,
                                    bool showCommands,
-                                   bool logOn,
                                    CommandLog& commandLog,
                                    bool forceExec,
                                    const size_t timeout)
@@ -500,12 +491,9 @@ void ConnectionInfo::simpleCommand(const string& command1,
 
         showCommand(si, host, port, command, false, showCommands);
         runtime = sw.diffSecondsReal();
-        if (logOn)
-        {
-            commandLog.insert(this, this->getHost(), 
-                              this->getSecondoHome(showCommands, commandLog),
-                              command, runtime, serr.code);
-        }
+        commandLog.insert(this, this->getHost(), 
+                          this->getSecondoHome(showCommands, commandLog),
+                          command, runtime, serr.code);
         error = serr.code;
         errMsg = serr.msg;
 
@@ -527,7 +515,6 @@ void ConnectionInfo::simpleCommandFromList(const string& command1,
                                            const bool rewrite,
                                            double& runtime,
                                            bool showCommands,
-                                           bool logOn,
                                            CommandLog& commandLog,
                                            bool forceExec,
                                            int timeout)
@@ -577,12 +564,9 @@ void ConnectionInfo::simpleCommandFromList(const string& command1,
 
     showCommand(si, host, port, command, false, showCommands);
     runtime = sw.diffSecondsReal();
-    if (logOn)
-    {
-        commandLog.insert(this, this->getHost(), 
+    commandLog.insert(this, this->getHost(), 
                           this->getSecondoHome(showCommands, commandLog),
                           command, runtime, serr.code);
-    }
     error = serr.code;
     errMsg = serr.msg;
 
@@ -617,7 +601,6 @@ void ConnectionInfo::simpleCommand(const string& command1,
                                    const bool rewrite,
                                    double& runtime,
                                    bool showCommands,
-                                   bool logOn,
                                    CommandLog& commandLog,
                                    bool forceExec,
                                    const size_t timeout)
@@ -652,12 +635,9 @@ void ConnectionInfo::simpleCommand(const string& command1,
     } 
     showCommand(si, host, port, command, false, showCommands);
     runtime = sw.diffSecondsReal();
-    if (logOn)
-    {
-        commandLog.insert(this, this->getHost(), 
-                          this->getSecondoHome(showCommands, commandLog),
-                          command, runtime, serr.code);
-    }
+    commandLog.insert(this, this->getHost(), 
+                      this->getSecondoHome(showCommands, commandLog),
+                      command, runtime, serr.code);
     error = serr.code;
     errMsg = serr.msg;
     // copy resultlist from local nested list to global nested list
@@ -802,7 +782,6 @@ bool ConnectionInfo::createOrUpdateObject(const string& name,
                                           ListExpr typelist,
                                           Word& value,
                                           bool showCommands,
-                                          bool logOn,
                                           CommandLog& commandLog,
                                           bool forceExec,
                                           const size_t timeout)
@@ -810,7 +789,7 @@ bool ConnectionInfo::createOrUpdateObject(const string& name,
     if (Relation::checkType(typelist))
     {
         return createOrUpdateRelation(name, typelist, value, 
-                                      showCommands, logOn, commandLog,
+                                      showCommands, commandLog,
                                       forceExec,
                                       timeout);
     }
@@ -833,12 +812,9 @@ bool ConnectionInfo::createOrUpdateObject(const string& name,
        serr.msg = "command not executed";
     }
     double runtime = sw.diffSecondsReal();
-    if (logOn)
-    {
-        commandLog.insert(this, this->getHost(), 
-                          this->getSecondoHome(showCommands, commandLog), cmd,
-                          runtime, serr.code);
-    }
+    commandLog.insert(this, this->getHost(), 
+                      this->getSecondoHome(showCommands, commandLog), cmd,
+                      runtime, serr.code);
 
     showCommand(si, host, port, cmd, false, showCommands);
     // ignore error (object must not exist)
@@ -857,12 +833,9 @@ bool ConnectionInfo::createOrUpdateObject(const string& name,
        serr.msg = "command not executed";
     }
     runtime = sw.diffSecondsReal();
-    if (logOn)
-    {
-        commandLog.insert(this, this->getHost(), 
-                          this->getSecondoHome(showCommands, commandLog), cmd,
-                          runtime, serr.code);
-    }
+    commandLog.insert(this, this->getHost(), 
+                      this->getSecondoHome(showCommands, commandLog), cmd,
+                      runtime, serr.code);
     showCommand(si, host, port, cmd, false, showCommands);
     FileSystem::DeleteFileOrFolder(filename);
     if(timeout>0){
@@ -881,7 +854,6 @@ bool ConnectionInfo::createOrUpdateRelation(const string& name,
                                             ListExpr typeList,
                                             Word& value,
                                             bool showCommands,
-                                            bool logOn,
                                             CommandLog& commandLog,
                                             bool forceExec,
                                             const size_t timeout)
@@ -897,7 +869,7 @@ bool ConnectionInfo::createOrUpdateRelation(const string& name,
     }
     // restore remote relation from local file
     bool ok = createOrUpdateRelationFromBinFile(name, filename, 
-                                   showCommands, logOn, commandLog,
+                                   showCommands, commandLog,
                                    true,
                                    forceExec, timeout);
     // remove temporarly file
@@ -916,7 +888,6 @@ bool ConnectionInfo::createOrUpdateRelation(const string& name,
 bool ConnectionInfo::createOrUpdateRelationFromBinFile(const string& name,
                                                      const string& filename,
                                                      bool showCommands,
-                                                     bool logOn,
                                                      CommandLog& commandLog,
                                                      const bool allowOverwrite,
                                                      bool forceExec,
@@ -959,12 +930,9 @@ bool ConnectionInfo::createOrUpdateRelationFromBinFile(const string& name,
            serr.msg = "command not executed";
         }
         double runtime = sw.diffSecondsReal();
-        if (logOn)
-        {
-            commandLog.insert(this, this->getHost(), 
-                              this->getSecondoHome(showCommands, commandLog),
-                              cmd, runtime, serr.code);
-        }
+        commandLog.insert(this, this->getHost(), 
+                          this->getSecondoHome(showCommands, commandLog),
+                          cmd, runtime, serr.code);
         showCommand(si, host, port, cmd, false, showCommands);
     }
 
@@ -981,12 +949,9 @@ bool ConnectionInfo::createOrUpdateRelationFromBinFile(const string& name,
        serr.msg = "command not executed";
     }
     double runtime = sw.diffSecondsReal();
-    if (logOn)
-    {
-        commandLog.insert(this, this->getHost(), 
-                          this->getSecondoHome(showCommands, commandLog), cmd,
-                          runtime, serr.code);
-    }
+    commandLog.insert(this, this->getHost(), 
+                      this->getSecondoHome(showCommands, commandLog), cmd,
+                      runtime, serr.code);
     showCommand(si, host, port, cmd, false, showCommands);
 
     bool ok = serr.code == 0;
@@ -1002,12 +967,9 @@ bool ConnectionInfo::createOrUpdateRelationFromBinFile(const string& name,
        serr.msg = "command not executed";
     }
     runtime = sw.diffSecondsReal();
-    if (logOn)
-    {
-        commandLog.insert(this, this->getHost(), 
-                          this->getSecondoHome(showCommands, commandLog), cmd,
-                          runtime, serr.code);
-    }
+    commandLog.insert(this, this->getHost(), 
+                      this->getSecondoHome(showCommands, commandLog), cmd,
+                      runtime, serr.code);
     if(timeout>0){
        stopTimeout(false);
     }
@@ -1025,7 +987,6 @@ bool ConnectionInfo::createOrUpdateRelationFromBinFile(const string& name,
 bool ConnectionInfo::createOrUpdateAttributeFromBinFile(const string& name,
                                                      const string& filename,
                                                      bool showCommands,
-                                                     bool logOn,
                                                      CommandLog& commandLog,
                                                      const bool allowOverwrite,
                                                      bool forceExec,
@@ -1069,12 +1030,9 @@ bool ConnectionInfo::createOrUpdateAttributeFromBinFile(const string& name,
            serr.msg = "command not executed";
         }
         double runtime = sw.diffSecondsReal();
-        if (logOn)
-        {
-            commandLog.insert(this, this->getHost(), 
-                              this->getSecondoHome(showCommands, commandLog),
-                              cmd, runtime, serr.code);
-        }
+        commandLog.insert(this, this->getHost(), 
+                          this->getSecondoHome(showCommands, commandLog),
+                          cmd, runtime, serr.code);
         showCommand(si, host, port, cmd, false, showCommands);
     }
 
@@ -1091,12 +1049,9 @@ bool ConnectionInfo::createOrUpdateAttributeFromBinFile(const string& name,
        serr.msg = "command not executed";
     }
     double runtime = sw.diffSecondsReal();
-    if (logOn)
-    {
-        commandLog.insert(this, this->getHost(), 
-                          this->getSecondoHome(showCommands, commandLog), cmd,
-                          runtime, serr.code);
-    }
+    commandLog.insert(this, this->getHost(), 
+                      this->getSecondoHome(showCommands, commandLog), cmd,
+                      runtime, serr.code);
     showCommand(si, host, port, cmd, false, showCommands);
 
     bool ok = serr.code == 0;
@@ -1204,7 +1159,6 @@ bool ConnectionInfo::retrieve(const string& objName,
                               Word& result,
                               bool checkType,
                               bool showCommands,
-                              bool logOn,
                               CommandLog& commandLog,
                               bool forceExec,
                               const size_t timeout)
@@ -1212,7 +1166,7 @@ bool ConnectionInfo::retrieve(const string& objName,
     if (Relation::checkType(resType))
     {
         if (retrieveRelation(objName, resType, result, 
-                             showCommands, logOn, commandLog, false, timeout))
+                             showCommands, commandLog, false, timeout))
         {
             return true;
         }
@@ -1241,12 +1195,9 @@ bool ConnectionInfo::retrieve(const string& objName,
          stopTimeout(false);
       }
       double runtime = sw.diffSecondsReal();
-      if (logOn)
-      {
-          commandLog.insert(this, this->getHost(), 
-                            this->getSecondoHome(showCommands, commandLog), cmd,
-                            runtime, serr.code);
-      }
+      commandLog.insert(this, this->getHost(), 
+                        this->getSecondoHome(showCommands, commandLog), cmd,
+                        runtime, serr.code);
       showCommand(si, host, port, cmd, false, showCommands);
       SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
       if (serr.code != 0)
@@ -1296,7 +1247,6 @@ bool ConnectionInfo::retrieveRelation(const string& objName,
                                       ListExpr& resType,
                                       Word& result,
                                       bool showCommands,
-                                      bool logOn,
                                       CommandLog& commandLog,
                                       bool forceExec,
                                       const size_t timeout)
@@ -1304,7 +1254,7 @@ bool ConnectionInfo::retrieveRelation(const string& objName,
 
     //guard_type guard(simtx);
     string fname1 = objName + ".bin";
-    if (!retrieveRelationFile(objName, fname1, showCommands, logOn, 
+    if (!retrieveRelationFile(objName, fname1, showCommands,  
                               commandLog, forceExec,timeout))
     {
         return false;
@@ -1324,7 +1274,6 @@ bool ConnectionInfo::retrieveRelationInFile(const string& fileName,
                                             ListExpr& resType,
                                             Word& result,
                                             bool showCommands,
-                                            bool logOn,
                                             CommandLog& commandLog,
                                             bool forceExec,
                                             const size_t timeout)
@@ -1382,12 +1331,9 @@ bool ConnectionInfo::retrieveRelationInFile(const string& fileName,
        stopTimeout(false);
     }
     double runtime = sw.diffSecondsReal();
-    if (logOn)
-    {
-        commandLog.insert(this, this->getHost(), 
-                          this->getSecondoHome(showCommands, commandLog), cmd,
-                          runtime, serr.code);
-    }
+    commandLog.insert(this, this->getHost(), 
+                      this->getSecondoHome(showCommands, commandLog), cmd,
+                      runtime, serr.code);
     showCommand(si, host, port, cmd, false, showCommands);
 
     if (serr.code != 0)
@@ -1437,12 +1383,9 @@ bool ConnectionInfo::retrieveRelationInFile(const string& fileName,
        stopTimeout(false);
     }
     runtime = sw.diffSecondsReal();
-    if (logOn)
-    {
-        commandLog.insert(this, this->getHost(), 
-                          this->getSecondoHome(showCommands, commandLog), cmd,
-                          runtime, serr.code);
-    }
+    commandLog.insert(this, this->getHost(), 
+                      this->getSecondoHome(showCommands, commandLog), cmd,
+                      runtime, serr.code);
     showCommand(si, host, port, cmd, false, showCommands);
     if (serr.code != 0)
     {
@@ -1461,7 +1404,6 @@ bool ConnectionInfo::retrieveRelationInFile(const string& fileName,
 bool ConnectionInfo::retrieveRelationFile(const string& objName,
                                           const string& fname1,
                                           bool showCommands,
-                                          bool logOn,
                                           CommandLog& commandLog,
                                           bool forceExec, 
                                           const size_t timeout)
@@ -1494,12 +1436,9 @@ bool ConnectionInfo::retrieveRelationFile(const string& objName,
        serr.msg = "command not executed";
     }
     double runtime = sw.diffSecondsReal();
-    if (logOn)
-    {
-        commandLog.insert(this, this->getHost(), 
-                          this->getSecondoHome(showCommands, commandLog), cmd,
-                          runtime, serr.code);
-    }
+    commandLog.insert(this, this->getHost(), 
+                      this->getSecondoHome(showCommands, commandLog), cmd,
+                      runtime, serr.code);
 
     showCommand(si, host, port, cmd, false, showCommands);
     if (serr.code != 0)
@@ -1525,12 +1464,9 @@ bool ConnectionInfo::retrieveRelationFile(const string& objName,
        serr.msg = "command not executed";
     }
     runtime = sw.diffSecondsReal();
-    if (logOn)
-    {
-        commandLog.insert(this, this->getHost(), 
-                          this->getSecondoHome(showCommands, commandLog), cmd,
-                          runtime, serr.code);
-    }
+    commandLog.insert(this, this->getHost(), 
+                      this->getSecondoHome(showCommands, commandLog), cmd,
+                      runtime, serr.code);
     showCommand(si, host, port, cmd, false, showCommands);
 
     if (serr.code != 0)
@@ -1559,12 +1495,9 @@ bool ConnectionInfo::retrieveRelationFile(const string& objName,
        serr.msg = "command not executed";
     }
     runtime = sw.diffSecondsReal();
-    if (logOn)
-    {
-        commandLog.insert(this, this->getHost(), 
-                          this->getSecondoHome(showCommands, commandLog), cmd,
-                          runtime, serr.code);
-    }
+    commandLog.insert(this, this->getHost(), 
+                      this->getSecondoHome(showCommands, commandLog), cmd,
+                      runtime, serr.code);
     showCommand(si, host, port, cmd, false, showCommands);
     if(timeout>0){
       stopTimeout(false);
@@ -1582,7 +1515,6 @@ bool ConnectionInfo::retrieveRelationFile(const string& objName,
 bool ConnectionInfo::retrieveAnyFile(const string& remoteName,
                                      const string& localName,
                                      bool showCommands,
-                                     bool logOn,
                                      CommandLog& commandLog,
                                      bool forceExec,
                                      const size_t timeout)
@@ -1603,7 +1535,7 @@ bool ConnectionInfo::retrieveAnyFile(const string& remoteName,
         // create request dir
         string cmd = "query createDirectory('" + rf + "', TRUE)";
         simpleCommand(cmd, err, errMsg, result, false, rt, 
-                      showCommands, logOn, commandLog, forceExec, timeout);
+                      showCommands, commandLog, forceExec, timeout);
         if (err)
         {
             showError(this, cmd, err, errMsg);
@@ -1615,7 +1547,7 @@ bool ConnectionInfo::retrieveAnyFile(const string& remoteName,
                   + "/" + rf + "/" + cn;
         cmd = "query copyFile('" + remoteName + "','" + cf + "')";
         simpleCommand(cmd, err, errMsg, result, false, rt, showCommands, 
-                      logOn, commandLog, forceExec, timeout);
+                      commandLog, forceExec, timeout);
         if (err)
         {
             cerr << "command " << cmd << " failed" << endl;
@@ -1650,7 +1582,7 @@ bool ConnectionInfo::retrieveAnyFile(const string& remoteName,
         // remove copy
         string cmd = "query removeFile('" + cn + "')";
         simpleCommand(cmd, err, errMsg, result, false, rt, showCommands, 
-                      logOn, commandLog, forceExec, timeout);
+                      commandLog, forceExec, timeout);
         if (err)
         {
             cerr << "command " << cmd << " failed" << endl;

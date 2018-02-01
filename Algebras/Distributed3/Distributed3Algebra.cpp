@@ -384,7 +384,7 @@ Transfers a local file to a remove server.
          c = connections[con];
       }
       if(!c) return false;
-      return c->check(false,false,commandLog);
+      return c->check(false,commandLog);
     }
     
 
@@ -412,7 +412,7 @@ Transfers a local file to a remove server.
          return false;
       }
       c->simpleCommand(cmd,error,errMsg,resList, rewrite, runtime,
-                       false, false,  commandLog);
+                       false, commandLog);
       return true;
     }
     
@@ -440,7 +440,7 @@ Transfers a local file to a remove server.
          return false;
       }
       c->simpleCommand(cmd,error,errMsg,resList, rewrite, runtime, 
-                       false, false, commandLog);
+                       false, commandLog);
       return true;
     }
 
@@ -3415,7 +3415,7 @@ void retrieveObject(const string arrayName, int i,
             + tempObject +"'] count";
 //  }
   ci2->simpleCommand( cmd, err,errMsg,r,false, runTime,
-                      false, false,commandLog);
+                      false, commandLog);
   if(err){
     cerr << "cmd << " << cmd << " failed  with code " << err << endl;
     cerr << errMsg;
@@ -3428,7 +3428,7 @@ void retrieveObject(const string arrayName, int i,
               + "', " + stringutils::int2str(ci2->getPort()) 
               + ", TRUE, '" + tempObject+"')";
   ci1->simpleCommand( cmd, err,errMsg,r,false, runTime,
-                      false, false, commandLog);
+                      false, commandLog);
   if(err){
     cerr << "cmd << " << cmd << " failed  with code " << err << endl;
     cerr << errMsg;
@@ -3443,7 +3443,7 @@ void retrieveObject(const string arrayName, int i,
             + "' ffeed5 consume";
 //  }
   ci1->simpleCommand( cmd, err,errMsg,r,false, runTime, 
-                      false, false, commandLog);
+                      false, commandLog);
   if(err){
     cerr << "cmd << " << cmd << " failed  with code " << err << endl;
     cerr << errMsg;
@@ -3451,13 +3451,13 @@ void retrieveObject(const string arrayName, int i,
   }  
   // step4 delete temp files on ci1 and ci2
   cmd = "query removeFile('" + tempObject+"')";
-  ci1->simpleCommand( cmd, err,errMsg,r,false, runTime, false, false,
+  ci1->simpleCommand( cmd, err,errMsg,r,false, runTime, false, 
                       commandLog);
   if(err){
     cerr << "cmd << " << cmd << " failed  with code " << err << endl;
     cerr << errMsg;
   }  
-  ci2->simpleCommand( cmd, err,errMsg,r,false, runTime, false, false,
+  ci2->simpleCommand( cmd, err,errMsg,r,false, runTime, false, 
                       commandLog);
   if(err){
     cerr << "cmd << " << cmd << " failed  with code " << err << endl;
@@ -3505,13 +3505,13 @@ class ScheduleRunner{
       stringutils::int2str(task->GetPart2());
     // remove old stuff
     cRes->simpleCommand("delete " + resName,err,errMsg,strres,false,runtime,
-                        false, false, commandLog);
+                        false, commandLog);
     // create new one
     string cmd ="(let " + resName + " = ( " + 
       task->GetFunQuery() + " " + nameA1 + " " + nameA2 +"))";
 
     cRes->simpleCommandFromList(cmd, err,errMsg, strres, false, runtime,
-                                false, false, commandLog);
+                                false, commandLog);
     if(err!=0){
       cerr << "error in creating result via " << cmd << endl;
       cerr << errMsg << endl;
