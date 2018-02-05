@@ -64,23 +64,23 @@ namespace sharedstream {
         /*Destruktor*/
         ~StreamSource();
 
-        void addProcessor(string ip, string port);
+        void addProcessor(std::string ip, std::string port);
 
-        void deleteProcessor(string ip, string port);
+        void deleteProcessor(std::string ip, std::string port);
 
         void sendTuple(Tuple tuple);
 
 
         struct ProcessorEntry {
-            string ipAdress;
-            string port;
+            std::string ipAdress;
+            std::string port;
 
-            ProcessorEntry(string ipAdress, string port);
+            ProcessorEntry(std::string ipAdress, std::string port);
         };
 
     private:
         //vector, der die angemeldeten StreamProcessor mit IP und Port enthaelt.
-        vector <ProcessorEntry> processors;
+        std::vector <ProcessorEntry> processors;
 
         //Objekt für den vorgetäuschten Strom (FakedStream)
         FakedStream *fakedStream;
