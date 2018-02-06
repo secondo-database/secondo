@@ -35,18 +35,18 @@
 #include "AlgebraManager.h"     // e.g., check for a certain kind
 #include "Operator.h"           // for operator creation
 #include "StandardTypes.h"      // priovides int, real, string, bool type
-#include "FTextAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "Symbols.h"            // predefined strings
 #include "ListUtils.h"          // useful functions for nested lists
-#include "Stream.h"             // wrapper for secondo streams
+#include "Algebras/Stream/Stream.h"             // wrapper for secondo streams
 
 
 #include "LogMsg.h"             // send error messages
 
-#include "RelationAlgebra.h"    // use of tuples
+#include "Algebras/Relation-C++/RelationAlgebra.h"    // use of tuples
 
-#include "ConnectionInfo.h"     //use of ConnectionInfo
-#include "ErrorWriter.h"
+#include "Algebras/Distributed2/ConnectionInfo.h"     //use of ConnectionInfo
+#include "Algebras/Distributed2/ErrorWriter.h"
 #include "SocketIO.h"
 #include "FakedStream.h"
 
