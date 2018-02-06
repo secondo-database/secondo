@@ -34,6 +34,7 @@
 #endif //FAKEDSTREAM_H
 namespace sharedstream {
     class FakedStream {
+
     };
     //Klasse, die einen endlosen Strom als Auswahl aus 4
     // verschiedenen Tupelarten vorgaukelt

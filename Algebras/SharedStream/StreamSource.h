@@ -53,15 +53,15 @@
 
 namespace sharedstream {
 
-    /*Mit dieser Klasse kann sich eine Secondoinstanz zu einer Quelle fuer einen
-    * unendlichen Strom erklaeren, so dass andere Secondoinstanzen als 
-    * StreamProcessoran den Strom anschliessen und mitlauschen koennen*/
+   /* This class will represent a source for an neverending stream.
+    * Other instances of Secondo (StreamProcessors) can connect to the
+    * StreamSource and receive a copy of each tuple arriving.*/
     class StreamSource {
     public:
-        /*Konstruktor*/
+        /*constructor*/
         StreamSource(int _port);
 
-        /*Destruktor*/
+        /*destructor*/
         ~StreamSource();
 
         void addProcessor(std::string ip, std::string port);
@@ -79,10 +79,10 @@ namespace sharedstream {
         };
 
     private:
-        //vector, der die angemeldeten StreamProcessor mit IP und Port enthaelt.
+        //vector for the registered StreamProcessors
         std::vector <ProcessorEntry> processors;
 
-        //Objekt für den vorgetäuschten Strom (FakedStream)
+        //Object for a faked stream
         FakedStream *fakedStream;
 
     };//end streamsource

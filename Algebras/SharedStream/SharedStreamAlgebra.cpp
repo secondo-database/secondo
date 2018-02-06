@@ -86,7 +86,7 @@ using namespace std;
 namespace sharedstream {
 
 
-//alles ausgelagert. Algebraklasse folgt noch.
+
 
 
 

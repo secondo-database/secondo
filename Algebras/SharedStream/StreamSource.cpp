@@ -28,7 +28,13 @@
  //[_] [\_]
 
 */
+
 #include "StreamSource.h"
+//includes for code checking, will be removed later
+#include "StreamProcessor.h"
+#include "WebCommunicator.h"
+#include "Manager.h"
+#include "StandardTypes.h"      // priovides int, real, string, bool type
 
 
 extern NestedList *nl;
@@ -41,7 +47,7 @@ namespace sharedstream {
 
 
     StreamSource::StreamSource(int _port) {
-        //Implementierung
+        //implementation
     }
 
     StreamSource::~StreamSource() {

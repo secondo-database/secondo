@@ -34,7 +34,7 @@
 
 #endif //WEBCOMMUNICATOR_H
 namespace sharedstream {
-    class WebCommunicator();
+    class WebCommunicator{};
 
 //Schnittstelle für Webkommunikation
 //Funktion, um neue Anfragen an Manager zu übersenden
@@ -47,7 +47,7 @@ namespace sharedstream {
  * - ausgewählter Vergleichsoperator
  * - bei räumlichen Datentypen ausgewählter Schnittmengentyp
  * (intersects region oder line)
- * - eingegebene Konstante
+ * - eingegebene Konstante.
  */
 
 }

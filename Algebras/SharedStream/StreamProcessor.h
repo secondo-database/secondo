@@ -33,7 +33,7 @@
 
 #endif //STREAMPROCESSOR_H
 namespace sharedstream {
-    class StreamProcessor();
+    class StreamProcessor{};
 
     //Funktion, um Kommunikation mit übermittelter Stromquelle zu starten
 

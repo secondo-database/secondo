@@ -28,17 +28,25 @@
  //[_] [\_]
 
 */
-#ifndef MANAGER_H
-#define MANAGER_H
+#ifndef DS_MANAGER_H
+#define DS_MANAGER_H
 
-#endif //MANAGER_H
+#endif //DS_MANAGER_H
+
+#include "StandardTypes.h"      // priovides int, real, string, bool type
+
 
 namespace sharedstream {
     class Manager{};
 
-//Funktion (Operator) zum "manuellen" Eintrag einer StreamSource
+/*function (operator) for adding a new StreamSource manually
+ * This function will also update the data to choose from
+ * the webinterface*/
+void addSource();
 
-//Funktion zum Empfang von Anfragen der Webschnittstelle
+//function to receive data from web interface
+
+void registeredQuery(std::string query);
 
 //Funktion zum Starten eines StreamProcessors
 // und Übermittlung der Stromquelle
