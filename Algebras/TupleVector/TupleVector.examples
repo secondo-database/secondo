@@ -1,0 +1,107 @@
+Database: berlintest
+Restore : No
+
+Operator : count
+Number   : 1
+Signature: stream(tuplevector) -> int
+Example  : query ten feedv[23] count
+Result   : 10 
+
+
+Operator : feedv
+Number   : 1
+Signature: rel x int -> stream(tuplev)
+Example  : query ten feedv[23] count = 10
+Result   : TRUE
+
+
+Operator : countv
+Number   : 1
+Signature: stream(tuplevector) -> int
+Example  : query ten feedv[2883] countv
+Result   : 1
+
+Operator : feednp
+Number   : 1
+Signature: rel(X) -> stream(X)
+Example  : query ten feednp count
+Result   : 10 
+
+
+Operator : countnp
+Number   : 1
+Signature: streanm(tuple(X)) -> int
+Example  : query ten feednp countnp
+Result   : 10 
+
+Operator : projectv
+Number   : 1
+Signature : stream(tuplevector<X>) x IDENT+ -> stream(tuplevector<Y>)
+Example   : query plz feedv[200] projectv[PLZ] count = plz count
+Result    : TRUE
+
+Operator  : projectnp
+Number    : 1
+Signature : stream(tuple<X>) x IDENT+ -> stream(tuple<Y>)
+Example   : query plz  feed project[PLZ] = plz feednp projectnp[PLZ]
+Result    : TRUE
+
+Operator : consume 
+Number   : 1
+Signature : stream(tuplevector<X>) -> rel(tuple) 
+Example   : query plz feedv[200] projectv[PLZ] consume count = plz count
+Result    : TRUE
+
+Operator : filterv
+Number   : 1
+Signature : stream(tuplevector(X)) x (tuple(X) -> bool) [x bool] -> stream(tuplevector(X))
+Example   : query plz feedv[200] filterv[.PLZ < 3000, FALSE] count = plz feed filter[.PLZ < 3000] count
+Result    : TRUE
+
+Operator : filternp
+Number   : 1
+Signature : stream(tuple(X)) x (tuple(X) -> bool) -> stream(tuple(X))
+Example   : query plz feed filternp[.PLZ < 3000] count = plz feed filter[.PLZ < 3000] count
+Result    : TRUE
+
+Operator  : tvs2ts
+Number    : 1
+Signature : stream(tuplevector) -> stream(tuple)
+Example   : query plz feedv[200] tvs2ts count = plz count
+Result    : TRUE
+
+Operator  : ts2tvs
+Number    : 1
+Signature : stream(tuple) -> stream(tuplevector)
+Example   : query plz feed ts2tvs[200] count = plz count
+Result    : TRUE
+
+
+Operator  : extendv
+Number    : 1
+Signature : stream(tuplevector) x funlist -> stream(tuplevector)
+Example   : query plz feedv[200] extendv[PLZ2 : .PLZ * 2] tvs2ts = plz feed extend[PLZ2 : .PLZ * 2]
+Result    : TRUE
+
+Operator  : projectextendv
+Number    : 1
+Signature : stream(tuplevector) x projectionlist x funlist -> stream(tuplevector)
+Example   : query plz feedv[200] projectextendv[Ort; PLZ : .PLZ * 2] tvs2ts = plz feed projectextend[Ort; PLZ : .PLZ * 2]
+Result    : TRUE
+
+
+Operator  : extendnp
+Number    : 1
+Signature : stream(tuplevector) x funlist -> stream(tuplevector)
+Example   : query plz feedv[200] extendv[PLZ2 : .PLZ * 2] tvs2ts = plz feednp extendnp[PLZ2 : .PLZ * 2]
+Result    : TRUE
+
+Operator  : projectextendnp
+Number    : 1
+Signature : stream(tuplevector) x projectionlist x funlist -> stream(tuplevector)
+Example   : query plz feedv[200] projectextendv[Ort; PLZ : .PLZ * 2] tvs2ts = plz feednp projectextendnp[Ort; PLZ : .PLZ * 2]
+Result    : TRUE
+
+
+
+
