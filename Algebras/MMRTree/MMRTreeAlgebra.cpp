@@ -1068,7 +1068,7 @@ algebra, so we can just use ~realJoinMMRTreeTM~ here.
 1.5.2 LocalInfo
 
 */
-template<class Type1, class Type2, int dim1, int dim2, int minDim>
+template<class Type1, class Type2, int dim1, int dim2, int minDim, bool reopen>
 class ItSpatialJoinInfo{
   public:
     
@@ -1076,7 +1076,8 @@ class ItSpatialJoinInfo{
                     const int _min, const int _max,
                     size_t _maxMem, const int _a1,
                     const int _a2, ListExpr ttl, 
-                    ItSpatialJoinCostEstimation* _costEstimation):
+                    ItSpatialJoinCostEstimation* _costEstimation
+                    ):
                     s1(_s1), s2(_s2), min(_min), max(_max),
                     a1(_a1), a2(_a2), costEstimation(_costEstimation)
   {
@@ -1287,12 +1288,14 @@ class ItSpatialJoinInfo{
               }
            } else {
              if(!finished){ //insert Tuple into buffer
-               if(!tuples2){
-                  tuples2 = new Relation(currentTuple2->GetTupleType(),true);
-               }
-               currentTuple2->PinAttributes();
-               tuples2->AppendTupleNoLOBs(currentTuple2);
-               costEstimation -> incTuplesInTupleFile();
+               if(!reopen){
+                 if(!tuples2){
+                    tuples2 = new Relation(currentTuple2->GetTupleType(),true);
+                 }
+                 currentTuple2->PinAttributes();
+                 tuples2->AppendTupleNoLOBs(currentTuple2);
+                 costEstimation -> incTuplesInTupleFile();
+              }
              }
              return;
            }
@@ -1351,16 +1354,22 @@ class ItSpatialJoinInfo{
       }
 
       void resetBuffer(){
-         assert(tuples2);
-         if(bufferIt){
-           delete bufferIt;
+         if(!reopen){ 
+            assert(tuples2);
+            if(bufferIt){
+              delete bufferIt;
+            }
+            costEstimation -> resetReadInIteration();
+            costEstimation -> setTupleFileWritten(true);
+            bufferIt = tuples2->MakeScan();
+            assert(currentTuple2==0);
+            currentTuple2 = bufferIt->GetNextTuple();
+            costEstimation -> incReadInIteration();
+         } else {
+            s2.close();
+            s2.open();
+            currentTuple2 = s2.request();
          }
-         costEstimation -> resetReadInIteration();
-         costEstimation -> setTupleFileWritten(true);
-         bufferIt = tuples2->MakeScan();
-         assert(currentTuple2==0);
-         currentTuple2 = bufferIt->GetNextTuple();
-         costEstimation -> incReadInIteration();
          
          // Next iteration
          scans++;
@@ -1374,13 +1383,15 @@ class ItSpatialJoinInfo{
 1.5.3 Value Mapping
 
 */
-template <class Type1, class Type2, int dim1, int dim2, int minDim>
+template <class Type1, class Type2, int dim1, int dim2, int minDim, 
+          bool reopen>
 int itSpatialJoinVM( Word* args, Word& result, int message,
                       Word& local, Supplier s ) {
 
 
-   ItSpatialJoinInfo<Type1, Type2, dim1, dim2, minDim>* li =
-            (ItSpatialJoinInfo<Type1, Type2, dim1, dim2, minDim>*) local.addr;
+   ItSpatialJoinInfo<Type1, Type2, dim1, dim2, minDim,reopen>* li =
+            (ItSpatialJoinInfo<Type1, Type2, dim1, dim2, minDim,reopen>*)
+            local.addr;
    switch (message){
      case OPEN : {
                    if(li){
@@ -1410,7 +1421,7 @@ int itSpatialJoinVM( Word* args, Word& result, int message,
                   costEstimation -> init(NULL, NULL);
  
                   local.setAddr(new 
-                      ItSpatialJoinInfo<Type1,Type2,dim1,dim2, minDim>( 
+                      ItSpatialJoinInfo<Type1,Type2,dim1,dim2, minDim, reopen>( 
                                       args[0], args[1],
                                        min, max, maxMem, 
                                       ((CcInt*)args[7].addr)->GetIntval(),
@@ -1447,47 +1458,93 @@ int itSpatialJoinVM( Word* args, Word& result, int message,
 */
 ValueMapping ItSpatialJoinVM[] = {
          itSpatialJoinVM<StandardSpatialAttribute<2>, 
-                         StandardSpatialAttribute<2>,2, 2, 2>,
+                         StandardSpatialAttribute<2>,2, 2, 2,false>,
 
          itSpatialJoinVM<StandardSpatialAttribute<2>, 
-                         StandardSpatialAttribute<3>, 2, 3, 2>,
+                         StandardSpatialAttribute<3>, 2, 3, 2,false>,
 
          itSpatialJoinVM<StandardSpatialAttribute<2>, 
-                         temporalalgebra::MRegion,2,3,2>,
+                         temporalalgebra::MRegion,2,3,2,false>,
          itSpatialJoinVM<StandardSpatialAttribute<2>, 
-                         temporalalgebra::MPoint,2,3,2>,
+                         temporalalgebra::MPoint,2,3,2,false>,
 
 
          itSpatialJoinVM<StandardSpatialAttribute<3>, 
-                         StandardSpatialAttribute<2>,3,2,2>,
+                         StandardSpatialAttribute<2>,3,2,2,false>,
          itSpatialJoinVM<StandardSpatialAttribute<3>, 
-                         StandardSpatialAttribute<3>,3,3,3>,
+                         StandardSpatialAttribute<3>,3,3,3,false>,
          itSpatialJoinVM<StandardSpatialAttribute<3>, 
-                         temporalalgebra::MRegion,3,3,3>,
+                         temporalalgebra::MRegion,3,3,3,false>,
          itSpatialJoinVM<StandardSpatialAttribute<3>, 
-                         temporalalgebra::MPoint,3,3,3>,
+                         temporalalgebra::MPoint,3,3,3,false>,
 
          
          itSpatialJoinVM<temporalalgebra::MRegion, 
-                         StandardSpatialAttribute<2>,3,2,2>,
+                         StandardSpatialAttribute<2>,3,2,2,false>,
          itSpatialJoinVM<temporalalgebra::MRegion, 
-                         StandardSpatialAttribute<3>,3,3,3>,
+                         StandardSpatialAttribute<3>,3,3,3,false>,
          itSpatialJoinVM<temporalalgebra::MRegion, 
-                         temporalalgebra::MRegion,3,3,3>,
+                         temporalalgebra::MRegion,3,3,3,false>,
          itSpatialJoinVM<temporalalgebra::MRegion, 
-                         temporalalgebra::MPoint,3,3,3>,
+                         temporalalgebra::MPoint,3,3,3,false>,
 
 
          itSpatialJoinVM<temporalalgebra::MPoint, 
-                         StandardSpatialAttribute<2>,3,2,2>,
+                         StandardSpatialAttribute<2>,3,2,2,false>,
          itSpatialJoinVM<temporalalgebra::MPoint, 
-                         StandardSpatialAttribute<3>,3,3,3>,
+                         StandardSpatialAttribute<3>,3,3,3,false>,
          itSpatialJoinVM<temporalalgebra::MPoint, 
-                         temporalalgebra::MRegion,3,3,3>,
+                         temporalalgebra::MRegion,3,3,3,false>,
          itSpatialJoinVM<temporalalgebra::MPoint, 
-                         temporalalgebra::MPoint,3,3,3>,
+                         temporalalgebra::MPoint,3,3,3,false>,
 
       };
+
+
+ValueMapping ItSpatialJoinRVM[] = {
+         itSpatialJoinVM<StandardSpatialAttribute<2>, 
+                         StandardSpatialAttribute<2>,2, 2, 2,true>,
+
+         itSpatialJoinVM<StandardSpatialAttribute<2>, 
+                         StandardSpatialAttribute<3>, 2, 3, 2,true>,
+
+         itSpatialJoinVM<StandardSpatialAttribute<2>, 
+                         temporalalgebra::MRegion,2,3,2,true>,
+         itSpatialJoinVM<StandardSpatialAttribute<2>, 
+                         temporalalgebra::MPoint,2,3,2,true>,
+
+
+         itSpatialJoinVM<StandardSpatialAttribute<3>, 
+                         StandardSpatialAttribute<2>,3,2,2,true>,
+         itSpatialJoinVM<StandardSpatialAttribute<3>, 
+                         StandardSpatialAttribute<3>,3,3,3,true>,
+         itSpatialJoinVM<StandardSpatialAttribute<3>, 
+                         temporalalgebra::MRegion,3,3,3,true>,
+         itSpatialJoinVM<StandardSpatialAttribute<3>, 
+                         temporalalgebra::MPoint,3,3,3,true>,
+
+         
+         itSpatialJoinVM<temporalalgebra::MRegion, 
+                         StandardSpatialAttribute<2>,3,2,2,true>,
+         itSpatialJoinVM<temporalalgebra::MRegion, 
+                         StandardSpatialAttribute<3>,3,3,3,true>,
+         itSpatialJoinVM<temporalalgebra::MRegion, 
+                         temporalalgebra::MRegion,3,3,3,true>,
+         itSpatialJoinVM<temporalalgebra::MRegion, 
+                         temporalalgebra::MPoint,3,3,3,true>,
+
+
+         itSpatialJoinVM<temporalalgebra::MPoint, 
+                         StandardSpatialAttribute<2>,3,2,2,true>,
+         itSpatialJoinVM<temporalalgebra::MPoint, 
+                         StandardSpatialAttribute<3>,3,3,3,true>,
+         itSpatialJoinVM<temporalalgebra::MPoint, 
+                         temporalalgebra::MRegion,3,3,3,true>,
+         itSpatialJoinVM<temporalalgebra::MPoint, 
+                         temporalalgebra::MPoint,3,3,3,true>,
+
+      };
+
 
 /*
 1.5.5 Selection function
@@ -1529,6 +1586,15 @@ Operator itSpatialJoin(
        ItSpatialJoinCostEstimationList     
 );
 
+Operator itSpatialJoinR(
+      "itSpatialJoinR",
+       realJoinMMRTreeSpec,
+       16, 
+       ItSpatialJoinRVM,
+       realJoinSelect ,
+       realJoinMMRTreeTM,
+       ItSpatialJoinCostEstimationList     
+);
 
 
 /*
@@ -2250,6 +2316,8 @@ class MMRTreeAlgebra : public Algebra {
       AddOperator(&itSpatialJoin);
         itSpatialJoin.SetUsesMemory();
 
+      AddOperator(&itSpatialJoinR);
+        itSpatialJoinR.SetUsesMemory();
 
       AddOperator(&SimJoinOp);
       SimJoinOp.SetUsesMemory();
