@@ -1174,8 +1174,8 @@ class ItSpatialJoinInfo{
          delete bufferIt;
       }
       if(tuples2){
-         tuples2->DeleteAndTruncate();
-         //delete tuples2;
+         // tuples2->DeleteAndTruncate();
+         delete tuples2;
       } 
       if(treeIt){
         delete treeIt;
@@ -1231,11 +1231,11 @@ class ItSpatialJoinInfo{
       TupleType* tt;
       int maxTuples;
       vector<Tuple*> tuples1;
-      Relation* tuples2;
+      TupleFile* tuples2;
       bool finished;  // all tuples from stream1 read 
       typename mmrtree::RtreeT<minDim, TupleId>::iterator* treeIt; 
       Tuple* currentTuple2;  // tuple from stream 2
-      GenericRelationIterator* bufferIt;
+      TupleFileIterator* bufferIt;
       mmrtree::RtreeT<minDim, TupleId>* index;
       int scans;
       ItSpatialJoinCostEstimation* costEstimation;
@@ -1290,10 +1290,11 @@ class ItSpatialJoinInfo{
              if(!finished){ //insert Tuple into buffer
                if(!reopen){
                  if(!tuples2){
-                    tuples2 = new Relation(currentTuple2->GetTupleType(),true);
+                    tuples2 = new TupleFile(currentTuple2->GetTupleType(),0);
                  }
-                 currentTuple2->PinAttributes();
-                 tuples2->AppendTupleNoLOBs(currentTuple2);
+                 //currentTuple2->PinAttributes();
+                 //tuples2->AppendTupleNoLOBs(currentTuple2);
+                 tuples2->Append(currentTuple2);
                  costEstimation -> incTuplesInTupleFile();
               }
              }
