@@ -33,23 +33,63 @@
 
 #endif //DS_MANAGER_H
 
+#include "Attribute.h"          // implementation of attribute types
+#include "Algebra.h"            // definition of the algebra
+#include "NestedList.h"         // required at many places
+#include "QueryProcessor.h"     // needed for implementing value mappings
+#include "AlgebraManager.h"     // e.g., check for a certain kind
+#include "Operator.h"           // for operator creation
 #include "StandardTypes.h"      // priovides int, real, string, bool type
+#include "Algebras/FText/FTextAlgebra.h"
+#include "Symbols.h"            // predefined strings
+#include "ListUtils.h"          // useful functions for nested lists
+#include "Algebras/Stream/Stream.h"  // wrapper for secondo streams
 
+//#include "GenericTC.h"          // use of generic type constructors
+
+#include "LogMsg.h"             // send error messages
+
+#include "Tools/Flob/DbArray.h"  // use of DbArrays
+
+#include "Algebras/Relation-C++/RelationAlgebra.h" // use of tuples
+
+
+#include <math.h>               // required for some operators
+#include <stack>
+#include <limits>
+#include <boost/numeric/ublas/vector.hpp>
+#include <vector>
+
+/*
+Global Variables
+
+Secondo uses some variables designed as singleton pattern. For accessing these
+global variables, these variables have to be declared to be extern:
+
+*/
+
+extern NestedList *nl;
+extern QueryProcessor *qp;
+extern AlgebraManager *am;
 
 namespace sharedstream {
-    class Manager{};
+    class Manager {
 
-/*function (operator) for adding a new StreamSource manually
+    public:
+
+
+ /*function (operator) for adding a new StreamSource manually
  * This function will also update the data to choose from
  * the webinterface*/
-void addSource();
+        void addSource(std::string sourceName, std::string ipAdress,
+                       std::string port, NestedList tupleDescription);
 
 //function to receive data from web interface
+        void registeredQuery(std::string query);
 
-void registeredQuery(std::string query);
+/*function to start a StreamProcessor and transfering the needed data for
+ connection to a StreamSource*/
 
-//Funktion zum Starten eines StreamProcessors
-// und Übermittlung der Stromquelle
 
 /*Funktion von Thomas
  * TODO: Includes rausbekommen, so kompiliert es nicht,
@@ -84,10 +124,20 @@ if(errorCode==0){
     cout << "command " << cmd << " failed " << endl << errorMsg << endl;
 }*/
 
-//Funktion zum Übermitteln neuer Konstanten an einen StreamProcessor
+//function to add a new constant to a StreamProcessor (query)
+
+    private:
+        /*Struct for saving the SourceEntrys*/
+
+        struct SourceEntry {
+            std::string SourceName;
+            std::string ipAdress;
+            std::string port;
+            NestedList tupleDescription;
+        };
+/*Vector for storing the SourceEntries*/
+        std::vector<SourceEntry> SourceEntries;
 
 
-//Struktur zum Speichern der Stromquelleneinträge
-// (ip, port, Tupleart inkl. Attributen)
-
+    };
 }
