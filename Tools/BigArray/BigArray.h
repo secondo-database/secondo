@@ -25,6 +25,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 */
+#ifndef BIGARRAY_H
+#define BIGARRAY_H
 
 #include <iostream>
 #include <fstream>
@@ -45,8 +47,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "LRU.h"
 
 
-#ifndef BIGARRAY_H
-#define BIGARRAY_H
 
 using std::cout;
 using std::endl;
