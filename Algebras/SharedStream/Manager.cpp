@@ -36,33 +36,42 @@
 namespace sharedstream {
 
     void Manager::addSource(std::string sourceName, std::string ipAdress,
-                            std::string port, ListExpr tupleDescription){
-SourceEntry entry;
+                            std::string port, ListExpr tupleDescription) {
+        SourceEntry entry;
         entry.SourceName = sourceName;
         entry.ipAdress = ipAdress;
         entry.port = port;
         entry.tupleDescription = tupleDescription;
 /*Add the new Source to the SourceList*/
         Manager::SourceEntries.push_back(entry);
- /*Add the new Source to the Webinterface*/
+        /*Add the new Source to the Webinterface*/
         //TODO: Kommunikation web<->Secondo klären
 
     }
+
 /*The query from the webinterface is given as a string separated by
  * semicolons in the form:
  * "Name of the stream; indicator B for basic data types or S for spatial data
  * types; Name of the attribute; choosen relational operator; entered value
  * for the attribute; salutation; name; eMail-address"
  * For example:
- * „Strom1;B;Strasse;gleich;Kastanienallee;Frau,Mustermann;
+ * „B;Strom1;Strasse;gleich;Kastanienallee;Frau,Mustermann;
  * rita.mustermann@mustermann.de“
  */
 
-    /*
+
     void Manager::registeredQuery(std::string webquery) {
-stringutils::StringTokenizer splitty = new StringTokenizer(webquery,";");
+        stringutils::StringTokenizer *splitty = new stringutils::StringTokenizer
+                (webquery, ";");
+        if (splitty->hasNextToken()) {
+            std::string datatype = splitty->nextToken();
+            //TODO: Stringtypen vertragen sich nicht.
+            /*if (datatype = "B") {
+
+            }*/
+        }
 
     }
-     */
+
 
 }//end namespace
