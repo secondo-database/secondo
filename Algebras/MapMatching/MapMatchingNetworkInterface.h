@@ -150,6 +150,10 @@ public:
 };
 
 
+std::ostream& operator<<(std::ostream&o, 
+                         const IMMNetworkSection::EDirection& dir);
+
+
 /*
 4 interface IMMNetwork
 
