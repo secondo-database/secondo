@@ -1145,9 +1145,12 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
                 if (AlmostEqual(PointProjection, ptStart))
                   bIsEndPoint = true;
             }
-            else
+            else // dir == NONE
             {
-              assert(false);
+                if (   AlmostEqual(PointProjection, ptStart)
+                    || AlmostEqual(PointProjection, ptEnd)) {
+                  bIsEndPoint = true;
+                }
             }
 
             if (bIsEndPoint)
