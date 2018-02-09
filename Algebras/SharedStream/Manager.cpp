@@ -30,6 +30,8 @@
 */
 
 #include "Manager.h"
+#include "StringUtils.h"
+
 
 namespace sharedstream {
 
@@ -46,6 +48,21 @@ SourceEntry entry;
         //TODO: Kommunikation web<->Secondo klären
 
     }
+/*The query from the webinterface is given as a string separated by
+ * semicolons in the form:
+ * "Name of the stream; indicator B for basic data types or S for spatial data
+ * types; Name of the attribute; choosen relational operator; entered value
+ * for the attribute; salutation; name; eMail-address"
+ * For example:
+ * „Strom1;B;Strasse;gleich;Kastanienallee;Frau,Mustermann;
+ * rita.mustermann@mustermann.de“
+ */
 
+    /*
+    void Manager::registeredQuery(std::string webquery) {
+stringutils::StringTokenizer splitty = new StringTokenizer(webquery,";");
+
+    }
+     */
 
 }//end namespace
