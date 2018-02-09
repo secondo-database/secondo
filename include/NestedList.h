@@ -1206,6 +1206,9 @@ Copies a nested list from ~this~ instance to the target instance.
 #ifdef THREAD_SAFE
    mutable boost::recursive_mutex mtx;
 #endif
+   NestedList(const NestedList&);
+   NestedList& operator=(const NestedList&);
+
    std::string basename;
 
 
