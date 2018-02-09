@@ -300,6 +300,8 @@ appropriate rule in the lex specification.
 void print_simple_nonpostfix(){
     const string opname = currenttranslation.opname->str();  
     string token = currenttranslation.token->str();
+    if(token=="ZZPREFIXOP" && !currenttranslation.bufferForced) return; 
+
     if(currenttranslation.bufferForced){
       token +=  "_BUF";
     }
