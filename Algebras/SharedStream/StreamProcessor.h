@@ -31,7 +31,6 @@
 #ifndef STREAMPROCESSOR_H
 #define STREAMPROCESSOR_H
 
-#endif //STREAMPROCESSOR_H
 namespace sharedstream {
     class StreamProcessor{};
 
@@ -46,3 +45,8 @@ namespace sharedstream {
     //Funktion um Mail mit Inhalt des Tupels bei Treffer zu versenden
 
 }
+
+
+#endif //STREAMPROCESSOR_H
+
+

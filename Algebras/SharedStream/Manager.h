@@ -1,4 +1,3 @@
-
 /*
  ----
  This file is part of SECONDO.
@@ -28,10 +27,9 @@
  //[_] [\_]
 
 */
+
 #ifndef DS_MANAGER_H
 #define DS_MANAGER_H
-
-#endif //DS_MANAGER_H
 
 #include "Attribute.h"          // implementation of attribute types
 #include "Algebra.h"            // definition of the algebra
@@ -82,7 +80,7 @@ namespace sharedstream {
  * This function will also update the data to choose from
  * the webinterface*/
         void addSource(std::string sourceName, std::string ipAdress,
-                       std::string port, NestedList tupleDescription);
+                       std::string port, ListExpr tupleDescription);
 
 //function to receive data from web interface
         void registeredQuery(std::string query);
@@ -133,7 +131,7 @@ if(errorCode==0){
             std::string SourceName;
             std::string ipAdress;
             std::string port;
-            NestedList tupleDescription;
+            ListExpr tupleDescription;
         };
 /*Vector for storing the SourceEntries*/
         std::vector<SourceEntry> SourceEntries;
@@ -141,3 +139,7 @@ if(errorCode==0){
 
     };
 }
+
+#endif //DS_MANAGER_H
+
+

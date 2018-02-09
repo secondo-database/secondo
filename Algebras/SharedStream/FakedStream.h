@@ -31,7 +31,6 @@
 #ifndef FAKEDSTREAM_H
 #define FAKEDSTREAM_H
 
-#endif //FAKEDSTREAM_H
 namespace sharedstream {
     class FakedStream {
 
@@ -46,3 +45,7 @@ namespace sharedstream {
 
 
 }
+
+
+#endif //FAKEDSTREAM_H
+

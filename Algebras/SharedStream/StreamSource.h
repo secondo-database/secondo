@@ -1,4 +1,3 @@
-
 /*
  ----
  This file is part of SECONDO.
@@ -28,6 +27,12 @@
  //[_] [\_]
 
 */
+
+#ifndef STREAMSOURCE_H
+#define STREAMSOURCE_H
+
+
+
 #include "Attribute.h"          // implementation of attribute types
 #include "Algebra.h"            // definition of the algebra
 #include "NestedList.h"         // required at many places
@@ -88,3 +93,7 @@ namespace sharedstream {
     };//end streamsource
 
 }//end namespace
+
+
+#endif // STREAMSOURCE_H
+

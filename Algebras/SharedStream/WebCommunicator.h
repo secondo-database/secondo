@@ -32,7 +32,6 @@
 #ifndef WEBCOMMUNICATOR_H
 #define WEBCOMMUNICATOR_H
 
-#endif //WEBCOMMUNICATOR_H
 namespace sharedstream {
     class WebCommunicator{};
 
@@ -51,3 +50,7 @@ namespace sharedstream {
  */
 
 }
+
+
+#endif //WEBCOMMUNICATOR_H
+

@@ -1,4 +1,3 @@
-
 /*
  ----
  This file is part of SECONDO.
@@ -30,13 +29,14 @@
 */
 
 #include "Manager.h"
+
 #include "StringUtils.h"
 
 
 namespace sharedstream {
 
     void Manager::addSource(std::string sourceName, std::string ipAdress,
-                            std::string port, NestedList tupleDescription){
+                            std::string port, ListExpr tupleDescription){
 SourceEntry entry;
         entry.SourceName = sourceName;
         entry.ipAdress = ipAdress;
