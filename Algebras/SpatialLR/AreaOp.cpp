@@ -359,6 +359,7 @@ Used to finalize the subcurves by iterating over all remaining ~ChainEnd~ and
         subcurves->push_back(subcurve);
       }
     }
+    chains->clear();
   }
 
 /*
