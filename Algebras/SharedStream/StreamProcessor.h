@@ -38,11 +38,16 @@ namespace sharedstream {
 
     //Funktion um B-Baum oder R-Baum über das Attribut anzulegen
 
+    //Funktion um Tupel zu lesen (Filerelations.cpp -> In ffeed5info::next()
+    // wird beschrieben, wie ein Tupel aus einem Byteblock gelesen wird)
+
     //Funktion um Tupel auszuwerten und ggf. Bäume upzudaten
 
     //Funktion um Relation upzudaten
 
     //Funktion um Mail mit Inhalt des Tupels bei Treffer zu versenden
+
+    //Datenstruktur zur Speicherung der Daten der Interessenten
 
 }
 

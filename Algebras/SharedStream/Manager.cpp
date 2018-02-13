@@ -59,16 +59,19 @@ namespace sharedstream {
  * rita.mustermann@mustermann.de“
  */
 
-
+//TODO: Stringaufbau anschauen. Gemeinsame Komponenten erst zuweisen(Mail,
+// Anrede, Attribut etc.)
     void Manager::registeredQuery(std::string webquery) {
         stringutils::StringTokenizer *splitty = new stringutils::StringTokenizer
                 (webquery, ";");
         if (splitty->hasNextToken()) {
             std::string datatype = splitty->nextToken();
-            //TODO: Stringtypen vertragen sich nicht.
-            /*if (datatype = "B") {
 
-            }*/
+            if (datatype == "B") {
+            //datatype basic
+            } else if(datatype =="S") {
+            //datatype spatial
+            }
         }
 
     }

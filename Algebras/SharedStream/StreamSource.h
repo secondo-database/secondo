@@ -64,8 +64,11 @@ namespace sharedstream {
     class StreamSource {
     public:
         /*constructor*/
-        StreamSource(int _port);
+        StreamSource(int port);
 
+        /*constructor with a faked Stream*/
+
+        StreamSource(FakedStream* fakestr, int port);
         /*destructor*/
         ~StreamSource();
 
