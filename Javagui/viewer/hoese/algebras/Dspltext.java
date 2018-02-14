@@ -639,10 +639,12 @@ private class PDFPanel extends JPanel{
 
 public PDFPanel(){
      super();
+     pageField.setHorizontalAlignment(JTextField.CENTER);
      setLayout(new BorderLayout());
      JPanel CommandPanel = new JPanel();
      CommandPanel.add(FirstBtn);
      CommandPanel.add(PrevBtn);
+     CommandPanel.add(pageField);
      CommandPanel.add(NextBtn);
      CommandPanel.add(LastBtn);
      CommandPanel.add(new JLabel("    "));
@@ -667,25 +669,24 @@ public PDFPanel(){
             } else if(src.equals(LastBtn)){
                 newpage=NumberOfPages-1;
             }
-            if(newpage!=page){
-               page=newpage;
-               try{
-                  CurrentPage.setImage(pdfRenderer.renderImage(page,scale));
-                  PdfScrollPane.invalidate();              
-                  TextViewerFrame.this.invalidate();
-                  TextViewerFrame.this.validate();
-                  TextViewerFrame.this.repaint(); 
-               } catch(Exception e){
-                  Reporter.debug(e);
-                  CurrentPage.setImage(null);
-                  PdfScrollPane.invalidate();              
-                  TextViewerFrame.this.invalidate();
-                  TextViewerFrame.this.validate();
-                  TextViewerFrame.this.repaint(); 
-               }
-           }
+            setPage(newpage);
         }
      };
+
+     pageField.addActionListener(new ActionListener(){
+        public void actionPerformed(ActionEvent e){
+            String p = pageField.getText().trim();
+            try{
+                int pn = Integer.parseInt(p);
+                setPage(pn-1);
+            } catch(NumberFormatException a ){
+               Reporter.showError("Invalid page number");
+            }
+        }
+     });
+
+
+
      FirstBtn.addActionListener(Control);
      PrevBtn.addActionListener(Control);
      NextBtn.addActionListener(Control);
@@ -718,6 +719,31 @@ public PDFPanel(){
      GBtn.addActionListener(Magnifier);
      LBtn.addActionListener(Magnifier);
      FitBtn.addActionListener(Magnifier);
+}
+
+private void setPage(int newpage){
+      if(newpage<0) newpage = 0;
+      if(newpage>NumberOfPages-1) newpage = NumberOfPages-1;
+      pageField.setText(""+(newpage+1));
+      if(newpage!=page){
+           page=newpage;
+           try{
+              pageField.setText(""+(page+1));
+              CurrentPage.setImage(pdfRenderer.renderImage(page,scale));
+              PdfScrollPane.invalidate();              
+              TextViewerFrame.this.invalidate();
+              TextViewerFrame.this.validate();
+              TextViewerFrame.this.repaint(); 
+           } catch(Exception e){
+              Reporter.debug(e);
+              CurrentPage.setImage(null);
+              PdfScrollPane.invalidate();              
+              TextViewerFrame.this.invalidate();
+              TextViewerFrame.this.validate();
+              TextViewerFrame.this.repaint(); 
+           }
+     }
+
 }
 
 
@@ -762,8 +788,8 @@ public boolean setPdfData(byte[] data){
        pdfRenderer = new PDFRenderer(pdfDocument);  
        page = 0;
        scale = getFitSF();
+       pageField.setText(""+1);
        CurrentPage.setImage(pdfRenderer.renderImage(0,scale));
-       PdfScrollPane.invalidate(); 
        String title = pdfDocument.getDocumentInformation().getTitle();
        if(title==null){
           title = "";
@@ -815,6 +841,22 @@ private JScrollPane PdfScrollPane;
 private JButton FirstBtn = new JButton("|<");
 private JButton PrevBtn = new JButton("<");
 private JButton NextBtn = new JButton(">");
+private JTextField pageField = new JTextField("   "){
+   public Dimension getPreferredSize(){
+      Dimension r = super.getPreferredSize();
+      if(r.width < 100){
+          r.width = 100;
+      }
+      return r;
+   }
+   public Dimension getMinimumSize(){
+      Dimension r = super.getMinimumSize();
+      if(r.width < 100){
+          r.width = 100;
+      }
+      return r;
+   }
+};
 private JButton LastBtn = new JButton(">|");
 private JButton GBtn = new JButton("(+)");
 private JButton LBtn = new JButton("(-)");
