@@ -14624,6 +14624,7 @@ class staticFileTransferator{
                 noTransfers = res->maxTransfers;
                 return res;
           }
+
           staticFileTransferator* res = 
                    new staticFileTransferator(port,noTransfers);
           if(res->running){
@@ -14662,7 +14663,6 @@ class staticFileTransferator{
          
          delete listener;
          deleteFinishedTransfers();
-            
       }
 
       void deleteFinishedTransfers(){
@@ -14722,6 +14722,7 @@ class staticFileTransferator{
           if(running){
              boost::lock_guard<boost::recursive_mutex> guard(mtx);
              activeTransfers.erase(t);
+             deleteFinishedTransfers();
              finishedTransfers.insert(t);
           }
           if(!success){
