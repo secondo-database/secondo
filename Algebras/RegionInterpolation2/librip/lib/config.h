@@ -18,7 +18,7 @@
 #define MOMENTMS 100
 
 // Choose the installed Lua-version here
-#define LUA5_1 // Lua5.1
+//#define LUA5_1 // Lua5.1
 //#define LUA5_2 // Lua5.2
 
 // The main Lua Scriptname (without suffix .lua or .luac)

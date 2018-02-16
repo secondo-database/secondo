@@ -1,6 +1,6 @@
 CC=g++
 CPPFLAGS=-O2 -fPIC -Wall -I../include
-LIBS=-llua5.1
+#LIBS=-llua5.1
 LDFLAGS=$(LIBS) -shared
 OBJ=Face.o interpolate.o Interval.o lua.o matchFaces.o MFace.o MFaces.o MSeg.o MSegs.o RList.o ointersect.o Pt.o RotatingPlane.o Seg.o
 
