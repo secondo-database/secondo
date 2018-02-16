@@ -12,16 +12,7 @@
 
 #include <librip.h>
 
-static const string interpolate2spec =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-" (<text>region x instant x region x instant [ x string ] -> mregion</text--->"
-"<text>interpolate2( _ , _ , _ , _ [ , _ ] )</text--->"
-"<text>Interpolates two regions to a moving region</text--->"
-"<text>interpolate2( region1, instant1, region2, instant2, args )</text--->) )";
-
-static ListExpr Rl2ListExpr (RList l);
-static RList ListExpr2Rl (ListExpr l);
-
+namespace temporalalgebra{
 // InMRegion is defined in the MovingRegionAlgebra and converts a NestedList-
 // expression to an mregion
 Word InMRegion(const ListExpr typeInfo,
@@ -29,6 +20,27 @@ Word InMRegion(const ListExpr typeInfo,
 	       const int errorPos,
 	       ListExpr& errorInfo,
 	       bool& correct);
+}
+
+using namespace temporalalgebra;
+
+
+static const string interpolate2spec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+" (<text>region x instant x region x instant [ x string ] -> mregion</text--->"
+"<text>interpolate2( _ , _ , _ , _ [ , _ ] )</text--->"
+"<text>Interpolates two regions to a moving region. The optional "
+"string argument determines the matching strategy. Possible values are:\n "
+"overlap \n distance \n null \n simple \n mw \n lowerleft \n "
+"If the RegionInterpolation2Algebra is compiled without lua support, "
+" overlap will be the default strategy. Otherwise a specialized 'lua' " 
+"strategy is used."
+"</text--->"
+"<text>interpolate2( region1, instant1, region2, instant2, args )</text--->) )";
+
+static ListExpr Rl2ListExpr (RList l);
+static RList ListExpr2Rl (ListExpr l);
+
                                  
 
 
