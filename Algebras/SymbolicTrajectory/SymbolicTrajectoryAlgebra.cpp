@@ -5337,6 +5337,80 @@ struct derivegroupsInfo : OperatorInfo {
 };
 
 /*
+\section{Operator ~createMaxspeedRaster~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr createMaxspeedRasterTM(ListExpr args) {
+  const std::string error_message = "expects the signature sint x nrel(... "
+    "(WayInfo (arel (tuple ((WayTagKey text) (WayTagValue text)))))) x rtree";
+  if (!nl->HasLength(args, 3)) {
+    return listutils::typeError(error_message);
+  }
+  if (!raster2::sint::checkType(nl->First(args))) {
+    return listutils::typeError("First argument must be an sint");
+  }
+  if (!RTree2TID::checkType(nl->Third(args))) {
+    return listutils::typeError("Third argument must be an rtree");
+  }
+  if (NestedRelation::checkType(nl->Second(args))) {
+    if (nl->HasLength(nl->Second(args), 2)) {
+      if (nl->HasLength(nl->Second(nl->Second(args)), 2)) {
+        ListExpr nrelAttrs = nl->Second(nl->Second(nl->Second(args)));
+        ListExpr arelAttrs = nl->Second(nl->Second(nl->Second(nl->Nth(
+                                       nl->ListLength(nrelAttrs), nrelAttrs))));
+        if (nl->ToString(nl->First(nl->First(arelAttrs))) == "WayTagKey"
+         && nl->ToString(nl->First(nl->Second(arelAttrs))) == "WayTagValue"
+         && FText::checkType(nl->Second(nl->First(arelAttrs)))
+         && FText::checkType(nl->Second(nl->Second(arelAttrs)))) {
+          return nl->SymbolAtom(raster2::sint::BasicType());
+        }
+      }
+    }
+  }
+  return listutils::typeError("Second argument must be an nrel(... (WayInfo "
+                      "(arel (tuple ((WayTagKey text) (WayTagValue text))))))");
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int createMaxspeedRasterVM(Word* args, Word& result, int message, Word& local, 
+                           Supplier s) {
+  result = qp->ResultStorage(s);
+  raster2::sint *hgt = static_cast<raster2::sint*>(args[0].addr);
+  NestedRelation *nrel = static_cast<NestedRelation*>(args[1].addr);
+  RTree2TID *rtree = static_cast<RTree2TID*>(args[2].addr);
+  MaxspeedRasterCreator mr(hgt, nrel, rtree);
+  raster2::sint *res = static_cast<raster2::sint*>(result.addr);
+  raster2::sint::storage_type& rs = hgt->getStorage();
+  for (raster2::sint::iter_type it = rs.begin(), e = rs.end(); it != e; ++it) {
+    raster2::RasterIndex<2> pos = it.getIndex();
+    int maxspeed = mr.getMaxspeed(pos);
+    res->set(pos, maxspeed);
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct createMaxspeedRasterInfo : OperatorInfo {
+  createMaxspeedRasterInfo() {
+    name      = "createMaxspeedRaster";
+    signature = raster2::sint::BasicType() + " x nrel(... (WayInfo (arel (tuple"
+                " ((WayTagKey text) (WayTagValue text)))))) x rtree" +  " -> "
+                + raster2::sint::BasicType();
+    syntax    = "createMaxspeedRaster( _ , _ , _ )";
+    meaning   = "Creates an sint raster where every tile holds the maximum"
+                "speed (kph) permitted on the roads inside the tile.";
+  }
+};
+
+/*
 \section{Operator ~restoreTraj~}
 
 \subsection{Type Mapping}
@@ -5393,7 +5467,8 @@ ListExpr restoreTrajTM(ListExpr args) {
     }
   }
   return listutils::typeError("Argument types must be rel(tuple(longint, text, "
-    "sline, string, int)) x btree x rtree x mlabel x mlabel x mlabel");
+                              "sline, string, int)) x btree x rtree x sint x "
+                              "hash x mlabel x mlabel x mlabel");
 }
 
 /*
@@ -5813,6 +5888,9 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   ValueMapping createtrieVMs[] = {createtrieVM<MLabel>, createtrieVM<MLabels>,
                                 createtrieVM<MPlace>, createtrieVM<MPlaces>, 0};
   AddOperator(createtrieInfo(), createtrieVMs, createtrieSelect, createtrieTM);
+  
+  AddOperator(createMaxspeedRasterInfo(), createMaxspeedRasterVM,
+              createMaxspeedRasterTM);
   
   AddOperator(restoreTrajInfo(), restoreTrajVM, restoreTrajTM);
   
