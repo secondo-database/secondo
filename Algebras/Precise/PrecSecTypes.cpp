@@ -1952,9 +1952,9 @@ void PrecRegion::setOp(const PrecRegion& r, PrecRegion & result,
     AttrType dummy;
     MPrecHalfSegment current (MPrecPoint(0,0), MPrecPoint(1,1), true, dummy);
     int source;
-    MPrecHalfSegment const* left;
-    MPrecHalfSegment const* right;
-    MPrecHalfSegment const* stored;
+    MPrecHalfSegment * left;
+    MPrecHalfSegment * right;
+    MPrecHalfSegment * stored;
     vector<MPrecHalfSegment> realmRes;
     //int edgeno = 0;
     result.startBulkLoad();

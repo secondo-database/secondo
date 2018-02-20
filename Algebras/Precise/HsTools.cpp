@@ -169,8 +169,8 @@ number of contained segments ( v.size()/2).
 
    bool checkRealm(const vector<MPrecHalfSegment>& v){
       avltree::AVLTree<MPrecHalfSegment, YComparator<MPrecHalfSegment> > sss;
-      MPrecHalfSegment const* left;
-      MPrecHalfSegment const* right;
+      MPrecHalfSegment * left;
+      MPrecHalfSegment * right;
       for(unsigned int i=0;i<v.size();i++){
          const MPrecHalfSegment current = v[i];
          if(current.isLeftDomPoint()){
@@ -385,8 +385,8 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
                      vector<MPrecHalfSegment>, 
                      IsGreater<MPrecHalfSegment, HalfSegmentComparator> > es;
 
-      MPrecHalfSegment const* left;
-      MPrecHalfSegment const* right;
+      MPrecHalfSegment * left;
+      MPrecHalfSegment * right;
       res.clear();
 
       HalfSegmentComparator cmp;
@@ -433,7 +433,7 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
        }
 
         if(current.isLeftDomPoint()){
-           const MPrecHalfSegment* stored = sss.getMember(current);
+           MPrecHalfSegment* stored = sss.getMember(current);
            if(stored!=0){ // overlapping segment found
                makeRealm(current,*stored,realmRes);
                sss.remove(*stored);
@@ -552,15 +552,15 @@ This function computes the set operation specified by the last argument
      AttrType dummy;
      MPrecHalfSegment current (MPrecPoint(0,0), MPrecPoint(1,1), true, dummy);
      int source;
-     MPrecHalfSegment const* left;
-     MPrecHalfSegment const* right;
+     MPrecHalfSegment * left;
+     MPrecHalfSegment * right;
      res.clear();
      vector<MPrecHalfSegment> realmRes;
      int edgeno = 0;
 
      while((source = es.next(current))){
         if(current.isLeftDomPoint()) {
-          const MPrecHalfSegment* stored = sss.getMember(current);  
+          MPrecHalfSegment* stored = sss.getMember(current);  
           if(stored != 0){ // found overlapping part 
              assert(stored->getOwner()!=BOTH);
              assert(stored->getOwner()!=current.getOwner());

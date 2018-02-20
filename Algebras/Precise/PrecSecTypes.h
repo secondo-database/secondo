@@ -1143,7 +1143,7 @@ compute the difference of this and ps
 
 
 */
-class Line;
+//class Line;
 
 class PrecLine : public StandardSpatialAttribute<2> {
 
@@ -1411,7 +1411,7 @@ class PrecLine : public StandardSpatialAttribute<2> {
 
 */
 
-class Region; 
+//class Region; 
 
 
 class PrecRegion : public StandardSpatialAttribute<2> {
