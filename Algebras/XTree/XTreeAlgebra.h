@@ -40,7 +40,7 @@ This file contains some defines and constants, which could be used to configurat
 #ifndef __XTREE_ALGEBRA_H__
 #define __XTREE_ALGEBRA_H__
 
-#include "GeneralTreeAlgebra.h"
+#include "Algebras/GeneralTree/GeneralTreeAlgebra.h"
 
 /////////////////////////////////////////////////////////////////////
 // enables debugging mode for the xtree-algebra

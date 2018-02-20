@@ -42,7 +42,7 @@ for the implementation of operators to update relations.
 */
 
 
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "TupleIdentifier.h"
 #include "ListUtils.h"
 #include <string>

@@ -34,8 +34,8 @@ January-May 2008, Mirko Dibbert
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
-#include "RelationAlgebra.h"
-#include "TupleIdentifier.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"
 #include "XTree.h"
 
 extern NestedList *nl;

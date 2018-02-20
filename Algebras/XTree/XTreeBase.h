@@ -42,7 +42,7 @@ This file contains the declarations of the xtree nodes and node entries.
 #ifndef __XTREE_BASE_H__
 #define __XTREE_BASE_H__
 
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "XTreeAlgebra.h"
 
 namespace xtreeAlgebra {
