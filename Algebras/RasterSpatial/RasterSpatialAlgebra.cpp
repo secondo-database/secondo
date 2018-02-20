@@ -42,11 +42,12 @@ using namespace std;
 
 //2.2 RasterRegion
 
+namespace rasterspatial{
 
 void
 DisplayRaster4CRSTmp( ListExpr value)
 {
-  unsigned long dx, dy;
+  unsigned long dx; //, dy;
   string output = "";
   string outputLine;
 
@@ -82,7 +83,7 @@ DisplayRaster4CRSTmp( ListExpr value)
         && nl->IsAtom(dyAtom) && nl->AtomType(dyAtom) == IntType )
     {
       dx = nl->IntValue( dxAtom );
-      dy = nl->IntValue( dyAtom );
+      //dy = nl->IntValue( dyAtom );
       restOfList = nl->First( restOfList );
       output = "";
       outputLine = "";
@@ -1210,6 +1211,8 @@ class RasterSpatialAlgebra : public Algebra
 };
 
 
+} // end of namespace rasterspatial
+
 
 //14 Initialization
 
@@ -1220,6 +1223,6 @@ InitializeRasterSpatialAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (new RasterSpatialAlgebra());
+  return (new rasterspatial::RasterSpatialAlgebra());
 }
 

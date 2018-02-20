@@ -46,6 +46,9 @@ May, 2007 Leonardo Azevedo, Rafael Brand
 #include "./../Raster/Signature/GenerateRaster.h"
 
 class Raster4CRS;
+namespace rasterspatial{
+
+
 extern long compareSignatures4CRS( Signature4CRS *assinat4crs1,
                             Signature4CRS *assinat4crs2, MBR &mbrIntersection);
 
@@ -422,7 +425,7 @@ for (int i = 0; i < numElements; i++)
         FLOBelement = pFLOBelement;
         positionInElement = 0;
         //if (dx * dy - currentCell < sizeof(unsigned long) * 4)
-        if (totalCells - currentCell < sizeof(unsigned long) * 4)
+        if ((totalCells - currentCell) < (int)sizeof(unsigned long) * 4)
           //positionInElement = (dx * dy - currentCell) - 1;
           positionInElement = (totalCells - currentCell) - 1;
         else
@@ -1479,6 +1482,8 @@ void CRasterPoints::SelectNext_pp( const Points& P1, const Points& P2,
     else
       obj = both;
   }
+}
+
 }
 
 #endif
