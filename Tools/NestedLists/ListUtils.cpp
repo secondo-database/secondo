@@ -30,15 +30,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Symbols.h"            // Kind::*, Symbol::*
 #include "StandardTypes.h"      // int, real, bool, string
-#include "OldRelationAlgebra.h" // rel, tuple
-#include "RelationAlgebra.h"    // rel, trel, tuple
-#include "OrderedRelationAlgebra.h" // orel
-#include "TupleIdentifier.h"    // tid
-#include "RectangleAlgebra.h"   // rect, rect3, rect4, rect8
-#include "RTreeAlgebra.h"       // rtree, rtree3, rtree4, rtee8
-#include "BTreeAlgebra.h"       // btree
-#include "BTree2.h"             // btree2
-#include "HashAlgebra.h"        // hash
+#include "Algebras/OldRelation-C++/OldRelationAlgebra.h" // rel, tuple
+#include "Algebras/Relation-C++/RelationAlgebra.h"    // rel, trel, tuple
+#include "Algebras/OrderedRelation/OrderedRelationAlgebra.h" // orel
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"    // tid
+#include "Algebras/Rectangle/RectangleAlgebra.h"   // rect, rect3, rect4, rect8
+#include "Algebras/RTree/RTreeAlgebra.h"       // rtree, rtree3, rtree4, rtee8
+#include "Algebras/BTree/BTreeAlgebra.h"       // btree
+#include "Algebras/BTree2/BTree2.h"             // btree2
+#include "Algebras/Hash/HashAlgebra.h"        // hash
 
 
 #include <set>
