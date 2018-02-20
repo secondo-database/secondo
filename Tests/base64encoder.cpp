@@ -56,8 +56,6 @@ main(int argc, char *argv[]) {
    }
 
 
- int size=0;
- bool nostream=false, decode=false;
 
 #ifdef _POSIX_OPT_H 
  int c = 0;

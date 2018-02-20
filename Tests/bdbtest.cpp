@@ -193,11 +193,7 @@ main( int argc, char** argv )
     Dbt key;
     int rc = 0;
     
-    void* bufptr = 0; // maintained by Berkeley-DB
     Dbt retdata;
-    void* retkey = 0;
-    size_t retklen = 0;
-    size_t retdlen = 0;
 
     Dbt buf;
     size_t cBufLength = 1;
@@ -273,7 +269,6 @@ main( int argc, char** argv )
        break;
      }
 
-      int ctr = 0;
       DbMultipleRecnoDataIterator it(buf);
       while ( it.next(recno, retdata) ) {};
      }
