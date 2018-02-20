@@ -71,7 +71,6 @@ main( int argc, char** argv )
   const int pageSize = 4096;
   const int CACHE_SIZE = 300 * pageSize;
 
-  int rc = 0;
 
   ofstream bdbErrOs("bdb-err.log");
 
