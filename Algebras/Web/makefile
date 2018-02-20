@@ -40,7 +40,7 @@ MODNAME = WEBAlgebra
 CCFLAGS = $(DEFAULTCCFLAGS) 
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS)
+CCFLAGS += -Werror 
 
 # The next rule will create a ".o" file for every ".cpp" file and
 # creates a "lib$(MODNAME).a" file in the secondo/lib dir. Rules

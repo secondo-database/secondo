@@ -49,13 +49,13 @@ November 2006
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "FTextAlgebra.h"
-#include "BinaryFileAlgebra.h"
-#include "RelationAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
+#include "Algebras/BinaryFile/BinaryFileAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Attribute.h"
 #include "DateTime.h"
-#include "../../Tools/Flob/DbArray.h"
-#include "../../Tools/Flob/Flob.h"
+#include "Tools/Flob/DbArray.h"
+#include "Tools/Flob/Flob.h"
 #include "web.h"
 
 #include "SocketIO.h"      //used for web access
@@ -64,9 +64,9 @@ November 2006
 #include <string>
 
 #ifdef SECONDO_WIN32
-#include "../../ClientServer/Win32Socket.h"
+#include "ClientServer/Win32Socket.h"
 #else //Linux
-#include "../../ClientServer/UnixSocket.h"
+#include "ClientServer/UnixSocket.h"
 #endif
 
 extern NestedList* nl;
