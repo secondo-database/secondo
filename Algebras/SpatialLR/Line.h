@@ -36,7 +36,7 @@ Defines and includes.
 #include "../../Tools/Flob/DbArray.h"
 #include "Attribute.h"
 #include "GenericTC.h"
-#include "LineT.h"
+#include "Algebras/Spatial/LineT.h"
 
 namespace salr {
 

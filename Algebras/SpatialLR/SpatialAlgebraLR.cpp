@@ -48,7 +48,7 @@ Defines and includes.
 #include "GenericTC.h"
 #include "Symbols.h"
 #include "StandardTypes.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 
 #include <string>
 

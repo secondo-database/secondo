@@ -33,7 +33,7 @@ Defines and includes.
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "RectangleBB.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "AlmostEqual.h"
 
 #include <vector>

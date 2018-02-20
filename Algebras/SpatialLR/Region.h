@@ -39,8 +39,8 @@ Defines and includes.
 #include "Curve.h"
 #include "Line.h"
 #include "RectangleBB.h"
-#include "RegionT.h"
-#include "PointsT.h"
+#include "Algebras/Spatial/RegionT.h"
+#include "Algebras/Spatial/PointsT.h"
 
 #include <vector>
 
