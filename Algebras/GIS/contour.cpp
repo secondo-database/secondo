@@ -2203,7 +2203,7 @@ Parameters: values and coordinates of four points, the wanted interval,
         }
         else
         {
-          return error;
+          return false;
         }
       }
 
