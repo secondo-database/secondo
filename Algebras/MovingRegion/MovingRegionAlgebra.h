@@ -45,7 +45,7 @@ Please see ~MovingRegionAlgebra.cpp~ for more details on the
 #include "ListUtils.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "DateTime.h"
 
 

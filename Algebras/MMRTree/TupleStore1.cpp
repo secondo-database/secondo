@@ -35,8 +35,7 @@ This tuple store used a chache and a relation to store tuples.
 */
 
 #include "TupleStore1.h"
-#include "RelationAlgebra.h"
-#include "TupleIdentifier.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
 
 /*

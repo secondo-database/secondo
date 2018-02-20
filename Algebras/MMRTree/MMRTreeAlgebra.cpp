@@ -35,18 +35,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 //#include "MMRStarTree.h"
 
-#include "RelationAlgebra.h"
-#include "TupleIdentifier.h"
-#include "FTextAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "StringUtils.h"
 
 #include "Progress.h"
 #include "../CostEstimation/MMRTreeAlgebraCostEstimation.h"
 
-#include "Point.h"
+#include "Algebras/Spatial/Point.h"
 #include "MMMTree.h"
-#include "TemporalAlgebra.h"
-#include "MovingRegionAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/MovingRegion/MovingRegionAlgebra.h"
 
 
 using namespace std;

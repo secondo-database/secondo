@@ -228,7 +228,7 @@ The following groups of test cases are available:
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "MovingRegionAlgebra.h"
 #include "DateTime.h"
 #include "Symbols.h"

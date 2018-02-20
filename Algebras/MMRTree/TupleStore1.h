@@ -34,12 +34,10 @@ This tuple store used a chache and a relation to store tuples.
 #ifndef TUPLESTORE1_H
 #define TUPLESTORE1_H
 
-#include "RelationAlgebra.h"
-#include "TupleIdentifier.h"
 #include <vector>
-
-
-
+#include <stdlib.h>
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
 
 class TupleStore1{

@@ -30,8 +30,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TUPLESTORE3_H
 #define TUPLESTORE3_H
 
-#include "RelationAlgebra.h"
-#include "TupleIdentifier.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"
 
 
 /*
