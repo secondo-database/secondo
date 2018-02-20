@@ -406,8 +406,8 @@ the corresponding parameter is set to 0.
 
 */
 bool insertN(const contenttype& x,      // in
-             const contenttype*& left,   // out
-             const contenttype*& right){ // out
+             contenttype*& left,   // out
+             contenttype*& right){ // out
    __AVL_TRACE__
    bool success;
    left  = 0;
@@ -512,8 +512,8 @@ be NULL.
 
 */
 bool removeN(const contenttype& x, 
-             const contenttype*& left, 
-             const contenttype*& right){
+             contenttype*& left, 
+             contenttype*& right){
   __AVL_TRACE__
   bool found = false;
   left  = 0;
@@ -1068,8 +1068,8 @@ correct result for them.
 static  Node* insertN(
                               Node* root, 
                               const contenttype& content,bool& success,
-                              const contenttype*& left,
-                              const contenttype*& right){
+                              contenttype*& left,
+                              contenttype*& right){
    __AVL_TRACE__
    if(root==NULL){ // leaf reached
       success=true;
@@ -1413,8 +1413,8 @@ It returns the new root of the created tree.
 static Node* removeN(
                                  Node* root,
                                  const contenttype& x, bool& found,
-                                 const contenttype*& left,
-                                 const contenttype*& right){
+                                 contenttype*& left,
+                                 contenttype*& right){
    __AVL_TRACE__
    if(root==NULL){ // nothing found
       found = false;
