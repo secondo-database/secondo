@@ -42,7 +42,6 @@ in the BTreeEntry Class.
 
 #include "BTree2Node.h"
 #include "Attribute.h"
-#include "RelationAlgebra.h"
 #include "SecondoSMI.h"
 #include "IndexableAttribute.h"
 

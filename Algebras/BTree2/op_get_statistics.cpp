@@ -17,8 +17,7 @@
 
 #include "ListUtils.h"
 #include "QueryProcessor.h"
-#include "RelationAlgebra.h"
-#include "TupleIdentifier.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Symbols.h"
 
 #include "BTree2.h"

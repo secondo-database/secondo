@@ -33,7 +33,7 @@ keytype and valuetype.
 #define _BTREE2_CLASS_H_
 
 #include "BTree2Types.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
 #include <string>
 

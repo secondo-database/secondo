@@ -15,10 +15,7 @@
 
 #include "ListUtils.h"
 #include "QueryProcessor.h"
-#include "RelationAlgebra.h"
-#include "TupleIdentifier.h"
 #include "BTree2.h"
-#include "Symbols.h"
 
 #include <limits>
 

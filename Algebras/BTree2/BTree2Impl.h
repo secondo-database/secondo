@@ -37,7 +37,6 @@ This is the main class of the BTree Algebra.
 #include "BTree2Iterator.h"
 
 #include "Attribute.h"
-#include "TupleIdentifier.h"
 
 #include "SecondoCatalog.h"
 

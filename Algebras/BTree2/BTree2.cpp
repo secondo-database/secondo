@@ -45,7 +45,7 @@ reduced, but only int/tid trees are possible.
 #include "TypeConstructor.h"
 #include "StandardTypes.h"
 
-#include "TupleIdentifier.h"
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"
 #include "ListUtils.h"
 #include "Symbols.h"
 

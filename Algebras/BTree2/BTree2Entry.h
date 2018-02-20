@@ -40,7 +40,6 @@ However, Read/Write methods, which store both (key+value), are provided here.
 
 #include "BTree2Node.h"
 #include "Attribute.h"
-#include "RelationAlgebra.h"
 #include "SecondoSMI.h"
 
 #include "BTree2EntryBase.h"

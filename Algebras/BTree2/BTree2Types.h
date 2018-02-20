@@ -17,7 +17,7 @@
 #include "SecondoSMI.h"
 #include "StandardTypes.h"
 
-#include "TupleIdentifier.h"
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"
 #include "Attribute.h"
 #include "IndexableAttribute.h"
 
