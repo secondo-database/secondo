@@ -42,8 +42,10 @@ type that is based on ~stype$<$T, Helper$>$~.
       public:
         DisplaySType() {};
         virtual ~DisplaySType() {};
-        virtual void Display(ListExpr type, ListExpr value)
-        {
+        virtual void Display(ListExpr type, ListExpr value) {
+            if (nl->IsEqual(value, Symbol::UNDEFINED())) {
+              return;
+            }
             std::cout << "Origin: (" 
                       << nl->RealValue(nl->First(nl->First(value)))
                       << ", " << nl->RealValue(nl->Second(nl->First(value)))
