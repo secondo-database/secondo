@@ -100,11 +100,12 @@ rest	: ZZCLOSE	{$$ = parseNL_nl->TheEmptyList();}
 	;
 
 seq	: first		{$$ = $1; lists.push($1);}
-	| seq elem	{$$ = parseNL_nl->Append($1, $2);}
+	| seq elem	{$$ = parseNL_nl->Append($1, $2,false);
+              }
 	;
 
-first	: atom		{$$ = parseNL_nl->OneElemList($1);}
-	| list		{$$ = parseNL_nl->OneElemList($1);}
+first	: atom		{$$ = parseNL_nl->OneElemList($1,false);}
+	| list		{$$ = parseNL_nl->OneElemList($1,false);}
 	; 
 
 elem	: atom		{$$ = $1;}

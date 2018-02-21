@@ -53,7 +53,6 @@ called to test them and to demonstrate how to use them.
 #include <fstream>
 
 #include "NestedList.h"
-#include "SecondoSMI.h"
 #include "WinUnix.h"
 #include "CTestFrame.h"
 
@@ -76,13 +75,26 @@ struct IntPairs {
 
 */
 
+void reportTableSizes(const std::string& name, NestedList& nl){
+  cout << "---------  " << name << "  ----------" << endl;
+  cout << " used list storage " << endl;
+  cout << "Nodes   : " << nl.sizeOfNodeTable()   
+       << " (" << nl.freeNodes() << " free )" << endl;
+  cout << "Strings : " << nl.sizeOfStringTable() 
+       << " (" << nl.freeStrings() << " free )" << endl;
+  cout << "Texts   : " << nl.sizeOfStringTable() 
+       << " (" << nl.freeTexts() << " free )" << endl;
+  cout << "----------------------------" << endl << endl; 
+}
+
+
+
 class TestNestedList : public CTestFrame {
 
 private:
 
   int recCounter;
   NestedList* nl;
-  SmiRecordFile* rf;
   const string filePrefix;
 
 public:
@@ -90,7 +102,6 @@ public:
   TestNestedList(char x, const string& prefixStr) : CTestFrame(x), 
     recCounter(0),
     nl(0),
-    rf(0),
     filePrefix(prefixStr) {}
 
   ~TestNestedList() {}
@@ -141,9 +152,9 @@ TestNLCopy()
    NestedList nB;
 
    TestCase("Copy Lists between NL-Instances nA, nB");
+   reportTableSizes("nA", nA);
+   reportTableSizes("nB", nB);
 
-   cout  << " listA: " << endl << nA.ReportTableSizes(true,true) << endl
-         << " listB: " << endl << nB.ReportTableSizes(true,true) << endl;
 
    vector<string> listStr(4);
 
@@ -175,10 +186,9 @@ TestNLCopy()
      CheckResult("Equal", nA.Equal(listA, copyOfA), true);
 
   }
+  reportTableSizes("nA", nA);
+  reportTableSizes("nB", nB);
 
-     cout << " ReportTableSizes(true,true): " << endl
-          << " listA: " << endl << nA.ReportTableSizes(true,true) << endl
-          << " listB: " << endl << nB.ReportTableSizes(true,true) << endl;
 
   return 0;
 }
@@ -197,7 +207,6 @@ StringAtom_bug() {
    NestedList nl;
 
    cout << "Test of String Atoms." << endl << endl;
-   cout << "MemoryModel: " << nl.MemoryModel() << endl;
 
    NestedList* pnl = &nl;
 
@@ -226,7 +235,6 @@ ConcatLists_bug() {
    nl = &Nl;
 
    cout << "Test of String Atoms." << endl << endl;
-   cout << "MemoryModel: " << nl->MemoryModel() << endl;
 
    ListExpr headerlist=0;
    ListExpr concatenatedlist = 0;
@@ -299,6 +307,10 @@ TestBasicOperations()
    
    NestedList nl;
 
+   reportTableSizes("nl:0", nl);
+
+
+
    ListExpr sym2 = nl.OneElemList(nl.SymbolAtom("ERRORS"));
    nl.ReadFromString( "(open database opt)", sym2 );
    nl.WriteListExpr(sym2);
@@ -310,6 +322,7 @@ TestBasicOperations()
 4.1.1 Empty List 
 
 */
+   reportTableSizes("nl:1", nl);
    
    TestCase("Empty List");
    bool ok = false;
@@ -341,6 +354,7 @@ TestBasicOperations()
 4.1.2 Integer atoms
 
 */
+   reportTableSizes("nl:2", nl);
    
    TestCase("Integer Atoms");
    vector<IntPairs> IntValues;
@@ -377,6 +391,7 @@ TestBasicOperations()
    }
    EndCheck(ok);
    
+   reportTableSizes("nl:3", nl);
    
 
 /*
@@ -425,6 +440,7 @@ ste
 4.1.4 Bool atoms 
 
 */
+   reportTableSizes("nl:4", nl);
    
    TestCase("Bool Atoms");
    BoolValue = true;
@@ -436,6 +452,7 @@ ste
      cout << CBool(BoolValue2) << endl << endl;
    }
 
+   reportTableSizes("nl:5", nl);
 /*
 
 4.1.5 String atoms
@@ -473,6 +490,7 @@ ste
 4.1.6 Symbol atoms 
 
 */
+   reportTableSizes("nl:6", nl);
    
    TestCase("Symbol Atoms");
    SymbolValue = "<=";
@@ -493,6 +511,7 @@ ste
 4.1.6 Text atoms and text scans 
 
 */
+   reportTableSizes("nl:7", nl);
 
    TestCase("Text Atoms");
    cout << endl << " Short text (one fragment only)" << endl; 
@@ -537,8 +556,6 @@ ste
    }
    nl.DestroyTextScan(TextScan1);
 
-   cout << "Memory-Usage: " 
-        << nl.ReportTableSizes(true,true) << endl;
 
    cout << endl << "Text in several fragments!" << endl; 
    TextAtomVar2 = nl.TextAtom();
@@ -575,12 +592,11 @@ ste
    string str = nl.Text2String(TextAtomVar2);
    CheckResult("Equal-String",  textLen == charLen, true);
    
-   cout << "After Text with more than one fragment, Memory-Usage: " 
-        << nl.ReportTableSizes(true,true) << endl;
    
    ListExpr15 = nl.TwoElemList (TextAtomVar, TextAtomVar2);
    cout << "ListExpr15" << nl.ToString(ListExpr15) << endl;
 
+   reportTableSizes("nl:8", nl);
 
 /*
 
@@ -604,6 +620,7 @@ ste
    ListExpr4 = nl.Cons (StringAtomVar, nl.Second (ListExpr3));
    cout << "ListExpr4" << endl;
 
+   reportTableSizes("nl:9", nl);
 
 /*
 
@@ -652,9 +669,8 @@ The following steps are executed with a small list expression.
    nl.WriteToFile ("testout_FirstExpr5", nl.First(ListExpr5));
    cout << endl;
 
-   cout << "After String <-> List Conversions, Memory-Usage: " 
-        << nl.ReportTableSizes(true,true) << endl;
    
+   reportTableSizes("nl:10", nl);
   
 /*
 
@@ -669,14 +685,15 @@ The following steps are executed with a small list expression.
    nl.Destroy(ListExpr8);
    nl.Destroy(ListExpr9);
 
+   reportTableSizes("nl:11", nl);
 /*
 
 4.5 Reading an writing text atoms 
 
 */
 
-   const string tagS("(<text>");
-   const string tagE("</text--->)");
+   const string tagS("('");
+   const string tagE("')");
    string text = 
    "--------10--------20--------30--------40--------50--------"
    "60--------70--------80-------90-------100-------110-------120-------"
@@ -697,13 +714,12 @@ The following steps are executed with a small list expression.
    CHECK( String1 == text1, true);
    CHECK( String3 == text2, true);
 
-   cout << "After text conversion, Memory-Usage: " 
-        << nl.ReportTableSizes(true,true) << endl;
 
    CHECK( nl.Equal(ListExpr1, ListExpr2), true);
    CHECK( nl.Equal(ListExpr1, ListExpr3), false);
 
    EndCheck(ok);
+   reportTableSizes("nl:9", nl);
    return (0);
 }
 
@@ -729,10 +745,8 @@ TestFile(const string& dir, const string& fileBaseName, NestedList& nl) {
    ListExpr list = nl.TheEmptyList();
 
 
-   cout << nl.ReportTableSizes(true,true) << endl;
    cout << endl << "Reading " << fileIn << " ..." << endl;
    nl.ReadFromFile( fileIn, list );
-   cout << nl.ReportTableSizes(true,true) << endl;
    cout << endl << "Writing " << fileOut << " ..." << endl;
    nl.WriteToFile( fileOut, list );
 
@@ -761,73 +775,14 @@ TestInputOutput() {
 }
 
 
-bool
-openDB(string dbname ) {
-   
-   bool ok=false;   
-   
-   cout << "OpenDatabase " << dbname;
-   if ( (ok=SmiEnvironment::OpenDatabase( dbname )) == true )
-   {
-      cout << " ok." << endl;
-   }
-   else
-   {
-      cout << " failed, try to create." << endl;
-   
-      cout << "CreateDatabase " << dbname; 
-      if ( (ok=SmiEnvironment::CreateDatabase( dbname )) == true )
-         cout << " ok." << endl;
-      else
-         cout << " failed." << endl;
-   }
- 
-   return ok;
-   
-}
-
-bool
-closeDB()
-{
-    bool ok=false;   
-
-    cout << "CloseDatabase "; 
-    if ( (ok=SmiEnvironment::CloseDatabase()) == true )
-      cout << " ok." << endl;
-    else
-      cout << " failed." << endl;
-
-    return ok;
-}
-
-void
-listDB() {
-   
-   string dbname;
-
-   cout << "*** Start list of databases ***" << endl;
-   SmiEnvironment::ListDatabases( dbname );
-   cout << dbname << endl;
-   cout << "*** End list of databases ***" << endl;
- 
-}
 
 int
 TestRun_Persistent() {
   
    cout << endl << "Test run persistent" << endl;
  
-   SmiError rc = 0;
-   
-   rc = SmiEnvironment::StartUp( SmiEnvironment::MultiUser,
-   "SecondoConfig.ini", "", cerr , "");
-   listDB();
    //pause();
 
-   int OpendeDB = openDB("PARRAY");
-   assert( OpendeDB ); 
-   //cout << "Begin Transaction: " 
-   //<< SmiEnvironment::BeginTransaction() << endl;
    
    //pause();
    TestBasicOperations();
@@ -843,15 +798,7 @@ TestRun_Persistent() {
    //cout << "Commit: " 
    //<< SmiEnvironment::CommitTransaction() << endl;
 
-   int ClosedDB = closeDB();
-   assert( ClosedDB );
-
-   //pause();
-   
-   rc = SmiEnvironment::ShutDown();
-   cout << "ShutDown rc=" << rc << endl;
-   
-   return rc;
+   return 1;
 }
 
 
@@ -890,21 +837,7 @@ main() {
   cout << "STRING_INTERNAL_SIZE: " << (int) STRING_INTERNAL_SIZE << endl;
   cout << "MAX_STRINGSIZE: " << (int) MAX_STRINGSIZE << endl;
 
-  bool isPersistent = NestedList::IsPersistentImpl();
- 
-  cout << "Implementation Model: "; 
-  if ( isPersistent ) {
-    cout << " PERSISTENT";
-  } else {
-    cout << "NON-PERSISTENT";
-  }
-  cout << endl << endl;
-
-  if ( isPersistent ) { 
-   test.TestRun_Persistent();
-  } else {
-   test.TestRun_MainMemory();
-  }
+  test.TestRun_Persistent();
 
   test.ShowErrors();
 

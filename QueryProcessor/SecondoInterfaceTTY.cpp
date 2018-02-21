@@ -547,11 +547,11 @@ SecondoInterfaceTTY::Initialize( const string& user,
 
     cmsg.info() << "Kernels List Memory:" << endl
               << "  NodeMem = " << nodeMem
-              << " / slots = " << nl->nodeEntries << endl
+              << " / slots = " << nl->getNodeEntries() << endl
               << "  StringMem = " << stringMem
-              << " / slots = " << nl->stringEntries << endl
+              << " / slots = " << nl->getStringEntries() << endl
               << "  TextMem = " << textMem
-              << " / slots = " << nl->textEntries << endl
+              << " / slots = " << nl->getTextEntries() << endl
               << endl;
     cmsg.send();
 
@@ -1902,16 +1902,6 @@ SecondoInterfaceTTY::Command_Query( const ListExpr list,
        if ( RTFlag::isActive("SI:DestroyOpTreeTime") ) {
          cmsg.info() << "Destroy " << destroyTime.diffTimes() << endl;
          cmsg.send();
-       }
-
-       if (RTFlag::isActive("NL:MemInfo"))
-       {
-         cmsg.info() << nl.ReportTableSizes(true) << endl;
-         cmsg.send();
-       }
-       else
-       {
-         nl.ReportTableSizes(false);
        }
 
     }

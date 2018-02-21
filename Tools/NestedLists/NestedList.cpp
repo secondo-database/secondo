@@ -139,11 +139,69 @@ Definitions implied by convention:
 */
 
 
-bool NestedList::doDestroy = false;
 size_t NestedList::NLinstance = 0;
 
+NodeRecord::NodeRecord() :
+    nodeType(BoolType),
+    isRoot(false),
+    strLength(0),
+    inLine(0),
+    references(1){
 
-const bool NestedList::isPersistent = true;
+ }
+
+
+ostream& operator<<(ostream& out, const NodeRecord& nr){
+    out << "nr: " << NestedList::NodeType2Text(nr.nodeType) << "  " ;
+    if(nr.nodeType==NoAtom){
+      out << (nr.isRoot?"root":"non-root");
+    } 
+    if(nr.nodeType==StringType || nr.nodeType==SymbolType){
+      out << "  strlength("<< (int)nr.strLength<<")  ";
+      out << (nr.inLine ?"inline" : "non-inline") ;
+    }
+    out << " refs = " << nr.references << "  ";
+    if(nr.nodeType == NoAtom){
+       out << "left(" << nr.n.left << ") "
+           << ", right(" << nr.n.right << ")";
+    } else if(nr.nodeType==IntType){
+      out << "value = " <<nr.a.value.intValue; 
+    } else if (nr.nodeType==RealType){
+      out << "value = " << nr.a.value.realValue;
+    } else if(nr.nodeType==BoolType){
+      out << "value = " << (nr.a.value.boolValue?"true":"false");
+    } else if(  (nr.nodeType==StringType)
+              ||(nr.nodeType==SymbolType)){
+      if(!nr.inLine){
+        out << "first("<<nr.s.first<<")";
+        out << "field -> stringTable";
+      } else {
+         out << "field =" << string(nr.s.field,nr.strLength);
+      }
+    } else if( nr.nodeType==TextType){
+      out << "start(" << nr.t.start<<")";
+      out << "last(" << nr.t.last<<")";
+    } else {
+      out << "unknown nodetype" ; 
+    }
+    return out;
+}
+
+
+
+template<class Array>
+Cardinal emptySlot(Array& a, set<Cardinal>& freeSlots){
+   if(freeSlots.empty()){
+     return a.EmptySlot();
+   } 
+   set<Cardinal>::iterator it = freeSlots.begin();
+   Cardinal res = *it;
+   freeSlots.erase(it);
+   return res;
+}
+
+
+
 
 /*
 This constant defines whether the ~Destroy~ method really destroys a
@@ -155,8 +213,6 @@ However, the code for destroying in this file will not be compiled but unless
 you comment out the line below.
 
 */
-
-//#define COMPILE_DESTROY
 
 
 
@@ -219,6 +275,9 @@ NestedList::DeleteListMemory()
      delete textTable;
      textTable = 0;
    }
+   freeNodeSlots.clear();
+   freeStringSlots.clear();
+   freeTextSlots.clear();
 }
 
 
@@ -241,7 +300,7 @@ NestedList::initializeListMemory()
    boost::lock_guard<boost::recursive_mutex> guard1(mtx);
 #endif
    //cout << endl << "### NestedList::initializeListMemory" << endl;
-   DeleteListMemory();
+   DeleteListMemory(); //cleans also free sets
 
    nodeTable   = BigArray<NodeRecord>::newInstance(basename+"_nodes",
                                                    nodeEntries,true);
@@ -250,20 +309,10 @@ NestedList::initializeListMemory()
    textTable   = BigArray<TextRecord>::newInstance(basename+"_texts",
                                                    nodeEntries,true);
 
-
    typeError = SymbolAtom("typeerror");
    errorList = OneElemList( SymbolAtom("ERRORS") );
 }
 
-
-string
-NestedList::MemoryModel() {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
-   return "BigArray" ;
-  //   return nodeTable->MemoryModel();
-}
 
 
 string
@@ -320,7 +369,7 @@ Converts an instance of NODETYPE into the corresponding textual representation.
 */
 
 string
-NestedList::NodeType2Text( NodeType type ) const
+NestedList::NodeType2Text( NodeType type ) 
 {
   switch (type)
   {
@@ -378,33 +427,41 @@ NestedList::End( ListExpr list ) const
 */
 
 ListExpr
-NestedList::Cons( const ListExpr left, const ListExpr right )
+NestedList::Cons( const ListExpr left, const ListExpr right, 
+                  bool incRefs)
 {
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard1(mtx);
 #endif
   assert( !IsAtom( right ) );
 
-  Cardinal newNode = nodeTable->EmptySlot();
+  Cardinal newNode = emptySlot(*nodeTable, freeNodeSlots);
 
   // concatenate nodes
   NodeRecord tmpNodeVal;
-  (*nodeTable).Get(newNode, tmpNodeVal);
+  nodeTable->Get(newNode, tmpNodeVal);
   tmpNodeVal.nodeType = NoAtom;
   tmpNodeVal.n.left     = left;
   tmpNodeVal.n.right    = right;
   tmpNodeVal.isRoot = 1;
+  tmpNodeVal.references = 1;
   (*nodeTable).Put(newNode, tmpNodeVal);
 
-  if ( !(IsAtom( left ) || IsEmpty( left )) )
+  if ( ! IsEmpty( left ) )
   {
-    (*nodeTable).Get(left, tmpNodeVal);
+    nodeTable->Get(left, tmpNodeVal);
     tmpNodeVal.isRoot = 0;
+    if(incRefs){
+       tmpNodeVal.references++;
+    }
     (*nodeTable).Put(left, tmpNodeVal);
   }
   if ( !IsEmpty( right ) )
   {
     (*nodeTable).Get(right, tmpNodeVal);
+    if(incRefs){
+      tmpNodeVal.references++;
+    }
     tmpNodeVal.isRoot = 0;
     (*nodeTable).Put(right, tmpNodeVal);
   }
@@ -420,7 +477,8 @@ NestedList::Cons( const ListExpr left, const ListExpr right )
 
 ListExpr
 NestedList::Append ( const ListExpr lastElem,
-                     const ListExpr newSon )
+                     const ListExpr newSon,
+                     bool incRef )
 {
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard1(mtx);
@@ -430,7 +488,7 @@ NestedList::Append ( const ListExpr lastElem,
   NodeRecord lastElemNodeRec;
   (*nodeTable).Get(lastElem, lastElemNodeRec);
 
-  Cardinal newNode = nodeTable->EmptySlot();
+  Cardinal newNode = emptySlot(*nodeTable, freeNodeSlots);
 
   NodeRecord newNodeRec;
   (*nodeTable).Get(newNode, newNodeRec);
@@ -440,15 +498,19 @@ NestedList::Append ( const ListExpr lastElem,
   newNodeRec.n.left = newSon;
   newNodeRec.n.right = 0;
   newNodeRec.isRoot = 0;
+  newNodeRec.references = 1;
 
   (*nodeTable).Put(lastElem, lastElemNodeRec);
   (*nodeTable).Put(newNode, newNodeRec);
 
-  if ( !(IsAtom( newSon ) || IsEmpty( newSon )) ) {
+  if ( !IsEmpty( newSon ) ) {
 
     NodeRecord newSonRec;
     (*nodeTable).Get(newSon, newSonRec);
     newSonRec.isRoot = 0;
+    if(incRef){
+      newSonRec.references++;
+    }
     (*nodeTable).Put(newSon, newSonRec);
   }
   return (newNode);
@@ -466,105 +528,137 @@ similarly.
 
 */
 
-//#define COMPILE_DESTROY
 
 
-#ifdef COMPILE_DESTROY
-struct DestroyStackRecord
-{
-  DestroyStackRecord( NodeRecord& nr, ListExpr le ):
-   nr( nr ),
-   le( le )
-   {}
+void NestedList::DestroyRec(ListExpr& list){
 
-  NodeRecord& nr;
-  ListExpr le;
-};
-#endif
+  if(IsEmpty(list)){
+    return;
+  }
+
+  switch( AtomType(list) ) {
+
+  case BoolType     : 
+  case IntType      : 
+  case RealType     : {
+                      NodeRecord root; 
+                      nodeTable->Get(list, root);
+                      assert(root.references>0);
+                      root.references--;
+                      if(root.references>0){
+                         nodeTable->Put(list,root);
+                         return;
+                      }
+                      freeNodeSlots.insert(list);
+                      }
+                      break;
+
+  case SymbolType   : 
+  case StringType   : { 
+                      NodeRecord root; 
+                      nodeTable->Get(list, root);
+                      assert(root.references>0);
+                      root.references--;
+                      if(root.references>0){
+                         nodeTable->Put(list,root);
+                         return;
+                      }
+                      freeNodeSlots.insert(list);
+                      if(!root.inLine){
+                        Cardinal next = root.s.first;
+                        root.s.first = 0;
+                        while(next){
+                           StringRecord sr;
+                           stringTable->Get(next,sr);
+                           freeStringSlots.insert(next);
+                           Cardinal last = next;
+                           next = sr.next;
+                           sr.next = 0;
+                           stringTable->Put(last, sr);
+                        }
+                      }  
+                      }
+                      break;
+
+
+  case TextType     : {
+                      NodeRecord root; 
+                      nodeTable->Get(list, root);
+                      assert(root.references>0);
+                      root.references--;
+                      if(root.references>0){
+                         nodeTable->Put(list,root);
+                         return;
+                      }
+                      Cardinal next = root.t.start;
+                      root.t.start = 0;
+                      freeNodeSlots.insert(list);
+                      while(next){
+                         TextRecord tr;
+                         textTable->Get(next,tr);
+                         freeTextSlots.insert(next);
+                         Cardinal last = next;
+                         next = tr.next;
+                         tr.next = 0;
+                         textTable->Put(last, tr);
+                      }
+                      }
+                      break;
+
+  case NoAtom        : {
+                         NodeRecord root; 
+                         nodeTable->Get(list, root);
+                         assert(root.references>0);
+                         root.references--;
+                         if(root.references>0){
+                            nodeTable->Put(list,root);
+                            return;
+                         }
+                         freeNodeSlots.insert(list);
+                         // destroy first
+                         DestroyRec(root.n.left);
+                         // destroy rest
+                         Cardinal scan = root.n.right;
+                         while(scan){
+                            nodeTable->Get(scan, root);
+                            root.references--;
+                            if(root.references==0){
+                                freeNodeSlots.insert(scan);
+                            } 
+                            DestroyRec(root.n.left);
+                            scan = root.n.right; 
+                         }
+                       }
+                       break;
+   default: assert(false); // invalid atom type
+
+  }
+}
+
 
 
 void
-NestedList::Destroy ( const ListExpr list )
+NestedList::Destroy(ListExpr& list )
 {
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard1(mtx);
 #endif
-#ifdef COMPILE_DESTROY
-  if ( !IsEmpty( list ) && !IsAtom( list ) && (*nodeTable)[list].isRoot == 1)
-  {
-    if ( doDestroy )
-    {
-      stack<DestroyStackRecord*> nodeRecordStack;
-      nodeRecordStack.push( new DestroyStackRecord(
-                                  (*nodeTable)[list], list ) );
-
-      while( !nodeRecordStack.empty() )
-      {
-        DestroyStackRecord *sr = nodeRecordStack.top();
-        nodeRecordStack.pop();
-
-        switch (sr->nr.nodeType)
-        {
-          case NoAtom:
-          {
-            nodeRecordStack.push( new DestroyStackRecord(
-                                       (*nodeTable)[sr->nr.n.left],
-                                       sr->nr.n.left )              );
-
-            nodeRecordStack.push( new DestroyStackRecord(
-                                        (*nodeTable)[sr->nr.n.right],
-                                        sr->nr.n.right )              );
-            nodeTable->Remove( sr->le );
-            delete sr;
-            break;
-          }
-          case IntType:
-          case RealType:
-          case BoolType:
-          {
-            intTable->Remove( sr->nr.a.index);
-            nodeTable->Remove( sr->le );
-            delete sr;
-            break;
-          }
-          case StringType:
-          case SymbolType:
-          {
-            if ( sr->nr.s.first  != 0 )
-            {
-              stringTable->Remove( sr->nr.s.first );
-            }
-            if ( sr->nr.s.second != 0 )
-            {
-              stringTable->Remove( sr->nr.s.second );
-            }
-            if ( sr->nr.s.third  != 0 )
-            {
-              stringTable->Remove( sr->nr.s.third );
-            }
-            nodeTable->Remove( sr->le );
-            delete sr;
-            break;
-          }
-          case TextType:
-          {
-            Cardinal elem = sr->nr.t.start;
-            while ( elem != 0 )
-            {
-              Cardinal nextElem = (*textTable)[elem].next;
-              textTable->Remove( elem );
-              elem = nextElem;
-            }
-            nodeTable->Remove( sr->le );
-            delete sr;
-            break;
-          }
-        }
-      }
-    }
-  }
-#endif
+  
+  DestroyRec(list); 
+  list = 0;
 }
+
+void NestedList::IncReferences(ListExpr& list){
+  if(list){
+     NodeRecord node;
+     nodeTable->Get(list, node);
+     assert(node.references>0); 
+     node.references++;
+     nodeTable->Put(list,node);
+  }
+}
+
+
 
 /*
 5 Simple Tests
@@ -672,7 +766,7 @@ subexpressions.
   return (length);
 }
 
-
+/*
 enum NodesStacked { None, Left, Right, Both };
 struct CopyStackRecord
 {
@@ -686,6 +780,8 @@ struct CopyStackRecord
   NodesStacked ns;
   ListExpr le;
 };
+
+*/
 
 
 ListExpr
@@ -1866,12 +1962,12 @@ NestedList::IntAtom( const long  value )
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard1(mtx);
 #endif
-  Cardinal newNode = nodeTable->EmptySlot();
-
+  Cardinal newNode = emptySlot(*nodeTable, freeNodeSlots);
   NodeRecord newNodeRec;
   nodeTable->Get(newNode, newNodeRec);
   newNodeRec.nodeType = IntType;
   newNodeRec.a.value.intValue = value;
+  newNodeRec.references = 1;
   nodeTable->Put(newNode, newNodeRec);
 
   return (newNode);
@@ -1888,12 +1984,13 @@ NestedList::RealAtom( const double value )
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard1(mtx);
 #endif
-  Cardinal newNode = nodeTable->EmptySlot();
+  Cardinal newNode = emptySlot(*nodeTable, freeNodeSlots);
 
   NodeRecord newNodeRec;
   nodeTable->Get(newNode, newNodeRec);
   newNodeRec.nodeType = RealType;
   newNodeRec.a.value.realValue = value;
+  newNodeRec.references = 1;
   nodeTable->Put(newNode, newNodeRec);
 
   return (newNode);
@@ -1910,12 +2007,13 @@ NestedList::BoolAtom( const bool value )
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard1(mtx);
 #endif
-  Cardinal newNode = nodeTable->EmptySlot();
+  Cardinal newNode = emptySlot(*nodeTable, freeNodeSlots);
 
   NodeRecord newNodeRec;
   nodeTable->Get(newNode, newNodeRec);
   newNodeRec.nodeType = BoolType;
   newNodeRec.a.value.boolValue = value;
+  newNodeRec.references = 1;
   nodeTable->Put(newNode, newNodeRec);
 
   return (newNode);
@@ -1937,7 +2035,7 @@ NestedList::StringAtom( const string& value, bool isString /*=true*/ )
 
   NodeRecord newNodeRec;
 
-  Cardinal newNode = nodeTable->EmptySlot();
+  Cardinal newNode = emptySlot(*nodeTable, freeNodeSlots);
 
   nodeTable->Get(newNode, newNodeRec);
 
@@ -1948,6 +2046,7 @@ NestedList::StringAtom( const string& value, bool isString /*=true*/ )
   } else {
     newNodeRec.nodeType = SymbolType;
   }
+  newNodeRec.references = 1;
 
   if ( strLen <= STRING_INTERNAL_SIZE ) {
 
@@ -1961,7 +2060,7 @@ NestedList::StringAtom( const string& value, bool isString /*=true*/ )
   newNodeRec.inLine = 0;   // create records in the string table
 
   StringRecord strRec;
-  Cardinal index  = stringTable->EmptySlot();
+  Cardinal index  = emptySlot(*stringTable, freeStringSlots);
   stringTable->Get(index, strRec);
   newNodeRec.s.first = index;
   nodeTable->Put(newNode, newNodeRec);
@@ -1982,7 +2081,7 @@ NestedList::StringAtom( const string& value, bool isString /*=true*/ )
 
       Cardinal pred = index;  // save reference
 
-      index = stringTable->EmptySlot();
+      index = emptySlot(*stringTable, freeStringSlots);
       strRec.next = index;
       stringTable->Put(pred, strRec);
       stringTable->Get(index, strRec);
@@ -2023,12 +2122,13 @@ NestedList::TextAtom()
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard1(mtx);
 #endif
-  Cardinal newNode = nodeTable->EmptySlot();
+  Cardinal newNode = emptySlot(*nodeTable, freeNodeSlots);
 
   NodeRecord newNodeRec;
   (*nodeTable).Get(newNode, newNodeRec);
   newNodeRec.nodeType = TextType;
-  newNodeRec.t.start  = textTable->EmptySlot();
+  newNodeRec.references = 1;
+  newNodeRec.t.start  = emptySlot(*textTable, freeTextSlots);
   newNodeRec.t.last   = newNodeRec.t.start;
   //newNodeRec.t.length = 0;
   (*nodeTable).Put(newNode, newNodeRec);
@@ -2114,7 +2214,7 @@ empty or it is filled with up to TextFragmentSize-1 characters.
     while ( textLength > 0 )
     {
       // create a new text record
-      newFragmentID = textTable->EmptySlot();
+      newFragmentID = emptySlot(*textTable, freeTextSlots);
       (*textTable).Get(newFragmentID, newTextRec);
 
       memset( newTextRec.field, 0, TextFragmentSize );
@@ -2565,69 +2665,57 @@ NestedList::AtomType (const ListExpr atom ) const
   }
 }
 
-/*
-
-11 ReportTableSizes
-
-*/
-
-const string
-NestedList::ReportTableSizes( const bool onOff,
-                              const bool prettyPrint /*=false*/) const
-{
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
-
-  return "not avalibale"; 
-
-  /*
-  string msg = "";
-  const int tables=2;
-  Cardinal pageChanges[tables], memSize[tables], slotAccess[tables];
-
-
- 
-  nodeTable->TotalMemory(memSize[0], pageChanges[0], slotAccess[0]);
-  stringTable->TotalMemory(memSize[1], pageChanges[1], slotAccess[1]);
-
-  if ( prettyPrint ) {
-    ostringstream report;
-    report << endl;
-    report << "List Info: slots/used [pageChanges/slotAccesses] "
-           << "- slotsize - used Bytes" << endl;
-    report << "-------------------------------------------------" << endl;
-
-    report << "    nodes: " << nodeTable->Size()
-         << "/" << nodeTable->NoEntries()
-         << " [" << pageChanges[0] << "/" << slotAccess[0] << "] - "
-         << nodeTable->GetSlotSize() << " - " << memSize[0] << endl;
-
-    report << "      str: " << stringTable->Size()
-         << "/" << stringTable->NoEntries()
-         << " [" << pageChanges[1] << "/" << slotAccess[1] << "] - "
-         << stringTable->GetSlotSize() << " - " << memSize[1] << endl;
-
-    msg = report.str();
+std::ostream& operator<<(ostream& out, StringRecord sr){
+  out << string(sr.field,StringFragmentSize);
+  if(sr.next) {
+     out << "   -> " << sr.next << endl;
   }
+  return out;
+  
+} 
 
-  Counter::getRef("NL:Nodes_max", onOff) = nodeTable->Size();
-  Counter::getRef("NL:Nodes_used", onOff) = nodeTable->NoEntries();
-  Counter::getRef("NL:Nodes_pageChanges", onOff) = pageChanges[0];
-  Counter::getRef("NL:Nodes_slotAccesses", onOff) = slotAccess[0];
-  Counter::getRef("NL:Nodes_slotSize", onOff) = nodeTable->GetSlotSize();
-  Counter::getRef("NL:Nodes_usedBytes", onOff) = memSize[0];
 
-  Counter::getRef("NL:Str_max", onOff) = stringTable->Size();
-  Counter::getRef("NL:Str_used", onOff) = stringTable->NoEntries();
-  Counter::getRef("NL:Str_pageChanges", onOff) = pageChanges[1];
-  Counter::getRef("NL:Str_slotAccesses", onOff) = slotAccess[1];
-  Counter::getRef("NL:Str_slotSize", onOff) = stringTable->GetSlotSize();
-  Counter::getRef("NL:Str_usedBytes", onOff) = memSize[1];
+std::ostream& NestedList::printTables(std::ostream& out) const{
+   out  << " Nodes: " << endl;
+   NodeRecord node;
+   if(!nodeTable){
+      out << "not present" << endl;
+   } else {
+     out << "nodeTable has " << nodeTable->NoEntries()  << " entries" << endl;
+     for(size_t i=1;i<=nodeTable->NoEntries(); i++){
+        out << i << " : " ;
+        if(freeNodeSlots.find(i)!=freeNodeSlots.end()){
+          out << " free " << endl; 
+        } else {
+          nodeTable->Get(i,node);
+          out << node << endl;
+        }
+     } 
+   }
+   out << endl << " Strings : " << endl;
+   StringRecord sr;
+   if(!stringTable){
+      out << "not present" << endl;
+   } else {
+     out << "stringTable has " << stringTable->NoEntries()  
+         << " entries" << endl;
+     for(size_t i=1;i<=stringTable->NoEntries(); i++){
+        out << i << " : " ;
+        if(freeStringSlots.find(i)!=freeStringSlots.end()){
+          out << " free " << endl; 
+        } else {
+          stringTable->Get(i,sr);
+          out << sr << endl;
+        }
+     } 
+   }
+   out << endl << " Texts : " << endl;
+   return out;  
 
-  return msg;
 
-  */
 }
+
+
+
 
 const double Tolerance::MINERR = 1e-10;

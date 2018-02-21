@@ -41,7 +41,7 @@ PARSER := NLParser.tab.cpp
 DEP_FILES += NLParser.tab.dep
 
 # expand compile flags if necessary
-CCFLAGS += $(ALL_ALGEBRA_DIR_INCLUDE_FLAGS)
+#CCFLAGS += $(ALL_ALGEBRA_DIR_INCLUDE_FLAGS)
 CCFLAGS += -DYY_FLEX_MAJOR_VERSION=$(shell ../../bin/getversion.sh major flex -V)
 CCFLAGS += -DYY_FLEX_MINOR_VERSION=$(shell ../../bin/getversion.sh minor flex -V)
 CCFLAGS += -DYY_FLEX_SUBMINOR_VERSION=$(shell ../../bin/getversion.sh subminor flex -V)

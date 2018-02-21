@@ -40,11 +40,24 @@ Dec 2003 M. Spiekermann, initial Version
 #include <fstream>
 
 #include "NestedList.h"
+#include <getopt.h>
+
+void reportTableSizes(const std::string& name, NestedList& nl){
+  cout << "---------  " << name << "  ----------" << endl;
+  cout << " used list storage " << endl;
+  cout << "Nodes   : " << nl.sizeOfNodeTable()   
+       << " (" << nl.freeNodes() << " free )" << endl;
+  cout << "Strings : " << nl.sizeOfStringTable() << " (" 
+       << nl.freeStrings() << " free )" << endl;
+  cout << "Texts   : " << nl.sizeOfStringTable() << " (" 
+       << nl.freeTexts() << " free )" << endl;
+  cout << "----------------------------" << endl << endl; 
+}
 
 using namespace std;
 
 
-static void
+void
 usageMsg(char* progName) {
 
    cout << "Usage: " << progName << " [-b -2] filename" << endl;
@@ -59,7 +72,6 @@ usageMsg(char* progName) {
 
 int
 main(int argc, char *argv[]) {
-#ifdef _POSIX_OPT_H
    if (argc < 2 || argc > 5) {
       usageMsg(argv[0]);
       exit(1);
@@ -105,7 +117,9 @@ main(int argc, char *argv[]) {
    string inFileStr(argv[optind]);
    string modeStr = "";
 
-   NestedList nl(0);
+   NestedList nl;
+   reportTableSizes("initial", nl); 
+
 
    modeStr = binary ? "binary" : "text";
    cout << endl << "Reading " << modeStr << "-file " << inFileStr << endl;
@@ -120,22 +134,37 @@ main(int argc, char *argv[]) {
       nl.ReadFromFile( inFileStr, list );
    }   
 
+   reportTableSizes("after reading in a file", nl); 
+   nl.printTables(cout);
+
+
+
    if (outText) {
       string outFileStr = inFileStr + ".text";
       cout << endl << "Writing " << outFileStr << " ... " << endl;
       nl.WriteToFile( outFileStr, list );
+      reportTableSizes("after writing a text file", nl); 
    }
+   
 
    if (outBinary) {
       string outFileStr = inFileStr + ".bnl";
       cout << endl << "Writing " + outFileStr + " ... " << endl;
       ofstream outFile(outFileStr.c_str(), ios::out|ios::trunc|ios::binary); 
       nl.WriteBinaryTo(list, outFile);   
+      reportTableSizes("after writing a binary file", nl); 
    }
-#else
-  cerr << "You will need the posix getopt library!" << endl;
-  exit(1);
-#endif  
+   nl.Destroy(list);
+   reportTableSizes("after destroying the list", nl); 
+   nl.printTables(cout);
+
+   ListExpr aList = nl.ThreeElemList( nl.IntAtom(1), nl.IntAtom(2), 
+                                      nl.IntAtom(3), false);
+   reportTableSizes("after creating a three elem list", nl); 
+   nl.printTables(cout);
+   nl.Destroy(aList);
+   reportTableSizes("after destroying a three elem list", nl); 
+   nl.printTables(cout);
 }
 
 

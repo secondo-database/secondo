@@ -225,6 +225,8 @@ The operations are defined below.
 #include <sstream>
 
 #include <assert.h>
+#include <set>
+
 
 /*
 
@@ -385,10 +387,12 @@ A text entry is represented as a simple linked list of text chunks.
 
 struct NodeRecord
 {
+  NodeRecord();
   NodeType nodeType;
   unsigned char isRoot;     // only used for nodeType NoAtom
   unsigned char strLength;  // only used for nodeType String
   unsigned char inLine;     // only used for nodeType String
+  uint32_t references;
   union
   {
     struct                   // NoAtom
@@ -562,7 +566,8 @@ Destroys a nested list container.
 Returns a pointer to an empty list (a ``nil'' pointer).
 
 */
-  ListExpr Cons( const ListExpr left, const ListExpr right );
+  ListExpr Cons( const ListExpr left, const ListExpr right, 
+                 bool incRefs=true );
 /*
 Creates a new node and makes ~left~ its left and ~right~ its right son.
 Returns a pointer to the new node.
@@ -571,7 +576,8 @@ Returns a pointer to the new node.
 
 */
   ListExpr Append( const ListExpr lastElem,
-                   const ListExpr newSon );
+                   const ListExpr newSon,
+                   bool inRef=true );
 /*
 Creates a new node ~p~ and makes ~newSon~ its left son. Sets the right son of
 ~p~ to the empty list. Makes ~p~ the right son of ~lastElem~ and returns a
@@ -588,7 +594,7 @@ Note that there are no restrictions on the element ~newSon~ that is appended;
 it may also be the empty list.
 
 */
-  void Destroy( const ListExpr list );
+  void Destroy(ListExpr& list );
 /*
 Destroys the complete subtree (including all atoms) below the root ~list~.
 
@@ -848,63 +854,72 @@ A number of procedures is offered to construct lists with one, two, three,
 etc. up to six elements.
 
 */
-  inline ListExpr OneElemList( const ListExpr elem1 )
+  inline ListExpr OneElemList( const ListExpr elem1, bool incRef=true )
   {
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard(mtx);
 #endif
-    return (Cons( elem1, TheEmptyList() )); };
+    return (Cons( elem1, TheEmptyList(), incRef )); };
 
   inline ListExpr TwoElemList( const ListExpr elem1,
-                               const ListExpr elem2 )
+                               const ListExpr elem2,
+                               bool incRefs = true )
   {
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard(mtx);
 #endif
-    return (Cons( elem1, OneElemList(elem2) )); };
+    return (Cons( elem1, OneElemList(elem2,incRefs),incRefs )); };
 
   inline ListExpr ThreeElemList( const ListExpr elem1,
                                  const ListExpr elem2,
-                                 const ListExpr elem3 )
+                                 const ListExpr elem3,
+                                 bool incRefs = true )
   {
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard(mtx);
 #endif
-    return (Cons( elem1, TwoElemList(elem2, elem3) )); };
+    return (Cons( elem1, TwoElemList(elem2, elem3,incRefs),incRefs )); };
 
 
   inline ListExpr FourElemList( const ListExpr elem1,
                                 const ListExpr elem2,
                                 const ListExpr elem3,
-                                const ListExpr elem4 )
+                                const ListExpr elem4,
+                                bool incRefs = true )
   {
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard(mtx);
 #endif
-    return (Cons( elem1, ThreeElemList(elem2, elem3, elem4) )); };
+    return (Cons( elem1, ThreeElemList(elem2, elem3, elem4,incRefs),
+                  incRefs )); };
 
   inline ListExpr FiveElemList( const ListExpr elem1,
                                 const ListExpr elem2,
                                 const ListExpr elem3,
                                 const ListExpr elem4,
-                                const ListExpr elem5 )
+                                const ListExpr elem5,
+                                bool incRefs = true )
   {
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard(mtx);
 #endif
-    return (Cons( elem1, FourElemList(elem2, elem3, elem4, elem5) )); };
+    return (Cons( elem1, FourElemList(elem2, elem3, elem4, 
+                  elem5, incRefs),incRefs )); };
 
   inline ListExpr SixElemList( const ListExpr elem1,
                                const ListExpr elem2,
                                const ListExpr elem3,
                                const ListExpr elem4,
                                const ListExpr elem5,
-                               const ListExpr elem6 )
+                               const ListExpr elem6,
+                               bool incRefs = true )
   {
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard(mtx);
 #endif
-    return (Cons( elem1, FiveElemList(elem2, elem3, elem4, elem5, elem6) )); };
+    return (Cons( elem1, FiveElemList(elem2, elem3, elem4, elem5, elem6,
+                                      incRefs)
+                  ,incRefs )); };
 
 /*
 A pointer to the new list is returned.
@@ -974,7 +989,7 @@ corresponding atom:
     return StringAtom( std::string(value) );
   };
   ListExpr inline SetSymbolAtom( const StringAtomCharVec& value) {
-    return StringAtom( std::string(value) );
+    return SymbolAtom( std::string(value) );
   };
 
 /*
@@ -1125,43 +1140,8 @@ Transforms the text atom into C++ string object
     }
   }
 
-/*
-
-~AtomType~ determines the type of list expression ~atom~ according to 
-the enumeration type ~NodeType~. If the parameter is not an atom, the
-function returns the value 'NoAtom'. ~ExtractAtoms~ returns a flat 
-list of atoms stored in a vector.
-Afterwards you can easily iterate over the atoms.
-
-1.3.11 Size and Implementation Info
-
-*/
-  const std::string ReportTableSizes( const bool onOff,
-                                 const bool prettyPrint = false ) const;
-  const std::string ReportTableStates() {
-    return "TableStates not available";
-    //return ( "Nodes: " + nodeTable->StateToStr() + "\n" );
-  }
-  static std::string SizeOfStructs();
 
 /*
-Reports the slot numbers and allocated memory of all
-private CTable members and the underlying vector classes.
-
-*/
-
-  static bool IsPersistentImpl() { return true; }
-  std::string MemoryModel();
-
-
-/*
-Returns the Memory-Model of the underlying CTable data structures. 
-Possible values are PERSISTENT and NON-PERSISTENT. The PERSISTENT 
-variant uses Berkeley-DB Records
-for its nodes instead of the NON-PERSISTENT version which uses heap
-memory. SizeOfStructs returns the memory used for some of the structs
-defined above.
-
 
 1.3.12 New Initialization of List Memory
 
@@ -1191,16 +1171,61 @@ ones.
     return SimpleCopy(list, target);
   }
 
+
 /*
-Copies a nested list from ~this~ instance to the target instance.
+1.3.14 IncReferences
+
+This will increase the number of references for a given 
+list node. Note that linked nodes are not affected by this 
+operation. Thus destroying sublists is possible.
 
 */
+  void IncReferences(ListExpr& list);
 
-  // number of entries for each type of node records
-  Cardinal nodeEntries;
-  Cardinal stringEntries;
-  Cardinal textEntries;
 
+  static std::string SizeOfStructs(); 
+
+  Cardinal getNodeEntries() const{
+    return nodeEntries;
+  }
+
+  Cardinal getStringEntries() const{
+    return stringEntries;
+  }
+
+  Cardinal getTextEntries() const{
+    return textEntries;
+  }
+
+  Cardinal  sizeOfNodeTable() const{
+    return nodeTable?nodeTable->NoEntries():0;
+  }
+
+  Cardinal  sizeOfStringTable() const{
+    return stringTable?stringTable->NoEntries():0;
+  }
+  
+  Cardinal  sizeOftextTable() const{
+    return textTable?textTable->NoEntries():0;
+  }
+
+  Cardinal freeNodes() const{
+    return freeNodeSlots.size();
+  }
+
+  Cardinal freeStrings() const{
+    return freeStringSlots.size();
+  }
+
+  Cardinal freeTexts() const{
+    return freeTextSlots.size();
+  }
+
+
+  std::ostream& printTables(std::ostream& out)const;
+
+  static std::string NodeType2Text( NodeType type );
+  void PrintTableTexts() const;
 
  private:
 #ifdef THREAD_SAFE
@@ -1211,18 +1236,13 @@ Copies a nested list from ~this~ instance to the target instance.
 
    std::string basename;
 
+   
 
 
-  void DestroyRecursive ( const ListExpr list );
-  void DeleteListMemory(); // delete CTable pointers
+  void DestroyRec( ListExpr& list );
 
-/*
-Functions needed for retrieving atom values and for writing
-entire lists into ostream references.
+  void DeleteListMemory(); 
 
-*/
-  void PrintTableTexts() const;
-  std::string NodeType2Text( NodeType type ) const;
 
   inline std::string BoolToStr( const bool boolValue ) const
   {
@@ -1359,34 +1379,33 @@ prototypes for functions used for the binary encoding/decoding of lists
   void hton(long value, char* buffer) const;
   inline void swap(char* buffer,int size) const;
 
+  std::string StringSymbolValue( const ListExpr atom ) const;
 
-  // the internal represenatation of lists
+  // the internal representation of lists
 
   BigArray<StringRecord> *stringTable; // storage for strings
-  std::string StringSymbolValue( const ListExpr atom ) const;
 
   BigArray<NodeRecord>   *nodeTable;   // storage for nodes
 
   BigArray<TextRecord>   *textTable  ; // storage for text atoms
 
-  static bool          doDestroy;
-  static const bool    isPersistent;
+  // management of free slots
+  std::set<Cardinal> freeNodeSlots;
+  std::set<Cardinal> freeStringSlots;
+  std::set<Cardinal> freeTextSlots;
+
+
   ListExpr typeError;
   ListExpr errorList;
   static size_t NLinstance; // number of nested list instances
   size_t instanceNo;        // number of this instance
 
+  // stores how much slots can be hold in memory  for each nodetype
+   Cardinal nodeEntries;
+   Cardinal stringEntries;
+   Cardinal textEntries;
 
-/*
-The class member ~doDestroy~ defines whether the ~Destroy~ method really
-destroys a nested list. Only if ~doDestroy~ is "true"[4], nested lists are
-destroyed.
 
-As long as the ~Nested List~ class does not support reference counting
-it might be necessary to set ~doDestroy~ to "false"[4] to avoid problems due
-to deleting parts of nested lists which are still in use elsewhere.
-
-*/
 };
 
 /*

@@ -1821,8 +1821,6 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
         {
           ListExpr typeInfo = NumericType( typeExpr );
           am->OpenObj( algebraId, typeId, vRec, offset, typeInfo, value );
-          nl->Destroy( typeInfo );
-          nl->Destroy( typeExpr );
         }
       }
       else
