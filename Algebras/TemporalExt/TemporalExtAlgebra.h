@@ -49,13 +49,13 @@ named implementations.
 #include "Algebra.h"
 #include "Attribute.h"
 #include "StandardTypes.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "NestedList.h"
 //#include "DBArray.h"
-#include "../../Tools/Flob/DbArray.h"
-#include "RectangleAlgebra.h"
+#include "Tools/Flob/DbArray.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "DateTime.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "Berlin2WGSTemporal.h"
 
 extern NestedList* nl;

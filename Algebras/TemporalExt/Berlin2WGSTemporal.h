@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef BERLIN2WGSTEMPORAL_H
 #define BERLIN2WGSTEMPORAL_H
 
-#include "TemporalAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 
 /*
 This file is applied to convert BBBike coordinates into WGS84 coordinates.

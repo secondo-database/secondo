@@ -61,13 +61,13 @@ It is usesed to include all other header files.
 #include "../../Tools/Flob/DbArray.h"
 //#include "DBArray.h"        //needed in graph and path
 
-#include "SpatialAlgebra.h"    //needed for Points
+#include "Algebras/Spatial/SpatialAlgebra.h"    //needed for Points
 #include "Algebra.h"        //always needed in Algebras
 #include "NestedList.h"        //always needed in Algebras
 #include "QueryProcessor.h"    //always needed in Algebras
 #include "StandardTypes.h"    //always needed in Algebras
-#include "TemporalAlgebra.h"
-#include "MovingRegionAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/MovingRegion/MovingRegionAlgebra.h"
 #include "DateTime.h"
 #include "Attribute.h"
 

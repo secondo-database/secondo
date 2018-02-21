@@ -31,9 +31,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebra.h"
 #include "Operator.h"
-#include "../Stream/Stream.h"
+#include "Algebras/Stream/Stream.h"
 #include "RelationAlgebra.h"
-#include "../OrderedRelation/OrderedRelationAlgebra.h"
+#include "Algebras/OrderedRelation/OrderedRelationAlgebra.h"
 
 class OperatorConsume
 {

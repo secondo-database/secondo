@@ -66,19 +66,19 @@ RelationAlgebra.h header file.
 
 */
 #include "RelationAlgebra.h"
-#include "OrderedRelationAlgebra.h"
+#include "Algebras/OrderedRelation/OrderedRelationAlgebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Algebra.h"
 #include "StandardTypes.h"
 #include "Progress.h"
-#include "FTextAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 
 #include "LogMsg.h"
 #include "NList.h"
 #include "ListUtils.h"
 #include "Symbols.h"
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 
 #ifdef USE_PROGRESS
 #include "../CostEstimation/RelationAlgebraCostEstimation.h"

@@ -77,12 +77,12 @@ an exist entry in this bucket.
 #include <iostream>
 #include <string>
 
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "Counter.h"
-#include "TupleIdentifier.h"
-#include "RTreeAlgebra.h"
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"
+#include "Algebras/RTree/RTreeAlgebra.h"
 #include "ListUtils.h"
 #include "UrelAlgebra.h"
 

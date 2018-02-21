@@ -45,7 +45,7 @@ This file contains the definition of the class SecInterval.
 
 #include "NestedList.h"
 #include "StandardTypes.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "Attribute.h"
 #include "DateTime.h"
 

@@ -39,14 +39,14 @@ operation geocode.
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "NList.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "QueryProcessor.h"
 #include "ConstructorTemplates.h"
 #include "StandardTypes.h"
 #include "StringUtils.h"
-#include "../FText/FTextAlgebra.h"
-#include "../OSM/ShpFileReader.h"
-#include "../OSM/OsmImportOperator.h"
+#include "Algebras/FText/FTextAlgebra.h"
+#include "Algebras/OSM/ShpFileReader.h"
+#include "Algebras/OSM/OsmImportOperator.h"
 #include <iostream> 
 #include <fstream> 
 #include <stdexcept> 
@@ -61,8 +61,8 @@ operation geocode.
 #include <math.h>
 #include <cmath>
 #include "TypeMapUtils.h"
-#include "../OSM/XmlFileReader.h"
-#include "../OSM/XmlParserInterface.h"
+#include "Algebras/OSM/XmlFileReader.h"
+#include "Algebras/OSM/XmlParserInterface.h"
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 

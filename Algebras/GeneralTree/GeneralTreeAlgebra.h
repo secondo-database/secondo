@@ -43,7 +43,7 @@ This file combines only some includes to provide a simple way to use the provide
 #include "HPointReg.h"
 #include "BBoxReg.h"
 #include "DistfunReg.h"
-#include "GTree.h"
+#include "Algebras/GeneralTree/GTree/GTree.h"
 
 
 #endif // #ifndef __GENERAL_TREE_ALGEBRA_H__

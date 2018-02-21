@@ -45,11 +45,11 @@ JAN, 2010 Mahmoud Sakr
 #include "LogMsg.h"
 #include "NList.h"
 #include "ListUtils.h"
-#include "RelationAlgebra.h"
-#include "TemporalAlgebra.h"
-#include "STPatternAlgebra.h"
-#include "SpatialAlgebra.h"
-#include "CollectionAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/STPattern/STPatternAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/Collection/CollectionAlgebra.h"
 #include "MSet.h"
 #include <map>
 #include <functional>

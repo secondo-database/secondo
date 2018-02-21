@@ -50,8 +50,8 @@ with a languge for measuring the trajectory similarity
 #include "StandardTypes.h"
 #include "LogMsg.h"
 #include "NList.h"
-#include "TemporalAlgebra.h"
-#include "GPatternAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/GPattern/GPatternAlgebra.h"
 
 typedef datetime::DateTime Instant;
 extern NestedList *nl;

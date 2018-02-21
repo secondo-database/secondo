@@ -66,7 +66,7 @@ MODNAME = GeneralTreeAlgebra
 
 # Use the mace CCFLAGS to add special compiler flags if needed.
 # In this case the defaults are sufficient
-CCFLAGS += $(ALG_INC_DIRS) -Werror
+CCFLAGS +=  -Werror
 
 # add cpp files in the defined subdirectories
 GTREE_DIRS := GTree

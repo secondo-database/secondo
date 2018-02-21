@@ -40,10 +40,10 @@ calling the functions  of this mapper class.
 
 #include "QueryProcessor.h"
 
-#include "../../Tools/TypeMap/Mapper.h"
+#include "Tools/TypeMap/Mapper.h"
 
 #include "StandardTypes.h"
-#include "FTextAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "ListUtils.h"
 
 extern NestedList* nl;

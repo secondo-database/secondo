@@ -97,27 +97,27 @@ file.
 #include <algorithm>
 
 
-#include "LineT.h"
-#include "LineTImpl.h"
+#include "Algebras/Spatial/LineT.h"
+#include "Algebras/Spatial/LineTImpl.h"
 
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Algebra.h"
 #include "StandardTypes.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "PolySolver.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include <math.h>
 #include "MMRTree.h"
 #include <time.h>
 #include "AlmostEqual.h"
 #include "ListUtils.h"
 #include "Symbols.h"
-#include "Geoid.h"
-#include "MovingRegionAlgebra.h"
+#include "Algebras/Spatial/Geoid.h"
+#include "Algebras/MovingRegion/MovingRegionAlgebra.h"
 
 #include "RefinementStream.h"
-#include "TemporalUnitAlgebra.h"
+#include "Algebras/TemporalUnit/TemporalUnitAlgebra.h"
 
 
 extern NestedList* nl;
@@ -127,8 +127,8 @@ extern QueryProcessor* qp;
 #include "TemporalAlgebra.h"
 #include "GenericTC.h"
 #include "GenOps.h"
-#include "Stream.h"
-#include "DLine.h"
+#include "Algebras/Stream/Stream.h"
+#include "Algebras/Spatial/DLine.h"
 
 using namespace std;
 using namespace datetime;

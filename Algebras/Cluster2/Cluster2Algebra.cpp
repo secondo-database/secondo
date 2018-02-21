@@ -53,14 +53,14 @@ in the Eps-range to one of the points in the cluster, this point
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "LogMsg.h"
-#include "Stream.h"
-#include "TupleIdentifier.h"
+#include "Algebras/Stream/Stream.h"
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"
 
 #include "MMRTree.h"
-#include "MMRTreeAlgebra.h"
-#include "RelationAlgebra.h"
+#include "Algebras/MMRTree/MMRTreeAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 //#include "FTextAlgebra.h"
 
 #include <iostream>

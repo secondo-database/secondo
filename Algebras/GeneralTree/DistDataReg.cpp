@@ -34,9 +34,9 @@ January-May 2008, Mirko Dibbert
 #include <sstream>
 #include "DistDataReg.h"
 
-#include "Point.h"
-#include "SpatialAlgebra.h"
-#include "Algorithms.h"
+#include "Algebras/Spatial/Point.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/SymbolicTrajectory/Algorithms.h"
 #include "PictureFuns.h"
 
 #ifndef NO_MP3
@@ -46,9 +46,9 @@ January-May 2008, Mirko Dibbert
 #endif
 
 #ifndef NO_IMAGESIMILARITY
-#include "../ImageSimilarity/JPEGImage.h"
-#include "../ImageSimilarity/ImageSimilarityAlgebra.h"
-#include "../../Tools/Flob/DbArray.h"
+#include "Algebras/ImageSimilarity/JPEGImage.h"
+#include "Algebras/ImageSimilarity/ImageSimilarityAlgebra.h"
+#include "Tools/Flob/DbArray.h"
 #endif
 
 using namespace gta;

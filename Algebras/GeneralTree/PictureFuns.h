@@ -42,8 +42,8 @@ This headerfile contains the "PictureFuns"[4] class, which implements all functi
 
 #include "DistfunReg.h"
 #include "HPointReg.h"
-#include "PictureAlgebra.h"
-#include "JPEGPicture.h"
+#include "Algebras/Picture/PictureAlgebra.h"
+#include "Algebras/Picture/JPEGPicture.h"
 #include <limits>
 
 

@@ -30,10 +30,10 @@ Started July 2014, Fabio Vald\'{e}s
 #ifndef SYMB_BASICTYPES_H
 #define SYMB_BASICTYPES_H
 
-#include "TemporalUnitAlgebra.h"
+#include "Algebras/TemporalUnit/TemporalUnitAlgebra.h"
 #include "StandardTypes.h"
-#include "TemporalAlgebra.h"
-#include "TemporalExtAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/TemporalExt/TemporalExtAlgebra.h"
 #include "NestedList.h"
 #include "ListUtils.h"
 // #include "Tools.h"

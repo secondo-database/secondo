@@ -34,15 +34,15 @@ January-May 2008, Mirko Dibbert
 #include <sstream>
 #include "DistfunReg.h"
 #include "GTA_SpatialAttr.h"
-#include "Coord.h"
-#include "Point.h"
-#include "SpatialAlgebra.h"
-#include "Algorithms.h"
+#include "Algebras/Spatial/Coord.h"
+#include "Algebras/Spatial/Point.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/SymbolicTrajectory/Algorithms.h"
 #include "PictureFuns.h"
 
 #ifndef NO_MP3
 //---------------cru----------------
-#include "FVector.h"
+#include "Algebras/MP3b/FVector.h"
 //----------------------------------
 #endif
 

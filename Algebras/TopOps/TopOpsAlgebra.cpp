@@ -74,11 +74,11 @@ intersection2, difference2, commonborder2) are implemented.
 #include "Symbols.h"
 
 #include "TopOpsAlgebra.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "AvlTree.h"
 #include "TopRel.h"
 #include "StandardTypes.h"
-#include "AVLSegment.h"
+#include "Algebras/Spatial/AVLSegment.h"
 
 #include "MMRTree.h"
 

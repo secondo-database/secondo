@@ -37,13 +37,13 @@ May, 2007 Leonardo Azevedo, Rafael Brand
 
 */
 
-#include "../Raster/RasterAlgebra.h"
+#include "Algebras/Raster/RasterAlgebra.h"
 
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include <fstream>
 
-#include "../../Tools/Flob/DbArray.h"
-#include "./../Raster/Signature/GenerateRaster.h"
+#include "Tools/Flob/DbArray.h"
+#include "Algebras/Raster/Signature/GenerateRaster.h"
 
 class Raster4CRS;
 namespace rasterspatial{

@@ -86,7 +86,7 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include "AlgebraManager.h"
 #include "Operator.h"
 #include "StandardTypes.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "SecondoInterface.h"
 #include "DerivedObj.h"
 #include "NList.h"
@@ -105,8 +105,8 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include <time.h>
 #include <sys/timeb.h>
 #include <limits>
-#include "Stream.h"
-#include "LongInt.h"
+#include "Algebras/Stream/Stream.h"
+#include "Algebras/Standard-C++/LongInt.h"
 #include "PinyinTable.h"
 #include "DisplayTTY.h"
 #include "SecParser.h"

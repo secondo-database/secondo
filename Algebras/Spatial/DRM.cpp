@@ -10,7 +10,7 @@ Implementation of DRM class
 
 #include "DRM.h"
 #include "Attribute.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "NestedList.h"
 #include "ListUtils.h"
 

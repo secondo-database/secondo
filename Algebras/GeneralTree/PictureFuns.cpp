@@ -32,7 +32,7 @@ January-May 2008, Mirko Dibbert
 
 */
 #include "DistfunReg.h"
-#include "PictureAlgebra.h"
+#include "Algebras/Picture/PictureAlgebra.h"
 #include "PictureFuns.h"
 
 using namespace gta;

@@ -65,7 +65,7 @@ to this implementation file.
 #include "CharTransform.h"
 
 #include "RelationAlgebra.h"
-#include "OldRelationAlgebra.h"
+#include "Algebras/OldRelation-C++/OldRelationAlgebra.h"
 #include "SecondoSystem.h"
 #include "QueryProcessor.h"
 #include "NestedList.h"

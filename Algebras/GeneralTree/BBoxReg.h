@@ -44,7 +44,7 @@ This file contains all defined getbbox functions. New functions must be register
 #include "SecondoInterface.h"
 #include "Symbols.h"
 #include "TypeConstructor.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "GTA_SpatialAttr.h"
 
 namespace gta

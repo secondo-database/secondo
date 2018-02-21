@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define DISC_H
 
 #include "Attribute.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "Point.h"

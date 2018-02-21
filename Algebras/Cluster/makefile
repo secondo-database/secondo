@@ -27,7 +27,6 @@
 include ../../makefile.env
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS) 
 CCFLAGS += -Werror 
 
 

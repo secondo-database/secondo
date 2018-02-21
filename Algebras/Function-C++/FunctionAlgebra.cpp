@@ -104,7 +104,7 @@ SizeOfNothing()
 
 */
 Word
-InMap( const ListExpr typeInfo, const ListExpr instance,
+InMap( const ListExpr typeInfo, ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
 /*
@@ -114,12 +114,14 @@ query processor.
 
 */
   correct = true;
+  nl->IncReferences(instance);
   return (SetWord( instance ));
 }
 
 ListExpr
 OutMap( ListExpr typeInfo, Word value )
 {
+  nl->IncReferences(value.list);
   return (value.list);
 }
 

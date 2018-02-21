@@ -31,17 +31,17 @@ Started July 2014, Fabio Vald\'{e}s
 #ifndef SYMB_TOOLS_H
 #define SYMB_TOOLS_H
 
-#include "RelationAlgebra.h"
-#include "TemporalUnitAlgebra.h"
-#include "MovingRegionAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/TemporalUnit/TemporalUnitAlgebra.h"
+#include "Algebras/MovingRegion/MovingRegionAlgebra.h"
 #include "SecParser.h"
-#include "RTreeAlgebra.h"
-#include "FTextAlgebra.h"
+#include "Algebras/RTree/RTreeAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "BasicTypes.h"
-#include "InvertedFile.h"
-#include "LongInt.h"
-#include "Geoid.h"
-#include "OrderedRelationAlgebra.h"
+#include "Algebras/Trie/InvertedFile.h"
+#include "Algebras/Standard-C++/LongInt.h"
+#include "Algebras/Spatial/Geoid.h"
+#include "Algebras/OrderedRelation/OrderedRelationAlgebra.h"
 
  
  

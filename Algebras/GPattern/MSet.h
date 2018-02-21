@@ -72,8 +72,8 @@ the results back so that they can be handled by SECONDO in further processing.
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "TemporalAlgebra.h"
-#include "RegionInterpolator.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/RegionInterpolation/RegionInterpolator.h"
 #include <math.h>
 #include <vector>
 #include <set>

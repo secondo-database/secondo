@@ -33,13 +33,13 @@ May, 2007 Leonardo Azevedo, Rafael Brand
 #include <string>
 #include "Attribute.h"
 
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include <fstream>
 
 #include "./Signature/Signature4CRS.h"
 
-#include "../../Tools/Flob/DbArray.h"
-#include "../../Tools/Flob/Flob.h"
+#include "Tools/Flob/DbArray.h"
+#include "Tools/Flob/Flob.h"
 
 /*
 1.1 Raster4CRS

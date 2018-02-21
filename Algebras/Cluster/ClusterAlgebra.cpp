@@ -53,7 +53,7 @@ in the Eps-range to one of the points in the cluster, this point
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "LogMsg.h"
 
 #include "MMRTree.h"

@@ -156,7 +156,7 @@ Attribute.h), ~AttributeType~, and ~RelationDescriptor~.
 #include "Attribute.h"
 #include "NestedList.h"
 #include "Counter.h"
-#include "../TupleIdentifier/TupleIdentifier.h"
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"
 
 #define MAX_NUM_OF_ATTR 10
 
