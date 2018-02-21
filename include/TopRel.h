@@ -79,7 +79,7 @@ topological predicates.
 #include "StandardTypes.h"
 #include "../Tools/Flob/DbArray.h"
 #include "../Tools/Flob/Flob.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "GenericTC.h"
 #include "ListUtils.h"
 

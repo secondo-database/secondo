@@ -52,7 +52,7 @@ An operator to save the contents into a file is provided.
 #include "../../Tools/Flob/Flob.h"
 #include "Base64.h"
 #include "BinaryFileAlgebra.h"
-#include "FTextAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "GenericTC.h"
 #include <cstdlib>
 #include <string>

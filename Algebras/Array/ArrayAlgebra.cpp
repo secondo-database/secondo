@@ -109,7 +109,7 @@ for arrays of btree.
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
 #include "StandardTypes.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "time.h"
 #include "FunVector.h"
 #include "ArrayAlgebra.h"

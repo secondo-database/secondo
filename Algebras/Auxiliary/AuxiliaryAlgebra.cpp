@@ -53,10 +53,10 @@
 #include "AlgebraManager.h"
 #include "ListUtils.h"
 #include "StandardTypes.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Attribute.h"
-#include "FTextAlgebra.h"
-#include "Stream.h"
+#include "Algebras/FText/FTextAlgebra.h"
+#include "Algebras/Stream/Stream.h"
 #include "Progress.h"
 #include "Profiles.h"
 
