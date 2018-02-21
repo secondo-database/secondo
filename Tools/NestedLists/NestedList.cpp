@@ -1515,7 +1515,7 @@ NestedList::ReadBinarySubLists( ListExpr& LE, istream& in,
   bool ok = ReadBinaryRec(subList, in, pos);
   if(!ok) // error in reading sublist
      return false;
-  LE = OneElemList(subList);
+  LE = OneElemList(subList,false);
 
   ListExpr Last = LE;
   ListExpr Next = 0;
@@ -1523,7 +1523,7 @@ NestedList::ReadBinarySubLists( ListExpr& LE, istream& in,
       bool ok = ReadBinaryRec(Next, in, pos);
       if(!ok) // error in reading sublist
           return false;
-      Last = Append(Last,Next);
+      Last = Append(Last,Next,false);
   }
   return true;
 
