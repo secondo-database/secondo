@@ -32,7 +32,7 @@ May 2009, Sven Jungnickel. Initial version.
 #define TUPLEQUEUE_H_
 
 #include <queue>
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "RTuple.h"
 
 /*

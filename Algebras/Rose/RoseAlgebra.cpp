@@ -2971,7 +2971,7 @@ static ListExpr verticesTypeMap (ListExpr args) {
 
 static ListExpr noOfComponentsTypeMap (ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  ListExpr arg1,arg2;
+  ListExpr arg1;
   if (nl->ListLength(args) == 1) {
     arg1 = nl->First(args);
     if (nl->IsEqual(arg1,"rpoints"))
@@ -2980,8 +2980,7 @@ static ListExpr noOfComponentsTypeMap (ListExpr args) {
       return nl->SymbolAtom(CcInt::BasicType());
     if (nl->IsEqual(arg1,"rregion"))
       return nl->SymbolAtom(CcInt::BasicType());
-    if ((nl->AtomType(arg1) == SymbolType) &&
-        (nl->AtomType(arg2) == SymbolType))
+    if ((nl->AtomType(arg1) == SymbolType) )
       ErrorReporter::ReportError("Type mapping function got parameter of type "
         +nl->SymbolValue(arg1));
     else
@@ -3032,7 +3031,7 @@ static ListExpr distTypeMap (ListExpr args) {
 
 static ListExpr diameterTypeMap (ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  ListExpr arg1,arg2;
+  ListExpr arg1;
   if (nl->ListLength(args) == 1) {
     arg1 = nl->First(args);
     if (nl->IsEqual(arg1,"rpoints"))
@@ -3041,8 +3040,7 @@ static ListExpr diameterTypeMap (ListExpr args) {
       return nl->SymbolAtom(CcReal::BasicType());
     if (nl->IsEqual(arg1,"rregion"))
       return nl->SymbolAtom(CcReal::BasicType());
-    if ((nl->AtomType(arg1) == SymbolType) &&
-        (nl->AtomType(arg2) == SymbolType))
+    if ((nl->AtomType(arg1) == SymbolType)) 
       ErrorReporter::ReportError("Type mapping function got parameter of type "
         +nl->SymbolValue(arg1));
     else

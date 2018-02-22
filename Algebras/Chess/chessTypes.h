@@ -33,12 +33,12 @@ The following classes are defined in this file:
 #ifndef CHESSTYPES_H
 #define CHESSTYPES_H
 
-#include "FTextAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "DateTime.h"
-#include "TemporalAlgebra.h"
-#include "RelationAlgebra.h"
-#include "TupleIdentifier.h"
-#include "../Tools/Flob/DbArray.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"
+#include "Tools/Flob/DbArray.h"
 #include "Attribute.h"
 #include "StandardTypes.h"
 #include <iostream>
@@ -693,9 +693,9 @@ public:
 
   MovingChessPiece( string k, string file, int row, 
                     const double CreationTime , 
-                    const DateTime* moveDuration );
+                    const datetime::DateTime* moveDuration );
 
-  void extendInterval (const DateTime* exttime);
+  void extendInterval (const datetime::DateTime* exttime);
   void adjustTime (const Instant adjtime);
   void appendMove ( string newfile, int newrow, bool targetOffset );
   void applyCastelling ();
@@ -705,11 +705,11 @@ public:
   const int getActRow();
   const string* getKind();
   bool* trueIsWhite();
-  MPoint* getMPoint();
+  temporalalgebra::MPoint* getMPoint();
   const double getCurrentTime();
   void closeMPoint();
-  void coutNewInterval( UPoint* up );
-  void coutNewInterval( const UPoint* up );
+  void coutNewInterval( temporalalgebra::UPoint* up );
+  void coutNewInterval( const temporalalgebra::UPoint* up );
 
 private:
   string kind;
@@ -719,11 +719,11 @@ private:
   string actfile;
   double x0, y0, x1, y1; // coordinates for the creation of UPoints
   int actrow, i, j;
-  DateTime moveDuration;
+  datetime::DateTime moveDuration;
   Instant startInstant;
   Instant endInstant;
-  Interval<Instant> iv;
-  MPoint mpoint;
+  temporalalgebra::Interval<Instant> iv;
+  temporalalgebra::MPoint mpoint;
   /*
   This variable contains the last UPoint added to mpoint. The Add-Method of
   MPoint (=Mapping) adds a clone of this UPoint, not the object itself. UPoint
@@ -731,7 +731,7 @@ private:
   variable Interval<Instant> timeInterval, this Interval has two locals start
   and end of type Instant. UPoint has also two locals Point p0, p1
   */
-  UPoint upoint;
+  temporalalgebra::UPoint upoint;
 };
 
 /*
@@ -759,11 +759,11 @@ private:
   int MPointWriteNextCount, i, j;
   bool TargetOffset;
   TupleType* TupleTypeRemember;
-  const DateTime *waitBeforeMoveDuration, *totalMoveDuration,
+  const datetime::DateTime *waitBeforeMoveDuration, *totalMoveDuration,
                  *waitAfterMoveDuration, *moveDuration;
   Instant startOfGame;
-  Interval<Instant> iv;
-  UPoint upref;  
+  temporalalgebra::Interval<Instant> iv;
+  temporalalgebra::UPoint upref;  
 };
 
 /*

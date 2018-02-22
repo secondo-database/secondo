@@ -31,7 +31,7 @@ MODNAME = TopRelAlgebra
 # In this case the defaults are sufficient
 CCFLAGS = $(DEFAULTCCFLAGS) -I../FText -I../Rectangle
 
-CCFLAGS += $(ALG_INC_DIRS) -Werror
+CCFLAGS +=  -Werror
 
 
 # The next rule will create a ".o" file for every ".cpp" file and 

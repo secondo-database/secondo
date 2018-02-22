@@ -29,7 +29,7 @@ SECONDO includes
 */
 
 #include "StandardTypes.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 
 /*
 TileAlgebra includes

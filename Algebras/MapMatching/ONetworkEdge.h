@@ -41,7 +41,7 @@ This header file contains the class ~ONetworkEdge~
 #ifndef __ONETWORKEDGE_H_
 #define __ONETWORKEDGE_H_
 
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 
 class Tuple;
 
@@ -49,11 +49,11 @@ class Tuple;
 
 template<class T> class ONetwork;
 
-#include <Point.h>
+#include <Algebras/Spatial/Point.h>
 
 #include <stdio.h>
 #include <string.h>
-#include "FTextAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "MapMatchingUtil.h"
 
 

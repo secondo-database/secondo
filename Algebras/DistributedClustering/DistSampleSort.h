@@ -42,7 +42,7 @@ data into groups.
 
 
 #include "AlgebraTypes.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "ListUtils.h"
@@ -50,13 +50,13 @@ data into groups.
 #include "StandardTypes.h"
 #include "Symbols.h"
 #include "StandardTypes.h"
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 #include <utility>
 #include <sstream>
 #include <string>
 #include <iostream>
 #include <fstream> 
-#include "FTextAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "Member.h"
 #include <limits>
 #include <limits.h>

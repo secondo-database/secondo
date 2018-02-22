@@ -31,15 +31,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 #include "NestedList.h"
-#include "TupleIdentifier.h"
-#include "RelationAlgebra.h"
-#include "BTreeAlgebra.h"
-#include "../../Tools/Flob/DbArray.h"
-#include "../../Tools/Flob/Flob.h"
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/BTree/BTreeAlgebra.h"
+#include "Tools/Flob/DbArray.h"
+#include "Tools/Flob/Flob.h"
 #include "Attribute.h"
-#include "SpatialAlgebra.h"
-#include "RTreeAlgebra.h"
-#include "Geoid.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/RTree/RTreeAlgebra.h"
+#include "Algebras/Spatial/Geoid.h"
 #include "ListUtils.h"
 
 #include <cstring>

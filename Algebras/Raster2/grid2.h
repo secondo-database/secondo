@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <AlgebraTypes.h>
 #include <StandardTypes.h>
 #include <NestedList.h>
-#include <HalfSegment.h>
+#include <Algebras/Spatial/HalfSegment.h>
 
 #include "Defines.h"
 #include "RasterStorage.h"

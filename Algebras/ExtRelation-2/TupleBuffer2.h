@@ -49,7 +49,7 @@ RelationAlgebra.h for details)
 #define TUPLEBUFFER2_H_
 
 #include <queue>
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "RTuple.h"
 
 

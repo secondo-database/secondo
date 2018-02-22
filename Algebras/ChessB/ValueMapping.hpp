@@ -10,7 +10,7 @@ Template Functions hiding the Secondo Interface for Value Mappings
 #include "AlgebraTypes.h"
 #include "StandardTypes.h"
 #include "QueryProcessor.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Attribute.h"
 #include "StreamIterator.hpp"
 

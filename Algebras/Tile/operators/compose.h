@@ -31,7 +31,7 @@ SECONDO includes
 #include "AlgebraTypes.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 
 /*
 TileAlgebra includes

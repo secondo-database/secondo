@@ -38,7 +38,7 @@ RelationAlgebra.h.
 2 Defines, includes, and constants
 
 */
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
 using namespace std;
 

@@ -9,7 +9,7 @@
 #include <string>
 
 #include "NestedList.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "StandardTypes.h"
 #include "PeriodicTypes.h"
 

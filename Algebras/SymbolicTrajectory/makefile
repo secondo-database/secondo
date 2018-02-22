@@ -27,7 +27,7 @@ include ../../makefile.env
 
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS) -Werror
+CCFLAGS += -Werror
 ifneq ($(platform),mac_osx)
   CCFLAGS += -std=c++11
   PARSEFLAGS = -std=c++11
@@ -70,13 +70,13 @@ $(BASE).tab.c: $(BASE).y
 	        bison -v -d $(BASE).y
 
 PatternRegExScanner.o: PatternRegExScanner.c
-	$(CC) -fPIC -c $(ALG_INC_DIRS) -I../../include -o $@ $<
+	$(CC) -fPIC -c -I../../include -o $@ $<
 
 PatternRegExScanner.c: PatternRegExScanner.l PatternRegExParser.y.c
 	$(LEX) -o $@ $<
 
 PatternRegExParser.o:  PatternRegExParser.y.c
-	$(CC) -fPIC -x c++ -c -o $@  $(ALG_INC_DIRS) -I../../include $<
+	$(CC) -fPIC -x c++ -c -o $@ -I../../  -I../../include $<
 
 PatternRegExParser.y.c: PatternRegExParser.y
 	$(YACC) -d -o $@ $<

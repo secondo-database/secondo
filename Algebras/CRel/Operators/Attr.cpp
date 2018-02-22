@@ -33,8 +33,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StandardTypes.h"
 #include <string>
 #include "Symbols.h"
-#include "TBlock.h"
-#include "TBlockTC.h"
+#include "../TBlock.h"
+#include "../TypeConstructors/TBlockTC.h"
 
 using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;

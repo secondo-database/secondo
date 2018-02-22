@@ -44,8 +44,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define _SPATIAL3D_H
 
 #include "AuxiliaryTypes.h"
-#include "../../Tools/Flob/DbArray.h"
-#include "RectangleAlgebra.h"
+#include "Tools/Flob/DbArray.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "MultiObjectTriangleContainer.h"
 #include "Spatial3DTransformations.h"
 #include "Spatial3DCreate.h"

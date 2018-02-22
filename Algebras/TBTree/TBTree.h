@@ -9,10 +9,10 @@ Implementation of the trajectory bundle tree.
 #ifndef TBTREE_H
 #define TBTREE_H
 
-#include "TupleIdentifier.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "SecondoSMI.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "NestedList.h"
 #include "ListUtils.h"
 #include <cassert>

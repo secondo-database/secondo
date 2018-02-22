@@ -38,7 +38,7 @@ according to the evaluation result that we got in parallel processing.
 
 #include "SpatialJoinAlgebra.h"
 #include "Symbols.h"
-#include "TupleBuffer2.h"
+#include "Algebras/ExtRelation-2/TupleBuffer2.h"
 
 using namespace std;
 using namespace extrel2;

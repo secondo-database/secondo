@@ -87,8 +87,8 @@ code parts in the operator tree and provides it to the ~CECodeGenerator~.
 #include "StandardTypes.h"
 #include "FileSystem.h"
 
-#include "./CECodeGenerator.h"
-#include "./CECodeStore.cpp"
+#include "CECodeGenerator.h"
+#include "CECodeStore.cpp"
 
 extern AlgebraManager *am;
 

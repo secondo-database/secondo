@@ -27,9 +27,9 @@
 include ../../makefile.env
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS)
 #CCFLAGS += -O
 #CCFLAGS += -O3 -finline-functions
+CCFLAGS += -Werror
 CCFLAGS += -std=c++0x
 
 TYPECONSTRUCTORSDEP = $(patsubst %.cpp, %.dep, $(wildcard TypeConstructors/*.cpp))

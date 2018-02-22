@@ -11,7 +11,7 @@
 #include <list>
 
 #include "LogMsg.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
 struct CmpTuples {
 

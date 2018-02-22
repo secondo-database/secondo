@@ -26,8 +26,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "AttrArray.h"
 #include <cstdint>
-#include "Geoid.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Spatial/Geoid.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 
 /*
 Those classes are used for implementing and using types of kinds

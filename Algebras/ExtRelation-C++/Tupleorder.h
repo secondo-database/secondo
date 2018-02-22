@@ -31,7 +31,7 @@ Dec 2008. M. Spiekermann. Code provided as header file.
 #define SEC_TUPLEORDER_H
 
 #include <queue>
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
 
 static LexicographicalTupleSmaller lexCmp;

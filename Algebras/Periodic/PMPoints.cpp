@@ -10,7 +10,7 @@
 
 #include "PeriodicTypes.h"
 #include "PeriodicSupport.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "StandardTypes.h"
 #include "NestedList.h"
 #include "DateTime.h"

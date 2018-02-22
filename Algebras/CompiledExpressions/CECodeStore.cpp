@@ -69,9 +69,9 @@ List here all implemented ~ceAlgebra[<]secondo algebra name[>].h~-headerfiles fr
 subdirectory ~ceCodeStore~.
 
 */
-#include "./ceAlgebraStandard.h"
-#include "./ceAlgebraRelation.h"
-#include "./ceAlgebraExtRelation.h"
+#include "ceCodeStore/ceAlgebraStandard.h"
+#include "ceCodeStore/ceAlgebraRelation.h"
+#include "ceCodeStore/ceAlgebraExtRelation.h"
 
 /*
 3 Load the implemented Algebras

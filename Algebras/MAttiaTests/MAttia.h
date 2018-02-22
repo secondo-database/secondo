@@ -18,8 +18,8 @@
 #include "StandardTypes.h"
 #include "LogMsg.h"
 #include "NList.h"
-#include "RelationAlgebra.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 
 
 class MAttiaAlgebra:public Algebra {

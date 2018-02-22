@@ -34,7 +34,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 1 Defines and includes
 
 */
-using namespace std;
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
@@ -48,8 +47,22 @@ using namespace std;
 #include "TypeMapUtils.h"
 #include "Symbols.h"
 
-using namespace symbols;
+#include "Algebras/Temporal/TemporalAlgebra.h"
+
+ //using namespace symbols;
 using namespace mappings;
+
+using namespace temporalalgebra;
+using namespace std;
+
+const std::string MATERIAL="material";
+const std::string STRING="string";
+const std::string POSITION="position";
+const std::string INT = "int";
+const std::string BOOL = "bool";
+
+
+
 
 extern NestedList* nl;
 extern QueryProcessor *qp;

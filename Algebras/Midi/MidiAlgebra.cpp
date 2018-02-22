@@ -77,7 +77,7 @@ The also used classes ~Track~ and ~Event~ are only transient. They are not inher
 #include "Attribute.h"
 #include "Base64.h"
 #include "MidiAlgebra.h"
-#include "FTextAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include <string>
 #include <cmath>
 #include <vector>

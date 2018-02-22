@@ -11,7 +11,7 @@
 #include <stack>
 
 #include "Attribute.h"
-#include "TupleIdentifier.h"
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"
 
 #include "Cache/CacheBase.h"
 #include "BPTreeNode.h"

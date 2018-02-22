@@ -47,10 +47,10 @@ data. The template arguments are
 
 #include <SecondoSMI.h>
 #include <StandardTypes.h>
-#include <RTreeAlgebra.h>
+#include <Algebras/RTree/RTreeAlgebra.h>
 #include <LogMsg.h>
-#include <FTextAlgebra.h>
-#include <Stream.h>
+#include <Algebras/FText/FTextAlgebra.h>
+#include <Algebras/Stream/Stream.h>
 
 #include "grid3.h"
 #include "Defines.h"

@@ -52,7 +52,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 //#include "PointVector.h"
 //#include "Statistic.h"
 
-#include "TemporalAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "NList.h"
 #include "NumericUtil.h"
 #include "Segment.h"

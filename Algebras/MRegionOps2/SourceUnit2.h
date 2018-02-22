@@ -48,7 +48,7 @@ This class is essentially a container for both ~SourceUnits~ A and B
 #define SOURCEUNIT2_H_
 #include <gmp.h>
 #include "Refinement3.h"
-#include "MovingRegion2Algebra.h"
+#include "Algebras/MovingRegion2/MovingRegion2Algebra.h"
 #include "SetOps2.h"
 
 namespace temporalalgebra {

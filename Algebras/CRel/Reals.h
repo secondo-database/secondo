@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
-#include "ConstraintAlgebra.h"
+#include "Algebras/Constraint/ConstraintAlgebra.h"
 #include <functional>
 #include "SimpleAttrArray.h"
 #include "StandardTypes.h"

@@ -32,12 +32,12 @@ Defines, includes, and constants
 
 
 
-#include "TupleIdentifier.h"
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"
 #include "NestedList.h"
-#include "BTreeAlgebra.h"
-#include "../../Tools/Flob/DbArray.h"
-#include "RelationAlgebra.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/BTree/BTreeAlgebra.h"
+#include "Tools/Flob/DbArray.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "NetworkAlgebra.h"
 #include "NetworkManager.h"
 #include "Symbols.h"

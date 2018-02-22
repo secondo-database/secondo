@@ -46,7 +46,7 @@ Betreuer: Dr. Thomas Behr, Fabio Vald[e]s
 #include <fstream>
 #include <stdint.h>
 #include <cctype>
-#include "FTextAlgebra.h" //FText
+#include "Algebras/FText/FTextAlgebra.h" //FText
 #include "StandardTypes.h" //CcString
 #include "ListUtils.h"
 #include "Spatial3D.h"

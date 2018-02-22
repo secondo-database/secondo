@@ -47,8 +47,8 @@ respectively correspond to the memory representation for the type constructors
 
 #include <vector>
 #include <iostream>
-#include "../../Tools/Flob/DbArray.h"        //needed in graph and path
-#include "SpatialAlgebra.h"    //needed for Points
+#include "Tools/Flob/DbArray.h"        //needed in graph and path
+#include "Algebras/Spatial/SpatialAlgebra.h"    //needed for Points
 #include "Algebra.h"        //always needed in Algebras
 #include "NestedList.h"        //always needed in Algebras
 #include "QueryProcessor.h"    //always needed in Algebras

@@ -26,13 +26,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "AlgebraTypes.h"
 #include <cstddef>
-#include "Ints.h"
+#include "Algebras/CRel/Ints.h"
 #include "NestedList.h"
 #include "Operator.h"
 #include "SecondoSMI.h"
-#include "Stream.h"
-#include "TBlock.h"
-#include "TBlockTC.h"
+#include "Algebras/Stream/Stream.h"
+#include "Algebras/CRel/TBlock.h"
+#include "Algebras/CRel/TypeConstructors/TBlockTC.h"
 #include <vector>
 
 /*

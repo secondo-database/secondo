@@ -50,11 +50,11 @@ The type system of the HierarchicalGeo Algebra can be seen below.
 #include "Algebra.h"
 #include "Attribute.h"
 #include "StandardTypes.h"
-#include "TemporalAlgebra.h"
-#include "SpatialAlgebra.h"
-#include "MovingRegionAlgebra.h"
-#include "../../Tools/Flob/DbArray.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/MovingRegion/MovingRegionAlgebra.h"
+#include "Tools/Flob/DbArray.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "DateTime.h"
 
 extern NestedList* nl;

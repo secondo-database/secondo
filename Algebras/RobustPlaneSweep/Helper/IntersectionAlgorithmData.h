@@ -44,7 +44,7 @@ The class ~IntersectionAlgorithmData~ is used to control the
 #ifdef RPS_TEST
 #include "../Helper/SpatialAlgebraStubs.h"
 #else
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #endif
 
 namespace RobustPlaneSweep

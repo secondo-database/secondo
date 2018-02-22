@@ -43,9 +43,9 @@ This header file contains interfaces to access networks from map matching:
 #define __MAPMATCHINGNETWORKINTERFACE_H_
 
 
-#include "RectangleAlgebra.h"
-#include "../Spatial/Point.h"
-#include "../Spatial/SpatialAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
+#include "Algebras/Spatial/Point.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include <vector>
 #include <string>
 #ifdef SECONDO_WIN32

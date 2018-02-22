@@ -49,7 +49,7 @@ This header file contains the definition of the classes ~FMRegion~ and
 #include "stdarg.h"
 #include "Attribute.h"
 #include "Messages.h"
-#include "Geoid.h"
+#include "Algebras/Spatial/Geoid.h"
 #include "ListUtils.h"
 #include "Algebra.h"
 

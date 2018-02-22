@@ -45,7 +45,7 @@ RelationWriter and DServerCreator
 #include "zthread/Runnable.h"
 #include "zthread/Condition.h"
 #include "zthread/Mutex.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
 class DServer;
 class ThreadedMemoryCounter;

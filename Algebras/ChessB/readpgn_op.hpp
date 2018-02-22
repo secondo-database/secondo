@@ -8,7 +8,7 @@
 #include <sstream>
 #include <iostream>
 
-#include "FTextAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "pgn_grammar.hpp"
 #include "BasePosition.hpp"
 #include "Game.hpp"

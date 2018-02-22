@@ -51,9 +51,9 @@ in such a way can be represented by four, six or eight numbers (two for each dim
 #include "stdarg.h"
 #include "Attribute.h"
 #include "Messages.h"
-#include "Geoid.h"
+#include "Algebras/Spatial/Geoid.h"
 #include "ListUtils.h"
-#include "RTreeAlgebra.h"
+#include "Algebras/RTree/RTreeAlgebra.h"
 #include "SecondoSMI.h"
 #include "StandardTypes.h"
 

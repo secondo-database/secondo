@@ -44,13 +44,13 @@ OrderedRelation.h header file.
 #include "StandardTypes.h"
 #include "ListUtils.h"
 #include "Progress.h"
-#include "RelationAlgebra.h"
-#include "../../Tools/Flob/DbArray.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Tools/Flob/DbArray.h"
 #include <limits>
-#include "BTreeAlgebra.h"
+#include "Algebras/BTree/BTreeAlgebra.h"
 #include "Symbols.h"
-#include "LongInt.h"
-#include "Stream.h"
+#include "Algebras/Standard-C++/LongInt.h"
+#include "Algebras/Stream/Stream.h"
 
 //#define DEBUG_OREL
 

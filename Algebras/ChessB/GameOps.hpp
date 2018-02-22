@@ -36,7 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include <functional>
 #include <boost/assert.hpp>
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "TypeMapping.hpp"
 #include "ListStream.hpp"
 #include "Game.hpp"

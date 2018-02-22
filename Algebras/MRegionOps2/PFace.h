@@ -52,7 +52,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 #include <map>
 #include <set>
 
-#include "MovingRegion2Algebra.h"
+#include "Algebras/MovingRegion2/MovingRegion2Algebra.h"
 #include "SourceUnit2.h"
 #include "Point2D.h"
 #include "Point3D.h"

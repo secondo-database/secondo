@@ -46,17 +46,16 @@ This header file essentially contains the definition of the class
 class MPoint;
 class MInt;
 class MReal;
-#include <Point.h>
+#include <Algebras/Spatial/Point.h>
 #include <DateTime.h>
 #include <StandardTypes.h>
-#include <TemporalAlgebra.h>
+#include <Algebras/Temporal/TemporalAlgebra.h>
 
 #ifdef SECONDO_WIN32
 #include <memory>
 #else
 #include <tr1/memory>
 #endif
-using std::tr1::shared_ptr;
 
 typedef struct _xmlDoc xmlDoc;
 typedef xmlDoc *xmlDocPtr;
@@ -66,7 +65,7 @@ typedef xmlNode *xmlNodePtr;
 
 namespace mapmatch {
 
-typedef shared_ptr<class CTrkPointIterator> TrkPointIteratorPtr;
+typedef std::tr1::shared_ptr<class CTrkPointIterator> TrkPointIteratorPtr;
 
 /*
 3 class GPXFileReader

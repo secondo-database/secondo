@@ -40,7 +40,7 @@ evaluating the spatiotemporal pattern predicates (STP).
 #include "FlockAlgebra.h"
 #include "Symbols.h"
 #include "ListUtils.h"
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 
 using namespace temporalalgebra;
 using namespace std;

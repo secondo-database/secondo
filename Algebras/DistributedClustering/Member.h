@@ -44,13 +44,13 @@ and their inheriting classes for each secondo type.
 #include <vector>
 #include <iostream>
 #include <cstdlib>
-#include "Point.h"
+#include "Algebras/Spatial/Point.h"
 #include "StandardTypes.h"
 #include "StringUtils.h"
-#include "PictureAlgebra.h"
-#include "RelationAlgebra.h"
-#include "DistfunReg.h"
-#include "PictureFuns.h"
+#include "Algebras/Picture/PictureAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/GeneralTree/DistfunReg.h"
+#include "Algebras/GeneralTree/PictureFuns.h"
 
 #ifndef MEMBER_H_
 #define MEMBER_H_

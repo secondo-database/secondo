@@ -25,6 +25,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 
+
+#ifndef PRECISE_COORDINATE
+#define PRECISE_COORDINATE
+
 #include <gmp.h>
 #include <gmpxx.h>
 #include <limits>
@@ -36,12 +40,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <errno.h>
 #include "StringUtils.h"
 
-#include "../../Tools/Flob/DbArray.h"
+#include "Tools/Flob/DbArray.h"
 
-#include "RationalAttr.h"
+#include "Algebras/Standard-C++/RationalAttr.h"
 
-#ifndef PRECISE_COORDINATE
-#define PRECISE_COORDINATE
 
 class overflowException: public std::exception{
    public:

@@ -42,9 +42,9 @@ This headerfile implements entries and nodes of the mtree datastructure.
 #ifndef __MTREE_BASE_H__
 #define __MTREE_BASE_H__
 
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "MTreeAlgebra.h"
-#include "DistDataReg.h"
+#include "Algebras/GeneralTree/DistDataReg.h"
 
 namespace mtreeAlgebra
 {

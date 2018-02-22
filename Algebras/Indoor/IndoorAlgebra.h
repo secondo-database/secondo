@@ -43,13 +43,13 @@ June, 2010 Jianqiu Xu
 #include <vector>
 #include <queue>
 #include "Attribute.h"
-#include "../../Tools/Flob/DbArray.h"
-#include "RectangleAlgebra.h"
+#include "Tools/Flob/DbArray.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "WinUnix.h"
 #include "AvlTree.h"
 #include "Symbols.h"
 #include "AlmostEqual.h"
-#include "../Spatial/SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 
 
 #endif // __INDOOR_ALGEBRA_H__

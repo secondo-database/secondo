@@ -41,13 +41,13 @@
 #include <gmpxx.h>
 #include <limits>
 #include "Algebra.h"
-#include "RectangleAlgebra.h"
-#include "../../Tools/Flob/DbArray.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
+#include "Tools/Flob/DbArray.h"
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "AttrType.h"
+#include "Algebras/Spatial/AttrType.h"
 //#include "Precise2DAlgebra.h"
 
 namespace p2d {

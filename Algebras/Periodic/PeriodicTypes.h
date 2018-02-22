@@ -77,14 +77,14 @@ natural language (like each second monday of the month) can't be modelled.
 
 #include "NestedList.h"
 #include "DateTime.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "TopRel.h"
-#include "../../Tools/Flob/DbArray.h"
+#include "Tools/Flob/DbArray.h"
 #include "RepTree.h"
 #include "GenericTC.h"
 #include "ListUtils.h"
 
-#include "TemporalAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 
 namespace periodic {
 

@@ -38,7 +38,7 @@ April 2015 Rene Steinbrueck
 
 #include "LineFunctionAlgebra.h"
 //#include <iostream>
-#include "Geoid.h"
+#include "Algebras/Spatial/Geoid.h"
 
 /*
 3.1 Type Constructor ~lubool~

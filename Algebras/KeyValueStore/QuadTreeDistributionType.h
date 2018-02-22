@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef QUADTREEDISTRIBUTIONTYPE_H_
 #define QUADTREEDISTRIBUTIONTYPE_H_
 
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 
 #include "QuadTreeDistribution.h"
 

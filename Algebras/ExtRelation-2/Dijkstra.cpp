@@ -27,15 +27,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Dijkstra.h"
 
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "StandardTypes.h"
 #include "Attribute.h"
-#include "LongInt.h"
+#include "Algebras/Standard-C++/LongInt.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Algebra.h"
 #include "ListUtils.h"
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 #include "Symbols.h"
 
 #include <string>

@@ -14,7 +14,7 @@ class representing nodes in an R Tree
 #include <math.h>
 #include <cstring>
 #include "RTree.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 
 using std::out_of_range;
 using std::runtime_error;

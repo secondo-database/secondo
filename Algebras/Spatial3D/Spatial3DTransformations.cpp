@@ -51,7 +51,7 @@ rotate, mirror, translate, scaleDir, scale
 #include "Matrix4x4.h"
 #include "Spatial3D.h"
 #include "Spatial3DTransformations.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

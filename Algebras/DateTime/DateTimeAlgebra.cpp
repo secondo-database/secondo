@@ -103,8 +103,8 @@ today               & [->] instant
 #include "SecondoSystem.h"
 #include "Attribute.h"
 #include "StandardTypes.h"
-#include "LongInt.h"
-#include "FTextAlgebra.h"
+#include "Algebras/Standard-C++/LongInt.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include <math.h>
 #include <time.h>
 #include <sys/timeb.h>

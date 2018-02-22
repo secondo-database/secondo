@@ -27,9 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AlgebraTypes.h"
 #include "NestedList.h"
 #include "Operator.h"
-#include "RelationAlgebra.h"
-#include "Stream.h"
-#include "TBlock.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/Stream/Stream.h"
+#include "../TBlock.h"
 
 namespace CRelAlgebra
 {

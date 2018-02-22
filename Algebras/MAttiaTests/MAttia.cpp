@@ -7,7 +7,7 @@
 */
 
 #include "MAttia.h"
-#include "FTextAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "SecondoInterface.h"
 #include "SecondoInterfaceTTY.h"
 #include "fstream"

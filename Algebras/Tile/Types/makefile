@@ -23,7 +23,7 @@
 include ../../../makefile.env
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS) -I ../../BTree -I ../../FText -I ../../Rectangle -I ../../Relation-C++ -I ../../RTree -I ../../Spatial -I ../../Stream -I ../../Temporal -Werror
+CCFLAGS += -Werror
 ifneq ($(platform),mac_osx)
   CCFLAGS += -std=c++0x
 endif

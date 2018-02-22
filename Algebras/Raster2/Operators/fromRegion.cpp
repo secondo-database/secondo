@@ -22,9 +22,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "fromRegion.h"
 #include "fromLine.h"
-#include "RobustSetOps.h"
+#include "Algebras/Spatial/RobustSetOps.h"
 #include "AvlTree.h"
-#include "AVLSegment.h"
+#include "Algebras/Spatial/AVLSegment.h"
 
 namespace raster2 {
 

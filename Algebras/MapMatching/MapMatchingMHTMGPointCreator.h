@@ -44,9 +44,9 @@ This header file essentially contains the definition of the class
 
 #include "MapMatchingMHT.h"
 #include "MHTRouteCandidate.h"
-#include "TemporalAlgebra.h"
-#include "NetworkAlgebra.h"
-#include "TemporalNetAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/Network/NetworkAlgebra.h"
+#include "Algebras/TemporalNet/TemporalNetAlgebra.h"
 
 
 namespace datetime

@@ -44,11 +44,11 @@ ONetwork represents a network based on an ordered relation
 
 class OrderedRelation;
 class Relation;
-#include "RTreeAlgebra.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/RTree/RTreeAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "ONetworkEdge.h"
 #include <vector>
-#include "OrderedRelationAlgebra.h"
+#include "Algebras/OrderedRelation/OrderedRelationAlgebra.h"
 
 
 

@@ -49,7 +49,7 @@ This header file contains all internal geometry structs and classes.
 #ifdef RPS_TEST
 #include "SpatialAlgebraStubs.h"
 #else
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #endif
 #include "Rational.h"
 

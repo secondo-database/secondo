@@ -37,7 +37,7 @@ CE_EXTERN_MAKE_FILE := AlgebraManager.cpp
 TMP_CURRENT_DIR := $(PWD)
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS) 
+#CCFLAGS += -Werror
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 

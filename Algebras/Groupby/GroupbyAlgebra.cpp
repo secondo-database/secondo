@@ -53,20 +53,20 @@ April 2012. Dieter Capek
 #include "LogMsg.h"
 #define TRACE_OFF
 
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
 #include "CPUTimeMeasurer.h"
 #include "StandardTypes.h"
 #include "Counter.h"
-#include "TupleIdentifier.h"
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"
 #include "Progress.h"
 #include "RTuple.h"
 #include "Symbols.h"
 #include "ListUtils.h"
 #include "DateTime.h"
-#include "Stream.h"
-#include "FTextAlgebra.h"
+#include "Algebras/Stream/Stream.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "SecondoCatalog.h"
 
 #define NUMBUCKETS 99997

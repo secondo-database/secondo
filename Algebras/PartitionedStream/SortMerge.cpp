@@ -51,7 +51,7 @@ also start with a random prefix.
 
 #include "LogMsg.h"
 #include "StandardTypes.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "CPUTimeMeasurer.h"
 #include "QueryProcessor.h"
 #include "SecondoInterface.h"
@@ -59,9 +59,9 @@ also start with a random prefix.
 #include "Counter.h"
 #include "Progress.h"
 #include "RTuple.h"
-#include "Hashtable.h"
+#include "Algebras/ExtRelation-C++/Hashtable.h"
 #include "StreamIterator.h"
-#include "Tupleorder.h"
+#include "Algebras/ExtRelation-C++/Tupleorder.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

@@ -31,9 +31,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "MTopRelAlgs.h"
 #include "TopRel.h"
-#include "TemporalAlgebra.h"
-#include "SpatialAlgebra.h"
-#include "RefinementStream.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/Temporal/RefinementStream.h"
 
 
 using namespace std;

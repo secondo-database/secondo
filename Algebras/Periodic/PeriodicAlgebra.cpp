@@ -17,12 +17,12 @@
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "DateTime.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "TopRel.h"
 #include "GenericTC.h"
 #include "GenOps.h"
 #include "Symbols.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "PMSimple.h"
 
 

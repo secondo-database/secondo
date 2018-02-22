@@ -39,7 +39,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 //the above header was modified and copied from SuffixTree.h
 
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 
 #ifndef _AUXILIARY_TYPES_H
 #define _AUXILIARY_TYPES_H

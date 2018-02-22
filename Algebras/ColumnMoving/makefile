@@ -34,7 +34,7 @@ ALGEBRA_DEPENDENCIES := StandardAlgebra
 include ../../makefile.env
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS)  -Werror -std=c++11 -fmax-errors=10
+CCFLAGS += -Werror -std=c++11 -fmax-errors=10
 
 SOURCESDEP = $(patsubst %.cpp, %.dep, $(wildcard Sources/*.cpp))
 SOURCESOBJECTS = $(patsubst %.dep, %.$(OBJEXT), $(SOURCESDEP))

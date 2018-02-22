@@ -34,8 +34,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Symbols.h"
 #include "Attribute.h"
 #include "StandardTypes.h"
-#include "../../Tools/Flob/DbArray.h"
-#include "../../Tools/Flob/Flob.h"
+#include "Tools/Flob/DbArray.h"
+#include "Tools/Flob/Flob.h"
 #include "GenericTC.h"
 
 using namespace std;

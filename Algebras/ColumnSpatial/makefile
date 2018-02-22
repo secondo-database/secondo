@@ -33,8 +33,6 @@ CURRENT_ALGEBRA := ColumnSpatialAlgebra
 ALGEBRA_DEPENDENCIES := StandardAlgebra
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS) 
-
 CCFLAGS += -Werror
 
 ifneq ($(platform),mac_osx)

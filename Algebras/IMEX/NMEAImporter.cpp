@@ -42,7 +42,7 @@ The this end, two things are to do:
 
 #include <vector>
 #include "NestedList.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "DateTime.h"
 #include "NMEAImporter.h"
 #include "StringUtils.h"

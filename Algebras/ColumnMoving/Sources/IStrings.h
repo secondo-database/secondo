@@ -26,8 +26,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
-#include "SimpleAttrArray.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/CRel/SimpleAttrArray.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 
 namespace ColumnMovingAlgebra
 {

@@ -52,7 +52,7 @@ This header file essentially contains the definition of the class
 #endif
 using std::tr1::shared_ptr;
 
-#include "TemporalAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 
 class Point;
 class MPoint;

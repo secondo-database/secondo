@@ -38,14 +38,14 @@ inclusion of header files concerning Secondo.
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "SpatialAlgebra.h"
-#include "TemporalAlgebra.h"
-#include "MovingRegionAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/MovingRegion/MovingRegionAlgebra.h"
 #include "DateTime.h"
 #include "TemporalExtAlgebra.h"
-#include "RefinementStream.h"
-#include "Geoid.h"
-#include "Algorithms.h"
+#include "Algebras/Temporal/RefinementStream.h"
+#include "Algebras/Spatial/Geoid.h"
+#include "Algebras/SymbolicTrajectory/Algorithms.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;

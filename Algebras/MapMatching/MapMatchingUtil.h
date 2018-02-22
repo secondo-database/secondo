@@ -44,8 +44,8 @@ This header file contains utilities for map matching
 #include <vector>
 
 #include "MapMatchingNetworkInterface.h"
-#include "SpatialAlgebra.h"
-#include "NetworkAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/Network/NetworkAlgebra.h"
 
 class DirectedNetworkSection;
 

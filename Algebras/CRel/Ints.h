@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #pragma once
 
 #include <limits>
-#include "LongInt.h"
+#include "Algebras/Standard-C++/LongInt.h"
 #include "SimpleAttrArray.h"
 #include "StandardTypes.h"
 #include <stdint.h>

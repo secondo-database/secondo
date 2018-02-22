@@ -28,8 +28,8 @@ SECONDO includes
 
 */
 
-#include "RectangleAlgebra.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 
 /*
 TileAlgebra includes

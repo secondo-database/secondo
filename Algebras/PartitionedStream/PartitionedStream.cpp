@@ -65,20 +65,20 @@ for query processing.
 #include "QueryProcessor.h"
 #include "SecondoSystem.h"
 #include "Attribute.h"
-#include "FunVector.h"
+#include "Algebras/Array/FunVector.h"
 #include "CostFunction.h"
 
 #include "SystemInfoRel.h"
 #include "Environment.h"
 #include "Symbols.h"
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 #include "ListUtils.h"
 
 /*
 Dependencies with other algebras: RelationAlgebra, StandardAlgebra
 
 */
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "StandardTypes.h"
 
 

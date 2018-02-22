@@ -34,8 +34,7 @@ ALGEBRA_DEPENDENCIES += RelationAlgebra
 include ../../makefile.env
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS)
-#CCFLAGS += -I/e/Secondo/boost_1_57_0
+CCFLAGS += -Werror 
 CCFLAGS += -std=c++11
 
 # create objects and algebra library. The values for the variables

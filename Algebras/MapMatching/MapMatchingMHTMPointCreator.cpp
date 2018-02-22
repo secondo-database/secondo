@@ -42,7 +42,7 @@ the class ~MPointCreator~.
 #include "MapMatchingMHTMPointCreator.h"
 #include "MapMatchingUtil.h"
 #include "NetworkAdapter.h"
-#include <TemporalAlgebra.h>
+#include <Algebras/Temporal/TemporalAlgebra.h>
 
 using datetime::DateTime;
 

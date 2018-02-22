@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 May, 2007 Leonardo Azevedo, Rafael Brand
 
 */
-using namespace std;
 
 
 #include "RasterAlgebra.h"
@@ -35,21 +34,17 @@ using namespace std;
 #include "Attribute.h"
 #include "Symbols.h"
 
-#include "SpatialAlgebra.h"
-//#include "SpatialAlgebra.cpp"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include <fstream>
 
 #include "./Signature/Signature4CRS.h"
-//#include "./Signature/Signature4CRS.cpp"
-//#include "./Signature/Gera3CRS.h"
-//#include "./Signature/Gera3CRS.cpp"
 #include "./Signature/GenerateRaster.cpp"
-//#include "./Signature/Estruturas.h"
 #include "./Signature/CompareRaster.cpp"
-#include "../../Tools/Flob/DbArray.h"
+#include "Tools/Flob/DbArray.h"
 
 
 //#define DEBUGMESSAGES
+using namespace std;
 
 typedef unsigned char RasterBit;
 

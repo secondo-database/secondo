@@ -31,9 +31,9 @@ Todo:
 */
 
 #include "OrderSeeds.h"
-#include "RectangleAlgebra.h"
-#include "RelationAlgebra.h"
-#include "Stream.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/Stream/Stream.h"
 #include "DistFunction.h"
 
 

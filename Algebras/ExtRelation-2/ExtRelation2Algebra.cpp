@@ -53,27 +53,27 @@ for my master's thesis
 #include <set>
 
 #include "LogMsg.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
 #include "CPUTimeMeasurer.h"
 #include "StandardTypes.h"
-#include "LongInt.h"
+#include "Algebras/Standard-C++/LongInt.h"
 #include "SecondoInterface.h"
 #include "Counter.h"
-#include "TupleIdentifier.h"
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"
 #include "Progress.h"
 #include "RTuple.h"
 #include "Symbols.h"
 #include "Sort.h"
 
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 
 #include "Sort2Heaps.h"
 
 #include "Dijkstra.h"
 
-#include "../CostEstimation/ExtRelation2AlgebraCostEstimation.h"
+#include "Algebras/CostEstimation/ExtRelation2AlgebraCostEstimation.h"
 
 using namespace std;
 

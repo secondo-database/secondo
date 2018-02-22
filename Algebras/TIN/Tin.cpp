@@ -25,11 +25,11 @@
 #include "Tin.h"
 #include "TinPart.h"
 #ifndef UNIT_TEST
-#include "Point.h"
-#include "Stream.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Spatial/Point.h"
+#include "Algebras/Stream/Stream.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Attribute.h"
-#include "../Rectangle/RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include <stack>
 #endif
 

@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <algorithm>
 #include "AlgebraManager.h"
 #include "ListUtils.h"
-#include "LongInt.h"
+#include "Algebras/Standard-C++/LongInt.h"
 #include "SecondoException.h"
 #include "SecondoSystem.h"
 #include "StandardTypes.h"

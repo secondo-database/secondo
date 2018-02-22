@@ -63,9 +63,9 @@ and restrict itself to shere commentaries ("how") in the implementation file
 #include "ConstructorTemplates.h"
 #include "StandardTypes.h"
 //#include "DBArray.h"
-#include "../../Tools/Flob/Flob.h"
-#include "../../Tools/Flob/DbArray.h"
-#include "RelationAlgebra.h"
+#include "Tools/Flob/Flob.h"
+#include "Tools/Flob/DbArray.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include <vector>
 #include <list>
 #include <set>

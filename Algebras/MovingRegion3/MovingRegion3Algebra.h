@@ -77,8 +77,8 @@ Please see ~MovingRegion3Algebra.cpp~ for more details on the
 #define MOVINGREGION3ALGBRA_H_
 
 #include "DateTime.h"
-#include "Region2Algebra.h"
-#include "MovingRegionAlgebra.h"
+#include "Algebras/Region2/Region2Algebra.h"
+#include "Algebras/MovingRegion/MovingRegionAlgebra.h"
 
 
 namespace temporalalgebra{

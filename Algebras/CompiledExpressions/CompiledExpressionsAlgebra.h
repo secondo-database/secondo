@@ -80,8 +80,10 @@ if the complete query could be compiled by this algebra.
 #include "Progress.h"
 #endif
 
-#include "../Stream/Stream.h"
-#include "../Relation-C++/RelationAlgebra.h"
+#include "CECompiler.h"
+
+#include "Algebras/Stream/Stream.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
 extern AlgebraManager* am;
 

@@ -22,15 +22,14 @@ This header file defines an auxiliary class SpatialJoinLocalInfo.
 
 #include <iostream>
 
-#include "SpatialAlgebra.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "StandardTypes.h"
 #include "ListUtils.h"
-#include "RectangleAlgebra.h"
 #include "Progress.h"
 #include "RTuple.h"
 

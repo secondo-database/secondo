@@ -26,9 +26,9 @@
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Tin.h"
-#include "Stream.h"
-#include "../Raster2/stype.h"
-#include "../Raster2/sreal.h"
+#include "Algebras/Stream/Stream.h"
+#include "Algebras/Raster2/stype.h"
+#include "Algebras/Raster2/sreal.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;

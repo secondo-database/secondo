@@ -26,7 +26,7 @@ SECONDO includes
 */
 
 #include "../HalfSegment/HalfSegment.h"
-#include "RobustSetOps.h"
+#include "Algebras/Spatial/RobustSetOps.h"
 
 /*
 TileAlgebra includes

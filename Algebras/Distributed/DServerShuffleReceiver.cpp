@@ -50,7 +50,7 @@ Implementation of the class ~DServerShuffleReceiver~
 */
 #include "DServerShuffleReceiver.h"
 #include "DServerCmdCallBackComm.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "DBAccessGuard.h"
 
 /*

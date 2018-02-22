@@ -41,18 +41,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 // TODO: remove relative paths and int64_t.
 // they are only needed for a better syntax hilighting with qt-creator.
 #include "ColumnSpatialAlgebra.h"             // header for this algebra
-#include "../../include/Symbols.h"            // predefined strings
-#include "../../include/ListUtils.h"          // useful nested list functions
-#include "../../include/NestedList.h"         // required at many places
-#include "../../include/QueryProcessor.h"     // needed for value mappings
-#include "../../include/TypeConstructor.h"    // constructor for Secondo Types
-#include "../../include/StandardTypes.h"
-#include "../Spatial/SpatialAlgebra.h"        // spatial types and operators
-#include "../Spatial/RegionTools.h"           // cycles and region building
-#include "../Relation-C++/RelationAlgebra.h"  // use of tuples
-#include "../Stream/Stream.h"                 // wrapper for secondo streams
-#include "../CRel/Ints.h"                     // type for id result list
-#include "../CRel/TypeConstructors/LongIntsTC.h"
+#include "Symbols.h"            // predefined strings
+#include "ListUtils.h"          // useful nested list functions
+#include "NestedList.h"         // required at many places
+#include "QueryProcessor.h"     // needed for value mappings
+#include "TypeConstructor.h"    // constructor for Secondo Types
+#include "StandardTypes.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"    // spatial types and operators
+#include "Algebras/Spatial/RegionTools.h"       // cycles and region building
+#include "Algebras/Relation-C++/RelationAlgebra.h"  // use of tuples
+#include "Algebras/Stream/Stream.h"    // wrapper for secondo streams
+#include "Algebras/CRel/Ints.h"                     // type for id result list
+#include "Algebras/CRel/TypeConstructors/LongIntsTC.h"
 #include <ctime>
 #include <fstream>
 #include <cstring>

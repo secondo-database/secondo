@@ -32,7 +32,7 @@ SECONDO includes
 #include "DateTime.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
-#include "Point.h"
+#include "Algebras/Spatial/Point.h"
 
 /*
 TileAlgebra includes

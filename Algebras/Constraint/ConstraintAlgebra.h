@@ -46,7 +46,7 @@ This class corresponds to the memory representation of the type constructor
 #include <cmath>
 #include <string>
 #include <vector>
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "./triangulation/interface.h"
 
 /*

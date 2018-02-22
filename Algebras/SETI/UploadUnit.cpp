@@ -43,7 +43,7 @@ It represents the current position and time of a moving object.
 ******************************************************************************/
 
 #include "DateTime.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "UploadUnit.h"
 
 using namespace std;

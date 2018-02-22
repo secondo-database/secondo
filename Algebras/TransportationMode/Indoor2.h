@@ -44,29 +44,29 @@ May, 2011 Jianqiu Xu
 #include <vector>
 #include <queue>
 #include "Attribute.h"
-#include "../../Tools/Flob/DbArray.h"
-#include "RectangleAlgebra.h"
+#include "Tools/Flob/DbArray.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "WinUnix.h"
 #include "AvlTree.h"
 #include "Symbols.h"
 #include "AlmostEqual.h"
-#include "../Spatial/SpatialAlgebra.h"
-#include "../Temporal/TemporalAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 
 
 #include "NestedList.h"
 
 #include "QueryProcessor.h"
-#include "RTreeAlgebra.h"
-#include "BTreeAlgebra.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/RTree/RTreeAlgebra.h"
+#include "Algebras/BTree/BTreeAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "StandardTypes.h"
 #include "LogMsg.h"
 #include "NList.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "ListUtils.h"
-#include "NetworkAlgebra.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Network/NetworkAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 
 /*
 3D point for indoor application

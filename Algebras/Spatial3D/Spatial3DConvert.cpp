@@ -54,10 +54,9 @@ region2volume, region2surface, mregion2volume
 #include "Spatial3D.h"
 #include "Spatial3DConvert.h"
 #include "Spatial3DSetOps.h"
-#include "RelationAlgebra.h"
 #include "Triangulate.h"
-#include "../Spatial/SpatialAlgebra.h"
-#include "../MovingRegion/MovingRegionAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/MovingRegion/MovingRegionAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

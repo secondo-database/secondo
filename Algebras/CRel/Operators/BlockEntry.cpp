@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "LogMsg.h"
 #include "OperatorUtils.h"
 #include "Symbols.h"
-#include "TBlockTC.h"
+#include "../TypeConstructors/TBlockTC.h"
 #include "TypeUtils.h"
 
 using namespace CRelAlgebra;

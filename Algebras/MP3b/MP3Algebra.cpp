@@ -104,18 +104,18 @@ xxii) ~removelyrics~ - remove a lyrics into an MP3.
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "../FText/FTextAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "Attribute.h"
 #include "FileSystem.h"
-#include "../../Tools/Flob/Flob.h"
-#include "../../Tools/Flob/DbArray.h"
+#include "Tools/Flob/Flob.h"
+#include "Tools/Flob/DbArray.h"
 #include "Base64.h"
 #include "Symbols.h"
 #include "ListUtils.h"
 
 
 #include "GenericTC.h"
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 #include "NList.h"
 #include "FVector.h"
 

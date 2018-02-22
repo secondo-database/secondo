@@ -28,7 +28,7 @@ ALGEBRA_DEPENDENCIES += TemporalAlgebra
 include ../../makefile.env
 
 # expand compile flags if necessary
-CCFLAGS += -std=c++0x -I Helper $(ALG_INC_DIRS) -Werror
+CCFLAGS += -std=c++0x -I Helper  -Werror
 
 OBJECTS = RobustPlaneSweepAlgebra.o Algorithm/BentleyOttmann.o Algorithm/Hobby.o Algorithm/IntersectionAlgorithm.o Helper/InternalGeometries.o Helper/Utility.o
 

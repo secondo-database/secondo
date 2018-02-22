@@ -44,10 +44,10 @@ This header file essentially contains the definition of the class
 
 #include "MapMatchingMHT.h"
 #include "MHTRouteCandidate.h"
-#include <TemporalAlgebra.h>
+#include <Algebras/Temporal/TemporalAlgebra.h>
 #include <vector>
 
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 
 namespace mapmatch {
 

@@ -49,7 +49,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 #ifndef SETOPERATOR2_H_
 #define SETOPERATOR2_H_
 
-#include "MovingRegion2Algebra.h"
+#include "Algebras/MovingRegion2/MovingRegion2Algebra.h"
 #include "SetOps2.h"
 
 

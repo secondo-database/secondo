@@ -49,9 +49,9 @@ Select different collect option.
 //#define SEQCOPY
 #define PIPECOPY
 
-#include "HadoopParallelAlgebra.h"
-#include "RelationAlgebra.h"
-#include "Stream.h"
+#include "Algebras/HadoopParallel/HadoopParallelAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/Stream/Stream.h"
 
 typedef std::vector<std::pair<std::string, fList*> > Para_FList;
 bool isFListStreamDescription(const NList& typeInfo);

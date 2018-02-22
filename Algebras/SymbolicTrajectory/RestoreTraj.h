@@ -35,9 +35,9 @@ This is the implementation of the Symbolic Trajectory Algebra.
 */
 
 #include "Algorithms.h"
-#include "../Raster2/sint.h"
-#include "HashAlgebra.h"
-#include "../../NestedRelation/NestedRelationAlgebra.h"
+#include "Algebras/Raster2/sint.h"
+#include "Algebras/Hash/HashAlgebra.h"
+#include "Algebras/NestedRelation/NestedRelationAlgebra.h"
 
 namespace stj {
 

@@ -57,7 +57,7 @@ Implementation of the class ~DServerCmdCallBackCommunication ~
 */
 
 #include "DServerCmdCallBackComm.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "DBAccessGuard.h"
 /*
 

@@ -30,10 +30,10 @@ SECONDO includes
 
 #include "Attribute.h"
 #include "DateTime.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "Symbols.h"
 #include "TypeConstructor.h"
-#include "../../Tools/Flob/Flob.h"
+#include "Tools/Flob/Flob.h"
 
 /*
 TileAlgebra includes

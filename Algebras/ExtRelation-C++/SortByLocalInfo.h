@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 // #include "LogMsg.h"
 #include "StandardTypes.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 // #include "CPUTimeMeasurer.h"
 // #include "QueryProcessor.h"
 // #include "SecondoInterface.h"
@@ -39,7 +39,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 // #include "Counter.h"
 #include "Progress.h"
 #include "RTuple.h"
-#include "Tupleorder.h"
+#include "Algebras/ExtRelation-C++/Tupleorder.h"
 
 #ifndef SORTBYLOCALINFO_
 #define SORTBYLOCALINFO_

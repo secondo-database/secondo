@@ -99,7 +99,7 @@ documentation in the file ~CECodeStore.cpp~.
 
 #include <set>
 
-#include "../Relation-C++/RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
 using namespace CompiledExpressions;
 namespace CompiledExpressions {

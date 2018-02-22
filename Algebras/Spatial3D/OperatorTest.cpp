@@ -38,7 +38,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "Spatial3D.h"
-#include "RelationAlgebra.h"
 #include "geometric_algorithm.h"
 #include "geometric_algorithm_intersection_line_plane.h"
 #include "geometric_algorithm_intersection_triangles.h"

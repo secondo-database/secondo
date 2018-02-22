@@ -230,9 +230,9 @@ longer sequence.
 #include "VectorTypeMapUtils.h"
 
 #include "DateTime.h"         // DateTime, Instant
-#include "RegionTools.h"      // reverseCycle, buildRegion
-#include "SpatialAlgebra.h"   // Point, Region
-#include "TemporalAlgebra.h"  // Interval<T>
+#include "Algebras/Spatial/RegionTools.h" 
+#include "Algebras/Spatial/SpatialAlgebra.h"  
+#include "Algebras/Temporal/TemporalAlgebra.h"  
 
 
 namespace tsa {

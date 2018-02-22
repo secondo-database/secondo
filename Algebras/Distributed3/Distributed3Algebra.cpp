@@ -30,9 +30,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "semaphore.h"
 
-#include "fsrel.h"
-#include "DArray.h"
-#include "frel.h"
+#include "Algebras/Distributed2/fsrel.h"
+#include "Algebras/Distributed2/DArray.h"
+#include "Algebras/Distributed2/frel.h"
 #include <iostream>
 #include <vector>
 #include <list>
@@ -43,13 +43,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebra.h"
 #include "NestedList.h"
 #include "StandardTypes.h"
-#include "FTextAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "ListUtils.h"
 #include "StringUtils.h"
-#include "RelationAlgebra.h"
-#include "Stream.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/Stream/Stream.h"
 #include "NList.h"
-#include "ArrayAlgebra.h"
+#include "Algebras/Array/ArrayAlgebra.h"
 #include "SocketIO.h"
 #include "StopWatch.h"
 
@@ -57,11 +57,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "DebugWriter.h"
 
 
-#include "FileRelations.h"
-#include "FileAttribute.h"
+#include "Algebras/Distributed2/FileRelations.h"
+#include "Algebras/Distributed2/FileAttribute.h"
 
-#include "ConnectionInfo.h"
-#include "CommandLog.h"
+#include "Algebras/Distributed2/ConnectionInfo.h"
+#include "Algebras/Distributed2/CommandLog.h"
 
 
   // use boost for thread handling

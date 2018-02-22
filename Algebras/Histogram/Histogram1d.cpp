@@ -55,7 +55,7 @@ and comment the second one. To switch off test output, uncomment the line
 #include "../ExtRelation-C++/Tupleorder.h"
 #include "AlmostEqual.h"
 #include "Progress.h" // required for sortbylocalinfo
-#include "SortByLocalInfo.h"
+#include "Algebras/ExtRelation-C++/SortByLocalInfo.h"
 #include "Symbols.h"
 
 

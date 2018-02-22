@@ -66,7 +66,7 @@ used in the MovingRegion Algebra.
 #include "TypeMapUtils.h"
 #include "Symbols.h"
 #include "NList.h"
-#include "MovingRegion2Algebra.h"
+#include "Algebras/MovingRegion2/MovingRegion2Algebra.h"
 #include "SetOperator2.h"
 
 extern NestedList* nl;

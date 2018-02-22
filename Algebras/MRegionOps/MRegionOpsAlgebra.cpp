@@ -58,7 +58,7 @@ For more detailed information please see the files ~SetOps.h~ and ~SetOps.cpp~.
 #include <string>
 #include "TypeMapUtils.h"
 #include "Symbols.h"
-#include "MovingRegionAlgebra.h"
+#include "Algebras/MovingRegion/MovingRegionAlgebra.h"
 #include "SetOps.h"
 
 extern NestedList* nl;

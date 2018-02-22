@@ -42,8 +42,8 @@ This header file contains the class ~NetworkAdapter~
 #define __NETWORKADAPTER_H_
 
 #include "MapMatchingNetworkInterface.h"
-#include "RectangleAlgebra.h"
-#include "NetworkAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
+#include "Algebras/Network/NetworkAlgebra.h"
 
 class NetworkRoute;
 class DirectedNetworkSection;

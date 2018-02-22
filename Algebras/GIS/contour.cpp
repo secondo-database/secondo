@@ -33,13 +33,13 @@ GIS includes
 Raster2 and Tile includes
 
 */
-#include "../Raster2/sint.h"
-#include "../Raster2/sreal.h"
-#include "../Tile/t/tint.h"
-#include "../Tile/t/treal.h"
+#include "Algebras/Raster2/sint.h"
+#include "Algebras/Raster2/sreal.h"
+#include "Algebras/Tile/t/tint.h"
+#include "Algebras/Tile/t/treal.h"
 #include "StopWatch.h"
 
-#include "DLine.h"
+#include "Algebras/Spatial/DLine.h"
 #include "WinUnix.h"
 
 typedef DLine LineType;

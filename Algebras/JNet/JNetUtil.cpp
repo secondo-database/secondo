@@ -27,12 +27,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JNetUtil.h"
 #include "RouteLocation.h"
 #include "JRouteInterval.h"
-#include "BTreeAlgebra.h"
-#include "RelationAlgebra.h"
+#include "Algebras/BTree/BTreeAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "StandardTypes.h"
 #include "JList.h"
-#include "OrderedRelationAlgebra.h"
-#include "RTreeAlgebra.h"
+#include "Algebras/OrderedRelation/OrderedRelationAlgebra.h"
+#include "Algebras/RTree/RTreeAlgebra.h"
 
 using namespace jnetwork;
 using namespace std;

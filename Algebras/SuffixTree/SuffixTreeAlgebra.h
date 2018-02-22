@@ -46,12 +46,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Attribute.h"
 #include "ListUtils.h"
-#include "../../Tools/Flob/Flob.h"
-#include "../../Tools/Flob/DbArray.h"
+#include "Tools/Flob/Flob.h"
+#include "Tools/Flob/DbArray.h"
 #include "SuffixTree.h"
 #include "SimpleTreeBuilder.h"
 #include "UkkonenTreeBuilder.h"
-#include "FTextAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 
 //namespace to avoid name conflicts
 namespace sta{

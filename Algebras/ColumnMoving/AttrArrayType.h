@@ -26,14 +26,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
-#include "AttrArray.h"
+#include "Algebras/CRel/AttrArray.h"
 #include <cstddef>
 #include "NestedList.h"
-#include "ReadWrite.h"
+#include "Algebras/CRel/ReadWrite.h"
 #include <string>
 #include "TypeConstructor.h"
-#include "TIUtils.h"
-#include "TypeUtils.h"
+#include "Algebras/CRel/TypeConstructors/TIUtils.h"
+#include "Algebras/CRel/TypeUtils.h"
 #include "StandardTypes.h"
 
 

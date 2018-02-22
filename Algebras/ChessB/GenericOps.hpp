@@ -3,7 +3,7 @@
 
 #include <functional>
 #include <boost/lexical_cast.hpp>
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "ListStream.hpp"
 
 struct even_op : std::unary_function< CcInt, bool > {

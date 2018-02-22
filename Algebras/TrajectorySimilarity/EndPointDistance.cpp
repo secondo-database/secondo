@@ -81,7 +81,7 @@ distances between the first points and the last points of two point sequences.
 #include "TrajectorySimilarity.h"
 #include "VectorTypeMapUtils.h"
 
-#include "Geoid.h"
+#include "Algebras/Spatial/Geoid.h"
 
 
 namespace tsa {

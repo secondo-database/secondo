@@ -32,7 +32,7 @@ Algorithmen for operations explained in the ROSE-Algebra
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include <vector>
 #include <iostream>
 #include <string>

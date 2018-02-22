@@ -27,11 +27,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #define DBSCAN_SETOFOBJECTSR_H
 
 #include "AlgebraTypes.h"
-#include "RelationAlgebra.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "MMRTree.h"
-#include "TupleStore1.h"
-#include "Stream.h"
+#include "Algebras/MMRTree/TupleStore1.h"
+#include "Algebras/Stream/Stream.h"
 #include "TupleInfo.h"
 
 

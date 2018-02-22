@@ -47,7 +47,7 @@ Mai - November 2017, U. Wiesecke for master thesis.
 #include <string>
 #include <memory>
 #include "MMRTree.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "NumericUtil.h"
 
 #ifndef POINTVECTORSEGMENT_H

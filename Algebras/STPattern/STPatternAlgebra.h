@@ -85,11 +85,11 @@ paper "Spatiotemporal Pattern Queries"
 #endif
 
 #ifndef _RELATION_ALGEBRA_H_
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #endif
 
 #ifndef _TEMPORAL_ALGEBRA_H_
-#include "TemporalAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #endif
 
 #include "TemporalReasoner.h"

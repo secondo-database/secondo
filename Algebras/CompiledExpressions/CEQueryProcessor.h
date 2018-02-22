@@ -78,6 +78,7 @@ The ~CEQueryProcessor~-class implements the interface to the ~QueryProcessor~ of
 #include "AlgebraTypes.h"
 #include "NestedList.h"
 #include "DynamicLibrary.h"
+#include "CECodeGenerator.h"
 
 extern QueryProcessor* ptrQP;
 

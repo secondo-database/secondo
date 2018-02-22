@@ -33,7 +33,7 @@ which were used to test and benchmark the algebra.
 
 */
 #include "LogMsg.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
 #include "CPUTimeMeasurer.h"

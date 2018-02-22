@@ -29,8 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../sreal.h"
 #include "../sint.h"
 #include "../sstring.h"
-#include "TemporalAlgebra.h"
-#include "RTreeAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/RTree/RTreeAlgebra.h"
 #include "CellIterator.h"
 
 namespace raster2 {

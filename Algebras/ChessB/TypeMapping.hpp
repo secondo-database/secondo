@@ -10,7 +10,7 @@ Type map utilities
 #include <string>
 #include "NestedList.h"
 #include "StandardTypes.h"
-#include "FTextAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "NList.h"
 #include "ListStream.hpp"
 #include "StreamIterator.hpp"

@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "OperatorUtils.h"
 #include "Project.h"
 #include "QueryProcessor.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include <set>
 #include "SpatialAttrArray.h"
 #include "StandardTypes.h"

@@ -25,7 +25,7 @@ SECONDO includes
 
 */
 
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
 /*
 TileAlgebra includes

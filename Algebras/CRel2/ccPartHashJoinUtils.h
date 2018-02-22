@@ -77,7 +77,7 @@ Once a result tuple block has reached its specified size in MiB, the function ~n
 
 #include <vector>
 #include "BinaryTuple.h"
-#include "TBlock.h"
+#include "Algebras/CRel/TBlock.h"
 #include "CRel2Debug.h"
 //#include <boost/interprocess/mapped_region.hpp>
 

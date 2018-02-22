@@ -52,7 +52,7 @@ and their parameter driven versions ~sort2Param~ and ~sortby2Param~.
 #define SORT_H_
 
 #include <limits.h>
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Progress.h"
 #include "TupleQueue.h"
 #include "TupleBuffer2.h"

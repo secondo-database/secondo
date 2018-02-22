@@ -28,9 +28,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <cstdint>
 #include <exception>
 #include "GAttrArray.h"
-#include "GAttrArrayTC.h"
+#include "../TypeConstructors/GAttrArrayTC.h"
 #include "Ints.h"
-#include "LongIntsTC.h"
+#include "../TypeConstructors/LongIntsTC.h"
 #include "ListUtils.h"
 #include "LogMsg.h"
 #include "OperatorUtils.h"

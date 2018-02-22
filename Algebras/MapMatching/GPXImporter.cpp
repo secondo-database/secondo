@@ -41,7 +41,7 @@ This implementation file contains the implementation of the class ~GPXImporter~.
 #include "GPXImporter.h"
 #include "GPXFileReader.h"
 
-#include <RelationAlgebra.h>
+#include <Algebras/Relation-C++/RelationAlgebra.h>
 
 
 namespace mapmatch {

@@ -40,8 +40,8 @@ true, a check of equality is done, otherwise a check for inequality.
 #ifndef TEMPORALLIFTED_ALGEBRA
 #define TEMPORALLIFTED_ALGEBRA
 
-#include "TemporalAlgebra.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "StandardTypes.h"
 
 namespace temporalalgebra{

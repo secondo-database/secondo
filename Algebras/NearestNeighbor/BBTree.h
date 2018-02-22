@@ -34,8 +34,8 @@ of a moving point for a determines time interval.
 
 
 
-#include "TemporalAlgebra.h" 
-#include "RectangleAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h" 
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include <iostream>
 
 

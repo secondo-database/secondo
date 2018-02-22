@@ -87,7 +87,7 @@ code parts in the operator tree and provides it to the ~CECodeGenerator~.
 #include <set>
 #include <vector>
 
-#include "./CECompiler.h"
+#include "CECompiler.h"
 
 namespace CompiledExpressions {
 // forward declarations from classes in the CompiledExpressions-namespace

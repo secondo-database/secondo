@@ -84,7 +84,7 @@ in SECONDO to get more informations about these operators.
 */
 
 #include "GraphAlgebra.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "ListUtils.h"
 #include "Symbols.h"
 #include "PlaceNodesHelper.h"

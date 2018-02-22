@@ -16,12 +16,12 @@
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "MMRTree.h"
 #include "MMMTree.h"
 #include "AvlTree.h"
-#include "Point.h"
-#include "../SymbolicTrajectory/Algorithms.h"
+#include "Algebras/Spatial/Point.h"
+#include "Algebras/SymbolicTrajectory/Algorithms.h"
 
 
 namespace mmalgebra{

@@ -29,11 +29,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <cstdint>
 #include <exception>
 #include "Ints.h"
-#include "LongIntsTC.h"
+#include "../TypeConstructors/LongIntsTC.h"
 #include "LogMsg.h"
 #include "OperatorUtils.h"
 #include "QueryProcessor.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "SecondoSystem.h"
 #include "StandardTypes.h"
 #include <string>

@@ -41,13 +41,13 @@ This algebra provides precise types based on rationals of arbitrary size.
 #include "AlmostEqual.h"
 #include "Symbols.h"
 
-#include "RationalAttr.h"
-#include "LongInt.h"
-#include "Point.h"
-#include "SpatialAlgebra.h"
-#include "FTextAlgebra.h"
-#include "Stream.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Standard-C++/RationalAttr.h"
+#include "Algebras/Standard-C++/LongInt.h"
+#include "Algebras/Spatial/Point.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
+#include "Algebras/Stream/Stream.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
 
 extern NestedList* nl;

@@ -67,9 +67,9 @@ We have to include some GSL headers and the GSLAlgebra.
 
 #include <NList.h>
 
-#include "RelationAlgebra.h"
-#include "TemporalAlgebra.h"
-#include "GSLAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/GSL/GSLAlgebra.h"
 
 #ifndef SECONDO_WIN32
 #define HAVE_INLINE

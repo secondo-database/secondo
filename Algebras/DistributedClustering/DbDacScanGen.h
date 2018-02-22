@@ -43,15 +43,15 @@ Member Class and TYPE, the Secondo Type.
  
  
  #include "AlgebraTypes.h"
- #include "RelationAlgebra.h"
+ #include "Algebras/Relation-C++/RelationAlgebra.h"
  #include "StandardTypes.h"
- #include "Stream.h"
+ #include "Algebras/Stream/Stream.h"
  #include "Cluster.h"
  #include "Member.h"
  #include <utility>
  #include "SecondoCatalog.h"
- #include "LongInt.h"
- #include "FTextAlgebra.h"
+ #include "Algebras/Standard-C++/LongInt.h"
+ #include "Algebras/FText/FTextAlgebra.h"
  #include "BinRelWriteRead.h"
  #include "MergeSort.h"
  

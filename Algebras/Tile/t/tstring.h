@@ -35,7 +35,7 @@ SECONDO includes
 
 */
 
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 
 /*
 TileAlgebra includes

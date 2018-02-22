@@ -43,13 +43,13 @@ level remains. Models are also removed from type constructors.
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
 #include "StandardTypes.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "HashAlgebra.h"
 #include "DateTime.h"
-#include "TupleIdentifier.h"
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"
 #include "Progress.h"
-#include "../BTree/BTreeAlgebra.h"
-#include "FTextAlgebra.h"
+#include "Algebras/BTree/BTreeAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "ListUtils.h"
 
 #include <iostream>

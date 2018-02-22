@@ -69,23 +69,23 @@ relation which bounding boxes of the indexed attribute intersect the window
 #include <limits>
 
 
-#include "SpatialAlgebra.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "RTreeAlgebra.h"
 #include "CPUTimeMeasurer.h"
-#include "TupleIdentifier.h"
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"
 #include "Messages.h"
 #include "Progress.h"
-#include "FTextAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "ListUtils.h"
 #include "AlmostEqual.h"
 #include "Symbols.h"
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 #include "LRU.h"
 
 extern NestedList* nl;

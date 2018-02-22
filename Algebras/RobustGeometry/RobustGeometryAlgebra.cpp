@@ -44,16 +44,16 @@ snap rounding and finally a operation specific check.
 #include "SecondoConfig.h"
 #include "AvlTree.h"
 #include "AlmostEqual.h"
-#include "../Relation-C++/RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Symbols.h"
 #include "NList.h"
 #include "LogMsg.h"
 #include "ConstructorTemplates.h"
 #include "TypeMapUtils.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "RobustGeometryAlgebra.h"
-#include "AVLSegment.h"
-#include "HalfSegment.h"
+#include "Algebras/Spatial/AVLSegment.h"
+#include "Algebras/Spatial/HalfSegment.h"
 #include <vector>
 #include <set>
 #include <queue>
@@ -797,7 +797,7 @@ int MakeBO::intersect(const double l1_x1,const double l1_y1,
 
 	if(x < l1_x1 || x < l2_x1 || x > l1_x2 || x > l2_x2) return 2;
 
-	y=(a2*c1-a1*c2)/m;
+	//y=(a2*c1-a1*c2)/m;
 
   return 0;
 }
@@ -1238,7 +1238,8 @@ int MakeHobby::intersect(double sx1, double sy1, double ex2, double ey2,
 	double c1 = 0.0;
 	double c2 = 0.0;
 	double m = 0.0;
-	double x, y;
+	double x;
+  // double y
 
 	a1 = ey2 - sy1;
 	b1 = sx1 - ex2;
@@ -1258,7 +1259,7 @@ int MakeHobby::intersect(double sx1, double sy1, double ex2, double ey2,
 	if (x < sx1 || x < sx3 || x > ex2 || x > ex4)
 		return 2;
 
-	y = (a2 * c1 - a1 * c2) / m;
+	//y = (a2 * c1 - a1 * c2) / m;
 
 	return 0;
 }

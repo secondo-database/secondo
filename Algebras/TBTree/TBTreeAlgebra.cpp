@@ -30,8 +30,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ListUtils.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "RelationAlgebra.h"
-#include "FTextAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "Symbols.h"
 
 

@@ -49,7 +49,7 @@ Multiple Hypothesis Technique (MHT)
 #include <stdio.h>
 #include <LogMsg.h>
 
-#include <TemporalAlgebra.h>
+#include <Algebras/Temporal/TemporalAlgebra.h>
 
 using namespace std;
 

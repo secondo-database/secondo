@@ -39,8 +39,8 @@ utilities for map matching
 
 */
 #include "MapMatchingUtil.h"
-#include <SpatialAlgebra.h>
-#include <NetworkAlgebra.h>
+#include <Algebras/Spatial/SpatialAlgebra.h>
+#include <Algebras/Network/NetworkAlgebra.h>
 #include "NetworkAdapter.h"
 #include "MapMatchingNetworkInterface.h"
 

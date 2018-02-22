@@ -76,7 +76,7 @@ stream will be empty.
 #include "AlgebraManager.h"
 #include "StandardTypes.h"  //We need the SECONDO type int, for example
 #include "Symbols.h"
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 #include "ListUtils.h"
 
 #include <string>

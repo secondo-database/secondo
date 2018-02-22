@@ -38,6 +38,25 @@
 
 #include "Precise2DAlgebra.h"
 
+//includes for the Gnu Multiple Precision (GMP) library
+#include <stdio.h>
+#include <gmp.h>
+#include <gmpxx.h>
+
+#include "Algebra.h"
+#include "Tools/Flob/DbArray.h"
+#include "Tools/Flob/Flob.h"
+#include "NestedList.h"
+#include "ListUtils.h"
+#include "QueryProcessor.h"
+#include "StandardTypes.h"
+#include "Algebras/Spatial/AttrType.h"
+#include "Algebras/FText/FTextAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Coarsening.h"
+#include "AVL_Tree.h"
+#include "TestAVLTree.h"
+
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

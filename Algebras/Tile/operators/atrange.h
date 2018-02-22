@@ -32,7 +32,7 @@ SECONDO includes
 #include "DateTime.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 
 /*
 TileAlgebra includes

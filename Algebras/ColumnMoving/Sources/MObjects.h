@@ -27,9 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #pragma once
 
 #include <memory>
-#include "AttrArray.h"
+#include "Algebras/CRel/AttrArray.h"
 #include "Array.h"
-#include "Ints.h"
+#include "Algebras/CRel/Ints.h"
 #include "DefTimes.h"
 
 namespace ColumnMovingAlgebra

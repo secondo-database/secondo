@@ -70,7 +70,7 @@ a stl list is used to take place of the queue structure for the ~mtq~
 #ifndef TUPLEQUEUEHP_H_
 #define TUPLEQUEUEHP_H_
 
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include <list>
 
 typedef std::list<Tuple*> TupleList;

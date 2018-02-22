@@ -131,8 +131,8 @@ documentation in the file ~CECodeStore.cpp~.
 #include <set>
 
 #include "StandardTypes.h"
-#include "../Standard-C++/LongInt.h"
-#include "../Standard-C++/RationalAttr.h"
+#include "Algebras/Standard-C++/LongInt.h"
+#include "Algebras/Standard-C++/RationalAttr.h"
 
 using namespace CompiledExpressions;
 namespace CompiledExpressions {

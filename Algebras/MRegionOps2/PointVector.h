@@ -58,7 +58,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 #include <math.h>
 #include "NumericUtil.h"
-#include "MovingRegion2Algebra.h"
+#include "Algebras/MovingRegion2/MovingRegion2Algebra.h"
 
 namespace temporalalgebra {
 namespace mregionops2 {

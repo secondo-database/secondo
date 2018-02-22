@@ -36,7 +36,7 @@ type mapping and select value mapping.
 #include "NestedList.h"
 #include "Operator.h"
 #include "StandardTypes.h"
-#include "AttrArray.h"
+#include "Algebras/CRel/AttrArray.h"
 
 extern NestedList *nl;
 extern QueryProcessor *qp;

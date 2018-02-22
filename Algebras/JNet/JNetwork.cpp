@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SecondoSystem.h"
 #include "Symbols.h"
 #include "LogMsg.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "Direction.h"
 #include "JNetwork.h"
 #include "RouteLocation.h"
@@ -40,7 +40,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JUnit.h"
 #include "JRITree.h"
 #include "JNetUtil.h"
-#include "RTreeAlgebra.h"
+#include "Algebras/RTree/RTreeAlgebra.h"
 
 extern NestedList* nl;
 

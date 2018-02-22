@@ -71,7 +71,7 @@ different numbers of points, the result is ~undefined~.
 #include "TrajectorySimilarity.h"
 #include "VectorTypeMapUtils.h"
 
-#include "Geoid.h"
+#include "Algebras/Spatial/Geoid.h"
 
 
 namespace tsa {

@@ -44,24 +44,24 @@ Oct, 2010 Jianqiu xu
 #include "NestedList.h"
 
 #include "QueryProcessor.h"
-#include "RTreeAlgebra.h"
-#include "BTreeAlgebra.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/RTree/RTreeAlgebra.h"
+#include "Algebras/BTree/BTreeAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "StandardTypes.h"
 #include "LogMsg.h"
 #include "NList.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "ListUtils.h"
-#include "NetworkAlgebra.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Network/NetworkAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 
 #include <fstream>
 #include <stack>
 #include <vector>
 #include <queue>
 #include "Attribute.h"
-#include "../../Tools/Flob/DbArray.h"
-#include "../../Tools/Flob/Flob.h"
+#include "Tools/Flob/DbArray.h"
+#include "Tools/Flob/Flob.h"
 #include "WinUnix.h"
 #include "AvlTree.h"
 #include "Symbols.h"

@@ -29,11 +29,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <ostream>
 #include <string>
-#include "../Tools/Flob/DbArray.h"
+#include "Tools/Flob/DbArray.h"
 #include "Attribute.h"
 #include "StandardTypes.h"
 #include "DateTime.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "UJPoint.h"
 #include "JNetwork.h"
 #include "JLine.h"

@@ -49,7 +49,7 @@ are necessary for the implementation the hash-join operators
 
 
 #include <limits.h>
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "RTuple.h"
 #include "Progress.h"
 #include "TupleBuffer2.h"

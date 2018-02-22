@@ -50,7 +50,7 @@ This class is the base class for all intersection algorithm classes.
 #ifdef RPS_TEST
 #include "../Helper/SpatialAlgebraStubs.h"
 #else
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #endif
 
 namespace RobustPlaneSweep

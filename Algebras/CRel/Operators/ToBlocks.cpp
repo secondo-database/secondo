@@ -29,14 +29,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <exception>
 #include "ListUtils.h"
 #include "LogMsg.h"
-#include "LongInt.h"
+#include "Algebras/Standard-C++/LongInt.h"
 #include "OperatorUtils.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "StreamValueMapping.h"
 #include <string>
-#include "TBlock.h"
-#include "TBlockTC.h"
+#include "../TBlock.h"
+#include "../TypeConstructors/TBlockTC.h"
 #include "TypeUtils.h"
 
 using namespace CRelAlgebra;

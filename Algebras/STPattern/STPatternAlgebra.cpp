@@ -60,7 +60,7 @@ thesis of Mahmoud Sakr, Chapter 6 Temporal Reasoning.
 #include "STPatternAlgebra.h"
 #include <limits>
 #include "Symbols.h"
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 
 using namespace temporalalgebra;
 using namespace std;

@@ -47,7 +47,7 @@ types and functions implemented by the Relation Algebra module.
 #include "NestedRelationAlgebra.h"
 #include "ListUtils.h"
 #include "Symbols.h"
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 
 #include <iostream>
 using namespace std;

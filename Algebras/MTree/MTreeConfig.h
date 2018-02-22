@@ -45,7 +45,7 @@ All avaliable config objects are defined in the initialize function (file "MTree
 #define __MTREE_CONFIG_H__
 
 #include "MTreeAlgebra.h"
-#include "GeneralTreeAlgebra.h"
+#include "Algebras/GeneralTree/GeneralTreeAlgebra.h"
 
 namespace mtreeAlgebra
 {

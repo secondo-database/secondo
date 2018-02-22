@@ -58,10 +58,10 @@ For more detailed information see MapMatchingAlgebra.h.
 #include "Symbols.h"
 
 #include "MapMatchingAlgebra.h"
-#include "NetworkAlgebra.h"
-#include "TemporalNetAlgebra.h"
-#include "OrderedRelationAlgebra.h"
-#include "FTextAlgebra.h"
+#include "Algebras/Network/NetworkAlgebra.h"
+#include "Algebras/TemporalNet/TemporalNetAlgebra.h"
+#include "Algebras/OrderedRelation/OrderedRelationAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "ONetwork.h"
 #include "ONetworkEdge.h"
 #include "MapMatchingMHT.h"
@@ -75,7 +75,7 @@ For more detailed information see MapMatchingAlgebra.h.
 #include "MapMatchingMHTMPointCreator.h"
 #include "MapMatchingMHTMJPointCreator.h"
 
-#include "LongInt.h"
+#include "Algebras/Standard-C++/LongInt.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;

@@ -40,7 +40,7 @@ This header file essentially contains the definition of the class ~GPXImporter~.
 #ifndef __GPX_IMPORTER_H__
 #define __GPX_IMPORTER_H__
 
-#include <Point.h>
+#include <Algebras/Spatial/Point.h>
 #include <DateTime.h>
 #include <StandardTypes.h>
 #include <GPXFileReader.h>

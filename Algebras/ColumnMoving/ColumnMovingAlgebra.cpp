@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebra.h"
 #include "DisplayTTY.h"
 #include "NestedList.h"
-#include "DisplayAttrArray.h"
+#include "Algebras/CRel/TypeConstructors/DisplayAttrArray.h"
 
 #include "Types.h"
 #include "Operators.h"

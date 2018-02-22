@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../msreal.h"
 #include "../msint.h"
 #include "../msstring.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 
 namespace raster2 {
     extern ValueMapping atperiodsFuns[];

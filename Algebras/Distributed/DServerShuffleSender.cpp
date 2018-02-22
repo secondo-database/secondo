@@ -50,7 +50,7 @@ Implementation of the class ~DServerShuffleSender~
 */
 #include "DServerShuffleSender.h"
 #include "DServerCmdCallBackComm.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "ThreadedMemoryCntr.h" 
 
 /*

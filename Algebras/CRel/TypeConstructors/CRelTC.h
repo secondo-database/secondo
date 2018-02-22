@@ -25,9 +25,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #pragma once
 
 #include <cstdint>
-#include "CRel.h"
+#include "../CRel.h"
 #include "NestedList.h"
-#include "ReadWrite.h"
+#include "../ReadWrite.h"
 #include "SecondoSMI.h"
 #include <string>
 #include "TBlockTC.h"

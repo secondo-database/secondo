@@ -60,11 +60,11 @@ For this it leans on Lema, Forlizzi, G[ue]ting, Nardelli, Schneider:
 
 #include "DateTime.h"
 
-#include "SpatialAlgebra.h"
-#include "TemporalAlgebra.h"
-#include "MovingRegionAlgebra.h"
-#include "TemporalExtAlgebra.h"
-#include "RefinementStream.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/MovingRegion/MovingRegionAlgebra.h"
+#include "Algebras/TemporalExt/TemporalExtAlgebra.h"
+#include "Algebras/Temporal/RefinementStream.h"
 
 
 using namespace datetime;

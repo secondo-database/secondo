@@ -46,7 +46,7 @@ August 2017 Michael Loris
 #include <cmath>
 #include <algorithm>
 #include <random>
-#include "../JPEGImage.h"
+#include "JPEGImage.h"
 //#include <iomanip>
 #include <stack>
 //#include <fstream>

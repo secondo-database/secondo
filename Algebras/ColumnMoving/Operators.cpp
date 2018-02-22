@@ -26,10 +26,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Operators.h"
 
-#include "TemporalAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "Types.h"
-#include "LongIntsTC.h"
-#include "Ints.h"
+#include "Algebras/CRel/TypeConstructors/LongIntsTC.h"
+#include "Algebras/CRel/Ints.h"
 #include <chrono>
 
 namespace ColumnMovingAlgebra

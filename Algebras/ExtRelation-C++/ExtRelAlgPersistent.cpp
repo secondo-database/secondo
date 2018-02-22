@@ -73,7 +73,7 @@ merging and a simple hash-join.
 #include "SortByLocalInfo.h"
 #include "LogMsg.h"
 #include "StandardTypes.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "CPUTimeMeasurer.h"
 #include "QueryProcessor.h"
 #include "SecondoInterface.h"

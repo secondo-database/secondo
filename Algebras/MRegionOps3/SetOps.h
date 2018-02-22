@@ -49,8 +49,8 @@ used in the ~MovingRegionAlgebra~.
 #include "PointVectorSegment.h"
 #include "NumericUtil.h"
 #include "DateTime.h"
-#include "TemporalAlgebra.h"
-#include "MovingRegionAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/MovingRegion/MovingRegionAlgebra.h"
 
 #include <gmp.h>
 #include <gmpxx.h>

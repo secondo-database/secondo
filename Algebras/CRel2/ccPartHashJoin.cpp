@@ -45,19 +45,19 @@ If stream S is ~not~ fully loaded, then the operator iterates over all remaining
 #include "ccPartHashJoin.h"
 #include <iostream>
 #include "BinaryTuple.h"
-#include "CRel.h"
-#include "CRelTC.h"
+#include "Algebras/CRel/CRel.h"
+#include "Algebras/CRel/TypeConstructors/CRelTC.h"
 #include <cstdint>
 #include <exception>
 #include "ListUtils.h"
-#include "OperatorUtils.h"
+#include "Algebras/CRel/Operators/OperatorUtils.h"
 #include "QueryProcessor.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "StandardTypes.h"
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 #include <string>
-#include "TBlock.h"
-#include "TBlockTC.h"
+#include "Algebras/CRel/TBlock.h"
+#include "Algebras/CRel/TypeConstructors/TBlockTC.h"
 #include "ccPartHashJoinUtils.h"
 
 using namespace CRelAlgebra;

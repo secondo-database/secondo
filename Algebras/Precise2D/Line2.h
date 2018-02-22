@@ -40,17 +40,17 @@
 #include <gmp.h>
 #include <gmpxx.h>
 #include "Algebra.h"
-#include "RectangleAlgebra.h"
-#include "../../Tools/Flob/DbArray.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
+#include "Tools/Flob/DbArray.h"
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "AttrType.h"
+#include "Algebras/Spatial/AttrType.h"
 //#include "Precise2DAlgebra.h"
 //#include "Point2.h"
-#include "SpatialAlgebra.h"
-#include "Region2Algebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/Region2/Region2Algebra.h"
 //#include "Toolbox.h"
 
 namespace p2d {

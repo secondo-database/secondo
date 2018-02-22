@@ -43,15 +43,15 @@ April-Mai 2011 - Nina Wrede
 #include <map>
 #include <iterator>
 
-#include "TupleIdentifier.h"
-#include "RelationAlgebra.h"
-#include "BTreeAlgebra.h"
-#include "RTreeAlgebra.h"
-#include "../../Tools/Flob/DbArray.h"
-#include "../../Tools/Flob/Flob.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/BTree/BTreeAlgebra.h"
+#include "Algebras/RTree/RTreeAlgebra.h"
+#include "Tools/Flob/DbArray.h"
+#include "Tools/Flob/Flob.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "Network2Algebra.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "StandardTypes.h"
 #include "Algebra.h"
 #include "Messages.h"
@@ -60,8 +60,8 @@ April-Mai 2011 - Nina Wrede
 #include "NList.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
-#include "../../include/ListUtils.h"
-#include "../../include/TypeMapUtils.h"
+#include "ListUtils.h"
+#include "TypeMapUtils.h"
 
 
 using namespace network2;
@@ -1333,7 +1333,7 @@ struct PrioQueue
       tRet->SetIndex ( numeric_limits<int>::max() );
       prioQ.Get ( firstFree-1, last );
       prioQ.Put ( 0, last );
-      firstFree = firstFree--;
+      firstFree--;
       SectIDTree *pSection = sectTree->Find ( last.sectID );
       pSection->SetIndex ( 0 );
       int act = 0;
@@ -5319,8 +5319,7 @@ void Network::GetAdjacentSectionsInfo ( TupleId in_iSectionTId,
   if ( pSect != 0 )
   {
     // get Sid, SectionPage and SectionSlot
-    int iSectionId, iSectionPage, iSectionSlot;
-    iSectionId =( ( CcInt* ) pSect->GetAttribute ( SECTION_SID ) )->GetIntval();
+    int iSectionPage, iSectionSlot;
     if (in_bUpDown){
      iSectionPage=((CcInt*)pSect->GetAttribute(SECTION_PNO_UP))->GetIntval();
      iSectionSlot=((CcInt*)pSect->GetAttribute(SECTION_SLOT_UP))->GetIntval();
@@ -5395,8 +5394,7 @@ void Network::GetAdjacentSections ( TupleId in_iSectionTId,
   if ( pSect != 0 )
   {
     // get Sid, SectionPage and SectionSlot
-    int iSectionId, iSectionPage, iSectionSlot;
-    iSectionId = ( ( CcInt* )pSect->GetAttribute ( SECTION_SID ) )->GetIntval();
+    int iSectionPage, iSectionSlot;
     if (in_bUpDown){
      iSectionPage =((CcInt*)pSect->GetAttribute(SECTION_PNO_UP))->GetIntval();
      iSectionSlot =((CcInt*)pSect->GetAttribute(SECTION_SLOT_UP))->GetIntval();

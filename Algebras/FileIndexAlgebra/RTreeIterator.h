@@ -37,7 +37,7 @@ RTree-Class
 
 #include <vector>
 #include "RTree.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 
 
 namespace fialgebra{

@@ -21,8 +21,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "toRegion.h"
-#include "RobustSetOps.h"
-#include "RegionTools.h"
+#include "Algebras/Spatial/RobustSetOps.h"
+#include "Algebras/Spatial/RegionTools.h"
 
 namespace raster2 {
 

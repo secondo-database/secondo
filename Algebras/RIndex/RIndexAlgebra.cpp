@@ -27,16 +27,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include <sstream>
-#include "MMRTreeAlgebra.h"  // import some useful template functions
+#include "Algebras/MMRTree/MMRTreeAlgebra.h"  
 #include "RIndex.h"
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 #include "ListUtils.h"
-#include "RelationAlgebra.h"
-#include "TupleIdentifier.h"
-#include "FTextAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"
+#include "Algebras/FText/FTextAlgebra.h"
 
 
 extern NestedList* nl;

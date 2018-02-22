@@ -28,8 +28,8 @@ SECONDO includes
 
 */
 
-#include "../../Spatial/HalfSegment.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/HalfSegment.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 
 /*
 declaration of namespace TileAlgebra

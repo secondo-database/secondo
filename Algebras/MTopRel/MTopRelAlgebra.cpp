@@ -29,14 +29,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "GenericTC.h"
 #include "GenOps.h"
 #include "Algebra.h"
-#include "FTextAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "ListUtils.h"
-#include "SpatialAlgebra.h"
-#include "Point.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/Spatial/Point.h"
 #include "MTopRelAlgs.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "StandardTypes.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Symbols.h"
 
 
@@ -385,7 +385,7 @@ int toprelseq_fun(Word* args, Word& result, int message,
 }
 
 
-
+  /*
 ValueMapping toprelseqVM[] = {
                 toprelseq_fun<Point,   UPoint, MTopRelAlg_PUP, false>,
                 toprelseq_fun<Point,   MPoint, MTopRelAlg_PMP, false>,
@@ -409,7 +409,7 @@ Operator toprelseq(
            toprelseqVM,
            toprelseqSelect,
            toprelseqTM);
-
+  */
 
 /*
 3. Operator clusterseq
@@ -1047,7 +1047,7 @@ class MTopRelAlgebra: public Algebra{
 
        // add operators
        AddOperator(&createDfa);
-       AddOperator(&toprelseq);
+      // AddOperator(&toprelseq);
        AddOperator(&clusterseq);
        AddOperator(&checkTopRel);
        AddOperator(&mtoppred);

@@ -38,7 +38,7 @@ function.
 #define DBSCANGEN_H
 
 #include "AlgebraTypes.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
 
 namespace dbscan{

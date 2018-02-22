@@ -40,6 +40,9 @@ platform.
 
 #include "chessTypes.h"
 
+using namespace datetime;
+using namespace temporalalgebra;
+
 namespace ChessAlgebra {
 
 

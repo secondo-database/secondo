@@ -41,8 +41,8 @@ the classes ~NetworkAdapter~ and ~NetworkSectionAdapter~.
 */
 
 #include "NetworkAdapter.h"
-#include "NetworkAlgebra.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Network/NetworkAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include <vector>
 #include "MapMatchingUtil.h"
 #include "NetworkRoute.h"

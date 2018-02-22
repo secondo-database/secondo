@@ -56,7 +56,7 @@ January 2008, B. Poneleit
 
 #include "SortByLocalInfo.h"
 #include "StandardTypes.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "CPUTimeMeasurer.h"
 #include "QueryProcessor.h"
 #include "SecondoInterface.h"
@@ -66,7 +66,7 @@ January 2008, B. Poneleit
 #include "RTuple.h"
 #include "Tupleorder.h"
 #include "ListUtils.h"
-#include "HashAlgebra.h"
+#include "Algebras/Hash/HashAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;            

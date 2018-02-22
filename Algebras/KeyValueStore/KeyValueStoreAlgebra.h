@@ -32,11 +32,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ConstructorTemplates.h"
 #include "StandardTypes.h"
 #include "SocketIO.h"
-#include "RectangleAlgebra.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
-#include "FTextAlgebra.h"
-#include "Stream.h"
+#include "Algebras/FText/FTextAlgebra.h"
+#include "Algebras/Stream/Stream.h"
 
 #include "TypeMapUtils.h"
 #include "Symbols.h"

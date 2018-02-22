@@ -49,8 +49,8 @@ template<template<typename T> class ArrayT> class SimpleLineT;
 typedef SimpleLineT<DbArray> SimpleLine;
 
 #include <stdio.h>
-#include <Point.h>
-#include "NetworkAlgebra.h"
+#include <Algebras/Spatial/Point.h>
+#include "Algebras/Network/NetworkAlgebra.h"
 
 
 /*

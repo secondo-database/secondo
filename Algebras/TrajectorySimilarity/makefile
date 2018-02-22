@@ -39,7 +39,7 @@ ALGEBRA_DEPENDENCIES := \
 include ../../makefile.env
 
 # Expand compile flags if necessary.
-CCFLAGS += $(ALG_INC_DIRS) -std=c++11 -Wunused
+CCFLAGS += -std=c++11 -Wunused -Werror
 
 # Create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 

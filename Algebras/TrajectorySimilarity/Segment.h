@@ -46,8 +46,8 @@ sequences.
 #define __SEGMENT_H__
 
 
-#include "HalfSegment.h"  // HalfSegment (from SpatialAlgebra)
-#include "Point.h"        // Point (from SpatialAlgebra)
+#include "Algebras/Spatial/HalfSegment.h"  
+#include "Algebras/Spatial/Point.h"        
 
 
 namespace tsa {

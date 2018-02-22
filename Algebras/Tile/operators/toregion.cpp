@@ -25,8 +25,8 @@ SECONDO includes
 
 */
 
-#include "RobustSetOps.h"
-#include "RegionTools.h"
+#include "Algebras/Spatial/RobustSetOps.h"
+#include "Algebras/Spatial/RegionTools.h"
 
 /*
 TileAlgebra includes

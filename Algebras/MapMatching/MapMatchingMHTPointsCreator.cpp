@@ -41,7 +41,7 @@ the class ~PointsCreator~.
 
 #include "MapMatchingMHTPointsCreator.h"
 
-#include <SpatialAlgebra.h>
+#include <Algebras/Spatial/SpatialAlgebra.h>
 
 
 namespace mapmatch {

@@ -48,7 +48,7 @@ Reads from inValue and stores its representation as TextType in resultList.
 #include <limits>
 #include <gmp.h>
 #include <gmpxx.h>
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 
 
 void gmpTypeToTextType1

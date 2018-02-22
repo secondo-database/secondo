@@ -54,7 +54,7 @@ of these classes too.
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "MovingRegion2Algebra.h"
 #include "DateTime.h"
 #include "Symbols.h"

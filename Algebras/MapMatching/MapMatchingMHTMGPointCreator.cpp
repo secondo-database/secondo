@@ -43,8 +43,8 @@ the class ~MGPointCreator~.
 #include "MapMatchingUtil.h"
 #include "NetworkAdapter.h"
 
-#include <NetworkAlgebra.h>
-#include <TemporalNetAlgebra.h>
+#include <Algebras/Network/NetworkAlgebra.h>
+#include <Algebras/TemporalNet/TemporalNetAlgebra.h>
 
 #include <LogMsg.h>
 

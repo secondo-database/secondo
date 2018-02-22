@@ -11,7 +11,7 @@
 #include "PeriodicSupport.h"
 #include "PeriodicTypes.h"
 #include "DateTime.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 
 
 using namespace std;

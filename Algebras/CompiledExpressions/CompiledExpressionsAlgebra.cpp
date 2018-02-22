@@ -77,7 +77,7 @@ if the complete query could be compiled by this algebra.
 #include "QueryProcessor.h"
 #include "Progress.h"
 
-#include "../Relation-C++/RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
 #include "./CompiledExpressionsAlgebra.h"
 #include "./CECompiler.h"

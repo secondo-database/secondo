@@ -707,6 +707,79 @@ Can only be calles if s is an operator.
 
  void GetDBObjects( OpNode* s, std::vector<std::string> & result);
 
+
+  ListExpr TestOverloadedOperators( const std::string& operatorSymbolStr, 
+      ListExpr opList, 
+      ListExpr typeList, 
+      ListExpr typeArgList, 
+      int& alId, 
+      int& opId, 
+      int& opFunId, 
+      bool checkFunId, 
+      bool traceMode );
+/*
+Test all possible type mappings for overloaded operators. The output of the
+first successfully applied type mapping will be returned.
+
+*/ 
+  ListExpr Annotate( const ListExpr expr,
+                     NameIndex& varnames,
+                     VarEntryTable& vartable,
+                     bool& defined,
+                     const ListExpr fatherargtypes,
+                     const ListExpr typeArgList );
+/*
+Annotates a query expression ~expr~. Use tables ~varnames~ and ~vartable~ 
+to store variables occurring in abstractions (function definitions) and to
+retrieve them in the function's expression. Return the annotated
+expression. 
+
+Parameter ~defined~ is set to "false"[4] if any object mentioned in the
+expression has an undefined value. Parameter ~fatherargtypes~ is used to
+implement inference of parameter types in abstractions. When a function
+is analyzed by ~annotate-function~, then this list contains the argument
+types of the operator to which this function is a parameter. 
+
+*/
+   inline bool getDebugMode() const{
+      return debugMode;
+   }
+   inline bool getTraceMode() const{
+     return traceMode;
+   }
+  
+
+  struct ValueInfo
+  {
+    ValueInfo(): isConstant(false), isList(false),
+                algId(-1), typeId(-1), typeInfo(0),
+                value(Address(0))
+    { }
+    bool isConstant;
+    bool isList;
+    int  algId;
+    int  typeId;
+    ListExpr typeInfo;
+    Word value;
+  };
+/*
+This ~ValueInfo~ structure will be stored in the ~values~ array defined 
+below. The most important information in this structure is the ~value~, 
+the others are only used to destroy the array. The flag ~isConstant~ tells 
+if the value stored is a constant or an object because they have different 
+forms to be destroyed. Constants are deleted because they have been just 
+created and objects are only closed because they have been opened. The 
+second flag ~isList~ tells if the ~value~ Word is a list an not an address. 
+In the case of a list nothing is done in the destruction process. The ~algId~
+and ~typeId~ are necessary to call the functions ~delete~ and ~close~
+of the type constructor associated with the ~value~.
+
+*/ 
+
+   inline const std::vector<ValueInfo>& getValues() const{
+     return values;
+   }
+
  private:
 
   void saveModified(OpTree t);
@@ -776,25 +849,6 @@ Transforms a list expression ~symbol~ into one of the values of type
 one of these symbols, then the value ~error~ is returned.
 
 */
-  ListExpr Annotate( const ListExpr expr,
-                     NameIndex& varnames,
-                     VarEntryTable& vartable,
-                     bool& defined,
-                     const ListExpr fatherargtypes,
-                     const ListExpr typeArgList );
-/*
-Annotates a query expression ~expr~. Use tables ~varnames~ and ~vartable~ 
-to store variables occurring in abstractions (function definitions) and to
-retrieve them in the function's expression. Return the annotated
-expression. 
-
-Parameter ~defined~ is set to "false"[4] if any object mentioned in the
-expression has an undefined value. Parameter ~fatherargtypes~ is used to
-implement inference of parameter types in abstractions. When a function
-is analyzed by ~annotate-function~, then this list contains the argument
-types of the operator to which this function is a parameter. 
-
-*/
   ListExpr AnnotateFunction( const ListExpr expr,
                              NameIndex& varnames,
                              VarEntryTable& vartable,
@@ -823,20 +877,6 @@ function body.
 
 */
 
-  ListExpr TestOverloadedOperators( const std::string& operatorSymbolStr, 
-      ListExpr opList, 
-      ListExpr typeList, 
-      ListExpr typeArgList, 
-      int& alId, 
-      int& opId, 
-      int& opFunId, 
-      bool checkFunId, 
-      bool traceMode );
-/*
-Test all possible type mappings for overloaded operators. The output of the
-first successfully applied type mapping will be returned.
-
-*/ 
 
 
 
@@ -902,32 +942,6 @@ with message init.
   bool traceProgress;
   std::map <int, bool> argsPrinted;
 
-  struct ValueInfo
-  {
-    ValueInfo(): isConstant(false), isList(false),
-                algId(-1), typeId(-1), typeInfo(0),
-                value(Address(0))
-    { }
-    bool isConstant;
-    bool isList;
-    int  algId;
-    int  typeId;
-    ListExpr typeInfo;
-    Word value;
-  };
-/*
-This ~ValueInfo~ structure will be stored in the ~values~ array defined 
-below. The most important information in this structure is the ~value~, 
-the others are only used to destroy the array. The flag ~isConstant~ tells 
-if the value stored is a constant or an object because they have different 
-forms to be destroyed. Constants are deleted because they have been just 
-created and objects are only closed because they have been opened. The 
-second flag ~isList~ tells if the ~value~ Word is a list an not an address. 
-In the case of a list nothing is done in the destruction process. The ~algId~
-and ~typeId~ are necessary to call the functions ~delete~ and ~close~
-of the type constructor associated with the ~value~.
-
-*/ 
   std::vector<ValueInfo> values;            // MAXVALUE = 200
   std::vector<ArgVectorPointer> argVectors; // MAXFUNCTIONS = 30
 

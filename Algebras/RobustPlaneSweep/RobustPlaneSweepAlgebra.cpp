@@ -38,10 +38,10 @@ RobustPlaneSweepAlgebra.
 */
 
 // #define OUTPUT_HALFSEGMENTS
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "RobustPlaneSweepAlgebra.h"
-#include "TemporalAlgebra.h"
-#include "DLine.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/Spatial/DLine.h"
 
 #include "Algorithm/Hobby.h"
 

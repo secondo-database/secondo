@@ -41,16 +41,16 @@ Jan, 2011 Jianqiu xu
 #include "NestedList.h"
 
 #include "QueryProcessor.h"
-#include "RTreeAlgebra.h"
-#include "BTreeAlgebra.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/RTree/RTreeAlgebra.h"
+#include "Algebras/BTree/BTreeAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "StandardTypes.h"
 #include "LogMsg.h"
 #include "NList.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "ListUtils.h"
-#include "NetworkAlgebra.h"
-#include "FTextAlgebra.h"
+#include "Algebras/Network/NetworkAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include <fstream>
 #include "GeneralType.h"
 #include "PaveGraph.h"
@@ -58,7 +58,7 @@ Jan, 2011 Jianqiu xu
 #include "Indoor.h"
 #include "RoadNetwork.h"
 #include <sys/timeb.h>
-#include "GSLAlgebra.h"
+#include "Algebras/GSL/GSLAlgebra.h"
 
 
 using namespace std;

@@ -24,11 +24,11 @@ objects in networks.
 
 #include "SecondoSMI.h"
 #include "StandardTypes.h"
-#include "RTreeAlgebra.h"
-#include "HashAlgebra.h"
-#include "TemporalAlgebra.h"
-#include "NetworkAlgebra.h"
-#include "TemporalNetAlgebra.h"
+#include "Algebras/RTree/RTreeAlgebra.h"
+#include "Algebras/Hash/HashAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/Network/NetworkAlgebra.h"
+#include "Algebras/TemporalNet/TemporalNetAlgebra.h"
 
 
 /*

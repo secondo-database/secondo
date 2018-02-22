@@ -14,16 +14,15 @@
 #include "NestedList.h"
 #include "PeriodicTypes.h"
 #include "PeriodicSupport.h"
-#include "SpatialAlgebra.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "TopRel.h"
 #include "StandardTypes.h"
 #include "DateTime.h"
 #include "List2.h" 
 #include "RepTree.h"
 #include "NodeTypes.h"
-#include "TopRel.h"
-#include "../../Tools/Flob/DbArray.h"
+#include "Tools/Flob/DbArray.h"
 
 
 using namespace std;

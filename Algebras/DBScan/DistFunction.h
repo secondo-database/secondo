@@ -41,12 +41,12 @@ from "MMRTreeAlgebra.cpp".
 
 */
 #include <limits>
-#include "Point.h"
+#include "Algebras/Spatial/Point.h"
 #include "StandardTypes.h"
 #include "StringUtils.h"
-#include "TupleIdentifier.h"
-#include "DistfunReg.h"
-#include "PictureAlgebra.h"
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"
+#include "Algebras/GeneralTree/DistfunReg.h"
+#include "Algebras/Picture/PictureAlgebra.h"
 
 namespace clusterdbscanalg
 {

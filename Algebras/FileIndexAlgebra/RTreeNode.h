@@ -9,7 +9,7 @@ class representing nodes in a R Tree
 #include "Attribute.h"
 #include <vector>
 #include <utility>
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "WinUnix.h"
 
 

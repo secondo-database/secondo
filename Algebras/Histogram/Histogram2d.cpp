@@ -37,10 +37,10 @@ December 2007, S.H[oe]cher,M.H[oe]ger,A.Belz,B.Poneleit
 #include "Histogram2d.h"
 #include "ListUtils.h"
 #include <limits>
-#include "../Algebras/ExtRelation-C++/Tupleorder.h"
+#include "Algebras/ExtRelation-C++/Tupleorder.h"
 #include "AlmostEqual.h"
 #include "Symbols.h"
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 
 using namespace std;
 

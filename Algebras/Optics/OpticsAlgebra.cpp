@@ -39,12 +39,12 @@ This file contains the implementation of the OpticsAlgebra.
 */
 #include "NestedList.h"
 #include "QueryProcessor.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "LogMsg.h"
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 #include "StandardTypes.h"
-#include "SpatialAlgebra.h"
-#include "../SymbolicTrajectory/Algorithms.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/SymbolicTrajectory/Algorithms.h"
 #include "DistFunction.h"
 
 #include "OpticsGen.h"

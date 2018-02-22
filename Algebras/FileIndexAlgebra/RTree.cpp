@@ -46,15 +46,15 @@ RTree-Class Implementation
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
 #include "StandardTypes.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "DateTime.h"
-#include "TupleIdentifier.h"
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"
 #include "Progress.h"
-#include "FTextAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "ListUtils.h"
 #include "NList.h"
-#include "LongInt.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Standard-C++/LongInt.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "RTree.h"
 #include "Cache/NoCache.h"
 #include "Cache/LruCache.h"
@@ -65,7 +65,7 @@ RTree-Class Implementation
 
 #include <string>
 
-#include "BPTree.h"
+#include "BPTree/BPTree.h"
 #include "WinUnix.h"
 #include <vector>
 #include <stack>

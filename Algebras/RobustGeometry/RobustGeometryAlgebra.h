@@ -28,9 +28,9 @@ This header file essentially contains the definition of the classes ~BOLine~ and
 
 #ifndef __ROBUSTGEOMETRY_ALGEBRA_H__
 #define __ROBUSTGEOMETRY_ALGEBRA_H__
-#include "HalfSegment.h"
-#include "AVLSegment.h"
-#include "Coord.h"
+#include "Algebras/Spatial/HalfSegment.h"
+#include "Algebras/Spatial/AVLSegment.h"
+#include "Algebras/Spatial/Coord.h"
 #include <iosfwd>
 
 using std::ostream;

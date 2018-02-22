@@ -876,7 +876,7 @@ This function returns whether the debug mode is set.
 */
   bool
   CEQueryProcessor::getQPDebugMode() {
-    return ptrQP->debugMode;
+    return ptrQP->getDebugMode();
   }
   
 /*
@@ -887,7 +887,7 @@ This function returns whether the trace mode is set.
 */
   bool
   CEQueryProcessor::getQPTraceMode() {
-    return ptrQP->traceMode;
+    return ptrQP->getTraceMode();
   }
   
 /*
@@ -975,8 +975,8 @@ This function returns the value with the index ~idx~ from the ~Secondo QueryProc
 */
   Word
   CEQueryProcessor::getQPValues(unsigned int idx) {
-    if (idx < ptrQP->values.size())
-      return ptrQP->values[idx].value;
+    if (idx < ptrQP->getValues().size())
+      return ptrQP->getValues()[idx].value;
     else 
       return SetWord(Address(0));
   }

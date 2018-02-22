@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define JNETWORKADAPTER_H
 
 #include "MapMatchingNetworkInterface.h"
-#include "JNetwork.h"
+#include "Algebras/JNet/JNetwork.h"
 
 
 namespace mapmatch{

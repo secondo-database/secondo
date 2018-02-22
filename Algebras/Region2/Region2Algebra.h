@@ -45,7 +45,7 @@ to the memory representation for the type constructor ~regionp~.
 #include <limits>
 #include <gmp.h>
 #include <gmpxx.h>
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "Region2Tools.h"
 #include "Region2Points.h"
 #include "Region2HalfSegments.h"

@@ -54,12 +54,12 @@
 #include "AlgebraManager.h"
 #include "ListUtils.h"
 #include "StandardTypes.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Attribute.h"
-#include "../../Tools/Flob/Flob.h"
+#include "Tools/Flob/Flob.h"
 #include "SuffixTreeAlgebra.h"
-#include "FTextAlgebra.h"
-#include "Stream.h"
+#include "Algebras/FText/FTextAlgebra.h"
+#include "Algebras/Stream/Stream.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;

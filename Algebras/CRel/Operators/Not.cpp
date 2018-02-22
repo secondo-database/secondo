@@ -28,17 +28,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AttrArray.h"
 #include <cstdint>
 #include <exception>
-#include "Ints.h"
-#include "LongInt.h"
-#include "LongIntsTC.h"
+#include "../Ints.h"
+#include "Algebras/Standard-C++/LongInt.h"
+#include "../TypeConstructors/LongIntsTC.h"
 #include "LogMsg.h"
 #include "OperatorUtils.h"
 #include "QueryProcessor.h"
 #include <stdint.h>
 #include <string>
 #include "Symbols.h"
-#include "TBlock.h"
-#include "TBlockTC.h"
+#include "../TBlock.h"
+#include "../TypeConstructors/TBlockTC.h"
 #include "TypeUtils.h"
 
 using namespace CRelAlgebra::Operators;

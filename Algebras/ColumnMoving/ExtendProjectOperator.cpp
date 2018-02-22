@@ -26,18 +26,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "ExtendProjectOperator.h"
 
-#include "AttrArray.h"
-#include "LongIntsTC.h"
-#include "ListExprUtils.h"
+#include "Algebras/CRel/AttrArray.h"
+#include "Algebras/CRel/TypeConstructors/LongIntsTC.h"
+#include "Algebras/CRel/ListExprUtils.h"
 #include "LogMsg.h"
-#include "OperatorUtils.h"
-#include "Project.h"
+#include "Algebras/CRel/Operators/OperatorUtils.h"
+#include "Algebras/CRel/Operators/Project.h"
 #include "QueryProcessor.h"
-#include "Shared.h"
-#include "StreamValueMapping.h"
+#include "Algebras/CRel/Shared.h"
+#include "Algebras/CRel/Operators/StreamValueMapping.h"
 #include <string>
 #include "Symbols.h"
-#include "TypeUtils.h"
+#include "Algebras/CRel/TypeUtils.h"
 
 using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;

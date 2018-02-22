@@ -37,7 +37,7 @@ algorithm implemented by operator ~sort2~.
 #ifndef SORTMERGEJOIN_H_
 #define SORTMERGEJOIN_H_
 
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Progress.h"
 #include "TupleBuffer2.h"
 #include "Sort.h"

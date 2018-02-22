@@ -40,7 +40,7 @@ February 2008 -  Simone Jandt
 #include <string>
 #include "NestedList.h"
 #include "QueryProcessor.h"
-#include "NetworkAlgebra.h"
+#include "Algebras/Network/NetworkAlgebra.h"
 
 #ifndef __NETWORK2_ALGEBRA_H__
 #error Network2Algebra.h is needed by TemporalNet2Algebra.h. \

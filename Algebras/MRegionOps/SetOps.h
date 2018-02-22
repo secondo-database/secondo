@@ -55,8 +55,8 @@ A general overview about the relationship of this classes is shown below:
 #ifndef SETOPS_H_
 #define SETOPS_H_
 
-#include "MovingRegionAlgebra.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/MovingRegion/MovingRegionAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "NList.h"
 #include "NumericUtil.h"
 #include "PointVector.h"

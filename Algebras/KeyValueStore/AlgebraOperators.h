@@ -27,14 +27,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define ALGEBRAOPERATORS_H_
 
 #include "StandardTypes.h"
-#include "FTextAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "Application.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 
-#include "RelationAlgebra.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "FileSystem.h"
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 
 #include "KeyValueStoreIPC.h"
 #include "DistributeIPC.h"

@@ -27,8 +27,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #pragma once
 
 #include "Attribute.h"
-#include "SimpleAttrArray.h"
-#include "MovingRegionAlgebra.h"
+#include "Algebras/CRel/SimpleAttrArray.h"
+#include "Algebras/MovingRegion/MovingRegionAlgebra.h"
 
 namespace ColumnMovingAlgebra
 {

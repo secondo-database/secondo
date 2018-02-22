@@ -46,7 +46,7 @@ CCFLAGS += -std=c++11
 endif
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS) -Werror
+CCFLAGS += -Werror
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 

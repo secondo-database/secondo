@@ -55,7 +55,7 @@ SECONDO to use ~Picture~ plus basic SECONDO operators on ~picture~.
 #include "../../Tools/Flob/Flob.h"
 #include "StringUtils.h"
 
-#include "FTextAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "ListUtils.h"
 
 

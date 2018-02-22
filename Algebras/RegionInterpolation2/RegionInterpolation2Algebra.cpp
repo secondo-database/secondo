@@ -8,9 +8,9 @@
 */
 
 #include "Algebra.h"
-#include "MovingRegionAlgebra.h"
+#include "Algebras/MovingRegion/MovingRegionAlgebra.h"
 
-#include <librip.h>
+#include <librip/include/librip.h>
 
 namespace temporalalgebra{
 // InMRegion is defined in the MovingRegionAlgebra and converts a NestedList-

@@ -33,7 +33,7 @@ ALGEBRA_DEPENDENCIES := SpatialAlgebra
 ALGEBRA_DEPENDENCIES += GeneralTreeAlgebra
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS) -Werror 
+CCFLAGS +=  -Werror 
 CCFLAGS += -std=c++11
 
 # create objects and algebra library. The values for the variables

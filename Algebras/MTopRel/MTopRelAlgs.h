@@ -1,4 +1,3 @@
-
 /*
 ----
 This file is part of SECONDO.
@@ -28,9 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <queue>
 
 #include "TopRel.h"
-#include "TemporalAlgebra.h"
-#include "SpatialAlgebra.h"
-#include "RefinementStream.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/Temporal/RefinementStream.h"
 
 namespace temporalalgebra{
 
@@ -869,6 +868,7 @@ Returns the next cluster with its corresponding time interval.
           init();
       }
 
+  /*
       template<bool sym>
       MTopRelAlg_UPMP_T<sym>::MTopRelAlg_UPMP_T(const UPoint* _up, 
                                                 const MPoint* _mp, 
@@ -878,6 +878,7 @@ Returns the next cluster with its corresponding time interval.
            pg(_pg), toprelqueue(), clusterqueue(){
           init();
       }
+  */
 
 /*
 1.2 hasNext
@@ -1371,8 +1372,8 @@ Returns the next cluster with its corresponding time interval.
            avlseg::ExtendedHalfSegment cur;
            bool done = false;
            avltree::AVLTree<avlseg::AVLSegment> sss;
-           const avlseg::AVLSegment* leftN;
-           const avlseg::AVLSegment* rightN;
+           avlseg::AVLSegment* leftN;
+           avlseg::AVLSegment* rightN;
            avlseg::AVLSegment tmpL, tmpR, left1, common1, right1;            
 
 
@@ -1381,7 +1382,7 @@ Returns the next cluster with its corresponding time interval.
                   !done  ){
 
               avlseg::AVLSegment current(cur,currentOwner); 
-              const avlseg::AVLSegment* member = 
+              avlseg::AVLSegment* member = 
                       sss.getMember(current,leftN,rightN);
 
               // make copies from the nieghbours to be able 

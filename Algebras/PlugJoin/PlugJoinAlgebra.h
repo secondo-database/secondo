@@ -35,12 +35,12 @@ This algebra is derived from the RTreeAlgebra of Victor Almeida. Especially the 
 #include <stack>
 #include <vector>
 
-#include "SpatialAlgebra.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "StandardTypes.h"
 
 

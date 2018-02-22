@@ -48,7 +48,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 #define RESULTUNITFACTORY_H_
 
 #include <gmp.h>
-#include "MovingRegion2Algebra.h"
+#include "Algebras/MovingRegion2/MovingRegion2Algebra.h"
 //#include "MSegment.h"
 #include "Refinement3.h"
 #include "IntersectionSegment.h"

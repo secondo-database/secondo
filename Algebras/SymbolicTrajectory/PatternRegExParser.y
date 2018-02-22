@@ -51,13 +51,13 @@ integer numbers. The Grammar is:
 */
 
 // #include "RegExParser.y.h"
-#include "IntNfa.h"
+#include "Algebras/FText/IntNfa.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "Stack.h"
-#include "IVector.h"
-#include "Functions.h"
+#include "Algebras/FText/IVector.h"
+#include "Algebras/FText/Functions.h"
 
 
 #define YYERROR_VERBOSE

@@ -43,8 +43,8 @@ Mar 2015 White
 
 #include "AlgebraClassDef.h"
 #include "AlgebraTypes.h"
-#include "ArrayAlgebra.h"
-#include "FTextAlgebra.h"
+#include "Algebras/Array/ArrayAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "ListUtils.h"
 #include "Messages.h"
 #include "NestedList.h"
@@ -57,8 +57,8 @@ Mar 2015 White
 #include "SocketIO.h"
 #include "StandardTypes.h"
 #include "Symbols.h"
-#include "RelationAlgebra.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "concurrentqueue.lib"
 
 /*

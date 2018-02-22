@@ -40,7 +40,7 @@ placenodes operator in the Graph Algebra.
 #include <set>
 #include <map>
 #include <list>
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 
 class Graph;
 

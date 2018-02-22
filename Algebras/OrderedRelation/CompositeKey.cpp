@@ -40,8 +40,8 @@ For more information see the OrderedRelation.h header file.
 
 */
 #include "CompositeKey.h"
-#include "RelationAlgebra.h"
-#include "LongInt.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/Standard-C++/LongInt.h"
 
 using namespace std;
 

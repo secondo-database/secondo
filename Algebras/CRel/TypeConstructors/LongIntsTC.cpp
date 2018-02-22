@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "LongIntsTC.h"
 
 #include "Ints.h"
-#include "LongInt.h"
+#include "Algebras/Standard-C++/LongInt.h"
 #include "TIUtils.h"
 #include "TypeUtils.h"
 

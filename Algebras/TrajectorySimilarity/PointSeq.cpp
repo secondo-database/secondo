@@ -161,10 +161,10 @@ If $duration$ is ~undefined~ or not positive, the result is ~undefined~.
 #include "VectorTypeMapUtils.h"
 
 #include "DateTime.h"          // DateTime
-#include "DLine.h"
-#include "Point.h"
-#include "Stream.h"
-#include "TemporalAlgebra.h"   // MPoint
+#include "Algebras/Spatial/DLine.h"
+#include "Algebras/Spatial/Point.h"
+#include "Algebras/Stream/Stream.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"   // MPoint
 
 #include "ConstructorTemplates.h"
 #include "ListUtils.h"

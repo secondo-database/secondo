@@ -49,7 +49,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 #include <gmp.h>
 #include <gmpxx.h>
 
-#include "MovingRegion2Algebra.h"
+#include "Algebras/MovingRegion2/MovingRegion2Algebra.h"
 
 namespace temporalalgebra{
 

@@ -33,7 +33,7 @@ implementation of ~mergejoin~ for its usage.
 #ifndef SEC_RTUPLE_H
 #define SEC_RTUPLE_H
 
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
 class RTuple {
 

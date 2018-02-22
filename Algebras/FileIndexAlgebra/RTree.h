@@ -37,7 +37,7 @@ RTree-Class
 #include <vector>
 #include "Cache/LruCache.h"
 #include "Cache/CacheBase.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "RTreeHeader.h"
 #include "RTreeNode.h"
 #include <stack>                    // stack

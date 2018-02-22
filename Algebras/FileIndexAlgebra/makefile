@@ -30,7 +30,7 @@ CURRENT_ALGEBRA := FileIndexAlgebra
 ALGEBRA_DEPENDENCIES := StandartAlgebra
 ALGEBRA_DEPENDENCIES += FileIndexAlgebra
 
-CCFLAGS += $(ALG_INC_DIRS)
+CCFLAGS += -Werror 
 CCFLAGS += -std=c++11
 
 # create objects and algebra library. The values for the variables

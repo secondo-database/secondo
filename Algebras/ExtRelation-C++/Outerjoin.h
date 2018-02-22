@@ -61,7 +61,7 @@ Implementation of the operators is in Outerjoin.cpp
 
 #include "LogMsg.h"
 #include "StandardTypes.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "CPUTimeMeasurer.h"
 #include "QueryProcessor.h"
 #include "SecondoInterface.h"

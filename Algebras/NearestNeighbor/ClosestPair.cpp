@@ -26,14 +26,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 #include "StandardTypes.h"
-#include "RTreeAlgebra.h"
-#include "RelationAlgebra.h"
+#include "Algebras/RTree/RTreeAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "NestedList.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "Algebra.h"
 #include "QueryProcessor.h"
 #include "ListUtils.h"
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 
 #include <queue>
 

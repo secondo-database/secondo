@@ -38,7 +38,7 @@ JAN, 2010 Mahmoud Sakr
 #include "GPatternAlgebra.h"
 #include "Symbols.h"
 #include "ListUtils.h"
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 
 using namespace mset;
 using namespace temporalalgebra;

@@ -28,15 +28,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Attribute.h"
 #include <cstdint>
 #include <cstring>
-#include "ConstraintAlgebra.h"
-#include "GeoDist.h"
-#include "HalfSegment.h"
+#include "Algebras/Constraint/ConstraintAlgebra.h"
+#include "Algebras/Spatial/GeoDist.h"
+#include "Algebras/Spatial/HalfSegment.h"
 #include <limits>
 #include <cmath>
-#include "Point.h"
+#include "Algebras/Spatial/Point.h"
 #include "SecondoException.h"
 #include "SimpleAttrArray.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 
 namespace CRelAlgebra
 {

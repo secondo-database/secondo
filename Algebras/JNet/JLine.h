@@ -32,10 +32,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Attribute.h"
 #include "JRouteInterval.h"
 #include "StandardTypes.h"
-#include "../Tools/Flob/DbArray.h"
+#include "Tools/Flob/DbArray.h"
 #include "JList.h"
 #include "JNetwork.h"
-#include "SpatialAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "JPoint.h"
 #include "JPoints.h"
 

@@ -61,10 +61,10 @@ UGrid-Algebra offers the following methods:
 #include "ListUtils.h"
 #include "Attribute.h"
 #include "DateTime.h"
-#include "RTreeAlgebra.h"
-#include "RectangleAlgebra.h"
-#include "TemporalAlgebra.h"
-#include "UploadUnit.h"
+#include "Algebras/RTree/RTreeAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/SETI/UploadUnit.h"
 #include "Symbols.h"
 
 using namespace std;

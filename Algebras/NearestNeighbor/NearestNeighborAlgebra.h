@@ -114,7 +114,7 @@ End of the definitions which had to be included into RTreeAlgebra.h
 #ifndef __NEARESTNEIGHBOR_ALGEBRA_H__
 #define __NEARESTNEIGHBOR_ALGEBRA_H__
 
-#include "TemporalAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 
 
 /*

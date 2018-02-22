@@ -41,7 +41,7 @@
 #include "Line2.h"
 //#include "Point2.h"
 //#include "Points2.h"
-#include "Region2Algebra.h"
+#include "Algebras/Region2/Region2Algebra.h"
 
 namespace p2d {
 

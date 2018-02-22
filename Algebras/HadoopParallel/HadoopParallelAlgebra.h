@@ -46,7 +46,7 @@ And includes one method:
 #define MAX_WAITING_TIME 10
 
 #include "RTuple.h"
-#include "FTextAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "Base64.h"
 #ifdef SECONDO_WIN32
 #include <winsock2.h>
@@ -57,7 +57,7 @@ And includes one method:
 #include "FileSystem.h"
 #include "Profiles.h"
 #include "Progress.h"
-#include "TemporalAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include <ifaddrs.h>
 #include <arpa/inet.h>
 #include <pthread.h>

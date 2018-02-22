@@ -32,7 +32,7 @@ SECONDO includes
 #include "Attribute.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 
 /*
 Raster2Algebra includes

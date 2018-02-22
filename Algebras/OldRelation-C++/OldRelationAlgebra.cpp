@@ -59,7 +59,7 @@ of these symbols, then the value ~error~ is returned.
 
 
 #include "OldRelationAlgebra.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "CPUTimeMeasurer.h"
 #include "QueryProcessor.h"
 #include "LogMsg.h"

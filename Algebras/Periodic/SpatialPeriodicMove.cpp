@@ -8,7 +8,7 @@
 #include <string>
 
 #include "PeriodicTypes.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 
 using namespace std;
 
