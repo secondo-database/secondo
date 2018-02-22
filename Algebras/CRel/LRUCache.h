@@ -279,7 +279,7 @@ namespace CRelAlgebra
 
       SetMRU(entry);
 
-      recycledKey = entry->key != ~0 ? entry->key : key;
+      recycledKey = entry->key != (uint64_t) ~0 ? entry->key : key;
 
       entry->key = key;
 
