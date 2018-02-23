@@ -5383,8 +5383,9 @@ int createMaxspeedRasterVM(Word* args, Word& result, int message, Word& local,
   raster2::sint *hgt = static_cast<raster2::sint*>(args[0].addr);
   NestedRelation *nrel = static_cast<NestedRelation*>(args[1].addr);
   RTree2TID *rtree = static_cast<RTree2TID*>(args[2].addr);
-  MaxspeedRasterCreator mr(hgt, nrel, rtree);
+  MaxspeedRaster mr(hgt, nrel, rtree);
   raster2::sint *res = static_cast<raster2::sint*>(result.addr);
+  res->setGrid(hgt->getGrid());
   raster2::sint::storage_type& rs = hgt->getStorage();
   for (raster2::sint::iter_type it = rs.begin(), e = rs.end(); it != e; ++it) {
     raster2::RasterIndex<2> pos = it.getIndex();
@@ -5417,8 +5418,8 @@ struct createMaxspeedRasterInfo : OperatorInfo {
 
 */
 ListExpr restoreTrajTM(ListExpr args) {
-  if (!nl->HasLength(args, 8)) {
-    return listutils::typeError("Eight arguments expected.");
+  if (!nl->HasLength(args, 9)) {
+    return listutils::typeError("Nine arguments expected.");
   }
   if (!BTree::checkType(nl->Second(args))) {
     return listutils::typeError("Second argument must be a btree");
@@ -5426,14 +5427,17 @@ ListExpr restoreTrajTM(ListExpr args) {
   if (!RTree2TID::checkType(nl->Third(args))) {
     return listutils::typeError("Third argument must be an rtree");
   }
-  if (!raster2::sint::checkType(nl->Fourth(args))) {
+  if (!raster2::sint::checkType(nl->Fourth(args))) { // elevation raster file
     return listutils::typeError("Fourth argument must be an sint");
   }
   if (!nl->Equal(nl->SymbolAtom(Hash::BasicType()), nl->First(nl->Fifth(args)))
       || !CcInt::checkType(nl->Third(nl->Fifth(args)))) {
     return listutils::typeError("Fifth argument must be a hash file");
   }
-  for (int i = 6; i <= 8; i++) {
+  if (!raster2::sint::checkType(nl->Sixth(args))) { // maxspeed raster file
+    return listutils::typeError("Sixth argument must be an sint");
+  }
+  for (int i = 7; i <= 9; i++) {
     if (!MLabel::checkType(nl->Nth(i, args))) {
       std::stringstream sstr;
       sstr << "Argument " << i << " must be an mlabel";
@@ -5468,7 +5472,7 @@ ListExpr restoreTrajTM(ListExpr args) {
   }
   return listutils::typeError("Argument types must be rel(tuple(longint, text, "
                               "sline, string, int)) x btree x rtree x sint x "
-                              "hash x mlabel x mlabel x mlabel");
+                              "hash x sint x mlabel x mlabel x mlabel");
 }
 
 /*
@@ -5482,9 +5486,10 @@ int restoreTrajVM(Word* args, Word& result, int message, Word& local,
   RTree2TID *segmentsRtree = static_cast<RTree2TID*>(args[2].addr);
   raster2::sint *raster = static_cast<raster2::sint*>(args[3].addr);
   Hash *rhash = static_cast<Hash*>(args[4].addr);
-  MLabel *direction = static_cast<MLabel*>(args[5].addr);
-  MLabel *height = static_cast<MLabel*>(args[6].addr);
-  MLabel *speed = static_cast<MLabel*>(args[7].addr);
+  raster2::sint *maxspeedRaster = static_cast<raster2::sint*>(args[5].addr);
+  MLabel *direction = static_cast<MLabel*>(args[6].addr);
+  MLabel *height = static_cast<MLabel*>(args[7].addr);
+  MLabel *speed = static_cast<MLabel*>(args[8].addr);
   RestoreTrajLI *li = static_cast<RestoreTrajLI*>(local.addr);
   switch (message) {
     case OPEN: {
@@ -5493,7 +5498,7 @@ int restoreTrajVM(Word* args, Word& result, int message, Word& local,
         local.addr = 0;
       }
       li = new RestoreTrajLI(edgesRel, heightBtree, segmentsRtree, raster,
-                             rhash, height, direction, speed);
+                             rhash, maxspeedRaster, height, direction, speed);
       local.addr = li;
       return 0;
     }
@@ -5522,11 +5527,11 @@ struct restoreTrajInfo : OperatorInfo {
   restoreTrajInfo() {
     name      = "restoreTraj";
     signature = "rel(tuple(longint, text, sline, string, int)) x btree x rtree "
-                "x mlabel x mlabel x mlabel";
-    syntax    = "restoreTraj( _ , _ , _ , _ , _ , _)";
+                "x sint x hash x sint x mlabel x mlabel x mlabel";
+    syntax    = "restoreTraj( _ , _ , _ , _ , _ , _ , _ , _ , _)";
     meaning   = "Restores the original trajectory (mpoint) from symbolic "
                 "direction, height, and speed information as well as a road "
-                "network with elevatio data.";
+                "network with elevation data.";
   }
 };
 
@@ -5593,6 +5598,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddTypeConstructor(&tupleindexTC);
   AddTypeConstructor(&tupleindex2TC);
   AddTypeConstructor(&classifierTC);
+  
+  AddTypeConstructor(&tileareasTC);
 
   ValueMapping tolabelVMs[] = {tolabelVM<FText>, tolabelVM<CcString>, 0};
   AddOperator(tolabelInfo(), tolabelVMs, tolabelSelect, tolabelTM);

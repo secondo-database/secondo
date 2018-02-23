@@ -41,14 +41,16 @@ This is the implementation of the Symbolic Trajectory Algebra.
 
 namespace stj {
 
+enum DirectionNum {DIR_ERROR = -1, EAST, NORTHEAST, NORTH, NORTHWEST, WEST,
+                     SOUTHWEST, SOUTH, SOUTHEAST};
+
 /*
-\section{class ~MaxspeedRasterCreator~}
+\section{class ~MaxspeedRaster~}
 
 */
-class MaxspeedRasterCreator {
+class MaxspeedRaster {
  public:
-  MaxspeedRasterCreator(raster2::sint *_hgt, NestedRelation *_nrel, 
-                        RTree2TID *_rtree)
+  MaxspeedRaster(raster2::sint *_hgt, NestedRelation *_nrel, RTree2TID *_rtree)
     : hgt(_hgt), nrel(_nrel), rtree(_rtree) {
     grid = hgt->getGrid();
     primary = nrel->getPrimary();
@@ -56,9 +58,10 @@ class MaxspeedRasterCreator {
     sc = SecondoSystem::GetCatalog();
   }
 
-  int getMaxspeedFromRoadInfo(std::string roadInfo1, std::string roadInfo2);
-  int getMaxspeedFromLeaf(TupleId leafinfo);
-  int getMaxspeed(const raster2::RasterIndex<2> pos);
+  const int getMaxspeedFromRoadInfo(std::string roadInfo1, 
+                                    std::string roadInfo2);
+  const int getMaxspeedFromLeaf(TupleId leafinfo);
+  const int getMaxspeed(const raster2::RasterIndex<2> pos);
   
  private:
   raster2::sint *hgt;
@@ -69,9 +72,49 @@ class MaxspeedRasterCreator {
   SubRelation *subrel;
   SecondoCatalog *sc;
 };
+
+/*
+\section{class ~Tileareas~}
+
+*/
+class Tileareas {
+ public:
+  Tileareas() {}
   
-enum DirectionNum {DIR_ERROR = -1, EAST, NORTHEAST, NORTH, NORTHWEST, WEST,
-                     SOUTHWEST, SOUTH, SOUTHEAST};
+  Tileareas(raster2::sint *_raster);
+  Tileareas(const Tileareas& _src);
+  
+  ~Tileareas() {}
+  
+  void processTile(std::vector<std::vector<bool> >& visited,
+                   const unsigned int x, const unsigned int y, int& tileValue);
+  void retrieveAreas(raster2::sint *_raster);
+  
+  static const std::string BasicType() {return "tileareas";}
+  static ListExpr Property();
+  static ListExpr Out(ListExpr typeInfo, Word value);
+  static Word In(const ListExpr typeInfo, const ListExpr instance,
+                 const int errorPos, ListExpr& errorInfo, bool& correct);
+  static Word Create(const ListExpr typeInfo);
+  static void Delete(const ListExpr typeInfo, Word& w);
+  static bool Open(SmiRecord& valueRecord, size_t& offset, 
+                   const ListExpr typeInfo, Word& value);
+  static bool Save(SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value);
+  static void Close(const ListExpr typeInfo, Word& w);
+  static Word Clone(const ListExpr typeInfo, const Word& w);
+  static int SizeOfObj();
+  static bool TypeCheck(ListExpr typeList, ListExpr& errorInfo);
+  
+ private:
+  raster2::sint *raster;
+  std::vector<std::set<NewPair<int, int> > > areas;
+  RTree2TID *rtree; // tile -> area
+  std::map<NewPair<NewPair<int, int>, DirectionNum>, int> transitions;
+                                                           // tile x dir -> area
+};
+
+extern TypeConstructor tileareasTC;
 
 /*
 \section{class ~RestoreTrajLI~}
@@ -176,17 +219,21 @@ struct Tile {
 class RestoreTrajLI {
  public:
   RestoreTrajLI(Relation *e, BTree *ht, RTree2TID *st, raster2::sint *r,
-                Hash *rh, MLabel *h, MLabel *d, MLabel *s);
+                Hash *rh, raster2::sint *mr, MLabel *h, MLabel *d, MLabel *s);
   
   RestoreTrajLI() {}
   
   bool retrieveSequel(const int startPos, std::set<Tile>& tiles);
   void processNeighbors(Tile origin, const Instant& inst,
                         const int height, std::set<Tile>& result);
-  std::vector<Tile> getNeighbors(Tile origin, const DirectionNum dirNum);
+  void getNeighbors(Tile origin, const DirectionNum dirNum, 
+                    vector<Tile>& result);
   void retrieveTilesFromHeight(const int pos, std::set<Tile>& result);
   void updateCoords(const DirectionNum dir, int& x, int& y);
-  DirectionNum dirLabelToNum(const Label& dirLabel);
+  const DirectionNum dirLabelToNum(const Label& dirLabel);
+  const int getDirectionDistance(const DirectionNum dir,
+                                 const DirectionNum dir2);
+  const int getSpeedFromLabel(const Label& speedLabel, const bool getMax);
   MLabel* nextCandidate();
   
  private:
@@ -195,6 +242,7 @@ class RestoreTrajLI {
   RTree2TID *segmentsRtree;
   raster2::sint *raster;
   Hash *rhash;
+  raster2::sint *maxspeedRaster;
   MLabel *height;
   MLabel *direction;
   MLabel *speed;
