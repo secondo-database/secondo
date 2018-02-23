@@ -3038,7 +3038,7 @@ void RegionT<Array>::ComputeCycle( HalfSegment &hs,
 
   Point nextPoint = hs.GetLeftPoint(),
         lastPoint = hs.GetRightPoint(),
-        previousPoint, *currentCriticalPoint=NULL;
+        previousPoint, currentCriticalPoint(false);
   AttrType attr, attrP;
   HalfSegment hsP;
   std::vector<SCycle> sCycleVector;
@@ -3070,8 +3070,9 @@ void RegionT<Array>::ComputeCycle( HalfSegment &hs,
        cycle[attr.partnerno]=true;
        cycle[attrP.partnerno]=true;
 
-       if (this->IsCriticalPoint(nextPoint,attrP.partnerno))
-         currentCriticalPoint = new Point(nextPoint);
+       if (this->IsCriticalPoint(nextPoint,attrP.partnerno)) {
+         currentCriticalPoint = nextPoint;
+       }
 
        s = new SCycle(hs,attr.partnerno,hsP,attrP.partnerno,
                       currentCriticalPoint,nextPoint);
@@ -3156,7 +3157,7 @@ void RegionT<Array>::ComputeCycle( HalfSegment &hs,
      }
      sCycleVector.push_back(*s);
 
-     if ( (currentCriticalPoint!=NULL) && (*currentCriticalPoint==nextPoint) )
+     if ((currentCriticalPoint.IsDefined()) && currentCriticalPoint==nextPoint)
      {
        //The critical point defines a cycle, so it is need to
        //remove the segments
@@ -3171,9 +3172,9 @@ void RegionT<Array>::ComputeCycle( HalfSegment &hs,
           sAux=sCycleVector.back();
           sCycleVector.pop_back();
           firstSCycle=sCycleVector.back();
-          if (firstSCycle.criticalPoint==NULL)
+          if (!firstSCycle.criticalPoint.IsDefined())
             break;
-          if (*firstSCycle.criticalPoint!=*currentCriticalPoint)
+          if (firstSCycle.criticalPoint!=currentCriticalPoint)
             break;
           cycle[sAux.hs1Partnerno]=false;
           cycle[sAux.hs2Partnerno]=false;

@@ -227,14 +227,13 @@ class SCycle
     bool goToCHS1Right,goToCHS1Left,
          goToCHS2Right,goToCHS2Left;
     int hs1Partnerno,hs2Partnerno;
-    Point *criticalPoint;
-    Point nextPoint;
+    Point criticalPoint, nextPoint;
 
     SCycle(){}
 
     SCycle( const HalfSegment &hs, const int partnerno,
             const HalfSegment &hsP,const int partnernoP,
-            Point *criticalP, const Point &nextPOINT)
+            const Point &criticalP, const Point &nextPOINT)
     {
       hs1 = hs;
       hs2 = hsP;
@@ -270,12 +269,7 @@ class SCycle
     }
 
     ~SCycle()
-    {
-      if (criticalPoint==NULL){
-        delete criticalPoint;
-        criticalPoint=NULL;
-      }
-    }
+    {}
 };
 
 #include "PointsTImpl.h"
