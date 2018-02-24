@@ -248,6 +248,12 @@ class SimpleFilesystem {
     virtual ~Filesystem() {}
   };
 
+  /*
+  1 Class ~BaseException~
+
+  base class of all thrown exceptions from dfs
+
+  */
   class BaseException : public std::exception {
   public:
     char message[128];
@@ -270,13 +276,6 @@ class SimpleFilesystem {
   class ResultException : public BaseException {
   public:
     ResultException(const char *msg) : BaseException(msg) {
-    }
-  };
-
-  class CallerException : public BaseException {
-  public:
-    virtual const char *what() {
-      return "user called interface in a wrong way";
     }
   };
 

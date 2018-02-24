@@ -49,7 +49,7 @@ int DataNode::run() {
   debug("DataNode.run");
 
   maschineId = dfs::Maschine::volatileId(Str("d").append(config.port));
-  debug(Str("maschinenID ist ").append(maschineId));
+  debug(Str("machine id is ").append(maschineId));
 
   DataNodeClientHandlerFactory fac(this, config.maxClients, pLogger);
   debug("DataNode.run created handlerFactory");
@@ -62,8 +62,8 @@ int DataNode::run() {
   ep.setLogger(pLogger);
   debug("DataNode.run starting listener");
 
-  cout << "Datenknoten auf Port " << config.port << " betriebsbereit." << endl
-       << "ID ist " << maschineId << endl;
+  cout << "data node at port " << config.port << " ready." << endl
+       << "ID is " << maschineId << endl;
   ep.listen();
   cout << "Datenknoten - Serverbetrieb beendet" << endl;
   return 0;

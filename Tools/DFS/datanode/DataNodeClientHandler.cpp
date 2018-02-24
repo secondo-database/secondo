@@ -48,8 +48,8 @@ Str DataNodeClientHandler::onReceived(Str *s, int *resultFlags) {
 
   if (canDebug) {
     _dr("DataNodeClientHandler.onReceived");
-    _dr(Str("Wert <current> ist ").append(current));
-    _dr(Str("Puffer halten ").append(s->len()));
+    _dr(Str("value <current> is ").append(current));
+    _dr(Str("got buffer ").append(s->len()));
   }
 
   //wir befinden uns bereits in einer inhaltsuebertragung
@@ -172,7 +172,7 @@ Str DataNodeClientHandler::onReceived(Str *s, int *resultFlags) {
 
     if (canDebug) _dr("updated meta info");
 
-    return Str("0000"); //FIXME gutes ergebnis
+    return Str("0000");
   }
 
     //deleting single chunk, needs chunkid

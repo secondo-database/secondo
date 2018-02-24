@@ -55,8 +55,8 @@ public:
     //StrBuilder builder(1,1);
 
     builder.appendCStr(
-      "<h1>Inhalt des Datenknotens</h1><h2>Chunks</h2><table><tr><th>"
-        "Chunkname</th><th>Kategorie</th><th>Groesse</th></tr>");
+      "<h1>content of data node</h1><h2>Chunks</h2><table><tr><th>"
+        "chunkname</th><th>category</th><th>size</th></tr>");
 
     int c = -1;
     int cused = 0;
@@ -85,13 +85,13 @@ public:
       builder.appendCStr("</td></tr>");
     }
 
-    builder.appendCStr("</table><h2>Weitere Informationen</h2><table>");
+    builder.appendCStr("</table><h2>further information</h2><table>");
     builder.append(Str("<tr><td><b>ID:</b></td><td>").append(
       pDataNode->getMaschineId()).append("</td></tr>"));
     builder.append(
-      Str("<tr><td><b>Anzahl reserviert:</b></td><td>").append(c).append(
+      Str("<tr><td><b>amount reserved:</b></td><td>").append(c).append(
         "</td></tr>"));
-    builder.append(Str("<tr><td><b>Anzahl Chunks genutzt:</b></td><td>").append(
+    builder.append(Str("<tr><td><b>amount chunks used:</b></td><td>").append(
       cused).append("</td></tr></table>"));
 
     delete[] chunks;
@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
 
   DataNodeConfig config;
   config.maxClients = 8;
-  config.name = "DataNode"; //FIXME Kennung
+  config.name = "DataNode";
 
   config.port = helper.hasParameter("p") ? helper.getParameter("p").toInt()
                                          : DEFAULT_PORT;

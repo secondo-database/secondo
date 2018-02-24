@@ -37,11 +37,6 @@ using namespace dfs;
 struct Chunk {
 
   /**
-   * totalsize of the file the chunk is part of
-   */
-  //FIXME komplett entfernen int totalsize;
-
-  /**
    * the size of the chunk
    */
   int chunksize;

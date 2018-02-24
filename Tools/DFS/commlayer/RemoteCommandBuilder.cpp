@@ -33,7 +33,7 @@ using namespace dfs;
 
 RemoteCommandBuilder::RemoteCommandBuilder(const Str &verb, bool sizePreamble) {
   if (verb.len() != 4) {
-    throw "Ungueltige Verb-Laenge";
+    throw "invalid verb length";
   }
 
   this->verb = verb;

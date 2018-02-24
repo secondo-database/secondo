@@ -69,8 +69,6 @@ bool containsChunkFilePart(ChunkInfo *chunk, UI64 index, UI64 length,
 
   UI64 end = index + length - 1;
 
-  //cout << index << " " << length << " " << cs << " " << chunk->length << endl;
-
   //are there bytes which are needed
   if (numberUtils::hasIntersect(cs, ce, index, end)) {
 

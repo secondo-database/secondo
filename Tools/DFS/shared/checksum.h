@@ -33,8 +33,7 @@ namespace dfs {
   namespace checksum {
 
     /**
-     * einfache erzeugung von crc64 pruefsummen
-     * jede Instanz erzeugt intern ihre Lookup-Table fuer 8bit Bloecke
+     * easy creation of check sums
      */
     class crc64 {
     private:

@@ -239,7 +239,7 @@ Str handleMessage(const Str *i, int *flags) {
 
     //get index entry
     IndexEntry *pEntry = man.findFile(fileId);
-    if (pEntry == 0) return Str("4444"); //not found FIXME
+    if (pEntry == 0) return Str("4444"); //not found IMPROVE
     const UI64 totalFileSize = pEntry->calculateFileSize();
     const UI64 newTotalFileSize = totalFileSize + lengthToAdd;
 

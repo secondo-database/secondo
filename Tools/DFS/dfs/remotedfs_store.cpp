@@ -186,15 +186,15 @@ RemoteFilesystem::storeFullBufferFromMemory(FILEID fileId, FILEBUFFER content,
     long offset = pci->offsetInFile;
     long length = pci->length;
 
-    debug(Str("Reihenfolge, OffsetInDatei, Laenge").append(order).append(
+    debug(Str("order, offsetInFile, length").append(order).append(
       " ").append(offset).append(" ").append(length));
 
     int locationListLength = pci->chunkLocationListLength;
     for (int d = 0; d < locationListLength; d++) {
       ChunkLocation *pcl = &pci->chunkLocationList[d];
       URI uri = pcl->dataNodeUri;
-      debug((Str("Speichere Teilnummer ").append(order).append(
-        "mit Groesse ").append(length).append(" auf URL ").append(
+      debug((Str("save partnumber ").append(order).append(
+        "with size ").append(length).append(" at URL ").append(
         uri.toString())));
 
       //cmd for datanode
@@ -226,7 +226,7 @@ RemoteFilesystem::storeFullBufferFromMemory(FILEID fileId, FILEBUFFER content,
         StrReader readerStore(&result);
         readerStore.setPos(4);
         Str chunk = readerStore.readStrSer();
-        debug(Str("Erhaltener Chunk ist ").append(chunk));
+        debug(Str("got chunk is ").append(chunk));
 
         //chunk dem master bekannt machen
         //chun(fileId,chunkId,dataNodeUri,order)
@@ -280,8 +280,6 @@ void RemoteFilesystem::storeFileFromLocal(FILEID fileId, FILEPATH localPath,
 
     int locationListLength = pci->chunkLocationListLength;
     for (int d = 0; d < locationListLength; d++) {
-
-      //cout << "CHUNKINFO " << p << "LOCATION " << d << endl;
 
       ChunkLocation *pcl = &pci->chunkLocationList[d];
       URI uri = pcl->dataNodeUri;

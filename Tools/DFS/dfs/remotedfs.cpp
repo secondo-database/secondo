@@ -40,7 +40,7 @@ using namespace dfs;
 using namespace std;
 
 RemoteFilesystem::RemoteFilesystem(URI m, log::Logger *l) {
-  fileCopyBuffer = 1024 * 1024 * 2; //FIXME ueber Werkzeug
+  fileCopyBuffer = 1024 * 1024;
   indexURI = m;
   this->logger = l;
   this->canDebug = this->logger->canDebug;

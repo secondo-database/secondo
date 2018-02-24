@@ -83,12 +83,12 @@ void WebServer::handleResource(const Str &res, int socket) {
   if (canDebug) debug("handleResource");
 
   if (pHandler != 0) {
-    if (canDebug) debug("Lasse HTML vom Handler erzeugen");
+    if (canDebug) debug("let handler create html");
     Str html = pHandler->simpleHtmlOutput(res);
     writeHtmlResponse(html, socket);
   } else {
-    if (canDebug) debug("kein Handler");
-    writeHtmlResponse(Str("<h1>WebServer bereit - kein Handler angegeben</h1>"),
+    if (canDebug) debug("no handler");
+    writeHtmlResponse(Str("<h1>webserver ready - no handler present</h1>"),
                       socket);
   }
 

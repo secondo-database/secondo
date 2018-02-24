@@ -39,8 +39,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 using namespace dfs;
 
-#define BILLION 1E9
-
 class Duration {
 private:
   timespec c;
@@ -54,7 +52,7 @@ public:
     timespec stopped;
     clock_gettime(CLOCK_REALTIME, &stopped);
     return (stopped.tv_sec - c.tv_sec) + (stopped.tv_nsec - c.tv_nsec)
-                                         / BILLION;
+                                         / 1E9;
   }
 
 };
@@ -73,10 +71,6 @@ public:
 
   virtual const char *what() { return this->msg; }
 };
-
-void die(const Str &s) {
-  throw cliException(s);
-}
 
 void line(const Str &s) {
   cout << s << endl;
