@@ -1,0 +1,115 @@
+#!/bin/bash
+killall datanode
+killall indexnode
+
+#chunksize=52428800
+#chunksize=20971520
+#chunksize=1048576
+chunksize="$1"
+appendix="$2"
+name="$chunksize/$appendix"
+
+#umgebung
+root=/home/kingster/masterarbeit/measures/$name
+bs=/home/kingster/masterarbeit/code/dfs
+cli=$root/cli
+fileroot=$root/files
+measureroot=$root/measure
+
+#urls der datenknoten
+urii=dfs-index://localhost:4444
+urid1=dfs-data://localhost:4445
+urid2=dfs-data://localhost:4446
+urid3=dfs-data://localhost:4447
+#urid2=dfs-data://storage.kingster.de:4445
+
+#tidy up
+rm -rf $root
+
+#creating directories
+mkdir -p $root/index
+mkdir -p $fileroot
+mkdir -p $measureroot
+for d in {1..3}
+do
+mkdir -p $root/datanode$d/data
+done
+
+#copy binaries stuff
+cp $bs/indexnode/indexnode $root/index
+cp $bs/cli/cli $root
+for d in {1..3}
+do
+cp $bs/datanode/datanode $root/datanode$d
+done
+
+switches="-X"
+
+#datenknoten hochfahren
+$root/datanode1/datanode -p4445 -pw44450 $switches &
+$root/datanode2/datanode -p4446 -pw44460 $switches &
+$root/datanode2/datanode -p4447 -pw44470 $switches &
+
+#indexknoten hochfahren
+$root/index/indexnode -p4444 -chunksize$chunksize $switches &
+
+#die Zeit brauchen wir, dies alle Server da sind
+sleep 1
+
+#datenknoten am index registrieren
+$cli datanode-register-easy $urii localhost 4445
+$cli datanode-register-easy $urii localhost 4446
+$cli datanode-register-easy $urii localhost 4447
+
+#measurements
+
+    echo "measure times"
+    $cli file-delete-all $urii
+    file=$fileroot/measure.dat
+    results=$fileroot/results
+    rm $results*
+    sizes=("10" "100" "1000" "10000" "100000" "1000000" "10000000")
+    for size in "${sizes[@]}"
+    do
+        $cli localfile-create $file $size ten
+        echo -n -e "$size\t" >> $results.simple.txt
+        ms=$($cli file-store $urii $file measure cat -M -Q | tail -n 1)
+        echo $ms >> $results.simple.txt
+    done
+
+    for m in {1..1000}
+    do
+        ms=$($cli file-append-buffer-size-randombytes $urii $fileroot/measure-append 4096 -M -Q | tail -n 1)
+        echo -n -e "$m\t" >> $results.massappend.txt
+        echo $ms >> $results.massappend.txt
+    done
+
+    for m in {1..20}
+    do
+        size="$m"
+        size+="m"
+        echo $size
+        $cli localfile-create $file $size ten
+        #echo -n -e "$size\t" >> $results.m.txt
+        echo -n -e "$m\t" >> $results.m.txt
+        ms=$($cli file-store $urii $file measure cat -M -Q | tail -n 1)
+        echo $ms >> $results.m.txt
+    done
+
+    for m in {1..10}
+    do
+        size=$(($m*100))
+        sizez=$(($m*100))
+        size+="m"
+        echo $size
+        $cli localfile-create $file $size ten
+        echo -n -e "$sizez\t" >> $results.100m.txt
+        ms=$($cli file-store $urii $file measure cat -M -Q | tail -n 1)
+        echo $ms >> $results.100m.txt
+    done
+
+echo "SUC MEASUREMENT"
+
+#chunksize=52428800
+#chunksize=20971520
+#chunksize=1048576

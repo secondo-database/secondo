@@ -1,0 +1,4 @@
+#store all cpp files of directory in dfs
+find `pwd` -name *.cpp -exec ./cli/cli file-store dfs-index://localhost:4444 {} \;
+
+cp -r cli commlayer datanode define.h dfs dfshdfs indexnode Makefile Makefile.inc qunit* scripts shared ~/secondo/Tools/DFS
