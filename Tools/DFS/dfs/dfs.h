@@ -46,15 +46,22 @@ namespace dfs {
 #define FEATURE const char*
 #define NUMBER unsigned long
 
-  class SimpleFilesystem {
+/*
+1 Class ~SimpleFilesystem~
+
+describes a general interface to a file system
+
+*/
+
+class SimpleFilesystem {
   public:
     /**
- * creates a new file on filesystem
- * @param fileId - the id of the file
- * @param content - the content of the file
- * @param length - the size of content
- * @param category - an optional category
- */
+     * creates a new file on filesystem
+     * @param fileId - the id of the file
+     * @param content - the content of the file
+     * @param length - the size of content
+     * @param category - an optional category
+     */
     virtual void storeFile(FILEID fileId, FILEBUFFER content, long length,
                            CATEGORY category = 0) = 0;
 
