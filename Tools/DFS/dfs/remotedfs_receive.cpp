@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace dfs::remote;
 using namespace dfs::comm;
 using namespace dfs;
+using namespace std;
 
 void RemoteFilesystem::receiveFileToLocal(FILEID fileId, FILEPATH localPath) {
   ToStrSerializer ser;

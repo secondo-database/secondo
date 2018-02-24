@@ -26,40 +26,50 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 */
-#ifndef DATANODEINDEX_H
-#define DATANODEINDEX_H
+#include "io.h"
+#include <stdio.h>
+#include <stdlib.h>
 
-#include "../shared/str.h"
-#include <vector>
-#include <map>
-#include "DataNodeEntry.h"
+using namespace dfs;
+using namespace dfs::io::file;
 
-namespace dfs {
+Reader::Reader(const Str &filename) {
+  this->filename = filename;
+}
 
-  class DataNodeIndex {
-  public:
+bool Reader::open() {
+  char *s = filename.cstr();
+  fp = fopen(s, "r");
+  delete[] s;
+  return fp;
+}
 
-    int count() const;
+void Reader::close() {
+  fclose(fp);
+}
 
-    void add(const Str &uri);
+int Reader::readInt() {
+  int i = 0;
+  fread(&i, sizeof(int), 1, fp);
+  return i;
+}
 
-    void addRaw(const DataNodeEntry &entry);
+Str Reader::readStr(int len) {
+  char *buf = new char[len];
+  fread(buf, len, 1, fp);
+  Str s = Str(buf, len);
+  delete[] buf;
+  return s;
+}
 
-    void remove(const Str &uri);
-
-    bool hasNode(const Str &uri);
-
-    std::vector<DataNodeEntry> need(int amount);
-
-    std::vector<URI> allURIs();
-
-    DataNodeIndex();
-
-    virtual ~DataNodeIndex();
-
-    std::map<Str, DataNodeEntry, StrComparer> index;
-  };
-};
-
-#endif /* DATANODEINDEX_H */
-
+Str Reader::readWithLengthInfo(short lenlen) {
+  char *lengthBuf = new char[lenlen];
+  fread(lengthBuf, lenlen, 1, fp);
+  int realStrLen = atoi(lengthBuf);
+  delete[] lengthBuf;
+  char *buf = new char[realStrLen];
+  fread(buf, realStrLen, 1, fp);
+  Str s = Str(buf, realStrLen);
+  delete[] buf;
+  return s;
+}

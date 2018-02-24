@@ -40,6 +40,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <pthread.h>
 
 using namespace dfs::log;
+using namespace std;
 
 const int DEFAULT_PORT = 4445;
 const int DEFAULT_PORT_WEB = 44450;

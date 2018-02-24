@@ -37,6 +37,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace dfs::remote;
 using namespace dfs::comm;
 using namespace dfs;
+using namespace std;
 
 RemoteFilesystem::RemoteFilesystem(URI m, log::Logger *l) {
   fileCopyBuffer = 1024 * 1024 * 2; //FIXME ueber Werkzeug

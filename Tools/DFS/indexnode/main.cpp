@@ -36,6 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace dfs;
 using namespace dfs::log;
+using namespace std;
 
 const int DEFAULT_INDEX_PORT = 4444;
 const int DEFAULT_WEBSERVER_PORT = 44440;

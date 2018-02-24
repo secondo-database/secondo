@@ -26,40 +26,29 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 */
-#ifndef DATANODEINDEX_H
-#define DATANODEINDEX_H
-
-#include "../shared/str.h"
-#include <vector>
-#include <map>
-#include "DataNodeEntry.h"
+#include "../define.h"
 
 namespace dfs {
 
-  class DataNodeIndex {
-  public:
+  namespace checksum {
 
-    int count() const;
+    /**
+     * einfache erzeugung von crc64 pruefsummen
+     * jede Instanz erzeugt intern ihre Lookup-Table fuer 8bit Bloecke
+     */
+    class crc64 {
+    private:
+      UI64 table[256];
 
-    void add(const Str &uri);
+      void generateLookupTable();
 
-    void addRaw(const DataNodeEntry &entry);
+    public:
+      crc64() { generateLookupTable(); }
 
-    void remove(const Str &uri);
+      UI64 checksum(UI8 *buf, int len);
+    };
 
-    bool hasNode(const Str &uri);
 
-    std::vector<DataNodeEntry> need(int amount);
-
-    std::vector<URI> allURIs();
-
-    DataNodeIndex();
-
-    virtual ~DataNodeIndex();
-
-    std::map<Str, DataNodeEntry, StrComparer> index;
   };
-};
 
-#endif /* DATANODEINDEX_H */
-
+}

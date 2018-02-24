@@ -26,40 +26,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 */
-#ifndef DATANODEINDEX_H
-#define DATANODEINDEX_H
-
-#include "../shared/str.h"
-#include <vector>
-#include <map>
-#include "DataNodeEntry.h"
+#include "str.h"
 
 namespace dfs {
 
-  class DataNodeIndex {
-  public:
+  namespace datetime {
 
-    int count() const;
+    class DateTimeUtils {
+    public:
+      /**
+       * formats current date time as Str
+       * @return
+       */
+      static Str forLog();
+    };
 
-    void add(const Str &uri);
-
-    void addRaw(const DataNodeEntry &entry);
-
-    void remove(const Str &uri);
-
-    bool hasNode(const Str &uri);
-
-    std::vector<DataNodeEntry> need(int amount);
-
-    std::vector<URI> allURIs();
-
-    DataNodeIndex();
-
-    virtual ~DataNodeIndex();
-
-    std::map<Str, DataNodeEntry, StrComparer> index;
   };
+
 };
-
-#endif /* DATANODEINDEX_H */
-

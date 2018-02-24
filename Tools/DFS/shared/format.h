@@ -26,40 +26,34 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 */
-#ifndef DATANODEINDEX_H
-#define DATANODEINDEX_H
+#ifndef FORMAT_H
+#define FORMAT_H
 
-#include "../shared/str.h"
-#include <vector>
-#include <map>
-#include "DataNodeEntry.h"
+#include "str.h"
+
+using namespace dfs;
 
 namespace dfs {
 
-  class DataNodeIndex {
-  public:
+  namespace format {
 
-    int count() const;
+    /**
+     * helps formatting integer as mib, kib, B
+     * @param f
+     * @return
+     */
+    Str sizei(int f) {
+      if (f > 1024 * 1024) {
+        return Str(f / (1024 * 1024)).append(" MiB");
+      } else if (f > 1024) {
+        return Str(f / 1024).append(" KiB");
+      } else {
+        return Str(f).append(" B");
+      }
+    }
 
-    void add(const Str &uri);
+  }
+}
 
-    void addRaw(const DataNodeEntry &entry);
-
-    void remove(const Str &uri);
-
-    bool hasNode(const Str &uri);
-
-    std::vector<DataNodeEntry> need(int amount);
-
-    std::vector<URI> allURIs();
-
-    DataNodeIndex();
-
-    virtual ~DataNodeIndex();
-
-    std::map<Str, DataNodeEntry, StrComparer> index;
-  };
-};
-
-#endif /* DATANODEINDEX_H */
+#endif
 

@@ -26,40 +26,66 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 */
-#ifndef DATANODEINDEX_H
-#define DATANODEINDEX_H
+#ifndef FIGURESYSTEM_H
+#define FIGURESYSTEM_H
 
-#include "../shared/str.h"
-#include <vector>
-#include <map>
-#include "DataNodeEntry.h"
+#include "str.h"
 
 namespace dfs {
 
-  class DataNodeIndex {
+  /**
+   * represents a custom figure system
+   */
+  class FigureSystem {
+  private:
+    short base;
+    short length;
+    char *values;
+
+    void refactor();
+
   public:
 
-    int count() const;
+    /**
+     * inits new figure system with base and max amount of figures
+     * @param base
+     * @param length
+     */
+    FigureSystem(short base, short length);
 
-    void add(const Str &uri);
+    virtual ~FigureSystem();
 
-    void addRaw(const DataNodeEntry &entry);
+    /**
+     * increases value by one
+     */
+    void inc();
 
-    void remove(const Str &uri);
+    /**
+     * increases value by parameter
+     * @param value
+     */
+    void inc(int value);
 
-    bool hasNode(const Str &uri);
+    /**
+     * formats value as str
+     * @return
+     */
+    Str toStr();
 
-    std::vector<DataNodeEntry> need(int amount);
+    /**
+     * restores state from strValue
+     * length needs to be as length of this
+     * @param strValue
+     */
+    void fromStr(const Str &strValue);
 
-    std::vector<URI> allURIs();
-
-    DataNodeIndex();
-
-    virtual ~DataNodeIndex();
-
-    std::map<Str, DataNodeEntry, StrComparer> index;
+    /**
+     * sets current value to zero
+     */
+    void resetToZero();
   };
-};
 
-#endif /* DATANODEINDEX_H */
+}
+
+#endif /* FIGURESYSTEM_H */
 

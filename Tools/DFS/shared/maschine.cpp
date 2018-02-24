@@ -26,40 +26,31 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 */
-#ifndef DATANODEINDEX_H
-#define DATANODEINDEX_H
+#include "maschine.h"
+#include "str.h"
+#include "checksum.h"
+#include <stdio.h>
 
-#include "../shared/str.h"
-#include <vector>
-#include <map>
-#include "DataNodeEntry.h"
+using namespace dfs;
 
-namespace dfs {
 
-  class DataNodeIndex {
-  public:
+Str dfs::Maschine::volatileId(const Str &appendix) {
 
-    int count() const;
+  dfs::checksum::crc64 c;
 
-    void add(const Str &uri);
+  Str input;
+  FILE *p = popen("ip link | grep link", "r");
 
-    void addRaw(const DataNodeEntry &entry);
+  if (p) {
+    char buffer[1024];
+    int read = fread(buffer, 1, 1024, p);
+    if (read > 0) input = input.append(Str(buffer, read));
+    fclose(p);
+  }
 
-    void remove(const Str &uri);
+  CStr cs(input);
+  UI64 ii = c.checksum((UI8 *) cs.cstr(), input.len());
 
-    bool hasNode(const Str &uri);
+  return Str::toHex((const char *) &ii, 8).append(appendix);
 
-    std::vector<DataNodeEntry> need(int amount);
-
-    std::vector<URI> allURIs();
-
-    DataNodeIndex();
-
-    virtual ~DataNodeIndex();
-
-    std::map<Str, DataNodeEntry, StrComparer> index;
-  };
-};
-
-#endif /* DATANODEINDEX_H */
-
+}

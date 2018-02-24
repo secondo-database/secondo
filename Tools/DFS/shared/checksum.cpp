@@ -26,40 +26,39 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 */
-#ifndef DATANODEINDEX_H
-#define DATANODEINDEX_H
+#include "checksum.h"
+#include <iostream>
 
-#include "../shared/str.h"
-#include <vector>
-#include <map>
-#include "DataNodeEntry.h"
+using namespace std;
+using namespace dfs::checksum;
 
-namespace dfs {
+UI64 generator = 0xC96C5795D7870F42;
 
-  class DataNodeIndex {
-  public:
+void crc64::generateLookupTable() {
 
-    int count() const;
+  for (int i = 0; i < 256; ++i) {
 
-    void add(const Str &uri);
+    UI64 crc = i;
 
-    void addRaw(const DataNodeEntry &entry);
+    for (int j = 0; j < 8; ++j) {
+      if (crc & 1) {
+        crc >>= 1;
+        crc ^= generator;
+      } else {
+        crc >>= 1;
+      }
+    }
+    table[i] = crc;
+  }
+}
 
-    void remove(const Str &uri);
-
-    bool hasNode(const Str &uri);
-
-    std::vector<DataNodeEntry> need(int amount);
-
-    std::vector<URI> allURIs();
-
-    DataNodeIndex();
-
-    virtual ~DataNodeIndex();
-
-    std::map<Str, DataNodeEntry, StrComparer> index;
-  };
-};
-
-#endif /* DATANODEINDEX_H */
-
+UI64 crc64::checksum(UI8 *buf, int len) {
+  UI64 crc = 0;
+  for (int i = 0; i < len; ++i) {
+    UI8 index = buf[i] ^crc;
+    UI64 lookup = table[index];
+    crc >>= 8;
+    crc ^= lookup;
+  }
+  return crc;
+}

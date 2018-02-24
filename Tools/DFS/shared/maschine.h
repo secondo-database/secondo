@@ -26,40 +26,28 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 */
-#ifndef DATANODEINDEX_H
-#define DATANODEINDEX_H
+#ifndef MASCHINE_H
+#define MASCHINE_H
 
-#include "../shared/str.h"
-#include <vector>
-#include <map>
-#include "DataNodeEntry.h"
+#include "str.h"
 
 namespace dfs {
 
-  class DataNodeIndex {
+  class Maschine {
+
   public:
 
-    int count() const;
+    /**
+     * generates id of maschine which should be stable after reboot
+     * @param appendix
+     * @return
+     */
+    static Str volatileId(const Str &appendix);
 
-    void add(const Str &uri);
-
-    void addRaw(const DataNodeEntry &entry);
-
-    void remove(const Str &uri);
-
-    bool hasNode(const Str &uri);
-
-    std::vector<DataNodeEntry> need(int amount);
-
-    std::vector<URI> allURIs();
-
-    DataNodeIndex();
-
-    virtual ~DataNodeIndex();
-
-    std::map<Str, DataNodeEntry, StrComparer> index;
   };
-};
 
-#endif /* DATANODEINDEX_H */
+}
+
+
+#endif /* MASCHINE_H */
 
