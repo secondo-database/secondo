@@ -92,12 +92,12 @@ class SimpleFilesystem {
                          NUMBER targetBufferStartIndex = 0) = 0;
 
     /**
- * appends content to given file
- * if file not exists new one is created without any category
- * @param fileId
- * @param appendix
- * @param length
- */
+     * appends content to given file
+     * if file not exists new one is created without any category
+     * @param fileId
+     * @param appendix
+     * @param length
+     */
     virtual void
     appendToFile(FILEID fileId, FILEBUFFER appendix, long length) = 0;
 
@@ -119,9 +119,12 @@ class SimpleFilesystem {
     virtual ~SimpleFilesystem() {}
   };
 
-  /**
-   * class helping reading from filesystem stream-like
-   */
+  /*
+  1 Class ~SimpleFilesystemReader~
+
+  describes a component which can be used stream like
+
+  */
   class SimpleFilesystemReader {
   public:
     SimpleFilesystemReader();
@@ -165,10 +168,12 @@ class SimpleFilesystem {
   };
 
 
-  /**
-   * extended the simple filesystem to a command file system with more
-   * operations
-   */
+  /*
+  1 Class ~Filesystem~
+
+  the abstract base class for remote file system
+
+  */
   class Filesystem : public SimpleFilesystem {
   public:
 
