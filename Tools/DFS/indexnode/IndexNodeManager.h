@@ -42,6 +42,10 @@ namespace dfs {
   private:
     void triggerImportantStateChange();
 
+    int nextBackupStateNumber;
+
+    void backupStateAdditional();
+
   public:
 
     Configuration config;
@@ -54,6 +58,8 @@ namespace dfs {
 
     //the state of the index, the relation fileId to IndexEntry
     std::map<Str, IndexEntry, StrComparer> fileIndex;
+
+    IndexNodeManager();
 
     //operation on the file index
     Str getDefaultStateFile();

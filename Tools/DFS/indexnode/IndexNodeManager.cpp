@@ -121,6 +121,15 @@ Str IndexNodeManager::getDefaultStateFile() {
 
 void IndexNodeManager::backupState() {
   Str filename = this->getDefaultStateFile();
+  this->backupStateAdditional();
+  this->dumpStateToFile(filename);
+}
+
+void IndexNodeManager::backupStateAdditional() {
+  Str filename = this->getDefaultStateFile();
+  int n = this->nextBackupStateNumber;
+  this->nextBackupStateNumber = (this->nextBackupStateNumber+1) % 100;
+  filename = filename+Str(".").append(n);
   this->dumpStateToFile(filename);
 }
 
@@ -133,8 +142,9 @@ bool IndexNodeManager::restoreStateFromFile(const Str &filename) {
 
   if (!reader.open()) return false;
 
-  int version = reader.readInt();
+  reader.readInt();
   int amountEntries = reader.readInt();
+  this->nextBackupStateNumber = reader.readInt();
 
   for (int i = 0; i < amountEntries; i++) {
     int len = reader.readInt();
@@ -168,6 +178,9 @@ void IndexNodeManager::dumpStateToFile(const Str &filename) {
 
   //version
   writer.append(1);
+
+  //next backup state appendix
+  writer.append(this->nextBackupStateNumber);
 
   //amount of index entries
   writer.append(this->fileIndex.size());
@@ -235,4 +248,8 @@ IndexNodeManager::associateChunkToFileId(const Str &fileId, const Str &chunkId,
 
 void IndexNodeManager::triggerImportantStateChange() {
   backupState();
+}
+
+IndexNodeManager::IndexNodeManager() {
+  nextBackupStateNumber = 0;
 }
