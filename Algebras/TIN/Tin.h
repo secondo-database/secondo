@@ -32,7 +32,7 @@
 #include <deque>
 #include <stack>
 #include "SecondoDependencies.h"
-#include <TinLogging.h>
+#include "TinLogging.h"
 #include <string>
 
 

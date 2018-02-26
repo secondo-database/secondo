@@ -33,7 +33,7 @@
 #include  <vector>
 #include <cmath>
 
-#include <TinLogging.h>
+#include "TinLogging.h"
 
 namespace tin {
 /*

@@ -365,7 +365,7 @@ typedef uint16_t FILE_VERTEX_POINTER;
 //#define TRIANGLE_NO_LOGGING
 
 //general logging definition
-#include <TinLogging.h>
+#include "TinLogging.h"
 
 //////////////////////////////////////////////////////////////////
 

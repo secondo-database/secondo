@@ -34,7 +34,7 @@
 #ifdef FORTUNE_NO_LOGGING
 #define LOGGING_SWITCH_OFF
 #endif
-#include <TinLogging.h>
+#include "TinLogging.h"
 
 namespace tin {
 
