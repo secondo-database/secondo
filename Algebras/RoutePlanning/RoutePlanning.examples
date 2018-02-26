@@ -1,0 +1,32 @@
+Database : routeplantest
+Restore  : No
+
+Operator : importpointcloud
+Number   : 1
+Signature: {string, text} -> stream(pointcloud)
+Example  : query importpointcloud("20110304_10SDH9607.las") count
+Result   : 37
+
+Operator : lcompose
+Number   : 1
+Signature: sline x stream(pointcloud) x real -> lreal
+Example  : query makesline(makepoint(-122.409, 37.7), makepoint(-122.406, 37.65)) lcompose[importpointcloud("20110304_10SDH9607.las"), 0.001]
+Result   : (lreal undefined)
+
+Operator : pointcloud2Tin
+Number   : 1
+Signature: stream(pointcloud) x real -> tin
+Example  : query pointcloud2Tin(importpointcloud("20110304_10SDH9607.las"), 0.001) tin2stlfile["./tin.stl"]
+Result   : (bool TRUE)
+
+Operator : shortestpathlf
+Number   : 1
+Signature: orel(tuple(X)) x IDENT x point2 -> stream(tuple(X))
+Example  : query Edges shortestpathlf [Curve, [const point value(-122.4075292 37.6080987)], [const point value(-122.4072092 37.6113252)]] count
+Result   : 1
+
+Operator : shortestpathlf
+Number   : 2
+Signature:orel(tuple(X)) x IDENT2 x point2 x prefs -> stream(tuple(X))
+Example  : query Edges2 shortestpathlf[Curve, Altitude, [const point value(-122.4081852 37.7805494)], [const point value(-122.4071627 37.7797361)], [const vector(int) value(3 2 1 4 5)]] count
+Result   : 1
