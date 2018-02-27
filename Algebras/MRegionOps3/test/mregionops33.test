@@ -12,9 +12,9 @@
 # * Preparing the test database
 # *
 ################################################################################
-#testcase create database berlintest
+#testcase restore database berlintest from berlintest;
 #yields success
-#create database berlintest;
+#restore database berlintest from berlintest;
 #testcase open database berlintest
 #yields success
 open database berlintest;

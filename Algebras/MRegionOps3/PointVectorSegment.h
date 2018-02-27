@@ -131,6 +131,9 @@ Return the bounding box for the point object.
     
 */
       Point3D& operator =(const Point3D& point);   
+      
+      bool nearlyEqual(const Point3D& point, double e)const;
+      
 /*
 3.3.3 Operator <<
     
@@ -755,17 +758,7 @@ Print the object values to stream.
 11.3.2 Operator for comparison.
 
 */
-      bool operator ==(const Segment2D& segment) const; 
-/*      
-11.3.2 whichSide.
-
-*/      
-      double whichSide(const Point2D& point)const;
-/*      
-11.3.3 isLeft
-
-*/      
-      bool isLeft(const Point2D& point) const;   
+      bool operator ==(const Segment2D& segment) const;  
       
     protected:
 /*
@@ -820,6 +813,16 @@ Print the object values to stream.
  
       bool intersection(const RationalSegment2D& other, 
                         RationalPoint2D& intersectionPoint)const;
+/*      
+12.3.3 whichSide.
+
+*/      
+      mpq_class whichSide(const RationalPoint2D& point)const;
+/*      
+12.3.4 isLeft
+
+*/      
+      bool isLeft(const RationalPoint2D& point) const;
       
     protected:
 /*

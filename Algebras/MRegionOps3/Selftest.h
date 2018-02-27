@@ -182,6 +182,9 @@ the set operation at the level of the SourceUnitPair class.
       void LayerContainerTest7();
       void LayerContainerTest8();
       void LayerContainerTest9();
+      
+      void PFaceTest14();
+      void PFaceTest15();
 
       void assert_(std::string test,  std::string message, bool success);
       

@@ -121,6 +121,7 @@ Indicates the kind of predicate operation.
       INTERSECTS,
       INSIDE
     };
+    
 /*
 4 Class RationalPoint3DExt
 
@@ -377,19 +378,20 @@ system for performing the plane sweep.
 */        
      IntersectionPoint();
      IntersectionPoint(const IntersectionPoint& point);
-     IntersectionPoint(const Point3D& point3D, const Point2D& point2D); 
-     IntersectionPoint(double x, double y, double z, double w);
+     IntersectionPoint(const RationalPoint3D& point3D, 
+                       const RationalPoint2D& point2D);
+     IntersectionPoint(mpq_class x, mpq_class y, mpq_class z, mpq_class w);
 /*
 7.2 Getter methods
 
 */        
-      Point3D getPoint3D() const;
-      Point2D getPoint2D() const;
-      double getX()const;
-      double getY()const;
-      double getZ()const;
-      double getW()const;
-      double getT()const;
+      RationalPoint3D getRationalPoint3D() const;
+      RationalPoint2D getRationalPoint2D() const;
+      mpq_class getX()const;
+      mpq_class getY()const;
+      mpq_class getZ()const;
+      mpq_class getW()const;
+      mpq_class getT()const;
       Rectangle<3> getBoundingBox()const;
 /*
 7.3 Methods, operators and predicates
@@ -423,10 +425,10 @@ Print the object values to stream.
 7.5 Attributes
 
 */       
-      double x;
-      double y;
-      double z;
-      double w;
+      mpq_class x;
+      mpq_class y;
+      mpq_class z;
+      mpq_class w;
     };
 /*
 8 Class IntersectionSegment
@@ -448,15 +450,15 @@ a predicate that specifies more information about the intersection segment.
       IntersectionSegment(const IntersectionPoint& tail,
                           const IntersectionPoint& head, 
                           const Predicate& predicate = UNDEFINED);
-      IntersectionSegment(const Segment3D& segment3D, 
-                          const Segment2D& segment2D, 
+      IntersectionSegment(const RationalSegment3D& segment3D, 
+                          const RationalSegment2D& segment2D, 
                           const Predicate& predicate = UNDEFINED);
 /*
 8.2 Getter methods
 
 */        
-      Segment3D getSegment3D()const;
-      Segment2D getSegment2D()const;
+      RationalSegment3D getRationalSegment3D()const;
+      RationalSegment2D getRationalSegment2D()const;
       IntersectionPoint getTail() const;
       IntersectionPoint getHead() const;
       Predicate getPredicate()const;
@@ -493,7 +495,7 @@ Returns ~true~, if this is parallel to the xy-plane.
 Returns ~true~, if this is out of the t-value.
 
 */       
-      bool isOutOfRange(double t) const;
+      bool isOutOfRange(mpq_class t) const;
 /*      
 8.3.7 isLeftOf
 
@@ -508,7 +510,7 @@ Returns ~true~, if this is left of intSeg.
 Returns the point (in xyt-coords) on this segment with t-coord t.
 
 */       
-      Point3D evaluate(double t) const;     
+      RationalPoint3D evaluate(mpq_class t) const;     
     private: 
 /*
 8.4 Private methods
@@ -561,18 +563,16 @@ The class defines an interface for methods of the class Selftest.
 first step in the Plane Sweep.
 
 */       
-      virtual void first(double t1, double t2, Point3DContainer& points,
-                                               SegmentContainer& segments,
-                                               bool pFaceIsCritical);
+      virtual void first(mpq_class t1, mpq_class t2, Point3DContainer& points,
+                         SegmentContainer& segments, bool pFaceIsCritical);
 /*
 10.2.2 next
 
 next step in the Plane Sweep.
 
 */          
-      virtual void next(double t1, double t2, Point3DContainer& points, 
-                                              SegmentContainer& segments,
-                                              bool pFaceIsCritical);  
+      virtual void next(mpq_class t1, mpq_class t2, Point3DContainer& points, 
+                        SegmentContainer& segments, bool pFaceIsCritical);  
     };// PlaneSweepAccess 
 /*    
 11 Class IntSegContainer
@@ -641,9 +641,8 @@ The method determines all segments in decomposed form for the first step
 during the plane sweep.
     
 */       
-      void first(double t1, double t2, Point3DContainer& points,
-                                       SegmentContainer& segments,
-                                       bool pFaceIsCritical);
+      void first(mpq_class t1, mpq_class t2, Point3DContainer& points,
+                 SegmentContainer& segments, bool pFaceIsCritical);
 /*
 11.3.8 next
 
@@ -651,9 +650,8 @@ The method determines all segments in decomposed form for all further steps
 during the plane sweep.
     
 */  
-      void next(double t1, double t2, Point3DContainer& points, 
-                                      SegmentContainer& segments,
-                                      bool pFaceIsCritical);
+      void next(mpq_class t1, mpq_class t2, Point3DContainer& points, 
+                 SegmentContainer& segments,  bool pFaceIsCritical);
     private:
 /*
 11.4 Private methods
@@ -661,7 +659,7 @@ during the plane sweep.
 11.4.1 hasMoreSegsToInsert
 
 */        
-      bool hasMoreSegsToInsert(double t) const; 
+      bool hasMoreSegsToInsert(mpq_class t) const; 
 /*
 11.4.2 set
     
@@ -695,7 +693,7 @@ time instants with structure changes.
 
 */    
     struct DoubleCompare {
-      bool operator()(const double& d1, const double& d2) const;
+      bool operator()(const mpq_class& d1, const mpq_class& d2) const;
     };
 /*
 13 class GlobalTimeValues
@@ -736,7 +734,7 @@ values, can also determine and process the original time values.
 13.3.1 Method addTimeValue
 
 */      
-      void addTimeValue(double t);
+      void addTimeValue(mpq_class t);
       
 /*
 13.2.2 addStartAndEndtime
@@ -771,22 +769,22 @@ Inserts the start and end time of the time interval
 13.3.7 scaledFirst
 
 */        
-      bool scaledFirst(double& t1, double& t2);
+      bool scaledFirst(mpq_class& t1, mpq_class& t2);
 /*
 13.3.8 orginalFirst 
 
 */          
-      bool orginalFirst(double& t1, double& t2);
+      bool orginalFirst(mpq_class& t1, mpq_class& t2);
 /*
 13.3.9 scaledNext
 
 */        
-      bool scaledNext(double& t1, double& t2); 
+      bool scaledNext(mpq_class& t1, mpq_class& t2); 
 /*
 13.3.10 orginalNext 
 
 */          
-      bool orginalNext(double& t1, double& t2);    
+      bool orginalNext(mpq_class& t1, mpq_class& t2);    
 /*
 13.3.11 createInterval 
 
@@ -801,17 +799,17 @@ Inserts the start and end time of the time interval
 
 */         
 
-      double computeOrginalTimeValue(double scaledTimeValue)const;
+      mpq_class computeOrginalTimeValue(mpq_class scaledTimeValue)const;
 /*
 13.5 Attributes
 
 */      
-      std::set<double, DoubleCompare> time;
-      std::set<double, DoubleCompare>::const_iterator timeIter;
-      double t1;
-      double t2;
-      double orginalT1;
-      double orginalT2;      
+      std::set<mpq_class, DoubleCompare> time;
+      std::set<mpq_class, DoubleCompare>::const_iterator timeIter;
+      mpq_class t1;
+      mpq_class t2;
+      mpq_class orginalT1;
+      mpq_class orginalT2;      
       double orginalStartTime;
       double orginalEndTime;
       double scale;      
@@ -828,6 +826,7 @@ creation of the results region unit.
 */ 
     class PResultFace{
     public: 
+      static constexpr double medianHSZoom = 100;
 /*      
 14.1 Constructors    
 
@@ -904,6 +903,11 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
     
 */       
       PResultFace& operator =(const PResultFace& other);  
+      
+            
+      bool checkBorder( double e)const;
+    
+      void merge(const PResultFace& other);
                   
     protected:
 /*
@@ -1038,7 +1042,7 @@ The class provides methods for all these functions.
 
 */     
     class ResultUnit{
-    public:
+    public:     
 /*      
 16.1 Constructors    
 
@@ -1101,6 +1105,8 @@ The class provides methods for all these functions.
     
 */       
       void evaluateCriticalMSegmens(SetOp setOp);
+      
+      bool merge(double e);
             
     private:
 /*
@@ -1557,16 +1563,14 @@ to the specified value.
 19.3.12 first
     
 */    
-      void first(double t1, double t2, Point3DContainer& points,
-                                       SegmentContainer& segments,
-                                       bool pFaceIsCritical);
+      void first(mpq_class t1, mpq_class t2, Point3DContainer& points,
+                 SegmentContainer& segments, bool pFaceIsCritical);
 /*
 19.3.13 next
     
 */     
-      void next(double t1, double t2, Point3DContainer& points, 
-                                      SegmentContainer& segments,
-                                      bool pFaceIsCritical);
+      void next(mpq_class t1, mpq_class t2, Point3DContainer& points, 
+                SegmentContainer& segments, bool pFaceIsCritical);
 /*
 19.3.14 finalize
     

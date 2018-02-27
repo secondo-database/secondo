@@ -55,8 +55,13 @@ namespace temporalalgebra {
 2 Class NumericUtil
 
 */    
-    bool NumericUtil::nearlyEqual(double a, double b){
-      return fabs(a - b) <= eps2;  
+    bool NumericUtil::nearlyEqual(const double& a,const double& b){
+      return fabs(a - b) <= eps;  
+    }// nearlyEqual
+    
+    bool NumericUtil::nearlyEqual(const double& a, const double& b, 
+                                  const double& e){
+      return fabs(a - b) <= e;  
     }// nearlyEqual
     
     bool NumericUtil::nearlyEqual(const mpq_class& a, 
@@ -64,16 +69,33 @@ namespace temporalalgebra {
       return abs(a - b) <= eps;
     }// nearlyEqual
     
-    bool NumericUtil::lower(double a, double b){
-      return a < b - eps2;  
+    bool NumericUtil::nearlyEqual(const mpq_class& a, 
+                                  const mpq_class& b,
+                                  const mpq_class& e){
+      return abs(a - b) <= e;
+    }// nearlyEqual
+    
+    bool NumericUtil::lower(const double& a, const double& b){
+      return a < b - eps;  
+    }// lower
+    
+    bool NumericUtil::lower(const double& a, const double& b, 
+                            const double& e){
+      return a < b - e;  
     }// lower
         
     bool NumericUtil::lower(const mpq_class& a, const mpq_class& b){
       return a < b - eps;    
     }// lower
           
-    bool NumericUtil::lowerOrNearlyEqual(double a, double b) {
+    bool NumericUtil::lowerOrNearlyEqual(const double& a, const double& b) {
       return a < b || nearlyEqual(a, b);
+    }// lowerOrNearlyEqual
+    
+              
+    bool NumericUtil::lowerOrNearlyEqual(const double& a, const double& b, 
+                                         const double& e) {
+      return a < b || nearlyEqual(a, b, e);
     }// lowerOrNearlyEqual
     
     bool NumericUtil::lowerOrNearlyEqual(const mpq_class&  a, 
@@ -81,16 +103,21 @@ namespace temporalalgebra {
       return a < b || nearlyEqual(a, b);
     }// lowerOrNearlyEqual
    
-    bool NumericUtil::greater(double a, double b){
-      return a > b + eps2;
+    bool NumericUtil::greater(const double& a, const double& b){
+      return a > b + eps;
     }// greater
  
     bool NumericUtil::greater(const mpq_class& a, const mpq_class& b){
       return a > b + eps;
     }// greater
     
-    bool NumericUtil::greaterOrNearlyEqual(double a, double b){
+    bool NumericUtil::greaterOrNearlyEqual(const double& a, const double& b){
       return a > b || nearlyEqual(a, b);
+    }// greaterOrNearlyEqual
+    
+    bool NumericUtil::greaterOrNearlyEqual(const double& a, const double& b, 
+                                           const double& e){
+      return a > b || nearlyEqual(a, b, e);
     }// greaterOrNearlyEqual
     
     bool NumericUtil::greaterOrNearlyEqual(const mpq_class& a, 
@@ -98,7 +125,8 @@ namespace temporalalgebra {
       return a > b || nearlyEqual(a, b);
     }// greaterOrNearlyEqual
     
-    bool NumericUtil::between(double a, double x, double b){
+    bool NumericUtil::between(const double& a, const double& x, 
+                              const double& b){
       return (lowerOrNearlyEqual(a, x) && 
               lowerOrNearlyEqual(x, b)) || 
              (lowerOrNearlyEqual(b, x) && 
@@ -113,8 +141,10 @@ namespace temporalalgebra {
               lowerOrNearlyEqual(x, a));
     }// between
     
-    std::pair<double, double> NumericUtil::minMax4(double a, double b,
-                                                   double c, double d) {
+    std::pair<double, double> NumericUtil::minMax4(const double& a, 
+                                                   const double& b,
+                                                   const double& c, 
+                                                   const double& d) {
       double min = a;
       double max = a;
       if (b < min) min = b;

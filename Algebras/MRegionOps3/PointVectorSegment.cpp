@@ -135,6 +135,12 @@ namespace temporalalgebra{
              NumericUtil::nearlyEqual(this->z, point.z);
     }// Operator ==
     
+    bool Point3D::nearlyEqual(const Point3D& other, double e)const{
+      return NumericUtil::nearlyEqual(this->x, other.x, e) && 
+             NumericUtil::nearlyEqual(this->y, other.y, e) && 
+             NumericUtil::nearlyEqual(this->z, other.z, e);
+    }// nearlyEqual
+    
     bool Point3D::operator <(const Point3D& point) const {
       if (NumericUtil::lower(x, point.x))
         return true;
@@ -730,24 +736,6 @@ namespace temporalalgebra{
      bool Segment2D::operator ==(const Segment2D& segment) const{
       return (this->head == segment.head && this->tail == segment.tail);
     }// operator == 
-    
-    double Segment2D::whichSide(const Point2D& point)const{
-      // This is the fast version:
-      // value = (start.x - x) * (end.y - y) - (end.x - x) * (start.y - y);
-      // This is slower, but numerical more stable:
-      RationalVector2D vector1 = head.getR() - 
-                                 tail.getR();
-      RationalVector2D vector2 = point.getR() - 
-                                 tail.getR();      
-      vector1.normalize();
-      vector2.normalize();
-      mpq_class value = vector1 | vector2;     
-      return value.get_d(); 
-    }// isLeft
-    
-    bool Segment2D::isLeft(const Point2D& point)const{
-      return NumericUtil::greater(whichSide(point), 0.0); 
-    }// isLeft  
 /*
 12 Class RationalSegment2D
 
@@ -781,8 +769,8 @@ namespace temporalalgebra{
       
     std::ostream& operator <<(std::ostream& os, 
                               const RationalSegment2D& segment){
-      os << "RationalSegment2D (" << segment.tail.getD();
-      os << ", " << segment.head.getD() << ")";
+      os << "RationalSegment2D (" << segment.tail;
+      os << ", " << segment.head << ")";
       return os; 
     }// Opaerator 
     
@@ -829,6 +817,22 @@ namespace temporalalgebra{
       }// else
       return true;
     }// intersection
+    
+    mpq_class RationalSegment2D::whichSide(const RationalPoint2D& point)const{
+      // This is the fast version:
+      // value = (start.x - x) * (end.y - y) - (end.x - x) * (start.y - y);
+      // This is slower, but numerical more stable:
+      RationalVector2D vector1 = head  - tail;
+      RationalVector2D vector2 = point - tail;      
+      vector1.normalize();
+      vector2.normalize();
+      mpq_class value = vector1 | vector2;     
+      return value; 
+    }// isLeft
+    
+    bool RationalSegment2D::isLeft(const RationalPoint2D& point)const{
+      return NumericUtil::greater(whichSide(point), 0.0); 
+    }// isLeft  
 /*
 13 Class Point3DContainer
 
@@ -856,7 +860,7 @@ namespace temporalalgebra{
     size_t Point3DContainer::add( 
         const Point3D& point){
       Rectangle<3> bbox=point.getBoundingBox(); 
-      bbox.Extend(NumericUtil::eps2);
+      bbox.Extend(NumericUtil::eps);
       std::unique_ptr<mmrtree::RtreeT<3, size_t>::iterator> 
         it(pointsTree.find(bbox));
       size_t const* index;

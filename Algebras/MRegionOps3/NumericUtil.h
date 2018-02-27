@@ -65,27 +65,34 @@ namespace temporalalgebra {
 */
     class NumericUtil{
     public:
-      static constexpr double eps  = 0.0000001;
-      // for bounding
-      static constexpr double eps2 = 0.000001;
+      static constexpr double eps  = 0.00000000001;
+      static constexpr double epsRelaxFactor = 1000;
 /*
 3.1 nearlyEqual
 
 Returns ~true~ if $-eps \le a-b \le eps$.
 
 */      
-      static bool nearlyEqual(double a, double b);
+      static bool nearlyEqual(const double& a, const double& b);
+      static bool nearlyEqual(const double& a, const double& b,
+                              const double& e);
       static bool nearlyEqual(const mpq_class& a, const mpq_class& b);
+      static bool nearlyEqual(const mpq_class& a, const mpq_class& b,
+                              const mpq_class& e);
+      
 /*
 3.2 lower
 
 Returns ~true~ if $a < b-eps$.
 
 */      
-      static bool lower(double a, double b);
+      static bool lower(const double& a, const double& b);
+      static bool lower(const double& a, const double& b, const double& e);
       static bool lower(const mpq_class& a, const mpq_class& b);
       
-      static bool lowerOrNearlyEqual(double a, double b);
+      static bool lowerOrNearlyEqual(const double& a, const double& b);
+      static bool lowerOrNearlyEqual(const double& a, const double& b, 
+                                     const double& e);
       static bool lowerOrNearlyEqual(const mpq_class&  a, 
                                      const mpq_class&  b);
       
@@ -96,13 +103,15 @@ Returns ~true~ if $a > b+eps$.
 
 */ 
       static bool greater(const mpq_class& a, const mpq_class& b);
-      static bool greater(double a, double b);
+      static bool greater(const double& a, const double& b);
       
-      static bool greaterOrNearlyEqual(double a, double b); 
+      static bool greaterOrNearlyEqual(const double& a, const double& b); 
+      static bool greaterOrNearlyEqual(const double& a, const double& b, 
+                                       const double& e);
       static bool greaterOrNearlyEqual(const mpq_class&  a, 
                                        const mpq_class&  b); 
       
-      static bool between(double a, double x, double b);           
+      static bool between(const double& a, const double& x, const double& b);
       static bool between(const mpq_class&  a, const mpq_class&  x, 
                           const mpq_class&  b); 
       
@@ -112,8 +121,10 @@ Returns ~true~ if $a > b+eps$.
 Returns the minimum and maximum value of $a$, $b$, $c$ and $d$.
 
 */      
-      static std::pair<double, double> minMax4(double a, double b, 
-                                               double c, double d);
+      static std::pair<double, double> minMax4(const double& a, 
+                                               const double& b,
+                                               const double& c, 
+                                               const double& d);
     };
     
 /*
