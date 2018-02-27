@@ -55,7 +55,8 @@ describes a general interface to a file system
 
 class SimpleFilesystem {
   public:
-    /**
+    /*
+     1.1 ~storeFile~
      * creates a new file on filesystem
      * @param fileId - the id of the file
      * @param content - the content of the file

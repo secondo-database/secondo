@@ -209,7 +209,7 @@ std::vector<std::string> RemoteFilesystem::listFileNames() {
   StrReader reader(&r);
   reader.setPos(4);
 
-  vector<std::string> result; //FIXME optimize init capacity
+  vector<std::string> result; //IMPROVE optimize init capacity
 
   long amount = reader.readLong(14);
   for (long i = 0; i < amount; i++) {
