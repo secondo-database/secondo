@@ -5412,6 +5412,49 @@ struct createMaxspeedRasterInfo : OperatorInfo {
 };
 
 /*
+\section{Operator ~createTileAreas~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr createTileAreasTM(ListExpr args) {
+  if (!nl->HasLength(args, 1)) {
+    return listutils::typeError("One argument expected");
+  }
+  if (!raster2::sint::checkType(nl->First(args))) {
+    return listutils::typeError("First argument must be an sint");
+  }
+  return nl->SymbolAtom(Tileareas::BasicType());
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int createTileAreasVM(Word* args, Word& result, int message, Word& local, 
+                      Supplier s) {
+  result = qp->ResultStorage(s);
+  raster2::sint *hgt = static_cast<raster2::sint*>(args[0].addr);
+  Tileareas *res = static_cast<Tileareas*>(result.addr);
+  res->retrieveAreas(hgt);
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct createTileAreasInfo : OperatorInfo {
+  createTileAreasInfo() {
+    name      = "createTileAreas";
+    signature = raster2::sint::BasicType() + " -> " + Tileareas::BasicType();
+    syntax    = "createTileAreas( _ )";
+    meaning   = "Stores all areas with tiles having the same value and all "
+                "possible transitions from one area to another.";
+  }
+};
+
+/*
 \section{Operator ~restoreTraj~}
 
 \subsection{Type Mapping}
@@ -5898,6 +5941,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   
   AddOperator(createMaxspeedRasterInfo(), createMaxspeedRasterVM,
               createMaxspeedRasterTM);
+  
+  AddOperator(createTileAreasInfo(), createTileAreasVM, createTileAreasTM);
   
   AddOperator(restoreTrajInfo(), restoreTrajVM, restoreTrajTM);
   

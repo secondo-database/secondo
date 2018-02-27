@@ -573,6 +573,12 @@ Signature : sint x nrel(... (WayInfo (arel (tuple ((WayTagKey text) (WayTagValue
 Example   : query maximum(createMaxspeedRaster([const sint value ((0.0 0.0 1.0) (1 1) (0 0 (1)))], RoadsBDo, RoadsBDo_Curve_rtree))
 Result    : 0
 
+Operator  : createTileAreas
+Number    : 1
+Signature : sint -> tileareas
+Example   : query tostring(createTileAreas(doHgt) getTypeNL)
+Result    : "tileareas"
+
 Operator : restoreTraj
 Number   : 1
 Signature: rel(tuple(longint, text, sline, string, int)) x btree x rtree x sint x hash x mlabel x mlabel x mlabel -> stream(mpoint)

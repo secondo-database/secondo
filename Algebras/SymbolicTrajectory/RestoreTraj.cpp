@@ -186,52 +186,143 @@ std::ostream& operator<<(std::ostream& o, const Tile tile) {
 \section{Implementation of class ~Tileareas~}
 
 */
-Tileareas::Tileareas(raster2::sint *_raster) {
-  retrieveAreas(_raster);
-}
+Tileareas::Tileareas(const Tileareas& _src) : 
+  raster(_src.raster), minX(_src.minX), maxX(_src.maxX), minY(_src.minY),
+  maxY(_src.maxY), areas(_src.areas), tileToArea(_src.tileToArea),
+  transitions(_src.transitions) {}
 
-Tileareas::Tileareas(const Tileareas& _src) : raster(_src.raster),
-  areas(_src.areas), rtree(_src.rtree), transitions(_src.transitions) {}
-
-void Tileareas::processTile(vector<vector<bool> >& visited, 
-                   const unsigned int x, const unsigned int y, int& tileValue) {
-  if (visited[x][y]) {
-    return;
-  }
+int Tileareas::processTile(const int x, const int y, const int prevValue) {
   int rasterPos[2];
   rasterPos[0] = x;
   rasterPos[1] = y;
   raster2::sint::index_type rasterIndex(rasterPos);
-  visited[x][y] = true;
-  if (tileValue == raster->get(rasterIndex)) { // same value as previous tile
-    // insert tile into current set of tiles
-    processTile(visited, x - 1, y,     tileValue);
-    processTile(visited, x,     y - 1, tileValue);
-    processTile(visited, x + 1, y,     tileValue);
-    processTile(visited, x,     y + 1, tileValue);
+  int value = raster->get(rasterIndex);
+  if (value == INT_MIN) {
+    return INT_MIN;
+  }
+  set<NewPair<int, int> > newArea;
+  rasterPos[0] = x - 1;
+  raster2::sint::index_type leftRasterIndex(rasterPos);
+  int leftValue = (x > minX ? raster->get(leftRasterIndex) : INT_MIN + 1);
+  if (value == leftValue && y > minY && value == prevValue) { // unite areas
+    int leftAreaNo = tileToArea.get(x - 1, y);
+    int lowerAreaNo = tileToArea.get(x, y - 1);
+    if (leftAreaNo == lowerAreaNo) { // both tiles already belong to same area
+      tileToArea.set(x, y, leftAreaNo);
+      areas[leftAreaNo].insert(NewPair<int, int>(x, y));
+    }
+    else { // move smaller area into larger area
+      int sourceAreaNo = (areas[leftAreaNo].size() < areas[lowerAreaNo].size()
+                          ? leftAreaNo : lowerAreaNo);
+      int destAreaNo = (sourceAreaNo == leftAreaNo ? lowerAreaNo : leftAreaNo);
+//       cout << sourceAreaNo << " " << destAreaNo << " | " 
+//            << areas[sourceAreaNo].size() << " " << areas[destAreaNo].size()
+//            << " | ";
+      areas[destAreaNo].insert(NewPair<int, int>(x, y));
+      tileToArea.set(x, y, destAreaNo);
+      areas[destAreaNo] = areas[sourceAreaNo];
+      for (set<NewPair<int, int> >::iterator it = areas[sourceAreaNo].begin();
+           it != areas[sourceAreaNo].end(); it++) {
+        tileToArea.set(it->first, it->second, destAreaNo);
+      }
+      areas[sourceAreaNo].clear();
+//       cout << areas[sourceAreaNo].size() << " " << areas[destAreaNo].size()
+//            << endl;
+    } 
+  }
+  else if (value == leftValue) { // extend area of left neighbor
+    int leftAreaNo = tileToArea.get(x - 1, y);
+    tileToArea.set(x, y, leftAreaNo);
+    areas[leftAreaNo].insert(NewPair<int, int>(x, y));
+  }
+  else if (y > minY && value == prevValue) { // extend area of lower neighbor
+    int lowerAreaNo = tileToArea.get(x, y - 1);
+    tileToArea.set(x, y, lowerAreaNo);
+    areas[lowerAreaNo].insert(NewPair<int, int>(x, y));
+  }
+  else { // create new area
+    newArea.insert(NewPair<int, int>(x, y));
+    tileToArea.set(x, y, areas.size());
+    areas.push_back(newArea);
+  }
+  return value;
+}
+
+void Tileareas::trimAreaVector() {
+  if (areas.empty()) {
+    return;
+  }
+  unsigned int last = areas.size() - 1;
+  for (unsigned int i = 0; i < areas.size(); i++) {
+    if (areas[i].empty()) {
+      while (areas[last].empty() && last >= 0) {
+        areas.pop_back();
+        last--;
+      }
+      for (set<NewPair<int, int> >::iterator it = areas[last].begin();
+           it != areas[last].end(); it++) {
+        areas[i].insert(areas[i].end(), *it);
+        tileToArea.set(it->first, it->second, i);
+      }
+      last--;
+      areas.pop_back();
+    }
+  }
+}
+
+void Tileareas::recordAreaTransitions(const int x, const int y) {
+  int rasterPos[2], rasterNeighbor[2];
+  rasterPos[0] = x;
+  rasterPos[1] = y;
+  raster2::sint::index_type rasterIndex(rasterPos);
+  int value = raster->get(rasterIndex);
+  for (int dir = 0; dir <= 7; dir++) {
+    DirectionNum dirNum = static_cast<DirectionNum>(dir);
+    Tile tile(x, y);
+    Tile neighborTile = tile.moveTo(dirNum);
+    if (belongsToRaster(neighborTile.x, neighborTile.y)) {
+      rasterNeighbor[0] = tile.x;
+      rasterNeighbor[1] = tile.y;
+      raster2::sint::index_type rasterIndexNeighbor(rasterNeighbor);
+      int neighborValue = raster->get(rasterIndexNeighbor);
+      if (value != neighborValue) {
+        transitions[NewTriple<int, int, DirectionNum>(x, y, dirNum)]
+                = tileToArea.get(tile.x, tile.y);
+      }
+    }
   }
 }
 
 void Tileareas::retrieveAreas(raster2::sint *_raster) {
   raster = _raster;
   raster2::grid2 grid = raster->getGrid();
-  double length(grid.getLength());
   Rectangle<2> bbox = raster->bbox();
-  double minX(bbox.MinD(0)), maxX(bbox.MaxD(0)), 
-         minY(bbox.MinD(1)), maxY(bbox.MaxD(1));
-  unsigned int noTilesX = (unsigned int)(ceil((maxX - minX) / length)),
-               noTilesY = (unsigned int)(ceil((maxY - minY) / length));
-  vector<vector<bool> > visited(noTilesX, vector<bool>(noTilesY, false));
-  int rasterPos[2];
-  rasterPos[0] = 0;
-  rasterPos[1] = 0;
-  raster2::sint::index_type rasterIndex(rasterPos);
-  int tileValue = raster->get(rasterIndex);
-  processTile(visited, 0, 0, tileValue); // start with 1st value
-  visited[0][0] = true;
-  for (unsigned int i = 0; i < noTilesX; i++) {
-    for (unsigned int j = 0; j < noTilesY; j++) {
-      processTile(visited, i, j, tileValue);
+  cout << "Bbox: " << bbox << endl;
+  raster2::RasterIndex<2> minIndex = grid.getIndex(bbox.MinD(0), bbox.MinD(1));
+  raster2::RasterIndex<2> maxIndex = grid.getIndex(bbox.MaxD(0), bbox.MaxD(1));
+  minX = minIndex[0];
+  maxX = maxIndex[0];
+  minY = minIndex[1];
+  maxY = maxIndex[1];
+  cout << "Tile range: " << "(" << minX << ", " << minY << ") -- (" << maxX
+       << ", " << maxY << ")" << endl;
+  areas.clear();
+  tileToArea.initialize(minX, maxX, minY, maxY, -1);
+  int tileValue = INT_MIN;
+  for (int i = minX; i <= maxX; i++) {
+    for (int j = minY; j < maxY; j++) {
+      tileValue = processTile(i, j, tileValue);
+    }
+  }
+  trimAreaVector();
+  for (unsigned int i = 0; i < areas.size(); i++) {
+    if (areas[i].empty()) {
+      cout << "empty area " << i << endl;
+    }
+  }
+  for (int i = minX; i <= maxX; i++) {
+    for (int j = minY; j < maxY; j++) {
+      recordAreaTransitions(i, j);
     }
   }
 }

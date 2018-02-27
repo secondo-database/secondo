@@ -73,6 +73,36 @@ class MaxspeedRaster {
   SecondoCatalog *sc;
 };
 
+template<class T>
+class NegIndexVector2D {
+ public:
+  NegIndexVector2D() {}
+  ~NegIndexVector2D() {content.clear();}
+  
+  void initialize(const int _minX, const int _maxX, const int _minY,
+                  const int _maxY, const T _value) {
+    minX = _minX;
+    maxX = _maxX;
+    minY = _minY;
+    maxY = _maxY;
+    content.resize(maxX - minX + 1, std::vector<T>(maxY - minY + 1, _value));
+  }
+  
+  void set(const int x, const int y, const T value) {
+    assert(minX <= x && x <= maxX && minY <= y && y <= maxY);
+    content[x - minX][y - minY] = value;
+  }
+  
+  T get(const int x, const int y) {
+    assert(minX <= x && x <= maxX && minY <= y && y <= maxY);
+    return content[x - minX][y - minY];
+  }
+  
+ private:
+  std::vector<std::vector<T> > content;
+  int minX, maxX, minY, maxY;
+};
+
 /*
 \section{class ~Tileareas~}
 
@@ -81,13 +111,17 @@ class Tileareas {
  public:
   Tileareas() {}
   
-  Tileareas(raster2::sint *_raster);
+  Tileareas(const bool dummy) : raster(0) {}
   Tileareas(const Tileareas& _src);
   
   ~Tileareas() {}
   
-  void processTile(std::vector<std::vector<bool> >& visited,
-                   const unsigned int x, const unsigned int y, int& tileValue);
+  bool belongsToRaster(const int x, const int y) {
+    return (minX <= x && x <= maxX && minY <= y && y <= maxY);
+  }
+  int processTile(const int x, const int y, const int prevValue);
+  void trimAreaVector();
+  void recordAreaTransitions(const int x, const int y);
   void retrieveAreas(raster2::sint *_raster);
   
   static const std::string BasicType() {return "tileareas";}
@@ -108,9 +142,10 @@ class Tileareas {
   
  private:
   raster2::sint *raster;
+  int minX, maxX, minY, maxY;
   std::vector<std::set<NewPair<int, int> > > areas;
-  RTree2TID *rtree; // tile -> area
-  std::map<NewPair<NewPair<int, int>, DirectionNum>, int> transitions;
+  NegIndexVector2D<int> tileToArea;
+  std::map<NewTriple<int, int, DirectionNum>, int> transitions;
                                                            // tile x dir -> area
 };
 
