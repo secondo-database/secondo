@@ -483,12 +483,10 @@ test_do_massdelete=0
 #test for big file
 	echo
 	echo TEST big file
-	#bigfile=$fileroot/big.iso
-	#$cli localfile-create $bigfile 5000000000 ten
+	bigfile=$fileroot/big.iso
+	$cli localfile-create $bigfile 5000000000 ten
 	$cli change-setting $urii chunksize 1048576
 	$cli file-store $urii ~/big.iso
-
-	exit
 
 #test for loosing one data node
     echo

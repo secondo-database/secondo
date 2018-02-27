@@ -36,11 +36,11 @@ UI64 generator = 0xC96C5795D7870F42;
 
 void crc64::generateLookupTable() {
 
-  for (int i = 0; i < 256; ++i) {
+  for (short i = 0; i < 256; i++) {
 
     UI64 crc = i;
 
-    for (int j = 0; j < 8; ++j) {
+    for (short j = 0; j < 8; j++) {
       if (crc & 1) {
         crc >>= 1;
         crc ^= generator;
@@ -54,7 +54,7 @@ void crc64::generateLookupTable() {
 
 UI64 crc64::checksum(UI8 *buf, int len) {
   UI64 crc = 0;
-  for (int i = 0; i < len; ++i) {
+  for (int i = 0; i < len; i++) {
     UI8 index = buf[i] ^crc;
     UI64 lookup = table[index];
     crc >>= 8;

@@ -124,7 +124,7 @@ Str dfs::io::file::currentDir() {
   int ls = x.findLastChar('/');
   return x.substr(0, ls);
 #endif
-  //FIXME windows
+  //TODO windows
 }
 
 void dfs::io::file::createDir(const Str &dir) {
@@ -133,7 +133,7 @@ void dfs::io::file::createDir(const Str &dir) {
   mkdir(ddir, S_IRWXU);
   delete[] ddir;
 #endif
-  //FIXME windows
+  //TODO windows
 }
 
 Writer::Writer(const Str &filename) {

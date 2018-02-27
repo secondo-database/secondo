@@ -369,16 +369,9 @@ int main() {
     ArithmeticTests t41;
     t41.run();
 
-    RemoteFilesystemCase t3;
-    //fixme t3.run();
-
     NumberCase().run();
 
     RemoteCommandBuilderCase().run();
-
-    //hier nur code examples zum probieren!
-    //UtilCase().run();
-
 
     delete logger;
     msg("SUCCESS TESTER");

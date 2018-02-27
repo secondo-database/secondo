@@ -71,7 +71,7 @@ Str ParameterHelper::getParameter(const Str &name) {
 int ParameterHelper::getParameterInt(const Str &name) {
   Str s = this->getParameter(name);
   if (s.len() > 0) {
-    return s.toInt(); //FIXME inhaltspruefung
+    return s.toInt(); //TODO inhaltspruefung
   }
   return -1;
 }
