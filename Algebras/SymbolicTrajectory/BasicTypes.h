@@ -80,6 +80,41 @@ class NewPair {
     }
   }
 };
+
+template<class F, class S, class T>
+class NewTriple {
+ public:
+  NewTriple() {}
+  NewTriple(F f, S s, T t) : first(f), second(s), third(t) {}
+   
+  F first;
+  S second;
+  T third;
+  
+  bool operator==(const NewTriple& nt) const {
+    return (first == nt.first && second == nt.second && third = nt.third);
+  }
+  
+  bool operator<(const NewTriple& nt) const {
+    if (first < nt.first) {
+      return true;
+    }
+    if (first == nt.first) {
+      if (second < nt.second) {
+        return true;
+      }
+      if (second == nt.second) {
+        return third < nt.third;
+      }
+    }
+    return false;
+  }
+  
+  friend std::ostream& operator<<(std::ostream& os, const NewTriple& nt) {
+    os << nt.first << ", " << nt.second << ", " << nt.third;
+    return os;
+  }
+};
   
 struct SymbolicUnit {
  public: 
