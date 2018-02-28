@@ -252,10 +252,10 @@ void Tileareas::trimAreaVector() {
   if (areas.empty()) {
     return;
   }
-  unsigned int last = areas.size() - 1;
-  for (unsigned int i = 0; i < areas.size(); i++) {
+  int last = areas.size() - 1;
+  for (int i = 0; i < (int)areas.size(); i++) {
     if (areas[i].empty()) {
-      while (areas[last].empty() && last >= 0) {
+      while (areas[last].empty() && last >= i) {
         areas.pop_back();
         last--;
       }
@@ -271,23 +271,33 @@ void Tileareas::trimAreaVector() {
 }
 
 void Tileareas::recordAreaTransitions(const int x, const int y) {
+//   cout << "rAT(" << x << ", " << y << ")" << endl;
   int rasterPos[2], rasterNeighbor[2];
   rasterPos[0] = x;
   rasterPos[1] = y;
   raster2::sint::index_type rasterIndex(rasterPos);
   int value = raster->get(rasterIndex);
+  if (value == INT_MIN) {
+    return;
+  }
   for (int dir = 0; dir <= 7; dir++) {
     DirectionNum dirNum = static_cast<DirectionNum>(dir);
     Tile tile(x, y);
     Tile neighborTile = tile.moveTo(dirNum);
     if (belongsToRaster(neighborTile.x, neighborTile.y)) {
-      rasterNeighbor[0] = tile.x;
-      rasterNeighbor[1] = tile.y;
+      rasterNeighbor[0] = neighborTile.x;
+      rasterNeighbor[1] = neighborTile.y;
       raster2::sint::index_type rasterIndexNeighbor(rasterNeighbor);
       int neighborValue = raster->get(rasterIndexNeighbor);
-      if (value != neighborValue) {
+//       cout << "(" << x << ", " << y << "): " << value << "; (" 
+//            << neighborTile.x << ", " << neighborTile.y << "): " 
+//            << neighborValue << endl;
+      if (value != neighborValue && neighborValue != INT_MIN) {
         transitions[NewTriple<int, int, DirectionNum>(x, y, dirNum)]
-                = tileToArea.get(tile.x, tile.y);
+                               = tileToArea.get(neighborTile.x, neighborTile.y);
+//         cout << "  transition (" << x << ", " << y << ") -> (" 
+//              << neighborTile.x << ", " << neighborTile.y << "), direction " 
+//              << RestoreTrajLI::dirNumToString(dirNum) << " recorded" << endl;
       }
     }
   }
@@ -321,10 +331,12 @@ void Tileareas::retrieveAreas(raster2::sint *_raster) {
     }
   }
   for (int i = minX; i <= maxX; i++) {
+    
     for (int j = minY; j < maxY; j++) {
       recordAreaTransitions(i, j);
     }
   }
+  cout << transitions.size() << " transitions found" << endl;
 }
 
 ListExpr Tileareas::Property() {
@@ -366,14 +378,150 @@ void Tileareas::Delete(const ListExpr typeInfo, Word& w) {
 
 bool Tileareas::Open(SmiRecord& valueRecord, size_t& offset, 
                      const ListExpr typeInfo, Word& value) {
-  bool ok = true;
-  return ok;
+  Tileareas *ta = new Tileareas(true);
+  unsigned int size, noTiles, noXcoords;
+//   int x, y;
+  // load min, max
+  if (!valueRecord.Read(&(ta->minX), sizeof(int), offset)) {
+    return false;
+  }
+  offset += sizeof(int);
+  if (!valueRecord.Read(&(ta->maxX), sizeof(int), offset)) {
+    return false;
+  }
+  offset += sizeof(int);
+  if (!valueRecord.Read(&(ta->minY), sizeof(int), offset)) {
+    return false;
+  }
+  offset += sizeof(int);
+  if (!valueRecord.Read(&(ta->maxY), sizeof(int), offset)) {
+    return false;
+  }
+  offset += sizeof(int);
+  // load areas
+  if (!valueRecord.Read(&size, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  for (unsigned int i = 0; i < size; i++) {
+    if (!valueRecord.Read(&noTiles, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    set<NewPair<int, int> > area;
+    NewPair<int, int> tile;
+    for (unsigned int j = 0; j < noTiles; j++) {
+      if (!valueRecord.Read(&tile, sizeof(NewPair<int, int>), offset)) {
+        return false;
+      }
+      offset += sizeof(NewPair<int, int>);
+      area.insert(tile);
+    }
+    ta->areas.push_back(area);
+  }
+  // load tileToArea
+  ta->tileToArea.initialize(ta->minX, ta->maxX, ta->minY, ta->maxY, -1);
+  if (!valueRecord.Read(&noXcoords, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  
+  
+  // load transitions
+  
+  
+  
+  value.addr = ta;
+  return true;
 }
 
 bool Tileareas::Save(SmiRecord& valueRecord, size_t& offset, 
                      const ListExpr typeInfo, Word& value) {
-  bool ok = true;
-  return ok;
+  Tileareas *ta = static_cast<Tileareas*>(value.addr);
+  // store min, max
+  if (!valueRecord.Write(&(ta->minX), sizeof(int), offset)) {
+    return false;
+  }
+  offset += sizeof(int);
+  if (!valueRecord.Write(&(ta->maxX), sizeof(int), offset)) {
+    return false;
+  }
+  offset += sizeof(int);
+  if (!valueRecord.Write(&(ta->minY), sizeof(int), offset)) {
+    return false;
+  }
+  offset += sizeof(int);
+  if (!valueRecord.Write(&(ta->maxY), sizeof(int), offset)) {
+    return false;
+  }
+  offset += sizeof(int);
+  // store areas
+  unsigned int noAreas = ta->areas.size();
+  if (!valueRecord.Write(&noAreas, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  for (unsigned int i = 0; i < ta->areas.size(); i++) {
+    unsigned int noTiles = ta->areas[i].size();
+    if (!valueRecord.Write(&noTiles, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    for (set<NewPair<int, int> >::iterator it = ta->areas[i].begin(); 
+         it != ta->areas[i].end(); it++) {
+      NewPair<int, int> tile(*it);
+      if (!valueRecord.Write(&tile, sizeof(NewPair<int, int>), offset)) {
+        return false;
+      }
+      offset += sizeof(NewPair<int, int>);
+    }
+  }
+  // store tileToArea
+  unsigned int noXcoords = ta->tileToArea.getXsize();
+  if (!valueRecord.Write(&noXcoords, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  for (unsigned int i = 0; i < noXcoords; i++) {
+    unsigned int noYcoords = ta->tileToArea.getYsize(i);
+    if (!valueRecord.Write(&noYcoords, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    for (unsigned int j = 0; j < noYcoords; j++) {
+      int areaNo = ta->tileToArea.get(i, j);
+      if (!valueRecord.Write(&areaNo, sizeof(int), offset)) {
+        return false;
+      }
+      offset += sizeof(int);
+    }
+  }
+  // store transitions
+  unsigned int noTransitions = ta->transitions.size();
+  if (!valueRecord.Write(&noTransitions, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  for (map<NewTriple<int, int, DirectionNum>, int>::iterator 
+       it = ta->transitions.begin(); it != ta->transitions.end(); it++) {
+    int x(it->first.first), y(it->first.second), areaNo(it->second);
+    DirectionNum dirNum(it->first.third);
+    if (!valueRecord.Write(&x, sizeof(int), offset)) {
+      return false;
+    }
+    offset += sizeof(int);
+    if (!valueRecord.Write(&y, sizeof(int), offset)) {
+      return false;
+    }
+    offset += sizeof(int);
+    if (!valueRecord.Write(&dirNum, sizeof(DirectionNum), offset)) {
+      return false;
+    }
+    offset += sizeof(DirectionNum);
+    if (!valueRecord.Write(&areaNo, sizeof(int), offset)) {
+      return false;
+    }
+    offset += sizeof(int);
+  }
+  return true;
 }
 
 void Tileareas::Close(const ListExpr typeInfo, Word& w) {
@@ -583,6 +731,18 @@ const DirectionNum RestoreTrajLI::dirLabelToNum(const Label& dirLabel) {
   if (dirLabel == "South")     return SOUTH;
   if (dirLabel == "Southeast") return SOUTHEAST;
   return DIR_ERROR;
+}
+
+const string RestoreTrajLI::dirNumToString(const DirectionNum dirNum) {
+  if (dirNum == EAST)      return "East";
+  if (dirNum == NORTHEAST) return "Northeast";
+  if (dirNum == NORTH)     return "North";
+  if (dirNum == NORTHWEST) return "Northwest";
+  if (dirNum == WEST)      return "West";
+  if (dirNum == SOUTHWEST) return "Southwest";
+  if (dirNum == SOUTH)     return "South";
+  if (dirNum == SOUTHEAST) return "Southeast";
+  return "Error";
 }
 
 const int RestoreTrajLI::getDirectionDistance(const DirectionNum dir1,

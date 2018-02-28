@@ -93,9 +93,18 @@ class NegIndexVector2D {
     content[x - minX][y - minY] = value;
   }
   
-  T get(const int x, const int y) {
+  T get(const int x, const int y) const {
     assert(minX <= x && x <= maxX && minY <= y && y <= maxY);
     return content[x - minX][y - minY];
+  }
+  
+  unsigned int getXsize() const {
+    return content.size();
+  }
+  
+  unsigned int getYsize(const int x) const {
+    assert(x >= 0 && x < content.size());
+    return content[x].size();
   }
   
  private:
@@ -114,7 +123,7 @@ class Tileareas {
   Tileareas(const bool dummy) : raster(0) {}
   Tileareas(const Tileareas& _src);
   
-  ~Tileareas() {}
+  ~Tileareas() {raster = 0;}
   
   bool belongsToRaster(const int x, const int y) {
     return (minX <= x && x <= maxX && minY <= y && y <= maxY);
@@ -141,7 +150,7 @@ class Tileareas {
   static bool TypeCheck(ListExpr typeList, ListExpr& errorInfo);
   
  private:
-  raster2::sint *raster;
+  raster2::sint *raster; // not stored persistently
   int minX, maxX, minY, maxY;
   std::vector<std::set<NewPair<int, int> > > areas;
   NegIndexVector2D<int> tileToArea;
@@ -265,7 +274,8 @@ class RestoreTrajLI {
                     vector<Tile>& result);
   void retrieveTilesFromHeight(const int pos, std::set<Tile>& result);
   void updateCoords(const DirectionNum dir, int& x, int& y);
-  const DirectionNum dirLabelToNum(const Label& dirLabel);
+  static const DirectionNum dirLabelToNum(const Label& dirLabel);
+  static const std::string dirNumToString(const DirectionNum dirNum);
   const int getDirectionDistance(const DirectionNum dir,
                                  const DirectionNum dir2);
   const int getSpeedFromLabel(const Label& speedLabel, const bool getMax);
