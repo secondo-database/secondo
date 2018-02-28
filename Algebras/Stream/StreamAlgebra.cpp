@@ -2936,8 +2936,8 @@ streamPrintstreamType( ListExpr args ) {
 
   ListExpr attrList  = nl->Second(nl->Second(stream));
   bool firstcall = true;
-  ListExpr attrNames;
-  ListExpr last;
+  ListExpr attrNames = nl->TheEmptyList();
+  ListExpr last = nl->TheEmptyList();
   while( !nl->IsEmpty(attrList) ) {
     ListExpr attr = nl->First(attrList);
     attrList = nl->Rest(attrList);
@@ -5992,7 +5992,7 @@ ListExpr tsTM(ListExpr args){
     return listutils::typeError("second arg is not a list");
   }
   ListExpr attrList= nl->TheEmptyList();
-  ListExpr last;
+  ListExpr last = nl->TheEmptyList();
   bool first = true;
 
   while(!nl->IsEmpty(funlist)){

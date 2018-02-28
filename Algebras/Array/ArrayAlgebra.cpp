@@ -408,8 +408,8 @@ OutArray( ListExpr typeInfo, Word value )
 
   ListExpr typeOfElement = nl->Second(typeInfo);
 
-  ListExpr list;
-  ListExpr last;
+  ListExpr list = nl->TheEmptyList();
+  ListExpr last = nl->TheEmptyList();
   ListExpr element;
 
   for (int i=0; i<array->getSize(); i++) {
@@ -496,8 +496,8 @@ SaveToListArray( ListExpr typeInfo, Word value )
 
   ListExpr typeOfElement = nl->Second(typeInfo);
 
-  ListExpr list;
-  ListExpr last;
+  ListExpr list = nl->TheEmptyList();
+  ListExpr last = nl->TheEmptyList();
   ListExpr element;
 
   for (int i=0; i<array->getSize(); i++) {

@@ -2655,8 +2655,8 @@ ListExpr kmergediffTM(ListExpr args){
    ListExpr attrList1 = nl->Second(nl->Second(nl->First(args)));
    ListExpr attrList2 = nl->Second(nl->Second(nl->Second(args)));
 
-   ListExpr appendList;
-   ListExpr last;
+   ListExpr appendList = nl->TheEmptyList();
+   ListExpr last = nl->TheEmptyList();
    bool first = true;
    while(!nl->IsEmpty(attrList2)){
      ListExpr attr = nl->First(attrList2);

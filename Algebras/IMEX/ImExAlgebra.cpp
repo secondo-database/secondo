@@ -7158,10 +7158,14 @@ int shpBoxVMT(Word* args, Word& result,
        xmax = WinUnix::convertEndian(xmax);
        ymax = WinUnix::convertEndian(ymax);
     } 
-    double xmind = *(reinterpret_cast<double*>((void*)&xmin));
-    double ymind = *(reinterpret_cast<double*>((void*)&ymin));
-    double xmaxd = *(reinterpret_cast<double*>((void*)&xmax));
-    double ymaxd = *(reinterpret_cast<double*>((void*)&ymax));
+    void* d=&xmin;
+    double xmind = *(reinterpret_cast<double*>(d));
+    d = &ymin;
+    double ymind = *(reinterpret_cast<double*>(d));
+    d = &xmax;
+    double xmaxd = *(reinterpret_cast<double*>(d));
+    d = &ymax;
+    double ymaxd = *(reinterpret_cast<double*>(d));
     double minD[] = {xmind,ymind};
     double maxD[] = {xmaxd, ymaxd};
     res->Set(true, minD, maxD );
@@ -8362,9 +8366,11 @@ void updateBox(const uint32_t type, char* buffer,
                  ix = WinUnix::convertEndian(ix);
                  iy = WinUnix::convertEndian(iy);
                }
-               lminX = *( reinterpret_cast<double*>(&ix));
+               void* d = &ix;
+               lminX = *(reinterpret_cast<double*>(d));
                lmaxX = lminX;
-               lminY = *(reinterpret_cast<double*>(&iy));
+               d = &iy;
+               lminY = *(reinterpret_cast<double*>(d));
                lmaxY = lminY;
                break;
              }
@@ -8386,10 +8392,14 @@ void updateBox(const uint32_t type, char* buffer,
                 iy1 = WinUnix::convertEndian(iy1);
                 iy2 = WinUnix::convertEndian(iy2);
                }
-               lminX = *( reinterpret_cast<double*>(&ix1));
-               lminY = *( reinterpret_cast<double*>(&iy1));
-               lmaxX = *( reinterpret_cast<double*>(&ix2));
-               lmaxY = *( reinterpret_cast<double*>(&iy2));
+               void* d = &ix1;
+               lminX = *( reinterpret_cast<double*>(d));
+               d = &iy1;
+               lminY = *( reinterpret_cast<double*>(d));
+               d=&ix2;
+               lmaxX = *( reinterpret_cast<double*>(d));
+               d = &iy2;
+               lmaxY = *( reinterpret_cast<double*>(d));
                break; 
              }
      default: assert(false); // type not supported

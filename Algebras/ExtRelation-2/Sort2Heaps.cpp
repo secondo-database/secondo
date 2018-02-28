@@ -94,10 +94,10 @@ ListExpr SortBy2HeapsTM(ListExpr args){
  }
 
  std::set<std::string> usednames;
- ListExpr positions;
- ListExpr directions;
- ListExpr lastpos;
- ListExpr lastdir;
+ ListExpr positions = nl->TheEmptyList();
+ ListExpr directions = nl->TheEmptyList();
+ ListExpr lastpos = nl->TheEmptyList();
+ ListExpr lastdir = nl->TheEmptyList();
 
  bool first  = true;
 

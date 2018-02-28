@@ -487,7 +487,7 @@ void PartitionManager::Insert(Tuple* t, size_t p, size_t b)
 size_t PartitionManager::PartitionStream(Word stream)
 {
   Tuple* t;
-  size_t b, last, read = 0;
+  size_t b=0, last=0, read = 0;
   size_t p = UINT_MAX;
 
   while ( ( t = readFromStream(stream) ) )
