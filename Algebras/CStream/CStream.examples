@@ -1,0 +1,80 @@
+Database : berlintest
+Restore  : NO
+
+Operator : receiveStream
+Number   : 1
+Signature: string x symbol -> stream(vtuple)
+Example  : query receiveStream("somefile.ais", "ais") count
+Result   : 0
+
+Operator : distributeStream
+Number   : 1
+Signature: stream(tuple) x int x bool -> stream(tuple)
+Example  : query ten feed distributeStream[8080, FALSE] count
+Result   : 10
+
+Operator  : transformtstream
+Number    : 1
+Signature : stream(tuple(X)) -> stream(vtuple)
+Example   : query ten feed transformtstream transformvtstream[ [const tupledescr value '((No int))'] ] = ten feed
+Result    : TRUE
+
+
+Operator  : transformvtstream
+Number    : 1
+Signature : stream(vtuple) x tupledescr -> stream(tuple(TUPLEDESC))
+Example   : query ten feed transformtstream transformvtstream[ [const tupledescr value '((No int))'] ] = ten feed
+Result    : TRUE
+
+Operator  : provideTupleTypes
+Number    : 1
+Signature : stream(tuple(X)) x int x int -> stream(tuple(X))
+Example   : query ten feed provideTupleTypes[1238] = ten feed
+Result    : TRUE
+
+Operator  : provideTupleTypes
+Number    : 2
+Signature : stream(vtuple) x int x int -> stream(vtuple)
+Example   : query ten feed transformtstream provideTupleTypes[1238,4] transformvtstream[ [const tupledescr value '((No int))'] ]  = ten feed
+Result    : TRUE
+
+Operator  : requestTupleTypes
+Number    : 1
+Signature : string x int x int -> stream(tuple( (Type tupledescr)))
+Example   : query requestTupleTypes("localhost", 1238, 16) count
+Result    : 0
+Remark    : Requires another Secondo that provides the tuple types
+
+Operator  : registerForStream
+Number    : 1
+Signature : text x int x tupledescr x (fun: tuple(TUPLEDESC) -> bool)  -> stream(tuple(TUPLEDESC))
+Example   : query "localhost" 1238 registerForStream[ [const tupledescr value '((No int))'] , .No > 5] count
+Result    : 0
+Remark    : Requires another Secondo that provides the tuples
+
+Operator  : registerForStream
+Number    : 2
+Signature : text x int x tupledescr x (fun: tuple(TUPLEDESC) -> bool)  -> stream(tuple(TUPLEDESC))
+Example   : query "localhost" 1238 registerForStream[[const tupledescr value '((No int))'] , fun(t : tuple([No : int]) ) attr(t,No) > 5 ] count
+Result    : 0
+Remark    : Requires another Secondo that provides the tuples
+
+Operator : count
+Number   : 1
+Signature : stream(vtuple) -> int
+Example   : query ten feed transformtstream count
+Result    : 10
+
+Operator : printstream 
+Number   : 1
+Signature : stream(vtuple) -> stream(vtuple)
+Example   : query ten feed transformtstream printstream count
+Result    : 10
+
+
+Operator : headnp 
+Number   : 1
+Signature : stream(ANY) x int -> stream(ANY)
+Example   : query ten feed transformtstream headnp[3] count
+Result    : 3
+ 
