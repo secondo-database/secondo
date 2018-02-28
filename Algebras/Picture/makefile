@@ -29,9 +29,7 @@ include ../../makefile.env
 
 # expand compile flags if necessary
 CCFLAGS +=  -Werror
-ifneq ($(platform),mac_osx)
-  CCFLAGS += -std=c++0x
-endif
+CCFLAGS += -std=c++0x
 
 ifeq ($(platform),android)
 CCFLAGS += -I$(HOME)/jpeg-6b/

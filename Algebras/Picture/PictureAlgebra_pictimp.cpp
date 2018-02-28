@@ -63,6 +63,7 @@ SECONDO to use ~Picture~ plus basic SECONDO operators on ~picture~.
 #include <iomanip>
 #include <ctime>
 #include <sstream>
+#include <array>
 
 
 
