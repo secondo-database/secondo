@@ -4662,7 +4662,7 @@ int MovingMDirectionExt( Word* args, Word& result, int message,
         return 0;
       }
       epsilon = eps->GetValue();
-      if(eps <= 0){
+      if(epsilon <= 0){
         m->SetDefined(false);
         return 0;
       }
