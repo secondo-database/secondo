@@ -123,6 +123,7 @@ This file contains the implementation of the stream operators.
 #include <time.h>
 #include <errno.h>
 #include <utility>
+#include <unistd.h>
 
 
 
