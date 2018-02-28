@@ -3911,8 +3911,8 @@ ListExpr validateAttrTM(ListExpr args){
     return listutils::typeError(err);
   }
   // start building the result
-  ListExpr res;
-  ListExpr last;
+  ListExpr res = nl->TheEmptyList();
+  ListExpr last = nl->TheEmptyList();
   bool firstElem = true;
   ListExpr attrList = nl->Second(nl->Second(stream));
 
