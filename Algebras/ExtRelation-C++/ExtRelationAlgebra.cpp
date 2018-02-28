@@ -2138,7 +2138,7 @@ ListExpr krdupTM(ListExpr args){
   pos = 0;
 
   ListExpr PosList = nl->TheEmptyList();
-  ListExpr Last;
+  ListExpr Last = nl->TheEmptyList();
   bool first = true;
 
   while(!nl->IsEmpty(attrList)){
@@ -2849,8 +2849,8 @@ ListExpr ksmallestTM(ListExpr args){
   ListExpr StreamList = nl->Second(nl->Second(Stream));
 
   int attrNo = 0;
-  ListExpr NumberList;
-  ListExpr Last;
+  ListExpr NumberList=nl->TheEmptyList();
+  ListExpr Last=nl->TheEmptyList();
   ListExpr attrType = nl->TheEmptyList();
 
   if(nl->AtomType(AttrList)!=NoAtom){
@@ -6661,12 +6661,12 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
 
  ListExpr streamattr = nl->Second(nl->Second(stream));
  set<string> names;
- int noAttrs;
- ListExpr numberList;
+ int noAttrs=0;
+ ListExpr numberList=nl->TheEmptyList();
 
- ListExpr newAttrList;
- ListExpr lastNewAttrList;
- ListExpr lastNumberList;
+ ListExpr newAttrList=nl->TheEmptyList();
+ ListExpr lastNewAttrList = nl->TheEmptyList();
+ ListExpr lastNumberList = nl->TheEmptyList();
  bool firstCall = true;
 
  if(nl->IsEmpty(attrList)){
@@ -7235,11 +7235,11 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
  ListExpr streamattr = nl->Second(nl->Second(stream));
  set<string> names;
  // int noAttrs;
- ListExpr numberList;
+ ListExpr numberList = nl->TheEmptyList();
 
- ListExpr newAttrList;
- ListExpr lastNewAttrList;
- ListExpr lastNumberList;
+ ListExpr newAttrList = nl->TheEmptyList();
+ ListExpr lastNewAttrList = nl->TheEmptyList();
+ ListExpr lastNumberList = nl->TheEmptyList();
  bool firstCall = true;
 
  int attrno = nl->ListLength(attrList);
@@ -8019,10 +8019,10 @@ ListExpr GroupByTypeMap(ListExpr args)
  // 
  set<string> usedNames;
 
- ListExpr indexList;
- ListExpr indexLast;
- ListExpr resAttrList;
- ListExpr resAttrLast;
+ ListExpr indexList = nl->TheEmptyList();
+ ListExpr indexLast = nl->TheEmptyList();
+ ListExpr resAttrList = nl->TheEmptyList();
+ ListExpr resAttrLast = nl->TheEmptyList();
  bool first = true;
 
  // process group list
@@ -11783,8 +11783,8 @@ ListExpr extend_lastTM(ListExpr args){
 
   ListExpr TupleList  = nl->Second(stream);
   ListExpr attrList   = nl->Second(TupleList);
-  ListExpr ExtList;
-  ListExpr last;
+  ListExpr ExtList = nl->TheEmptyList();
+  ListExpr last = nl->TheEmptyList();
   bool first = true;
 
 
@@ -12759,10 +12759,10 @@ ListExpr applyToAllTM(ListExpr args){
    }
 
    // tests are ok, build result lists
-   ListExpr resList;
-   ListExpr resLast;
+   ListExpr resList = nl->TheEmptyList();
+   ListExpr resLast = nl->TheEmptyList();
    ListExpr replaceList = nl->TheEmptyList();
-   ListExpr replaceLast;
+   ListExpr replaceLast = nl->TheEmptyList();
 
    ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
    bool firstRes = true;
@@ -13106,9 +13106,9 @@ ListExpr replaceAttrTM(ListExpr args){
   string error;
   ListExpr attrType;
   map<string,ListExpr> newTypes;
-  ListExpr indexList;
+  ListExpr indexList = nl->TheEmptyList();
   bool first = true;
-  ListExpr last;
+  ListExpr last = nl->TheEmptyList();
 
   while(!nl->IsEmpty(funList)){
     ListExpr fun = nl->First(funList);
@@ -13160,7 +13160,7 @@ ListExpr replaceAttrTM(ListExpr args){
   }
 
   // now, we create the result attr type
-  ListExpr resAttrList;
+  ListExpr resAttrList=nl->TheEmptyList();
   first = true;
   while(!nl->IsEmpty(attrList)){
     ListExpr attr = nl->First(attrList);
