@@ -284,9 +284,10 @@ can be set with the operator ~mraprec~ too.
 */
 
 //const double eps = 0.0001;
-//const double eps = 0.00000001;
-double eps = 0.00001;
-double epsRelaxFactor = 10;
+const double eps = 0.00000001;
+//double eps = 0.00001;
+//double epsRelaxFactor = 10;
+double epsRelaxFactor = 1000;
 
 
 
