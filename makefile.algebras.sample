@@ -409,6 +409,13 @@ ALGEBRAS     += MainMemory2Algebra
 ALGEBRA_DIRS += JNet
 ALGEBRAS     += JNetAlgebra
 
+#ALGEBRA_DIRS += CStream
+#ALGEBRAS     += CStreamAlgebra
+#COMMON_LD_FLAGS += -lboost_thread -lboost_system -lboost_regex
+
+
+
+
 # JNI Algebras - Java code will be called from C++ code.
 
 #JNI_ALGEBRA_DIRS := Fuzzy
