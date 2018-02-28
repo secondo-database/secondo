@@ -1,0 +1,97 @@
+#
+# MRegionOps3Algebra-Testfile
+#
+# November 2017, U. Wiesecke
+#
+# *
+# * Note: Call this testscript as follows:
+# * TestRunner --no-tmp -i ../Algebras/MRegionOps3/test/mregionops35.test
+# *
+################################################################################
+# *
+# * Preparing the test database
+# *
+################################################################################
+#testcase create database opt
+#yields success
+#create database opt;
+#testcase open database opt
+#yields success
+open database opt;
+delete gwGK;
+delete wuGK;
+################################################################################
+# *
+# * Create test data
+# *
+################################################################################
+restore gwGK from '../Algebras/MRegionOps3/test/gwGK';
+restore wuGK from '../Algebras/MRegionOps3/test/wuGK';
+################################################################################
+# *
+# * Detailed test, preparation
+# *
+################################################################################
+delete t0A;
+delete t0B;
+delete t1A;
+delete t1B;
+delete t0;
+delete t1;
+delete noSamples;
+delete step;
+delete samples;
+delete tolerance;
+delete gwwuGKi;
+delete gwwuGKu;
+delete gwwuGkm;
+let noSamples = 100.0;
+let t0A = instant2real(inst(initial(gwGK)));
+let t0B = instant2real(inst(initial(wuGK)));
+let t1A = instant2real(inst(final(gwGK)));
+let t1B = instant2real(inst(final(wuGK)));
+let t0 = ifthenelse(t0A < t0B, t0A, t0B);
+let t1 = ifthenelse(t1A > t1B, t1A, t1B);
+let step = (abs(t1 - t0)) / noSamples;
+let samples = realstream(t0, t1, step) 
+              use[fun(t: real) create_instant(t)] transformstream consume;
+let tolerance = 30.0;
+################################################################################
+# *
+# * Detailed test, Union
+# *
+################################################################################
+#testcase gwGK union wuGK
+#yields ()
+let gwwuGKu = gwGK union wuGK;
+#yields (bool TRUE)
+query samples feed transformstream 
+use[ fun(t: instant) abs( area(val(gwwuGKu atinstant t)) - 
+area( val(gwGK atinstant t) union val(wuGK atinstant t))
+)] transformstream max[Elem] < tolerance;
+################################################################################
+# *
+# * Detailed test, Intersection
+# *
+################################################################################
+#testcase intersection(gwGK, wuGK)
+#yields ()
+let gwwuGKi = intersection(gwGK, wuGK);
+#yields (bool TRUE)
+query samples feed transformstream 
+use[ fun(t: instant) abs( area(val(gwwuGKi atinstant t)) - 
+area( intersection(val(gwGK atinstant t), val(wuGK atinstant t)))
+)] transformstream max[Elem] < tolerance;
+################################################################################
+# *
+# * Detailed test, Minus
+# *
+################################################################################
+#testcase gwGK minus wuGK
+#yields ()
+let gwwuGkm = gwGK minus wuGK;
+#yields (bool TRUE)
+query samples feed transformstream 
+use[ fun(t: instant) abs( area(val(gwwuGkm atinstant t)) - 
+area( val(gwGK atinstant t) minus val(wuGK atinstant t))
+)] transformstream max[Elem] < tolerance;

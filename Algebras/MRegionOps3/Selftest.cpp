@@ -64,7 +64,7 @@ namespace temporalalgebra {
         RationalPoint3DTest2();
         
         RationalVector3DTest1();
-//        RationalVector3DTest2();
+        RationalVector3DTest2();
         RationalVector3DTest3();
         
         Segment3DTest();
@@ -81,7 +81,7 @@ namespace temporalalgebra {
         Segment2DTest2();
         
         RationalSegment2DTest1();
-//        RationalSegment2DTest2();
+        RationalSegment2DTest2();
       
         
         Point3DContainerTest();
@@ -94,7 +94,7 @@ namespace temporalalgebra {
         
         RationalPlane3DTest1();      
         RationalPlane3DTest2();         
-//        RationalPlane3DTest3();      
+        RationalPlane3DTest3();      
 
         IntersectionPointTest();
         
@@ -110,29 +110,29 @@ namespace temporalalgebra {
         
         CriticalPResultFaceTest1();
      
-//        PFaceTest1();           
+        PFaceTest1();           
         PFaceTest2();
         PFaceTest3();
         PFaceTest4();
-//        PFaceTest5();      
+        PFaceTest5();      
         PFaceTest6();
-//        PFaceTest7();
-//        PFaceTest8();
-//        PFaceTest9();      
-        PFaceTest10();   
+        PFaceTest7();
+        PFaceTest8();
+        PFaceTest9();         
+        PFaceTest10();
         PFaceTest11();        
-//        PFaceTest12();
-//        PFaceTest13();
+        PFaceTest12();
+        PFaceTest13();
       
         GlobalTimeValuesTest1();
         GlobalTimeValuesTest2();
              
-//        SourceUnitTest1();
-//        SourceUnitTest2();
-//        SourceUnitTest3();
+        SourceUnitTest1();
+        SourceUnitTest2();
+        SourceUnitTest3();
         
-//        IntSegContainerTest3();
-//        IntSegContainerTest4();
+        IntSegContainerTest3();
+        IntSegContainerTest4();
         IntSegContainerTest5();
         
         SegmentTest();
@@ -141,10 +141,10 @@ namespace temporalalgebra {
      
         SourceUnitTest4();        
 
-//        UnitsTest1();
-//        UnitsTest2();
-//        UnitsTest3();       
-//        UnitsTest4();     
+        UnitsTest1();
+        UnitsTest2();
+        UnitsTest3();       
+        UnitsTest4();     
         UnitsTest5();        
         UnitsTest6();
         UnitsTest7();
@@ -152,7 +152,7 @@ namespace temporalalgebra {
         UnitsTest9();
         UnitsTest10();
 
-//        SourceUnitPairTest1();   
+        SourceUnitPairTest1();   
         
         LayerTest1();
         LayerTest2();
@@ -163,11 +163,11 @@ namespace temporalalgebra {
         LayerContainerTest3();
         LayerContainerTest4();
         LayerContainerTest5();
-//        LayerContainerTest6();
-//        LayerContainerTest7();
+        LayerContainerTest6();
+        LayerContainerTest7();
         LayerContainerTest8();
         LayerContainerTest9();
-                
+        
         cerr << endl;
         cerr << numberOfTestsRun << " tests run, ";
         cerr << numberOfTestsFailed << " tests failed." << endl <<endl;  
@@ -265,6 +265,7 @@ namespace temporalalgebra {
                 value2 == -14);
         assert_("RationalVector3DTest 2.4", "Cross product is incorrect.", 
                 vector5 == RationalVector3D(0,0,0));                
+        // cout << setprecision(12);
         // cout << vector1 << endl;
         // cout << vector2 << endl;
         // cout << vector3 << endl;
@@ -342,8 +343,9 @@ namespace temporalalgebra {
                  segment1.getR() == segment2);
         assert_("RationalSegment3DTest 2.2", "segments aren't equal.", 
                  segment1 == segment2.getD()); 
-        //cout << segment1 << endl; 
-        //cout << segment2 << endl;
+        // cout << setprecision(12);
+        // cout << segment1 << endl; 
+        // cout << segment2 << endl;
       }// RationalSegment3DTest2  
 /*
 6 Test Point2D
@@ -480,7 +482,8 @@ namespace temporalalgebra {
         assert_("RationalSegment2DTest 2.1", "segments intersect.", 
                 result);
         assert_("RationalSegment2DTest 2.1", "points arn't equal.", 
-                point5 == RationalPoint2D(1.888888889,2.555555556));
+                point5 == RationalPoint2D(1.88888888889, 2.55555555556));
+        // cout << setprecision(12);
         // cout << point5 <<endl;
       }// RationalSegment2DTest2 
       
@@ -726,10 +729,10 @@ namespace temporalalgebra {
         Point2D point7 = plane1.transform(point3).getD();
         Point2D point8 = plane1.transform(point4).getD();
         // result
-        Point2D point9(2.12132034,0);
-        Point2D point10(4.94974747,0);
-        Point2D point11(2.12132034,3);
-        Point2D point12(4.94974747,3);
+        Point2D point9( 2.12132034356, 0);
+        Point2D point10(4.94974746831, 0);
+        Point2D point11(2.12132034356, 3);
+        Point2D point12(4.94974746831, 3);
         assert_("RationalPlane3DTest 3.1", "transformation is incorrect.",
                 point5 == point9);
         assert_("RationalPlane3DTest 3.2", "transformation is incorrect.",
@@ -738,7 +741,7 @@ namespace temporalalgebra {
                 point7 == point11);
         assert_("RationalPlane3DTest 3.4", "transformation is incorrect.",
                 point8 == point12);        
-        // cout << setprecision(9);
+        // cout << setprecision(12);
         // cout << point1 << ", " << point5 << endl;
         // cout << point2 << ", " << point6 << endl;
         // cout << point3 << ", " << point7 << endl;
@@ -1061,9 +1064,9 @@ namespace temporalalgebra {
         segments.add(Segment(4,6));
         segments.add(Segment(5,7)); 
         // Result points
-        IntersectionPoint point9(2.5, 2.16666667, 1.0, 3.29983165);
-        IntersectionPoint point10(3.2, 3.8, 2.4, 4.94974747);
-        IntersectionPoint point11(2.5, 2.16666667, 1, 2.5);
+        IntersectionPoint point9(2.5, 2.16666666667, 1, 3.29983164554);
+        IntersectionPoint point10(3.2, 3.8, 2.4, 4.94974746831);
+        IntersectionPoint point11(2.5, 2.16666666667, 1, 2.5);
         IntersectionPoint point12(3.2, 3.8, 2.4, 3.2);
         // pfaces  
         PFace pf1(0,1,points,segments);
@@ -1080,7 +1083,7 @@ namespace temporalalgebra {
                 pf1 == pf3);
         assert_("PFaceTest 1.3", "intersection segment is incorrect.",
                 pf2 == pf4);
-        // cout << setprecision(9);
+        // cout << setprecision(12);
         // cout << pf1 << endl;
         // cout << pf3 << endl;
         // cout << pf2 << endl; 
@@ -1189,10 +1192,10 @@ namespace temporalalgebra {
         segments.add( Segment(4,6));
         segments.add( Segment(5,7));  
         // result     
-        IntersectionPoint point9(2, 3, 0, 3.53553391);
-        IntersectionPoint point10(2, 3, 3, 3.53553391);
-        IntersectionPoint point11(2, 3, 0, 0.707106781);
-        IntersectionPoint point12(2, 3, 3, 0.707106781); 
+        IntersectionPoint point9(2, 3, 0, 3.53553390593);
+        IntersectionPoint point10(2, 3, 3, 3.53553390593);
+        IntersectionPoint point11(2, 3, 0, 0.707106781187);
+        IntersectionPoint point12(2, 3, 3, 0.707106781187);
         PFace pf1(0,1,points,segments);
         PFace pf2(2,3,points,segments);
         PFace pf3(0,1,points,segments);
@@ -1207,7 +1210,7 @@ namespace temporalalgebra {
                 pf1 == pf3);
         assert_("PFaceTest 5.3", "intersection segment is incorrect.",
                 pf2 == pf4);
-        // cout << setprecision(9);
+        // cout << setprecision(12);
         // cout << pf1 << endl;
         // cout << pf2 << endl;
         // cout << pf3 << endl;
@@ -1262,9 +1265,9 @@ namespace temporalalgebra {
         segments.add(Segment(4,6));
         segments.add(Segment(5,7));  
         // Result points
-        IntersectionPoint point9(2.5, 2.16666667, 1.0, 3.29983165);
-        IntersectionPoint point10(3.2, 3.8, 2.4, 4.94974747);
-        IntersectionPoint point11(2.5, 2.16666667, 1, 2.5);
+        IntersectionPoint point9(2.5, 2.16666666667, 1, 3.29983164554);
+        IntersectionPoint point10(3.2, 3.8, 2.4, 4.94974746831);
+        IntersectionPoint point11(2.5, 2.16666666667, 1, 2.5);
         IntersectionPoint point12(3.2, 3.8, 2.4, 3.2);
         // pfaces
         PFace pf1(0,1,points,segments);
@@ -1281,7 +1284,7 @@ namespace temporalalgebra {
                 pf1 == pf3);
         assert_("PFaceTest 7.3", "intersection segment is incorrect.",
                 pf2 == pf4);
-        // cout << setprecision(9);
+        // cout << setprecision(12);
         // cout << pf1 << endl;
         // cout << pf2 << endl;
         // cout << pf3 << endl;
@@ -1323,24 +1326,28 @@ namespace temporalalgebra {
         // Result
         PFace pf4(0,1,points,segments);
         PFace pf5(2,3,points,segments);
-        PFace pf6(2,4,points,segments);
-        pf4.addIntSeg(IntersectionSegment (
-          IntersectionPoint (4.66666667, 1.66666667, 2.22222222, 0.596284794), 
-          IntersectionPoint (3.625, 3.75, 5, -1.73295268), 
+        PFace pf6(2,4,points,segments);        
+        pf4.addIntSeg(IntersectionSegment(
+          IntersectionPoint(4.66666666667, 1.66666666667, 2.22222222222, 
+                            0.596284794),
+          IntersectionPoint(3.625, 3.75, 5, -1.73295268256), 
           LEFT_IS_INNER));
-        pf4.addIntSeg(IntersectionSegment (
-          IntersectionPoint (4.66666667, 1.66666667, 2.22222222, 0.596284794), 
-          IntersectionPoint (4.25, 2.5, 5, -0.335410197),
+        pf4.addIntSeg(IntersectionSegment(
+          IntersectionPoint(4.66666666667, 1.66666666667, 2.22222222222, 
+                            0.596284794), 
+          IntersectionPoint(4.25, 2.5, 5, -0.335410196625), 
           LEFT_IS_INNER));
         pf4.setState(RELEVANT);
-        pf5.addIntSeg(IntersectionSegment (
-          IntersectionPoint (4.66666667, 1.66666667, 2.22222222, 3.57770876), 
-          IntersectionPoint (3.625, 3.75, 5, 4.97525125), 
+        pf5.addIntSeg(IntersectionSegment(
+          IntersectionPoint(4.66666666667, 1.66666666667, 2.22222222222, 
+                            3.577708764), 
+          IntersectionPoint(3.625, 3.75, 5, 4.97525124994), 
           RIGHT_IS_INNER));
         pf5.setState(RELEVANT);
-        pf6.addIntSeg(IntersectionSegment (
-          IntersectionPoint (4.66666667, 1.66666667, 2.22222222, 4.66666667), 
-          IntersectionPoint (4.25, 2.5, 5, 4.25), 
+        pf6.addIntSeg(IntersectionSegment(
+          IntersectionPoint(4.66666666667, 1.66666666667, 2.22222222222, 
+                            4.66666666667), 
+          IntersectionPoint(4.25, 2.5, 5, 4.25), 
           RIGHT_IS_INNER));
         pf6.setState(RELEVANT);
         assert_("PFaceTest 8.1", "pface don't equal.",
@@ -1349,7 +1356,7 @@ namespace temporalalgebra {
                 pf2 == pf5); 
         assert_("PFaceTest 8.3", "pface don't equal.",
                 pf3 == pf6);         
-        // cout << setprecision(9);
+        // cout << setprecision(12);
         // cout << pf1 << endl;
         // cout << pf2 << endl; 
         // cout << pf3 << endl;        
@@ -1361,18 +1368,21 @@ namespace temporalalgebra {
       void Selftest::PFaceTest9(){        
         Point3DContainer points;
         SegmentContainer segments1,segments2;
-        GlobalTimeValues timeValues(5.133333333);
+        GlobalTimeValues timeValues(5.133333333333);
         timeValues.addStartAndEndtime();
         // points for pface 1
         Point3D point0(2.8, 2.6, 0);
-        Point3D point1(3.333333333, 3.666666667, 5.133333333);
+        Point3D point1(3.333333333333, 3.666666666667, 
+                       5.133333333333);
         Point3D point2(2, 1, 0);
-        Point3D point3(2, 1, 5.133333333);
+        Point3D point3(2, 1, 5.133333333333);
         // points for pface 2
         Point3D point4(2.8, 2.6, 0);
-        Point3D point5(0.666666667, 3.666666667, 5.133333333);
+        Point3D point5(0.666666666667, 3.666666666667, 
+                       5.133333333333);
         Point3D point6(4.8, 2.6, 0);
-        Point3D point7(2.666666667, 3.666666667, 5.133333333);
+        Point3D point7(2.666666666667, 3.666666666667, 
+                       5.133333333333);
         // points in container
         size_t i0 = points.add(point0);
         size_t i1 = points.add(point1);
@@ -1402,7 +1412,7 @@ namespace temporalalgebra {
         layer3.addNonOrthSegment(0,Segment(0,7,LEFT_IS_INNER));
         layer3.addNonOrthSegment(0,Segment(2,8,OUTER));
         layer3.addNonOrthSegment(1,Segment(7,1,OUTER));
-        layer3.addNonOrthSegment(1,Segment(8,3,OUTER));        
+        layer3.addNonOrthSegment(1,Segment(8,3,OUTER));  
         layer4.addNonOrthSegment(0,Segment(0,9,OUTER));
         layer4.addNonOrthSegment(0,Segment(0,7,RIGHT_IS_INNER));
         layer4.addNonOrthSegment(0,Segment(5,7,INNER));
@@ -1412,8 +1422,9 @@ namespace temporalalgebra {
                 layer1 == layer3);
         assert_("PFaceTest 9.2", "factorys are equal.",
                 layer2 == layer4);
+        // cout << setprecision(12);
         // cout << points;
-        // cout << segments;
+        // cout << segments1;
         // cout << pf0;
         // cout << pf1;
         // cout << layer1;
@@ -1518,20 +1529,20 @@ namespace temporalalgebra {
         SegmentContainer segments1,segments2,segments3;
         GlobalTimeValues timeValues(5);
         // points for pface 0 and 2 
-        size_t  i0 = points.add(Point3D(6.21621622222, 1.89189188889, 0));// 0
-        size_t  i1 = points.add(Point3D(5.6, 2.2, 2.61621622222));
-        size_t  i2 = points.add(Point3D(5.21621622222, 4.39189188889, 0));
+        size_t  i0 = points.add(Point3D(6.216216222222, 1.891891888889, 0));// 0
+        size_t  i1 = points.add(Point3D(5.6, 2.2, 2.616216222222));
+        size_t  i2 = points.add(Point3D(5.216216222222, 4.391891888889, 0));
         size_t  i3 = points.add(Point3D(4.6, 4.7, 2.61621622222)); 
         // points for pface 1 
-        size_t  i4 = points.add(Point3D(4.98648648649, 1.89189189189, 0));// 1
+        size_t  i4 = points.add(Point3D(4.986486486486, 1.891891891892, 0));// 1
         size_t  i5 = points.add(Point3D(5.5, 2.2, 2.61621622222));
-        size_t  i6 = points.add(Point3D(7.21621621622, 1.89189189189, 0));
+        size_t  i6 = points.add(Point3D(7.216216216216, 1.891891891892, 0));
         size_t  i7 = points.add(Point3D(6.6, 2.2, 2.61621622222)); 
         // points for pface 3 
-        size_t  i8 = points.add(Point3D(4.98648648649, 1.891891892, 0));// 3
-        size_t  i9 = points.add(Point3D(5.5, 2.2, 2.61621622222));
-        size_t i10 = points.add(Point3D(7.21621621622, 1.89189189189, 0));
-        size_t i11 = points.add(Point3D(6.6, 2.2, 2.61621622222)); 
+        size_t  i8 = points.add(Point3D(4.986486486486, 1.891891891892, 0));// 3
+        size_t  i9 = points.add(Point3D(5.5, 2.2, 2.616216222222));
+        size_t i10 = points.add(Point3D(7.216216216216, 1.891891891892, 0));
+        size_t i11 = points.add(Point3D(6.6, 2.2, 2.616216222222)); 
         // segments for pface 0
         segments1.add(Segment(i0,i1));
         segments1.add(Segment(i2,i3));
@@ -1712,12 +1723,13 @@ namespace temporalalgebra {
         container.next(t1,t2,points1,segments1,false); 
         points2.add(Point3D(5,1,2.56944444)); 
         points2.add(Point3D(4.66666667, 1.66666667, 1.11111111));
-        points2.add(Point3D(4.22916667, 2.54166667, 2.56944444));
+        points2.add(Point3D(4.22916666837, 2.54166666669, 2.56944444));
         points2.add(Point3D(3.5,4,2.56944444));       
         segments2.add(Segment(1, 4));
         segments2.add(Segment(5, 6, RIGHT_IS_INNER));
         segments2.add(Segment(5, 7, LEFT_IS_INNER));
         segments2.add(Segment(3, 7));
+        // cout << setprecision(12);
         // cout << points1;
         // cout << points2;
         // cout << segments1;
@@ -1731,11 +1743,12 @@ namespace temporalalgebra {
         segments2.clear();
         container.next(t1,t2,points1,segments1,false); 
         points2.add(Point3D(5, 1, 2.66666667));
-        points2.add(Point3D(4.2, 2.6, 2.66666667));
+        points2.add(Point3D(4.1999999992, 2.6000000046, 2.66666667));        
         points2.add(Point3D(3.5, 4, 2.66666667));
         segments2.add(Segment(4, 8));
         segments2.add(Segment(6, 9, RIGHT_IS_INNER));
         segments2.add(Segment(7, 10));
+        // cout << setprecision(12);
         // cout << points1;
         // cout << points2;
         // cout << segments1;
@@ -1873,7 +1886,7 @@ namespace temporalalgebra {
         points2.add(Point3D(3.5,4,1.11111111));
         segments2.add(Segment(0,1));
         segments2.add(Segment(2,3));
-        // cout << setprecision(9);
+        // cout << setprecision(12);
         // cout << points1;
         // cout << points2;
         // cout << segments1;
@@ -1904,12 +1917,13 @@ namespace temporalalgebra {
         container.next(t1,t2,points1,segments1,false); 
         points2.add(Point3D (2, 1, 4.44444444));
         points2.add(Point3D (2.8, 2.6, 2.66666667));
-        points2.add(Point3D (3.33333333, 3.66666666, 4.44444444));
+        points2.add(Point3D (3.333333331, 3.666666662, 4.44444444));
         points2.add(Point3D (3.5, 4, 4.44444444));
         segments2.add(Segment (4, 6));
         segments2.add(Segment (7, 8, RIGHT_IS_INNER));
         segments2.add(Segment (7, 5, LEFT_IS_INNER));
         segments2.add(Segment (5, 9));
+        // cout << setprecision(12);
         // cout << points1;
         // cout << points2;
         // cout << segments1;
@@ -2141,18 +2155,18 @@ namespace temporalalgebra {
         PFace pf3(0,1,points,segments);
         PFace pf4(2,3,points,segments);
         // Intersection points
-        IntersectionPoint point9(3, 4, 0, 4.94974747);
-        IntersectionPoint point10(3, 4, 3, 4.94974747);
-        IntersectionPoint point11(2, 3, 0, 3.53553391);
-        IntersectionPoint point12(2, 3, 3, 3.53553391);
-        IntersectionPoint point13(1, 2, 0, 2.12132034);
-        IntersectionPoint point14(1, 2, 3, 2.12132034);
-        IntersectionPoint point15(1, 4, 0, 2.12132034);
-        IntersectionPoint point16(1, 4, 3, 2.12132034);
-        IntersectionPoint point17(2, 3, 0, 0.707106781);
-        IntersectionPoint point18(2, 3, 3, 0.707106781);
-        IntersectionPoint point19(3, 2, 0, -0.707106781);
-        IntersectionPoint point20(3, 2, 3, -0.707106781);
+        IntersectionPoint point9(3, 4, 0, 4.94974746831);
+        IntersectionPoint point10(3, 4, 3, 4.94974746831);        
+        IntersectionPoint point11(2, 3, 0, 3.53553390593);
+        IntersectionPoint point12(2, 3, 3, 3.53553390593);
+        IntersectionPoint point13(1, 2, 0, 2.12132034356); 
+        IntersectionPoint point14(1, 2, 3, 2.12132034356);
+        IntersectionPoint point15(1, 4, 0, 2.12132034356);
+        IntersectionPoint point16(1, 4, 3, 2.12132034356);
+        IntersectionPoint point17(2, 3, 0, 0.707106781187);
+        IntersectionPoint point18(2, 3, 3, 0.707106781187);
+        IntersectionPoint point19(3, 2, 0, -0.707106781187);
+        IntersectionPoint point20(3, 2, 3, -0.707106781187);
         // Intersection segments
         pf3.addIntSeg(
           IntersectionSegment(point9,point10));
@@ -2180,11 +2194,11 @@ namespace temporalalgebra {
                 pf2 == pf4);
         assert_("SourceUnitTest 1.4", "time values are equal.",
                 timeValues1 == timeValues2);
-        // cout << setprecision(9);
+        // cout << setprecision(12);
         // cout << pf1 << endl;
         // cout << pf2 << endl;
         // cout << pf3 << endl;
-        //  cout << pf4 << endl;
+        // cout << pf4 << endl;
         // cout << timeValues1 << endl;
       }// SourceUnitTest1
     
@@ -2249,100 +2263,104 @@ namespace temporalalgebra {
           IntersectionPoint(5, 1, 0, 5), 
           IntersectionPoint(5, 1, 5, 5)));        
         pf6.setState(UNKNOWN);
-        PFace pf7(1, 2, points,segments);
+        PFace pf7(1, 2, points,segments);    
         pf7.addIntSeg(IntersectionSegment(
-          IntersectionPoint(3.5, 4, 0, 2.01246118), 
-          IntersectionPoint(3.5, 4, 5, 2.01246118)));
+          IntersectionPoint(5, 1, 0, -1.3416407865), 
+          IntersectionPoint(5, 1, 5, -1.3416407865)));
         pf7.addIntSeg(IntersectionSegment(
-          IntersectionPoint(5, 1, 0, -1.34164079), 
-          IntersectionPoint(5, 1, 5, -1.34164079)));
+          IntersectionPoint(3.5, 4, 0, 2.01246117975), 
+          IntersectionPoint(3.5, 4, 5, 2.01246117975)));
         pf7.addIntSeg(IntersectionSegment(
-          IntersectionPoint(4.66666667, 1.66666667, 1.11111111, -0.596284794),
-          IntersectionPoint(3.5, 4, 2.56944444, 2.01246118),
-          LEFT_IS_INNER));
-        pf7.addIntSeg(IntersectionSegment(
-          IntersectionPoint(4.66666667, 1.66666667, 1.11111111, -0.596284794),
-          IntersectionPoint(4, 3, 3.33333333, 0.894427191),             
+          IntersectionPoint(4.66666666667, 1.66666666667, 1.11111111111,
+                            -0.596284794), 
+          IntersectionPoint(4, 3, 3.33333333333, 0.894427191), 
           RIGHT_IS_INNER));
         pf7.addIntSeg(IntersectionSegment(
-          IntersectionPoint(4, 3, 3.33333333, 0.894427191),
-          IntersectionPoint(3.5, 4, 3.4375, 2.01246118), 
+          IntersectionPoint(4.66666666667, 1.66666666667, 
+                            1.11111111111, -0.596284794), 
+          IntersectionPoint(3.5, 4, 2.56944444444, 2.01246117975),
+          LEFT_IS_INNER));
+        pf7.addIntSeg(IntersectionSegment(
+          IntersectionPoint(4, 3, 3.33333333333, 0.894427191), 
+          IntersectionPoint(3.5, 4, 3.4375, 2.01246117975),
           RIGHT_IS_INNER));
-        pf7.setState(RELEVANT);
-        PFace pf8(2, 0, points,segments);
+         pf7.setState(RELEVANT);
+         PFace pf8(2, 0, points,segments);       
         pf8.addIntSeg(IntersectionSegment(
-          IntersectionPoint(2, 1, 0, -1.78885438), 
-          IntersectionPoint(2, 1, 5, -1.78885438)));
+          IntersectionPoint(3.5, 4, 0, -5.14295634825), 
+          IntersectionPoint(3.5, 4, 5, -5.14295634825)));
         pf8.addIntSeg(IntersectionSegment(
-          IntersectionPoint(3.5, 4, 0, -5.14295635), 
-          IntersectionPoint(3.5, 4, 5, -5.14295635)));
+          IntersectionPoint(2, 1, 0, -1.788854382), 
+          IntersectionPoint(2, 1, 5, -1.788854382)));
         pf8.addIntSeg(IntersectionSegment(
-          IntersectionPoint(3.5, 4, 2.56944444, -5.14295635),
-          IntersectionPoint(2.8, 2.6, 2.66666667, -3.57770876), 
-          LEFT_IS_INNER)); 
-        pf8.addIntSeg(IntersectionSegment(
-          IntersectionPoint(2.8, 2.6, 2.66666667, -3.57770876), 
-          IntersectionPoint(3.2, 3.4, 4, -4.47213595), 
+          IntersectionPoint(3.5, 4, 2.56944444444, -5.14295634825), 
+          IntersectionPoint(2.8, 2.6, 2.66666666667, -3.577708764), 
           LEFT_IS_INNER));
         pf8.addIntSeg(IntersectionSegment(
-          IntersectionPoint(3.5, 4, 3.4375, -5.14295635), 
-          IntersectionPoint(3.2, 3.4, 4, -4.47213595), 
+          IntersectionPoint(2.8, 2.6, 2.66666666667, -3.577708764), 
+          IntersectionPoint(3.2, 3.4, 4, -4.472135955), 
+          LEFT_IS_INNER));
+        pf8.addIntSeg(IntersectionSegment(
+          IntersectionPoint(3.5, 4, 3.4375, -5.14295634825), 
+          IntersectionPoint(3.2, 3.4, 4, -4.472135955), 
           RIGHT_IS_INNER));
         pf8.setState(RELEVANT);
         // pfaces from result unit 4
         PFace pf9(3, 4, points,segments);
         pf9.addIntSeg(IntersectionSegment(
-          IntersectionPoint(8, 1, 0, 8),
-          IntersectionPoint(2, 4, 5, 2)));
-        pf9.addIntSeg(IntersectionSegment(
-          IntersectionPoint(6, 1, 0, 6),
+          IntersectionPoint(6, 1, 0, 6), 
           IntersectionPoint(0, 4, 5, 0)));
         pf9.addIntSeg(IntersectionSegment(
-          IntersectionPoint(4.66666667, 1.66666667, 1.11111111, 4.66666667),
-          IntersectionPoint(4, 3, 3.33333333, 4), 
-          LEFT_IS_INNER));
+          IntersectionPoint(8, 1, 0, 8), 
+          IntersectionPoint(2, 4, 5, 2)));
         pf9.addIntSeg(IntersectionSegment(
-          IntersectionPoint(2.8, 2.6, 2.66666667, 2.8), 
-          IntersectionPoint(3.2, 3.4, 4, 3.2),
-          RIGHT_IS_INNER));
+          IntersectionPoint(4.66666666667, 1.66666666667, 1.11111111111, 
+                            4.66666666667), 
+          IntersectionPoint(4, 3, 3.33333333333, 4), 
+          LEFT_IS_INNER));        
+        pf9.addIntSeg(IntersectionSegment(
+          IntersectionPoint(2.8, 2.6, 2.66666666667, 2.8), 
+          IntersectionPoint(3.2, 3.4, 4, 3.2), 
+          RIGHT_IS_INNER));        
         pf9.setState(RELEVANT);
-        PFace pf10(4, 5, points,segments);
-        pf10.addIntSeg(IntersectionSegment (
-          IntersectionPoint(7, 3.5, 0, 0.649933684), 
-          IntersectionPoint(1, 6.5, 5, 5.66370781)));
-        pf10.addIntSeg(IntersectionSegment (
-          IntersectionPoint(8, 1, 0, -2.04264872),
-          IntersectionPoint(2, 4, 5, 2.97112541)));
-        pf10.addIntSeg(IntersectionSegment (
-          IntersectionPoint(4, 3, 3.33333333, 1.29986737), 
-          IntersectionPoint(3.5, 4, 3.4375, 2.4140394), 
+        PFace pf10(4, 5, points,segments); 
+        pf10.addIntSeg( IntersectionSegment(
+          IntersectionPoint(8, 1, 0, -2.04264871995), 
+          IntersectionPoint(2, 4, 5, 2.97112541083)));
+        pf10.addIntSeg(IntersectionSegment(
+          IntersectionPoint(7, 3.5, 0, 0.64993368362), 
+          IntersectionPoint(1, 6.5, 5, 5.6637078144)));
+        pf10.addIntSeg(IntersectionSegment(
+          IntersectionPoint(4, 3, 3.33333333333, 1.29986736724), 
+          IntersectionPoint(3.5, 4, 3.4375, 2.4140393963), 
           LEFT_IS_INNER));
-        pf10.addIntSeg(IntersectionSegment (
-          IntersectionPoint(3.5, 4, 3.4375, 2.4140394), 
-          IntersectionPoint(3.2, 3.4, 4, 1.96837058), 
-          LEFT_IS_INNER));     
+        pf10.addIntSeg(IntersectionSegment(
+          IntersectionPoint(3.5, 4, 3.4375, 2.4140393963), 
+          IntersectionPoint(3.2, 3.4, 4, 1.96837058468),
+          LEFT_IS_INNER));        
         pf10.setState(RELEVANT);
         PFace pf11(5, 3, points,segments);
-        pf11.addIntSeg(IntersectionSegment (
-          IntersectionPoint(6, 1, 0, -3.15682075), 
-          IntersectionPoint(0, 4, 5, -3.71390676)));
-        pf11.addIntSeg(IntersectionSegment (
-          IntersectionPoint(7, 3.5, 0, -5.84940315), 
-          IntersectionPoint(1, 6.5, 5, -6.40648917)));
-        pf11.addIntSeg(IntersectionSegment (
-          IntersectionPoint(4.66666667, 1.66666667, 1.11111111, -3.28061764), 
-          IntersectionPoint(3.5, 4, 2.56944444, -5.01377413), 
+        pf11.addIntSeg(IntersectionSegment(
+          IntersectionPoint(7, 3.5, 0, -5.84940315258), 
+          IntersectionPoint(1, 6.5, 5, -6.40648916711)));
+        pf11.addIntSeg(IntersectionSegment(
+          IntersectionPoint(6, 1, 0, -3.15682074901), 
+          IntersectionPoint(0, 4, 5, -3.71390676354)));
+        pf11.addIntSeg(IntersectionSegment(
+          IntersectionPoint(4.66666666667, 1.66666666667, 1.11111111111, 
+                            -3.28061764113), 
+          IntersectionPoint(3.5, 4, 2.56944444444, -5.01377413078), 
           RIGHT_IS_INNER));
-        pf11.addIntSeg(IntersectionSegment (
-          IntersectionPoint(3.5, 4, 2.56944444, -5.01377413), 
-          IntersectionPoint(2.8, 2.6, 2.66666667, -3.45393329), 
+        pf11.addIntSeg(IntersectionSegment(
+          IntersectionPoint(3.5, 4, 2.56944444444, -5.01377413078), 
+          IntersectionPoint(2.8, 2.6, 2.66666666667, -3.45393329009), 
           RIGHT_IS_INNER));
         pf11.setState(RELEVANT);
         timeValues2.addTimeValue(0);
-        timeValues2.addTimeValue(1.11111111);
-        timeValues2.addTimeValue(2.56944444); 
-        timeValues2.addTimeValue(2.66666667); 
-        timeValues2.addTimeValue(3.33333333);
+        timeValues2.addTimeValue(1.11111111111);
+        timeValues2.addTimeValue(2.56944444444); 
+        timeValues2.addTimeValue(2.66666666667); 
+        timeValues2.addTimeValue(3.33333333333);
         timeValues2.addTimeValue(3.4375);
         timeValues2.addTimeValue(4);
         timeValues2.addTimeValue(5);
@@ -2360,7 +2378,7 @@ namespace temporalalgebra {
                 pf5 == pf11);
         assert_("SourceUnitTest 2.7", "time values are equal.",
                 timeValues1 == timeValues2);
-        // cout << setprecision(2);
+        // cout << setprecision(12);
         // cout << pf0 << endl;
         // cout << pf1 << endl;
         // cout << pf2 << endl;
@@ -2433,98 +2451,106 @@ namespace temporalalgebra {
         pf6.setState(UNKNOWN);
         PFace pf7(1,2,points,segments);
         pf7.addIntSeg(IntersectionSegment(
-          IntersectionPoint(3.5, 4, 0, 2.01246118), 
-          IntersectionPoint(3.5, 4, 5, 2.01246118)));
+          IntersectionPoint(5, 1, 0, -1.3416407865), 
+          IntersectionPoint(5, 1, 5, -1.3416407865)));
         pf7.addIntSeg(IntersectionSegment(
-          IntersectionPoint(5, 1, 0, -1.34164079), 
-          IntersectionPoint(5, 1, 5, -1.34164079)));
+          IntersectionPoint(3.5, 4, 0, 2.01246117975), 
+          IntersectionPoint(3.5, 4, 5, 2.01246117975)));
         pf7.addIntSeg(IntersectionSegment(
-          IntersectionPoint(4.66666667, 1.66666667, 1.11111111, -0.596284794),
-          IntersectionPoint(3.5, 4, 2.66666667, 2.01246118), 
-          LEFT_IS_INNER));
-        pf7.addIntSeg(IntersectionSegment(
-          IntersectionPoint(4.66666667, 1.66666667, 1.11111111, -0.596284794), 
-          IntersectionPoint(3.66666667, 3.66666667, 4.44444444, 1.63978318), 
+          IntersectionPoint(4.66666666667, 1.66666666667, 1.11111111111, 
+                            -0.596284794), 
+          IntersectionPoint(3.66666666667, 3.66666666667, 4.44444444444, 
+                            1.6397831835), 
           RIGHT_IS_INNER));
         pf7.addIntSeg(IntersectionSegment(
-          IntersectionPoint(3.5, 4, 4.44444444, 2.01246118), 
-          IntersectionPoint(3.66666667, 3.66666667, 4.44444444, 1.63978318), 
+          IntersectionPoint(4.66666666667, 1.66666666667, 1.11111111111, 
+                            -0.596284794), 
+          IntersectionPoint(3.5, 4, 2.66666666667, 2.01246117975), 
           LEFT_IS_INNER));
+        pf7.addIntSeg(IntersectionSegment(
+          IntersectionPoint(3.66666666667, 3.66666666667, 4.44444444444, 
+                            1.6397831835), 
+          IntersectionPoint(3.5, 4, 4.44444444444, 2.01246117975), 
+          RIGHT_IS_INNER));
         pf7.setState(RELEVANT);
         PFace pf8(2,0,points,segments);
         pf8.addIntSeg(IntersectionSegment(
-          IntersectionPoint(2, 1, 0, -1.78885438), 
-          IntersectionPoint(2, 1, 5, -1.78885438)));
+          IntersectionPoint(3.5, 4, 0, -5.14295634825), 
+          IntersectionPoint(3.5, 4, 5, -5.14295634825)));
         pf8.addIntSeg(IntersectionSegment(
-          IntersectionPoint(3.5, 4, 0, -5.14295635), 
-          IntersectionPoint (3.5, 4, 5, -5.14295635)));
+          IntersectionPoint(2, 1, 0, -1.788854382), 
+          IntersectionPoint(2, 1, 5, -1.788854382)));
         pf8.addIntSeg(IntersectionSegment(
-          IntersectionPoint(3.5, 4, 2.66666667, -5.14295635),
-          IntersectionPoint(2.8, 2.6, 2.66666667, -3.57770876),           
+          IntersectionPoint(3.5, 4, 2.66666666667, -5.14295634825), 
+          IntersectionPoint(2.8, 2.6, 2.66666666667, -3.577708764), 
           LEFT_IS_INNER));
         pf8.addIntSeg(IntersectionSegment(
-          IntersectionPoint(2.8, 2.6, 2.66666667, -3.57770876), 
-          IntersectionPoint(3.4, 3.8, 4.66666667, -4.91934955), 
+          IntersectionPoint(2.8, 2.6, 2.66666666667, -3.577708764), 
+          IntersectionPoint(3.4, 3.8, 4.66666666667, -4.9193495505), 
           LEFT_IS_INNER));
         pf8.addIntSeg(IntersectionSegment(
-          IntersectionPoint(3.5, 4, 4.44444444, -5.14295635), 
-          IntersectionPoint(3.4, 3.8, 4.66666667, -4.91934955), 
+          IntersectionPoint(3.5, 4, 4.44444444444, -5.14295634825), 
+          IntersectionPoint(3.4, 3.8, 4.66666666667, -4.9193495505), 
           RIGHT_IS_INNER));
         pf8.setState(RELEVANT);
         // pfaces from result unit 4
         PFace pf9(3,4,points,segments);
         pf9.addIntSeg(IntersectionSegment(
-          IntersectionPoint(9, 1, 0, 9), 
-          IntersectionPoint(3, 4, 5, 3)));
-        pf9.addIntSeg(IntersectionSegment(
           IntersectionPoint(6, 1, 0, 6), 
           IntersectionPoint(0, 4, 5, 0)));
         pf9.addIntSeg(IntersectionSegment(
-          IntersectionPoint(4.66666667, 1.66666667, 1.11111111, 4.66666667),
-          IntersectionPoint(3.66666667, 3.66666667, 4.44444444, 3.66666667), 
+          IntersectionPoint(9, 1, 0, 9), 
+          IntersectionPoint(3, 4, 5, 3)));
+        pf9.addIntSeg(IntersectionSegment(
+          IntersectionPoint(4.66666666667, 1.66666666667, 1.11111111111,
+                            4.66666666667), 
+          IntersectionPoint(3.66666666667, 3.66666666667, 4.44444444444, 
+                            3.66666666667), 
           LEFT_IS_INNER));
-        pf9.addIntSeg(IntersectionSegment (
-          IntersectionPoint(2.8, 2.6, 2.66666667, 2.8), 
-          IntersectionPoint(3.4, 3.8, 4.66666667, 3.4), 
+        pf9.addIntSeg(IntersectionSegment(
+          IntersectionPoint(2.8, 2.6, 2.66666666667, 2.8), 
+          IntersectionPoint(3.4, 3.8, 4.66666666667, 3.4), 
           RIGHT_IS_INNER));
         pf9.setState(RELEVANT);
         PFace pf10(4,5,points,segments);
         pf10.addIntSeg(IntersectionSegment(
-          IntersectionPoint(7.5, 4, 0, 0.223606798),
-          IntersectionPoint(1.5, 7, 5, 5.59016994)));
+          IntersectionPoint(9, 1, 0, -3.1304951685), 
+          IntersectionPoint(3, 4, 5, 2.2360679775)));
         pf10.addIntSeg(IntersectionSegment(
-          IntersectionPoint(9, 1, 0, -3.13049517), 
-          IntersectionPoint(3, 4, 5, 2.23606798)));
+          IntersectionPoint(7.5, 4, 0, 0.22360679775), 
+          IntersectionPoint(1.5, 7, 5, 5.59016994375)));
         pf10.addIntSeg(IntersectionSegment(
-          IntersectionPoint(3.66666667, 3.66666667, 4.44444444, 1.63978318),
-          IntersectionPoint(3.5, 4, 4.44444444, 2.01246118),
+          IntersectionPoint(3.66666666667, 3.66666666667, 4.44444444444, 
+                            1.6397831835), 
+          IntersectionPoint(3.5, 4, 4.44444444444, 2.01246117975),
           LEFT_IS_INNER));
         pf10.addIntSeg(IntersectionSegment(
-          IntersectionPoint(3.5, 4, 4.44444444, 2.01246118),
-          IntersectionPoint(3.4, 3.8, 4.66666667, 1.8782971),
-          LEFT_IS_INNER));       
+          IntersectionPoint(3.5, 4, 4.44444444444, 2.01246117975), 
+          IntersectionPoint(3.4, 3.8, 4.66666666667, 1.8782971011), 
+          LEFT_IS_INNER));
         pf10.setState(RELEVANT);
         PFace pf11(5,3,points,segments);
         pf11.addIntSeg(IntersectionSegment(
-          IntersectionPoint(6, 1, 0, -3.57770876), 
-          IntersectionPoint(0, 4, 5, -3.57770876)));
+          IntersectionPoint(7.5, 4, 0, -6.93181073025), 
+          IntersectionPoint(1.5, 7, 5, -6.93181073025)));
         pf11.addIntSeg(IntersectionSegment(
-          IntersectionPoint(7.5, 4, 0, -6.93181073), 
-          IntersectionPoint(1.5, 7, 5, -6.93181073)));
-        pf11.addIntSeg(IntersectionSegment (
-          IntersectionPoint(4.66666667, 1.66666667, 1.11111111, -3.57770876), 
-          IntersectionPoint(3.5, 4, 2.66666667, -5.14295635), 
+          IntersectionPoint(6, 1, 0, -3.577708764), 
+          IntersectionPoint(0, 4, 5, -3.577708764)));
+        pf11.addIntSeg(IntersectionSegment(
+          IntersectionPoint(4.66666666667, 1.66666666667, 1.11111111111, 
+                            -3.577708764), 
+          IntersectionPoint(3.5, 4, 2.66666666667, -5.14295634825), 
           RIGHT_IS_INNER));
-        pf11.addIntSeg(IntersectionSegment (
-          IntersectionPoint(2.8, 2.6, 2.66666667, -3.57770876), 
-          IntersectionPoint(3.5, 4, 2.66666667, -5.14295635), 
-          LEFT_IS_INNER));
+        pf11.addIntSeg(IntersectionSegment(
+          IntersectionPoint(3.5, 4, 2.66666666667, -5.14295634825), 
+          IntersectionPoint(2.8, 2.6, 2.66666666667, -3.577708764), 
+          RIGHT_IS_INNER));
         pf11.setState(RELEVANT);
         timeValues2.addTimeValue(0);
-        timeValues2.addTimeValue(1.11111111);
-        timeValues2.addTimeValue(2.66666667); 
-        timeValues2.addTimeValue(4.44444444);
-        timeValues2.addTimeValue(4.66666667);
+        timeValues2.addTimeValue(1.11111111111);
+        timeValues2.addTimeValue(2.66666666667); 
+        timeValues2.addTimeValue(4.44444444444);
+        timeValues2.addTimeValue(4.66666666667);
         timeValues2.addTimeValue(5); 
         assert_("SourceUnitTest 3.1", "pface does not equal.",
                 pf0 == pf6);
@@ -2540,14 +2566,14 @@ namespace temporalalgebra {
                 pf5 == pf11);
         assert_("SourceUnitTest 3.7", "time values are equal.",
                 timeValues1 == timeValues2);
-        // cout << setprecision(9);
+        // cout << setprecision(12);
         // cout << pf0 << endl;
         // cout << pf1 << endl;
         // cout << pf2 << endl;
         // cout << pf3 << endl;
         // cout << pf4 << endl;
         // cout << pf5 << endl;
-      }// SourceUnitTest2
+      }// SourceUnitTest3
 
       void Selftest::SourceUnitTest4(){
         Point3DContainer points;
@@ -2659,54 +2685,68 @@ namespace temporalalgebra {
           pf5.getResultUnit(i,INNER,false,points,units[i],UNIT_B);
         }// for
         vector<ResultUnit> result = vector<ResultUnit>(5,ResultUnit());        
-        Segment3D segment0(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                           Point3D(4.2, 2.6, 2.666666667));            
-        Segment3D segment1(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                           Point3D(3.5, 4, 2.666666667));          
-        Segment3D segment2(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                           Point3D(2.8, 2.6, 2.666666667));       
-        Segment3D segment3(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                           Point3D(4.2, 2.6, 2.666666667));
-        Segment3D segment4(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                           Point3D(3.5, 4, 2.666666667));
-        Segment3D segment5(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                           Point3D(2.8, 2.6, 2.666666667));
+        Segment3D segment0(Point3D(4.666666666667, 1.666666666667, 
+                                   1.111111111111), 
+                           Point3D(4.2, 2.6, 2.666666666667));            
+        Segment3D segment1(Point3D(4.666666666667, 1.666666666667, 
+                                   1.111111111111), 
+                           Point3D(3.5, 4,   2.666666666667));          
+        Segment3D segment2(Point3D(4.666666666667, 1.666666666667, 
+                                   1.111111111111), 
+                           Point3D(2.8, 2.6, 2.666666666667));       
+        Segment3D segment3(Point3D(4.666666666667, 1.666666666667, 
+                                   1.111111111111), 
+                           Point3D(4.2, 2.6, 2.666666666667));
+        Segment3D segment4(Point3D(4.666666666667, 1.666666666667, 
+                                   1.111111111111), 
+                           Point3D(3.5, 4,   2.666666666667));
+        Segment3D segment5(Point3D(4.666666666667, 1.666666666667, 
+                                   1.111111111111), 
+                           Point3D(2.8, 2.6, 2.666666666667));
         PResultFace prf0(segment0,segment1);
         PResultFace prf1(segment2,segment3);
         PResultFace prf2(segment4,segment5);       
         result[1].addPResultFace(prf0,false);
-        result[1].addPResultFace(prf1,false);
+        result[1].addPResultFace(prf1,false); 
         result[1].addPResultFace(prf2,false);   
-        Segment3D segment6(Point3D(4.2, 2.6, 2.666666667), 
-                           Point3D(3.666666667, 3.666666667, 4.444444444));  
-        Segment3D segment7(Point3D(3.5, 4, 2.666666667), 
-                           Point3D(3.5, 4, 4.444444444));  
-        Segment3D segment8(Point3D(3.5, 4, 2.666666667), 
-                           Point3D(3.5, 4, 4.444444444)); 
-        Segment3D segment9(Point3D(2.8, 2.6, 2.666666667), 
-                           Point3D(3.333333333, 3.666666667, 4.444444444));  
-        Segment3D segment10(Point3D(2.8, 2.6, 2.666666667), 
-                            Point3D(3.333333333, 3.666666667, 4.444444444));   
-        Segment3D segment11(Point3D(4.2, 2.6, 2.666666667), 
-                            Point3D(3.666666667, 3.666666667, 4.444444444));
+        Segment3D segment6(Point3D(4.2, 2.6, 2.666666666667), 
+                           Point3D(3.666666666667, 3.666666666667, 
+                                   4.444444444444));  
+        Segment3D segment7(Point3D(3.5, 4, 2.666666666667), 
+                           Point3D(3.5, 4, 4.444444444444));  
+        Segment3D segment8(Point3D(3.5, 4, 2.666666666667), 
+                           Point3D(3.5, 4, 4.444444444444)); 
+        Segment3D segment9(Point3D(2.8, 2.6, 2.666666666667), 
+                           Point3D(3.333333333333, 3.666666666667, 
+                                   4.444444444444));  
+        Segment3D segment10(Point3D(2.8, 2.6, 2.666666666667), 
+                            Point3D(3.333333333333, 3.666666666667, 
+                                    4.444444444444));   
+        Segment3D segment11(Point3D(4.2, 2.6, 2.666666666667), 
+                            Point3D(3.666666666667, 3.666666666667, 
+                                    4.444444444444));
         PResultFace prf3(segment6,segment7);
         PResultFace prf4(segment8,segment9);
         PResultFace prf5(segment10,segment11);  
         result[2].addPResultFace(prf3,false);
-        result[2].addPResultFace(prf4,false);
+        result[2].addPResultFace(prf4,false); 
         result[2].addPResultFace(prf5,false);       
-        Segment3D segment12(Point3D(3.5, 4, 4.444444444), 
-                            Point3D(3.4, 3.8, 4.666666667));
-        Segment3D segment13(Point3D(3.333333333, 3.666666667, 4.444444444), 
-                            Point3D(3.4, 3.8, 4.666666667));   
-        Segment3D segment14(Point3D(3.333333333, 3.666666667, 4.444444444), 
-                            Point3D(3.4, 3.8, 4.666666667));
-        Segment3D segment15(Point3D(3.666666667, 3.666666667, 4.44444444), 
-                            Point3D(3.4, 3.8, 4.666666667));
-        Segment3D segment16(Point3D(3.666666667, 3.666666667, 4.444444444), 
-                            Point3D(3.4, 3.8, 4.666666667)); 
-        Segment3D segment17(Point3D(3.5, 4, 4.444444444), 
-                            Point3D(3.4, 3.8, 4.666666667));
+        Segment3D segment12(Point3D(3.5, 4,   4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667));
+        Segment3D segment13(Point3D(3.333333333333, 3.666666666667, 
+                                    4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667));   
+        Segment3D segment14(Point3D(3.333333333333, 3.666666666667, 
+                                    4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667));
+        Segment3D segment15(Point3D(3.666666666667, 3.666666666667, 
+                                    4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667));
+        Segment3D segment16(Point3D(3.666666666667, 3.666666666667, 
+                                    4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667)); 
+        Segment3D segment17(Point3D(3.5, 4,   4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667));
         PResultFace prf6(segment12,segment13);
         PResultFace prf7(segment14,segment15);
         PResultFace prf8(segment16,segment17);  
@@ -2812,39 +2852,39 @@ namespace temporalalgebra {
         ResultUnit result0 = units[0];
         ResultUnit result1;                
         Segment3D segment10(Point3D(2, 1, 0), 
-                            Point3D(2, 1, 1.111111111));
+                            Point3D(2, 1, 1.111111111111));
         Segment3D segment11(Point3D(5, 1, 0), 
-                            Point3D(5, 1, 1.111111111));
+                            Point3D(5, 1, 1.111111111111));
         PResultFace prf0(segment10,segment11,0,0,0,true,true);
         result1.addPResultFace(prf0,true);
         Segment3D segment12(Point3D(3.5, 4, 0),
-                            Point3D(3.5, 4, 1.111111111));
+                            Point3D(3.5, 4, 1.111111111111));
         Segment3D segment13(Point3D(2, 1, 0), 
-                            Point3D(2, 1, 1.111111111));
+                            Point3D(2, 1, 1.111111111111));
         PResultFace prf1(segment12,segment13,0,0,1,true,false);
         result1.addPResultFace(prf1,true);
         Segment3D segment14(Point3D(5, 1, 0),
-                            Point3D(5, 1, 1.111111111));
+                            Point3D(5, 1, 1.111111111111));
         Segment3D segment15(Point3D(3.5, 4, 0), 
-                            Point3D(3.5, 4, 1.111111111));
+                            Point3D(3.5, 4, 1.111111111111));
         PResultFace prf2(segment14,segment15,0,0,2,true,false);
         result1.addPResultFace(prf2,true);
         Segment3D segment16(Point3D(12, 1, 0),
-                            Point3D(12, 1, 1.111111111));
+                            Point3D(12, 1, 1.111111111111));
         Segment3D segment17(Point3D(15, 1, 0),
-                            Point3D(15, 1, 1.111111111));
+                            Point3D(15, 1, 1.111111111111));
         PResultFace prf3(segment16,segment17,1,0,0,true,true);
         result1.addPResultFace(prf3,true);
         Segment3D segment18(Point3D(13.5, 4, 0),
-                            Point3D(13.5, 4, 1.111111111));
+                            Point3D(13.5, 4, 1.111111111111));
         Segment3D segment19(Point3D(12, 1, 0), 
-                            Point3D(12, 1, 1.111111111));
+                            Point3D(12, 1, 1.111111111111));
         PResultFace prf4(segment18,segment19,1,0,1,true,false);
         result1.addPResultFace(prf4,true);
         Segment3D segment20(Point3D(15, 1, 0),
-                            Point3D(15, 1, 1.111111111));
+                            Point3D(15, 1, 1.111111111111));
         Segment3D segment21(Point3D(13.5, 4, 0), 
-                            Point3D(13.5, 4, 1.111111111));
+                            Point3D(13.5, 4, 1.111111111111));
         PResultFace prf5(segment20,segment21,1,0,2,true,false);
         result1.addPResultFace(prf5,true);
         assert_("UnitsTest 2.1", "ResultUnits don't equal.",
@@ -2853,58 +2893,64 @@ namespace temporalalgebra {
         // cout << result1;
         ResultUnit result2 = units[1];
         ResultUnit result3;         
-        Segment3D segment22(Point3D(2, 1, 1.111111111), 
-                            Point3D(2, 1, 2.666666667));
-        Segment3D segment23(Point3D(5, 1, 1.111111111), 
-                            Point3D(5, 1, 2.666666667));
+        Segment3D segment22(Point3D(2, 1, 1.111111111111), 
+                            Point3D(2, 1, 2.666666666667));
+        Segment3D segment23(Point3D(5, 1, 1.111111111111), 
+                            Point3D(5, 1, 2.666666666667));
         PResultFace prf6(segment22,segment23,0,0,0,true,true);
         result3.addPResultFace(prf6,true);
-        Segment3D segment24(Point3D(3.5, 4, 1.111111111), 
-                            Point3D(3.5, 4, 2.666666667));
-        Segment3D segment25(Point3D(2, 1, 1.111111111), 
-                            Point3D(2, 1, 2.666666667));
+        Segment3D segment24(Point3D(3.5, 4, 1.111111111111), 
+                            Point3D(3.5, 4, 2.666666666667));
+        Segment3D segment25(Point3D(2, 1,   1.111111111111), 
+                            Point3D(2, 1,   2.666666666667));
         PResultFace prf7(segment24,segment25,0,0,1,true,false);
         result3.addPResultFace(prf7,true);
-        Segment3D segment26(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                            Point3D(3.5, 4, 2.666666667));
-        Segment3D segment27(Point3D(3.5, 4, 1.111111111), 
-                            Point3D (3.5, 4, 2.666666667));
+        Segment3D segment26(Point3D(4.666666666667, 1.666666666667, 
+                                    1.111111111111), 
+                            Point3D(3.5, 4,  2.666666666667));
+        Segment3D segment27(Point3D(3.5, 4,  1.111111111111), 
+                            Point3D (3.5, 4, 2.666666666667));
         PResultFace prf8(segment26,segment27,0,0,2,true,false);
         result3.addPResultFace(prf8,true);
-        Segment3D segment28(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                            Point3D(2.8, 2.6, 2.666666667));
-        Segment3D segment29(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                            Point3D(3.5, 4, 2.666666667));
+        Segment3D segment28(Point3D(4.666666666667, 1.666666666667, 
+                                    1.111111111111), 
+                            Point3D(2.8, 2.6, 2.666666666667));
+        Segment3D segment29(Point3D(4.666666666667, 1.666666666667, 
+                                    1.111111111111), 
+                            Point3D(3.5, 4,   2.666666666667));
         PResultFace prf9(segment28,segment29,0,0,3,true,true);
         result3.addPResultFace(prf9,true);
-        Segment3D segment30(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                            Point3D(4.2, 2.6, 2.666666667));
-        Segment3D segment31(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                            Point3D(2.8, 2.6, 2.666666667));
+        Segment3D segment30(Point3D(4.666666666667, 1.666666666667, 
+                                    1.111111111111), 
+                            Point3D(4.2, 2.6, 2.666666666667));
+        Segment3D segment31(Point3D(4.666666666667, 1.666666666667, 
+                                    1.111111111111), 
+                            Point3D(2.8, 2.6, 2.666666666667));
         PResultFace prf10(segment30,segment31,0,0,4,true,false);
         result3.addPResultFace(prf10,true);
-        Segment3D segment32(Point3D(5, 1, 1.111111111), 
-                            Point3D(5, 1, 2.666666667));
-        Segment3D segment33(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                            Point3D (4.2, 2.6, 2.666666667));
+        Segment3D segment32(Point3D(5, 1, 1.111111111111), 
+                            Point3D(5, 1, 2.666666666667));
+        Segment3D segment33(Point3D(4.666666666667, 1.666666666667, 
+                                    1.111111111111), 
+                            Point3D (4.2, 2.6, 2.666666666667));
         PResultFace prf11(segment32,segment33,0,0,5,true,false);
         result3.addPResultFace(prf11,true);
-        Segment3D segment34(Point3D(12, 1, 1.111111111), 
-                            Point3D(12, 1, 2.66666667));
-        Segment3D segment35(Point3D(15, 1, 1.111111111), 
-                            Point3D(15, 1, 2.666666667));
+        Segment3D segment34(Point3D(12, 1, 1.111111111111), 
+                            Point3D(12, 1, 2.666666666667));
+        Segment3D segment35(Point3D(15, 1, 1.111111111111), 
+                            Point3D(15, 1, 2.666666666667));
         PResultFace prf12(segment34,segment35,1,0,0,true,true);
         result3.addPResultFace(prf12,true);
-        Segment3D segment36(Point3D(13.5, 4, 1.111111111), 
-                            Point3D(13.5, 4, 2.666666667));
-        Segment3D segment37(Point3D(12, 1, 1.111111111), 
-                            Point3D(12, 1, 2.666666667));
+        Segment3D segment36(Point3D(13.5, 4, 1.111111111111), 
+                            Point3D(13.5, 4, 2.666666666667));
+        Segment3D segment37(Point3D(12, 1,   1.111111111111), 
+                            Point3D(12, 1,   2.666666666667));
         PResultFace prf13(segment36,segment37,1,0,1,true,false);
         result3.addPResultFace(prf13,true);
-        Segment3D segment38(Point3D(15, 1, 1.111111111), 
-                            Point3D(15, 1, 2.666666667));
-        Segment3D segment39(Point3D(13.5, 4, 1.111111111), 
-                            Point3D(13.5, 4, 2.666666667));
+        Segment3D segment38(Point3D(15, 1,   1.111111111111), 
+                            Point3D(15, 1,   2.666666666667));
+        Segment3D segment39(Point3D(13.5, 4, 1.111111111111), 
+                            Point3D(13.5, 4, 2.666666666667));
         PResultFace prf14(segment38,segment39,1,0,2,true,false);
         result3.addPResultFace(prf14,true);
         assert_("UnitsTest 2.2", "ResultUnits don't equal.",
@@ -2913,46 +2959,50 @@ namespace temporalalgebra {
         // cout << result3;
         ResultUnit result4 = units[2];
         ResultUnit result5; 
-        Segment3D segment40(Point3D(2, 1, 2.666666667), 
-                            Point3D(2, 1, 4.444444444));
-        Segment3D segment41(Point3D(5, 1, 2.666666667), 
-                            Point3D(5, 1, 4.444444444));        
+        Segment3D segment40(Point3D(2, 1, 2.666666666667), 
+                            Point3D(2, 1, 4.444444444444));
+        Segment3D segment41(Point3D(5, 1, 2.666666666667), 
+                            Point3D(5, 1, 4.444444444444));        
         PResultFace prf15(segment40,segment41,0,0,0,true,true);
         result5.addPResultFace(prf15,true);        
-        Segment3D segment42(Point3D(2.8, 2.6, 2.666666667), 
-                            Point3D(3.333333333, 3.666666667, 4.444444444));
-        Segment3D segment43(Point3D(2, 1, 2.666666667), 
-                            Point3D(2, 1, 4.444444444));
+        Segment3D segment42(Point3D(2.8, 2.6, 2.666666666667), 
+                            Point3D(3.333333333333, 3.666666666667, 
+                                    4.444444444444));
+        Segment3D segment43(Point3D(2, 1, 2.666666666667), 
+                            Point3D(2, 1, 4.444444444444));
         PResultFace prf16(segment42,segment43,0,0,1,true,false);
         result5.addPResultFace(prf16,true); 
-        Segment3D segment44(Point3D(4.2, 2.6, 2.666666667), 
-                            Point3D(3.666666667, 3.666666667, 4.444444444));
-        Segment3D segment45(Point3D(2.8, 2.6, 2.666666667), 
-                            Point3D(3.333333333, 3.666666667, 4.444444444));
+        Segment3D segment44(Point3D(4.2, 2.6, 2.666666666667), 
+                            Point3D(3.666666666667, 3.666666666667, 
+                                    4.444444444444));
+        Segment3D segment45(Point3D(2.8, 2.6, 2.666666666667), 
+                            Point3D(3.333333333333, 3.666666666667, 
+                                    4.444444444444));
         PResultFace prf17(segment44,segment45,0,0,2,true,false);
         result5.addPResultFace(prf17,true); 
-        Segment3D segment46(Point3D(5, 1, 2.666666667), 
-                            Point3D(5, 1, 4.444444444));
-        Segment3D segment47(Point3D(4.2, 2.6, 2.666666667), 
-                            Point3D(3.666666667, 3.666666667, 4.444444444));
+        Segment3D segment46(Point3D(5, 1, 2.666666666667), 
+                            Point3D(5, 1, 4.444444444444));
+        Segment3D segment47(Point3D(4.2, 2.6, 2.666666666667), 
+                            Point3D(3.666666666667, 3.666666666667, 
+                                    4.444444444444));
         PResultFace prf18(segment46,segment47,0,0,3,true,false);
         result5.addPResultFace(prf18,true); 
-        Segment3D segment48(Point3D(12, 1, 2.666666667), 
-                            Point3D(12, 1, 4.444444444));
-        Segment3D segment49(Point3D(15, 1, 2.666666667), 
-                            Point3D(15, 1, 4.444444444));
+        Segment3D segment48(Point3D(12, 1, 2.666666666667), 
+                            Point3D(12, 1, 4.444444444444));
+        Segment3D segment49(Point3D(15, 1, 2.666666666667), 
+                            Point3D(15, 1, 4.444444444444));
         PResultFace prf19(segment48,segment49,1,0,0,true,true);
         result5.addPResultFace(prf19,true);
-        Segment3D segment50(Point3D(13.5, 4, 2.666666667), 
-                            Point3D(13.5, 4, 4.444444444));
-        Segment3D segment51(Point3D(12, 1, 2.666666667), 
-                            Point3D(12, 1, 4.444444444));
+        Segment3D segment50(Point3D(13.5, 4, 2.666666666667), 
+                            Point3D(13.5, 4, 4.444444444444));
+        Segment3D segment51(Point3D(12, 1, 2.666666666667), 
+                            Point3D(12, 1, 4.444444444444));
         PResultFace prf20(segment50,segment51,1,0,1,true,false);
         result5.addPResultFace(prf20,true);
-        Segment3D segment52(Point3D(15, 1, 2.666666667), 
-                            Point3D(15, 1, 4.444444444));
-        Segment3D segment53(Point3D(13.5, 4, 2.666666667), 
-                            Point3D(13.5, 4, 4.444444444));
+        Segment3D segment52(Point3D(15, 1, 2.666666666667), 
+                            Point3D(15, 1, 4.444444444444));
+        Segment3D segment53(Point3D(13.5, 4, 2.666666666667), 
+                            Point3D(13.5, 4, 4.444444444444));
         PResultFace prf21(segment52,segment53,1,0,2,true,false);
         result5.addPResultFace(prf21,true);
         assert_("UnitsTest 2.3", "ResultUnits don't equal.",
@@ -2961,58 +3011,62 @@ namespace temporalalgebra {
         // cout << result5;        
         ResultUnit result6 = units[3];
         ResultUnit result7; 
-        Segment3D segment54(Point3D(2, 1, 4.444444444), 
-                            Point3D(2, 1, 4.666666667));
-        Segment3D segment55(Point3D(5, 1, 4.444444444), 
-                            Point3D(5, 1, 4.666666667));
+        Segment3D segment54(Point3D(2, 1, 4.444444444444), 
+                            Point3D(2, 1, 4.666666666667));
+        Segment3D segment55(Point3D(5, 1, 4.444444444444), 
+                            Point3D(5, 1, 4.666666666667));
         PResultFace prf22(segment54,segment55,0,0,0,true,true);
         result7.addPResultFace(prf22,true);
-        Segment3D segment56(Point3D(3.333333333, 3.666666667, 4.444444444), 
-                            Point3D(3.4, 3.8, 4.666666667));
-        Segment3D segment57(Point3D(2, 1, 4.444444444),
-                            Point3D(2, 1, 4.666666667));
+        Segment3D segment56(Point3D(3.333333333333, 3.666666666667, 
+                                    4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667));
+        Segment3D segment57(Point3D(2, 1, 4.444444444444),
+                            Point3D(2, 1, 4.666666666667));
         PResultFace prf23(segment56,segment57,0,0,1,true,false);
         result7.addPResultFace(prf23,true);
-        Segment3D segment58(Point3D(3.666666667, 3.666666667, 4.444444444), 
-                            Point3D(3.4, 3.8, 4.666666667));
-        Segment3D segment59(Point3D(3.333333333, 3.666666667, 4.444444444), 
-                            Point3D(3.4, 3.8, 4.666666667));
+        Segment3D segment58(Point3D(3.666666666667, 3.666666666667, 
+                                    4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667));
+        Segment3D segment59(Point3D(3.333333333333, 3.666666666667, 
+                                    4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667));
         PResultFace prf24(segment58,segment59,0,0,2,true,false);
         result7.addPResultFace(prf24,true);
-        Segment3D segment60(Point3D(3.5, 4, 4.444444444), 
-                            Point3D(3.4, 3.8, 4.666666667));
-        Segment3D segment61(Point3D(3.666666667, 3.666666667, 4.444444444), 
-                            Point3D(3.4, 3.8, 4.666666667));
+        Segment3D segment60(Point3D(3.5, 4, 4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667));
+        Segment3D segment61(Point3D(3.666666666667, 3.666666666667, 
+                                    4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667));
         PResultFace prf25(segment60,segment61,0,0,3,true,true);
         result7.addPResultFace(prf25,true);
-        Segment3D segment62(Point3D(3.5, 4, 4.444444444), 
-                            Point3D(3.5, 4, 4.666666667));
-        Segment3D segment63(Point3D(3.5, 4, 4.444444444), 
-                            Point3D(3.4, 3.8, 4.666666667));
+        Segment3D segment62(Point3D(3.5, 4, 4.444444444444), 
+                            Point3D(3.5, 4, 4.666666666667));
+        Segment3D segment63(Point3D(3.5, 4, 4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667));
         PResultFace prf26(segment62,segment63,0,0,4,true,false);
         result7.addPResultFace(prf26,true);
-        Segment3D segment64(Point3D(5, 1, 4.444444444), 
-                            Point3D(5, 1, 4.666666667));
-        Segment3D segment65(Point3D(3.5, 4, 4.444444444), 
-                            Point3D(3.5, 4, 4.666666667));
+        Segment3D segment64(Point3D(5, 1, 4.444444444444), 
+                            Point3D(5, 1, 4.666666666667));
+        Segment3D segment65(Point3D(3.5, 4, 4.444444444444), 
+                            Point3D(3.5, 4, 4.666666666667));
         PResultFace prf27(segment64,segment65,0,0,5,true,false);
         result7.addPResultFace(prf27,true);
-        Segment3D segment66(Point3D(12, 1, 4.444444444), 
-                            Point3D(12, 1, 4.66666667));
-        Segment3D segment67(Point3D(15, 1, 4.444444444), 
-                            Point3D(15, 1, 4.666666667));
+        Segment3D segment66(Point3D(12, 1, 4.444444444444), 
+                            Point3D(12, 1, 4.666666666667));
+        Segment3D segment67(Point3D(15, 1, 4.444444444444), 
+                            Point3D(15, 1, 4.666666666667));
         PResultFace prf28(segment66,segment67,1,0,0,true,true);
         result7.addPResultFace(prf28,true);
-        Segment3D segment68(Point3D(13.5, 4, 4.444444444), 
-                            Point3D(13.5, 4, 4.666666667));
-        Segment3D segment69(Point3D(12, 1, 4.444444444), 
-                            Point3D(12, 1, 4.666666667));
+        Segment3D segment68(Point3D(13.5, 4, 4.444444444444), 
+                            Point3D(13.5, 4, 4.666666666667));
+        Segment3D segment69(Point3D(12, 1, 4.444444444444), 
+                            Point3D(12, 1, 4.666666666667));
         PResultFace prf29(segment68,segment69,1,0,1,true,false);
         result7.addPResultFace(prf29,true);
-        Segment3D segment70(Point3D(15, 1, 4.444444444), 
-                            Point3D(15, 1, 4.666666667));
-        Segment3D segment71(Point3D(13.5, 4, 4.444444444), 
-                            Point3D(13.5, 4, 4.666666667));
+        Segment3D segment70(Point3D(15, 1, 4.444444444444), 
+                            Point3D(15, 1, 4.666666666667));
+        Segment3D segment71(Point3D(13.5, 4, 4.444444444444), 
+                            Point3D(13.5, 4, 4.666666666667));
         PResultFace prf30(segment70,segment71,1,0,2,true,false);
         result7.addPResultFace(prf30,true);
         assert_("UnitsTest 2.4", "ResultUnits don't equal.",
@@ -3021,39 +3075,39 @@ namespace temporalalgebra {
         // cout << result7;
         ResultUnit result8 = units[4];
         ResultUnit result9; 
-        Segment3D segment72(Point3D(2, 1, 4.666666667), 
+        Segment3D segment72(Point3D(2, 1, 4.666666666667), 
                             Point3D(2, 1, 5));
-        Segment3D segment73(Point3D(5, 1, 4.666666667), 
+        Segment3D segment73(Point3D(5, 1, 4.666666666667), 
                             Point3D(5, 1, 5));
         PResultFace prf31(segment72,segment73,0,0,0,true,true);
         result9.addPResultFace(prf31,true);
-        Segment3D segment74(Point3D(3.5, 4, 4.66666667), 
+        Segment3D segment74(Point3D(3.5, 4, 4.666666666667), 
                             Point3D(3.5, 4, 5));
-        Segment3D segment75(Point3D(2, 1, 4.666666667), 
+        Segment3D segment75(Point3D(2, 1, 4.666666666667), 
                             Point3D(2, 1, 5));
         PResultFace prf32(segment74,segment75,0,0,1,true,false);
         result9.addPResultFace(prf32,true);
-        Segment3D segment76(Point3D(5, 1, 4.666666667), 
+        Segment3D segment76(Point3D(5, 1, 4.666666666667), 
                             Point3D(5, 1, 5));
-        Segment3D segment77(Point3D(3.5, 4, 4.666666667), 
+        Segment3D segment77(Point3D(3.5, 4, 4.666666666667), 
                             Point3D(3.5, 4, 5));
         PResultFace prf33(segment76,segment77,0,0,2,true,false);
         result9.addPResultFace(prf33,true);
-        Segment3D segment78(Point3D(12, 1, 4.666666667), 
+        Segment3D segment78(Point3D(12, 1, 4.666666666667), 
                             Point3D(12, 1, 5));
-        Segment3D segment79(Point3D(15, 1, 4.666666667), 
+        Segment3D segment79(Point3D(15, 1, 4.666666666667), 
                             Point3D(15, 1, 5));
         PResultFace prf34(segment78,segment79,1,0,0,true,true);
         result9.addPResultFace(prf34,true);
-        Segment3D segment80(Point3D(13.5, 4, 4.666666667), 
+        Segment3D segment80(Point3D(13.5, 4, 4.666666666667), 
                             Point3D(13.5, 4, 5));
-        Segment3D segment81(Point3D(12, 1, 4.666666667), 
+        Segment3D segment81(Point3D(12, 1, 4.666666666667), 
                             Point3D(12, 1, 5));
         PResultFace prf35(segment80,segment81,1,0,1,true,false);
         result9.addPResultFace(prf35,true);
-        Segment3D segment82(Point3D(15, 1, 4.666666667), 
+        Segment3D segment82(Point3D(15, 1, 4.666666666667), 
                             Point3D(15, 1, 5));
-        Segment3D segment83(Point3D(13.5, 4, 4.666666667), 
+        Segment3D segment83(Point3D(13.5, 4, 4.666666666667), 
                             Point3D(13.5, 4, 5));
         PResultFace prf36(segment82,segment83,1,0,2,true,false);
         result9.addPResultFace(prf36,true);
@@ -3112,54 +3166,68 @@ namespace temporalalgebra {
            unit1.getResultUnit(i,INNER,false,points,units[i],UNIT_B);
         }// for
         vector<ResultUnit> result = vector<ResultUnit>(5,ResultUnit());        
-        Segment3D segment10(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                            Point3D(4.2, 2.6, 2.666666667));            
-        Segment3D segment11(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                            Point3D(3.5, 4, 2.666666667));          
-        Segment3D segment12(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                            Point3D(2.8, 2.6, 2.666666667));       
-        Segment3D segment13(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                            Point3D(4.2, 2.6, 2.666666667));
-        Segment3D segment14(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                            Point3D(3.5, 4, 2.666666667));
-        Segment3D segment15(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                            Point3D(2.8, 2.6, 2.666666667));
+        Segment3D segment10(Point3D(4.666666666667, 1.666666666667,
+                                    1.111111111111), 
+                            Point3D(4.2, 2.6, 2.666666666667));            
+        Segment3D segment11(Point3D(4.666666666667, 1.666666666667, 
+                                    1.111111111111), 
+                            Point3D(3.5, 4, 2.666666666667));          
+        Segment3D segment12(Point3D(4.666666666667, 1.666666666667, 
+                                    1.111111111111), 
+                            Point3D(2.8, 2.6, 2.666666666667));       
+        Segment3D segment13(Point3D(4.666666666667, 1.666666666667, 
+                                    1.111111111111), 
+                            Point3D(4.2, 2.6, 2.666666666667));
+        Segment3D segment14(Point3D(4.666666666667, 1.666666666667, 
+                                    1.111111111111), 
+                            Point3D(3.5, 4, 2.666666666667));
+        Segment3D segment15(Point3D(4.666666666667, 1.666666666667, 
+                                    1.111111111111), 
+                            Point3D(2.8, 2.6, 2.666666666667));
         PResultFace prf0(segment10,segment11);
         PResultFace prf1(segment12,segment13);
         PResultFace prf2(segment14,segment15);       
         result[1].addPResultFace(prf0,false);
         result[1].addPResultFace(prf1,false);
         result[1].addPResultFace(prf2,false);   
-        Segment3D segment16(Point3D(4.2, 2.6, 2.666666667), 
-                            Point3D(3.666666667, 3.666666667, 4.444444444));  
-        Segment3D segment17(Point3D(3.5, 4, 2.666666667), 
-                            Point3D(3.5, 4, 4.444444444));  
-        Segment3D segment18(Point3D(3.5, 4, 2.666666667), 
-                            Point3D(3.5, 4, 4.444444444)); 
-        Segment3D segment19(Point3D(2.8, 2.6, 2.666666667), 
-                            Point3D(3.333333333, 3.666666667, 4.444444444));  
-        Segment3D segment20(Point3D(2.8, 2.6, 2.666666667), 
-                            Point3D(3.333333333, 3.666666667, 4.444444444));   
-        Segment3D segment21(Point3D(4.2, 2.6, 2.666666667), 
-                            Point3D(3.666666667, 3.666666667, 4.444444444));
+        Segment3D segment16(Point3D(4.2, 2.6, 2.666666666667), 
+                            Point3D(3.666666666667, 3.666666666667, 
+                                    4.444444444444));  
+        Segment3D segment17(Point3D(3.5, 4, 2.666666666667), 
+                            Point3D(3.5, 4, 4.444444444444));  
+        Segment3D segment18(Point3D(3.5, 4, 2.666666666667), 
+                            Point3D(3.5, 4, 4.444444444444)); 
+        Segment3D segment19(Point3D(2.8, 2.6, 2.666666666667), 
+                            Point3D(3.333333333333, 3.666666666667, 
+                                    4.444444444444));  
+        Segment3D segment20(Point3D(2.8, 2.6, 2.666666666667), 
+                            Point3D(3.333333333333, 3.666666666667, 
+                                    4.444444444444));   
+        Segment3D segment21(Point3D(4.2, 2.6, 2.666666666667), 
+                            Point3D(3.666666666667, 3.666666666667, 
+                                    4.444444444444));
         PResultFace prf3(segment16,segment17);
         PResultFace prf4(segment18,segment19);
         PResultFace prf5(segment20,segment21);  
         result[2].addPResultFace(prf3,false);
         result[2].addPResultFace(prf4,false);
         result[2].addPResultFace(prf5,false);       
-        Segment3D segment22(Point3D(3.5, 4, 4.444444444), 
-                            Point3D(3.4, 3.8, 4.666666667));
-        Segment3D segment23(Point3D(3.333333333, 3.666666667, 4.444444444), 
-                            Point3D(3.4, 3.8, 4.666666667));   
-        Segment3D segment24(Point3D(3.333333333, 3.666666667, 4.444444444), 
-                            Point3D(3.4, 3.8, 4.666666667));
-        Segment3D segment25(Point3D(3.666666667, 3.666666667, 4.44444444), 
-                            Point3D(3.4, 3.8, 4.666666667));
-        Segment3D segment26(Point3D(3.666666667, 3.666666667, 4.444444444), 
-                            Point3D(3.4, 3.8, 4.666666667)); 
-        Segment3D segment27(Point3D(3.5, 4, 4.444444444), 
-                            Point3D(3.4, 3.8, 4.666666667));
+        Segment3D segment22(Point3D(3.5, 4, 4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667));
+        Segment3D segment23(Point3D(3.333333333333, 3.666666666667, 
+                                    4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667));   
+        Segment3D segment24(Point3D(3.333333333333, 3.666666666667, 
+                                    4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667));
+        Segment3D segment25(Point3D(3.666666666667, 3.666666666667, 
+                                    4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667));
+        Segment3D segment26(Point3D(3.666666666667, 3.666666666667, 
+                                    4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667)); 
+        Segment3D segment27(Point3D(3.5, 4, 4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667));
         PResultFace prf6(segment22,segment23);
         PResultFace prf7(segment24,segment25);
         PResultFace prf8(segment26,segment27);  
@@ -3237,12 +3305,12 @@ namespace temporalalgebra {
           units[i].finalize();  
         }// for
         ResultUnit result;
-        Segment3D segment10(Point3D(7.1111111111, 3.2222222222, 0), 
-                            Point3D(1.1111111111, 6.2222222222, 5));
+        Segment3D segment10(Point3D(7.1111111111111, 3.2222222222222, 0), 
+                            Point3D(1.1111111111111, 6.2222222222222, 5));
         Segment3D segment11(Point3D(8, 1, 0), Point3D(2, 4, 5));           
         Segment3D segment12(Point3D(7.5, 4, 0), Point3D(1.5, 7, 5));        
-        Segment3D segment13(Point3D(7.1111111111, 3.2222222222, 0), 
-                            Point3D(1.1111111111, 6.2222222222, 5));         
+        Segment3D segment13(Point3D(7.1111111111111, 3.2222222222222, 0), 
+                            Point3D(1.1111111111111, 6.2222222222222, 5));
         Segment3D segment14(Point3D(9, 1, 0), Point3D(3, 4, 5));        
         Segment3D segment15(Point3D(7.5, 4, 0), Point3D(1.5, 7, 5));
         Segment3D segment16(Point3D(8, 1, 0), Point3D(2, 4, 5));
@@ -3610,26 +3678,32 @@ namespace temporalalgebra {
         // cout << unitPair;
         // result
         ResultUnit result1 =  unitPair.getResultUnit(0);
-        ResultUnit result2(0,1.111111111);
+        ResultUnit result2(0,1.111111111111);
         assert_("SourceUnitPairTest 1.1", "ResultUnits don't equal.",
                 result1 == result2); 
         // cout << result1;
         // cout << result2;
         ResultUnit result3 =  unitPair.getResultUnit(1);
-        ResultUnit result4(1.111111111,2.666666667);
+        ResultUnit result4(1.111111111111,2.666666666667);
         
-        Segment3D segment10(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                            Point3D(4.2, 2.6, 2.666666667));            
-        Segment3D segment11(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                            Point3D(3.5, 4, 2.666666667));          
-        Segment3D segment12(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                            Point3D(2.8, 2.6, 2.666666667));       
-        Segment3D segment13(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                            Point3D(4.2, 2.6, 2.666666667));
-        Segment3D segment14(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                            Point3D(3.5, 4, 2.666666667));
-        Segment3D segment15(Point3D(4.666666667, 1.666666667, 1.111111111), 
-                            Point3D(2.8, 2.6, 2.666666667));
+        Segment3D segment10(Point3D(4.666666666667, 1.666666666667, 
+                                    1.111111111111), 
+                            Point3D(4.2, 2.6, 2.666666666667));            
+        Segment3D segment11(Point3D(4.666666666667, 1.666666666667, 
+                                    1.111111111111), 
+                            Point3D(3.5, 4, 2.666666666667));          
+        Segment3D segment12(Point3D(4.666666666667, 1.666666666667, 
+                                    1.111111111111), 
+                            Point3D(2.8, 2.6, 2.666666666667));       
+        Segment3D segment13(Point3D(4.666666666667, 1.666666666667, 
+                                    1.111111111111), 
+                            Point3D(4.2, 2.6, 2.666666666667));
+        Segment3D segment14(Point3D(4.666666666667, 1.666666666667, 
+                                    1.111111111111), 
+                            Point3D(3.5, 4, 2.666666666667));
+        Segment3D segment15(Point3D(4.666666666667, 1.666666666667, 
+                                    1.111111111111), 
+                            Point3D(2.8, 2.6, 2.666666666667));
         PResultFace prf2(segment10,segment11,0,0,2,true,false);
         PResultFace prf0(segment12,segment13,0,0,0,true,true);
         PResultFace prf1(segment14,segment15,0,0,1,true,false);       
@@ -3641,19 +3715,23 @@ namespace temporalalgebra {
         // cout << result3;
         // cout << result4;
         ResultUnit result5 =  unitPair.getResultUnit(2);
-        ResultUnit result6(2.666666667,4.444444444);
-        Segment3D segment16(Point3D(4.2, 2.6, 2.666666667), 
-                            Point3D(3.666666667, 3.666666667, 4.444444444));  
-        Segment3D segment17(Point3D(3.5, 4, 2.666666667), 
-                            Point3D(3.5, 4, 4.444444444));  
-        Segment3D segment18(Point3D(3.5, 4, 2.666666667), 
-                            Point3D(3.5, 4, 4.444444444)); 
-        Segment3D segment19(Point3D(2.8, 2.6, 2.666666667), 
-                            Point3D(3.333333333, 3.666666667, 4.444444444));  
-        Segment3D segment20(Point3D(2.8, 2.6, 2.666666667), 
-                            Point3D(3.333333333, 3.666666667, 4.444444444));   
-        Segment3D segment21(Point3D(4.2, 2.6, 2.666666667), 
-                            Point3D(3.666666667, 3.666666667, 4.444444444));
+        ResultUnit result6(2.666666666667,4.444444444444);
+        Segment3D segment16(Point3D(4.2, 2.6, 2.666666666667), 
+                            Point3D(3.666666666667, 3.666666666667, 
+                                    4.444444444444));  
+        Segment3D segment17(Point3D(3.5, 4, 2.666666666667), 
+                            Point3D(3.5, 4, 4.444444444444));  
+        Segment3D segment18(Point3D(3.5, 4, 2.666666666667), 
+                            Point3D(3.5, 4, 4.444444444444)); 
+        Segment3D segment19(Point3D(2.8, 2.6, 2.666666666667), 
+                            Point3D(3.333333333333, 3.666666666667, 
+                                    4.444444444444));  
+        Segment3D segment20(Point3D(2.8, 2.6, 2.666666666667), 
+                            Point3D(3.333333333333, 3.666666666667, 
+                                    4.444444444444));   
+        Segment3D segment21(Point3D(4.2, 2.6, 2.666666666667), 
+                            Point3D(3.666666666667, 3.666666666667, 
+                                    4.444444444444));
         PResultFace prf5(segment16,segment17,0,0,0,true,false);
         PResultFace prf4(segment18,segment19,0,0,1,true,false);
         PResultFace prf3(segment20,segment21,0,0,2,true,true);  
@@ -3665,19 +3743,23 @@ namespace temporalalgebra {
         // cout << result5;
         // cout << result6;
         ResultUnit result7 =  unitPair.getResultUnit(3);
-        ResultUnit result8(4.444444444,4.666666667);
-        Segment3D segment22(Point3D(3.5, 4, 4.444444444), 
-                            Point3D(3.4, 3.8, 4.666666667));
-        Segment3D segment23(Point3D(3.333333333, 3.666666667, 4.444444444), 
-                            Point3D(3.4, 3.8, 4.666666667));   
-        Segment3D segment24(Point3D(3.333333333, 3.666666667, 4.444444444), 
-                            Point3D(3.4, 3.8, 4.666666667));
-        Segment3D segment25(Point3D(3.666666667, 3.666666667, 4.44444444), 
-                            Point3D(3.4, 3.8, 4.666666667));
-        Segment3D segment26(Point3D(3.666666667, 3.666666667, 4.444444444), 
-                            Point3D(3.4, 3.8, 4.666666667)); 
-        Segment3D segment27(Point3D(3.5, 4, 4.444444444), 
-                            Point3D(3.4, 3.8, 4.666666667));
+        ResultUnit result8(4.444444444444,4.666666666667);
+        Segment3D segment22(Point3D(3.5, 4, 4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667));
+        Segment3D segment23(Point3D(3.333333333333, 3.666666666667, 
+                                    4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667));   
+        Segment3D segment24(Point3D(3.333333333333, 3.666666666667, 
+                                    4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667));
+        Segment3D segment25(Point3D(3.666666666667, 3.666666666667, 
+                                    4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667));
+        Segment3D segment26(Point3D(3.666666666667, 3.666666666667, 
+                                    4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667)); 
+        Segment3D segment27(Point3D(3.5, 4, 4.444444444444), 
+                            Point3D(3.4, 3.8, 4.666666666667));
         PResultFace prf6(segment22,segment23,0,0,0,true,false);
         PResultFace prf7(segment24,segment25,0,0,1,true,true);
         PResultFace prf8(segment26,segment27,0,0,2,true,false);  
@@ -3689,7 +3771,7 @@ namespace temporalalgebra {
         // cout << result7;
         // cout << result8;
         ResultUnit result9 =  unitPair.getResultUnit(4);
-        ResultUnit result10(4.666666667,5);
+        ResultUnit result10(4.666666666667,5);
         assert_("SourceUnitPairTest 1.5", "ResultUnits don't equal.",
                 result9 == result10); 
         // cout << result9;
@@ -4219,7 +4301,7 @@ namespace temporalalgebra {
         points2.add(Point3D(3.5,4,2.66666667));
         points2.add(Point3D(2,1,4.44444444));
         points2.add(Point3D(2.8,2.6,2.66666667));
-        points2.add(Point3D(3.33333333, 3.66666666, 4.44444444));
+        points2.add(Point3D(3.333333331, 3.666666662, 4.44444444));
         points2.add(Point3D(3.5,4, 4.44444444));
         points2.add(Point3D(2,1,4.66666667));
         points2.add(Point3D(3.4,3.8,4.66666667));
@@ -4245,7 +4327,7 @@ namespace temporalalgebra {
         assert_("LayerContainerTest 6.2", 
                 "The layer containers are equal.",
                  layerContainer1 == layerContainer2);  
-        // cout << setprecision(9);
+        // cout << setprecision(12);
         // cout << container << endl;
         // cout << timeValues << endl;
         // cout << points1 << endl;
@@ -4344,29 +4426,29 @@ namespace temporalalgebra {
         LayerContainer layerContainer3(5),layerContainer4(5),layerContainer5(5);
         // Results       
         points3.add(Point3D(2,1,0));
-        points3.add(Point3D(2,1,1.11111111));
+        points3.add(Point3D(2,1,1.111111111111));
         points3.add(Point3D(5,1,0));
-        points3.add(Point3D(5,1,1.11111111));
-        points3.add(Point3D(2,1,2.66666667));
-        points3.add(Point3D(5,1,2.66666667));
-        points3.add(Point3D(2,1,4.44444444));
-        points3.add(Point3D(5,1,4.44444444));
-        points3.add(Point3D(2,1,4.66666667));
-        points3.add(Point3D(5,1,4.66666667));
+        points3.add(Point3D(5,1,1.111111111111));
+        points3.add(Point3D(2,1,2.666666666667));
+        points3.add(Point3D(5,1,2.666666666667));
+        points3.add(Point3D(2,1,4.444444444444));
+        points3.add(Point3D(5,1,4.444444444444));
+        points3.add(Point3D(2,1,4.666666666667));
+        points3.add(Point3D(5,1,4.666666666667));
         points3.add(Point3D(2,1,5));
         points3.add(Point3D(5,1,5));
         points3.add(Point3D(3.5,4,0));
-        points3.add(Point3D(3.5,4,1.11111111));
-        points3.add(Point3D(4.66666667,1.66666667,1.11111111));
-        points3.add(Point3D(4.2,2.6,2.66666667));
-        points3.add(Point3D(3.5,4,2.66666667));
-        points3.add(Point3D(3.66666667, 3.66666667,4.44444444));
-        points3.add(Point3D(3.5,4,4.44444444));
-        points3.add(Point3D(3.5,4,4.66666667));
+        points3.add(Point3D(3.5,4,1.111111111111));
+        points3.add(Point3D(4.666666666667,1.666666666667, 1.111111111111));
+        points3.add(Point3D(4.2,2.6,2.666666666667));
+        points3.add(Point3D(3.5,4,2.666666666667));
+        points3.add(Point3D(3.666666666667, 3.666666666667, 4.444444444444));
+        points3.add(Point3D(3.5,4,4.444444444444));
+        points3.add(Point3D(3.5,4,4.666666666667));
         points3.add(Point3D(3.5,4,5));
-        points3.add(Point3D(2.8,2.6,2.66666667));
-        points3.add(Point3D(3.33333333,3.66666667,4.44444444));
-        points3.add(Point3D(3.4,3.8,4.66666667));
+        points3.add(Point3D(2.8,2.6,2.666666666667));
+        points3.add(Point3D(3.333333333333, 3.666666666667, 4.444444444444));
+        points3.add(Point3D(3.4,3.8,4.666666666667));
         assert_("LayerContainerTest 7.1", "points are equal.",
                 points2 == points3);
         // cout << setprecision(9);
@@ -4638,7 +4720,7 @@ namespace temporalalgebra {
         size_t i6 = points1.add(
           Point3D(5.28846153846, 4.26923076923, 0));
         size_t i7 = points1.add(
-          Point3D(5.33898305085, 4.22881355932, 2.24250325));
+          Point3D(5.33898305085, 4.22881355932, 2.24250325));   
         // Points for pface 2
         size_t i8 = points1.add(
           Point3D(5.61538461111, 4.19230769444, 0));
@@ -4669,19 +4751,12 @@ namespace temporalalgebra {
         pf0.intersection(pf2,timeValues);
         // result  
         pf3.addIntSeg(IntersectionSegment(
-          IntersectionPoint(5.2884615, 3.375, 0, -5.0976941),             
-          IntersectionPoint(5.3389831, 4.2288136, 2.2425032, -5.9092033),
+          IntersectionPoint(5.28846153846, 3.375, 0, -5.09769413938), 
+          IntersectionPoint(5.33898305085, 4.22881355932, 2.24250325, 
+                            -5.90920334623), 
           NO_INTERSECT));
-        pf3.addIntSeg(IntersectionSegment(
-          IntersectionPoint(5.2884615, 3.375, 0, -5.0976941),             
-          IntersectionPoint(5.3389831, 4.2288136, 2.2425032, -5.9092033),
-          RIGHT_IS_INNER));
         pf3.setState(CRITICAL);
-        pf4.addIntSeg(IntersectionSegment(
-          IntersectionPoint(5.2884615, 3.375, 0, 3.375), 
-          IntersectionPoint(5.3389831, 4.2288135, 2.2425032, 4.2288135),
-          LEFT_IS_INNER));
-        pf4.setState(RELEVANT);
+        pf4.setState(UNKNOWN);
         pf5.setState(CRITICAL);
         assert_("PFaceTest 13.1", 
                 "the P-faces are the same.",
@@ -4692,6 +4767,7 @@ namespace temporalalgebra {
         assert_("PFaceTest 13.3", 
                 "the P-faces are the same.",
                 (pf2 == pf5));
+        // cout << setprecision(13);
         // cout << points1;
         // cout << segments1;
         // cout << segments2;

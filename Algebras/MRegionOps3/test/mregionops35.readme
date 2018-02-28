@@ -1,0 +1,17 @@
+
+Notes for processing the file "mregionops35.test"
+
+The created objects are in part so small of their extents that classes of 
+other algebras refuse to accept these objects. For these objects to be 
+processed, two constants must be patched from the algebra 
+"MovingRegionAlgebra".
+
+File: MovingRegionAlgebra.cpp
+
+const double eps = 0.00000001;
+double epsRelaxFactor = 1000;
+
+For processing should have an installation with 32 GB of RAM. During the 
+calculation up to 16 GB of RAM are occupied by Secondo.
+
+It takes about 1.5 hours to execute the script and check the result.

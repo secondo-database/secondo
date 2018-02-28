@@ -262,6 +262,7 @@ namespace temporalalgebra {
         return false;      
       // Compute segment intersection point
       result = tail + s * u;
+      // cout << result;
       return true;                                
     }// intersection
                                     
@@ -2415,6 +2416,7 @@ namespace temporalalgebra {
       os << " , right end point:=" << this->rightEnd << "," << endl;
       os << prefix + "  MedianHS:=" << this->medianHS << "," << endl;
       os << prefix + "  ";
+      os << setprecision(12);
       this->intSegs.print(os,"  "+prefix);
       os << prefix + "  ";
       this->layers.print(os,"  "+prefix);
@@ -2851,7 +2853,9 @@ namespace temporalalgebra {
         size_t const* j;  
         while ((j = it->next()) != 0) {
           PFace* pFaceB = other.pFaces[*j];
-          pFaceA->intersection(*pFaceB,timeValues);         
+          pFaceA->intersection(*pFaceB,timeValues); 
+          // cout << *pFaceA;
+          // cout << *pFaceB;          
         }// while
         if (pFaceA->existsIntSegs() || pFaceA->getState()==CRITICAL) {
           RationalPlane3D plane(*pFaceA);       
@@ -3419,10 +3423,10 @@ namespace temporalalgebra {
         return false;
       }// if
       // Intersection
-      cout << "Start Intersection" << endl;
+      // cout << "Start Intersection" << endl;
       // unitA.intersectionFast(unitB, timeValues);
       unitA.intersection(unitB, timeValues); 
-      cout << "End Intersection" << endl;
+      // cout << "End Intersection" << endl;
       // Finalize
       bool inverseB = false;
       Predicate predicateA = OUTER;
@@ -3440,10 +3444,10 @@ namespace temporalalgebra {
       // cout << unitA;
       // cout << unitB;      
       unitA.finalize(points, timeValues, predicateA, unitB);  
-      cout << "End Finalize A" << endl;
+      // cout << "End Finalize A" << endl;
       // cout << unitA;       
       unitB.finalize(points, timeValues, predicateB, unitA);  
-      cout << "End Finalize B" << endl;
+      // cout << "End Finalize B" << endl;
       // cout << unitB;      
       // get result Units          
       if (timeValues.size() > 1){
@@ -3465,7 +3469,7 @@ namespace temporalalgebra {
           i++;
         } while (timeValues.orginalNext(t1, t2));  
       }// if
-      cout << "End Operate" << endl;
+      // cout << "End Operate" << endl;
       return false;      
     }// operate
     
