@@ -1039,7 +1039,7 @@ void TransportProblem::calcRowPenalties()
 int TransportProblem::getColLowestCost(int row)
 {
     int min = std::numeric_limits<int>::max();         
-    int idx;
+    int idx = -1;
     //std::cout << "getColLowestCost in row:" << row << std::endl;
     for (int x = 0; x < (int)this->demSize; x++)
     {
@@ -1072,7 +1072,7 @@ int TransportProblem::getRowLowestCost(int col)
 {
     //std::cout << std::endl;
     int min = std::numeric_limits<int>::max();         
-    int idx;
+    int idx = -1;
     //std::cout << "getRowLowestCost in col:" << col << std::endl;
     for ( int y = 0; y < (int)this->supSize; y++)
     {
