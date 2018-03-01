@@ -178,8 +178,8 @@ both loops the built attributes and the built tuples are appended respectively.
 
   //Helper variables for Record/Vector
   int recordSize = 0;
-  string *recordAttrTypes;
-  string *recordAttrNames;
+  string *recordAttrTypes=0;
+  string *recordAttrNames=0;
 
   void *res = NULL;
   if (relType == NRel::BasicType())
@@ -334,8 +334,12 @@ both loops the built attributes and the built tuples are appended respectively.
   if (relType == "vector")
   {
     ((collection::Collection*) res)->Finish();
-    delete[] recordAttrNames;
-    delete[] recordAttrTypes;
+    if(recordAttrNames){
+       delete[] recordAttrNames;
+    }
+    if(recordAttrTypes){
+      delete[] recordAttrTypes;
+    }
   }
 
   result.setAddr(res);

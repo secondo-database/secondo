@@ -4087,8 +4087,8 @@ ListExpr getotuplesTM(ListExpr args){
       || !OrderedRelation::checkType(nl->Second(args))){
      return listutils::typeError(err);
    }
-   ListExpr appendList;
-   ListExpr last;
+   ListExpr appendList=nl->TheEmptyList();
+   ListExpr last=nl->TheEmptyList();
    ListExpr stype;
    ListExpr rtype;
    ListExpr keyList = nl->Third(nl->Second(args));
