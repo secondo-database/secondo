@@ -2942,6 +2942,7 @@ renameArelAttrs( ListExpr first, string& attrnamen)
 {
   ListExpr first2, rest,
            listn, lastlistn;
+  first2 = rest = listn = lastlistn = nl->TheEmptyList();
   string  attrname="";
   bool firstcall = true;
 
