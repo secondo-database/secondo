@@ -2712,7 +2712,7 @@ segment order, and when the last half segment is been considered for choosing
 last segment.
 
 */
-  Point pA, pP, pB;
+  Point pA(true,0,0), pP(true,0,0), pB(true,0,0);
   HalfSegment hs1, hs2;
   this->Get(0,hs1);
   this->Get(1,hs2);
