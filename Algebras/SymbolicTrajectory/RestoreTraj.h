@@ -103,7 +103,7 @@ class NegIndexVector2D {
   }
   
   unsigned int getYsize(const int x) const {
-    assert(x >= 0 && x < content.size());
+    assert(x >= 0 && x < (int)content.size());
     return content[x].size();
   }
   
