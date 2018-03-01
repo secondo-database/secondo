@@ -853,7 +853,7 @@ Otherwise the join must be computed.
 
   bool nextResultTupleFound = false;
 
-  Tuple* outerTuple;
+  Tuple* outerTuple=0;
 
   BBox<dim> SBox;                       //searchBox for window-query
   R_TreeEntryPnJ<dim> foundEntry;
