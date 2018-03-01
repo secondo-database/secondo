@@ -510,7 +510,7 @@ void RandomShiftDelay( const MPoint* actual, const Instant* threshold,
 
   MPoint delayed(actual->GetNoComponents());
   UPoint first(0), next(0);
-  UPoint *shifted,*temp, *cur;
+  UPoint *shifted,*temp=0, *cur;
   int xshift=0, yshift=0;
   int rmillisec=0, rday=0;
   actual->Get( 0, first );
@@ -559,8 +559,10 @@ void RandomShiftDelay( const MPoint* actual, const Instant* threshold,
     delayed.Add(*shifted);
     delete shifted;
   }
-  delayed.Add(*temp);
-  delete temp;
+  if(temp){
+    delayed.Add(*temp);
+    delete temp;
+  }
   res.CopyFrom(&delayed);
   if(debugme)
   {
