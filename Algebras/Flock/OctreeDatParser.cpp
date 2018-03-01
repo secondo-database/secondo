@@ -390,7 +390,7 @@ OctreeDatParser::createPoint(int startCol, int endCol){
   this->activeTrajectories++;
   //skip the coordinates before startCol 
   double tmp;
-  bool defined;
+  bool defined=false;
   for (int index=0; index < this->dimensions * startCol; index++)  
     this->getNextCoord(tmp);
 

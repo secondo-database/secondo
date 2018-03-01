@@ -394,7 +394,7 @@ OctreeCell::largestInterestingSquare(OctreeElement* a, OctreeElement* b){
   curHSL= this->halfSideLength;
 
   double* nextCoords= new double[this->dimensions];
-  double nextHSL;
+  double nextHSL=0;
   bool traverseDown= true;
   double sign1, sign2;
   while(true)

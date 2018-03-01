@@ -758,7 +758,7 @@ findFlocks2DimBruteforce(OctreeDatParser* myParser, double radius,
   int dimensions = (*pointIt)->getDimensions();
   int amount, i, queries=0;
   double *pCoords, *fCoords, *cCoords;
-  bool inFlock;
+  bool inFlock=false;
   double distance, radiussqrd=radius*radius;
 
   for(; pointIt!=points->end(); pointIt++){
@@ -1109,7 +1109,7 @@ int ReportFlocksVM(Word* args, Word& result,
     Instant* timeStep = static_cast<Instant*>(args[5].addr);
     int k = static_cast<CcInt*>(args[6].addr)->GetIntval();
     string smethod= static_cast<CcString*>(args[7].addr)->GetValue();
-    short method;
+    short method=_BruteForce;
     if(smethod == "bruteforce") method= _BruteForce;
     else if(smethod == "square") method= _Square;
     else if(smethod == "exact") method= _2Dim;
