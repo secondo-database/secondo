@@ -1431,7 +1431,7 @@ template<typename Raster> int lfdistanceFun
             double dheight=heightB-heightA;
             double drivingDistance=sqrt(pow(dheight,2)+pow(airDistance,2));
             double climb = dheight/airDistance;
-            double dist;
+            double dist=0.0;
 
 
             if ((climb < (-1.0))||(climb > 1.0))
@@ -1743,7 +1743,7 @@ template<typename Raster> int lfdistanceparamFun
         double dheight=heightB-heightA;
         double drivingDistance=sqrt(pow(dheight,2)+pow(airDistance,2));
         double climb = dheight/airDistance;
-        double dist;
+        double dist=0;
 
 
             if ((climb < (-1.0))||(climb > 1.0)) res->SetDefined(false);
