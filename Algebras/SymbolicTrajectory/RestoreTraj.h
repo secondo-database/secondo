@@ -77,7 +77,7 @@ template<class T>
 class NegIndexVector2D {
  public:
   NegIndexVector2D() {}
-  ~NegIndexVector2D() {content.clear();}
+  ~NegIndexVector2D() {}
   
   void initialize(const int _minX, const int _maxX, const int _minY,
                   const int _maxY, const T _value) {
@@ -123,15 +123,17 @@ class Tileareas {
   Tileareas(const bool dummy) : raster(0) {}
   Tileareas(const Tileareas& _src);
   
-  ~Tileareas() {raster = 0;}
+  ~Tileareas() {}
   
   bool belongsToRaster(const int x, const int y) {
     return (minX <= x && x <= maxX && minY <= y && y <= maxY);
   }
-  int processTile(const int x, const int y, const int prevValue);
+  void processTile(const int x, const int y, int& prevValue);
   void trimAreaVector();
   void recordAreaTransitions(const int x, const int y);
   void retrieveAreas(raster2::sint *_raster);
+  void print(const bool printRange, const bool printAreas,
+             const bool printTileToArea, const bool printTransitions);
   
   static const std::string BasicType() {return "tileareas";}
   static ListExpr Property();

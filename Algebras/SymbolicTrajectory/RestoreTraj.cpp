@@ -191,20 +191,20 @@ Tileareas::Tileareas(const Tileareas& _src) :
   maxY(_src.maxY), areas(_src.areas), tileToArea(_src.tileToArea),
   transitions(_src.transitions) {}
 
-int Tileareas::processTile(const int x, const int y, const int prevValue) {
+void Tileareas::processTile(const int x, const int y, int& value) {
   int rasterPos[2];
   rasterPos[0] = x;
   rasterPos[1] = y;
   raster2::sint::index_type rasterIndex(rasterPos);
-  int value = raster->get(rasterIndex);
-  if (value == INT_MIN) {
-    return INT_MIN;
+  int newValue = raster->get(rasterIndex);
+  if (newValue == INT_MIN) {
+    return;
   }
   set<NewPair<int, int> > newArea;
   rasterPos[0] = x - 1;
   raster2::sint::index_type leftRasterIndex(rasterPos);
-  int leftValue = (x > minX ? raster->get(leftRasterIndex) : INT_MIN + 1);
-  if (value == leftValue && y > minY && value == prevValue) { // unite areas
+  int leftValue = raster->get(leftRasterIndex);
+  if (newValue == leftValue && y > minY && newValue == value) {//unite areas
     int leftAreaNo = tileToArea.get(x - 1, y);
     int lowerAreaNo = tileToArea.get(x, y - 1);
     if (leftAreaNo == lowerAreaNo) { // both tiles already belong to same area
@@ -215,27 +215,32 @@ int Tileareas::processTile(const int x, const int y, const int prevValue) {
       int sourceAreaNo = (areas[leftAreaNo].size() < areas[lowerAreaNo].size()
                           ? leftAreaNo : lowerAreaNo);
       int destAreaNo = (sourceAreaNo == leftAreaNo ? lowerAreaNo : leftAreaNo);
-//       cout << sourceAreaNo << " " << destAreaNo << " | " 
-//            << areas[sourceAreaNo].size() << " " << areas[destAreaNo].size()
-//            << " | ";
+//       if (x == -651 && y == 1818) {
+//         cout << sourceAreaNo << " " << destAreaNo << " | " 
+//              << areas[sourceAreaNo].size() << " " << areas[destAreaNo].size()
+//              << " | ";
+//       }
       areas[destAreaNo].insert(NewPair<int, int>(x, y));
       tileToArea.set(x, y, destAreaNo);
-      areas[destAreaNo] = areas[sourceAreaNo];
+      areas[destAreaNo].insert(areas[sourceAreaNo].begin(), 
+                               areas[sourceAreaNo].end());
+      areas[sourceAreaNo].clear();
       for (set<NewPair<int, int> >::iterator it = areas[sourceAreaNo].begin();
            it != areas[sourceAreaNo].end(); it++) {
         tileToArea.set(it->first, it->second, destAreaNo);
       }
-      areas[sourceAreaNo].clear();
-//       cout << areas[sourceAreaNo].size() << " " << areas[destAreaNo].size()
-//            << endl;
+//       if (x == -651 && y == 1818) {
+//         cout << areas[sourceAreaNo].size() << " " << areas[destAreaNo].size()
+//              << endl;
+//       }
     } 
   }
-  else if (value == leftValue) { // extend area of left neighbor
+  else if (newValue == leftValue) { // extend area of left neighbor
     int leftAreaNo = tileToArea.get(x - 1, y);
     tileToArea.set(x, y, leftAreaNo);
     areas[leftAreaNo].insert(NewPair<int, int>(x, y));
   }
-  else if (y > minY && value == prevValue) { // extend area of lower neighbor
+  else if (y > minY && newValue == value) { // extend area of lower neighbor
     int lowerAreaNo = tileToArea.get(x, y - 1);
     tileToArea.set(x, y, lowerAreaNo);
     areas[lowerAreaNo].insert(NewPair<int, int>(x, y));
@@ -245,7 +250,7 @@ int Tileareas::processTile(const int x, const int y, const int prevValue) {
     tileToArea.set(x, y, areas.size());
     areas.push_back(newArea);
   }
-  return value;
+  value = newValue;
 }
 
 void Tileareas::trimAreaVector() {
@@ -255,7 +260,7 @@ void Tileareas::trimAreaVector() {
   int last = areas.size() - 1;
   for (int i = 0; i < (int)areas.size(); i++) {
     if (areas[i].empty()) {
-      while (areas[last].empty() && last >= i) {
+      while (areas[last].empty() && last > i) {
         areas.pop_back();
         last--;
       }
@@ -314,16 +319,15 @@ void Tileareas::retrieveAreas(raster2::sint *_raster) {
   maxX = maxIndex[0];
   minY = minIndex[1];
   maxY = maxIndex[1];
-  cout << "Tile range: " << "(" << minX << ", " << minY << ") -- (" << maxX
-       << ", " << maxY << ")" << endl;
   areas.clear();
   tileToArea.initialize(minX, maxX, minY, maxY, -1);
   int tileValue = INT_MIN;
   for (int i = minX; i <= maxX; i++) {
-    for (int j = minY; j < maxY; j++) {
-      tileValue = processTile(i, j, tileValue);
+    for (int j = minY; j <= maxY; j++) {
+      processTile(i, j, tileValue);
     }
   }
+  print(true, true, false, false);
   trimAreaVector();
   for (unsigned int i = 0; i < areas.size(); i++) {
     if (areas[i].empty()) {
@@ -331,12 +335,50 @@ void Tileareas::retrieveAreas(raster2::sint *_raster) {
     }
   }
   for (int i = minX; i <= maxX; i++) {
-    
     for (int j = minY; j < maxY; j++) {
       recordAreaTransitions(i, j);
     }
   }
-  cout << transitions.size() << " transitions found" << endl;
+  print(true, true, true, false);
+}
+
+void Tileareas::print(const bool printRange, const bool printAreas,
+                      const bool printTileToArea, const bool printTransitions) {
+  if (printRange) {
+    cout << "Tile range: " << "(" << minX << ", " << minY << ") -- (" << maxX 
+         << ", " << maxY << ")" << endl;
+  }
+  if (printAreas) {
+    cout << areas.size() << " areas." << endl;
+    for (unsigned int i = 0; i < areas.size(); i++) {
+       cout << "  area # " << i << ": ";
+       for (set<NewPair<int, int> >::iterator it = areas[i].begin();
+            it != areas[i].end(); it++) {
+         cout << "(" << it->first << ", " << it->second << ")   ";
+       }
+       cout << endl;
+    }
+  }
+  if (printTileToArea) {
+    cout << "tileToArea:" << endl;
+    for (int i = minX; i <= maxX; i++) {
+      for (int j = minY; j <= maxY; j++) {
+        cout << "(" << i << ", " << j << ") --> " << tileToArea.get(i, j) 
+             << "    ";
+      }
+    }
+    cout << endl;
+  }
+  if (printTransitions) {
+    cout << transitions.size() << " transitions:" << endl;
+    for (map<NewTriple<int, int, DirectionNum>, int>::iterator it 
+         = transitions.begin(); it != transitions.end(); it++) {
+      cout << "(" << it->first.first << ", " << it->first.second << ") --"
+           << RestoreTrajLI::dirNumToString(static_cast<DirectionNum>(
+              it->first.third)) << "-> " << it->second << "    ";
+    }
+    cout << endl;
+  }
 }
 
 ListExpr Tileareas::Property() {
@@ -379,8 +421,8 @@ void Tileareas::Delete(const ListExpr typeInfo, Word& w) {
 bool Tileareas::Open(SmiRecord& valueRecord, size_t& offset, 
                      const ListExpr typeInfo, Word& value) {
   Tileareas *ta = new Tileareas(true);
-  unsigned int size, noTiles, noXcoords;
-//   int x, y;
+  unsigned int size, noTiles, noTransitions;
+  int areaNo;
   // load min, max
   if (!valueRecord.Read(&(ta->minX), sizeof(int), offset)) {
     return false;
@@ -421,15 +463,33 @@ bool Tileareas::Open(SmiRecord& valueRecord, size_t& offset,
   }
   // load tileToArea
   ta->tileToArea.initialize(ta->minX, ta->maxX, ta->minY, ta->maxY, -1);
-  if (!valueRecord.Read(&noXcoords, sizeof(unsigned int), offset)) {
+  for (int i = ta->minX; i < ta->maxX; i++) {
+    for (int j = ta->minY; j < ta->maxY; j++) {
+      if (!valueRecord.Read(&areaNo, sizeof(int), offset)) {
+        return false;
+      }
+      offset += sizeof(int);
+      ta->tileToArea.set(i, j, areaNo);
+    }
+  }
+  // load transitions
+  if (!valueRecord.Read(&noTransitions, sizeof(unsigned int), offset)) {
     return false;
   }
-  
-  
-  // load transitions
-  
-  
-  
+  offset += sizeof(unsigned int);
+  for (unsigned int i = 0; i < noTransitions; i++) {
+    NewTriple<int, int, DirectionNum> tileDir;
+    if (valueRecord.Read(&tileDir, sizeof(NewTriple<int, int, DirectionNum>),
+                         offset)) {
+      return false;
+    }
+    offset += sizeof(NewTriple<int, int, DirectionNum>);
+    if (valueRecord.Read(&areaNo, sizeof(int), offset)) {
+      return false;
+    }
+    offset += sizeof(int);
+    ta->transitions[tileDir] = areaNo;
+  }
   value.addr = ta;
   return true;
 }
@@ -476,18 +536,8 @@ bool Tileareas::Save(SmiRecord& valueRecord, size_t& offset,
     }
   }
   // store tileToArea
-  unsigned int noXcoords = ta->tileToArea.getXsize();
-  if (!valueRecord.Write(&noXcoords, sizeof(unsigned int), offset)) {
-    return false;
-  }
-  offset += sizeof(unsigned int);
-  for (unsigned int i = 0; i < noXcoords; i++) {
-    unsigned int noYcoords = ta->tileToArea.getYsize(i);
-    if (!valueRecord.Write(&noYcoords, sizeof(unsigned int), offset)) {
-      return false;
-    }
-    offset += sizeof(unsigned int);
-    for (unsigned int j = 0; j < noYcoords; j++) {
+  for (int i = ta->minX; i <= ta->maxX; i++) {
+    for (int j = ta->minY; j <= ta->maxY; j++) {
       int areaNo = ta->tileToArea.get(i, j);
       if (!valueRecord.Write(&areaNo, sizeof(int), offset)) {
         return false;
@@ -502,25 +552,19 @@ bool Tileareas::Save(SmiRecord& valueRecord, size_t& offset,
   }
   for (map<NewTriple<int, int, DirectionNum>, int>::iterator 
        it = ta->transitions.begin(); it != ta->transitions.end(); it++) {
-    int x(it->first.first), y(it->first.second), areaNo(it->second);
-    DirectionNum dirNum(it->first.third);
-    if (!valueRecord.Write(&x, sizeof(int), offset)) {
+    int areaNo(it->second);
+    NewTriple<int, int, DirectionNum> tileDir(it->first);
+    if (!valueRecord.Write(&tileDir, sizeof(NewTriple<int, int, DirectionNum>), 
+                           offset)) {
       return false;
     }
-    offset += sizeof(int);
-    if (!valueRecord.Write(&y, sizeof(int), offset)) {
-      return false;
-    }
-    offset += sizeof(int);
-    if (!valueRecord.Write(&dirNum, sizeof(DirectionNum), offset)) {
-      return false;
-    }
-    offset += sizeof(DirectionNum);
+    offset += sizeof(NewTriple<int, int, DirectionNum>);
     if (!valueRecord.Write(&areaNo, sizeof(int), offset)) {
       return false;
     }
     offset += sizeof(int);
   }
+  ta->print(true, true, true, true);
   return true;
 }
 
