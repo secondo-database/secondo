@@ -269,8 +269,8 @@ ListExpr getCycleList(const vector<MPrecHalfSegment>& v, size_t& pos){
   MPrecPoint p2l = hs2.getLeftPoint();
   MPrecPoint p2r = hs2.getRightPoint();
 
-  ListExpr cycle;
-  ListExpr last;
+  ListExpr cycle=nl->TheEmptyList();
+  ListExpr last=nl->TheEmptyList();
   MPrecPoint lastPoint(0,0);
 
   if(p1l==p2l){
@@ -327,8 +327,8 @@ ListExpr getFaceList(const vector<MPrecHalfSegment>& v, size_t& pos){
   int  ffaceno = hs.attributes.faceno;
   bool first = true;
   int faceno = ffaceno;
-  ListExpr cycles;
-  ListExpr last;
+  ListExpr cycles=nl->TheEmptyList();
+  ListExpr last = nl->TheEmptyList();
   
 
   while(pos < v.size() &&   faceno==ffaceno){
@@ -354,8 +354,8 @@ ListExpr getRegionList(vector<MPrecHalfSegment>& v){
    LogicCompare cmp;
    sort(v.begin(), v.end(), cmp);
 
-   ListExpr faces;
-   ListExpr last;
+   ListExpr faces=nl->TheEmptyList();
+   ListExpr last=nl->TheEmptyList();
    size_t pos = 0;
    bool first = true;
    while(pos < v.size()){
@@ -1738,7 +1738,7 @@ bool PrecRegion::addCycle(ListExpr cycle, int faceNo, int cycleNo, int& edgeNo){
      if(p1==p2){
        return false;
      }
-     AttrType a;
+     AttrType a(0);
      a.faceno = faceNo;
      a.cycleno = cycleNo;
      a.edgeno = edgeNo;

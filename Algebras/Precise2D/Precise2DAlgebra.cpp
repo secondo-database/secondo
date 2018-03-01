@@ -349,7 +349,7 @@ ListExpr Line2::OutLine2(ListExpr typeInfo, Word value) {
  if (!line->IsDefined()) {
   return nl->SymbolAtom(Symbol::UNDEFINED());
  }
- ListExpr segment, result, last;
+ ListExpr segment, result=nl->TheEmptyList(), last=nl->TheEmptyList();
 
  result = nl->TheEmptyList();
 
@@ -545,7 +545,7 @@ ListExpr Points2::OutPoints2(ListExpr typeInfo, Word value) {
   return nl->SymbolAtom(Symbol::UNDEFINED());
  }
 
- ListExpr point, result, last;
+ ListExpr point, result=nl->TheEmptyList(), last=nl->TheEmptyList();
  result = nl->TheEmptyList();
  int gX, gY;
  mpq_class pX, pY;
