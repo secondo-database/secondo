@@ -14567,7 +14567,7 @@ int hlGetPathViaPointsVM (Word* args,
     DbArray<TupleId>* tupleIds =
         currAttrRel->getTupleIds();
     TupleId tid;
-    Tuple* currDataTuple;
+    Tuple* currDataTuple=0;
     for(int i = 0; i < tupleIds->Size(); i++)
     {
         tupleIds->Get(i, tid);
