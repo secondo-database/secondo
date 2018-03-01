@@ -257,8 +257,8 @@ ListExpr OsmImportOperator::getAttrList (std::string attributeNames [],
         std::string attributeTypes [],
         const int &NUM_ATTR)
 {
-    ListExpr attrList;
-    ListExpr last;
+    ListExpr attrList=nl->TheEmptyList();
+    ListExpr last = nl->TheEmptyList();
     for (int i = 0; i < NUM_ATTR; ++i)  {
         std::string const & name = attributeNames[i];
         std::string const & type = attributeTypes[i];

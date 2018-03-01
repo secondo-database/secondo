@@ -634,7 +634,8 @@ double ShpFileReader::readLittleDouble () {
     if (!WinUnix::isLittleEndian ()) {
         tmp = WinUnix::convertEndian (tmp);
     }
-    res = * (reinterpret_cast<double*>(&tmp));
+    void * d = &tmp;
+    res = * (reinterpret_cast<double*>(d));
     return res;
 }
 
