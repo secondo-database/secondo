@@ -46,6 +46,8 @@ public :
 	
 	BaseClass();
 
+  virtual ~BaseClass(){};
+
 	void incrementIndex();
 	void resetIndex();
 

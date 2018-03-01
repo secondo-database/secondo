@@ -414,7 +414,10 @@ return outList;
     }
   }
   return nl->SymbolAtom( Symbol::TYPEERROR() );
+} else {
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
+ 
 }
 
 
@@ -1018,7 +1021,7 @@ std::pair<int, BaseClass*> firstEntry=*this->totals.begin() ;
                 first->resetIndex();
              first->getNextStart(mininst,minisclosed,true);
             iter = this->totals.begin()++;
-            for (iter; iter != this->totals.end(); ++iter)  
+            for (; iter != this->totals.end(); ++iter)  
             {
 
             iter->second->resetIndex();
@@ -1042,7 +1045,7 @@ std::pair<int, BaseClass*> firstEntry=*this->totals.begin() ;
          
          bool firstmindone=false;
          iter=this->totals.begin();
-         for ( iter;iter != this->totals.end(); ++iter) 
+         for ( ;iter != this->totals.end(); ++iter) 
          {
             if(iter->second->isFinished())
                  continue;
@@ -1081,7 +1084,7 @@ res=iter->second->getNextStart(mininst,minisclosed,false);
 
             bool finishfirst=false;
             iter=this->totals.begin();
-            for (iter; iter != this->totals.end(); ++iter)  
+            for (; iter != this->totals.end(); ++iter)  
             {
 iter->second->setLastStartInstant(mininst,minisclosed);
 
