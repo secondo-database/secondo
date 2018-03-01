@@ -770,7 +770,7 @@ Converts ~pointsequence~ to ~region~.
 
 */
 {
-  ListExpr errorInfo, instance, last;
+  ListExpr errorInfo, instance=nl->TheEmptyList(), last;
   bool correct;
 
   PointSequence *ps = ((PointSequence*)args[0].addr);
