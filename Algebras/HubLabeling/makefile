@@ -32,7 +32,7 @@ ALGEBRA_DEPENDENCIES += RelationAlgebra
 
 
 # expand compile flags if necessary
-CCFLAGS += -std=c++11
+CCFLAGS += -std=c++11 -Werror 
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env
@@ -57,4 +57,3 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	rm -f GuideAlgebra.doc GuideAlgebra.doc.pdf GuideAlgebra.doc.dvi GuideAlgebra.doc.log GuideAlgebra.doc.aux GuideAlgebra.doc.tex GuideAlgebra.doc.toc rm title.ps title.pdf title.aux title.log title.dvi  GuideAlgebra.pdf
