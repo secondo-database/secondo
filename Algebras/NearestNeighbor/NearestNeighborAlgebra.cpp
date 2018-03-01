@@ -702,7 +702,7 @@ ListExpr knearestdistTypeMap( ListExpr args )
     return nl->TypeError();
   }
 
-  ListExpr res;
+  ListExpr res = nl->TypeError();
   if(nl->IsEqual(card,CcReal::BasicType())){
       res = nl->TwoElemList(
             nl->SymbolAtom(Symbol::STREAM()),
