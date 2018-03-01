@@ -3032,7 +3032,7 @@ Computes the absolute time position of each event in a track.
 */
 {
   unsigned int absPos = 0;
-  unsigned char shortMessageType;
+  unsigned char shortMessageType=0;
 
   for (int i = 0; i < track->GetNumberOfEvents(); i++)
   {
@@ -3889,7 +3889,7 @@ velocity and filters all other events of the given track.
 */
 {
   unsigned int absPos = 0;
-  unsigned char shortMessageType;
+  unsigned char shortMessageType=0;
 
   for (int i = 0; i < track->GetNumberOfEvents(); i++)
   {
