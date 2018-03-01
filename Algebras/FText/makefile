@@ -36,7 +36,6 @@ ALGEBRA_DEPENDENCIES += FunctionAlgebra
 include ../../makefile.env
 
 # expand compile flags if necessary
-CCFLAGS += -Werror 
 CCFLAGS += -Werror
 
 # create objects and algebra library. The values for the variables
