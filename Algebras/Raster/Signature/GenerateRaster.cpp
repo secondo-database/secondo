@@ -261,11 +261,12 @@ Signature4CRS* GeraRasterSecondo::generateRaster(const long id,
            currentCell.x++;
            //does not change swapMatrix when it´s a vertical line over
            //the edge of the cell
-           if (coord.x != entryPoint.x) 
+           if (coord.x != entryPoint.x) {
              if(insideAbove)
                swapMatrix[matrixPosition] += 1;
              else
                swapMatrix[matrixPosition] -= 1;
+           }
            cornerCoordinate = 1;
         }
         else
@@ -274,11 +275,12 @@ Signature4CRS* GeraRasterSecondo::generateRaster(const long id,
                is_equal(coord.x,xCurrentCell) )
           {
             currentCell.y++;
-           if (coord.x != entryPoint.x)
+           if (coord.x != entryPoint.x) {
               if(insideAbove)
                 swapMatrix[matrixPosition] += 1;
               else
                 swapMatrix[matrixPosition] -= 1;
+            }
             cornerCoordinate = 1;
           }
           else

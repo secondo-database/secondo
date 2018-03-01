@@ -279,7 +279,7 @@ OutRaster4CRS( ListExpr typeInfo, Word value )
   Raster4CRS* raster = (Raster4CRS*)(value.addr);
   ListExpr ocup = nl->OneElemList( nl->IntAtom(raster->block( 0, 0 )) );
   ListExpr last = ocup;
-  for( unsigned i = 1; i < raster->map->dx * raster->map->dy; i++ )
+  for( int i = 1; i < raster->map->dx * raster->map->dy; i++ )
   {
     last = nl->Append( last, nl->IntAtom(raster->block( i % raster->map->dx,
                    (unsigned long int)(i / raster->map->dx) )) );
