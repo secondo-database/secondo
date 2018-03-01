@@ -513,7 +513,8 @@ in the latter, a double index R-Tree is created using as low
 and high parameters these two last integer numbers.
 
 */
-    ListExpr first, rest, newAttrList, lastNewAttrList;
+    ListExpr first, rest, newAttrList=nl->TheEmptyList(), 
+            lastNewAttrList=nl->TheEmptyList();
     int tidIndex = 0;
     string type;
     bool firstcall = true,
@@ -2840,7 +2841,9 @@ ListExpr GetTuplesDblTypeMap(ListExpr args)
               "argument being part of the relation passed as 2nd argument.");
   }
   // Find the attribute with type tid
-  ListExpr first, rest, newAttrList, lastNewAttrList;
+  ListExpr first, rest, 
+           newAttrList=nl->TheEmptyList(), 
+           lastNewAttrList=nl->TheEmptyList();
   int j, tidIndex = 0;
   string type;
   bool firstcall = true,
@@ -3219,7 +3222,9 @@ and high parameters these two last integer numbers.
 
 */
 
-    ListExpr first, rest, newAttrList, lastNewAttrList;
+    ListExpr first, rest, 
+             newAttrList=nl->TheEmptyList(), 
+             lastNewAttrList=nl->TheEmptyList();
     int tidIndex = 0;
     bool firstcall = true,
     doubleIndex = false;
@@ -4690,7 +4695,9 @@ and high parameters these two last integer numbers.
 
 */
 
-    ListExpr first, rest, newAttrList, lastNewAttrList;
+    ListExpr first, rest, 
+             newAttrList=nl->TheEmptyList(), 
+             lastNewAttrList=nl->TheEmptyList();
     int tidIndex = 0;
     string type;
     bool firstcall = true,
@@ -6474,7 +6481,9 @@ ListExpr CyclicBulkloadTM(ListExpr args)
   if ( nl->SymbolValue(attrType) == MPoint::BasicType() ) isMPoint = true;
   else isMPoint = false;
 
-  ListExpr first, rest, newAttrList, lastNewAttrList;
+  ListExpr first, rest, 
+           newAttrList=nl->TheEmptyList(), 
+           lastNewAttrList=nl->TheEmptyList();
   int tidIndex = 0;
   string type;
   bool firstcall = true;
@@ -6777,8 +6786,8 @@ ListExpr dspatialJoinTM(ListExpr args){
         return listutils::typeError(err);
     }
     string renaming = "_" + nl->SymbolValue(ren);
-    ListExpr ral2;
-    ListExpr last;
+    ListExpr ral2=nl->TheEmptyList();
+    ListExpr last=nl->TheEmptyList();
     bool first = true;
     while(!nl->IsEmpty(al2)){
       ListExpr f = nl->First(al2);
