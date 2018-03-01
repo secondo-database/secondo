@@ -657,7 +657,7 @@ RTree<dim>::~RTree(){
         // identify pair with largest delta (between bounding boxes)
         // calculates the amount the bounding box should be extended
         RTreeNode<dim>* target = NULL;
-        unsigned int index;
+        unsigned int index=0;
         double d;
 
         for ( size_t i = 0; i < numberOfEntries; i++ ) {
