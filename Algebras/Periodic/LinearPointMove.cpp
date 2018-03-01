@@ -766,8 +766,8 @@ void LinearPointMove::Toprel(const Points& P,
       forward = false;
 
 
-   Point currentPoint1;
-   Point currentPoint2;
+   Point currentPoint1(true,0,0);
+   Point currentPoint2(true,0,0);
    RelInterval lastInterval = interval;
    RelInterval newInterval;
    double lastX1 = startX;
