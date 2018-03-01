@@ -1457,7 +1457,7 @@ ListExpr gettuplesTM(ListExpr args){
   int index = 0;
   int tidIndex = 0;
   ListExpr iattr = nl->TheEmptyList();
-  ListExpr last;
+  ListExpr last = nl->TheEmptyList();
   set<string> usednames;
   bool first = true;
   
@@ -10365,8 +10365,8 @@ ListExpr mupdatebyidTypeMap(ListExpr args) {
 
   // copy all original attributes to resAttrList
   ListExpr inAttrList = nl->Second(nl->Second(first));
-  ListExpr resAttrList;
-  ListExpr resAttrListLast;
+  ListExpr resAttrList = nl->TheEmptyList();
+  ListExpr resAttrListLast= nl->TheEmptyList();
   bool firstcall = true;
   while(!nl->IsEmpty(inAttrList)){
     ListExpr attr = nl->First(inAttrList);
@@ -10383,7 +10383,7 @@ ListExpr mupdatebyidTypeMap(ListExpr args) {
   // Go through all functions
   ListExpr mapfirst, mapsecond;
   ListExpr attrType;
-  ListExpr indices, indicescurrent;
+  ListExpr indices=nl->TheEmptyList(), indicescurrent = nl->TheEmptyList();
   
   firstcall = true;
   while (!(nl->IsEmpty(maprest))) {
@@ -10723,8 +10723,8 @@ ListExpr mupdatedirect2TM(ListExpr args){
     ListExpr tt2 = nl->Second(mrel);
     attrList = nl->Second(tt2);
 
-    ListExpr funindexes;
-    ListExpr last;
+    ListExpr funindexes=nl->TheEmptyList();
+    ListExpr last = nl->TheEmptyList();
     set<int> used;
     bool first = true;
     while(!nl->IsEmpty(funlist)){
@@ -11532,10 +11532,10 @@ ListExpr morangeTypeMap(ListExpr args) {
   
     ListExpr attrList = nl->Second(nl->Second(a1));
     ListExpr attrNames = nl->Third(a1);
-    ListExpr typeList;
-    ListExpr lastType;
-    ListExpr indexList;
-    ListExpr lastIndex;
+    ListExpr typeList = nl->TheEmptyList();
+    ListExpr lastType = nl->TheEmptyList();
+    ListExpr indexList = nl->TheEmptyList();
+    ListExpr lastIndex = nl->TheEmptyList();
     bool first = true;
 
     // extract the types from the key attributes and collect their positions
@@ -11841,7 +11841,7 @@ Tuple* findTuple(ttree::TTree<TupleWrap,TupleComp>* mmorel,
 
   ttree::Iterator<TupleWrap,TupleComp> it = mmorel->begin();
   
-  Tuple* tup;
+  Tuple* tup=0;
   while(!it.end()) {
     tup = (*it).getPointer();
     if(!tup)
@@ -18176,10 +18176,10 @@ ListExpr minserttuplepqprojectTM(ListExpr args){
 
    set<string> project;
    int updatePos = -1;
-   ListExpr resAttrList;
-   ListExpr lastAttrList;
-   ListExpr projectPos;
-   ListExpr lastProjectPos;
+   ListExpr resAttrList = nl->TheEmptyList();
+   ListExpr lastAttrList = nl->TheEmptyList();
+   ListExpr projectPos = nl->TheEmptyList();
+   ListExpr lastProjectPos=nl->TheEmptyList();
    bool first = true;
    int pos = 0;
 
@@ -22121,9 +22121,9 @@ ListExpr mmergejoinprojectTM(ListExpr args){
   }
   ListExpr completeAttrList = listutils::concat(attrList1, attrList2); 
   ListExpr prjIndexes = nl->TheEmptyList();
-  ListExpr prjIndexesLast;
+  ListExpr prjIndexesLast = nl->TheEmptyList();
   ListExpr resAttrList = nl->TheEmptyList();
-  ListExpr resAttrListLast;
+  ListExpr resAttrListLast = nl->TheEmptyList();
   bool first = true;
   while(!nl->IsEmpty(prjList)){
     ListExpr attr = nl->First(prjList);
