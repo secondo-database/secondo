@@ -175,7 +175,7 @@ void
 MTree::insert(Attribute* attr, TupleId tupleId)
 {
     // create new leaf entry
-    LeafEntry* entry;
+    LeafEntry* entry = 0;
     try
     {
         entry = new LeafEntry(tupleId, df_info.getData(attr));
@@ -199,7 +199,9 @@ MTree::insert(Attribute* attr, TupleId tupleId)
             cmsg.send();
         }
     }
-    insert(entry, tupleId);
+    if(entry){
+       insert(entry, tupleId);
+    }
 }
 
 /*
@@ -210,7 +212,7 @@ void
 MTree::insert(gta::DistData* data, TupleId tupleId)
 {
     // create new leaf entry
-    LeafEntry* entry;
+    LeafEntry* entry=0;
     try
     {
         entry = new LeafEntry(tupleId, data);
@@ -234,7 +236,9 @@ MTree::insert(gta::DistData* data, TupleId tupleId)
             cmsg.send();
         }
     }
-    insert(entry, tupleId);
+    if(entry){
+      insert(entry, tupleId);
+    }
 }
 
 /*
