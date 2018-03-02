@@ -161,6 +161,9 @@ OperatorFeed::Feed(Word* args, Word& result,
     }
     case REQUEST :{
       fli = (FeedLocalInfo*) local.addr;
+      if(!fli){
+        return CANCEL;
+      }
       Tuple *t;
       if ((t = fli->rit->GetNextTuple()) != 0)
       {
