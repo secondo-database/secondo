@@ -147,6 +147,13 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager* am;
 
+
+#ifdef THREAD_SAFE
+#include <boost/thread.hpp>
+#include <boost/thread/lock_guard.hpp>
+#include <boost/thread/mutex.hpp>
+#endif
+
 using namespace std;
 
 // #define GSA_DEBUG
@@ -6539,6 +6546,223 @@ Operator delaySOp(
    delaySTM
 );
 
+
+ListExpr multicountTM(ListExpr args){
+   if(nl->IsEmpty(args)){
+     return listutils::typeError("at least one argument expected");
+   }
+   ListExpr appendList = nl->TheEmptyList();
+   ListExpr appendLast = nl->TheEmptyList();
+
+   while(!nl->IsEmpty(args)){
+      bool isAttr=false;
+      ListExpr arg = nl->First(args);
+      args = nl->Rest(args);
+      
+      if(Stream<Attribute>::checkType(arg)){
+         isAttr = true;
+      } else if(Stream<Tuple>::checkType(arg)){
+         isAttr = false;
+      } else {
+         return listutils::typeError("each argument must be an stream "
+                                     "of tuple or a stream of DATA");
+      }
+      if(nl->IsEmpty(appendList)){
+        appendList = nl->OneElemList(nl->BoolAtom(isAttr));
+        appendLast = appendList;
+      } else {
+        appendLast = nl->Append(appendLast, nl->BoolAtom(isAttr));
+      }
+   }
+   return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                             appendList,
+                             listutils::basicSymbol<CcInt>());
+}
+
+
+
+#ifndef THREAD_SAFE
+class multicountLocal{
+   public:
+     multicountLocal( Word* _args, int _numArgs):
+        numArgs(_numArgs), args(_args){
+        // initialize vectors
+        for(int i=numArgs/2;i<numArgs; i++) {
+           bool isAttr = ((CcBool*)args[i].addr)->GetValue();
+           isAttrVec.push_back(isAttr);
+           finished.push_back(false);           
+        }
+     }
+
+     int compute(){
+         // open streams 
+         for(int i=0;i<numArgs/2;i++){
+            qp->Open(args[i].addr);
+         }
+         bool allfinished=false;
+         int sum = 0;
+         while(!allfinished){
+            allfinished = true;
+            for(int s=0;s<numArgs/2;s++){
+               if(!finished[s]){
+                  qp->Request(args[s].addr, result);
+                  if(qp->Received(args[s].addr)){
+                     allfinished = false;
+                     sum++;
+                     if(isAttrVec[s]){
+                        ((Attribute*)result.addr)->DeleteIfAllowed();
+                     }else {
+                        ((Tuple*) result.addr)->DeleteIfAllowed();
+                     }
+                  } else {
+                     finished[s] = true;
+                  }
+               }
+            }
+         } 
+         // close streams 
+         for(int i=0;i<numArgs/2;i++){
+            qp->Close(args[i].addr);
+         }
+         return sum;
+     }
+
+   private:
+      int numArgs;
+      Word* args;
+      vector<bool> isAttrVec;
+      vector<bool> finished;
+      Word result;
+
+};
+#else 
+ // parallel version of counting streams
+
+ class Aggregator{
+    public:
+       virtual void inc() = 0;
+       virtual ~Aggregator(){};
+ }; 
+
+ class streamCounter{
+   public:
+     streamCounter(Word& _stream, bool _isAttr,
+                   Aggregator* _aggr):
+     stream(_stream), isAttr(_isAttr), aggr(_aggr){
+        qp->Open(stream.addr);         
+     }
+     ~streamCounter(){
+        qp->Close(stream.addr);
+     }
+
+     void run(){
+        bool finished = false;
+        while(!finished){
+            qp->Request(stream.addr,result);
+            if(!qp->Received(stream.addr)){
+               finished = true;
+            } else {
+               if(isAttr){
+                  ((Attribute*)result.addr)->DeleteIfAllowed();
+               }else {
+                  ((Tuple*) result.addr)->DeleteIfAllowed();
+               }
+               aggr->inc(); 
+            }
+        }
+     }
+
+   private:
+      Word stream;
+      bool isAttr;
+      Aggregator* aggr;
+      Word result;
+ };
+
+  
+class multicountLocal: public Aggregator{
+   public:
+     multicountLocal( Word* _args, int _numArgs):
+        numArgs(_numArgs), args(_args){
+        // initialize vectors
+        for(int i=numArgs/2;i<numArgs; i++) {
+           bool isAttr = ((CcBool*)args[i].addr)->GetValue();
+           isAttrVec.push_back(isAttr);
+        }
+        sum = 0;
+     }
+
+     int compute(){
+        // create stream counter
+        for(int i=0;i<numArgs/2;i++){
+          streamCounters.push_back(new streamCounter(args[i],
+                                       isAttrVec[i], this));
+        }
+        for(int i=0;i<numArgs/2;i++){
+          runners.push_back(new boost::thread(&streamCounter::run,
+                                              streamCounters[i]));
+        }
+        for(int i=0;i<numArgs/2;i++){
+            runners[i]->join();
+            delete runners[i];
+            delete streamCounters[i];
+        }
+        return sum;
+     }
+      
+     void inc(){
+        boost::lock_guard<boost::mutex> guard(mtx);
+        sum++;
+     }  
+
+   private:
+      int numArgs;
+      Word* args;
+      vector<bool> isAttrVec;
+      vector<streamCounter*> streamCounters;
+      vector<boost::thread*> runners;
+      boost::mutex mtx;
+      int sum;
+
+};
+
+
+
+#endif
+
+
+
+int multicountVM(Word* args, Word& result,
+              int message, Word& local, Supplier s){
+
+   result = qp->ResultStorage(s);
+   CcInt* res = (CcInt*)result.addr;
+   multicountLocal* li = new multicountLocal(args, qp->GetNoSons(s));
+   res->Set(true,  li->compute());
+   delete li;
+   return 0;
+}
+
+OperatorSpec multicountSpec(
+   "s1 x s2 x ... , sX in {stream(tuple), stream(DATA)} ",
+   "multicount (_,_,_)",
+   "Summarizes the number of elements in the streams.",
+   "query multicount( ten feed, intstream(1,0) feed, plz feed);"
+);
+
+
+Operator multicountOp(
+  "multicount",
+  multicountSpec.getStr(),
+  multicountVM,
+  Operator::SimpleSelect,
+  multicountTM
+);
+
+
+
+
+
 /*
 7 Creating the Algebra
 
@@ -6593,6 +6817,8 @@ public:
     AddOperator(&progOp);
     AddOperator(&delaySOp);
 
+    AddOperator(&multicountOp);
+
 #ifdef USE_PROGRESS
     streamcount.EnableProgress();
     streamtransformstream.EnableProgress();
@@ -6606,6 +6832,11 @@ public:
 
   ~StreamAlgebra() {};
 };
+
+
+
+
+
 
 /*
 7 Initialization

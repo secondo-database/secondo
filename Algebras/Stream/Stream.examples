@@ -368,5 +368,9 @@ Signature : stream(X) x int [x int] -> stream(X)
 Example   : query plz feed head[100] delayS[10,100] printstream count
 Result    : 100
 
-
+Operator : multicount
+Number   : 1
+Signature : stream x stream ... -> int
+Example   : query multicount(ten feed, intstream(1,10) , plz feed) = ten count + intstream(1,10) count + plz count
+Result   : TRUE
 
