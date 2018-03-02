@@ -77,7 +77,6 @@ template<class T>
 class NegIndexVector2D {
  public:
   NegIndexVector2D() {}
-  ~NegIndexVector2D() {}
   
   void initialize(const int _minX, const int _maxX, const int _minY,
                   const int _maxY, const T _value) {
@@ -123,7 +122,7 @@ class Tileareas {
   Tileareas(const bool dummy) : raster(0) {}
   Tileareas(const Tileareas& _src);
   
-  ~Tileareas() {}
+//   ~Tileareas() {}
   
   bool belongsToRaster(const int x, const int y) {
     return (minX <= x && x <= maxX && minY <= y && y <= maxY);
@@ -221,16 +220,16 @@ struct Tile {
       }
       case NORTHEAST: {
         result.x++;
-        result.y--;
+        result.y++;
         break;
       }
       case NORTH: {
-        result.y--;
+        result.y++;
         break;
       }
       case NORTHWEST: {
         result.x--;
-        result.y--;
+        result.y++;
         break;
       }
       case WEST: {
@@ -239,16 +238,16 @@ struct Tile {
       }
       case SOUTHWEST: {
         result.x--;
-        result.y++;
+        result.y--;
         break;
       }
       case SOUTH: {
-        result.y++;
+        result.y--;
         break;
       }
       case SOUTHEAST: {
         result.x++;
-        result.y++;
+        result.y--;
         break;
       }
       default: {
