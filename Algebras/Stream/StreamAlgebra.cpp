@@ -124,7 +124,7 @@ This file contains the implementation of the stream operators.
 #include <errno.h>
 #include <utility>
 #include <unistd.h>
-
+#include <sys/timeb.h> 
 
 
 #include "CostEstimation.h"
@@ -6761,6 +6761,170 @@ Operator multicountOp(
 
 
 
+/*
+1.39 synch 
+
+*/
+ListExpr syncTM(ListExpr args){
+
+   if(!nl->HasLength(args,4)){
+     return listutils::typeError("4 arguments expected");
+   }
+   ListExpr stream = nl->First(args);
+   if(!listutils::isStream(stream)){
+     return listutils::typeError("stream required as the first argument");
+   }
+   ListExpr fun = nl->Second(args);
+   if(!listutils::isMap<1>(fun)){
+     return listutils::typeError("second arg is not an unary function");
+   }
+   if(!nl->Equal(nl->Second(stream), nl->Second(fun))){
+     return listutils::typeError("type of stream and type of function "
+                                 "argument differ");
+   }
+   if(listutils::isStream(nl->Third(fun))){
+     return listutils::typeError("function result cannot be a stream.");
+   }
+   if(!CcInt::checkType(nl->Third(args))){
+     return listutils::typeError("third arg must be an int");
+   }
+   if(!CcReal::checkType(nl->Fourth(args))){
+      return listutils::typeError("fourth arg must be a real");
+   }
+   return stream;
+}
+
+class syncInfo{
+  public:
+    syncInfo(Word& _stream, Supplier _fun, int _minTuples, int _minTime):
+             stream(_stream), fun(_fun), minElems(_minTuples){
+        SmiEnvironment::CommitTransaction(); //close current transaction
+        qp->Open(stream.addr);
+        av = qp->Argument(fun);
+        elems = 0;
+        lastTime = getTime(); 
+        minTime = _minTime>0?_minTime:0;
+    }
+
+    ~syncInfo(){
+        qp->Close(stream.addr);
+        SmiEnvironment::BeginTransaction();
+    }
+
+    void* next(){
+       qp->Request(stream.addr,result);
+       if(!qp->Received(stream.addr)){
+          return 0;
+       }
+       elems++;
+       check(result);
+       return result.addr;
+    }
+
+    private:
+       Word stream;
+       Supplier fun;
+       int minElems;
+       size_t minTime;
+       ArgVectorPointer av;
+       int elems;
+       timeb t;
+       size_t lastTime;
+       Word result;
+       Word funres;
+       
+    size_t getTime(){
+       ftime(&t);
+       return (size_t)t.time*1000+t.millitm;
+    }
+
+    void check(Word& w){
+       if(elems >= minElems){
+          elems = 0;
+          size_t t2 = getTime();
+          size_t k = t2 - lastTime;
+          if(k >= minTime){
+             lastTime = t2;
+             (*av)[0] = w;
+             
+             SmiEnvironment::BeginTransaction();
+             qp->Request(fun,funres);
+             SmiEnvironment::CommitTransaction();
+          }
+       } 
+    }
+
+    void newTransaction(){
+       SmiEnvironment::CommitTransaction();
+       SmiEnvironment::BeginTransaction();
+    }
+
+
+};
+
+
+
+
+int syncVM(Word* args, Word& result,
+           int message, Word& local, Supplier s){
+
+   syncInfo* li = (syncInfo*) local.addr;
+   switch(message){
+      case OPEN: {
+                    if(li){
+                      delete li;
+                      local.addr = 0;
+                    }
+                    CcInt* minTu = (CcInt*) args[2].addr;
+                    if(!minTu->IsDefined()){
+                       return 0;
+                    }
+                    CcReal* minTime = (CcReal*) args[3].addr;
+                    if(!minTime->IsDefined()){
+                     return 0;
+                    }
+                    local.addr = new syncInfo(args[0], args[1].addr,
+                                        minTu->GetValue(),
+                                        (int)(minTime->GetValue()*1000));
+                    return 0;
+                  }
+        case REQUEST: result.addr = li?li->next():0;
+                      return result.addr?YIELD:CANCEL;
+        case CLOSE: if(li){
+                       delete li;
+                       local.addr = 0;
+                    }
+                    return 0;
+   }
+   return -1; 
+}
+
+OperatorSpec syncSpec(
+  "stream x fun x int x real -> stream",
+  "_ sync[_,_,_] ",
+  "After minElements in stream (3rd arg) and "
+  " after minimum t seconds (4th arg), this "
+  " operator evaluates it's parameter function (2nd arg),"
+  " commits the running transaction and starts a new one",
+  " query plz feed sync[ plz feed count, 100, 0.001] count"
+);
+
+Operator syncOp(
+  "sync",
+  syncSpec.getStr(),
+  syncVM,
+  Operator::SimpleSelect,
+  syncTM
+
+);
+
+
+
+
+
+
+
+
 
 
 /*
@@ -6818,6 +6982,7 @@ public:
     AddOperator(&delaySOp);
 
     AddOperator(&multicountOp);
+    AddOperator(&syncOp);
 
 #ifdef USE_PROGRESS
     streamcount.EnableProgress();
