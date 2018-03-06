@@ -65,6 +65,12 @@ June 2009 Sven Jungnickel new function MakeTemp() added.
 
 #include <stack>
 
+#ifdef THREAD_SAFE
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/lock_guard.hpp>
+#endif
+
+
 using namespace std;
 
 /*
@@ -632,6 +638,11 @@ string
 FileSystem::MakeTemp(const string& templ)
 {
   static int ctr = 0;	
+  #ifdef THREAD_SAFE
+     static boost::mutex mtx;
+     boost::lock_guard<boost::mutex> guard(mtx);  
+  #endif
+
   // append CPU clock and placeholder for mktemp function
   
   stringstream ss;
