@@ -189,7 +189,8 @@ std::ostream& operator<<(std::ostream& o, const Tile tile) {
 Tileareas::Tileareas(const Tileareas& _src) : 
   raster(_src.raster), minX(_src.minX), maxX(_src.maxX), minY(_src.minY),
   maxY(_src.maxY), areas(_src.areas), tileToArea(_src.tileToArea),
-  transitions(_src.transitions) {}
+  transitions(_src.transitions), areaFile(_src.areaFile), ttaFile(_src.ttaFile),
+  transFile(_src.transFile) {}
 
 void Tileareas::processTile(const int x, const int y, int& value) {
   int rasterPos[2];
@@ -198,6 +199,7 @@ void Tileareas::processTile(const int x, const int y, int& value) {
   raster2::sint::index_type rasterIndex(rasterPos);
   int newValue = raster->get(rasterIndex);
   if (newValue == INT_MIN) {
+    value = newValue;
     return;
   }
   set<NewPair<int, int> > newArea;
@@ -205,11 +207,9 @@ void Tileareas::processTile(const int x, const int y, int& value) {
   raster2::sint::index_type leftRasterIndex(rasterPos);
   int leftValue = raster->get(leftRasterIndex);
   if (newValue == leftValue && y > minY && newValue == value) {//unite areas
-//     if (x == -640 && y == 1815) cout << "!" << endl;
     int leftAreaNo = tileToArea.get(x - 1, y);
     int lowerAreaNo = tileToArea.get(x, y - 1);
     if (leftAreaNo == lowerAreaNo) { // both tiles already belong to same area
-//       if (x == -635 && y == 1816) cout << "?" << endl;
       tileToArea.set(x, y, leftAreaNo);
       areas[leftAreaNo].insert(NewPair<int, int>(x, y));
     }
@@ -217,7 +217,7 @@ void Tileareas::processTile(const int x, const int y, int& value) {
       int sourceAreaNo = (areas[leftAreaNo].size() < areas[lowerAreaNo].size()
                           ? leftAreaNo : lowerAreaNo);
       int destAreaNo = (sourceAreaNo == leftAreaNo ? lowerAreaNo : leftAreaNo);
-//       if (x == -640 && y == 1815) {
+//       if (x == -1181 && y == 1549) {
 //         cout << sourceAreaNo << " " << destAreaNo << " | " 
 //              << areas[sourceAreaNo].size() << " " << areas[destAreaNo].size()
 //              << " | ";
@@ -238,19 +238,16 @@ void Tileareas::processTile(const int x, const int y, int& value) {
     } 
   }
   else if (newValue == leftValue) { // extend area of left neighbor
-//     if (x == -640 && y == 1815) cout << "$" << endl;
     int leftAreaNo = tileToArea.get(x - 1, y);
     tileToArea.set(x, y, leftAreaNo);
     areas[leftAreaNo].insert(NewPair<int, int>(x, y));
   }
   else if (y > minY && newValue == value) { // extend area of lower neighbor
-//     if (x == -640 && y == 1815) cout << "*" << endl;
     int lowerAreaNo = tileToArea.get(x, y - 1);
     tileToArea.set(x, y, lowerAreaNo);
     areas[lowerAreaNo].insert(NewPair<int, int>(x, y));
   }
   else { // create new area
-//     if (x == -640 && y == 1815) cout << "µ" << endl;
     newArea.insert(NewPair<int, int>(x, y));
     tileToArea.set(x, y, areas.size());
     areas.push_back(newArea);
@@ -332,12 +329,14 @@ void Tileareas::retrieveAreas(raster2::sint *_raster) {
     }
   }
   trimAreaVector();
+  cout << areas.size() << " areas successfully retrieved" << endl;
   for (int i = minX; i <= maxX; i++) {
     for (int j = minY; j <= maxY; j++) {
       recordAreaTransitions(i, j);
     }
   }
   raster = 0;
+  cout << transitions.size() << " transitions found" << endl;
 }
 
 void Tileareas::print(const bool printRange, const bool printAreas,
@@ -495,6 +494,12 @@ bool Tileareas::Open(SmiRecord& valueRecord, size_t& offset,
 bool Tileareas::Save(SmiRecord& valueRecord, size_t& offset, 
                      const ListExpr typeInfo, Word& value) {
   Tileareas *ta = static_cast<Tileareas*>(value.addr);
+  SmiRecord aRecord, ttaRecord, trRecord;
+  SmiRecordId aRecordId, ttaRecordId, trRecordId;
+  ta->areaFile.Create();
+  ta->ttaFile.Create();
+  ta->transFile.Create();
+  ta->print(true, false, false, false);
   // store min, max
   if (!valueRecord.Write(&(ta->minX), sizeof(int), offset)) {
     return false;
@@ -512,57 +517,86 @@ bool Tileareas::Save(SmiRecord& valueRecord, size_t& offset,
     return false;
   }
   offset += sizeof(int);
-  // store areas
+  // store areas, use character array as buffer
+  size_t bufferSize = (ta->areas.size() + 1) * sizeof(unsigned int)
+      + (ta->maxX - ta->minX + 1) * (ta->maxY - ta->minY + 1) * 2 * sizeof(int);
+  cout << "area buffer size is " << bufferSize << endl;
+  char* buffer = new char[bufferSize];
+  size_t pos = 0;
   unsigned int noAreas = ta->areas.size();
-  if (!valueRecord.Write(&noAreas, sizeof(unsigned int), offset)) {
-    return false;
-  }
-  offset += sizeof(unsigned int);
+  cout << "begin storing " << noAreas << " areas" << endl;
+  memcpy(buffer + pos, &noAreas, sizeof(unsigned int));
+  pos += sizeof(unsigned int);
   for (unsigned int i = 0; i < ta->areas.size(); i++) {
     unsigned int noTiles = ta->areas[i].size();
-    if (!valueRecord.Write(&noTiles, sizeof(unsigned int), offset)) {
-      return false;
-    }
-    offset += sizeof(unsigned int);
+    memcpy(buffer + pos, &noTiles, sizeof(unsigned int));
+    pos += sizeof(unsigned int);
     for (set<NewPair<int, int> >::iterator it = ta->areas[i].begin(); 
          it != ta->areas[i].end(); it++) {
-      NewPair<int, int> tile(*it);
-      if (!valueRecord.Write(&tile, sizeof(NewPair<int, int>), offset)) {
-        return false;
-      }
-      offset += sizeof(NewPair<int, int>);
+//       NewPair<int, int> tile(*it);
+      memcpy(buffer + pos, &(*it), sizeof(NewPair<int, int>));
+      pos += sizeof(NewPair<int, int>);
+    }
+    if (i % 5000 == 0 && i > 0) {
+      cout << "  area # " << i << " stored..." << endl;
     }
   }
+  ta->ttaFile.AppendRecord(aRecordId, aRecord);
+  assert(aRecordId != 0);
+  size_t bytesWritten = aRecord.Write(buffer, bufferSize);
+  aRecord.Finish();
+  cout << "......... all areas stored (" << bytesWritten << " bytes)" << endl;
+  delete[] buffer;
+  bufferSize = (ta->maxX - ta->minX+1) * (ta->maxY - ta->minY+1) * sizeof(int);
+  buffer = new char[bufferSize];
+  pos = 0;
   // store tileToArea
+  cout << "begin storing tileToArea: " << ta->maxX - ta->minX + 1 << " columns"
+       << endl;
   for (int i = ta->minX; i <= ta->maxX; i++) {
     for (int j = ta->minY; j <= ta->maxY; j++) {
       int areaNo = ta->tileToArea.get(i, j);
-      if (!valueRecord.Write(&areaNo, sizeof(int), offset)) {
-        return false;
-      }
-      offset += sizeof(int);
+      memcpy(buffer + pos, &areaNo, sizeof(int));
+      pos += sizeof(int);
+    }
+    if ((i - ta->minX + 1) % 100 == 0) {
+      cout << "  " << i - ta->minX + 1 << " columns stored..." << endl;
     }
   }
+  ta->ttaFile.AppendRecord(ttaRecordId, ttaRecord);
+  assert(ttaRecordId != 0);
+  bytesWritten = ttaRecord.Write(buffer, bufferSize);
+  cout << "......... tileToArea stored ( " << bytesWritten << " bytes)" << endl;
+  delete[] buffer;
+  bufferSize = sizeof(unsigned int) + ta->transitions.size() *
+                      (sizeof(NewTriple<int, int, DirectionNum>) + sizeof(int));
+  buffer = new char[bufferSize];
+  pos = 0;
   // store transitions
   unsigned int noTransitions = ta->transitions.size();
-  if (!valueRecord.Write(&noTransitions, sizeof(unsigned int), offset)) {
-    return false;
-  }
-  offset += sizeof(unsigned int);
+  cout << "begin storing " << noTransitions << " transitions" << endl;
+  memcpy(buffer + pos, &noTransitions, sizeof(unsigned int));
+  pos += sizeof(unsigned int);
+  int transitionCounter = 0;
   for (map<NewTriple<int, int, DirectionNum>, int>::iterator 
        it = ta->transitions.begin(); it != ta->transitions.end(); it++) {
-    int areaNo(it->second);
     NewTriple<int, int, DirectionNum> tileDir(it->first);
-    if (!valueRecord.Write(&tileDir, sizeof(NewTriple<int, int, DirectionNum>), 
-                           offset)) {
-      return false;
+    memcpy(buffer + pos, &tileDir, sizeof(NewTriple<int, int, DirectionNum>));
+    pos += sizeof(NewTriple<int, int, DirectionNum>);
+    int areaNo(it->second);
+    memcpy(buffer + pos, &areaNo, sizeof(int));
+    pos += sizeof(int);
+    transitionCounter++;
+    if (transitionCounter % 20000 == 0) {
+      cout << "  " << transitionCounter << " transitions stored..." << endl;
     }
-    offset += sizeof(NewTriple<int, int, DirectionNum>);
-    if (!valueRecord.Write(&areaNo, sizeof(int), offset)) {
-      return false;
-    }
-    offset += sizeof(int);
   }
+  ta->transFile.AppendRecord(trRecordId, trRecord);
+  assert(trRecordId != 0);
+  bytesWritten = trRecord.Write(buffer, bufferSize);
+  trRecord.Finish();
+  cout << ".........transitions stored ( " << bytesWritten << " bytes)" << endl;
+  delete[] buffer;
   return true;
 }
 

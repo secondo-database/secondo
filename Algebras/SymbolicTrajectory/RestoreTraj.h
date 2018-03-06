@@ -38,6 +38,7 @@ This is the implementation of the Symbolic Trajectory Algebra.
 #include "Algebras/Raster2/sint.h"
 #include "Algebras/Hash/HashAlgebra.h"
 #include "Algebras/NestedRelation/NestedRelationAlgebra.h"
+#include "SecondoSMI.h"
 
 namespace stj {
 
@@ -117,9 +118,10 @@ class NegIndexVector2D {
 */
 class Tileareas {
  public:
-  Tileareas() {}
+  Tileareas() : areaFile(true), ttaFile(false), transFile(false) {}
   
-  Tileareas(const bool dummy) : raster(0) {}
+  Tileareas(const bool dummy) : raster(0), areaFile(false), ttaFile(false),
+                                transFile(false) {}
   Tileareas(const Tileareas& _src);
   
 //   ~Tileareas() {}
@@ -157,6 +159,7 @@ class Tileareas {
   NegIndexVector2D<int> tileToArea;
   std::map<NewTriple<int, int, DirectionNum>, int> transitions;
                                                            // tile x dir -> area
+  SmiRecordFile areaFile, ttaFile, transFile;
 };
 
 extern TypeConstructor tileareasTC;
