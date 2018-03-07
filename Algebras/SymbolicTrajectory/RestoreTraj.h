@@ -124,7 +124,7 @@ class Tileareas {
                                 transFile(false) {}
   Tileareas(const Tileareas& _src);
   
-//   ~Tileareas() {}
+  ~Tileareas();
   
   bool belongsToRaster(const int x, const int y) {
     return (minX <= x && x <= maxX && minY <= y && y <= maxY);
@@ -136,6 +136,7 @@ class Tileareas {
   void print(const bool printRange, const bool printAreas,
              const bool printTileToArea, const bool printTransitions);
   
+  void deleteFiles();
   static const std::string BasicType() {return "tileareas";}
   static ListExpr Property();
   static ListExpr Out(ListExpr typeInfo, Word value);
