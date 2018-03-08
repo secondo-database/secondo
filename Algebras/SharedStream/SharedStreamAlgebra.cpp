@@ -59,6 +59,13 @@
 
 #include "SocketIO.h"
 
+#include <iostream>
+
+#include <boost/thread.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/lock_guard.hpp>
+#include <boost/lexical_cast.hpp>
+
 /*
  0.5 Global Variables
 
@@ -88,16 +95,171 @@ namespace sharedstream {
 
 
 
+    ListExpr provideTupleTypeTM(ListExpr args) {
+
+          // check number of arguments
+        if (!nl->HasLength(args, 2)) {
+            return listutils::typeError("wrong number of arguments");
+        }
+         //first argument must be of type stream
+        if (!Stream<Tuple>::checkType(nl->First(args))) {
+            return listutils::typeError("stream  x int expected");
+        }
+
+         // second argument must be of type integer
+        if (!CcInt::checkType(nl->Second(args))) {
+            return listutils::typeError("stream x int expected");
+        }
+
+         // create the result type (stream)
+
+        return nl->First(args);
+    }
+
+
+
+    class provideTupleTypeLI {
+ //constructor: initializes the class with port and tupleType
+    public:
+        provideTupleTypeLI(int _port, std::string _tupleType) {
+            port = _port;
+            tupleType = _tupleType;
+            listener = Socket::CreateGlobal("localhost",
+                                            boost::lexical_cast<string>
+                                                    (port));
+            if (listener->IsOk()) {
+                running = true;
+                t1 = new boost::thread(&provideTupleTypeLI::runInThread, this);
+            } else {
+                running = false;
+                t1 = 0;
+                delete listener;
+                listener = 0;
+            }
+        }
+
+         // destructor
+        ~provideTupleTypeLI() {
+            if (running) {
+                running = false;
+                listener->CancelAccept();
+                t1->join();
+                delete t1;
+                delete listener;
+            }
+        }
+        void runInThread() {
+            while (running) {
+                Socket *srv = listener->Accept();
+                if (srv) {
+                    if (srv->IsOk()) {
+                        std::iostream &io = srv->GetSocketStream();
+                        io << "TupelType: " << tupleType << endl;
+                        srv->Close();
+                    }
+                    delete srv;
+                }
+            }
+        }
+
+
+    private:
+        Socket *listener;
+        bool running;
+        string tupleType;
+        int port;
+        boost::thread *t1;
+
+    }; //end provideTupleTypeLI class
 
 
 
 
+    int provideTupleTypeVM(Word *args, Word &result, int message,
+                           Word &local, Supplier s) {
+        provideTupleTypeLI *li = (provideTupleTypeLI *) local.addr;
+        switch (message) {
+            case OPEN : {
+                qp->Open(args[0].addr);
+
+                if (li) {
+                    delete li;
+                    local.addr = 0;
+                }
+
+                CcInt *port = (CcInt *) args[1].addr;
+                if (!port->IsDefined()) {
+                    return 0;
+                }
+                string tupleType = nl->ToString(nl->Second(qp->GetType(s)));
+                local.addr = new provideTupleTypeLI(port->GetValue(),
+                                                    tupleType);
+                return 0;
+
+            }
+            case REQUEST: {
+
+                qp->Request(args[0].addr, result);
+                return qp->Received(args[0].addr) ? YIELD : CANCEL;
+            }
+            case CLOSE: {
+                if (li) {
+                    delete li;
+                    local.addr = 0;
+                }
+                qp->Close(args[0].addr);
+                return 0;
+            }
+        }
+        return 0;
+    }
+
+
+
+    OperatorSpec provideTupleTypeSpec(
+            " stream x int -> stream",
+            " _ provideTupleType[_] ",
+            "The incoming stream is pass-through. As an side effect "
+                    "a server is started on the specified port providing the"
+                    "tuple type of the stream.",
+            " query plz feed provideTupleType[4211] count"
+    );
+
+
+    Operator provideTupleTypeOp(
+            "provideTupleType",
+            provideTupleTypeSpec.getStr(),
+            provideTupleTypeVM,
+            Operator::SimpleSelect,
+            provideTupleTypeTM
+    );
 
 
 
 
+    class SharedStreamAlgebra : public Algebra {
+    public:
+        SharedStreamAlgebra() : Algebra() {
 
+
+            AddOperator(&provideTupleTypeOp);
+
+        }
+    };
 
 
 }//end namespace
 
+/*
+9 Initialization of the Algebra
+
+This piece of code returns a new instance of the algebra.
+
+
+*/
+extern "C"
+Algebra *
+InitializeSharedStreamAlgebra(NestedList *nlRef,
+                              QueryProcessor *qpRef) {
+    return new sharedstream::SharedStreamAlgebra;
+}
