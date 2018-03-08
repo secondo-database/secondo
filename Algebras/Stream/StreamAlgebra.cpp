@@ -142,6 +142,7 @@ This file contains the implementation of the stream operators.
 #include "AlmostEqual.h"
 #include "Algebras/Stream/Stream.h"
 #include "Algebras/Standard-C++/LongInt.h"
+#include "Algebras/Distributed2/semaphore.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -6649,13 +6650,13 @@ class multicountLocal{
      streamCounter(Word& _stream, bool _isAttr,
                    Aggregator* _aggr):
      stream(_stream), isAttr(_isAttr), aggr(_aggr){
-        qp->Open(stream.addr);         
      }
      ~streamCounter(){
         qp->Close(stream.addr);
      }
 
      void run(){
+        qp->Open(stream.addr);         
         bool finished = false;
         while(!finished){
             qp->Request(stream.addr,result);
@@ -6920,11 +6921,387 @@ Operator syncOp(
 
 
 
+/*
+1.39 pbuffer
+
+*/
+ListExpr pbufferTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("two elements expected");
+  }
+  ListExpr stream = nl->First(args);
+  if(!Stream<Attribute>::checkType(stream) 
+      && !Stream<Tuple>::checkType(stream)){
+    return listutils::typeError("first arg must be a stream of tuple or DATA");
+  }
+  if(!CcInt::checkType(nl->Second(args))){
+    return listutils::typeError("second arg must be an int");
+  }
+  return nl->First(args);
+}
+
+#ifdef THREAD_SAFE
+template<class ST>
+class pbufferInfo{
+   public: 
+      pbufferInfo(Word _stream, int _maxElems):
+         stream(_stream), sem_read(0), sem_write(_maxElems){
+         collect();
+      }
+
+      ~pbufferInfo(){
+         running = false;
+         runner->join();
+         delete runner;
+         // remove remaining elements in queue
+         while(!buffer.empty()){
+           ST* f = buffer.front();
+           buffer.pop();
+           if(f){
+              f->DeleteIfAllowed();
+           }
+         }
+         stream.close();
+       }
+      
+      ST* next(){
+         sem_read.wait();
+         mtx.lock();
+         ST* result = buffer.front();
+         buffer.pop();
+         mtx.unlock();
+         sem_write.signal();
+         return result; 
+      }
+
+
+   private:
+       Stream<ST> stream;
+       semaphore sem_read;
+       semaphore sem_write;
+       boost::mutex mtx;
+       queue<ST*> buffer;
+       bool running;
+       boost::thread* runner;
+ 
+       void collect(){
+         running = true;
+         runner = new boost::thread(&pbufferInfo::run,this);
+       }
+
+       // creator thread
+       void run(){
+          stream.open();
+          while(running){
+            ST* elem = stream.request();
+            sem_write.wait();
+            mtx.lock();
+            buffer.push(elem);
+            if(!elem) running = false;
+            mtx.unlock();
+            sem_read.signal();
+          }
+       } 
+};
+
+#else
+template<class ST>
+class pbufferInfo{
+   public: 
+      pbufferInfo(Word _stream, int _maxElems):
+         stream(_stream){
+ 
+      }
+
+      ~pbufferInfo(){
+         stream.close();
+       }
+      
+      ST* next(){
+         return stream.request();
+      }
+
+
+   private:
+       Stream<ST> stream;
+};
+
+#endif
+
+
+template<class ST>
+int pbufferVMT(Word* args, Word& result,
+           int message, Word& local, Supplier s){
+
+   pbufferInfo<ST>* li = (pbufferInfo<ST>*) local.addr;
+   switch(message){
+     case OPEN: {
+                  if(li){
+                    delete li;
+                    local.addr = 0;
+                  }
+                  CcInt* bufferSize = (CcInt*) args[1].addr;
+                  if(!bufferSize->IsDefined()){
+                     return 0;
+                  }
+                  int bs = bufferSize->GetValue();
+                  if(bs < 1){
+                    return 0;
+                  }
+                  local.addr = new pbufferInfo<ST>(args[0],bs);
+                  return 0;
+                }
+     case REQUEST :
+                {
+                   result.addr = li?li->next():0;
+                   return result.addr?YIELD:CANCEL;
+                }
+
+     case CLOSE: {
+                  if(li){
+                    delete li;
+                    local.addr = 0;
+                  }
+                  return 0;
+                }
+             
+
+   }
+   return -1;
+
+}
+
+ValueMapping pbufferVM[] = {
+   pbufferVMT<Tuple>,
+   pbufferVMT<Attribute>
+};
+
+int pbufferSelect(ListExpr args){
+  return Stream<Attribute>::checkType(nl->First(args))?1:0;
+};
+
+
+OperatorSpec pbufferSpec(
+  " stream(X) x int -> stream(X) , X in {tuple,DATA} ",
+  " _ pbuffer[_] ",
+  "Fills a buffer within a thread with elements from "
+  " stream and puts the elements to the output by request."
+  "The second argument is the size of the buffer.",
+  " query plz feed pbuffer[100] count"
+);
+
+Operator pbufferOp(
+  "pbuffer",
+  pbufferSpec.getStr(),
+  2,
+  pbufferVM,
+  pbufferSelect,
+  pbufferTM
+);
+
+ListExpr pbuffer1TM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one argument expected");
+  }
+  ListExpr stream = nl->First(args);
+  if(!Stream<Tuple>::checkType(stream) 
+     && !Stream<Attribute>::checkType(stream)){
+    return listutils::typeError("stream expected");
+  }
+  return stream;
+}
+
+
+#ifdef THREAD_SAFE
+template<class ST>
+class pbuffer1Info{
+  public:
+     pbuffer1Info(Word _stream): stream(_stream){
+        readMtx = new boost::mutex();
+        readMtx->lock();
+        first = true;
+        collect();
+     }
+
+     ~pbuffer1Info(){
+         runner->join();
+         delete runner;
+         // remove remaining elements in queue
+         if(buffer){
+            buffer->DeleteIfAllowed();
+         } 
+         stream.close();
+         delete readMtx;
+       }
+
+     ST* next(){
+       ST* result;
+       if(first){
+         readMtx->lock();
+         result = buffer;
+         buffer = 0;
+         first = false;
+         readMtx->unlock();
+       } else {
+          result = stream.request();
+       }
+       return result; 
+     }
+
+  private:
+       Stream<ST> stream;
+       boost::mutex* readMtx;
+       ST* buffer;
+       boost::thread* runner;
+       bool first;
+ 
+       void collect(){
+         runner = new boost::thread(&pbuffer1Info::run,this);
+       }
+
+       // creator thread
+       void run(){
+          stream.open();
+          ST* elem = stream.request();
+          buffer=elem;
+          readMtx->unlock();
+       } 
+};
+
+#else
+template<class ST>
+class pbuffer1Info{
+  public:
+     pbuffer1Info(Word _stream): stream(_stream){
+         stream.open();
+     }
+
+     ~pbuffer1Info(){
+         stream.close();
+     }
+
+     ST* next(){
+        return stream.request();
+     }
+
+  private:
+       Stream<ST> stream;
+};
+
+#endif
+
+template<class ST>
+int pbuffer1VMT(Word* args, Word& result,
+           int message, Word& local, Supplier s){
+
+   pbuffer1Info<ST>* li = (pbuffer1Info<ST>*) local.addr;
+   switch(message){
+     case OPEN: {
+                  if(li){
+                    delete li;
+                  }
+                  local.addr = new pbuffer1Info<ST>(args[0]);
+                  return 0;
+                }
+     case REQUEST :
+                {
+                   result.addr = li?li->next():0;
+                   return result.addr?YIELD:CANCEL;
+                }
+
+     case CLOSE: {
+                  if(li){
+                    delete li;
+                    local.addr = 0;
+                  }
+                  return 0;
+                }
+             
+
+   }
+   return -1;
+
+}
+
+ValueMapping pbuffer1VM[] = {
+   pbuffer1VMT<Tuple>,
+   pbuffer1VMT<Attribute>
+};
+
+int pbuffer1Select(ListExpr args){
+  return Stream<Attribute>::checkType(nl->First(args))?1:0;
+};
+
+
+OperatorSpec pbuffer1Spec(
+  " stream(X) x int -> stream(X) , X in {tuple,DATA} ",
+  " _ pbuffer1[_] ",
+  "Fills a buffer within a thread with elements from "
+  " stream and puts the elements to the output by request."
+  "The second argument is the size of the buffer.",
+  " query plz feed pbuffer1[100] count"
+);
+
+Operator pbuffer1Op(
+  "pbuffer1",
+  pbuffer1Spec.getStr(),
+  2,
+  pbuffer1VM,
+  pbuffer1Select,
+  pbuffer1TM
+);
 
 
 
+ListExpr printStreamMessagesTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one argument expected");
+  }
+  if(!listutils::isStream(nl->First(args))){
+     return listutils::typeError("stream expected");
+  }
+  return nl->First(args);
+}
 
 
+int printStreamMessagesVM(Word* args, Word& result,
+           int message, Word& local, Supplier s){
+
+   switch(message){
+      case OPEN : cout << "OPEN" << endl;
+                  qp->Open(args[0].addr);
+                  return 0;
+      case REQUEST : cout << "REQUEST" << endl;
+                     qp->Request(args[0].addr, result);
+                     return qp->Received(args[0].addr)?YIELD:CANCEL;
+      case CLOSE :  cout << "CLOSE" << endl;
+                    qp->Close(args[0].addr);
+                    return 0;
+      case REQUESTPROGRESS:
+                    cout << "REQUESTPROGRESS" << endl;
+                    return qp->RequestProgress(args[0].addr,
+                                    (ProgressInfo*)result.addr);
+      case CLOSEPROGRESS:
+                     cout << "CLOSEPROGRESS" << endl;
+                     return 0;
+      default : return -1;
+   }
+}
+
+OperatorSpec printStreamMessagesSpec(
+   "stream(X) -> stream(X) ",
+   "_ op ",
+   "Debug operator, prints out messages send to value mapping.",
+   " query ten feed printStreamMessages count"
+);
+
+Operator printStreamMessagesOp(
+  "printStreamMessages",
+  printStreamMessagesSpec.getStr(),
+  printStreamMessagesVM,
+  Operator::SimpleSelect,
+  printStreamMessagesTM
+);
 
 
 /*
@@ -6983,6 +7360,9 @@ public:
 
     AddOperator(&multicountOp);
     AddOperator(&syncOp);
+    AddOperator(&pbufferOp);
+    AddOperator(&pbuffer1Op);
+    AddOperator(&printStreamMessagesOp);
 
 #ifdef USE_PROGRESS
     streamcount.EnableProgress();
@@ -6992,6 +7372,7 @@ public:
     streamfilter.EnableProgress();
     timeout.EnableProgress();
     nthOp.EnableProgress();
+    printStreamMessagesOp.EnableProgress();
 #endif
   }
 

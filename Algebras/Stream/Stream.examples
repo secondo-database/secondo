@@ -380,4 +380,25 @@ Signature : stream x fun x int x real -> stream
 Example   : query intstream(1,100000) feed sync[ plz feed count, 1000, 0.01] count = 100000
 Result    : TRUE 
 
+Operator  : pbuffer
+Number    : 1
+Signature : stream x int -> stream
+Example   : query plz feed pbuffer[100] count = plz count
+Result    : TRUE
+
+Operator  : pbuffer1
+Number    : 1
+Signature : stream  -> stream
+Example   : query plz feed pbuffer1 count = plz count
+Result    : TRUE
+
+
+Operator : printStreamMessages
+Number   : 1 
+Signature : stream(X) -> stream(X)
+Example   : query ten feed printStreamMessages count
+Result    : 10
+
+
+
 

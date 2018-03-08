@@ -66,4 +66,7 @@ operator prog alias prog pattern _ op[fun,_] implicit parameter streamelem type 
 operator delayS alias DELAYS pattern _ op[_,_]
 operator multicount alias MULTICOUNT pattern op(_,_,_)
 operator sync alias SYNC pattern _ op[fun,_,_] implicit parameter streamelem type STREAMELEM
+operator pbuffer alias PBUFFER pattern _ op [_] 
+operator pbuffer1 alias PBUFFER1 pattern _ op  
+operator printStreamMessages alias PRINTSTREAMMESSAGES pattern _ op
 
