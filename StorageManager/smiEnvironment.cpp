@@ -49,6 +49,11 @@ Currently only a few codes are translated.
 #include "CharTransform.h"
 #include "LogMsg.h"
 
+#ifdef THREAD_SAFE
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/lock_guard.hpp>
+#endif
+
 using namespace std;
 
 map<SmiError, string> SmiEnvironment::errorMap;
@@ -276,6 +281,11 @@ Translate SMI error codes into message strings
 const string 
 SmiEnvironment::Err2Msg( SmiError code)
 {
+#ifdef THREAD_SAFE
+   static boost::mutex mtx;
+   boost::lock_guard<boost::mutex> guard(mtx);
+#endif
+
   if( !errorMapInitialized )
   {
 

@@ -68,6 +68,12 @@ This code also compiles with version 4.1.25 of Berkeley-DB.
 #include "Counter.h"
 #include "WinUnix.h"
 
+
+#ifdef THREAD_SAFE
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/lock_guard.hpp>
+#endif
+
 using namespace std;
 
 static int  BdbCompareInteger( Db* dbp, const Dbt* key1, const Dbt* key2 );
@@ -1371,6 +1377,11 @@ SmiFileIterator::Next( SmiRecord& record )
 {
   static long& ctr = Counter::getRef("SmiFileIterator::Next");
   ctr++;
+
+  #ifdef THREAD_SAFE
+  static boost::mutex mtx;
+  boost::lock_guard<boost::mutex> guard(mtx);
+  #endif 
 
   static char keyData[SMI_MAX_KEYLEN];
   bool ok = false;
