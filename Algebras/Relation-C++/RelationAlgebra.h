@@ -158,6 +158,12 @@ Attribute.h), ~AttributeType~, and ~RelationDescriptor~.
 #include "Counter.h"
 #include "Algebras/TupleIdentifier/TupleIdentifier.h"
 
+#ifdef THREAD_SAFE
+#include "boost/thread/mutex.hpp"
+#include "boost/thread/lock_guard.hpp"
+#endif 
+
+
 #define MAX_NUM_OF_ATTR 10
 
 extern AlgebraManager* am;
@@ -285,14 +291,19 @@ The destructor.
 */
     inline bool DeleteIfAllowed()
     {
+#ifdef THREAD_SAFE
+    mtx.lock();
+#endif     
       assert( refs > 0 );
       refs--;
-      if( refs == 0 ){
+      bool del = refs==0;
+#ifdef THREAD_SAFE
+    mtx.unlock();
+#endif
+      if( del ){
         delete this;
-        return true;
-      } else {
-         return false;
-      }
+      } 
+      return del;
     }
 
     inline bool equalSchema(const TupleType& tt){
@@ -315,6 +326,9 @@ references to it.
 */
     inline void IncReference()
     {
+#ifdef THREAD_SAFE
+      boost::lock_guard<boost::mutex> guard(mtx);
+#endif      
       refs++;
     }
 /*
@@ -400,6 +414,11 @@ A reference counter.
 */
 
     int coreSize;
+
+#ifdef THREAD_SAFE
+    boost::mutex mtx;
+#endif
+
 };
 
 std::ostream& operator<<(std::ostream& o, const TupleType& tt);
