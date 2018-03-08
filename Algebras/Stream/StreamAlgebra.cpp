@@ -142,7 +142,6 @@ This file contains the implementation of the stream operators.
 #include "AlmostEqual.h"
 #include "Algebras/Stream/Stream.h"
 #include "Algebras/Standard-C++/LongInt.h"
-#include "Algebras/Distributed2/semaphore.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -153,6 +152,7 @@ extern AlgebraManager* am;
 #include <boost/thread.hpp>
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/mutex.hpp>
+#include "Algebras/Distributed2/semaphore.h"
 #endif
 
 using namespace std;
