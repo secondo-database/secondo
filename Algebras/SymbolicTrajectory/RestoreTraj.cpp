@@ -188,9 +188,9 @@ std::ostream& operator<<(std::ostream& o, const Tile tile) {
 */
 Tileareas::Tileareas(const Tileareas& _src) : 
   raster(_src.raster), minX(_src.minX), maxX(_src.maxX), minY(_src.minY),
-  maxY(_src.maxY), areas(_src.areas), tileToArea(_src.tileToArea),
-  transitions(_src.transitions), areaFile(_src.areaFile), ttaFile(_src.ttaFile),
-  transFile(_src.transFile) {}
+  maxY(_src.maxY), noTransitions(_src.noTransitions), areas(_src.areas), 
+  tileToArea(_src.tileToArea), transitions(_src.transitions),
+  areaFile(_src.areaFile), ttaFile(_src.ttaFile), transFile(_src.transFile) {}
 
 Tileareas::~Tileareas() {
   if (areaFile.IsOpen()) {
@@ -299,24 +299,21 @@ void Tileareas::recordAreaTransitions(const int x, const int y) {
   if (value == INT_MIN) {
     return;
   }
+  int areaNo = tileToArea.get(x, y);
+  int neighborAreaNo = -1;
+  Tile tile(x, y);
   for (int dir = 0; dir <= 7; dir++) {
     DirectionNum dirNum = static_cast<DirectionNum>(dir);
-    Tile tile(x, y);
     Tile neighborTile = tile.moveTo(dirNum);
     if (belongsToRaster(neighborTile.x, neighborTile.y)) {
       rasterNeighbor[0] = neighborTile.x;
       rasterNeighbor[1] = neighborTile.y;
       raster2::sint::index_type rasterIndexNeighbor(rasterNeighbor);
       int neighborValue = raster->get(rasterIndexNeighbor);
-//       cout << "(" << x << ", " << y << "): " << value << "; (" 
-//            << neighborTile.x << ", " << neighborTile.y << "): " 
-//            << neighborValue << endl;
       if (value != neighborValue && neighborValue != INT_MIN) {
-        transitions[NewTriple<int, int, DirectionNum>(x, y, dirNum)]
-                               = tileToArea.get(neighborTile.x, neighborTile.y);
-//         cout << "  transition (" << x << ", " << y << ") -> (" 
-//              << neighborTile.x << ", " << neighborTile.y << "), direction " 
-//              << RestoreTrajLI::dirNumToString(dirNum) << " recorded" << endl;
+        neighborAreaNo = tileToArea.get(neighborTile.x, neighborTile.y);
+        transitions[areaNo][dir].insert(neighborAreaNo);
+        noTransitions++;
       }
     }
   }
@@ -341,6 +338,7 @@ void Tileareas::retrieveAreas(raster2::sint *_raster) {
     }
   }
   trimAreaVector();
+  transitions.resize(areas.size(), std::vector<std::set<int> >(8));
   cout << areas.size() << " areas successfully retrieved" << endl;
   for (int i = minX; i <= maxX; i++) {
     for (int j = minY; j <= maxY; j++) {
@@ -379,12 +377,20 @@ void Tileareas::print(const bool printRange, const bool printAreas,
     cout << endl;
   }
   if (printTransitions) {
-    cout << transitions.size() << " transitions:" << endl;
-    for (map<NewTriple<int, int, DirectionNum>, int>::iterator it 
-         = transitions.begin(); it != transitions.end(); it++) {
-      cout << "(" << it->first.first << ", " << it->first.second << ") --"
-           << RestoreTrajLI::dirNumToString(static_cast<DirectionNum>(
-              it->first.third)) << "-> " << it->second << "    ";
+    cout << noTransitions << " transitions:" << endl;
+    for (unsigned int i = 0; i < transitions.size(); i++) {
+      for (int j = 0; j < 8; j++) {
+        if (!transitions[i][j].empty()) {
+          cout << i << " --" 
+               << RestoreTrajLI::dirNumToString(static_cast<DirectionNum>(j))
+               << "-> {";
+            for (set<int>::iterator it = transitions[i][j].begin(); 
+                 it != transitions[i][j].end(); it++) {
+              cout << *it << ", ";
+            }
+          cout << "}    ";
+        }
+      }
     }
     cout << endl;
   }
@@ -439,9 +445,8 @@ void Tileareas::Delete(const ListExpr typeInfo, Word& w) {
 
 bool Tileareas::Open(SmiRecord& valueRecord, size_t& offset, 
                      const ListExpr typeInfo, Word& value) {
-  cout << "call OPEN" << endl;
   Tileareas *ta = new Tileareas(true);
-  unsigned int noAreas, noTiles, noTransitions, pos(0);
+  unsigned int noAreas, noTiles, pos(0);
   char *buffer = 0;
   int areaNo;
   SmiRecord aRecord, ttaRecord, trRecord;
@@ -513,7 +518,6 @@ bool Tileareas::Open(SmiRecord& valueRecord, size_t& offset,
   }
   delete[] buffer;
   pos = 0;
-  cout << "!" << endl;
   // load tileToArea
   ta->tileToArea.initialize(ta->minX, ta->maxX, ta->minY, ta->maxY, -1);
   ta->ttaFile.SelectRecord(ttaRecordId, ttaRecord);
@@ -531,25 +535,40 @@ bool Tileareas::Open(SmiRecord& valueRecord, size_t& offset,
   delete[] buffer;
   pos = 0;
   // load transitions
-  if (!valueRecord.Read(&noTransitions, sizeof(unsigned int), offset)) {
+  ta->transitions.resize(ta->areas.size(), std::vector<std::set<int> >(8));
+  ta->transFile.SelectRecord(trRecordId, trRecord);
+  buffer = new char[trRecord.Size()];
+  if (trRecord.Read(buffer, trRecord.Size()) == 0) {
     return false;
   }
-  offset += sizeof(unsigned int);
-  for (unsigned int i = 0; i < noTransitions; i++) {
-    NewTriple<int, int, DirectionNum> tileDir;
-    if (!valueRecord.Read(&tileDir, sizeof(NewTriple<int, int, DirectionNum>),
-                         offset)) {
-      return false;
+  int dir(0);
+  unsigned int sourceAreaNo = 0;
+  vector<set<int> > transitionSets;
+  set<int> newAreas;
+  while (pos < trRecord.Size()) {
+    memcpy(&areaNo, buffer + pos, sizeof(int));
+    pos += sizeof(int);
+    if (areaNo == INT_MAX) { // symbol for next direction / next source area
+      transitionSets.push_back(newAreas);
+      newAreas.clear();
+      dir++;
+      if (dir == 8) { // proceed to next source area and first direction
+        ta->transitions[sourceAreaNo] = transitionSets;
+        sourceAreaNo++;
+        transitionSets.clear();
+        dir = 0;
+      }
     }
-    offset += sizeof(NewTriple<int, int, DirectionNum>);
-    if (!valueRecord.Read(&areaNo, sizeof(int), offset)) {
-      return false;
+    else { // extend current set of target areas
+      newAreas.insert(areaNo);
+      ta->noTransitions++;
     }
-    offset += sizeof(int);
-    ta->transitions[tileDir] = areaNo;
   }
+  delete[] buffer;
+//   cout << *(ta->areas[2].begin()) << " | " << ta->tileToArea.get(-653, 1820)
+//        << " | " << *(ta->transitions[2][0].begin()) << "  "
+//        << *(ta->transitions[2][4].begin()) << endl;
   value.addr = ta;
-  cout << ".....................SUCCESS" << endl;
   return true;
 }
 
@@ -558,6 +577,9 @@ bool Tileareas::Save(SmiRecord& valueRecord, size_t& offset,
   Tileareas *ta = static_cast<Tileareas*>(value.addr);
   SmiRecord aRecord, ttaRecord, trRecord;
   SmiRecordId aRecordId, ttaRecordId, trRecordId;
+//   cout << *(ta->areas[2].begin()) << " | " << ta->tileToArea.get(-650, 1820)
+//        << " | " << *(ta->transitions[2][0].begin()) << "  "
+//        << *(ta->transitions[2][4].begin()) << endl;
   ta->areaFile.Create();
   ta->ttaFile.Create();
   ta->transFile.Create();
@@ -582,9 +604,9 @@ bool Tileareas::Save(SmiRecord& valueRecord, size_t& offset,
   // store areas
   size_t bufferSize = (ta->areas.size() + 1) * sizeof(unsigned int)
       + (ta->maxX - ta->minX + 1) * (ta->maxY - ta->minY + 1) * 2 * sizeof(int);
-  cout << "area buffer size is " << bufferSize << endl;
   char* buffer = new char[bufferSize];
   size_t pos = 0;
+  int maxint = INT_MAX;
   unsigned int noAreas = ta->areas.size();
   cout << "begin storing " << noAreas << " areas" << endl;
   memcpy(buffer + pos, &noAreas, sizeof(unsigned int));
@@ -649,28 +671,22 @@ bool Tileareas::Save(SmiRecord& valueRecord, size_t& offset,
   offset += sizeof(SmiFileId);
   cout << "......... tileToArea stored (" << bytesWritten << " bytes)" << endl;
   delete[] buffer;
-  bufferSize = sizeof(unsigned int) + ta->transitions.size() *
-                      (sizeof(NewTriple<int, int, DirectionNum>) + sizeof(int));
+  bufferSize = ta->noTransitions * sizeof(int) 
+               + 8 * ta->transitions.size() * sizeof(int);
   buffer = new char[bufferSize];
   pos = 0;
   // store transitions
-  unsigned int noTransitions = ta->transitions.size();
-  cout << "begin storing " << noTransitions << " transitions" << endl;
-  memcpy(buffer + pos, &noTransitions, sizeof(unsigned int));
-  pos += sizeof(unsigned int);
-//   int transitionCounter = 0;
-  for (map<NewTriple<int, int, DirectionNum>, int>::iterator 
-       it = ta->transitions.begin(); it != ta->transitions.end(); it++) {
-    NewTriple<int, int, DirectionNum> tileDir(it->first);
-    memcpy(buffer + pos, &tileDir, sizeof(NewTriple<int, int, DirectionNum>));
-    pos += sizeof(NewTriple<int, int, DirectionNum>);
-    int areaNo(it->second);
-    memcpy(buffer + pos, &areaNo, sizeof(int));
-    pos += sizeof(int);
-//     transitionCounter++;
-//     if (transitionCounter % 20000 == 0) {
-//       cout << "  " << transitionCounter << " transitions stored..." << endl;
-//     }
+  cout << "begin storing " << ta->noTransitions << " transitions" << endl;
+  for (unsigned int i = 0; i < ta->transitions.size(); i++) {
+    for (int j = 0; j < 8; j++) {
+      for (set<int>::iterator it = ta->transitions[i][j].begin();
+           it != ta->transitions[i][j].end(); it++) {
+        memcpy(buffer + pos, &(*it), sizeof(int));
+        pos += sizeof(int);
+      }
+      memcpy(buffer + pos, &maxint, sizeof(int));
+      pos += sizeof(int);
+    }
   }
   ta->transFile.AppendRecord(trRecordId, trRecord);
   assert(trRecordId != 0);

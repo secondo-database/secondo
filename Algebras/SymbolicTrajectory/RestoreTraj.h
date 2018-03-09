@@ -118,10 +118,11 @@ class NegIndexVector2D {
 */
 class Tileareas {
  public:
-  Tileareas() : areaFile(true), ttaFile(false), transFile(false) {}
+  Tileareas() : raster(0), noTransitions(0), areaFile(true), ttaFile(false), 
+                                                             transFile(false) {}
   
-  Tileareas(const bool dummy) : raster(0), areaFile(false), ttaFile(false),
-                                transFile(false) {}
+  Tileareas(const bool dummy) : raster(0), noTransitions(0), areaFile(false), 
+                                             ttaFile(false), transFile(false) {}
   Tileareas(const Tileareas& _src);
   
   ~Tileareas();
@@ -156,10 +157,10 @@ class Tileareas {
  private:
   raster2::sint *raster; // not stored persistently
   int minX, maxX, minY, maxY;
+  unsigned int noTransitions;
   std::vector<std::set<NewPair<int, int> > > areas;
   NegIndexVector2D<int> tileToArea;
-  std::map<NewTriple<int, int, DirectionNum>, int> transitions;
-                                                           // tile x dir -> area
+  std::vector<std::vector<std::set<int> > > transitions; // area x dir -> areas
   SmiRecordFile areaFile, ttaFile, transFile;
 };
 
