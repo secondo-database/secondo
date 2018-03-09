@@ -7010,7 +7010,7 @@ class pbufferInfo{
    public: 
       pbufferInfo(Word _stream, int _maxElems):
          stream(_stream){
- 
+         stream.open(); 
       }
 
       ~pbufferInfo(){
