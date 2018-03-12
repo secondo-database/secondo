@@ -1189,6 +1189,19 @@ a tuple
     out << "       )" << endl;
     return out;
   }
+  
+
+  inline char* GetBinRep(size_t & size){
+    size_t coreSize;
+    size_t extensionSize;
+    size_t flobSize;
+    size = GetBlockSize(coreSize, extensionSize, flobSize);
+    // allocate buffer and write flob into it
+    char* buffer = new char[size];
+    WriteToBin(buffer, coreSize, extensionSize, flobSize);
+    return buffer;
+  }
+
 
   private:
 
@@ -1346,6 +1359,7 @@ to ~defAttributes~, otherwise it is dinamically constructed.
                       bool ignoreLOBs,
                       SmiRecordFile* file,
                       const SmiFileId& lobFileId) const;
+
 
   void WriteToBlock( char* buf,
                      size_t coreSize,
