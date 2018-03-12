@@ -27,31 +27,38 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <iostream>
 #include <sstream>
 #include <cstdlib>
+#include <stdint.h>
+#include <string.h>
 
 using namespace std;
 
 char 
 Base64::base64Alphabet[] = {'A','B','C','D','E','F','G','H','I','J','K',
                         'L','M','N','O','P','Q','R','S','T','U','V',
-	  	        'W','X','Y','Z','a','b','c','d','e','f','g',
-		        'h','i','j','k','l','m','n','o','p','q','r','s',
-		        't','u','v','w','x','y','z','0','1','2','3',
-		        '4','5','6','7','8','9','+','/'};
+              'W','X','Y','Z','a','b','c','d','e','f','g',
+            'h','i','j','k','l','m','n','o','p','q','r','s',
+            't','u','v','w','x','y','z','0','1','2','3',
+            '4','5','6','7','8','9','+','/'};
 
 
-Base64::Base64() {
+Base64::Base64(char _newline): newline(&_newline,1){
+  init();
+}
 
+
+void Base64::init(){
   currentPos = 5; // needed to fill the outbuffer for encoding
   endReached = false;
   filled = 3;
   Pos = 0;
+  uint64_t zero = 0;
+  memcpy(inbuffer, (char*)&zero,5);
+  memcpy(outbuffer, (char*)&zero,3);
 }
 
 
 
-unsigned int
-Base64::getIndex(char b){
- 
+uint32_t Base64::getIndex(char b){
  if(b>='A' && b<='Z')
      return b-'A';
   if(b>='a' && b<='z')
@@ -83,50 +90,49 @@ and istream.get
 bool
 Base64::getNext(char& byte, istream& in) {
  
-  static char inbuffer[5] = {0,0,0,0,0};
-  static char outbuffer[3] = {0,0,0};
   char ch = 0;
-
   if( currentPos<filled ) {  //  data is in the buffer
       byte = outbuffer[currentPos];
       currentPos++;
       return true;
   }
 
-  if(endReached) // no more data to load
+  if(endReached) {// no more data to load
      return false;
+  }
 
   // fill the inbuffer
   for(int i=0;i<4;i++){ // get the next allowed input bytes
-      in.get(ch); Pos++;
+      in.get(ch); 
+      Pos++;
 
       bool endOfFile = false;
       while( !(endOfFile=in.eof()) && !isAllowed(ch) ) { 
-	// skip chars not in alphabet 
-        //cout << "Pos " << Pos 
-        //     << " - Skipping " << (unsigned int) ch 
-        //     << "<" << ch << ">" << endl;
-	in.get(ch); Pos++;
+         in.get(ch); 
+         Pos++;
+         cout << "ignore '" << ch << "'" << endl;
       }
       if( endOfFile && (i>0) ) { // not a full quadrupel found
-	  cerr << "Base64::decode - unexpected end of input! "
+          cerr << "Base64::decode - unexpected end of input! "
                << " Pos = " << Pos++
                << " i = " << i
-               << " ch = " << (unsigned int) ch << endl;
-	  exit(1);
+               << " ch = " << (uint32_t) ch << endl;
+          exit(1);
       }
       if( endOfFile ){ // end of input
-	 endReached=true;
-	 return false;
+         endReached=true;
+         return false;
       }
-     inbuffer[i] = ch;  //store value
+      inbuffer[i] = ch;  //store value
   }
 
   // cat inbuffer
-  int all =  (getIndex(inbuffer[0])<<18) +
-	     (getIndex(inbuffer[1])<<12) +
-	     (getIndex(inbuffer[2])<<6)  +
-	      getIndex(inbuffer[3]);
+  int32_t
+       all =  
+       (getIndex(inbuffer[0])<<18) +
+       (getIndex(inbuffer[1])<<12) +
+       (getIndex(inbuffer[2])<<6)  +
+        getIndex(inbuffer[3]);
 
   // extract outbytes
   for(int i=2;i>=0;i--){
@@ -151,7 +157,7 @@ Base64::getNext(char& byte, istream& in) {
 
 void
 Base64::decodeStream(istream& in, ostream& out) {
-       
+  init();     
   char ch = 0;
   while ( getNext(ch, in) ) {
      out.put(ch);
@@ -189,8 +195,6 @@ Base64::encode2(const char* buffer, string& text, int length) {
      return;
   }
 
-  static char resultbuffer[73];
-
   char* result =0;
   unsigned char *data = 0;
   int pos = 0, outPos = 0;
@@ -198,22 +202,22 @@ Base64::encode2(const char* buffer, string& text, int length) {
      data = (unsigned char*) &(buffer[pos]);
      // set all undefined byte to zero
      for(int i=length;i<3;i++) {
-	data[i] = 0;
+        data[i] = 0;
      }
      // code all given bytes in a single integer
      // this code must be modified for windows, since endianess is important.
-     int all = 65536*data[0]+ 256*data[1]+ data[2];
+     int32_t all = 65536*data[0]+ 256*data[1]+ data[2];
 
      result = &(resultbuffer[outPos]);
      // extract the 6 bit values
      for(int i=3;i>=0;i--){
-       int index = (all & 63);
+       int32_t index = (all & 63);
        assert( (index >= 0) && (index < 64) );
        result[i] = base64Alphabet[index];
        all = all >> 6;
      }
      for(int i=0;i<3-length;i++) {
-	result[3-i]='=';
+       result[3-i]='=';
      }
 
      length -= 3;
@@ -222,7 +226,7 @@ Base64::encode2(const char* buffer, string& text, int length) {
   }
   result[4] = 0;
   string resultStr(&(resultbuffer[0]));
-  text = resultStr + "\n";
+  text = resultStr + newline;
 }
 
 void
@@ -263,6 +267,8 @@ Base64::encode(const char* bytes, int size, string& base64) {
 
 int
 Base64::decode(const string& text, char* bytes) {
+
+  cout << "call decode with '" << text<<"'" << endl;
 
   stringstream base64Stream;
   stringstream byteStream;
