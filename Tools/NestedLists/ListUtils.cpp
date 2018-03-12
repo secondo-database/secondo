@@ -939,5 +939,19 @@ Checks whether the list represents a stream.
      }
   }
 
+  bool checkUsesArgsInTypeMapping(ListExpr args){
+    if(nl->AtomType(args)!= NoAtom){
+      return false;
+    }
+    while(nl->IsEmpty(args)){
+      if(!nl->HasLength(nl->First(args),2)){
+         return false;
+      }
+      args = nl->Rest(args);
+    }
+    return true;
+  }
+
+
 
 } // end of namespace listutils

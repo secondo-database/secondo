@@ -60,6 +60,16 @@ CHecks whether this list corresponds to a type in given kind
   bool isKind(ListExpr t, const std::string& kind);
 
 
+/*
+Checks whether the list is not an atom and each element
+consists of two elements.
+
+*/
+  bool checkUsesArgsInTypeMapping(ListExpr args);
+
+
+
+
 
 /*
 Returns the value of a text or a string atom
