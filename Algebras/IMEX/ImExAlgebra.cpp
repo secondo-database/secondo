@@ -86,6 +86,7 @@ This file contains the implementation import / export operators.
 #include "NMEAImporter.h"
 #include "Algebras/Stream/Stream.h"
 #include "aisdecode.h"
+#include "Base64.h"
 
 
 extern NestedList* nl;
@@ -9235,6 +9236,7 @@ int splitDB3VMT(Word* args, Word& result,
   if(!in.good()){
     cerr << "error in reading header from file " << f << endl;
     res->Set(true,0);
+    delete[] header;
     delete[] inBuffer;
     return 0;
   }  
@@ -9279,6 +9281,7 @@ int splitDB3VMT(Word* args, Word& result,
   }
   delete[] inBuffer;
   delete[] outBuffer;
+  delete[] header;
   res->Set(true,partition);
   return 0;
 }
@@ -10632,8 +10635,437 @@ Operator importaisOp(
 );
 
 
+/*
+24.100 exportBinCSV
+
+This operator receives a tuple stream, a string or text,
+and some attribute names. The second argument is the 
+filename of the file to be created.
+The mentioned attribute names 
+must be in kind CVSEXPORTABLE. This operator creates
+a csv file in format  Nr , <ATTR>, <TUPLE>
+Where Nr is just a running number, <ATTR> are the
+attributes given in the query and <TUPLE> is the 
+base64 coded binary tuple representation.
+
+*/
+
+ListExpr exportBinCSVTM(ListExpr args){
+   if(!nl->HasMinLength(args,2)){
+     return listutils::typeError("at least two arguments required");
+   }
+   if(!Stream<Tuple>::checkType(nl->First(args))){
+     return listutils::typeError("the first argument must be a tuple stream");
+   }
+   ListExpr fn = nl->Second(args);
+   if(! CcString::checkType(fn) && !FText::checkType(fn)){
+     return  listutils::typeError("the second argument must be of "
+                                  "type string or text");
+   }
+   ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+   ListExpr attrs = nl->Rest(nl->Rest(args));
+   ListExpr appendList = nl->TheEmptyList();
+   ListExpr appendLast = nl->TheEmptyList();
+
+   while(!nl->IsEmpty(attrs)){
+     ListExpr attr = nl->First(attrs);
+     attrs = nl->Rest(attrs);
+     if(nl->AtomType(attr) != SymbolType){
+       return listutils::typeError("Invalid attribute name");
+     }
+     string a = nl->SymbolValue(attr);
+     ListExpr attrType;
+     int index = listutils::findAttribute(attrList, a, attrType); 
+     if(!index){
+        return listutils::typeError("Attribute " + a 
+                                    + " not part of the tuple");
+     }
+     ListExpr errorInfo = listutils::emptyErrorInfo();
+     if(!am->CheckKind("CSVEXPORTABLE", attrType, errorInfo)){
+        return listutils::typeError("Attribute " + a 
+                                    + " not in kind CSVEXPORTABLE");
+     }
+      
+     if(nl->IsEmpty(appendList)){
+       appendList = nl->OneElemList(nl->IntAtom(index-1));
+       appendLast = appendList;
+     } else {
+       appendLast = nl->Append(appendLast, nl->IntAtom(index-1));
+     }
+     appendLast = nl->Append(appendLast, nl->StringAtom(a));
+     appendLast = nl->Append(appendLast, nl->TextAtom(nl->ToString(attrType)));
+   }
+
+   return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                            appendList,
+                            nl->First(args));
+
+}
 
 
+class exportBinCSVInfo{
+
+  public:
+      exportBinCSVInfo( Word _stream, string& _file, 
+                        vector<pair<pair<string, string>, int> >& _attrs,
+                        ListExpr tupleDescr):
+      stream(_stream),base64(' ')
+      {
+         stream.open();
+         out.open(_file.c_str());
+         // write header if file is good
+         if(out){
+            out << "# No: int";
+            for(size_t i=0;i<_attrs.size();i++){
+              pair<pair<string, string>, int> v = _attrs[i];
+              out << "," << v.first.first << ":" << v.first.second;
+              attrs.push_back(v.second);
+           }
+           out << ", T : " << nl->ToString(tupleDescr) << endl;
+         } 
+         no = 0;
+      }
+
+      ~exportBinCSVInfo(){
+         stream.close();
+         out.close();
+      }
+   
+      Tuple* next(){
+         if(!out) return 0;
+         Tuple* tuple = stream.request();
+         if(tuple){
+            writeTuple(tuple);
+         }
+         return tuple;
+      }
+
+
+  private:
+      Stream<Tuple> stream;
+      Base64 base64;
+      ofstream out;
+      int no;
+      vector<int> attrs;
+
+
+   void writeTuple(Tuple* t){
+     out << no ;
+     for(size_t i=0;i<attrs.size();i++){
+        Attribute* attr = t->GetAttribute(attrs[i]);
+        string s = attr->getCsvStr();
+        out << ", " << s;
+     }
+     out << ", " << getBase64Data(t) << endl;
+   }
+
+   string getBase64Data(Tuple* t){
+      size_t size;
+      char* binData = t->GetBinRep(size);
+      string res;
+      base64.encode(binData, size,res);
+      delete[] binData;
+      return res;
+   }
+   
+
+};
+
+
+template<class T>
+int exportBinCSVVMT(Word* args, Word& result,
+                int message, Word& local, Supplier s){
+
+  exportBinCSVInfo* li = (exportBinCSVInfo*) local.addr;
+  switch(message){
+       case OPEN: {
+            if(li){
+               delete li;
+               local.addr = 0;
+            }
+            int noAttrs = (qp->GetNoSons(s)-2) / 4;
+            T* fn = (T*) args[1].addr;
+            if(!fn->IsDefined()){
+              return 0;
+            }
+            string f = fn->GetValue();
+
+            int start = 2+noAttrs;
+            int end = qp->GetNoSons(s);
+            vector<pair<pair<string,string>,int> > v;
+            for(int i=start;i<end;i=i+3){
+               int no = ((CcInt*)args[i].addr)->GetValue();
+               string name = ((CcString*)args[i+1].addr)->GetValue();
+               string type = ((FText*)args[i+2].addr)->GetValue();
+               v.push_back(make_pair(make_pair(name,type),no));
+            }
+            local.addr = new exportBinCSVInfo(args[0],f,v, 
+                                              nl->Second(qp->GetType(s)));
+            return 0;
+       }
+      case REQUEST:
+             result.addr = li?li->next():0;
+             return result.addr?YIELD:CANCEL;
+      case CLOSE:
+             if(li){
+               delete li;
+               local.addr = 0;
+             }
+             return 0;
+  }
+  return -1;
+}
+
+int exportBinCSVSelect(ListExpr args){
+  return CcString::checkType(nl->Second(args))?0:1;
+}
+
+ValueMapping exportBinCSVVM[] = {
+   exportBinCSVVMT<CcString>,
+   exportBinCSVVMT<FText>
+};
+
+
+OperatorSpec exportBinCSVSpec(
+  "stream(tuple) x {string,text} x INDENT* -> stream(tuple)",
+  " _ exportBinCSV[_,_...]",
+  " Writes a tuple stream to a csv file. "
+  "The first argument is the stream of tuples to be write, "
+  "the second argument is the name of the file, the remaining "
+  "arguments that represents attribute names to write additionally as "
+  "text into the file. The created file cosists of lines of the form "
+  "int, (DATA,)*  <TUPLE> where the first entry is a runnning number,"
+  "the following entries are the specified attributea and the last "
+  "value is the base64 coded binary representation of the whole tuple.",
+  "query plz feed exportBinCSV['plz.bincsv', PLZ] count"
+);
+
+Operator exportBinCSVOp(
+  "exportBinCSV",
+  exportBinCSVSpec.getStr(),
+  2,
+  exportBinCSVVM,
+  exportBinCSVSelect,
+  exportBinCSVTM
+);
+
+
+/*
+24.101 Operator ~importBinCSVSimple~
+
+*/
+ListExpr importBinCSVSimpleTM(ListExpr args){
+
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError("three arguments expected");
+  }
+  if(!listutils::checkUsesArgsInTypeMapping(args)){
+    return listutils::typeError("internal error");
+  }
+
+  ListExpr fn = nl->First(nl->First(args));
+  if(!CcString::checkType(fn) && !FText::checkType(fn)){
+    return listutils::typeError("first arg must be a string or a text");
+  }
+  ListExpr te = nl->First(nl->Second(args));
+  if(!Relation::checkType(te) && !FText::checkType(te)){
+    return listutils::typeError("second arg must be a relation or a text");
+  }
+
+  if(!CcInt::checkType(nl->First(nl->Third(args)))){
+     return listutils::typeError("third argument must be of type int");
+  }
+  ListExpr tupleDescr = nl->TheEmptyList();
+  if(FText::checkType(te)){
+     ListExpr tev = nl->Second(nl->Second(args));
+     Word queryResult ;
+     string typeString = " " ;
+     string errorString = " " ;
+     bool correct ;
+     bool evaluable ;
+     bool defined ;
+     bool isFunction ;
+     qp->ExecuteQuery(tev, queryResult, typeString, 
+                      errorString, correct, evaluable, defined, isFunction );
+     if(!correct || !evaluable || !defined || isFunction ){
+        return listutils::typeError ( " could not extract filename ( " +
+                                       errorString + " ) " );
+    }
+    FText* fn = (FText*) queryResult.addr;
+    if(!fn->IsDefined()){
+      fn->DeleteIfAllowed();
+      return listutils::typeError("undefined tuple type description");
+    }
+    string tt = fn->GetValue();
+    fn->DeleteIfAllowed();
+    if(!nl->ReadFromString(tt,tupleDescr)){
+      return listutils::typeError("tuple description is not a valid list");
+    }
+    if(!Tuple::checkType(tupleDescr)){
+       return listutils::typeError("description is not a valid tuple");
+    } 
+  } else {
+     tupleDescr = nl->Second(te);
+  }
+  return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
+                         tupleDescr);
+}
+
+
+class importBinCSVSimpleInfo{
+
+  public:
+     importBinCSVSimpleInfo(string _fileName, int _pos, TupleType* _tt){
+        in.open(_fileName.c_str());
+        pos = _pos;
+        tt = _tt;
+        tt->IncReference(); 
+        id = 1;
+        getline(in,line); // ignore first line
+     }
+
+     ~importBinCSVSimpleInfo(){
+        in.close();
+        tt->DeleteIfAllowed();
+     }
+
+     Tuple* next(){
+        while(!in.eof() && in){
+          getline(in,line);
+          if(line.length()>0){
+             Tuple* res =  createTuple(line); 
+             if(res){
+                return res;
+             }
+          }
+        }
+        return 0;
+     }
+
+  private:
+    ifstream in;
+    TupleType* tt;
+    int pos;    
+    string line;
+    Base64 base64;
+    TupleId id;
+
+    
+    Tuple* createTuple(string & line){
+       // extract base 64 rep of the tuple
+       stringutils::StringTokenizer st(line,",");
+       string byterep;
+       for(int i=0; i< pos; i++){
+         if(!st.hasNextToken()){
+           return 0;
+         }
+         byterep = st.nextToken();
+       }
+       stringutils::trim(byterep);
+       if(byterep.empty()) return 0;
+       
+       int size = base64.sizeDecoded(byterep.size());
+       char* bytes = new char[size];
+       try{
+           size = base64.decode(byterep, bytes);
+       } catch(...){
+          cout << "decoding base64 failed" << endl;
+          delete[] bytes;
+          return 0;
+       }
+       Tuple* res = getTuple(bytes);
+       delete[] bytes;
+       return res;
+    }
+
+
+    Tuple* getTuple(char* bytes){
+      Tuple* res = new Tuple(tt);
+      res->ReadFromBin(0, bytes );
+      res->SetTupleId(id);
+      id++;
+      return res;
+   }
+};
+
+template<class T>
+int importBinCSVSimpleVMT(Word* args, Word& result,
+                int message, Word& local, Supplier s){
+
+   importBinCSVSimpleInfo* li = (importBinCSVSimpleInfo*) local.addr;
+   switch(message){
+      case INIT:
+            qp->GetLocal2(s).addr = 
+                     new TupleType(nl->Second(GetTupleResultType(s)));
+            return 0;
+      case FINISH: {
+             TupleType* tt = (TupleType*)qp->GetLocal2(s).addr;
+             if(tt){
+               tt->DeleteIfAllowed();
+               qp->GetLocal2(s).addr =0;
+             }
+             return 0;
+      }
+      case OPEN: {
+               if(li){
+                 delete li; 
+                 local.addr = 0;
+               }
+               T* fn = (T*) args[0].addr;
+               if(!fn->IsDefined()){
+                 return 0;
+               }
+               TupleType* tt = (TupleType*)qp->GetLocal2(s).addr;
+               CcInt* pos = (CcInt*) args[2].addr;
+               if(!pos->IsDefined()){
+                 return 0;
+               }
+               local.addr = new importBinCSVSimpleInfo(fn->GetValue(),
+                                                       pos->GetValue(),tt);
+               return 0;
+      }
+      case REQUEST: result.addr = li?li->next():0;
+                    return result.addr?YIELD:CANCEL;
+
+      case CLOSE :
+                if(li){
+                  delete li;
+                  local.addr = 0;
+                }
+                return 0;
+      
+   }
+   return -1; 
+
+}
+
+int importBinCSVSimpleSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+ValueMapping importBinCSVSimpleVM[] = {
+   importBinCSVSimpleVMT<CcString>,
+   importBinCSVSimpleVMT<FText>
+};
+
+OperatorSpec importBinCSVSimpleSpec(
+  "{string,text} x {rel,text} x int -> stream(tuple)",
+  "_ importBinCSVSimple[_,_] ",
+  "Imports a relation that is write into a CSV format and the "
+  "tuples are base64 code binary. The last argument give the  "
+  "position of the tuple within a csv line.",
+  " query 'plz.bincsv' importBinCSVSimple[plz, 2] count"
+);
+
+
+Operator importBinCSVSimpleOp(
+  "importBinCSVSimple",
+   importBinCSVSimpleSpec.getStr(),
+   2,
+   importBinCSVSimpleVM,
+   importBinCSVSimpleSelect,
+   importBinCSVSimpleTM
+);
 
 
 
@@ -10705,6 +11137,11 @@ public:
 
     AddOperator(&importaisOp);
     importaisOp.SetUsesArgsInTypeMapping();
+
+    AddOperator(&exportBinCSVOp);
+    AddOperator(&importBinCSVSimpleOp);
+    importBinCSVSimpleOp.SetUsesArgsInTypeMapping();
+    importBinCSVSimpleOp.enableInitFinishSupport();
 
   }
   ~ImExAlgebra() {};

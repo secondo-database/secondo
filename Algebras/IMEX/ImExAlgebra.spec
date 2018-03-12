@@ -64,3 +64,6 @@ operator splitShp alias SPLITSHP pattern op(_,_,_)
 operator splitDB3 alias SPLITDB3 pattern op(_,_)
 
 operator importais alias IMPORTAIS pattern op(_,_)
+
+operator exportBinCSV alias EXPORTBINCSV pattern _ op[_,_]
+operator importBinCSVSimple alias importBinCSVSimple pattern _ op [_,_]
