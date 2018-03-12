@@ -117,7 +117,7 @@ Base64::getNext(char& byte, istream& in) {
                << " Pos = " << Pos++
                << " i = " << i
                << " ch = " << (uint32_t) ch << endl;
-          exit(1);
+          throw 1;
       }
       if( endOfFile ){ // end of input
          endReached=true;
