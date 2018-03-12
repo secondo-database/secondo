@@ -382,31 +382,27 @@ Operator  : shpBox
 Number    : 60
 Signature : string | text -> rect
 Example   : query size(shpBox('kinos.shp'))> 0
-Result    : unpredictable
-Remark    : depends on the presence of a file, may be true or undefined 
+Result    : TRUE
 
 
 Operator  : shpCollect
 Number    : 61
 Signature : stream({string,text} ) x bool x {string,text} -> stream(tuple)
-Example   : query getDirectory("shp") filter[. endsWith ".shp"] shpCollect[TRUE, 'All.shp'] count
-Result    : unpredictable
-Remark    : result depends on the presence and the content of the shp folder
+Example   : query getDirectory(".") filter[. endsWith ".shp"] shpCollect[TRUE, 'All.shp'] count > 0
+Result    : TRUE
 
 Operator  : db3Collect
 Number    : 62
 Signature : stream({string,text} ) x {string,text} -> stream(tuple)
-Example   : query getDirectory("dbf") filter[. endsWith ".dbf"] shpCollect['All.db3'] count
-Result    : unpredictable
-Remark    : result depends on the presence and the content of the dbf folder
+Example   : query getDirectory(".") filter[. endsWith ".dbf"] db3Collect['All.db3'] count > 0
+Result    : TRUE
 
 
 Operator  : createShx
 Number    : 63
 Signature : {string,text} x {string,text} -> bool
-Example   : query createShx("Kinos.shp", "Kinos.shx");
-Result    : unpredictable
-Remark    : result depends on the presence of a file
+Example   : query createShx("kinos.shp", "Kinos.shx");
+Result    : TRUE
 
 Operator  : noShpRecords
 Number    : 64
