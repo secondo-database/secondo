@@ -110,7 +110,7 @@ Base64::getNext(char& byte, istream& in) {
       while( !(endOfFile=in.eof()) && !isAllowed(ch) ) { 
          in.get(ch); 
          Pos++;
-         cout << "ignore '" << ch << "'" << endl;
+         //cout << "ignore '" << ch << "'" << endl;
       }
       if( endOfFile && (i>0) ) { // not a full quadrupel found
           cerr << "Base64::decode - unexpected end of input! "
@@ -267,8 +267,6 @@ Base64::encode(const char* bytes, int size, string& base64) {
 
 int
 Base64::decode(const string& text, char* bytes) {
-
-  cout << "call decode with '" << text<<"'" << endl;
 
   stringstream base64Stream;
   stringstream byteStream;
