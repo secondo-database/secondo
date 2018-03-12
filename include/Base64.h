@@ -48,7 +48,7 @@ than 3/4 since newlines and unknown characters are ignored.
 class Base64{
 
 public:
-   Base64();
+   Base64(char newline='\n');
    ~Base64(){};    
 
    int sizeDecoded(int letters) {
@@ -90,6 +90,14 @@ Encode or decode a stream of base64 characters or bytes.
 
 
 private:
+   /* buffers, note that a single base64 instance is not thread savem,
+      but several instances can be used in parallel.
+   */
+   std::string newline;
+   char inbuffer[5];
+   char outbuffer[3];
+   char resultbuffer[73];
+
    /* the characters used in the base64 format */
    static char base64Alphabet[];
    
@@ -106,6 +114,9 @@ private:
    int  currentPos;
    int  filled;
    int Pos;
+ 
+   void init(); 
+
 
 };
 
