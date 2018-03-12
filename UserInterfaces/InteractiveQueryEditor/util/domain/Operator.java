@@ -1,0 +1,111 @@
+//This file is part of SECONDO.
+
+//Copyright (C) 2004, University in Hagen, Department of Computer Science,
+//Database Systems for New Applications.
+
+//SECONDO is free software; you can redistribute it and/or modify
+//it under the terms of the GNU General Public License as published by
+//the Free Software Foundation; either version 2 of the License, or
+//(at your option) any later version.
+
+//SECONDO is distributed in the hope that it will be useful,
+//but WITHOUT ANY WARRANTY; without even the implied warranty of
+//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//GNU General Public License for more details.
+
+//You should have received a copy of the GNU General Public License
+//along with SECONDO; if not, write to the Free Software
+//Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+package util.domain;
+
+import java.util.ArrayList;
+
+import util.common.OperatorSpecParser;
+import util.domain.enums.OperatorType;
+import util.domain.enums.ParameterType;
+import util.domain.enums.ParanthesisType;
+
+/**
+ * Represents an operator of secondo.
+ * Used by the {@link OperatorSpecParser} to store the information from the operator definition file.
+ * @author D.Merle
+ */
+public class Operator {
+	private String name;
+	private String alias;
+	private OperatorType operatorType;
+	private ArrayList<ParameterType> preOpArguments;
+	private ParanthesisType paranthesisType;
+	private ArrayList<ParameterType> postOpArguments;
+	private String pattern;
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(final String name) {
+		this.name = name;
+	}
+
+	public String getAlias() {
+		return alias;
+	}
+
+	public void setAlias(final String alias) {
+		this.alias = alias;
+	}
+
+	public OperatorType getOperatorType() {
+		return operatorType;
+	}
+
+	public void setOperatorType(final OperatorType operatorType) {
+		this.operatorType = operatorType;
+	}
+
+	public ArrayList<ParameterType> getPreOpArguments() {
+		return preOpArguments;
+	}
+
+	public void setPreOpArguments(final ArrayList<ParameterType> preOpArguments) {
+		this.preOpArguments = preOpArguments;
+	}
+
+	public ParanthesisType getParanthesisType() {
+		return paranthesisType;
+	}
+
+	public void setParanthesisType(final ParanthesisType paranthesisType) {
+		this.paranthesisType = paranthesisType;
+	}
+
+	public ArrayList<ParameterType> getPostOpArguments() {
+		return postOpArguments;
+	}
+
+	public void setPostOpArguments(final ArrayList<ParameterType> postOpArguments) {
+		this.postOpArguments = postOpArguments;
+	}
+
+	public String getPattern() {
+		return pattern;
+	}
+
+	public void setPattern(final String pattern) {
+		this.pattern = pattern;
+	}
+
+	@Override
+	public String toString() {
+		final StringBuilder builder = new StringBuilder();
+		builder.append("name:").append(getName()).append("\n");
+		builder.append("alias:").append(getAlias()).append("\n");
+		builder.append("operatorType:").append(getOperatorType()).append("\n");
+		builder.append("pre:").append(getPreOpArguments().size()).append("\n");
+		builder.append("paranthesis:").append(getParanthesisType()).append("\n");
+		builder.append("post:").append(getPostOpArguments().size()).append("\n");
+		builder.append("pattern:").append(getPattern()).append("\n");
+		return builder.toString();
+	}
+}
