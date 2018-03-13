@@ -416,6 +416,7 @@ private String emptyRelString(FORMAT format){
 
 }
 
+ /*
 private boolean isPortrait(String filename){
    try{
      BufferedImage img = ImageIO.read(new File(filename));
@@ -425,6 +426,7 @@ private boolean isPortrait(String filename){
    }
 
 }
+ */
 
 private String getConstValue(FORMAT format, String fileName, String content){
 
@@ -432,10 +434,12 @@ private String getConstValue(FORMAT format, String fileName, String content){
       return  "[const document(pdf) value '"+content+"']";
   } 
   if(format.equals(FORMAT.JPG)){
-      boolean portrait = isPortrait(fileName);
+      //boolean portrait = isPortrait(fileName);
+      //String port =portrait?"TRUE":"FALSE";
+      String port = "auto";
+      
       SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH:mm:ss"); 
       String date = formatter.format(new Date());
-      String port =portrait?"TRUE":"FALSE";
       return "[const picture value (\"" + fileName +"\" \""+date+"\" \"misc\" "+port+" '"+content+"')]";
   }
   return null;
