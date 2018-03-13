@@ -50,6 +50,7 @@ operator renameattr alias RENAMEATTR pattern _ op [funlist  ]
 operator validateAttr alias VALIDATEATTR pattern _ op 
 
 operator feedNth alias FEEDNTH pattern _ op[_,_]
+operator clear alias CLEAR pattern _ op
 
 
 

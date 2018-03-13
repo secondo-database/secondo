@@ -4585,6 +4585,49 @@ Operator feedNthOP(
 );
 
 
+/*
+Operator ~clear~
+
+Removes the content of a relation
+
+*/
+ListExpr clearTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one argument expected");
+  }
+  if(!Relation::checkType(nl->First(args))){
+    return listutils::typeError("relation expected");
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+
+int clearVM(Word* args, Word& result, int message,
+                        Word& local, Supplier s) {
+  GenericRelation* rel = (GenericRelation*) args[0].addr;
+  rel->Clear();
+  result = qp->ResultStorage(s);
+  ((CcBool*) result.addr)->Set(true,true);
+  qp->SetModified(qp->GetSon(s, 0));
+  return 0;
+}
+
+OperatorSpec clearSpec(
+   "rel -> bool",
+   " _ clear",
+   "Removes all tuples from a relation and returns true",
+   "query ten feed consume clear"
+);
+
+Operator clearOp(
+  "clear",
+  clearSpec.getStr(),
+  clearVM,
+  Operator::SimpleSelect,
+  clearTM
+);
+
+
 
 /*
 
@@ -4677,6 +4720,8 @@ class RelationAlgebra : public Algebra
     cpptuple.AssociateKind( Kind::TUPLE() );
     cpprel.AssociateKind( Kind::REL() );
     cpptrel.AssociateKind( Kind::REL() );
+
+    AddOperator(&clearOp);
 
 
 /*

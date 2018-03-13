@@ -231,4 +231,8 @@ Signature : rel x int x bool -> stream(tuple)
 Example   : query plz feedNth[100, TRUE] count = plz count div 100
 Result    : TRUE
 
-
+Operator : clear
+Number   : 1
+Signature : rel(tuple(X)) -> bool
+Example   : query ten feed consume clear
+Result    : TRUE
