@@ -117,6 +117,7 @@ class NegIndexVector2D {
 
 */
 class Tileareas {
+  friend class RestoreTrajLI;
  public:
   Tileareas() : raster(0), noTransitions(0), areaFile(true), ttaFile(false), 
                                                              transFile(false) {}
@@ -139,6 +140,7 @@ class Tileareas {
   
   void deleteFiles();
   static const std::string BasicType() {return "tileareas";}
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
   static ListExpr Property();
   static ListExpr Out(ListExpr typeInfo, Word value);
   static Word In(const ListExpr typeInfo, const ListExpr instance,
@@ -167,7 +169,7 @@ class Tileareas {
 extern TypeConstructor tileareasTC;
 
 /*
-\section{class ~RestoreTrajLI~}
+\section{struct ~Tile~}
 
 Applied for the operator ~restoreTraj~.
 
@@ -266,20 +268,68 @@ struct Tile {
   std::vector<NewPair<int, int> > path;
 };
 
+/*
+\section{struct ~Area~}
+
+Applied for the operator ~restoreTraj~.
+
+*/
+struct Area {
+  Area() {}
+  
+  Area(const std::set<NewPair<int, int> >& t) : tiles(t) {}
+  
+  bool operator<(const Area& area) const {
+    if (tiles.size() != area.tiles.size()) {
+      return tiles.size() < area.tiles.size();
+    }
+    std::set<NewPair<int, int> >::iterator i1 = tiles.begin();
+    std::set<NewPair<int, int> >::iterator i2 = area.tiles.begin();
+    while (i1 != tiles.end()) {
+      if (*i1 != *i2) {
+        return *i1 < *i2;
+      }
+      i1++;
+      i2++;
+    }
+    return 0;
+  }
+  
+  friend std::ostream& operator<<(std::ostream& os, const Area& area) {
+    os << "{";
+    for (std::set<NewPair<int, int> >::iterator it = area.tiles.begin();
+         it != area.tiles.end(); it++) {
+      os << *it << ", ";
+    }
+    os << "}" << endl;
+    return os;
+  }
+  
+  std::set<NewPair<int, int> > tiles;
+};
+
+/*
+\section{class ~RestoreTrajLI~}
+
+Applied for the operator ~restoreTraj~.
+
+*/
 class RestoreTrajLI {
  public:
   RestoreTrajLI(Relation *e, BTree *ht, RTree2TID *st, raster2::sint *r,
-                Hash *rh, raster2::sint *mr, MLabel *h, MLabel *d, MLabel *s);
+   Hash *rh, raster2::sint *mr, Tileareas *ta, MLabel *h, MLabel *d, MLabel *s);
   
   RestoreTrajLI() {}
   
-  bool retrieveSequel(const int startPos, std::set<Tile>& tiles);
-  void processNeighbors(Tile origin, const Instant& inst,
-                        const int height, std::set<Tile>& result);
-  void getNeighbors(Tile origin, const DirectionNum dirNum, 
-                    vector<Tile>& result);
-  void retrieveTilesFromHeight(const int pos, std::set<Tile>& result);
+  bool retrieveSequel(const int startPos, std::set<int>& result);
+  void processNeighbors(const int origin, const Instant& inst,
+                        const int height, std::set<int>& result);
+  void getNeighborAreas(const int origin, const DirectionNum dirNum, 
+                        set<int>& result);
+  void retrieveAreasFromHeight(const int pos, std::set<int>& result);
   void updateCoords(const DirectionNum dir, int& x, int& y);
+  int getHeightFromArea(const int areaNo);
+  int getMaxspeedFromArea(const int areaNo);
   static const DirectionNum dirLabelToNum(const Label& dirLabel);
   static const std::string dirNumToString(const DirectionNum dirNum);
   const int getDirectionDistance(const DirectionNum dir,
@@ -294,6 +344,7 @@ class RestoreTrajLI {
   raster2::sint *raster;
   Hash *rhash;
   raster2::sint *maxspeedRaster;
+  Tileareas *tileareas;
   MLabel *height;
   MLabel *direction;
   MLabel *speed;

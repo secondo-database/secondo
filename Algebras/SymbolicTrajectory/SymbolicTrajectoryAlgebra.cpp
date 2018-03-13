@@ -5461,8 +5461,8 @@ struct createTileAreasInfo : OperatorInfo {
 
 */
 ListExpr restoreTrajTM(ListExpr args) {
-  if (!nl->HasLength(args, 9)) {
-    return listutils::typeError("Nine arguments expected.");
+  if (!nl->HasLength(args, 10)) {
+    return listutils::typeError("Ten arguments expected.");
   }
   if (!BTree::checkType(nl->Second(args))) {
     return listutils::typeError("Second argument must be a btree");
@@ -5480,7 +5480,10 @@ ListExpr restoreTrajTM(ListExpr args) {
   if (!raster2::sint::checkType(nl->Sixth(args))) { // maxspeed raster file
     return listutils::typeError("Sixth argument must be an sint");
   }
-  for (int i = 7; i <= 9; i++) {
+  if (!Tileareas::checkType(nl->Seventh(args))) { // tileareas
+    return listutils::typeError("Seventh argument must be a tileareas");
+  }
+  for (int i = 8; i <= 10; i++) {
     if (!MLabel::checkType(nl->Nth(i, args))) {
       std::stringstream sstr;
       sstr << "Argument " << i << " must be an mlabel";
@@ -5530,9 +5533,10 @@ int restoreTrajVM(Word* args, Word& result, int message, Word& local,
   raster2::sint *raster = static_cast<raster2::sint*>(args[3].addr);
   Hash *rhash = static_cast<Hash*>(args[4].addr);
   raster2::sint *maxspeedRaster = static_cast<raster2::sint*>(args[5].addr);
-  MLabel *direction = static_cast<MLabel*>(args[6].addr);
-  MLabel *height = static_cast<MLabel*>(args[7].addr);
-  MLabel *speed = static_cast<MLabel*>(args[8].addr);
+  Tileareas *ta = static_cast<Tileareas*>(args[6].addr);
+  MLabel *direction = static_cast<MLabel*>(args[7].addr);
+  MLabel *height = static_cast<MLabel*>(args[8].addr);
+  MLabel *speed = static_cast<MLabel*>(args[9].addr);
   RestoreTrajLI *li = static_cast<RestoreTrajLI*>(local.addr);
   switch (message) {
     case OPEN: {
@@ -5541,7 +5545,7 @@ int restoreTrajVM(Word* args, Word& result, int message, Word& local,
         local.addr = 0;
       }
       li = new RestoreTrajLI(edgesRel, heightBtree, segmentsRtree, raster,
-                             rhash, maxspeedRaster, height, direction, speed);
+                           rhash, maxspeedRaster, ta, height, direction, speed);
       local.addr = li;
       return 0;
     }

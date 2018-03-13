@@ -58,6 +58,10 @@ class NewPair {
     return (first == np.first && second == np.second);
   }
   
+  bool operator!=(const NewPair& np) const {
+    return !(*this == np);
+  }
+  
   bool operator<(const NewPair& np) const {
     if (first < np.first) {
       return true;

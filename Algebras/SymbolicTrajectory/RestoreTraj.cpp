@@ -749,29 +749,30 @@ Applied for the operator ~restoreTraj~.
 
 */
 RestoreTrajLI::RestoreTrajLI(Relation *e, BTree *ht, RTree2TID *st, 
- raster2::sint *r, Hash *rh, raster2::sint *mr, MLabel *h, MLabel *d, MLabel *s)
+ raster2::sint *r, Hash *rh, raster2::sint *mr, Tileareas *ta, MLabel *h, 
+ MLabel *d, MLabel *s)
     : edgesRel(e), heightBtree(ht), segmentsRtree(st), raster(r), rhash(rh),
-      maxspeedRaster(mr), height(h), direction(d), speed(s) {
+      maxspeedRaster(mr), tileareas(ta), height(h), direction(d), speed(s) {
 //   RefinementPartition<MLabel, MLabel, ULabel, ULabel> rp(*h, *d);
-  set<Tile> tiles;
-  retrieveTilesFromHeight(0, tiles);
-  cout << "INITIALIZATION: " << tiles.size() << " tiles" << endl;
+  set<int> areas;
+  retrieveAreasFromHeight(0, areas);
+  cout << "INITIALIZATION: " << areas.size() << " areas" << endl;
   int counter = 0;
-  for (set<Tile>::iterator it = tiles.begin(); it != tiles.end(); it++) {
-    if (counter % 1000 == 0) {
+  for (set<int>::iterator it = areas.begin(); it != areas.end(); it++) {
+    if (counter % 100 == 0) {
       cout << counter << " : " << *it << endl;
     }
     counter++;
   }
   cout << endl << endl;
   int pos = 0;
-  bool sequelFound = !tiles.empty();
+  bool sequelFound = !areas.empty();
   while (pos < height->GetNoComponents() - 1 && sequelFound) {
-    sequelFound = retrieveSequel(pos, tiles);
+    sequelFound = retrieveSequel(pos, areas);
     pos++;
     counter = 0;
-    cout << "loop# " << pos << "; " << tiles.size() << " tiles updated" << endl;
-    for (set<Tile>::iterator it = tiles.begin(); it != tiles.end(); it++) {
+    cout << "loop# " << pos << "; " << areas.size() << " areas updated" << endl;
+    for (set<int>::iterator it = areas.begin(); it != areas.end(); it++) {
       if (counter % 100 == 0) {
         cout << counter << " : " << *it << endl;;
       }
@@ -788,7 +789,7 @@ RestoreTrajLI::RestoreTrajLI(Relation *e, BTree *ht, RTree2TID *st,
 
 }
 
-bool RestoreTrajLI::retrieveSequel(const int startPos, set<Tile>& tiles) {
+bool RestoreTrajLI::retrieveSequel(const int startPos, set<int>& areas) {
   if (startPos < 0 || startPos + 1 >= height->GetNoComponents()) {
     return false;
   }
@@ -801,15 +802,15 @@ bool RestoreTrajLI::retrieveSequel(const int startPos, set<Tile>& tiles) {
   }
   height->GetValue(startPos + 1, nextHeightLabel); // next height value
   int nextHeightNum = stoi(nextHeightLabel.substr(0,nextHeightLabel.find("-")));
-  set<Tile> newTiles;
-  cout << "check neighbors for " << tiles.size() << " origins; height range is "
+  set<int> newAreas;
+  cout << "check neighbors for " << areas.size() << " origins; height range is "
        << nextHeightLabel << " (" << nextHeightNum << "), instant " << iv2.start
        << endl;
-  for (set<Tile>::iterator it = tiles.begin(); it != tiles.end(); it++) {
-    processNeighbors(*it, iv2.start, nextHeightNum, newTiles);
+  for (set<int>::iterator it = areas.begin(); it != areas.end(); it++) {
+    processNeighbors(*it, iv2.start, nextHeightNum, newAreas);
   }
-  tiles = newTiles;
-  return !tiles.empty();
+  areas = newAreas;
+  return !areas.empty();
 }
 
 /*
@@ -820,8 +821,8 @@ the instant ~inst~ and adjacent directions are inserted into ~result~, iff their
 altitude and maximum speed match the symbolic trajectories.
 
 */
-void RestoreTrajLI::processNeighbors(Tile origin, const Instant& inst,
-                                     const int height, set<Tile>& result) {
+void RestoreTrajLI::processNeighbors(const int origin, const Instant& inst,
+                                     const int height, set<int>& result) {
   ILabel dirILabel(true), speedILabel(true);
   Label dirLabel(true);
   direction->AtInstant(inst, dirILabel);
@@ -830,17 +831,14 @@ void RestoreTrajLI::processNeighbors(Tile origin, const Instant& inst,
     return;
   }
   DirectionNum dirNum = dirLabelToNum(dirILabel.value);
-  vector<Tile> neighbors;
-  getNeighbors(origin, dirNum, neighbors);
+  set<int> neighborAreas;
+  getNeighborAreas(origin, dirNum, neighborAreas);
   int currentSpeed = getSpeedFromLabel(speedILabel.value, false);
-  int rasterPos[2];
-  for (unsigned int i = 0; i < 3; i++) {
-    rasterPos[0] = neighbors[i].x;
-    rasterPos[1] = neighbors[i].y;
-    raster2::sint::index_type rasterIndex(rasterPos);
-    if (raster->get(rasterIndex) == height && 
-        maxspeedRaster->get(rasterIndex) >= currentSpeed) {
-      result.insert(neighbors[i]);
+  for (set<int>::iterator it = neighborAreas.begin(); it != neighborAreas.end();
+       it++) {
+    if (getHeightFromArea(*it) == height && 
+        getMaxspeedFromArea(*it) >= currentSpeed) {
+      result.insert(*it);
     }
   }
 }
@@ -848,29 +846,30 @@ void RestoreTrajLI::processNeighbors(Tile origin, const Instant& inst,
 /*
 \subsection{Function ~getNeighbors~}
 
-For the tile ~origin~, its neighbors in the direction ~dir~ and the two
-adjacent directions are returned.
+For the area ~origin~, its neighbors in the direction ~dir~ and the two
+adjacent directions are collected and returned.
 
 */
-void RestoreTrajLI::getNeighbors(Tile origin, const DirectionNum dir,
-                                 vector<Tile>& result) {
-  Tile n1 = origin.moveTo(dir);
-  Tile n2 = origin.moveTo(static_cast<DirectionNum>((dir + 7) % 8));
-  Tile n3 = origin.moveTo(static_cast<DirectionNum>((dir + 1) % 8));
-  result.push_back(n1);
-  result.push_back(n2);
-  result.push_back(n3);
+void RestoreTrajLI::getNeighborAreas(const int origin, const DirectionNum dir,
+                                     set<int>& result) {
+  result.clear();
+  result.insert(tileareas->transitions[origin][dir].begin(),
+                tileareas->transitions[origin][dir].end());
+  result.insert(tileareas->transitions[origin][(dir + 7) % 8].begin(),
+                tileareas->transitions[origin][(dir + 7) % 8].end());
+  result.insert(tileareas->transitions[origin][(dir + 1) % 8].begin(),
+                tileareas->transitions[origin][(dir + 1) % 8].end());
 }
 
 /*
-\subsection{Function ~retrieveTiles~}
+\subsection{Function ~retrieveAreasFromHeight~}
 
 First, we determine the speed at the start instant of the unit corresponding to
 ~pos~. Then all tiles with a lower or equal maximum speed are inserted into
 ~result~.
 
 */
-void RestoreTrajLI::retrieveTilesFromHeight(const int pos, set<Tile>& result) {
+void RestoreTrajLI::retrieveAreasFromHeight(const int pos, set<int>& result) {
   ULabel heightULabel(true);
   ILabel speedILabel(true);
   height->Get(pos, heightULabel);
@@ -881,7 +880,6 @@ void RestoreTrajLI::retrieveTilesFromHeight(const int pos, set<Tile>& result) {
   int heightNum = stoi(heightStr.substr(0, heightStr.find("-")));
   CcInt *key = new CcInt(heightNum, true);
   HashIterator *hit = rhash->ExactMatch(key);
-  Tile tile(0, 0);
   speed->AtInstant(heightULabel.timeInterval.start, speedILabel);
   if (!speedILabel.IsDefined()) {
     return;
@@ -889,18 +887,41 @@ void RestoreTrajLI::retrieveTilesFromHeight(const int pos, set<Tile>& result) {
   int currentSpeed = getSpeedFromLabel(speedILabel.value, false);
   int rasterPos[2];
   while (hit->Next()) {
-    tile.x = (int)hit->GetId();
+    rasterPos[0] = (int)hit->GetId();
     if (hit->Next()) {
-      tile.y = (int)hit->GetId();
-      rasterPos[0] = tile.x;
-      rasterPos[1] = tile.y;
+      rasterPos[1] = (int)hit->GetId();
       raster2::sint::index_type rasterIndex(rasterPos);
       if (maxspeedRaster->get(rasterIndex) >= currentSpeed) {
-        result.insert(tile);
+        result.insert(tileareas->tileToArea.get(rasterPos[0], rasterPos[1]));
       }
     }
   }
   key->DeleteIfAllowed();
+}
+
+int RestoreTrajLI::getHeightFromArea(const int areaNo) {
+  NewPair<int, int> tile = *(tileareas->areas[areaNo].begin());
+  int rasterPos[2];
+  rasterPos[0] = tile.first;
+  rasterPos[1] = tile.second;
+  raster2::sint::index_type rasterIndex(rasterPos);
+  return raster->get(rasterIndex);
+}
+
+int RestoreTrajLI::getMaxspeedFromArea(const int areaNo) {
+  int result = INT_MIN;
+  int rasterPos[2];
+  for (set<NewPair<int, int> >::iterator it = tileareas->areas[areaNo].begin(); 
+       it != tileareas->areas[areaNo].end(); it++) {
+    rasterPos[0] = it->first;
+    rasterPos[1] = it->second;
+    raster2::sint::index_type rasterIndex(rasterPos);
+    int tileMaxspeed = maxspeedRaster->get(rasterIndex);
+    if (tileMaxspeed > result) {
+      result = tileMaxspeed;
+    }
+  }
+  return result;
 }
 
 const DirectionNum RestoreTrajLI::dirLabelToNum(const Label& dirLabel) {
