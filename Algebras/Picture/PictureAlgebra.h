@@ -345,7 +345,8 @@ the respective private attributes.
       std::string fn,
       std::string cat,
       bool isp,
-      std::string dt);
+      std::string dt,
+      bool autoPortrait = false);
 
 /*
 

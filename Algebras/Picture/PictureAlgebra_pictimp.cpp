@@ -113,7 +113,8 @@ Picture::Picture(string imgdataB64,
                  string fn,
                  string cat,
                  bool isp,
-                 string dt) : Attribute(true),jpegData(0) {
+                 string dt,
+                 bool autoPortrait) : Attribute(true),jpegData(0) {
     if (PA_DEBUG) cerr << "Picture::Picture()-1 called" << endl;
 
     strcpy(filename, fn.c_str());
@@ -237,6 +238,10 @@ Picture::Picture(string imgdataB64,
 
 
     createHistograms(imgdata, len);
+    if(autoPortrait){
+      isPortrait = GetWidth() < GetHeight();
+    }
+
 
     delete[] imgdata;
 
@@ -674,7 +679,8 @@ static Word InPicture(const ListExpr typeInfo,
             && nl->IsAtom(isportrait)
             && nl->AtomType(category) == StringType
             && nl->IsAtom(isportrait)
-            && nl->AtomType(isportrait) == BoolType
+            && (   (nl->AtomType(isportrait) == BoolType)
+                || nl->IsEqual(isportrait,"auto"))
             && nl->IsAtom(imgdata)
             && nl->AtomType(imgdata) == TextType) {
             if (PA_DEBUG)
@@ -702,12 +708,21 @@ static Word InPicture(const ListExpr typeInfo,
                          << endl;
 
                 correct = true;
+                bool isp = false;
+                bool autoPortrait = false;
+                if(nl->AtomType(isportrait)==BoolType){
+                   isp = nl->BoolValue(isportrait);
+                } else {
+                   autoPortrait = true;
+                }
+
                 Picture* pic =
                     new Picture(imgdataBase64,
                                 nl->StringValue(filename),
                                 nl->StringValue(category),
-                                nl->BoolValue(isportrait),
-                                nl->StringValue(date));
+                                isp,
+                                nl->StringValue(date),
+                                autoPortrait);
                 if (PA_DEBUG)
                     cerr << "InPicture() created picture at "
                          << (void*) pic
