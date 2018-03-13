@@ -23,8 +23,15 @@ import java.util.Date;
 
 enum FORMAT{PDF,JPG}
 
+interface ProgressListener{
 
-public class PDFRelCreator extends SecondoViewer {
+  public void progress(int count, String name);
+  public void finished();
+
+};
+
+
+public class PDFRelCreator extends SecondoViewer implements ProgressListener{
 
 
 private static IntByReference errorCode= new IntByReference();
@@ -43,6 +50,49 @@ private JTextField databaseName;
 private JFileChooser fileChooser;
 private JTextField dirField;
 private JCheckBox subdirCB;
+private JButton selectBtn;
+private JButton startBtn;
+private JButton stopBtn;
+private JLabel  progressLabel;
+
+private Inserter inserter = null;
+
+
+private void disableInput(){
+   pdfFormat.setEnabled(false);
+   jpgFormat.setEnabled(false);
+   relationName.setEditable(false);
+   databaseName.setEditable(false);
+   subdirCB.setEnabled(false);
+   selectBtn.setEnabled(false);
+   startBtn.setEnabled(false);
+   stopBtn.setEnabled(true);
+   progressLabel.setText("");
+}
+
+private void enableInput(){
+   pdfFormat.setEnabled(true);
+   jpgFormat.setEnabled(true);
+   relationName.setEditable(true);
+   databaseName.setEditable(true);
+   subdirCB.setEnabled(true);
+   selectBtn.setEnabled(true);
+   startBtn.setEnabled(true);
+   stopBtn.setEnabled(false);
+   progressLabel.setText("");
+}
+
+
+public void progress(int count, String name){
+   String text = "processed " + count + " files , current file : " + name;
+   progressLabel.setText(text);
+}
+
+public void finished(){
+   progressLabel.setText("");
+   enableInput();
+   inserter = null;
+}
 
 
 public PDFRelCreator(){
@@ -86,7 +136,7 @@ public PDFRelCreator(){
 
   dirField = new JTextField(30);
   dirField.setEditable(false);
-  JButton selectBtn = new JButton("Select");
+  selectBtn = new JButton("Select");
   selectBtn.addActionListener(new ActionListener(){
      public void actionPerformed(ActionEvent e){
         if(fileChooser.showOpenDialog(PDFRelCreator.this)==JFileChooser.APPROVE_OPTION){
@@ -104,8 +154,11 @@ public PDFRelCreator(){
   add(filePanel); 
 
   JPanel startPanel = new JPanel();
-  JButton startBtn = new JButton("Start");
+  startBtn = new JButton("Start");
+  stopBtn = new JButton("Stop");
+  stopBtn.setEnabled(false);
   startPanel.add(startBtn);
+  startPanel.add(stopBtn);
   add(startPanel);
   startBtn.addActionListener(new ActionListener(){
      public void actionPerformed(ActionEvent e){
@@ -113,6 +166,16 @@ public PDFRelCreator(){
      }
    }); 
 
+   stopBtn.addActionListener(new ActionListener(){
+     public void actionPerformed(ActionEvent e){
+        PDFRelCreator.this.inserter.stop();
+     }
+   });
+
+  JPanel progressPanel = new JPanel();
+  progressLabel = new JLabel("");
+  progressPanel.add(progressLabel);
+  add(progressPanel);
   setVisible(true);
 }
 
@@ -164,25 +227,6 @@ boolean checkTypeAsText(ListExpr theText, FORMAT format){
 }
 
 
-private void insertFiles(Stack<File> stack, File[] files, boolean sd, FORMAT format){
-  String ext = getExtension(format);
-  for(int i=0;i<files.length;i++){
-     if(files[i].isDirectory()) {
-      if(sd){
-        if(   !files[i].getName().equals(".") 
-           && !files[i].getName().equals("..")){
-          stack.push(files[i]);
-        }
-      }
-     } else {
-        String name = files[i].getName().toLowerCase();
-        if(name.endsWith(ext)){
-          stack.push(files[i]);
-        }
-     }
-  }
-
-}
 
 
 String getBase64(String fileName){
@@ -201,6 +245,107 @@ String getBase64(String fileName){
  } catch(Exception e){
     return null;
  }
+
+}
+
+
+private class Inserter implements Runnable{
+
+  public Inserter(File f, boolean includeSubdirs, 
+                  FORMAT format, String relName,
+                  ViewerControl vc, 
+                  ProgressListener progressListener){
+      this.f = f;
+      this.sd = includeSubdirs;
+      this.progressListener = progressListener;
+      this.format = format;
+      this.relName = relName;
+      this.VC = vc;
+  }
+ 
+  @Override public void run(){
+    Stack<File> stack = new Stack<File>();
+    File[] files = f.listFiles();
+    insertFiles(stack,files,sd, format);
+
+    int length = f.getAbsolutePath().length()+1;
+    int count = 0;
+    stop = false;
+    while(!stack.empty() && !stop){
+       File top = stack.pop();
+      if(top.isDirectory()){
+         if(sd){
+            insertFiles(stack, top.listFiles(),sd, format);
+         }
+      } else {
+        String name = top.getAbsolutePath();
+        if(name.startsWith(f.getAbsolutePath())){
+           name = name.substring(length);
+           System.out.println("insert file " + name + " of size " + top.length() + " bytes");
+           String content = getBase64(top.getAbsolutePath());
+           if(content!=null){
+              name = name.replace("'"," ");
+              String shortName = (new File(name)).getName();
+              if(shortName.length()>47){
+                 shortName = shortName.substring(shortName.length()-47);
+              }
+              String v = getConstValue(format, shortName, content);
+              String cmd = "query " + relName + 
+                    " inserttuple[ [const text value '"+name+"'] ,"
+                  + v +"] count"; 
+              VC.execCommand(cmd,errorCode, resultList, errorMessage);
+              if(errorCode.value != 0){
+                 JOptionPane.showMessageDialog(null, "Problem  relation update\n" + errorMessage);
+                 System.out.println("name = " + name); 
+                 return;
+              } else {
+                 count++;
+                 progressListener.progress(count, top.getName());
+              }
+           } else {
+             System.err.println("problem in reading file " + top);
+           }
+        }
+    }
+  }
+  JOptionPane.showMessageDialog(null, "Inserted " + count + " files");
+  progressListener.finished();
+
+  }
+
+  public void stop(){
+    stop = true;
+  }
+
+
+  private void insertFiles(Stack<File> stack, File[] files, boolean sd, FORMAT format){
+    String ext = getExtension(format);
+    for(int i=0;i<files.length;i++){
+      if(files[i].isDirectory()) {
+       if(sd){
+        if(   !files[i].getName().equals(".") 
+           && !files[i].getName().equals("..")){
+          stack.push(files[i]);
+        }
+       }
+      } else {
+        String name = files[i].getName().toLowerCase();
+        if(name.endsWith(ext)){
+          stack.push(files[i]);
+        }
+     }
+    }
+
+  }
+
+
+  private File f;
+  private boolean sd;
+  private ProgressListener progressListener;
+  private FORMAT format;
+  private String relName;
+  private ViewerControl VC;
+  private boolean stop;
 
 }
 
@@ -273,50 +418,17 @@ void start( FORMAT format){
         return;
      }
   }
-  boolean sd = subdirCB.isSelected();
-  Stack<File> stack = new Stack<File>();
-  File[] files = f.listFiles();
-  insertFiles(stack,files,sd, format);
 
-  int length = f.getAbsolutePath().length()+1;
-  int count = 0;
-  while(!stack.empty()){
-    File top = stack.pop();
-    if(top.isDirectory()){
-       if(sd){
-          insertFiles(stack, top.listFiles(),sd, format);
-       }
-    } else {
-        String name = top.getAbsolutePath();
-        if(name.startsWith(f.getAbsolutePath())){
-           name = name.substring(length);
-           System.out.println("insert file " + name + " of size " + top.length() + " bytes");
-           String content = getBase64(top.getAbsolutePath());
-           if(content!=null){
-              name = name.replace("'"," ");
-              String shortName = (new File(name)).getName();
-              if(shortName.length()>47){
-                 shortName = shortName.substring(shortName.length()-47);
-              }
-              String v = getConstValue(format, shortName, content);
-              cmd = "query " + relName + 
-                    " inserttuple[ [const text value '"+name+"'] ,"
-                  + v +"] count"; 
-              VC.execCommand(cmd,errorCode, resultList, errorMessage);
-              if(errorCode.value != 0){
-                 JOptionPane.showMessageDialog(this, "Problem  relation update\n" + errorMessage);
-                 System.out.println("name = " + name); 
-                 return;
-              } else {
-                 count++;
-              }
-           } else {
-             System.err.println("problem in reading file " + top);
-           }
-        }
-    }
-  }
-  JOptionPane.showMessageDialog(this, "Inserted " + count + " files");
+  
+
+
+  boolean sd = subdirCB.isSelected();
+  inserter = new Inserter(f,sd,format,relName,VC,this);
+  disableInput();
+  Thread t = new Thread(inserter);
+  t.start(); 
+
+
 
 }
 
@@ -416,17 +528,6 @@ private String emptyRelString(FORMAT format){
 
 }
 
- /*
-private boolean isPortrait(String filename){
-   try{
-     BufferedImage img = ImageIO.read(new File(filename));
-     return img.getHeight() > img.getWidth();
-   } catch(Exception e){
-     return false;
-   }
-
-}
- */
 
 private String getConstValue(FORMAT format, String fileName, String content){
 
@@ -434,10 +535,7 @@ private String getConstValue(FORMAT format, String fileName, String content){
       return  "[const document(pdf) value '"+content+"']";
   } 
   if(format.equals(FORMAT.JPG)){
-      //boolean portrait = isPortrait(fileName);
-      //String port =portrait?"TRUE":"FALSE";
       String port = "auto";
-      
       SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH:mm:ss"); 
       String date = formatter.format(new Date());
       return "[const picture value (\"" + fileName +"\" \""+date+"\" \"misc\" "+port+" '"+content+"')]";
