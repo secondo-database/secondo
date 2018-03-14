@@ -65,6 +65,9 @@ namespace dfs {
       void success(const Str &s);
 
       virtual void log(const LogEntry &e) = 0;
+
+      virtual ~Logger(){}
+
     };
 
     /**
