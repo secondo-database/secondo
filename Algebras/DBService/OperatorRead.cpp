@@ -69,9 +69,13 @@ ListExpr OperatorRead::mapType(ListExpr nestedList)
         print("databaseName", databaseName);
         print("relationName", relationName);
         vector<string> otherObjects;
-        fileName =
-                DBServiceClient::getInstance()->
-                retrieveReplicaAndGetFileName(
+        DBServiceClient* client = DBServiceClient::getInstance();
+        if(!client){
+          print("could not create client");
+          return listutils::typeError("Could not create client, "
+                                      "check dbs configuration");
+        }
+        fileName = client-> retrieveReplicaAndGetFileName(
                         databaseName,
                         relationName,
                         otherObjects,

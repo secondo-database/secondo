@@ -72,12 +72,12 @@ int OperatorDDeleteDB::mapValue(Word* args,
      stringutils::toUpper(dbname);
    }
 
-
-    bool success =
-            DBServiceClient::getInstance()->deleteReplicas(
-                    dbname,
-                    "",
-                    "");
+    DBServiceClient* cl = DBServiceClient::getInstance();
+    if(!cl) {
+      res->Set(true,false);
+      return 0;
+    }
+    bool success = cl->deleteReplicas( dbname, "", "");
     res->Set(true,success);
     return 0;
 }

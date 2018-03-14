@@ -73,7 +73,10 @@ ListExpr OperatorCommon::getStreamType(
     const string relationName = nl->SymbolValue(arg1);
     print("relationName", relationName);
     string nestedListString;
-    if(!DBServiceClient::getInstance()->getStreamType(
+    DBServiceClient* dbsc = DBServiceClient::getInstance();
+    if(!dbsc){
+       print("could not start dbs client, check configuration");
+    } else if(!DBServiceClient::getInstance()->getStreamType(
             SecondoSystem::GetInstance()->GetDatabaseName(),
             relationName,
             nestedListString))
@@ -153,7 +156,8 @@ ListExpr OperatorCommon::getDerivedType(
   string relName = nl->SymbolValue(rel);
   string argName = nl->SymbolValue(aq);
   string nestedListString;
-  if(!DBServiceClient::getInstance()->getDerivedType(
+  DBServiceClient* dbsc = DBServiceClient::getInstance();
+  if(!dbsc || !dbsc->getDerivedType(
                 SecondoSystem::GetInstance()->GetDatabaseName(),
                 relName,
                 argName,
@@ -176,8 +180,11 @@ bool OperatorCommon::allExists(
                           const std::string& dbName,
                           const std::string& relName,
                           const std::vector<std::string>& derivates) {
-   return DBServiceClient::getInstance()->allExists( dbName, relName, 
-                                                     derivates); 
+   DBServiceClient* client = DBServiceClient::getInstance();
+   if(!client){
+     return false;
+   }
+   return client->allExists( dbName, relName, derivates); 
 }
 
 

@@ -225,8 +225,13 @@ int OperatorRead2::mapValue(Word* args,
             print("relationName", relationName);
             string funText = ((FText*) args[3].addr)->GetValue();
             vector<string> otherobjects; 
+            DBServiceClient* client = DBServiceClient::getInstance();
+            if(!client){
+               print("could not create client");
+               return CANCEL;
+            }
             string fileName =
-                DBServiceClient::getInstance()->
+                client->
                 retrieveReplicaAndGetFileName(
                         databaseName,
                         relationName,

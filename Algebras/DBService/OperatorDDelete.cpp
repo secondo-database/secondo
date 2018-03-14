@@ -102,11 +102,19 @@ int OperatorDDelete::mapValue(Word* args,
                     SecondoSystem::GetInstance()->GetDatabaseName(),
                     relationName));
 
-    bool success =
-            DBServiceClient::getInstance()->deleteReplicas(
+    bool success = false;
+    try{
+        DBServiceClient* cl = DBServiceClient::getInstance();
+        if(cl){
+           success  = cl->deleteReplicas(
                     SecondoSystem::GetInstance()->GetDatabaseName(),
                     relationName,
                     derivateName);
+        }
+    } catch(...){
+       success = false;
+    }
+
 
     if(deleteLocalRelation)
     {

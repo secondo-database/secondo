@@ -151,14 +151,20 @@ int OperatorWrite::mapValue(
         result.setAddr(rel);
     }
 
-    if(!DBServiceClient::getInstance()->triggerReplication(
+    DBServiceClient* dbsc = DBServiceClient::getInstance();
+
+    if(!dbsc){
+      print("DBS client could not be startet, check configuration");
+    } else {
+      if(!dbsc->triggerReplication(
             databaseName,
             relationName,
             relType,
             async))
-    {
-        print("Replication could not be triggered");
-        return 1;
+      {
+         print("Replication could not be triggered");
+         return 1;
+      }
     }
 
     return consumeResult;

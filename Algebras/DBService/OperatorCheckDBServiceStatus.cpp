@@ -59,7 +59,9 @@ int OperatorCheckDBServiceStatus::mapValue(Word* args,
     if(dbServiceStarted)
     {
         DBServiceManager* dbService = DBServiceManager::getInstance();
-        dbService->printMetadata();
+        if(dbService){
+           dbService->printMetadata();
+        }
     }
 
     result = qp->ResultStorage(s);

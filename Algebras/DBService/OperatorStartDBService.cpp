@@ -53,12 +53,14 @@ int OperatorStartDBService::mapValue(Word* args,
                                Word& local,
                                Supplier s)
 {
-    bool dbServiceStarted = DBServiceManager::isActive();
-    DBServiceManager::getInstance();
     result = qp->ResultStorage(s);
-    // return whether the DBService had to be started (i.e. was inactive before
-    // operator call
-    static_cast<CcBool*>(result.addr)->Set(true,!dbServiceStarted);
+    CcBool* res = (CcBool*) result.addr;
+    if( DBServiceManager::isActive()){
+        res->Set(true,false);
+        return 0;
+    }
+    bool started =  DBServiceManager::getInstance() != 0;
+    res->Set(true,started);
     return 0;
 }
 

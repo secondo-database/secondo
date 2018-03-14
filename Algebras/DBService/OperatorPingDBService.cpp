@@ -58,8 +58,10 @@ int OperatorPingDBService::mapValue(Word* args,
 {
     printFunction("OperatorPingDBService::mapValue");
     DBServiceClient* dbServiceClient = DBServiceClient::getInstance();
-    bool isReachable = dbServiceClient->pingDBService();
-
+    bool isReachable = false;
+    if(dbServiceClient){
+       isReachable = dbServiceClient->pingDBService();
+    }
     result = qp->ResultStorage(s);
     static_cast<CcBool*>(result.addr)->Set(true, isReachable);
     return 0;

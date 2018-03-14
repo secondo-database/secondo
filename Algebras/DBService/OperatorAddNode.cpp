@@ -84,12 +84,14 @@ int OperatorAddNode::mapValue(Word* args,
     print(port->GetValue());
     print(config->GetValue());
 
-    bool success =
-            DBServiceManager::getInstance()->addNode(
+    DBServiceManager* dbsm = DBServiceManager::getInstance();
+    bool success = false;
+    if(dbsm){
+        success = dbsm->addNode(
                     host->GetValue(),
                     port->GetValue(),
                     config->getCsvStr());
-
+    }
     result = qp->ResultStorage(s);
     static_cast<CcBool*>(result.addr)->Set(true,success);
     return 0;

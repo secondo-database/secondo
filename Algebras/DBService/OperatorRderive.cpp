@@ -152,18 +152,17 @@ int OperatorRderive::mapValue(Word* args,
 
  // remote creation of derivative on db service
    string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-   DBServiceClient::getInstance()->triggerDerivation(dbname,
-                                                     remotename,
-                                                     relname,
-                                                     fundef);
-
+   DBServiceClient* client = DBServiceClient::getInstance();
+   if(client){
+      client->triggerDerivation(dbname, remotename, relname, fundef);
+   }
    // local function evaluation
    Relation* rel = (Relation*) args[0].addr;
    Supplier fun = args[2].addr;
    ArgVectorPointer funArg = qp->Argument(fun);
    (*funArg)[0] = rel;
    qp->Request(fun,result);
-   // swap result storage from fun and s 
+   // swap result storage of fun and s 
    Word myResultStorage = qp->ResultStorage(s);
    qp->ChangeResultStorage(fun, myResultStorage);    
    qp->ChangeResultStorage(s, result);

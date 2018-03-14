@@ -168,9 +168,14 @@ DBServiceManager* DBServiceManager::getInstance()
     printFunction("DBServiceManager::getInstance");
     if (!_instance)
     {
-        _instance = new DBServiceManager();
+      try{
+          _instance = new DBServiceManager();
+          active = true;
+      } catch(...){
+          _instance = 0;
+          active = false;
+      }
     }
-    active = true;
     return _instance;
 }
 
