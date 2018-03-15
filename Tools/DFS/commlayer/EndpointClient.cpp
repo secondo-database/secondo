@@ -66,6 +66,7 @@ Str EndpointClient::sendSyncMessage(URI uri, const Str &msg) {
     fatalx("Konnte Socket nicht anlegen");
   }
   server = gethostbyname(csHost);
+  delete[] csHost;
   if (server == NULL) {
     fatalx("host not found");
   }
