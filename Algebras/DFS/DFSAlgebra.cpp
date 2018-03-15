@@ -181,13 +181,17 @@ int deleteDFSFileVMT( Word* args,
       res->Set(true,false);
       return 0;
    }
-   string name = id->GetValue();
-   if(!filesystem->hasFile(name.c_str())){
+   try{
+      string name = id->GetValue();
+      if(!filesystem->hasFile(name.c_str())){
+        res->Set(true,false);
+        return 0;
+      }
+      filesystem->deleteFile(name.c_str());
+      res->Set(true,true);
+   } catch(...){
       res->Set(true,false);
-      return 0;
    }
-   filesystem->deleteFile(name.c_str());
-   res->Set(true,true);
    return 0;
 }
 
