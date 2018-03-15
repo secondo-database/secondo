@@ -414,6 +414,11 @@ ALGEBRAS     += JNetAlgebra
 #COMMON_LD_FLAGS += -lboost_thread -lboost_system -lboost_regex
 
 
+#ALGEBRA_DIRS  += DFS
+#ALGEBRAS      += DFSAlgebra
+#COMMON_LD_FLAGS += -L$(SECONDO_BUILD_DIR)/Tools/DFS/dfs -ldfs
+#COMMON_LD_FLAGS += -L$(SECONDO_BUILD_DIR)/Tools/DFS/shared -lshared
+#COMMON_LD_FLAGS += -L$(SECONDO_BUILD_DIR)/Tools/DFS/commlayer -lcommlayer
 
 
 # JNI Algebras - Java code will be called from C++ code.
