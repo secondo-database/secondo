@@ -75,6 +75,7 @@ namespace dfs {
      */
     class DefaultOutLogger : public Logger {
     public:
+      ~DefaultOutLogger(){}
       virtual void log(const LogEntry &e);
     };
 
