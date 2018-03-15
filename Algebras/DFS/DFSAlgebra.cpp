@@ -229,7 +229,7 @@ ListExpr storeTextAsDFSFileTM(ListExpr args){
    if(!nl->HasLength(args,2) && !nl->HasLength(args,3)){
      return listutils::typeError("2 or 3 arguments required");
    }
-   if(FText::checkType(nl->First(args))){
+   if(!FText::checkType(nl->First(args))){
      return listutils::typeError("fisrt arg is not a text");
    }
    ListExpr arg2 = nl->Second(args);
@@ -645,7 +645,7 @@ ListExpr getDFSFileAsTextTM(ListExpr args){
      return listutils::typeError("one or three args expected");
    }
    ListExpr arg1 = nl->First(args);
-   if(!CcString::checkType(arg1) && FText::checkType(arg1)){
+   if(!CcString::checkType(arg1) && !FText::checkType(arg1)){
      return listutils::typeError("first arg must be of type string or text");
    }
    if(nl->HasLength(args,3)){
@@ -1142,10 +1142,10 @@ ListExpr registerDFSDataNodeTM(ListExpr args){
     return listutils::typeError("2 args required");
   }
   ListExpr arg1 = nl->First(args);
-  if(!CcString::checkType(arg1) && FText::checkType(arg1)){
+  if(!CcString::checkType(arg1) && !FText::checkType(arg1)){
     return listutils::typeError("string or text expected as the first arg");
   }
-  if(!CcString::checkType(nl->Second(args))){
+  if(!CcInt::checkType(nl->Second(args))){
     return listutils::typeError("second arguemnt must be an int");
   }
   return listutils::basicSymbol<CcBool>();
