@@ -1,0 +1,132 @@
+Database: berlintest
+Restore : No
+
+Operator : connectDFS
+Number   : 1
+Signature: string x int -> bool
+Example  :  query connectDFS('localhost', 4444)
+Result   : unpredictable
+Remark   : depends on presence of DFS service 
+
+Operator : registerDFSDataNode
+Number   : 1
+Signature: {string,text} x int -> bool 
+Example  :  query registerDFSDataNode('remotehost', 4445) 
+Result   : unpredictable
+Remark   : depends on presence of DFS service 
+
+
+Operator : changeDFSChunkSize
+Number   : 1
+Signature: int -> bool
+Example  : query changeDFSChunkSize(4096)
+Result   : unpredictable
+Remark   : depends on presence of DFS service 
+
+
+
+Operator : countDFSFiles
+Number   : 1
+Signature: -> int
+Example  :  query countDFSFiles()
+Result   : unpredictable
+Remark   : depends on presence of DFS service 
+
+
+Operator : deleteAllDFSFiles
+Number   : 1
+Signature: -> bool
+Example  : query deleteAllDFSFiles() 
+Result   : unpredictable
+Remark   : depends on presence of DFS service 
+
+
+Operator : deleteAllDFSFilesWithCat
+Number   : 1
+Signature: string -> bool
+Example  :  query deleteAllDFSFilesWithCat("deprecated")
+Result   : unpredictable
+Remark   : depends on presence of DFS service 
+
+
+Operator : deleteDFSFile
+Number   : 1
+Signature: {string,text} -> bool
+Example  : query deleteDFSFile('myfile')
+Result   : unpredictable
+Remark   : depends on presence of DFS service 
+
+
+Operator : dfsFileNames
+Number   : 1
+Signature:  -> stream(text)
+Example  :  query dfsFileNames() count
+Result   : unpredictable
+Remark   : depends on presence of DFS service 
+
+
+Operator : dfsFileSize
+Number   : 1
+Signature: {string,text} -> bool
+Example  : query dfsFileSize('myRemoteFile')
+Result   : unpredictable
+Remark   : depends on presence of DFS service 
+
+
+Operator : getDFSFileAsText
+Number   : 1
+Signature: {string,text} [x int x int] -> text
+Example  : query getDFSFileAsText('myRemoteFile')
+Result   : unpredictable
+Remark   : depends on presence of DFS service 
+
+
+Operator : isDFSFile
+Number   : 1
+Signature: {string,text} -> bool
+Example  : query isDFSFile('myRemoteFile')
+Result   : unpredictable
+Remark   : depends on presence of DFS service 
+
+
+Operator : nextDFSWritePosition
+Number   : 1
+Signature: {string,text} -> bool
+Example  : query nextDFSWritePosition('myRemoteFile')
+Result   : unpredictable
+Remark   : depends on presence of DFS service 
+
+
+
+Operator : storeDFSFile
+Number   : 1
+Signature: {string,text} x {string,text} -> bool
+Example  : query storeDFSFile('myRemoteFile', 'myLocalFile')
+Result   : unpredictable
+Remark   : depends on presence of DFS service 
+
+
+Operator : storeLocalFileToDFS
+Number   : 1
+Signature: {string,text} x {string, text} [ x string] -> bool
+Example  :  query storeLocalFileToDFS('berlintest', 'berlintest')
+Result   : unpredictable
+Remark   : depends on presence of DFS service 
+
+
+Operator : storeTextAsDFSFile
+Number   : 1
+Signature: text x {string,text} [x string] -> bool
+Example  : query storeTextAsDFSFile('My content', 'myfirstfile')
+Result   : unpredictable
+Remark   : depends on presence of DFS service 
+
+
+Operator : totalDFSSize
+Number   : 1
+Signature: -> int
+Example  : query totalDFSSize()
+Result   : unpredictable
+Remark   : depends on presence of DFS service 
+
+
