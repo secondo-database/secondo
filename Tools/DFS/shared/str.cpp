@@ -77,13 +77,6 @@ Str::Str(int i) {
   fromBuffer(tmp, x);
 }
 
-Str::Str(long l) {
-  length = 0;
-  char tmp[32];
-  int x = sprintf(tmp, "%ld", l);
-  fromBuffer(tmp, x);
-}
-
 Str::Str(unsigned long l) {
   length = 0;
   char tmp[32];

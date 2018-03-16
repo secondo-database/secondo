@@ -83,12 +83,6 @@ namespace dfs {
     Str(int i);
 
     /**
-     * str from long
-     * @param long
-     */
-    Str(long l);
-
-    /**
      * str from unsigned long
      * @param long
      */
