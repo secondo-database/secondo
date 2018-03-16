@@ -89,8 +89,8 @@ public:
 
     Str i(15);
     aq("Str.int", Str("15"), i);
-    int64_t kilo = 1024;
-    aq("Str.long", Str("1099511627776"), Str(kilo * kilo * kilo * kilo));
+
+    aq("Str.long", Str("1099511627776"), Str(1024 * 1024 * 1024 * 1024l));
 
     aeq<UI64>("Str.uint64", Str("000123456789123456789").toUInt64(),
               123456789123456789);
