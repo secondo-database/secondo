@@ -1,0 +1,5 @@
+
+
+ps -ef | grep "datanode -p$1" | grep -v 'grep' | awk '{print $2;}' | sed "s/.*/kill -15 &/" | sh
+
+

@@ -1,0 +1,5 @@
+
+
+datanode -p$1 -ddata$1 &
+
+

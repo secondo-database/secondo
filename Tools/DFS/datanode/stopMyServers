@@ -1,0 +1,1 @@
+for i in {4445..4448}; do stopnode $i  ; done
