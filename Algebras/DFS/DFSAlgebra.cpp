@@ -442,12 +442,11 @@ ListExpr  storeDFSFileTM(ListExpr args){
 }
 
 
-template<class R, class L>
+template<class R, class L, bool partially>
 int storeDFSFileVMT( Word* args,
-                      Word& result, int message,
-                      Word& local,
-                      Supplier  s ){
-
+                     Word& result, int message,
+                     Word& local,
+                     Supplier  s ){
   result = qp->ResultStorage(s);
   CcBool* res = (CcBool*) result.addr;
   R* remoteName = (R*) args[0].addr;
@@ -462,25 +461,61 @@ int storeDFSFileVMT( Word* args,
   }
   string remoteN = remoteName->GetValue();
   string localN = localName->GetValue();
+  
+  char* buffer = 0;
   try{
      if(!filesystem->hasFile(remoteN.c_str())){
         res->Set(true,false);
         return 0;
      }
-     filesystem->receiveFileToLocal(remoteN.c_str(), localN.c_str());
-     res->Set(true,true);
+     if(!partially){
+        filesystem->receiveFileToLocal(remoteN.c_str(), localN.c_str());
+        res->Set(true,true);
+     } else {
+        int buffersize = 1024*1024; 
+        buffer = new char[buffersize];
+        size_t toRead = filesystem->fileSize(remoteN.c_str());
+        ofstream out(localN.c_str(), ios::binary| ios::trunc);
+        if(!out){
+          res->Set(true,false);
+          return 0;
+        }
+        size_t pos = 0;
+        while(toRead>0){
+           size_t r = buffersize<toRead?buffersize:toRead;
+           filesystem->receiveFilePartially(remoteN.c_str(),pos, r, buffer);
+           out.write(buffer,r);
+           toRead -= r;
+           pos += r;
+        }
+        out.close();
+        res->Set(true,true);
+     }
   } catch(...){
      res->Set(true,false);
+  }
+  if(buffer){
+    delete[] buffer;
   }
   return 0;
 }
 
 ValueMapping storeDFSFileVM[] = {
-  storeDFSFileVMT<CcString,CcString>,
-  storeDFSFileVMT<CcString,FText>,
-  storeDFSFileVMT<FText,CcString>,
-  storeDFSFileVMT<FText,FText>
+  storeDFSFileVMT<CcString,CcString,false>,
+  storeDFSFileVMT<CcString,FText,false>,
+  storeDFSFileVMT<FText,CcString,false>,
+  storeDFSFileVMT<FText,FText,false>
 };
+
+
+ValueMapping storeDFSFile2VM[] = {
+  storeDFSFileVMT<CcString,CcString,true>,
+  storeDFSFileVMT<CcString,FText,true>,
+  storeDFSFileVMT<FText,CcString,true>,
+  storeDFSFileVMT<FText,FText,true>
+};
+
+
 
 int storeDFSFileSelect(ListExpr args){
    int n1 = CcString::checkType(nl->First(args))?0:2;
@@ -495,11 +530,27 @@ OperatorSpec storeDFSFileSpec(
   "query storeDFSFile('myRemoteFile', 'myLocalFile')"
 );
 
+OperatorSpec storeDFSFile2Spec(
+  "{string,text} x {string,text} -> bool",
+  "storeDFSFile2(remoteName, localName)",
+  "Copies a file from a connected dfs to the local file system.",
+  "query storeDFSFile2('myRemoteFile', 'myLocalFile')"
+);
+
 Operator storeDFSFileOp(
   "storeDFSFile",
   storeDFSFileSpec.getStr(),
   4,
   storeDFSFileVM,
+  storeDFSFileSelect,
+  storeDFSFileTM
+);
+
+Operator storeDFSFile2Op(
+  "storeDFSFile2",
+  storeDFSFile2Spec.getStr(),
+  4,
+  storeDFSFile2VM,
   storeDFSFileSelect,
   storeDFSFileTM
 );
@@ -675,7 +726,7 @@ int getDFSFileAsTextVMT( Word* args,
      return 0;
    }
    int min=0;
-   int max=filesystem->nextWritePosition(fname.c_str());
+   int max=filesystem->fileSize(fname.c_str());
    if(qp->GetNoSons(s)==3){
      CcInt* Min = (CcInt*) args[1].addr;
      CcInt* Max = (CcInt*) args[2].addr;
@@ -1231,6 +1282,7 @@ class DFSAlgebra: public Algebra{
         AddOperator(&storeTextAsDFSFileOp);
         AddOperator(&storeLocalFileToDFSOp);
         AddOperator(&storeDFSFileOp);
+        AddOperator(&storeDFSFile2Op);
         AddOperator(&isDFSFileOp);
         AddOperator(&nextDFSWritePositionOp);
         AddOperator(&getDFSFileAsTextOp);

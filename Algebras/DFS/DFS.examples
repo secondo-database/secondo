@@ -105,6 +105,13 @@ Example  : query storeDFSFile('myRemoteFile', 'myLocalFile')
 Result   : unpredictable
 Remark   : depends on presence of DFS service 
 
+Operator : storeDFSFile2
+Number   : 1
+Signature: {string,text} x {string,text} -> bool
+Example  : query storeDFSFile2('myRemoteFile', 'myLocalFile')
+Result   : unpredictable
+Remark   : depends on presence of DFS service 
+
 
 Operator : storeLocalFileToDFS
 Number   : 1
