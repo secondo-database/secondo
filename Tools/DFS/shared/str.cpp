@@ -31,6 +31,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <stdio.h>
 #include <iostream>
 #include <cstdlib>
+#include <stdint.h>
+#include <inttypes.h>
 
 using namespace dfs;
 using namespace std;
@@ -95,6 +97,14 @@ Str::Str(UI64 l) {
   int x = sprintf(tmp, "%llu", l);
   fromBuffer(tmp, x);
 }
+
+Str::Str(int64_t l){
+  length = 0;
+  char tmp[32];
+  int x = sprintf(tmp, "%" PRId64, l);
+  fromBuffer(tmp, x);
+}
+
 
 void Str::clear() {
   delete[] buffer;

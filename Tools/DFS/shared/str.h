@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <iostream>
 #include <list>
 #include <cstring>
+#include <stdint.h>
 
 namespace dfs {
 
@@ -98,6 +99,12 @@ namespace dfs {
      * @param long
      */
     Str(UI64 l);
+
+    /**
+     * str from int64_t
+     * @param long
+     */
+    Str(int64_t l);
 
     /**
      * returns hex string
