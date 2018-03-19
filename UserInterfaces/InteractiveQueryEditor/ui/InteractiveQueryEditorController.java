@@ -33,12 +33,11 @@ import java.util.ArrayList;
 import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Element;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.DocumentFilter.FilterBypass;
 
 import sj.lang.ListExpr;
+import ui.console.ConsoleDocumentFilterInterceptor;
 import util.domain.EditorEvent;
 import util.domain.EditorEventListener;
 import util.domain.enums.EditorCommand;
@@ -48,13 +47,12 @@ import util.secondo.SecondoFacade;
  * Handles all the events of the {@link InteractiveQueryEditorFrame} and the utilized components
  * @author D.Merle
  */
-public class InteractiveQueryEditorController implements DocumentListener {
+public class InteractiveQueryEditorController implements ConsoleDocumentFilterInterceptor {
 	private final String historyFileName = ".iqe_secondo_history";
 	private final int maxHistoryFileEntries = 200;
 	private final ArrayList<EditorEventListener> listeners;
 	private final InteractiveQueryEditorFrame frame;
 	private final InteractiveQueryEditorModel model;
-	private final Thread notificationTimer = null;
 
 	public InteractiveQueryEditorController(final InteractiveQueryEditorFrame frame, final InteractiveQueryEditorModel model) {
 		listeners = new ArrayList<>();
@@ -64,36 +62,13 @@ public class InteractiveQueryEditorController implements DocumentListener {
 	}
 
 	@Override
-	public void insertUpdate(final DocumentEvent e) {
-		final Element root = e.getDocument().getDefaultRootElement();
-		try {
-			final String text = e.getDocument().getText(e.getOffset(), e.getLength());
-			Element lastLine = null;
-			if ("\n".equals(text)) {
-				lastLine = root.getElement(root.getElementCount() -2);
-			} else {
-				lastLine = root.getElement(root.getElementCount() -1);
-			}
-			if (e.getOffset() >= lastLine.getStartOffset()) {
-				processDocumentEvent(text);
-			}
-		} catch (final BadLocationException ex) {
-			ex.printStackTrace();
-		}
+	public void replace(final FilterBypass fb, final int offset, final int length, final String string, final AttributeSet attr) {
+		processDocumentEvent(string);
 	}
 
 	@Override
-	public void removeUpdate(final DocumentEvent e) {
-		final Element root = e.getDocument().getDefaultRootElement();
-		final Element lastLine = root.getElement(root.getElementCount() -1);
-		if (e.getOffset() >= lastLine.getStartOffset()) {
-			processDocumentEvent("");
-		}
-	}
-
-	@Override
-	public void changedUpdate(final DocumentEvent e) {
-		//ChangeUpdates signal attribute changes. Those changes don't need to be processed.
+	public void remove(final FilterBypass fb, final int offset, final int length) {
+		processDocumentEvent("");
 	}
 
 	private void processDocumentEvent(final String text) {

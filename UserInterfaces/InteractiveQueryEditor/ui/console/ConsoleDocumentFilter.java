@@ -31,21 +31,26 @@ import javax.swing.text.Element;
  */
 public class ConsoleDocumentFilter extends DocumentFilter {
 	private final int maximumDocumentSize;
+	private ConsoleDocumentFilterInterceptor interceptor;
 
 	public ConsoleDocumentFilter(final int maximumSize) {
 		maximumDocumentSize = maximumSize;
 	}
 
+	/**
+	 * The insertString method only gets called by the program itself.
+	 * For example when text gets appended to the document.
+	 */
 	@Override
 	public void insertString(final FilterBypass fb, final int offset, final String string, final AttributeSet attr) throws BadLocationException {
 		final Element root = fb.getDocument().getDefaultRootElement();
-
 		fb.insertString(offset, string, attr);
 		checkAndAdjustDocumentSize(root, fb);
-		//Insert wird nur durch die Umleitung von Stdout und Stderr aufgerufen. D.h. Secondo Ausgaben werden einfach angehangen und es findet nur die
-		//Prüfung der Dokumentgröße statt
 	}
 
+	/**
+	 * This method gets called when the user deletes text in the corresponding ui component
+	 */
 	@Override
 	public void remove(final FilterBypass fb, final int offset, final int length) throws BadLocationException {
 		final ConsoleDocument doc = (ConsoleDocument)fb.getDocument();
@@ -58,10 +63,15 @@ public class ConsoleDocumentFilter extends DocumentFilter {
 		}
 		if (offset >= boundary) {
 			fb.remove(offset, length);
+			if (interceptor != null) {
+				interceptor.remove(fb, offset, length);
+			}
 		}
-		//Hier erfolgt nur die Prüfung auf Prompt und letzte Zeile
 	}
 
+	/**
+	 * This method gets called whenever the user inserts or replaces text
+	 */
 	@Override
 	public void replace(final FilterBypass fb, final int offset, final int length, final String text, final AttributeSet attrs) throws BadLocationException {
 		final ConsoleDocument doc = (ConsoleDocument)fb.getDocument();
@@ -73,10 +83,13 @@ public class ConsoleDocumentFilter extends DocumentFilter {
 			boundary = lastLine.getStartOffset() + doc.getPrompt().length();
 		}
 		if (offset >= boundary) {
-			if ("\n".equals(text)) {//Falls jemand innerhalb einer Zeile Enter drückt, dann wird die ganze Zeile hinzugefügt
-				fb.insertString(doc.getLength(), text, attrs);//und damit das Verhalten einer Konsole realisiert
+			if ("\n".equals(text)) {// if the user presses enter within the currently active command line it gets appended to the end
+				fb.replace(doc.getLength(), 0, text, attrs);//this is done to reproduce the behaviour of a console
 			} else {
 				fb.replace(offset, length, text, attrs);
+			}
+			if (interceptor != null) {
+				interceptor.replace(fb, offset, length, text, attrs);
 			}
 			checkAndAdjustDocumentSize(root, fb);
 		}
@@ -87,5 +100,9 @@ public class ConsoleDocumentFilter extends DocumentFilter {
 			final Element firstLine = root.getElement(0);
 			fb.remove(0, firstLine.getEndOffset());
 		}
+	}
+
+	public void setInterceptor(final ConsoleDocumentFilterInterceptor interceptor) {
+		this.interceptor = interceptor;
 	}
 }

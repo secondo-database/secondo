@@ -65,7 +65,7 @@ public class InteractiveQueryEditorFrame extends JFrame implements ActionListene
 		add(frameDivider, BorderLayout.CENTER);
 
 		editor = new ConsolePane();
-		editor.getDocument().addDocumentListener(controller);
+		editor.addDocumentFilterInterceptor(controller);
 		analyser = new AnalyserPanel(this, new AnalyserModel());
 		addKeyBindings();
 		controller.addEditorEventListener(analyser.getController());

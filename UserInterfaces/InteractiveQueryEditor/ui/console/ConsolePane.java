@@ -22,7 +22,6 @@ package ui.console;
 import java.awt.Color;
 
 import javax.swing.JTextPane;
-import javax.swing.SwingUtilities;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Element;
@@ -47,58 +46,43 @@ public class ConsolePane extends JTextPane {
 		setBackground(Color.WHITE);
 		setForeground(Color.BLACK);
 		setCaretColor(Color.BLACK);
-		((AbstractDocument)getDocument()).setDocumentFilter(new ConsoleDocumentFilter(1000));
+		document.setDocumentFilter(new ConsoleDocumentFilter(1000));
 		setNavigationFilter(new ConsoleNavigationFilter(document));
 	}
 
 	public void replaceLastLine(final String text) {
-		SwingUtilities.invokeLater(new Runnable() {
-			@Override
-			public void run() {
-				final ConsoleDocument doc = (ConsoleDocument)getDocument();
-				final Element root = getDocument().getDefaultRootElement();
-				final Element lastLine = root.getElement(root.getElementCount() -1);
-				try {
-					doc.remove(lastLine.getStartOffset() + doc.getPrompt().length(), lastLine.getEndOffset() - lastLine.getStartOffset() - doc.getPrompt().length() - 1);
-					doc.insertString(lastLine.getStartOffset() + doc.getPrompt().length(), text, standardTextAttribute);
-				} catch (final BadLocationException e) {
-					e.printStackTrace();
-				}
-			}
-		});
+		final ConsoleDocument doc = (ConsoleDocument)getDocument();
+		final Element root = getDocument().getDefaultRootElement();
+		final Element lastLine = root.getElement(root.getElementCount() -1);
+		try {
+			doc.remove(lastLine.getStartOffset() + doc.getPrompt().length(), lastLine.getEndOffset() - lastLine.getStartOffset() - doc.getPrompt().length() - 1);
+			doc.insertString(lastLine.getStartOffset() + doc.getPrompt().length(), text, standardTextAttribute);
+		} catch (final BadLocationException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public void appendString(final String text) {
-		SwingUtilities.invokeLater(new Runnable() {
-			@Override
-			public void run() {
-				final ConsoleDocument doc = (ConsoleDocument)getDocument();
-				final Element root = getDocument().getDefaultRootElement();
-				final Element lastLine = root.getElement(root.getElementCount() -1);
-				try {
-					doc.insertString(lastLine.getEndOffset() - 1, doc.getPrompt() + text, standardTextAttribute);
-				} catch (final BadLocationException e) {
-					e.printStackTrace();
-				}
-				setCaretPosition(getDocument().getLength());
-			}
-		});
+		final ConsoleDocument doc = (ConsoleDocument)getDocument();
+		final Element root = getDocument().getDefaultRootElement();
+		final Element lastLine = root.getElement(root.getElementCount() -1);
+		try {
+			doc.insertString(lastLine.getEndOffset() - 1, doc.getPrompt() + text, standardTextAttribute);
+		} catch (final BadLocationException e) {
+			e.printStackTrace();
+		}
+		setCaretPosition(getDocument().getLength());
 	}
 
 	public void appendTextBeforePrompt(final String text) {
-		SwingUtilities.invokeLater(new Runnable() {
-			@Override
-			public void run() {
-				final ConsoleDocument doc = (ConsoleDocument)getDocument();
-				final Element root = getDocument().getDefaultRootElement();
-				final Element insertAt = root.getElement(root.getElementCount() -1);
-				try {
-					doc.insertString(insertAt.getStartOffset(), text, standardTextAttribute);
-				} catch (final BadLocationException e) {
-					e.printStackTrace();
-				}
-			}
-		});
+		final ConsoleDocument doc = (ConsoleDocument)getDocument();
+		final Element root = getDocument().getDefaultRootElement();
+		final Element insertAt = root.getElement(root.getElementCount() -1);
+		try {
+			doc.insertString(insertAt.getStartOffset(), text, standardTextAttribute);
+		} catch (final BadLocationException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public void setPrompt(final String prompt) {
@@ -110,18 +94,15 @@ public class ConsolePane extends JTextPane {
 		final ConsoleDocument doc = (ConsoleDocument)getDocument();
 		final Element root = getDocument().getDefaultRootElement();
 		final Element lastLine = root.getElement(root.getElementCount() - subtract);
-		try {//For debugging purposes
-			//			if (lastLine.getEndOffset() - lastLine.getStartOffset() - doc.getPrompt().length() - 1 < 0) {
-			//				System.out.println("End:" + lastLine.getEndOffset());
-			//				System.out.println("Start:" + lastLine.getStartOffset());
-			//				System.out.println("Prompt:" + doc.getPrompt().length());
-			//				System.out.flush();
-			//				return "";
-			//			}
+		try {
 			return doc.getText(lastLine.getStartOffset() + doc.getPrompt().length(), lastLine.getEndOffset() - lastLine.getStartOffset() - doc.getPrompt().length() - 1);
 		} catch (final BadLocationException e) {
 			e.printStackTrace();
 			return "";
 		}
+	}
+
+	public void addDocumentFilterInterceptor(final ConsoleDocumentFilterInterceptor interceptor) {
+		((ConsoleDocumentFilter)((AbstractDocument)getDocument()).getDocumentFilter()).setInterceptor(interceptor);
 	}
 }
