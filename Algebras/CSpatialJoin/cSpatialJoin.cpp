@@ -154,7 +154,7 @@ ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) {
     if(!listutils::isSymbol(nl->Third(args))) {
     return listutils::typeError("Error in third argument: "
                                 "Attribute name expected.");
-	}
+    }
 	
     // fourth argument must be an attribute name
     if(!listutils::isSymbol(nl->Fourth(args))) {
