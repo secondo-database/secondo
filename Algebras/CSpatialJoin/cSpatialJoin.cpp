@@ -105,7 +105,6 @@ cSpatialJoin::cSpatialJoin() : Operator(Info(),
 // destructor
 cSpatialJoin::~cSpatialJoin() {
 }
-	
 /* 
  1.3 Type Mapping
 
@@ -116,7 +115,6 @@ second stream, respectively.
  
 */ 
 ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) { 
-	
 	// check the number of arguments
 	// last two arguments are intended for testing purposes
 	// Argument number 5 contains the size of the auxiliary structure 
