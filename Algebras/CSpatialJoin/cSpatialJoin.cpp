@@ -121,27 +121,27 @@ ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) {
 // (list, grid structure or interval tree) in KByte
 // Argument number 6 contains strip width used in sweep-plane
 
-	int type = nl->AtomType(nl->Fifth(args));
+    int type = nl->AtomType(nl->Fifth(args));
 	
-	cout<<"Type = "<<type<<'\n';
-	cout<<nl->ToString(nl->First(args))<<'\n';
-	
-	if(!nl->HasLength(args, 6)) {
-		return listutils::typeError("Wrong number of arguments");
-	}
-	
-	// first argument must be a stream of tuple-blocks
-	if(!listutils::isStream(nl->First(args))) {
-		return listutils::typeError("Error in  first argument: "
-						"Stream expected.");
-	}
-	if(!TBlockTI::Check(nl->Second(nl->First(args)))) {
-		return listutils::typeError("Error in  first argument: "
-		"Stream of tuple-blocks expected.");
-	}
-	
-	// second argument must be a stream of tuple-blocks
-	if(!listutils::isStream(nl->Second(args)))	{
+    cout<<"Type = "<<type<<'\n';
+    cout<<nl->ToString(nl->First(args))<<'\n';
+
+    if(!nl->HasLength(args, 6)) {
+        return listutils::typeError("Wrong number of arguments");
+    }
+
+    // first argument must be a stream of tuple-blocks
+    if(!listutils::isStream(nl->First(args))) {
+        return listutils::typeError("Error in  first argument: "
+                                    "Stream expected.");
+    }
+    if(!TBlockTI::Check(nl->Second(nl->First(args)))) {
+	    return listutils::typeError("Error in  first argument: "
+                                    "Stream of tuple-blocks expected.");
+    }
+
+    // second argument must be a stream of tuple-blocks
+    if(!listutils::isStream(nl->Second(args)))	{
 		return listutils::typeError("Error in  second argument.: "
 		"Stream expected.");
 	}
