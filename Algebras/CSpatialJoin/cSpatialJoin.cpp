@@ -136,81 +136,81 @@ ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) {
                                     "Stream expected.");
     }
     if(!TBlockTI::Check(nl->Second(nl->First(args)))) {
-	    return listutils::typeError("Error in  first argument: "
+        return listutils::typeError("Error in  first argument: "
                                     "Stream of tuple-blocks expected.");
     }
 
     // second argument must be a stream of tuple-blocks
     if(!listutils::isStream(nl->Second(args)))	{
-		return listutils::typeError("Error in  second argument.: "
-		"Stream expected.");
-	}
-	if(!TBlockTI::Check(nl->Second(nl->Second(args))))	{
-		return listutils::typeError("Error in  second argument: "
-		"Stream of tuple-blocks expected.");
-	}
-	
-	// third argument must be an attribute name
-	if(!listutils::isSymbol(nl->Third(args))) {
-		return listutils::typeError("Error in third argument: "
-		"Attribute name expected.");
+        return listutils::typeError("Error in  second argument.: "
+                                    "Stream expected.");
+    }
+    if(!TBlockTI::Check(nl->Second(nl->Second(args))))	{
+        return listutils::typeError("Error in  second argument: "
+                                    "Stream of tuple-blocks expected.");
+    }
+
+    // third argument must be an attribute name
+    if(!listutils::isSymbol(nl->Third(args))) {
+    return listutils::typeError("Error in third argument: "
+                                "Attribute name expected.");
 	}
 
-	// fourth argument must be an attribute name
-	if(!listutils::isSymbol(nl->Fourth(args))) {
-		return listutils::typeError("Error in fourth argument: "
-		"Attribute name expected");
-	}
-	
-	// fifth argument must an integer
-	cout<<"Int-Prüfung: "<<CcInt::checkType(nl->Fifth(args))<<'\n';
-	
-	if(!CcInt::checkType(nl->Fifth(args))) {
-		return listutils::typeError("Error in fifth argument: "
-						"Integer value expected");
-	}
-	
-	// sixth argument must an integer
-	if(!CcInt::checkType(nl->Sixth(args))) {
-		return listutils::typeError("Error in sixth argument: "
-						"Integer value expected");
-	}	
-	
-	// extract information about tuple block from args[]
-	TBlockTI fTBlockInfo = TBlockTI(nl->Second(nl->First(args)), false);
-	TBlockTI sTBlockInfo = TBlockTI(nl->Second(nl->Second(args)), false);
-	
-	// extract names of column of attribute from args[]
-	string fAttrName = nl->SymbolValue(nl->Third(args));
-	string sAttrName = nl->SymbolValue(nl->Fourth(args));
-	
-	// search for column index in the first relation
-	uint64_t fNameIndex;
-	if(!GetIndexOfColumn(fTBlockInfo, fAttrName, fNameIndex)) {
-		return listutils::typeError("Error in third argument: "
-						"Invalid column name");
-	}
-	
-	// search for column index in the second relation
-	uint64_t sNameIndex;
-	if(!GetIndexOfColumn(sTBlockInfo, sAttrName, sNameIndex)) {
-		return listutils::typeError("Error in fourth argument: "
-						"Invalid column name");
-	}
-	
-	// join attributes must be a kind of SPATIALATTRARRAY2D
-	// or SPATIALATTRARRAY3D
-	
-	 if(!listutils::isKind(fTBlockInfo.columnInfos[fNameIndex].type,
-	  Kind::SPATIALATTRARRAY2D()) 
-	  && !listutils::isKind(fTBlockInfo.columnInfos[fNameIndex].type,
-	  Kind::SPATIALATTRARRAY3D())) {
-		return listutils::typeError("Attribute " + 
-			fTBlockInfo.columnInfos[fNameIndex].name
-			+ " is not of kind " +
-			"SPATIALATTRARRAY2D " +
-			"or SPATIALATTRARRAY3D");
-	}
+    // fourth argument must be an attribute name
+    if(!listutils::isSymbol(nl->Fourth(args))) {
+        return listutils::typeError("Error in fourth argument: "
+                                    "Attribute name expected");
+    }
+
+    // fifth argument must an integer
+    cout<<"Int-Prüfung: "<<CcInt::checkType(nl->Fifth(args))<<'\n';
+
+    if(!CcInt::checkType(nl->Fifth(args))) {
+        return listutils::typeError("Error in fifth argument: "
+                                    "Integer value expected");
+    }
+
+    // sixth argument must an integer
+    if(!CcInt::checkType(nl->Sixth(args))) {
+        return listutils::typeError("Error in sixth argument: "
+                                    "Integer value expected");
+    }	
+
+    // extract information about tuple block from args[]
+    TBlockTI fTBlockInfo = TBlockTI(nl->Second(nl->First(args)), false);
+    TBlockTI sTBlockInfo = TBlockTI(nl->Second(nl->Second(args)), false);
+
+    // extract names of column of attribute from args[]
+    string fAttrName = nl->SymbolValue(nl->Third(args));
+    string sAttrName = nl->SymbolValue(nl->Fourth(args));
+
+    // search for column index in the first relation
+    uint64_t fNameIndex;
+    if(!GetIndexOfColumn(fTBlockInfo, fAttrName, fNameIndex)) {
+        return listutils::typeError("Error in third argument: "
+                                    "Invalid column name");
+    }
+    
+    // search for column index in the second relation
+    uint64_t sNameIndex;
+    if(!GetIndexOfColumn(sTBlockInfo, sAttrName, sNameIndex)) {
+       return listutils::typeError("Error in fourth argument: "
+                                   "Invalid column name");
+    }
+
+    // join attributes must be a kind of SPATIALATTRARRAY2D
+    // or SPATIALATTRARRAY3D
+
+    if(!listutils::isKind(fTBlockInfo.columnInfos[fNameIndex].type,
+                     Kind::SPATIALATTRARRAY2D()) 
+       && !listutils::isKind(fTBlockInfo.columnInfos[fNameIndex].type,
+                     Kind::SPATIALATTRARRAY3D())) {
+        return listutils::typeError("Attribute " + 
+                          fTBlockInfo.columnInfos[fNameIndex].name
+                          + " is not of kind " +
+                          "SPATIALATTRARRAY2D " +
+                          "or SPATIALATTRARRAY3D");
+     }
 	
 	if(!listutils::isKind(sTBlockInfo.columnInfos[sNameIndex].type, 
 		Kind::SPATIALATTRARRAY2D())
