@@ -115,12 +115,12 @@ second stream, respectively.
  
 */ 
 ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) { 
-	// check the number of arguments
-	// last two arguments are intended for testing purposes
-	// Argument number 5 contains the size of the auxiliary structure 
-	// (list, grid structure or interval tree) in KByte
-	// Argument number 6 contains strip width used in sweep-plane
-	
+// check the number of arguments
+// last two arguments are intended for testing purposes
+// Argument number 5 contains the size of the auxiliary structure 
+// (list, grid structure or interval tree) in KByte
+// Argument number 6 contains strip width used in sweep-plane
+
 	int type = nl->AtomType(nl->Fifth(args));
 	
 	cout<<"Type = "<<type<<'\n';
