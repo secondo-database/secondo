@@ -122,7 +122,7 @@ ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) {
 // Argument number 6 contains strip width used in sweep-plane
 
     int type = nl->AtomType(nl->Fifth(args));
-	
+
     cout<<"Type = "<<type<<'\n';
     cout<<nl->ToString(nl->First(args))<<'\n';
 
