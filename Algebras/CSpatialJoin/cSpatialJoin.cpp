@@ -61,7 +61,6 @@ using namespace std;
 using namespace CRelAlgebra;
 
 namespace csj {
-	
 /*
 1.2 Class OperatorInfo
 
@@ -85,10 +84,10 @@ public:
     signature = inSignature + outSignature;
     syntax = "_ _ cspatialjoin [ _ , _ , _ , _]";
     meaning = "Cache-conscious spatial join operator performing"
-			  "a partitioned spatial join on two tuple-streams,"
-			  "where xi and yj are the names of the join"
-			  "attributes of the first and second stream,"
-			  "respectively.";
+              "a partitioned spatial join on two tuple-streams,"
+              "where xi and yj are the names of the join"
+              "attributes of the first and second stream,"
+              "respectively.";
     example = "query CityNode feed CityWay feed "
               "cspatialjoin[NodeId, NodeRef, 32, 100] count";
   }
