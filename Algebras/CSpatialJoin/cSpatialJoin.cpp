@@ -145,7 +145,7 @@ ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) {
         return listutils::typeError("Error in  second argument.: "
                                     "Stream expected.");
     }
-    if(!TBlockTI::Check(nl->Second(nl->Second(args))))	{
+    if(!TBlockTI::Check(nl->Second(nl->Second(args)))) {
         return listutils::typeError("Error in  second argument: "
                                     "Stream of tuple-blocks expected.");
     }
@@ -155,7 +155,7 @@ ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) {
     return listutils::typeError("Error in third argument: "
                                 "Attribute name expected.");
 	}
-
+	
     // fourth argument must be an attribute name
     if(!listutils::isSymbol(nl->Fourth(args))) {
         return listutils::typeError("Error in fourth argument: "
