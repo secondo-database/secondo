@@ -141,7 +141,7 @@ ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) {
     }
 
     // second argument must be a stream of tuple-blocks
-    if(!listutils::isStream(nl->Second(args)))	{
+    if(!listutils::isStream(nl->Second(args))) {
         return listutils::typeError("Error in  second argument.: "
                                     "Stream expected.");
     }
