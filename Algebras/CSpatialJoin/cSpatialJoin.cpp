@@ -95,9 +95,9 @@ public:
 
 // constructor
 cSpatialJoin::cSpatialJoin() : Operator(Info(),
-							valueMappings,
-							SelectValueMapping,
-							cspatialjoinTM) {
+                            valueMappings,
+                            SelectValueMapping,
+                            cspatialjoinTM) {
   SetUsesMemory();
   SetUsesArgsInTypeMapping();
 }
