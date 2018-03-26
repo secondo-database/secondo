@@ -76,6 +76,9 @@ const string inSignature =
 const string outSignature =
   "-> \n"
   "stream (tblock (c ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))";
+  
+size_t fDim;
+size_t sDim;
 
 class cSpatialJoin::Info: public OperatorInfo {
 public:
@@ -99,7 +102,6 @@ cSpatialJoin::cSpatialJoin() : Operator(Info(),
                             SelectValueMapping,
                             cspatialjoinTM) {
   SetUsesMemory();
-  SetUsesArgsInTypeMapping();
 }
 
 // destructor
@@ -121,10 +123,6 @@ ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) {
 // (list, grid structure or interval tree) in KByte
 // Argument number 6 contains strip width used in sweep-plane
 
-    int type = nl->AtomType(nl->Fifth(args));
-
-    cout<<"Type = "<<type<<'\n';
-    cout<<nl->ToString(nl->First(args))<<'\n';
 
     if(!nl->HasLength(args, 6)) {
         return listutils::typeError("Wrong number of arguments");
@@ -163,8 +161,6 @@ ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) {
     }
 
     // fifth argument must an integer
-    cout<<"Int-Prüfung: "<<CcInt::checkType(nl->Fifth(args))<<'\n';
-
     if(!CcInt::checkType(nl->Fifth(args))) {
         return listutils::typeError("Error in fifth argument: "
                                     "Integer value expected");
@@ -201,34 +197,38 @@ ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) {
     // join attributes must be a kind of SPATIALATTRARRAY2D
     // or SPATIALATTRARRAY3D
 
-    if(!listutils::isKind(fTBlockInfo.columnInfos[fNameIndex].type,
-                     Kind::SPATIALATTRARRAY2D()) 
-       && !listutils::isKind(fTBlockInfo.columnInfos[fNameIndex].type,
+    if(listutils::isKind(fTBlockInfo.columnInfos[fNameIndex].type,
+                     Kind::SPATIALATTRARRAY2D())) {
+		fDim = 2; 
+	} else
+	      if(listutils::isKind(fTBlockInfo.columnInfos[fNameIndex].type,
                      Kind::SPATIALATTRARRAY3D())) {
-        return listutils::typeError("Attribute " + 
+		      fDim = 3;
+		   } else {
+	               fDim = 0;
+                   return listutils::typeError("Attribute " + 
                           fTBlockInfo.columnInfos[fNameIndex].name
                           + " is not of kind " +
                           "SPATIALATTRARRAY2D " +
                           "or SPATIALATTRARRAY3D");
-     }
-	
-	if(!listutils::isKind(sTBlockInfo.columnInfos[sNameIndex].type, 
-		Kind::SPATIALATTRARRAY2D())
-		&& !listutils::isKind(sTBlockInfo.columnInfos[sNameIndex].type,
-		Kind::SPATIALATTRARRAY3D())) {
-		return listutils::typeError("Attribute " + 
-			sTBlockInfo.columnInfos[sNameIndex].name
-			+ " is not of kind " +
-			"SPATIALATTRARRAY2D " +
-			"or SPATIALATTRARRAY3D");
-	}
-	
-	// Join attributes must be of the same type
-	if(!nl->Equal(fTBlockInfo.columnInfos[fNameIndex].type,
-				  sTBlockInfo.columnInfos[sNameIndex].type)) {
-		return listutils::typeError("Join attributes are not"
-			"of the same type");
-	}		
+	               }
+	               
+    if(listutils::isKind(sTBlockInfo.columnInfos[sNameIndex].type,
+                     Kind::SPATIALATTRARRAY2D())) {
+		sDim = 2; 
+	} else
+	      if(listutils::isKind(sTBlockInfo.columnInfos[sNameIndex].type,
+                     Kind::SPATIALATTRARRAY3D())) {
+		      sDim = 3;
+		   } else {
+	               sDim = 0;
+                   return listutils::typeError("Attribute " + 
+                          sTBlockInfo.columnInfos[sNameIndex].name
+                          + " is not of kind " +
+                          "SPATIALATTRARRAY2D " +
+                          "or SPATIALATTRARRAY3D");
+	               }
+
 	
 	// Initialize the type and size of result tuple block
 	// and check for duplicates column names
@@ -257,6 +257,8 @@ ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) {
 		}
 		rTBlockInfo.columnInfos.push_back(sTBlockInfo.columnInfos[i]);
 	}
+	for (size_t i=0; i < rTBlockInfo.columnInfos.size(); i++)
+        cout<<"Columninfo: "<<rTBlockInfo.columnInfos[i].name<<'\n';
 
 	// Return result type
 	ListExpr commonNames = nl->TwoElemList(nl->IntAtom(fNameIndex),
@@ -270,49 +272,50 @@ ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) {
 
 /*
  1.4 LocalInfo-Class
+
+*/
  
- */
 class LocalInfo {
-	public:
-	
-	// constructor
+	public:    
+    
+    // constructor
 	LocalInfo(Word fs, Word ss, Word fi, Word si, Supplier su):
-		firstStream(fs),
-		secondStream(ss),
+		fStream(fs),
+		sStream(ss),
 		s(su) {
 		
 			
 		CcInt* index;
 		// extract information about column index in the first relation
 		index = static_cast<CcInt*>(fi.addr);
-		firstIndex = index->GetValue();
+		fIndex = index->GetValue();
 		
 		// extract information about column index in the second relation
 		index = static_cast<CcInt*>(si.addr);
-		secondIndex = index->GetValue();
+		sIndex = index->GetValue();
 		 
-		firstStream.open();
-		secondStream.open();
+		fStream.open();
+		sStream.open();
 	}
 	
 	// destructor
 	~LocalInfo() {
-		firstStream.close();
-		secondStream.close();
+		fStream.close();
+		sStream.close();
 	}
 	
 	private:
-		Stream<TBlock> firstStream;
-		Stream<TBlock> secondStream;
-		uint64_t firstIndex;
-		uint64_t secondIndex;
+		Stream<TBlock> fStream;
+		Stream<TBlock> sStream;
+		uint64_t fIndex;
+		uint64_t sIndex;
 		Supplier s;
 };
 
 /*
  1.5 Value Mapping
  
- */
+*/
  
 int cspatialjoinVM(Word* args, Word& result, int message,
 			Word& local, Supplier s) {
@@ -321,6 +324,8 @@ int cspatialjoinVM(Word* args, Word& result, int message,
 	const uint64_t memLimit = ((CcInt*)args[4].addr)->GetValue() * 1024;
 	cout<<"Memory limit: "<<memLimit<<'\n';
 	cout<<"Strip limit: "<<stripLimit<<'\n';
+	cout<<"Dim1: "<<fDim<<'\n';
+	cout<<"Dim2: "<<sDim<<'\n';
 				
 	return 0;
 }	
