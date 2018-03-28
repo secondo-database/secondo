@@ -29,7 +29,7 @@ import java.nio.file.Path;
 
 import javax.swing.SwingUtilities;
 
-import ui.console.ConsolePane;
+import util.common.UpdateHandler;
 
 /**
  * An implementation of runnable which is responsible to read
@@ -38,7 +38,7 @@ import ui.console.ConsolePane;
  * @author D.Merle
  */
 public class SecondoOutputReader implements Runnable {
-	private final ConsolePane editor;
+	private final UpdateHandler component;
 	private final BufferedReader bufferedReader;
 
 	/**
@@ -46,8 +46,8 @@ public class SecondoOutputReader implements Runnable {
 	 * @param editor The component which gets notified about the new text
 	 * @param inputFile The output file of secondo
 	 */
-	public SecondoOutputReader(final ConsolePane editor, final Path inputFile) {
-		this.editor = editor;
+	public SecondoOutputReader(final UpdateHandler component, final Path inputFile) {
+		this.component = component;
 		try {
 			final FileInputStream fileInputStream = new FileInputStream(inputFile.toFile());
 			final InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, Charset.forName("CP1252"));
@@ -77,7 +77,7 @@ public class SecondoOutputReader implements Runnable {
 					SwingUtilities.invokeLater(new Runnable() {
 						@Override
 						public void run() {
-							editor.appendTextBeforePrompt(buffer.toString());
+							component.handleUpdate(buffer.toString());
 						}
 					});
 				}

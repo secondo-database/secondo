@@ -29,8 +29,9 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 
 import util.common.UITools;
+import util.common.UpdateHandler;
 
-public class ConsolePane extends JTextPane {
+public class ConsolePane extends JTextPane implements UpdateHandler {
 	private final SimpleAttributeSet standardTextAttribute;
 
 	public ConsolePane() {
@@ -104,5 +105,10 @@ public class ConsolePane extends JTextPane {
 
 	public void addDocumentFilterInterceptor(final ConsoleDocumentFilterInterceptor interceptor) {
 		((ConsoleDocumentFilter)((AbstractDocument)getDocument()).getDocumentFilter()).setInterceptor(interceptor);
+	}
+
+	@Override
+	public void handleUpdate(final String text) {
+		appendTextBeforePrompt(text);
 	}
 }

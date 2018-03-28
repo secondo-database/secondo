@@ -46,7 +46,7 @@ import util.secondo.SecondoOutputReader;
 public class InteractiveQueryEditorFrame extends JFrame implements ActionListener {
 	private final InteractiveQueryEditorModel model;
 	private final InteractiveQueryEditorController controller;
-	private ConsolePane editor;
+	private ConsolePane console;
 	private AnalyserPanel analyser;
 	private JSplitPane frameDivider;
 
@@ -64,41 +64,41 @@ public class InteractiveQueryEditorFrame extends JFrame implements ActionListene
 		frameDivider = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
 		add(frameDivider, BorderLayout.CENTER);
 
-		editor = new ConsolePane();
-		editor.addDocumentFilterInterceptor(controller);
+		console = new ConsolePane();
+		console.addDocumentFilterInterceptor(controller);
 		analyser = new AnalyserPanel(this, new AnalyserModel());
 		addKeyBindings();
 		controller.addEditorEventListener(analyser.getController());
-		frameDivider.setLeftComponent(new JScrollPane(editor));
+		frameDivider.setLeftComponent(new JScrollPane(console));
 		frameDivider.setRightComponent(new JScrollPane(analyser));
 
-		final SecondoOutputReader readerRunnable = new SecondoOutputReader(editor, Paths.get("secondoOut.txt"));
+		final SecondoOutputReader readerRunnable = new SecondoOutputReader(console, Paths.get("secondoOut.txt"));
 		final Thread continuouslyReadSecondoOutput = new Thread(readerRunnable);
 		continuouslyReadSecondoOutput.start();
 
-		editor.requestFocus();
+		console.requestFocus();
 	}
 
 	private void addKeyBindings() {
 		final KeyStroke arrowUp = KeyStroke.getKeyStroke(KeyEvent.VK_UP, 0);
-		editor.getInputMap(JComponent.WHEN_FOCUSED).put(arrowUp, "PREVIOUS_COMMAND");
+		console.getInputMap(JComponent.WHEN_FOCUSED).put(arrowUp, "PREVIOUS_COMMAND");
 		final AbstractAction previousCommandAction = new AbstractAction() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				controller.setPreviousCommand();
 			}
 		};
-		editor.getActionMap().put("PREVIOUS_COMMAND", previousCommandAction);
+		console.getActionMap().put("PREVIOUS_COMMAND", previousCommandAction);
 
 		final KeyStroke arrowDown = KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0);
-		editor.getInputMap(JComponent.WHEN_FOCUSED).put(arrowDown, "NEXT_COMMAND");
+		console.getInputMap(JComponent.WHEN_FOCUSED).put(arrowDown, "NEXT_COMMAND");
 		final AbstractAction nextCommandAction = new AbstractAction() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				controller.setNextCommand();
 			}
 		};
-		editor.getActionMap().put("NEXT_COMMAND", nextCommandAction);
+		console.getActionMap().put("NEXT_COMMAND", nextCommandAction);
 	}
 
 	/**
@@ -137,14 +137,14 @@ public class InteractiveQueryEditorFrame extends JFrame implements ActionListene
 	}
 
 	private void showHelpMessage() {
-		editor.appendTextBeforePrompt(model.getHelpMessage());
+		console.appendTextBeforePrompt(model.getHelpMessage());
 	}
 
 	private void updateEditorPrompt() {
-		editor.setPrompt(model.getPrompt());
+		console.setPrompt(model.getPrompt());
 	}
 
 	public ConsolePane getEditor() {
-		return editor;
+		return console;
 	}
 }
