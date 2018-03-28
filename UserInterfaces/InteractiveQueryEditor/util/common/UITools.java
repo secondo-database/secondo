@@ -54,21 +54,15 @@ public class UITools {
 		return new Point((int)(screensize.getWidth()-dimension.getWidth())/2, (int)(screensize.getHeight()-dimension.getHeight())/2);
 	}
 
-	/**
-	 * Ermittelt für eine übergebene Größe eines Windows/Dialogs die Koordinaten,
-	 * die man benutzen muss, damit das Fenster am rechten Bildschirmrand ausgerichtet wird.
-	 * @param dimension Die Abmessung des zu zentrierenden Dialogs
-	 * @return {@link Point} Die ermittelten Koordinaten zur Zentrierung
-	 */
-	public static Dimension calculateDimentsionForAnalyser() {
+	public static Dimension calculateDimentsion(final int divisor) {
 		final Rectangle screensize = getEffectiveScreenSize();
-		final int width = (int)(screensize.getWidth()/2);
-		final int height = (int)(screensize.getHeight()/2);
+		final int width = (int)(screensize.getWidth()/divisor);
+		final int height = (int)(screensize.getHeight()/divisor);
 		return new Dimension(width, height);
 	}
 
 	/**
-	 * Die methode ermittelt über die Klasse {@link GraphicsConfiguration} die zur Verfügung<br>
+	 * Die Methode ermittelt über die Klasse {@link GraphicsConfiguration} die zur Verfügung<br>
 	 * stehende Bildschirmgröße in Pixeln. Dabei werden beispielsweise Toolbars des OS berücksichtigt.
 	 * @return
 	 */

@@ -22,8 +22,6 @@ package application;
 
 import java.awt.Dimension;
 
-import org.omg.CORBA.portable.ApplicationException;
-
 import ui.InteractiveQueryEditorFrame;
 import ui.InteractiveQueryEditorModel;
 import util.common.UITools;
@@ -59,13 +57,12 @@ public class Application {
 
 	/**
 	 * Creates objects of the editor view, controlelr and model
-	 * @throws ApplicationException
 	 */
-	private static void initializeUI() throws ApplicationException {
+	private static void initializeUI() {
 		UITools.scaleUI();
 		final InteractiveQueryEditorModel model = new InteractiveQueryEditorModel();
 		frame = new InteractiveQueryEditorFrame(model);
-		final Dimension size = UITools.calculateDimentsionForAnalyser();
+		final Dimension size = UITools.calculateDimentsion(2);
 		frame.setSize((int)size.getWidth(), (int)size.getHeight());
 		frame.setLocation(UITools.calculateCenterPosition(frame.getSize()));
 		frame.setVisible(true);
