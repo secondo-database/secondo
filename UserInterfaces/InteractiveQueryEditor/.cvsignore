@@ -3,4 +3,6 @@
 *.dep
 *.fm
 *.class
+.classpath
+.project
 build
