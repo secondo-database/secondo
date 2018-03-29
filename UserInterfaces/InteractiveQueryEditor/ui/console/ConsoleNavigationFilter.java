@@ -48,6 +48,8 @@ public class ConsoleNavigationFilter extends NavigationFilter {
 			}
 			if (dot >= boundary) {
 				super.setDot(fb, dot, bias);
+			} else {
+				super.setDot(fb, boundary, bias);
 			}
 		} catch (final BadLocationException e) {
 			e.printStackTrace();
@@ -66,6 +68,8 @@ public class ConsoleNavigationFilter extends NavigationFilter {
 			}
 			if (dot >= boundary) {
 				super.moveDot(fb, dot, bias);
+			} else {
+				super.moveDot(fb, boundary, bias);
 			}
 		} catch (final BadLocationException e) {
 			e.printStackTrace();
