@@ -152,19 +152,23 @@ public class InteractiveQueryEditorModel {
 	}
 
 	public String getPreviousCommand() {
-		if (historyIndex > 0) {
-			historyIndex--;
+		historyIndex--;
+		if (historyIndex >= 0) {
 			return inputHistory.get(historyIndex);
+		} else {
+			historyIndex = -1;
+			return "";
 		}
-		return inputHistory.size() > 0 ? inputHistory.get(historyIndex) : "";
 	}
 
 	public String getNextCommand() {
-		if (historyIndex < inputHistory.size() -1) {
-			historyIndex++;
+		historyIndex++;
+		if (historyIndex < inputHistory.size() - 1) {
 			return inputHistory.get(historyIndex);
+		} else {
+			historyIndex = inputHistory.size();
+			return "";
 		}
-		return "";
 	}
 
 	public void addCommandToHistory(final String command) {
