@@ -127,7 +127,7 @@ public class OperatorSpecParser {
 		}
 
 		temp = temp.substring(operatorIndex, temp.length()).trim();
-		final String[] parameters = temp.split("[|,|;|]");
+		final String[] parameters = temp.split("\\s|[|]|,|;|(|)");
 		for (int i = 0; i < parameters.length; i++) {
 			if (parameters[i].trim().equals("_")) {
 				postOpParameters.add(ParameterType.WILDCARD);
