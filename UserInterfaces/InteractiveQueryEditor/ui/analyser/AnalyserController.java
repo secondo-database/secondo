@@ -59,7 +59,7 @@ public class AnalyserController implements DocumentListener, EditorEventListener
 			model.notifyDataUpdate();
 		} else if (event.getEventType().equals(EditorEvent.COMMAND_UPDATED)) {
 			final String command = event.getCommand();
-			if (model.isDBConnectionInitialized() && (!command.equals(model.getCurrentCommand()))) {
+			if (model.isDBConnectionInitialized()) {
 				if (command.startsWith("query ") && command.length() > 6) {
 					String typeInformation = "";
 					try {
@@ -68,7 +68,7 @@ public class AnalyserController implements DocumentListener, EditorEventListener
 						ExceptionHandler.showException(parent, e, "");
 					}
 					model.setTypeInformation(typeInformation);
-					model.setCurrentCommand(command);
+					model.setLastValidTypeInformation(typeInformation);
 				} else{
 					model.setTypeInformation(null);
 					model.setLastValidTypeInformation(null);

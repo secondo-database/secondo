@@ -56,8 +56,7 @@ public class ConsolePane extends JTextPane implements UpdateHandler {
 		final Element root = getDocument().getDefaultRootElement();
 		final Element lastLine = root.getElement(root.getElementCount() -1);
 		try {
-			doc.remove(lastLine.getStartOffset() + doc.getPrompt().length(), lastLine.getEndOffset() - lastLine.getStartOffset() - doc.getPrompt().length() - 1);
-			doc.insertString(lastLine.getStartOffset() + doc.getPrompt().length(), text, standardTextAttribute);
+			doc.replace(lastLine.getStartOffset() + doc.getPrompt().length(), lastLine.getEndOffset() - lastLine.getStartOffset() - doc.getPrompt().length() - 1, text, standardTextAttribute);
 		} catch (final BadLocationException e) {
 			e.printStackTrace();
 		}

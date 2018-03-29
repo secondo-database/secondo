@@ -31,14 +31,12 @@ public class AnalyserModel {
 	public static final String DATA_UPDATED = "1";
 	public static final String UPDATE_HIGHLIGHTING = "2";
 	private final ArrayList<ActionListener> actionListeners;
-	private String currentCommand;
 	private String typeInformation;
 	private String lastValidTypeInformation;
 	private String analyserStatusMessage;
 	private boolean dbConnectionInitialized = false;
 	private final String startMessage = "SecondoTTY IQE has been initialized.\nType 'HELP' to get a list of available commands.\nNo database opened";
 	private final String noTypeMessage = "No valid type found";
-
 
 	public AnalyserModel() {
 		actionListeners = new ArrayList<>();
@@ -52,14 +50,6 @@ public class AnalyserModel {
 
 	public String getLastValidTypeInformation() {
 		return lastValidTypeInformation;
-	}
-
-	public String getCurrentCommand() {
-		return currentCommand;
-	}
-
-	public void setCurrentCommand(final String command) {
-		this.currentCommand = command;
 	}
 
 	public void setTypeInformation(final String typeInformation) {
