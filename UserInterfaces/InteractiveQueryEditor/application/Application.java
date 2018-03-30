@@ -62,7 +62,7 @@ public class Application {
 		UITools.scaleUI();
 		final InteractiveQueryEditorModel model = new InteractiveQueryEditorModel();
 		frame = new InteractiveQueryEditorFrame(model);
-		final Dimension size = UITools.calculateDimentsion(2);
+		final Dimension size = UITools.calculateDimentsion(75);
 		frame.setSize((int)size.getWidth(), (int)size.getHeight());
 		frame.setLocation(UITools.calculateCenterPosition(frame.getSize()));
 		frame.setVisible(true);

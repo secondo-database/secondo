@@ -54,10 +54,13 @@ public class UITools {
 		return new Point((int)(screensize.getWidth()-dimension.getWidth())/2, (int)(screensize.getHeight()-dimension.getHeight())/2);
 	}
 
-	public static Dimension calculateDimentsion(final int divisor) {
+	public static Dimension calculateDimentsion(final int percentage) {
+		if (percentage > 100 || percentage < 0) {
+			throw new IllegalArgumentException("Please specify a vlaue between 0 and 100");
+		}
 		final Rectangle screensize = getEffectiveScreenSize();
-		final int width = (int)(screensize.getWidth()/divisor);
-		final int height = (int)(screensize.getHeight()/divisor);
+		final int width = (int)(screensize.getWidth()*percentage/100);
+		final int height = (int)(screensize.getHeight()*percentage/100);
 		return new Dimension(width, height);
 	}
 
