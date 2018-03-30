@@ -35,14 +35,14 @@ public class ComplexToken {
 	private String errorMessage;
 
 	private Operator operator;
-	private int firstPreOpTokenIndex;
-	private int lastPostOpTokenIndex;
+	private int firstCorrespondingTokenIndex;
+	private int lastCorrespondingTokenIndex;
 
 	public ComplexToken(final String text, final TokenType type) {
 		this.text = text;
 		this.type = type;
-		firstPreOpTokenIndex = -1;
-		lastPostOpTokenIndex = -1;
+		firstCorrespondingTokenIndex = -1;
+		lastCorrespondingTokenIndex = -1;
 	}
 
 	public String getText() {
@@ -93,19 +93,19 @@ public class ComplexToken {
 		this.operator = operator;
 	}
 
-	public int getFirstPreOpTokenIndex() {
-		return firstPreOpTokenIndex;
+	public int getFirstCorrespondingTokenIndex() {
+		return firstCorrespondingTokenIndex;
 	}
 
-	public void setFirstPreOpTokenIndex(final int firstPreOpTokenIndex) {
-		this.firstPreOpTokenIndex = firstPreOpTokenIndex;
+	public void setFirstCorrespondingTokenIndex(final int firstCorrespondingTokenIndex) {
+		this.firstCorrespondingTokenIndex = firstCorrespondingTokenIndex;
 	}
 
-	public int getLastPostOpTokenIndex() {
-		return lastPostOpTokenIndex;
+	public int getLastCorrespondingTokenIndex() {
+		return lastCorrespondingTokenIndex;
 	}
 
-	public void setLastPostOpTokenIndex(final int lastPostOpTokenIndex) {
-		this.lastPostOpTokenIndex = lastPostOpTokenIndex;
+	public void setLastCorrespondingTokenIndex(final int lastCorrespondingTokenIndex) {
+		this.lastCorrespondingTokenIndex = lastCorrespondingTokenIndex;
 	}
 }

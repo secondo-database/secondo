@@ -28,5 +28,6 @@ import util.domain.ComplexToken;
 public enum TokenType {
 	OPERATOR,
 	PARANTHESIS,
-	IDENTIFIER
+	IDENTIFIER,
+	DELIMITER
 }

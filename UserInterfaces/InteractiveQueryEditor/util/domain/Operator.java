@@ -35,10 +35,11 @@ public class Operator {
 	private String name;
 	private String alias;
 	private OperatorType operatorType;
-	private ArrayList<ParameterType> preOpArguments;
+	private ArrayList<ParameterType> prefixArguments;
 	private ParanthesisType paranthesisType;
-	private ArrayList<ParameterType> postOpArguments;
+	private ArrayList<ParameterType> postfixArguments;
 	private String pattern;
+	private String implicitInformation;
 
 	public String getName() {
 		return name;
@@ -64,12 +65,12 @@ public class Operator {
 		this.operatorType = operatorType;
 	}
 
-	public ArrayList<ParameterType> getPreOpArguments() {
-		return preOpArguments;
+	public ArrayList<ParameterType> getPrefixArguments() {
+		return prefixArguments;
 	}
 
-	public void setPreOpArguments(final ArrayList<ParameterType> preOpArguments) {
-		this.preOpArguments = preOpArguments;
+	public void setPrefixArguments(final ArrayList<ParameterType> prefixArguments) {
+		this.prefixArguments = prefixArguments;
 	}
 
 	public ParanthesisType getParanthesisType() {
@@ -80,12 +81,12 @@ public class Operator {
 		this.paranthesisType = paranthesisType;
 	}
 
-	public ArrayList<ParameterType> getPostOpArguments() {
-		return postOpArguments;
+	public ArrayList<ParameterType> getPostfixArguments() {
+		return postfixArguments;
 	}
 
-	public void setPostOpArguments(final ArrayList<ParameterType> postOpArguments) {
-		this.postOpArguments = postOpArguments;
+	public void setPostfixArguments(final ArrayList<ParameterType> postfixArguments) {
+		this.postfixArguments = postfixArguments;
 	}
 
 	public String getPattern() {
@@ -96,16 +97,25 @@ public class Operator {
 		this.pattern = pattern;
 	}
 
+	public String getImplicitInformation() {
+		return implicitInformation;
+	}
+
+	public void setImplicitInformation(final String implicitInformation) {
+		this.implicitInformation = implicitInformation;
+	}
+
 	@Override
 	public String toString() {
 		final StringBuilder builder = new StringBuilder();
 		builder.append("name:").append(getName()).append("\n");
 		builder.append("alias:").append(getAlias()).append("\n");
 		builder.append("operatorType:").append(getOperatorType()).append("\n");
-		builder.append("pre:").append(getPreOpArguments().size()).append("\n");
+		builder.append("pre:").append(getPrefixArguments() != null ? getPrefixArguments().size(): 0).append("\n");
 		builder.append("paranthesis:").append(getParanthesisType()).append("\n");
-		builder.append("post:").append(getPostOpArguments().size()).append("\n");
+		builder.append("post:").append(getPostfixArguments()!= null ? getPostfixArguments().size(): 0).append("\n");
 		builder.append("pattern:").append(getPattern()).append("\n");
+		builder.append("implicit:").append(getImplicitInformation()).append("\n");
 		return builder.toString();
 	}
 }

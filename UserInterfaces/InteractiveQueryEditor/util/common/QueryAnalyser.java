@@ -40,11 +40,12 @@ import util.secondo.SecondoFacade;
 
 /**
  * This class is responsible for the complete analysis of a query.
- * The {@link #analyseCommand(String)} method parses and analyses the query.
+ * The {@link #analyseQuery(String)} method parses and analyses the query.
  * @author D.Merle
  */
 public class QueryAnalyser {
-	private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\S+");//Every white space character splits the string into another token
+	//Finds sequences of non-whitespace characters. This way all whitespaces get removed
+	private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\S+");
 	//There several characters and even operators which can appear within a query but do not need to be separated by whitespaces
 	private static final Pattern ADVANCED_PATTERN = Pattern.compile("\".*?\"|'.*?'|>=|<=|[\\[\\]\\(\\),;=#<>]");
 
@@ -52,11 +53,14 @@ public class QueryAnalyser {
 	private static final HashSet<String> DELIMITER = new HashSet<>(Arrays.asList(",", ";"));
 	private final HashMap<String, Operator> secondoOperators;
 
-
+	/**
+	 * This method is used for debugging purposes only.
+	 * @param args
+	 */
 	public static void main(final String[] args) {
 		final QueryAnalyser analyser = new QueryAnalyser("specs");
 		try {
-			analyser.analyseCommand("query Orte feed filter[.Ort=\"Zwickau\"] consume");
+			analyser.analyseQuery("query Orte feed filter[.Ort=\"Berlin\"] consume");
 		} catch (final Exception e) {
 			e.printStackTrace();
 		}
@@ -70,43 +74,41 @@ public class QueryAnalyser {
 		}
 	}
 
-	public String analyseCommand(final String command) throws Exception {
-		final String[] tokens = parseSimpleTokens(command);
+	public String analyseQuery(final String query) throws Exception {
+		final String[] tokens = parseTokens(query);
 		//		return "Token size: " + tokens.length + "\n" + "Token:\n" + StringUtilities.appendStrings(tokens);
 		// used for debugging purpose. if you remove the comment and comment the following lines the analysers will show all recognized tokens
-		final ArrayList<ComplexToken> tokenList = new ArrayList<>();
-		analyseTokenType(tokenList, tokens);
-		analyseTokens(tokenList);
-		return createTypeInformation(tokenList);
+		final ComplexToken[] complexTokens = analyseTokenType(tokens);
+		analyseTokens(complexTokens);
+		return createTypeInformation(complexTokens);
 	}
 
-	public static String[] parseSimpleTokens(final String command) {
-		final ArrayList<String> simpleStringTokens = new ArrayList<>();
-		final Matcher tokenMatcher = WHITESPACE_PATTERN.matcher(command);
-		while (tokenMatcher.find()) {
-			final String splitByWhitespace = tokenMatcher.group(0);
+	private static String[] parseTokens(final String query) {
+		final ArrayList<String> tokens = new ArrayList<>();
+		final Matcher whitespaceMatcher = WHITESPACE_PATTERN.matcher(query);
+		while (whitespaceMatcher.find()) {
+			final String splitByWhitespace = whitespaceMatcher.group(0);
 			final Matcher advancedMatcher = ADVANCED_PATTERN.matcher(splitByWhitespace);
+			//This part of the algorithm searches for occurrence of the advanced pattern within the substring split by whitespaces
 			int lastFoundEndIndex = 0;
-			boolean foundDelimiters = advancedMatcher.find();
-			while (foundDelimiters) {
-				final String subString = splitByWhitespace.substring(lastFoundEndIndex, advancedMatcher.start(0));
-				if (!subString.equals("")) {
-					simpleStringTokens.add(subString);
+			while (advancedMatcher.find()) {
+				final String splitByAdvancedPattern = splitByWhitespace.substring(lastFoundEndIndex, advancedMatcher.start(0));
+				if (!splitByAdvancedPattern.equals("")) {
+					tokens.add(splitByAdvancedPattern);//Add the substring before the found group
 				}
 				lastFoundEndIndex = advancedMatcher.end(0);
-				simpleStringTokens.add(advancedMatcher.group(0));
-
-				foundDelimiters = advancedMatcher.find();
+				tokens.add(advancedMatcher.group(0));//Add the found group
 			}
 
 			if (lastFoundEndIndex < splitByWhitespace.length()) {
-				simpleStringTokens.add(splitByWhitespace.substring(lastFoundEndIndex, splitByWhitespace.length()));
+				tokens.add(splitByWhitespace.substring(lastFoundEndIndex)); //Add the leftover part of the substring
 			}
 		}
-		return simpleStringTokens.toArray(new String[simpleStringTokens.size()]);
+		return tokens.toArray(new String[tokens.size()]);
 	}
 
-	private void analyseTokenType(final ArrayList<ComplexToken> tokenList, final String[] tokens) {
+	private ComplexToken[] analyseTokenType(final String[] tokens) {
+		final ArrayList<ComplexToken> tokenList = new ArrayList<>();
 		for (int i = 1; i < tokens.length; i++) {//Ignore first token, because it is always "query" and it is not an operator of Secondo
 			if (secondoOperators.containsKey(tokens[i])) {
 				final ComplexToken token = new ComplexToken(tokens[i], TokenType.OPERATOR);
@@ -114,133 +116,187 @@ public class QueryAnalyser {
 				tokenList.add(token);
 			} else if (PARANTHESIS.contains(tokens[i])) {
 				tokenList.add(new ComplexToken(tokens[i], TokenType.PARANTHESIS));
+			} else if (DELIMITER.contains(tokens[i])) {
+				tokenList.add(new ComplexToken(tokens[i], TokenType.DELIMITER));
 			} else {
-				//TODO Test auf gültigen Bezeichner
 				tokenList.add(new ComplexToken(tokens[i], TokenType.IDENTIFIER));
 			}
 		}
+		return tokenList.toArray(new ComplexToken[tokenList.size()]);
 	}
 
-	private void analyseTokens(final ArrayList<ComplexToken> tokenList) {
-		for (int i = 0; i < tokenList.size(); i++) {
-			final ComplexToken token = tokenList.get(i);
-			if (token.getType().equals(TokenType.OPERATOR)) {
-				if (checkPostfixArguments(tokenList, token, i)) {
-					checkPrefixArguments(tokenList, token, i);
-				} else if (token.getOccurredErrorType() != null &&
-						(token.getOccurredErrorType().equals(ErrorType.MISSING_PARANTHESIS)
-								|| token.getOccurredErrorType().equals(ErrorType.WRONG_PARANTHESIS))) {
-					break;
+	/**
+	 * This method checks the syntactical and semantical correctness of the given tokens
+	 * @param complexTokens
+	 */
+	private void analyseTokens(final ComplexToken[] complexTokens) {
+		for (int i = 0; i < complexTokens.length; i++) {
+			final ComplexToken currentToken = complexTokens[i];
+			if (currentToken.getType().equals(TokenType.OPERATOR) && !currentToken.isConsumedByOperator()) {
+				if(checkPostfixArguments(complexTokens, currentToken, i)) {//If everything is ok
+					checkPrefixArguments(complexTokens, currentToken, i);//then check the prefix arguments
+				}
+
+				if (currentToken.getOccurredErrorType() != null) {//If an error occurred
+					if (currentToken.getOccurredErrorType().equals(ErrorType.MISSING_PARANTHESIS)//If these two errors occur the analysis
+							|| currentToken.getOccurredErrorType().equals(ErrorType.WRONG_PARANTHESIS)
+							|| currentToken.getOccurredErrorType().equals(ErrorType.MISSING_POSTFIX_ARGUMENTS)
+							|| currentToken.getOccurredErrorType().equals(ErrorType.TOO_MANY_POSTFIX_ARGUMENTS)) {//should abort
+						break;
+					}//else continue
 				}
 			}
 		}
 	}
 
-	private boolean checkPostfixArguments(final ArrayList<ComplexToken> tokenList, final ComplexToken token, final int i) {
-		if (!token.getOperator().getParanthesisType().equals(ParanthesisType.NONE)) {
-			if (!checkParanthesis(tokenList, token, i)) {
+	private boolean checkPostfixArguments(final ComplexToken[] tokens, final ComplexToken currentToken, final int currentTokenIndex) {
+		if (currentToken.getOperator().getOperatorType().equals(OperatorType.INFIXOP)) {
+			if (currentTokenIndex + 1 < tokens.length) {
+				final ComplexToken nextElement = tokens[currentTokenIndex + 1];
+				if (nextElement.getType().equals(TokenType.IDENTIFIER)
+						|| nextElement.getType().equals(TokenType.OPERATOR)) {
+					nextElement.setConsumedByOperator(true);
+					return true;
+				} else {
+					currentToken.setOccurredErrorType(ErrorType.MISSING_POSTFIX_ARGUMENTS);
+					currentToken.setErrorMessage(String.format("Missing postfix argument for infix operator %s", currentToken.getText()));
+					return false;
+				}
+			}
+			return true;
+		} else {
+			if (currentToken.getOperator().getParanthesisType().equals(ParanthesisType.NONE) ||
+					(currentToken.getOperator().getParanthesisType().equals(ParanthesisType.ROUND) &&
+							currentToken.getOperator().getPostfixArguments().size() == 0)) {
+				//Operators with postfix arguments always use a paranthesis. Operators with no paranthesis do not have any postfix arguments.
+				//Some operators with a round paranthesis use zero arguments. they get ignored too
+				return true;
+			}
+
+			//First step for all other operators is a check of the paranthesis
+			if (!analyseParanthesis(tokens, currentToken, currentTokenIndex)) {//If checkParanthesis evaluates to true then continue
+				return false;
+			}
+
+			//Before we can count the amount of postfix arguments within the paranthesis
+			//all tokens within the paranthesis need to get analysed. Therefore we
+			//use a recursive call to analyse all tokens within the paranthesis
+			final int next = currentTokenIndex + 1;//The token after the operator (the paranthesis)
+			final ComplexToken openingParanthesis = tokens[next];
+			final int numberOfSubTokens = openingParanthesis.getLastCorrespondingTokenIndex() - next -1;
+			if (numberOfSubTokens > 0) {
+				final ComplexToken[] subTokens = new ComplexToken[numberOfSubTokens];
+				for (int i = 0; i < subTokens.length; i++) {
+					subTokens[i] = tokens[next + 1 + i];
+				}
+
+				analyseTokens(subTokens);//recurive call for every paranthesis
+			}
+
+			//when all the tokens within a paranthesis are analysed we do count all unsused identifiers and operators
+			final int numberOfPostFixArguments = currentToken.getOperator().getPostfixArguments().size();
+			int numberOfFoundArgments = 0;
+			for (int j = currentTokenIndex + 2; j < tokens.length; j++) {
+				final ComplexToken nextElement = tokens[j];
+				if ((nextElement.getType().equals(TokenType.IDENTIFIER)
+						|| nextElement.getType().equals(TokenType.OPERATOR)) && !nextElement.isConsumedByOperator()) {
+					nextElement.setConsumedByOperator(true);
+					numberOfFoundArgments++;
+				} else if (nextElement.getType().equals(TokenType.PARANTHESIS)) {
+					if (nextElement.getText().equals("[") || nextElement.getText().equals("(")) {
+						j = nextElement.getLastCorrespondingTokenIndex();
+						continue;
+					} else if (nextElement.getText().equals("]") || nextElement.getText().equals(")")) {
+						break;
+					}
+				}
+			}
+
+			if (numberOfFoundArgments == numberOfPostFixArguments) {
+				return true;
+			} else if (numberOfFoundArgments < numberOfPostFixArguments) {
+				currentToken.setOccurredErrorType(ErrorType.MISSING_POSTFIX_ARGUMENTS);
+				currentToken.setErrorMessage(String.format("Missing postfix arguments for operator %s", currentToken.getText()));
+				return false;
+			} else {
+				currentToken.setOccurredErrorType(ErrorType.TOO_MANY_POSTFIX_ARGUMENTS);
+				currentToken.setErrorMessage(String.format("Too many postfix arguments for operator %s", currentToken.getText()));
 				return false;
 			}
 		}
-
-		if (token.getOperator().getOperatorType().equals(OperatorType.INFIXOP)) {//Erstmal nur infix behandeln der rest wird morgen erledigt
-			final int numberOfPostOpArguments = token.getOperator().getPostOpArguments().size();
-			if (numberOfPostOpArguments > 0) {
-				int numberOfFoundArgments = 0;
-				for (int j = i+1; j < tokenList.size(); j++) {
-					final ComplexToken nextElement = tokenList.get(j);
-					if (nextElement.getType().equals(TokenType.IDENTIFIER)
-							|| nextElement.getType().equals(TokenType.OPERATOR)) {
-						nextElement.setConsumedByOperator(true);
-						numberOfFoundArgments++;
-					} else if (nextElement.getType().equals(TokenType.PARANTHESIS)) {
-						if (nextElement.getText().equals("[") || nextElement.getText().equals("(")) {
-							j = nextElement.getLastPostOpTokenIndex();
-							continue;
-						} else if (nextElement.getText().equals("]") || nextElement.getText().equals(")")) {
-							break;
-						}
-					}
-
-					if (numberOfFoundArgments == numberOfPostOpArguments) {
-						return true;
-					}
-				}
-			} else {
-				return true;
-			}
-		} else {
-			return true;
-		}
-		token.setOccurredErrorType(ErrorType.MISSING_POSTFIX_ARGUMENTS);
-		token.setErrorMessage(String.format("Missing postfix arguments for operator %s", token.getText()));
-		return false;
 	}
 
-	private boolean checkParanthesis(final ArrayList<ComplexToken> tokenList, final ComplexToken token, final int i) {
+	/**
+	 * This methode checks for a given token of type operator if the paranthesis is correct and completed
+	 * @param tokens
+	 * @param currentToken
+	 * @param currentTokenIndex
+	 * @return
+	 */
+	private boolean analyseParanthesis(final ComplexToken[] tokens, final ComplexToken currentToken, final int currentTokenIndex) {
 		int openParanthesisCounter = 0;
-		ComplexToken firstToken = null;
-		if (i + 1 < tokenList.size()) {
-			firstToken = tokenList.get(i+1);
-			if (firstToken.getType().equals(TokenType.PARANTHESIS)) {
-				if (token.getOperator().getParanthesisType().equals(ParanthesisType.ROUND) && firstToken.getText().equals(ParanthesisType.ROUND.getOpeningParanthesis()) ||
-						token.getOperator().getParanthesisType().equals(ParanthesisType.SQUARED) && firstToken.getText().equals(ParanthesisType.SQUARED.getOpeningParanthesis())) {
+		ComplexToken firstFollowingToken = null;
+		if (currentTokenIndex + 1 < tokens.length) {
+			firstFollowingToken = tokens[currentTokenIndex+1];
+			if (firstFollowingToken.getType().equals(TokenType.PARANTHESIS)) {
+				if (currentToken.getOperator().getParanthesisType().equals(ParanthesisType.ROUND) && firstFollowingToken.getText().equals(ParanthesisType.ROUND.getOpeningParanthesis()) ||
+						currentToken.getOperator().getParanthesisType().equals(ParanthesisType.SQUARED) && firstFollowingToken.getText().equals(ParanthesisType.SQUARED.getOpeningParanthesis())) {
 					openParanthesisCounter++;
 				} else {
-					token.setOccurredErrorType(ErrorType.WRONG_PARANTHESIS);
-					token.setErrorMessage("Paranthesis does not match operator definition");
+					currentToken.setOccurredErrorType(ErrorType.WRONG_PARANTHESIS);
+					currentToken.setErrorMessage("Paranthesis does not match operator definition");
 					return false;//wrong paranthesis after the operator
 				}
 			} else {
-				token.setOccurredErrorType(ErrorType.MISSING_PARANTHESIS);
-				token.setErrorMessage("Missing opening paranthesis");
+				currentToken.setOccurredErrorType(ErrorType.MISSING_PARANTHESIS);
+				currentToken.setErrorMessage("Missing opening paranthesis");
 				return false;//missing paranthesis after the operator
 			}
 		} else {
 			return false;//no paranthesis but still nothing typed after the operator
 		}
 
-		for (int j = i+2; j < tokenList.size(); j++) {
-			final ComplexToken nextToken = tokenList.get(j);
+		for (int j = currentTokenIndex+2; j < tokens.length; j++) {
+			final ComplexToken nextToken = tokens[j];
 			if (nextToken.getType().equals(TokenType.PARANTHESIS)) {
-				if (token.getOperator().getParanthesisType().equals(ParanthesisType.ROUND) && nextToken.getText().equals(ParanthesisType.ROUND.getOpeningParanthesis()) ||
-						token.getOperator().getParanthesisType().equals(ParanthesisType.SQUARED) && nextToken.getText().equals(ParanthesisType.SQUARED.getOpeningParanthesis())) {
+				if (currentToken.getOperator().getParanthesisType().equals(ParanthesisType.ROUND) && nextToken.getText().equals(ParanthesisType.ROUND.getOpeningParanthesis()) ||
+						currentToken.getOperator().getParanthesisType().equals(ParanthesisType.SQUARED) && nextToken.getText().equals(ParanthesisType.SQUARED.getOpeningParanthesis())) {
 					openParanthesisCounter++;
-				} else if (token.getOperator().getParanthesisType().equals(ParanthesisType.ROUND) && nextToken.getText().equals(ParanthesisType.ROUND.getClosingParanthesis()) ||
-						token.getOperator().getParanthesisType().equals(ParanthesisType.SQUARED) && nextToken.getText().equals(ParanthesisType.SQUARED.getClosingParanthesis())) {
+				} else if (currentToken.getOperator().getParanthesisType().equals(ParanthesisType.ROUND) && nextToken.getText().equals(ParanthesisType.ROUND.getClosingParanthesis()) ||
+						currentToken.getOperator().getParanthesisType().equals(ParanthesisType.SQUARED) && nextToken.getText().equals(ParanthesisType.SQUARED.getClosingParanthesis())) {
 					openParanthesisCounter--;
 				} else {
-					throw new IllegalArgumentException("One token was identified to be a paranthesis but its value does not fit the specified brackets!");
+					throw new IllegalArgumentException("A token was identified to be a paranthesis but it does not fit the operator definition!");
 				}
 			}
 
 			if (openParanthesisCounter == 0) {
-				token.setLastPostOpTokenIndex(j);
-				firstToken.setLastPostOpTokenIndex(j);
-				nextToken.setFirstPreOpTokenIndex(i+1);
-				return true;//paranthesis closed
+				currentToken.setLastCorrespondingTokenIndex(j);//the operator
+				firstFollowingToken.setLastCorrespondingTokenIndex(j);//the openening paranthesis
+				nextToken.setFirstCorrespondingTokenIndex(currentTokenIndex+1);//the closing paranthesis
+				return true;//paranthesis complete and closed
 			}
 		}
-		token.setOccurredErrorType(ErrorType.UNFINISHED_PARANTHESIS);
+		currentToken.setOccurredErrorType(ErrorType.UNFINISHED_PARANTHESIS);
 		return false;//open paranthesis
 	}
 
-	private boolean checkPrefixArguments(final ArrayList<ComplexToken> input, final ComplexToken token, final int opIndex) {
-		final int numberOfPreOpArguments = token.getOperator().getPreOpArguments().size();
+	private boolean checkPrefixArguments(final ComplexToken[] tokens, final ComplexToken currentToken, final int currentTokenIndex) {
+		final int numberOfPreOpArguments = currentToken.getOperator().getPrefixArguments().size();
 		int foundArguments = 0;
-		for (int i = opIndex - 1; i >= 0; i--) {
-			final ComplexToken previousElement = input.get(i);
+		for (int i = currentTokenIndex - 1; i >= 0; i--) {
+			final ComplexToken previousElement = tokens[i];
 			if ((previousElement.getType().equals(TokenType.IDENTIFIER) || previousElement.getType().equals(TokenType.OPERATOR))
 					&& !previousElement.isConsumedByOperator()) {
 				previousElement.setConsumedByOperator(true);
-				token.setFirstPreOpTokenIndex(i);
+				currentToken.setFirstCorrespondingTokenIndex(i);
 				foundArguments++;
 			}
 			else if (previousElement.getType().equals(TokenType.PARANTHESIS)) {
 				if (previousElement.getText().equals("[") || previousElement.getText().equals("(")) {
 					break;
 				} else if (previousElement.getText().equals("]") || previousElement.getText().equals(")")) {
-					i = previousElement.getFirstPreOpTokenIndex();
+					i = previousElement.getFirstCorrespondingTokenIndex();
 					continue;
 				}
 			}
@@ -249,16 +305,16 @@ public class QueryAnalyser {
 				return true;
 			}
 		}
-		token.setOccurredErrorType(ErrorType.MISSING_PREFIX_ARGUMENTS);
-		token.setErrorMessage(String.format("Missing prefix arguments for operator %s", token.getText()));
+		currentToken.setOccurredErrorType(ErrorType.MISSING_PREFIX_ARGUMENTS);
+		currentToken.setErrorMessage(String.format("Missing prefix arguments for operator %s", currentToken.getText()));
 		return false;
 	}
 
 
-	private String createTypeInformation(final ArrayList<ComplexToken> tokenList) throws Exception {
+	private String createTypeInformation(final ComplexToken[] complexTokens) throws Exception {
 		final StringBuilder typeInfo = new StringBuilder();
-		for (int i = 0; i < tokenList.size(); i++) {
-			final ComplexToken token = tokenList.get(i);
+		for (int i = 0; i < complexTokens.length; i++) {
+			final ComplexToken token = complexTokens[i];
 			if (token.getType().equals(TokenType.IDENTIFIER) && !token.isConsumedByOperator()) {
 				final ListExpr typeExpr = SecondoFacade.query("query " + token.getText() + " getTypeNL", false);
 				if (typeExpr != null) {
@@ -268,36 +324,34 @@ public class QueryAnalyser {
 					typeInfo.append("\n");
 				}
 			} else if (token.getType().equals(TokenType.OPERATOR) && !token.isConsumedByOperator()) {
-				if ((token.getOperator().getPreOpArguments().size() != 0 && token.getFirstPreOpTokenIndex() == -1) ||
-						(token.getOperator().getPostOpArguments().size() != 0 && token.getLastPostOpTokenIndex() == -1)) {
+				if ((token.getOperator().getPrefixArguments().size() != 0 && token.getFirstCorrespondingTokenIndex() == -1) ||
+						(token.getOperator().getPostfixArguments().size() != 0 && token.getLastCorrespondingTokenIndex() == -1)) {
 					if (token.getOccurredErrorType() != null && token.getErrorMessage() != null) {
 						typeInfo.append("\n").append(token.getErrorMessage()).append("\n");
 					}
 					continue;//operator paranthesis unfinished
 				}
 
-				int startIndex = token.getFirstPreOpTokenIndex();
+				int startIndex = token.getFirstCorrespondingTokenIndex();
 				for (int j = i; j >= startIndex; j--) {
-					final ComplexToken tempToken = tokenList.get(j);
-					if (tempToken.getFirstPreOpTokenIndex() != -1 && tempToken.getFirstPreOpTokenIndex()<startIndex) {
-						startIndex = tempToken.getFirstPreOpTokenIndex();
+					final ComplexToken tempToken = complexTokens[j];
+					if (tempToken.getFirstCorrespondingTokenIndex() != -1 && tempToken.getFirstCorrespondingTokenIndex()<startIndex) {
+						startIndex = tempToken.getFirstCorrespondingTokenIndex();
 					}
 				}
 
 				final StringBuilder opQuery = new StringBuilder();
 				opQuery.append("query ");
 				for (int j = startIndex; j < i; j++) {
-					final ComplexToken tempToken = tokenList.get(j);
+					final ComplexToken tempToken = complexTokens[j];
 					opQuery.append(tempToken.getText()).append(" ");
 				}
 				opQuery.append(token.getText()).append(" ");
-				for (int j = i+1; j <= token.getLastPostOpTokenIndex(); j++) {
-					final ComplexToken tempToken = tokenList.get(j);
+				for (int j = i+1; j <= token.getLastCorrespondingTokenIndex(); j++) {
+					final ComplexToken tempToken = complexTokens[j];
 					opQuery.append(tempToken.getText()).append(" ");
 				}
 				opQuery.append("getTypeNL");
-
-				//				typeInfo.append("\nOpQuery:").append(opQuery.toString()).append("\n");
 
 				final ListExpr typeExpr = SecondoFacade.query(opQuery.toString(), false);
 				if (typeExpr != null) {
@@ -313,9 +367,6 @@ public class QueryAnalyser {
 						typeInfo.append("\n");
 					}
 				}
-			}
-			else if (token.getType().equals(TokenType.PARANTHESIS) && !token.isConsumedByOperator()) {
-
 			}
 
 			if (token.getOccurredErrorType() != null) {

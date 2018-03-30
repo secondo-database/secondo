@@ -40,7 +40,7 @@ import util.domain.enums.ParanthesisType;
  * @author D.Merle
  */
 public class OperatorSpecParser {
-
+	private static final Pattern ARGUMENT_PATTERN = Pattern.compile("funlist|fun|list|_");
 	/**
 	 *
 	 * @param filePath
@@ -89,8 +89,9 @@ public class OperatorSpecParser {
 	 */
 	private static void parsePattern(final Operator operator, final String pattern) {
 		String temp = pattern;
-		if (temp.contains("implicit")) {
-			temp = temp.substring(0, temp.indexOf("implicit"));
+		if (pattern.contains("implicit")) {
+			temp = pattern.substring(0, pattern.indexOf("implicit"));
+			operator.setImplicitInformation(pattern.substring(pattern.indexOf("implicit")));
 		}
 		operator.setPattern(temp);
 
@@ -103,15 +104,15 @@ public class OperatorSpecParser {
 			operatorIndex = temp.indexOf("op") + "op".length();
 		}
 
-		final ArrayList<ParameterType> preOpParameters = new ArrayList<>();
-		final ArrayList<ParameterType> postOpParameters = new ArrayList<>();
+		final ArrayList<ParameterType> prefixParameters = new ArrayList<>();
+		final ArrayList<ParameterType> postfixParameters = new ArrayList<>();
 
 		int paramIndex = temp.indexOf("_", 0);
 		while (paramIndex != -1 && paramIndex < operatorIndex) {
-			preOpParameters.add(ParameterType.WILDCARD);
+			prefixParameters.add(ParameterType.WILDCARD);
 			paramIndex = temp.indexOf("_", paramIndex+1);
 		}
-		operator.setPreOpArguments(preOpParameters);
+		operator.setPrefixArguments(prefixParameters);
 
 
 		if (temp.contains("(")) {
@@ -121,24 +122,26 @@ public class OperatorSpecParser {
 		} else {
 			operator.setParanthesisType(ParanthesisType.NONE);
 			if (operator.getOperatorType().equals(OperatorType.OP)) {
-				operator.setPostOpArguments(postOpParameters);
+				operator.setPostfixArguments(postfixParameters);
 				return;
 			}
 		}
 
 		temp = temp.substring(operatorIndex, temp.length()).trim();
-		final String[] parameters = temp.split("\\s|[|]|,|;|(|)");
-		for (int i = 0; i < parameters.length; i++) {
-			if (parameters[i].trim().equals("_")) {
-				postOpParameters.add(ParameterType.WILDCARD);
-			} else if (parameters[i].trim().equals("fun")) {
-				postOpParameters.add(ParameterType.FUNCTION);
-			} else if (parameters[i].trim().equals("list")) {
-				postOpParameters.add(ParameterType.LIST);
-			} else if (parameters[i].trim().equals("funlist")) {
-				postOpParameters.add(ParameterType.FUNCTION_LIST);
+		final Matcher argumentMatcher = ARGUMENT_PATTERN.matcher(temp);
+		while(argumentMatcher.find()) {
+			final String subString = argumentMatcher.group(0);
+			if (subString.equals("_")) {
+				postfixParameters.add(ParameterType.WILDCARD);
+			} else if (subString.equals("fun")) {
+				postfixParameters.add(ParameterType.FUNCTION);
+			} else if (subString.equals("list")) {
+				postfixParameters.add(ParameterType.LIST);
+			} else if (subString.equals("funlist")) {
+				postfixParameters.add(ParameterType.FUNCTION_LIST);
 			}
 		}
-		operator.setPostOpArguments(postOpParameters);
+
+		operator.setPostfixArguments(postfixParameters);
 	}
 }

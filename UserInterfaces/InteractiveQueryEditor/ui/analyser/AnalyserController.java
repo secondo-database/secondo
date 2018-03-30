@@ -63,7 +63,7 @@ public class AnalyserController implements DocumentListener, EditorEventListener
 				if (command.startsWith("query ") && command.length() > 6) {
 					String typeInformation = "";
 					try {
-						typeInformation = analyser.analyseCommand(command);
+						typeInformation = analyser.analyseQuery(command);
 					} catch (final Exception e) {
 						ExceptionHandler.showException(parent, e, "");
 					}
