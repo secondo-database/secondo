@@ -27,6 +27,9 @@
 include ../../makefile.env
 
 JNITOOL_OBJECT_PATH = ../../Tools/Jni/JNITool.o
+JAVAFILES =$(shell find . -name "*.java")
+TMPFILES = $(subst .java,.class,$(JAVAFILES))
+CLASSFILES = $(subst ./,,$(TMPFILES))
 
 .PHONY: all
 all: Executable SecondoTTYIQE.jar SecondoKernel.so
@@ -36,20 +39,20 @@ Executable:
 	@printf '%s\n' '#!/bin/bash' 'java -jar SecondoTTYIQE.jar -Djava.library.path=/home/secondo > secondoOut.txt 2> secondoOut.txt' > SecondoTTYIQE.sh
 	@chmod +x SecondoTTYIQE.sh
 
+
 .PHONY: SecondoTTYIQE.jar
-SecondoTTYIQE.jar:
+SecondoTTYIQE.jar: $(CLASSFILES)
 	@echo "Creating Jar"
 	@rm -rf build
 	@mkdir build
 	@cd build;find ../lib -name "*.jar" -exec jar -xf {} \;
 	@cd build;find . -name "*.java" -exec rm -f {} \;
-	@find . -path ./build -prune -o -name "*.java" -exec cp --parent {} build \;
-	@cd build;find . -name "*.java" -exec javac -cp . {} \;
-	@cd build;find . -name "*.java" -exec rm -f {} \;
+	@find . -path ./build -prune -o -name "*.class" -exec cp --parent {} build \;
 	@printf '%s\n' 'Main-Class: application/Application' > ./build/META-INF/MANIFEST.MF
 	@cd build; jar -cfm  ../SecondoTTYIQE.jar ./META-INF/MANIFEST.MF *
 
-
+%.class: %.java
+	javac -cp .:lib/SecondoInterface.jar $<
 
 .PHONY: SecondoKernel.so
 SecondoKernel.so: JNITool.o SecondoKernel.o
@@ -70,7 +73,3 @@ endif
 .PHONY: clean
 clean:
 	rm -rf build
-
-
-
-
