@@ -1,0 +1,3 @@
+The build of this program requires that the object file JNITool.o has been created.
+To do so set USE_JNI ="true" in the makefile.env file and build Secondo or
+execute the makefile in the folder ../../Tools/Jni directly.
