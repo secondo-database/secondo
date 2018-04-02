@@ -216,11 +216,11 @@ public class QueryAnalyser {
 				return true;
 			} else if (numberOfFoundArgments < numberOfPostFixArguments) {
 				currentToken.setOccurredErrorType(ErrorType.MISSING_POSTFIX_ARGUMENTS);
-				currentToken.setErrorMessage(String.format("Missing postfix arguments for operator %s", currentToken.getText()));
+				currentToken.setErrorMessage(String.format("Missing postfix arguments for operator %s\nThe operator syntax is defined as:%s", currentToken.getText(), currentToken.getOperator().getPattern()));
 				return false;
 			} else {
 				currentToken.setOccurredErrorType(ErrorType.TOO_MANY_POSTFIX_ARGUMENTS);
-				currentToken.setErrorMessage(String.format("Too many postfix arguments for operator %s", currentToken.getText()));
+				currentToken.setErrorMessage(String.format("Too many postfix arguments for operator %s\nThe operator syntax is defined as:%s", currentToken.getText(), currentToken.getOperator().getPattern()));
 				return false;
 			}
 		}
@@ -244,12 +244,12 @@ public class QueryAnalyser {
 					openParanthesisCounter++;
 				} else {
 					currentToken.setOccurredErrorType(ErrorType.WRONG_PARANTHESIS);
-					currentToken.setErrorMessage("Paranthesis does not match operator definition");
+					currentToken.setErrorMessage(String.format("Paranthesis does not match operator definition for operator %s\nThe operator syntax is defined as:%s", currentToken.getText(), currentToken.getOperator().getPattern()));
 					return false;//wrong paranthesis after the operator
 				}
 			} else {
 				currentToken.setOccurredErrorType(ErrorType.MISSING_PARANTHESIS);
-				currentToken.setErrorMessage("Missing opening paranthesis");
+				currentToken.setErrorMessage(String.format("Missing opening paranthesis for operator %s", currentToken.getText()));
 				return false;//missing paranthesis after the operator
 			}
 		} else {
@@ -306,7 +306,7 @@ public class QueryAnalyser {
 			}
 		}
 		currentToken.setOccurredErrorType(ErrorType.MISSING_PREFIX_ARGUMENTS);
-		currentToken.setErrorMessage(String.format("Missing prefix arguments for operator %s", currentToken.getText()));
+		currentToken.setErrorMessage(String.format("Missing prefix arguments for operator %s\nThe operator syntax is defined as:%s", currentToken.getText(), currentToken.getOperator().getPattern()));
 		return false;
 	}
 
