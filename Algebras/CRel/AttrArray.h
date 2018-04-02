@@ -110,6 +110,14 @@ namespace CRelAlgebra
     uint64_t GetCount() const;
 
     /*
+    Determines if this filter contains / projects indices.
+
+    */
+    bool HasFilter() const {
+      return !m_filter.IsNull();
+    }
+
+    /*
     Returns a iterator over the ~AttrArray~'s attributes taking this
     ~AttrArrayFilter~ into account
 

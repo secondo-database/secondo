@@ -124,6 +124,14 @@ namespace CRelAlgebra
     uint64_t GetRowCount() const;
 
     /*
+    Determines if this filter contains / projects indices.
+
+    */
+    bool HasFilter() const {
+      return !m_filter.IsNull();
+    }
+
+    /*
     Returns a iterator over the ~TBlock~'s tuples taking this
     ~TBlockFilter~ into account
 
@@ -227,6 +235,23 @@ namespace CRelAlgebra
     */
     TBlock(const TBlock &block, const uint64_t *columnIndices,
            uint64_t columnCount);
+
+    /*
+    Creates the projection of a existing ~block~ and extends it with the passed
+    columns.
+    The indices of the columns to project on are provided by the array pointer
+    ~projectionIndices~. The number of columns in ~projectionIndices~ is passed
+    by ~projectionIndexCount~. The columns for the extension are provided
+    through ~extensionColumns~ with the number of columns ~extensionColumnCount~
+    and the types ~extensionColumnTypes~.
+
+    The returned ~TBlock~ is supposed to be read only.
+    God knows what might happen if one trys to actually modify or save it.
+
+    */
+    TBlock(const TBlock &block, const uint64_t *projectionIndices,
+           uint64_t projectionIndexCount, AttrArray **extensionColumns,
+           uint64_t extensionColumnCount, const ListExpr extensionColumnTypes);
 
     /*
     Creates the projection of a existing ~block~ and applies a filter to it.

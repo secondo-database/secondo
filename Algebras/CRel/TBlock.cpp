@@ -158,6 +158,133 @@ TBlock::TBlock(const TBlock &instance, const uint64_t *columnIndices,
   m_info = info;
 }
 
+TBlock::TBlock(const TBlock &instance, const uint64_t *projectionIndices,
+               uint64_t projectionIndexCount, AttrArray **extensionColumns,
+               uint64_t extensionColumnCount,
+               const ListExpr extensionColumnTypes) :
+  m_header(instance.m_header),
+  m_columnCount(projectionIndexCount + extensionColumnCount),
+  m_columnInfos(new ColumnInfo[m_columnCount]),
+  m_columns(new AttrArray*[m_columnCount]),
+  m_columnFile(instance.m_columnFile),
+  m_filter(*this),
+  m_refCount(1)
+{
+  uint64_t columnCount = m_columnCount;
+
+  TBlockInfo *info = new TBlockInfo();
+  info->columnCount = columnCount;
+  info->columnTypes = new ListExpr[columnCount];
+  info->columnFactories = new AttrArrayManager*[columnCount];
+
+  // initialize metadata for projected columns
+  for (uint64_t i = 0; i < projectionIndexCount; ++i)
+  {
+    AttrArrayManager *columnManager =
+      instance.m_info->columnFactories[projectionIndices[i]];
+    columnManager->IncRef();
+
+    m_columnInfos[i] = instance.m_columnInfos[projectionIndices[i]];
+
+    info->columnTypes[i] = instance.m_info->columnTypes[projectionIndices[i]];
+    info->columnFactories[i] = columnManager;
+  }
+
+  TBlockInfo extensionInfo(extensionColumnTypes);
+
+  // initialize metadata for extension columns
+  for (uint64_t i = 0; i < extensionColumnCount; ++i)
+  {
+    uint64_t columnIndex = projectionIndexCount + i;
+
+    AttrArrayManager *columnManager = extensionInfo.columnFactories[i];
+    columnManager->IncRef();
+
+    info->columnTypes[columnIndex] = extensionInfo.columnTypes[i];
+    info->columnFactories[columnIndex] = columnManager;
+  }
+
+  SharedArray<const uint64_t> filter = instance.m_filter.m_filter;
+
+  uint64_t size = sizeof(TBlock);
+
+  uint64_t rowCount = m_header.rowCount;
+
+  if (filter.IsNull())
+  {
+    // unfiltered blocks are used as they are
+    for (uint64_t i = 0; i < projectionIndexCount; ++i)
+    {
+      AttrArray *column = 
+        m_columns[i] = instance.m_columns[projectionIndices[i]];
+
+      if (column != nullptr)
+      {
+        column->IncRef();
+      }
+
+      size += m_columnInfos[i].size;
+    }
+  }
+  else
+  {
+    m_header.columnFileId = 0;
+    m_header.flobFileId = 0;
+
+    // filtered blocks must be copied to ensure consistency with extension.
+    // this can lead to very small blocks!
+    rowCount = m_header.rowCount = filter.GetCapacity();
+
+    for (uint64_t i = 0; i < projectionIndexCount; ++i)
+    {
+      AttrArray *column = m_columns[i] = info->columnFactories[i]->Create(0);
+
+      AttrArray &sourceColumn = instance.GetAt(projectionIndices[i]);
+
+      for (uint64_t row = 0; row < rowCount; ++row)
+      {
+        column->Append(sourceColumn, filter[row]);
+      }
+
+      m_columnInfos[i].recordId = 0;
+      size += m_columnInfos[i].size = column->GetSize();
+    }
+  }
+
+  for (uint64_t i = 0; i < extensionColumnCount; ++i)
+  {
+    uint64_t columnIndex = projectionIndexCount + i;
+
+    AttrArray *column = extensionColumns[i];
+
+    const AttrArrayFilter &columnFilter = column->GetFilter();
+
+    if (columnFilter.HasFilter())
+    {
+      // copy to ensure consistency
+      AttrArray *sourceColumn = column;
+
+      column = info->columnFactories[columnIndex]->Create(0);
+
+      for (uint64_t row = 0; row < rowCount; ++row)
+      {
+        column->Append(*sourceColumn, columnFilter.GetAt(row));
+      }
+    }
+    else
+    {
+      column->IncRef();
+    }
+
+    m_columns[columnIndex] = column;
+
+    size += m_columnInfos[columnIndex].size = column->GetSize();
+  }
+
+  m_header.size = size;
+  m_info = info;
+}
+
 TBlock::TBlock(const TBlock &instance, const uint64_t *columnIndices,
                uint64_t columnCount,
                const SharedArray<const uint64_t> &filter) :
