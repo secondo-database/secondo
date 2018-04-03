@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <ostream>
 #include "../../Tools/Flob/DbArray.h"
+#include "../../Tools/Flob/DBATree.h"
 #include "JTreeElement.h"
 
 namespace jnetwork{
@@ -92,6 +93,10 @@ Returns true if pq is empty false elsewhere.
 
 bool IsEmpty() const;
 
+inline int Size() const{
+  return sizePQ;
+}
+
 
 /*
 1.1.1 InsertJunctionVisited
@@ -131,137 +136,13 @@ private:
 1.1.1 Attributes
 
 */
+  dbatree::DBATree<VisitedJunction, VisitedJunctionComparator> visited;
+  DbArray<JPQEntry> pq;
+  int sizePQ;
 
-  DbArray<VisitedJunctionTreeElement> visited;
-  DbArray<JPQEntryTreeElement> pq;
-  int firstFreeVisited, firstFreePQ;
+  void blowUp(int index);
+  void sink(int index);
 
-/*
-1.1.1 IsEmpty
-
-1.1.1.1 IsEmptyPQ
-
-Returns true if the priority queue is empty, false elsewhere.
-
-*/
-
-bool IsEmptyPQ() const;
-
-/*
-1.1.1.1 IsEmptyVisited
-
-Returns true if visited is empty, false elsewhere.
-
-*/
-
-bool IsEmptyVisited() const;
-
-/*
-1.1.1 FindVisited
-
-Returns true if the end node of e has already been visited, false elsewhere.
-visitedPos returns -1 if the visited array is empty, the pos of e if it has been
-found in the array, or the position of the node which will be the father node
-of e if it has not been found. In the latter case visitedLeft indicates if the
-new node will be the left or right son.
-
-*/
-
-bool FindVisited(const JPQEntry& e, int& visitedPos, bool& visitedLeft) const;
-
-/*
-1.1.1 Getter and Setter
-
-1.1.1.1 For Visited
-
-*/
-
-VisitedJunctionTreeElement GetVisited(const int pos) const;
-void SetVisited(const int pos, const VisitedJunctionTreeElement elem);
-
-/*
-1.1.1.1 For PQ
-
-*/
-
-JPQEntryTreeElement GetPQ(const int pos) const;
-void SetPQ(const int pos, const JPQEntryTreeElement elem);
-
-/*
-1.1.1 InsertIntoPQ
-
-Inserts the value into the priority queue and returns the index of the new
-position.
-
-*/
-
-int InsertPQ(const JPQEntry& entry);
-
-/*
-1.1.1 GetFatherPos
-
-Returns the father position of pos and tells if pos is the leftSon of the
-father.
-
-*/
-
-int GetFatherPos(const int pos, bool& isLeftSon);
-
-/*
-1.1.1 InsertVisited
-
-Inserts the value into the list of visited junctions.
-
-*/
-
-void InsertVisited(const VisitedJunction& elem, const int fatherPos,
-                   const bool fatherLeft);
-
-/*
-1.1.1 SetVisitedEntryToPQPos
-
-Changes the position of the entry belonging to result to the given
-pos in the priority queue.
-
-*/
-
-void SetVisitedEntryToPQPos(const JPQEntry& result, const int pos);
-
-/*
-1.1.1 Swap
-
-Exchanges the JPQEntries from elem and minElem which are allocated at pos
-resp. minPos.
-
-*/
-
-void SwapPQ(JPQEntryTreeElement& elem, const int pos,
-            JPQEntryTreeElement& minElem, const int minPos);
-
-/*
-1.1.1 CorrectPosition
-
-Correct Position moves the newElem to its correct position in the heap of the
-priority queue.
-
-1.1.1.1 CorrectPositionUp
-
-Moves the newElem upwards in the tree until it has found its correct
-position in the heap.
-
-*/
-
-void CorrectPositionUp(JPQEntryTreeElement& newElem, int& pos);
-
-/*
-1.1.1.1 CorrectPositionDown
-
-Moves the newElem upwards in the tree until it has found its correct
-position in the heap.
-
-*/
-
-void CorrectPositionDown(JPQEntryTreeElement& newElem, int& pos);
 
 };
 

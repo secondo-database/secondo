@@ -103,7 +103,13 @@ void SetDirection(const Direction& dir);
 */
 
   int Compare(const JPQEntry& other) const;
+  int CompareWOPrio(const JPQEntry& other) const;
+
   JPQEntry& operator=(const JPQEntry& other);
+
+   
+
+
   std::ostream& Print(std::ostream& os) const;
 
 /*
@@ -118,6 +124,8 @@ void SetDirection(const Direction& dir);
     double distFromStartJID, prioval, distStartPathJIDFromStartPoint;
 
 };
+
+
 
 } // end of namespace jnetwork
 

@@ -44,6 +44,8 @@ using namespace std;
 
 */
 
+JNetUtil* JNetUtil::instance=0;
+
 string JNetUtil::GetJunctionsBTreeTypeInfo()
 {
   return "("+ BTree::BasicType() + JNetUtil::GetJunctionsTupleTypeInfo() +
@@ -380,3 +382,33 @@ bool JNetUtil::ArrayContainIntersections(const DbArray< JRouteInterval >& lhs,
   }
   return false;
 }
+
+JNetUtil::JNetUtil(){
+   // create sections tuple type
+   ListExpr tt;
+   nl->ReadFromString(GetSectionsTupleTypeInfo(), tt);
+   ListExpr ttn = SecondoSystem::GetCatalog()->NumericType(tt);
+   sectionsTupleType = new TupleType(ttn);
+   // create junctions tuple type
+   nl->ReadFromString(GetJunctionsTupleTypeInfo(), tt);
+   ttn = SecondoSystem::GetCatalog()->NumericType(tt);
+   junctionsTupleType = new TupleType(ttn);
+   // create routes tuple type
+   nl->ReadFromString(GetRoutesTupleTypeInfo(), tt);
+   ttn = SecondoSystem::GetCatalog()->NumericType(tt);
+   routesTupleType = new TupleType(ttn);
+   // create net distance tuple type
+   nl->ReadFromString(GetNetdistancesTupleTypeInfo(), tt);
+   ttn = SecondoSystem::GetCatalog()->NumericType(tt);
+   netdistancesTupleType = new TupleType(ttn);
+}
+
+JNetUtil::~JNetUtil(){
+   sectionsTupleType->DeleteIfAllowed();
+   junctionsTupleType->DeleteIfAllowed();
+   routesTupleType->DeleteIfAllowed();
+   netdistancesTupleType->DeleteIfAllowed();
+}
+
+
+

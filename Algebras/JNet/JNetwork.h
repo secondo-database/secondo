@@ -824,10 +824,6 @@ void SplitJUnit(const JUnit& ju, JRouteInterval*& lastRint,
                 Instant& lastEndTime, Point*& lastEndPoint, LRS& lrs,
                 int& lrspos, temporalalgebra::MPoint& result) const;
 
-void SplitJUnit(const JUnit& ju, int& curRid, JRouteInterval*& lastRint,
-    JListInt*& routeSectList, int& lastRouteSecListIndex,
-    bool& endTimeCorrected, Instant& lastEnd,
-    SimpleLine*& lastCurve, temporalalgebra::MPoint& result) const;
 
 /*
 1.1.1.1 CheckTupleForRLoc
@@ -1031,6 +1027,11 @@ void ProcessReversePriorityQueue(PQManagement* pqueue,
 void ProcessReversePriorityQueue(PQManagement* pqueue,
                                  const double distLimit,
                                  JLine* result);
+
+
+void addUnits(JUnit& ju, temporalalgebra::MPoint& result,
+                        SimpleLine* lastCurve,
+                        int* lastRouteId) const;
 
 };
 

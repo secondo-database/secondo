@@ -29,6 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "../../Tools/Flob/DbArray.h"
 
+class TupleType;
+
+
 namespace jnetwork {
 /*
 1 Forward Declarations
@@ -67,6 +70,8 @@ public:
 1.1.1 Some Functions returning often used string constants
 
 */
+   ~JNetUtil();
+
 
 static std::string GetSectionsTupleTypeInfo();
 static std::string GetJunctionsTupleTypeInfo();
@@ -136,7 +141,50 @@ Returns true if at least one pair of jrint one of lhs and one of rhs intersects.
   static bool ArrayContainIntersections(const DbArray<JRouteInterval>& lhs,
                                         const DbArray<RouteLocation>& rhs);
 
+  static void destroyInstance(){
+     if(instance){
+       delete instance;
+       instance = 0;
+     }
+  }
+
+  inline static TupleType* getSectionsTupleType() {
+     return getInstance()->sectionsTupleType;
+  }
+
+  inline static TupleType* getJunctionsTupleType(){
+     return getInstance()->junctionsTupleType;
+  }
+
+  inline static TupleType* getRoutesTupleType(){
+     return getInstance()->routesTupleType;
+  }
+
+  inline static TupleType* getNetdistancesTupleType(){
+    return getInstance()->netdistancesTupleType;
+  }
+
+  private:
+     JNetUtil();
+     static JNetUtil* instance;
+
+     TupleType* sectionsTupleType;
+     TupleType* junctionsTupleType;
+     TupleType* routesTupleType;
+     TupleType* netdistancesTupleType;
+
+     inline static JNetUtil* getInstance(){
+        if(!instance){
+           instance = new JNetUtil();
+        }
+        return instance;
+     }
+
+
 };
+
+
+
 
 
 } // end of namespace jnetwork

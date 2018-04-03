@@ -91,6 +91,16 @@ private:
 
 };
 
+class VisitedJunctionComparator{
+  public:
+   int operator()(const VisitedJunction& elem1,
+                  const VisitedJunction& elem2){
+      return elem1.Compare(elem2);
+    }
+
+};
+
+
 } //end of namespace jnetwork
 
 /*

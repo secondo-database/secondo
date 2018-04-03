@@ -185,6 +185,29 @@ int JPQEntry::Compare(const JPQEntry& other) const
   return movDir.Compare(other.GetDirection());
 }
 
+int JPQEntry::CompareWOPrio(const JPQEntry& other) const{
+    if(sid<other.sid) return -1;
+    if(sid>other.sid) return 1;
+
+    if(endPartJID < other.endPartJID) return -1;
+    if(endPartJID > other.endPartJID) return 1;
+    
+    if(startPartJID < other.startPartJID) return -1;
+    if(startPartJID > other.startPartJID) return 1;
+    
+    if(startNextSID < other.startNextSID) return -1;
+    if(startNextSID > other.startNextSID) return 1;
+
+    if(startNextJID < other.startNextJID) return -1;
+    if(startNextJID > other.startNextJID) return 1;
+
+    if(startPathJID < other.startPathJID) return -1;
+    if(startPathJID > other.startPathJID) return 1;
+
+    return movDir.Compare(other.movDir);
+}
+
+
 ostream& JPQEntry::Print(ostream& os) const
 {
   os << "Path started at " << startPathJID

@@ -56,6 +56,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JList.h"
 #include "JPath.h"
 #include "PairIntDouble.h"
+#include "JNetUtil.h"
 
 using namespace std;
 using namespace mappings;
@@ -4793,6 +4794,7 @@ JNetAlgebra::JNetAlgebra():Algebra()
 */
 
   AddOperator(&tojlineJNet);
+
 }
 
 /*
@@ -4801,7 +4803,9 @@ JNetAlgebra::JNetAlgebra():Algebra()
 */
 
  JNetAlgebra::~JNetAlgebra()
- {}
+ {
+   JNetUtil::destroyInstance();    
+ }
 
 /*
 1 Initialization

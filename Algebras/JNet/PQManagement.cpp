@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <limits>
 #include "PQManagement.h"
 
+
 using namespace jnetwork;
 using namespace std;
 
@@ -38,7 +39,7 @@ using namespace std;
 */
 
 PQManagement::PQManagement() :
-  visited(0), pq(0), firstFreeVisited(0), firstFreePQ(0)
+  visited(), pq(0),sizePQ(0)
 {}
 
 PQManagement::~PQManagement()
@@ -51,38 +52,24 @@ PQManagement::~PQManagement()
 
 void PQManagement::Insert(const JPQEntry& e)
 {
-  int visitedPos = 0;
-  bool visitedLeft = true;
-  if (FindVisited(e, visitedPos, visitedLeft))
-  {
-    //cout << "Found before. Check if it is still in priority queue" << endl;
-    VisitedJunctionTreeElement actVisitedElem = GetVisited(visitedPos);
-    int pqPos = actVisitedElem.GetValue().GetIndexPQ();
-    if ( pqPos > 0)
-    {
-      JPQEntryTreeElement actPQEntry = GetPQ(pqPos);
-      if (actPQEntry.GetValue().GetPriority() > e.GetPriority())
-      {
-        //cout << "Update actPQEntry with values from e" << endl;
-        SetPQ(pqPos, e);
-        actVisitedElem.SetValue(VisitedJunction(e, pqPos));
-        SetVisited(visitedPos, actVisitedElem);
-        actPQEntry = GetPQ(pqPos);
-        CorrectPositionUp(actPQEntry, pqPos);
-      }
-    }
-    //in all other cases we do nothing
-  }
-  else
-  {
-    //cout << "New node found insert in pq and visited junctions" << endl;
-    int pqPos = InsertPQ(e);
-    InsertVisited(VisitedJunction(e,pqPos), visitedPos, visitedLeft);
-    if (pqPos > 0)
-    {
-      JPQEntryTreeElement newEntry = GetPQ(pqPos);
-      CorrectPositionUp(newEntry, pqPos);
-    }
+  VisitedJunction vj(e,-1);
+  int index;
+  if(visited.get(vj)) { 
+     if( (index=vj.GetIndexPQ()) >=0){ // entry not finished
+        JPQEntry se;
+        pq.Get(index,se);
+        if(e.GetPriority() < se.GetPriority()){
+           pq.Put(index,e);
+           blowUp(index);
+        }
+     }
+  } else {
+     index = sizePQ;
+     pq.Put(index,e);
+     vj.SetIndexPQ(index);
+     visited.insert(vj);
+     blowUp(index);
+     sizePQ++;
   }
 }
 
@@ -93,16 +80,8 @@ void PQManagement::Insert(const JPQEntry& e)
 
 void PQManagement::InsertJunctionAsVisited(const JPQEntry juncE)
 {
-  int visitedPos = 0;
-  bool visitedLeft = true;
-  //cout << "InsertJunction as Visited: " << juncE << endl;
-  if (!FindVisited(juncE, visitedPos, visitedLeft))
-  {
-    //cout << "new junction" << endl;
-    if (visitedPos < 0)
-      visitedPos = 0;
-    InsertVisited(VisitedJunction(juncE,-1), visitedPos, visitedLeft);
-  }
+   VisitedJunction vj(juncE,-1);
+   visited.insert(vj);
 }
 
 /*
@@ -112,46 +91,19 @@ void PQManagement::InsertJunctionAsVisited(const JPQEntry juncE)
 
 JPQEntry* PQManagement::GetAndDeleteMin()
 {
-  if (!IsEmptyPQ())
-  {
-    int first = 0;
-    JPQEntryTreeElement minElem = GetPQ(first);
-    JPQEntry* result = new JPQEntry(minElem.GetValue());
-    SetVisitedEntryToPQPos(*result, -1);
-    int last = firstFreePQ-1;
-    JPQEntryTreeElement lastElem = GetPQ(last);
-    JPQEntry root = lastElem.GetValue();
-    minElem.SetValue(root);
-    SetPQ(first, minElem);
-    SetPQ(last, JPQEntryTreeElement(JPQEntry(Direction(Both),
-                                            -1, -1, -1, -1, -1, -1,
-                                            numeric_limits<double>::max(),
-                                            numeric_limits<double>::max(),
-                                            numeric_limits<double>::max()),
-                                   -1,-1));
-
-    if (last > 0)
-    {
-      bool fatherLeft = true;
-      int fatherPos = GetFatherPos(last,fatherLeft);
-      JPQEntryTreeElement father = GetPQ(fatherPos);
-      if (fatherLeft)
-        father.SetLeftSon(-1);
-      else
-        father.SetRightSon(-1);
-      SetPQ(fatherPos, father);
-    }
-    firstFreePQ--;
-    SetVisitedEntryToPQPos(root, first);
-    if (!IsEmptyPQ())
-    {
-      minElem = GetPQ(first);
-      CorrectPositionDown(minElem, first);
-    }
-    return result;
+  if(sizePQ==0) return 0;
+  JPQEntry res;
+  pq.Get(0,res);
+  sizePQ--;
+  if(sizePQ>0){
+     JPQEntry last;
+     pq.Get(sizePQ,last);
+     pq.Put(0,last);
+     VisitedJunction vj(last,0);
+     visited.update(vj);
+     sink(0);
   }
-  else
-    return 0;
+  return new JPQEntry(res);
 }
 
 /*
@@ -161,7 +113,7 @@ JPQEntry* PQManagement::GetAndDeleteMin()
 
 bool PQManagement::IsEmpty() const
 {
-  return IsEmptyPQ();
+  return sizePQ==0;
 }
 
 /*
@@ -172,7 +124,7 @@ bool PQManagement::IsEmpty() const
 void PQManagement::Destroy()
 {
   pq.Destroy();
-  visited.Destroy();
+  visited.destroy();
 }
 
 
@@ -184,327 +136,93 @@ void PQManagement::Destroy()
 ostream& PQManagement::Print(ostream& os) const
 {
   os << "priority queue: " << endl;
-  JPQEntryTreeElement curElem;
-  for (int i = 0; i < firstFreePQ; i++)
+  JPQEntry curElem;
+  for (int i = 0; i < sizePQ; i++)
   {
     pq.Get(i,curElem);
     os << i << ".Elem: " << curElem << endl;
   }
   os << "visited junctions: " << endl;
-  VisitedJunctionTreeElement actElem;
-  for (int i = 0; i < firstFreeVisited; i++)
-  {
-    visited.Get(i,actElem);
-    os << i << ".Elem: " << actElem << endl;
-  }
+  visited.printArray(os);
+  os << endl;
   return os;
 }
 
 /*
 1 Implementation of Private Methods
 
-1.1 IsEmpty
-
 */
 
-bool PQManagement::IsEmptyPQ() const
-{
-  return (firstFreePQ == 0);
-}
-
-bool PQManagement::IsEmptyVisited() const
-{
-  return (firstFreeVisited == 0);
-}
-
-/*
-1.1 FindVisited
-
-*/
-
-bool PQManagement::FindVisited(const JPQEntry& e, int& visitedPos,
-                               bool& visitedLeft) const
-{
-  if (IsEmptyVisited())
-  {
-    visitedPos = -1;
-    return false;
-  }
-  else
-  {
-    assert(0 <= visitedPos && visitedPos < firstFreeVisited);
-    VisitedJunctionTreeElement actElem = GetVisited(visitedPos);
-    switch(actElem.GetValue().CompareEndJID(e.GetEndPartJID()))
-    {
-      case -1:
-      {
-        visitedLeft = false;
-        if (actElem.GetRightSon() != -1)
-        {
-          visitedPos = actElem.GetRightSon();
-          return FindVisited(e,visitedPos,visitedLeft);
-        }
-        else
-        {
-          return false;
-        }
-        break;
+void PQManagement::blowUp(int index){
+   int father = ((index + 1) / 2) - 1;
+   JPQEntry elem;
+   pq.Get(index,elem);
+   bool move = false;
+   while(father >=0){
+      JPQEntry f;
+      pq.Get(father,f);
+      if(f.GetPriority() <= elem.GetPriority()){
+         if(move){
+           pq.Put(index,elem);
+           VisitedJunction vj(elem,index);
+           visited.update(vj);
+         }
+         return;
       }
-      case 1:
-      {
-        visitedLeft = true;
-        if (actElem.GetLeftSon() != -1)
-        {
-          visitedPos = actElem.GetLeftSon();
-          return FindVisited(e,visitedPos,visitedLeft);
-        }
-        else
-        {
-          return false;
-        }
-        break;
-      }
-      case 0:
-      {
-        return true;
-        break;
-      }
-      default: // should never been reached
-      {
-        assert(false);
-        visitedPos = -1;
-        return false;
-        break;
-      }
-    }
-    // should never been reached
-    assert(false);
-    visitedPos = -1;
-    return false;
-  }
+      move=true;
+      // swap entries in heap
+      pq.Put(index,f);
+      // update father in visited
+      VisitedJunction vj(f,index);
+      visited.update(vj);
+      index = father;
+      father = ((index + 1) / 2) - 1;
+   }
+   if(move){
+     pq.Put(index,elem);
+     VisitedJunction vj(elem,index);
+     visited.update(vj);
+   }
 }
 
+void PQManagement::sink(int index){
 
-/*
-1.1 Getter and Setter
+   int si = ((index+1)*2) -1;
+   int rsi = si+1;
+   JPQEntry elem;
+   pq.Get(index,elem);
+   JPQEntry s;
+   JPQEntry rs;
+   bool move = false;
 
-*/
-
-VisitedJunctionTreeElement PQManagement::GetVisited(const int pos) const
-{
-  assert(0 <= pos && pos < firstFreeVisited);
-  VisitedJunctionTreeElement elem;
-  visited.Get(pos,elem);
-  return elem;
-}
-
-void PQManagement::SetVisited(const int pos, const VisitedJunctionTreeElement e)
-{
-  assert(0<= pos && pos < firstFreeVisited);
-  visited.Put(pos, e);
-}
-
-
-JPQEntryTreeElement PQManagement::GetPQ(const int pos) const
-{
-  assert(0 <= pos && pos < firstFreePQ);
-  JPQEntryTreeElement elem;
-  pq.Get(pos,elem);
-  return elem;
-}
-
-void PQManagement::SetPQ(const int pos, const JPQEntryTreeElement e)
-{
-  assert(0<= pos && pos < firstFreePQ);
-  pq.Put(pos, e);
-}
-
-/*
-1.1.1 Insert into PQ
-
-*/
-
-int PQManagement::InsertPQ(const JPQEntry& entry)
-{
-  int pos = firstFreePQ;
-  firstFreePQ++;
-  JPQEntryTreeElement newEntry(entry, -1, -1);
-  SetPQ(pos, newEntry);
-  if (pos > 0)
-  {
-    bool fatherLeft = true;
-    int fatherPos = GetFatherPos(pos, fatherLeft);
-    JPQEntryTreeElement father = GetPQ(fatherPos);
-    if (fatherLeft)
-      father.SetLeftSon(pos);
-    else
-      father.SetRightSon(pos);
-    SetPQ(fatherPos, father);
-  }
-  return pos;
-}
-
-int PQManagement::GetFatherPos(const int pos, bool& isLeftSon)
-{
-  int result = -1;
-  if (pos > 0)
-  {
-    if ((pos % 2) == 0)
-    {
-      isLeftSon = false;
-      result = pos - 2;
-    }
-    else
-    {
-      result = pos - 1;
-      isLeftSon = true;
-    }
-    if (pos > 2)
-      result  = result / 2;
-  }
-  return result;
-}
-
-void PQManagement::InsertVisited(const VisitedJunction& elem,
-                                 const int fatherPos,
-                                 const bool fatherLeft)
-{
-  int pos = firstFreeVisited;
-  firstFreeVisited++;
-  SetVisited(pos, VisitedJunctionTreeElement(elem));
-  if (pos > 0)
-  {
-    VisitedJunctionTreeElement father = GetVisited(fatherPos);
-    if (fatherLeft)
-      father.SetLeftSon(pos);
-    else
-      father.SetRightSon(pos);
-    SetVisited(fatherPos,father);
-  }
-}
-
-/*
-1.1 SwapPQ
-
-*/
-
-void PQManagement::SwapPQ(JPQEntryTreeElement& elem1, const int pos1,
-                          JPQEntryTreeElement& elem2, const int pos2)
-{
-  JPQEntry entry1 = elem1.GetValue();
-  int visitedPos1 = 0;
-  bool visitedLeft1 = true;
-  bool ok1 = FindVisited(entry1, visitedPos1, visitedLeft1);
-  JPQEntry entry2 = elem2.GetValue();
-  int visitedPos2 = 0;
-  bool visitedLeft2 = true;
-  bool ok2 = FindVisited(entry2, visitedPos2, visitedLeft2);
-  elem1.SetValue(entry2);
-  elem2.SetValue(entry1);
-  SetPQ(pos1, elem1);
-  SetPQ(pos2, elem2);
-  assert(ok1);
-  VisitedJunctionTreeElement actVisitedElem = GetVisited(visitedPos1);
-  VisitedJunction actVisited = actVisitedElem.GetValue();
-  actVisited.SetIndexPQ(pos2);
-  actVisitedElem.SetValue(actVisited);
-  SetVisited(visitedPos1, actVisitedElem);
-  assert(ok2);
-  actVisitedElem = GetVisited(visitedPos2);
-  actVisited = actVisitedElem.GetValue();
-  actVisited.SetIndexPQ(pos1);
-  actVisitedElem.SetValue(actVisited);
-  SetVisited(visitedPos2, actVisitedElem);
-}
-
-/*
-1.1.1 CorrectPosition
-
-*/
-
-void PQManagement::CorrectPositionUp(JPQEntryTreeElement& newElem, int& pos)
-{
-  assert (0 <= pos && pos < firstFreePQ );
-  if (pos > 0)
-  {
-    bool fatherLeft = true;
-    int fatherPos = GetFatherPos(pos, fatherLeft);
-    JPQEntryTreeElement father = GetPQ(fatherPos);
-    if (father.GetValue().GetPriority() > newElem.GetValue().GetPriority())
-    {
-      SwapPQ(newElem, pos, father, fatherPos);
-      CorrectPositionUp(father, fatherPos);
-    }
-  }
-}
-
-void PQManagement::CorrectPositionDown(JPQEntryTreeElement& newElem, int& pos)
-{
-  if (firstFreePQ > 0)
-  {
-    assert (0 <= pos && pos < firstFreePQ );
-    int posLeftSon = newElem.GetLeftSon();
-    int posRightSon = newElem.GetRightSon();
-    if (posLeftSon != -1)
-    {
-      JPQEntryTreeElement leftSon = GetPQ(posLeftSon);
-      if (posRightSon != -1)
-      {
-        JPQEntryTreeElement rightSon = GetPQ(posRightSon);
-        if (newElem.GetValue().GetPriority() > leftSon.GetValue().GetPriority()
-         ||newElem.GetValue().GetPriority() > rightSon.GetValue().GetPriority())
-        {
-          if (leftSon.GetValue().GetPriority() <
-               rightSon.GetValue().GetPriority())
-          {
-            SwapPQ(newElem, pos, leftSon, posLeftSon);
-            CorrectPositionDown(leftSon, posLeftSon);
-          }
-          else
-          {
-            SwapPQ(newElem, pos, rightSon, posRightSon);
-            CorrectPositionDown(rightSon, posRightSon);
-          }
+   while(si < sizePQ){ // son exists
+      pq.Get(si,s);
+      if(rsi<sizePQ){ // right son exists
+        pq.Get(rsi,rs);
+        if(rs.GetPriority() < s.GetPriority()){
+           si = rsi;
+           s = rs;
         }
       }
-      else
-      {
-        if (newElem.GetValue().GetPriority() > leftSon.GetValue().GetPriority())
-        {
-          SwapPQ(newElem, pos, leftSon, posLeftSon);
-          CorrectPositionDown(leftSon, posLeftSon);
-        }
+      if(s.GetPriority() >= elem.GetPriority()){
+        si = sizePQ; // stop processing
+      } else {
+        move = true;
+        pq.Put(index,s);
+        VisitedJunction vj(s,index);
+        visited.update(vj);
+        index = si;
+        si = ((index+1)*2) -1;
+        rsi = si+1;
       }
-    }
-    else
-    {
-      if (posRightSon != -1)
-      {
-        JPQEntryTreeElement rightSon = GetPQ(posRightSon);
-        if(newElem.GetValue().GetPriority() > rightSon.GetValue().GetPriority())
-        {
-          SwapPQ(newElem, pos, rightSon, posRightSon);
-          CorrectPositionDown(rightSon, posRightSon);
-        }
-      }
-    }
-  }
+   }
+   if(move){
+      pq.Put(index,elem);
+      VisitedJunction vj(elem,index);
+      visited.update(vj);
+   }
 }
 
-void PQManagement::SetVisitedEntryToPQPos(const JPQEntry& result,
-                                          const int pos)
-{
-  int visitedPos = 0;
-  bool visitedLeft = true;
-  if (FindVisited(result, visitedPos, visitedLeft))
-  {
-    VisitedJunctionTreeElement minElemAtVisited = GetVisited(visitedPos);
-    VisitedJunction minElemVisited = minElemAtVisited.GetValue();
-    minElemVisited.SetIndexPQ(pos);
-    minElemAtVisited.SetValue(minElemVisited);
-    SetVisited(visitedPos, minElemAtVisited);
-  }
-}
 /*
 1 Overload output operator
 
