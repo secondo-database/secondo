@@ -174,6 +174,13 @@ Removes all entries from the tree.
         root = -1;
      }
 
+
+     void destroy(){
+         clear();
+         array.Destroy();
+     }
+
+
 /*
 1.3.3 ~inserts~
 
