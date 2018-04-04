@@ -88,13 +88,14 @@ public class Layer extends JComponent {
         }
       }
       // enlarge bounding boxes of size 0
+      double enlargeSize = 0.000001;
       if(boundsWC.getWidth()<=0){
-          boundsWC.x -= 10;
-          boundsWC.width = 20;
+          boundsWC.x -= enlargeSize;
+          boundsWC.width = 2*enlargeSize;
       }
       if(boundsWC.getHeight()<=0){
-          boundsWC.x -= 10;
-          boundsWC.height = 20;
+          boundsWC.x -= enlargeSize;
+          boundsWC.height = 2*enlargeSize;
       }
     }
     catch(Exception e){
