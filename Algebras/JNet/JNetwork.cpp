@@ -292,6 +292,19 @@ bool reachedEndpoint(const JPQEntry* actEntry,
   while(i < endJunctions->Size())
   {
     endJunctions->Get(i,curEntry);
+
+    if(curEntry.GetStartJID() == actEntry->GetStartPartJID() 
+       && curEntry.GetSectionId() == actEntry->GetSectionId() )
+    { if (tmp > curEntry.GetDistFromStartJunction())
+      {
+
+        tmp = curEntry.GetDistFromEndJunction();
+        tgtPosInArray = i;
+        tgtIsStartJunc = false;
+        srcStartPathJID = actEntry->GetStartPathJID();
+      }
+    }
+
     if (curEntry.GetStartJID() == actEntry->GetEndPartJID())
     {
       if (tmp > curEntry.GetDistFromStartJunction())
