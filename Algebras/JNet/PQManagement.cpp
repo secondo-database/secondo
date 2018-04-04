@@ -95,6 +95,8 @@ JPQEntry* PQManagement::GetAndDeleteMin()
   JPQEntry res;
   pq.Get(0,res);
   sizePQ--;
+  VisitedJunction vj(res,-1);
+  visited.update(vj);
   if(sizePQ>0){
      JPQEntry last;
      pq.Get(sizePQ,last);
