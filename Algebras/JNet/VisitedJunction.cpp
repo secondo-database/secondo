@@ -86,7 +86,8 @@ std::ostream& VisitedJunction::Print(std::ostream& os)const
 
 int VisitedJunction::Compare(const VisitedJunction& other) const
 {
-  return JPQEntry::CompareWOPrio(other);
+  // return JPQEntry::CompareWOPrio(other);
+  return CompareEndJID(other.GetEndPartJID());
 }
 
 int VisitedJunction::CompareEndJID(const int id) const
