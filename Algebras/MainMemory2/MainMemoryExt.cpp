@@ -31,6 +31,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <vector>
 #include "Algebras/Stream/Stream.h"
 #include "MainMemoryExt.h"
+
+#include "MemoryObject.h"
+#include "MemCatalog.h"
+
+
 //#include "GraphAlgebra.h"
 
 using namespace std;
@@ -40,142 +45,6 @@ namespace mm2algebra {
 extern MemCatalog* catalog;
 
 
-MemCatalog::~MemCatalog(){
-    clear();
-};
-
-void MemCatalog::setMemSizeTotal(size_t size) {
-            memSizeTotal = size;
-}
-
-size_t MemCatalog::getMemSizeTotal(){
-            return memSizeTotal;
-}
-
-unsigned long MemCatalog::getUsedMemSize() {
-            return usedMemSize;
-}
-
-unsigned long MemCatalog::getAvailableMemSize() {
-
-    return (memSizeTotal*1024*1024)-(usedMemSize);
-}
-
-//only used in memgetcatalog
-map<string,MemoryObject*>* MemCatalog::getMemContent(){
-
-            return &memContents;
-}
-
-
-bool MemCatalog::insert (const string& name, MemoryObject* obj){
-     if (isMMObject(name)){
-        cout<<"identifier already in use"<<endl;
-        return false;
-    }
-
-    memContents[name] = obj;
-    usedMemSize += obj->getMemSize();
-
-    return true;
-}
-
-bool MemCatalog::deleteObject (const string& name, const bool erase/*=true*/){
-     if(isMMObject(name)){
-        usedMemSize -= getMMObject(name)->getMemSize();
-        delete getMMObject(name);
-        if(erase){
-           memContents.erase(name);
-        }
-        return true;
-     }
-    return false;
-}
-
-
-void MemCatalog::clear (){
-    map<string,MemoryObject*>::iterator it;
-    it = memContents.begin();
-    while(it!=memContents.end()){
-        deleteObject(it->first, false);
-        it++;
-    }
-    memContents.clear();
-}
-
-bool MemCatalog::isMMObject(const string& objectName){
-    if (memContents.find(objectName)==memContents.end()){
-      return false;
-    }
-    return true;
-}
-
-/*
-Function returns a pointer to the memory object
-*Precondition*: "isMMObject( objectName ) == true"
-
-*/
-
-MemoryObject* MemCatalog::getMMObject(const string& objectName){
-
-    map<string,MemoryObject*>::iterator it;
-    it = memContents.find(objectName);
-    if(it==memContents.end()){
-      return 0;
-    }
-    return it->second;
-}
-
-ListExpr MemCatalog::getMMObjectTypeExpr(const string& oN){
-    if (!isMMObject(oN)){
-        return listutils::typeError("not a MainMemory member");
-    }
-    string typeExprString="";
-    ListExpr typeExprList=0;
-    MemoryObject* object = getMMObject(oN);
-    typeExprString = object->getObjectTypeExpr();
-    if (nl->ReadFromString(typeExprString, typeExprList)){
-        return typeExprList;
-    }
-    return listutils::typeError();
-}
-
-bool MemCatalog::isAccessible(const string& name) {
-    MemoryObject* obj = getMMObject(name);
-    if(!obj){
-      return false;
-    }  
-    if(obj->hasflob()){
-      return true;
-    }
-    SecondoSystem* sys = SecondoSystem::GetInstance();
-    if(obj->getDatabase() == sys->GetDatabaseName()){
-      return true;
-    }
-    return false;
-
-}
-
-MemoryObject::~MemoryObject(){}
-
-unsigned long MemoryObject::getMemSize (){
-    return memSize;
-};
-
-string MemoryObject::getObjectTypeExpr(){
-    return objectTypeExpr;
-}
-void MemoryObject::setObjectTypeExpr(string _oTE){
-    objectTypeExpr = _oTE;
-}
-
-string MemoryObject::getDatabase(){
-    return database;
-}
-
-bool MemoryObject::hasflob(){
-    return flob;
-}
 
 
   // MEMORYRELOBJECT

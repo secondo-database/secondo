@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-
+#include "MemCatalog.h"
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
@@ -325,7 +325,7 @@ memAVLtree* getAVLtree(T* treeN, ListExpr subtype){
       return 0;
    }
    string treen = treeN->GetValue();
-   if(!catalog->isMMObject(treen) || !catalog->isAccessible(treen)){
+   if(!catalog->isMMOnlyObject(treen) || !catalog->isAccessible(treen)){
       return 0;
    }
    ListExpr treet = nl->Second(catalog->getMMObjectTypeExpr(treen));
@@ -345,7 +345,7 @@ memAVLtree* getAVLtree(T* treeN){
       return 0;
    }
    string treen = treeN->GetValue();
-   if(!catalog->isMMObject(treen) || !catalog->isAccessible(treen)){
+   if(!catalog->isMMOnlyObject(treen) || !catalog->isAccessible(treen)){
       return 0;
    }
    ListExpr treet = nl->Second(catalog->getMMObjectTypeExpr(treen));
@@ -374,7 +374,7 @@ MemoryRelObject* getMemRel(T* relN){
 
   if(!relN->IsDefined()) { return 0; }
   string reln = relN->GetValue();
-  if(!catalog->isMMObject(reln) || !catalog->isAccessible(reln)) {
+  if(!catalog->isMMOnlyObject(reln) || !catalog->isAccessible(reln)) {
     return 0;
   }
   ListExpr relType = nl->Second(catalog->getMMObjectTypeExpr(reln));
@@ -399,7 +399,7 @@ MemoryRelObject* getMemRel(T* relN, ListExpr tupleType, string& error) {
   }
   
   string reln = relN->GetValue();
-  if(!catalog->isMMObject(reln) || !catalog->isAccessible(reln)){
+  if(!catalog->isMMOnlyObject(reln) || !catalog->isAccessible(reln)){
     error ="relation '"+reln+"' not known or not accessible";
     return 0;
   }
@@ -445,7 +445,7 @@ MemoryORelObject* getMemORel(T* relN, ListExpr tupleType){
      return 0;
   }
   string reln = relN->GetValue();
-  if(!catalog->isMMObject(reln) || !catalog->isAccessible(reln)){
+  if(!catalog->isMMOnlyObject(reln) || !catalog->isAccessible(reln)){
     return 0;
   }
   ListExpr relType = nl->Second(catalog->getMMObjectTypeExpr(reln));
@@ -468,7 +468,7 @@ MemoryGraphObject* getMemGraph(T* aN){
      return 0;
   }
   std::string an = aN->GetValue();
-  if(!catalog->isMMObject(an) || !catalog->isAccessible(an)){
+  if(!catalog->isMMOnlyObject(an) || !catalog->isAccessible(an)){
     return 0;
   }
   ListExpr type = nl->Second(catalog->getMMObjectTypeExpr(an));
@@ -490,7 +490,7 @@ MemoryAttributeObject* getMemAttribute(T* aN, ListExpr _type){
      return 0;
   }
   string an = aN->GetValue();
-  if(!catalog->isMMObject(an) || !catalog->isAccessible(an)){
+  if(!catalog->isMMOnlyObject(an) || !catalog->isAccessible(an)){
     return 0;
   }
   ListExpr type = nl->Second(catalog->getMMObjectTypeExpr(an));
@@ -514,7 +514,7 @@ MemoryRtreeObject<dim>* getRtree(T* tN){
     return 0;
   }
   string tn = tN->GetValue();
-  if(!catalog->isMMObject(tn)){ 
+  if(!catalog->isMMOnlyObject(tn)){ 
     // because we store only rectangle, we do'nt have to check
     // accessibility
     return 0;
@@ -544,7 +544,7 @@ MemoryMtreeObject<K, StdDistComp<K> >* getMtree(T* name){
     return 0;
   }
   string n = name->GetValue();
-  if(!catalog->isMMObject(n)){
+  if(!catalog->isMMOnlyObject(n)){
     return 0;
   } 
   ListExpr type = nl->Second(catalog->getMMObjectTypeExpr(n));
@@ -570,7 +570,7 @@ MemoryTTreeObject* getTtree(T* treeN){
       return 0;
    }
    string treen = treeN->GetValue();
-   if(!catalog->isMMObject(treen) || !catalog->isAccessible(treen)){
+   if(!catalog->isMMOnlyObject(treen) || !catalog->isAccessible(treen)){
      return 0;
    }
    ListExpr treet = nl->Second(catalog->getMMObjectTypeExpr(treen));
@@ -591,7 +591,7 @@ MemoryVectorObject* getMVector(T* vecN){
 
   if(!vecN->IsDefined()) { return 0; }
   string vecn = vecN->GetValue();
-  if(!catalog->isMMObject(vecn) || !catalog->isAccessible(vecn)) {
+  if(!catalog->isMMOnlyObject(vecn) || !catalog->isAccessible(vecn)) {
     return 0;
   }
   ListExpr vecType = nl->Second(catalog->getMMObjectTypeExpr(vecn));
@@ -614,7 +614,7 @@ MemoryPQueueObject* getMemoryPQueue(T* qN){
       return 0;
    }
    string qn = qN->GetValue();
-   if(!catalog->isMMObject(qn) || !catalog->isAccessible(qn)){
+   if(!catalog->isMMOnlyObject(qn) || !catalog->isAccessible(qn)){
       return 0;
    }
    ListExpr qt = nl->Second(catalog->getMMObjectTypeExpr(qn));
@@ -635,7 +635,7 @@ MemoryStackObject* getMemoryStack(T* qN){
       return 0;
    }
    string qn = qN->GetValue();
-   if(!catalog->isMMObject(qn) || !catalog->isAccessible(qn)){
+   if(!catalog->isMMOnlyObject(qn) || !catalog->isAccessible(qn)){
       return 0;
    }
    ListExpr qt = nl->Second(catalog->getMMObjectTypeExpr(qn));
@@ -657,7 +657,7 @@ M* getMemObject(S* qN){
       return 0;
    }
    string qn = qN->GetValue();
-   if(!catalog->isMMObject(qn) || !catalog->isAccessible(qn)){
+   if(!catalog->isMMOnlyObject(qn) || !catalog->isAccessible(qn)){
       return 0;
    }
    ListExpr qt = nl->Second(catalog->getMMObjectTypeExpr(qn));
@@ -764,7 +764,7 @@ bool getMemType(ListExpr type, ListExpr value,
       N->DeleteIfAllowed();
     }
 
-    if(!catalog->isMMObject(n)){
+    if(!catalog->isMMOnlyObject(n)){
        error = n + " is not a memory object";
        return false;
     }
@@ -827,19 +827,21 @@ int memload(Word* args, Word& result,
 
     result  = qp->ResultStorage(s);
     CcBool* b = static_cast<CcBool*>(result.addr);
-
-    CcString* oN = (CcString*) args[0].addr;
-    if(!oN->IsDefined()){
+    CcString* sourceName = (CcString*) args[2].addr;
+    CcString* targetName = (CcString*) args[1].addr;
+    if(!targetName->IsDefined() || !sourceName->IsDefined()){
        b->Set(true,false);
        return 0;
     }
 
-    string objectName = oN->GetValue();
-    if(catalog->isMMObject(objectName)){
+    string targetObjectName = targetName->GetValue();
+    if(catalog->isObject(targetObjectName)){
        // name already exist
        b->Set(true,false);
        return 0;
     }
+
+    string sourceObjectName = sourceName->GetValue();
 
     SecondoCatalog* cat = SecondoSystem::GetCatalog();
     bool memloadSucceeded=false;
@@ -850,7 +852,7 @@ int memload(Word* args, Word& result,
     bool hasTypeName = false;
 
     memloadSucceeded = cat->GetObjectExpr(
-                objectName,
+                sourceObjectName,
                 objectTypeName,
                 objectTypeExpr,
                 object,
@@ -872,7 +874,7 @@ int memload(Word* args, Word& result,
                                           objectTypeExpr,
                                           getDBname(), flob);
         if (memloadSucceeded) {
-            catalog->insert(objectName,mmRelObject);
+            catalog->insert(targetObjectName,mmRelObject);
         } else {
             delete mmRelObject;
         }
@@ -887,7 +889,7 @@ int memload(Word* args, Word& result,
                                           objectTypeExpr,
                                           getDBname(), flob);
         if (memloadSucceeded) {
-            catalog->insert(objectName,mmORelObject);
+            catalog->insert(targetObjectName,mmORelObject);
         } else {
             delete mmORelObject;
         }
@@ -899,7 +901,7 @@ int memload(Word* args, Word& result,
         memloadSucceeded = mmA->attrToMM(attr, objectTypeExpr,
                                 getDBname(),flob);
         if (memloadSucceeded){
-          catalog->insert(objectName, mmA);
+          catalog->insert(targetObjectName, mmA);
         }
         else {
           delete mmA;
@@ -933,28 +935,60 @@ is usable but not complete.
 */
 ListExpr memloadTypeMap(ListExpr args) {
 
-    if (nl->ListLength(args)!=1){
-        return listutils::typeError("wrong number of arguments");
+    if (nl->ListLength(args)!=2 && nl->ListLength(args)!=1){
+       return listutils::typeError("wrong number of arguments");
     }
     ListExpr arg1 = nl->First(args);
-    if (!CcString::checkType(nl->First(arg1))) {
-        return listutils::typeError("string expected");
+    ListExpr sourceType = nl->First(arg1);
+    if(   !Attribute::checkType(sourceType)
+       && !Relation::checkType(sourceType)
+       && !OrderedRelation::checkType(sourceType)){
+       return listutils::typeError("only rel, orel, and DATA are supported");
     }
+
     //check for database object
     ListExpr str = nl->Second(arg1);
-    string objectName = nl->StringValue(str);
+    if(nl->AtomType(str)!=SymbolType){
+      return listutils::typeError("symbol expected");
+    } 
+    string objectName = nl->SymbolValue(str);
     SecondoCatalog* cat = SecondoSystem::GetCatalog();
-
     if (!cat->IsObjectName(objectName)){
         return listutils::typeError("identifier is not in use");
     }
+ 
 
-    //already main memory object?
-    if (catalog->isMMObject(objectName)){
-        return listutils::typeError("identifier is "
-        " already used for a main memory object");
+
+    if(nl->HasLength(args,1)){
+      string targetName = "m"+objectName;
+      if (catalog->isObject(objectName)){
+           return listutils::typeError("identifier " + targetName 
+                  + " is already used for an  object");
+       }
+       return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                                 nl->TwoElemList(
+                                     nl->StringAtom(targetName),
+                                     nl->StringAtom(objectName)),
+                                 listutils::basicSymbol<CcBool>());
+    }   
+    // targetname given explicitely as a string
+    ListExpr arg2 = nl->Second(args);
+    if(!CcString::checkType(nl->First(arg2))){
+      return listutils::typeError("second argument must be a string");
     }
-    return listutils::basicSymbol<CcBool>();
+    str = nl->Second(arg2);
+    if(nl->AtomType(str)!=StringType){
+      return listutils::typeError("constant string expected as "
+                                  "the second arg");
+    } 
+    string targetName = nl->StringValue(str);
+    if (catalog->isObject(targetName)){
+        return listutils::typeError("identifier " + targetName 
+               + " is already used for an  object");
+    }
+    return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                              nl->OneElemList(nl->StringAtom(objectName)),
+                              listutils::basicSymbol<CcBool>());
 }
 
 
@@ -966,7 +1000,6 @@ int memloadValMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
 
     return memload(args, result, message, local, s, false);
-
 }
 
 
@@ -976,12 +1009,14 @@ int memloadValMap (Word* args, Word& result,
 
 */
 OperatorSpec memloadSpec(
-    "string -> bool",
-    "memload(_)",
+    "{rel,orel,DATA} [ x string]  -> bool",
+    "memload(_,_)",
     "loads a persistent object to main memory (without flobs) "
     "if there is not enough space, the loaded object may be not complete "
-    "but usable",
-    "query memload('plz')"
+    "but usable. If the name of the main memory object (second argument)"
+    "is omitted, the name of the object with a leading 'm' is used as the "
+    "default name.",
+    "query memload(plz)"
 );
 
 /*
@@ -1015,7 +1050,6 @@ int memloadflobValMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
 
     return memload(args, result, message, local, s, true);
-
 }
 
 
@@ -1026,12 +1060,14 @@ int memloadflobValMap (Word* args, Word& result,
 */
 
 OperatorSpec memloadflobSpec(
-    "string -> bool",
-    "memloadflob(_)",
+    "{rel,orel,DATA} [ x string] -> bool",
+    "memloadflob(_,_)",
     "loads a persistent object together with the associated flobs to  "
     "main memory. If there is not enough space, the loaded object "
-    "may be not complete but usable",
-    "query memloadflob('Trains')"
+    "may be not complete but usable. If the second argument (name of "
+    "the main memory object) is omitted, the name of the persistent "
+    "object extended by a leading 'm' is used as the default name.",
+    "query memloadflob(Trains)"
 );
 
 /*
@@ -1746,7 +1782,7 @@ int letmconsumeValMap(Word* args, Word& result,
         return 0;
     }
     string res = oN->GetValue();
-    if(catalog->isMMObject(res)){
+    if(catalog->isObject(res)){
         str->SetDefined(false);
         return 0;
     };
@@ -2349,7 +2385,7 @@ ListExpr memletTypeMap(ListExpr args)
     }
     ListExpr str = nl->Second(arg1);
     string objectName = nl->StringValue(str);
-    if (catalog->isMMObject(objectName)){
+    if (catalog->isObject(objectName)){
         return listutils::typeError("identifier already in use");
     }
     ListExpr arg2 = nl->Second(args);
@@ -2536,7 +2572,7 @@ int memupdateValMap (Word* args, Word& result,
     string objectName = oN->GetValue();
 
     // check whether object is present
-    if(!catalog->isMMObject(objectName)){
+    if(!catalog->isMMOnlyObject(objectName)){
         cerr << "memupdate: object not found" << endl;
         if(isDATA){
            ((Attribute*) result.addr)->SetDefined(false);
@@ -2791,7 +2827,7 @@ int mcreateRtreeValMapT (Word* args, Word& result,
         return 0;
     }
     string relObjectName = roN->GetValue();
-    if(!catalog->isMMObject(relObjectName)){
+    if(!catalog->isMMOnlyObject(relObjectName)){
        cerr << "memory object " << relObjectName << " not found" << endl;
        str->SetDefined(false);
        return 0;
@@ -4089,7 +4125,7 @@ int mcreateAVLtreeValMapT (Word* args, Word& result,
    string attrName = ((CcString*)args[3].addr)->GetValue();
 
    string resName = relObjectName + "_" + attrName;
-   if(catalog->isMMObject(resName)){
+   if(catalog->isObject(resName)){
       cerr << "object " << resName << "already exists" << endl;
       str->SetDefined(false);
       return 0;
@@ -4263,7 +4299,7 @@ int mcreateAVLtree2VM (Word* args, Word& result,
       return 0;
     }
     string name = memName->GetValue();
-    if(catalog->isMMObject(name)){
+    if(catalog->isObject(name)){
       res->SetDefined(false);
       return 0;
     }
@@ -5450,7 +5486,7 @@ int mcreateMtree2VMT (Word* args, Word& result, int message,
       return 0;
    }
    string n = name->GetValue();
-   if(catalog->isMMObject(n)){
+   if(catalog->isObject(n)){
       // name already used
       res->SetDefined(false);
       return 0;
@@ -6047,7 +6083,7 @@ int mcreateMtreeVMT (Word* args, Word& result, int message,
       res->SetDefined(false);
       return 0;
    }
-   if(catalog->isMMObject(name)){
+   if(catalog->isObject(name)){
       // name already used
       res->SetDefined(false);
       return 0;
@@ -7039,7 +7075,7 @@ int mcreatettreeValueMap(Word* args, Word& result,
   string attrName = ((CcString*)args[3].addr)->GetValue();
   // create name for ttree object
   string resName = name + "_" + attrName;
-  if(catalog->isMMObject(resName)){
+  if(catalog->isObject(resName)){
     cerr << "object " << resName << "already exists" << endl;
     str->SetDefined(false);
     return 0;
@@ -11367,7 +11403,7 @@ int letmoconsumeValMap(Word* args, Word& result,
   }
   
   string res = oN->GetValue();
-  if(catalog->isMMObject(res)) {
+  if(catalog->isObject(res)) {
       str->SetDefined(false);
       return 0;
   }
@@ -14358,7 +14394,7 @@ ListExpr memgletTypeMap(ListExpr args) {
    return listutils::typeError("The first arg must be a constant string");
  }
  string objectName = nl->StringValue(str);
- if (catalog->isMMObject(objectName)){
+ if (catalog->isObject(objectName)){
     return listutils::typeError("identifier already in use");
  }
  ListExpr arg2 = nl->Second(args);
@@ -15934,7 +15970,7 @@ int collect_mvectorVM(Word* args, Word& result, int message,
     }
     string n = name->GetValue();
     stringutils::trim(n);
-    if(n.empty() || catalog->isMMObject(n)){
+    if(n.empty() || catalog->isObject(n)){
       res->Set(true,false);
       return 0;
     }
@@ -17246,7 +17282,7 @@ int countVMT(Word* args, Word& result, int message,
      return 0;
    }
    string name = arg->GetValue();
-   if(!catalog->isMMObject(name) ) {
+   if(!catalog->isObject(name) ) {
      res->SetDefined(false);
      return 0;
    }
@@ -17357,8 +17393,8 @@ ListExpr mcreatepqueueTM(ListExpr args){
                                      "be a constant");
       }
       string moname = nl->StringValue(nameValue);
-      if(catalog->isMMObject(moname)){
-        return listutils::typeError("There is already a main memoray "
+      if(catalog->isObject(moname)){
+        return listutils::typeError("There is already an  "
                                     "object named " + moname);
       }
    }
@@ -17491,7 +17527,7 @@ int mcreatepqueue2VM(Word* args, Word& result, int message,
       return 0;   
    }
    string objName = ObjName->GetValue();
-   if(catalog->isMMObject(objName)){
+   if(catalog->isObject(objName)){
       res->SetDefined(false);
       return 0;   
    }
@@ -18585,7 +18621,7 @@ ListExpr mcreatestackTM(ListExpr args){
     return listutils::typeError("only constant strings are allowed");
   }
   string name = nl->StringValue(nv);
-  if(catalog->isMMObject(name)){
+  if(catalog->isObject(name)){
     return listutils::typeError("main memory object with this name "
                                 "already exists");
   }
@@ -18634,7 +18670,7 @@ int mcreatestackVM(Word* args, Word& result, int message,
                   local.addr = 0;
                 }
                 string objName = ((CcString*)args[1].addr)->GetValue();
-                if(catalog->isMMObject(objName)){
+                if(catalog->isObject(objName)){
                     return 0;
                 }
                 ListExpr tt = nl->Second(qp->GetType(s));
@@ -19180,9 +19216,9 @@ ListExpr createmgraph2TM(ListExpr args){
        name = Name->GetValue();
        Name->DeleteIfAllowed();
     }
-    if(catalog->isMMObject(name)){
+    if(catalog->isObject(name)){
       return listutils::typeError("name " + name + 
-                                  " is already an main memory object");
+                                  " is already an object");
     }
   }
   ListExpr newAttr = nl->ThreeElemList(
@@ -19300,7 +19336,7 @@ int createmgraph2VMT(Word* args, Word& result, int message,
          return 0;
        }
        string name = Name->GetValue();
-       if(catalog->isMMObject(name)){
+       if(catalog->isObject(name)){
          return 0;
        }
        ListExpr tt = nl->Second(qp->GetType(s));
@@ -19385,7 +19421,7 @@ int createmgraph2mVMT(Word* args, Word& result, int message,
      return 0;
    }
    string name = Name->GetValue();
-   if(catalog->isMMObject(name)){
+   if(catalog->isObject(name)){
      res->SetDefined(false);
      return 0;
    }
@@ -20371,8 +20407,8 @@ ListExpr createmgraph3TM(ListExpr args){
     return listutils::typeError("sixth arg is not a constant string");
   }
   string graph = nl->StringValue(gn);
-  if(catalog->isMMObject(graph)){
-     return listutils::typeError(graph + " is already a main memory object");
+  if(catalog->isObject(graph)){
+     return listutils::typeError(graph + " is already an object");
   }
   return nl->ThreeElemList(
             nl->SymbolAtom(Symbols::APPEND()),
@@ -20431,7 +20467,7 @@ int createmgraph3VMT(Word* args, Word& result, int message,
                 return 0;
              }
              string gn = g->GetValue();
-             if(catalog->isMMObject(gn)){
+             if(catalog->isObject(gn)){
                 return 0;
              }
              CcInt* Size = (CcInt*) args[4].addr;
@@ -22109,9 +22145,9 @@ ListExpr mmergejoinprojectTM(ListExpr args){
     return listutils::typeError("fifth argument is not a constant string");
   }
   string resName = nl->StringValue(resNameV);
-  if(catalog->isMMObject(resName)){
+  if(catalog->isObject(resName)){
     return listutils::typeError("object " + resName 
-                                + " is already a main memory object");
+                                + " is already an object");
   } 
   // sixth argument: the projection list
   ListExpr prjList = nl->First(nl->Sixth(args));
@@ -22326,7 +22362,7 @@ class MainMemory2Algebra : public Algebra {
     public:
         MainMemory2Algebra() : Algebra() {
           if(!catalog){
-             catalog = new MemCatalog();
+             catalog = MemCatalog::getInstance();
           }
 
 /*
@@ -22682,10 +22718,7 @@ class MainMemory2Algebra : public Algebra {
         }
         
         ~MainMemory2Algebra() {
-            if(catalog){
-              delete catalog; 
-              catalog = 0;
-            }
+            MemCatalog::destroyInstance();
         };
 };
 

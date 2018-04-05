@@ -60,14 +60,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "PointerWrapper.h"
 #include "MPointer.h"
 
+#include "MemoryObject.h"
 
 
 namespace mm2algebra{
 
 
+
+
 class MemCatalog;
 class Memory;
-class MemoryObject;
 class MemoryRelObject;
 class MemoryAttributeObject;
 template<int dim> class MemoryRtreeObject;
@@ -78,6 +80,7 @@ class MemoryORelObject;
 class MemoryGraphObject;
 class TupleComp;
 class AttrComp;
+
 
 
 class AttrIdPair{
@@ -126,94 +129,8 @@ typedef PointerWrap<Tuple> TupleWrap;
 
 
 
-class MemCatalog {
-
-    public:
-        MemCatalog (){
-          memSizeTotal=256;  //main memory size in MB
-          usedMemSize=0;     //used main memory size in B
-        };
-        ~MemCatalog();
-
-        void setMemSizeTotal(size_t size);
-
-        size_t getMemSizeTotal();
-
-        unsigned long getUsedMemSize(); //in Byte
-
-        void addToUsedMemSize(int i){
-            usedMemSize = usedMemSize + i;
-        }
-
-        unsigned long getAvailableMemSize();  //in Byte
-
-        std::map<std::string,MemoryObject*>* getMemContent();
-
-        bool insert (const std::string& name, MemoryObject* obj);
-
-        bool deleteObject (const std::string& name, const bool erase=true);
-
-        void clear ();
-
-        bool isMMObject(const std::string& objectName);
-
-        //*Precondition*: "isMMObject( objectName ) == true"
-        MemoryObject* getMMObject(const std::string& objectName);
-
-        ListExpr getMMObjectTypeExpr(const std::string& oN);
-
-        bool isAccessible(const std::string& name);
 
 
-
-    private:
-        unsigned long usedMemSize;  //in Byte
-        size_t memSizeTotal; //in MB
-        std::map<std::string,MemoryObject*> memContents;
-};
-
-
-class MemoryObject {
-    public:
-    MemoryObject(){
-        flob = false;
-        database="";
-        memSize=0;
-        objectTypeExpr="";
-    }
-
-    MemoryObject(bool _flob, const std::string& _database,
-                    const std::string& _type) : memSize(0), 
-                    objectTypeExpr(_type), flob(_flob),
-                    database(_database) {}
-
-    virtual ~MemoryObject();
-
-    unsigned long getMemSize ();
-
-    std::string getObjectTypeExpr();
-    void setObjectTypeExpr(std::string _oTE);
-    std::string getDatabase();
-    bool hasflob();
-    ListExpr getType() const{
-      ListExpr res;
-      if(!nl->ReadFromString(objectTypeExpr,res)){
-        return nl->TheEmptyList();
-      } else {
-        return res;
-      }
-    }
-
-
-    protected:
-        unsigned long memSize;      // object size in main memory in byte
-        std::string objectTypeExpr;  // the tuple description for relations,
-                                     // or the attribute description
-
-        bool flob;
-        std::string database;
-
-};
 
 
 
