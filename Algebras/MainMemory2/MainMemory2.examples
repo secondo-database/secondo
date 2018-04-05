@@ -5,7 +5,7 @@ Restore   : No
 Operator  : memload
 Number    : 1
 Signature : string -> bool
-Example   : query memload ("ten", "ten2")
+Example   : query memload (ten, "ten2")
 Result    : TRUE
 
 Operator  : meminit
@@ -77,7 +77,7 @@ Result    : TRUE
 Operator  : memload
 Number    : 12
 Signature : string -> bool
-Example   : query memload ("strassen","mstrassen")
+Example   : query memload (strassen,"mstrassen")
 Result    : TRUE
 
 Operator  : memgetcatalog
@@ -108,7 +108,7 @@ Result    : 256
 Operator  : memload
 Number    : 17
 Signature : string -> bool
-Example   : query memload ("ten", "ten2")
+Example   : query memload (ten, "ten2")
 Result    : TRUE
 
 Operator  : meminsert
@@ -157,7 +157,7 @@ Result    : TRUE
 Operator  : memload
 Number    : 25
 Signature : string -> bool
-Example   : query memload ("Staedte","mStaedte")
+Example   : query memload (Staedte,"mStaedte")
 Result    : TRUE
 
 Operator  : mcreateAVLtree
@@ -220,7 +220,7 @@ Result    : 10
 Operator  : memload
 Number    : 35
 Signature : string -> bool
-Example   : query memload ("ten","ten2")
+Example   : query memload (ten,"ten2")
 Result    : TRUE
 
 Operator  : mcreateAVLtree
@@ -246,7 +246,7 @@ Result    : 1
 Operator  : memloadflob
 Number    : 39
 Signature : string -> bool
-Example   : query memloadflob ("Trains", "mTrains")
+Example   : query memloadflob(Trains)
 Result    : TRUE
 
 Operator  : letmconsumeflob
@@ -264,7 +264,7 @@ Result    : TRUE
 Operator  : memload
 Number    : 42
 Signature : string -> bool
-Example   : query memload ("strassen","mstrassen")
+Example   : query memload(strassen)
 Result    : TRUE
 
 Operator  : mcreateRtree2
@@ -310,7 +310,7 @@ Result    : TRUE
 Operator  : memload
 Number    : 49
 Signature : string -> bool
-Example   : query memload ("Kinos", "mKinos")
+Example   : query memload (Kinos)
 Result    : TRUE
 
 Operator  : mcreateMtree

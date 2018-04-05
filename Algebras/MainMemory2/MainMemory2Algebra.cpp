@@ -961,7 +961,7 @@ ListExpr memloadTypeMap(ListExpr args) {
 
     if(nl->HasLength(args,1)){
       string targetName = "m"+objectName;
-      if (catalog->isObject(objectName)){
+      if (catalog->isObject(targetName)){
            return listutils::typeError("identifier " + targetName 
                   + " is already used for an  object");
        }
