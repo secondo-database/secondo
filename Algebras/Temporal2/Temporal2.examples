@@ -1,0 +1,21 @@
+Database: berlintest
+Restore: NO
+
+Operator : extendwiths
+Number   : 1
+Signature: mT x stream(iT) -> mT, where T in {bool, int, real, string, point}
+Example  : query train1first extendwith [const ipoint value ("2007-12-24" (1.1 -2.2))]
+Result   : [const ipoint value ("2007-12-24" (1.1 -2.2))]
+
+Operator : streamvalve
+Number   : 1
+Signature: stream(alpha) x string -> stream(alpha)
+Example  : query intstream (1,10) streamvalve ["MyValve"] count;
+Result   : 10
+
+Operator : streamnext
+Number   : 1
+Signature: string x int -> int;
+Example  : query streamnext("MyValve", 11);
+Result   : 10
+
