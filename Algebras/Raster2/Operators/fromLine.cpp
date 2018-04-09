@@ -20,15 +20,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include <unordered_set>
-
 #include "fromLine.h"
 
 namespace raster2 {
-
-  void drawLine(
-      sbool& sb, std::unordered_set<RasterIndex<2> >& regions,
-      RasterIndex<2> from, RasterIndex<2> to);
 
   int fromLineFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
@@ -61,13 +55,14 @@ namespace raster2 {
     HalfSegment hs;
 
     std::unordered_set<sbool::index_type> regions;
-
+    std::vector<sbool::index_type> regions2;
+    
     for (int i = 0; i < lineLength; i++) {
       line->Get(i, hs);
 
       Point from = hs.GetLeftPoint();
       Point to = hs.GetRightPoint();
-      drawLine(*sb, regions,
+      drawLine(*sb, regions, regions2,
           grid->getIndex(from.GetX(), from.GetY()),
           grid->getIndex(to.GetX(), to.GetY()));
     }
@@ -113,7 +108,8 @@ namespace raster2 {
 
   void drawLine(
       sbool& sb, std::unordered_set<RasterIndex<2> >& regions,
-      RasterIndex<2> from, RasterIndex<2> to)
+      std::vector<RasterIndex<2> >& regionsOrdered,
+      RasterIndex<2> from, RasterIndex<2> to, const bool keepOrder/* = false */)
   {
     if (from[0] > to[0]) {
       std::swap(from, to);
@@ -127,13 +123,23 @@ namespace raster2 {
 
       for (RasterIndex<2> current = from; current[1] <= to[1]; ++current[1]) {
         sb.set(current, true);
-        regions.insert(sbool::storage_type::getRegion(current));
+        if (keepOrder) {
+          regionsOrdered.push_back(sbool::storage_type::getRegion(current));
+        }
+        else {
+          regions.insert(sbool::storage_type::getRegion(current));
+        }
       }
     } else if (from[1] == to[1]) {
       // Line is horizontal
       for (RasterIndex<2> current = from; current[0] <= to[0]; ++current[0]) {
         sb.set(current, true);
-        regions.insert(sbool::storage_type::getRegion(current));
+        if (keepOrder) {
+          regionsOrdered.push_back(sbool::storage_type::getRegion(current));
+        }
+        else {
+          regions.insert(sbool::storage_type::getRegion(current));
+        }
       }
     } else {
       int dx = to[0] - from[0];
@@ -151,7 +157,12 @@ namespace raster2 {
           for (RasterIndex<2> current = from; current[0] <= to[0]; ++current[0])
           {
             sb.set(current, true);
-            regions.insert(sbool::storage_type::getRegion(current));
+            if (keepOrder) {
+              regionsOrdered.push_back(sbool::storage_type::getRegion(current));
+            }
+            else {
+              regions.insert(sbool::storage_type::getRegion(current));
+            }
             if (F <= 0) {
               F += dy2;
             } else {
@@ -166,7 +177,12 @@ namespace raster2 {
           for (RasterIndex<2> current = from; current[1] <= to[1]; ++current[1])
           {
             sb.set(current, true);
-            regions.insert(sbool::storage_type::getRegion(current));
+            if (keepOrder) {
+              regionsOrdered.push_back(sbool::storage_type::getRegion(current));
+            }
+            else {
+              regions.insert(sbool::storage_type::getRegion(current));
+            }
             if (F <= 0) {
               F += dx2;
             } else {
@@ -183,7 +199,12 @@ namespace raster2 {
           for (RasterIndex<2> current = from; current[0] <= to[0]; ++current[0])
           {
             sb.set(current, true);
-            regions.insert(sbool::storage_type::getRegion(current));
+            if (keepOrder) {
+              regionsOrdered.push_back(sbool::storage_type::getRegion(current));
+            }
+            else {
+              regions.insert(sbool::storage_type::getRegion(current));
+            }
             if (F <= 0) {
               F -= dy2;
             } else {
@@ -197,7 +218,12 @@ namespace raster2 {
           for (RasterIndex<2> current = from; current[1] >= to[1]; --current[1])
           {
             sb.set(current, true);
-            regions.insert(sbool::storage_type::getRegion(current));
+            if (keepOrder) {
+              regionsOrdered.push_back(sbool::storage_type::getRegion(current));
+            }
+            else {
+              regions.insert(sbool::storage_type::getRegion(current));
+            }
             if (F <= 0) {
               F += dx2;
             } else {
