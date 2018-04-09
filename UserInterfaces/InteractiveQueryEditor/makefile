@@ -25,6 +25,7 @@
 #filename InteractiveQueryEditor/makefile
 
 include ../../makefile.env
+include ../../makefile.jni
 
 JNITOOL_OBJECT_PATH = ../../Tools/Jni/JNITool.o
 JAVAFILES =$(shell find . -name "*.java")
@@ -59,8 +60,14 @@ SecondoKernel.so: JNITool.o SecondoKernel.o
 	@echo "Creating Shared Object"
 
 .PHONY: SecondoKernel.o
-SecondoKernel.o: JNITool.o
-	@echo "Creating SecondoKernel.o"
+SecondoKernel.o: JNIHeader util/secondo/SecondoKernel.cpp util/secondo/SecondoKernel.h
+	@echo "Compiling new SecondoKernel.o File"
+	@$(CC) -c $(JNIINCLUDE) $(DEFAULTCCFLAGS) util/secondo/SecondoKernel.cpp -o util/secondo/SecondoKernel.o
+	
+.PHONY: JNIHeader
+JNIHeader: util/secondo/SecondoKernel.java
+	@echo "Creating new SecondoKernel.h File"
+	@$(JAVAH) -o util/secondo/SecondoKernel.h -classpath $(CLASSPATH) util.secondo.SecondoKernel
 
 .PHONY: JNITool.o
 JNITool.o:
