@@ -81,19 +81,20 @@ represents the open stream
 
 */
         Stream<TBlock> m_stream;
-        std::vector<uint64_t> m_indices;
+
+        const SharedArray<uint64_t> m_projectionIndices;
 /*
 the second entry of the parameter array of the value mapping call 
 and contains the pointers to the mapping functions for the new columns
 
 */
-        Supplier m_ExtendParameter;
+        Supplier m_extendParameter;
+
 /*
-contains the information about the column names and column types we will 
-return.
+The types of the extension columns
 
 */
-        const PTBlockInfo m_blockInfo;
+        ListExpr m_extensionTypes;
       };
 
       static const OperatorInfo info;

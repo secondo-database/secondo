@@ -252,14 +252,43 @@ the stream.
 
 ExtendProjectOperator::State::State(ArgVector args, const TBlockTI &blockType) :
   m_stream(args[0].addr),
-  m_ExtendParameter(args[2].addr),
-  m_blockInfo(blockType.GetBlockInfo())
+  m_projectionIndices(((CcInt*)args[3].addr)->GetValue()),
+  m_extendParameter(args[2].addr)
 {
-  const uint64_t indexCount = ((CcInt*)args[3].addr)->GetValue();
+  // initialize projection indices
+  const uint64_t projectionIndexCount = m_projectionIndices.GetCapacity();
 
-  for (uint64_t i = 0; i < indexCount; ++i)
-    m_indices.push_back(((CcInt*)args[i + 4].addr)->GetValue());
+  for (uint64_t i = 0; i < projectionIndexCount; ++i) {
+    m_projectionIndices[i] = ((CcInt*)args[i + 4].addr)->GetValue();
+  }
 
+  // initialize extension column types
+  ListExpr extensionTypes = nl->Empty(),
+    extensionTypesEnd = extensionTypes;
+
+  const PTBlockInfo &blockInfo = blockType.GetBlockInfo();
+
+  uint64_t columnCount = 
+    projectionIndexCount + qp->GetNoSons(m_extendParameter);
+
+  for (uint64_t i = projectionIndexCount; i < columnCount; ++i)
+  {
+    ListExpr columnType = blockInfo->columnTypes[i];
+
+    if (nl->IsEmpty(extensionTypes))
+    {
+      extensionTypes = nl->OneElemList(columnType);
+      extensionTypesEnd = extensionTypes;
+    }
+    else
+    {
+      extensionTypesEnd = nl->Append(extensionTypesEnd, columnType);
+    }
+  }
+
+  m_extensionTypes = extensionTypes;
+
+  // open source stream
   m_stream.open();
 }
 
@@ -286,79 +315,32 @@ TBlock *ExtendProjectOperator::State::Request()
   if (sourceBlock == nullptr)
     return nullptr;
     
-  size_t sourceColumnCount = m_indices.size();
-  size_t extendColumnCount = qp->GetNoSons(m_ExtendParameter);
-  size_t columnCount = sourceColumnCount + extendColumnCount;
+  size_t extendColumnCount = qp->GetNoSons(m_extendParameter);
 
-  AttrArray *columns[columnCount];
-
-  size_t c = 0;
-  
-/*
-first we retreive the pointers to the attribut arrays for the projection 
-columns.
-
-*/
-
-  while (c < sourceColumnCount) {
-    columns[c] = &sourceBlock->GetAt(m_indices[c]);
-    c++;
-  }
-  
-  size_t e = 0;
+  AttrArray *extendColumns[extendColumnCount];
 
 /*
-then we call the mapping functions of the extension list to create the
+call the mapping functions of the extension list to create the
 attribut arrays for the new columns.
 
 */
-
-  while (c < columnCount) {
-    Supplier extension = qp->GetSupplier(m_ExtendParameter, e);
+  for (size_t c = 0; c < extendColumnCount; ++c) {
+    Supplier extension = qp->GetSupplier(m_extendParameter, c);
     Supplier function = qp->GetSupplier(extension, 1);
     (*qp->Argument(function))[0].setAddr(sourceBlock);
 
     Word newAttrArray;
     qp->Request(function, newAttrArray);
-    columns[c] = static_cast<AttrArray*>(newAttrArray.addr);
-    
-    e++;
-    c++;
+    extendColumns[c] = static_cast<AttrArray*>(newAttrArray.addr);
   }
 
 /*
-unfortunately the CRel algebra does not support combining attribut arrays
-from different sources to one tuple block. so we have to copy the
-content of the source attribut arrays row by row to the new tuple block.
+create and return the projected and extended block
 
 */
+  TBlock *block = new TBlock(*sourceBlock, m_projectionIndices.GetPointer(), 
+    m_projectionIndices.GetCapacity(), extendColumns, extendColumnCount,
+    m_extensionTypes);
 
-  const TBlockFilter &filter = sourceBlock->GetFilter();
-  const size_t rowCount = filter.GetRowCount();
-  TBlock *target = new TBlock(m_blockInfo, 0, 0);
-
-  for (size_t r = 0; r < rowCount; r++) {
-    const size_t sourceRow = filter.GetAt(r);
-    SharedArray<AttrArrayEntry> tuple(columnCount);
-
-    size_t c = 0;
-
-    while (c < sourceColumnCount) {
-      tuple[c] = columns[c]->GetAt(sourceRow);
-      c++;
-    }
-
-    while (c < columnCount) {
-      tuple[c] = columns[c]->GetAt(r);
-      c++;
-    }
-
-    target->Append(tuple.GetPointer());
-  }
-
-  sourceBlock->DecRef();
-  sourceBlock = nullptr;
-
-  return target;
+  return block;
 }
-
