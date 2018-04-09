@@ -1,5 +1,4 @@
 /*
-----
 This file is part of SECONDO.
 
 Copyright (C) 2018,
@@ -19,59 +18,35 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
-
-\tableofcontents
- 
-1 Cache-conscious spatial join
-
-The ~cspatialjoin~ operator is a cache-conscious spatial-join operator, 
-which performs a partitioned spatial-join on two streams of tuple blocks.
-As arguments it expects two streams of tuple blocks and the name of the 
-join attribute for each argument relation.
-
-1.1 Imports
 
 */
-    
-#include "NestedList.h"         
-#include "QueryProcessor.h"    
-#include "AlgebraManager.h"         
+   
 #include "StandardTypes.h"     
-#include "Symbols.h"           
-#include "ListUtils.h"          
-#include <iostream>
-#include <math.h> 
 #include "CRel.h"
-#include "CRelTC.h"
-#include "OperatorUtils.h"
-#include "RelationAlgebra.h"
-#include "Stream.h"
 #include "TBlock.h"
-#include "TBlockTC.h"
-#include "cSpatialJoinProcessing.h"
-      
-
-extern NestedList *nl;
-extern QueryProcessor *qp;
-extern AlgebraManager *am;
+#include "BinaryTuple.h"
 
 using namespace std;
 using namespace CRelAlgebra;
 
 namespace csj {
 
-  SpatialJoinState::SpatialJoinState(const vector<TBlock*> fTBlockVector,
-                           const vector<TBlock*> sTBlockVector,
-                           uint64_t fIndex,
-                           uint64_t sIndex,
-                           uint64_t fNumTuples,
-                           uint64_t sNumTuples,
-                           uint64_t rTBlockSize) {}
-  SpatialJoinState::~SpatialJoinState() {}
+class SpatialJoinState {
+  public: 
+  // Constructor
+  SpatialJoinState(const vector<TBlock*> fTBlockVector,
+                   const vector<TBlock*> sTBlockVector,
+                   uint64_t fIndex,
+                   uint64_t sIndex,
+                   uint64_t fNumTuples,
+                   uint64_t sNumTuples,
+                   uint64_t rTBlockSize) {}
 
-  bool SpatialJoinState::nextTBlock(TBlock* ntb) {
+  // Destructor                 
+  ~SpatialJoinState() {}
+
+  bool nextTBlock(TBlock* ntb) {
     return true;
-}
-
+  }
+};
 }
