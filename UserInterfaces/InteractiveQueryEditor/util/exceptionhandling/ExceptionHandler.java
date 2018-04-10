@@ -78,7 +78,7 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
 				builder.append(stackTraceElement.toString()).append("\n");
 			}
 			if(throwable.getCause() != null) {
-				builder.append("Casued by:\n");
+				builder.append("Caused by:\n");
 				builder.append(getTextRepresentationOfThrowable(throwable.getCause()));
 			}
 		}
