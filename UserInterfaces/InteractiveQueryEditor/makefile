@@ -58,7 +58,8 @@ SecondoTTYIQE.jar: $(CLASSFILES)
 .PHONY: SecondoKernel.so
 SecondoKernel.so: JNITool.o SecondoKernel.o
 	@echo "Creating Shared Object"
-
+	@$(CC) -shared -o libSecondoKernel.so util/secondo/SecondoKernel.o $(JNITOOL_OBJECT_PATH) -Wl,--whole-archive -lsecondo -L/home/secondo/secondo/api_cpp/direct/lib -Wl,--no-whole-archive,-soname,SecondoKernel.so $(JNIINCLUDE) $(DEFAULTCCFLAGS)
+	
 .PHONY: SecondoKernel.o
 SecondoKernel.o: JNIHeader util/secondo/SecondoKernel.cpp util/secondo/SecondoKernel.h
 	@echo "Compiling new SecondoKernel.o File"
