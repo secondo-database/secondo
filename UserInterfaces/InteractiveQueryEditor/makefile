@@ -28,9 +28,12 @@ include ../../makefile.env
 include ../../makefile.jni
 
 JNITOOL_OBJECT_PATH = ../../Tools/Jni/JNITool.o
-JAVAFILES =$(shell find . -name "*.java")
+JAVAFILES = $(shell find . -name "*.java")
 TMPFILES = $(subst .java,.class,$(JAVAFILES))
 CLASSFILES = $(subst ./,,$(TMPFILES))
+LIBPATH := -L/home/secondo/secondo/api_cpp/direct/lib
+LIBPATH += -L/home/secondo/jpeg-6b/
+LIBPATH += -L/usr/lib/i386-linux-gnu/
 
 .PHONY: all
 all: Executable SecondoTTYIQE.jar SecondoKernel.so
@@ -58,7 +61,7 @@ SecondoTTYIQE.jar: $(CLASSFILES)
 .PHONY: SecondoKernel.so
 SecondoKernel.so: JNITool.o SecondoKernel.o
 	@echo "Creating Shared Object"
-	@$(CC) -shared -o libSecondoKernel.so util/secondo/SecondoKernel.o $(JNITOOL_OBJECT_PATH) -Wl,--whole-archive -lsecondo -L/home/secondo/secondo/api_cpp/direct/lib -Wl,--no-whole-archive,-soname,SecondoKernel.so $(JNIINCLUDE) $(DEFAULTCCFLAGS)
+	@$(CC) -shared -o libSecondoKernel.so util/secondo/SecondoKernel.o $(JNITOOL_OBJECT_PATH) -Wl,--whole-archive -lsecondo -ljpeg -lgsl -ldb_cxx-5.3 -Wl,--no-whole-archive,-soname,SecondoKernel.so $(JNIINCLUDE) $(LIBPATH) $(DEFAULTCCFLAGS)
 	
 .PHONY: SecondoKernel.o
 SecondoKernel.o: JNIHeader util/secondo/SecondoKernel.cpp util/secondo/SecondoKernel.h
