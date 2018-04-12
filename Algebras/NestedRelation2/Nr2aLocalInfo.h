@@ -45,13 +45,13 @@ class Nr2aLocalInfo
 
     ProgressInfo base;
 
-    int m_unitsProcessed;
+    uint64_t m_unitsProcessed;
     double m_totalTimeProcessed;
     clock_t m_firstClock;
     clock_t m_lastClock;
 
   protected:
-    virtual void SetUnitsProcessed(const int unitsProcessed);
+    virtual void SetUnitsProcessed(const uint64_t unitsProcessed);
 
   private:
     T* m_costEstimator;
@@ -107,7 +107,7 @@ void Nr2aLocalInfo<T>::UnitProcessed()
 }
 
 template <class T>
-void Nr2aLocalInfo<T>::SetUnitsProcessed(const int unitsProcessed)
+void Nr2aLocalInfo<T>::SetUnitsProcessed(const uint64_t unitsProcessed)
 {
   m_totalTimeProcessed = Nr2aHelper::MillisecondsElapsedSince(m_firstClock);
   assert(unitsProcessed >= m_unitsProcessed);

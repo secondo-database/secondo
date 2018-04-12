@@ -46,7 +46,7 @@ by tuples, but by bytes read.
 /*virtual*/ void DblpImportLocalInfo::UnitProcessed()
 {
   m_documentsProcessed++;
-  long int bytesProcessed = xmlTextReaderByteConsumed(m_reader);
+  long bytesProcessed = xmlTextReaderByteConsumed(m_reader);
   SetUnitsProcessed(bytesProcessed);
   if ((m_documentsProcessed % cRefreshProgressAfterTuples) == 0)
   {
