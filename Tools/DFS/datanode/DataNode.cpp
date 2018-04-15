@@ -65,7 +65,7 @@ int DataNode::run() {
   cout << "data node at port " << config.port << " ready." << endl
        << "ID is " << maschineId << endl;
   ep.listen();
-  cout << "Datenknoten - Serverbetrieb beendet" << endl;
+  cout << "data node - stopped server" << endl;
   return 0;
 }
 

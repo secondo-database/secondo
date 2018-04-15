@@ -203,7 +203,7 @@ void Endpoint::listen() {
     if (handlerMode == 1) clientHandler->onEnd();
 
     if ((flags & 0x00000002) == 2) {
-      if (canDebug) debug("datanode wants to be quitted");
+      if (canDebug) debug("node wants to be quitted");
       break;
     }
 

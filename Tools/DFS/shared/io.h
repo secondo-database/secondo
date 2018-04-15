@@ -90,6 +90,12 @@ namespace dfs {
       void createDir(const Str &dir);
 
       /**
+       * deletes empty dir only
+       * @param dir
+       */
+      void deleteEmptyDirOnlySafe(const Str& dir);
+
+      /**
        * returns file size of given file
        * @param filename
        * @return

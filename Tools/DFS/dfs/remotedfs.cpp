@@ -98,34 +98,64 @@ void RemoteFilesystem::loadChunkContentFromDataNode(
 
   debug("Lade Chunk");
 
-  NUMBER blockSizeForFetchingData = 4096; //FIXME
+  NUMBER blockSizeForFetchingData = this->fileCopyBuffer;
+
   DataNodeCommandBuilder builder;
 
   int *locIndices = numberUtils::findPermutationOfListIndices(
     chunkInfo->chunkLocationListLength);
 
+  NUMBER offsetInChunk = 0;
+  NUMBER bytesFetched = 0;
+  NUMBER bytesLeft = chunkInfo->length;
+
+  Str content;
+  bool locationIsAlive = true;
+
   for (int i = 0; i < chunkInfo->chunkLocationListLength; i++) {
+
+    //current location
     int locIndex = locIndices[i];
-
     ChunkLocation *pLoc = &chunkInfo->chunkLocationList[locIndex];
-    NUMBER offsetInChunk = 0;
-    Str cmd = builder.getBytes(pLoc->chunkId, offsetInChunk,
-                               blockSizeForFetchingData);
-    debug(cmd);
 
-    Str content;
-    if (sendRequestToDataNodeKilling(pLoc->dataNodeUri, cmd, &content)) {
-      debug(Str("Inhalt erhalten - Length").append(content.len()));
-      debug(content);
+    while (bytesFetched < chunkInfo->length) {
 
-      StrReader reader(&content);
-      reader.setPos(4);
-      Str byteContent = reader.readStrSer();
+      //ask for bytes
+      NUMBER lengthForGetBytes = bytesLeft >= blockSizeForFetchingData ?
+                                 blockSizeForFetchingData : bytesLeft;
+      Str cmd = builder.getBytes(pLoc->chunkId, offsetInChunk,
+                                 lengthForGetBytes);
 
-      fileWriter.writeBufferAt(chunkInfo->offsetInFile, byteContent.len(),
-                               byteContent.buf());
-      break;
+      //good case - we got the data from the current location
+      if (sendRequestToDataNodeKilling(pLoc->dataNodeUri, cmd, &content)) {
+
+        debug(Str("got content - Length").append(content.len()));
+
+        StrReader reader(&content);
+        reader.setPos(4);
+        Str byteContent = reader.readStrSer();
+
+        //cout << offsetInChunk << " " << chunkInfo->offsetInFile << endl;
+
+        fileWriter.writeBufferAt(chunkInfo->offsetInFile+offsetInChunk,
+                                 byteContent.len(),
+                                 byteContent.buf());
+
+        int contentLength = byteContent.len();
+        offsetInChunk += contentLength;
+        bytesFetched += contentLength;
+        bytesLeft -= contentLength;
+
+
+      } else {
+        locationIsAlive = false;
+      }
+
+      if (!locationIsAlive) continue;
+
     }
+
+
   }
 
 }
@@ -138,6 +168,18 @@ bool RemoteFilesystem::hasFile(FILEID fileId) {
   Str r = syncm(ser.output);
   assertResponse(r);
   return r[4] == '1';
+}
+
+void RemoteFilesystem::renameFile(const char *currentFileId,
+                                  const char *newFileId) {
+
+  ToStrSerializer ser;
+  ser.appendRaw("rena");
+  ser.append(Str(currentFileId));
+  ser.append(Str(newFileId));
+  Str r = syncm(ser.output);
+  assertResponse(r);
+
 }
 
 bool RemoteFilesystem::hasFeature(FEATURE name) {
@@ -345,5 +387,11 @@ Str DataNodeCommandBuilder::getBytes(const Str &chunkId, NUMBER offsetInChunk,
 void RemoteFilesystem::triggerIndexBackup() {
   ToStrSerializer ser;
   ser.appendRaw("back");
+  syncm(ser.output);
+}
+
+void RemoteFilesystem::quitWholeCluster() {
+  ToStrSerializer ser;
+  ser.appendRaw("quia");
   syncm(ser.output);
 }

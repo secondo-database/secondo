@@ -27,56 +27,24 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef DFS_CHUNK_H
-#define DFS_CHUNK_H
+#ifndef DFS_DEBUG_H
+#define DFS_DEBUG_H
 
 #include "../shared/str.h"
+#include "../shared/log.h"
 
-using namespace dfs;
+class Debug {
+public:
+  static dfs::log::Logger* logger;
 
-struct Chunk {
-
-  /**
-   * the size of the chunk
-   */
-  int chunksize;
-
-  /**
-   * the id of the chunk
-   */
-  Str chunkname;
-
-  /**
-   * the category of the file the chunk belongs to
-   */
-  Str category;
-
-  Chunk() {
-    chunksize = -1;
-    category = 0;
+  static void debug(const dfs::Str& str) {
+    if (logger != 0 && logger->canDebug) logger->debug(str);
   }
 
-  /**
-   * returns TRUE if this chunk is used or just reserved
-   * @return
-   */
-  bool isUsed() { return chunksize != -1; }
-
-  void setUnused() {chunksize=-1;}
-
-  Str mapToDataPath(const Str &dataPath) {
-    Str path = dataPath.append("/");
-    if (category.len() > 0) path = path.append(category).append("/");
-    return path.append(chunkname);
+  static void debug(const dfs::Str& caption, int value) {
+    debug(caption.append(": ").append(value));
   }
-
-  Str mapTargetDirToDataPath(const Str &dataPath) {
-    Str path = dataPath.append("/");
-    if (category.len() > 0) path = path.append(category);
-    return path;
-  }
-
 
 };
 
-#endif //DFS_CHUNK_H
+#endif //DFS_DEBUG_H

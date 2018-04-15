@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <pthread.h>
 #include "../commlayer/WebServer.h"
 #include "../shared/maschine.h"
+#include "../shared/debug.h"
 
 using namespace dfs;
 using namespace dfs::log;
@@ -151,21 +152,26 @@ void *indexThread(void *arg) {
   l2.canDebug = canDebug;
   l2.setFilename(dfs::io::file::combinePath(dataDir, "debug.log"));
   logger->add(&l2);
+  Debug::logger = logger;
 
   //audit logger
   FormattedFileLogger alogger;
   alogger.setFilename(dfs::io::file::combinePath(dataDir, "audit.log"));
   alogger.info("starting index node");
 
+  logger->debug("prepare new instance of indexnode");
   indexNode.port = port;
   indexNode.setLogger(logger);
   indexNode.setAuditLogger(&alogger);
   indexNode.getManager()->id = dfs::Maschine::volatileId(Str("i").append(port));
   indexNode.getManager()->dataPath = dataDir;
 
+  logger->debug("try to restore state");
   indexNode.getManager()->tryToRestoreState();
+  logger->debug("state restored");
   try {
     indexNode.run();
+    exit(0);
   } catch (BaseException &e) {
     cerr << "FATAL BaseException " << e.what() << endl;
     throw e;

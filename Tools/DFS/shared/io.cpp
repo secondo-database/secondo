@@ -74,6 +74,11 @@ dfs::io::file::createFile(const Str &filename, long bytes, const Str &strategy,
     for (long i = 0; i < bytes; i++) {
       fwrite(&alphabet[i % 26], 1, 1, fp);
     }
+  } else if (strategy == "255") {
+    for (long i = 0; i < bytes; i++) {
+      char c = i%256;
+      fwrite(&c, 1, 1, fp);
+    }
   }
 
   fflush(fp);
@@ -134,6 +139,14 @@ void dfs::io::file::createDir(const Str &dir) {
   delete[] ddir;
 #endif
   //TODO windows
+}
+
+void dfs::io::file::deleteEmptyDirOnlySafe(const Str &dir) {
+#ifdef DOLINUX
+  char *ddir = dir.cstr();
+  rmdir(ddir);
+  delete[] ddir;
+#endif
 }
 
 Writer::Writer(const Str &filename) {

@@ -96,6 +96,8 @@ namespace dfs {
 
     bool hasFile(const Str &fileId);
 
+    void renameFile(const Str& currentFileId, const Str& newFileId);
+
     int countFiles() const;
 
     void deleteAllFiles();

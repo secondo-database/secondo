@@ -48,15 +48,10 @@
     $root/datanode2/datanode -p4447 -pw44470 &
 
 #start index node
-    $root/index/indexnode -p4444 &
+    $root/index/indexnode -p4444 -r3 &
 
 #wait a bit
     sleep 1
-
-#create some local test data
-    $cli localfile-create $fileroot/t100.txt 100 ten
-    $cli localfile-create $fileroot/s_a.txt 100 single a
-    $cli localfile-create $fileroot/t55.txt 55 ten
 
 #register datanodes to index
     $cli datanode-register-easy $urii localhost 4445
@@ -66,15 +61,12 @@
 #ready, do some simple stuff
     echo "TESTSETUP DONE"
 
-    $cli file-store $urii $fileroot/t100.txt t100
-    $cli file-store $urii $fileroot/s_a.txt s_a
-    $cli file-store $urii $fileroot/t55.txt t55
+    $cli localfile-create $fileroot/ten.txt 4999127 255
+    $cli file-store $urii $fileroot/ten.txt ten
 
-    $cli file-load $urii t100 $fileroot/t100.saved
-    $cli file-load $urii s_a $fileroot/s_a.saved
-    $cli file-load $urii t55 $fileroot/t55.saved
+    $cli file-load $urii ten $fileroot/ten.txt.saved
 
-    $cli file-delete-all $urii
+    $cli quit-cluster $urii
 
 #eof
     echo "DONE"

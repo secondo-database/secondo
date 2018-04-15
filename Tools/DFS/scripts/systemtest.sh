@@ -4,10 +4,6 @@
 test_do_mediumfile=0
 test_do_massdelete=0
 
-#delete running processes
-    killall datanode
-    killall indexnode
-
 #directories for running
     root=/home/kingster/masterarbeit/systemtest
     bs=/home/kingster/masterarbeit/code/dfs
@@ -20,44 +16,71 @@ test_do_massdelete=0
     urii=dfs-index://localhost:4444
     urid1=dfs-data://localhost:4445
     urid2=dfs-data://localhost:4446
+    urid3=dfs-data://localhost:4447
 
 #config
     chunksize=200
     replica=2
 
-#tidy up
-    rm -rf $root
+#function for creating new cluster
+    function createCluster {
+        count=$(($1*1))
+        paramchunksize=$2
+        paramreplica=$3
+        onlystart=$4
 
-#creating directories
-    mkdir -p $root/index
-    mkdir -p $fileroot
-    mkdir -p $measureroot
-    for d in {1..2}
-    do
-    mkdir -p $root/datanode$d/data
-    done
+        if [ "$onlystart" != "1" ]; then
+            killall datanode
+            killall indexnode
+            rm -rf $root
+            mkdir -p $root/index
+            mkdir -p $fileroot
+            mkdir -p $measureroot
+            for ((d = 1; d <= $count; d++));
+            do
+            mkdir -p $root/datanode$d/data
+            done
+            cp $bs/indexnode/indexnode $root/index
+            cp $bs/cli/cli $root
 
-#copy binaries stuff
-    cp $bs/indexnode/indexnode $root/index
-    cp $bs/cli/cli $root
-    for d in {1..2}
-    do
-    cp $bs/datanode/datanode $root/datanode$d
-    done
+            for ((d = 1; d <= $count; d++));
+            do
+            cp $bs/datanode/datanode $root/datanode$d
+            done
+        fi
 
-#start data nodes
-    $root/datanode1/datanode -p4445 -pw44450 -X &
-    $root/datanode2/datanode -p4446 -pw44460 -X &
 
-#start index node
-    $root/index/indexnode -p4444 -chunksize$chunksize -r$replica -X &
+        #start data nodes
+        for ((d = 1; d <= $count; d++));
+        do
+            port=$((4444+$d))
+            webport=$((port*10))
+            $root/datanode$d/datanode -p$port -pw$webport -X &
+        done
 
-#wait for servers to be ready
-    sleep 1
+        #start index node
+        if [ "$2" == "-1" ]; then
+            $root/index/indexnode -p4444 -X &
+        else
+            $root/index/indexnode -p4444 -chunksize$paramchunksize -r$paramreplica -X &
+        fi
 
-#register data nodes
-    $cli datanode-register-easy $urii localhost 4445
-    $cli datanode-register-easy $urii localhost 4446
+        sleep 1
+
+        #register data nodes
+        for ((d = 1; d <= $count; d++));
+        do
+            port=$((4444+$d))
+            $cli datanode-register-easy $urii localhost $port
+        done
+    }
+
+#set up simple cluster
+rm -rf $root
+killall datanode
+killall indexnode
+
+createCluster 2 $chunksize $replica
 
 #create test data
     $cli localfile-create $fileroot/t.txt 1000 ten
@@ -66,6 +89,7 @@ test_do_massdelete=0
     $cli localfile-create $fileroot/bitmore.txt 201 ten
 
 #define some asserts and helper functions
+
     function assertEquals {
         if [ "$1" == "$2" ]; then
             echo "SUC - $3 - are equals $1"
@@ -133,6 +157,19 @@ test_do_massdelete=0
             echo "SUC - checksum same $3"
         else
             echo "ERR - $3 - checksum not equals $1 - $actual"
+            exit 1
+        fi
+    }
+
+    function assertTwoFilesAreEqual {
+        first=$(checksum "$1")
+        second=$(checksum "$2")
+        echo $first
+        echo $second
+        if [ "$first" == "$second" ]; then
+            echo "SUC - $3 - files are same"
+        else
+            echo "ERR - $3 - files not equal $1, $2"
             exit 1
         fi
     }
@@ -219,6 +256,7 @@ test_do_massdelete=0
     $cli file-store $urii $fileroot/t.txt t
     assertCount 1
 
+
 #save some checksums
     cs0=$(checksum $fileroot/t.txt)
     cs1=$(checksum $fileroot/single.txt)
@@ -295,6 +333,23 @@ test_do_massdelete=0
     $cli file-delete-all-category $urii cat0
     assertCount 13
 
+#test: rename test
+    echo
+    echo TEST rename
+    $cli file-delete-all $urii
+    file=$fileroot/lebenslauf.doc
+    $cli localfile-create $file 1200 255
+    $cli file-store $urii $file lebenslauf
+    $cli file-load $urii lebenslauf $file.saved
+    assertTwoFilesAreEqual $file $file.saved
+    assertHasFile lebenslauf
+    assertHasNoFile b
+    $cli file-rename $urii lebenslauf b
+    assertHasFile b
+    assertHasNoFile lebenslauf
+    $cli file-load $urii b b.saved
+    assertTwoFilesAreEqual $file b.saved
+    echo "SUC"
 
 #test: medium file
     if [ "$test_do_mediumfile" -eq "1" ]
@@ -481,12 +536,12 @@ test_do_massdelete=0
     $cli file-load $urii a $fileroot/a.saved
 
 #test for big file
-	echo
-	echo TEST big file
-	bigfile=$fileroot/big.iso
-	$cli localfile-create $bigfile 5000000000 ten
-	$cli change-setting $urii chunksize 1048576
-	$cli file-store $urii ~/big.iso
+	#echo
+	#echo TEST big file
+	#bigfile=$fileroot/big.iso
+	#$cli localfile-create $bigfile 5000000000 ten
+	#$cli change-setting $urii chunksize 1048576
+	#$cli file-store $urii ~/big.iso
 
 #test for loosing one data node
     echo
@@ -506,6 +561,76 @@ test_do_massdelete=0
 	$cli file-load $urii a $fileroot/a.loose
 
 	assertDataNodeCount 1
+
+#productive cluster test
+
+    echo
+    echo TEST create productive like cluster
+    createCluster 3 -1 -1
+    ps aux | grep indexnode
+
+    #loading and testing full binary
+        $cli localfile-create $fileroot/music.mp3 4999127 255
+        $cli file-store $urii $fileroot/music.mp3 music
+        $cli file-load $urii music $fileroot/music.mp3.saved
+        assertTwoFilesAreEqual $fileroot/music.mp3 $fileroot/music.mp3.saved music
+
+    #longer music
+        $cli localfile-create $fileroot/music2.mp3 79929127 255
+        $cli file-store $urii $fileroot/music2.mp3 music2
+        $cli file-load $urii music2 $fileroot/music2.mp3.saved
+        assertTwoFilesAreEqual $fileroot/music2.mp3 $fileroot/music2.mp3.saved music2
+
+    #stop the cluster
+        $cli quit-cluster $urii
+        echo "SUC"
+
+    #restart the cluster
+        echo
+        echo TEST restart this cluster
+        createCluster 3 -1 -1 1
+        ps aux | grep indexnode
+        assertTotalSizeRemote 84928254
+        $cli file-load $urii music $fileroot/music.mp3.saved.2
+        assertTwoFilesAreEqual $fileroot/music.mp3 $fileroot/music.mp3.saved.2 music-restart
+        $cli file-load $urii music2 $fileroot/music2.mp3.saved.2
+        assertTwoFilesAreEqual $fileroot/music2.mp3 $fileroot/music2.mp3.saved.2 music2
+        echo "SUC"
+
+    #delete big file add one small file, restart
+        echo
+        echo TEST delete and restart
+        $cli file-delete $urii music2
+        $cli quit-cluster $urii
+        createCluster 3 -1 -1 1
+        ps aux | grep indexnode
+        assertTotalSizeRemote 4999127
+
+        $cli file-store-buffer $urii 1 Secondo4.1
+        echo -n "Secondo4.1" > $fileroot/1
+        $cli file-load $urii 1 $fileroot/1.saved
+        assertTwoFilesAreEqual $fileroot/1 $fileroot/1.saved 1
+
+        echo "Secondo4.2" > $fileroot/2
+        $cli file-store $urii $fileroot/2 2
+        $cli file-load $urii 2 $fileroot/2.saved
+        assertTwoFilesAreEqual $fileroot/2 $fileroot/2.saved 2
+
+        echo "SUC"
+
+    #many restarts
+        ffixes=$fileroot/fixes.pdf
+        $cli localfile-create $ffixes 3000000 255
+        $cli file-store $urii $ffixes fixes
+        $cli file-store $urii $ffixes fixes2
+        $cli file-store $urii $ffixes fixes3
+        for ((rd = 1; rd <= 5; rd++));
+        do
+            createCluster 3 -1 -1 1
+            $cli file-load $urii fixes $ffixes.saved
+            assertTwoFilesAreEqual $ffixes $ffixes.saved
+        done
+
 
 echo "all tests done"
 echo "ALLSUC"

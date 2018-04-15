@@ -49,6 +49,7 @@ void FigureSystem::inc() {
 }
 
 void FigureSystem::inc(int value) {
+  if (value == 0) return;
   values[0] += value;
   refactor();
 }

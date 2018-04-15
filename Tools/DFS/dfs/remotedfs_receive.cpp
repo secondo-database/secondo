@@ -53,6 +53,7 @@ void RemoteFilesystem::receiveFileToLocal(FILEID fileId, FILEPATH localPath) {
   //Teile der Datei nun anfordern
   for (int i = 0; i < entry.chunkInfoListLength; i++) {
     ChunkInfo *pChunkInfo = &entry.chunkInfoList[i];
+
     loadChunkContentFromDataNode(pChunkInfo, fileWriter);
   }
 

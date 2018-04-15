@@ -37,7 +37,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../commlayer/WebServer.h"
 #include "../shared/format.h"
 #include "DataNodeConfig.h"
+#include "../shared/debug.h"
 #include <pthread.h>
+#include <stdlib.h>
 
 using namespace dfs::log;
 using namespace std;
@@ -104,7 +106,8 @@ void *dataNodeThread(void *arg) {
   pnode->pLogger->debug("THREAD dataNodeThread: DataNode.run");
   try {
     pnode->run();
-    cout << "dataNodeDone" << endl;
+    cout << "data node main thread not running anymore" << endl;
+    exit(0);
   }
   catch (BaseException &e) {
     cerr << e.what() << endl;
@@ -131,6 +134,7 @@ int main(int argc, char *argv[]) {
   CompositeLogger *logger = new CompositeLogger();
   bool canDebug = helper.hasParameter("X");
   logger->canDebug = canDebug;
+  Debug::logger = logger;
 
   DataNodeConfig config;
   config.maxClients = 8;

@@ -74,6 +74,7 @@ Str DataNodeClientHandler::onReceived(Str *s, int *resultFlags) {
     return Str("0000").append(s->substr(4));
   } else if (cmd == "quit") {
     *resultFlags = 2;
+    dataNode->state()->markAsDirty();
     return Str("0000");
   } else if (cmd == "conf") {
     ToStrSerializer ser;
@@ -171,6 +172,7 @@ Str DataNodeClientHandler::onReceived(Str *s, int *resultFlags) {
     pChunk->chunksize = newChunkSize;
 
     if (canDebug) _dr("updated meta info");
+    this->dataNode->state()->markAsDirty();
 
     return Str("0000");
   }
@@ -189,8 +191,14 @@ Str DataNodeClientHandler::onReceived(Str *s, int *resultFlags) {
       if (canDebug) _dr(Str("deleting file ").append(filepath));
       dfs::io::file::deleteFile(filepath);
 
+      if (pChunk->category.len() > 0) {
+        dfs::io::file::deleteEmptyDirOnlySafe(
+          pChunk->mapTargetDirToDataPath(filepath));
+      }
+
       if (canDebug) _dr(Str("deleting chunk from state ").append(chunkId));
       dataNode->state()->deleteChunkById(chunkId);
+
 
       if (canDebug) _dr(Str("done deleting"));
 
@@ -211,6 +219,12 @@ Str DataNodeClientHandler::onReceived(Str *s, int *resultFlags) {
       Str filepath = pChunk->mapToDataPath(dataNode->config.dataDir);
       if (canDebug) _dr(Str("deleting file ").append(filepath));
       dfs::io::file::deleteFile(filepath);
+
+      if (pChunk->category.len() > 0) {
+        dfs::io::file::deleteEmptyDirOnlySafe(
+          pChunk->mapTargetDirToDataPath(filepath));
+      }
+
     }
 
     dataNode->state()->deleteAllChunks();

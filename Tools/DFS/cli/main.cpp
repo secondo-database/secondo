@@ -114,6 +114,10 @@ void displayHelp() {
          "distributed filesystem.");
   line();
 
+  line("file-rename <indexurl> <currentFileId> <newFileId>");
+  line("\trenames a file");
+  line();
+
   line("file-delete <indexurl> <fileid>");
   line("\tdeleted a file from DFS using given <fileid>");
   line();
@@ -169,6 +173,14 @@ void displayHelp() {
   line("\t<key> can be chunksize when value is an integer");
   line();
 
+  line("quit-cluster <indexurl>");
+  line("\tshuts down entire cluster identified by index URI");
+  line();
+
+  line("quit <uri>");
+  line("\tshuts down a single node identifed by uri");
+  line();
+
   //local file utils
   line("localfile-create <targetpath> <sizeInBytes>|<size>(k|m) <strategy>"
          " [args1]");
@@ -177,6 +189,7 @@ void displayHelp() {
          " the file size");
   line("\t<strategy> may be: single - using a single char identified by "
          "args1 <size> times");
+  line("\t<strategy> may be: 255 - using chars 0..255 for creating");
   line();
 
   //advanced debugging
@@ -223,6 +236,8 @@ int main(int argc, char *argv[]) {
     canDebug = h.hasParameter("X");
     beSilent = h.hasParameter("Q");
 
+    if (canDebug) cout << "extreme debug enabled" << endl;
+
     Duration duration;
 
     if (doMeasure) duration.start();
@@ -233,7 +248,29 @@ int main(int argc, char *argv[]) {
 
     if (cmd == "test") {
       line("cli ready");
-    } else if (cmd == "send-raw") {
+    }
+
+    else if (cmd == "quit-cluster") {
+      cout << "QUITTING CLUSTER" << endl;
+      URI indexUri = URI::fromString(h.word(1));
+      if (canDebug) cout << "quitting whole cluster "
+                         << indexUri.toString() << endl;
+      RemoteFilesystem r(indexUri,&logger);
+      r.quitWholeCluster();
+    }
+
+    else if (cmd == "quit") {
+      URI uri = URI::fromString(h.word(1));
+      if (canDebug) cout << "quitting single node " << uri.toString() << endl;
+      dfs::comm::EndpointClient ec;
+      ec.setLogger(&logger);
+      ToStrSerializer ser;
+      Str d = "quit";
+      Str result = ec.sendSyncMessage(uri, d);
+      cout << "QUIT result " << result << endl;
+    }
+
+    else if (cmd == "send-raw") {
       URI uri = URI::fromString(h.word(1));
       Str d = h.word(2);
       debugc(cmd, Str("execute raw command - ").append(d));
@@ -283,6 +320,8 @@ int main(int argc, char *argv[]) {
         dfs::io::file::createFile(target, size, strat, h.word(4));
       else if (strat == "alphabet")
         dfs::io::file::createFile(target, size, strat);
+      else if (strat == "255")
+        dfs::io::file::createFile(target,size,strat);
 
 
     } else if (cmd == "file-list") {
@@ -359,6 +398,17 @@ int main(int argc, char *argv[]) {
       RemoteFilesystem r(uri, &logger);
       bool value = r.hasFile(CStr(fileId).cstr());
       cout << (value ? 1 : 0) << endl;
+    } else if (cmd == "file-rename") {
+      line("renaming file");
+      URI uri = URI::fromString(h.word(1));
+      if (canDebug) debug(Str("index node is ").append(uri.toString()));
+      Str fileId = h.word(2);
+      if (canDebug) debug(Str("current fileId is ").append(fileId));
+      Str newFileId = h.word(3);
+      if (canDebug) debug(Str("new fileId is ").append(fileId));
+      RemoteFilesystem r(uri,&logger);
+      r.renameFile(CStr(fileId).cstr(),CStr(newFileId).cstr());
+
     } else if (cmd == "file-append-localfile") {
       //urii fileid localfile
       line("append content from local file to file of dfs");

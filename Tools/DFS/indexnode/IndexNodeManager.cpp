@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "IndexNodeManager.h"
 #include "../shared/io.h"
+#include "../shared/debug.h"
 
 using namespace dfs;
 using namespace std;
@@ -56,6 +57,19 @@ IndexEntry *IndexNodeManager::findFile(const Str &fileId) {
 
 bool IndexNodeManager::hasFile(const Str &fileId) {
   return this->findFile(fileId) != 0;
+}
+
+void IndexNodeManager::renameFile(const Str &currentFileId,
+                                  const Str &newFileId) {
+
+  IndexEntry* pIndexEntry = this->findFile(currentFileId);
+  if (pIndexEntry == 0) return;
+  if (this->findFile(newFileId) != 0) return;
+
+  pIndexEntry->fileId = newFileId;
+  IIT pos = fileIndex.begin();
+  fileIndex.insert(pos, std::pair<Str, IndexEntry>(newFileId, *pIndexEntry));
+  fileIndex.erase(currentFileId);
 }
 
 void IndexNodeManager::deleteAllFiles() {
@@ -134,25 +148,52 @@ void IndexNodeManager::backupStateAdditional() {
 }
 
 void IndexNodeManager::tryToRestoreState() {
+  Debug::debug("IndexNodeManager.tryToRestoreState");
   this->restoreStateFromFile(getDefaultStateFile());
 }
 
 bool IndexNodeManager::restoreStateFromFile(const Str &filename) {
+
+  Debug::debug(Str("IndexNodeManager.restoreStateFromFile ").append(filename));
+
   io::file::Reader reader(filename);
 
   if (!reader.open()) return false;
 
-  reader.readInt();
-  int amountEntries = reader.readInt();
+  int version = reader.readInt();
+
+  Debug::debug(Str("version: ").append(version));
+
   this->nextBackupStateNumber = reader.readInt();
+  Debug::debug(Str("next backup state number: ")
+                       .append(this->nextBackupStateNumber));
+
+  int amountEntries = reader.readInt();
+  Debug::debug(Str("amount of entries (files): ").append(amountEntries));
 
   for (int i = 0; i < amountEntries; i++) {
+    Debug::debug(Str("loading file with index : ").append(i));
     int len = reader.readInt();
     Str serString = reader.readStr(len);
+
     IndexEntry indexEntry = IndexEntry::deserialize(serString);
+    Debug::debug(Str("\tfound file with id: ").append(indexEntry.fileId));
     IIT pos = fileIndex.begin();
     fileIndex.insert(pos,
-                     std::pair<Str, IndexEntry>(indexEntry.fileId, indexEntry));
+       std::pair<Str, IndexEntry>(indexEntry.fileId, indexEntry));
+
+    Debug::debug(Str("\tamount of chunks: ")
+     .append(indexEntry.chunkInfoListLength));
+    for (int j=0;j<indexEntry.chunkInfoListLength;j++) {
+      ChunkInfo* pChunkInfo = indexEntry.chunkInfoList + j;
+      Debug::debug(Str("\t\tchunk ").append(j)
+       .append(" with offsetInFile ").append(pChunkInfo->offsetInFile));
+      for (int l=0;l<pChunkInfo->chunkLocationListLength;l++) {
+        Debug::debug(Str("\t\t\tlocation: chunkid: ")
+         .append(pChunkInfo->chunkLocationList[l].chunkId).append(" at ")
+         .append(pChunkInfo->chunkLocationList[l].dataNodeUri.toString()));
+      }
+    }
   }
 
   int amountOfDataNodeEntries = reader.readInt();

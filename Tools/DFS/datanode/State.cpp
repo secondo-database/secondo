@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "State.h"
 #include "../shared/io.h"
+#include "../shared/debug.h"
 
 State::State() {
   isDirty = false;
@@ -109,40 +110,59 @@ void State::reset() {
 
 void State::dumpToFile(const Str &filename) {
 
+  Debug::debug(Str("dumping datanode state to file ").append(filename));
+
   //format
   //<nextChunkIndex><chunksLength>
   //
   dfs::io::file::Writer w(filename);
 
   w.append(this->nextChunkIndex);
+  Debug::debug("next chunk index",this->nextChunkIndex);
   w.append(this->chunksLength);
+  Debug::debug("chunk length",this->chunksLength);
 
   for (int i = 0; i < chunksLength; i++) {
     Chunk *c = &chunks[i];
     w.appendWithLengthInfo(4, c->chunkname);
+    w.append(c->isUsed() ? 1 : 0);
     w.append(c->chunksize);
     w.appendWithLengthInfo(4, c->category);
+    Debug::debug(Str("\tdumped chunk ").append(c->chunkname).append(" ")
+     .append(c->isUsed() ? 1 : 0)
+     .append(" ").append(c->chunksize).append(" ").append(c->category));
   }
   w.close();
 }
 
 void State::restoreFromFile(const Str &filename) {
+
+  Debug::debug(Str("restore state from file ").append(filename));
+
   dfs::io::file::Reader reader(filename);
 
   if (!reader.open()) return;
+  Debug::debug("file could be opened --> reading");
   this->reset();
 
   nextChunkIndex = reader.readInt();
   chunksLength = reader.readInt();
+  Debug::debug("nextChunkIndex",nextChunkIndex);
+  Debug::debug("chunksLength",chunksLength);
 
   chunks = new Chunk[chunksLength];
   for (int i = 0; i < chunksLength; i++) {
     Chunk *c = chunks + i;
     c->chunkname = reader.readWithLengthInfo(4);
+    int used = reader.readInt();
     c->chunksize = reader.readInt();
     c->category = reader.readWithLengthInfo(4);
+    if (used == 0) c->setUnused();
   }
   reader.close();
+
+  fsc->inc(nextChunkIndex);
+
 }
 
 Chunk *State::copyState(int *outLength) {

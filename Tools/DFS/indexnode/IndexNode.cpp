@@ -34,6 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../commlayer/comm.h"
 #include "../shared/log.h"
 #include "DataNodeEntry.h"
+#include "../commlayer/EndpointClient.h"
 
 using namespace std;
 using namespace dfs;
@@ -455,6 +456,17 @@ Str handleMessage(const Str *i, int *flags) {
     if (canDebug) debug(Str("check if we have file - ").append(fileId));
     bool hasFile = man.hasFile(fileId);
     return Str(hasFile ? "00001" : "00000");
+  } else if (cmd == "rena") {
+    StrReader reader(&netto);
+    Str fileId = reader.readStrSer();
+    Str newFileId = reader.readStrSer();
+    if (canDebug) {
+      debug(Str("rename file ").append(fileId)
+        .append(" to ").append(newFileId));
+    }
+    audit(Str("rename file ").append(fileId).append(" to ").append(newFileId));
+    man.renameFile(fileId,newFileId);
+    return success();
   } else if (cmd == "conf") {
     Str result;
     result = result.append("chunksize=").append(man.config.maxChunkSize);
@@ -566,7 +578,36 @@ Str handleMessage(const Str *i, int *flags) {
   else if (cmd == "back") {
     if (canDebug) debug("backup of state forced");
     man.backupState();
-  } else {
+  }
+
+  else if (cmd == "quia") {
+    if (canDebug) debug("quitting entire cluster");
+    audit("quitting entire cluster");
+    man.backupState();
+    *flags = 2;
+    std::vector<URI> all = man.dataNodeIndex.allURIs();
+    unsigned long size = all.size();
+    for (unsigned long s=0;s<size;s++) {
+      URI uri = all.at(s);
+      try {
+        if (canDebug) debug("quiting data node");
+        dfs::comm::EndpointClient ec;
+        ec.setLogger(globalLogger);
+        ec.sendSyncMessage(uri,"quit");
+      } catch (...) {
+      }
+    }
+
+  }
+
+  else if (cmd == "quit") {
+    if (canDebug) debug("quitting this index node");
+    audit("quitting index node");
+    man.backupState();
+    *flags = 2;
+  }
+
+  else {
     globalLogger->error("unknown command");
     return Str("9999", 4);
   }
@@ -600,8 +641,12 @@ void IndexNode::run() {
   cout << "DFS-INDEXNODE at port " << port
        << " is now ready and accepting connections" << endl;
   cout << "id of node is " << man.id << endl;
+  cout << "chunksize is " << man.config.maxChunkSize << endl;
+  cout << "replica count is " << man.config.replicaCount << endl;
 
   ep.listen();
+
+  globalLogger->debug("endpoint of indexnode does not list anymore");
 
 }
 

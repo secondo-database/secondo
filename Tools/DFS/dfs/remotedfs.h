@@ -178,6 +178,8 @@ namespace dfs {
 
       virtual bool hasFile(FILEID fileId);
 
+      virtual void renameFile(FILEID currentFileId, FILEID newFileId);
+
       virtual void
       storeFileFromLocal(FILEID fileId, FILEPATH localPath, CATEGORY c = 0);
 
@@ -210,6 +212,12 @@ namespace dfs {
       virtual void changeSetting(const char *key, const char *value);
 
       virtual void changeChunkSize(int newSize);
+
+      /*
+       shuts down the entire cluster
+       */
+      void quitWholeCluster();
+
 
       /*
        other methods
