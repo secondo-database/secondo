@@ -75,12 +75,17 @@ public class QueryAnalyser {
 	}
 
 	public String analyseQuery(final String query) throws Exception {
-		final String[] tokens = parseTokens(query);
+		final String normalizedQuery = normalizeQuery(query);
+		final String[] tokens = parseTokens(normalizedQuery);
 		//		return "Token size: " + tokens.length + "\n" + "Token:\n" + StringUtilities.appendStrings(tokens);
 		// used for debugging purpose. if you remove the comment and comment the following lines the analysers will show all recognized tokens
 		final ComplexToken[] complexTokens = analyseTokenType(tokens);
 		analyseTokens(complexTokens);
 		return createTypeInformation(complexTokens);
+	}
+
+	private String normalizeQuery(final String query) {
+		return query.replaceAll("(\\{)(.*)(\\})", " rename [$2] ");
 	}
 
 	private static String[] parseTokens(final String query) {
