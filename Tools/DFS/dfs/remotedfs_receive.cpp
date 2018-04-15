@@ -73,6 +73,8 @@ bool containsChunkFilePart(ChunkInfo *chunk, UI64 index, UI64 length,
   //are there bytes which are needed
   if (numberUtils::hasIntersect(cs, ce, index, end)) {
 
+    //cout << "index " << index << " cs " << cs << endl;
+
     if (index < cs) {
       *outOffsetInChunk = 0;
       UI64 l = length - bytesConsumed;
@@ -88,8 +90,12 @@ bool containsChunkFilePart(ChunkInfo *chunk, UI64 index, UI64 length,
       UI64 x = index - cs;
       *outOffsetInChunk = x;
       UI64 l = length - bytesConsumed;
+      //cout << "length " << length << endl;
+      //cout << "bytesConsumed " << bytesConsumed << endl;
       if (l > chunk->length) l = chunk->length;
-      l -= cs;
+      //cout << "l " << l << endl;
+      //l -= cs;
+      //cout << "l " << l << endl;
       *outBytesPresentInChunk = l;
     }
 

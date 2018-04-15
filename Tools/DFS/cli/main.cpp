@@ -388,6 +388,8 @@ int main(int argc, char *argv[]) {
       dfs::io::file::Writer writer(localFilePath, false);
       writer.append(buf, length);
       writer.close();
+      delete[] buf;
+      buf = 0;
 
     } else if (cmd == "file-exists") {
       line("check whether file exists");

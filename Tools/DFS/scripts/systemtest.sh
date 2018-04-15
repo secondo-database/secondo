@@ -562,6 +562,24 @@ createCluster 2 $chunksize $replica
 
 	assertDataNodeCount 1
 
+#productive cluster test - file-part-load - thanks to tbehr
+    echo
+    echo TEST part advanced - thanks to tbehr
+    createCluster 4 -1 -1
+    ps aux | grep indexnode
+    $cli file-delete-all $urii
+    $cli localfile-create $fileroot/berlin 7843411 255
+    $cli file-store $urii $fileroot/berlin berlinremote
+
+    $cli file-load-part-store $urii berlinremote 1285120 257024 $fileroot/berlin.saved.part
+
+    $cli file-load $urii berlinremote $fileroot/berlin.saved
+    assertTwoFilesAreEqual $fileroot/berlin $fileroot/berlin.saved
+
+    $cli file-load-part-store $urii berlinremote 0 7843411 $fileroot/berlin.saved.2
+    assertTwoFilesAreEqual $fileroot/berlin $fileroot/berlin.saved.2
+
+
 #productive cluster test
 
     echo
