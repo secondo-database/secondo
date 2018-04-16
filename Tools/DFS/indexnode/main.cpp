@@ -66,7 +66,7 @@ public:
 
     //Datenknoten
     builder.append(
-      Str("</table><h2>data nodes</h2>").append("<p>count: ").append(
+      Str("</table><h2>Data nodes</h2>").append("<p>count: ").append(
         man->dataNodeIndex.count()).append("</p>"));
 
     builder.appendCStr("<table>");
