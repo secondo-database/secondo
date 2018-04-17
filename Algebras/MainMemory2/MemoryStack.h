@@ -112,6 +112,30 @@ class MemoryStackObject : public MemoryObject {
             return tt;
         }
 
+        MemoryObject* clone(){
+            MemoryStackObject* res = new MemoryStackObject(flob, database, 
+                                                         objectTypeExpr);
+            std::stack<mstackentry> tmp;
+            while(!s.empty()){
+              mstackentry e = s.top();
+              s.pop();
+              tmp.push(e);
+            } 
+            while(!tmp.empty()){
+               mstackentry e = tmp.top();
+               tmp.pop();
+               Tuple* t = e()->Clone();
+               s.push(e);
+               res->s.push(mstackentry(t));
+            }
+            return res;
+        }
+
+        static ListExpr wrapType(ListExpr tupleType){
+          assert(Tuple::checkType(tupleType));
+          return nl->TwoElemList( nl->SymbolAtom(BasicType()),
+                                  tupleType);
+        }
 
     private:
         std::stack<mstackentry> s;

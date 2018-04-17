@@ -393,7 +393,13 @@ Returns an iterator traversing all entries of the tree.
 
 
 
-
+   RtreeT<dim,T>* clone(){
+      RtreeT<dim,T>* res = new RtreeT<dim,T>(min,max);
+      if(root){
+         res->root = root->clone();
+      }
+      return res;
+   }   
 
 /*
 2.6 private part
@@ -727,6 +733,21 @@ ssize_t usedMem() const{
   }
   return sum + sizeof(*this) + sizeof(sons);  
 }
+
+
+   Node<dim,T>*  clone(){
+       Node<dim,T>* res = new Node<dim,T>(box,id);
+       res->min = min;
+       res->max = max;
+       res->count = count;
+       if(sons){
+         res->sons = new Node<dim,T>*[max+1]; 
+         for(int i=0;i<count;i++){
+           res->sons[i] = sons[i]->clone();
+         }
+       }
+       return res;
+   }
 
 
 /*

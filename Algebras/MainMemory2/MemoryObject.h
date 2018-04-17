@@ -36,27 +36,50 @@ namespace mm2algebra{
 
 class MemoryObject {
     public:
+
     MemoryObject(){
         flob = false;
         database="";
         memSize=0;
         objectTypeExpr="";
+        references = 1;
     }
 
     MemoryObject(bool _flob, const std::string& _database,
                  const std::string& _type) : memSize(0), 
                  objectTypeExpr(_type), flob(_flob),
-                 database(_database) {}
+                 database(_database),references(1) {
+    
+   }
 
-    virtual ~MemoryObject();
 
     unsigned long getMemSize ();
+
+    void incReferences(){
+      references++;
+    }
+
+    void deleteIfAllowed(){
+       references--;
+       if(!references){
+          delete this;
+       }
+    }
+
+    inline size_t getNoReferences() const{
+      return references;
+    }
 
     std::string getObjectTypeExpr();
     void setObjectTypeExpr(std::string _oTE);
     std::string getDatabase();
     bool hasflob();
     ListExpr getType() const;
+
+    virtual MemoryObject* clone() = 0;
+
+    virtual ListExpr out();
+    virtual MemoryObject* in(ListExpr type, bool& correct);
 
     protected:
         unsigned long memSize;      // object size in main memory in byte
@@ -65,7 +88,9 @@ class MemoryObject {
 
         bool flob;
         std::string database;
+        size_t references;
 
+        virtual ~MemoryObject();
 };
 
 }

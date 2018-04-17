@@ -261,6 +261,13 @@ Returns, how many nodes are within the subtree rooted by this.
       virtual int getNoNodes() const = 0;
 
 
+      virtual MTreeNode<T,DistComp>* clone() = 0;
+
+
+      void setParent(MTreeNode<T,DistComp>* p){
+          parent = p;
+      }
+
     protected:
 /*
 1.3 Constructor
@@ -548,6 +555,23 @@ Returns the number of nodes of  this subtree.
      return res;
    }
 
+
+   MTreeInnerNode<T,DistComp>* clone(){
+       MTreeInnerNode<T,DistComp>* res;
+       res = new MTreeInnerNode<T,DistComp>(MTreeNode<T,DistComp>::minEntries, 
+                                         MTreeNode<T,DistComp>::maxEntries,
+                                         MTreeNode<T,DistComp>::routingObject);
+       res->radius = MTreeNode<T,DistComp>::radius;
+       res->distanceToParent = MTreeNode<T,DistComp>::distanceToParent;
+       res->count = MTreeNode<T,DistComp>::count;
+       for(int i=0;i<MTreeNode<T,DistComp>::count;i++){
+          res->sons[i] = sons[i]->clone();
+          res->sons[i]->setParent(res);
+       }  
+       return res;
+   }
+
+
    private:
 /*
 2.4 Member variables
@@ -714,6 +738,19 @@ write a textual representation fo this leaf to ~out~.
         return res;
       }
 
+   MTreeLeafNode<T,DistComp>* clone(){
+       MTreeLeafNode<T,DistComp>* res;
+       res = new MTreeLeafNode<T,DistComp>(MTreeNode<T,DistComp>::minEntries, 
+                                        MTreeNode<T,DistComp>::maxEntries,
+                                        MTreeNode<T,DistComp>::routingObject);
+       res->radius = MTreeNode<T,DistComp>::radius;
+       res->distanceToParent = MTreeNode<T,DistComp>::distanceToParent;
+       res->count = MTreeNode<T,DistComp>::count;
+       for(int i=0;i<MTreeNode<T,DistComp>::count;i++){
+            res->Objects[i] = new T(*Objects[i]);
+       }  
+       return res;
+   }
   
    private:
 
@@ -1090,6 +1127,16 @@ increasing order to the reference object.
    
    MTreeNode<T, DistComp>* getRoot() {
      return root;
+   }
+
+
+   MMMTree<T,DistComp>* clone(){
+     MMMTree<T,DistComp>* res = new MMMTree<T,DistComp>(minEntries, 
+                                                  maxEntries, di);
+     if(root){
+        res->root = root->clone();
+     }
+     return res;
    }
 
 

@@ -19,37 +19,36 @@
 
 operator memload alias MEMLOAD pattern op (_)
 operator memloadflob alias MEMLOADFLOB pattern op (_)
+
 operator meminit alias MEMINIT pattern op (_)
 operator mfeed alias MFEED pattern _ op
-operator letmconsume alias LETMCONSUME pattern _ op [_]
-operator letmconsumeflob alias LETMCONSUMEFLOB pattern _ op [_]
-operator memdelete alias MEMDELETE pattern op (_)
+
+operator mconsume alias MCONSUME pattern _ op
+operator mconsumeflob alias MCONSUMEFLOB pattern _ op
+
+operator moconsume alias MOCONSUME pattern _ op[list]
+operator moconsumeflob alias MOCONSUMEFLOB pattern _ op[list]
+
+
 operator memobject alias MEMOBJECT pattern op (_)
-operator memlet alias MEMLET pattern op(_,_)
-operator memletflob alias MEMLETFLOB pattern op(_,_)
-operator memupdate alias MEMUPDATE pattern op(_,_)
-#operator mcreateRtree alias MCREATERTREE pattern op(_,_)
-operator mcreateRtree alias MCREATERTREE pattern _ op [_]
+
+operator mcreatertree alias MCREATERTREE pattern _ op [_]
 operator memgetcatalog alias MEMGETCATALOG pattern op()
 operator memsize alias MEMSIZE pattern op()
 operator memclear alias MEMCLEAR pattern op()
 operator meminsert alias MEMINSERT pattern _ op[_]
 operator mwindowintersects alias MWINDOWINTERSECTS pattern _ _ op[_]
 operator mwindowintersectsS alias MWINDOWINTERSECTSS pattern  _ op[_]
-operator mconsume alias MCONSUME pattern _ op
-operator mcreateAVLtree2 alias MCREATEAVLTREE2 pattern _ op[_,_,_]
 operator mcreateAVLtree alias  MCREATEAVLTREE pattern _ op [_]
 operator mexactmatch alias MEXACTMATCH pattern _ _ op [_]
 operator mrange alias MRANGE pattern _ _ op [_, _]
 operator matchbelow alias MATCHBELOW pattern _ _ op [_]
 operator matchbelow2 alias MATCHBELOW2 pattern _ _ op [_,_,_]
-operator mcreateRtree2 alias MCREATERTREE2 pattern _ op [_,_]
 
-operator mcreateMtree2 alias MCREATEMTREE2 pattern _ op [_,_,_]
+operator mcreatemtree alias MCREATEMTREE pattern _ op [_,_]
 operator mdistRange2 alias MDISTRANGE2 pattern _ op [_,_]
 operator mdistScan2 alias MDISTSCAN2 pattern _ op [_]
 
-operator mcreateMtree alias MCREATEMTREE pattern _ op [_,_]
 operator mdistRange alias MDISTRANGE pattern _ _ op [_,_]
 operator mdistScan alias MDISTSCAN  pattern _ _ op [_]
 
@@ -94,9 +93,7 @@ operator mupdatedirect2 alias MUPDATEDIRECT2 pattern _ _ op[_; funlist] implicit
 
 operator moinsert alias MOINSERT pattern _ op [_]
 operator modelete alias MODELETE pattern _ op [_]
-operator moconsume alias MOCONSUME pattern _ op[list]
-operator letmoconsume alias LETMOCONSUME pattern _ op [_;list]
-operator letmoconsumeflob alias LETMOCONSUMEFLOB pattern _ op [_;list]
+
 operator morange alias MORANGE pattern _ op [list; list]
 operator moleftrange alias MOLEFTRANGE pattern _ op [list]
 operator morightrange alias MORIGHTRANGE pattern _ op [list]
@@ -109,8 +106,9 @@ operator moconnectedcomponents alias MOCONNECTEDCOMPONENTS pattern _ op
 operator mquicksort alias MQUICKSORT pattern _ op
 operator mquicksortby alias MQUICKSORTBY pattern _ op [list]
 
-operator memglet alias MEMGLET pattern op(_,_)
-operator memgletflob alias MEMGLETFLOB pattern op(_,_)
+operator mcreatemgraph alias MCREATEMGRAPH pattern op(_)
+operator mcreatemgraphflob alias MCREATEMGRAPHFLOB pattern op(_)
+
 operator mgshortestpathd alias MGSHORTESTPATHD pattern _ op [_,_,_; fun] 
          implicit parameter tuple type MTUPLE
 operator mgshortestpatha alias MGSHORTESTPATHA pattern _ op [_,_,_; fun, fun] 
@@ -121,7 +119,7 @@ operator mgconnectedcomponents alias MGCONNECTEDCOMPONENTS pattern _ op
 operator momapmatchmht alias MOMAPMATCHMHT pattern op(_,_,_,_)
 
          
-operator collect_mvector alias COLLECT_MVECTOR pattern _ op[_,_]
+operator collect_mvector alias COLLECT_MVECTOR pattern _ op[_]
 
 operator pwrap alias PWRAP pattern op(_)
 
@@ -141,8 +139,8 @@ operator count alias COUNT pattern _ op
 operator mblock alias MBLOCK pattern _ op 
 
 
-operator mcreatepqueue alias mcreatepqueue pattern _ op[_,_]
-operator mcreatepqueue2 alias mcreatepqueue2 pattern _ op[_,_]
+operator mcreatepqueue alias mcreatepqueue pattern _ op[_]
+operator mcreatepqueueflob alias mcreatepqueueflob pattern _ op[_]
 operator size alias SIZE pattern op(_)
 operator mfeedpq alias MFEEDPQ pattern _ op
 operator mfeedpqSize alias MFEEDPQSIZE pattern _ op[_]
@@ -155,15 +153,15 @@ operator mpqreorderupdate alias MPQREORDERUPDATE pattern _ op[fun,_] implicit pa
 
 
 
-operator mcreatestack alias MCREATESTACK pattern _ op [_]
-operator mcreatestackflob alias MCREATESTACKFLOB pattern _ op [_]
+operator mcreatestack alias MCREATESTACK pattern _ op
+operator mcreatestackflob alias MCREATESTACKFLOB pattern _ op 
 operator mfeedstack alias MFEEDSTACK pattern _ op
 operator stacksize alias STACKSIZE pattern op(_)
 operator insertmstack alias INSERTMSTACK pattern _ op [_]
 
 
-operator createmgraph2 alias CREATEMGRAPH2 pattern _ op [_,_,fun,_,_] implicit parameter streamelem type STREAMELEM
-operator createmgraph2m alias CREATEMGRAPH2M pattern _ op [_,_,fun,_,_] implicit parameter streamelem type STREAMELEM
+operator createmgraph2 alias CREATEMGRAPH2 pattern _ op [_,_,fun] implicit parameter streamelem type STREAMELEM
+operator createmgraph2flob alias CREATEMGRAPH2FLOB pattern _ op [_,_,fun] implicit parameter streamelem type STREAMELEM
 operator mg2insertorig alias MG2INSERTORIG pattern _ op [_,_,fun,_] implicit parameter streamelem type STREAMELEM
 operator mg2insert alias MG2INSERT pattern _ op [_]
 operator mg2feed alias MG2FEED pattern _ op
@@ -179,7 +177,8 @@ operator mg2contract alias MG2CONTRACT pattern op(_,_,_,_)
 operator mg2minPathCost alias MG2MINPATHCOST pattern op(_,_,_,_,_)
 operator mg2exportddsg alias MG2EXPORTDDSG pattern _ op[_,_]
 
-operator createmgraph3 alias CREATEMGRAPH3 pattern _ op [_,_,_,_,_]
+operator createmgraph3 alias CREATEMGRAPH3 pattern _ op [_,_,_,_]
+operator createmgraph3flob alias CREATEMGRAPH3FLOB pattern _ op [_,_,_,_]
 operator mg3insert alias MG3INSERT pattern _ op [_]
 operator mg3feed alias mg3feed pattern _ op
 operator mg3numvertices alias MG3NUMVERTICES pattern op(_)
@@ -197,5 +196,5 @@ operator memgroupby alias MEMGROUPBY pattern _ op [list; funlist] implicit param
 
 operator importCH alias IMPORTCH pattern op(_,_)
 
-operator mmergejoinproject alias MMERGEJOINPROJECT pattern _ _ op[_,_,_;list] 
+operator mmergejoinproject alias MMERGEJOINPROJECT pattern _ _ op[_,_;list] 
 

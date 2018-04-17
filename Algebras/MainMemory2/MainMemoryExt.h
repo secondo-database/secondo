@@ -129,11 +129,6 @@ typedef PointerWrap<Tuple> TupleWrap;
 
 
 
-
-
-
-
-
 class MemoryRelObject : public MemoryObject {
 
     public:
@@ -147,7 +142,6 @@ class MemoryRelObject : public MemoryObject {
 
         MemoryRelObject (std::string _objectTypeExpr);
 
-        ~MemoryRelObject();
 
         std::vector<Tuple*>* getmmrel();
 
@@ -164,44 +158,13 @@ class MemoryRelObject : public MemoryObject {
         bool tupleStreamToRel (Word arg, ListExpr le,
                         std::string _database, bool _flob);
 
+
         ListExpr toListExpr();
 
-        static Word In( const ListExpr typeInfo, const ListExpr instance,
-                        const int errorPos, ListExpr& errorInfo,
-                        bool& correct );
-
-        static ListExpr Out( ListExpr typeInfo, Word value );
-
-        static bool KindCheck( ListExpr type, ListExpr& errorInfo );
-
-        static Word create(const ListExpr typeInfo);
-
-        static bool Save(SmiRecord& valueRecord, size_t& offset,
-                            const ListExpr typeInfo, Word& value);
-
-        static bool Open (SmiRecord& valueRecord, size_t& offset,
-                            const ListExpr typeInfo, Word& value);
-
-        static void Close (const ListExpr typeInfo, Word& w);
-
-        static Word Clone (const ListExpr typeInfo, const Word& w);
-
-        static void* Cast (void* addr);
-
-        static int SizeOfObj();
-
-        static void Delete(const ListExpr typeInfo, Word& w);
-
-        static ListExpr Property();
-
-        static const std::string BasicType() { return "memoryRelObject"; }
-
-        static const bool checkType(const ListExpr type);
-
-        inline size_t getSize()const{
-           return mmrel?mmrel->size():0;
+        inline ListExpr out(){
+          return toListExpr();
         }
-
+        
         inline void clear(){
            if(mmrel) {
              for(size_t i=0;i<mmrel->size(); i++){
@@ -212,8 +175,17 @@ class MemoryRelObject : public MemoryObject {
            }
         }
 
+        MemoryObject* clone();
+        inline size_t getSize()const{
+           return mmrel?mmrel->size():0;
+        }
+
+
     private:
         std::vector<Tuple*>* mmrel;
+
+    protected:
+        ~MemoryRelObject();
 
 };
 
@@ -382,7 +354,6 @@ class MemoryORelObject : public MemoryObject {
 
         MemoryORelObject (std::string _objectTypeExpr);
 
-        ~MemoryORelObject();
 
         ttree::TTree<TupleWrap,TupleComp>* getmmorel();
         
@@ -392,7 +363,7 @@ class MemoryORelObject : public MemoryObject {
         
         void setAttrPos();
         
-        void addTuple(Tuple* tup);
+        bool addTuple(Tuple* tup);
 
         bool relToTree(GenericRelation* r, ListExpr le,
                        std::string _database, bool _flob);
@@ -400,50 +371,23 @@ class MemoryORelObject : public MemoryObject {
         bool tupleStreamToORel(Word arg, ListExpr le, ListExpr type,
                                std::string _database, bool _flob);
 
-        ListExpr toListExpr();
-
-        static Word In( const ListExpr typeInfo, const ListExpr instance,
-                        const int errorPos, ListExpr& errorInfo,
-                        bool& correct );
-
-        static ListExpr Out( ListExpr typeInfo, Word value );
-
-        static bool KindCheck( ListExpr type, ListExpr& errorInfo );
-
-        static Word create(const ListExpr typeInfo);
-
-        static bool Save(SmiRecord& valueRecord, size_t& offset,
-                            const ListExpr typeInfo, Word& value);
-
-        static bool Open (SmiRecord& valueRecord, size_t& offset,
-                            const ListExpr typeInfo, Word& value);
-
-        static void Close (const ListExpr typeInfo, Word& w);
-
-        static Word Clone (const ListExpr typeInfo, const Word& w);
-
-        static void* Cast (void* addr);
-
-        static int SizeOfObj();
-
-        static void Delete(const ListExpr typeInfo, Word& w);
-
-        static ListExpr Property();
-
-        static const std::string BasicType() { return "memoryORelObject"; }
-
-        static const bool checkType(const ListExpr type);
-        
-        std::ostream& print(std::ostream& out) const;
+        ListExpr out();
+        ListExpr Out( ListExpr typeInfo);
 
         size_t getSize()const{
           return mmorel?mmorel->noEntries():0;
         }
-        
+       
+        MemoryObject* clone();
+
+        std::ostream& print(std::ostream& out) const; 
         
     private:
         ttree::TTree<TupleWrap,TupleComp>* mmorel;
         std::vector<int>* pos;  
+
+    protected:
+        ~MemoryORelObject();
 };
 
 class QueueEntry {
@@ -594,15 +538,24 @@ class MemoryAttributeObject : public MemoryObject {
         MemoryAttributeObject(Attribute* _attr,
                 unsigned long _memSize, std::string _objectTypeExpr, bool _flob,
                 std::string _database);
-        ~MemoryAttributeObject();
 
         Attribute* getAttributeObject();
 
         bool attrToMM(Attribute* attr,
             ListExpr le, std::string database, bool flob);
 
+        MemoryObject* clone(){
+          return new MemoryAttributeObject(attributeObject->Clone(),
+                            memSize, objectTypeExpr, flob, database);
+        }
+
+        ListExpr out();  
+
     private:
          Attribute* attributeObject;
+
+    protected:
+         ~MemoryAttributeObject();
 
 };
 
@@ -611,7 +564,6 @@ template <int dim>
 class MemoryRtreeObject : public MemoryObject {
 
     public:
-        MemoryRtreeObject(){};
         MemoryRtreeObject(mmrtree::RtreeT<dim, size_t>* _rtree,
                         size_t _memSize, 
                         std::string _objectTypeExpr,
@@ -624,18 +576,34 @@ class MemoryRtreeObject : public MemoryObject {
                         flob = true;
                         database = _database;
                       };
-        ~MemoryRtreeObject(){
-            if (rtree){
-                delete rtree;
-            }
-        };
 
         mmrtree::RtreeT<dim, size_t>* getrtree(){
             return rtree;
         };
 
+        static std::string BasicType(){
+          return "rtree";
+        }
+
+        static ListExpr getType(){
+         return nl->TwoElemList( nl->SymbolAtom(BasicType(), nl->IntAtom(dim)));
+        }
+
+        MemoryObject* clone(){
+          return new MemoryRtreeObject<dim>(rtree->clone(),
+                             memSize,objectTypeExpr, database);
+        }
+
     private:
          mmrtree::RtreeT<dim, size_t>* rtree;
+        MemoryRtreeObject(){};
+
+    protected:
+        ~MemoryRtreeObject(){
+            if (rtree){
+                delete rtree;
+            }
+        };
 
 };
 
@@ -654,11 +622,6 @@ class MemoryMtreeObject : public MemoryObject {
                         flob = _flob;
                         database = _database;
                         };
-        ~MemoryMtreeObject(){
-            if (mtree){
-                delete mtree;
-            }
-        };
 
         MMMTree<std::pair<T, TupleId>, DistComp>* getmtree(){
             return mtree;
@@ -677,10 +640,22 @@ class MemoryMtreeObject : public MemoryObject {
            }
            return T::checkType(nl->Second(list));
         }
+          
+        MemoryObject* clone(){
+          return new MemoryMtreeObject<T,DistComp>(
+              mtree->clone(), memSize, objectTypeExpr, flob, database);
+        }
 
 
     private:
          MMMTree< std::pair<T, TupleId>, DistComp>* mtree;
+         MemoryMtreeObject();
+    protected:
+        ~MemoryMtreeObject(){
+            if (mtree){
+                delete mtree;
+            }
+        };
 };
 
 class AttrComp{
@@ -747,11 +722,6 @@ class MemoryTTreeObject : public MemoryObject {
         };
         
          
-        ~MemoryTTreeObject() {
-          if(ttree) {
-            delete ttree;
-          }
-        }
            
         memttree* gettree() {
           return ttree;
@@ -762,13 +732,33 @@ class MemoryTTreeObject : public MemoryObject {
         }
         
         static bool checkType(ListExpr type){
-          return nl->HasLength(type,2) && 
-                 listutils::isSymbol(nl->First(type),BasicType());
+          return nl->HasLength(type,2)  
+                 && listutils::isSymbol(nl->First(type),BasicType())
+                 && Attribute::checkType(nl->Second(type));
+        }
+
+        static ListExpr wrapType(ListExpr attrType){
+           return nl->TwoElemList(listutils::basicSymbol<MemoryTTreeObject>(),
+                                  attrType);
+        }
+
+        MemoryObject* clone(){
+          return new MemoryTTreeObject(ttree->clone(),
+                                       memSize, objectTypeExpr,
+                                       flob, database);
         }
 
 
     private:
          memttree* ttree;
+         MemoryTTreeObject();
+
+    protected:
+        ~MemoryTTreeObject() {
+          if(ttree) {
+            delete ttree;
+          }
+        }
 };
 
 
@@ -776,23 +766,22 @@ class MemoryGraphObject : public MemoryObject {
 
     public:
         
-        MemoryGraphObject();
         
+        MemoryGraphObject();
+
         MemoryGraphObject(graph::Graph* _graph, int _source, 
                           int _target, size_t _memSize, 
                           const std::string& _objectTypeExpr, 
                           bool _flob,
                           const std::string& _database);
           
-  MemoryGraphObject(std::string _objectTypeExpr);
+        MemoryGraphObject(std::string _objectTypeExpr);
   
-        ~MemoryGraphObject();
 
         graph::Graph* getgraph();
         
         bool relToGraph(GenericRelation* r, 
-                        ListExpr le,
-      std::string _database, 
+                        ListExpr le, std::string _database, 
                         bool _flob);
        
         void addTuple(Tuple* tup, double cost, double dist);
@@ -801,18 +790,29 @@ class MemoryGraphObject : public MemoryObject {
                         std::string _database, bool _flob);
 
         static std::string BasicType()  { 
-          return "graph"; 
+          return "mgraph"; 
+        }
+
+        static ListExpr wrapType(ListExpr tupleType){
+          assert(Tuple::checkType(tupleType));
+          return nl->TwoElemList( listutils::basicSymbol<MemoryGraphObject>(),
+                                  tupleType);
         }
 
         static const bool checkType(const ListExpr type);
+
+        MemoryObject* clone(){
+           return new MemoryGraphObject(memgraph->clone(), source, target,
+                                       memSize, objectTypeExpr, flob, database);
+        }
         
     private:
          graph::Graph* memgraph;
          int source;
          int target;
-//          int p1;
-//          int p2;
-//          double cost;
+
+    protected:
+         ~MemoryGraphObject();
 };
 
 
@@ -880,13 +880,11 @@ typedef memAVLtree::iterator avlIterator;
 class MemoryAVLObject : public MemoryObject {
 
     public:
-        MemoryAVLObject();
         MemoryAVLObject( memAVLtree* tree, size_t _memSize, 
                          const std::string& _objectTypeExpr, 
                          bool _flob, 
                          const std::string& _database );
       
-         ~MemoryAVLObject();
 
         memAVLtree* getAVLtree();
         
@@ -898,12 +896,27 @@ class MemoryAVLObject : public MemoryObject {
 
         static bool checkType(ListExpr type){
             return    nl->HasLength(type,2) 
-                   && listutils::isSymbol(nl->First(type),BasicType());
+                   && listutils::isSymbol(nl->First(type),BasicType())
+                   && Attribute::checkType(nl->Second(type));
+        }
+
+        static ListExpr wrapType(ListExpr type){
+           return nl->TwoElemList( listutils::basicSymbol<MemoryAVLObject>(),
+                                   type); 
+        }
+
+        MemoryObject* clone(){
+          return new MemoryAVLObject(tree->clone(),memSize,objectTypeExpr,
+                                     flob,database);
         }
 
 
     private:
         memAVLtree* tree;
+        MemoryAVLObject();
+
+    protected:
+         ~MemoryAVLObject();
 };
 
 
@@ -912,8 +925,7 @@ bool dijkstra(graph::Graph* graph, Word& arg,
 
 bool getMemType(ListExpr type, ListExpr value,
                    ListExpr & result, std::string& error,
-                   bool allowMPointer=false,
-                   bool allowComplex = false);
+                   bool allowMPointer=false);
 
 template<class T>
 MemoryGraphObject* getMemGraph(T* aN);

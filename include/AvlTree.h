@@ -53,7 +53,6 @@ class StdComp{
 };
 
 
-
 namespace avltree{
 
 
@@ -216,6 +215,19 @@ contenttype* getContent() {
    return &content;
 }
 
+AvlNode<contenttype,Comparator>* clone(){
+   AvlNode<contenttype,Comparator>* res;
+   res  = new AvlNode<contenttype,Comparator>(content);
+   if(this->left){
+      res->left = this->left->clone();
+   }
+   if(this->right){
+     res->right = this->right->clone();
+   }
+   res->height = this->height;
+   return res;
+}
+
 private:
 /*
 1.2 Data Members
@@ -266,6 +278,15 @@ Removes all entries from the tree.
       }
       root=NULL;
    }
+
+  AVLTree* clone() {
+     AVLTree* res = new AVLTree();
+     if(root){
+        res->root = root->clone();
+     }
+     return res;
+  }
+
 
 
  void destroy( void (*kill)(contenttype&)){

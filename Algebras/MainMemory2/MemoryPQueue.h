@@ -88,6 +88,13 @@ class pqueueentry{
        return priority;
     }
 
+    pqueueentry* clone(){
+       Tuple* t = tuple->Clone();
+       pqueueentry* res = new pqueueentry(t,priority);
+       t->DeleteIfAllowed();
+       return res;
+    }
+
  private:
   Tuple* tuple;
   double priority;
@@ -114,14 +121,6 @@ class MemoryPQueueObject : public MemoryObject {
         }
 
 
-        ~MemoryPQueueObject() {
-           while(!queue.empty()){
-             queue.pop();
-           }
-           if(tt){
-              tt->DeleteIfAllowed();
-           }
-        }
 
         
         static const std::string BasicType() { return "mpqueue"; }
@@ -163,12 +162,44 @@ class MemoryPQueueObject : public MemoryObject {
            std::swap(q,queue);
         }
 
+        static ListExpr wrapType(ListExpr tupleType){
+          assert(Tuple::checkType(tupleType));
+          return nl->TwoElemList( nl->SymbolAtom(BasicType()),
+                                  tupleType);
+        }
+
+
+        MemoryObject* clone(){
+           MemoryPQueueObject* res = new MemoryPQueueObject(flob,database, 
+                                                          objectTypeExpr);
+           queue_t q1;
+           while(!queue.empty()){
+              pqueueentry e = queue.top();
+              res->queue.push(e);
+              pqueueentry e2 = *e.clone();
+              q1.push(e2);
+           }
+           std::swap(queue,q1);
+           return res; 
+        }
 
         typedef std::priority_queue<pqueueentry> queue_t;
+
+         
 
     private:
         queue_t queue;
         TupleType* tt;
+
+    protected:
+        ~MemoryPQueueObject() {
+           while(!queue.empty()){
+             queue.pop();
+           }
+           if(tt){
+              tt->DeleteIfAllowed();
+           }
+        }
 };
 
 

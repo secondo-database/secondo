@@ -88,6 +88,12 @@ class Mem: public Attribute{
         return true;
      }  
 
+     static ListExpr wrapType(ListExpr type){
+        return nl->TwoElemList(nl->SymbolAtom(BasicType()),
+                               type);
+     }
+
+
      inline virtual int NumOfFLOBs() const{
         return 0;
      }
@@ -168,7 +174,12 @@ class Mem: public Attribute{
          return listutils::getUndefined();
        }
        return nl->StringAtom(value);
-     } 
+     }
+
+      
+   static bool requiresTypeCheckInVM(){
+     return true;
+   }
      
   private:
      STRING_T value;

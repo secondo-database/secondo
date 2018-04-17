@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "SecondoSystem.h"
+#include "MPointer.h"
 
 namespace mm2algebra {
 
@@ -72,33 +73,53 @@ unsigned long MemCatalog::getAvailableMemSize() {
 
 //only used in memgetcatalog
 std::map<std::string,MemoryObject*>* MemCatalog::getMemContent(){
-
-            return &memContents;
+       return &memContents;
 }
 
 
 bool MemCatalog::insert (const std::string& name, MemoryObject* obj){
-     if (isObject(name)){
+    if (isObject(name)){
         cout<<"identifier already in use"<<endl;
         return false;
     }
-
     memContents[name] = obj;
-    usedMemSize += obj->getMemSize();
-
+    if(obj){
+       usedMemSize += obj->getMemSize();
+       obj->incReferences();
+    }
     return true;
 }
 
-bool MemCatalog::deleteObject (const std::string& name, 
-                               const bool erase/*=true*/){
-     if(isMMOnlyObject(name)){
+
+bool MemCatalog::insert (const std::string& name, MPointer* obj){
+    MemoryObject* mo = obj?obj->GetValue():0;
+    return insert(name,mo);
+}
+
+bool MemCatalog::modify(const std::string& name, MemoryObject* obj){
+    MemoryObject* old = getMMObject(name);
+    if(old!=0){
+        if(old==obj) return true; // nothing to do
+        deleteObject(name);
+    } else {
+     return false;
+    }
+    return insert(name,obj);
+}
+
+
+
+
+bool MemCatalog::deleteObject (const std::string& name){
+   if(isMMOnlyObject(name)){
+      MemoryObject* mo = getMMObject(name);
+      if(mo){
         usedMemSize -= getMMObject(name)->getMemSize();
-        delete getMMObject(name);
-        if(erase){
-           memContents.erase(name);
-        }
-        return true;
-     }
+        mo->deleteIfAllowed();;
+      }
+      memContents.erase(name);
+      return true;
+    }
     return false;
 }
 
@@ -106,9 +127,11 @@ bool MemCatalog::deleteObject (const std::string& name,
 void MemCatalog::clear (){
     std::map<std::string,MemoryObject*>::iterator it;
     it = memContents.begin();
-    while(it!=memContents.end()){
-        deleteObject(it->first, false);
-        it++;
+    for(it = memContents.begin();it!=memContents.end(); it++){
+       MemoryObject* mo = it->second;
+       if(mo){
+         mo->deleteIfAllowed();
+       }
     }
     memContents.clear();
 }
@@ -123,7 +146,20 @@ bool MemCatalog::isMMOnlyObject(const std::string& objectName){
 bool MemCatalog::isObject(const std::string& objectName){
    if(isMMOnlyObject(objectName)) return true;
    SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
-   return ctlg->IsObjectName(objectName);
+   return ctlg->IsObjectName(objectName, false);
+}
+
+
+bool MemCatalog::clone(const std::string& name, 
+                       MemoryObject* value){
+     deleteObject(name);
+     return insert(name, value->clone());
+}
+
+
+size_t MemCatalog::getNoReferences(std::string name) const{
+       MemoryObject* mo = getMMObject(name);
+       return mo?mo->getNoReferences():0;
 }
 
 
@@ -133,9 +169,8 @@ Function returns a pointer to the memory object
 
 */
 
-MemoryObject* MemCatalog::getMMObject(const std::string& objectName){
-
-    std::map<std::string,MemoryObject*>::iterator it;
+MemoryObject* MemCatalog::getMMObject(const std::string& objectName)const{
+    std::map<std::string,MemoryObject*>::const_iterator it;
     it = memContents.find(objectName);
     if(it==memContents.end()){
       return 0;
@@ -145,16 +180,20 @@ MemoryObject* MemCatalog::getMMObject(const std::string& objectName){
 
 ListExpr MemCatalog::getMMObjectTypeExpr(const std::string& oN){
     if (!isMMOnlyObject(oN)){
-        return listutils::typeError("not a MainMemory member");
+        return nl->TheEmptyList();
     }
     std::string typeExprString="";
     ListExpr typeExprList=0;
     MemoryObject* object = getMMObject(oN);
+    if(!object){
+       return nl->SymbolAtom("null");
+    }
     typeExprString = object->getObjectTypeExpr();
     if (nl->ReadFromString(typeExprString, typeExprList)){
+        //assert(Mem::checkType(typeExprList)); 
         return typeExprList;
     }
-    return listutils::typeError();
+    return nl->TheEmptyList();
 }
 
 bool MemCatalog::isAccessible(const std::string& name) {
@@ -171,6 +210,22 @@ bool MemCatalog::isAccessible(const std::string& name) {
     }
     return false;
 }
+
+bool MemCatalog::isReserved(const std::string& name)const{
+    std::map<std::string,MemoryObject*>::const_iterator it;
+    it = memContents.find(name);
+    return it!= memContents.end(); 
+}
+
+bool MemCatalog::isNull(const std::string& name)const{
+    std::map<std::string,MemoryObject*>::const_iterator it;
+    it = memContents.find(name);
+    if(it!= memContents.end()){
+       return it->second == 0; 
+    } 
+    return false;
+}
+
 
 }  // end of namespace
 

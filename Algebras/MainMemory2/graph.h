@@ -140,6 +140,11 @@ Returns the memory size of this edge.
       size_t res = sizeof(*this);
       return res;  
     }
+
+    Edge* clone(){
+      return new Edge(tuple->Clone(), posSource, posDest, cost, dist);       
+    }
+
     
 private:
 
@@ -211,10 +216,6 @@ This stuct is used to compare to vertices.
     
     int getNr() {
         return nr;
-    }
-    
-    Vertex* getPrev() {
-      return prev; 
     }
     
     void setPrev(Vertex* v) {
@@ -313,6 +314,27 @@ Returns the memory size of this vertex.
     const std::vector<EdgeWrap>* getEdges() const{
       return edges;
     }
+
+    Vertex* clone(){
+      Vertex* res = new Vertex(nr);
+      res->seen = seen;
+      res->cost = cost;
+      res->dist = dist;
+      res->prev = 0; // only during dijkstra used
+      res->index = index;
+      res->lowlink = lowlink;
+      res->inStack = inStack;
+      res->compNo = compNo;
+      vector<EdgeWrap>* e = new vector<EdgeWrap>();
+      for(size_t i=0;i<edges->size();i++){
+         EdgeWrap w = edges->at(i);
+         Edge* ed = w()->clone();
+         e->push_back(EdgeWrap(ed));
+      }
+      res->edges = e;
+      return res;
+    }  
+
 
 private:
     int nr;
@@ -815,6 +837,19 @@ Returns the memory size of this graph.
           v->compNo = -1;
        }
     }
+
+    Graph* clone(){
+       Graph* res = new Graph();
+       std::set<Vertex*, Vertex::EqualVertex>::iterator it;
+       for(it = graph->begin(); it!=graph->end();it++){
+          res->graph->insert( (*it)->clone());
+       }
+       for(size_t i=0;i<result->size();i++){
+          res->result->push_back(result->at(i));
+       }
+       return res;
+    }
+
 
 private:
     std::set<Vertex*, Vertex::EqualVertex>* graph;

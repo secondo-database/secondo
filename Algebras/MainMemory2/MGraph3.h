@@ -79,6 +79,16 @@ class MGraph3 : public MGraphCommon{
                  && Tuple::checkType(nl->Second(t));
       }
 
+      MemoryObject* clone(){
+         return new MGraph3(*this);
+      }
+
+      static ListExpr wrapType(ListExpr tupleType){
+        assert(Tuple::checkType(tupleType));
+        return nl->TwoElemList( nl->SymbolAtom(BasicType()),
+                                tupleType);
+      }
+
 
 };
 

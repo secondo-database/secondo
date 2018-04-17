@@ -129,6 +129,16 @@ class MGraph2 : public MGraphCommon{
        }
      }
 
+     MemoryObject* clone(){
+         return new MGraph2(*this);
+     }
+
+     static ListExpr wrapType(ListExpr tupleType){
+        assert(Tuple::checkType(tupleType));
+        // Todo: check for presence of MG_Source etc
+        return nl->TwoElemList( nl->SymbolAtom(BasicType()),
+                                tupleType);
+     }
 
 
   private:

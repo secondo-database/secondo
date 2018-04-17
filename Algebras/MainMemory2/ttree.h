@@ -567,6 +567,23 @@ Removes the minimum element of a node. The element is returned, not destroyed.
    }
 
 
+    TTreeNode<T,Comparator>* clone(){
+       TTreeNode<T,Comparator>* res;
+       res =  new TTreeNode<T,Comparator>(minEntries, maxEntries);
+       if(left){
+          res->left = left->clone();
+       }
+       if(right){
+          res->right = right->clone();
+       }
+       res->count = count;
+       res->height = height;
+       for(int i=0;i<count;i++){
+         T* src = objects[i];
+         res->objects[i] = new T(*src); 
+       }
+       return res;
+    } 
 
       
     protected:
@@ -1158,6 +1175,16 @@ Checks the structure of the tree
     size_t Size(){
       return Size(root);
     }
+
+
+    TTree<T,Comparator>* clone(){
+        TTree<T,Comparator>* res = new TTree(minEntries, maxEntries);
+        if(root){
+          res->root = root->clone();
+        }
+        res->entryCount = entryCount;
+        return res;
+    }    
  
     
    private:

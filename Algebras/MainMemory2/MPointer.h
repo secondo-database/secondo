@@ -54,6 +54,7 @@ made once.
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "AlgebraTypes.h"
+#include "MemoryObject.h"
 #include "Mem.h"
 
 namespace mm2algebra{
@@ -65,13 +66,44 @@ class MPointer{
 public:
 
 /*
-1.1 Coinstructors and Destructors
+1.1 Constructors and Destructors
 
 */
-   MPointer(){} 
-   MPointer(MemoryObject* v): thePointer(v){} 
-   MPointer(const MPointer& p):thePointer(p.thePointer){}
-   ~MPointer(){}
+   MPointer(MemoryObject* v, bool owner): thePointer(v){
+     if(!owner && v){
+        v->incReferences();
+     }
+   } 
+   MPointer(const MPointer& p):thePointer(p.thePointer){
+      if(thePointer){
+         thePointer->incReferences();
+      }
+   }
+
+   MPointer& operator=(const MPointer& mp){
+      MemoryObject* pp = mp.thePointer;
+      if(pp){
+         pp->incReferences();
+      }
+      if(thePointer){
+         thePointer->deleteIfAllowed();
+      }
+      thePointer = pp;
+      return *this;
+   }
+
+   ~MPointer(){
+      if(thePointer){
+        thePointer->deleteIfAllowed();
+      }
+    }
+  
+    void delObject() {
+       if(thePointer){
+          thePointer->deleteIfAllowed();
+       }
+       thePointer = 0;
+    }
 
 
 /*
@@ -81,6 +113,7 @@ public:
    static const std::string BasicType(){ 
        return "mpointer";
    }
+
    static const bool checkType(const ListExpr arg){
      if(!nl->HasLength(arg,2)){
        return false;
@@ -89,6 +122,21 @@ public:
        return false;
      }
      return Mem::checkType(nl->Second(arg));;
+   }
+
+
+  static ListExpr wrapType(ListExpr type){
+     assert(Mem::checkType(type));
+     return nl->TwoElemList(listutils::basicSymbol<MPointer>(),
+                            type);
+  }
+
+
+   ListExpr out(){
+     if(!thePointer){
+        return nl->SymbolAtom("null");
+     }
+     return thePointer->out();
    }
 
 
@@ -112,7 +160,7 @@ public:
      // we do not allow an explicit creation of this type
      if(nl->IsEmpty(instance) || listutils::isPtrList(instance)){
         correct = true;
-        return SetWord(new MPointer((MemoryObject*)0));
+        return SetWord(new MPointer((MemoryObject*)0,true));
      }
      correct = false;
      return SetWord((void*)0);
@@ -124,7 +172,7 @@ public:
    }
 
    static Word Create(const ListExpr typeInfo){
-     return SetWord(new MPointer((MemoryObject*)0));
+     return SetWord(new MPointer((MemoryObject*)0,true));
    }
 
    static void Delete(const ListExpr t, Word& v){
@@ -137,7 +185,7 @@ public:
                     size_t& offset, const ListExpr typeInfo,
                     Word& value){
       // read nothing
-      value.addr = new MPointer((MemoryObject*)0);
+      value.addr = new MPointer((MemoryObject*)0, true);
       return true;
    }
 
@@ -172,6 +220,13 @@ public:
      return 0;
    }
 
+   size_t getNoReferences() const{
+       if(thePointer){
+           return thePointer->getNoReferences();
+       }
+       return 0;
+   }
+
 
 /*
 1.3 Member access
@@ -186,13 +241,28 @@ public:
    }
 
    void setPointer(MemoryObject* p){
+     if(p){
+        p->incReferences();
+     }
+     if(thePointer){
+        thePointer->deleteIfAllowed();
+     }
      thePointer = p;
+   }
+
+   bool isNull() const{
+     return thePointer==0;
+   }
+
+   static bool requiresTypeCheckInVM(){
+     return false;
    }
 
 
 private:
    MemoryObject* thePointer;
 
+   MPointer(){} 
 
 };
 

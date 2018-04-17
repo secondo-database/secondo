@@ -49,14 +49,6 @@ class MemoryVectorObject : public MemoryObject {
         }
 
 
-        ~MemoryVectorObject() {
-          if(v){
-            for(size_t i=0;i<v->size();i++){
-              v->at(i)->DeleteIfAllowed();
-            }
-            delete v;
-          }
-        }
 
         void add(Attribute* a, bool checkSort) {
             if(!v) {
@@ -170,10 +162,38 @@ class MemoryVectorObject : public MemoryObject {
           return pos==0?0:v->at(pos-1);
         }
 
+        static ListExpr wrapType(ListExpr subtype){
+           assert(Attribute::checkType(subtype));
+           return nl->TwoElemList( listutils::basicSymbol<MemoryVectorObject>(),
+                                   subtype);
+        }
+
+        
+        MemoryObject* clone(){
+           MemoryVectorObject* res;
+           res = new MemoryVectorObject(flob, database, objectTypeExpr);
+           for(size_t i=0;i<v->size();i++){
+             res->v->push_back(v->at(i)->Clone());
+           }
+           res->sorted = sorted;
+           return res;
+        }
+        
+
 
     private:
         std::vector<Attribute*>* v;
         bool sorted;
+
+    protected: 
+        ~MemoryVectorObject() {
+          if(v){
+            for(size_t i=0;i<v->size();i++){
+              v->at(i)->DeleteIfAllowed();
+            }
+            delete v;
+          }
+        }
 
 };
 

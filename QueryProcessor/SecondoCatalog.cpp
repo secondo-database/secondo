@@ -117,6 +117,13 @@ The names of existing databases are stored in a list ~DBTable~.
 #include "ListUtils.h"
 #include "StringUtils.h"
 
+#include "Algebras/MainMemory2/MemCatalog.h"
+#include "Algebras/MainMemory2/MPointer.h"
+#include "Algebras/MainMemory2/MemoryObject.h"
+#include "Algebras/MainMemory2/Mem.h"
+
+
+
 #ifdef SM_FILE_ID
 #include <boost/interprocess/sync/named_recursive_mutex.hpp>
 #endif
@@ -125,6 +132,10 @@ The names of existing databases are stored in a list ~DBTable~.
 using namespace std;
 
 const string InfoTuple::sep("|");
+
+
+mm2algebra::MemCatalog* memCatalog = mm2algebra::MemCatalog::getInstance();
+
 
 
 /**************************************************************************
@@ -531,7 +542,7 @@ Precondition: dbState = dbOpen.
 
 */
   bool ok = false;
-  ListExpr first = 0;
+  ListExpr first = nl->TheEmptyList();
 
   if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
   {
@@ -851,6 +862,10 @@ Precondition: dbState = dbOpen.
     while (oIterator.Next( oKey, oRec ))
     {
       oKey.GetKey( objectName );
+      if(memCatalog->isReserved(objectName)){
+        continue;
+      }
+      
       oPos = objects.find( objectName );
       if ( oPos != objects.end() )
       {
@@ -904,6 +919,28 @@ Precondition: dbState = dbOpen.
                    objEntry(objectName, typeName, typeExpr) );
     }
   }
+
+  // Append main memory Objects
+  map<string,mm2algebra::MemoryObject*>* mc = memCatalog->getMemContent();
+  map<string,mm2algebra::MemoryObject*>::iterator mit;
+  for(mit = mc->begin(); mit!=mc->end(); mit++){
+     objectName = mit->first;
+     if(memCatalog->isAccessible(objectName)){
+       typeName = ""; // main memory does not support type names
+       nl->ReadFromString( mit->second->getObjectTypeExpr(), typeExpr );
+       typeExpr = mm2algebra::MPointer::wrapType(typeExpr);
+       appendEntry( objectsList, lastElem,
+                    objEntry(objectName, typeName, typeExpr) );
+     }  else if(memCatalog->isNull(objectName)){
+       typeName = ""; // main memory does not support type names
+       typeExpr = mm2algebra::Mem::wrapType(nl->SymbolAtom("nulltype"));
+       typeExpr = mm2algebra::MPointer::wrapType(typeExpr);
+       appendEntry( objectsList, lastElem,
+                    objEntry(objectName, typeName, typeExpr) );
+
+     }
+  } 
+
   // Append system tables
   SystemTables& st = SystemTables::getInstance();
   SystemTables::iterator it = st.begin();
@@ -936,6 +973,8 @@ Returns a list of ~objects~ of the whole database in the following format:
 ----
 
 Precondition: dbState = dbOpen.
+
+Note: System tables and main memory objects are not part of the result.
 
 */
   ListExpr objectsList, typeExpr, valueList, lastElem = 0;
@@ -1081,7 +1120,8 @@ Precondition: dbState = dbOpen.
 }
 
 bool
-SecondoCatalog::CreateObject( const string& objectName,
+SecondoCatalog::CreateObject(
+                          const string& objectName,
                           const string& typeName,
                           const ListExpr typeExpr,
                           const int __attribute__((unused)) sizeOfComponents )
@@ -1148,6 +1188,29 @@ Precondition: dbState = dbOpen.
     exit( 0 );
   }
 
+  // avoid name conflicts with main memory objects
+  if(memCatalog->isAccessible(objectName) ||
+     memCatalog->isNull(objectName)){
+     return false;
+  }
+
+  // save MPointer types into main memory catalog instead of the regular one
+  if(mm2algebra::MPointer::checkType(typeExpr)){
+     if(IsObjectName(objectName)){
+       return false;
+     }
+     if(typeName !=""){ // MainMemory does not support typenames
+        return false;
+     }
+     mm2algebra::MPointer* mpointer = (mm2algebra::MPointer*) valueWord.addr;
+     bool res =  memCatalog->insert(objectName, mpointer);
+     if(mpointer){
+       mpointer->delObject();
+     }
+     return res;
+  }
+
+
   ObjectsCatalog::iterator oPos = objects.find( objectName );
   if ( oPos != objects.end() )
   {
@@ -1163,8 +1226,7 @@ Precondition: dbState = dbOpen.
       nl->WriteToString( oPos->second.typeExpr, nl->OneElemList( typeExpr ) );
       ok = true;
     }
-  }
-  else{
+  } else{
     
      #ifdef SM_FILE_ID 
      mutex->lock();
@@ -1189,7 +1251,7 @@ Precondition: dbState = dbOpen.
 }
 
 bool
-SecondoCatalog::DeleteObject( const string& objectName )
+SecondoCatalog::DeleteObject( const string& objectName)
 {
 /*
 Deletes an object with identifier ~objectName~ in the database calatog and deallocates the
@@ -1198,11 +1260,20 @@ used memory. Returns error 1 if the object does not exist.
 Precondition: dbState = dbOpen.
 
 */
+  
+  
+
   bool ok = false;
   string typeName, typecon;
   Word value;
   bool defined, hasNamedType;
   ListExpr typeExpr;
+
+  if(memCatalog->isAccessible(objectName)
+     || memCatalog->isNull(objectName)){
+     memCatalog->deleteObject(objectName);
+     return true;
+  }
 
   ObjectsCatalog::iterator oPos = objects.find( objectName );
   if ( oPos != objects.end() )
@@ -1256,6 +1327,10 @@ Returns false if the object does not exist.
 Precondition: dbState = dbOpen.
 
 */
+  if(memCatalog->isAccessible(objectName)){
+     return memCatalog->deleteObject(objectName);
+  }
+
   bool ok = false;
 
   ObjectsCatalog::iterator oPos = objects.find( objectName );
@@ -1317,8 +1392,15 @@ Converts an object of the type given by ~typeExpr~ and the value given as a nest
 Precondition: dbState = dbOpen.
 
 */
-   ListExpr pair, numtype;
-   int algebraId, typeId;
+  ListExpr pair, numtype;
+  int algebraId, typeId;
+
+  if(mm2algebra::MPointer::checkType(typeExpr)){  
+    // do not allow IN of Main memory objects
+    correct = false;
+    return (SetWord( Address( 0 ) ));
+  }
+
 
   numtype = NumericType( typeExpr );
 
@@ -1366,6 +1448,14 @@ Precondition: dbState = dbOpen.
   bool hasNamedType;
   bool defined;
 
+  if( memCatalog->isAccessible(objectName)){
+     mm2algebra::MemoryObject* obj = memCatalog->getMMObject(objectName);
+     return obj->out();
+  } else if(memCatalog->isNull(objectName)){
+     return nl->SymbolAtom("null");
+  }
+
+
   if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
   {
     cerr << " GetObjectValue: database is closed!" << endl;
@@ -1401,6 +1491,12 @@ SecondoCatalog::OutObject( const ListExpr type, const Word& object )
 Returns for a given ~object~ of type ~type~ its value in nested list representation.
 
 */
+
+  if(mm2algebra::MPointer::checkType(type)){ // do not out main memory objects
+    return ( (mm2algebra::MPointer*) object.addr)->out();
+  }
+
+
   ListExpr pair, numtype;
   int alId, typeId;
 
@@ -1457,7 +1553,8 @@ Closes a given ~object~ of type ~type~.
 }
 
 bool
-SecondoCatalog::IsObjectName( const string& objectName )
+SecondoCatalog::IsObjectName( const string& objectName, 
+                              bool checkMem  /*=true*/ )
 {
 /*
 Checks whether ~objectName~ is a valid object name.
@@ -1465,6 +1562,12 @@ Checks whether ~objectName~ is a valid object name.
 Precondition: dbState = dbOpen.
 
 */
+  if(checkMem){
+    if(memCatalog->isMMOnlyObject(objectName)) {
+      return true;
+    }
+  }
+
   bool found = false;
 
   if ( GetSystemTable(objectName) != 0 )
@@ -1646,7 +1749,16 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
     return true;
   }
 
-
+  if(memCatalog->isAccessible(objectName)){
+    mm2algebra::MemoryObject* mmo = memCatalog->getMMObject(objectName);
+    value.addr = new mm2algebra::MPointer(mmo,false);
+    defined = true; 
+    return true;
+  } else if(memCatalog->isNull(objectName)){
+    value.addr = new mm2algebra::MPointer(0, false);
+    defined = false; 
+    return true;
+  }
 
 
   if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
@@ -1756,6 +1868,16 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
     return true;
   }
 
+  if( memCatalog->isAccessible(objectName)){
+     typeName = ""; // main memory has no support for type names 
+     mm2algebra::MemoryObject* mo = memCatalog->getMMObject(objectName);
+     nl->ReadFromString(mo->getObjectTypeExpr(), typeExpr);
+     typeExpr = mm2algebra::MPointer::wrapType(typeExpr);
+     value.addr = new mm2algebra::MPointer(mo,false);
+     defined = mo!=0;
+     hasTypeName = false;
+     return true;
+  }
 
   if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
   {
@@ -1859,6 +1981,13 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
     cerr << " GetObjectType: database is closed!" << endl;
     exit( 0 );
   }
+
+  if(memCatalog->isAccessible(objectName)){
+    typeName = "";
+    return false;
+  }
+
+
   ObjectsCatalog::iterator oPos = objects.find( objectName );
   if ( oPos != objects.end() )
   {
@@ -1907,6 +2036,12 @@ Returns the type expression of an object with identifier ~objectName~.
 *Precondition*: "IsObjectName( objectName ) == true"[4].
 
 */
+  if(memCatalog->isAccessible(objectName)){
+    return mm2algebra::MPointer::wrapType(
+                   memCatalog->getMMObjectTypeExpr(objectName));
+  }
+
+
   ListExpr typeExpr = nl->Empty();
 
   const SystemInfoRel* table = GetSystemTable(objectName);
@@ -1976,6 +2111,15 @@ Overwrites the value of the object with identifier ~objectName~ with a
 new value ~value~. Returns error 1 if object does not exist.
 
 */
+  if(memCatalog->isAccessible(objectName)
+     || memCatalog->isNull(objectName)){
+     memCatalog->deleteObject(objectName);
+     mm2algebra::MPointer* mp = (mm2algebra::MPointer*) value.addr;
+     bool res =  memCatalog->insert(objectName,mp->GetValue());
+     delete mp; // mp->delObject();
+     return res;
+  }
+
   bool found = false;
   ObjectsCatalog::iterator oPos = objects.find( objectName );
   if ( oPos != objects.end() )
@@ -2068,6 +2212,12 @@ second opens the old object for deletion. This one assumes that the
 object is only modified, so that no deletion function is necessary.
 
 */
+  if(memCatalog->isAccessible(objectName)){
+     mm2algebra::MPointer* mp = (mm2algebra::MPointer*) value.addr;
+     cout << "call modify for " << objectName << endl; 
+     return memCatalog->modify(objectName,mp->GetValue());
+  }
+
   bool found = false;
   ObjectsCatalog::iterator oPos = objects.find( objectName );
   if ( oPos != objects.end() )
@@ -2135,6 +2285,13 @@ Overwrites the value of the object with identifier ~objectName~ with a
 new value cloned from ~value~. Returns error 1 if object does not exist.
 
 */
+  if(memCatalog->isAccessible(objectName)){
+     mm2algebra::MPointer* mp = (mm2algebra::MPointer*) value.addr;
+     cout << "call clone for memory object" << objectName << endl;
+     return memCatalog->clone(objectName, mp->GetValue());
+  }
+
+
   bool found = false;
   ObjectsCatalog::iterator oPos = objects.find( objectName );
   if ( oPos != objects.end() )

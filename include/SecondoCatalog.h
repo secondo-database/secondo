@@ -427,7 +427,8 @@ void CloseObject( const ListExpr type,
 Checks whether ~objectName~ is a valid object name.
 
 */
-bool IsObjectName( const std::string& objectName );
+bool IsObjectName( const std::string& objectName ,
+                   bool checkMem = true);
 
 /*
 Checks whether ~keywordName~ is a reserved word

@@ -64,5 +64,16 @@ ListExpr MemoryObject::getType() const{
 }
 
 
+ListExpr MemoryObject::out() {
+  return nl->SymbolAtom("NO_OUT");
+}
+
+MemoryObject* MemoryObject::in(ListExpr type, bool& correct){
+   correct = false;
+   return 0;
+}
+
+
+
 } // end of namespace 
 

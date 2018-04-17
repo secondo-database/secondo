@@ -34,11 +34,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "MemoryObject.h"
 #include "MemCatalog.h"
+#include "AlgebraManager.h"
+#include "SecondoSystem.h"
+#include "SecondoCatalog.h"
 
 
 //#include "GraphAlgebra.h"
 
 using namespace std;
+
+extern AlgebraManager* am;
 
 namespace mm2algebra {
 
@@ -269,12 +274,16 @@ bool MemoryRelObject::tupleStreamToRel(Word arg, ListExpr le,
 ListExpr MemoryRelObject::toListExpr(){
 
     int vectorSize = mmrel->size();
+    if(vectorSize==0){
+        return nl->TheEmptyList();
+    }
+
     ListExpr typeListExpr = 0;
     string typeString = objectTypeExpr;
     nl->ReadFromString(typeString, typeListExpr);
-    ListExpr oTE = nl->OneElemList(typeListExpr);
-    Tuple* t = mmrel->at(0);
 
+    ListExpr oTE = nl->OneElemList(nl->Second(nl->Second((typeListExpr))));
+    Tuple* t = mmrel->at(0);
     ListExpr li = nl->OneElemList(t->Out(oTE));
     ListExpr last = li;
     for(int i=1; i<vectorSize; i++) {
@@ -284,154 +293,17 @@ ListExpr MemoryRelObject::toListExpr(){
     return li;
 };
 
-Word MemoryRelObject::In( const ListExpr typeInfo, const ListExpr instance,
-                       const int errorPos, ListExpr& errorInfo,
-                        bool& correct ){
-    Word result;
-    correct = true;
-    Tuple* tup;
-    ListExpr tupleList;
-    ListExpr tupleTypeInfo;
-    ListExpr first;
-    int tupleno;
-    bool tupleCorrect;
-    MemoryRelObject* mmrelObj =
-            new MemoryRelObject(nl->ToString(nl->Second(typeInfo)));
-    tupleList = instance;
-    tupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
-        nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
-    tupleno = 0;
-    while (!nl->IsEmpty(tupleList)){
-        first = nl->First(tupleList);
-        tupleList = nl->Rest(tupleList);
-        tupleno++;
-        tup = Tuple::In(tupleTypeInfo, first, tupleno,
-                            errorInfo, tupleCorrect);
-
-        if (tupleCorrect){
-            mmrelObj->addTuple(tup);
-        }
-        else {
-            correct = false;
-        }
-    }
-    if(!correct){
-        result = SetWord(Address(0));
-    } else {
-        result.addr = mmrelObj;
-    }
-    return result;
-}
-
-
-ListExpr MemoryRelObject::Out( ListExpr typeInfo, Word value ){
-    MemoryRelObject* memRel = static_cast<MemoryRelObject*>( value.addr );
-    if (memRel->getmmrel()==0 || (memRel->getmmrel())->size() == 0){
-    return 0;
-    }
-    return memRel->toListExpr();
-};
-
-bool MemoryRelObject::KindCheck( ListExpr type, ListExpr& errorInfo )
-{
-    if (nl->ListLength(type)!=2){
-            return false;
-        }
-    ListExpr first = nl->First(type);
-    ListExpr second = nl->Second(type);
-    return (listutils::isTupleDescription(second) &&
-        (nl ->IsEqual(first,BasicType())));
-}
-
-const bool MemoryRelObject::checkType(const ListExpr type){
-    if(!nl->HasLength(type,2)){
-      return false;
-    }
-    ListExpr first = nl->First(type);
-    ListExpr second = nl->Second(type);
-    return (listutils::isTupleDescription(second) &&
-        (nl ->IsEqual(first,BasicType())));
-        }
-
-Word MemoryRelObject::create(const ListExpr typeInfo) {
-    MemoryRelObject* mmrelObject = new MemoryRelObject
-        ( nl->ToString(nl->Second(typeInfo)));
-    return (SetWord(mmrelObject));
-}
-
-bool MemoryRelObject::Save(SmiRecord& valueRecord, size_t& offset,
-                            const ListExpr typeInfo, Word& value){
-
-    size_t size = sizeof(int);
-    int v = 7;
-    bool ok = valueRecord.Write(&v, size, offset);
-    offset += size;
-    return ok;
-};
-
-bool MemoryRelObject::Open (SmiRecord& valueRecord, size_t& offset,
-                            const ListExpr typeInfo, Word& value){
-    int i;
-    size_t size = sizeof(int);
-    bool ok = valueRecord.Read(&i, size, offset);
-    offset += size;
-    if(ok){
-        value.addr = new MemoryRelObject();
-    } else {
-        value.addr = 0;
-    }
-    return ok;
-};
-
-void MemoryRelObject::Close (const ListExpr typeInfo, Word& w){
-    MemoryRelObject *k = (MemoryRelObject *)w.addr;
-    delete k;
-    w.addr = 0;
-};
-
-Word MemoryRelObject::Clone (const ListExpr typeInfo, const Word& w){
-    MemoryRelObject* m = (MemoryRelObject*) w.addr;
-    MemoryRelObject* n = m;
-    Word res;
-    res.addr = n;
-    return res;
-};
-
-void* MemoryRelObject::Cast (void* addr){
-    return (new (addr) MemoryRelObject);
-};
-
-int MemoryRelObject::SizeOfObj(){
-
-    return sizeof(int);
-};
-
-void MemoryRelObject::Delete(const ListExpr typeInfo, Word& w){
-    MemoryRelObject* memRelO = (MemoryRelObject*)w.addr;
-    delete memRelO;
-    w.addr = 0;
-};
-
-
-ListExpr MemoryRelObject::Property(){
-    return (nl->TwoElemList (
-        nl->FourElemList (
-            nl->StringAtom("Signature"),
-            nl->StringAtom("Example Type List"),
-            nl->StringAtom("List Rep"),
-            nl->StringAtom("Example List")),
-        nl->FourElemList (
-            nl->StringAtom("-> SIMPLE"),
-            nl->StringAtom(MemoryRelObject::BasicType()),
-            nl->StringAtom("(<tuple>*)where <tuple> is (<attr1>...<attrn>)"),
-            nl->StringAtom("((\"Meyer\" 7),(\"Muller\" 5))")
-            )));
+MemoryObject* MemoryRelObject::clone(){
+   vector<Tuple*>* v = new vector<Tuple*>();
+   for(size_t i=0;i<mmrel->size();i++){
+      v->push_back(mmrel->at(i)->Clone());
+   }
+   return new MemoryRelObject(v,memSize,objectTypeExpr,flob, database);
 }
 
 
 
-
-// MEMORYATTRIBUTEOBJECT
+  // MEMORYATTRIBUTEOBJECT
 
 MemoryAttributeObject::MemoryAttributeObject(){
       attributeObject = 0;
@@ -482,6 +354,25 @@ bool MemoryAttributeObject::attrToMM(Attribute* attr,
     flob = _flob;
     database = _database;
     return true;
+}
+
+
+ListExpr MemoryAttributeObject::out(){
+   if(!attributeObject){
+     return listutils::getUndefined();
+   }
+   ListExpr type;
+   nl->ReadFromString(objectTypeExpr, type);
+   type = nl->Second(type); // remove leading mem
+   int algId;
+   int typeId;
+   string typeName;
+   SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+   if(!ctlg->LookUpTypeExpr(type,typeName,algId,typeId)){
+     return listutils::getUndefined();
+   }
+   Word value(attributeObject);
+   return am->OutObj(algId,typeId)(type, value);
 }
 
 
@@ -583,7 +474,7 @@ pos->push_back(2);
 }
 
 
-void MemoryORelObject::addTuple(Tuple* tup){
+bool MemoryORelObject::addTuple(Tuple* tup){
   
   if(mmorel==0) {
       cout << "crete new tree" << endl;
@@ -591,6 +482,8 @@ void MemoryORelObject::addTuple(Tuple* tup){
   }
 
   size_t tupleSize = 0;
+
+  if(flob) tup->bringToMemory();
   tupleSize = tup->GetMemSize();
   unsigned long availableMemSize = catalog->getAvailableMemSize();
 
@@ -601,9 +494,11 @@ void MemoryORelObject::addTuple(Tuple* tup){
       mmorel->insert(tw,pos);
       memSize += tupleSize;
       catalog->addToUsedMemSize(tupleSize);
+      return true;
   } else {
       cout << "the memSize is not enough, the object"
               " might be usable but not complete" << endl;
+      return false;
   }
 }
 
@@ -743,52 +638,9 @@ bool MemoryORelObject::tupleStreamToORel(Word arg, ListExpr le, ListExpr type,
 }
 
 
-Word MemoryORelObject::In( const ListExpr typeInfo, const ListExpr instance,
-                       const int errorPos, ListExpr& errorInfo,
-                        bool& correct ){
-    Word result;
-    correct = true;
-    Tuple* tup;
-    ListExpr tupleList;
-    ListExpr tupleTypeInfo;
-    ListExpr first;
-    int tupleno;
-    bool tupleCorrect;
-    MemoryORelObject* mmorelObj =
-            new MemoryORelObject(nl->ToString(nl->Second(typeInfo)));
-    tupleList = instance;
-    tupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
-        nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
-    tupleno = 0;
-    while (!nl->IsEmpty(tupleList)){
-        first = nl->First(tupleList);
-        tupleList = nl->Rest(tupleList);
-        tupleno++;
-        tup = Tuple::In(tupleTypeInfo, first, tupleno,
-                        errorInfo, tupleCorrect);
-
-        if (tupleCorrect){
-            mmorelObj->addTuple(tup);
-        }
-        else {
-            correct = false;
-        }
-    }
-    if(!correct){
-        result = SetWord(Address(0));
-    } else {
-        result.addr = mmorelObj;
-    }
-    return result;
-}
 
 
-ListExpr MemoryORelObject::Out(ListExpr typeInfo, Word value) {
-    MemoryORelObject* mmorel = static_cast<MemoryORelObject*>(value.addr);
-    if(mmorel->getmmorel()==0 || (mmorel->getmmorel())->isEmpty()) {
-      return 0;
-    }
-    
+ListExpr MemoryORelObject::Out(ListExpr typeInfo){
     ListExpr result = nl->TheEmptyList();
     ListExpr last = result, tupleList = result;
     
@@ -797,7 +649,7 @@ ListExpr MemoryORelObject::Out(ListExpr typeInfo, Word value) {
       nl->Second(typeInfo),
       nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
 
-    ttree::Iterator<TupleWrap,TupleComp> it = mmorel->getmmorel()->begin();
+    ttree::Iterator<TupleWrap,TupleComp> it = getmmorel()->begin();
     while (!it.end()){
       t = (*it).getPointer();
       tupleList = t->Out(tupleTypeInfo);
@@ -809,103 +661,27 @@ ListExpr MemoryORelObject::Out(ListExpr typeInfo, Word value) {
       }
       it++;
     }
-
     return result;
-};
-
-bool MemoryORelObject::KindCheck(ListExpr type, ListExpr& errorInfo)
-{
-    if (nl->ListLength(type)!=2){
-            return false;
-        }
-    ListExpr first = nl->First(type);
-    ListExpr second = nl->Second(type);
-    return (listutils::isTupleDescription(second) &&
-        (nl ->IsEqual(first,BasicType())));
 }
 
-const bool MemoryORelObject::checkType(const ListExpr type){
-    ListExpr first = nl->First(type);
-    ListExpr second = nl->Second(type);
-    return (listutils::isTupleDescription(second) &&
-        (nl ->IsEqual(first,BasicType())));
-        }
-
-Word MemoryORelObject::create(const ListExpr typeInfo) {
-    MemoryORelObject* mmorelObject = new MemoryORelObject
-        ( nl->ToString(nl->Second(typeInfo)));
-    return (SetWord(mmorelObject));
+ListExpr MemoryORelObject::out(){
+   ListExpr type;
+   nl->ReadFromString(objectTypeExpr,type);
+   return Out(nl->Second(type));
 }
 
-bool MemoryORelObject::Save(SmiRecord& valueRecord, size_t& offset,
-                            const ListExpr typeInfo, Word& value){
-
-    size_t size = sizeof(int);
-    int v = 7;
-    bool ok = valueRecord.Write(&v, size, offset);
-    offset += size;
-    return ok;
-};
-
-bool MemoryORelObject::Open (SmiRecord& valueRecord, size_t& offset,
-                            const ListExpr typeInfo, Word& value){
-    int i;
-    size_t size = sizeof(int);
-    bool ok = valueRecord.Read(&i, size, offset);
-    offset += size;
-    if(ok){
-        value.addr = new MemoryORelObject();
-    } else {
-        value.addr = 0;
-    }
-    return ok;
-};
-
-void MemoryORelObject::Close (const ListExpr typeInfo, Word& w){
-    MemoryORelObject *k = (MemoryORelObject *)w.addr;
-    delete k;
-    w.addr = 0;
-};
-
-Word MemoryORelObject::Clone (const ListExpr typeInfo, const Word& w){
-    MemoryORelObject* m = (MemoryORelObject*) w.addr;
-    MemoryORelObject* n = m;
-    Word res;
-    res.addr = n;
-    return res;
-};
-
-void* MemoryORelObject::Cast (void* addr){
-    return (new (addr) MemoryORelObject);
-};
-
-int MemoryORelObject::SizeOfObj(){
-
-    return sizeof(int);
-};
-
-void MemoryORelObject::Delete(const ListExpr typeInfo, Word& w){
-    MemoryORelObject* memORelO = (MemoryORelObject*)w.addr;
-    delete memORelO;
-    w.addr = 0;
-};
 
 
-ListExpr MemoryORelObject::Property(){
-    return (nl->TwoElemList (
-        nl->FourElemList (
-            nl->StringAtom("Signature"),
-            nl->StringAtom("Example Type List"),
-            nl->StringAtom("List Rep"),
-            nl->StringAtom("Example List")),
-        nl->FourElemList (
-            nl->StringAtom("-> SIMPLE"),
-            nl->StringAtom(MemoryORelObject::BasicType()),
-            nl->StringAtom("(<tuple>*) where <tuple> is (<attr1>...<attrn>)"),
-            nl->StringAtom("((\"Meyer\" 5),(\"Muller\" 7))")
-            )));
-    
+
+MemoryObject* MemoryORelObject::clone(){
+   ttree::TTree<TupleWrap, TupleComp>* tree = mmorel->clone();
+   vector<int>* p = new vector<int>();
+   for(size_t i=0;i<pos->size();i++){
+      p->push_back(pos->at(i));
+   }
+   return new MemoryORelObject(tree,p,memSize,objectTypeExpr, flob, database);
 }
+
 
 
 // MEMORYGRAPHOBJECT ////////////////////////////////////////////////

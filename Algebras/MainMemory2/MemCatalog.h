@@ -37,6 +37,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace mm2algebra{
 
 class MemoryObject;
+class MPointer;
 
 class MemCatalog {
 
@@ -57,8 +58,11 @@ class MemCatalog {
         std::map<std::string,MemoryObject*>* getMemContent();
 
         bool insert (const std::string& name, MemoryObject* obj);
+        bool insert (const std::string& name, MPointer* obj);
 
-        bool deleteObject (const std::string& name, const bool erase=true);
+        bool modify(const std::string& name, MemoryObject* obj);
+
+        bool deleteObject (const std::string& name);
 
         void clear ();
 
@@ -67,7 +71,7 @@ class MemCatalog {
         bool isObject(const std::string& objectName);
 
         //*Precondition*: "isMMObject( objectName ) == true"
-        MemoryObject* getMMObject(const std::string& objectName);
+        MemoryObject* getMMObject(const std::string& objectName)const;
 
         ListExpr getMMObjectTypeExpr(const std::string& oN);
 
@@ -76,6 +80,14 @@ class MemCatalog {
         static MemCatalog* getInstance(); 
 
         static void destroyInstance();
+
+        bool clone(const std::string& name, MemoryObject* value);
+
+        bool isReserved(const std::string& name) const;
+        
+        bool isNull(const std::string& name) const;
+
+        size_t getNoReferences(std::string name) const;
 
     private:
         unsigned long usedMemSize;  //in Byte
