@@ -586,7 +586,7 @@ class MemoryRtreeObject : public MemoryObject {
         }
 
         static ListExpr getType(){
-         return nl->TwoElemList( nl->SymbolAtom(BasicType(), nl->IntAtom(dim)));
+         return nl->TwoElemList( nl->SymbolAtom(BasicType()), nl->IntAtom(dim));
         }
 
         MemoryObject* clone(){
