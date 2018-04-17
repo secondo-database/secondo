@@ -71,6 +71,9 @@ ALGEBRAS     += StreamAlgebra
 ALGEBRA_DIRS += Function-C++
 ALGEBRAS     += FunctionAlgebra
 
+ALGEBRA_DIRS += MainMemory2 
+ALGEBRAS     += MainMemory2Algebra
+
 ALGEBRA_DIRS += Guide
 ALGEBRAS     += GuideAlgebra
 
@@ -397,8 +400,6 @@ ALGEBRAS     += GroupbyAlgebra
 ALGEBRA_DIRS  += MMRTree 
 ALGEBRAS     += MMRTreeAlgebra
 
-ALGEBRA_DIRS  += MainMemory2 
-ALGEBRAS     += MainMemory2Algebra
 
 #ALGEBRA_DIRS += RobustGeometry
 #ALGEBRAS   += RobustGeometryAlgebra
