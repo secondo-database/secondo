@@ -81,7 +81,7 @@ class FullOsmImport {
     void storeRel(std::string name, ListExpr type, Relation *rel);
     void divideOSMfile(const std::string& fileName, const bool deletetts);
     void getOSMpart(const std::string& fileName, const int part);
-    std::string getFileName(LongInt dest);
+    std::string getFileName(const int64_t dest);
     std::string trim(const std::string &s);
     bool isWhitespace(const char c);
     bool isFileSwitchAllowed(const std::string& line);

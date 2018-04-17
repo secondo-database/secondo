@@ -1455,7 +1455,7 @@ FullOsmImport::FullOsmImport(const std::string& fileName,
   divideOSMfile(fileName, createrels);
 }
 
-std::string FullOsmImport::getFileName(LongInt dest) {
+std::string FullOsmImport::getFileName(int64_t dest) {
   std::stringstream result;
   result << subFileName << "_" << dest;
   return result.str().c_str();
@@ -1630,13 +1630,14 @@ void FullOsmImport::divideOSMfile(const std::string& fileName,
   source.open(fileName.c_str(), std::ios::in);
   getline(source, line);
   charCounter += line.length();
-  for (LongInt i = 0; i < size; i++) { // clear destination files if existing
-      dest.open(getFileName(i).c_str(), std::ios::trunc);
+  for (int i = 0; i < size; i++) { // clear destination files if existing
+      string fn = getFileName(i);
+      dest.open(fn.c_str(), std::ios::trunc);
       dest.close();
   }
   while (!source.eof() && source.good() &&
          (trim(line).substr(0, 5) != "<node")) { // copy head
-    for (LongInt file = 0; file < size; file++) {
+    for (int64_t file = 0; file < size; file++) {
       dest.open(getFileName(file).c_str(), std::ios::app);
       dest << line << endl;
       dest.close();
@@ -1665,7 +1666,7 @@ void FullOsmImport::divideOSMfile(const std::string& fileName,
       }
       nextLimit += partSize;
       destId++;
-      dest.open(getFileName(destId).c_str(), std::ios::app);
+      dest.open(getFileName(destId.GetValue()).c_str(), std::ios::app);
     }
     getline(source, line);
     charCounter += line.length();
