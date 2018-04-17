@@ -3623,6 +3623,23 @@ virtual void Display(ListExpr type, ListExpr value) {
   
 };
 
+/*
+Display MPointer
+
+*/
+struct DisplayMPointer : DisplayFunction{
+  virtual void Display(ListExpr type, ListExpr value){
+     // just call the display function of the embedded mem 
+     DisplayResult(nl->Second(type), value);     
+  }
+};
+
+struct DisplayMem : DisplayFunction{
+  virtual void Display(ListExpr type, ListExpr value){
+     // just call the display function of the embedded object
+     DisplayResult(nl->Second(type), value);     
+  }
+};
 
 /*
 4 Initialization
@@ -3645,7 +3662,8 @@ DisplayTTY::Initialize()
   d.Insert( "bool",    new DisplayBoolean() );
   d.Insert( "string",  new DisplayString() );
   d.Insert( "rel",     new DisplayRelation() );
-  d.Insert( "memoryRelObject",     new DisplayRelation() );
+  d.Insert( "mem",     new DisplayMem());
+  d.Insert( "mpointer",new DisplayMPointer());
   d.Insert( "orel",    new DisplayRelation() );
   d.Insert( "trel",    new DisplayRelation() );
   d.Insert( "mrel",    new DisplayRelation() );
@@ -3763,6 +3781,10 @@ DisplayTTY::Initialize()
   d.Insert("labels", new DisplayLabels);
   d.Insert("place", new DisplayPlace);
   d.Insert("places", new DisplayPlaces);
+ 
+  
+
+
 }
 
 /*
