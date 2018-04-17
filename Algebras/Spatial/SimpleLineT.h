@@ -147,6 +147,8 @@ Constructs a ~SimpleLineT~ from a complex one.
   bool EndBulkLoad();
 
   SimpleLineT<Array>& operator+=( const HalfSegment& hs);
+  
+  void Add(const HalfSegment& hs);
 
   inline bool IsOrdered() const{
     return isOrdered;

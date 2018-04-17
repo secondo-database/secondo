@@ -79,6 +79,12 @@ SimpleLineT<Array>& SimpleLineT<Array>::operator+=(const HalfSegment& hs){
 }
 
 template<template<typename T> class Array>
+void SimpleLineT<Array>::Add(const HalfSegment& hs) {
+  assert(!isOrdered && IsDefined());
+  segments.Append(hs);
+}
+
+template<template<typename T> class Array>
 bool SimpleLineT<Array>::EndBulkLoad(){
   if( !IsDefined() ) {
     Clear();
