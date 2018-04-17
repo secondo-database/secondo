@@ -578,7 +578,7 @@ Removes the minimum element of a node. The element is returned, not destroyed.
        }
        res->count = count;
        res->height = height;
-       for(int i=0;i<count;i++){
+       for(size_t i=0;i<count;i++){
          T* src = objects[i];
          res->objects[i] = new T(*src); 
        }
