@@ -304,14 +304,6 @@ class StdDistComp{
 
 
 
-
-int getRepNum(ListExpr a){
-  if(CcString::checkType(a)) return 0;
-  if(Mem::checkType(a)) return 1;
-  if(MPointer::checkType(a)) return 2;
-  return -1;
-}
-
 /*
 
 Some functions for getting a certain memory object by name.
@@ -724,25 +716,6 @@ In the other case, the reuslt is true, errMsg is keept unchanged
 and result will have the type in the memory.
 
 */
-bool getMemType(ListExpr type, ListExpr value, 
-                ListExpr & result, string& error, 
-                bool allowMPointer){
-
-    if(allowMPointer){
-      if(MPointer::checkType(type)){
-         if(Mem::checkType(nl->Second(type))){
-            result = nl->Second(type);
-            return true;
-         }
-      }
-    }
-    if(Mem::checkType(type)){
-        result = type;
-        return true;
-    }
-    
-    return false;
-}
 
 bool getMemTypeFromString(ListExpr type, ListExpr value, 
                 ListExpr & result, string& error, 
