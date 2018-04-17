@@ -4531,6 +4531,7 @@ QueryProcessor::SetupStreamArg( const Supplier funNode,
                                 const int num, Supplier opNode )
 {
    if( !((0 < num) && (num < MAXARG/2)) ) {
+     assert(false);
      throw qp_error("num out of range!");
    }
 
