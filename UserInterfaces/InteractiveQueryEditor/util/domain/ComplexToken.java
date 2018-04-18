@@ -19,6 +19,8 @@
 
 package util.domain;
 
+import java.util.ArrayList;
+
 import util.domain.enums.ErrorType;
 import util.domain.enums.TokenType;
 
@@ -35,14 +37,14 @@ public class ComplexToken {
 	private String errorMessage;
 
 	private Operator operator;
-	private int firstCorrespondingTokenIndex;
-	private int lastCorrespondingTokenIndex;
+	private final ArrayList<Integer> indexesOfPrecedingTokens;//can be arguments or an opening paranthesis
+	private int indexOfLastAssociatedToken;//used to memorize the last argument or the closing paranthesis of an operator
 
 	public ComplexToken(final String text, final TokenType type) {
 		this.text = text;
 		this.type = type;
-		firstCorrespondingTokenIndex = -1;
-		lastCorrespondingTokenIndex = -1;
+		indexesOfPrecedingTokens = new ArrayList<>();
+		indexOfLastAssociatedToken = -1;//can be an argument or the corresponding closing paranthesis
 	}
 
 	public String getText() {
@@ -93,19 +95,19 @@ public class ComplexToken {
 		this.operator = operator;
 	}
 
-	public int getFirstCorrespondingTokenIndex() {
-		return firstCorrespondingTokenIndex;
+	public void addIndexOfPrecedingToken (final int position, final int value) {
+		indexesOfPrecedingTokens.add(position, Integer.valueOf(value));
 	}
 
-	public void setFirstCorrespondingTokenIndex(final int firstCorrespondingTokenIndex) {
-		this.firstCorrespondingTokenIndex = firstCorrespondingTokenIndex;
+	public ArrayList<Integer> getIndexesOfPrecedingTokens() {
+		return indexesOfPrecedingTokens;
 	}
 
-	public int getLastCorrespondingTokenIndex() {
-		return lastCorrespondingTokenIndex;
+	public int getIndexOfLastAssociatedToken() {
+		return indexOfLastAssociatedToken;
 	}
 
-	public void setLastCorrespondingTokenIndex(final int lastCorrespondingTokenIndex) {
-		this.lastCorrespondingTokenIndex = lastCorrespondingTokenIndex;
+	public void setIndexOfLastAssociatedToken(final int index) {
+		this.indexOfLastAssociatedToken = index;
 	}
 }

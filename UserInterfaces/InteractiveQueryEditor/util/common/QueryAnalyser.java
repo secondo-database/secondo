@@ -60,7 +60,7 @@ public class QueryAnalyser {
 	public static void main(final String[] args) {
 		final QueryAnalyser analyser = new QueryAnalyser("specs");
 		try {
-			analyser.analyseQuery("query Orte feed filter[.Ort=\"Berlin\"] consume");
+			analyser.analyseQuery("query Orte feed");
 		} catch (final Exception e) {
 			e.printStackTrace();
 		}
@@ -138,20 +138,46 @@ public class QueryAnalyser {
 		for (int i = 0; i < complexTokens.length; i++) {
 			final ComplexToken currentToken = complexTokens[i];
 			if (currentToken.getType().equals(TokenType.OPERATOR) && !currentToken.isConsumedByOperator()) {
-				if(checkPostfixArguments(complexTokens, currentToken, i)) {//If everything is ok
-					checkPrefixArguments(complexTokens, currentToken, i);//then check the prefix arguments
+				if(checkPrefixArguments(complexTokens, currentToken, i)) {//If everything is ok
+					if(checkPostfixArguments(complexTokens, currentToken, i)) {//then check the prefix arguments
+						consumePrefixArguments(complexTokens, currentToken, i);
+					}
 				}
 
-				if (currentToken.getOccurredErrorType() != null) {//If an error occurred
-					if (currentToken.getOccurredErrorType().equals(ErrorType.MISSING_PARANTHESIS)//If these two errors occur the analysis
-							|| currentToken.getOccurredErrorType().equals(ErrorType.WRONG_PARANTHESIS)
-							|| currentToken.getOccurredErrorType().equals(ErrorType.MISSING_POSTFIX_ARGUMENTS)
-							|| currentToken.getOccurredErrorType().equals(ErrorType.TOO_MANY_POSTFIX_ARGUMENTS)) {//should abort
-						break;
-					}//else continue
+				//If an error occured during analysis and if the error type is not ErrorType.UNFINISHED_PARANTHESIS then abort analysis
+				if (currentToken.getOccurredErrorType() != null && !currentToken.getOccurredErrorType().equals(ErrorType.UNFINISHED_PARANTHESIS)) {
+					break;
 				}
 			}
 		}
+	}
+
+	private boolean checkPrefixArguments(final ComplexToken[] tokens, final ComplexToken currentToken, final int currentTokenIndex) {
+		final int numberOfPrefixArguments = currentToken.getOperator().getPrefixArguments().size();
+		int foundArguments = 0;
+		for (int i = currentTokenIndex - 1; i >= 0; i--) {
+			final ComplexToken previousElement = tokens[i];
+			if ((previousElement.getType().equals(TokenType.IDENTIFIER) || previousElement.getType().equals(TokenType.OPERATOR))
+					&& !previousElement.isConsumedByOperator()) {
+				currentToken.addIndexOfPrecedingToken(0, i);
+				foundArguments++;
+			}
+			else if (previousElement.getType().equals(TokenType.PARANTHESIS)) {
+				if (previousElement.getText().equals("[") || previousElement.getText().equals("(")) {
+					break;
+				} else if (previousElement.getText().equals("]") || previousElement.getText().equals(")")) {
+					i = previousElement.getIndexesOfPrecedingTokens().get(0);
+					continue;
+				}
+			}
+
+			if (foundArguments == numberOfPrefixArguments) {
+				return true;
+			}
+		}
+		currentToken.setOccurredErrorType(ErrorType.MISSING_PREFIX_ARGUMENTS);
+		currentToken.setErrorMessage(String.format("Missing prefix arguments for operator %s\nThe operator syntax is defined as: %s", currentToken.getText(), currentToken.getOperator().getPattern()));
+		return false;
 	}
 
 	private boolean checkPostfixArguments(final ComplexToken[] tokens, final ComplexToken currentToken, final int currentTokenIndex) {
@@ -188,7 +214,7 @@ public class QueryAnalyser {
 			//use a recursive call to analyse all tokens within the paranthesis
 			final int next = currentTokenIndex + 1;//The token after the operator (the paranthesis)
 			final ComplexToken openingParanthesis = tokens[next];
-			final int numberOfSubTokens = openingParanthesis.getLastCorrespondingTokenIndex() - next -1;
+			final int numberOfSubTokens = openingParanthesis.getIndexOfLastAssociatedToken() - next -1;
 			if (numberOfSubTokens > 0) {
 				final ComplexToken[] subTokens = new ComplexToken[numberOfSubTokens];
 				for (int i = 0; i < subTokens.length; i++) {
@@ -209,7 +235,7 @@ public class QueryAnalyser {
 					numberOfFoundArgments++;
 				} else if (nextElement.getType().equals(TokenType.PARANTHESIS)) {
 					if (nextElement.getText().equals("[") || nextElement.getText().equals("(")) {
-						j = nextElement.getLastCorrespondingTokenIndex();
+						j = nextElement.getIndexOfLastAssociatedToken();
 						continue;
 					} else if (nextElement.getText().equals("]") || nextElement.getText().equals(")")) {
 						break;
@@ -221,11 +247,11 @@ public class QueryAnalyser {
 				return true;
 			} else if (numberOfFoundArgments < numberOfPostFixArguments) {
 				currentToken.setOccurredErrorType(ErrorType.MISSING_POSTFIX_ARGUMENTS);
-				currentToken.setErrorMessage(String.format("Missing postfix arguments for operator %s\nThe operator syntax is defined as:%s", currentToken.getText(), currentToken.getOperator().getPattern()));
+				currentToken.setErrorMessage(String.format("Missing postfix arguments for operator %s\nThe operator syntax is defined as: %s", currentToken.getText(), currentToken.getOperator().getPattern()));
 				return false;
 			} else {
 				currentToken.setOccurredErrorType(ErrorType.TOO_MANY_POSTFIX_ARGUMENTS);
-				currentToken.setErrorMessage(String.format("Too many postfix arguments for operator %s\nThe operator syntax is defined as:%s", currentToken.getText(), currentToken.getOperator().getPattern()));
+				currentToken.setErrorMessage(String.format("Too many postfix arguments for operator %s\nThe operator syntax is defined as: %s", currentToken.getText(), currentToken.getOperator().getPattern()));
 				return false;
 			}
 		}
@@ -249,7 +275,7 @@ public class QueryAnalyser {
 					openParanthesisCounter++;
 				} else {
 					currentToken.setOccurredErrorType(ErrorType.WRONG_PARANTHESIS);
-					currentToken.setErrorMessage(String.format("Paranthesis does not match operator definition for operator %s\nThe operator syntax is defined as:%s", currentToken.getText(), currentToken.getOperator().getPattern()));
+					currentToken.setErrorMessage(String.format("The opening paranthesis does not match operator definition for operator %s\nThe operator syntax is defined as: %s", currentToken.getText(), currentToken.getOperator().getPattern()));
 					return false;//wrong paranthesis after the operator
 				}
 			} else {
@@ -271,14 +297,14 @@ public class QueryAnalyser {
 						currentToken.getOperator().getParanthesisType().equals(ParanthesisType.SQUARED) && nextToken.getText().equals(ParanthesisType.SQUARED.getClosingParanthesis())) {
 					openParanthesisCounter--;
 				} else {
-					throw new IllegalArgumentException("A token was identified to be a paranthesis but it does not fit the operator definition!");
+					throw new IllegalArgumentException(String.format("The closing paranthesis does not match operator definition for operator %s\nThe operator syntax is defined as: %s", currentToken.getText(), currentToken.getOperator().getPattern()));
 				}
 			}
 
 			if (openParanthesisCounter == 0) {
-				currentToken.setLastCorrespondingTokenIndex(j);//the operator
-				firstFollowingToken.setLastCorrespondingTokenIndex(j);//the openening paranthesis
-				nextToken.setFirstCorrespondingTokenIndex(currentTokenIndex+1);//the closing paranthesis
+				currentToken.setIndexOfLastAssociatedToken(j);//the operator memorizes the index of the closing paranthesis
+				firstFollowingToken.setIndexOfLastAssociatedToken(j);//the openening paranthesis memorizes the index of the closing paranthesis
+				nextToken.addIndexOfPrecedingToken(0, currentTokenIndex+1);//the closing paranthesis memorizes the index of the opening paranthesis
 				return true;//paranthesis complete and closed
 			}
 		}
@@ -286,74 +312,57 @@ public class QueryAnalyser {
 		return false;//open paranthesis
 	}
 
-	private boolean checkPrefixArguments(final ComplexToken[] tokens, final ComplexToken currentToken, final int currentTokenIndex) {
-		final int numberOfPreOpArguments = currentToken.getOperator().getPrefixArguments().size();
-		int foundArguments = 0;
-		for (int i = currentTokenIndex - 1; i >= 0; i--) {
-			final ComplexToken previousElement = tokens[i];
-			if ((previousElement.getType().equals(TokenType.IDENTIFIER) || previousElement.getType().equals(TokenType.OPERATOR))
-					&& !previousElement.isConsumedByOperator()) {
-				previousElement.setConsumedByOperator(true);
-				currentToken.setFirstCorrespondingTokenIndex(i);
-				foundArguments++;
-			}
-			else if (previousElement.getType().equals(TokenType.PARANTHESIS)) {
-				if (previousElement.getText().equals("[") || previousElement.getText().equals("(")) {
-					break;
-				} else if (previousElement.getText().equals("]") || previousElement.getText().equals(")")) {
-					i = previousElement.getFirstCorrespondingTokenIndex();
-					continue;
-				}
-			}
-
-			if (foundArguments == numberOfPreOpArguments) {
-				return true;
-			}
+	private void consumePrefixArguments(final ComplexToken[] tokens, final ComplexToken currentToken, final int currentTokenIndex) {
+		final ArrayList<Integer> indexes = currentToken.getIndexesOfPrecedingTokens();
+		for (final Integer index : indexes) {
+			final ComplexToken previousElement = tokens[index.intValue()];
+			previousElement.setConsumedByOperator(true);
 		}
-		currentToken.setOccurredErrorType(ErrorType.MISSING_PREFIX_ARGUMENTS);
-		currentToken.setErrorMessage(String.format("Missing prefix arguments for operator %s\nThe operator syntax is defined as:%s", currentToken.getText(), currentToken.getOperator().getPattern()));
-		return false;
 	}
 
-
-	private String createTypeInformation(final ComplexToken[] complexTokens) throws Exception {
+	private String createTypeInformation(final ComplexToken[] allTokens) throws Exception {
 		final StringBuilder typeInfo = new StringBuilder();
-		for (int i = 0; i < complexTokens.length; i++) {
-			final ComplexToken token = complexTokens[i];
-			if (token.getType().equals(TokenType.IDENTIFIER) && !token.isConsumedByOperator()) {
-				final ListExpr typeExpr = SecondoFacade.query("query " + token.getText() + " getTypeNL", false);
+		for (int i = 0; i < allTokens.length; i++) {
+			final ComplexToken currentToken = allTokens[i];
+			if (currentToken.getType().equals(TokenType.IDENTIFIER) && !currentToken.isConsumedByOperator()) {
+				final ListExpr typeExpr = SecondoFacade.query("query " + currentToken.getText() + " getTypeNL", false);
 				if (typeExpr != null) {
 					final StringReader reader = new StringReader(typeExpr.second().textValue());
 					final NLParser parser = new NLParser(reader);
 					typeInfo.append(((ListExpr)parser.parse().value).toString());
 					typeInfo.append("\n");
+				} else {
+					typeInfo.append(SecondoFacade.getErrorMessage());
+					typeInfo.append("\n");
 				}
-			} else if (token.getType().equals(TokenType.OPERATOR) && !token.isConsumedByOperator()) {
-				if ((token.getOperator().getPrefixArguments().size() != 0 && token.getFirstCorrespondingTokenIndex() == -1) ||
-						(token.getOperator().getPostfixArguments().size() != 0 && token.getLastCorrespondingTokenIndex() == -1)) {
-					if (token.getOccurredErrorType() != null && token.getErrorMessage() != null) {
-						typeInfo.append("\n").append(token.getErrorMessage()).append("\n");
+			} else if (currentToken.getType().equals(TokenType.OPERATOR) && !currentToken.isConsumedByOperator()) {
+				if (currentToken.getOccurredErrorType() != null) {
+					if(currentToken.getOccurredErrorType().equals(ErrorType.UNFINISHED_PARANTHESIS)) {
+						continue;					} else {
+						typeInfo.append("\n").append(currentToken.getErrorMessage()).append("\n");
+						break;
 					}
-					continue;//operator paranthesis unfinished
+				} else if (currentToken.getOperator().getPostfixArguments().size() != 0 && currentToken.getIndexOfLastAssociatedToken() == -1) {
+					break;//the user hasn't entered a paranthesis and the postfix arguments at all
 				}
 
-				int startIndex = token.getFirstCorrespondingTokenIndex();
-				for (int j = i; j >= startIndex; j--) {
-					final ComplexToken tempToken = complexTokens[j];
-					if (tempToken.getFirstCorrespondingTokenIndex() != -1 && tempToken.getFirstCorrespondingTokenIndex()<startIndex) {
-						startIndex = tempToken.getFirstCorrespondingTokenIndex();
-					}
+				//calculate the beginning of the corresponding arguments - an argument of an operator can be an operator too
+				int startIndex = currentToken.getIndexesOfPrecedingTokens().get(0);
+				ComplexToken tempToken = allTokens[startIndex];
+				while(tempToken.getIndexesOfPrecedingTokens().size() != 0 && tempToken.getIndexesOfPrecedingTokens().get(0).intValue() < startIndex) {
+					startIndex = tempToken.getIndexesOfPrecedingTokens().get(0).intValue();
+					tempToken = allTokens[startIndex];
 				}
 
 				final StringBuilder opQuery = new StringBuilder();
 				opQuery.append("query ");
 				for (int j = startIndex; j < i; j++) {
-					final ComplexToken tempToken = complexTokens[j];
+					tempToken = allTokens[j];
 					opQuery.append(tempToken.getText()).append(" ");
 				}
-				opQuery.append(token.getText()).append(" ");
-				for (int j = i+1; j <= token.getLastCorrespondingTokenIndex(); j++) {
-					final ComplexToken tempToken = complexTokens[j];
+				opQuery.append(currentToken.getText()).append(" ");
+				for (int j = i+1; j <= currentToken.getIndexOfLastAssociatedToken(); j++) {
+					tempToken = allTokens[j];
 					opQuery.append(tempToken.getText()).append(" ");
 				}
 				opQuery.append("getTypeNL");
@@ -367,14 +376,14 @@ public class QueryAnalyser {
 				} else {
 					typeInfo.append(SecondoFacade.getErrorMessage());
 					typeInfo.append("\n");
-					if (token.getErrorMessage() != null) {
-						typeInfo.append(token.getErrorMessage());
+					if (currentToken.getErrorMessage() != null) {
+						typeInfo.append(currentToken.getErrorMessage());
 						typeInfo.append("\n");
 					}
 				}
 			}
 
-			if (token.getOccurredErrorType() != null) {
+			if (currentToken.getOccurredErrorType() != null) {
 				break;
 			}
 		}
