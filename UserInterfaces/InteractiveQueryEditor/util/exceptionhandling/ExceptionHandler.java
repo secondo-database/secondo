@@ -24,7 +24,7 @@ import java.awt.Dimension;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
-import javax.swing.JTextPane;
+import javax.swing.JTextArea;
 
 import util.common.StringUtilities;
 
@@ -58,7 +58,11 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
 		} else {
 			message = getTextRepresentationOfThrowable(new Exception(additionalMessage, exception));
 		}
-		JOptionPane.showMessageDialog(owner, message);
+
+		final JTextArea textArea = new JTextArea();
+		textArea.setText(message);
+		textArea.setPreferredSize(new Dimension(500, 300));
+		JOptionPane.showMessageDialog(owner, new JScrollPane(textArea), "An error occured", JOptionPane.ERROR_MESSAGE);
 	}
 
 	/**
@@ -90,9 +94,9 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
 	 */
 	@Override
 	public void uncaughtException(final Thread t, final Throwable e) {
-		final JTextPane textPane = new JTextPane();
-		textPane.setText(StringUtilities.appendStrings("Auf dem Event Dispatching Thread ist ein unbehandelter Fehler aufgetreten!", getTextRepresentationOfThrowable(e)));
-		textPane.setPreferredSize(new Dimension(500, 300));
-		JOptionPane.showMessageDialog(null, new JScrollPane(textPane));
+		final JTextArea textArea = new JTextArea();
+		textArea.setText(StringUtilities.appendStrings("An uncaught error occured on the event-dispatching-thread!", getTextRepresentationOfThrowable(e)));
+		textArea.setPreferredSize(new Dimension(500, 300));
+		JOptionPane.showMessageDialog(null, new JScrollPane(textArea));
 	}
 }
