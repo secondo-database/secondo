@@ -42,6 +42,16 @@ namespace dfs {
 
     Str chunkId;
 
+    /**
+     * indicates whether this locations is broken
+     * just runtimeInfo will not be persistet
+     */
+    bool broken;
+
+    ChunkLocation() {
+      broken=false;
+    }
+
     static ChunkLocation deserialize(StrReader &r) {
       ChunkLocation location;
       location.dataNodeUri = dfs::URI::fromString(r.readStrSer());
@@ -114,6 +124,40 @@ namespace dfs {
       delete[] chunkLocationList;
       chunkLocationList = new ChunkLocation[locationCount];
       chunkLocationListLength = locationCount;
+    }
+
+    /**
+     * finds location by uri
+     * @param uri
+     * @return
+     */
+    ChunkLocation* findLocationByURI(const Str& uri) {
+      for (int i=0;i<chunkLocationListLength;i++) {
+        if (chunkLocationList[i].dataNodeUri.toString() == uri) {
+          return chunkLocationList+i;
+        }
+      }
+      return 0;
+    }
+
+    /**
+     * marks locations as broken by using the state of other chunk info
+     * @param pOther
+     */
+    void markDataNodeAsBrokenFromOtherChunk(ChunkInfo* pOther) {
+      for (int l=0;l<pOther->chunkLocationListLength;l++) {
+        if (pOther->chunkLocationList[l].broken) {
+          ChunkLocation* match =
+            findLocationByURI(
+              pOther->chunkLocationList[l].dataNodeUri.toString());
+          if (match != 0) {
+            //std::cout << "NEED TO MARK "
+            //  << match->dataNodeUri.toString() << std::endl;
+            match->broken=true;
+            markDataNodeAsBroken(match->dataNodeUri.toString());
+          }
+        }
+      }
     }
 
     void markDataNodeAsBroken(const Str &uri) {

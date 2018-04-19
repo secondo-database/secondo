@@ -50,11 +50,19 @@ void RemoteFilesystem::receiveFileToLocal(FILEID fileId, FILEPATH localPath) {
 
   io::file::Writer fileWriter(localPath, false);
 
-  //Teile der Datei nun anfordern
+  //get the content of the chunks
   for (int i = 0; i < entry.chunkInfoListLength; i++) {
     ChunkInfo *pChunkInfo = &entry.chunkInfoList[i];
 
     loadChunkContentFromDataNode(pChunkInfo, fileWriter);
+
+    //the last method sets broken info on location
+    //set it also here to avoid being used again
+    //and trigger mark as errors
+    for (int j=i+1;j<entry.chunkInfoListLength;j++) {
+      (entry.chunkInfoList+j)->markDataNodeAsBrokenFromOtherChunk(pChunkInfo);
+    }
+
   }
 
   fileWriter.close();
@@ -162,8 +170,8 @@ void RemoteFilesystem::receiveFilePartially(const char *fileId,
     if (containsChunkFilePart(chunkInfo, startIndex, length, &offsetInChunk,
                               &bytesPresentInChunk, bytesConsumed)) {
       bytesConsumed += bytesPresentInChunk;
-      cout << "from chunk with order " << chunkInfo->order << " we need ("
-           << offsetInChunk << "," << bytesPresentInChunk << ")" << endl;
+      //cout << "from chunk with order " << chunkInfo->order << " we need ("
+      //     << offsetInChunk << "," << bytesPresentInChunk << ")" << endl;
 
       char *bytes = new char[bytesPresentInChunk];
       bzero(bytes, bytesPresentInChunk);

@@ -111,13 +111,15 @@ void RemoteFilesystem::loadChunkContentFromDataNode(
   NUMBER bytesLeft = chunkInfo->length;
 
   Str content;
-  bool locationIsAlive = true;
 
   for (int i = 0; i < chunkInfo->chunkLocationListLength; i++) {
+
+    bool locationIsAlive = true;
 
     //current location
     int locIndex = locIndices[i];
     ChunkLocation *pLoc = &chunkInfo->chunkLocationList[locIndex];
+    if (pLoc->broken) continue;
 
     while (bytesFetched < chunkInfo->length) {
 
@@ -154,12 +156,17 @@ void RemoteFilesystem::loadChunkContentFromDataNode(
         locationIsAlive = false;
       }
 
-      if (!locationIsAlive) continue;
+      if (!locationIsAlive) {
+        pLoc->broken=true;
+        break;
+      }
 
     }
 
 
   }
+
+  delete[] locIndices;
 
 }
 
@@ -301,9 +308,11 @@ bool RemoteFilesystem::sendRequestToDataNodeKilling(const URI &dataNodeUri,
     success = true;
   }
   catch (dfs::BaseException &be) {
+    cerr << "error in sendRequestToDataNodeKilling" << endl;
     cerr << "baseException " << be.what() << endl;
   }
   catch (...) {
+    cerr << "error in sendRequestToDataNodeKilling" << endl;
     cerr << "unknown error";
   }
   if (!success) {
@@ -313,7 +322,7 @@ bool RemoteFilesystem::sendRequestToDataNodeKilling(const URI &dataNodeUri,
 }
 
 void RemoteFilesystem::markDataNodeAsErrornous(const URI &dataNodeUri) {
-  cerr << "markDataNodeAsErrornous" << endl;
+  cerr << "markDataNodeAsErrornous " << dataNodeUri.toString() << endl;
   ToStrSerializer ser;
   ser.appendRaw("kill");
   ser.append(dataNodeUri.toString());
