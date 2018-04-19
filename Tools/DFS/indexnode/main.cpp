@@ -86,13 +86,19 @@ public:
     builder.appendCStr("<h2>Files</h2>");
     builder.append(Str("<p>count: ").append(man->countFiles()).append("</p>"));
     builder.appendCStr(
-      "<table border=\"1\"><thead><tr><th>global FileID</th>"
-        "<th>chunk info</th></tr></thead>");
+      "<table border=\"1\"><thead><tr><th>global FileID</th><th>Chunks</th>"
+        "<th>Size [B]</th><th>chunk info</th></tr></thead>");
     for (std::map<Str, IndexEntry>::iterator kv = man->fileIndex.begin();
          kv != man->fileIndex.end(); kv++) {
       builder.appendCStr("<tr>");
       builder.appendCStr("<td style=\"padding-right:25px;\" valign=\"top\">");
       builder.append(kv->second.fileId);
+      builder.appendCStr("</td>");
+      builder.appendCStr("<td valign=\"top\">");
+      builder.append(kv->second.chunkInfoListLength);
+      builder.appendCStr("</td>");
+      builder.appendCStr("<td valign=\"top\">");
+      builder.append(kv->second.calculateFileSize());
       builder.appendCStr("</td>");
       builder.appendCStr("<td><table>");
 

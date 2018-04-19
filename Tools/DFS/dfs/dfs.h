@@ -251,7 +251,7 @@ class SimpleFilesystem {
     virtual std::vector<std::string> listFileNames() = 0;
 
     /*
-     3.9 ~listFileNames~
+     3.9 ~changeSetting~
      changes a setting of the DFS
      @param key
      @param value
@@ -259,7 +259,7 @@ class SimpleFilesystem {
     virtual void changeSetting(const char *key, const char *newValue) = 0;
 
     /*
-     3.10 ~listFileNames~
+     3.10 ~changeChunkSize~
      changes chunksize of DFS
      only affects new files
      @param newValue
