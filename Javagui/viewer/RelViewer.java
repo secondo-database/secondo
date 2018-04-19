@@ -182,12 +182,17 @@ public class RelViewer extends SecondoViewer{
    }
   
   
-  String delim = JOptionPane.showInputDialog(null,"Please specify the delimiter", "Import: Delimiter input",
+  String delim = JOptionPane.showInputDialog(null,"Please specify the delimiter (type \"tab\" for tabulator)", "Import: Delimiter input",
                                                              JOptionPane.PLAIN_MESSAGE);
                                                              
   if (delim.equals(""))
   { Reporter.showInfo("Empty delimiter inserted");
     return  false;                                                      
+  }      
+  
+  if (delim.equals("tab"))
+  { 
+    delim = "\t";                                                      
   }      
   
                                                              
