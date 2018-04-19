@@ -94,6 +94,7 @@ long dfs::io::file::fileSize(const Str &filename) {
   struct stat64 s;
   CStr cs = CStr(filename);
   if (stat64(cs.cstr(), &s) == -1) {
+    std::cout << "FAIL" << std::endl;
   }
   return s.st_size;
 #endif

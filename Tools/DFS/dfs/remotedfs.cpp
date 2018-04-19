@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../shared/io.h"
 #include "../shared/remotemetadata.h"
 #include "../shared/numberUtils.h"
+#include "../shared/debug.h"
 #include <iostream>
 
 using namespace dfs::remote;
@@ -318,11 +319,13 @@ void RemoteFilesystem::markDataNodeAsErrornous(const URI &dataNodeUri) {
 }
 
 Str RemoteFilesystem::syncMessageToURI(const URI &uri, const Str &msg) {
-  debug(Str("send message to uri ").append(uri.toString()));
-  debug(Str("message content - ").append(msg));
+  //debug(Str("send message to uri ").append(uri.toString()));
+  //debug(Str("message content - ").append(msg));
   EndpointClient c;
+
   c.setLogger(logger);
-  Str r = c.sendSyncMessage(uri, msg);
+  bool doEnvelope = msg.len() > 0 && msg[0] != '@';
+  Str r = c.sendSyncMessage(uri, msg, doEnvelope);
   return r;
 }
 

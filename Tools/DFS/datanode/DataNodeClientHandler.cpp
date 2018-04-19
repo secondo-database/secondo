@@ -62,7 +62,7 @@ Str DataNodeClientHandler::onReceived(Str *s, int *resultFlags) {
   }
 
   Str cmd = s->substr(0, 4);
-  _dr("cmd " + cmd);
+  if (canDebug) _dr("cmd " + cmd);
 
   if (canDebug) {
     _dr("************");
@@ -193,7 +193,7 @@ Str DataNodeClientHandler::onReceived(Str *s, int *resultFlags) {
 
       if (pChunk->category.len() > 0) {
         dfs::io::file::deleteEmptyDirOnlySafe(
-          pChunk->mapTargetDirToDataPath(filepath));
+              pChunk->mapTargetDirToDataPath(filepath));
       }
 
       if (canDebug) _dr(Str("deleting chunk from state ").append(chunkId));
@@ -287,6 +287,7 @@ Str DataNodeClientHandler::onReceived(Str *s, int *resultFlags) {
      * parc<chunkid><lcontent><content>
      */
   else if (cmd == "parc") {
+
     StrReader reader(s);
     reader.setPos(4);
     Str chunkId = reader.readStrSer();
@@ -303,8 +304,7 @@ Str DataNodeClientHandler::onReceived(Str *s, int *resultFlags) {
     if (canDebug) _dr(Str("append the data to file ").append(targetFile));
 
     dfs::io::file::Writer writer(targetFile, true);
-    Str content = reader.readStrSer();
-    writer.append(content);
+    writer.append(reader.pointerToCurrentRawBuf(),lengthOfContent);
     writer.close();
 
   }

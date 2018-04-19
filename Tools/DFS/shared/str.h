@@ -129,6 +129,10 @@ namespace dfs {
      */
     Str append(const Str &s) const;
 
+    void appendToThis(const Str& s);
+
+    void appendRawBufferToThis(char* buffer, int length);
+
     /**
      * puts other str in front returns new instance of str
      * @param s
@@ -212,6 +216,8 @@ namespace dfs {
     static Str deserialize(const Str &s);
 
     Str substr(int start) const;
+
+    void changeStartIndexNoFree(int start);
 
     Str substr(int start, int len) const;
 
@@ -356,6 +362,8 @@ namespace dfs {
      * @return
      */
     Str copyOfReminder();
+
+    char* pointerToCurrentRawBuf();
   };
 
   /**
@@ -376,6 +384,10 @@ namespace dfs {
      * @param s
      */
     void append(const Str &s);
+
+    void appendBinaryAsSer(int length, char* buffer);
+
+    void appendRawBinary(int length, char* buffer);
 
     /**
      * append int and fills with leading zero

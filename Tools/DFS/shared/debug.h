@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 class Debug {
 public:
+
   static dfs::log::Logger* logger;
 
   static void debug(const dfs::Str& str) {

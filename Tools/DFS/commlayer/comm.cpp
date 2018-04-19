@@ -126,7 +126,8 @@ void Endpoint::listen() {
         if (canDebug) debug("first part, an expected length has been promised");
         if (n < 15)
           fatalx("expected length has been promised, but it is invalid");
-        promisedLength = Str(buffer, n).substr(1, 14).toLong();
+        //promisedLength = Str(buffer, n).substr(1, 14).toLong();
+        promisedLength = Str(buffer+1,14).toLong();
         if (canDebug)
           debug(Str("expected length (Bytes) - ").append(promisedLength));
       }
@@ -144,7 +145,9 @@ void Endpoint::listen() {
 
       if (canDebug)
         debug(Str("got bytes sum (BytesTillNow) ").append(totalReceived));
-      input = input.append(Str(buffer, n));
+
+      input.appendRawBufferToThis(buffer,n);
+      //input = input.append(Str(buffer, n));
 
       if (promisedLength > -1 && totalReceived >= promisedLength) {
         if (canDebug)
@@ -165,7 +168,14 @@ void Endpoint::listen() {
     if (promisedLength > -1) {
       if (canDebug)
         debug("data has been sent with promised length, removing envelope now");
-      input = input.substr(15);
+
+      //substr sehr teurer aufruf,
+      //deswegen intern startindex verschoben,
+      //gibt aber beim freigeben probleme
+      //also unten wieder umschieben
+      input.changeStartIndexNoFree(15);
+      //input = input.substr(15);
+
       if (input.len() >= 4) {
         if (canDebug)
           debug(
@@ -181,6 +191,7 @@ void Endpoint::listen() {
     } else {
       response = clientHandler->onReceived(&input, &flags);
     }
+    input.changeStartIndexNoFree(-15);
 
     if (canDebug) {
       debug(Str("flags ").append(flags));

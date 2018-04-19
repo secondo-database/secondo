@@ -51,6 +51,7 @@ namespace dfs {
       URI indexURI;
       log::Logger *logger;
       bool canDebug;
+      int debugFlag;
 
       void debug(const Str &s);
 

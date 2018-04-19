@@ -64,11 +64,34 @@ namespace dfs {
     Str path;
 
     /**
+     * factors up URI for indexnode
+     * @param hostname
+     * @param port
+     * @return
+     */
+    static URI forIndexFromHostAndPort(const char *hostname, int port) {
+      URI u;
+      u.data = false;
+      u.host = Str(hostname);
+      u.port = Str(port);
+      return u;
+    }
+
+    static URI forIndexAtLocalhostDefaultPort() {
+      return forIndexFromHostAndPort("localhost",4444);
+    }
+
+    /**
      * creates URI instance from URI string
      * @param s
      * @return
      */
     static URI fromString(const Str &s) {
+
+      if (s == "L" || s == "l") {
+        return forIndexAtLocalhostDefaultPort();
+      }
+
       //dfs-index://xxxxx:p/
       int f = s.find("://");
       Str type = s.substr(0, f);
@@ -88,19 +111,6 @@ namespace dfs {
       return u;
     }
 
-    /**
-     * factors up URI for indexnode
-     * @param hostname
-     * @param port
-     * @return
-     */
-    static URI forIndexFromHostAndPort(const char *hostname, int port) {
-      URI u;
-      u.data = false;
-      u.host = Str(hostname);
-      u.port = Str(port);
-      return u;
-    }
 
     /**
      * dfs-index://10.123.123.10:65/

@@ -46,9 +46,10 @@ using namespace std;
 using namespace dfs;
 using namespace dfs::comm;
 
-Str EndpointClient::sendSyncMessage(URI uri, const Str &msg) {
+Str EndpointClient::sendSyncMessage(URI uri, const Str &msg, bool doEnvelope) {
 
-  bool canDebug = this->logger->canDebug;
+  bool canDebug = false;
+  //bool canDebug = this->logger->canDebug;
 
   if (canDebug) this->debug("open");
 
@@ -87,16 +88,35 @@ Str EndpointClient::sendSyncMessage(URI uri, const Str &msg) {
       "Laenge der zu sendenten Nachricht ohne Briefumschlag (Laenge) - ")
             .append(msg.len()));
 
-  Str sendbuffer = RemoteCommandBuilder::sizeEnvelope(msg);
-  if (canDebug)
-    debug(Str("Umschlag mit Laengeninfo hinzugefuegt (Umschlag) - ").append(
-      sendbuffer.substr(0, 15)));
+  int bytesSent = 0;
+  if (doEnvelope) {
 
-  int bytesSent = send(openSocket, sendbuffer.buf(), sendbuffer.len(), 0);
-  if (canDebug)
-    debug(Str("Daten an Server gesendet. Bytes - ").append(bytesSent));
-  if (bytesSent < 0) {
-    fatalx("could not send bytes to server");
+    Str sendbuffer = RemoteCommandBuilder::sizeEnvelope(msg);
+
+    if (canDebug) {
+      debug(Str("Umschlag mit Laengeninfo hinzugefuegt (Umschlag) - ").append(
+              sendbuffer.substr(0, 15)));
+    }
+
+    bytesSent = send(openSocket, sendbuffer.buf(), sendbuffer.len(), 0);
+
+    if (canDebug) {
+      debug(Str("Daten an Server gesendet. Bytes - ").append(bytesSent));
+    }
+
+    if (bytesSent < 0) {
+      fatalx("could not send bytes to server");
+    }
+
+  }
+
+  else {
+
+    bytesSent = send(openSocket, msg.buf(), msg.len(), 0);
+
+    if (bytesSent < 0) {
+      fatalx("could not send bytes to server");
+    }
   }
 
   int ibufsize = buffersize;
@@ -117,7 +137,8 @@ Str EndpointClient::sendSyncMessage(URI uri, const Str &msg) {
     if (n > 0) {
       bytesRead += n;
       if (canDebug) debug("Haenge an Ergebnis an ");
-      result = result.append(Str(ibuf, n));
+      result.appendRawBufferToThis(ibuf,n);
+      //result = result.append(Str(ibuf, n));
       if (canDebug)
         debug(
           Str("neue Ergebnislaenge ist nun (Laenge) ").append(result.len()));

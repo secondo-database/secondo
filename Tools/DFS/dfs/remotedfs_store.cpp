@@ -330,11 +330,22 @@ void RemoteFilesystem::storeFileFromLocal(FILEID fileId, FILEPATH localPath,
             bytesToSend = bytesToBeTransfered - length;
           }
 
+
           ToStrSerializer ser;
+          ser.appendRaw("@00000000000000");
           ser.appendRaw("parc");
           ser.append(chunkId);
           ser.appendUInt64(bytesToSend);
-          ser.append(Str(fileReadBuffer, bytesToSend));
+          //alte, langsame loesung
+          //ser.append(Str(fileReadBuffer, bytesToSend));
+          ser.appendRawBinary(bytesToSend,fileReadBuffer);
+          //ser.appendBinaryAsSer(bytesToSend,fileReadBuffer);
+
+          Str len = Str(ser.output.len()).prepend(14);
+          char* raw = ser.output.buf();
+          for (int xx=0;xx<14;xx++) {
+            raw[xx+1] = len.buf()[xx];
+          }
 
           Str result;
           this->sendRequestToDataNodeKilling(uri, ser.output, &result);

@@ -56,7 +56,11 @@ void RemoteCommandBuilder::setBody(const Str &body) {
 }
 
 Str RemoteCommandBuilder::sizeEnvelope(const Str &s) {
+
   int l = s.len() + 15;
-  return Str("@").append(Str(l).prepend(14, '0')).append(s);
+  Str header = Str("@").append(Str(l).prepend(14, '0'));
+  header.appendToThis(s);
+  return header;
+  //return Str("@").append(Str(l).prepend(14, '0')).append(s);
 }
 

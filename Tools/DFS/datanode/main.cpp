@@ -154,7 +154,7 @@ int main(int argc, char *argv[]) {
   if (logger->canDebug) logger->debug(Str("data path is ").append(dataDir));
 
   //create logger
-  FileLogger l2;
+  FormattedFileLogger l2;
   l2.setFilename(dfs::io::file::combinePath(dataDir, "debug.log"));
   logger->add(&l2);
 

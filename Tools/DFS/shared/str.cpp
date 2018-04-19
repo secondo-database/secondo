@@ -141,6 +141,27 @@ Str Str::append(const Str &s) const {
   }
 }
 
+void Str::appendToThis(const Str &s) {
+  if (s.length == 0) return;
+  int nl = length + s.length;
+  char* nbuffer = new char[nl];
+  for (int i = 0; i < length; i++) nbuffer[i] = buffer[i];
+  for (int i = 0; i < s.length; i++) nbuffer[length + i] = s.buffer[i];
+  delete[] buffer;
+  buffer = nbuffer;
+  length=nl;
+}
+
+void Str::appendRawBufferToThis(char *appendix, int appendixLength) {
+   int nl = length+appendixLength;
+  char* nbuffer = new char[nl];
+  for (int i = 0; i < length; i++) nbuffer[i] = buffer[i];
+  for (int i = 0; i < appendixLength; i++) nbuffer[length + i] = appendix[i];
+  delete[] buffer;
+  buffer = nbuffer;
+  length=nl;
+}
+
 Str Str::prepend(const Str &s) const {
   if (length == 0) {
     return s;
@@ -177,9 +198,7 @@ bool Str::isEmpty() const {
 }
 
 Str::~Str() {
-  delete[] buffer;
-  buffer = 0;
-  length = 0;
+  this->clear();
 }
 
 Str &Str::operator=(const Str &other) {
@@ -237,6 +256,11 @@ Str Str::substr(int start) const {
   Str s(tmp, nl);
   delete[] tmp;
   return s;
+}
+
+void Str::changeStartIndexNoFree(int start) {
+  buffer = buffer+start;
+  length -= start;
 }
 
 Str Str::substr(int start, int len) const {
@@ -334,6 +358,10 @@ Str StrReader::copyOfReminder() {
   return s->substr(pos);
 }
 
+char* StrReader::pointerToCurrentRawBuf() {
+  return s->buf()+pos;
+}
+
 char Str::last() const {
   return buffer[length - 1];
 }
@@ -344,6 +372,16 @@ void ToStrSerializer::appendRaw(const Str &s) {
 
 void ToStrSerializer::append(const Str &s) {
   output = output.append(Str(s.len())).append(Str("_")).append(s);
+}
+
+void ToStrSerializer::appendBinaryAsSer(int length, char *buffer) {
+  Str slen = Str(length).append("_");
+  output.appendToThis(slen);
+  output.appendRawBufferToThis(buffer,length);
+}
+
+void ToStrSerializer::appendRawBinary(int length, char *buffer) {
+  output.appendRawBufferToThis(buffer,length);
 }
 
 void ToStrSerializer::append(int value, int maxLength) {

@@ -53,6 +53,9 @@ namespace dfs {
       void fatalx(const Str &s);
 
     public:
+
+      int debugFlag;
+
       int buffersize;
 
       EndpointClient() { buffersize = 32 * 1024; }
@@ -69,7 +72,7 @@ namespace dfs {
        * @param s
        * @return
        */
-      Str sendSyncMessage(URI uri, const Str &s);
+      Str sendSyncMessage(URI uri, const Str &s, bool doEnvelope=true);
     };
   };
 };
