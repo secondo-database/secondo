@@ -811,6 +811,9 @@ virtual int requestProgress(Word* args, ProgressInfo* pRes,
 
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
+        if(!p1.attrSize){
+          return CANCEL;
+        }
         pli->sizesChanged = false;
 
         if ( !pli->sizesInitialized )
