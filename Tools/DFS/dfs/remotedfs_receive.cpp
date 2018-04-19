@@ -122,9 +122,10 @@ bool RemoteFilesystem::receiveBytesFromDataNodeDirectly(const URI &dataNodeUri,
   if (sendRequestToDataNodeKilling(dataNodeUri, ser.output, &response)) {
     StrReader reader(&response);
     reader.setPos(4);
-    Str realContent = reader.readStrSer();
+    UI64 realContentLength = reader.readUInt64();
+    char* realContent = reader.pointerToCurrentRawBuf();
 
-    memcpy(buffer, realContent.buf(), realContent.len());
+    memcpy(buffer, realContent, realContentLength);
     return true;
   }
 

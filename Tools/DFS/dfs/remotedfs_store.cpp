@@ -270,6 +270,12 @@ void RemoteFilesystem::storeFileFromLocal(FILEID fileId, FILEPATH localPath,
   IndexEntry indexEntry = IndexEntry::deserialize(r.substr(4));
 
   int pic = indexEntry.chunkInfoListLength;
+
+  if (canDebug) {
+    debug("got index entry from index node");
+    debug(Str("amount of chunk info ").append(pic));
+  }
+
   for (int p = 0; p < pic; p++) {
 
     ChunkInfo *pci = &indexEntry.chunkInfoList[p];
@@ -278,7 +284,16 @@ void RemoteFilesystem::storeFileFromLocal(FILEID fileId, FILEPATH localPath,
     long offset = pci->offsetInFile;
     long length = pci->length;
 
+    if (canDebug) {
+      debug(Str("chunk ").append(p));
+      debug(Str("\torder ").append(order));
+      debug(Str("\toffset ").append(offset));
+      debug(Str("\tlength ").append(length));
+    }
+
     int locationListLength = pci->chunkLocationListLength;
+    if (canDebug)
+      debug(Str("\tamount of locations ").append(locationListLength));
     for (int d = 0; d < locationListLength; d++) {
 
       ChunkLocation *pcl = &pci->chunkLocationList[d];
@@ -309,25 +324,44 @@ void RemoteFilesystem::storeFileFromLocal(FILEID fileId, FILEPATH localPath,
           if (canDebug) debug(Str("got new chunk ").append(chunkId));
           this->registerLocalChunkIdToIndex(indexEntry.fileId, uri, order,
                                             chunkId);
+          if (canDebug) debug("registered to index done");
           useThisLocation = true;
         }
       }
 
       //read content from file and put it as data to the data nodes chunk
       if (useThisLocation) {
+        if (canDebug) debug("use this location");
         fseek(fp, pci->offsetInFile, SEEK_SET);
 
         UI64 bytesAlreadyTransfered = 0;
         UI64 bytesToBeTransfered = 0;
         UI64 bufSizeToUse = bufsize;
+        UI64 bytesLeft = length;
+
         if (bufSizeToUse > length) bufSizeToUse = length;
 
         while ((amountRead = fread(fileReadBuffer, 1, bufSizeToUse, fp)) > 0) {
+
           bytesToBeTransfered += amountRead;
+          bytesLeft -= amountRead;
+          if (bytesLeft < bufSizeToUse) bufSizeToUse = bytesLeft;
+
+          if (canDebug) {
+            debug("");
+            debug("read bytes from local file");
+            debug(Str("amountRead ").append(amountRead));
+            debug(Str("bytesToBeTransfered ").append(bytesToBeTransfered));
+            debug(Str("bytesLeft ").append(bytesLeft));
+          }
 
           UI64 bytesToSend = amountRead;
           if (bytesToBeTransfered > length) {
             bytesToSend = bytesToBeTransfered - length;
+          }
+
+          if (canDebug) {
+            debug(Str("bytesToSend ").append(bytesToSend));
           }
 
 
@@ -351,6 +385,14 @@ void RemoteFilesystem::storeFileFromLocal(FILEID fileId, FILEPATH localPath,
           this->sendRequestToDataNodeKilling(uri, ser.output, &result);
 
           bytesAlreadyTransfered += bytesToSend;
+          if (canDebug) {
+            debug(Str("check if break loop ")
+              .append(bytesAlreadyTransfered)
+              .append(" ").append(length));
+          }
+
+
+
           if (bytesAlreadyTransfered >= length) break;
         }
       }

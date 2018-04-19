@@ -97,7 +97,7 @@ void RemoteFilesystem::loadChunkContentFromDataNode(
   const ChunkInfo *chunkInfo,
   io::file::Writer &fileWriter) {
 
-  debug("Lade Chunk");
+  debug("load chunk");
 
   NUMBER blockSizeForFetchingData = this->fileCopyBuffer;
 
@@ -127,6 +127,8 @@ void RemoteFilesystem::loadChunkContentFromDataNode(
       Str cmd = builder.getBytes(pLoc->chunkId, offsetInChunk,
                                  lengthForGetBytes);
 
+      //cout << cmd << endl;
+
       //good case - we got the data from the current location
       if (sendRequestToDataNodeKilling(pLoc->dataNodeUri, cmd, &content)) {
 
@@ -134,15 +136,15 @@ void RemoteFilesystem::loadChunkContentFromDataNode(
 
         StrReader reader(&content);
         reader.setPos(4);
-        Str byteContent = reader.readStrSer();
+        UI64 contentLength = reader.readUInt64();
+        char *pointerToContent = reader.pointerToCurrentRawBuf();
 
         //cout << offsetInChunk << " " << chunkInfo->offsetInFile << endl;
 
         fileWriter.writeBufferAt(chunkInfo->offsetInFile+offsetInChunk,
-                                 byteContent.len(),
-                                 byteContent.buf());
+                                 contentLength,
+                                 pointerToContent);
 
-        int contentLength = byteContent.len();
         offsetInChunk += contentLength;
         bytesFetched += contentLength;
         bytesLeft -= contentLength;

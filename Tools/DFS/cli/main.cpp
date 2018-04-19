@@ -231,10 +231,10 @@ int main(int argc, char *argv[]) {
     dfs::log::DefaultOutLogger logger;
 
     ParameterHelper h(argc, argv);
-    logger.canDebug = canDebug;
     doMeasure = h.hasParameter("M");
     canDebug = h.hasParameter("X");
     beSilent = h.hasParameter("Q");
+    logger.canDebug = canDebug;
 
     if (canDebug) cout << "extreme debug enabled" << endl;
 

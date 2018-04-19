@@ -130,11 +130,13 @@ Str DataNodeClientHandler::onReceived(Str *s, int *resultFlags) {
     fread(buffer, length, 1, fp);
     fclose(fp);
 
-    Str strBuffer(buffer, length);
-    delete[] buffer;
+    //Str strBuffer(buffer, length);
     ToStrSerializer ser;
     ser.appendRaw("0000");
-    ser.append(strBuffer);
+    ser.appendUInt64(length);
+    ser.appendRawBinary(length,buffer);
+    delete[] buffer;
+    //ser.append(strBuffer);
     return ser.output;
 
   }
