@@ -4021,13 +4021,13 @@ const string RenameAttrSpec  =
   "( <text> stream(tuple) x (NAME NEWNAME)* -> stream(tuple), "
   "where NAME and NEWNAME in {ident, string}"
   "</text--->"
-  "<text>_ renameattr [ Newname1 : Oldname1 , .... ] "
+  "<text>_ renameAttr [ Newname1 : Oldname1 , .... ] "
   "</text--->"
   "<text>Renames the specified attributes. If string type is used for one of "
   "the NAME or NEWNAME, it must be a constant or database object! This allows "
   "for renaming attributes with forbidden names, such as operator names, type "
   "names or reserved word, as 'value' or 'type'.</text--->"
-  "<text>query ten feed renameattr [ No : no ] consume "
+  "<text>query ten feed renameAttr [ No : no ] consume "
   "</text--->"
   ") )";
 
@@ -4060,7 +4060,7 @@ Operator relalgrename (
 
 
 Operator relalgrenameattr (
-         "renameattr",             // name
+         "renameAttr",             // name
          RenameAttrSpec,           // specification
          Rename,                   // value mapping
          Operator::SimpleSelect,   // trivial selection function
