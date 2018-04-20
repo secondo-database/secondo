@@ -24,6 +24,8 @@
 
 #include "Include.h"
 
+
+
 using namespace nr2a;
 
 /*
@@ -38,18 +40,19 @@ struct UnnestLocalInfo :
     virtual ~UnnestLocalInfo();
 
     Tuple *tupleOut;
-    ListExpr tupleTypeOut;
+    TupleType* tupleTypeOut;
     Stream<Tuple>* inputStream;
     ARel * subRel;
     ARelIterator *subRelIterator;
-    ListExpr tupleTypeSubRel;
+    TupleType* tupleTypeSubRel;
+    ListExpr tupleTypeListSubRel;
     int attributeIndex;
 };
 
 UnnestLocalInfo::UnnestLocalInfo()
-    : tupleOut(NULL), tupleTypeOut(nl->TheEmptyList()), inputStream(NULL),
+    : tupleOut(NULL), tupleTypeOut(0), inputStream(NULL),
         subRel(NULL), subRelIterator(NULL),
-        tupleTypeSubRel(nl->TheEmptyList()), attributeIndex(-1)
+        tupleTypeSubRel(0), attributeIndex(-1)
 {
 }
 
@@ -122,12 +125,12 @@ Unnest::~Unnest()
   int resultInt = 0;
 
   UnnestLocalInfo *localInfo = NULL;
-  ListExpr attributesTypesIn = nl->Second(
-      nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s, 0))));
   switch (message)
   {
     case OPEN:
     {
+      ListExpr attributesTypesIn = nl->Second(
+            nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s, 0))));
       ListExpr attributeType_unused;
       string subRelName = nl->SymbolValue(
           qp->GetSupplierTypeExpr(qp->GetSon(s, 1)));
@@ -138,17 +141,25 @@ Unnest::~Unnest()
       localInfo->inputStream->open();
       localInfo->attributeIndex = listutils::findAttribute(attributesTypesIn,
           subRelName, attributeType_unused) - 1;
-      localInfo->tupleTypeSubRel = nl->Second(
-          nl->Second(
-              nl->Nth((localInfo->attributeIndex + 1), attributesTypesIn)));
-      localInfo->tupleTypeOut = SecondoSystem::GetCatalog()->NumericType(
-          tupleTypeOut);
+      localInfo->tupleTypeListSubRel = nl->Second(
+                      nl->Second(
+                        nl->Nth((localInfo->attributeIndex + 1),
+                                 attributesTypesIn)));
+      localInfo->tupleTypeSubRel = new TupleType( 
+                   SecondoSystem::GetCatalog()->NumericType(nl->Second(
+                     nl->Second(
+                       nl->Nth((localInfo->attributeIndex + 1), 
+                                attributesTypesIn)))));
+      localInfo->tupleTypeOut = new TupleType(
+              SecondoSystem::GetCatalog()->NumericType(tupleTypeOut));
       local.addr = localInfo;
     }
       break;
     case REQUEST:
     {
       localInfo = static_cast<UnnestLocalInfo*>(local.addr);
+      if(!localInfo) return CANCEL;
+
       Tuple *tupleSubRel = NULL;
       // Test if there is a tuple of the sub-relation available, ...
       tupleSubRel =
@@ -169,18 +180,14 @@ Unnest::~Unnest()
               localInfo->subRel->DeleteIfAllowed();
             }
             localInfo->subRel = static_cast<ARel*>(tupleRel->GetAttribute(
-                localInfo->attributeIndex)->Clone());
-            AutoWrite(attributesTypesIn);
-            ListExpr subRelTupleType = nl->Second(
-                nl->Second(
-                    nl->Nth(localInfo->attributeIndex + 1,
-                        attributesTypesIn)));
-            AutoWrite(subRelTupleType);
+                localInfo->attributeIndex)->Copy());
             if (localInfo->subRelIterator != NULL)
             {
               delete localInfo->subRelIterator;
             }
-            localInfo->subRelIterator = new ARelIterator(localInfo->subRel);
+            localInfo->subRelIterator = new ARelIterator(localInfo->subRel,
+                                                localInfo->tupleTypeSubRel,
+                                                localInfo->tupleTypeListSubRel);
             tupleSubRel = localInfo->subRelIterator->getNextTuple();
 
             if (localInfo->tupleOut != NULL)
@@ -229,26 +236,32 @@ Unnest::~Unnest()
 
     case CLOSE:
       localInfo = static_cast<UnnestLocalInfo*>(local.addr);
-      localInfo->inputStream->close();
-      delete localInfo->inputStream;
-      delete localInfo->subRelIterator;
-      if (localInfo->tupleOut != NULL)
-      {
-        localInfo->tupleOut->DeleteIfAllowed();
+      if(localInfo){
+        localInfo->inputStream->close();
+        delete localInfo->inputStream;
+        delete localInfo->subRelIterator;
+        localInfo->tupleTypeOut->DeleteIfAllowed();
+        localInfo->tupleTypeSubRel->DeleteIfAllowed();
+        if (localInfo->tupleOut != NULL)
+        {
+          localInfo->tupleOut->DeleteIfAllowed();
+        }
+        if (localInfo->subRel != NULL)
+        {
+          localInfo->subRel->DeleteIfAllowed();
+        }
+        delete localInfo;
+        local.addr = NULL;
       }
-      if (localInfo->subRel != NULL)
-      {
-        localInfo->subRel->DeleteIfAllowed();
-      }
-      delete localInfo;
-      local.addr = NULL;
       break;
   }
   return resultInt;
 }
 
-/*static*/Tuple * Unnest::BuildTuple(const ListExpr tupleTypeOut,
-    const Tuple * const tupleInStream, const Tuple * const tupleSubRel,
+/*static*/Tuple * Unnest::BuildTuple(
+    TupleType* tupleTypeOut,
+    const Tuple * const tupleInStream, 
+    const Tuple * const tupleSubRel,
     const int attributeIndex)
 {
   Tuple* result = new Tuple(tupleTypeOut);
@@ -277,7 +290,7 @@ Unnest::~Unnest()
   for (int i = 0; i < attributeCountSubRel; i++)
   {
     int resultIndex = i + attributeIndex;
-    tupleOut->PutAttribute(resultIndex, tupleSubRel->GetAttribute(i)->Clone());
+    tupleOut->PutAttribute(resultIndex, tupleSubRel->GetAttribute(i)->Copy());
   }
 }
 

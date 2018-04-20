@@ -105,7 +105,7 @@ relation is iterated to its end.
       }
       ProgressInfo progressInfo;
       progressInfo.Card = arel->GetTupleCount();
-      ARelIterator *iter = new ARelIterator(arel);
+      ARelIterator *iter = new ARelIterator(arel,0,0);
       info = new LocalInfoArel(iter, args[0].addr, progressInfo);
       local.addr = info;
     }

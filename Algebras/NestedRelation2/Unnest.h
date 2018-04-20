@@ -109,7 +109,7 @@ class Unnest
 
   private:
     Unnest(); // Declared, but not defined => Linker error on usage
-    static Tuple * BuildTuple(const ListExpr tupleTypeOut,
+    static Tuple * BuildTuple(TupleType* tupleTypeOut,
         const Tuple * const tupleRel, const Tuple * const tupleSubRel,
         const int attributeIndex);
     static void TupleSetValuesOfSubRel(Tuple * tupleOut,

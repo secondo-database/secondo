@@ -184,7 +184,7 @@ Prepare the tuple's attribute's Flob data one after another.
   for(int attrNo = 0; attrNo < tuple->GetNoAttributes(); attrNo++)
   {
     Attribute * attr = tuple->GetAttribute(attrNo);
-    size_t attrSize = attr->SerializedSize();
+    SmiSize attrSize = attr->SerializedSize();
     if (attrSize == 0)
     {
       const AttributeType &attrType =
@@ -217,9 +217,6 @@ Prepare the tuple's attribute's Flob data one after another.
       }
     }
   }
-  WriteFlob(&m_indexStore, 0, 100);
-  WriteFlob(&m_tupleStore, 0, 250);
-  WriteFlob(&m_dataStore, 0, 250);
 }
 
 /*
@@ -228,29 +225,37 @@ attributes of the "ARel"[2] are stored in the "ARel"[2]'s "Flob"[2].
 
 */
 void ARel::ReadTuple(Tuple* tuple, const SmiSize & offset,
-    const SmiSize & length) const
+    const SmiSize & length, ListExpr tupleType) const
 {
   AlgebraManager * algMan = SecondoSystem::GetAlgebraManager();
-  WriteFlob(&m_indexStore, 0, 100);
-  WriteFlob(&m_tupleStore, 0, 250);
-  WriteFlob(&m_dataStore, 0, 250);
   SmiSize flobOffset = 0;
   FlobReader tupleReader(m_tupleStore, offset);
   FlobReader dataReader(m_dataStore, 0);
-  ListExpr type = nl->Second(GetTupleType());
+  if(nl->IsEmpty(tupleType)){
+    tupleType = GetTupleType(); 
+  }
+  ListExpr attrList = nl->Second(tupleType);
   for(int attrNo = 0; attrNo < tuple->GetNoAttributes(); attrNo++)
   {
     size_t attrSize = 0;
     tupleReader.Read(attrSize);
     int numFlobs = 0;
     tupleReader.Read(numFlobs);
+
     const AttributeType &attrType =
         tuple->GetTupleType()->GetAttributeType(attrNo);
-    ListExpr attrTypeList = nl->Second(nl->Nth(attrNo+1, type));
+
+    ListExpr attrTypeList = nl->Second(nl->First(attrList));
+    attrList = nl->Rest(attrList);
 
     const Word &w = algMan->CreateObj(attrType.algId, attrType.typeId)
         (attrTypeList);
     Attribute *attr = (Attribute*) w.addr;
+
+
+
+
+    assert(numFlobs == attr->NumOfFLOBs()); //number of flobs is fixed per type
 
     std::vector<Flob> realFlobs;
     if (numFlobs > 0)
@@ -267,6 +272,7 @@ void ARel::ReadTuple(Tuple* tuple, const SmiSize & offset,
     attr->Rebuild(attrBuffer, attrSize);
     delete[] attrBuffer;
     attr = (Attribute*) (algMan->Cast(attrType.algId, attrType.typeId)(attr));
+
     for(int flobNo = 0; flobNo < numFlobs; flobNo++)
     {
       tupleReader.Read(flobOffset);
@@ -325,7 +331,7 @@ Tuple * ARel::GetTuple(const TupleId tid) const
 {
   Tuple * result = NULL;
   long idx = tid-1;
-  ARelIterator iter(this, idx);
+  ARelIterator iter(this, 0,idx);
   result = iter.getNextTuple();
   return result;
 }
@@ -355,13 +361,14 @@ interpret the read data.
 
 */
 Tuple *
-ARel::GetTupleByOffset(const SmiSize & offset, SmiSize & tupleSize) const
+ARel::GetTupleByOffset(const SmiSize & offset, SmiSize & tupleSize,
+                       TupleType* tupleType,
+                       ListExpr tupleTypeList) const
 {
-  string tupleContent;
-  Tuple *newTuple = new Tuple(GetTupleType());
-
-  ReadTuple(newTuple, offset, tupleSize);
-
+  Tuple *newTuple;
+  assert(tupleType);
+  newTuple = new Tuple(tupleType);
+  ReadTuple(newTuple, offset, tupleSize, tupleTypeList);
   return newTuple;
 }
 
@@ -603,8 +610,8 @@ before longer ones here smaller relations go before larger ones.
   if(this != rhs) // Identity means equality (Avoids full scan)
   {
     const ARel * rightRel = static_cast<const ARel*>(rhs);
-    ARelIterator *leftIter = new ARelIterator(this);
-    ARelIterator *rightIter = new ARelIterator(rightRel);
+    ARelIterator *leftIter = new ARelIterator(this,0,0);
+    ARelIterator *rightIter = new ARelIterator(rightRel,0,0);
     // Iterate tuples
     while(result == cUndecided)
     {
@@ -730,7 +737,7 @@ ListExpr ARel::ToList(ListExpr typeInfo) const
     Tuple * tuple = NULL;
     ListExpr tupleList;
 
-    ARelIterator *iter = new ARelIterator(this);
+    ARelIterator *iter = new ARelIterator(this,0,0);
 
     while ((tuple = iter->getNextTuple()) != NULL)
     {
@@ -816,8 +823,17 @@ function of the attribute relation.
 
 */
 ARelIterator::ARelIterator(const ARel * const arel,
+    TupleType* _tupleType, ListExpr _tupleTypeList,
     const TupleId id /*= 0*/)
 {
+  if(_tupleType){
+     tupleTypeList = _tupleTypeList;
+     tupleType = _tupleType;
+     tupleType->IncReference();
+  } else {
+      tupleTypeList = arel->GetTupleType();
+      tupleType = new TupleType(tupleTypeList);
+  }
   m_arel = arel;
   m_index = id;
   if (m_arel->m_indexStore.getSize() >= sizeof(m_offset))
@@ -852,7 +868,8 @@ Tuple * ARelIterator::getNextTuple()
       nextOffset = m_arel->m_tupleStore.getSize();
     }
     tupleSize = nextOffset-m_offset;
-    result = m_arel->GetTupleByOffset(m_offset, tupleSize);
+    result = m_arel->GetTupleByOffset(m_offset, tupleSize, tupleType,
+                                      tupleTypeList);
     m_offset=nextOffset;
   }
 

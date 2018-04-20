@@ -33,6 +33,7 @@ attributes. Such attribute relations are implemented in the class "ARel"[2].
 #include "Algebra.h"
 #include "Attribute.h"
 #include "../Tools/Flob/DbArray.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
 using namespace std;
 
@@ -49,13 +50,24 @@ position for reading values in the "ARel"[2]s "Flob"[2].
 class ARelIterator
 {
   public:
-    ARelIterator(const ARel * const arel, const TupleId id = 0);
+    ARelIterator(const ARel * const arel, 
+                 TupleType* tupleType,
+                 ListExpr tupleTypeList,
+                 const TupleId id = 0);
     Tuple * getNextTuple();
+
+    ~ARelIterator(){
+       if(tupleType){
+          tupleType->DeleteIfAllowed();
+       }
+    }
 
   private:
     const ARel * m_arel;
     unsigned long int m_index;
     SmiSize m_offset;
+    TupleType* tupleType;
+    ListExpr tupleTypeList;
 };
 
 /*
@@ -124,11 +136,12 @@ class ARel : public Attribute
   private:
     void Init(const ListExpr typeInfo);
     Tuple * GetTupleByOffset(const SmiSize & offset,
-        SmiSize & tupleSize) const;
+        SmiSize & tupleSize, TupleType* tupleType, 
+        ListExpr tupleTypeList) const;
     size_t CalculateHash(const Tuple * const tuple) const;
     void WriteTuple(Tuple *tuple);
     void ReadTuple(Tuple *tuple, const SmiSize & offset,
-        const SmiSize & length) const;
+        const SmiSize & length, ListExpr tupleType) const;
     void WriteType(const ListExpr type);
     ListExpr ReadType() const;
 
