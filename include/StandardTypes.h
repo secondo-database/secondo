@@ -1513,7 +1513,7 @@ class CcString : public Attribute
     memset ( stringval, '\0',     MAX_STRINGSIZE+1);
     strncpy( stringval, v.data(), MAX_STRINGSIZE  );
 #ifdef USE_SERIALIZATION
-    size = v.size();
+    size = v.size()<MAX_STRINGSIZE?v.size():MAX_STRINGSIZE;
 #endif
     //cerr << "Set 2: stringval = " << stringval << endl;
     //cerr << "Set 2: stringval.size = " << size << endl;
@@ -1662,6 +1662,7 @@ class CcString : public Attribute
   {
     size_t offset = 0;
     ReadVar<uint8_t>(size, state, offset);
+    if(size>MAX_STRINGSIZE) size = MAX_STRINGSIZE;
     ReadVar<bool>(del.isDefined, state, offset);
     memcpy(stringval, &state[offset], size);
     stringval[size] = '\0';
