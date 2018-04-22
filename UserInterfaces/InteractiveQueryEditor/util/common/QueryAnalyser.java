@@ -32,9 +32,9 @@ import sj.lang.ListExpr;
 import sj.lang.JavaListExpr.NLParser;
 import util.domain.ComplexToken;
 import util.domain.Operator;
+import util.domain.enums.BracketType;
 import util.domain.enums.ErrorType;
 import util.domain.enums.OperatorType;
-import util.domain.enums.ParanthesisType;
 import util.domain.enums.TokenType;
 import util.secondo.SecondoFacade;
 
@@ -47,9 +47,9 @@ public class QueryAnalyser {
 	//Finds sequences of non-whitespace characters. This way all whitespaces get removed
 	private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\S+");
 	//There several characters and even operators which can appear within a query but do not need to be separated by whitespaces
-	private static final Pattern ADVANCED_PATTERN = Pattern.compile("\".*?\"|'.*?'|>=|<=|[\\[\\]\\(\\),;=#<>]");
+	private static final Pattern ADVANCED_PATTERN = Pattern.compile("\".*?\"|'.*?'|>=|<=|[\\[\\]\\(\\),;=#<>]");//TODO +-/\\*
 
-	private static final HashSet<String> PARANTHESIS = new HashSet<>(Arrays.asList("[", "(", ")", "]"));
+	private static final HashSet<String> BRACKETS = new HashSet<>(Arrays.asList("[", "(", ")", "]"));
 	private static final HashSet<String> DELIMITER = new HashSet<>(Arrays.asList(",", ";"));
 	private final HashMap<String, Operator> secondoOperators;
 
@@ -60,7 +60,7 @@ public class QueryAnalyser {
 	public static void main(final String[] args) {
 		final QueryAnalyser analyser = new QueryAnalyser("specs");
 		try {
-			analyser.analyseQuery("query Orte feed");
+			analyser.analyseQuery("query Orte feed filter[.Ort=\"Test\"");
 		} catch (final Exception e) {
 			e.printStackTrace();
 		}
@@ -80,7 +80,7 @@ public class QueryAnalyser {
 		//		return "Token size: " + tokens.length + "\n" + "Token:\n" + StringUtilities.appendStrings(tokens);
 		// used for debugging purpose. if you remove the comment and comment the following lines the analysers will show all recognized tokens
 		final ComplexToken[] complexTokens = analyseTokenType(tokens);
-		analyseTokens(complexTokens);
+		analyseTokens(complexTokens, 0, complexTokens.length -1);
 		return createTypeInformation(complexTokens);
 	}
 
@@ -119,12 +119,14 @@ public class QueryAnalyser {
 				final ComplexToken token = new ComplexToken(tokens[i], TokenType.OPERATOR);
 				token.setOperator(secondoOperators.get(tokens[i]));
 				tokenList.add(token);
-			} else if (PARANTHESIS.contains(tokens[i])) {
-				tokenList.add(new ComplexToken(tokens[i], TokenType.PARANTHESIS));
+			} else if (BRACKETS.contains(tokens[i])) {
+				tokenList.add(new ComplexToken(tokens[i], TokenType.BRACKET));
 			} else if (DELIMITER.contains(tokens[i])) {
 				tokenList.add(new ComplexToken(tokens[i], TokenType.DELIMITER));
+			} else if (tokens[i].startsWith(".")) {
+				tokenList.add(new ComplexToken(tokens[i], TokenType.PARAMETER_FUNCTION));
 			} else {
-				tokenList.add(new ComplexToken(tokens[i], TokenType.IDENTIFIER));
+				tokenList.add(new ComplexToken(tokens[i], TokenType.VALUE));
 			}
 		}
 		return tokenList.toArray(new ComplexToken[tokenList.size()]);
@@ -134,19 +136,28 @@ public class QueryAnalyser {
 	 * This method checks the syntactical and semantical correctness of the given tokens
 	 * @param complexTokens
 	 */
-	private void analyseTokens(final ComplexToken[] complexTokens) {
-		for (int i = 0; i < complexTokens.length; i++) {
+	private void analyseTokens(final ComplexToken[] complexTokens, final int beginIndex, final int endIndex) {
+		for (int i = beginIndex; i <= endIndex; i++) {
 			final ComplexToken currentToken = complexTokens[i];
-			if (currentToken.getType().equals(TokenType.OPERATOR) && !currentToken.isConsumedByOperator()) {
-				if(checkPrefixArguments(complexTokens, currentToken, i)) {//If everything is ok
-					if(checkPostfixArguments(complexTokens, currentToken, i)) {//then check the prefix arguments
-						consumePrefixArguments(complexTokens, currentToken, i);
+			if (!currentToken.isConsumedByOperator()) {//because of the recursive use of this method tokens within a bracket are already analysed and/or consumed
+				if (currentToken.getType().equals(TokenType.OPERATOR)) {
+					if(checkPrefixArguments(complexTokens, currentToken, i)) {//If everything is ok
+						if(checkPostfixArguments(complexTokens, currentToken, i)) {//then check the prefix arguments
+							consumePrefixArguments(complexTokens, currentToken, i);
+							if (currentToken.getIndexOfLastAssociatedToken() != -1) {//skip the bracket of the operator
+								i = currentToken.getIndexOfLastAssociatedToken();//arguments within the bracket have already been analysed
+							}
+						}
 					}
-				}
 
-				//If an error occured during analysis and if the error type is not ErrorType.UNFINISHED_PARANTHESIS then abort analysis
-				if (currentToken.getOccurredErrorType() != null && !currentToken.getOccurredErrorType().equals(ErrorType.UNFINISHED_PARANTHESIS)) {
-					break;
+					//If an error occured during analysis and if the error type is not ErrorType.UNFINISHED_BRACKET then abort analysis
+					if (currentToken.getOccurredErrorType() != null && !currentToken.getOccurredErrorType().equals(ErrorType.UNFINISHED_BRACKET)) {
+						break;
+					}
+				} else if (currentToken.getType().equals(TokenType.PARAMETER_FUNCTION)) {
+					if (!checkParameterFunction(complexTokens, currentToken)) {
+						break;
+					}
 				}
 			}
 		}
@@ -157,15 +168,19 @@ public class QueryAnalyser {
 		int foundArguments = 0;
 		for (int i = currentTokenIndex - 1; i >= 0; i--) {
 			final ComplexToken previousElement = tokens[i];
-			if ((previousElement.getType().equals(TokenType.IDENTIFIER) || previousElement.getType().equals(TokenType.OPERATOR))
+			if ((previousElement.getType().equals(TokenType.VALUE)
+					|| previousElement.getType().equals(TokenType.OPERATOR)
+					|| previousElement.getType().equals(TokenType.PARAMETER_FUNCTION))
 					&& !previousElement.isConsumedByOperator()) {
 				currentToken.addIndexOfPrecedingToken(0, i);
 				foundArguments++;
 			}
-			else if (previousElement.getType().equals(TokenType.PARANTHESIS)) {
-				if (previousElement.getText().equals("[") || previousElement.getText().equals("(")) {
+			else if (previousElement.getType().equals(TokenType.BRACKET)) {
+				if (previousElement.getText().equals(BracketType.SQUARED.getOpeningBracket()) ||
+						previousElement.getText().equals(BracketType.ROUND.getOpeningBracket())) {
 					break;
-				} else if (previousElement.getText().equals("]") || previousElement.getText().equals(")")) {
+				} else if (previousElement.getText().equals(BracketType.SQUARED.getClosingBracket()) ||
+						previousElement.getText().equals(BracketType.ROUND.getClosingBracket())) {
 					i = previousElement.getIndexesOfPrecedingTokens().get(0);
 					continue;
 				}
@@ -184,9 +199,11 @@ public class QueryAnalyser {
 		if (currentToken.getOperator().getOperatorType().equals(OperatorType.INFIXOP)) {
 			if (currentTokenIndex + 1 < tokens.length) {
 				final ComplexToken nextElement = tokens[currentTokenIndex + 1];
-				if (nextElement.getType().equals(TokenType.IDENTIFIER)
-						|| nextElement.getType().equals(TokenType.OPERATOR)) {
+				if (nextElement.getType().equals(TokenType.VALUE)
+						|| nextElement.getType().equals(TokenType.OPERATOR)
+						|| nextElement.getType().equals(TokenType.PARAMETER_FUNCTION)) {
 					nextElement.setConsumedByOperator(true);
+					currentToken.setIndexOfLastAssociatedToken(currentTokenIndex + 1);
 					return true;
 				} else {
 					currentToken.setOccurredErrorType(ErrorType.MISSING_POSTFIX_ARGUMENTS);
@@ -194,50 +211,44 @@ public class QueryAnalyser {
 					return false;
 				}
 			}
-			return true;
+			return false;
 		} else {
-			if (currentToken.getOperator().getParanthesisType().equals(ParanthesisType.NONE) ||
-					(currentToken.getOperator().getParanthesisType().equals(ParanthesisType.ROUND) &&
+			if (currentToken.getOperator().getBracketType().equals(BracketType.NONE) ||
+					(currentToken.getOperator().getBracketType().equals(BracketType.ROUND) &&
 							currentToken.getOperator().getPostfixArguments().size() == 0)) {
-				//Operators with postfix arguments always use a paranthesis. Operators with no paranthesis do not have any postfix arguments.
-				//Some operators with a round paranthesis use zero arguments. they get ignored too
+				//Operators with postfix arguments always use a bracket. Operators with no bracket do not have any postfix arguments.
+				//Some operators with a round bracket use zero arguments. they get ignored too
 				return true;
 			}
 
-			//First step for all other operators is a check of the paranthesis
-			if (!analyseParanthesis(tokens, currentToken, currentTokenIndex)) {//If checkParanthesis evaluates to true then continue
+			//First step for all other operators is a check of the bracket
+			if (!analyseBracket(tokens, currentToken, currentTokenIndex)) {//If analyseBracket evaluates to true then continue (therefore the bracket must be completed)
 				return false;
 			}
 
-			//Before we can count the amount of postfix arguments within the paranthesis
-			//all tokens within the paranthesis need to get analysed. Therefore we
-			//use a recursive call to analyse all tokens within the paranthesis
-			final int next = currentTokenIndex + 1;//The token after the operator (the paranthesis)
-			final ComplexToken openingParanthesis = tokens[next];
-			final int numberOfSubTokens = openingParanthesis.getIndexOfLastAssociatedToken() - next -1;
-			if (numberOfSubTokens > 0) {
-				final ComplexToken[] subTokens = new ComplexToken[numberOfSubTokens];
-				for (int i = 0; i < subTokens.length; i++) {
-					subTokens[i] = tokens[next + 1 + i];
-				}
+			//Before we can count the amount of postfix arguments within the bracket
+			//all tokens within the bracket need to get analysed. Therefore we
+			//use a recursive call to analyse all tokens within the bracket
+			final int next = currentTokenIndex + 1;//The token after the operator (the opening bracket)
+			final ComplexToken openingBracket = tokens[next];
+			analyseTokens(tokens, next + 1, openingBracket.getIndexOfLastAssociatedToken() - 1);//recurive call for every bracket
 
-				analyseTokens(subTokens);//recurive call for every paranthesis
-			}
-
-			//when all the tokens within a paranthesis are analysed we do count all unsused identifiers and operators
+			//when all the tokens within a bracket are analysed we do count all unsused identifiers and operators
 			final int numberOfPostFixArguments = currentToken.getOperator().getPostfixArguments().size();
 			int numberOfFoundArgments = 0;
 			for (int j = currentTokenIndex + 2; j < tokens.length; j++) {
 				final ComplexToken nextElement = tokens[j];
-				if ((nextElement.getType().equals(TokenType.IDENTIFIER)
+				if ((nextElement.getType().equals(TokenType.VALUE)
 						|| nextElement.getType().equals(TokenType.OPERATOR)) && !nextElement.isConsumedByOperator()) {
 					nextElement.setConsumedByOperator(true);
 					numberOfFoundArgments++;
-				} else if (nextElement.getType().equals(TokenType.PARANTHESIS)) {
-					if (nextElement.getText().equals("[") || nextElement.getText().equals("(")) {
+				} else if (nextElement.getType().equals(TokenType.BRACKET)) {
+					if (nextElement.getText().equals(BracketType.SQUARED.getOpeningBracket()) ||
+							nextElement.getText().equals(BracketType.ROUND.getOpeningBracket())) {
 						j = nextElement.getIndexOfLastAssociatedToken();
 						continue;
-					} else if (nextElement.getText().equals("]") || nextElement.getText().equals(")")) {
+					} else if (nextElement.getText().equals(BracketType.SQUARED.getClosingBracket()) ||
+							nextElement.getText().equals(BracketType.ROUND.getClosingBracket())) {
 						break;
 					}
 				}
@@ -247,69 +258,73 @@ public class QueryAnalyser {
 				return true;
 			} else if (numberOfFoundArgments < numberOfPostFixArguments) {
 				currentToken.setOccurredErrorType(ErrorType.MISSING_POSTFIX_ARGUMENTS);
-				currentToken.setErrorMessage(String.format("Missing postfix arguments for operator %s\nThe operator syntax is defined as: %s", currentToken.getText(), currentToken.getOperator().getPattern()));
+				currentToken.setErrorMessage(String.format("Missing postfix arguments for operator %s\nThe operator syntax is defined as: %s",
+						currentToken.getText(), currentToken.getOperator().getPattern()));
 				return false;
 			} else {
 				currentToken.setOccurredErrorType(ErrorType.TOO_MANY_POSTFIX_ARGUMENTS);
-				currentToken.setErrorMessage(String.format("Too many postfix arguments for operator %s\nThe operator syntax is defined as: %s", currentToken.getText(), currentToken.getOperator().getPattern()));
+				currentToken.setErrorMessage(String.format("Too many postfix arguments for operator %s\nThe operator syntax is defined as: %s", currentToken.getText(),
+						currentToken.getOperator().getPattern()));
 				return false;
 			}
 		}
 	}
 
 	/**
-	 * This methode checks for a given token of type operator if the paranthesis is correct and completed
+	 * This methode checks for a given token of type operator if the bracket is correct and completed
 	 * @param tokens
 	 * @param currentToken
 	 * @param currentTokenIndex
 	 * @return
 	 */
-	private boolean analyseParanthesis(final ComplexToken[] tokens, final ComplexToken currentToken, final int currentTokenIndex) {
-		int openParanthesisCounter = 0;
+	private boolean analyseBracket(final ComplexToken[] tokens, final ComplexToken currentToken, final int currentTokenIndex) {
+		int openBracketCounter = 0;
 		ComplexToken firstFollowingToken = null;
 		if (currentTokenIndex + 1 < tokens.length) {
 			firstFollowingToken = tokens[currentTokenIndex+1];
-			if (firstFollowingToken.getType().equals(TokenType.PARANTHESIS)) {
-				if (currentToken.getOperator().getParanthesisType().equals(ParanthesisType.ROUND) && firstFollowingToken.getText().equals(ParanthesisType.ROUND.getOpeningParanthesis()) ||
-						currentToken.getOperator().getParanthesisType().equals(ParanthesisType.SQUARED) && firstFollowingToken.getText().equals(ParanthesisType.SQUARED.getOpeningParanthesis())) {
-					openParanthesisCounter++;
+			if (firstFollowingToken.getType().equals(TokenType.BRACKET)) {
+				if (currentToken.getOperator().getBracketType().equals(BracketType.ROUND) && firstFollowingToken.getText().equals(BracketType.ROUND.getOpeningBracket()) ||
+						currentToken.getOperator().getBracketType().equals(BracketType.SQUARED) && firstFollowingToken.getText().equals(BracketType.SQUARED.getOpeningBracket())) {
+					openBracketCounter++;
 				} else {
-					currentToken.setOccurredErrorType(ErrorType.WRONG_PARANTHESIS);
-					currentToken.setErrorMessage(String.format("The opening paranthesis does not match operator definition for operator %s\nThe operator syntax is defined as: %s", currentToken.getText(), currentToken.getOperator().getPattern()));
-					return false;//wrong paranthesis after the operator
+					currentToken.setOccurredErrorType(ErrorType.WRONG_BRACKET);
+					currentToken.setErrorMessage(String.format("The opening bracket does not match operator definition for operator %s\nThe operator syntax is defined as: %s",
+							currentToken.getText(), currentToken.getOperator().getPattern()));
+					return false;//wrong bracket after the operator
 				}
 			} else {
-				currentToken.setOccurredErrorType(ErrorType.MISSING_PARANTHESIS);
-				currentToken.setErrorMessage(String.format("Missing opening paranthesis for operator %s", currentToken.getText()));
-				return false;//missing paranthesis after the operator
+				currentToken.setOccurredErrorType(ErrorType.MISSING_BRACKET);
+				currentToken.setErrorMessage(String.format("Missing opening bracket for operator %s", currentToken.getText()));
+				return false;//missing bracket after the operator
 			}
 		} else {
-			return false;//no paranthesis but still nothing typed after the operator
+			return false;//no bracket but still nothing typed after the operator
 		}
 
 		for (int j = currentTokenIndex+2; j < tokens.length; j++) {
 			final ComplexToken nextToken = tokens[j];
-			if (nextToken.getType().equals(TokenType.PARANTHESIS)) {
-				if (currentToken.getOperator().getParanthesisType().equals(ParanthesisType.ROUND) && nextToken.getText().equals(ParanthesisType.ROUND.getOpeningParanthesis()) ||
-						currentToken.getOperator().getParanthesisType().equals(ParanthesisType.SQUARED) && nextToken.getText().equals(ParanthesisType.SQUARED.getOpeningParanthesis())) {
-					openParanthesisCounter++;
-				} else if (currentToken.getOperator().getParanthesisType().equals(ParanthesisType.ROUND) && nextToken.getText().equals(ParanthesisType.ROUND.getClosingParanthesis()) ||
-						currentToken.getOperator().getParanthesisType().equals(ParanthesisType.SQUARED) && nextToken.getText().equals(ParanthesisType.SQUARED.getClosingParanthesis())) {
-					openParanthesisCounter--;
-				} else {
-					throw new IllegalArgumentException(String.format("The closing paranthesis does not match operator definition for operator %s\nThe operator syntax is defined as: %s", currentToken.getText(), currentToken.getOperator().getPattern()));
+			if (nextToken.getType().equals(TokenType.BRACKET)) {
+				if (currentToken.getOperator().getBracketType().equals(BracketType.ROUND) && nextToken.getText().equals(BracketType.ROUND.getOpeningBracket()) ||
+						currentToken.getOperator().getBracketType().equals(BracketType.SQUARED) && nextToken.getText().equals(BracketType.SQUARED.getOpeningBracket())) {
+					openBracketCounter++;
+				} else if (currentToken.getOperator().getBracketType().equals(BracketType.ROUND) && nextToken.getText().equals(BracketType.ROUND.getClosingBracket()) ||
+						currentToken.getOperator().getBracketType().equals(BracketType.SQUARED) && nextToken.getText().equals(BracketType.SQUARED.getClosingBracket())) {
+					openBracketCounter--;
 				}
+			} else if (nextToken.getType().equals(TokenType.PARAMETER_FUNCTION)) {
+				nextToken.addIndexOfPrecedingToken(0, currentTokenIndex);//A parameter function within a bracket memorizes the index of the corresponding operator
 			}
 
-			if (openParanthesisCounter == 0) {
-				currentToken.setIndexOfLastAssociatedToken(j);//the operator memorizes the index of the closing paranthesis
-				firstFollowingToken.setIndexOfLastAssociatedToken(j);//the openening paranthesis memorizes the index of the closing paranthesis
-				nextToken.addIndexOfPrecedingToken(0, currentTokenIndex+1);//the closing paranthesis memorizes the index of the opening paranthesis
-				return true;//paranthesis complete and closed
+			if (openBracketCounter == 0) {
+				currentToken.setIndexOfLastAssociatedToken(j);//the operator memorizes the index of the closing bracket
+				firstFollowingToken.setIndexOfLastAssociatedToken(j);//the openening bracket memorizes the index of the closing bracket
+				firstFollowingToken.addIndexOfPrecedingToken(0, currentTokenIndex);//and the index of the corresponding operator
+				nextToken.addIndexOfPrecedingToken(0, currentTokenIndex+1);//the closing bracket memorizes the index of the opening bracket
+				return true;//bracket complete and closed
 			}
 		}
-		currentToken.setOccurredErrorType(ErrorType.UNFINISHED_PARANTHESIS);
-		return false;//open paranthesis
+		currentToken.setOccurredErrorType(ErrorType.UNFINISHED_BRACKET);
+		return false;//open bracket
 	}
 
 	private void consumePrefixArguments(final ComplexToken[] tokens, final ComplexToken currentToken, final int currentTokenIndex) {
@@ -320,66 +335,95 @@ public class QueryAnalyser {
 		}
 	}
 
+	private boolean checkParameterFunction(final ComplexToken[] tokens, final ComplexToken currentToken) {
+		final String tokenText = currentToken.getText();
+		final int count = tokenText.length() - tokenText.replaceAll("^\\.*", "").length();
+
+		if (currentToken.getIndexesOfPrecedingTokens().size() == 0) {//parameter function outside of a bracket
+			currentToken.setOccurredErrorType(ErrorType.PARAMETER_FUNCTION_AT_ILLEGEAL_POSITION);
+			currentToken.setErrorMessage(String.format("The parameter function %s isn't part of a bracket and therefore doesn't refer to an operator!", currentToken.getText()));
+			return false;
+		}
+
+		final ComplexToken operatorToken = tokens[currentToken.getIndexesOfPrecedingTokens().get(0)];
+		if (operatorToken.getOperator().getPrefixArguments().size() < count) {
+			currentToken.setOccurredErrorType(ErrorType.PARAMETER_FUNCTION_REFERS_TO_ILLEGAL_PREFIX);
+			currentToken.setErrorMessage(String.format("The parameter function %s uses too many periods.\nThe syntax of the operator %s is defined as: %s", currentToken.getText(), operatorToken.getText(), operatorToken.getOperator().getPattern()));
+			return false;
+		}
+
+		return true;
+	}
+
 	private String createTypeInformation(final ComplexToken[] allTokens) throws Exception {
 		final StringBuilder typeInfo = new StringBuilder();
 		for (int i = 0; i < allTokens.length; i++) {
 			final ComplexToken currentToken = allTokens[i];
-			if (currentToken.getType().equals(TokenType.IDENTIFIER) && !currentToken.isConsumedByOperator()) {
-				final ListExpr typeExpr = SecondoFacade.query("query " + currentToken.getText() + " getTypeNL", false);
-				if (typeExpr != null) {
-					final StringReader reader = new StringReader(typeExpr.second().textValue());
-					final NLParser parser = new NLParser(reader);
-					typeInfo.append(((ListExpr)parser.parse().value).toString());
-					typeInfo.append("\n");
-				} else {
-					typeInfo.append(SecondoFacade.getErrorMessage());
-					typeInfo.append("\n");
-				}
-			} else if (currentToken.getType().equals(TokenType.OPERATOR) && !currentToken.isConsumedByOperator()) {
-				if (currentToken.getOccurredErrorType() != null) {
-					if(currentToken.getOccurredErrorType().equals(ErrorType.UNFINISHED_PARANTHESIS)) {
-						continue;					} else {
+			if (!currentToken.isConsumedByOperator()) {
+				if (currentToken.getType().equals(TokenType.VALUE)) {
+					final ListExpr typeExpr = SecondoFacade.query("query " + currentToken.getText() + " getTypeNL", false);
+					if (typeExpr != null) {
+						final StringReader reader = new StringReader(typeExpr.second().textValue());
+						final NLParser parser = new NLParser(reader);
+						typeInfo.append(((ListExpr)parser.parse().value).toString());
+						typeInfo.append("\n");
+					} else {
+						typeInfo.append(SecondoFacade.getErrorMessage());
+						typeInfo.append("\n");
+					}
+				} else if (currentToken.getType().equals(TokenType.OPERATOR)) {
+					if (currentToken.getOccurredErrorType() != null) {
+						if(currentToken.getOccurredErrorType().equals(ErrorType.UNFINISHED_BRACKET)) {
+							continue;						} else {
+							typeInfo.append("\n").append(currentToken.getErrorMessage()).append("\n");
+							break;
+						}
+					} else if (currentToken.getOperator().getPostfixArguments().size() != 0 && currentToken.getIndexOfLastAssociatedToken() == -1) {
+						break;//the user hasn't entered a bracket and the postfix arguments at all
+					}
+
+					//calculate the beginning of the corresponding arguments - an argument of an operator can be an operator too
+					int startIndex = currentToken.getIndexesOfPrecedingTokens().get(0);
+					ComplexToken tempToken = allTokens[startIndex];
+					while(tempToken.getIndexesOfPrecedingTokens().size() != 0 && tempToken.getIndexesOfPrecedingTokens().get(0).intValue() < startIndex) {
+						startIndex = tempToken.getIndexesOfPrecedingTokens().get(0).intValue();
+						tempToken = allTokens[startIndex];
+					}
+
+					final StringBuilder opQuery = new StringBuilder();
+					opQuery.append("query ");
+					for (int j = startIndex; j < i; j++) {
+						tempToken = allTokens[j];
+						opQuery.append(tempToken.getText()).append(" ");
+					}
+					opQuery.append(currentToken.getText()).append(" ");
+					for (int j = i+1; j <= currentToken.getIndexOfLastAssociatedToken(); j++) {
+						tempToken = allTokens[j];
+						opQuery.append(tempToken.getText()).append(" ");
+					}
+					opQuery.append("getTypeNL");
+
+					final ListExpr typeExpr = SecondoFacade.query(opQuery.toString(), false);
+					if (typeExpr != null) {
+						final StringReader reader = new StringReader(typeExpr.second().textValue());
+						final NLParser parser = new NLParser(reader);
+						typeInfo.append(((ListExpr)parser.parse().value).toString());
+						typeInfo.append("\n");
+					} else {
+						typeInfo.append(SecondoFacade.getErrorMessage());
+						typeInfo.append("\n");
+						if (currentToken.getErrorMessage() != null) {
+							typeInfo.append(currentToken.getErrorMessage());
+							typeInfo.append("\n");
+						}
+					}
+				} else if (currentToken.getType().equals(TokenType.PARAMETER_FUNCTION)) {
+					if (currentToken.getOccurredErrorType() != null) {
 						typeInfo.append("\n").append(currentToken.getErrorMessage()).append("\n");
 						break;
 					}
-				} else if (currentToken.getOperator().getPostfixArguments().size() != 0 && currentToken.getIndexOfLastAssociatedToken() == -1) {
-					break;//the user hasn't entered a paranthesis and the postfix arguments at all
-				}
 
-				//calculate the beginning of the corresponding arguments - an argument of an operator can be an operator too
-				int startIndex = currentToken.getIndexesOfPrecedingTokens().get(0);
-				ComplexToken tempToken = allTokens[startIndex];
-				while(tempToken.getIndexesOfPrecedingTokens().size() != 0 && tempToken.getIndexesOfPrecedingTokens().get(0).intValue() < startIndex) {
-					startIndex = tempToken.getIndexesOfPrecedingTokens().get(0).intValue();
-					tempToken = allTokens[startIndex];
-				}
-
-				final StringBuilder opQuery = new StringBuilder();
-				opQuery.append("query ");
-				for (int j = startIndex; j < i; j++) {
-					tempToken = allTokens[j];
-					opQuery.append(tempToken.getText()).append(" ");
-				}
-				opQuery.append(currentToken.getText()).append(" ");
-				for (int j = i+1; j <= currentToken.getIndexOfLastAssociatedToken(); j++) {
-					tempToken = allTokens[j];
-					opQuery.append(tempToken.getText()).append(" ");
-				}
-				opQuery.append("getTypeNL");
-
-				final ListExpr typeExpr = SecondoFacade.query(opQuery.toString(), false);
-				if (typeExpr != null) {
-					final StringReader reader = new StringReader(typeExpr.second().textValue());
-					final NLParser parser = new NLParser(reader);
-					typeInfo.append(((ListExpr)parser.parse().value).toString());
-					typeInfo.append("\n");
-				} else {
-					typeInfo.append(SecondoFacade.getErrorMessage());
-					typeInfo.append("\n");
-					if (currentToken.getErrorMessage() != null) {
-						typeInfo.append(currentToken.getErrorMessage());
-						typeInfo.append("\n");
-					}
+					//TODO
 				}
 			}
 

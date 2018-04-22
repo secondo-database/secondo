@@ -30,9 +30,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import util.domain.Operator;
+import util.domain.enums.BracketType;
 import util.domain.enums.OperatorType;
 import util.domain.enums.ParameterType;
-import util.domain.enums.ParanthesisType;
 
 /**
  * Parses the operator definition file of secondo and stores
@@ -116,11 +116,11 @@ public class OperatorSpecParser {
 
 
 		if (temp.contains("(")) {
-			operator.setParanthesisType(ParanthesisType.ROUND);
+			operator.setBracketType(BracketType.ROUND);
 		} else if (temp.contains("[")) {
-			operator.setParanthesisType(ParanthesisType.SQUARED);
+			operator.setBracketType(BracketType.SQUARED);
 		} else {
-			operator.setParanthesisType(ParanthesisType.NONE);
+			operator.setBracketType(BracketType.NONE);
 			if (operator.getOperatorType().equals(OperatorType.OP)) {
 				operator.setPostfixArguments(postfixParameters);
 				return;

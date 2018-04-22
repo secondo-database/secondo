@@ -22,27 +22,27 @@ package util.domain.enums;
 import util.domain.Operator;
 
 /**
- * Describes which type of paranthesis is used by an {@link Operator}
+ * Describes which type of bracket is used by an {@link Operator}
  * @author D.Merle
  */
-public enum ParanthesisType {
+public enum BracketType {
 	SQUARED("[", "]"),
 	ROUND("(", ")"),
 	NONE("", "");
 
-	private String openingParanthesis;
-	private String closingParanthesis;
+	private String openingBracket;
+	private String closingBracket;
 
-	private ParanthesisType(final String openingParanthesis, final String closingParanthesis) {
-		this.openingParanthesis = openingParanthesis;
-		this.closingParanthesis = closingParanthesis;
+	private BracketType(final String openingBracket, final String closingBracket) {
+		this.openingBracket = openingBracket;
+		this.closingBracket = closingBracket;
 	}
 
-	public String getOpeningParanthesis() {
-		return openingParanthesis;
+	public String getOpeningBracket() {
+		return openingBracket;
 	}
 
-	public String getClosingParanthesis() {
-		return closingParanthesis;
+	public String getClosingBracket() {
+		return closingBracket;
 	}
 }

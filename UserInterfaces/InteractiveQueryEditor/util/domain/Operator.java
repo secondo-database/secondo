@@ -22,9 +22,9 @@ package util.domain;
 import java.util.ArrayList;
 
 import util.common.OperatorSpecParser;
+import util.domain.enums.BracketType;
 import util.domain.enums.OperatorType;
 import util.domain.enums.ParameterType;
-import util.domain.enums.ParanthesisType;
 
 /**
  * Represents an operator of secondo.
@@ -36,7 +36,7 @@ public class Operator {
 	private String alias;
 	private OperatorType operatorType;
 	private ArrayList<ParameterType> prefixArguments;
-	private ParanthesisType paranthesisType;
+	private BracketType bracketType;
 	private ArrayList<ParameterType> postfixArguments;
 	private String pattern;
 	private String implicitInformation;
@@ -73,12 +73,12 @@ public class Operator {
 		this.prefixArguments = prefixArguments;
 	}
 
-	public ParanthesisType getParanthesisType() {
-		return paranthesisType;
+	public BracketType getBracketType() {
+		return bracketType;
 	}
 
-	public void setParanthesisType(final ParanthesisType paranthesisType) {
-		this.paranthesisType = paranthesisType;
+	public void setBracketType(final BracketType bracketType) {
+		this.bracketType = bracketType;
 	}
 
 	public ArrayList<ParameterType> getPostfixArguments() {
@@ -112,7 +112,7 @@ public class Operator {
 		builder.append("alias:").append(getAlias()).append("\n");
 		builder.append("operatorType:").append(getOperatorType()).append("\n");
 		builder.append("pre:").append(getPrefixArguments() != null ? getPrefixArguments().size(): 0).append("\n");
-		builder.append("paranthesis:").append(getParanthesisType()).append("\n");
+		builder.append("bracket:").append(getBracketType()).append("\n");
 		builder.append("post:").append(getPostfixArguments()!= null ? getPostfixArguments().size(): 0).append("\n");
 		builder.append("pattern:").append(getPattern()).append("\n");
 		builder.append("implicit:").append(getImplicitInformation()).append("\n");

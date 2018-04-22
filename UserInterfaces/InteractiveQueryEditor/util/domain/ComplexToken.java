@@ -37,14 +37,14 @@ public class ComplexToken {
 	private String errorMessage;
 
 	private Operator operator;
-	private final ArrayList<Integer> indexesOfPrecedingTokens;//can be arguments or an opening paranthesis
-	private int indexOfLastAssociatedToken;//used to memorize the last argument or the closing paranthesis of an operator
+	private final ArrayList<Integer> indexesOfPrecedingTokens;//can be arguments or an opening bracket
+	private int indexOfLastAssociatedToken;//used to memorize the last argument or the closing bracket of an operator
 
 	public ComplexToken(final String text, final TokenType type) {
 		this.text = text;
 		this.type = type;
 		indexesOfPrecedingTokens = new ArrayList<>();
-		indexOfLastAssociatedToken = -1;//can be an argument or the corresponding closing paranthesis
+		indexOfLastAssociatedToken = -1;//can be an argument or the corresponding closing bracket
 	}
 
 	public String getText() {
