@@ -762,13 +762,6 @@ bool getMemTypeFromString(ListExpr type, ListExpr value,
     return true;
 }
 
-inline bool getMemType(ListExpr typevalue, 
-                ListExpr & result, string& error, 
-                bool allowMPointer = false){
-  return getMemType(nl->First(typevalue), nl->Second(typevalue),
-                    result,error,allowMPointer);
-}
-
 inline bool getMemTypeFromString(ListExpr typevalue, 
                 ListExpr & result, string& error, 
                 bool allowComplex = false){

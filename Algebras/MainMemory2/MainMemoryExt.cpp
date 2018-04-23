@@ -826,10 +826,10 @@ void MemoryGraphObject::addTuple(Tuple* tup, double cost, double dist){
 
 
 const bool MemoryGraphObject::checkType(ListExpr type){
-  ListExpr first = nl->First(type);
+    ListExpr first = nl->First(type);
     ListExpr second = nl->Second(type);
     return (listutils::isTupleDescription(second) &&
-        (nl ->IsEqual(first,BasicType())));
+           (nl ->IsEqual(first,BasicType())));
         
 }
 
