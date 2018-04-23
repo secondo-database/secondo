@@ -9061,11 +9061,6 @@ LogDebug("finish" << endl);
 3.4 HubLabeling functionality of (3) In-Memory Approach using MainMemory2Algebra
 
 */
-
-
-
-
-
     /*
      *  TODO: function for doing ContractionHierarchies
      *   using graph from existing Algebra MainMemory2
@@ -11500,128 +11495,74 @@ not yet implemented
 */
 ListExpr hlContractMmGraphTM(ListExpr args)
 {
-    #ifdef USEDEBUG
-LogDebug("start contractNewTM" << endl);
-#endif
 
-    //overall
     if(nl->ListLength(args) != 3) {
-      return listutils::typeError("four arguments expected");
+      return listutils::typeError("three arguments expected");
     }
 
-    //first
-    ListExpr first = nl->First(args);
-
-    if(!nl->HasLength(first,2)){
-      return listutils::typeError("internal error");
+    //first: a graph
+    ListExpr graph1;
+    if(!mm2algebra::getMemSubType(nl->First(args), graph1)){
+      return listutils::typeError("first argument is not a memory object");
+    }
+    if(!mm2algebra::MemoryGraphObject::checkType(graph1)) {
+       return listutils::typeError("first arg is not a mem graph");
     }
 
-    string errMsg;
-
-    if(!mm2algebra::getMemType(nl->First(first),
-     nl->Second(first), first, errMsg))
-    return listutils::typeError("\n problem in first arg: " + errMsg);
-
-    ListExpr graph = nl->Second(first); // remove leading mem
-    if(!mm2algebra::MemoryGraphObject::checkType(graph))
-    return listutils::typeError("first arg is not a mem graph");
-
-    graph = nl->Second(graph);
-
-    if(!listutils::isTupleDescription(graph)) {
-    return listutils::typeError(
-                       "second value of graph is not of type tuple");
+    ListExpr graph1Tuple = nl->Second(graph1); 
+    ListExpr graph1AttrList = (graph1Tuple); 
+    if(nl->ListLength(graph1AttrList) < 3) {
+      return listutils::typeError("tuple of graph1  has less "
+                                  "than 3 attributes.");
     }
-
-    ListExpr relAttrList(nl->Second(graph));
-
-    if(!listutils::isAttrList(relAttrList)) {
-    return listutils::typeError("Error in rel attrlist.");
-    }
-
-    if(!(nl->ListLength(relAttrList) >= 3)) {
-    return listutils::typeError("rel has less than 3 attributes.");
-    }
-
-
-
 
     //second
-    ListExpr second = nl->First(args);
-
-    if(!nl->HasLength(second,2)){
-      return listutils::typeError("internal error");
+    ListExpr graph2;
+    if(!mm2algebra::getMemSubType(nl->Second(args), graph2)){
+      return listutils::typeError("second arg is not a memory object");
+    }    
+    if(!mm2algebra::MemoryGraphObject::checkType(graph2)) {
+       return listutils::typeError("second arg is not a mem graph2");
     }
-
-    if(!mm2algebra::getMemType(nl->First(second),
-     nl->Second(second), second, errMsg))
-    return listutils::typeError("\n problem in second arg: " + errMsg);
-
-    ListExpr graph2 = nl->Second(second); // remove leading mem
-    if(!mm2algebra::MemoryGraphObject::checkType(graph2))
-    return listutils::typeError("second arg is not a mem graph2");
-
-
-    graph2 = nl->Second(graph2);
-
-    if(!listutils::isTupleDescription(graph2)) {
-    return listutils::typeError(
-                       "second value of graph2 is not of type tuple");
+    ListExpr graph2Tuple = nl->Second(graph2);
+    if(!nl->Equal(graph1Tuple,graph2Tuple)){
+      return listutils::typeError("Tuple Types of graphs differ");
     }
-
-    ListExpr relAttrList2(nl->Second(graph2));
-
-    if(!listutils::isAttrList(relAttrList2)) {
-    return listutils::typeError("Error in rel attrlist.");
-    }
-
-    if(!(nl->ListLength(relAttrList2) >= 3)) {
-    return listutils::typeError("rel has less than 3 attributes.");
-    }
-
-
-    //TODO nur graph nicht aber graph2 im Folgenden berücksichtigt
 
     //Check of third argument
 
-    ListExpr map = nl->First(nl->Third(args));
+    ListExpr map = nl->Third(args);
     if(!listutils::isMap<1>(map)) {
-    return listutils::typeError("fourth argument should be a map");
+       return listutils::typeError("third argument should be a map");
     }
 
     ListExpr mapTuple = nl->Second(map);
-
-    if(!nl->Equal(graph,mapTuple)) {
-    return listutils::typeError(
+    if(!nl->Equal(graph1Tuple, mapTuple)) {
+       return listutils::typeError(
                        "Tuple of map function must match graph tuple");
     }
 
     ListExpr mapres = nl->Third(map);
 
-    if(!listutils::isSymbol(mapres,CcReal::BasicType())) {
-    return listutils::typeError(
-                 "Wrong mapping result type for mgshortestpatha");
+    if(!CcReal::checkType(mapres)){
+      return listutils::typeError("result of the function is not a real");
     }
 
+    // create output stream type
+    // corresponds to the graph tuples + SeqNo
 
-
-    // appends Attribute SeqNo to Attributes in orel
-    ListExpr rest = nl->Second(graph);
+    ListExpr rest = graph1AttrList;
     ListExpr listn = nl->OneElemList(nl->First(rest));
     ListExpr lastlistn = listn;
     rest = nl->Rest(rest);
     while (!(nl->IsEmpty(rest))) {
-    lastlistn = nl->Append(lastlistn,nl->First(rest));
-    rest = nl->Rest(rest);
+        lastlistn = nl->Append(lastlistn,nl->First(rest));
+        rest = nl->Rest(rest);
     }
     lastlistn = nl->Append(lastlistn,
                         nl->TwoElemList(
                           nl->SymbolAtom("SeqNo"),
                           nl->SymbolAtom(TupleIdentifier::BasicType())));
-
-    #ifdef USEDEBUG
-LogDebug("finish contractNewTM" << endl);
-#endif
 
     return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                                       nl->TwoElemList(
@@ -15692,8 +15633,8 @@ int hlCalcWeightsOrelVM (Word* args, Word& result,
 not yet implemented right
 
 */
-
-int hlContractMmGraphVM (Word* args, Word& result,
+template<class G1, class G2>
+int hlContractMmGraphVMT(Word* args, Word& result,
                     int message, Word& local, Supplier s)
 {
     #ifdef USEDEBUG
@@ -15702,23 +15643,20 @@ LogDebug("start contractNewVM" << endl);
 
     HubLabelClass* k = new HubLabelClass(1, 2, 3);
 
-    CcString* oNUp = (CcString*) args[0].addr;
-    CcString* oNDown = (CcString*) args[1].addr;
+    G1* oNUp = (G1*) args[0].addr;
+    G2* oNDown = (G2*) args[1].addr;
     Word* calcFunction = (Word*) args[2].addr;
     #ifdef USEDEBUG
 LogDebug("Parameter gelesen" << endl);
 #endif
 
-    result = qp->ResultStorage(
-                 s);       // use the result storage
-    CcInt* resultInt = (CcInt*)
-                       result.addr; // cast the result
+    result = qp->ResultStorage(s);  // use the result storage
+    CcInt* resultInt = (CcInt*) result.addr; // cast the result
     resultInt->Set(true, 1);
 
     #ifdef USEDEBUG
 LogDebug("result gelesen" << endl);
 #endif
-
 
     mm2algebra::MemoryGraphObject* memgraphUp =
       mm2algebra::getMemGraph(oNUp);
@@ -15734,6 +15672,8 @@ LogDebug("result gelesen" << endl);
 
     k->hlContractMmGraph(graphUp, graphDown, calcFunction);
 
+
+    delete k;
 
     #ifdef USEDEBUG
 LogDebug("finish contractNewVM" << endl);
@@ -16554,11 +16494,26 @@ Operator hlCreateLabelsFromHlGraphOp(
 
 */
 
+ValueMapping hlContractMmGraphVM[] = {
+  hlContractMmGraphVMT<mm2algebra::Mem, mm2algebra::Mem>,
+  hlContractMmGraphVMT<mm2algebra::Mem, mm2algebra::MPointer>,
+  hlContractMmGraphVMT<mm2algebra::MPointer, mm2algebra::Mem>,
+  hlContractMmGraphVMT<mm2algebra::MPointer, mm2algebra::MPointer>,
+};
+
+int hlContractMmGraphSelect(ListExpr args){
+   int n1 = mm2algebra::Mem::checkType(nl->First(args))?0:2;
+   int n2 = mm2algebra::Mem::checkType(nl->Second(args))?0:1;
+   return n1+n2;
+}
+
+
 Operator hlContractMmGraphOp(
     "hlContractMmGraph",             // name of the operator
     hlContractMmGraphSpec.getStr(),  // specification
+    4,
     hlContractMmGraphVM,             // value mapping
-    Operator::SimpleSelect,  // selection function
+    hlContractMmGraphSelect,             // selection function
     hlContractMmGraphTM              // type mapping
 );
 
