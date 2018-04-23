@@ -26,8 +26,18 @@ import util.domain.Operator;
  * @author D.Merle
  */
 public enum ParameterType {
-	WILDCARD,
-	LIST,
-	FUNCTION,
-	FUNCTION_LIST
+	WILDCARD("_"),
+	LIST("list"),
+	FUNCTION("fun"),
+	FUNCTION_LIST("funlist");
+
+	private String text;
+
+	private ParameterType(final String text) {
+		this.text = text;
+	}
+
+	public String getText() {
+		return text;
+	}
 }

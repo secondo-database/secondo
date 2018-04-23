@@ -23,6 +23,7 @@ import java.util.ArrayList;
 
 import util.common.OperatorSpecParser;
 import util.domain.enums.BracketType;
+import util.domain.enums.Delimiter;
 import util.domain.enums.OperatorType;
 import util.domain.enums.ParameterType;
 
@@ -38,6 +39,7 @@ public class Operator {
 	private ArrayList<ParameterType> prefixArguments;
 	private BracketType bracketType;
 	private ArrayList<ParameterType> postfixArguments;
+	private ArrayList<Delimiter> argumentDelimiters;
 	private String pattern;
 	private String implicitInformation;
 
@@ -87,6 +89,14 @@ public class Operator {
 
 	public void setPostfixArguments(final ArrayList<ParameterType> postfixArguments) {
 		this.postfixArguments = postfixArguments;
+	}
+
+	public ArrayList<Delimiter> getArgumentDelimiters() {
+		return argumentDelimiters;
+	}
+
+	public void setArgumentDelimiters(final ArrayList<Delimiter> argumentDelimiters) {
+		this.argumentDelimiters = argumentDelimiters;
 	}
 
 	public String getPattern() {

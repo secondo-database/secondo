@@ -31,6 +31,7 @@ import java.util.regex.Pattern;
 
 import util.domain.Operator;
 import util.domain.enums.BracketType;
+import util.domain.enums.Delimiter;
 import util.domain.enums.OperatorType;
 import util.domain.enums.ParameterType;
 
@@ -40,7 +41,7 @@ import util.domain.enums.ParameterType;
  * @author D.Merle
  */
 public class OperatorSpecParser {
-	private static final Pattern ARGUMENT_PATTERN = Pattern.compile("funlist|fun|list|_");
+	private static final Pattern ARGUMENT_PATTERN = Pattern.compile("funlist|fun|list|_|,|;");
 	/**
 	 *
 	 * @param filePath
@@ -106,6 +107,7 @@ public class OperatorSpecParser {
 
 		final ArrayList<ParameterType> prefixParameters = new ArrayList<>();
 		final ArrayList<ParameterType> postfixParameters = new ArrayList<>();
+		final ArrayList<Delimiter> argumentDelimiters = new ArrayList<>();
 
 		int paramIndex = temp.indexOf("_", 0);
 		while (paramIndex != -1 && paramIndex < operatorIndex) {
@@ -115,9 +117,9 @@ public class OperatorSpecParser {
 		operator.setPrefixArguments(prefixParameters);
 
 
-		if (temp.contains("(")) {
+		if (temp.contains(BracketType.ROUND.getOpeningBracket())) {
 			operator.setBracketType(BracketType.ROUND);
-		} else if (temp.contains("[")) {
+		} else if (temp.contains(BracketType.SQUARED.getOpeningBracket())) {
 			operator.setBracketType(BracketType.SQUARED);
 		} else {
 			operator.setBracketType(BracketType.NONE);
@@ -131,17 +133,21 @@ public class OperatorSpecParser {
 		final Matcher argumentMatcher = ARGUMENT_PATTERN.matcher(temp);
 		while(argumentMatcher.find()) {
 			final String subString = argumentMatcher.group(0);
-			if (subString.equals("_")) {
-				postfixParameters.add(ParameterType.WILDCARD);
-			} else if (subString.equals("fun")) {
-				postfixParameters.add(ParameterType.FUNCTION);
-			} else if (subString.equals("list")) {
-				postfixParameters.add(ParameterType.LIST);
-			} else if (subString.equals("funlist")) {
-				postfixParameters.add(ParameterType.FUNCTION_LIST);
+
+			for (final ParameterType type : ParameterType.values()) {
+				if (subString.equals(type.getText())) {
+					postfixParameters.add(type);
+				}
+			}
+
+			for (final Delimiter delimiter : Delimiter.values()) {
+				if (subString.equals(delimiter.getText())) {
+					argumentDelimiters.add(delimiter);
+				}
 			}
 		}
 
 		operator.setPostfixArguments(postfixParameters);
+		operator.setArgumentDelimiters(argumentDelimiters);
 	}
 }

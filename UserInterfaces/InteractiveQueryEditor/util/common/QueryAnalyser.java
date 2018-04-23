@@ -33,8 +33,10 @@ import sj.lang.JavaListExpr.NLParser;
 import util.domain.ComplexToken;
 import util.domain.Operator;
 import util.domain.enums.BracketType;
+import util.domain.enums.Delimiter;
 import util.domain.enums.ErrorType;
 import util.domain.enums.OperatorType;
+import util.domain.enums.ParameterType;
 import util.domain.enums.TokenType;
 import util.secondo.SecondoFacade;
 
@@ -142,7 +144,7 @@ public class QueryAnalyser {
 			if (!currentToken.isConsumedByOperator()) {//because of the recursive use of this method tokens within a bracket are already analysed and/or consumed
 				if (currentToken.getType().equals(TokenType.OPERATOR)) {
 					if(checkPrefixArguments(complexTokens, currentToken, i)) {//If everything is ok
-						if(checkPostfixArguments(complexTokens, currentToken, i)) {//then check the prefix arguments
+						if(checkPostfixArguments(complexTokens, currentToken, i)) {//then check the postfix arguments
 							consumePrefixArguments(complexTokens, currentToken, i);
 							if (currentToken.getIndexOfLastAssociatedToken() != -1) {//skip the bracket of the operator
 								i = currentToken.getIndexOfLastAssociatedToken();//arguments within the bracket have already been analysed
@@ -229,45 +231,82 @@ public class QueryAnalyser {
 			//Before we can count the amount of postfix arguments within the bracket
 			//all tokens within the bracket need to get analysed. Therefore we
 			//use a recursive call to analyse all tokens within the bracket
-			final int next = currentTokenIndex + 1;//The token after the operator (the opening bracket)
-			final ComplexToken openingBracket = tokens[next];
-			analyseTokens(tokens, next + 1, openingBracket.getIndexOfLastAssociatedToken() - 1);//recurive call for every bracket
+			final int nextTokenIndex = currentTokenIndex + 1;//The token after the operator (the opening bracket)
+			final ComplexToken openingBracket = tokens[nextTokenIndex];
+			final int startIndex = nextTokenIndex + 1;
+			final int lastIndex = openingBracket.getIndexOfLastAssociatedToken() - 1;
+			analyseTokens(tokens, startIndex, lastIndex);//recurive call for every bracket
 
-			//when all the tokens within a bracket are analysed we do count all unsused identifiers and operators
-			final int numberOfPostFixArguments = currentToken.getOperator().getPostfixArguments().size();
-			int numberOfFoundArgments = 0;
-			for (int j = currentTokenIndex + 2; j < tokens.length; j++) {
-				final ComplexToken nextElement = tokens[j];
-				if ((nextElement.getType().equals(TokenType.VALUE)
-						|| nextElement.getType().equals(TokenType.OPERATOR)) && !nextElement.isConsumedByOperator()) {
-					nextElement.setConsumedByOperator(true);
-					numberOfFoundArgments++;
-				} else if (nextElement.getType().equals(TokenType.BRACKET)) {
-					if (nextElement.getText().equals(BracketType.SQUARED.getOpeningBracket()) ||
-							nextElement.getText().equals(BracketType.ROUND.getOpeningBracket())) {
-						j = nextElement.getIndexOfLastAssociatedToken();
-						continue;
-					} else if (nextElement.getText().equals(BracketType.SQUARED.getClosingBracket()) ||
-							nextElement.getText().equals(BracketType.ROUND.getClosingBracket())) {
-						break;
+			//when all the tokens within a bracket are analysed all unsused identifiers and operators get counted and assigned to the corresponding ParameterType
+			final ArrayList<Delimiter> argumentDelimiters = currentToken.getOperator().getArgumentDelimiters();
+			final ArrayList<ParameterType> parameterTypes = currentToken.getOperator().getPostfixArguments();
+
+			//this algorithm assumes that argumentDelimiters.size() + 1 == parameterTypes.size()
+			if (argumentDelimiters.size() > 0) {
+				int foundDelimiters = 0;
+				int lastFoundDelimiterIndex = startIndex;
+				for (int j = startIndex; j <= lastIndex; j++) {
+					final ComplexToken token = tokens[j];
+					if (token.getType().equals(TokenType.DELIMITER) && token.getText().equals(argumentDelimiters.get(foundDelimiters).getText())) {
+						if (!checkArguments(tokens, currentToken, parameterTypes.get(foundDelimiters), lastFoundDelimiterIndex, j - 1)) {
+							return false;
+						}
+						lastFoundDelimiterIndex = j;
+						foundDelimiters++;
 					}
 				}
+				return checkArguments(tokens, currentToken, parameterTypes.get(foundDelimiters + 1), lastFoundDelimiterIndex, lastIndex);
+			} else {
+				return checkArguments(tokens, currentToken, parameterTypes.get(0), startIndex, lastIndex);
 			}
+		}
+	}
 
-			if (numberOfFoundArgments == numberOfPostFixArguments) {
-				return true;
-			} else if (numberOfFoundArgments < numberOfPostFixArguments) {
+	private boolean checkArguments(final ComplexToken[] tokens, final ComplexToken currentToken, final ParameterType parameterType, final int startIndex, final int lastIndex) {
+		int numberOfFoundArgments = 0;
+		for (int j = startIndex; j <= lastIndex; j++) {
+			final ComplexToken nextElement = tokens[j];
+			if ((nextElement.getType().equals(TokenType.VALUE)
+					|| nextElement.getType().equals(TokenType.OPERATOR)) && !nextElement.isConsumedByOperator()) {
+				nextElement.setConsumedByOperator(true);
+				numberOfFoundArgments++;
+			} else if (nextElement.getType().equals(TokenType.BRACKET)) {
+				if (nextElement.getText().equals(BracketType.SQUARED.getOpeningBracket()) ||
+						nextElement.getText().equals(BracketType.ROUND.getOpeningBracket())) {
+					j = nextElement.getIndexOfLastAssociatedToken();
+					continue;
+				} else if (nextElement.getText().equals(BracketType.SQUARED.getClosingBracket()) ||
+						nextElement.getText().equals(BracketType.ROUND.getClosingBracket())) {
+					break;
+				}
+			}
+		}
+
+		if (parameterType.equals(ParameterType.WILDCARD)) {
+			if (numberOfFoundArgments == 0) {
 				currentToken.setOccurredErrorType(ErrorType.MISSING_POSTFIX_ARGUMENTS);
 				currentToken.setErrorMessage(String.format("Missing postfix arguments for operator %s\nThe operator syntax is defined as: %s",
 						currentToken.getText(), currentToken.getOperator().getPattern()));
 				return false;
-			} else {
+			} else if (numberOfFoundArgments > 1) {
 				currentToken.setOccurredErrorType(ErrorType.TOO_MANY_POSTFIX_ARGUMENTS);
 				currentToken.setErrorMessage(String.format("Too many postfix arguments for operator %s\nThe operator syntax is defined as: %s", currentToken.getText(),
 						currentToken.getOperator().getPattern()));
 				return false;
 			}
+		} else if (parameterType.equals(ParameterType.LIST)) {
+			if (numberOfFoundArgments == 0) {
+				currentToken.setOccurredErrorType(ErrorType.MISSING_POSTFIX_ARGUMENTS);
+				currentToken.setErrorMessage(String.format("Missing postfix arguments for operator %s\nThe operator syntax is defined as: %s",
+						currentToken.getText(), currentToken.getOperator().getPattern()));
+				return false;
+			}
+		} else if (parameterType.equals(ParameterType.FUNCTION)) {
+			//TODO
+		} else if (parameterType.equals(ParameterType.FUNCTION_LIST)) {
+			//TODO
 		}
+		return true;
 	}
 
 	/**
