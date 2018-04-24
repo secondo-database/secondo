@@ -87,7 +87,7 @@ public class QueryAnalyser {
 	}
 
 	private String normalizeQuery(final String query) {
-		return query.replaceAll("(\\{)(.*)(\\})", " rename [$2] ");
+		return query.replaceAll("\\{", " rename [").replaceAll("\\}", " ] ");
 	}
 
 	private static String[] parseTokens(final String query) {
