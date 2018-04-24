@@ -61,8 +61,9 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
 
 		final JTextArea textArea = new JTextArea();
 		textArea.setText(message);
-		textArea.setPreferredSize(new Dimension(500, 300));
-		JOptionPane.showMessageDialog(owner, new JScrollPane(textArea), "An error occured", JOptionPane.ERROR_MESSAGE);
+		final JScrollPane scrollPane = new JScrollPane(textArea);
+		scrollPane.setPreferredSize(new Dimension(500, 300));
+		JOptionPane.showMessageDialog(owner, scrollPane, "An error occured", JOptionPane.ERROR_MESSAGE);
 	}
 
 	/**
@@ -96,7 +97,8 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
 	public void uncaughtException(final Thread t, final Throwable e) {
 		final JTextArea textArea = new JTextArea();
 		textArea.setText(StringUtilities.appendStrings("An uncaught error occured on the event-dispatching-thread!", getTextRepresentationOfThrowable(e)));
-		textArea.setPreferredSize(new Dimension(500, 300));
-		JOptionPane.showMessageDialog(null, new JScrollPane(textArea));
+		final JScrollPane scrollPane = new JScrollPane(textArea);
+		scrollPane.setPreferredSize(new Dimension(500, 300));
+		JOptionPane.showMessageDialog(null, scrollPane);
 	}
 }
