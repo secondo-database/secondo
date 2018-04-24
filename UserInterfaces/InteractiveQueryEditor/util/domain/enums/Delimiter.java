@@ -2,6 +2,7 @@ package util.domain.enums;
 
 public enum Delimiter {
 	COMMA(","),
+	COLON(":"),
 	SEMICOLON(";");
 
 	private String text;

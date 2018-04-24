@@ -49,10 +49,10 @@ public class QueryAnalyser {
 	//Finds sequences of non-whitespace characters. This way all whitespaces get removed
 	private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\S+");
 	//There several characters and even operators which can appear within a query but do not need to be separated by whitespaces
-	private static final Pattern ADVANCED_PATTERN = Pattern.compile("\".*?\"|'.*?'|>=|<=|[\\[\\]\\(\\),;=#<>]");//TODO +-/\\*
+	private static final Pattern ADVANCED_PATTERN = Pattern.compile("\".*?\"|'.*?'|>=|<=|[\\[\\]\\(\\),;:=#<>]");
 
 	private static final HashSet<String> BRACKETS = new HashSet<>(Arrays.asList("[", "(", ")", "]"));
-	private static final HashSet<String> DELIMITER = new HashSet<>(Arrays.asList(",", ";"));
+	private static final HashSet<String> DELIMITER = new HashSet<>(Arrays.asList(",", ";", ":"));
 	private final HashMap<String, Operator> secondoOperators;
 
 	/**
@@ -62,7 +62,7 @@ public class QueryAnalyser {
 	public static void main(final String[] args) {
 		final QueryAnalyser analyser = new QueryAnalyser("specs");
 		try {
-			analyser.analyseQuery("query Orte feed filter[.Ort=\"Test\"");
+			analyser.analyseQuery("query Orte feed filter[fun(t: TUPLE)");
 		} catch (final Exception e) {
 			e.printStackTrace();
 		}
@@ -74,13 +74,36 @@ public class QueryAnalyser {
 		} catch (final IOException e) {
 			throw new IllegalArgumentException(String.format("The spec file %s couldn't be parsed", operatorSpecFilePath), e);
 		}
+		final Operator function = createSpecialFunctionoperator();
+		secondoOperators.put(function.getName(), function);
+	}
+
+	/**
+	 * This is a dirty hack to support the definition of functions within a query
+	 * @return
+	 */
+	private Operator createSpecialFunctionoperator() {
+		final Operator operator = new Operator();
+		operator.setName("fun");
+		operator.setOperatorType(OperatorType.OP);
+		operator.setPattern(" op ( _ _ )");
+		operator.setBracketType(BracketType.ROUND);
+		operator.setPrefixArguments(new ArrayList<>());
+		final ArrayList<ParameterType> params = new ArrayList<>();
+		params.add(ParameterType.WILDCARD);
+		params.add(ParameterType.WILDCARD);
+		operator.setPostfixArguments(params);
+		final ArrayList<Delimiter> delimiters = new ArrayList<>();
+		delimiters.add(Delimiter.COLON);
+		operator.setArgumentDelimiters(delimiters);
+		return operator;
 	}
 
 	public String analyseQuery(final String query) throws Exception {
 		final String normalizedQuery = normalizeQuery(query);
 		final String[] tokens = parseTokens(normalizedQuery);
+		//Used for debugging purposes. If you uncomment the following lines the analysers will show all recognized tokens
 		//		return "Token size: " + tokens.length + "\n" + "Token:\n" + StringUtilities.appendStrings(tokens);
-		// used for debugging purpose. if you remove the comment and comment the following lines the analysers will show all recognized tokens
 		final ComplexToken[] complexTokens = analyseTokenType(tokens);
 		analyseTokens(complexTokens, 0, complexTokens.length -1);
 		return createTypeInformation(complexTokens);
@@ -146,6 +169,10 @@ public class QueryAnalyser {
 					if(checkPrefixArguments(complexTokens, currentToken, i)) {//If everything is ok
 						if(checkPostfixArguments(complexTokens, currentToken, i)) {//then check the postfix arguments
 							consumePrefixArguments(complexTokens, currentToken, i);
+							if (currentToken.getText().equals("fun")) {//hack to supprt functions
+								currentToken.setConsumedByOperator(true);
+							}
+
 							if (currentToken.getIndexOfLastAssociatedToken() != -1) {//skip the bracket of the operator
 								i = currentToken.getIndexOfLastAssociatedToken();//arguments within the bracket have already been analysed
 							}
@@ -167,6 +194,9 @@ public class QueryAnalyser {
 
 	private boolean checkPrefixArguments(final ComplexToken[] tokens, final ComplexToken currentToken, final int currentTokenIndex) {
 		final int numberOfPrefixArguments = currentToken.getOperator().getPrefixArguments().size();
+		if (numberOfPrefixArguments == 0) {
+			return true;
+		}
 		int foundArguments = 0;
 		for (int i = currentTokenIndex - 1; i >= 0; i--) {
 			final ComplexToken previousElement = tokens[i];
@@ -248,14 +278,14 @@ public class QueryAnalyser {
 				for (int j = startIndex; j <= lastIndex; j++) {
 					final ComplexToken token = tokens[j];
 					if (token.getType().equals(TokenType.DELIMITER) && token.getText().equals(argumentDelimiters.get(foundDelimiters).getText())) {
-						if (!checkArguments(tokens, currentToken, parameterTypes.get(foundDelimiters), lastFoundDelimiterIndex, j - 1)) {
+						if (!checkArguments(tokens, currentToken, parameterTypes.get(foundDelimiters), lastFoundDelimiterIndex, j-1)) {
 							return false;
 						}
 						lastFoundDelimiterIndex = j;
 						foundDelimiters++;
 					}
 				}
-				return checkArguments(tokens, currentToken, parameterTypes.get(foundDelimiters + 1), lastFoundDelimiterIndex, lastIndex);
+				return checkArguments(tokens, currentToken, parameterTypes.get(foundDelimiters), lastFoundDelimiterIndex, lastIndex);
 			} else {
 				return checkArguments(tokens, currentToken, parameterTypes.get(0), startIndex, lastIndex);
 			}
@@ -282,7 +312,7 @@ public class QueryAnalyser {
 			}
 		}
 
-		if (parameterType.equals(ParameterType.WILDCARD)) {
+		if (parameterType.equals(ParameterType.WILDCARD) || parameterType.equals(ParameterType.FUNCTION)) {
 			if (numberOfFoundArgments == 0) {
 				currentToken.setOccurredErrorType(ErrorType.MISSING_POSTFIX_ARGUMENTS);
 				currentToken.setErrorMessage(String.format("Missing postfix arguments for operator %s\nThe operator syntax is defined as: %s",
@@ -294,17 +324,13 @@ public class QueryAnalyser {
 						currentToken.getOperator().getPattern()));
 				return false;
 			}
-		} else if (parameterType.equals(ParameterType.LIST)) {
+		} else if (parameterType.equals(ParameterType.LIST) || parameterType.equals(ParameterType.FUNCTION_LIST)) {
 			if (numberOfFoundArgments == 0) {
 				currentToken.setOccurredErrorType(ErrorType.MISSING_POSTFIX_ARGUMENTS);
 				currentToken.setErrorMessage(String.format("Missing postfix arguments for operator %s\nThe operator syntax is defined as: %s",
 						currentToken.getText(), currentToken.getOperator().getPattern()));
 				return false;
 			}
-		} else if (parameterType.equals(ParameterType.FUNCTION)) {
-			//TODO
-		} else if (parameterType.equals(ParameterType.FUNCTION_LIST)) {
-			//TODO
 		}
 		return true;
 	}
@@ -421,8 +447,14 @@ public class QueryAnalyser {
 						break;//the user hasn't entered a bracket and the postfix arguments at all
 					}
 
+
 					//calculate the beginning of the corresponding arguments - an argument of an operator can be an operator too
-					int startIndex = currentToken.getIndexesOfPrecedingTokens().get(0);
+					int startIndex = 0;
+					if (currentToken.getIndexesOfPrecedingTokens().size() == 0) {
+						startIndex = i;
+					} else {
+						startIndex = currentToken.getIndexesOfPrecedingTokens().get(0);
+					}
 					ComplexToken tempToken = allTokens[startIndex];
 					while(tempToken.getIndexesOfPrecedingTokens().size() != 0 && tempToken.getIndexesOfPrecedingTokens().get(0).intValue() < startIndex) {
 						startIndex = tempToken.getIndexesOfPrecedingTokens().get(0).intValue();
