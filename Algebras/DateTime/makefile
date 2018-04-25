@@ -54,10 +54,10 @@ clean: cleanpdf
 
 
 dateconvscan.o: dateconvertscan.c
-	$(CC) -c -o $@ $<
+	$(CC) -c -fPIC  -o $@ $<
 
 dateconvparser.o: dateconvertparser.c
-	$(CC) -c -o $@ $<
+	$(CC) -c -fPIC -o $@ $<
 
 dateconvertparser.c: dateconvert.y
 	$(YACC) -d -o $@ $<

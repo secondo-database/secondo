@@ -12,13 +12,13 @@ OpSpec: scan.o parse.o
 
 
 scan.o: lex.opspec.c 
-	g++ -c -ggdb -o scan.o lex.opspec.c
+	g++ -c -fPIC -ggdb -o scan.o lex.opspec.c
 
 lex.opspec.c: $(BASE).l parse.o 
 	flex $(BASE).l
 
 parse.o: $(BASE).tab.c
-	g++ -c -ggdb -o parse.o $(BASE).tab.c -lstd
+	g++ -fPIC -c -ggdb -o parse.o $(BASE).tab.c -lstd
 
 
 $(BASE).tab.c: $(BASE).y

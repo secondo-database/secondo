@@ -57,13 +57,13 @@ $(LIBOBJ): $(OBJECTS)
 
 
 scan.o: lex.pattern.c
-	        $(CPPC) -c -ggdb -o $@ $< $(DEFAULTCCFLAGS)
+	        $(CPPC) -c -fPIC -ggdb -o $@ $< $(DEFAULTCCFLAGS)
 
 lex.pattern.c: $(BASE).l parse.o
 	        flex $(BASE).l
 
 parse.o: $(BASE).tab.c
-	        $(CPPC) -c $(PARSEFLAGS) -ggdb -o $@ $< -lstd -I ../../include -I ../../Tools/ListsAndTables -I $(BDB_INCLUDE_DIR) $(ALL_ALGEBRA_DIR_INCLUDE_FLAGS)  $(DEFAULTCCFLAGS)
+	        $(CPPC) -c $(PARSEFLAGS) -fPIC -ggdb -o $@ $< -lstd -I ../../include -I ../../Tools/ListsAndTables -I $(BDB_INCLUDE_DIR) $(ALL_ALGEBRA_DIR_INCLUDE_FLAGS)  $(DEFAULTCCFLAGS)
 
 
 $(BASE).tab.c: $(BASE).y

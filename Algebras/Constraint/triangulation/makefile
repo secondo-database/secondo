@@ -3,7 +3,7 @@ INC := .
 
 CC := gcc
 
-CFLAGS := -UDEBUG -UCLOCK -I$(INC) -g
+CFLAGS := -UDEBUG -UCLOCK -I$(INC) -g -fPIC
 
 LDFLAGS := -lm
 

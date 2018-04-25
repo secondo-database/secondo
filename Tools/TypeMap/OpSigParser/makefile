@@ -12,13 +12,13 @@ OpSig: scan.o parse.o
 
 
 scan.o: lex.opsig.c 
-	g++ -c -ggdb -o scan.o lex.opsig.c
+	g++ -c -fPIC -ggdb -o scan.o lex.opsig.c
 
 lex.opsig.c: $(BASE).l parse.o 
 	flex $(BASE).l
 
 parse.o: $(BASE).tab.c
-	g++ -c -ggdb -o parse.o $(BASE).tab.c -lstd
+	g++ -c -fPIC -ggdb -o parse.o $(BASE).tab.c -lstd
 
 
 $(BASE).tab.c: $(BASE).y
