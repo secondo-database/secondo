@@ -66,7 +66,7 @@ int main(int argc, char** argv){
 
   string user="";
   string passwd="";
-  string host="132.176.69.180";
+  string host="localhost";
   string port ="1234";
   string errMsg;          // return param
   bool   multiUser=true;
