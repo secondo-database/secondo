@@ -29,7 +29,6 @@ CSLIBS+=$(BD)/Tools/NestedLists/NList.o
 CSLIBS+=$(BD)/Tools/Utilities/FileSystem.o
 CSLIBS+=$(BD)/Tools/Utilities/UtilFunctions.o
 CSLIBS+=$(BD)/Tools/Utilities/Application.o
-CSLIBS+=$(BD)/StorageManager/*.o
 CSLIBS+=$(BD)/ClientServer/SocketIO.o
 CSLIBS+=$(BD)/Tools/Utilities/Profiles.o
 CSLIBS+=$(BD)/Tools/Utilities/Messenger.o
