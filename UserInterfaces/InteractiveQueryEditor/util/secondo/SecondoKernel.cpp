@@ -67,7 +67,7 @@ JNIEXPORT jboolean JNICALL Java_util_secondo_SecondoKernel_initialize
 	string errMsg = "";
 	bool multiUser = false;
 	
-	if (!si->Initialize(user, passwd, host, port, config, errMsg, 
+	if (!si->Initialize(user, passwd, host, port, config, "",errMsg, 
 		multiUser))
 	{
 		// connection failed, handle error

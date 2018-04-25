@@ -40,6 +40,7 @@ all: Executable SecondoTTYIQE.jar SecondoKernel.so
 
 .PHONY: Executable
 Executable:
+	@cp $(SECONDO_BUILD_DIR)/Algebras/specs .
 	@printf '%s\n' '#!/bin/bash' 'java -jar SecondoTTYIQE.jar -Djava.library.path=/home/secondo > secondoOut.txt 2> secondoOut.txt' > SecondoTTYIQE.sh
 	@chmod +x SecondoTTYIQE.sh
 
@@ -61,7 +62,7 @@ SecondoTTYIQE.jar: $(CLASSFILES)
 .PHONY: SecondoKernel.so
 SecondoKernel.so: JNITool.o SecondoKernel.o
 	@echo "Creating Shared Object"
-	@$(CC) -shared -o libSecondoKernel.so util/secondo/SecondoKernel.o $(JNITOOL_OBJECT_PATH) -Wl,--whole-archive -lsecondo -ljpeg -lgsl -ldb_cxx-5.3 -Wl,--no-whole-archive,-soname,SecondoKernel.so $(JNIINCLUDE) $(LIBPATH) $(DEFAULTCCFLAGS)
+	$(CC) -shared -o libSecondoKernel.so util/secondo/SecondoKernel.o $(JNITOOL_OBJECT_PATH) -Wl,--whole-archive -L$(SECONDO_BUILD_DIR)/api_cpp/direct/lib -lsecondo -ljpeg -lgsl -L$(BDB_LIB_DIR) -l$(BERKELEY_DB_LIB) -Wl,--no-whole-archive,-soname,SecondoKernel.so $(JNIINCLUDE) $(LIBPATH) $(DEFAULTCCFLAGS)
 	
 .PHONY: SecondoKernel.o
 SecondoKernel.o: JNIHeader util/secondo/SecondoKernel.cpp util/secondo/SecondoKernel.h
@@ -84,3 +85,6 @@ endif
 .PHONY: clean
 clean:
 	rm -rf build
+	find ./ -name "*.class" -exec rm {} \;  
+	rm -f SecondoTTYIQE.jar secondoOut.txt specs util/secondo/SecondoKernel.h SecondoTTYIQE.sh
+
