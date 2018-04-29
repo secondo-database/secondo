@@ -50,7 +50,8 @@ join attribute for each argument relation.
 #include "TBlock.h"
 #include "TBlockTC.h"
 #include "cSpatialJoin.h"
-#include "cSpatialJoinProcessing.h"      
+#include "cSpatialJoinProcessing.cpp"
+#include "BinaryTuple.h"   
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
@@ -546,6 +547,16 @@ class LocalInfo {
 
       if((fTBlockVector.size() > 0) && (sTBlockVector.size() > 0)) {
         if(!joinState) {
+
+          // determine max number of tuple blocks
+          // materialized from first and second stream
+          uint64_t maxNumTBlocks =
+            fTBlockVector.size() > sTBlockVector.size() ?
+            fTBlockVector.size() : sTBlockVector.size();
+
+          //test!!!
+          cout<<"maxNumTBlocks = "<<maxNumTBlocks<<'\n';
+         
           joinState = new SpatialJoinState(fTBlockVector,
                                            sTBlockVector,
                                            fIndex,
@@ -577,7 +588,7 @@ class LocalInfo {
     uint64_t fIndex; // index of join attribute from first stream
     uint64_t sIndex; // index of join attribute from second stream
     uint64_t memLimit; // memory limit for operator
-    uint64_t maxTuplesPerTBlock; // ?
+    uint64_t maxTuplesPerTBlock;
     uint64_t fMemTBlock; // memory used by first stream
     uint64_t sMemTBlock; // memory used by second stream
     uint64_t fNumTuples; // number of tuples from first stream
