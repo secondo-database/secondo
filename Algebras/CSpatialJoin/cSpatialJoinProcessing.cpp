@@ -104,84 +104,10 @@ namespace csj {
     }
   }
 
-  bool spacePartitionX(binaryTuple* bat,
-                       const uint64_t numPartStripes,
-                       const uint64_t numTuples,
-                       const double xMin,
-                       const double xMax)                {
-
-    double stripeWidth = (xMax-xMin)/numPartStripes;
-    uint64_t maxEntryPerBucket = 2*(numTuples/numPartStripes);
-
-    // it must be at least two entry per bucket
-    if(maxEntryPerBucket < 1) {
-      maxEntryPerBucket = 2;
-    }
-
-    // partition array
-    binaryTuple** stripes = new binaryTuple*[numPartStripes];
-    // array saves current position in bucket[i]
-    uint64_t* bucketIter = new uint64_t[numPartStripes];
-    // Initialization
-    for(uint64_t i = 0; i < numPartStripes; i++) {
-      bucketIter[i] = 0;
-    }
-
-    // partition BAT
-    for(uint64_t i = 0; i < numTuples; i++) {
-      // compute left stripe number
-      uint64_t bucketNumberLeft = (bat[i].xMin-xMin)/stripeWidth;
-      // compute right stripe number
-      uint64_t bucketNumberRight = (bat[i].xMax-xMin)/stripeWidth;
-      // entry current tuple in all buckets (stripes), that it intersects
-      for(uint64_t p = bucketNumberLeft;
-          p <= bucketNumberRight; p++) {
-        // compute free position in current bucket    
-        uint64_t pos = bucketIter[p];  
-        // if current bucket is not full
-        if(pos < maxEntryPerBucket) {
-          stripes[p][pos] = bat[i];
-          ++bucketIter[p];
-        }
-        else {
-          // bucket is full, number of partition stripes must be increased
-          return false;
-        }
-      }     
-    }
-
-    // delete the old BAT and create a new BAT with a new number of member
-    delete bat;
-    bat = nullptr;
-    bat = new binaryTuple[2*numTuples];
-    for(uint64_t i = 0; i < numPartStripes; i++) {
-        for(uint64_t pos = 0; pos < maxEntryPerBucket; pos++) {
-          // if the member with postion number pos exist
-          // (bucketIter[i] denote a next free position in bucket i)
-          if(pos < bucketIter[i]) {
-            bat[i*maxEntryPerBucket + pos] = stripes[numPartStripes][pos];
-          }
-          else {
-            // create binary tuple with block number 0
-            // block number 0 not exist 
-            bat[i*maxEntryPerBucket + pos] = binaryTuple();
-          } 
-        }
-    }
-
-    // the end of partitions
-    return true;
-  }
-
-  binaryTuple* createPartBAT(const vector<TBlock*> tBlockVector,
-                             const uint64_t joinIndex,
-                             const uint64_t numTuples,
-                             const uint64_t numPartStripes,
-                             size_t dim) {
-                               
-    binaryTuple* BAT = new binaryTuple[numTuples];
-    uint64_t tupleCounter = 0;
-    uint64_t tBlockNum = 1;
+  uint64_t spacePartitionX(binaryTuple* bat1,
+                           binaryTuple* bat2,
+                           const uint64_t numPartStripes,
+                           size_t dim) {
 
     double xMin = 0;
     double xMax = 0;
@@ -190,6 +116,238 @@ namespace csj {
     double zMin = 0;
     double zMax = 0;
 
+    uint64_t numTuplesBAT1 = sizeof(bat1)/sizeof(bat1[0]);
+    uint64_t numTuplesBAT2 = sizeof(bat2)/sizeof(bat2[0]);
+    uint64_t genTuplesCounter = numTuplesBAT1 > numTuplesBAT2 ?
+                                numTuplesBAT1 : numTuplesBAT2;
+
+    // compute general bounding box for currently binary tables
+
+    for(uint64_t i=0; i < numTuplesBAT1; i++) {
+      if(dim == 2) {
+       if(bat1[i].xMin < xMin)
+         xMin = bat1[i].xMin;
+       if(bat1[i].xMax > xMax)
+         xMax = bat1[i].xMax;
+       if(bat1[i].yMin < yMin)
+         yMin = bat1[i].yMin;
+       if(bat1[i].yMax > yMax)
+         yMax = bat1[i].yMax;
+      }
+      else {
+        if(bat1[i].xMin < xMin)
+          xMin = bat1[i].xMin;
+        if(bat1[i].xMax > xMax)
+          xMax = bat1[i].xMax;
+        if(bat1[i].yMin < yMin)
+          yMin = bat1[i].yMin;
+        if(bat1[i].yMax > yMax)
+          yMax = bat1[i].yMax;
+        if(bat1[i].zMin < zMin)
+          zMin = bat1[i].zMin;
+        if(bat1[i].yMax > zMax)
+          zMax = bat1[i].zMax;
+      }
+    }
+
+    for(uint64_t i=0; i < numTuplesBAT2; i++) {
+      if(dim == 2) {
+       if(bat2[i].xMin < xMin)
+         xMin = bat2[i].xMin;
+       if(bat2[i].xMax > xMax)
+         xMax = bat2[i].xMax;
+       if(bat2[i].yMin < yMin)
+         yMin = bat2[i].yMin;
+       if(bat2[i].yMax > yMax)
+         yMax = bat2[i].yMax;
+      }
+      else {
+        if(bat2[i].xMin < xMin)
+          xMin = bat2[i].xMin;
+        if(bat2[i].xMax > xMax)
+          xMax = bat2[i].xMax;
+        if(bat2[i].yMin < yMin)
+          yMin = bat2[i].yMin;
+        if(bat2[i].yMax > yMax)
+          yMax = bat2[i].yMax;
+        if(bat2[i].zMin < zMin)
+          zMin = bat2[i].zMin;
+        if(bat2[i].yMax > zMax)
+          zMax = bat2[i].zMax;
+      }
+    }
+
+    // partition both binary tables 
+    bool finished1 = false;
+    bool finished2 = false;
+    size_t factor = 1;
+    uint64_t maxEntryPerBucket = 0;
+    double stripeWidth = 0;
+    uint64_t tempNumPartStripes = numPartStripes;
+    binaryTuple** partBAT1; // temporary partition table for bat1
+    binaryTuple** partBAT2; // temporary partition table for bat2
+    uint64_t* bucketCounter1; // contains number of tuples in bucket i
+    uint64_t* bucketCounter2; // contains number of tuples in bucket i
+    uint64_t bucketNumberLeft; // first bucket where tuple is stored
+    uint64_t bucketNumberRigth; // last bucket where tuple is stored
+    uint64_t bucketPos; // contains next free position in bucket
+    uint64_t numTuplesPart1; // number of all tuples in partBAT1
+    uint64_t numTuplesPart2; // number of all tuples in partBAT2
+
+    
+
+    while(!finished1 && !finished2) {
+      
+      tempNumPartStripes = numPartStripes*factor;
+      stripeWidth = (xMax-xMin)/tempNumPartStripes;
+      maxEntryPerBucket = 2*(genTuplesCounter/tempNumPartStripes);
+
+      // it must be at least two entry per bucket
+      if(maxEntryPerBucket < 1) {
+        maxEntryPerBucket = 2;
+      }
+
+      // Tables patition
+      partBAT1 = new binaryTuple*[tempNumPartStripes];
+      partBAT2 = new binaryTuple*[tempNumPartStripes];
+      bucketCounter1 = new uint64_t[tempNumPartStripes];
+      bucketCounter2= new uint64_t[tempNumPartStripes];
+      bucketNumberLeft = 0;
+      bucketNumberRigth = 0;
+      bucketPos = 0;
+      numTuplesPart1 = 0;
+      numTuplesPart2 = 0;
+
+      //initialization
+      for(uint64_t i=0; i<tempNumPartStripes; i++) {
+        bucketCounter1[i] = 0;
+        bucketCounter2[i] = 0;
+      }
+      
+      for(uint64_t i=0; i<genTuplesCounter; i++) {
+        // if BAT1 is not empty
+        if(i<numTuplesBAT1) {
+          // if current bucket ist not full 
+          if(bucketCounter1[i]<maxEntryPerBucket) {
+            // compute a number of bucket left and rigth
+            // and next free positon in  buckets
+            // paste the tuple in buckets
+            bucketNumberLeft = (bat1[i].xMin-xMin)/stripeWidth;
+            bucketNumberRigth = (bat1[i].xMax-xMin)/stripeWidth;
+            for(uint64_t j=bucketNumberLeft; j<=bucketNumberRigth; j++) {
+              bucketPos = bucketCounter1[j];
+              partBAT1[j][bucketPos] = bat1[i];
+              // compute next free position in current bucket
+              bucketCounter1[j]++;
+              numTuplesPart1++;
+            }
+          }
+          // current bucket is full
+          // number of partitions must be increased
+          else {
+            delete partBAT1;
+            delete partBAT2;
+            delete bucketCounter1;
+            delete bucketCounter2;
+            factor *=2;
+            break;
+          }
+        }
+        // BAT1 is partitioned
+        else {
+          finished1 = true;
+        }
+        // if BAT2 is not empty
+        if(i<numTuplesBAT2) {
+          // if current bucket ist not full 
+          if(bucketCounter2[i]<maxEntryPerBucket) {
+            // compute a number of bucket left and rigth
+            // and next free positon in  buckets
+            // paste the tuple in buckets
+            bucketNumberLeft = (bat2[i].xMin-xMin)/stripeWidth;
+            bucketNumberRigth = (bat2[i].xMax-xMin)/stripeWidth;
+            for(uint64_t j=bucketNumberLeft; j<=bucketNumberRigth; j++) {
+              bucketPos = bucketCounter2[j];
+              partBAT2[j][bucketPos] = bat2[i];
+              // compute next free position in current bucket
+              bucketCounter2[j]++;
+              numTuplesPart2++;
+            }
+          }
+          // current bucket is full
+          // number of partitions must be increased
+          else {
+            delete partBAT1;
+            delete partBAT2;
+            delete bucketCounter1;
+            delete bucketCounter2;
+            factor *=2;
+            break;
+          }
+        }
+        // BAT2 is partitioned
+        else {
+          finished2 = true;
+        }
+      }
+    }
+
+  // save partBAT1 and partBAT2 in bat1 and bat2
+  delete bat1;
+  bat1 = nullptr;
+  bat1 = new binaryTuple[numTuplesPart1];
+  delete bat2;
+  bat2 = nullptr;
+  bat2 = new binaryTuple[numTuplesPart2];
+  uint64_t posBAT1 = 0;
+  uint64_t posBAT2 = 0;
+
+  for(uint64_t i=0; i<tempNumPartStripes; i++) {
+    // encode partition number
+    uint64_t partNumber = i<<48;
+    
+    // BAT1
+    uint64_t pos = bucketCounter1[i];
+    // if bucket is not empty
+    if(pos > 0) {
+      // Run completely bucket and read all the tuples
+      for(uint64_t k=0; k<pos; k++) {
+        bat1[posBAT1] = partBAT1[i][k];
+        // save partition number
+        bat1[posBAT1].blockNum = bat1[posBAT1].blockNum | partNumber;
+        // move to next free slot
+        posBAT1++;
+      }
+    }
+    // BAT2
+    pos = bucketCounter2[i];
+    // if bucket is not empty
+    if(pos > 0) {
+      // Run completely bucket and read all the tuples
+      for(uint64_t k=0; k<pos; k++) {
+        bat2[posBAT2] = partBAT2[i][k];
+        // save partition number
+        bat2[posBAT2].blockNum = bat2[posBAT2].blockNum | partNumber;
+        // move to next free slot
+        posBAT2++;
+      }
+    }
+  }
+
+    // the end of partitions
+  return tempNumPartStripes;
+  }
+
+  binaryTuple* createSortBAT(const vector<TBlock*> tBlockVector,
+                             const uint64_t joinIndex,
+                             const uint64_t numTuples,
+                             size_t dim) {
+                               
+    binaryTuple* BAT = new binaryTuple[numTuples];
+    uint64_t tupleCounter = 0;
+    uint64_t tBlockNum = 1;
+
+    
     while(tBlockNum <= tBlockVector.size()) {
 
       TBlockIterator tBlockIter = tBlockVector[tBlockNum-1]->GetIterator();
@@ -208,16 +366,6 @@ namespace csj {
           BAT[tupleCounter].xMax = rec.MaxD(0);
           BAT[tupleCounter].yMin = rec.MinD(1);
           BAT[tupleCounter].yMax = rec.MaxD(1);
-
-          // compute general bounding box for currently tuples
-          if(BAT[tupleCounter].xMin < xMin)
-            xMin = BAT[tupleCounter].xMin;
-          if(BAT[tupleCounter].xMax > xMax)
-            xMax = BAT[tupleCounter].xMax;
-          if(BAT[tupleCounter].yMin < yMin)
-            yMin = BAT[tupleCounter].yMin;
-          if(BAT[tupleCounter].yMax > yMax)
-            yMax = BAT[tupleCounter].yMax;
         }
         else {
           SpatialAttrArrayEntry<3> attribute = tuple[joinIndex];
@@ -228,20 +376,6 @@ namespace csj {
           BAT[tupleCounter].yMax = rec.MaxD(1);
           BAT[tupleCounter].zMin = rec.MinD(2);
           BAT[tupleCounter].zMax = rec.MaxD(2);
-
-          // compute general bounding box for currently tuples
-          if(BAT[tupleCounter].xMin < xMin)
-            xMin = BAT[tupleCounter].xMin;
-          if(BAT[tupleCounter].xMax > xMax)
-            xMax = BAT[tupleCounter].xMax;
-          if(BAT[tupleCounter].yMin < yMin)
-            yMin = BAT[tupleCounter].yMin;
-          if(BAT[tupleCounter].yMax > yMax)
-            yMax = BAT[tupleCounter].yMax;
-          if(BAT[tupleCounter].zMin < zMin)
-            zMin = BAT[tupleCounter].zMin;
-          if(BAT[tupleCounter].yMax > zMax)
-            zMax = BAT[tupleCounter].zMax;
         }
 
         ++tupleCounter;
@@ -254,22 +388,16 @@ namespace csj {
     // Test!!!!
     if(tupleCounter != numTuples)
            cout<<"tupleCounter != numTuples"<<'\n';
+           
     for(uint64_t i=0; i<numTuples; i++)
       BinaryTupleToScreen(BAT[i], dim);
-
+      
+    // sort the binary table by Y-coordinate
     MergeSortY(BAT, numTuples);
 
     // Test!!!
     for(uint64_t i=0; i<numTuples; i++)
       BinaryTupleToScreen(BAT[i], dim);
-
-    // partitions phase
-    uint64_t factor = 1;
-    while(!spacePartitionX(BAT, numPartStripes*factor,
-                           numTuples, xMin, xMax))     {
-    // increase number of partitions
-      factor *= 2;                         
-    }
 
     return BAT;
   }
