@@ -107,79 +107,32 @@ namespace csj {
   uint64_t spacePartitionX(binaryTuple* bat1,
                            binaryTuple* bat2,
                            const uint64_t numPartStripes,
-                           size_t dim) {
-
-    double xMin = 0;
-    double xMax = 0;
-    double yMin = 0;
-    double yMax = 0;
-    double zMin = 0;
-    double zMax = 0;
+                           double* xMin,
+                           double* xMax) {
 
     uint64_t numTuplesBAT1 = sizeof(bat1)/sizeof(bat1[0]);
     uint64_t numTuplesBAT2 = sizeof(bat2)/sizeof(bat2[0]);
     uint64_t genTuplesCounter = numTuplesBAT1 > numTuplesBAT2 ?
                                 numTuplesBAT1 : numTuplesBAT2;
 
-    // compute general bounding box for currently binary tables
-
+    // compute xMin and xMax for currently binary tables
     for(uint64_t i=0; i < numTuplesBAT1; i++) {
-      if(dim == 2) {
-       if(bat1[i].xMin < xMin)
-         xMin = bat1[i].xMin;
-       if(bat1[i].xMax > xMax)
-         xMax = bat1[i].xMax;
-       if(bat1[i].yMin < yMin)
-         yMin = bat1[i].yMin;
-       if(bat1[i].yMax > yMax)
-         yMax = bat1[i].yMax;
-      }
-      else {
-        if(bat1[i].xMin < xMin)
-          xMin = bat1[i].xMin;
-        if(bat1[i].xMax > xMax)
-          xMax = bat1[i].xMax;
-        if(bat1[i].yMin < yMin)
-          yMin = bat1[i].yMin;
-        if(bat1[i].yMax > yMax)
-          yMax = bat1[i].yMax;
-        if(bat1[i].zMin < zMin)
-          zMin = bat1[i].zMin;
-        if(bat1[i].yMax > zMax)
-          zMax = bat1[i].zMax;
-      }
+      if(bat1[i].xMin < *xMin)
+        *xMin = bat1[i].xMin;
+      if(bat1[i].xMax > *xMax)
+        *xMax = bat1[i].xMax;
     }
-
+    
     for(uint64_t i=0; i < numTuplesBAT2; i++) {
-      if(dim == 2) {
-       if(bat2[i].xMin < xMin)
-         xMin = bat2[i].xMin;
-       if(bat2[i].xMax > xMax)
-         xMax = bat2[i].xMax;
-       if(bat2[i].yMin < yMin)
-         yMin = bat2[i].yMin;
-       if(bat2[i].yMax > yMax)
-         yMax = bat2[i].yMax;
-      }
-      else {
-        if(bat2[i].xMin < xMin)
-          xMin = bat2[i].xMin;
-        if(bat2[i].xMax > xMax)
-          xMax = bat2[i].xMax;
-        if(bat2[i].yMin < yMin)
-          yMin = bat2[i].yMin;
-        if(bat2[i].yMax > yMax)
-          yMax = bat2[i].yMax;
-        if(bat2[i].zMin < zMin)
-          zMin = bat2[i].zMin;
-        if(bat2[i].yMax > zMax)
-          zMax = bat2[i].zMax;
-      }
+      if(bat2[i].xMin < *xMin)
+        *xMin = bat2[i].xMin;
+      if(bat2[i].xMax > *xMax)
+        *xMax = bat2[i].xMax;
     }
 
     // partition both binary tables 
-    bool finished1 = false;
-    bool finished2 = false;
+    bool finished1 = false; // shows whether the bat1 has been completely edited
+    bool finished2 = false; // shows whether the bat2 has been completely edited
     size_t factor = 1;
     uint64_t maxEntryPerBucket = 0;
     double stripeWidth = 0;
@@ -199,7 +152,7 @@ namespace csj {
     while(!finished1 && !finished2) {
       
       tempNumPartStripes = numPartStripes*factor;
-      stripeWidth = (xMax-xMin)/tempNumPartStripes;
+      stripeWidth = (*xMax-*xMin)/tempNumPartStripes;
       maxEntryPerBucket = 2*(genTuplesCounter/tempNumPartStripes);
 
       // it must be at least two entry per bucket
@@ -232,8 +185,8 @@ namespace csj {
             // compute a number of bucket left and rigth
             // and next free positon in  buckets
             // paste the tuple in buckets
-            bucketNumberLeft = (bat1[i].xMin-xMin)/stripeWidth;
-            bucketNumberRigth = (bat1[i].xMax-xMin)/stripeWidth;
+            bucketNumberLeft = (bat1[i].xMin-*xMin)/stripeWidth;
+            bucketNumberRigth = (bat1[i].xMax-*xMin)/stripeWidth;
             for(uint64_t j=bucketNumberLeft; j<=bucketNumberRigth; j++) {
               bucketPos = bucketCounter1[j];
               partBAT1[j][bucketPos] = bat1[i];
@@ -245,10 +198,10 @@ namespace csj {
           // current bucket is full
           // number of partitions must be increased
           else {
-            delete partBAT1;
-            delete partBAT2;
-            delete bucketCounter1;
-            delete bucketCounter2;
+            delete[] partBAT1;
+            delete[] partBAT2;
+            delete[] bucketCounter1;
+            delete[] bucketCounter2;
             factor *=2;
             break;
           }
@@ -264,8 +217,8 @@ namespace csj {
             // compute a number of bucket left and rigth
             // and next free positon in  buckets
             // paste the tuple in buckets
-            bucketNumberLeft = (bat2[i].xMin-xMin)/stripeWidth;
-            bucketNumberRigth = (bat2[i].xMax-xMin)/stripeWidth;
+            bucketNumberLeft = (bat2[i].xMin-*xMin)/stripeWidth;
+            bucketNumberRigth = (bat2[i].xMax-*xMin)/stripeWidth;
             for(uint64_t j=bucketNumberLeft; j<=bucketNumberRigth; j++) {
               bucketPos = bucketCounter2[j];
               partBAT2[j][bucketPos] = bat2[i];
@@ -277,10 +230,10 @@ namespace csj {
           // current bucket is full
           // number of partitions must be increased
           else {
-            delete partBAT1;
-            delete partBAT2;
-            delete bucketCounter1;
-            delete bucketCounter2;
+            delete[] partBAT1;
+            delete[] partBAT2;
+            delete[] bucketCounter1;
+            delete[] bucketCounter2;
             factor *=2;
             break;
           }
@@ -304,7 +257,7 @@ namespace csj {
 
   for(uint64_t i=0; i<tempNumPartStripes; i++) {
     // encode partition number
-    uint64_t partNumber = i<<48;
+    uint64_t partNumber = (i+1)<<48;
     
     // BAT1
     uint64_t pos = bucketCounter1[i];
@@ -334,11 +287,16 @@ namespace csj {
     }
   }
 
-    // the end of partitions
+  // end of partitions
+  delete[] partBAT1;
+  delete[] partBAT2;
+  delete[] bucketCounter1;
+  delete[] bucketCounter2;
+  
   return tempNumPartStripes;
   }
 
-  binaryTuple* createSortBAT(const vector<TBlock*> tBlockVector,
+  binaryTuple* createSortBAT(const vector<TBlock*> &tBlockVector,
                              const uint64_t joinIndex,
                              const uint64_t numTuples,
                              size_t dim) {
@@ -388,37 +346,212 @@ namespace csj {
     // Test!!!!
     if(tupleCounter != numTuples)
            cout<<"tupleCounter != numTuples"<<'\n';
-           
-    for(uint64_t i=0; i<numTuples; i++)
-      BinaryTupleToScreen(BAT[i], dim);
       
     // sort the binary table by Y-coordinate
     MergeSortY(BAT, numTuples);
 
-    // Test!!!
-    for(uint64_t i=0; i<numTuples; i++)
-      BinaryTupleToScreen(BAT[i], dim);
-
     return BAT;
   }
+
+  
 
 class SpatialJoinState {
   public: 
   // Constructor
-  SpatialJoinState(const vector<TBlock*> fTBlockVector,
-                   const vector<TBlock*> sTBlockVector,
-                   uint64_t fIndex,
-                   uint64_t sIndex,
-                   uint64_t fNumTuples,
-                   uint64_t sNumTuples,
-                   uint64_t rTBlockSize) {}
+  SpatialJoinState(const vector<TBlock*> &fTBlockVector_,
+                   const vector<TBlock*> &sTBlockVector_,
+                   uint64_t fIndex_,
+                   uint64_t sIndex_,
+                   uint64_t fNumTuples_,
+                   uint64_t sNumTuples_,
+                   uint64_t rTBlockSize_,
+                   uint64_t numStripes_,
+                   size_t fDim_,
+                   size_t sDim_) :
+
+                   fTBlockVector(fTBlockVector_),
+                   sTBlockVector(sTBlockVector_),
+                   fIndex(fIndex_),
+                   sIndex(sIndex_),
+                   fNumTuples(fNumTuples_),
+                   sNumTuples(sNumTuples_),
+                   rTBlockSize(rTBlockSize_),
+                   numStripes(numStripes_),
+                   fDim(fDim_),
+                   sDim(sDim_),
+                   fNumColumns(fTBlockVector[0]->GetColumnCount()),
+                   sNumColumns(sTBlockVector[0]->GetColumnCount()),
+                   newTuple(new AttrArrayEntry[fNumColumns+sNumColumns]) {
+
+    fBAT = createSortBAT(fTBlockVector, fIndex, fNumTuples, fDim);
+    sBAT = createSortBAT(sTBlockVector, sIndex, sNumTuples, sDim);
+    numStripes = spacePartitionX(fBAT, sBAT, numStripes, xMin, xMax);
+  }
 
   // Destructor                 
-  ~SpatialJoinState() {}
+  ~SpatialJoinState() {
+    delete[] fBAT;
+    delete[] sBAT;
+  }
 
   bool nextTBlock(TBlock* ntb) {
+    
+    list<binaryTuple> fSweepStruct;
+    list<binaryTuple> sSweepStruct;
+
+    uint64_t pos1 = 0;
+    uint64_t pos2 = 0;
+
+    // sweep-plane
+    for(uint64_t tempPart = 0; tempPart < numStripes; tempPart++) {
+      while(((fBAT[pos1].blockNum>>48)-1) == tempPart
+            || ((sBAT[pos2].blockNum>>48)-1) == tempPart) {
+          if(fBAT[pos1].yMin < sBAT[pos2].yMin) {
+            fSweepStruct.push_back(fBAT[pos1]);
+            sSweepStruct = sweepRemove(sSweepStruct, fBAT[pos1]);
+            sweepSearch(sSweepStruct, ntb, fBAT[pos1], 1, tempPart);
+            pos1++;
+          }
+          else {
+            sSweepStruct.push_back(sBAT[pos2]);
+            fSweepStruct = sweepRemove(fSweepStruct, sBAT[pos2]);
+            sweepSearch(fSweepStruct, ntb, sBAT[pos2], 2, tempPart);
+            pos2++;
+          }      
+        }
+      // if actually part is not empty
+      while(((fBAT[pos1].blockNum>>48)-1) == tempPart) {
+        pos1++;
+      }
+      while(((sBAT[pos2].blockNum>>48)-1) == tempPart) {
+        pos2++;
+      }   
+    }
+    
     return true;
   }
+
+  private:
+
+  list<binaryTuple> sweepRemove(list<binaryTuple> sweepStruct, binaryTuple bt) {
+    list<binaryTuple> tempList;
+    binaryTuple tempTuple;
+    
+    for(list<binaryTuple>::iterator iter = sweepStruct.begin();
+        iter != sweepStruct.end(); iter++) {
+      tempTuple = *iter;
+      if(tempTuple.yMax > bt.yMin) {
+        tempList.push_back(tempTuple);
+      }
+    }
+    sweepStruct.clear();
+    return tempList;
+  }
+
+  void sweepSearch(list<binaryTuple> sweepStruct,
+                   TBlock* ntb,
+                   binaryTuple searchTuple,
+                   int stream,
+                   uint64_t part) {
+
+    binaryTuple tempTuple;
+    double x_overlap;
+    double y_overlap;
+    double stripeWidth = (*xMax-*xMin)/numStripes;
+
+    // mask for decode block number
+    // compute 0-16:1-48 bits
+    uint64_t blockMask = (1ULL << 48) - 1;
+
+    for(list<binaryTuple>::iterator iter = sweepStruct.begin();
+        iter != sweepStruct.end(); iter++) {
+          
+      tempTuple = *iter;
+      // intersection test
+      x_overlap = (searchTuple.xMax < tempTuple.xMax ?
+                   searchTuple.xMax : tempTuple.xMax) -
+                  (searchTuple.xMin > tempTuple.xMin ?
+                   searchTuple.xMin : tempTuple.xMin);
+      x_overlap = 0 > x_overlap ? 0 : x_overlap;
+
+      y_overlap = (searchTuple.yMax < tempTuple.yMax ?
+                   searchTuple.yMax : tempTuple.yMax) -
+                  (searchTuple.yMin > tempTuple.yMin ?
+                   searchTuple.yMin : tempTuple.yMin);
+      y_overlap = 0 > y_overlap ? 0 : y_overlap;
+      
+      // rectangle was processed in last part
+      if((stripeWidth*part > searchTuple.xMin)
+         && (stripeWidth*part > tempTuple.xMin)) {
+           x_overlap = 0;
+           y_overlap = 0;
+      }
+      
+      //if intersection
+      if(x_overlap*y_overlap != 0) {
+        if(stream == 1) {
+          const TBlockEntry &fTuple = TBlockEntry(
+                fTBlockVector[(searchTuple.blockNum & blockMask) - 1],
+                searchTuple.row);
+
+          const TBlockEntry &sTuple = TBlockEntry(
+                sTBlockVector[(tempTuple.blockNum & blockMask) - 1],
+                tempTuple.row);
+
+          for(uint64_t i = 0; i < fNumColumns; ++i) {
+                newTuple[i] = fTuple[i];
+          }
+
+          for(uint64_t i = 0; i < sNumColumns; ++i) {
+                newTuple[fNumColumns + i] = sTuple[i];
+          }
+
+          ntb->Append(newTuple);
+        }
+        else {
+          const TBlockEntry &sTuple = TBlockEntry(
+                sTBlockVector[(searchTuple.blockNum & blockMask) - 1],
+                searchTuple.row);
+
+          const TBlockEntry &fTuple = TBlockEntry(
+                fTBlockVector[(tempTuple.blockNum & blockMask) - 1],
+                tempTuple.row);
+
+          for(uint64_t i = 0; i < fNumColumns; ++i) {
+                newTuple[i] = fTuple[i];
+          }
+
+          for(uint64_t i = 0; i < sNumColumns; ++i) {
+                newTuple[fNumColumns + i] = sTuple[i];
+          }
+
+          ntb->Append(newTuple);
+        }
+        
+      }
+    }
+  }
+  
+  const vector<TBlock*> &fTBlockVector;
+  const vector<TBlock*> &sTBlockVector;
+  uint64_t fIndex;
+  uint64_t sIndex;
+  uint64_t fNumTuples;
+  uint64_t sNumTuples;
+  uint64_t rTBlockSize;
+  binaryTuple* fBAT;
+  binaryTuple* sBAT;
+  uint64_t numStripes;
+  size_t fDim;
+  size_t sDim;
+  
+  double* xMin;
+  double* xMax;
+
+  const size_t fNumColumns;
+  const size_t sNumColumns;
+
+  AttrArrayEntry* const newTuple; // AttrArrayEntry* const newTuple;
 
 };
 }
