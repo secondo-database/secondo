@@ -1,21 +1,39 @@
 Database: berlintest
 Restore: NO
 
-Operator : extendwiths
+Operator : extendwith
 Number   : 1
 Signature: mT x stream(iT) -> mT, where T in {bool, int, real, string, point}
-Example  : query train1first extendwith [const ipoint value ("2007-12-24" (1.1 -2.2))]
-Result   : [const ipoint value ("2007-12-24" (1.1 -2.2))]
+Example  : query [const mpoint value undef] extendwith [const ipoint value ("2007-12-24" (1.1 -2.2))];
+Result   : (mpoint ((("2007-12-24" "2007-12-24" TRUE TRUE) (1.1 -2.2 1.1 -2.2))))
 
 Operator : streamvalve
 Number   : 1
 Signature: stream(alpha) x string -> stream(alpha)
-Example  : query intstream (1,10) streamvalve ["MyValve"] count;
-Result   : 10
+Example  : query intstream (1,3) streamvalve [] printstream count;
+Result   : 3
+
+Operator : streamvalve
+Number   : 2
+Signature: stream(alpha) x string -> stream(alpha)
+Example  : query intstream (1,3) streamvalve ['Open'] printstream count;
+Result   : 3
+
+Operator : streamvalve
+Number   : 3
+Signature: stream(alpha) x string -> stream(alpha)
+Example  : query intstream (1,3) streamvalve ['Random'] printstream count;
+Result   : 3
+
+Operator : streamvalve
+Number   : 4
+Signature: stream(alpha) x string -> stream(alpha)
+Example  : query intstream (1,3) streamvalve ['Random', 1, 3] printstream count;
+Result   : 3
 
 Operator : streamnext
 Number   : 1
 Signature: string x int -> int;
-Example  : query streamnext("MyValve", 11);
-Result   : 10
+Example  : query streamnext('NoSuchValve', 11);
+Result   : -1
 
