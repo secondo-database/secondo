@@ -462,7 +462,7 @@ public class QueryAnalyser {
 					}
 
 					final StringBuilder opQuery = new StringBuilder();
-					opQuery.append("query ");
+					opQuery.append("query (");
 					for (int j = startIndex; j < i; j++) {
 						tempToken = allTokens[j];
 						opQuery.append(tempToken.getText()).append(" ");
@@ -472,7 +472,7 @@ public class QueryAnalyser {
 						tempToken = allTokens[j];
 						opQuery.append(tempToken.getText()).append(" ");
 					}
-					opQuery.append("getTypeNL");
+					opQuery.append(") getTypeNL");
 
 					final ListExpr typeExpr = SecondoFacade.query(opQuery.toString(), false);
 					if (typeExpr != null) {
