@@ -129,8 +129,8 @@ Writes a readable representation to out.
 
 */
      std::ostream& print(std::ostream& out)const{
-      out << elem << ", l:" << left << ",R:" << right 
-          << ",f: " << father << ",h:" << height;
+      //out << elem << ", l:" << left << ",R:" << right 
+      //    << ",f: " << father << ",h:" << height;
       return out;
      }
 
