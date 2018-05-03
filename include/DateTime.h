@@ -555,6 +555,8 @@ an {\tt instant} type.
 */
      void Now();
 
+
+
 /*
 ~Today~
 
@@ -734,6 +736,15 @@ Word InInstant( const ListExpr typeInfo, const ListExpr instance,
                 const int errorPos, ListExpr& errorInfo, bool& correct );
 ListExpr OutDateTime( ListExpr typeInfo, Word value );
 
+
+/*
+~GetNow~
+
+Function returning an instant representing the current system time;
+
+*/
+
+  DateTime GetNow();
 }
 
 /*

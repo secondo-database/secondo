@@ -232,6 +232,7 @@ to determine selectivities of predicates while processing a query. Furthermore s
 #include "DotSpec.h"
 #include "FileSystem.h"
 #include "StandardTypes.h"
+#include "DateTime.h"
 #include "../Algebras/FText/FTextAlgebra.h"
 #include "Application.h"
 #include "NList.h"
@@ -562,6 +563,7 @@ struct OpNode
   ListExpr     typeExpr;
   ListExpr     numTypeExpr;
   const OpNodeType   nodetype;
+  datetime::DateTime queryTime;
   int          id;
   bool         isRoot;
   ArgVector    tmpArg;
@@ -633,11 +635,12 @@ Constructor for a proper initialization of an ~OpNode~
 */
 
 
-OpNode(OpNodeType type) :
+OpNode(OpNodeType type, const datetime::DateTime& _queryTime) :
   evaluable(false),
   typeExpr(0),
   numTypeExpr(0),
   nodetype(type),
+  queryTime(_queryTime),
   id(OpNodeIdCtr++),
   isRoot(false)
 {
@@ -746,7 +749,7 @@ OpNode(OpNodeType type) :
 
 
 private:
-  //OpNode(){} // bad idea to use an uninitialized object
+  OpNode(); // bad idea to use an uninitialized object
 
 };
 
@@ -3014,7 +3017,7 @@ QueryProcessor::DestroyValuesArray()
 
 */
 OpTree
-QueryProcessor::SubtreeX( const ListExpr expr )
+QueryProcessor::SubtreeX( const ListExpr expr, const datetime::DateTime& qt )
 {
   AllocateArgVectors( functionno );
   for ( int i = 0; i < functionno; i++)
@@ -3031,7 +3034,7 @@ QueryProcessor::SubtreeX( const ListExpr expr )
 
 
   bool first = true;
-  OpTree resultTree = Subtree( expr, first );
+  OpTree resultTree = Subtree( expr, first,qt );
 
   if ( RTFlag::isActive("QP:OpTree2SVG") ) {
 
@@ -3069,6 +3072,7 @@ QueryProcessor::SubtreeX( const ListExpr expr )
 OpTree
 QueryProcessor::Subtree( const ListExpr expr,
                    bool&  first,
+                   const datetime::DateTime& qt,
                    const OpNode __attribute__((unused))* fatherNode /* = 0 */
 )
 {
@@ -3125,7 +3129,7 @@ QueryProcessor::Subtree( const ListExpr expr,
 
     case QP_POINTER:
     {
-      node = new OpNode(Pointer);
+      node = new OpNode(Pointer,qt);
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
       node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
@@ -3142,7 +3146,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     }
     case QP_CONSTANT:
     {
-      node = new OpNode(Object);
+      node = new OpNode(Object,qt);
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
       node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
@@ -3159,7 +3163,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     }
     case QP_OBJECT:
     {
-      node = new OpNode(Object);
+      node = new OpNode(Object,qt);
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
       node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
@@ -3176,7 +3180,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     }
     case QP_OPERATOR:
     {
-      node = new OpNode(Operator);
+      node = new OpNode(Operator,qt);
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
       node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
@@ -3226,7 +3230,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     }
     case QP_VARIABLE:
     {
-      node = new OpNode(IndirectObject);
+      node = new OpNode(IndirectObject,qt);
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
       node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
@@ -3263,7 +3267,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     {
       first = false;
       node = Subtree(nl->First(nl->Third(nl->First(expr))),
-                      first, node );
+                      first, qt, node );
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
       node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
@@ -3302,7 +3306,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       while ( !nl->IsEmpty( list ) )
       {
         node->u.op.sons[node->u.op.noSons].addr =
-          Subtree( nl->First( list ), first, node );
+          Subtree( nl->First( list ), first, qt, node );
 
         if ( requestsArguments ) {
           ((OpNode*) node->u.op.sons[node->u.op.noSons].addr)
@@ -3349,7 +3353,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     }
     case QP_ABSTRACTION:
     {
-      node = Subtree( nl->Third( nl->First( expr ) ), first, node );
+      node = Subtree( nl->Third( nl->First( expr ) ), first, qt, node );
       node->evaluable = false;
       node->typeExpr = nl->Second( expr );
       node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
@@ -3366,7 +3370,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     }
     case QP_IDENTIFIER:
     {
-      node = new OpNode(Object);
+      node = new OpNode(Object,qt);
       node->evaluable = false;
       node->typeExpr = nl->Second( expr );
       node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
@@ -3380,7 +3384,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     }
     case QP_ARGLIST:
     {
-      node = new OpNode(Operator);
+      node = new OpNode(Operator,qt);
       node->typeExpr = nl->Second( expr );
       node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
       node->isRoot = oldfirst;
@@ -3392,7 +3396,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       while (!nl->IsEmpty( list ))
       {
         node->u.op.sons[node->u.op.noSons].addr =
-          Subtree( nl->First( list ), first, node );
+          Subtree( nl->First( list ), first, qt, node );
         node->u.op.noSons++;
         list = nl->Rest( list );
       }
@@ -3408,7 +3412,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       // spm: should never be reached!
       throw qp_error( "Unexpected function subtree" );
       OpTree subNode = Subtree( nl->Third( nl->First( expr ) ),
-                                first, node);
+                                first, qt, node);
       if (traceNodes)
       {
         cout << "QP_FUNCTION:" << endl;
@@ -3419,7 +3423,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     case QP_APPLYABS:
     case QP_APPLYFUN:
     {
-      node = new OpNode(Operator);
+      node = new OpNode(Operator,qt);
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
       node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
@@ -3431,13 +3435,13 @@ QueryProcessor::Subtree( const ListExpr expr,
       node->u.op.noSons = 1;
       OpNode* sonNode = 
         Subtree( nl->First(nl->Third(nl->First(expr))),
-                 first, node ); /* the abstraction */
+                 first, qt, node ); /* the abstraction */
       node->u.op.sons[0].addr = sonNode;
       list = nl->Rest( nl->Third( nl->First( expr ) ) );
       while ( !nl->IsEmpty( list ) )
       { /* the arguments */
         node->u.op.sons[node->u.op.noSons].addr =
-          Subtree( nl->First( list ), first, node );
+          Subtree( nl->First( list ), first, qt, node );
         node->u.op.noSons++;
         list = nl->Rest( list );
       }
@@ -3452,7 +3456,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     }
     case QP_COUNTERDEF:
     {
-      node = Subtree( nl->Fourth( nl->First( expr )), first, node);
+      node = Subtree( nl->Fourth( nl->First( expr )), first, qt, node);
 
       if ( node->nodetype == Operator )
         node->u.op.counterNo =
@@ -3466,7 +3470,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     }
     case QP_PREDINFODEF:
     {
-      node = Subtree( nl->Fifth( nl->First( expr )), first, node);
+      node = Subtree( nl->Fifth( nl->First( expr )), first, qt, node);
 
       if ( node->nodetype == Operator )
         node->u.op.selectivity =
@@ -3483,7 +3487,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     }
     case QP_MEMORYDEF:
     {
-      node = Subtree( nl->Fourth( nl->First( expr )), oldfirst, node);
+      node = Subtree( nl->Fourth( nl->First( expr )), oldfirst, qt, node);
 
       if ( node->nodetype == Operator ) {
         if ( node->u.op.usesMemory )
@@ -3628,7 +3632,8 @@ QueryProcessor::Construct( const ListExpr expr,
                            bool& isFunction,
                            OpTree& tree,
                            ListExpr& resultType,
-                           bool allowIncomplete )
+                           bool allowIncomplete,
+                           datetime::DateTime qt /* = now */ )
 {
 /*
 Builds an operator tree ~tree~ from a given list expression ~expr~ by
@@ -3754,7 +3759,7 @@ the function in a database object.
     throw ERR_UNDEF_OBJ_VALUE;
   }
 
-  tree = SubtreeX( list );
+  tree = SubtreeX( list,qt );
   
   // Distribute remaining global memory (after explicit assignments)
   // evenly to operators using main memory. In any case such operators get
@@ -5214,6 +5219,14 @@ QueryProcessor::GetSupplierNumTypeExpr( const Supplier s )
   OpTree tree = (OpTree) s;
   return tree->numTypeExpr;
 }
+
+const datetime::DateTime& QueryProcessor::GetQueryTime( const Supplier s){
+  OpTree tree = (OpTree) s;
+  return tree->queryTime;
+}
+
+
+
 
 
 /*

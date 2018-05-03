@@ -82,6 +82,7 @@ distances between the first points and the last points of two point sequences.
 #include "VectorTypeMapUtils.h"
 
 #include "Algebras/Spatial/Geoid.h"
+#include "QueryProcessor.h"
 
 
 namespace tsa {

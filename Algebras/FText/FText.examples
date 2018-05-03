@@ -1353,3 +1353,13 @@ Signature : -> text
 Example  : query length(configFile())>0
 Result   : TRUE
 
+Operator  : queryTime
+Number    : 1
+Signature : -> instant
+Example   : query  queryTime() <= now()
+Result    : TRUE
+
+
+
+
+

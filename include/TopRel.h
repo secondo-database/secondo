@@ -72,15 +72,11 @@ topological predicates.
 #include <iostream>
 #include <sstream>
 #include "NestedList.h"
-#include "Algebra.h"
-#include "QueryProcessor.h"
-#include "SecondoSystem.h"
 #include "Attribute.h"
 #include "StandardTypes.h"
 #include "../Tools/Flob/DbArray.h"
 #include "../Tools/Flob/Flob.h"
 #include "Algebras/Rectangle/RectangleAlgebra.h"
-#include "GenericTC.h"
 #include "ListUtils.h"
 
 

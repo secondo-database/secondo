@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "NestedList.h"
 #include "StandardTypes.h"
+#include "QueryProcessor.h"
 
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/OperatorSetTraceLevel.hpp"

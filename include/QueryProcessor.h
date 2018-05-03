@@ -164,6 +164,7 @@ The class ~QueryProcessor~ provides the following methods:
 #ifndef QUERY_PROCESSOR_H
 #define QUERY_PROCESSOR_H
 
+
 #include "AlgebraManager.h"
 /*
 defines the basic types of the query processor
@@ -175,6 +176,7 @@ such as "ArgVectorPointer"[4], "Supplier"[4], "Word"[4], "Address"[4], etc.
 #include "LogMsg.h"
 #include "StopWatch.h"
 #include "DotSpec.h"
+#include "DateTime.h"
 
 
 #define DEFAULT_GLOBAL_MEMORY 128
@@ -196,6 +198,7 @@ typedef std::vector<VarEntry>  VarEntryTable;
 // forward declarations to avoid compile time dependencies
 class ProgressView;
 class ProgressInfo;
+
 
 /************************************************************************** 
 3.2 Class "QueryProcessor"[1]
@@ -237,7 +240,8 @@ Stores a ~ProgressView~ instance pointer to show progress.
                   bool& evaluable, bool& defined,
                   bool& isFunction,
                   OpTree& tree, ListExpr& resultType,
-                  bool allowIncomplete=false );
+                  bool allowIncomplete=false,
+                  const datetime::DateTime querytime = datetime::GetNow());
 /*
 Builds an operator tree ~tree~ from a given list expression ~expr~ by
 calling the procedures ~annotateX~ and ~subtreeX~. The tree is only
@@ -502,6 +506,14 @@ Returns the type expression of the node ~s~ of the operator tree.
 Returns the numeric type expression of the node ~s~ of the operator tree.
 
 */
+  const datetime::DateTime& GetQueryTime( const Supplier s);
+/*
+ Returns the instant used during constructing of the tree.
+
+*/
+
+
+
   void SetModified( const Supplier s );
 /*
 Sets a node ~s~ of the operator tree as modified. The node must be
@@ -544,7 +556,7 @@ Annotate query expression of ~expr~. Create tables for variables,
 objects mentioned in the expression have defined values. 
 
 */
-  OpTree SubtreeX( const ListExpr expr );
+  OpTree SubtreeX( const ListExpr expr, const datetime::DateTime& queryTime);
 /*
 Construct an operator tree from ~expr~. Allocate argument vectors for all
 functions and then call ~subtree~ to do the job.
@@ -882,6 +894,7 @@ function body.
 
   OpTree Subtree( const ListExpr expr,
                   bool& first,
+                  const datetime::DateTime& queryTime,
                   const OpNode* fatherNode = 0 );
 /*
 Construct operator tree recursively for a given annotated ~expr~. See

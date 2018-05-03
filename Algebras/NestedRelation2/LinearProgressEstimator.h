@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "ProgressEstimator.h"
 #include "Nr2aLocalInfo.h"
+#include "QueryProcessor.h" 
 
 namespace nr2a {
 

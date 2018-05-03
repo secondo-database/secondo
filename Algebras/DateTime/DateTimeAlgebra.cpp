@@ -1734,6 +1734,13 @@ void DateTime::ReadFrom( const char *src )
   ReadFrom( string(src) );
 }
 
+DateTime GetNow() {
+     DateTime dt(instanttype);
+     dt.Now();
+     return dt;
+ }
+
+
 
 /*
 2 Algebra Functions

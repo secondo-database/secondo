@@ -56,7 +56,6 @@ derived attribute class must implement.
 #include "SecondoSystem.h"
 #include "NestedList.h"
 #include "ListUtils.h"
-#include "QueryProcessor.h"
 #include "Counter.h"
 //#include "AlgebraManager.h"
 #include "../Tools/Flob/Flob.h"

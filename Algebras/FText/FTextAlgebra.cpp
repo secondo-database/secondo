@@ -13494,6 +13494,44 @@ Operator configFileOp(
 );
 
 
+/*
+Operator ~queryTime~
+
+*/
+ListExpr queryTimeTM(ListExpr args){
+   if(!nl->IsEmpty(args)){
+     return listutils::typeError("no arguments expected");
+   }
+   return listutils::basicSymbol<Instant>();
+}
+
+int queryTimeVM( Word* args, Word& result, int message, 
+                 Word& local, Supplier s ) {
+
+  result = qp->ResultStorage(s);
+  datetime::DateTime* res = (datetime::DateTime*)result.addr;
+  (*res) = qp->GetQueryTime(s);
+  return 0;
+}
+
+OperatorSpec queryTimeSpec(
+  "-> instant",
+  "queryTime()",
+  "Returns the time when constructing the operator tree.",
+  "query queryTime()"
+);
+
+Operator queryTimeOp(
+  "queryTime",
+   queryTimeSpec.getStr(),
+   queryTimeVM,
+   Operator::SimpleSelect,
+   queryTimeTM
+);
+
+
+
+
 
 /*
 5 Creating the algebra
@@ -13650,6 +13688,7 @@ Operator configFileOp(
       AddOperator(&dbobjectsOp);
 
       AddOperator(&configFileOp);
+      AddOperator(&queryTimeOp);
 
 #ifdef RECODE
       AddOperator(&recode);

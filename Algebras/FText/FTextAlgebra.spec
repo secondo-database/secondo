@@ -132,3 +132,8 @@ operator like2regex alias LIKE2REGEX pattern op(_,_)
 operator getObjects alias GETOBJECTS pattern op(_)
 
 operator dbobjects alias DBOBJECTS pattern op(_,_)
+
+operator queryTime alias QUERYTIME pattern op()
+
+
+

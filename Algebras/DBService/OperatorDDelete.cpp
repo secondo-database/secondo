@@ -28,11 +28,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "FileSystem.h"
 #include "NestedList.h"
 #include "StandardTypes.h"
+#include "QueryProcessor.h"
 
 #include "Algebras/DBService/DBServiceClient.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/OperatorDDelete.hpp"
 #include "Algebras/DBService/ReplicationUtils.hpp"
+
 
 using namespace std;
 

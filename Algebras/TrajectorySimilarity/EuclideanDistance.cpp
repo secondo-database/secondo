@@ -72,6 +72,7 @@ different numbers of points, the result is ~undefined~.
 #include "VectorTypeMapUtils.h"
 
 #include "Algebras/Spatial/Geoid.h"
+#include "QueryProcessor.h"
 
 
 namespace tsa {

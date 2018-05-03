@@ -36,6 +36,7 @@ a namespace problem.
 
 #include "FunVector.h"
 #include "StandardTypes.h"
+#include "QueryProcessor.h"
 
 using namespace std;
 
