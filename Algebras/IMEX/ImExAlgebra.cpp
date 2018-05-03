@@ -7645,7 +7645,8 @@ class db3CollectInfo{
     db3CollectInfo(Word _stream, const string& _fileName,
                    ListExpr _tt): stream(_stream){
        tt = new TupleType(_tt);
-       char* outpath = realpath(_fileName.c_str(),0);
+       char* outpath = (char*) malloc(PATH_MAX); 
+       realpath(_fileName.c_str(),outpath);
        outabsolutepath = string(outpath);
        free(outpath);
        out = new ofstream(_fileName.c_str(),ios_base::binary);
