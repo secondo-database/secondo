@@ -7257,6 +7257,9 @@ class shpCollectInfo{
                    ListExpr _tt):
      stream(_stream){
      outshp = new ofstream(fn.c_str(), ios::binary| ios::out );
+     char* p = realpath(fn.c_str(),0);
+     outabsolutepath = string(p);
+     free(p);
      outbuf = new char[FILE_BUFFER_SIZE];
      outshp->rdbuf()->pubsetbuf(outbuf,FILE_BUFFER_SIZE);
 
@@ -7349,6 +7352,7 @@ class shpCollectInfo{
     uint32_t noRecords;
     char* outbuf;
     char* shxbuf;
+    string outabsolutepath;
 
     Tuple* error(Tuple* res, string message, ifstream* inshp=0, 
                  char* inbuf = 0 ){
@@ -7360,6 +7364,13 @@ class shpCollectInfo{
     }
 
     Tuple* appendFile(Tuple* res, const string& fileName){
+      char* inpath = realpath(fileName.c_str(),0);
+      string inp = string(inpath);
+      free(inpath);
+      if(inp == outabsolutepath){
+         return error(res, "file identically to output");
+      }
+
       ifstream* inshp = new ifstream(fileName.c_str(), ios::binary);
       if(!inshp->good()){
          return error(res, "could not open shape file", inshp);
