@@ -7645,6 +7645,9 @@ class db3CollectInfo{
     db3CollectInfo(Word _stream, const string& _fileName,
                    ListExpr _tt): stream(_stream){
        tt = new TupleType(_tt);
+       char* outpath = realpath(_fileName.c_str(),0);
+       outabsolutepath = string(outpath);
+       free(outpath);
        out = new ofstream(_fileName.c_str(),ios_base::binary);
        outbuf = new char[FILE_BUFFER_SIZE];
        out->rdbuf()->pubsetbuf(outbuf,FILE_BUFFER_SIZE);
@@ -7691,6 +7694,7 @@ class db3CollectInfo{
     uint32_t noRecords;
     vector<db3AttrType> dbType;
     bool hasMemo;
+    string outabsolutepath;
 
     Tuple* error(Tuple* res, const string& msg, 
                  ifstream* in1 = 0, ifstream* in2=0,
@@ -7710,6 +7714,14 @@ class db3CollectInfo{
 
 
     Tuple* processFile(Tuple* res, const string& name){
+       char* inpath = realpath(name.c_str(),0);
+       string inabs = string(inpath);
+       free(inpath);
+       if(inabs==outabsolutepath){
+          return error(res,"input file identically to output");
+       }
+
+
         ifstream in1(name.c_str(), ios_base::binary);
         if(!in1.good()){
            return error(res,"Cannot open file", &in1);
