@@ -32,6 +32,8 @@ ALGEBRA_DEPENDENCIES += RelationAlgebra
 ALGEBRA_DEPENDENCIES += FunctionAlgebra
 ALGEBRA_DEPENDENCIES += ArrayAlgebra
 ALGEBRA_DEPENDENCIES += FTextAlgebra
+ALGEBRA_DEPENDENCIES += DFSAlgebra 
+
 
 
 # include global definitions
