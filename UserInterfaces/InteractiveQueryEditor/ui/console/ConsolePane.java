@@ -47,7 +47,7 @@ public class ConsolePane extends JTextPane implements UpdateHandler {
 		setBackground(Color.WHITE);
 		setForeground(Color.BLACK);
 		setCaretColor(Color.BLACK);
-		document.setDocumentFilter(new ConsoleDocumentFilter(1000));
+		document.setDocumentFilter(new ConsoleDocumentFilter(10000));
 		setNavigationFilter(new ConsoleNavigationFilter(document));
 	}
 
