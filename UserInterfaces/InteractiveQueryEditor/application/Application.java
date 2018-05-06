@@ -49,9 +49,9 @@ public class Application {
 		try {
 			Thread.setDefaultUncaughtExceptionHandler(new ExceptionHandler());
 			initializeUI();
-			SecondoFacade.initialize("Config.ini");
+			SecondoFacade.initialize("SecondoConfig.ini");
 		} catch(final Exception exception) {
-			ExceptionHandler.showException(null, exception, "The initialization of the IQE could not be finished. And exception occured.");
+			ExceptionHandler.showException(null, exception, "The initialization of the IQE could not be finished. An exception occured.");
 		}
 	}
 
