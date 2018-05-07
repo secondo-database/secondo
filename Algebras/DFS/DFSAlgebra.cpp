@@ -151,6 +151,49 @@ Operator connectDFSOp(
 );
 
 /*
+2.1 disconnectDFS
+
+*/
+ListExpr disconnectDFSTM(ListExpr args){
+  if(!nl->IsEmpty(args)){
+    return listutils::typeError("no arguments expected");
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+
+int disconnectDFSVM( Word* args,
+                  Word& result, int message,
+                  Word& local,
+                  Supplier  s ){
+
+  result = qp->ResultStorage(s);
+  ((CcBool*) result.addr)->Set(true, filesystem!=0);
+  if(filesystem){
+    delete filesystem;
+    filesystem = 0;
+  }
+  return 0;
+}
+
+OperatorSpec disconnectDFSSpec(
+  "-> bool",
+  "disconnectDFS()",
+  "Disconnects a distributed filesystem. Returns true "
+  " if there was a distributed filesystem before",
+  "query disconnectDFS() "
+);
+
+Operator disconnectDFSOp(
+  "disconnectDFS",
+   disconnectDFSSpec.getStr(),
+   disconnectDFSVM,
+   Operator::SimpleSelect,
+   disconnectDFSTM
+);
+
+
+/*
 2.2 ~deleteDFSFile~
 
 */
@@ -1296,6 +1339,7 @@ class DFSAlgebra: public Algebra{
 #ifdef REMOTE_FILESYSTEM
         AddOperator(&registerDFSDataNodeOp);
 #endif
+        AddOperator(&disconnectDFSOp);
       }
 
       ~DFSAlgebra(){

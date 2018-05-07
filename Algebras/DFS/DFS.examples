@@ -137,3 +137,11 @@ Result   : unpredictable
 Remark   : depends on presence of DFS service 
 
 
+Operator  : disconnectDFS
+Number    : 1
+Signature : -> bool
+Example   : query disconnectDFS()
+Result    : unpredictable
+Remark    : depends on presence of DFS service 
+
+
