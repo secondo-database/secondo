@@ -27,4 +27,9 @@ SecondoBDB
 SecondoCS
 SecondoCheckpoint
 *.trc
-
+SecondoListener
+SecondoMonitor
+SecondoREPLAY
+SecondoRegistrar
+proglogt.csv
+tmp_statistics.csv
