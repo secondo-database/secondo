@@ -3,3 +3,6 @@
 *.dep
 *.fm
 *.class
+specs
+specs.test
+
