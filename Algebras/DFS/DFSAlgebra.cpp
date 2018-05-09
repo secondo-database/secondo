@@ -96,7 +96,10 @@ int connectDFSVMT( Word* args,
    CcBool* res = (CcBool*) result.addr; 
 
    // delete existing remote filesystem
-   if(filesystem) delete filesystem;
+   if(filesystem) {
+      delete filesystem;
+      filesystem = 0;   
+   }
 
    // check arguments
    T* host = (T*) args[0].addr;
