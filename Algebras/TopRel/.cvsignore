@@ -3,3 +3,7 @@
 *.dep
 *.fm
 *.class
+TreeLex.c
+TreeParser.y.c
+TreeParser.y.h
+
