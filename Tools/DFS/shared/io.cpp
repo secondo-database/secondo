@@ -37,10 +37,33 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <sys/stat.h>
 #include <cstring>
 
+
+#if (_POSIX_C_SOURCE < 200112L) 
+#warning "using slow fallocate version"
+  int posix_fallocate(int fd, off_t offset, off_t len){
+    size_t bs = len<4096?len:4096;
+    char buffer[bs];
+    memset(buffer, 0, bs);
+    size_t remaining = len;
+    while(remaining > 0) {
+      size_t n = remaining<bs?remaining:bs; 
+      ssize_t r = write(fd,buffer,n);
+      if(r==-1){
+        close(fd);
+        return 1;
+      }
+      remaining -= r;
+    }
+    if(close(fd)==-1) return 1;
+    return 0;
+  }
+#endif
+
 #endif
 
 using namespace dfs;
 using namespace dfs::io::file;
+
 
 void dfs::io::file::allocate(const char *filename, unsigned long long bytes) {
 
