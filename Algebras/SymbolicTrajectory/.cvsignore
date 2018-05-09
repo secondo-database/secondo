@@ -3,3 +3,10 @@
 *.dep
 *.fm
 *.class
+PatternParser.output
+PatternParser.tab.c
+PatternParser.tab.h
+PatternRegExParser.y.c
+PatternRegExParser.y.h
+PatternRegExScanner.c
+lex.pattern.c
