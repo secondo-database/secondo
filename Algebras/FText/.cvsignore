@@ -3,3 +3,6 @@
 *.dep
 *.fm
 *.class
+RegExParser.y.c
+RegExParser.y.h
+RegExScanner.c
