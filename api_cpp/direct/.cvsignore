@@ -3,3 +3,5 @@
 *.dep
 *.fm
 *.class
+include
+lib
