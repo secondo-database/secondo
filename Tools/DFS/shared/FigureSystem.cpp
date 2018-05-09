@@ -79,7 +79,7 @@ Str FigureSystem::toStr() {
 
 void FigureSystem::fromStr(const Str &strValue) {
   //000A --> values[0]=10
-  if (!strValue.len() == length) throw "invalid length of figure system";
+  if (strValue.len() != length) throw "invalid length of figure system";
   int max = length - 1;
   for (int i = max; i >= 0; i--) {
 

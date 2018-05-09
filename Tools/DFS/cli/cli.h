@@ -100,7 +100,7 @@ void debugc(const Str &cmd, const Str &s) {
 }
 
 int randInt(int min, int max) {
-  numberUtils::randInt(max, min);
+  return numberUtils::randInt(max, min);
 }
 
 #endif /* CLI_H */

@@ -370,6 +370,7 @@ Str DataNodeClientHandler::onReceived(Str *s, int *resultFlags) {
   } else {
     return "9999unknownCommand";
   }
+  return "";
 }
 
 void DataNodeClientHandler::onEnd() {

@@ -35,7 +35,7 @@ DataNodeClientHandlerFactory::DataNodeClientHandlerFactory(
   const DataNode *dataNode, int maxHandlerCount, dfs::log::Logger *l) {
   this->maxHandlerCount = maxHandlerCount;
   this->logger = l;
-  this->nodeState = nodeState;
+  // this->nodeState = nodeState; // self assignment: makes no sense
   this->dataNode = dataNode;
   this->freeHandlerId = 0;
   this->maxHandlerCount = 8;

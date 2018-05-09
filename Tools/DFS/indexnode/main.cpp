@@ -218,6 +218,8 @@ void *webserverThread(void *arg) {
   server.logger = pLogger;
   server.pHandler = &h;
   server.listen();
+
+  return 0; // ???
 }
 
 void displayHelp() {

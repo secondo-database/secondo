@@ -611,6 +611,7 @@ Str handleMessage(const Str *i, int *flags) {
     globalLogger->error("unknown command");
     return Str("9999", 4);
   }
+  return "";
 
 }
 

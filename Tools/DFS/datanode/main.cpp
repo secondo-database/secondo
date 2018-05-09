@@ -124,6 +124,7 @@ void *webServerThread(void *arg) {
   dfs::comm::WebServer *pserver = (dfs::comm::WebServer *) arg;
   pserver->logger->debug("THREAD webServerThread: WebServer.listen");
   pserver->listen();
+  return pserver;
 }
 
 

@@ -1,5 +1,5 @@
 CC=g++
-CXXFLAGS =-I -Wall -g -Werror
+CXXFLAGS =-I -Wall -g 
 LD=ld 
 CCO = $(CC) $(CCFLAGS)
 
