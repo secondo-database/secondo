@@ -3,3 +3,10 @@
 *.dep
 *.fm
 *.class
+NestedText.cpp
+Parser
+Parser2
+SpecParser.tab.cpp
+SpecParser.tab.hpp
+lex.yy.cpp
+lex2.yy.cpp

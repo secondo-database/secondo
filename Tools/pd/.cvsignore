@@ -3,3 +3,16 @@
 *.dep
 *.fm
 *.class
+PDLex.c
+docu
+docuhtml
+enumerate
+filterpd
+linebreaks
+linecheck
+makeascii
+makehtml
+maketex
+pdtabs
+tabcheck
+y.tab.c
