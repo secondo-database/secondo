@@ -11,4 +11,4 @@
 *.toc
 .*.sw?
 compile_commands.json
-README.rst
+README.html
