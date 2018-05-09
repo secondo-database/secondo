@@ -284,6 +284,7 @@ class MBasic : public Attribute {
   #ifdef RECODE
   void Recode(const std::string& from, const std::string& to,MBasic<B>& result);
   #endif
+  NewPair<int, int> LongestCommonSubsequence(const MBasic<B>& mb);
   std::ostream& Print(std::ostream& os) const;  
   double Distance_FIRST(const MBasic<B>& mb) const;
   double Distance_LAST(const MBasic<B>& mb) const;
@@ -3339,6 +3340,45 @@ void MBasic<B>::Recode(const std::string& from, const std::string& to,
   }
 }
 #endif
+
+/*
+\subsection{Function ~LongestCommonSubsequence~}
+
+*/
+template<class B>
+NewPair<int, int> MBasic<B>::LongestCommonSubsequence(const MBasic<B>& mb) {
+  NewPair<int, int> result(0, 0);
+  if (IsEmpty() || mb.IsEmpty()) {
+    return result;
+  }
+  int dp[GetNoComponents() + 1][mb.GetNoComponents() + 1];
+  int lcsSize (0), maxPos(-1);
+  typename B::base value1, value2;
+  for (int i = 0; i <= GetNoComponents(); i++) {
+    for (int j = 0; j <= GetNoComponents(); j++) {
+      if (i == 0 || j == 0) {
+        dp[i][j] = 0;
+      }
+      else {
+        GetValue(i - 1, value1);
+        mb.GetValue(j - 1, value2);
+        if (value1 == value2) {
+          dp[i][j] = dp[i - 1][j - 1] + 1;
+          if (dp[i][j] > lcsSize) {
+            lcsSize = dp[i][j];
+            maxPos = i;
+          }
+        }
+        else {
+          dp[i][j] = 0;
+        }
+      }
+    }
+  }
+  result.first = maxPos - lcsSize;
+  result.second = maxPos - 1;
+  return result;
+}
 
 /*
 \subsection{Function ~Print~}

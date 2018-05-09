@@ -2857,6 +2857,114 @@ struct insideSymbolicInfo : OperatorInfo {
 };
 
 /*
+\subsection{Operator ~longestcommonsubsequence~}
+
+longestcommonsubsequence: mT x mT -> stream(T)
+
+\subsubsection{Type Mapping}
+
+*/
+ListExpr longestcommonsubsequenceSymbolicTM(ListExpr args) {
+  if (nl->HasLength(args, 2)) {
+    ListExpr first(nl->First(args)), second(nl->Second(args));
+    if (MLabel::checkType(first) && MLabel::checkType(second)) {
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), 
+                             nl->SymbolAtom(Label::BasicType()));
+    }
+    if (MPlace::checkType(first) && MPlace::checkType(second)) {
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), 
+                             nl->SymbolAtom(Place::BasicType()));
+    }
+  }
+  return listutils::typeError("Correct signatures: mlabel x mlabel -> stream("
+    "label),   mplace x mplace -> stream(place)");
+}
+
+/*
+\subsubsection{Local Info Class}
+
+*/
+template<class M, class B>
+class LongestcommonsubsequenceLI {
+ public:
+  LongestcommonsubsequenceLI(M *m, NewPair<int, int> pos) :
+                                            src(true), limits(pos), counter(0) {
+    src.CopyFrom(m);
+  }
+  ~LongestcommonsubsequenceLI() {}
+  
+  B* getNextValue() {
+    B *value = new B(true);
+    int pos = limits.first + counter;
+    if (pos > limits.second) {
+      return 0;
+    }
+    src.GetBasic(pos, *value);
+    counter++;
+    return value;
+  }
+  
+  
+  M src;
+  NewPair<int, int> limits;
+  int counter;
+};
+
+/*
+\subsubsection{Value Mapping}
+
+*/
+template<class M, class B>
+int longestcommonsubsequenceSymbolicVM(Word* args, Word& result, int message,
+                                       Word& local, Supplier s) {
+  LongestcommonsubsequenceLI<M, B> *li =
+                                  (LongestcommonsubsequenceLI<M, B>*)local.addr;
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      M* src1 = static_cast<M*>(args[0].addr);
+      M* src2 = static_cast<M*>(args[1].addr);
+      if (src1->IsDefined() && src2->IsDefined()) {
+        NewPair<int, int> limits = src1->LongestCommonSubsequence(*src2);
+        li = new LongestcommonsubsequenceLI<M, B>(src1, limits);
+      }
+      local.addr = li;
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->getNextValue() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
+\subsubsection{Operator Info}
+
+*/
+struct longestcommonsubsequenceSymbolicInfo : OperatorInfo {
+  longestcommonsubsequenceSymbolicInfo() {
+    name      = "longestcommonsubsequence";
+    signature = "mT x mT -> stream(T),  T in {label, place}";
+    syntax    = "longestcommonsubsequence(_, _)";
+    meaning   = "Computes the (first) longest common sequence of labels/places "
+                "of the sources with the help of a dynamic programming "
+                "algorithm.";
+  }
+};
+
+/*
 \section{Operator ~topattern~}
 
 \subsection{Type Mapping}
@@ -5437,6 +5545,7 @@ int createTileAreasVM(Word* args, Word& result, int message, Word& local,
   raster2::sint *hgt = static_cast<raster2::sint*>(args[0].addr);
   Tileareas *res = static_cast<Tileareas*>(result.addr);
   res->retrieveAreas(hgt);
+  res->recordRoadCourses(hgt);
   return 0;
 }
 
@@ -5512,8 +5621,8 @@ ListExpr restoreTrajTM(ListExpr args) {
       if (!CcInt::checkType(nl->Second(nl->Fifth(attrList)))) {
         return listutils::typeError("Edges: type error in fifth attribute");
       }
-      return nl->TwoElemList(listutils::basicSymbol<Stream<MPoint> >(),
-                             listutils::basicSymbol<MPoint>());
+      return nl->TwoElemList(listutils::basicSymbol<Stream<Rectangle<2> > >(),
+                             listutils::basicSymbol<Rectangle<2> >());
     }
   }
   return listutils::typeError("Argument types must be rel(tuple(longint, text, "
@@ -5845,6 +5954,13 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     insideSymbolicVM<MPlace, Places>, 0};
   AddOperator(insideSymbolicInfo(), insideSymbolicVMs, insideSymbolicSelect,
               insideSymbolicTM);
+  
+  ValueMapping longestcommonsubsequenceSymbolicVMs[] = 
+    {longestcommonsubsequenceSymbolicVM<MLabel, Label>,
+     longestcommonsubsequenceSymbolicVM<MPlace, Place>, 0};
+  AddOperator(longestcommonsubsequenceSymbolicInfo(), 
+              longestcommonsubsequenceSymbolicVMs, insideSymbolicSelect,
+              longestcommonsubsequenceSymbolicTM);
       
   AddOperator(topatternInfo(), topatternVM, topatternTM);
 

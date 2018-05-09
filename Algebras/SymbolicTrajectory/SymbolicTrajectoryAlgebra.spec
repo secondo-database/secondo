@@ -8,6 +8,7 @@ operator name alias NAME pattern op ( _ )
 operator ref alias REF pattern op ( _ )
 operator distance alias DISTANCE pattern op ( _ , _ )
 operator distancesym alias DISTANCESYM pattern op ( _ , _ , _ )
+operator longestcommonsubsequence alias LONGESTCOMMONSUBSEQUENCE pattern op ( _ , _ )
 operator topattern alias TOPATTERN pattern _ op
 operator toclassifier alias TOCLASSIFIER pattern _ op
 operator matches alias MATCHES pattern _ infixop _

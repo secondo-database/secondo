@@ -284,7 +284,11 @@ Signature: mplace x places -> mbool
 Example  : query (mplace1 inside [const places value (('Bartra' 5) ("Schmelzer" 29))]) at TRUE
 Result   : (mbool ((("2014-01-01" "2014-01-01-00:30" TRUE FALSE)TRUE)))
 
-
+Operator : longestcommonsubsequence
+Number   : 1
+Signature: mT x mT -> stream(T),  T in {label, place}
+Example  : query longestcommonsubsequence(Dotraj feed extract[Trajectory], Dotraj feed tail[9] extract[Trajectory]) count
+Result   : 2
 
 
 
