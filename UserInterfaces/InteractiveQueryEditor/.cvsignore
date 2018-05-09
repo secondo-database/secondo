@@ -6,3 +6,14 @@
 .classpath
 .project
 build
+.iqe_secondo_history
+Config.ini
+SecondoTTYIQE.jar
+SecondoTTYIQE.sh
+_nodes
+_strings
+_texts
+sec
+secondoOut.txt
+specs
+tmp
