@@ -3,3 +3,8 @@
 *.dep
 *.fm
 *.class
+NFATest
+RegExParser.y.c
+RegExParser.y.h
+Scanner.c
+
