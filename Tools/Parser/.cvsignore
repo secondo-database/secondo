@@ -3,3 +3,13 @@
 *.dep
 *.fm
 *.class
+SecLex.cpp
+SecLex.l
+SecParser.output
+SecParser.tab.cpp
+SecParser.tab.hpp
+SecParser.y
+lexrules
+tokens
+yaccrules1
+yaccrules2

@@ -3,3 +3,10 @@
 *.dep
 *.fm
 *.class
+SyntaxParser
+SyntaxParser.output
+SyntaxParser.tab.c
+SyntaxParser.tab.h
+lex.yy.c
+opprios.pl
+opsyntax.pl

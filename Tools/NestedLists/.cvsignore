@@ -3,3 +3,7 @@
 *.dep
 *.fm
 *.class
+NLLex.cpp
+NLParser.output
+NLParser.tab.cpp
+NLParser.tab.hpp
