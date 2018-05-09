@@ -47,6 +47,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 
+#include "Tools/DFS/dfs/remotedfs.h"
+#include "Tools/DFS/dfs/dfs.h"
+#include "DFSType.h"
+
 
 extern boost::mutex nlparsemtx;
 
@@ -71,6 +75,17 @@ bool showCommands;
 CommandLog commandLog;
 
 const int defaultTimeout = 0; 
+
+/*
+0.1 Using the Distributed file system for error tolerance
+
+*/
+
+DFSType* filesystem = 0;
+static dfs::log::Logger* dfslogger = new dfs::log::DefaultOutLogger();
+
+
+
 
 /*
 2 CommandListener
@@ -322,6 +337,9 @@ class PProgressView: public MessageHandler{
 int Distributed2Algebra::addConnection(ConnectionInfo* ci) {
     boost::lock_guard < boost::mutex > guard(mtx);
     int res = connections.size();
+    if(dfsport>0){
+       enableDFS(ci);
+    }
     connections.push_back(ci);
     if (ci) {
         ci->setId(connections.size());
@@ -633,6 +651,9 @@ bool Distributed2Algebra::serverExists(int s){
         if(!createWorkerConnection(info,pr)){
              return 0;
         }
+        if(dfsport>0){
+          enableDFS(pr.second);
+        }
         workerconnections[info] = pr;
         it = workerconnections.find(info);
      } else {
@@ -868,6 +889,68 @@ bool Distributed2Algebra::serverExists(int s){
          }
          return true;
     }
+
+
+   void Distributed2Algebra::enableDFS(const string& host, const int port){
+
+
+
+      this->dfshost = host;
+      this->dfsport = port;
+
+      // iterate over user defined connections
+      vector<ConnectionInfo*>::iterator itc;
+      for(itc = connections.begin();itc!=connections.end();itc++){
+          enableDFS(*itc);
+      }
+      // iterate over worker connections
+      map<DArrayElement,pair<string,ConnectionInfo*> >::iterator itw;
+      for(itw=workerconnections.begin(); itw!=workerconnections.end(); itw++){
+         enableDFS(itw->second.second);
+      }
+   }
+
+   void Distributed2Algebra::disableDFS(){
+      this->dfshost = "";
+      this->dfsport = -1;
+      // iterate over user defined connections
+      vector<ConnectionInfo*>::iterator itc;
+      for(itc = connections.begin();itc!=connections.end();itc++){
+          enableDFS(*itc);
+      }
+      // iterate over worker connections
+      map<DArrayElement,pair<string,ConnectionInfo*> >::iterator itw;
+      for(itw=workerconnections.begin(); itw!=workerconnections.end(); itw++){
+         enableDFS(itw->second.second);
+      }
+   }
+
+   
+   void Distributed2Algebra::disableDFS(ConnectionInfo* ci){
+     if(!ci) return;
+     string cmd = "query disableDFSFT()";
+     int err;
+     string res;
+     double rt;
+     ci->simpleCommand(cmd,err,res,false,rt,false,commandLog,true,timeout);
+   }
+
+
+   void Distributed2Algebra::enableDFS(ConnectionInfo* ci){
+     if(!ci){
+       return; 
+     }
+     if(dfsport<0){
+       return;
+     }
+     stringstream ss;
+     ss << "query enableDFSFT('"<< dfshost<<"', " << dfsport << ")";
+     int err;
+     string res;
+     double rt;
+     ci->simpleCommand(ss.str(),err,res,false,rt,false,commandLog,true,timeout);
+   }
+
   
 
 
@@ -5705,17 +5788,11 @@ class fconsume5Info{
   public:
 
     fconsume5Info(Word& _stream,
-                 const string& filename, 
+                 const string& _filename, 
                  const ListExpr typeList):
        in(_stream){
-       out.open(filename.c_str(),ios::out|ios::binary);
-       ok = out.good();
-       buffer = new char[FILE_BUFFER_SIZE];
-       out.rdbuf()->pubsetbuf(buffer, FILE_BUFFER_SIZE);
-       if(ok){
-         BinRelWriter::writeHeader(out,typeList);
-       } 
-       ok = out.good();
+       binrelwriter = new BinRelWriter(_filename, typeList, FILE_BUFFER_SIZE); 
+       ok = binrelwriter->ok();
        in.open();
        firstError = true;
     }
@@ -5725,15 +5802,14 @@ class fconsume5Info{
        in(_stream){
        ok = false;
        firstError = true;
+       binrelwriter = 0;
     }
 
     ~fconsume5Info(){
-        if(out.is_open()){
-           BinRelWriter::finish(out);
-           out.close();
-        }
         in.close();
-        delete[] buffer;
+        if(binrelwriter){
+            delete binrelwriter;
+        }
      }
 
      Tuple* next(){
@@ -5742,7 +5818,7 @@ class fconsume5Info{
          return 0;
        }
        if(ok){
-         if(!BinRelWriter::writeNextTuple(out,tuple)){
+         if(!binrelwriter->writeNextTuple(tuple)){
             ok = false;
             if(firstError){
               cerr << "Problem in writing tuple" << endl;
@@ -5755,8 +5831,7 @@ class fconsume5Info{
      
   private:
      Stream<Tuple> in;
-     ofstream out;
-     char* buffer;
+     BinRelWriter* binrelwriter;
      bool ok;
      bool firstError;
 };
@@ -7059,7 +7134,7 @@ int ddistribute2VMT(Word* args, Word& result, int message,
    // distribute the incoming tuple stream to a set of files
    // if the distribution number is not defined, the tuple is
    // treated as for number 0
-   map<int , pair<string, pair<ofstream*, char*> > > files;
+   map<int , BinRelWriter* > files;
    Stream<Tuple> stream(args[0]);
    stream.open();
    Tuple* tuple;
@@ -7074,15 +7149,10 @@ int ddistribute2VMT(Word* args, Word& result, int message,
       index = index % res->getSize(); // adopt to array size
       string fn = name + "_" + stringutils::int2str(index)+".bin";
       if(files.find(index)==files.end()){
-          ofstream* out = new ofstream(fn.c_str(), ios::out | ios::binary);
-          char* buffer = new char[bufsize];
-          out->rdbuf()->pubsetbuf(buffer, bufsize); 
-          pair<ofstream*, char*> p1(out,buffer);
-          pair<string, pair<ofstream*, char* > > p(fn,p1);
-          files[index] = p;
-          BinRelWriter::writeHeader(*out,relType); 
+          BinRelWriter* writer = new BinRelWriter(fn, relType,bufsize);
+          files[index] = writer;
       }
-      BinRelWriter::writeNextTuple(*(files[index].second.first),tuple);
+      files[index]->writeNextTuple(tuple);
       tuple->DeleteIfAllowed();
    }
    stream.close();
@@ -7092,26 +7162,19 @@ int ddistribute2VMT(Word* args, Word& result, int message,
    vector<DType*> restorers;
 
    
-   typename map<int, pair<string,pair<ofstream*, char*> > >::iterator it;
+   typename map<int, BinRelWriter* >::iterator it;
 
    for(size_t i=0;i<res->getSize();i++){
       it = files.find(i); 
       string objName = res->getName()+"_"+stringutils::int2str(i);
       string fn;
       if(it==files.end()){
-         // create empty file
+         // create an empty file
          fn = name + "_" + stringutils::int2str(i)+".bin";
-         ofstream out(fn.c_str(), ios::out | ios::binary);
-         BinRelWriter::writeHeader(out,relType);
-         BinRelWriter::finish(out);
-         out.close();
+         BinRelWriter brw(fn,relType,0);
       } else {
-         BinRelWriter::finish(*(it->second.second.first));
-         fn = it->second.first;
-         // close and delete ofstream
-         it->second.second.first->close();
-         delete it->second.second.first;
-         delete[] it->second.second.second;
+         fn = it->second->getFileName();
+         delete it->second;
       }
       restorers.push_back(new DType( objName,res, i, fn));
    }
@@ -7312,7 +7375,7 @@ int distribute3VMT(Word* args, Word& result, int message,
 
    bool methodb = method->GetValue();
 
-   vector< pair<ofstream*, char*> > files;
+   vector< BinRelWriter* > files;
    Stream<Tuple> stream(args[0]);
    stream.open();
    Tuple* tuple;
@@ -7321,7 +7384,7 @@ int distribute3VMT(Word* args, Word& result, int message,
       // circular distribution of 
       res->setStdMap(sizei);
       int index = 0;
-      ofstream* current=0;
+      BinRelWriter* current=0;
       size_t bufsize = max(4096, (FILE_BUFFER_SIZE*16) / sizei);
 
       while((tuple=stream.request())){
@@ -7329,55 +7392,38 @@ int distribute3VMT(Word* args, Word& result, int message,
          index++;
          if(index1 >= files.size()){
              string fn = name + "_" + stringutils::int2str(index1)+".bin";
-             current = new ofstream(fn.c_str(), ios::out | ios::binary);
-             char* buf = new char[bufsize];
-             current->rdbuf()->pubsetbuf(buf,bufsize);
-             pair<ofstream*, char*> p(current,buf);
-             files.push_back(p);
-             BinRelWriter::writeHeader(*current,relType); 
+             current = new BinRelWriter(fn,relType,bufsize);
+             files.push_back(current);
           } else {
-              current = files[index1].first;
+              current = files[index1];
           }
-          BinRelWriter::writeNextTuple(*current,tuple);
+          current->writeNextTuple(tuple);
           tuple->DeleteIfAllowed();
       }
       for(size_t i=0;i<files.size();i++){
-         BinRelWriter::finish(*(files[i].first));
-         files[i].first->close();
-         delete files[i].first;
-         delete[] files[i].second;
+         delete files[i];
+         files[i] = 0;
       }
    } else {
       int written = 0;
-      ofstream* current=0;
-      char* buf = 0;
+      BinRelWriter* current=0;
       while((tuple=stream.request())){
          if(written==0){
            string fn = name + "_" + stringutils::int2str(files.size())+".bin";
-           current = new ofstream(fn.c_str(), ios::out | ios::binary);
-           buf = new char[FILE_BUFFER_SIZE];
-           current->rdbuf()->pubsetbuf(buf,FILE_BUFFER_SIZE);
-           pair<ofstream*, char*> p(current, buf);
-           files.push_back(p);
-           BinRelWriter::writeHeader(*current,relType); 
+           current = new BinRelWriter(fn,relType,FILE_BUFFER_SIZE);
+           files.push_back(current);
          }
-         BinRelWriter::writeNextTuple(*current,tuple);
+         current->writeNextTuple(tuple);
          written++;
          if(written==sizei){
-           BinRelWriter::finish(*current);
-           current->close();
            delete current;
-           delete[] buf;
            current=0;
            written = 0;
          }
          tuple->DeleteIfAllowed();
       }     
       if(current){
-        BinRelWriter::finish(*current);
-        current->close();
         delete current;
-        delete[] buf;
         current=0;
       } 
       res->setStdMap(files.size());
@@ -7571,7 +7617,7 @@ int distribute4VMT(Word* args, Word& result, int message,
    // distribute the incoming tuple stream to a set of files
    // if the distribution number is not defined, the tuple is
    // treated as for number 0
-   map<int , pair<string,pair<ofstream*, char*> > > files;
+   map<int , BinRelWriter* > files;
    Stream<Tuple> stream(args[0]);
    stream.open();
    Tuple* tuple;
@@ -7594,15 +7640,10 @@ int distribute4VMT(Word* args, Word& result, int message,
 
       string fn = name + "_" + stringutils::int2str(index)+".bin";
       if(files.find(index)==files.end()){
-          ofstream* out = new ofstream(fn.c_str(), ios::out | ios::binary);
-          char* buf = new char[bufsize];
-          out->rdbuf()->pubsetbuf(buf,bufsize);
-          pair<string, pair<ofstream*, char*> >
-                        p(fn,pair<ofstream*,char*>(out,buf));
-          files[index] = p;
-          BinRelWriter::writeHeader(*out,relType); 
+          BinRelWriter* brw = new BinRelWriter(fn,relType,bufsize);
+          files[index] = brw;
       }
-      BinRelWriter::writeNextTuple(*(files[index].second.first),tuple);
+      files[index]->writeNextTuple(tuple);
       tuple->DeleteIfAllowed();
    }
    stream.close();
@@ -7611,7 +7652,7 @@ int distribute4VMT(Word* args, Word& result, int message,
    vector<DType*> restorers;
 
    
-   typename map<int, pair<string, pair<ofstream*, char*> > >::iterator it;
+   typename map<int, BinRelWriter* >::iterator it;
 
    for(size_t i=0;i<res->getSize();i++){
       it = files.find(i); 
@@ -7620,17 +7661,10 @@ int distribute4VMT(Word* args, Word& result, int message,
       if(it==files.end()){
          // create empty file
          fn = name + "_" + stringutils::int2str(i)+".bin";
-         ofstream out(fn.c_str(), ios::out | ios::binary);
-         BinRelWriter::writeHeader(out,relType);
-         BinRelWriter::finish(out);
-         out.close();
+         BinRelWriter brw(fn,relType,0);
       } else {
-         BinRelWriter::finish(*(it->second.second.first));
-         fn = it->second.first;
-         // close and delete ofstream
-         it->second.second.first->close();
-         delete it->second.second.first;
-         delete[] it->second.second.second;
+         fn = it->second->getFileName();
+         delete it->second;
       }
       restorers.push_back(new DType(objName,res, i, fn));
    }
@@ -7769,11 +7803,9 @@ class fdistribute5Info{
      }
 
      ~fdistribute5Info(){
-        map<int, pair<ofstream*,char*> >::iterator it;
+        map<int, BinRelWriter* >::iterator it;
         for(it = writers.begin();it!=writers.end() ; it++){
-           BinRelWriter::finish(*(it->second.first));
-           delete it->second.first;
-           delete [] it->second.second;
+           delete it->second;
         }
         stream.close();
      }
@@ -7786,7 +7818,7 @@ class fdistribute5Info{
      int pos;
      int size;
      ListExpr relType;
-     map<int, pair< ofstream*, char*> > writers;
+     map<int, BinRelWriter* > writers;
      size_t bufsize;
 
     
@@ -7796,21 +7828,16 @@ class fdistribute5Info{
         if(num->IsDefined()){
             f = num->GetValue() % size;
         }
-        map<int, pair<ofstream*, char*> >::iterator it = writers.find(f);
-        ofstream* out;
+        map<int, BinRelWriter* >::iterator it = writers.find(f);
+        BinRelWriter* out;
         if(it==writers.end()){
-           out = new ofstream((basename +"_"+stringutils::int2str(f) 
-                               + ".bin").c_str(),
-                              ios::out | ios::binary);
-           char* buf = new char[bufsize];
-           out->rdbuf()->pubsetbuf(buf, bufsize);
-           pair<ofstream*, char*> p(out,buf);
-           writers[f] = p;
-           BinRelWriter::writeHeader(*out,relType);
+           out = new BinRelWriter(basename +"_"+stringutils::int2str(f)
+                              + ".bin", relType, bufsize);
+           writers[f] = out;
         } else {
-           out = it->second.first;
+           out = it->second;
         }
-        BinRelWriter::writeNextTuple(*out, tuple);
+        out->writeNextTuple(tuple);
      }
 
 };
@@ -9410,7 +9437,6 @@ class fdistribute6Info{
        counter = 0;
        fileCounter = 0;
        out = 0;
-       buffer = 0;
        if(!_fname->IsDefined() || !_max->IsDefined()){
             c = 0;
             return;
@@ -9458,18 +9484,13 @@ class fdistribute6Info{
     ListExpr relType;
     int counter;
     int fileCounter;
-    ofstream* out;
-    char* buffer;
+    BinRelWriter* out;
 
 
     void finishCurrentFile(){
        if(out){
-          BinRelWriter::finish(*out);
-          out->close();
           delete out;
-          delete[] buffer;
           out=0;
-          buffer = 0;
        }
     }
 
@@ -9480,7 +9501,7 @@ class fdistribute6Info{
        if(!out){
           createNextOutputFile();
        }
-       BinRelWriter::writeNextTuple(*out,tuple);
+       out->writeNextTuple(tuple);
        counter++;
        if(counter==c){
          finishCurrentFile();
@@ -9491,10 +9512,7 @@ class fdistribute6Info{
     void createNextOutputFile(){
       string fname = bname +"_"+stringutils::int2str(fileCounter) + ".bin";
       fileCounter++;
-      out = new ofstream(fname.c_str(), ios::binary | ios::out);
-      buffer = new char[FILE_BUFFER_SIZE];
-      out->rdbuf()->pubsetbuf(buffer, FILE_BUFFER_SIZE);
-      BinRelWriter::writeHeader(*out,relType);
+      out = new BinRelWriter(fname,relType, FILE_BUFFER_SIZE);
     }
 };
 
@@ -9636,13 +9654,9 @@ class fdistribute7Info{
 
 
   ~fdistribute7Info(){
-      typename map<int,pair<ofstream*,char*>* >::iterator it;
+      typename map<int,BinRelWriter* >::iterator it;
       for(it = files.begin();it!=files.end();it++){
          if(it->second){
-            BinRelWriter::finish(*(it->second->first));
-            it->second->first->close();
-            delete it->second->first;
-            delete[] it->second->second;
             delete it->second;
          }
       }
@@ -9659,9 +9673,9 @@ class fdistribute7Info{
      qp->Request(fun,r);
      CcInt* res = (CcInt*) r.addr;
      int resi = res->IsDefined()?res->GetValue():0;
-     pair<ofstream*,char*>*  outp = getStream(resi % max);
+     BinRelWriter*  outp = getStream(resi % max);
      if(outp){
-        BinRelWriter::writeNextTuple(*(outp->first),t);
+        outp->writeNextTuple(t);
      }
      return t;
    }
@@ -9674,33 +9688,25 @@ class fdistribute7Info{
      ArgVectorPointer funArgs;
      string fn;
      int max;
-     map<int,pair<ofstream*, char*>*> files;
+     map<int,BinRelWriter*> files;
      ListExpr relType;
      size_t bufsize;
 
 
-    pair<ofstream*,char*>* getStream(int i){
-       typename map<int,pair<ofstream*,char*>*>::iterator it;
+    BinRelWriter* getStream(int i){
+       typename map<int,BinRelWriter*>::iterator it;
        it=files.find(i);
        if(it!=files.end()){
           return it->second;
        }
        string name = fn +"_" + stringutils::int2str(i)+".bin";
-       ofstream* out = new ofstream(name.c_str(),ios::binary|ios::trunc);
-       char* buffer = 0;
-       if(!out->good()){
-          delete out;
-          out=0;
-       } else {
-           buffer = new char[bufsize];
-           out->rdbuf()->pubsetbuf(buffer, bufsize); 
-           BinRelWriter::writeHeader(*out,relType);
+       BinRelWriter* brw = new BinRelWriter(name,relType,bufsize);
+       if(!brw->ok()){
+          delete brw;
+          return 0;
        }
-       pair<ofstream*, char*>* res = out
-                                     ?new pair<ofstream*,char*>(out,buffer)
-                                     :0;
-       files[i] = res;
-       return res;
+       files[i] = brw;
+       return brw;
     }
 };
 
@@ -17705,21 +17711,18 @@ int saveObjectToFileVMT(Word* args, Word& result, int message,
 
 
    if(Stream<Tuple>::checkType(st)){
-     ofstream out(n.c_str(),ios::out|ios::binary);
-     if(!out){
+     BinRelWriter writer(n,nl->Second(targetlist),0);
+     if(!writer.ok()){
       res->SetDefined(false);
       return 0; 
      }
-     BinRelWriter::writeHeader(out,nl->Second(targetlist));
      Stream<Tuple> stream(args[0]);
      stream.open();
      Tuple* t;
      while((t=stream.request())){
-         BinRelWriter::writeNextTuple(out,t);
+         writer.writeNextTuple(t);
          t->DeleteIfAllowed();
      }
-     stream.close();
-     out.close();
      return 0;
    } else if(Relation::checkType(st)){
      Relation* rel = (Relation*) args[0].addr;
@@ -18185,7 +18188,7 @@ int ddistribute8VMT(Word* args, Word& result, int message,
   Word fun2result;
 
   int nstreams = size1*size2;
-  ostream* outputs[nstreams];
+  BinRelWriter* outputs[nstreams];
   // create empty file to write in data
   ListExpr relType = nl->Second(nl->Second(qp->GetType(s)));
 
@@ -18194,8 +18197,7 @@ int ddistribute8VMT(Word* args, Word& result, int message,
     int darray_num = i % size2;
     string fname = name + "_" + stringutils::int2str(array_num) 
                    + "_" + stringutils::int2str(darray_num);
-    outputs[i] = new ofstream(fname.c_str(),ios::out|ios::binary);
-    BinRelWriter::writeHeader(*outputs[i],relType);
+    outputs[i] = new BinRelWriter(fname,relType,0); 
   }
 
 
@@ -18212,14 +18214,14 @@ int ddistribute8VMT(Word* args, Word& result, int message,
       f1 = f1 % size1;
       f2 = f2 % size2;
       int pos = f1*size2 + f2; 
-      BinRelWriter::writeNextTuple(*outputs[pos], tuple);
+      outputs[pos]->writeNextTuple(tuple);
       tuple->DeleteIfAllowed();
   }
 
   // finish the files
   for(int i=0;i<nstreams;i++){
-    BinRelWriter::finish(*outputs[i]);
     delete outputs[i]; 
+    outputs[i] = 0;
   }
   // next step: transfer the files to the target computers
  
@@ -18394,7 +18396,7 @@ class partition8LocalInfo{
                     stream(_stream), fun1(_fun1.addr),
                     fun2(_fun2.addr), home(_home), name(_name), size1(_size1),
                     size2(_size2), wnum(_wnum), 
-                    outputFiles((size_t)size1*size2, 0){
+                    outputWriters((size_t)size1*size2, 0){
           fun1Arg = qp->Argument(fun1);
           fun2Arg = qp->Argument(fun2);
           stream.open();
@@ -18406,11 +18408,9 @@ class partition8LocalInfo{
 
    ~partition8LocalInfo(){
       stream.close();
-      for(size_t i=0;i< outputFiles.size();i++){
-         if(outputFiles[i]){
-           BinRelWriter::finish(*outputFiles[i]);
-           outputFiles[i]->close();
-           delete outputFiles[i];
+      for(size_t i=0;i< outputWriters.size();i++){
+         if(outputWriters[i]){
+           delete outputWriters[i];
          } 
       }
     }
@@ -18435,7 +18435,7 @@ class partition8LocalInfo{
       int size2;
       int wnum;
       ListExpr relType;
-      vector<ofstream*> outputFiles;
+      vector<BinRelWriter*> outputWriters;
       ArgVectorPointer fun1Arg; 
       ArgVectorPointer fun2Arg; 
       string dbname;
@@ -18477,15 +18477,12 @@ class partition8LocalInfo{
           res2 = res2 % size2;
 
           int index = size1*res2 + res1;
-          if(!outputFiles[index]){
+          if(!outputWriters[index]){
               string filename =   getDirName(res1) + getName(res1) 
                                 + "_" + stringutils::int2str(res2) +".bin";
-              outputFiles[index] = new ofstream(filename.c_str(),  
-                                                ios::out | ios::binary);
-              
-              BinRelWriter::writeHeader(*outputFiles[index], relType); 
+              outputWriters[index] = new BinRelWriter(filename,relType);
           }
-          BinRelWriter::writeNextTuple(*outputFiles[index], tuple);
+          outputWriters[index]->writeNextTuple(tuple);
       }
 };
 
@@ -19779,6 +19776,156 @@ Operator db2LogToFileOp(
 
 
 /*
+8 Fault Tolerance using a DFS
+
+8.1 Operator enableDFSFT
+
+*/
+ListExpr enableDFSFTTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("two arguments expected");
+  }
+  ListExpr arg1 = nl->First(args);
+  if(!CcString::checkType(arg1) && !FText::checkType(arg1)) {
+    return listutils::typeError("first arg must be of type string or text");
+  }  
+	if(!CcInt::checkType(nl->Second(args))){
+    return listutils::typeError("second arg not of type int");
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+
+template<class T>
+int enableDFSFTVMT(Word* args, Word& result, int message,
+                   Word& local, Supplier s) {
+
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  if(filesystem){
+    delete filesystem;
+    filesystem = 0;
+  }
+     // check arguments
+   T* host = (T*) args[0].addr;
+   CcInt* port = (CcInt*) args[1].addr;
+
+   if(!host->IsDefined() || !port->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+   }
+   stringstream ss;
+   ss << "dfs-index://"<<host->GetValue()<<":"<<port->GetValue();
+   URI uri = URI::fromString(ss.str().c_str());
+   filesystem = new dfs::remote::RemoteFilesystem(uri,dfslogger);
+   // check whether connection is successful
+   bool success = false;
+   try{ 
+      // if there is no connection, some exception will 
+      // be thrown by the next command
+      filesystem->countFiles();
+      success = true;
+   } catch(...){
+      success = false;
+      delete filesystem;
+      filesystem = 0;
+   }
+   res->Set(true,success);
+   if(success){
+     algInstance->enableDFS(host->GetValue(), port->GetValue());
+   } else {
+     algInstance->disableDFS();
+   }
+   return 0;
+}
+
+ValueMapping enableDFSFTVM[] = {
+   enableDFSFTVMT<CcString>,
+   enableDFSFTVMT<FText>
+};
+
+int enableDFSFTSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+
+
+OperatorSpec enableDFSFTSpec(
+   "string x int -> bool",
+   "enableDFSFT(host, port",
+   "Informs the master and all currently connected workers "
+   "about the presence of a distributed file system that can "
+   "be used for fault tolerance. If there is no DFS behind "
+   "host and port, the result will be false.",
+   "query enableDFSFT('localhost',4444)"
+);
+
+
+Operator enableDFSFTOp(
+  "enableDFSFT",
+  enableDFSFTSpec.getStr(),
+  2,
+  enableDFSFTVM,
+  enableDFSFTSelect,
+  enableDFSFTTM
+);
+
+/*
+1.26 ~disableDFSFT~
+
+Switching off fault tolerance using dfs.
+
+*/
+ListExpr disableDFSFTTM(ListExpr args){
+   if(!nl->IsEmpty(args)){
+     return listutils::typeError("no arguments required");
+   }
+   return listutils::basicSymbol<CcBool>();
+}
+
+
+int disableDFSFTVM(Word* args, Word& result, int message,
+                    Word& local, Supplier s) {
+
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  if(!filesystem){ // no dfs enabled
+     res->Set(true,false);
+     return 0;
+  }
+  res->Set(true,true);
+  // send disableDFSFT query to all connected secondo instances
+  algInstance->disableDFS();
+  delete filesystem;
+  filesystem = 0; 
+  return 0;
+}
+
+OperatorSpec disableDSFFTSpec(
+  "-> bool",
+  "disableDFSFT()",
+  "Switches off the fault tolerance using a distributed file system",
+  "query disableDFSFT()"
+);
+
+Operator disableDFSFTOp(
+  "disableDFSFT",
+  disableDSFFTSpec.getStr(),
+  disableDFSFTVM,
+  Operator::SimpleSelect,
+  disableDFSFTTM
+);
+
+
+
+
+
+
+
+
+
+
+/*
 3 Implementation of the Algebra
 
 */
@@ -19787,6 +19934,9 @@ Distributed2Algebra::Distributed2Algebra(){
    tryReconnectFlag = false;
    heartbeat = 4;
    timeout = defaultTimeout; // switch off time out
+
+   dfshost = "";
+   dfsport = -1;
 
    AddTypeConstructor(&DArrayTC);
    DArrayTC.AssociateKind(Kind::SIMPLE());
@@ -19997,6 +20147,11 @@ Distributed2Algebra::Distributed2Algebra(){
 
    AddOperator(&db2LogToFileOp);
 
+   AddOperator(&enableDFSFTOp);
+   AddOperator(&disableDFSFTOp);
+
+
+
 
    pprogView = new PProgressView();
    MessageCenter::GetInstance()->AddHandler(pprogView);
@@ -20020,6 +20175,13 @@ Distributed2Algebra::~Distributed2Algebra(){
    if(pprogView){
       MessageCenter::GetInstance()->RemoveHandler(pprogView);
       delete pprogView;
+   }
+   if(filesystem){
+     delete filesystem;
+     filesystem = 0;
+   }
+   if(dfslogger){
+     delete dfslogger;
    }
 }
 

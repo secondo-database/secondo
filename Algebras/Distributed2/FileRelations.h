@@ -51,6 +51,40 @@ the first function to call is ~writeHeader~, followed by a set of
 */
 class BinRelWriter{
   public:
+  /*
+   1.4 ~writeRelationToFile~
+
+   This function write a complete relation iclusive header and end marker 
+   to a single file.
+
+  */
+   static bool writeRelationToFile(Relation* rel, ListExpr relType, 
+                      const std::string& fileName);
+
+   BinRelWriter(const std::string& filename, ListExpr type, 
+                size_t bufferSite = 0);
+
+   ~BinRelWriter();
+
+   inline bool ok(){
+     return  out->good();
+   }
+
+   inline bool writeNextTuple(Tuple* tuple){
+      return writeNextTuple(*out,tuple);
+   }
+
+   inline std::string getFileName(){
+     return filename;
+   }
+
+
+  private:
+     std::string filename;
+     std::ofstream* out;
+     char* buffer;
+
+
 /*
 1.1 ~writeHeader~
 
@@ -75,15 +109,6 @@ The ~finish~ functions writes an end marker to the output stream.
 */
      static bool finish(std::ostream& out);
 
-/*
-1.4 ~writeRelationToFile~
-
-This function write a complete relation iclusive header and end marker 
-to a single file.
-
-*/
-     static bool writeRelationToFile(Relation* rel, ListExpr relType, 
-                      const std::string& fileName);
 };
 
 
@@ -189,6 +214,9 @@ This function extracts header information from the file.
 
 */
      void readHeader(TupleType* tt);
+
+     bool openFile(const std::string& fileName);
+
 };
 
 #endif

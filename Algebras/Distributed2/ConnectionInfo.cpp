@@ -1083,18 +1083,9 @@ bool ConnectionInfo::saveRelationToFile(ListExpr relType,
                                         Word& value,
                                         const string& filename)
 {
-    ofstream out(filename.c_str(), ios::out | ios::binary);
-    char* buffer = new char[FILE_BUFFER_SIZE];
-    out.rdbuf()->pubsetbuf(buffer, FILE_BUFFER_SIZE);
-    if (!out.good())
-    {
-        delete[] buffer;
-        return false;
-    }
-    if (!BinRelWriter::writeHeader(out, relType))
-    {
-        delete[] buffer;
-        return false;
+    BinRelWriter brw(filename, relType, FILE_BUFFER_SIZE);
+    if(!brw.ok()){
+      return false;
     }
     Relation* rel = (Relation*) value.addr;
     GenericRelationIterator* it = rel->MakeScan();
@@ -1102,13 +1093,10 @@ bool ConnectionInfo::saveRelationToFile(ListExpr relType,
     Tuple* tuple = 0;
     while (ok && ((tuple = it->GetNextTuple()) != 0))
     {
-        ok = BinRelWriter::writeNextTuple(out, tuple);
+        ok = brw.writeNextTuple(tuple);
         tuple->DeleteIfAllowed();
     }
     delete it;
-    BinRelWriter::finish(out);
-    out.close();
-    delete[] buffer;
     return ok;
 }
 

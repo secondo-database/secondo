@@ -387,6 +387,12 @@ connections.
 
     ErrorWriter errorWriter;
 
+    void enableDFS(const std::string& host,
+                   const int port);
+
+    void disableDFS(); 
+
+
   private:
     // connections managed by the user
     std::vector<ConnectionInfo*> connections;
@@ -411,6 +417,9 @@ connections.
     int heartbeat;
     int timeout;
 
+    std::string dfshost;
+    int dfsport;
+
 
     // returns a unique number
     size_t nextNameNumber();
@@ -421,6 +430,9 @@ connections.
             ConnectionInfo*>& res);
 
 
+    void enableDFS(ConnectionInfo* ci);
+
+    void disableDFS(ConnectionInfo* ci);
 
 };
 

@@ -721,3 +721,19 @@ Example   : query db2LogToFile()
 Result    : TRUE
 
 
+Operator  : enableDFSFT
+Number    : 1
+Signature :  {string, text} x int -> bool
+Example   : query enableDFSFT('localhost',4444)
+Result    : unpredictable
+Remark    : Depends on the presence of a distributed file system
+
+Operator  : disableDFSFT
+Number    : 1
+Signature :  -> bool
+Example   : query disableDFSFT()
+Result    : unpredictable
+Remark    : Depends on the presence of a distributed file system
+
+
+

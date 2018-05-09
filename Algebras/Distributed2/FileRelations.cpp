@@ -35,7 +35,44 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/thread.hpp>
 #include <boost/date_time.hpp>
 #include "FileRelations.h"
+#include "DFSType.h"
+#include "DFSTools.h"
+#include "SecondoSystem.h"
+
+
 boost::mutex nlparsemtx;
+
+
+BinRelWriter::BinRelWriter(const std::string& _filename,
+                           ListExpr typeList,
+                           size_t bufferSize): filename(_filename) {
+    out = new std::ofstream(filename.c_str(),std::ios::out|std::ios::binary);
+    if(!out->good()){
+       buffer = 0;
+       return;
+    }
+    if(bufferSize > 0){
+      buffer = new char[bufferSize];
+      out->rdbuf()->pubsetbuf(buffer, bufferSize);
+    } else {
+      buffer = 0;
+    }
+    writeHeader(*out,typeList);
+}
+
+BinRelWriter::~BinRelWriter(){
+   if(out->good()){
+       finish(*out);
+   }
+   out->close();
+   delete out;
+   // save file to dfs 
+   dfstools::storeRemoteFile(filename);
+   if(buffer){
+       delete[] buffer;
+   }
+}
+
 
 
 bool BinRelWriter::writeHeader(std::ostream& out, ListExpr type){
@@ -111,6 +148,7 @@ bool BinRelWriter::writeRelationToFile(Relation* rel, ListExpr relType,
 
 */
 
+
 ffeed5Info::ffeed5Info(const std::string& filename, const ListExpr _tt){
 
   tt = new TupleType(_tt);
@@ -128,33 +166,40 @@ ffeed5Info::ffeed5Info(const std::string& filename, const ListExpr _tt){
    
 ffeed5Info::ffeed5Info(const std::string& filename, TupleType* _tt){
   tt = new TupleType(*_tt);
+  ok = openFile(filename);
+}
+
+ffeed5Info::ffeed5Info(const std::string& filename){
+  ok = openFile(filename);
+  tt = 0;
+  if(ok){
+     ListExpr tupleType = nl->Second(fileTypeList);
+     tupleType = SecondoSystem::GetCatalog()->NumericType(tupleType);
+     tt = new TupleType(tupleType);
+  } 
+}
+
+
+bool ffeed5Info::openFile(const std::string& filename){
+
   in.open(filename.c_str(), std::ios::in | std::ios::binary);
+  bool ok = in.good();
+  // file locally not present, try to get it from 
+  // distributed file system and open it again
+  if(!ok){
+     if(dfstools::getRemoteFile(filename)){
+       in.open(filename.c_str(), std::ios::in | std::ios::binary);
+       ok = in.good();
+     }
+  }
   inBuffer = new char[FILE_BUFFER_SIZE];
-  ok = in.good();
   if(ok){
     in.rdbuf()->pubsetbuf(inBuffer, FILE_BUFFER_SIZE);
     readHeader(tt);
   }else{
     std::cerr << "could not open file " << filename << std::endl; 
   }
-}
-
-ffeed5Info::ffeed5Info(const std::string& filename){
-  in.open(filename.c_str(), std::ios::in | std::ios::binary);
-  inBuffer = new char[FILE_BUFFER_SIZE];
-  ok = in.good();
-  tt = 0;
-  if(ok){
-    in.rdbuf()->pubsetbuf(inBuffer, FILE_BUFFER_SIZE);
-    readHeader(0);
-  }else{
-    std::cerr << "could not open file " << filename << std::endl; 
-  }
-  if(ok){
-     ListExpr tupleType = nl->Second(fileTypeList);
-     tupleType = SecondoSystem::GetCatalog()->NumericType(tupleType);
-     tt = new TupleType(tupleType);
-  } 
+  return ok;
 }
 
     

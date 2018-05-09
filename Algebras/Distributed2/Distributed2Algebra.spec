@@ -135,3 +135,8 @@ operator write3 alias WRITE3 pattern _ op
 
 operator db2LogToFile alias DB2LOGTOFILE pattern op(_,_)
 
+operator enableDFSFT alias ENABLEDSFFT pattern op(_,_)
+operator disableDFSFT alias DISABLEDSFFT pattern op()
+
+
+
