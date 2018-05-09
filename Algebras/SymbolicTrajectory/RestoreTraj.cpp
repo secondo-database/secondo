@@ -36,6 +36,7 @@ This is the implementation of the Symbolic Trajectory Algebra.
 */
 
 #include "RestoreTraj.h"
+#include <unordered_set>
 
 using namespace temporalalgebra;
 using namespace std;
@@ -345,7 +346,6 @@ void Tileareas::retrieveAreas(raster2::sint *_raster) {
       recordAreaTransitions(i, j);
     }
   }
-  raster = 0;
   cout << transitions.size() << " transitions found" << endl;
 }
 
@@ -394,6 +394,125 @@ void Tileareas::print(const bool printRange, const bool printAreas,
     }
     cout << endl;
   }
+}
+
+void Tileareas::recordRoadCourses(raster2::sint *_raster) {
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  Word roadsPtr, roadsIndexPtr;
+  bool isDefined;
+  if (!sc->GetObject("RoadsB", roadsPtr, isDefined)) {
+    cout << "Object RoadsB does not exist." << endl;
+    return;
+  }
+  if (!isDefined) {
+    cout << "Object RoadsB is undefined." << endl;
+    return;
+  }
+  map<string, vector<HalfSegment> > motorwayParts;
+  map<string, SimpleLine*> motorways;
+  vector<string> motorwayNames;
+  NestedRelation *roadsNRel = static_cast<NestedRelation*>(roadsPtr.addr);
+  Tuple *tuple = 0, *ntuple = 0, *atuple = 0;
+  TupleId tid;
+  Relation *roadsRel = roadsNRel->getPrimary();
+  GenericRelationIterator *rit = roadsRel->MakeScan();
+  HalfSegment hs;
+  Geoid geoid(Geoid::WGS1984);
+  RoadCourse roadCourse;
+  string motorwayName;
+  while ((ntuple = rit->GetNextTuple()) != 0) {
+    bool isHighway = false;
+    tuple = roadsNRel->NestedTuple2Tuple(ntuple);
+    AttributeRelation *arel = (AttributeRelation*)(tuple->GetAttribute(4));
+    DbArray<TupleId> *tids = arel->getTupleIds();
+    for (int i = 0; i < tids->Size(); i++) { // check all waytagkeys for highway
+      tids->Get(i, tid);
+      atuple = arel->getRel()->GetTuple(tid, false);
+      if (atuple != 0) {
+        FText *roadInfo1 = ((FText*)(atuple->GetAttribute(0)));
+        FText *roadInfo2 = ((FText*)(atuple->GetAttribute(1)));
+        if (roadInfo1->IsDefined() && roadInfo2->IsDefined()) {
+          if (roadInfo1->GetValue() == "highway") {
+            if (roadInfo2->GetValue() == "motorway") {
+              isHighway = true;
+              break;
+            }
+          }
+          else if (roadInfo1->GetValue() == "ref") {
+            motorwayName = roadInfo2->GetValue();
+          }
+        }
+      }
+      atuple->DeleteIfAllowed();
+      motorwayName.clear();
+    }
+    if (isHighway) { // find and store motorway parts
+      Line *curve = (Line*)(tuple->GetAttribute(2));
+      SimpleLine scurve(*curve);
+      if (scurve.IsDefined()) {
+        if (scurve.BoundingBox().Intersects(raster->bbox())) {
+          for (int i = 0; i < scurve.Size(); i++) {
+            scurve.Get(i, hs);
+            if (!motorwayName.empty()) {
+              motorwayParts[motorwayName].push_back(hs);
+              motorwayNames.push_back(motorwayName);
+            }
+          }
+        }
+      }
+    }
+    tuple->DeleteIfAllowed();
+  }
+  for (unsigned int i = 0; i < motorwayNames.size(); i++) {
+    string name = motorwayNames[i];
+    motorways[name] = new SimpleLine(true);
+    motorways[name]->StartBulkLoad();
+    for (unsigned int j = 0; j < motorwayParts[name].size(); j++) {
+      motorways[name]->Add(motorwayParts[name][j]);
+    }
+    motorways[name]->EndBulkLoad();
+  }
+  // loop over connected motorways
+  for (map<string, SimpleLine*>::iterator it = motorways.begin();
+       it != motorways.end(); it++) {
+    processRoadCourse(*(it->second), roadCourse);
+    roadCourses.push_back(roadCourse);
+  }
+}
+
+void Tileareas::processRoadCourse(const SimpleLine& curve, RoadCourse& rc) {
+  rc.clear();
+  HalfSegment hs;
+  Geoid *geoid = new Geoid(Geoid::WGS1984);
+  string lastDirStr, patternPart;
+  vector<raster2::RasterIndex<2> > regionsOrdered;
+  raster2::RasterIndex<2> from, to;
+  int lastHeight = INT_MIN;
+  LRS lrs;
+  curve.Get(0, lrs);
+  curve.Get(lrs.hsPos, hs);
+  rc.setStartPoint(hs.GetDomPoint());
+  for (int i = 0; i < curve.lrsSize(); i++) {
+    curve.Get(i, lrs);
+    curve.Get(lrs.hsPos, hs);
+    Point domPt = hs.GetDomPoint();
+    Point secPt = hs.GetSecPoint();
+    double dirDouble = domPt.Direction(secPt, false, geoid);
+    string dirStr = 
+        RestoreTrajLI::dirNumToString(RestoreTrajLI::dirDoubleToNum(dirDouble));
+    rc.addDir(secPt, dirStr, dirStr != lastDirStr);
+    lastDirStr = dirStr;
+    raster2::sbool coveredTiles;
+    std::unordered_set<raster2::RasterIndex<2> > regions;
+    raster2::drawLine(coveredTiles, regions, regionsOrdered, from, to, true);
+  }
+  for (unsigned int i = 0; i < regionsOrdered.size(); i++) {
+    int height = raster->get(regionsOrdered[i]);
+    rc.addHeight(regionsOrdered[i], height, 
+                 height != lastHeight && height != INT_MIN);
+    lastHeight = height;
+  }
+  cout << rc.dirPattern << endl << rc.heightPattern << endl << endl;
 }
 
 void Tileareas::deleteFiles() {
@@ -568,6 +687,77 @@ bool Tileareas::Open(SmiRecord& valueRecord, size_t& offset,
 //   cout << *(ta->areas[2].begin()) << " | " << ta->tileToArea.get(-653, 1820)
 //        << " | " << *(ta->transitions[2][0].begin()) << "  "
 //        << *(ta->transitions[2][4].begin()) << endl;
+  unsigned int noRoadCourses, noDirCourses, noHeightCourses;
+  double xCoord, yCoord;
+  int strLength;
+  int rasterIndexPos[2];
+  RoadCourse rc;
+  if (!valueRecord.Read(&noRoadCourses, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  for (unsigned int i = 0; i < noRoadCourses; i++) {
+    rc.clear();
+    if (!valueRecord.Read(&noDirCourses, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    for (unsigned int j = 0; j < noDirCourses; j++) {
+      if (!valueRecord.Read(&pos, sizeof(int), offset)) {
+        return false;
+      }
+      offset += sizeof(int);
+      if (!valueRecord.Read(&xCoord, sizeof(double), offset)) {
+        return false;
+      }
+      offset += sizeof(double);
+      if (!valueRecord.Read(&yCoord, sizeof(double), offset)) {
+        return false;
+      }
+      offset += sizeof(double);
+      Point pt(true, xCoord, yCoord);
+      NewPair<int, Point> dirCourseElement(pos, pt);
+      rc.dirCourse.push_back(dirCourseElement);
+    }
+    if (!valueRecord.Read(&noHeightCourses, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    for (unsigned int j = 0; j < noHeightCourses; j++) {
+      if (!valueRecord.Read(&pos, sizeof(int), offset)) {
+        return false;
+      }
+      offset += sizeof(int);
+      if (!valueRecord.Read(&rasterIndexPos[0], sizeof(int), offset)) {
+        return false;
+      }
+      offset += sizeof(int);
+      if (!valueRecord.Read(&rasterIndexPos[1], sizeof(int), offset)) {
+        return false;
+      }
+      offset += sizeof(int);
+      raster2::RasterIndex<2> rIndex(rasterIndexPos);
+      NewPair<int, raster2::RasterIndex<2> > heightCourseElement(pos, rIndex);
+      rc.heightCourse.push_back(heightCourseElement);
+    }
+    if (!valueRecord.Read(&strLength, sizeof(int), offset)) {
+      return false;
+    }
+    offset += sizeof(int);
+    if (!valueRecord.Read(&rc.dirPattern, strLength, offset)) {
+      return false;
+    }
+    offset += strLength;
+    if (!valueRecord.Read(&strLength, sizeof(int), offset)) {
+      return false;
+    }
+    offset += sizeof(int);
+    if (!valueRecord.Read(&rc.heightPattern, strLength, offset)) {
+      return false;
+    }
+    offset += strLength;
+    ta->roadCourses.push_back(rc);
+  }
   value.addr = ta;
   return true;
 }
@@ -703,6 +893,80 @@ bool Tileareas::Save(SmiRecord& valueRecord, size_t& offset,
   offset += sizeof(SmiFileId);
   cout << ".........transitions stored (" << bytesWritten << " bytes)" << endl;
   delete[] buffer;
+  unsigned int noRoadCourses(ta->roadCourses.size()), noDirCourses, 
+    noHeightCourses;
+  double coord;
+  int indexPos, strLength;
+  if (!valueRecord.Write(&noRoadCourses, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  for (unsigned int i = 0; i < noRoadCourses; i++) {
+    noDirCourses = ta->roadCourses[i].dirCourse.size();
+    if (!valueRecord.Write(&noDirCourses, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    for (unsigned int j = 0; j < noDirCourses; j++) {
+      if (!valueRecord.Write(&ta->roadCourses[i].dirCourse[j].first,
+                             sizeof(int), offset)) {
+        return false;
+      }
+      offset += sizeof(int);
+      coord = ta->roadCourses[i].dirCourse[j].second.GetX();
+      if (!valueRecord.Write(&coord, sizeof(double), offset)) {
+        return false;
+      }
+      offset += sizeof(double);
+      coord = ta->roadCourses[i].dirCourse[j].second.GetY();
+      if (!valueRecord.Write(&coord, sizeof(double), offset)) {
+        return false;
+      }
+      offset += sizeof(double);
+    }
+    
+    noHeightCourses = ta->roadCourses[i].heightCourse.size();
+    if (!valueRecord.Write(&noHeightCourses, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    for (unsigned int j = 0; j < noHeightCourses; j++) {
+      if (!valueRecord.Write(&ta->roadCourses[i].heightCourse[j].first,
+                             sizeof(int), offset)) {
+        return false;
+      }
+      offset += sizeof(int);
+      indexPos = ta->roadCourses[i].heightCourse[j].second[0];
+      if (!valueRecord.Write(&indexPos, sizeof(int), offset)) {
+        return false;
+      }
+      offset += sizeof(int);
+      indexPos = ta->roadCourses[i].heightCourse[j].second[1];
+      if (!valueRecord.Write(&indexPos, sizeof(int), offset)) {
+        return false;
+      }
+      offset += sizeof(int);
+    }
+    strLength = ta->roadCourses[i].dirPattern.size();
+    if (!valueRecord.Write(&strLength, sizeof(int), offset)) {
+      return false;
+    }
+    offset += sizeof(int);
+    if (!valueRecord.Write(&ta->roadCourses[i].dirPattern, strLength, offset)) {
+      return false;
+    }
+    offset += strLength;
+    strLength = ta->roadCourses[i].heightPattern.size();
+    if (!valueRecord.Write(&strLength, sizeof(int), offset)) {
+      return false;
+    }
+    offset += sizeof(int);
+    if (!valueRecord.Write(&ta->roadCourses[i].heightPattern, strLength, 
+                           offset)) {
+      return false;
+    }
+    offset += strLength;
+  }
   return true;
 }
 
@@ -757,31 +1021,16 @@ RestoreTrajLI::RestoreTrajLI(Relation *e, BTree *ht, RTree2TID *st,
   set<int> areas;
   retrieveAreasFromHeight(0, areas);
   cout << "INITIALIZATION: " << areas.size() << " areas" << endl;
-  int counter = 0;
-  for (set<int>::iterator it = areas.begin(); it != areas.end(); it++) {
-    if (counter % 100 == 0) {
-      cout << counter << " : " << *it << endl;
-    }
-    counter++;
-  }
-  cout << endl << endl;
   int pos = 0;
   bool sequelFound = !areas.empty();
   while (pos < height->GetNoComponents() - 1 && sequelFound) {
     sequelFound = retrieveSequel(pos, areas);
     pos++;
-    counter = 0;
     cout << "loop# " << pos << "; " << areas.size() << " areas updated" << endl;
-    for (set<int>::iterator it = areas.begin(); it != areas.end(); it++) {
-      if (counter % 100 == 0) {
-        cout << counter << " : " << *it << endl;;
-      }
-      counter++;
-    }
-    cout << endl << endl;
   }
+  resultAreas = areas;
+  it = resultAreas.begin();
   edgesRel = 0;
-  speed = 0;
   heightBtree = 0;
   segmentsRtree = 0;
   
@@ -855,10 +1104,12 @@ void RestoreTrajLI::getNeighborAreas(const int origin, const DirectionNum dir,
   result.clear();
   result.insert(tileareas->transitions[origin][dir].begin(),
                 tileareas->transitions[origin][dir].end());
-  result.insert(tileareas->transitions[origin][(dir + 7) % 8].begin(),
-                tileareas->transitions[origin][(dir + 7) % 8].end());
-  result.insert(tileareas->transitions[origin][(dir + 1) % 8].begin(),
-                tileareas->transitions[origin][(dir + 1) % 8].end());
+  int dir2 = (dir + 7) % 8;
+  result.insert(tileareas->transitions[origin][dir2].begin(),
+                tileareas->transitions[origin][dir2].end());
+  int dir3 = (dir + 1) % 8;
+  result.insert(tileareas->transitions[origin][dir3].begin(),
+                tileareas->transitions[origin][dir3].end());
 }
 
 /*
@@ -924,6 +1175,22 @@ int RestoreTrajLI::getMaxspeedFromArea(const int areaNo) {
   return result;
 }
 
+void RestoreTrajLI::getBboxFromArea(const int areaNo, Rectangle<2>& result) {
+  set<NewPair<int, int> >::iterator it = tileareas->areas[areaNo].begin();
+  int rasterPos[2];
+  rasterPos[0] = it->first;
+  rasterPos[1] = it->second;
+  raster2::sint::index_type rasterIndex(rasterPos);
+  result = raster->getGrid().getCell(rasterIndex);
+  while (it != tileareas->areas[areaNo].end()) {
+    rasterPos[0] = it->first;
+    rasterPos[1] = it->second;
+    raster2::sint::index_type rasterIndex(rasterPos);
+    result = result.Union(raster->getGrid().getCell(rasterIndex));
+    it++;
+  }
+}
+
 const DirectionNum RestoreTrajLI::dirLabelToNum(const Label& dirLabel) {
   if (dirLabel == "East")      return EAST;
   if (dirLabel == "Northeast") return NORTHEAST;
@@ -948,6 +1215,18 @@ const string RestoreTrajLI::dirNumToString(const DirectionNum dirNum) {
   return "Error";
 }
 
+const DirectionNum RestoreTrajLI::dirDoubleToNum(const double dirDouble) {
+  if (dirDouble >  360.0 || dirDouble <   0.0) return DIR_ERROR;
+  if (dirDouble >  337.5 || dirDouble <= 22.5) return EAST;
+  if (dirDouble <=  67.5) return NORTHEAST;
+  if (dirDouble <= 112.5) return NORTH;
+  if (dirDouble <= 157.5) return NORTHWEST;
+  if (dirDouble <= 202.5) return WEST;
+  if (dirDouble <= 247.5) return SOUTHWEST;
+  if (dirDouble <= 292.5) return SOUTH;
+  return SOUTHEAST;
+}
+
 const int RestoreTrajLI::getDirectionDistance(const DirectionNum dir1,
                                               const DirectionNum dir2) {
   return min(abs(dir1 - dir2), abs(8 - abs(dir1 - dir2)));
@@ -964,8 +1243,14 @@ const int RestoreTrajLI::getSpeedFromLabel(const Label& speedLabel,
   return SPEED_MAX;
 }
 
-MLabel* RestoreTrajLI::nextCandidate() {
-  return 0;
+Rectangle<2>* RestoreTrajLI::nextCandidate() {
+  if (resultAreas.empty() || it == resultAreas.end()) {
+    return 0;
+  }
+  Rectangle<2> *areaBox = new Rectangle<2>(true);
+  getBboxFromArea(*it, *areaBox);
+  it++;
+  return areaBox;
 }
 
 }

@@ -35,7 +35,9 @@ This is the implementation of the Symbolic Trajectory Algebra.
 */
 
 #include "Algorithms.h"
+#include "Algebras/Raster2/sbool.h"
 #include "Algebras/Raster2/sint.h"
+#include "Algebras/Raster2/Operators/fromLine.h"
 #include "Algebras/Hash/HashAlgebra.h"
 #include "Algebras/NestedRelation/NestedRelationAlgebra.h"
 #include "SecondoSMI.h"
@@ -112,6 +114,48 @@ class NegIndexVector2D {
   int minX, maxX, minY, maxY;
 };
 
+struct RoadCourse {
+  RoadCourse() {}
+  
+  void setStartPoint(const Point& startPt) {
+    dirCourse.push_back(NewPair<int, Point>(-1, startPt));
+  }
+  
+  void addDir(const Point& pt, const std::string dirStr, const bool isNewValue){
+    int pos = 0;
+    if (!dirCourse.empty()) {
+      pos = dirCourse[dirCourse.size() - 1].first;
+    }
+    if (isNewValue) {
+      dirPattern.append("(_ \"" + dirStr + "\") ");
+      pos++;
+    }
+    dirCourse.push_back(NewPair<int, Point>(pos, pt));
+  }
+  
+  void addHeight(const raster2::RasterIndex<2> ri, const int height,
+                 const bool isNewValue) {
+    int pos = 0;
+    if (!heightCourse.empty()) {
+      pos = heightCourse[heightCourse.size() - 1].first;
+    }
+    if (isNewValue) {
+      std::ostringstream patternPart;
+      patternPart << "(_ \"" << height << "-" << (height + 10) << "\") ";
+      heightPattern.append(patternPart.str());
+      pos++;
+    }
+    heightCourse.push_back(NewPair<int, raster2::RasterIndex<2> >(pos, ri));
+  }
+    
+  void clear() {dirCourse.clear(); heightCourse.clear(); 
+                heightPattern.clear(); dirPattern.clear();}
+  
+  std::vector<NewPair<int, Point> > dirCourse; // -1 for start
+  std::vector<NewPair<int, raster2::RasterIndex<2> > > heightCourse;
+  std::string dirPattern, heightPattern;
+};
+
 /*
 \section{class ~Tileareas~}
 
@@ -137,7 +181,8 @@ class Tileareas {
   void retrieveAreas(raster2::sint *_raster);
   void print(const bool printRange, const bool printAreas,
              const bool printTileToArea, const bool printTransitions);
-  
+  void recordRoadCourses(raster2::sint *_raster);
+  void processRoadCourse(const SimpleLine& curve, RoadCourse& rc);
   void deleteFiles();
   static const std::string BasicType() {return "tileareas";}
   static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
@@ -164,6 +209,7 @@ class Tileareas {
   NegIndexVector2D<int> tileToArea;
   std::vector<std::vector<std::set<int> > > transitions; // area x dir -> areas
   SmiRecordFile areaFile, ttaFile, transFile;
+  std::vector<RoadCourse> roadCourses;
 };
 
 extern TypeConstructor tileareasTC;
@@ -269,43 +315,38 @@ struct Tile {
 };
 
 /*
-\section{struct ~Area~}
+\section{struct ~AreaHistory~}
 
 Applied for the operator ~restoreTraj~.
 
 */
-struct Area {
-  Area() {}
+struct AreaHistory {
+  AreaHistory() {}
   
-  Area(const std::set<NewPair<int, int> >& t) : tiles(t) {}
+  AreaHistory(const int area) {history.push_back(area);}
   
-  bool operator<(const Area& area) const {
-    if (tiles.size() != area.tiles.size()) {
-      return tiles.size() < area.tiles.size();
+  bool operator<(const AreaHistory& ah) const {
+    if (history.size() != ah.history.size()) {
+      return history.size() < ah.history.size();
     }
-    std::set<NewPair<int, int> >::iterator i1 = tiles.begin();
-    std::set<NewPair<int, int> >::iterator i2 = area.tiles.begin();
-    while (i1 != tiles.end()) {
-      if (*i1 != *i2) {
-        return *i1 < *i2;
+    for (unsigned int i = 0; i < history.size(); i++) {
+      if (history[i] != ah.history[i]) {
+        return history[i] < ah.history[i];
       }
-      i1++;
-      i2++;
     }
     return 0;
   }
   
-  friend std::ostream& operator<<(std::ostream& os, const Area& area) {
-    os << "{";
-    for (std::set<NewPair<int, int> >::iterator it = area.tiles.begin();
-         it != area.tiles.end(); it++) {
-      os << *it << ", ";
+  friend std::ostream& operator<<(std::ostream& os, const AreaHistory& ah) {
+    os << "<";
+    for (unsigned int i = 0; i < ah.history.size(); i++) {
+      os << ah.history[i] << ", ";
     }
-    os << "}" << endl;
+    os << ">" << endl;
     return os;
   }
   
-  std::set<NewPair<int, int> > tiles;
+  std::vector<int> history;
 };
 
 /*
@@ -330,12 +371,14 @@ class RestoreTrajLI {
   void updateCoords(const DirectionNum dir, int& x, int& y);
   int getHeightFromArea(const int areaNo);
   int getMaxspeedFromArea(const int areaNo);
+  void getBboxFromArea(const int areaNo, Rectangle<2>& result);
   static const DirectionNum dirLabelToNum(const Label& dirLabel);
   static const std::string dirNumToString(const DirectionNum dirNum);
+  static const DirectionNum dirDoubleToNum(const double dirDouble);
   const int getDirectionDistance(const DirectionNum dir,
                                  const DirectionNum dir2);
   const int getSpeedFromLabel(const Label& speedLabel, const bool getMax);
-  MLabel* nextCandidate();
+  Rectangle<2>* nextCandidate();
   
  private:
   Relation *edgesRel;
@@ -348,6 +391,8 @@ class RestoreTrajLI {
   MLabel *height;
   MLabel *direction;
   MLabel *speed;
+  std::set<int> resultAreas;
+  std::set<int>::iterator it;
   
 //   std::vector<std::vector<NewPair<int> > > tileSequences;
 };
