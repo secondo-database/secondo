@@ -127,7 +127,12 @@ struct RoadCourse {
       pos = dirCourse[dirCourse.size() - 1].first;
     }
     if (isNewValue) {
-      dirPattern.append("(_ \"" + dirStr + "\") ");
+      Label lb(dirStr);
+      Instant start(pos, 0, datetime::instanttype), 
+              end(pos + 1, 0, datetime::instanttype);
+      temporalalgebra::SecInterval iv(start, end, true, false);
+      ULabel ul(iv, lb);
+      dirSeq.Add(ul);
       pos++;
     }
     dirCourse.push_back(NewPair<int, Point>(pos, pt));
@@ -140,20 +145,25 @@ struct RoadCourse {
       pos = heightCourse[heightCourse.size() - 1].first;
     }
     if (isNewValue) {
-      std::ostringstream patternPart;
-      patternPart << "(_ \"" << height << "-" << (height + 10) << "\") ";
-      heightPattern.append(patternPart.str());
+      std::ostringstream heightStr;
+      heightStr << height << "-" << (height + 10);
+      Label lb(heightStr);
+      Instant start(pos, 0, datetime::instanttype), 
+              end(pos + 1, 0, datetime::instanttype);
+      temporalalgebra::SecInterval iv(start, end, true, false);
+      ULabel ul(iv, lb);
+      heightSeq.Add(ul);
       pos++;
     }
     heightCourse.push_back(NewPair<int, raster2::RasterIndex<2> >(pos, ri));
   }
     
   void clear() {dirCourse.clear(); heightCourse.clear(); 
-                heightPattern.clear(); dirPattern.clear();}
+                dirSeq.Clear(); heightSeq.Clear();}
   
   std::vector<NewPair<int, Point> > dirCourse; // -1 for start
   std::vector<NewPair<int, raster2::RasterIndex<2> > > heightCourse;
-  std::string dirPattern, heightPattern;
+  MLabel dirSeq, heightSeq;
 };
 
 /*

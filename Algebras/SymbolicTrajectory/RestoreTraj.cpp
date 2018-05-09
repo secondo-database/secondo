@@ -397,6 +397,7 @@ void Tileareas::print(const bool printRange, const bool printAreas,
 }
 
 void Tileareas::recordRoadCourses(raster2::sint *_raster) {
+  cout << "Start recording road courses" << endl;
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   Word roadsPtr, roadsIndexPtr;
   bool isDefined;
@@ -478,6 +479,8 @@ void Tileareas::recordRoadCourses(raster2::sint *_raster) {
     processRoadCourse(*(it->second), roadCourse);
     roadCourses.push_back(roadCourse);
   }
+  cout << ".... Courses for " << roadCourses.size() << " roads found" << endl;
+  
 }
 
 void Tileareas::processRoadCourse(const SimpleLine& curve, RoadCourse& rc) {
@@ -512,7 +515,6 @@ void Tileareas::processRoadCourse(const SimpleLine& curve, RoadCourse& rc) {
                  height != lastHeight && height != INT_MIN);
     lastHeight = height;
   }
-  cout << rc.dirPattern << endl << rc.heightPattern << endl << endl;
 }
 
 void Tileareas::deleteFiles() {
@@ -689,7 +691,7 @@ bool Tileareas::Open(SmiRecord& valueRecord, size_t& offset,
 //        << *(ta->transitions[2][4].begin()) << endl;
   unsigned int noRoadCourses, noDirCourses, noHeightCourses;
   double xCoord, yCoord;
-  int strLength;
+  size_t seqSize;
   int rasterIndexPos[2];
   RoadCourse rc;
   if (!valueRecord.Read(&noRoadCourses, sizeof(unsigned int), offset)) {
@@ -740,22 +742,26 @@ bool Tileareas::Open(SmiRecord& valueRecord, size_t& offset,
       NewPair<int, raster2::RasterIndex<2> > heightCourseElement(pos, rIndex);
       rc.heightCourse.push_back(heightCourseElement);
     }
-    if (!valueRecord.Read(&strLength, sizeof(int), offset)) {
+    if (!valueRecord.Read(&seqSize, sizeof(size_t), offset)) {
       return false;
     }
-    offset += sizeof(int);
-    if (!valueRecord.Read(&rc.dirPattern, strLength, offset)) {
+    offset += sizeof(size_t);
+    if (!valueRecord.Read(buffer, seqSize, offset)) {
       return false;
     }
-    offset += strLength;
-    if (!valueRecord.Read(&strLength, sizeof(int), offset)) {
+    offset += seqSize;
+    rc.dirSeq = *((MLabel*)(MLabel::deserialize(buffer)));
+    if (!valueRecord.Read(&seqSize, sizeof(size_t), offset)) {
       return false;
     }
-    offset += sizeof(int);
-    if (!valueRecord.Read(&rc.heightPattern, strLength, offset)) {
+    offset += sizeof(size_t);
+    delete[] buffer;
+    if (!valueRecord.Read(buffer, seqSize, offset)) {
       return false;
     }
-    offset += strLength;
+    offset += seqSize;
+    delete[] buffer;
+    rc.heightSeq = *((MLabel*)(MLabel::deserialize(buffer)));
     ta->roadCourses.push_back(rc);
   }
   value.addr = ta;
@@ -896,7 +902,7 @@ bool Tileareas::Save(SmiRecord& valueRecord, size_t& offset,
   unsigned int noRoadCourses(ta->roadCourses.size()), noDirCourses, 
     noHeightCourses;
   double coord;
-  int indexPos, strLength;
+  int indexPos;
   if (!valueRecord.Write(&noRoadCourses, sizeof(unsigned int), offset)) {
     return false;
   }
@@ -947,25 +953,27 @@ bool Tileareas::Save(SmiRecord& valueRecord, size_t& offset,
       }
       offset += sizeof(int);
     }
-    strLength = ta->roadCourses[i].dirPattern.size();
-    if (!valueRecord.Write(&strLength, sizeof(int), offset)) {
+    size_t seqSize;
+    ta->roadCourses[i].dirSeq.serialize(seqSize, buffer);
+    if (!valueRecord.Write(&seqSize, sizeof(size_t), offset)) {
       return false;
     }
-    offset += sizeof(int);
-    if (!valueRecord.Write(&ta->roadCourses[i].dirPattern, strLength, offset)) {
+    offset += sizeof(size_t);
+    if (!valueRecord.Write(buffer, seqSize, offset)) {
       return false;
     }
-    offset += strLength;
-    strLength = ta->roadCourses[i].heightPattern.size();
-    if (!valueRecord.Write(&strLength, sizeof(int), offset)) {
+    offset += seqSize;
+    delete[] buffer;
+    ta->roadCourses[i].heightSeq.serialize(seqSize, buffer);
+    if (!valueRecord.Write(&seqSize, sizeof(size_t), offset)) {
       return false;
     }
-    offset += sizeof(int);
-    if (!valueRecord.Write(&ta->roadCourses[i].heightPattern, strLength, 
-                           offset)) {
+    offset += sizeof(size_t);
+    if (!valueRecord.Write(buffer, seqSize, offset)) {
       return false;
     }
-    offset += strLength;
+    offset += seqSize;
+    delete[] buffer;
   }
   return true;
 }
