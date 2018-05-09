@@ -131,11 +131,7 @@ int OperatorWrite::mapValue(
         {
             rel->Clear();
         }
-
-        ofstream out(fileName.c_str(),ios::out|ios::binary);
-
-        BinRelWriter::writeHeader(out, relType);
-
+        BinRelWriter brw(fileName,relType,0);
         Stream<Tuple> stream(args[0]);
         stream.open();
 
@@ -143,11 +139,10 @@ int OperatorWrite::mapValue(
         while ((t = stream.request()))
         {
             rel->AppendTuple(t);
-            BinRelWriter::writeNextTuple(out, t);
+            brw.writeNextTuple(t);
             t->DeleteIfAllowed();
         }
         stream.close();
-        out.close();
         result.setAddr(rel);
     }
 
