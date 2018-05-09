@@ -38,7 +38,7 @@ CCFLAGS +=  -Werror
 # creates a "lib$(MODNAME).a" file in the secondo/lib dir. Rules
 # for creating ".dep" files and ".o" files are defined in makefile.env
 .PHONY: all
-all: check_dependencies  $(OBJECTS) $(LIBOBJ)  NFATest 
+all: check_dependencies  $(OBJECTS) $(LIBOBJ)   
 
 check_dependencies:
 	 $(check-algebra-dependencies)
@@ -104,3 +104,5 @@ clean:
 	$(RM) $(DEP_FILES) $(OBJECTS) $(LIBOBJ)
 	$(RM) -f P RegExParser.o RegExParser.y.c Scanner.o Scanner.c  NFATest
 	$(RM) -f RegExParser.y.h
+	$(RM) -f MTopRelAlgebra.cpp.aux MTopRelAlgebra.cpp.dvi MTopRelAlgebra.cpp.log MTopRelAlgebra.cpp.tex
+
