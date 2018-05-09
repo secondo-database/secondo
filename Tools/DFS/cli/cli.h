@@ -44,6 +44,7 @@ private:
   timespec c;
 public:
 
+#if (_POSIX_C_SOURCE >= 199309L)
   void start() {
     clock_gettime(CLOCK_REALTIME, &c);
   }
@@ -54,6 +55,16 @@ public:
     return (stopped.tv_sec - c.tv_sec) + (stopped.tv_nsec - c.tv_nsec)
                                          / 1E9;
   }
+#else
+  void start(){
+
+  }
+
+  double measureMS(){
+     return -1.0;
+  }
+#endif
+
 
 };
 
