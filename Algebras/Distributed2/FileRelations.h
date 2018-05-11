@@ -59,10 +59,12 @@ class BinRelWriter{
 
   */
    static bool writeRelationToFile(Relation* rel, ListExpr relType, 
-                      const std::string& fileName);
+                      const std::string& fileName,
+                      bool writeToDFS = false);
 
    BinRelWriter(const std::string& filename, ListExpr type, 
-                size_t bufferSite = 0);
+                size_t bufferSite = 0,
+                bool writeToDFS = false );
 
    ~BinRelWriter();
 
@@ -83,6 +85,7 @@ class BinRelWriter{
      std::string filename;
      std::ofstream* out;
      char* buffer;
+     bool writeToDFS;
 
 
 /*

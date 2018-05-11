@@ -45,7 +45,9 @@ boost::mutex nlparsemtx;
 
 BinRelWriter::BinRelWriter(const std::string& _filename,
                            ListExpr typeList,
-                           size_t bufferSize): filename(_filename) {
+                           size_t bufferSize, 
+                           bool _writeToDFS /*= false*/): filename(_filename) {
+    writeToDFS = _writeToDFS;
     out = new std::ofstream(filename.c_str(),std::ios::out|std::ios::binary);
     if(!out->good()){
        buffer = 0;
@@ -67,7 +69,9 @@ BinRelWriter::~BinRelWriter(){
    out->close();
    delete out;
    // save file to dfs 
-   dfstools::storeRemoteFile(filename);
+   if(writeToDFS){
+      dfstools::storeRemoteFile(filename);
+   }
    if(buffer){
        delete[] buffer;
    }
@@ -118,7 +122,8 @@ bool BinRelWriter::finish(std::ostream& out){
 
 
 bool BinRelWriter::writeRelationToFile(Relation* rel, ListExpr relType, 
-                   const std::string& fileName){
+                   const std::string& fileName,
+                   bool writeToDFS /* = false */){
 
   std::ofstream out(fileName.c_str(), std::ios::out | std::ios::binary);
   if(!writeHeader(out,relType)){
@@ -139,6 +144,9 @@ bool BinRelWriter::writeRelationToFile(Relation* rel, ListExpr relType,
   delete it;
   bool res = finish(out);
   out.close();
+  if(writeToDFS){
+     dfstools::storeRemoteFile(fileName);
+  }
   return res;
 }
 
@@ -170,8 +178,8 @@ ffeed5Info::ffeed5Info(const std::string& filename, TupleType* _tt){
 }
 
 ffeed5Info::ffeed5Info(const std::string& filename){
-  ok = openFile(filename);
   tt = 0;
+  ok = openFile(filename);
   if(ok){
      ListExpr tupleType = nl->Second(fileTypeList);
      tupleType = SecondoSystem::GetCatalog()->NumericType(tupleType);

@@ -5757,26 +5757,37 @@ The incoming tuple stream is also the output stream.
 
 */
 ListExpr fconsume5TM(ListExpr args){
-  string err = "stream(TUPLE) x {string.text} [x bool]  expected";
+  string err = "stream(TUPLE) x {string.text} [x bool [x bool]]  expected";
 
-  if(!nl->HasLength(args,2) && !nl->HasLength(args,3)){
+  if(!nl->HasLength(args,2) && !nl->HasLength(args,3)
+     && ! nl->HasLength(args,4)){
     return listutils::typeError(err);
   }
   if(!Stream<Tuple>::checkType(nl->First(args))){
-    return listutils::typeError(err);
+    return listutils::typeError(err + " (first arg is not a tuple stream)");
   }
   ListExpr fn = nl->Second(args);
   if(!CcString::checkType(fn) && !FText::checkType(fn)){
-    return listutils::typeError(err);
+    return listutils::typeError(err +" (second arg is not a string or text)");
   }
   if(nl->HasLength(args,2)){
      return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
-                           nl->OneElemList(nl->BoolAtom(true)),
+                           nl->TwoElemList(nl->BoolAtom(true),
+                                           nl->BoolAtom(false)),
                            nl->First(args));
   }
   if(!CcBool::checkType(nl->Third(args))){
-    return listutils::typeError(err + "( third arg is not a bool)");
+    return listutils::typeError(err + " (third arg is not a bool)");
   }
+  if(nl->HasLength(args,3)){
+     return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                           nl->OneElemList(nl->BoolAtom(false)),
+                           nl->First(args));
+  }
+	if(!CcBool::checkType(nl->Fourth(args))){
+    return listutils::typeError(err+" (4th arg not of type bool)");
+  }
+
   return nl->First(args);
 }
 
@@ -5789,9 +5800,11 @@ class fconsume5Info{
 
     fconsume5Info(Word& _stream,
                  const string& _filename, 
-                 const ListExpr typeList):
+                 const ListExpr typeList,
+                 const bool storeToDFS):
        in(_stream){
-       binrelwriter = new BinRelWriter(_filename, typeList, FILE_BUFFER_SIZE); 
+       binrelwriter = new BinRelWriter(_filename, typeList, FILE_BUFFER_SIZE,
+                                        storeToDFS); 
        ok = binrelwriter->ok();
        in.open();
        firstError = true;
@@ -5863,14 +5876,16 @@ int fconsume5VMT(Word* args, Word& result, int message,
          type = nl->TwoElemList( listutils::basicSymbol<Relation>(),
                                  nl->Second(type));
 
-         CcBool* overwrite = (CcBool*) args[2].addr;
-         if(overwrite->IsDefined() && overwrite->GetValue()){
+         CcBool* createFolder = (CcBool*) args[2].addr;
+         if(createFolder->IsDefined() && createFolder->GetValue()){
            string folder = FileSystem::GetParentFolder(fns);
            if(!folder.empty()){
               FileSystem::CreateFolderEx(folder);
            }
          }
-         local.addr = new fconsume5Info(args[0],fns,type);
+         CcBool* storeToDFS = (CcBool*) args[3].addr;
+         bool dfs = storeToDFS->IsDefined() && storeToDFS->GetValue();
+         local.addr = new fconsume5Info(args[0],fns,type,dfs);
          return 0;
       }
       case REQUEST:
@@ -5908,10 +5923,17 @@ ValueMapping fconsume5VM[] = {
 */
 
 OperatorSpec fconsume5Spec(
-     " stream(TUPLE) x {string, text} -> stream(TUPLE) ",
-     " _ fconsume5[_]",
-     " Stores a tuple stream into a binary file. ",
-     " query ten feed fconsume5['ten.bin'] count"
+     " stream(TUPLE) x {string, text} [x bool [x bool]]-> stream(TUPLE) ",
+     " _ fconsume5[_,_,_]",
+     " Stores a tuple stream into a binary file.  "
+     "The first argument is the stream to store. The second argument "
+     "specifies the filename. The third optional argument specifies "
+     "whether the folder of the file should be create automatically. "
+     "This is true by default. The fourth argument constrols whether "
+     "the file should be put to a distributed file system after creation if "
+     "a dfs is available in the Distributed2 Algebra. Here, the default value "
+     "is false.",
+     " query ten feed fconsume5['ten.bin', true, false] count"
      );
 
 /*

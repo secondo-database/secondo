@@ -36,7 +36,7 @@ Remark    : requires a remote server
 Operator  : prcmd
 Number    : 1
 Signature : stream(tuple) x attrName x attrName -> stream(tuple + E)
-Example   : query intstream(0,5) namedtransformstream[Server] extend[ W : 'open database berlintest'] prcmd[Server,W] consume
+Example   : query intstream(0,5) namedtransformstream[Server] extend[ W : 'open database berlintest'] prcmd[Server,W] tconsume
 Result    : bug 
 Remark    : requires a remote server
 
@@ -58,7 +58,7 @@ Remark    : Requires a remote server
 Operator  : psendFile
 Number    : 1
 Signature : stream(tuple) x ID x ID x ID -> stream(extend(tuple))
-Example   : query filetable feed psendFile[ServerNo, LocalFileName, RemoteFileName] consume
+Example   : query filetable feed psendFile[ServerNo, LocalFileName, RemoteFileName] tconsume
 Result    : bug
 Remark    : Requires a remote server
 
@@ -66,7 +66,7 @@ Remark    : Requires a remote server
 Operator  : prequestFile
 Number    : 1
 Signature : stream(tuple) x ID x ID x ID -> stream(extend(tuple))
-Example   : query filetable feed prequestFile[ServerNo, RemoteFileName, LocalFileName] consume
+Example   : query filetable feed prequestFile[ServerNo, RemoteFileName, LocalFileName] tconsume
 Result    : bug
 Remark    : Requires a remote server
 
@@ -85,7 +85,7 @@ Result    : (text undefined)
 Operator : pconnect
 Number   : 1
 Signature: stream(tuple(X)) x id x id x id -> stream(tuple(X + CNo))
-Example  : query connectTable feed pconnect[Host, Port, Config] consume
+Example  : query connectTable feed pconnect[Host, Port, Config] tconsume
 Result   : bug
 Remark   : Requires a remote server
 
@@ -93,14 +93,14 @@ Remark   : Requires a remote server
 Operator : prquery
 Number   : 1
 Signature: stream(int) x {string.text} x int -> stream(Tuple(ServerNo : int, Result : text))
-Example  : query intstream(0,3) prquery['query ten count', 0] consume
+Example  : query intstream(0,3) prquery['query ten count', 0] tconsume
 Result   : bug
 Remark   : Requires a remote server
 
 Operator : prquery2
 Number   : 1
 Signature: stream(tuple) x {string.text} x AttrName x AttrName x int x int  -> stream(tuple)
-Example  : query partserver prquery2['query ten_PART_SERVER count', Server, Part, 0, 4] consume
+Example  : query partserver prquery2['query ten_PART_SERVER count', Server, Part, 0, 4] tconsume
 Result   : bug
 Remark   : Requires a remote server
 
@@ -348,7 +348,7 @@ Remark    : in development
 Operator  : gettuples
 Number    : 1
 Signature : stream(tuple) x {string,text} -> stream(tuple)
-Example   : query strassenfile_btree exactmatchS["Hohe Strasse"] 'strassen.bin' gettuples consume
+Example   : query strassenfile_btree exactmatchS["Hohe Strasse"] 'strassen.bin' gettuples tconsume
 Result    : bug
 Remark    : in development
 
