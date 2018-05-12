@@ -1,0 +1,58 @@
+Database : berlintest
+Restore  : No
+
+Operator  : drfdistribute
+Number    : 1
+Signature : stream(tuple(X)) x rel x string x string [x attr] [x int] -> drel(X)
+Example   : query strassen feed drfdistribute[Worker3, "", "random", 5]
+Result    : bug
+Remark    : remote server required
+
+Operator  : drddistribute
+Number    : 1
+Signature : stream(tuple(X)) x rel x string x string [x attr] [x int] -> drel(X)
+Example   : query strassen drddistribute[Worker3, "", "range", No, 5]
+Result    : bug
+Remark    : remote server required
+
+Operator  : rddistribute2
+Number    : 1
+Signature : stream(tuple(X)) x ident x int x rel x string -> drel(X) 
+Example   : query strassen feed addcounter[No,0] rddistribute2["dstrassen", No, 5, workers] 
+Result    : bug
+Remark    : remote server required
+
+Operator  : rfdistribute2
+Number    : 1
+Signature : stream(tuple(X)) x ident x int x rel x string -> dfrel(X) 
+Example   : query strassen feed addcounter[No,0] rfdistribute2["dstrassen", No, 5, workers] 
+Result    : crashes
+Remark    : remote server required
+
+Operator  : rddistribute3
+Number    : 1
+Signature : stream(tuple(X)) x int x bool  x rel x string -> drel(rel(tuple(X))) 
+Example   : query strassen feed rddistribute3["dstrassen3", 10, TRUE, workers] 
+Result    : bug
+Remark    : remote server required
+
+Operator  : rfdistribute3
+Number    : 1
+Signature : stream(tuple(X)) x int x bool x rel x string -> dfrel(rel(tuple(X))) 
+Example   : query strassen feed rfdistribute3["fstrassen", 10, TRUE, workers] 
+Result    : bug
+Remark    : remote server required
+
+Operator  : rddistribute4
+Number    : 1
+Signature : stream(tuple(X)) x (fun : tuple ->int) x int x rel x string -> drel(X) 
+Example   : query strassen feed rddistribute4["dstrassen4", hashvalue(.Name, 2000), 5 , workers] 
+Result    : bug
+Remark    : remote server required
+
+Operator  : rfdistribute4
+Number    : 1
+Signature : stream(tuple(X)) x (fun : tuple ->int) x int x rel x string -> dfrel(X) 
+Example   : query strassen feed rfdistribute4["dfstrassen4", hashvalue(.Name, 2000), 5, workers] 
+Result    : bug 
+Remark    : remote server required
