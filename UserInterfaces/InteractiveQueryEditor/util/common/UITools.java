@@ -54,7 +54,7 @@ public class UITools {
 		return new Point((int)(screensize.getWidth()-dimension.getWidth())/2, (int)(screensize.getHeight()-dimension.getHeight())/2);
 	}
 
-	public static Dimension calculateDimentsion(final int percentage) {
+	public static Dimension calculateDimension(final int percentage) {
 		if (percentage > 100 || percentage < 0) {
 			throw new IllegalArgumentException("Please specify a vlaue between 0 and 100");
 		}
