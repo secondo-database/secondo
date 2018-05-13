@@ -45,7 +45,7 @@ public class AnalyserController implements DocumentListener, EditorEventListener
 	public AnalyserController(final JFrame parent, final AnalyserModel model) {
 		this.parent = parent;
 		this.model = model;
-		analyser = new QueryAnalyser("specs");
+		analyser = new QueryAnalyser("../Algebras/specs");
 	}
 
 	/**

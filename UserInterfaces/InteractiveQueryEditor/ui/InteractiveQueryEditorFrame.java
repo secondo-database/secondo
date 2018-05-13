@@ -72,7 +72,7 @@ public class InteractiveQueryEditorFrame extends JFrame implements ActionListene
 		frameDivider.setLeftComponent(new JScrollPane(console));
 		frameDivider.setRightComponent(new JScrollPane(analyser));
 
-		final SecondoOutputReader readerRunnable = new SecondoOutputReader(console, Paths.get("secondoOut.txt"));
+		final SecondoOutputReader readerRunnable = new SecondoOutputReader(console, Paths.get(".iqe_secondo_out"));
 		final Thread continuouslyReadSecondoOutput = new Thread(readerRunnable);
 		continuouslyReadSecondoOutput.start();
 
