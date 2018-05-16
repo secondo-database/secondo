@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define _DFRelHelpers_h_
 
 #include "NestedList.h"
+#include "Algebras/MainMemory2/MPointer.h"
 
 namespace drel {
 
@@ -36,8 +37,26 @@ namespace drel {
         public:
             static bool findAttribute( 
                 ListExpr attrList, const std::string& name, ListExpr& type );
+
             static bool countRecords( 
-                std::string attrName, std::string relName, int& records );
+                const std::string attrName, 
+                const std::string relName, 
+                int& records );
+
+            static mm2algebra::MPointer* createMemSample(
+                const std::string relation, const std::string attr);
+
+            static mm2algebra::MPointer* createAVLtree(
+                mm2algebra::MPointer* mmrelp, int attrpos = 1 );
+            
+            static ListExpr createSampleMemList(
+                const std::string relName, const std::string attrName );
+
+            static int computeSampleSize(
+                const int relSize, const int arraySize );
+
+            static int computeFractionSample(
+                const int relSize, const int arraySize );
     };
 
 } // end of namespace drel

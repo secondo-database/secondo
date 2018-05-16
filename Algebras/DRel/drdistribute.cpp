@@ -131,7 +131,7 @@ namespace drel {
         }
         return true;
     }
-
+    
     /*
     1.1.1 ~createStreamOpTree~
 
@@ -417,6 +417,8 @@ namespace drel {
             result = qp->ResultStorage( s );
             RType* drel = ( RType* )result.addr;
             drel->makeUndefined( );
+            qps->Destroy( treeS, true );
+            delete qps;
             return 0;
         }
 
@@ -484,6 +486,8 @@ namespace drel {
                 result = qp->ResultStorage( s );
                 RType* drel = ( RType* )result.addr;
                 drel->makeUndefined( );
+                qps->Destroy( treeS, true );
+                delete qps;
                 return 0;
             }
 
@@ -528,6 +532,8 @@ namespace drel {
                 result = qp->ResultStorage( s );
                 RType* drel = ( RType* )result.addr;
                 drel->makeUndefined( );
+                qps->Destroy( treeS, true );
+                delete qps;
                 return 0;
             }
 
@@ -537,6 +543,45 @@ namespace drel {
             int nth = ceil( ( ( double )records ) / 5000 );
             cout << "Extract each " + to_string( nth ) + 
                 "th record for the sample" << endl;
+            mm2algebra::MPointer* mmsamplep = 
+                DRelHelpers::createMemSample( relName, attrName );
+            mm2algebra::MPointer* mmsampleavlp = 
+                DRelHelpers::createAVLtree( mmsamplep );
+
+            cout << attrName << endl;
+
+            ListExpr funList = DRelHelpers::createSampleMemList(
+                relName, attrName );
+            cout << nl->ToString( funList ) << endl;
+
+            OpTree tree = 0;
+            bool correct = false;
+            bool evaluable = false;
+            bool defined = false;
+            bool isFunction = false;
+            ListExpr resultType;
+            QueryProcessor* qp2 = new QueryProcessor( nl, am );
+            qp2->Construct( funList,
+                correct,
+                evaluable,
+                defined,
+                isFunction,
+                tree,
+                resultType );
+
+            if( !correct ) {
+                cout << "can not create operator tree" << endl;
+                result = qp->ResultStorage( s );
+                RType* drel = ( RType* )result.addr;
+                drel->makeUndefined( );
+                qps->Destroy( treeS, true );
+                delete qps;
+                return 0;
+            }
+
+            cout << "sample" << endl;
+            cout << mmsamplep << endl;
+            cout << mmsampleavlp << endl;
 
             result = qp->ResultStorage( s );
             RType* drel = ( RType* )result.addr;
