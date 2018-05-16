@@ -115,7 +115,9 @@ class NegIndexVector2D {
 };
 
 struct RoadCourse {
-  RoadCourse() {}
+  RoadCourse() : dirSeq(true), heightSeq(true) {}
+  
+  ~RoadCourse() {}
   
   void setStartPoint(const Point& startPt) {
     dirCourse.push_back(NewPair<int, Point>(-1, startPt));
@@ -147,7 +149,7 @@ struct RoadCourse {
     if (isNewValue) {
       std::ostringstream heightStr;
       heightStr << height << "-" << (height + 10);
-      Label lb(heightStr);
+      Label lb(heightStr.str());
       Instant start(pos, 0, datetime::instanttype), 
               end(pos + 1, 0, datetime::instanttype);
       temporalalgebra::SecInterval iv(start, end, true, false);

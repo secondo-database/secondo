@@ -411,7 +411,7 @@ void Tileareas::recordRoadCourses(raster2::sint *_raster) {
   }
   map<string, vector<HalfSegment> > motorwayParts;
   map<string, SimpleLine*> motorways;
-  vector<string> motorwayNames;
+  set<string> motorwayNames;
   NestedRelation *roadsNRel = static_cast<NestedRelation*>(roadsPtr.addr);
   Tuple *tuple = 0, *ntuple = 0, *atuple = 0;
   TupleId tid;
@@ -423,10 +423,12 @@ void Tileareas::recordRoadCourses(raster2::sint *_raster) {
   string motorwayName;
   while ((ntuple = rit->GetNextTuple()) != 0) {
     bool isHighway = false;
+    cout << "call NT2T " << (ntuple != 0) << endl;
     tuple = roadsNRel->NestedTuple2Tuple(ntuple);
     AttributeRelation *arel = (AttributeRelation*)(tuple->GetAttribute(4));
     DbArray<TupleId> *tids = arel->getTupleIds();
-    for (int i = 0; i < tids->Size(); i++) { // check all waytagkeys for highway
+    int i = 0;
+    while (i < tids->Size()) { // check waytagkeys for highway and name
       tids->Get(i, tid);
       atuple = arel->getRel()->GetTuple(tid, false);
       if (atuple != 0) {
@@ -436,7 +438,6 @@ void Tileareas::recordRoadCourses(raster2::sint *_raster) {
           if (roadInfo1->GetValue() == "highway") {
             if (roadInfo2->GetValue() == "motorway") {
               isHighway = true;
-              break;
             }
           }
           else if (roadInfo1->GetValue() == "ref") {
@@ -445,18 +446,19 @@ void Tileareas::recordRoadCourses(raster2::sint *_raster) {
         }
       }
       atuple->DeleteIfAllowed();
-      motorwayName.clear();
+      i++;
     }
     if (isHighway) { // find and store motorway parts
       Line *curve = (Line*)(tuple->GetAttribute(2));
       SimpleLine scurve(*curve);
       if (scurve.IsDefined()) {
         if (scurve.BoundingBox().Intersects(raster->bbox())) {
-          for (int i = 0; i < scurve.Size(); i++) {
-            scurve.Get(i, hs);
-            if (!motorwayName.empty()) {
+          cout << " INTERSECTION! Name is " << motorwayName << endl;
+          if (!motorwayName.empty()) {
+            for (int i = 0; i < scurve.Size(); i++) {
+              scurve.Get(i, hs);
               motorwayParts[motorwayName].push_back(hs);
-              motorwayNames.push_back(motorwayName);
+              motorwayNames.insert(motorwayName);
             }
           }
         }
@@ -464,8 +466,10 @@ void Tileareas::recordRoadCourses(raster2::sint *_raster) {
     }
     tuple->DeleteIfAllowed();
   }
-  for (unsigned int i = 0; i < motorwayNames.size(); i++) {
-    string name = motorwayNames[i];
+  cout << motorwayNames.size() << " names found" << endl;
+  for (set<string>::iterator it = motorwayNames.begin(); 
+                                              it != motorwayNames.end(); it++) {
+    string name = *it;
     motorways[name] = new SimpleLine(true);
     motorways[name]->StartBulkLoad();
     for (unsigned int j = 0; j < motorwayParts[name].size(); j++) {
@@ -965,6 +969,7 @@ bool Tileareas::Save(SmiRecord& valueRecord, size_t& offset,
     offset += seqSize;
     delete[] buffer;
     ta->roadCourses[i].heightSeq.serialize(seqSize, buffer);
+    cout << ta->roadCourses[i].heightSeq << endl << "..... serialized" << endl;
     if (!valueRecord.Write(&seqSize, sizeof(size_t), offset)) {
       return false;
     }
