@@ -736,4 +736,24 @@ Result    : unpredictable
 Remark    : Depends on the presence of a distributed file system
 
 
+Operator  : removeTempInDFS
+Number    : 1
+Signature : -> int
+Example   : query removeTempInDFS()
+Result    : unpredictable
+Remark    : depends on the presence of a distributed file system
 
+Operator  : removeDFSFilesInDB
+Number    : 1
+Signature : -> bool
+Example   : query removeDFSFilesInDB() 
+Result    : unpredictable
+Remark    : depends on the presence of a distributed file system
+
+
+Operator  : removeAllDFSFiles
+Number    : 1
+Signature : -> bool
+Example   : query removeAllDFSFiles()
+Result    : unpredictable
+Remark    : depends on the presence of a distributed file system

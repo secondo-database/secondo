@@ -38,6 +38,11 @@ namespace dfstools{
 
   bool storeRemoteFile( const std::string& localFileName);
 
+  bool deleteAllFilesInDB();
+  bool deleteAllFiles();
+
+  UI64 removeTempFiles();
+
 }
 
 

@@ -137,6 +137,8 @@ operator db2LogToFile alias DB2LOGTOFILE pattern op(_,_)
 
 operator enableDFSFT alias ENABLEDSFFT pattern op(_,_)
 operator disableDFSFT alias DISABLEDSFFT pattern op()
-
+operator removeTempInDFS alias REMOVETEMPINDFS pattern op()
+operator removeDFSFilesInDB alias REMOVEDFSFILESINDB pattern op()
+operator removeAllDFSFiles alias REMOVEALLDFSFILES pattern op()
 
 

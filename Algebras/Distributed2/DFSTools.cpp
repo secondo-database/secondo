@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include <libgen.h>
 #include "FileSystem.h"
+#include "StringUtils.h"
 
 
 namespace distributed2{
@@ -43,7 +44,7 @@ namespace dfstools{
      return dbname+"::"+basename;
    }
 
-   std::string getCategorie(){
+   std::string getCategory(){
      return SecondoSystem::GetInstance()->GetDatabaseName();
    }
 
@@ -66,7 +67,7 @@ namespace dfstools{
         return false;
       }
       std::string rname = getRemoteName(localFileName);
-      std::string cat = getCategorie();
+      std::string cat = getCategory();
       try{
          distributed2::filesystem->storeFileFromLocal(rname.c_str(),
                                        localFileName.c_str(),
@@ -77,6 +78,55 @@ namespace dfstools{
       }
 
    }
+
+   bool deleteAllFilesInDB(){
+      if(!distributed2::filesystem){
+        return false;
+      }
+      try{   
+        distributed2::filesystem->deleteAllFilesOfCategory(
+                                               getCategory().c_str());
+        return true;
+      } catch(...){
+        return false;
+      }
+   }   
+   
+   bool deleteAllFiles(){
+      if(!distributed2::filesystem){
+        return false;
+      }
+      try{   
+        distributed2::filesystem->deleteAllFiles();
+        return true;
+      } catch(...){
+        return false;
+      }
+   }   
+
+   UI64 removeTempFiles(){
+      if(!distributed2::filesystem){
+        return 0;
+      }
+      try{   
+        std::vector<std::string> allFiles = 
+                               distributed2::filesystem->listFileNames();
+        std::string start = getRemoteName("TMP_");
+        int count = 0;
+        for(size_t i=0;i<allFiles.size();i++){
+            std::string& file = allFiles[i];
+            if(stringutils::startsWith(file, start)){
+              distributed2::filesystem->deleteFile(file.c_str());
+              count++;
+            }
+        }
+        return count;
+      } catch(...){
+         return 0;
+      }
+   }
+
+
 
 }
 
