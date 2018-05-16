@@ -75,11 +75,7 @@ JNIHeader: util/secondo/SecondoKernel.java
 
 .PHONY: JNITool.o
 JNITool.o:
-	@echo "Checking JNITool.o"
-ifeq ("$(wildcard $(JNITOOL_OBJECT_PATH))","")
-	@echo "The JNITool.o file is missing. SecondoKernel.so could not be built. See readme for further information."
-	@exit 1
-endif	
+	make -C ../../Tools/Jni
 
 .PHONY: clean
 clean:
