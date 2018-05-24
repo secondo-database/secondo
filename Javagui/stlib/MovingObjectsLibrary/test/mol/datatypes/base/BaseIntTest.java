@@ -30,74 +30,130 @@ import org.junit.Test;
  */
 public class BaseIntTest {
 
-	@Test
-	public void testHashCode_DifferentObjectSameValue_HashCodeShouldBeEqual() {
-		BaseInt posIntegerA = new BaseInt(1);
-		BaseInt posIntegerB = new BaseInt(1);
-		BaseInt negIntegerA = new BaseInt(-1);
-		BaseInt negIntegerB = new BaseInt(-1);
+   @Test
+   public void testHashCode_DifferentObjectSameValue_HashCodeShouldBeEqual() {
+      BaseInt posIntegerA = new BaseInt(1);
+      BaseInt posIntegerB = new BaseInt(1);
+      BaseInt negIntegerA = new BaseInt(-1);
+      BaseInt negIntegerB = new BaseInt(-1);
 
-		assertTrue(posIntegerA.hashCode() == posIntegerB.hashCode());
-		assertTrue(negIntegerA.hashCode() == negIntegerB.hashCode());
-	}
+      assertTrue(posIntegerA.hashCode() == posIntegerB.hashCode());
+      assertTrue(negIntegerA.hashCode() == negIntegerB.hashCode());
+   }
 
-	@Test
-	public void testHashCode_DifferentValue_HashCodeShouldBeNonEqual() {
-		BaseInt posInteger = new BaseInt(1);
-		BaseInt negInteger = new BaseInt(-1);
+   @Test
+   public void testHashCode_DifferentValue_HashCodeShouldBeNonEqual() {
+      BaseInt posInteger = new BaseInt(1);
+      BaseInt negInteger = new BaseInt(-1);
 
-		assertFalse(posInteger.hashCode() == negInteger.hashCode());
-	}
+      assertFalse(posInteger.hashCode() == negInteger.hashCode());
+   }
 
-	@Test
-	public void testCompareTo_LowVsHighValue_ShouldBeLowerZero() {
-		BaseInt posInteger = new BaseInt(1);
-		BaseInt negInteger = new BaseInt(-1);
+   @Test
+   public void testCompareTo_LowVsHighValue_ShouldBeLowerZero() {
+      BaseInt posInteger = new BaseInt(1);
+      BaseInt negInteger = new BaseInt(-1);
 
-		assertTrue(negInteger.compareTo(posInteger) < 0);
+      assertTrue(negInteger.compareTo(posInteger) < 0);
 
-	}
+   }
 
-	@Test
-	public void testCompareTo_HighVsLowValue_ShouldBeGreaterZero() {
-		BaseInt posInteger = new BaseInt(1);
-		BaseInt negInteger = new BaseInt(-1);
+   @Test
+   public void testCompareTo_HighVsLowValue_ShouldBeGreaterZero() {
+      BaseInt posInteger = new BaseInt(1);
+      BaseInt negInteger = new BaseInt(-1);
 
-		assertTrue(posInteger.compareTo(negInteger) > 0);
+      assertTrue(posInteger.compareTo(negInteger) > 0);
 
-	}
+   }
 
-	@Test
-	public void testCompareTo_SameValue_ShouldBeZero() {
-		BaseInt posIntegerA = new BaseInt(1);
-		BaseInt posIntegerB = new BaseInt(1);
-		BaseInt negIntegerA = new BaseInt(-1);
-		BaseInt negIntegerB = new BaseInt(-1);
+   @Test
+   public void testCompareTo_SameValue_ShouldBeZero() {
+      BaseInt posIntegerA = new BaseInt(1);
+      BaseInt posIntegerB = new BaseInt(1);
+      BaseInt negIntegerA = new BaseInt(-1);
+      BaseInt negIntegerB = new BaseInt(-1);
 
-		assertTrue(posIntegerA.compareTo(posIntegerB) == 0);
-		assertTrue(negIntegerA.compareTo(negIntegerB) == 0);
+      assertTrue(posIntegerA.compareTo(posIntegerB) == 0);
+      assertTrue(negIntegerA.compareTo(negIntegerB) == 0);
 
-	}
+   }
 
-	@Test
-	public void testEquals_EqualValue_ShouldBeTrue() {
-		BaseInt posIntegerA = new BaseInt(1);
-		BaseInt posIntegerB = new BaseInt(1);
-		BaseInt negIntegerA = new BaseInt(-1);
-		BaseInt negIntegerB = new BaseInt(-1);
+   @Test
+   public void testEquals_EqualValue_ShouldBeTrue() {
+      BaseInt posIntegerA = new BaseInt(1);
+      BaseInt posIntegerB = new BaseInt(1);
+      BaseInt negIntegerA = new BaseInt(-1);
+      BaseInt negIntegerB = new BaseInt(-1);
 
-		assertTrue(posIntegerA.equals(posIntegerB));
-		assertTrue(negIntegerA.equals(negIntegerB));
+      assertTrue(posIntegerA.equals(posIntegerB));
+      assertTrue(negIntegerA.equals(negIntegerB));
 
-	}
+   }
 
-	@Test
-	public void testEquals_NonEqualValue_ShouldBeFalse() {
-		BaseInt posInteger = new BaseInt(1);
-		BaseInt negInteger = new BaseInt(-1);
+   @Test
+   public void testEquals_NonEqualValue_ShouldBeFalse() {
+      BaseInt posInteger = new BaseInt(1);
+      BaseInt negInteger = new BaseInt(-1);
 
-		assertFalse(posInteger.equals(negInteger));
+      assertFalse(posInteger.equals(negInteger));
 
-	}
+   }
+
+   @Test
+   public void testBefore_LowerVsHigherInteger_ShouldBeTrue() {
+      BaseInt int1 = new BaseInt(1);
+      BaseInt int2 = new BaseInt(2);
+
+      assertTrue(int1.before(int2));
+
+   }
+
+   @Test
+   public void testBefore_EqualInteger_ShouldBeFalse() {
+      BaseInt int1A = new BaseInt(1);
+      BaseInt int1B = new BaseInt(1);
+
+      assertFalse(int1A.before(int1B));
+
+   }
+
+   @Test
+   public void testAfter_HigherVsLowerInteger_ShouldBeTrue() {
+      BaseInt int1 = new BaseInt(1);
+      BaseInt int2 = new BaseInt(2);
+
+      assertTrue(int2.after(int1));
+
+   }
+
+   @Test
+   public void testAfter_EqualInteger_ShouldBeFalse() {
+      BaseInt int1A = new BaseInt(1);
+      BaseInt int1B = new BaseInt(1);
+
+      assertFalse(int1A.after(int1B));
+
+   }
+
+   @Test
+   public void testAdjacent_AdjacentIntegers_ShouldBeTrue() {
+      BaseInt int1 = new BaseInt(1);
+      BaseInt int2 = new BaseInt(2);
+
+      assertTrue(int1.adjacent(int2));
+
+   }
+
+   @Test
+   public void testAdjacent_NonAdjacentOrEqualIntegers_ShouldBeFalse() {
+      BaseInt int1A = new BaseInt(1);
+      BaseInt int1B = new BaseInt(1);
+      BaseInt int5 = new BaseInt(5);
+
+      assertFalse(int1A.adjacent(int5));
+      assertFalse(int1A.adjacent(int1B));
+
+   }
 
 }

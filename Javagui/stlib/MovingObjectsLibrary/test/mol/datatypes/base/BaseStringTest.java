@@ -30,81 +30,142 @@ import org.junit.Test;
  */
 public class BaseStringTest {
 
-	@Test
-	public void testHashCode_DifferentObjectSameValue_HashCodeShouldBeEqual() {
-		BaseString stringA1 = new BaseString("aBc");
-		BaseString stringA2 = new BaseString("aBc");
+   @Test
+   public void testHashCode_DifferentObjectSameValue_HashCodeShouldBeEqual() {
+      BaseString stringA1 = new BaseString("aBc");
+      BaseString stringA2 = new BaseString("aBc");
 
-		assertTrue(stringA1.hashCode() == stringA2.hashCode());
-	}
+      assertTrue(stringA1.hashCode() == stringA2.hashCode());
+   }
 
-	@Test
-	public void testHashCode_DifferentValue_HashCodeShouldBeNonEqual() {
-		BaseString stringA = new BaseString("aBc");
-		BaseString stringB = new BaseString("abc");
-		BaseString stringC = new BaseString("abc ");
+   @Test
+   public void testHashCode_DifferentValue_HashCodeShouldBeNonEqual() {
+      BaseString stringA = new BaseString("aBc");
+      BaseString stringB = new BaseString("abc");
+      BaseString stringC = new BaseString("abc ");
 
-		assertFalse(stringA.hashCode() == stringB.hashCode());
-		assertFalse(stringB.hashCode() == stringC.hashCode());
-	}
+      assertFalse(stringA.hashCode() == stringB.hashCode());
+      assertFalse(stringB.hashCode() == stringC.hashCode());
+   }
 
-	@Test
-	public void testCompareTo_LowVsHighValue_ShouldBeLowerZero() {
-		BaseString stringA = new BaseString("aa");
-		BaseString stringB = new BaseString("ab");
-		BaseString stringC = new BaseString("ac");
+   @Test
+   public void testCompareTo_LowVsHighValue_ShouldBeLowerZero() {
+      BaseString stringA = new BaseString("aa");
+      BaseString stringB = new BaseString("ab");
+      BaseString stringC = new BaseString("ac");
 
-		assertTrue(stringA.compareTo(stringB) < 0);
-		assertTrue(stringB.compareTo(stringC) < 0);
-		assertTrue(stringA.compareTo(stringC) < 0);
+      assertTrue(stringA.compareTo(stringB) < 0);
+      assertTrue(stringB.compareTo(stringC) < 0);
+      assertTrue(stringA.compareTo(stringC) < 0);
 
-	}
+   }
 
-	@Test
-	public void testCompareTo_HighVsLowValue_ShouldBeGreaterZero() {
-		BaseString stringA = new BaseString("aa");
-		BaseString stringB = new BaseString("ab");
-		BaseString stringC = new BaseString("ac");
+   @Test
+   public void testCompareTo_HighVsLowValue_ShouldBeGreaterZero() {
+      BaseString stringA = new BaseString("aa");
+      BaseString stringB = new BaseString("ab");
+      BaseString stringC = new BaseString("ac");
 
-		assertTrue(stringC.compareTo(stringB) > 0);
-		assertTrue(stringC.compareTo(stringA) > 0);
-		assertTrue(stringB.compareTo(stringA) > 0);
+      assertTrue(stringC.compareTo(stringB) > 0);
+      assertTrue(stringC.compareTo(stringA) > 0);
+      assertTrue(stringB.compareTo(stringA) > 0);
 
-	}
+   }
 
-	@Test
-	public void testCompareTo_SameValue_ShouldBeZero() {
-		BaseString stringA1 = new BaseString("aa");
-		BaseString stringA2 = new BaseString("aa");
-		BaseString stringB1 = new BaseString("a b");
-		BaseString stringB2 = new BaseString("a b");
+   @Test
+   public void testCompareTo_SameValue_ShouldBeZero() {
+      BaseString stringA1 = new BaseString("aa");
+      BaseString stringA2 = new BaseString("aa");
+      BaseString stringB1 = new BaseString("a b");
+      BaseString stringB2 = new BaseString("a b");
 
-		assertTrue(stringA1.compareTo(stringA2) == 0);
-		assertTrue(stringB1.compareTo(stringB2) == 0);
+      assertTrue(stringA1.compareTo(stringA2) == 0);
+      assertTrue(stringB1.compareTo(stringB2) == 0);
 
-	}
+   }
 
-	@Test
-	public void testEquals_EqualValue_ShouldBeTrue() {
-		BaseString stringA1 = new BaseString("aa");
-		BaseString stringA2 = new BaseString("aa");
-		BaseString stringB1 = new BaseString("a b");
-		BaseString stringB2 = new BaseString("a b");
+   @Test
+   public void testEquals_EqualValue_ShouldBeTrue() {
+      BaseString stringA1 = new BaseString("aa");
+      BaseString stringA2 = new BaseString("aa");
+      BaseString stringB1 = new BaseString("a b");
+      BaseString stringB2 = new BaseString("a b");
 
-		assertTrue(stringA1.equals(stringA2));
-		assertTrue(stringB1.equals(stringB2));
+      assertTrue(stringA1.equals(stringA2));
+      assertTrue(stringB1.equals(stringB2));
 
-	}
+   }
 
-	@Test
-	public void testEquals_NonEqualValue_ShouldBeFalse() {
-		BaseString stringA = new BaseString("aa");
-		BaseString stringB = new BaseString("aa ");
-		BaseString stringC = new BaseString("AA");
+   @Test
+   public void testEquals_NonEqualValue_ShouldBeFalse() {
+      BaseString stringA = new BaseString("aa");
+      BaseString stringB = new BaseString("aa ");
+      BaseString stringC = new BaseString("AA");
 
-		assertFalse(stringA.equals(stringB));
-		assertFalse(stringA.equals(stringC));
+      assertFalse(stringA.equals(stringB));
+      assertFalse(stringA.equals(stringC));
 
-	}
+   }
+
+   @Test
+   public void testBefore_StringInAlphabeticalOrder_ShouldBeTrue() {
+      BaseString string1 = new BaseString("aaa");
+      BaseString string2 = new BaseString("aab");
+      BaseString string3 = new BaseString("aa");
+
+      assertTrue(string1.before(string2));
+      assertTrue(string3.before(string1));
+   }
+
+   @Test
+   public void testBefore_EqualString_ShouldBeFalse() {
+      BaseString string1 = new BaseString("aaa");
+      BaseString string2 = new BaseString("aaa");
+
+      assertFalse(string1.before(string2));
+
+   }
+
+   @Test
+   public void testAfter_StringInAlphabeticalOrder_ShouldBeTrue() {
+      BaseString string1 = new BaseString("aaa");
+      BaseString string2 = new BaseString("aab");
+      BaseString string3 = new BaseString("aa");
+
+      assertTrue(string2.after(string1));
+      assertTrue(string1.after(string3));
+   }
+
+   @Test
+   public void testAfter_EqualString_ShouldBeFalse() {
+      BaseString string1 = new BaseString("aaa");
+      BaseString string2 = new BaseString("aaa");
+
+      assertFalse(string1.before(string2));
+
+   }
+
+   @Test
+   public void testAdjacent_AdjacentStrings_ShouldBeTrue() {
+      BaseString string1 = new BaseString("aaa");
+      BaseString string2 = new BaseString("aab");
+
+      assertTrue(string1.adjacent(string2));
+      assertTrue(string2.adjacent(string1));
+
+   }
+
+   @Test
+   public void testAdjacent_NonAdjacentStrings_ShouldBeFalse() {
+      BaseString string1 = new BaseString("aaa");
+      BaseString string2 = new BaseString("aaa");
+      BaseString string3 = new BaseString("aaaa");
+      BaseString string4 = new BaseString("aaba");
+
+      assertFalse(string1.adjacent(string2));
+      assertFalse(string1.adjacent(string3));
+      assertFalse(string3.adjacent(string4));
+
+   }
 
 }

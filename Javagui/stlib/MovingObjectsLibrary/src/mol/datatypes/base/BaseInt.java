@@ -20,108 +20,164 @@
 package mol.datatypes.base;
 
 import mol.datatypes.GeneralType;
+import mol.datatypes.features.Orderable;
 
 /**
  * Class for representation of the 'int' data type
  * 
  * @author Markus Fuessel
  */
-public class BaseInt extends GeneralType implements Comparable<BaseInt> {
+public class BaseInt extends GeneralType implements Orderable<BaseInt> {
 
-	/**
-	 * The integer value
-	 */
-	private final int value;
+   /**
+    * Checks if two BaseInt objects where adjacent
+    * <p>
+    * Two BaseInt objects are considered to be adjacent if they differ in their
+    * value by one
+    * 
+    * @param integer1
+    * @param integer2
+    * @return true - BaseInt objects are adjacent, false - otherwise
+    */
+   public static boolean adjacent(BaseInt integer1, BaseInt integer2) {
 
-	/**
-	 * Simple constructor, creates an undefined 'BaseInt' object
-	 */
-	public BaseInt() {
-		this.value = 0;
-		setDefined(false);
-	}
+      int intVal1 = integer1.getValue();
+      int intVal2 = integer2.getValue();
 
-	/**
-	 * Constructor, create an defined 'BaseInt' object
-	 * 
-	 * @param value
-	 *            - the int value
-	 */
-	public BaseInt(final int value) {
-		this.value = value;
-		setDefined(true);
+      if (intVal1 != intVal2 && (intVal1 + 1 == intVal2 || intVal1 == intVal2 + 1)) {
+         return true;
+      }
 
-	}
+      return false;
+   }
 
-	/**
-	 * Copy constructor
-	 * 
-	 * @param original
-	 *            - the 'BaseInt' object to copy
-	 */
-	public BaseInt(final BaseInt original) {
-		this.value = original.getValue();
-		setDefined(original.isDefined());
-	}
+   /**
+    * The integer value
+    */
+   private final int value;
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Comparable#compareTo(java.lang.Object)
-	 */
-	@Override
-	public int compareTo(final BaseInt i) {
+   /**
+    * Simple constructor, creates an undefined 'BaseInt' object
+    */
+   public BaseInt() {
+      this.value = 0;
+      setDefined(false);
+   }
 
-		return Integer.compare(value, i.getValue());
-	}
+   /**
+    * Constructor, create an defined 'BaseInt' object
+    * 
+    * @param value
+    *           - the int value
+    */
+   public BaseInt(final int value) {
+      this.value = value;
+      setDefined(true);
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#hashCode()
-	 */
-	@Override
-	public int hashCode() {
-		return value;
-	}
+   }
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(final Object obj) {
-		if (obj == null || !(obj instanceof BaseInt)) {
-			return false;
-		}
+   /**
+    * Copy constructor
+    * 
+    * @param original
+    *           - the 'BaseInt' object to copy
+    */
+   public BaseInt(final BaseInt original) {
+      this.value = original.getValue();
+      setDefined(original.isDefined());
+   }
 
-		if (this == obj) {
-			return true;
-		}
+   /*
+    * (non-Javadoc)
+    * 
+    * @see java.lang.Comparable#compareTo(java.lang.Object)
+    */
+   @Override
+   public int compareTo(final BaseInt otherInt) {
 
-		BaseInt otherInt = (BaseInt) obj;
+      return Integer.compare(value, otherInt.getValue());
+   }
 
-		return compareTo(otherInt) == 0;
-	}
+   /*
+    * (non-Javadoc)
+    * 
+    * @see java.lang.Object#hashCode()
+    */
+   @Override
+   public int hashCode() {
+      return value;
+   }
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#toString()
-	 */
-	@Override
-	public String toString() {
-		return "BaseInt [value='" + value + "', isDefined()=" + isDefined() + "]";
-	}
+   /*
+    * (non-Javadoc)
+    * 
+    * @see java.lang.Object#equals(java.lang.Object)
+    */
+   @Override
+   public boolean equals(final Object obj) {
+      if (obj == null || !(obj instanceof BaseInt)) {
+         return false;
+      }
 
-	/**
-	 * Getter for the int value
-	 * 
-	 * @return the value
-	 */
-	public int getValue() {
-		return value;
-	}
+      if (this == obj) {
+         return true;
+      }
+
+      BaseInt otherInt = (BaseInt) obj;
+
+      return compareTo(otherInt) == 0;
+   }
+
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mol.datatypes.util.Orderable#before(java.lang.Object)
+    */
+   @Override
+   public boolean before(BaseInt otherInt) {
+
+      return (this.compareTo(otherInt) < 0);
+   }
+
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mol.datatypes.util.Orderable#after(java.lang.Object)
+    */
+   @Override
+   public boolean after(BaseInt otherInt) {
+
+      return (this.compareTo(otherInt) > 0);
+   }
+
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mol.datatypes.util.Orderable#adjacent(java.lang.Object)
+    */
+   @Override
+   public boolean adjacent(BaseInt otherInt) {
+
+      return BaseInt.adjacent(this, otherInt);
+   }
+
+   /*
+    * (non-Javadoc)
+    * 
+    * @see java.lang.Object#toString()
+    */
+   @Override
+   public String toString() {
+      return "BaseInt [value='" + value + "', isDefined()=" + isDefined() + "]";
+   }
+
+   /**
+    * Getter for the int value
+    * 
+    * @return the value
+    */
+   public int getValue() {
+      return value;
+   }
 
 }

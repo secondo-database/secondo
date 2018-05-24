@@ -30,74 +30,132 @@ import org.junit.Test;
  */
 public class BaseBoolTest {
 
-	@Test
-	public void testHashCode_DifferentObjectSameValue_HashCodeShouldBeEqual() {
-		BaseBool falseBool1 = new BaseBool(false);
-		BaseBool falseBool2 = new BaseBool(false);
-		BaseBool trueBool1 = new BaseBool(true);
-		BaseBool trueBool2 = new BaseBool(true);
+   @Test
+   public void testHashCode_DifferentObjectSameValue_HashCodeShouldBeEqual() {
+      BaseBool falseBool1 = new BaseBool(false);
+      BaseBool falseBool2 = new BaseBool(false);
+      BaseBool trueBool1 = new BaseBool(true);
+      BaseBool trueBool2 = new BaseBool(true);
 
-		assertTrue(falseBool1.hashCode() == falseBool2.hashCode());
-		assertTrue(trueBool1.hashCode() == trueBool2.hashCode());
-	}
+      assertTrue(falseBool1.hashCode() == falseBool2.hashCode());
+      assertTrue(trueBool1.hashCode() == trueBool2.hashCode());
+   }
 
-	@Test
-	public void testHashCode_DifferentValue_HashCodeShouldBeNonEqual() {
-		BaseBool falseBool = new BaseBool(false);
-		BaseBool trueBool = new BaseBool(true);
+   @Test
+   public void testHashCode_DifferentValue_HashCodeShouldBeNonEqual() {
+      BaseBool falseBool = new BaseBool(false);
+      BaseBool trueBool = new BaseBool(true);
 
-		assertFalse(trueBool.hashCode() == falseBool.hashCode());
-	}
+      assertFalse(trueBool.hashCode() == falseBool.hashCode());
+   }
 
-	@Test
-	public void testCompareTo_FalseVsTrue_ShouldBeLowerZero() {
-		BaseBool falseBool = new BaseBool(false);
-		BaseBool trueBool = new BaseBool(true);
+   @Test
+   public void testCompareTo_FalseVsTrue_ShouldBeLowerZero() {
+      BaseBool falseBool = new BaseBool(false);
+      BaseBool trueBool = new BaseBool(true);
 
-		assertTrue(falseBool.compareTo(trueBool) < 0);
+      assertTrue(falseBool.compareTo(trueBool) < 0);
 
-	}
+   }
 
-	@Test
-	public void testCompareTo_TrueVsFalse_ShouldBeGreaterZero() {
-		BaseBool falseBool = new BaseBool(false);
-		BaseBool trueBool = new BaseBool(true);
+   @Test
+   public void testCompareTo_TrueVsFalse_ShouldBeGreaterZero() {
+      BaseBool falseBool = new BaseBool(false);
+      BaseBool trueBool = new BaseBool(true);
 
-		assertTrue(trueBool.compareTo(falseBool) > 0);
+      assertTrue(trueBool.compareTo(falseBool) > 0);
 
-	}
+   }
 
-	@Test
-	public void testCompareTo_SameBooleanValue_ShouldBeZero() {
-		BaseBool falseBool1 = new BaseBool(false);
-		BaseBool falseBool2 = new BaseBool(false);
-		BaseBool trueBool1 = new BaseBool(true);
-		BaseBool trueBool2 = new BaseBool(true);
+   @Test
+   public void testCompareTo_SameBooleanValue_ShouldBeZero() {
+      BaseBool falseBool1 = new BaseBool(false);
+      BaseBool falseBool2 = new BaseBool(false);
+      BaseBool trueBool1 = new BaseBool(true);
+      BaseBool trueBool2 = new BaseBool(true);
 
-		assertTrue(falseBool1.compareTo(falseBool2) == 0);
-		assertTrue(trueBool1.compareTo(trueBool2) == 0);
+      assertTrue(falseBool1.compareTo(falseBool2) == 0);
+      assertTrue(trueBool1.compareTo(trueBool2) == 0);
 
-	}
+   }
 
-	@Test
-	public void testEquals_EqualBooleanValue_ShouldBeTrue() {
-		BaseBool falseBool1 = new BaseBool(false);
-		BaseBool falseBool2 = new BaseBool(false);
-		BaseBool trueBool1 = new BaseBool(true);
-		BaseBool trueBool2 = new BaseBool(true);
+   @Test
+   public void testEquals_EqualBooleanValue_ShouldBeTrue() {
+      BaseBool falseBool1 = new BaseBool(false);
+      BaseBool falseBool2 = new BaseBool(false);
+      BaseBool trueBool1 = new BaseBool(true);
+      BaseBool trueBool2 = new BaseBool(true);
 
-		assertTrue(trueBool1.equals(trueBool2));
-		assertTrue(falseBool1.equals(falseBool2));
+      assertTrue(trueBool1.equals(trueBool2));
+      assertTrue(falseBool1.equals(falseBool2));
 
-	}
+   }
 
-	@Test
-	public void testEquals_NonEqualBooleanValue_ShouldBeFalse() {
-		BaseBool falseBool = new BaseBool(false);
-		BaseBool trueBool = new BaseBool(true);
+   @Test
+   public void testEquals_NonEqualBooleanValue_ShouldBeFalse() {
+      BaseBool falseBool = new BaseBool(false);
+      BaseBool trueBool = new BaseBool(true);
 
-		assertFalse(trueBool.equals(falseBool));
+      assertFalse(trueBool.equals(falseBool));
 
-	}
+   }
+
+   @Test
+   public void testBefore_FalseShouldBeBeforeTrue() {
+      BaseBool falseBool = new BaseBool(false);
+      BaseBool trueBool = new BaseBool(true);
+
+      assertTrue(falseBool.before(trueBool));
+
+   }
+
+   @Test
+   public void testBefore_TrueShouldNotBeBeforeTrueOrFalse() {
+      BaseBool trueBool1 = new BaseBool(true);
+      BaseBool trueBool2 = new BaseBool(true);
+      BaseBool falseBool = new BaseBool(false);
+
+      assertFalse(trueBool1.before(trueBool2));
+      assertFalse(trueBool1.before(falseBool));
+
+   }
+
+   @Test
+   public void testAfter_TrueShouldBeAfterFalse() {
+      BaseBool falseBool = new BaseBool(false);
+      BaseBool trueBool = new BaseBool(true);
+
+      assertTrue(trueBool.after(falseBool));
+
+   }
+
+   @Test
+   public void testAfter_FalseShouldNotBeAfterTrueOrFalse() {
+      BaseBool trueBool = new BaseBool(true);
+      BaseBool falseBool1 = new BaseBool(false);
+      BaseBool falseBool2 = new BaseBool(false);
+
+      assertFalse(falseBool1.after(falseBool2));
+      assertFalse(falseBool1.after(trueBool));
+
+   }
+
+   @Test
+   public void testAdjacent_NonEqualBooleanValue_ShouldBeTrue() {
+      BaseBool falseBool = new BaseBool(false);
+      BaseBool trueBool = new BaseBool(true);
+
+      assertTrue(trueBool.adjacent(falseBool));
+
+   }
+
+   @Test
+   public void testAdjacent_EqualBooleanValue_ShouldBeFalse() {
+      BaseBool trueBool1 = new BaseBool(true);
+      BaseBool trueBool2 = new BaseBool(true);
+
+      assertFalse(trueBool1.adjacent(trueBool2));
+
+   }
 
 }
