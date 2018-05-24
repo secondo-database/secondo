@@ -48,7 +48,6 @@ This file contains the implementation import / export operators.
 
 */
 
-
 #include <cmath>
 #include <stack>
 #include <limits>
@@ -88,6 +87,7 @@ This file contains the implementation import / export operators.
 #include "Algebras/IMEX/NMEAImporter.h"
 #include "Algebras/Stream/Stream.h"
 #include <string>
+
 
 
 extern NestedList* nl;
@@ -548,21 +548,19 @@ map<string, string> totypevalue;
    
 int embedTagsVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  Word t;
+  Word t, value;
   
   Tuple* tup;
   
   
   embedTagsInfo*  localInfo = (embedTagsInfo*) qp->GetLocal2(s).addr;
 
-  
+   
   
 switch (message)
   {
     
     case OPEN : {
-     
-    if(localInfo) {delete localInfo;}
         
      ListExpr resultType = GetTupleResultType(s);
      TupleType *tupleType = new TupleType(nl->Second(resultType));
@@ -571,15 +569,16 @@ switch (message)
      
      ListExpr attrsave = qp->GetType(qp->GetSon(s,0));
      ListExpr attrsave2 = nl->Second(nl->Second(attrsave));
-     
+     map<string, int> toposvalue2;
+     map<string, string> totypevalue2;
      
      localInfo = new embedTagsInfo;
      qp->GetLocal2(s).addr = localInfo;        
      
-     int count = 0; 
-     
-     
-       
+     int counter = 0; 
+    
+      
+      
      
      while (!(nl->IsEmpty(attrsave2)))
      {
@@ -591,17 +590,18 @@ switch (message)
      
      
      
-     localInfo->toposvalue.insert(pair<string, int> (attrname, count));
+     localInfo->toposvalue.insert(pair<string, int> (attrname, counter));
      localInfo->totypevalue.insert(pair<string, string> (attrname, typen));
      
      attrsave2 = nl->Rest(attrsave2);
      
-     count++;
+    
+     
+     counter++;
      }
      
      
      
-    
     
      
      qp->Open(args[0].addr);
@@ -623,12 +623,29 @@ switch (message)
       string brack2 = ">>";
       vector<string> vstr;
       map<string, int>::iterator iter=localInfo->toposvalue.begin();
-      
+      int maxattrpos = 0;
       qp->Request(args[0].addr,t);
       
       
       
+      
+      
+      
     
+    //counting number of attributes
+            
+    map<string, int>::iterator it2 = localInfo->toposvalue.begin();
+     
+     while(it2 != localInfo->toposvalue.end())
+    {
+                
+        if (maxattrpos < it2->second) maxattrpos= it2->second;        
+        
+        it2++;       
+    }
+      
+ 
+     
       
      
     if (qp->Received(args[0].addr))
@@ -687,7 +704,14 @@ switch (message)
   
             }  
             
-            
+       
+       
+        
+             
+           
+           
+       
+       
             
         //get the tag related attribute values  
 
@@ -709,11 +733,11 @@ switch (message)
                 wert = false;    
                 FText* brief2 = new FText (true, 
                                "Error: one tag is not related to an attribute");
-                newTuple->PutAttribute(10, brief2);
+                newTuple->PutAttribute(maxattrpos+1, brief2);
             
             
                 CcBool* wert2 = new CcBool(true, wert);
-                newTuple->PutAttribute(11, wert2);      
+                newTuple->PutAttribute(maxattrpos+2, wert2);      
                 tup->DeleteIfAllowed();
                 result = SetWord(newTuple);
         
@@ -735,11 +759,11 @@ switch (message)
                 wert = false;    
                 FText* brief2 = new FText (true,
                                 "ERROR: tag related attribute undef");
-                newTuple->PutAttribute(10, brief2);
+                newTuple->PutAttribute(maxattrpos+1, brief2);
             
             
                 CcBool* wert2 = new CcBool(true, wert);
-                newTuple->PutAttribute(11, wert2);      
+                newTuple->PutAttribute(maxattrpos+2, wert2);      
                 tup->DeleteIfAllowed();
                 result = SetWord(newTuple);
         
@@ -761,11 +785,11 @@ switch (message)
              {  wert = false;    
                 FText* brief2 = new FText (true,
                        "ERROR: tag related attribute type is not supported");
-                newTuple->PutAttribute(10, brief2);
+                newTuple->PutAttribute(maxattrpos+1, brief2);
             
             
                 CcBool* wert2 = new CcBool(true, wert);
-                newTuple->PutAttribute(11, wert2);      
+                newTuple->PutAttribute(maxattrpos+2, wert2);      
                 tup->DeleteIfAllowed();
                 result = SetWord(newTuple);
         
@@ -837,6 +861,8 @@ switch (message)
              }    
              
              
+           
+        
             
                 
             }   //end of for
@@ -852,6 +878,8 @@ switch (message)
         for (int i= 0; i<veclen; i++)
             { string tagme = "<<" + vstr[i] + ">>";
               size_t prosit = 0;
+              
+             
              
              if (briefvalstr.find(tagme, prosit) != string::npos) 
              {
@@ -875,12 +903,12 @@ switch (message)
         
         wert = true;
         FText* brief2 = new FText (true, briefvalstr);
-        newTuple->PutAttribute(10, brief2);
+        newTuple->PutAttribute(maxattrpos+1, brief2);
         
        
         
         CcBool* wert2 = new CcBool(true, wert);
-        newTuple->PutAttribute(11, wert2);      
+        newTuple->PutAttribute(maxattrpos+2, wert2);      
         tup->DeleteIfAllowed();
         result = SetWord(newTuple);
         

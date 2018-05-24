@@ -14,4 +14,4 @@ Operator : embedTags
 Number   : 1
 Signature: ((stream (tuple ((x1 T1) ...(xn Tn)))) (ak1, ak2, ak3)) -> (stream (tuple ((ai1 Ti1) ... (ain Tin) (ak2, Tk2) (ak3, Tk3))))
 Example  : query testrel feed embedTags[Brief, Brief2, Erfolg] count
-Result   : 4
+Result   : 8
