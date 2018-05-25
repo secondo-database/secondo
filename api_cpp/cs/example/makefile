@@ -19,8 +19,6 @@ endif
 all: Config.ini app$(EXEEXT)
 
 
-
-
 LDFLAGS+=-L../lib/ -lsecondo -ly -lstdc++ 
 ifeq ($(SECONDO_PLATFORM),win32)
 LDFLAGS+=-lwsock32 -lws2_32
@@ -37,13 +35,10 @@ LDFLAGS += -lpthread
 
 Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 	cp $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini ./Config.ini 
-	sed -i -e "s#SecondoHome=.*#SecondoHome=$$PWD/nltemp#g" Config.ini
 
 
 app$(EXEEXT): Example.o
 	$(CPPC) -o app$(EXEEXT) Example.o  $(LDFLAGS) $(DEFAULTLIB) $(COMMON_LD_FLAGS)
-	rm -rf nltemp
-	mkdir nltemp
 
 
 Example.o: Example.cpp
@@ -52,4 +47,3 @@ Example.o: Example.cpp
 .PHONY:clean
 clean:
 	rm -f Config.ini app$(EXEEXT) Example.o
-	rm -rf nltemp
