@@ -381,6 +381,9 @@ int sendmailVM(Word* args, Word& result,
     b->SetDefined(false);
     return 0;
    } 
+   
+   
+//constructing the postfix call   
  
 string sub = firstargsub->GetValue();
 string sdr = secondargsender->GetValue();
@@ -417,7 +420,7 @@ else {
 
      
  
- 
+ //checking if mail adress has some syntax errors
  
                    
 const char * cll1 = finalcall.c_str();
@@ -460,7 +463,7 @@ if (!(cbc.empty()))
        
     { 
         
-     back1 = system(cll1); 
+     back1 = system(cll1);    //system call execution
      
      if  (!(back1 == 0)) 
        { 
@@ -589,7 +592,7 @@ switch (message)
      string typen = nl->SymbolValue(temp3);
      
      
-     
+     //setting up the localInfo
      localInfo->toposvalue.insert(pair<string, int> (attrname, counter));
      localInfo->totypevalue.insert(pair<string, string> (attrname, typen));
      
@@ -658,7 +661,7 @@ switch (message)
        
            
             
-        // copy old Attributes
+        // copy old attributes
         
         
         
@@ -671,7 +674,7 @@ switch (message)
         
    
             
-     // get needed Tuple values
+     // get needed tuple values
         
         
       int briefpos = ((CcInt*)args[4].addr)->GetIntval();
@@ -713,7 +716,9 @@ switch (message)
        
        
             
-        //get the tag related attribute values  
+        //get the tag related attribute values 
+        
+        
 
             veclen = vstr.size();        
             Attribute*  attrar[veclen];
@@ -727,7 +732,7 @@ switch (message)
                 
             iter = localInfo->toposvalue.find(vstr[i]);
          
-            if (iter == localInfo->toposvalue.end())
+            if (iter == localInfo->toposvalue.end())  
              {
                 
                 wert = false;    
@@ -799,6 +804,11 @@ switch (message)
                  
              }   
              
+             // end of error cases
+             
+             
+             //extract the attribute values
+             
              
              if (typear[i] == "string")
              {
@@ -865,7 +875,7 @@ switch (message)
         
             
                 
-            }   //end of for
+            }   //end of for  
         
         
            
@@ -899,7 +909,7 @@ switch (message)
             
           
         
-       
+       // setting up the new tuple
         
         wert = true;
         FText* brief2 = new FText (true, briefvalstr);
@@ -1058,7 +1068,7 @@ public:
 };
 
 /*
-1.7  Initialization 8 9 4 6
+1.7  Initialization 
 
 
 */
