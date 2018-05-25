@@ -234,13 +234,12 @@ NestedList::NestedList( )
   textTable = 0;
 
   instanceNo = NLinstance++;
-
-  setMem(1024, 512, 512);
-  initializeListMemory();
-
   stringstream ss;
   ss << "TMP_NESTED_LIST_" << WinUnix::getpid() << "_" << instanceNo;
   basename = ss.str();
+  setMem(1024, 512, 512);
+  initializeListMemory();
+
 }
 
 
