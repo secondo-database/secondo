@@ -66,10 +66,10 @@ public class Period extends Interval<TimeInstant> {
    /*
     * (non-Javadoc)
     * 
-    * @see mol.datatypes.interval.Interval#clone()
+    * @see mol.datatypes.interval.Interval#copy()
     */
    @Override
-   public Period clone() {
+   public Period copy() {
       return new Period(this);
    }
 

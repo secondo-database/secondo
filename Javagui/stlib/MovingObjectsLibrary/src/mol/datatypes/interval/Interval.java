@@ -22,6 +22,7 @@ package mol.datatypes.interval;
 import java.util.Objects;
 
 import mol.datatypes.GeneralType;
+import mol.datatypes.IGeneralType;
 import mol.datatypes.features.Orderable;
 
 /**
@@ -32,8 +33,8 @@ import mol.datatypes.features.Orderable;
  * @param <T>
  *           - specifies the type of the interval
  */
-public abstract class Interval<T extends GeneralType & Orderable<T>> extends GeneralType
-      implements Orderable<Interval<T>>, Cloneable {
+public abstract class Interval<T extends IGeneralType & Orderable<T>> extends GeneralType
+      implements Orderable<Interval<T>> {
 
    /**
     * Check to ensure condition: lowerBound <= upperBound
@@ -408,7 +409,7 @@ public abstract class Interval<T extends GeneralType & Orderable<T>> extends Gen
     * @return new interval object
     */
    public Interval<T> mergeLeft(final Interval<T> otherInterval) {
-      Interval<T> mergedInterval = this.clone();
+      Interval<T> mergedInterval = this.copy();
 
       int compare = mergedInterval.lowerBound.compareTo(otherInterval.lowerBound);
 
@@ -430,7 +431,7 @@ public abstract class Interval<T extends GeneralType & Orderable<T>> extends Gen
     * @return new interval object
     */
    public Interval<T> mergeRight(final Interval<T> otherInterval) {
-      Interval<T> mergedInterval = this.clone();
+      Interval<T> mergedInterval = this.copy();
 
       int compare = mergedInterval.upperBound.compareTo(otherInterval.upperBound);
 
@@ -444,8 +445,12 @@ public abstract class Interval<T extends GeneralType & Orderable<T>> extends Gen
       return mergedInterval;
    }
 
-   @Override
-   public abstract Interval<T> clone();
+   /**
+    * Returns a copy of this {@code Interval<T>} object
+    * 
+    * @return {@code Interval<T>} object copy
+    */
+   public abstract Interval<T> copy();
 
    /**
     * Get lower bound of the interval

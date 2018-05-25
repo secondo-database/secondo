@@ -77,10 +77,10 @@ public class IntervalInt extends Interval<BaseInt> {
    /*
     * (non-Javadoc)
     * 
-    * @see mol.datatypes.interval.Interval#clone()
+    * @see mol.datatypes.interval.Interval#copy()
     */
    @Override
-   public IntervalInt clone() {
+   public IntervalInt copy() {
       return new IntervalInt(this);
    }
 
