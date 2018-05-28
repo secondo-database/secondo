@@ -542,7 +542,7 @@ map<string, int> toposvalue;
 
 map<string, string> totypevalue;
     
-    
+int attrcount;    
 };
    
    
@@ -604,8 +604,8 @@ switch (message)
      }
      
      
-     
-    
+     localInfo->attrcount = counter;     
+       
      
      qp->Open(args[0].addr);
      
@@ -635,17 +635,8 @@ switch (message)
       
       
     
-    //calculate max attribute position
-            
-    map<string, int>::iterator it2 = localInfo->toposvalue.begin();
-     
-     while(it2 != localInfo->toposvalue.end())
-    {
-                
-        if (maxattrpos < it2->second) maxattrpos= it2->second;        
-        
-        it2++;       
-    }
+    //calculate max attribute position            
+    maxattrpos = localInfo->attrcount - 1;
       
  
      
