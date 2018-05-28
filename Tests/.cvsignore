@@ -23,4 +23,16 @@ tsmi3
 tsock1
 tsock2
 tsock3
+empty_text.bnl
+simplelist.txt
+simplelist.txt.bnl
+simplelist.txt.bnl.bnl
+simplelist.txt.text
+testout-opt.bnl
+testout-opt.nl
+testout-simpleList.nl.bnl
+testout-simpleList.nl.nl
+testout_FirstExpr5
+testout_RestExpr5
+testout_SmallListFile
 
