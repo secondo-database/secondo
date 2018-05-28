@@ -3,3 +3,6 @@
 *.dep
 *.fm
 *.class
+stored*.pl
+proglogt.csv
+tmp
