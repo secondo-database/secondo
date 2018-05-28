@@ -22,7 +22,7 @@ writeFileTest
 opt2
 plzOrte
 tmp
-TMP_*
+temp_nested_list
 SecondoBDB
 SecondoCS
 SecondoCheckpoint
