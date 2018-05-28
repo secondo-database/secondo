@@ -544,7 +544,7 @@ class TextScanInfo{
 class NestedList
 {
  public:
-  NestedList();
+  NestedList(std::string dir="");
 /*
 Creates an instance of a nested list container.
 

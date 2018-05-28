@@ -118,6 +118,7 @@ A nested list is represented by four stable tables called ~Nodes~, ~Ints~,
 #include "CharTransform.h"
 #include "NLParser.h"
 #include "WinUnix.h"
+#include "FileSystem.h"
 #include "LogMsg.h"
 #include "Counter.h"
 #include "StringUtils.h"
@@ -220,7 +221,7 @@ you comment out the line below.
    boost::mutex smtx;
 #endif
 
-NestedList::NestedList( )
+NestedList::NestedList(string dir /* ="" */ )
 {
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::mutex> guard1(smtx);
@@ -235,6 +236,18 @@ NestedList::NestedList( )
 
   instanceNo = NLinstance++;
   stringstream ss;
+  if(!dir.empty()){
+    FileSystem::AppendSlash(dir);
+    if(!FileSystem::FileOrFolderExists(dir)){
+       if(FileSystem::CreateFolderEx(dir)){
+         ss << dir;
+       }
+    } else {
+      if(FileSystem::IsDirectory(dir)){
+         ss << dir;
+      }
+    }
+  }
   ss << "TMP_NESTED_LIST_" << WinUnix::getpid() << "_" << instanceNo;
   basename = ss.str();
   setMem(1024, 512, 512);
