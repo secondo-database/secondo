@@ -635,7 +635,7 @@ switch (message)
       
       
     
-    //counting number of attributes
+    //calculate max attribute position
             
     map<string, int>::iterator it2 = localInfo->toposvalue.begin();
      
