@@ -17,3 +17,5 @@ storedTupleSizes.pl
 sysDependentCostFactors.pl
 sysDependentOperatorTF.pl
 opsyntaxg.pl
+proglogt.csv
+TestOptimizer.log
