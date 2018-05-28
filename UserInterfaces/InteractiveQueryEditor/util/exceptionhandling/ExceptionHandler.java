@@ -37,19 +37,18 @@ import util.common.StringUtilities;
 public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
 
 	/**
-	 * Public Konstruktor, damit eine Instanz der Klasse als UncaughtExceptionHandler
-	 * für das Programm registriert werden kann.
+	 * To implement Thread.UncaughtExceptionHandler this class needs a public constructor
+	 * because uncaughtException(final Thread t, final Throwable e) is an instance method.
 	 */
 	public ExceptionHandler() {
-		//Ein leerer Standardkonstruktor, weil die Methode uncaughtException
-		//aus Thread.UncaughtExceptionHandler eine Instanzmethode ist.
+
 	}
 
 	/**
-	 * Zeigt eine Exception mittels der Klasse {@link ErrorDialog} an.
-	 * @param owner Das übergeordnete Frame des Dialogs
-	 * @param exception Die anzuzeigende Exception
-	 * @param additionalMessage Ein optionaler Text
+	 * This method displays an exception in an error dialog
+	 * @param owner The the owner or parent of the error dialog
+	 * @param exception The exception to be shown
+	 * @param additionalMessage An additional error message
 	 */
 	public static void showException(final JFrame owner, final Throwable exception, final String additionalMessage) {
 		String message = null;
@@ -67,12 +66,9 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
 	}
 
 	/**
-	 * Formatiert ein Throwable als String. Nutzt dazu die toString() Methode des Objektes
-	 * und hängt daran alle StrackTrace Elemente. Sofern die Throwable über einen
-	 * auslösenden "cause" verfügt, so ruft sich die Methode rekursiv auf,
-	 * um auch den cause formatiert anzuhängen.
-	 * @param throwable Die zu formatierende Throwable
-	 * @return Die formatierte String Repräsentation der {@link Throwable}
+	 * Method to create a proper error text for a Throwable.
+	 * It appends all Stacktrace elements and does a recursive call to itself when a Throwable
+	 * has another "cause".
 	 */
 	private static String getTextRepresentationOfThrowable(final Throwable throwable) {
 		final StringBuilder builder = new StringBuilder();
@@ -91,7 +87,7 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
 	}
 
 	/**
-	 *
+	 * Uncaught exceptions result in a separate error dialog
 	 */
 	@Override
 	public void uncaughtException(final Thread t, final Throwable e) {

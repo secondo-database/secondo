@@ -23,7 +23,7 @@ import util.exceptionhandling.ExceptionHandler;
 
 /**
  * This class acts as a method stub defining all the methods which will result
- * in a native call to methods withen the loaded library.
+ * in a native call to methods within the loaded library.
  * @author D.Merle
  */
 class SecondoKernel {

@@ -1,5 +1,10 @@
 package util.domain.enums;
 
+/**
+ * Used to identify special characters which separate
+ * parameters or commands.
+ * @author D.Merle
+ */
 public enum Delimiter {
 	COMMA(","),
 	COLON(":"),

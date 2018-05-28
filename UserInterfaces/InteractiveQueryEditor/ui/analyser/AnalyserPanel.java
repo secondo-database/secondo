@@ -71,6 +71,13 @@ public class AnalyserPanel extends JPanel implements ActionListener {
 		add(typePane, BorderLayout.CENTER);
 	}
 
+	/**
+	 * This method acitvates or deactivates components showing in the UI
+	 * considering the results of the analysis.
+	 * Currently the analyser does not notify the UI about occurred errors.
+	 * If the analyser would set model.getTypeInformation() == null then the
+	 * panel would display the type information in red.
+	 */
 	@Override
 	public void actionPerformed(final ActionEvent e) {
 		final String actionCommand = e.getActionCommand();

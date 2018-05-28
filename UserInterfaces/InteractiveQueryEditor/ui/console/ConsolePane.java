@@ -31,6 +31,10 @@ import javax.swing.text.StyleConstants;
 import util.common.UITools;
 import util.common.UpdateHandler;
 
+/**
+ * Implementation of a custom command line by extending a {@link JTextPane}
+ * @author D.Merle
+ */
 public class ConsolePane extends JTextPane implements UpdateHandler {
 	private final SimpleAttributeSet standardTextAttribute;
 

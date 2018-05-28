@@ -23,7 +23,9 @@ import javax.swing.JFrame;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
+import ui.InteractiveQueryEditorController;
 import util.common.QueryAnalyser;
+import util.common.SearchField;
 import util.domain.EditorEvent;
 import util.domain.EditorEventListener;
 import util.exceptionhandling.ExceptionHandler;
@@ -38,7 +40,7 @@ public class AnalyserController implements DocumentListener, EditorEventListener
 	private final AnalyserModel model;
 
 	/**
-	 *
+	 * The constructor initializes the {@link QueryAnalyser}
 	 * @param parent
 	 * @param model
 	 */
@@ -49,7 +51,7 @@ public class AnalyserController implements DocumentListener, EditorEventListener
 	}
 
 	/**
-	 *
+	 * This method handles all {@link EditorEvent}s fired by the {@link InteractiveQueryEditorController}
 	 */
 	@Override
 	public void handleEditorEvent(final EditorEvent event) {
@@ -87,7 +89,7 @@ public class AnalyserController implements DocumentListener, EditorEventListener
 	}
 
 	/**
-	 *
+	 * This method notifies the {@link AnalyserModel} about changes to the Document of the {@link SearchField}.
 	 */
 	@Override
 	public void insertUpdate(final DocumentEvent e) {
@@ -95,7 +97,7 @@ public class AnalyserController implements DocumentListener, EditorEventListener
 	}
 
 	/**
-	 *
+	 * This method notifies the {@link AnalyserModel} about changes to the Document of the {@link SearchField}.
 	 */
 	@Override
 	public void removeUpdate(final DocumentEvent e) {
@@ -103,7 +105,7 @@ public class AnalyserController implements DocumentListener, EditorEventListener
 	}
 
 	/**
-	 *
+	 * This method notifies the {@link AnalyserModel} about changes to the Document of the {@link SearchField}.
 	 */
 	@Override
 	public void changedUpdate(final DocumentEvent e) {

@@ -26,24 +26,20 @@ package util.common;
 public class StringUtilities {
 
 	/**
-	 * Privater Konstruktor, der den Default Konstruktor überschreibt.
+	 * Private constructor to prohibit inproper use of this class
 	 */
 	private StringUtilities() {}
 
 	/**
-	 * Prüfung auf null und "" String.
-	 * @param string Der zu prüfende String
-	 * @return true - falls der zu prüfende String null oder "" ist
+	 * Checks if a given argument is null or equals ""
+	 * @return true - if the argument is null or ""
 	 */
 	public static boolean isStringNull(final String string) {
 		return string == null || "".equals(string);
 	}
 
 	/**
-	 * Verknüpft eine beliebige Anzahl von Strings, die sich als Parameter an die
-	 * Methode übergeben lassen.
-	 * @param strings Die zu verknüpfenden Strings
-	 * @return Das zusammengefügte Ergebnis
+	 * Concatenates strings
 	 */
 	public static String appendStrings(final String ... strings) {
 		final StringBuilder resultingString = new StringBuilder();

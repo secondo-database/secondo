@@ -65,8 +65,6 @@ public class InteractiveQueryEditorModel {
 				"SEC2FILEINFO","SEC2COUNTERS","SEC2COMMANDS","SEC2CACHEINFO"};
 	}
 
-
-
 	private String createHelpMessage() {
 		final StringBuilder helpMessage = new StringBuilder();
 		helpMessage.append("The following internal commands are available:\n");
@@ -188,5 +186,4 @@ public class InteractiveQueryEditorModel {
 	public String[] getKeywords() {
 		return keywords;
 	}
-
 }

@@ -39,21 +39,24 @@ import javax.swing.plaf.FontUIResource;
 public class UITools {
 
 	/**
-	 * Privater Konstruktor, der den Default Konstruktor überschreibt.<br>
+	 * Private constructor to prohibit inproper use of this class
 	 */
 	private UITools() {}
 
 	/**
-	 * Ermittelt für eine übergebene Größe eines Windows/Dialogs die Koordinaten,
-	 * die man benutzen muss, damit das Fenster mittig dargestellt wird.
-	 * @param dimension Die Abmessung des zu zentrierenden Dialogs
-	 * @return {@link Point} Die ermittelten Koordinaten zur Zentrierung
+	 * Calculates the coordinates to center a dialog on the screen
+	 * @param dimension the dimension of the dialog which should be centered
 	 */
 	public static Point calculateCenterPosition(final Dimension dimension) {
 		final Rectangle screensize = getEffectiveScreenSize();
 		return new Point((int)(screensize.getWidth()-dimension.getWidth())/2, (int)(screensize.getHeight()-dimension.getHeight())/2);
 	}
 
+	/**
+	 * Calculates a dimension as a fraction of the available screen size.
+	 * @param percentage The percentage of the available screen size
+	 * @return
+	 */
 	public static Dimension calculateDimension(final int percentage) {
 		if (percentage > 100 || percentage < 0) {
 			throw new IllegalArgumentException("Please specify a vlaue between 0 and 100");
@@ -65,9 +68,8 @@ public class UITools {
 	}
 
 	/**
-	 * Die Methode ermittelt über die Klasse {@link GraphicsConfiguration} die zur Verfügung<br>
-	 * stehende Bildschirmgröße in Pixeln. Dabei werden beispielsweise Toolbars des OS berücksichtigt.
-	 * @return
+	 * This method is used to determine the available screen size.
+	 * OS depended components like a toolbar and its position will be taken into account.
 	 */
 	private static Rectangle getEffectiveScreenSize() {
 		final GraphicsConfiguration configuration = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration();

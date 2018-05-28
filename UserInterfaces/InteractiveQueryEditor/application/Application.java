@@ -56,7 +56,7 @@ public class Application {
 	}
 
 	/**
-	 * Creates objects of the editor view, controlelr and model
+	 * Creates objects of the editor view, controller and model
 	 */
 	private static void initializeUI() {
 		UITools.scaleUI();
