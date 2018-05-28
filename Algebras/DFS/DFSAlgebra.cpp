@@ -518,7 +518,7 @@ int storeDFSFileVMT( Word* args,
         filesystem->receiveFileToLocal(remoteN.c_str(), localN.c_str());
         res->Set(true,true);
      } else {
-        int buffersize = 1024*1024; 
+        size_t buffersize = 1024*1024; 
         buffer = new char[buffersize];
         size_t toRead = filesystem->fileSize(remoteN.c_str());
         ofstream out(localN.c_str(), ios::binary| ios::trunc);
