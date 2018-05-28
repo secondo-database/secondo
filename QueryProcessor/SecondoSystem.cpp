@@ -97,6 +97,8 @@ using namespace std;
 
 SecondoSystem* SecondoSystem::instance = 0;
 
+const string nlfolder = "temp_nested_list";
+
 /**************************************************************************
 3 Functions and Procedures
 
@@ -776,8 +778,8 @@ SecondoSystem::GetDatabaseName()
 */
 SecondoSystem::SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc )
 {
-  nl = new NestedList();
-  al = new NestedList();
+  nl = new NestedList(nlfolder);
+  al = new NestedList(nlfolder);
   NList::setNLRef(nl);
 
   algebraManager = new AlgebraManager( *nl, getAlgebraEntryFunc );

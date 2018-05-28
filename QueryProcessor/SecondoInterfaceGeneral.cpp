@@ -47,13 +47,16 @@ using namespace std;
 SecondoInterface::ErrorMap SecondoInterface::errors;
 
 
+const string nlfolder = "temp_nested_list";
+
+
 SecondoInterface::SecondoInterface(bool isServer, NestedList* _nl)
 {
   Init();
 
   serverInstance = isServer;
   if(!_nl){
-    nl = new NestedList();
+    nl = new NestedList(nlfolder);
     al = nl;
     externalNL = false;
   } else {
