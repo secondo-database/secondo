@@ -21,3 +21,37 @@ Interface for using Index-based access to Moving Types:
 - How to update Index (if any):
 -> within extendwith operator (register index at mpoint and trigger index update on change)
 -> separate exendwithandupdateindex operator
+
+
+
+---
+2018-05-14
+
+open:
+- how to detect closing of database?
+-> would be nice to persist mem before close
+-> if second thread timer triggered writeback -> how to ensure we remain in consistent state?
+--> does transaction prevent closing?
+
+shared memory should be per database...
+how to handle correct cleanup?
+sequence 1 open db a, close a, open b, close b
+sequence 2 open db a, ....... .........          close a
+                                             ^ destroy mem b
+                                                      ^destroy mem a
+
+Probably during Create we can check which (if any) database is open.
+Then we may open the log... (-> can we detect, if it is already open?)
+
+related:
+how to export?
+-> nl-rep: should not have internal id
+-> nl->rep mem/log nono
+but database:
+- log + mmpoint have id
+
+object lifecycle:
+-> Close: if last ref closed -> persist!? At least log?
+-> Delete: mark deleted in log, persist log?
+
+MPoint semantic -> no units =>? undefined

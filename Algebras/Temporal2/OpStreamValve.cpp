@@ -53,7 +53,7 @@ ListExpr StreamValve_tm( ListExpr args ) {
     // will never match - operator spec requires at least on prefix-arg
     if (nl->IsEmpty(rest)) {
         return listutils::typeError(
-                "expected at 1 argument (incoming stream), but got none");
+                "expected at least 1 argument (incoming stream), but got none");
     }
 
     ListExpr current = nl->First(rest);
@@ -110,8 +110,8 @@ ListExpr StreamValve_tm( ListExpr args ) {
             cout << "No args provided for RandomValve, will use default\n";
             return nl->ThreeElemList (
                             nl->SymbolAtom ( Symbols::APPEND ()) ,
-                            nl->TwoElemList ( nl->IntAtom(1),
-                                    nl->IntAtom(3)) ,
+                            nl->TwoElemList ( nl->IntAtom(0),
+                                    nl->IntAtom(1)) ,
                             streamType);
         }
         if (!nl->HasLength(rest, 2)) {

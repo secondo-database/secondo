@@ -1,0 +1,188 @@
+delete database mytestdb;
+delete database mytestdb2;
+
+#setup Forall2Test StandardAlgebra RelationAlgebra Temporal2Algebra
+create database mytestdb;
+create database mytestdb2;
+
+# Here come: The tests
+
+# ================
+# Real Tests
+# ================
+
+# ==============================================================================
+# TypeConstructor MMPoint
+# ==============================================================================
+
+# ----------------------
+# -- anonymous object --
+# ----------------------
+
+#testcase open_db_1st_time
+#yields success
+open database mytestdb;
+
+# --------------------------------
+# -- variable assignement - let --
+# --------------------------------
+
+#testcase mmpoint_variable_undef_1
+#yields success
+let mm_var_undef = [const mmpoint value undef];
+
+#testcase mmpoint_variable_2000_1
+#yields success
+let mm_var_2000 = [const mmpoint value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
+
+#testcase mmpoint_variable_2000_2100_1
+#yields success
+let mm_var_2000_2100 = [const mmpoint value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0)))];
+
+# ---------------------------
+# -- attribute in relation --
+# ---------------------------
+
+#testcase mmpoint_relation_undef_1
+#yields success
+let mm_rel_undef = [const rel(tuple([MMP: mmpoint])) value ((undef))];
+
+#testcase mmpoint_relation_2000_1
+#yields success
+let mm_rel_2000 = [const rel(tuple([MMP: mmpoint])) value (( ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))) ))];
+
+#testcase mmpoint_relation_2000_2100_1
+#yields success
+let mm_rel_2000_2100 = [const rel(tuple([MMP: mmpoint])) value ((((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0)))))];
+
+# -----------------------------
+# -- close and open database --
+# -----------------------------
+
+#testcase closeandopen_db_1
+#yields success
+close database;
+
+#testcase closeandopen_db_2
+#yields success
+open database mytestdb;
+
+# ------------------------------------------------------
+# -- variable assignement - let - check after re-open --
+# ------------------------------------------------------
+
+#testcase mmpoint_variable_undef_2
+#yields (mmpoint undefined)
+query mm_var_undef;
+
+#testcase mmpoint_variable_2000_2
+#yields (mmpoint((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))
+query mm_var_2000;
+
+#testcase mmpoint_variable_2000_2100_2
+#yields (mmpoint((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0))))
+query mm_var_2000_2100;
+
+
+# -------------------------------------------------
+# -- attribute in relation - check after re-open --
+# -------------------------------------------------
+
+#testcase mmpoint_relation_undef_2
+#yields ((rel (tuple ((MMP mmpoint)))) ((undefined)))
+query mm_rel_undef;
+
+#testcase mmpoint_relation_2000_2
+#yields ((rel(tuple((MMP mmpoint))))((((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))))
+query mm_rel_2000;
+
+#testcase mmpoint_relation_2000_2100_2
+#yields ((rel(tuple((MMP mmpoint))))((((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0))))))
+query mm_rel_2000_2100;
+
+#testcase mmpoint_relation_invalid
+#yields error
+let mm_rel_invalid = [const rel(tuple([MMP: mmpoint])) value (( 123 ))];
+
+# -----------------------------------------------------------
+# -- close and open database other database and do updates --
+# -----------------------------------------------------------
+
+#testcase close_update_open_db_1
+#yields success
+close database;
+
+#testcase close_update_open_db_2
+#yields success
+open database mytestdb2;
+
+#testcase close_update_open_db_3
+#yields success
+let dummy1 = [const mmpoint value ((("2011-01-01" "2011-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
+
+#testcase close_update_open_db_4
+#yields success
+let dummy2 = [const mmpoint value ((("2012-01-01" "2012-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
+
+#testcase close_update_open_db_5
+#yields success
+let dummy3 = [const mmpoint value ((("2013-01-01" "2013-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
+
+#testcase close_update_open_db_6
+#yields success
+let dummy4 = [const mmpoint value ((("2014-01-01" "2014-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
+
+#testcase close_update_open_db_7
+#yields success
+let dummy5 = [const mmpoint value ((("2015-01-01" "2015-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
+
+#testcase close_update_open_db_8
+#yields success
+close database;
+
+#testcase close_update_open_db_9
+#yields success
+open database mytestdb;
+
+# ------------------------------------------------------------------
+# -- variable assignement - let - check after re-open and updates --
+# ------------------------------------------------------------------
+
+#testcase mmpoint_variable_undef_3
+#yields (mmpoint undefined)
+query mm_var_undef;
+
+#testcase mmpoint_variable_2000_3
+#yields (mmpoint((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))
+query mm_var_2000;
+
+#testcase mmpoint_variable_2000_2100_3
+#yields (mmpoint((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0))))
+query mm_var_2000_2100;
+
+
+# -------------------------------------------------------------
+# -- attribute in relation - check after re-open and updates --
+# -------------------------------------------------------------
+
+#testcase mmpoint_relation_undef_3
+#yields ((rel (tuple ((MMP mmpoint)))) ((undefined)))
+query mm_rel_undef;
+
+#testcase mmpoint_relation_2000_3
+#yields ((rel(tuple((MMP mmpoint))))((((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))))
+query mm_rel_2000;
+
+#testcase mmpoint_relation_2000_2100_3
+#yields ((rel(tuple((MMP mmpoint))))((((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0))))))
+query mm_rel_2000_2100;
+
+#testcase mmpoint_relation_invalid
+#yields error
+let mm_rel_invalid = [const rel(tuple([MMP: mmpoint])) value (( 123 ))];
+
+
+#teardown
+close database;
+delete database mytestdb;
+delete database mytestdb2;
