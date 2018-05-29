@@ -12180,7 +12180,7 @@ funargs.
    double rt;
    bool formerObject;
 
-
+   bool error = false;
    if(transferRequired(elem0,elemi, ai->getType(),dbname)){
 
       // this code will be processed if the ip's  are different or
@@ -12216,10 +12216,10 @@ funargs.
              cerr << __FILE__ << "@"  << __LINE__ << endl;
              showError(ci,cmd,errorCode,errMsg);
              writeLog(ci,cmd,errMsg);
-             return false;
+             error = true; 
           } 
           formerObject = true; 
-      } else { // already a file object on ci, hust set file names 
+      } else { // already a file object on ci, just set file names 
          fileNameOnI = ai->getFilePath(ci->getSecondoHome(showCommands,
                                                           commandLog),
                                       dbname, slot);
@@ -12229,44 +12229,59 @@ funargs.
 
       // 1.2 transfer file from i to 0
       string fileNameOn0 = source->getFilePath(
-      c0->getSecondoHome(showCommands, commandLog), dbname, slot);
-      string cmd;
-      if(c0->getHost() != ci->getHost()){ // use TCP transfer or 
+                              c0->getSecondoHome(showCommands, commandLog), 
+                              dbname, slot);
+      if(!error){
+        string cmd;
+        if(c0->getHost() != ci->getHost()){ // use TCP transfer or 
                                           // disc utils
-            cmd =    "query getFileTCP('" + fileNameOnI + "', '" 
-                     + ci->getHost() 
-                     + "', " + stringutils::int2str(port) 
-                     + ", TRUE, '" + fileNameOn0 +"')";
+              cmd =    "query getFileTCP('" + fileNameOnI + "', '" 
+                       + ci->getHost() 
+                       + "', " + stringutils::int2str(port) 
+                       + ", TRUE, '" + fileNameOn0 +"')";
 
-       } else {
-            string op = formerObject?"moveFile":"copyFile";
-            moved = formerObject;
-            cmd =   "query " + op + "('" + fileNameOnI + "','"
+         } else {
+              string op = formerObject?"moveFile":"copyFile";
+              moved = formerObject;
+              cmd =   "query " + op + "('" + fileNameOnI + "','"
                   + fileNameOn0 + "', TRUE)";
-       }
-       c0->simpleCommand(cmd, errorCode, errMsg, resList, false, rt,
-                         showCommands, commandLog, false,
-                         algInstance->getTimeout());
-       if(errorCode){
-          cerr << __FILE__ << "@"  << __LINE__ << endl;
-          showError(c0, cmd, errorCode, errMsg);
-          writeLog(c0,cmd,errMsg);
-          return false;
+         }
+         c0->simpleCommand(cmd, errorCode, errMsg, resList, false, rt,
+                           showCommands, commandLog, false,
+                           algInstance->getTimeout());
+         if(errorCode){
+            cerr << __FILE__ << "@"  << __LINE__ << endl;
+            showError(c0, cmd, errorCode, errMsg);
+            writeLog(c0,cmd,errMsg);
+            error = true;
+        } 
+        // remove temp file from original server
+        if(formerObject && !moved){
+            string cmd = "query removeFile('" + fileNameOnI+ "')";
+            ci->simpleCommand(cmd, errorCode, errMsg, resList, false, rt,
+                              showCommands, commandLog, false,
+                              algInstance->getTimeout());
+            if(errorCode){
+               cerr << __FILE__ << "@"  << __LINE__ << endl;
+               showError(ci,cmd,errorCode, errMsg);
+               writeLog(ci,cmd,errMsg);
+            } 
+        }
       } 
 
-      // remove temp file from original server
-      if(formerObject && !moved){
-          string cmd = "query removeFile('" + fileNameOnI+ "')";
-          ci->simpleCommand(cmd, errorCode, errMsg, resList, false, rt,
-                            showCommands, commandLog, false,
-                            algInstance->getTimeout());
-          if(errorCode){
-             cerr << __FILE__ << "@"  << __LINE__ << endl;
-             showError(ci,cmd,errorCode, errMsg);
-             writeLog(ci,cmd,errMsg);
+      if(error){
+        // some error occured during getting the file, try to get the 
+        // file using DSF
+        if(ai->getType() != DFARRAY){ 
+           // here, we can later exploit any DBService
+           return false; 
+        } else {
+           if(!dfstools::getRemoteFile(fileNameOn0)){
              return false;
-          } 
+           }
+        }
       }
+    
 
       // step 2: create object if required
       if(formerObject && createObjectIfNecessary){
@@ -12291,7 +12306,7 @@ funargs.
              cerr << __FILE__ << "@"  << __LINE__ << endl;
              showError(c0,cmd,errorCode,errMsg);
              writeLog(c0,cmd,errMsg);
-             return false;
+             // ignore error, it is just an dead file
           } 
           sourceNames.push_back(pair<bool,string>(true,oname));
           funargs.push_back(oname);
