@@ -31,9 +31,7 @@ JNITOOL_OBJECT_PATH = ../../Tools/Jni/JNITool.o
 JAVAFILES = $(shell find . -name "*.java")
 TMPFILES = $(subst .java,.class,$(JAVAFILES))
 CLASSFILES = $(subst ./,,$(TMPFILES))
-LIBPATH := -L/home/secondo/secondo/api_cpp/direct/lib
-LIBPATH += -L/home/secondo/jpeg-6b/
-LIBPATH += -L/usr/lib/i386-linux-gnu/
+LIBPATH := -L../..//api_cpp/direct/lib
 
 .PHONY: all
 all: Executable SecondoTTYIQE.jar SecondoKernel.so
