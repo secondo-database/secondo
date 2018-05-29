@@ -34,6 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/thread/recursive_mutex.hpp>
 #include "NestedList.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "SecondoSMI.h"
 
 #include "Dist2Helper.h"
 
@@ -423,6 +424,12 @@ Returns the name of the remote object
        << name << "_" << slot << ".bin";
     ss.flush();
     return ss.str();
+  }
+
+  std::string getFilePath(const size_t slot){
+     std::string home = SmiEnvironment::GetSecondoHome();
+     std::string db = SecondoSystem::GetInstance()->GetDatabaseName();
+     return getFilePath(home,db,slot);
   }
 
 /*
