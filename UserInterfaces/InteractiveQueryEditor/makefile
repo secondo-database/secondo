@@ -80,5 +80,6 @@ clean:
 	rm -rf build
 	find ./ -name "*.class" -exec rm {} \;  
 	find ./ -name "*.o" -exec rm {} \;  
-	rm -f ../../../lib/SecondoTTYIQE.jar .iqe_secondo_out specs util/secondo/SecondoKernel.h SecondoTTYIQE.sh
+	rm -f ../../lib/SecondoTTYIQE.jar .iqe_secondo_out specs util/secondo/SecondoKernel.h 
+	rm -f ../../bin/SecondoTTYIQE.sh ../../lib/libSecondoKernel.so
 
