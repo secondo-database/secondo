@@ -41,3 +41,4 @@ $(BASIC_OPT_DIR)/OptimizerServer.class: OptimizerServer.java
 .PHONY:clean
 clean:
 	rm -f $(OPTDIR)/*.class
+	rm -f $(BASIC_OPT_DIR)/*.class

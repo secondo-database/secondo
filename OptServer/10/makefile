@@ -55,3 +55,4 @@ $(BASIC_OPT_DIR)/NamedVariable.class: NamedVariable.java
 .PHONY:clean
 clean:
 	rm -f $(OPTDIR)/*.class
+	rm -f $(BASIC_OPT_DIR)/*.class
