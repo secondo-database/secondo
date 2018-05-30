@@ -118,10 +118,10 @@ second stream, respectively.
 */ 
 ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) { 
 // check the number of arguments
-// last two arguments are intended for testing purposes
-// Argument number 5 contains the size of the auxiliary structure 
-// (list, grid structure or interval tree) in KByte
-// Argument number 6 contains strip width used in sweep-plane
+// last two arguments are included for testing purposes
+// Argument 5 contains a max number of tuples per bucket
+// in partitioned binary table 
+// Argument 6 contains a number of stripes used for partition
 
 
   if(!nl->HasLength(args, 6)) {
@@ -276,7 +276,10 @@ class LocalInfo {
   public:    
     
     // constructor
-    LocalInfo(Word fs, Word ss, Word fi, Word si, Supplier su):
+    LocalInfo(Word fs, Word ss,
+              Word fi, Word si,
+              Word max, Word stripes,
+              Supplier su):
         fStream(fs),
         sStream(ss),
         s(su),
@@ -284,8 +287,8 @@ class LocalInfo {
         sStreamIsEmpty(false),
         firstRequest(true),
         sIsFullyLoaded(false),
-        memLimit(qp->GetMemorySize(s)*1024*1024),
-        maxTuplesPerTBlock(0),
+        fIsFulyyLoaded(false),
+        memLimit(qp->GetMemorySize(s)*1024*1024), 
         fMemTBlock(0),
         sMemTBlock(0),
         fNumTuples(0),
@@ -307,6 +310,19 @@ class LocalInfo {
     // extract information about column index in the second relation
     index = static_cast<CcInt*>(si.addr);
     sIndex = index->GetValue();
+
+    // test purpose!!!
+    // extract infprmation about max number of entry per bucket
+    // in partition table
+    index = static_cast<CcInt*>(max.addr);
+    maxEntryPerBucket = index->GetValue();
+
+    // test purpose
+    // extract information about a number of
+    // partition stripes
+    index = static_cast<CcInt*>(stripes.addr);
+    numOfPartStripes = index->GetValue();
+    
     fStream.open();
     sStream.open();
   }
@@ -337,21 +353,19 @@ class LocalInfo {
     
   // Support functions
     
-  // Funktion requests tuple blocks from first stream and stores
+  // Funktion requests tuple block from first stream and stores
   // them in fTBlockVector
   bool requestFirstStream() {
     TBlock* tupleBlock = nullptr;
         
     if(!(tupleBlock = fStream.request())) {
       fStreamIsEmpty = true;
+      
       return false;
 		}
-		
-		uint64_t rows = tupleBlock->GetRowCount();
-		if(rows > maxTuplesPerTBlock) {
-      maxTuplesPerTBlock = rows;
-		}
-		
+
+    uint64_t rows = tupleBlock->GetRowCount();
+     
 		fTBlockVector.push_back(tupleBlock);
 		fMemTBlock += tupleBlock->GetSize();
 		fNumTuples += rows;
@@ -359,21 +373,19 @@ class LocalInfo {
     return true;        
 	}
 
-  // Funktion requests tuple blocks from second stream and stores
+  // Funktion requests tuple block from second stream and stores
   // them in sTBlockVector
   bool requestSecondStream() {
     TBlock* tupleBlock = nullptr;
         
     if(!(tupleBlock = sStream.request())) {
       sStreamIsEmpty = true;
+      
       return false;
 		}
-		
-		uint64_t rows = tupleBlock->GetRowCount();
-		if(rows > maxTuplesPerTBlock) {
-      maxTuplesPerTBlock = rows;
-		}
-		
+
+    uint64_t rows = tupleBlock->GetRowCount();
+    
 		sTBlockVector.push_back(tupleBlock);
 		sMemTBlock += tupleBlock->GetSize();
 		sNumTuples += rows;
@@ -391,7 +403,7 @@ class LocalInfo {
         tb->DecRef();
       }
     }
-	        
+          
     fTBlockVector.clear(); 
     fMemTBlock = 0;
     fNumTuples = 0;
@@ -407,28 +419,29 @@ class LocalInfo {
         tb->DecRef();
 			}
 		}
-		
+    
     sTBlockVector.clear(); 
     sMemTBlock = 0;
     sNumTuples = 0;
   }
     
-  // Function computes amount of memory in use
+  // Function computes amount of memory in use:
+  // size of two block vectors and size of all binary tables
   size_t getMemUsed() {
+
     return fMemTBlock
     + fTBlockVector.size()*sizeof(TBlock*)
     + sMemTBlock
     + sTBlockVector.size()*sizeof(TBlock*)
-    + ((fNumTuples > sNumTuples) ? 
-    fNumTuples : sNumTuples)*3ULL*8ULL;
+    + (fNumTuples + sNumTuples)*sizeof(binaryTuple)*4;
   }
     
   // Function loads tuple blocks from first and second streams until
   // either the alloted memory space is used or both streams are empty
   void streamsRequest() {
     while ((getMemUsed() < memLimit)
-            && (!fStreamIsEmpty || !sStreamIsEmpty)) {
-              
+           && (!fStreamIsEmpty || !sStreamIsEmpty)) {
+
       if(fStreamIsEmpty) {
 			  requestSecondStream();
       }
@@ -449,7 +462,7 @@ class LocalInfo {
   TBlock* getNext() {
 
     TBlock* rTBlock = new TBlock(rTBlockInfo, 0, 0);
-          
+         
     while(true) {
 
       if(joinState) {
@@ -458,119 +471,97 @@ class LocalInfo {
         }
       }
 
-      if(sStreamIsEmpty) { // second stream is empty
-        if(fStreamIsEmpty) { // first stream is empty
-
-          if(joinState){ 
-            delete joinState;
-            joinState = nullptr;
-          }
-
-          if(rTBlock->GetRowCount() == 0) { // result tupel block is empty
-            rTBlock->DecRef();
-            return 0;
-          } // result tupel block is not empty
-
-          else {
-            return rTBlock;
-          }
+      if(firstRequest) {
+        firstRequest = false;
+        streamsRequest();
+        if(fStreamIsEmpty) {
+          fIsFulyyLoaded = true;
         }
-        
-        else { // second stream is empty, but first is not empty
-        // clear memory for currently loaded tuple blocks from first stream
-          clearMemF();
-          if(sIsFullyLoaded) { // second stream is fully loaded
-          // load as many tuple blocks from first stream as possible
-
-            do {
-              if(!requestFirstStream()) {
-                break;
-              }
-            } while(getMemUsed() < memLimit);
-            
-          }
-          
-          else { // second stream is not fully loaded
-          // clear memory for currently loaded tuplke blocks
-          // from second stream
-            clearMemS();
-            delete joinState;
-            joinState = nullptr;
-
-            // load next tuple block from first stream
-            if(requestFirstStream()) {
-            // restart second stream and load as many
-            // tuple blocks as possible
-              sStream.close();
-              sStream.open();
-              sStreamIsEmpty = false;
-              streamsRequest();
-            }
-          }
+        if(sStreamIsEmpty) {
+          sIsFullyLoaded = true;
         }
-      }
       
-      else { // if second stream is not empty
-        if(firstRequest) {
-          
-          if(!requestFirstStream()) {
-          // first stream is empty, nothing to do
-            rTBlock->DecRef();
-            return 0;
-          }
-
-          if(!requestSecondStream()) {
-          // second stream is empty, nothing to do
-            rTBlock->DecRef();
-            return 0;
-          }
-
-          streamsRequest();
-
-          if(sStreamIsEmpty) {
-            sIsFullyLoaded = true;
-          }
-
-          firstRequest = false;
-        }
+      }
+      else {
         
-        else { // not first request
-          clearMemS();
+        if(fStreamIsEmpty && sStreamIsEmpty) {
+          // both streams are processed
+          // nothing to do
+          if(joinState) {
+            delete joinState;
+            joinState = nullptr;
+          }
+          if(rTBlock->GetRowCount() == 0) {
+            rTBlock->DecRef();
 
-          do {
-            if(requestSecondStream()) {
-              break;
-            }
-          } while(getMemUsed() < memLimit);
+            return 0;
+          }
+          else {
+            
+            // return last (incomplete) tuple block
+            return rTBlock;
+          }          
         }
-      } // end if second stream is not empty
+        else { // one or both streams are not empty
+          // check if one of streams is fully loaded
+          if(fIsFulyyLoaded) {
+            // only first stream is fully loaded
+            // load tuple from second stream
+            // until it will be empty
+            clearMemS();
+            while((getMemUsed() < memLimit) && !sStreamIsEmpty) {
+              requestSecondStream();
+            }
+          }
+          if(sIsFullyLoaded) {
+            // only second stream is fully loaded
+            // load tuples from first stream
+            // until it will be empty
+            clearMemF();
+            while((getMemUsed() < memLimit) && !fStreamIsEmpty) {
+              requestFirstStream();
+            }
+          } // end of check
+          
+          // none of both streams is fully loaded
+        
+          if(sStreamIsEmpty) {
+            clearMemF();
+            clearMemS();
+            sStream.close();
+            sStreamIsEmpty = false;
+            sStream.open();
+            streamsRequest();
+          }
+          else {
+            clearMemS();
+            while ((getMemUsed() < memLimit) && !sStreamIsEmpty) {
+              requestSecondStream();
+            }
+          }
+        } // end of both streams are not empty
+      } // end of not first request    
 
       if((fTBlockVector.size() > 0) && (sTBlockVector.size() > 0)) {
-        if(!joinState) {
+        if(joinState) {
+          
+          delete joinState;
+          joinState = nullptr;
 
-          // determine max number of tuple blocks
-          // materialized from first and second stream
-          uint64_t maxNumTBlocks =
-            fTBlockVector.size() > sTBlockVector.size() ?
-            fTBlockVector.size() : sTBlockVector.size();
 
-          //test!!!
-          cout<<"maxNumTBlocks = "<<maxNumTBlocks<<'\n';
-         
-          joinState = new SpatialJoinState(fTBlockVector,
+        }
+
+        joinState = new SpatialJoinState(fTBlockVector,
                                            sTBlockVector,
                                            fIndex,
                                            sIndex,
                                            fNumTuples,
                                            sNumTuples,
-                                           rTBlockSize);
-        }
-      }
-      else {
-        if(joinState) {
-          delete joinState;
-          joinState = nullptr;
-        }
+                                           rTBlockSize,
+                                           maxEntryPerBucket,
+                                           numOfPartStripes,
+                                           fDim,
+                                           sDim);
       }
     } // end of while loop
   } // end of getNext()
@@ -584,11 +575,13 @@ class LocalInfo {
     bool sStreamIsEmpty; // second stream is empty
     bool firstRequest; 
     bool sIsFullyLoaded; // second stream is fully loaded
+    bool fIsFulyyLoaded;
 
     uint64_t fIndex; // index of join attribute from first stream
     uint64_t sIndex; // index of join attribute from second stream
     uint64_t memLimit; // memory limit for operator
-    uint64_t maxTuplesPerTBlock;
+    uint64_t maxEntryPerBucket;
+    uint64_t numOfPartStripes;
     uint64_t fMemTBlock; // memory used by first stream
     uint64_t sMemTBlock; // memory used by second stream
     uint64_t fNumTuples; // number of tuples from first stream
@@ -623,7 +616,8 @@ int cspatialjoinVM(Word* args, Word& result, int message,
     }
     // wichtig : NICHT vergessen args[6] und args[7] auf 4, bzw. 5
     // ändern (wegen tests) !!!
-    local.addr = new LocalInfo(args[0], args[1], args[6], args[7], s);
+    local.addr = new LocalInfo(args[0], args[1], args[6], args[7],
+                               args[4], args[5], s);
     return 0;
   }
       
