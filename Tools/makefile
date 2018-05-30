@@ -59,4 +59,5 @@ clean:
 	$(MAKE) -C RStarTree clean
 	$(MAKE) -C SyntaxParser clean
 	$(MAKE) -C TypeMap clean
+	$(MAKE) -C DFS clean
 
