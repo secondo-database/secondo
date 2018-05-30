@@ -32,9 +32,16 @@ JAVAFILES = $(shell find . -name "*.java")
 TMPFILES = $(subst .java,.class,$(JAVAFILES))
 CLASSFILES = $(subst ./,,$(TMPFILES))
 LIBPATH := -L../..//api_cpp/direct/lib
+SECONDOINTERFACEDIR := ../../Javagui/secondoInterface
+SECONDOINTERFACE := $(SECONDOINTERFACEDIR)/SecondoInterface.jar
+
 
 .PHONY: all
 all: Executable SecondoTTYIQE.jar SecondoKernel.so
+
+
+$(SECONDOINTERFACE):
+	make -C $(SECONDOINTERFACEDIR) SecondoInterface.jar
 
 .PHONY: Executable
 Executable:
@@ -43,18 +50,17 @@ Executable:
 
 
 .PHONY: SecondoTTYIQE.jar
-SecondoTTYIQE.jar: $(CLASSFILES)
+SecondoTTYIQE.jar: $(CLASSFILES) $(SECONDOINTERFACE)
 	@echo "Creating Jar"
 	@rm -rf build
-	@mkdir build
-	@cd build;find ../lib -name "*.jar" -exec jar -xf {} \;
-	@cd build;find . -name "*.java" -exec rm -f {} \;
+	@mkdir -p ./build/META-INF
+	@cd build; jar -xf ../$(SECONDOINTERFACE) 
 	@find . -path ./build -prune -o -name "*.class" -exec cp --parent {} build \;
 	@printf '%s\n' 'Main-Class: application/Application' > ./build/META-INF/MANIFEST.MF
 	@cd build; jar -cfm  ../../../lib/SecondoTTYIQE.jar ./META-INF/MANIFEST.MF *
 
-%.class: %.java
-	javac -cp .:lib/SecondoInterface.jar $<
+%.class: %.java	$(SECONDOINTERFACE)
+	javac -cp .:$(SECONDOINTERFACE) $<
 
 .PHONY: SecondoKernel.so
 SecondoKernel.so: JNITool.o SecondoKernel.o
