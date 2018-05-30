@@ -137,6 +137,7 @@ entropy:
 .PHONY: clean
 clean:
 	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS) $(ENTROPY_OBJ) $(DEP_FILES) $(PLCSOBJ)  $(CS_OBJECTS) $(REPLAY_OBJECTS)
+	$(MAKE) -C InteractiveQueryEditor clean
 
 
 #
