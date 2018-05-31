@@ -30,15 +30,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 
-#include "DRel.h"
-
 namespace drel {
 
 extern TypeConstructor DRelTC;
 extern TypeConstructor DFRelTC;
+extern TypeConstructor BoundaryTC;
 
-extern Operator fdistributeOp;
-extern Operator ddistributeOp;
+extern Operator createboundaryOp;
+extern Operator getBoundaryIndexOp;
+
+extern Operator drelfdistributeOp;
+extern Operator dreldistributeOp;
 
 /*
 1 Implementation of the Algebra DRel
@@ -49,11 +51,17 @@ DRelAlgebra::DRelAlgebra() {
     DRelTC.AssociateKind( Kind::SIMPLE() );
     AddTypeConstructor( &DFRelTC );
     DFRelTC.AssociateKind( Kind::SIMPLE( ) );
+    AddTypeConstructor( &BoundaryTC );
+    BoundaryTC.AssociateKind( Kind::SIMPLE( ) );
     
-    AddOperator( &fdistributeOp );
-    fdistributeOp.SetUsesArgsInTypeMapping( );
-    AddOperator( &ddistributeOp );
-    ddistributeOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &createboundaryOp );
+    createboundaryOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &getBoundaryIndexOp );
+
+    AddOperator( &drelfdistributeOp );
+    drelfdistributeOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &dreldistributeOp );
+    dreldistributeOp.SetUsesArgsInTypeMapping( );
 }
 
 extern "C"

@@ -63,7 +63,7 @@ namespace drel {
         std::string getTypeName( ) const;
         bool saveDistType( SmiRecord& valueRecord, size_t& offset );
         ListExpr toListExpr( ) const;
-        static DRelT* readFrom( ListExpr list );
+        static DRelT* readFrom( ListExpr typeInfo, ListExpr list );
 
         static const std::string BasicType( );
         static const bool checkType( const ListExpr list );

@@ -134,6 +134,11 @@ namespace drel {
         type( _type ), attr( _attr ), key( _key ) {
     }
 
+    DistType::DistType( 
+        distributionType _type, int _attr, int _key, Boundary * _boundary ) :
+        type( _type ), attr( _attr ), key( _key ), boundary( _boundary ) {
+    }
+
     /*
     6.2 Copyconstructor
 
@@ -206,6 +211,10 @@ namespace drel {
         return key;
     }
 
+    Boundary* DistType::getBoundary( ) {
+        return boundary;
+    }
+
     /*
     6.9 ~getTypeExpr~
 
@@ -245,22 +254,18 @@ namespace drel {
 
     */
     DistType* DistType::open( 
-        SmiRecord & valueRecord, size_t & offset, const ListExpr typeInfo ) {
+        SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo ) {
 
-        cout << "DistType::open" << endl;
         std::string typeString;
         int attr;
         int key;
         if( !readVar<std::string>( typeString, valueRecord, offset ) ) {
-            cout << "kein typeString" << endl;
             return 0;
         }
         if( !readVar<int>( attr, valueRecord, offset ) ) {
-            cout << "kein int" << endl;
             return 0;
         }
         if( !readVar<int>( key, valueRecord, offset ) ) {
-            cout << "kein int" << endl;
             return 0;
         }
 
@@ -269,7 +274,25 @@ namespace drel {
             return 0;
         }
 
-        return new DistType( type, attr, key);
+        if( type != range && type != spatial2d && type != spatial3d ) {
+            return new DistType( type, attr, key);
+        }
+        
+        ListExpr numAttrType = 
+            nl->Second( nl->Second( nl->Second( typeInfo ) ) );
+        for( int i = 0 ; i < attr ; i++ ) {
+            numAttrType = nl->Rest( numAttrType );
+        }
+        numAttrType = nl->Second( nl->First( numAttrType ) );
+        ListExpr boundaryType = nl->TwoElemList( 
+            nl->SymbolAtom( 
+                Boundary::BasicType( ) ), nl->OneElemList( numAttrType ) );
+        Word value;
+        if( ! Boundary::Open( valueRecord, offset, boundaryType, value ) ) {
+            return 0;
+        }
+
+        return new DistType( type, attr, key, ( Boundary* )value.addr );
     }
 
     /*
@@ -334,6 +357,18 @@ namespace drel {
         return new DistType( _type, _attr, _key );
     }
 
+    DistType* DistType::createDistType( 
+        distributionType _type, int _attr, int _key, Boundary* _boundary ) {
+
+        if( _type != range && _type != spatial2d && _type != spatial3d ) {
+            return 0;
+        }
+        if( _type < 0 || _key < 0  || _boundary == 0) {
+            return 0;
+        }
+        return new DistType( _type, _attr, _key, _boundary);
+    }
+
     /*
     6.14 ~save~
 
@@ -341,9 +376,29 @@ namespace drel {
 
     */
     bool DistType::save( SmiRecord & valueRecord, size_t & offset ) {
-        return distributed2::writeVar( getName( type ), valueRecord, offset )
+        if( ! ( distributed2::writeVar( getName( type ), valueRecord, offset )
             && distributed2::writeVar( attr, valueRecord, offset )
-            && distributed2::writeVar( key, valueRecord, offset );
+            && distributed2::writeVar( key, valueRecord, offset ) ) ) {
+            return false;
+        }
+        cout << "disttype boundary save" << endl;
+        if( type == range || type == spatial2d || type == spatial3d ) {
+            if( boundary == 0 ) {
+                cout << "boundary == 0" << endl;
+                cout << "false" << endl;
+                return false;
+            }
+            if( boundary->save( valueRecord, offset ) ) {
+                cout << "true" << endl;
+                return true;
+            }
+            else {
+                cout << "save" << endl;
+                cout << "false" << endl;
+                return false;
+            }
+        }
+        return true;
     }
 
     /*
@@ -372,6 +427,29 @@ namespace drel {
             return false;
         }
         return nl->IntValue( _list );
+    }
+
+    Boundary* DistType::readBoundary( 
+        ListExpr _typeInfo, ListExpr _list, int _attr ) {
+
+        ListExpr numAttrType = 
+            nl->Second( nl->Second( nl->Second( _typeInfo ) ) );
+        for( int i = 0; i < _attr; i++ ) {
+            numAttrType = nl->Rest( numAttrType );
+        }
+        numAttrType = nl->Second( nl->First( numAttrType ) );
+        ListExpr boundaryType = nl->TwoElemList( 
+            nl->SymbolAtom( 
+                Boundary::BasicType( ) ), nl->OneElemList( numAttrType ) );
+        int errorPos = 0;
+        ListExpr errorInfo;
+        bool correct = false;
+        Word value = Boundary::In( 
+            boundaryType, _list, errorPos, errorInfo, correct );
+        if( ! correct ) {
+            return 0;
+        }
+        return ( Boundary* )value.addr;
     }
 
 } // end of namespace drel

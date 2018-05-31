@@ -33,6 +33,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "NestedList.h"
 #include "SecondoSMI.h"
+
+#include "Boundary.h"
 #include "Algebras/Distributed2/Dist2Helper.h"
 
 namespace drel {
@@ -65,6 +67,8 @@ namespace drel {
         DistType( distributionType _type );
         DistType( distributionType _type, int _attr );
         DistType( distributionType _type, int _attr, int _key );
+        DistType( distributionType _type, int _attr, int _key, 
+            Boundary* _boundary );
 
         DistType( const DistType& _distType );
         DistType &operator=( const DistType &_distType );
@@ -74,6 +78,7 @@ namespace drel {
         distributionType getDistType( );
         int getAttr( );
         int getKey( );
+        Boundary* getBoundary( );
 
         static std::string getTypeExpr( );
         static std::string getAttrExpr( );
@@ -91,9 +96,14 @@ namespace drel {
         static DistType* createDistType( distributionType _type, int _attr );
         static DistType* createDistType( 
             distributionType _type, int _attr, int _key );
+        static DistType* createDistType( 
+            distributionType _type, int _attr, int _key, 
+            Boundary* _boundary );
         
         static bool readType( ListExpr _list, distributionType& _type );
         static bool readInt( ListExpr _list, int& _attr );
+        static Boundary* readBoundary( 
+            ListExpr _typeInfo, ListExpr _list, int _attr );
 
     private:
         /*
@@ -122,6 +132,14 @@ namespace drel {
 
         */
         int key;
+        
+        /*
+        1.2.4 ~boundary~
+
+        The boundary object, if the type is range, spartial2d spartial3d.
+
+        */
+        Boundary* boundary;
     };
 
 } // end of namespace drel

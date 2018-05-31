@@ -80,7 +80,7 @@ namespace drel {
 
     */
     template<arrayType T>
-    DRelT<T> & DRelT<T>::operator=( const DRelT& src ) {
+    DRelT<T>& DRelT<T>::operator=( const DRelT& src ) {
         if( this == &src ) {
             return *this;
         }
@@ -97,7 +97,7 @@ namespace drel {
     }
 
     template<arrayType T>
-    DRelT<T> & DRelT<T>::operator=( const DArrayT<T>& src ) {
+    DRelT<T>& DRelT<T>::operator=( const DArrayT<T>& src ) {
         DArrayT<T>::operator=( src );
         distType = 0;
         return *this;
@@ -163,12 +163,22 @@ namespace drel {
             return listArray;
         }
 
-        return nl->SixElemList( nl->First( listArray ),
-            nl->Second( listArray ),
+        if( distType->getBoundary( ) == 0 ) {
+            return nl->SixElemList( nl->First( listArray ),
+                nl->Second( listArray ),
+                nl->Third( listArray ),
+                nl->TextAtom( getName( distType->getDistType( ) ) ),
+                nl->IntAtom( distType->getAttr( ) ), 
+                nl->IntAtom( distType->getKey( ) ) );
+        }
+
+        return nl->Cons( nl->First( listArray ),
+            nl->SixElemList( nl->Second( listArray ),
             nl->Third( listArray ),
             nl->TextAtom( getName( distType->getDistType( ) ) ),
             nl->IntAtom( distType->getAttr( ) ), 
-            nl->IntAtom( distType->getKey( ) ) );
+            nl->IntAtom( distType->getKey( ) ),
+            distType->getBoundary( )->toListExpr( ) ) );
     }
 
     /*
@@ -179,7 +189,7 @@ namespace drel {
 
     */
     template<arrayType T>
-    DRelT<T>* DRelT<T>::readFrom( ListExpr list ) {
+    DRelT<T>* DRelT<T>::readFrom( ListExpr typeInfo, ListExpr list ) {
         if( listutils::isSymbolUndefined( list ) ) {
             DArrayT<T>* darray = DArrayT<T>::readFrom( list );
             DRelT<T>* rel = new DRelT<T>( *darray );
@@ -216,7 +226,21 @@ namespace drel {
             return 0;
         }
 
-        DistType* dtype = DistType::createDistType( type, attr, key );
+        DistType* dtype;
+        if( type == range || type == spatial2d || type == spatial3d ) {
+            cout << nl->ToString( typeInfo ) << endl;
+            Boundary* boundary = 
+                DistType::readBoundary( typeInfo, nl->Seventh( list ), attr );
+            if( boundary == 0 ) {
+                delete rel;
+                return 0;
+            }
+            dtype = DistType::createDistType( type, attr, key, boundary );
+        }
+        else {
+            dtype = DistType::createDistType( type, attr, key );
+        }
+
         if( dtype == 0 ) {
             delete rel;
             return 0;
@@ -297,11 +321,11 @@ namespace drel {
     Word DRelT<T>::In( const ListExpr typeInfo,
         const ListExpr value,
         const int errorPos,
-        ListExpr & errorInfo,
-        bool & correct ) {
+        ListExpr& errorInfo,
+        bool& correct ) {
 
         Word res( ( void* )0 );
-        res.addr = DRelT<T>::readFrom( value );
+        res.addr = DRelT<T>::readFrom( typeInfo, value );
         correct = res.addr != 0;
         return res;
     }
@@ -389,14 +413,14 @@ namespace drel {
         SmiRecord& valueRecord, size_t& offset, 
         const ListExpr typeInfo, Word& value ) {
 
+        cout << "Drel save" << endl;
+        cout << nl->ToString( typeInfo ) << endl;
+
         if( !DArrayBase::save( valueRecord, offset, typeInfo, value ) ) {
             return false;
         }
-        DRelT<T>* rel = ( DRelT<T>* ) value.addr;
-        if( !( rel->saveDistType( valueRecord, offset ) ) ) {
-            return false;
-        }
-        return true;
+        DRelT<T>* drel = ( DRelT<T>* ) value.addr;
+        return drel->saveDistType( valueRecord, offset );
     }
 
     /*
