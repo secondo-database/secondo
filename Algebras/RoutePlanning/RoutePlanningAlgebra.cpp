@@ -53,19 +53,16 @@ using namespace std;
 
 namespace routeplanningalgebra {
 
-    /*
-    Type constructors Cpoint, Cpoints, Cpointnode, PointCloud and
-    operator importpointcloud added and maintained 
-    by Gundula Swidersky, Dec 2017.
-    */
-    
-    /*
-     Type Constructor functions for Cpoint
-    */
-    
-    /*
-    Property function
-    */
+/*
+Type constructors Cpoint, Cpoints, Cpointnode, PointCloud and
+operator importpointcloud added and maintained 
+by Gundula Swidersky, Dec 2017.
+
+Type Constructor functions for Cpoint
+
+Property function
+
+*/
     ListExpr CpointProperty() {
         return (nl->TwoElemList (
              nl->FourElemList (
@@ -81,9 +78,10 @@ namespace routeplanningalgebra {
         )));
     }
 
-    /*
-    IN function
-    */
+/*
+IN function
+
+*/
     Word InCpoint(const ListExpr typeinfo, const ListExpr instance, 
                     const int errorPos, ListExpr& errorInfo, bool& correct ) {
         Word res((void*)0);
@@ -116,6 +114,7 @@ namespace routeplanningalgebra {
 
     /*
     OUT function
+    
     */
     ListExpr OutCpoint(ListExpr typeInfo, Word value) { 
         Cpoint* k= (Cpoint*) value.addr;
@@ -132,6 +131,7 @@ namespace routeplanningalgebra {
 
     /*
     CreateCpoint
+    
     */
     Word CreateCpoint(const ListExpr typeInfo) {
             Word w;
@@ -141,6 +141,7 @@ namespace routeplanningalgebra {
                    
     /*
     DeleteCpoint
+    
     */
     void DeleteCpoint(const ListExpr typeInfo, Word& w) {
             Cpoint *k = (Cpoint *) w.addr;
@@ -150,6 +151,7 @@ namespace routeplanningalgebra {
 
     /*
     CloseCpoint
+    
     */
     void CloseCpoint (const ListExpr typeInfo, Word& w ) {
         Cpoint *k = (Cpoint * ) w.addr;
@@ -206,10 +208,12 @@ namespace routeplanningalgebra {
     /*
      Type Constructor functions for Cpoints an DBArray
      containing Cpoint elements
+     
     */
     
     /*
     Property function
+    
     */
     ListExpr CpointsProperty() {
         return (nl->TwoElemList (
@@ -228,6 +232,7 @@ namespace routeplanningalgebra {
 
     /*
     IN function
+    
     */
     Word InCpoints (const ListExpr typeinfo, const ListExpr instance, 
                     const int errorPos, ListExpr& errorInfo, bool& correct ) {
@@ -762,10 +767,29 @@ namespace routeplanningalgebra {
          SizeOfPointCloud,
          PointCloudTypeCheck);
 
-
     /*
-    Type Mapping
-    */ 
+    Type Mappings
+    */
+    ListExpr bbox2dTM(ListExpr args) {
+      if (!nl->HasLength(args, 1)) {
+        return listutils::typeError("wrong number of arguments");
+      }
+      if (!PointCloud::checkType(nl->First(args))) {
+        return listutils::typeError("pointcloud expected");
+      }
+      return nl->SymbolAtom(Rectangle<2>::BasicType());
+    }
+    
+    ListExpr bboxTM(ListExpr args) {
+      if (!nl->HasLength(args, 1)) {
+        return listutils::typeError("wrong number of arguments");
+      }
+      if (!PointCloud::checkType(nl->First(args))) {
+        return listutils::typeError("pointcloud expected");
+      }
+      return nl->SymbolAtom(Rectangle<3>::BasicType());
+    }
+    
     ListExpr importpointcloudTM(ListExpr args){
         if(!nl->HasLength(args,1)){
             return listutils::typeError("wrong number of arguments");
@@ -1005,6 +1029,26 @@ namespace routeplanningalgebra {
      /*
     Value Mapping
     */
+    int bbox2dVM(Word* args, Word& result, int message, Word& local, 
+                 Supplier s) {
+      PointCloud* source = static_cast<PointCloud*>(args[0].addr);
+      result = qp->ResultStorage(s);
+      Rectangle<2> *res = static_cast<Rectangle<2>* >(result.addr);
+      if (source->IsDefined()) {
+        *res = source->BoundingBox();
+      }
+      return 0;
+    }
+     
+    int bboxVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+      PointCloud* source = static_cast<PointCloud*>(args[0].addr);
+      result = qp->ResultStorage(s);
+      Rectangle<3> *res = static_cast<Rectangle<3>* >(result.addr);
+      if (source->IsDefined()) {
+        *res = source->BoundingBox3d();
+      }
+      return 0;
+    }
    
     int importpointcloudSelect(ListExpr args) {
         if ( CcString::checkType(nl->First(args)) ) {
@@ -1032,19 +1076,17 @@ namespace routeplanningalgebra {
             case REQUEST:  
                 result.addr = li?li->getNext():0;
                 if (result.addr != 0) {
-                    /*
-                    test output of some PointCloud data
-                    PointCloud* myTestRes = (PointCloud*) result.addr;
-                    if ((myTestRes->GetNoCpointnodes()) > 0) {
-                        cout << "Amount of elements: " 
-                                << (myTestRes->GetNoCpointnodes()) << "   "
-                                << " MinX: " << myTestRes->getMinX()
-                                << " MaxX: " << myTestRes->getMaxX()
-                                << " MinY: " << myTestRes->getMinY()    
-                                << " MaxY: " << myTestRes->getMaxY() 
-                                << endl;
-                    }
-                    */
+//                     test output of some PointCloud data
+//                     PointCloud* myTestRes = (PointCloud*) result.addr;
+//                     if ((myTestRes->GetNoCpointnodes()) > 0) {
+//                         cout << "Amount of elements: " 
+//                                 << (myTestRes->GetNoCpointnodes()) << "   "
+//                                 << " MinX: " << myTestRes->getMinX()
+//                                 << " MaxX: " << myTestRes->getMaxX()
+//                                 << " MinY: " << myTestRes->getMinY()    
+//                                 << " MaxY: " << myTestRes->getMaxY() 
+//                                 << endl;
+//                     }
                     return YIELD;
                 } else {
                     return CANCEL;
@@ -1153,7 +1195,18 @@ namespace routeplanningalgebra {
 
     /*
     Operator Specs
+    
     */
+    OperatorSpec bbox2dSpec("pointcloud -> rect2",
+        "bbox2d( _ )",
+        "Returns the 2-dim bounding box corresponding to a pointcloud object",
+        "query bbox2d(pc)");
+    
+    OperatorSpec bboxSpec("pointcloud -> rect3",
+        "bbox( _ )",
+        "Returns the 3-dim bounding box corresponding to a pointcloud object",
+        "query bbox(pc)");
+    
     OperatorSpec importpointcloudSpec("{string, text}-> pointcloud",
         "importpointcloud( _ )",
         "Returns one or more pointclouds",
@@ -1166,9 +1219,34 @@ namespace routeplanningalgebra {
         "Finds the shortest A* path between 2 tuples",
         "query Edges shortestpathlf[Curve, start, end] consume"
     );
+    
+    /*
+    Operator bbox2d
+    
+    */
+    Operator bbox2dOp(
+      "bbox2d",
+      bbox2dSpec.getStr(),
+      bbox2dVM,
+      Operator::SimpleSelect,
+      bbox2dTM
+    );
+    
+    /*
+    Operator bbox
+    
+    */
+    Operator bboxOp(
+      "bbox",
+      bboxSpec.getStr(),
+      bboxVM,
+      Operator::SimpleSelect,
+      bboxTM
+    );
 
     /*
     Operator importpointcloud
+    
     */
     Operator importpointcloudOp(
         "importpointcloud",
@@ -1180,6 +1258,7 @@ namespace routeplanningalgebra {
 
     /*
     Operator shortestpathlf
+    
     */
 
     Operator shortestpathlfOp(
@@ -1192,6 +1271,7 @@ namespace routeplanningalgebra {
 
     /*
     class RoutePlanningAlgebra
+    
     */    
     class RoutePlanningAlgebra : public Algebra {
         public:
@@ -1206,6 +1286,8 @@ namespace routeplanningalgebra {
             CpointnodeTC.AssociateKind( Kind::DATA() );
             PointCloudTC.AssociateKind( Kind::DATA() );
             PointCloudTC.AssociateKind( Kind::SPATIAL2D());
+            AddOperator(&bbox2dOp, false);
+            AddOperator(&bboxOp, false);
             AddOperator(&importpointcloudOp, false);
             AddOperator(&LCompose::lcompose, false);
             AddOperator(&LCompose::PointcloudToTin::pointcloud2Tin, false);

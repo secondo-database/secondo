@@ -600,6 +600,43 @@ namespace routeplanningalgebra {
            cpmax[1] = maxY;
            return Rectangle<2>(true, cpmin, cpmax);
        }
+       /*
+       getMinMaxZ
+       */
+       void getMinMaxZ(double& min, double& max) {
+         if (IsEmpty()) {
+           min = 0;
+           max = 0;
+           return;
+         }
+         min = INT_MAX;
+         max = INT_MIN;
+         Cpointnode cpn;
+         double z;
+         for (int i = 0; i < cpoint2dtree.Size(); i++) {
+           cpoint2dtree.Get(i, cpn);
+           z = cpn.getZ();
+           if (z < min) {
+             min = z;
+           }
+           if (z > max) {
+             max = z;
+           }
+         }
+       }
+       
+       /*
+       BoundingBox3d
+       */
+       const Rectangle<3> BoundingBox3d() {
+         double min[3], max[3];
+         min[0] = minX;
+         min[1] = minY;
+         max[0] = maxX;
+         max[1] = maxY;
+         getMinMaxZ(min[2], max[2]);
+         return Rectangle<3>(true, min, max);
+       }
 
        /*
        Distance (SpatialAttribute)

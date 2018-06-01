@@ -1,6 +1,20 @@
 Database : routeplantest
 Restore  : No
 
+
+Operator : bbox2d
+Number   : 1
+Signature: pointcloud -> rect2
+Example  : query perimeter(bbox2d(importpointcloud("20110304_10SDH9607.las") transformstream extract[Elem]))
+Result   : 0.0024097996
+Tolerance: 0.001
+
+Operator : bbox
+Number   : 1
+Signature: pointcloud -> rect3
+Example  : query maxD(bbox(importpointcloud("20110304_10SDH9607.las") transformstream extract[Elem]), 3)
+Result   : 1.08
+
 Operator : importpointcloud
 Number   : 1
 Signature: {string, text} -> stream(pointcloud)
