@@ -112,10 +112,10 @@ IN function
         return res;
     }        
 
-    /*
-    OUT function
-    
-    */
+/*
+OUT function
+
+*/
     ListExpr OutCpoint(ListExpr typeInfo, Word value) { 
         Cpoint* k= (Cpoint*) value.addr;
     
@@ -129,69 +129,74 @@ IN function
             nl->RealAtom(k->getZ()));
     }
 
-    /*
-    CreateCpoint
-    
-    */
+/*
+CreateCpoint
+
+*/
     Word CreateCpoint(const ListExpr typeInfo) {
             Word w;
             w.addr = (new Cpoint(0.0, 0.0, 0.0));
             return w;
     }
                    
-    /*
-    DeleteCpoint
-    
-    */
+/*
+DeleteCpoint
+
+*/
     void DeleteCpoint(const ListExpr typeInfo, Word& w) {
             Cpoint *k = (Cpoint *) w.addr;
             delete k;
             w.addr = 0;
     }
 
-    /*
-    CloseCpoint
-    
-    */
+/*
+CloseCpoint
+
+*/
     void CloseCpoint (const ListExpr typeInfo, Word& w ) {
         Cpoint *k = (Cpoint * ) w.addr;
         delete k;
         w.addr = 0;
     }
                    
-    /*
-    CloneCpoint
-    */
+/*
+CloneCpoint
+
+*/
     Word CloneCpoint( const ListExpr typeInfo, const Word& w) {
         Cpoint* k = (Cpoint*)w.addr;
         Word res(k->Clone());
         return res;
     }
                    
-    /*
-    CastCpoint
-    */
+/*
+CastCpoint
+
+*/
     void* CastCpoint(void* addr) {
         return (new (addr) Cpoint);
     }
                  
-    /*
-    CpointTypeCheck
-    */
+/*
+CpointTypeCheck
+
+*/
     bool CpointTypeCheck(ListExpr type, ListExpr& errorInfo) {
         return nl->IsEqual(type, Cpoint::BasicType());
     }
                    
-    /*
-    SizeOfCpoint
-    */
+/*
+SizeOfCpoint
+
+*/
     int SizeOfCpoint() {
         return sizeof(Cpoint);
     }
     
-    /*
-    TypeConstructor Cpoint
-    */
+/*
+TypeConstructor Cpoint
+
+*/
     TypeConstructor CpointTC (
          Cpoint::BasicType(),
          CpointProperty,
@@ -205,16 +210,14 @@ IN function
          SizeOfCpoint,
          CpointTypeCheck);    
     
-    /*
-     Type Constructor functions for Cpoints an DBArray
-     containing Cpoint elements
-     
-    */
-    
-    /*
-    Property function
-    
-    */
+/*
+  Type Constructor functions for Cpoints an DBArray
+  containing Cpoint elements
+  
+
+Property function
+
+*/
     ListExpr CpointsProperty() {
         return (nl->TwoElemList (
             nl->FourElemList (
@@ -791,16 +794,37 @@ IN function
     }
     
     ListExpr importpointcloudTM(ListExpr args){
-        if(!nl->HasLength(args,1)){
+        if(!nl->HasLength(args,1)) {
             return listutils::typeError("wrong number of arguments");
         }
         if( (!CcString::checkType(nl->First(args))) 
             &&  (!FText::checkType(nl->First(args))) ) {
             return listutils::typeError("string or text expected");
         }
-        
         return nl->TwoElemList(nl->SymbolAtom(Stream<PointCloud>::BasicType()),
             nl->SymbolAtom(PointCloud::BasicType()));
+    }
+    
+    ListExpr extractpointsTM(ListExpr args){
+        if(!nl->HasLength(args,1)) {
+            return listutils::typeError("wrong number of arguments");
+        }
+        if (!PointCloud::checkType(nl->First(args))) {
+        return listutils::typeError("pointcloud expected");
+      }
+      return nl->TwoElemList(nl->SymbolAtom(Stream<Tuple>::BasicType()),
+                             nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+          nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("Pos"),
+                                          nl->SymbolAtom(Point::BasicType())),
+                          nl->TwoElemList(nl->SymbolAtom("Height"),
+                                        nl->SymbolAtom(CcReal::BasicType())))));
+      
+      return nl->TwoElemList(nl->SymbolAtom(Stream<Tuple>::BasicType()),
+        nl->TwoElemList(
+          nl->TwoElemList(nl->SymbolAtom("Pos"),
+                          nl->SymbolAtom(Point::BasicType())),
+          nl->TwoElemList(nl->SymbolAtom("Height"),
+                          nl->SymbolAtom(CcReal::BasicType()))));
     }
     
     ListExpr shortestpathlfTM(ListExpr args) {
@@ -1105,6 +1129,73 @@ IN function
         importpointcloudVMT<CcString>,
         importpointcloudVMT<FText>
     };
+    
+    class ExtractpointsLI {
+     public:
+      ExtractpointsLI(PointCloud *src) : pc(src), counter(0) {
+        cps = pc->getAllPointsInRange(pc->getMinX(), pc->getMinY(),
+                                      pc->getMaxX(), pc->getMaxY());
+        tt = getTupleType();
+      }
+      
+      Tuple* getNextTuple() {
+        if (counter >= cps->GetNoCpoints()) {
+          return 0;
+        }
+        Cpoint cp = cps->GetCpoint(counter);
+        counter++;
+        Point *pt = new Point(cp.getX(), cp.getY());
+        CcReal *height = new CcReal(true, cp.getZ());
+        Tuple *result = new Tuple(tt);
+        result->PutAttribute(0, pt);
+        result->PutAttribute(1, height);
+        return result;
+      }
+      
+      TupleType* getTupleType() {
+        ListExpr ttList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+          nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("Pos"),
+                                          nl->SymbolAtom(Point::BasicType())),
+                          nl->TwoElemList(nl->SymbolAtom("Height"),
+                                         nl->SymbolAtom(CcReal::BasicType()))));
+        SecondoCatalog *sc = SecondoSystem::GetCatalog();
+        ListExpr numttList = sc->NumericType(ttList);
+        return new TupleType(numttList);
+      }
+      
+      PointCloud *pc;
+      int counter;
+      Cpoints *cps;
+      TupleType *tt;
+    };
+    
+    int extractpointsVM(Word* args, Word& result, int message, Word& local,
+                        Supplier s) {
+      ExtractpointsLI* li = (ExtractpointsLI*)local.addr;
+      switch (message) {
+        case OPEN: {
+          if (li) {
+            delete li;
+          }
+          PointCloud *source = static_cast<PointCloud*>(args[0].addr);
+          li = new ExtractpointsLI(source);
+          local.setAddr(li);
+          return 0;
+        }
+        case REQUEST: {
+          result.addr = li ? li->getNextTuple() : 0;
+          return result.addr ? YIELD : CANCEL;
+        }
+        case CLOSE: {
+          if (li) {
+            delete li;
+            local.addr = 0;
+          }
+          return 0;
+        }
+      }
+      return 0;
+    }
 
     int shortestpathlfVM(
             Word *args, Word &result, int message, Word &local, Supplier s) {
@@ -1212,6 +1303,11 @@ IN function
         "Returns one or more pointclouds",
         "query importpointcloud(fileName) feed count");
     
+    OperatorSpec extractpointsSpec("pointcloud -> stream(tuple(point, real))",
+        "extractpoints( _ )",
+        "Returns a stream of all elements of a pointcloud, 2d x 1d",
+        "query extractpoints(pc) feed count");
+    
     //Version noch ohne Höhendaten
     OperatorSpec shortestpathlfSpec(
         "orel(tuple(X)) x IDENT x point2 -> stream(tuple(X))",
@@ -1255,6 +1351,17 @@ IN function
         importpointcloudVM,
         importpointcloudSelect,
         importpointcloudTM); 
+    
+    /*
+    Operator extractpoints
+    
+    */
+    Operator extractpointsOp(
+        "extractpoints",
+        extractpointsSpec.getStr(),
+        extractpointsVM,
+        Operator::SimpleSelect,
+        extractpointsTM); 
 
     /*
     Operator shortestpathlf
@@ -1289,6 +1396,7 @@ IN function
             AddOperator(&bbox2dOp, false);
             AddOperator(&bboxOp, false);
             AddOperator(&importpointcloudOp, false);
+            AddOperator(&extractpointsOp, false);
             AddOperator(&LCompose::lcompose, false);
             AddOperator(&LCompose::PointcloudToTin::pointcloud2Tin, false);
             AddOperator(&shortestpathlfOp, false);

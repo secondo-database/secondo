@@ -504,7 +504,7 @@ namespace routeplanningalgebra {
             int idx = 0;
             Rectangle<2> rect2 = Rectangle<2>(true, r2min, r2max); 
             if (!this->Intersects(rect2)) {
-                // cout << "No point within requested area" << endl;
+                cout << "No point within requested area" << endl;
                 return 0;
             }
             // go through the 2D Tree
@@ -609,13 +609,13 @@ namespace routeplanningalgebra {
            max = 0;
            return;
          }
-         min = INT_MAX;
-         max = INT_MIN;
-         Cpointnode cpn;
+         min = std::numeric_limits<double>::max();
+         max = std::numeric_limits<double>::min();
+         Cpoints *cps = getAllPointsInRange(minX, minY, maxX, maxY);
          double z;
-         for (int i = 0; i < cpoint2dtree.Size(); i++) {
-           cpoint2dtree.Get(i, cpn);
-           z = cpn.getZ();
+         cout << "consider " << cps->GetNoCpoints() << " cpoints" << endl;
+         for (int i = 0; i < cps->GetNoCpoints(); i++) {
+           z = cps->GetCpoint(i).getZ();
            if (z < min) {
              min = z;
            }
@@ -635,6 +635,9 @@ namespace routeplanningalgebra {
          max[0] = maxX;
          max[1] = maxY;
          getMinMaxZ(min[2], max[2]);
+         cout << min[0] << " " << max[0] << " | " 
+              << min[1] << " " << max[1] << " | "
+              << min[2] << " " << max[2] << " | " << endl;
          return Rectangle<3>(true, min, max);
        }
 
