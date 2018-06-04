@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace jnetwork;
 using namespace std;
-using std::tr1::shared_ptr;
+using std::shared_ptr;
 
 namespace mapmatch{
 

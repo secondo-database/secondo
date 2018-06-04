@@ -54,7 +54,7 @@ class MReal;
 #ifdef SECONDO_WIN32
 #include <memory>
 #else
-#include <tr1/memory>
+#include <memory>
 #endif
 
 typedef struct _xmlDoc xmlDoc;
@@ -65,7 +65,7 @@ typedef xmlNode *xmlNodePtr;
 
 namespace mapmatch {
 
-typedef std::tr1::shared_ptr<class CTrkPointIterator> TrkPointIteratorPtr;
+typedef std::shared_ptr<class CTrkPointIterator> TrkPointIteratorPtr;
 
 /*
 3 class GPXFileReader

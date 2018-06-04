@@ -60,7 +60,7 @@ public:
 
 */
     virtual bool GetSections(const Rectangle<2>& rBBox,
-            std::vector<std::tr1::shared_ptr<IMMNetworkSection> >& 
+            std::vector<std::shared_ptr<IMMNetworkSection> >& 
                                                      vecSections) const;
     virtual Rectangle<2> GetBoundingBox() const;
     virtual double GetNetworkScale() const;

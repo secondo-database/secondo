@@ -50,7 +50,7 @@ the classes ~NetworkAdapter~ and ~NetworkSectionAdapter~.
 
 using namespace network;
 using namespace std;
-using std::tr1::shared_ptr;
+using std::shared_ptr;
 
 namespace mapmatch {
 

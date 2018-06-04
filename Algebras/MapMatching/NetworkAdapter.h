@@ -68,7 +68,7 @@ public:
 
     virtual bool GetSections(
                const Rectangle<2>& rBBox,
-               std::vector<std::tr1::shared_ptr<IMMNetworkSection> >& 
+               std::vector<std::shared_ptr<IMMNetworkSection> >& 
                                                          rvecSections) const;
 
     virtual Rectangle<2> GetBoundingBox(void) const;
@@ -86,7 +86,7 @@ private:
     void GetSectionsOfRoute(
                 const NetworkRoute& rNetworkRoute,
                 const Region& rRegion,
-                std::vector<std::tr1::shared_ptr<IMMNetworkSection> >& 
+                std::vector<std::shared_ptr<IMMNetworkSection> >& 
                                                           rVecSectRes) const;
 
     network::Network* m_pNetwork;
@@ -122,7 +122,7 @@ public:
 
     virtual bool GetAdjacentSections(
                 const bool bUpDown,
-                std::vector<std::tr1::shared_ptr<IMMNetworkSection> >&
+                std::vector<std::shared_ptr<IMMNetworkSection> >&
                                                           vecSections) const;
 
     virtual bool operator==(const IMMNetworkSection& rSection) const;

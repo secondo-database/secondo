@@ -48,9 +48,9 @@ This header file essentially contains the definition of the class
 #ifdef SECONDO_WIN32
 #include <memory>
 #else
-#include <tr1/memory>
+#include <memory>
 #endif
-using std::tr1::shared_ptr;
+using std::shared_ptr;
 
 #include "Algebras/Temporal/TemporalAlgebra.h"
 
@@ -80,7 +80,7 @@ public:
     MapMatchingMHT(IMMNetwork* pNetwork,
                    std::string strFileName);
     MapMatchingMHT(IMMNetwork* pNetwork,
-                   shared_ptr<MapMatchDataContainer> pContMMData);
+                   std::shared_ptr<MapMatchDataContainer> pContMMData);
 
     ~MapMatchingMHT();
 

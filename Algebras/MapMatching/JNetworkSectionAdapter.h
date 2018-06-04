@@ -75,7 +75,7 @@ public:
     virtual bool IsDefined() const;
 
     virtual bool GetAdjacentSections(const bool bUpDown,
-          std::vector<std::tr1::shared_ptr<IMMNetworkSection> >& 
+          std::vector<std::shared_ptr<IMMNetworkSection> >& 
                 vecSections) const;
 
     virtual std::string GetRoadName() const;

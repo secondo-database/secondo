@@ -51,7 +51,7 @@ This header file contains interfaces to access networks from map matching:
 #ifdef SECONDO_WIN32
 #include <memory>
 #else
-#include <tr1/memory>
+#include <memory>
 #endif
 
 namespace mapmatch {
@@ -88,7 +88,7 @@ public:
 
     virtual bool GetAdjacentSections(
             const bool bUpDown,
-            std::vector<std::tr1::shared_ptr<IMMNetworkSection> >&
+            std::vector<std::shared_ptr<IMMNetworkSection> >&
                                                 vecSections) const = 0;
 
     virtual std::string GetRoadName(void) const {return "";}
@@ -166,7 +166,7 @@ public:
 
     virtual bool GetSections(
             const Rectangle<2>& rBBox,
-            std::vector<std::tr1::shared_ptr<IMMNetworkSection> >&
+            std::vector<std::shared_ptr<IMMNetworkSection> >&
                                                    vecSections) const = 0;
 
     virtual Rectangle<2> GetBoundingBox(void) const = 0;

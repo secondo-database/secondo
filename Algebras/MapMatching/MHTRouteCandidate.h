@@ -50,9 +50,9 @@ This header file contains the definition of the class ~MHTRouteCandidate~.
 #ifdef SECONDO_WIN32
 #include <memory>
 #else
-#include <tr1/memory>
+#include <memory>
 #endif
-using std::tr1::shared_ptr;
+using std::shared_ptr;
 
 class Point;
 class HalfSegment;
