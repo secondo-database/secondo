@@ -20,17 +20,17 @@ Limitations and ToDos:
 /*
 Problematic lifecycle/missing hooks:
 - Start Secondo
-- Call MMPoint ctor -> no DB open yet...
+- Call MPoint2 ctor -> no DB open yet...
 ? Can we ensure to always have other ctor called with open DB??
 - Open DB
 ? is there really no hook available ??
 * Here we need to recover from the logs:
-- a) Query/Update MMPoint -> Read from DB
-- b) Create MMPoint -> Write to DB
-- c) Delete MMPoint (but would first read from DB)
+- a) Query/Update MPoint2 -> Read from DB
+- b) Create MPoint2 -> Write to DB
+- c) Delete MPoint2 (but would first read from DB)
 - Some more queries/updates/inserts/deletes
 - Close DB
-? Once again: a hook would be nice, e.g. distribute log to MMPoints
+? Once again: a hook would be nice, e.g. distribute log to MPoint2s
 * But might do this during the next recovery?!
 
 */
@@ -123,6 +123,7 @@ public:
     Units memGet(const MemStorageId id) /*const*/;
     void memAppend(const MemStorageId id, const Unit& unit);
     void memClear (const MemStorageId id);
+    bool isNewlyCreated() const;
 
 private:
     void assertSameDb();
@@ -136,6 +137,7 @@ private:
     std::string currentDbName;
     std::string memStorageName;
     std::string shMemDataName;
+    bool newly_created;
 };
 
 } /* namespace temporal2algebra */

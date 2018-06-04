@@ -1,36 +1,36 @@
 /*
-MMPoint.h
+MPoint2.h
 Created on: 03.05.2018
 Author: simon
 
 */
 
-#include "MMPoint.h"
+#include "MPoint2.h"
 #include "SecondoSMI.h"
 
 namespace temporal2algebra {
 
-bool CheckMMPoint( ListExpr type, ListExpr& errorInfo )
+bool CheckMPoint2( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, MMPoint::BasicType() ));
+  return (nl->IsEqual( type, MPoint2::BasicType() ));
 }
 
-ListExpr MMPointProperty() {
+ListExpr MPoint2Property() {
   return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"),
                              nl->StringAtom("Example Type List"),
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> MAPPING"),
-                             nl->StringAtom("(mmpoint) "),
+                             nl->StringAtom("(mpoint2) "),
                              nl->StringAtom("( u1 ... un ) "),
         nl->StringAtom("(((i1 i2 TRUE FALSE) (1.0 2.2 2.5 2.1)) ...)"))));
 }
 
-//TypeConstructor* getMMPointTypePtr() {
+//TypeConstructor* getMPoint2TypePtr() {
 //    TypeConstructor* type = new TypeConstructor (
-//            MMPoint::BasicType(),   //name
-//            MMPointProperty,        //property function describing signature
+//            MPoint2::BasicType(),   //name
+//            MPoint2Property,        //property function describing signature
 //            OutMapping<MPoint, UPoint, OutUPoint>,
 //            InMapping<MPoint, UPoint, InUPoint>,//Out and In functions
 //            0,
@@ -43,17 +43,17 @@ ListExpr MMPointProperty() {
 //            CloneMapping<MPoint>, //object close and clone
 //            CastMapping<MPoint>,    //cast function
 //            SizeOfMapping<MPoint>, //sizeof function
-//            CheckMMPoint );
+//            CheckMPoint2 );
 //    type->AssociateKind( Kind::TEMPORAL() );
 //    type->AssociateKind( Kind::DATA() );
 //    return type;
 //}
 
 
-//void MMPoint::CopyFrom(const Attribute* arg) {
+//void MPoint2::CopyFrom(const Attribute* arg) {
 //
-//    const MMPoint* other = static_cast<const MMPoint*>(arg);
-//    cout << "MMPoint::CopyFrom other:" << other->id << endl;
+//    const MPoint2* other = static_cast<const MPoint2*>(arg);
+//    cout << "MPoint2::CopyFrom other:" << other->id << endl;
 //
 //    MemStorageManager* storage = MemStorageManager::getInstance();
 //    id = storage->getNextId();
@@ -67,13 +67,13 @@ ListExpr MMPointProperty() {
 //
 //}
 
-//Attribute* MMPoint::Clone() const {
+//Attribute* MPoint2::Clone() const {
 //
 //    MemStorageManager* storage = MemStorageManager::getInstance();
 //    MemStorageId nextId = storage->getNextId();
-//    cout << "MMPoint::Clone nextId:" << nextId << endl;
+//    cout << "MPoint2::Clone nextId:" << nextId << endl;
 //
-//    MMPoint* res = new MMPoint(this->GetNoComponents(), nextId);
+//    MPoint2* res = new MPoint2(this->GetNoComponents(), nextId);
 //
 //    const std::vector<temporalalgebra::UPoint>& memUnits =
 //            storage->get(this->id);
@@ -85,14 +85,14 @@ ListExpr MMPointProperty() {
 //    return res;
 //}
 
-void MMPoint::memClear() {
-    cout << "MMPoint::memClear["<< id << "]()\n";
+void MPoint2::memClear() {
+    cout << "MPoint2::memClear["<< id << "]()\n";
     MemStorageManager* storage = MemStorageManager::getInstance();
     storage->clear(id);
 }
 
-void MMPoint::memAppend(const temporalalgebra::UPoint& upoint) {
-    cout << "MMPoint::memAppend[" << id << "](" << upoint << ")\n";
+void MPoint2::memAppend(const temporalalgebra::UPoint& upoint) {
+    cout << "MPoint2::memAppend[" << id << "](" << upoint << ")\n";
     MemStorageManager* storage = MemStorageManager::getInstance();
     if (id == 0) {
         id = storage->createId();
@@ -100,8 +100,8 @@ void MMPoint::memAppend(const temporalalgebra::UPoint& upoint) {
     storage->append(id, upoint);
 }
 
-std::vector<temporalalgebra::UPoint> MMPoint::memGet() const {
-    cout << "MMPoint::memRead[" << id << "]()\n";
+std::vector<temporalalgebra::UPoint> MPoint2::memGet() const {
+    cout << "MPoint2::memRead[" << id << "]()\n";
     MemStorageManager* storage = MemStorageManager::getInstance();
     return storage->get(id);
 }
@@ -112,15 +112,15 @@ std::vector<temporalalgebra::UPoint> MMPoint::memGet() const {
 
 namespace gentc {
 template<>
-void Delete<temporal2algebra::MMPoint>(const ListExpr typeInfo,Word &w){
-    cout << "gentc::Delete<MMPoint>\n";
+void Delete<temporal2algebra::MPoint2>(const ListExpr typeInfo,Word &w){
+    cout << "gentc::Delete<MPoint2>\n";
     cout << "IsDatabaseOpen()="
          << (SmiEnvironment::IsDatabaseOpen()?"true\n":"false\n")
          << "CurrentDatabase()="
          << SmiEnvironment::CurrentDatabase() << endl;
 
-    temporal2algebra::MMPoint* B =
-            static_cast<temporal2algebra::MMPoint*>(w.addr);
+    temporal2algebra::MPoint2* B =
+            static_cast<temporal2algebra::MPoint2*>(w.addr);
   int nof = B->NumOfFLOBs();
   for(int i=0;i< nof; i++){
     (B->GetFLOB(i))->destroy();
@@ -132,13 +132,13 @@ void Delete<temporal2algebra::MMPoint>(const ListExpr typeInfo,Word &w){
 }
 
 template<>
-void Close<temporal2algebra::MMPoint>(const ListExpr typeInfo, Word& w ){
-  cout << "genttc::Close<MMPoint>\n";
+void Close<temporal2algebra::MPoint2>(const ListExpr typeInfo, Word& w ){
+  cout << "genttc::Close<MPoint2>\n";
   cout << "IsDatabaseOpen()="
        << (SmiEnvironment::IsDatabaseOpen()?"true\n":"false\n")
        << "CurrentDatabase()="
        << SmiEnvironment::CurrentDatabase() << endl;
-  delete static_cast<temporal2algebra::MMPoint*>(w.addr);
+  delete static_cast<temporal2algebra::MPoint2*>(w.addr);
   w.addr = 0;
 }
 }

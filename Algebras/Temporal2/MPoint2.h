@@ -1,12 +1,12 @@
 /*
-MMPoint.h
+MPoint2.h
 Created on: 03.05.2018
     Author: simon
 
 */
 
-#ifndef ALGEBRAS_TEMPORAL2_MMPOINT_H_
-#define ALGEBRAS_TEMPORAL2_MMPOINT_H_
+#ifndef ALGEBRAS_TEMPORAL2_MPOINT2_H_
+#define ALGEBRAS_TEMPORAL2_MPOINT2_H_
 
 
 #include "MemStorageManager.h"
@@ -20,17 +20,17 @@ Created on: 03.05.2018
 namespace temporal2algebra {
 using namespace std;
 
-class MMPoint: public Attribute {
+class MPoint2: public Attribute {
 
 public:
     void memClear();
     void memAppend(const temporalalgebra::UPoint& upoint);
     Units memGet() const;
 
-    MMPoint() {} // should do nothing
+    MPoint2() {} // should do nothing
 
-    MMPoint( const MMPoint& rhs ) : Attribute(false), id(0) {
-        cout << "MMPoint(MMPoint& [" << rhs.id << "])\n";
+    MPoint2( const MPoint2& rhs ) : Attribute(false), id(0) {
+        cout << "MPoint2(MPoint2& [" << rhs.id << "])\n";
 
         if (!rhs.IsDefined()) {
             cout << "Undefined\n";
@@ -47,7 +47,7 @@ public:
 
         MemStorageManager* storage = MemStorageManager::getInstance();
         id = storage->createId();
-        cout << "MMPoint(MMPoint&)[" << id << "]\n";
+        cout << "MPoint2(MPoint2&)[" << id << "]\n";
 
 
         if (units.empty()) {
@@ -61,26 +61,26 @@ public:
         }
     }
 
-    explicit MMPoint(const bool defined): Attribute(defined), id(0) {
-        cout << "MMPoint(" << defined << ")\n";
+    explicit MPoint2(const bool defined): Attribute(defined), id(0) {
+        cout << "MPoint2(" << defined << ")\n";
    // Do not allocate ID/Mem slot if no units are present:
-   // - work around issue that first MMPoint is created without open DB
+   // - work around issue that first MPoint2 is created without open DB
    // - save some resources
 
    //     MemStorageManager* storage = MemStorageManager::getInstance();
    //     id = storage->createId();
-   //     cout << "MMPoint(bool).id:" << id << endl;
+   //     cout << "MPoint2(bool).id:" << id << endl;
     }
 
 
 
-    ~MMPoint() {
-        cout << "~MMPoint["<< id << "]()\n";
+    ~MPoint2() {
+        cout << "~MPoint2["<< id << "]()\n";
        //This will not work! we need to overwrite Delete and Close function:
        // memClear();
     }
 
-   MMPoint& operator=(const MMPoint& rhs){
+   MPoint2& operator=(const MPoint2& rhs){
       cout << "operator= [" << id << "], rhs[" << rhs.id << "]\n";
 
       if (&rhs == this) {
@@ -118,7 +118,7 @@ public:
 
    ListExpr ToListExpr(const ListExpr& typeInfo) const{
 
-       cout << "MMPoint::ToListExpr[" << id << "]( .. )\n";
+       cout << "MPoint2::ToListExpr[" << id << "]( .. )\n";
        cout << "IsDefined()=" << IsDefined() << endl;
        temporalalgebra::MPoint* mpoint = new temporalalgebra::MPoint(0);
 
@@ -151,7 +151,7 @@ public:
    }
 
    bool ReadFrom(const ListExpr LE, const ListExpr& typeInfo) {
-     cout << "MMPoint::ReadFrom[" << id << "]( "
+     cout << "MPoint2::ReadFrom[" << id << "]( "
              + nl->ToString(LE) + ", .. )\n";
      if (listutils::isSymbolUndefined(LE)) {
        SetDefined(false);
@@ -171,7 +171,7 @@ public:
 
      temporalalgebra::MPoint* mpoint =
              static_cast<temporalalgebra::MPoint*> (mp_ptr.addr);
-     cout << "MMPoint::ReadFrom( .. )" << *mpoint << endl;
+     cout << "MPoint2::ReadFrom( .. )" << *mpoint << endl;
      if (mpoint->IsDefined()) {
          temporalalgebra::UPoint unit(false);
 
@@ -211,7 +211,7 @@ public:
       if(!rhs1->IsDefined()){
         return 1;
       }
-      const MMPoint* rhs = static_cast<const MMPoint*>(rhs1);
+      const MPoint2* rhs = static_cast<const MPoint2*>(rhs1);
       if(id < rhs->id){
          return -1;
       } else if(id  > rhs->id){
@@ -229,21 +229,21 @@ public:
    }
 
    void CopyFrom(const Attribute* attr) {
-       cout << "MMPoint::CopyFrom[" << id
-               <<"](" << (static_cast<const MMPoint*>(attr))->id << ")\n";
-       operator=( *((MMPoint*) attr));
+       cout << "MPoint2::CopyFrom[" << id
+               <<"](" << (static_cast<const MPoint2*>(attr))->id << ")\n";
+       operator=( *((MPoint2*) attr));
    }
 
 
-   MMPoint* Clone() const{
-     cout << "MMPoint::Clone[" << id <<"]()\n";
-     return new MMPoint(*this);
+   MPoint2* Clone() const{
+     cout << "MPoint2::Clone[" << id <<"]()\n";
+     return new MPoint2(*this);
    }
 
     size_t Sizeof() const { return sizeof(*this); }
 
     static const std::string BasicType(){
-           return "mmpoint";
+           return "mpoint2";
     }
 
     static const bool checkType(const ListExpr type){
@@ -271,10 +271,10 @@ private:
 namespace gentc {
 
     template<>
-    void Delete<temporal2algebra::MMPoint>(const ListExpr typeInfo,Word &w);
+    void Delete<temporal2algebra::MPoint2>(const ListExpr typeInfo,Word &w);
 
     template<>
-    void Close<temporal2algebra::MMPoint>(const ListExpr typeInfo, Word& w );
+    void Close<temporal2algebra::MPoint2>(const ListExpr typeInfo, Word& w );
 } /* namespace gentc */
 
-#endif /* ALGEBRAS_TEMPORAL2_MMPOINT_H_ */
+#endif /* ALGEBRAS_TEMPORAL2_MPOINT2_H_ */

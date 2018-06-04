@@ -33,7 +33,7 @@ typedef std::vector<Unit> Units;
 
 class MemStorageManager {
 public:
-    // we need to Access the StorageManager from MMPoint (and other classes)
+    // we need to Access the StorageManager from MPoint2 (and other classes)
     // But we cannot pass it directly... so rely on singleton.
     static MemStorageManager* getInstance(); // not thread safe!
 

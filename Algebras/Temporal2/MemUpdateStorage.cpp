@@ -24,14 +24,12 @@ std::ostream &operator<<(std::ostream &os, memData const &l) {
 
 
 
-/*
-Here we check if we have processed the log
-if not: read log and:
-- set lastKnownId
-- create memory Representation from log
-- (probably compact log)
 
-*/
+//Try to find or created the shared_memory.
+//If the caller is interested if the shared mem was found or created
+//she can use the isNewlyCreated() method to find out
+
+
 void MemUpdateStorage::initMem() {
     // assume either there is no shared_memory at all
     // then initialize from log
@@ -50,6 +48,7 @@ void MemUpdateStorage::initMem() {
         memdata = segment.construct<MemData>
             (shMemDataName.c_str())/*object name*/
             (allocator /*allocator as last ctor arg*/);
+        newly_created=true;
     }
     catch (const boost::interprocess::interprocess_exception ex) {
         cout << "couldn't create shm - someone else did. Try to open.\n";
@@ -68,6 +67,10 @@ void MemUpdateStorage::initMem() {
                 << ex.what() << endl;
         throw;
     }
+}
+
+bool MemUpdateStorage::isNewlyCreated() const {
+    return newly_created;
 }
 
 void MemUpdateStorage::assertSameDb() {
@@ -102,12 +105,13 @@ MemUpdateStorage::~MemUpdateStorage() {
 }
 
 MemUpdateStorage::MemUpdateStorage(std::string database) :
-                currentDbName(database)
+                currentDbName(database),
+                newly_created(false)
 {
     cout << "MemUpdateStorage::MemUpdateStorage(\""
             << database << "\")\n";
 
-    memStorageName = "MemUpdateStorage_SHM_" + currentDbName + "_" +"MMPoint";
+    memStorageName = "MemUpdateStorage_SHM_" + currentDbName + "_" +"MPoint2";
     shMemDataName  = "data";
 
     initMem();

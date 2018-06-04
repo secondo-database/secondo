@@ -1,0 +1,28 @@
+delete database test2;
+
+#setup Forall2Test StandardAlgebra RelationAlgebra Temporal2Algebra
+create database test2;
+open database test2;
+query barrier('check1', 3);
+close database;
+
+#testcase open_db
+#yields success
+open database mytestdb;
+
+#testcase signal_other_do_check
+#yields (int 3)
+query barrier('finish1', 3);
+
+#testcase signal_other_do_check
+#yields (int 3)
+query barrier('check2', 3);
+
+#testcase signal_other_do_check
+#yields (int 3)
+query barrier('finish2', 3);
+
+#teardown
+close database;
+delete database test2;
+delete database mytestdb;

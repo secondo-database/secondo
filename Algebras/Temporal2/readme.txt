@@ -48,7 +48,7 @@ how to export?
 -> nl-rep: should not have internal id
 -> nl->rep mem/log nono
 but database:
-- log + mmpoint have id
+- log + mpoint2 have id
 
 object lifecycle:
 -> Close: if last ref closed -> persist!? At least log?

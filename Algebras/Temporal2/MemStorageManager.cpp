@@ -123,8 +123,13 @@ void MemStorageManager::ensureStorageConnection() {
                 new DbUpdateLogger(lastUsedDatabase, smiLogFileName));
         memUpdateStoragePtr = MemUpdateStoragePtr(
                 new MemUpdateStorage(lastUsedDatabase));
+        if (memUpdateStoragePtr->isNewlyCreated()) {
+            cout << "MemUpdateStorage has not been initialized. Read log!\n";
+            dbUpdateLoggerPtr->replayLog(*this);
+        } else{
+            cout << "MemUpdateStorage should be fine. Go on.\n";
+        }
 
-        dbUpdateLoggerPtr->replayLog(*this);
     }
 }
 

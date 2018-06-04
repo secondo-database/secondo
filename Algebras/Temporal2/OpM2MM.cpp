@@ -15,7 +15,7 @@ Limitations and ToDos:
 #include "TypeMapUtils.h"
 #include "ListUtils.h"
 
-#include "MMPoint.h"
+#include "MPoint2.h"
 #include "Algebras/Temporal/TemporalAlgebra.h"
 
 extern NestedList* nl;
@@ -29,9 +29,9 @@ namespace temporal2algebra{
 struct M2MMInfo : OperatorInfo {
     M2MMInfo() : OperatorInfo() {
         name =      "m2mm";
-        signature = "mpoint -> mmpoint";
+        signature = "mpoint -> mpoint2";
         syntax =    "<MPoint> m2mm;";
-        meaning =   "Converts an <MPoint> into an MMPoint";
+        meaning =   "Converts an <MPoint> into an MPoint2";
     }
 };
 
@@ -47,7 +47,7 @@ ListExpr M2MM_tm( ListExpr args ) {
                 + nl->ToString(nl->First(args)));
     }
 
-    return NList(MMPoint::BasicType()).listExpr();
+    return NList(MPoint2::BasicType()).listExpr();
 }
 
 
@@ -62,7 +62,7 @@ int M2MM_vm( Word* args, Word& result, int message,
   MPoint* mpoint = static_cast<MPoint*>(args[0].addr);
 
   result = qp->ResultStorage(s);
-  MMPoint* mmpoint = static_cast<MMPoint*>(result.addr);
+  MPoint2* mpoint2 = static_cast<MPoint2*>(result.addr);
 
   std::cout << "M2MM_vm got: "
           << *mpoint
@@ -73,11 +73,11 @@ int M2MM_vm( Word* args, Word& result, int message,
       UPoint unit(false);
       for ( int i = 0; i < mpoint->GetNoComponents(); i++) {
           mpoint->Get(i, unit);
-          mmpoint->memAppend(unit);
+          mpoint2->memAppend(unit);
       }
-      mmpoint->SetDefined(true);
+      mpoint2->SetDefined(true);
   } else {
-      mmpoint->SetDefined(false);
+      mpoint2->SetDefined(false);
   }
   return 0;
 }

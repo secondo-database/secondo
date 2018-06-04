@@ -39,14 +39,14 @@ Result   : -1
 
 Operator : m2mm
 Number   : 1
-Signature: mpoint -> mmpoint;
+Signature: mpoint -> mpoint2;
 Example  : query [const mpoint value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))] m2mm;
-Result   : (mmpoint((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))
+Result   : (mpoint2((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))
 
 Operator : mm2m
 Number   : 1
-Signature: mmpoint -> mpoint;
-Example  : query [const mmpoint value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))] mm2m;
+Signature: mpoint2 -> mpoint;
+Example  : query [const mpoint2 value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))] mm2m;
 Result   : (mpoint((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))
 
 Operator : barrier

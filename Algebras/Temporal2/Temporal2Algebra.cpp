@@ -11,7 +11,7 @@ Limitations and ToDos:
 #include "MemUpdateStorage.h"
 #include "MemStorageManager.h"
 
-#include "MMPoint.h"
+#include "MPoint2.h"
 
 #include "OpAppendTo.h"
 #include "OpStreamNext.h"
@@ -24,7 +24,7 @@ Limitations and ToDos:
 
 namespace temporal2algebra{
 
-GenTC<MMPoint> mmpoint;
+GenTC<MPoint2> mpoint2;
 
 class Temporal2Algebra : public Algebra
 {
@@ -33,10 +33,10 @@ class Temporal2Algebra : public Algebra
     {
         MemStorageManager::createInstance();
 
-        //AddTypeConstructor( getMMPointTypePtr(), true );
-        AddTypeConstructor( & mmpoint );
-        mmpoint.AssociateKind( Kind::TEMPORAL() );
-        mmpoint.AssociateKind( Kind::DATA() );
+        //AddTypeConstructor( getMPoint2TypePtr(), true );
+        AddTypeConstructor( & mpoint2 );
+        mpoint2.AssociateKind( Kind::TEMPORAL() );
+        mpoint2.AssociateKind( Kind::DATA() );
 
         AddOperator( getAppendToOpPtr(), true );
         AddOperator( getStreamValveOpPtr(), true );

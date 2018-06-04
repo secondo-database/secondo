@@ -10,16 +10,16 @@ open database mytestdb;
 # -- variable assignement - let - check after re-open and updates --
 # ------------------------------------------------------------------
 
-#testcase mmpoint_variable_undef_3
-#yields (mmpoint undefined)
+#testcase mpoint2_variable_undef_3
+#yields (mpoint2 undefined)
 query mm_var_undef;
 
-#testcase mmpoint_variable_2000_3
-#yields (mmpoint((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))
+#testcase mpoint2_variable_2000_3
+#yields (mpoint2((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))
 query mm_var_2000;
 
-#testcase mmpoint_variable_2000_2100_3
-#yields (mmpoint((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0))))
+#testcase mpoint2_variable_2000_2100_3
+#yields (mpoint2((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0))))
 query mm_var_2000_2100;
 
 
@@ -27,21 +27,21 @@ query mm_var_2000_2100;
 # -- attribute in relation - check after re-open and updates --
 # -------------------------------------------------------------
 
-#testcase mmpoint_relation_undef_3
-#yields ((rel (tuple ((MMP mmpoint)))) ((undefined)))
+#testcase mpoint2_relation_undef_3
+#yields ((rel (tuple ((MMP mpoint2)))) ((undefined)))
 query mm_rel_undef;
 
-#testcase mmpoint_relation_2000_3
-#yields ((rel(tuple((MMP mmpoint))))((((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))))
+#testcase mpoint2_relation_2000_3
+#yields ((rel(tuple((MMP mpoint2))))((((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))))
 query mm_rel_2000;
 
-#testcase mmpoint_relation_2000_2100_3
-#yields ((rel(tuple((MMP mmpoint))))((((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0))))))
+#testcase mpoint2_relation_2000_2100_3
+#yields ((rel(tuple((MMP mpoint2))))((((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0))))))
 query mm_rel_2000_2100;
 
-#testcase mmpoint_relation_invalid
+#testcase mpoint2_relation_invalid
 #yields error
-let mm_rel_invalid = [const rel(tuple([MMP: mmpoint])) value (( 123 ))];
+let mm_rel_invalid = [const rel(tuple([MMP: mpoint2])) value (( 123 ))];
 
 
 #teardown

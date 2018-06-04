@@ -12,7 +12,7 @@ create database mytestdb2;
 # ================
 
 # ==============================================================================
-# TypeConstructor MMPoint
+# TypeConstructor MPoint2
 # ==============================================================================
 
 # ----------------------
@@ -27,33 +27,33 @@ open database mytestdb;
 # -- variable assignement - let --
 # --------------------------------
 
-#testcase mmpoint_variable_undef_1
+#testcase mpoint2_variable_undef_1
 #yields success
-let mm_var_undef = [const mmpoint value undef];
+let mm_var_undef = [const mpoint2 value undef];
 
-#testcase mmpoint_variable_2000_1
+#testcase mpoint2_variable_2000_1
 #yields success
-let mm_var_2000 = [const mmpoint value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
+let mm_var_2000 = [const mpoint2 value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
 
-#testcase mmpoint_variable_2000_2100_1
+#testcase mpoint2_variable_2000_2100_1
 #yields success
-let mm_var_2000_2100 = [const mmpoint value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0)))];
+let mm_var_2000_2100 = [const mpoint2 value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0)))];
 
 # ---------------------------
 # -- attribute in relation --
 # ---------------------------
 
-#testcase mmpoint_relation_undef_1
+#testcase mpoint2_relation_undef_1
 #yields success
-let mm_rel_undef = [const rel(tuple([MMP: mmpoint])) value ((undef))];
+let mm_rel_undef = [const rel(tuple([MMP: mpoint2])) value ((undef))];
 
-#testcase mmpoint_relation_2000_1
+#testcase mpoint2_relation_2000_1
 #yields success
-let mm_rel_2000 = [const rel(tuple([MMP: mmpoint])) value (( ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))) ))];
+let mm_rel_2000 = [const rel(tuple([MMP: mpoint2])) value (( ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))) ))];
 
-#testcase mmpoint_relation_2000_2100_1
+#testcase mpoint2_relation_2000_2100_1
 #yields success
-let mm_rel_2000_2100 = [const rel(tuple([MMP: mmpoint])) value ((((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0)))))];
+let mm_rel_2000_2100 = [const rel(tuple([MMP: mpoint2])) value ((((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0)))))];
 
 
 
@@ -71,23 +71,23 @@ open database mytestdb2;
 
 #testcase close_update_open_db_3
 #yields success
-let dummy1 = [const mmpoint value ((("2011-01-01" "2011-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
+let dummy1 = [const mpoint2 value ((("2011-01-01" "2011-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
 
 #testcase close_update_open_db_4
 #yields success
-let dummy2 = [const mmpoint value ((("2012-01-01" "2012-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
+let dummy2 = [const mpoint2 value ((("2012-01-01" "2012-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
 
 #testcase close_update_open_db_5
 #yields success
-let dummy3 = [const mmpoint value ((("2013-01-01" "2013-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
+let dummy3 = [const mpoint2 value ((("2013-01-01" "2013-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
 
 #testcase close_update_open_db_6
 #yields success
-let dummy4 = [const mmpoint value ((("2014-01-01" "2014-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
+let dummy4 = [const mpoint2 value ((("2014-01-01" "2014-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
 
 #testcase close_update_open_db_7
 #yields success
-let dummy5 = [const mmpoint value ((("2015-01-01" "2015-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
+let dummy5 = [const mpoint2 value ((("2015-01-01" "2015-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
 
 #testcase close_update_open_db_8
 #yields success

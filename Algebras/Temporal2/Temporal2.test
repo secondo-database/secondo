@@ -6,9 +6,9 @@ open database mytestdb;
 let real1 = 1.0;
 
 let mu =  [const mpoint value undef];
-let mmu = [const mmpoint value undef];
+let mmu = [const mpoint2 value undef];
 let m2000 = [const mpoint value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
-let mm2000 = [const mmpoint value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
+let mm2000 = [const mpoint2 value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
 
 # Here come: The tests
 
@@ -29,29 +29,29 @@ query unknownVar = 1.0;
 # ================
 
 # ==============================================================================
-# TypeConstructor MMPoint
+# TypeConstructor MPoint2
 # ==============================================================================
 
 # ----------------------
 # -- anonymous object --
 # ----------------------
 
-#testcase mmpoint_anonymous_undef
-#yields (mmpoint undefined)
-query [const mmpoint value undef];
+#testcase mpoint2_anonymous_undef
+#yields (mpoint2 undefined)
+query [const mpoint2 value undef];
 
 
-#testcase mmpoint_anonymous_2000
-#yields (mmpoint((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))
-query [const mmpoint value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
+#testcase mpoint2_anonymous_2000
+#yields (mpoint2((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))
+query [const mpoint2 value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
 
 
-#testcase mmpoint_anonymous_2000_2100
-#yields (mmpoint((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0))))
-query [const mmpoint value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0)))];
+#testcase mpoint2_anonymous_2000_2100
+#yields (mpoint2((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0))))
+query [const mpoint2 value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0)))];
 
 
-#testcase mmpoint_anonymous_invalid
+#testcase mpoint2_anonymous_invalid
 #yields error
 query [const mpoint value 123];
 
@@ -59,34 +59,34 @@ query [const mpoint value 123];
 # -- variable assignement - let --
 # --------------------------------
 
-#testcase mmpoint_variable_undef_1
+#testcase mpoint2_variable_undef_1
 #yields success
-let mm_var_undef = [const mmpoint value undef];
+let mm_var_undef = [const mpoint2 value undef];
 
-#testcase mmpoint_variable_undef_2
-#yields (mmpoint undefined)
+#testcase mpoint2_variable_undef_2
+#yields (mpoint2 undefined)
 query mm_var_undef;
 
 
-#testcase mmpoint_variable_2000_1
+#testcase mpoint2_variable_2000_1
 #yields success
-let mm_var_2000 = [const mmpoint value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
+let mm_var_2000 = [const mpoint2 value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
 
-#testcase mmpoint_variable_2000_2
-#yields (mmpoint((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))
+#testcase mpoint2_variable_2000_2
+#yields (mpoint2((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))
 query mm_var_2000;
 
 
-#testcase mmpoint_variable_2000_2100_1
+#testcase mpoint2_variable_2000_2100_1
 #yields success
-let mm_var_2000_2100 = [const mmpoint value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0)))];
+let mm_var_2000_2100 = [const mpoint2 value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0)))];
 
-#testcase mmpoint_variable_2000_2100_2
-#yields (mmpoint((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0))))
+#testcase mpoint2_variable_2000_2100_2
+#yields (mpoint2((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0))))
 query mm_var_2000_2100;
 
 
-#testcase mmpoint_variable_invalid
+#testcase mpoint2_variable_invalid
 #yields error
 let mm_var_invalid = [const mpoint value 123];
 
@@ -94,81 +94,81 @@ let mm_var_invalid = [const mpoint value 123];
 # -- variable assignement - update --
 # -----------------------------------
 
-#testcase mmpoint_variable_undef2undef_1
+#testcase mpoint2_variable_undef2undef_1
 #yields success
-let mm_var_un2un = [const mmpoint value undef];
+let mm_var_un2un = [const mpoint2 value undef];
 
-#testcase mmpoint_variable_undef2undef_2
+#testcase mpoint2_variable_undef2undef_2
 #yields success
-update mm_var_un2un := [const mmpoint value undef];
+update mm_var_un2un := [const mpoint2 value undef];
 
-#testcase mmpoint_variable_undef2undef_3
-#yields (mmpoint undefined)
+#testcase mpoint2_variable_undef2undef_3
+#yields (mpoint2 undefined)
 query mm_var_un2un;
 
 
-#testcase mmpoint_variable_undef22k_1
+#testcase mpoint2_variable_undef22k_1
 #yields success
-let mm_var_un22k = [const mmpoint value undef];
+let mm_var_un22k = [const mpoint2 value undef];
 
-#testcase mmpoint_variable_undef22k_2
+#testcase mpoint2_variable_undef22k_2
 #yields success
-update mm_var_un22k := [const mmpoint value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
+update mm_var_un22k := [const mpoint2 value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
 
-#testcase mmpoint_variable_undef22k_3
-#yields (mmpoint((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))
+#testcase mpoint2_variable_undef22k_3
+#yields (mpoint2((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))
 query mm_var_un22k;
 
 
-#testcase mmpoint_variable_2k2undef_1
+#testcase mpoint2_variable_2k2undef_1
 #yields success
-let mm_var_2k2un = [const mmpoint value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
+let mm_var_2k2un = [const mpoint2 value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
 
-#testcase mmpoint_variable_2k2undef_2
+#testcase mpoint2_variable_2k2undef_2
 #yields success
-update mm_var_2k2un := [const mmpoint value undef];
+update mm_var_2k2un := [const mpoint2 value undef];
 
-#testcase mmpoint_variable_2k2undef_3
-#yields (mmpoint undefined)
+#testcase mpoint2_variable_2k2undef_3
+#yields (mpoint2 undefined)
 query mm_var_2k2un;
 
 
-#testcase mmpoint_variable_2k23k_1
+#testcase mpoint2_variable_2k23k_1
 #yields success
-let mm_var_2k23k = [const mmpoint value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
+let mm_var_2k23k = [const mpoint2 value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
 
-#testcase mmpoint_variable_2k23k_2
+#testcase mpoint2_variable_2k23k_2
 #yields success
-update mm_var_2k23k := [const mmpoint value ((("3000-01-01" "3000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
+update mm_var_2k23k := [const mpoint2 value ((("3000-01-01" "3000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
 
-#testcase mmpoint_variable_2k23k_3
-#yields (mmpoint((("3000-01-01" "3000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))
+#testcase mpoint2_variable_2k23k_3
+#yields (mpoint2((("3000-01-01" "3000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))
 query mm_var_2k23k;
 
 
-#testcase mmpoint_variable_l2k2l1_1
+#testcase mpoint2_variable_l2k2l1_1
 #yields success
-let mm_var_l2k2l1 = [const mmpoint value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0)))];
+let mm_var_l2k2l1 = [const mpoint2 value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0)))];
 
-#testcase mmpoint_variable_l2k2l1_2
+#testcase mpoint2_variable_l2k2l1_2
 #yields success
-update mm_var_l2k2l1 := [const mmpoint value ((("3000-01-01" "3000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
+update mm_var_l2k2l1 := [const mpoint2 value ((("3000-01-01" "3000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
 
-#testcase mmpoint_variable_l2k2l1_3
-#yields (mmpoint((("3000-01-01" "3000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))
+#testcase mpoint2_variable_l2k2l1_3
+#yields (mpoint2((("3000-01-01" "3000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))
 query mm_var_l2k2l1;
 
 
-#testcase mmpoint_variable_l1k2l2_1
+#testcase mpoint2_variable_l1k2l2_1
 #yields success
-let mm_var_l1k2l2 = [const mmpoint value ((("3000-01-01" "3000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
+let mm_var_l1k2l2 = [const mpoint2 value ((("3000-01-01" "3000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
 
-#testcase mmpoint_variable_l1k2l2_1
+#testcase mpoint2_variable_l1k2l2_1
 #yields success
-update mm_var_l1k2l2 := [const mmpoint value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0)))];
+update mm_var_l1k2l2 := [const mpoint2 value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0)))];
 
-#testcase mmpoint_variable_l1k2l2_1
-#yields (mmpoint((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0))))
+#testcase mpoint2_variable_l1k2l2_1
+#yields (mpoint2((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0))))
 query mm_var_l1k2l2;
 
 
@@ -176,36 +176,36 @@ query mm_var_l1k2l2;
 # -- attribute in relation --
 # ---------------------------
 
-#testcase mmpoint_relation_undef_1
+#testcase mpoint2_relation_undef_1
 #yields success
-let mm_rel_undef = [const rel(tuple([MMP: mmpoint])) value ((undef))];
+let mm_rel_undef = [const rel(tuple([MMP: mpoint2])) value ((undef))];
 
-#testcase mmpoint_relation_undef_2
-#yields ((rel (tuple ((MMP mmpoint)))) ((undefined)))
+#testcase mpoint2_relation_undef_2
+#yields ((rel (tuple ((MMP mpoint2)))) ((undefined)))
 query mm_rel_undef;
 
 
-#testcase mmpoint_relation_2000_1
+#testcase mpoint2_relation_2000_1
 #yields success
-let mm_rel_2000 = [const rel(tuple([MMP: mmpoint])) value (( ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))) ))];
+let mm_rel_2000 = [const rel(tuple([MMP: mpoint2])) value (( ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))) ))];
 
-#testcase mmpoint_relation_2000_2
-#yields ((rel(tuple((MMP mmpoint))))((((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))))
+#testcase mpoint2_relation_2000_2
+#yields ((rel(tuple((MMP mpoint2))))((((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))))
 query mm_rel_2000;
 
 
-#testcase mmpoint_relation_2000_2100_1
+#testcase mpoint2_relation_2000_2100_1
 #yields success
-let mm_rel_2000_2100 = [const rel(tuple([MMP: mmpoint])) value ((((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0)))))];
+let mm_rel_2000_2100 = [const rel(tuple([MMP: mpoint2])) value ((((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0)))))];
 
-#testcase mmpoint_relation_2000_2100_2
-#yields ((rel(tuple((MMP mmpoint))))((((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0))))))
+#testcase mpoint2_relation_2000_2100_2
+#yields ((rel(tuple((MMP mpoint2))))((((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0))))))
 query mm_rel_2000_2100;
 
 
-#testcase mmpoint_relation_invalid
+#testcase mpoint2_relation_invalid
 #yields error
-let mm_rel_invalid = [const rel(tuple([MMP: mmpoint])) value (( 123 ))];
+let mm_rel_invalid = [const rel(tuple([MMP: mpoint2])) value (( 123 ))];
 
 
 # add checks for multiprocesses
@@ -217,12 +217,12 @@ let mm_rel_invalid = [const rel(tuple([MMP: mmpoint])) value (( 123 ))];
 
 
 #testcase M2MM_undef
-#yields (mmpoint undefined)
+#yields (mpoint2 undefined)
 query [const mpoint value undef] m2mm;
 
 #testcase MM2M_undef
 #yields (mpoint undefined)
-query [const mmpoint value undef] mm2m;
+query [const mpoint2 value undef] mm2m;
 
 
 #teardown

@@ -22,7 +22,7 @@ Limitations and Todos:
 #include "TypeMapUtils.h"
 #include "Symbols.h"
 #include "ListUtils.h"
-#include "MMPoint.h"
+#include "MPoint2.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -65,13 +65,13 @@ ListExpr AppendTo_tm( ListExpr args ) {
         return NList(MPoint::BasicType()).listExpr();
     }
 
-    if (MMPoint::checkType(nl->Second(args))) {
-        return NList(MMPoint::BasicType()).listExpr();
+    if (MPoint2::checkType(nl->Second(args))) {
+        return NList(MPoint2::BasicType()).listExpr();
     }
 
     return listutils::typeError("expected "
         + MPoint::BasicType() + " or "
-        + MMPoint::BasicType() + " as second argument, but got "
+        + MPoint2::BasicType() + " as second argument, but got "
         + nl->ToString(nl->Second(args)));
 
 }
@@ -82,9 +82,9 @@ int AppendTo_sf( ListExpr args ) {
     if (MPoint::checkType(nl->Second(args))) {
         isMemory = false;
         cout << "AppendTo_sf(..) MPoint: memory = false\n";
-    } else if (MMPoint::checkType(nl->Second(args))){
+    } else if (MPoint2::checkType(nl->Second(args))){
         isMemory = true;
-        cout << "AppendTo_sf(..) MMPoint: memory = true\n";
+        cout << "AppendTo_sf(..) MPoint2: memory = true\n";
     } else {
         assert(false);
     }
@@ -321,9 +321,9 @@ int AppendToUnitMemory_vm
 ValueMapping AppendTo_vms[] =
 {
     AppendToUnitRegular_vm<MPoint, IPoint, UPoint>,
-    AppendToUnitMemory_vm<MMPoint, IPoint, UPoint>,
+    AppendToUnitMemory_vm<MPoint2, IPoint, UPoint>,
     AppendToStreamRegular_vm<MPoint, IPoint, UPoint>,
-    AppendToStreamMemory_vm<MMPoint, IPoint, UPoint>
+    AppendToStreamMemory_vm<MPoint2, IPoint, UPoint>
 
   //  AppendTo_vm<MBool, IBool>,
   //  AppendTo_vm<MString, IString>,

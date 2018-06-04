@@ -1,9 +1,7 @@
-delete database mytestdb;
-delete database mytestdb2;
+# delete database mytestdb;
 
 #setup Forall2Test StandardAlgebra RelationAlgebra Temporal2Algebra
 create database mytestdb;
-create database mytestdb2;
 
 # Here come: The tests
 
@@ -55,21 +53,9 @@ let mm_rel_2000 = [const rel(tuple([MMP: mpoint2])) value (( ((("2000-01-01" "20
 #yields success
 let mm_rel_2000_2100 = [const rel(tuple([MMP: mpoint2])) value ((((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0)))))];
 
-# -----------------------------
-# -- close and open database --
-# -----------------------------
-
-#testcase closeandopen_db_1
-#yields success
-close database;
-
-#testcase closeandopen_db_2
-#yields success
-open database mytestdb;
-
-# ------------------------------------------------------
-# -- variable assignement - let - check after re-open --
-# ------------------------------------------------------
+# ----------------------------------------
+# -- variable assignement - let - check --
+# ----------------------------------------
 
 #testcase mpoint2_variable_undef_2
 #yields (mpoint2 undefined)
@@ -84,9 +70,9 @@ query mm_var_2000;
 query mm_var_2000_2100;
 
 
-# -------------------------------------------------
-# -- attribute in relation - check after re-open --
-# -------------------------------------------------
+# -----------------------------------
+# -- attribute in relation - check --
+# -----------------------------------
 
 #testcase mpoint2_relation_undef_2
 #yields ((rel (tuple ((MMP mpoint2)))) ((undefined)))
@@ -100,21 +86,22 @@ query mm_rel_2000;
 #yields ((rel(tuple((MMP mpoint2))))((((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0))))))
 query mm_rel_2000_2100;
 
-#testcase mpoint2_relation_invalid
-#yields error
-let mm_rel_invalid = [const rel(tuple([MMP: mpoint2])) value (( 123 ))];
 
-# -----------------------------------------------------------
-# -- close and open database other database and do updates --
-# -----------------------------------------------------------
+# --------------------------------------------------
+# -- sync with other instances -- do checks there --
+# --------------------------------------------------
 
-#testcase close_update_open_db_1
-#yields success
-close database;
+#testcase signal_other_do_check
+#yields (int 3)
+query barrier('check1', 3);
 
-#testcase close_update_open_db_2
-#yields success
-open database mytestdb2;
+#testcase signal_other_do_check
+#yields (int 3)
+query barrier('finish1', 3);
+
+# ------------------------------------------------------
+# -- do some dummy updates and let others check again --
+# ------------------------------------------------------
 
 #testcase close_update_open_db_3
 #yields success
@@ -136,17 +123,10 @@ let dummy4 = [const mpoint2 value ((("2014-01-01" "2014-01-01-00:01" TRUE FALSE)
 #yields success
 let dummy5 = [const mpoint2 value ((("2015-01-01" "2015-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))];
 
-#testcase close_update_open_db_8
-#yields success
-close database;
 
-#testcase close_update_open_db_9
-#yields success
-open database mytestdb;
-
-# ------------------------------------------------------------------
-# -- variable assignement - let - check after re-open and updates --
-# ------------------------------------------------------------------
+# ----------------------------------------
+# -- variable assignement - let - check --
+# ----------------------------------------
 
 #testcase mpoint2_variable_undef_3
 #yields (mpoint2 undefined)
@@ -161,9 +141,9 @@ query mm_var_2000;
 query mm_var_2000_2100;
 
 
-# -------------------------------------------------------------
-# -- attribute in relation - check after re-open and updates --
-# -------------------------------------------------------------
+# -----------------------------------
+# -- attribute in relation - check --
+# -----------------------------------
 
 #testcase mpoint2_relation_undef_3
 #yields ((rel (tuple ((MMP mpoint2)))) ((undefined)))
@@ -182,7 +162,19 @@ query mm_rel_2000_2100;
 let mm_rel_invalid = [const rel(tuple([MMP: mpoint2])) value (( 123 ))];
 
 
+# --------------------------------------------------
+# -- sync with other instances -- do checks there --
+# --------------------------------------------------
+
+#testcase signal_other_do_check
+#yields (int 3)
+query barrier('check2', 3);
+
+#testcase signal_other_do_check
+#yields (int 3)
+query barrier('finish2', 3);
+
+
 #teardown
 close database;
 delete database mytestdb;
-delete database mytestdb2;
