@@ -4,7 +4,8 @@ OBJ=rip.o
 LIBS=../build/librip.so
 LDFLAGS=$(LIBS)
 
-all: rip test
+all: rip 
+
 
 rip: $(OBJ)
 	$(CC) -o rip $(OBJ) $(LDFLAGS)
