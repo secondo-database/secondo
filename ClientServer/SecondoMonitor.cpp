@@ -677,7 +677,7 @@ int main( const int argc, const char* argv[] )
        pos++; // jump over argument
     }
      else { // unknown command
-        cout << "unknown command line argument" << endl;
+        cout << "unknown command line argument '" << arg << "'" << endl;
         cout << "try " << argv[0] << " --help" << endl;
         execute = false;
         done = true;
