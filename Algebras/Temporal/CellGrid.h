@@ -356,6 +356,7 @@ start from the given origin
 
 */
 inline bool Proper(bool isSet = false) const;
+
 /*
 Check whether a given index is valid of a grid.
 
@@ -375,6 +376,7 @@ Check the validity of parameters in the constructor.
 Simulate the function for the rectangle algebra.
 
 */
+	/*
 template<unsigned dim>
 inline CellGrid<dim>::CellGrid( const bool defined, ... )
   : Attribute(defined)
@@ -415,6 +417,8 @@ inline CellGrid<dim>::CellGrid( const bool defined, ... )
     this->del.isDefined = false;
   }
 }
+
+	*/
 
 /*
 Called after the above function, while the parameters have been checked.

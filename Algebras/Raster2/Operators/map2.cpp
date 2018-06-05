@@ -255,8 +255,8 @@ grids of the operator arguments are compatible.
 
     BBox<2> bbs = sobj->bbox();
     BBox<3> bbm = mobj->bbox();
-
-    BBox<2> bbm_proj(true, bbm.MinD(0), bbm.MaxD(0), bbm.MinD(1), bbm.MaxD(1));
+    double minMax[] = {bbm.MinD(0), bbm.MaxD(0), bbm.MinD(1), bbm.MaxD(1)};
+    BBox<2> bbm_proj(true,minMax );
     BBox<2> bb = bbs.Union(bbm_proj);
 
     r->setGrid(g2);
@@ -336,8 +336,8 @@ grids of the operator arguments are compatible.
 
     BBox<3> bbm = mobj->bbox();
     BBox<2> bbs = sobj->bbox();
-
-    BBox<2> bbm_proj(true, bbm.MinD(0), bbm.MaxD(0), bbm.MinD(1), bbm.MaxD(1));
+    double minMax[] = {bbm.MinD(0), bbm.MaxD(0), bbm.MinD(1), bbm.MaxD(1)};
+    BBox<2> bbm_proj(true,minMax );
     BBox<2> bb = bbs.Union(bbm_proj);
 
     r->setGrid(g1);

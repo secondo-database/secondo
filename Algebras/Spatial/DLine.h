@@ -216,7 +216,7 @@ class DLine : public StandardSpatialAttribute<2>{
   public:
      DLine(){}
      DLine(bool def): StandardSpatialAttribute<2>(def), 
-                      segments(0), bbox(false,0,0,0,0) {}
+                      segments(0), bbox(false) {}
 
      DLine(const DLine& s): StandardSpatialAttribute<2>(s.IsDefined()),
                             segments(s.segments.Size()),

@@ -654,11 +654,11 @@ bool MMUtil::GetPosOnSimpleLine(const SimpleLine& rLine,
 
     bool found = false;
     HalfSegment hs;
-    const Rectangle<2> rectBounding(true,
-                                    p.GetX() - dTolerance,
+    double minMax[] = {p.GetX() - dTolerance,
                                     p.GetX() + dTolerance,
                                     p.GetY() - dTolerance,
-                                    p.GetY() + dTolerance);
+                                    p.GetY() + dTolerance};
+    const Rectangle<2> rectBounding(true,minMax);
 
     for (int nPos = 0; nPos < rLine.Size(); ++nPos)
     {

@@ -470,16 +470,16 @@ bool JUnit::ExtendBy(const JUnit& other)
 
 Rectangle<3> JUnit::TempNetBox() const
 {
-  if (IsDefined())
-    return Rectangle<3>(true,
-                       (double) GetRouteInterval().GetRouteId(),
+  if (IsDefined()){
+    double minMax[]={  (double) GetRouteInterval().GetRouteId(),
                        (double) GetRouteInterval().GetRouteId(),
                        GetRouteInterval().GetFirstPosition(),
                        GetRouteInterval().GetLastPosition(),
                        GetTimeInterval().start.ToDouble(),
-                       GetTimeInterval().end.ToDouble());
-  else
-    return Rectangle<3>(false,0.0,0.0,0.0,0.0,0.0,0.0);
+                       GetTimeInterval().end.ToDouble()};
+    return Rectangle<3>(true,minMax);
+  } else
+    return Rectangle<3>(false);
 }
 
 Rectangle<2> JUnit::NetBox() const
@@ -487,7 +487,7 @@ Rectangle<2> JUnit::NetBox() const
   if (IsDefined())
     return routeInter.NetBox();
   else
-    return Rectangle<2>(false,0.0,0.0,0.0,0.0);
+    return Rectangle<2>(false);
 }
 
 /*

@@ -469,10 +469,11 @@ bool RouteLocation::IsOnSamePlace(const RouteLocation& rloc) const
 
 Rectangle< 2  > RouteLocation::NetBox() const
 {
-  if (IsDefined())
-    return Rectangle<2>(true, (double) rid, (double) rid, pos, pos);
-  else
-    return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+  if (IsDefined()){
+    double minMax[] = {(double) rid, (double) rid, pos, pos};
+    return Rectangle<2>(true,minMax );
+  }else
+    return Rectangle<2>(false);
 }
 
 /*

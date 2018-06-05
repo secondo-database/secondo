@@ -395,13 +395,13 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
                 << std::endl;
       assert( !geoid ); // TODO: implement spherical geometry case
     }
-    return Rectangle<3> (true,
-                        (double) p0.GetRouteId(),
+    double minMax[] = {  (double) p0.GetRouteId(),
                         (double) p0.GetRouteId(),
                         std::min(p0.GetPosition(),p1.GetPosition()),
                         std::max(p0.GetPosition(),p1.GetPosition()),
                         timeInterval.start.ToDouble(),
-                        timeInterval.end.ToDouble());
+                        timeInterval.end.ToDouble() };
+    return Rectangle<3> (true,minMax);
   }
 
   /*
@@ -418,11 +418,11 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
                 << std::endl;
       assert( !geoid ); // TODO: implement spherical geometry case
     }
-    return Rectangle<2> (true,
-                           (double) p0.GetRouteId(),
+    double minMax[] ={     (double) p0.GetRouteId(),
                            (double) p0.GetRouteId(),
                           std::min(p0.GetPosition(), p1.GetPosition()),
-                          std::max(p0.GetPosition(), p1.GetPosition()));
+                          std::max(p0.GetPosition(), p1.GetPosition())};
+    return Rectangle<2> (true,minMax);
   }
 
   /*

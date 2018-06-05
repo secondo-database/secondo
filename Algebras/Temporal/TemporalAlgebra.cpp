@@ -5036,7 +5036,7 @@ Rectangle<3u> MPoint::BoundingBox(const Geoid* geoid /*=0*/) const
 
 // return the spatial bounding box (2D: X/Y)
 const Rectangle<2> MPoint::BoundingBoxSpatial(const Geoid* geoid) const {
-  Rectangle<2u> result(false,0.0,0.0,0.0,0.0);
+  Rectangle<2u> result(false);
   if(!IsDefined() || (GetNoComponents()<=0) ){
     return result;
   } else {

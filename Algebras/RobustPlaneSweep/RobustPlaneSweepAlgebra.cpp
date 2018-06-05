@@ -1649,7 +1649,7 @@ public:
   const Rectangle<2> GetBoundingBox()
   {
     if (_source.HashValue() == 0) {
-      return Rectangle<2>(false, 0, 0, 0, 0);
+      return Rectangle<2>(false);
     }
 
     double minX = 1e300;
@@ -1687,8 +1687,8 @@ public:
         maxY = segment.y2;
       }
     }
-
-    return Rectangle<2>(true, minX, maxX, minY, maxY);
+    double minMax[] = {minX, maxX, minY, maxY};
+    return Rectangle<2>(true,minMax );
   }
 
 /*

@@ -74,25 +74,27 @@ grid3::region_type grid3::getRegion(const Rectangle<3>& bbox) const {
 }
 
 Rectangle<3> grid3::getCell(const index_type& i) const {
-  return Rectangle<3>(true,
-      i[0] * length + x,            (1 + i[0]) * length + x,
-      i[1] * length + y,            (1 + i[1]) * length + y,
-      i[2] * m_Duration.ToDouble(), (1 + i[2]) * m_Duration.ToDouble() );
+  double minMax[] = {i[0] * length + x, (1 + i[0]) * length + x,
+                     i[1] * length + y, (1 + i[1]) * length + y,
+      i[2] * m_Duration.ToDouble(), (1 + i[2]) * m_Duration.ToDouble() };
+  return Rectangle<3>(true,minMax);
 }
 
 Rectangle<3> grid3::getBBox(const region_type& r) const {
-  return Rectangle<3>(true,
+  double minMax[] ={
       r.Min[0] * length + x,            (1 + r.Max[0]) * length + x,
       r.Min[1] * length + y,            (1 + r.Max[1]) * length + y,
-      r.Min[2] * m_Duration.ToDouble(), (1 + r.Max[2]) * m_Duration.ToDouble());
+      r.Min[2] * m_Duration.ToDouble(), (1 + r.Max[2]) * m_Duration.ToDouble()};
+  return Rectangle<3>(true,minMax);
 }
 
 Rectangle<3> grid3::getBBox(const index_type& from, const index_type& to) const
-{
-  return Rectangle<3>(true,
+{ double minMax[] = {
       from[0] * length + x,            (1 + to[0]) * length + x,
       from[1] * length + y,            (1 + to[1]) * length + y,
-      from[2] * m_Duration.ToDouble(), (1 + to[2]) * m_Duration.ToDouble());
+      from[2] * m_Duration.ToDouble(), (1 + to[2]) * m_Duration.ToDouble()};
+
+  return Rectangle<3>(true,minMax);
 }
 
 bool grid3::matches(const grid3& g2) const{

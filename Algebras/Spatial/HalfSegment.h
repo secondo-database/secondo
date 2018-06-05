@@ -553,22 +553,23 @@ HalfSegment::BoundingBox(const Geoid* geoid /*=0*/) const
     double maxx = geobbox.MaxD(0) + ApplyFactor(geobbox.MaxD(0));
     double miny = geobbox.MinD(1) - ApplyFactor(geobbox.MinD(1));
     double maxy = geobbox.MaxD(1) + ApplyFactor(geobbox.MaxD(1));
-    return Rectangle<2>( true,
-                         (minx>=-180.0)?minx:-180.0,
-                         (maxx<= 180.0)?maxx: 180.0,
-                         (miny>=-90.0)?miny:-90.0,
-                         (maxy<= 90.0)?maxy: 90.0);
+    minx = minx>=-180?minx:-180;
+    maxx = maxx<=180?maxx:180;
+    miny=miny>=90?miny:90;
+    maxy=maxy<=90?maxy:90;
+    double minMax[]={minx,maxx,miny,maxy};
+    return Rectangle<2>( true,minMax);
   } // else: euclidean case
   double minx = MIN( GetLeftPoint().GetX(), GetRightPoint().GetX() ),
          maxx = MAX( GetLeftPoint().GetX(), GetRightPoint().GetX() ),
          miny = MIN( GetLeftPoint().GetY(), GetRightPoint().GetY() ),
          maxy = MAX( GetLeftPoint().GetY(), GetRightPoint().GetY() );
-
-  return Rectangle<2>( true,
-                       minx - ApplyFactor(minx),
-                       maxx + ApplyFactor(maxx),
-                       miny - ApplyFactor(miny),
-                       maxy + ApplyFactor(maxy) );
+  minx -= ApplyFactor(minx);
+  maxx += ApplyFactor(maxx);
+  miny -= ApplyFactor(miny);
+  maxy += ApplyFactor(maxy);
+  double minMax[]={minx,maxx,miny,maxy};
+  return Rectangle<2>( true,minMax);
 }
 
 inline const AttrType&

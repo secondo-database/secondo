@@ -1081,7 +1081,7 @@ to a single point.
         Rectangle<2> result = p->BoundingBox();
         p->DeleteIfAllowed();
         return result;
-      } else return Rectangle<2> (false, 0.0, 0.0, 0.0, 0.0);
+      } else return Rectangle<2> (false);
     };
 
 /*
@@ -1090,14 +1090,14 @@ Returns a point degenerated rectangle as network bounding box of the gpoint
 */
 
     inline const Rectangle<2> NetBoundingBox() const {
-      if (IsDefined())
-        return Rectangle<2>(true,
-                            (double) m_xRouteLocation.rid,
+      if (IsDefined()){
+        double minMax[] = {  (double) m_xRouteLocation.rid,
                             (double) m_xRouteLocation.rid,
                             m_xRouteLocation.d - 0.000001,
-                            m_xRouteLocation.d + 0.000001);
+                            m_xRouteLocation.d + 0.000001};
                   //0.000001 correcture of rounding differences
-      else return Rectangle<2> (false, 0.0, 0.0, 0.0, 0.0);
+        return Rectangle<2>(true,minMax);
+      }else return Rectangle<2> (false);
     };
 
 /*

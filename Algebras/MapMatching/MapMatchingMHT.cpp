@@ -680,11 +680,11 @@ void MapMatchingMHT::GetInitialRouteCandidates(const Point& rPoint,
 
     pt1.Scale(m_dNetworkScale);
     pt2.Scale(m_dNetworkScale);
-
-    const Rectangle<2> BBox(true, std::min(pt1.GetX(), pt2.GetX()),
+    double minMax[] = {std::min(pt1.GetX(), pt2.GetX()),
                                   std::max(pt1.GetX(), pt2.GetX()),
                                   std::min(pt1.GetY(), pt2.GetY()),
-                                  std::max(pt1.GetY(), pt2.GetY()));
+                                  std::max(pt1.GetY(), pt2.GetY())};
+    const Rectangle<2> BBox(true,minMax );
 
     std::vector<shared_ptr<IMMNetworkSection> > vecSections;
     m_pNetwork->GetSections(BBox, vecSections);

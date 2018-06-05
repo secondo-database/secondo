@@ -1152,7 +1152,7 @@ Rectangle<2> Point::GeographicBBox(const Point &other, const Geoid &geoid) const
   if(!checkGeographicCoord() || !other.checkGeographicCoord()
     || !geoid.IsDefined())
   {
-    return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+    return Rectangle<2>(false);
   }
   double northmostLAT;
   double southmostLAT;

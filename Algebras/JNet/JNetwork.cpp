@@ -2040,22 +2040,22 @@ Rectangle< 3 > JNetwork::BoundingBox(const JUnit& ju) const
   double maxtime = ju.GetTimeInterval().end.ToDouble();
   if (mintime == maxtime)
   {
-    return Rectangle<3>(true,
-                        curveBB.MinD(0) - tolerance,
+    double minMax[] = {  curveBB.MinD(0) - tolerance,
                         curveBB.MaxD(0) + tolerance,
                         curveBB.MinD(1) - tolerance,
                         curveBB.MaxD(1) + tolerance,
                         mintime - tolerance,
-                        maxtime + tolerance);
+                        maxtime + tolerance};
+    return Rectangle<3>(true,minMax);
   }
   else
   {
-    return Rectangle<3>(true,
-                        curveBB.MinD(0) - tolerance,
+    double minMax[] = { curveBB.MinD(0) - tolerance,
                         curveBB.MaxD(0) + tolerance,
                         curveBB.MinD(1) - tolerance,
                         curveBB.MaxD(1) + tolerance,
-                        mintime, maxtime);
+                        mintime, maxtime};
+    return Rectangle<3>(true,minMax);
   }
 
 }
@@ -2078,11 +2078,11 @@ Rectangle< 2 > JNetwork::BoundingBox(const JRouteInterval& rint) const
       GetSpatialValueOf(rint, tmpRes);
       bBox = tmpRes.BoundingBox();
     }
-    return Rectangle<2>(true,
-                        bBox.MinD(0), bBox.MaxD(0),
-                        bBox.MinD(1), bBox.MaxD(1));
+    double minMax[] = { bBox.MinD(0), bBox.MaxD(0),
+                        bBox.MinD(1), bBox.MaxD(1)};
+    return Rectangle<2>(true,minMax);
   }
-  return Rectangle<2>(false, 0.0,0.0,0.0,0.0);
+  return Rectangle<2>(false);
 }
 
 Rectangle<3> JNetwork::BoundingBox(const DbArray<JRouteInterval>& traj,
@@ -2102,17 +2102,17 @@ Rectangle<3> JNetwork::BoundingBox(const DbArray<JRouteInterval>& traj,
   }
   if (mintime == maxtime)
   {
-    return Rectangle<3> (true,
-                         tmpres.MinD(0), tmpres.MaxD(0),
+    double minMax[] = { tmpres.MinD(0), tmpres.MaxD(0),
                          tmpres.MinD(1), tmpres.MaxD(1),
-                         mintime - tolerance, maxtime + tolerance);
+                         mintime - tolerance, maxtime + tolerance};
+    return Rectangle<3> (true,minMax);
   }
   else
   {
-    return Rectangle<3> (true,
-                         tmpres.MinD(0), tmpres.MaxD(0),
+    double minMax[] = {tmpres.MinD(0), tmpres.MaxD(0),
                          tmpres.MinD(1), tmpres.MaxD(1),
-                         mintime, maxtime);
+                         mintime, maxtime};
+    return Rectangle<3> (true,minMax);
   }
 }
 
@@ -2877,11 +2877,11 @@ Tuple* JNetwork::GetNetdistanceTupleFor(const int fid, const int tid) const
 Tuple* JNetwork::GetSectionTupleFor(const Point* p, double& pos) const
 {
   const Rectangle<2> pbox = p->BoundingBox();
-  const Rectangle<2> searchbox(true,
-                               pbox.MinD(0) - tolerance,
+  double minMax[] = {   pbox.MinD(0) - tolerance,
                                pbox.MaxD(0) + tolerance,
                                pbox.MinD(1) - tolerance,
-                               pbox.MaxD(1) + tolerance);
+                               pbox.MaxD(1) + tolerance};
+  const Rectangle<2> searchbox(true,minMax);
   R_TreeLeafEntry<2,TupleId> curEntry;
   Tuple* actSect = 0;
   if (sectionsRTree->First(searchbox, curEntry))

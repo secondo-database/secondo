@@ -501,7 +501,7 @@ member variables are provided for convenience.
     template <typename T, typename Helper>
     inline Rect stype<T, Helper>::bbox() const {
         if(!isDefined()){
-           return Rect(false,0,0,0,0);
+           return Rect(false);
         } 
 
         RasterRegion<2> bbox = (*storage).bbox();

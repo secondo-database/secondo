@@ -452,7 +452,7 @@ Rectangle< 2 > JPoint::NetBox() const
   if (IsDefined())
     return npos.NetBox();
   else
-    return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+    return Rectangle<2>(false);
 }
 
 /*

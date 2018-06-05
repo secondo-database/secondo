@@ -289,7 +289,7 @@ class SimpleFilesystem {
       strncpy(message, msg, 127);
     }
 
-    virtual const char *what() {
+    virtual const char *what() const _NOEXCEPT{
       return message;
     }
   };

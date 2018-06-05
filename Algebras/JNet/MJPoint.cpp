@@ -198,7 +198,7 @@ Rectangle< 3 > MJPoint::BoundingBox() const
     return Rectangle<3> (result);
   }
   else
-    return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    return Rectangle<3>(false);
 }
 
 /*

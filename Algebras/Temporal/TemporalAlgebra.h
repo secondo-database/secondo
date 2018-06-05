@@ -2991,33 +2991,36 @@ Computes all events created by a UPoint moving across a regular grid.
   {
     if(geoid){
       if(!geoid->IsDefined() || !IsDefined()){
-        return Rectangle<3>(false,0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        return Rectangle<3>(false);
       }
       Rectangle<2> geobbox(false);
       if(AlmostEqual(p0,p1)){
         Rectangle<2> geobbox = p0.GeographicBBox(p1, *geoid);
-        return Rectangle<3>( true, geobbox.MinD(0),
+        double minMax[] = {geobbox.MinD(0),
                              geobbox.MaxD(0),
                              geobbox.MinD(1),
                              geobbox.MaxD(1),
                              timeInterval.start.ToDouble(),
-                             timeInterval.end.ToDouble() );
+                             timeInterval.end.ToDouble()}; 
+        return Rectangle<3>( true,minMax );
       } // else: use HalfSegment::BoundingBox(...)
       geobbox = HalfSegment(true,p0,p1).BoundingBox(geoid);
-      return Rectangle<3>( true, geobbox.MinD(0),
-                                 geobbox.MaxD(0),
-                                 geobbox.MinD(1),
-                                 geobbox.MaxD(1),
-                                 timeInterval.start.ToDouble(),
-                                 timeInterval.end.ToDouble() );
+      double minMax[] = { geobbox.MinD(0),
+                          geobbox.MaxD(0),
+                          geobbox.MinD(1),
+                          geobbox.MaxD(1),
+                          timeInterval.start.ToDouble(),
+                          timeInterval.end.ToDouble() };
+      return Rectangle<3>( true,minMax );
     } // else: euclidean geometry
     if(this->IsDefined()){
-      return Rectangle<3>( true, MIN( p0.GetX(), p1.GetX() ),
-                                 MAX( p0.GetX(), p1.GetX() ),
-                                 MIN( p0.GetY(), p1.GetY() ),
-                                 MAX( p0.GetY(), p1.GetY() ),
-                                 timeInterval.start.ToDouble(),
-                                 timeInterval.end.ToDouble() );
+      double minMax[] = {MIN( p0.GetX(), p1.GetX() ),
+                         MAX( p0.GetX(), p1.GetX() ),
+                         MIN( p0.GetY(), p1.GetY() ),
+                         MAX( p0.GetY(), p1.GetY() ),
+                         timeInterval.start.ToDouble(),
+                         timeInterval.end.ToDouble() };
+      return Rectangle<3>( true,minMax );
     } else {
       return Rectangle<3>( false );
     }
@@ -3031,12 +3034,13 @@ Computes all events created by a UPoint moving across a regular grid.
   {
     Rectangle<3> bbx = this->BoundingBox(geoid);
     if(bbx.IsDefined()){
-      return Rectangle<3>( true, bbx.MinD(0),
-                                 bbx.MaxD(0),
-                                 bbx.MinD(1),
-                                 bbx.MaxD(1),
-                                 timeInterval.start.ToDouble()*scaleTime,
-                                 timeInterval.end.ToDouble()*scaleTime );
+      double minMax[] = { bbx.MinD(0),
+                          bbx.MaxD(0),
+                          bbx.MinD(1),
+                          bbx.MaxD(1),
+                          timeInterval.start.ToDouble()*scaleTime,
+                          timeInterval.end.ToDouble()*scaleTime };
+      return Rectangle<3>( true,minMax);
     } else {
       return Rectangle<3>( false );
     }
@@ -3046,10 +3050,11 @@ Computes all events created by a UPoint moving across a regular grid.
   {
     Rectangle<3> bbx = this->BoundingBox(geoid);
     if(bbx.IsDefined()){
-      return Rectangle<2>( true, bbx.MinD(0),
+      double minMax[] = { bbx.MinD(0),
                            bbx.MaxD(0),
                            bbx.MinD(1),
-                           bbx.MaxD(1) );
+                           bbx.MaxD(1) };
+      return Rectangle<2>( true,minMax);
     } else {
       return Rectangle<2>( false );
     }
@@ -3888,7 +3893,7 @@ The simple constructor. This constructor should not be used.
         del.refs=1;
         del.SetDelete();
         del.isDefined = true;
-        bbox = Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        bbox = Rectangle<3>(false);
       }
 /*
 The constructor. Initializes space for ~n~ elements.

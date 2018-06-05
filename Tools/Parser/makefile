@@ -88,7 +88,7 @@ $(SPECFILE): $(SPECPARSER) $(SPECFILES)
 	$(MAKE) -C ../../Algebras specs
 
 SecLex.cpp: SecLex.l
-	$(LEX) -d -+ -o$@ -Pxx $<
+	$(LEX) -Ca -d -+ -o$@ -Pxx $<
 
 # For some reasons bison may fail, even if it
 # computed some output. This may cause a subsequent

@@ -963,7 +963,7 @@ Returns data about the underlying files.
                   const std::string& separators){
       assert(rootId==0); // allow to change parameter only for an empty index
       this->ignoreCase = ignoreCase;
-      this->minWordLength = std::max(0u, minWordLength);
+      this->minWordLength = minWordLength;
       this->separators = separators;
 
       // create the set of stopWords

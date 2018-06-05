@@ -737,10 +737,11 @@ JRouteInterval* JRouteInterval::Intersection(const JRouteInterval& rint) const
 
 Rectangle<2> JRouteInterval::NetBox() const
 {
-  if (IsDefined())
-    return Rectangle<2>(true, (double) rid, (double) rid, startpos, endpos);
-  else
-    return Rectangle<2>(false,0.0,0.0,0.0,0.0);
+  if (IsDefined()){
+    double minMax[] = { (double) rid, (double) rid, startpos, endpos};
+    return Rectangle<2>(true,minMax);
+  } else
+    return Rectangle<2>(false);
 }
 
 /*

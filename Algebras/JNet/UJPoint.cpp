@@ -448,7 +448,7 @@ Rectangle< 3 > UJPoint::BoundingBox() const
     return result;
   }
   else
-    return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    return Rectangle<3>(false);
 }
 
 Rectangle< 3 > UJPoint::TempNetBox() const
@@ -456,7 +456,7 @@ Rectangle< 3 > UJPoint::TempNetBox() const
   if (IsDefined())
     return unit.TempNetBox();
   else
-    return Rectangle<3> (false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    return Rectangle<3> (false);
 }
 
 Rectangle< 2 > UJPoint::NetBox() const
@@ -464,7 +464,7 @@ Rectangle< 2 > UJPoint::NetBox() const
   if (IsDefined())
     return unit.NetBox();
   else
-    return Rectangle<2> (false, 0.0, 0.0, 0.0, 0.0 );
+    return Rectangle<2> (false);
 }
 
 /*

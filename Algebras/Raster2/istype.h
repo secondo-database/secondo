@@ -202,7 +202,7 @@ namespace raster2
   template <typename T, typename Helper>
   Rectangle<2> istype<T, Helper>::bbox() const
   {
-    Rectangle<2> boundingBox(false, 0, 0, 0, 0);
+    Rectangle<2> boundingBox(false);
     
     if(m_psT != 0)
     {

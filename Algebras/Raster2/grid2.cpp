@@ -78,22 +78,22 @@ grid2::region_type grid2::getRegion(const Rectangle<2>& bbox) const {
 }
 
 Rectangle<2> grid2::getCell(const index_type& i) const {
-  return Rectangle<2>(true,
-      i[0] * length + x,            (1 + i[0]) * length + x,
-      i[1] * length + y,            (1 + i[1]) * length + y);
+  double minMax[] = {i[0] * length + x, (1 + i[0]) * length + x,
+                     i[1] * length + y, (1 + i[1]) * length + y};
+  return Rectangle<2>(true,minMax);
 }
 
 Rectangle<2> grid2::getBBox(const region_type& r) const {
-  return Rectangle<2>(true,
-      r.Min[0] * length + x,            (1 + r.Max[0]) * length + x,
-      r.Min[1] * length + y,            (1 + r.Max[1]) * length + y);
+  double minMax[] = {r.Min[0] * length + x, (1 + r.Max[0]) * length + x,
+                     r.Min[1] * length + y, (1 + r.Max[1]) * length + y};
+  return Rectangle<2>(true,minMax);
 }
 
 Rectangle<2> grid2::getBBox(const index_type& from, const index_type& to) const
 {
-  return Rectangle<2>(true,
-      from[0] * length + x,            (1 + to[0]) * length + x,
-      from[1] * length + y,            (1 + to[1]) * length + y);
+  double minMax[] = {from[0] * length + x,(1 + to[0]) * length + x,
+                     from[1] * length + y,(1 + to[1]) * length + y};
+  return Rectangle<2>(true,minMax);
 }
 
 bool grid2::matches(const grid2& g2) const{

@@ -934,6 +934,22 @@ plan_to_atom(attribute(X, Y), Result) :-
   concat_atom(['attr(', XAtom, ', ', YAtom, ')'], '', Result),
   !.
 
+plan_to_atom(between(X, Y, Z), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  plan_to_atom(Z, ZAtom),
+  concat_atom([XAtom, ' between[', YAtom, ', ', ZAtom, '] '], '', Result),
+  !.
+
+plan_to_atom(range(X, Y, A, B), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  plan_to_atom(A, AAtom),
+  plan_to_atom(B, BAtom),
+  concat_atom([XAtom, ' ', YAtom, ' range[',
+    AAtom, ', ', BAtom, '] '], '', Result),
+  !.
+
 
 
 /*
@@ -1079,6 +1095,9 @@ plan_to_atom(X, _) :-
   nl.
 
 
+  
+
+
 params_to_atom([], ' ').
 
 params_to_atom([param(Var, Type) | Params], Result) :-
@@ -1184,6 +1203,22 @@ indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
   argument(N, rel(Name, Var, Case)),
   !,
   hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), IndexName).
+
+
+indexselect(arg(N), pr(between(attr(AttrName, Arg, AttrCase), X, Y), _)) =>
+  range(IndexName, rel(Name, *, Case), X, Y)
+  :-
+  argument(N, rel(Name, *, Case)),
+  !,
+  hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), IndexName).
+
+indexselect(arg(N), pr(between(attr(AttrName, Arg, AttrCase), X, Y), _)) =>
+  rename(range(IndexName, rel(Name, *, Case), X, Y), Var)
+  :-
+  argument(N, rel(Name, Var, Case)),
+  !,
+  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), IndexName).
+
 
 
 /*
@@ -1558,6 +1593,13 @@ cost(rightrange(_, Rel, _), Sel, Size, Cost) :-
   leftrangeTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
+
+cost(range(_, Rel, _, _), Sel, Size, Cost) :-
+  cost(Rel, 1, RelSize, _),
+  leftrangeTC(C),
+  Size is Sel * RelSize,
+  Cost is Sel * RelSize * C.
+
 
 
 /*

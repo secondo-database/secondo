@@ -63,7 +63,7 @@ contained arrays to have ~size~ number od slots.
             segments(size),lrsArray(size/2),
             startSmaller(true),
             isCycle(false),isOrdered(true),length(0.0),
-            bbox(false),currentHS(-1){ }
+            bbox(false,0),currentHS(-1){ }
 
 /*
 ~Constructor~
@@ -198,7 +198,7 @@ Returns the MBR of this SimpleLineT object.
   inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const{
     if(geoid){ // spherical geometry case:
       if(!geoid->IsDefined() || !IsDefined()){
-        return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+        return Rectangle<2>(false);
       }
       Rectangle<2> geobbox = Rectangle<2>(false);
       for (int i=0; i<Size() ;i++){

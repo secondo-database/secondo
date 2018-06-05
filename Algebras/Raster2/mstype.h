@@ -586,7 +586,7 @@ member variables are provided for convenience.
     template <typename T, typename Helper>
     inline Rectangle<3> mstype<T, Helper>::bbox() const {
         if(!isDefined()){
-           return Rectangle<3>(false,0,0,0,0,0,0);
+           return Rectangle<3>(false);
         }
         RasterRegion<3> bbox = (*storage).bbox();
         double min[3] = {

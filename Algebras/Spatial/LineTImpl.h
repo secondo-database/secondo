@@ -237,7 +237,7 @@ inline const Rectangle<2> LineT<Array>::BoundingBox(
 {
   if(geoid){ // spherical geometry case:
     if(!geoid->IsDefined() || !IsDefined()){
-      return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+      return Rectangle<2>(false);
     }
     Rectangle<2> geobbox = Rectangle<2>(false);
     for(int i=0; i<Size() ;i++){

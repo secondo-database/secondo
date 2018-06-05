@@ -17342,7 +17342,7 @@ int collect2VM(Word* args, Word& result, int message,
       n = algInstance->getTempName();
    }
 
-   if(!stringutils::isIdent(n) || (port<=0)){
+   if(!stringutils::isIdent(n) || (p<=0)){
      res->makeUndefined();
      return 0;
    }

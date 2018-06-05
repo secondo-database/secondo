@@ -1682,7 +1682,7 @@ Constructors
 MGPoint::MGPoint( const int n ):Mapping< UGPoint, GPoint >(n), m_trajectory (0)
 {
   m_length = 0.0;
-  m_bbox = Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 );
+  m_bbox = Rectangle<3>(false);
   m_traj_Defined = false;
 }
 
@@ -1697,7 +1697,7 @@ void MGPoint::Clear()
     m_length = 0.0;
     m_trajectory.clean();
     m_traj_Defined = false;
-    m_bbox = Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 );
+    m_bbox = Rectangle<3>(false );
   //}
 }
 
@@ -5702,7 +5702,7 @@ void MGPoint::Add(const UGPoint& u/*, bool setbbox =true*/){
           tree->TreeToGLine(help);
           tree->RemoveTree();
           Rectangle<3> bbox, ribox3;
-          Rectangle<2> ribox = Rectangle<2u>(false,0.0,0.0,0.0,0.0);
+          Rectangle<2> ribox = Rectangle<2u>(false);
           UGPoint unit;
           Get(0,unit);
           /*Network *pNetwork =
@@ -5719,19 +5719,19 @@ void MGPoint::Add(const UGPoint& u/*, bool setbbox =true*/){
               ribox = ri.BoundingBox(pNetwork);
               if (firstri) {
                 firstri = false;
-                bbox = Rectangle<3> (true,
-                                    ribox.MinD(0),
+                double minMax[] = {ribox.MinD(0),
                                     ribox.MaxD(0),
                                     ribox.MinD(1),
                                     ribox.MaxD(1),
-                                    x5, x6);
+                                    x5, x6};
+                bbox = Rectangle<3> (true,minMax);
               } else {
-                ribox3 = Rectangle<3> (true,
-                                      ribox.MinD(0),
+                double minMax[] = { ribox.MinD(0),
                                       ribox.MaxD(0),
                                       ribox.MinD(1),
                                       ribox.MaxD(1),
-                                      x5, x6);
+                                      x5, x6};
+                ribox3 = Rectangle<3> (true,minMax);
                 bbox = bbox.Union(ribox3);
               }
             }
@@ -5741,16 +5741,16 @@ void MGPoint::Add(const UGPoint& u/*, bool setbbox =true*/){
           } else {
             NetworkManager::CloseNetwork(pNetwork);
             help->DeleteIfAllowed();
-            return Rectangle<3> (false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+            return Rectangle<3> (false);
           }
         } else {
-          return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+          return Rectangle<3>(false);
         }
       } else {
         if (m_trajectory.Size() <= 0)
-          return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+          return Rectangle<3>(false);
         Rectangle<3> bbox, ribox3;
-        Rectangle<2> ribox = Rectangle<2u>(false,0.0,0.0,0.0,0.0);
+        Rectangle<2> ribox = Rectangle<2u>(false);
         UGPoint unit;
         Get(0,unit);
         /*Network *pNetwork =
@@ -5766,26 +5766,26 @@ void MGPoint::Add(const UGPoint& u/*, bool setbbox =true*/){
           ribox = ri.BoundingBox(pNetwork);
           if (firstri) {
             firstri = false;
-            bbox = Rectangle<3> (true,
-                                ribox.MinD(0),
+            double minMax[] = {  ribox.MinD(0),
                                 ribox.MaxD(0),
                                 ribox.MinD(1),
                                 ribox.MaxD(1),
-                                x5, x6);
+                                x5, x6};
+            bbox = Rectangle<3> (true,minMax);
           } else {
-            ribox3 = Rectangle<3> (true,
-                                  ribox.MinD(0),
+            double minMax[] = {ribox.MinD(0),
                                   ribox.MaxD(0),
                                   ribox.MinD(1),
                                   ribox.MaxD(1),
-                                  x5, x6);
+                                  x5, x6};
+            ribox3 = Rectangle<3> (true,minMax);
             bbox = bbox.Union(ribox3);
           }
         }
         NetworkManager::CloseNetwork(pNetwork);
         return bbox;
       }
-    } else return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    } else return Rectangle<3>(false);
   }
 }
 
@@ -5976,7 +5976,7 @@ void MGPoint::SetTrajectoryDefined(const bool defined){
 
 void MGPoint::SetBoundingBoxDefined(const bool defined){
   m_bbox.SetDefined(defined);
-  if (!defined) m_bbox = Rectangle<3> (false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  if (!defined) m_bbox = Rectangle<3> (false);
 }
 
 /*
@@ -6665,12 +6665,12 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
       Rectangle<2> rect = ri->BoundingBox(pNetwork);
       NetworkManager::CloseNetwork(pNetwork);
       delete ri;
-      return Rectangle<3> (true,
-                          rect.MinD(0), rect.MaxD(0),
+      double minMax[] = {  rect.MinD(0), rect.MaxD(0),
                           rect.MinD(1), rect.MaxD(1),
                           timeInterval.start.ToDouble(),
-                          timeInterval.end.ToDouble());
-    } else return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+                          timeInterval.end.ToDouble()};
+      return Rectangle<3> (true,minMax);
+    } else return Rectangle<3>(false);
   }
 
  double UGPoint::Distance(const Rectangle<3>& rect,
@@ -6960,12 +6960,12 @@ void NotPartedSection(const UGPoint unit, const double sectMeas1,
                                          p1.GetPosition());
     Rectangle<2> rect = ri->BoundingBox(pNetwork);
     delete ri;
-    return Rectangle<3>  (true,
-                          rect.MinD(0), rect.MaxD(0),
+    double minMax[] = {    rect.MinD(0), rect.MaxD(0),
                           rect.MinD(1), rect.MaxD(1),
                           timeInterval.start.ToDouble(),
-                          timeInterval.end.ToDouble());
-    }else return Rectangle<3>(false,0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+                          timeInterval.end.ToDouble()};
+    return Rectangle<3>  (true,minMax);
+    }else return Rectangle<3>(false);
   }
 
 /*

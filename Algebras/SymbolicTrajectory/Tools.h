@@ -652,7 +652,8 @@ class Tools {
                              const Region &reg, const SetRel rel) {
     // TODO: a lot. use MRegion2 ?
     Rectangle<3> bb3 = mreg.BoundingBox();
-    Rectangle<2> bbox(true, bb3.MinD(0), bb3.MaxD(0), bb3.MinD(1), bb3.MaxD(1));
+    double minMax[] = {bb3.MinD(0), bb3.MaxD(0), bb3.MinD(1), bb3.MaxD(1)};
+    Rectangle<2> bbox(true,minMax );
     temporalalgebra::URegionEmb ur(true);
     switch (rel) {
       case STANDARD: {

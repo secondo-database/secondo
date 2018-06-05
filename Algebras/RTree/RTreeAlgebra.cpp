@@ -6402,9 +6402,8 @@ void InsertUnits (int SQUARES, int RIGHTCOL, int TOPROW,
         double end   = it->second.up.timeInterval.end.ToDouble();
         if ( start < end )
         {
-          Rectangle<3>* box = new Rectangle<3>(true, x1-tol, x2+tol,
-                                                     y1-tol, y2+tol,
-                                                     start, end );
+          double minMax[] = { x1-tol, x2+tol, y1-tol, y2+tol, start, end};
+          Rectangle<3>* box = new Rectangle<3>(true,minMax);
           // Insert entry into RTree
           R_TreeLeafEntry<3, TupleId> e(*box, it->second.tupId);
           RTREE->InsertBulkLoad(e);
@@ -6697,8 +6696,8 @@ int CyclicBulkloadVM(Word* args, Word& result, int message,
 
   // Insert dummy if the rtree is empty
   if (entries == 0)
-  {
-     Rectangle<3>* box = new Rectangle<3>(true,0.0,1.0,0.0,1.0,0.0,1.0);
+  {  double minMax[] ={0.0,1.0,0.0,1.0,0.0,1.0 };
+     Rectangle<3>* box = new Rectangle<3>(true,minMax);
      R_TreeLeafEntry<3, TupleId> e(*box,0);
      rtree->InsertBulkLoad(e);
   }

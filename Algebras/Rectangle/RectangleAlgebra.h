@@ -120,7 +120,8 @@ The first constructor. First one can set if the rectangle is defined,
  and if it is, the coordinates can be set.
 
 */
-    inline explicit Rectangle( const bool defined, ... );
+  inline Rectangle( const bool defined, double* minMax );
+  inline explicit Rectangle( const bool defined);
 
 /*
 The second constructor. First one can set if the rectangle is defined,
@@ -444,8 +445,9 @@ Rectangle to arbirary dimensions.
       assert((unsigned)dX < dim);
       assert(dY >= 0);
       assert((unsigned)dY < dim);
+      double minMax[] = {MinD(dX),MaxD(dX),MinD(dY),MaxD(dY)};
       return
-          Rectangle<2u>(this->IsDefined(),MinD(dX),MaxD(dX),MinD(dY),MaxD(dY));
+          Rectangle<2u>(this->IsDefined(),minMax);
     }
 
 /*
@@ -491,19 +493,16 @@ The first constructor. First one can set if the rectangle is defined,
 
 */
 template <unsigned dim>
-inline Rectangle<dim>::Rectangle( const bool defined, ... ):
+inline Rectangle<dim>::Rectangle( bool defined, double* minMax ):
     StandardSpatialAttribute<dim>(defined)
 {
-  va_list ap;
-  va_start( ap, defined );
   for( unsigned i = 0; i < dim; i++ )
   {
-    double d1 = va_arg( ap, double ),
-           d2 = va_arg( ap, double );
+    double d1 = defined?minMax[2*i]:0;
+    double d2 = defined?minMax[2*i+1]:0;
     min[i] = d1;
     max[i] = d2;
   }
-  va_end( ap );
 
   if( !Proper() )
   {
@@ -515,13 +514,26 @@ inline Rectangle<dim>::Rectangle( const bool defined, ... ):
   }
 }
 
+
+template <unsigned dim>
+inline Rectangle<dim>::Rectangle( bool defined ):
+    StandardSpatialAttribute<dim>(defined)
+{
+  for( unsigned i = 0; i < dim; i++ )
+  {
+    min[i] = 0;
+    max[i] = 0;
+  }
+}
+
 /*
 The second constructor. First one can set if the rectangle is defined,
 and if it is, the coordinates can be set.
 
 */
 template <unsigned dim>
-inline Rectangle<dim>::Rectangle( const bool defined, const double *min,
+inline Rectangle<dim>::Rectangle( const bool defined, 
+                                  const double *min,
                                   const double *max ):
     StandardSpatialAttribute<dim>(defined)
 {
@@ -549,13 +561,14 @@ Sets the values of this rectangle.
 
 */
 template <unsigned dim>
-inline void Rectangle<dim>::Set(const bool defined, const double *min,
-                           const double *max){
+inline void Rectangle<dim>::Set(const bool defined, 
+                                const double *min,
+                                const double *max){
   this->del.isDefined = defined;
   for( unsigned i = 0; i < dim; i++ )
   {
-    this->min[i] = min[i];
-    this->max[i] = max[i];
+      this->min[i] = defined?min[i]:0;
+      this->max[i] = defined?max[i]:0;
   }
   if( !Proper() )
   {
@@ -1137,7 +1150,7 @@ Word InRectangle( const ListExpr typeInfo, const ListExpr instance,
   else if ( listutils::isSymbolUndefined(instance))
   {
     correct = true;
-    return SetWord( new Rectangle<3>( false ) );
+    return SetWord( new Rectangle<3>( false,0,0 ) );
   }
   correct = false;
   return SetWord( Address( 0 ) );

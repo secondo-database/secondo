@@ -494,7 +494,7 @@ void CompositeKey::init(const vector<void*>& attributes,
     maxSize += sizeof(TupleId);
   } else if(mode == upperRange) {
     while(charsize<maxSize) {
-      ((char*)data)[charsize++] = 255;
+      ((char*)data)[charsize++] = (char)255;
     }
   }
   if(charsize != maxSize)

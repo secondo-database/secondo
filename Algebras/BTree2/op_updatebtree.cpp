@@ -164,7 +164,7 @@ check that attributelist has old and new attributenames
     }
     rest = nl->Rest(rest);
     oldAttrList = nl->Rest(oldAttrList);
-    i++;
+    //i++;
   }
 /*
 Test if attributename of the third argument exists as a name in the
