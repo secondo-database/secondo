@@ -3093,8 +3093,9 @@ Rectangle<3u> CMPoint::BoundingBox() const
 
 Rectangle<2> CMPoint::BBox2D() const
 {
-  return Rectangle<2>( true, bbox.MinD(0), bbox.MaxD(0),
-                             bbox.MinD(1), bbox.MaxD(1) );
+  double minMax[] = {bbox.MinD(0), bbox.MaxD(0),
+                     bbox.MinD(1), bbox.MaxD(1) };
+  return Rectangle<2>( true,minMax );
 }
 
 
@@ -4542,9 +4543,9 @@ Rectangle<2> HCMPoint::BBox2D() const
   //  << bbox.MaxD(0) << "     and MinD(1) = " << bbox.MinD(1) << " MaxD(1) = "
   //  << bbox.MaxD(1) << endl << endl;
 
-
-  return Rectangle<2>( true, bbox.MinD(0), bbox.MaxD(0),
-                             bbox.MinD(1), bbox.MaxD(1) );
+  double minMax[] = {bbox.MinD(0), bbox.MaxD(0),
+                     bbox.MinD(1), bbox.MaxD(1) };
+  return Rectangle<2>( true,minMax );
 }
 
 inline void HCMPoint::GetFirstLayer( int& layer, int& size ) const

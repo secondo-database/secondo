@@ -124,8 +124,9 @@ void MON_Tree<BottomR_TreeLeafInfo>::Insert(
   HashIterator *iter = routeHash->ExactMatch( &key );
 
   Rectangle<3> box3D = ugpoint.NetBoundingBox3d();
-  Rectangle<2> box2D = BBox<2>( true, box3D.MinD(1), box3D.MaxD(1),
-                                      box3D.MinD(2), box3D.MaxD(2) );
+  double minMax[] = {box3D.MinD(1), box3D.MaxD(1),
+                     box3D.MinD(2), box3D.MaxD(2) };
+  Rectangle<2> box2D = BBox<2>( true, minMax);
   // box is constructed first with the position, then the interval.
 
   R_TreeLeafEntry<2, BottomR_TreeLeafInfo>
@@ -170,10 +171,10 @@ void MON_Tree<BottomR_TreeLeafInfo>::
 
   if( box.Contains( curve.BoundingBox() ) )
   {
-    result.Add( BBox<2>( true,
-                         0.0, curve.Length(),
-                         timeInterval.start.ToDouble(),
-                         timeInterval.end.ToDouble() ) );
+    double minMax[] = { 0.0, curve.Length(),
+                        timeInterval.start.ToDouble(),
+                        timeInterval.end.ToDouble()};
+    result.Add( BBox<2>( true,minMax) );
   }
   else
   {
@@ -202,10 +203,10 @@ void MON_Tree<BottomR_TreeLeafInfo>::
         if( p2 >= 0 )
         {
           assert( p1 >= 0 );
-          result.Add( BBox<2>( true,
-                               p1, p2,
-                               timeInterval.start.ToDouble(),
-                               timeInterval.end.ToDouble() ) );
+          double minMax[] = {p1, p2,
+                             timeInterval.start.ToDouble(),
+                             timeInterval.end.ToDouble() };
+          result.Add( BBox<2>( true,minMax) );
         }
         p1 = -1;
         p2 = -1;
@@ -214,10 +215,10 @@ void MON_Tree<BottomR_TreeLeafInfo>::
     if( p2 >= 0 )
     {
       assert( p1 >= 0 );
-      result.Add( BBox<2>( true,
-                           p1, p2,
-                           timeInterval.start.ToDouble(),
-                           timeInterval.end.ToDouble() ) );
+      double minMax[] = {p1, p2,
+                         timeInterval.start.ToDouble(),
+                         timeInterval.end.ToDouble() };
+      result.Add( BBox<2>( true,minMax) );
     }
   }
 }

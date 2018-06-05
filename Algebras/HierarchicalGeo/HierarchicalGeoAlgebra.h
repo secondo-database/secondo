@@ -424,25 +424,27 @@ the CUPoint, which possibly lies on or inside the given spatal object.
   {
     if(geoid){
       if(!geoid->IsDefined() || !IsDefined()){
-        return Rectangle<3>(false,0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        return Rectangle<3>(false);
       }
       assert(false);
-      return Rectangle<3>(false,0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+      return Rectangle<3>(false);
     }
-    return Rectangle<3>( true, MIN( p0.GetX(), p1.GetX() )-epsilon,
-                               MAX( p0.GetX(), p1.GetX() )+epsilon,
-                               MIN( p0.GetY(), p1.GetY() )-epsilon,
-                               MAX( p0.GetY(), p1.GetY() )+epsilon,
-                               timeInterval.start.ToDouble(),
-                               timeInterval.end.ToDouble() );
+    double minMax[] = {MIN( p0.GetX(), p1.GetX() )-epsilon,
+                       MAX( p0.GetX(), p1.GetX() )+epsilon,
+                       MIN( p0.GetY(), p1.GetY() )-epsilon,
+                       MAX( p0.GetY(), p1.GetY() )+epsilon,
+                       timeInterval.start.ToDouble(),
+                       timeInterval.end.ToDouble()};
+    return Rectangle<3>( true, minMax );
   }
 
   virtual const Rectangle<2> BBox2D() const
   {
-    return Rectangle<2>( true, MIN( p0.GetX(), p1.GetX() )-epsilon,
-                               MAX( p0.GetX(), p1.GetX() )+epsilon,
-                               MIN( p0.GetY(), p1.GetY() )-epsilon,
-                               MAX( p0.GetY(), p1.GetY() )+epsilon);
+    double minMax[] = {MIN( p0.GetX(), p1.GetX() )-epsilon,
+                       MAX( p0.GetX(), p1.GetX() )+epsilon,
+                       MIN( p0.GetY(), p1.GetY() )-epsilon,
+                       MAX( p0.GetY(), p1.GetY() )+epsilon};
+    return Rectangle<2>( true, minMax);
   }
 /*
 For this is an uncertain temporalalgebra::UPoint-value, the 
@@ -601,7 +603,7 @@ The simple constructor. This constructor should not be used.
       Uncertain( true )
   {
     epsilon = 0.0;
-    bbox = Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    bbox = Rectangle<3>(false);
   }
 /*
 The constructor. Initializes space for ~n~ elements.
@@ -1067,7 +1069,7 @@ The simple constructor. This constructor should not be used.
     layer0( 0 ), layer1( 0 ), layer2( 0 ), layer3( 0 ), layer4( n ),
     canDestroy( false ), epsilon( -1 ), factor( -1 )
   {
-    bbox = Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    bbox = Rectangle<3>(false);
   }
 
   HCMPoint( const int n, const double e, const double f ):
@@ -1077,7 +1079,7 @@ The simple constructor. This constructor should not be used.
     layer0( 0 ), layer1( 0 ), layer2( 0 ), layer3( 0 ), layer4( n ),
     canDestroy( false ), epsilon( e ), factor( f )
   {
-    bbox = Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    bbox = Rectangle<3>(false);
   }
 /*
 A constructor, initializing space for ~n~ entities in the bottom layer.
