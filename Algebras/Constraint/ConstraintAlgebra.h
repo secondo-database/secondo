@@ -65,7 +65,8 @@ namespace Constraint {
 // constants:
 const std::string OP_EQ = "eq";
 const std::string OP_LEQ = "leq";
-const Rectangle<2> WORLD(true, -10000.0, 10000.0, -10000.0, 10000.0);
+double minMax[] = {-10000.0, 10000.0, -10000.0, 10000.0};
+const Rectangle<2> WORLD(true, minMax);
 // Word-Coordinates (arbitionary big)
 const int X = 0;
 const int Y = 1;
@@ -354,11 +355,9 @@ struct SymbolicTuple
 	  double maxx = mbbox.MaxD(0);
 	  double miny = mbbox.MinD(1);
 	  double maxy = mbbox.MaxD(1);
-      return Rectangle<2>( true,
-                       minx - FACTOR,
-                       maxx + FACTOR,
-                       miny - FACTOR,
-                       maxy + FACTOR );
+    double minMax[] = {minx - FACTOR, maxx + FACTOR, 
+                       miny - FACTOR, maxy + FACTOR };
+      return Rectangle<2>( true,minMax);
     }
   }
 

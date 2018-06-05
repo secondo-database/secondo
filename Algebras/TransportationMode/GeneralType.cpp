@@ -1274,14 +1274,13 @@ calculate the absolute coordinates in space.
 const Rectangle<3> UGenLoc::BoundingBox(const Geoid* geoid) const
 {
   if(this->IsDefined()){
-
-    return Rectangle<3>(true, 
-                       MIN(gloc1.GetLoc().loc1, gloc2.GetLoc().loc1),
+    double minMax[] = {MIN(gloc1.GetLoc().loc1, gloc2.GetLoc().loc1),
                        MAX(gloc1.GetLoc().loc1, gloc2.GetLoc().loc1), 
                        MIN(gloc1.GetLoc().loc2, gloc2.GetLoc().loc2),
                        MAX(gloc1.GetLoc().loc2, gloc2.GetLoc().loc2),  
                        timeInterval.start.ToDouble(),
-                       timeInterval.end.ToDouble());
+                       timeInterval.end.ToDouble()};
+    return Rectangle<3>(true, minMax);
   }else
       return Rectangle<3>(false); 
 

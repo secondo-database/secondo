@@ -1294,10 +1294,10 @@ int InsertHandle(SETI* SETIPTR, UploadUnit* UNITPTR)
           int PageSelected = suf->GetPage(cellPtr->currentPage, page);
           assert( PageSelected );
           page->Read(&pageTiv, sizeof(Interval<Instant> ), sizeof(int));
-
-          Rectangle<2> box = Rectangle<2>(true, pageTiv.start.ToDouble()-tol,
-                                                pageTiv.end.ToDouble()+tol,
-                                                -1.0, 1.0);
+          double minMax[] = {pageTiv.start.ToDouble()-tol,
+                             pageTiv.end.ToDouble()+tol,
+                             -1.0, 1.0};
+          Rectangle<2> box = Rectangle<2>(true,minMax );
           R_TreeLeafEntry<2,TupleId> e(box,cellPtr->currentPage);
           cellPtr->rtreePtr->Insert(e);
 
@@ -1697,9 +1697,10 @@ set<TrjSeg*> FindTrjSegments( SETI* SETIPTR, SETIArea AREA,
   int bottom = ComputeLine(hPtr->area.y1,hPtr->area.y2,hPtr->splits,AREA.y1);
   int top    = ComputeLine(hPtr->area.y1,hPtr->area.y2,hPtr->splits,AREA.y2);
 
-  Rectangle<2> searchBox = Rectangle<2>(true, TIME1.ToDouble()-0.1,
-                                              TIME2.ToDouble()+0.1,
-                                              -1.0, 1.0);
+  double minMax[] = {TIME1.ToDouble()-0.1,
+                     TIME2.ToDouble()+0.1,
+                    -1.0, 1.0};
+  Rectangle<2> searchBox = Rectangle<2>(true,minMax );
   for (int i = bottom; i <= top; i++)
   {
     for (int j = left; j <= right; j++)

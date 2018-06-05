@@ -123,15 +123,15 @@ public :
     inline const Rectangle<3> BoundingBox(const Geoid* geoid = 0) const
     {
       if(IsDefined()){
-            return Rectangle<3>(true,
-                    x - ApplyFactor(x),
+            double minMax[] = {x - ApplyFactor(x),
                     x + ApplyFactor(x),
                     y - ApplyFactor(y),
                     y + ApplyFactor(y),
                     z - ApplyFactor(z),
-                    z + ApplyFactor(z));
+                    z + ApplyFactor(z)};
+            return Rectangle<3>(true,minMax);
       }else{
-          return Rectangle<3>(false,0.0,0.0,0.0,0.0,0.0,0.0);
+          return Rectangle<3>(false);
       }
     }
     bool IsEqual(const Point3D& p3d)

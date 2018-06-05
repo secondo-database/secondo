@@ -1986,7 +1986,8 @@ Check for a tuple entry.
 
 
     inline Rectangle<2> project(const Rectangle<3> r3){
-       Rectangle<2> result(true, r3.MinD(0),r3.MaxD(0),r3.MinD(1),r3.MaxD(1));
+       double minMax[] = { r3.MinD(0),r3.MaxD(0),r3.MinD(1),r3.MaxD(1)};
+       Rectangle<2> result(true,minMax);
        return result;
     }
 
@@ -5463,8 +5464,9 @@ make a 2 dimensional box of a three dimensional
 */
 const BBox<2> makexyBox( const BBox<3> box)
 {
-    return BBox<2>( true, box.MinD(0), box.MaxD(0),
-                               box.MinD(1), box.MaxD(1));
+    double minMax[] = { box.MinD(0), box.MaxD(0),
+                        box.MinD(1), box.MaxD(1)};
+    return BBox<2>( true,minMax);
 }
 
 /*

@@ -877,11 +877,9 @@ const Rectangle<2> SymbolicRelation::BoundingBox(const Geoid* geoid /*=0*/)const
 	double maxx = mbbox.MaxD(0);
 	double miny = mbbox.MinD(1);
 	double maxy = mbbox.MaxD(1);
-    return Rectangle<2>( true,
-                       minx - FACTOR,
-                       maxx + FACTOR,
-                       miny - FACTOR,
-                       maxy + FACTOR );
+  double minMax[] = { minx - FACTOR, maxx + FACTOR,
+                       miny - FACTOR, maxy + FACTOR };
+  return Rectangle<2>( true,minMax);
   }
 }
 
@@ -1628,7 +1626,8 @@ Rectangle<2> MinimumBoundingBox(const vector<Point2D>& vConvexPolygon)
         y_max = vConvexPolygon[i].y;
       }
     }
-    return Rectangle<2>(true, x_min, x_max, y_min, y_max);
+    double minMax[] = {x_min, x_max, y_min, y_max};
+    return Rectangle<2>(true,minMax );
   }
 }
 

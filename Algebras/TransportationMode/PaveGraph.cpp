@@ -8390,7 +8390,7 @@ Rectangle<2> GetMaxRect(Region* reg)
 {
   if(reg->NoComponents() != 1){
     cout<<"only one face is allowed"<<endl; 
-    return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+    return Rectangle<2>(false); 
 
   }
   
@@ -8400,7 +8400,7 @@ Rectangle<2> GetMaxRect(Region* reg)
   if(no_cyc != 1){
     cout<<"has holes inside or no cycle"<<endl; 
     delete ct; 
-    return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+    return Rectangle<2>(false);
 
   }
 
@@ -8422,7 +8422,7 @@ Rectangle<2> GetMaxRect(Region* reg)
     sboundary->DeleteIfAllowed();
     delete sp;
     delete ct; 
-    return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+    return Rectangle<2>(false);
 
   }
 
@@ -8433,7 +8433,7 @@ Rectangle<2> GetMaxRect(Region* reg)
   if(ct->IsConvex(ps) == false){
     cout<<"concave polygon"<<endl; 
     delete ct; 
-    return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+    return Rectangle<2>(false);
     
   }
   
@@ -8480,7 +8480,7 @@ Rectangle<2> GetMaxRect(Region* reg)
           delete sp;
           delete ct; 
 
-          return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+          return Rectangle<2>(false);
       }
     }
 
@@ -8491,7 +8491,7 @@ Rectangle<2> GetMaxRect(Region* reg)
       SpacePartition* sp = new SpacePartition();
       if(sp->Collineation(ps[0], ps[1], ps[2])){
         delete sp;
-        return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+        return Rectangle<2>(false); 
       }
 
       delete sp;
@@ -8504,7 +8504,7 @@ Rectangle<2> GetMaxRect(Region* reg)
   if(AlmostEqual(ps[0], ps[ps.size() - 1])){
       delete sp;
       delete ct; 
-      return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+      return Rectangle<2>(false); 
   }
   
   vector<Region> regs;
@@ -8538,12 +8538,12 @@ Rectangle<2> GetMaxRect(Region* reg)
         if(max_rect.result != -1)
           return max_rect.RectList[max_rect.result]; 
         else
-          return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+          return Rectangle<2>(false); 
      }else
-        return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+        return Rectangle<2>(false); 
   }
 
-     return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+     return Rectangle<2>(false); 
 }
 
 /*
@@ -8555,7 +8555,7 @@ Rectangle<2> GetMaxRect2(Region* reg)
 {
   if(reg->NoComponents() != 1){
     cout<<"only one face is allowed"<<endl; 
-    return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+    return Rectangle<2>(false); 
 
   }
   
@@ -8565,7 +8565,7 @@ Rectangle<2> GetMaxRect2(Region* reg)
   if(no_cyc != 1){
     cout<<"has holes inside or no cycle"<<endl; 
     delete ct; 
-    return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+    return Rectangle<2>(false);
 
   }
   delete ct;
@@ -8612,7 +8612,7 @@ Rectangle<2> GetMaxRect2(Region* reg)
     }
     return last_box;
   }else{
-    return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+    return Rectangle<2>(false); 
   }
 
 }
@@ -8998,31 +8998,51 @@ void MaxRect::computeLargestRectangle(){
 //        Rectangle<2> rect(true, x_1, x_2, y_1, y_2); 
 
 //        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl; 
-        RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2)); 
-
+        {
+          double minMax[] = {x_1, x_2, y_1, y_2};
+          RectList.push_back(Rectangle<2>(true,minMax)); 
+        }
         x_1 = pBD.x; x_2 = x_1 + wBD; y_1 = pBD.y; y_2 = pBD.y + hBD; 
 //        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl; 
-        RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2));  
+        {
+          double minMax[] = {x_1, x_2, y_1, y_2};
+          RectList.push_back(Rectangle<2>(true,minMax ));  
+        }
 
         x_1 = pABC.x; x_2 = x_1 + wABC; y_1 = pABC.y; y_2 = y_1 + hABC;
-//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl; 
-        RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2)); 
+//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl;
+        {
+          double minMax[] = { x_1, x_2, y_1, y_2};
+          RectList.push_back(Rectangle<2>(true,minMax )); 
+        }
 
         x_1 = pABD.x; x_2 = x_1 + wABD; y_1 = pABD.y; y_2 = y_1 + hABD;
-//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl; 
-        RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2)); 
+//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl;
+        { 
+          double minMax[] = { x_1, x_2, y_1, y_2};
+          RectList.push_back(Rectangle<2>(true, minMax)); 
+        }
 
         x_1 = pACD.x; x_2 = x_1 + wACD; y_1 = pACD.y; y_2 = y_1 + hACD;
 //        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl; 
-        RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2));
+        {
+          double minMax[] = {x_1, x_2, y_1, y_2};
+          RectList.push_back(Rectangle<2>(true,minMax ));
+        }
 
         x_1 = pBCD.x; x_2 = x_1 + wBCD; y_1 = pBCD.y; y_2 = y_1 + hBCD;
-//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl; 
-        RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2));
+//        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl;
+        {
+          double minMax[] = { x_1, x_2, y_1, y_2 };
+          RectList.push_back(Rectangle<2>(true, minMax));
+        }
 
         x_1 = maxp.x; x_2 = x_1 + maxw; y_1 = maxp.y; y_2 = y_1 + maxh;
 //        cout<<"x1 "<<x_1<<" x2 "<<x_2<<" y1 "<<y_1<<" y2 "<<y_2<<endl; 
-        RectList.push_back(Rectangle<2>(true, x_1, x_2, y_1, y_2));
+        {
+          double minMax[] = {x_1, x_2, y_1, y_2};
+          RectList.push_back(Rectangle<2>(true, minMax));
+        }
 
 
     float rect_area = 0.0;

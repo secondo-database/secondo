@@ -1635,15 +1635,17 @@ const Rectangle<3> GRoom::BoundingBox3D() const
         Get( i, h, r);
         if( i == 0 ){
           Rectangle<2> reg_box = r.BoundingBox(); 
-          bbox = Rectangle<3>(true, reg_box.MinD(0), reg_box.MaxD(0), 
+          double minMax[] = { reg_box.MinD(0), reg_box.MaxD(0), 
                        reg_box.MinD(1), reg_box.MaxD(1), 
-                       h, h + ApplyFactor(h));
+                       h, h + ApplyFactor(h)};
+          bbox = Rectangle<3>(true,minMax);
         }else{
           Rectangle<2> reg_box = r.BoundingBox(); 
-          Rectangle<3> bbox1 = 
-                       Rectangle<3>(true, reg_box.MinD(0), reg_box.MaxD(0), 
+          double minMax[] = {reg_box.MinD(0), reg_box.MaxD(0), 
                        reg_box.MinD(1), reg_box.MaxD(1), 
-                       h, h + ApplyFactor(h));
+                       h, h + ApplyFactor(h)};
+          Rectangle<3> bbox1 = 
+                       Rectangle<3>(true,minMax );
           bbox = bbox.Union(bbox1);
 
         } 
@@ -12948,16 +12950,15 @@ void UPoint3D::CopyFrom(const Attribute* right)
 const Rectangle<4> UPoint3D::BoundingBox(const Geoid* geoid) const
 {
   if(this->IsDefined()){
-
-    return Rectangle<4>(true, 
-                       MIN(p0.GetX(), p1.GetX()),
+    double minMax[] = {MIN(p0.GetX(), p1.GetX()),
                        MAX(p0.GetX(), p1.GetX()), 
                        MIN(p0.GetY(), p1.GetY()),
                        MAX(p0.GetY(), p1.GetY()),  
                        MIN(p0.GetZ(), p1.GetZ()),
                        MAX(p0.GetZ(), p1.GetZ()),  
                        timeInterval.start.ToDouble(),
-                       timeInterval.end.ToDouble());
+                       timeInterval.end.ToDouble()};
+    return Rectangle<4>(true,minMax );
   }else
       return Rectangle<4>(false); 
 

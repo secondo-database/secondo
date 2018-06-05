@@ -259,8 +259,8 @@ namespace CRelAlgebra
             top = GetBoundingBoxP()->MaxD(1),
             right = GetBoundingBoxP()->MaxD(0),
             bottom = GetBoundingBoxP()->MinD(1);
-
-          return Rectangle<2>(true, left, right, bottom, top);
+          double minMax[] = {left, right, bottom, top};
+          return Rectangle<2>(true, minMax);
 
           //return *GetBoundingBoxP();
         }
@@ -288,7 +288,7 @@ namespace CRelAlgebra
         }
       }
 
-      return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+      return Rectangle<2>(false);
     }
 
     virtual double GetDistance(const Rectangle<2>& rect,
@@ -583,12 +583,11 @@ namespace CRelAlgebra
             maxx = std::max(lp.x, rp.x),
             miny = std::min(lp.y, rp.y),
             maxy = std::max(lp.y, rp.y);
-
-          return Rectangle<2>(true,
-                              minx - ApplyFactor(minx),
+          double minMax[] = {minx - ApplyFactor(minx),
                               maxx + ApplyFactor(maxx),
                               miny - ApplyFactor(miny),
-                              maxy + ApplyFactor(maxy));
+                              maxy + ApplyFactor(maxy)};
+          return Rectangle<2>(true,minMax);
         }
 
         // spherical case
@@ -600,12 +599,11 @@ namespace CRelAlgebra
           maxx = geobbox.MaxD(0) + ApplyFactor(geobbox.MaxD(0)),
           miny = geobbox.MinD(1) - ApplyFactor(geobbox.MinD(1)),
           maxy = geobbox.MaxD(1) + ApplyFactor(geobbox.MaxD(1));
-
-        return Rectangle<2>(true,
-                            minx >= -180.0 ? minx : -180.0,
+        double minMax[] = {minx >= -180.0 ? minx : -180.0,
                             maxx <= 180.0 ? maxx : 180.0,
                             miny >= -90.0 ? miny : -90.0,
-                            maxy <= 90.0 ? maxy : 90.0);
+                            maxy <= 90.0 ? maxy : 90.0};
+        return Rectangle<2>(true,minMax);
       }
 
       bool Intersects(const SimpleHalfSegment &other) const
