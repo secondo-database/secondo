@@ -181,7 +181,9 @@ Creating shared libraries requires no special measures.
 
 */
 #if defined(__APPLE__)
-#  define SECONDO_MAC_OSX
+#ifndef SECONDO_MAC_OSX
+#define SECONDO_MAC_OSX
+#endif
 /*
 Creating shared libraries requires no special measures.
 

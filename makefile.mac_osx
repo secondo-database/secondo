@@ -63,3 +63,5 @@ DLLOBJEXT := lo
 DLLEXT := dylib 
 DLLFLAGS := -dynamiclib -flat_namespace
 DLLPREF := lib
+
+DEFAULTCCFLAGS += -DSECONDO_MAC_OSX

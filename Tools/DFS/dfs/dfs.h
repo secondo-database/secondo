@@ -289,7 +289,7 @@ class SimpleFilesystem {
       strncpy(message, msg, 127);
     }
 
-#ifdef SECONDO_MAC_OSX
+#if defined(SECONDO_MAC_OSX)
     virtual const char *what() const _NOEXCEPT{
       return message;
     }
