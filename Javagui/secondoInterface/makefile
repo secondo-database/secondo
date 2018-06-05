@@ -27,6 +27,7 @@ SecondoInterface.jar: all
 	@find -maxdepth 1 -not -name . -not -name exporttmp -exec cp -r {} exporttmp \;
 	@find exporttmp -type d -name CVS -exec rm -rf {} \; 2>/dev/null || echo ""
 	@find exporttmp -name "*java" -exec rm -f {} \;
+	@find exporttmp -name "makefile" -exec rm -f {} \;
 	@find exporttmp -name ".cvsignore" -exec rm -f {} \;
 	@find exporttmp -type f -name "SecondoInterface.jar" -exec rm -f {} \;
 	@rm -rf exporttmp/lib
