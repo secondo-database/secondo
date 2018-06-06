@@ -187,7 +187,7 @@
                         (UsedObjs text)))) 
             (
                 ("UnitTrains" 
-                    '(consume (addcounter (projectextendstream (feed (importObject \'Trains.obj\')) (Id Line Up) ((UTrip (fun (tuple1 TUPLE) (units (attr tuple1 Trip)))))) No 0))' 
+                    '(consume (addcounter (projectextendstream (feed (importObject \'testData/Trains.obj\')) (Id Line Up) ((UTrip (fun (tuple1 TUPLE) (units (attr tuple1 Trip)))))) No 0))' 
                     '()') 
                 ("UnitTrains_UTrip_tbtree" 
                     '(createtbtree UnitTrains Id UTrip)' 
@@ -211,7 +211,7 @@
                     '(creatertree Kinos GeoData)' 
                     '( Kinos )') 
                 ("Trains" 
-                    '(importObject \'Trains.obj\')' 
+                    '(importObject \'testData/Trains.obj\')' 
                     '()'))) 
         (OBJECT box1000 
             () 
