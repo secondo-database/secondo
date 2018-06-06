@@ -16,6 +16,12 @@ Example  : query maxD(bbox(importpointcloud("20110304_10SDH9607.las") transforms
 Result   : 1.08
 Tolerance: 0.01
 
+Operator : no_components
+Number   : 1
+Signature: pointcloud -> int
+Example  : query no_components(importpointcloud("20110304_10SDH9607.las") transformstream extract[Elem])
+Result   : 2400
+
 Operator : importpointcloud
 Number   : 1
 Signature: {string, text} -> stream(pointcloud)

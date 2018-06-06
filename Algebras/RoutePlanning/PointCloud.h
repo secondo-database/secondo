@@ -635,9 +635,6 @@ namespace routeplanningalgebra {
          max[0] = maxX;
          max[1] = maxY;
          getMinMaxZ(min[2], max[2]);
-         cout << min[0] << " " << max[0] << " | " 
-              << min[1] << " " << max[1] << " | "
-              << min[2] << " " << max[2] << " | " << endl;
          return Rectangle<3>(true, min, max);
        }
 

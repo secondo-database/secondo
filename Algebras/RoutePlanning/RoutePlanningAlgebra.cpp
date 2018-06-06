@@ -211,8 +211,8 @@ TypeConstructor Cpoint
          CpointTypeCheck);    
     
 /*
-  Type Constructor functions for Cpoints an DBArray
-  containing Cpoint elements
+Type Constructor functions for Cpoints an DBArray
+containing Cpoint elements
   
 
 Property function
@@ -233,10 +233,10 @@ Property function
         )));
     }
 
-    /*
-    IN function
-    
-    */
+/*
+IN function
+
+*/
     Word InCpoints (const ListExpr typeinfo, const ListExpr instance, 
                     const int errorPos, ListExpr& errorInfo, bool& correct ) {
         Word res((void*)0);
@@ -278,9 +278,10 @@ Property function
         return res;
     }        
 
-    /*
-    OUT function
-    */
+/*
+OUT function
+
+*/
     ListExpr OutCpoints(ListExpr typeInfo, Word value) {
         Cpoints* k= (Cpoints*) value.addr;
         Cpoint cpelem;
@@ -313,18 +314,20 @@ Property function
         }
     }
                    
-    /*
-    CreateCpoints
-    */
+/*
+CreateCpoints
+
+*/
     Word CreateCpoints(const ListExpr typeInfo) {
         Word w;
         w.addr =  (new Cpoints(0));
         return w;
     }    
                    
-    /*
-    DeleteCpoints
-    */
+/*
+DeleteCpoints
+
+*/
     void DeleteCpoints(const ListExpr typeInfo, Word& w) {
         Cpoints *k = (Cpoints *) w.addr;
         k->DestroyCpoints();
@@ -332,18 +335,20 @@ Property function
         w.addr = 0;
     }
 
-    /*
-    CloseCpoints
-    */
+/*
+CloseCpoints
+
+*/
     void CloseCpoints (const ListExpr typeInfo, Word& w ) {
         Cpoints *k = (Cpoints * ) w.addr;
         delete k;
         w.addr = 0;
     }
                    
-    /*
-    CloneCpoints
-    */
+/*
+CloneCpoints
+
+*/
     Word CloneCpoints( const ListExpr typeInfo, const Word& w) {
         Cpoints* k = (Cpoints*)w.addr;
         Word res(k->Clone());
@@ -793,6 +798,16 @@ Property function
       return nl->SymbolAtom(Rectangle<3>::BasicType());
     }
     
+    ListExpr no_componentsTM(ListExpr args) {
+      if (!nl->HasLength(args, 1)) {
+        return listutils::typeError("wrong number of arguments");
+      }
+      if (!PointCloud::checkType(nl->First(args))) {
+        return listutils::typeError("pointcloud expected");
+      }
+      return nl->SymbolAtom(CcInt::BasicType());
+    }
+    
     ListExpr importpointcloudTM(ListExpr args){
         if(!nl->HasLength(args,1)) {
             return listutils::typeError("wrong number of arguments");
@@ -1073,6 +1088,17 @@ Property function
       }
       return 0;
     }
+    
+    int no_componentsVM(Word* args, Word& result, int message, Word& local,
+                        Supplier s) {
+      PointCloud* source = static_cast<PointCloud*>(args[0].addr);
+      result = qp->ResultStorage(s);
+      CcInt *res = static_cast<CcInt* >(result.addr);
+      if (source->IsDefined()) {
+        res->Set(true, source->GetNoCpointnodes());
+      }
+      return 0;
+    }
    
     int importpointcloudSelect(ListExpr args) {
         if ( CcString::checkType(nl->First(args)) ) {
@@ -1144,7 +1170,7 @@ Property function
         }
         Cpoint cp = cps->GetCpoint(counter);
         counter++;
-        Point *pt = new Point(cp.getX(), cp.getY());
+        Point *pt = new Point(true, cp.getX(), cp.getY());
         CcReal *height = new CcReal(true, cp.getZ());
         Tuple *result = new Tuple(tt);
         result->PutAttribute(0, pt);
@@ -1341,6 +1367,18 @@ Property function
     );
 
     /*
+    Operator no\_components
+    
+    */
+    Operator no_componentsOp(
+      "no_components",
+      no_componentsSpec.getStr(),
+      no_componentsVM,
+      Operator::SimpleSelect,
+      no_componentsTM
+    );
+    
+    /*
     Operator importpointcloud
     
     */
@@ -1395,6 +1433,7 @@ Property function
             PointCloudTC.AssociateKind( Kind::SPATIAL2D());
             AddOperator(&bbox2dOp, false);
             AddOperator(&bboxOp, false);
+            AddOperator(&no_componentsOp, false);
             AddOperator(&importpointcloudOp, false);
             AddOperator(&extractpointsOp, false);
             AddOperator(&LCompose::lcompose, false);
