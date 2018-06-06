@@ -884,8 +884,8 @@ TestRunner::ProcessExamples()
   bool rc = false;
   SecErrInfo err;
 
-  string dbName = examples.getDB();
-  string dbFile = dbName;
+  string dbFile = examples.getDB();
+  string dbName = FileSystem::Basename(dbFile);
 
   if (!needsRestore) {
 
@@ -903,7 +903,7 @@ TestRunner::ProcessExamples()
   if (needsRestore) {
 
     RunCmd("create database " + dbName, err);
-    rc = RunCmd("restore database " + dbName + " from " + dbFile, err);
+    rc = RunCmd("restore database " + dbName + " from '" + dbFile +"'", err);
     if (!rc) {
       numErrors++;
       errMsg.push_back("Restore Failed!");
