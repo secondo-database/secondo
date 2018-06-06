@@ -555,10 +555,10 @@ HalfSegment::BoundingBox(const Geoid* geoid /*=0*/) const
     double maxy = geobbox.MaxD(1) + ApplyFactor(geobbox.MaxD(1));
     minx = minx>=-180?minx:-180;
     maxx = maxx<=180?maxx:180;
-    miny=miny>=90?miny:90;
+    miny=miny>=-90?miny:-90;
     maxy=maxy<=90?maxy:90;
     double minMax[]={minx,maxx,miny,maxy};
-    return Rectangle<2>( true,minMax);
+    return Rectangle<2>( true, minMax);
   } // else: euclidean case
   double minx = MIN( GetLeftPoint().GetX(), GetRightPoint().GetX() ),
          maxx = MAX( GetLeftPoint().GetX(), GetRightPoint().GetX() ),
