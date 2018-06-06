@@ -613,7 +613,6 @@ namespace routeplanningalgebra {
          max = std::numeric_limits<double>::min();
          Cpoints *cps = getAllPointsInRange(minX, minY, maxX, maxY);
          double z;
-         cout << "consider " << cps->GetNoCpoints() << " cpoints" << endl;
          for (int i = 0; i < cps->GetNoCpoints(); i++) {
            z = cps->GetCpoint(i).getZ();
            if (z < min) {
