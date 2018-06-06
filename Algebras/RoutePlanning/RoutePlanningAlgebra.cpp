@@ -1324,6 +1324,11 @@ CloneCpoints
         "Returns the 3-dim bounding box corresponding to a pointcloud object",
         "query bbox(pc)");
     
+    OperatorSpec no_componentsSpec("pointcloud -> int",
+        "no_components( _ )",
+        "Returns the number of points of a pointcloud object",
+        "query no_components(pc)");
+    
     OperatorSpec importpointcloudSpec("{string, text}-> pointcloud",
         "importpointcloud( _ )",
         "Returns one or more pointclouds",
