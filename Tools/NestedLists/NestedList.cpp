@@ -857,6 +857,11 @@ returns TRUE if ~atom~ is a symbol atom and has the same value as ~str~.
 bool
 NestedList::ReadFromFile ( const string& fileName, ListExpr& list )
 {
+  
+  if(!FileSystem::FileOrFolderExists(fileName) ||
+     FileSystem::IsDirectory(fileName)){
+     return false;
+  }
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard1(mtx);
 #endif
