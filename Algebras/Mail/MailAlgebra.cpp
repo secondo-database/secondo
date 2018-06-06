@@ -418,7 +418,6 @@ else {
        
      }
 
-     
  
  //checking if mail adress has some syntax errors
  
