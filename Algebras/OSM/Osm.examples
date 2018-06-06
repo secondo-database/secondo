@@ -1,4 +1,4 @@
-Database: osmtest
+Database: testData/osmtest
 Restore : Yes
 
 Operator : shpimport3

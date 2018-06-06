@@ -1,4 +1,4 @@
-Database: staedtetest
+Database: testData/staedtetest
 Restore : YES
 
 Operator : addid

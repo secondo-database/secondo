@@ -1,4 +1,4 @@
-Database: pictest
+Database: testData/pictest
 Restore : No
 
 Operator : getCategory

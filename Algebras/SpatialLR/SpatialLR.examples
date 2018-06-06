@@ -1,4 +1,4 @@
-Database : salrtest
+Database : testData/salrtest
 Restore  : NO
 
 Operator  : lr_moveto

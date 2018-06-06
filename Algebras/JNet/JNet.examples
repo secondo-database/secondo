@@ -1,4 +1,4 @@
-Database: jnettest
+Database: testData/jnettest
 Restore : yes
 
 

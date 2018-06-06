@@ -1,4 +1,4 @@
-Database: tbtreetest
+Database: testData/tbtreetest
 Restore : No
 
 Operator : createtbtree

@@ -1,4 +1,4 @@
-Database: networktest
+Database: testData/networktest
 Restore : no
 
 Operator : trafficflow
