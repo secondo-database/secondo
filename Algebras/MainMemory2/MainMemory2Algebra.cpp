@@ -4888,7 +4888,7 @@ class distRangeInfo{
         while(true){
             const pair<T,TupleId>* p = it->next();
             if(!p){ return 0;}
-            if(p->second < rel->size()){
+            if(p->second <= rel->size()){
                Tuple* res = (*rel)[p->second-1];
                if(res){ // ignore deleted tuples
                  res->IncReference();
