@@ -5217,9 +5217,9 @@ int nodesToRegionNodesVM (Word* args, Word& result, int message,
             nodeIdNewPointer->GetIntval())); // TargetNodeIdNew
 
           //Rectangle<2> boundBox = realSurroundingRegion->BoundingBox();
-          Rectangle<2>* boundBoxPtr = new Rectangle<2>(true, 
-            pDownLeft->GetX(), pUpRight->GetX(), 
-            pDownLeft->GetY(), pUpRight->GetY());
+          double minMax[] = {pDownLeft->GetX(), pUpRight->GetX(), 
+                             pDownLeft->GetY(), pUpRight->GetY()};
+          Rectangle<2>* boundBoxPtr = new Rectangle<2>(true,minMax);
 
 
 
@@ -5564,8 +5564,9 @@ int edgesToRegionNodesVM (Word* args, Word& result, int message,
 
           // Bounding box (min and max values for both dimensions were 
 //calculated together with the region.)
-          Rectangle<2>* boundBoxPtr = new Rectangle<2>(true, minBoundX, 
-            maxBoundX, minBoundY, maxBoundY);
+          double minMax[] = {minBoundX, maxBoundX, 
+                             minBoundY, maxBoundY};
+          Rectangle<2>* boundBoxPtr = new Rectangle<2>(true, minMax);
           regionNodeTuplePointer->PutAttribute(3, boundBoxPtr); // Box
 
           regionNodeTuplePointer->PutAttribute(4, new CcInt(true, 
