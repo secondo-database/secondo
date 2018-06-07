@@ -210,13 +210,12 @@ UGridBox* CreateUGridBox( UGridCell* CELLPTR, UGridNode* NODEPTR )
 
   if ( CELLPTR != 0 )
   {
-    Rectangle<3>* box = (Rectangle<3>*)0;
-                  box = new Rectangle<3>(true,
-                                    CELLPTR->pos1.x-tol, CELLPTR->pos2.x+tol,
-                                    CELLPTR->pos1.y-tol, CELLPTR->pos2.y+tol,
-                                    CELLPTR->tiv.start.ToDouble(),
-                                    CELLPTR->tiv.end.ToDouble() );
-    ugridBox = new UGridBox(CELLPTR->currentPage, true, *box);
+    double minMax[] = {CELLPTR->pos1.x-tol, CELLPTR->pos2.x+tol,
+                       CELLPTR->pos1.y-tol, CELLPTR->pos2.y+tol,
+                       CELLPTR->tiv.start.ToDouble(),
+                       CELLPTR->tiv.end.ToDouble()}; 
+    Rectangle<3> box(true, minMax);
+    ugridBox = new UGridBox(CELLPTR->currentPage, true, box);
 
     // Reset cell
     CELLPTR->pos1.x = 0;
@@ -230,14 +229,13 @@ UGridBox* CreateUGridBox( UGridCell* CELLPTR, UGridNode* NODEPTR )
   }
   else if ( NODEPTR != 0 )
   {
-    Rectangle<3>* box = (Rectangle<3>*)0;
-                  box = new Rectangle<3>(true,
-                                    NODEPTR->pos1.x-tol, NODEPTR->pos2.x+tol,
-                                    NODEPTR->pos1.y-tol, NODEPTR->pos2.y+tol,
-                                    NODEPTR->tiv.start.ToDouble(),
-                                    NODEPTR->tiv.end.ToDouble());
+    double minMax[] = {NODEPTR->pos1.x-tol, NODEPTR->pos2.x+tol,
+                       NODEPTR->pos1.y-tol, NODEPTR->pos2.y+tol,
+                       NODEPTR->tiv.start.ToDouble(),
+                       NODEPTR->tiv.end.ToDouble()};
+    Rectangle<3> box(true,minMax);
 
-    ugridBox = new UGridBox(NODEPTR->currentPage, false, *box);
+    ugridBox = new UGridBox(NODEPTR->currentPage, false, box);
 
     // Reset node
     NODEPTR->pos1.x = 0;
@@ -1691,11 +1689,12 @@ void UGrid::FindHistoryPages(UGridArea AREA, Instant TIME1, Instant TIME2,
       selectedNodePage->Read(&maxD2, sizeof(double), offset);
       offset +=  sizeof(double);
 
-      Rectangle<3>* rect = new Rectangle<3>(true, minD0-tol, maxD0+tol,
-                                                  minD1-tol, maxD1+tol,
-                                                  minD2-tol, maxD2+tol);
+      double minMax[] = {minD0-tol, maxD0+tol,
+                         minD1-tol, maxD1+tol,
+                         minD2-tol, maxD2+tol};
+      Rectangle<3> rect(true,minMax);
 
-      UGridBox* box = new UGridBox(pageID, huPageID, *rect);
+      UGridBox* box = new UGridBox(pageID, huPageID, rect);
 
       if (CheckUGridBox(AREA,TIME1,TIME2,*box))
       {
@@ -1704,7 +1703,6 @@ void UGrid::FindHistoryPages(UGridArea AREA, Instant TIME1, Instant TIME2,
         else insertPageID(pageID, false);
       }
       delete box;
-      delete rect;
     }
   }
 
