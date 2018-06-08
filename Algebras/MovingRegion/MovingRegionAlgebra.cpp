@@ -7915,7 +7915,7 @@ static bool CheckMRegion(ListExpr type, ListExpr& errorInfo) {
 
 */
 
-static ListExpr OutMRegion(ListExpr typeInfo, Word value) {
+ListExpr OutMRegion(ListExpr typeInfo, Word value) {
     if (MRA_DEBUG)
         cerr << "OutMRegion() called" << endl;
 

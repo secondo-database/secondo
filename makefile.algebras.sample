@@ -414,6 +414,9 @@ ALGEBRAS     += JNetAlgebra
 #ALGEBRAS     += CStreamAlgebra
 #COMMON_LD_FLAGS += -lboost_thread -lboost_system -lboost_regex
 
+#ALGEBRA_DIRS += PMRegion
+#ALGEBRAS     += PMRegionAlgebra
+#ALGEBRA_DEPS += CGAL boost_thread boost_system mpfr gmp
 
 #ALGEBRA_DIRS  += DFS
 #ALGEBRAS      += DFSAlgebra
