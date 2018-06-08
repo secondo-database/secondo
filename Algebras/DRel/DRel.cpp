@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 */
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "DRel.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
@@ -62,7 +63,7 @@ namespace drel {
     */
     template<arrayType T>
     DRelT<T>::DRelT( const DRelT& src ) :
-        DArrayT<T>( src ), distType( new DistType( *src.distType ) ) {
+        DArrayT<T>( src ), distType( new DistTypeBasic( *src.distType ) ) {
     }
 
     template<arrayType T>
@@ -85,7 +86,7 @@ namespace drel {
             return *this;
         }
         DArrayT<T>::operator=( src );
-        distType = new DistType( *src.distType );
+        distType = new DistTypeBasic( *src.distType );
         return *this;
     }
 
@@ -121,8 +122,13 @@ namespace drel {
 
     */
     template<arrayType T>
-    void DRelT<T>::setDistType( DistType* _distType ) {
+    void DRelT<T>::setDistType( DistTypeBasic* _distType ) {
         distType = _distType;
+    }
+
+    template<distributed2::arrayType T>
+    DistTypeBasic* DRelT<T>::getDistType( ) {
+        return distType;
     }
 
     /*
@@ -143,11 +149,13 @@ namespace drel {
 
     */
     template<arrayType T>
-    bool DRelT<T>::saveDistType( SmiRecord& valueRecord, size_t& offset ) {
+    bool DRelT<T>::saveDistType(
+        SmiRecord& valueRecord, size_t& offset, ListExpr typeInfo ) {
+
         if( distType == 0 ) {
             return true;
         }
-        return distType->save( valueRecord, offset );
+        return distType->save( valueRecord, offset, typeInfo );
     }
 
     /*
@@ -157,28 +165,16 @@ namespace drel {
 
     */
     template<arrayType T>
-    ListExpr DRelT<T>::toListExpr( ) const {
+    ListExpr DRelT<T>::toListExpr( ListExpr typeInfo ) const {
         ListExpr listArray = DArrayBase::toListExpr( );
         if( listutils::isSymbolUndefined( listArray ) ) {
             return listArray;
         }
-
-        if( distType->getBoundary( ) == 0 ) {
-            return nl->SixElemList( nl->First( listArray ),
-                nl->Second( listArray ),
-                nl->Third( listArray ),
-                nl->TextAtom( getName( distType->getDistType( ) ) ),
-                nl->IntAtom( distType->getAttr( ) ), 
-                nl->IntAtom( distType->getKey( ) ) );
-        }
-
-        return nl->Cons( nl->First( listArray ),
-            nl->SixElemList( nl->Second( listArray ),
+        return nl->FourElemList( nl->First( listArray ),
+            nl->Second( listArray ),
             nl->Third( listArray ),
-            nl->TextAtom( getName( distType->getDistType( ) ) ),
-            nl->IntAtom( distType->getAttr( ) ), 
-            nl->IntAtom( distType->getKey( ) ),
-            distType->getBoundary( )->toListExpr( ) ) );
+            distType->toListExpr( 
+                nl->First( nl->Rest( nl->Rest( typeInfo ) ) ) ) );
     }
 
     /*
@@ -196,7 +192,7 @@ namespace drel {
             delete darray;
             return rel;
         }
-        if( !nl->HasLength( nl->First( list ), 6 ) ) {
+        if( !nl->HasLength( nl->First( list ), 4 ) ) {
             return 0;
         }
 
@@ -212,46 +208,75 @@ namespace drel {
         DRelT<T>* rel = new DRelT<T>( *darray );
         delete darray;
 
-        ListExpr typeList = nl->Fourth( list );
-        ListExpr attrList = nl->Fifth( list );
-        ListExpr keyList = nl->Sixth( list );
-
+        ListExpr distTypeList = nl->Fourth( list );
+        if( !nl->HasMinLength( distTypeList, 1 ) ) {
+            delete rel;
+            return 0;
+        }
+        ListExpr typeList = nl->First( distTypeList );
         distributionType type;
-        int attr;
-        int key;
-        if( !( DistType::readType( typeList, type )
-            && DistType::readInt( attrList, attr )
-            && DistType::readInt( keyList, key ) ) ) {
+        if( !( DistTypeBasic::readType( typeList, type ) ) ) {
             delete rel;
             return 0;
         }
 
-        DistType* dtype;
-        if( type == range || type == spatial2d || type == spatial3d ) {
-            cout << nl->ToString( typeInfo ) << endl;
-            Boundary* boundary = 
-                DistType::readBoundary( typeInfo, nl->Seventh( list ), attr );
-            if( boundary == 0 ) {
-                delete rel;
-                return 0;
-            }
-            dtype = DistType::createDistType( type, attr, key, boundary );
-        }
-        else {
-            dtype = DistType::createDistType( type, attr, key );
+        DistTypeBasic* dType;
+
+        switch( type ) {
+        case replicated:
+            dType = DistTypeBasic::readFrom( distTypeList );
+            break;
+        case random: 
+            dType = DistTypeBasic::readFrom( distTypeList );
+            break;
+        case hash:
+            dType = DistTypeHash::readFrom( distTypeList ); // noch typeInfo
+            break;
+        case range:
+            dType = DistTypeRange::readFrom( distTypeList );
+            break;
+        case spatial2d:
+            dType = DistTypeSpatial<temporalalgebra::CellGrid2D>::
+                readFrom( distTypeList );
+            break;
+        case spatial3d:
+            dType = DistTypeRange::readFrom( distTypeList ); // noch falsch
+            break;
+        default:
+            delete rel;
+            return 0;
+            break;
         }
 
-        if( dtype == 0 ) {
+        if( dType == 0 ) {
             delete rel;
             return 0;
         }
 
-        rel->setDistType( dtype );
+        rel->setDistType( dType );
         return rel;
     }
 
     /*
-    1.9 ~BasicType~
+    1.9 ~equalDistType~
+
+    Compares the disttype of this drel with the disttype of another one.
+
+    */
+
+    template<arrayType T>
+    template<class R>
+    const bool DRelT<T>::equalDistType( R* drel ) {
+        return distType->isEqual( drel->getDistType( ) );
+    }
+
+    template const bool DRel::equalDistType<DRel>( DRel* );
+    template const bool DRel::equalDistType<DFRel>( DFRel* );
+    template const bool DFRel::equalDistType<DRel>( DRel* );
+    template const bool DFRel::equalDistType<DFRel>( DFRel* );
+
+    /*
+    1.10 ~BasicType~
 
     Returns the BasicType of the secondo type.
 
@@ -267,28 +292,30 @@ namespace drel {
     }
 
     /*
-    1.10 ~checkType~
+    1.11 ~checkType~
 
     Checks the type in the NestedList. 
 
     */
     template<arrayType T>
     const bool DRelT<T>::checkType( const ListExpr list ) {
-        if( !nl->HasLength( list, 2 ) ) {
+        if( T != DARRAY && T != DFARRAY ) {
+            return false;
+        }
+        if( !nl->HasLength( list, 3 ) ) {
             return false;
         }
         if( !listutils::isSymbol( nl->First( list ), BasicType( ) ) ) {
             return false;
         }
-        if( T != DARRAY && T != DFARRAY ) {
-            return false;
-        }
-
-        return Relation::checkType( nl->Second( list ) );
+        ListExpr distTypeExpr = nl->Third( list );
+        return ( DistTypeBasic::checkType( distTypeExpr )
+            || DistTypeHash::checkType( distTypeExpr )
+            || DistTypeRange::checkType( distTypeExpr ) );
     }
 
     /*
-    1.11 ~Property~
+    1.12 ~Property~
 
     Returns the secondo property informations.
 
@@ -312,7 +339,7 @@ namespace drel {
     }
 
     /*
-    1.12 ~In~
+    1.13 ~In~
 
     Secondo In function.
 
@@ -331,7 +358,7 @@ namespace drel {
     }
 
     /*
-    1.13 ~Out~
+    1.14 ~Out~
 
     Secondo Out function.
 
@@ -339,11 +366,11 @@ namespace drel {
     template<arrayType T>
     ListExpr DRelT<T>::Out( const ListExpr typeInfo, Word value ) {
         DRelT<T>* rel = ( DRelT<T>* )value.addr;
-        return rel->toListExpr( );
+        return rel->toListExpr( typeInfo );
     }
 
     /*
-    1.14 ~Create~
+    1.15 ~Create~
 
     Secondo Create function.
 
@@ -357,7 +384,7 @@ namespace drel {
     }
 
     /*
-    1.15 ~Delete~
+    1.16 ~Delete~
 
     Secondo Delete function.
 
@@ -370,7 +397,7 @@ namespace drel {
     }
 
     /*
-    1.16 ~Open~
+    1.17 ~Open~
 
     Secondo Open function.
 
@@ -386,24 +413,92 @@ namespace drel {
         }
         DArrayT<T>* darray = ( DArrayT<T>* )value.addr;
         DRelT<T>* rel = new DRelT<T>( *darray );
-        //DRelT<T>* rel = ( DRelT<T>* )value.addr;
         delete darray;
-        if( rel->IsDefined( ) ) {
-            DistType* dType = DistType::open( valueRecord, offset, typeInfo );
-            if( dType == 0 ) {
-                cout << "DistType open fehler" << endl;
+        value.addr = rel;
+
+        if( !rel->IsDefined( ) ) {
+            return true;
+        }
+
+        std::string typeString;
+        if( !readVar<std::string>( typeString, valueRecord, offset ) ) {
+            delete rel;
+            return false;
+        }
+        distributionType type;
+        if( !supportedType( typeString, type ) ) {
+            delete rel;
+            return false;
+        }
+
+        if( type == replicated || type == random ) {
+
+            rel->setDistType( new DistTypeBasic( type ) );
+            return true;
+        }
+
+        int attr;
+        if( !readVar<int>( attr, valueRecord, offset ) ) {
+
+            delete rel;
+            return false;
+        }
+
+        if( type == hash) {
+
+            rel->setDistType( new DistTypeHash( type, attr ) );
+            return true;
+        }
+
+        int key;
+        if( !readVar<int>( key, valueRecord, offset ) ) {
+            return 0;
+        }
+
+        if( type == range ) {
+
+            ListExpr distTypeExpr = nl->Third( typeInfo );
+            ListExpr boundaryTypeExpr = nl->Fourth( distTypeExpr );
+            Word value;
+            if( !Boundary::Open( 
+                valueRecord, offset, boundaryTypeExpr, value ) ) {
+
                 delete rel;
                 return false;
             }
-            rel->setDistType( dType );
+            
+            rel->setDistType( new DistTypeRange( 
+                type, attr, key, ( Boundary* ) value.addr ) );
         }
-        value.addr = rel;
+        else if( type == spatial2d ) {
+
+            temporalalgebra::CellGrid2D* grid = 
+                static_cast< temporalalgebra::CellGrid2D* >( 
+                    Attribute::Open( valueRecord, offset, 
+                        nl->Fourth( nl->Third( typeInfo ) ) ) );
+
+            rel->setDistType( 
+                new DistTypeSpatial<temporalalgebra::CellGrid2D>( 
+                    type, attr, key, grid ) );
+        }
+        //else if( type == spatial3d ) {
+        //    ListExpr distTypeExpr = nl->Third( typeInfo );
+        //    ListExpr gridTypeExpr = nl->Fourth( distTypeExpr );
+        //    temporalalgebra::CellGrid<3>* grid = 
+        //        static_cast< temporalalgebra::CellGrid<3>* >( 
+        //    Attribute::Open( 
+        //      valueRecord, offset, nl->Fourth( nl->Third( typeInfo ) ) ) );
+
+        //    rel->setDistType( 
+        //    new DistTypeSpatial<temporalalgebra::CellGrid<3>( 
+        //      type, attr, key, grid ) );
+        //}
 
         return true;
     }
 
     /*
-    1.17 ~Save~
+    1.18 ~Save~
 
     Secondo Save function.
 
@@ -413,18 +508,17 @@ namespace drel {
         SmiRecord& valueRecord, size_t& offset, 
         const ListExpr typeInfo, Word& value ) {
 
-        cout << "Drel save" << endl;
-        cout << nl->ToString( typeInfo ) << endl;
-
         if( !DArrayBase::save( valueRecord, offset, typeInfo, value ) ) {
             return false;
         }
         DRelT<T>* drel = ( DRelT<T>* ) value.addr;
-        return drel->saveDistType( valueRecord, offset );
+        return drel->saveDistType( 
+            valueRecord, offset, 
+            nl->First( nl->Rest( nl->Rest( typeInfo ) ) ) );
     }
 
     /*
-    1.18 ~Close~
+    1.19 ~Close~
 
     Secondo Close function.
 
@@ -437,7 +531,7 @@ namespace drel {
     }
 
     /*
-    1.19 ~Clone~
+    1.20 ~Clone~
 
     Secondo Clone function.
 
@@ -451,7 +545,7 @@ namespace drel {
     }
 
     /*
-    1.20 ~Cast~
+    1.21 ~Cast~
 
     Secondo Cast function.
 
@@ -462,7 +556,7 @@ namespace drel {
     }
 
     /*
-    1.21 ~TypeCheck~
+    1.22 ~TypeCheck~
 
     Secondo TypeCheck function.
 
@@ -473,7 +567,7 @@ namespace drel {
     }
 
     /*
-    1.22 ~SizeOf~
+    1.23 ~SizeOf~
 
     Secondo SizeOf function.
 
@@ -484,7 +578,7 @@ namespace drel {
     }
 
     /*
-    1.23 ~DFRelTC~
+    1.24 ~DFRelTC~
 
     TypeConstructor of the type DFRel
 
@@ -507,7 +601,7 @@ namespace drel {
     );
 
     /*
-    1.24 ~DRelTC~
+    1.25 ~DRelTC~
 
     TypeConstructor of the type DRel
 

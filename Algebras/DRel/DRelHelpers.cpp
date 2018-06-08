@@ -32,6 +32,7 @@ Class with usefull helper functions for the DRelAlgebra
 */
 #include "DRelHelpers.h"
 
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "ListUtils.h"
 #include "StandardTypes.h"
 #include "QueryProcessor.h"
@@ -86,6 +87,13 @@ namespace drel {
         return true;
     }
 
+    /*
+    1.3 ~createBoundaryQuery~
+
+    Creates a boundary object. This is a factory function for the boundary 
+    class.
+
+    */
     Boundary* DRelHelpers::createBoundaryQuery( 
         const std::string relation, 
         const std::string attrName, 
@@ -108,13 +116,79 @@ namespace drel {
         return boundary;
     }
 
+    /*
+    1.4 ~randomBoundaryName~
+
+    Genereates a random name for a boundary object.
+
+    */
     string DRelHelpers::randomBoundaryName( ) {
 
         return "Boundary" + to_string( rand( ) );
     }
+    
+    /*
+    1.5 ~randomGridName~
 
-    int DRelHelpers::randomKey( ) {
-        return rand( );
+    Genereates a random name for a grid object.
+
+    */
+    string DRelHelpers::randomGridName( ) {
+
+        return "Grid" + to_string( rand( ) );
+    }
+
+    /*
+    1.6 ~createGrid~
+
+    Creates a grid object. This is a factory function for CellGrid2D.
+
+    */
+    temporalalgebra::CellGrid2D* DRelHelpers::createGrid(
+        Relation* _rel, int _attr, int _arraySize ) {
+
+        assert( _arraySize > 0 );
+        assert( _attr >= 0 );
+
+        string query = "( rect2cellgrid( collect_box( "
+            "transformstream( projectextend( feed strassen )( )"
+            "( ( Box( fun( tuple1 TUPLE )( bbox( attr tuple1 GeoData )"
+            ") ) ) ) ) ) TRUE )" + to_string( _arraySize ) + " )";
+        Word result;
+        if( !QueryProcessor::ExecuteQuery( query, result ) ) {
+            return 0;
+        }
+
+        temporalalgebra::CellGrid2D* grid = ( 
+            temporalalgebra::CellGrid2D* )result.addr;
+
+        return grid;
+    }
+    
+    /*
+    1.7 ~setGrid~
+
+    Uses a Rectangle and munipulates a grid by setting generated values for an 
+    arraySize.
+
+    */
+    void DRelHelpers::setGrid( 
+        temporalalgebra::CellGrid2D* grid, Rectangle<2>* rect, 
+        const int _arraySize ) {
+
+        assert( _arraySize > 0 );
+
+        // compute cell height and cell weigth, we use _arraySize*_arraySize 
+        // as number of the cells.
+        double cellheight = 
+            ( rect->MaxD( 1 ) - rect->MinD( 1 ) ) / _arraySize;
+        //double cellwidth = 
+        //    ( rect->MaxD( 0 ) - rect->MinD( 0 ) ) / _arraySize;
+
+        /*grid->set( rect->MinD( 0 ), rect->MinD( 1 ), 
+            cellheight, cellwidth, _arraySize*_arraySize );*/
+        grid->set( rect->MinD( 0 ), rect->MinD( 1 ), 
+            cellheight, cellheight, _arraySize*_arraySize );
     }
 
 } // end of namespace drel

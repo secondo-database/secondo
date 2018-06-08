@@ -38,9 +38,13 @@ extern TypeConstructor BoundaryTC;
 
 extern Operator createboundaryOp;
 extern Operator getBoundaryIndexOp;
+extern Operator rect2cellgridOp;
 
 extern Operator drelfdistributeOp;
 extern Operator dreldistributeOp;
+
+extern Operator compareDistTypeOp;
+extern Operator convert2darrayOp;
 
 /*
 1 Implementation of the Algebra DRel
@@ -57,11 +61,15 @@ DRelAlgebra::DRelAlgebra() {
     AddOperator( &createboundaryOp );
     createboundaryOp.SetUsesArgsInTypeMapping( );
     AddOperator( &getBoundaryIndexOp );
+    AddOperator( &rect2cellgridOp );
 
     AddOperator( &drelfdistributeOp );
     drelfdistributeOp.SetUsesArgsInTypeMapping( );
     AddOperator( &dreldistributeOp );
     dreldistributeOp.SetUsesArgsInTypeMapping( );
+
+    AddOperator( &compareDistTypeOp );
+    AddOperator( &convert2darrayOp );
 }
 
 extern "C"

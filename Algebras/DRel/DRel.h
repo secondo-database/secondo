@@ -29,7 +29,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define _DFRel_h_
 
 #include "Algebras/Distributed2/DArray.h"
-#include "DistType.h"
+#include "DistTypeBasic.h"
+#include "DistTypeHash.h"
+#include "DistTypeRange.h"
+#include "DistTypeSpatial.h"
 
 namespace drel {
     /*
@@ -59,11 +62,16 @@ namespace drel {
 
         virtual ~DRelT( );
 
-        void setDistType( DistType* _distType );
+        void setDistType( DistTypeBasic* _distType );
+        DistTypeBasic* getDistType( );
         std::string getTypeName( ) const;
-        bool saveDistType( SmiRecord& valueRecord, size_t& offset );
-        ListExpr toListExpr( ) const;
+        bool saveDistType( SmiRecord& valueRecord, size_t& offset, 
+            const ListExpr typeInfo );
+        ListExpr toListExpr( ListExpr typeInfo ) const;
         static DRelT* readFrom( ListExpr typeInfo, ListExpr list );
+
+        template<class R>
+        const bool equalDistType( R* drel );
 
         static const std::string BasicType( );
         static const bool checkType( const ListExpr list );
@@ -110,7 +118,7 @@ namespace drel {
         Informations about the distribution of the relation.
 
         */
-        DistType* distType;
+        DistTypeBasic* distType;
     };
 
     typedef DRelT<distributed2::DFARRAY> DFRel;

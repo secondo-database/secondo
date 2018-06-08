@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef _DFRelHelpers_h_
 #define _DFRelHelpers_h_
 
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "NestedList.h"
 #include "Boundary.h"
 
@@ -49,8 +50,13 @@ namespace drel {
                 const int boundarySize );
             
             static std::string randomBoundaryName( );
+            static std::string randomGridName( );
 
-            static int randomKey( );
+            static temporalalgebra::CellGrid2D* createGrid(
+                Relation* _rel, int _attr, int _arraySize );
+            
+            static void setGrid( temporalalgebra::CellGrid2D* grid, 
+                Rectangle<2>* rect, const int _arraySize );
     };
 
 } // end of namespace drel
