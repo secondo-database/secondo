@@ -559,7 +559,7 @@ to a single point.
         Rectangle<2> result = p->BoundingBox();
         p->DeleteIfAllowed();
         return result;
-      } else return Rectangle<2> (false, 0.0, 0.0, 0.0, 0.0);
+      } else return Rectangle<2> (false);
     };
 
 /*
@@ -576,14 +576,14 @@ Returns a point degenerated rectangle as network bounding box of the gpoint
                  << std::endl;
         assert( !geoid ); // TODO: implement spherical geometry case
       }
-      if (IsDefined())
-        return Rectangle<2>(true,
-                            (double) m_xRouteLocation.rid,
+      if (IsDefined()) {
+        double minMax[] = {(double) m_xRouteLocation.rid,
                             (double) m_xRouteLocation.rid,
                             m_xRouteLocation.d - 0.000001,
-                            m_xRouteLocation.d + 0.000001);
+                            m_xRouteLocation.d + 0.000001};
+        return Rectangle<2>(true,minMax);
                   //0.000001 correcture of rounding differences
-      else return Rectangle<2> (false, 0.0, 0.0, 0.0, 0.0);
+      }else return Rectangle<2> (false);
     };
 
 /*

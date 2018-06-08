@@ -104,9 +104,8 @@ Rectangle<2> RouteInterval::BoundingBox ( Network* pNetwork,
   {
     Point *p = ( GPoint ( true, pNetwork->GetId(), m_iRouteId,
                           m_dStart ) ).ToPoint ( pNetwork );
-    Rectangle<2> bbox = Rectangle<2> ( true,
-                                       p->GetX(), p->GetX(),
-                                       p->GetY(), p->GetY() );
+    double minMax[] = {p->GetX(), p->GetX(), p->GetY(), p->GetY()};
+    Rectangle<2> bbox = Rectangle<2> ( true,minMax);
     p->DeleteIfAllowed();
     return bbox;
   }
@@ -127,11 +126,11 @@ Rectangle<2> RouteInterval::BoundingBox ( Network* pNetwork,
                              m_dStart ) ).ToPoint ( pNetwork );
       Point *p2 = ( GPoint ( true, pNetwork->GetId(), m_iRouteId,
                              m_dEnd ) ).ToPoint ( pNetwork );
-      Rectangle<2> bbox = Rectangle<2> ( true,
-                                         min ( p1->GetX(), p2->GetX() ),
+      double minMax[] = {min ( p1->GetX(), p2->GetX() ),
                                          max ( p1->GetX(), p2->GetX() ),
                                          min ( p1->GetY(), p2->GetY() ),
-                                         max ( p1->GetY(), p2->GetY() ) );
+                                         max ( p1->GetY(), p2->GetY() ) };
+      Rectangle<2> bbox = Rectangle<2> ( true,minMax);
       p1->DeleteIfAllowed();
       p2->DeleteIfAllowed();
       return bbox;
@@ -888,11 +887,11 @@ class RectangleList
       for ( int i = 0 ; i < gl->NoOfComponents(); i++ )
       {
         gl->Get ( i, ri );
-        Rectangle<2> elem ( true,
-                            ( double ) ri.GetRouteId(),
+        double minMax[] = {( double ) ri.GetRouteId(),
                             ( double ) ri.GetRouteId(),
                             min ( ri.GetStartPos(),ri.GetEndPos() ),
-                            max ( ri.GetStartPos(), ri.GetEndPos() ) );
+                            max ( ri.GetStartPos(), ri.GetEndPos() ) };
+        Rectangle<2> elem ( true, minMax);
         aliasRectangleList.Append ( elem );
       }
     }
@@ -5536,11 +5535,11 @@ vector<TupleId>& res)
 GPoint* Network::GetNetworkPosOfPoint ( Point p )
 {
   const Rectangle<2> orig = p.BoundingBox();
-  const Rectangle<2> bbox = Rectangle<2> ( true,
-                            orig.MinD ( 0 ) - 1.0,
+  double minMax[] = {orig.MinD ( 0 ) - 1.0,
                             orig.MaxD ( 0 ) + 1.0,
                             orig.MinD ( 1 ) - 1.0,
-                            orig.MaxD ( 1 ) + 1.0 );
+                            orig.MaxD ( 1 ) + 1.0 };
+  const Rectangle<2> bbox = Rectangle<2> ( true,minMax);
   R_TreeLeafEntry<2,TupleId> res;
   Tuple *pCurrRoute = 0;
   if ( m_pRTreeRoutes->First ( bbox, res ) )

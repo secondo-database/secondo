@@ -398,9 +398,9 @@ inline const Rectangle<2> Reg2GridPoint::BoundingBox
 {
   assert( IsDefined() );
   if( IsDefined() ) {
-      return Rectangle<2>( true, 0.0, 0.0, 0.0, 0.0 );
+      return Rectangle<2>( true ); //??
   }
-  return Rectangle<2>( false, 0.0, 0.0, 0.0, 0.0 );
+  return Rectangle<2>( false);
 }
 
 inline double Reg2GridPoint::Distance
@@ -653,7 +653,8 @@ inline const Rectangle<2> Reg2PrecisePoint::BoundingBox(
       const Geoid* geoid /*=0*/) const
 {
   assert( IsDefined() );
-  return Rectangle<2>( true, x.get_d(), x.get_d(), y.get_d(), y.get_d() );
+  double minMax[] = {x.get_d(), x.get_d(), y.get_d(), y.get_d() };
+  return Rectangle<2>( true,minMax );
 }
 
 bool Reg2PrecisePoint::Inside(const Rectangle<2>& r) const

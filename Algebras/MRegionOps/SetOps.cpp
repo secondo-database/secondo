@@ -289,8 +289,8 @@ void SourceUnit::NormalizeTimeInterval() {
     const double maxY = uRegion->BoundingBox().MaxD(1);
     const double minT = 0.0;
     const double maxT = 1.0;
-    
-    uRegion->SetBBox(Rectangle<3>(true, minX, maxX, minY, maxY, minT, maxT));
+    double minMax[] = { minX, maxX, minY, maxY, minT, maxT};
+    uRegion->SetBBox(Rectangle<3>(true,minMax ));
     
     //scaleFactor = delta / scaledDelta;
     //scaleFactor = delta;
@@ -309,8 +309,8 @@ void SourceUnit::ComputeBoundingRect() {
     const double maxX = uRegion->BoundingBox().MaxD(0);
     const double minY = uRegion->BoundingBox().MinD(1);
     const double maxY = uRegion->BoundingBox().MaxD(1);
-    
-    boundingRect = Rectangle<2>(true, minX, maxX, minY, maxY);
+    double minMax[] = { minX, maxX, minY, maxY};
+    boundingRect = Rectangle<2>(true,minMax );
 }
 
 void SourceUnit::CreatePFaces() {
@@ -2534,11 +2534,11 @@ void PFace::ComputeBoundingRect() {
                                                   mSeg->GetFinalStartY(),
                                                   mSeg->GetFinalEndY());
 
-    boundingRect = Rectangle<2>(true, 
-                                x.first - NumericUtil::eps, 
-                                x.second + NumericUtil::eps, 
-                                y.first - NumericUtil::eps, 
-                                y.second + NumericUtil::eps);
+    double minMax[] = {x.first - NumericUtil::eps, 
+                       x.second + NumericUtil::eps, 
+                       y.first - NumericUtil::eps, 
+                       y.second + NumericUtil::eps};
+    boundingRect = Rectangle<2>(true,minMax );
 }
 
 void PFace::ComputeWTCoords() {
