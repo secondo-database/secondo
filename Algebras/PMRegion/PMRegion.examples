@@ -1,0 +1,69 @@
+Database: berlintest
+Restore : No
+
+Operator  : atinstant
+Number    : 1
+Signature : pmregion x instant -> iregion
+Example   : query cloud atinstant [const instant value "2016-09-23-16:35"]
+Result    : file
+
+Operator  : perimeter
+Number    : 1
+Signature : pmregion -> mreal
+Example   : query perimeter (cloud)
+Result    : file
+
+Operator  : area
+Number    : 1
+Signature : pmregion -> mreal
+Example   : query area (cloud)
+Result    : file
+
+Operator  : traversedarea
+Number    : 1
+Signature : pmregion -> region
+Example   : query traversedarea (cloud)
+Result    : file
+
+Operator  : inside
+Number    : 1
+Signature : mpoint x pmregion -> mbool
+Example   : query mpoint1 inside pmregion1
+Result    : file
+
+Operator  : union
+Number    : 1
+Signature : pmregion x pmregion -> pmregion
+Example   : query pmreg1 union pmreg2
+Result    : file
+
+Operator  : minus
+Number    : 1
+Signature : pmregion x pmregion -> pmregion
+Example   : query pmreg1 minus pmreg2
+Result    : file
+
+Operator  : intersection
+Number    : 1
+Signature : pmregion x pmregion -> pmregion
+Example   : query intersection(pmreg1, pmreg2)
+Result    : file
+
+Operator  : intersects
+Number    : 1
+Signature : pmregion x pmregion -> mbool
+Example   : query pmreg1 intersects pmreg2
+Result    : file
+
+Operator  : pmreg2mreg
+Number    : 1
+Signature : pmregion -> mregion
+Example   : query pmreg2mreg(pmreg1)
+Result    : file
+
+Operator  : mreg2pmreg
+Number    : 1
+Signature : mregion -> pmregion
+Example   : query mreg2pmreg(mreg1)
+Result    : file
+
