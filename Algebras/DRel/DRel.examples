@@ -47,3 +47,10 @@ Signature : drel -> darray
 Example   : query drel1 convert2darray
 Result    : bug
 Remark    : remote server required
+
+Operator : drelsummarize
+Number   : 1
+Signature : d[f]rel(rel(X)) -> stream(X)
+Example   : query drel1 dsummarize count
+Result    : bug
+Remark    : remote server required

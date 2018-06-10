@@ -311,7 +311,11 @@ namespace drel {
         ListExpr distTypeExpr = nl->Third( list );
         return ( DistTypeBasic::checkType( distTypeExpr )
             || DistTypeHash::checkType( distTypeExpr )
-            || DistTypeRange::checkType( distTypeExpr ) );
+            || DistTypeRange::checkType( distTypeExpr )
+            || DistTypeSpatial<temporalalgebra::CellGrid2D>::
+                    checkType( distTypeExpr )
+            || DistTypeSpatial<temporalalgebra::CellGrid<3>>::
+                    checkType( distTypeExpr ) );
     }
 
     /*

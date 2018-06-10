@@ -43,6 +43,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Spatial/SpatialAlgebra.h"
 #include "Algebras/Distributed2/CommandLogger.h"
 #include "Algebras/Distributed2/Distributed2Algebra.h"
+#include "Algebras/Relation-C++/OperatorFeed.h"
 
 #include "DRel.h"
 #include "ShareInfo.h"
@@ -57,6 +58,13 @@ namespace distributed2 {
     class FRelCopy;
     class RelFileRestorer;
 
+    template<class R>
+    ListExpr ddistribute2TMT( ListExpr args );
+
+    template<class AType, class DType, class HType, class CType>
+    int ddistribute2VMT( 
+        Word* args, Word& result, int message, Word& local, Supplier s );
+    
     template<class R>
     ListExpr distribute3TM( ListExpr args );
 
@@ -130,8 +138,8 @@ namespace drel {
         return true;
     }
 
-    bool createStreamOpTree(
-        QueryProcessor* qps, string relName, OpTree &tree ) {
+    OpTree createStreamOpTree(
+        QueryProcessor* qps, string relName  ) {
 
         bool correct = false;
         bool evaluable = false;
@@ -139,20 +147,54 @@ namespace drel {
         bool isFunction = false;
         ListExpr resultType;
 
+        OpTree tree = 0;
         qps->Construct(
             nl->TwoElemList(
-                nl->SymbolAtom( "consume" ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "feed" ),
-                    nl->SymbolAtom( relName ) ) ),
+                nl->SymbolAtom( "feed" ),
+                nl->SymbolAtom( relName ) ),
             correct,
             evaluable,
             defined,
             isFunction,
             tree,
-            resultType );
+            resultType,
+            true );
+        qps->SetEvaluable( tree, true );
 
-        return correct;
+        return tree;
+    }
+    
+    OpTree createStreamCellGridOpTree(
+        QueryProcessor* qps, string relName, string attrName, 
+        string gridName, string type ) {
+
+        ListExpr query;
+        if( !nl->ReadFromString( "( extendstream( "
+            "feed " + relName + " )( ( Cell( fun( t TUPLE )"
+            "( cellnumber( bbox( attr t " + attrName + " )"
+            ")" + gridName + " ) ) ) ) )", query ) ) {
+            return 0;
+        }
+
+        bool correct = false;
+        bool evaluable = false;
+        bool defined = false;
+        bool isFunction = false;
+        ListExpr resultType;
+
+        OpTree tree = 0;
+        qps->Construct(
+            query,
+            correct,
+            evaluable,
+            defined,
+            isFunction,
+            tree,
+            resultType,
+            true );
+        qps->SetEvaluable( tree, true );
+
+        return tree;
     }
 
     template<class R, class A>
@@ -317,6 +359,13 @@ namespace drel {
                 newRes = nl->ThreeElemList( listutils::basicSymbol<R>( ),
                     nl->Second( resType ),
                     DistTypeHash::getTypeList( ) );
+
+                appendList = nl->FiveElemList(
+                    nl->First( nl->Second( result ) ),
+                    nl->Second( nl->Second( result ) ),
+                    nl->Third( nl->Second( result ) ),
+                    nl->StringAtom( attrName ),
+                    nl->StringAtom( relName ) );
             }
             else if( requestedDistType == range ) {
 
@@ -352,6 +401,13 @@ namespace drel {
                 newRes = nl->ThreeElemList( listutils::basicSymbol<R>( ),
                     nl->Second( resType ),
                     DistTypeRange::getTypeList( attrType ) );
+
+                appendList = nl->FiveElemList(
+                    nl->First( nl->Second( result ) ),
+                    nl->Second( nl->Second( result ) ),
+                    nl->Third( nl->Second( result ) ),
+                    nl->StringAtom( attrName ),
+                    nl->StringAtom( relName ) );
             }
             else if( requestedDistType == spatial2d ) {
 
@@ -364,15 +420,20 @@ namespace drel {
                         " or " + Region::BasicType( ) );
                 }
 
+                streamType = nl->TwoElemList( nl->First( streamType ),
+                    nl->TwoElemList( nl->First( nl->Second( streamType ) ),
+                        listutils::concat( 
+                            nl->Second( nl->Second( streamType ) ),
+                            nl->OneElemList( 
+                                nl->TwoElemList( nl->SymbolAtom( "Cell" ),
+                                listutils::basicSymbol<CcInt>( ) ) ) ) ) );
+
                 // get result type from distributed4 operator
-                result = distribute4TMT<A>(
+                result = ddistribute2TMT<A>(
                     nl->FiveElemList(
                         streamType,
                         nameType,
-                        nl->ThreeElemList(
-                            nl->SymbolAtom( "map" ),
-                            nl->Second( relType ),
-                            nl->SymbolAtom( CcInt::BasicType( ) ) ),
+                        nl->SymbolAtom( "Cell" ),
                         numSlotsType,
                         workerRelType ) );
 
@@ -389,6 +450,14 @@ namespace drel {
                     nl->Second( resType ),
                     DistTypeSpatial<temporalalgebra::CellGrid2D>::getTypeList( 
                         attrType ) );
+
+                appendList = nl->SixElemList(
+                    nl->First( nl->Second( result ) ),
+                    nl->Second( nl->Second( result ) ),
+                    nl->Third( nl->Second( result ) ),
+                    nl->Fourth( nl->Second( result ) ),
+                    nl->StringAtom( attrName ),
+                    nl->StringAtom( relName ) );
             }
             else if( requestedDistType == spatial3d ) {
 
@@ -426,28 +495,20 @@ namespace drel {
                     nl->Second( resType ),
                     DistTypeSpatial<temporalalgebra::CellGrid<3>>::getTypeList(
                         attrType ) );
+
+                appendList = nl->SixElemList(
+                    nl->First( nl->Second( result ) ),
+                    nl->Second( nl->Second( result ) ),
+                    nl->Third( nl->Second( result ) ),
+                    nl->Fourth( nl->Second( result ) ),
+                    nl->StringAtom( attrName ),
+                    nl->StringAtom( relName ) );
             }
             else {
                 return listutils::typeError( 
                     err + ": for this number of arguments only range, "
                     "spatial2d or spatial3d is supported" );
             }
-
-            if( !nl->HasLength( result, 3 ) ) {
-                return result;
-            }
-            resType = nl->Third( result );
-            if( !A::checkType( resType ) ) {
-                return result;
-            }
-
-            // typemap was OK, add attribute name to the append list
-            appendList = nl->FiveElemList(
-                nl->First( nl->Second( result ) ),
-                nl->Second( nl->Second( result ) ),
-                nl->Third( nl->Second( result ) ),
-                nl->StringAtom( attrName ),
-                nl->StringAtom( relName ) );
 
         }
         else {
@@ -529,20 +590,9 @@ namespace drel {
         string relName = ( ( CcString* )args[ 8 ].addr )->GetValue( );
 
         QueryProcessor* qps = new QueryProcessor( nl, am );
-        OpTree treeS = 0;
+        OpTree treeS = createStreamOpTree( qps, relName );
 
-        if( !createStreamOpTree( qps, relName, treeS ) ) {
-            cout << "Error while create operator tree for the stream '(feed "
-                + relName + ")'" << endl;
-            result = qp->ResultStorage( s );
-            RType* drel = ( RType* )result.addr;
-            drel->makeUndefined( );
-            qps->Destroy( treeS, true );
-            delete qps;
-            return 0;
-        }
-
-        // new argument vector for distribute3VMT
+        // new argument vector for distributqe3VMT
         ArgVector argVec = { treeS,
             name,
             size,
@@ -577,21 +627,10 @@ namespace drel {
             ( ( CcString* )args[ 9 ].addr )->GetStringval( );
         string relName = ( ( CcString* )args[ 10 ].addr )->GetValue( );
 
-        // Create OpTree for the hash function
         QueryProcessor* qps = new QueryProcessor( nl, am );
-        OpTree treeS = 0;
+        OpTree treeS = createStreamOpTree( qps, relName );
 
-        if( !createStreamOpTree( qps, relName, treeS ) ) {
-            cout << "Error while create operator tree for the stream '(feed "
-                + relName + ")'" << endl;
-            result = qp->ResultStorage( s );
-            RType* drel = ( RType* )result.addr;
-            drel->makeUndefined( );
-            qps->Destroy( treeS, true );
-            delete qps;
-            return 0;
-        }
-
+        // Create OpTree for the hash function
         ListExpr funarg1 = nl->TwoElemList(
             nl->SymbolAtom( "t" ),
             nl->Second( nl->Second( qp->GetType( s ) ) ) );
@@ -698,23 +737,12 @@ namespace drel {
         string boundaryName = DRelHelpers::randomBoundaryName( );
         ListExpr typeInfo = nl->TwoElemList(
             nl->SymbolAtom( Boundary::BasicType( ) ),
-            nl->OneElemList( nl->SymbolAtom( CcInt::BasicType( ) ) ) );
+            nl->OneElemList( attrType ) );
         sc->InsertObject(
             boundaryName, Boundary::BasicType( ), typeInfo, boundary, true );
 
         QueryProcessor* qps = new QueryProcessor( nl, am );
-        OpTree treeS = 0;
-
-        if( !createStreamOpTree( qps, relName, treeS ) ) {
-            cout << "Error while create operator tree for the stream '(feed "
-                + relName + ")'" << endl;
-            result = qp->ResultStorage( s );
-            RType* drel = ( RType* )result.addr;
-            drel->makeUndefined( );
-            qps->Destroy( treeS, true );
-            delete qps;
-            return 0;
-        }
+        OpTree treeS = createStreamOpTree( qps, relName );
 
         // create the function to get the index of each attribute
         ListExpr funarg1 = nl->TwoElemList(
@@ -800,8 +828,8 @@ namespace drel {
         CcString* name = ( CcString* )args[ 2 ].addr;
         CcInt* size = ( CcInt* )args[ 5 ].addr;
         string attrName = ( string )( char* )
-            ( ( CcString* )args[ 9 ].addr )->GetStringval( );
-        string relName = ( ( CcString* )args[ 10 ].addr )->GetValue( );
+            ( ( CcString* )args[ 10 ].addr )->GetStringval( );
+        string relName = ( ( CcString* )args[ 11 ].addr )->GetValue( );
 
         ListExpr attrType;
         int pos = listutils::findAttribute(
@@ -814,83 +842,30 @@ namespace drel {
             rel, pos - 1, size->GetIntval( ) );
         SecondoCatalog* sc = SecondoSystem::GetCatalog( );
         string gridName = DRelHelpers::randomGridName( );
-        sc->InsertObject(
-            gridName, temporalalgebra::CellGrid2D::BasicType( ), 
-            nl->SymbolAtom( temporalalgebra::CellGrid2D::BasicType( ) ), 
-            grid, true );
-
-        // Create OpTree for the hash function
+        if( !sc->InsertObject(
+                gridName, temporalalgebra::CellGrid2D::BasicType( ), 
+                nl->SymbolAtom( temporalalgebra::CellGrid2D::BasicType( ) ), 
+                grid, true ) ) {
+        }
+        
         QueryProcessor* qps = new QueryProcessor( nl, am );
-        OpTree treeS = 0;
-
-        if( !createStreamOpTree( qps, relName, treeS ) ) {
-            cout << "Error while create operator tree for the stream '(feed "
-                + relName + ")'" << endl;
-            result = qp->ResultStorage( s );
-            RType* drel = ( RType* )result.addr;
-            drel->makeUndefined( );
-            qps->Destroy( treeS, true );
-            delete qps;
-            return 0;
-        }
-
-        ListExpr funarg1 = nl->TwoElemList(
-            nl->SymbolAtom( "t" ),
-            nl->Second( nl->Second( qp->GetType( s ) ) ) );
-
-        ListExpr fundef = nl->ThreeElemList(
-            nl->SymbolAtom( "cellnumber" ),
-            nl->TwoElemList(
-                nl->SymbolAtom( "bbox" ),
-                nl->ThreeElemList(
-                    nl->SymbolAtom( "attr" ),
-                    nl->SymbolAtom( "t" ),
-                    nl->SymbolAtom( attrName ) ) ) ,
-            nl->SymbolAtom( gridName ) );
-
-        ListExpr funList =
-            nl->ThreeElemList(
-                nl->SymbolAtom( "fun" ),
-                funarg1,
-                fundef );
-
-        OpTree tree = 0;
-        bool correct = false;
-        bool evaluable = false;
-        bool defined = false;
-        bool isFunction = false;
-        ListExpr resultType;
-        QueryProcessor* qp2 = new QueryProcessor( nl, am );
-        qp2->Construct( funList,
-            correct,
-            evaluable,
-            defined,
-            isFunction,
-            tree,
-            resultType );
-
-        if( !correct ) {
-            cout << "can not create operator tree" << endl;
-            result = qp->ResultStorage( s );
-            RType* drel = ( RType* )result.addr;
-            drel->makeUndefined( );
-            qps->Destroy( treeS, true );
-            delete qps;
-            return 0;
-        }
+        OpTree treeS = createStreamCellGridOpTree( 
+            qps, relName, attrName, gridName, nl->ToString( nl->Second( 
+                nl->Second( qp->GetType( s ) ) ) ) );
 
         // new argument vector for distribute4VMT with the OpTree passed to 
         // the valuemapping of the distribute3 operator.
         ArgVector argVec = { treeS,
             name,
-            tree,
+            args[ 4 ].addr,
             size,
             workers,
             args[ 6 ].addr,
             args[ 7 ].addr,
-            args[ 8 ].addr };
+            args[ 8 ].addr,
+            args[ 9 ].addr };
 
-        distribute4VMT<AType, DType, HType, CType>( argVec,
+        ddistribute2VMT<AType, DType, HType, CType>( argVec,
             result, message, local, s );
 
         RType* drel = ( RType* )result.addr;
@@ -901,10 +876,9 @@ namespace drel {
                     new temporalalgebra::CellGrid2D( *grid ) ) );
         }
 
-        //qp2->Destroy( tree, true );
-        delete qp2;
-
-        qps->Destroy( treeS, true );
+        // Word boundaryWord( boundary );
+        // sc->DeleteObj( typeInfo, grid );
+        //qps->Destroy( treeS, true );
         delete qps;
 
         return 0;
@@ -1071,14 +1045,15 @@ namespace drel {
         distributeVMT<DRel, DArray, RelFileRestorer, CcString, FText>,
         distributeVMT<DRel, DArray, RelFileRestorer, FText, CcString>,
         distributeVMT<DRel, DArray, RelFileRestorer, FText, FText>,
-        distributeVMTreplicated<DFRel, DFArray, FRelCopy, CcString, CcString>,
-        distributeVMTreplicated<DFRel, DFArray, FRelCopy, CcString, FText>,
-        distributeVMTreplicated<DFRel, DFArray, FRelCopy, FText, CcString>,
-        distributeVMTreplicated<DFRel, DFArray, FRelCopy, FText, FText>,
-        distributeVMTrandom<DFRel, DFArray, FRelCopy, CcString, CcString>,
-        distributeVMTrandom<DFRel, DFArray, FRelCopy, CcString, FText>,
-        distributeVMTrandom<DFRel, DFArray, FRelCopy, FText, CcString>,
-        distributeVMTrandom<DFRel, DFArray, FRelCopy, FText, FText>
+        distributeVMTreplicated<DRel, DArray, RelFileRestorer, CcString, 
+                                CcString>,
+        distributeVMTreplicated<DRel, DArray, RelFileRestorer, CcString, FText>,
+        distributeVMTreplicated<DRel, DArray, RelFileRestorer, FText, CcString>,
+        distributeVMTreplicated<DRel, DArray, RelFileRestorer, FText, FText>,
+        distributeVMTrandom<DRel, DArray, RelFileRestorer, CcString, CcString>,
+        distributeVMTrandom<DRel, DArray, RelFileRestorer, CcString, FText>,
+        distributeVMTrandom<DRel, DArray, RelFileRestorer, FText, CcString>,
+        distributeVMTrandom<DRel, DArray, RelFileRestorer, FText, FText>
     };
 
     /*

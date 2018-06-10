@@ -7,3 +7,5 @@ operator dreldistribute alias DRRELDISTRIBUTE pattern _ op [_,_,_,_,_]
 
 operator comparedisttype alias COMPAREDISTTYPE pattern _ _ op
 operator convert2darray alias CONVERT2DARRAY pattern _ op
+
+operator drelsummarize alias DRELSUMMARIZE pattern _ op

@@ -46,6 +46,8 @@ extern Operator dreldistributeOp;
 extern Operator compareDistTypeOp;
 extern Operator convert2darrayOp;
 
+extern Operator drelsummarizeOp;
+
 /*
 1 Implementation of the Algebra DRel
 
@@ -70,6 +72,8 @@ DRelAlgebra::DRelAlgebra() {
 
     AddOperator( &compareDistTypeOp );
     AddOperator( &convert2darrayOp );
+
+    AddOperator( &drelsummarizeOp );
 }
 
 extern "C"

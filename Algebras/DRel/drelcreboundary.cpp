@@ -122,6 +122,9 @@ namespace drel {
             nl->OneElemList(
                 attrType ) );
 
+        cout << "createboundary resType" << endl;
+        cout << nl->ToString( resType ) << endl;
+
         ListExpr appendList = nl->OneElemList(
             nl->IntAtom( pos - 1 ) );
 
