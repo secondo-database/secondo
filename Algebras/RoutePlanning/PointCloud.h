@@ -358,6 +358,13 @@ namespace routeplanningalgebra {
         Clone
         */
         Attribute *Clone () const; 
+
+        std::ostream& print(std::ostream& out) const{
+           out << "x = " << x <<", y = " << y << "z = " << z 
+               << ", left = " << leftson
+               << ", right = " << rightson;
+            return out;
+        }
         
     private:
         double x;
@@ -384,10 +391,14 @@ namespace routeplanningalgebra {
             StandardSpatialAttribute(true),
             cpoint2dtree ( anzp ) {
             SetDefined(true);
+            minZ = anzp>0?Z[0]:std::numeric_limits<double>::max();
+            maxZ = anzp>0?Z[0]:std::numeric_limits<double>::min();
             if(anzp > 0) {
                 for( int i = 0; i < anzp; i++) {
                     cpoint2dtree.Append(
                         Cpointnode(X[i], Y[i], Z[i], Lson[i], Rson[i]));
+                    if(Z[i] < minZ) minZ = Z[i];
+                    if(Z[i] > maxZ) maxZ = Z[i];   
                 } 
             }
             minX  = Xmin;
@@ -395,6 +406,26 @@ namespace routeplanningalgebra {
             minY  = Ymin;
             maxY = Ymax;
         }
+
+        // Copy contructor
+        PointCloud(const PointCloud& pc): cpoint2dtree(0), minX(pc.minX),
+              maxX(pc.maxX), minY(pc.minY), maxY(pc.maxY), 
+              minZ(pc.minZ), maxZ(pc.maxZ){
+          cpoint2dtree.copyFrom(pc.cpoint2dtree);
+        }
+
+        PointCloud& operator=(const PointCloud& pc){
+          cpoint2dtree.copyFrom(pc.cpoint2dtree);
+          minX = pc.minX;
+          maxX = pc.maxX;
+          minY = pc.minY;
+          maxY = pc.maxY;
+          minZ = pc.minZ;
+          maxZ = pc.maxZ;   
+          return *this; 
+        }
+
+
         // destructor
         ~PointCloud() {}
 
@@ -417,10 +448,17 @@ namespace routeplanningalgebra {
         double getMaxX();
         double getMinY();
         double getMaxY();
-        void     setMinX(const double minx);
-        void     setMaxX(const double maxx);
-        void     setMinY(const double miny);
-        void     setMaxY(const double maxy);        
+        double getMinZ() const{
+           return minZ; 
+        }
+        double getMaxZ() const{
+           return maxZ; 
+        }
+
+        void  setMinX(const double minx);
+        void  setMaxX(const double maxx);
+        void  setMinY(const double miny);
+        void  setMaxY(const double maxy);        
         
         /*
         NumOfFlobs
@@ -445,7 +483,21 @@ namespace routeplanningalgebra {
         /*
         SetCpointnode
         */
-        void SetCpointnode(int i, Cpointnode* cpnode);
+        //void SetCpointnode(int i, Cpointnode* cpnode);
+        void changeLeftSon(const int idx, const int newSon){
+           Cpointnode node;
+           cpoint2dtree.Get(idx,node);
+           node.setLeftSon(newSon);
+           cpoint2dtree.Put(idx,node);
+        }
+        
+        void changeRightSon(const int idx, const int newSon){
+           Cpointnode node;
+           cpoint2dtree.Get(idx,node);
+           node.setRightSon(newSon);
+           cpoint2dtree.Put(idx,node);
+        }
+
       
         /*
         AppendCpointnode
@@ -499,14 +551,14 @@ namespace routeplanningalgebra {
             r2max[0] = (x1 < x2)? x2: x1;    
             r2min[1] = (y1 < y2)? y1: y2;
             r2max[1] = (y1 < y2)? y2: y1;    
-            Cpoints* rangePoints = new Cpoints(0);
             int chkDim = 1;
             int idx = 0;
             Rectangle<2> rect2 = Rectangle<2>(true, r2min, r2max); 
             if (!this->Intersects(rect2)) {
-                cout << "No point within requested area" << endl;
+                //cout << "No point within requested area" << endl;
                 return 0;
             }
+            Cpoints* rangePoints = new Cpoints(0);
             // go through the 2D Tree
             search2DTree(this->BoundingBox(), rect2, rangePoints, idx, chkDim);
             return rangePoints;
@@ -566,8 +618,11 @@ namespace routeplanningalgebra {
                     r4max[0] = ((Rectangle<2>*) &rect1)->Rectangle<2>::MaxD(0);
                     r4max[1] = ((Rectangle<2>*) &rect1)->Rectangle<2>::MaxD(1);
                 }
+                
                 Rectangle<2> rect3 = Rectangle<2>(true, r3min, r3max);
                 Rectangle<2> rect4 = Rectangle<2>(true, r4min, r4max);
+
+
                 if (intersects2(rect3, rect2)) {
                     searchLeft = true;
                 } else {
@@ -604,30 +659,17 @@ namespace routeplanningalgebra {
        getMinMaxZ
        */
        void getMinMaxZ(double& min, double& max) {
-         if (IsEmpty()) {
-           min = 0;
-           max = 0;
-           return;
-         }
-         min = std::numeric_limits<double>::max();
-         max = std::numeric_limits<double>::min();
-         Cpoints *cps = getAllPointsInRange(minX, minY, maxX, maxY);
-         double z;
-         for (int i = 0; i < cps->GetNoCpoints(); i++) {
-           z = cps->GetCpoint(i).getZ();
-           if (z < min) {
-             min = z;
-           }
-           if (z > max) {
-             max = z;
-           }
-         }
+         min = minZ;
+         max = maxZ;
        }
        
        /*
        BoundingBox3d
        */
        const Rectangle<3> BoundingBox3d() {
+         if(cpoint2dtree.Size()==0){
+            return Rectangle<3>(false);
+         }
          double min[3], max[3];
          min[0] = minX;
          min[1] = minY;
@@ -700,10 +742,7 @@ namespace routeplanningalgebra {
        */     
        bool IsEmpty() const {
            // check amount of elem in point
-           if (this->Sizeof() > 0) {
-               return false;
-           }
-           return true;
+           return cpoint2dtree.Size()==0;
        }
         
        bool intersects2(const Rectangle<2> rect1, const Rectangle<2> rect2) {
@@ -720,17 +759,43 @@ namespace routeplanningalgebra {
            disjointX = ((maxX2 < minX1) || (maxX1 < minX2)) ? true : false;
            disjointY = ((maxY2 < minY1) || (maxY1 < minY2)) ? true : false;
            return (!disjointX && !disjointY);
-       }        
+       }       
 
+       std::ostream& print(std::ostream&  out) const{
+         if(!IsDefined()){
+           out << "undefined" << endl;
+           return out;
+         }
+         out << "minX = " << minX << ", maxX = " << maxX << endl
+             << "minY = " << minY << ", maxY = " << maxY << endl
+             << "minZ = " << minZ << ", maxZ = " << maxZ << endl;
+         out << "Nodes of tree:" << endl;
+         Cpointnode node;
+         for(int i=0;i<cpoint2dtree.Size();i++){
+           cpoint2dtree.Get(i,node);
+           out << i << " : ";
+           node.print(out) << endl;
+         } 
+         return out;
+
+
+       }
        private:
         DbArray<Cpointnode> cpoint2dtree;
         // Bounding box of pointcloud
         double minX;
         double maxX;
         double minY;
-        double maxY;  
+        double maxY; 
+        double minZ;
+        double maxZ;
     };    
 
 }
+
+std::ostream& operator<<(std::ostream& out, 
+                         const routeplanningalgebra::PointCloud&);
+
+
 
 #endif //SECONDO_POINTCLOUD_H

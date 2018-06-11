@@ -360,6 +360,7 @@ namespace routeplanningalgebra {
         const Cpoint &cpoint = pointContainer->GetCpoint(i);
         points.push_back(cpoint);
       }
+      delete pointContainer;
     }
 
     pointcloudStream.close();
@@ -1106,7 +1107,6 @@ namespace routeplanningalgebra {
   int LCompose::PointcloudToTin::pointcloud2TinVM(Word *args, Word &result,
                                                   int message, Word &local,
                                                   Supplier s) {
-    result = qp->ResultStorage(s);
     Stream<PointCloud> stream(args[0]);
     CcReal *ccReal = (CcReal *) args[1].addr;
 
@@ -1139,7 +1139,10 @@ namespace routeplanningalgebra {
       return -1;
     }
 
-    result.setAddr(tin);
+    //result.setAddr(tin);
+    qp->DeleteResultStorage(s);
+    qp->ChangeResultStorage(s, SetWord(tin));
+    result = qp->ResultStorage(s);
     return 0;
   }
 

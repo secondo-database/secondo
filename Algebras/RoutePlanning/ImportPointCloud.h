@@ -84,6 +84,8 @@ namespace routeplanningalgebra {
         class importpointcloudLI {
             public:
             importpointcloudLI(T* arg) : pcCount(0) {
+                pointCloudArray = 0;
+                pointCloudArray2 = 0;
                 lasFileDir = "";
                 if(arg->IsDefined()) {
                     lasFileDir = arg->GetValue();
@@ -103,23 +105,27 @@ namespace routeplanningalgebra {
                 // and build a PointCloud array that provides 
                 // the pointclouds one after the other upon request.
                 if (lasFileDir.empty()) { 
-                    cout << "Please enter a valid Dir or file name!"
-                            << endl;
+                    //cout << "Please enter a valid Dir or file name!"
+                    //        << endl;
                     endOfPointClouds = true;
                 } else {
                     readLasFileNames(lasFileDir);
                     if (lasFileList.size() <= 0) {
                         endOfPointClouds = true;
                     }
-                    cout << "Number of las files to be processed: " 
-                            << lasFileList.size() << endl; 
+                    //cout << "Number of las files to be processed: " 
+                    //        << lasFileList.size() << endl; 
                 }
                 // read first las file data
                 while ((readLasFiles() != 0) && (!endOfPointClouds)) {
                     // if error try with next file
                 }
             }
-            ~importpointcloudLI() {}
+
+            ~importpointcloudLI() {
+               deletePointCloudArray();
+               if(pointCloudArray2) delete[] pointCloudArray2;
+            }
 
             /*
             Read lasFiles names in provided directory and
@@ -393,10 +399,27 @@ namespace routeplanningalgebra {
             pointdata read from file
             */
             void initPointCloudArray() {
-                for (int i = 1; i <= noPCElems; i++) {
-                     pointCloudArray[i-1] = new PointCloud(0);
+                for (int i = 0; i < noPCElems; i++) {
+                     pointCloudArray[i] = new PointCloud(0);
                 }
             }
+
+            void emptyPointCloudArray(){
+                for (int i = 0; i < noPCElems; i++) {
+                     if(pointCloudArray[i]) {
+                        pointCloudArray[i]->DeleteIfAllowed();
+                        pointCloudArray[i] = 0;
+                     }
+                }
+            }
+            void deletePointCloudArray(){
+              if(pointCloudArray){
+                 emptyPointCloudArray();
+                 delete[] pointCloudArray;
+                 pointCloudArray = 0;
+              }
+            }
+
             
            /*
            setMinMaxValues of PointClouds
@@ -423,10 +446,14 @@ namespace routeplanningalgebra {
                 // Set pointer content pointCloudArray to 0
                 // to avoid references to data that was already 
                 // returned as result.
-                for (int di = 0; di < noPCElems; di++) {
-                    pointCloudArray[di] = 0;
+
+                if(pointCloudArray){
+                  for (int di = 0; di < noPCElems; di++) {
+                      pointCloudArray[di] = 0;
+                  }
+                  delete[] pointCloudArray;
+                  pointCloudArray=0;                        
                 }
-                delete[] pointCloudArray;                        
                 noPCElems = 0;
                 bool xDim;
                 // Check if split of PC necessary
@@ -441,7 +468,7 @@ namespace routeplanningalgebra {
                 //         << endl;
                 pointCloudArray = new PointCloud*[noPCElems];
                 // Temp PC for split calculation
-                PointCloud** pcTemp = new PointCloud*[2];
+                PointCloud* pcTemp[2]; 
                 /*
                 pcTemp[0] = new PointCloud(0);
                 pcTemp[1] = new PointCloud(0); 
@@ -537,7 +564,8 @@ namespace routeplanningalgebra {
                     delete pointCloudArray2[di];
                     pointCloudArray2[di] = 0;
                 }
-                delete[] pointCloudArray2;
+                
+                if(pointCloudArray2) delete[] pointCloudArray2;
                 pointCloudArray2 = new PointCloud*[noPCElems];
                 pcCount = 0;
                 pcCount2 = -1;
@@ -601,8 +629,9 @@ namespace routeplanningalgebra {
                               (cptnode->getLeftSon()), (-1 * chkDim), lastElem);
                     } else {
                         // location of new element found
-                        cptnode->setLeftSon(lastElem);
-                        ptCloud->SetCpointnode(idx, cptnode);
+                        //cptnode->setLeftSon(lastElem);
+                        //ptCloud->SetCpointnode(idx, cptnode);
+                        ptCloud->changeLeftSon(idx,lastElem);
                     }
                 } else {
                     if (cptnode->getRightSon() != -1) {
@@ -611,8 +640,9 @@ namespace routeplanningalgebra {
                             (cptnode->getRightSon()), (-1 * chkDim), lastElem);
                     } else {
                         // location of new element found
-                        cptnode->setRightSon(lastElem);
-                        ptCloud->SetCpointnode(idx, cptnode);
+                        //cptnode->setRightSon(lastElem);
+                        //ptCloud->SetCpointnode(idx, cptnode);
+                        ptCloud->changeRightSon(idx,lastElem);
                     }
                 }
             }
@@ -642,7 +672,9 @@ namespace routeplanningalgebra {
                         locatePosIn2DTree(pointX, pointY, 
                                       (pointCloudArray[pcCount -1]), 0, 1, i);
                     }
-                    return pointCloudArray[pcCount-1];
+                    PointCloud* res = pointCloudArray[pcCount-1];
+                    //pointCloudArray[pcCount-1] = 0; 
+                    return (PointCloud*) res->Copy();
                 }
             }
             
@@ -675,9 +707,11 @@ namespace routeplanningalgebra {
                     }
                     if (pcCount > noPCElems) {
                         for (int di = 0; di < noPCElems; di++) {
+                            if(pointCloudArray[di]) delete pointCloudArray[di];
                             pointCloudArray[di] = 0;
                         }
                         delete[] pointCloudArray;
+                        pointCloudArray = 0;
                         while ((readLasFiles() != 0) 
                                && (!endOfPointClouds)) {
                             // if error try with next file

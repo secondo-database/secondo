@@ -421,15 +421,20 @@ namespace routeplanningalgebra {
     /*
     SetCpointnode
     */
+    /*
     void PointCloud::SetCpointnode(int i, Cpointnode* cpnode) {
         cpoint2dtree.Put(i, *cpnode);
-    }        
+    } 
+    */       
         
     /*
     AppendCpointnode
     */
     void PointCloud::AppendCpointnode(const Cpointnode &cpntnode) {
         cpoint2dtree.Append(cpntnode);
+        double z = cpntnode.getZ();
+        if(z<minZ) minZ = z;
+        if(z>maxZ) maxZ = z;
     }
   
     /*
@@ -528,3 +533,10 @@ namespace routeplanningalgebra {
 
     
 }
+
+
+std::ostream& operator<<(std::ostream& out, 
+                         const routeplanningalgebra::PointCloud& pc){
+   return pc.print(out); 
+}
+

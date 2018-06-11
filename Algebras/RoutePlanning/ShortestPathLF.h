@@ -259,8 +259,8 @@ namespace routeplanningalgebra {
                     
             //Destructor
             ~shortestpathlfLI(){
+                if(iter) delete iter;
                 delete result; 
-                delete iter;
                 if(rtree != 0){
                 delete rtree;}
                 if(rel != 0){
@@ -446,6 +446,7 @@ namespace routeplanningalgebra {
                     for(int i = 0; i < actTuple->GetNoAttributes(); i++){
                         resTuple->CopyAttribute(i, actTuple, i);}
                     result->AppendTuple(resTuple);
+                    resTuple->DeleteIfAllowed();
                     actNode = closedList->find(actNode->getBeforeNodeID());
                     //only start node has negative before node id
                     //if start node is reached, path is completed
@@ -481,6 +482,7 @@ namespace routeplanningalgebra {
                 delete prioQ;
                 delete closedList;
                 delete orelIt; //orelIt = 0;
+                if(iter) delete iter;
                 iter = result->MakeScan();
                 tupleCount = result->GetNoTuples();
                 return;
@@ -519,17 +521,22 @@ namespace routeplanningalgebra {
                     std::cos(lat / 180 * PI) /*at ~lat~*/ / 360;
                 // convert length to meters and calculate average gradient
                 double avgGradient = height / (length * conversion);
+                CcInt* tmp;
 
                 if(avgGradient < 0)
-                    prio *= (6 - ((CcInt*)prefs->GetComponent(0))->GetIntval());
+                    tmp = (CcInt*)prefs->GetComponent(0);
                 if(avgGradient >= 0 && avgGradient < 0.05)
-                    prio *= (6 - ((CcInt*)prefs->GetComponent(1))->GetIntval());
+                    tmp = (CcInt*)prefs->GetComponent(1);
                 if(avgGradient >= 0.05 && avgGradient < 0.10)
-                    prio *= (6 - ((CcInt*)prefs->GetComponent(2))->GetIntval());
+                    tmp = (CcInt*)prefs->GetComponent(2);
                 if(avgGradient >= 0.10 && avgGradient < 0.15)
-                    prio *= (6 - ((CcInt*)prefs->GetComponent(3))->GetIntval());
+                    tmp = (CcInt*)prefs->GetComponent(3);
                 if(avgGradient >= 0.15)
-                    prio *= (6 - ((CcInt*)prefs->GetComponent(4))->GetIntval());
+                    tmp = (CcInt*)prefs->GetComponent(4);
+
+                prio *= (6 - tmp->GetIntval());
+                delete tmp;
+
                 return;
             }
             
@@ -555,7 +562,7 @@ namespace routeplanningalgebra {
                  kElems[0] = test.GetType();
                  kElems[1] = test.GetType();
                  Tuple* intermediate = 0;
-                 GenericRelationIterator* iter;
+                 GenericRelationIterator* iter=0;
                  Tuple* currentTuple = 0;
                  Point* currentPoint = 0;
                  int val = 0;       
@@ -576,23 +583,29 @@ namespace routeplanningalgebra {
                     //Make composite key to search for return ruple
                     CompositeKey first(attributes, kElems);
                     CompositeKey second(attributes, kElems, true);
+                    if(iter) delete iter;
                     iter = orel->MakeRangeScan(first, second);
                     returnTuple = iter->GetNextTuple();
                     delete iter;
-                    if (returnTuple == 0){return 0;}
+                    iter = 0;
+                    if (returnTuple == 0){
+                       if(intermediate) intermediate->DeleteIfAllowed();
+                       return 0;
+                    }
                     returnPoint = (Point*) returnTuple->GetAttribute(index);
                     //check for similarity first
                     if(AlmostEqual(*inputPoint, *returnPoint)){
                         val = ((CcInt*)returnTuple->GetAttribute(indexSource))
                             ->GetIntval();
                         returnTuple->DeleteIfAllowed();
+                        if(intermediate) intermediate->DeleteIfAllowed();
                         return val;
                     }
                     returnEuclid = getEuclid(inputPoint, returnPoint);
                 }
                 while(rtree->Next(entry)){
                     TupleId id = (TupleId) entry.info;
-                    intermediate->DeleteIfAllowed();
+                    if(intermediate)intermediate->DeleteIfAllowed();
                     intermediate = rel->GetTuple(id, false);
                     attributes[0] = (CcInt*) intermediate
                         ->GetAttribute(sourceIndex);
@@ -600,6 +613,7 @@ namespace routeplanningalgebra {
                         ->GetAttribute(targetIndex);
                     CompositeKey first(attributes, kElems);
                     CompositeKey second(attributes, kElems, true);
+                    if(iter) delete iter;
                     iter = orel->MakeRangeScan(first, second);
                     if(currentTuple!=0){currentTuple->DeleteIfAllowed();}
                     currentTuple = iter->GetNextTuple();
@@ -612,6 +626,7 @@ namespace routeplanningalgebra {
                          val = ((CcInt*)currentTuple->GetAttribute(indexSource))
                              ->GetIntval();
                          currentTuple->DeleteIfAllowed();
+                         if(intermediate) intermediate->DeleteIfAllowed();
                          return val;
                     }                 
                     double currentEuclid = getEuclid(inputPoint, currentPoint);
@@ -661,14 +676,16 @@ namespace routeplanningalgebra {
             Tuple* getNext(){
                 if(result != 0 && iter!= 0){
                     Tuple* res;
-                    //Tuple* res = iter->GetNextTuple();
                     size_t c = 0;
                     while(c<=tupleCount && ((res = iter->GetNextTuple())!=0)){
                         if(c==tupleCount-1){
                              tupleCount--;
+                             if(iter) delete iter;
                              iter = result->MakeScan();//reset iterator
                              return res;
-                        } 
+                        }  else {
+                           res->DeleteIfAllowed();
+                        }
                      c++;
                    }
                 }

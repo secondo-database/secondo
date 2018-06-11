@@ -1163,6 +1163,11 @@ CloneCpoints
                                       pc->getMaxX(), pc->getMaxY());
         tt = getTupleType();
       }
+
+      ~ExtractpointsLI(){
+        delete cps;
+        tt->DeleteIfAllowed();
+      }
       
       Tuple* getNextTuple() {
         if (counter >= cps->GetNoCpoints()) {
@@ -1271,16 +1276,26 @@ CloneCpoints
                             cout << " fallback to base processing" << endl;
                         }
                         else{
-                            int first = ((CcInt*) preferences->GetComponent(0))
-                                ->GetIntval();
-                            int second = ((CcInt*) preferences->GetComponent(1))
-                                ->GetIntval();
-                            int third = ((CcInt*) preferences->GetComponent(2))
-                                ->GetIntval();
-                            int fourth = ((CcInt*) preferences->GetComponent(3))
-                                ->GetIntval();
-                            int fifth = ((CcInt*) preferences->GetComponent(4))
-                                ->GetIntval();
+                            CcInt* First = (CcInt*) 
+                                           preferences->GetComponent(0);
+                            int first = First->GetIntval();
+                            delete First;
+                            CcInt* Second=(CcInt*) 
+                                           preferences->GetComponent(1); 
+                            int second = Second->GetIntval();
+                            delete Second;
+                            CcInt* Third=(CcInt*) 
+                                          preferences->GetComponent(2); 
+                            int third = Third->GetIntval();
+                            delete Third;
+                            CcInt* Fourth =(CcInt*) 
+                                           preferences->GetComponent(3) ;
+                            int fourth = Fourth->GetIntval();
+                            delete Fourth;
+                            CcInt* Fifth = (CcInt*) 
+                                           preferences->GetComponent(4);
+                            int fifth = Fifth->GetIntval();
+                            delete Fifth;
                             if(first < 0 || second < 0 || third < 0 
                                || fourth < 0 || fifth < 0 ){
                                 preferences = 0;
@@ -1299,7 +1314,7 @@ CloneCpoints
                 return 0;}
             case REQUEST: {
                result.addr = li?li->getNext():0;
-                return result.addr?YIELD:CANCEL; }
+               return result.addr?YIELD:CANCEL; }
             case CLOSE:{
                 if(li){
                     delete li;
