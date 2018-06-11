@@ -1,0 +1,32 @@
+libpmregion: Library for handling Polyhedral Moving Regions
+===========================================================
+
+Authors: Florian Heinz <fh@sysv.de>, Prof. Dr. Ralf Hartmut G[ue]ting <rhg@fernuni-hagen.de>
+Version: 1.0 (2018-05-15)
+Copyright: GNU Lesser General Public License Version 3 (a copy can be found in LGPL-3.0)
+
+Prerequisites:
+clang++-compiler
+libCGAL (>= 4.11.1)
+boost
+
+Compile with: make
+Result:
+libpmregion.a - Library
+pmregcli - CLI demo program
+
+Example files:
+
+pmreg1 - A PMRegion
+pmreg2 - A PMRegion
+mpoint - A Moving Point
+
+
+Example operations:
+
+pmregcli union pmreg1 pmreg2 > pmreg12
+pmregcli atinstant pmreg1 3600000
+pmregcli mpointinside pmreg12
+pmregcli pmreg2mreg pmreg12
+
+
