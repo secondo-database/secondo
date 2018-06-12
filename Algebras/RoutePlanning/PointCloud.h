@@ -384,8 +384,9 @@ namespace routeplanningalgebra {
         // constructor doing nothing
         PointCloud() {}
         // constructor initialzing the object
-        PointCloud(const int anzp, const double *X= 0, const double *Y= 0, 
-            const double *Z= 0, const int *Lson= 0, const int *Rson= 0,
+        PointCloud(const int anzp, 
+            const double *X= 0, const double *Y= 0, const double *Z= 0, 
+            const int *Lson= 0, const int *Rson= 0,
             const double Xmin = 0, const double Xmax = 0, 
             const double Ymin = 0, const double Ymax = 0): 
             StandardSpatialAttribute(true),
@@ -408,7 +409,9 @@ namespace routeplanningalgebra {
         }
 
         // Copy contructor
-        PointCloud(const PointCloud& pc): cpoint2dtree(0), minX(pc.minX),
+        PointCloud(const PointCloud& pc): 
+              StandardSpatialAttribute(pc.IsDefined()),
+              cpoint2dtree(0), minX(pc.minX),
               maxX(pc.maxX), minY(pc.minY), maxY(pc.maxY), 
               minZ(pc.minZ), maxZ(pc.maxZ){
           cpoint2dtree.copyFrom(pc.cpoint2dtree);
@@ -502,7 +505,13 @@ namespace routeplanningalgebra {
         /*
         AppendCpointnode
         */
-        void AppendCpointnode(const Cpointnode &cpntnode);
+        //void AppendCpointnode(const Cpointnode &cpntnode);
+
+        /*
+        Insertion of an element including adaption of the tree
+        */
+        bool insert(const double x, const double y, const double z);
+ 
   
         /*
         Destroy

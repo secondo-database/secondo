@@ -418,24 +418,18 @@ namespace routeplanningalgebra {
         return cpelem;
     }
 
-    /*
-    SetCpointnode
-    */
-    /*
-    void PointCloud::SetCpointnode(int i, Cpointnode* cpnode) {
-        cpoint2dtree.Put(i, *cpnode);
-    } 
-    */       
         
     /*
     AppendCpointnode
     */
+    /*
     void PointCloud::AppendCpointnode(const Cpointnode &cpntnode) {
         cpoint2dtree.Append(cpntnode);
         double z = cpntnode.getZ();
         if(z<minZ) minZ = z;
         if(z>maxZ) maxZ = z;
     }
+    */
   
     /*
     DestroyPointCloud
@@ -513,23 +507,52 @@ namespace routeplanningalgebra {
     Clone
     */
     Attribute *PointCloud::Clone () const {
-        PointCloud* res = new PointCloud(0);
-        res->SetDefined(true);
-        Cpointnode cpelem;
-        if(!this->IsDefined()) {
-            res->SetDefined(false);
-        }
-        for (int i = 0; i < cpoint2dtree.Size(); i++) {
-            cpoint2dtree.Get(i, cpelem);
-            res->AppendCpointnode(cpelem);
-        }
-        res->setMinX(minX);
-        res->setMaxX(maxX);           
-        res->setMinY(minY);
-        res->setMaxY(maxY);           
-        return res;
+        return new PointCloud(*this);
     }
-    
+   
+
+    bool PointCloud::insert(const double x, const double y, const double z){
+      if(cpoint2dtree.Size()==0){
+        cpoint2dtree.Append(Cpointnode(x,y,z,-1,-1)); // first node
+        minZ = maxZ = z;
+        return true;
+      }
+      // correct z dimension
+      if(z<minZ) minZ = z;
+      if(z>maxZ) maxZ = z;
+
+      // search insertion position
+      int idx = 0;
+      Cpointnode node;
+      bool xdim = true;
+      cpoint2dtree.Get(idx,node);
+      bool done = false;
+      bool left;
+      do{
+        if(xdim){
+          left = x < node.getX();
+        } else {
+           left = y < node.getY();
+        }
+        int son = left?node.getLeftSon():node.getRightSon();
+        done = son==-1;
+        if(!done){
+          xdim = !xdim;
+          idx = son;
+          cpoint2dtree.Get(idx,node);
+        }
+      } while(!done);
+
+      int pos =  cpoint2dtree.Size();
+      if(left){
+         node.setLeftSon(pos);
+      } else {
+         node.setRightSon(pos);         
+      }
+      cpoint2dtree.Put(idx,node); // store corrected son
+      cpoint2dtree.Append(Cpointnode(x,y,z,-1,-1));
+      return true; 
+    } 
 
     
 }

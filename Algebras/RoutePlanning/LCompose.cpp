@@ -314,6 +314,7 @@ namespace routeplanningalgebra {
           std::max(startx, endx) + proximity,
           std::max(starty, endy) + proximity
       );
+      pointCloud->DeleteIfAllowed();
       if (!pointContainer) {
         continue;
       }
@@ -327,7 +328,6 @@ namespace routeplanningalgebra {
       delete pointContainer;
     }
 
-    delete pointCloud;
     pointcloudStream.close();
     // success
     if (points.size() > 0) {
@@ -356,6 +356,7 @@ namespace routeplanningalgebra {
           pointCloud->getMaxX(),
           pointCloud->getMaxY()
       );
+      pointCloud->DeleteIfAllowed();
       for (int i = 0; i < pointContainer->GetNoCpoints(); i++) {
         const Cpoint &cpoint = pointContainer->GetCpoint(i);
         points.push_back(cpoint);

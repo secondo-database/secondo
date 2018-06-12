@@ -60,10 +60,111 @@ namespace routeplanningalgebra {
     Added and maintained by Gundula Swidersky, Dec 2017 
     */
 
+    struct lasHeader{
+       char signature[4];
+       uint16_t source_id;
+       uint16_t global_Encoding;
+       uint32_t project_id1;
+       uint16_t project_id2;
+       uint16_t project_id3;
+       unsigned char  project_id4[8];
+       unsigned char major_version;
+       unsigned char minor_version;
+       char systemIdentifier[32];
+       char generatingSoftware[32];
+       uint16_t dayOfYear;
+       uint16_t year;
+       uint16_t header_size;
+       uint32_t offset_to_point_data;
+       uint32_t number_of_variable_records;
+       unsigned char point_data_format;
+       unsigned char point_data_length;
+       uint32_t legacy_number_of_points;
+       uint32_t legacy_number_of_points_by_return[5];
+       double x_scale;
+       double y_scale;
+       double z_scale;
+       double x_offset;
+       double y_offset;
+       double z_offset;
+       double max_x;
+       double min_x;
+       double max_y;
+       double min_y;
+       double max_z;
+       double min_z;
+       uint64_t start_of_waveform_data_packet_record;
+       uint64_t start_of_first_extended_vlr;
+       uint32_t number_of_vlr;
+       uint64_t number_of_point_records;
+       uint64_t number_of_points_by_return[15];
+
+       bool read(ifstream&  file){
+          file.read(reinterpret_cast<char*>(&signature),  4);
+          if( (string(signature,4)!="LASF")){
+             return false;
+          }
+          file.read(reinterpret_cast<char*>(&source_id), 2);
+          file.read(reinterpret_cast<char*>(&global_Encoding),2);
+          file.read(reinterpret_cast<char*>(&project_id1),4);
+          file.read(reinterpret_cast<char*>(&project_id2),2);
+          file.read(reinterpret_cast<char*>(&project_id3),2);
+          file.read(reinterpret_cast<char*>(&project_id4),8);
+          file.read(reinterpret_cast<char*>(&major_version),1);
+          file.read(reinterpret_cast<char*>(&minor_version), 1);
+          file.read(systemIdentifier, 32);
+          file.read(generatingSoftware, 32);
+          file.read(reinterpret_cast<char*>(&dayOfYear), 2);
+          file.read(reinterpret_cast<char*>(&year), 2);
+          file.read(reinterpret_cast<char*>(&header_size), 2);
+          file.read(reinterpret_cast<char*>(&offset_to_point_data), 4);
+          file.read(reinterpret_cast<char*>(&number_of_variable_records), 4);
+          file.read(reinterpret_cast<char*>(&point_data_format), 1);
+          file.read(reinterpret_cast<char*>(&point_data_length), 2);
+          file.read(reinterpret_cast<char*>(&legacy_number_of_points), 4);
+          file.read(reinterpret_cast<char*>(
+                                &legacy_number_of_points_by_return), 20);
+          file.read(reinterpret_cast<char*>(&x_scale), 8);
+          file.read(reinterpret_cast<char*>(&y_scale), 8);
+          file.read(reinterpret_cast<char*>(&z_scale), 8);
+          file.read(reinterpret_cast<char*>(&x_offset), 8);
+          file.read(reinterpret_cast<char*>(&y_offset), 8);
+          file.read(reinterpret_cast<char*>(&z_offset), 8);
+          file.read(reinterpret_cast<char*>(&max_x), 8);
+          file.read(reinterpret_cast<char*>(&min_x), 8);
+          file.read(reinterpret_cast<char*>(&max_y), 8);
+          file.read(reinterpret_cast<char*>(&min_y), 8);
+          file.read(reinterpret_cast<char*>(&max_z), 8);
+          file.read(reinterpret_cast<char*>(&min_z), 8);
+          if(major_version==1 && minor_version < 4){
+            start_of_waveform_data_packet_record = 0;
+            start_of_first_extended_vlr = 0;
+            number_of_vlr = 0;
+            number_of_point_records = 0;
+            memset(reinterpret_cast<char*>(number_of_points_by_return),0,120);
+          } else {
+            file.read(reinterpret_cast<char*>(
+                                   &start_of_waveform_data_packet_record), 8);
+            file.read(reinterpret_cast<char*>(&start_of_first_extended_vlr), 8);
+            file.read(reinterpret_cast<char*>(&number_of_vlr), 4);
+            file.read(reinterpret_cast<char*>(&number_of_point_records), 8);
+            file.read(reinterpret_cast<char*>(&number_of_points_by_return),
+                                              120);
+         }
+
+          return true;
+       }
+
+    };
+}
+
+ std::ostream& operator<<(std::ostream& out, 
+                 const routeplanningalgebra::lasHeader& header);
+
+
+namespace routeplanningalgebra {
     class ImportPointCloud {
     public:
-
-
         /*
         Type Mapping
         */
@@ -83,48 +184,30 @@ namespace routeplanningalgebra {
         template<class T> 
         class importpointcloudLI {
             public:
-            importpointcloudLI(T* arg) : pcCount(0) {
+            importpointcloudLI(T* arg)  {
                 pointCloudArray = 0;
-                pointCloudArray2 = 0;
-                lasFileDir = "";
+                string lasFileDir = "";
                 if(arg->IsDefined()) {
                     lasFileDir = arg->GetValue();
                 }
                 // Initialization of vars
                 lasFileList.clear();                
-                laspcFileName = "";
-                maxPoints = 10000000; // limit of points read from one file
                 maxNoPoints = 2400; // amount of points calc per PC for grid
                 maxPointsPC = 2499; // max 2500 cell per stored PC
-                pcCount = 0;
-                pcCount2 = -1;
                 noPCElems = 0;
-                endOfPointClouds = false;
                 noGridCells = 0;
-                // Read las file dir (if provided) and read (first) las file
-                // and build a PointCloud array that provides 
-                // the pointclouds one after the other upon request.
-                if (lasFileDir.empty()) { 
-                    //cout << "Please enter a valid Dir or file name!"
-                    //        << endl;
-                    endOfPointClouds = true;
-                } else {
-                    readLasFileNames(lasFileDir);
-                    if (lasFileList.size() <= 0) {
-                        endOfPointClouds = true;
-                    }
-                    //cout << "Number of las files to be processed: " 
-                    //        << lasFileList.size() << endl; 
-                }
-                // read first las file data
-                while ((readLasFiles() != 0) && (!endOfPointClouds)) {
-                    // if error try with next file
-                }
+                // initialize the files to be read
+                readLasFileNames(lasFileDir);
             }
 
             ~importpointcloudLI() {
-               deletePointCloudArray();
-               if(pointCloudArray2) delete[] pointCloudArray2;
+               if(pointCloudArray) delete[] pointCloudArray;
+               while(!resultList.empty()){
+                  PointCloud* pc = resultList.front();
+                  resultList.pop();
+                  pc->DestroyPointCloud();
+                  delete pc;
+               }
             }
 
             /*
@@ -163,27 +246,22 @@ namespace routeplanningalgebra {
                 }
              }            
             
-            /*
-            Read lasFile and return PointCloud object(s).
-            */
-            int readLasFiles() {
+
+             int readLasFile1(ifstream& in){
+                lasHeader header;
+                if(!header.read(in)){
+                   cout << "invalid lasHeader" << endl;
+                }
+                cout << "header" << header << endl;
+                return 0;
+             }
+
+             int readLasFile(const string& laspcFileName) {
                 fError = false;
                 pError = false;
-                endOfPointClouds = false;
-                pcCount = 0;
-                noPCElems = 0;
-                pcCount2 = -1;
-                // file Name should be provided with path, 
-                // e.g. "bin/lastest/xyz.las"
-                // pick first las file name from list
-                if (lasFileList.size() <= 0) {
-                    endOfPointClouds = true;
-                    return 0;
-                }
-                laspcFileName = lasFileList.back();
-                lasFileList.pop_back();
+
                 // test output las file name to be read
-                cout << "   " << endl;
+                cout  << endl;
                 cout << "Processing las file : " << laspcFileName  << endl;
                 ifstream lasFile(laspcFileName.c_str(), ios::in|ios::binary);
                 if (!lasFile) {
@@ -192,10 +270,16 @@ namespace routeplanningalgebra {
                     cout << "Error opening lasfile." << endl;
                     return -2;
                 } 
+
+               // alternative implementation, using 1.4 specification
+               //readLasFile1(lasFile);
+               //lasFile.seekg(static_cast<ios::off_type>(0), ios::beg);
+               // end of alternative implementation
+
                 // read Header data
                 lasFile.read(reinterpret_cast<char*>(&fSignature), 
-                             sizeof(&fSignature));
-                sSignature = fSignature;
+                             sizeof(fSignature));
+                sSignature = string(fSignature,4);
                 if (sSignature != "LASF") {
                     // Error Handling
                     cout << 
@@ -205,14 +289,40 @@ namespace routeplanningalgebra {
                     return -2;
                 }
                 cout << "Signature (LASF): " << sSignature << endl;
+                uint16_t fileSourceId;
+                lasFile.read(reinterpret_cast<char*>(&fileSourceId), 2);
+                cout << "fileSourceId is " << fileSourceId << endl;
+
+                uint16_t globalEncoding;
+                lasFile.read(reinterpret_cast<char*>(&globalEncoding),2);
+
+                // ignore project ids
                 lasFile.seekg(static_cast<ios::off_type>(24), ios::beg);
+
                 lasFile.read(reinterpret_cast<char*>(&fVerMajor), 1);
                 lasFile.read(reinterpret_cast<char*>(&fVerMinor), 1);
                 unsigned int sVerMajor = (unsigned int) fVerMajor;
                 unsigned int sVerMinor = (unsigned int) fVerMinor;
                 cout << "Version: " << sVerMajor << "."
                         << sVerMinor << endl;
-                lasFile.seekg(static_cast<ios::off_type>(70), ios::cur);
+                cout << "globalEncoding" << globalEncoding << endl;
+                
+                char systemIdentifier[32];
+                char generatingSoftware[32];
+                uint16_t dayOfYear;
+                uint16_t year;
+                uint16_t headerSize;
+                lasFile.read(systemIdentifier,32);
+                lasFile.read(generatingSoftware,32);
+                lasFile.read(reinterpret_cast<char*>(&dayOfYear),2);
+                lasFile.read(reinterpret_cast<char*>(&year),2);
+                lasFile.read(reinterpret_cast<char*>(&headerSize),2);
+                cout << "system identifier " << systemIdentifier << endl;
+                cout << "generatingSoftware " << generatingSoftware << endl;
+                cout << "&dayOfYear " << dayOfYear << endl;
+                cout << "year " << year << endl;
+                cout << "headersize " << headerSize << endl;
+
                 lasFile.read(reinterpret_cast<char*>
                     (&fOffsetToPointData), 4);
                 cout << "Offset to point data: "
@@ -226,6 +336,8 @@ namespace routeplanningalgebra {
                     (&fNumPointRecs), 4);
                 cout << "No of point records: "
                         << fNumPointRecs << endl;
+
+
                 cellOffsetX = (fMaxX - fMinX) / noGridCellsSide;
                 lasFile.seekg(static_cast<ios::off_type>(20), ios::cur);
                 lasFile.read(reinterpret_cast<char*>(&fScaleX), 8);
@@ -249,9 +361,8 @@ namespace routeplanningalgebra {
                 noGridCells = noGridCellsSide * noGridCellsSide;
                 noPCElems = noGridCells;
                 // create Arrays to store point data
-                pointCloudArray = new PointCloud*[noGridCells];
-                pointCloudArray2 = new PointCloud*[noGridCells];                
                 initPointCloudArray();
+
                 double minXArray[noGridCells];
                 double maxXArray[noGridCells];
                 double minYArray[noGridCells];
@@ -275,8 +386,8 @@ namespace routeplanningalgebra {
                 // read point data and build 2D Tree
                 lasFile.seekg(static_cast<ios::off_type>
                           (fOffsetToPointData), ios::beg);
-                maxRead = (maxPoints < fNumPointRecs)
-                   ? maxPoints : fNumPointRecs; 
+
+                maxRead =  fNumPointRecs; 
                 long icount = 1;
                 while ((icount <= maxRead)  && (!lasFile.eof())) {
                     lasFile.read(reinterpret_cast<char*>(&fPointX), 4);
@@ -364,8 +475,7 @@ namespace routeplanningalgebra {
                     return -2;
                 }
                 // addCpointnode
-                (pointCloudArray[cellNo -1])->AppendCpointnode(
-                       Cpointnode(pointX, pointY, pointZ, -1, -1));
+                (pointCloudArray[cellNo -1])->insert(pointX, pointY, pointZ);
                 if ((pointCloudArray[cellNo -1])->GetNoCpointnodes() > 1) {
                     // calculate new min max val for the cell (actual PC)
                     if (pointX < minXArray[cellNo - 1]) {
@@ -399,25 +509,11 @@ namespace routeplanningalgebra {
             pointdata read from file
             */
             void initPointCloudArray() {
+                assert(!pointCloudArray);
+                pointCloudArray = new PointCloud*[noPCElems];
                 for (int i = 0; i < noPCElems; i++) {
-                     pointCloudArray[i] = new PointCloud(0);
+                    pointCloudArray[i] = new PointCloud(0);
                 }
-            }
-
-            void emptyPointCloudArray(){
-                for (int i = 0; i < noPCElems; i++) {
-                     if(pointCloudArray[i]) {
-                        pointCloudArray[i]->DeleteIfAllowed();
-                        pointCloudArray[i] = 0;
-                     }
-                }
-            }
-            void deletePointCloudArray(){
-              if(pointCloudArray){
-                 emptyPointCloudArray();
-                 delete[] pointCloudArray;
-                 pointCloudArray = 0;
-              }
             }
 
             
@@ -438,145 +534,12 @@ namespace routeplanningalgebra {
                 }
             }
             
-            /*
-            doSplitPC
-            Go over PC that are to big and need a split
-            */
-            void doSplitPC() {
-                // Set pointer content pointCloudArray to 0
-                // to avoid references to data that was already 
-                // returned as result.
-
-                if(pointCloudArray){
-                  for (int di = 0; di < noPCElems; di++) {
-                      pointCloudArray[di] = 0;
-                  }
-                  delete[] pointCloudArray;
-                  pointCloudArray=0;                        
-                }
-                noPCElems = 0;
-                bool xDim;
-                // Check if split of PC necessary
-                if (pcCount2 < 0) {
-                    // cout << "No split necessary!" << endl;
-                    return;
-                }
-                // New pointCloudArray with double size of 
-                // pointCloudArray2
-                noPCElems = (pcCount2 + 1) * 2;
-                // cout << "No of PC elements after split: " << noPCElems 
-                //         << endl;
-                pointCloudArray = new PointCloud*[noPCElems];
-                // Temp PC for split calculation
-                PointCloud* pcTemp[2]; 
-                /*
-                pcTemp[0] = new PointCloud(0);
-                pcTemp[1] = new PointCloud(0); 
-                */
-                int pcSize;
-                double min2X, min2Y;
-                double pcMin[2], pcMax[2];
-                array<double, 4> pc1MinMax, pc2MinMax;
-                double curX, curY, curZ;
-                Cpointnode pcNode;
-                Cpointnode* ppcNode;
-
-                // Split PointClouds that are too big 
-                for (int i = 0; i <= pcCount2; i++) {
-                    // split actual PC object
-                    pcTemp[0] = new PointCloud(0);
-                    pcTemp[1] = new PointCloud(0);                    
-                    // calculate new min max value with split of the longer side
-                    pcMin[0] = pointCloudArray2[i]->getMinX();
-                    pcMax[0] = pointCloudArray2[i]->getMaxX();
-                    pcMin[1] = pointCloudArray2[i]->getMinY();
-                    pcMax[1] = pointCloudArray2[i]->getMaxY();
-                    if ( (pcMax[0] - pcMin[0]) > (pcMax[1] - pcMin[1]) ) { 
-                        // split x dimension
-                        xDim = true;
-                        // cout << "Split x dim   ";
-                        min2X = (pcMin[0] + (pcMax[0] - pcMin[0]) / 2.0);
-                        min2Y = pcMin[1];
-                    } else {
-                        // split y dimension
-                        xDim = false;
-                        // cout << "Split y dim   ";
-                        min2X = pcMin[0];
-                        min2Y = (pcMin[1] + (pcMax[1] - pcMin[1]) / 2.0);
-                    }
-                    // Read actual PointCloud and divide into 2 PCs,
-                    // No special procedure as every point needs to be read.
-                    pcSize = pointCloudArray2[i]->GetNoCpointnodes();
-                    for (int k = 0; k < pcSize; k++) {
-                        pcNode = pointCloudArray2[i]->GetCpointnode(k);
-                        ppcNode = &pcNode;
-                        curX = ppcNode->getX();
-                        curY = ppcNode->getY();
-                        curZ = ppcNode->getZ();
-                        // Determine to which PC append the node
-                        // and calculate the new min max values.
-                        if ( ((xDim) && (curX > min2X)) 
-                            || ((!xDim) && (curY > min2Y)) ) {
-                            // PC1
-                            pcTemp[0]->AppendCpointnode(Cpointnode(
-                                curX, curY, curZ, -1, -1));
-                            if (pcTemp[0]->GetNoCpointnodes() > 1) {
-                                pc1MinMax = calcNewMinMax(
-                                    curX, curY, pc1MinMax);
-                            } else {
-                                // [0] minX, [1] minY, [2] maxX, [3] maxY
-                                pc1MinMax[0] = curX;
-                                pc1MinMax[1] = curY;
-                                pc1MinMax[2] = curX;
-                                pc1MinMax[3] = curY;
-                            }
-                        } else {
-                            // PC2
-                            pcTemp[1]->AppendCpointnode(Cpointnode(
-                                curX, curY, curZ, -1, -1));
-                            if (pcTemp[1]->GetNoCpointnodes() > 1) {
-                                pc2MinMax = calcNewMinMax(
-                                    curX, curY, pc2MinMax);
-                            } else {
-                                pc2MinMax[0] = curX;
-                                pc2MinMax[1] = curY;
-                                pc2MinMax[2] = curX;
-                                pc2MinMax[3] = curY;
-                            }
-                        }
-                    }
-                    // set calculated MinMaxValues
-                    pcTemp[0]->setMinX(pc1MinMax[0]);
-                    pcTemp[0]->setMinY(pc1MinMax[1]);
-                    pcTemp[0]->setMaxX(pc1MinMax[2]);
-                    pcTemp[0]->setMaxY(pc1MinMax[3]);
-                    pcTemp[1]->setMinX(pc2MinMax[0]);
-                    pcTemp[1]->setMinY(pc2MinMax[1]);
-                    pcTemp[1]->setMaxX(pc2MinMax[2]);
-                    pcTemp[1]->setMaxY(pc2MinMax[3]);
-                    // store splitted PC's in pointCloudArray
-                    pointCloudArray[2 * i] = pcTemp[0];
-                    pointCloudArray[(2 * i) + 1] = pcTemp[1];
-                }
-                // Delete not needed content pointCloudArray2
-                for (int di = 0; di <= pcCount2; di++) {
-                    pointCloudArray2[di]->DestroyPointCloud();
-                    delete pointCloudArray2[di];
-                    pointCloudArray2[di] = 0;
-                }
-                
-                if(pointCloudArray2) delete[] pointCloudArray2;
-                pointCloudArray2 = new PointCloud*[noPCElems];
-                pcCount = 0;
-                pcCount2 = -1;
-                return;
-            }
                                       
             /*
             calcNewMinMax
             */
-            array<double, 4> calcNewMinMax(double curX, double curY, 
-                                           array<double, 4> pcCurMinMax) {
+            void calcNewMinMax(double curX, double curY, 
+                                           double*  pcCurMinMax) {
                 // [0] minX, [1] minY, [2] maxX, [3] maxY
                 if (curX < pcCurMinMax[0]) {
                     pcCurMinMax[0] = curX;
@@ -592,60 +555,8 @@ namespace routeplanningalgebra {
                         pcCurMinMax[3] = curY;
                     }
                 }
-                return pcCurMinMax;
             }
                                       
-            /*
-            locatePosIn2DTree
-            
-            Determines the location of a new node within the 2D Tree that is
-            the internal data structure of points within a PointCloud object.
-            */
-            void locatePosIn2DTree(const double pointX, const double pointY, 
-                       PointCloud* ptCloud, int idx, int chkDim, int lastElem) {
-                bool searchLeft = true;
-                // int lastElem = ptCloud->GetNoCpointnodes() - 1;
-                Cpointnode tempnode = ptCloud->GetCpointnode(idx);
-                Cpointnode* cptnode = &tempnode;
-                if (chkDim == 1) {
-                    // check x-Coordinate
-                    if (cptnode->getX() > pointX) {
-                        searchLeft = true;
-                    } else {
-                        searchLeft = false;
-                    }
-                } else {
-                    // check y-Coordinate
-                    if (cptnode->getY() > pointY) {
-                        searchLeft = true;
-                    } else {
-                        searchLeft = false;
-                    }
-                }
-                if (searchLeft) {
-                    if (cptnode->getLeftSon() != -1) {
-                        // continue search with left son
-                        locatePosIn2DTree(pointX, pointY, ptCloud, 
-                              (cptnode->getLeftSon()), (-1 * chkDim), lastElem);
-                    } else {
-                        // location of new element found
-                        //cptnode->setLeftSon(lastElem);
-                        //ptCloud->SetCpointnode(idx, cptnode);
-                        ptCloud->changeLeftSon(idx,lastElem);
-                    }
-                } else {
-                    if (cptnode->getRightSon() != -1) {
-                        // continue search with right son
-                        locatePosIn2DTree(pointX, pointY, ptCloud, 
-                            (cptnode->getRightSon()), (-1 * chkDim), lastElem);
-                    } else {
-                        // location of new element found
-                        //cptnode->setRightSon(lastElem);
-                        //ptCloud->SetCpointnode(idx, cptnode);
-                        ptCloud->changeRightSon(idx,lastElem);
-                    }
-                }
-            }
             
             /*
             getNext
@@ -653,84 +564,189 @@ namespace routeplanningalgebra {
             Provide next PointCloud object for the stream.
             */
             PointCloud* getNext() {
-                checkNext();
-                if (endOfPointClouds) {
-                    cout << "   " << endl;
-                    cout << "end of pointclouds" << endl;
+               while(true){
+                  if(!resultList.empty()){
+                     PointCloud* result = resultList.front();
+                     resultList.pop();
+                     return result;                  
+                  } 
+                  if(lasFileList.empty()){
                     return 0;
-                } else {
-                    // build 2D Tree as internal datastructure for
-                    // PC object to be returned
-                    for (int i = 1; 
-                         i < pointCloudArray[pcCount-1]->GetNoCpointnodes(); 
-                         i++) {
-                        Cpointnode tempnode = 
-                            pointCloudArray[pcCount-1]->GetCpointnode(i);
-                        Cpointnode* cptnode = &tempnode;
-                        pointX = cptnode->getX();
-                        pointY = cptnode->getY();
-                        locatePosIn2DTree(pointX, pointY, 
-                                      (pointCloudArray[pcCount -1]), 0, 1, i);
-                    }
-                    PointCloud* res = pointCloudArray[pcCount-1];
-                    //pointCloudArray[pcCount-1] = 0; 
-                    return (PointCloud*) res->Copy();
-                }
+                  }
+                  string fileName = lasFileList.front();
+                  lasFileList.pop_front();
+                  fillResultList(fileName);
+               }
             }
-            
+
             /*
-            checkNext
+              Reads in the next file and stores the contained
+              point clouds into result list
             */
-            void checkNext() {
-                if (!endOfPointClouds) {
-                    pcCount++;
-                    // Don't provide empty PC or PC that is too large
-                    // Loop goes over an array that has changing size...
-                    while ( (pcCount <= noPCElems) && (noPCElems != 0) &&
-                           ((pointCloudArray[pcCount-1]->GetNoCpointnodes() 
-                            == 0) || 
-                           (pointCloudArray[pcCount-1]->GetNoCpointnodes()
-                             > maxPointsPC)) )  {
-                        // Move objects that need a split to pointCloudArray2
-                        if (pointCloudArray[pcCount-1]->GetNoCpointnodes()
-                             > maxPointsPC) {
-                            pcCount2++;
-                            pointCloudArray2[pcCount2] = 
-                                pointCloudArray[pcCount-1];
-                        }
-                        pcCount++; 
-                    }
-                    if ((pcCount > noPCElems) && (noPCElems !=0) 
-                        && (pcCount2 >= 0)) {
-                        doSplitPC();
-                        checkNext();
-                    }
-                    if (pcCount > noPCElems) {
-                        for (int di = 0; di < noPCElems; di++) {
-                            if(pointCloudArray[di]) delete pointCloudArray[di];
-                            pointCloudArray[di] = 0;
-                        }
-                        delete[] pointCloudArray;
-                        pointCloudArray = 0;
-                        while ((readLasFiles() != 0) 
-                               && (!endOfPointClouds)) {
-                            // if error try with next file
-                        } 
-                        checkNext();
-                    }
-                }
+            void fillResultList(const string& fileName){
+               if(readLasFile(fileName) == 0){ // no Error
+                  movePCsToResultList();     
+               } else {
+                 assert(pointCloudArray==0);
+               }
+            } 
+
+            /*
+              moves non-empty points clouds from point cloud array into
+              the resultList, splits point clouds if necessary
+            */
+            void movePCsToResultList() {
+              assert(resultList.empty());
+              for(int i=0;i<noPCElems; i++){
+                 PointCloud* pc = pointCloudArray[i];
+                 pointCloudArray[i] = 0;
+                 movePCToResultList(pc);
+              }
+              delete[] pointCloudArray;
+              pointCloudArray = 0;
             }
+
+            /* inserts a non-empty point cloud into
+               result list. if the number of points 
+               exceeds a theshold, the point cloud is
+               split until the number of points fits.
+            */
+            void movePCToResultList(PointCloud* pc){
+               size_t numPoints = pc->GetNoCpointnodes();
+               if(numPoints==0){ // empty point clouds are useless
+                 pc->DestroyPointCloud();
+                 delete pc;
+                 return;
+               }
+               if(numPoints > maxPointsPC){ // too much points, split required
+                  std::vector<PointCloud*> splitPCs;
+                  splitPointCloud(pc,splitPCs);
+                  for(size_t i=0;i<splitPCs.size();i++){
+                    resultList.push(splitPCs[i]);
+                  }
+                  return;  
+               }
+               // normal case, points are there but not too much
+               resultList.push(pc);
+            }
+ 
+            void splitPointCloud(PointCloud* pc, 
+                                 vector<PointCloud*>& result){
+               assert(result.empty());
+               std::queue<PointCloud*> q;
+               q.push(pc);
+               while(!q.empty()){
+                  PointCloud* currentPC = q.front();
+                  q.pop();
+                  int numPoints = currentPC->GetNoCpointnodes();
+                  if(numPoints == 0){ // do not include empty pcs
+                     currentPC->DestroyPointCloud();
+                     delete currentPC;
+                  } else if(numPoints > maxPointsPC) {
+                     // split if too large
+                     PointCloud* pc1=0;
+                     PointCloud* pc2=0;
+                     splitSinglePC(currentPC, pc1, pc2);
+                     assert(pc1);
+                     assert(pc2);
+                     currentPC->DestroyPointCloud();
+                     delete currentPC;
+                     q.push(pc1);
+                     q.push(pc2);
+                  } else {
+                    // insert if number of points is good
+                    result.push_back(currentPC);
+                  }
+              }
+            }
+
+            void splitSinglePC(PointCloud* original, 
+                               PointCloud*& part1,
+                               PointCloud*& part2){
+              part1 = new PointCloud(0);
+              part2 = new PointCloud(0);                    
+              // calculate new min max value with split of the longer side
+              double pcMin[2];
+              double pcMax[2];
+              pcMin[0] = original->getMinX();
+              pcMax[0] = original->getMaxX();
+              pcMin[1] = original->getMinY();
+              pcMax[1] = original->getMaxY();
+              bool xDim;   // split dimension
+              double min2X; // split value x-direction
+              double min2Y; // split value y-direction
+              if ( (pcMax[0] - pcMin[0]) > (pcMax[1] - pcMin[1]) ) { 
+                  // split x dimension
+                  xDim = true;
+                  // cout << "Split x dim   ";
+                  min2X = (pcMin[0] + (pcMax[0] - pcMin[0]) / 2.0);
+                  min2Y = pcMin[1];
+              } else {
+                  // split y dimension
+                  xDim = false;
+                  // cout << "Split y dim   ";
+                  min2X = pcMin[0];
+                  min2Y = (pcMin[1] + (pcMax[1] - pcMin[1]) / 2.0);
+              }
+              // Read actual PointCloud and divide into 2 PCs,
+              // No special procedure as every point needs to be read.
+              size_t pcSize = original->GetNoCpointnodes();
+              Cpointnode pcNode;
+              double pc1MinMax[4];
+              double pc2MinMax[4];
+ 
+              for (int k = 0; k < pcSize; k++) {
+                  pcNode = original->GetCpointnode(k);
+                  double curX = pcNode.getX();
+                  double curY = pcNode.getY();
+                  double curZ = pcNode.getZ();
+                  // Determine to which PC append the node
+                  // and calculate the new min max values.
+                  if ( ((xDim) && (curX > min2X)) 
+                      || ((!xDim) && (curY > min2Y)) ) {
+                      // PC1
+                      part1->insert(curX,curY,curZ);
+                      if (part1->GetNoCpointnodes() > 1) {
+                          calcNewMinMax(curX, curY, pc1MinMax);
+                      } else {
+                          // [0] minX, [1] minY, [2] maxX, [3] maxY
+                          pc1MinMax[0] = curX;
+                          pc1MinMax[1] = curY;
+                          pc1MinMax[2] = curX;
+                          pc1MinMax[3] = curY;
+                      }
+                  } else {
+                      // PC2
+                      part2->insert(curX,curY,curZ);
+                      if (part2->GetNoCpointnodes() > 1) {
+                        calcNewMinMax(curX, curY, pc2MinMax);
+                      } else {
+                          pc2MinMax[0] = curX;
+                          pc2MinMax[1] = curY;
+                          pc2MinMax[2] = curX;
+                          pc2MinMax[3] = curY;
+                      }
+                  }
+              }
+              // set calculated MinMaxValues
+              part1->setMinX(pc1MinMax[0]);
+              part1->setMinY(pc1MinMax[1]);
+              part1->setMaxX(pc1MinMax[2]);
+              part1->setMaxY(pc1MinMax[3]);
+              part2->setMinX(pc2MinMax[0]);
+              part2->setMinY(pc2MinMax[1]);
+              part2->setMaxX(pc2MinMax[2]);
+              part2->setMaxY(pc2MinMax[3]);
+            }
+                  
+
+            
             
             private:
             // vars for lasfile treatment and interim PointClouds 
-            string lasFileDir;
-            string laspcFileName;
             deque<std::string> lasFileList;
-            int pcCount, pcCount2;
             int noPCElems;
-            bool endOfPointClouds;
             bool fError, pError;
-            unsigned int maxPoints;
             unsigned int maxRead;
             char fSignature[4];
             string sSignature;
@@ -753,9 +769,7 @@ namespace routeplanningalgebra {
             long noGridCells, cellNo, cellNoY, cellNoX;
             int maxNoPoints, maxPointsPC;
             PointCloud** pointCloudArray;
-            PointCloud** pointCloudArray2;
-
-
+            std::queue<PointCloud*> resultList; // for one file
         }; // end of class importpointcloudLI
          
     }; // end of class ImportPointCloud

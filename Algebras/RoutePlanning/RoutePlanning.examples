@@ -20,7 +20,7 @@ Operator : no_components
 Number   : 1
 Signature: pointcloud -> int
 Example  : query no_components(importpointcloud("20110304_10SDH9607.las") transformstream extract[Elem])
-Result   : 2400
+Result   : 2138
 
 Operator : importpointcloud
 Number   : 1

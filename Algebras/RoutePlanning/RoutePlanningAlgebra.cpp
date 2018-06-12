@@ -647,12 +647,12 @@ CloneCpoints
                     double y = 
                         listutils::getNumValue(nl->Second(first));     
                     double z = listutils::getNumValue(nl->Third(first));
-                    int leftson = 
+                    /*int leftson = 
                         listutils::getNumValue(nl->Fourth(first));     
                     int rightson = 
                         listutils::getNumValue(nl->Fifth(first));
-                    cpnts->AppendCpointnode(
-                        Cpointnode(x, y, z, leftson, rightson));
+                    */
+                    cpnts->insert(x,y,z);
                 } else {
                     cpnts->DestroyPointCloud();
                     return res;
