@@ -175,7 +175,7 @@ Vector<String> getSupportedFormats(){
 }
 
 
-ImportManager(){
+public ImportManager(){
    supportedFormats = new Vector<String>();
    supportedFormats.add(dbf3Reader.getFileDescription());
    supportedFormats.add(shapereader.getFileDescription());
