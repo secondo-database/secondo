@@ -1,5 +1,4 @@
 //This file is part of SECONDO.
-
 //Copyright (C) 2004, University in Hagen, Department of Computer Science, 
 //Database Systems for New Applications.
 
@@ -183,6 +182,7 @@ private JMenuItem MI_Query;
 private JMenu HelpMenu;
 private JMenuItem MI_ShowGuiCommands;
 private JMenuItem MI_ShowSecondoCommands;
+private JMenuItem MI_ShowSupportedFormats;
 private HelpScreen MyHelp;
 
 
@@ -236,12 +236,13 @@ public MainWindow(String Title,String user,String passwd, String configFile){
   setSize(800,600);
   ServerDlg = new ServerDialog(this);
   ud = new UserDialog(this);
-  MyHelp = new HelpScreen(this);
   this.getContentPane().setLayout(new BorderLayout());
   PanelTop = new JPanel(new BorderLayout(),true);
   ComPanel = new CommandPanel(this,user, passwd);
   ComPanel.addSecondoChangeListener(this);
   OList = new ObjectList(this,this);
+  MyHelp = new HelpScreen(this, OList.getSupportedFormats());
+
   PanelTopRight = new JPanel();
   CurrentMenuVector = null;
   VSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,true,
@@ -3101,6 +3102,7 @@ private void createMenuBar(){
    HelpMenu = new JMenu("Help");
    MI_ShowGuiCommands=HelpMenu.add("Show gui commands");
    MI_ShowSecondoCommands = HelpMenu.add("Show secondo commands");
+   MI_ShowSupportedFormats = HelpMenu.add("Show supported import formats");
    MI_ShowGuiCommands.addActionListener(new ActionListener(){
            public void actionPerformed(ActionEvent evt){
                MyHelp.setMode(HelpScreen.GUI_COMMANDS);
@@ -3115,6 +3117,12 @@ private void createMenuBar(){
            }
         });
 
+   MI_ShowSupportedFormats.addActionListener(new ActionListener(){
+           public void actionPerformed(ActionEvent evt){
+               MyHelp.setMode(HelpScreen.SUPPORTEDFORMATS);
+               MyHelp.setVisible(true);
+           }
+        });
 
    Viewers = new JMenu("Viewers");
    Viewers.addSeparator();

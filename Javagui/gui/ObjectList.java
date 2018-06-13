@@ -152,6 +152,10 @@ public ObjectList(ResultProcessor aRP,ViewerControl aVC){
   viewerChanged();
 }
 
+public Vector<String> getSupportedFormats(){
+   return importmanager.getSupportedFormats();
+}
+
 
 private void createContentMenu(){
 
@@ -1228,6 +1232,7 @@ private void informListeners(int index){
   for(int i=0;i<myListDataListeners.size();i++)
        ((ListDataListener)myListDataListeners.get(i)).contentsChanged(evt);
 }
+
 
 private Vector myListDataListeners = new Vector();
 private Vector Content = new Vector(20);

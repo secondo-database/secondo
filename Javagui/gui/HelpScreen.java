@@ -29,17 +29,19 @@ public class HelpScreen extends JDialog{
 
 public final static int GUI_COMMANDS = 0;
 public final static int SECONDO_COMMANDS = 1;
+public final static int SUPPORTEDFORMATS = 2;
 
 
 private JScrollPane ScrollPane= new JScrollPane();
 private JList ServerCommands;
 private JList GuiCommands;
+private JList supportedFormats;
 private JButton OkBtn = new JButton("close");
 
 
-public HelpScreen(Frame F){
+public HelpScreen(Frame F, Vector<String> supportedFormats){
   super(F,false);
-  init();
+  init(supportedFormats);
   getContentPane().setLayout(new BorderLayout());
   JPanel P = new JPanel();
   P.add(OkBtn);
@@ -63,10 +65,14 @@ public void setMode(int mode){
      ScrollPane.setViewportView(GuiCommands);
      setTitle("Gui commands");
   }
+  if (mode==SUPPORTEDFORMATS){
+     ScrollPane.setViewportView(supportedFormats);
+     setTitle("Supported import formats");
+  }
 }
 
 
-private void init(){
+private void init(Vector<String> supported){
  Vector SC = new Vector(30);
  SC.add("list databases");
  SC.add("list types");
@@ -142,6 +148,10 @@ private void init(){
  GC.add("gui enableOptimizer");
  GC.add("gui disableOptimizer");
  GuiCommands = new JList(GC);
+
+ supportedFormats  = new JList(supported); 
+
+
 }
 
 
