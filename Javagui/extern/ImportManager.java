@@ -170,7 +170,7 @@ public void setMaxStringLength(int len){
 }
 
 
-Vector<String> getSupportedFormats(){
+public Vector<String> getSupportedFormats(){
   return supportedFormats;
 }
 
