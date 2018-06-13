@@ -56,4 +56,8 @@ public String getErrorString(){
 private String LastError;
 
 
+public String getFileDescription(){
+  return "Binary Nested List File"; 
+}
+
 }

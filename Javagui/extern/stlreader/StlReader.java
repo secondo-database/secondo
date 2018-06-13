@@ -36,6 +36,10 @@ public class StlReader implements SecondoImporter{
      return errorMsg;
   }
 
+  public String getFileDescription(){
+    return "STL-Files";
+  }
+
   private String errorMsg = "NO_ERROR";
 
 

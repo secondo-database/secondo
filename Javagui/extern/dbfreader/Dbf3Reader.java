@@ -119,6 +119,10 @@ public void setMaxStringLength(int len){
     MAX_STRING_LENGTH = len;
 }
 
+public String getFileDescription(){
+   return "DBase III Files";
+}
+
 
 public String getErrorString(){
   return ErrorString;

@@ -124,4 +124,10 @@ public String getErrorString(){
 
 private String LastError;
 
+
+public String getFileDescription(){
+  return "combination of shape and sbf file";
+}
+
+
 }

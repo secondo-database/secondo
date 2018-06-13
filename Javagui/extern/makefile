@@ -41,6 +41,7 @@ subdirs:
 	(make -C shapedbf  all)
 	(make -C binarylist all)
 	(make -C psexport all)
+	(make -C gpxreader all)
 
 %.class:%.java
 	$(JAVAC) -classpath $(CLASSPATH) $<
@@ -54,4 +55,5 @@ clean:
 	(make -C shapedbf clean)
 	(make -C binarylist clean)
 	(make -C psexport clean)
+	(make -C gpxreader clean)
 	rm -f *.class

@@ -24,9 +24,11 @@ import extern.dbfreader.Dbf3Reader;
 import extern.shapedbf.ShapeDbf;
 import extern.shapereader.ShapeReader;
 import extern.stlreader.StlReader;
+import extern.gpxreader.GpxReader;
 import java.io.File;
 import extern.binarylist.*;
 import tools.Reporter;
+import java.util.Vector;
 
 public class ImportManager{
 
@@ -41,8 +43,11 @@ public ListExpr importFile(String FileName){
   File F = new File(FileName);
      if(!F.exists()){
          ErrorText = "file not exists";
-	 return null;
+         return null;
      }
+
+
+  // d-base 3 files
   if(FileName.toLowerCase().endsWith(".dbf")){
      ListExpr Res = dbf3Reader.getList(FileName);
      if(Res!=null){
@@ -53,6 +58,7 @@ public ListExpr importFile(String FileName){
      }
   }
 
+  // shape files or combination of shape and dbf
   if(FileName.toLowerCase().endsWith(".shp")){
       String DBFile = FileName.substring(0,FileName.length()-3)+"dbf";
       File F2 = new File(DBFile);
@@ -76,8 +82,8 @@ public ListExpr importFile(String FileName){
      }
  }
 
-  // a binary nested list
-  if(FileName.toLowerCase().endsWith(".bnl")){
+ // a binary nested list
+ if(FileName.toLowerCase().endsWith(".bnl")){
      BinaryList BN = new BinaryList();
      ListExpr LE = BN.getList(FileName);
      if(LE==null)
@@ -87,8 +93,8 @@ public ListExpr importFile(String FileName){
      }
   }
   
-
-  if(FileName.toLowerCase().endsWith(".stl")){
+ // stl files
+ if(FileName.toLowerCase().endsWith(".stl")){
      ListExpr res = stlReader.getList(FileName);
      if(res!=null){
         return res;
@@ -97,6 +103,20 @@ public ListExpr importFile(String FileName){
         ErrorText = stlReader.getErrorString();
      }
   }
+
+
+  // gpx-files or folder containing gpx files
+  if(FileName.toLowerCase().endsWith(".gpx") ||
+     (F.isDirectory() && contains(F,".gpx"))){
+     ListExpr res = gpxReader.getList(FileName);
+     if(res!=null){
+        return res;
+     }
+     else{
+        ErrorText = gpxReader.getErrorString();
+     }
+   }
+     
 
   // ever try to load this file as nested list
   t1 = System.currentTimeMillis();
@@ -150,11 +170,46 @@ public void setMaxStringLength(int len){
 }
 
 
+Vector<String> getSupportedFormats(){
+  return supportedFormats;
+}
+
+
+ImportManager(){
+   supportedFormats = new Vector<String>();
+   supportedFormats.add(dbf3Reader.getFileDescription());
+   supportedFormats.add(shapereader.getFileDescription());
+   supportedFormats.add(shapedbfreader.getFileDescription());
+   supportedFormats.add(stlReader.getFileDescription());
+   supportedFormats.add(gpxReader.getFileDescription());
+   supportedFormats.add("objects stored as binary nested list (.bnl)");
+   supportedFormats.add("objects stored as textual nested list ");
+}
+
+
+
 private String ErrorText="";
 private Dbf3Reader dbf3Reader = new Dbf3Reader();
 private ShapeReader shapereader = new ShapeReader();
 private ShapeDbf shapedbfreader = new ShapeDbf();
 private StlReader  stlReader = new StlReader();
+private GpxReader  gpxReader = new GpxReader();
+
+private Vector<String> supportedFormats;
+
+private boolean contains(File F, String fileExtension){
+  if(!F.isDirectory()) return false;
+  fileExtension = fileExtension.toLowerCase();
+  File[] files = F.listFiles();
+  for(int i=0;i<files.length;i++){
+    if(files[i].isFile()){
+       if(files[i].getName().toLowerCase().endsWith(fileExtension)){
+         return true;
+       }
+    }
+  }
+  return false;
+}
 
 
 

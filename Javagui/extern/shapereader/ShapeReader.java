@@ -84,7 +84,9 @@ public String getErrorString(){
   return Last_Error;
 }
 
-
+public String getFileDescription(){
+  return "Single Shape Files";
+}
 
 private boolean openFile(File F){
  if(!F.exists()){
