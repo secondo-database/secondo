@@ -638,7 +638,7 @@ namespace routeplanningalgebra {
                while(!q.empty()){
                   PointCloud* currentPC = q.front();
                   q.pop();
-                  int numPoints = currentPC->GetNoCpointnodes();
+                  size_t numPoints = currentPC->GetNoCpointnodes();
                   if(numPoints == 0){ // do not include empty pcs
                      currentPC->DestroyPointCloud();
                      delete currentPC;
@@ -695,7 +695,7 @@ namespace routeplanningalgebra {
               double pc1MinMax[4];
               double pc2MinMax[4];
  
-              for (int k = 0; k < pcSize; k++) {
+              for (size_t k = 0; k < pcSize; k++) {
                   pcNode = original->GetCpointnode(k);
                   double curX = pcNode.getX();
                   double curY = pcNode.getY();
@@ -767,7 +767,7 @@ namespace routeplanningalgebra {
             double cellOffsetY;
             long noGridCellsSide;
             long noGridCells, cellNo, cellNoY, cellNoX;
-            int maxNoPoints, maxPointsPC;
+            size_t maxNoPoints, maxPointsPC;
             PointCloud** pointCloudArray;
             std::queue<PointCloud*> resultList; // for one file
         }; // end of class importpointcloudLI
