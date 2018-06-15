@@ -35,7 +35,7 @@ ALGEBRA_DEPENDENCIES += OrderedRelationAlgebra
 ALGEBRA_DEPENDENCIES += TrajectoryAnnotationAlgebra
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS) 
+#CCFLAGS += $(ALG_INC_DIRS) 
 CCFLAGS += -Werror -std=c++11
 
 # create objects and algebra library. The values for the variables
@@ -52,10 +52,13 @@ include $(DEP_FILES)
 endif
 
 # generic rule for creating a library
-$(LIBOBJ): $(OBJECTS)
-	$(create-lib)
+$(LIBOBJ): $(OBJECTS) 
+	make -C lasreader all
+	$(create-lib) lasreader/*.o lasreader/prjconvert/*.o
+
 
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
 	$(clean-algebra)
+	make -C lasreader clean
