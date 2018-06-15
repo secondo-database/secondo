@@ -14,8 +14,7 @@
 baseurl="http://download.geofabrik.de/europe/germany/"
 
 # The regions to download
-#regions="baden-wuerttemberg bayern berlin brandenburg bremen hamburg hessen mecklenburg-vorpommern niedersachsen nordrhein-westfalen rheinland-pfalz saarland sachsen sachsen-anhalt schleswig-holstein thueringen"
-regions="berlin"
+regions="baden-wuerttemberg bayern berlin brandenburg bremen hamburg hessen mecklenburg-vorpommern niedersachsen nordrhein-westfalen rheinland-pfalz saarland sachsen sachsen-anhalt schleswig-holstein thueringen"
 
 # The name of the database in SECONDO
 database="germany"
