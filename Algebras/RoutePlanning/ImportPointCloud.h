@@ -45,10 +45,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <deque>
 #include "PointCloud.h"
 
-extern NestedList* nl;
-extern QueryProcessor *qp;
 
-using namespace std;
 
 namespace routeplanningalgebra {
     /*
@@ -60,109 +57,10 @@ namespace routeplanningalgebra {
     Added and maintained by Gundula Swidersky, Dec 2017 
     */
 
-    struct lasHeader{
-       char signature[4];
-       uint16_t source_id;
-       uint16_t global_Encoding;
-       uint32_t project_id1;
-       uint16_t project_id2;
-       uint16_t project_id3;
-       unsigned char  project_id4[8];
-       unsigned char major_version;
-       unsigned char minor_version;
-       char systemIdentifier[32];
-       char generatingSoftware[32];
-       uint16_t dayOfYear;
-       uint16_t year;
-       uint16_t header_size;
-       uint32_t offset_to_point_data;
-       uint32_t number_of_variable_records;
-       unsigned char point_data_format;
-       unsigned char point_data_length;
-       uint32_t legacy_number_of_points;
-       uint32_t legacy_number_of_points_by_return[5];
-       double x_scale;
-       double y_scale;
-       double z_scale;
-       double x_offset;
-       double y_offset;
-       double z_offset;
-       double max_x;
-       double min_x;
-       double max_y;
-       double min_y;
-       double max_z;
-       double min_z;
-       uint64_t start_of_waveform_data_packet_record;
-       uint64_t start_of_first_extended_vlr;
-       uint32_t number_of_vlr;
-       uint64_t number_of_point_records;
-       uint64_t number_of_points_by_return[15];
-
-       bool read(ifstream&  file){
-          file.read(reinterpret_cast<char*>(&signature),  4);
-          if( (string(signature,4)!="LASF")){
-             return false;
-          }
-          file.read(reinterpret_cast<char*>(&source_id), 2);
-          file.read(reinterpret_cast<char*>(&global_Encoding),2);
-          file.read(reinterpret_cast<char*>(&project_id1),4);
-          file.read(reinterpret_cast<char*>(&project_id2),2);
-          file.read(reinterpret_cast<char*>(&project_id3),2);
-          file.read(reinterpret_cast<char*>(&project_id4),8);
-          file.read(reinterpret_cast<char*>(&major_version),1);
-          file.read(reinterpret_cast<char*>(&minor_version), 1);
-          file.read(systemIdentifier, 32);
-          file.read(generatingSoftware, 32);
-          file.read(reinterpret_cast<char*>(&dayOfYear), 2);
-          file.read(reinterpret_cast<char*>(&year), 2);
-          file.read(reinterpret_cast<char*>(&header_size), 2);
-          file.read(reinterpret_cast<char*>(&offset_to_point_data), 4);
-          file.read(reinterpret_cast<char*>(&number_of_variable_records), 4);
-          file.read(reinterpret_cast<char*>(&point_data_format), 1);
-          file.read(reinterpret_cast<char*>(&point_data_length), 2);
-          file.read(reinterpret_cast<char*>(&legacy_number_of_points), 4);
-          file.read(reinterpret_cast<char*>(
-                                &legacy_number_of_points_by_return), 20);
-          file.read(reinterpret_cast<char*>(&x_scale), 8);
-          file.read(reinterpret_cast<char*>(&y_scale), 8);
-          file.read(reinterpret_cast<char*>(&z_scale), 8);
-          file.read(reinterpret_cast<char*>(&x_offset), 8);
-          file.read(reinterpret_cast<char*>(&y_offset), 8);
-          file.read(reinterpret_cast<char*>(&z_offset), 8);
-          file.read(reinterpret_cast<char*>(&max_x), 8);
-          file.read(reinterpret_cast<char*>(&min_x), 8);
-          file.read(reinterpret_cast<char*>(&max_y), 8);
-          file.read(reinterpret_cast<char*>(&min_y), 8);
-          file.read(reinterpret_cast<char*>(&max_z), 8);
-          file.read(reinterpret_cast<char*>(&min_z), 8);
-          if(major_version==1 && minor_version < 4){
-            start_of_waveform_data_packet_record = 0;
-            start_of_first_extended_vlr = 0;
-            number_of_vlr = 0;
-            number_of_point_records = 0;
-            memset(reinterpret_cast<char*>(number_of_points_by_return),0,120);
-          } else {
-            file.read(reinterpret_cast<char*>(
-                                   &start_of_waveform_data_packet_record), 8);
-            file.read(reinterpret_cast<char*>(&start_of_first_extended_vlr), 8);
-            file.read(reinterpret_cast<char*>(&number_of_vlr), 4);
-            file.read(reinterpret_cast<char*>(&number_of_point_records), 8);
-            file.read(reinterpret_cast<char*>(&number_of_points_by_return),
-                                              120);
-         }
-
-          return true;
-       }
-
-    };
-}
-
- std::ostream& operator<<(std::ostream& out, 
-                 const routeplanningalgebra::lasHeader& header);
 
 
-namespace routeplanningalgebra {
+
+
     class ImportPointCloud {
     public:
         /*
@@ -186,7 +84,7 @@ namespace routeplanningalgebra {
             public:
             importpointcloudLI(T* arg)  {
                 pointCloudArray = 0;
-                string lasFileDir = "";
+                std::string lasFileDir = "";
                 if(arg->IsDefined()) {
                     lasFileDir = arg->GetValue();
                 }
@@ -215,7 +113,7 @@ namespace routeplanningalgebra {
             build array with filenames of lasFiles to be
             worked through later on demand.
             */
-            void readLasFileNames(const string &lasDir) {
+            void readLasFileNames(const std::string &lasDir) {
                 cout << "Las files to be processed:" << endl;
                 if (lasDir.substr((lasDir.length() -1), 1) != "/") {
                   // file name provided
@@ -236,7 +134,7 @@ namespace routeplanningalgebra {
                                 continue;
                             }
                             if ((entry->d_type & DT_REG) == DT_REG) {
-                                string lasFilNam = lasDir + entry->d_name;
+                                std::string lasFilNam = lasDir + entry->d_name;
                                 cout << lasFilNam << endl;
                                 lasFileList.push_front(lasFilNam);
                             }
@@ -245,25 +143,18 @@ namespace routeplanningalgebra {
                     }
                 }
              }            
-            
 
-             int readLasFile1(ifstream& in){
-                lasHeader header;
-                if(!header.read(in)){
-                   cout << "invalid lasHeader" << endl;
-                }
-                cout << "header" << header << endl;
-                return 0;
-             }
 
-             int readLasFile(const string& laspcFileName) {
+
+             int readLasFile(const std::string& laspcFileName) {
                 fError = false;
                 pError = false;
 
                 // test output las file name to be read
                 cout  << endl;
                 cout << "Processing las file : " << laspcFileName  << endl;
-                ifstream lasFile(laspcFileName.c_str(), ios::in|ios::binary);
+                std::ifstream lasFile(laspcFileName.c_str(), 
+                                      std::ios::in|std::ios::binary);
                 if (!lasFile) {
                     // handle error
                     fError = true;
@@ -271,15 +162,11 @@ namespace routeplanningalgebra {
                     return -2;
                 } 
 
-               // alternative implementation, using 1.4 specification
-               //readLasFile1(lasFile);
-               //lasFile.seekg(static_cast<ios::off_type>(0), ios::beg);
-               // end of alternative implementation
 
                 // read Header data
                 lasFile.read(reinterpret_cast<char*>(&fSignature), 
                              sizeof(fSignature));
-                sSignature = string(fSignature,4);
+                sSignature = std::string(fSignature,4);
                 if (sSignature != "LASF") {
                     // Error Handling
                     cout << 
@@ -297,7 +184,8 @@ namespace routeplanningalgebra {
                 lasFile.read(reinterpret_cast<char*>(&globalEncoding),2);
 
                 // ignore project ids
-                lasFile.seekg(static_cast<ios::off_type>(24), ios::beg);
+                lasFile.seekg(static_cast<std::ios::off_type>(24),
+                              std::ios::beg);
 
                 lasFile.read(reinterpret_cast<char*>(&fVerMajor), 1);
                 lasFile.read(reinterpret_cast<char*>(&fVerMinor), 1);
@@ -327,7 +215,8 @@ namespace routeplanningalgebra {
                     (&fOffsetToPointData), 4);
                 cout << "Offset to point data: "
                         << fOffsetToPointData << endl;
-                lasFile.seekg(static_cast<ios::off_type>(5), ios::cur);
+                lasFile.seekg(static_cast<std::ios::off_type>(5), 
+                              std::ios::cur);
                 lasFile.read(reinterpret_cast<char*>
                     (&fPointDataRecLength), 2);
                 cout << "Point data record length: "
@@ -339,7 +228,8 @@ namespace routeplanningalgebra {
 
 
                 cellOffsetX = (fMaxX - fMinX) / noGridCellsSide;
-                lasFile.seekg(static_cast<ios::off_type>(20), ios::cur);
+                lasFile.seekg(static_cast<std::ios::off_type>(20), 
+                              std::ios::cur);
                 lasFile.read(reinterpret_cast<char*>(&fScaleX), 8);
                 lasFile.read(reinterpret_cast<char*>(&fScaleY), 8);
                 lasFile.read(reinterpret_cast<char*>(&fScaleZ), 8);
@@ -384,8 +274,8 @@ namespace routeplanningalgebra {
                 cout << "Absolute Max Point (" << maxX << ", " 
                     << maxY << ", " << maxZ << ")" << endl;
                 // read point data and build 2D Tree
-                lasFile.seekg(static_cast<ios::off_type>
-                          (fOffsetToPointData), ios::beg);
+                lasFile.seekg(static_cast<std::ios::off_type>
+                          (fOffsetToPointData), std::ios::beg);
 
                 maxRead =  fNumPointRecs; 
                 long icount = 1;
@@ -395,8 +285,8 @@ namespace routeplanningalgebra {
                     lasFile.read(reinterpret_cast<char*>(&fPointZ), 4);
                     // lasFile.read(reinterpret_cast<char*>(&fIntensity), 2);
                     if (!lasFile.eof()) {
-                        lasFile.seekg(static_cast<ios::off_type>
-                            (fPointDataRecLength-12), ios::cur);
+                        lasFile.seekg(static_cast<std::ios::off_type>
+                            (fPointDataRecLength-12), std::ios::cur);
                     }
                     if (calcPointData(icount, minXArray, maxXArray, 
                                       minYArray, maxYArray) == -1) {
@@ -573,7 +463,7 @@ namespace routeplanningalgebra {
                   if(lasFileList.empty()){
                     return 0;
                   }
-                  string fileName = lasFileList.front();
+                  std::string fileName = lasFileList.front();
                   lasFileList.pop_front();
                   fillResultList(fileName);
                }
@@ -583,7 +473,7 @@ namespace routeplanningalgebra {
               Reads in the next file and stores the contained
               point clouds into result list
             */
-            void fillResultList(const string& fileName){
+            void fillResultList(const std::string& fileName){
                if(readLasFile(fileName) == 0){ // no Error
                   movePCsToResultList();     
                } else {
@@ -631,7 +521,7 @@ namespace routeplanningalgebra {
             }
  
             void splitPointCloud(PointCloud* pc, 
-                                 vector<PointCloud*>& result){
+                                 std::vector<PointCloud*>& result){
                assert(result.empty());
                std::queue<PointCloud*> q;
                q.push(pc);
@@ -744,12 +634,12 @@ namespace routeplanningalgebra {
             
             private:
             // vars for lasfile treatment and interim PointClouds 
-            deque<std::string> lasFileList;
+            std::deque<std::string> lasFileList;
             int noPCElems;
             bool fError, pError;
             unsigned int maxRead;
             char fSignature[4];
-            string sSignature;
+            std::string sSignature;
             unsigned char fVerMajor, fVerMinor;
             unsigned int fOffsetToPointData;
             unsigned short fPointDataRecLength;
