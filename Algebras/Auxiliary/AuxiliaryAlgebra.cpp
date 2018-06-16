@@ -40,6 +40,7 @@
 */
 #include <cstdlib>
 #include <string>
+#include <cstring>
 #include <unistd.h>
 #include <fstream>
 #include <iostream>
@@ -59,6 +60,7 @@
 #include "Algebras/Stream/Stream.h"
 #include "Progress.h"
 #include "Profiles.h"
+#include "Algebras/Spatial/RegionTools.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -684,7 +686,6 @@ int Statistics(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-
 /*
 2.2.4 Specification of operator ~statistics~
 
@@ -719,6 +720,158 @@ Operator auxiliarystatistics (
          StatisticsCostEstimationFunc  // Cost estimation
 );                         
 
+/*
+2.3 Operator ~geojson2region~
+
+*/
+
+/*
+2.3.1 Type Mapping function
+
+The signature is text -> region.
+
+*/
+
+ListExpr Geojson2regionTypeMap(ListExpr args){
+
+  if( (nl->ListLength(args)==1) && nl->IsEqual(nl->First(args), 
+      FText::BasicType())) {
+      return nl->SymbolAtom(Region::BasicType());
+  }
+  return listutils::typeError("text expected");
+}
+
+/*
+2.3.2 Value Mapping function
+
+*/
+int Geojson2region(Word* args, Word& result, int message,
+                   Word& local, Supplier s ){
+
+   result = qp->ResultStorage(s);
+   FText* text = static_cast<FText*>(args[0].addr);
+   Region* res = static_cast<Region*>(result.addr);
+   vector<double> points;
+
+   if(! text -> IsDefined()) {
+      res -> SetDefined(false);
+      return 0; 
+   }
+
+   string data = text -> GetValue();
+
+   bool contains = data.find("\"type\":\"Polygon\"") != std::string::npos;
+
+   if(! contains) {
+       cerr << "Input does not contain a Polygon" << endl;
+       res -> SetDefined(false);
+       return 0; 
+   }
+
+   const char* dataArray = data.c_str();
+   const char* start = strstr(dataArray, "[[");
+
+   if(start == NULL) {
+      cerr << "Input is not valid GEOJson" << endl;
+      res -> SetDefined(false);
+      return 0; 
+   }
+
+   string buffer = "";
+   char lastChar = '\0';
+
+   for(int i = start - dataArray; dataArray[i] != '\0'; i++) {
+      char curChar = data[i];
+
+      if(curChar == ']' && lastChar == ']') {
+          if(! buffer.empty()) {
+             points.push_back(stod(buffer));
+          }
+          break;
+      } else if(curChar == ',' || curChar == ']') {
+         if(! buffer.empty()) {
+             points.push_back(stod(buffer));
+             buffer = "";
+         }
+      } else if(curChar == '[') {
+         // Ignore
+      } else {
+         buffer += curChar;
+      }
+
+      lastChar = curChar;
+   }
+
+   if(points.size() % 2 != 0) {
+      cerr << "Got an uneven amount of points" << endl;
+      res -> SetDefined(false);
+      return 0; 
+   }
+
+   res -> SetDefined(true);
+   res -> StartBulkLoad(); 
+
+   vector<SimplePoint> simplepoints;
+
+   // Convert to points
+   for(size_t i = 0; i < points.size(); i = i + 2) {
+      double x = points[i];
+      double y = points[i+1];
+      SimplePoint point = SimplePoint(x, y);
+      simplepoints.push_back(point);
+   }
+
+   if(simplepoints[0] != simplepoints[simplepoints.size() - 1]) {
+      cerr << "Error: Region is not closed" << endl;
+      res -> SetDefined(false);
+      return 0; 
+   }
+
+   for(size_t i = 0; i < simplepoints.size() - 1; ++i) {
+      SimplePoint p1 = simplepoints[i];
+      SimplePoint p2 = simplepoints[i+1];
+
+      // build the halfsegment
+      HalfSegment hs1(true,p1.getPoint(),p2.getPoint());
+      HalfSegment hs2(false,p1.getPoint(),p2.getPoint());
+      hs1.attr.edgeno = i;
+      hs2.attr.edgeno = i;
+      hs1.attr.insideAbove = false;
+      hs2.attr.insideAbove = false;
+      (*res) += hs1;
+      (*res) += hs2;
+   }
+   
+   res -> EndBulkLoad();  
+
+   return 0;
+}
+
+/*
+2.3.3 Specification of the operator ~geojson2region~
+
+*/
+const string Geojson2regionSpec = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( "
+                         "<text>text -> region</text--->"
+                         "<text>geojson2region (_)</text--->"
+                         "<text> The operator geojson2region extraxts"
+                         " a polygon from a GeoJSON text and creates"
+                         " a region.</text--->"
+                         "<text>query geojson2region([...])</text--->"
+                         ") )";
+
+/*
+2.3.4 Definition of the operator ~geojson2region~
+
+*/
+Operator geojson2region (
+	"geojson2region",
+ 	Geojson2regionSpec,
+ 	Geojson2region,
+	Operator::SimpleSelect,
+	Geojson2regionTypeMap );
 
 
 /*
@@ -740,6 +893,7 @@ public:
     AddOperator(&faultcrash);
     AddOperator(&auxiliarysleep);
     AddOperator(&auxiliarystatistics);
+    AddOperator(&geojson2region);
   }
 
   ;

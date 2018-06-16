@@ -23,3 +23,5 @@ operator statistics alias STATISTICS pattern _ op [ _ , _ ]
 operator faultcrash alias FAULTCRASH pattern _ op [ _ ]
 operator faultloop alias FAULTLOOP pattern _ op [ _ ]
 
+operator geojson2region alias GEOJSON2REGION pattern op (_)
+
