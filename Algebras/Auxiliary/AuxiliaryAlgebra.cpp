@@ -867,11 +867,11 @@ const string Geojson2regionSpec = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 
 */
 Operator geojson2region (
-	"geojson2region",
- 	Geojson2regionSpec,
- 	Geojson2region,
-	Operator::SimpleSelect,
-	Geojson2regionTypeMap );
+        "geojson2region",
+        Geojson2regionSpec,
+        Geojson2region,
+        Operator::SimpleSelect,
+        Geojson2regionTypeMap );
 
 
 /*
