@@ -728,16 +728,21 @@ Operator auxiliarystatistics (
 /*
 2.3.1 Type Mapping function
 
-The signature is text -> line.
+The signature is text x bool -> line
 
 */
 
 ListExpr Geojson2lineTypeMap(ListExpr args){
 
-  if( (nl->ListLength(args)==1) && nl->IsEqual(nl->First(args), 
-      FText::BasicType())) {
+  if(nl->ListLength(args) != 2) {
+     return listutils::typeError("two arguments exptected");
+  }
+
+  if(FText::checkType(nl->First(args)) &&
+     CcBool::checkType(nl->Second(args))) {
       return nl->SymbolAtom(Line::BasicType());
   }
+
   return listutils::typeError("text expected");
 }
 
@@ -749,16 +754,27 @@ int Geojson2line(Word* args, Word& result, int message,
                    Word& local, Supplier s ){
 
    result = qp->ResultStorage(s);
+
    FText* text = static_cast<FText*>(args[0].addr);
+   CcBool* autocloseBool = static_cast<CcBool*>(args[1].addr);
+
    Line* res = static_cast<Line*>(result.addr);
    vector<double> points;
 
    if(! text -> IsDefined()) {
+      cerr << "Input text is not defined" << endl;
+      res -> SetDefined(false);
+      return 0; 
+   }
+
+   if(! autocloseBool -> IsDefined()) {
+      cerr << "Autoclose is not defined" << endl;
       res -> SetDefined(false);
       return 0; 
    }
 
    string data = text -> GetValue();
+   bool autoclose = autocloseBool -> GetValue();
 
    bool contains = data.find("\"type\":\"Polygon\"") != std::string::npos;
 
@@ -818,10 +834,16 @@ int Geojson2line(Word* args, Word& result, int message,
       simplepoints.push_back(point);
    }
 
+   // Check for closed path
    if(simplepoints[0] != simplepoints[simplepoints.size() - 1]) {
-      cerr << "Error: Region is not closed" << endl;
-      res -> SetDefined(false);
-      return 0; 
+      if(! autoclose) {
+         cerr << "Error: Region is not closed" << endl;
+         res -> SetDefined(false);
+         return 0; 
+      } else {
+         // Close line
+         simplepoints.push_back(simplepoints[0]);
+      }
    }
 
    res -> SetDefined(true);
@@ -849,11 +871,14 @@ int Geojson2line(Word* args, Word& result, int message,
 const string Geojson2lineSpec = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( "
-                         "<text>text -> region</text--->"
-                         "<text>geojson2line (_)</text--->"
+                         "<text>text x bool -> region</text--->"
+                         "<text>geojson2line (_, _)</text--->"
                          "<text> The operator geojson2line extracts"
                          " all points from a GeoJSON polygon and creates"
-                         " a line.</text--->"
+                         " a line. The first parameter is the GeoJSON"
+                         " input. The second parameter determines if the"
+                         " line should be automatically closed"
+                         " (if close segment is missing in GeoJSON).</text--->"
                          "<text>query geojson2line([...])</text--->"
                          ") )";
 
