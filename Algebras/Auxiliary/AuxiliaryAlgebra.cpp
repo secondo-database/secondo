@@ -721,22 +721,22 @@ Operator auxiliarystatistics (
 );                         
 
 /*
-2.3 Operator ~geojson2region~
+2.3 Operator ~geojson2line~
 
 */
 
 /*
 2.3.1 Type Mapping function
 
-The signature is text -> region.
+The signature is text -> line.
 
 */
 
-ListExpr Geojson2regionTypeMap(ListExpr args){
+ListExpr Geojson2lineTypeMap(ListExpr args){
 
   if( (nl->ListLength(args)==1) && nl->IsEqual(nl->First(args), 
       FText::BasicType())) {
-      return nl->SymbolAtom(Region::BasicType());
+      return nl->SymbolAtom(Line::BasicType());
   }
   return listutils::typeError("text expected");
 }
@@ -745,12 +745,12 @@ ListExpr Geojson2regionTypeMap(ListExpr args){
 2.3.2 Value Mapping function
 
 */
-int Geojson2region(Word* args, Word& result, int message,
+int Geojson2line(Word* args, Word& result, int message,
                    Word& local, Supplier s ){
 
    result = qp->ResultStorage(s);
    FText* text = static_cast<FText*>(args[0].addr);
-   Region* res = static_cast<Region*>(result.addr);
+   Line* res = static_cast<Line*>(result.addr);
    vector<double> points;
 
    if(! text -> IsDefined()) {
@@ -808,9 +808,6 @@ int Geojson2region(Word* args, Word& result, int message,
       return 0; 
    }
 
-   res -> SetDefined(true);
-   res -> StartBulkLoad(); 
-
    vector<SimplePoint> simplepoints;
 
    // Convert to points
@@ -827,51 +824,49 @@ int Geojson2region(Word* args, Word& result, int message,
       return 0; 
    }
 
+   res -> SetDefined(true);
+   res -> StartBulkLoad();
+   res -> Resize(simplepoints.size());
    for(size_t i = 0; i < simplepoints.size() - 1; ++i) {
-      SimplePoint p1 = simplepoints[i];
-      SimplePoint p2 = simplepoints[i+1];
-
-      // build the halfsegment
-      HalfSegment hs1(true,p1.getPoint(),p2.getPoint());
-      HalfSegment hs2(false,p1.getPoint(),p2.getPoint());
-      hs1.attr.edgeno = i;
-      hs2.attr.edgeno = i;
-      hs1.attr.insideAbove = false;
-      hs2.attr.insideAbove = false;
-      (*res) += hs1;
-      (*res) += hs2;
+        SimplePoint p1 = simplepoints[i];
+        SimplePoint p2 = simplepoints[i+1];
+        HalfSegment hs1(true,p1.getPoint(),p2.getPoint());
+        HalfSegment hs2(false,p1.getPoint(),p2.getPoint());
+        hs1.attr.edgeno = i;
+        hs2.attr.edgeno = i;
+        (*res) += hs1;
+        (*res) += hs2;
    }
-   
-   res -> EndBulkLoad();  
 
+   res -> EndBulkLoad();
    return 0;
 }
 
 /*
-2.3.3 Specification of the operator ~geojson2region~
+2.3.3 Specification of the operator ~geojson2line~
 
 */
-const string Geojson2regionSpec = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string Geojson2lineSpec = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( "
                          "<text>text -> region</text--->"
-                         "<text>geojson2region (_)</text--->"
-                         "<text> The operator geojson2region extraxts"
-                         " a polygon from a GeoJSON text and creates"
-                         " a region.</text--->"
-                         "<text>query geojson2region([...])</text--->"
+                         "<text>geojson2line (_)</text--->"
+                         "<text> The operator geojson2line extracts"
+                         " all points from a GeoJSON polygon and creates"
+                         " a line.</text--->"
+                         "<text>query geojson2line([...])</text--->"
                          ") )";
 
 /*
-2.3.4 Definition of the operator ~geojson2region~
+2.3.4 Definition of the operator ~geojson2line~
 
 */
-Operator geojson2region (
-        "geojson2region",
-        Geojson2regionSpec,
-        Geojson2region,
+Operator geojson2line (
+        "geojson2line",
+        Geojson2lineSpec,
+        Geojson2line,
         Operator::SimpleSelect,
-        Geojson2regionTypeMap );
+        Geojson2lineTypeMap );
 
 
 /*
@@ -893,7 +888,7 @@ public:
     AddOperator(&faultcrash);
     AddOperator(&auxiliarysleep);
     AddOperator(&auxiliarystatistics);
-    AddOperator(&geojson2region);
+    AddOperator(&geojson2line);
   }
 
   ;
