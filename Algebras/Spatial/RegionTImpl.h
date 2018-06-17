@@ -144,12 +144,16 @@ RegionT<Array>::RegionT( const RegionT& cr) :
 StandardSpatialAttribute<2>(cr.IsDefined()),
 region( cr.Size() ),
 bbox( cr.bbox ),
-noComponents( cr.NoComponents() ),
 ordered( true )
 {
-  if( IsDefined() && cr.Size() >0 ) {
-    assert( cr.IsOrdered() );
-    region.copyFrom(cr.region);
+  if(IsDefined()) {
+    // NoComponents() can only be called on defined regions
+    noComponents = cr.NoComponents();
+
+    if(cr.Size() > 0) {
+       assert( cr.IsOrdered() );
+       region.copyFrom(cr.region);
+    }
   }
 }
 
