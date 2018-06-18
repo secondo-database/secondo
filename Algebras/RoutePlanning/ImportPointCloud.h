@@ -44,6 +44,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <dirent.h>
 #include <deque>
 #include "PointCloud.h"
+#include "lasreader/lasreader.h"
+#include "lasreader/laspoint.h"
 
 
 
@@ -144,6 +146,62 @@ namespace routeplanningalgebra {
                 }
              }            
 
+             // implementation using a lasreader
+             int readLasFile1(const std::string& fileName){
+                fError = false;
+                pError = false;
+
+                // test output las file name to be read
+                cout  << endl;
+                cout << "Processing las file : " << fileName  << endl;
+                lasreader reader(fileName);
+                if(!reader.isOk()){
+                   fError = true;
+                   std::cerr << "Error in reading global file information" 
+                             << std::endl;
+                   return -2;
+                }
+                fNumPointRecs = reader.getNumPoints();
+                reader.getBox(fMinX, fMinY, fMinZ, fMaxX, fMaxY, fMaxZ);
+
+
+                // create Arrays to store point data
+                initPointCloudArray();
+
+                double minXArray[noGridCells];
+                double maxXArray[noGridCells];
+                double minYArray[noGridCells];
+                double maxYArray[noGridCells];
+                maxX = fMaxX;
+                minX = fMinX;
+                maxY = fMaxY;
+                minY = fMinY;
+                maxZ = fMaxZ;
+                minZ = fMinZ;
+                cout << std::setprecision(14);
+                cout << "Absolute Min Point (" << minX << ", " 
+                    << minY << ", " << minZ << ")" << endl;
+                cout << "Absolute Max Point (" << maxX << ", " 
+                    << maxY << ", " << maxZ << ")" << endl;
+                lasPoint* point;
+                size_t icount = 0;
+                while( (point = reader.next())!=0){
+                    if (calcPointData(icount, point, reader,
+                                        minXArray, maxXArray, 
+                                        minYArray, maxYArray) == -1) {
+                        // unexpected error during calculation
+                        // wenn return code eq to -2 just ignore the current
+                        // point and continue reading next point
+                        return 0;
+                    }
+                    delete point; 
+                    icount++;
+                }
+                cout << "Number of points read: " << icount - 1 << endl;
+                // Set Min Max values of PC 
+                setMinMaxValues(minXArray, maxXArray, minYArray, maxYArray);
+                return 0;
+             }
 
 
              int readLasFile(const std::string& laspcFileName) {
@@ -244,12 +302,6 @@ namespace routeplanningalgebra {
                 lasFile.read(reinterpret_cast<char*>(&fMinZ), 8);
                 // min and max values are already absolute values.
                 // So do not calculate scale and offset here
-                noGridCellsSide = (long) (sqrt(fNumPointRecs / maxNoPoints) 
-                                         + 1.0);
-                cellOffsetX = (fMaxX - fMinX) / noGridCellsSide;
-                cellOffsetY = (fMaxY - fMinY) / noGridCellsSide;
-                noGridCells = noGridCellsSide * noGridCellsSide;
-                noPCElems = noGridCells;
                 // create Arrays to store point data
                 initPointCloudArray();
 
@@ -318,6 +370,23 @@ namespace routeplanningalgebra {
             /*
             Help method to read  and calculate point data
             */
+
+            int calcPointData(size_t icount, 
+                              lasPoint* point, 
+                              lasreader& reader,
+                              double*  minXArray, double* maxXArray, 
+                              double*  minYArray, double* maxYArray)  {
+                double x,y,z;
+                bool valid;
+                if(!reader.toLatLon(point,x,y,z,valid)){
+                   return -1;
+                }
+                if(!valid) return -2;
+                return insertPointData(icount,x, y, z,
+                                       minXArray, maxXArray, 
+                                       minYArray, maxYArray);
+            }
+
             int calcPointData(long icount, double* minXArray, 
                               double* maxXArray, double* minYArray, 
                               double* maxYArray) {
@@ -325,6 +394,19 @@ namespace routeplanningalgebra {
                 pointX = (fPointX * fScaleX) + fOffsetX;
                 pointY = (fPointY * fScaleY) + fOffsetY;
                 pointZ = (fPointZ * fScaleZ) + fOffsetZ;
+                return insertPointData(icount,pointX, pointY, pointZ,
+                                       minXArray, maxXArray, 
+                                       minYArray, maxYArray);
+             }
+
+             int insertPointData(size_t icount, 
+                                 double& pointX, 
+                                 double& pointY, 
+                                 double& pointZ,
+                                 double* minXArray,
+                                 double* maxXArray,
+                                 double* minYArray,
+                                 double* maxYArray){
                 cellNoX = (long) (1.0 + (pointX - minX) / cellOffsetX);
                 if (cellNoX > noGridCellsSide) {
                     if (cellNoX > (noGridCellsSide + 1)) {
@@ -400,6 +482,12 @@ namespace routeplanningalgebra {
             */
             void initPointCloudArray() {
                 assert(!pointCloudArray);
+                noGridCellsSide = (long) (sqrt(fNumPointRecs / maxNoPoints) 
+                                         + 1.0);
+                cellOffsetX = (fMaxX - fMinX) / noGridCellsSide;
+                cellOffsetY = (fMaxY - fMinY) / noGridCellsSide;
+                noGridCells = noGridCellsSide * noGridCellsSide;
+                noPCElems = noGridCells;
                 pointCloudArray = new PointCloud*[noPCElems];
                 for (int i = 0; i < noPCElems; i++) {
                     pointCloudArray[i] = new PointCloud(0);
@@ -474,7 +562,7 @@ namespace routeplanningalgebra {
               point clouds into result list
             */
             void fillResultList(const std::string& fileName){
-               if(readLasFile(fileName) == 0){ // no Error
+               if(readLasFile1(fileName) == 0){ // no Error
                   movePCsToResultList();     
                } else {
                  assert(pointCloudArray==0);
