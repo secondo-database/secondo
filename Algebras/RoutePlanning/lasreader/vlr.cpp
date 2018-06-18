@@ -49,8 +49,8 @@ vlr*  vlr::read(std::ifstream& in, bool extended){
   if(!r2) {
      // jump over data record
      in.seekg(r1->recordLength,std::ios::cur);
-     std::cout << "found unknown vlrs"  << std::endl;
-     r1->print(std::cout) << std::endl;
+     //std::cout << "found unknown vlr"  << std::endl;
+     //r1->print(std::cout) << std::endl;
   }
   delete r1;
   if(in.good()){
