@@ -70,7 +70,7 @@ struct lasHeader{
    uint64_t number_of_point_records;
    uint64_t number_of_points_by_return[15];
 
-   uint64_t numOfPoints(){
+   uint64_t numOfPoints() const{
      return minor_version>=4?number_of_point_records:legacy_number_of_points;
    }
 
