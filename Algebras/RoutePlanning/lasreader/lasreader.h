@@ -96,9 +96,20 @@ public:
      }
    }
 
-   bool readVLRs();
+   bool getBox(double& min_x, double& min_y, double& min_z,
+               double& max_x, double& max_y, double& max_z){
+     min_x = this->min_x;
+     min_y = this->min_y;
+     min_z = this->min_z;
+     max_x = this->max_x;
+     max_y = this->max_y;
+     max_z = this->max_z;
+     return ok;
+   }
 
-   bool readEVLRs();
+   size_t getNumPoints() const{
+      return ok?header.numOfPoints(): 0; 
+   }
 
 
 private:
@@ -125,6 +136,10 @@ private:
   // creates a projection converter from the known 
   // variable length records
   void createConverter();
+
+  bool readVLRs();
+  bool readEVLRs();
+
 
   // sets box from header using converter
   void setBox();

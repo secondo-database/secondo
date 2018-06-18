@@ -58,10 +58,11 @@ void lasreader::init(){
 // -- if converter is present -- converts into wgs84 coordinates
 void lasreader::setBox() {
    min_x = header.min_x; 
-   min_y = header.min_x;
+   min_y = header.min_y;
    min_z = header.min_z;
+
    max_x = header.max_x; 
-   max_y = header.max_x;
+   max_y = header.max_y;
    max_z = header.max_z;
    if(converter){
       double p1[] = {min_x,min_y,min_z};
