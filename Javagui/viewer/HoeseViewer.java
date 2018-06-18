@@ -2751,21 +2751,29 @@ public class HoeseViewer extends SecondoViewer {
 		private boolean selectionEnabled = true;
                 private BasicStroke rstroke = new BasicStroke(2.0f);
 
-		public void drawRectangle() {
-			if (!isEnabled)
+
+    /** draws a rectangle
+
+    */
+
+		public synchronized void drawRectangle(boolean remove) {
+		//public  void drawRectangle() {
+			if (!isEnabled) {
 				return;
+      }
 			int x1 = startX;
 			int x2 = targetX;
 			int y1 = startY;
 			int y2 = targetY;
 			Graphics2D G = (Graphics2D) GraphDisplay.getGraphics();
 			G.setXORMode(Color.WHITE);
-                        G.setStroke(rstroke);
+      G.setStroke(rstroke);
 			int x = Math.min(x1, x2);
 			int w = Math.abs(x1 - x2);
 			int y = Math.min(y1, y2);
 			int h = Math.abs(y1 - y2);
 			G.drawRect(x, y, w, h);
+      GraphDisplay.setSelection(x,y,w,h,rstroke, remove);
 		}
 
 		/** enabled or disables the sleection of objects **/
@@ -2784,7 +2792,7 @@ public class HoeseViewer extends SecondoViewer {
 					& isEnabled) {
 				{
 					if (isPainting)
-						drawRectangle();
+						drawRectangle(true); // remove the old rectangle
 					isPainting = false;
 					int x = Math.min(startX, targetX);
 					int wi = Math.abs(startX - targetX);
@@ -2830,11 +2838,10 @@ public class HoeseViewer extends SecondoViewer {
 				startY = e.getY();
 				targetX = startX;
 				targetY = startY;
-				drawRectangle();
+				drawRectangle(false);
 				isPainting = true;
 				isEnabled = true;
 				GraphDisplay.addMouseMotionListener(this);
-
 			}
 		}
 
@@ -2842,10 +2849,10 @@ public class HoeseViewer extends SecondoViewer {
 			if ((e.getModifiers() & InputEvent.BUTTON3_MASK) == InputEvent.BUTTON3_MASK
 					& isEnabled) {
 				if (isPainting)
-					drawRectangle();
+					drawRectangle(true);
 				targetX = e.getX();
 				targetY = e.getY();
-				drawRectangle();
+				drawRectangle(false);
 			}
 		}
 
@@ -2958,8 +2965,7 @@ public class HoeseViewer extends SecondoViewer {
 			makeSelectionVisible();
 			GraphDisplay.setIgnorePaint(false);
 			GraphDisplay.repaint();
-			SelectionControl.drawRectangle();
-
+			SelectionControl.drawRectangle(false);
 		}
 	}
 

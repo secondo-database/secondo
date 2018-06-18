@@ -41,6 +41,7 @@ import javax.swing.JMenuItem;
 import java.util.ListIterator;
 import java.util.Vector;
 import java.awt.geom.*;
+import java.awt.BasicStroke;
 
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
@@ -91,6 +92,27 @@ public class GraphWindow extends JLayeredPane
 
 
    PreloadDialog  preloadDialog;
+
+
+  /*
+     The selected rectangle.
+  */
+  boolean selection = false;
+  int sel_x = 0;
+  int sel_y = 0;
+  int sel_w = 0;
+  int sel_h = 0;
+  BasicStroke sel_stroke = new BasicStroke();
+
+  public void setSelection(int x, int y, int w, int h, BasicStroke stroke, boolean remove){
+     sel_x = x;
+     sel_y = y;
+     sel_w = w;
+     sel_h = h;
+     sel_stroke = stroke;
+     selection = !remove;
+  }
+
 
 
   private class SoundMouseListener implements MouseMotionListener{
@@ -572,6 +594,11 @@ public class GraphWindow extends JLayeredPane
     // draw addinitional objects from objectvcreation
     if (additionalGraphObject != null) {
       Layer.draw(additionalGraphObject, g2, CurrentState.ActualTime, at);
+    }
+    if(selection){
+        g2.setXORMode(Color.WHITE);
+        g2.setStroke(sel_stroke);
+        g2.drawRect(sel_x, sel_y, sel_w, sel_h);
     }
   }
 
