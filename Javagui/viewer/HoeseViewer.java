@@ -2761,19 +2761,19 @@ public class HoeseViewer extends SecondoViewer {
 			if (!isEnabled) {
 				return;
       }
+      if(remove){
+         GraphDisplay.removeSelection();
+         return;
+      }
 			int x1 = startX;
 			int x2 = targetX;
 			int y1 = startY;
 			int y2 = targetY;
-			Graphics2D G = (Graphics2D) GraphDisplay.getGraphics();
-			G.setXORMode(Color.WHITE);
-      G.setStroke(rstroke);
 			int x = Math.min(x1, x2);
 			int w = Math.abs(x1 - x2);
 			int y = Math.min(y1, y2);
 			int h = Math.abs(y1 - y2);
-			G.drawRect(x, y, w, h);
-      GraphDisplay.setSelection(x,y,w,h,rstroke, remove);
+      GraphDisplay.setSelection(x,y,w,h);
 		}
 
 		/** enabled or disables the sleection of objects **/

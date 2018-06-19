@@ -102,16 +102,50 @@ public class GraphWindow extends JLayeredPane
   int sel_y = 0;
   int sel_w = 0;
   int sel_h = 0;
-  BasicStroke sel_stroke = new BasicStroke();
+  BasicStroke sel_stroke = new BasicStroke(2.0f);
+  
 
-  public void setSelection(int x, int y, int w, int h, BasicStroke stroke, boolean remove){
+  public synchronized void setSelection(int x, int y, int w, int h){
+     if(selection){
+        if(   sel_x == x && sel_y == y 
+           && sel_w == w && sel_h == h){
+         // selection already painted at this position,
+         // ignore
+         return;
+        } 
+     }
+     if(selection){
+        // remove old rectangle
+        paintSelection();
+     }
      sel_x = x;
      sel_y = y;
      sel_w = w;
      sel_h = h;
-     sel_stroke = stroke;
-     selection = !remove;
+     // paint new rectangle
+     paintSelection(); 
+     selection = true;
   }
+
+  /** paints or removes selection **/
+  private synchronized void paintSelection(){
+     Graphics2D g = (Graphics2D) getGraphics();
+     g.setXORMode(Color.WHITE);    
+     g.setStroke(sel_stroke);
+     g.drawRect(sel_x, sel_y, sel_w, sel_h);
+  }
+
+
+
+  public void removeSelection(){
+     if(selection) {
+        paintSelection();
+        selection = false;
+     }
+  }
+
+
+
 
 
 
@@ -596,9 +630,9 @@ public class GraphWindow extends JLayeredPane
       Layer.draw(additionalGraphObject, g2, CurrentState.ActualTime, at);
     }
     if(selection){
-        g2.setXORMode(Color.WHITE);
-        g2.setStroke(sel_stroke);
-        g2.drawRect(sel_x, sel_y, sel_w, sel_h);
+      // an old selection is overwritten by repainting the scene
+      // draw the selection 
+      paintSelection();
     }
   }
 
