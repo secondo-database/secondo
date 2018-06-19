@@ -85,8 +85,8 @@ Remark    : remote server required
 
 Operator : drelproject
 Number   : 1
-Signature: drel(rel(X)) x list -> drel(rel(Y))
-Example  : query drel1 drelproject[PLZ, Ort]
+Signature: drel(rel(X)) x list -> stream(Y)
+Example  : query drel1 drelproject[PLZ, Ort] consume
 Result    : bug
 Remark    : remote server required
 

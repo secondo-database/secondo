@@ -142,7 +142,7 @@ namespace drel {
     1.2 Value Mapping
 
     Uses a drel and project the choosen attributes.
-    Result is a new drel.
+    Result is a stream.
 
     */
     template<class R, class T>
@@ -184,9 +184,6 @@ namespace drel {
                 isFunction,
                 tree,
                 resultType );
-
-            cout << "correct" << endl;
-            cout << correct << endl;
 
             ArgVector dmapArgVec = {
                 args[ 0 ].addr,
@@ -244,10 +241,10 @@ namespace drel {
     */
     OperatorSpec drelprojectSpec(
         " drel(X) x list "
-        "-> drel(X) ",
+        "-> stream(Y) ",
         " _ drelproject[list]",
-        "Passed only the listed attributes to the new drel",
-        " query drel1 drelproject[PLZ, Ort]"
+        "Passed only the listed attributes to a stream",
+        " query drel1 drelproject[PLZ, Ort] consume"
     );
 
     /*
