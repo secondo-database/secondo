@@ -59,6 +59,8 @@ namespace drel {
         int getKey( );
         Boundary* getBoundary( );
 
+        virtual DistTypeBasic* copy( );
+
         static ListExpr getTypeList( ListExpr attrType );
         static bool checkType( ListExpr list );
 

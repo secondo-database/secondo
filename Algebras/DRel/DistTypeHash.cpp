@@ -101,7 +101,17 @@ namespace drel {
     }
 
     /*
-    6.7 ~getTypeExpr~
+    6.7 ~copy~
+
+    Make a copy of the current object.
+
+    */
+    DistTypeBasic* DistTypeHash::copy( ) {
+        return new DistTypeHash( *this );
+    }
+
+    /*
+    6.8 ~getTypeExpr~
 
     Returns the Typelist of the disttype. For the basic type it is a 
     CcString and a CcInt.
@@ -114,7 +124,7 @@ namespace drel {
     }
 
     /*
-    6.8 ~checkType~
+    6.9 ~checkType~
 
     Checks whether the type in nested list format fits to this disttype.
 
@@ -132,7 +142,7 @@ namespace drel {
     }
 
     /*
-    6.9 ~save~
+    6.10 ~save~
 
     Writes a DistType to the storage.
 
@@ -148,7 +158,7 @@ namespace drel {
     }
 
     /*
-    6.10 ~readFrom~
+    6.11 ~readFrom~
 
     Reads a list an creates a DistType.
 
@@ -169,7 +179,7 @@ namespace drel {
     }
 
     /*
-    6.11 ~readAttr~
+    6.12 ~readAttr~
 
     Reads an attribute from a list.
 
@@ -186,7 +196,7 @@ namespace drel {
     }
 
     /*
-    6.12 ~toListExpr~
+    6.13 ~toListExpr~
 
     Returns the object as a list.
 

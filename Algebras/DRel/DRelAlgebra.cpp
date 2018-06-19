@@ -36,6 +36,9 @@ extern TypeConstructor DRelTC;
 extern TypeConstructor DFRelTC;
 extern TypeConstructor BoundaryTC;
 
+extern Operator DRELFUNARG1OP;
+extern Operator DRELFUNARG2OP;
+
 extern Operator createboundaryOp;
 extern Operator getBoundaryIndexOp;
 extern Operator rect2cellgridOp;
@@ -47,6 +50,16 @@ extern Operator compareDistTypeOp;
 extern Operator convert2darrayOp;
 
 extern Operator drelsummarizeOp;
+
+extern Operator drelfilterOp;
+extern Operator drelprojectOp;
+extern Operator drelextendOp;
+extern Operator drelprojectextendOp;
+extern Operator drelheadOp;
+
+extern Operator drelcreatebtreeOp;
+extern Operator drelexactmatchOp;
+extern Operator drelrangeOp;
 
 /*
 1 Implementation of the Algebra DRel
@@ -60,6 +73,9 @@ DRelAlgebra::DRelAlgebra() {
     AddTypeConstructor( &BoundaryTC );
     BoundaryTC.AssociateKind( Kind::SIMPLE( ) );
     
+    AddOperator( &DRELFUNARG1OP );
+    AddOperator( &DRELFUNARG2OP );
+
     AddOperator( &createboundaryOp );
     createboundaryOp.SetUsesArgsInTypeMapping( );
     AddOperator( &getBoundaryIndexOp );
@@ -70,10 +86,28 @@ DRelAlgebra::DRelAlgebra() {
     AddOperator( &dreldistributeOp );
     dreldistributeOp.SetUsesArgsInTypeMapping( );
 
+    AddOperator( &drelfilterOp );
+    drelfilterOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &drelprojectOp );
+    drelprojectOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &drelextendOp );
+    drelextendOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &drelprojectextendOp );
+    drelprojectextendOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &drelheadOp );
+    drelheadOp.SetUsesArgsInTypeMapping( );
+
     AddOperator( &compareDistTypeOp );
     AddOperator( &convert2darrayOp );
 
     AddOperator( &drelsummarizeOp );
+
+    AddOperator( &drelcreatebtreeOp );
+    drelcreatebtreeOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &drelexactmatchOp );
+    drelexactmatchOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &drelrangeOp );
+    drelrangeOp.SetUsesArgsInTypeMapping( );
 }
 
 extern "C"

@@ -65,6 +65,9 @@ namespace drel {
     */
     ListExpr drelsummarizeTM( ListExpr args ) {
 
+        cout << "drelsummarizeTM" << endl;
+        cout << nl->ToString( args ) << endl;
+
         std::string err = "d[f]rel expected";
 
         if( ! nl->HasLength( args, 1 ) ) {

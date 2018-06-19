@@ -54,6 +54,8 @@ namespace drel {
         virtual bool isEqual( DistTypeBasic* _distType );
         int getAttr( );
 
+        virtual DistTypeBasic* copy( );
+
         static ListExpr getTypeList( );
         static bool checkType( ListExpr list );
 

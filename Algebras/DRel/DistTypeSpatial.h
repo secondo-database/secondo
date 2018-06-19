@@ -58,6 +58,8 @@ namespace drel {
         int getKey( );
         T* getGrid( );
 
+        virtual DistTypeBasic* copy( );
+
         static ListExpr getTypeList( ListExpr attrType );
         static bool checkType( ListExpr list );
 

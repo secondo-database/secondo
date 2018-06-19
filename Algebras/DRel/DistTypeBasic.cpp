@@ -177,7 +177,17 @@ namespace drel {
     }
 
     /*
-    6.7 ~getTypeList~
+    6.7 ~copy~
+
+    Make a copy of the current object.
+
+    */
+    DistTypeBasic* DistTypeBasic::copy( ) {
+        return new DistTypeBasic( *this );
+    }
+
+    /*
+    6.8 ~getTypeList~
 
     Returns the Typelist of the disttype. For the basic type it is only a 
     CcString.
@@ -188,7 +198,7 @@ namespace drel {
     }
 
     /*
-    6.8 ~checkType~
+    6.9 ~checkType~
 
     Checks whether the type in nested list format fits to this disttype.
 
@@ -201,7 +211,7 @@ namespace drel {
     }
 
     /*
-    6.9 ~save~
+    6.10 ~save~
 
     Writes a DistType to the storage.
 
@@ -212,7 +222,7 @@ namespace drel {
     }
 
     /*
-    6.10 ~readFrom~
+    6.11 ~readFrom~
 
     Reads the disttype from a list.
 
@@ -229,7 +239,7 @@ namespace drel {
     }
 
     /*
-    6.11 ~readFrom~
+    6.12 ~readFrom~
 
     Returns the disttype as nestedlist.
 
@@ -239,7 +249,7 @@ namespace drel {
     }
 
     /*
-    6.12 ~readType~
+    6.13 ~readType~
 
     Reads a distributionType from a nested list. Returns true for a correct 
     nested list. False otherwise.

@@ -126,7 +126,7 @@ namespace drel {
         distType = _distType;
     }
 
-    template<distributed2::arrayType T>
+    template<arrayType T>
     DistTypeBasic* DRelT<T>::getDistType( ) {
         return distType;
     }
@@ -170,6 +170,7 @@ namespace drel {
         if( listutils::isSymbolUndefined( listArray ) ) {
             return listArray;
         }
+
         return nl->FourElemList( nl->First( listArray ),
             nl->Second( listArray ),
             nl->Third( listArray ),

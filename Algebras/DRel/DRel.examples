@@ -54,3 +54,59 @@ Signature : d[f]rel(rel(X)) -> stream(X)
 Example   : query drel1 dsummarize count
 Result    : bug
 Remark    : remote server required
+
+Operator : drelcreatebtree
+Number   : 1
+Signature : d[f]rel(rel(X)) -> d[f]rel(btree(X))
+Example   : query drel1 drelcreatebtree["drel1_PLZ",PLZ]
+Result    : bug
+Remark    : remote server required
+
+Operator : drelexactmatch
+Number   : 1
+Signature : drel(btree(X)) x drel(rel(X)) x ANY -> drel(rel(X))
+Example   : query drel1_PLZ drel1 drelexactmatch[99998]
+Result    : bug
+Remark    : remote server required
+
+Operator : drelrange
+Number   : 1
+Signature : drel(btree(X)) x drel(rel(X)) x ANY x ANY -> drel(rel(X))
+Example   : query drel1_PLZ drel1 drelrange[90000,99998]
+Result    : bug
+Remark    : remote server required
+
+Operator : drelfilter
+Number   : 1
+Signature: (drel(rel(X)) (map x bool)) -> drel(rel(X))
+Example  : query drel1 drelfilter[.PLZ > 200]
+Result    : bug
+Remark    : remote server required
+
+Operator : drelproject
+Number   : 1
+Signature: drel(rel(X)) x list -> drel(rel(Y))
+Example  : query drel1 drelproject[PLZ, Ort]
+Result    : bug
+Remark    : remote server required
+
+Operator : drelextend
+Number   : 1
+Signature: drel(rel(X)) x funlist -> drel(rel(Y))
+Example  : query drel1 drelextend[PLZ2 : .PLZ + 1]
+Result    : bug
+Remark    : remote server required
+
+Operator : drelprojectextend
+Number   : 1
+Signature: drel(rel(X)) x attrlist x funlist -> drel(rel(Y))
+Example  : query drel1 drelprojectextend[PLZ; PLZ2 : .PLZ + 1]
+Result    : bug
+Remark    : remote server required
+
+Operator : drelhead
+Number   : 1
+Signature: drel(rel(X)) x int -> drel(rel(X))
+Example  : query drel1 drelhead[3]
+Result    : bug
+Remark    : remote server required

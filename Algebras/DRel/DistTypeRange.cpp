@@ -121,7 +121,17 @@ namespace drel {
     }
 
     /*
-    6.8 ~getTypeList~
+    6.8 ~copy~
+
+    Make a copy of the current object.
+
+    */
+    DistTypeBasic* DistTypeRange::copy( ) {
+        return new DistTypeRange( *this );
+    }
+
+    /*
+    6.9 ~getTypeList~
 
     Returns the Typelist of the disttype. For the range type it is a
     CcString, two CcInt and one Boundary.
@@ -138,7 +148,7 @@ namespace drel {
     }
 
     /*
-    6.9 ~checkType~
+    6.10 ~checkType~
 
     Checks whether the type in nested list format fits to this disttype.
 
@@ -164,7 +174,7 @@ namespace drel {
     }
 
     /*
-    6.10 ~save~
+    6.11 ~save~
 
     Writes a DistType to the storage.
 
@@ -188,7 +198,7 @@ namespace drel {
     }
 
     /*
-    6.11 ~readFrom~
+    6.12 ~readFrom~
 
     Reads a list an creates a DistType.
 
@@ -223,7 +233,7 @@ namespace drel {
     }
 
     /*
-    6.12 ~readKey~
+    6.13 ~readKey~
 
     Reads the key from a list.
 
@@ -240,7 +250,7 @@ namespace drel {
     }
 
     /*
-    6.13 ~toListExpr~
+    6.14 ~toListExpr~
 
     Returns the object as a list.
 
