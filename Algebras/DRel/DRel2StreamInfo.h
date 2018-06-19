@@ -50,9 +50,9 @@ namespace drel {
         1.1 Constructor
 
         */
-        DRel2StreamInfo( distributed2::dsummarizeRelInfo<T>* _relInfo, 
-            QueryProcessor* _qp, OpTree _tree ) :
-            relInfo( _relInfo ), qp( _qp ), tree( _tree ) {
+        DRel2StreamInfo( ArgVectorPointer _args, Word _local, 
+            QueryProcessor* _qp, OpTree* _tree ) :
+            args( _args ), local( _local ), qp( _qp ), tree( _tree ) {
         }
         
         /*
@@ -60,17 +60,19 @@ namespace drel {
 
         */
         ~DRel2StreamInfo( ) {
-            //delete darray;
-            //delete qp;
+            // local has to be delete outside!
+            qp->Destroy( *tree, true );
+            delete qp;
         }
        
         /*
         1.3 Members
         
         */
-        distributed2::dsummarizeRelInfo<T>* relInfo;
+        ArgVectorPointer args;
+        Word local;
         QueryProcessor* qp;
-        OpTree tree;
+        OpTree* tree;
     };
     
 } // end of namespace drel
