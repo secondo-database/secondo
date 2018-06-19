@@ -61,12 +61,12 @@ namespace drel {
 
         if( DFRel::checkType( nl->First( args ) ) ) {
             return nl->TwoElemList(
-                listutils::basicSymbol<distributed2::DArray>( ),
+                listutils::basicSymbol<distributed2::DFArray>( ),
                 nl->Second( nl->First( args ) ) );
         }
          if( DRel::checkType( nl->First( args ) ) ) {
              return nl->TwoElemList(
-                 listutils::basicSymbol<distributed2::DFArray>( ),
+                 listutils::basicSymbol<distributed2::DArray>( ),
                  nl->Second( nl->First( args ) ) );
         }
 
