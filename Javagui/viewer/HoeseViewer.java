@@ -3489,7 +3489,7 @@ public class HoeseViewer extends SecondoViewer {
 			points = null;
 			GraphDisplay.paintAdditional(null);
 			if (isPainted) {
-				paintRectangle();
+				GraphDisplay.removeSelection();
 			}
 			rectangle_start = false;
 			isPainted = false;
@@ -3545,9 +3545,7 @@ public class HoeseViewer extends SecondoViewer {
 				return;
 			}
 
-			if (isPainted) {
-				paintRectangle();
-			}
+      GraphDisplay.removeSelection();
 			isPainted = false;
 			x2 = evt.getX();
 			y2 = evt.getY();
@@ -3596,24 +3594,18 @@ public class HoeseViewer extends SecondoViewer {
 			if (!rectangle_start) {
 				return;
 			}
-			if (isPainted) {
-				paintRectangle();
-			}
 			x2 = evt.getX();
 			y2 = evt.getY();
 			paintRectangle();
 			isPainted = true;
 		}
 
-		/** Paints a rectangle in XOR mode from the current coordinates. */
 		private void paintRectangle() {
-			Graphics2D G = (Graphics2D) GraphDisplay.getGraphics();
-			G.setXORMode(Color.white);
 			int x = Math.min(x1, x2);
 			int w = Math.abs(x1 - x2);
 			int y = Math.min(y1, y2);
 			int h = Math.abs(y1 - y2);
-			G.drawRect(x, y, w, h);
+			GraphDisplay.setSelection(x,y,w,h);
 		}
 
 		/**
