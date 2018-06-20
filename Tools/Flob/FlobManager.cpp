@@ -903,8 +903,12 @@ Must be changed to support real large Flobs
       __TRACE_LEAVE__
       return false;
     }
+    char mode = file->IsTemp()?1:0;
     if(src.size==0){ // empty Flob
        rec.Finish();
+       FlobId fid(file->GetFileId(), recId,0,mode);
+       result.id = fid;
+       result.size = src.size;
        #ifdef THREAD_SAFE
        omtx.unlock();
        #endif
@@ -936,7 +940,6 @@ Must be changed to support real large Flobs
     omtx.unlock();
     #endif
 
-    char mode = file->IsTemp()?1:0;
 
     FlobId fid(file->GetFileId(), recId,0,mode);
     result.id = fid;
