@@ -777,14 +777,14 @@ double DistanceWithHeight(const Point& pointSource, const Point& pointTarget,
   assert( !geoid || geoid->IsDefined() );
   assert( weight.IsDefined() );
 
-  const Geoid* mygeoid = new Geoid(Geoid::WGS1984);
+  const Geoid mygeoid(Geoid::WGS1984);
 
     bool ok = false;
     double bearInitial = 0, bearFinal = 0;
 //    std::cout << "LineFunctionA.cpp mygeoid: \t Address: " << mygeoid ;
-//      std::cout << "\t Content: " << *mygeoid << "\n";
+//      std::cout << "\t Content: " << mygeoid << "\n";
     double distance = pointSource.DistanceOrthodromePrecise(pointTarget,
-        *mygeoid,ok,bearInitial,bearFinal);
+        mygeoid,ok,bearInitial,bearFinal);
     /*hier muesste das Gewicht pro Steigung uebergeben werden und die 
     HeightDifference Methode angepasst werden, wenn es diese Tabellenfunktion
      geben soll*/
@@ -805,14 +805,14 @@ double HeightDifference(LReal heightfunction)
     heightfunction.Print(cout);
 //    cout << heightfunction.GetNoComponents() << "\n";
     for (int i = 0; i < heightfunction.GetNoComponents(); i++) {
-        LUReal* unit = new LUReal();
+        LUReal unit;
 //        cout << "LFA.cpp Line " << __LINE__ << ", i: " << i << "\n";
-        heightfunction.Get(i,*unit);
+        heightfunction.Get(i,unit);
         //Steigung des Intervals
-        double steigung=unit->m;
+        double steigung=unit.m;
 
-        double intervStart=unit->getLengthInterval().start.GetRealval();
-        double intervEnd=unit->getLengthInterval().end.GetRealval();
+        double intervStart=unit.getLengthInterval().start.GetRealval();
+        double intervEnd=unit.getLengthInterval().end.GetRealval();
 
         //Laenge des Intervals
         double intervalLength= intervEnd-intervStart;
@@ -1953,14 +1953,14 @@ int distanceWithGradientFun( Word* args, Word& result, int message,
    result = qp->ResultStorage( s );
    CcReal* res = static_cast<CcReal*>(result.addr);
   // const Geoid* geoid =0;
-     const Geoid* geoid = new Geoid(Geoid::WGS1984);
+     const Geoid geoid(Geoid::WGS1984);
    //Argumente auseinander nehmen und casten
      Point* pointSource = static_cast<Point*>(args[0].addr);
      Point* pointTarget = static_cast<Point*>(args[1].addr);
      CcReal* weight = static_cast<CcReal*>(args[2].addr);
      LReal* heightfunction = static_cast<LReal*>(args[3].addr);
      double distance=DistanceWithHeight(*pointSource,*pointTarget,*weight,
-        *heightfunction,geoid);
+        *heightfunction,&geoid);
      res->Set(true,distance);
    return 0;
 }
@@ -2037,18 +2037,18 @@ int lfResultFun( Word* args, Word& result, int message,
 
      double x = xValue->GetRealval();
      double y;
-     res->Set(false);
+     res->Set(false,0.0);
      for (int i = 0; i < heightfunction->GetNoComponents(); i++) {
-         LUReal* unit = new LUReal();
-         heightfunction->Get(i,*unit);
+         LUReal unit;
+         heightfunction->Get(i,unit);
 
-         double intervStart=unit->getLengthInterval().start.GetRealval();
-         double intervEnd=unit->getLengthInterval().end.GetRealval();
+         double intervStart=unit.getLengthInterval().start.GetRealval();
+         double intervEnd=unit.getLengthInterval().end.GetRealval();
 
          if ((intervStart <= x) && (x <= intervEnd)){
              //Steigung und Anfangshoehe der Funktion
-             double m=unit->m;
-             double n=unit->n;
+             double m=unit.m;
+             double n=unit.n;
              //Lineare Funktion ausrechnen
              y= (m * x) + n;
              res->Set(true,y);
