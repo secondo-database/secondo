@@ -144,6 +144,7 @@ the algebra instance.
 enum arrayType{DARRAY,DFARRAY, DFMATRIXXX};
 
 std::string getName(const arrayType  a);
+ListExpr wrapType(const arrayType  a, ListExpr subType);
 
 
 
@@ -554,6 +555,10 @@ class DArrayT: public DArrayBase{
 
   static const std::string BasicType(){
      return distributed2::getName(type);;
+  }
+
+  static ListExpr wrapType(ListExpr subtype){
+     return distributed2::wrapType(type, subtype); 
   }
 
 

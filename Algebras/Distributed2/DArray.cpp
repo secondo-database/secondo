@@ -211,6 +211,12 @@ std::string getName(const arrayType a){
   return "unknown";
 }
 
+ListExpr wrapType(const arrayType a, ListExpr subtype){
+  return nl->TwoElemList( nl->SymbolAtom(getName(a)),
+                          subtype);
+}
+
+
 
 /*
 3.1 Implementation of DistTypeBase

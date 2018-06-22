@@ -20140,6 +20140,304 @@ Operator removeAllDFSFilesOp(
 
 
 
+/*
+Operator ~createintdarray~
+
+This operator creates a darray of int from a worker relation.
+The size will equal to the number of workers and the content
+of a slot is just its slot number
+
+*/
+ListExpr createintdarrayTM(ListExpr args){
+   if(!nl->HasLength(args,2)){
+     return listutils::typeError("wrong number of arguments");
+   }
+   if(!CcString::checkType(nl->First(args))){
+     return listutils::typeError("first argument is not a string");
+   }
+   ListExpr workerAttrPositions;
+   ListExpr workerAttrTypes;
+   string errMsg;
+   if(!isWorkerRelDesc(nl->Second(args), workerAttrPositions, 
+                      workerAttrTypes,errMsg)){
+     return listutils::typeError("second arg does not describe a valid "
+                                 "worker relation: " + errMsg);
+   }
+   ListExpr resType = DArray::wrapType(listutils::basicSymbol<CcInt>());   
+   return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                             workerAttrPositions,
+                             resType);
+}
+
+template<class HostType, class ConfigType>
+int createintdarrayVMT(Word* args, Word& result, int message,
+                      Word& local, Supplier s) {
+    result = qp->ResultStorage(s);
+    DArray* res = (DArray*) result.addr;
+    CcString* name = (CcString*) args[0].addr;
+    Relation* workers = (Relation*) args[1].addr;
+    int hostPos = ((CcInt*)args[2].addr)->GetValue();
+    int portPos = ((CcInt*)args[3].addr)->GetValue();
+    int confPos = ((CcInt*)args[4].addr)->GetValue();
+    if(!name->IsDefined()){
+       res->makeUndefined();
+       return 0;
+    }
+    string n = name->GetValue();
+    if(!stringutils::isIdent(n)){
+       res->makeUndefined();
+       return 0;
+    }
+    if(workers->GetNoTuples() == 0){
+       res->makeUndefined();
+       return 0;
+    }
+    int size = workers->GetNoTuples();
+    (*res) = DArrayBase::createFromRel<HostType,ConfigType,DArray>(
+                 workers, size, n,hostPos,portPos,confPos);
+
+    string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+    if(res->IsDefined()){
+       res->setStdMap(res->numOfWorkers());
+       for(int i=0;i<res->getSize();i++){
+          DArrayElement elem = res->getWorkerForSlot(i);
+          ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
+          if(!ci){
+             res->makeUndefined();
+             return 0;
+          }
+          string oname = res->getObjectNameForSlot(i);
+          string cmd = "delete " + oname;
+          int err;
+          string res;
+          double rt;
+          ci->simpleCommand(cmd,err,res,false,rt,false,commandLog,true,
+                            algInstance->getTimeout());
+          cmd = "let " + oname + " = " + stringutils::int2str(i);
+          ci->simpleCommand(cmd,err,res,false,rt,false,commandLog,true,
+                            algInstance->getTimeout());
+       }
+    }
+    return 0;
+}
+
+ValueMapping createintdarrayVM[] = {
+  createintdarrayVMT<CcString,CcString>,
+  createintdarrayVMT<CcString,FText>,
+  createintdarrayVMT<FText,CcString>,
+  createintdarrayVMT<FText,FText>
+};
+
+int createintdarraySelect(ListExpr args){
+   ListExpr workerAttrPositions;
+   ListExpr workerAttrTypes;
+   string errMsg;
+   if(!isWorkerRelDesc(nl->Second(args), workerAttrPositions, 
+                      workerAttrTypes,errMsg)){
+     return -1;
+   }
+ 	int hnum = CcString::checkType(nl->First(workerAttrTypes))?0:2;
+  int cnum = CcString::checkType(nl->Third(workerAttrTypes))?0:2;   
+  return cnum + hnum;
+}
+
+OperatorSpec createintdarraySpec(
+   "rel x string -> darray(int)",
+   "createintdarray(workers, name)",
+   "Creates an darray(int) of the size of the workers."
+   "The slot content corresponds to the slot number.",
+   "query createintdarray(workers,\"controlArray\")"
+);
+
+Operator createintdarrayOp(
+  "createintdarray",
+   createintdarraySpec.getStr(),
+   4,
+   createintdarrayVM,
+   createintdarraySelect,
+   createintdarrayTM
+);
+
+
+/*
+Operator dcommand
+
+Allows each worker of a distributed array to execute the same command.
+
+*/
+ListExpr dcommandTM(ListExpr args){
+   if(!nl->HasLength(args,2)){
+      return listutils::typeError("d[f]array x {string,text} expected");
+   }
+   ListExpr a1 = nl->First(args);
+   if(!DArray::checkType(a1) && !DFArray::checkType(a1)){
+     return listutils::typeError("first argument is not a d[f]array");
+   }
+   ListExpr a2 = nl->Second(args);
+   if(!CcString::checkType(a2) && !FText::checkType(a2)){
+     return listutils::typeError("second arg is not a string or a text");
+   }
+   ListExpr attrList = nl->SixElemList(
+                     nl->TwoElemList( nl->SymbolAtom("Host"), 
+                                      listutils::basicSymbol<FText>()),
+                     nl->TwoElemList( nl->SymbolAtom("Port"), 
+                                      listutils::basicSymbol<CcInt>()),
+                     nl->TwoElemList( nl->SymbolAtom("Config"), 
+                                      listutils::basicSymbol<FText>()),
+                     nl->TwoElemList( nl->SymbolAtom("Ok"), 
+                                      listutils::basicSymbol<CcBool>()),
+                     nl->TwoElemList( nl->SymbolAtom("ErrorMsg"), 
+                                      listutils::basicSymbol<FText>()),
+                     nl->TwoElemList( nl->SymbolAtom("RunTime"), 
+                                      listutils::basicSymbol<CcReal>()));
+    return Stream<Tuple>::wrap(Tuple::wrap(attrList));
+}
+
+template<class A>
+class dcommandInfo{
+
+  public:
+     dcommandInfo(A* array, string cmd,
+                  TupleType* tt){
+       this->array = array;
+       this->cmd = cmd;
+       this->tt = tt;
+       tt->IncReference();
+       if(array->IsDefined()){
+          compute();
+       }
+     }
+
+     ~dcommandInfo(){
+         while(!q.empty()){
+           Tuple* t = q.front();
+           t->DeleteIfAllowed();
+           q.pop();
+         }
+         tt->DeleteIfAllowed();
+      } 
+
+     Tuple* next(){
+        if(q.empty()){
+          return 0;
+        }
+        Tuple* res = q.front();
+        q.pop();
+        return res;
+     }
+
+  private:
+      A* array;
+      string cmd;
+      TupleType* tt;
+      std::queue<Tuple*> q;
+      boost::mutex mtx;
+      
+      void compute(){
+          vector<boost::thread*> runners;
+          string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+          for(int i=0;i<array->numOfWorkers(); i++){
+             DArrayElement elem = array->getWorker(i);
+             ConnectionInfo* ci = algInstance->getWorkerConnection(elem,
+                                                                 dbname);
+             boost::thread* r = new boost::thread(
+                boost::bind(&dcommandInfo::run,this,ci));
+                runners.push_back(r);
+          }
+          for(size_t i=0;i<runners.size();i++){
+            runners[i]->join();
+            delete runners[i];
+          }
+      }
+ 
+     void insert(Tuple* tuple){
+        boost::lock_guard<boost::mutex> guard(mtx);
+        q.push(tuple);
+     }
+
+     void run(ConnectionInfo* ci){
+          int err;
+          string res;
+          double rt;
+          string errmsg;
+          ci->simpleCommand(cmd,err,errmsg, res, false,rt,false,commandLog,true,
+                            algInstance->getTimeout());
+          Tuple* r  = new Tuple(tt);
+          r->PutAttribute(0,new FText(true,ci->getHost()));
+          r->PutAttribute(1,new CcInt(true,ci->getPort()));
+          r->PutAttribute(2, new FText(true,ci->getConfig()));
+          r->PutAttribute(3,new CcBool(true, err==0));
+          r->PutAttribute(4,new FText(true,errmsg));
+          r->PutAttribute(5,new CcReal(true,rt));
+          insert(r);    
+      }       
+};
+
+template<class A, class C>
+int dcommandVMT(Word* args, Word& result, int message,
+                      Word& local, Supplier s) {
+
+   dcommandInfo<A>* li = (dcommandInfo<A>*) local.addr;
+   switch(message){
+     case OPEN : {
+           if(li){
+             delete li;
+             local.addr = 0;
+           }
+           C* cmd = (C*) args[1].addr;
+           if(!cmd->IsDefined()){
+             return 0;
+           }
+           TupleType* tt = new TupleType( nl->Second(GetTupleResultType(s)));
+           local.addr = new dcommandInfo<A>((A*) args[0].addr,
+                                         cmd->GetValue(), tt);
+           return 0;
+           }
+      case REQUEST: 
+           result.addr = li?li->next():0;
+           return result.addr?YIELD:CANCEL;
+      case CLOSE:
+            if(li){
+              delete li;
+              local.addr = 0;
+            }  
+                 
+   }
+   return -1;
+}
+
+ValueMapping dcommandVM[] = {
+    dcommandVMT<DArray,CcString>,
+    dcommandVMT<DArray,FText>,
+    dcommandVMT<DFArray,CcString>,
+    dcommandVMT<DFArray,FText>
+};
+
+int dcommandSelect(ListExpr args){
+  int n1 = DArray::checkType(nl->First(args))?0:2;
+  int n2 = CcString::checkType(nl->Second(args))?0:1;
+  return n1+n2;
+}
+
+OperatorSpec dcommandSpec(
+   " d[f]array x {string, text} -> stream(tuple) ",
+   " array dcommand[ command ] ",
+   " Executes a command on all workers that are stored "
+   " an array. May be useful for deriving objects from "
+   " shared objects",
+   " query array1 dcommand['let x = 23']"
+);
+
+Operator dcommandOp(
+  "dcommand",
+  dcommandSpec.getStr(),
+  4,
+  dcommandVM,
+  dcommandSelect,
+  dcommandTM
+);
+
+
 
 /*
 3 Implementation of the Algebra
@@ -20368,6 +20666,9 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&removeTempInDFSOp);
    AddOperator(&removeDFSFilesInDBOp);
    AddOperator(&removeAllDFSFilesOp);
+
+   AddOperator(&createintdarrayOp);
+   AddOperator(&dcommandOp);
 
 
    pprogView = new PProgressView();

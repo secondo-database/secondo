@@ -757,3 +757,22 @@ Signature : -> bool
 Example   : query removeAllDFSFiles()
 Result    : unpredictable
 Remark    : depends on the presence of a distributed file system
+
+Operator  : createintdarray
+Number    : 1
+Signature : rel x string -> darray(int)
+Example   : query createintdarray(workerrel, "controlArray")
+Result    : unpredictable
+Remark    : required the presence of a distributed secondo
+
+Operator  : dcommand
+Number    : 1
+Signature : d[f]array x {string,text} -> stream(tuple)
+Example   : query darray1 dcommand['let x = 23'] consume
+Result    : unpredictable
+Remark    : required the presence of a distributed secondo
+
+
+
+
+

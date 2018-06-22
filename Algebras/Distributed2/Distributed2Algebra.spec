@@ -141,4 +141,8 @@ operator removeTempInDFS alias REMOVETEMPINDFS pattern op()
 operator removeDFSFilesInDB alias REMOVEDFSFILESINDB pattern op()
 operator removeAllDFSFiles alias REMOVEALLDFSFILES pattern op()
 
+operator createintdarray alias CREATEINTDARRAY pattern op(_,_)
+operator dcommand alias DCOMMAND pattern _ op[_]
+
+
 
