@@ -289,7 +289,7 @@ namespace mtreehelper{
 template<class T>
 class StdDistComp{
   public:
-    double  operator()(const pair<T,TupleId>&  o1, 
+    double  operator()(const pair<T,TupleId>& o1, 
                        const pair<T,TupleId>& o2){
        return mtreehelper::distance(&o1.first,&o2.first);
     }
@@ -4175,9 +4175,9 @@ ListExpr mcreatemtreeTM(ListExpr args){
   string err="expected: stream(tuple) x attrname x attrname"
              " or MREL x attrname ";
 
-  // ensure at leat 2 arguments
+  // ensure at least 2 arguments
   if(!nl->HasMinLength(args,2)){
-    return listutils::typeError(err+" (wrong number of args)");
+    return listutils::typeError(err+" (less than 2 arguments)");
   }
   bool isTS = Stream<Tuple>::checkType(nl->First(args));
   bool isMP = MPointer::checkType(nl->First(args));
@@ -4423,9 +4423,9 @@ ValueMapping mcreatemtreeVM[] = {
 
 OperatorSpec mcreatemtreeSpec(
   "stream(tuple) x attrname x attrname x string -> mem(mtree X) ",
-  "elements mcreateMtreeSpec[ indexAttr, TID_attr, mem_name]",
+  "elements mcreatemtree[ indexAttr, TID_attr]",
   "creates an main memory m tree from a tuple stream",
-  "query kinos feed addid mcreateMtree2[GeoData, TID, mkinos_mtree]"
+  "let kinos_mtree_GeoData =  kinos feed addid mcreatemtree[GeoData, TID]"
 );
 
 Operator mcreatemtreeOp(
