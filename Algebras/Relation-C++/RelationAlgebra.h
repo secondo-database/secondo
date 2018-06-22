@@ -727,6 +727,8 @@ the objects.
       return listutils::isTupleDescription(type);
     }
 
+    static ListExpr wrap(const ListExpr attrList, bool check = true);
+
 
     static void InitCounters(bool visible);
     static void SetCounterValues();

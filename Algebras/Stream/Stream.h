@@ -93,6 +93,10 @@ Checks whether list is a description of a stream with given type.
         return T::checkType(nl->Second(type));
      }
 
+     static ListExpr wrap(ListExpr subType){
+       return nl->TwoElemList(nl->SymbolAtom(BasicType()), subType);
+     }
+
 /*
 Opens the stream. It's not allowed to open an already opened stream.
 

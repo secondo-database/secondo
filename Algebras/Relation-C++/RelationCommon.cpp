@@ -71,6 +71,7 @@ to this implementation file.
 #include "NestedList.h"
 #include "Counter.h"
 #include "Symbols.h"
+#include "ListUtils.h"
 
 #include <set>
 #include <string>
@@ -211,6 +212,17 @@ Tuple *Tuple::Clone() const
     result->PutAttribute( i, attr );
   }
   return result;
+}
+
+ListExpr Tuple::wrap(ListExpr attrList, bool check /*=true*/){
+    if(check){
+       if(!listutils::isAttrList(attrList)){
+         return listutils::typeError();
+       }
+    }
+    return nl->TwoElemList( listutils::basicSymbol<Tuple>(),
+                            attrList);
+
 }
 
 
