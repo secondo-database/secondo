@@ -181,17 +181,17 @@ namespace rtreehelper{
 
 namespace mtreehelper{
 
-  double distance(const Point* p1, const Point* p2) {
+  double distance(const Point* p1, const Point* p2, Geoid* geoid) {
      if(!p1->IsDefined() && !p2->IsDefined()){
        return 0;
      }
      if(!p1->IsDefined() || !p2->IsDefined()){
          return std::numeric_limits<double>::max();
      } 
-     return p1->Distance(*p2);
+     return p1->Distance(*p2, geoid);
   }
 
-  double distance(const CcString* s1, const CcString* s2) {
+  double distance(const CcString* s1, const CcString* s2, Geoid* geoid) {
      if(!s1->IsDefined() && !s2->IsDefined()){
         return 0;
      }
@@ -201,7 +201,7 @@ namespace mtreehelper{
      return stringutils::ld(s1->GetValue() ,s2->GetValue());
   }
 
-  double distance(const CcInt* i1, const CcInt* i2) {
+  double distance(const CcInt* i1, const CcInt* i2, Geoid* geoid) {
      if(!i1->IsDefined() && !i2->IsDefined()){
         return 0;
      }
@@ -211,7 +211,7 @@ namespace mtreehelper{
      return abs(i1->GetValue() - i2->GetValue());
   }
   
-  double distance(const CcReal* r1, const CcReal* r2) {
+  double distance(const CcReal* r1, const CcReal* r2, Geoid* geoid) {
      if(!r1->IsDefined() && !r2->IsDefined()){
         return 0;
      }
@@ -223,7 +223,7 @@ namespace mtreehelper{
 
   template<unsigned int dim>
   double distance(const Rectangle<dim>* r1, 
-                  const Rectangle<dim>* r2) {
+                  const Rectangle<dim>* r2, Geoid* geoid) {
      if(!r1->IsDefined() && !r2->IsDefined()){
         return 0;
      }
@@ -289,9 +289,32 @@ namespace mtreehelper{
 template<class T>
 class StdDistComp{
   public:
+
+    StdDistComp(Geoid* _geoid){
+      geoid = _geoid?(Geoid*)_geoid->Clone():0; 
+    }
+
+    StdDistComp(const StdDistComp& src){
+       geoid = src.geoid?(Geoid*)src.geoid->Copy():0;
+    }
+
+    StdDistComp& operator=(const StdDistComp&src){
+       if(geoid) geoid->DeleteIfAllowed();
+       geoid = src.geoid?(Geoid*)src.geoid->Copy():0;
+    }
+
+
+    ~StdDistComp(){
+       if(geoid){
+         geoid->DeleteIfAllowed();
+       }
+    }
+
+
+
     double  operator()(const pair<T,TupleId>& o1, 
                        const pair<T,TupleId>& o2){
-       return mtreehelper::distance(&o1.first,&o2.first);
+       return mtreehelper::distance(&o1.first,&o2.first, geoid);
     }
 
     ostream& print( const pair<T, TupleId> & p,  ostream& o){
@@ -299,7 +322,10 @@ class StdDistComp{
        return o;
     }
   
-    void reset(){} // not sure
+    void reset(){} // not sureA
+
+  private:
+    Geoid* geoid;
 };
 
 
@@ -4189,18 +4215,32 @@ ListExpr mcreatemtreeTM(ListExpr args){
     return listutils::typeError(err + " (second argument is not a valid "
                                 "attribute name)");
   }
+  bool geoidPresent = false;
   if(isTS){
-    if(!nl->HasLength(args,3)){
+    if(!nl->HasLength(args,3) && !nl->HasLength(args,4)){
       return listutils::typeError("for a tuplestream, "
-                                  "3 arguments are required");
+                                  "3 or 4 arguments are required");
     }
     if(nl->AtomType(nl->Third(args)) != SymbolType){
       return listutils::typeError(err + " (third argument is not a valid "
                                 "attribute name)");
     }
+    if(nl->HasLength(args,4)){
+      if(!Geoid::checkType(nl->Fourth(args))){
+         return listutils::typeError("fourth argument is not a geoid");
+      }
+      geoidPresent = true;
+    }
   } else {
-    if(!nl->HasLength(args,2)){
-      return listutils::typeError("for an mpointer, 2 arguments are required");
+    if(!nl->HasLength(args,2) && !nl->HasLength(args,3)){
+      return listutils::typeError("for an mpointer, 2 or 3 "
+                                  " arguments are required");
+    }
+    if(nl->HasLength(args,3)){
+       if(!Geoid::checkType(nl->Third(args))){
+         return listutils::typeError("last argument is not an geoid");
+       }
+       geoidPresent = true;
     }
   }
 
@@ -4215,8 +4255,8 @@ ListExpr mcreatemtreeTM(ListExpr args){
   } else {
      tupletype = nl->Second(nl->First(args));
   }
-  ListExpr attrList =nl->Second(tupletype);
 
+  ListExpr attrList =nl->Second(tupletype);
 
   string name = nl->SymbolValue(nl->Second(args));
   ListExpr type;
@@ -4225,6 +4265,14 @@ ListExpr mcreatemtreeTM(ListExpr args){
     return listutils::typeError("attribute " + name 
                                 + " not part of the tuple");
   }
+  // support geoid only for points
+  if(geoidPresent){
+    if(!Point::checkType(type)){
+      return listutils::typeError("geoid support only for points");
+    }
+  }
+
+
   int index2 = -1;
   if(isTS){
      string tidname = nl->SymbolValue(nl->Third(args));
@@ -4258,13 +4306,31 @@ ListExpr mcreatemtreeTM(ListExpr args){
 
   ListExpr appendList;
   if(isTS){
-    appendList = nl->ThreeElemList( 
+    if(geoidPresent){
+       appendList = nl->ThreeElemList( 
                          nl->IntAtom(index1-1),
                          nl->IntAtom(index2-1),
                          nl->StringAtom(nl->ToString(type)));
+    } else {
+       appendList = nl->FourElemList(
+                         nl->TwoElemList(listutils::basicSymbol<Geoid>(),
+                                         listutils::getUndefined()), 
+                         nl->IntAtom(index1-1),
+                         nl->IntAtom(index2-1),
+                         nl->StringAtom(nl->ToString(type)));
+
+    }
   } else {
-    appendList = nl->TwoElemList( nl->IntAtom(index1-1), 
-                                  nl->StringAtom(nl->ToString(type)));
+    if(geoidPresent){
+        appendList = nl->TwoElemList( nl->IntAtom(index1-1), 
+                                      nl->StringAtom(nl->ToString(type)));
+     } else {
+        appendList = nl->ThreeElemList( 
+                               nl->TwoElemList(listutils::basicSymbol<Geoid>(),
+                                               listutils::getUndefined()), 
+                               nl->IntAtom(index1-1), 
+                               nl->StringAtom(nl->ToString(type)));
+     }
   }
 
   ListExpr result = nl->ThreeElemList(
@@ -4287,12 +4353,15 @@ int mcreatemtreeVMTStream (Word* args, Word& result, int message,
 
    result = qp->ResultStorage(s);
    MPointer* res = (MPointer*) result.addr;
+   Geoid* geoid = (Geoid*)  args[3].addr;
+   int index1 = ((CcInt*)   args[4].addr)->GetValue(); 
+   int index2 = ((CcInt*)   args[5].addr)->GetValue(); 
 
-   int index1 = ((CcInt*) args[3].addr)->GetValue(); 
-   int index2 = ((CcInt*) args[4].addr)->GetValue(); 
-   string tn = ((CcString*) args[5].addr)->GetValue();
+   if(!geoid->IsDefined()){
+      geoid = 0;
+   }
 
-   StdDistComp<T> dc;
+   StdDistComp<T> dc(geoid);
    MMMTree<pair<T,TupleId>,StdDistComp<T> >* tree = 
            new MMMTree<pair<T,TupleId>,StdDistComp<T> >(4,8,dc);
 
@@ -4337,14 +4406,19 @@ int mcreatemtreeVMTMP (Word* args, Word& result, int message,
      res->setPointer(0);
      return 0;
    }
-   int index1 = ((CcInt*) args[2].addr)->GetValue(); 
-   string tn = ((CcString*) args[3].addr)->GetValue();
+   Geoid* geoid = (Geoid*) args[2].addr;
+   int index1 = ((CcInt*) args[3].addr)->GetValue(); 
+   string tn = ((CcString*) args[4].addr)->GetValue();
+
+   if(!geoid->IsDefined()){
+     geoid = 0;
+   }
 
    MemoryRelObject* mrel = (MemoryRelObject*) mrelp->GetValue();
    vector<Tuple*>* v = mrel->getmmrel();
 
 
-   StdDistComp<T> dc;
+   StdDistComp<T> dc(geoid);
    MMMTree<pair<T,TupleId>,StdDistComp<T> >* tree = 
            new MMMTree<pair<T,TupleId>,StdDistComp<T> >(4,8,dc);
 
