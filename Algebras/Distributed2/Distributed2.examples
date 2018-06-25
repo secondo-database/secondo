@@ -761,9 +761,17 @@ Remark    : depends on the presence of a distributed file system
 Operator  : createintdarray
 Number    : 1
 Signature : rel x string -> darray(int)
-Example   : query createintdarray(workerrel, "controlArray")
+Example   : query createintdarray("controlArray", workerrel)
 Result    : unpredictable
 Remark    : required the presence of a distributed secondo
+
+Operator  : createintdarray
+Number    : 2
+Signature : rel x string  x int -> darray(int)
+Example   : query createintdarray("controlArray", workerrel, 42)
+Result    : unpredictable
+Remark    : required the presence of a distributed secondo
+
 
 Operator  : dcommand
 Number    : 1

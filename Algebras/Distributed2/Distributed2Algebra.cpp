@@ -20131,7 +20131,7 @@ Operator removeDFSFilesInDBOp(
 );
 
 Operator removeAllDFSFilesOp(
-  "removeiAllDFSFiles",
+  "removeAllDFSFiles",
   removeAllDFSFilesSpec.getStr(),
   removeDFSFilesVM<true>,
   Operator::SimpleSelect,
