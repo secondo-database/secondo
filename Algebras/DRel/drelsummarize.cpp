@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 
-1 Implementation of the secondo operator compareDistType
+1 Implementation of the secondo operator drelsummarize
 
 */
 #include "DRel.h"
@@ -60,7 +60,7 @@ namespace drel {
     /*
     1.1 Type Mapping
 
-    Expect a DRel or a DFRel.
+    Expect a d[f]el.
 
     */
     ListExpr drelsummarizeTM( ListExpr args ) {
@@ -89,13 +89,13 @@ namespace drel {
         }
 
         return listutils::typeError( err +
-            ": first argument is not a drel" );
+            ": first argument is not a d[f]rel" );
     }
 
     /*
     1.2 Value Mapping
 
-    Selects all elements of the drel or dfrel from the workers.
+    Selects all elements of the d[f]rel from the workers.
 
     */
     template<class T, class R>

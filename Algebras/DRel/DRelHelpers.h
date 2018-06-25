@@ -57,6 +57,19 @@ namespace drel {
             
             static void setGrid( temporalalgebra::CellGrid2D* grid, 
                 Rectangle<2>* rect, const int _arraySize );
+
+            static bool isListOfTwoElemLists( ListExpr list );
+
+            static bool isDRelDescr( ListExpr arg, ListExpr& drelType, 
+                ListExpr& relType, ListExpr& distType, ListExpr& drelName );
+            static bool isDRelDescr( ListExpr arg, ListExpr& drelType, 
+                ListExpr& relType, ListExpr& distType, ListExpr& drelName, 
+                ListExpr& darrayType );
+
+            static bool replaceDRELFUNARG( ListExpr arg, std::string type, 
+                ListExpr& fun );
+            static bool replaceDRELFUNARG( ListExpr arg, std::string type, 
+                ListExpr& fun, ListExpr& map );
     };
 
 } // end of namespace drel

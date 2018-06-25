@@ -1,3 +1,4 @@
+
 /*
 ----
 This file is part of SECONDO.
@@ -26,7 +27,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 
-1 Implementation of the secondo operator drelcreatebtree
+1 Implementation of the secondo operators drelcreatebtree.
+
+This operators have the same value mapping witch calls the dloop operator of 
+the Distributed2Algebra.
 
 */
 #include "NestedList.h"
@@ -34,6 +38,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 
+#include "Algebras/Stream/Stream.h"
+#include "Algebras/Relation-C++/OperatorFilter.h"
+#include "Algebras/Relation-C++/OperatorProject.h"
+#include "Algebras/BTree2/op_createbtree2.h"
+
+#include "DRelHelpers.h"
 #include "DRel.h"
 
 extern NestedList* nl;
@@ -54,7 +64,7 @@ namespace drel {
     /*
     1.1 Type Mapping
 
-    Expect a DRel or DFRel and another DRel or DFRel.
+    Expects two D[F]Rels.
 
     */
     ListExpr drelcreatebtreeTM( ListExpr args ) {
@@ -66,30 +76,13 @@ namespace drel {
                 ": three arguments are expected" );
         }
 
-        ListExpr temp = args;
-        while( !nl->IsEmpty( temp ) ) {
-            if( !nl->HasLength( nl->First( temp ), 2 ) ) {
-                return listutils::typeError( "internal Error" );
-            }
-            temp = nl->Rest( temp );
+        if( !DRelHelpers::isListOfTwoElemLists( args ) ) {
+            return listutils::typeError( "internal Error" );
         }
 
-        ListExpr drelType = nl->First( nl->First( args ) );
-        ListExpr drelName = nl->Second( nl->First( args ) );
-        ListExpr relType = nl->Second( drelType );
-
-        ListExpr darrayType;
-        if( DRel::checkType( drelType ) ) {
-            darrayType = nl->TwoElemList(
-                listutils::basicSymbol<DArray>( ),
-                relType );
-        }
-        else if( DFRel::checkType( drelType ) ) {
-            darrayType = nl->TwoElemList(
-                listutils::basicSymbol<DFArray>( ),
-                relType );
-        }
-        else {
+        ListExpr drelType, relType, distType, drelName, darrayType;
+        if( !DRelHelpers::isDRelDescr( nl->First( args ), drelType, relType,
+            distType, drelName, darrayType ) ) {
             return listutils::typeError( err +
                 ": first argument is not a d[f]rel" );
         }
@@ -134,9 +127,6 @@ namespace drel {
         ListExpr newRes = nl->ThreeElemList(
             nl->First( drelType ),  // drel or dfrel
             btreeType,
-            /*nl->TwoElemList(
-                nl->First( btreeType ),
-                nl->Second( btreeType ) ),*/
             nl->Third( drelType ) );  // disttype
 
         return nl->ThreeElemList(
@@ -146,13 +136,14 @@ namespace drel {
     }
 
     /*
-    1.2 Value Mapping
+    1.4 Value Mapping
 
-    Creates a distributed btree for a d[f]rel.
+    Uses a d[f]rel and creates a new drel. The d[f]rel is created by calling 
+    the dmap value mapping of the Distributed2Algebra.
 
     */
     template<class T, class R>
-    int drelcreatebtreeVMT( Word* args, Word& result, int message,
+    int dreldloopVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
         dloopVMT<R>( args, result, message, local, s );
@@ -170,26 +161,28 @@ namespace drel {
     }
 
     /*
-    1.3 ValueMapping Array of drecreatebtree
+    1.5 ValueMapping Array for dreldloop
+    
+    Used by the operators with only a drel input.
 
     */
-    ValueMapping drelcreatebtreeVM[ ] = {
-        drelcreatebtreeVMT<DRel, DArray>,
-        drelcreatebtreeVMT<DFRel, DFArray>
+    ValueMapping dreldloopVM[ ] = {
+        dreldloopVMT<DRel, DArray>,
+        dreldloopVMT<DFRel, DFArray>
     };
 
     /*
-    1.4 Selection function
+    1.6 Selection function for dreldloop
+
 
     */
-    int drelcreatebtreeSelect( ListExpr args ) {
+    int dreldloopSelect( ListExpr args ) {
 
-        return nl->SymbolValue( nl->First( nl->First( args ) ) ) ==
-            DRel::BasicType( ) ? 0 : 1;
+        return DRel::checkType( nl->First( args ) ) ? 0 : 1;
     }
 
     /*
-    1.5 Specification of drecreatebtree
+    1.7 Specification of drelcreatebtree
 
     */
     OperatorSpec drelcreatebtreeSpec(
@@ -202,15 +195,15 @@ namespace drel {
     );
 
     /*
-    1.6 Operator instance of drecreatebtree operator
+    1.11 Operator instance of drelcreatebtree operator
 
     */
     Operator drelcreatebtreeOp(
         "drelcreatebtree",
         drelcreatebtreeSpec.getStr( ),
         2,
-        drelcreatebtreeVM,
-        drelcreatebtreeSelect,
+        dreldloopVM,
+        dreldloopSelect,
         drelcreatebtreeTM
     );
 

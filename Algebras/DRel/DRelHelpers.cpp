@@ -30,12 +30,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 Class with usefull helper functions for the DRelAlgebra
 
 */
-#include "DRelHelpers.h"
 
 #include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "ListUtils.h"
 #include "StandardTypes.h"
 #include "QueryProcessor.h"
+
+#include "DRelHelpers.h"
+#include "DRel.h"
 
 using namespace std;
 
@@ -189,6 +191,116 @@ namespace drel {
             cellheight, cellwidth, _arraySize*_arraySize );*/
         grid->set( rect->MinD( 0 ), rect->MinD( 1 ), 
             cellheight, cellheight, _arraySize*_arraySize );
+    }
+
+    bool DRelHelpers::isListOfTwoElemLists( ListExpr list ) {
+        while( !nl->IsEmpty( list ) ) {
+            if( !nl->HasLength( nl->First( list ), 2 ) ) {
+                return false;
+            }
+            list = nl->Rest( list );
+        }
+        return true;
+    }
+
+    bool DRelHelpers::isDRelDescr( ListExpr arg, ListExpr& drelType, 
+        ListExpr& relType, ListExpr& distType, ListExpr& drelName ) {
+
+        cout << "isDRelDescr" << endl;
+        cout << nl->ToString( arg ) << endl;
+
+        if( !nl->HasLength( arg, 2 ) ) {
+            return false;
+        }
+
+        if( !DRel::checkType( nl->First( arg ) ) 
+         && !DFRel::checkType( nl->First( arg ) ) ) {
+            cout << "keine drel" << endl;
+            return false;
+        }
+        drelType = nl->First( arg );
+
+        if( !Relation::checkType( nl->Second( drelType ) ) ) {
+            cout << "keine relation" << endl;
+            return false;
+        }
+
+        // not finished
+        if( nl->AtomType( nl->Second( arg ) ) != SymbolType ) { 
+            cout << "second no atom" << endl;
+            return false;
+        }
+        drelName = nl->Second( arg );
+        relType = nl->Second( drelType );
+        distType = nl->Third( drelType );
+
+        return true;
+    }
+
+    bool DRelHelpers::isDRelDescr( ListExpr arg, ListExpr& drelType, 
+        ListExpr & relType, ListExpr& distType, ListExpr & drelName, 
+        ListExpr & darrayType ) {
+
+        if( !isDRelDescr( arg, drelType, relType, distType, drelName ) ) {
+            return false;
+        }
+
+        if( nl->SymbolValue( nl->First( drelType ) ) == DRel::BasicType( ) ) {
+            darrayType = nl->TwoElemList(
+                listutils::basicSymbol<distributed2::DArray>( ),
+                relType );
+        }
+        else {
+            darrayType = nl->TwoElemList(
+                listutils::basicSymbol<distributed2::DFArray>( ),
+                relType );
+        }
+
+        return true;
+    }
+    
+    bool DRelHelpers::replaceDRELFUNARG( 
+        ListExpr arg, string type, ListExpr& fun ) {
+
+        if( !nl->HasLength( arg, 3 ) ) {
+            cout << "no1" << endl;
+            return false;
+        }
+        if( !nl->HasLength( nl->Second( arg ), 2 ) ) {
+            cout << "no2" << endl;
+            return false;
+        }
+        if( !nl->IsAtom( nl->Second( nl->Second( arg ) ) ) ) {
+            cout << "noatom" << endl;
+            return false;
+        }
+        if( nl->AtomType( nl->Second( nl->Second( arg ) ) ) != SymbolType ) {
+            cout << "nosymbol" << endl;
+            return false;
+        }
+
+        fun = nl->ThreeElemList(
+            nl->First( arg ),
+            nl->TwoElemList(
+                nl->First( nl->Second( arg ) ),
+                nl->SymbolAtom( type ) ),
+            nl->Third( arg ) );
+
+        return true;
+    }
+    
+    bool DRelHelpers::replaceDRELFUNARG( 
+        ListExpr arg, string type, ListExpr& fun, ListExpr& map ) {
+
+        if( !nl->HasLength( arg, 2 ) ) {
+            return false;
+        }
+        if( !replaceDRELFUNARG( nl->Second( arg ), type, fun ) ) {
+            return false;
+        }
+
+        map = nl->First( arg );
+        return true;
     }
 
 } // end of namespace drel
