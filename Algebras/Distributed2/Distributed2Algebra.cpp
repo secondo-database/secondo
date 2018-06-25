@@ -20149,7 +20149,7 @@ of a slot is just its slot number
 
 */
 ListExpr createintdarrayTM(ListExpr args){
-   if(!nl->HasLength(args,2)){
+   if(!nl->HasLength(args,2) && !nl->HasLength(args,3)){
      return listutils::typeError("wrong number of arguments");
    }
    if(!CcString::checkType(nl->First(args))){
@@ -20163,9 +20163,20 @@ ListExpr createintdarrayTM(ListExpr args){
      return listutils::typeError("second arg does not describe a valid "
                                  "worker relation: " + errMsg);
    }
-   ListExpr resType = DArray::wrapType(listutils::basicSymbol<CcInt>());   
+   ListExpr appendList;
+   if(nl->HasLength(args,3)){
+     if(!CcInt::checkType(nl->Third(args))){
+       return listutils::typeError("third argument is not an int");
+     }
+     appendList = workerAttrPositions;
+   } else {
+     appendList = listutils::concat(nl->OneElemList(nl->IntAtom(-1)),
+                                    workerAttrPositions);
+   }
+
+   ListExpr resType = DArray::wrapType(listutils::basicSymbol<CcInt>()); 
    return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
-                             workerAttrPositions,
+                             appendList,
                              resType);
 }
 
@@ -20176,9 +20187,14 @@ int createintdarrayVMT(Word* args, Word& result, int message,
     DArray* res = (DArray*) result.addr;
     CcString* name = (CcString*) args[0].addr;
     Relation* workers = (Relation*) args[1].addr;
-    int hostPos = ((CcInt*)args[2].addr)->GetValue();
-    int portPos = ((CcInt*)args[3].addr)->GetValue();
-    int confPos = ((CcInt*)args[4].addr)->GetValue();
+    CcInt* Size = (CcInt*) args[2].addr;
+    int size = workers->GetNoTuples();
+    if(Size->IsDefined()){
+       size = max(size, Size->GetValue());
+    }
+    int hostPos = ((CcInt*)args[3].addr)->GetValue();
+    int portPos = ((CcInt*)args[4].addr)->GetValue();
+    int confPos = ((CcInt*)args[5].addr)->GetValue();
     if(!name->IsDefined()){
        res->makeUndefined();
        return 0;
@@ -20188,17 +20204,18 @@ int createintdarrayVMT(Word* args, Word& result, int message,
        res->makeUndefined();
        return 0;
     }
-    if(workers->GetNoTuples() == 0){
+    if(size == 0){
        res->makeUndefined();
        return 0;
     }
-    int size = workers->GetNoTuples();
+    cout << "size is " << size << endl; 
+
     (*res) = DArrayBase::createFromRel<HostType,ConfigType,DArray>(
                  workers, size, n,hostPos,portPos,confPos);
 
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
     if(res->IsDefined()){
-       res->setStdMap(res->numOfWorkers());
+       res->setStdMap(size);
        for(size_t i=0;i<res->getSize();i++){
           DArrayElement elem = res->getWorkerForSlot(i);
           ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
@@ -20242,11 +20259,12 @@ int createintdarraySelect(ListExpr args){
 }
 
 OperatorSpec createintdarraySpec(
-   "rel x string -> darray(int)",
-   "createintdarray(workers, name)",
-   "Creates an darray(int) of the size of the workers."
+   "string x rel [x int] -> darray(int)",
+   "createintdarray(name, workers)",
+   "Creates an darray(int) of the maximum of given size (if any) "
+   "and size of the workers relation."
    "The slot content corresponds to the slot number.",
-   "query createintdarray(workers,\"controlArray\")"
+   "query createintdarray(\"controlArray\", workers, 27)"
 );
 
 Operator createintdarrayOp(
