@@ -20199,7 +20199,7 @@ int createintdarrayVMT(Word* args, Word& result, int message,
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
     if(res->IsDefined()){
        res->setStdMap(res->numOfWorkers());
-       for(int i=0;i<res->getSize();i++){
+       for(size_t i=0;i<res->getSize();i++){
           DArrayElement elem = res->getWorkerForSlot(i);
           ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
           if(!ci){
@@ -20336,7 +20336,7 @@ class dcommandInfo{
       void compute(){
           vector<boost::thread*> runners;
           string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-          for(int i=0;i<array->numOfWorkers(); i++){
+          for(size_t i=0;i<array->numOfWorkers(); i++){
              DArrayElement elem = array->getWorker(i);
              ConnectionInfo* ci = algInstance->getWorkerConnection(elem,
                                                                  dbname);
