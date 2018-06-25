@@ -4496,9 +4496,20 @@ ValueMapping mcreatemtreeVM[] = {
 };
 
 OperatorSpec mcreatemtreeSpec(
-  "stream(tuple) x attrname x attrname x string -> mem(mtree X) ",
-  "elements mcreatemtree[ indexAttr, TID_attr]",
-  "creates an main memory m tree from a tuple stream",
+  "stream(tuple) x attrname x attrname [x geoid] -> mpointer(mem(mtree X))||\n"
+  "MREL(tuple) x attrname [x geoid] -> , mpointer(mem(mtree X))",
+  "tuplestream  mcreatemtree[ indexAttr, TID_attr [, geoid] ] ||\n"
+  "mrel mcreatemtree[indexAttr [, geoid] ]",
+  "This operator creates an m-tree in main memory. "
+  "The first argument is a stream or a main memory relation containing the "
+  "tuples to be indexed. The second argument refers to the attribute "
+  "over that the index is built. If the tuples are provided as a stream, "
+  "the third argument refers to an attribute inside the tuple containg its "
+  "tuple id. The last argument is optional. It must be of type geoid and "
+  "can only be used if the index-attribute is of type point. "
+  "If this argument is present, the distance between two points is computed "
+  "as geographic distance on this geoid instead of using the Euclidean "
+  "distance.",
   "let kinos_mtree_GeoData =  kinos feed addid mcreatemtree[GeoData, TID]"
 );
 

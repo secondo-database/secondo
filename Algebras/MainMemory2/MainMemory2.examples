@@ -234,7 +234,7 @@ Result    : ()
 
 Operator  : mcreatemtree
 Number    : 44
-Signature : stream(Tuple) x IDENT x IDENT -> (mpointer(mem(mtree ...) )
+Signature : stream(Tuple) x IDENT x IDENT [x geoid] -> (mpointer(mem(mtree ...) )
 Example   : let mkinos_GeoData_mtree =  Kinos feed addid mcreatemtree [GeoData, TID]
 Result    : ()
 
@@ -259,7 +259,7 @@ Result    : ()
 
 Operator  : mcreatemtree
 Number    : 50
-Signature : MREL  x IDENT -> mpointer(mem(mtree Y))
+Signature : MREL  x IDENT [x geoid]  -> mpointer(mem(mtree Y))
 Example   : let mKinos_GeoData_mtree2 =  mKinos mcreatemtree[GeoData]
 Result    : ()
 
