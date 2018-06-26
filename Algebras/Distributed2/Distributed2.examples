@@ -780,6 +780,12 @@ Example   : query darray1 dcommand['let x = 23'] consume
 Result    : unpredictable
 Remark    : required the presence of a distributed secondo
 
+Operator  : dlet
+Number    : 1
+Signature : d[f]array x string  x {string,text} -> stream(tuple)
+Example   : query darray1 dlet["x", '42 + 0'] consume
+Result    : unpredictable
+Remark    : required the presence of a distributed secondo
 
 
 

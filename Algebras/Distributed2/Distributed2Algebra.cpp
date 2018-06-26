@@ -43,6 +43,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "FileSystem.h"
 #include "Algebras/Array/ArrayAlgebra.h"
 #include "FileAttribute.h"
+#include "SecParser.h"
 
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
@@ -20409,6 +20410,7 @@ int dcommandVMT(Word* args, Word& result, int message,
            TupleType* tt = new TupleType( nl->Second(GetTupleResultType(s)));
            local.addr = new dcommandInfo<A>((A*) args[0].addr,
                                          cmd->GetValue(), tt);
+           tt->DeleteIfAllowed();
            return 0;
            }
       case REQUEST: 
@@ -20455,6 +20457,277 @@ Operator dcommandOp(
   dcommandTM
 );
 
+/*
+Operator ~dlet~
+
+Creates an object on the master and on all workers of a darray.
+
+*/
+ListExpr dletTM(ListExpr args){
+   if(!nl->HasLength(args,3)){
+      return listutils::typeError("d[f]array x string x {string,text}"
+                                  " expected");
+   }
+   ListExpr a1 = nl->First(args);
+   if(!DArray::checkType(a1) && !DFArray::checkType(a1)){
+     return listutils::typeError("first argument is not a d[f]array");
+   }
+   if(!CcString::checkType(nl->Second(args))){
+     return listutils::typeError("second arg is not a string");
+   }
+   ListExpr a3 = nl->Third(args);
+   if(!CcString::checkType(a3) && !FText::checkType(a3)){
+     return listutils::typeError("second arg is not a string or a text");
+   }
+   ListExpr attrList = nl->SixElemList(
+                     nl->TwoElemList( nl->SymbolAtom("Host"), 
+                                      listutils::basicSymbol<FText>()),
+                     nl->TwoElemList( nl->SymbolAtom("Port"), 
+                                      listutils::basicSymbol<CcInt>()),
+                     nl->TwoElemList( nl->SymbolAtom("Config"), 
+                                      listutils::basicSymbol<FText>()),
+                     nl->TwoElemList( nl->SymbolAtom("Ok"), 
+                                      listutils::basicSymbol<CcBool>()),
+                     nl->TwoElemList( nl->SymbolAtom("ErrorMsg"), 
+                                      listutils::basicSymbol<FText>()),
+                     nl->TwoElemList( nl->SymbolAtom("RunTime"), 
+                                      listutils::basicSymbol<CcReal>()));
+    return Stream<Tuple>::wrap(Tuple::wrap(attrList));
+}
+
+template<class A>
+class dletInfo{
+
+  public:
+     dletInfo(A* array, string name, 
+              string cmd,
+              TupleType* tt){
+       this->array = array;
+       this->cmd = cmd;
+       this->name = name;
+       this->tt = tt;
+       tt->IncReference();
+       if(array->IsDefined()){
+          compute();
+       }
+     }
+
+     ~dletInfo(){
+         while(!q.empty()){
+           Tuple* t = q.front();
+           t->DeleteIfAllowed();
+           q.pop();
+         }
+         tt->DeleteIfAllowed();
+      } 
+
+     Tuple* next(){
+        if(q.empty()){
+          return 0;
+        }
+        Tuple* res = q.front();
+        q.pop();
+        return res;
+     }
+
+  private:
+      A* array;
+      string name;
+      string cmd;
+      TupleType* tt;
+      std::queue<Tuple*> q;
+      boost::mutex mtx;
+      
+      void compute(){
+          vector<boost::thread*> runners;
+          string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+          for(size_t i=0;i<array->numOfWorkers(); i++){
+             DArrayElement elem = array->getWorker(i);
+             ConnectionInfo* ci = algInstance->getWorkerConnection(elem,
+                                                                 dbname);
+             boost::thread* r = new boost::thread(
+                boost::bind(&dletInfo::run,this,ci));
+                runners.push_back(r);
+          }
+          boost::thread* r = new boost::thread(
+                boost::bind(&dletInfo::runLocal,this));
+          runners.push_back(r);
+          for(size_t i=0;i<runners.size();i++){
+            runners[i]->join();
+            delete runners[i];
+          }
+      }
+ 
+     void insert(Tuple* tuple){
+        boost::lock_guard<boost::mutex> guard(mtx);
+        q.push(tuple);
+     }
+
+     void run(ConnectionInfo* ci){
+          int err;
+          string res;
+          double rt;
+          string errmsg;
+          string cmd ="let " + name +" = " + this->cmd;
+          ci->simpleCommand(cmd,err,errmsg, res, false,rt,false,commandLog,true,
+                            algInstance->getTimeout());
+          Tuple* r  = new Tuple(tt);
+          stringutils::trim(errmsg);
+          r->PutAttribute(0,new FText(true,ci->getHost()));
+          r->PutAttribute(1,new CcInt(true,ci->getPort()));
+          r->PutAttribute(2, new FText(true,ci->getConfig()));
+          r->PutAttribute(3,new CcBool(true, err==0));
+          r->PutAttribute(4,new FText(true,errmsg));
+          r->PutAttribute(5,new CcReal(true,rt));
+          insert(r);    
+      }   
+
+
+      void generateLocal(bool error,std::string msg, double time){
+            Tuple* r  = new Tuple(tt);
+            string cfg = SmiEnvironment::ConfigFile();
+            r->PutAttribute(0,new FText(true,"LOCAL"));
+            r->PutAttribute(1,new CcInt(true,-1));
+            r->PutAttribute(2, new FText(true,cfg));
+            r->PutAttribute(3,new CcBool(true, !error));
+            r->PutAttribute(4,new FText(true,msg));
+            r->PutAttribute(5,new CcReal(true,time));
+            insert(r);
+      }
+
+
+      void runLocal(){
+         StopWatch timer;
+         timer.start();
+         SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+         if(ctlg->IsObjectName(name)){
+            generateLocal(true,"Identifier already used",
+                          timer.diffSecondsReal());
+            return;
+         }
+         if(!ctlg->IsValidIdentifier(name,true)){
+            generateLocal(true,name + " is not a valid Identifier",
+                          timer.diffSecondsReal());
+            return;
+         }
+         ListExpr expression;
+         string localcmd1 = "let " + name + " = " + cmd;
+
+         SecParser parser;
+         string localcmd;
+         if(parser.Text2List(localcmd1,localcmd)!=0){
+           generateLocal(true,"command cannot be parsed",
+                         timer.diffSecondsReal());
+           return;
+         }
+
+         if(!nl->ReadFromString(localcmd, expression)){
+           generateLocal(true,"problem in parsing nested list ",
+                         timer.diffSecondsReal());
+         } 
+         expression = nl->Fourth(expression); // remove let name = 
+
+         Word qresult;
+         string typestring;
+         string errorstring;
+         bool correct;
+         bool evaluable;
+         bool defined;
+         bool isFunction;
+         bool success;
+         try{
+            success = qp->ExecuteQuery( expression, qresult,
+                                          typestring, errorstring,
+                                          correct, evaluable, defined,
+                                          isFunction);
+         } catch(...){
+           generateLocal(true,"problem in constructing operator tree",
+                         timer.diffSecondsReal());
+           return;
+         }
+         if(!success){
+           generateLocal(true,errorstring,timer.diffSecondsReal());
+           return;
+         }
+         ListExpr resultType;
+         nl->ReadFromString(typestring,resultType);
+         if(!ctlg->InsertObject( name, "",resultType,qresult,true)){
+           generateLocal(true,"cannot insert object",timer.diffSecondsReal());
+           return;
+         }
+         generateLocal(false,"",timer.diffSecondsReal());
+ 
+      }
+
+    
+};
+
+
+template<class A, class C>
+int dletVMT(Word* args, Word& result, int message,
+                      Word& local, Supplier s) {
+
+   dletInfo<A>* li = (dletInfo<A>*) local.addr;
+   switch(message){
+     case OPEN : {
+           if(li){
+             delete li;
+             local.addr = 0;
+           }
+           CcString* name = (CcString*) args[1].addr;
+           C* cmd = (C*) args[2].addr;
+           if(!cmd->IsDefined() || !name->IsDefined()){
+             return 0;
+           }
+           TupleType* tt = new TupleType( nl->Second(GetTupleResultType(s)));
+           local.addr = new dletInfo<A>((A*) args[0].addr,
+                                         name->GetValue(),
+                                         cmd->GetValue(), tt);
+           tt->DeleteIfAllowed();
+           return 0;
+           }
+      case REQUEST: 
+           result.addr = li?li->next():0;
+           return result.addr?YIELD:CANCEL;
+      case CLOSE:
+            if(li){
+              delete li;
+              local.addr = 0;
+            }  
+                 
+   }
+   return -1;
+}
+
+ValueMapping dletVM[] = {
+    dletVMT<DArray,CcString>,
+    dletVMT<DArray,FText>,
+    dletVMT<DFArray,CcString>,
+    dletVMT<DFArray,FText>
+};
+
+int dletSelect(ListExpr args){
+  int n1 = DArray::checkType(nl->First(args))?0:2;
+  int n2 = CcString::checkType(nl->Third(args))?0:1;
+  return n1+n2;
+}
+
+OperatorSpec dletSpec(
+   " d[f]array x string x {string, text} -> stream(tuple) ",
+   " array dlet[ name, expression ] ",
+   " Executes a 'let name = expression' at all workers that are stored "
+   " in array and at the local machine. ",
+   " query array1 dlet['let x = 23']"
+);
+
+Operator dletOp(
+  "dlet",
+  dletSpec.getStr(),
+  4,
+  dletVM,
+  dletSelect,
+  dletTM
+);
 
 
 /*
@@ -20687,7 +20960,7 @@ Distributed2Algebra::Distributed2Algebra(){
 
    AddOperator(&createintdarrayOp);
    AddOperator(&dcommandOp);
-
+   AddOperator(&dletOp);
 
    pprogView = new PProgressView();
    MessageCenter::GetInstance()->AddHandler(pprogView);
