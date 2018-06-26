@@ -1065,13 +1065,16 @@ public class HoeseViewer extends SecondoViewer {
 		JMenuItem SaveGraph = new JMenuItem("Save Graphic");
 		SaveGraph.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent evt) {
+        // JComponent comp = GraphDisplay;
+        JComponent comp = GeoScrollPane.getViewport();
+
 				// create the image
-				Rectangle2D R = GraphDisplay.getBounds();
-				Reporter.writeWarning("Restrict the size of the image  !!!");
+				Rectangle2D R = comp.getBounds();
+				//Reporter.writeWarning("Restrict the size of the image  !!!");
 				BufferedImage bi = new BufferedImage((int) R.getWidth(),
 						(int) R.getHeight(), BufferedImage.TYPE_INT_RGB);
 				Graphics2D g = bi.createGraphics();
-				GraphDisplay.printAll(g);
+				comp.printAll(g);
 				if (FC_Images.showSaveDialog(HoeseViewer.this) == JFileChooser.APPROVE_OPTION) {
 					File F = FC_Images.getSelectedFile();
 					try {
@@ -1088,7 +1091,9 @@ public class HoeseViewer extends SecondoViewer {
 		JMenuItem exportGraph = new JMenuItem("Export Graphic as PS");
 		exportGraph.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent evt) {
-				Rectangle2D R = GraphDisplay.getBounds();
+        //JComponent comp = GraphDisplay;
+        JComponent comp = GeoScrollPane.getViewport();
+				Rectangle2D R = comp.getBounds();
 				R.setRect(0, 0, R.getWidth(), R.getHeight());
 				FC_Images.setDialogTitle(psTitle);
 				FC_Images.setFileFilter(psFilter);
@@ -1103,7 +1108,7 @@ public class HoeseViewer extends SecondoViewer {
 										.showQuestion("File already exits\n Overwrite it?") != Reporter.YES) {
 							return;
 						}
-						if (!extern.psexport.PSCreator.export(GraphDisplay, F)) {
+						if (!extern.psexport.PSCreator.export(comp, F)) {
 							Reporter.showError("Error in exporting to file ");
 						}
 					} catch (Exception e) {
