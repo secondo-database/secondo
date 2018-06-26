@@ -52,13 +52,13 @@ Result   : 3
 Operator : gettuples
 Number   : 1
 Signature: stream -> stream
-Example  : query index feed children gettuples count
+Example  : query index1 feed children gettuples count
 Result   : 3
 
 Operator : dblpimport
 Number   : 1
 Signature: text -> nrel2
-Example  : query "/home/user/dblp/dblp.xml" dblpimport["/home/user/dblp/stopwords.txt"] count > 0
+Example  : query "dblp.xml" dblpimport["stopwords.txt"] count > 0
 Result   : TRUE
 
 Operator : genRel
