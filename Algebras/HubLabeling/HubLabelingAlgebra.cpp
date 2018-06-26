@@ -16584,7 +16584,9 @@ public:
         AddOperator(&hlCreateLabelsOp);
 
 
-        AddOperator(&hlContractMmGraphOp);
+           // operator hlContractMmGraph is not implemented
+           // completely
+        // AddOperator(&hlContractMmGraphOp);
 
 
         AddOperator(&hlTransformOrelToHlGraphOp);
