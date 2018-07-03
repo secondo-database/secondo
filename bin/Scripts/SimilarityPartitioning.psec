@@ -1,0 +1,100 @@
+# Similarity Partitioning 29.06.2018
+#
+# Relation S with clustering attribute Pos of type point must be present in the 
+# database. Also the relation Workers must exist.
+
+
+/*
+Balanced Similarity Based Partitioning
+
+Example: Partition Buildings of NRW by distance to a set of center points determined 
+here, called ~PC~ (Partition Centers) in the end.
+
+The algorithm is the following:
+
+  1 Take a sample ~SS~ from the set ~S~. 
+
+  2 For each sample point, determine the distance to its kth nearest neighbor, here ~k~ = 100, for example. Add this distance as the ~Radius~. The radius will be small in dense areas, large in sparse areas. Also number sample points in attribute ~N~. Initialize the set ~Core~ with these extended sample points.
+
+  3 For each sample point ~p~ in ~Core~, compute the set of other sample points ~P~ from ~Core~ whose associated circle intersects its circle (i.e., where the distance is less than the sum of their radii). If ~p~ has the smallest number ~N~ among all elements it intersects, then insert it into a set ~SmallCore~. 
+
+    Here the idea is to continuously place sample points (with their circles) in the plane. If they are the first to arrive (i.e. they do not intersect any other circle with smaller number), then they can be placed.
+
+  4 Remove from ~Core~ all elements whose circles intersect circles from ~SmallCore~.
+
+  5 If elements have been inserted into ~SmallCore~ in step 3, go to step 3.
+
+The procedure terminates after several iterations of steps 3 - 5 when Core has become a single element. In first experiments, three to seven iterations were used. For k = 50, there were 7 iterations and the time required was 1:40 minutes.
+
+*/
+let SS = S feedNth[(S count) div 10000, FALSE] consume
+
+query memclear()
+
+let SSm = SS feed mconsume
+
+let SSm_Pos = SSm mcreatemtree[Pos]
+
+let Core = SS feed addcounter[N, 1] 
+  extend[Radius: fun(t: TUPLE)
+    distance(attr(t, Pos), 
+      SSm_Pos SSm mdistScan[attr(t, Pos)] head[100] 
+      tail[1] extract[Pos])]
+  mconsume
+
+
+let Core_Pos = Core mcreatemtree[Pos]
+
+let maxRadius = Core mfeed max[Radius]
+
+let SmallCore = Core mfeed head[0] mconsume
+
+let CoreDel = Core mfeed head[0] mconsume
+
+let NInserted = 1
+
+
+while Core count > 0 do
+{ update NInserted := Core mfeed 
+    filter[fun(t: TUPLE) 
+      Core_Pos Core mdistRange[attr(t, Pos), 
+        attr(t, Radius) + maxRadius]
+      filter[distance(attr(t, Pos), .Pos) <= 
+        attr(t, Radius) + .Radius]
+      min[N] = attr(t, N)]
+  minsert[SmallCore]
+  count
+|
+  query NInserted
+|
+  update CoreDel := SmallCore mfeed 
+    loopsel[fun(t2: TUPLE) 
+      Core_Pos Core mdistRange[attr(t2, Pos), 
+        attr(t2, Radius) +  maxRadius]
+      filter[distance(attr(t2, Pos), .Pos) <= 
+        attr(t2, Radius) + .Radius]]
+    mconsume
+|
+  query CoreDel count
+|
+  update Core := Core mfeed sort rdup  CoreDel mfeed sort rdup mergediff 
+    mconsume
+|
+  update Core_Pos := Core mcreatemtree[Pos]
+}
+endwhile
+
+
+let PC = SmallCore mfeed project[Osm_id, Pos, Radius] addcounter[N, 0]
+  extend[C: circle(.Pos, .Radius, 20)] 
+  consume
+
+/*
+The result looks as follows:
+
+		Figure 1: The set ~PC~ [PCenters.eps]
+
+
+
+
+
