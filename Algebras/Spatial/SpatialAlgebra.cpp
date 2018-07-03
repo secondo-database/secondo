@@ -1305,7 +1305,7 @@ double Point::DistanceOrthodromePrecise( const Point& p,
   valid =    this->checkGeographicCoord() && p.checkGeographicCoord()
           && g.IsDefined();
   if(!valid){
-    cout << __PRETTY_FUNCTION__ << ": Invalid parameter." << endl;
+    cout << __PRETTY_FUNCTION__ << ": Invalid coordinates." << endl;
     return-666.666;
   }
   initialBearingDEG = -666.666;
