@@ -23,7 +23,7 @@ query share("n", TRUE, Workers);
 
 
 # Step 3
-query T dcommand['query meminit(3600)'] consume;
+query T dcommand['query meminit(3600)'] filter[.Ok] count;
 
 query T dlet["PCm", 'PC feed mconsume'] consume;
 query T dlet["PCm_Pos_mtree", 'PCm mcreatemtree[Pos, wgs84]'] consume

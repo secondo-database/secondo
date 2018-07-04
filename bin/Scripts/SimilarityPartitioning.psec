@@ -12,7 +12,7 @@ here, called ~PC~ (Partition Centers) in the end.
 
 The algorithm is the following:
 
-  1 Take a sample ~SS~ from the set ~S~. 
+  1 Take a sample ~SS~ from the set ~S~ if not present.
 
   2 For each sample point, determine the distance to its kth nearest neighbor, here ~k~ = 100, for example. Add this distance as the ~Radius~. The radius will be small in dense areas, large in sparse areas. Also number sample points in attribute ~N~. Initialize the set ~Core~ with these extended sample points.
 
@@ -27,7 +27,10 @@ The algorithm is the following:
 The procedure terminates after several iterations of steps 3 - 5 when Core has become a single element. In first experiments, three to seven iterations were used. For k = 50, there were 7 iterations and the time required was 1:40 minutes.
 
 */
+
+if not(isDBObject("SS")) then
 let SS = S feedNth[(S count) div 10000, FALSE] consume
+endif
 
 query memclear()
 
