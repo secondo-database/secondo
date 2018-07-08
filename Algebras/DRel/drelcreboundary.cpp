@@ -42,8 +42,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Distributed2/CommandLogger.h"
 #include "Algebras/Distributed2/Distributed2Algebra.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/Collection/CollectionAlgebra.h"
 
-#include "Boundary.h"
 #include "DRelHelpers.h"
 
 extern NestedList* nl;
@@ -118,12 +118,8 @@ namespace drel {
         }
 
         ListExpr resType = nl->TwoElemList(
-            listutils::basicSymbol<Boundary>( ),
-            nl->OneElemList(
-                attrType ) );
-
-        cout << "createboundary resType" << endl;
-        cout << nl->ToString( resType ) << endl;
+            nl->SymbolAtom( Vector::BasicType( ) ),
+            attrType );
 
         ListExpr appendList = nl->OneElemList(
             nl->IntAtom( pos - 1 ) );
@@ -146,15 +142,51 @@ namespace drel {
         Relation* rel = ( Relation* )args[ 0 ].addr;
         CcInt* size = ( CcInt* )args[ 2 ].addr;
         CcInt* attrPos = ( CcInt* )args[ 3 ].addr;
-        string attrType = nl->SymbolValue( 
-            nl->First( nl->Second( qp->GetType( s ) ) ) );
-
-        Boundary* boundary = Boundary::createBoundary( 
-            rel, attrPos->GetIntval( ), attrType, size->GetIntval( ) );
 
         result = qp->ResultStorage( s );
-        Boundary* res = ( Boundary* ) result.addr;
-        *res = *boundary;
+        collection::Collection* resultColl = 
+            static_cast<collection::Collection*>( result.addr );
+        resultColl->Clear( );
+        resultColl->SetDefined( true );
+
+        // get samplesize
+        vector<Attribute*> sample;
+        int sampleSize = DRelHelpers::computeSampleSize( rel->GetNoTuples( ) );
+        int nth = DRelHelpers::everyNthTupleForSample( 
+            sampleSize, rel->GetNoTuples( ) );
+
+        // create a sample
+        GenericRelationIterator* it = rel->MakeScan( );
+        Tuple* tuple;
+        while( ( tuple = it->GetNthTuple( nth, false ) ) ) {
+            sample.push_back( 
+                tuple->GetAttribute( attrPos->GetValue( ) )->Clone( ) );
+            tuple->DeleteIfAllowed( );
+        }
+        delete it;
+
+        // sort the sample
+        sort( sample.begin( ), sample.end( ), DRelHelpers::compareAttributes );
+
+        // create the boundary
+        nth = DRelHelpers::everyNthTupleForArray( 
+            sample.size( ), size->GetValue( ) );
+        int i = 1;
+        for( vector<Attribute*>::iterator it = sample.begin( );
+            it != sample.end( ); ++it ) {
+
+            if( i == nth ) {
+                i = 1;
+                resultColl->Insert( ( *it )->Clone( ), 1 );
+            } else {
+                i++;
+            }
+            ( *it )->DeleteIfAllowed( );
+        }
+
+        sample.clear( );
+
+        resultColl->Finish( );
 
         return 0;
     }

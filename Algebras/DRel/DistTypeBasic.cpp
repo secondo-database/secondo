@@ -25,6 +25,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 */
+//#define DRELDEBUG
+
 #include <iterator>
 #include <assert.h>
 
@@ -44,9 +46,9 @@ namespace drel {
 
     */
     std::map<std::string, distributionType> distributionTypeMap = {
-        { "random", random }, { "hash", hash }, { "range", range },
-        { "spatial2d", spatial2d }, { "spatial3d", spatial3d },
-        { "replicated", replicated }
+        { "RANDOM", random }, { "HASH", hash }, { "RANGE", range },
+    { "SPATIAL2D", spatial2d }, { "SPATIAL3D", spatial3d },
+    { "REPLICATED", replicated }
     };
 
     /*
@@ -57,8 +59,8 @@ namespace drel {
     */
     distributionType getType( const std::string _type ) {
         std::map<std::string, distributionType>::iterator it;
-        for( it = distributionTypeMap.begin( ); 
-                it != distributionTypeMap.end( ); it++ )
+        for( it = distributionTypeMap.begin( );
+            it != distributionTypeMap.end( ); it++ )
             if( it->first == _type )
                 return it->second;
 
@@ -66,15 +68,40 @@ namespace drel {
     }
 
     /*
-    3 ~getName~
+    3 ~getTypeByNum~
+
+    Get the distributionType by a number. Returns false, if the number is not
+    a allowed distributionType.
+
+    */
+    bool getTypeByNum( const int _num, distributionType& type ) {
+
+        if( _num < 0 || _num >= 6 ) {
+            return false;
+        }
+
+        switch( _num ) {
+        case 0: type = random; break;
+        case 1: type = hash; break;
+        case 2: type = range; break;
+        case 3: type = spatial2d; break;
+        case 4: type = spatial3d; break;
+        case 5: type = replicated; break;
+        }
+
+        return true;
+    }
+
+    /*
+    4 ~getName~
 
     Returns the string value of a distributionType.
 
     */
     std::string getName( const distributionType _type ) {
         std::map<std::string, distributionType>::iterator it;
-        for( it = distributionTypeMap.begin( ); 
-                it != distributionTypeMap.end( ); it++ )
+        for( it = distributionTypeMap.begin( );
+            it != distributionTypeMap.end( ); it++ )
             if( it->second == _type )
                 return it->first;
 
@@ -83,9 +110,9 @@ namespace drel {
     }
 
     /*
-    4 ~supportedType~
+    5 ~supportedType~
 
-    Returns true if the given string is the string of a supported 
+    Returns true if the given string is the string of a supported
     distributionType.
 
     */
@@ -96,13 +123,13 @@ namespace drel {
     }
 
     /*
-    5 ~supportedType~
+    6 ~supportedType~
 
-    Returns true if the given string is the string of a supported 
+    Returns true if the given string is the string of a supported
     distributionType.
 
     */
-    bool supportedType( 
+    bool supportedType(
         const std::string _typeString, distributionType& type ) {
 
         std::map<std::string, distributionType>::iterator it;
@@ -112,33 +139,52 @@ namespace drel {
     }
 
     /*
-    6 Class ~DistType~
+    7 Class ~DistType~
 
     Implementation.
     
-    6.1 Constructors
+    7.1 Constructors
 
     */
     DistTypeBasic::DistTypeBasic( ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeBasic::DistTypeBasic" << endl;
+        #endif
     }
 
     DistTypeBasic::DistTypeBasic( distributionType _type ) :
         type( _type ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeBasic::DistTypeBasic" << endl;
+        cout << "distType" << endl;
+        cout << _type << endl;
+        #endif
     }
 
     /*
-    6.2 Copyconstructor
+    7.2 Copyconstructor
 
     */
     DistTypeBasic::DistTypeBasic( const DistTypeBasic& _distType ) :
         type( _distType.type ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeBasic copy constructor" << endl;
+        #endif
     }
 
     /*
-    6.3 Assignment operator
+    7.3 Assignment operator
 
     */
     DistTypeBasic& DistTypeBasic::operator=( const DistTypeBasic& _distType ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeBasic assignment operator" << endl;
+        #endif
+
         if( this == &_distType ) {
             return *this;
         }
@@ -147,19 +193,29 @@ namespace drel {
     }
 
     /*
-    6.4 Destructor
+    7.4 Destructor
 
     */
     DistTypeBasic::~DistTypeBasic( ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeBasic destructor" << endl;
+        #endif
+
     }
 
     /*
-    6.5 ~isEqual~
+    7.5 ~isEqual~
 
     Compares the current DistType with another one.
 
     */
     bool DistTypeBasic::isEqual( DistTypeBasic* _distType ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeBasic::isEqual" << endl;
+        #endif
+
         if( typeid( *_distType ) != typeid( *this ) ) {
             return false;
         }
@@ -167,104 +223,98 @@ namespace drel {
     }
 
     /*
-    6.6 ~getDistType~
+    7.6 ~getDistType~
 
     Returns the distribution type.
 
     */
     distributionType DistTypeBasic::getDistType( ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeBasic::getDistType" << endl;
+        #endif
+
         return type;
     }
 
     /*
-    6.7 ~copy~
+    8.7 ~copy~
 
     Make a copy of the current object.
 
     */
     DistTypeBasic* DistTypeBasic::copy( ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeBasic::copy" << endl;
+        #endif
+
         return new DistTypeBasic( *this );
     }
 
     /*
-    6.8 ~getTypeList~
-
-    Returns the Typelist of the disttype. For the basic type it is only a 
-    CcString.
-
-    */
-    ListExpr DistTypeBasic::getTypeList( ) {
-        return nl->OneElemList( listutils::basicSymbol<CcString>( ) );
-    }
-
-    /*
-    6.9 ~checkType~
+    8.8 ~checkType~
 
     Checks whether the type in nested list format fits to this disttype.
 
     */
     bool DistTypeBasic::checkType( ListExpr list ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeBasic::checkType" << endl;
+        #endif
+
         if( !nl->HasLength( list, 1) ) {
             return false;
         }
-        return CcString::checkType( nl->First( list ) );
+        return CcInt::checkType( nl->First( list ) );
     }
 
     /*
-    6.10 ~save~
+    8.9 ~save~
 
     Writes a DistType to the storage.
 
     */
     bool DistTypeBasic::save( SmiRecord& valueRecord, size_t& offset, 
         const ListExpr typeInfo ) {
-        return distributed2::writeVar( getName( type ), valueRecord, offset );
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeBasic::save" << endl;
+        #endif
+
+        return true;
     }
 
     /*
-    6.11 ~readFrom~
-
-    Reads the disttype from a list.
-
-    */
-    DistTypeBasic* DistTypeBasic::readFrom( const ListExpr _list ) {
-        if( ! nl->HasLength( _list, 1 ) ) {
-            return 0;
-        }
-        distributionType tType;
-        if( ! readType( nl->First( _list ), tType ) ) {
-            return 0;
-        }
-        return new DistTypeBasic( tType );
-    }
-
-    /*
-    6.12 ~readFrom~
+    8.10 ~toListExpr~
 
     Returns the disttype as nestedlist.
 
     */
-    ListExpr DistTypeBasic::toListExpr( ListExpr typeInfo ) {
-        return nl->OneElemList( nl->StringAtom( getName( type ) ) );
+    ListExpr DistTypeBasic::toListExpr( ListExpr _typeInfo ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeBasic::save" << endl;
+        cout << "typeInfo" << endl;
+        cout << nl->ToString( typeInfo ) << endl;
+        cout << "result list" << endl;
+        cout << nl->ToString( nl->OneElemList( nl->IntAtom( type ) ) ) << endl;
+        #endif
+
+        return nl->OneElemList(
+            nl->StringAtom( getName( getDistType( ) ) ) );
     }
 
     /*
-    6.13 ~readType~
+    8.11 ~print~
 
-    Reads a distributionType from a nested list. Returns true for a correct 
-    nested list. False otherwise.
+    Prints the dist type informations. Used for debugging.
 
     */
-    bool DistTypeBasic::readType( const ListExpr _list, 
-        distributionType& _type ) {
-
-        if( ! nl->IsAtom( _list ) ) {
-            return false;
-        }
-        if( nl->AtomType( _list ) != StringType ) {
-            return false;
-        }
-        return supportedType( nl->StringValue( _list ), _type );
+    void DistTypeBasic::print( ) {
+        cout << "type" << endl;
+        cout << getName( type ) << endl;
     }
 
 } // end of namespace drel

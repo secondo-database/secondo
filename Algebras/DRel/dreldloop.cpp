@@ -33,6 +33,8 @@ This operators have the same value mapping witch calls the dloop operator of
 the Distributed2Algebra.
 
 */
+//#define DRELDEBUG
+
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "QueryProcessor.h"
@@ -68,6 +70,12 @@ namespace drel {
 
     */
     ListExpr drelcreatebtreeTM( ListExpr args ) {
+
+        #ifdef DRELDEBUG
+        cout << "drelcreatebtreeTM" << endl;
+        cout << "args" << endl;
+        cout << nl->ToString( args ) << endl;
+        #endif
 
         std::string err = "d[f]rel(X) x string x attr expected";
 
@@ -106,12 +114,22 @@ namespace drel {
                     nl->SymbolAtom( "darrayelem1" ),
                     nl->Second( nl->Third( args ) ) ) ) );     // Attribute
 
+        #ifdef DRELDEBUG
+        cout << "funType" << endl;
+        cout << nl->ToString( funType ) << endl;
+        #endif
+
         // result type of dloop
         ListExpr result = dloopTM(
             nl->ThreeElemList(
                 nl->TwoElemList( darrayType, drelName ),
                 nl->Second( args ),
                 funType ) );
+
+        #ifdef DRELDEBUG
+        cout << "dloopTM" << endl;
+        cout << nl->ToString( result ) << endl;
+        #endif
 
         if( !nl->HasLength( result, 3 ) ) {
             return result;
@@ -121,8 +139,6 @@ namespace drel {
         }
 
         ListExpr btreeType = nl->Second( nl->Third( result ) );
-        cout << "btreeType" << endl;
-        cout << nl->ToString( btreeType ) << endl;
         ListExpr append = nl->Second( result );
         ListExpr newRes = nl->ThreeElemList(
             nl->First( drelType ),  // drel or dfrel
@@ -145,6 +161,10 @@ namespace drel {
     template<class T, class R>
     int dreldloopVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
+
+        #ifdef DRELDEBUG
+        cout << "dreldloopVMT" << endl;
+        #endif
 
         dloopVMT<R>( args, result, message, local, s );
 

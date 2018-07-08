@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 
-1 Implementation of the secondo operator drelexactmatch
+1 Implementation of the secondo operator drelrange, drelexactmatch
 
 */
 #include "NestedList.h"
@@ -54,9 +54,103 @@ using namespace distributed2;
 namespace drel {
 
     /*
-    1.1 Type Mapping
+    1.1 Type Mapping drelrangeTM
 
-    Expect two DRels (one with btree and one with a relation) and a search 
+    Expect two DRels (one with btree and one with a relation) and two values 
+    to define the range.
+
+    */
+    ListExpr drelrangeTM( ListExpr args ) {
+        std::string err = "drel(btree(X)) x drel(rel(X)) x ANY x ANY expected";
+
+        if( !nl->HasLength( args, 4 ) ) {
+            return listutils::typeError( err +
+                ": four arguments are expected" );
+        }
+
+        if( !DRelHelpers::isListOfTwoElemLists( args ) ) {
+            return listutils::typeError( "internal Error" );
+        }
+
+        ListExpr drelBTreeType = nl->First( nl->First( args ) );
+        ListExpr drelBTreeValue = nl->Second( nl->First( args ) );
+        ListExpr bTreeType = nl->Second( drelBTreeType );
+        ListExpr drelType = nl->First( nl->Second( args ) );
+        ListExpr drelValue = nl->Second( nl->Second( args ) );
+        ListExpr relType = nl->Second( drelType );
+
+        ListExpr range1 = nl->Second( nl->Third( args ) );
+        ListExpr range2 = nl->Second( nl->Fourth( args ) );
+
+        if( !DRel::checkType( drelType ) ) {
+            return listutils::typeError( err +
+                ": first argument is not a drel" );
+        }
+
+        ListExpr darrayBTreeType = nl->TwoElemList(
+            listutils::basicSymbol<DArray>( ),
+            bTreeType );
+        ListExpr darrayType = nl->TwoElemList(
+            listutils::basicSymbol<DArray>( ),
+            relType );
+
+        // create function type to call dloop2TM
+        ListExpr funType = nl->TwoElemList(
+            nl->FourElemList(
+                nl->SymbolAtom( "map" ),
+                bTreeType,
+                relType,
+                relType ),
+            nl->FourElemList(
+                nl->SymbolAtom( "fun" ),
+                nl->TwoElemList(
+                    nl->SymbolAtom( "elem11" ),
+                    nl->SymbolAtom( "DARRAYELEM" ) ),
+                nl->TwoElemList(
+                    nl->SymbolAtom( "elem22" ),
+                    nl->SymbolAtom( "DARRAYELEM2" ) ),
+                nl->TwoElemList(
+                    nl->SymbolAtom( "consume" ),
+                    nl->FiveElemList(
+                        nl->SymbolAtom( "range" ),
+                        nl->SymbolAtom( "elem11" ),
+                        nl->SymbolAtom( "elem22" ),
+                        range1,
+                        range2 ) ) ) );
+
+        // result type of dloop
+        ListExpr result = dloop2TM(
+            nl->FourElemList(
+                nl->TwoElemList( darrayBTreeType, drelBTreeValue ),
+                nl->TwoElemList( darrayType, drelValue ),
+                nl->TwoElemList( 
+                    listutils::basicSymbol<CcString>( ), 
+                    nl->StringAtom( "" ) ),
+                funType ) );
+
+        if( !nl->HasLength( result, 3 ) ) {
+            return result;
+        }
+        if( !DArray::checkType( nl->Third( result ) ) ) {
+            return result;
+        }
+
+        ListExpr append = nl->Second( result );
+        ListExpr newRes = nl->ThreeElemList( 
+            listutils::basicSymbol<DRel>( ),
+            nl->Second( nl->Third( result ) ),
+            nl->Third( drelType ) );  // disttype
+
+        return nl->ThreeElemList(
+            nl->SymbolAtom( Symbols::APPEND( ) ),
+            append,
+            newRes );
+    }
+
+    /*
+    1.2 Type Mapping drelexactmatchTM
+
+    Expect two DRels (one with btree and one with a relation) and a search
     value.
 
     */
@@ -126,7 +220,7 @@ namespace drel {
             nl->FourElemList(
                 nl->TwoElemList( darrayBTreeType, drelBTreeName ),
                 nl->TwoElemList( darrayType, drelName ),
-                nl->TwoElemList( listutils::basicSymbol<CcString>( ), 
+                nl->TwoElemList( listutils::basicSymbol<CcString>( ),
                     nl->StringAtom( "" ) ),
                 funType ) );
 
@@ -138,7 +232,7 @@ namespace drel {
         }
 
         ListExpr append = nl->Second( result );
-        ListExpr newRes = nl->ThreeElemList( 
+        ListExpr newRes = nl->ThreeElemList(
             listutils::basicSymbol<DRel>( ),
             nl->Second( nl->Third( result ) ),
             nl->Third( drelType ) );  // disttype
@@ -150,12 +244,13 @@ namespace drel {
     }
 
     /*
-    1.2 Value Mapping
+    1.3 Value Mapping
 
-    Uses a distributed btree and a drel to call the exactmatch operator.
+    Uses a distributed btree and a drel to call the range operator.
 
     */
-    int drelexactmatchVM( Word* args, Word& result, int message,
+    template<int parm>
+    int dreldloop2VMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
         DRel* drelBTree = ( DRel* )args[ 0 ].addr;
@@ -169,11 +264,12 @@ namespace drel {
             return 0;
         }
 
+        // FText with the function depends on the number of parameters
         ArgVector argVec = { drelBTree,
             drel,
             new CcBool( false ), // dummy
             new CcString( true ),
-            args[ 3 ].addr };
+            args[ 2 + parm ].addr };
 
         dloop2VM( argVec, result, message, local, s );
 
@@ -188,7 +284,55 @@ namespace drel {
     }
 
     /*
-    1.3 Specification of drelexactmatch
+    1.4 ValueMapping Array for dloop2
+
+    Used by the operators with only a drel input.
+
+    */
+    ValueMapping dreldloop2VM[ ] = {
+        dreldloop2VMT<1>,
+        dreldloop2VMT<2>,
+        dreldloop2VMT<3>
+    };
+
+    /*
+    1.6 Selection function for dreldloop2
+
+    Used to locate the FText with the function for the dloop2 value mapping.
+
+    */
+    int dreldloop2Select( ListExpr args ) {
+
+        return nl->ListLength( args ) - 3;
+    }
+
+    /*
+    1.7 Specification of drelrange
+
+    */
+    OperatorSpec drelrangeSpec(
+        " drel(X) x drel(X) x string "
+        "-> drel(X) ",
+        " _ _ drelrange[_,_]",
+        "Uses a distributed btree and a drel to call the range operator.",
+        " query drel1_Name drel1 drelrange[\"Berlin\",\"Mannheim\"]"
+    );
+
+    /*
+    1.8 Operator instance of drelrange operator
+
+    */
+    Operator drelrangeOp(
+        "drelrange",
+        drelrangeSpec.getStr( ),
+        3,
+        dreldloop2VM,
+        dreldloop2Select,
+        drelrangeTM
+    );
+
+    /*
+    1.9 Specification of drelexactmatch
 
     */
     OperatorSpec drelexactmatchSpec(
@@ -200,14 +344,15 @@ namespace drel {
     );
 
     /*
-    1.4 Operator instance of drelexactmatch operator
+    1.10 Operator instance of drelexactmatch operator
 
     */
     Operator drelexactmatchOp(
         "drelexactmatch",
         drelexactmatchSpec.getStr( ),
-        drelexactmatchVM,
-        Operator::SimpleSelect,
+        3,
+        dreldloop2VM,
+        dreldloop2Select,
         drelexactmatchTM
     );
 

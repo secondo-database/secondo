@@ -25,6 +25,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 */
+//#define DRELDEBUG
+
 #include "Algebras/Temporal/TemporalAlgebra.h"
 #include "DRel.h"
 #include "NestedList.h"
@@ -50,11 +52,19 @@ namespace drel {
     template<arrayType T>
     DRelT<T>::DRelT( const std::vector<uint32_t>&v, const std::string& name ) :
         DArrayT<T>( v, name ), distType( 0 ) {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT constructor" << endl;
+        #endif
     }
 
     template<arrayType T>
     DRelT<T>::DRelT( const int dummy ) :
         DArrayT<T>( dummy ), distType( 0 ) {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT constructor" << endl;
+        #endif
     }
 
     /*
@@ -63,17 +73,29 @@ namespace drel {
     */
     template<arrayType T>
     DRelT<T>::DRelT( const DRelT& src ) :
-        DArrayT<T>( src ), distType( new DistTypeBasic( *src.distType ) ) {
+        DArrayT<T>( src ), distType( src.distType ) {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT copy constructor" << endl;
+        #endif
     }
 
     template<arrayType T>
     DRelT<T>::DRelT( const DArrayBase& src ) :
         DArrayT<T>( src ), distType( 0 ) {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT copy constructor" << endl;
+        #endif
     }
 
     template<arrayType T>
     DRelT<T>::DRelT( const DArrayT<T>& src ) :
         DArrayT<T>( src ), distType( 0 ) {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT copy constructor" << endl;
+        #endif
     }
 
     /*
@@ -82,16 +104,26 @@ namespace drel {
     */
     template<arrayType T>
     DRelT<T>& DRelT<T>::operator=( const DRelT& src ) {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT assignment operator" << endl;
+        #endif
+
         if( this == &src ) {
             return *this;
         }
         DArrayT<T>::operator=( src );
-        distType = new DistTypeBasic( *src.distType );
+        distType = src.distType;
         return *this;
     }
 
     template<arrayType T>
     DRelT<T>& DRelT<T>::operator=( const DArrayBase& src ) {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT assignment operator" << endl;
+        #endif
+
         DArrayBase::operator=( src );
         distType = 0;
         return *this;
@@ -99,6 +131,11 @@ namespace drel {
 
     template<arrayType T>
     DRelT<T>& DRelT<T>::operator=( const DArrayT<T>& src ) {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT assignment operator" << endl;
+        #endif
+
         DArrayT<T>::operator=( src );
         distType = 0;
         return *this;
@@ -110,6 +147,11 @@ namespace drel {
     */
     template<arrayType T>
     DRelT<T>::~DRelT( ) {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT destructor" << endl;
+        #endif
+
         if( distType != 0 ) {
             delete distType;
         }
@@ -123,39 +165,50 @@ namespace drel {
     */
     template<arrayType T>
     void DRelT<T>::setDistType( DistTypeBasic* _distType ) {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT::setDistType" << endl;
+        cout << "distType" << endl;
+        _distType->print( );
+        #endif
+
         distType = _distType;
     }
 
+    /*
+    1.5 ~getDistType~
+
+    Get the distType.
+
+    */
     template<arrayType T>
     DistTypeBasic* DRelT<T>::getDistType( ) {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT::getDistType" << endl;
+        cout << "distType" << endl;
+        distType->print( );
+        #endif
+
         return distType;
     }
 
     /*
-    1.5 ~getTypeName~
+    1.6 ~getTypeName~
 
     Returns the type name of the darray. (DARRAY or DFARRAY)
 
     */
     template<arrayType T>
     std::string DRelT<T>::getTypeName( ) const {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT::getTypeName" << endl;
+        cout << "TypeName" << endl;
+        cout << getName( T ) << endl;
+        #endif
+
         return getName( T );
-    }
-
-    /*
-    1.6 ~saveDistType~
-
-    Saves the distType.
-
-    */
-    template<arrayType T>
-    bool DRelT<T>::saveDistType(
-        SmiRecord& valueRecord, size_t& offset, ListExpr typeInfo ) {
-
-        if( distType == 0 ) {
-            return true;
-        }
-        return distType->save( valueRecord, offset, typeInfo );
     }
 
     /*
@@ -166,16 +219,35 @@ namespace drel {
     */
     template<arrayType T>
     ListExpr DRelT<T>::toListExpr( ListExpr typeInfo ) const {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT::toListExpr" << endl;
+        cout << "typeInfo" << endl;
+        cout << nl->ToString( typeInfo ) << endl;
+        #endif
+
         ListExpr listArray = DArrayBase::toListExpr( );
         if( listutils::isSymbolUndefined( listArray ) ) {
             return listArray;
         }
 
-        return nl->FourElemList( nl->First( listArray ),
-            nl->Second( listArray ),
-            nl->Third( listArray ),
-            distType->toListExpr( 
-                nl->First( nl->Rest( nl->Rest( typeInfo ) ) ) ) );
+        #ifdef DRELDEBUG
+        cout << "darray" << endl;
+        cout << nl->ToString( listArray ) << endl;
+        cout << "distTypeList" << endl;
+        distType->print( );
+        #endif
+
+        ListExpr drelList = nl->TwoElemList(
+            listArray,
+            distType->toListExpr( nl->Third( typeInfo ) ) );
+
+        #ifdef DRELDEBUG
+        cout << "drelList" << endl;
+        cout << nl->ToString( drelList ) << endl;
+        #endif
+
+        return drelList;
     }
 
     /*
@@ -187,74 +259,163 @@ namespace drel {
     */
     template<arrayType T>
     DRelT<T>* DRelT<T>::readFrom( ListExpr typeInfo, ListExpr list ) {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT::readFrom" << endl;
+        cout << "typeInfo" << endl;
+        cout << nl->ToString( typeInfo ) << endl;
+        cout << "list" << endl;
+        cout << nl->ToString( list ) << endl;
+        #endif
+
         if( listutils::isSymbolUndefined( list ) ) {
             DArrayT<T>* darray = DArrayT<T>::readFrom( list );
             DRelT<T>* rel = new DRelT<T>( *darray );
             delete darray;
             return rel;
         }
-        if( !nl->HasLength( nl->First( list ), 4 ) ) {
-            return 0;
+
+        if( !nl->HasLength( list, 3 ) ) {
+            DRelT<T>* rel = new DRelT<T>( 0 );
+            rel->makeUndefined( );
+            return rel;
         }
 
-        DArrayT<T>* darray = DArrayBase::readFrom<DArrayT<T>>(
-            nl->ThreeElemList( 
-                nl->First( list ), 
-                nl->Second( list ), 
-                nl->Third( list ) ) );
-        if( darray == 0 ) {
-            return 0;
-        }
-
+        DArrayT<T>* darray = DArrayT<T>::readFrom( nl->Second( list ) );
         DRelT<T>* rel = new DRelT<T>( *darray );
         delete darray;
 
-        ListExpr distTypeList = nl->Fourth( list );
-        if( !nl->HasMinLength( distTypeList, 1 ) ) {
-            delete rel;
-            return 0;
+        ListExpr distType = nl->Third( list );
+        ListExpr typeDef = nl->First( distType );
+
+        if( !nl->HasMinLength( distType, 1 ) ) {
+            rel->makeUndefined( );
+            return rel;
         }
-        ListExpr typeList = nl->First( distTypeList );
+
+        if( !nl->IsAtom( typeDef )) {
+            rel->makeUndefined( );
+            return rel;
+        }
+
         distributionType type;
-        if( !( DistTypeBasic::readType( typeList, type ) ) ) {
-            delete rel;
-            return 0;
+        if( nl->AtomType( typeDef ) == SymbolType ) {  // type by symbol
+            if( !supportedType( nl->SymbolValue( typeDef ), type ) ) {
+                rel->makeUndefined( );
+                return rel;
+            }
+        }
+        else if( nl->AtomType( typeDef ) == IntType ) { // type by int
+            if( !getTypeByNum( ( int )nl->IntValue( typeDef ), type ) ) {
+                rel->makeUndefined( );
+                return rel;
+            }
+        }
+        else {
+            rel->makeUndefined( );
+            return rel;
         }
 
-        DistTypeBasic* dType;
-
-        switch( type ) {
-        case replicated:
-            dType = DistTypeBasic::readFrom( distTypeList );
-            break;
-        case random: 
-            dType = DistTypeBasic::readFrom( distTypeList );
-            break;
-        case hash:
-            dType = DistTypeHash::readFrom( distTypeList ); // noch typeInfo
-            break;
-        case range:
-            dType = DistTypeRange::readFrom( distTypeList );
-            break;
-        case spatial2d:
-            dType = DistTypeSpatial<temporalalgebra::CellGrid2D>::
-                readFrom( distTypeList );
-            break;
-        case spatial3d:
-            dType = DistTypeRange::readFrom( distTypeList ); // noch falsch
-            break;
-        default:
-            delete rel;
-            return 0;
-            break;
+        if( nl->HasLength( distType, 1 )
+         && ( type == random || type == replicated ) ) {
+            rel->setDistType( new DistTypeBasic( type ) );
+            return rel;
         }
 
-        if( dType == 0 ) {
-            delete rel;
-            return 0;
+        if( !nl->HasMinLength( distType, 2 ) ) {
+            rel->makeUndefined( );
+            return rel;
         }
 
-        rel->setDistType( dType );
+        if( !nl->IsAtom( nl->Second( distType ) )
+         || nl->AtomType( nl->Second( distType ) ) != IntType ) {
+            rel->makeUndefined( );
+            return rel;
+        }
+
+        int attrPos = nl->IntValue( nl->Second( distType ) );
+        if( attrPos < 0 ) {
+            rel->makeUndefined( );
+            return rel;
+        }
+
+        if( nl->HasLength( distType, 2 ) && type == hash ) {
+            rel->setDistType( new DistTypeHash( type, attrPos ) );
+            return rel;
+        }
+
+        if( !nl->HasLength( distType, 4 ) ) {
+            rel->makeUndefined( );
+            return rel;
+        }
+
+        if( !nl->IsAtom( nl->Third( distType ) )
+         || nl->AtomType( nl->Third( distType ) ) != IntType ) {
+            rel->makeUndefined( );
+            return rel;
+        }
+
+        int key = nl->IntValue( nl->Third( distType ) );
+
+        if( type == range ) {
+            bool correct;
+            ListExpr errorInfo;
+            Word value = collection::Collection::In(
+                nl->Fourth( nl->Third( typeInfo ) ),
+                nl->Fourth( distType ), 0, errorInfo,
+                correct );
+
+            if( !correct ) {
+                rel->makeUndefined( );
+                return rel;
+                
+            }
+
+            rel->setDistType( new DistTypeRange(
+                type, attrPos, key, ( collection::Collection* ) value.addr ) );
+
+            return rel;
+        }
+
+        if( type == spatial2d ) {
+
+            temporalalgebra::CellGrid2D* grid =
+                DistTypeSpatial<temporalalgebra::CellGrid2D>::ReadFrom(
+                    nl->Fourth( nl->Third( typeInfo ) ),
+                    nl->Fourth( distType ) );
+
+            if( !grid ) {
+                rel->makeUndefined( );
+                return rel;
+            }
+
+            rel->setDistType(
+                new DistTypeSpatial<temporalalgebra::CellGrid2D>(
+                    type, attrPos, key, grid ) );
+
+            return rel;
+        }
+        
+        if( type == spatial3d ) {
+
+            temporalalgebra::CellGrid<3>* grid =
+                DistTypeSpatial<temporalalgebra::CellGrid<3>>::ReadFrom(
+                    nl->Fourth( nl->Third( typeInfo ) ),
+                    nl->Fourth( distType ) );
+
+            if( !grid ) {
+                rel->makeUndefined( );
+                return rel;
+            }
+
+            rel->setDistType(
+                new DistTypeSpatial<temporalalgebra::CellGrid<3>>(
+                    type, attrPos, key, grid ) );
+
+            return rel;
+        }
+
+        rel->makeUndefined( );
         return rel;
     }
 
@@ -268,6 +429,14 @@ namespace drel {
     template<arrayType T>
     template<class R>
     const bool DRelT<T>::equalDistType( R* drel ) {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT::equalDistType" << endl;
+        #endif
+
+        if( distType == 0 ) {
+            return false;
+        }
         return distType->isEqual( drel->getDistType( ) );
     }
 
@@ -284,6 +453,11 @@ namespace drel {
     */
     template<arrayType T>
     const std::string DRelT<T>::BasicType( ) {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT::BasicType" << endl;
+        #endif
+
         if( T == DFARRAY ) {
             return "dfrel";
         } else if( T == DARRAY ) {
@@ -300,6 +474,13 @@ namespace drel {
     */
     template<arrayType T>
     const bool DRelT<T>::checkType( const ListExpr list ) {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT::checkType" << endl;
+        cout << "list" << endl;
+        cout << nl->ToString( list ) << endl;
+        #endif
+
         if( T != DARRAY && T != DFARRAY ) {
             return false;
         }
@@ -310,13 +491,10 @@ namespace drel {
             return false;
         }
         ListExpr distTypeExpr = nl->Third( list );
-        return ( DistTypeBasic::checkType( distTypeExpr )
-            || DistTypeHash::checkType( distTypeExpr )
-            || DistTypeRange::checkType( distTypeExpr )
-            || DistTypeSpatial<temporalalgebra::CellGrid2D>::
-                    checkType( distTypeExpr )
-            || DistTypeSpatial<temporalalgebra::CellGrid<3>>::
-                    checkType( distTypeExpr ) );
+        cout << "distTypeExpr" << endl;
+        cout << nl->ToString( distTypeExpr ) << endl;
+
+        return true;
     }
 
     /*
@@ -327,6 +505,11 @@ namespace drel {
     */
     template<arrayType T>
     ListExpr DRelT<T>::Property( ) {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT::Property" << endl;
+        #endif
+
         return ( nl->TwoElemList(
             nl->FourElemList(
                 nl->StringAtom( "Signature" ),
@@ -356,6 +539,11 @@ namespace drel {
         ListExpr& errorInfo,
         bool& correct ) {
 
+        #ifdef DRELDEBUG
+        cout << "DRelT::In" << endl;
+        cout << nl->ToString( typeInfo ) << endl;
+        #endif
+
         Word res( ( void* )0 );
         res.addr = DRelT<T>::readFrom( typeInfo, value );
         correct = res.addr != 0;
@@ -370,8 +558,18 @@ namespace drel {
     */
     template<arrayType T>
     ListExpr DRelT<T>::Out( const ListExpr typeInfo, Word value ) {
-        DRelT<T>* rel = ( DRelT<T>* )value.addr;
-        return rel->toListExpr( typeInfo );
+
+        DRelT<T>* drel = ( DRelT<T>* )value.addr;
+
+        #ifdef DRELDEBUG
+        cout << "DRelT::Out" << endl;
+        cout << "typeInfo" << endl;
+        cout << nl->ToString( typeInfo ) << endl;
+        cout << "drel" << endl;
+        cout << nl->ToString( drel->toListExpr( typeInfo ) ) << endl;
+        #endif
+
+        return drel->toListExpr( typeInfo );
     }
 
     /*
@@ -382,6 +580,13 @@ namespace drel {
     */
     template<arrayType T>
     Word DRelT<T>::Create( const ListExpr typeInfo ) {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT::Create" << endl;
+        cout << "typeInfo" << endl;
+        cout << nl->ToString( typeInfo ) << endl;
+        #endif
+
         Word w;
         std::vector<uint32_t> m;
         w.addr = new DRelT<T>( m, "" );
@@ -396,6 +601,13 @@ namespace drel {
     */
     template<arrayType T>
     void DRelT<T>::Delete( const ListExpr typeInfo, Word & w ) {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT::Delete" << endl;
+        cout << "typeInfo" << endl;
+        cout << nl->ToString( typeInfo ) << endl;
+        #endif
+
         DRelT<T>* rel = ( DRelT<T>* )w.addr;
         delete rel;
         w.addr = 0;
@@ -412,8 +624,15 @@ namespace drel {
         SmiRecord& valueRecord, size_t& offset, 
         const ListExpr typeInfo, Word& value ) {
 
+        #ifdef DRELDEBUG
+        cout << "DRelT::Open" << endl;
+        cout << "typeInfo" << endl;
+        cout << nl->ToString( typeInfo ) << endl;
+        #endif
+
         if( !DArrayBase::open<DArrayT<T>>( 
                 valueRecord, offset, typeInfo, value ) ) {
+            cout << "darray open fail" << endl;
             return false;
         }
         DArrayT<T>* darray = ( DArrayT<T>* )value.addr;
@@ -422,19 +641,42 @@ namespace drel {
         value.addr = rel;
 
         if( !rel->IsDefined( ) ) {
+            #ifdef DRELDEBUG
+            cout << "DRel not defined" << endl;
+            #endif
             return true;
         }
 
-        std::string typeString;
-        if( !readVar<std::string>( typeString, valueRecord, offset ) ) {
-            delete rel;
+        if( !nl->HasLength( typeInfo, 3 ) ) {
+            #ifdef DRELDEBUG
+            cout << "DRel type info error" << endl;
+            #endif
             return false;
         }
+        
+        ListExpr distTypeInfo = nl->Third( typeInfo );
+
+        if( !nl->IsAtom( nl->First( distTypeInfo ) )
+         || nl->AtomType( nl->First( distTypeInfo ) ) != IntType ) {
+            #ifdef DRELDEBUG
+            cout << "DRel dist type info error" << endl;
+            #endif
+            return false;
+        }
+        
         distributionType type;
-        if( !supportedType( typeString, type ) ) {
-            delete rel;
+        if( !getTypeByNum( ( int )nl->IntValue( nl->First( distTypeInfo ) ), 
+            type ) ) {
+            #ifdef DRELDEBUG
+            cout << "Distribution type information error" << endl;
+            #endif
             return false;
         }
+
+        #ifdef DRELDEBUG
+        cout << "dist type" << endl;
+        cout << type << endl;
+        #endif
 
         if( type == replicated || type == random ) {
 
@@ -442,12 +684,26 @@ namespace drel {
             return true;
         }
 
-        int attr;
-        if( !readVar<int>( attr, valueRecord, offset ) ) {
-
-            delete rel;
+        // get attribute number
+        if( !nl->HasMinLength( distTypeInfo, 2 )
+            || !nl->IsAtom( nl->Second( distTypeInfo ) )
+            || nl->AtomType( nl->Second( distTypeInfo ) ) != IntType ) {
+            #ifdef DRELDEBUG
+            cout << "Attribute type information error" << endl;
+            #endif
             return false;
         }
+
+
+        int attr = ( int )nl->IntValue( nl->Second( distTypeInfo ) );
+        if( attr < 0 ) {
+            return false;
+        }
+
+        #ifdef DRELDEBUG
+        cout << "attr open" << endl;
+        cout << attr << endl;
+        #endif
 
         if( type == hash) {
 
@@ -455,51 +711,88 @@ namespace drel {
             return true;
         }
 
-        int key;
-        if( !readVar<int>( key, valueRecord, offset ) ) {
-            return 0;
+        // disttribution type key
+        if( !nl->HasMinLength( distTypeInfo, 3 )
+            || !nl->IsAtom( nl->Third( distTypeInfo ) )
+            || nl->AtomType( nl->Third( distTypeInfo ) ) != IntType ) {
+            cout << "Distribution type key information error" << endl;
+            return false;
         }
+
+        int key = ( int )nl->IntValue( nl->Third( distTypeInfo ) );
 
         if( type == range ) {
 
-            ListExpr distTypeExpr = nl->Third( typeInfo );
-            ListExpr boundaryTypeExpr = nl->Fourth( distTypeExpr );
+            #ifdef DRELDEBUG
+            cout << "type of vector" << endl;
+            cout << nl->ToString( nl->Fourth( distTypeInfo ) ) << endl;
+            #endif
+            
             Word value;
-            if( !Boundary::Open( 
-                valueRecord, offset, boundaryTypeExpr, value ) ) {
+            if( !collection::Collection::Open( 
+                valueRecord, offset, nl->Fourth( distTypeInfo ), value ) ) {
 
                 delete rel;
                 return false;
             }
+
+            #ifdef DRELDEBUG
+            cout << "open vector" << endl;
+            ( ( collection::Collection* ) value.addr )->Print( cout );
+            cout << endl;
+            #endif
             
             rel->setDistType( new DistTypeRange( 
-                type, attr, key, ( Boundary* ) value.addr ) );
+                type, attr, key, ( collection::Collection* ) value.addr ) );
+
+            return true;
         }
-        else if( type == spatial2d ) {
+        
+        if( type == spatial2d ) {
 
             temporalalgebra::CellGrid2D* grid = 
                 static_cast< temporalalgebra::CellGrid2D* >( 
                     Attribute::Open( valueRecord, offset, 
-                        nl->Fourth( nl->Third( typeInfo ) ) ) );
+                        nl->Fourth( distTypeInfo ) ) );
+
+            #ifdef DRELDEBUG
+            cout << "open cellgrid2d" << endl;
+            grid->Print( cout );
+            cout << endl;
+            #endif
 
             rel->setDistType( 
                 new DistTypeSpatial<temporalalgebra::CellGrid2D>( 
                     type, attr, key, grid ) );
+
+            return true;
         }
-        //else if( type == spatial3d ) {
-        //    ListExpr distTypeExpr = nl->Third( typeInfo );
-        //    ListExpr gridTypeExpr = nl->Fourth( distTypeExpr );
-        //    temporalalgebra::CellGrid<3>* grid = 
-        //        static_cast< temporalalgebra::CellGrid<3>* >( 
-        //    Attribute::Open( 
-        //      valueRecord, offset, nl->Fourth( nl->Third( typeInfo ) ) ) );
+        
+        if( type == spatial3d ) {
 
-        //    rel->setDistType( 
-        //    new DistTypeSpatial<temporalalgebra::CellGrid<3>( 
-        //      type, attr, key, grid ) );
-        //}
+            temporalalgebra::CellGrid<3>* grid =
+                static_cast< temporalalgebra::CellGrid<3>* >(
+                    Attribute::Open( valueRecord, offset,
+                        nl->Fourth( distTypeInfo ) ) );
 
-        return true;
+            #ifdef DRELDEBUG
+            cout << "open cellgrid3d" << endl;
+            grid->Print( cout );
+            cout << endl;
+            #endif
+
+            rel->setDistType( 
+                new DistTypeSpatial<temporalalgebra::CellGrid<3>>( 
+                    type, attr, key, grid ) );
+
+            return true;
+        }
+
+        #ifdef DRELDEBUG
+        cout << "open error" << endl;
+        #endif
+
+        return false;
     }
 
     /*
@@ -513,13 +806,19 @@ namespace drel {
         SmiRecord& valueRecord, size_t& offset, 
         const ListExpr typeInfo, Word& value ) {
 
+        #ifdef DRELDEBUG
+        cout << "DRelT::Save" << endl;
+        cout << "typeInfo" << endl;
+        cout << nl->ToString( typeInfo ) << endl;
+        #endif
+
         if( !DArrayBase::save( valueRecord, offset, typeInfo, value ) ) {
             return false;
         }
+
         DRelT<T>* drel = ( DRelT<T>* ) value.addr;
-        return drel->saveDistType( 
-            valueRecord, offset, 
-            nl->First( nl->Rest( nl->Rest( typeInfo ) ) ) );
+        return drel->getDistType( )->save( 
+            valueRecord, offset, nl->Third( typeInfo ) );
     }
 
     /*
@@ -530,6 +829,13 @@ namespace drel {
     */
     template<arrayType T>
     void DRelT<T>::Close( const ListExpr typeInfo, Word & w ) {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT::Close" << endl;
+        cout << "typeInfo" << endl;
+        cout << nl->ToString( typeInfo ) << endl;
+        #endif
+
         DRelT<T>* rel = ( DRelT<T>* )w.addr;
         delete rel;
         w.addr = 0;
@@ -543,6 +849,13 @@ namespace drel {
     */
     template<arrayType T>
     Word DRelT<T>::Clone( const ListExpr typeInfo, const Word & w ) {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT::Clone" << endl;
+        cout << "typeInfo" << endl;
+        cout << nl->ToString( typeInfo ) << endl;
+        #endif
+
         DRelT<T>* rel = ( DRelT<T>* )w.addr;
         Word res;
         res.addr = new DRelT<T>( *rel );
@@ -557,6 +870,11 @@ namespace drel {
     */
     template<arrayType T>
     void* DRelT<T>::Cast( void * addr ) {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT::Cast" << endl;
+        #endif
+
         return ( new ( addr ) DRelT<T>( 0 ) );
     }
 
@@ -568,6 +886,13 @@ namespace drel {
     */
     template<arrayType T>
     bool DRelT<T>::TypeCheck( ListExpr type, ListExpr & errorInfo ) {
+
+        #ifdef DRELDEBUG
+        cout << "DRelT::TypeCheck" << endl;
+        cout << "typeInfo" << endl;
+        cout << nl->ToString( type ) << endl;
+        #endif
+
         return DRelT<T>::checkType( type );
     }
 

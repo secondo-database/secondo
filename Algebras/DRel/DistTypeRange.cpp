@@ -25,8 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 */
-#include <iterator>
-#include <assert.h>
+//#define DRELDEBUG
 
 #include "DistTypeRange.h"
 #include "StandardTypes.h"
@@ -45,13 +44,33 @@ namespace drel {
 
     */
     DistTypeRange::DistTypeRange( distributionType _type, int _attr, 
-        Boundary* _boundary ) :
+        collection::Collection* _boundary ) :
         DistTypeHash( _type, _attr ), key( rand( ) ), boundary( _boundary ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeRange::DistTypeRange" << endl;
+        cout << "type" << endl;
+        cout << _type << endl;
+        cout << "attr" << endl;
+        cout << _attr << endl;
+        cout << "key" << endl;
+        cout << key << endl;
+        #endif
     }
     
     DistTypeRange::DistTypeRange( distributionType _type, int _attr, int _key, 
-        Boundary* _boundary ) :
+        collection::Collection* _boundary ) :
         DistTypeHash( _type, _attr ), key( _key ), boundary( _boundary ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeRange::DistTypeRange" << endl;
+        cout << "type" << endl;
+        cout << _type << endl;
+        cout << "attr" << endl;
+        cout << _attr << endl;
+        cout << "key" << endl;
+        cout << _key << endl;
+        #endif
     }
 
     /*
@@ -61,6 +80,10 @@ namespace drel {
     DistTypeRange::DistTypeRange( const DistTypeRange& _distType ) :
         DistTypeHash( _distType ), key( _distType.key ), 
         boundary( _distType.boundary ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeRange copy constructor" << endl;
+        #endif
     }
 
     /*
@@ -68,6 +91,11 @@ namespace drel {
 
     */
     DistTypeRange& DistTypeRange::operator=( const DistTypeRange& _distType ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeRange assignment operator" << endl;
+        #endif
+
         if( this == &_distType ) {
             return *this;
         }
@@ -82,6 +110,9 @@ namespace drel {
 
     */
     DistTypeRange::~DistTypeRange( ) {
+        #ifdef DRELDEBUG
+        cout << "DistTypeRange destructor" << endl;
+        #endif
     }
 
     /*
@@ -91,13 +122,18 @@ namespace drel {
 
     */
     bool DistTypeRange::isEqual( DistTypeBasic* _distType ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeRange::isEqual" << endl;
+        #endif
+
         if( typeid( *_distType ) != typeid( *this ) ) {
             return false;
         }
         DistTypeRange* other = static_cast<DistTypeRange*>( _distType );
         return getDistType( ) == other->getDistType( )
             && getKey( ) == other->getKey( )
-            && boundary->isEqual( other->getBoundary( ) );
+            && boundary->Compare( other->getBoundary( ) );
     }
 
     /*
@@ -107,6 +143,11 @@ namespace drel {
 
     */
     int DistTypeRange::getKey( ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeRange::getKey" << endl;
+        #endif
+
         return key;
     }
 
@@ -116,35 +157,46 @@ namespace drel {
     Returns the boundary.
 
     */
-    Boundary* DistTypeRange::getBoundary( ) {
+    collection::Collection* DistTypeRange::getBoundary( ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeRange::getBoundary" << endl;
+        #endif
+
         return boundary;
     }
 
     /*
-    6.8 ~copy~
+    6.8 ~allowedAttrType~
+
+    Returns ture if the given ListExpr is the nested list representation 
+    of a suported type to distribute by this type.
+
+    */
+    bool DistTypeRange::allowedAttrType( ListExpr _list ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeRange::allowedAttrType" << endl;
+        #endif
+
+        return CcInt::checkType( _list )
+            || CcString::checkType( _list )
+            || CcReal::checkType( _list );
+    }
+
+    /*
+    6.9 ~copy~
 
     Make a copy of the current object.
 
     */
     DistTypeBasic* DistTypeRange::copy( ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeRange::copy" << endl;
+        #endif
+
         return new DistTypeRange( *this );
-    }
-
-    /*
-    6.9 ~getTypeList~
-
-    Returns the Typelist of the disttype. For the range type it is a
-    CcString, two CcInt and one Boundary.
-
-    */
-    ListExpr DistTypeRange::getTypeList( ListExpr attrType ) {
-        return nl->FourElemList(
-            listutils::basicSymbol<CcString>( ),
-            listutils::basicSymbol<CcInt>( ),
-            listutils::basicSymbol<CcInt>( ),
-            nl->TwoElemList(
-                listutils::basicSymbol<Boundary>( ),
-                nl->OneElemList( attrType ) ) );
     }
 
     /*
@@ -154,6 +206,11 @@ namespace drel {
 
     */
     bool DistTypeRange::checkType( ListExpr list ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeRange::checkType" << endl;
+        #endif
+
         if( !nl->HasLength( list, 4 ) ) {
             return false;
         }
@@ -170,7 +227,7 @@ namespace drel {
             return false;
         }
 
-        return Boundary::checkType( nl->Fourth( list ) );
+        return Vector::checkType( nl->Fourth( list ) );
     }
 
     /*
@@ -182,85 +239,59 @@ namespace drel {
     bool DistTypeRange::save( SmiRecord& valueRecord, 
         size_t& offset, const ListExpr typeInfo ) {
 
+        #ifdef DRELDEBUG
+        cout << "DistTypeRange::save" << endl;
+        cout << "typeInfo" << endl;
+        cout << nl->ToString( typeInfo ) << endl;
+        #endif
+
         if( !DistTypeHash::save( valueRecord, offset, 
             nl->TwoElemList( nl->First( typeInfo ), 
                 nl->Second( typeInfo ) ) ) ) {
             return false;
         }
-        if( !distributed2::writeVar( key, valueRecord, offset ) ) {
-            return false;
-        }
+
         if( !boundary ) {
             return false;
         }
 
-        return boundary->save( valueRecord, offset );
+        Word value( boundary );
+        return collection::Collection::Save( 
+            valueRecord, offset, nl->Fourth( typeInfo ), value );
     }
 
     /*
-    6.12 ~readFrom~
-
-    Reads a list an creates a DistType.
-
-    */
-    DistTypeRange* DistTypeRange::readFrom( const ListExpr _list ) {
-        if( !nl->HasLength( _list, 4 ) ) {
-            return 0;
-        }
-
-        distributionType tType;
-        if( !readType( nl->First( _list ), tType ) ) {
-            return 0;
-        }
-        if( tType != range ) {
-            return 0;
-        }
-
-        int tAttr;
-        if( !readAttr( nl->Second( _list ), tAttr ) ) {
-            return 0;
-        }
-
-        int tKey;
-        if( !readKey( nl->Third( _list ), tKey ) ) {
-            return 0;
-        }
-
-        Boundary* boundary = 0;
-        // Fehlt noch
-        
-        return new DistTypeRange( tType, tAttr, tKey, boundary );
-    }
-
-    /*
-    6.13 ~readKey~
-
-    Reads the key from a list.
-
-    */
-    bool DistTypeRange::readKey( const ListExpr _list, int& _key ) {
-        if( !nl->IsAtom( _list ) ) {
-            return false;
-        }
-        if( nl->AtomType( _list ) != IntType ) {
-            return false;
-        }
-        _key = nl->IntValue( _list );
-        return true;
-    }
-
-    /*
-    6.14 ~toListExpr~
+    6.12 ~toListExpr~
 
     Returns the object as a list.
 
     */
     ListExpr DistTypeRange::toListExpr( ListExpr typeInfo ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeRange::toListExpr" << endl;
+        cout << "typeInfo" << endl;
+        cout << nl->ToString( typeInfo ) << endl;
+        #endif
+
+        Word value( boundary );
         return nl->FourElemList(
-            nl->StringAtom( getName( type ) ), 
+            nl->IntAtom( type ), 
             nl->IntAtom( attr ),
             nl->IntAtom( key ),
-            boundary->toListExpr( ) );
+            collection::Collection::Out( nl->Fourth( typeInfo ), value ) );
+    }
+
+    /*
+    6.13 ~print~
+
+    Prints the dist type informations. Used for debugging.
+
+    */
+    void DistTypeRange::print( ) {
+        DistTypeHash::print( );
+        cout << "key" << endl;
+        cout << key << endl;
     }
 
 } // end of namespace drel

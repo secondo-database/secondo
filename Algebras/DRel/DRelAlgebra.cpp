@@ -34,7 +34,6 @@ namespace drel {
 
 extern TypeConstructor DRelTC;
 extern TypeConstructor DFRelTC;
-extern TypeConstructor BoundaryTC;
 
 extern Operator DRELFUNARG1OP;
 extern Operator DRELFUNARG2OP;
@@ -47,6 +46,7 @@ extern Operator drelfdistributeOp;
 extern Operator dreldistributeOp;
 
 extern Operator compareDistTypeOp;
+extern Operator drelcollect_boxOp;
 extern Operator convert2darrayOp;
 
 extern Operator drelsummarizeOp;
@@ -70,8 +70,6 @@ DRelAlgebra::DRelAlgebra() {
     DRelTC.AssociateKind( Kind::SIMPLE() );
     AddTypeConstructor( &DFRelTC );
     DFRelTC.AssociateKind( Kind::SIMPLE( ) );
-    AddTypeConstructor( &BoundaryTC );
-    BoundaryTC.AssociateKind( Kind::SIMPLE( ) );
     
     AddOperator( &DRELFUNARG1OP );
     AddOperator( &DRELFUNARG2OP );
@@ -82,9 +80,7 @@ DRelAlgebra::DRelAlgebra() {
     AddOperator( &rect2cellgridOp );
 
     AddOperator( &drelfdistributeOp );
-    drelfdistributeOp.SetUsesArgsInTypeMapping( );
     AddOperator( &dreldistributeOp );
-    dreldistributeOp.SetUsesArgsInTypeMapping( );
 
     AddOperator( &drelfilterOp );
     drelfilterOp.SetUsesArgsInTypeMapping( );
@@ -98,6 +94,7 @@ DRelAlgebra::DRelAlgebra() {
     drelheadOp.SetUsesArgsInTypeMapping( );
 
     AddOperator( &compareDistTypeOp );
+    AddOperator( &drelcollect_boxOp );
     AddOperator( &convert2darrayOp );
 
     AddOperator( &drelsummarizeOp );

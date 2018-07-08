@@ -29,7 +29,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define _DistTypeSpatial_h_
 
 #include "DistTypeHash.h"
-#include "Boundary.h"
 
 namespace drel {
     /*
@@ -58,18 +57,19 @@ namespace drel {
         int getKey( );
         T* getGrid( );
 
+        static bool allowedAttrType2d( ListExpr _list );
+        static bool allowedAttrType3d( ListExpr _list );
+
         virtual DistTypeBasic* copy( );
 
-        static ListExpr getTypeList( ListExpr attrType );
         static bool checkType( ListExpr list );
 
         bool save( SmiRecord& valueRecord, size_t& offset, 
             const ListExpr typeInfo );
-        static DistTypeSpatial* readFrom( const ListExpr _list );
         virtual ListExpr toListExpr( ListExpr typeInfo );
+        virtual void print( );
 
-    protected:
-        static bool readKey( const ListExpr _list, int& _key );
+        static T* ReadFrom( const ListExpr value, const ListExpr typeInfo );
 
     private:
 

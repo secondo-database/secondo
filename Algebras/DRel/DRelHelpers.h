@@ -30,46 +30,41 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/Temporal/TemporalAlgebra.h"
 #include "NestedList.h"
-#include "Boundary.h"
+//#include "Boundary.h"
 
 namespace drel {
+    /*
+    1 Class ~DRelHelpers~
 
+    A class with usefull helper functions for the DRelAlgebra.
+
+    */
     class DRelHelpers {
         public:
-            static bool findAttribute( 
-                ListExpr attrList, const std::string& name, ListExpr& type );
-
-            static bool countRecords( 
-                const std::string attrName, 
-                const std::string relName, 
-                int& records );
-            
-            static Boundary* createBoundaryQuery(
-                const std::string relation,
-                const std::string attrName,
-                const int boundarySize );
-            
-            static std::string randomBoundaryName( );
-            static std::string randomGridName( );
-
-            static temporalalgebra::CellGrid2D* createGrid(
-                Relation* _rel, int _attr, int _arraySize );
-            
-            static void setGrid( temporalalgebra::CellGrid2D* grid, 
-                Rectangle<2>* rect, const int _arraySize );
-
             static bool isListOfTwoElemLists( ListExpr list );
 
             static bool isDRelDescr( ListExpr arg, ListExpr& drelType, 
-                ListExpr& relType, ListExpr& distType, ListExpr& drelName );
+                ListExpr& relType, ListExpr& distType, ListExpr& drelValue );
             static bool isDRelDescr( ListExpr arg, ListExpr& drelType, 
-                ListExpr& relType, ListExpr& distType, ListExpr& drelName, 
+                ListExpr& relType, ListExpr& distType, ListExpr& drelValue,
                 ListExpr& darrayType );
 
             static bool replaceDRELFUNARG( ListExpr arg, std::string type, 
                 ListExpr& fun );
             static bool replaceDRELFUNARG( ListExpr arg, std::string type, 
                 ListExpr& fun, ListExpr& map );
+
+            static int computeSampleSize( const int totalSize );
+            static int everyNthTupleForSample( const int totalSize );
+            static int everyNthTupleForSample(
+                const int sampleSize, const int totalSize );
+            static int everyNthTupleForArray(
+                const int sampleSize, const int arraySize );
+
+            static bool compareAttributes(
+                const Attribute* attr1, const Attribute* attr2 );
+
+            static bool listOfIntAtoms( ListExpr list );
     };
 
 } // end of namespace drel

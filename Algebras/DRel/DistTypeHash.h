@@ -36,9 +36,9 @@ namespace drel {
 
     This class represents the distirbution type informations for the class
     drel. The supported types are represented by the enum distributionType.
+    This type is used for hash distribution.
 
     */
-
     class DistTypeHash : public DistTypeBasic {
     public:
         /*
@@ -56,16 +56,13 @@ namespace drel {
 
         virtual DistTypeBasic* copy( );
 
-        static ListExpr getTypeList( );
         static bool checkType( ListExpr list );
 
         virtual bool save( SmiRecord& valueRecord, size_t& offset, 
             const ListExpr typeInfo );
-        static DistTypeHash* readFrom( const ListExpr _list );
         virtual ListExpr toListExpr( ListExpr typeInfo );
-
-    protected:
-        static bool readAttr( const ListExpr _list, int& _attr );
+        virtual void print( );
+        static bool computeNewAttrPos( ListExpr attrPosList, int& attrPos );
 
         /*
         1.2 Members

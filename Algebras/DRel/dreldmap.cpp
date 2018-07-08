@@ -1,4 +1,3 @@
-
 /*
 ----
 This file is part of SECONDO.
@@ -34,10 +33,13 @@ This operators have the same value mapping witch calls the dmap operator of
 the Distributed2Algebra.
 
 */
+//#define DRELDEBUG
+
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
+#include "SecParser.h"
 
 #include "Algebras/Stream/Stream.h"
 #include "Algebras/Relation-C++/OperatorFilter.h"
@@ -76,6 +78,12 @@ namespace drel {
     */
     ListExpr drelfilterTM( ListExpr args ) {
 
+        #ifdef DRELDEBUG
+        cout << "drelfilterTM" << endl;
+        cout << "args" << endl;
+        cout << nl->ToString( args ) << endl;
+        #endif
+
         std::string err = "d[f]rel(X) x fun expected";
 
         if( !nl->HasLength( args, 2 ) ) {
@@ -87,9 +95,9 @@ namespace drel {
             return listutils::typeError( "internal Error" );
         }
 
-        ListExpr drelType, relType, distType, drelName, darrayType;
+        ListExpr drelType, relType, distType, drelValue, darrayType;
         if( !DRelHelpers::isDRelDescr( nl->First( args ), drelType, relType, 
-            distType, drelName, darrayType ) ) {
+            distType, drelValue, darrayType ) ) {
             return listutils::typeError( err +
                 ": first argument is not a d[f]rel" );
         }
@@ -109,8 +117,13 @@ namespace drel {
                         nl->Second( relType ) ),
                     nl->TwoElemList(
                         nl->SymbolAtom( "feed" ),
-                        drelName ) ), // only dummy for the filter TM
+                        drelValue ) ), // only dummy for the filter TM
                 nl->TwoElemList( map, fun ) ) );
+
+        #ifdef DRELDEBUG
+        cout << "filter tm" << endl;
+        cout << nl->ToString( result ) << endl;
+        #endif
 
         // filter TM ok?
         if( !listutils::isTupleStream( result ) ) {
@@ -135,13 +148,23 @@ namespace drel {
                             nl->SymbolAtom( "dmapelem1" ) ),
                         fun ) ) );
 
+        #ifdef DRELDEBUG
+        cout << "funList" << endl;
+        cout << nl->ToString( funList ) << endl;
+        #endif
+
         ListExpr dmapResult = dmapTM(
             nl->ThreeElemList(
-                nl->TwoElemList( darrayType, drelName ),
+                nl->TwoElemList( darrayType, drelValue ),
                 nl->TwoElemList( 
                     listutils::basicSymbol<CcString>( ), 
                     nl->StringAtom( "" ) ),
                 funList ) );
+
+        #ifdef DRELDEBUG
+        cout << "dmapResult" << endl;
+        cout << nl->ToString( dmapResult ) << endl;
+        #endif
 
         if( !nl->HasLength( dmapResult, 3 ) ) {
             return dmapResult;
@@ -178,6 +201,12 @@ namespace drel {
     */
     ListExpr drelprojectTM( ListExpr args ) {
 
+        #ifdef DRELDEBUG
+        cout << "drelprojectTM" << endl;
+        cout << "args" << endl;
+        cout << nl->ToString( args ) << endl;
+        #endif
+
         std::string err = "d[f]rel(X) x attrlist expected";
 
         if( !nl->HasLength( args, 2 ) ) {
@@ -189,9 +218,9 @@ namespace drel {
             return listutils::typeError( "internal Error" );
         }
 
-        ListExpr drelType, relType, distType, drelName, darrayType;
+        ListExpr drelType, relType, distType, drelValue, darrayType;
         if( !DRelHelpers::isDRelDescr( nl->First( args ), drelType, relType, 
-            distType, drelName, darrayType ) ) {
+            distType, drelValue, darrayType ) ) {
             return listutils::typeError( err +
                 ": first argument is not a d[f]rel" );
         }
@@ -205,12 +234,73 @@ namespace drel {
                     nl->Second( relType ) ),
                 attrlist ) );
 
+        #ifdef DRELDEBUG
+        cout << "project tm" << endl;
+        cout << nl->ToString( result ) << endl;
+        #endif
+
         // project TM ok?
         if( !nl->HasLength( result, 3 ) ) {
             return result;
         }
         if( !listutils::isTupleStream( nl->Third( result ) ) ) {
             return result;
+        }
+
+        #ifdef DRELDEBUG
+        cout << "distType with attr pos to check" << endl;
+        cout << nl->ToString( distType ) << endl;
+        #endif
+
+        // distribution by an attribute?
+        if( nl->HasMinLength( distType, 2 ) ) {
+
+            int newPos = nl->IntValue( nl->Second( distType ) ) + 1;
+            #ifdef DRELDEBUG
+            cout << "distribution by attribute check for new position" << endl;
+            cout << "newPos" << endl;
+            cout << newPos << endl;
+            #endif
+
+            if( DistTypeHash::computeNewAttrPos( 
+                nl->Second( nl->Second( result ) ), newPos ) ) {
+
+                switch( nl->ListLength( distType ) ) {
+                case 3:
+                    distType = nl->ThreeElemList(
+                        nl->First( distType ),
+                        nl->IntAtom( newPos ),
+                        nl->Third( distType ) );
+                    break;
+                case 4:
+                    distType = nl->FourElemList(
+                        nl->First( distType ),
+                        nl->IntAtom( newPos ),
+                        nl->Third( distType ),
+                        nl->Fourth( distType ) );
+                    break;
+                default:
+                    distType = nl->TwoElemList(
+                        nl->First( distType ),
+                        nl->IntAtom( newPos ) );
+                }
+
+                drelType = nl->ThreeElemList(
+                    nl->First( drelType ),
+                    distType,
+                    nl->Third( drelType ) );
+                
+                #ifdef DRELDEBUG
+                cout << "new drelType" << endl;
+                cout << nl->ToString( drelType ) << endl;
+                #endif
+            }
+            else {
+                return listutils::typeError( err +
+                    ": it is not allowed to project without the "
+                    "distribution attribute" );
+            }
+
         }
 
         // create function type to call dmapTM
@@ -231,13 +321,23 @@ namespace drel {
                         nl->SymbolAtom( "dmapelem1" ) ),
                     attrlist ) ) );
 
+        #ifdef DRELDEBUG
+        cout << "funList" << endl;
+        cout << nl->ToString( funList ) << endl;
+        #endif
+
         ListExpr dmapResult = dmapTM(
             nl->ThreeElemList(
-                nl->TwoElemList( darrayType, drelName ),
+                nl->TwoElemList( darrayType, drelValue ),
                 nl->TwoElemList(
                     listutils::basicSymbol<CcString>( ),
                     nl->StringAtom( "" ) ),
                 funList ) );
+
+        #ifdef DRELDEBUG
+        cout << "dmapResult" << endl;
+        cout << nl->ToString( dmapResult ) << endl;
+        #endif
 
         if( !nl->HasLength( dmapResult, 3 ) ) {
             return dmapResult;
@@ -255,7 +355,7 @@ namespace drel {
         ListExpr newRes = nl->ThreeElemList(
             newDRelType,
             nl->Second( nl->Third( dmapResult ) ),
-            nl->Third( drelType ) );  // disttype
+            distType );
 
         ListExpr append = nl->Second( dmapResult );
 
@@ -274,6 +374,12 @@ namespace drel {
     */
     ListExpr drelprojectextendTM( ListExpr args ) {
 
+        #ifdef DRELDEBUG
+        cout << "drelprojectextendTM" << endl;
+        cout << "args" << endl;
+        cout << nl->ToString( args ) << endl;
+        #endif
+
         std::string err = "d[f]rel(X) x attrlist x funlist expected";
 
         if( !nl->HasLength( args, 3 ) ) {
@@ -285,9 +391,9 @@ namespace drel {
             return listutils::typeError( "internal Error" );
         }
 
-        ListExpr drelType, relType, distType, drelName, darrayType;
+        ListExpr drelType, relType, distType, drelValue, darrayType;
         if( !DRelHelpers::isDRelDescr( nl->First( args ), drelType, relType, 
-            distType, drelName, darrayType ) ) {
+            distType, drelValue, darrayType ) ) {
             return listutils::typeError( err +
                 ": first argument is not a d[f]rel" );
         }
@@ -338,12 +444,67 @@ namespace drel {
                 attrlist,
                 map ) );
 
+        #ifdef DRELDEBUG
+        cout << "projectextend tm" << endl;
+        cout << nl->ToString( result ) << endl;
+        #endif
+
         // filter TM ok?
         if( !nl->HasLength( result, 3 ) ) {
             return result;
         }
         if( !listutils::isTupleStream( nl->Third( result ) ) ) {
             return result;
+        }
+
+        // distribution by an attribute?
+        if( nl->HasMinLength( distType, 2 ) ) {
+
+            int newPos = nl->IntValue( nl->Second( distType ) ) + 1;
+            #ifdef DRELDEBUG
+            cout << "distribution by attribute check for new position" << endl;
+            cout << "newPos" << endl;
+            cout << newPos << endl;
+            #endif
+
+            if( DistTypeHash::computeNewAttrPos(
+                nl->Second( nl->Second( result ) ), newPos ) ) {
+
+                switch( nl->ListLength( distType ) ) {
+                case 3:
+                    distType = nl->ThreeElemList(
+                        nl->First( distType ),
+                        nl->IntAtom( newPos ),
+                        nl->Third( distType ) );
+                    break;
+                case 4:
+                    distType = nl->FourElemList(
+                        nl->First( distType ),
+                        nl->IntAtom( newPos ),
+                        nl->Third( distType ),
+                        nl->Fourth( distType ) );
+                    break;
+                default:
+                    distType = nl->TwoElemList(
+                        nl->First( distType ),
+                        nl->IntAtom( newPos ) );
+                }
+
+                drelType = nl->ThreeElemList(
+                    nl->First( drelType ),
+                    distType,
+                    nl->Third( drelType ) );
+
+                #ifdef DRELDEBUG
+                cout << "new drelType" << endl;
+                cout << nl->ToString( drelType ) << endl;
+                #endif
+            } else {
+                return listutils::typeError( err +
+                    ": it is not allowed to project without the "
+                    "distribution attribute" );
+            }
+
         }
 
         // create function type to call dmapTM
@@ -365,13 +526,23 @@ namespace drel {
                     attrlist,
                     fun ) ) );
 
+        #ifdef DRELDEBUG
+        cout << "funList" << endl;
+        cout << nl->ToString( funList ) << endl;
+        #endif
+
         ListExpr dmapResult = dmapTM(
             nl->ThreeElemList(
-                nl->TwoElemList( darrayType, drelName ),
+                nl->TwoElemList( darrayType, drelValue ),
                 nl->TwoElemList(
                     listutils::basicSymbol<CcString>( ),
                     nl->StringAtom( "" ) ),
                 funList ) );
+
+        #ifdef DRELDEBUG
+        cout << "dmapResult" << endl;
+        cout << nl->ToString( dmapResult ) << endl;
+        #endif
 
         if( !nl->HasLength( dmapResult, 3 ) ) {
             return dmapResult;
@@ -389,7 +560,7 @@ namespace drel {
         ListExpr newRes = nl->ThreeElemList(
             newDRelType,
             nl->Second( nl->Third( dmapResult ) ),
-            nl->Third( drelType ) );  // disttype
+            distType );
 
         ListExpr append = nl->Second( dmapResult );
 
@@ -408,6 +579,12 @@ namespace drel {
     */
     ListExpr drelextendTM( ListExpr args ) {
 
+        #ifdef DRELDEBUG
+        cout << "drelextendTM" << endl;
+        cout << "args" << endl;
+        cout << nl->ToString( args ) << endl;
+        #endif
+
         std::string err = "d[f]rel(X) x funlist expected";
 
         if( !nl->HasLength( args, 2 ) ) {
@@ -419,9 +596,9 @@ namespace drel {
             return listutils::typeError( "internal Error" );
         }
 
-        ListExpr drelType, relType, distType, drelName, darrayType;
+        ListExpr drelType, relType, distType, drelValue, darrayType;
         if( !DRelHelpers::isDRelDescr( nl->First( args ), drelType, relType, 
-            distType, drelName, darrayType ) ) {
+            distType, drelValue, darrayType ) ) {
             return listutils::typeError( err +
                 ": first argument is not a d[f]rel" );
         }
@@ -469,6 +646,11 @@ namespace drel {
                     nl->Second( relType ) ),
                 map ) );
 
+        #ifdef DRELDEBUG
+        cout << "extend tm" << endl;
+        cout << nl->ToString( result ) << endl;
+        #endif
+
         // filter TM ok?
         if( !nl->HasLength( result, 2 ) ) {
             return result;
@@ -495,13 +677,23 @@ namespace drel {
                         nl->SymbolAtom( "dmapelem1" ) ),
                     fun ) ) );
 
+        #ifdef DRELDEBUG
+        cout << "funList" << endl;
+        cout << nl->ToString( funList ) << endl;
+        #endif
+
         ListExpr dmapResult = dmapTM(
             nl->ThreeElemList(
-                nl->TwoElemList( darrayType, drelName ),
+                nl->TwoElemList( darrayType, drelValue ),
                 nl->TwoElemList(
                     listutils::basicSymbol<CcString>( ),
                     nl->StringAtom( "" ) ),
                 funList ) );
+
+        #ifdef DRELDEBUG
+        cout << "dmapResult" << endl;
+        cout << nl->ToString( dmapResult ) << endl;
+        #endif
 
         if( !nl->HasLength( dmapResult, 3 ) ) {
             return dmapResult;
@@ -519,7 +711,7 @@ namespace drel {
         ListExpr newRes = nl->ThreeElemList(
             newDRelType,
             nl->Second( nl->Third( dmapResult ) ),
-            nl->Third( drelType ) );  // disttype
+            distType );
 
         ListExpr append = nl->Second( dmapResult );
 
@@ -538,7 +730,13 @@ namespace drel {
     */
     ListExpr drelheadTM( ListExpr args ) {
 
-        std::string err = "d[f]rel(X) x attrlist expected";
+        #ifdef DRELDEBUG
+        cout << "drelheadTM" << endl;
+        cout << "args" << endl;
+        cout << nl->ToString( args ) << endl;
+        #endif
+
+        std::string err = "d[f]rel(X) x int expected";
 
         if( !nl->HasLength( args, 2 ) ) {
             return listutils::typeError( err +
@@ -549,9 +747,9 @@ namespace drel {
             return listutils::typeError( "internal Error" );
         }
 
-        ListExpr drelType, relType, distType, drelName, darrayType;
+        ListExpr drelType, relType, distType, drelValue, darrayType;
         if( !DRelHelpers::isDRelDescr( nl->First( args ), drelType, relType, 
-            distType, drelName, darrayType ) ) {
+            distType, drelValue, darrayType ) ) {
             return listutils::typeError( err +
                 ": first argument is not a d[f]rel" );
         }
@@ -574,12 +772,18 @@ namespace drel {
             return result;
         }
 
+        #ifdef DRELDEBUG
+        cout << "head tm" << endl;
+        cout << nl->ToString( result ) << endl;
+        #endif
+
         // create function type to call dmapTM
         ListExpr funList = nl->TwoElemList(
             nl->ThreeElemList(
                 nl->SymbolAtom( "map" ),
                 relType,
-                nl->Third( result ) ),
+                result ),
+                //nl->Second( result ) ),
             nl->ThreeElemList(
                 nl->SymbolAtom( "fun" ),
                 nl->TwoElemList(
@@ -592,13 +796,24 @@ namespace drel {
                         nl->SymbolAtom( "dmapelem1" ) ),
                     secondValue ) ) );
 
+        #ifdef DRELDEBUG
+        cout << "funList" << endl;
+        cout << nl->ToString( funList ) << endl;
+        #endif
+
         ListExpr dmapResult = dmapTM(
             nl->ThreeElemList(
-                nl->TwoElemList( darrayType, drelName ),
+                nl->TwoElemList( darrayType, drelValue ),
+                //nl->TwoElemList( darrayType, nl->SymbolAtom( "dummy" ) ),
                 nl->TwoElemList(
                     listutils::basicSymbol<CcString>( ),
                     nl->StringAtom( "" ) ),
                 funList ) );
+
+        #ifdef DRELDEBUG
+        cout << "dmapTM head" << endl;
+        cout << nl->ToString( dmapResult ) << endl;
+        #endif
 
         if( !nl->HasLength( dmapResult, 3 ) ) {
             return dmapResult;
@@ -616,7 +831,7 @@ namespace drel {
         ListExpr newRes = nl->ThreeElemList(
             newDRelType,
             nl->Second( nl->Third( dmapResult ) ),
-            nl->Third( drelType ) );  // disttype
+            distType );
 
         ListExpr append = nl->Second( dmapResult );
 
@@ -636,6 +851,10 @@ namespace drel {
     template<class R, class T, int parm>
     int dreldmapVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
+
+        #ifdef DRELDEBUG
+        cout << "dreldmapVMT" << endl;
+        #endif
         
         R* drel = ( R* )args[ 0 ].addr;
 

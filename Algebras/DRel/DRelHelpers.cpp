@@ -44,155 +44,11 @@ using namespace std;
 namespace drel {
 
     /*
-    1.1 ~findAttribute~
+    1.1 ~isListOfTwoElemLists~
 
-    Return true if the attribute name is found in the attribute list. False 
-    otherwise.
-
-    */
-    bool DRelHelpers::findAttribute( 
-        ListExpr attrList, const string& name, ListExpr& type ) {
-
-        return !( listutils::findAttribute( attrList, name, type ) == 0 );
-    }
-
-    /*
-    1.2 ~countRecords~
-
-    Counts the records in a given relation. If an error occour false is 
-    returned. True otherwise. The number of records is records.
+    Returns true if the list is a list of lists with two elements.
 
     */
-    bool DRelHelpers::countRecords( 
-        const string attrName, const string relName, int& records ) {
-
-        string query = "( count ( filter( feed " + relName + " ) "
-            "( fun( t TUPLE ) ( isdefined (attr t " + attrName + " ) ) ) ) )";
-        Word result;
-        if( !QueryProcessor::ExecuteQuery( query, result ) ) {
-            cout << "ExecuteError of " + query << endl;
-            records = -1;
-            return false;
-        }
-
-        CcInt* number = ( CcInt* )result.addr;
-        if( !number->IsDefined( ) ) {
-            number->DeleteIfAllowed( );
-            records = -1;
-            return false;
-        }
-
-        records = number->GetIntval( );
-        number->DeleteIfAllowed( );
-        result.setAddr( 0 );
-
-        return true;
-    }
-
-    /*
-    1.3 ~createBoundaryQuery~
-
-    Creates a boundary object. This is a factory function for the boundary 
-    class.
-
-    */
-    Boundary* DRelHelpers::createBoundaryQuery( 
-        const std::string relation, 
-        const std::string attrName, 
-        const int boundarySize ) {
-
-        string query = "( createboundary ( " + relation + " ) ( " + 
-            attrName + " ) " + to_string( boundarySize ) + " ) ";
-        Word result;
-        if( !QueryProcessor::ExecuteQuery( query, result ) ) {
-            cout << "ExecuteError of " + query << endl;
-            return 0;
-        }
-
-        Boundary* boundary = ( Boundary* )result.addr;
-        if( !boundary->isDefined( ) ) {
-            delete boundary;
-            return 0;
-        }
-
-        return boundary;
-    }
-
-    /*
-    1.4 ~randomBoundaryName~
-
-    Genereates a random name for a boundary object.
-
-    */
-    string DRelHelpers::randomBoundaryName( ) {
-
-        return "Boundary" + to_string( rand( ) );
-    }
-    
-    /*
-    1.5 ~randomGridName~
-
-    Genereates a random name for a grid object.
-
-    */
-    string DRelHelpers::randomGridName( ) {
-
-        return "Grid" + to_string( rand( ) );
-    }
-
-    /*
-    1.6 ~createGrid~
-
-    Creates a grid object. This is a factory function for CellGrid2D.
-
-    */
-    temporalalgebra::CellGrid2D* DRelHelpers::createGrid(
-        Relation* _rel, int _attr, int _arraySize ) {
-
-        assert( _arraySize > 0 );
-        assert( _attr >= 0 );
-
-        string query = "( rect2cellgrid( collect_box( "
-            "transformstream( projectextend( feed strassen )( )"
-            "( ( Box( fun( tuple1 TUPLE )( bbox( attr tuple1 GeoData )"
-            ") ) ) ) ) ) TRUE )" + to_string( _arraySize ) + " )";
-        Word result;
-        if( !QueryProcessor::ExecuteQuery( query, result ) ) {
-            return 0;
-        }
-
-        temporalalgebra::CellGrid2D* grid = ( 
-            temporalalgebra::CellGrid2D* )result.addr;
-
-        return grid;
-    }
-    
-    /*
-    1.7 ~setGrid~
-
-    Uses a Rectangle and munipulates a grid by setting generated values for an 
-    arraySize.
-
-    */
-    void DRelHelpers::setGrid( 
-        temporalalgebra::CellGrid2D* grid, Rectangle<2>* rect, 
-        const int _arraySize ) {
-
-        assert( _arraySize > 0 );
-
-        // compute cell height and cell weigth, we use _arraySize*_arraySize 
-        // as number of the cells.
-        double cellheight = 
-            ( rect->MaxD( 1 ) - rect->MinD( 1 ) ) / _arraySize;
-        //double cellwidth = 
-        //    ( rect->MaxD( 0 ) - rect->MinD( 0 ) ) / _arraySize;
-
-        /*grid->set( rect->MinD( 0 ), rect->MinD( 1 ), 
-            cellheight, cellwidth, _arraySize*_arraySize );*/
-        grid->set( rect->MinD( 0 ), rect->MinD( 1 ), 
-            cellheight, cellheight, _arraySize*_arraySize );
-    }
-
     bool DRelHelpers::isListOfTwoElemLists( ListExpr list ) {
         while( !nl->IsEmpty( list ) ) {
             if( !nl->HasLength( nl->First( list ), 2 ) ) {
@@ -203,11 +59,22 @@ namespace drel {
         return true;
     }
 
-    bool DRelHelpers::isDRelDescr( ListExpr arg, ListExpr& drelType, 
-        ListExpr& relType, ListExpr& distType, ListExpr& drelName ) {
+    /*
+    1.2 ~isDRelDescr~
 
+    Returns true if the argument is a correct d[f]rel description. The caller 
+    get the corresponding drelType (drel or dfrel), the relation type 
+    (for example ( rel( tuple( ( PLZ int ) ) ) )  ), the distribution type 
+    as a list and the value (for example the name of the drel.
+
+    */
+    bool DRelHelpers::isDRelDescr( ListExpr arg, ListExpr& drelType, 
+        ListExpr& relType, ListExpr& distType, ListExpr& drelValue ) {
+
+        #ifdef DRELDEBUG
         cout << "isDRelDescr" << endl;
         cout << nl->ToString( arg ) << endl;
+        #endif  
 
         if( !nl->HasLength( arg, 2 ) ) {
             return false;
@@ -215,33 +82,42 @@ namespace drel {
 
         if( !DRel::checkType( nl->First( arg ) ) 
          && !DFRel::checkType( nl->First( arg ) ) ) {
+            #ifdef DRELDEBUG
             cout << "keine drel" << endl;
+            #endif
+
             return false;
         }
         drelType = nl->First( arg );
 
         if( !Relation::checkType( nl->Second( drelType ) ) ) {
+            #ifdef DRELDEBUG
             cout << "keine relation" << endl;
+            #endif
             return false;
         }
 
-        // not finished
-        if( nl->AtomType( nl->Second( arg ) ) != SymbolType ) { 
-            cout << "second no atom" << endl;
-            return false;
-        }
-        drelName = nl->Second( arg );
+        drelValue = nl->Second( arg );
         relType = nl->Second( drelType );
         distType = nl->Third( drelType );
 
         return true;
     }
 
+    /*
+    1.3 ~isDRelDescr~
+
+    Returns true if the argument is a correct d[f]rel description. The caller
+    get the corresponding drelType (drel or dfrel), the relation type
+    (for example ( rel( tuple( ( PLZ int ) ) ) )  ) and the distribution type
+    as a list.
+
+    */
     bool DRelHelpers::isDRelDescr( ListExpr arg, ListExpr& drelType, 
-        ListExpr & relType, ListExpr& distType, ListExpr & drelName, 
+        ListExpr & relType, ListExpr& distType, ListExpr & drelValue,
         ListExpr & darrayType ) {
 
-        if( !isDRelDescr( arg, drelType, relType, distType, drelName ) ) {
+        if( !isDRelDescr( arg, drelType, relType, distType, drelValue ) ) {
             return false;
         }
 
@@ -259,23 +135,29 @@ namespace drel {
         return true;
     }
     
+    /*
+    1.4 ~isDRelDescr~
+
+    To call the type mappings of the Distributed2Algebra it is nessesarry to 
+    replace the type operator DRELFUNARG of the DRelAlgebra with the type 
+    operator of the Distributed2Algebra. This is what this function does.
+    The type operator is given as a string. You get a new function as a 
+    nested list if the argument is correct.
+
+    */
     bool DRelHelpers::replaceDRELFUNARG( 
         ListExpr arg, string type, ListExpr& fun ) {
 
         if( !nl->HasLength( arg, 3 ) ) {
-            cout << "no1" << endl;
             return false;
         }
         if( !nl->HasLength( nl->Second( arg ), 2 ) ) {
-            cout << "no2" << endl;
             return false;
         }
         if( !nl->IsAtom( nl->Second( nl->Second( arg ) ) ) ) {
-            cout << "noatom" << endl;
             return false;
         }
         if( nl->AtomType( nl->Second( nl->Second( arg ) ) ) != SymbolType ) {
-            cout << "nosymbol" << endl;
             return false;
         }
 
@@ -288,7 +170,19 @@ namespace drel {
 
         return true;
     }
-    
+
+    /*
+    1.5 ~isDRelDescr~
+
+    To call the type mappings of the Distributed2Algebra it is nessesarry to
+    replace the type operator DRELFUNARG of the DRelAlgebra with the type
+    operator of the Distributed2Algebra. This is what this function does.
+    The type operator is given as a string. You get a new function as a
+    nested list if the argument is correct.
+    It is the same like the function above, but now you get the new function 
+    devided by function and mapping for the function.
+
+    */
     bool DRelHelpers::replaceDRELFUNARG( 
         ListExpr arg, string type, ListExpr& fun, ListExpr& map ) {
 
@@ -300,6 +194,121 @@ namespace drel {
         }
 
         map = nl->First( arg );
+        return true;
+    }
+
+    /*
+    1.6 ~computeSampleSize~
+
+    Computes the sample size for a total size of a relation.
+    Attention: totalSize has to be bigger than 0.
+
+    */
+    int DRelHelpers::computeSampleSize( const int totalSize ) {
+
+        assert( totalSize > 0 );
+
+        if( totalSize <= 5000 ) {
+            return totalSize;
+        }
+
+        int sampleSize = totalSize / 1000;
+
+        return sampleSize < 5000 ? 5000 : sampleSize;
+    }
+
+    /*
+    1.7 ~everyNthTupleForSample~
+
+    The minimum size of a sample is 5000 or 1/1000 of the ~totalSize~.
+    The returned number said that every nth tuple has to be part of the
+    sample.
+    Attention: totalSize has to be bigger than 0.
+
+    */
+    int DRelHelpers::everyNthTupleForSample( const int totalSize ) {
+
+        assert( totalSize > 0 );
+
+        return totalSize / computeSampleSize( totalSize );
+    }
+
+    /*
+    1.8 ~everyNthTupleForSample~
+
+    The minimum size of a sample is 5000 or 1/1000 of the ~totalSize~.
+    The returned number said that every nth tuple has to be part of the
+    sample.
+    Attention: sampleSize and totalSize have to be bigger than 0.
+
+    */
+    int DRelHelpers::everyNthTupleForSample(
+        const int sampleSize, const int totalSize ) {
+
+        assert( sampleSize > 0 );
+        assert( totalSize > 0 );
+
+        return totalSize / sampleSize;
+    }
+
+    /*
+    1.9 ~everyNthTupleForArray~
+
+    The sample uses every nth tuple of a relation. To fill the array only
+    every nth Tuple of the sample can be used, because normaly a sample is
+    much bigger than the array.
+    Attention: sampleSize and arraySize have to be bigger than 0.
+
+    */
+    int DRelHelpers::everyNthTupleForArray(
+        const int sampleSize, const int arraySize ) {
+
+        assert( sampleSize > 0 );
+        assert( arraySize > 0 );
+
+        if( arraySize >= sampleSize ) {
+            return 1;
+        }
+
+        return sampleSize / arraySize;
+    }
+
+    /*
+    1.10 ~compareAttributes~
+
+    Compares two attributes by calling the compare function of the attributes.
+    returns true, if the first argument is smaller than the second argument.
+    The defintion of the compare attribute can be found in the attribute 
+    implementation.
+
+    */
+    bool DRelHelpers::compareAttributes(
+        const Attribute* attr1, const Attribute* attr2 ) {
+
+        return attr1->Compare( attr2 ) == -1;
+    }
+
+    /*
+    1.11 ~listOfIntAtoms~
+
+    Checks a list to be a list of int atoms.
+
+    */
+    bool DRelHelpers::listOfIntAtoms( ListExpr list ) {
+
+        if( nl->IsAtom( list ) ) {
+            return false;
+        }
+
+        while( nl->IsEmpty( list ) ) {
+
+            if( !nl->IsAtom( nl->First( list ) )
+             || !nl->AtomType( nl->First( list ) ) ) {
+                return false;
+            }
+
+        }
+
         return true;
     }
 

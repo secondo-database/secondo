@@ -42,8 +42,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Distributed2/CommandLogger.h"
 #include "Algebras/Distributed2/Distributed2Algebra.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/Collection/CollectionAlgebra.h"
 
-#include "Boundary.h"
 #include "DRelHelpers.h"
 
 extern NestedList* nl;
@@ -59,17 +59,26 @@ namespace drel {
     */
     ListExpr getBoundaryIndexTM( ListExpr args ) {
 
-        std::string err = "boundary, attr expected";
+        std::string err = "vector(t), attr expected";
 
         if( ! nl->HasLength( args, 2 ) ) {
             return listutils::typeError( err + 
                 ": two arguments are expected" );
         }
 
-        if( !Boundary::checkType( nl->First( args ), nl->Second( args ) ) ) {
+        ListExpr arg1 = nl->First( args );
+        ListExpr arg2 = nl->Second( args );
+
+        ListExpr errorInfo;
+        if( !collection::Collection::KindCheck( arg1, errorInfo )
+         && !Vector::checkType( nl->First( arg1 ) ) ) {
+            return listutils::typeError( err + 
+                ": first arguments is not a vector" );
+        }
+
+        if( !nl->Equal( nl->Second( arg1 ), arg2 ) ) {
             return listutils::typeError( err +
-                ": first argument is not a boundary or the attribute " +
-                "type does not fit to the boundary type" );
+                ": the attribute type does not fit to the vector type" );
         }
 
         return listutils::basicSymbol<CcInt>( );
@@ -84,16 +93,28 @@ namespace drel {
     int getBoundaryIndexVM( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
-        Boundary* boundary = ( Boundary* )args[ 0 ].addr;
-        Attribute* attr = ( Attribute* )args[ 1 ].addr;
+        collection::Collection* vector = 
+            static_cast<collection::Collection*>( args[ 0 ].addr );
+        Attribute* attr = static_cast<Attribute*>( args[ 1 ].addr );
 
-        int index = boundary->getBoundaryIndexNumber( attr );
         result = qp->ResultStorage( s );
-        CcInt* res = ( CcInt* ) result.addr;
-        if( index == -1 ) {
+        CcInt* res = ( CcInt* )result.addr;
+
+        if( !vector->IsDefined( ) ) {
             res->SetDefined( false );
             return 0;
         }
+
+        int count = vector->GetNoComponents( );
+        int index = 0;
+        while( index < count ) {
+            if( attr->Compare( vector->GetComponent( index ) ) <= 0 ) {
+                res->Set( true, index );
+                return 0;
+            }
+            index++;
+        }
+
         res->Set( true, index );
 
         return 0;

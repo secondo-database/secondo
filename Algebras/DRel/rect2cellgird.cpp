@@ -26,9 +26,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 
-1 Implementation of the secondo operator createboundary
+1 Implementation of the secondo operator rect2cellgrid
 
 */
+//#define DRELDEBUG
+
 #include <iostream>
 
 #include "NestedList.h"
@@ -43,7 +45,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Distributed2/Distributed2Algebra.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"
 
-#include "Boundary.h"
 #include "DRelHelpers.h"
 
 extern NestedList* nl;
@@ -91,33 +92,74 @@ namespace drel {
     int rect2cellgrid2dVM( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
-        Rectangle<2>* rect = ( Rectangle<2>* )args[ 0 ].addr;
-        CcInt* size = ( CcInt* )args[ 1 ].addr;
+        Rectangle<2>* rec = ( Rectangle<2>* )args[ 0 ].addr;
+        int size = ( ( CcInt* )args[ 1 ].addr )->GetValue( );
+
+        double cellSize1 = ( rec->MaxD( 0 ) - rec->MinD( 0 ) ) / size;
+        double cellSize2 = ( rec->MaxD( 1 ) - rec->MinD( 1 ) ) / size;
 
         result = qp->ResultStorage( s );
-        temporalalgebra::CellGrid2D* res = 
+        temporalalgebra::CellGrid2D* grid = 
             ( temporalalgebra::CellGrid2D* )result.addr;
 
-        DRelHelpers::setGrid( res, rect, size->GetIntval( ) );
+        grid->set( rec->MinD( 0 ), rec->MinD( 1 ), cellSize1, cellSize2, size );
+
+        #ifdef DRELDEBUG
+        cout << "rect2cellgridVMT" << endl;
+        cout << "grid output" << endl;
+        cout << "grid defined?" << endl;
+        cout << grid->IsDefined( ) << endl;
+        grid->Print( cout );
+        cout << endl;
+        #endif
 
         return 0;
     }
-    
-    int rect2cellgrid3dVM( Word* args, Word& result, int message,
+
+    template<class Rect, class Grid>
+    int rect2cellgridVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
-        cout << "rect2cellgrid3dVM" << endl;
+        Rect* rec = ( Rect* )args[ 0 ].addr;
+        int size = ( ( CcInt* )args[ 1 ].addr )->GetValue( );
 
-        // not implemented jet
+        unsigned dim = rec->GetDim( );
+        double cellSize[ dim ];
+        double originPoint[ dim ];
+        int cellNumbers[ dim - 1 ];
 
-        //Rectangle<3>* rect = ( Rectangle<3>* )args[ 0 ].addr;
-        //CcInt* size = ( CcInt* )args[ 1 ].addr;
+        for( size_t i = 0 ; i < dim - 1 ; i++ ) {
+            cellNumbers[ i ] = size;
+            cout << "cellNumbers[ i ]" << endl;
+            cout << cellNumbers[ i ] << endl;
+        }
+        
+        for( size_t i = 0 ; i < dim ; i++ ) {
+            originPoint[ i ] = rec->MinD( i );
+            cout << "originPoint[ i ]" << endl;
+            cout << originPoint[ i ] << endl;
+        }
+        
+        for( size_t i = 0 ; i < dim ; i++ ) {
+            cellSize[ i ] = ( rec->MaxD( i ) - rec->MinD( i ) ) / size;
+            cout << "cellSize[ i ]" << endl;
+            cout << cellSize[ i ] << endl;
+        }
 
-        //result = qp->ResultStorage( s );
-        //temporalalgebra::CellGrid<3>* res = 
-        //    ( temporalalgebra::CellGrid<3>* )result.addr;
+        result = qp->ResultStorage( s );
+        Grid* grid = ( Grid* )result.addr;
 
-        //DRelHelpers::setGrid( res, rect, size->GetIntval( ) );
+        grid->set( originPoint, cellSize, cellNumbers );
+        grid->SetDefined( true );
+
+        #ifdef DRELDEBUG
+        cout << "rect2cellgridVMT" << endl;
+        cout << "grid output" << endl;
+        cout << "grid defined?" << endl;
+        cout << grid->IsDefined( ) << endl;
+        grid->Print( cout );
+        cout << endl;
+        #endif
 
         return 0;
     }
@@ -140,7 +182,7 @@ namespace drel {
     */
     ValueMapping rect2cellgridVM[ ] = {
         rect2cellgrid2dVM,
-        rect2cellgrid3dVM
+        rect2cellgridVMT<Rectangle<3>, temporalalgebra::CellGrid<3>>
     };
 
     /*

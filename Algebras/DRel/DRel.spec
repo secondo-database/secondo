@@ -6,6 +6,7 @@ operator drelfdistribute alias DRELFDISTRIBUTE pattern _ op [_,_,_,_,_]
 operator dreldistribute alias DRRELDISTRIBUTE pattern _ op [_,_,_,_,_]
 
 operator comparedisttype alias COMPAREDISTTYPE pattern _ _ op
+operator drelcollect_box alias DRELCOLLECTBOX pattern _ op[_]
 operator convert2darray alias CONVERT2DARRAY pattern _ op
 
 operator drelsummarize alias DRELSUMMARIZE pattern _ op

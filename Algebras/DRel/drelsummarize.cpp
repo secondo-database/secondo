@@ -28,14 +28,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 Implementation of the secondo operator drelsummarize
 
+drelsummarize uses a d[f]rel and creates a stream of tuple.
+
 */
+//#define DRELDEBUG
+
 #include "DRel.h"
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 
-#include "Boundary.h"
 #include "DRelHelpers.h"
 
 extern NestedList* nl;
@@ -64,6 +67,12 @@ namespace drel {
 
     */
     ListExpr drelsummarizeTM( ListExpr args ) {
+
+        #ifdef DRELDEBUG
+        cout << "drelsummarizeTM" << endl;
+        cout << "args" << endl;
+        cout << nl->ToString( args ) << endl;
+        #endif
 
         cout << "drelsummarizeTM" << endl;
         cout << nl->ToString( args ) << endl;
@@ -101,6 +110,10 @@ namespace drel {
     template<class T, class R>
     int drelsummarizeVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
+
+        #ifdef DRELDEBUG
+        cout << "drelsummarizeVMT" << endl;
+        #endif
 
         return dsummarizeVMT<T, R>( args, result, message, local, s );
     }

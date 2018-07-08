@@ -36,26 +36,30 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/Distributed2/Dist2Helper.h"
 
+#include "DRelHelpers.h"
+
 namespace drel {
 
-    enum distributionType { 
-        random, hash, range, spatial2d, spatial3d, replicated };
+    enum distributionType {
+        random, hash, range, spatial2d, spatial3d, replicated
+    };
 
     distributionType getType( const std::string _type );
+    bool getTypeByNum( const int _num, distributionType& type );
     std::string getName( const distributionType _type );
 
     bool supportedType( const std::string _type );
-    bool supportedType( 
-        const std::string _typeString , distributionType& type);
+    bool supportedType(
+        const std::string _typeString, distributionType& type );
 
     /*
     1 Class ~DistType~
 
     This class represents the distirbution type informations for the class 
     drel. The supported types are represented by the enum distributionType.
+    This type is used for basic distribution like random and replicated.
 
     */
-
     class DistTypeBasic {
     public:
         /*
@@ -74,15 +78,12 @@ namespace drel {
 
         virtual DistTypeBasic* copy( );
 
-        static ListExpr getTypeList( );
         static bool checkType( ListExpr list );
 
         virtual bool save( SmiRecord& valueRecord, size_t& offset, 
             const ListExpr typeInfo );
-        static DistTypeBasic* readFrom( const ListExpr _list );
-        virtual ListExpr toListExpr( ListExpr typeInfo );
-
-        static bool readType( const ListExpr _list, distributionType& _type );
+        virtual ListExpr toListExpr( ListExpr _typeInfo );
+        virtual void print( );
 
     protected:
         /*

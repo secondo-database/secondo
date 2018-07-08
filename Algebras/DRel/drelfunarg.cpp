@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 
-1 Implementation of the secondo operator drelrange
+1 Implementation of the type operator DRELFUNARGx
 
 */
 #include "NestedList.h"

@@ -25,6 +25,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 */
+#define DRELDEBUG
+
 #include <iterator>
 #include <assert.h>
 
@@ -46,6 +48,9 @@ namespace drel {
     */
     DistTypeHash::DistTypeHash( distributionType _type, int _attr ) :
         DistTypeBasic( _type ), attr( _attr ) {
+        #ifdef DRELDEBUG
+        cout << "DistTypeHash constructor" << endl;
+        #endif
     }
 
     /*
@@ -54,6 +59,9 @@ namespace drel {
     */
     DistTypeHash::DistTypeHash( const DistTypeHash& _distType ) :
         DistTypeBasic( _distType ), attr( _distType.attr ) {
+        #ifdef DRELDEBUG
+        cout << "DistTypeHash constructor" << endl;
+        #endif
     }
 
     /*
@@ -61,6 +69,11 @@ namespace drel {
 
     */
     DistTypeHash& DistTypeHash::operator=( const DistTypeHash& _distType ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeHash assignment operator" << endl;
+        #endif
+
         if( this == &_distType ) {
             return *this;
         }
@@ -83,6 +96,11 @@ namespace drel {
 
     */
     bool DistTypeHash::isEqual( DistTypeBasic* _distType ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeHash::isEqual" << endl;
+        #endif
+
         if( typeid( *_distType ) != typeid( *this ) ) {
             return false;
         }
@@ -97,6 +115,11 @@ namespace drel {
 
     */
     int DistTypeHash::getAttr( ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeHash::getAttr" << endl;
+        #endif
+
         return attr;
     }
 
@@ -107,29 +130,26 @@ namespace drel {
 
     */
     DistTypeBasic* DistTypeHash::copy( ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeHash::copy" << endl;
+        #endif
+
         return new DistTypeHash( *this );
     }
 
     /*
-    6.8 ~getTypeExpr~
-
-    Returns the Typelist of the disttype. For the basic type it is a 
-    CcString and a CcInt.
-
-    */
-    ListExpr DistTypeHash::getTypeList( ) {
-        return nl->TwoElemList( 
-            listutils::basicSymbol<CcString>( ),
-            listutils::basicSymbol<CcInt>( ) );
-    }
-
-    /*
-    6.9 ~checkType~
+    6.8 ~checkType~
 
     Checks whether the type in nested list format fits to this disttype.
 
     */
     bool DistTypeHash::checkType( ListExpr list ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeHash::checkType" << endl;
+        #endif
+
         if( !nl->HasLength( list, 2 ) ) {
             return false;
         }
@@ -142,7 +162,7 @@ namespace drel {
     }
 
     /*
-    6.10 ~save~
+    6.9 ~save~
 
     Writes a DistType to the storage.
 
@@ -150,60 +170,81 @@ namespace drel {
     bool DistTypeHash::save( SmiRecord& valueRecord, size_t& offset, 
         const ListExpr typeInfo ) {
 
+        #ifdef DRELDEBUG
+        cout << "DistTypeHash::save" << endl;
+        cout << "typeInfo" << endl;
+        cout << nl->ToString( typeInfo ) << endl;
+        #endif
+
         if( !DistTypeBasic::save( 
-            valueRecord, offset, nl->First( typeInfo ) ) ) {
+            valueRecord, offset, nl->OneElemList( nl->First( typeInfo ) ) ) ) {
             return false;
         }
-        return distributed2::writeVar( attr, valueRecord, offset );
-    }
 
-    /*
-    6.11 ~readFrom~
-
-    Reads a list an creates a DistType.
-
-    */
-    DistTypeHash* DistTypeHash::readFrom( const ListExpr _list ) {
-        if( !nl->HasLength( _list, 2 ) ) {
-            return 0;
-        }
-        distributionType tType;
-        if( !readType( nl->First( _list ), tType ) ) {
-            return 0;
-        }
-        int tAttr;
-        if( !readAttr( nl->Second( _list ), tAttr ) ) {
-            return 0;
-        }
-        return new DistTypeHash( tType, tAttr );
-    }
-
-    /*
-    6.12 ~readAttr~
-
-    Reads an attribute from a list.
-
-    */
-    bool DistTypeHash::readAttr( const ListExpr _list, int& _attr ) {
-        if( !nl->IsAtom( _list ) ) {
-            return false;
-        }
-        if( nl->AtomType( _list ) != IntType ) {
-            return false;
-        }
-        _attr = nl->IntValue( _list );
         return true;
     }
 
     /*
-    6.13 ~toListExpr~
+    6.10 ~toListExpr~
 
     Returns the object as a list.
 
     */
     ListExpr DistTypeHash::toListExpr( ListExpr typeInfo ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeHash::toListExpr" << endl;
+        #endif
+
         return nl->TwoElemList(
             nl->StringAtom( getName( getDistType( ) ) ), nl->IntAtom( attr ) );
+    }
+
+    /*
+    6.11 ~print~
+
+    Prints the dist type informations. Used for debugging.
+
+    */
+    void DistTypeHash::print( ) {
+        DistTypeBasic::print( );
+        cout << "attr" << endl;
+        cout << attr << endl;
+    }
+
+    /*
+    6.12 ~computeNewAttrPos~
+
+    Computes the new position of the attribute used to distribute. Used for 
+    operations like a projection.
+
+    */
+    bool DistTypeHash::computeNewAttrPos( ListExpr attrPosList, int& attrPos ) {
+
+        #ifdef DRELDEBUG
+        cout << "DistTypeHash::computeNewAttrPos" << endl;
+        cout << "attrPosList" << endl;
+        cout << nl->ToString( attrPosList ) << endl;
+        cout << "attrPos" << endl;
+        cout << attrPos << endl;
+        #endif
+
+        assert( DRelHelpers::listOfIntAtoms( attrPosList ) );
+
+        int pos = 0;
+
+        while( !nl->IsEmpty( attrPosList ) ) {
+
+            if( nl->IntValue( nl->First( attrPosList ) ) == attrPos ) {
+                attrPos = pos;
+                return true;
+            }
+            pos++;
+
+            attrPosList = nl->Rest( attrPosList );
+        }
+
+        return false;
     }
 
 } // end of namespace drel

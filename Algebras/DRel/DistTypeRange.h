@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define _DistTypeRange_h_
 
 #include "DistTypeHash.h"
-#include "Boundary.h"
+#include "Algebras/Collection/CollectionAlgebra.h"
 
 namespace drel {
     /*
@@ -37,9 +37,10 @@ namespace drel {
 
     This class represents the distirbution type informations for the class 
     drel. The supported types are represented by the enum distributionType.
+    This class is used for partitioning by range. The class stores also the 
+    ranges.
 
     */
-
     class DistTypeRange : public DistTypeHash {
     public:
         /*
@@ -47,9 +48,9 @@ namespace drel {
 
         */
         DistTypeRange( distributionType _type, int _attr, 
-            Boundary* _boundary );
+            collection::Collection* _boundary );
         DistTypeRange( distributionType _type, int _attr, int _key, 
-            Boundary* _boundary );
+            collection::Collection* _boundary );
 
         DistTypeRange( const DistTypeRange& _distType );
         DistTypeRange &operator=( const DistTypeRange &_distType );
@@ -57,21 +58,19 @@ namespace drel {
 
         virtual bool isEqual( DistTypeBasic* _distType );
         int getKey( );
-        Boundary* getBoundary( );
+        collection::Collection* getBoundary( );
+
+        static bool allowedAttrType( ListExpr _list );
 
         virtual DistTypeBasic* copy( );
 
-        static ListExpr getTypeList( ListExpr attrType );
         static bool checkType( ListExpr list );
 
         bool save( SmiRecord& valueRecord, size_t& offset, 
             const ListExpr typeInfo );
-        static DistTypeRange* readFrom( const ListExpr _list );
         virtual ListExpr toListExpr( ListExpr typeInfo );
+        virtual void print( );
 
-    protected:
-        static bool readKey( const ListExpr _list, int& _key );
-        static Boundary* readBoundary( const ListExpr _list );
 
     private:
 
@@ -91,7 +90,7 @@ namespace drel {
         The pointer to the boundary object.
 
         */
-        Boundary* boundary;
+        collection::Collection* boundary;
     };
 
 } // end of namespace drel
