@@ -893,6 +893,132 @@ Operator geojson2line (
         Operator::SimpleSelect,
         Geojson2lineTypeMap );
 
+/*
+2.4 Operator ~geojson2point~
+
+*/
+
+/*
+2.4.1 Type Mapping function
+
+The signature is text -> point
+
+*/
+
+ListExpr Geojson2pointTypeMap(ListExpr args){
+
+  if(nl->ListLength(args) != 1) {
+     return listutils::typeError("one argument exptected");
+  }
+
+  if(FText::checkType(nl->First(args))) {
+     return nl->SymbolAtom(Point::BasicType());
+  }
+
+  return listutils::typeError("text expected");
+}
+
+/*
+2.4.2 Value Mapping function
+
+*/
+int Geojson2point(Word* args, Word& result, int message,
+                   Word& local, Supplier s ){
+
+   result = qp->ResultStorage(s);
+
+   FText* text = static_cast<FText*>(args[0].addr);
+
+   Point* res = static_cast<Point*>(result.addr);
+   vector<double> points;
+
+   if(! text -> IsDefined()) {
+      cerr << "Input text is not defined" << endl;
+      res -> SetDefined(false);
+      return 0; 
+   }
+
+   string data = text -> GetValue();
+
+   bool contains = data.find("\"type\":\"Point\"") != std::string::npos;
+
+   if(! contains) {
+       cerr << "Input does not contain a Point" << endl;
+       res -> SetDefined(false);
+       return 0; 
+   }
+
+   const char* dataArray = data.c_str();
+   const char* startStr = "coordinates\":[";
+   const char* start = strstr(dataArray, startStr);
+
+   if(start == NULL) {
+      cerr << "Input is not valid GEOJson" << endl;
+      res -> SetDefined(false);
+      return 0; 
+   }
+
+   string buffer = "";
+   const char* startPos = start + strlen(startStr);
+
+   for(int i = startPos - dataArray; dataArray[i] != '\0'; i++) {
+       char curChar = dataArray[i];
+
+       if(curChar == ']') {
+          if(! buffer.empty()) {
+             points.push_back(stod(buffer));
+          }
+          break;
+       } else if(curChar == ',' || curChar == ']') {
+          if(! buffer.empty()) {
+             cout << "Data: " << buffer << endl;
+             points.push_back(stod(buffer));
+             buffer = "";
+          }
+        } else {
+           buffer += curChar;
+        }
+   }
+
+   if(points.size() != 2) {
+      cerr << "Got an unexpected amount of points" << endl;
+      res -> SetDefined(false);
+      return 0; 
+   }
+
+   res->Set(points[0], points[1]); // also sets to DEFINED
+   return 0;
+}
+
+/*
+2.4.3 Specification of the operator ~geojson2point~
+
+*/
+const string Geojson2pointSpec = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( "
+                         "<text>text -> point</text--->"
+                         "<text>geojson2point (_)</text--->"
+                         "<text> The operator geojson2ponint extracts"
+                         " a point from a GeoJSON text."
+                         " The first parameter is the GeoJSON</text--->"
+                         "<text>query geojson2point([...])</text--->"
+                         ") )";
+
+
+
+/*
+2.3.5 Definition of the operator ~geojson2point~
+
+*/
+Operator geojson2point (
+        "geojson2point",
+        Geojson2pointSpec,
+        Geojson2point,
+        Operator::SimpleSelect,
+        Geojson2pointTypeMap );
+
+
 
 /*
  7 Creating the Algebra
@@ -914,6 +1040,7 @@ public:
     AddOperator(&auxiliarysleep);
     AddOperator(&auxiliarystatistics);
     AddOperator(&geojson2line);
+    AddOperator(&geojson2point);
   }
 
   ;
