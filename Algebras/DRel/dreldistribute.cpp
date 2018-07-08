@@ -29,8 +29,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 1 Implementation of the secondo operator dreldistribute and drelfdistribute
 
 */
-//#define DRELDEBUG
-
 #include <iostream>
 
 #include "NestedList.h"
@@ -70,12 +68,6 @@ namespace drel {
     template<class R, class A>
     ListExpr distributeTM( ListExpr args ) {
 
-        #ifdef DRELDEBUG
-        cout << "distributeTM" << endl;
-        cout << "args" << endl;
-        cout << nl->ToString( args ) << endl;
-        #endif
-
         std::string err = "stream x rel x string x distType [x attr] [x int] "
             "expected";
         ListExpr newRes = nl->TheEmptyList( );
@@ -91,16 +83,6 @@ namespace drel {
         ListExpr workerRelType = nl->Second( args );
         ListExpr nameType = nl->Third( args );
         ListExpr reqDistType = nl->Fourth( args );
-        #ifdef DRELDEBUG
-        cout << "relType" << endl;
-        cout << nl->ToString( relType ) << endl;
-        cout << "workerRelType" << endl;
-        cout << nl->ToString( workerRelType ) << endl;
-        cout << "nameType" << endl;
-        cout << nl->ToString( nameType ) << endl;
-        cout << "reqDistType" << endl;
-        cout << nl->ToString( reqDistType ) << endl;
-        #endif
 
         if( !Relation::checkType( relType ) ) {
             return listutils::typeError( err + 
@@ -109,10 +91,6 @@ namespace drel {
         ListExpr streamType = nl->TwoElemList( 
             listutils::basicSymbol<Stream<Tuple>>(), 
             nl->Second( relType ) );
-        #ifdef DRELDEBUG
-        cout << "streamType" << endl;
-        cout << nl->ToString( streamType ) << endl;
-        #endif
 
         string errmsg;
         ListExpr types, positions;
@@ -156,11 +134,6 @@ namespace drel {
                 nl->SymbolAtom( CcBool::BasicType( ) ),
                 workerRelType ) );
 
-            #ifdef DRELDEBUG
-            cout << "distribute3TM result" << endl;
-            cout << nl->ToString( result ) << endl;
-            #endif
-
             if( !nl->HasLength( result, 3 ) ) {
                 return result;
             }
@@ -190,11 +163,6 @@ namespace drel {
                 numSlotsType,
                 nl->SymbolAtom( CcBool::BasicType( ) ),
                 workerRelType ) );
-
-            #ifdef DRELDEBUG
-            cout << "distribute3TM result" << endl;
-            cout << nl->ToString( result ) << endl;
-            #endif
 
             if( !nl->HasLength( result, 3 ) ) {
                 return result;
@@ -256,11 +224,6 @@ namespace drel {
                             listutils::basicSymbol<CcInt>( ) ),
                         numSlotsType,
                         workerRelType ) );
-
-                #ifdef DRELDEBUG
-                cout << "distribute4TMT result" << endl;
-                cout << nl->ToString( result ) << endl;
-                #endif
 
                 if( !nl->HasLength( result, 3 ) ) {
                     return result;
@@ -445,19 +408,6 @@ namespace drel {
                 "arguments" );
         }
 
-        #ifdef DRELDEBUG
-        cout << "appendList" << endl;
-        cout << nl->ToString( appendList ) << endl;
-        cout << "newRes" << endl;
-        cout << nl->ToString( newRes ) << endl;
-        cout << "dreldistributeTM result type" << endl;
-        cout << nl->ToString( nl->ThreeElemList( 
-            nl->SymbolAtom( Symbols::APPEND( ) ),
-            appendList,
-            newRes ) ) << endl;
-        #endif
-
-
         return nl->ThreeElemList( nl->SymbolAtom( Symbols::APPEND( ) ),
             appendList,
             newRes );
@@ -522,12 +472,6 @@ namespace drel {
     template<class RType, class AType, class DType, class HType, class CType>
     int distributeVMTrandom( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
-        
-        #ifdef DRELDEBUG
-        cout << "distributeVMTrandom" << endl;
-        cout << "result type" << endl;
-        cout << nl->ToString( qp->GetType( s ) ) << endl;
-        #endif
 
         QueryProcessor* qps = new QueryProcessor( nl, am );
 
@@ -536,15 +480,9 @@ namespace drel {
             qps, nl->Second( qp->GetType( s ) ), rel );
 
         // new argument vector for distributqe3VMT
-        ArgVector argVec = { 
-            stream,
-            args[ 2 ].addr,
-            args[ 4 ].addr,
+        ArgVector argVec = { stream, args[ 2 ].addr, args[ 4 ].addr,
             new CcBool( true, true ),  // only round robin
-            args[ 1 ].addr,
-            args[ 5 ].addr,
-            args[ 6 ].addr,
-            args[ 7 ].addr };
+            args[ 1 ].addr, args[ 5 ].addr, args[ 6 ].addr, args[ 7 ].addr };
 
         distribute3VMT<AType, DType, HType, CType>( argVec,
             result, message, local, s );
@@ -568,12 +506,6 @@ namespace drel {
     template<class RType, class AType, class DType, class HType, class CType>
     int distributeVMThash( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
-
-        #ifdef DRELDEBUG
-        cout << "distributeVMThash" << endl;
-        cout << "result type" << endl;
-        cout << nl->ToString( qp->GetType( s ) ) << endl;
-        #endif
 
         QueryProcessor* qps = new QueryProcessor( nl, am );
 
@@ -634,15 +566,8 @@ namespace drel {
 
         // new argument vector for distribute4VMT with the OpTree passed to 
         // the valuemapping of the distribute3 operator.
-        ArgVector argVec = { 
-            stream,
-            args[ 2 ].addr,
-            tree,
-            args[ 5 ].addr,
-            args[ 1 ].addr,
-            args[ 6 ].addr,
-            args[ 7 ].addr,
-            args[ 8 ].addr };
+        ArgVector argVec = { stream, args[ 2 ].addr, tree, args[ 5 ].addr,
+            args[ 1 ].addr, args[ 6 ].addr, args[ 7 ].addr, args[ 8 ].addr };
 
         distribute4VMT<AType, DType, HType, CType>( argVec,
             result, message, local, s );
@@ -671,12 +596,6 @@ namespace drel {
     int distributeVMTrange( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
-        #ifdef DRELDEBUG
-        cout << "distributeVMTrange" << endl;
-        cout << "result type" << endl;
-        cout << nl->ToString( qp->GetType( s ) ) << endl;
-        #endif
-
         QueryProcessor* qps = new QueryProcessor( nl, am );
 
         Relation* rel = ( Relation* )args[ 0 ].addr;
@@ -692,13 +611,6 @@ namespace drel {
             attrName,
             attrType );
 
-        #ifdef DRELDEBUG
-        cout << "attribute number" << endl;
-        cout << pos << endl;
-        cout << "attribute type" << endl;
-        cout << nl->ToString( attrType ) << endl;
-        #endif
-
         // get samplesize
         vector<Attribute*> sample;
         int count = rel->GetNoTuples( );
@@ -707,9 +619,6 @@ namespace drel {
         int nth = DRelHelpers::everyNthTupleForSample( sampleSize, count );
 
         // create a sample
-        #ifdef DRELDEBUG
-        cout << "create sample" << endl;
-        #endif
         GenericRelationIterator* it = rel->MakeScan( );
         Tuple* tuple;
         while( ( tuple = it->GetNthTuple( nth, false ) ) ) {
@@ -756,12 +665,6 @@ namespace drel {
         sample.clear( );
 
         boundary->Finish( );
-
-        #ifdef DRELDEBUG
-        cout << endl;
-        boundary->Print( cout );
-        cout << endl;
-        #endif
 
         // create the function to get the index of each attribute
         ListExpr funarg1 = nl->TwoElemList(
@@ -811,15 +714,8 @@ namespace drel {
         }
 
         // new argument vector for distribute4VMT
-        ArgVector argVec = { 
-            stream,
-            args[ 2 ].addr,
-            tree,
-            size,
-            args[ 1 ].addr,
-            args[ 6 ].addr,
-            args[ 7 ].addr,
-            args[ 8 ].addr };
+        ArgVector argVec = { stream, args[ 2 ].addr, tree, size, 
+            args[ 1 ].addr, args[ 6 ].addr, args[ 7 ].addr, args[ 8 ].addr };
 
         distribute4VMT<AType, DType, HType, CType>( argVec,
             result, message, local, s );
@@ -848,12 +744,6 @@ namespace drel {
     int distributeVMTspatial( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
-        #ifdef DRELDEBUG
-        cout << "distributeVMTspatial2d" << endl;
-        cout << "result type" << endl;
-        cout << nl->ToString( qp->GetType( s ) ) << endl;
-        #endif
-
         Relation* rel = ( Relation* )args[ 0 ].addr;
         CcInt* size = ( CcInt* )args[ 5 ].addr;
         string attrName = ( ( CcString* )args[ 10 ].addr )->GetValue( );
@@ -865,19 +755,6 @@ namespace drel {
             nl->Second( nl->Second( nl->Second( qp->GetType( s ) ) ) ),
             attrName,
             attrType );
-
-        #ifdef DRELDEBUG
-        cout << "tuplelist" << endl;
-        cout << 
-            nl->ToString( nl->Second( nl->Second( qp->GetType( s ) ) ) ) 
-            << endl;
-        cout << "attrName" << endl;
-        cout << attrName << endl;
-        cout << "pos" << endl;
-        cout << pos << endl;
-        cout << "sourceRelType" << endl;
-        cout << sourceRelType->GetValue( ) << endl;
-        #endif
 
         ListExpr sourceType;
         if( !nl->ReadFromString( sourceRelType->GetValue( ), sourceType ) ) {
@@ -891,11 +768,6 @@ namespace drel {
         GType* grid = DistributeOpHelper::createCellGrid<GType>( 
             rel, sourceType, attrName, size->GetIntval( ) );
 
-        #ifdef DRELDEBUG
-        cout << "grid" << endl;
-        grid->Print( cout );
-        #endif
-
         QueryProcessor* qps = new QueryProcessor( nl, am );
 
         OpTree stream = DistributeOpHelper::createStreamCellGridOpTree<GType>(
@@ -903,15 +775,8 @@ namespace drel {
         
         // new argument vector for distribute4VMT with the OpTree passed to 
         // the valuemapping of the distribute3 operator.
-        ArgVector argVec = { 
-            stream,
-            args[ 2 ].addr,
-            args[ 4 ].addr,
-            size,
-            args[ 1 ].addr,
-            args[ 6 ].addr,
-            args[ 7 ].addr,
-            args[ 8 ].addr,
+        ArgVector argVec = { stream, args[ 2 ].addr, args[ 4 ].addr, size,
+            args[ 1 ].addr, args[ 6 ].addr, args[ 7 ].addr, args[ 8 ].addr,
             args[ 9 ].addr };
 
         ddistribute2VMT<AType, DType, HType, CType>( argVec,
@@ -930,10 +795,6 @@ namespace drel {
 
     }
 
-    /*
-    1.7 Specification of drelfdistirbute
-
-    */
     OperatorSpec drelfdistributeSpec(
         " stream(tuple(X)) x rel(tuple(X)) x string x "
         "distType [x attr] [x int] -> dfrel(X) ",
@@ -957,10 +818,6 @@ namespace drel {
         " query strassen feed drelfdistribute[Worker3, \"\", \"range\", No, 5]"
     );
 
-    /*
-    1.8 ValueMapping Array of drelfdistribute
-
-    */
     ValueMapping drelfdistributeVM[ ] = {
         distributeVMTrandom<DFRel, DFArray, FRelCopy, CcString, CcString>,
         distributeVMTrandom<DFRel, DFArray, FRelCopy, CcString, FText>,
@@ -996,17 +853,7 @@ namespace drel {
         distributeVMTreplicated<DFRel, DFArray, FRelCopy, FText, FText>
     };
 
-    /*
-    1.9 Selection function
-
-    */
     int distributeSelect( ListExpr args ) {
-        
-        #ifdef DRELDEBUG
-        cout << "distributeSelect" << endl;
-        cout << "args" << endl;
-        cout << nl->ToString( args ) << endl;
-        #endif
 
         distributionType type;
         supportedType( nl->SymbolValue( nl->Fourth( args ) ), type );
@@ -1021,10 +868,6 @@ namespace drel {
         return n1 + n2 + 4 * type;
     }
 
-    /*
-    1.10 Operator instance of drelfdistribute operator 
-
-    */
     Operator drelfdistributeOp(
         "drelfdistribute",
         drelfdistributeSpec.getStr( ),
@@ -1034,10 +877,6 @@ namespace drel {
         distributeTM<DFRel, DFArray>
     );
 
-    /*
-    1.11 Specification of dreldistirbute
-
-    */
     OperatorSpec dreldistributeSpec(
         " stream(tuple(X)) x rel(tuple(X)) x string x "
         "distType [x attr] [x int] -> drel(X) ",
@@ -1061,5 +900,51 @@ namespace drel {
         " query strassen feed dreldistribute[Worker3, \"\", \"range\", No, 5]"
     );
 
+    ValueMapping dreldistributeVM[ ] = {
+        distributeVMTrandom<DRel, DArray, RelFileRestorer, CcString, CcString>,
+        distributeVMTrandom<DRel, DArray, RelFileRestorer, CcString, FText>,
+        distributeVMTrandom<DRel, DArray, RelFileRestorer, FText, CcString>,
+        distributeVMTrandom<DRel, DArray, RelFileRestorer, FText, FText>,
+        distributeVMThash<DRel, DArray, RelFileRestorer, CcString, CcString>,
+        distributeVMThash<DRel, DArray, RelFileRestorer, CcString, FText>,
+        distributeVMThash<DRel, DArray, RelFileRestorer, FText, CcString>,
+        distributeVMThash<DRel, DArray, RelFileRestorer, FText, FText>,
+        distributeVMTrange<DRel, DArray, RelFileRestorer, CcString, CcString>,
+        distributeVMTrange<DRel, DArray, RelFileRestorer, CcString, FText>,
+        distributeVMTrange<DRel, DArray, RelFileRestorer, FText, CcString>,
+        distributeVMTrange<DRel, DArray, RelFileRestorer, FText, FText>,
+        distributeVMTspatial<DRel, DArray, RelFileRestorer, CcString, CcString,
+            temporalalgebra::CellGrid2D, spatial2d>,
+        distributeVMTspatial<DRel, DArray, RelFileRestorer, CcString, FText,
+            temporalalgebra::CellGrid2D, spatial2d>,
+        distributeVMTspatial<DRel, DArray, RelFileRestorer, FText, CcString,
+            temporalalgebra::CellGrid2D, spatial2d>,
+        distributeVMTspatial<DRel, DArray, RelFileRestorer, FText, FText,
+            temporalalgebra::CellGrid2D, spatial2d>,
+        distributeVMTspatial<DRel, DArray, RelFileRestorer, CcString, CcString,
+            temporalalgebra::CellGrid<3>, spatial3d>,
+        distributeVMTspatial<DRel, DArray, RelFileRestorer, CcString, FText,
+            temporalalgebra::CellGrid<3>, spatial3d>,
+        distributeVMTspatial<DRel, DArray, RelFileRestorer, FText, CcString,
+            temporalalgebra::CellGrid<3>, spatial3d>,
+        distributeVMTspatial<DRel, DArray, RelFileRestorer, FText, FText,
+            temporalalgebra::CellGrid<3>, spatial3d>,
+        distributeVMTreplicated<DRel, DArray, RelFileRestorer, CcString, 
+                                CcString>,
+        distributeVMTreplicated<DRel, DArray, RelFileRestorer, CcString, 
+                                FText>,
+        distributeVMTreplicated<DRel, DArray, RelFileRestorer, FText, 
+                                CcString>,
+        distributeVMTreplicated<DRel, DArray, RelFileRestorer, FText, FText>
+    };
+
+    Operator dreldistributeOp(
+        "dreldistribute",
+        dreldistributeSpec.getStr( ),
+        24,
+        dreldistributeVM,
+        distributeSelect,
+        distributeTM<DRel, DArray>
+    );
 
 } // end of namespace drel
