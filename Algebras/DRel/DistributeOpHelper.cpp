@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 //#define DRELDEBUG
 
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "DistributeOpHelper.h"
 
 extern NestedList* nl;
@@ -287,6 +288,16 @@ namespace drel {
         return tree;
     }
 
+    template OpTree DistributeOpHelper::
+        createStreamCellGridOpTree<temporalalgebra::CellGrid2D>(
+            QueryProcessor* qps, Relation* rel, ListExpr relType,
+            string attrName, temporalalgebra::CellGrid2D* grid );
+    
+    template OpTree DistributeOpHelper::
+        createStreamCellGridOpTree<temporalalgebra::CellGrid<3>>(
+            QueryProcessor* qps, Relation* rel, ListExpr relType,
+            string attrName, temporalalgebra::CellGrid<3>* grid );
+
     /*
     4 ~createCellGrid~
 
@@ -353,5 +364,13 @@ namespace drel {
 
         return grid;
     }
+
+    template temporalalgebra::CellGrid2D*
+        DistributeOpHelper::createCellGrid<temporalalgebra::CellGrid2D>(
+        Relation* rel, ListExpr relType, string attrName, int size );
+
+    template temporalalgebra::CellGrid<3>*
+        DistributeOpHelper::createCellGrid<temporalalgebra::CellGrid<3>>(
+        Relation* rel, ListExpr relType, string attrName, int size );
 
 } // end of namespace drel
