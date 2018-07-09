@@ -35,4 +35,4 @@ Operator : geojson2point
 Number   : 1
 Signature: text -> point
 Example  : query geojson2point(<text>{"geometry":{"coordinates":[52.07712,-1.09023],"type":"Point"},"id":20822819,"type":"Feature","properties":{"natural":"tree"}}</text--->) 
-Result   : (point (52.07712,-1.09023))
+Result   : (point (52.07712 -1.09023))
