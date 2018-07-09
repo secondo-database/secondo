@@ -39,12 +39,27 @@ namespace dbscan{
 
   class TupleInfo{
   public:
-    TupleInfo():visited(false),clusterNo(-1),isSeed(false){}
-    TupleInfo(bool v, int c): visited(v),clusterNo(c), isSeed(false) {}
+    TupleInfo():visited(false),clusterNo(-1),isSeed(false),isCore(false){}
+    TupleInfo(bool v, int c): visited(v),clusterNo(c), isSeed(false),
+                              isCore(false) {}
+    TupleInfo(const TupleInfo& src): visited(src.visited), 
+                                     clusterNo(src.clusterNo),
+                                     isSeed(src.isSeed),
+                                     isCore(src.isCore) {}
+
+    TupleInfo& operator=(const TupleInfo& src){
+       visited = src.visited;
+       clusterNo = src.clusterNo;
+       isSeed= src.isSeed; 
+       isCore = src.isCore;
+       return *this;
+    }
+ 
 
     bool visited;
     int clusterNo; 
     bool isSeed;
+    bool isCore;
   };
 
 }

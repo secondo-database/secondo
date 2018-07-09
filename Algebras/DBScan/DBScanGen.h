@@ -56,8 +56,7 @@ stream referred by s. This means each tuple is assigned to a cluster id.
 */
     DBScanGen(Word s, ListExpr tupleResultType, double eps, int _minPts, 
               size_t _maxMem, int _attrPos, D _distfun):
-     setOfObjects(s, tupleResultType, eps, _minPts, 
-                 _maxMem, _attrPos, _distfun), 
+     setOfObjects(s, tupleResultType, eps, _maxMem, _attrPos, _distfun), 
      minPts(_minPts), clusterid(0){
        dbScan();
     }
@@ -102,6 +101,7 @@ Main Algorithm
                 setOfObjects.setCluster(id,-2);
                 delete n;              
             } else {
+                setOfObjects.setCore(id,true);
                 clusterid++;
                 std::list<TupleId>::iterator it2;
                 for(it2=n->begin(); it2!=n->end() ; it2++){
@@ -139,6 +139,7 @@ This expands a cluster starting at id having neighbors n.
           std::list<TupleId>* n2 = setOfObjects.getNeighbors(id2);
           setOfObjects.setProcessed(id2,true);
           if(n2->size()>= (size_t) minPts){
+              setOfObjects.setCore(id2,true);
               std::list<TupleId>::iterator it;
               for(it=n2->begin(); it!=n2->end() ; it++){
                 if(!setOfObjects.isSeed(*it) ){

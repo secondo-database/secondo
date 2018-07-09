@@ -165,6 +165,9 @@ using an r-tree as index structure.
   lastlistn = nl->Append(lastlistn, 
       nl->TwoElemList(nl->SymbolAtom("Visited"),
       nl->SymbolAtom(CcBool::BasicType()) ));
+  lastlistn = nl->Append(lastlistn, 
+      nl->TwoElemList(nl->SymbolAtom("IsCore"),
+      nl->SymbolAtom(CcBool::BasicType()) ));
 
   return nl->ThreeElemList(
    nl->SymbolAtom(Symbol::APPEND())
@@ -400,6 +403,9 @@ using an r-tree as index structure.
  
   lastlistn = nl->Append(lastlistn, 
       nl->TwoElemList(nl->SymbolAtom("Visited"),
+      nl->SymbolAtom(CcBool::BasicType()) ));
+  lastlistn = nl->Append(lastlistn, 
+      nl->TwoElemList(nl->SymbolAtom("IsCore"),
       nl->SymbolAtom(CcBool::BasicType()) ));
       
   return nl->ThreeElemList(
@@ -640,7 +646,12 @@ ListExpr dbscanFTM( ListExpr args ) {
   }//endif
   pos = FindAttribute(attrList,"Visited",typeList);
   if(pos!=0) {
-   return listutils::typeError("Attribute Visisted" 
+   return listutils::typeError("Attribute Visited" 
+                              " already member of the tuple");
+  }//endif
+  pos = FindAttribute(attrList,"IsCore",typeList);
+  if(pos!=0) {
+   return listutils::typeError("Attribute IsCore" 
                               " already member of the tuple");
   }//endif
 
@@ -662,6 +673,10 @@ ListExpr dbscanFTM( ListExpr args ) {
  
   lastlistn = nl->Append(lastlistn, 
       nl->TwoElemList(nl->SymbolAtom("Visited"),
+      nl->SymbolAtom(CcBool::BasicType()) ));
+  
+  lastlistn = nl->Append(lastlistn, 
+      nl->TwoElemList(nl->SymbolAtom("IsCore"),
       nl->SymbolAtom(CcBool::BasicType()) ));
 
   return nl->ThreeElemList(

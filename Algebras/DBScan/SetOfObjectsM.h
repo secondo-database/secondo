@@ -59,8 +59,8 @@ namespace dbscan{
 */
 
      SetOfObjectsM(Word _stream, ListExpr _tt, double _eps, 
-                   int _minPts, size_t _maxMem, int _attrPos, D _dist):
-          eps(_eps), minPts(_minPts), attrPos(_attrPos), tree(0), 
+                   size_t _maxMem, int _attrPos, D _dist):
+          eps(_eps), attrPos(_attrPos), tree(0), 
           buffer(0), tupleStates(), tt(0), resIt(0), dist(_dist) {
        tt = new TupleType(_tt);
        initialize(_maxMem, _stream);
@@ -111,7 +111,8 @@ Requires the call of initOutput before.
          tuple->DeleteIfAllowed();
          resTuple->PutAttribute(as, new CcInt(true, tupleStates[id].clusterNo));
          resTuple->PutAttribute(as+1, new CcBool(true,tupleStates[id].visited));
-          return resTuple;
+         resTuple->PutAttribute(as+2, new CcBool(true,tupleStates[id].isCore));
+         return resTuple;
      }
 
 /*
@@ -202,6 +203,9 @@ Checks whether the isSeed flag is set for a tuple.
         return tupleStates[id].isSeed;
      }
 
+     bool isCore(TupleId id){
+        return tupleStates[id].isCore;
+     }
 
 /*
 1.12 ~setSeed~
@@ -213,6 +217,11 @@ Changes the seed flag for a tuple.
          tupleStates[id].isSeed = value;
      }
 
+     void setCore(TupleId id, bool value){
+         tupleStates[id].isCore = value;
+     }
+     
+
   private:
 
 /*
@@ -220,7 +229,6 @@ Changes the seed flag for a tuple.
 
 */
      double eps;  // epsilon value
-     int minPts;  // minimum amount of neighbors
      int attrPos; // position of the rectangle attribute
      MMMTree<std::pair<T*,TupleId>, D>* tree; // the index
      TupleStore1* buffer;  // buffer for input tuples
