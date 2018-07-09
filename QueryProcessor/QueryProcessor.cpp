@@ -325,7 +325,7 @@ QueryProcessor::QueryProcessor( NestedList* newNestedList,
     algebraManager( newAlgebraManager ),
     debugMode( false ),
     traceMode( false ), traceNodes( false ), debugLocal(false),
-    debugProgress(false), traceProgress(false),
+    debugProgress(false), traceProgress(false),debugTypeMapping(false),
     globalMemory(_globalMemory)
 {
   values.resize( MAXVALUES );
@@ -2341,6 +2341,19 @@ will be processed.
                                          typeList, ntypeArgList, alId, opId,
                                          opFunId, true, traceMode );
 
+              if(debugTypeMapping){
+                 cout << "----- Type Mapping for operator '" 
+                      << operatorStr << "'" << endl;
+                 cout << "Argument type list : " << endl
+                      << nl->ToString(typeList) << endl << endl;
+                 cout << "Argument arg List : " << endl
+                      << nl->ToString(ntypeArgList) << endl;
+                 cout << "Result is " << resultType << endl; 
+                 cout << "--------------------------------" << endl << endl;
+                 
+              }
+
+
               /* check whether the type mapping has requested to
                  append further arguments: */
               if ( (nl->ListLength(resultType) == 3) &&
@@ -2897,6 +2910,17 @@ arguments preceding this function argument in an operator application.
               al,
               alId, opId, opFunId,
               false, traceMode );
+
+          if(debugTypeMapping){
+             cout << "----- Type Mapping for operator '" 
+                  << name2 << "'" << endl;
+             cout << "Argument type list : " << endl
+                  << nl->ToString(typeList) << endl << endl;
+             cout << "Argument arg List : " << endl
+                  << nl->ToString(al) << endl;
+             cout << "Result is " << nl->ToString(paramtype) << endl; 
+             cout << "--------------------------------" << endl << endl;
+          }
         }
         else
         {
@@ -5309,6 +5333,7 @@ QueryProcessor::SetDebugLevel( const int level )
    debugLocal = (level & 8) > 0;
    debugProgress = (level & 16) > 0;
    traceProgress = (level & 32) > 0;
+   debugTypeMapping = (level & 64) > 0;
 }
 
 bool

@@ -953,6 +953,7 @@ with message init.
   bool debugLocal;
   bool debugProgress;
   bool traceProgress;
+  bool debugTypeMapping;
   std::map <int, bool> argsPrinted;
 
   std::vector<ValueInfo> values;            // MAXVALUE = 200
