@@ -34,5 +34,5 @@ Result   : (line ( (36.1033863 140.0952905 36.1037179 140.0951913) (36.1033863 1
 Operator : geojson2point
 Number   : 1
 Signature: text -> point
-Example  : query geojson2point(<text>{"geometry":{"coordinates":[52.07712,-1.09023],"type":"Point"},"id":20822819,"type":"Feature","properties":{"natural":"tree"}}</text--->) 
-Result   : (point (52.07712 -1.09023))
+Example  : query geojson2point(<text>{"geometry":{"coordinates":[52.077,-1.09],"type":"Point"},"id":20822819,"type":"Feature","properties":{"natural":"tree"}}</text--->) 
+Result   : (point (52.077 -1.09))
