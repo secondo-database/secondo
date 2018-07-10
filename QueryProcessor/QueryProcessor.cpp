@@ -2347,8 +2347,8 @@ will be processed.
                  cout << "Argument type list : " << endl
                       << nl->ToString(typeList) << endl << endl;
                  cout << "Argument arg List : " << endl
-                      << nl->ToString(ntypeArgList) << endl;
-                 cout << "Result is " << resultType << endl; 
+                      << nl->ToString(ntypeArgList) << endl << endl;
+                 cout << "Result is " << nl->ToString(resultType) << endl; 
                  cout << "--------------------------------" << endl << endl;
                  
               }
@@ -2917,7 +2917,7 @@ arguments preceding this function argument in an operator application.
              cout << "Argument type list : " << endl
                   << nl->ToString(typeList) << endl << endl;
              cout << "Argument arg List : " << endl
-                  << nl->ToString(al) << endl;
+                  << nl->ToString(al) << endl << endl;
              cout << "Result is " << nl->ToString(paramtype) << endl; 
              cout << "--------------------------------" << endl << endl;
           }
