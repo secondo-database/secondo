@@ -20181,6 +20181,21 @@ ListExpr createintdarrayTM(ListExpr args){
                              resType);
 }
 
+
+void createIntCmd(const string& name, const int value, ConnectionInfo* ci){
+   string cmd = "delete " + name;
+   int err;
+   string res;
+   double rt;
+   ci->simpleCommand(cmd,err,res,false,rt,false,commandLog,true,
+                            algInstance->getTimeout());
+   cmd = "let " + name + " = " + stringutils::int2str(value);
+   ci->simpleCommand(cmd,err,res,false,rt,false,commandLog,true,
+                     algInstance->getTimeout());
+   
+}
+
+
 template<class HostType, class ConfigType>
 int createintdarrayVMT(Word* args, Word& result, int message,
                       Word& local, Supplier s) {
@@ -20209,7 +20224,6 @@ int createintdarrayVMT(Word* args, Word& result, int message,
        res->makeUndefined();
        return 0;
     }
-    cout << "size is " << size << endl; 
 
     (*res) = DArrayBase::createFromRel<HostType,ConfigType,DArray>(
                  workers, size, n,hostPos,portPos,confPos);
@@ -20217,6 +20231,7 @@ int createintdarrayVMT(Word* args, Word& result, int message,
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
     if(res->IsDefined()){
        res->setStdMap(size);
+       vector<boost::thread*> runners;
        for(size_t i=0;i<res->getSize();i++){
           DArrayElement elem = res->getWorkerForSlot(i);
           ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
@@ -20225,15 +20240,14 @@ int createintdarrayVMT(Word* args, Word& result, int message,
              return 0;
           }
           string oname = res->getObjectNameForSlot(i);
-          string cmd = "delete " + oname;
-          int err;
-          string res;
-          double rt;
-          ci->simpleCommand(cmd,err,res,false,rt,false,commandLog,true,
-                            algInstance->getTimeout());
-          cmd = "let " + oname + " = " + stringutils::int2str(i);
-          ci->simpleCommand(cmd,err,res,false,rt,false,commandLog,true,
-                            algInstance->getTimeout());
+
+          boost::thread* r = new boost::thread(
+                boost::bind(createIntCmd,oname,i,ci));
+          runners.push_back(r);
+       }
+       for(size_t i=0;i<runners.size();i++){
+         runners[i]->join();
+         delete runners[i];
        }
     }
     return 0;
@@ -20374,6 +20388,12 @@ class dcommandInfo{
         q.push(tuple);
      }
 
+     Tuple* newTuple(){
+        boost::lock_guard<boost::mutex> guard(mtx);
+        Tuple* res = new Tuple(tt);
+        return res;
+     }
+
      void run(ConnectionInfo* ci){
           int err;
           string res;
@@ -20381,10 +20401,10 @@ class dcommandInfo{
           string errmsg;
           ci->simpleCommand(cmd,err,errmsg, res, false,rt,false,commandLog,true,
                             algInstance->getTimeout());
-          Tuple* r  = new Tuple(tt);
+          Tuple* r  = newTuple();
           r->PutAttribute(0,new FText(true,ci->getHost()));
           r->PutAttribute(1,new CcInt(true,ci->getPort()));
-          r->PutAttribute(2, new FText(true,ci->getConfig()));
+          r->PutAttribute(2,new FText(true,ci->getConfig()));
           r->PutAttribute(3,new CcBool(true, err==0));
           r->PutAttribute(4,new FText(true,errmsg));
           r->PutAttribute(5,new CcReal(true,rt));
