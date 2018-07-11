@@ -1600,7 +1600,9 @@ The function ~secondo_completion~  enables
 tab extension if the readline library is used.
 
 */
+#ifdef READLINE
 extern char** secondo_completion(const char* text, int start, int end);
+#endif
 
 
 /*
