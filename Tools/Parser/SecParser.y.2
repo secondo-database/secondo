@@ -553,7 +553,7 @@ args    : arg    {$$ = $1;}
 
 attribute  : ZZATTRABBR
         { $$ = NestedText::Concat(NestedText::AtomC("(attr "),
-        NestedText::Concat(NestedText::AtomC(param1),
+        NestedText::Concat(NestedText::AtomC(params[1]),
         NestedText::Concat(NestedText::AtomC(" "),
         NestedText::Concat($1,
           NestedText::AtomC(")")  ))));}
@@ -561,7 +561,7 @@ attribute  : ZZATTRABBR
 
 attribute2  : ZZATTRABBR2 
       {$$ = NestedText::Concat(NestedText::AtomC("(attr "),
-        NestedText::Concat(NestedText::AtomC(param2),
+        NestedText::Concat(NestedText::AtomC(params[2]),
         NestedText::Concat(NestedText::AtomC(" "),
         NestedText::Concat($1,
           NestedText::AtomC(")")  ))));}
@@ -655,20 +655,19 @@ valueexpr  : ZZIDENTIFIER        {$$ = $1;}
           NestedText::AtomC("))")  ))));}
     | '[' list ']'        {$$ = $2;}
 
-    | '.'          {$$ = NestedText::AtomC(param1);}
-    | ZZSINGLE     {$$ = NestedText::AtomC(param1);}
+    | '.'          {$$ = NestedText::AtomC(params[1]);}
+    | ZZSINGLE     {$$ = NestedText::AtomC(params[1]);}
 
-    | ZZDOUBLE     {$$ = NestedText::AtomC(param2);}
-    | ZZARG3     {$$ = NestedText::AtomC(param3);}
-    | ZZARG4     {$$ = NestedText::AtomC(param4);}
-    | ZZARG5     {$$ = NestedText::AtomC(param5);}
-    | ZZARG6     {$$ = NestedText::AtomC(param6);}
-    | ZZARG7     {$$ = NestedText::AtomC(param7);}
-    | ZZARG8     {$$ = NestedText::AtomC(param8);}
-    | ZZARG9     {$$ = NestedText::AtomC(param9);}
-    | ZZTUPLE        {$$ = NestedText::AtomC(param1);}
-
-    | ZZGROUP        {$$ = NestedText::AtomC(param1);}
+    | ZZDOUBLE     {$$ = NestedText::AtomC(params[2]);}
+    | ZZARG3     {$$ = NestedText::AtomC(params[3]);}
+    | ZZARG4     {$$ = NestedText::AtomC(params[4]);}
+    | ZZARG5     {$$ = NestedText::AtomC(params[5]);}
+    | ZZARG6     {$$ = NestedText::AtomC(params[6]);}
+    | ZZARG7     {$$ = NestedText::AtomC(params[7]);}
+    | ZZARG8     {$$ = NestedText::AtomC(params[8]);}
+    | ZZARG9     {$$ = NestedText::AtomC(params[9]);}
+    | ZZTUPLE    {$$ = NestedText::AtomC(params[1]);}
+    | ZZGROUP    {$$ = NestedText::AtomC(params[1]);}
 
     | valueexpr '{' ZZIDENTIFIER '}'
       {$$ = NestedText::Concat(NestedText::AtomC("(rename"),

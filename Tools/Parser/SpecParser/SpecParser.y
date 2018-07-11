@@ -699,24 +699,25 @@ void print_complex_postfix(){
                 << "~function~" << endl
                 << endl << "*/" << endl;
   (*yaccrules2) << funname << extension << " :  { " << endl;
-  for(int i=0;i<sizei;i++){
+  (*yaccrules2) << "     pair<int,string> p; " << endl;
+  for(int i=0;i<sizei;i++){ // put own variables on stack
        (*yaccrules2) << "     paramno++; " << endl;
        (*yaccrules2) << "     strcpy(paramname,\"";
        (*yaccrules2) << (*currenttranslation.implicitNames)[i] << "\");" 
                      << endl;
-       (*yaccrules2) << "     sprintf(param" << (i+1) 
+       (*yaccrules2) << "     sprintf(params[" << (i+1) <<"]"
                      << ", \"%s_%d\",paramname,paramno);" 
                      << endl;
-       (*yaccrules2) << "     paramstack.push(param" << (i+1) << ");" 
-                     << endl;
+       (*yaccrules2) << "     p = pair<int,string>("<< (i+1) << ", params[" << (i+1) << "]);" << endl;
+       (*yaccrules2) << "     paramstack.push(p);" << endl;
   }   
   (*yaccrules2) << "     }" << endl;  
   (*yaccrules2) << "   valueexpr" << endl;
   (*yaccrules2) << "     { " << endl;
-  for(int i=sizei;i>0;i--){
-     (*yaccrules2) << "     strcpy(param" << (i) 
-                   << ",paramstack.top().c_str());" 
-                   << endl;
+  (*yaccrules2) << "     pair<int,string> p; " << endl;
+  for(int i=sizei;i>0;i--){ // remove own variables from stack
+     (*yaccrules2) << "     p = paramstack.top(); " << endl;
+     (*yaccrules2) << "     strcpy(params[p.first],p.second.c_str());" << endl;
      (*yaccrules2) << "     paramstack.pop();" << endl;
   }
   
@@ -726,8 +727,8 @@ void print_complex_postfix(){
   for(int i=0; i< sizei ; i++){
      (*yaccrules2)  << "      NestedText::Concat( NestedText::AtomC(\"(\"),"
                     << endl;
-     (*yaccrules2)  << "      NestedText::Concat( NestedText::AtomC(param" 
-                    << (i+1) << ")," 
+     (*yaccrules2)  << "      NestedText::Concat( NestedText::AtomC(params[" 
+                    << (i+1) << "])," 
                     << endl;
      (*yaccrules2)  << "     NestedText::Concat( NestedText::AtomC(\""; 
      (*yaccrules2)  << " " << ((*currenttranslation.implicitTypes)[i]) 
@@ -741,11 +742,9 @@ void print_complex_postfix(){
       (*yaccrules2) << " ))))";
   }
   (*yaccrules2) << ";" << endl;
-  // delete values of all paramameters
-  for(int i=0;i<sizei;i++){
-     (*yaccrules2) << "    sprintf(param"<<(i+1)<<",\"%s\",\"\");"<< endl;
-  }
-
+  // delete values of all parameters or restore the old values
+  (*yaccrules2) << "     cleanVariables("<<sizei<<"); " << endl;
+  (*yaccrules2) << "     restoreVariables(); " << endl;
   (*yaccrules2) << "     }" << endl;
   (*yaccrules2) << "     | function { $$ = $1; } " << endl;
   (*yaccrules2) << "     ;\n";
