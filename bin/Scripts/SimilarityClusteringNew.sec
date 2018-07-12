@@ -44,11 +44,7 @@ let V = T dmap["",  . feed
 # Step 4
 let ControlN = createintdarray("ControlN", Workers, n);
 
-query T dcommand['query memclear()'] consume;
-let Vm = V dmap["Vm", . feed mconsume];
-let Vm_Pos_mtree = Vm dmap["Vm_Pos_mtree", . mcreatemtree[Pos, wgs84]];
-
-let X = V Vm_Pos_mtree Vm ControlN dmap4["X", $1 feed
+let X = V ControlN dmap2["X", $1 feed
   extend[Pos2: gk(.Pos)]
   dbscanM[Pos2, CID0, Eps, MinPts]
   extend[CID: (.CID0 * n) + $4]
@@ -117,13 +113,13 @@ query share("R", TRUE, Workers);
 
 
 # Step 10
-query X Assignments X dmap3["", 
+query X Assignments dmap2["", 
   $1 feed addid filter[.N = .N2] $2 feed sort krdup[P] {a} 
-    itHashJoin[Osm_id, P_a] $3 updatedirect2[TID; CID: .CID_a] 
+    itHashJoin[Osm_id, P_a] $1 updatedirect2[TID; CID: .CID_a] 
   count, 1238] getValue tie[. + ..]
 
-query X X dmap2["", 
+query X dmap["", 
   $1 feed addid filter[.N = .N2] R feed sort krdup[CID] {a} 
   itHashJoin[CID, CID_a]
-  $2 updatedirect2[TID; CID: .CIDnew_a] count, 1238] getValue tie[. + ..]
+  $1 updatedirect2[TID; CID: .CIDnew_a] count] getValue tie[. + ..]
 

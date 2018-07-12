@@ -7,8 +7,9 @@
 
 # Step 1
 let Card = T dmap["", . count] getValue tie[. + ..];
+share("Card", TRUE, Workers)
 
-let SS = T dmap["", . feednth[Card div 10000, FALSE]] dsummarize consume
+let SS = T dmap["", . feedNth[Card div 10000, FALSE]] dsummarize consume
 
 @&Scripts/SimilarityPartitioning.psec;
 let n = PC count
@@ -23,7 +24,7 @@ query share("PC", TRUE, Workers);
 query share("MinPts", TRUE, Workers);
 query share("Eps", TRUE, Workers);
 query share("wgs84", TRUE, Workers);
-query share("n", TRUE, Workers);
+query share("n", TRUE, Workers);:w
 
 
 # Step 3
@@ -47,17 +48,11 @@ let V = T dmap["",  . feed
 # Step 4
 let ControlN = createintdarray("ControlN", Workers, n);
 
-query T dcommand['query memclear()'] consume;
-let Vm = V dmap["Vm", . feed mconsume];
-let Vm_Pos_mtree = Vm dmap["Vm_Pos_mtree", . mcreatemtree[Pos, wgs84]];
-
-let X = V Vm_Pos_mtree Vm ControlN dmap4["X", $1 feed extend[IsCore:
-  $2 $3 mdistRange[.Pos, Eps] head[MinPts] count = MinPts]
+let X = V ControlN dmap2["X", $1 feed
   extend[Pos2: gk(.Pos)]
   dbscanM[Pos2, CID0, Eps, MinPts]
-  extend[CID: (.CID0 * n) + $4]
+  extend[CID: (.CID0 * n) + $2]
   consume, 1238]
-
 
 
 # Step 5
@@ -91,17 +86,16 @@ let Merge = Pairs dmap["Merge", . mfeed
   sort rdup 
   consume]
 
-let Assign = Pairs Pairs dmap2["Assign", 
-  . mfeed filter[.IsCoreP_n1 and not(.IsCoreP_n2)] 
-    projectextend[; P: .P_n2, N: .Np_n2, CID: .CIDp_n1]
-  .. mfeed filter[.IsCoreP_n2 and not(.IsCoreP_n1)] 
-    projectextend[; P: .P_n1, N: .Np_n1, CID: .CIDp_n2]
-  concat
-  sort krdup[P] consume, 1238]
+let Assignments = Pairs dmap["", 
+ . mfeed filter[.IsCoreP_n1 and not(.IsCoreP_n2)] 
+	  projectextend[; P: .P_n2, N: .Np_n2, CID: .CIDp_n1]
+ . mfeed filter[.IsCoreP_n2 and not(.IsCoreP_n1)] 
+	 projectextend[; P: .P_n1, N: .Np_n1, CID: .CIDp_n2]
+ concat
+ sort krdup[P] consume]
+ partition["", .N, 0]
+ collect2["Assignments", 1238]
 
-let Assignments = Assign 
-  partition["", .N, 0]
-  collect2["Assignments", 1238]
 
 
 # Step 7
@@ -120,15 +114,15 @@ query share("R", TRUE, Workers);
 
 
 # Step 10
-query X Assignments X dmap3["", 
+query X Assignments dmap2["", 
   $1 feed addid filter[.N = .N2] $2 feed sort krdup[P] {a} 
-    itHashJoin[Osm_id, P_a] $3 updatedirect2[TID; CID: .CID_a] 
+    itHashJoin[Osm_id, P_a] $1 updatedirect2[TID; CID: .CID_a] 
   count, 1238] getValue tie[. + ..]
 
-query X X dmap2["", 
+query X dmap["", 
   $1 feed addid filter[.N = .N2] R feed sort krdup[CID] {a} 
   itHashJoin[CID, CID_a]
-  $2 updatedirect2[TID; CID: .CIDnew_a] count, 1238] getValue tie[. + ..]
+  $1 updatedirect2[TID; CID: .CIDnew_a] count] getValue tie[. + ..]
 
 
 
