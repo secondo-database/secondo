@@ -3,7 +3,7 @@
 
 # Step 1
 delete NInserted;
-# delete PC;
+delete PC;
 
 delete Eps;
 delete MinPts;
@@ -34,9 +34,6 @@ delete V;
 query deleteRemoteObjects(ControlN);
 delete ControlN;
 
-delete Vm;
-delete Vm_Pos_mtree;
-
 query deleteRemoteObjects(X);
 delete X;
 
@@ -61,9 +58,6 @@ delete Pairs;
 
 query deleteRemoteObjects(Merge);
 delete Merge;
-
-query deleteRemoteObjects(Assign);
-delete Assign;
 
 query deleteRemoteObjects(Assignments);
 delete Assignments;
