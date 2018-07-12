@@ -1,6 +1,7 @@
 # Distributed Similarity Clustering
 #
-# Relation S with attribute Pos of type point must be present. Also the relation Workers 
+# Relation S with attribute Pos of type point must be present. Must be in geographic 
+# coordinates. Also the relation Workers 
 # must exist in the database.
 #
 # The database must be open.
