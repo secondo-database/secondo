@@ -11092,6 +11092,305 @@ Operator importBinCSVSimpleOp(
 );
 
 
+/*
+24.102 Operator ~geojson2line~
+
+*/
+
+/*
+24.102.1 Type Mapping function
+
+The signature is text x bool -> line
+
+*/
+
+ListExpr Geojson2lineTypeMap(ListExpr args){
+
+  if(nl->ListLength(args) != 2) {
+     return listutils::typeError("two arguments exptected");
+  }
+
+  if(FText::checkType(nl->First(args)) &&
+     CcBool::checkType(nl->Second(args))) {
+      return nl->SymbolAtom(Line::BasicType());
+  }
+
+  return listutils::typeError("text expected");
+}
+
+/*
+24.102.2 Value Mapping function
+
+*/
+int Geojson2line(Word* args, Word& result, int message,
+                   Word& local, Supplier s ){
+
+   result = qp->ResultStorage(s);
+
+   FText* text = static_cast<FText*>(args[0].addr);
+   CcBool* autocloseBool = static_cast<CcBool*>(args[1].addr);
+
+   Line* res = static_cast<Line*>(result.addr);
+   vector<double> points;
+
+   if(! text -> IsDefined()) {
+      cerr << "Input text is not defined" << endl;
+      res -> SetDefined(false);
+      return 0; 
+   }
+
+   if(! autocloseBool -> IsDefined()) {
+      cerr << "Autoclose is not defined" << endl;
+      res -> SetDefined(false);
+      return 0; 
+   }
+
+   string data = text -> GetValue();
+   bool autoclose = autocloseBool -> GetValue();
+
+   bool contains = data.find("\"type\":\"Polygon\"") != std::string::npos;
+
+   if(! contains) {
+       cerr << "Input does not contain a Polygon" << endl;
+       res -> SetDefined(false);
+       return 0; 
+   }
+
+   const char* dataArray = data.c_str();
+   const char* start = strstr(dataArray, "[[");
+
+   if(start == NULL) {
+      cerr << "Input is not valid GEOJson" << endl;
+      res -> SetDefined(false);
+      return 0; 
+   }
+
+   string buffer = "";
+   char lastChar = '\0';
+
+   for(int i = start - dataArray; dataArray[i] != '\0'; i++) {
+      char curChar = data[i];
+
+      if(curChar == ']' && lastChar == ']') {
+          if(! buffer.empty()) {
+             points.push_back(stod(buffer));
+          }
+          break;
+      } else if(curChar == ',' || curChar == ']') {
+         if(! buffer.empty()) {
+             points.push_back(stod(buffer));
+             buffer = "";
+         }
+      } else if(curChar == '[') {
+         // Ignore
+      } else {
+         buffer += curChar;
+      }
+
+      lastChar = curChar;
+   }
+
+   if(points.size() % 2 != 0) {
+      cerr << "Got an uneven amount of points" << endl;
+      res -> SetDefined(false);
+      return 0; 
+   }
+
+   vector<SimplePoint> simplepoints;
+
+   // Convert to points
+   for(size_t i = 0; i < points.size(); i = i + 2) {
+      double x = points[i];
+      double y = points[i+1];
+      SimplePoint point = SimplePoint(x, y);
+      simplepoints.push_back(point);
+   }
+
+   // Check for closed path
+   if(simplepoints[0] != simplepoints[simplepoints.size() - 1]) {
+      if(! autoclose) {
+         cerr << "Error: Region is not closed" << endl;
+         res -> SetDefined(false);
+         return 0; 
+      } else {
+         // Close line
+         simplepoints.push_back(simplepoints[0]);
+      }
+   }
+
+   res -> SetDefined(true);
+   res -> StartBulkLoad();
+   res -> Resize(simplepoints.size());
+   for(size_t i = 0; i < simplepoints.size() - 1; ++i) {
+        SimplePoint p1 = simplepoints[i];
+        SimplePoint p2 = simplepoints[i+1];
+        HalfSegment hs1(true,p1.getPoint(),p2.getPoint());
+        HalfSegment hs2(false,p1.getPoint(),p2.getPoint());
+        hs1.attr.edgeno = i;
+        hs2.attr.edgeno = i;
+        (*res) += hs1;
+        (*res) += hs2;
+   }
+
+   res -> EndBulkLoad();
+   return 0;
+}
+
+/*
+24.102.3 Specification of the operator ~geojson2line~
+
+*/
+const string Geojson2lineSpec = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( "
+                         "<text>text x bool -> region</text--->"
+                         "<text>geojson2line (_, _)</text--->"
+                         "<text> The operator geojson2line extracts"
+                         " all points from a GeoJSON polygon and creates"
+                         " a line. The first parameter is the GeoJSON"
+                         " input. The second parameter determines if the"
+                         " line should be automatically closed"
+                         " (if close segment is missing in GeoJSON).</text--->"
+                         "<text>query geojson2line([...])</text--->"
+                         ") )";
+
+/*
+24.102.4 Definition of the operator ~geojson2line~
+
+*/
+Operator geojson2line (
+        "geojson2line",
+        Geojson2lineSpec,
+        Geojson2line,
+        Operator::SimpleSelect,
+        Geojson2lineTypeMap );
+
+/*
+24.103 Operator ~geojson2point~
+
+*/
+
+/*
+24.103.1 Type Mapping function
+
+The signature is text -> point
+
+*/
+
+ListExpr Geojson2pointTypeMap(ListExpr args){
+
+  if(nl->ListLength(args) != 1) {
+     return listutils::typeError("one argument exptected");
+  }
+
+  if(FText::checkType(nl->First(args))) {
+     return nl->SymbolAtom(Point::BasicType());
+  }
+
+  return listutils::typeError("text expected");
+}
+
+/*
+24.103.2 Value Mapping function
+
+*/
+int Geojson2point(Word* args, Word& result, int message,
+                   Word& local, Supplier s ){
+
+   result = qp->ResultStorage(s);
+
+   FText* text = static_cast<FText*>(args[0].addr);
+
+   Point* res = static_cast<Point*>(result.addr);
+   vector<double> points;
+
+   if(! text -> IsDefined()) {
+      cerr << "Input text is not defined" << endl;
+      res -> SetDefined(false);
+      return 0; 
+   }
+
+   string data = text -> GetValue();
+
+   bool contains = data.find("\"type\":\"Point\"") != std::string::npos;
+
+   if(! contains) {
+       cerr << "Input does not contain a Point" << endl;
+       res -> SetDefined(false);
+       return 0; 
+   }
+
+   const char* dataArray = data.c_str();
+   const char* startStr = "coordinates\":[";
+   const char* start = strstr(dataArray, startStr);
+
+   if(start == NULL) {
+      cerr << "Input is not valid GEOJson" << endl;
+      res -> SetDefined(false);
+      return 0; 
+   }
+
+   string buffer = "";
+   const char* startPos = start + strlen(startStr);
+
+   for(int i = startPos - dataArray; dataArray[i] != '\0'; i++) {
+       char curChar = dataArray[i];
+
+       if(curChar == ']') {
+          if(! buffer.empty()) {
+             points.push_back(stod(buffer));
+          }
+          break;
+       } else if(curChar == ',' || curChar == ']') {
+          if(! buffer.empty()) {
+             cout << "Data: " << buffer << endl;
+             points.push_back(stod(buffer));
+             buffer = "";
+          }
+        } else {
+           buffer += curChar;
+        }
+   }
+
+   if(points.size() != 2) {
+      cerr << "Got an unexpected amount of points" << endl;
+      res -> SetDefined(false);
+      return 0; 
+   }
+
+   res->Set(points[0], points[1]); // also sets to DEFINED
+   return 0;
+}
+
+/*
+24.103.3 Specification of the operator ~geojson2point~
+
+*/
+const string Geojson2pointSpec = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( "
+                         "<text>text -> point</text--->"
+                         "<text>geojson2point (_)</text--->"
+                         "<text> The operator geojson2ponint extracts"
+                         " a point from a GeoJSON text."
+                         " The first parameter is the GeoJSON</text--->"
+                         "<text>query geojson2point([...])</text--->"
+                         ") )";
+
+
+
+/*
+24.103.4 Definition of the operator ~geojson2point~
+
+*/
+Operator geojson2point (
+        "geojson2point",
+        Geojson2pointSpec,
+        Geojson2point,
+        Operator::SimpleSelect,
+        Geojson2pointTypeMap );
+
+
 
 /*
 25 Creating the Algebra
@@ -11167,6 +11466,8 @@ public:
     importBinCSVSimpleOp.SetUsesArgsInTypeMapping();
     importBinCSVSimpleOp.enableInitFinishSupport();
 
+    AddOperator(&geojson2line);
+    AddOperator(&geojson2point);
   }
   ~ImExAlgebra() {};
 };
