@@ -1,0 +1,89 @@
+# Delete the objects created by SimilarityClusteringNew.sec
+
+
+# Step 1
+delete Card;
+delete NInserted;
+delete PC;
+
+delete Eps;
+delete MinPts;
+delete SS;
+delete maxRadius;
+delete n;
+delete wgs84;
+
+query memclear();
+
+
+# Step 2
+query T dcommand['query memclear()'] consume;
+
+
+# Step 3
+delete PCm;
+delete PCm_Pos_mtree;
+
+query deleteRemoteObjects(V);
+delete V;
+
+
+# Step 4
+query deleteRemoteObjects(ControlN);
+delete ControlN;
+
+query deleteRemoteObjects(X);
+delete X;
+
+
+# Step 5
+delete Wm;
+delete Wm_Pos_mtree;
+
+query deleteRemoteObjects(Neighbors);
+delete Neighbors;
+
+query deleteRemoteObjects(NeighborsByP);
+delete NeighborsByP;
+
+query deleteRemoteObjects(NeighborsByQ);
+delete NeighborsByQ;
+
+
+# Step 6
+query deleteRemoteObjects(Pairs);
+delete Pairs;
+
+query deleteRemoteObjects(Merge);
+delete Merge;
+
+query deleteRemoteObjects(Assignments);
+delete Assignments;
+
+
+# Step 7
+delete MaxCN
+
+# Step 8
+delete R
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
