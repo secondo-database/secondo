@@ -47,13 +47,13 @@ let ControlN = createintdarray("ControlN", Workers, n);
 let X = V ControlN dmap2["X", $1 feed
   extend[Pos2: gk(.Pos)]
   dbscanM[Pos2, CID0, Eps, MinPts]
-  extend[CID: (.CID0 * n) + $4]
+  extend[CID: (.CID0 * n) + $2]
   consume, 1238]
 
 
 
 # Step 5
-query T dcommand['query memclear()'] consume;
+query T dcommand['query memclear()'] filter[.Ok] count;
 
 let Wm = X dmap["Wm", . feed filter[.N = .N2] mconsume];
 let Wm_Pos_mtree = Wm dmap["Wm_Pos_mtree", . mcreatemtree[Pos, wgs84]];
