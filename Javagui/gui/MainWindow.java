@@ -33,7 +33,7 @@ import tools.Reporter;
 import javax.swing.filechooser.FileFilter;
 import mmdb.MMDBUserInterfaceController;
 
-public class MainWindow extends JFrame implements ResultProcessor,ViewerControl,SecondoChangeListener{
+public class MainWindow extends JFrame implements ResultProcessor,ViewerControl,SecondoChangeListener,ActionListener{
 
 public final static String AUTO_HISTORY_FILE=".gui_history";
 public final static String AUTO_QUERY_FILE=".gui_queries";
@@ -881,6 +881,12 @@ public MainWindow(String Title,String user,String passwd, String configFile){
     MMDBUserInterfaceController.getInstance().injectElementsToMMDB(OList, MainWindow.ComPanel, this);
 }
 
+
+public void actionPerformed(ActionEvent evt){
+   Object src = evt.getSource();
+}
+
+
 private void showUserSettings(StringBuffer u, StringBuffer p){
     ud.show();
     if(ud.getResultValue()==UserDialog.OK){
@@ -1257,6 +1263,30 @@ private void setViewer(SecondoViewer SV){
  }
   MainMenu.revalidate();
 }
+
+
+
+public static void myvalidate(Container c){
+    c.invalidate();
+    Component[] childs = c.getComponents();
+    for(int i=0;i<childs.length;i++){
+        Component cs = childs[i];
+        if(cs instanceof Container){
+            Container csc = (Container) cs;
+            myvalidate(csc);
+        } else {
+           cs.invalidate();
+           cs.validate();
+       }
+    }
+    c.validate();
+}
+
+
+public void myvalidate(){
+   myvalidate(this);
+}
+
 
 /** scans the displayed objects newly **/
 public void updateMarks(){
