@@ -53,6 +53,7 @@ import viewer.HoeseViewer;
 
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
+import java.awt.Container;
 
 import java.util.TreeSet;
 import java.util.Iterator;
@@ -90,6 +91,9 @@ public class GraphWindow extends JLayeredPane
   **/   
    boolean multisound = false;
 
+   AffineTransform identity = new AffineTransform();
+
+
 
    PreloadDialog  preloadDialog;
 
@@ -106,6 +110,8 @@ public class GraphWindow extends JLayeredPane
   
 
   public synchronized void setSelection(int x, int y, int w, int h){
+
+    try{
      if(selection){
         if(   sel_x == x && sel_y == y 
            && sel_w == w && sel_h == h){
@@ -125,14 +131,26 @@ public class GraphWindow extends JLayeredPane
      // paint new rectangle
      paintSelection(); 
      selection = true;
+   } catch(Exception e){
+     e.printStackTrace();
+   }
+
   }
 
   /** paints or removes selection **/
-  private synchronized void paintSelection(){
+  private void paintSelection(){
      Graphics2D g = (Graphics2D) getGraphics();
-     g.setXORMode(Color.WHITE);    
-     g.setStroke(sel_stroke);
-     g.drawRect(sel_x, sel_y, sel_w, sel_h);
+     synchronized(g){
+      // System.out.println("clipRect : " + g.getClipBounds());
+      // System.out.println("bounds   : " + this.getBounds());
+      // System.out.println("fillRect : " + sel_x+", "+ sel_y + ", " + sel_w +", " + sel_h);
+       g.setTransform(identity);
+       g.setColor(Color.BLACK);
+       g.setXORMode(Color.WHITE);    
+       //g.setStroke(sel_stroke);
+       //g.drawRect(sel_x, sel_y, sel_w, sel_h);
+       g.fillRect(sel_x, sel_y, sel_w, sel_h);
+     }
   }
 
 
@@ -329,6 +347,7 @@ public class GraphWindow extends JLayeredPane
     add(lay, new Integer(Laynr));
     mw.updateViewParameter(changeZoom);
     JToggleButton res =  lay.CreateLayerButton(LayerButtonListener, Laynr);
+    validate(mw.getMainFrame());
     return res; 
   }
 
@@ -464,13 +483,36 @@ public class GraphWindow extends JLayeredPane
    * @see <a href="Categorysrc.html#updateLayersSize">Source</a>
    */
   public void updateLayersSize (Rectangle asize) {
-    setPreferredSize(new Dimension((int)(asize.getX() + asize.getWidth()),
-        (int)(asize.getY() + asize.getHeight())));              //updateLayerSize();
-    for (int i = 0; i < getComponentCount(); i++)
-      //if (getLayer(getComponent(i))<=10000)
+
+    Dimension dm = new Dimension((int)(asize.getX() + asize.getWidth()),
+                                 (int)(asize.getY() + asize.getHeight()));
+    if(getPreferredSize().equals(dm)){
+      return;
+    }
+    setPreferredSize(dm);              //updateLayerSize();
+    for (int i = 0; i < getComponentCount(); i++) {
       getComponent(i).setBounds(asize);
-    revalidate();
+    }
+    validate(mw.getMainFrame());
   }
+
+public static void validate(Container c){
+    c.invalidate();
+    Component[] childs = c.getComponents();
+    for(int i=0;i<childs.length;i++){
+        Component cs = childs[i];
+        if(cs instanceof Container){
+            Container csc = (Container) cs;
+            validate(csc);
+        } else {
+           cs.invalidate();
+           cs.validate();
+       }
+    }
+    c.validate();
+}
+
+
 
 
   /* scales an rectangle by scaleFactor from ProjectionManager */
@@ -582,6 +624,7 @@ public class GraphWindow extends JLayeredPane
 
   AffineTransform at = CurrentState.transform;
   Graphics2D g2 = (Graphics2D) g;
+  synchronized(g){
 
   // paint the background
   // first transform the bounding box for the background
@@ -634,6 +677,7 @@ public class GraphWindow extends JLayeredPane
       // draw the selection 
       paintSelection();
     }
+   }
   }
 
   public void addMouseListener(MouseListener ML){
