@@ -254,7 +254,7 @@ Result    : TRUE
 Operator  : minsertmtree
 Number    : 484
 Signature : stream(Tuple) x MMTREE -> stream(tuple(x@TID)))
-Example   : query Kinos feed minsertmtree[mkinos_GeoData_mtree, GeoData] count = Kinos count 
+Example   : query Kinos feed addid minsertmtree[mkinos_GeoData_mtree, GeoData] count = Kinos count 
 Result    : TRUE
 
 Operator  : memload
