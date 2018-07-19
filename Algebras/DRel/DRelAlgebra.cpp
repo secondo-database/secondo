@@ -38,6 +38,8 @@ extern TypeConstructor DFRelTC;
 extern Operator DRELFUNARG1OP;
 extern Operator DRELFUNARG2OP;
 
+extern Operator DRELRELFUNARG1OP;
+
 extern Operator createboundaryOp;
 extern Operator getBoundaryIndexOp;
 extern Operator rect2cellgridOp;
@@ -56,6 +58,12 @@ extern Operator drelprojectOp;
 extern Operator drelextendOp;
 extern Operator drelprojectextendOp;
 extern Operator drelheadOp;
+extern Operator drelrenameOp;
+
+extern Operator drellrdupOp;
+extern Operator drellsortOp;
+extern Operator drellgroupbyOp;
+extern Operator drellsortbyOp;
 
 extern Operator drelcreatebtreeOp;
 extern Operator drelexactmatchOp;
@@ -73,6 +81,8 @@ DRelAlgebra::DRelAlgebra() {
     
     AddOperator( &DRELFUNARG1OP );
     AddOperator( &DRELFUNARG2OP );
+
+    AddOperator( &DRELRELFUNARG1OP );
 
     AddOperator( &createboundaryOp );
     createboundaryOp.SetUsesArgsInTypeMapping( );
@@ -92,6 +102,17 @@ DRelAlgebra::DRelAlgebra() {
     drelprojectextendOp.SetUsesArgsInTypeMapping( );
     AddOperator( &drelheadOp );
     drelheadOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &drelrenameOp );
+    drelrenameOp.SetUsesArgsInTypeMapping( );
+
+    AddOperator( &drellrdupOp );
+    drellrdupOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &drellsortOp );
+    drellsortOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &drellgroupbyOp );
+    drellgroupbyOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &drellsortbyOp );
+    drellsortbyOp.SetUsesArgsInTypeMapping( );
 
     AddOperator( &compareDistTypeOp );
     AddOperator( &drelcollect_boxOp );

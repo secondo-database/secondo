@@ -20,3 +20,9 @@ operator drelproject alias DRELPROJECT pattern _ op [list]
 operator drelextend alias DRELEXTEND pattern _ op [funlist] implicit parameters elem1 types DRELFUNARG1
 operator drelprojectextend alias DRELPROJECTEXTEND pattern _ op [list;funlist] implicit parameters elem1 types DRELFUNARG1
 operator drelhead alias DRELHEAD pattern _ op[_] implicit parameters elem1 types DRELFUNARG1
+operator drelrename alias DRELRENAME pattern _ op[_]
+
+operator drellrdup alias DRELLRDUP pattern _ op
+operator drellsort alias DRELLSORT pattern _ op
+operator drellgroupby alias DRELLGROUPBY pattern _ op[list;funlist] implicit parameters elem1 types DRELRELFUNARG1
+operator drellsortby alias DRELPROJECT pattern _ op [list]

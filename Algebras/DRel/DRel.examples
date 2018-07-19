@@ -116,3 +116,38 @@ Signature : drel(rel(X)) x int -> drel(rel(X))
 Example   : query drel1 drelhead[3]
 Result    : bug
 Remark    : remote server required
+
+Operator  : drelrename
+Number    : 1
+Signature : drel(rel(X)) x ar -> drel(rel(X))
+Example   : query drel1 drelrename[t1]
+Result    : bug
+Remark    : remote server required
+
+Operator  : drellrdup
+Number    : 1
+Signature : drel(rel(X)) -> drel(rel(X))
+Example   : query drel1 drellrdup
+Result    : bug
+Remark    : remote server required
+
+Operator  : drellsort
+Number    : 1
+Signature : drel(rel(X)) -> drel(rel(X))
+Example   : query drel1 drellsort
+Result    : bug
+Remark    : remote server required
+
+Operator  : drellgroupby
+Number    : 1
+Signature : drel(rel(X)) x attrlist x funlist -> drel(rel(Y))
+Example   : query drel1 drellgroupby[PLZ; Anz : group feed count]
+Result    : bug
+Remark    : remote server required
+
+Operator  : drellsortby
+Number    : 1
+Signature : drel(rel(X)) -> drel(rel(X))
+Example   : query drel1 drellsortby[PLZ]
+Result    : bug
+Remark    : remote server required

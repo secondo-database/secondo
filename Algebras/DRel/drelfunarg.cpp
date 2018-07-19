@@ -53,7 +53,7 @@ namespace drel {
     1.1 Type Mapping
 
     */
-    template<int pos>
+    template<bool rel, int pos>
     ListExpr DRELFUNARG( ListExpr args ) {
 
         cout << "drelfunarg" << endl;
@@ -62,15 +62,20 @@ namespace drel {
         if( !nl->HasMinLength( args, pos ) ) {
             return listutils::typeError( "too less arguments" );
         }
-        for( int i = 1; i<pos; i++ ) {
+        for( int i = 1; i < pos; i++ ) {
             args = nl->Rest( args );
         }
 
         ListExpr arg = nl->First( args );
         if( DRel::checkType( arg )
          || DFRel::checkType( arg ) ) {
-
-            return nl->Second( nl->Second( arg ) );
+            cout << rel << endl;
+            if( rel ) {
+                return nl->Second( arg );
+            }
+            else {
+                return nl->Second( nl->Second( arg ) );
+            }
         }
 
         return listutils::typeError( "Invalid type found" );
@@ -82,17 +87,25 @@ namespace drel {
 
     */
     OperatorSpec DRELFUNARG1SPEC(
-        "d[f]rel(X) x ... -> X",
+        "d[f]rel(rel(X)) x ... -> X",
         "DRELFUNARG1(_)",
         "Type mapping operator.",
-        "query drel1 filter [.PLZ=99998] drelsummarize consume"
+        "query drel1 drelfilter[.PLZ=99998] drelsummarize consume"
     );
 
     OperatorSpec DRELFUNARG2SPEC(
-        "d[f]rel(X) x ... -> X",
+        "d[f]rel(rel(X)) x ... -> X",
         "DRELFUNARG2(_)",
         "Type mapping operator.",
         "query drel1 drelprojectextend[PLZ; PLZ2 : .PLZ + 2] drelsummarize"
+        "consume"
+    );
+
+    OperatorSpec DRELRELFUNARG1SPEC(
+        "d[f]rel(rel(X)) x ... -> rel(X)",
+        "DRELRELFUNARG1(_)",
+        "Type mapping operator.",
+        "query drel1 drellgroupby[PLZ; Anz: group feed count] drelsummarize "
         "consume"
     );
 
@@ -105,7 +118,7 @@ namespace drel {
         DRELFUNARG1SPEC.getStr( ),
         0,
         Operator::SimpleSelect,
-        DRELFUNARG<1>
+        DRELFUNARG<false, 1>
     );
 
     Operator DRELFUNARG2OP(
@@ -113,7 +126,15 @@ namespace drel {
         DRELFUNARG2SPEC.getStr( ),
         0,
         Operator::SimpleSelect,
-        DRELFUNARG<2>
+        DRELFUNARG<false, 2>
+    );
+    
+    Operator DRELRELFUNARG1OP(
+        "DRELRELFUNARG1",
+        DRELRELFUNARG1SPEC.getStr( ),
+        0,
+        Operator::SimpleSelect,
+        DRELFUNARG<true, 1>
     );
 
 } // end of namespace drel
