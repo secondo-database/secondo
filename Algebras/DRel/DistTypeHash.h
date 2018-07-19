@@ -31,20 +31,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "DistTypeBasic.h"
 
 namespace drel {
-    /*
-    1 Class ~DistType~
+/*
+1 Class ~DistType~
 
-    This class represents the distirbution type informations for the class
-    drel. The supported types are represented by the enum distributionType.
-    This type is used for hash distribution.
+This class represents the distirbution type informations for the class
+drel. The supported types are represented by the enum distributionType.
+This type is used for hash distribution.
 
-    */
+*/
     class DistTypeHash : public DistTypeBasic {
     public:
-        /*
-        1.1 Methods
+/*
+1.1 Methods
 
-        */
+*/
         DistTypeHash( distributionType _type, int _attr );
 
         DistTypeHash( const DistTypeHash& _distType );
@@ -64,15 +64,15 @@ namespace drel {
         virtual void print( );
         static bool computeNewAttrPos( ListExpr attrPosList, int& attrPos );
 
-        /*
-        1.2 Members
+/*
+1.2 Members
 
-        1.2.1 ~attr~
+1.2.1 ~attr~
 
-        The number of used attribute to distribute the relation. The numbering
-        starts with 0.
+The number of used attribute to distribute the relation. The numbering
+starts with 0.
 
-        */
+*/
         int attr;
     };
 

@@ -2,7 +2,8 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Copyright (C) 2015,
+Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -20,33 +21,19 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
-//characters [1] Type: [] []
-//characters [2] Type: [] []
-//[ae] [\"{a}]
-//[oe] [\"{o}]
-//[ue] [\"{u}]
-//[ss] [{\ss}]
-//[Ae] [\"{A}]
-//[Oe] [\"{O}]
-//[Ue] [\"{U}]
-//[x] [$\times $]
-//[->] [$\rightarrow $]
-//[toc] [\tableofcontents]
 
-[1] Implementation of operators.
+//[$][\$]
 
-[toc]
 
-1 Operator implementation using dmap value mapping.
-
-Implementation of the secondo operators drelfilter, drelproject, 
+1 Implementation of the secondo operators drelfilter, drelproject, 
 drelprojectextend, drellsortby, drellgroupby, drellsort, drellrdup, 
-drelrename, drelhead and drelextend.
-This operators use the same value mapping witch calls the dmap operator of 
+drelrename, drelhead and drelextend
+
+This operators have the same value mapping witch calls the dmap operator of 
 the Distributed2Algebra.
 
 */
+//#define DRELDEBUG
 
 #include "NestedList.h"
 #include "ListUtils.h"
@@ -90,11 +77,17 @@ namespace drel {
 
 1.1.1 Type Mapping ~drelfilterTM~
 
-Expect a drel or dfrel with a function to filter the tuples. Type mapping 
-for the drelfilter operator.
+Expect a d[f]rel with a function to filter the tuples. Type mapping for the 
+drelfilter operator.
 
 */
     ListExpr drelfilterTM( ListExpr args ) {
+
+        #ifdef DRELDEBUG
+        cout << "drelfilterTM" << endl;
+        cout << "args" << endl;
+        cout << nl->ToString( args ) << endl;
+        #endif
 
         std::string err = "d[f]rel(X) x fun expected";
 
@@ -132,6 +125,11 @@ for the drelfilter operator.
                         drelValue ) ), // only dummy for the filter TM
                 nl->TwoElemList( map, fun ) ) );
 
+        #ifdef DRELDEBUG
+        cout << "filter tm" << endl;
+        cout << nl->ToString( result ) << endl;
+        #endif
+
         // filter TM ok?
         if( !listutils::isTupleStream( result ) ) {
             return result;
@@ -161,6 +159,11 @@ for the drelfilter operator.
                             nl->SymbolAtom( "dmapelem1" ) ),
                         fun ) ) );
 
+        #ifdef DRELDEBUG
+        cout << "funList" << endl;
+        cout << nl->ToString( funList ) << endl;
+        #endif
+
         ListExpr dmapResult = dmapTM(
             nl->ThreeElemList(
                 nl->TwoElemList( darrayType, drelValue ),
@@ -168,6 +171,11 @@ for the drelfilter operator.
                     listutils::basicSymbol<CcString>( ), 
                     nl->StringAtom( "" ) ),
                 funList ) );
+
+        #ifdef DRELDEBUG
+        cout << "dmapResult" << endl;
+        cout << nl->ToString( dmapResult ) << endl;
+        #endif
 
         if( !nl->HasLength( dmapResult, 3 ) ) {
             return dmapResult;
@@ -198,11 +206,17 @@ for the drelfilter operator.
 /*
 1.1.2 Type Mapping ~drelprojectTM~
 
-Expect a drel or dfrel an attribute list. Type mapping for the drelproject 
+Expect a d[f]rel an attribute list. Type mapping for the drelproject 
 operator.
 
 */
     ListExpr drelprojectTM( ListExpr args ) {
+
+        #ifdef DRELDEBUG
+        cout << "drelprojectTM" << endl;
+        cout << "args" << endl;
+        cout << nl->ToString( args ) << endl;
+        #endif
 
         std::string err = "d[f]rel(X) x attrlist expected";
 
@@ -231,6 +245,11 @@ operator.
                     nl->Second( relType ) ),
                 attrlist ) );
 
+        #ifdef DRELDEBUG
+        cout << "project tm" << endl;
+        cout << nl->ToString( result ) << endl;
+        #endif
+
         // project TM ok?
         if( !nl->HasLength( result, 3 ) ) {
             return result;
@@ -239,10 +258,20 @@ operator.
             return result;
         }
 
+        #ifdef DRELDEBUG
+        cout << "distType with attr pos to check" << endl;
+        cout << nl->ToString( distType ) << endl;
+        #endif
+
         // distribution by an attribute?
         if( nl->HasMinLength( distType, 2 ) ) {
 
             int newPos = nl->IntValue( nl->Second( distType ) ) + 1;
+            #ifdef DRELDEBUG
+            cout << "distribution by attribute check for new position" << endl;
+            cout << "newPos" << endl;
+            cout << newPos << endl;
+            #endif
 
             if( DistTypeHash::computeNewAttrPos( 
                 nl->Second( nl->Second( result ) ), newPos ) ) {
@@ -271,6 +300,11 @@ operator.
                     nl->First( drelType ),
                     distType,
                     nl->Third( drelType ) );
+                
+                #ifdef DRELDEBUG
+                cout << "new drelType" << endl;
+                cout << nl->ToString( drelType ) << endl;
+                #endif
             }
             else {
                 return listutils::typeError( err +
@@ -304,6 +338,11 @@ operator.
                         nl->SymbolAtom( "dmapelem1" ) ),
                     attrlist ) ) );
 
+        #ifdef DRELDEBUG
+        cout << "funList" << endl;
+        cout << nl->ToString( funList ) << endl;
+        #endif
+
         ListExpr dmapResult = dmapTM(
             nl->ThreeElemList(
                 nl->TwoElemList( darrayType, drelValue ),
@@ -311,6 +350,11 @@ operator.
                     listutils::basicSymbol<CcString>( ),
                     nl->StringAtom( "" ) ),
                 funList ) );
+
+        #ifdef DRELDEBUG
+        cout << "dmapResult" << endl;
+        cout << nl->ToString( dmapResult ) << endl;
+        #endif
 
         if( !nl->HasLength( dmapResult, 3 ) ) {
             return dmapResult;
@@ -343,11 +387,17 @@ operator.
 /*
 1.1.3 Type Mapping ~drelprojectextendTM~
 
-Expect a drel or dfrel with an attribute list and a function list to extend
-the tuples. This is a combination of the operators project and extend.
+Expect a d[f]rel with an attribute list and a function list to extend the 
+tuples. This is a combination of the operators project and extend.
 
 */
     ListExpr drelprojectextendTM( ListExpr args ) {
+
+        #ifdef DRELDEBUG
+        cout << "drelprojectextendTM" << endl;
+        cout << "args" << endl;
+        cout << nl->ToString( args ) << endl;
+        #endif
 
         std::string err = "d[f]rel(X) x attrlist x funlist expected";
 
@@ -413,6 +463,11 @@ the tuples. This is a combination of the operators project and extend.
                 attrlist,
                 map ) );
 
+        #ifdef DRELDEBUG
+        cout << "projectextend tm" << endl;
+        cout << nl->ToString( result ) << endl;
+        #endif
+
         // filter TM ok?
         if( !nl->HasLength( result, 3 ) ) {
             return result;
@@ -425,6 +480,11 @@ the tuples. This is a combination of the operators project and extend.
         if( nl->HasMinLength( distType, 2 ) ) {
 
             int newPos = nl->IntValue( nl->Second( distType ) ) + 1;
+            #ifdef DRELDEBUG
+            cout << "distribution by attribute check for new position" << endl;
+            cout << "newPos" << endl;
+            cout << newPos << endl;
+            #endif
 
             if( DistTypeHash::computeNewAttrPos(
                 nl->Second( nl->Second( result ) ), newPos ) ) {
@@ -453,6 +513,11 @@ the tuples. This is a combination of the operators project and extend.
                     nl->First( drelType ),
                     distType,
                     nl->Third( drelType ) );
+
+                #ifdef DRELDEBUG
+                cout << "new drelType" << endl;
+                cout << nl->ToString( drelType ) << endl;
+                #endif
             } else {
                 return listutils::typeError( err +
                     ": it is not allowed to project without the "
@@ -486,6 +551,11 @@ the tuples. This is a combination of the operators project and extend.
                     attrlist,
                     fun ) ) );
 
+        #ifdef DRELDEBUG
+        cout << "funList" << endl;
+        cout << nl->ToString( funList ) << endl;
+        #endif
+
         ListExpr dmapResult = dmapTM(
             nl->ThreeElemList(
                 nl->TwoElemList( darrayType, drelValue ),
@@ -493,6 +563,11 @@ the tuples. This is a combination of the operators project and extend.
                     listutils::basicSymbol<CcString>( ),
                     nl->StringAtom( "" ) ),
                 funList ) );
+
+        #ifdef DRELDEBUG
+        cout << "dmapResult" << endl;
+        cout << nl->ToString( dmapResult ) << endl;
+        #endif
 
         if( !nl->HasLength( dmapResult, 3 ) ) {
             return dmapResult;
@@ -523,11 +598,17 @@ the tuples. This is a combination of the operators project and extend.
 /*
 1.1.4 Type Mapping ~drelextendTM~
 
-Expect a drel or dfrel with a function list to extend the tuples. This is 
-a combination of the operator extend.
+Expect a d[f]rel with a function list to extend the tuples. This is a 
+combination of the operator extend.
 
 */
     ListExpr drelextendTM( ListExpr args ) {
+
+        #ifdef DRELDEBUG
+        cout << "drelextendTM" << endl;
+        cout << "args" << endl;
+        cout << nl->ToString( args ) << endl;
+        #endif
 
         std::string err = "d[f]rel(X) x funlist expected";
 
@@ -590,6 +671,11 @@ a combination of the operator extend.
                     nl->Second( relType ) ),
                 map ) );
 
+        #ifdef DRELDEBUG
+        cout << "extend tm" << endl;
+        cout << nl->ToString( result ) << endl;
+        #endif
+
         // filter TM ok?
         if( !nl->HasLength( result, 2 ) ) {
             return result;
@@ -622,6 +708,11 @@ a combination of the operator extend.
                         nl->SymbolAtom( "dmapelem1" ) ),
                     fun ) ) );
 
+        #ifdef DRELDEBUG
+        cout << "funList" << endl;
+        cout << nl->ToString( funList ) << endl;
+        #endif
+
         ListExpr dmapResult = dmapTM(
             nl->ThreeElemList(
                 nl->TwoElemList( darrayType, drelValue ),
@@ -629,6 +720,11 @@ a combination of the operator extend.
                     listutils::basicSymbol<CcString>( ),
                     nl->StringAtom( "" ) ),
                 funList ) );
+
+        #ifdef DRELDEBUG
+        cout << "dmapResult" << endl;
+        cout << nl->ToString( dmapResult ) << endl;
+        #endif
 
         if( !nl->HasLength( dmapResult, 3 ) ) {
             return dmapResult;
@@ -659,11 +755,17 @@ a combination of the operator extend.
 /*
 1.1.5 Type Mapping ~drelheadTM~
 
-Expect a drel or dfrel and an int value. Type mapping for the drelhead
+Expect a d[f]rel and an int value. Type mapping for the drelhead
 operator.
 
 */
     ListExpr drelheadTM( ListExpr args ) {
+
+        #ifdef DRELDEBUG
+        cout << "drelheadTM" << endl;
+        cout << "args" << endl;
+        cout << nl->ToString( args ) << endl;
+        #endif
 
         std::string err = "d[f]rel(X) x int expected";
 
@@ -717,6 +819,11 @@ operator.
                         nl->SymbolAtom( "dmapelem1" ) ),
                     secondValue ) ) );
 
+        #ifdef DRELDEBUG
+        cout << "funList" << endl;
+        cout << nl->ToString( funList ) << endl;
+        #endif
+
         ListExpr dmapResult = dmapTM(
             nl->ThreeElemList(
                 nl->TwoElemList( darrayType, drelValue ),
@@ -724,6 +831,11 @@ operator.
                     listutils::basicSymbol<CcString>( ),
                     nl->StringAtom( "" ) ),
                 funList ) );
+
+        #ifdef DRELDEBUG
+        cout << "dmapTM head" << endl;
+        cout << nl->ToString( dmapResult ) << endl;
+        #endif
 
         if( !nl->HasLength( dmapResult, 3 ) ) {
             return dmapResult;
@@ -754,11 +866,17 @@ operator.
 /*
 1.1.6 Type Mapping ~drelrenameTM~
 
-Expect a drel or dfrel and a symbol. Type mapping for the drelrename 
+Expect a d[f]rel and a symbol. Type mapping for the drelrename
 operator.
 
 */
     ListExpr drelrenameTM( ListExpr args ) {
+
+        #ifdef DRELDEBUG
+        cout << "drelrenameTM" << endl;
+        cout << "args" << endl;
+        cout << nl->ToString( args ) << endl;
+        #endif
 
         std::string err = "d[f]rel(X) x ar expected";
 
@@ -796,6 +914,11 @@ operator.
             return result;
         }
 
+        #ifdef DRELDEBUG
+        cout << "rename tm" << endl;
+        cout << nl->ToString( result ) << endl;
+        #endif
+
         if( DFRel::checkType( drelType ) ) {
             relType = nl->TwoElemList(
                 listutils::basicSymbol<frel>( ),
@@ -820,13 +943,24 @@ operator.
                         nl->SymbolAtom( "dmapelem1" ) ),
                     secondValue ) ) );
 
+        #ifdef DRELDEBUG
+        cout << "funList" << endl;
+        cout << nl->ToString( funList ) << endl;
+        #endif
+
         ListExpr dmapResult = dmapTM(
             nl->ThreeElemList(
                 nl->TwoElemList( darrayType, drelValue ),
+                //nl->TwoElemList( darrayType, nl->SymbolAtom( "dummy" ) ),
                 nl->TwoElemList(
                     listutils::basicSymbol<CcString>( ),
                     nl->StringAtom( "" ) ),
                 funList ) );
+
+        #ifdef DRELDEBUG
+        cout << "dmapTM rename" << endl;
+        cout << nl->ToString( dmapResult ) << endl;
+        #endif
 
         if( !nl->HasLength( dmapResult, 3 ) ) {
             return dmapResult;
@@ -857,11 +991,17 @@ operator.
 /*
 1.1.7 Type Mapping ~drellrdupTM~
 
-Expect a drel or dfrel and a symbol. Type mapping for the drellrdup
+Expect a d[f]rel and a symbol. Type mapping for the drellrdup
 operator.
 
 */
     ListExpr drellrdupTM( ListExpr args ) {
+
+        #ifdef DRELDEBUG
+        cout << "drellrdupTM" << endl;
+        cout << "args" << endl;
+        cout << nl->ToString( args ) << endl;
+        #endif
 
         std::string err = "d[f]rel(X) expected";
 
@@ -906,6 +1046,11 @@ operator.
                         nl->SymbolAtom( "feed" ),
                         nl->SymbolAtom( "dmapelem1" ) ) ) ) );
 
+        #ifdef DRELDEBUG
+        cout << "funList" << endl;
+        cout << nl->ToString( funList ) << endl;
+        #endif
+
         ListExpr dmapResult = dmapTM(
             nl->ThreeElemList(
                 nl->TwoElemList( darrayType, drelValue ),
@@ -913,6 +1058,11 @@ operator.
                     listutils::basicSymbol<CcString>( ),
                     nl->StringAtom( "" ) ),
                 funList ) );
+
+        #ifdef DRELDEBUG
+        cout << "dmapTM lrdup" << endl;
+        cout << nl->ToString( dmapResult ) << endl;
+        #endif
 
         if( !nl->HasLength( dmapResult, 3 ) ) {
             return dmapResult;
@@ -943,11 +1093,17 @@ operator.
 /*
 1.1.8 Type Mapping ~drellsortTM~
 
-Expect a drel or dfrel and a symbol. Type mapping for the drellsort
+Expect a d[f]rel and a symbol. Type mapping for the drellsort
 operator.
 
 */
     ListExpr drellsortTM( ListExpr args ) {
+
+        #ifdef DRELDEBUG
+        cout << "drellsortTM" << endl;
+        cout << "args" << endl;
+        cout << nl->ToString( args ) << endl;
+        #endif
 
         std::string err = "d[f]rel(X) expected";
 
@@ -992,6 +1148,11 @@ operator.
                         nl->SymbolAtom( "feed" ),
                         nl->SymbolAtom( "dmapelem1" ) ) ) ) );
 
+        #ifdef DRELDEBUG
+        cout << "funList" << endl;
+        cout << nl->ToString( funList ) << endl;
+        #endif
+
         ListExpr dmapResult = dmapTM(
             nl->ThreeElemList(
                 nl->TwoElemList( darrayType, drelValue ),
@@ -999,6 +1160,11 @@ operator.
                     listutils::basicSymbol<CcString>( ),
                     nl->StringAtom( "" ) ),
                 funList ) );
+
+        #ifdef DRELDEBUG
+        cout << "dmapTM lsort" << endl;
+        cout << nl->ToString( dmapResult ) << endl;
+        #endif
 
         if( !nl->HasLength( dmapResult, 3 ) ) {
             return dmapResult;
@@ -1029,11 +1195,17 @@ operator.
 /*
 1.1.1 Type Mapping ~drellgroupbyTM~
 
-Expect a drel or dfrel, an attribute list to group the tuple and a function list.
+Expect a d[f]rel, an attribute list to group the tuple and a function list.
 Type mapping for the drellgroup operator.
 
 */
     ListExpr drellgroupbyTM( ListExpr args ) {
+
+        #ifdef DRELDEBUG
+        cout << "drellgroupbyTM" << endl;
+        cout << "args" << endl;
+        cout << nl->ToString( args ) << endl;
+        #endif
 
         std::string err = "d[f]rel(X) x attrlist x funlist expected";
 
@@ -1099,6 +1271,11 @@ Type mapping for the drellgroup operator.
                 attrlist,
                 map ) );
 
+        #ifdef DRELDEBUG
+        cout << "groupby tm" << endl;
+        cout << nl->ToString( result ) << endl;
+        #endif
+
         // groupby TM ok?
         if( !nl->HasLength( result, 3 ) ) {
             return result;
@@ -1111,6 +1288,11 @@ Type mapping for the drellgroup operator.
         if( nl->HasMinLength( distType, 2 ) ) {
 
             int newPos = nl->IntValue( nl->Second( distType ) ) + 1;
+            #ifdef DRELDEBUG
+            cout << "distribution by attribute check for new position" << endl;
+            cout << "newPos" << endl;
+            cout << newPos << endl;
+            #endif
 
             if( nl->HasMinLength( nl->Second( result ), 2 )
              && DistTypeHash::computeNewAttrPos(
@@ -1141,6 +1323,10 @@ Type mapping for the drellgroup operator.
                     distType,
                     nl->Third( drelType ) );
 
+                #ifdef DRELDEBUG
+                cout << "new drelType" << endl;
+                cout << nl->ToString( drelType ) << endl;
+                #endif
             } else {
                 return listutils::typeError( err +
                     ": it is not allowed to create a group without the "
@@ -1174,6 +1360,11 @@ Type mapping for the drellgroup operator.
                     attrlist,
                     fun ) ) );
 
+        #ifdef DRELDEBUG
+        cout << "funList" << endl;
+        cout << nl->ToString( funList ) << endl;
+        #endif
+
         ListExpr dmapResult = dmapTM(
             nl->ThreeElemList(
                 nl->TwoElemList( darrayType, drelValue ),
@@ -1181,6 +1372,11 @@ Type mapping for the drellgroup operator.
                     listutils::basicSymbol<CcString>( ),
                     nl->StringAtom( "" ) ),
                 funList ) );
+
+        #ifdef DRELDEBUG
+        cout << "dmapResult" << endl;
+        cout << nl->ToString( dmapResult ) << endl;
+        #endif
 
         if( !nl->HasLength( dmapResult, 3 ) ) {
             return dmapResult;
@@ -1211,11 +1407,17 @@ Type mapping for the drellgroup operator.
 /*
 1.1.2 Type Mapping ~drellsortbyTM~
 
-Expect a drel or dfrel and an attribute list. Type mapping for the 
-drellsortby operator.
+Expect a d[f]rel an attribute list. Type mapping for the drellsortby
+operator.
 
 */
     ListExpr drellsortbyTM( ListExpr args ) {
+
+        #ifdef DRELDEBUG
+        cout << "drellsortbyTM" << endl;
+        cout << "args" << endl;
+        cout << nl->ToString( args ) << endl;
+        #endif
 
         std::string err = "d[f]rel(X) x attrlist expected";
 
@@ -1243,6 +1445,11 @@ drellsortby operator.
                     listutils::basicSymbol<Stream<Tuple> >( ),
                     nl->Second( relType ) ),
                 attrlist ) );
+
+        #ifdef DRELDEBUG
+        cout << "sortby tm" << endl;
+        cout << nl->ToString( result ) << endl;
+        #endif
 
         // sortby TM ok?
         if( !nl->HasLength( result, 3 ) ) {
@@ -1276,6 +1483,11 @@ drellsortby operator.
                         nl->SymbolAtom( "dmapelem1" ) ),
                     attrlist ) ) );
 
+        #ifdef DRELDEBUG
+        cout << "funList" << endl;
+        cout << nl->ToString( funList ) << endl;
+        #endif
+
         ListExpr dmapResult = dmapTM(
             nl->ThreeElemList(
                 nl->TwoElemList( darrayType, drelValue ),
@@ -1283,6 +1495,11 @@ drellsortby operator.
                     listutils::basicSymbol<CcString>( ),
                     nl->StringAtom( "" ) ),
                 funList ) );
+
+        #ifdef DRELDEBUG
+        cout << "dmapResult" << endl;
+        cout << nl->ToString( dmapResult ) << endl;
+        #endif
 
         if( !nl->HasLength( dmapResult, 3 ) ) {
             return dmapResult;
@@ -1315,13 +1532,19 @@ drellsortby operator.
 /*
 1.2 Value Mapping ~dreldmapVMT~
 
-Uses a drel or dfrel and creates a new drel or dfrel. The drel or dfrel is 
-created by calling the dmap value mapping of the Distributed2Algebra.
+Uses a d[f]rel and creates a new drel. The d[f]rel is created by calling 
+the dmap value mapping of the Distributed2Algebra.
 
 */
     template<class R, class T, int parm>
     int dreldmapVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
+
+        #ifdef DRELDEBUG
+        cout << "dreldmapVMT" << endl;
+        cout << "parm" << endl;
+        cout << parm << endl;
+        #endif
         
         R* drel = ( R* )args[ 0 ].addr;
 

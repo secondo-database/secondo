@@ -42,12 +42,12 @@ extern QueryProcessor* qp;
 
 namespace drel {
 
-    /*
-    1.1 Type Mapping
+/*
+1.1 Type Mapping
 
-    Expect a DRel or DFRel and another DRel or DFRel.
+Expect a DRel or DFRel and another DRel or DFRel.
 
-    */
+*/
     ListExpr compareDistTypeTM( ListExpr args ) {
 
         std::string err = "drel, drel expected";
@@ -72,13 +72,13 @@ namespace drel {
         return listutils::basicSymbol<CcBool>( );
     }
 
-    /*
-    1.2 Value Mapping
+/*
+1.2 Value Mapping
 
-    Compares the disttypes of two drels. Return true, if the drels have the 
-    same disttype.
+Compares the disttypes of two drels. Return true, if the drels have the 
+same disttype.
 
-    */
+*/
     template<class T, class R>
     int compareDistTypeVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
@@ -94,10 +94,10 @@ namespace drel {
         return 0;
     }
 
-    /*
-    1.3 ValueMapping Array of drfdistribute
+/*
+1.3 ValueMapping Array of drfdistribute
 
-    */
+*/
     ValueMapping compareDistTypeVM[ ] = {
         compareDistTypeVMT<DRel, DRel>,
         compareDistTypeVMT<DRel, DFRel>,
@@ -105,10 +105,10 @@ namespace drel {
         compareDistTypeVMT<DFRel, DFRel>
     };
 
-    /*
-    1.4 Selection function
+/*
+1.4 Selection function
 
-    */
+*/
     int compareDistTypeSelect( ListExpr args ) {
 
         int n1 = nl->SymbolValue( nl->First( nl->First( args ) ) ) == 
@@ -119,10 +119,10 @@ namespace drel {
         return n1 + n2;
     }
 
-    /*
-    1.5 Specification of comparedisttype
+/*
+1.5 Specification of comparedisttype
 
-    */
+*/
     OperatorSpec compareDistTypeSpec(
         " drel(X) x drel(X) "
         "-> bool ",
@@ -132,10 +132,10 @@ namespace drel {
         " query drel1 drel2 comparedisttype"
     );
 
-    /*
-    1.6 Operator instance of comparedisttype operator
+/*
+1.6 Operator instance of comparedisttype operator
 
-    */
+*/
     Operator compareDistTypeOp(
         "comparedisttype",
         compareDistTypeSpec.getStr( ),

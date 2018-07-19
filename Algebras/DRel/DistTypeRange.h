@@ -32,21 +32,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Collection/CollectionAlgebra.h"
 
 namespace drel {
-    /*
-    1 Class ~DistType~
+/*
+1 Class ~DistType~
 
-    This class represents the distirbution type informations for the class 
-    drel. The supported types are represented by the enum distributionType.
-    This class is used for partitioning by range. The class stores also the 
-    ranges.
+This class represents the distirbution type informations for the class 
+drel. The supported types are represented by the enum distributionType.
+This class is used for partitioning by range. The class stores also the 
+ranges.
 
-    */
+*/
     class DistTypeRange : public DistTypeHash {
     public:
-        /*
-        1.1 Methods
+/*
+1.1 Methods
 
-        */
+*/
         DistTypeRange( distributionType _type, int _attr, 
             collection::Collection* _boundary );
         DistTypeRange( distributionType _type, int _attr, int _key, 
@@ -74,22 +74,22 @@ namespace drel {
 
     private:
 
-        /*
-        1.2 Members
+/*
+1.2 Members
 
-        1.2.1 ~key~
+1.2.1 ~key~
         
-        The key for this distribution type. It is a random key to compare 
-        two range distribution types. 
+The key for this distribution type. It is a random key to compare 
+two range distribution types. 
 
-        */
+*/
         int key;
-        /*
-        1.2.2 ~boundary~
+/*
+1.2.2 ~boundary~
 
-        The pointer to the boundary object.
+The pointer to the boundary object.
 
-        */
+*/
         collection::Collection* boundary;
     };
 

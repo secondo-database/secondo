@@ -53,13 +53,13 @@ using namespace distributed2;
 
 namespace drel {
 
-    /*
-    1.1 Type Mapping drelrangeTM
+/*
+1.1 Type Mapping drelrangeTM
 
-    Expect two DRels (one with btree and one with a relation) and two values 
-    to define the range.
+Expect two DRels (one with btree and one with a relation) and two values 
+to define the range.
 
-    */
+*/
     ListExpr drelrangeTM( ListExpr args ) {
         std::string err = "drel(btree(X)) x drel(rel(X)) x ANY x ANY expected";
 
@@ -147,13 +147,13 @@ namespace drel {
             newRes );
     }
 
-    /*
-    1.2 Type Mapping drelexactmatchTM
+/*
+1.2 Type Mapping drelexactmatchTM
 
-    Expect two DRels (one with btree and one with a relation) and a search
-    value.
+Expect two DRels (one with btree and one with a relation) and a search
+value.
 
-    */
+*/
     ListExpr drelexactmatchTM( ListExpr args ) {
 
         std::string err = "drel(btree(X)) x drel(rel(X)) x ANY expected";
@@ -243,12 +243,12 @@ namespace drel {
             newRes );
     }
 
-    /*
-    1.3 Value Mapping
+/*
+1.3 Value Mapping
 
-    Uses a distributed btree and a drel to call the range operator.
+Uses a distributed btree and a drel to call the range operator.
 
-    */
+*/
     template<int parm>
     int dreldloop2VMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
@@ -283,33 +283,33 @@ namespace drel {
         return 0;
     }
 
-    /*
-    1.4 ValueMapping Array for dloop2
+/*
+1.4 ValueMapping Array for dloop2
 
-    Used by the operators with only a drel input.
+Used by the operators with only a drel input.
 
-    */
+*/
     ValueMapping dreldloop2VM[ ] = {
         dreldloop2VMT<1>,
         dreldloop2VMT<2>,
         dreldloop2VMT<3>
     };
 
-    /*
-    1.6 Selection function for dreldloop2
+/*
+1.6 Selection function for dreldloop2
 
-    Used to locate the FText with the function for the dloop2 value mapping.
+Used to locate the FText with the function for the dloop2 value mapping.
 
-    */
+*/
     int dreldloop2Select( ListExpr args ) {
 
         return nl->ListLength( args ) - 3;
     }
 
-    /*
-    1.7 Specification of drelrange
+/*
+1.7 Specification of drelrange
 
-    */
+*/
     OperatorSpec drelrangeSpec(
         " drel(X) x drel(X) x string "
         "-> drel(X) ",
@@ -318,10 +318,10 @@ namespace drel {
         " query drel1_Name drel1 drelrange[\"Berlin\",\"Mannheim\"]"
     );
 
-    /*
-    1.8 Operator instance of drelrange operator
+/*
+1.8 Operator instance of drelrange operator
 
-    */
+*/
     Operator drelrangeOp(
         "drelrange",
         drelrangeSpec.getStr( ),
@@ -331,10 +331,10 @@ namespace drel {
         drelrangeTM
     );
 
-    /*
-    1.9 Specification of drelexactmatch
+/*
+1.9 Specification of drelexactmatch
 
-    */
+*/
     OperatorSpec drelexactmatchSpec(
         " drel(X) x drel(X) x string "
         "-> drel(X) ",
@@ -343,10 +343,10 @@ namespace drel {
         " query drel1_Name drel1 drelexactmatch[\"Berlin\"]"
     );
 
-    /*
-    1.10 Operator instance of drelexactmatch operator
+/*
+1.10 Operator instance of drelexactmatch operator
 
-    */
+*/
     Operator drelexactmatchOp(
         "drelexactmatch",
         drelexactmatchSpec.getStr( ),

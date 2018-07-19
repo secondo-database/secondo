@@ -52,20 +52,20 @@ namespace drel {
     bool supportedType(
         const std::string _typeString, distributionType& type );
 
-    /*
-    1 Class ~DistType~
+/*
+1 Class ~DistType~
 
-    This class represents the distirbution type informations for the class 
-    drel. The supported types are represented by the enum distributionType.
-    This type is used for basic distribution like random and replicated.
+This class represents the distirbution type informations for the class 
+drel. The supported types are represented by the enum distributionType.
+This type is used for basic distribution like random and replicated.
 
-    */
+*/
     class DistTypeBasic {
     public:
-        /*
-        1.1 Methods
+/*
+1.1 Methods
 
-        */
+*/
         DistTypeBasic( );
         DistTypeBasic( distributionType _type );
 
@@ -86,15 +86,15 @@ namespace drel {
         virtual void print( );
 
     protected:
-        /*
-        1.2 Members
+/*
+1.2 Members
 
-        1.2.1 ~key~
+1.2.1 ~key~
 
-        The key for this distribution type. It is a random key to compare
-        two range distribution types.
+The key for this distribution type. It is a random key to compare
+two range distribution types.
 
-        */
+*/
         distributionType type;
     };
 

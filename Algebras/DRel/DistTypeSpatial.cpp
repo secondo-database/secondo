@@ -37,14 +37,14 @@ using namespace distributed2;
 using namespace distributed2;
 
 namespace drel {
-    /*
-    6 Class ~DistType~
+/*
+6 Class ~DistType~
 
-    Implementation.
+Implementation.
 
-    6.1 Constructors
+6.1 Constructors
 
-    */
+*/
     template<class T>
     DistTypeSpatial<T>::DistTypeSpatial( 
         distributionType _type, int _attr, T* _grid ) :
@@ -77,10 +77,10 @@ namespace drel {
         #endif
     }
 
-    /*
-    6.2 Copyconstructor
+/*
+6.2 Copyconstructor
 
-    */
+*/
     template<class T>
     DistTypeSpatial<T>::DistTypeSpatial( const DistTypeSpatial& _distType ) :
         DistTypeHash( _distType ), 
@@ -91,10 +91,10 @@ namespace drel {
         #endif
     }
 
-    /*
-    6.3 Assignment operator
+/*
+6.3 Assignment operator
 
-    */
+*/
     template<class T>
     DistTypeSpatial<T>& DistTypeSpatial<T>::operator=( 
         const DistTypeSpatial& _distType ) {
@@ -113,10 +113,10 @@ namespace drel {
         return *this;
     }
 
-    /*
-    6.4 Destructor
+/*
+6.4 Destructor
 
-    */
+*/
     template<class T>
     DistTypeSpatial<T>::~DistTypeSpatial( ) {
 
@@ -125,12 +125,12 @@ namespace drel {
         #endif
     }
 
-    /*
-    6.5 ~isEqual~
+/*
+6.5 ~isEqual~
 
-    Compares the current DistType with another one.
+Compares the current DistType with another one.
 
-    */
+*/
     template<class T>
     bool DistTypeSpatial<T>::isEqual( DistTypeBasic* _distType ) {
 
@@ -149,12 +149,12 @@ namespace drel {
             && ( getGrid( )->Compare( other->getGrid( ) ) == 0);
     }
 
-    /*
-    6.6 ~getKey~
+/*
+6.6 ~getKey~
 
-    Returns the key.
+Returns the key.
 
-    */
+*/
     template<class T>
     int DistTypeSpatial<T>::getKey( ) {
 
@@ -165,12 +165,12 @@ namespace drel {
         return key;
     }
 
-    /*
-    6.7 ~getGrid~
+/*
+6.7 ~getGrid~
 
-    Returns the grid.
+Returns the grid.
 
-    */
+*/
     template<class T>
     T* DistTypeSpatial<T>::getGrid( ) {
 
@@ -181,13 +181,13 @@ namespace drel {
         return grid;
     }
 
-    /*
-    6.8 ~allowedAttrType~
+/*
+6.8 ~allowedAttrType~
 
-    Returns ture if the given ListExpr is the nested list representation
-    of a suported type to distribute by spatial2d.
+Returns ture if the given ListExpr is the nested list representation
+of a suported type to distribute by spatial2d.
 
-    */
+*/
     template<class T>
     bool DistTypeSpatial<T>::allowedAttrType2d( ListExpr _list ) {
 
@@ -200,13 +200,13 @@ namespace drel {
             || Region::checkType( _list );
     }
 
-    /*
-    6.9 ~allowedAttrType~
+/*
+6.9 ~allowedAttrType~
 
-    Returns ture if the given ListExpr is the nested list representation
-    of a suported type to distribute by spatial3d.
+Returns ture if the given ListExpr is the nested list representation
+of a suported type to distribute by spatial3d.
 
-    */
+*/
     template<class T>
     bool DistTypeSpatial<T>::allowedAttrType3d( ListExpr _list ) {
 
@@ -217,12 +217,12 @@ namespace drel {
         return temporalalgebra::UPoint::checkType( _list );
     }
 
-    /*
-    6.10 ~copy~
+/*
+6.10 ~copy~
 
-    Make a copy of the current object.
+Make a copy of the current object.
 
-    */
+*/
     template<class T>
     DistTypeBasic* DistTypeSpatial<T>::copy( ) {
 
@@ -233,12 +233,12 @@ namespace drel {
         return new DistTypeSpatial<T>( *this );
     }
 
-    /*
-    6.11 ~checkType~
+/*
+6.11 ~checkType~
 
-    Checks whether the type in nested list format fits to this disttype.
+Checks whether the type in nested list format fits to this disttype.
 
-    */
+*/
     template<class T>
     bool DistTypeSpatial<T>::checkType( ListExpr list ) {
 
@@ -265,12 +265,12 @@ namespace drel {
         return T::checkType( nl->Fourth( list ) );
     }
 
-    /*
-    6.12 ~save~
+/*
+6.12 ~save~
 
-    Writes a DistType to the storage.
+Writes a DistType to the storage.
 
-    */
+*/
     template<class T>
     bool DistTypeSpatial<T>::save( 
         SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo ) {
@@ -308,12 +308,12 @@ namespace drel {
         return saveGrid;
     }
 
-    /*
-    6.13 ~toListExpr~
+/*
+6.13 ~toListExpr~
 
-    Returns the object as a list.
+Returns the object as a list.
 
-    */
+*/
     template<class T>
     ListExpr DistTypeSpatial<T>::toListExpr( ListExpr typeInfo ) {
 
@@ -329,12 +329,12 @@ namespace drel {
                 nl->Fourth( typeInfo ) ) );
     }
 
-    /*
-    6.14 ~print~
+/*
+6.14 ~print~
 
-    Prints the dist type informations. Used for debugging.
+Prints the dist type informations. Used for debugging.
 
-    */
+*/
     template<class T>
     void DistTypeSpatial<T>::print( ) {
         DistTypeHash::print( );
@@ -342,12 +342,12 @@ namespace drel {
         cout << key << endl;
     }
 
-    /*
-    6.15 ~print~
+/*
+6.15 ~print~
 
-    Reads the grid object from a nested list.
+Reads the grid object from a nested list.
 
-    */
+*/
     template<class T>
     T * DistTypeSpatial<T>::ReadFrom( 
         const ListExpr value, const ListExpr typeInfo ) {

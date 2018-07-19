@@ -51,12 +51,12 @@ extern QueryProcessor* qp;
 
 namespace drel {
 
-    /*
-    1.1 Type Mapping
+/*
+1.1 Type Mapping
 
-    Except a boundary and an attribute with the same type as the bounary.
+Except a boundary and an attribute with the same type as the bounary.
 
-    */
+*/
     ListExpr getBoundaryIndexTM( ListExpr args ) {
 
         std::string err = "vector(t), attr expected";
@@ -84,12 +84,12 @@ namespace drel {
         return listutils::basicSymbol<CcInt>( );
     }
 
-    /*
-    1.2 Value Mapping
+/*
+1.2 Value Mapping
 
-    Get for an attribute the indexnumber within a boundary type.
+Get for an attribute the indexnumber within a boundary type.
 
-    */
+*/
     int getBoundaryIndexVM( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
@@ -120,10 +120,10 @@ namespace drel {
         return 0;
     }
 
-    /*
-    1.3 Specification of getboundaryindex
+/*
+1.3 Specification of getboundaryindex
 
-    */
+*/
     OperatorSpec getBoundaryIndex(
         " boundary x attr "
         "-> int ",
@@ -133,10 +133,10 @@ namespace drel {
         "query getBoundaryIndex[ PLZ ]"
     );
 
-    /*
-    1.4 Operator instance of getboundaryindex operator
+/*
+1.4 Operator instance of getboundaryindex operator
 
-    */
+*/
     Operator getBoundaryIndexOp(
         "getboundaryindex",
         getBoundaryIndex.getStr( ),

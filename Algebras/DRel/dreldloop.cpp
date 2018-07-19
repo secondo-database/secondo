@@ -63,12 +63,12 @@ using namespace distributed2;
 
 namespace drel {
 
-    /*
-    1.1 Type Mapping
+/*
+1.1 Type Mapping
 
-    Expects two D[F]Rels.
+Expects two D[F]Rels.
 
-    */
+*/
     ListExpr drelcreatebtreeTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
@@ -151,13 +151,13 @@ namespace drel {
             newRes );
     }
 
-    /*
-    1.4 Value Mapping
+/*
+1.4 Value Mapping
 
-    Uses a d[f]rel and creates a new drel. The d[f]rel is created by calling 
-    the dmap value mapping of the Distributed2Algebra.
+Uses a d[f]rel and creates a new drel. The d[f]rel is created by calling 
+the dmap value mapping of the Distributed2Algebra.
 
-    */
+*/
     template<class T, class R>
     int dreldloopVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
@@ -180,31 +180,31 @@ namespace drel {
         return 0;
     }
 
-    /*
-    1.5 ValueMapping Array for dreldloop
+/*
+1.5 ValueMapping Array for dreldloop
     
-    Used by the operators with only a drel input.
+Used by the operators with only a drel input.
 
-    */
+*/
     ValueMapping dreldloopVM[ ] = {
         dreldloopVMT<DRel, DArray>,
         dreldloopVMT<DFRel, DFArray>
     };
 
-    /*
-    1.6 Selection function for dreldloop
+/*
+1.6 Selection function for dreldloop
 
 
-    */
+*/
     int dreldloopSelect( ListExpr args ) {
 
         return DRel::checkType( nl->First( args ) ) ? 0 : 1;
     }
 
-    /*
-    1.7 Specification of drelcreatebtree
+/*
+1.7 Specification of drelcreatebtree
 
-    */
+*/
     OperatorSpec drelcreatebtreeSpec(
         " d[f]rel(X) x string x attr "
         "-> d[f]rel(Y) ",
@@ -214,10 +214,10 @@ namespace drel {
         " query drel1 drelcreatebtree[\"drel1_Name\", Name]"
     );
 
-    /*
-    1.11 Operator instance of drelcreatebtree operator
+/*
+1.11 Operator instance of drelcreatebtree operator
 
-    */
+*/
     Operator drelcreatebtreeOp(
         "drelcreatebtree",
         drelcreatebtreeSpec.getStr( ),

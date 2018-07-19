@@ -52,12 +52,12 @@ extern QueryProcessor* qp;
 
 namespace drel {
 
-    /*
-    1.1 Type Mapping
+/*
+1.1 Type Mapping
 
-    Get a rectangle of demension 2 or 3 and an integer.
+Get a rectangle of demension 2 or 3 and an integer.
 
-    */
+*/
     ListExpr rect2cellgridTM( ListExpr args ) {
 
         std::string err = "[rect / rect3] x int expected";
@@ -83,12 +83,12 @@ namespace drel {
             ": first argument is not a rect or rect3" );
     }
 
-    /*
-    1.2 Value Mapping
+/*
+1.2 Value Mapping
 
-    Creates a cellgrid2d or a cellgrid3d.
+Creates a cellgrid2d or a cellgrid3d.
 
-    */
+*/
     int rect2cellgrid2dVM( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
@@ -164,10 +164,10 @@ namespace drel {
         return 0;
     }
 
-    /*
-    1.3 Specification of rect2cellgrid
+/*
+1.3 Specification of rect2cellgrid
 
-    */
+*/
     OperatorSpec rect2cellgrid(
         " [ rect / rect2 ] x int "
         "-> cellgrid2d, cellgrid3d ",
@@ -176,27 +176,27 @@ namespace drel {
         " query [const rect value(5 9 50 52)] rect2cellgrid[20]"
     );
 
-    /*
-    1.4 ValueMapping Array of drfdistribute
+/*
+1.4 ValueMapping Array of drfdistribute
 
-    */
+*/
     ValueMapping rect2cellgridVM[ ] = {
         rect2cellgrid2dVM,
         rect2cellgridVMT<Rectangle<3>, temporalalgebra::CellGrid<3>>
     };
 
-    /*
-    1.7 Selection function
+/*
+1.7 Selection function
 
-    */
+*/
     int rect2cellgridSelect( ListExpr args ) {
         return Rectangle<2>::checkType( nl->First( args ) ) ? 0 : 1;
     }
 
-    /*
-    1.4 Operator instance of rect2cellgrid operator
+/*
+1.4 Operator instance of rect2cellgrid operator
 
-    */
+*/
     Operator rect2cellgridOp(
         "rect2cellgrid",
         rect2cellgrid.getStr( ),

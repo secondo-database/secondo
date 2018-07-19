@@ -43,12 +43,12 @@ using namespace std;
 
 namespace drel {
 
-    /*
-    1.1 ~isListOfTwoElemLists~
+/*
+1.1 ~isListOfTwoElemLists~
 
-    Returns true if the list is a list of lists with two elements.
+Returns true if the list is a list of lists with two elements.
 
-    */
+*/
     bool DRelHelpers::isListOfTwoElemLists( ListExpr list ) {
         while( !nl->IsEmpty( list ) ) {
             if( !nl->HasLength( nl->First( list ), 2 ) ) {
@@ -59,15 +59,15 @@ namespace drel {
         return true;
     }
 
-    /*
-    1.2 ~isDRelDescr~
+/*
+1.2 ~isDRelDescr~
 
-    Returns true if the argument is a correct d[f]rel description. The caller 
-    get the corresponding drelType (drel or dfrel), the relation type 
-    (for example ( rel( tuple( ( PLZ int ) ) ) )  ), the distribution type 
-    as a list and the value (for example the name of the drel.
+Returns true if the argument is a correct d[f]rel description. The caller 
+get the corresponding drelType (drel or dfrel), the relation type 
+(for example ( rel( tuple( ( PLZ int ) ) ) )  ), the distribution type 
+as a list and the value (for example the name of the drel.
 
-    */
+*/
     bool DRelHelpers::isDRelDescr( ListExpr arg, ListExpr& drelType, 
         ListExpr& relType, ListExpr& distType, ListExpr& drelValue ) {
 
@@ -104,15 +104,15 @@ namespace drel {
         return true;
     }
 
-    /*
-    1.3 ~isDRelDescr~
+/*
+1.3 ~isDRelDescr~
 
-    Returns true if the argument is a correct d[f]rel description. The caller
-    get the corresponding drelType (drel or dfrel), the relation type
-    (for example ( rel( tuple( ( PLZ int ) ) ) )  ) and the distribution type
-    as a list.
+Returns true if the argument is a correct d[f]rel description. The caller
+get the corresponding drelType (drel or dfrel), the relation type
+(for example ( rel( tuple( ( PLZ int ) ) ) )  ) and the distribution type
+as a list.
 
-    */
+*/
     bool DRelHelpers::isDRelDescr( ListExpr arg, ListExpr& drelType, 
         ListExpr & relType, ListExpr& distType, ListExpr & drelValue,
         ListExpr & darrayType ) {
@@ -135,16 +135,16 @@ namespace drel {
         return true;
     }
     
-    /*
-    1.4 ~isDRelDescr~
+/*
+1.4 ~isDRelDescr~
 
-    To call the type mappings of the Distributed2Algebra it is nessesarry to 
-    replace the type operator DRELFUNARG of the DRelAlgebra with the type 
-    operator of the Distributed2Algebra. This is what this function does.
-    The type operator is given as a string. You get a new function as a 
-    nested list if the argument is correct.
+To call the type mappings of the Distributed2Algebra it is nessesarry to 
+replace the type operator DRELFUNARG of the DRelAlgebra with the type 
+operator of the Distributed2Algebra. This is what this function does.
+The type operator is given as a string. You get a new function as a 
+nested list if the argument is correct.
 
-    */
+*/
     bool DRelHelpers::replaceDRELFUNARG( 
         ListExpr arg, string type, ListExpr& fun ) {
 
@@ -171,18 +171,18 @@ namespace drel {
         return true;
     }
 
-    /*
-    1.5 ~isDRelDescr~
+/*
+1.5 ~isDRelDescr~
 
-    To call the type mappings of the Distributed2Algebra it is nessesarry to
-    replace the type operator DRELFUNARG of the DRelAlgebra with the type
-    operator of the Distributed2Algebra. This is what this function does.
-    The type operator is given as a string. You get a new function as a
-    nested list if the argument is correct.
-    It is the same like the function above, but now you get the new function 
-    devided by function and mapping for the function.
+To call the type mappings of the Distributed2Algebra it is nessesarry to
+replace the type operator DRELFUNARG of the DRelAlgebra with the type
+operator of the Distributed2Algebra. This is what this function does.
+The type operator is given as a string. You get a new function as a
+nested list if the argument is correct.
+It is the same like the function above, but now you get the new function 
+devided by function and mapping for the function.
 
-    */
+*/
     bool DRelHelpers::replaceDRELFUNARG( 
         ListExpr arg, string type, ListExpr& fun, ListExpr& map ) {
 
@@ -197,13 +197,13 @@ namespace drel {
         return true;
     }
 
-    /*
-    1.6 ~computeSampleSize~
+/*
+1.6 ~computeSampleSize~
 
-    Computes the sample size for a total size of a relation.
-    Attention: totalSize has to be bigger than 0.
+Computes the sample size for a total size of a relation.
+Attention: totalSize has to be bigger than 0.
 
-    */
+*/
     int DRelHelpers::computeSampleSize( const int totalSize ) {
 
         assert( totalSize > 0 );
@@ -217,15 +217,15 @@ namespace drel {
         return sampleSize < 5000 ? 5000 : sampleSize;
     }
 
-    /*
-    1.7 ~everyNthTupleForSample~
+/*
+1.7 ~everyNthTupleForSample~
 
-    The minimum size of a sample is 5000 or 1/1000 of the ~totalSize~.
-    The returned number said that every nth tuple has to be part of the
-    sample.
-    Attention: totalSize has to be bigger than 0.
+The minimum size of a sample is 5000 or 1/1000 of the ~totalSize~.
+The returned number said that every nth tuple has to be part of the
+sample.
+Attention: totalSize has to be bigger than 0.
 
-    */
+*/
     int DRelHelpers::everyNthTupleForSample( const int totalSize ) {
 
         assert( totalSize > 0 );
@@ -233,15 +233,15 @@ namespace drel {
         return totalSize / computeSampleSize( totalSize );
     }
 
-    /*
-    1.8 ~everyNthTupleForSample~
+/*
+1.8 ~everyNthTupleForSample~
 
-    The minimum size of a sample is 5000 or 1/1000 of the ~totalSize~.
-    The returned number said that every nth tuple has to be part of the
-    sample.
-    Attention: sampleSize and totalSize have to be bigger than 0.
+The minimum size of a sample is 5000 or 1/1000 of the ~totalSize~.
+The returned number said that every nth tuple has to be part of the
+sample.
+Attention: sampleSize and totalSize have to be bigger than 0.
 
-    */
+*/
     int DRelHelpers::everyNthTupleForSample(
         const int sampleSize, const int totalSize ) {
 
@@ -251,15 +251,15 @@ namespace drel {
         return totalSize / sampleSize;
     }
 
-    /*
-    1.9 ~everyNthTupleForArray~
+/*
+1.9 ~everyNthTupleForArray~
 
-    The sample uses every nth tuple of a relation. To fill the array only
-    every nth Tuple of the sample can be used, because normaly a sample is
-    much bigger than the array.
-    Attention: sampleSize and arraySize have to be bigger than 0.
+The sample uses every nth tuple of a relation. To fill the array only
+every nth Tuple of the sample can be used, because normaly a sample is
+much bigger than the array.
+Attention: sampleSize and arraySize have to be bigger than 0.
 
-    */
+*/
     int DRelHelpers::everyNthTupleForArray(
         const int sampleSize, const int arraySize ) {
 
@@ -273,27 +273,27 @@ namespace drel {
         return sampleSize / arraySize;
     }
 
-    /*
-    1.10 ~compareAttributes~
+/*
+1.10 ~compareAttributes~
 
-    Compares two attributes by calling the compare function of the attributes.
-    returns true, if the first argument is smaller than the second argument.
-    The defintion of the compare attribute can be found in the attribute 
-    implementation.
+Compares two attributes by calling the compare function of the attributes.
+returns true, if the first argument is smaller than the second argument.
+The defintion of the compare attribute can be found in the attribute 
+implementation.
 
-    */
+*/
     bool DRelHelpers::compareAttributes(
         const Attribute* attr1, const Attribute* attr2 ) {
 
         return attr1->Compare( attr2 ) == -1;
     }
 
-    /*
-    1.11 ~listOfIntAtoms~
+/*
+1.11 ~listOfIntAtoms~
 
-    Checks a list to be a list of int atoms.
+Checks a list to be a list of int atoms.
 
-    */
+*/
     bool DRelHelpers::listOfIntAtoms( ListExpr list ) {
 
         if( nl->IsAtom( list ) ) {

@@ -29,6 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 1 Implementation of the secondo operator dreldistribute and drelfdistribute
 
 */
+//#define DRELDEBUG
+
 #include <iostream>
 
 #include "NestedList.h"
@@ -48,23 +50,367 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "DRel.h"
 #include "DRelHelpers.h"
-#include "DistributeOpHelper.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
+
+namespace distributed2 {
+    // used classes and functions of the Distributed2Algebra
+
+    class FRelCopy;
+    class RelFileRestorer;
+
+    template<class R>
+    ListExpr ddistribute2TMT( ListExpr args );
+
+    template<class AType, class DType, class HType, class CType>
+    int ddistribute2VMT(
+        Word* args, Word& result, int message, Word& local, Supplier s );
+
+    template<class R>
+    ListExpr distribute3TM( ListExpr args );
+
+    template<class AType, class DType, class HType, class CType>
+    int distribute3VMT(
+        Word* args, Word& result, int message, Word& local, Supplier s );
+
+    template<class R>
+    ListExpr distribute4TMT( ListExpr args );
+
+    template<class AType, class DType, class HType, class CType>
+    int distribute4VMT(
+        Word* args, Word& result, int message, Word& local, Supplier s );
+}
 
 using namespace distributed2;
 
 namespace drel {
 
-    /*
-    5 Distribute operator
+/*
+1 ~createStreamOpTree~
 
-    1.1 ~distributeTM~
+Creates a new operator tree to open a stream for a relation. For the
+relation the type of the relation is nessecarry as a ListExpr. The
+user is responsible for the right type of the relation.
 
-    Type mapping for the distribute operators.
+*/
+    OpTree createStreamOpTree(
+        QueryProcessor* qps, ListExpr relType, Relation* rel ) {
 
-    */
+        if( !Relation::checkType( relType ) ) {
+            return 0;
+        }
+
+        bool correct = false;
+        bool evaluable = false;
+        bool defined = false;
+        bool isFunction = false;
+        ListExpr resultType;
+
+        OpTree tree = 0;
+        qps->Construct(
+            nl->TwoElemList(
+                nl->SymbolAtom( "feed" ),
+                nl->TwoElemList(
+                    relType,
+                    nl->TwoElemList(
+                        nl->SymbolAtom( "ptr" ),
+                        listutils::getPtrList( rel ) ) ) ),
+            correct,
+            evaluable,
+            defined,
+            isFunction,
+            tree,
+            resultType,
+            true );
+        qps->SetEvaluable( tree, true );
+
+        return tree;
+    }
+
+/*
+2 ~createReplicationOpTree~
+
+Creates a new operator tree to open a stream for a relation to replicate
+the relation. For the relation the type of the relation is nessecarry as
+a ListExpr. The user is responsible for the right type of the relation.
+Of each tuple n tuple will be in the stream. n is the number of array
+fields wich will be used to distribute the stream. For the distribution
+the stream get two new attributes. The first attribute is Cell to get
+the number of the field to distribute each tuple. The second argument
+is Original. This attribute is used to reduce dublicates while collecting
+the distributed tuple.
+
+*/
+    OpTree createReplicationOpTree(
+        QueryProcessor* qps, Relation* rel, ListExpr relType,
+        int size ) {
+
+        #ifdef DRELDEBUG
+        cout << "createStreamCellGridOpTree" << endl;
+        #endif
+
+        ListExpr query = nl->ThreeElemList(
+            nl->SymbolAtom( "remove" ),
+            nl->ThreeElemList(
+                nl->SymbolAtom( "extend" ),
+                nl->ThreeElemList(
+                    nl->SymbolAtom( "extendstream" ),
+                    nl->TwoElemList(
+                        nl->SymbolAtom( "feed" ),
+                        nl->TwoElemList(
+                            relType,
+                            nl->TwoElemList(
+                                nl->SymbolAtom( "ptr" ),
+                                listutils::getPtrList( rel ) ) ) ),
+                    nl->OneElemList(
+                        nl->TwoElemList(
+                            nl->SymbolAtom( "Cell" ),
+                            nl->ThreeElemList(
+                                nl->SymbolAtom( "fun" ),
+                                nl->TwoElemList(
+                                    nl->SymbolAtom( "tuple1" ),
+                                    nl->SymbolAtom( "TUPLE" ) ),
+                                nl->ThreeElemList(
+                                    nl->SymbolAtom( "intstream" ),
+                                    nl->IntAtom( 1 ),
+                                    nl->IntAtom( size ) ) ) ) ) ),
+                nl->OneElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom( "Original" ),
+                        nl->ThreeElemList(
+                            nl->SymbolAtom( "fun" ),
+                            nl->TwoElemList(
+                                nl->SymbolAtom( "tuple2" ),
+                                nl->SymbolAtom( "TUPLE" ) ),
+                            nl->ThreeElemList(
+                                nl->SymbolAtom( "=" ),
+                                nl->ThreeElemList(
+                                    nl->SymbolAtom( "attr" ),
+                                    nl->SymbolAtom( "tuple2" ),
+                                    nl->SymbolAtom( "Cell" ) ),
+                                nl->IntAtom( 1 ) ) ) ) ) ),
+            nl->OneElemList(
+                nl->SymbolAtom( "Cell" ) ) );
+
+        #ifdef DRELDEBUG
+        cout << "query" << endl;
+        cout << nl->ToString( query ) << endl;
+        #endif
+
+        bool correct = false;
+        bool evaluable = false;
+        bool defined = false;
+        bool isFunction = false;
+        ListExpr resultType;
+
+        OpTree tree = 0;
+        qps->Construct(
+            query,
+            correct,
+            evaluable,
+            defined,
+            isFunction,
+            tree,
+            resultType,
+            true );
+        qps->SetEvaluable( tree, true );
+
+        return tree;
+    }
+
+/*
+3 ~createStreamCellGridOpTree~
+
+Creates a new operator tree to open a stream for a relation to distribute
+the relation by spatial. For the relation the type of the relation is
+nessecarry as a ListExpr. The user is responsible for the right type of
+the relation. For the distribution the stream get two new attributes. The
+first attribute is Cell to get the number of the field to distribute each
+tuple. The second argument is Original. This attribute is used to reduce
+dublicates while collecting the distributed tuple. The grid argument is
+used to distirbute the tuple.
+
+*/
+    template<class T>
+    OpTree createStreamCellGridOpTree(
+        QueryProcessor* qps, Relation* rel, ListExpr relType,
+        string attrName, T* grid ) {
+
+        #ifdef DRELDEBUG
+        cout << "createStreamCellGridOpTree" << endl;
+        #endif
+
+        ListExpr query = nl->ThreeElemList(
+            nl->SymbolAtom( "extend" ),
+            nl->ThreeElemList(
+                nl->SymbolAtom( "extendstream" ),
+                nl->TwoElemList(
+                    nl->SymbolAtom( "feed" ),
+                    nl->TwoElemList(
+                        relType,
+                        nl->TwoElemList(
+                            nl->SymbolAtom( "ptr" ),
+                            listutils::getPtrList( rel ) ) ) ),
+                nl->OneElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom( "Cell" ),
+                        nl->ThreeElemList(
+                            nl->SymbolAtom( "fun" ),
+                            nl->TwoElemList(
+                                nl->SymbolAtom( "tuple1" ),
+                                nl->SymbolAtom( "TUPLE" ) ),
+                            nl->ThreeElemList(
+                                nl->SymbolAtom( "cellnumber" ),
+                                nl->TwoElemList(
+                                    nl->SymbolAtom( "bbox" ),
+                                    nl->ThreeElemList(
+                                        nl->SymbolAtom( "attr" ),
+                                        nl->SymbolAtom( "tuple1" ),
+                                        nl->SymbolAtom( attrName ) ) ),
+                                nl->TwoElemList(
+                                    listutils::basicSymbol<T>( ),
+                                    nl->TwoElemList(
+                                        nl->SymbolAtom( "ptr" ),
+                                        listutils::getPtrList( grid )
+                                    ) ) ) ) ) ) ),
+            nl->OneElemList(
+                nl->TwoElemList(
+                    nl->SymbolAtom( "Original" ),
+                    nl->ThreeElemList(
+                        nl->SymbolAtom( "fun" ),
+                        nl->TwoElemList(
+                            nl->SymbolAtom( "tuple2" ),
+                            nl->SymbolAtom( "TUPLE" ) ),
+                        nl->ThreeElemList(
+                            nl->SymbolAtom( "=" ),
+                            nl->ThreeElemList(
+                                nl->SymbolAtom( "attr" ),
+                                nl->SymbolAtom( "tuple2" ),
+                                nl->SymbolAtom( "Cell" ) ),
+                            nl->ThreeElemList(
+                                nl->SymbolAtom( "extract" ),
+                                nl->TwoElemList(
+                                    nl->SymbolAtom( "transformstream" ),
+                                    nl->ThreeElemList(
+                                        nl->SymbolAtom( "cellnumber" ),
+                                        nl->TwoElemList(
+                                            nl->SymbolAtom( "bbox" ),
+                                            nl->ThreeElemList(
+                                                nl->SymbolAtom( "attr" ),
+                                                nl->SymbolAtom( "tuple2" ),
+                                                nl->SymbolAtom( attrName )
+                                            ) ),
+                                        nl->TwoElemList(
+                                            listutils::basicSymbol<T>( ),
+                                            nl->TwoElemList(
+                                                nl->SymbolAtom( "ptr" ),
+                                                listutils::
+                                                getPtrList( grid )
+                                            ) ) ) ),
+                                nl->SymbolAtom( "Elem" ) ) ) ) ) ) );
+
+        #ifdef DRELDEBUG
+        cout << "query" << endl;
+        cout << nl->ToString( query ) << endl;
+        #endif
+
+        bool correct = false;
+        bool evaluable = false;
+        bool defined = false;
+        bool isFunction = false;
+        ListExpr resultType;
+
+        OpTree tree = 0;
+        qps->Construct(
+            query,
+            correct,
+            evaluable,
+            defined,
+            isFunction,
+            tree,
+            resultType,
+            true );
+        qps->SetEvaluable( tree, true );
+
+        return tree;
+    }
+
+/*
+4 ~createCellGrid~
+
+Generates a optimal grid for a given relation with a given type. The grid
+will be computed for a given attribute name and a given size of the
+target array.
+
+*/
+    template<class T>
+    T* createCellGrid(
+        Relation* rel, ListExpr relType, string attrName, int size ) {
+
+        #ifdef DRELDEBUG
+        cout << "createCellGrid" << endl;
+        #endif
+
+        ListExpr query = nl->ThreeElemList(
+            nl->SymbolAtom( "rect2cellgrid" ),
+            nl->ThreeElemList(
+                nl->SymbolAtom( "drelcollect_box" ),
+                nl->TwoElemList(
+                    nl->SymbolAtom( "transformstream" ),
+                    nl->FourElemList(
+                        nl->SymbolAtom( "projectextend" ),
+                        nl->TwoElemList(
+                            nl->SymbolAtom( "feed" ),
+                            nl->TwoElemList(
+                                relType,
+                                nl->TwoElemList(
+                                    nl->SymbolAtom( "ptr" ),
+                                    listutils::getPtrList( rel ) ) ) ),
+                        nl->TheEmptyList( ),
+                        nl->OneElemList(
+                            nl->TwoElemList(
+                                nl->SymbolAtom( "Box" ),
+                                nl->ThreeElemList(
+                                    nl->SymbolAtom( "fun" ),
+                                    nl->TwoElemList(
+                                        nl->SymbolAtom( "tuple1" ),
+                                        nl->SymbolAtom( "TUPLE" ) ),
+                                    nl->TwoElemList(
+                                        nl->SymbolAtom( "bbox" ),
+                                        nl->ThreeElemList(
+                                            nl->SymbolAtom( "attr" ),
+                                            nl->SymbolAtom( "tuple1" ),
+                                            nl->SymbolAtom( attrName )
+                                        ) ) ) ) ) ) ),
+                nl->BoolAtom( true ) ),
+            nl->IntAtom( size ) );
+
+        #ifdef DRELDEBUG
+        cout << "query" << endl;
+        cout << nl->ToString( query ) << endl;
+        #endif
+
+        Word resultGrid;
+        QueryProcessor::ExecuteQuery( nl->ToString( query ), resultGrid );
+        T* grid = ( T* )resultGrid.addr;
+
+        #ifdef DRELDEBUG
+        cout << "resultGrid" << endl;
+        grid->Print( cout );
+        #endif
+
+        return grid;
+    }
+
+/*
+1 Distribute operator
+
+1.1 ~distributeTM~
+
+Type mapping for the distribute operators.
+
+*/
     template<class R, class A>
     ListExpr distributeTM( ListExpr args ) {
 
@@ -413,12 +759,12 @@ namespace drel {
             newRes );
     }
     
-    /*
-    1.2 ~distributeVMTreplicated~
+/*
+1.2 ~distributeVMTreplicated~
 
-    Value mapping of the distribute operator to replicate data.
+Value mapping of the distribute operator to replicate data.
 
-    */
+*/
     template<class RType, class AType, class DType, class HType, class CType>
     int distributeVMTreplicated( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
@@ -437,7 +783,7 @@ namespace drel {
             return 0;
         }
 
-        OpTree stream = DistributeOpHelper::createReplicationOpTree( 
+        OpTree stream = createReplicationOpTree( 
             qps, rel, sourceType, workers->GetNoTuples( ) );
 
         ArgVector argVec = {
@@ -463,12 +809,12 @@ namespace drel {
         return 0;
     }
     
-    /*
-    1.3 ~distributeVMTrandom~
+/*
+1.3 ~distributeVMTrandom~
 
-    Value mapping of the distribute operator to distribute by round robin.
+Value mapping of the distribute operator to distribute by round robin.
 
-    */
+*/
     template<class RType, class AType, class DType, class HType, class CType>
     int distributeVMTrandom( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
@@ -476,7 +822,7 @@ namespace drel {
         QueryProcessor* qps = new QueryProcessor( nl, am );
 
         Relation* rel = ( Relation* )args[ 0 ].addr;
-        OpTree stream = DistributeOpHelper::createStreamOpTree(
+        OpTree stream = createStreamOpTree(
             qps, nl->Second( qp->GetType( s ) ), rel );
 
         // new argument vector for distributqe3VMT
@@ -497,12 +843,12 @@ namespace drel {
         return 0;
     }    
     
-    /*
-    1.4 ~distributeVMThash~
+/*
+1.4 ~distributeVMThash~
 
-    Value mapping of the distribute operator to distribute by hash.
+Value mapping of the distribute operator to distribute by hash.
 
-    */
+*/
     template<class RType, class AType, class DType, class HType, class CType>
     int distributeVMThash( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
@@ -510,7 +856,7 @@ namespace drel {
         QueryProcessor* qps = new QueryProcessor( nl, am );
 
         Relation* rel = ( Relation* )args[ 0 ].addr;
-        OpTree stream = DistributeOpHelper::createStreamOpTree(
+        OpTree stream = createStreamOpTree(
             qps, nl->Second( qp->GetType( s ) ), rel );
 
         string attrName = ( ( CcString* )args[ 9 ].addr )->GetValue( );
@@ -586,12 +932,12 @@ namespace drel {
 
     }
 
-    /*
-    1.5 ~distributeVMTrange~
+/*
+1.5 ~distributeVMTrange~
 
-    Value mapping of the distribute operator to distribute by range.
+Value mapping of the distribute operator to distribute by range.
 
-    */
+*/
     template<class RType, class AType, class DType, class HType, class CType>
     int distributeVMTrange( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
@@ -599,7 +945,7 @@ namespace drel {
         QueryProcessor* qps = new QueryProcessor( nl, am );
 
         Relation* rel = ( Relation* )args[ 0 ].addr;
-        OpTree stream = DistributeOpHelper::createStreamOpTree(
+        OpTree stream = createStreamOpTree(
             qps, nl->Second( qp->GetType( s ) ), rel );
 
         CcInt* size = ( CcInt* )args[ 5 ].addr;
@@ -733,12 +1079,12 @@ namespace drel {
 
     }
 
-    /*
-    1.6 ~distributeVMTspatial~
+/*
+1.6 ~distributeVMTspatial~
 
-    Value mapping of the distribute operator for spatial distribution.
+Value mapping of the distribute operator for spatial distribution.
 
-    */
+*/
     template<class RType, class AType, class DType, class HType, class CType, 
         class GType, distributionType T >
     int distributeVMTspatial( Word* args, Word& result, int message,
@@ -765,12 +1111,12 @@ namespace drel {
         }
 
         // Create the grid to distribute
-        GType* grid = DistributeOpHelper::createCellGrid<GType>( 
+        GType* grid = createCellGrid<GType>( 
             rel, sourceType, attrName, size->GetIntval( ) );
 
         QueryProcessor* qps = new QueryProcessor( nl, am );
 
-        OpTree stream = DistributeOpHelper::createStreamCellGridOpTree<GType>(
+        OpTree stream = createStreamCellGridOpTree<GType>(
             qps, rel, sourceType, attrName, grid );
         
         // new argument vector for distribute4VMT with the OpTree passed to 

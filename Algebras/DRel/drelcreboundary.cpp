@@ -51,12 +51,12 @@ extern QueryProcessor* qp;
 
 namespace drel {
 
-    /*
-    1.1 Type Mapping
+/*
+1.1 Type Mapping
 
-    Get a relation, an attribute and a size object.
+Get a relation, an attribute and a size object.
 
-    */
+*/
     ListExpr createboundaryTM( ListExpr args ) {
 
         std::string err = "rel, attr, int expected";
@@ -129,13 +129,13 @@ namespace drel {
             resType );
     }
 
-    /*
-    1.2 Value Mapping
+/*
+1.2 Value Mapping
 
-    Creates a boundary object by determinating the boundaries with a sample 
-    of the realation.
+Creates a boundary object by determinating the boundaries with a sample 
+of the realation.
 
-    */
+*/
     int createboundaryVM( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
@@ -191,10 +191,10 @@ namespace drel {
         return 0;
     }
 
-    /*
-    1.3 Specification of createboundary
+/*
+1.3 Specification of createboundary
 
-    */
+*/
     OperatorSpec createboundary(
         " rel(tuple(X)) x attr x int "
         "-> boundary(x) ",
@@ -204,10 +204,10 @@ namespace drel {
         " query plz createboundary[PLZ, 50]"
     );
 
-    /*
-    1.4 Operator instance of createboundary operator
+/*
+1.4 Operator instance of createboundary operator
 
-    */
+*/
     Operator createboundaryOp(
         "createboundary",
         createboundary.getStr( ),

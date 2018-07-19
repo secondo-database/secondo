@@ -38,21 +38,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "DistTypeSpatial.h"
 
 namespace drel {
-    /*
-    1 ~DRel~
+/*
+1 ~DRel~
 
-    Secondo type to distribute relations to workers and makes it possible 
-    to query about the distributed data.
+Secondo type to distribute relations to workers and makes it possible 
+to query about the distributed data.
 
-    */
+*/
     template<distributed2::arrayType T>
     class DRelT : public distributed2::DArrayT<T> {
 
     public:
-        /*
-        1.1 Methods
+/*
+1.1 Methods
 
-        */
+*/
         DRelT( const std::vector<uint32_t>&v, const std::string& name );
         DRelT( const int dummy );
         DRelT( const DRelT& src );
@@ -111,15 +111,14 @@ namespace drel {
         static int SizeOf( );
 
     private:
-        /*
-        1.2 Members
+/*
+1.2 Members
 
-        1.2.1 ~distType~
+1.2.1 ~distType~
 
-        Informations about the distribution of the relation.
+Informations about the distribution of the relation.
 
-        */
-        //distributionType distType;
+*/
         DistTypeBasic* distType;
     };
 

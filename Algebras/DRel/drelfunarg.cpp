@@ -49,10 +49,10 @@ using namespace distributed2;
 
 namespace drel {
 
-    /*
-    1.1 Type Mapping
+/*
+1.1 Type Mapping
 
-    */
+*/
     template<bool rel, int pos>
     ListExpr DRELFUNARG( ListExpr args ) {
 
@@ -82,10 +82,10 @@ namespace drel {
 
     }
 
-    /*
-    1.2 Specifications of type map operators.
+/*
+1.2 Specifications of type map operators.
 
-    */
+*/
     OperatorSpec DRELFUNARG1SPEC(
         "d[f]rel(rel(X)) x ... -> X",
         "DRELFUNARG1(_)",
@@ -109,10 +109,10 @@ namespace drel {
         "consume"
     );
 
-    /*
-    1.3 Operator instance of the type map operators.
+/*
+1.3 Operator instance of the type map operators.
 
-    */
+*/
     Operator DRELFUNARG1OP(
         "DRELFUNARG1",
         DRELFUNARG1SPEC.getStr( ),

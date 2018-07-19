@@ -39,24 +39,24 @@ using namespace distributed2;
 
 namespace drel {
 
-    /*
-    1 ~distributionTypeMap~
+/*
+1 ~distributionTypeMap~
 
-    Map of a string and the matching distributionType.
+Map of a string and the matching distributionType.
 
-    */
+*/
     std::map<std::string, distributionType> distributionTypeMap = {
         { "RANDOM", random }, { "HASH", hash }, { "RANGE", range },
     { "SPATIAL2D", spatial2d }, { "SPATIAL3D", spatial3d },
     { "REPLICATED", replicated }
     };
 
-    /*
-    2 ~getType~
+/*
+2 ~getType~
 
-    Map of a string and the matching distributionType.
+Map of a string and the matching distributionType.
 
-    */
+*/
     distributionType getType( const std::string _type ) {
         std::map<std::string, distributionType>::iterator it;
         for( it = distributionTypeMap.begin( );
@@ -67,13 +67,13 @@ namespace drel {
         assert( false );
     }
 
-    /*
-    3 ~getTypeByNum~
+/*
+3 ~getTypeByNum~
 
-    Get the distributionType by a number. Returns false, if the number is not
-    a allowed distributionType.
+Get the distributionType by a number. Returns false, if the number is not
+a allowed distributionType.
 
-    */
+*/
     bool getTypeByNum( const int _num, distributionType& type ) {
 
         if( _num < 0 || _num >= 6 ) {
@@ -92,12 +92,12 @@ namespace drel {
         return true;
     }
 
-    /*
-    4 ~getName~
+/*
+4 ~getName~
 
-    Returns the string value of a distributionType.
+Returns the string value of a distributionType.
 
-    */
+*/
     std::string getName( const distributionType _type ) {
         std::map<std::string, distributionType>::iterator it;
         for( it = distributionTypeMap.begin( );
@@ -109,26 +109,26 @@ namespace drel {
         return "unknown";
     }
 
-    /*
-    5 ~supportedType~
+/*
+5 ~supportedType~
 
-    Returns true if the given string is the string of a supported
-    distributionType.
+Returns true if the given string is the string of a supported
+distributionType.
 
-    */
+*/
     bool supportedType( const std::string _type ) {
         std::map<std::string, distributionType>::iterator it;
         it = distributionTypeMap.find( _type );
         return it != distributionTypeMap.end( );
     }
 
-    /*
-    6 ~supportedType~
+/*
+6 ~supportedType~
 
-    Returns true if the given string is the string of a supported
-    distributionType.
+Returns true if the given string is the string of a supported
+distributionType.
 
-    */
+*/
     bool supportedType(
         const std::string _typeString, distributionType& type ) {
 
@@ -138,14 +138,14 @@ namespace drel {
         return it != distributionTypeMap.end( );
     }
 
-    /*
-    7 Class ~DistType~
+/*
+7 Class ~DistType~
 
-    Implementation.
+Implementation.
     
-    7.1 Constructors
+7.1 Constructors
 
-    */
+*/
     DistTypeBasic::DistTypeBasic( ) {
 
         #ifdef DRELDEBUG
@@ -163,10 +163,10 @@ namespace drel {
         #endif
     }
 
-    /*
-    7.2 Copyconstructor
+/*
+7.2 Copyconstructor
 
-    */
+*/
     DistTypeBasic::DistTypeBasic( const DistTypeBasic& _distType ) :
         type( _distType.type ) {
 
@@ -175,10 +175,10 @@ namespace drel {
         #endif
     }
 
-    /*
-    7.3 Assignment operator
+/*
+7.3 Assignment operator
 
-    */
+*/
     DistTypeBasic& DistTypeBasic::operator=( const DistTypeBasic& _distType ) {
 
         #ifdef DRELDEBUG
@@ -192,10 +192,10 @@ namespace drel {
         return *this;
     }
 
-    /*
-    7.4 Destructor
+/*
+7.4 Destructor
 
-    */
+*/
     DistTypeBasic::~DistTypeBasic( ) {
 
         #ifdef DRELDEBUG
@@ -204,12 +204,12 @@ namespace drel {
 
     }
 
-    /*
-    7.5 ~isEqual~
+/*
+7.5 ~isEqual~
 
-    Compares the current DistType with another one.
+Compares the current DistType with another one.
 
-    */
+*/
     bool DistTypeBasic::isEqual( DistTypeBasic* _distType ) {
 
         #ifdef DRELDEBUG
@@ -222,12 +222,12 @@ namespace drel {
         return type == replicated;
     }
 
-    /*
-    7.6 ~getDistType~
+/*
+7.6 ~getDistType~
 
-    Returns the distribution type.
+Returns the distribution type.
 
-    */
+*/
     distributionType DistTypeBasic::getDistType( ) {
 
         #ifdef DRELDEBUG
@@ -237,12 +237,12 @@ namespace drel {
         return type;
     }
 
-    /*
-    8.7 ~copy~
+/*
+7.7 ~copy~
 
-    Make a copy of the current object.
+Make a copy of the current object.
 
-    */
+*/
     DistTypeBasic* DistTypeBasic::copy( ) {
 
         #ifdef DRELDEBUG
@@ -252,12 +252,12 @@ namespace drel {
         return new DistTypeBasic( *this );
     }
 
-    /*
-    8.8 ~checkType~
+/*
+7.8 ~checkType~
 
-    Checks whether the type in nested list format fits to this disttype.
+Checks whether the type in nested list format fits to this disttype.
 
-    */
+*/
     bool DistTypeBasic::checkType( ListExpr list ) {
 
         #ifdef DRELDEBUG
@@ -270,12 +270,12 @@ namespace drel {
         return CcInt::checkType( nl->First( list ) );
     }
 
-    /*
-    8.9 ~save~
+/*
+7.9 ~save~
 
-    Writes a DistType to the storage.
+Writes a DistType to the storage.
 
-    */
+*/
     bool DistTypeBasic::save( SmiRecord& valueRecord, size_t& offset, 
         const ListExpr typeInfo ) {
 
@@ -286,12 +286,12 @@ namespace drel {
         return true;
     }
 
-    /*
-    8.10 ~toListExpr~
+/*
+7.10 ~toListExpr~
 
-    Returns the disttype as nestedlist.
+Returns the disttype as nestedlist.
 
-    */
+*/
     ListExpr DistTypeBasic::toListExpr( ListExpr _typeInfo ) {
 
         #ifdef DRELDEBUG
@@ -306,12 +306,12 @@ namespace drel {
             nl->StringAtom( getName( getDistType( ) ) ) );
     }
 
-    /*
-    8.11 ~print~
+/*
+7.11 ~print~
 
-    Prints the dist type informations. Used for debugging.
+Prints the dist type informations. Used for debugging.
 
-    */
+*/
     void DistTypeBasic::print( ) {
         cout << "type" << endl;
         cout << getName( type ) << endl;

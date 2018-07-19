@@ -31,20 +31,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "DistTypeHash.h"
 
 namespace drel {
-    /*
-    1 Class ~DistType~
+/*
+1 Class ~DistType~
 
-    This class represents the distirbution type informations for the class 
-    drel. The supported types are represented by the enum distributionType.
+This class represents the distirbution type informations for the class 
+drel. The supported types are represented by the enum distributionType.
 
-    */
+*/
     template<class T>
     class DistTypeSpatial : public DistTypeHash {
     public:
-        /*
-        1.1 Methods
+/*
+1.1 Methods
 
-        */
+*/
         DistTypeSpatial( distributionType _type, int _attr, T* _grid );
         DistTypeSpatial( distributionType _type, int _attr, int _key, 
             T* _grid );
@@ -73,22 +73,22 @@ namespace drel {
 
     private:
 
-        /*
-        1.2 Members
+/*
+1.2 Members
 
-        1.2.1 ~attr~
+1.2.1 ~attr~
         
-        The number of used attribute to distribute the relation. The numbering 
-        starts with 0.
+The number of used attribute to distribute the relation. The numbering 
+starts with 0.
 
-        */
+*/
         int key;
-        /*
-        1.2.2 ~grid~
+/*
+1.2.2 ~grid~
 
-        The pointer to the grid object, used to distribute.
+The pointer to the grid object, used to distribute.
 
-        */
+*/
         T* grid;
     };
 

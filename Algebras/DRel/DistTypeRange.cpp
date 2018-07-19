@@ -35,14 +35,14 @@ extern NestedList* nl;
 using namespace distributed2;
 
 namespace drel {
-    /*
-    6 Class ~DistType~
+/*
+6 Class ~DistType~
 
-    Implementation.
+Implementation.
 
-    6.1 Constructors
+6.1 Constructors
 
-    */
+*/
     DistTypeRange::DistTypeRange( distributionType _type, int _attr, 
         collection::Collection* _boundary ) :
         DistTypeHash( _type, _attr ), key( rand( ) ), boundary( _boundary ) {
@@ -73,10 +73,10 @@ namespace drel {
         #endif
     }
 
-    /*
-    6.2 Copyconstructor
+/*
+6.2 Copyconstructor
 
-    */
+*/
     DistTypeRange::DistTypeRange( const DistTypeRange& _distType ) :
         DistTypeHash( _distType ), key( _distType.key ), 
         boundary( _distType.boundary ) {
@@ -86,10 +86,10 @@ namespace drel {
         #endif
     }
 
-    /*
-    6.3 Assignment operator
+/*
+6.3 Assignment operator
 
-    */
+*/
     DistTypeRange& DistTypeRange::operator=( const DistTypeRange& _distType ) {
 
         #ifdef DRELDEBUG
@@ -105,22 +105,22 @@ namespace drel {
         return *this;
     }
 
-    /*
-    6.4 Destructor
+/*
+6.4 Destructor
 
-    */
+*/
     DistTypeRange::~DistTypeRange( ) {
         #ifdef DRELDEBUG
         cout << "DistTypeRange destructor" << endl;
         #endif
     }
 
-    /*
-    6.5 ~isEqual~
+/*
+6.5 ~isEqual~
 
-    Compares the current DistType with another one.
+Compares the current DistType with another one.
 
-    */
+*/
     bool DistTypeRange::isEqual( DistTypeBasic* _distType ) {
 
         #ifdef DRELDEBUG
@@ -136,12 +136,12 @@ namespace drel {
             && boundary->Compare( other->getBoundary( ) );
     }
 
-    /*
-    6.6 ~getKey~
+/*
+6.6 ~getKey~
 
-    Returns the key.
+Returns the key.
 
-    */
+*/
     int DistTypeRange::getKey( ) {
 
         #ifdef DRELDEBUG
@@ -151,12 +151,12 @@ namespace drel {
         return key;
     }
 
-    /*
-    6.7 ~getBoundary~
+/*
+6.7 ~getBoundary~
 
-    Returns the boundary.
+Returns the boundary.
 
-    */
+*/
     collection::Collection* DistTypeRange::getBoundary( ) {
 
         #ifdef DRELDEBUG
@@ -166,13 +166,13 @@ namespace drel {
         return boundary;
     }
 
-    /*
-    6.8 ~allowedAttrType~
+/*
+6.8 ~allowedAttrType~
 
-    Returns ture if the given ListExpr is the nested list representation 
-    of a suported type to distribute by this type.
+Returns ture if the given ListExpr is the nested list representation 
+of a suported type to distribute by this type.
 
-    */
+*/
     bool DistTypeRange::allowedAttrType( ListExpr _list ) {
 
         #ifdef DRELDEBUG
@@ -184,12 +184,12 @@ namespace drel {
             || CcReal::checkType( _list );
     }
 
-    /*
-    6.9 ~copy~
+/*
+6.9 ~copy~
 
-    Make a copy of the current object.
+Make a copy of the current object.
 
-    */
+*/
     DistTypeBasic* DistTypeRange::copy( ) {
 
         #ifdef DRELDEBUG
@@ -199,12 +199,12 @@ namespace drel {
         return new DistTypeRange( *this );
     }
 
-    /*
-    6.10 ~checkType~
+/*
+6.10 ~checkType~
 
-    Checks whether the type in nested list format fits to this disttype.
+Checks whether the type in nested list format fits to this disttype.
 
-    */
+*/
     bool DistTypeRange::checkType( ListExpr list ) {
 
         #ifdef DRELDEBUG
@@ -230,12 +230,12 @@ namespace drel {
         return Vector::checkType( nl->Fourth( list ) );
     }
 
-    /*
-    6.11 ~save~
+/*
+6.11 ~save~
 
-    Writes a DistType to the storage.
+Writes a DistType to the storage.
 
-    */
+*/
     bool DistTypeRange::save( SmiRecord& valueRecord, 
         size_t& offset, const ListExpr typeInfo ) {
 
@@ -260,12 +260,12 @@ namespace drel {
             valueRecord, offset, nl->Fourth( typeInfo ), value );
     }
 
-    /*
-    6.12 ~toListExpr~
+/*
+6.12 ~toListExpr~
 
-    Returns the object as a list.
+Returns the object as a list.
 
-    */
+*/
     ListExpr DistTypeRange::toListExpr( ListExpr typeInfo ) {
 
         #ifdef DRELDEBUG
@@ -282,12 +282,12 @@ namespace drel {
             collection::Collection::Out( nl->Fourth( typeInfo ), value ) );
     }
 
-    /*
-    6.13 ~print~
+/*
+6.13 ~print~
 
-    Prints the dist type informations. Used for debugging.
+Prints the dist type informations. Used for debugging.
 
-    */
+*/
     void DistTypeRange::print( ) {
         DistTypeHash::print( );
         cout << "key" << endl;

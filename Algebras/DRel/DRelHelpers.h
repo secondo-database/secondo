@@ -30,15 +30,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/Temporal/TemporalAlgebra.h"
 #include "NestedList.h"
-//#include "Boundary.h"
 
 namespace drel {
-    /*
-    1 Class ~DRelHelpers~
+/*
+1 Class ~DRelHelpers~
 
-    A class with usefull helper functions for the DRelAlgebra.
+A class with usefull helper functions for the DRelAlgebra.
 
-    */
+*/
     class DRelHelpers {
         public:
             static bool isListOfTwoElemLists( ListExpr list );

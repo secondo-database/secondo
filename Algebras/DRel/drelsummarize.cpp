@@ -60,12 +60,12 @@ using namespace distributed2;
 
 namespace drel {
 
-    /*
-    1.1 Type Mapping
+/*
+1.1 Type Mapping
 
-    Expect a d[f]el.
+Expect a d[f]el.
 
-    */
+*/
     ListExpr drelsummarizeTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
@@ -101,12 +101,12 @@ namespace drel {
             ": first argument is not a d[f]rel" );
     }
 
-    /*
-    1.2 Value Mapping
+/*
+1.2 Value Mapping
 
-    Selects all elements of the d[f]rel from the workers.
+Selects all elements of the d[f]rel from the workers.
 
-    */
+*/
     template<class T, class R>
     int drelsummarizeVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
@@ -118,28 +118,28 @@ namespace drel {
         return dsummarizeVMT<T, R>( args, result, message, local, s );
     }
 
-    /*
-    1.3 ValueMapping Array of drelsummarize
+/*
+1.3 ValueMapping Array of drelsummarize
 
-    */
+*/
     ValueMapping drelsummarizeVM[ ] = {
         drelsummarizeVMT<dsummarizeRelInfo<DArray>, DArray >,
         drelsummarizeVMT<dsummarizeRelInfo<DFArray>, DFArray >
     };
 
-    /*
-    1.4 Selection function of drelsummarize
+/*
+1.4 Selection function of drelsummarize
 
-    */
+*/
     int drelsummarizeSelect( ListExpr args ) {
 
         return DRel::checkType( nl->First( args ) ) ? 0 : 1;
     }
 
-    /*
-    1.5 Specification of drelsummarize
+/*
+1.5 Specification of drelsummarize
 
-    */
+*/
     OperatorSpec drelsummarizeSpec(
         "d[f]rel(rel(X)) -> stream(X)",
         "_ drelsummarize",
@@ -147,10 +147,10 @@ namespace drel {
         "query drel1 dsummarize count"
     );
 
-    /*
-    1.6 Operator instance of drelsummarize operator
+/*
+1.6 Operator instance of drelsummarize operator
 
-    */
+*/
     Operator drelsummarizeOp(
         "drelsummarize",
         drelsummarizeSpec.getStr( ),

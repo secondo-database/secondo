@@ -38,14 +38,14 @@ extern NestedList* nl;
 using namespace distributed2;
 
 namespace drel {
-    /*
-    6 Class ~DistTypeHash~
+/*
+6 Class ~DistTypeHash~
 
-    Implementation.
+Implementation.
 
-    6.1 Constructors
+6.1 Constructors
 
-    */
+*/
     DistTypeHash::DistTypeHash( distributionType _type, int _attr ) :
         DistTypeBasic( _type ), attr( _attr ) {
         #ifdef DRELDEBUG
@@ -53,10 +53,10 @@ namespace drel {
         #endif
     }
 
-    /*
-    6.2 Copyconstructor
+/*
+6.2 Copyconstructor
 
-    */
+*/
     DistTypeHash::DistTypeHash( const DistTypeHash& _distType ) :
         DistTypeBasic( _distType ), attr( _distType.attr ) {
         #ifdef DRELDEBUG
@@ -64,10 +64,10 @@ namespace drel {
         #endif
     }
 
-    /*
-    6.3 Assignment operator
+/*
+6.3 Assignment operator
 
-    */
+*/
     DistTypeHash& DistTypeHash::operator=( const DistTypeHash& _distType ) {
 
         #ifdef DRELDEBUG
@@ -82,19 +82,19 @@ namespace drel {
         return *this;
     }
 
-    /*
-    6.4 Destructor
+/*
+6.4 Destructor
 
-    */
+*/
     DistTypeHash::~DistTypeHash( ) {
     }
 
-    /*
-    6.5 ~isEqual~
+/*
+6.5 ~isEqual~
 
-    Compares the current DistType with another one.
+Compares the current DistType with another one.
 
-    */
+*/
     bool DistTypeHash::isEqual( DistTypeBasic* _distType ) {
 
         #ifdef DRELDEBUG
@@ -108,12 +108,12 @@ namespace drel {
         return getDistType( ) == _distType->getDistType( );
     }
 
-    /*
-    6.6 ~getAttr~
+/*
+6.6 ~getAttr~
 
-    Returns the number of the attribute used to distribute by hash.
+Returns the number of the attribute used to distribute by hash.
 
-    */
+*/
     int DistTypeHash::getAttr( ) {
 
         #ifdef DRELDEBUG
@@ -123,12 +123,12 @@ namespace drel {
         return attr;
     }
 
-    /*
-    6.7 ~copy~
+/*
+6.7 ~copy~
 
-    Make a copy of the current object.
+Make a copy of the current object.
 
-    */
+*/
     DistTypeBasic* DistTypeHash::copy( ) {
 
         #ifdef DRELDEBUG
@@ -138,12 +138,12 @@ namespace drel {
         return new DistTypeHash( *this );
     }
 
-    /*
-    6.8 ~checkType~
+/*
+6.8 ~checkType~
 
-    Checks whether the type in nested list format fits to this disttype.
+Checks whether the type in nested list format fits to this disttype.
 
-    */
+*/
     bool DistTypeHash::checkType( ListExpr list ) {
 
         #ifdef DRELDEBUG
@@ -161,12 +161,12 @@ namespace drel {
         return CcInt::checkType( nl->Second( list ) );
     }
 
-    /*
-    6.9 ~save~
+/*
+6.9 ~save~
 
-    Writes a DistType to the storage.
+Writes a DistType to the storage.
 
-    */
+*/
     bool DistTypeHash::save( SmiRecord& valueRecord, size_t& offset, 
         const ListExpr typeInfo ) {
 
@@ -184,12 +184,12 @@ namespace drel {
         return true;
     }
 
-    /*
-    6.10 ~toListExpr~
+/*
+6.10 ~toListExpr~
 
-    Returns the object as a list.
+Returns the object as a list.
 
-    */
+*/
     ListExpr DistTypeHash::toListExpr( ListExpr typeInfo ) {
 
         #ifdef DRELDEBUG
@@ -200,25 +200,25 @@ namespace drel {
             nl->StringAtom( getName( getDistType( ) ) ), nl->IntAtom( attr ) );
     }
 
-    /*
-    6.11 ~print~
+/*
+6.11 ~print~
 
-    Prints the dist type informations. Used for debugging.
+Prints the dist type informations. Used for debugging.
 
-    */
+*/
     void DistTypeHash::print( ) {
         DistTypeBasic::print( );
         cout << "attr" << endl;
         cout << attr << endl;
     }
 
-    /*
-    6.12 ~computeNewAttrPos~
+/*
+6.12 ~computeNewAttrPos~
 
-    Computes the new position of the attribute used to distribute. Used for 
-    operations like a projection.
+Computes the new position of the attribute used to distribute. Used for 
+operations like a projection.
 
-    */
+*/
     bool DistTypeHash::computeNewAttrPos( ListExpr attrPosList, int& attrPos ) {
 
         #ifdef DRELDEBUG

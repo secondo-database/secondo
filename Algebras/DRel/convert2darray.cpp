@@ -43,12 +43,12 @@ extern QueryProcessor* qp;
 
 namespace drel {
 
-    /*
-    1.1 Type Mapping
+/*
+1.1 Type Mapping
 
-    Get a drel or dfrel as argument.
+Get a drel or dfrel as argument.
 
-    */
+*/
     ListExpr convert2darrayTM( ListExpr args ) {
 
         std::string err = "drel or dfrel expected";
@@ -73,12 +73,12 @@ namespace drel {
             ": first argument is not a drel or dfrel" );
     }
 
-    /*
-    1.2 Value Mapping
+/*
+1.2 Value Mapping
 
-    Creates a darray or a dfarray.
+Creates a darray or a dfarray.
 
-    */
+*/
     template<class T, class R>
     int convert2darrayVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
@@ -92,28 +92,28 @@ namespace drel {
         return 0;
     }
 
-    /*
-    1.3 ValueMapping Array of convert2darray
+/*
+1.3 ValueMapping Array of convert2darray
 
-    */
+*/
     ValueMapping convert2darrayVM[ ] = {
         convert2darrayVMT<DRel, distributed2::DArray>,
         convert2darrayVMT<DFRel, distributed2::DFArray>
     };
 
-    /*
-    1.4 Selection function
+/*
+1.4 Selection function
 
-    */
+*/
     int convert2darraySelect( ListExpr args ) {
         return nl->SymbolValue( 
             nl->First( nl->First( args ) ) ) == DRel::BasicType( ) ? 0 : 1;
     }
 
-    /*
-    1.5 Specification of convert2darray
+/*
+1.5 Specification of convert2darray
 
-    */
+*/
     OperatorSpec convert2darraySpec(
         " drel(X) "
         "-> darray ",
@@ -122,10 +122,10 @@ namespace drel {
         " query drel1 convert2darray"
     );
 
-    /*
-    1.6 Operator instance of convert2darray operator
+/*
+1.6 Operator instance of convert2darray operator
 
-    */
+*/
     Operator convert2darrayOp(
         "convert2darray",
         convert2darraySpec.getStr( ),

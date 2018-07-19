@@ -42,12 +42,12 @@ extern QueryProcessor* qp;
 
 namespace drel {
 
-    /*
-    1.1 Type Mapping
+/*
+1.1 Type Mapping
 
-    Expect a DRel or DFRel and another DRel or DFRel.
+Expect a DRel or DFRel and another DRel or DFRel.
 
-    */
+*/
     ListExpr drelcollect_boxTM( ListExpr args ) {
 
         std::string err = "stream(spatial) x bool expected ";
@@ -74,13 +74,13 @@ namespace drel {
             " (attribute not in kind SPATIAL2D or SPATIAL3D)" );
     }
 
-    /*
-    1.2 Value Mapping
+/*
+1.2 Value Mapping
 
-    Compares the disttypes of two drels. Return true, if the drels have the 
-    same disttype.
+Compares the disttypes of two drels. Return true, if the drels have the 
+same disttype.
 
-    */
+*/
     template<int dim>
     int drelcollect_boxVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
@@ -125,29 +125,29 @@ namespace drel {
         return 0;
     }
 
-    /*
-    1.3 ValueMapping Array of drfdistribute
+/*
+1.3 ValueMapping Array of drfdistribute
 
-    */
+*/
     ValueMapping drelcollect_boxVM[ ] = {
         drelcollect_boxVMT<2>,
         drelcollect_boxVMT<3>
     };
 
-    /*
-    1.4 Selection function
+/*
+1.4 Selection function
 
-    */
+*/
     int drelcollect_boxSelect( ListExpr args ) {
 
         ListExpr attr = nl->Second( nl->First( args ) );
         return listutils::isKind( attr, Kind::SPATIAL2D( ) ) ? 0 : 1;
     }
 
-    /*
-    1.5 Specification of comparedisttype
+/*
+1.5 Specification of comparedisttype
 
-    */
+*/
     OperatorSpec drelcollect_boxSpec(
         "stream<SPATIAL> x bool -> rectangle",
         " _ drelcollect_box[_]",
@@ -158,10 +158,10 @@ namespace drel {
         "query strassen feed projecttransformstream[GeoData] collect_box[TRUE] "
     );
 
-    /*
-    1.6 Operator instance of comparedisttype operator
+/*
+1.6 Operator instance of comparedisttype operator
 
-    */
+*/
     Operator drelcollect_boxOp(
         "drelcollect_box",
         drelcollect_boxSpec.getStr( ),

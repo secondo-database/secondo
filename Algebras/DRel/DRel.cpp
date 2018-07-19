@@ -41,14 +41,14 @@ using namespace distributed2;
 
 namespace drel {
 
-    /*
-    1 Class ~DRel~
+/*
+1 Class ~DRel~
 
-    Implementation.
+Implementation.
 
-    1.1 Constructors
+1.1 Constructors
 
-    */
+*/
     template<arrayType T>
     DRelT<T>::DRelT( const std::vector<uint32_t>&v, const std::string& name ) :
         DArrayT<T>( v, name ), distType( 0 ) {
@@ -67,10 +67,10 @@ namespace drel {
         #endif
     }
 
-    /*
-    1.1 Copyconstructor
+/*
+1.1 Copyconstructor
 
-    */
+*/
     template<arrayType T>
     DRelT<T>::DRelT( const DRelT& src ) :
         DArrayT<T>( src ), distType( src.distType ) {
@@ -98,10 +98,10 @@ namespace drel {
         #endif
     }
 
-    /*
-    1.2 Assignment operator
+/*
+1.2 Assignment operator
 
-    */
+*/
     template<arrayType T>
     DRelT<T>& DRelT<T>::operator=( const DRelT& src ) {
 
@@ -141,10 +141,10 @@ namespace drel {
         return *this;
     }
 
-    /*
-    1.3 Destructor
+/*
+1.3 Destructor
 
-    */
+*/
     template<arrayType T>
     DRelT<T>::~DRelT( ) {
 
@@ -157,12 +157,12 @@ namespace drel {
         }
     }
 
-    /*
-    1.4 ~setDistType~
+/*
+1.4 ~setDistType~
 
-    Set the distType.
+Set the distType.
 
-    */
+*/
     template<arrayType T>
     void DRelT<T>::setDistType( DistTypeBasic* _distType ) {
 
@@ -175,12 +175,12 @@ namespace drel {
         distType = _distType;
     }
 
-    /*
-    1.5 ~getDistType~
+/*
+1.5 ~getDistType~
 
-    Get the distType.
+Get the distType.
 
-    */
+*/
     template<arrayType T>
     DistTypeBasic* DRelT<T>::getDistType( ) {
 
@@ -193,12 +193,12 @@ namespace drel {
         return distType;
     }
 
-    /*
-    1.6 ~getTypeName~
+/*
+1.6 ~getTypeName~
 
-    Returns the type name of the darray. (DARRAY or DFARRAY)
+Returns the type name of the darray. (DARRAY or DFARRAY)
 
-    */
+*/
     template<arrayType T>
     std::string DRelT<T>::getTypeName( ) const {
 
@@ -211,12 +211,12 @@ namespace drel {
         return getName( T );
     }
 
-    /*
-    1.7 ~toListExpr~
+/*
+1.7 ~toListExpr~
 
-    Returns the DRel as a NestedList.
+Returns the DRel as a NestedList.
 
-    */
+*/
     template<arrayType T>
     ListExpr DRelT<T>::toListExpr( ListExpr typeInfo ) const {
 
@@ -250,13 +250,13 @@ namespace drel {
         return drelList;
     }
 
-    /*
-    1.8 ~readFrom~
+/*
+1.8 ~readFrom~
 
-    Reads a NestedList and returns a DRel pointer. The pointer is 0 if the 
-    list has an error.
+Reads a NestedList and returns a DRel pointer. The pointer is 0 if the 
+list has an error.
 
-    */
+*/
     template<arrayType T>
     DRelT<T>* DRelT<T>::readFrom( ListExpr typeInfo, ListExpr list ) {
 
@@ -419,13 +419,12 @@ namespace drel {
         return rel;
     }
 
-    /*
-    1.9 ~equalDistType~
+/*
+1.9 ~equalDistType~
 
-    Compares the disttype of this drel with the disttype of another one.
+Compares the disttype of this drel with the disttype of another one.
 
-    */
-
+*/
     template<arrayType T>
     template<class R>
     const bool DRelT<T>::equalDistType( R* drel ) {
@@ -445,12 +444,12 @@ namespace drel {
     template const bool DFRel::equalDistType<DRel>( DRel* );
     template const bool DFRel::equalDistType<DFRel>( DFRel* );
 
-    /*
-    1.10 ~BasicType~
+/*
+1.10 ~BasicType~
 
-    Returns the BasicType of the secondo type.
+Returns the BasicType of the secondo type.
 
-    */
+*/
     template<arrayType T>
     const std::string DRelT<T>::BasicType( ) {
 
@@ -466,12 +465,12 @@ namespace drel {
         return "unknown";
     }
 
-    /*
-    1.11 ~checkType~
+/*
+1.11 ~checkType~
 
-    Checks the type in the NestedList. 
+Checks the type in the NestedList. 
 
-    */
+*/
     template<arrayType T>
     const bool DRelT<T>::checkType( const ListExpr list ) {
 
@@ -497,12 +496,12 @@ namespace drel {
         return true;
     }
 
-    /*
-    1.12 ~Property~
+/*
+1.12 ~Property~
 
-    Returns the secondo property informations.
+Returns the secondo property informations.
 
-    */
+*/
     template<arrayType T>
     ListExpr DRelT<T>::Property( ) {
 
@@ -526,12 +525,12 @@ namespace drel {
             ) ) );
     }
 
-    /*
-    1.13 ~In~
+/*
+1.13 ~In~
 
-    Secondo In function.
+Secondo In function.
 
-    */
+*/
     template<arrayType T>
     Word DRelT<T>::In( const ListExpr typeInfo,
         const ListExpr value,
@@ -550,12 +549,12 @@ namespace drel {
         return res;
     }
 
-    /*
-    1.14 ~Out~
+/*
+1.14 ~Out~
 
-    Secondo Out function.
+Secondo Out function.
 
-    */
+*/
     template<arrayType T>
     ListExpr DRelT<T>::Out( const ListExpr typeInfo, Word value ) {
 
@@ -572,12 +571,12 @@ namespace drel {
         return drel->toListExpr( typeInfo );
     }
 
-    /*
-    1.15 ~Create~
+/*
+1.15 ~Create~
 
-    Secondo Create function.
+Secondo Create function.
 
-    */
+*/
     template<arrayType T>
     Word DRelT<T>::Create( const ListExpr typeInfo ) {
 
@@ -593,12 +592,12 @@ namespace drel {
         return w;
     }
 
-    /*
-    1.16 ~Delete~
+/*
+1.16 ~Delete~
 
-    Secondo Delete function.
+Secondo Delete function.
 
-    */
+*/
     template<arrayType T>
     void DRelT<T>::Delete( const ListExpr typeInfo, Word & w ) {
 
@@ -613,12 +612,12 @@ namespace drel {
         w.addr = 0;
     }
 
-    /*
-    1.17 ~Open~
+/*
+1.17 ~Open~
 
-    Secondo Open function.
+Secondo Open function.
 
-    */
+*/
     template<arrayType T>
     bool DRelT<T>::Open( 
         SmiRecord& valueRecord, size_t& offset, 
@@ -795,12 +794,12 @@ namespace drel {
         return false;
     }
 
-    /*
-    1.18 ~Save~
+/*
+1.18 ~Save~
 
-    Secondo Save function.
+Secondo Save function.
 
-    */
+*/
     template<arrayType T>
     bool DRelT<T>::Save( 
         SmiRecord& valueRecord, size_t& offset, 
@@ -821,12 +820,12 @@ namespace drel {
             valueRecord, offset, nl->Third( typeInfo ) );
     }
 
-    /*
-    1.19 ~Close~
+/*
+1.19 ~Close~
 
-    Secondo Close function.
+Secondo Close function.
 
-    */
+*/
     template<arrayType T>
     void DRelT<T>::Close( const ListExpr typeInfo, Word & w ) {
 
@@ -841,12 +840,12 @@ namespace drel {
         w.addr = 0;
     }
 
-    /*
-    1.20 ~Clone~
+/*
+1.20 ~Clone~
 
-    Secondo Clone function.
+Secondo Clone function.
 
-    */
+*/
     template<arrayType T>
     Word DRelT<T>::Clone( const ListExpr typeInfo, const Word & w ) {
 
@@ -862,12 +861,12 @@ namespace drel {
         return res;
     }
 
-    /*
-    1.21 ~Cast~
+/*
+1.21 ~Cast~
 
-    Secondo Cast function.
+Secondo Cast function.
 
-    */
+*/
     template<arrayType T>
     void* DRelT<T>::Cast( void * addr ) {
 
@@ -878,12 +877,12 @@ namespace drel {
         return ( new ( addr ) DRelT<T>( 0 ) );
     }
 
-    /*
-    1.22 ~TypeCheck~
+/*
+1.22 ~TypeCheck~
 
-    Secondo TypeCheck function.
+Secondo TypeCheck function.
 
-    */
+*/
     template<arrayType T>
     bool DRelT<T>::TypeCheck( ListExpr type, ListExpr & errorInfo ) {
 
@@ -896,23 +895,23 @@ namespace drel {
         return DRelT<T>::checkType( type );
     }
 
-    /*
-    1.23 ~SizeOf~
+/*
+1.23 ~SizeOf~
 
-    Secondo SizeOf function.
+Secondo SizeOf function.
 
-    */
+*/
     template<arrayType T>
     int DRelT<T>::SizeOf( ) {
         return 42; // a magic number
     }
 
-    /*
-    1.24 ~DFRelTC~
+/*
+1.24 ~DFRelTC~
 
-    TypeConstructor of the type DFRel
+TypeConstructor of the type DFRel
 
-    */
+*/
     TypeConstructor DFRelTC(
         DFRel::BasicType( ),
         DFRel::Property,
@@ -930,12 +929,12 @@ namespace drel {
         DFRel::TypeCheck
     );
 
-    /*
-    1.25 ~DRelTC~
+/*
+1.25 ~DRelTC~
 
-    TypeConstructor of the type DRel
+TypeConstructor of the type DRel
 
-    */
+*/
     TypeConstructor DRelTC(
         DRel::BasicType( ),
         DRel::Property,
