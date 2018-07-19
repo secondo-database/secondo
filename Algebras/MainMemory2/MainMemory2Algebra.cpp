@@ -4524,6 +4524,208 @@ Operator mcreatemtreeOp(
 
 
 /*
+Operator ~minsertmtree~
+
+*/
+
+ListExpr minsertmtreeTM(ListExpr args){
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError("three arguments required");
+  }
+  ListExpr a1 = nl->First(args);
+  if(!Stream<Tuple>::checkType(a1)){
+    return listutils::typeError("first argument is not a tuple stream");
+  }
+  ListExpr a2 = nl->Second(args);
+
+  if(MPointer::checkType(a2)){
+    a2 = nl->Second(a2);
+  }
+  if(!Mem::checkType(a2)){
+     return listutils::typeError("arg 2 is not a memory object");
+  }
+  a2 = nl->Second(a2); // remove mem
+ 
+  ListExpr a3 = nl->Third(args);
+  if(!listutils::isSymbol(a3)){
+    return listutils::typeError("third arg is not a valid attribute name");
+  }
+ 
+  ListExpr attrList = nl->Second(nl->Second(a1));
+  ListExpr attrType;
+  string attrName = nl->SymbolValue(a3);
+  int attrIndex = listutils::findAttribute(attrList, attrName, attrType);
+  if(!attrIndex){
+    return listutils::typeError("attribute name " + attrName 
+                                + " not part of the tuple");
+  }
+  ListExpr tt = nl->TwoElemList(nl->SymbolAtom(mtreehelper::BasicType()),
+                                attrType);
+  if(!nl->Equal(a2,tt)){
+    return listutils::typeError("second arg is not an memory mtree over " 
+                                + nl->ToString(attrType));
+  }
+  ListExpr dummy;
+  int tidIndex = listutils::findAttribute(attrList, "TID", dummy);
+  if(tidIndex!=0){
+     return listutils::typeError("incoming tuples contain already an attribute "
+                                 "with name TID");
+  }
+  ListExpr resAttrList = listutils::concat(attrList, 
+                               nl->OneElemList(
+                                  nl->TwoElemList(nl->SymbolAtom("TID"),
+                                  listutils::basicSymbol<TupleIdentifier>())));
+
+  ListExpr appendList = nl->OneElemList(nl->IntAtom(attrIndex -1));
+  return nl->ThreeElemList(
+                  nl->SymbolAtom(Symbols::APPEND()),
+                  appendList,
+                 Stream<Tuple>::wrap(Tuple::wrap(resAttrList)));
+}
+
+
+template<class T>
+class minsertmtreeInfo{
+  typedef StdDistComp<T> D;
+
+  public:
+     minsertmtreeInfo(Word _stream, 
+                      MemoryMtreeObject<T,D >* _tree,
+                      int _index, TupleType* _tt): stream(_stream) {
+        tree = _tree->getmtree();
+        tt = _tt;
+        tt->IncReference();
+        index = _index;
+        stream.open();
+     }
+
+     ~minsertmtreeInfo(){
+       stream.close();
+       tt->DeleteIfAllowed();
+     }
+
+     Tuple* next(){
+        Tuple* in = stream.request();
+        if(!in) return 0;
+        TupleId id = in->GetTupleId();
+        if(id!=0){ // do not insert 0 id
+           T* attr = (T*) in->GetAttribute(index);
+           pair<T,TupleId> p(*attr,id);
+           tree->insert(p);
+        }
+        Tuple* out = createResultTuple(in,id);
+        in->DeleteIfAllowed();
+        return out;
+     }
+
+
+  private:
+     Stream<Tuple> stream;
+     MMMTree<std::pair<T, TupleId>, StdDistComp<T> >* tree;
+     int index;
+     TupleType* tt;
+
+     Tuple* createResultTuple(Tuple* in, TupleId id){
+       Tuple* res = new Tuple(tt);
+       int no = in->GetNoAttributes();
+       for(int i=0;i<no;i++){
+         res->CopyAttribute(i,in,i);
+       }
+       res->PutAttribute(no, new TupleIdentifier(true,id));
+       return res; 
+     }
+
+
+};
+
+
+template<class T, class N>
+int minsertmtreeVMT (Word* args, Word& result, int message,
+                    Word& local, Supplier s) {
+
+   typedef StdDistComp<T> D;
+   minsertmtreeInfo<T >* li = (minsertmtreeInfo<T>*) local.addr;
+   switch(message){
+      case  OPEN : { if(li){
+                        delete li;
+                     }
+                     TupleType* tt;
+                     tt = new TupleType(nl->Second(GetTupleResultType(s)));
+                     int index = ((CcInt*) args[3].addr)->GetValue();
+                     N* n = (N*) args[1].addr;
+                     MemoryMtreeObject<T,D>* tree = getMtree<N,T>(n);
+                     local.addr = new minsertmtreeInfo<T>(args[0], tree, 
+                                                          index, tt);
+                     tt->DeleteIfAllowed();
+                     return 0;
+                   }
+       case REQUEST : result.addr = li?li->next():0;
+                      return result.addr?YIELD:CANCEL;
+       case CLOSE : { 
+                     if(li){
+                       delete li;
+                       local.addr = 0;
+                     }
+                     return 0;
+                    }
+
+   }
+   return -1;
+}
+
+
+ValueMapping minsertmtreeVM[] = {
+  minsertmtreeVMT<mtreehelper::t1,Mem>,
+  minsertmtreeVMT<mtreehelper::t2,Mem>,
+  minsertmtreeVMT<mtreehelper::t3,Mem>,
+  minsertmtreeVMT<mtreehelper::t4,Mem>,
+  minsertmtreeVMT<mtreehelper::t5,Mem>,
+  minsertmtreeVMT<mtreehelper::t6,Mem>,
+  minsertmtreeVMT<mtreehelper::t7,Mem>,
+  minsertmtreeVMT<mtreehelper::t8,Mem>,
+  minsertmtreeVMT<mtreehelper::t9,Mem>,
+  minsertmtreeVMT<mtreehelper::t1,MPointer>,
+  minsertmtreeVMT<mtreehelper::t2,MPointer>,
+  minsertmtreeVMT<mtreehelper::t3,MPointer>,
+  minsertmtreeVMT<mtreehelper::t4,MPointer>,
+  minsertmtreeVMT<mtreehelper::t5,MPointer>,
+  minsertmtreeVMT<mtreehelper::t6,MPointer>,
+  minsertmtreeVMT<mtreehelper::t7,MPointer>,
+  minsertmtreeVMT<mtreehelper::t8,MPointer>,
+  minsertmtreeVMT<mtreehelper::t9,MPointer>
+};
+
+int minsertmtreeSelect(ListExpr args){
+   int o1 = Mem::checkType(nl->Second(args))?0:9;
+   string attrName = nl->SymbolValue(nl->Third(args));
+   ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+   ListExpr type;
+   listutils::findAttribute(attrList, attrName, type);
+   return  o1 + mtreehelper::getTypeNo(type,9);
+}
+
+OperatorSpec minsertmtreeSpec(
+  "stream(tuple(x)) x MMTREE x IDENT -> stream(tuple(x@TID))",
+  "_ minsertmtree[ _ , _ ]",
+  "Inserts the tuples from a stream into an existing main memory mtree."
+  "Tuples having a tupleid 0 are not inserted. "
+  "All incoming tuples are extended by their id an put into "
+  "the result stream.",
+  "query plz feed minsertmtree[plz_PLZ_mtree, PLZ] count"
+);
+
+Operator minsertmtreeOp(
+  "minsertmtree",
+   minsertmtreeSpec.getStr(),
+   18,
+   minsertmtreeVM,
+   minsertmtreeSelect,
+   minsertmtreeTM
+);
+
+
+
+/*
 Operator ~mdistRange2~
 
 This operator creates a stream of TupleIDs that are inside a 
@@ -20004,6 +20206,7 @@ class MainMemory2Algebra : public Algebra {
           AddOperator (&matchbelow2Op);
 
           AddOperator(&mcreatemtreeOp);
+          AddOperator(&minsertmtreeOp);
           AddOperator(&mdistRange2Op);
 
           AddOperator(&mdistScan2Op);

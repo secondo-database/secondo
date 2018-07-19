@@ -46,6 +46,7 @@ operator matchbelow alias MATCHBELOW pattern _ _ op [_]
 operator matchbelow2 alias MATCHBELOW2 pattern _ _ op [_,_,_]
 
 operator mcreatemtree alias MCREATEMTREE pattern _ op [_,_]
+operator minsertmtree alias MINSERTMTREE pattern _ op [_,_]
 operator mdistRange2 alias MDISTRANGE2 pattern _ op [_,_]
 operator mdistScan2 alias MDISTSCAN2 pattern _ op [_]
 

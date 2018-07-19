@@ -251,6 +251,12 @@ Signature : MMTREE(T) x T -> stream(tuple((TID tid)))
 Example   : query mkinos_GeoData_mtree mdistScan2[alexanderplatz] transformstream Kinos gettuples projectextend[; D : distance(.GeoData, alexanderplatz)] transformstream isOrdered
 Result    : TRUE
 
+Operator  : minsertmtree
+Number    : 484
+Signature : stream(Tuple) x MMTREE -> stream(tuple(x@TID)))
+Example   : query Kinos feed minsertmtree[mkinos_GeoData_mtree, GeoData] count = Kinos count 
+Result    : TRUE
+
 Operator  : memload
 Number    : 49
 Signature : P -> mpointer(mem(P)) , P in {DATA, rel, orel}
