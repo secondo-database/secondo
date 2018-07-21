@@ -95,7 +95,7 @@ query mm_rel_2000_2100;
 #yields (int 3)
 query barrier('check1', 3);
 
-#testcase signal_other_do_check
+#testcase wait_other_check_done
 #yields (int 3)
 query barrier('finish1', 3);
 
@@ -170,7 +170,7 @@ let mm_rel_invalid = [const rel(tuple([MMP: mpoint2])) value (( 123 ))];
 #yields (int 3)
 query barrier('check2', 3);
 
-#testcase signal_other_do_check
+#testcase wait_other_check_done
 #yields (int 3)
 query barrier('finish2', 3);
 

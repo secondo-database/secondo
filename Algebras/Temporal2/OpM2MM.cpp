@@ -73,7 +73,7 @@ int M2MM_vm( Word* args, Word& result, int message,
       UPoint unit(false);
       for ( int i = 0; i < mpoint->GetNoComponents(); i++) {
           mpoint->Get(i, unit);
-          mpoint2->memAppend(unit);
+          mpoint2->Add(unit);
       }
       mpoint2->SetDefined(true);
   } else {

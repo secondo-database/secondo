@@ -52,11 +52,26 @@ echo attach $(date)
 # (flip between windows with alt -left and right)
 byobu attach-session -t $USER
 
+
 # now we exited - kill everything:
+echo '**** cleaning up: ****'
+ps aux | grep Secondo
+
+echo '**** killing SecondoCS: ****'
+killall SecondoCS
+echo '**** done: killing SecondoCS ****'
+ps aux | grep Secondo
+
+echo '**** killing SecondoMonitor: ****'
+killall SecondoMonitor
+echo '**** done: killing SecondoMonitor ****'
+ps aux | grep Secondo
+
+# hopefully everything has been killed... now remove session
 byobu kill-session -t $USER
 
-killall SecondoMonitor
-killall SecondoBDB
+# killall SecondoMonitor
+# killall SecondoBDB
 
 rm /dev/shm/*_*
 

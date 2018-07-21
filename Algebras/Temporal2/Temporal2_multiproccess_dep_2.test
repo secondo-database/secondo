@@ -10,15 +10,15 @@ close database;
 #yields success
 open database mytestdb;
 
-#testcase signal_other_do_check
+#testcase signal_check_done
 #yields (int 3)
 query barrier('finish1', 3);
 
-#testcase signal_other_do_check
+#testcase wait_do_check
 #yields (int 3)
 query barrier('check2', 3);
 
-#testcase signal_other_do_check
+#testcase signal_check_done
 #yields (int 3)
 query barrier('finish2', 3);
 

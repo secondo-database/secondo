@@ -8,11 +8,10 @@ Author: simon
 #ifndef ALGEBRAS_TEMPORAL2_MEMSTORAGEMANAGER_H_
 #define ALGEBRAS_TEMPORAL2_MEMSTORAGEMANAGER_H_
 
-#include <tr1/memory>
+#include <tr1/memory> // std::tr1::shared_ptr
 #include <string>
 #include <boost/interprocess/sync/named_mutex.hpp>
 // This should be obsolete once we create a template param..
-#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "Types.h"
 
 namespace temporal2algebra {
@@ -25,11 +24,6 @@ typedef std::tr1::shared_ptr<MemUpdateStorage> MemUpdateStoragePtr;
 
 class DbUpdateLogger;
 typedef std::tr1::shared_ptr<DbUpdateLogger> DbUpdateLoggerPtr;
-
-typedef long MemStorageId;
-typedef long TransactionId;
-typedef temporalalgebra::UPoint Unit; //make this a template param
-typedef std::vector<Unit> Units;
 
 class MemStorageManager {
 public:
@@ -44,13 +38,25 @@ public:
     static void deleteInstance();
 
     virtual ~MemStorageManager();
-
     const MemStorageId createId();
-    Units get(const MemStorageId id); /*const*/
+    void setBackRef(const MemStorageId& id,
+            const BackReference& backRef, const Unit& finalUnit);
+    bool hasMemoryUnits(const MemStorageId id);
+//    Units get(const MemStorageId id); /*const*/
+    Unit Get(const MemStorageId id, size_t memIndex) ; /*const*/
+    Unit getFinalUnit (const MemStorageId id); /*const*/
+    MemStorageId getId(const BackReference& backRef);
+    int Size(const MemStorageId id);
     void append(const MemStorageId id, const Unit& unit);
-    void clear (const MemStorageId id);
 
-    void applyLog (const logData& log);
+    void clear (const MemStorageId id);
+    int pushToFlobs();
+    int printLog();
+    int printMem();
+
+    void applyLog (const LogData& log);
+
+
 
 protected:
     MemStorageManager();
@@ -59,6 +65,7 @@ private:
     // helper to make sure we still have the correct Storage
     // if not: cleanup old Storage and connect/create to new Storage
     void ensureStorageConnection();
+//    MemStorageIds getIds();
 
 private:
     // single instance to handle all client access

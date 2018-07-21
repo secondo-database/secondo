@@ -7,7 +7,6 @@ Limitations and Todos:
 - only naive implementation
     (optimization for fast concurrent updates is topic of bachelor thesis)
 - only MPoint implemented so far
-- only Streams (but no single IPoints) working
 
 */
 
@@ -23,6 +22,7 @@ Limitations and Todos:
 #include "Symbols.h"
 #include "ListUtils.h"
 #include "MPoint2.h"
+#include "MovingCalculations.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -56,7 +56,7 @@ ListExpr AppendTo_tm( ListExpr args ) {
                 + Stream<IPoint>::BasicType()
                 + "(" + IPoint::BasicType()
                 + ") or " + IPoint::BasicType()
-                + "as first argument, but got "
+                + " as first argument, but got "
                 + nl->ToString(nl->First(args))
                 );
     }
@@ -106,67 +106,6 @@ int AppendTo_sf( ListExpr args ) {
 
     cout << "AppendTo_sf(..) selection = "<< selection << "\n";
     return selection;
-}
-
-template<class TiAlpha, class TuAlpha>
-void CreateStartExtensionUnit(const TiAlpha* iAlpha, TuAlpha* result) {
-    Instant instant = iAlpha->instant;
-    Interval<Instant> interval(instant, instant, true, true);
-    TuAlpha resUnit(interval, iAlpha->value, iAlpha->value);
-    *result = resUnit;
-    return;
-}
-
-template<class TuAlpha, class TiAlpha>
-void CreateRegularExtensionUnit(const TiAlpha* final_intime_mAlpha,
-        const TiAlpha* iAlpha,
-        TuAlpha* result ) {
-
-    // TODO: corner case: previous unit is right open but same instant.
-    if (iAlpha->instant > final_intime_mAlpha->instant) {
-        Interval<Instant> res_interval(
-                final_intime_mAlpha->instant, iAlpha->instant, false, true);
-        TuAlpha extension_unit(
-                res_interval, final_intime_mAlpha->value, iAlpha->value);
-        *result = extension_unit;
-        return;
-    }
-    result->SetDefined(false);
-    return;
-}
-
-
-// calculate the next Unit based on the an m(alpha) for a given i(alpha)
-template<class TiAlpha, class TuAlpha>
-void CreateExtensionUnit(
-        const TuAlpha* uAlpha,
-        const TiAlpha* iAlpha,
-        TuAlpha* res_uAlpha) {
-
-    if (!iAlpha->IsDefined()) {
-        // nothing to append => nothing to do
-        *res_uAlpha = TuAlpha(false);
-        return;
-    }
-
-    if (!uAlpha->IsDefined()) {
-        // we have no "starting point" => create a single "point" unit
-        TuAlpha result;
-        CreateStartExtensionUnit(iAlpha, &result);
-        *res_uAlpha = result;
-        return;
-    }
-
-    TiAlpha final_instant(true);
-    uAlpha->TemporalFunction(
-            uAlpha->timeInterval.end,
-            final_instant.value, true );
-    final_instant.instant.CopyFrom( &uAlpha->timeInterval.end );
-
-    TuAlpha result;
-    CreateRegularExtensionUnit(&final_instant, iAlpha, &result );
-    *res_uAlpha = result;
-    return;
 }
 
 // return copy of original object with extension
@@ -230,17 +169,17 @@ int AppendToStreamMemory_vm
   qp->Request(args[0].addr, elem);
 
   TuAlpha unit;
-  if (res_mAlpha->memGet().empty()) {
+  if (res_mAlpha->get().empty()) {
       unit.SetDefined(false);
   } else {
-      unit = res_mAlpha->memGet().back();
+      unit = res_mAlpha->get().back();
   }
 
   while ( qp->Received(args[0].addr) ){
       TiAlpha* arg_iAlpha = static_cast<TiAlpha*>(elem.addr);
       CreateExtensionUnit(&unit, arg_iAlpha, &unit);
       if (unit.IsDefined()) {
-        res_mAlpha->memAppend(unit);
+        res_mAlpha->append(unit);
       }
       ((Attribute*)elem.addr)->DeleteIfAllowed();
       qp->Request(args[0].addr, elem);
@@ -285,45 +224,42 @@ int AppendToUnitRegular_vm
   return 0;
 }
 
-// return copy of original object with extension
-template<class TmAlpha, class TiAlpha, class TuAlpha>
-int AppendToUnitMemory_vm
-    ( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  cout << "int AppendToUnitMemory_vm\n";
-  TmAlpha* arg_mAlpha = static_cast<TmAlpha*>(args[1].addr);
-  // Stream<TiAlpha>* arg_siAlpha = static_cast<Stream<TiAlpha>*>(args[1].addr);
-
-  result = qp->ResultStorage(s);
-  TmAlpha* res_mAlpha = static_cast<TmAlpha*>(result.addr);
-  res_mAlpha->CopyFrom(arg_mAlpha);
-
-  TuAlpha unit;
-  if (res_mAlpha->memGet().empty()) {
-      unit.SetDefined(false);
-  } else {
-      unit = res_mAlpha->memGet().back();
-  }
-
-  TiAlpha* arg_iAlpha = static_cast<TiAlpha*>(args[0].addr);
-  CreateExtensionUnit(&unit, arg_iAlpha, &unit);
-  if (unit.IsDefined()) {
-     res_mAlpha->memAppend(unit);
-  }
-
-  return 0;
-}
-
-
-
-
+//// return copy of original object with extension
+//template<class TmAlpha, class TiAlpha, class TuAlpha>
+//int AppendToUnitMemory_vm
+//    ( Word* args, Word& result, int message, Word& local, Supplier s )
+//{
+//  cout << "int AppendToUnitMemory_vm\n";
+//  TmAlpha* arg_mAlpha = static_cast<TmAlpha*>(args[1].addr);
+//  // Stream<TiAlpha>* arg_siAlpha =
+// static_cast<Stream<TiAlpha>*>(args[1].addr);
+//
+//  result = qp->ResultStorage(s);
+//  TmAlpha* res_mAlpha = static_cast<TmAlpha*>(result.addr);
+//  res_mAlpha->CopyFrom(arg_mAlpha);
+//
+//  TuAlpha unit;
+//  if (res_mAlpha->get().empty()) {
+//      unit.SetDefined(false);
+//  } else {
+//      unit = res_mAlpha->get().back();
+//  }
+//
+//  TiAlpha* arg_iAlpha = static_cast<TiAlpha*>(args[0].addr);
+//  CreateExtensionUnit(&unit, arg_iAlpha, &unit);
+//  if (unit.IsDefined()) {
+//     res_mAlpha->append(unit);
+//  }
+//
+//  return 0;
+//}
 
 ValueMapping AppendTo_vms[] =
 {
     AppendToUnitRegular_vm<MPoint, IPoint, UPoint>,
-    AppendToUnitMemory_vm<MPoint2, IPoint, UPoint>,
+    AppendToUnitRegular_vm<MPoint2, IPoint, UPoint>,
     AppendToStreamRegular_vm<MPoint, IPoint, UPoint>,
-    AppendToStreamMemory_vm<MPoint2, IPoint, UPoint>
+    AppendToStreamRegular_vm<MPoint2, IPoint, UPoint>
 
   //  AppendTo_vm<MBool, IBool>,
   //  AppendTo_vm<MString, IString>,

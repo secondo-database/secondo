@@ -55,3 +55,31 @@ object lifecycle:
 -> Delete: mark deleted in log, persist log?
 
 MPoint semantic -> no units =>? undefined
+
+
+2018-07-26:
+
+Pushing data to attributes seems to work single threaded and single process, but test:
+- Assigning new MPoint to Tuple (id changes, backref remains)
+- Deleting Tuple
+- Deleting Relation
+- Recreating Relation with same name (additional "unique id" required to detect this?)
+Consider renaming StorageId to ReferenceId (or smth. like this)
+
+ToDo:
+- Refactor MemoryStructure (Map of ID -> Storage (vector<Unit>, bbox, ...))
+- handle log cleanup!
+- check locking for multiprocessing ("regular operation")
+- check locking for multithreading (for push thread, if required)
+- check transaction handling!
+- extend to Attributes as named Objects
+
+
+query pos_updates feed filter [ .DestTid = [const tid value 1] ] head[1] streamvalve ['Remote', 'a'] appendpositions ['trajectories2', 'DestTid', 'IPos','Trajectory'] count;
+
+query streamnext ('a', 9);
+
+query trajectories2;
+
+restore database temporal2test from '/home/simon/secondo/bin/temporal2test';
+query pos_updates feed filter [ .DestTid = [const tid value 1] ] head[1] appendpositions ['trajectories2', 'DestTid', 'IPos','Trajectory'] count;

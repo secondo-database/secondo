@@ -54,89 +54,112 @@ Problematic lifecycle/missing hooks:
 //#include <boost/interprocess/mapped_region.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/interprocess/containers/vector.hpp>
+#include <boost/interprocess/containers/map.hpp>
 #include <boost/interprocess/allocators/allocator.hpp>
 #include <boost/interprocess/managed_shared_memory.hpp>
 
+#include <boost/interprocess/ipc/message_queue.hpp>
+
+
 namespace temporal2algebra {
 
+typedef boost::interprocess::allocator
+        <Unit, boost::interprocess::managed_shared_memory::segment_manager>
+UnitAllocator;
 
-
-typedef std::vector<Unit> Units;
-
-
-
-struct memData {
-    memData(const MemStorageId st,
-            const TransactionId tr,
-            bool valid,
-            const Unit unit,
-            LogOperation operation) :
-                storageId(st),
-                transactionId(tr),
-                isValid(valid),
-                unit(unit),
-                operation(operation){};
-    memData(const logData log) :
-        storageId(log.storageId),
-        transactionId(log.transactionId),
-        isValid(true),
-        unit(log.unit),
-        operation(log.operation){};
-
-    MemStorageId storageId;
-    TransactionId transactionId;
-    bool    isValid; // allow to mark entries as obsolete
-    Unit    unit;
-    LogOperation operation;
-};
-
-std::ostream &operator<<(std::ostream &os, memData const &l);
+typedef boost::container::vector<Unit, UnitAllocator> SharedUnits;
 
 typedef boost::interprocess::allocator
-        <memData, boost::interprocess::managed_shared_memory::segment_manager>
-        ShmemAllocator;
-typedef boost::container::vector<memData, ShmemAllocator> SharedDataVector;
+        <void, boost::interprocess::managed_shared_memory::segment_manager>
+VoidAllocator;
 
-struct MemData {
-    // number of users
-    // access only in ctor/dtor, synchronize access externally
-    int numOfUsers;
+struct SharedData {
+    SharedData(const BackReference& backref,
+            const Unit& finalUnit,
+            const VoidAllocator& alloc) :
+        backReference(backref),
+        finalUnit(finalUnit),
+        units(alloc) {}
 
-    MemStorageId lastKnownStorageId;
-    SharedDataVector data;
-    MemData(const ShmemAllocator& alloc):
-        numOfUsers(0),
-        lastKnownStorageId(0),
-        data(alloc) {};
+    BackReference backReference;
+    Unit finalUnit;
+    SharedUnits units;
 };
+
+typedef std::pair<const MemStorageId, SharedData> SharedDataMapValue;
+
+typedef boost::interprocess::allocator
+        <SharedDataMapValue,
+        boost::interprocess::managed_shared_memory::segment_manager>
+MapValueAllocator;
+
+typedef boost::container::map
+        <MemStorageId, SharedData, std::less<MemStorageId>, MapValueAllocator>
+SharedDataMap;
+
+typedef boost::interprocess::allocator
+        <SharedDataMap,
+        boost::interprocess::managed_shared_memory::segment_manager>
+MapAllocator;
+
+struct SharedMemStorage {
+    int numOfUsers;
+    MemStorageId lastKnownStorageId;
+    SharedDataMap dataMap;
+
+    SharedMemStorage(const VoidAllocator& alloc):
+           numOfUsers(0),
+           lastKnownStorageId(0),
+           dataMap(alloc){};
+};
+
+std::ostream &operator<<(std::ostream &os, SharedData const &l);
+std::ostream &operator<<(std::ostream &os, SharedDataMapValue const &l);
+std::ostream &operator<<(std::ostream &os, SharedMemStorage const &l);
 
 
 class MemUpdateStorage {
 public:
     MemUpdateStorage(std::string database);
-
     virtual ~MemUpdateStorage();
 
-    // these 4 methods are backed up by log:
-    const MemStorageId createMem();
-    void createMem(const MemStorageId id); //only use during logReplay
-    Units memGet(const MemStorageId id) /*const*/;
+    //only use during logReplay
+    void memCreateId(MemStorageId id);
+
+    // these methods are backed up by log:
+    const MemStorageId memCreateId();
+    void memSetBackRef(const MemStorageId& id,
+            const BackReference& backRef, const Unit& finalUnit);
+    bool memHasMemoryUnits(const MemStorageId id) const;
+
+    Unit memGet(const MemStorageId id, size_t memIndex);
+    Unit memGetFinalUnit(const MemStorageId id);
+    MemStorageId memGetId(const BackReference& backRef) const;
+    int memSize(const MemStorageId id);
     void memAppend(const MemStorageId id, const Unit& unit);
+
     void memClear (const MemStorageId id);
+
+    MemStorageIds getIdsToPush() const;
+    int memPushToFlobs(const MemStorageId idToPush);
+    int printMem() const;
+
     bool isNewlyCreated() const;
 
 private:
-    void assertSameDb();
+    void assertSameDb() const;
     void initMem();
 
     boost::interprocess::managed_shared_memory  segment;
+    SharedMemStorage* memdata;
 
-    MemData* memdata;
+    boost::interprocess::message_queue* memqueue;
 
     // Name of currently open DB - used in identifier for mem
     std::string currentDbName;
     std::string memStorageName;
     std::string shMemDataName;
+    std::string memQueueName;
     bool newly_created;
 };
 

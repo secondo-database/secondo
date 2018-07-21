@@ -91,7 +91,7 @@ ListExpr StreamValve_tm( ListExpr args ) {
     ListExpr valveName = nl->Second(current);
     if (nl->AtomType(valveName) != TextType) {
         return listutils::typeError(
-                "expected TextType contents as in second Argument, but got "
+                "expected TextType contents in second Argument, but got "
                 + nl->ToString(valveName));
     }
     std::string valve_id = nl->Text2String(valveName);

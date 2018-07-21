@@ -192,7 +192,7 @@ void RemoteStreamValve::waitForSignal() {
     std::cout << "ToDo: wait for remote Controller "
             << controllerId
             << ". For now just sleep a bit\n";
-    sleep(1);
+   // sleep(1);
     { // scope for lock
         scoped_lock<interprocess_mutex> lock(controlPtr->mutex);
         while (1) {

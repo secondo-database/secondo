@@ -73,11 +73,10 @@ int MM2M_vm( Word* args, Word& result, int message,
       mpoint->SetDefined(true);
       mpoint->StartBulkLoad();
 
-      const std::vector<temporalalgebra::UPoint>& memUnits
-          = mpoint2->memGet();
-      std::vector<temporalalgebra::UPoint>::const_iterator it;
-      for (it = memUnits.begin(); it != memUnits.end(); ++it) {
-          mpoint->Add(*it);
+      UPoint unit(false);
+      for ( int i = 0; i < mpoint2->GetNoComponents(); i++) {
+          mpoint2->Get(i, unit);
+          mpoint->Add(unit);
       }
 
       mpoint->EndBulkLoad(false);

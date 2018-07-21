@@ -13,7 +13,7 @@ Author: simon
 #include "SecondoSMI.h"
 
 // required for replay log
-// bad design: refactor to use callback!
+// bad design: refactor to use callback interface/ allow registering callback
 #include "MemStorageManager.h"
 
 namespace temporal2algebra {
@@ -24,15 +24,21 @@ public:
     virtual ~DbUpdateLogger();
 
     void logCreateId(const MemStorageId id);
-    void logGet(const MemStorageId id) /*const*/;
+    void logSetBackRef(const MemStorageId& id,
+            const BackReference& backRef, const Unit& finalUnit);
+
     void logAppend(const MemStorageId id, const Unit& unit);
+    void logEnque(const BackReference& backRef, const Intime& intime);
     void logClear (const MemStorageId id);
 
-    void replayLog(MemStorageManager& manager);
+    void logPushToFlobs(const MemStorageId id);
 
+    void replayLog(MemStorageManager& manager);
+    void truncateLog();
+    int printLog();
 
 private:
-    void writeLogRecord(const logData& log);
+    void writeLogRecord(const LogData& log);
 
     std::string database;
     std::string smiLogFileName;

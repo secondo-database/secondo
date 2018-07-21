@@ -11,6 +11,8 @@ Author: simon
 #include "SecondoSMI.h" // SmiEnvironment::IsDatabaseOpen()
 #include <boost/interprocess/sync/scoped_lock.hpp>
 
+#include "MPoint2.h" // TODO: remove dependency - see applyLog
+
 namespace temporal2algebra {
 using boost::interprocess::scoped_lock;
 using boost::interprocess::named_mutex;
@@ -52,18 +54,50 @@ void MemStorageManager::deleteInstance() {
     delete instance;
 }
 
-
-const MemStorageId MemStorageManager::createId(){
+const MemStorageId MemStorageManager::createId() {
     ensureStorageConnection();
-    MemStorageId newId = memUpdateStoragePtr->createMem();
-    dbUpdateLoggerPtr->logCreateId(newId);
-    return newId;
+    MemStorageId storageId = memUpdateStoragePtr->memCreateId();
+    dbUpdateLoggerPtr->logCreateId(storageId);
+    return storageId;
 }
 
-Units MemStorageManager::get(const MemStorageId id)/*const*/ {
+void MemStorageManager::setBackRef(const MemStorageId& id,
+        const BackReference& backRef, const Unit& finalUnit) {
     ensureStorageConnection();
-    Units result = memUpdateStoragePtr->memGet(id);
-    dbUpdateLoggerPtr->logGet(id);
+    memUpdateStoragePtr->memSetBackRef(id, backRef, finalUnit);
+    dbUpdateLoggerPtr->logSetBackRef(id, backRef, finalUnit);
+}
+
+bool MemStorageManager::hasMemoryUnits(const MemStorageId id) {
+    ensureStorageConnection();
+    return memUpdateStoragePtr->memHasMemoryUnits(id);
+}
+
+Unit MemStorageManager::Get(const MemStorageId id, const size_t memIndex)
+/*const*/
+{
+    ensureStorageConnection();
+    Unit result = memUpdateStoragePtr->memGet(id, memIndex);
+    return result;
+}
+
+Unit MemStorageManager::getFinalUnit (const MemStorageId id) {
+    ensureStorageConnection();
+    Unit result = memUpdateStoragePtr->memGetFinalUnit(id);
+    return result;
+}
+
+MemStorageId MemStorageManager::getId(const BackReference& backRef)
+{
+    ensureStorageConnection();
+    return memUpdateStoragePtr->memGetId(backRef);
+}
+
+int MemStorageManager::Size(const MemStorageId id) /*const*/
+{
+    ensureStorageConnection();
+    //narrowing cast!
+    int result = memUpdateStoragePtr->memSize(id);
     return result;
 }
 
@@ -79,22 +113,68 @@ void MemStorageManager::clear (const MemStorageId id){
     dbUpdateLoggerPtr->logClear(id);
 }
 
+// TODO: rename this to smth like pushall, truncate, ...
+// Add methods to compact log? (to allow to keep data in log indefinitely)
+int MemStorageManager::pushToFlobs() {
+    cout << "MemStorageManager::pushToFlobs()\n";
+    ensureStorageConnection();
+    MemStorageIds idsToPush = memUpdateStoragePtr->getIdsToPush();
+    MemStorageIds::iterator id_it;
+    int countPushed(0);
+    for (id_it = idsToPush.begin(); id_it != idsToPush.end(); ++id_it) {
+        cout << "pushing id: " << *id_it << endl;
+        countPushed += memUpdateStoragePtr->memPushToFlobs(*id_it);
+        dbUpdateLoggerPtr->logPushToFlobs(*id_it);
+    }
+    // hack: just create the log, so we have something to delete
+    dbUpdateLoggerPtr->logCreateId(0);
 
+    dbUpdateLoggerPtr->truncateLog();
 
-void MemStorageManager::applyLog (const logData& log){
+    // log latest known id +1 to avoid conflict with existing ids
+    MemStorageId dummyId = memUpdateStoragePtr->memCreateId();
+    dbUpdateLoggerPtr->logCreateId(dummyId);
+    // need to lock smth... log, mem
+
+    // iterate over ids, for each:
+    // get backreference and units
+    // pushback units to attr. Flob
+    // mark memunit as obsolete
+
+    //int count = memUpdateStoragePtr->memPushToFlobs();
+
+    //dbUpdateLoggerPtr->logPushToFlobs();
+    return countPushed;
+}
+
+int MemStorageManager::printLog() {
+    ensureStorageConnection();
+    return dbUpdateLoggerPtr->printLog();
+}
+
+int MemStorageManager::printMem() {
+    ensureStorageConnection();
+    return memUpdateStoragePtr->printMem();
+}
+
+void MemStorageManager::applyLog (const LogData& log){
     cout << "MemStorageManager::applyLog("
             << log << ")\n";
     switch (log.operation) {
         case LogOp_memCreateId:
-            memUpdateStoragePtr->createMem(log.storageId);
+            memUpdateStoragePtr->memCreateId(log.storageId);
+            break;
+        case LogOp_memSetBackRef:
+            memUpdateStoragePtr->memSetBackRef(log.storageId,
+                    log.backReference, log.unit);
             break;
         case LogOp_memAppend:
             memUpdateStoragePtr->memAppend(log.storageId, log.unit);
             break;
-        case LogOp_memGet:
-            // nothing to do
-            break;
         case LogOp_memClear:
+            memUpdateStoragePtr->memClear(log.storageId);
+            break;
+        case LogOp_pushToFlobs:
             memUpdateStoragePtr->memClear(log.storageId);
             break;
         default:
@@ -102,7 +182,6 @@ void MemStorageManager::applyLog (const logData& log){
             assert(false);
     }
 }
-
 
 void MemStorageManager::ensureStorageConnection() {
     cout << "MemStorageManager::ensureStorageConnection()\n";
@@ -129,7 +208,6 @@ void MemStorageManager::ensureStorageConnection() {
         } else{
             cout << "MemUpdateStorage should be fine. Go on.\n";
         }
-
     }
 }
 
