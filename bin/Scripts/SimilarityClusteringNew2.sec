@@ -30,6 +30,7 @@ query share("n", TRUE, Workers);
 
 
 # Step 3
+query memclear();
 query T dcommand['query meminit(3600)'] filter[.Ok] count;
 
 query T dlet["PCm", 'PC feed mconsume'] consume;
