@@ -2,6 +2,7 @@
 #
 # A sample relation SS with position attribute Pos must be present. Adapt parameter k.
 
+
 let k = 50;
 query memclear();
 
@@ -13,6 +14,7 @@ let Balls = SS feed
     distance(attr(t, Pos), 
       SSm_Pos_mtree SSm mdistScan[attr(t, Pos)] head[k] tail[1] extract[Pos])]
   mconsume
+
 
 let maxRadius = Balls mfeed max[Radius]
 

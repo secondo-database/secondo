@@ -3,13 +3,13 @@
 
 # Step 1
 delete Card;
-delete NInserted;
+delete k;
+delete maxRadius;
 delete PC;
 
 delete Eps;
 delete MinPts;
 delete SS;
-delete maxRadius;
 delete n;
 delete wgs84;
 
