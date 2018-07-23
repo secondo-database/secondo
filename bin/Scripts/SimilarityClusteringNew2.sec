@@ -7,7 +7,7 @@
 
 # Step 1a
 let Card = T dmap["", . count] getValue tie[. + ..];
-share("Card", TRUE, Workers)
+query share("Card", TRUE, Workers)
 
 let SS = T dmap["", . feedNth[Card div 10000, FALSE]] dsummarize consume
 
