@@ -5,13 +5,16 @@
 #
 # The database must be open.
 
-# Step 1
+# Step 1a
 let Card = T dmap["", . count] getValue tie[. + ..];
 share("Card", TRUE, Workers)
 
 let SS = T dmap["", . feedNth[Card div 10000, FALSE]] dsummarize consume
 
-@&Scripts/SimilarityPartitioning.psec;
+
+# Step 1b
+
+@&Scripts/SimilarityPartitioning.sec;
 let n = PC count
 
 let MinPts = 10;
@@ -23,7 +26,7 @@ query share("PC", TRUE, Workers);
 query share("MinPts", TRUE, Workers);
 query share("Eps", TRUE, Workers);
 query share("wgs84", TRUE, Workers);
-query share("n", TRUE, Workers);:w
+query share("n", TRUE, Workers);
 
 
 # Step 3
