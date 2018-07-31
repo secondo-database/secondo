@@ -99,6 +99,9 @@ ConnectionInfo::ConnectionInfo(const string& _host,
 bool ConnectionInfo::reconnect(bool showCommands, CommandLog& log, 
                                const size_t timeout,
                                const int heartbeat){
+
+    //cout << "try to reconnect " << host <<":" << port << endl;
+
     guard_type guard(simtx);
     si->removeMessageHandler(hbobserver);
     try{
@@ -239,10 +242,11 @@ bool ConnectionInfo::check(bool showCommands,
         }
         si->Secondo(cmd, res, err);
         if(err.code){
-           cerr << "Secondo function used during check() returns an error"
-                << endl;
-           cerr << "Code is " << err.code << endl;
-           cerr << "This means " << err.msg << endl;
+           //cerr << "Secondo function used during check() returns an error"
+           //     << endl;
+           //cerr << "Code is " << err.code << endl;
+           //cerr << "This means " << err.msg << endl;
+           return false;
         }
 
 
