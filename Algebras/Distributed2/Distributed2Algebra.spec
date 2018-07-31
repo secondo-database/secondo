@@ -10,8 +10,8 @@ operator sendFile alias SENDFILE pattern op(_,_,_)
 operator requestFile alias REQUESTFILE pattern op(_,_,_)
 operator psendFile alias PSENDFILE  pattern _ op [_,_,_]
 operator prequestFile alias PREQUESTFILE  pattern _ op [_,_,_]
-operator getRequestFolder alias GETREQUESTFOLDER pattern op(_)
-operator getSendFolder alias GETSENDFOLDER pattern op(_)
+operator getRequestFolder alias GETREQUESTFOLDER pattern op(_,_)
+operator getSendFolder alias GETSENDFOLDER pattern op(_,_)
 operator pconnect alias PCONNECT pattern _ op[_,_,_]
 operator prquery alias PRQUERY  pattern _ op[_,_]
 operator prquery2 alias PRQUERY2  pattern _ op[_,_,_,_,_]

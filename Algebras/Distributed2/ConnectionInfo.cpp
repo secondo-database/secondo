@@ -67,6 +67,7 @@ ConnectionInfo::ConnectionInfo(const string& _host,
     serverPID=0;
     num = -1;
     cmdLog = 0; 
+    noReferences = 1;
     guard_type guard(simtx);
     tonotifier = new TimeoutNotifier<ConnectionInfo>(this);
     hbobserver = new HeartbeatObserver<ConnectionInfo>(this);
@@ -157,16 +158,30 @@ bool ConnectionInfo::reconnect(bool showCommands, CommandLog& log,
 */
 ConnectionInfo::~ConnectionInfo()
 {
+
+   //cout << "Destroy connectionInfo" << endl;
+
+   try
     {
         guard_type guard(simtx);
         si->Terminate();
     }
+    catch(...) {}
     delete si;
     si = 0;
     delete mynl;
     delete hbobserver;
     delete tonotifier;
 }
+
+void ConnectionInfo::deleteIfAllowed() {
+       assert(noReferences>0);
+       noReferences--;
+       if(noReferences==0){
+          delete this;
+       }
+}
+
 
 /*
  1.3 ~getHost~
@@ -716,6 +731,11 @@ string ConnectionInfo::getRequestFolder()
     return requestFolder;
 }
 
+string ConnectionInfo::getRequestPath(){
+   return requestPath;
+} 
+
+
 /*
  1.18 getSendFolder
 
@@ -751,7 +771,7 @@ ConnectionInfo* ConnectionInfo::createConnection(const string& host,
                                                  const int heartbeat)
 {
 
-    NestedList* mynl = new NestedList();
+    NestedList* mynl = new NestedList("temp_nested_list");
     SecondoInterfaceCS* si = new SecondoInterfaceCS(true, mynl, true);
     string user = "";
     string passwd = "";

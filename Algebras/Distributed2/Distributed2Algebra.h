@@ -177,7 +177,7 @@ file system.
 returns the name of the folder where get requests start.
 
 */
-    std::string getRequestFolder(int con);
+    std::string getRequestFolder(int con, bool path);
 
 
 /*
@@ -186,7 +186,7 @@ returns the name of the folder where get requests start.
 returns the name of the folder where new files are stored on remote side.
 
 */
-    std::string getSendFolder( int con);
+    std::string getSendFolder( int con, bool path);
 
 
 /*
@@ -272,6 +272,12 @@ connections coming from darray elements.
                                         const std::string& dbname,
                                         CommandLogger* log = 0);
 
+  ConnectionInfo* getWorkerConnection(
+       DArrayBase* array,
+       int slot,
+       const std::string& dbname,
+       CommandLogger* log,
+       bool allowArrayChange);
 /*
 ~getDBName~
 

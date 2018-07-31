@@ -64,6 +64,18 @@ public:
 
     virtual ~ConnectionInfo();
 
+    void deleteIfAllowed();
+
+    ConnectionInfo* copy(){
+        noReferences++;
+        return this;
+    }
+
+    size_t getNoReferences() const{
+       return noReferences;
+    }
+
+
     bool reconnect(bool showCommands, CommandLog& log, const size_t timeout=0,
                    const int heartbeat=0);
 
@@ -149,6 +161,8 @@ public:
                     const size_t timeout=0);
 
     std::string getRequestFolder();
+    
+    std::string getRequestPath();
 
     std::string getSendFolder();
 
@@ -278,6 +292,9 @@ public:
 
 
 private:
+
+    ConnectionInfo(const ConnectionInfo& s); 
+
     void retrieveSecondoHome(bool showCommands,
                              CommandLog& commandLog);
 
@@ -304,6 +321,8 @@ private:
                          // written to log instead of sending
                          // to the server
     int num; // some number that can be used to store additional information
+
+    size_t noReferences;
 
 
     HeartbeatObserver<ConnectionInfo>* hbobserver;

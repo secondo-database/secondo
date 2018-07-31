@@ -42,14 +42,14 @@ Remark    : requires a remote server
 
 Operator  : sendFile
 Number    : 1
-Signature : int x {string, text} x {string, text} -> bool
+Signature : int x {string, text} x {string, text} -> int 
 Example   : query sendFile(0, 'local.txt', "remote.txt")
 Result    : bug
 Remark    : Requires a remote server
 
 Operator  : requestFile
 Number    : 1
-Signature : int x {string, text} x {string, text} -> bool
+Signature : int x {string, text} x {string, text} ->  int
 Example   : query requestFile(0, 'remote.txt', "local.txt")
 Result    : bug
 Remark    : Requires a remote server
@@ -72,14 +72,14 @@ Remark    : Requires a remote server
 
 Operator  : getRequestFolder 
 Number    : 1
-Signature : int -> text
-Example   : query getRequestFolder(0)
+Signature : int x bool -> text
+Example   : query getRequestFolder(0i, false)
 Result    : (text undefined)
 
 Operator  : getSendFolder 
 Number    : 1
-Signature : int -> text
-Example   : query getSendFolder(0)
+Signature : int x bool -> text
+Example   : query getSendFolder(0, false)
 Result    : (text undefined)
 
 Operator : pconnect

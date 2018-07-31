@@ -103,6 +103,60 @@ class CommandListener{
                        string& errMsg, ResType& resList, double runtime)=0;
 };
 
+// Algebra instance
+Distributed2Algebra* algInstance;
+
+
+
+
+
+ConnectionInfo* changeWorker1(DArrayBase* array, size_t  slotNo, 
+                             set<size_t>& usedWorkers,
+                             int& tryReconnect) {
+
+   static boost::mutex cwmtx;
+   boost::lock_guard<boost::mutex> guard(cwmtx);
+
+   if(tryReconnect>0){
+      DArrayElement elem = array->getWorkerForSlot(slotNo);
+      algInstance->closeWorker(elem);
+      string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+      ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname, 0);
+      if(ci){
+        tryReconnect--;
+        return ci;
+      } else { // connection not possible, don't try to connect
+         tryReconnect = 0;
+      }
+   }
+
+  ConnectionInfo* ci = 0;
+  while(!ci){
+
+   size_t old = array->getWorkerIndexForSlot(slotNo) ;
+   // take an arbitrary worker that is not listed in usedWorkers
+   int index = -1;
+   for(size_t i=0;i<array->numOfWorkers() && index < 0;i++){
+     if(usedWorkers.find(i)==usedWorkers.end() && i != old){
+       index = i;
+     } 
+   }
+
+   if(index<0) {
+       cout << "no worker found" << endl;
+       return 0; // no more workers available
+   }
+   
+   cout << "changed worker for slot " << slotNo << " from " 
+        << old << " to " << index << endl;   
+
+   array->setResponsible(slotNo,index);
+   DArrayElement e = array->getWorker(index);
+   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+   ci =  algInstance->getWorkerConnection(e, dbname);   
+  }
+  return ci;
+}
 /*
 3 Class ProgressInfo
 
@@ -168,12 +222,12 @@ class PProgressView: public MessageHandler{
      }
 
      ~PProgressView(){
-        boost::lock_guard<boost::mutex> guard(mtx);
+        boost::lock_guard<boost::recursive_mutex> guard(mtx);
         killInfos();
      }
 
      bool handleMsg(NestedList* nl, ListExpr list, int source) {
-        boost::lock_guard<boost::mutex> guard(mtx);
+        boost::lock_guard<boost::recursive_mutex> guard(mtx);
         if(!enabled) return false;
         if(source <= 0) return false;
         if(source > noServers) return false;
@@ -204,10 +258,10 @@ class PProgressView: public MessageHandler{
      }
 
      void init(int _noServers){
-         boost::lock_guard<boost::mutex> guard(mtx);
+         boost::lock_guard<boost::recursive_mutex> guard(mtx);
          if(!enabled) return;
-         noServers = _noServers; 
          killInfos();
+         noServers = _noServers; 
          cout << endl << endl;
          infos = new PProgressInfo*[noServers];
          for(int i=0;i<noServers;i++){
@@ -218,13 +272,13 @@ class PProgressView: public MessageHandler{
      }
 
      void finish(){
-         boost::lock_guard<boost::mutex> guard(mtx);
+         boost::lock_guard<boost::recursive_mutex> guard(mtx);
          Bash::cursorDown(noServers); 
          cout << "\n\n";
      }
 
      void enable(bool on){
-        boost::lock_guard<boost::mutex> guard(mtx);
+        boost::lock_guard<boost::recursive_mutex> guard(mtx);
         enabled = on;
      }
 
@@ -233,9 +287,10 @@ class PProgressView: public MessageHandler{
       bool enabled;
       int noServers;
       PProgressInfo** infos;
-      boost::mutex mtx;
+      boost::recursive_mutex mtx;
      
      void killInfos(){
+        boost::lock_guard<boost::recursive_mutex> guard(mtx);
         if(infos){
           for(int i=0;i<noServers;i++){
             if(infos[i]){
@@ -482,7 +537,7 @@ bool Distributed2Algebra::serverExists(int s){
       return c->requestFile(remote,local, allowOverwrite, getTimeout());
     }
 
-    string Distributed2Algebra::getRequestFolder( int con){
+    string Distributed2Algebra::getRequestFolder( int con, bool path){
       if(con < 0 ){
        return "";
       }
@@ -498,10 +553,10 @@ bool Distributed2Algebra::serverExists(int s){
       if(!c){
          return "";
       }
-      return c->getRequestFolder(); 
+      return path?c->getRequestPath():c->getRequestFolder(); 
     }
 
-    string Distributed2Algebra::getSendFolder( int con){
+    string Distributed2Algebra::getSendFolder( int con, bool path){
       if(con < 0 ){
        return "";
       }
@@ -517,7 +572,7 @@ bool Distributed2Algebra::serverExists(int s){
       if(!c){
         return "";
       }
-      return c->getSendFolder(); 
+      return path?c->getSendPath():c->getSendFolder(); 
     }
 
     void Distributed2Algebra::initProgress(){
@@ -659,7 +714,7 @@ bool Distributed2Algebra::serverExists(int s){
         workerconnections[info] = pr;
         it = workerconnections.find(info);
      } else {
-         pr = it->second;
+        pr = it->second;
      }
      pr.second->setLogger(log);
      pr.second->setNum(info.getNum());
@@ -673,8 +728,26 @@ bool Distributed2Algebra::serverExists(int s){
              it->second.first=dbname;
          }
      } 
-     return pr.second;
+     return pr.second?pr.second->copy():0;
   }
+
+  ConnectionInfo* Distributed2Algebra::getWorkerConnection(
+       DArrayBase* array,
+       int slot,
+       const string& dbname,
+       CommandLogger* log,
+       bool allowArrayChange
+  ) {
+     DArrayElement elem = array->getWorkerForSlot(slot);
+     ConnectionInfo* ci = getWorkerConnection(elem, dbname, log);
+     if(ci || !allowArrayChange){
+        return ci;
+     } 
+     int retry = 0;
+     set<size_t> usedWorkers;
+     return changeWorker1(array,slot, usedWorkers, retry);
+  }
+
 
   string Distributed2Algebra::getDBName(const DArrayElement& info){
      boost::lock_guard<boost::mutex> guard(workerMtx);
@@ -693,7 +766,7 @@ bool Distributed2Algebra::serverExists(int s){
     int count = 0;
     for(it=workerconnections.begin(); it!=workerconnections.end(); it++){
        ConnectionInfo* ci = it->second.second;
-       delete ci;
+       ci->deleteIfAllowed();
        count++;
     }
     workerconnections.clear();
@@ -709,7 +782,7 @@ bool Distributed2Algebra::serverExists(int s){
      }
      ConnectionInfo* info = it->second.second;
      if(info){
-        delete info;
+        info->deleteIfAllowed();
         it->second.second = 0;
      }
      workerconnections.erase(it);
@@ -726,7 +799,7 @@ bool Distributed2Algebra::serverExists(int s){
         return false;
      } 
      dbname = it->second.first;
-     ci = it->second.second;
+     ci = it->second.second->copy();
      return true;
   }
 
@@ -895,8 +968,6 @@ bool Distributed2Algebra::serverExists(int s){
 
    void Distributed2Algebra::enableDFS(const string& host, const int port){
 
-
-
       this->dfshost = host;
       this->dfsport = port;
 
@@ -952,15 +1023,6 @@ bool Distributed2Algebra::serverExists(int s){
      double rt;
      ci->simpleCommand(ss.str(),err,res,false,rt,false,commandLog,true,timeout);
    }
-
-  
-
-
-  // Algebra instance
-Distributed2Algebra* algInstance;
-
-
-
 
 
 void writeLog(ConnectionInfo* ci, const string& msg){
@@ -1132,11 +1194,7 @@ ListExpr replaceWrite(ListExpr list, const string& writeVer,
      }
      default: return list;    
   } 
-
 }
-
-
-
 
 /*
 2. Class ConnectionTask
@@ -1297,7 +1355,7 @@ int connectVMT( Word* args, Word& result, int message,
       res->SetDefined(false);
       return 0;
    }
-   NestedList* mynl = new NestedList();
+   NestedList* mynl = new NestedList("temp_nested_list");
    SecondoInterfaceCS* si = new SecondoInterfaceCS(true,mynl, true);
    string user="";
    string passwd = "";
@@ -3434,7 +3492,7 @@ Operator prequestFileOp (
 );
 
 /*
-1.7 Operators ~getRequestFolder~ and ~getTransferFolder~
+1.7 Operators ~getRequestFolder~ and ~getSendFolder~
 
 These operator are indeed to get the folder for sending and 
 receiving files on remote servers.
@@ -3444,14 +3502,17 @@ receiving files on remote servers.
 */
 ListExpr getFoldersTM(ListExpr args){
 
-  string err = "int expected";
+  string err = "int x bool expected";
 
-  if(!nl->HasLength(args,1)){
+  if(!nl->HasLength(args,2)){
     return listutils::typeError(err);
   }
   if(!CcInt::checkType(nl->First(args))){
     return listutils::typeError(err);
   } 
+  if(!CcBool::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+  }
   return listutils::basicSymbol<FText>();
 }
 
@@ -3466,9 +3527,10 @@ int getFolderVM(Word* args, Word& result, int message,
                 Word& local, Supplier s ){
 
   CcInt* server = (CcInt*) args[0].addr;
+  CcBool* path   = (CcBool*) args[1].addr;
   result = qp->ResultStorage(s);
   FText* res = (FText*) result.addr;
-  if(!server->IsDefined()){
+  if(!server->IsDefined() || !path->IsDefined()){
      res->SetDefined(false);
      return 0;
   }
@@ -3478,26 +3540,30 @@ int getFolderVM(Word* args, Word& result, int message,
      return 0;
   }
   if(send) {
-     res->Set(true, algInstance->getSendFolder(ser));
+     res->Set(true, algInstance->getSendFolder(ser, path->GetValue()));
   } else {
-     res->Set(true, algInstance->getRequestFolder(ser));
+     res->Set(true, algInstance->getRequestFolder(ser, path->GetValue()));
   }
   return 0;
 }
 
 
 OperatorSpec getRequestFolderSpec(
-     " int -> text ",
+     " int x bool -> text ",
      " getRequestFolder(_)  ",
      " Returns the name of the folder on the server for a given connection"
-     " from where files are requested. ",
+     " from where files are requested. If the boolean argument is true,  "
+     "the absolute path is returned, otherwise the relative path starting"
+     " at secondoHome." ,
      " query getRequestFolder(0)");
 
 OperatorSpec getSendFolderSpec(
-     " int -> text ",
+     " int x bool -> text ",
      " getSendFolder(_)  ",
      " Returns the name of the folder on the server for a given connection"
-     " into which files are written. ",
+     " into which files are written. If the boolean argument is true, the "
+     "absolute path is returned, otherwise the relative path starting at "
+     "Secondo Home.",
      " query getSendFolder(0)");
 
 
@@ -3686,7 +3752,7 @@ class Connector{
            return;
         }
 
-        NestedList* mynl = new NestedList();
+        NestedList* mynl = new NestedList("temp_nested_list");
         SecondoInterfaceCS* si = new SecondoInterfaceCS(false, mynl,true);
         si->setMaxAttempts(4);
         si->setTimeout(defaultTimeout);
@@ -5196,8 +5262,10 @@ int putVMA(Word* args, Word& result, int message,
                                 args[2], showCommands, commandLog, 
                                 false, algInstance->getTimeout())){
       res->makeUndefined();
+      ci->deleteIfAllowed();
       return 0;
   }
+  ci->deleteIfAllowed();
   (*res) = *array;
   return 0;                           
 }
@@ -5244,6 +5312,7 @@ int putVMFA(Word* args, Word& result, int message,
   if(ci->sendFile(fname,fname,true, algInstance->getTimeout())!=0){
      cerr << "error in sending file" << fname << endl;
      res->makeUndefined();
+     ci->deleteIfAllowed();
      return 0;
   }
 
@@ -5267,6 +5336,7 @@ int putVMFA(Word* args, Word& result, int message,
     cerr << "error " << errMsg << endl;
     writeLog(ci, cmd, errMsg);
     res->makeUndefined();
+    ci->deleteIfAllowed();
     return 0;
   }  
   string f1 = ci->getSendPath()+"/"+fname;
@@ -5282,6 +5352,7 @@ int putVMFA(Word* args, Word& result, int message,
      cerr << "error Messahe " << errMsg << endl;
      writeLog(ci,cmd,errMsg);
      res->makeUndefined();
+     ci->deleteIfAllowed();
      return 0;
   }
   if(    !nl->HasLength(resList,2) 
@@ -5289,6 +5360,7 @@ int putVMFA(Word* args, Word& result, int message,
     cerr << "command " << cmd << " returns unexpected result" << endl;
     cerr << nl->ToString(resList) << endl;
     res->makeUndefined();
+    ci->deleteIfAllowed();
     return 0;
   }
 
@@ -5296,6 +5368,7 @@ int putVMFA(Word* args, Word& result, int message,
      cerr << "move file failed" << endl;
      res->makeUndefined();
   }
+  ci->deleteIfAllowed();
   return 0;
 }
 
@@ -5433,6 +5506,7 @@ int getVMDA(Word* args, Word& result, int message,
      } else {
         cerr << "Undefined element found" << endl;
      }
+     ci->deleteIfAllowed();
      return 0;
   }
   if(!nl->Equal(resType, qp->GetType(s))){
@@ -5449,6 +5523,7 @@ int getVMDA(Word* args, Word& result, int message,
      } else {
         cerr << "internal error leads to memory leak" << endl;
      }
+     ci->deleteIfAllowed();
      return 0;
   }
 
@@ -5457,6 +5532,7 @@ int getVMDA(Word* args, Word& result, int message,
   qp->DeleteResultStorage(s);
   qp->ChangeResultStorage(s,r);
   result = qp->ResultStorage(s);
+  ci->deleteIfAllowed();
   return 0;
 }
 
@@ -5490,6 +5566,8 @@ int getVMDFA(Word* args, Word& result, int message,
   ci->retrieveRelationInFile(fileName, resType, relResult,
                              showCommands, commandLog, false, 
                              algInstance->getTimeout());
+
+  ci->deleteIfAllowed();
   if(relResult.addr == 0){
      return 0;
   }
@@ -5677,6 +5755,7 @@ class getWorkersInfo{
          tuple->PutAttribute(3, new CcInt(e.getNum()));
          ConnectionInfo* ci = algInstance->getWorkerConnection(e,dbname);
          tuple->PutAttribute(4, new LongInt( (int64_t) ci));
+         ci->deleteIfAllowed();
          return tuple;
      }
 
@@ -6366,6 +6445,7 @@ vector<vector< pair<DArrayElement, size_t> > > group(T& array){
      }
      string home = ci->getSecondoHome(showCommands, commandLog);
      pair<string,string> p(ci->getHost(), home);
+     ci->deleteIfAllowed();
      if(groups.find(p)==groups.end()){
        vector< pair<DArrayElement, size_t> > v;
        v.push_back(make_pair(elem, i));
@@ -6415,6 +6495,8 @@ int createDArrayVMT(Word* args, Word& result, int message,
       }
       return 0; 
    }
+
+
    vector<DArrayElement> v;
    Stream<Tuple> stream(args[0]);
    stream.open();
@@ -6476,8 +6558,10 @@ int createDArrayVMT(Word* args, Word& result, int message,
           }
           writeLog(ci, query, errMsg);
           res->makeUndefined();
+          ci->deleteIfAllowed();
           return 0;
        } 
+       ci->deleteIfAllowed();
        ListExpr tuplelist = nl->Second(reslist);
        vector<int> numbers;
        ListExpr expType = nl->Second(qp->GetType(s));
@@ -6589,7 +6673,8 @@ int createDArraySelect(ListExpr args){
 OperatorSpec createDArraySpec(
      " stream<TUPLE> x string x int x ANY [x bool]  -> darray",
      " _ createDArray[name, size, type template [, verbose] ]",
-     "Creates a darray. The workers are given by the input stream. "
+     "Creates a darray from existing objects on the workers. "
+     "The workers are given by the input stream. "
      "If the boolean argument is present and true, in case of an error,"
      " messages will be send.",
      " query workers feed createDArray[\"obj\", 6, streets, TRUE] "
@@ -6683,6 +6768,7 @@ class SinglePutter{
       ci->createOrUpdateObject(objname, type, value,
                                showCommands, commandLog, false,
                                algInstance->getTimeout());
+      ci->deleteIfAllowed();
     }
 
 
@@ -6903,8 +6989,9 @@ class RelFileRestorer{
     filenames.push_back(_filename);
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
     ci = algInstance->getWorkerConnection(
-                         array->getWorkerForSlot(arrayIndex),dbname);
+                         array, arrayIndex, dbname, 0, true);
    }
+
 
    RelFileRestorer(const vector<string>& _objNames,
                    DArray* _array, int _arrayIndex, 
@@ -6915,13 +7002,14 @@ class RelFileRestorer{
     assert(objNames.size() == filenames.size());
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
     ci = algInstance->getWorkerConnection(
-                         array->getWorkerForSlot(arrayIndex),dbname);
+                         array, arrayIndex, dbname, 0, true);
    }
 
 
    ~RelFileRestorer(){
      boost::lock_guard<boost::mutex> guard(mtx);
      runner.join();
+     if(ci) ci->deleteIfAllowed();
     }
 
    void start(){
@@ -6929,22 +7017,14 @@ class RelFileRestorer{
      if(!started && ci ){
         started = true;
         res = true;
-        checkServerFree();
         runner = boost::thread(&RelFileRestorer::run, this);
      }
    }
 
-   static void cleanUp(){
-       map<pair<string,int>,boost::mutex*>::iterator it;
-       for(it = serializer.begin();it!=serializer.end();it++){
-             delete it->second;
-       }
-       serializer.clear();
-   }
+   static void cleanUp(){} // dummy 
 
 
  private:
-    //ListExpr relType;
     vector<string> objNames;
     DArray* array;
     int arrayIndex;
@@ -6955,48 +7035,41 @@ class RelFileRestorer{
     bool res;
     ConnectionInfo* ci;
 
-    static map<pair<string,int>,boost::mutex*> serializer;
-    static boost::mutex sermtx;
-
-
     void run(){
-      if(ci){
-        for(size_t i=0;i<objNames.size();i++){
-           string& objName = objNames[i];
-           string& filename = filenames[i];
-           res = ci->createOrUpdateRelationFromBinFile(objName,filename,
+      if(ci){ // initial getting of connectioninfor was successful
+        bool done = false;
+        int reconnects = 2;
+        std::set<size_t> usedWorkers;
+        while(!done && ci ){
+          bool error = false;
+          for(size_t i=0;i<objNames.size() && !error ;i++){
+             string& objName = objNames[i];
+             string& filename = filenames[i];
+             res = ci->createOrUpdateRelationFromBinFile(objName,filename,
                                                   showCommands,
                                                   commandLog,
                                                   true, // allowOverwrite
                                                   false, // forceExec
                                                   algInstance->getTimeout());
-           if(!res){
-             cerr << "createorUpdateObject failed" << endl;
-           }
-           sermtx.lock();
-           pair<string,int> p(ci->getHost(), ci->getPort());
-           serializer[p]->unlock();
-           sermtx.unlock();
+             if(!res){
+               cerr << "createorUpdateObject failed" << endl;
+               error = true;
+             }
+         }
+         if(!error){
+            done = true;
+         } else {
+            // at leat one remove object could not be created, try at
+            // another connection
+            ci->deleteIfAllowed();
+            ci  = changeWorker1(array, arrayIndex,
+                                                usedWorkers, reconnects);
+         }
        }
       } else {
         cerr << "connection failed" << endl;
       }
     }
-
-    void checkServerFree(){
-       sermtx.lock();
-       map<pair<string,int>,boost::mutex*>::iterator it;
-       pair<string,int> p(ci->getHost(), ci->getPort());
-       it = serializer.find(p);
-       if(it==serializer.end()){
-          boost::mutex* mtx = new boost::mutex();
-          serializer[p] = mtx;
-       }        
-       boost::mutex* m = serializer[p];
-       sermtx.unlock();
-       m->lock();
-    }
-
 };
 
 
@@ -7032,6 +7105,7 @@ class FRelCopy{
    ~FRelCopy(){
      boost::lock_guard<boost::mutex> guard(mtx);
      runner.join();
+     if(ci) ci->deleteIfAllowed();
     }
 
    void start(){
@@ -7103,8 +7177,8 @@ class FRelCopy{
      }
 };
 
-map<pair<string,int>,boost::mutex*> RelFileRestorer::serializer;
-boost::mutex RelFileRestorer::sermtx;
+//map<pair<string,int>,boost::mutex*> RelFileRestorer::serializer;
+//boost::mutex RelFileRestorer::sermtx;
 
 /*
 1.6.3 Value Mapping
@@ -8114,7 +8188,9 @@ class showWorkersInfo{
         string dbname = algInstance->getDBName(elem);
         ConnectionInfo* connectionInfo;
         if(algInstance->workerConnection(elem, dbname, connectionInfo)){
-           return createTuple(elem, dbname, connectionInfo);
+           Tuple* res = createTuple(elem, dbname, connectionInfo);
+           connectionInfo->deleteIfAllowed();
+           return res;
         }
      }
      return 0;
@@ -8386,6 +8462,7 @@ class dloopInfo{
            writeLog(ci,cmd,errMsg);
            sendMessage(" Problem in command " + cmd + ":" + errMsg);
        }
+       ci->deleteIfAllowed();
     }
 
 };
@@ -8408,9 +8485,12 @@ int dloopVMT(Word* args, Word& result, int message,
    FText* fun = 0;
    CcString* name = (CcString*) args[1].addr;
    if(!name->IsDefined() || (name->GetValue().length()==0)){
-      algInstance->getWorkerConnection(
+      ConnectionInfo* ci =algInstance->getWorkerConnection(
                           array->getWorker(0),dbname);
       n = algInstance->getTempName();
+      if(ci){
+         ci->deleteIfAllowed();
+      }
    } else {
       n = name->GetValue();
    }
@@ -8624,6 +8704,7 @@ class dsummarizeAttrInfoRunner{
            attribute = (Attribute*) result.addr;
            listener->jobDone(index,true);
          }
+         ci->deleteIfAllowed();
      }
 };
 
@@ -8730,6 +8811,7 @@ class RelationFileGetter{
          case DFARRAY : retrieveFileFromFile(ci); break;
          default: assert(false);
        }
+       ci->deleteIfAllowed();
      }
 
      
@@ -8995,6 +9077,7 @@ class getValueGetter{
       ci->retrieve(name, resType, res,true, showCommands, commandLog,
                    false, algInstance->getTimeout());
       listener->jobDone(index,res); 
+      ci->deleteIfAllowed();
    }
 
   private:
@@ -9036,6 +9119,7 @@ class getValueFGetter{
                                  showCommands, commandLog, false,
                                  algInstance->getTimeout());
       listener->jobDone(index,res); 
+      ci->deleteIfAllowed();
    }
 
   private:
@@ -9297,8 +9381,8 @@ class dloop2Runner{
          cerr << "error in creating result via " << cmd << endl;
          cerr << errMsg << endl;
          writeLog(ci,cmd,errMsg);
-         return;
       }
+      ci->deleteIfAllowed();
      }
 
   private:
@@ -9328,9 +9412,10 @@ int dloop2VM(Word* args, Word& result, int message,
   }
   string n;
   if(!name->IsDefined() || (name->GetValue().length()==0)){
-      algInstance->getWorkerConnection(
+      ConnectionInfo* ci = algInstance->getWorkerConnection(
                           a1->getWorker(0),dbname);
       n = algInstance->getTempName();
+      ci->deleteIfAllowed();
   } else {
       n = name->GetValue();
   }
@@ -9907,6 +9992,7 @@ class Object_Del{
         if(err==0){
           del = 1;
         }
+        ci->deleteIfAllowed();
         // ignore error about non existent object 
      }
 
@@ -9939,6 +10025,7 @@ class Object_Del{
         if(err==0){
           del = 1;
         }
+        ci->deleteIfAllowed();
         // ignore error about non existent file 
     }
 
@@ -10008,11 +10095,17 @@ class MatrixKiller{
                  const string& _mname):
        ci(_ci), dbname(_dbname), mname(_mname){
       runner = new boost::thread(&MatrixKiller::run,this);
+      if(ci){
+         ci = ci->copy();
+      }
     }
 
     ~MatrixKiller(){
        runner->join();
        delete runner;
+       if(ci){
+          ci->deleteIfAllowed();
+       }
     }
 
     private:
@@ -10061,6 +10154,7 @@ int deleteRemoteObjectsVM_Matrix(Word* args, Word& result, int message,
          MatrixKiller* killer = new MatrixKiller(ci,dbname, matrix->getName());
          killers.push_back(killer);        
      }
+     ci->deleteIfAllowed();
    }
    for(size_t i=0;i<killers.size();i++){
       delete killers[i];
@@ -10186,6 +10280,7 @@ class cloneTask{
         if(err!=0){
            writeLog(ci,cmd,errMsg);
         }
+        ci->deleteIfAllowed();
      }
 
      void runFArray(){
@@ -10232,7 +10327,7 @@ class cloneTask{
            showError(ci,cmd,err,errMsg);
            writeLog(ci,cmd,errMsg);
         }
-
+        ci->deleteIfAllowed();
      }
 
 
@@ -10378,7 +10473,17 @@ class shareRunner{
                 int _id, bool _allowOverwrite, successListener* _listener):
             ci(_ci), objName(_objName), fileName(_fileName),relation(_relation),
             attribute(_attribute),
-            id(_id), allowOverwrite(_allowOverwrite), listener(_listener) {}
+            id(_id), allowOverwrite(_allowOverwrite), listener(_listener) {
+              ci->copy();
+            }
+
+    shareRunner(const shareRunner& s): ci(s.ci->copy()),objName(s.objName),
+            fileName(s.fileName),relation(s.relation),attribute(s.attribute),
+            id(s.id), allowOverwrite(s.allowOverwrite),listener(s.listener){}
+
+    ~shareRunner(){
+       ci->deleteIfAllowed();
+    }
  
 
     void operator()(){
@@ -10525,6 +10630,7 @@ class shareInfo: public successListener{
              cout << "cannot create connection to " 
                   << array->getWorker(i) << endl;
           }
+          ci->deleteIfAllowed();
        }
     }
 
@@ -10537,6 +10643,7 @@ class shareInfo: public successListener{
               ci->switchDatabase(dbname, true, showCommands, false,
                                  algInstance->getTimeout());
               share(ci); 
+              ci->deleteIfAllowed();
            }
        } 
     }
@@ -10728,6 +10835,7 @@ int cleanUpVMT(Word* args, Word& result, int message,
     
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
     vector<boost::thread*> runners;
+    vector<ConnectionInfo*> cons;
     for(size_t i=0;i<arg->numOfWorkers();i++){
       DArrayElement e = arg->getWorker(i);
       pair<string,int> p(e.getHost(),e.getPort());
@@ -10739,6 +10847,7 @@ int cleanUpVMT(Word* args, Word& result, int message,
              boost::thread* r = new boost::thread(
                      boost::bind(&ConnectionInfo::cleanUp, ci,
                               showCommands, boost::ref(commandLog),0));
+             cons.push_back(ci);
              runners.push_back(r);
          }
       }
@@ -10746,6 +10855,7 @@ int cleanUpVMT(Word* args, Word& result, int message,
     for(size_t i=0;i<runners.size();i++){
         runners[i]->join();
         delete runners[i];
+        cons[i]->deleteIfAllowed();
     }
   }
   return 0;
@@ -10920,27 +11030,118 @@ This operator converts a darray into a dfarray and vice versa.
 */
 ListExpr convertdarrayTM(ListExpr args){
 
- string err = "darray or dfarray expected";
+ string err = "{darray, dfarray} [ x bool ]expected";
 
- if(!nl->HasLength(args,1)){
+ if(!nl->HasLength(args,1) && !nl->HasLength(args,2)){
     return listutils::typeError(err + " ( wrong number of args)");
  }
+ bool append = false;
+ ListExpr appendList = nl->TheEmptyList();
+ if(nl->HasLength(args,2)){
+   if(!CcBool::checkType(nl->Second(args))){
+     return listutils::typeError(err + " (second argument is not a boolean)");
+   }
+ } else {
+    append = true;
+    appendList = nl->OneElemList(nl->BoolAtom(false));
+ }
+
  ListExpr arg = nl->First(args);
  if(DFArray::checkType(arg)){
-   return nl->TwoElemList(
-               listutils::basicSymbol<DArray>(),
-               nl->Second(arg));
+   ListExpr res = DArray::wrapType(nl->Second(arg));
+   if(!append){
+     return res;
+   } else {
+     return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                               appendList,
+                               res);
+   }
  }
  if(!DArray::checkType(arg)){
-    return listutils::typeError(err + " ( wrong number of args)");
+    return listutils::typeError(err + " ( first arg is not a d[f]array)");
  }
  ListExpr subtype = nl->Second(arg);
  if(!Relation::checkType(subtype)){
     return listutils::typeError("subtype must be a relation");
  }
- return nl->TwoElemList( listutils::basicSymbol<DFArray>(),
-                         subtype);
+ ListExpr res = DFArray::wrapType(subtype);
+ if(!append){
+   return res;
+ } else {
+   return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                             appendList,
+                             res);
+ }
 }
+
+class ConvertSlot{
+  public:
+     ConvertSlot(DArrayBase* _arg, DArrayBase* _res, int _slot):
+        arg(_arg), res(_res), slot(_slot) {
+       dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+     }
+
+
+    void run(){
+       DArrayElement elem = arg->getWorkerForSlot(slot);
+       ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname, 0);
+       if(ci){
+          if(arg->getType()==DARRAY){
+            convert((DArray*) arg, (DFArray*) res, ci);
+          } else {
+            convert((DFArray*) arg, (DArray*) res, ci);
+          }
+          ci->deleteIfAllowed();
+       }
+      }
+
+  private:
+     DArrayBase* arg;
+     DArrayBase* res;
+     int slot;
+     string dbname;
+
+
+     void convert(DArray* arg, DFArray* res, ConnectionInfo* ci){
+         string oname = arg->getObjectNameForSlot(slot);
+         string home = ci->getSecondoHome(false, commandLog);
+         string filename = res->getFilePath(home,dbname,slot);
+         string cmd = "query " + oname + " feed fconsume5['"
+                    + filename+"'] count";
+         int err;
+         string errMsg;
+         string r;
+         double runtime;
+         ci->simpleCommand(cmd, err, errMsg,r, false, runtime,
+                           showCommands, commandLog, false,
+                           algInstance->getTimeout());
+         if(err!=0){
+           cout << "Command " << cmd << " failed with message " << endl
+                << errMsg << endl;
+         }
+     }
+
+     void convert(DFArray* arg, DArray* res, ConnectionInfo* ci){
+         string oname = res->getObjectNameForSlot(slot);
+         string home = ci->getSecondoHome(false, commandLog);
+         string filename = arg->getFilePath(home,dbname,slot);
+         string cmd = "let " + oname + " = '" + filename +"' ffeed5 consume";
+         int err;
+         string errMsg;
+         string r;
+         double runtime;
+         ci->simpleCommand(cmd, err, errMsg,r, false, runtime,
+                           showCommands, commandLog, false,
+                           algInstance->getTimeout());
+         if(err!=0){
+           cout << "Command " << cmd << " failed with message " << endl
+                << errMsg << endl;
+         }
+     }
+
+};
+
+
 
 template<class A, class R>
 int convertdarrayVMT(Word* args, Word& result, int message,
@@ -10948,7 +11149,24 @@ int convertdarrayVMT(Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   A* arg = (A*) args[0].addr;
   R* res = (R*) result.addr;
+  CcBool* copyOnWorkers = (CcBool*) args[1].addr;
   (*res) = (*arg);
+  bool copy = copyOnWorkers->IsDefined()?copyOnWorkers->GetValue():false;
+  if(copy){
+     vector<ConvertSlot*> converter;
+     vector<boost::thread*> runners;
+     for(int i=0;i<arg->getSize();i++){
+        ConvertSlot* cs = new ConvertSlot(arg,res,i);
+        boost::thread* runner = new boost::thread(&ConvertSlot::run, cs);
+        converter.push_back(cs);
+        runners.push_back(runner);
+     } 
+     for(int i=0;i<arg->getSize();i++){
+        runners[i]->join();
+        delete runners[i];
+        delete converter[i];
+     }
+  }
   return 0;
 }
 
@@ -11211,35 +11429,6 @@ something other).
 
 */
 
-ConnectionInfo* changeWorker1(DArrayBase* array, size_t  slotNo, 
-                             set<size_t>& usedWorkers) {
-
-   static boost::mutex cwmtx;
-   boost::lock_guard<boost::mutex> guard(cwmtx);
-
-   size_t old = array->getWorkerIndexForSlot(slotNo) ;
-   // take an arbitrary worker that is not listed in usedWorkers
-   int index = -1;
-   for(size_t i=0;i<array->numOfWorkers() && index < 0;i++){
-     if(usedWorkers.find(i)==usedWorkers.end() && i != old){
-       index = i;
-     } 
-   }
-
-   if(index<0) {
-       cout << "no worker found" << endl;
-       return 0; // no more workers available
-   }
-   
-   cout << "changed worker for slot " << slotNo << " from " 
-        << old << " to " << index << endl;   
-
-   array->setResponsible(slotNo,index);
-   DArrayElement e = array->getWorker(index);
-   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-
-   return algInstance->getWorkerConnection(e, dbname);   
-}
 
 
 ListExpr dmapTM(ListExpr args){
@@ -11432,8 +11621,11 @@ are only collected in the logger but not sent to a woker.
        }
        // create a new name for the result array 
        if(!ccname->IsDefined() || ccname->GetValue().length()==0){
-          algInstance->getWorkerConnection(array->getWorker(0),dbname);
+          ConnectionInfo* c = algInstance->getWorkerConnection(
+                                                  array->getWorker(0),
+                                                  dbname);
           name = algInstance->getTempName();
+          c->deleteIfAllowed();
        } else {
           name = ccname->GetValue();
        }
@@ -11463,6 +11655,7 @@ are only collected in the logger but not sent to a woker.
              ci->setLogger(log);
           }
           rtype* r = new rtype(ci,dbname, i, this);
+          ci->deleteIfAllowed();
           w.push_back(r);
           boost::thread* runner = new boost::thread(&rtype::run, r);
           runners.push_back(runner);
@@ -11481,6 +11674,7 @@ are only collected in the logger but not sent to a woker.
             ConnectionInfo* ci = algInstance->getWorkerConnection(
                                    array->getWorkerForSlot(i), dbname);
             ci->setLogger(0);
+            ci->deleteIfAllowed();
          }
        }
     }
@@ -11490,7 +11684,8 @@ are only collected in the logger but not sent to a woker.
     ConnectionInfo* changeWorker(size_t slotNo, 
                                  set<size_t>& usedWorkers){
        DArrayBase* array = darray?(DArrayBase*)darray:(DArrayBase*)dfarray;
-       ConnectionInfo* ci=  changeWorker1(array, slotNo, usedWorkers);
+       int retries =0;
+       ConnectionInfo* ci=  changeWorker1(array, slotNo, usedWorkers,retries);
        return ci;
     }
 
@@ -11517,6 +11712,7 @@ are only collected in the logger but not sent to a woker.
       if(!reconnect ||  !reconnectGlobal){
         size_t workernum = darray->getWorkerIndexForSlot(nr);
         usedWorkers.insert(workernum);
+        ci->deleteIfAllowed();
         ci = changeWorker(nr, usedWorkers);
         numtries--;
       }
@@ -11541,7 +11737,13 @@ Class for sending the commands to produce a dfarray.
            ci(_ci), 
            dbname(_dbname), 
            nr(_nr), 
-           mapper(_mapper) {}
+           mapper(_mapper) {
+            ci->copy();
+          }
+
+        ~fRun(){
+          ci->deleteIfAllowed();
+        }
 
         void run(){
            if(!ci){ // no connection, no work
@@ -11672,7 +11874,12 @@ Class for sending the commands to produce a dfarray.
         dRun(ConnectionInfo* _ci, const string& _dbname, int _nr, 
              Mapper* _mapper):
            ci(_ci), dbname(_dbname), nr(_nr), mapper(_mapper) {
+           ci->copy();
         }
+
+       ~dRun(){
+         ci->deleteIfAllowed();
+       }
 
 
         void run(){
@@ -11861,12 +12068,14 @@ Operator DFARRAYSTREAMOP(
 class transferatorStarter{
   public:
   transferatorStarter(ConnectionInfo* _ci, int _port): ci(_ci), port(_port){
+     ci->copy();
      runner = new boost::thread(&transferatorStarter::run, this);  
   }
 
   ~transferatorStarter(){
        runner->join();
        delete runner;
+       ci->deleteIfAllowed();
    }
 
   private: 
@@ -11907,6 +12116,7 @@ bool startFileTransferators( AT* array, int port){
         if(ci){
            usedIPs.insert(host);
            starters.push_back(new transferatorStarter(ci,port));
+           ci->deleteIfAllowed();
         } else {
           return false;
         }
@@ -11934,6 +12144,7 @@ bool startFileTransferators( vector<DArrayElement>&  array, int port){
             if(ci){
                  usedIPs.insert(host);
                  starters.push_back(new transferatorStarter(ci,port));
+                 ci->deleteIfAllowed();
             } else {
                 return false;
             }
@@ -12146,11 +12357,15 @@ a specified array type.
    ConnectionInfo* ct = algInstance->getWorkerConnection(target, dbname);
    // check whether both connections are available
    if(!cs || !ct){
+      if(cs) cs->deleteIfAllowed();
+      if(ct) ct->deleteIfAllowed();
       return false;
    }
    // check whether the connections share the same database
    bool res =  cs->getSecondoHome(showCommands, commandLog)
            != ct->getSecondoHome(showCommands, commandLog);
+   cs->deleteIfAllowed();
+   ct->deleteIfAllowed();
    return res;
 }
 
@@ -12275,9 +12490,13 @@ funargs.
         // file using DSF
         if(ai->getType() != DFARRAY){ 
            // here, we can later exploit any DBService
+           ci->deleteIfAllowed();
+           c0->deleteIfAllowed();
            return false; 
         } else {
            if(!dfstools::getRemoteFile(fileNameOn0)){
+             ci->deleteIfAllowed();
+             c0->deleteIfAllowed();
              return false;
            }
         }
@@ -12311,6 +12530,8 @@ funargs.
           } 
           sourceNames.push_back(pair<bool,string>(true,oname));
           funargs.push_back(oname);
+          ci->deleteIfAllowed();
+          c0->deleteIfAllowed();
           return true;
       }  else {
          string fname = fileNameOn0;
@@ -12319,6 +12540,8 @@ funargs.
          string fa = "("+ type + "  '"+fname+"')"; 
          funargs.push_back(fa);
          sourceNames.push_back(pair<bool,string>(true,fname)); 
+         ci->deleteIfAllowed();
+         c0->deleteIfAllowed();
          return true;
       }
    } else { // file or object already on the server
@@ -12336,9 +12559,11 @@ funargs.
          string fa = "( "+ type + " '"+fname+"')";
          funargs.push_back(fa);
          sourceNames.push_back(pair<bool,string>(false,fname)); 
-       }
+       } 
+       ci->deleteIfAllowed();
+       c0->deleteIfAllowed();
        return true;             
-   }
+    }
 }
 
 
@@ -12531,8 +12756,10 @@ the result for their slot.
                     showError(ci,q,err,errMsg);
                     writeLog(ci,q,errMsg);
                     res->makeUndefined();
+                    ci->deleteIfAllowed();
                     return false;
                 }
+               ci->deleteIfAllowed();
            } 
         }
 
@@ -12597,8 +12824,10 @@ Does what the name says.
             cerr << __FILE__ << "@"  << __LINE__ << endl;
             showError(ci,cmd,err,errMsg);
             writeLog(ci,cmd,errMsg);
+            ci->deleteIfAllowed();
             return false;
          }
+         ci->deleteIfAllowed();
          if(!nl->HasLength(result,2)){
              cerr << "command " << cmd << " returns unexpected result" << endl;
              return false;
@@ -12709,7 +12938,8 @@ the sources and the correspnding function arguments are created.
            // remove temporarly created objects.
            for(size_t i=0;i <info->arguments.size(); i++){
                removeTempData(i, c0);
-           } 
+           }
+           c0->deleteIfAllowed(); 
        }
 
 
@@ -12833,7 +13063,9 @@ int dmapXVM(Word* args, Word& result, int message,
       // if one darray is found with a worker mapping
       // unequal to the first arg, then break processing
       if(i>0 && (di->getType()==DARRAY)){
+         cout << "darray found" << endl;
          if(!a0->equalMapping(*di, false)){
+            cout << ",apping unequal to a0" << endl;
             ((DArrayBase*) result.addr)->makeUndefined();
             return 0;
          }
@@ -12854,7 +13086,9 @@ int dmapXVM(Word* args, Word& result, int message,
     }
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
     if(!objName->IsDefined() || objName->GetValue().length()==0){
-      algInstance->getWorkerConnection(arrays[0]->getWorker(0),dbname);
+      ConnectionInfo* ci = algInstance->getWorkerConnection(
+                                   arrays[0]->getWorker(0),dbname);
+      ci->deleteIfAllowed();
       name= algInstance->getTempName();            
     } else {
       name = objName->GetValue();
@@ -13223,6 +13457,8 @@ class dproductInfo{
    class copyHelper{
       public:
          copyHelper() {}
+
+
          typedef  pair< vector<ConnectionInfo*>,   
                                vector< pair<bool, string> > > ipinfo;
               // set of involved workers
@@ -13231,7 +13467,23 @@ class dproductInfo{
          typedef map<string, ipinfo > content; // meaning ip-> ipinfo
          typedef content::iterator iter;
 
+
+
+         ~copyHelper(){
+            /*
+             iter it;
+             for(it=c.begin();it!=c.end();it++){ 
+                 ipinfo& ii = it->second;
+                 vector<ConnectionInfo*>& v =  ii.first;
+                 for(size_t i=0;i<v.size();i++){
+                     v[i]->deleteIfAllowed();
+                 }
+             }
+             */
+          }
+
          void add(ConnectionInfo* info, DArrayBase* source, string& dbname){
+            info->copy();
             string ip = info->getHost();
             string home = info->getSecondoHome(showCommands, commandLog);
             iter it = c.find(ip);
@@ -13259,6 +13511,7 @@ class dproductInfo{
                          pos.push_back(make_pair(false, home));
                       }
                    }
+                   sourceInfo->deleteIfAllowed();
                 }
                 pair<vector<ConnectionInfo*>, 
                      vector<pair<bool, string> > > p(infos,pos);
@@ -13278,7 +13531,7 @@ class dproductInfo{
               found = infos[i] == info;
            }
            if(!found){
-             it->second.first.push_back(info);
+             it->second.first.push_back(info->copy());
            }
          }
 
@@ -13315,6 +13568,8 @@ class dproductInfo{
 
       private:
         content c;
+         
+        copyHelper(const copyHelper& s); //do not allow copy
 
         void print(iter& it, ostream& out){
           out << "info for ip adress " << it->first << endl;
@@ -13331,8 +13586,6 @@ class dproductInfo{
                  << homes[i].second << endl;
           }
         }
-
-
    };
 
    class copyRunner{
@@ -13369,6 +13622,7 @@ class dproductInfo{
                       assert(pos.find(info)!=pos.end());
                       int rw = pos[info];
                       responsible[rw].second.push_back(make_pair(false,i));
+                      info->deleteIfAllowed();
                    }
                }
             }
@@ -13436,13 +13690,9 @@ class dproductInfo{
                              + stringutils::int2str(parent->pi->port)
                              + ", FALSE, '" + targetName+"')";
                performCommand(target, cmd);
+               source->deleteIfAllowed();
            } 
-
-
-
         }; 
-
-
    };
 
 
@@ -13452,10 +13702,12 @@ class dproductInfo{
                     vector<int>* _s, string& _db): 
             a(_a), ci(_ci), s(_s), dbname(_db){
             runner = new boost::thread(&fileCreator::run, this);
+            ci->copy();
         }
         ~fileCreator(){
             runner->join();
             delete runner;
+            ci->deleteIfAllowed();
         }
       private:
            DArrayBase* a;
@@ -13463,6 +13715,8 @@ class dproductInfo{
            vector<int>* s;
            string dbname;
            boost::thread* runner;
+
+           fileCreator(const fileCreator& s); 
 
             void run(){
                for(size_t i=0;i<s->size();i++){
@@ -13502,6 +13756,7 @@ class dproductInfo{
          it = resp.find(ci);
          if(it!=resp.end()){
             it->second.push_back(i);
+            ci->deleteIfAllowed();
          } else {
             vector<int> v;
             v.push_back(i);
@@ -13512,7 +13767,8 @@ class dproductInfo{
       map<ConnectionInfo*, vector<int> >::iterator it;
       for(it = resp.begin(); it!=resp.end(); it++){
          runners.push_back(new fileCreator(arg1, it->first,
-                                            &(it->second), dbname));          
+                                            &(it->second), dbname));
+         it->first->deleteIfAllowed(); 
       }
       for(size_t i=0;i<runners.size();i++){
          delete runners[i];
@@ -13536,12 +13792,14 @@ class dproductInfo{
            ConnectionInfo* target = 
                       algInstance->getWorkerConnection(elem, dbname);
            ch->add(target, arg1, dbname);
+           target->deleteIfAllowed();
        }
        for(unsigned int i=0; i< arg1->numOfWorkers(); i++){
            DArrayElement elem = arg1->getWorker(i);
            ConnectionInfo* source = 
                        algInstance->getWorkerConnection(elem, dbname);
            ch->addAdditional(source);
+           source->deleteIfAllowed();
        }
 
        vector<ConnectionInfo*>  workerSel;
@@ -13605,12 +13863,15 @@ class dproductInfo{
                   usedHomes.insert(home);
                   string s0 = arg1->getFilePath(home, dbname, 0);
                   v.push_back(make_pair(ci, FileSystem::GetParentFolder(s0)));
+              } else {
+                 ci->deleteIfAllowed();
               }
            }    
        }
        vector<dirRemover*> runners;
        for(size_t i=0;i<v.size();i++){
           runners.push_back(new dirRemover(v[i].first, v[i].second));
+          v[i].first->deleteIfAllowed();
        }
        for(size_t i=0;i<v.size();i++){
           delete runners[i];
@@ -13688,12 +13949,14 @@ class dproductInfo{
     class dirRemover{
        public:
           dirRemover(ConnectionInfo* _ci, string& _dir): ci(_ci), dir(_dir){
+             ci->copy();
              runner = new boost::thread(&dirRemover::run, this);
              cout << "remove " << dir << " on " << ci->getHost() << endl;
           }
           ~dirRemover(){
               runner->join();
               delete runner;
+              ci->deleteIfAllowed();
           }
 
        private:
@@ -13784,6 +14047,7 @@ class dproductInfo{
                   showError(c0,cmd,ec,errMsg);
                   writeLog(c0,cmd,errMsg);
               }
+              c0->deleteIfAllowed();
            }
 
            string getSlotFile(DArrayElement target, size_t slot, 
@@ -13836,8 +14100,10 @@ int dproductVMT( Word* args, Word& result, int message,
       return 0;
    }
    if(name==""){
-      algInstance->getWorkerConnection(a1->getWorker(0),dbname);
-      name = algInstance->getTempName();            
+      ConnectionInfo* ci= algInstance->getWorkerConnection(
+                                          a1->getWorker(0),dbname);
+      name = algInstance->getTempName();
+      ci->deleteIfAllowed();
    }
    if(!stringutils::isIdent(name)){
       // name is invalid
@@ -15712,12 +15978,14 @@ class partitionInfo{
         ci(_ci), sfun(_sfun), dfun(_dfun),tname(_tname), 
         sname(array->getName()), relType(_relType),dbname(_dbname),
         runner(0){
+        ci->copy();
         runner = new boost::thread(&partitionInfo::run,this);
     }
 
     ~partitionInfo(){
         runner->join();
         delete runner;
+        ci->deleteIfAllowed();
      }
 
   private:
@@ -16030,6 +16298,7 @@ int partitionVMT(Word* args, Word& result, int message,
          partitionInfo<A>* info = new partitionInfo<A>(array, size, i, ci,
                                              funText, dfunText, tname, 
                                              relType, dbname);
+         ci->deleteIfAllowed();
          infos.push_back(info);
       }
    }
@@ -16508,6 +16777,9 @@ class AReduceTask{
              runner->join();
              delete runner;
           }
+          if(ci){
+            ci->deleteIfAllowed();
+          }
        }
 
       
@@ -16605,6 +16877,7 @@ class AReduceTask{
                        + "' 2 )";
 
              }
+             wi->deleteIfAllowed();
           }
           rv += ")";
 
@@ -17379,6 +17652,7 @@ int collect2VM(Word* args, Word& result, int message,
 
    for(size_t i=0;i<cis.size();i++){
       delete getters[i];
+      cis[i]->deleteIfAllowed();
    }
 
    res->setStdMap(matrix->getSize());
@@ -18882,6 +19156,7 @@ class partitionF8Runner{
             home = ci->getSecondoHome(showCommands, commandLog);
             string query = createQuery();
             performListCommand(ci, query);
+            ci->deleteIfAllowed();
          } else {
             cerr << "could not connet to " 
                  << elem.getHost() << "@" 
@@ -19387,7 +19662,7 @@ class deleteRemoteDatabasesInfo{
                          const int port, 
                          string& config, 
                          string& msg){
-        NestedList* mynl = new NestedList();
+        NestedList* mynl = new NestedList("temp_nested_list");
         SecondoInterfaceCS* si = new SecondoInterfaceCS(true,mynl, true);
         string user="";
         string passwd = "";
@@ -20182,17 +20457,33 @@ ListExpr createintdarrayTM(ListExpr args){
 }
 
 
-void createIntCmd(const string& name, const int value, ConnectionInfo* ci){
-   string cmd = "delete " + name;
+void createIntCmd(DArrayBase* array, set<size_t>& usedWorkers,
+                  const string& name, const int value, ConnectionInfo* ci){
+   string cmd1 = "delete " + name;
    int err;
    string res;
    double rt;
-   ci->simpleCommand(cmd,err,res,false,rt,false,commandLog,true,
+   string cmd2 = "let " + name + " = " + stringutils::int2str(value);
+   bool done = false;
+   int tryReconnect = algInstance->tryReconnect();
+   do{
+      ci->simpleCommand(cmd1,err,res,false,rt,false,commandLog,true,
                             algInstance->getTimeout());
-   cmd = "let " + name + " = " + stringutils::int2str(value);
-   ci->simpleCommand(cmd,err,res,false,rt,false,commandLog,true,
-                     algInstance->getTimeout());
-   
+      // ignore error
+      ci->simpleCommand(cmd2,err,res,false,rt,false,commandLog,true,
+                        algInstance->getTimeout());
+      if(err!=0){
+        ci->deleteIfAllowed();
+        ci = changeWorker1(array,value, usedWorkers,tryReconnect);
+        if(!ci){
+          cerr <<"No more workers available" << std::endl;
+          done = true; 
+        }        
+      } else {
+        done = true;
+      }
+   } while(!done);
+   ci->deleteIfAllowed(); 
 }
 
 
@@ -20229,21 +20520,27 @@ int createintdarrayVMT(Word* args, Word& result, int message,
                  workers, size, n,hostPos,portPos,confPos);
 
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+    set<size_t> usedWorkers;
+    vector<ConnectionInfo*> cons;
     if(res->IsDefined()){
        res->setStdMap(size);
        vector<boost::thread*> runners;
-       for(size_t i=0;i<res->getSize();i++){
+       bool ok = true;
+       for(size_t i=0;i<res->getSize() && ok ;i++){
           DArrayElement elem = res->getWorkerForSlot(i);
-          ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
+          ConnectionInfo* ci = algInstance->getWorkerConnection(res,i, 
+                                                           dbname,0,true);
           if(!ci){
              res->makeUndefined();
-             return 0;
-          }
-          string oname = res->getObjectNameForSlot(i);
+             ok = false;
+          } else {
+            string oname = res->getObjectNameForSlot(i);
 
-          boost::thread* r = new boost::thread(
-                boost::bind(createIntCmd,oname,i,ci));
-          runners.push_back(r);
+            // within this funcktion, also ci is unreferenced
+            boost::thread* r = new boost::thread(
+                  boost::bind(createIntCmd,res,usedWorkers,oname,i,ci));
+            runners.push_back(r);
+          }
        }
        for(size_t i=0;i<runners.size();i++){
          runners[i]->join();
@@ -20368,6 +20665,7 @@ class dcommandInfo{
       
       void compute(){
           vector<boost::thread*> runners;
+          vector<ConnectionInfo*> cons;
           string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
           for(size_t i=0;i<array->numOfWorkers(); i++){
              DArrayElement elem = array->getWorker(i);
@@ -20375,11 +20673,13 @@ class dcommandInfo{
                                                                  dbname);
              boost::thread* r = new boost::thread(
                 boost::bind(&dcommandInfo::run,this,ci));
-                runners.push_back(r);
+             runners.push_back(r);
+             cons.push_back(ci);
           }
           for(size_t i=0;i<runners.size();i++){
             runners[i]->join();
             delete runners[i];
+            cons[i]->deleteIfAllowed();
           }
       }
  
@@ -20477,6 +20777,7 @@ Operator dcommandOp(
   dcommandTM
 );
 
+
 /*
 Operator ~dlet~
 
@@ -20565,9 +20866,13 @@ class dletInfo{
              DArrayElement elem = array->getWorker(i);
              ConnectionInfo* ci = algInstance->getWorkerConnection(elem,
                                                                  dbname);
-             boost::thread* r = new boost::thread(
-                boost::bind(&dletInfo::run,this,ci));
-                runners.push_back(r);
+             if(ci){
+               boost::thread* r = new boost::thread(
+                   boost::bind(&dletInfo::run,this,ci));
+               runners.push_back(r);
+             } else {
+                cerr << "could not connect to " << elem << endl;
+             }
           }
           boost::thread* r = new boost::thread(
                 boost::bind(&dletInfo::runLocal,this));
@@ -20600,6 +20905,7 @@ class dletInfo{
           r->PutAttribute(4,new FText(true,errmsg));
           r->PutAttribute(5,new CcReal(true,rt));
           insert(r);    
+          ci->deleteIfAllowed();
       }   
 
 
