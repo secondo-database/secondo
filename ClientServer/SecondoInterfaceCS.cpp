@@ -92,6 +92,7 @@ SecondoInterfaceCS::~SecondoInterfaceCS()
   {
     Terminate();
   }
+  messageListener.clear();
 }
 
 
