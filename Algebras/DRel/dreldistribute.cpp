@@ -949,7 +949,7 @@ Value mapping of the distribute operator to distribute by range.
             qps, nl->Second( qp->GetType( s ) ), rel );
 
         CcInt* size = ( CcInt* )args[ 5 ].addr;
-        string attrName = ( ( CcString* )args[ 10 ].addr )->GetValue( );
+        string attrName = ( ( CcString* )args[ 9 ].addr )->GetValue( );
         
         ListExpr attrType;
         int pos = listutils::findAttribute(
@@ -1142,11 +1142,11 @@ Value mapping of the distribute operator for spatial distribution.
     }
 
     OperatorSpec drelfdistributeSpec(
-        " stream(tuple(X)) x rel(tuple(X)) x string x "
+        " rel(tuple(X)) x rel(tuple(X)) x string x "
         "distType [x attr] [x int] -> dfrel(X) ",
         " _ drelfdistribute[ _, _, _, _, _]",
-        "Distributes a tuple stream to the workers of the worker relation. "
-        "The first argument is the stream to distribute. The second "
+        "Distributes a relation to the workers of the worker relation. "
+        "The first argument is the relation to distribute. The second "
         "argument is the worker relation. It must be a relation having "
         "attributes Host, Port, and Config. Host and Config must be of "
         "type string or text, the Port attribute must be of type int. "
@@ -1161,7 +1161,7 @@ Value mapping of the distribute operator for spatial distribution.
         "resulting array is the corresponding tuple inserted. The sixth "
         "argument specifies the size of the resulting array. If replicated "
         "is choosen this argument is unnecessary. ",
-        " query strassen feed drelfdistribute[Worker3, \"\", \"range\", No, 5]"
+        " query strassen drelfdistribute[Worker3, \"\", \"range\", No, 5]"
     );
 
     ValueMapping drelfdistributeVM[ ] = {
@@ -1224,11 +1224,11 @@ Value mapping of the distribute operator for spatial distribution.
     );
 
     OperatorSpec dreldistributeSpec(
-        " stream(tuple(X)) x rel(tuple(X)) x string x "
+        " rel(tuple(X)) x rel(tuple(X)) x string x "
         "distType [x attr] [x int] -> drel(X) ",
         " _ dreldistribute[ _, _, _, _, _]",
-        "Distributes a tuple stream to the workers of the worker relation. "
-        "The first argument is the stream to distribute. The second "
+        "Distributes a relation to the workers of the worker relation. "
+        "The first argument is the relation to distribute. The second "
         "argument is the worker relation. It must be a relation having "
         "attributes Host, Port, and Config. Host and Config must be of "
         "type string or text, the Port attribute must be of type int. "
@@ -1243,7 +1243,7 @@ Value mapping of the distribute operator for spatial distribution.
         "resulting array is the corresponding tuple inserted. The sixth "
         "argument specifies the size of the resulting array. If replicated "
         "is choosen this argument is unnecessary. ",
-        " query strassen feed dreldistribute[Worker3, \"\", \"range\", No, 5]"
+        " query strassen dreldistribute[Worker3, \"\", \"range\", No, 5]"
     );
 
     ValueMapping dreldistributeVM[ ] = {

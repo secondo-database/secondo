@@ -22,15 +22,15 @@ Result    : (cellgird2d (5 50 0.1 0.1 400))
 
 Operator  : drelfdistribute
 Number    : 1
-Signature : stream x rel x string x string [x attr] [x int] -> drel(X)
-Example   : query strassen feed drelfdistribute[Worker3, "", "random", 5]
+Signature : rel x rel x string x string [x attr] [x int] -> drel(X)
+Example   : query strassen drelfdistribute[Worker3, "", RANDOM, 5]
 Result    : bug
 Remark    : remote server required
 
 Operator  : dreldistribute
 Number    : 1
-Signature : stream x rel x string x string [x attr] [x int] -> drel(X)
-Example   : query strassen feed dreldistribute[Worker3, "", "range", No, 5]
+Signature : rel x rel x string x string [x attr] [x int] -> drel(X)
+Example   : query strassen dreldistribute[Worker3, "", RANGE, No, 5]
 Result    : bug
 Remark    : remote server required
 
