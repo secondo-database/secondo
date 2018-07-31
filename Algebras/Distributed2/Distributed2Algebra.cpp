@@ -5755,7 +5755,9 @@ class getWorkersInfo{
          tuple->PutAttribute(3, new CcInt(e.getNum()));
          ConnectionInfo* ci = algInstance->getWorkerConnection(e,dbname);
          tuple->PutAttribute(4, new LongInt( (int64_t) ci));
-         ci->deleteIfAllowed();
+         if(ci){
+            ci->deleteIfAllowed();
+         }
          return tuple;
      }
 
