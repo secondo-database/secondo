@@ -11155,13 +11155,13 @@ int convertdarrayVMT(Word* args, Word& result, int message,
   if(copy){
      vector<ConvertSlot*> converter;
      vector<boost::thread*> runners;
-     for(int i=0;i<arg->getSize();i++){
+     for(size_t i=0;i<arg->getSize();i++){
         ConvertSlot* cs = new ConvertSlot(arg,res,i);
         boost::thread* runner = new boost::thread(&ConvertSlot::run, cs);
         converter.push_back(cs);
         runners.push_back(runner);
      } 
-     for(int i=0;i<arg->getSize();i++){
+     for(size_t i=0;i<arg->getSize();i++){
         runners[i]->join();
         delete runners[i];
         delete converter[i];
