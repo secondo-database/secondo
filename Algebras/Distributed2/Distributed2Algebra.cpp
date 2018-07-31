@@ -112,23 +112,37 @@ Distributed2Algebra* algInstance;
 
 ConnectionInfo* changeWorker1(DArrayBase* array, size_t  slotNo, 
                              set<size_t>& usedWorkers,
-                             int& tryReconnect) {
+                             int& tryReconnect, 
+                             ConnectionInfo*& ciOrig, 
+                             bool keepIfOk = true) {
+
+   //cout << "called changeWorker1" << endl;
+   //cout << "tryReconnect is " << tryReconnect << endl;
 
    static boost::mutex cwmtx;
    boost::lock_guard<boost::mutex> guard(cwmtx);
 
-   if(tryReconnect>0){
-      DArrayElement elem = array->getWorkerForSlot(slotNo);
-      algInstance->closeWorker(elem);
-      string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-      ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname, 0);
-      if(ci){
-        tryReconnect--;
-        return ci;
-      } else { // connection not possible, don't try to connect
-         tryReconnect = 0;
+   if(keepIfOk){
+      if(ciOrig && ciOrig->check(false,commandLog)){
+         return ciOrig;
       }
    }
+
+   if(tryReconnect>0 && ciOrig){
+      if(ciOrig->reconnect(false, commandLog)){
+          tryReconnect--;
+          return ciOrig;
+      } 
+   }
+
+   // ciOrig is not to use
+   if(ciOrig){
+      ciOrig->deleteIfAllowed();
+      ciOrig = 0;
+   }
+
+   
+
 
   ConnectionInfo* ci = 0;
   while(!ci){
@@ -745,7 +759,7 @@ bool Distributed2Algebra::serverExists(int s){
      } 
      int retry = 0;
      set<size_t> usedWorkers;
-     return changeWorker1(array,slot, usedWorkers, retry);
+     return changeWorker1(array,slot, usedWorkers, retry,ci);
   }
 
 
@@ -7063,9 +7077,8 @@ class RelFileRestorer{
          } else {
             // at leat one remove object could not be created, try at
             // another connection
-            ci->deleteIfAllowed();
             ci  = changeWorker1(array, arrayIndex,
-                                                usedWorkers, reconnects);
+                                                usedWorkers, reconnects,ci);
          }
        }
       } else {
@@ -11684,10 +11697,12 @@ are only collected in the logger but not sent to a woker.
 
     /* returns an alternative connection */
     ConnectionInfo* changeWorker(size_t slotNo, 
-                                 set<size_t>& usedWorkers){
+                                 set<size_t>& usedWorkers,
+                                 ConnectionInfo*& oldCi){
        DArrayBase* array = darray?(DArrayBase*)darray:(DArrayBase*)dfarray;
        int retries =0;
-       ConnectionInfo* ci=  changeWorker1(array, slotNo, usedWorkers,retries);
+       ConnectionInfo* ci=  changeWorker1(array, slotNo, usedWorkers,
+                                          retries,oldCi);
        return ci;
     }
 
@@ -11714,8 +11729,7 @@ are only collected in the logger but not sent to a woker.
       if(!reconnect ||  !reconnectGlobal){
         size_t workernum = darray->getWorkerIndexForSlot(nr);
         usedWorkers.insert(workernum);
-        ci->deleteIfAllowed();
-        ci = changeWorker(nr, usedWorkers);
+        ci = changeWorker(nr, usedWorkers, ci);
         numtries--;
       }
       reconnect = !reconnect;
@@ -20467,7 +20481,7 @@ void createIntCmd(DArrayBase* array, set<size_t>& usedWorkers,
    double rt;
    string cmd2 = "let " + name + " = " + stringutils::int2str(value);
    bool done = false;
-   int tryReconnect = algInstance->tryReconnect();
+   int tryReconnect = algInstance->tryReconnect()?5:0;
    do{
       ci->simpleCommand(cmd1,err,res,false,rt,false,commandLog,true,
                             algInstance->getTimeout());
@@ -20475,8 +20489,7 @@ void createIntCmd(DArrayBase* array, set<size_t>& usedWorkers,
       ci->simpleCommand(cmd2,err,res,false,rt,false,commandLog,true,
                         algInstance->getTimeout());
       if(err!=0){
-        ci->deleteIfAllowed();
-        ci = changeWorker1(array,value, usedWorkers,tryReconnect);
+        ci = changeWorker1(array,value, usedWorkers,tryReconnect, ci);
         if(!ci){
           cerr <<"No more workers available" << std::endl;
           done = true; 
@@ -21064,7 +21077,7 @@ Operator dletOp(
 */
 Distributed2Algebra::Distributed2Algebra(){
    namecounter = 0;
-   tryReconnectFlag = false;
+   tryReconnectFlag = true;
    heartbeat = 4;
    timeout = defaultTimeout; // switch off time out
 
