@@ -3130,6 +3130,7 @@ SecondoCatalog::Open()
   ok = ok && objCatalogFile.Open( "Objects", "SecondoCatalog" );
   ok = ok && objValueFile.Open( "ObjValues", "SecondoCatalog" );
   ok = ok && flobFile.Open( "largeObjects", "SecondoCatalog" );
+  SmiEnvironment::correctFileId();
   #ifdef SM_FILE_ID 
   mutex->unlock();
   #endif
