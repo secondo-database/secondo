@@ -90,6 +90,33 @@ bool MemCatalog::insert (const std::string& name, MemoryObject* obj){
     return true;
 }
 
+bool MemCatalog::renameObject(const std::string& oldName, 
+                              const std::string& newName){
+
+  if(!isMMOnlyObject(oldName)){
+      std::cerr << oldName << " not part of the memory catalog" 
+                << std::endl;
+      return false;
+  }
+  if(isObject(newName)){
+     std::cerr << newName << " already used as an memory object name" 
+               << std::endl;
+     return false;
+  }
+  std::map<std::string,MemoryObject*>::iterator it = memContents.find(oldName);
+  assert(it!=memContents.end());
+  MemoryObject* mo = it->second;
+  memContents.erase(it);
+  memContents[newName] = mo;
+  return true; 
+  
+
+
+
+}
+
+
+
 
 bool MemCatalog::insert (const std::string& name, MPointer* obj){
     MemoryObject* mo = obj?obj->GetValue():0;

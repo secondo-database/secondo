@@ -89,6 +89,9 @@ class MemCatalog {
 
         size_t getNoReferences(std::string name) const;
 
+        bool renameObject(const std::string& oldName, 
+                          const std::string& newName);
+
     private:
         unsigned long usedMemSize;  //in Byte
         size_t memSizeTotal; //in MB
