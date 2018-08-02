@@ -191,9 +191,14 @@ protected:
      virtual SI_Error Command_Query( const ListExpr list,
                           ListExpr& result, std::string& errorMessage,
                           bool autoTransaction );
+
      virtual SI_Error Command_Create( const ListExpr list,
                            ListExpr& result,
                            ListExpr& error, std::string& errorMessage );
+
+     virtual SI_Error Command_ChangeName( const ListExpr list, 
+                                        std::string& errorMessage );
+
      virtual SI_Error Command_Let( const ListExpr list, 
                                    std::string& errorMessage, 
                                    bool autoTransaction );
