@@ -388,6 +388,17 @@ objects in corrupted states that cannot be opened for destruction.
 */
   bool KillObject( const std::string& objectName );
 
+
+/*
+Gives an object named oldname the new name newName.
+
+*/
+int RenameObject( const std::string& oldName,
+                  const std::string& newName,
+                  std::string& errorMessage);
+
+
+
 /*
 Converts an object of the type given by ~typeExpr~ and the value given
 as a nested list into a ~Word~ representation which is returned. Any
