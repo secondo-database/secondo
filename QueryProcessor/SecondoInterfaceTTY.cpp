@@ -1492,6 +1492,18 @@ Command\_<name>.
     {
       errorCode = Command_Update( list, errorMessage );
     }
+    
+    // --- changename command
+
+    else if ( nl->IsEqual( first, "changename" ) && (length == 4) &&
+              nl->IsAtom( nl->Second( list )) &&
+             (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
+              nl->IsEqual( nl->Third( list ), "->" ) &&
+              nl->IsAtom( nl->Fourth( list )) &&
+             (nl->AtomType( nl->Fourth( list ) ) == SymbolType) )
+    {
+      errorCode = Command_ChangeName( list, errorMessage );
+    }
 
     // --- Let command
 
@@ -2186,6 +2198,21 @@ SecondoInterfaceTTY::Command_Update( const ListExpr list, string& errorMessage )
 
   return errorCode;
 }
+
+/*
+1.2.4 changename
+
+*/
+SI_Error
+SecondoInterfaceTTY::Command_ChangeName( const ListExpr list, 
+                                         string& errorMessage )
+{
+  SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+  string oldName = nl->SymbolValue(nl->Second(list));
+  string newName = nl->SymbolValue(nl->Fourth(list));
+  return ctlg->RenameObject(oldName, newName, errorMessage);
+}
+
 
 
 /*
