@@ -131,10 +131,12 @@ create		{yylval = NestedText::Atom( yytext, yyleng ); return ZZCREATE;}
 update		{yylval = NestedText::Atom( yytext, yyleng ); return ZZUPDATE;}
 kill		{yylval = NestedText::Atom( yytext, yyleng ); return ZZKILL;}
 ":="		{yylval = NestedText::Atom( yytext, yyleng ); return ZZASSIGN;}
+"->"		{yylval = NestedText::Atom( yytext, yyleng ); return ZZARROW;}
 query		{yylval = NestedText::Atom( yytext, yyleng ); return ZZQUERY;}
 querynt		{yylval = NestedText::Atom( yytext, yyleng ); return ZZQUERYNT;}
 pquery		{yylval = NestedText::Atom( yytext, yyleng ); return ZZPQUERY;}
 pcompile	{yylval = NestedText::Atom( yytext, yyleng ); return ZZPCOMPILE;}
+changename	{yylval = NestedText::Atom( yytext, yyleng ); return ZZCHANGENAME;}
 let		{yylval = NestedText::Atom( yytext, yyleng ); return ZZLET;}
 derive		{yylval = NestedText::Atom( yytext, yyleng ); return ZZDERIVE;}
 persistent	{yylval = NestedText::Atom( yytext, yyleng ); return ZZPERSISTENT;}

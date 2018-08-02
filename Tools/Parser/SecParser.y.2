@@ -266,6 +266,15 @@ basic    :  ZZTYPE ZZIDENTIFIER ZZINFIXOP typeexpr
         PRINTF(" = "); PRINT($5); PRINTF(")\n");
          $$ = NestedText::AtomC(yacc_outtext->c_str());
         }
+    |    {paramno=0; emptystack();}
+      ZZCHANGENAME  ZZIDENTIFIER ZZARROW ZZIDENTIFIER
+       {
+        CLEAR();
+        string equalstr;
+        PRINTF("(changename "); PRINT($3);
+        PRINTF(" -> " ); PRINT($5); PRINTF(")\n");
+         $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
 
     |    {paramno=0; emptystack();}
       ZZDERIVE ZZIDENTIFIER ZZINFIXOP valueexpr
