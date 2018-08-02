@@ -194,6 +194,7 @@ const SmiError E_SMI_CATALOG_INSERT    = -1102;
 const SmiError E_SMI_CATALOG_DELETE    = -1103;
 const SmiError E_SMI_CATALOG_KEYEXIST  = -1104;
 const SmiError E_SMI_CATALOG_NOTFOUND  = -1105;
+const SmiError E_SMI_CATALOG_RENAME    = -1106;
 
 const SmiError E_SMI_FILE_INVALIDNAME  = -1201;
 const SmiError E_SMI_FILE_NOFILEID     = -1202;
