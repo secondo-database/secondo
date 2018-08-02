@@ -1250,6 +1250,7 @@ Precondition: dbState = dbOpen.
   return (ok);
 }
 
+
 bool
 SecondoCatalog::DeleteObject( const string& objectName)
 {
@@ -1260,8 +1261,6 @@ used memory. Returns error 1 if the object does not exist.
 Precondition: dbState = dbOpen.
 
 */
-  
-  
 
   bool ok = false;
   string typeName, typecon;
@@ -1316,6 +1315,84 @@ Precondition: dbState = dbOpen.
   }
   return (ok);
 }
+
+
+
+int
+SecondoCatalog::RenameObject( const string& oldName, 
+                             const string& newName,
+                             std::string& errorMessage)
+{
+
+   errorMessage ="";
+   
+   if(!SmiEnvironment::IsDatabaseOpen()){
+     errorMessage = "no database open";
+     return ERR_NO_DATABASE_OPEN;
+   }
+
+  if(memCatalog->isMMOnlyObject(oldName)) {
+     return memCatalog->renameObject(oldName, newName, errorMessage);
+  }
+
+
+  if(!IsValidIdentifier(newName,errorMessage)){
+    errorMessage = "the new name is not valid";
+    return ERR_IDENT_RESERVED;
+  }
+
+  if(IsObjectName(newName,false)){
+    stringstream ss;
+    ss << newName << " already used as an Object" << endl;
+    errorMessage = ss.str();
+    return ERR_IDENT_USED;
+  }
+  if(!IsObjectName(oldName,false)){
+    stringstream ss;
+    ss << oldName << " is not an object" << endl;
+    errorMessage = ss.str();
+    return ERR_IDENT_UNKNOWN_OBJ;
+  }
+  ObjectsCatalog::iterator oPos = objects.find( oldName );
+
+  int ret = 0;
+
+  if ( oPos != objects.end() )
+  {
+    ObjectsCatalogEntry entry = oPos->second;
+    objects.erase(oPos);
+    objects[newName] = entry;
+  } else if( IsObjectName( oldName ) ) {
+    #ifdef SM_FILE_ID 
+    mutex->lock();
+    #endif
+    SmiRecord oRec;
+    size_t recSize=0;
+    char* buffer = 0;
+    bool ok;
+    if( (ok = objCatalogFile.SelectRecord( SmiKey( oldName ), oRec )) ) {
+      recSize = oRec.Size();
+      buffer = new char[recSize];
+      oRec.Read(buffer,recSize,0);
+    }
+    if( ok && (ok = objCatalogFile.DeleteRecord( SmiKey( oldName ) )) ){
+      SmiRecord rec2;
+      ok = objCatalogFile.InsertRecord(SmiKey(newName),rec2);
+      if(ok){        
+         rec2.Write(buffer,recSize,0);
+      }
+      rec2.Finish(); 
+    }
+    if(buffer) delete[] buffer;
+    
+    if(!ok) ret = E_SMI_CATALOG_RENAME;
+    #ifdef SM_FILE_ID 
+    mutex->unlock();
+    #endif
+  }
+  return ret;
+}
+
 
 bool
 SecondoCatalog::KillObject( const string& objectName )
@@ -1646,6 +1723,7 @@ Checks whether ~keywordName~ is a reserved word
     "update",
     "value",
     "while",
+    "changename",
     0};
 
   for(int i=0; keywords[i]; i++){
