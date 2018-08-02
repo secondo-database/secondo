@@ -89,8 +89,9 @@ class MemCatalog {
 
         size_t getNoReferences(std::string name) const;
 
-        bool renameObject(const std::string& oldName, 
-                          const std::string& newName);
+        int renameObject(const std::string& oldName, 
+                         const std::string& newName,
+                         std::string& errorMessage);
 
     private:
         unsigned long usedMemSize;  //in Byte
