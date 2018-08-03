@@ -37,6 +37,7 @@ This is the implementation of the Symbolic Trajectory Algebra.
 
 #include "RestoreTraj.h"
 #include <unordered_set>
+#include "Algebras/Raster2/Operators/CellIterator.h"
 
 using namespace temporalalgebra;
 using namespace std;
@@ -396,10 +397,87 @@ void Tileareas::print(const bool printRange, const bool printAreas,
   }
 }
 
+void Tileareas::getNodeSeqFromNodesBTree(BTree* btree, const int startNode,
+                                     NewPair<vector<int>, vector<int> >& seqs) {
+  bool first = seqs.first.empty();
+  if (!first && !seqs.second.empty()) {
+    return;
+  }
+  CcInt *cclookup = new CcInt(true, startNode);
+  bool nextSectionExists = true;
+  int nextId = INT_MIN;
+  while (nextSectionExists) {
+    BTreeIterator_t<unsigned int> *bit = btree->ExactMatch(cclookup);
+    if (bit->Next()) {
+      nextId = bit->GetId();
+      if (first) {
+        seqs.first.push_back(nextId);
+      }
+      else {
+        seqs.second.push_back(nextId);
+      }
+    }
+    else {
+      nextSectionExists = false;
+    }
+    delete bit;
+    cclookup->Set(nextId);
+  }
+  cclookup->DeleteIfAllowed();
+}
+
+void Tileareas::getSegmentsFromNodesBTree(BTree *btree, Relation *nodesRel,
+                          vector<int>& nodeSeq, vector<HalfSegment>& segments) {
+  if (nodeSeq.size() <= 1) {
+    return;
+  }
+  bool nextNodeExists = true;
+  unsigned int nodeCounter = 0;
+  int nextId = nodeSeq[nodeCounter];
+  CcInt *cclookup = new CcInt(true, nextId);
+  Point startPt(true), endPt(true);
+  Tuple *tuple = 0;
+  BTreeIterator_t<unsigned int> *bit = btree->ExactMatch(cclookup);
+  if (bit->Next()) {
+    tuple = nodesRel->GetTuple(bit->GetId(), false);
+    startPt.CopyFrom((Point*)(tuple->GetAttribute(3)));
+  }
+  else {
+    nextNodeExists = false;
+  }
+  delete bit;
+  while (nextNodeExists) {
+    BTreeIterator_t<unsigned int> *bit = btree->ExactMatch(cclookup);
+    if (bit->Next()) {
+      Tuple *tuple = nodesRel->GetTuple(bit->GetId(), false);
+      endPt.CopyFrom((Point*)(tuple->GetAttribute(3)));
+      if (!AlmostEqual(startPt, endPt)) {
+        HalfSegment hs(true, startPt, endPt);
+        segments.push_back(hs);
+      }
+      tuple->DeleteIfAllowed();
+      startPt = endPt;
+    }
+    else {
+      nextNodeExists = false;
+    }
+    delete bit;
+    nodeCounter++;
+    if (nodeCounter < nodeSeq.size()) {
+      nextId = nodeSeq[nodeCounter];
+    }
+    else {
+      nextNodeExists = false;
+    }
+    cclookup->Set(nextId);
+  }
+  cclookup->DeleteIfAllowed();
+}
+
 void Tileareas::recordRoadCourses(raster2::sint *_raster) {
   cout << "Start recording road courses" << endl;
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  Word roadsPtr, roadsIndexPtr;
+  Word roadsPtr, roadsIndexPtr, nodesPtr, nodesBTreePtr;
   bool isDefined;
   if (!sc->GetObject("RoadsB", roadsPtr, isDefined)) {
     cout << "Object RoadsB does not exist." << endl;
@@ -409,11 +487,30 @@ void Tileareas::recordRoadCourses(raster2::sint *_raster) {
     cout << "Object RoadsB is undefined." << endl;
     return;
   }
-  map<string, vector<HalfSegment> > motorwayParts;
-  map<string, SimpleLine*> motorways;
-  set<string> motorwayNames;
+  if (!sc->GetObject("Nodes", nodesPtr, isDefined)) {
+    cout << "Object Nodes does not exist." << endl;
+    return;
+  }
+  if (!isDefined) {
+    cout << "Object Nodes is undefined." << endl;
+    return;
+  }
+  if (!sc->GetObject("Nodes_NodeIdNew_btree", nodesBTreePtr, isDefined)) {
+    cout << "Object Nodes_NodeIdNew_btree does not exist." << endl;
+    return;
+  }
+  if (!isDefined) {
+    cout << "Object Nodes_NodeIdNew_btree is undefined." << endl;
+    return;
+  }
+  map<string, set<NewPair<int, int> > > motorwayParts;
+  map<string, BTree*> nodeIdIndexes;
+  map<string, NewPair<vector<int>, vector<int> > > nodeSeqs; // both directions
+  map<string, NewPair<vector<HalfSegment>, vector<HalfSegment> > > segments;
   NestedRelation *roadsNRel = static_cast<NestedRelation*>(roadsPtr.addr);
-  Tuple *tuple = 0, *ntuple = 0, *atuple = 0;
+  Relation *nodesRel = static_cast<Relation*>(nodesPtr.addr);
+  BTree *nodesBTree = static_cast<BTree*>(nodesBTreePtr.addr);
+  Tuple *tuple = 0, *ntuple = 0, *atuple = 0, *atuple1 = 0;
   TupleId tid;
   Relation *roadsRel = roadsNRel->getPrimary();
   GenericRelationIterator *rit = roadsRel->MakeScan();
@@ -423,13 +520,12 @@ void Tileareas::recordRoadCourses(raster2::sint *_raster) {
   string motorwayName;
   while ((ntuple = rit->GetNextTuple()) != 0) {
     bool isHighway = false;
-    cout << "call NT2T " << (ntuple != 0) << endl;
     tuple = roadsNRel->NestedTuple2Tuple(ntuple);
     AttributeRelation *arel = (AttributeRelation*)(tuple->GetAttribute(4));
-    DbArray<TupleId> *tids = arel->getTupleIds();
+    DbArray<TupleId> *wtkTids = arel->getTupleIds();
     int i = 0;
-    while (i < tids->Size()) { // check waytagkeys for highway and name
-      tids->Get(i, tid);
+    while (i < wtkTids->Size()) { // check waytagkeys for highway and name
+      wtkTids->Get(i, tid);
       atuple = arel->getRel()->GetTuple(tid, false);
       if (atuple != 0) {
         FText *roadInfo1 = ((FText*)(atuple->GetAttribute(0)));
@@ -448,76 +544,219 @@ void Tileareas::recordRoadCourses(raster2::sint *_raster) {
       atuple->DeleteIfAllowed();
       i++;
     }
-    if (isHighway) { // find and store motorway parts
+    if (isHighway) { // find and store motorway nodes (start/end node ids)
       Line *curve = (Line*)(tuple->GetAttribute(2));
       SimpleLine scurve(*curve);
-      if (scurve.IsDefined()) {
+      NewPair<int, int> nodes(INT_MIN, INT_MIN);
+      if (scurve.IsDefined() && !motorwayName.empty()) {
         if (scurve.BoundingBox().Intersects(raster->bbox())) {
-          cout << " INTERSECTION! Name is " << motorwayName << endl;
-          if (!motorwayName.empty()) {
-            for (int i = 0; i < scurve.Size(); i++) {
-              scurve.Get(i, hs);
-              motorwayParts[motorwayName].push_back(hs);
-              motorwayNames.insert(motorwayName);
+          AttributeRelation *arel2 = 
+                                   (AttributeRelation*)(tuple->GetAttribute(1));
+          DbArray<TupleId> *nodeTids = arel2->getTupleIds();
+//           cout << "section of " << motorwayName << " has " 
+//                << nodeTids->Size() << " nodes" << endl;
+          if (nodeTids->Size() > 1) { // less than 2 nodes: ignore
+            for (int i = 0; i < nodeTids->Size(); i++) {
+              nodeTids->Get(i, tid);
+              atuple1 = arel2->getRel()->GetTuple(tid, false);
+              if (atuple1 != 0) {
+                CcInt *cccount = ((CcInt*)(atuple1->GetAttribute(3)));
+                CcInt *ccnode = ((CcInt*)(atuple1->GetAttribute(2)));
+                if (ccnode->IsDefined() && cccount->IsDefined()) {
+                  int nodeId(ccnode->GetValue()),nodeCount(cccount->GetValue());
+                  if (nodeCount == 0) {
+                    nodes.first = nodeId;
+                  }
+                  if (nodeCount == nodeTids->Size() - 1) {
+                    nodes.second = nodeId;
+                  }
+                }
+              }
+              atuple1->DeleteIfAllowed();
             }
           }
         }
       }
+      if (nodes.first != INT_MIN && nodes.second != INT_MIN) {
+        motorwayParts[motorwayName].insert(nodes);
+      }
     }
     tuple->DeleteIfAllowed();
   }
-  cout << motorwayNames.size() << " names found" << endl;
-  for (set<string>::iterator it = motorwayNames.begin(); 
-                                              it != motorwayNames.end(); it++) {
-    string name = *it;
-    motorways[name] = new SimpleLine(true);
-    motorways[name]->StartBulkLoad();
-    for (unsigned int j = 0; j < motorwayParts[name].size(); j++) {
-      motorways[name]->Add(motorwayParts[name][j]);
+  for (map<string, set<NewPair<int, int> > >::iterator it = 
+       motorwayParts.begin(); it != motorwayParts.end(); it++) {
+    nodeIdIndexes[it->first] = new BTree(SmiKey::Integer);
+    cout << it->first << ": " << endl;
+    map<int, int> nodeCounter; // start +2, end +1
+    for (set<NewPair<int, int> >::iterator it1 = it->second.begin();
+         it1 != it->second.end(); it1++) {
+      if (nodeCounter.find(it1->first) != nodeCounter.end()) { // start existing
+        nodeCounter[it1->first] += 2;
+      }
+      else { // start not found before
+        nodeCounter[it1->first] = 2;
+      }
+      if (nodeCounter.find(it1->second) != nodeCounter.end()) { // end existing
+        nodeCounter[it1->second] += 1;
+      }
+      else { // end not found before
+        nodeCounter[it1->second] = 1;
+      }
+      nodeIdIndexes[it->first]->Append(it1->first, it1->second);
     }
-    motorways[name]->EndBulkLoad();
+    for (map<int, int>::iterator it2 = nodeCounter.begin(); 
+        it2 != nodeCounter.end(); it2++) {
+      if (it2->second == 1) {
+//         cout << "   ...node " << it2->first << " is only end node" << endl;
+      }
+      if (it2->second == 2) {
+//         cout << "   ...node " << it2->first << " is only start node" << endl;
+        getNodeSeqFromNodesBTree(nodeIdIndexes[it->first], it2->first,
+                                 nodeSeqs[it->first]);
+      }
+    }
   }
-  // loop over connected motorways
-  for (map<string, SimpleLine*>::iterator it = motorways.begin();
-       it != motorways.end(); it++) {
-    processRoadCourse(*(it->second), roadCourse);
-    roadCourses.push_back(roadCourse);
+  for (map<string, BTree*>::iterator it = nodeIdIndexes.begin();
+       it != nodeIdIndexes.end(); it++) {
+    if (it->second != 0) {
+      delete it->second;
+    }
   }
-  cout << ".... Courses for " << roadCourses.size() << " roads found" << endl;
-  
+  for (map<string, NewPair<vector<int>, vector<int> > >::iterator it 
+       = nodeSeqs.begin(); it != nodeSeqs.end(); it++) {
+    getSegmentsFromNodesBTree(nodesBTree, nodesRel, it->second.first, 
+                              segments[it->first].first);
+    getSegmentsFromNodesBTree(nodesBTree, nodesRel, it->second.second, 
+                              segments[it->first].second);
+//     cout << "Segments created for " << it->first << endl;
+  }
+  for (map<string, NewPair<vector<HalfSegment>,vector<HalfSegment> > >::iterator
+       it = segments.begin(); it != segments.end(); it++) {
+//     cout << it->first << ": " << it->second.first.size() << ", "
+//          << it->second.second.size() << endl;
+    RoadCourse rc1, rc2;
+    processRoadCourse(it->second.first, rc1);
+    if (!rc1.dirSeq.IsEmpty() || !rc1.heightSeq.IsEmpty()) {
+      roadCourses.push_back(rc1);
+    }
+    processRoadCourse(it->second.second, rc2);
+    if (!rc2.dirSeq.IsEmpty() || !rc2.heightSeq.IsEmpty()) {
+      roadCourses.push_back(rc2);
+    }
+  }
+  cout << "height & dir written for " << roadCourses.size() << " ways" << endl;
+//   for (unsigned int i = 0; i < roadCourses.size(); i++) {
+//     cout << "Directions:" << roadCourses[i].dirSeq << endl << "Heights:" 
+//          << roadCourses[i].heightSeq << endl << endl << endl;
+//   }
+ if (!createRoadCourseRelation("RoadCourses")) {
+   return;
+ }
 }
 
-void Tileareas::processRoadCourse(const SimpleLine& curve, RoadCourse& rc) {
-  rc.clear();
-  HalfSegment hs;
-  Geoid *geoid = new Geoid(Geoid::WGS1984);
-  string lastDirStr, patternPart;
-  vector<raster2::RasterIndex<2> > regionsOrdered;
-  raster2::RasterIndex<2> from, to;
-  int lastHeight = INT_MIN;
-  LRS lrs;
-  curve.Get(0, lrs);
-  curve.Get(lrs.hsPos, hs);
-  rc.setStartPoint(hs.GetDomPoint());
-  for (int i = 0; i < curve.lrsSize(); i++) {
-    curve.Get(i, lrs);
-    curve.Get(lrs.hsPos, hs);
-    Point domPt = hs.GetDomPoint();
-    Point secPt = hs.GetSecPoint();
-    double dirDouble = domPt.Direction(secPt, false, geoid);
-    string dirStr = 
-        RestoreTrajLI::dirNumToString(RestoreTrajLI::dirDoubleToNum(dirDouble));
-    rc.addDir(secPt, dirStr, dirStr != lastDirStr);
-    lastDirStr = dirStr;
-    raster2::sbool coveredTiles;
-    std::unordered_set<raster2::RasterIndex<2> > regions;
-    raster2::drawLine(coveredTiles, regions, regionsOrdered, from, to, true);
+bool Tileareas::createRoadCourseRelation(const string& name) {
+  TupleType *tt = getTupleType();
+  Relation *roadCourseRel = new Relation(tt);
+  for (unsigned int i = 0; i < roadCourses.size(); i++) {
+    Tuple *tuple = new Tuple(tt);
+    CcInt *pos = new CcInt(true, i);
+    tuple->PutAttribute(0, pos);
+    tuple->PutAttribute(1, &(roadCourses[i].heightSeq));
+    tuple->PutAttribute(2, &(roadCourses[i].dirSeq));
+    roadCourseRel->AppendTuple(tuple);
   }
-  for (unsigned int i = 0; i < regionsOrdered.size(); i++) {
-    int height = raster->get(regionsOrdered[i]);
-    rc.addHeight(regionsOrdered[i], height, 
-                 height != lastHeight && height != INT_MIN);
-    lastHeight = height;
+  tt->DeleteIfAllowed();
+  cout << "relation with " << roadCourseRel->GetNoTuples() << " tuples created"
+       << endl;
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  if (sc->IsObjectName(name)) {
+    cout << "relation \"" << name << " already exists" << endl;
+    return false;
+  }
+  string errMsg = "error";
+  if (!sc->IsValidIdentifier(name, errMsg, true)) {
+    cout << errMsg << endl;
+    return false;
+  }
+  if (sc->IsSystemObject(name)) {
+    cout << name << " is a reserved name" << endl;
+    return false;
+  }
+  ListExpr type = nl->TwoElemList(nl->SymbolAtom(Relation::BasicType()),
+                                  getTupleTypeInfo());
+  Word relWord;
+  relWord.setAddr(roadCourseRel);
+  sc->InsertObject(name, "", type, relWord, true);
+  return true;
+}
+
+TupleType* Tileareas::getTupleType() {
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  ListExpr resultTupleType = getTupleTypeInfo();
+  ListExpr numResultTupleType = sc->NumericType(resultTupleType);
+  return new TupleType(numResultTupleType);
+}
+
+ListExpr Tileareas::getTupleTypeInfo() {
+  return nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+      nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("No"),
+                                        nl->SymbolAtom(CcInt::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("Height"),
+                                        nl->SymbolAtom(MLabel::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("Direction"),
+                                        nl->SymbolAtom(MLabel::BasicType()))));
+}
+
+void Tileareas::processRoadCourse(const vector<HalfSegment>& segments, 
+                                  RoadCourse& rc) {
+  rc.clear();
+  if (segments.empty()) {
+    return;
+  }
+  Geoid geoid(Geoid::WGS1984);
+  string dirStr, lastDirStr;
+  raster2::RasterIndex<2> from, to;
+  int height(INT_MIN), lastHeight(INT_MIN);
+  grid2::index_type cell1, cell2, cellBetween;
+  Point pt1(true), pt2(true);
+  for (unsigned int i = 0; i < segments.size(); i++) {
+    pt1 = segments[i].GetDomPoint();
+    pt2 = segments[i].GetSecPoint();
+    // process direction
+    double dir = pt1.Direction(pt2, false, &geoid);
+    string dirStr = 
+        RestoreTrajLI::dirNumToString(RestoreTrajLI::dirDoubleToNum(dir));
+    rc.addDir(pt1, dirStr, dirStr != lastDirStr);
+    lastDirStr = dirStr;
+    // process height(s)
+    cell1 = raster->getGrid().getIndex(pt1.GetX(), pt1.GetY());
+    cell2 = raster->getGrid().getIndex(pt2.GetX(), pt2.GetY());
+    if (cell1 == cell2) {
+      height = raster->atlocation(pt1.GetX(), pt1.GetY());
+      if (height != INT_MIN) {
+        rc.addHeight(cell1, height, height != lastHeight);
+        lastHeight = height;
+      }
+    }
+    else {
+      CellIterator it(raster->getGrid(), pt1.GetX(), pt1.GetY(), pt2.GetX(),
+                      pt2.GetY());
+      double dx = pt2.GetX() - pt1.GetX();
+      double dy = pt2.GetY() - pt1.GetY();
+      while (it.hasNext()) {
+        pair<double, double> p = it.next();
+        double delta  = (p.first + p.second) / 2.0;
+        height = raster->atlocation(pt1.GetX() + delta*dx,
+                                    pt1.GetY() + delta*dy);
+        if (height != INT_MIN) {
+          cellBetween = raster->getGrid().getIndex(pt1.GetX() + delta*dx,
+                                                   pt1.GetY() + delta*dy);
+          rc.addHeight(cellBetween, height, height != lastHeight);
+          lastHeight = height;
+        }
+      }
+    }
+    
   }
 }
 
@@ -695,7 +934,6 @@ bool Tileareas::Open(SmiRecord& valueRecord, size_t& offset,
 //        << *(ta->transitions[2][4].begin()) << endl;
   unsigned int noRoadCourses, noDirCourses, noHeightCourses;
   double xCoord, yCoord;
-  size_t seqSize;
   int rasterIndexPos[2];
   RoadCourse rc;
   if (!valueRecord.Read(&noRoadCourses, sizeof(unsigned int), offset)) {
@@ -746,31 +984,26 @@ bool Tileareas::Open(SmiRecord& valueRecord, size_t& offset,
       NewPair<int, raster2::RasterIndex<2> > heightCourseElement(pos, rIndex);
       rc.heightCourse.push_back(heightCourseElement);
     }
-    if (!valueRecord.Read(&seqSize, sizeof(size_t), offset)) {
-      return false;
-    }
-    offset += sizeof(size_t);
-    if (!valueRecord.Read(buffer, seqSize, offset)) {
-      return false;
-    }
-    offset += seqSize;
-    rc.dirSeq = *((MLabel*)(MLabel::deserialize(buffer)));
-    if (!valueRecord.Read(&seqSize, sizeof(size_t), offset)) {
-      return false;
-    }
-    offset += sizeof(size_t);
-    delete[] buffer;
-    if (!valueRecord.Read(buffer, seqSize, offset)) {
-      return false;
-    }
-    offset += seqSize;
-    delete[] buffer;
-    rc.heightSeq = *((MLabel*)(MLabel::deserialize(buffer)));
+    SecondoCatalog* sc = SecondoSystem::GetCatalog();
+    ListExpr mlabelType = nl->SymbolAtom(MLabel::BasicType());
+    ListExpr mlabelTypeInfo = sc->NumericType(mlabelType);
+    MLabel *dirCourse = (MLabel*)(MLabel::Open(valueRecord, offset, 
+                                               mlabelTypeInfo));
+    MLabel *heightCourse = (MLabel*)(MLabel::Open(valueRecord, offset, 
+                                                  mlabelTypeInfo));
+    MLabel dc(*dirCourse), hc(*heightCourse);
+    rc.dirSeq = dc;
+    rc.heightSeq = hc;
     ta->roadCourses.push_back(rc);
   }
   value.addr = ta;
   return true;
 }
+
+/*
+\subsection{Function ~Save~}
+
+*/
 
 bool Tileareas::Save(SmiRecord& valueRecord, size_t& offset, 
                      const ListExpr typeInfo, Word& value) {
@@ -957,28 +1190,13 @@ bool Tileareas::Save(SmiRecord& valueRecord, size_t& offset,
       }
       offset += sizeof(int);
     }
-    size_t seqSize;
-    ta->roadCourses[i].dirSeq.serialize(seqSize, buffer);
-    if (!valueRecord.Write(&seqSize, sizeof(size_t), offset)) {
-      return false;
-    }
-    offset += sizeof(size_t);
-    if (!valueRecord.Write(buffer, seqSize, offset)) {
-      return false;
-    }
-    offset += seqSize;
-    delete[] buffer;
-    ta->roadCourses[i].heightSeq.serialize(seqSize, buffer);
-    cout << ta->roadCourses[i].heightSeq << endl << "..... serialized" << endl;
-    if (!valueRecord.Write(&seqSize, sizeof(size_t), offset)) {
-      return false;
-    }
-    offset += sizeof(size_t);
-    if (!valueRecord.Write(buffer, seqSize, offset)) {
-      return false;
-    }
-    offset += seqSize;
-    delete[] buffer;
+    SecondoCatalog* sc = SecondoSystem::GetCatalog();
+    ListExpr mlabelType = nl->SymbolAtom(MLabel::BasicType());
+    ListExpr mlabelTypeInfo = sc->NumericType(mlabelType);
+    MLabel::Save(valueRecord, offset, mlabelTypeInfo,
+                 &(ta->roadCourses[i].dirSeq));
+    MLabel::Save(valueRecord, offset, mlabelTypeInfo,
+                 &(ta->roadCourses[i].heightSeq));
   }
   return true;
 }
@@ -1030,22 +1248,56 @@ RestoreTrajLI::RestoreTrajLI(Relation *e, BTree *ht, RTree2TID *st,
  MLabel *d, MLabel *s)
     : edgesRel(e), heightBtree(ht), segmentsRtree(st), raster(r), rhash(rh),
       maxspeedRaster(mr), tileareas(ta), height(h), direction(d), speed(s) {
-//   RefinementPartition<MLabel, MLabel, ULabel, ULabel> rp(*h, *d);
-  set<int> areas;
-  retrieveAreasFromHeight(0, areas);
-  cout << "INITIALIZATION: " << areas.size() << " areas" << endl;
-  int pos = 0;
-  bool sequelFound = !areas.empty();
-  while (pos < height->GetNoComponents() - 1 && sequelFound) {
-    sequelFound = retrieveSequel(pos, areas);
-    pos++;
-    cout << "loop# " << pos << "; " << areas.size() << " areas updated" << endl;
-  }
-  resultAreas = areas;
-  it = resultAreas.begin();
   edgesRel = 0;
   heightBtree = 0;
   segmentsRtree = 0;
+  Word roadCoursesPtr;
+  bool isDefined;
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  if (!sc->GetObject("RoadCourses", roadCoursesPtr, isDefined)) {
+    cout << "Object RoadCourses does not exist." << endl;
+    return;
+  }
+  if (!isDefined) {
+    cout << "Object RoadCourses is undefined." << endl;
+    return;
+  }
+  Relation *roadCourses = static_cast<Relation*>(roadCoursesPtr.addr);
+  RelationIterator *rit = (RelationIterator*)(roadCourses->MakeScan());
+  Tuple *tuple = 0;
+  datetime::DateTime twoMinutes(0, 120000, datetime::durationtype);
+  while ((tuple = rit->GetNextTuple()) != 0) {
+    CcInt *tid = (CcInt*)(tuple->GetAttribute(0));
+    MLabel *mHeight = (MLabel*)(tuple->GetAttribute(1));
+    MLabel *mDir = (MLabel*)(tuple->GetAttribute(2));
+    if (!tid->IsDefined() || !mHeight->IsDefined() || !mDir->IsDefined()) {
+      cout << tid->IsDefined() << "  " << mHeight->IsDefined() << " "
+           << mDir->IsDefined() << endl;
+    }
+    NewPair<int, int> hLimits = height->LongestCommonSubsequence(*mHeight);
+    NewPair<int, int> dLimits = direction->LongestCommonSubsequence(*mDir);
+    MLabel hPart(true), dPart(true), hPart2(true), dPart2(true);
+    if (hLimits.first >= 0 && dLimits.first >= 0) {
+      height->GetPart(hLimits.first, hLimits.second, hPart);
+      direction->GetPart(dLimits.first, dLimits.second, dPart);
+      Periods hPer(true), dPer(true), inter(true);
+      hPart.DefTime(hPer);
+      dPart.DefTime(dPer);
+      hPer.Intersection(dPer, inter);
+      if (!inter.IsEmpty()) {
+        Interval<Instant> iv1, iv2;
+        inter.Get(0, iv1);
+        inter.Get(inter.GetNoComponents() - 1, iv2);
+        if (iv2.end - iv1.start > twoMinutes) {
+          hPart.AtPeriods(inter, hPart2);
+          dPart.AtPeriods(inter, dPart2);
+          cout << "found HEIGHT part: " << hPart2 << endl;
+          cout << "found DIR part: " << dPart2 << endl << "--------------------"
+               << endl << endl;
+        }
+      }
+    }
+  }
   
   
 

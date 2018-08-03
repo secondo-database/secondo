@@ -281,6 +281,7 @@ class MBasic : public Attribute {
   void Fill(MBasic<B>& result, datetime::DateTime& duration) const;
   void Concat(const MBasic<B>& src1, const MBasic<B>& src2);
   void Compress(MBasic<B>& result) const;
+  void GetPart(const int from, const int to, MBasic<B>& result);
   #ifdef RECODE
   void Recode(const std::string& from, const std::string& to,MBasic<B>& result);
   #endif
@@ -2558,18 +2559,24 @@ void MBasic<B>::serialize(size_t &size, char *&bytes) const {
     return;
   }
   size_t rootSize = Sizeof();
-  size = rootSize + sizeof(size_t) + values.getSize() + units.GetFlobSize();
+  size = 2 * sizeof(size_t) + values.getSize() + units.GetFlobSize();
   bytes = new char[size];
+  cout << "memcpy1" << endl;
   memcpy(bytes, (void*)&rootSize, sizeof(size_t));
+  cout << "ok, now memcpy2" << endl;
   memcpy(bytes + sizeof(size_t), (void*)this, rootSize);
   size_t offset = sizeof(size_t) + rootSize;
   char* data = values.getData();
+  cout << "ok, now memcpy3" << endl;
   memcpy(bytes + offset, data, values.getSize());
   delete[] data;
   offset += values.getSize();
   data = units.getData();
+  cout << "ok, now memcpy4" << endl;
   memcpy(bytes + offset, data, units.GetFlobSize());
+  cout << "ok" << endl;
   delete[] data;
+  cout << "buffer \'data\' deleted" << endl;
 }
 
 /*
@@ -3311,6 +3318,24 @@ void MBasic<B>::Compress(MBasic<B>& result) const {
   }
 }
 
+/*
+\subsection{Function ~GetPart~}
+
+*/
+template<class B>
+void MBasic<B>::GetPart(const int from, const int to, MBasic<B>& result) {
+  assert(from >= 0);
+  assert(to < GetNoComponents());
+  assert(from <= to);
+  result.SetDefined(true);
+  result.Clear();
+  UBasic<B> unit(true);
+  for (int i = from; i <= to; i++) {
+    Get(i, unit);
+    result.MergeAdd(unit);
+  }
+}
+
 #ifdef RECODE
 /*
 \subsection{Function ~Recode~}
@@ -3355,7 +3380,7 @@ NewPair<int, int> MBasic<B>::LongestCommonSubsequence(const MBasic<B>& mb) {
   int lcsSize (0), maxPos(-1);
   typename B::base value1, value2;
   for (int i = 0; i <= GetNoComponents(); i++) {
-    for (int j = 0; j <= GetNoComponents(); j++) {
+    for (int j = 0; j <= mb.GetNoComponents(); j++) {
       if (i == 0 || j == 0) {
         dp[i][j] = 0;
       }

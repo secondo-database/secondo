@@ -5627,7 +5627,7 @@ ListExpr restoreTrajTM(ListExpr args) {
   }
   return listutils::typeError("Argument types must be rel(tuple(longint, text, "
                               "sline, string, int)) x btree x rtree x sint x "
-                              "hash x sint x mlabel x mlabel x mlabel");
+                          "hash x sint x tileareas x mlabel x mlabel x mlabel");
 }
 
 /*

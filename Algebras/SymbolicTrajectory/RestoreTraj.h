@@ -160,8 +160,12 @@ struct RoadCourse {
     heightCourse.push_back(NewPair<int, raster2::RasterIndex<2> >(pos, ri));
   }
     
-  void clear() {dirCourse.clear(); heightCourse.clear(); 
-                dirSeq.Clear(); heightSeq.Clear();}
+  void clear() {
+    dirCourse.clear();
+    heightCourse.clear();
+    dirSeq.Clear();
+    heightSeq.Clear();
+  }
   
   std::vector<NewPair<int, Point> > dirCourse; // -1 for start
   std::vector<NewPair<int, raster2::RasterIndex<2> > > heightCourse;
@@ -193,8 +197,16 @@ class Tileareas {
   void retrieveAreas(raster2::sint *_raster);
   void print(const bool printRange, const bool printAreas,
              const bool printTileToArea, const bool printTransitions);
+  void getNodeSeqFromNodesBTree(BTree* btree, const int startNode,
+                            NewPair<std::vector<int>, std::vector<int> >& seqs);
+  void getSegmentsFromNodesBTree(BTree *btree, Relation *nodesRel,
+                 std::vector<int>& nodeSeq, std::vector<HalfSegment>& segments);
   void recordRoadCourses(raster2::sint *_raster);
-  void processRoadCourse(const SimpleLine& curve, RoadCourse& rc);
+  TupleType* getTupleType();
+  ListExpr getTupleTypeInfo();
+  bool createRoadCourseRelation(const std::string& name);
+  void processRoadCourse(const std::vector<HalfSegment>& segments,
+                         RoadCourse& rc);
   void deleteFiles();
   static const std::string BasicType() {return "tileareas";}
   static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
