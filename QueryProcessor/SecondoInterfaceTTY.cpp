@@ -1498,10 +1498,11 @@ Command\_<name>.
     else if ( nl->IsEqual( first, "changename" ) && (length == 4) &&
               nl->IsAtom( nl->Second( list )) &&
              (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
-              nl->IsEqual( nl->Third( list ), "->" ) &&
+              nl->IsEqual( nl->Third( list ), "to" ) &&
               nl->IsAtom( nl->Fourth( list )) &&
              (nl->AtomType( nl->Fourth( list ) ) == SymbolType) )
     {
+      cout << "changename command " << endl;
       errorCode = Command_ChangeName( list, errorMessage );
     }
 

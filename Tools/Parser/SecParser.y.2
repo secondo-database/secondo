@@ -267,12 +267,11 @@ basic    :  ZZTYPE ZZIDENTIFIER ZZINFIXOP typeexpr
          $$ = NestedText::AtomC(yacc_outtext->c_str());
         }
     |    {paramno=0; emptystack();}
-      ZZCHANGENAME  ZZIDENTIFIER ZZARROW ZZIDENTIFIER
+      ZZCHANGENAME  ZZIDENTIFIER ZZTO ZZIDENTIFIER
        {
         CLEAR();
-        string equalstr;
         PRINTF("(changename "); PRINT($3);
-        PRINTF(" -> " ); PRINT($5); PRINTF(")\n");
+        PRINTF(" to " ); PRINT($5); PRINTF(")\n");
          $$ = NestedText::AtomC(yacc_outtext->c_str());
         }
 
