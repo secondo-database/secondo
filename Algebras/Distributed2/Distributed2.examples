@@ -73,13 +73,13 @@ Remark    : Requires a remote server
 Operator  : getRequestFolder 
 Number    : 1
 Signature : int x bool -> text
-Example   : query getRequestFolder(0i, false)
+Example   : query getRequestFolder(0, FALSE)
 Result    : (text undefined)
 
 Operator  : getSendFolder 
 Number    : 1
 Signature : int x bool -> text
-Example   : query getSendFolder(0, false)
+Example   : query getSendFolder(0, FALSE)
 Result    : (text undefined)
 
 Operator : pconnect
