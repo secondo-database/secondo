@@ -5184,6 +5184,20 @@ TypeConstructor FObjTC(
   fobj::SizeOf,
   fobj::TypeCheck );
 
+
+TypeConstructor SDArrayTC(
+  SDArray::BasicType(),
+  SDArray::Property,
+  SDArray::Out, fobj::In,
+  0,0,
+  SDArray::Create, SDArray::Delete,
+  SDArray::Open, SDArray::Save,
+  SDArray::Close, SDArray::Clone, 
+  SDArray::Cast, 
+  SDArray::SizeOf,
+  SDArray::TypeCheck );
+
+
 /*
 3. DArray Operators
 
@@ -5444,7 +5458,8 @@ ListExpr getTM(ListExpr args){
      return listutils::typeError(err + " (invalid number of args)");
   }
   if(    !DArray::checkType(nl->First(args)) 
-      && !DFArray::checkType(nl->First(args))){
+      && !DFArray::checkType(nl->First(args))
+      && !SDArray::checkType(nl->First(args))){
      return listutils::typeError(err+
                           " ( first is not a darray or a dfarray)");
   }
@@ -5458,15 +5473,16 @@ ListExpr getTM(ListExpr args){
 3.2.2 Value Mapping
 
 */
+template<class DA>
 int getVMDA(Word* args, Word& result, int message,
           Word& local, Supplier s ){
 
-  DArray* array = (DArray*) args[0].addr;
+  DA* array = (DA*) args[0].addr;
   CcInt* index = (CcInt*) args[1].addr;
   result = qp->ResultStorage(s);
   bool isData = listutils::isDATA(qp->GetType(s));
   if(!array->IsDefined() || !index->IsDefined()){
-     cerr << " undefined argument" << endl;
+     cerr << "Undefined argument" << endl;
      if(isData){
         ((Attribute*) result.addr)->SetDefined(false);
      } else {
@@ -5508,11 +5524,11 @@ int getVMDA(Word* args, Word& result, int message,
 
   Word r;
   ListExpr resType = qp->GetType(s);
-  bool ok =  ci->retrieve(array->getName() + "_"
-                                + stringutils::int2str(i),
-                                resType, r, true,
-                                showCommands, commandLog, 
-                                false, algInstance->getTimeout());
+  string objName = array->getObjectNameForSlot(i);
+  bool ok =  ci->retrieve(objName,
+                          resType, r, true,
+                          showCommands, commandLog,i, 
+                          false, algInstance->getTimeout());
 
   if(!ok){ // in case of an error, res.addr point to 0A
      if(isData){
@@ -5568,20 +5584,30 @@ int getVMDFA(Word* args, Word& result, int message,
   DArrayElement elem = array->getWorkerForSlot(pos);
   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
   ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
-  if(!ci){
-     return 0;
-  }
+  Word relResult;
   ListExpr resType = qp->GetType(s);;
-  string fileName = ci->getSecondoHome(showCommands,
+  if(ci){
+    string fileName = ci->getSecondoHome(showCommands,
                                        commandLog) + "/dfarrays/"+dbname+"/"
                     + array->getName() + "/"
                     + array->getName()+"_"+stringutils::int2str(pos)+".bin";  
-  Word relResult;
-  ci->retrieveRelationInFile(fileName, resType, relResult,
+    ci->retrieveRelationInFile(fileName, resType, relResult,
                              showCommands, commandLog, false, 
                              algInstance->getTimeout());
 
-  ci->deleteIfAllowed();
+    ci->deleteIfAllowed();
+  } else {
+    // connection is not available, try dfs
+    string localname = array->getName()+"_"+stringutils::int2str(pos)+".bin"; 
+    if(!dfstools::getRemoteFile(localname)){
+      // worker is dead, dfs not available, no chance
+      return 0;
+    } 
+    relResult = ConnectionInfo::createRelationFromFile(localname,resType);
+    FileSystem::DeleteFileOrFolder(localname);
+  }
+
+
   if(relResult.addr == 0){
      return 0;
   }
@@ -5609,7 +5635,7 @@ int getVMDFA(Word* args, Word& result, int message,
 
 
 OperatorSpec getSpec(
-     " {darray(T), dfarray(T)}  x int -> T ",
+     " {darray(T), dfarray(T), sdarray}  x int -> T ",
      " get(_,_)",
      " Retrieves an element at a specific position "
      "of a darray or a dfarray.",
@@ -5619,12 +5645,17 @@ OperatorSpec getSpec(
      );
 
 ValueMapping getVM[] = {
-  getVMDA,
-  getVMDFA
+  getVMDA<DArray>,
+  getVMDFA,
+  getVMDA<SDArray>
 };
 
 int getSelect(ListExpr args){
- return DArray::checkType(nl->First(args))?0:1;
+  ListExpr a = nl->First(args);
+  if(DArray::checkType(a)) return 0;
+  if(DFArray::checkType(a)) return 1;
+  if(SDArray::checkType(a)) return 2;
+  return -1;  
 }
 
 
@@ -5632,7 +5663,7 @@ int getSelect(ListExpr args){
 Operator getOp(
            "get",
            getSpec.getStr(),
-           2,
+           3,
            getVM,
            getSelect,
            getTM);
@@ -5651,7 +5682,9 @@ ListExpr sizeTM(ListExpr args){
   }
   if(!DArray::checkType(nl->First(args))
     && !DFArray::checkType(nl->First(args))
-    && !DFMatrix::checkType(nl->First(args))){
+    && !DFMatrix::checkType(nl->First(args))
+    && !SDArray::checkType(nl->First(args))
+  ){
     return listutils::typeError(err);
   }
   return listutils::basicSymbol<CcInt>();
@@ -5687,20 +5720,22 @@ int sizeSelect(ListExpr args){
   if(DArray::checkType(a)) return 0;
   if(DFArray::checkType(a)) return 1;
   if(DFMatrix::checkType(a)) return 2;
+  if(SDArray::checkType(a)) return 3;
   return -1;
 }
 
 ValueMapping sizeVM[] = {
   sizeVMT<DArray>,
   sizeVMT<DFArray>,
-  sizeVMT<DFMatrix>
+  sizeVMT<DFMatrix>,
+  sizeVMT<SDArray>
 };
 
 
 Operator sizeOp(
            "size",
            sizeSpec.getStr(),
-           3,
+           4,
            sizeVM,
            sizeSelect,
            sizeTM);
@@ -5710,12 +5745,14 @@ Operator getWorkers
 
 */
 ListExpr getWorkersTM(ListExpr args){
-  string err = "darray  or dfarray  expected";
+  string err = "darray, dfarray, or sdarray  expected";
   if(!nl->HasLength(args,1)){
     return listutils::typeError(err);
   }
   if(!DArray::checkType(nl->First(args))
-     && !DFArray::checkType(nl->First(args))){
+     && !DFArray::checkType(nl->First(args))
+     && !SDArray::checkType(nl->First(args))
+   ){
     return listutils::typeError(err);
   }
 
@@ -5749,7 +5786,7 @@ class getWorkersInfo{
      getWorkersInfo(A* _array, ListExpr _tt):
         array(_array), pos(0){
          tt = new TupleType(_tt);
-          dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+         dbname = SecondoSystem::GetInstance()->GetDatabaseName();
      }
 
      ~getWorkersInfo(){
@@ -5826,19 +5863,23 @@ OperatorSpec getWorkersSpec(
 
 ValueMapping getWorkersVM[] = {
   getWorkersVMT<DArray>,
-  getWorkersVMT<DFArray>
+  getWorkersVMT<DFArray>,
+  getWorkersVMT<SDArray>
 };
 
 int getWorkersSelect(ListExpr args){
-  return DArray::checkType(nl->First(args))?0:1;
-
+  ListExpr f = nl->First(args);
+  if(DArray::checkType(f)) return 0;
+  if(DFArray::checkType(f)) return 1;
+  if(SDArray::checkType(f)) return 2;
+  return -1;
 }
 
 
 Operator getWorkersOp(
            "getWorkers",
            getWorkersSpec.getStr(),
-           2,
+           3,
            getWorkersVM,
            getWorkersSelect,
            getWorkersTM);
@@ -6094,9 +6135,18 @@ ListExpr ffeed5TM(ListExpr args){
     return listutils::typeError("could not extract filename from query");
   }
 
-  ifstream in(filename.c_str(), ios::in | ios::binary);
+  ifstream in;
+  in.open(filename.c_str(), ios::in | ios::binary);
   if(!in.good()){
-     return listutils::typeError("could not open file " + filename);
+     // file not found, try to get it from DFS
+     if(!dfstools::getRemoteFile("filename")){ 
+       return listutils::typeError("could not open file " + filename);
+     } else {
+       in.open(filename.c_str(), ios::in | ios::binary);
+       if(!in.good()){
+         return listutils::typeError("could not open file coming from dfs");
+       }
+     }
   }
   char marker[4];
   in.read(marker,4);
@@ -6146,7 +6196,7 @@ ListExpr ffeed5TM(ListExpr args){
 /*
 1.5.3 LocalInfo
 
-is defined before
+is defined in another file 
 
 */
 
@@ -6166,7 +6216,11 @@ int ffeed5VMT(Word* args, Word& result, int message,
           if(!fn->IsDefined()){
              return 0;
           }
-          local.addr = new ffeed5Info( fn->GetValue(),
+          string n = fn->GetValue();
+          if(!FileSystem::FileOrFolderExists(n)){
+             dfstools::getRemoteFile(n);
+          }
+          local.addr = new ffeed5Info( n,
                                        nl->Second(GetTupleResultType(s)));
           return 0;
       }
@@ -6236,6 +6290,10 @@ class ffeed5fsrelInfo{
            }
            string f = (*fn)[pos];
            pos++;
+           // if file not available, try to get it from DFS
+           if(!FileSystem::FileOrFolderExists(f)){
+             dfstools::getRemoteFile(f);
+           }
            li = new ffeed5Info( f, tt);
            if(!li->isOK()){
               delete li;
@@ -6535,7 +6593,11 @@ int createDArrayVMT(Word* args, Word& result, int message,
      tuple->DeleteIfAllowed();
    }
    stream.close();
+
+   // set size, name and workers using standard mapping
    res->set(si,n,v);
+
+   // now, we have to check, on which worker the slots are stored
 
    // step 1:  Build groups of workers working on the same SecondoHome
    try{
@@ -6584,8 +6646,7 @@ int createDArrayVMT(Word* args, Word& result, int message,
        while(!nl->IsEmpty(tuplelist)){
          ListExpr tuple = nl->First(tuplelist);
          tuplelist = nl->Rest(tuplelist);
-         // shoud not be necessarcy to check .. be who knows it?
-         if(   nl->HasLength(tuple,2)  
+         if( nl->HasLength(tuple,2)  
             && (nl->AtomType(nl->First(tuple))==StringType)
             && (nl->AtomType(nl->Second(tuple))==TextType)){
            string ObjectName = nl->StringValue(nl->First(tuple));
@@ -6775,19 +6836,34 @@ class SinglePutter{
       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
       DArrayElement elem = 
                     array->getWorkerForSlot(arrayIndex);
-      ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
+      ConnectionInfo* ci = algInstance->getWorkerConnection(array,arrayIndex,
+                                                          dbname,0, true);
+      // cannot connect to any worker
       if(!ci){
            cerr << "could not connect to server " << elem << endl;
            return;
       } 
       string objname = array->getName() + "_"+stringutils::int2str(arrayIndex); 
-      ci->createOrUpdateObject(objname, type, value,
-                               showCommands, commandLog, false,
-                               algInstance->getTimeout());
-      ci->deleteIfAllowed();
+
+      bool done = false;
+      set<size_t> usedWorkers;
+      int retries = algInstance->tryReconnect()?5:0;
+      while(!done && ci){
+        done =  ci->createOrUpdateObject(objname, type, value,
+                            showCommands, commandLog, false,
+                            algInstance->getTimeout());
+        if(!done){
+          ci = changeWorker1(array, arrayIndex, usedWorkers,retries,ci);
+        }
+      }
+      if(ci){
+         ci->deleteIfAllowed();
+      }
+      if(!done){
+        cerr << "problem in putting object of slot " << arrayIndex << endl;
+        return;
+      }
     }
-
-
 };
 
 class PPutter{
@@ -6798,6 +6874,7 @@ class PPutter{
       this->type = _type;
       this->source = _arg;
       set<int> used;
+      // remove invalid pairs from _values
       vector<pair<int,Word> >::iterator it;
       for(it = _values.begin(); it!=_values.end(); it++){
             pair<int,Word> p = *it;
@@ -7100,9 +7177,7 @@ class FRelCopy{
      {
         names.push_back(_filename);
         dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-        ci = algInstance->getWorkerConnection(
-                                      array->getWorkerForSlot(slot), dbname);
-
+        ci = algInstance->getWorkerConnection(array,slot,dbname,0,true);
      }
      
 
@@ -7112,9 +7187,7 @@ class FRelCopy{
      names(_filenames), slot(_arrayIndex), array(_array), started(false),ci(0)
      {
         dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-        ci = algInstance->getWorkerConnection(
-                                      array->getWorkerForSlot(slot), dbname);
-
+        ci = algInstance->getWorkerConnection(array,slot,dbname,0,true);
      }
 
    ~FRelCopy(){
@@ -7149,45 +7222,60 @@ class FRelCopy{
           cerr << "Connection failed" << endl;
           return;
         }
-        for(size_t i=0;i<names.size();i++){
-          string& name = names[i];
-          // send file to remote server
-          ci->sendFile(name,name,true, algInstance->getTimeout());
-          // get target directory
-          int err;
-          string errmsg;
-          ListExpr result; 
-          double runtime;
-          string home = ci->getSecondoHome(showCommands, commandLog);
 
-          string targetDir = home +"/dfarrays/"+dbname+ "/" + array->getName();
-
-          // result will be false, if directory already exists
-          // hence ignore result here
-          string sendDir = ci->getSendFolder();
-          string src = home+'/'+sendDir + "/"+name;
-          string target = targetDir+"/"+name;
-          string cmd = "query moveFile('"+src+"','"+target+"', TRUE)";
-          ci->simpleCommand(cmd,err,errmsg, result,false, runtime,
-                            showCommands, commandLog, false,
-                            algInstance->getTimeout());
-          if(err!=0){
-              cerr << "command " << cmd << " failed" << endl;
-              cerr << err << " : " << errmsg << endl;
-              writeLog(ci, cmd, errmsg);
-          }
-          if(!nl->HasLength(result,2) || 
-              nl->AtomType(nl->Second(result))!=BoolType){
-              cerr << "moveFile returns unexpected result: " 
-                   << nl->ToString(result) << endl;
-          }
-
-          if(!nl->BoolValue(nl->Second(result))){
-             cerr << "moving file from: " << src << endl
-                  << "to " << target << endl
-                  << "failed" << endl;   
-        
-          } 
+        bool done = false;
+        set<size_t> usedWorkers;
+        int retries = algInstance->tryReconnect()?5:0;
+        while(!done && ci){
+          done = true;
+          for(size_t i=0;i<names.size() && done;i++){
+            string& name = names[i];
+            // send file to remote server
+            ci->sendFile(name,name,true, algInstance->getTimeout());
+            // get target directory
+            int err;
+            string errmsg;
+            ListExpr result; 
+            double runtime;
+            string home = ci->getSecondoHome(showCommands, commandLog);
+  
+            string targetDir = home +"/dfarrays/"+dbname+ "/" 
+                               + array->getName();
+  
+            // result will be false, if directory already exists
+            // hence ignore result here
+            string sendDir = ci->getSendFolder();
+            string src = home+'/'+sendDir + "/"+name;
+            string target = targetDir+"/"+name;
+            string cmd = "query moveFile('"+src+"','"+target+"', TRUE)";
+            ci->simpleCommand(cmd,err,errmsg, result,false, runtime,
+                              showCommands, commandLog, false,
+                              algInstance->getTimeout());
+            if(err!=0){
+                cerr << "command " << cmd << " failed" << endl;
+                cerr << err << " : " << errmsg << endl;
+                writeLog(ci, cmd, errmsg);
+                done = false;
+            }
+            if(!nl->HasLength(result,2) || 
+                nl->AtomType(nl->Second(result))!=BoolType){
+                cerr << "moveFile returns unexpected result: " 
+                     << nl->ToString(result) << endl;
+            }
+  
+            if(!nl->BoolValue(nl->Second(result))){
+               cerr << "moving file from: " << src << endl
+                    << "to " << target << endl
+                    << "failed" << endl;   
+          
+            } 
+        }
+        if(!done){
+           ci = changeWorker1(array,slot,usedWorkers, retries, ci);
+        }
+      }
+      if(!done){
+        cerr << "copy od relation failed" << endl;
       }
      }
 };
@@ -8630,12 +8718,13 @@ the resulting stream. Other subtypes are not supported.
 */
 ListExpr dsummarizeTM(ListExpr args){
 
-  string err="d[f]array(X) with X in rel or DATA expected";
+  string err="d[f]array(X) or sdarray(X) with X in rel or DATA expected";
   if(!nl->HasLength(args,1)){
     return listutils::typeError(err);
   }
   ListExpr arg = nl->First(args);
-  if(!DArray::checkType(arg) && !DFArray::checkType(arg)){
+  if(!DArray::checkType(arg) && !DFArray::checkType(arg)
+     && !SDArray::checkType(arg)){
     return listutils::typeError(err);
   }
   ListExpr subtype = nl->Second(arg);
@@ -8672,7 +8761,6 @@ class dsummarizeAttrInfoRunner{
        elem(_elem), objName(_objName), resType(_resType),db(_db),
        index(_index), listener(_listener), 
        attribute(0){
-
      }
 
      void start(){
@@ -8711,7 +8799,8 @@ class dsummarizeAttrInfoRunner{
          } 
          Word result;
          bool ok = ci->retrieve(objName,resType, result,true,
-                                showCommands, commandLog, false,
+                                showCommands, commandLog, index,
+                                false,
                                 algInstance->getTimeout());
          if(!ok){
            listener->jobDone(index,false);
@@ -8723,10 +8812,11 @@ class dsummarizeAttrInfoRunner{
      }
 };
 
+template<class A>
 class dsummarizeAttrInfo : public successListener{
 
    public:
-      dsummarizeAttrInfo(DArray* _array, ListExpr _resType) : 
+      dsummarizeAttrInfo(A* _array, ListExpr _resType) : 
         array(_array), resType(_resType),stopped(false), pos(0){
         runner = boost::thread(&dsummarizeAttrInfo::run, this);       
       }
@@ -8767,7 +8857,7 @@ class dsummarizeAttrInfo : public successListener{
       } 
    
    private:
-      DArray* array;
+      A* array;
       ListExpr resType;
       bool stopped;
       size_t pos;
@@ -8822,6 +8912,7 @@ class RelationFileGetter{
           return;
        }
        switch(array->getType()){
+         case SDARRAY :
          case DARRAY : retrieveFileFromObject(ci); break;
          case DFARRAY : retrieveFileFromFile(ci); break;
          default: assert(false);
@@ -8839,10 +8930,10 @@ class RelationFileGetter{
 
 
      void retrieveFileFromObject( ConnectionInfo* ci){
-       string objName = array->getName()+"_"+stringutils::int2str(index);
-       string fname = objName+".bin";
+       string objName = array->getObjectNameForSlot(index);
+       string fname = objName+"_"+stringutils::int2str(index)+".bin";
        if(!ci->retrieveRelationFile(objName,fname,
-                                    showCommands, commandLog, false, 
+                                    showCommands, commandLog,   false, 
                                     algInstance->getTimeout())){
           listener->connectionFailed(index);
           return;
@@ -8994,19 +9085,31 @@ int dsummarizeVMT(Word* args, Word& result, int message,
 
 ValueMapping dsummarizeVM[] = {
     dsummarizeVMT<dsummarizeRelInfo<DArray>, DArray >,
+    dsummarizeVMT<dsummarizeRelInfo<SDArray>, SDArray >,
     dsummarizeVMT<dsummarizeRelInfo<DFArray>, DFArray >,
-    dsummarizeVMT<dsummarizeAttrInfo, DArray>
+    dsummarizeVMT<dsummarizeAttrInfo<DArray>, DArray>,
+    dsummarizeVMT<dsummarizeAttrInfo<SDArray>, SDArray>
 };
 
 
 int dsummarizeSelect(ListExpr args){
-  int res = -1;
-  if(!Relation::checkType(nl->Second(nl->First(args)))){
-     res =  2;
-  } else {
-     res = DArray::checkType(nl->First(args))?0:1;
+  ListExpr arg = nl->First(args);
+  ListExpr subtype = nl->Second(arg);
+  int n1=0;
+  if(DArray::checkType(arg)){
+    n1 = 0;
+  }else if(SDArray::checkType(arg)){
+    n1 = 1;
+  } else if(DFArray::checkType(arg)){
+    n1 = 2;
   }
-  return res;
+  int n2 = 0;
+  if(Relation::checkType(subtype)){
+    n2 = 0;
+  } else {
+     n2 = 3;
+  }
+  return n1 + n2;
 }
 
 /*
@@ -9046,12 +9149,13 @@ normal array from the ArrayAlgebra.
 */
 
 ListExpr getValueTM(ListExpr args){
-  string err ="darray or dfarray expected";
+  string err ="sdarray, darray, or dfarray expected";
   if(!nl->HasLength(args,1)){
     return listutils::typeError(err + " (wrong number of args)");
   }
   ListExpr a1 = nl->First(args);
-  if(!DArray::checkType(a1) && !DFArray::checkType(a1)){
+  if(!DArray::checkType(a1) && !DFArray::checkType(a1) &&
+     !SDArray::checkType(a1)){
     return listutils::typeError(err);
   }
   return nl->TwoElemList( 
@@ -9067,12 +9171,13 @@ class getValueListener{
 };
 
 /*
-1.10.2 Class retrieving a single slot from a darray
+1.10.2 Class retrieving a single slot from a darray or sdarray
 
 */
+template<class A>
 class getValueGetter{
   public:
-    getValueGetter(DArray* _array, int _index, getValueListener* _listener, 
+    getValueGetter(A* _array, int _index, getValueListener* _listener, 
       ListExpr _resType):
        array(_array), index(_index), resType(_resType),listener(_listener){}
        
@@ -9088,19 +9193,19 @@ class getValueGetter{
           listener->jobDone(index,res); 
           return;
       }
-      string name = array->getName()+"_"+stringutils::int2str(index);
+      string name = array->getObjectNameForSlot(index);
       ci->retrieve(name, resType, res,true, showCommands, commandLog,
+                   index,
                    false, algInstance->getTimeout());
       listener->jobDone(index,res); 
       ci->deleteIfAllowed();
    }
 
   private:
-    DArray* array;
+    A* array;
     int index;
     ListExpr resType;
     getValueListener* listener;
-
 };
 
 
@@ -9252,16 +9357,21 @@ int getValueVMT(Word* args, Word& result, int message,
 
 
 int getValueSelect(ListExpr args){
-  return DArray::checkType(nl->First(args))?0:1;
+  ListExpr a1 = nl->First(args);
+  if(DArray::checkType(a1)) return 0;
+  if(DFArray::checkType(a1)) return 1;
+  if(SDArray::checkType(a1)) return 2;
+  return -1;
 }
 
 ValueMapping getValueVM[] = {
-  getValueVMT<DArray,getValueGetter>,
-  getValueVMT<DFArray,getValueFGetter>
+  getValueVMT<DArray,getValueGetter<DArray> >,
+  getValueVMT<DFArray,getValueFGetter>, 
+  getValueVMT<SDArray,getValueGetter<SDArray> >,
 };
 
 OperatorSpec getValueSpec(
-     "{darray(T),dfarray(T)} -> array(T)",
+     "{darray(T),dfarray(T), sdarray(T)} -> array(T)",
      "getValue(_)",
      "Converts a distributed array into a normal one.",
      "query getValue(da2)"
@@ -9271,7 +9381,7 @@ OperatorSpec getValueSpec(
 Operator getValueOp(
   "getValue",
   getValueSpec.getStr(),
-  2,
+  3,
   getValueVM,
   getValueSelect,
   getValueTM
@@ -16077,7 +16187,8 @@ class partitionInfo{
         switch(array->getType()){
            case DARRAY : return constructQueryD(targetDir);
            case DFARRAY : return constructQueryDF(targetDir);
-           case DFMATRIXXX : assert(false);
+           case DFMATRIX : assert(false);
+           case SDARRAY  : assert(false);
         }
         return "";
      }
@@ -21072,6 +21183,355 @@ Operator dletOp(
 
 
 /*
+Operator ~makeSimple~
+
+This operator converts a DArray into an SDArray if possible.
+A boolean argument controls whether slots on the workers
+are copyied or just renamed. In the latter case, the source 
+darray is invalid. Optionally, a name can be choosed. If not,
+the name of the source array is overtaken.
+
+
+*/
+
+ListExpr makeSimpleTM(ListExpr args){
+  if(!nl->HasLength(args,2) && !nl->HasLength(args,3)){
+    return listutils::typeError("2 or 3 arguments expected");
+  }
+
+  if(!DArray::checkType(nl->First(args))){
+    return listutils::typeError("first argument must be an darray");
+  }
+  if(!CcBool::checkType(nl->Second(args))){
+    return listutils::typeError("second argument must be of type bool"); 
+  }
+  if(nl->HasLength(args,2)){
+    return SDArray::wrapType(nl->Second(nl->First(args)));
+  }
+  if(!CcString::checkType(nl->Third(args))){
+    return listutils::typeError("third arg is not of type string");
+  }
+  return SDArray::wrapType(nl->Second(nl->First(args)));
+
+}
+
+
+class SimpleMaker{
+
+ public:
+    SimpleMaker(DArray* _array, int _slot, bool _copy, const string& _name): 
+       array(_array), slot(_slot), copy(_copy), name(_name), runner(0),
+       success(false) {}
+
+   ~SimpleMaker(){
+      if(runner){
+         runner->join();
+         delete runner;
+      }
+   }
+
+   bool getSuccess(){
+     if(runner){
+        runner->join();
+     }
+     return success;
+   }
+
+   void start(){
+     if(runner) return;
+     runner = new boost::thread(&SimpleMaker::run, this);
+   }
+
+
+
+ private:
+    DArray* array;
+    int slot;
+    bool copy;
+    string name;
+    boost::thread* runner;
+    bool success;
+
+
+    void run(){
+      DArrayElement elem = array->getWorkerForSlot(slot);
+      string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+      ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
+      if(!ci){
+        success = false;
+        return;
+      }
+      string origname = array->getObjectNameForSlot(slot);
+      string cmd ;
+      if(copy){
+         cmd = "let " + name + " = " + origname;
+      } else {
+         cmd = "changename " + origname + " to " + name;
+      }
+      int err;
+      string res;
+      double rt;
+      string errmsg;
+      ci->simpleCommand(cmd,err,errmsg, res, false,rt,false,commandLog,true,
+                            algInstance->getTimeout());
+      success = err == 0; 
+
+    }
+
+
+
+};
+
+int makeSimpleVM(Word* args, Word& result, int message,
+                      Word& local, Supplier s) {
+
+  result = qp->ResultStorage(s);
+  SDArray* res = (SDArray*) result.addr;
+  DArray* array = (DArray*) args[0].addr;
+  CcBool* copy   = (CcBool*) args[1].addr;
+  if(!array->IsDefined() || !copy->IsDefined()){
+    res->makeUndefined();
+    return 0;
+  }
+  string name = array->getName();
+  if(qp->GetNoSons(s) == 3){
+    CcString* sname = (CcString*) args[2].addr;
+    if(!sname->IsDefined()){
+      res->makeUndefined();
+      return 0;
+    }
+    name = sname->GetValue();
+  }
+  if(!stringutils::isIdent(name)){
+    res->makeUndefined();
+    return 0;
+  }
+  if(array->getSize() > array->numOfWorkers()){
+    // at least one worker managers more than one slot
+    res->makeUndefined();
+    return 0;
+  }
+  std::set<std::pair<string,int> > usedServers;
+  vector<DArrayElement> workers;
+  for(size_t i=0;i<array->getSize();i++){
+     const DArrayElement& elem = array->getWorkerForSlot(i);
+     std::pair<string,int> p(elem.getHost(),elem.getPort());
+     if(usedServers.find(p)!=usedServers.end()){
+       res->makeUndefined();
+       return 0;
+     }
+     usedServers.insert(p);
+     workers.push_back(elem);
+  }
+  vector<SimpleMaker*> v;
+  for(size_t i=0;i<array->getSize();i++){
+     SimpleMaker* sm = new SimpleMaker(array,i,copy->GetValue(), name);
+     sm->start();
+     v.push_back(sm);
+  }
+
+  bool ok = true;
+  for(size_t i=0;i<v.size();i++){
+     if(!v[i]->getSuccess()){
+        res->makeUndefined();
+        ok = false;
+     }
+     delete v[i];
+  }
+  if(ok){
+    res->set(name,workers);
+  }
+  return 0;
+}
+
+
+OperatorSpec makeSimpleSpec(
+  "darray x bool [ x string] -> sdarray",
+  "_ makeSimple[_] ",
+  "Converts a darray into an sdarray if possible. "
+  "The first argument is the darray to convert. "
+  "Per worker only one slot can be stored. "
+  "Furthermore per SecondoMonitor, only one worker "
+  "can be connected. \n"
+  "The second argument determines wether the slots at "
+  "teh workers should be copyied (true) or renamed (false)."
+  "In the latter case, the original darray becomes unusable. "
+  "The last (optinal) string argument determines the name of the "
+  "sdarray. If omitted, the name of source darray is overtaken.",
+  "let sda1 = da1 makeSimple[TRUE]"
+);
+
+Operator makeSimpleOp(
+  "makeSimple",
+  makeSimpleSpec.getStr(),
+  makeSimpleVM,
+  Operator::SimpleSelect,
+  makeSimpleTM
+);
+
+
+/*
+OPerator ~makeDArray~
+
+Converts an simple distributed array into a darray. 
+
+*/
+ListExpr makeDArrayTM(ListExpr args){
+  string err = "sdarray x bool [x string] expected";
+  if(!nl->HasLength(args,2) && !nl->HasLength(args,3)){
+    return listutils::typeError(err+ " (wrong number of arguments)");
+  }
+  if(!SDArray::checkType(nl->First(args))){
+    return listutils::typeError(err + " (first arg is not an sdarray)");
+  }
+  if(!CcBool::checkType(nl->Second(args))){
+    return listutils::typeError(err + " (second arg is not of type bool)");
+  }
+  if(nl->HasLength(args,3)){
+    if(!CcString::checkType(nl->Third(args))){
+      return listutils::typeError(err + " (3rd arg not of type string)");
+    }
+  }
+  return DArray::wrapType(nl->Second(nl->First(args)));
+}
+
+
+
+class makeDArraySlotRunner{
+
+  public:
+     makeDArraySlotRunner(SDArray* _sarray, DArray* _tarray, int _slot,
+                          bool _copy) :
+     sarray(_sarray),tarray(_tarray),slot(_slot), copy(_copy),
+     runner(0), success(false)
+     { }
+
+     ~makeDArraySlotRunner(){
+        if(runner){
+           runner->join();
+           delete runner;
+        }
+     }
+
+     void start(){
+       if(!runner){
+          runner = new boost::thread(&makeDArraySlotRunner::run, this);
+       }
+     }
+
+     bool  getSuccess(){
+        if(runner){
+           runner->join();
+        }
+        return success;
+     }
+
+  private:
+     SDArray* sarray;
+     DArray* tarray;
+     int slot;
+     bool copy;
+     boost::thread* runner;
+     bool success;
+
+     void run(){
+        DArrayElement elem = sarray->getWorkerForSlot(slot);
+        string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+        ConnectionInfo* ci = algInstance->getWorkerConnection(elem,dbname);
+        if(!ci){
+          return;
+        }
+        string sname = sarray->getObjectNameForSlot(slot);
+        string tname = tarray->getObjectNameForSlot(slot);
+        string cmd;
+        if(copy){
+          cmd = "let " + tname + " = " + sname;
+        } else {
+          cmd = "changename " + sname + " to " + tname;
+        }
+        int err;
+        string res;
+        double rt;
+        string errmsg;
+        ci->simpleCommand(cmd,err,errmsg, res, false,rt,false,commandLog,true,
+                            algInstance->getTimeout());
+        success = err == 0; 
+     }
+};
+
+
+int makeDArrayVM(Word* args, Word& result, int message,
+                 Word& local, Supplier s) {
+
+   result = qp->ResultStorage(s);
+   DArray* res = (DArray*) result.addr;
+   SDArray* source = (SDArray*) args[0].addr;
+   CcBool* ccopy = (CcBool*) args[1].addr;
+   if(!source->IsDefined() || !ccopy->IsDefined()){
+      res->makeUndefined();
+      return 0;
+   }
+   string name = source->getName(); 
+   if(qp->GetNoSons(s)==3){
+      CcString* cname = (CcString*) args[2].addr;
+      if(!cname->IsDefined()){
+       res->makeUndefined();
+       return 0;
+      }
+      name = cname->GetValue();
+      if(!stringutils::isIdent(name)){
+        res->makeUndefined();
+        return 0;
+      }
+   }
+   // set the local array
+   res->set(source->getSize(), name, source->getWorker());
+
+   // copy or rename the slots in parallel
+   vector<makeDArraySlotRunner*> runners;
+   for(size_t i = 0 ; i < source->getSize();i++){
+     makeDArraySlotRunner* runner = new makeDArraySlotRunner(source,
+                                          res, i, ccopy->GetValue());
+     runner->start();
+     runners.push_back(runner);
+   }
+   for(size_t i=0;i<runners.size();i++){
+      bool success = runners[i]->getSuccess();
+      if(!success){
+         res->makeUndefined();
+      }
+      delete runners[i];
+   }
+   return 0;
+}
+
+OperatorSpec makeDArraySpec(
+   "sdarray x bool [x string] -> darray",
+   "_ makeDArray[_,_] ",
+   "Converts an sdarray into a normal darray. "
+   "The first argument specifies the sdarray to convert. " 
+   "The second argument controls whether the slot contents "
+   "should be copyied or just renamed. In the latter case, "
+   "the source sdarray becomes unusable. The third oprional "
+   "argument specifies the name for the target array. If the "
+   "name is omitted, the name is overtaken from the source array.",
+   " let da2 = sda2 makeDArray[TRUE]"
+);
+
+Operator makeDArrayOp(
+  "makeDArray",
+  makeDArraySpec.getStr(),
+  makeDArrayVM,
+  Operator::SimpleSelect,
+  makeDArrayTM
+);
+
+
+
+
+
+
+/*
 3 Implementation of the Algebra
 
 */
@@ -21098,6 +21558,8 @@ Distributed2Algebra::Distributed2Algebra(){
    AddTypeConstructor(&FObjTC);
    FObjTC.AssociateKind(Kind::SIMPLE());
 
+   AddTypeConstructor(&SDArrayTC);
+   SDArrayTC.AssociateKind(Kind::SIMPLE());
 
    AddOperator(&connectOp);
    AddOperator(&checkConnectionsOp);
@@ -21302,6 +21764,10 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&createintdarrayOp);
    AddOperator(&dcommandOp);
    AddOperator(&dletOp);
+
+
+   AddOperator(&makeSimpleOp);
+   AddOperator(&makeDArrayOp);
 
    pprogView = new PProgressView();
    MessageCenter::GetInstance()->AddHandler(pprogView);

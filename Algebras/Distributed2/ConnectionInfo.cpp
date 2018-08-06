@@ -1172,13 +1172,22 @@ bool ConnectionInfo::retrieve(const string& objName,
                               bool checkType,
                               bool showCommands,
                               CommandLog& commandLog,
+                              int fileIndex,
                               bool forceExec,
                               const size_t timeout)
 {
+
+    //cout << "retrieve" << endl;
+    //cout << "objName = " << objName << endl;
+    //cout << "resType = " << nl->ToString(resType) << endl;
+    //cout << "checkType = " << checkType << endl;
+    //cout << "fileIndex = " << fileIndex << endl;
+
     if (Relation::checkType(resType))
     {
         if (retrieveRelation(objName, resType, result, 
-                             showCommands, commandLog, false, timeout))
+                             showCommands, commandLog, fileIndex,
+                             false,  timeout))
         {
             return true;
         }
@@ -1260,12 +1269,14 @@ bool ConnectionInfo::retrieveRelation(const string& objName,
                                       Word& result,
                                       bool showCommands,
                                       CommandLog& commandLog,
+                                      const int fileIndex,
                                       bool forceExec,
                                       const size_t timeout)
 {
 
     //guard_type guard(simtx);
-    string fname1 = objName + ".bin";
+    string fi = stringutils::int2str(fileIndex);
+    string fname1 = objName + "_" + fi + ".bin";
     if (!retrieveRelationFile(objName, fname1, showCommands,  
                               commandLog, forceExec,timeout))
     {
@@ -1381,7 +1392,7 @@ bool ConnectionInfo::retrieveRelationInFile(const string& fileName,
     showCommand(si, host, port, cmd, true, showCommands);
     sw.start();
     if(timeout>0){
-       startTimeout(timeout,false);
+       startTimeout(timeout,true);
     }
     if(!cmdLog || forceExec){
        si->Secondo(cmd, resList, serr);

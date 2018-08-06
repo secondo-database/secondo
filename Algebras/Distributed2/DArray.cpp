@@ -26,8 +26,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "Dist2Helper.h"
+#include <set>
+#include <string>
+#include <utility>
 #include "DArray.h"
+#include "Dist2Helper.h"
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/recursive_mutex.hpp>
@@ -205,7 +208,8 @@ std::string getName(const arrayType a){
   switch(a){
     case DARRAY: return "darray";
     case DFARRAY: return "dfarray";
-    case DFMATRIXXX: return "dfmatrix";
+    case DFMATRIX: return "dfmatrix";
+    case SDARRAY: return "sdarray";
   }
   assert(false);
   return "unknown";
@@ -369,7 +373,7 @@ void DArrayBase::set(const size_t size, const std::string& name,
 }
 
 bool DArrayBase::equalMapping(DArrayBase& a, bool ignoreSize )const{
-   if(getType()==DFMATRIXXX){
+   if(getType()==DFMATRIX){
        return false;
    }
    boost::lock_guard<boost::recursive_mutex> guard(mapmtx);
@@ -965,6 +969,157 @@ template class DArrayT<DFARRAY>;
 
 
 
+ListExpr SDArray::Property(){
+   return ( nl->TwoElemList (
+      nl->FourElemList (
+        nl->StringAtom("Signature"),
+        nl->StringAtom("Example Type List"),
+        nl->StringAtom("List Rep"),
+        nl->StringAtom("Example List")),
+      nl->FourElemList (
+        nl->StringAtom("-> SIMPLE"),
+        nl->StringAtom(SDArray::BasicType()),
+        nl->StringAtom("(name (worker1 worker2 ...))"),
+        nl->StringAtom("(sda (('127.0.0.1', 1234, 'SecondoConfig.ini')))")
+      ))); 
+}
+
+
+ Word SDArray::IN( const ListExpr typeInfo, const ListExpr instance,
+          const int errorPos, ListExpr& errorInfo, bool& correct ) {
+
+   correct = false;
+   if(listutils::isSymbolUndefined(instance)){
+      SDArray* sd = new SDArray("");
+      sd->makeUndefined();
+      Word res(sd);
+      correct = true;
+      return res; 
+   } 
+
+   if(!nl->HasLength(instance,2)){
+      cmsg.inFunError("two Elem list expected");
+      return SetWord((void*)0);
+   } 
+   ListExpr nameList = nl->First(instance);
+   if(nl->AtomType(nameList)!=SymbolType){
+      cmsg.inFunError("invalid name (not a symbol)");
+      return SetWord((void*)0);
+   }
+   string name = nl->SymbolValue(nameList);
+   ListExpr workerList = nl->Second(instance);
+   if(nl->AtomType(workerList)!=NoAtom){
+      cmsg.inFunError("invalid worker list (not a list)");
+      return SetWord((void*)0);
+   }
+   vector<DArrayElement> workers;
+
+   std::set<std::pair<string,int> >  usedServers;
+
+   while(!nl->IsEmpty(workerList)){
+     ListExpr singleWorker = nl->First(workerList);
+     workerList = nl->Rest(workerList);
+     DArrayElement worker("",0,0,"");
+     if(!InDArrayElement(singleWorker,worker)){
+        cmsg.inFunError("found invalid worker definition");
+        return SetWord((void*)0);
+     }
+     pair<string,int> con(worker.getHost(), worker.getPort());
+     if(usedServers.find(con)!=usedServers.end()){
+       cmsg.inFunError("found connection twice");
+       return SetWord((void*)0);
+     }
+     usedServers.insert(con);
+     workers.push_back(worker);
+   }
+   SDArray* res = new SDArray(workers,name);
+   correct = true;
+   return SetWord(res);
+}
+
+ListExpr SDArray::Out( ListExpr typeInfo, Word value ) {
+   SDArray* a = (SDArray*) value.addr;
+   if(!a->IsDefined()){
+     return listutils::getUndefined();
+   }
+   ListExpr nameList = nl->SymbolAtom(a->getName());
+   int s = a->getSize();
+   ListExpr workers = nl->TheEmptyList();
+   if(s>0){
+     workers = nl->OneElemList(a->getWorker(0).toListExpr());
+     ListExpr last = workers;
+     for(int i=1;i<s;i++){
+       last = nl->Append(last, a->getWorker(i).toListExpr());
+     }
+   }
+   return nl->TwoElemList(nameList, workers);
+
+}
+
+bool SDArray::Open( SmiRecord& valueRecord,
+                 size_t& offset, const ListExpr typeInfo,
+                 Word& value ) {
+   // check whether defined
+   bool def;
+   valueRecord.Read(&def, sizeof(bool), offset);
+   offset+=sizeof(bool);
+   if(!def){
+      SDArray* res = new SDArray("");
+      res->makeUndefined();
+      value.addr = res;
+      return true;
+   }
+   // read number of workers and size of the name
+   size_t size;
+   valueRecord.Read(&size,sizeof(size_t), offset);
+   offset += sizeof(size_t);
+   size_t namesize;
+   valueRecord.Read(&namesize,sizeof(size_t),offset);
+   offset += sizeof(size_t);
+   // read the name
+   char* buffer = new char[namesize];
+   valueRecord.Read(buffer,namesize,offset);
+   offset += namesize;
+   string name(buffer,namesize);
+   delete[] buffer;
+   // read the workers
+   vector<DArrayElement> workers;
+   for(size_t i=0;i<size;i++){
+      DArrayElement elem("",0,0,"");
+      if(!elem.readFrom(valueRecord,offset)){
+        return false;
+      }
+      workers.push_back(elem);
+   }
+   // build result
+   SDArray* res = new SDArray(workers,name);
+   value.addr = res;
+   return true;
+}
+
+bool SDArray::Save( SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value ) {
+
+   SDArray* a = (SDArray*) value.addr;
+   bool def = a->IsDefined();
+   valueRecord.Write(&def,sizeof(bool),offset);
+   offset+=sizeof(bool);
+   if(!def) return true;
+   size_t size = a->getSize();
+   string name = a->getName();
+   size_t namesize = name.length();
+   const char* buffer = name.c_str();
+   valueRecord.Write(&size,sizeof(size_t),offset);
+   offset += sizeof(size_t);
+   valueRecord.Write(&namesize,sizeof(size_t), offset);
+   offset += sizeof(size_t);
+   valueRecord.Write(buffer,namesize,offset);
+   offset += namesize;
+   for(size_t i=0;i<size;i++){
+      a->getWorker(i).saveTo(valueRecord,offset);
+   }  
+   return true;
+}
 
 } // end of namespace distributed2
 

@@ -1,4 +1,3 @@
-
 /*
 ----
 This file is part of SECONDO.
@@ -30,6 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef DARRAY_H
 #define DARRAY_H
 
+#include "DArrayElement.h"
+#include "ArrayTypes.h"
 #include <string>
 #include <boost/thread/recursive_mutex.hpp>
 #include "NestedList.h"
@@ -41,98 +42,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace distributed2{
 
 /*
-
-2 Class ~DArrayElement~
-
-This class represents information about a single worker of a DArray.
-
-*/
-
-
-
-class DArrayElement{
-  public:
-     DArrayElement(const std::string& _server, const int _port,
-                    const int _num, const std::string& _config);
-
-     DArrayElement(const DArrayElement& src);
-
-     DArrayElement& operator=(const DArrayElement& src);
-
-
-     ~DArrayElement();
-
-      inline void setNum(const int num){
-         this->num = num;
-      }
-
-     void set(const std::string& server, const int port, 
-              const int num, const std::string& config);
-
-
-     bool operator==(const DArrayElement& other) const;
-     
-     inline bool operator!=(const DArrayElement& other) const{
-       return   !((*this) == other);
-     }
-
-     bool operator<(const DArrayElement& other) const;
-     
-     bool operator>(const DArrayElement& other) const;
-     
-     ListExpr toListExpr() const;
-
-     bool readFrom(SmiRecord& valueRecord, size_t& offset);
-
-     bool saveTo(SmiRecord& valueRecord, size_t& offset);
-
-     void print(std::ostream& out)const;
-
-     inline std::string getHost()const{ return server; }
-     inline int getPort() const {return port; }
-     inline std::string getConfig() const{ return config; }
-     inline int getNum() const{ return num; }
-
-
-     template<class H, class C>
-     static DArrayElement* createFromTuple(Tuple* tuple, int num, 
-                                   int hostPos, int portPos, int configPos){
-
-         if(!tuple || (num < 0) ) {
-            return 0;
-         }
-
-         H* CcHost = (H*) tuple->GetAttribute(hostPos);
-         CcInt* CcPort = (CcInt*) tuple->GetAttribute(portPos);
-         C* CcConfig = (C*) tuple->GetAttribute(configPos);
-
-         if(!CcHost->IsDefined() || !CcPort->IsDefined() || 
-            !CcConfig->IsDefined()){
-             return 0;
-         }
-         std::string host = CcHost->GetValue();
-         int port = CcPort->GetValue();
-         std::string config = CcConfig->GetValue();
-         if(port<=0){
-            return 0;
-         }
-         return new DArrayElement(host,port,num,config);
-     }
-
-
-  private:
-     std::string server;
-     uint32_t port;
-     uint32_t num;
-     std::string config;
-};
-
-std::ostream& operator<<(std::ostream& out, const DArrayElement& elem);
-
-
-bool InDArrayElement(ListExpr list, DArrayElement& result);
-
-/*
 3 Class ~DArray~
 
 This class represents the Secondo type ~darray~. It just stores the information
@@ -141,7 +50,6 @@ the algebra instance.
 
 */
 
-enum arrayType{DARRAY,DFARRAY, DFMATRIXXX};
 
 std::string getName(const arrayType  a);
 ListExpr wrapType(const arrayType  a, ListExpr subType);
@@ -187,6 +95,10 @@ standard map.
      
      DArrayElement getWorker(int i);
 
+     const std::vector<DArrayElement>& getWorker(){
+        return worker;
+     }
+
      std::string getName() const;
      bool setName( const std::string& n);
 
@@ -213,9 +125,111 @@ Check for equaliness of workers.
 */
    bool equalWorkers(const std::vector<DArrayElement>& w) const;
 
+};
 
+
+class SDArray : public DistTypeBase {
+  public:
+
+   SDArray(const std::vector<DArrayElement>& worker,
+           const std::string& _name): DistTypeBase(worker,_name){}
+               
+   SDArray( const std::string& _name): DistTypeBase(_name){}
+
+   SDArray( const DistTypeBase& src):DistTypeBase(src){}
+
+   explicit SDArray(const int __attribute__((unused)) dummy)
+      :DistTypeBase(dummy) {}
+     
+   DistTypeBase& operator=(const DistTypeBase& src);
+
+     
+
+     
+     virtual size_t getSize() const {
+       return worker.size();
+     }
+   
+     virtual arrayType getType() const{
+        return SDARRAY;
+     }
+
+  const DArrayElement& getWorkerForSlot(int i){
+    return worker[i];
+  }
+
+  std::string getObjectNameForSlot(int i) const{
+     return name; 
+  }
+
+
+     inline static std::string BasicType(){
+         return "sdarray";
+     } 
+
+     inline static bool checkType(ListExpr list){
+        return nl->HasLength(list,2) &&
+               listutils::isSymbol(nl->First(list),BasicType());
+     }
+  
+     static ListExpr Property();
+
+     static Word IN( const ListExpr typeInfo, const ListExpr instance,
+      const int errorPos, ListExpr& errorInfo, bool& correct );
+
+     static ListExpr Out( ListExpr typeInfo, Word value ) ;
+
+     static Word Create( const ListExpr typeInfo ) {
+        SDArray* res = new SDArray("");
+        res->makeUndefined();
+        return SetWord(res);
+     }
+
+     static  void Delete( const ListExpr typeInfo, Word& w ){
+        SDArray* victim = (SDArray*) w.addr;
+        delete victim;
+        w.addr = 0;
+     }
+
+    static  bool Open( SmiRecord& valueRecord,
+                 size_t& offset, const ListExpr typeInfo,
+                 Word& value );
+
+    static  bool Save( SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value );
+
+    static  void Close( const ListExpr typeInfo, Word& w ){
+        SDArray* victim = (SDArray*) w.addr;
+        delete victim;
+        w.addr = 0;
+    }
+    
+    static Word Clone( const ListExpr typeInfo, const Word& w ) {
+        SDArray* a = (SDArray*) w.addr;
+        return SetWord(new SDArray(*a));
+    }
+
+    static void*  Cast( void* addr ) {
+      return (new (addr) SDArray(23));
+    }
+    
+    static bool TypeCheck(ListExpr type, ListExpr& errorInfo){
+       return checkType(type);
+    }
+
+    static int SizeOf(){
+      return 85; // size depends on an object, not clear what to return here
+    }
+
+    static ListExpr wrapType(ListExpr subtype){
+      return nl->TwoElemList( nl->SymbolAtom(BasicType()), subtype);
+    }
+
+  private:
+    // privacy is unknown to this class
 
 };
+
 
 
 class DArrayBase: public DistTypeBase{
@@ -595,7 +609,7 @@ class DFMatrix: public DistTypeBase{
                  const ListExpr typeInfo, Word& result);
 
      virtual arrayType getType() const {
-        return DFMATRIXXX;
+        return DFMATRIX;
      } 
 
      static bool save(SmiRecord& valueRecord, size_t& offset,

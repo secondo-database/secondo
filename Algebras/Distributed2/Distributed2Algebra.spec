@@ -145,5 +145,9 @@ operator createintdarray alias CREATEINTDARRAY pattern op(_,_)
 operator dcommand alias DCOMMAND pattern _ op[_]
 operator dlet alias DLET pattern _ op[_,_]
 
+operator makeSimple alias MAKESIMPLE pattern _ op[_,_]
+operator makeDArray alias MAKEDARRAY pattern _ op[_,_]
+
+
 
 

@@ -225,14 +225,16 @@ public:
                   bool checkType,
                   bool showCommands,
                   CommandLog& commandLog,
-                  bool forceExec = false,
-                  const size_t timeout=0);
+                  const int fileIndex, 
+                  bool forceExec ,
+                  const size_t timeout);
 
     bool retrieveRelation(const std::string& objName,
                           ListExpr& resType,
                           Word& result,
                           bool showCommands,
                           CommandLog& commandLog,
+                          const int fileIndex,
                           bool forceExec = false,
                           const size_t timeout=0);
 
@@ -248,8 +250,8 @@ public:
                               const std::string& fname1,
                               bool showCommands,
                               CommandLog& commandLog,
-                              bool forceExec = false,
-                              const size_t timeout=0);
+                              bool forceExec =false,
+                              const size_t = 0);
 
     bool retrieveAnyFile(const std::string& remoteName,
                          const std::string& localName,
@@ -258,7 +260,8 @@ public:
                          bool forceExec = false,
                          const size_t timeout=0);
 
-    Word createRelationFromFile(const std::string& fname, ListExpr& resType);
+    static Word createRelationFromFile(const std::string& fname, 
+                                       ListExpr& resType);
 
     std::ostream& print(std::ostream& o) const;
 

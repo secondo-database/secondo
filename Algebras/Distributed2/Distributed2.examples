@@ -788,5 +788,17 @@ Result    : unpredictable
 Remark    : required the presence of a distributed secondo
 
 
+Operator  : makeSimple
+Number    : 1
+Signature : darray x bool [x string] -> sdarray
+Example   : query sda1 = da1 makeSimple[TRUE]
+Result    : bug
+Remark    : presence of an distributed secondo required
 
+Operator  : makeDArray
+Number    : 1
+Signature : sdarray x bool [x string] -> darray
+Example   : query da1 = sda1 makeDArray[TRUE]
+Result    : bug
+Remark    : presence of an distributed secondo required
 
