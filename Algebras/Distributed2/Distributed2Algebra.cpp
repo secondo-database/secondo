@@ -109,8 +109,8 @@ Distributed2Algebra* algInstance;
 
 
 
-
-ConnectionInfo* changeWorker1(DArrayBase* array, size_t  slotNo, 
+template<class A>
+ConnectionInfo* changeWorker1(A* array, size_t  slotNo, 
                              set<size_t>& usedWorkers,
                              int& tryReconnect, 
                              ConnectionInfo*& ciOrig, 
@@ -745,8 +745,9 @@ bool Distributed2Algebra::serverExists(int s){
      return pr.second?pr.second->copy():0;
   }
 
+  template<class A>
   ConnectionInfo* Distributed2Algebra::getWorkerConnection(
-       DArrayBase* array,
+       A* array,
        int slot,
        const string& dbname,
        CommandLogger* log,
@@ -5213,13 +5214,13 @@ the signature is darray(t) x int x t -> darray(t)
 
 */
 ListExpr putTM(ListExpr args){
-   string err = "{darray(t), dfarray(t)}  x int x t expected";
-
+   string err = "{darray(t), dfarray(t), sdarray(t)}  x int x t expected";
    if(!nl->HasLength(args,3)){
      return listutils::typeError(err + " (invalid number of args)");
    } 
    if( !DArray::checkType(nl->First(args))&&
-       !DFArray::checkType(nl->First(args))){
+       !DFArray::checkType(nl->First(args))&&
+       !SDArray::checkType(nl->First(args))){
      return listutils::typeError(err + " ( first arg is not a "
                                        "darray or dfarray)");
    }
@@ -5239,21 +5240,16 @@ ListExpr putTM(ListExpr args){
 /*
 3.1.2 ~put~ Value Mapping
 
-Note: the current implementation uses just nested list 
-even for relations, here, a special threatment for big objects
-should be implemented for transferring big objects to the
-remote server;
-
 */
-
+template<class A>
 int putVMA(Word* args, Word& result, int message,
                 Word& local, Supplier s ){
 
 
-  DArray* array = (DArray*) args[0].addr;
+  A* array = (A*) args[0].addr;
   CcInt* index = (CcInt*) args[1].addr;
   result = qp->ResultStorage(s);
-  DArray* res = (DArray*) result.addr;
+  A* res = (A*) result.addr;
   if(!array->IsDefined() || !index->IsDefined()){
      res->makeUndefined();
      return 0;
@@ -5283,9 +5279,8 @@ int putVMA(Word* args, Word& result, int message,
      res->makeUndefined();
      return 0;
   }
-
-  if(! ci->createOrUpdateObject(  array->getName() + "_" 
-                                + stringutils::int2str(i),
+  string n = array->getObjectNameForSlot(i);
+  if(! ci->createOrUpdateObject( n ,
                                 nl->Second(qp->GetType(s)),
                                 args[2], showCommands, commandLog, 
                                 false, algInstance->getTimeout())){
@@ -5407,7 +5402,7 @@ int putVMFA(Word* args, Word& result, int message,
 */
 
 OperatorSpec putSpec(
-     " d[f]array(T) x int x T -> d[f]array(T) ",
+     " {d[f]array(T), sdarray}  x int x T -> d[f]array(T) ",
      " put(_,_,_)",
      "Puts an element at a specific position of a d[f]array. "
      "If there is some problem, the result is undefined; otherwise "
@@ -5419,10 +5414,14 @@ OperatorSpec putSpec(
      );
 
 
-ValueMapping putVM[] ={ putVMA, putVMFA };
+ValueMapping putVM[] ={ putVMA<DArray>, putVMFA, putVMA<SDArray> };
 
 int putSelect(ListExpr args){
-  return DArray::checkType(nl->First(args))?0:1;
+  ListExpr a1 = nl->First(args);
+  if(DArray::checkType(a1)) return 0;
+  if(DFArray::checkType(a1)) return 1;
+  if(SDArray::checkType(a1)) return 2;
+  return -1;
 }
 
 
@@ -5435,7 +5434,7 @@ int putSelect(ListExpr args){
 Operator putOp(
            "put",
            putSpec.getStr(),
-           2,
+           3,
            putVM,
            putSelect,
            putTM);
@@ -6785,7 +6784,7 @@ ListExpr pputTM(ListExpr args){
   }
   ListExpr darray = nl->First(args);
   ListExpr pairs = nl->Rest(args);
-  if(!DArray::checkType(darray)){
+  if(!DArray::checkType(darray)){ 
     return listutils::typeError(err);
   }
   ListExpr subType = nl->Second(darray);
@@ -6810,13 +6809,14 @@ ListExpr pputTM(ListExpr args){
 }
 
 
+template<class A>
 class SinglePutter{
 
   public:
-    SinglePutter(ListExpr _type, DArray* _array, 
+    SinglePutter(ListExpr _type, A* _array, 
                  int _arrayIndex, Word& _value):
      type(_type), array(_array), arrayIndex(_arrayIndex), value(_value){
-       runner = boost::thread(&SinglePutter::run,this);
+       runner = boost::thread(&SinglePutter<A>::run,this);
     }
 
     ~SinglePutter(){
@@ -6826,7 +6826,7 @@ class SinglePutter{
 
   private:
      ListExpr type;
-     DArray* array;
+     A* array;
      int arrayIndex;
      Word value;
      boost::thread runner;
@@ -6853,7 +6853,7 @@ class SinglePutter{
                             showCommands, commandLog, false,
                             algInstance->getTimeout());
         if(!done){
-          ci = changeWorker1(array, arrayIndex, usedWorkers,retries,ci);
+          ci = changeWorker1<A>(array, arrayIndex, usedWorkers,retries,ci);
         }
       }
       if(ci){
@@ -6866,11 +6866,12 @@ class SinglePutter{
     }
 };
 
+template<class A>
 class PPutter{
   public:
 
     PPutter(ListExpr _type,
-            DArray* _arg, vector<pair<int,Word> >& _values){
+            A* _arg, vector<pair<int,Word> >& _values){
       this->type = _type;
       this->source = _arg;
       set<int> used;
@@ -6892,7 +6893,8 @@ class PPutter{
        if(!started){
          started=true;
          for(size_t i=0;i<values.size();i++){
-            SinglePutter* sp = new SinglePutter(type,source,values[i].first, 
+            SinglePutter<A>* sp = new SinglePutter<A>(type,
+                                                source,values[i].first, 
                                                 values[i].second);
             putters.push_back(sp);
          }
@@ -6908,9 +6910,9 @@ class PPutter{
 
   private:
     ListExpr type;
-    DArray* source;
+    A* source;
     vector<pair<int,Word> > values;
-    vector<SinglePutter*> putters;
+    vector<SinglePutter<A>*> putters;
     bool started;
     boost::mutex mtx;
 
@@ -6920,14 +6922,14 @@ class PPutter{
 1.4.2 Value Mapping
 
 */
-
-int pputVM(Word* args, Word& result, int message,
+template<class A>
+int pputVMT(Word* args, Word& result, int message,
            Word& local, Supplier s ){
 
    result = qp->ResultStorage(s);
-   DArray* res = (DArray*) result.addr;
+   A* res = (A*) result.addr;
 
-   DArray* arg = (DArray*) args[0].addr;
+   A* arg = (A*) args[0].addr;
 
    // collect the value to set into an vector
    // ignoring undefined indexes or indexes 
@@ -6957,12 +6959,22 @@ int pputVM(Word* args, Word& result, int message,
    }
 
    
-   PPutter* pput = new PPutter(nl->Second(qp->GetType(s)),arg, pairs);
+   PPutter<A>* pput = new PPutter<A>(nl->Second(qp->GetType(s)),arg, pairs);
    pput->start(); 
    delete pput;
    *res = *arg;
    return 0;
 }
+
+
+ValueMapping pputVM[] = {
+  pputVMT<DArray>,
+};
+
+int pputSelect(ListExpr args){
+  return 0;
+}
+
 
 /*
 1.4.3 Specification
@@ -6971,7 +6983,7 @@ int pputVM(Word* args, Word& result, int message,
 
 
 OperatorSpec pputSpec(
-     " darray(T) x (int x T)+ -> darray ",
+     " [s]darray(T) x (int x T)+ -> darray ",
      " _ pput[ index , value , index, value ,...]",
      " Puts elements into a darray in parallel. ",
      " query da pput[0, streets1, 1, streets2]  "
@@ -6986,8 +6998,9 @@ OperatorSpec pputSpec(
 Operator pputOp(
   "pput",
   pputSpec.getStr(),
+  1,
   pputVM,
-  Operator::SimpleSelect,
+  pputSelect,
   pputTM
 );
 
@@ -8141,7 +8154,8 @@ ListExpr closeWorkersTM(ListExpr args){
   }
   if(nl->HasLength(args,1)){
     if(   !DArray::checkType(nl->First(args))
-       && !DFArray::checkType(nl->First(args))){
+       && !DFArray::checkType(nl->First(args))
+       && !SDArray::checkType(nl->First(args))){
        return listutils::typeError(err);
     }
   }
@@ -8177,19 +8191,24 @@ int closeWorkersVMT(Word* args, Word& result, int message,
 
 ValueMapping closeWorkersVM[] = {
   closeWorkersVMT<DArray>,
-  closeWorkersVMT<DFArray>
+  closeWorkersVMT<DFArray>,
+  closeWorkersVMT<SDArray>
 };
 
 int closeWorkersSelect(ListExpr args){
   if(nl->IsEmpty(args)){
      return 0;
   }
-  return DArray::checkType(nl->First(args))?0:1;
+  ListExpr a1 = nl->First(args);
+  if(DArray::checkType(a1)) return 0;
+  if(DFArray::checkType(a1)) return 1;
+  if(SDArray::checkType(a1)) return 2;
+  return -1;
 }
 
 
 OperatorSpec closeWorkersSpec(
-     " -> int, d[f]array -> int ",
+     " -> int, {d[f]array, sdarray}  -> int ",
      " closeWorkers(_)",
      " Closes either all connections to workers (no argument)"
      ", or connections of a specified darray instance.",
@@ -8199,7 +8218,7 @@ OperatorSpec closeWorkersSpec(
 Operator closeWorkersOp(
   "closeWorkers",
   closeWorkersSpec.getStr(),
-  2,
+  3,
   closeWorkersVM,
   closeWorkersSelect,
   closeWorkersTM
@@ -8216,12 +8235,13 @@ are shown, otherwise infos about all existing workers.
 */
 
 ListExpr showWorkersTM(ListExpr args){
-  string err = "nothing or darray or dfarray expected" ;
+  string err = "nothing, darray, dfarray, or sdarray expected" ;
   if(!nl->IsEmpty(args) && !nl->HasLength(args,1)){
      return listutils::typeError(err);
   }
   if(nl->HasLength(args,1) && !DArray::checkType(nl->First(args))
-    && !DFArray::checkType(nl->First(args))){
+    && !DFArray::checkType(nl->First(args))
+    && !SDArray::checkType(nl->First(args))){
      return listutils::typeError(err);
   }
   ListExpr attrList = 
@@ -8363,7 +8383,7 @@ int showWorkersVMT(Word* args, Word& result, int message,
 }
 
 OperatorSpec showWorkersSpec(
-     " -> stream(tuple), {darray,dfarray} -> stream(tuple) ",
+     " -> stream(tuple), {darray,dfarray,sdarray} -> stream(tuple) ",
      " showWorkers([_])",
      "This operator shows information about either all connections to workers "
      "(no argument),  "
@@ -8373,13 +8393,16 @@ OperatorSpec showWorkersSpec(
 
 ValueMapping showWorkersVM[]={
   showWorkersVMT<DArray>,
-  showWorkersVMT<DFArray>
+  showWorkersVMT<DFArray>,
+  showWorkersVMT<SDArray>
 };
 
 int showWorkersSelect(ListExpr args){
 
-  return nl->IsEmpty(args) || DArray::checkType(nl->First(args)) ?0:1;
-
+  if(nl->IsEmpty(args) || DArray::checkType(nl->First(args))) return 0;
+  if(DFArray::checkType(nl->First(args))) return 1;
+  if(SDArray::checkType(nl->First(args))) return 2;
+  return -1;
 }
 
 
@@ -8387,7 +8410,7 @@ int showWorkersSelect(ListExpr args){
 Operator showWorkersOp(
   "showWorkers",
   showWorkersSpec.getStr(),
-  2,
+  3,
   showWorkersVM,
   showWorkersSelect,
   showWorkersTM
@@ -10035,7 +10058,7 @@ completely.
 
 */
 ListExpr deleteRemoteObjectsTM(ListExpr args){
-  string err = " {darray,dfarray} [x int] or dfmatrix expected";
+  string err = " {darray,dfarray,sdarray} [x int] or dfmatrix expected";
   if(!nl->HasLength(args,1) && !nl->HasLength(args,2)){
     return listutils::typeError(err + ": invalid number of args" );
   }
@@ -10044,10 +10067,10 @@ ListExpr deleteRemoteObjectsTM(ListExpr args){
      return listutils::basicSymbol<CcInt>();
   } 
 
-
   if(!DArray::checkType(nl->First(args))
-     && !DFArray::checkType(nl->First(args))){
-    return listutils::typeError(err + ": first arg not a darray "
+     && !DFArray::checkType(nl->First(args))
+     && !SDArray::checkType(nl->First(args))){
+    return listutils::typeError(err + ": first arg not a darray, sdarray, "
                                 "or a dfarray");
   }
   if(nl->HasLength(args,2)){
@@ -10064,22 +10087,28 @@ class Object_Del{
    public:
 
       Object_Del(DArray* _array, int _index):
-       array(_array), farray(0), index(_index), del(0){
+       array(_array), dfarray(0), sdarray(0),index(_index), del(0){
       }
       
       Object_Del(DFArray* _array, int _index):
-       array(0), farray(_array), index(_index), del(0){
+       array(0), dfarray(_array), sdarray(0),index(_index), del(0){
+      }
+      
+      Object_Del(SDArray* _array, int _index):
+       array(0), dfarray(0), sdarray(_array),index(_index), del(0){
       }
 
-      Object_Del(Object_Del& src): array(src.array),farray(src.farray),
-         index(src.index), del(src.del){}
+      Object_Del(Object_Del& src): array(src.array),dfarray(src.dfarray),
+         sdarray(src.sdarray), index(src.index), del(src.del){}
       
 
       void operator()(){
          if(array){
-           deleteArray();
-         } else {
-           deleteFArray();
+           deleteArray<DArray>( array);
+         } else if(dfarray) {
+           deleteFArray(dfarray);
+         } else if(sdarray){
+            deleteArray<SDArray>(sdarray);
          }
       }
 
@@ -10090,11 +10119,13 @@ class Object_Del{
 
    private:
       DArray* array;
-      DFArray* farray;
+      DFArray* dfarray;
+      SDArray* sdarray;
       int index;
       int del;
 
-    void deleteArray(){
+    template<class A>
+    void deleteArray(A* array){
         string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
         ConnectionInfo* ci = algInstance->getWorkerConnection(
                               array->getWorkerForSlot(index),dbname);
@@ -10106,7 +10137,7 @@ class Object_Del{
                              array->getWorkerForSlot(index).getPort()));
            return;
         }
-        string objName = array->getName() +"_" + stringutils::int2str(index);
+        string objName = array->getObjectNameForSlot(index);
         int err;
         string errMsg;
         string resstr;
@@ -10121,7 +10152,7 @@ class Object_Del{
         // ignore error about non existent object 
      }
 
-    void deleteFArray(){
+    void deleteFArray(DFArray* farray){
         string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
         ConnectionInfo* ci = algInstance->getWorkerConnection(
                               farray->getWorkerForSlot(index),dbname);
@@ -10291,7 +10322,7 @@ int deleteRemoteObjectsVM_Matrix(Word* args, Word& result, int message,
 
 
 OperatorSpec deleteRemoteObjectsSpec(
-     " {darray, dfarray} [x int] | dfmatrix -> int",
+     " {darray, dfarray,sdarray} [x int] | dfmatrix -> int",
      "deleteRemoteObjects(_,_)",
      "Deletes the remote objects managed by a darray  or a dfarray object. "
      "If the optionally integer argument is given, only the "
@@ -10303,7 +10334,8 @@ OperatorSpec deleteRemoteObjectsSpec(
 ValueMapping deleteRemoteObjectsVM[] = {
   deleteRemoteObjectsVMT<DArray>,
   deleteRemoteObjectsVMT<DFArray>,
-  deleteRemoteObjectsVM_Matrix
+  deleteRemoteObjectsVM_Matrix,
+  deleteRemoteObjectsVMT<SDArray>
 };
 
 int deleteRemoteObjectsSelect(ListExpr args){
@@ -10316,6 +10348,9 @@ int deleteRemoteObjectsSelect(ListExpr args){
   if(DFMatrix::checkType(nl->First(args))){
     return 2;
   }
+  if(SDArray::checkType(nl->First(args))){
+    return 3;
+  }
   return  -1; 
 }
 
@@ -10323,7 +10358,7 @@ int deleteRemoteObjectsSelect(ListExpr args){
 Operator deleteRemoteObjectsOp(
   "deleteRemoteObjects",
   deleteRemoteObjectsSpec.getStr(),
-  3,
+  4,
   deleteRemoteObjectsVM,
   deleteRemoteObjectsSelect,
   deleteRemoteObjectsTM
@@ -10923,13 +10958,14 @@ worker connections).
 
 */
 ListExpr cleanUpTM(ListExpr args){
-  string err= " no argument or d[f]array expected";
+  string err= " no argument, d[f]array, or sdarray expected";
   if(!nl->HasLength(args,1) && !nl->IsEmpty(args)){
      return listutils::typeError(err);
   }
   if(nl->HasLength(args,1)){
      if(!DArray::checkType(nl->First(args))
-        && !DFArray::checkType(nl->First(args))){
+        && !DFArray::checkType(nl->First(args))
+        && !SDArray::checkType(nl->First(args))){
         return listutils::typeError(err);
      }
   }
@@ -10992,7 +11028,7 @@ int cleanUpVMT(Word* args, Word& result, int message,
 
 */
 OperatorSpec cleanUpSpec(
-     "-> bool , d[f]array -> bool",
+     "-> bool , {d[f]array, sdarray}  -> bool",
      "cleanUp(_)",
      "Removes temporary objects, i.e. objects whose name starts with TMP_, "
      "from remote servers. If no argument is given, all open connections to "
@@ -11005,12 +11041,17 @@ int cleanUpSelect(ListExpr args){
   if(nl->IsEmpty(args)){
      return 0;
   }
-  return DArray::checkType(nl->First(args))?0:1;
+  ListExpr a1 = nl->First(args);
+  if(DArray::checkType(a1)) return 0;
+  if(DFArray::checkType(a1)) return 1;
+  if(SDArray::checkType(a1)) return 2;
+  return -1;
 }
 
 ValueMapping cleanUpVM[] = {
    cleanUpVMT<DArray>,
-   cleanUpVMT<DFArray>
+   cleanUpVMT<DFArray>,
+   cleanUpVMT<SDArray>
 };
 
 
@@ -11022,7 +11063,7 @@ ValueMapping cleanUpVM[] = {
 Operator cleanUpOp(
   "cleanUp",
   cleanUpSpec.getStr(),
-  2,
+  3,
   cleanUpVM,
   cleanUpSelect,
   cleanUpTM
@@ -11557,11 +11598,11 @@ something other).
 
 
 ListExpr dmapTM(ListExpr args){
-  string err = "d[f]array(X)  x string x fun expected";
+  string err = "{d[f]array(X), sdarray}  x string x fun expected";
   if(!nl->HasLength(args,3)){
     return  listutils::typeError(err + " (wrong number of args)");
   }
-  // check for internal correctness
+  // check for internal correctness (uses Args in type mapping)
   if(   !nl->HasLength(nl->First(args),2)
       ||!nl->HasLength(nl->Second(args),2)
       ||!nl->HasLength(nl->Third(args),2)){
@@ -11572,15 +11613,14 @@ ListExpr dmapTM(ListExpr args){
   ListExpr arg3Type = nl->First(nl->Third(args));
 
   if(  (    !DFArray::checkType(arg1Type) 
-         && !DArray::checkType(arg1Type))
+         && !DArray::checkType(arg1Type)
+         && !SDArray::checkType(arg1Type))
      ||!CcString::checkType(arg2Type)
      ||!listutils::isMap<1>(arg3Type)){
     return listutils::typeError(err);
   }
 
-  
   ListExpr frelt = nl->TheEmptyList(); 
-
   if( Relation::checkType(nl->Second(arg1Type))){
      frelt = nl->TwoElemList(
                    listutils::basicSymbol<frel>(),
@@ -11589,7 +11629,8 @@ ListExpr dmapTM(ListExpr args){
 
   ListExpr funArg = nl->Second(arg3Type);
 
-  ListExpr expFunArg = DArray::checkType(arg1Type)
+  ListExpr expFunArg =   DArray::checkType(arg1Type)
+                      || SDArray::checkType(arg1Type)
                       ? nl->Second(arg1Type)
                       : frelt; 
 
@@ -11645,9 +11686,9 @@ ListExpr dmapTM(ListExpr args){
   // the result will be a dfarray, otherwise a darray
   ListExpr resType = nl->TwoElemList(
                isStream?listutils::basicSymbol<DFArray>()
-                   :listutils::basicSymbol<DArray>(),
+                       :nl->First(arg1Type),
                funRes);
-
+  
   return nl->ThreeElemList(
           nl->SymbolAtom(Symbols::APPEND()),
           nl->ThreeElemList( nl->TextAtom(nl->ToString(rfun)),
@@ -11691,38 +11732,51 @@ are only collected in the logger but not sent to a woker.
        dbname = SecondoSystem::GetInstance()->GetDatabaseName();
        if(isStream){
          dfarray = !log?(DFArray*) res:(DFArray*)1;
-         darray = 0; 
+         darray = 0;
+         sdarray = 0; 
        } else {
          dfarray = 0;
-         darray = !log?(DArray*) res:(DArray*)1;
+         if(array->getType()==DARRAY){
+            darray = !log?(DArray*) res:(DArray*)1;
+            sdarray = 0;
+         } else {
+            assert(array->getType()==SDARRAY);
+            darray = 0;
+            sdarray = !log?(SDArray*) res:(SDArray*)1;
+         }
        }
        reconnectGlobal = algInstance->tryReconnect();
    }
 
    void start(){
        if(dfarray){
-          startXArray<DFARRAY,fRun>(dfarray);
+          startXArray<DFArray,fRun>(dfarray);
        } else {
-          startXArray<DARRAY,dRun>(darray);
+          if(array->getType()==DARRAY){
+             startXArray<DArray,dRun>(darray);
+          } else {
+             startXArray<SDArray,dRun>(sdarray);
+          }
        }
     }
 
  private:
-    A* array;
-    ListExpr aType;
-    CcString* ccname;
-    FText* funText;
-    bool isRel;
-    bool isStream;
-    CommandLogger* log;
-    DFArray* dfarray;
-    DArray* darray;
+    A* array;          // argument array
+    ListExpr aType;    // argument type
+    CcString* ccname;  // name of result
+    FText* funText;    // function in nexted list tex
+    bool isRel;        // result is a relation
+    bool isStream;      // result is a stream
+    CommandLogger* log; // a logger
+    DFArray* dfarray;   // result arrays,    
+    DArray* darray;     // only one of them is
+    SDArray* sdarray;   // not null
     string name;
     string dbname;
     bool reconnectGlobal;
 
-    template<arrayType type, class rtype>
-    void startXArray(DArrayT<type>*& resArray ){
+    template<class type, class rtype>
+    void startXArray(type*& resArray ){
        if(!array->IsDefined()){
          if(!log){
             resArray->makeUndefined();
@@ -11879,7 +11933,7 @@ Class for sending the commands to produce a dfarray.
            int maxtries = mapper->array->numOfWorkers() * 2; 
            string fun = mapper->funText->GetValue();
            // create name for the slot file
-           string n = mapper->array->getName()+"_"+stringutils::int2str(nr);
+           string n = mapper->array->getObjectNameForSlot(nr);
            string cmd;
            string funarg;
            bool error = false;
@@ -12015,9 +12069,22 @@ Class for sending the commands to produce a dfarray.
           bool reconnect = true;
           string fundef =  mapper->funText->GetValue();
           // name of argument
-          string n = mapper->array->getName()+"_"+stringutils::int2str(nr);
+          string n = mapper->array->getObjectNameForSlot(nr); 
           // name of result
-          string name2 = mapper->name + "_" + stringutils::int2str(nr);
+          string name2;
+          if(mapper->log){
+              name2 = mapper->name;
+              if(mapper->darray){ 
+                  name2 += "_" + stringutils::int2str(nr);
+              }
+          } else {
+             if(mapper->darray){
+                name2 = mapper->darray->getObjectNameForSlot(nr);
+             }else {
+                assert(mapper->sdarray);
+                name2 = mapper->sdarray->getObjectNameForSlot(nr);
+             }
+          }
 
           do {
             if(!ci) {
@@ -12117,15 +12184,21 @@ void dmapcommandsVMT<DArray>(Word*,Supplier,CommandLogger*);
 template
 void dmapcommandsVMT<DFArray>(Word*,Supplier,CommandLogger*);
 
+template
+void dmapcommandsVMT<SDArray>(Word*,Supplier,CommandLogger*);
+
 ValueMapping dmapVM[] = {
    dmapVMT<DArray>,
-   dmapVMT<DFArray>
+   dmapVMT<DFArray>,
+   dmapVMT<SDArray>
 };
 
 int dmapSelect(ListExpr args){
-
-  return DArray::checkType(nl->First(args))?0:1;
-
+  ListExpr arg1 = nl->First(args);
+  if(DArray::checkType(arg1)) return 0;
+  if(DFArray::checkType(arg1)) return 1;
+  if(SDArray::checkType(arg1)) return 2;
+  return -1;
 }
 
 
@@ -12147,7 +12220,7 @@ OperatorSpec dmapSpec(
 Operator dmapOp(
   "dmap",
   dmapSpec.getStr(),
-  2,
+  3,
   dmapVM,
   dmapSelect,
   dmapTM
@@ -14444,7 +14517,8 @@ ListExpr ARRAYFUNARG(ListExpr args){
   }
   ListExpr arg = nl->First(args);
 
-  if(DArray::checkType(arg)){
+  if(DArray::checkType(arg) ||
+    SDArray::checkType(arg)){
      return nl->Second(arg);
   }
 
@@ -20726,8 +20800,10 @@ ListExpr dcommandTM(ListExpr args){
       return listutils::typeError("d[f]array x {string,text} expected");
    }
    ListExpr a1 = nl->First(args);
-   if(!DArray::checkType(a1) && !DFArray::checkType(a1)){
-     return listutils::typeError("first argument is not a d[f]array");
+   if(!DArray::checkType(a1) && !DFArray::checkType(a1)
+     &&!SDArray::checkType(a1)){
+     return listutils::typeError("first argument is not a "
+                                 "d[f]array or sdarray");
    }
    ListExpr a2 = nl->Second(args);
    if(!CcString::checkType(a2) && !FText::checkType(a2)){
@@ -20876,17 +20952,29 @@ ValueMapping dcommandVM[] = {
     dcommandVMT<DArray,CcString>,
     dcommandVMT<DArray,FText>,
     dcommandVMT<DFArray,CcString>,
-    dcommandVMT<DFArray,FText>
+    dcommandVMT<DFArray,FText>,
+    dcommandVMT<SDArray,CcString>,
+    dcommandVMT<SDArray,FText>
 };
 
 int dcommandSelect(ListExpr args){
-  int n1 = DArray::checkType(nl->First(args))?0:2;
+  int n1;
+  ListExpr a1 = nl->First(args);
+  if(DArray::checkType(a1)) {
+    n1 = 0; 
+  } else if(DFArray::checkType(a1)){
+    n1 = 2;
+  } else if(SDArray::checkType(a1)){
+    n1 = 4;
+  } else {
+    return -1;
+  }
   int n2 = CcString::checkType(nl->Second(args))?0:1;
   return n1+n2;
 }
 
 OperatorSpec dcommandSpec(
-   " d[f]array x {string, text} -> stream(tuple) ",
+   " {d[f]array, sdarray} x {string, text} -> stream(tuple) ",
    " array dcommand[ command ] ",
    " Executes a command on all workers that are stored "
    " an array. May be useful for deriving objects from "
@@ -20897,7 +20985,7 @@ OperatorSpec dcommandSpec(
 Operator dcommandOp(
   "dcommand",
   dcommandSpec.getStr(),
-  4,
+  6,
   dcommandVM,
   dcommandSelect,
   dcommandTM
@@ -20912,19 +21000,21 @@ Creates an object on the master and on all workers of a darray.
 */
 ListExpr dletTM(ListExpr args){
    if(!nl->HasLength(args,3)){
-      return listutils::typeError("d[f]array x string x {string,text}"
-                                  " expected");
+      return listutils::typeError("{d[f]array, sdarray} x string x "
+                                  "{string,text} expected");
    }
    ListExpr a1 = nl->First(args);
-   if(!DArray::checkType(a1) && !DFArray::checkType(a1)){
-     return listutils::typeError("first argument is not a d[f]array");
+   if(!DArray::checkType(a1) && !DFArray::checkType(a1)
+      &&!SDArray::checkType(a1)){
+     return listutils::typeError("first argument is not a d[f]array, "
+                                 "or sdarray");
    }
    if(!CcString::checkType(nl->Second(args))){
      return listutils::typeError("second arg is not a string");
    }
    ListExpr a3 = nl->Third(args);
    if(!CcString::checkType(a3) && !FText::checkType(a3)){
-     return listutils::typeError("second arg is not a string or a text");
+     return listutils::typeError("third arg is not a string or a text");
    }
    ListExpr attrList = nl->SixElemList(
                      nl->TwoElemList( nl->SymbolAtom("Host"), 
@@ -21155,17 +21245,29 @@ ValueMapping dletVM[] = {
     dletVMT<DArray,CcString>,
     dletVMT<DArray,FText>,
     dletVMT<DFArray,CcString>,
-    dletVMT<DFArray,FText>
+    dletVMT<DFArray,FText>,
+    dletVMT<SDArray,CcString>,
+    dletVMT<SDArray,FText>
 };
 
 int dletSelect(ListExpr args){
-  int n1 = DArray::checkType(nl->First(args))?0:2;
+  int n1;
+  ListExpr a1 = nl->First(args);
+  if(DArray::checkType(a1)){
+    n1 = 0;
+  } else if(DFArray::checkType(a1)){
+    n1 = 2;
+  } else if(SDArray::checkType(a1)){
+    n1 = 4;
+  } else {
+    return -1;
+  }
   int n2 = CcString::checkType(nl->Third(args))?0:1;
   return n1+n2;
 }
 
 OperatorSpec dletSpec(
-   " d[f]array x string x {string, text} -> stream(tuple) ",
+   " {d[f]array, sdarray}  x string x {string, text} -> stream(tuple) ",
    " array dlet[ name, expression ] ",
    " Executes a 'let name = expression' at all workers that are stored "
    " in array and at the local machine. ",
@@ -21175,7 +21277,7 @@ OperatorSpec dletSpec(
 Operator dletOp(
   "dlet",
   dletSpec.getStr(),
-  4,
+  6,
   dletVM,
   dletSelect,
   dletTM

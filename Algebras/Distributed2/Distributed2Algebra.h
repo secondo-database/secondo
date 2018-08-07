@@ -272,8 +272,9 @@ connections coming from darray elements.
                                         const std::string& dbname,
                                         CommandLogger* log = 0);
 
+  template<class A>
   ConnectionInfo* getWorkerConnection(
-       DArrayBase* array,
+       A* array,
        int slot,
        const std::string& dbname,
        CommandLogger* log,

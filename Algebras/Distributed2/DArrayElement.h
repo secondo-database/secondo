@@ -83,7 +83,7 @@ class DArrayElement{
 
      bool readFrom(SmiRecord& valueRecord, size_t& offset);
 
-     bool saveTo(SmiRecord& valueRecord, size_t& offset);
+     bool saveTo(SmiRecord& valueRecord, size_t& offset) const;
 
      void print(std::ostream& out)const;
 

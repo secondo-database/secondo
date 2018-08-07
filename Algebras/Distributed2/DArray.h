@@ -93,7 +93,7 @@ standard map.
 
      virtual size_t getSize() const = 0;
      
-     DArrayElement getWorker(int i);
+     const DArrayElement& getWorker(int i) const;
 
      const std::vector<DArrayElement>& getWorker(){
         return worker;
@@ -109,6 +109,26 @@ standard map.
      const std::vector<DArrayElement>& getWorkers() const{
        return worker;
      }     
+  
+
+  std::string getFilePath(const size_t slot){
+     std::string home = SmiEnvironment::GetSecondoHome();
+     std::string db = SecondoSystem::GetInstance()->GetDatabaseName();
+     return getFilePath(home,db,slot);
+  }
+
+/*
+3.22 ~getFilePath~
+
+*/
+  std::string getFilePath(const std::string& home, const std::string& dbname,
+                          const size_t slot){
+    std::stringstream ss;
+    ss << home << "/dfarrays/" << dbname << "/" << name << "/" 
+       << name << "_" << slot << ".bin";
+    ss.flush();
+    return ss.str();
+  }
 
 
  protected:
@@ -141,7 +161,10 @@ class SDArray : public DistTypeBase {
    explicit SDArray(const int __attribute__((unused)) dummy)
       :DistTypeBase(dummy) {}
      
-   DistTypeBase& operator=(const DistTypeBase& src);
+   SDArray& operator=(const DistTypeBase& src) {
+      DistTypeBase::operator=(src);
+      return *this;
+   }
 
      
 
@@ -154,8 +177,12 @@ class SDArray : public DistTypeBase {
         return SDARRAY;
      }
 
-  const DArrayElement& getWorkerForSlot(int i){
+  const DArrayElement& getWorkerForSlot(int i)const{
     return worker[i];
+  }
+
+  const int getWorkerIndexForSlot(int slot){
+    return slot;
   }
 
   std::string getObjectNameForSlot(int i) const{
@@ -349,7 +376,7 @@ The size is extracted from the mapping.
 
      void setStdMap(size_t size);
 
-     DArrayElement getWorkerForSlot(int i);
+     const DArrayElement& getWorkerForSlot(int i) const;
 
      size_t getWorkerIndexForSlot(int i);
      
@@ -428,24 +455,7 @@ Returns the name of the remote object
      return ss.str();
   }
 
-/*
-3.22 ~getFilePath~
 
-*/
-  std::string getFilePath(const std::string& home, const std::string& dbname,
-                          const size_t slot){
-    std::stringstream ss;
-    ss << home << "/dfarrays/" << dbname << "/" << name << "/" 
-       << name << "_" << slot << ".bin";
-    ss.flush();
-    return ss.str();
-  }
-
-  std::string getFilePath(const size_t slot){
-     std::string home = SmiEnvironment::GetSecondoHome();
-     std::string db = SecondoSystem::GetInstance()->GetDatabaseName();
-     return getFilePath(home,db,slot);
-  }
 
 /*
 3.22 ~getFilePath~
@@ -565,6 +575,14 @@ class DArrayT: public DArrayBase{
    DArrayT& operator=(const DArrayBase& src){
       DArrayBase::operator=(src);
       return *this;
+   }
+
+   DArrayT& operator=(const SDArray& src){
+     set(src.getSize(),src.getName(),src.getWorkers());
+     if(!src.IsDefined()){
+       makeUndefined();
+     }
+     return *this;
    }
 
   static const std::string BasicType(){

@@ -136,7 +136,7 @@ bool DArrayElement::readFrom(SmiRecord& valueRecord, size_t& offset){
    return true;
 }
 
-bool DArrayElement::saveTo(SmiRecord& valueRecord, size_t& offset){
+bool DArrayElement::saveTo(SmiRecord& valueRecord, size_t& offset) const{
    if(!writeVar(server,valueRecord,offset)){
       return false;
    }
@@ -280,7 +280,7 @@ size_t DistTypeBase::numOfWorkers() const{
   return worker.size();
 }
 
-DArrayElement DistTypeBase::getWorker(int i){
+const DArrayElement& DistTypeBase::getWorker(int i) const{
    if(i< 0 || i >= (int) worker.size()){
        assert(false);
       // throw "Invalid worker number";
@@ -418,7 +418,7 @@ void DArrayBase::setStdMap(size_t size){
 }
 
 
-DArrayElement DArrayBase::getWorkerForSlot(int i){
+const DArrayElement& DArrayBase::getWorkerForSlot(int i) const{
    if(i<0 || i>= (int) map.size()){
       cerr << "access for worker " << i << endl;
       cerr << "number of workers is " << map.size() << endl;
@@ -1089,6 +1089,7 @@ bool SDArray::Open( SmiRecord& valueRecord,
       if(!elem.readFrom(valueRecord,offset)){
         return false;
       }
+      elem.setNum(i);
       workers.push_back(elem);
    }
    // build result
