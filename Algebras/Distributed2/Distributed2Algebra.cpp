@@ -11863,6 +11863,12 @@ are only collected in the logger but not sent to a woker.
     ConnectionInfo* changeWorker(size_t slotNo, 
                                  set<size_t>& usedWorkers,
                                  ConnectionInfo*& oldCi){
+       if(sdarray){
+          // for sdarrays, we don't have the possibility to change
+          // the worker
+          return 0;
+       }
+
        DArrayBase* array = darray?(DArrayBase*)darray:(DArrayBase*)dfarray;
        int retries =0;
        ConnectionInfo* ci=  changeWorker1(array, slotNo, usedWorkers,
