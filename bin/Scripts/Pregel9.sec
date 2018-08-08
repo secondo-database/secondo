@@ -1,0 +1,100 @@
+# Experiments 26.4.2018
+# Database arnsberg
+
+delete inf
+
+let inf = 1000000.0
+
+query meminit(10000)
+
+query memclear()
+
+delete Nodes3
+
+#  filter[bbox(.NodePos) inside hombruch]
+
+let Nodes3 = 
+  Edges feed projectextend[; Node: .Source, NodePos: .SourcePos]
+  Edges feed projectextend[; Node: .Target, NodePos: .TargetPos]
+  concat 
+filter[bbox(.NodePos) inside hombruch]
+  sort rdup
+  extend[Value: inf]
+  consume
+
+query Nodes3 count
+
+# 517140 nodes
+# 1785 in Hombruch
+
+let NodesM = Nodes3 feed addid 
+  projectextend[; NodeId: .Node, Node: .TID, NodePos: .NodePos, Value: .Value] mconsume
+
+delete Edges3a
+
+#  filter[bbox(.SourcePos) inside hombruch]
+
+let Edges3a = Edges feed 
+filter[bbox(.SourcePos) inside hombruch]
+  projectextend[Source, Target, SourcePos; Cost: size(gk(.Curve))]
+  filter[isdefined(.Cost)] 
+  consume
+
+# 1304503 edges
+# 4566 in Hombruch
+
+delete Edges3 
+
+let Edges3 = 
+  Edges3a feed {e}
+  NodesM mfeed addid {source} itHashJoin[Source_e, NodeId_source]
+  NodesM mfeed addid {target} itHashJoin[Target_e, NodeId_target]
+  projectextend[; Source: tid2int(.Node_source), Target: tid2int(.Node_target),
+    Cost: .Cost_e]
+  consume
+
+query Edges3 count
+
+let EdgesMGraph = Edges3 feed createmgraph3[Source, Target, Cost, 517140]
+
+# 2.3 seconds
+
+delete Messages 
+
+let Messages = [const rel(tuple([MessageNode: tid, MessageValue: real])) value ( (470 0.0) )] feed mconsume
+ 
+# reset
+
+# query NodesM mfeed filter[.Value < inf] consume
+
+# query NodesM mfeed filter[.Value < inf] NodesM mupdatedirect2[Node; Value: inf] consume
+
+
+
+delete AllSPDistances
+
+let AllSPDistances = 
+  intstream(1, 100000) 
+  namedtransformstream[Iteration] 
+  extend[NoMessages:
+    Messages mfeed Messages mdeletedirect remove[TID]
+      loopjoin[fun(t: TUPLE) attr(t, MessageNode) feed NodesM gettuples]
+    filter[.MessageValue < .Value] 
+    NodesM mupdatedirect2[MessageNode; Value: .MessageValue] 
+    project[Node, Value] 
+    loopjoin[EdgesMGraph mg3successors[tid2int(.Node)]]
+    projectextend[; MessageNode: int2tid(.Target),  MessageValue: .Value + .Cost] 
+    mblock  
+    groupby2[MessageNode; MessageValue: fun(t2: TUPLE, r: real) 
+      ifthenelse(attr(t2, MessageValue) < r, attr(t2, MessageValue), r) :: 1000000.0]
+    meminsert[Messages]
+  count]
+  printstream
+  cancel[.NoMessages = 0]
+  consume
+
+# 1363 Iterations
+# 96:11 minutes
+
+
+
