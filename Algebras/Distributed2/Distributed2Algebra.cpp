@@ -10640,7 +10640,7 @@ ListExpr share2TM(ListExpr args){
        ListExpr positions;
        string errmsg;
        ListExpr types;
-       if(!isWorkerRelDesc(nl->Third(args),positions,types,errmsg)){
+       if(!isWorkerRelDesc(nl->Fourth(args),positions,types,errmsg)){
            return listutils::typeError(err);
        } else {
            ListExpr appendList = nl->FiveElemList(
