@@ -301,6 +301,13 @@ Example   : query share("ten", FALSE)
 Result    : bug
 Remark    : remote server required
 
+Operator  : share2
+Number    : 1
+Signature : string x ANY x bool [ x d[f]array] -> text
+Example   : query share2("ten", ten,  FALSE)
+Result    : bug
+Remark    : remote server required
+
 Operator  : cleanUp 
 Number    : 1
 Signature : -> bool , d[f]array -> bool

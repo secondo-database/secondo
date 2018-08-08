@@ -10623,6 +10623,46 @@ ListExpr shareTM(ListExpr args){
   return listutils::basicSymbol<FText>(); 
 }
 
+ListExpr share2TM(ListExpr args){
+  string err = "string x ANY x bool {[x d[f]array], rel} expected";
+  if(!nl->HasLength(args,3) && !nl->HasLength(args,4)){
+    return listutils::typeError(err);
+  }
+  if(!CcString::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  if(!CcBool::checkType(nl->Third(args))){
+    return listutils::typeError(err);
+  }
+  if(nl->HasLength(args,4)){
+    if(   !DArray::checkType(nl->Fourth(args))
+       && !DFArray::checkType(nl->Fourth(args))){
+       ListExpr positions;
+       string errmsg;
+       ListExpr types;
+       if(!isWorkerRelDesc(nl->Third(args),positions,types,errmsg)){
+           return listutils::typeError(err);
+       } else {
+           ListExpr appendList = nl->FiveElemList(
+                                   nl->First(positions),
+                                   nl->Second(positions),
+                                   nl->Third(positions),
+                                   nl->BoolAtom(
+                                           CcString::checkType(
+                                                 nl->First(types))),
+                                   nl->BoolAtom(
+                                          CcString::checkType(
+                                                 nl->Third(types))));
+           return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                                    appendList,
+                                    listutils::basicSymbol<FText>());
+       }
+    }
+  }
+  return listutils::basicSymbol<FText>(); 
+}
+
+
 
 class shareRunner{
 
@@ -10709,17 +10749,32 @@ class shareInfo: public successListener{
       failed = 0;
       success = 0;
       value.addr = 0;
+      fromCatalog = true;
+      this->typeList = nl->TheEmptyList();
+   }
+    
+  shareInfo(const string& _name, Word _value, ListExpr _type,
+            const bool _allowOverwrite,
+            AType* _array, FText* _result): name(_name),
+            allowOverwrite(_allowOverwrite), array(_array),
+            result(_result), fileCreated(false) {
+      failed = 0;
+      success = 0;
+      value = _value;
+      fromCatalog = false;
+      typeList = _type;
    }
 
    ~shareInfo(){
-      if(value.addr){
+      if(fromCatalog && value.addr){
          SecondoSystem::GetCatalog()->CloseObject(typeList, value);
          value.addr = 0;
       }
    }
 
 
-    void share(){
+    void share() {
+      if(fromCatalog){
        SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
        string tn;
        bool defined;
@@ -10733,25 +10788,29 @@ class shareInfo: public successListener{
          result->Set("Undefined objects cannot be shared");
          return;
        }
-
-       if(array){
-         shareArray();
-       } else {
-         shareUser();
-       }
+      } else {
+         if(!stringutils::isIdent(name)){
+            result->Set("invalid object name");
+            return;
+         }
+      }
+      if(array){
+        shareArray();
+      } else {
+        shareUser();
+      }
    
-       
-       for(size_t i=0;i<runners.size();i++){
-         runners[i]->join();
-         delete runners[i];
-       }
-       string t = "success : " + stringutils::int2str(success)+ ", failed "
+      for(size_t i=0;i<runners.size();i++){
+        runners[i]->join();
+        delete runners[i];
+      }
+      string t = "success : " + stringutils::int2str(success)+ ", failed "
                   + stringutils::int2str(failed);
-       result->Set(true,t);
-       if(filename.size()>0){
-          FileSystem::DeleteFileOrFolder(filename); 
-       }
-    }
+      result->Set(true,t);
+      if(filename.size()>0){
+         FileSystem::DeleteFileOrFolder(filename); 
+      }
+   }
 
     void jobDone(int id, bool success){
        if(success){
@@ -10778,6 +10837,7 @@ class shareInfo: public successListener{
     vector<boost::thread*> runners;
     int failed;
     int success;
+    bool fromCatalog;
 
     void shareArray() {
        string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
@@ -10824,6 +10884,9 @@ class shareInfo: public successListener{
       boost::lock_guard<boost::mutex> guard(createFileMutex);
       if(!fileCreated){
           isAttribute = false;
+
+          cout << "typeList = " << nl->ToString(typeList) << endl;
+
           isRelation = Relation::checkType(typeList);
           filename = name + "_" + stringutils::int2str(WinUnix::getpid()) 
                      + ".bin";
@@ -10843,53 +10906,58 @@ class shareInfo: public successListener{
 
 };
 
-template<class A>
+template<class A, bool fromCat>
 int shareVMT(Word* args, Word& result, int message,
             Word& local, Supplier s ){
 
   CcString* objName = (CcString*) args[0].addr;
-  CcBool* overwrite = (CcBool*) args[1].addr;
+  int q = 0;
+  Word value;
+  if(!fromCat){
+    value = args[1];
+    q = 1;
+  }
+
+  CcBool* overwrite = (CcBool*) args[1+q].addr;
 
   int sons = qp->GetNoSons(s);
   A* array = 0;
   A a(137);
 
-  if(sons == 2 ){ 
-    // without third argument
+  if(sons == 2 + q ){ 
+    // without third/fourth argument
     array = 0;
-  } else if(sons ==3){
+  } else if(sons == 3 + q){
     // array given by user
-    array = (A*) args[2].addr;
+    array = (A*) args[2+q].addr;
   } else {
     // workers given in relation
 
-    int hostPos = ((CcInt*) args[3].addr)->GetValue();
-    int portPos = ((CcInt*) args[4].addr)->GetValue();
-    int confPos = ((CcInt*) args[5].addr)->GetValue();
-    bool hostStr = ((CcBool*) args[6].addr)->GetValue();
-    bool confStr = ((CcBool*) args[7].addr)->GetValue();
+    int hostPos = ((CcInt*) args[3+q].addr)->GetValue();
+    int portPos = ((CcInt*) args[4+q].addr)->GetValue();
+    int confPos = ((CcInt*) args[5+q].addr)->GetValue();
+    bool hostStr = ((CcBool*) args[6+q].addr)->GetValue();
+    bool confStr = ((CcBool*) args[7+q].addr)->GetValue();
 
     if(hostStr && confStr){
        a = DArrayBase::createFromRel<CcString, CcString,A>(
-               (Relation*) args[2].addr, 400, "tmp",
+               (Relation*) args[2+q].addr, 400, "tmp",
                 hostPos, portPos, confPos);
     } else if(hostStr && !confStr){
        a = DArrayBase::createFromRel<CcString, FText,A>(
-               (Relation*) args[2].addr, 400, "tmp",
+               (Relation*) args[2+q].addr, 400, "tmp",
                 hostPos, portPos, confPos);
     } else if(!hostStr && confStr){
        a = DArrayBase::createFromRel<FText, CcString,A>(
-               (Relation*) args[2].addr, 400, "tmp",
+               (Relation*) args[2+q].addr, 400, "tmp",
                 hostPos, portPos, confPos);
     } else if(!hostStr && !confStr){
        a = DArrayBase::createFromRel<FText, FText,A>(
-               (Relation*) args[2].addr, 400, "tmp",
+               (Relation*) args[2+q].addr, 400, "tmp",
                 hostPos, portPos, confPos);
     }
     array = &a;
   }
-
-
   result = qp->ResultStorage(s);
   FText* res = (FText*) result.addr;
   if(array && !array->IsDefined()){
@@ -10900,9 +10968,15 @@ int shareVMT(Word* args, Word& result, int message,
      res->SetDefined(false);
      return 0;
   }
-
-  shareInfo<A> info(objName->GetValue(), overwrite->GetValue(), array, res);
-  info.share();
+  
+  if(fromCat){
+    shareInfo<A> info(objName->GetValue(), overwrite->GetValue(), array, res);
+    info.share();
+  } else {
+    shareInfo<A> info(objName->GetValue(), value, qp->GetType(qp->GetSon(s,1)),
+                      overwrite->GetValue(), array, res);
+    info.share();
+  }
   return 0;
 }
 
@@ -10912,12 +10986,25 @@ OperatorSpec shareSpec(
      "share(ObjectName, allowOverwrite, workerArray)",
      "distributes an object from local database to the workers."
      "The allowOverwrite flag controls whether existing objects "
-     "with the same name should be overwritten. Id the optional "
+     "with the same name should be overwritten. If the optional "
      "darray argument is given, the object is stored at all "
      "workers contained within this array. If this argument is "
      "missing the user defined connections are used as workers.",
      "query share(\"ten\", TRUE,da8) "
  );
+
+
+OperatorSpec share2Spec(
+     "string x ANY x bool [x d[f]array] -> text",
+     "share(ObjectName, EXPR, allowOverwrite, workerArray)",
+     "Distributes an object gives as the second arg to the workers."
+     "The allowOverwrite flag controls whether existing objects "
+     "with the same name should be overwritten. If the optional "
+     "darray argument is given, the object is stored at all "
+     "workers contained within this array. If this argument is "
+     "missingi, the user defined connections are used as workers.",
+     "query share2(\"ten\", 17 + 4 ,  TRUE,da8) "
+);
 
 
 int shareSelect(ListExpr args){
@@ -10927,9 +11014,21 @@ int shareSelect(ListExpr args){
    return DArray::checkType(nl->Third(args))?0:1;
 }
 
+int share2Select(ListExpr args){
+   if(!nl->HasLength(args,4)){ 
+      return 0; 
+   }
+   return DArray::checkType(nl->Third(args))?0:1;
+}
+
 ValueMapping shareVM[] = {
-   shareVMT<DArray>,
-   shareVMT<DFArray>
+   shareVMT<DArray,true>,
+   shareVMT<DFArray,true>
+};
+
+ValueMapping share2VM[] = {
+   shareVMT<DArray,false>,
+   shareVMT<DFArray,false>
 };
 
 
@@ -10946,6 +11045,18 @@ Operator shareOp(
   shareTM
 );
 
+/*
+12.5 Operator instance
+
+*/
+Operator share2Op(
+  "share2",
+  share2Spec.getStr(),
+  2,
+  share2VM,
+  share2Select,
+  share2TM
+);
 
 /*
 13 Operator ~cleanUp~
@@ -20771,7 +20882,7 @@ int createintdarraySelect(ListExpr args){
                       workerAttrTypes,errMsg)){
      return -1;
    }
- 	int hnum = CcString::checkType(nl->First(workerAttrTypes))?0:2;
+  int hnum = CcString::checkType(nl->First(workerAttrTypes))?0:2;
   int cnum = CcString::checkType(nl->Third(workerAttrTypes))?0:2;   
   return cnum + hnum;
 }
@@ -21721,6 +21832,7 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&deleteRemoteObjectsOp);
    AddOperator(&cloneOp);
    AddOperator(&shareOp);
+   AddOperator(&share2Op);
    AddOperator(&cleanUpOp);
 
    AddOperator(&dfdistribute2Op);
