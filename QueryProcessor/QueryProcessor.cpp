@@ -1263,10 +1263,19 @@ ListExpr GetRootList(OpTree tree){
                last = nl->Append(last, nl->TwoElemList(
                                     nl->SymbolAtom("funId"),
                                     nl->IntAtom(tree->u.op.opFunId/65536)));
+               string name;
+               if(tree->u.op.theOperator) {
+                 name = tree->u.op.theOperator->GetName();
+               } else {
+                 if(tree->u.op.isFun){
+                    name = "FUNCTION";
+                 } else {
+                    name = "UNKNOWN";
+                 }
+               }
                last = nl->Append(last, nl->TwoElemList(
                                        nl->SymbolAtom("opName"),
-                                       nl->SymbolAtom(
-                                        tree->u.op.theOperator->GetName())));
+                                       nl->SymbolAtom(name)));
   }
   return nl->TwoElemList(ntlist, propList);
 }
@@ -5002,6 +5011,9 @@ QueryProcessor::ResultStorage( const Supplier s )
   if (tree->nodetype != Operator) {
     throw qp_error("Nodetype != Operator");
   }
+  while(tree->isAbstraction()){
+    tree = (OpTree) tree->u.op.sons[0].addr;
+  }
 
   return (tree->u.op.resultWord);
 }
@@ -5035,6 +5047,9 @@ QueryProcessor::ChangeResultStorage( const Supplier s, const Word& w )
   if (tree->nodetype != Operator) {
     throw qp_error("Nodetype != Operator");
   }
+  while(tree->isAbstraction()){
+    tree = (OpTree) tree->u.op.sons[0].addr;
+  }
 
   tree->u.op.resultWord.setAddr(w.addr);
 }
@@ -5060,6 +5075,10 @@ QueryProcessor::DeleteResultStorage( const Supplier s )
   OpTree tree = (OpTree) s;
   if (tree->nodetype != Operator) {
     throw qp_error("Nodetype != Operator");
+  }
+
+  while(tree->isAbstraction()){
+    tree = (OpTree) tree->u.op.sons[0].addr;
   }
 
   int algId = tree->u.op.resultAlgId;
@@ -5090,6 +5109,10 @@ QueryProcessor::ReInitResultStorage( const Supplier s )
   if (tree->nodetype != Operator) {
     throw qp_error("Nodetype != Operator");
   }
+  while(tree->isAbstraction()){
+    tree = (OpTree) tree->u.op.sons[0].addr;
+  }
+
 
   int algId = tree->u.op.resultAlgId;
   int typeId = tree->u.op.resultTypeId;
