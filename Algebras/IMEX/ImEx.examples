@@ -465,13 +465,13 @@ Remark    : will crash if wrong position or wrong tuple type is given
 Operator : geojson2line
 Number   : 73
 Signature: text x bool -> line
-Example  : query geojson2line(<text>{"geometry":{"coordinates":[[36.104474200000006,140.09705010000002],[36.104599900000004,140.0968355],[36.103951900000006,140.0952154],[36.103843600000005,140.09518060000002],[36.1037179,140.0951913],[36.103386300000004,140.0952905],[36.104474200000006,140.09705010000002]],"type":"Polygon"},"id":554450920,"type":"Feature","properties":{"natural":"wood"}}</text--->, TRUE) 
+Example  : query geojson2line('{"geometry":{"coordinates":[[36.104474200000006,140.09705010000002],[36.104599900000004,140.0968355],[36.103951900000006,140.0952154],[36.103843600000005,140.09518060000002],[36.1037179,140.0951913],[36.103386300000004,140.0952905],[36.104474200000006,140.09705010000002]],"type":"Polygon"},"id":554450920,"type":"Feature","properties":{"natural":"wood"}}', TRUE) 
 Result   : (line ( (36.1033863 140.0952905 36.1037179 140.0951913) (36.1033863 140.0952905 36.10447420000001 140.0970501) (36.1037179 140.0951913 36.1038436 140.0951806) (36.1038436 140.0951806 36.10395190000001 140.0952154) (36.10395190000001 140.0952154 36.1045999 140.0968355) (36.10447420000001 140.0970501 36.1045999 140.0968355)))
 
 Operator : geojson2point
 Number   : 74
 Signature: text -> point
-Example  : query geojson2point(<text>{"geometry":{"coordinates":[52.077,-1.09],"type":"Point"},"id":20822819,"type":"Feature","properties":{"natural":"tree"}}</text--->) 
+Example  : query geojson2point('{"geometry":{"coordinates":[52.077,-1.09],"type":"Point"},"id":20822819,"type":"Feature","properties":{"natural":"tree"}}') 
 Result   : (point (52.077 -1.09))
 
 
