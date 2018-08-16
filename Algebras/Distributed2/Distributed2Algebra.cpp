@@ -21406,7 +21406,7 @@ Operator ~makeSimple~
 
 This operator converts a DArray into an SDArray if possible.
 A boolean argument controls whether slots on the workers
-are copyied or just renamed. In the latter case, the source 
+are copied or just renamed. In the latter case, the source 
 darray is invalid. Optionally, a name can be choosed. If not,
 the name of the source array is overtaken.
 
@@ -21573,7 +21573,7 @@ OperatorSpec makeSimpleSpec(
   "Furthermore per SecondoMonitor, only one worker "
   "can be connected. \n"
   "The second argument determines wether the slots at "
-  "teh workers should be copyied (true) or renamed (false)."
+  "teh workers should be copied (true) or renamed (false)."
   "In the latter case, the original darray becomes unusable. "
   "The last (optinal) string argument determines the name of the "
   "sdarray. If omitted, the name of source darray is overtaken.",
@@ -21730,7 +21730,7 @@ OperatorSpec makeDArraySpec(
    "Converts an sdarray into a normal darray. "
    "The first argument specifies the sdarray to convert. " 
    "The second argument controls whether the slot contents "
-   "should be copyied or just renamed. In the latter case, "
+   "should be copied or just renamed. In the latter case, "
    "the source sdarray becomes unusable. The third oprional "
    "argument specifies the name for the target array. If the "
    "name is omitted, the name is overtaken from the source array.",
@@ -21745,9 +21745,194 @@ Operator makeDArrayOp(
   makeDArrayTM
 );
 
+/*
+Operator ~makeShort~
+
+Ensures that a resulting darray contains at most one slot per worker.
+A worker will have no slot if the source worker has also no slot.
+It receives the source darray, a string representing the name of the 
+result as well as a boolean value indicating whether the slots should be
+renamed or copied.
+
+*/
+ListExpr makeShortTM(ListExpr args){
+  string err="d[f]array x string x bool expected";
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError(err + " (wrong number of arguments)");
+  }
+  if(!DArray::checkType(nl->First(args))
+     &&!DFArray::checkType(nl->First(args))){
+    return listutils::typeError(err + " (first arg is no a d[f] array)");
+  }
+  if(!CcString::checkType(nl->Second(args))){
+    return listutils::typeError(err +" (second arg is nt a string)");
+  }
+  if(!CcBool::checkType(nl->Third(args))){
+    return listutils::typeError(err + " (third arg is not a bool)");
+  }
+  return nl->First(args);
+}
 
 
+template<class A>
+class ShortMaker{
+ public:
+    ShortMaker(A* _src, A* _res, const string& _name, const bool _copy):
+    src(_src), res(_res), copy(_copy){
+       res->set(src->getWorker().size(), _name, src->getWorker());
+       dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+    }
 
+    void start(){
+       set<DArrayElement> usedWorkers;
+       int resSlot = 0;
+       vector<boost::thread*> runners;
+       for(int i=0;i<src->getSize() && usedWorkers.size() < res->getSize();i++){
+          int w = src->getWorkerIndexForSlot(i);
+          DArrayElement elem = src->getWorker(w);
+          if(usedWorkers.find(elem) == usedWorkers.end()){ 
+             // worker not used yet
+             usedWorkers.insert(elem);
+             boost::thread* runner = new boost::thread(
+                                          boost::bind(&ShortMaker<A>::run,
+                                                   this,i, resSlot, w, elem));
+             resSlot++;
+             runners.push_back(runner);                         
+          }
+       }
+       for(size_t i=0;i<runners.size();i++){
+         runners[i]->join();
+         delete runners[i]; 
+       }
+    }
+
+
+ private:
+    A* src;
+    A* res;
+    bool copy;
+    string dbname;
+
+    void run(int srcSlot, int resSlot, int resWorker,  DArrayElement& elem){
+       res->setResponsible(resSlot, resWorker);
+       run(srcSlot, resSlot, elem, src, res); 
+    }
+
+    void run(int srcSlot, int resSlot, DArrayElement& elem,
+             DArray* src, DArray* res){
+       string srcName = src->getObjectNameForSlot(srcSlot);
+       string resName = res->getObjectNameForSlot(resSlot);
+       ConnectionInfo* ci = algInstance->getWorkerConnection(elem,dbname);
+       if(!ci){
+         return;
+       }
+       string cmd = "delete " + resName;
+       int err;
+       string errMsg;
+       double rt;
+       string result;
+       ci->simpleCommand(cmd, err, errMsg, result, false, rt,
+                         showCommands, commandLog, false,
+                         algInstance->getTimeout());
+
+       if(copy){
+         cmd = "let " + resName +" = " + srcName;
+       } else {
+         cmd = "changename " + srcName + " to " + resName;
+       }
+       ci->simpleCommand(cmd, err, errMsg, result, false, rt,
+                         showCommands, commandLog, false,
+                         algInstance->getTimeout());
+       if(err!=0){
+          cerr << "command " << cmd << " failed on " << elem << endl;
+       }
+    }
+    
+
+    void run(int srcSlot, int resSlot, DArrayElement& elem,
+             DFArray* src, DFArray* res){
+       ConnectionInfo* ci = algInstance->getWorkerConnection(elem,dbname);
+       if(!ci){
+         return;
+       }
+       string home = ci->getSecondoHome(false, commandLog);
+       string srcName = src->getFilePath(home, dbname, srcSlot);
+       string resName = res->getFilePath(home, dbname, resSlot);
+       string cmd;
+       if(copy){
+         cmd = "query  copyFile('" + srcName +"' , '" + resName+"',TRUE)";
+       } else {
+         cmd = "query  moveFile('" + srcName +"' , '" + resName+"',TRUE)";
+       }
+       int err;
+       string errMsg;
+       double rt;
+       string result;
+       ci->simpleCommand(cmd, err, errMsg, result, false, rt,
+                         showCommands, commandLog, false,
+                         algInstance->getTimeout());
+       if(err!=0){
+          cerr << "command " << cmd << " failed on " << elem << endl;
+       }
+    }
+};
+
+
+template<class A>
+int makeShortVMT(Word* args, Word& result, int message,
+                 Word& local, Supplier s) {
+
+  A* a = (A*) args[0].addr;
+  CcString* n = (CcString*) args[1].addr;
+  CcBool* o = (CcBool*) args[2].addr;
+  result = qp->ResultStorage(s);
+  A* res = (A*) result.addr;
+  
+  if(!n->IsDefined() || !a->IsDefined() || !o->IsDefined()){
+    res->makeUndefined();
+    return 0;
+  }
+  string name = n->GetValue();
+  if(!stringutils::isIdent(name)){
+    res->makeUndefined();
+    return 0;
+  }
+
+  ShortMaker<A> sm(a, res,  name, o->GetValue());
+  sm.start();
+  return 0;
+}
+
+ValueMapping makeShortVM[] = {
+   makeShortVMT<DArray>,
+   makeShortVMT<DFArray>
+};
+
+
+int makeShortSelect(ListExpr args){
+  return DArray::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec makeShortSpec(
+  "d[f]array x string x bool -> d[f]array ",
+  "_ makeShort[_,_] ",
+  "Reduces the number of slots in a darray in such a way "
+  "that each worker belong at most  to one slot. If a worker "
+  "of the source array holds at least one slot, the result array "
+  "will also hold exacly one slot. The boolean argument determines "
+  "whether the slot content should be copied or renamed.",
+  "query da2 makeShort[\"da2short\", TRUE] "
+
+);
+
+Operator makeShortOp(
+  "makeShort",
+  makeShortSpec.getStr(),
+  2,
+  makeShortVM,
+  makeShortSelect,
+  makeShortTM
+);
 
 
 /*
@@ -21988,6 +22173,8 @@ Distributed2Algebra::Distributed2Algebra(){
 
    AddOperator(&makeSimpleOp);
    AddOperator(&makeDArrayOp);
+
+   AddOperator(&makeShortOp);
 
    pprogView = new PProgressView();
    MessageCenter::GetInstance()->AddHandler(pprogView);

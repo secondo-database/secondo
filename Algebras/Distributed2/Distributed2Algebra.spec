@@ -149,6 +149,7 @@ operator dlet alias DLET pattern _ op[_,_]
 operator makeSimple alias MAKESIMPLE pattern _ op[_,_]
 operator makeDArray alias MAKEDARRAY pattern _ op[_,_]
 
+operator makeShort alias MAKESHORT pattern _ op[_,_]
 
 
 
