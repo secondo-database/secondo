@@ -21787,7 +21787,8 @@ class ShortMaker{
        set<DArrayElement> usedWorkers;
        int resSlot = 0;
        vector<boost::thread*> runners;
-       for(int i=0;i<src->getSize() && usedWorkers.size() < res->getSize();i++){
+       for(size_t i=0;i<src->getSize() && usedWorkers.size() < res->getSize()
+           ;i++){
           int w = src->getWorkerIndexForSlot(i);
           DArrayElement elem = src->getWorker(w);
           if(usedWorkers.find(elem) == usedWorkers.end()){ 
