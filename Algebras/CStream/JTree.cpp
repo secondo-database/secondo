@@ -710,11 +710,11 @@ std::string JNode::getNumber(std::string jsonString, int* index, int* max) {
     } else {
         try {
             if (res.find(".") != std::string::npos) {
-                double test = boost::lexical_cast<double>(res);
-                test=test;
+                //double test = boost::lexical_cast<double>(res);
+                //test=test;
             } else {
-                int test = boost::lexical_cast<int>(res);
-                test=test;
+                //int test = boost::lexical_cast<int>(res);
+                //test=test;
             }
         } catch(const boost::bad_lexical_cast &e) {
             res = "error_number (conversion): " + res;

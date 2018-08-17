@@ -25,6 +25,7 @@
 #ifndef ALGOFORTUNE_H_
 #define ALGOFORTUNE_H_
 
+
 #include "Vertex.h"
 #include "TinHelper.h"
 #include "Tin.h"

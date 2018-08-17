@@ -178,7 +178,7 @@ void getElementaryPath(Vertex* startingVertex);
 
 bool dfs(int v, int p);
 bool* visited;
-std::vector<std::vector<int>> g; 
+std::vector<std::vector<int> > g; 
 
 std::vector<Edge> edges;
 std::vector<Vertex> vertices;
@@ -342,21 +342,21 @@ public:
     
     void getPathes(int s, int d);
     void getPathesUtil(int u, int d, int pathIdx, 
-    std::vector<std::vector<int>> g);
+    std::vector<std::vector<int> > g);
     
     void dfs(int v);
-    void dfsRun(int v, bool visited[], std::vector<std::vector<int>> g, 
+    void dfsRun(int v, bool visited[], std::vector<std::vector<int> > g, 
     std::stack<int>* vis);
 
     bool visitVertex(int v, int parent, 
-    std::vector<std::vector<int>> g);    
+    std::vector<std::vector<int> > g);    
     void printCycle(int v, int u);
     std::stack<int> st;
     int* vis;
-    void depth_first_search(int u, std::vector<std::vector<int>> g);
+    void depth_first_search(int u, std::vector<std::vector<int> > g);
     void 
     dfs_visit(int u, int dest, int time, 
-    std::vector<std::vector<int>> g);
+    std::vector<std::vector<int> > g);
     
     std::vector<Cell>loop;
     void findSimpleLoop(int x, int y);

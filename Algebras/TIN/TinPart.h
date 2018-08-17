@@ -336,11 +336,14 @@ public:
  }
  static TIN_SIZE getSizeOnDisc_head() {
   LOGP
-  TIN_SIZE size = sizeof(TinPart::noTriangles)
-    + sizeof(TinPart::noVertices) + TinFeatures::getSizeOnDisc();
+  TIN_SIZE size = sizeof(TIN_SIZE) + sizeof(TIN_SIZE) +
+                 TinFeatures::getSizeOnDisc(); 
+    // sizeof(TinPart::noTriangles)
+    // + sizeof(TinPart::noVertices) + TinFeatures::getSizeOnDisc();
 
 #ifndef UNIT_TEST
-  size += sizeof(TinPart::recId);
+  size += sizeof(SmiRecordId);
+  // size += sizeof(TinPart::recId);
 
 #endif
   LOGP

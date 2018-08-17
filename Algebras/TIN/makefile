@@ -31,9 +31,7 @@ CCFLAGS += -Werror
 #CCFLAGS += -g #Undo LATER !!!
 
 
-ifneq ($(platform),mac_osx)
-  CCFLAGS += -std=c++0x 
-endif
+CCFLAGS += -std=c++0x 
 
 CCFLAGS += -Werror 
 

@@ -40,10 +40,7 @@ ifeq ($(platform),android)
 CCFLAGS += -I$(HOME)/jpeg-6b/
 endif
 
-ifneq ($(platform),mac_osx)
-#CCFLAGS += -std=c++0x
 CCFLAGS += -std=c++11
-endif
 
 # expand compile flags if necessary
 CCFLAGS += -Werror

@@ -746,7 +746,8 @@ public:
    return false;
  }
  static TIN_SIZE getSizeOnDisc() {
-  return sizeof(m_x1) + sizeof(m_y1) + sizeof(m_x2) + sizeof(m_y2);
+  return 4*sizeof(VERTEX_COORDINATE);
+         // m_x1 , m_y1, m_x2, m_y2
  }
 
 #ifndef UNIT_TEST
@@ -935,8 +936,8 @@ public:
  }
 
  static TIN_SIZE getSizeOnDisc() {
-  return Rectangle::getSizeOnDisc() + sizeof(m_maxValue)
-    + sizeof(m_minValue);
+  return Rectangle::getSizeOnDisc() + 2*sizeof(VERTEX_Z);
+        //  m_minValue , m_maxValue
  }
 
 };

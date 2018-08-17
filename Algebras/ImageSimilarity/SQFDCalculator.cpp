@@ -176,7 +176,7 @@ double SQFDCalculator::calcSQFD(std::vector<FeatureSignatureTuple> fst1,
         
         for (int y = 0; y < width; y++)
         {
-            double tmp = abs(arr1[y]) * abs(mat[y][x]); 
+            double tmp = std::abs(arr1[y]) * std::abs(mat[y][x]); 
             if (!(arr1[y] > 0 && mat[y][x] > 0))
             {
                 tmp = -tmp;

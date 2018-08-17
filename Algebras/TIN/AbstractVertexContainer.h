@@ -91,8 +91,9 @@ public:
 
 ///////Persistence///////////////////////////////////////////////
  static TIN_SIZE getSizeOnDiscStatic(TIN_SIZE noVertices) {
-  return sizeof(AbstractVertexContainer::maxSize)
-    + sizeof(AbstractVertexContainer::noVertices);
+  return 2*sizeof(TIN_SIZE);
+    // sizeof(AbstractVertexContainer::maxSize)
+    // + sizeof(AbstractVertexContainer::noVertices);
  }
  virtual TIN_SIZE getContainerSizeOnDisc() const=0;
  virtual TIN_SIZE getSizeOnDisc() const;

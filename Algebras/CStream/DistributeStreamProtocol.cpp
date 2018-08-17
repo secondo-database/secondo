@@ -72,7 +72,7 @@ string DistributeStreamProtocol::sendSupportedTypes(bool binary) {
 
 bool DistributeStreamProtocol::requestStream(string request,
     string& tupledesc, ListExpr& funList, bool& format){
-    unsigned short pos;
+    size_t pos;
     bool descrOK = false;
     bool filterOK = false;
     bool listvariantOK = false;
