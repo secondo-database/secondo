@@ -92,7 +92,10 @@ No dummy function needed.
 
 */
 
-WebLex::WebLex(std::istream *is) : yyFlexLexer (is) {switchState=-1;}
+WebLex::WebLex(std::istream *is) : yyFlexLexer (is) {
+    switchState=-1;
+    myin = is;
+}
 
 int WebLex::nextToken(){
   int symbol=0;

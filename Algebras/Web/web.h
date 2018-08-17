@@ -111,6 +111,7 @@ class WebLex : public yyFlexLexer {
         std::string tokenVal;
         int switchState;
         unsigned long pos;
+        std::istream* myin; 
 
 };
 
