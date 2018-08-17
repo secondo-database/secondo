@@ -118,7 +118,7 @@ void CommandLog::insert(ConnectionInfo* ci,
        ss << runtime << endl;
        ss << errorCode << endl;
        ss << "]" << endl;
-       (*fileout) << ss;
+       (*fileout) << ss.str();
     }
 }
 
