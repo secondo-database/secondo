@@ -1726,7 +1726,7 @@ template<RangeKind rk> int ORangeValueMap(Word* args, Word& result, int message,
       }
 
       SmiKeyRange fromRange, toRange;
-      if(rk==RightRange || Range) {
+      if(rk==RightRange || rk==Range) {
         orel->GetTupleFile()->KeyRange(linfo->fromKey.GetSmiKey(),fromRange);
         linfo->Card = (int)(linfo->total*(1-fromRange.less));
         if(rk==Range) {
