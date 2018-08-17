@@ -4153,7 +4153,8 @@ int SavetoMidiFun(Word* args, Word& result, int message, Word& local,
 
   if (out)
   {
-    writeResult = out.write(byteArray, byteVector.size());
+    out.write(byteArray, byteVector.size());
+    writeResult = out.good();
   }
   else
   {

@@ -4830,9 +4830,10 @@ wgetFun (Word* args, Word& result, int message, Word& local, Supplier s,
             checkUrl = NULL;
           }
         }
-        else
+        else {
           delete checkUrl;
           checkUrl = NULL;
+        }	    
       }
       if( !exturl )
       {
