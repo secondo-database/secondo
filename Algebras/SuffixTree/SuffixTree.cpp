@@ -62,7 +62,6 @@ SuffixTreeVertex::CreateSuffixtreeFromListExpr(ListExpr suffixtree,
 */
 SuffixTreeEdge*
 SuffixTreeVertex::CreateEdge(ListExpr suffixtree, const string *text)
-throw (string)
 {
   if (nl->ListLength(suffixtree) != 3)
     {
@@ -97,7 +96,6 @@ throw (string)
 */
 SuffixTreeVertex*
 SuffixTreeVertex::CreateVertex(ListExpr suffixtree, const string *text)
-throw (string)
 {
     SuffixTreeVertex* vertex = new SuffixTreeVertex(text);
     while (!nl->IsEmpty(suffixtree))

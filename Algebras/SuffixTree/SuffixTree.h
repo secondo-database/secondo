@@ -148,9 +148,9 @@ private:
   size_t SDepth;
   size_t VertexId;
   static SuffixTreeVertex* CreateVertex(ListExpr, 
-                            const std::string*) throw (std::string);
+                            const std::string*) ;
   static SuffixTreeEdge* CreateEdge(ListExpr, 
-                            const std::string*) throw (std::string);
+                            const std::string*) ;
 };
 
 /*
