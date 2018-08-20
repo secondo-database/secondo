@@ -9895,6 +9895,15 @@ class fdistribute7Info{
         max = _max->GetValue();
         fn = _fn->GetValue();
      }
+
+     // restrict buffersize depending of the number of files
+     if(max>0){
+        bufsize = bufsize / max;
+        if(bufsize < 4096){
+          bufsize = 4096;
+        }
+     }
+
      stream.open();
      relType = _relType;
      if(   _createEmpty->IsDefined()  
@@ -9905,8 +9914,6 @@ class fdistribute7Info{
        }
      }
      funArgs = qp->Argument(fun);
-
-
   }
 
 
