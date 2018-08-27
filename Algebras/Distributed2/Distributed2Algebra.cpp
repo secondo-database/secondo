@@ -17273,13 +17273,15 @@ class AReduceTask{
               // version with extracted function
               vector<string> argsv;
               argsv.push_back(tuplestream1);
-              argsv.push_back(tuplestream2);
+              if(matrix2){
+                  argsv.push_back(tuplestream2);
+              }
               ListExpr k = fun2cmd(funtext,argsv);
               cmd = nl->ToString(k);
               cmd ="( let " + objname + " = " + cmd + ")";
           } else {
 
-              string feed1 =isStream?"":" feed (";
+              string feed1 =isStream?"":" ( feed ";
               string feed2 =isStream?"":" ) ";
 
               string tdir =   ci->getSecondoHome(
@@ -17304,11 +17306,14 @@ class AReduceTask{
               // version with extracted function
               vector<string> argsv;
               argsv.push_back(tuplestream1);
-              argsv.push_back(tuplestream2);
+              if(matrix2){
+                argsv.push_back(tuplestream2);
+              }
               ListExpr k = fun2cmd(funtext, argsv);
               string kt = nl->ToString(k);
-              cmd =   "( query ( count ( fconsume5 (" + feed1 +  "" + kt
-                    + " )" + feed2 + "'" 
+
+              cmd =   "( query ( count ( fconsume5 " + feed1 +  "" + kt
+                    + " " + feed2 + "'" 
                     + filename + "')))";
 
           }
