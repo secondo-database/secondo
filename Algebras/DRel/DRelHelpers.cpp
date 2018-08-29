@@ -30,8 +30,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 Class with usefull helper functions for the DRelAlgebra
 
 */
+#define DRELDEBUG
 
 #include "Algebras/Rectangle/RectangleAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "ListUtils.h"
 #include "StandardTypes.h"
 #include "QueryProcessor.h"
@@ -76,19 +78,28 @@ as a list and the value (for example the name of the drel.
         cout << nl->ToString( arg ) << endl;
         #endif  
 
-        if( !nl->HasLength( arg, 2 ) ) {
+        ListExpr type;
+        if( nl->HasLength( arg, 1 ) ) {
+            type = arg;
+            drelValue = nl->TheEmptyList( );
+        }
+        else if( nl->HasLength( arg, 2 ) ) {
+            type = nl->First( arg );
+            drelValue = nl->Second( arg );
+        }
+        else {
             return false;
         }
 
-        if( !DRel::checkType( nl->First( arg ) ) 
-         && !DFRel::checkType( nl->First( arg ) ) ) {
+        if( !DRel::checkType( type )
+         && !DFRel::checkType( type ) ) {
             #ifdef DRELDEBUG
             cout << "keine drel" << endl;
             #endif
 
             return false;
         }
-        drelType = nl->First( arg );
+        drelType = type;
 
         if( !Relation::checkType( nl->Second( drelType ) ) ) {
             #ifdef DRELDEBUG
@@ -97,7 +108,6 @@ as a list and the value (for example the name of the drel.
             return false;
         }
 
-        drelValue = nl->Second( arg );
         relType = nl->Second( drelType );
         distType = nl->Third( drelType );
 
@@ -310,6 +320,28 @@ Checks a list to be a list of int atoms.
         }
 
         return true;
+    }
+
+/*
+1.12 ~getIndex~
+
+Search the right index in a vector for a given attribute. This is a seqential 
+search.
+
+*/
+    int DRelHelpers::getIndex( 
+        collection::Collection* vector, Attribute* attr ) {
+
+        int count = vector->GetNoComponents( );
+        int index = 0;
+        while( index < count ) {
+            if( attr->Compare( vector->GetComponent( index ) ) <= 0 ) {
+                return index;
+            }
+            index++;
+        }
+
+        return index;
     }
 
 } // end of namespace drel

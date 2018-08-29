@@ -286,12 +286,13 @@ list has an error.
         delete darray;
 
         ListExpr distType = nl->Third( list );
-        ListExpr typeDef = nl->First( distType );
 
         if( !nl->HasMinLength( distType, 1 ) ) {
             rel->makeUndefined( );
             return rel;
         }
+
+        ListExpr typeDef = nl->First( distType );
 
         if( !nl->IsAtom( typeDef )) {
             rel->makeUndefined( );
@@ -489,9 +490,12 @@ Checks the type in the NestedList.
         if( !listutils::isSymbol( nl->First( list ), BasicType( ) ) ) {
             return false;
         }
+
+        #ifdef DRELDEBUG
         ListExpr distTypeExpr = nl->Third( list );
         cout << "distTypeExpr" << endl;
         cout << nl->ToString( distTypeExpr ) << endl;
+        #endif
 
         return true;
     }

@@ -1,9 +1,11 @@
-operator createboundary alias CREATEBOUNDARY pattern _ op [_,_]
-operator getboundaryindex alias GETBOUNDARYINDEX pattern _ op [_]
+operator createboundary alias CREATEBOUNDARY pattern _ op [_,_,_]
+operator getboundaryindex alias GETBOUNDARYINDEX pattern op(_,_)
 operator rect2cellgrid alias RECT2CELLGRID pattern _ op [_]
 
 operator drelfdistribute alias DRELFDISTRIBUTE pattern _ op [_,_,_,_,_]
-operator dreldistribute alias DRRELDISTRIBUTE pattern _ op [_,_,_,_,_]
+operator dreldistribute alias DRELDISTRIBUTE pattern _ op [_,_,_,_,_]
+
+operator drelpartition alias DRELPARTITION pattern _ op [_]
 
 operator comparedisttype alias COMPAREDISTTYPE pattern _ _ op
 operator drelcollect_box alias DRELCOLLECTBOX pattern _ op[_]

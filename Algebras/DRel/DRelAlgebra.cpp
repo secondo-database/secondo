@@ -47,6 +47,8 @@ extern Operator rect2cellgridOp;
 extern Operator drelfdistributeOp;
 extern Operator dreldistributeOp;
 
+extern Operator drelpartitionOp;
+
 extern Operator compareDistTypeOp;
 extern Operator drelcollect_boxOp;
 extern Operator convert2darrayOp;
@@ -91,6 +93,8 @@ DRelAlgebra::DRelAlgebra() {
 
     AddOperator( &drelfdistributeOp );
     AddOperator( &dreldistributeOp );
+
+    AddOperator( &drelpartitionOp );
 
     AddOperator( &drelfilterOp );
     drelfilterOp.SetUsesArgsInTypeMapping( );

@@ -59,6 +59,9 @@ Except a boundary and an attribute with the same type as the bounary.
 */
     ListExpr getBoundaryIndexTM( ListExpr args ) {
 
+        cout << "getBoundaryIndexVM" << endl;
+        cout << nl->ToString( args ) << endl;
+
         std::string err = "vector(t), attr expected";
 
         if( ! nl->HasLength( args, 2 ) ) {
@@ -74,6 +77,12 @@ Except a boundary and an attribute with the same type as the bounary.
          && !Vector::checkType( nl->First( arg1 ) ) ) {
             return listutils::typeError( err + 
                 ": first arguments is not a vector" );
+        }
+
+        if( !nl->IsAtom( arg2 )
+         || nl->AtomType( arg2 ) != SymbolType ) {
+            return listutils::typeError( err +
+                ": second arguments is not an attribute" );
         }
 
         if( !nl->Equal( nl->Second( arg1 ), arg2 ) ) {
@@ -93,6 +102,8 @@ Get for an attribute the indexnumber within a boundary type.
     int getBoundaryIndexVM( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
+        cout << "getBoundaryIndexVM" << endl;
+
         collection::Collection* vector = 
             static_cast<collection::Collection*>( args[ 0 ].addr );
         Attribute* attr = static_cast<Attribute*>( args[ 1 ].addr );
@@ -105,15 +116,7 @@ Get for an attribute the indexnumber within a boundary type.
             return 0;
         }
 
-        int count = vector->GetNoComponents( );
-        int index = 0;
-        while( index < count ) {
-            if( attr->Compare( vector->GetComponent( index ) ) <= 0 ) {
-                res->Set( true, index );
-                return 0;
-            }
-            index++;
-        }
+        int index = DRelHelpers::getIndex( vector, attr );
 
         res->Set( true, index );
 
@@ -125,12 +128,12 @@ Get for an attribute the indexnumber within a boundary type.
 
 */
     OperatorSpec getBoundaryIndex(
-        " boundary x attr "
+        " vector x attr "
         "-> int ",
-        " _ getBoundaryIndex[ _ ]",
-        "Returns for an attribute the the indexnumber in within a "
-        "boundary.",
-        "query getBoundaryIndex[ PLZ ]"
+        " getboundaryindex(_,_)",
+        "Returns for an attribute the indexnumber within a "
+        "boundary. The boundary is a sorted vector.",
+        "query getboundaryindex(boundary, PLZ)"
     );
 
 /*

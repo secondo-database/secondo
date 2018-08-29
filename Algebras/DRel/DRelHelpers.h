@@ -29,7 +29,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define _DFRelHelpers_h_
 
 #include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/Collection/CollectionAlgebra.h"
 #include "NestedList.h"
+
+namespace distributed2 {
+    class DArrayBase;
+}
 
 namespace drel {
 /*
@@ -64,6 +69,9 @@ A class with usefull helper functions for the DRelAlgebra.
                 const Attribute* attr1, const Attribute* attr2 );
 
             static bool listOfIntAtoms( ListExpr list );
+
+            static int getIndex( collection::Collection* vector, 
+                Attribute* attr );
     };
 
 } // end of namespace drel

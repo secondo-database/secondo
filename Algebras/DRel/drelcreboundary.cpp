@@ -59,49 +59,103 @@ Get a relation, an attribute and a size object.
 */
     ListExpr createboundaryTM( ListExpr args ) {
 
-        std::string err = "rel, attr, int expected";
+        std::string err = "rel(tuple(X)) x attr x int expected";
 
-        if( ! nl->HasLength( args, 3 ) ) {
-            return listutils::typeError( err + 
-                ": three arguments are expected" );
-        }
+        if( nl->HasLength( args, 3 ) ) {
 
-        if( !nl->HasLength( nl->First( args ), 2 )
-         || !nl->HasLength( nl->Second( args ), 2 )
-         || !nl->HasLength( nl->Third( args ), 2 ) ) {
-            return listutils::typeError( err + ": internal error" );
-        }
+            if( !DRelHelpers::isListOfTwoElemLists( args ) ) {
+                return listutils::typeError( err + ": internal error" );
+            }
 
-        if( !Relation::checkType( nl->First( nl->First( args ) ) ) ) {
-            return listutils::typeError( err +
-                ": first argument is not a relation" );
-        }
-        std::string relName = nl->SymbolValue( 
-            nl->Second( nl->First( args ) ) );
+            if( !Relation::checkType( nl->First( nl->First( args ) ) ) ) {
+                return listutils::typeError( err +
+                    ": first argument is not a relation" );
+            }
         
-        if( ! listutils::isSymbol( nl->Second( nl->Second( args ) ) ) ) {
-            return listutils::typeError( err + 
-                ": second argument has to be an attribute name" );
-        }
+            if( ! listutils::isSymbol( nl->Second( nl->Second( args ) ) ) ) {
+                return listutils::typeError( err + 
+                    ": second argument has to be an attribute name" );
+            }
         
-        if( ! CcInt::checkType( nl->First( nl->Third( args ) ) ) ) {
-            return listutils::typeError( err + 
-                ": third argument has to be an integer" );
-        }
+            if( ! CcInt::checkType( nl->First( nl->Third( args ) ) ) ) {
+                return listutils::typeError( err + 
+                    ": third argument has to be an integer" );
+            }
 
-        if( ! nl->IsAtom( nl->Second( nl->Third( args ) ) ) ) {
-            return listutils::typeError( err +
-                ": internal error" );
-        }
+            if( ! nl->IsAtom( nl->Second( nl->Third( args ) ) ) ) {
+                return listutils::typeError( err +
+                    ": internal error" );
+            }
 
-        if( nl->AtomType( nl->Second( nl->Third( args ) ) ) != IntType ) {
-            return listutils::typeError( err +
-                ": internal error" );
-        }
+            if( nl->AtomType( nl->Second( nl->Third( args ) ) ) != IntType ) {
+                return listutils::typeError( err +
+                    ": internal error" );
+            }
 
-        if( ! ( nl->IntValue( nl->Second( nl->Third( args ) ) ) > 0 ) ) {
+            if( ! ( nl->IntValue( nl->Second( nl->Third( args ) ) ) > 0 ) ) {
+                return listutils::typeError( err +
+                    ": third argument has to be an integer greater than 0" );
+            }
+        }
+        else if( nl->HasLength( args, 4 ) ) {
+
+            if( !DRelHelpers::isListOfTwoElemLists( args ) ) {
+                return listutils::typeError( err + ": internal error" );
+            }
+
+            if( !listutils::isTupleStream( nl->First( nl->First( args ) ) ) ) {
+                return listutils::typeError( err +
+                    ": first argument is not a tuple stream" );
+            }
+
+            if( !listutils::isSymbol( nl->Second( nl->Second( args ) ) ) ) {
+                return listutils::typeError( err +
+                    ": second argument has to be an attribute name" );
+            }
+
+            if( !CcInt::checkType( nl->First( nl->Third( args ) ) ) ) {
+                return listutils::typeError( err +
+                    ": third argument has to be an integer" );
+            }
+
+            if( !nl->IsAtom( nl->Second( nl->Third( args ) ) ) ) {
+                return listutils::typeError( err +
+                    ": internal error" );
+            }
+
+            if( nl->AtomType( nl->Second( nl->Third( args ) ) ) != IntType ) {
+                return listutils::typeError( err +
+                    ": internal error" );
+            }
+
+            if( !( nl->IntValue( nl->Second( nl->Third( args ) ) ) > 0 ) ) {
+                return listutils::typeError( err +
+                    ": third argument has to be an integer greater than 0" );
+            }
+
+            if( !CcInt::checkType( nl->First( nl->Fourth( args ) ) ) ) {
+                return listutils::typeError( err +
+                    ": fourth argument has to be an integer" );
+            }
+
+            if( !nl->IsAtom( nl->Second( nl->Fourth( args ) ) ) ) {
+                return listutils::typeError( err +
+                    ": internal error" );
+            }
+
+            if( nl->AtomType( nl->Second( nl->Fourth( args ) ) ) != IntType ) {
+                return listutils::typeError( err +
+                    ": internal error" );
+            }
+
+            if( !( nl->IntValue( nl->Second( nl->Fourth( args ) ) ) > 0 ) ) {
+                return listutils::typeError( err +
+                    ": fourth argument has to be an integer greater than 0" );
+            }
+        }
+        else {
             return listutils::typeError( err +
-                ": third argument has to be an integer greater than 0" );
+                ": three or four arguments are expected" );
         }
 
         std::string attrName = nl->SymbolValue(
@@ -136,34 +190,71 @@ Creates a boundary object by determinating the boundaries with a sample
 of the realation.
 
 */
-    int createboundaryVM( Word* args, Word& result, int message,
+    template<bool instream>
+    int createboundaryVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
-        Relation* rel = ( Relation* )args[ 0 ].addr;
-        CcInt* size = ( CcInt* )args[ 2 ].addr;
-        CcInt* attrPos = ( CcInt* )args[ 3 ].addr;
-
         result = qp->ResultStorage( s );
-        collection::Collection* resultColl = 
+        collection::Collection* resultColl =
             static_cast<collection::Collection*>( result.addr );
         resultColl->Clear( );
         resultColl->SetDefined( true );
 
-        // get samplesize
-        vector<Attribute*> sample;
-        int sampleSize = DRelHelpers::computeSampleSize( rel->GetNoTuples( ) );
-        int nth = DRelHelpers::everyNthTupleForSample( 
-            sampleSize, rel->GetNoTuples( ) );
+        CcInt* size = ( CcInt* )args[ 2 ].addr;
 
-        // create a sample
-        GenericRelationIterator* it = rel->MakeScan( );
-        Tuple* tuple;
-        while( ( tuple = it->GetNthTuple( nth, false ) ) ) {
-            sample.push_back( 
-                tuple->GetAttribute( attrPos->GetValue( ) )->Clone( ) );
-            tuple->DeleteIfAllowed( );
+        vector<Attribute*> sample;
+        int count, attrPos;
+
+        if( instream ) {
+            count = ( ( CcInt* )args[ 3 ].addr )->GetValue( );
+            attrPos = ( ( CcInt* )args[ 4 ].addr )->GetValue( );
         }
-        delete it;
+        else {
+            count = ( ( Relation* )args[ 0 ].addr )->GetNoTuples( );
+            attrPos = ( ( CcInt* )args[ 3 ].addr )->GetValue( );
+        }
+
+        int sampleSize = DRelHelpers::computeSampleSize( count );
+        int nth = DRelHelpers::everyNthTupleForSample(
+            sampleSize, count );
+
+        if( instream ) {
+            Stream<Tuple> stream( args[ 0 ] );
+
+            // create a sample
+            Tuple* tuple;
+            stream.open( );
+            int i = 1;
+            while( ( tuple = stream.request( ) ) ) {
+                if( i == nth ) {
+                    tuple->IncReference( );
+                    sample.push_back(
+                        tuple->GetAttribute( attrPos ) );
+                    i = 1;
+                } else {
+                    i++;
+                }
+                tuple->DeleteIfAllowed( );
+            }
+            stream.close( );
+        }
+        else {
+            Relation* rel = ( Relation* )args[ 0 ].addr;
+
+            // create a sample
+            GenericRelationIterator* it = rel->MakeScan( );
+            Tuple* tuple;
+            while( ( tuple = it->GetNthTuple( nth, false ) ) ) {
+                /*tuple->IncReference( );
+                sample.push_back( 
+                    tuple->GetAttribute( attrPos->GetValue( ) ) );*/
+                sample.push_back( 
+                    tuple->GetAttribute( attrPos )->Clone( ) );
+                tuple->DeleteIfAllowed( );
+            }
+            delete it;
+        }
+
 
         // sort the sample
         sort( sample.begin( ), sample.end( ), DRelHelpers::compareAttributes );
@@ -192,27 +283,46 @@ of the realation.
     }
 
 /*
-1.3 Specification of createboundary
+1.3 ValueMapping Array for createboundary
+
+*/
+ValueMapping createboundaryVM[ ] = {
+    createboundaryVMT<false>,
+    createboundaryVMT<true>
+};
+
+/*
+1.4 Selection function for createboundary
+
+*/
+int createboundarySelect( ListExpr args ) {
+
+    return nl->HasLength( args, 3 ) ? 0 : 1;
+}
+
+/*
+1.5 Specification of createboundary
 
 */
     OperatorSpec createboundary(
-        " rel(tuple(X)) x attr x int "
+        " rel(tuple(X)) x attr x int or stream(tuple(X)) x attr x int x int "
         "-> boundary(x) ",
-        " _ createboundary[ _, _ ]",
+        " _ createboundary[ _, _, _ ]",
         "Creates a boundary object for a relation. The boundaries "
         "are determinated by a sample of the realtion.",
         " query plz createboundary[PLZ, 50]"
     );
 
 /*
-1.4 Operator instance of createboundary operator
+1.6 Operator instance of createboundary operator
 
 */
     Operator createboundaryOp(
         "createboundary",
         createboundary.getStr( ),
+        2,
         createboundaryVM,
-        Operator::SimpleSelect,
+        createboundarySelect,
         createboundaryTM
     );
 

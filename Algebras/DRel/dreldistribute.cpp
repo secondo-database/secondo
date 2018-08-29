@@ -147,7 +147,7 @@ the distributed tuple.
         int size ) {
 
         #ifdef DRELDEBUG
-        cout << "createStreamCellGridOpTree" << endl;
+        cout << "createReplicationOpTree" << endl;
         #endif
 
         ListExpr query = nl->ThreeElemList(
@@ -414,7 +414,9 @@ Type mapping for the distribute operators.
     template<class R, class A>
     ListExpr distributeTM( ListExpr args ) {
 
-        std::string err = "stream x rel x string x distType [x attr] [x int] "
+        /*std::string err = "rel x rel x string x distType [x attr] [x int] "
+            "expected";*/
+        std::string err = "rel x string x distType [x ident] [x int] x rel"
             "expected";
         ListExpr newRes = nl->TheEmptyList( );
         ListExpr appendList = nl->TheEmptyList( );
@@ -426,13 +428,19 @@ Type mapping for the distribute operators.
         }
 
         ListExpr relType = nl->First( args );
-        ListExpr workerRelType = nl->Second( args );
-        ListExpr nameType = nl->Third( args );
-        ListExpr reqDistType = nl->Fourth( args );
+        ListExpr nameType = nl->Second( args );
+        ListExpr reqDistType = nl->Third( args );
+
+        ListExpr workerRelType = nl->TheEmptyList( );
+        switch( nl->ListLength( args ) ) {
+        case 4: workerRelType = nl->Fourth( args ); break;
+        case 5: workerRelType = nl->Fifth( args ); break;
+        case 6: workerRelType = nl->Sixth( args ); break;
+        }
 
         if( !Relation::checkType( relType ) ) {
             return listutils::typeError( err + 
-                ": first parameter is no tuple stream" );
+                ": first parameter is no relation" );
         }
         ListExpr streamType = nl->TwoElemList( 
             listutils::basicSymbol<Stream<Tuple>>(), 
@@ -502,7 +510,7 @@ Type mapping for the distribute operators.
         // create result type and append list for random distribution
         else if( nl->HasLength( args, 5 ) && requestedDistType == random ) {
 
-            ListExpr numSlotsType = nl->Fifth( args );
+            ListExpr numSlotsType = nl->Fourth( args );
             ListExpr result = distribute3TM<A>( nl->FiveElemList(
                 streamType,
                 nameType,
@@ -532,15 +540,15 @@ Type mapping for the distribute operators.
         // or spatial3d for 6 arguments
         else if( nl->HasLength( args, 6 ) ) {
 
-            if( !( nl->AtomType( nl->Fifth( args ) ) 
+            if( !( nl->AtomType( nl->Fourth( args ) )
                     == SymbolType ) ) {
                 return listutils::typeError( err + ": fifth parameter is not "
                     "an attribute" );
             }
 
-            ListExpr numSlotsType = nl->Sixth( args );
+            ListExpr numSlotsType = nl->Fifth( args );
 
-            std::string attrName = nl->SymbolValue( nl->Fifth( args ) );
+            std::string attrName = nl->SymbolValue( nl->Fourth( args ) );
             ListExpr attrList = nl->Second( nl->Second( streamType ) );
 
             ListExpr attrType;
@@ -772,7 +780,7 @@ Value mapping of the distribute operator to replicate data.
         QueryProcessor* qps = new QueryProcessor( nl, am );
 
         Relation* rel = ( Relation* )args[ 0 ].addr;
-        Relation* workers = ( Relation* )args[ 1 ].addr;
+        Relation* workers = ( Relation* )args[ 3 ].addr;
         FText* sourceRelType = ( FText* )args[ 7 ].addr;
 
         ListExpr sourceType;
@@ -786,15 +794,10 @@ Value mapping of the distribute operator to replicate data.
         OpTree stream = createReplicationOpTree( 
             qps, rel, sourceType, workers->GetNoTuples( ) );
 
-        ArgVector argVec = {
-            stream,
-            args[ 2 ].addr,
+        ArgVector argVec = { stream, args[ 1 ].addr,
             new CcInt( workers->GetNoTuples( ), true ),
             new CcBool( true, true ),  // only round robin
-            args[ 1 ].addr,
-            args[ 4 ].addr,
-            args[ 5 ].addr,
-            args[ 6 ].addr };
+            args[ 3 ].addr, args[ 4 ].addr, args[ 5 ].addr, args[ 6 ].addr };
 
         distribute3VMT<AType, DType, HType, CType>( argVec,
             result, message, local, s );
@@ -826,9 +829,9 @@ Value mapping of the distribute operator to distribute by round robin.
             qps, nl->Second( qp->GetType( s ) ), rel );
 
         // new argument vector for distributqe3VMT
-        ArgVector argVec = { stream, args[ 2 ].addr, args[ 4 ].addr,
+        ArgVector argVec = { stream, args[ 1 ].addr, args[ 3 ].addr,
             new CcBool( true, true ),  // only round robin
-            args[ 1 ].addr, args[ 5 ].addr, args[ 6 ].addr, args[ 7 ].addr };
+            args[ 4 ].addr, args[ 5 ].addr, args[ 6 ].addr, args[ 7 ].addr };
 
         distribute3VMT<AType, DType, HType, CType>( argVec,
             result, message, local, s );
@@ -912,8 +915,8 @@ Value mapping of the distribute operator to distribute by hash.
 
         // new argument vector for distribute4VMT with the OpTree passed to 
         // the valuemapping of the distribute3 operator.
-        ArgVector argVec = { stream, args[ 2 ].addr, tree, args[ 5 ].addr,
-            args[ 1 ].addr, args[ 6 ].addr, args[ 7 ].addr, args[ 8 ].addr };
+        ArgVector argVec = { stream, args[ 1 ].addr, tree, args[ 4 ].addr,
+            args[ 5 ].addr, args[ 6 ].addr, args[ 7 ].addr, args[ 8 ].addr };
 
         distribute4VMT<AType, DType, HType, CType>( argVec,
             result, message, local, s );
@@ -948,7 +951,7 @@ Value mapping of the distribute operator to distribute by range.
         OpTree stream = createStreamOpTree(
             qps, nl->Second( qp->GetType( s ) ), rel );
 
-        CcInt* size = ( CcInt* )args[ 5 ].addr;
+        CcInt* size = ( CcInt* )args[ 4 ].addr;
         string attrName = ( ( CcString* )args[ 9 ].addr )->GetValue( );
         
         ListExpr attrType;
@@ -1060,8 +1063,8 @@ Value mapping of the distribute operator to distribute by range.
         }
 
         // new argument vector for distribute4VMT
-        ArgVector argVec = { stream, args[ 2 ].addr, tree, size, 
-            args[ 1 ].addr, args[ 6 ].addr, args[ 7 ].addr, args[ 8 ].addr };
+        ArgVector argVec = { stream, args[ 1 ].addr, tree, args[ 4 ].addr,
+            args[ 5 ].addr, args[ 6 ].addr, args[ 7 ].addr, args[ 8 ].addr };
 
         distribute4VMT<AType, DType, HType, CType>( argVec,
             result, message, local, s );
@@ -1091,7 +1094,7 @@ Value mapping of the distribute operator for spatial distribution.
         Word& local, Supplier s ) {
 
         Relation* rel = ( Relation* )args[ 0 ].addr;
-        CcInt* size = ( CcInt* )args[ 5 ].addr;
+        CcInt* size = ( CcInt* )args[ 4 ].addr;
         string attrName = ( ( CcString* )args[ 10 ].addr )->GetValue( );
         FText* sourceRelType = ( FText* )args[ 11 ].addr;
 
@@ -1119,11 +1122,11 @@ Value mapping of the distribute operator for spatial distribution.
         OpTree stream = createStreamCellGridOpTree<GType>(
             qps, rel, sourceType, attrName, grid );
         
-        // new argument vector for distribute4VMT with the OpTree passed to 
-        // the valuemapping of the distribute3 operator.
-        ArgVector argVec = { stream, args[ 2 ].addr, args[ 4 ].addr, size,
-            args[ 1 ].addr, args[ 6 ].addr, args[ 7 ].addr, args[ 8 ].addr,
-            args[ 9 ].addr };
+        // new argument vector for distribute2VMT with the OpTree passed to 
+        // the valuemapping of the distribute2 operator.
+        ArgVector argVec = { stream, args[ 1 ].addr, args[ 3 ].addr, 
+            args[ 4 ].addr, args[ 5 ].addr, args[ 6 ].addr, args[ 7 ].addr, 
+            args[ 8 ].addr, args[ 9 ].addr };
 
         ddistribute2VMT<AType, DType, HType, CType>( argVec,
             result, message, local, s );
@@ -1142,25 +1145,25 @@ Value mapping of the distribute operator for spatial distribution.
     }
 
     OperatorSpec drelfdistributeSpec(
-        " rel(tuple(X)) x rel(tuple(X)) x string x "
-        "distType [x attr] [x int] -> dfrel(X) ",
+        " rel(tuple(X)) x string x distType [x ident] [x int] x"
+        " rel(tuple(Y)) -> drel(tuple(X)) ",
         " _ drelfdistribute[ _, _, _, _, _]",
         "Distributes a relation to the workers of the worker relation. "
         "The first argument is the relation to distribute. The second "
-        "argument is the worker relation. It must be a relation having "
-        "attributes Host, Port, and Config. Host and Config must be of "
-        "type string or text, the Port attribute must be of type int. "
-        "The third Argument is the name for the resulting dfrel. If "
-        "the name is an empty string, a name is choosen automatically. "
-        "The fourth argument is the distribution type. Possible values "
-        "are random, hash, range, spatial2d spatial3d and replicated. "
+        "Argument is the name for the resulting drel. If the name is an "
+        "empty string, a name is choosen automatically. The Third "
+        "argument is the distribution type. Possible values "
+        "are RANDOM, HASH, RANGE, SPATIAL2D SPATIAL3D and REPLICATED. "
         "This argument specifies the type to distribute the relation "
-        "to the workers. The fifth argument is an attribute to distribute "
-        "the relation. This attribute is required for the distType hash,  "
-        "range, spatial2d and spatial3d and controls in which slot of the "
-        "resulting array is the corresponding tuple inserted. The sixth "
-        "argument specifies the size of the resulting array. If replicated "
-        "is choosen this argument is unnecessary. ",
+        "to the workers. The fourth argument is an attribute to distribute "
+        "the relation. This attribute is required for the distType HASH,  "
+        "RANGE, SPATIAL2D and SPATIAL3D and controls in which slot of the "
+        "resulting array is the corresponding tuple inserted. The fifth "
+        "argument specifies the size of the resulting array. If REPLICATED "
+        "is choosen this argument is unnecessary. The last argument is the "
+        "worker relation. It must be a relation having attributes Host, Port, "
+        "and Config. Host and Config must be of type string or text, the Port "
+        "attribute must be of type int.",
         " query strassen drelfdistribute[Worker3, \"\", \"range\", No, 5]"
     );
 
@@ -1202,9 +1205,18 @@ Value mapping of the distribute operator for spatial distribution.
     int distributeSelect( ListExpr args ) {
 
         distributionType type;
-        supportedType( nl->SymbolValue( nl->Fourth( args ) ), type );
+        supportedType( nl->SymbolValue( nl->Third( args ) ), type );
 
-        ListExpr attrList = nl->Second( nl->Second( nl->Second( args ) ) );
+        ListExpr attrList = nl->TheEmptyList( );
+        switch( nl->ListLength( args ) ) {
+        case 4: attrList = nl->Second( nl->Second( nl->Fourth( args ) ) ); 
+            break;
+        case 5: attrList = nl->Second( nl->Second( nl->Fifth( args ) ) );
+            break;
+        case 6: attrList = nl->Second( nl->Second( nl->Sixth( args ) ) );;
+            break;
+        }
+
         ListExpr hostType, configType;
         listutils::findAttribute( attrList, "Host", hostType );
         listutils::findAttribute( attrList, "Config", configType );
@@ -1224,26 +1236,26 @@ Value mapping of the distribute operator for spatial distribution.
     );
 
     OperatorSpec dreldistributeSpec(
-        " rel(tuple(X)) x rel(tuple(X)) x string x "
-        "distType [x attr] [x int] -> drel(X) ",
+        " rel(tuple(X)) x string x distType [x ident] [x int] x"
+        " rel(tuple(Y)) -> drel(tuple(X)) ",
         " _ dreldistribute[ _, _, _, _, _]",
         "Distributes a relation to the workers of the worker relation. "
         "The first argument is the relation to distribute. The second "
-        "argument is the worker relation. It must be a relation having "
-        "attributes Host, Port, and Config. Host and Config must be of "
-        "type string or text, the Port attribute must be of type int. "
-        "The third Argument is the name for the resulting drel. If "
-        "the name is an empty string, a name is choosen automatically. "
-        "The fourth argument is the distribution type. Possible values "
-        "are random, hash, range, spatial2d spatial3d and replicated. "
+        "Argument is the name for the resulting drel. If the name is an "
+        "empty string, a name is choosen automatically. The Third "
+        "argument is the distribution type. Possible values "
+        "are RANDOM, HASH, RANGE, SPATIAL2D SPATIAL3D and REPLICATED. "
         "This argument specifies the type to distribute the relation "
-        "to the workers. The fifth argument is an attribute to distribute "
-        "the relation. This attribute is required for the distType hash,  "
-        "range, spatial2d and spatial3d and controls in which slot of the "
-        "resulting array is the corresponding tuple inserted. The sixth "
-        "argument specifies the size of the resulting array. If replicated "
-        "is choosen this argument is unnecessary. ",
-        " query strassen dreldistribute[Worker3, \"\", \"range\", No, 5]"
+        "to the workers. The fourth argument is an attribute to distribute "
+        "the relation. This attribute is required for the distType HASH,  "
+        "RANGE, SPATIAL2D and SPATIAL3D and controls in which slot of the "
+        "resulting array is the corresponding tuple inserted. The fifth "
+        "argument specifies the size of the resulting array. If REPLICATED "
+        "is choosen this argument is unnecessary. The last argument is the "
+        "worker relation. It must be a relation having attributes Host, Port, "
+        "and Config. Host and Config must be of type string or text, the Port "
+        "attribute must be of type int.",
+        " query strassen dreldistribute[\"\", \"RANGE\", No, 5, Worker3]"
     );
 
     ValueMapping dreldistributeVM[ ] = {

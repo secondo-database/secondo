@@ -276,7 +276,7 @@ Returns the object as a list.
 
         Word value( boundary );
         return nl->FourElemList(
-            nl->IntAtom( type ), 
+            nl->StringAtom( getName( getDistType( ) ) ),
             nl->IntAtom( attr ),
             nl->IntAtom( key ),
             collection::Collection::Out( nl->Fourth( typeInfo ), value ) );
