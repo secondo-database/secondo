@@ -333,8 +333,9 @@ search.
         collection::Collection* vector, Attribute* attr ) {
 
         int count = vector->GetNoComponents( );
+
         int index = 0;
-        while( index < count ) {
+        while( index < count - 1 ) {
             if( attr->Compare( vector->GetComponent( index ) ) <= 0 ) {
                 return index;
             }
