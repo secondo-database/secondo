@@ -84,7 +84,6 @@ using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
-extern SecondoSystem* instance;
 
 
 ostream& operator<<(ostream& o, const mm2algebra::AttrIdPair& t) {
@@ -98,6 +97,12 @@ ostream& operator<<(ostream& o, const mm2algebra::AttrIdPair& t) {
 namespace mm2algebra {
 
 MemCatalog* catalog =0;
+
+MemCatalog* getMemCatalog(){ 
+   return catalog;
+}
+
+
 
 #define MEMORYMTREEOBJECT "memoryMTreeObject"
 

@@ -47,9 +47,7 @@ extern AlgebraManager* am;
 
 namespace mm2algebra {
 
-extern MemCatalog* catalog;
-
-
+MemCatalog* getMemCatalog();
 
 
   // MEMORYRELOBJECT
@@ -114,12 +112,12 @@ void MemoryRelObject::addTuple(Tuple* tup){
     size_t tupleSize = 0;
     tupleSize = tup->GetMemSize();
     unsigned long availableMemSize =
-            catalog->getAvailableMemSize();
+            getMemCatalog()->getAvailableMemSize();
     if ((size_t)tupleSize<availableMemSize){
         tup->SetTupleId(mmrel->size());
         mmrel->push_back(tup);
         memSize += tupleSize;
-        catalog->addToUsedMemSize(tupleSize);
+        getMemCatalog()->addToUsedMemSize(tupleSize);
     }
     else{
         cout<< "the memSize is not enough, the object"
@@ -137,7 +135,7 @@ bool MemoryRelObject::relToVector(
     rit = r->MakeScan();
     Tuple* tup;
     int tupleSize=0;
-    unsigned long availableMemSize = catalog->getAvailableMemSize();
+    unsigned long availableMemSize = getMemCatalog()->getAvailableMemSize();
     unsigned long usedMainMemory=0;
     // remove old content
     vector<Tuple*>::iterator it;
@@ -189,7 +187,7 @@ bool MemoryRelObject::mmrelToVector(
     
     Tuple* tup;
     int tupleSize=0;
-    unsigned long availableMemSize = catalog->getAvailableMemSize();
+    unsigned long availableMemSize = getMemCatalog()->getAvailableMemSize();
     unsigned long usedMainMemory=0;
     mmrel->clear();
     this->flob = _flob;
@@ -229,7 +227,7 @@ bool MemoryRelObject::tupleStreamToRel(Word arg, ListExpr le,
 
     Stream<Tuple> stream(arg);
     flob = _flob;
-    size_t availableMemSize = catalog->getAvailableMemSize();
+    size_t availableMemSize = getMemCatalog()->getAvailableMemSize();
     unsigned long usedMainMemory =0;
     Tuple* tup;
     int tupleSize = 0;
@@ -336,7 +334,7 @@ Attribute* MemoryAttributeObject::getAttributeObject(){
 
 bool MemoryAttributeObject::attrToMM(Attribute* attr,
             ListExpr le, string _database, bool _flob){
-    size_t availableMemSize = catalog->getAvailableMemSize();
+    size_t availableMemSize = getMemCatalog()->getAvailableMemSize();
     unsigned long usedMainMemory=0;
     if(_flob){
         attr->bringToMemory();
@@ -485,7 +483,7 @@ bool MemoryORelObject::addTuple(Tuple* tup){
 
   if(flob) tup->bringToMemory();
   tupleSize = tup->GetMemSize();
-  unsigned long availableMemSize = catalog->getAvailableMemSize();
+  unsigned long availableMemSize = getMemCatalog()->getAvailableMemSize();
 
   if((size_t)tupleSize<availableMemSize) {
       size_t tid = mmorel->noEntries()+1;
@@ -493,7 +491,7 @@ bool MemoryORelObject::addTuple(Tuple* tup){
       TupleWrap tw(tup);
       mmorel->insert(tw,pos);
       memSize += tupleSize;
-      catalog->addToUsedMemSize(tupleSize);
+      getMemCatalog()->addToUsedMemSize(tupleSize);
       return true;
   } else {
       cout << "the memSize is not enough, the object"
@@ -527,7 +525,7 @@ bool MemoryORelObject::relToTree(
     rit = r->MakeScan();
     Tuple* tup;
     int tupleSize=0;
-    unsigned long availableMemSize = catalog->getAvailableMemSize();
+    unsigned long availableMemSize = getMemCatalog()->getAvailableMemSize();
     unsigned long usedMainMemory = 0;
     
     mmorel->clear(true); 
@@ -592,7 +590,7 @@ bool MemoryORelObject::tupleStreamToORel(Word arg, ListExpr le, ListExpr type,
 
     Stream<Tuple> stream(arg);
     flob = _flob;
-    size_t availableMemSize = catalog->getAvailableMemSize();
+    size_t availableMemSize = getMemCatalog()->getAvailableMemSize();
     unsigned long usedMainMemory =0;
     Tuple* tup;
     int tupleSize = 0;
@@ -732,7 +730,7 @@ bool MemoryGraphObject::relToGraph(
     rit = r->MakeScan();
     Tuple* tup;
     int tupleSize = 0;
-    unsigned long availableMemSize = catalog->getAvailableMemSize();
+    unsigned long availableMemSize = getMemCatalog()->getAvailableMemSize();
     unsigned long usedMainMemory=0;
      
     memgraph->clear();  
@@ -809,7 +807,7 @@ void MemoryGraphObject::addTuple(Tuple* tup, double cost, double dist){
 
     size_t tupleSize = 0;
     tupleSize = tup->GetMemSize();
-    unsigned long availableMemSize = catalog->getAvailableMemSize();
+    unsigned long availableMemSize = getMemCatalog()->getAvailableMemSize();
  
     if((size_t)tupleSize<availableMemSize) {
         tup->SetTupleId(memgraph->size()+1);        
@@ -817,7 +815,7 @@ void MemoryGraphObject::addTuple(Tuple* tup, double cost, double dist){
         memgraph->addEdge(tup,source,target,cost,dist);
 //         tup->IncReference();
         memSize += tupleSize;
-        catalog->addToUsedMemSize(tupleSize);
+        getMemCatalog()->addToUsedMemSize(tupleSize);
     }
     else 
         cout << "the memSize is not enough, the object"
