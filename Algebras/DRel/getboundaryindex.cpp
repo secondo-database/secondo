@@ -102,8 +102,6 @@ Get for an attribute the indexnumber within a boundary type.
     int getBoundaryIndexVM( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
-        cout << "getBoundaryIndexVM" << endl;
-
         collection::Collection* vector = 
             static_cast<collection::Collection*>( args[ 0 ].addr );
         Attribute* attr = static_cast<Attribute*>( args[ 1 ].addr );
