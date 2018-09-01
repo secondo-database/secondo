@@ -144,7 +144,7 @@ Computes a boundary object.
                 sampleSize, count );
 
             std::string query =
-            "(createboundary (sort (dsummarize (dmap (convert2darray "
+            "(createboundary (sort (dsummarize (dmap (drelconvert "
             "(" + nl->ToString( dType ) + " (ptr " + 
             nl->ToString( listutils::getPtrList( drel ) ) + "))) \"\" "
             "(fun (dmapelem1 ARRAYFUNARG1) (project (nth (feed "
@@ -189,7 +189,7 @@ Computes the number of tuple in the given drel.
             cout << "Start: Compute the size of the drel ..." << endl;
 
             std::string query =
-            "(tie (getValue (dmap (convert2darray (" + nl->ToString( dType ) + 
+            "(tie (getValue (dmap (drelconvert (" + nl->ToString( dType ) + 
             " (ptr " + nl->ToString( listutils::getPtrList( drel ) ) + ")))"
             " \"\" (fun (dmapelem1 ARRAYFUNARG1) (count dmapelem1)))) "
             "(fun (first2 ELEMENT) (second3 ELEMENT) (+first2 second3)))";
@@ -231,7 +231,7 @@ Copies the boundary object to all workers.
         bool shareBoundary( ) {
 
             cout << endl;
-            cout << "Start: Bringh boundary object to the workers ..." << endl;
+            cout << "Start: Bring boundary object to the workers ..." << endl;
 
             if( !boundary ) {
                 if( !computeBoundary( ) ) {
@@ -242,7 +242,7 @@ Copies the boundary object to all workers.
             std::string query =
             "(share2 \"" + boundaryName + "\" ((vector " + attrType + ") "
             "(ptr " + nl->ToString( listutils::getPtrList( boundary ) ) + 
-            ")) TRUE (convert2darray (" + nl->ToString( dType ) +
+            ")) TRUE (drelconvert (" + nl->ToString( dType ) +
             " (ptr " + nl->ToString( listutils::getPtrList( drel ) ) + 
             "))))";
 
@@ -398,7 +398,7 @@ Repartitions the drel to a DFArray. No function is used. It will
 create a stream without any other functions.
 
 */
-        distributed2::DFArray* repartition2DFArray( ) {
+        bool repartition2DFArray( Word &result ) {
 
             if( !matrix ) {
                 repartition2DFMatrix( );
@@ -409,7 +409,10 @@ create a stream without any other functions.
                     nl->SymbolAtom( "feed" ),
                     nl->SymbolAtom( "elem_1" ) ) );
 
-            return repartition2DFArray( fun );
+            cout << "repartition2DFArray" << endl;
+            cout << nl->ToString( fun ) << endl;
+
+            return repartition2DFArray( fun, result );
         }
 
 /*
@@ -419,7 +422,7 @@ Repartitions the drel to a DFArray and sorts the relation by the partitioning
 attribute.
 
 */
-        distributed2::DFArray* repartition2DFArraySortBy( ) {
+        bool repartition2DFArraySortBy( ListExpr sortAttr, Word &result ) {
 
             if( !matrix ) {
                 repartition2DFMatrix( );
@@ -431,13 +434,9 @@ attribute.
                     nl->TwoElemList( 
                         nl->SymbolAtom( "feed" ),
                         nl->SymbolAtom( "elem_1" ) ),
-                    nl->OneElemList(
-                        nl->ThreeElemList(
-                            nl->SymbolAtom( "attr" ),
-                            nl->SymbolAtom( "elem_1" ),
-                            nl->SymbolAtom( attr ) ) ) ) );
+                    sortAttr ) );
 
-            return repartition2DFArray( fun );
+            return repartition2DFArray( fun, result );
         }
 
 /*
@@ -446,14 +445,17 @@ attribute.
 Repartitions the drel to a DFArray and uses a function while repartitioning.
 
 */
-        distributed2::DFArray* repartition2DFArray( ListExpr funList ) {
+        bool repartition2DFArray( ListExpr funList, Word &result ) {
 
             cout << endl;
-            cout << "Start: Bring the new partitions to the workers ..." 
+            cout << "Start: Redistribute the new partitions to the workers ..."
                  << endl;
 
             if( !matrix ) {
                 repartition2DFMatrix( );
+            }
+            if( !matrix) {
+                return false;
             }
 
             ListExpr matrixType = nl->TwoElemList(
@@ -487,14 +489,14 @@ Repartitions the drel to a DFArray and uses a function while repartitioning.
 
             if( !nl->HasLength( resultType, 3 ) ) {
                 cout << "ERROR: Transport of partitions failed!" << endl;
-                return 0;
+                return false;
             }
 
             ListExpr darrayType = nl->Third( resultType );
             if( !distributed2::DFArray::checkType( darrayType )
              && !distributed2::DArray::checkType( darrayType ) ) {
                  cout << "ERROR: Transport of partitions failed!" << endl;
-                 return 0;
+                 return false;
             }
 
             // first append value
@@ -505,37 +507,35 @@ Repartitions the drel to a DFArray and uses a function while repartitioning.
             CcBool* stream = new CcBool( true,
                 nl->BoolValue( nl->Second( nl->Second( resultType ) ) ) );
 
-            ListExpr query = nl->FiveElemList(
-                nl->SymbolAtom( "areduce" ),
-                nl->TwoElemList(
-                    matrixType,
+            ListExpr query = nl->TwoElemList(
+                nl->SymbolAtom( "drelconvert" ),
+                nl->FiveElemList(
+                    nl->SymbolAtom( "areduce" ),
                     nl->TwoElemList(
-                        nl->SymbolAtom( "ptr" ),
-                        listutils::getPtrList( matrix ) ) ),
-                nl->StringAtom( "" ),
-                funList,
-                nl->IntAtom( port ) );
+                        matrixType,
+                        nl->TwoElemList(
+                            nl->SymbolAtom( "ptr" ),
+                            listutils::getPtrList( matrix ) ) ),
+                    nl->StringAtom( "" ),
+                    funList,
+                    nl->IntAtom( port ) ) );
 
             QueryProcessor* qp = new QueryProcessor( nl, am );
             OpTree tree = createPartitionOpTree( qp, query );
 
-            Word result, local, dummy;
-            ArgVector argVec = { drel, new CcString( true, "" ), 
+            Word local, dummy;
+            ArgVector argVec = { matrix, new CcString( true, "" ), 
                 dummy, new CcInt( true , port ), fun, stream };
 
             distributed2::areduceVMT<distributed2::DFArray>( 
                 argVec, result, 0, local, tree );
 
-            distributed2::DFArray* resArray = 
-                ( distributed2::DFArray* )result.addr;
-
             qp->Destroy( tree, false );
             delete qp;
 
-            cout << "Done. Repartitioning finished!" 
-                 << endl;
+            cout << "Done. Repartitioning finished!" << endl;
 
-            return resArray;
+            return true;
         }
 
 /*

@@ -1767,7 +1767,7 @@ Operator specification of the drellsortby operator.
     Operator drelfilterOp(
         "drelfilter",
         drelfilterSpec.getStr( ),
-        4,
+        6,
         dreldmapVM,
         dreldmapSelect,
         drelfilterTM
@@ -1780,7 +1780,7 @@ Operator specification of the drellsortby operator.
     Operator drelprojectOp(
         "drelproject",
         drelprojectSpec.getStr( ),
-        4,
+        6,
         dreldmapVM,
         dreldmapSelect,
         drelprojectTM
@@ -1793,7 +1793,7 @@ Operator specification of the drellsortby operator.
     Operator drelprojectextendOp(
         "drelprojectextend",
         drelprojectextendSpec.getStr( ),
-        4,
+        6,
         dreldmapVM,
         dreldmapSelect,
         drelprojectextendTM
@@ -1806,7 +1806,7 @@ Operator specification of the drellsortby operator.
     Operator drelextendOp(
         "drelextend",
         drelextendSpec.getStr( ),
-        4,
+        6,
         dreldmapVM,
         dreldmapSelect,
         drelextendTM
@@ -1819,7 +1819,7 @@ Operator specification of the drellsortby operator.
     Operator drelheadOp(
         "drelhead",
         drelheadSpec.getStr( ),
-        4,
+        6,
         dreldmapVM,
         dreldmapSelect,
         drelheadTM
@@ -1832,7 +1832,7 @@ Operator specification of the drellsortby operator.
     Operator drelrenameOp(
         "drelrename",
         drelheadSpec.getStr( ),
-        4,
+        6,
         dreldmapVM,
         dreldmapSelect,
         drelrenameTM
@@ -1845,7 +1845,7 @@ Operator specification of the drellsortby operator.
     Operator drellrdupOp(
         "drellrdup",
         drellrdupSpec.getStr( ),
-        4,
+        6,
         dreldmapVM,
         dreldmapSelect,
         drellrdupTM
@@ -1858,7 +1858,7 @@ Operator specification of the drellsortby operator.
     Operator drellsortOp(
         "drellsort",
         drellsortSpec.getStr( ),
-        4,
+        6,
         dreldmapVM,
         dreldmapSelect,
         drellsortTM
@@ -1871,7 +1871,7 @@ Operator specification of the drellsortby operator.
     Operator drellgroupbyOp(
         "drellgroupby",
         drellgroupbySpec.getStr( ),
-        4,
+        6,
         dreldmapVM,
         dreldmapSelect,
         drellgroupbyTM
@@ -1884,7 +1884,7 @@ Operator specification of the drellsortby operator.
     Operator drellsortbyOp(
         "drellsortby",
         drellsortbySpec.getStr( ),
-        4,
+        6,
         dreldmapVM,
         dreldmapSelect,
         drellsortbyTM

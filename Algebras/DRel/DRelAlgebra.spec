@@ -9,7 +9,7 @@ operator drelpartition alias DRELPARTITION pattern _ op [_]
 
 operator comparedisttype alias COMPAREDISTTYPE pattern _ _ op
 operator drelcollect_box alias DRELCOLLECTBOX pattern _ op[_]
-operator convert2darray alias CONVERT2DARRAY pattern _ op
+operator drelconvert alias DRELCONVERT pattern _ op
 
 operator drelsummarize alias DRELSUMMARIZE pattern _ op
 
@@ -27,4 +27,9 @@ operator drelrename alias DRELRENAME pattern _ op[_]
 operator drellrdup alias DRELLRDUP pattern _ op
 operator drellsort alias DRELLSORT pattern _ op
 operator drellgroupby alias DRELLGROUPBY pattern _ op[list;funlist] implicit parameters elem1 types DRELRELFUNARG1
-operator drellsortby alias DRELPROJECT pattern _ op [list]
+operator drellsortby alias DRELLSORTBY pattern _ op [list]
+
+operator drelrdup alias DRELRDUP pattern _ op
+operator drelsort alias DRELSORT pattern _ op
+operator drelgroupby alias DRELGROUPBY pattern _ op[list;funlist] implicit parameters elem1 types DRELRELFUNARG1
+operator drelsortby alias DRELSORTBY pattern _ op [list]

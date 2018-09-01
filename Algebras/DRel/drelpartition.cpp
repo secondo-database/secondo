@@ -62,7 +62,7 @@ namespace distributed2 {
     template<class A>
     int dmapVMT( Word* args, Word& result, int message,
         Word& local, Supplier s );
-}
+};
 
 using namespace distributed2;
 
@@ -71,8 +71,7 @@ namespace drel {
 /*
 1.1 Type Mapping ~drelpartitionTM~
 
-Expect a d[f]rel with a function to filter the tuples. Type mapping for the 
-drelfilter operator.
+Expect a d[f]rel and an attribute name to repartition the given d[f]rel.
 
 */
     ListExpr drelpartitionTM( ListExpr args ) {
@@ -141,7 +140,6 @@ drelfilter operator.
             nl->StringAtom( attrName ),
             nl->IntAtom( pos - 1 ) );
 
-
         return nl->ThreeElemList( 
             nl->SymbolAtom( Symbols::APPEND( ) ),
             appendList,
@@ -178,19 +176,14 @@ attribute.
         Partitionier<R, T>* parti = new Partitionier<R, T>( attrName, attrType, 
             drel, qp->GetType( qp->GetSon( s, 0 ) ), 1238, boundaryName );
 
-        result = qp->ResultStorage( s );
-        R* resultDrel = ( R* )result.addr;
-
-        DFArray* darray = parti->repartition2DFArray( );
-
-        if( !darray || !darray->IsDefined( ) ) {
-            resultDrel->makeUndefined( );
-            return 0;
+        if( !parti->repartition2DFArray( result ) ) {
+            result = qp->ResultStorage( s );
+            ( ( DFRel* )result.addr )->makeUndefined( );
         }
 
-        resultDrel->copyFrom( *darray );
         collection::Collection* boundary = parti->getBoundary( );
 
+        DFRel* resultDrel = ( DFRel* )result.addr;
         DistTypeRange* distType = new DistTypeRange( range, pos, boundary );
         resultDrel->setDistType( distType );
 

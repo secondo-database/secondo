@@ -60,10 +60,31 @@ Signature : stream<SPATIAL2D> x bool -> rectangle
 Example   : query (strassen feed projecttransformstream[GeoData] drelcollect_box[TRUE]) = strassen feed extend[B : bbox(.GeoData)] aggregateB[B; fun(r1 : rect,r2: rect)      r1 union r2; [const rect value undef] ] 
 Result    : TRUE
 
-Operator  : convert2darray
+Operator  : drelconvert
 Number    : 1
 Signature : drel -> darray
-Example   : query drel1 convert2darray
+Example   : query drel1 drelconvert
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelconvert
+Number    : 2
+Signature : darray -> drel
+Example   : query darray1 drelconvert
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelconvert
+Number    : 3
+Signature : dfrel -> dfarray
+Example   : query drel1 drelconvert
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelconvert
+Number    : 4
+Signature : dfarray -> dfrel
+Example   : query darray1 drelconvert
 Result    : bug
 Remark    : remote server required
 
@@ -162,5 +183,33 @@ Operator  : drellsortby
 Number    : 1
 Signature : drel(rel(X)) x attr -> drel(rel(X))
 Example   : query drel1 drellsortby[PLZ]
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelrdup
+Number    : 1
+Signature : drel(rel(X)) -> drel(rel(X))
+Example   : query drel1 drelrdup
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelsort
+Number    : 1
+Signature : drel(rel(X)) -> drel(rel(X))
+Example   : query drel1 drelsort
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelgroupby
+Number    : 1
+Signature : drel(rel(X)) x attrlist x funlist -> drel(rel(Y))
+Example   : query drel1 drelgroupby[PLZ; Anz : group feed count]
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelsortby
+Number    : 1
+Signature : drel(rel(X)) x attr -> drel(rel(X))
+Example   : query drel1 drelsortby[PLZ]
 Result    : bug
 Remark    : remote server required

@@ -51,7 +51,7 @@ extern Operator drelpartitionOp;
 
 extern Operator compareDistTypeOp;
 extern Operator drelcollect_boxOp;
-extern Operator convert2darrayOp;
+extern Operator convertOp;
 
 extern Operator drelsummarizeOp;
 
@@ -70,6 +70,11 @@ extern Operator drellsortbyOp;
 extern Operator drelcreatebtreeOp;
 extern Operator drelexactmatchOp;
 extern Operator drelrangeOp;
+
+extern Operator drelrdupOp;
+extern Operator drelsortOp;
+extern Operator drelgroupbyOp;
+extern Operator drelsortbyOp;
 
 /*
 1 Implementation of the Algebra DRel
@@ -120,7 +125,7 @@ DRelAlgebra::DRelAlgebra() {
 
     AddOperator( &compareDistTypeOp );
     AddOperator( &drelcollect_boxOp );
-    AddOperator( &convert2darrayOp );
+    AddOperator( &convertOp );
 
     AddOperator( &drelsummarizeOp );
 
@@ -130,6 +135,15 @@ DRelAlgebra::DRelAlgebra() {
     drelexactmatchOp.SetUsesArgsInTypeMapping( );
     AddOperator( &drelrangeOp );
     drelrangeOp.SetUsesArgsInTypeMapping( );
+
+    AddOperator( &drelrdupOp );
+    drelrdupOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &drelsortOp );
+    drelsortOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &drelgroupbyOp );
+    drelgroupbyOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &drelsortbyOp );
+    drelsortbyOp.SetUsesArgsInTypeMapping( );
 }
 
 extern "C"
