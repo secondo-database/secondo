@@ -1536,7 +1536,7 @@ Uses a d[f]rel and creates a new drel. The d[f]rel is created by calling
 the dmap value mapping of the Distributed2Algebra.
 
 */
-    template<class R, class T, int parm>
+    template<class R, class T>
     int dreldmapVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
@@ -1545,6 +1545,8 @@ the dmap value mapping of the Distributed2Algebra.
         cout << "parm" << endl;
         cout << parm << endl;
         #endif
+
+        int parmNum = qp->GetNoSons( s );
         
         R* drel = ( R* )args[ 0 ].addr;
 
@@ -1552,9 +1554,9 @@ the dmap value mapping of the Distributed2Algebra.
             drel,
             new CcString( "" ),
             new CcBool( false, false ), // dummy, ignored by dmapVMT
-            args[ 1 + parm ].addr,
-            args[ 2 + parm ].addr,
-            args[ 3 + parm ].addr };
+            args[ parmNum -3 ].addr,
+            args[ parmNum -2 ].addr,
+            args[ parmNum -1 ].addr };
 
         dmapVMT<T>( argVec, result, message, local, s );
 
@@ -1575,12 +1577,8 @@ Used by the operators with only a drel input.
 
 */
     ValueMapping dreldmapVM[ ] = {
-        dreldmapVMT<DRel, DArray, 0>,
-        dreldmapVMT<DRel, DArray, 1>,
-        dreldmapVMT<DRel, DArray, 2>,
-        dreldmapVMT<DFRel, DFArray, 0>,
-        dreldmapVMT<DFRel, DFArray, 1>,
-        dreldmapVMT<DFRel, DFArray, 2>
+        dreldmapVMT<DRel, DArray>,
+        dreldmapVMT<DFRel, DFArray>
     };
 
 /*
@@ -1593,9 +1591,7 @@ must be moved to the right position for the dmap value mapping.
 */
     int dreldmapSelect( ListExpr args ) {
 
-        int parm = nl->ListLength( args ) - 1;
-
-        return DRel::checkType( nl->First( args ) ) ? 0 + parm : 3 + parm;
+        return DRel::checkType( nl->First( args ) ) ? 0 : 1;
     }
 
 /*
@@ -1767,7 +1763,7 @@ Operator specification of the drellsortby operator.
     Operator drelfilterOp(
         "drelfilter",
         drelfilterSpec.getStr( ),
-        6,
+        2,
         dreldmapVM,
         dreldmapSelect,
         drelfilterTM
@@ -1780,7 +1776,7 @@ Operator specification of the drellsortby operator.
     Operator drelprojectOp(
         "drelproject",
         drelprojectSpec.getStr( ),
-        6,
+        2,
         dreldmapVM,
         dreldmapSelect,
         drelprojectTM
@@ -1793,7 +1789,7 @@ Operator specification of the drellsortby operator.
     Operator drelprojectextendOp(
         "drelprojectextend",
         drelprojectextendSpec.getStr( ),
-        6,
+        2,
         dreldmapVM,
         dreldmapSelect,
         drelprojectextendTM
@@ -1806,7 +1802,7 @@ Operator specification of the drellsortby operator.
     Operator drelextendOp(
         "drelextend",
         drelextendSpec.getStr( ),
-        6,
+        2,
         dreldmapVM,
         dreldmapSelect,
         drelextendTM
@@ -1819,7 +1815,7 @@ Operator specification of the drellsortby operator.
     Operator drelheadOp(
         "drelhead",
         drelheadSpec.getStr( ),
-        6,
+        2,
         dreldmapVM,
         dreldmapSelect,
         drelheadTM
@@ -1832,7 +1828,7 @@ Operator specification of the drellsortby operator.
     Operator drelrenameOp(
         "drelrename",
         drelheadSpec.getStr( ),
-        6,
+        2,
         dreldmapVM,
         dreldmapSelect,
         drelrenameTM
@@ -1845,7 +1841,7 @@ Operator specification of the drellsortby operator.
     Operator drellrdupOp(
         "drellrdup",
         drellrdupSpec.getStr( ),
-        6,
+        2,
         dreldmapVM,
         dreldmapSelect,
         drellrdupTM
@@ -1858,7 +1854,7 @@ Operator specification of the drellsortby operator.
     Operator drellsortOp(
         "drellsort",
         drellsortSpec.getStr( ),
-        6,
+        2,
         dreldmapVM,
         dreldmapSelect,
         drellsortTM
@@ -1871,7 +1867,7 @@ Operator specification of the drellsortby operator.
     Operator drellgroupbyOp(
         "drellgroupby",
         drellgroupbySpec.getStr( ),
-        6,
+        2,
         dreldmapVM,
         dreldmapSelect,
         drellgroupbyTM
@@ -1884,7 +1880,7 @@ Operator specification of the drellsortby operator.
     Operator drellsortbyOp(
         "drellsortby",
         drellsortbySpec.getStr( ),
-        6,
+        2,
         dreldmapVM,
         dreldmapSelect,
         drellsortbyTM
