@@ -174,6 +174,7 @@ void StreamMultiClientServer::stopServer() {
         _stopped = true;
         _stoppedGuard.unlock();
         LOG << "stop unlock" << ENDL;
+        listener->CancelAccept();
         listener->ShutDown();
         LOG << "shutdown ok" << ENDL;
         LOG << "listener close" << ENDL;
