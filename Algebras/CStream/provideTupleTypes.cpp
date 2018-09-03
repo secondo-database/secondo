@@ -111,13 +111,13 @@ int provideTupleTypesTStream_VM(Word* args, Word& result, int message,
         case CLOSE:
         {
             LOG << " provideTupleTypes: ValueMapping: CLOSE " << ENDL;
-            sleep(20);
+            // sleep(20);
             LOG << " sleep end" << ENDL;
             if (local.addr != 0) {
                 local.setAddr(0);
+                delete provTupleTypesServer;
             }
             qp->Close(args[0].addr);
-            delete provTupleTypesServer;
             local.addr = 0;
             return 0;
         }
