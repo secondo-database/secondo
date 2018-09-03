@@ -72,6 +72,11 @@ Except a boundary and an attribute with the same type as the bounary.
         ListExpr arg1 = nl->First( args );
         ListExpr arg2 = nl->Second( args );
 
+        if( ! nl->HasLength( arg1, 2 ) ) {
+            return listutils::typeError( err + 
+                ": first arguments is not a vector" );
+        }
+
         ListExpr errorInfo;
         if( !collection::Collection::KindCheck( arg1, errorInfo )
          && !Vector::checkType( nl->First( arg1 ) ) ) {
