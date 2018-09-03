@@ -102,8 +102,8 @@ Result   : 4
 Operator : fromregion
 Number   : 1
 Signature: region x grid2 -> sbool
-Example  : query fromregion([const region value ((((3.0 4.0) (7.0 20.0) (26.0 30.0) (20.0 -5.0))((6.0 5.0) (8.0 7.0) (9.0 5.0))) (((60.0 60.0)(64.0 66.0)(68.0 68.0))))], [const grid2 value (0.0 0.0 1.0)])
-Result   : file
+Example  : query bbox(fromregion([const region value ((((3.0 4.0) (7.0 20.0) (26.0 30.0) (20.0 -5.0))((6.0 5.0) (8.0 7.0) (9.0 5.0))) (((60.0 60.0)(64.0 66.0)(68.0 68.0))))], [const grid2 value (0.0 0.0 1.0)]))
+Result   : (rect (3.0 68.0 -5.0 68.0))
 
 Operator : toregion
 Number   : 1
