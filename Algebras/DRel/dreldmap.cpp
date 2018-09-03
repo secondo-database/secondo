@@ -1199,7 +1199,7 @@ Expect a d[f]rel, an attribute list to group the tuple and a function list.
 Type mapping for the drellgroup operator.
 
 */
-    ListExpr drellgroupbyTM( ListExpr args ) {
+    ListExpr drellgroupbyTM( ListExpr args, bool global ) {
 
         #ifdef DRELDEBUG
         cout << "drellgroupbyTM" << endl;
@@ -1328,9 +1328,11 @@ Type mapping for the drellgroup operator.
                 cout << nl->ToString( drelType ) << endl;
                 #endif
             } else {
-                return listutils::typeError( err +
-                    ": it is not allowed to create a group without the "
-                    "distribution attribute" );
+                if( !global ) {
+                    return listutils::typeError( err +
+                        ": it is not allowed to create a group without the "
+                        "distribution attribute" );
+                }
             }
 
         }
@@ -1402,6 +1404,10 @@ Type mapping for the drellgroup operator.
             nl->SymbolAtom( Symbols::APPEND( ) ),
             append,
             newRes );
+    }
+
+    ListExpr drellgroupbyTM( ListExpr args ) {
+        return drellgroupbyTM( args, false );
     }
 
 /*

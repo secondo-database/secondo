@@ -135,8 +135,7 @@ Expect a d[f]rel and an attribute name to repartition the given d[f]rel.
 
         }
 
-        ListExpr appendList = nl->ThreeElemList(
-            nl->StringAtom( nl->SymbolValue( attrType ) ),
+        ListExpr appendList = nl->TwoElemList(
             nl->StringAtom( attrName ),
             nl->IntAtom( pos - 1 ) );
 
@@ -166,17 +165,19 @@ attribute.
     int drelpartitionVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
         
+        ListExpr boundaryType = nl->Fourth( nl->Third( qp->GetType( s ) ) );
         R* drel = ( R* )args[ 0 ].addr;
-        string attrType = ( ( CcString* )args[ 2 ].addr )->GetValue( );
-        string attrName = ( ( CcString* )args[ 3 ].addr )->GetValue( );
-        int pos = ( ( CcInt* )args[ 4 ].addr )->GetValue( );
+        //string attrType = ( ( CcString* )args[ 2 ].addr )->GetValue( );
+        string attrName = ( ( CcString* )args[ 2 ].addr )->GetValue( );
+        int pos = ( ( CcInt* )args[ 3 ].addr )->GetValue( );
 
         string boundaryName = distributed2::algInstance->getTempName();
 
-        Partitionier<R, T>* parti = new Partitionier<R, T>( attrName, attrType, 
-            drel, qp->GetType( qp->GetSon( s, 0 ) ), 1238, boundaryName );
+        Partitionier<R, T>* parti = new Partitionier<R, T>( attrName, 
+            boundaryType, drel, qp->GetType( qp->GetSon( s, 0 ) ), 
+            qp->GetType( s ), 1238, boundaryName );
 
-        if( !parti->repartition2DFArray( result ) ) {
+        if( !parti->repartition2DFArray( result, s ) ) {
             result = qp->ResultStorage( s );
             ( ( DFRel* )result.addr )->makeUndefined( );
         }

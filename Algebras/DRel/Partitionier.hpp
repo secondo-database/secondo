@@ -67,10 +67,12 @@ Class to repartition a DRel.
 1.1 Constructor
 
 */
-        Partitionier( std::string _attr, std::string _attrType, R* _drel, 
-            ListExpr _dType, int _port, std::string _boundaryName ) :
-            attr( _attr ), attrType( _attrType ), drel( _drel ), 
-            dType( _dType ), count( -1 ), boundary( 0 ), qp( 0 ), matrix( 0 ),
+        Partitionier( std::string _attr, ListExpr _boundaryType, R* _drel, 
+            ListExpr _sourcedType, ListExpr _targetdType, int _port, 
+            std::string _boundaryName ) :
+            attr( _attr ), boundaryType( _boundaryType ), drel( _drel ), 
+            sourcedType( _sourcedType ), targetdType( _targetdType ), 
+            count( -1 ), boundary( 0 ), qp( 0 ), matrix( 0 ),
             port( _port ), boundaryName( _boundaryName ) {
         }
 
@@ -79,10 +81,11 @@ Class to repartition a DRel.
 
 */
         Partitionier( const Partitionier& src ) :
-            attr( src.attr ), attrType( src.attrType ), drel( src.drel ), 
-            dType( src.dType ), count( src.count ), 
-            boundary( *( src.boundary ) ), qp( 0 ), matrix( *( src.matrix ) ),
-            port( src.port ), boundaryName( src.boundaryName ) {
+            attr( src.attr ), boundaryType( src.boundaryType ), drel( src.drel ), 
+            sourcedType( src.sourcedType ), targetdType( src.targetdType ), 
+            count( src.count ), boundary( *( src.boundary ) ), qp( 0 ), 
+            matrix( *( src.matrix ) ), port( src.port ), 
+            boundaryName( src.boundaryName ) {
         }
 
 /*
@@ -94,9 +97,10 @@ Class to repartition a DRel.
                 return *this;
             }
             attr = src.attr;
-            attrType = src.attrType;
+            boundaryType = src.boundaryType;
             drel = src.drel;
-            dType = src.dType;
+            sourcedType = src.sourcedType;
+            targetdType = src.targetdType;
             boundary = src.boundary;
             matrix = src.matrix;
             port = src.port;
@@ -145,7 +149,7 @@ Computes a boundary object.
 
             std::string query =
             "(createboundary (sort (dsummarize (dmap (drelconvert "
-            "(" + nl->ToString( dType ) + " (ptr " + 
+            "(" + nl->ToString( sourcedType ) + " (ptr " + 
             nl->ToString( listutils::getPtrList( drel ) ) + "))) \"\" "
             "(fun (dmapelem1 ARRAYFUNARG1) (project (nth (feed "
             "dmapelem1) " + std::to_string( nthSample ) + " FALSE) (" + attr + 
@@ -189,7 +193,8 @@ Computes the number of tuple in the given drel.
             cout << "Start: Compute the size of the drel ..." << endl;
 
             std::string query =
-            "(tie (getValue (dmap (drelconvert (" + nl->ToString( dType ) + 
+            "(tie (getValue (dmap (drelconvert (" + 
+            nl->ToString( sourcedType ) +
             " (ptr " + nl->ToString( listutils::getPtrList( drel ) ) + ")))"
             " \"\" (fun (dmapelem1 ARRAYFUNARG1) (count dmapelem1)))) "
             "(fun (first2 ELEMENT) (second3 ELEMENT) (+first2 second3)))";
@@ -240,9 +245,10 @@ Copies the boundary object to all workers.
             }
 
             std::string query =
-            "(share2 \"" + boundaryName + "\" ((vector " + attrType + ") "
-            "(ptr " + nl->ToString( listutils::getPtrList( boundary ) ) + 
-            ")) TRUE (drelconvert (" + nl->ToString( dType ) +
+            //"(share2 \"" + boundaryName + "\" ((vector " + attrType + ") "
+            "(share2 \"" + boundaryName + "\" (" + nl->ToString( boundaryType ) + 
+            "( ptr " + nl->ToString( listutils::getPtrList( boundary ) ) + 
+            ")) TRUE (drelconvert (" + nl->ToString( sourcedType ) +
             " (ptr " + nl->ToString( listutils::getPtrList( drel ) ) + 
             "))))";
 
@@ -300,7 +306,7 @@ Repartitions the drel to a DFMatrix.
                 nl->TwoElemList(
                     nl->ThreeElemList(
                         nl->SymbolAtom( "map" ),
-                        nl->Second( nl->Second( dType ) ),
+                        nl->Second( nl->Second( sourcedType ) ),
                         listutils::basicSymbol<CcInt>( ) ),
                     nl->ThreeElemList(
                         nl->SymbolAtom( "fun" ),
@@ -398,7 +404,7 @@ Repartitions the drel to a DFArray. No function is used. It will
 create a stream without any other functions.
 
 */
-        bool repartition2DFArray( Word &result ) {
+        bool repartition2DFArray( Word &result, Supplier s  ) {
 
             if( !matrix ) {
                 repartition2DFMatrix( );
@@ -409,43 +415,16 @@ create a stream without any other functions.
                     nl->SymbolAtom( "feed" ),
                     nl->SymbolAtom( "elem_1" ) ) );
 
-            cout << "repartition2DFArray" << endl;
-            cout << nl->ToString( fun ) << endl;
-
-            return repartition2DFArray( fun, result );
+            return repartition2DFArray( fun, result, s );
         }
 
 /*
-1.9 ~repartition2DFArraySortBy~
-
-Repartitions the drel to a DFArray and sorts the relation by the partitioning
-attribute.
-
-*/
-        bool repartition2DFArraySortBy( ListExpr sortAttr, Word &result ) {
-
-            if( !matrix ) {
-                repartition2DFMatrix( );
-            }
-
-            ListExpr fun = createFunList(
-                nl->ThreeElemList(
-                    nl->SymbolAtom( "sortby" ),
-                    nl->TwoElemList( 
-                        nl->SymbolAtom( "feed" ),
-                        nl->SymbolAtom( "elem_1" ) ),
-                    sortAttr ) );
-
-            return repartition2DFArray( fun, result );
-        }
-
-/*
-1.10 ~repartition2DFArray~
+1.9 ~repartition2DFArray~
 
 Repartitions the drel to a DFArray and uses a function while repartitioning.
 
 */
-        bool repartition2DFArray( ListExpr funList, Word &result ) {
+        bool repartition2DFArray( ListExpr funList, Word &result, Supplier s ) {
 
             cout << endl;
             cout << "Start: Redistribute the new partitions to the workers ..."
@@ -460,7 +439,7 @@ Repartitions the drel to a DFArray and uses a function while repartitioning.
 
             ListExpr matrixType = nl->TwoElemList(
                 listutils::basicSymbol<distributed2::DFMatrix>( ),
-                nl->Second( dType ) );
+                nl->Second( sourcedType ) );
 
             // create input for areduce type mapping
             ListExpr areduceTMArg = nl->FourElemList(
@@ -475,10 +454,10 @@ Repartitions the drel to a DFArray and uses a function while repartitioning.
                         nl->SymbolAtom( "map" ),
                         nl->TwoElemList(
                             nl->SymbolAtom( "fsrel" ),
-                            nl->Second( nl->Second( dType ) ) ),
+                            nl->Second( nl->Second( sourcedType ) ) ),
                         nl->TwoElemList(
                             nl->SymbolAtom( "stream" ),
-                            nl->Second( nl->Second( dType ) ) ) ),
+                            nl->Second( nl->Second( targetdType ) ) ) ),
                     funList ),
                 nl->TwoElemList(
                     listutils::basicSymbol<CcInt>( ),
@@ -507,31 +486,12 @@ Repartitions the drel to a DFArray and uses a function while repartitioning.
             CcBool* stream = new CcBool( true,
                 nl->BoolValue( nl->Second( nl->Second( resultType ) ) ) );
 
-            ListExpr query = nl->TwoElemList(
-                nl->SymbolAtom( "drelconvert" ),
-                nl->FiveElemList(
-                    nl->SymbolAtom( "areduce" ),
-                    nl->TwoElemList(
-                        matrixType,
-                        nl->TwoElemList(
-                            nl->SymbolAtom( "ptr" ),
-                            listutils::getPtrList( matrix ) ) ),
-                    nl->StringAtom( "" ),
-                    funList,
-                    nl->IntAtom( port ) ) );
-
-            QueryProcessor* qp = new QueryProcessor( nl, am );
-            OpTree tree = createPartitionOpTree( qp, query );
-
             Word local, dummy;
             ArgVector argVec = { matrix, new CcString( true, "" ), 
                 dummy, new CcInt( true , port ), fun, stream };
 
             distributed2::areduceVMT<distributed2::DFArray>( 
-                argVec, result, 0, local, tree );
-
-            qp->Destroy( tree, false );
-            delete qp;
+                argVec, result, 0, local, s );
 
             cout << "Done. Repartitioning finished!" << endl;
 
@@ -539,7 +499,7 @@ Repartitions the drel to a DFArray and uses a function while repartitioning.
         }
 
 /*
-1.11 get functions
+1.10 get functions
 
 This functions will compute the objects if they are not already created.
 
@@ -557,7 +517,7 @@ This functions will compute the objects if they are not already created.
 
 
 /*
-1.11.2 ~getBoundary~
+1.10.2 ~getBoundary~
 
 */
         collection::Collection* getBoundary( ) {
@@ -570,7 +530,7 @@ This functions will compute the objects if they are not already created.
         }
 
 /*
-1.11.3 ~getDFMatrix~
+1.10.3 ~getDFMatrix~
 
 */
         distributed2::DFMatrix* getDFMatrix( ) {
@@ -583,9 +543,9 @@ This functions will compute the objects if they are not already created.
         }
 
 /*
-1.12 set functions
+1.11 set functions
 
-1.12.1 ~setBoundary~
+1.11.1 ~setBoundary~
 
 */
 
@@ -656,15 +616,19 @@ This functions will compute the objects if they are not already created.
         ListExpr getArrayType( ) {
             ListExpr arrayType;
 
-            if( nl->ToString( nl->First( dType ) ) == DRel::BasicType( ) ) {
+            if( nl->ToString( nl->First( sourcedType ) ) == 
+                DRel::BasicType( ) ) {
+
                 arrayType = nl->TwoElemList(
                     listutils::basicSymbol<distributed2::DArray>( ),
-                    nl->Second( dType ) );
+                    nl->Second( sourcedType ) );
             }
-            else if( nl->ToString( nl->First( dType ) ) == DFRel::BasicType( ) ) {
+            else if( nl->ToString( nl->First( sourcedType ) ) == 
+                DFRel::BasicType( ) ) {
+
                 arrayType = nl->TwoElemList(
                     listutils::basicSymbol<distributed2::DFArray>( ),
-                    nl->Second( dType ) );
+                    nl->Second( sourcedType ) );
             }
 
             return arrayType;
@@ -677,9 +641,7 @@ This functions will compute the objects if they are not already created.
         ListExpr createBoundaryPointerList( ) {
 
             return nl->TwoElemList(
-                nl->TwoElemList(
-                    nl->SymbolAtom( "vector" ),
-                    nl->SymbolAtom( attrType ) ),
+                boundaryType,
                 nl->TwoElemList(
                     nl->SymbolAtom( "ptr" ),
                     listutils::getPtrList( boundary ) ) );
@@ -714,9 +676,10 @@ This functions will compute the objects if they are not already created.
 
 */
         std::string attr;
-        std::string attrType;
+        ListExpr boundaryType;
         R* drel;
-        ListExpr dType;
+        ListExpr sourcedType;
+        ListExpr targetdType;
         int count;
         collection::Collection* boundary;
         QueryProcessor* qp;
