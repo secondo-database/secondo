@@ -777,7 +777,7 @@ SecondoTTY::Execute()
   //si = si1;
   si = new SecondoInterfaceCS(true,0,true);
 
-  cout << "finished Creattion of SecondoInterfaceCS" << endl;
+  cout << "finished creation of SecondoInterfaceCS" << endl;
 
 
   #elif defined(REPLAY)
