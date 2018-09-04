@@ -38,6 +38,7 @@ are semantically equal.
 #include <cstdlib>
 #include <math.h>
 #include "WinUnix.h"
+#include "SecondoSMI.h"
 
 // The following  line selects the used standard implementation for
 // AlmostEqual(double, double):
@@ -168,6 +169,7 @@ bool AlmostEqual_CheckTypeSizes() {
   cout << "\tsizeof(float)       = " << sizeof(float) << endl;
   cout << "\tsizeof(double)      = " << sizeof(double) << endl;
   cout << "\tsizeof(long double) = " << sizeof(long double) << endl;
+  cout << "\tsizeof(SmiRecordId) = " << sizeof(SmiRecordId) << endl;
   cout << "\tisLittleEndian      = "
        << (WinUnix::isLittleEndian() ? "yes" : "no") << endl << endl;
   bool ok  = (sizeof(double) == 8);
