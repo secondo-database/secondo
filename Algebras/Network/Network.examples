@@ -23,7 +23,7 @@ Operator : thenetwork
 Number   : 1
 Signature: int x real x rel x rel -> network
 Example  : query thenetwork(1, 1.0, B_ROUTES, B_JUNCTIONS);
-Result   : file_platform
+Result   : file
 
 Operator : spsearchvisited
 Number   : 1
