@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # rmlogs [dbDir] - removes BERKELEY-DB log files
 #
