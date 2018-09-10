@@ -167,9 +167,11 @@ attribute.
         
         ListExpr boundaryType = nl->Fourth( nl->Third( qp->GetType( s ) ) );
         R* drel = ( R* )args[ 0 ].addr;
-        //string attrType = ( ( CcString* )args[ 2 ].addr )->GetValue( );
         string attrName = ( ( CcString* )args[ 2 ].addr )->GetValue( );
         int pos = ( ( CcInt* )args[ 3 ].addr )->GetValue( );
+
+        cout << "pos" << endl;
+        cout << pos << endl;
 
         string boundaryName = distributed2::algInstance->getTempName();
 
