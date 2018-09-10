@@ -918,7 +918,7 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
        }
        
        
-       String delim = JOptionPane.showInputDialog(null,"Please specify the delimiter-type \"tab\" for tabulator", "Export: Delimiter input",
+       String delim = JOptionPane.showInputDialog(null,"Please specify the delimiter-(type \"tab\" for tabulator)", "Export: Delimiter input",
                                                              JOptionPane.PLAIN_MESSAGE);   
       
         try {
