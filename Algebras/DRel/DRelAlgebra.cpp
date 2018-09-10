@@ -38,6 +38,9 @@ extern TypeConstructor DFRelTC;
 extern Operator DRELFUNARG1OP;
 extern Operator DRELFUNARG2OP;
 
+extern Operator DRELFUNARGTTT1OP;
+extern Operator DRELFUNARGTTT2OP;
+
 extern Operator DRELRELFUNARG1OP;
 
 extern Operator createboundaryOp;
@@ -75,6 +78,8 @@ extern Operator drelrdupOp;
 extern Operator drelsortOp;
 extern Operator drelgroupbyOp;
 extern Operator drelsortbyOp;
+
+extern Operator drelsortmergejoinOp;
 
 /*
 1 Implementation of the Algebra DRel
@@ -144,6 +149,9 @@ DRelAlgebra::DRelAlgebra() {
     drelgroupbyOp.SetUsesArgsInTypeMapping( );
     AddOperator( &drelsortbyOp );
     drelsortbyOp.SetUsesArgsInTypeMapping( );
+
+    AddOperator( &drelsortmergejoinOp );
+    drelsortmergejoinOp.SetUsesArgsInTypeMapping( );
 }
 
 extern "C"

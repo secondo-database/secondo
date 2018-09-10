@@ -33,3 +33,5 @@ operator drelrdup alias DRELRDUP pattern _ op
 operator drelsort alias DRELSORT pattern _ op
 operator drelgroupby alias DRELGROUPBY pattern _ op[list;funlist] implicit parameters elem1 types DRELRELFUNARG1
 operator drelsortby alias DRELSORTBY pattern _ op [list]
+
+operator drelsortmergejoin alias DRELSORTMERGEJOIN pattern _ _ op [_,_] implicit parameters elem1, elem2 types ARRAYFUNARGTTT1, ARRAYFUNARGTTT2

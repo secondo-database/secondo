@@ -213,3 +213,10 @@ Signature : drel(rel(X)) x attr -> drel(rel(X))
 Example   : query drel1 drelsortby[PLZ]
 Result    : bug
 Remark    : remote server required
+
+Operator  : drelsortmergejoin
+Number    : 1
+Signature : d[f]rel(rel(X)) x d[f]rel(rel(X)) x attr x attr -> d[f]rel(rel(X))
+Example   : query drel1 drel2 drelsortmergejoin[PLZ, PLZ2]
+Result    : bug
+Remark    : remote server required
