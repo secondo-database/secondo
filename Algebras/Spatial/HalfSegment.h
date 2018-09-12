@@ -19,13 +19,14 @@ than the right one.
 
 #include <math.h>
 #include <cmath>
+#include "AlmostEqual.h"
 #include "Coord.h"
 #include "Point.h"
 #include "AttrType.h"
 #include "Geoid.h"
 
 /*
-5.13 Auxiliary Funktions
+5.13 Auxiliary Functions
 
 */
 class HalfSegment; // forward declaration
@@ -467,22 +468,30 @@ way indicated in the ROSE paper.
 
 */
 inline
-HalfSegment::HalfSegment( bool ldp,
-                          const Point& lp,
-                          const Point& rp ):
-ldp( ldp ),
-lp( lp ),
-rp( rp ),
+HalfSegment::HalfSegment( bool _ldp,
+                          const Point& _lp,
+                          const Point& _rp ):
+ldp( _ldp ),
+lp( _lp ),
+rp( _rp ),
 attr(-99999)
 {
   assert(lp.IsDefined());
   assert(rp.IsDefined());
-  assert( !AlmostEqual( lp, rp ) );
+  if(AlmostEqual(lp,rp)){
+    std::cerr << "try to create a halfsegment with almost equal points" 
+              << std::endl;
+    std::cerr << "FACTOR used: " << getAlmostEqualFACTOR() << std::endl;
+    std::cerr << "lp : " << lp << endl;
+    std::cerr << "lr : " << rp << endl;
+    assert(!AlmostEqual(lp,rp));
+  }
+
 
   if( lp > rp )
   {
-    this->lp = rp;
-    this->rp = lp;
+    this->lp = _rp;
+    this->rp = _lp;
   }
 }
 
