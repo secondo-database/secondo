@@ -12,7 +12,7 @@ of a point data type.
 #define POINT_H
 
 #include <sstream>
-
+#include "AlmostEqual.h"
 #include "Coord.h"
 #include "Geoid.h"
 #include "Algebras/Rectangle/RectangleAlgebra.h"
