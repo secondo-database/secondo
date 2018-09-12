@@ -36,8 +36,26 @@ file ``../Tools/Utilities/AlmostEqual.cpp''.
 
 #include <stdint.h>
 
-extern const double  FACTOR;         // for AlmostEqualAbsolute
-extern const int64_t DELTA_NUMBERS;  // for AlmostEqual2sComplement
+double getAlmostEqualFactor();
+int64_t getAlmostEqualDeltaNumbers();
+
+
+const double FACTOR = getAlmostEqualFactor();// Precision factor. Maximun
+                                             //   tolerated absolute difference
+                                             //   between "equal" float numbers.
+                                             //   used by AlmostEqualAbsolute()
+
+const int64_t DELTA_NUMBERS =  getAlmostEqualDeltaNumbers();
+
+
+inline double getAlmostEqualFACTOR(){
+  return FACTOR;
+}
+
+inline int64_t getAlmostEqualDELTA_NUMBERS(){
+  return DELTA_NUMBERS;
+}
+
 
 // standard methode
 bool AlmostEqual( const double &d1, const double &d2 );

@@ -51,15 +51,18 @@ are semantically equal.
 
 using namespace std;
 
-const double FACTOR = 0.00000001;            // Precision factor. Maximun
-                                             //   tolerated absolute difference
-                                             //   between "equal" float numbers.
-                                             //   used by AlmostEqualAbsolute()
-const int64_t DELTA_NUMBERS =                // Precision factor, used within
+
+double getAlmostEqualFactor(){
+  return 0.00000001;
+}
+
+int64_t getAlmostEqualDeltaNumbers(){
+  int64_t dn =                // Precision factor, used within
   ((uint64_t)(0x1)) <<                       //   AlmostEqual2sComplement()
   ((numeric_limits<double>::digits-30)>0 ?   //   Number of tolerated
-   (numeric_limits<double>::digits-30) : 8); //   representable floats between
-                                             //   "equal" values. Must be >0.
+   (numeric_limits<double>::digits-30) : 8);
+  return dn;
+}
 
 
 
