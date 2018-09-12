@@ -121,10 +121,11 @@ file		"<file>"[^<]+"</file--->"
                         }
 
 <INITIAL>{number}       { UPDATE_COL
-                        f = atof( yytext );
+                        std::stringstream ss(yytext);
+                        ss >> f; 
                         yylval = lexnl->RealAtom( f );
-			return (ZZREAL);
-		        }
+                        return (ZZREAL);
+                        }
 
 <INITIAL>"TRUE"         { UPDATE_COL
 			yylval = lexnl->BoolAtom( true );
