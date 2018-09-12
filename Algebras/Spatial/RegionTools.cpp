@@ -268,7 +268,7 @@ static void SetPartnerNo(DbArray<HalfSegment>& segs){
    }
 
    if(!AlmostEqual(cycle[0],cycle[cycle.size()-1])){ // cycle not closed
-
+      cycle.push_back(cycle[0]);
    }
 
     if(cycle.size() < 4){
@@ -278,19 +278,36 @@ static void SetPartnerNo(DbArray<HalfSegment>& segs){
     Line* hss = new Line(cycle.size()*2);
 
     hss->StartBulkLoad();
+    size_t np = 0; 
     for(size_t i = 0; i<cycle.size()-1; i++){
-       HalfSegment hs(true, cycle[i],cycle[i+1]);
-       hs.attr.edgeno = i;
-       (*hss) += hs;
-       hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
-       (*hss) += hs; 
+       if(AlmostEqual(cycle[i],cycle[i+1])){
+         cerr << "Found almost equal points in cycle " << endl;
+         cerr << "p1 : " << cycle[i] << endl;
+         cerr << "p2 : " << cycle[i+1] << endl;
+         cerr << "the complete cycle is " << endl;
+         for(int j=0;i<cycle.size();j++){
+            cerr << "p["<<j<<"] = " << cycle[j] << endl;
+         }
+         cerr << "-------------------------------" << endl;
+              
+       } else {
+         np++;
+         HalfSegment hs(true, cycle[i],cycle[i+1]);
+         hs.attr.edgeno = i;
+         (*hss) += hs;
+         hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+         (*hss) += hs; 
+      }
     }
     hss->EndBulkLoad();
     Region* res= new Region(cycle.size()*2);
-
-    hss->Transform(*res);
+    if(np>2) {
+      hss->Transform(*res);
+    }
     hss->DeleteIfAllowed();
-    regs.push_back(pair<Region*,bool>(res, isFace));
+    if(np > 2){
+      regs.push_back(pair<Region*,bool>(res, isFace));
+    }
 }
 
 
