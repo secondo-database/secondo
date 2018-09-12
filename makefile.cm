@@ -247,14 +247,14 @@ SECONDO_DEMO = ./sec-demo/secondo
 DEMO_MAN := Documents/SecondoManual.pdf
 
 ifeq ($(platform),win32)
-DEMO_DEPS := $(PL_DLL_DIR)/*dll \
-	    $(PL_DLL_DIR)/pthreadVC*dll \
+DEMO_DEPS := $(PL_LIB_DIR)/*dll \
+	    $(PL_LIB_DIR)/pthreadVC*dll \
 	    $(JPL_JAR) \
 	    $(SECONDO_SDK)/auxtools/bin/libgsl*dll \
 	    $(SECONDO_SDK)/auxtools/bin/jpeg*dll
 
 else
-DEMO_DLL := $(PL_DLL_DIR)/libpl* \
+DEMO_DLL := $(PL_LIB_DIR)/libpl* \
 	    $(SECONDO_SDK)/auxtools/lib/libgsl*dll \
 	    $(SECONDO_SDK)/bdb/lib/libdb_cxx*
 endif
