@@ -1459,9 +1459,11 @@ plan_to_atom(tmatches(X, Y), Result) :-
 % special rule to handle special attribute ~rowid~
 plan_to_atom(rowid,' tupleid(.)' ) :- !.
 
-plan_to_atom(A,A) :-
+plan_to_atom(A,A1) :-
   string(A),
-  write_list(['\nINFO: ',plan_to_atom(A,A),' found a string!\n']),
+  atom_string(A2,A),
+  %write_list(['\nINFO: ',plan_to_atom(A,A),' found a string!\n']),
+  my_concat_atom(['"',A2,'"'],'',A1),
   !.
 
 plan_to_atom(dbobject(Name),ExtName) :-
