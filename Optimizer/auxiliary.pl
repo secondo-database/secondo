@@ -592,18 +592,22 @@ secondo(X) :-
 
 % restore object
 secondo(X) :-
-  my_concat_atom([restore, _, from, _], ' ', X),
+  my_concat_atom([restore, Obj, from, _], ' ', X),
   ( isDatabaseOpen
-    ->  write('\nERROR:\tCannot restore object, because no database is open.\n')
-    ;   ( secondo(X, Y)
+    ->   ( databaseObjectExistsDC(Obj)
+          -> (write('object having the same name exists'), nl, !, fail
+          )
+          ; secondo(X, Y)
            *-> ( promptSecondoResultSucceeded(Y)
                )
            ;   ( promptSecondoResultFailed,
                  fail
                )
         )
+    ;  write('\nERROR:\tCannot restore object, because no database is open.\n'),
+       fail
   ),
-  updateCatalog,
+%  updateCatalog,   % repeated update ???
   updateCatalog,
 %  ensureSmallObjectsExist,
   !.
@@ -766,38 +770,32 @@ open(Query) :-
   secondo(QueryText),
 	dropTempRels.
 
-% the hard way...
+% restore of single objects
+restore(Query) :-
+  isDatabaseOpen,
+  compound(Query),
+  compound_name_arguments(Query,from,[Obj,Source]),
+  my_concat_atom(['\'',Source,'\''],'',SourceA), % quote source
+  atom(obj),
+  my_concat_atom(['restore ',Obj,' from ',SourceA],'',QueryText),
+  !,
+  secondo(QueryText).
+  %dropTempRels.
+
+
+% restore database command 
 restore(Query) :-
   notIsDatabaseOpen,
-  atom(Query),
-  atom_concat('restore ', Query, QueryText), !,
-  secondo(QueryText).
+  Query =.. [from,DB,Source],
+  compound(DB),
+  compound_name_arguments(DB,database,[DBA]), %extract database name
+  my_concat_atom(['\'',Source,'\''],'',SourceA), % quote source
+  my_concat_atom(['restore database ',DBA,' from ',SourceA],'',QueryTextA),
+  !,
+  secondo(QueryTextA).
 
-% more comfortable (without quoting)
-restore(Query) :-
-  Query =.. [from,Obj,Source],
-  ( ( atom(Source), Obj =.. [database, DB], atom(DB) ) % restore database
-    -> ( notIsDatabaseOpen
-         -> my_concat_atom(['restore database',DB,'from',Source],' ',QueryText)
-         ; ( write_list(['\nERROR:\tCannot restore a database, \n',
-                         '--->\twhile a database is open!']), nl,
-             !, fail
-           )
-       )
-    ;  ( ( atom(Obj), term_to_atom(Source, SourceA) ) % restore object
-         -> ( notIsDatabaseOpen
-              -> (write_list(['\nERROR:\tCannot restore object.\n',
-                              '--->\tNo database open.']), nl, !, fail)
-              ;  my_concat_atom(['restore ',Obj,'from',SourceA],' ',QueryText)
-            )
-         ;  ( write_list(['\nERROR:\tInvalid restore command.\n',
-                   '\tThe correct syntax is \'restore <objname> from <file>.\'',
-                   '\n\tor \'restore database <dbname> from <file>.\'.']), nl,
-              !, fail
-            )
-       )
-  ),
-  secondo(QueryText).
+
+
 
 /*
 The keywords open and close are already assigned with operations
