@@ -19,3 +19,11 @@ sysDependentOperatorTF.pl
 opsyntaxg.pl
 proglogt.csv
 TestOptimizer.log
+.secondopltty_history
+libregSecondo.
+*.aux
+*.dvi
+*.tex
+*.toc
+temp_nested_list
+
