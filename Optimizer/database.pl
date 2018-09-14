@@ -1957,6 +1957,25 @@ showDatabaseSchema :-
   !.
 
 
+writeDBList([DB]) :-
+  !,write(DB),nl.
+
+writeDBList([DB|Rest]) :-
+  write(DB), nl,
+  writeDBList(Rest).
+
+writeDatabases(INQUIRY) :-
+  INQUIRY = [inquiry,[databases, DBLIST]],
+  nl,write('Available databases:'),nl,nl,
+  writeDBList(DBLIST).
+
+showDatabases :-
+  secondo('list databases', DBS),
+  !,
+  writeDatabases(DBS).
+  
+
+
 getSchema(Rel, Objs, AttrList) :-
   % NVK MODIFIED NR
   %Member = ['OBJECT',Rel,_ | [[[rel | [[tuple | [AttrList]]]]]]],
