@@ -742,6 +742,15 @@ create(Query) :-
   atom_concat('create ', Query, QueryText), !,
   secondo(QueryText).
 
+create(Query) :-
+  compound(Query),
+  compound_name_arguments(Query,database,[DBName]),
+  notIsDatabaseOpen,
+  atom_concat('create database ',DBName, QueryText),
+  !,
+  secondo(QueryText).
+
+
 update(Query) :-
   isDatabaseOpen,
   atom(Query),
