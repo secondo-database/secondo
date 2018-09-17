@@ -538,7 +538,8 @@ bool SmiUpdateFile::RegisterInFile()
       sysPage.shareByNum++;
       memcpy(pagePointer, &sysPage, sizeof(SmiUpdateSysPage));
 #if DB_VERSION_REQUIRED(4,6)
-      rc = dbMpf->put(pagePointer, DB_PRIORITY_DEFAULT, DB_MPOOL_DIRTY);
+      uint32_t flags = 0;
+      rc = dbMpf->put(pagePointer, DB_PRIORITY_DEFAULT, flags);
 #else
       rc = dbMpf->put(pagePointer, DB_MPOOL_DIRTY);
 #endif
@@ -565,7 +566,7 @@ int SmiUpdateFile::GetFactPageNum()
 
       //Get exist page numbers inside this file
 #if DB_VERSION_REQUIRED(4,6)
-		  DbTxn* tid = 0;
+		  DbTxn* tid = 0; 
       rc = dbMpf->get(&pageno, tid, DB_MPOOL_LAST, &pagePointer);
 #else
       rc = dbMpf->get(&pageno, DB_MPOOL_LAST, &pagePointer);
@@ -579,7 +580,6 @@ int SmiUpdateFile::GetFactPageNum()
 #endif
       SmiEnvironment::SetBDBError(rc);
     }
-
   return factPageNum;
 }
 
