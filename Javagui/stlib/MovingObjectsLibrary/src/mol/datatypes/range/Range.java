@@ -22,7 +22,6 @@ package mol.datatypes.range;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 
 import mol.datatypes.GeneralType;
 import mol.datatypes.features.Orderable;
@@ -49,38 +48,27 @@ public abstract class Range<T extends GeneralType & Orderable<T>> extends Genera
     * @param size
     *           - initial capacity of this 'Range' object
     */
-   protected Range(int size) {
+   protected Range(final int size) {
       this.intervals = new ArrayList<>(size);
       this.setDefined(true);
    }
 
    /**
-    * Copy constructor for a 'Range' object <br>
-    * Creates an 'Range' object as a copy from a other passed 'Range' object
-    * 
-    * @param originalRange
-    */
-   protected Range(final Range<T> originalRange) {
-      Objects.requireNonNull(originalRange, "range must not be null");
-
-      this.intervals = new ArrayList<>(originalRange.getNoComponents());
-      intervals.addAll(originalRange.getIntervals());
-
-      this.setDefined(originalRange.isDefined());
-   }
-
-   /**
     * Append the passed interval object to this range set.<br>
     * The passed interval have to be disjoint and non adjacent to the current range
-    * set.
+    * set.<br>
+    * Only defined interval objects will be added
     * 
     * @param interval
     *           - the interval object to append
     * @return true (as specified by {@link Collection#add})
     */
-   public boolean add(Interval<T> interval) {
+   public boolean add(final Interval<T> interval) {
+      if (interval.isDefined()) {
+         return intervals.add(interval);
+      }
 
-      return intervals.add(interval);
+      return false;
    }
 
    /**
@@ -93,9 +81,9 @@ public abstract class Range<T extends GeneralType & Orderable<T>> extends Genera
     *           - the interval object to append
     * @return true if adding of the passed interval was successful, false otherwise
     */
-   public boolean mergeAdd(Interval<T> interval) {
+   public boolean mergeAdd(final Interval<T> interval) {
       if (isEmpty()) {
-         return intervals.add(interval);
+         return add(interval);
 
       } else {
 
@@ -111,7 +99,7 @@ public abstract class Range<T extends GeneralType & Orderable<T>> extends Genera
 
          } else if (lastInterval.before(interval)) {
 
-            return intervals.add(interval);
+            return add(interval);
          }
       }
 
@@ -125,37 +113,158 @@ public abstract class Range<T extends GeneralType & Orderable<T>> extends Genera
     * @return true if the passed interval intersects at least with one interval of
     *         the range set
     */
-   public boolean intersects(Interval<T> interval) {
+   public boolean intersects(final Interval<T> interval) {
 
-      T ivLowerBound = interval.getLowerBound();
-      T ivUpperBound = interval.getUpperBound();
-
-      if (ivUpperBound.compareTo(getMinValue()) < 0 || ivLowerBound.compareTo(getMaxValue()) > 0) {
+      if (!this.isDefined() || !interval.isDefined()) {
          return false;
       }
 
-      return true;
+      Interval<T> centerIV;
+      int centerPos;
+
+      int firstPos = 0;
+      int lastPos = getNoComponents() - 1;
+
+      while (firstPos <= lastPos) {
+
+         centerPos = (firstPos + lastPos) / 2;
+
+         centerIV = this.get(centerPos);
+
+         if (centerIV.intersects(interval)) {
+            return true;
+
+         } else if (centerIV.after(interval)) {
+            lastPos = centerPos - 1;
+
+         } else if (centerIV.before(interval)) {
+            firstPos = centerPos + 1;
+         }
+
+      }
+
+      return false;
+
    }
 
    /**
-    * Check if the passed interval is adjacent to this 'Range' object.
+    * Check if the passed 'Range' intersects this range set
+    * 
+    * @param other
+    * @return true if the passed 'Range' intersects at least with one interval of
+    *         this range set
+    */
+   public boolean intersects(final Range<T> other) {
+
+      if (!this.isDefined() || !other.isDefined()) {
+         return false;
+      }
+
+      for (int i = 0; i < other.getNoComponents(); i++) {
+         Interval<T> currentOtherInterval = other.get(i);
+
+         if (this.intersects(currentOtherInterval)) {
+            return true;
+         }
+      }
+
+      return false;
+
+   }
+
+   /**
+    * Verify if the passed interval is adjacent to this 'Range' object.
     * 
     * @param interval
-    * @return
+    * 
+    * @return true if the passed interval is left or right adjacent, false
+    *         otherwise
     */
-   public boolean adjacent(Interval<T> interval) {
+   public boolean adjacent(final Interval<T> interval) {
 
-      return first().leftAdjacent(interval) || last().rightAdjacent(interval);
+      return leftAdjacent(interval) || rightAdjacent(interval);
 
    }
 
    /**
-    * Getter for the list of intervals
+    * Verify if this 'Range' object is adjacent on the right to the passed interval
     * 
-    * @return the intervals
+    * @param interval
+    * @return true if the passed interval is adjacent on the right, false otherwise
     */
-   private List<Interval<T>> getIntervals() {
-      return intervals;
+   public boolean rightAdjacent(final Interval<T> interval) {
+      return last().rightAdjacent(interval);
+   }
+
+   /**
+    * Verify if this 'Range' object is adjacent on the left to the passed interval
+    * 
+    * @param interval
+    * 
+    * @return true if the passed interval is adjacent on the left, false otherwise
+    */
+   public boolean leftAdjacent(final Interval<T> interval) {
+      return first().leftAdjacent(interval);
+   }
+
+   /**
+    * Verify if this {@code 'Range<T>'} object is before the passed
+    * {@code 'Interval<T>'} object
+    * 
+    * @param interval
+    * @return true if this object is before the passed one, false otherwise
+    */
+   public boolean before(final Interval<T> interval) {
+
+      return last().before(interval);
+
+   }
+
+   /**
+    * Verify if this {@code 'Range<T>'} object is after the passed
+    * {@code 'Interval<T>'} object
+    * 
+    * @param interval
+    * @return true if this object is after the passed one, false otherwise
+    */
+   public boolean after(final Interval<T> interval) {
+      return first().after(interval);
+
+   }
+
+   /**
+    * Check whether the given value is covered by this range set.
+    * 
+    * @param value
+    * 
+    * @return true if value is covered by this range set, false otherwise
+    */
+   public boolean contains(final T value) {
+
+      Interval<T> centerInterval;
+      int centerIdx;
+
+      int firstIdx = 0;
+      int lastIdx = this.intervals.size() - 1;
+
+      while (firstIdx <= lastIdx) {
+
+         centerIdx = (firstIdx + lastIdx) / 2;
+
+         centerInterval = this.intervals.get(centerIdx);
+
+         if (centerInterval.contains(value)) {
+            return true;
+
+         } else if (value.compareTo(centerInterval.getLowerBound()) <= 0) {
+            lastIdx = centerIdx - 1;
+
+         } else if (value.compareTo(centerInterval.getUpperBound()) >= 0) {
+            firstIdx = centerIdx + 1;
+         }
+
+      }
+      return false;
    }
 
    /**
@@ -166,7 +275,7 @@ public abstract class Range<T extends GeneralType & Orderable<T>> extends Genera
    public T getMinValue() {
 
       if (isEmpty()) {
-         return getUndefinedValue();
+         return getUndefinedObject();
       } else {
          Interval<T> firstInterval = first();
          return firstInterval.getLowerBound();
@@ -181,7 +290,7 @@ public abstract class Range<T extends GeneralType & Orderable<T>> extends Genera
     */
    public T getMaxValue() {
       if (isEmpty()) {
-         return getUndefinedValue();
+         return getUndefinedObject();
       } else {
          Interval<T> lastInterval = last();
          return lastInterval.getUpperBound();
@@ -226,7 +335,7 @@ public abstract class Range<T extends GeneralType & Orderable<T>> extends Genera
     *            if the index is out of range
     *            (<tt>index &lt; 0 || index &gt;= getNoComponents()</tt>) *
     */
-   protected Interval<T> get(int index) {
+   protected Interval<T> get(final int index) {
       return intervals.get(index);
    }
 
@@ -236,14 +345,24 @@ public abstract class Range<T extends GeneralType & Orderable<T>> extends Genera
     * @return true if this range set is empty, false otherwise
     */
    public boolean isEmpty() {
-      return intervals.size() == 0;
+      return intervals.isEmpty();
+   }
+
+   /*
+    * (non-Javadoc)
+    * 
+    * @see java.lang.Object#toString()
+    */
+   @Override
+   public String toString() {
+      return "Range [intervals=" + intervals + "]";
    }
 
    /**
-    * Returns an undefined object of type {@code <T>} <br>
-    * Must be implemented by the specific subclass
+    * Returns an undefined object of type {@code <T>}. <br>
+    * Must be implemented by the specific subclass.
     * 
     * @return undefined object of type {@code <T>}
     */
-   protected abstract T getUndefinedValue();
+   protected abstract T getUndefinedObject();
 }

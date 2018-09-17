@@ -19,33 +19,32 @@
 
 package mol.util;
 
-import java.time.Instant;
-
-import mol.data.interval.Period;
-
 /**
- * This class provides helper methods for usage in the unit tests
+ * Class for a value object
  * 
  * @author Markus Fuessel
  *
  */
-public class TestUtilData {
+public class CrossPointScalars {
 
-	public static Instant getInstant(String day) {
+   /**
+    * the time scalar, public for easy use
+    */
+   public final double timeScalar;
 
-		Instant instant = Instant.parse("2018-01-" + day + "T00:00:00Z");
+   /**
+    * the position scalar, public for easy use
+    */
+   public final double positionScalar;
 
-		return instant;
-	}
-
-	public static Period getPeriod(String dayBegin, String dayEnd, boolean leftClosed, boolean rightClosed) {
-
-		Instant instantBegin = getInstant(dayBegin);
-		Instant instantEnd = getInstant(dayEnd);
-
-		Period period = new Period(instantBegin, instantEnd, leftClosed, rightClosed);
-
-		return period;
-	}
-
+   /**
+    * Constructor for a 'CrossPointScalars' value object
+    * 
+    * @param timeScalar
+    * @param positionScalar
+    */
+   public CrossPointScalars(double timeScalar, double positionScalar) {
+      this.timeScalar = timeScalar;
+      this.positionScalar = positionScalar;
+   }
 }

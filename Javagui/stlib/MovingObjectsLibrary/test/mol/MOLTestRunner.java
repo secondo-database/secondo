@@ -17,30 +17,27 @@
 //along with SECONDO; if not, write to the Free Software
 //Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-package mol.data.interval;
+package mol;
 
-import java.time.Instant;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
+
+import mol.suites.TestSuiteDatatypes;
+import mol.suites.TestSuiteOperations;
+import mol.suites.TestSuiteSpatialDatatypes;
+import mol.suites.TestSuiteTemporalDatatypes;
+import mol.suites.TestSuiteUtilClasses;
 
 /**
- * Concrete class to represent period objects
+ * Suite for collecting ALL tests of the MovingObjectsLibrary
  * 
  * @author Markus Fuessel
  *
  */
-public class Period extends Interval<Instant> {
+@RunWith(Suite.class)
+@SuiteClasses({ TestSuiteDatatypes.class, TestSuiteSpatialDatatypes.class, TestSuiteUtilClasses.class,
+      TestSuiteTemporalDatatypes.class, TestSuiteOperations.class })
+public class MOLTestRunner {
 
-	/**
-	 * Constructs an period object
-	 * 
-	 * @param lowerBound
-	 * @param upperBound
-	 * @param leftClosed
-	 * @param rightClosed
-	 */
-	public Period(Instant lowerBound, Instant upperBound, boolean leftClosed, boolean rightClosed) {
-		setLowerBound(lowerBound);
-		setUpperBound(upperBound);
-		setLeftClosed(leftClosed);
-		setRightClosed(rightClosed);
-	}
 }

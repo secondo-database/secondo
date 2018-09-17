@@ -17,27 +17,42 @@
 //along with SECONDO; if not, write to the Free Software
 //Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-package mol.datatypes;
+package mol.datatypes.features;
 
-// TODO KlassenKommentar
+import mol.datatypes.spatial.util.Rectangle;
+
 /**
+ * Marker interface for spatial objects
  * 
  * @author Markus Fuessel
  */
-public interface IGeneralType {
+public interface Spatial {
 
    /**
-    * Is this datatype object defined
+    * Verify if the spatial object is empty
     * 
-    * @return true - datatype object is defined, false otherwise
+    * @return true, if the spatial object is empty
+    */
+   boolean isEmpty();
+
+   /**
+    * Get the minimum bounding rectangle of the spatial object
+    * 
+    * @return a 'Rectangle' object
+    */
+   Rectangle getBoundingBox();
+
+   /**
+    * Is this object defined
+    * 
+    * @return true if object is defined, false otherwise
     */
    boolean isDefined();
 
    /**
-    * Set the defined state of this datatype object
+    * Set the defined flag of this Object
     * 
     * @param defined
     */
-   void setDefined(boolean defined);
-
+   void setDefined(final boolean defined);
 }

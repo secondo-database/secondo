@@ -31,6 +31,22 @@ import org.junit.Test;
 public class BaseRealTest {
 
    @Test
+   public void testBaseRealConstructor_UndefinedObject() {
+      BaseReal undefinedReal = new BaseReal();
+
+      assertFalse(undefinedReal.isDefined());
+   }
+
+   @Test
+   public void testBaseRealCopyConstructor() {
+      BaseReal baseReal = new BaseReal(1.23456d);
+
+      BaseReal copybaseReal = new BaseReal(baseReal);
+
+      assertEquals(baseReal, copybaseReal);
+   }
+
+   @Test
    public void testHashCode_DifferentObjectSameValue_HashCodeShouldBeEqual() {
       BaseReal posRealA = new BaseReal(1.23456d);
       BaseReal posRealB = new BaseReal(1.23456d);
@@ -109,6 +125,25 @@ public class BaseRealTest {
 
       assertFalse(posRealA.equals(negReal));
       assertFalse(posRealA.equals(posRealB));
+
+   }
+
+   @Test
+   public void testEquals_NullObject_ShouldBeFalse() {
+      BaseReal baseReal = new BaseReal(1.23456d);
+      Object object = null;
+
+      assertFalse(baseReal.equals(object));
+
+   }
+
+   @Test
+   public void testEquals_SameObject_ShouldBeTrue() {
+      BaseReal baseReal = new BaseReal(1.23456d);
+
+      Object object = baseReal;
+
+      assertTrue(baseReal.equals(object));
 
    }
 

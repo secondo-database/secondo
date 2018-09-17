@@ -31,6 +31,22 @@ import org.junit.Test;
 public class BaseIntTest {
 
    @Test
+   public void testBaseIntConstructor_UndefinedObject() {
+      BaseInt undefinedInt = new BaseInt();
+
+      assertFalse(undefinedInt.isDefined());
+   }
+
+   @Test
+   public void testBaseIntCopyConstructor() {
+      BaseInt baseInt = new BaseInt(5);
+
+      BaseInt copybaseInt = new BaseInt(baseInt);
+
+      assertEquals(baseInt, copybaseInt);
+   }
+
+   @Test
    public void testHashCode_DifferentObjectSameValue_HashCodeShouldBeEqual() {
       BaseInt posIntegerA = new BaseInt(1);
       BaseInt posIntegerB = new BaseInt(1);
@@ -97,6 +113,25 @@ public class BaseIntTest {
       BaseInt negInteger = new BaseInt(-1);
 
       assertFalse(posInteger.equals(negInteger));
+
+   }
+
+   @Test
+   public void testEquals_NullObject_ShouldBeFalse() {
+      BaseInt baseInt = new BaseInt(5);
+      Object object = null;
+
+      assertFalse(baseInt.equals(object));
+
+   }
+
+   @Test
+   public void testEquals_SameObject_ShouldBeTrue() {
+      BaseInt baseInt = new BaseInt(5);
+
+      Object object = baseInt;
+
+      assertTrue(baseInt.equals(object));
 
    }
 

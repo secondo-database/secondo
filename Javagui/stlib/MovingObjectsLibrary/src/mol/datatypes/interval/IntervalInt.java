@@ -22,66 +22,74 @@ package mol.datatypes.interval;
 import mol.datatypes.base.BaseInt;
 
 /**
- * Concrete class to represent integer interval objects
+ * Concrete class to represent 'IntervalInt' objects, an 'Interval' object with
+ * 'BaseInt' objects as lower and upper bound.
  * 
  * @author Markus Fuessel
  *
  */
 public class IntervalInt extends Interval<BaseInt> {
 
-   /**
-    * Constructs an integer interval object
-    * 
-    * @param lowerBound
-    *           BaseInt
-    * @param upperBound
-    *           BaseInt
-    * @param leftClosed
-    *           boolean
-    * @param rightClosed
-    *           boolean
-    */
-   public IntervalInt(final BaseInt lowerBound, final BaseInt upperBound, final boolean leftClosed,
-                      final boolean rightClosed) {
-      super(lowerBound, upperBound, leftClosed, rightClosed);
-   }
+    /**
+     * Constructor for an undefined 'IntervalInt' object
+     */
+    public IntervalInt() {
+    }
 
-   /**
-    * Constructs an integer interval object
-    * 
-    * @param lowerBound
-    *           int
-    * @param upperBound
-    *           int
-    * @param leftClosed
-    *           boolean
-    * @param rightClosed
-    *           boolean
-    */
-   public IntervalInt(final int lowerBound, final int upperBound, final boolean leftClosed, final boolean rightClosed) {
-      this(new BaseInt(lowerBound), new BaseInt(upperBound), leftClosed, rightClosed);
+    /**
+     * Constructs an integer interval object
+     * 
+     * @param lowerBound
+     *            BaseInt
+     * @param upperBound
+     *            BaseInt
+     * @param leftClosed
+     *            boolean
+     * @param rightClosed
+     *            boolean
+     */
+    public IntervalInt(final BaseInt lowerBound, final BaseInt upperBound, final boolean leftClosed,
+            final boolean rightClosed) {
+        super(lowerBound, upperBound, leftClosed, rightClosed);
+    }
 
-   }
+    /**
+     * Constructs an integer interval object
+     * 
+     * @param lowerBound
+     *            int
+     * @param upperBound
+     *            int
+     * @param leftClosed
+     *            boolean
+     * @param rightClosed
+     *            boolean
+     */
+    public IntervalInt(final int lowerBound, final int upperBound, final boolean leftClosed, final boolean rightClosed) {
+        this(new BaseInt(lowerBound), new BaseInt(upperBound), leftClosed, rightClosed);
 
-   /**
-    * Copy constructor
-    * 
-    * @param original
-    *           - the original 'IntervalInt' object to copy
-    */
-   private IntervalInt(IntervalInt original) {
-      this(new BaseInt(original.getLowerBound()), new BaseInt(original.getUpperBound()), original.isLeftClosed(),
-            original.isRightClosed());
-   }
+    }
 
-   /*
-    * (non-Javadoc)
-    * 
-    * @see mol.datatypes.interval.Interval#copy()
-    */
-   @Override
-   public IntervalInt copy() {
-      return new IntervalInt(this);
-   }
+    /**
+     * Copy constructor
+     * 
+     * @param original
+     *            - the original 'IntervalInt' object to copy
+     */
+    private IntervalInt(final IntervalInt original) {
+        this(new BaseInt(original.getLowerBound()), new BaseInt(original.getUpperBound()), original.isLeftClosed(),
+                original.isRightClosed());
+        setDefined(original.isDefined());
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see mol.datatypes.interval.Interval#copy()
+     */
+    @Override
+    public IntervalInt copy() {
+        return new IntervalInt(this);
+    }
 
 }

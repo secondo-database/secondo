@@ -39,7 +39,6 @@ public class BaseReal extends GeneralType implements Orderable<BaseReal> {
     */
    public BaseReal() {
       this.value = 0.0d;
-      setDefined(false);
    }
 
    /**
@@ -93,7 +92,7 @@ public class BaseReal extends GeneralType implements Orderable<BaseReal> {
     */
    @Override
    public boolean equals(final Object obj) {
-      if (obj == null || !(obj instanceof BaseReal)) {
+      if (!(obj instanceof BaseReal)) {
          return false;
       }
 
@@ -128,24 +127,16 @@ public class BaseReal extends GeneralType implements Orderable<BaseReal> {
       return (this.compareTo(otherReal) > 0);
    }
 
-   /*
-    * (non-Javadoc)
+   /**
+    * If other 'BaseReal' object is adjacent to this.<br>
+    * Always returns false because 'BaseReal' is considered as a continuous value
+    * and there is always another 'BaseReal' object between two 'BaseReal' objects.
     * 
     * @see mol.datatypes.util.Orderable#adjacent(java.lang.Object)
     */
    @Override
    public boolean adjacent(BaseReal otherReal) {
       return false;
-   }
-
-   /*
-    * (non-Javadoc)
-    * 
-    * @see java.lang.Object#toString()
-    */
-   @Override
-   public String toString() {
-      return "BaseReal [value='" + value + "', isDefined()=" + isDefined() + "]";
    }
 
    /**

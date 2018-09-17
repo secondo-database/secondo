@@ -16,29 +16,31 @@
 //You should have received a copy of the GNU General Public License
 //along with SECONDO; if not, write to the Free Software
 //Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+package mol.util;
 
-package mol.data.interval;
+import static org.junit.Assert.*;
+
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 /**
- * Concrete class to represent integer interval objects
+ * Trivial Tests for the 'CrossPointScalars' class
  * 
  * @author Markus Fuessel
- *
  */
-public class IntervalInt extends Interval<Integer> {
+public class CrossPointScalarsTest {
 
-	/**
-	 * Constructs an integer interval object
-	 * 
-	 * @param lowerBound
-	 * @param upperBound
-	 * @param leftClosed
-	 * @param rightClosed
-	 */
-	public IntervalInt(Integer lowerBound, Integer upperBound, boolean leftClosed, boolean rightClosed) {
-		setLowerBound(lowerBound);
-		setUpperBound(upperBound);
-		setLeftClosed(leftClosed);
-		setRightClosed(rightClosed);
-	}
+   @Test
+   public void testCrossPointScalars() {
+      double timeScalar = 0.3;
+      double positionScalar = 0.345;
+
+      CrossPointScalars cps = new CrossPointScalars(timeScalar, positionScalar);
+
+      assertEquals(timeScalar, cps.timeScalar, 0.0d);
+      assertEquals(positionScalar, cps.positionScalar, 0.0d);
+
+   }
+
 }

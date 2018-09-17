@@ -24,7 +24,7 @@ package mol.datatypes;
  * 
  * @author Markus Fuessel
  */
-public abstract class GeneralType {
+public class GeneralType {
 
    /**
     * The defined flag, indicates if a data type object is defined
@@ -32,16 +32,23 @@ public abstract class GeneralType {
    private boolean defined;
 
    /**
-    * Is this datatype object defined
+    * Constructor for an undefined 'GeneralType' object
+    */
+   public GeneralType() {
+      this.defined = false;
+   }
+
+   /**
+    * Is this object defined
     * 
-    * @return true - datatype object is defined, false otherwise
+    * @return true if object is defined, false otherwise
     */
    public boolean isDefined() {
       return defined;
    }
 
    /**
-    * Set the defined state of this datatype object
+    * Set the defined flag of this Object
     * 
     * @param defined
     */

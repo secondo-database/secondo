@@ -22,7 +22,6 @@ package mol.datatypes.interval;
 import java.util.Objects;
 
 import mol.datatypes.GeneralType;
-import mol.datatypes.IGeneralType;
 import mol.datatypes.features.Orderable;
 
 /**
@@ -33,48 +32,8 @@ import mol.datatypes.features.Orderable;
  * @param <T>
  *           - specifies the type of the interval
  */
-public abstract class Interval<T extends IGeneralType & Orderable<T>> extends GeneralType
-      implements Orderable<Interval<T>> {
-
-   /**
-    * Check to ensure condition: lowerBound <= upperBound
-    * 
-    * @param lowerBound
-    *           - the lower bound value
-    * @param upperBound
-    *           - the upper bound value
-    */
-   private static <T extends Comparable<T>> void assertLowerBoundLessOrEqualUpperBound(final T lowerBound,
-                                                                                       final T upperBound) {
-
-      if (lowerBound.compareTo(upperBound) > 0) {
-         throw new IllegalArgumentException("'lowerBound' must be <= 'upperBound'");
-      }
-   }
-
-   /**
-    * Check to ensure condition: lowerBound == upperBound => leftClosed ==
-    * rightClosed == true
-    * 
-    * @param lowerBound
-    *           - the lower bound value
-    * @param upperBound
-    *           - the upper bound value
-    * @param leftClosed
-    *           - boolean for left closness
-    * @param rightClosed
-    *           - boolean for right closness
-    */
-   private static <T extends Comparable<T>> void assertClosedIntervalIfLowerBoundEqualUpperBound(final T lowerBound,
-                                                                                                 final T upperBound,
-                                                                                                 final boolean leftClosed,
-                                                                                                 final boolean rightClosed) {
-
-      if (lowerBound.compareTo(upperBound) == 0 && !(leftClosed && rightClosed)) {
-         throw new IllegalArgumentException(
-               "interval have to be leftclosed and rightclosed if 'lowerBound' == 'upperBound'");
-      }
-   }
+public abstract class Interval<T extends GeneralType & Orderable<T>> extends GeneralType
+      implements Comparable<Interval<T>> {
 
    /**
     * Lower bound of the interval
@@ -97,6 +56,12 @@ public abstract class Interval<T extends IGeneralType & Orderable<T>> extends Ge
    private boolean rightClosed;
 
    /**
+    * Constructor for an undefined 'Interval' object
+    */
+   protected Interval() {
+   }
+
+   /**
     * Base constructor for a 'Interval' object
     * 
     * @param lowerBound
@@ -110,18 +75,12 @@ public abstract class Interval<T extends IGeneralType & Orderable<T>> extends Ge
     */
    protected Interval(final T lowerBound, final T upperBound, final boolean leftClosed, final boolean rightClosed) {
 
-      Objects.requireNonNull(lowerBound, "'lowerBound' must not be null");
-      Objects.requireNonNull(upperBound, "'upperBound' must not be null");
-
-      assertLowerBoundLessOrEqualUpperBound(lowerBound, upperBound);
-      assertClosedIntervalIfLowerBoundEqualUpperBound(lowerBound, upperBound, leftClosed, rightClosed);
-
       this.lowerBound = lowerBound;
       this.upperBound = upperBound;
       this.leftClosed = leftClosed;
       this.rightClosed = rightClosed;
 
-      setDefined(lowerBound.isDefined() && upperBound.isDefined());
+      setDefined(isValid());
    }
 
    /**
@@ -132,19 +91,35 @@ public abstract class Interval<T extends IGeneralType & Orderable<T>> extends Ge
     * @return true if the interval contains the passed value, false otherwise
     */
    public boolean contains(final T value) {
-      if (value == null) {
+
+      return contains(value, false);
+   }
+
+   /**
+    * Verifies if the interval contains the passed value.<br>
+    * With {@code ignoreClosedFlags} set to true this interval is considered as
+    * closed.
+    * 
+    * @param value
+    * @param ignoreClosedFlags
+    *           - the left closed and right closed flags are ignored if true
+    * 
+    * @return true if the interval contains the passed value, false otherwise
+    */
+   public boolean contains(final T value, final boolean ignoreClosedFlags) {
+      if (value == null || !value.isDefined() || !isDefined()) {
          return false;
       }
 
-      if (value.compareTo(lowerBound) < 0 || value.compareTo(upperBound) > 0) {
+      int compareToLowerBound = value.compareTo(lowerBound);
+      int compareToUpperBound = value.compareTo(upperBound);
+
+      if (compareToLowerBound < 0 || compareToUpperBound > 0) {
          return false;
       }
 
-      if ((!leftClosed && value.compareTo(lowerBound) <= 0) || (!rightClosed && value.compareTo(lowerBound) >= 0)) {
-         return false;
-      }
-
-      return true;
+      return !((!(leftClosed || ignoreClosedFlags) && compareToLowerBound == 0)
+            || (!(rightClosed || ignoreClosedFlags) && compareToUpperBound == 0));
    }
 
    /*
@@ -155,27 +130,27 @@ public abstract class Interval<T extends IGeneralType & Orderable<T>> extends Ge
    @Override
    public int compareTo(final Interval<T> otherInterval) {
 
-      int comp = lowerBound.compareTo(otherInterval.lowerBound);
+      int compare = lowerBound.compareTo(otherInterval.lowerBound);
 
-      if (comp != 0) {
-         return comp;
+      if (compare != 0) {
+         return compare;
       }
 
-      comp = Boolean.compare(otherInterval.leftClosed, leftClosed);
+      compare = Boolean.compare(otherInterval.leftClosed, leftClosed);
 
-      if (comp != 0) {
-         return comp;
+      if (compare != 0) {
+         return compare;
       }
 
-      comp = upperBound.compareTo(otherInterval.upperBound);
+      compare = upperBound.compareTo(otherInterval.upperBound);
 
-      if (comp != 0) {
-         return comp;
+      if (compare != 0) {
+         return compare;
       }
 
-      comp = Boolean.compare(rightClosed, otherInterval.rightClosed);
+      compare = Boolean.compare(rightClosed, otherInterval.rightClosed);
 
-      return comp;
+      return compare;
 
    }
 
@@ -187,18 +162,18 @@ public abstract class Interval<T extends IGeneralType & Orderable<T>> extends Ge
    @Override
    public boolean equals(final Object obj) {
 
-      if (obj == null) {
+      if (!(obj instanceof Interval<?>)) {
          return false;
       }
 
-      if (!(obj instanceof Interval<?>) || !(this.getClass().equals(obj.getClass()))) {
+      if (!(this.getClass().equals(obj.getClass()))) {
          return false;
       }
 
       @SuppressWarnings("unchecked")
       Interval<T> otherInterval = (Interval<T>) obj;
 
-      return (this.compareTo(otherInterval) == 0);
+      return (this.isDefined() && otherInterval.isDefined() && this.compareTo(otherInterval) == 0);
    }
 
    /*
@@ -219,7 +194,7 @@ public abstract class Interval<T extends IGeneralType & Orderable<T>> extends Ge
     * @param otherInterval
     * @return true - intervals are adjacent, false - otherwise
     */
-   @Override
+   // @Override
    public boolean adjacent(final Interval<T> otherInterval) {
 
       return leftAdjacent(otherInterval) || rightAdjacent(otherInterval);
@@ -233,17 +208,15 @@ public abstract class Interval<T extends IGeneralType & Orderable<T>> extends Ge
     * @return true - interval is left adjacent, false - otherwise
     */
    public boolean leftAdjacent(final Interval<T> otherInterval) {
-      if (lowerBound.compareTo(otherInterval.upperBound) == 0 && (leftClosed != otherInterval.rightClosed)) {
+      int compare = lowerBound.compareTo(otherInterval.upperBound);
+
+      if (compare == 0 && (leftClosed != otherInterval.rightClosed)) {
          return true;
       }
 
-      if (((lowerBound.compareTo(otherInterval.upperBound) > 0 && leftClosed && otherInterval.rightClosed)
-            || (lowerBound.compareTo(otherInterval.upperBound) < 0 && !leftClosed && !otherInterval.rightClosed))
-            && lowerBound.adjacent(otherInterval.upperBound)) {
-         return true;
-      }
-
-      return false;
+      return (((compare > 0 && leftClosed && otherInterval.rightClosed)
+            || (compare < 0 && !leftClosed && !otherInterval.rightClosed))
+            && lowerBound.adjacent(otherInterval.upperBound));
    }
 
    /**
@@ -254,52 +227,69 @@ public abstract class Interval<T extends IGeneralType & Orderable<T>> extends Ge
     * @return true - interval is right adjacent, false - otherwise
     */
    public boolean rightAdjacent(final Interval<T> otherInterval) {
-      if (upperBound.compareTo(otherInterval.lowerBound) == 0 && (rightClosed != otherInterval.leftClosed)) {
+      int compare = upperBound.compareTo(otherInterval.lowerBound);
+
+      if (compare == 0 && (rightClosed != otherInterval.leftClosed)) {
 
          return true;
       }
 
-      if (((upperBound.compareTo(otherInterval.lowerBound) < 0 && rightClosed && otherInterval.leftClosed)
-            || (upperBound.compareTo(otherInterval.lowerBound) > 0 && !rightClosed && !otherInterval.leftClosed))
-            && upperBound.adjacent(otherInterval.lowerBound)) {
-
-         return true;
-      }
-
-      return false;
+      return (((compare < 0 && rightClosed && otherInterval.leftClosed)
+            || (compare > 0 && !rightClosed && !otherInterval.leftClosed))
+            && upperBound.adjacent(otherInterval.lowerBound));
    }
 
-   /*
-    * (non-Javadoc)
+   /**
+    * Verify if this 'Interval' object is complete before the passed 'Interval'
+    * object
     * 
-    * @see mol.datatypes.util.Orderable#before(java.lang.Object)
+    * @param otherInterval
+    * @return true if this object is before the passed one, false otherwise
     */
-   @Override
    public boolean before(final Interval<T> otherInterval) {
 
       int compare = upperBound.compareTo(otherInterval.lowerBound);
 
-      if (compare < 0 || (compare == 0 && (!rightClosed || !otherInterval.leftClosed))) {
-         return true;
-      }
+      return (compare < 0 || (compare == 0 && (!rightClosed || !otherInterval.leftClosed)));
 
-      return false;
    }
 
-   /*
-    * (non-Javadoc)
+   /**
+    * Verify if this 'Interval' object is before the passed value
     * 
-    * @see mol.datatypes.util.Orderable#after(java.lang.Object)
+    * @param value
+    * @return true if this object is before the passed value, false otherwise
     */
-   @Override
+   public boolean before(final T value) {
+
+      int compare = upperBound.compareTo(value);
+
+      return (compare < 0 || (compare == 0 && !rightClosed));
+   }
+
+   /**
+    * Verify if this 'Interval' object is after the passed 'Interval' object
+    * 
+    * @param otherInterval
+    * @return true if this object is after the passed one, false otherwise
+    */
    public boolean after(final Interval<T> otherInterval) {
       int compare = lowerBound.compareTo(otherInterval.upperBound);
 
-      if (compare > 0 || (compare == 0 && (!leftClosed || !otherInterval.rightClosed))) {
-         return true;
-      }
+      return (compare > 0 || (compare == 0 && (!leftClosed || !otherInterval.rightClosed)));
+   }
 
-      return false;
+   /**
+    * Verify if this 'Interval' object is after the passed value
+    * 
+    * @param value
+    * @return true if this object is after the passed value, false otherwise
+    */
+   public boolean after(final T value) {
+
+      int compare = lowerBound.compareTo(value);
+
+      return (compare > 0 || (compare == 0 && !leftClosed));
    }
 
    /**
@@ -314,12 +304,8 @@ public abstract class Interval<T extends IGeneralType & Orderable<T>> extends Ge
          return true;
       }
 
-      if ((upperBound.compareTo(otherInterval.lowerBound) == 0 && !(rightClosed && otherInterval.leftClosed))
-            || (lowerBound.compareTo(otherInterval.upperBound) == 0 && !(leftClosed && otherInterval.rightClosed))) {
-         return true;
-      }
-
-      return false;
+      return ((upperBound.compareTo(otherInterval.lowerBound) == 0 && !(rightClosed && otherInterval.leftClosed))
+            || (lowerBound.compareTo(otherInterval.upperBound) == 0 && !(leftClosed && otherInterval.rightClosed)));
    }
 
    /**
@@ -331,19 +317,15 @@ public abstract class Interval<T extends IGeneralType & Orderable<T>> extends Ge
     */
    public boolean intersects(final Interval<T> otherInterval) {
 
-      int comp = upperBound.compareTo(otherInterval.lowerBound);
+      int compare = upperBound.compareTo(otherInterval.lowerBound);
 
-      if (comp < 0 || (comp == 0 && !(rightClosed && otherInterval.leftClosed))) {
+      if (compare < 0 || (compare == 0 && !(rightClosed && otherInterval.leftClosed))) {
          return false;
       }
 
-      comp = lowerBound.compareTo(otherInterval.upperBound);
+      compare = lowerBound.compareTo(otherInterval.upperBound);
 
-      if (comp > 0 || (comp == 0 && !(rightClosed && otherInterval.leftClosed))) {
-         return false;
-      }
-
-      return true;
+      return !(compare > 0 || (compare == 0 && !(leftClosed && otherInterval.rightClosed)));
    }
 
    /**
@@ -369,7 +351,7 @@ public abstract class Interval<T extends IGeneralType & Orderable<T>> extends Ge
 
       int compare = lowerBound.compareTo(otherInterval.lowerBound);
 
-      if (compare > 0 || (compare == 0 && (!leftClosed || otherInterval.leftClosed))) {
+      if (compare > 0 || (compare == 0 && (!leftClosed && otherInterval.leftClosed))) {
          return false;
       }
 
@@ -381,11 +363,22 @@ public abstract class Interval<T extends IGeneralType & Orderable<T>> extends Ge
 
       compare = upperBound.compareTo(otherInterval.upperBound);
 
-      if (compare > 0 || (compare == 0 && (rightClosed || !otherInterval.rightClosed))) {
-         return false;
-      }
+      return !(compare > 0 || (compare == 0 && (rightClosed && !otherInterval.rightClosed)));
+   }
 
-      return true;
+   /**
+    * Check if this interval intersects exactly on the right bound (upper bound)
+    * with the passed interval.
+    * 
+    * @param otherInterval
+    * 
+    * @return true if this interval intersects exactly on the right bound (upper
+    *         bound) with the passed interval, false otherwise
+    */
+   public boolean intersectsOnRightBound(final Interval<T> otherInterval) {
+      int compare = upperBound.compareTo(otherInterval.lowerBound);
+
+      return compare == 0 && rightClosed && otherInterval.leftClosed;
    }
 
    /**
@@ -446,6 +439,40 @@ public abstract class Interval<T extends IGeneralType & Orderable<T>> extends Ge
    }
 
    /**
+    * Creates the intersection of this and the passed interval as a new interval
+    * object
+    * 
+    * @param otherInterval
+    * @return new interval object
+    */
+   public Interval<T> intersection(final Interval<T> otherInterval) {
+
+      Interval<T> intersectionInterval = this.copy();
+
+      int compare = intersectionInterval.lowerBound.compareTo(otherInterval.lowerBound);
+
+      if (compare == 0) {
+         intersectionInterval.leftClosed = intersectionInterval.leftClosed && otherInterval.leftClosed;
+      } else if (compare < 0) {
+         intersectionInterval.lowerBound = otherInterval.lowerBound;
+         intersectionInterval.leftClosed = otherInterval.leftClosed;
+      }
+
+      compare = intersectionInterval.upperBound.compareTo(otherInterval.upperBound);
+
+      if (compare == 0) {
+         intersectionInterval.rightClosed = intersectionInterval.rightClosed && otherInterval.rightClosed;
+      } else if (compare > 0) {
+         intersectionInterval.upperBound = otherInterval.upperBound;
+         intersectionInterval.rightClosed = otherInterval.rightClosed;
+      }
+
+      intersectionInterval.setDefined(intersectionInterval.isValid());
+
+      return intersectionInterval;
+   }
+
+   /**
     * Returns a copy of this {@code Interval<T>} object
     * 
     * @return {@code Interval<T>} object copy
@@ -488,18 +515,37 @@ public abstract class Interval<T extends IGeneralType & Orderable<T>> extends Ge
       return rightClosed;
    }
 
-   /*
-    * (non-Javadoc)
+   /**
+    * Set if interval is left closed
     * 
-    * @see java.lang.Object#toString()
+    * @param leftClosed
     */
-   @Override
-   public String toString() {
+   public void setLeftClosed(boolean leftClosed) {
+      this.leftClosed = leftClosed;
+   }
 
-      String leftParenthesis = (leftClosed ? "[" : "(");
-      String rightParenthesis = (rightClosed ? "]" : ")");
+   /**
+    * Set if interval is right closed
+    * 
+    * @param rightClosed
+    */
+   public void setRightClosed(boolean rightClosed) {
+      this.rightClosed = rightClosed;
+   }
 
-      return "Interval " + leftParenthesis + lowerBound.toString() + ", " + upperBound.toString() + rightParenthesis;
+   /**
+    * Verify if this 'Interval' object is valid<br>
+    * 
+    * - lowerBound and upperBound are defined<br>
+    * - lowerBound <= upperBound <br>
+    * - is closed if lowerBound == upperBound <br>
+    * 
+    * @return true if this 'Interval' object is valid, false otherwise
+    */
+   public boolean isValid() {
+
+      return lowerBound.isDefined() && upperBound.isDefined() && (lowerBound.compareTo(upperBound) < 0
+            || (lowerBound.compareTo(upperBound) == 0 && leftClosed && rightClosed));
    }
 
 }

@@ -27,8 +27,8 @@ import static org.junit.Assert.assertTrue;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import mol.TestUtil.TestUtilData;
 import mol.datatypes.time.TimeInstant;
-import mol.util.TestUtilData;
 
 /**
  * Tests for class 'Period'
@@ -47,8 +47,32 @@ public class PeriodTest {
    private static TimeInstant instant_D10;
    private static TimeInstant instant_D11;
 
-   private static Period      closedPeriod_From_D05_To_D10;
-   private static Period      openPeriod_From_D05_To_D10;
+   private static Period closedPeriod_From_D05_To_D10;
+   private static Period openPeriod_From_D05_To_D10;
+
+   static Period lOpen1rOpen5 = TestUtilData.getPeriod("01", "05", false, false); // (1, 5)
+   static Period lOpen3rOpen12 = TestUtilData.getPeriod("03", "12", false, false); // (3, 12)
+   static Period lOpen4rOpen11 = TestUtilData.getPeriod("04", "11", false, false); // (4, 11)
+   static Period lOpen5rOpen10 = TestUtilData.getPeriod("05", "10", false, false); // (5, 10)
+   static Period lOpen10rOpen15 = TestUtilData.getPeriod("10", "15", false, false); // (10, 15)
+
+   static Period lOpen1rClosed5 = TestUtilData.getPeriod("01", "05", false, true); // (1, 5]
+   static Period lOpen5rClosed10 = TestUtilData.getPeriod("05", "10", false, true); // (5, 10]
+   static Period lOpen10rClosed15 = TestUtilData.getPeriod("10", "15", false, true); // (10, 15]
+
+   static Period lClosed1rOpen5 = TestUtilData.getPeriod("01", "05", true, false); // [1, 5)
+   static Period lClosed5rOpen10 = TestUtilData.getPeriod("05", "10", true, false); // [5, 10)
+   static Period lClosed10rOpen15 = TestUtilData.getPeriod("10", "15", true, false); // [10, 15)
+
+   static Period lClosed1rClosed5 = TestUtilData.getPeriod("01", "05", true, true); // [1, 5]
+   static Period lClosed1rClosed7 = TestUtilData.getPeriod("01", "07", true, true); // [1, 7]
+   static Period lClosed1rClosed10 = TestUtilData.getPeriod("01", "10", true, true); // [1, 10]
+   static Period lClosed1rClosed15 = TestUtilData.getPeriod("01", "15", true, true); // [1, 15]
+   static Period lClosed5rClosed10 = TestUtilData.getPeriod("05", "10", true, true); // [5, 10]
+   static Period lClosed5rClosed15 = TestUtilData.getPeriod("05", "15", true, true); // [5, 15]
+   static Period lClosed6rClosed10 = TestUtilData.getPeriod("06", "10", true, true); // [6, 10]
+   static Period lClosed10rClosed15 = TestUtilData.getPeriod("10", "15", true, true); // [10, 15]
+   static Period lClosed11rClosed15 = TestUtilData.getPeriod("11", "15", true, true); // [11, 15]
 
    @BeforeClass
    public static void setUpBeforeClass() throws Exception {
@@ -64,16 +88,32 @@ public class PeriodTest {
 
    }
 
-   @Test(expected = IllegalArgumentException.class)
-   public void testPeriod_LowerBoundGreaterUpperBound_ThrowException() {
-      @SuppressWarnings("unused")
-      Period period = new Period(instant_D05, instant_D04, true, true);
+   @Test
+   public void testPeriodConstructor_UndefinedObject() {
+      Period undefinedPeriod = new Period();
+
+      assertFalse(undefinedPeriod.isDefined());
    }
 
-   @Test(expected = IllegalArgumentException.class)
-   public void testPeriod_OpenIntervalLowerBoundEqualUpperBound_ThrowException() {
-      @SuppressWarnings("unused")
-      Period period = new Period(instant_D10, instant_D04, false, false);
+   @Test
+   public void testPeriodCopyConstructor() {
+
+      Period copyPeriod = closedPeriod_From_D05_To_D10.copy();
+
+      assertEquals(closedPeriod_From_D05_To_D10, copyPeriod);
+   }
+
+   @Test
+   public void testPeriod_LowerBoundGreaterUpperBound_ShouldBeUndefined() {
+      Period period = new Period(instant_D05, instant_D04, true, true);
+      assertFalse(period.isDefined());
+   }
+
+   @Test
+   public void testPeriod_OpenIntervalLowerBoundEqualUpperBound_ShouldBeUndefined() {
+      Period period = new Period(instant_D10, instant_D10, false, false);
+
+      assertFalse(period.isDefined());
    }
 
    @Test
@@ -92,6 +132,21 @@ public class PeriodTest {
       assertFalse(closedPeriod_From_D05_To_D10.contains(instant_D11));
       assertFalse(openPeriod_From_D05_To_D10.contains(instant_D05));
       assertFalse(openPeriod_From_D05_To_D10.contains(instant_D10));
+
+   }
+
+   @Test
+   public void testContains_InstantOnBoundOfOpenPeriod_IgnoreClosedFlags_ShouldBeTrue() {
+
+      assertTrue(openPeriod_From_D05_To_D10.contains(instant_D05, true));
+      assertTrue(openPeriod_From_D05_To_D10.contains(instant_D10, true));
+
+   }
+
+   @Test
+   public void testContains_UndefinedInstant_ShouldBeFalse() {
+
+      assertFalse(closedPeriod_From_D05_To_D10.contains(new TimeInstant()));
 
    }
 
@@ -157,6 +212,24 @@ public class PeriodTest {
 
       assertFalse(periodClosed1.equals(periodClosed2));
       assertFalse(periodOpen1.equals(periodOpenClosed2));
+
+   }
+
+   @Test
+   public void testEquals_NullObject_ShouldBeFalse() {
+      Object object = null;
+
+      assertFalse(closedPeriod_From_D05_To_D10.equals(object));
+
+   }
+
+   @Test
+   public void testEquals_DifferentIntervalObject_ShouldBeFalse() {
+      Period periodClosed = TestUtilData.getPeriod("01", "05", true, true);
+
+      Object object = new IntervalInt(1, 5, true, true);
+
+      assertFalse(periodClosed.equals(object));
 
    }
 
@@ -382,5 +455,172 @@ public class PeriodTest {
       assertFalse(periodBetweenClosed.adjacent(periodBeforeClosed));
       assertFalse(periodBetweenClosed.adjacent(periodAfterClosed));
 
+   }
+
+   @Test
+   public void testBeforeInterval_WithDisjointPeriodBefore_ShouldBeTrue() {
+
+      Period periodD01D05Open = TestUtilData.getPeriod("01", "05", false, false);
+      Period periodD05D10Open = TestUtilData.getPeriod("05", "10", false, false);
+
+      Period periodD01D05Closed = TestUtilData.getPeriod("01", "05", true, true);
+      Period periodD06D10Closed = TestUtilData.getPeriod("06", "10", true, true);
+
+      Period periodD05D10Closed = TestUtilData.getPeriod("05", "10", true, true);
+
+      assertTrue(periodD01D05Open.before(periodD05D10Open));
+      assertTrue(periodD01D05Closed.before(periodD06D10Closed));
+      assertTrue(periodD01D05Open.before(periodD05D10Closed));
+
+   }
+
+   @Test
+   public void testBeforeInterval_WithIntersectingPeriodBefore_ShouldBeFalse() {
+
+      Period periodD01D06Open = TestUtilData.getPeriod("01", "06", false, false);
+      Period periodD05D10Open = TestUtilData.getPeriod("05", "10", false, false);
+
+      Period periodD01D05Closed = TestUtilData.getPeriod("01", "05", true, true);
+      Period periodD05D10Closed = TestUtilData.getPeriod("05", "10", true, true);
+
+      assertFalse(periodD01D06Open.before(periodD05D10Open));
+      assertFalse(periodD01D05Closed.before(periodD05D10Closed));
+
+   }
+
+   @Test
+   public void testBeforeValue_WithGreaterValue_ShouldBeTrue() {
+      Period periodD05D10Open = TestUtilData.getPeriod("05", "10", false, false);
+      Period periodD05D10Closed = TestUtilData.getPeriod("05", "10", true, true);
+      TimeInstant instantUpperBound = periodD05D10Open.getUpperBound();
+      TimeInstant instantUpperBoundPlusOne = periodD05D10Closed.getUpperBound().plusMillis(1);
+
+      assertTrue(periodD05D10Open.before(instantUpperBound));
+      assertTrue(periodD05D10Closed.before(instantUpperBoundPlusOne));
+   }
+
+   @Test
+   public void testBeforeValue_WithNonGreaterValue_ShouldBeFalse() {
+      Period periodD05D10Open = TestUtilData.getPeriod("05", "10", false, false);
+      Period periodD05D10Closed = TestUtilData.getPeriod("05", "10", true, true);
+      TimeInstant instantUpperBound = periodD05D10Open.getUpperBound();
+      TimeInstant instantUpperBoundMinusOne = periodD05D10Closed.getUpperBound().minusMillis(1);
+
+      assertFalse(periodD05D10Open.before(instantUpperBoundMinusOne));
+      assertFalse(periodD05D10Closed.before(instantUpperBound));
+   }
+
+   @Test
+   public void testAfterInterval_WithDisjointPeriodAfter_ShouldBeTrue() {
+      Period periodD01D05Open = TestUtilData.getPeriod("01", "05", false, false);
+      Period periodD05D10Open = TestUtilData.getPeriod("05", "10", false, false);
+
+      Period periodD01D05Closed = TestUtilData.getPeriod("01", "05", true, true);
+      Period periodD06D10Closed = TestUtilData.getPeriod("06", "10", true, true);
+
+      Period periodD05D10Closed = TestUtilData.getPeriod("05", "10", true, true);
+
+      assertTrue(periodD05D10Open.after(periodD01D05Open));
+      assertTrue(periodD06D10Closed.after(periodD01D05Closed));
+      assertTrue(periodD05D10Closed.after(periodD01D05Open));
+
+   }
+
+   @Test
+   public void testAfterInterval_WithIntersectingPeriodAfter_ShouldBeFalse() {
+
+      Period periodD01D06Open = TestUtilData.getPeriod("01", "06", false, false);
+      Period periodD05D10Open = TestUtilData.getPeriod("05", "10", false, false);
+
+      Period periodD01D05Closed = TestUtilData.getPeriod("01", "05", true, true);
+      Period periodD05D10Closed = TestUtilData.getPeriod("05", "10", true, true);
+
+      assertFalse(periodD05D10Open.after(periodD01D06Open));
+      assertFalse(periodD05D10Closed.after(periodD01D05Closed));
+
+   }
+
+   @Test
+   public void testAfterValue_WithLowerValue_ShouldBeTrue() {
+      Period periodD05D10Open = TestUtilData.getPeriod("05", "10", false, false);
+      Period periodD05D10Closed = TestUtilData.getPeriod("05", "10", true, true);
+      TimeInstant instantLowerBound = periodD05D10Open.getLowerBound();
+      TimeInstant instantLowerBoundMinusOne = periodD05D10Closed.getLowerBound().minusMillis(1);
+
+      assertTrue(periodD05D10Open.after(instantLowerBound));
+      assertTrue(periodD05D10Closed.after(instantLowerBoundMinusOne));
+   }
+
+   @Test
+   public void testAfterValue_WithNonLowerValue_ShouldBeFalse() {
+      Period periodD05D10Open = TestUtilData.getPeriod("05", "10", false, false);
+      Period periodD05D10Closed = TestUtilData.getPeriod("05", "10", true, true);
+      TimeInstant instantLowerBound = periodD05D10Open.getLowerBound();
+      TimeInstant instantLowerBoundPlusOne = periodD05D10Closed.getLowerBound().plusMillis(1);
+
+      assertFalse(periodD05D10Open.after(instantLowerBoundPlusOne));
+      assertFalse(periodD05D10Closed.after(instantLowerBound));
+   }
+
+   @Test
+   public void testGetDurationInMilliseconds() {
+      Period periodOneDay = new Period(instant_D04, instant_D05, true, true);
+      long dayInMilliSec = 24 * 60 * 60 * 1000;
+
+      long durationInMilliSec = periodOneDay.getDurationInMilliseconds();
+
+      assertEquals(dayInMilliSec, durationInMilliSec);
+   }
+
+   @Test
+   public void testIntersection_IntersectingPeriod_NewDefinedInterval() {
+      Period intersection1 = lClosed1rClosed10.intersection(lClosed5rClosed15);
+      Period intersection2 = lClosed5rClosed15.intersection(lClosed1rClosed10);
+
+      assertTrue(intersection1.equals(lClosed5rClosed10));
+      assertTrue(intersection2.equals(lClosed5rClosed10));
+   }
+
+   @Test
+   public void testIntersection_IntervalInside_NewDefinedInterval() {
+      Period intersection1 = lClosed1rClosed15.intersection(lClosed5rClosed10);
+      Period intersection2 = lClosed5rClosed10.intersection(lClosed1rClosed15);
+
+      assertTrue(intersection1.equals(lClosed5rClosed10));
+      assertTrue(intersection2.equals(lClosed5rClosed10));
+   }
+
+   @Test
+   public void testIntersection_IntersectingOnlyAtBorder_NewDefinedInterval() {
+      Period intersection1 = lClosed1rClosed5.intersection(lClosed5rClosed10);
+      Period intersection2 = lClosed5rClosed10.intersection(lClosed1rClosed5);
+
+      assertTrue(intersection1.equals(TestUtilData.getPeriod("05", "05", true, true)));
+      assertTrue(intersection2.equals(TestUtilData.getPeriod("05", "05", true, true)));
+   }
+
+   @Test
+   public void testIntersection_IntersectingEqualPeriod_NewDefinedInterval() {
+      Period intersection = lClosed1rClosed10.intersection(lClosed1rClosed10);
+
+      assertTrue(intersection.equals(lClosed1rClosed10));
+   }
+
+   @Test
+   public void testIntersection_IntersectingNotAtBorder_NewUndefinedInterval() {
+      Period intersection1 = lOpen1rOpen5.intersection(lOpen5rOpen10);
+      Period intersection2 = lOpen5rOpen10.intersection(lOpen1rOpen5);
+
+      assertFalse(intersection1.isDefined());
+      assertFalse(intersection2.isDefined());
+   }
+
+   @Test
+   public void testIntersection_NoIntersection_NewUndefinedInterval() {
+      Period intersection1 = lClosed1rClosed5.intersection(lClosed10rClosed15);
+      Period intersection2 = lClosed10rClosed15.intersection(lClosed1rClosed5);
+
+      assertFalse(intersection1.isDefined());
+      assertFalse(intersection2.isDefined());
    }
 }

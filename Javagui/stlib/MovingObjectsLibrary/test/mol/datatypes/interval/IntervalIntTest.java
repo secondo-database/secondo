@@ -21,12 +21,8 @@ package mol.datatypes.interval;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
-import org.junit.BeforeClass;
 import org.junit.Test;
-
-import mol.datatypes.interval.IntervalInt;
 
 /**
  * Tests for class 'IntervalInt'
@@ -62,11 +58,6 @@ public class IntervalIntTest {
    static IntervalInt lClosed6rClosed10 = new IntervalInt(6, 10, true, true); // [6, 10]
    static IntervalInt lClosed10rClosed15 = new IntervalInt(10, 15, true, true); // [10, 15]
    static IntervalInt lClosed11rClosed15 = new IntervalInt(11, 15, true, true); // [11, 15]
-
-   @BeforeClass
-   public static void setUpBeforeClass() throws Exception {
-
-   }
 
    @Test
    public void testLeftAdjacent_TwoDisjointAdjacentIntervalInt_ShouldReturnTrue() {
@@ -267,6 +258,13 @@ public class IntervalIntTest {
    }
 
    @Test
+   public void testIntersects_IntervalIntWithEqualEndpointsDifferentBorder_ShouldReturnFalse() {
+
+      assertFalse(lClosed1rClosed5.intersects(lOpen5rClosed10));
+      assertFalse(lOpen5rClosed10.intersects(lClosed1rClosed5));
+   }
+
+   @Test
    public void testIntersects_IntervalIntOutsideOtherIntervalInt_ShouldReturnFalse() {
       assertFalse(lClosed1rClosed5.intersects(lClosed10rOpen15));
    }
@@ -278,9 +276,15 @@ public class IntervalIntTest {
    }
 
    @Test
-   public void testIntersectsLeft_CommonLeftBound_ShouldBeFalse() {
+   public void testIntersectsLeft_IntervalIntCommonRightBoundOverlappsLeftWithOther_ShouldBeTrue() {
 
-      assertFalse(lClosed1rClosed15.intersectsLeft(lClosed1rClosed5));
+      assertTrue(lClosed6rClosed10.intersectsLeft(lClosed1rClosed10));
+   }
+
+   @Test
+   public void testIntersectsLeft_CommonLeftBound_ShouldBeTrue() {
+
+      assertTrue(lClosed1rClosed15.intersectsLeft(lClosed1rClosed5));
    }
 
    @Test
@@ -301,9 +305,15 @@ public class IntervalIntTest {
    }
 
    @Test
-   public void testIntersectsRight_CommonRightBound_ShouldBeFalse() {
+   public void testIntersectsRight_IntervalIntCommonLeftBoundOverlappsRightWithOther_ShouldBeTrue() {
 
-      assertFalse(lClosed1rClosed15.intersectsRight(lClosed10rClosed15));
+      assertTrue(lClosed1rClosed7.intersectsRight(lClosed1rClosed10));
+   }
+
+   @Test
+   public void testIntersectsRight_CommonRightBound_ShouldBeTrue() {
+
+      assertTrue(lClosed1rClosed15.intersectsRight(lClosed10rClosed15));
    }
 
    @Test
@@ -385,5 +395,50 @@ public class IntervalIntTest {
       IntervalInt mergedIntervalInt = (IntervalInt) lClosed1rClosed15.mergeRight(lClosed5rClosed10);
 
       assertTrue(mergedIntervalInt.equals(lClosed1rClosed15));
+   }
+
+   @Test
+   public void testIntersection_IntersectingIntervalInt_NewDefinedInterval() {
+      IntervalInt intersection1 = (IntervalInt) lClosed1rClosed10.intersection(lClosed5rClosed15);
+      IntervalInt intersection2 = (IntervalInt) lClosed5rClosed15.intersection(lClosed1rClosed10);
+
+      assertTrue(intersection1.equals(lClosed5rClosed10));
+      assertTrue(intersection2.equals(lClosed5rClosed10));
+   }
+
+   @Test
+   public void testIntersection_IntervalInside_NewDefinedInterval() {
+      IntervalInt intersection1 = (IntervalInt) lClosed1rClosed15.intersection(lClosed5rClosed10);
+      IntervalInt intersection2 = (IntervalInt) lClosed5rClosed10.intersection(lClosed1rClosed15);
+
+      assertTrue(intersection1.equals(lClosed5rClosed10));
+      assertTrue(intersection2.equals(lClosed5rClosed10));
+   }
+
+   @Test
+   public void testIntersection_IntersectingOnlyAtBorder_NewDefinedInterval() {
+      IntervalInt intersection1 = (IntervalInt) lClosed1rClosed5.intersection(lClosed5rClosed10);
+      IntervalInt intersection2 = (IntervalInt) lClosed5rClosed10.intersection(lClosed1rClosed5);
+
+      assertTrue(intersection1.equals(new IntervalInt(5, 5, true, true)));
+      assertTrue(intersection2.equals(new IntervalInt(5, 5, true, true)));
+   }
+
+   @Test
+   public void testIntersection_IntersectingNotAtBorder_NewUndefinedInterval() {
+      IntervalInt intersection1 = (IntervalInt) lOpen1rOpen5.intersection(lOpen5rOpen10);
+      IntervalInt intersection2 = (IntervalInt) lOpen5rOpen10.intersection(lOpen1rOpen5);
+
+      assertFalse(intersection1.isDefined());
+      assertFalse(intersection2.isDefined());
+   }
+
+   @Test
+   public void testIntersection_NoIntersection_NewUndefinedInterval() {
+      IntervalInt intersection1 = (IntervalInt) lClosed1rClosed5.intersection(lClosed10rClosed15);
+      IntervalInt intersection2 = (IntervalInt) lClosed10rClosed15.intersection(lClosed1rClosed5);
+
+      assertFalse(intersection1.isDefined());
+      assertFalse(intersection2.isDefined());
    }
 }

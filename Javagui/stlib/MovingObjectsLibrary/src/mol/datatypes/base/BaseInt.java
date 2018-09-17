@@ -44,11 +44,8 @@ public class BaseInt extends GeneralType implements Orderable<BaseInt> {
       int intVal1 = integer1.getValue();
       int intVal2 = integer2.getValue();
 
-      if (intVal1 != intVal2 && (intVal1 + 1 == intVal2 || intVal1 == intVal2 + 1)) {
-         return true;
-      }
+      return (intVal1 != intVal2 && (intVal1 + 1 == intVal2 || intVal1 == intVal2 + 1));
 
-      return false;
    }
 
    /**
@@ -61,7 +58,6 @@ public class BaseInt extends GeneralType implements Orderable<BaseInt> {
     */
    public BaseInt() {
       this.value = 0;
-      setDefined(false);
    }
 
    /**
@@ -115,7 +111,7 @@ public class BaseInt extends GeneralType implements Orderable<BaseInt> {
     */
    @Override
    public boolean equals(final Object obj) {
-      if (obj == null || !(obj instanceof BaseInt)) {
+      if (!(obj instanceof BaseInt)) {
          return false;
       }
 
@@ -159,16 +155,6 @@ public class BaseInt extends GeneralType implements Orderable<BaseInt> {
    public boolean adjacent(BaseInt otherInt) {
 
       return BaseInt.adjacent(this, otherInt);
-   }
-
-   /*
-    * (non-Javadoc)
-    * 
-    * @see java.lang.Object#toString()
-    */
-   @Override
-   public String toString() {
-      return "BaseInt [value='" + value + "', isDefined()=" + isDefined() + "]";
    }
 
    /**

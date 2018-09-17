@@ -39,7 +39,6 @@ public class BaseString extends GeneralType implements Orderable<BaseString> {
     */
    public BaseString() {
       this.value = "";
-      setDefined(false);
    }
 
    /**
@@ -94,7 +93,7 @@ public class BaseString extends GeneralType implements Orderable<BaseString> {
    @Override
    public boolean equals(final Object obj) {
 
-      if (obj == null || !(obj instanceof BaseString)) {
+      if (!(obj instanceof BaseString)) {
          return false;
       }
 
@@ -155,16 +154,6 @@ public class BaseString extends GeneralType implements Orderable<BaseString> {
       }
 
       return false;
-   }
-
-   /*
-    * (non-Javadoc)
-    * 
-    * @see java.lang.Object#toString()
-    */
-   @Override
-   public String toString() {
-      return "BaseString [value='" + value + "', isDefined()=" + isDefined() + "]";
    }
 
    /**

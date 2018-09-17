@@ -31,6 +31,22 @@ import org.junit.Test;
 public class BaseStringTest {
 
    @Test
+   public void testBaseStringConstructor_UndefinedObject() {
+      BaseString undefinedString = new BaseString();
+
+      assertFalse(undefinedString.isDefined());
+   }
+
+   @Test
+   public void testBaseStringCopyConstructor() {
+      BaseString baseString = new BaseString("aBc");
+
+      BaseString copybaseString = new BaseString(baseString);
+
+      assertEquals(baseString, copybaseString);
+   }
+
+   @Test
    public void testHashCode_DifferentObjectSameValue_HashCodeShouldBeEqual() {
       BaseString stringA1 = new BaseString("aBc");
       BaseString stringA2 = new BaseString("aBc");
@@ -104,6 +120,25 @@ public class BaseStringTest {
 
       assertFalse(stringA.equals(stringB));
       assertFalse(stringA.equals(stringC));
+
+   }
+
+   @Test
+   public void testEquals_NullObject_ShouldBeFalse() {
+      BaseString baseString = new BaseString("aBc");
+      Object object = null;
+
+      assertFalse(baseString.equals(object));
+
+   }
+
+   @Test
+   public void testEquals_SameObject_ShouldBeTrue() {
+      BaseString baseString = new BaseString("aBc");
+
+      Object object = baseString;
+
+      assertTrue(baseString.equals(object));
 
    }
 

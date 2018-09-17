@@ -19,15 +19,16 @@
 
 package mol.datatypes.time;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import mol.datatypes.base.BaseInt;
 
 /**
  * Tests for class 'TimeInstant'
@@ -41,6 +42,22 @@ public class TimeInstantTest {
       DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss:SSS");
 
       TimeInstant.setDefaultDateTimeFormat(format);
+   }
+
+   @Test
+   public void testTimeInstantConstructor_UndefinedObject() {
+      TimeInstant undefinedInstant = new TimeInstant();
+
+      assertFalse(undefinedInstant.isDefined());
+   }
+
+   @Test
+   public void testTimeInstantCopyConstructor() {
+      TimeInstant instant = new TimeInstant("2018-05-01 20:35:30:123");
+
+      TimeInstant copyInstant = new TimeInstant(instant);
+
+      assertEquals(instant, copyInstant);
    }
 
    @Test
@@ -87,6 +104,22 @@ public class TimeInstantTest {
       TimeInstant t2 = new TimeInstant("2018-05-01 20:35:30:124");
 
       assertFalse(t1.equals(t2));
+   }
+
+   @Test
+   public void testEquals_NullObject_ShouldBeFalse() {
+      TimeInstant t1 = new TimeInstant("2018-05-01 20:35:30:123");
+      Object obj = null;
+
+      assertFalse(t1.equals(obj));
+   }
+
+   @Test
+   public void testEquals_SameObject_ShouldBeTrue() {
+      TimeInstant t1 = new TimeInstant("2018-05-01 20:35:30:123");
+      Object obj = t1;
+
+      assertTrue(t1.equals(obj));
    }
 
    @Test
@@ -158,21 +191,21 @@ public class TimeInstantTest {
    }
 
    @Test
-   public void testAdjacent_AdjacentInstants_ShouldBeTrue() {
-      TimeInstant t = new TimeInstant("2018-05-01 20:35:30:124");
-
-      assertTrue(t.adjacent(t.plusNanos(1)));
-      assertTrue(t.adjacent(t.minusNanos(1)));
-
-   }
-
-   @Test
-   public void testAdjacent_NonAdjacentOrEqualInstants_ShouldBeFalse() {
+   public void testAdjacent_DifferentAndEqualInstants_ShouldBeAlwaysFalse() {
       TimeInstant t1 = new TimeInstant("2018-05-01 20:35:30:124");
       TimeInstant t2 = new TimeInstant("2018-05-01 20:35:30:124");
 
       assertFalse(t1.adjacent(t2));
-      assertFalse(t1.adjacent(t1.plusMillis(1)));
+      assertFalse(t1.adjacent(t1.plusNanos(1)));
+      assertFalse(t1.adjacent(t1.minusNanos(1)));
 
+   }
+
+   @Test
+   public void testToMilliseconds() {
+      TimeInstant instant = new TimeInstant("2018-05-01 20:35:30:124");
+      long expectedMillis = Duration.between(Instant.EPOCH, instant.getValue()).toMillis();
+
+      assertEquals(expectedMillis, instant.toMilliseconds());
    }
 }

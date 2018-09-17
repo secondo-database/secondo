@@ -39,7 +39,6 @@ public class BaseBool extends GeneralType implements Orderable<BaseBool> {
     */
    public BaseBool() {
       this.value = false;
-      setDefined(false);
    }
 
    /**
@@ -93,7 +92,7 @@ public class BaseBool extends GeneralType implements Orderable<BaseBool> {
     */
    @Override
    public boolean equals(final Object obj) {
-      if (obj == null || !(obj instanceof BaseBool)) {
+      if (!(obj instanceof BaseBool)) {
          return false;
       }
 
@@ -136,16 +135,6 @@ public class BaseBool extends GeneralType implements Orderable<BaseBool> {
    @Override
    public boolean adjacent(BaseBool otherBool) {
       return (this.compareTo(otherBool) != 0);
-   }
-
-   /*
-    * (non-Javadoc)
-    * 
-    * @see java.lang.Object#toString()
-    */
-   @Override
-   public String toString() {
-      return "BaseBool [value=" + value + ", isDefined()=" + isDefined() + "]";
    }
 
    /**

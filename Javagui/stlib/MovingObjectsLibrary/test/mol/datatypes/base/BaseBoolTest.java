@@ -31,6 +31,25 @@ import org.junit.Test;
 public class BaseBoolTest {
 
    @Test
+   public void testBaseBoolConstructor_UndefinedObject() {
+      BaseBool undefinedBool = new BaseBool();
+
+      assertFalse(undefinedBool.isDefined());
+   }
+
+   @Test
+   public void testBaseBoolCopyConstructor() {
+      BaseBool falseBool = new BaseBool(false);
+      BaseBool trueBool = new BaseBool(true);
+
+      BaseBool copyFalseBool = new BaseBool(falseBool);
+      BaseBool copyTrueBool = new BaseBool(trueBool);
+
+      assertEquals(falseBool, copyFalseBool);
+      assertEquals(trueBool, copyTrueBool);
+   }
+
+   @Test
    public void testHashCode_DifferentObjectSameValue_HashCodeShouldBeEqual() {
       BaseBool falseBool1 = new BaseBool(false);
       BaseBool falseBool2 = new BaseBool(false);
@@ -97,6 +116,25 @@ public class BaseBoolTest {
       BaseBool trueBool = new BaseBool(true);
 
       assertFalse(trueBool.equals(falseBool));
+
+   }
+
+   @Test
+   public void testEquals_NullObject_ShouldBeFalse() {
+      BaseBool trueBool = new BaseBool(true);
+      Object object = null;
+
+      assertFalse(trueBool.equals(object));
+
+   }
+
+   @Test
+   public void testEquals_SameObject_ShouldBeTrue() {
+      BaseBool trueBool = new BaseBool(true);
+
+      Object object = trueBool;
+
+      assertTrue(trueBool.equals(object));
 
    }
 
