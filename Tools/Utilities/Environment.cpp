@@ -36,6 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "FileSystem.h"
 #include "LogMsg.h"
 #include "WinUnix.h"
+#include "satof.h"
 
 using namespace std;
 
@@ -72,7 +73,7 @@ Environment::init() {
 		    intMap[key] = v;
 		    break; } 
 
-      case Float: { float v = atof(value); 
+      case Float: { float v = satof(value); 
 		    floatMap[key] = v;
 		    break; }
 

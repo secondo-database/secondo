@@ -61,6 +61,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
+#include "satof.h"
 
 namespace cstream {
 
@@ -498,7 +499,7 @@ Attribute* JNode::getAttribute(bool forceReal) {
                 return new CcInt(false, 0);
             }
             
-            if (asReal) return new CcReal(true, std::atof(_value.c_str())); 
+            if (asReal) return new CcReal(true, satof(_value.c_str())); 
 
             return new CcInt(true, std::stoi(_value));
 
