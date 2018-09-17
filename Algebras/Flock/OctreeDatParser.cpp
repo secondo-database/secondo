@@ -46,6 +46,7 @@ June, 2009 Mahmoud Sakr
 
 #include "OctreeDatParser.h"
 #include "OctreeElements.h"
+#include "satof.h"
 
 //#define SHOW_DEBUG 1
 
@@ -466,7 +467,7 @@ OctreeDatParser::getNextCoord(double& res){
     delete[] tmp;
     return false;
   }
-  res= atof(tmp);
+  res= satof(tmp);
   delete[] tmp;
   return true;
 }
@@ -485,7 +486,7 @@ OctreeDatParser::getNextDouble(){
   }
     
   tmp[index]='\0';
-  double res= atof(tmp);
+  double res= satof(tmp);
   delete[] tmp;
   return res;
 }

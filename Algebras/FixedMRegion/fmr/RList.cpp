@@ -30,6 +30,7 @@ from/to foreign objects.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "satof.h"
 
 using namespace fmr;
 
@@ -240,7 +241,7 @@ static int getToken(FILE *f) {
                     curtype = 0;
                     switch (_curtype) {
                         case NUM:
-                            num = atof(buf);
+                            num = satof(buf);
                             return NUM;
                         case SYM:
                             if (!strcasecmp(buf, "TRUE")) {

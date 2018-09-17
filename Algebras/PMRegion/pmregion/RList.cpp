@@ -17,6 +17,7 @@
 #include <cstdio>
 #include <cstring>
 #include "PMRegion_internal.h"
+#include "satof.h"
 
 using namespace pmr;
 
@@ -207,7 +208,7 @@ static int getToken (std::istream& f) {
        case '(':
 	 if (buf != ptr && state == NUM) {
 		 f.unget();
-		 num = atof(buf);
+		 num = satof(buf);
 		 state = 0;
 		 return NUM;
 	 } else if (buf != ptr && state == SYM) {
@@ -250,7 +251,7 @@ static int getToken (std::istream& f) {
        case '\n':
        case '\t':
 	 if (buf != ptr && state == NUM) {
-		 num = atof(buf);
+		 num = satof(buf);
 		 state = 0;
 		 return NUM;
 	 } else if (buf != ptr && state == SYM) {

@@ -53,6 +53,7 @@ provides functions useful for the client and for the server implementation.
 #include "Profiles.h"
 #include "CSProtocol.h"
 #include "StringUtils.h"
+#include "satof.h"
 
 
 using namespace std;
@@ -1393,11 +1394,11 @@ bool SecondoInterfaceCS::getLinearParams( const int algId,
        getline(iosock,line);
        bool ok = atoi(line.c_str()) != 0;
        getline(iosock,line);
-       sufficientMemory = atof( line.c_str());
+       sufficientMemory = satof( line.c_str());
        getline(iosock,line);
-       timeAtSuffMemory = atof( line.c_str());
+       timeAtSuffMemory = satof( line.c_str());
        getline(iosock,line);
-       timeAt16MB = atof(line.c_str()); 
+       timeAt16MB = satof(line.c_str()); 
        do{
          getline(iosock,line);
        } while( line != "</LINEARCOSTFUNRESPONSE>");
@@ -1448,11 +1449,11 @@ bool SecondoInterfaceCS::getLinearParams( const int algId,
        getline(iosock,line);
        bool ok = atoi(line.c_str()) != 0;
        getline(iosock,line);
-       sufficientMemory = atof( line.c_str());
+       sufficientMemory = satof( line.c_str());
        getline(iosock,line);
-       timeAtSuffMemory = atof( line.c_str());
+       timeAtSuffMemory = satof( line.c_str());
        getline(iosock,line);
-       timeAt16MB = atof(line.c_str()); 
+       timeAt16MB = satof(line.c_str()); 
        do{
          getline(iosock,line);
        } while( line != "</LINEARCOSTFUNRESPONSE>");
@@ -1507,19 +1508,19 @@ bool SecondoInterfaceCS::getFunction(const int algId,
        getline(iosock,line);
        funType = atoi(line.c_str()); 
        getline(iosock,line);
-       sufficientMemory = atof( line.c_str());
+       sufficientMemory = satof( line.c_str());
        getline(iosock,line);
-       timeAtSuffMemory = atof( line.c_str());
+       timeAtSuffMemory = satof( line.c_str());
        getline(iosock,line);
-       timeAt16MB = atof(line.c_str()); 
+       timeAt16MB = satof(line.c_str()); 
        getline(iosock,line);
-       a = atof(line.c_str());
+       a = satof(line.c_str());
        getline(iosock,line);
-       b = atof(line.c_str());
+       b = satof(line.c_str());
        getline(iosock,line);
-       c = atof(line.c_str());
+       c = satof(line.c_str());
        getline(iosock,line);
-       d = atof(line.c_str());
+       d = satof(line.c_str());
        do{
          getline(iosock,line);
        } while( line != "</COSTFUNRESPONSE>");
@@ -1574,19 +1575,19 @@ bool SecondoInterfaceCS::getFunction(const int algId,
        getline(iosock,line);
        funType = atoi(line.c_str()); 
        getline(iosock,line);
-       sufficientMemory = atof( line.c_str());
+       sufficientMemory = satof( line.c_str());
        getline(iosock,line);
-       timeAtSuffMemory = atof( line.c_str());
+       timeAtSuffMemory = satof( line.c_str());
        getline(iosock,line);
-       timeAt16MB = atof(line.c_str()); 
+       timeAt16MB = satof(line.c_str()); 
        getline(iosock,line);
-       a = atof(line.c_str());
+       a = satof(line.c_str());
        getline(iosock,line);
-       b = atof(line.c_str());
+       b = satof(line.c_str());
        getline(iosock,line);
-       c = atof(line.c_str());
+       c = satof(line.c_str());
        getline(iosock,line);
-       d = atof(line.c_str());
+       d = satof(line.c_str());
        do{
          getline(iosock,line);
        } while( line != "</COSTFUNRESPONSE>");

@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <vector>
 #include <set>
+#include <sstream>
 
 #include "LongInt.h"
 #include "DateTime.h"
@@ -277,7 +278,10 @@ class MmORelNetworkEdge {
       if (pszStr == NULL)
         return 0.0;
 
-      return atof(pszStr);
+      std::stringstream ss(pszStr);
+      double r;
+      ss >> r;  
+      return r;
     }
 
     double GetMaxSpeed(void) const {

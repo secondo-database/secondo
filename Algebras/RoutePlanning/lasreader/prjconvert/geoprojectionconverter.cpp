@@ -43,6 +43,8 @@
 #include <unistd.h>
 #endif
 
+#include "satof.h"
+
 static const double PI = 3.141592653589793238462643383279502884197169;
 static const double TWO_PI = PI * 2;
 static const double PI_OVER_2 = PI / 2;
@@ -7012,10 +7014,10 @@ bool GeoProjectionConverter::parse(int argc, char* argv[])
         fprintf(stderr,"  %s 1500000 0 feet 47.000000 -120.833333 47.5 48.733333\n", argv[i]);
         return false;
       }
-      double latOfOriginDeg = atof(argv[i+4]);
-      double longOfOriginDeg = atof(argv[i+5]);
-      double firstStdParallelDeg = atof(argv[i+6]);
-      double secondStdParallelDeg = atof(argv[i+7]);
+      double latOfOriginDeg = satof(argv[i+4]);
+      double longOfOriginDeg = satof(argv[i+5]);
+      double firstStdParallelDeg = satof(argv[i+6]);
+      double secondStdParallelDeg = satof(argv[i+7]);
       set_lambert_conformal_conic_projection(falseEasting, falseNorthing, latOfOriginDeg, longOfOriginDeg, firstStdParallelDeg, secondStdParallelDeg, tmp, source);
       fprintf(stderr, "using LCC %s '%s'\n", (source ? "projection" : "target projection"), tmp);
       *argv[i]='\0'; *argv[i+1]='\0';  *argv[i+2]='\0';  *argv[i+3]='\0';  *argv[i+4]='\0';  *argv[i+5]='\0';  *argv[i+6]='\0';  *argv[i+7]='\0'; i+=7;
@@ -7129,10 +7131,10 @@ bool GeoProjectionConverter::parse(int argc, char* argv[])
         fprintf(stderr,"  %s 1500000 0 feet 47.000000 -120.833333 47.5 48.733333\n", argv[i]);
         return false;
       }
-      double latOfCenterDeg = atof(argv[i+4]);
-      double longOfCenterDeg = atof(argv[i+5]);
-      double firstStdParallelDeg = atof(argv[i+6]);
-      double secondStdParallelDeg = atof(argv[i+7]);
+      double latOfCenterDeg = satof(argv[i+4]);
+      double longOfCenterDeg = satof(argv[i+5]);
+      double firstStdParallelDeg = satof(argv[i+6]);
+      double secondStdParallelDeg = satof(argv[i+7]);
       set_albers_equal_area_conic_projection(falseEasting, falseNorthing, latOfCenterDeg, longOfCenterDeg, firstStdParallelDeg, secondStdParallelDeg, tmp, source);
       fprintf(stderr, "using AEAC %s '%s'\n", (source ? "projection" : "target projection"), tmp);
       *argv[i]='\0'; *argv[i+1]='\0';  *argv[i+2]='\0';  *argv[i+3]='\0';  *argv[i+4]='\0';  *argv[i+5]='\0';  *argv[i+6]='\0';  *argv[i+7]='\0'; i+=7;
@@ -7199,12 +7201,12 @@ bool GeoProjectionConverter::parse(int argc, char* argv[])
     }
     else if (strcmp(argv[i],"-target_precision") == 0)
     {
-      set_target_precision(atof(argv[i+1]));
+      set_target_precision(satof(argv[i+1]));
       *argv[i]='\0'; *argv[i+1]='\0'; i+=1;
     }
     else if (strcmp(argv[i],"-target_elevation_precision") == 0)
     {
-      set_target_elevation_precision(atof(argv[i+1]));
+      set_target_elevation_precision(satof(argv[i+1]));
       *argv[i]='\0'; *argv[i+1]='\0'; i+=1;
     }
   }

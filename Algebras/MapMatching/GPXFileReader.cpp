@@ -49,6 +49,7 @@ This class reads the data from a gpx-file.
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 #include <libxml/xmlreader.h>
+#include "satof.h"
 
 
 namespace mapmatch {
@@ -294,7 +295,7 @@ static double convStrToDouble (const char* pszStr)
     if (pszStr == NULL)
         return 0.0;
 
-    return atof(pszStr);
+    return satof(pszStr);
 }
 
 bool GPXFileReader::ParseTrkPt(xmlNodePtr pNode,

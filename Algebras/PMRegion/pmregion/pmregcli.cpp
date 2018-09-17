@@ -15,6 +15,7 @@
 #include <cstdlib>
 #include <map>
 #include "PMRegion.h"
+#include "satof.h"
 
 using namespace std;
 using namespace pmr;
@@ -49,7 +50,7 @@ static RList file2rlist(char *fname) {
 
 static void atinstant(char **param) {
 	RList rl = file2rlist(param[0]);
-	double instant = atof(param[1]);
+	double instant = satof(param[1]);
 	PMRegion pmreg = PMRegion::fromRList(rl);
 	while (iters--)
 		pmreg.atinstant(instant);

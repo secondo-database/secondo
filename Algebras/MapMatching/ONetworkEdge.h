@@ -42,6 +42,7 @@ This header file contains the class ~ONetworkEdge~
 #define __ONETWORKEDGE_H_
 
 #include "Algebras/Spatial/SpatialAlgebra.h"
+#include "satof.h"
 
 class Tuple;
 
@@ -355,7 +356,7 @@ static double convStrToDouble (const char* pszStr)
     if (pszStr == NULL)
         return 0.0;
 
-    return atof(pszStr);
+    return satof(pszStr);
 }
 
 template<class T>

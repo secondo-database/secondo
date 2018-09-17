@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "FileSystem.h"
 #include "WinUnix.h"
+#include "satof.h"
 #include <iostream>
 #include <string.h>
 #include <stdlib.h>
@@ -910,7 +911,7 @@ public:
 
     if(pos!=std::string::npos){
       std::string buffer = line.substr(pos, (line.length() - pos));
-      value = atof(buffer.c_str());
+      value = satof(buffer.c_str());
     }
 
     return value;
@@ -1144,7 +1145,7 @@ public:
 
       //If end of file is reached, something is wrong with the file.
       if(checkNumber(value)){
-        buffer[(row*currentEsriHDR.ncols) + col] = atof(value);
+        buffer[(row*currentEsriHDR.ncols) + col] = satof(value);
 
        if(f->eof()){
            if((row != currentEsriHDR.nrows-1) ||

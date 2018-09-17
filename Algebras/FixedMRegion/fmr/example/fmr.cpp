@@ -19,6 +19,7 @@
 #include "fmr_Region.h"
 #include "fmr_RList.h"
 #include "fmr_Interval.h"
+#include "satof.h"
 
 #include <iostream>
 
@@ -55,8 +56,8 @@ static void intersection (string fmregion, string mpoint) {
 }
 
 static void setcenter (string fmregion, string _x, string _y) {
-    double x = atof(_x.c_str());
-    double y = atof(_y.c_str());
+    double x = satof(_x.c_str());
+    double y = satof(_y.c_str());
     RList fmrrl = readObjectFile(fmregion, "fmregion"); FMRegion fmr(fmrrl);
     Point c(x, y);
     fmr.setCenter(c);

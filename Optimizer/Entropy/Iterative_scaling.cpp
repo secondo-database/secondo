@@ -35,6 +35,7 @@ Documentation of the encoding scheme of known predicate selectivities.
 #include <cstdlib>
 
 #include "entropy.h"
+#include "satof.h"
 
 using namespace std;
 
@@ -327,7 +328,7 @@ void appendProbabilityArgs( ProbabilityPairVec& v,
   {
     int pos = offset+i;
     int code = atoi(argv[pos]);
-    double prob = atof(argv[pos+1]);
+    double prob = satof(argv[pos+1]);
       
     v.push_back( ProbabilityPair( code, prob ) );
   }

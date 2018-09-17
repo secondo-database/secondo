@@ -362,7 +362,6 @@ UGrid::UGrid(UGridArea AREA, int SPLITS) : suf(0)
 {
   // Create UGrid Header
   header = new UGridHeader(ModifyArea(AREA), SPLITS);
-
   // Create SmiUpdateFile
   suf = new SmiUpdateFile(pageSize);
   suf->Create();
@@ -1858,21 +1857,21 @@ int CreateVM(Word* args, Word& result, int message, Word& local, Supplier s)
   UGridArea area(x1,y1,x2,y2);
   area = ModifyArea(area);
 
+
   // Check number of partitions
   int numPartitions = partitions->GetValue();
+
   if (!(numPartitions == 4096 ||
         numPartitions ==  256 ||
         numPartitions ==   16 ||
         numPartitions ==    4 ))
   {
    // Wrong number of partitions -> create default UGrid
-   ugridPtr = new UGrid(area,4);
+   numPartitions = 16;
   }
-  else
-  {
-    // Create UGrid with the stated number of partitions
-    ugridPtr = new UGrid(area,(int)sqrt(numPartitions));
-  }
+  // Create UGrid with the stated number of partitions
+  
+  ugridPtr = new UGrid(area,(int)sqrt(numPartitions));
   result.setAddr( ugridPtr );
   return 0;
 }

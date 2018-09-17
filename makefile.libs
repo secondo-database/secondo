@@ -38,6 +38,7 @@ LIB_SDBUTILS_BASENAMES:=\
 	Tools/Utilities/FileSystem \
 	Tools/Utilities/Profiles \
 	Tools/Utilities/UtilFunctions \
+	Tools/Utilities/satof \
 	Tools/Utilities/WinUnix \
 	Tools/Utilities/Base64 \
 	Tools/Utilities/PolySolver \

@@ -17,6 +17,7 @@ entropy.cpp
 
 #include <iostream>
 #include <iomanip>
+#include "satof.h"
 
 #define LOOP( i, v ) for( int i = 1; i <= v.Nrows(); i++ )
 #define BIT(j) (1<<(j))
@@ -171,12 +172,12 @@ int main( int argc, const char* argv[] )
   vector<pair<int,double> > estimProb;
 
   for( int i = 0; i < npred; i++ )
-    marginalProb.push_back( atof( argv[i+2] ) );
+    marginalProb.push_back( satof( argv[i+2] ) );
 
   for( int i = 0, j = 1; i < ngiven; i++ )
   {
     j |= BIT(i+1);
-    jointProb.push_back( pair<int,double>( j, atof( argv[i+npred+2] ) ) );
+    jointProb.push_back( pair<int,double>( j, satof( argv[i+npred+2] ) ) );
   }
 
   maximize_entropy(marginalProb, jointProb, estimProb);

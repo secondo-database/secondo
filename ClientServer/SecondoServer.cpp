@@ -68,6 +68,7 @@ are implemented in class ~CSProtocol~ and can be used by inside the
 
 #include "CSProtocol.h"
 #include "NList.h"
+#include "satof.h"
 
 
 using namespace std;
@@ -433,7 +434,7 @@ void SecondoServer::CallGetCosts(){
    if(noStreams==1){ // there is only 1 stream
       getline(iosock,line);
       debug_server(line);
-      double selectivity = atof(line.c_str());
+      double selectivity = satof(line.c_str());
       getline(iosock,line);
       debug_server(line);
       int memoryMB = atoi(line.c_str());
@@ -450,10 +451,10 @@ void SecondoServer::CallGetCosts(){
       int sizeOfTuple2 = atoi(line.c_str());
       getline(iosock,line);
       debug_server(line);
-      int noAttributes2 = atof(line.c_str());
+      int noAttributes2 = satof(line.c_str());
       getline(iosock,line);
       debug_server(line);
-      double selectivity = atof(line.c_str());
+      double selectivity = satof(line.c_str());
       getline(iosock,line);
       debug_server(line);
       int memoryMB = atoi(line.c_str());
@@ -534,7 +535,7 @@ void SecondoServer::CallGetLinearCostFun(){
    if(noStreams==1){
       getline(iosock,line);
       debug_server(line);
-      double selectivity = atof(line.c_str());
+      double selectivity = satof(line.c_str());
       ok = am->getLinearParams(algId,opId,funId,
                                noTuples1,sizeOfTuple1, noAttributes1,
                                 selectivity,
@@ -551,7 +552,7 @@ void SecondoServer::CallGetLinearCostFun(){
       int noAttributes2 = atoi(line.c_str());
       getline(iosock,line);
       debug_server(line);
-      double selectivity = atof(line.c_str());
+      double selectivity = satof(line.c_str());
 
       ok = am->getLinearParams(algId, opId, funId,
                                noTuples1, sizeOfTuple1, noAttributes1,
@@ -671,7 +672,7 @@ void SecondoServer::CallGetCostFun(){
    if(noStreams==1){
       getline(iosock,line);
       debug_server(line);
-      double selectivity  =  atof(line.c_str());
+      double selectivity  =  satof(line.c_str());
       ok = am->getFunction(algId, opId, funId,
                            noTuples1, sizeOfTuple1, noAttributes1,
                            selectivity,
@@ -689,7 +690,7 @@ void SecondoServer::CallGetCostFun(){
       int noAttributes2 = atoi(line.c_str());
       getline(iosock,line);
       debug_server(line);
-      double selectivity = atof(line.c_str()); 
+      double selectivity = satof(line.c_str()); 
 
       ok = am->getFunction(algId, opId, funId,
                            noTuples1, sizeOfTuple1, noAttributes1,
