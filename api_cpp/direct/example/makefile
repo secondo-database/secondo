@@ -29,7 +29,7 @@ Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 #ALGDEPFLAGS=$(addprefix -l, $(ALGEBRA_DEPS))
 
 
-LDFLAGS+=-L../lib/ -lsecondo  -lfl -ly  -lstdc++ $(ALGDEPS)  $(DEFAULTLIB) -L$(PL_LIB_DIR) -l$(PL_LIB)
+LDFLAGS+=-L../lib/ -lsecondo  -ly  -lstdc++ $(ALGDEPS)  $(DEFAULTLIB) -L$(PL_LIB_DIR) -l$(PL_LIB)
 
 ifeq ($(readline),true)
   LDFLAGS+=-lreadline 
