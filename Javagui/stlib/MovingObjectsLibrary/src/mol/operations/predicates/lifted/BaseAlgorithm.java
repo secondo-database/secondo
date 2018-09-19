@@ -19,10 +19,11 @@
 
 package mol.operations.predicates.lifted;
 
-import mol.datatypes.GeneralType;
 import mol.datatypes.moving.MovingBool;
-import mol.datatypes.moving.MovingObject;
-import mol.datatypes.unit.UnitObject;
+import mol.interfaces.GeneralTypeIF;
+import mol.interfaces.moving.MovingBoolIF;
+import mol.interfaces.moving.MovingObjectIF;
+import mol.interfaces.unit.UnitObjectIF;
 
 /**
  * Abstract class that provides a basic algorithm using the template method
@@ -40,17 +41,17 @@ import mol.datatypes.unit.UnitObject;
  */
 public abstract class BaseAlgorithm {
 
-   private MovingObject<? extends UnitObject<? extends GeneralType>, ? extends GeneralType> mobject1;
+   private MovingObjectIF<?, ?> mobject1;
 
-   private MovingObject<? extends UnitObject<? extends GeneralType>, ? extends GeneralType> mobject2;
+   private MovingObjectIF<?, ?> mobject2;
 
    /**
     * Get the result of the operation, a 'MovingBool' object
     * 
     * @return a 'MovingBool' object
     */
-   public final MovingBool getResult() {
-      MovingBool mboolResult = new MovingBool(0);
+   public final MovingBoolIF getResult() {
+      MovingBoolIF mboolResult = new MovingBool(0);
 
       if (!preliminaryChecksSuccessful()) {
          mboolResult.setDefined(false);
@@ -59,8 +60,8 @@ public abstract class BaseAlgorithm {
          int pos1 = 0;
          int pos2 = 0;
 
-         UnitObject<? extends GeneralType> uobject1 = mobject1.getUnit(pos1);
-         UnitObject<? extends GeneralType> uobject2 = mobject2.getUnit(pos2);
+         UnitObjectIF<? extends GeneralTypeIF> uobject1 = mobject1.getUnit(pos1);
+         UnitObjectIF<? extends GeneralTypeIF> uobject2 = mobject2.getUnit(pos2);
 
          while (uobject1.isDefined() && uobject2.isDefined()) {
 
@@ -73,7 +74,7 @@ public abstract class BaseAlgorithm {
                uobject2 = mobject2.getUnit(pos2);
 
             } else {
-               MovingBool mboolUnits = getUnitResult(uobject1, uobject2);
+               MovingBoolIF mboolUnits = getUnitResult(uobject1, uobject2);
 
                mboolResult.add(mboolUnits);
 
@@ -127,23 +128,23 @@ public abstract class BaseAlgorithm {
     * @return the mobject1
     */
    @SuppressWarnings("unchecked")
-   protected MovingObject<UnitObject<GeneralType>, GeneralType> getMobject1() {
-      return (MovingObject<UnitObject<GeneralType>, GeneralType>) mobject1;
+   protected MovingObjectIF<UnitObjectIF<GeneralTypeIF>, GeneralTypeIF> getMobject1() {
+      return (MovingObjectIF<UnitObjectIF<GeneralTypeIF>, GeneralTypeIF>) mobject1;
    }
 
    /**
     * @return the mobject2
     */
    @SuppressWarnings("unchecked")
-   protected MovingObject<UnitObject<GeneralType>, GeneralType> getMobject2() {
-      return (MovingObject<UnitObject<GeneralType>, GeneralType>) mobject2;
+   protected MovingObjectIF<UnitObjectIF<GeneralTypeIF>, GeneralTypeIF> getMobject2() {
+      return (MovingObjectIF<UnitObjectIF<GeneralTypeIF>, GeneralTypeIF>) mobject2;
    }
 
    /**
     * @param mobject1
     *           the mobject1 to set
     */
-   public void setMObject1(MovingObject<? extends UnitObject<? extends GeneralType>, ? extends GeneralType> mobject1) {
+   public void setMObject1(final MovingObjectIF<? extends UnitObjectIF<? extends GeneralTypeIF>, ? extends GeneralTypeIF> mobject1) {
       this.mobject1 = mobject1;
    }
 
@@ -151,7 +152,7 @@ public abstract class BaseAlgorithm {
     * @param mobject2
     *           the mobject2 to set
     */
-   public void setMObject2(MovingObject<? extends UnitObject<? extends GeneralType>, ? extends GeneralType> mobject2) {
+   public void setMObject2(final MovingObjectIF<? extends UnitObjectIF<? extends GeneralTypeIF>, ? extends GeneralTypeIF> mobject2) {
       this.mobject2 = mobject2;
    }
 
@@ -173,6 +174,6 @@ public abstract class BaseAlgorithm {
     * 
     * @return a 'MovingBool' object
     */
-   public abstract MovingBool getUnitResult(final UnitObject<? extends GeneralType> uobject1,
-                                            final UnitObject<? extends GeneralType> uobject2);
+   public abstract MovingBoolIF getUnitResult(final UnitObjectIF<? extends GeneralTypeIF> uobject1,
+                                              final UnitObjectIF<? extends GeneralTypeIF> uobject2);
 }

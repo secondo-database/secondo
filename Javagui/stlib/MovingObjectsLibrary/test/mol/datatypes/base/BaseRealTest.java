@@ -23,6 +23,8 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
+import mol.interfaces.base.BaseRealIF;
+
 /**
  * Tests for class 'BaseReal'
  * 
@@ -41,17 +43,17 @@ public class BaseRealTest {
    public void testBaseRealCopyConstructor() {
       BaseReal baseReal = new BaseReal(1.23456d);
 
-      BaseReal copybaseReal = new BaseReal(baseReal);
+      BaseRealIF copybaseReal = new BaseReal(baseReal);
 
       assertEquals(baseReal, copybaseReal);
    }
 
    @Test
    public void testHashCode_DifferentObjectSameValue_HashCodeShouldBeEqual() {
-      BaseReal posRealA = new BaseReal(1.23456d);
-      BaseReal posRealB = new BaseReal(1.23456d);
-      BaseReal negRealA = new BaseReal(-1.23456d);
-      BaseReal negRealB = new BaseReal(-1.23456d);
+      BaseRealIF posRealA = new BaseReal(1.23456d);
+      BaseRealIF posRealB = new BaseReal(1.23456d);
+      BaseRealIF negRealA = new BaseReal(-1.23456d);
+      BaseRealIF negRealB = new BaseReal(-1.23456d);
 
       assertTrue(posRealA.hashCode() == posRealB.hashCode());
       assertTrue(negRealA.hashCode() == negRealB.hashCode());
@@ -59,9 +61,9 @@ public class BaseRealTest {
 
    @Test
    public void testHashCode_DifferentValue_HashCodeShouldBeNonEqual() {
-      BaseReal posRealA = new BaseReal(1.23456d);
-      BaseReal posRealB = new BaseReal(1.23455d);
-      BaseReal negReal = new BaseReal(-1.23456d);
+      BaseRealIF posRealA = new BaseReal(1.23456d);
+      BaseRealIF posRealB = new BaseReal(1.23455d);
+      BaseRealIF negReal = new BaseReal(-1.23456d);
 
       assertFalse(posRealA.hashCode() == negReal.hashCode());
       assertFalse(posRealA.hashCode() == posRealB.hashCode());
@@ -107,10 +109,10 @@ public class BaseRealTest {
 
    @Test
    public void testEquals_EqualValue_ShouldBeTrue() {
-      BaseReal posRealA = new BaseReal(1.23456d);
-      BaseReal posRealB = new BaseReal(1.23456d);
-      BaseReal negRealA = new BaseReal(-1.23456d);
-      BaseReal negRealB = new BaseReal(-1.23456d);
+      BaseRealIF posRealA = new BaseReal(1.23456d);
+      BaseRealIF posRealB = new BaseReal(1.23456d);
+      BaseRealIF negRealA = new BaseReal(-1.23456d);
+      BaseRealIF negRealB = new BaseReal(-1.23456d);
 
       assertTrue(posRealA.equals(posRealB));
       assertTrue(negRealA.equals(negRealB));
@@ -119,9 +121,9 @@ public class BaseRealTest {
 
    @Test
    public void testEquals_NonEqualValue_ShouldBeFalse() {
-      BaseReal posRealA = new BaseReal(1.23456d);
-      BaseReal posRealB = new BaseReal(1.23455d);
-      BaseReal negReal = new BaseReal(-1.23456d);
+      BaseRealIF posRealA = new BaseReal(1.23456d);
+      BaseRealIF posRealB = new BaseReal(1.23455d);
+      BaseRealIF negReal = new BaseReal(-1.23456d);
 
       assertFalse(posRealA.equals(negReal));
       assertFalse(posRealA.equals(posRealB));
@@ -130,7 +132,7 @@ public class BaseRealTest {
 
    @Test
    public void testEquals_NullObject_ShouldBeFalse() {
-      BaseReal baseReal = new BaseReal(1.23456d);
+      BaseRealIF baseReal = new BaseReal(1.23456d);
       Object object = null;
 
       assertFalse(baseReal.equals(object));
@@ -139,7 +141,7 @@ public class BaseRealTest {
 
    @Test
    public void testEquals_SameObject_ShouldBeTrue() {
-      BaseReal baseReal = new BaseReal(1.23456d);
+      BaseRealIF baseReal = new BaseReal(1.23456d);
 
       Object object = baseReal;
 
@@ -186,8 +188,8 @@ public class BaseRealTest {
    @Test
    public void testAdjacent_DifferentReals_ShouldAlwaysFalse() {
       BaseReal real1A = new BaseReal(1.00000000d);
-      BaseReal real1B = new BaseReal(1.00000000d);
-      BaseReal real2 = new BaseReal(1.00000001d);
+      BaseRealIF real1B = new BaseReal(1.00000000d);
+      BaseRealIF real2 = new BaseReal(1.00000001d);
 
       assertFalse(real1A.adjacent(real1B));
       assertFalse(real1A.adjacent(real2));

@@ -24,6 +24,8 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
+import mol.interfaces.interval.IntervalIntIF;
+
 /**
  * Tests for class 'IntervalInt'
  * <p>
@@ -330,9 +332,9 @@ public class IntervalIntTest {
    @Test
    public void testMerge_MergeTwoIntervalInt_ShouldBeSuccessful() {
 
-      IntervalInt mergedIntervalIntA = (IntervalInt) lClosed1rClosed5.merge(lClosed10rClosed15);
-      IntervalInt mergedIntervalIntB = (IntervalInt) lClosed10rClosed15.merge(lClosed1rClosed5);
-      IntervalInt mergedIntervalIntC = (IntervalInt) lClosed1rClosed15.merge(lClosed1rClosed5);
+      IntervalIntIF mergedIntervalIntA = (IntervalIntIF) lClosed1rClosed5.merge(lClosed10rClosed15);
+      IntervalIntIF mergedIntervalIntB = (IntervalIntIF) lClosed10rClosed15.merge(lClosed1rClosed5);
+      IntervalIntIF mergedIntervalIntC = (IntervalIntIF) lClosed1rClosed15.merge(lClosed1rClosed5);
 
       assertTrue(mergedIntervalIntA.equals(lClosed1rClosed15));
       assertTrue(mergedIntervalIntB.equals(lClosed1rClosed15));
@@ -342,28 +344,28 @@ public class IntervalIntTest {
    @Test
    public void testLeftMerge_LeftIntersectingIntervalInt_MergedIntervalIntWithNewLowerBound() {
 
-      IntervalInt mergedIntervalInt = (IntervalInt) lClosed5rClosed10.mergeLeft(lClosed1rClosed7);
+      IntervalIntIF mergedIntervalInt = (IntervalIntIF) lClosed5rClosed10.mergeLeft(lClosed1rClosed7);
 
       assertTrue(mergedIntervalInt.equals(lClosed1rClosed10));
    }
 
    @Test
    public void testLeftMerge_WithEnclosingIntervalInt_MergedIntervalIntWithNewLowerBound() {
-      IntervalInt mergedIntervalInt = (IntervalInt) lClosed5rClosed10.mergeLeft(lClosed1rClosed15);
+      IntervalIntIF mergedIntervalInt = (IntervalIntIF) lClosed5rClosed10.mergeLeft(lClosed1rClosed15);
 
       assertTrue(mergedIntervalInt.equals(lClosed1rClosed10));
    }
 
    @Test
    public void testLeftMerge_RightIntersectingIntervalInt_MergedIntervalIntEqualToOriginal() {
-      IntervalInt mergedIntervalInt = (IntervalInt) lClosed1rClosed7.mergeLeft(lClosed1rClosed15);
+      IntervalIntIF mergedIntervalInt = (IntervalIntIF) lClosed1rClosed7.mergeLeft(lClosed1rClosed15);
 
       assertTrue(mergedIntervalInt.equals(lClosed1rClosed7));
    }
 
    @Test
    public void testLeftMerge_WithIncludedIntervalInt_MergedIntervalIntEqualToOriginal() {
-      IntervalInt mergedIntervalInt = (IntervalInt) lClosed1rClosed15.mergeLeft(lClosed5rClosed10);
+      IntervalIntIF mergedIntervalInt = (IntervalIntIF) lClosed1rClosed15.mergeLeft(lClosed5rClosed10);
 
       assertTrue(mergedIntervalInt.equals(lClosed1rClosed15));
    }
@@ -371,36 +373,36 @@ public class IntervalIntTest {
    @Test
    public void testRightMerge_RightIntersectingIntervalInt_MergedIntervalIntWithNewUpperBound() {
 
-      IntervalInt mergedIntervalInt = (IntervalInt) lClosed1rClosed7.mergeRight(lClosed5rClosed10);
+      IntervalIntIF mergedIntervalInt = (IntervalIntIF) lClosed1rClosed7.mergeRight(lClosed5rClosed10);
 
       assertTrue(mergedIntervalInt.equals(lClosed1rClosed10));
    }
 
    @Test
    public void testRightMerge_WithEnclosingIntervalInt_MergedIntervalIntWithNewUpperBound() {
-      IntervalInt mergedIntervalInt = (IntervalInt) lClosed5rClosed10.mergeRight(lClosed1rClosed15);
+      IntervalIntIF mergedIntervalInt = (IntervalIntIF) lClosed5rClosed10.mergeRight(lClosed1rClosed15);
 
       assertTrue(mergedIntervalInt.equals(lClosed5rClosed15));
    }
 
    @Test
    public void testRightMerge_LeftIntersectingIntervalInt_MergedIntervalIntEqualToOriginal() {
-      IntervalInt mergedIntervalInt = (IntervalInt) lClosed5rClosed10.mergeRight(lClosed1rClosed7);
+      IntervalIntIF mergedIntervalInt = (IntervalIntIF) lClosed5rClosed10.mergeRight(lClosed1rClosed7);
 
       assertTrue(mergedIntervalInt.equals(lClosed5rClosed10));
    }
 
    @Test
    public void testRightMerge_WithIncludedIntervalInt_MergedIntervalIntEqualToOriginal() {
-      IntervalInt mergedIntervalInt = (IntervalInt) lClosed1rClosed15.mergeRight(lClosed5rClosed10);
+      IntervalIntIF mergedIntervalInt = (IntervalIntIF) lClosed1rClosed15.mergeRight(lClosed5rClosed10);
 
       assertTrue(mergedIntervalInt.equals(lClosed1rClosed15));
    }
 
    @Test
    public void testIntersection_IntersectingIntervalInt_NewDefinedInterval() {
-      IntervalInt intersection1 = (IntervalInt) lClosed1rClosed10.intersection(lClosed5rClosed15);
-      IntervalInt intersection2 = (IntervalInt) lClosed5rClosed15.intersection(lClosed1rClosed10);
+      IntervalIntIF intersection1 = (IntervalIntIF) lClosed1rClosed10.intersection(lClosed5rClosed15);
+      IntervalIntIF intersection2 = (IntervalIntIF) lClosed5rClosed15.intersection(lClosed1rClosed10);
 
       assertTrue(intersection1.equals(lClosed5rClosed10));
       assertTrue(intersection2.equals(lClosed5rClosed10));
@@ -408,8 +410,8 @@ public class IntervalIntTest {
 
    @Test
    public void testIntersection_IntervalInside_NewDefinedInterval() {
-      IntervalInt intersection1 = (IntervalInt) lClosed1rClosed15.intersection(lClosed5rClosed10);
-      IntervalInt intersection2 = (IntervalInt) lClosed5rClosed10.intersection(lClosed1rClosed15);
+      IntervalIntIF intersection1 = (IntervalIntIF) lClosed1rClosed15.intersection(lClosed5rClosed10);
+      IntervalIntIF intersection2 = (IntervalIntIF) lClosed5rClosed10.intersection(lClosed1rClosed15);
 
       assertTrue(intersection1.equals(lClosed5rClosed10));
       assertTrue(intersection2.equals(lClosed5rClosed10));
@@ -417,8 +419,8 @@ public class IntervalIntTest {
 
    @Test
    public void testIntersection_IntersectingOnlyAtBorder_NewDefinedInterval() {
-      IntervalInt intersection1 = (IntervalInt) lClosed1rClosed5.intersection(lClosed5rClosed10);
-      IntervalInt intersection2 = (IntervalInt) lClosed5rClosed10.intersection(lClosed1rClosed5);
+      IntervalIntIF intersection1 = (IntervalIntIF) lClosed1rClosed5.intersection(lClosed5rClosed10);
+      IntervalIntIF intersection2 = (IntervalIntIF) lClosed5rClosed10.intersection(lClosed1rClosed5);
 
       assertTrue(intersection1.equals(new IntervalInt(5, 5, true, true)));
       assertTrue(intersection2.equals(new IntervalInt(5, 5, true, true)));

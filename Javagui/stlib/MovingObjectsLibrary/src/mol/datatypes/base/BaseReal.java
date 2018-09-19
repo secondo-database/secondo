@@ -20,14 +20,14 @@
 package mol.datatypes.base;
 
 import mol.datatypes.GeneralType;
-import mol.datatypes.features.Orderable;
+import mol.interfaces.base.BaseRealIF;
 
 /**
  * Class for representation of the 'real' data type
  * 
  * @author Markus Fuessel
  */
-public class BaseReal extends GeneralType implements Orderable<BaseReal> {
+public class BaseReal extends GeneralType implements BaseRealIF {
 
    /**
     * The 'real' value
@@ -59,7 +59,7 @@ public class BaseReal extends GeneralType implements Orderable<BaseReal> {
     * @param original
     *           - the 'BaseReal' object to copy
     */
-   public BaseReal(final BaseReal original) {
+   public BaseReal(final BaseRealIF original) {
       this.value = original.getValue();
       setDefined(original.isDefined());
    }
@@ -70,7 +70,7 @@ public class BaseReal extends GeneralType implements Orderable<BaseReal> {
     * @see java.lang.Comparable#compareTo(java.lang.Object)
     */
    @Override
-   public int compareTo(final BaseReal otherReal) {
+   public int compareTo(final BaseRealIF otherReal) {
 
       return Double.compare(value, otherReal.getValue());
    }
@@ -92,7 +92,7 @@ public class BaseReal extends GeneralType implements Orderable<BaseReal> {
     */
    @Override
    public boolean equals(final Object obj) {
-      if (!(obj instanceof BaseReal)) {
+      if (!(obj instanceof BaseRealIF)) {
          return false;
       }
 
@@ -100,7 +100,7 @@ public class BaseReal extends GeneralType implements Orderable<BaseReal> {
          return true;
       }
 
-      BaseReal otherReal = (BaseReal) obj;
+      BaseRealIF otherReal = (BaseRealIF) obj;
 
       return compareTo(otherReal) == 0;
    }
@@ -111,7 +111,7 @@ public class BaseReal extends GeneralType implements Orderable<BaseReal> {
     * @see mol.datatypes.util.Orderable#before(java.lang.Object)
     */
    @Override
-   public boolean before(BaseReal otherReal) {
+   public boolean before(BaseRealIF otherReal) {
 
       return (this.compareTo(otherReal) < 0);
    }
@@ -122,7 +122,7 @@ public class BaseReal extends GeneralType implements Orderable<BaseReal> {
     * @see mol.datatypes.util.Orderable#after(java.lang.Object)
     */
    @Override
-   public boolean after(BaseReal otherReal) {
+   public boolean after(BaseRealIF otherReal) {
 
       return (this.compareTo(otherReal) > 0);
    }
@@ -135,15 +135,16 @@ public class BaseReal extends GeneralType implements Orderable<BaseReal> {
     * @see mol.datatypes.util.Orderable#adjacent(java.lang.Object)
     */
    @Override
-   public boolean adjacent(BaseReal otherReal) {
+   public boolean adjacent(BaseRealIF otherReal) {
       return false;
    }
 
-   /**
-    * Getter for the double value
+   /*
+    * (non-Javadoc)
     * 
-    * @return the value
+    * @see mol.datatypes.base.BaseRealIF#getValue()
     */
+   @Override
    public double getValue() {
       return value;
    }

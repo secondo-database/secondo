@@ -21,11 +21,12 @@ package mol.datatypes.unit.spatial.util;
 import java.util.ArrayList;
 import java.util.List;
 
-import mol.datatypes.interval.Period;
 import mol.datatypes.spatial.util.Cycle;
-import mol.datatypes.spatial.util.Rectangle;
-import mol.datatypes.spatial.util.Segment;
-import mol.datatypes.time.TimeInstant;
+import mol.interfaces.interval.PeriodIF;
+import mol.interfaces.spatial.util.CycleIF;
+import mol.interfaces.spatial.util.RectangleIF;
+import mol.interfaces.spatial.util.SegmentIF;
+import mol.interfaces.time.TimeInstantIF;
 
 /**
  * This class represents 'MovableCycle' objects, which are generally used to
@@ -33,104 +34,91 @@ import mol.datatypes.time.TimeInstant;
  * 
  * @author Markus Fuessel
  */
-public class MovableCycle {
+public class MovableCycle implements MovableCycleIF {
 
    /**
-    * List of 'MovableSegment' of this MovableCycle
+    * List of 'MovableSegmentIF' of this MovableCycle
     */
-   private final List<MovableSegment> movingSegments;
+   private final List<MovableSegmentIF> movingSegments;
 
    /**
     * Constructor for a 'MovableCycle'
     * 
     * @param movingSegments
     */
-   public MovableCycle(final List<MovableSegment> movingSegments) {
+   public MovableCycle(final List<MovableSegmentIF> movingSegments) {
       this.movingSegments = new ArrayList<>(movingSegments);
    }
 
-   /**
-    * This method returns a 'Cycle' which is valid at the passed time instant
-    * within the period of the movement of this 'MovableCycle'.<br>
-    * If the 'Cycle' degenerates at the passed time instant, the returned 'Cycle'
-    * will be undefined.
-    * 
-    * @param movementPeriod
-    *           - the period in which the movement of this cycle is defined
-    * @param instant
-    *           - time instant
-    * 
-    * @return a defined 'Cycle' which is valid at the passed instant, otherwise the
-    *         returned 'Cycle' is undefined
+   /* (non-Javadoc)
+    * @see mol.datatypes.unit.spatial.util.MovableCycleIF#getValue(mol.interfaces.interval.PeriodIF, mol.interfaces.time.TimeInstantIF)
     */
-   public Cycle getValue(final Period movementPeriod, final TimeInstant instant) {
-      List<Segment> segments = new ArrayList<>();
+   @Override
+   public CycleIF getValue(final PeriodIF movementPeriod, final TimeInstantIF instant) {
+      List<SegmentIF> segments = new ArrayList<>();
 
-      for (MovableSegment movableSegment : movingSegments) {
-         Segment currentSegment = movableSegment.getValue(movementPeriod, instant);
+      for (MovableSegmentIF movableSegment : movingSegments) {
+         SegmentIF currentSegment = movableSegment.getValue(movementPeriod, instant);
          if (!currentSegment.isAlmostAPoint()) {
             segments.add(currentSegment);
          }
       }
 
-      Cycle cycle = new Cycle(false);
+      CycleIF cycle = new Cycle(false);
 
       cycle.setCycleBySegmentList(segments);
 
       return cycle;
    }
 
-   /**
-    * Get the initial 'Cycle' object at the beginning of the movement
-    * 
-    * @return the initial 'Cycle' object
+   /* (non-Javadoc)
+    * @see mol.datatypes.unit.spatial.util.MovableCycleIF#getInitial()
     */
-   public Cycle getInitial() {
+   @Override
+   public CycleIF getInitial() {
 
-      List<Segment> segments = new ArrayList<>();
+      List<SegmentIF> segments = new ArrayList<>();
 
-      for (MovableSegment movableSegment : movingSegments) {
-         Segment currentSegment = movableSegment.getInitial();
+      for (MovableSegmentIF movableSegment : movingSegments) {
+         SegmentIF currentSegment = movableSegment.getInitial();
          if (!currentSegment.isAlmostAPoint()) {
             segments.add(currentSegment);
          }
       }
 
-      Cycle cycle = new Cycle(false);
+      CycleIF cycle = new Cycle(false);
 
       cycle.setCycleBySegmentList(segments);
 
       return cycle;
    }
 
-   /**
-    * Get the final 'Cycle' object at the end of the movement
-    * 
-    * @return the final 'Cycle' object
+   /* (non-Javadoc)
+    * @see mol.datatypes.unit.spatial.util.MovableCycleIF#getFinal()
     */
-   public Cycle getFinal() {
-      List<Segment> segments = new ArrayList<>();
+   @Override
+   public CycleIF getFinal() {
+      List<SegmentIF> segments = new ArrayList<>();
 
-      for (MovableSegment movableSegment : movingSegments) {
-         Segment currentSegment = movableSegment.getFinal();
+      for (MovableSegmentIF movableSegment : movingSegments) {
+         SegmentIF currentSegment = movableSegment.getFinal();
          if (!currentSegment.isAlmostAPoint()) {
             segments.add(currentSegment);
          }
       }
 
-      Cycle cycle = new Cycle(false);
+      CycleIF cycle = new Cycle(false);
 
       cycle.setCycleBySegmentList(segments);
 
       return cycle;
    }
 
-   /**
-    * Get all 'MovableSegment' objects of this object
-    * 
-    * @return list of 'MovableSegment' objects
+   /* (non-Javadoc)
+    * @see mol.datatypes.unit.spatial.util.MovableCycleIF#getMovingSegments()
     */
-   public List<MovableSegment> getMovingSegments() {
+   @Override
+   public List<MovableSegmentIF> getMovingSegments() {
       return new ArrayList<>(movingSegments);
    }
 
@@ -139,10 +127,10 @@ public class MovableCycle {
     * 
     * @return a 'Rectangle' object
     */
-   public Rectangle getProjectionBoundingBox() {
+   public RectangleIF getProjectionBoundingBox() {
 
-      Rectangle initialBB = getInitial().getBoundingBox();
-      Rectangle finalBB = getFinal().getBoundingBox();
+      RectangleIF initialBB = getInitial().getBoundingBox();
+      RectangleIF finalBB = getFinal().getBoundingBox();
 
       return initialBB.merge(finalBB);
    }

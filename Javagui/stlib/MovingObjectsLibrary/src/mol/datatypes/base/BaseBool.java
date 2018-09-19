@@ -20,14 +20,14 @@
 package mol.datatypes.base;
 
 import mol.datatypes.GeneralType;
-import mol.datatypes.features.Orderable;
+import mol.interfaces.base.BaseBoolIF;
 
 /**
  * Class for representation of the 'bool' data type
  * 
  * @author Markus Fuessel
  */
-public class BaseBool extends GeneralType implements Orderable<BaseBool> {
+public class BaseBool extends GeneralType implements BaseBoolIF {
 
    /**
     * The boolean value
@@ -59,7 +59,7 @@ public class BaseBool extends GeneralType implements Orderable<BaseBool> {
     * @param original
     *           - the 'BaseBool' object to copy
     */
-   public BaseBool(final BaseBool original) {
+   public BaseBool(final BaseBoolIF original) {
       this.value = original.getValue();
       setDefined(original.isDefined());
    }
@@ -70,7 +70,7 @@ public class BaseBool extends GeneralType implements Orderable<BaseBool> {
     * @see java.lang.Comparable#compareTo(java.lang.Object)
     */
    @Override
-   public int compareTo(final BaseBool otherBool) {
+   public int compareTo(final BaseBoolIF otherBool) {
 
       return Boolean.compare(value, otherBool.getValue());
    }
@@ -92,7 +92,7 @@ public class BaseBool extends GeneralType implements Orderable<BaseBool> {
     */
    @Override
    public boolean equals(final Object obj) {
-      if (!(obj instanceof BaseBool)) {
+      if (!(obj instanceof BaseBoolIF)) {
          return false;
       }
 
@@ -100,7 +100,7 @@ public class BaseBool extends GeneralType implements Orderable<BaseBool> {
          return true;
       }
 
-      BaseBool otherBool = (BaseBool) obj;
+      BaseBoolIF otherBool = (BaseBoolIF) obj;
 
       return compareTo(otherBool) == 0;
    }
@@ -108,10 +108,10 @@ public class BaseBool extends GeneralType implements Orderable<BaseBool> {
    /*
     * (non-Javadoc)
     * 
-    * @see mol.datatypes.util.Orderable#before(java.lang.Object)
+    * @see mol.interfaces.features.Orderable#before(java.lang.Object)
     */
    @Override
-   public boolean before(BaseBool otherBool) {
+   public boolean before(BaseBoolIF otherBool) {
 
       return (this.compareTo(otherBool) < 0);
    }
@@ -119,10 +119,10 @@ public class BaseBool extends GeneralType implements Orderable<BaseBool> {
    /*
     * (non-Javadoc)
     * 
-    * @see mol.datatypes.util.Orderable#after(java.lang.Object)
+    * @see mol.interfaces.features.Orderable#after(java.lang.Object)
     */
    @Override
-   public boolean after(BaseBool otherBool) {
+   public boolean after(BaseBoolIF otherBool) {
 
       return (this.compareTo(otherBool) > 0);
    }
@@ -130,18 +130,19 @@ public class BaseBool extends GeneralType implements Orderable<BaseBool> {
    /*
     * (non-Javadoc)
     * 
-    * @see mol.datatypes.util.Orderable#adjacent(java.lang.Object)
+    * @see mol.interfaces.features.Orderable#adjacent(java.lang.Object)
     */
    @Override
-   public boolean adjacent(BaseBool otherBool) {
+   public boolean adjacent(BaseBoolIF otherBool) {
       return (this.compareTo(otherBool) != 0);
    }
 
-   /**
-    * Getter for the boolean value
+   /*
+    * (non-Javadoc)
     * 
-    * @return the value
+    * @see mol.interfaces.base.BaseBoolIF#getValue()
     */
+   @Override
    public boolean getValue() {
       return value;
    }

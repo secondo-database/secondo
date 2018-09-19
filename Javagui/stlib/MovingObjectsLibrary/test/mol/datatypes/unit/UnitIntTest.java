@@ -31,6 +31,9 @@ import org.junit.Test;
 import mol.datatypes.base.BaseInt;
 import mol.datatypes.interval.Period;
 import mol.datatypes.time.TimeInstant;
+import mol.interfaces.base.BaseIntIF;
+import mol.interfaces.time.TimeInstantIF;
+import mol.interfaces.unit.UnitIntIF;
 
 /**
  * Tests for the 'UnitInt' class
@@ -88,12 +91,12 @@ public class UnitIntTest {
    @Test
    public void testGetValue_AtValidInstant() {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-09 23:59:59:999", true, true);
-      BaseInt origBaseInt = new BaseInt(5);
+      BaseIntIF origBaseInt = new BaseInt(5);
       UnitInt uint = new UnitInt(period, origBaseInt);
 
-      TimeInstant instant1 = new TimeInstant("2018-01-01 00:00:00:000");
-      TimeInstant instant2 = new TimeInstant("2018-01-05 00:00:00:000");
-      TimeInstant instant3 = new TimeInstant("2018-01-09 23:59:59:999");
+      TimeInstantIF instant1 = new TimeInstant("2018-01-01 00:00:00:000");
+      TimeInstantIF instant2 = new TimeInstant("2018-01-05 00:00:00:000");
+      TimeInstantIF instant3 = new TimeInstant("2018-01-09 23:59:59:999");
 
       assertEquals(origBaseInt, uint.getValue(instant1));
       assertEquals(origBaseInt, uint.getValue(instant2));
@@ -104,18 +107,18 @@ public class UnitIntTest {
    @Test
    public void testGetValue_AtInvalidInstant_ShouldReturnUndefinedBaseInt() {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-09 23:59:59:999", false, false);
-      BaseInt origBaseInt = new BaseInt(5);
+      BaseIntIF origBaseInt = new BaseInt(5);
       UnitInt uint = new UnitInt(period, origBaseInt);
 
-      TimeInstant instant1 = new TimeInstant("2018-01-01 00:00:00:000");
-      TimeInstant instant2 = new TimeInstant("2018-01-09 23:59:59:999");
-      TimeInstant instant3 = new TimeInstant("2017-01-01 00:00:00:000");
-      TimeInstant instant4 = new TimeInstant();
+      TimeInstantIF instant1 = new TimeInstant("2018-01-01 00:00:00:000");
+      TimeInstantIF instant2 = new TimeInstant("2018-01-09 23:59:59:999");
+      TimeInstantIF instant3 = new TimeInstant("2017-01-01 00:00:00:000");
+      TimeInstantIF instant4 = new TimeInstant();
 
-      BaseInt int1 = uint.getValue(instant1);
-      BaseInt int2 = uint.getValue(instant2);
-      BaseInt int3 = uint.getValue(instant3);
-      BaseInt int4 = uint.getValue(instant4);
+      BaseIntIF int1 = uint.getValue(instant1);
+      BaseIntIF int2 = uint.getValue(instant2);
+      BaseIntIF int3 = uint.getValue(instant3);
+      BaseIntIF int4 = uint.getValue(instant4);
 
       assertNotEquals(origBaseInt, int1);
       assertNotEquals(origBaseInt, int2);
@@ -133,10 +136,10 @@ public class UnitIntTest {
    public void testGetValue_ShouldReturnBaseIntOfUnit() {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-09 23:59:59:999", false, false);
       int intValue = 5;
-      BaseInt origBaseInt = new BaseInt(intValue);
+      BaseIntIF origBaseInt = new BaseInt(intValue);
       UnitInt uint = new UnitInt(period, intValue);
 
-      BaseInt bInt = uint.getValue();
+      BaseIntIF bInt = uint.getValue();
 
       assertTrue(bInt.isDefined());
       assertEquals(origBaseInt, bInt);
@@ -146,10 +149,10 @@ public class UnitIntTest {
    @Test
    public void testGetInitial_ShouldReturnBaseIntOfUnit() {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-09 23:59:59:999", false, false);
-      BaseInt origBaseInt = new BaseInt(5);
+      BaseIntIF origBaseInt = new BaseInt(5);
       UnitInt uint = new UnitInt(period, origBaseInt);
 
-      BaseInt bInt = uint.getInitial();
+      BaseIntIF bInt = uint.getInitial();
 
       assertTrue(bInt.isDefined());
       assertEquals(origBaseInt, bInt);
@@ -159,10 +162,10 @@ public class UnitIntTest {
    @Test
    public void testGetFinal_ShouldReturnBaseIntOfUnit() {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-09 23:59:59:999", false, false);
-      BaseInt origBaseInt = new BaseInt(5);
+      BaseIntIF origBaseInt = new BaseInt(5);
       UnitInt uint = new UnitInt(period, origBaseInt);
 
-      BaseInt bInt = uint.getFinal();
+      BaseIntIF bInt = uint.getFinal();
 
       assertTrue(bInt.isDefined());
       assertEquals(origBaseInt, bInt);
@@ -206,12 +209,12 @@ public class UnitIntTest {
    public void testAtPeriod_IntersectingPeriod() {
 
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, true);
-      BaseInt origBaseInt = new BaseInt(5);
-      UnitInt oldUInt = new UnitInt(period, origBaseInt);
+      BaseIntIF origBaseInt = new BaseInt(5);
+      UnitIntIF oldUInt = new UnitInt(period, origBaseInt);
 
       Period newPeriod = new Period("2018-01-05 12:00:00:000", "2018-01-20 00:00:00:000", true, true);
 
-      UnitInt newUInt = oldUInt.atPeriod(newPeriod);
+      UnitIntIF newUInt = oldUInt.atPeriod(newPeriod);
 
       assertTrue(newUInt.isDefined());
       assertEquals(period.intersection(newPeriod), newUInt.getPeriod());
@@ -223,12 +226,12 @@ public class UnitIntTest {
    @Test
    public void testAtPeriod_NoIntersectingPeriod() {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, true);
-      BaseInt origBaseInt = new BaseInt(5);
-      UnitInt oldUInt = new UnitInt(period, origBaseInt);
+      BaseIntIF origBaseInt = new BaseInt(5);
+      UnitIntIF oldUInt = new UnitInt(period, origBaseInt);
 
       Period newPeriod = new Period("2018-01-15 12:00:00:000", "2018-01-20 00:00:00:000", true, true);
 
-      UnitInt newUInt = oldUInt.atPeriod(newPeriod);
+      UnitIntIF newUInt = oldUInt.atPeriod(newPeriod);
 
       assertFalse(newUInt.isDefined());
 

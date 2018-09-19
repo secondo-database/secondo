@@ -23,27 +23,30 @@ import java.util.ArrayList;
 import java.util.List;
 
 import mol.datatypes.GeneralType;
-import mol.datatypes.features.Spatial;
 import mol.datatypes.spatial.util.Face;
-import mol.datatypes.spatial.util.Halfsegment;
 import mol.datatypes.spatial.util.Rectangle;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.spatial.RegionIF;
+import mol.interfaces.spatial.util.FaceIF;
+import mol.interfaces.spatial.util.HalfsegmentIF;
+import mol.interfaces.spatial.util.RectangleIF;
 
 /**
  * This class represents spatial objects of type 'Region'
  * 
  * @author Markus Fuessel
  */
-public class Region extends GeneralType implements Spatial {
+public class Region extends GeneralType implements RegionIF {
 
    /**
-    * List of 'Face' objects
+    * List of 'FaceIF' objects
     */
-   private final List<Face> faces;
+   private final List<FaceIF> faces;
 
    /**
     * The minimum bounding box of this 'Region' object
     */
-   private Rectangle objectMBB;
+   private RectangleIF objectMBB;
 
    /**
     * Constructor for an empty 'Region' object.
@@ -59,12 +62,12 @@ public class Region extends GeneralType implements Spatial {
    }
 
    /**
-    * Creates a simple 'Region' object with one 'Face'.<br>
-    * 'Region' will be undefined if passed 'Face' is undefined.
+    * Creates a simple 'Region' object with one 'FaceIF'.<br>
+    * 'Region' will be undefined if passed 'FaceIF' is undefined.
     * 
     * @param face
     */
-   public Region(final Face face) {
+   public Region(final FaceIF face) {
       this(false);
 
       setDefined(add(face));
@@ -79,20 +82,17 @@ public class Region extends GeneralType implements Spatial {
     * @param boundaryPoints
     *           - List of points of the boundary
     */
-   public Region(final List<Point> boundaryPoints) {
+   public Region(final List<PointIF> boundaryPoints) {
       this(new Face(boundaryPoints));
    }
 
-   /**
-    * Add a 'Face' object to this 'Region'<br>
-    * Only a defined 'Face' will be added.
+   /*
+    * (non-Javadoc)
     * 
-    * @param face
-    *           - the 'Face' to add
-    * 
-    * @return true if adding was successful, false otherwise
+    * @see mol.datatypes.spatial.RegionIF#add(mol.datatypes.spatial.util.FaceIF)
     */
-   public boolean add(final Face face) {
+   @Override
+   public boolean add(final FaceIF face) {
       if (face.isDefined() && faces.add(face)) {
 
          objectMBB = objectMBB.merge(face.getBoundingBox());
@@ -104,11 +104,12 @@ public class Region extends GeneralType implements Spatial {
       return false;
    }
 
-   /**
-    * Get the number of components in this 'Region'. Number of faces.
+   /*
+    * (non-Javadoc)
     * 
-    * @return number of faces in this 'Region'
+    * @see mol.datatypes.spatial.RegionIF#getNoComponents()
     */
+   @Override
    public int getNoComponents() {
       return faces.size();
    }
@@ -128,19 +129,20 @@ public class Region extends GeneralType implements Spatial {
     * @see mol.datatypes.spatial.Spatial#getBoundingBox()
     */
    @Override
-   public Rectangle getBoundingBox() {
+   public RectangleIF getBoundingBox() {
       return objectMBB;
    }
 
-   /**
-    * Get the entire halfsegments of boundary and holes
+   /*
+    * (non-Javadoc)
     * 
-    * @return the halfsegments
+    * @see mol.datatypes.spatial.RegionIF#getHalfsegments()
     */
-   public List<Halfsegment> getHalfsegments() {
-      List<Halfsegment> halfsegments = new ArrayList<>();
+   @Override
+   public List<HalfsegmentIF> getHalfsegments() {
+      List<HalfsegmentIF> halfsegments = new ArrayList<>();
 
-      for (Face face : faces) {
+      for (FaceIF face : faces) {
          halfsegments.addAll(face.getHalfsegments());
       }
 

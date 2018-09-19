@@ -32,6 +32,8 @@ import org.junit.Test;
 import mol.datatypes.spatial.util.Halfsegment;
 import mol.datatypes.spatial.util.Rectangle;
 import mol.datatypes.spatial.util.Segment;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.spatial.util.RectangleIF;
 
 /**
  * Tests for class 'Line'
@@ -58,7 +60,7 @@ public class LineTest {
 
    @Test
    public void testLine_PassListOfPoints_LineShouldBeDefined() {
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       points.add(new Point(0.0d, 0.0d));
       points.add(new Point(5.0d, 5.0d));
@@ -72,7 +74,7 @@ public class LineTest {
 
    @Test
    public void testLine_PassEmptyListOfPoints_FaceShouldBeUndefined() {
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       Line line = new Line(points);
 
@@ -171,19 +173,19 @@ public class LineTest {
       Halfsegment halfsegment1 = new Halfsegment(1.0d, 1.0d, 5.0d, 5.0d, true);
       Halfsegment halfsegment2 = new Halfsegment(5.0d, 5.0d, -5.0d, 5.0d, true);
 
-      Rectangle expectedBBox1 = new Rectangle();
-      Rectangle expectedBBox2 = new Rectangle(1.0d, 5.0d, 5.0d, 1.0d);
-      Rectangle expectedBBox3 = new Rectangle(-5.0d, 5.0d, 5.0d, 1.0d);
+      RectangleIF expectedBBox1 = new Rectangle();
+      RectangleIF expectedBBox2 = new Rectangle(1.0d, 5.0d, 5.0d, 1.0d);
+      RectangleIF expectedBBox3 = new Rectangle(-5.0d, 5.0d, 5.0d, 1.0d);
 
-      Rectangle bbox1 = emptyDefinedLine.getBoundingBox();
+      RectangleIF bbox1 = emptyDefinedLine.getBoundingBox();
 
       emptyDefinedLine.add(halfsegment1);
 
-      Rectangle bbox2 = emptyDefinedLine.getBoundingBox();
+      RectangleIF bbox2 = emptyDefinedLine.getBoundingBox();
 
       emptyDefinedLine.add(halfsegment2);
 
-      Rectangle bbox3 = emptyDefinedLine.getBoundingBox();
+      RectangleIF bbox3 = emptyDefinedLine.getBoundingBox();
 
       assertEquals(expectedBBox1, bbox1);
       assertEquals(expectedBBox2, bbox2);
@@ -224,7 +226,7 @@ public class LineTest {
 
    @Test
    public void testGetBoundingBox_EmptyLineObject_BoundingBoxShouldBeUndefined() {
-      Rectangle bbox = emptyDefinedLine.getBoundingBox();
+      RectangleIF bbox = emptyDefinedLine.getBoundingBox();
 
       assertTrue(emptyDefinedLine.isEmpty());
       assertFalse(bbox.isDefined());

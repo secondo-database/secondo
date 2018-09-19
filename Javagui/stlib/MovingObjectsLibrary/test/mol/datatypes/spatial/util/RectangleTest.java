@@ -26,6 +26,8 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
+import mol.interfaces.spatial.util.RectangleIF;
+
 /**
  * Tests for the 'Rectangle' class
  * 
@@ -48,7 +50,7 @@ public class RectangleTest {
       double topValue = 3.4d;
       double bottomValue = 0.5d;
 
-      Rectangle rect = new Rectangle(leftValue, rightValue, topValue, bottomValue);
+      RectangleIF rect = new Rectangle(leftValue, rightValue, topValue, bottomValue);
 
       assertEquals(leftValue, rect.getLeftValue(), 0.0f);
       assertEquals(rightValue, rect.getRightValue(), 0.0f);
@@ -63,9 +65,9 @@ public class RectangleTest {
       double topValue = 3.4d;
       double bottomValue = 0.5d;
 
-      Rectangle rect = new Rectangle(leftValue, rightValue, topValue, bottomValue);
+      RectangleIF rect = new Rectangle(leftValue, rightValue, topValue, bottomValue);
 
-      Rectangle copyRect = rect.copy();
+      RectangleIF copyRect = rect.copy();
 
       assertEquals(rect, copyRect);
    }
@@ -73,10 +75,10 @@ public class RectangleTest {
    @Test
    public void testMerge() {
 
-      Rectangle rect1 = new Rectangle(-1.1d, 5.12d, 4.0d, -7.0d);
+      RectangleIF rect1 = new Rectangle(-1.1d, 5.12d, 4.0d, -7.0d);
       Rectangle rect2 = new Rectangle(-1.2d, 5.11d, 4.0001d, -6.999d);
 
-      Rectangle mergedRect = rect1.merge(rect2);
+      RectangleIF mergedRect = rect1.merge(rect2);
 
       assertEquals(-1.2d, mergedRect.getLeftValue(), 0.0f);
       assertEquals(5.12d, mergedRect.getRightValue(), 0.0f);
@@ -87,10 +89,10 @@ public class RectangleTest {
    @Test
    public void testMerge_UndefinedRectanglePassed_RectangleShouldBeUnchanged() {
 
-      Rectangle rect1 = new Rectangle(1.1d, 5.12d, 4.0d, 7.0d);
+      RectangleIF rect1 = new Rectangle(1.1d, 5.12d, 4.0d, 7.0d);
       Rectangle rect2 = new Rectangle();
 
-      Rectangle mergedRect = rect1.merge(rect2);
+      RectangleIF mergedRect = rect1.merge(rect2);
 
       assertEquals(rect1, mergedRect);
    }
@@ -98,10 +100,10 @@ public class RectangleTest {
    @Test
    public void testMerge_UndefinedRectangleWithDefinedRectangle_ResultShouldBePassedRectangle() {
 
-      Rectangle rect1 = new Rectangle();
+      RectangleIF rect1 = new Rectangle();
       Rectangle rect2 = new Rectangle(1.1d, 5.12d, 4.0d, 7.0d);
 
-      Rectangle mergedRect = rect1.merge(rect2);
+      RectangleIF mergedRect = rect1.merge(rect2);
 
       assertEquals(rect2, mergedRect);
    }
@@ -152,14 +154,14 @@ public class RectangleTest {
 
       Rectangle rect = new Rectangle(-1.1d, 5.12d, 4.0d, -7.0d);
 
-      Rectangle bb = rect.getBoundingBox();
+      RectangleIF bb = rect.getBoundingBox();
 
       assertEquals(rect, bb);
    }
 
    @Test
    public void testEquals_NullObject_ShouldBeFalse() {
-      Rectangle rect = new Rectangle(-1.1d, 5.12d, 4.0d, -7.0d);
+      RectangleIF rect = new Rectangle(-1.1d, 5.12d, 4.0d, -7.0d);
       Object object = null;
 
       assertFalse(rect.equals(object));
@@ -168,7 +170,7 @@ public class RectangleTest {
 
    @Test
    public void testEquals_SameObject_ShouldBeTrue() {
-      Rectangle rect = new Rectangle(-1.1d, 5.12d, 4.0d, -7.0d);
+      RectangleIF rect = new Rectangle(-1.1d, 5.12d, 4.0d, -7.0d);
 
       Object object = rect;
 
@@ -178,8 +180,8 @@ public class RectangleTest {
 
    @Test
    public void testHashCode_ObjectsWithSameValue_HashCodeShouldBeEqual() {
-      Rectangle rect1 = new Rectangle(-1.1d, 5.12d, 4.0d, -7.0d);
-      Rectangle rect2 = new Rectangle(-1.1d, 5.12d, 4.0d, -7.0d);
+      RectangleIF rect1 = new Rectangle(-1.1d, 5.12d, 4.0d, -7.0d);
+      RectangleIF rect2 = new Rectangle(-1.1d, 5.12d, 4.0d, -7.0d);
 
       assertEquals(rect1.hashCode(), rect2.hashCode());
 
@@ -187,8 +189,8 @@ public class RectangleTest {
 
    @Test
    public void testHashCode_ObjectsWithDifferentValue_HashCodeShouldBeNotEqual() {
-      Rectangle rect1 = new Rectangle(-1.0d, 5.12d, 4.0d, -7.0d);
-      Rectangle rect2 = new Rectangle(-1.1d, 5.12d, 4.0d, -7.0d);
+      RectangleIF rect1 = new Rectangle(-1.0d, 5.12d, 4.0d, -7.0d);
+      RectangleIF rect2 = new Rectangle(-1.1d, 5.12d, 4.0d, -7.0d);
 
       assertNotEquals(rect1.hashCode(), rect2.hashCode());
 

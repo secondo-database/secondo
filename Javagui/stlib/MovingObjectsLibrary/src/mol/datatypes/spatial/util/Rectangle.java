@@ -21,7 +21,7 @@ package mol.datatypes.spatial.util;
 
 import java.util.Objects;
 
-import mol.datatypes.features.Spatial;
+import mol.interfaces.spatial.util.RectangleIF;
 
 /**
  * Class to represent rectangle objects, generally used for representing the
@@ -30,7 +30,7 @@ import mol.datatypes.features.Spatial;
  * @author Markus Fuessel
  *
  */
-public class Rectangle implements Spatial {
+public class Rectangle implements RectangleIF {
 
    /**
     * The defined flag, indicates if a data type object is defined
@@ -96,32 +96,35 @@ public class Rectangle implements Spatial {
     * 
     * @param rect
     */
-   private Rectangle(final Rectangle rect) {
-      this(rect.leftValue, rect.rightValue, rect.topValue, rect.bottomValue);
+   private Rectangle(final RectangleIF rect) {
+      this(rect.getLeftValue(), rect.getRightValue(), rect.getTopValue(), rect.getBottomValue());
       setDefined(rect.isDefined());
    }
 
-   /**
-    * Copy this rectangle
+   /*
+    * (non-Javadoc)
     * 
-    * @return new Rectangle
+    * @see mol.datatypes.spatial.util.RectangleIF#copy()
     */
-   public Rectangle copy() {
+   @Override
+   public RectangleIF copy() {
       return new Rectangle(this);
    }
 
-   /**
-    * Merge this and the passed rectangle to a new one and returns it
+   /*
+    * (non-Javadoc)
     * 
-    * @return new Rectangle
+    * @see mol.datatypes.spatial.util.RectangleIF#merge(mol.datatypes.spatial.util.
+    * RectangleIF)
     */
-   public Rectangle merge(final Rectangle rect) {
+   @Override
+   public RectangleIF merge(final RectangleIF rect) {
 
       if (this.isDefined() && rect.isDefined()) {
-         double newLeftValue = Math.min(this.leftValue, rect.leftValue);
-         double newRightValue = Math.max(this.rightValue, rect.rightValue);
-         double newTopValue = Math.max(this.topValue, rect.topValue);
-         double newBottomValue = Math.min(this.bottomValue, rect.bottomValue);
+         double newLeftValue = Math.min(this.leftValue, rect.getLeftValue());
+         double newRightValue = Math.max(this.rightValue, rect.getRightValue());
+         double newTopValue = Math.max(this.topValue, rect.getTopValue());
+         double newBottomValue = Math.min(this.bottomValue, rect.getBottomValue());
 
          return new Rectangle(newLeftValue, newRightValue, newTopValue, newBottomValue);
 
@@ -132,21 +135,21 @@ public class Rectangle implements Spatial {
       }
    }
 
-   /**
-    * Check if this 'Rectangle' intersects with the passed one
+   /*
+    * (non-Javadoc)
     * 
-    * @param rect
-    *           - the other 'Rectangle'
-    * 
-    * @return true if both 'Rectangle' intersects, false otherwise
+    * @see
+    * mol.datatypes.spatial.util.RectangleIF#intersects(mol.datatypes.spatial.util.
+    * RectangleIF)
     */
-   public boolean intersects(final Rectangle rect) {
+   @Override
+   public boolean intersects(final RectangleIF rect) {
 
-      if (this.leftValue > rect.rightValue || this.rightValue < rect.leftValue) {
+      if (this.leftValue > rect.getRightValue() || this.rightValue < rect.getLeftValue()) {
          return false;
       }
 
-      return !(this.bottomValue > rect.topValue || this.topValue < rect.bottomValue);
+      return !(this.bottomValue > rect.getTopValue() || this.topValue < rect.getBottomValue());
 
    }
 
@@ -166,43 +169,47 @@ public class Rectangle implements Spatial {
     * @see mol.datatypes.spatial.Spatial#getBoundingBox()
     */
    @Override
-   public Rectangle getBoundingBox() {
+   public RectangleIF getBoundingBox() {
 
       return this.copy();
    }
 
-   /**
-    * Getter for the leftValue, left edge
+   /*
+    * (non-Javadoc)
     * 
-    * @return the leftValue
+    * @see mol.datatypes.spatial.util.RectangleIF#getLeftValue()
     */
+   @Override
    public double getLeftValue() {
       return leftValue;
    }
 
-   /**
-    * Getter for the rightValue, right edge
+   /*
+    * (non-Javadoc)
     * 
-    * @return the rightValue
+    * @see mol.datatypes.spatial.util.RectangleIF#getRightValue()
     */
+   @Override
    public double getRightValue() {
       return rightValue;
    }
 
-   /**
-    * Getter for the topValue, upper edge
+   /*
+    * (non-Javadoc)
     * 
-    * @return the topValue
+    * @see mol.datatypes.spatial.util.RectangleIF#getTopValue()
     */
+   @Override
    public double getTopValue() {
       return topValue;
    }
 
-   /**
-    * Getter for the bottomValue, bottom edge
+   /*
+    * (non-Javadoc)
     * 
-    * @return the bottomValue
+    * @see mol.datatypes.spatial.util.RectangleIF#getBottomValue()
     */
+   @Override
    public double getBottomValue() {
       return bottomValue;
    }
@@ -226,7 +233,7 @@ public class Rectangle implements Spatial {
    @Override
    public boolean equals(Object obj) {
 
-      if (!(obj instanceof Rectangle)) {
+      if (!(obj instanceof RectangleIF)) {
          return false;
       }
 
@@ -235,7 +242,7 @@ public class Rectangle implements Spatial {
 
       } else {
 
-         Rectangle otherRect = (Rectangle) obj;
+         RectangleIF otherRect = (RectangleIF) obj;
 
          return (this.leftValue == otherRect.getLeftValue() && this.rightValue == otherRect.getRightValue()
                && this.topValue == otherRect.getTopValue() && this.bottomValue == otherRect.getBottomValue());

@@ -20,14 +20,14 @@
 package mol.datatypes.base;
 
 import mol.datatypes.GeneralType;
-import mol.datatypes.features.Orderable;
+import mol.interfaces.base.BaseIntIF;
 
 /**
  * Class for representation of the 'int' data type
  * 
  * @author Markus Fuessel
  */
-public class BaseInt extends GeneralType implements Orderable<BaseInt> {
+public class BaseInt extends GeneralType implements BaseIntIF {
 
    /**
     * Checks if two BaseInt objects where adjacent
@@ -39,7 +39,7 @@ public class BaseInt extends GeneralType implements Orderable<BaseInt> {
     * @param integer2
     * @return true - BaseInt objects are adjacent, false - otherwise
     */
-   public static boolean adjacent(BaseInt integer1, BaseInt integer2) {
+   public static boolean adjacent(BaseIntIF integer1, BaseIntIF integer2) {
 
       int intVal1 = integer1.getValue();
       int intVal2 = integer2.getValue();
@@ -78,7 +78,7 @@ public class BaseInt extends GeneralType implements Orderable<BaseInt> {
     * @param original
     *           - the 'BaseInt' object to copy
     */
-   public BaseInt(final BaseInt original) {
+   public BaseInt(final BaseIntIF original) {
       this.value = original.getValue();
       setDefined(original.isDefined());
    }
@@ -89,7 +89,7 @@ public class BaseInt extends GeneralType implements Orderable<BaseInt> {
     * @see java.lang.Comparable#compareTo(java.lang.Object)
     */
    @Override
-   public int compareTo(final BaseInt otherInt) {
+   public int compareTo(final BaseIntIF otherInt) {
 
       return Integer.compare(value, otherInt.getValue());
    }
@@ -111,7 +111,7 @@ public class BaseInt extends GeneralType implements Orderable<BaseInt> {
     */
    @Override
    public boolean equals(final Object obj) {
-      if (!(obj instanceof BaseInt)) {
+      if (!(obj instanceof BaseIntIF)) {
          return false;
       }
 
@@ -119,7 +119,7 @@ public class BaseInt extends GeneralType implements Orderable<BaseInt> {
          return true;
       }
 
-      BaseInt otherInt = (BaseInt) obj;
+      BaseIntIF otherInt = (BaseIntIF) obj;
 
       return compareTo(otherInt) == 0;
    }
@@ -130,7 +130,7 @@ public class BaseInt extends GeneralType implements Orderable<BaseInt> {
     * @see mol.datatypes.util.Orderable#before(java.lang.Object)
     */
    @Override
-   public boolean before(BaseInt otherInt) {
+   public boolean before(BaseIntIF otherInt) {
 
       return (this.compareTo(otherInt) < 0);
    }
@@ -141,7 +141,7 @@ public class BaseInt extends GeneralType implements Orderable<BaseInt> {
     * @see mol.datatypes.util.Orderable#after(java.lang.Object)
     */
    @Override
-   public boolean after(BaseInt otherInt) {
+   public boolean after(BaseIntIF otherInt) {
 
       return (this.compareTo(otherInt) > 0);
    }
@@ -152,16 +152,17 @@ public class BaseInt extends GeneralType implements Orderable<BaseInt> {
     * @see mol.datatypes.util.Orderable#adjacent(java.lang.Object)
     */
    @Override
-   public boolean adjacent(BaseInt otherInt) {
+   public boolean adjacent(BaseIntIF otherInt) {
 
       return BaseInt.adjacent(this, otherInt);
    }
 
-   /**
-    * Getter for the int value
+   /*
+    * (non-Javadoc)
     * 
-    * @return the value
+    * @see mol.datatypes.base.BaseIntIF#getValue()
     */
+   @Override
    public int getValue() {
       return value;
    }

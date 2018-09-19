@@ -33,9 +33,11 @@ import org.junit.Test;
 import mol.TestUtil.TestUtilData;
 import mol.datatypes.interval.Period;
 import mol.datatypes.spatial.Point;
-import mol.datatypes.spatial.util.Face;
 import mol.datatypes.spatial.util.Rectangle;
 import mol.datatypes.time.TimeInstant;
+import mol.interfaces.spatial.util.FaceIF;
+import mol.interfaces.spatial.util.RectangleIF;
+import mol.interfaces.time.TimeInstantIF;
 
 /**
  * Tests for the 'MovableFace' class
@@ -44,8 +46,8 @@ import mol.datatypes.time.TimeInstant;
  */
 public class MovableFaceTest {
 
-   MovableFace mFaceWithoutHoles;
-   MovableFace mFaceWithHoles;
+   MovableFaceIF mFaceWithoutHoles;
+   MovableFaceIF mFaceWithHoles;
 
    @BeforeClass
    public static void setUpBeforeClass() throws Exception {
@@ -74,7 +76,7 @@ public class MovableFaceTest {
       Point fP1 = new Point(10.0d, 10.0d);
       Point fP2 = new Point(10.0d, 0.0d);
 
-      List<MovableSegment> msegments = new ArrayList<>();
+      List<MovableSegmentIF> msegments = new ArrayList<>();
 
       msegments.add(new MovableSegment(iP0, iP1, fP0, fP0));
       msegments.add(new MovableSegment(iP1, iP1, fP0, fP1));
@@ -82,7 +84,7 @@ public class MovableFaceTest {
       msegments.add(new MovableSegment(iP2, iP3, fP1, fP2));
       msegments.add(new MovableSegment(iP3, iP0, fP2, fP0));
 
-      MovableCycle mcycle = new MovableCycle(msegments);
+      MovableCycleIF mcycle = new MovableCycle(msegments);
 
       Point iH0P0 = new Point(2.0d, 1.0d);
       Point iH0P1 = new Point(4.0d, 4.0d);
@@ -100,8 +102,8 @@ public class MovableFaceTest {
 
       Point fH1P0 = new Point(7.0d, 5.0d);
 
-      List<MovableSegment> mHoleSegments0 = new ArrayList<>();
-      List<MovableSegment> mHoleSegments1 = new ArrayList<>();
+      List<MovableSegmentIF> mHoleSegments0 = new ArrayList<>();
+      List<MovableSegmentIF> mHoleSegments1 = new ArrayList<>();
 
       mHoleSegments0.add(new MovableSegment(iH0P0, iH0P1, fH0P0, fH0P1));
       mHoleSegments0.add(new MovableSegment(iH0P1, iH0P2, fH0P1, fH0P2));
@@ -112,12 +114,12 @@ public class MovableFaceTest {
       mHoleSegments1.add(new MovableSegment(iH1P2, iH1P3, fH1P0, fH1P0));
       mHoleSegments1.add(new MovableSegment(iH1P3, iH1P0, fH1P0, fH1P0));
 
-      List<MovableCycle> mHoles = new ArrayList<>();
+      List<MovableCycleIF> mHoles = new ArrayList<>();
 
       mHoles.add(new MovableCycle(mHoleSegments0));
       mHoles.add(new MovableCycle(mHoleSegments1));
 
-      MovableFace mface = new MovableFace(mcycle, mHoles);
+      MovableFaceIF mface = new MovableFace(mcycle, mHoles);
 
       int expectedMSegments = msegments.size() + mHoleSegments0.size() + mHoleSegments1.size();
 
@@ -138,7 +140,7 @@ public class MovableFaceTest {
       Point fH0P1 = new Point(4.0d, 4.0d);
       Point fH0P2 = new Point(4.0d, 1.0d);
 
-      List<MovableSegment> mHoleSegments = new ArrayList<>();
+      List<MovableSegmentIF> mHoleSegments = new ArrayList<>();
 
       mHoleSegments.add(new MovableSegment(iH0P0, iH0P1, fH0P0, fH0P1));
       mHoleSegments.add(new MovableSegment(iH0P1, iH0P2, fH0P1, fH0P2));
@@ -157,10 +159,10 @@ public class MovableFaceTest {
    public void testGetValue_MovableFaceChangedPositionAndSize_ValidInstant() {
 
       Period movementPeriod = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
-      TimeInstant instant = new TimeInstant("2018-01-05 12:00:00:000");
+      TimeInstantIF instant = new TimeInstant("2018-01-05 12:00:00:000");
 
-      Face faceWithoutHoles = mFaceWithoutHoles.getValue(movementPeriod, instant);
-      Face faceWithHoles = mFaceWithHoles.getValue(movementPeriod, instant);
+      FaceIF faceWithoutHoles = mFaceWithoutHoles.getValue(movementPeriod, instant);
+      FaceIF faceWithHoles = mFaceWithHoles.getValue(movementPeriod, instant);
 
       assertTrue(faceWithoutHoles.isDefined());
       assertEquals(10, faceWithoutHoles.getBoundary().getHalfsegments().size());
@@ -175,10 +177,10 @@ public class MovableFaceTest {
    public void testGetValue_MovableFaceChangedPositionAndSize_InvalidInstant() {
 
       Period movementPeriod = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
-      TimeInstant instant = new TimeInstant("2018-01-10 00:00:00:001");
+      TimeInstantIF instant = new TimeInstant("2018-01-10 00:00:00:001");
 
-      Face faceWithoutHoles = mFaceWithoutHoles.getValue(movementPeriod, instant);
-      Face faceWithHoles = mFaceWithHoles.getValue(movementPeriod, instant);
+      FaceIF faceWithoutHoles = mFaceWithoutHoles.getValue(movementPeriod, instant);
+      FaceIF faceWithHoles = mFaceWithHoles.getValue(movementPeriod, instant);
 
       assertFalse(faceWithoutHoles.isDefined());
 
@@ -188,10 +190,10 @@ public class MovableFaceTest {
    @Test
    public void testGetValue_MovableFaceChangedPositionAndSize_InstantAtLowerEnd() {
       Period movementPeriod = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
-      TimeInstant instant = movementPeriod.getLowerBound();
+      TimeInstantIF instant = movementPeriod.getLowerBound();
 
-      Face faceWithoutHoles = mFaceWithoutHoles.getValue(movementPeriod, instant);
-      Face faceWithHoles = mFaceWithHoles.getValue(movementPeriod, instant);
+      FaceIF faceWithoutHoles = mFaceWithoutHoles.getValue(movementPeriod, instant);
+      FaceIF faceWithHoles = mFaceWithHoles.getValue(movementPeriod, instant);
 
       assertTrue(faceWithoutHoles.isDefined());
       assertEquals(8, faceWithoutHoles.getBoundary().getHalfsegments().size());
@@ -206,10 +208,10 @@ public class MovableFaceTest {
    @Test
    public void testGetValue_MovableCycleChangedPositionAndSize_InstantAtUpperEnd() {
       Period movementPeriod = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
-      TimeInstant instant = movementPeriod.getUpperBound();
+      TimeInstantIF instant = movementPeriod.getUpperBound();
 
-      Face faceWithoutHoles = mFaceWithoutHoles.getValue(movementPeriod, instant);
-      Face faceWithHoles = mFaceWithHoles.getValue(movementPeriod, instant);
+      FaceIF faceWithoutHoles = mFaceWithoutHoles.getValue(movementPeriod, instant);
+      FaceIF faceWithHoles = mFaceWithHoles.getValue(movementPeriod, instant);
 
       assertTrue(faceWithoutHoles.isDefined());
       assertEquals(6, faceWithoutHoles.getBoundary().getHalfsegments().size());
@@ -224,8 +226,8 @@ public class MovableFaceTest {
    @Test
    public void testGetInitial() {
 
-      Face faceWithoutHoles = mFaceWithoutHoles.getInitial();
-      Face faceWithHoles = mFaceWithHoles.getInitial();
+      FaceIF faceWithoutHoles = mFaceWithoutHoles.getInitial();
+      FaceIF faceWithHoles = mFaceWithHoles.getInitial();
 
       assertTrue(faceWithoutHoles.isDefined());
       assertEquals(8, faceWithoutHoles.getBoundary().getHalfsegments().size());
@@ -239,8 +241,8 @@ public class MovableFaceTest {
 
    @Test
    public void testGetFinal() {
-      Face faceWithoutHoles = mFaceWithoutHoles.getFinal();
-      Face faceWithHoles = mFaceWithHoles.getFinal();
+      FaceIF faceWithoutHoles = mFaceWithoutHoles.getFinal();
+      FaceIF faceWithHoles = mFaceWithHoles.getFinal();
 
       assertTrue(faceWithoutHoles.isDefined());
       assertEquals(6, faceWithoutHoles.getBoundary().getHalfsegments().size());
@@ -254,8 +256,8 @@ public class MovableFaceTest {
    @Test
    public void testGetProjectionBoundingBox() {
 
-      Rectangle expectedPBB = new Rectangle(0.0d, 10.0d, 10.0d, 0.0d);
-      Rectangle currentPBB = mFaceWithoutHoles.getProjectionBoundingBox();
+      RectangleIF expectedPBB = new Rectangle(0.0d, 10.0d, 10.0d, 0.0d);
+      RectangleIF currentPBB = mFaceWithoutHoles.getProjectionBoundingBox();
 
       assertTrue(currentPBB.isDefined());
       assertEquals(expectedPBB, currentPBB);

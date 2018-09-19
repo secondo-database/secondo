@@ -19,7 +19,9 @@
 package mol.datatypes.unit;
 
 import mol.datatypes.base.BaseInt;
-import mol.datatypes.interval.Period;
+import mol.interfaces.base.BaseIntIF;
+import mol.interfaces.interval.PeriodIF;
+import mol.interfaces.unit.UnitIntIF;
 
 /**
  * This class represents 'UnitInt' objects and is used for 'MovingInt' objects
@@ -27,7 +29,7 @@ import mol.datatypes.interval.Period;
  * 
  * @author Markus Fuessel
  */
-public class UnitInt extends UnitObjectConst<BaseInt> {
+public class UnitInt extends UnitObjectConst<BaseIntIF> implements UnitIntIF {
 
    /**
     * Constructor for an undefined 'UnitInt' object<br>
@@ -46,7 +48,7 @@ public class UnitInt extends UnitObjectConst<BaseInt> {
     *           - the constant int value for this unit
     * 
     */
-   public UnitInt(final Period period, final int intValue) {
+   public UnitInt(final PeriodIF period, final int intValue) {
       this(period, new BaseInt(intValue));
    }
 
@@ -59,7 +61,7 @@ public class UnitInt extends UnitObjectConst<BaseInt> {
     *           - the constant BaseInt value for this unit
     * 
     */
-   public UnitInt(final Period period, final BaseInt baseIntValue) {
+   public UnitInt(final PeriodIF period, final BaseIntIF baseIntValue) {
       super(period, baseIntValue);
    }
 
@@ -68,9 +70,14 @@ public class UnitInt extends UnitObjectConst<BaseInt> {
     * 
     * @see mol.datatypes.unit.UnitObject#atPeriod(mol.datatypes.interval.Period)
     */
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mol.datatypes.unit.UnitIntIF#atPeriod(mol.interfaces.interval.PeriodIF)
+    */
    @Override
-   public UnitInt atPeriod(Period period) {
-      Period newPeriod = this.getPeriod().intersection(period);
+   public UnitIntIF atPeriod(PeriodIF period) {
+      PeriodIF newPeriod = this.getPeriod().intersection(period);
 
       if (!newPeriod.isDefined()) {
          return new UnitInt();
@@ -85,7 +92,7 @@ public class UnitInt extends UnitObjectConst<BaseInt> {
     * @see mol.datatypes.unit.UnitObjectConst#getUndefinedObject()
     */
    @Override
-   protected BaseInt getUndefinedObject() {
+   protected BaseIntIF getUndefinedObject() {
       return new BaseInt();
    }
 

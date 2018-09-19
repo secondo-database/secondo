@@ -32,7 +32,10 @@ import mol.datatypes.spatial.Point;
 import mol.datatypes.time.TimeInstant;
 import mol.datatypes.unit.spatial.util.MovableCycle;
 import mol.datatypes.unit.spatial.util.MovableFace;
+import mol.datatypes.unit.spatial.util.MovableFaceIF;
 import mol.datatypes.unit.spatial.util.MovableSegment;
+import mol.datatypes.unit.spatial.util.MovableSegmentIF;
+import mol.interfaces.time.TimeInstantIF;
 
 /**
  * This class provides helper methods for usage in the unit tests
@@ -81,8 +84,8 @@ public class TestUtilData {
     */
    public static Period getPeriod(String dayBegin, String dayEnd, boolean leftClosed, boolean rightClosed) {
 
-      TimeInstant instantBegin = getInstant(dayBegin);
-      TimeInstant instantEnd = getInstant(dayEnd);
+      TimeInstantIF instantBegin = getInstant(dayBegin);
+      TimeInstantIF instantEnd = getInstant(dayEnd);
 
       Period period = getPeriod(instantBegin, instantEnd, leftClosed, rightClosed);
 
@@ -103,7 +106,7 @@ public class TestUtilData {
     *           - instantEnd belongs to period if true
     * @return a Period Object
     */
-   public static Period getPeriod(TimeInstant instantBegin, TimeInstant instantEnd, boolean leftClosed,
+   public static Period getPeriod(TimeInstantIF instantBegin, TimeInstantIF instantEnd, boolean leftClosed,
                                   boolean rightClosed) {
 
       Period period = new Period(instantBegin, instantEnd, leftClosed, rightClosed);
@@ -128,7 +131,7 @@ public class TestUtilData {
     * 
     * @return a 'MovableFace' object without holes
     */
-   public static MovableFace getMovableFace(double offsetX, double offsetY) {
+   public static MovableFaceIF getMovableFace(double offsetX, double offsetY) {
       // a square
       Point iP0 = new Point(0.0d + offsetX, 0.0d + offsetY);
       Point iP1 = new Point(0.0d + offsetX, 10.0d + offsetY);
@@ -140,7 +143,7 @@ public class TestUtilData {
       Point fP1 = new Point(10.0d + offsetX, 10.0d + offsetY);
       Point fP2 = new Point(10.0d + offsetX, 0.0d + offsetY);
 
-      List<MovableSegment> msegments = new ArrayList<>();
+      List<MovableSegmentIF> msegments = new ArrayList<>();
 
       msegments.add(new MovableSegment(iP0, iP1, fP0, fP0));
       msegments.add(new MovableSegment(iP1, iP1, fP0, fP1));
@@ -174,8 +177,8 @@ public class TestUtilData {
     * 
     * @return a 'MovableFace' object without holes
     */
-   public static MovableFace getMovableFaceWithHoles(double offsetX, double offsetY) {
-      MovableFace mface = getMovableFace(offsetX, offsetY);
+   public static MovableFaceIF getMovableFaceWithHoles(double offsetX, double offsetY) {
+      MovableFaceIF mface = getMovableFace(offsetX, offsetY);
 
       // constant hole0, a triangle
       Point iH0P0 = new Point(2.0d + offsetX, 1.0d + offsetY);
@@ -194,8 +197,8 @@ public class TestUtilData {
 
       Point fH1P0 = new Point(7.0d + offsetX, 5.0d + offsetY);
 
-      List<MovableSegment> mHoleSegments0 = new ArrayList<>();
-      List<MovableSegment> mHoleSegments1 = new ArrayList<>();
+      List<MovableSegmentIF> mHoleSegments0 = new ArrayList<>();
+      List<MovableSegmentIF> mHoleSegments1 = new ArrayList<>();
 
       mHoleSegments0.add(new MovableSegment(iH0P0, iH0P1, fH0P0, fH0P1));
       mHoleSegments0.add(new MovableSegment(iH0P1, iH0P2, fH0P1, fH0P2));
@@ -231,7 +234,7 @@ public class TestUtilData {
     *           beginning
     * @return a 'MovableFace' object without holes
     */
-   public static MovableFace getMovableFaceDegenerate(double offsetX, double offsetY, boolean degeneratesAtEnd) {
+   public static MovableFaceIF getMovableFaceDegenerate(double offsetX, double offsetY, boolean degeneratesAtEnd) {
       // a square
       Point iP0 = new Point(0.0d + offsetX, 0.0d + offsetY);
       Point iP1 = new Point(0.0d + offsetX, 10.0d + offsetY);
@@ -241,7 +244,7 @@ public class TestUtilData {
       // the degenerating point
       Point dP0 = new Point(5.0d + offsetX, 5.0d + offsetY);
 
-      List<MovableSegment> msegments = new ArrayList<>();
+      List<MovableSegmentIF> msegments = new ArrayList<>();
 
       if (degeneratesAtEnd) {
          msegments.add(new MovableSegment(iP0, iP1, dP0, dP0));

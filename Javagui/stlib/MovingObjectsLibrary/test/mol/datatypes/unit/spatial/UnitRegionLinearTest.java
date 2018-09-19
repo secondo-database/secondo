@@ -35,7 +35,11 @@ import mol.datatypes.interval.Period;
 import mol.datatypes.spatial.Region;
 import mol.datatypes.spatial.util.Rectangle;
 import mol.datatypes.time.TimeInstant;
-import mol.datatypes.unit.spatial.util.MovableFace;
+import mol.datatypes.unit.spatial.util.MovableFaceIF;
+import mol.interfaces.spatial.RegionIF;
+import mol.interfaces.spatial.util.RectangleIF;
+import mol.interfaces.time.TimeInstantIF;
+import mol.interfaces.unit.spatial.UnitRegionIF;
 
 /**
  * Tests for the 'UnitRegionLinearTest' class
@@ -56,7 +60,7 @@ public class UnitRegionLinearTest {
    @Before
    public void setUp() throws Exception {
 
-      List<MovableFace> movingFaces = new ArrayList<>();
+      List<MovableFaceIF> movingFaces = new ArrayList<>();
       movingFaces.add(TestUtilData.getMovableFace(0, 0));
 
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
@@ -68,9 +72,9 @@ public class UnitRegionLinearTest {
    public void testAdd_NoOfMovingFacesIncrease_PBBChanges() {
       int noMovingFacesBeforeAdd = linearURegion.getNoMovingFaces();
 
-      MovableFace mface = TestUtilData.getMovableFace(50, 50);
+      MovableFaceIF mface = TestUtilData.getMovableFace(50, 50);
 
-      Rectangle expectedPBB = linearURegion.getProjectionBoundingBox().merge(mface.getProjectionBoundingBox());
+      RectangleIF expectedPBB = linearURegion.getProjectionBoundingBox().merge(mface.getProjectionBoundingBox());
 
       linearURegion.add(mface);
 
@@ -84,20 +88,20 @@ public class UnitRegionLinearTest {
    public void testGetValue_AtValidTimeInstant_ShouldReturnDefinedRegion() {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-09 23:59:59:999", true, true);
 
-      List<MovableFace> movingFaces = new ArrayList<>();
+      List<MovableFaceIF> movingFaces = new ArrayList<>();
       movingFaces.add(TestUtilData.getMovableFace(0, 0));
       movingFaces.add(TestUtilData.getMovableFaceWithHoles(50, 50));
       movingFaces.add(TestUtilData.getMovableFaceDegenerate(-50, -50, true));
 
-      UnitRegion uregion = new UnitRegionLinear(period, movingFaces);
+      UnitRegionIF uregion = new UnitRegionLinear(period, movingFaces);
 
-      TimeInstant instant1 = new TimeInstant("2018-01-01 00:00:00:000");
-      TimeInstant instant2 = new TimeInstant("2018-01-05 00:00:00:000");
-      TimeInstant instant3 = new TimeInstant("2018-01-09 23:59:59:999");
+      TimeInstantIF instant1 = new TimeInstant("2018-01-01 00:00:00:000");
+      TimeInstantIF instant2 = new TimeInstant("2018-01-05 00:00:00:000");
+      TimeInstantIF instant3 = new TimeInstant("2018-01-09 23:59:59:999");
 
-      Region region1 = uregion.getValue(instant1);
-      Region region2 = uregion.getValue(instant2);
-      Region region3 = uregion.getValue(instant3);
+      RegionIF region1 = uregion.getValue(instant1);
+      RegionIF region2 = uregion.getValue(instant2);
+      RegionIF region3 = uregion.getValue(instant3);
 
       assertTrue(region1.isDefined());
       assertEquals(3, region1.getNoComponents());
@@ -114,22 +118,22 @@ public class UnitRegionLinearTest {
    public void testGetValue_AtInvalidInstant_ShouldReturnUndefinedRegion() {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-09 23:59:59:999", false, false);
 
-      List<MovableFace> movingFaces = new ArrayList<>();
+      List<MovableFaceIF> movingFaces = new ArrayList<>();
       movingFaces.add(TestUtilData.getMovableFace(0, 0));
       movingFaces.add(TestUtilData.getMovableFaceWithHoles(50, 50));
       movingFaces.add(TestUtilData.getMovableFaceDegenerate(-50, -50, true));
 
-      UnitRegion uregion = new UnitRegionLinear(period, movingFaces);
+      UnitRegionIF uregion = new UnitRegionLinear(period, movingFaces);
 
-      TimeInstant instant1 = new TimeInstant("2018-01-01 00:00:00:000");
-      TimeInstant instant2 = new TimeInstant("2018-01-09 23:59:59:999");
-      TimeInstant instant3 = new TimeInstant("2017-01-01 00:00:00:000");
-      TimeInstant instant4 = new TimeInstant();
+      TimeInstantIF instant1 = new TimeInstant("2018-01-01 00:00:00:000");
+      TimeInstantIF instant2 = new TimeInstant("2018-01-09 23:59:59:999");
+      TimeInstantIF instant3 = new TimeInstant("2017-01-01 00:00:00:000");
+      TimeInstantIF instant4 = new TimeInstant();
 
-      Region region1 = uregion.getValue(instant1);
-      Region region2 = uregion.getValue(instant2);
-      Region region3 = uregion.getValue(instant3);
-      Region region4 = uregion.getValue(instant4);
+      RegionIF region1 = uregion.getValue(instant1);
+      RegionIF region2 = uregion.getValue(instant2);
+      RegionIF region3 = uregion.getValue(instant3);
+      RegionIF region4 = uregion.getValue(instant4);
 
       assertFalse(region1.isDefined());
       assertFalse(region2.isDefined());
@@ -143,7 +147,7 @@ public class UnitRegionLinearTest {
       linearURegion.add(TestUtilData.getMovableFaceDegenerate(50, 50, true));
       linearURegion.add(TestUtilData.getMovableFaceDegenerate(-50, -50, false));
 
-      Region region = linearURegion.getInitial();
+      RegionIF region = linearURegion.getInitial();
 
       assertTrue(region.isDefined());
       assertEquals(2, region.getNoComponents());
@@ -152,14 +156,14 @@ public class UnitRegionLinearTest {
    @Test
    public void testGetInitial_DegeneratedRegionAtBeginning() {
 
-      List<MovableFace> movingFaces = new ArrayList<>();
+      List<MovableFaceIF> movingFaces = new ArrayList<>();
       movingFaces.add(TestUtilData.getMovableFaceDegenerate(0, 0, false));
 
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
 
       UnitRegionLinear uregion = new UnitRegionLinear(period, movingFaces);
 
-      Region region = uregion.getInitial();
+      RegionIF region = uregion.getInitial();
 
       assertFalse(region.isDefined());
    }
@@ -177,7 +181,7 @@ public class UnitRegionLinearTest {
    @Test
    public void testGetFinal_DegeneratedRegionAtEnd() {
 
-      List<MovableFace> movingFaces = new ArrayList<>();
+      List<MovableFaceIF> movingFaces = new ArrayList<>();
       movingFaces.add(TestUtilData.getMovableFaceDegenerate(0, 0, true));
 
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
@@ -194,7 +198,7 @@ public class UnitRegionLinearTest {
 
       int noMovingSegmentsBeforeAdd = linearURegion.getMovingSegments().size();
 
-      MovableFace mface = TestUtilData.getMovableFace(50, 50);
+      MovableFaceIF mface = TestUtilData.getMovableFace(50, 50);
 
       linearURegion.add(mface);
 
@@ -207,7 +211,7 @@ public class UnitRegionLinearTest {
 
    @Test
    public void testGetProjectionBoundingBox() {
-      Rectangle expectedRectangle = new Rectangle(0.0d, 10.0d, 10.0d, 0.0d);
+      RectangleIF expectedRectangle = new Rectangle(0.0d, 10.0d, 10.0d, 0.0d);
 
       assertEquals(expectedRectangle, linearURegion.getProjectionBoundingBox());
    }

@@ -19,7 +19,9 @@
 package mol.datatypes.range;
 
 import mol.datatypes.base.BaseInt;
-import mol.datatypes.interval.IntervalInt;
+import mol.interfaces.base.BaseIntIF;
+import mol.interfaces.interval.IntervalIntIF;
+import mol.interfaces.range.RangeIntIF;
 
 /**
  * Concrete class for representation of 'RangeInt' objects. That are 'Range'
@@ -27,7 +29,7 @@ import mol.datatypes.interval.IntervalInt;
  * 
  * @author Markus Fuessel
  */
-public class RangeInt extends Range<BaseInt> {
+public class RangeInt extends Range<BaseIntIF> implements RangeIntIF {
 
    /**
     * Simple constructor to create an empty 'RangeInt' object with the specified
@@ -45,9 +47,14 @@ public class RangeInt extends Range<BaseInt> {
     * 
     * @see mol.datatypes.range.Range#first()
     */
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mol.datatypes.range.RangeIntIF#first()
+    */
    @Override
-   public IntervalInt first() {
-      return (IntervalInt) super.first();
+   public IntervalIntIF first() {
+      return (IntervalIntIF) super.first();
    }
 
    /*
@@ -55,9 +62,14 @@ public class RangeInt extends Range<BaseInt> {
     * 
     * @see mol.datatypes.range.Range#last()
     */
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mol.datatypes.range.RangeIntIF#last()
+    */
    @Override
-   public IntervalInt last() {
-      return (IntervalInt) super.last();
+   public IntervalIntIF last() {
+      return (IntervalIntIF) super.last();
    }
 
    /*
@@ -65,10 +77,15 @@ public class RangeInt extends Range<BaseInt> {
     * 
     * @see mol.datatypes.rangeset.RangeSet#getInterval(int)
     */
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mol.datatypes.range.RangeIntIF#get(int)
+    */
    @Override
-   public IntervalInt get(final int index) {
+   public IntervalIntIF get(final int index) {
 
-      return (IntervalInt) super.get(index);
+      return (IntervalIntIF) super.get(index);
 
    }
 
@@ -78,7 +95,7 @@ public class RangeInt extends Range<BaseInt> {
     * @see mol.datatypes.range.Range#getUndefinedValue()
     */
    @Override
-   protected BaseInt getUndefinedObject() {
+   protected BaseIntIF getUndefinedObject() {
       return new BaseInt();
    }
 

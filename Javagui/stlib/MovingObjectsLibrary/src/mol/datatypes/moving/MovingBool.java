@@ -19,15 +19,18 @@
 package mol.datatypes.moving;
 
 import mol.datatypes.base.BaseBool;
-import mol.datatypes.interval.Period;
 import mol.datatypes.unit.UnitBool;
+import mol.interfaces.base.BaseBoolIF;
+import mol.interfaces.interval.PeriodIF;
+import mol.interfaces.moving.MovingBoolIF;
+import mol.interfaces.unit.UnitBoolIF;
 
 /**
  * This class represents moving boolean objects of type 'MovingBool'
  * 
  * @author Markus Fuessel
  */
-public class MovingBool extends MovingObject<UnitBool, BaseBool> {
+public class MovingBool extends MovingObject<UnitBoolIF, BaseBoolIF> implements MovingBoolIF {
 
    /**
     * Basic constructor to create a empty 'MovingBool' object
@@ -41,56 +44,37 @@ public class MovingBool extends MovingObject<UnitBool, BaseBool> {
       this.setDefined(true);
    }
 
-   /**
-    * Append this 'MovingBool' object by a further movement section defined by the
-    * passed values.<br>
-    * Creates an appropriate unit object and append this to this object.
+   /*
+    * (non-Javadoc)
     * 
-    * @param period
-    *           - time period of this movement section
-    * 
-    * @param booleanValue
-    *           - boolean value for this period
-    * 
-    * @return true if the adding was successful, false otherwise
+    * @see mol.datatypes.moving.MovingBoolIF#add(mol.interfaces.interval.PeriodIF,
+    * boolean)
     */
-   public boolean add(final Period period, final boolean booleanValue) {
+   @Override
+   public boolean add(final PeriodIF period, final boolean booleanValue) {
 
       return add(new UnitBool(period, booleanValue));
    }
 
-   /**
-    * Append this 'MovingBool' object by a further movement section defined by the
-    * passed values.<br>
-    * Creates an appropriate unit object and append this to this object.
+   /*
+    * (non-Javadoc)
     * 
-    * @param period
-    *           - time period of this movement section
-    * 
-    * @param baseBoolValue
-    *           - BaseBool value for this period
-    * 
-    * @return true if the adding was successful, false otherwise
+    * @see mol.datatypes.moving.MovingBoolIF#add(mol.interfaces.interval.PeriodIF,
+    * mol.interfaces.base.BaseBoolIF)
     */
-   public boolean add(final Period period, final BaseBool baseBoolValue) {
+   @Override
+   public boolean add(final PeriodIF period, final BaseBoolIF baseBoolValue) {
 
       return add(new UnitBool(period, baseBoolValue));
    }
 
-   /**
-    * Extends this 'MovingBool' object by the passed 'MovingBool' object.<br>
-    * The time period of the passed object must be right adjacent to or begin after
-    * the period of this object.
+   /*
+    * (non-Javadoc)
     * 
-    * @param period
-    *           - time period of this movement section
-    * 
-    * @param otherMovingBool
-    *           - 'MovingBool' to append
-    * 
-    * @return true if the adding was successful, false otherwise
+    * @see mol.datatypes.moving.MovingBoolIF#add(mol.datatypes.moving.MovingBoolIF)
     */
-   public boolean add(final MovingBool otherMovingBool) {
+   @Override
+   public boolean add(final MovingBoolIF otherMovingBool) {
       if (!isDefined() || !otherMovingBool.isDefined()) {
          return false;
       }
@@ -113,7 +97,7 @@ public class MovingBool extends MovingObject<UnitBool, BaseBool> {
     * @see mol.datatypes.moving.MovingObject#getUndefinedUnitObject()
     */
    @Override
-   protected UnitBool getUndefinedUnitObject() {
+   protected UnitBoolIF getUndefinedUnitObject() {
       return new UnitBool();
    }
 
@@ -123,7 +107,7 @@ public class MovingBool extends MovingObject<UnitBool, BaseBool> {
     * @see mol.datatypes.moving.MovingObject#getUndefinedObject()
     */
    @Override
-   protected BaseBool getUndefinedObject() {
+   protected BaseBoolIF getUndefinedObject() {
       return new BaseBool();
    }
 

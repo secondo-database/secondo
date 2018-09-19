@@ -31,6 +31,10 @@ import mol.datatypes.interval.Period;
 import mol.datatypes.spatial.Point;
 import mol.datatypes.spatial.util.Rectangle;
 import mol.datatypes.time.TimeInstant;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.spatial.util.RectangleIF;
+import mol.interfaces.time.TimeInstantIF;
+import mol.interfaces.unit.spatial.UnitPointIF;
 
 /**
  * Tests for the 'UnitPointLinear' class
@@ -51,14 +55,14 @@ public class UnitPointLinearTest {
 
       Point p0 = new Point(1.0d, 1.0d);
       Point p1 = new Point(10.0d, 10.0d);
-      Point pExpected = new Point(5.0d, 5.0d);
+      PointIF pExpected = new Point(5.0d, 5.0d);
 
       Period period = TestUtilData.getPeriod("01", "10", true, true);
-      TimeInstant instant = TestUtilData.getInstant("05");
+      TimeInstantIF instant = TestUtilData.getInstant("05");
 
-      UnitPoint upoint = new UnitPointLinear(period, p0, p1);
+      UnitPointIF upoint = new UnitPointLinear(period, p0, p1);
 
-      Point pointAt = upoint.getValue(instant);
+      PointIF pointAt = upoint.getValue(instant);
 
       assertEquals(pExpected, pointAt);
    }
@@ -68,11 +72,11 @@ public class UnitPointLinearTest {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, true);
       Point pointStart = new Point(1.0d, 1.0d);
       Point pointEnd = new Point(10.0d, 10.0d);
-      UnitPoint upoint = new UnitPointLinear(period, pointStart, pointEnd);
+      UnitPointIF upoint = new UnitPointLinear(period, pointStart, pointEnd);
 
-      TimeInstant instant1 = new TimeInstant("2018-01-01 00:00:00:000");
-      TimeInstant instant2 = new TimeInstant("2018-01-05 00:00:00:000");
-      TimeInstant instant3 = new TimeInstant("2018-01-10 00:00:00:000");
+      TimeInstantIF instant1 = new TimeInstant("2018-01-01 00:00:00:000");
+      TimeInstantIF instant2 = new TimeInstant("2018-01-05 00:00:00:000");
+      TimeInstantIF instant3 = new TimeInstant("2018-01-10 00:00:00:000");
 
       assertEquals(new Point(1.0d, 1.0d), upoint.getValue(instant1));
       assertEquals(new Point(5.0d, 5.0d), upoint.getValue(instant2));
@@ -85,17 +89,17 @@ public class UnitPointLinearTest {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", false, false);
       Point pointStart = new Point(1.0d, 1.0d);
       Point pointEnd = new Point(10.0d, 10.0d);
-      UnitPoint upoint = new UnitPointLinear(period, pointStart, pointEnd);
+      UnitPointIF upoint = new UnitPointLinear(period, pointStart, pointEnd);
 
-      TimeInstant instant1 = new TimeInstant("2018-01-01 00:00:00:000");
-      TimeInstant instant2 = new TimeInstant("2018-01-10 00:00:00:000");
-      TimeInstant instant3 = new TimeInstant("2017-01-01 00:00:00:000");
-      TimeInstant instant4 = new TimeInstant();
+      TimeInstantIF instant1 = new TimeInstant("2018-01-01 00:00:00:000");
+      TimeInstantIF instant2 = new TimeInstant("2018-01-10 00:00:00:000");
+      TimeInstantIF instant3 = new TimeInstant("2017-01-01 00:00:00:000");
+      TimeInstantIF instant4 = new TimeInstant();
 
-      Point point1 = upoint.getValue(instant1);
-      Point point2 = upoint.getValue(instant2);
-      Point point3 = upoint.getValue(instant3);
-      Point point4 = upoint.getValue(instant4);
+      PointIF point1 = upoint.getValue(instant1);
+      PointIF point2 = upoint.getValue(instant2);
+      PointIF point3 = upoint.getValue(instant3);
+      PointIF point4 = upoint.getValue(instant4);
 
       assertFalse(point1.isDefined());
       assertFalse(point2.isDefined());
@@ -109,9 +113,9 @@ public class UnitPointLinearTest {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, true);
       Point pointStart = new Point(1.0d, 1.0d);
       Point pointEnd = new Point(10.0d, 10.0d);
-      UnitPoint upoint = new UnitPointLinear(period, pointStart, pointEnd);
+      UnitPointIF upoint = new UnitPointLinear(period, pointStart, pointEnd);
 
-      Rectangle expectedPBB = new Rectangle(1.0d, 10.0d, 10.0d, 1.0d);
+      RectangleIF expectedPBB = new Rectangle(1.0d, 10.0d, 10.0d, 1.0d);
 
       assertEquals(expectedPBB, upoint.getProjectionBoundingBox());
 
@@ -122,11 +126,11 @@ public class UnitPointLinearTest {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, true);
       Point pointStart = new Point(0.0d, 0.0d);
       Point pointEnd = new Point(10.0d, 10.0d);
-      UnitPoint oldUPoint = new UnitPointLinear(period, pointStart, pointEnd);
+      UnitPointIF oldUPoint = new UnitPointLinear(period, pointStart, pointEnd);
 
       Period newPeriod = new Period("2018-01-05 12:00:00:000", "2018-01-20 00:00:00:000", true, true);
 
-      UnitPoint newUPoint = oldUPoint.atPeriod(newPeriod);
+      UnitPointIF newUPoint = oldUPoint.atPeriod(newPeriod);
 
       assertEquals(period.intersection(newPeriod), newUPoint.getPeriod());
       assertEquals(new Point(5.0d, 5.0d), newUPoint.getInitial());
@@ -139,11 +143,11 @@ public class UnitPointLinearTest {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, true);
       Point pointStart = new Point(0.0d, 0.0d);
       Point pointEnd = new Point(10.0d, 10.0d);
-      UnitPoint oldUPoint = new UnitPointLinear(period, pointStart, pointEnd);
+      UnitPointIF oldUPoint = new UnitPointLinear(period, pointStart, pointEnd);
 
       Period newPeriod = new Period("2018-01-15 12:00:00:000", "2018-01-20 00:00:00:000", true, true);
 
-      UnitPoint newUPoint = oldUPoint.atPeriod(newPeriod);
+      UnitPointIF newUPoint = oldUPoint.atPeriod(newPeriod);
 
       assertFalse(newUPoint.isDefined());
 

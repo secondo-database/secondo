@@ -22,8 +22,11 @@ package mol.datatypes.spatial.util;
 import java.util.ArrayList;
 import java.util.List;
 
-import mol.datatypes.features.Spatial;
-import mol.datatypes.spatial.Point;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.spatial.util.CycleIF;
+import mol.interfaces.spatial.util.FaceIF;
+import mol.interfaces.spatial.util.HalfsegmentIF;
+import mol.interfaces.spatial.util.RectangleIF;
 
 /**
  * This utility class represents spatial objects of type 'Face'.<br>
@@ -31,7 +34,7 @@ import mol.datatypes.spatial.Point;
  * 
  * @author Markus Fuessel
  */
-public class Face implements Spatial {
+public class Face implements FaceIF {
 
    /**
     * The defined flag, indicates if a data type object is defined
@@ -41,12 +44,12 @@ public class Face implements Spatial {
    /**
     * Outer boundary of this 'Face'
     */
-   private final Cycle boundary;
+   private final CycleIF boundary;
 
    /**
     * List with holes this 'Face' may contain
     */
-   private final List<Cycle> holes;
+   private final List<CycleIF> holes;
 
    /**
     * Constructor for a simple 'Face' object without holes.
@@ -54,7 +57,7 @@ public class Face implements Spatial {
     * @param boundary
     *           - outer boundary of this 'Face'
     */
-   public Face(final Cycle boundary) {
+   public Face(final CycleIF boundary) {
       this.boundary = boundary;
 
       holes = new ArrayList<>();
@@ -72,20 +75,18 @@ public class Face implements Spatial {
     * @param boundaryPoints
     *           - List of points of the boundary
     */
-   public Face(final List<Point> boundaryPoints) {
+   public Face(final List<PointIF> boundaryPoints) {
       this(new Cycle(boundaryPoints));
    }
 
-   /**
-    * Add a hole to this 'Face'.<br>
-    * Only defined 'Cycle' hole objects will be added.
+   /*
+    * (non-Javadoc)
     * 
-    * @param hole
-    *           - the hole, a 'Cycle', to add
-    * 
-    * @return true if adding was successful, false otherwise
+    * @see
+    * mol.datatypes.spatial.util.FaceIF#add(mol.datatypes.spatial.util.CycleIF)
     */
-   public boolean add(final Cycle hole) {
+   @Override
+   public boolean add(final CycleIF hole) {
       if (hole.isDefined()) {
 
          return holes.add(hole);
@@ -94,18 +95,13 @@ public class Face implements Spatial {
       return false;
    }
 
-   /**
-    * Add a hole to this 'Face' by passing a list of points which define the hole
-    * boundary. The points of the passed list are connected in the order of their
-    * occurrence in the list, whereby the last point of the list is connected with
-    * the first.
+   /*
+    * (non-Javadoc)
     * 
-    * @param holePoints
-    *           - the hole, List of points of the hole
-    * 
-    * @return true if adding was successful, false otherwise
+    * @see mol.datatypes.spatial.util.FaceIF#add(java.util.List)
     */
-   public boolean add(final List<Point> holePoints) {
+   @Override
+   public boolean add(final List<PointIF> holePoints) {
 
       return holes.add(new Cycle(holePoints));
 
@@ -127,47 +123,53 @@ public class Face implements Spatial {
     * @see mol.datatypes.spatial.Spatial#getBoundingBox()
     */
    @Override
-   public Rectangle getBoundingBox() {
+   public RectangleIF getBoundingBox() {
 
       return boundary.getBoundingBox();
    }
 
-   /**
-    * Get the boundary of this 'Face'
+   /*
+    * (non-Javadoc)
     * 
-    * @return the boundary, a 'Cycle' object
+    * @see mol.datatypes.spatial.util.FaceIF#getBoundary()
     */
-   public Cycle getBoundary() {
+   @Override
+   public CycleIF getBoundary() {
       return boundary;
    }
 
-   /**
-    * @return the holes
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mol.datatypes.spatial.util.FaceIF#getHoles()
     */
-   public List<Cycle> getHoles() {
+   @Override
+   public List<CycleIF> getHoles() {
       return holes;
    }
 
-   /**
-    * Get the number of holes in this 'Face' object
+   /*
+    * (non-Javadoc)
     * 
-    * @return number of holes
+    * @see mol.datatypes.spatial.util.FaceIF#getNoHoles()
     */
+   @Override
    public int getNoHoles() {
       return holes.size();
    }
 
-   /**
-    * Get the entire halfsegments of boundary and holes
+   /*
+    * (non-Javadoc)
     * 
-    * @return the halfsegments
+    * @see mol.datatypes.spatial.util.FaceIF#getHalfsegments()
     */
-   public List<Halfsegment> getHalfsegments() {
-      List<Halfsegment> halfsegments = new ArrayList<>();
+   @Override
+   public List<HalfsegmentIF> getHalfsegments() {
+      List<HalfsegmentIF> halfsegments = new ArrayList<>();
 
       halfsegments.addAll(boundary.getHalfsegments());
 
-      for (Cycle hole : holes) {
+      for (CycleIF hole : holes) {
          halfsegments.addAll(hole.getHalfsegments());
       }
 

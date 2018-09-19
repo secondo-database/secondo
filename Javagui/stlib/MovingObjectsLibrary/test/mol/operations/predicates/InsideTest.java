@@ -30,6 +30,7 @@ import org.junit.Test;
 import mol.datatypes.spatial.Point;
 import mol.datatypes.spatial.Region;
 import mol.datatypes.spatial.util.Face;
+import mol.interfaces.spatial.PointIF;
 
 /**
  * Tests for 'Inside' class methods
@@ -61,7 +62,7 @@ public class InsideTest {
 
    @Before
    public void setUp() throws Exception {
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
       points.add(new Point(0, 0));
       points.add(new Point(0, 50));
       points.add(new Point(50, 50));
@@ -69,7 +70,7 @@ public class InsideTest {
 
       regionWithoutHole = new Region(points);
 
-      List<Point> holePoints = new ArrayList<>();
+      List<PointIF> holePoints = new ArrayList<>();
       holePoints.add(new Point(20, 20));
       holePoints.add(new Point(20, 40));
       holePoints.add(new Point(40, 40));
@@ -80,7 +81,7 @@ public class InsideTest {
 
       regionWithHole = new Region(face);
 
-      List<Point> points2 = new ArrayList<>();
+      List<PointIF> points2 = new ArrayList<>();
       points2.add(new Point(0, 50));
       points2.add(new Point(50, 100));
       points2.add(new Point(100, 50));

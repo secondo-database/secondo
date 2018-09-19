@@ -17,42 +17,26 @@
 //along with SECONDO; if not, write to the Free Software
 //Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-package mol.datatypes.features;
+package mol.interfaces.features;
 
-import mol.datatypes.spatial.util.Rectangle;
+import mol.interfaces.spatial.util.RectangleIF;
 
 /**
- * Marker interface for spatial objects
+ * Interface that should be provided by movable spatial objects
  * 
  * @author Markus Fuessel
+ *
+ * @param <T>
+ *           - specifies the spatial type
  */
-public interface Spatial {
+public interface MovableSpatial {
 
    /**
-    * Verify if the spatial object is empty
+    * Method to get the bounding box of the spatial projection of the spatial
+    * object
     * 
-    * @return true, if the spatial object is empty
+    * @return the projectionBoundingBox, a 'Rectangle' object
     */
-   boolean isEmpty();
+   RectangleIF getProjectionBoundingBox();
 
-   /**
-    * Get the minimum bounding rectangle of the spatial object
-    * 
-    * @return a 'Rectangle' object
-    */
-   Rectangle getBoundingBox();
-
-   /**
-    * Is this object defined
-    * 
-    * @return true if object is defined, false otherwise
-    */
-   boolean isDefined();
-
-   /**
-    * Set the defined flag of this Object
-    * 
-    * @param defined
-    */
-   void setDefined(final boolean defined);
 }

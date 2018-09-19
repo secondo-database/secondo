@@ -30,6 +30,9 @@ import java.util.List;
 import org.junit.Test;
 
 import mol.datatypes.spatial.Point;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.spatial.util.RectangleIF;
+import mol.interfaces.spatial.util.SegmentIF;
 
 /**
  * Tests for class 'Cycle'
@@ -49,7 +52,7 @@ public class CycleTest {
 
    @Test
    public void testCycle_WithMoreThenTwoPoints_ShouldBeNotEmptyAndDefined() {
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       points.add(new Point(0.0d, 0.0d));
       points.add(new Point(5.0d, 5.0d));
@@ -63,7 +66,7 @@ public class CycleTest {
 
    @Test
    public void testCycle_WithLessThenThreePoints_ShouldBeEmptyAndUndefined() {
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       points.add(new Point(0.0d, 0.0d));
       points.add(new Point(10.0d, 0.0d));
@@ -76,7 +79,7 @@ public class CycleTest {
 
    @Test
    public void testSetCycleBySegmentList_WithMoreThenTwoSegments_ShouldBeNotEmptyAndDefined() {
-      List<Segment> segments = new ArrayList<>();
+      List<SegmentIF> segments = new ArrayList<>();
 
       segments.add(new Segment(0.0d, 0.0d, 5.0d, 5.0d));
       segments.add(new Segment(5.0d, 5.0d, 10.0d, 0.0d));
@@ -92,7 +95,7 @@ public class CycleTest {
 
    @Test
    public void testSetCycleBySegmentList_WithLessThenThreeSegments_ShouldBeEmptyAndUndefined() {
-      List<Segment> segments = new ArrayList<>();
+      List<SegmentIF> segments = new ArrayList<>();
 
       segments.add(new Segment(0.0d, 0.0d, 5.0d, 5.0d));
       segments.add(new Segment(5.0d, 5.0d, 10.0d, 0.0d));
@@ -107,7 +110,7 @@ public class CycleTest {
 
    @Test
    public void testSetCycleBySegmentList_ExistingSegmentsShouldBeReplaced() {
-      List<Segment> segments = new ArrayList<>();
+      List<SegmentIF> segments = new ArrayList<>();
 
       segments.add(new Segment(0.0d, 0.0d, 5.0d, 5.0d));
       segments.add(new Segment(5.0d, 5.0d, 10.0d, 0.0d));
@@ -116,7 +119,7 @@ public class CycleTest {
       Cycle cycle = new Cycle(false);
       cycle.setCycleBySegmentList(segments);
 
-      Rectangle bbBeforeNewSet = cycle.getBoundingBox();
+      RectangleIF bbBeforeNewSet = cycle.getBoundingBox();
       int sizeBeforeNewSet = cycle.getHalfsegments().size();
 
       segments.clear();
@@ -127,7 +130,7 @@ public class CycleTest {
 
       cycle.setCycleBySegmentList(segments);
 
-      Rectangle bbAfterNewSet = cycle.getBoundingBox();
+      RectangleIF bbAfterNewSet = cycle.getBoundingBox();
       int sizeAfterNewSet = cycle.getHalfsegments().size();
 
       assertFalse(cycle.isEmpty());
@@ -139,16 +142,16 @@ public class CycleTest {
    @Test
    public void testGetBoundingBox() {
 
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       points.add(new Point(0.0d, 0.0d));
       points.add(new Point(5.0d, 5.0d));
       points.add(new Point(10.0d, 0.0d));
 
       Cycle cycle = new Cycle(points);
-      Rectangle expectedBB = new Rectangle();
+      RectangleIF expectedBB = new Rectangle();
 
-      for (Point point : points) {
+      for (PointIF point : points) {
          expectedBB = expectedBB.merge(point.getBoundingBox());
       }
 
@@ -157,7 +160,7 @@ public class CycleTest {
 
    @Test
    public void testIsEmpty_EmptyCycle_ShouldBeEmpty() {
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       Cycle cycle = new Cycle(points);
 
@@ -166,7 +169,7 @@ public class CycleTest {
 
    @Test
    public void testLength_EmptyCycle_ShouldBeZero() {
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       Cycle cycle = new Cycle(points);
 
@@ -177,7 +180,7 @@ public class CycleTest {
    @Test
    public void testLength_EuclideanGeometry() {
 
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       points.add(new Point(0.0d, 0.0d));
       points.add(new Point(10.0d, 0.0d));
@@ -193,7 +196,7 @@ public class CycleTest {
 
    @Test
    public void testLength_SphericalGeometry() {
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       points.add(new Point(52.527115d, 13.415982d));
       points.add(new Point(52.550944d, 13.430201d));

@@ -23,7 +23,10 @@ import java.util.Objects;
 
 import mol.datatypes.GeneralType;
 import mol.datatypes.interval.Period;
-import mol.datatypes.time.TimeInstant;
+import mol.interfaces.GeneralTypeIF;
+import mol.interfaces.interval.PeriodIF;
+import mol.interfaces.time.TimeInstantIF;
+import mol.interfaces.unit.UnitObjectIF;
 
 /**
  * Abstract base class for all 'UnitObject' subclasses
@@ -34,12 +37,12 @@ import mol.datatypes.time.TimeInstant;
  * @author Markus Fuessel
  * 
  */
-public abstract class UnitObject<T extends GeneralType> extends GeneralType implements Comparable<UnitObject<T>> {
+public abstract class UnitObject<T extends GeneralTypeIF> extends GeneralType implements UnitObjectIF<T> {
 
    /**
     * Time period for which the current unitobject is valid
     */
-   private Period period;
+   private PeriodIF period;
 
    /**
     * Constructor for an undefined 'UnitObject' object<br>
@@ -56,7 +59,7 @@ public abstract class UnitObject<T extends GeneralType> extends GeneralType impl
     * @param period
     *           - valid time period for this unit
     */
-   protected UnitObject(final Period period) {
+   protected UnitObject(final PeriodIF period) {
       this.period = Objects.requireNonNull(period, "period must not be null");
       setDefined(period.isDefined());
    }
@@ -74,133 +77,68 @@ public abstract class UnitObject<T extends GeneralType> extends GeneralType impl
     *         object.
     */
    @Override
-   public int compareTo(final UnitObject<T> otherUnitObject) {
+   public int compareTo(final UnitObjectIF<T> otherUnitObject) {
 
       return period.compareTo(otherUnitObject.getPeriod());
    }
 
-   /**
-    * Verify if this 'UnitObject' is completely before the passed one, regarding to
-    * their defined time period.
+   /*
+    * (non-Javadoc)
     * 
-    * @param otherUnitObject
-    * 
-    * @return true if the period of this unit is before the other units period,
-    *         false otherwise
+    * @see mol.datatypes.unit.UnitObjectIF#before(mol.datatypes.unit.UnitObjectIF)
     */
-   public boolean before(final UnitObject<?> otherUnitObject) {
+   @Override
+   public boolean before(final UnitObjectIF<?> otherUnitObject) {
       return period.before(otherUnitObject.getPeriod());
    }
 
-   /**
-    * Verify if the defined time period of this 'UnitObject' ends before the time
-    * period of the passed unit
+   /*
+    * (non-Javadoc)
     * 
-    * @param otherUnitObject
-    * 
-    * @return true if the period of this unit ends before the other units periods
-    *         ends, false otherwise
+    * @see mol.datatypes.unit.UnitObjectIF#periodEndsWithin(mol.datatypes.unit.
+    * UnitObjectIF)
     */
-   public boolean periodEndsWithin(final UnitObject<?> otherUnitObject) {
+   @Override
+   public boolean periodEndsWithin(final UnitObjectIF<?> otherUnitObject) {
 
-      TimeInstant upperBound = period.getUpperBound();
+      TimeInstantIF upperBound = period.getUpperBound();
 
-      TimeInstant otherLowerBound = otherUnitObject.getPeriod().getLowerBound();
-      TimeInstant otherUpperBound = otherUnitObject.getPeriod().getUpperBound();
+      TimeInstantIF otherLowerBound = otherUnitObject.getPeriod().getLowerBound();
+      TimeInstantIF otherUpperBound = otherUnitObject.getPeriod().getUpperBound();
 
       return upperBound.compareTo(otherLowerBound) >= 0 && upperBound.compareTo(otherUpperBound) < 0;
    }
 
-   /**
-    * Getter for the period of this 'UnitObject'
+   /*
+    * (non-Javadoc)
     * 
-    * @return the period
+    * @see mol.datatypes.unit.UnitObjectIF#getPeriod()
     */
-   public Period getPeriod() {
+   @Override
+   public PeriodIF getPeriod() {
       return period;
    }
 
-   /**
-    * Set the period of this 'UnitObject'
+   /*
+    * (non-Javadoc)
     * 
-    * @param period
-    *           the period to set
+    * @see
+    * mol.datatypes.unit.UnitObjectIF#setPeriod(mol.interfaces.interval.PeriodIF)
     */
-   public void setPeriod(Period period) {
+   @Override
+   public void setPeriod(PeriodIF period) {
       this.period = period;
    }
 
-   /**
-    * This method returns a object of type {@code T} which is valid at the given
-    * time instant, if this time instant lies inside the defined period of this
-    * unitobject
-    * <p>
-    * otherwise the returned object is undefined
+   /*
+    * (non-Javadoc)
     * 
-    * @param instant
-    *           the time instant
-    * 
-    * @return object of type {@code T}
+    * @see
+    * mol.datatypes.unit.UnitObjectIF#contains(mol.interfaces.time.TimeInstantIF)
     */
-   public abstract T getValue(final TimeInstant instant);
-
-   /**
-    * This method reduces this 'UnitObject' by the passed time period. <br>
-    * The passed time period musst intersect with the period of this unit object,
-    * otherwise the returned object is undefined
-    * 
-    * @param period
-    *           the time period
-    * 
-    * @return object of type {@code UnitObject<T>}
-    */
-   public abstract UnitObject<T> atPeriod(final Period period);
-
-   /**
-    * Verifies if the period of this unit contains the passed TimeInstant
-    * 
-    * @param instant
-    * 
-    * @return true if the passed instant lies within the period of this unit, false
-    *         otherwise
-    */
-   public boolean contains(final TimeInstant instant) {
+   @Override
+   public boolean contains(final TimeInstantIF instant) {
       return period.contains(instant);
    }
 
-   /**
-    * Get the initial value of type {@code T} of this unit at begin of the unit
-    * period
-    * 
-    * @return the initial {@code T} value
-    */
-   public abstract T getInitial();
-
-   /**
-    * Get the final value of type {@code T} of this unit at end of the unit period
-    * 
-    * @return the final {@code T} value
-    */
-   public abstract T getFinal();
-
-   /**
-    * Verify if the entire value of this {@code 'UnitObject<T>'} is equal to the
-    * entire value of the passed {@code 'UnitObject<T>'}.
-    * 
-    * @param otherUnitObject
-    * 
-    * @return true, the values of this and the passed 'UnitObject' are equal, false
-    *         otherwise
-    */
-   public abstract boolean equalValue(final UnitObject<T> otherUnitObject);
-
-   /**
-    * Verify if the final value of this {@code 'UnitObject<T>'} is equal to the
-    * initial value of the passed {@code 'UnitObject<T>'}.
-    * 
-    * @param otherUnitObject
-    * @return true if this final value is equal to initial value of other unit,
-    *         false otherwise
-    */
-   public abstract boolean finalEqualToInitialValue(final UnitObject<T> otherUnitObject);
 }

@@ -22,7 +22,7 @@ package mol.util;
 import java.util.ArrayList;
 import java.util.List;
 
-import mol.datatypes.spatial.Point;
+import mol.interfaces.spatial.PointIF;
 
 /**
  * This class provides some useful methods for calculation and comparison
@@ -151,7 +151,7 @@ public final class GeneralHelper {
     *         -1 : move clockwise <br>
     *         0 :
     */
-   public static int counterClockwisePath(final Point p0, final Point p1, final Point p2) {
+   public static int counterClockwisePath(final PointIF p0, final PointIF p1, final PointIF p2) {
       int ccw = 0;
 
       Vector2D deltaP0P1 = p1.minus(p0);
@@ -196,7 +196,7 @@ public final class GeneralHelper {
     * 
     * @see http://twistedoakstudios.com/blog/Post2194_determining-exactly-ifwhenwhere-a-moving-line-intersected-a-moving-point
     */
-   public static double determinePositionRatio(Point point, Point startPoint, Point endPoint) {
+   public static double determinePositionRatio(PointIF point, PointIF startPoint, PointIF endPoint) {
       Vector2D deltaPointStart = point.minus(startPoint);
       Vector2D deltaEndStart = endPoint.minus(startPoint);
 
@@ -228,8 +228,9 @@ public final class GeneralHelper {
     * 
     * @see http://twistedoakstudios.com/blog/Post2194_determining-exactly-ifwhenwhere-a-moving-line-intersected-a-moving-point
     */
-   public static List<CrossPointScalars> intersection(Point fixedPoint, Point initStartPoint, Point finalStartPoint,
-                                                      Point initEndPoint, Point finalEndPoint) {
+   public static List<CrossPointScalars> intersection(PointIF fixedPoint, PointIF initStartPoint,
+                                                      PointIF finalStartPoint, PointIF initEndPoint,
+                                                      PointIF finalEndPoint) {
 
       List<CrossPointScalars> timePositions = new ArrayList<>();
 
@@ -248,8 +249,8 @@ public final class GeneralHelper {
 
          if (t >= 0 && t <= 1) {
 
-            Point startPoint = initStartPoint.plus(startDelta.scale(t));
-            Point endPoint = initEndPoint.plus(endDelta.scale(t));
+            PointIF startPoint = initStartPoint.plus(startDelta.scale(t));
+            PointIF endPoint = initEndPoint.plus(endDelta.scale(t));
 
             double s = determinePositionRatio(fixedPoint, startPoint, endPoint);
 

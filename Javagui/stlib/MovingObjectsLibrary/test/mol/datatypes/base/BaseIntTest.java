@@ -23,6 +23,8 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
+import mol.interfaces.base.BaseIntIF;
+
 /**
  * Tests for class 'BaseInt'
  * 
@@ -41,17 +43,17 @@ public class BaseIntTest {
    public void testBaseIntCopyConstructor() {
       BaseInt baseInt = new BaseInt(5);
 
-      BaseInt copybaseInt = new BaseInt(baseInt);
+      BaseIntIF copybaseInt = new BaseInt(baseInt);
 
       assertEquals(baseInt, copybaseInt);
    }
 
    @Test
    public void testHashCode_DifferentObjectSameValue_HashCodeShouldBeEqual() {
-      BaseInt posIntegerA = new BaseInt(1);
-      BaseInt posIntegerB = new BaseInt(1);
-      BaseInt negIntegerA = new BaseInt(-1);
-      BaseInt negIntegerB = new BaseInt(-1);
+      BaseIntIF posIntegerA = new BaseInt(1);
+      BaseIntIF posIntegerB = new BaseInt(1);
+      BaseIntIF negIntegerA = new BaseInt(-1);
+      BaseIntIF negIntegerB = new BaseInt(-1);
 
       assertTrue(posIntegerA.hashCode() == posIntegerB.hashCode());
       assertTrue(negIntegerA.hashCode() == negIntegerB.hashCode());
@@ -59,8 +61,8 @@ public class BaseIntTest {
 
    @Test
    public void testHashCode_DifferentValue_HashCodeShouldBeNonEqual() {
-      BaseInt posInteger = new BaseInt(1);
-      BaseInt negInteger = new BaseInt(-1);
+      BaseIntIF posInteger = new BaseInt(1);
+      BaseIntIF negInteger = new BaseInt(-1);
 
       assertFalse(posInteger.hashCode() == negInteger.hashCode());
    }
@@ -97,10 +99,10 @@ public class BaseIntTest {
 
    @Test
    public void testEquals_EqualValue_ShouldBeTrue() {
-      BaseInt posIntegerA = new BaseInt(1);
-      BaseInt posIntegerB = new BaseInt(1);
-      BaseInt negIntegerA = new BaseInt(-1);
-      BaseInt negIntegerB = new BaseInt(-1);
+      BaseIntIF posIntegerA = new BaseInt(1);
+      BaseIntIF posIntegerB = new BaseInt(1);
+      BaseIntIF negIntegerA = new BaseInt(-1);
+      BaseIntIF negIntegerB = new BaseInt(-1);
 
       assertTrue(posIntegerA.equals(posIntegerB));
       assertTrue(negIntegerA.equals(negIntegerB));
@@ -109,8 +111,8 @@ public class BaseIntTest {
 
    @Test
    public void testEquals_NonEqualValue_ShouldBeFalse() {
-      BaseInt posInteger = new BaseInt(1);
-      BaseInt negInteger = new BaseInt(-1);
+      BaseIntIF posInteger = new BaseInt(1);
+      BaseIntIF negInteger = new BaseInt(-1);
 
       assertFalse(posInteger.equals(negInteger));
 
@@ -118,7 +120,7 @@ public class BaseIntTest {
 
    @Test
    public void testEquals_NullObject_ShouldBeFalse() {
-      BaseInt baseInt = new BaseInt(5);
+      BaseIntIF baseInt = new BaseInt(5);
       Object object = null;
 
       assertFalse(baseInt.equals(object));
@@ -127,7 +129,7 @@ public class BaseIntTest {
 
    @Test
    public void testEquals_SameObject_ShouldBeTrue() {
-      BaseInt baseInt = new BaseInt(5);
+      BaseIntIF baseInt = new BaseInt(5);
 
       Object object = baseInt;
 
@@ -174,7 +176,7 @@ public class BaseIntTest {
    @Test
    public void testAdjacent_AdjacentIntegers_ShouldBeTrue() {
       BaseInt int1 = new BaseInt(1);
-      BaseInt int2 = new BaseInt(2);
+      BaseIntIF int2 = new BaseInt(2);
 
       assertTrue(int1.adjacent(int2));
 
@@ -183,8 +185,8 @@ public class BaseIntTest {
    @Test
    public void testAdjacent_NonAdjacentOrEqualIntegers_ShouldBeFalse() {
       BaseInt int1A = new BaseInt(1);
-      BaseInt int1B = new BaseInt(1);
-      BaseInt int5 = new BaseInt(5);
+      BaseIntIF int1B = new BaseInt(1);
+      BaseIntIF int5 = new BaseInt(5);
 
       assertFalse(int1A.adjacent(int5));
       assertFalse(int1A.adjacent(int1B));

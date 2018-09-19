@@ -35,8 +35,12 @@ import mol.datatypes.spatial.Point;
 import mol.datatypes.spatial.Region;
 import mol.datatypes.spatial.util.Cycle;
 import mol.datatypes.spatial.util.Face;
-import mol.datatypes.spatial.util.Rectangle;
 import mol.datatypes.time.TimeInstant;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.spatial.RegionIF;
+import mol.interfaces.spatial.util.RectangleIF;
+import mol.interfaces.time.TimeInstantIF;
+import mol.interfaces.unit.spatial.UnitRegionIF;
 
 /**
  * Tests for the 'UnitRegionConstTest' class
@@ -56,7 +60,7 @@ public class UnitRegionConstTest {
 
    @Before
    public void setUp() throws Exception {
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       points.add(new Point(0.0d, 0.0d));
       points.add(new Point(5.0d, 5.0d));
@@ -72,7 +76,7 @@ public class UnitRegionConstTest {
 
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
 
-      UnitRegion uregion = new UnitRegionConst(period, simpleRegion);
+      UnitRegionIF uregion = new UnitRegionConst(period, simpleRegion);
 
       assertTrue(uregion.isDefined());
    }
@@ -84,8 +88,8 @@ public class UnitRegionConstTest {
       Period undefinedPeriod = new Period();
       Region undefinedRegion = new Region(false);
 
-      UnitRegion uregion1 = new UnitRegionConst(undefinedPeriod, simpleRegion);
-      UnitRegion uregion2 = new UnitRegionConst(definedPeriod, undefinedRegion);
+      UnitRegionIF uregion1 = new UnitRegionConst(undefinedPeriod, simpleRegion);
+      UnitRegionIF uregion2 = new UnitRegionConst(definedPeriod, undefinedRegion);
 
       assertFalse(uregion1.isDefined());
       assertFalse(uregion2.isDefined());
@@ -94,11 +98,11 @@ public class UnitRegionConstTest {
    @Test
    public void testGetValue_AtValidTimeInstant_ShouldReturnDefinedRegion() {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-09 23:59:59:999", true, true);
-      UnitRegion uregion = new UnitRegionConst(period, simpleRegion);
+      UnitRegionIF uregion = new UnitRegionConst(period, simpleRegion);
 
-      TimeInstant instant1 = new TimeInstant("2018-01-01 00:00:00:000");
-      TimeInstant instant2 = new TimeInstant("2018-01-05 00:00:00:000");
-      TimeInstant instant3 = new TimeInstant("2018-01-09 23:59:59:999");
+      TimeInstantIF instant1 = new TimeInstant("2018-01-01 00:00:00:000");
+      TimeInstantIF instant2 = new TimeInstant("2018-01-05 00:00:00:000");
+      TimeInstantIF instant3 = new TimeInstant("2018-01-09 23:59:59:999");
 
       assertTrue(uregion.getValue(instant1).isDefined());
       assertTrue(uregion.getValue(instant2).isDefined());
@@ -109,17 +113,17 @@ public class UnitRegionConstTest {
    @Test
    public void testGetValue_AtInvalidInstant_ShouldReturnUndefinedRegion() {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-09 23:59:59:999", false, false);
-      UnitRegion uregion = new UnitRegionConst(period, simpleRegion);
+      UnitRegionIF uregion = new UnitRegionConst(period, simpleRegion);
 
-      TimeInstant instant1 = new TimeInstant("2018-01-01 00:00:00:000");
-      TimeInstant instant2 = new TimeInstant("2018-01-09 23:59:59:999");
-      TimeInstant instant3 = new TimeInstant("2017-01-01 00:00:00:000");
-      TimeInstant instant4 = new TimeInstant();
+      TimeInstantIF instant1 = new TimeInstant("2018-01-01 00:00:00:000");
+      TimeInstantIF instant2 = new TimeInstant("2018-01-09 23:59:59:999");
+      TimeInstantIF instant3 = new TimeInstant("2017-01-01 00:00:00:000");
+      TimeInstantIF instant4 = new TimeInstant();
 
-      Region region1 = uregion.getValue(instant1);
-      Region region2 = uregion.getValue(instant2);
-      Region region3 = uregion.getValue(instant3);
-      Region region4 = uregion.getValue(instant4);
+      RegionIF region1 = uregion.getValue(instant1);
+      RegionIF region2 = uregion.getValue(instant2);
+      RegionIF region3 = uregion.getValue(instant3);
+      RegionIF region4 = uregion.getValue(instant4);
 
       assertFalse(region1.isDefined());
       assertFalse(region2.isDefined());
@@ -131,9 +135,9 @@ public class UnitRegionConstTest {
    public void testGetInitial() {
 
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
-      UnitRegion uregion = new UnitRegionConst(period, simpleRegion);
+      UnitRegionIF uregion = new UnitRegionConst(period, simpleRegion);
 
-      Region region = uregion.getInitial();
+      RegionIF region = uregion.getInitial();
 
       assertTrue(region.isDefined());
       assertEquals(1, region.getNoComponents());
@@ -143,9 +147,9 @@ public class UnitRegionConstTest {
    public void testGetFinal() {
 
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
-      UnitRegion uregion = new UnitRegionConst(period, simpleRegion);
+      UnitRegionIF uregion = new UnitRegionConst(period, simpleRegion);
 
-      Region region = uregion.getFinal();
+      RegionIF region = uregion.getFinal();
 
       assertTrue(region.isDefined());
       assertEquals(1, region.getNoComponents());
@@ -154,9 +158,9 @@ public class UnitRegionConstTest {
    @Test
    public void testGetProjectionBoundingBox() {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
-      UnitRegion uregion = new UnitRegionConst(period, simpleRegion);
+      UnitRegionIF uregion = new UnitRegionConst(period, simpleRegion);
 
-      Rectangle expectedRectangle = simpleRegion.getBoundingBox();
+      RectangleIF expectedRectangle = simpleRegion.getBoundingBox();
 
       assertEquals(expectedRectangle, uregion.getProjectionBoundingBox());
    }
@@ -165,11 +169,11 @@ public class UnitRegionConstTest {
    public void testAtPeriod_IntersectingPeriod() {
 
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
-      UnitRegion oldURegion = new UnitRegionConst(period, simpleRegion);
+      UnitRegionIF oldURegion = new UnitRegionConst(period, simpleRegion);
 
       Period newPeriod = new Period("2018-01-05 12:00:00:000", "2018-01-20 00:00:00:000", true, true);
 
-      UnitRegion newURegion = oldURegion.atPeriod(newPeriod);
+      UnitRegionIF newURegion = oldURegion.atPeriod(newPeriod);
 
       assertEquals(period.intersection(newPeriod), newURegion.getPeriod());
       assertTrue(newURegion.isDefined());
@@ -179,11 +183,11 @@ public class UnitRegionConstTest {
    @Test
    public void testAtPeriod_NoIntersectingPeriod() {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
-      UnitRegion oldURegion = new UnitRegionConst(period, simpleRegion);
+      UnitRegionIF oldURegion = new UnitRegionConst(period, simpleRegion);
 
       Period newPeriod = new Period("2018-01-15 12:00:00:000", "2018-01-20 00:00:00:000", true, true);
 
-      UnitRegion newURegion = oldURegion.atPeriod(newPeriod);
+      UnitRegionIF newURegion = oldURegion.atPeriod(newPeriod);
 
       assertFalse(newURegion.isDefined());
 
@@ -192,7 +196,7 @@ public class UnitRegionConstTest {
    @Test
    public void testGetMovingSegments() {
 
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       points.add(new Point(0.0d, 0.0d));
       points.add(new Point(5.0d, 5.0d));
@@ -202,7 +206,7 @@ public class UnitRegionConstTest {
 
       UnitRegionConst uregion1 = new UnitRegionConst(new Region(face));
 
-      List<Point> holePoints = new ArrayList<>();
+      List<PointIF> holePoints = new ArrayList<>();
 
       holePoints.add(new Point(2.0d, 2.0d));
       holePoints.add(new Point(3.0d, 3.0d));
@@ -224,7 +228,7 @@ public class UnitRegionConstTest {
 
       int noFacesBeforeAdd = uregion1.getNoMovingFaces();
 
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       points.add(new Point(20.0d, 20.0d));
       points.add(new Point(40.0d, 40.0d));

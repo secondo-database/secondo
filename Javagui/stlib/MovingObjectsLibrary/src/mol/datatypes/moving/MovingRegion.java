@@ -18,24 +18,26 @@
 //Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package mol.datatypes.moving;
 
-import mol.datatypes.features.Spatial;
-import mol.datatypes.interval.Period;
 import mol.datatypes.spatial.Region;
 import mol.datatypes.spatial.util.Rectangle;
-import mol.datatypes.unit.spatial.UnitRegion;
 import mol.datatypes.unit.spatial.UnitRegionConst;
+import mol.interfaces.interval.PeriodIF;
+import mol.interfaces.moving.MovingRegionIF;
+import mol.interfaces.spatial.RegionIF;
+import mol.interfaces.spatial.util.RectangleIF;
+import mol.interfaces.unit.spatial.UnitRegionIF;
 
 /**
  * This class represents moving spatial objects of type 'MovingRegion'
  * 
  * @author Markus Fuessel
  */
-public class MovingRegion extends MovingObject<UnitRegion, Region> implements Spatial {
+public class MovingRegion extends MovingObject<UnitRegionIF, RegionIF> implements MovingRegionIF {
 
    /**
     * The minimum bounding box in which this 'MovingRegion' moves and expands
     */
-   private Rectangle objectPBB;
+   private RectangleIF objectPBB;
 
    /**
     * Basic constructor to create a empty 'MovingRegion' object
@@ -55,7 +57,7 @@ public class MovingRegion extends MovingObject<UnitRegion, Region> implements Sp
     * 
     * @param point
     */
-   public MovingRegion(final Region region) {
+   public MovingRegion(final RegionIF region) {
       this(1);
       add(new UnitRegionConst(region));
       setDefined(region.isDefined());
@@ -69,7 +71,7 @@ public class MovingRegion extends MovingObject<UnitRegion, Region> implements Sp
     * @param region
     *           - the region
     */
-   public MovingRegion(final Period period, final Region region) {
+   public MovingRegion(final PeriodIF period, final RegionIF region) {
       this(1);
       setDefined(add(period, region));
    }
@@ -79,8 +81,14 @@ public class MovingRegion extends MovingObject<UnitRegion, Region> implements Sp
     * 
     * @see mol.datatypes.moving.MovingObject#add(mol.datatypes.unit.UnitObject)
     */
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mol.datatypes.moving.MovingRegionIF#add(mol.interfaces.unit.spatial.
+    * UnitRegionIF)
+    */
    @Override
-   public boolean add(UnitRegion unit) {
+   public boolean add(UnitRegionIF unit) {
       if (super.add(unit)) {
          objectPBB = objectPBB.merge(unit.getProjectionBoundingBox());
 
@@ -91,19 +99,15 @@ public class MovingRegion extends MovingObject<UnitRegion, Region> implements Sp
       }
    }
 
-   /**
-    * Append this 'MovingRegion' object by a further movement section defined by
-    * the passed values.<br>
-    * Creates an constant region unit object and append this to this object.
+   /*
+    * (non-Javadoc)
     * 
-    * @param period
-    *           - time period of this movement section
-    * @param region
-    *           - the region
-    * 
-    * @return true if the adding was successful, false otherwise
+    * @see
+    * mol.datatypes.moving.MovingRegionIF#add(mol.interfaces.interval.PeriodIF,
+    * mol.interfaces.spatial.RegionIF)
     */
-   public boolean add(final Period period, final Region region) {
+   @Override
+   public boolean add(final PeriodIF period, final RegionIF region) {
 
       return add(new UnitRegionConst(period, region));
 
@@ -115,28 +119,8 @@ public class MovingRegion extends MovingObject<UnitRegion, Region> implements Sp
     * @return a rectangle, the minimum bounding box in which the region moves
     *         and/or expands
     */
-   public Rectangle getProjectionBoundingBox() {
+   public RectangleIF getProjectionBoundingBox() {
       return objectPBB;
-   }
-
-   /*
-    * (non-Javadoc)
-    * 
-    * @see mol.datatypes.features.Spatial#isEmpty()
-    */
-   @Override
-   public boolean isEmpty() {
-      return getNoUnits() == 0;
-   }
-
-   /*
-    * (non-Javadoc)
-    * 
-    * @see mol.datatypes.features.Spatial#getBoundingBox()
-    */
-   @Override
-   public Rectangle getBoundingBox() {
-      return getProjectionBoundingBox();
    }
 
    /*
@@ -145,7 +129,7 @@ public class MovingRegion extends MovingObject<UnitRegion, Region> implements Sp
     * @see mol.datatypes.moving.MovingObject#getUndefinedUnitObject()
     */
    @Override
-   protected UnitRegion getUndefinedUnitObject() {
+   protected UnitRegionIF getUndefinedUnitObject() {
       return new UnitRegionConst();
    }
 
@@ -155,7 +139,7 @@ public class MovingRegion extends MovingObject<UnitRegion, Region> implements Sp
     * @see mol.datatypes.moving.MovingObject#getUndefinedObject()
     */
    @Override
-   protected Region getUndefinedObject() {
+   protected RegionIF getUndefinedObject() {
       return new Region(false);
    }
 

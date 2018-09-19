@@ -19,12 +19,14 @@
 
 package mol.datatypes;
 
+import mol.interfaces.GeneralTypeIF;
+
 /**
  * Base class for all data type classes of this library
  * 
  * @author Markus Fuessel
  */
-public class GeneralType {
+public class GeneralType implements GeneralTypeIF {
 
    /**
     * The defined flag, indicates if a data type object is defined
@@ -38,20 +40,22 @@ public class GeneralType {
       this.defined = false;
    }
 
-   /**
-    * Is this object defined
+   /*
+    * (non-Javadoc)
     * 
-    * @return true if object is defined, false otherwise
+    * @see mol.interfaces.GeneralTypeIF#isDefined()
     */
+   @Override
    public boolean isDefined() {
       return defined;
    }
 
-   /**
-    * Set the defined flag of this Object
+   /*
+    * (non-Javadoc)
     * 
-    * @param defined
+    * @see mol.interfaces.GeneralTypeIF#setDefined(boolean)
     */
+   @Override
    public void setDefined(final boolean defined) {
       this.defined = defined;
    }

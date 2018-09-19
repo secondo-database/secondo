@@ -21,11 +21,12 @@ package mol.datatypes.unit.spatial.util;
 import java.util.ArrayList;
 import java.util.List;
 
-import mol.datatypes.interval.Period;
-import mol.datatypes.spatial.util.Cycle;
 import mol.datatypes.spatial.util.Face;
-import mol.datatypes.spatial.util.Rectangle;
-import mol.datatypes.time.TimeInstant;
+import mol.interfaces.interval.PeriodIF;
+import mol.interfaces.spatial.util.CycleIF;
+import mol.interfaces.spatial.util.FaceIF;
+import mol.interfaces.spatial.util.RectangleIF;
+import mol.interfaces.time.TimeInstantIF;
 
 /**
  * This class represents 'MovableFace' objects, which are generally used to
@@ -34,25 +35,25 @@ import mol.datatypes.time.TimeInstant;
  * 
  * @author Markus Fuessel
  */
-public class MovableFace {
+public class MovableFace implements MovableFaceIF {
 
    /**
     * Outer moving boundary of this 'MovableFace'
     */
-   private final MovableCycle movingBoundary;
+   private final MovableCycleIF movingBoundary;
 
    /**
     * List with moving holes this 'MovableFace' may contain
     */
-   private final List<MovableCycle> movingHoles;
+   private final List<MovableCycleIF> movingHoles;
 
    /**
     * Constructor for a simple 'MovableFace' object without holes.
     * 
     * @param movingBoundary
-    *           - outer boundary of this 'MovableFace', a 'MovableCycle' object
+    *           - outer boundary of this 'MovableFace', a 'MovableCycleIF' object
     */
-   public MovableFace(final MovableCycle movingBoundary) {
+   public MovableFace(final MovableCycleIF movingBoundary) {
       this.movingBoundary = movingBoundary;
 
       movingHoles = new ArrayList<>();
@@ -65,52 +66,47 @@ public class MovableFace {
     * The holes must not intersect.
     * 
     * @param movingBoundary
-    *           - outer boundary of this 'MovableFace', a 'MovableCycle' object
+    *           - outer boundary of this 'MovableFace', a 'MovableCycleIF' object
     * 
     * @param movingHoles
-    *           - List of movingHoles, 'MovableCycle' objects
+    *           - List of movingHoles, 'MovableCycleIF' objects
     */
-   public MovableFace(final MovableCycle movingBoundary, final List<MovableCycle> movingHoles) {
+   public MovableFace(final MovableCycleIF movingBoundary, final List<MovableCycleIF> movingHoles) {
       this(movingBoundary);
 
-      for (MovableCycle movingHole : movingHoles) {
+      for (MovableCycleIF movingHole : movingHoles) {
          add(movingHole);
       }
 
    }
 
-   /**
-    * Add a moving hole to this 'MovableFace'
+   /*
+    * (non-Javadoc)
     * 
-    * @param movingHole
-    *           - the moving hole to add, a 'MovableCycle' object
-    * 
-    * @return true if adding was successful, false otherwise
+    * @see
+    * mol.datatypes.unit.spatial.util.MovableFaceIF#add(mol.datatypes.unit.spatial.
+    * util.MovableCycleIF)
     */
-   public boolean add(final MovableCycle movingHole) {
+   @Override
+   public boolean add(final MovableCycleIF movingHole) {
 
       return movingHoles.add(movingHole);
    }
 
-   /**
-    * This method returns a 'Face' which is valid at the passed time instant within
-    * the period of the movement of this 'MovableFace'
+   /*
+    * (non-Javadoc)
     * 
-    * @param movementPeriod
-    *           - the period in which the movement of this face is defined
-    * @param instant
-    *           - time instant
-    * 
-    * @return a defined 'Face' which is valid at the passed instant, otherwise the
-    *         returned 'Face' is undefined
+    * @see mol.datatypes.unit.spatial.util.MovableFaceIF#getValue(mol.interfaces.
+    * interval.PeriodIF, mol.interfaces.time.TimeInstantIF)
     */
-   public Face getValue(final Period movementPeriod, final TimeInstant instant) {
+   @Override
+   public FaceIF getValue(final PeriodIF movementPeriod, final TimeInstantIF instant) {
 
-      Face face = new Face(movingBoundary.getValue(movementPeriod, instant));
+      FaceIF face = new Face(movingBoundary.getValue(movementPeriod, instant));
 
       if (face.isDefined()) {
-         for (MovableCycle movingHole : movingHoles) {
-            Cycle currentHole = movingHole.getValue(movementPeriod, instant);
+         for (MovableCycleIF movingHole : movingHoles) {
+            CycleIF currentHole = movingHole.getValue(movementPeriod, instant);
 
             face.add(currentHole);
          }
@@ -119,49 +115,52 @@ public class MovableFace {
       return face;
    }
 
-   /**
-    * Get the initial 'Face' object at the beginning of the movement
+   /*
+    * (non-Javadoc)
     * 
-    * @return the initial 'Face' object
+    * @see mol.datatypes.unit.spatial.util.MovableFaceIF#getInitial()
     */
-   public Face getInitial() {
-      Face face = new Face(movingBoundary.getInitial());
+   @Override
+   public FaceIF getInitial() {
+      FaceIF face = new Face(movingBoundary.getInitial());
 
       if (face.isDefined()) {
-         for (MovableCycle movingHole : movingHoles) {
+         for (MovableCycleIF movingHole : movingHoles) {
             face.add(movingHole.getInitial());
          }
       }
       return face;
    }
 
-   /**
-    * Get the final 'Face' object at the end of the movement
+   /*
+    * (non-Javadoc)
     * 
-    * @return the final 'Face' object
+    * @see mol.datatypes.unit.spatial.util.MovableFaceIF#getFinal()
     */
-   public Face getFinal() {
-      Face face = new Face(movingBoundary.getFinal());
+   @Override
+   public FaceIF getFinal() {
+      FaceIF face = new Face(movingBoundary.getFinal());
 
       if (face.isDefined()) {
-         for (MovableCycle movingHole : movingHoles) {
+         for (MovableCycleIF movingHole : movingHoles) {
             face.add(movingHole.getFinal());
          }
       }
       return face;
    }
 
-   /**
-    * Get all 'MovableSegment' objects of boundary and holes
+   /*
+    * (non-Javadoc)
     * 
-    * @return list of 'MovableSegment' objects of boundary and holes
+    * @see mol.datatypes.unit.spatial.util.MovableFaceIF#getMovingSegments()
     */
-   public List<MovableSegment> getMovingSegments() {
-      List<MovableSegment> movingsegments = new ArrayList<>();
+   @Override
+   public List<MovableSegmentIF> getMovingSegments() {
+      List<MovableSegmentIF> movingsegments = new ArrayList<>();
 
       movingsegments.addAll(movingBoundary.getMovingSegments());
 
-      for (MovableCycle mhole : movingHoles) {
+      for (MovableCycleIF mhole : movingHoles) {
          movingsegments.addAll(mhole.getMovingSegments());
       }
 
@@ -171,18 +170,19 @@ public class MovableFace {
    /**
     * Get the projection bounding box of this 'MovableFace' object
     * 
-    * @return a 'Rectangle' object
+    * @return a 'RectangleIF' object
     */
-   public Rectangle getProjectionBoundingBox() {
+   public RectangleIF getProjectionBoundingBox() {
 
       return movingBoundary.getProjectionBoundingBox();
    }
 
-   /**
-    * Get the number of moving holes in this 'MovableFace' object
+   /*
+    * (non-Javadoc)
     * 
-    * @return number of moving holes
+    * @see mol.datatypes.unit.spatial.util.MovableFaceIF#getNoMovingHoles()
     */
+   @Override
    public int getNoMovingHoles() {
       return movingHoles.size();
    }

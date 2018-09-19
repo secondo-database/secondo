@@ -25,6 +25,8 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 import mol.datatypes.spatial.Point;
+import mol.interfaces.spatial.util.HalfsegmentIF;
+import mol.interfaces.spatial.util.RectangleIF;
 
 /**
  * Tests for the 'Halfsegment' class
@@ -47,7 +49,7 @@ public class HalfsegmentTest {
    public void testGetBoundingBox() {
       Point p0 = new Point(1.0d, 5.0d);
       Point p1 = new Point(1.0d, 7.0d);
-      Rectangle expectedPBB = p0.getBoundingBox().merge(p1.getBoundingBox());
+      RectangleIF expectedPBB = p0.getBoundingBox().merge(p1.getBoundingBox());
 
       Halfsegment hs = new Halfsegment(p0, p1, true);
 
@@ -157,8 +159,8 @@ public class HalfsegmentTest {
    @Test
    public void testHashCode_SegmentWithEqualCoordinates_HashCodeShoulBeEqual() {
 
-      Halfsegment hs1 = new Halfsegment(1.0d, 5.0d, 1.0d, 7.0d, true);
-      Halfsegment hs2 = new Halfsegment(1.0d, 5.0d, 1.0d, 7.0d, true);
+      HalfsegmentIF hs1 = new Halfsegment(1.0d, 5.0d, 1.0d, 7.0d, true);
+      HalfsegmentIF hs2 = new Halfsegment(1.0d, 5.0d, 1.0d, 7.0d, true);
 
       assertTrue(hs1.hashCode() == hs2.hashCode());
    }
@@ -166,8 +168,8 @@ public class HalfsegmentTest {
    @Test
    public void testHashCode_SegmentWithNonEqualCoordinates_HashCodeShoulBeNonEqual() {
 
-      Halfsegment hs1 = new Halfsegment(1.0d, 5.0d, 1.0d, 7.0d, true);
-      Halfsegment hs2 = new Halfsegment(1.0d, 5.0d, 1.0d, 7.1d, true);
+      HalfsegmentIF hs1 = new Halfsegment(1.0d, 5.0d, 1.0d, 7.0d, true);
+      HalfsegmentIF hs2 = new Halfsegment(1.0d, 5.0d, 1.0d, 7.1d, true);
 
       assertFalse(hs1.hashCode() == hs2.hashCode());
    }
@@ -175,8 +177,8 @@ public class HalfsegmentTest {
    @Test
    public void testEquals_SegmentWithEqualCoordinates_ShouldBeTrue() {
 
-      Halfsegment hs1 = new Halfsegment(1.0d, 5.0d, 1.0d, 7.0d, true);
-      Halfsegment hs2 = new Halfsegment(1.0d, 5.0d, 1.0d, 7.0d, true);
+      HalfsegmentIF hs1 = new Halfsegment(1.0d, 5.0d, 1.0d, 7.0d, true);
+      HalfsegmentIF hs2 = new Halfsegment(1.0d, 5.0d, 1.0d, 7.0d, true);
 
       assertTrue(hs1.equals(hs2));
    }
@@ -184,8 +186,8 @@ public class HalfsegmentTest {
    @Test
    public void testEquals_SegmentWithNonEqualCoordinates_ShouldBeFalse() {
 
-      Halfsegment hs1 = new Halfsegment(1.0d, 5.0d, 1.0d, 7.0d, true);
-      Halfsegment hs2 = new Halfsegment(1.0d, 5.0d, 1.1d, 7.0d, true);
+      HalfsegmentIF hs1 = new Halfsegment(1.0d, 5.0d, 1.0d, 7.0d, true);
+      HalfsegmentIF hs2 = new Halfsegment(1.0d, 5.0d, 1.1d, 7.0d, true);
 
       assertFalse(hs1.equals(hs2));
    }
@@ -193,8 +195,8 @@ public class HalfsegmentTest {
    @Test
    public void testEquals_SegmentWithDifferenDominatingPoint_ShouldBeFalse() {
 
-      Halfsegment hs1 = new Halfsegment(1.0d, 5.0d, 1.0d, 7.0d, true);
-      Halfsegment hs2 = new Halfsegment(1.0d, 5.0d, 1.0d, 7.0d, false);
+      HalfsegmentIF hs1 = new Halfsegment(1.0d, 5.0d, 1.0d, 7.0d, true);
+      HalfsegmentIF hs2 = new Halfsegment(1.0d, 5.0d, 1.0d, 7.0d, false);
 
       assertFalse(hs1.equals(hs2));
    }
@@ -202,7 +204,7 @@ public class HalfsegmentTest {
    @Test
    public void testEquals_SameObject_ShouldBeTrue() {
 
-      Halfsegment hs = new Halfsegment(1.0d, 5.0d, 1.0d, 7.0d, true);
+      HalfsegmentIF hs = new Halfsegment(1.0d, 5.0d, 1.0d, 7.0d, true);
 
       Object obj = hs;
 
@@ -212,7 +214,7 @@ public class HalfsegmentTest {
    @Test
    public void testEquals_NullObject_ShouldBeFalse() {
 
-      Halfsegment hs = new Halfsegment(1.0d, 5.0d, 1.0d, 7.0d, true);
+      HalfsegmentIF hs = new Halfsegment(1.0d, 5.0d, 1.0d, 7.0d, true);
 
       Object obj = null;
 
@@ -222,8 +224,8 @@ public class HalfsegmentTest {
    @Test
    public void testEquals_UndefinedSegment_ShouldBeFalse() {
 
-      Halfsegment hs1 = new Halfsegment(1.0d, 5.0d, 1.0d, 7.0d, true);
-      Halfsegment hs2 = new Halfsegment(new Point(), new Point(), true);
+      HalfsegmentIF hs1 = new Halfsegment(1.0d, 5.0d, 1.0d, 7.0d, true);
+      HalfsegmentIF hs2 = new Halfsegment(new Point(), new Point(), true);
 
       assertFalse(hs1.equals(hs2));
       assertFalse(hs2.equals(hs1));

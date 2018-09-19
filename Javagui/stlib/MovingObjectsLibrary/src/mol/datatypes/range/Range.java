@@ -20,12 +20,13 @@
 package mol.datatypes.range;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import mol.datatypes.GeneralType;
-import mol.datatypes.features.Orderable;
-import mol.datatypes.interval.Interval;
+import mol.interfaces.GeneralTypeIF;
+import mol.interfaces.features.Orderable;
+import mol.interfaces.interval.IntervalIF;
+import mol.interfaces.range.RangeIF;
 
 /**
  * Base class for 'Range' objects.
@@ -34,36 +35,32 @@ import mol.datatypes.interval.Interval;
  *
  * @param <T>
  */
-public abstract class Range<T extends GeneralType & Orderable<T>> extends GeneralType {
+public abstract class Range<T extends GeneralTypeIF & Orderable<T>> extends GeneralType implements RangeIF<T> {
 
    /**
-    * Set of {@code 'Interval<T>'} objects
+    * Set of {@code 'IntervalIF<T>'} objects
     */
-   private final List<Interval<T>> intervals;
+   private final List<IntervalIF<T>> intervals;
 
    /**
-    * Simple constructor to create an empty 'Range' object with the specified
+    * Simple constructor to create an empty 'RangeIF' object with the specified
     * initial capacity
     * 
     * @param size
-    *           - initial capacity of this 'Range' object
+    *           - initial capacity of this 'RangeIF' object
     */
    protected Range(final int size) {
       this.intervals = new ArrayList<>(size);
       this.setDefined(true);
    }
 
-   /**
-    * Append the passed interval object to this range set.<br>
-    * The passed interval have to be disjoint and non adjacent to the current range
-    * set.<br>
-    * Only defined interval objects will be added
+   /*
+    * (non-Javadoc)
     * 
-    * @param interval
-    *           - the interval object to append
-    * @return true (as specified by {@link Collection#add})
+    * @see mol.datatypes.range.RangeIF#add(mol.interfaces.interval.IntervalIF)
     */
-   public boolean add(final Interval<T> interval) {
+   @Override
+   public boolean add(final IntervalIF<T> interval) {
       if (interval.isDefined()) {
          return intervals.add(interval);
       }
@@ -71,27 +68,23 @@ public abstract class Range<T extends GeneralType & Orderable<T>> extends Genera
       return false;
    }
 
-   /**
-    * Appends the passed interval to this 'Range' object. If the passed interval
-    * intersects the last interval of this range set or is adjacent to it, the last
-    * interval and the passed one would be merged to a new last interval of this
-    * range set
+   /*
+    * (non-Javadoc)
     * 
-    * @param interval
-    *           - the interval object to append
-    * @return true if adding of the passed interval was successful, false otherwise
+    * @see mol.datatypes.range.RangeIF#mergeAdd(mol.interfaces.interval.IntervalIF)
     */
-   public boolean mergeAdd(final Interval<T> interval) {
+   @Override
+   public boolean mergeAdd(final IntervalIF<T> interval) {
       if (isEmpty()) {
          return add(interval);
 
       } else {
 
-         Interval<T> lastInterval = last();
+         IntervalIF<T> lastInterval = last();
 
          if (lastInterval.intersectsRight(interval) || lastInterval.rightAdjacent(interval)) {
 
-            Interval<T> newLastInterval = lastInterval.mergeRight(interval);
+            IntervalIF<T> newLastInterval = lastInterval.mergeRight(interval);
 
             intervals.set(getNoComponents() - 1, newLastInterval);
 
@@ -106,20 +99,20 @@ public abstract class Range<T extends GeneralType & Orderable<T>> extends Genera
       return false;
    }
 
-   /**
-    * Check if the passed interval intersects this range set
+   /*
+    * (non-Javadoc)
     * 
-    * @param interval
-    * @return true if the passed interval intersects at least with one interval of
-    *         the range set
+    * @see
+    * mol.datatypes.range.RangeIF#intersects(mol.interfaces.interval.IntervalIF)
     */
-   public boolean intersects(final Interval<T> interval) {
+   @Override
+   public boolean intersects(final IntervalIF<T> interval) {
 
       if (!this.isDefined() || !interval.isDefined()) {
          return false;
       }
 
-      Interval<T> centerIV;
+      IntervalIF<T> centerIV;
       int centerPos;
 
       int firstPos = 0;
@@ -147,21 +140,20 @@ public abstract class Range<T extends GeneralType & Orderable<T>> extends Genera
 
    }
 
-   /**
-    * Check if the passed 'Range' intersects this range set
+   /*
+    * (non-Javadoc)
     * 
-    * @param other
-    * @return true if the passed 'Range' intersects at least with one interval of
-    *         this range set
+    * @see mol.datatypes.range.RangeIF#intersects(mol.datatypes.range.RangeIF)
     */
-   public boolean intersects(final Range<T> other) {
+   @Override
+   public boolean intersects(final RangeIF<T> other) {
 
       if (!this.isDefined() || !other.isDefined()) {
          return false;
       }
 
       for (int i = 0; i < other.getNoComponents(); i++) {
-         Interval<T> currentOtherInterval = other.get(i);
+         IntervalIF<T> currentOtherInterval = other.get(i);
 
          if (this.intersects(currentOtherInterval)) {
             return true;
@@ -172,76 +164,72 @@ public abstract class Range<T extends GeneralType & Orderable<T>> extends Genera
 
    }
 
-   /**
-    * Verify if the passed interval is adjacent to this 'Range' object.
+   /*
+    * (non-Javadoc)
     * 
-    * @param interval
-    * 
-    * @return true if the passed interval is left or right adjacent, false
-    *         otherwise
+    * @see mol.datatypes.range.RangeIF#adjacent(mol.interfaces.interval.IntervalIF)
     */
-   public boolean adjacent(final Interval<T> interval) {
+   @Override
+   public boolean adjacent(final IntervalIF<T> interval) {
 
       return leftAdjacent(interval) || rightAdjacent(interval);
 
    }
 
-   /**
-    * Verify if this 'Range' object is adjacent on the right to the passed interval
+   /*
+    * (non-Javadoc)
     * 
-    * @param interval
-    * @return true if the passed interval is adjacent on the right, false otherwise
+    * @see
+    * mol.datatypes.range.RangeIF#rightAdjacent(mol.interfaces.interval.IntervalIF)
     */
-   public boolean rightAdjacent(final Interval<T> interval) {
+   @Override
+   public boolean rightAdjacent(final IntervalIF<T> interval) {
       return last().rightAdjacent(interval);
    }
 
-   /**
-    * Verify if this 'Range' object is adjacent on the left to the passed interval
+   /*
+    * (non-Javadoc)
     * 
-    * @param interval
-    * 
-    * @return true if the passed interval is adjacent on the left, false otherwise
+    * @see
+    * mol.datatypes.range.RangeIF#leftAdjacent(mol.interfaces.interval.IntervalIF)
     */
-   public boolean leftAdjacent(final Interval<T> interval) {
+   @Override
+   public boolean leftAdjacent(final IntervalIF<T> interval) {
       return first().leftAdjacent(interval);
    }
 
-   /**
-    * Verify if this {@code 'Range<T>'} object is before the passed
-    * {@code 'Interval<T>'} object
+   /*
+    * (non-Javadoc)
     * 
-    * @param interval
-    * @return true if this object is before the passed one, false otherwise
+    * @see mol.datatypes.range.RangeIF#before(mol.interfaces.interval.IntervalIF)
     */
-   public boolean before(final Interval<T> interval) {
+   @Override
+   public boolean before(final IntervalIF<T> interval) {
 
       return last().before(interval);
 
    }
 
-   /**
-    * Verify if this {@code 'Range<T>'} object is after the passed
-    * {@code 'Interval<T>'} object
+   /*
+    * (non-Javadoc)
     * 
-    * @param interval
-    * @return true if this object is after the passed one, false otherwise
+    * @see mol.datatypes.range.RangeIF#after(mol.interfaces.interval.IntervalIF)
     */
-   public boolean after(final Interval<T> interval) {
+   @Override
+   public boolean after(final IntervalIF<T> interval) {
       return first().after(interval);
 
    }
 
-   /**
-    * Check whether the given value is covered by this range set.
+   /*
+    * (non-Javadoc)
     * 
-    * @param value
-    * 
-    * @return true if value is covered by this range set, false otherwise
+    * @see mol.datatypes.range.RangeIF#contains(T)
     */
+   @Override
    public boolean contains(final T value) {
 
-      Interval<T> centerInterval;
+      IntervalIF<T> centerInterval;
       int centerIdx;
 
       int firstIdx = 0;
@@ -267,32 +255,34 @@ public abstract class Range<T extends GeneralType & Orderable<T>> extends Genera
       return false;
    }
 
-   /**
-    * Getter for the minimum value of this range set
+   /*
+    * (non-Javadoc)
     * 
-    * @return the minValue
+    * @see mol.datatypes.range.RangeIF#getMinValue()
     */
+   @Override
    public T getMinValue() {
 
       if (isEmpty()) {
          return getUndefinedObject();
       } else {
-         Interval<T> firstInterval = first();
+         IntervalIF<T> firstInterval = first();
          return firstInterval.getLowerBound();
       }
 
    }
 
-   /**
-    * Getter for the maximum value of this range set
+   /*
+    * (non-Javadoc)
     * 
-    * @return the maxValue
+    * @see mol.datatypes.range.RangeIF#getMaxValue()
     */
+   @Override
    public T getMaxValue() {
       if (isEmpty()) {
          return getUndefinedObject();
       } else {
-         Interval<T> lastInterval = last();
+         IntervalIF<T> lastInterval = last();
          return lastInterval.getUpperBound();
       }
 
@@ -303,7 +293,7 @@ public abstract class Range<T extends GeneralType & Orderable<T>> extends Genera
     * 
     * @return the first interval
     */
-   protected Interval<T> first() {
+   protected IntervalIF<T> first() {
       return intervals.get(0);
    }
 
@@ -312,15 +302,16 @@ public abstract class Range<T extends GeneralType & Orderable<T>> extends Genera
     * 
     * @return the last interval
     */
-   protected Interval<T> last() {
+   protected IntervalIF<T> last() {
       return intervals.get(getNoComponents() - 1);
    }
 
-   /**
-    * Getter for the number of intervals in this range set
+   /*
+    * (non-Javadoc)
     * 
-    * @return number of intervals
+    * @see mol.datatypes.range.RangeIF#getNoComponents()
     */
+   @Override
    public int getNoComponents() {
       return intervals.size();
    }
@@ -335,15 +326,16 @@ public abstract class Range<T extends GeneralType & Orderable<T>> extends Genera
     *            if the index is out of range
     *            (<tt>index &lt; 0 || index &gt;= getNoComponents()</tt>) *
     */
-   protected Interval<T> get(final int index) {
+   public IntervalIF<T> get(final int index) {
       return intervals.get(index);
    }
 
-   /**
-    * Check if this range set is empty
+   /*
+    * (non-Javadoc)
     * 
-    * @return true if this range set is empty, false otherwise
+    * @see mol.datatypes.range.RangeIF#isEmpty()
     */
+   @Override
    public boolean isEmpty() {
       return intervals.isEmpty();
    }

@@ -31,6 +31,9 @@ import org.junit.Test;
 import mol.datatypes.base.BaseBool;
 import mol.datatypes.interval.Period;
 import mol.datatypes.time.TimeInstant;
+import mol.interfaces.base.BaseBoolIF;
+import mol.interfaces.time.TimeInstantIF;
+import mol.interfaces.unit.UnitBoolIF;
 
 /**
  * Tests for the 'UnitBool' class
@@ -56,12 +59,12 @@ public class UnitBoolTest {
    @Test
    public void testGetValue_AtValidInstant() {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-09 23:59:59:999", true, true);
-      BaseBool origBaseBool = new BaseBool(true);
+      BaseBoolIF origBaseBool = new BaseBool(true);
       UnitBool ubool = new UnitBool(period, origBaseBool);
 
-      TimeInstant instant1 = new TimeInstant("2018-01-01 00:00:00:000");
-      TimeInstant instant2 = new TimeInstant("2018-01-05 00:00:00:000");
-      TimeInstant instant3 = new TimeInstant("2018-01-09 23:59:59:999");
+      TimeInstantIF instant1 = new TimeInstant("2018-01-01 00:00:00:000");
+      TimeInstantIF instant2 = new TimeInstant("2018-01-05 00:00:00:000");
+      TimeInstantIF instant3 = new TimeInstant("2018-01-09 23:59:59:999");
 
       assertEquals(origBaseBool, ubool.getValue(instant1));
       assertEquals(origBaseBool, ubool.getValue(instant2));
@@ -72,18 +75,18 @@ public class UnitBoolTest {
    @Test
    public void testGetValue_AtInvalidInstant_ShouldReturnUndefinedBaseBool() {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-09 23:59:59:999", false, false);
-      BaseBool origBaseBool = new BaseBool(true);
+      BaseBoolIF origBaseBool = new BaseBool(true);
       UnitBool ubool = new UnitBool(period, origBaseBool);
 
-      TimeInstant instant1 = new TimeInstant("2018-01-01 00:00:00:000");
-      TimeInstant instant2 = new TimeInstant("2018-01-09 23:59:59:999");
-      TimeInstant instant3 = new TimeInstant("2017-01-01 00:00:00:000");
-      TimeInstant instant4 = new TimeInstant();
+      TimeInstantIF instant1 = new TimeInstant("2018-01-01 00:00:00:000");
+      TimeInstantIF instant2 = new TimeInstant("2018-01-09 23:59:59:999");
+      TimeInstantIF instant3 = new TimeInstant("2017-01-01 00:00:00:000");
+      TimeInstantIF instant4 = new TimeInstant();
 
-      BaseBool bool1 = ubool.getValue(instant1);
-      BaseBool bool2 = ubool.getValue(instant2);
-      BaseBool bool3 = ubool.getValue(instant3);
-      BaseBool bool4 = ubool.getValue(instant4);
+      BaseBoolIF bool1 = ubool.getValue(instant1);
+      BaseBoolIF bool2 = ubool.getValue(instant2);
+      BaseBoolIF bool3 = ubool.getValue(instant3);
+      BaseBoolIF bool4 = ubool.getValue(instant4);
 
       assertNotEquals(origBaseBool, bool1);
       assertNotEquals(origBaseBool, bool2);
@@ -100,10 +103,10 @@ public class UnitBoolTest {
    @Test
    public void testGetValue_ShouldReturnBaseBoolOfUnit() {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-09 23:59:59:999", false, false);
-      BaseBool origBaseBool = new BaseBool(true);
+      BaseBoolIF origBaseBool = new BaseBool(true);
       UnitBool ubool = new UnitBool(period, origBaseBool);
 
-      BaseBool bBool = ubool.getValue();
+      BaseBoolIF bBool = ubool.getValue();
 
       assertTrue(bBool.isDefined());
       assertEquals(origBaseBool, bBool);
@@ -113,10 +116,10 @@ public class UnitBoolTest {
    @Test
    public void testGetInitial_ShouldReturnBaseBoolOfUnit() {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-09 23:59:59:999", false, false);
-      BaseBool origBaseBool = new BaseBool(true);
+      BaseBoolIF origBaseBool = new BaseBool(true);
       UnitBool ubool = new UnitBool(period, origBaseBool);
 
-      BaseBool bBool = ubool.getInitial();
+      BaseBoolIF bBool = ubool.getInitial();
 
       assertTrue(bBool.isDefined());
       assertEquals(origBaseBool, bBool);
@@ -126,10 +129,10 @@ public class UnitBoolTest {
    @Test
    public void testGetFinal_ShouldReturnBaseBoolOfUnit() {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-09 23:59:59:999", false, false);
-      BaseBool origBaseBool = new BaseBool(true);
+      BaseBoolIF origBaseBool = new BaseBool(true);
       UnitBool ubool = new UnitBool(period, origBaseBool);
 
-      BaseBool bBool = ubool.getFinal();
+      BaseBoolIF bBool = ubool.getFinal();
 
       assertTrue(bBool.isDefined());
       assertEquals(origBaseBool, bBool);
@@ -173,12 +176,12 @@ public class UnitBoolTest {
    public void testAtPeriod_IntersectingPeriod() {
 
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, true);
-      BaseBool origBaseBool = new BaseBool(true);
-      UnitBool oldUBool = new UnitBool(period, origBaseBool);
+      BaseBoolIF origBaseBool = new BaseBool(true);
+      UnitBoolIF oldUBool = new UnitBool(period, origBaseBool);
 
       Period newPeriod = new Period("2018-01-05 12:00:00:000", "2018-01-20 00:00:00:000", true, true);
 
-      UnitBool newUBool = oldUBool.atPeriod(newPeriod);
+      UnitBoolIF newUBool = oldUBool.atPeriod(newPeriod);
 
       assertTrue(newUBool.isDefined());
       assertEquals(period.intersection(newPeriod), newUBool.getPeriod());
@@ -190,12 +193,12 @@ public class UnitBoolTest {
    @Test
    public void testAtPeriod_NoIntersectingPeriod() {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, true);
-      BaseBool origBaseBool = new BaseBool(true);
-      UnitBool oldUBool = new UnitBool(period, origBaseBool);
+      BaseBoolIF origBaseBool = new BaseBool(true);
+      UnitBoolIF oldUBool = new UnitBool(period, origBaseBool);
 
       Period newPeriod = new Period("2018-01-15 12:00:00:000", "2018-01-20 00:00:00:000", true, true);
 
-      UnitBool newUBool = oldUBool.atPeriod(newPeriod);
+      UnitBoolIF newUBool = oldUBool.atPeriod(newPeriod);
 
       assertFalse(newUBool.isDefined());
 

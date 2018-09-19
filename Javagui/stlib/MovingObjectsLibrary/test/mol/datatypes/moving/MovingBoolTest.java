@@ -31,9 +31,11 @@ import org.junit.Test;
 
 import mol.datatypes.base.BaseBool;
 import mol.datatypes.interval.Period;
-import mol.datatypes.intime.Intime;
 import mol.datatypes.time.TimeInstant;
 import mol.datatypes.unit.UnitBool;
+import mol.interfaces.base.BaseBoolIF;
+import mol.interfaces.intime.IntimeIF;
+import mol.interfaces.unit.UnitBoolIF;
 
 /**
  * Tests for the 'MovingBool' class
@@ -71,7 +73,7 @@ public class MovingBoolTest {
    public void testAdd_RightAdjacentUnitBool_SuccessfulAppend() {
       int sizeBefore = mbool.getNoUnits();
 
-      UnitBool ubool = new UnitBool(new Period("2018-01-30 00:00:00:000", "2018-02-30 00:00:00:000", true, false),
+      UnitBoolIF ubool = new UnitBool(new Period("2018-01-30 00:00:00:000", "2018-02-30 00:00:00:000", true, false),
             false);
 
       mbool.add(ubool);
@@ -85,7 +87,7 @@ public class MovingBoolTest {
    public void testAdd_UnitBoolWithLaterPeriod_SuccessfulAppend() {
       int sizeBefore = mbool.getNoUnits();
 
-      UnitBool ubool = new UnitBool(new Period("2018-02-15 00:00:00:000", "2018-02-30 00:00:00:000", true, false),
+      UnitBoolIF ubool = new UnitBool(new Period("2018-02-15 00:00:00:000", "2018-02-30 00:00:00:000", true, false),
             new BaseBool(false));
 
       mbool.add(ubool);
@@ -99,7 +101,7 @@ public class MovingBoolTest {
    public void testAdd_IntersectingUnitBool_FailedAppend() {
       int sizeBefore = mbool.getNoUnits();
 
-      UnitBool ubool = new UnitBool(new Period("2018-01-15 00:00:00:000", "2018-02-20 00:00:00:000", true, false),
+      UnitBoolIF ubool = new UnitBool(new Period("2018-01-15 00:00:00:000", "2018-02-20 00:00:00:000", true, false),
             false);
 
       boolean successful = mbool.add(ubool);
@@ -139,7 +141,7 @@ public class MovingBoolTest {
    public void testAdd_BaseBoolWithEqualValueWithAdjacentTimeperiod_SuccessfulWithoutIncreaseNumberOfUnits() {
       int sizeBefore = mbool.getNoUnits();
 
-      UnitBool lastUB = mbool.getUnit(sizeBefore - 1);
+      UnitBoolIF lastUB = mbool.getUnit(sizeBefore - 1);
 
       boolean successful = mbool.add(new Period("2018-01-30 00:00:00:000", "2018-02-20 00:00:00:000", true, false),
             lastUB.getValue());
@@ -251,7 +253,7 @@ public class MovingBoolTest {
    @Test
    public void testAtInstant_DefinedInstantInsideDefinedPeriod_ShouldReturnDefinedIntimeBaseBool() {
 
-      Intime<BaseBool> ibool = mbool.atInstant(new TimeInstant("2018-01-20 00:00:00:000"));
+      IntimeIF<BaseBoolIF> ibool = mbool.atInstant(new TimeInstant("2018-01-20 00:00:00:000"));
 
       assertTrue(ibool.isDefined());
       assertEquals(new BaseBool(true), ibool.getValue());
@@ -260,8 +262,8 @@ public class MovingBoolTest {
    @Test
    public void testAtInstant_DefinedInstantOutsideDefinedPeriod_ShouldReturnUndefinedIntimeBaseBool() {
 
-      Intime<BaseBool> ibool1 = mbool.atInstant(new TimeInstant("2017-12-31 23:59:59:999"));
-      Intime<BaseBool> ibool2 = mbool.atInstant(new TimeInstant("2018-02-30 00:00:00:000"));
+      IntimeIF<BaseBoolIF> ibool1 = mbool.atInstant(new TimeInstant("2017-12-31 23:59:59:999"));
+      IntimeIF<BaseBoolIF> ibool2 = mbool.atInstant(new TimeInstant("2018-02-30 00:00:00:000"));
 
       assertFalse(ibool1.isDefined());
       assertFalse(ibool2.isDefined());
@@ -270,7 +272,7 @@ public class MovingBoolTest {
    @Test
    public void testAtInstant_UndefinedInstant_ShouldReturnUndefinedIntimeBaseBool() {
 
-      Intime<BaseBool> ibool = mbool.atInstant(new TimeInstant());
+      IntimeIF<BaseBoolIF> ibool = mbool.atInstant(new TimeInstant());
 
       assertFalse(ibool.isDefined());
    }
@@ -278,7 +280,7 @@ public class MovingBoolTest {
    @Test
    public void testGetValue_DefinedInstantInsideDefinedPeriod_ShouldReturnDefinedBaseBool() {
 
-      BaseBool bBool = mbool.getValue(new TimeInstant("2018-01-20 00:00:00:000"));
+      BaseBoolIF bBool = mbool.getValue(new TimeInstant("2018-01-20 00:00:00:000"));
 
       assertTrue(bBool.isDefined());
       assertEquals(new BaseBool(true), bBool);
@@ -287,8 +289,8 @@ public class MovingBoolTest {
    @Test
    public void testGetValue_DefinedInstantOutsideDefinedPeriod_ShouldReturnUndefinedBaseBool() {
 
-      BaseBool bBool1 = mbool.getValue(new TimeInstant("2017-12-31 23:59:59:999"));
-      BaseBool bBool2 = mbool.getValue(new TimeInstant("2018-02-30 00:00:00:000"));
+      BaseBoolIF bBool1 = mbool.getValue(new TimeInstant("2017-12-31 23:59:59:999"));
+      BaseBoolIF bBool2 = mbool.getValue(new TimeInstant("2018-02-30 00:00:00:000"));
 
       assertFalse(bBool1.isDefined());
       assertFalse(bBool2.isDefined());
@@ -297,7 +299,7 @@ public class MovingBoolTest {
    @Test
    public void testGetValue_UndefinedInstant_ShouldReturnUndefinedBaseBool() {
 
-      BaseBool bBool = mbool.getValue(new TimeInstant());
+      BaseBoolIF bBool = mbool.getValue(new TimeInstant());
 
       assertFalse(bBool.isDefined());
    }
@@ -305,7 +307,7 @@ public class MovingBoolTest {
    @Test
    public void testGetUnit_ValidPosition_ShouldReturnDefinedUnit() {
 
-      UnitBool uBool = mbool.getUnit(mbool.getNoUnits() - 1);
+      UnitBoolIF uBool = mbool.getUnit(mbool.getNoUnits() - 1);
 
       assertTrue(uBool.isDefined());
 
@@ -314,7 +316,7 @@ public class MovingBoolTest {
    @Test
    public void testGetUnit_InvalidPosition_ShouldReturnUndefinedUnit() {
 
-      UnitBool uBool = mbool.getUnit(mbool.getNoUnits());
+      UnitBoolIF uBool = mbool.getUnit(mbool.getNoUnits());
 
       assertFalse(uBool.isDefined());
 

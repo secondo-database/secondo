@@ -32,6 +32,8 @@ import mol.datatypes.interval.Period;
 import mol.datatypes.spatial.Point;
 import mol.datatypes.spatial.util.Segment;
 import mol.datatypes.time.TimeInstant;
+import mol.interfaces.spatial.util.SegmentIF;
+import mol.interfaces.time.TimeInstantIF;
 
 /**
  * Tests for the 'MovableSegment' class
@@ -55,13 +57,13 @@ public class MovableSegmentTest {
       Point finalEndPoint = new Point(10.0d, 0.0d);
 
       Period movementPeriod = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
-      TimeInstant instant = new TimeInstant("2018-01-05 00:00:00:000");
+      TimeInstantIF instant = new TimeInstant("2018-01-05 00:00:00:000");
 
-      MovableSegment msegment = new MovableSegment(initStartPoint, initEndPoint, finalStartPoint, finalEndPoint);
+      MovableSegmentIF msegment = new MovableSegment(initStartPoint, initEndPoint, finalStartPoint, finalEndPoint);
 
-      Segment expectedSegment = new Segment(initStartPoint, initEndPoint);
+      SegmentIF expectedSegment = new Segment(initStartPoint, initEndPoint);
 
-      Segment segment = msegment.getValue(movementPeriod, instant);
+      SegmentIF segment = msegment.getValue(movementPeriod, instant);
 
       assertTrue(segment.isDefined());
       assertEquals(expectedSegment, segment);
@@ -76,11 +78,11 @@ public class MovableSegmentTest {
       Point finalEndPoint = new Point(10.0d, 0.0d);
 
       Period movementPeriod = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
-      TimeInstant instant = new TimeInstant("2018-01-11 00:00:00:000");
+      TimeInstantIF instant = new TimeInstant("2018-01-11 00:00:00:000");
 
-      MovableSegment msegment = new MovableSegment(initStartPoint, initEndPoint, finalStartPoint, finalEndPoint);
+      MovableSegmentIF msegment = new MovableSegment(initStartPoint, initEndPoint, finalStartPoint, finalEndPoint);
 
-      Segment segment = msegment.getValue(movementPeriod, instant);
+      SegmentIF segment = msegment.getValue(movementPeriod, instant);
 
       assertFalse(segment.isDefined());
 
@@ -94,13 +96,13 @@ public class MovableSegmentTest {
       Point finalEndPoint = new Point(10.0d, 10.0d);
 
       Period movementPeriod = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
-      TimeInstant instant = movementPeriod.getLowerBound().plusMillis(movementPeriod.getDurationInMilliseconds() / 2);
+      TimeInstantIF instant = movementPeriod.getLowerBound().plusMillis(movementPeriod.getDurationInMilliseconds() / 2);
 
-      MovableSegment msegment = new MovableSegment(initStartPoint, initEndPoint, finalStartPoint, finalEndPoint);
+      MovableSegmentIF msegment = new MovableSegment(initStartPoint, initEndPoint, finalStartPoint, finalEndPoint);
 
-      Segment expectedSegment = new Segment(0.0d, 5.0d, 5.0d, 10.0d);
+      SegmentIF expectedSegment = new Segment(0.0d, 5.0d, 5.0d, 10.0d);
 
-      Segment segment = msegment.getValue(movementPeriod, instant);
+      SegmentIF segment = msegment.getValue(movementPeriod, instant);
 
       assertTrue(segment.isDefined());
       assertEquals(expectedSegment, segment);
@@ -115,13 +117,13 @@ public class MovableSegmentTest {
       Point finalEndPoint = new Point(10.0d, 10.0d);
 
       Period movementPeriod = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
-      TimeInstant instant = movementPeriod.getLowerBound();
+      TimeInstantIF instant = movementPeriod.getLowerBound();
 
-      MovableSegment msegment = new MovableSegment(initStartPoint, initEndPoint, finalStartPoint, finalEndPoint);
+      MovableSegmentIF msegment = new MovableSegment(initStartPoint, initEndPoint, finalStartPoint, finalEndPoint);
 
-      Segment expectedSegment = new Segment(initStartPoint, initEndPoint);
+      SegmentIF expectedSegment = new Segment(initStartPoint, initEndPoint);
 
-      Segment segment = msegment.getValue(movementPeriod, instant);
+      SegmentIF segment = msegment.getValue(movementPeriod, instant);
 
       assertTrue(segment.isDefined());
       assertEquals(expectedSegment, segment);
@@ -136,13 +138,13 @@ public class MovableSegmentTest {
       Point finalEndPoint = new Point(10.0d, 10.0d);
 
       Period movementPeriod = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
-      TimeInstant instant = movementPeriod.getUpperBound();
+      TimeInstantIF instant = movementPeriod.getUpperBound();
 
-      MovableSegment msegment = new MovableSegment(initStartPoint, initEndPoint, finalStartPoint, finalEndPoint);
+      MovableSegmentIF msegment = new MovableSegment(initStartPoint, initEndPoint, finalStartPoint, finalEndPoint);
 
-      Segment expectedSegment = new Segment(finalStartPoint, finalEndPoint);
+      SegmentIF expectedSegment = new Segment(finalStartPoint, finalEndPoint);
 
-      Segment segment = msegment.getValue(movementPeriod, instant);
+      SegmentIF segment = msegment.getValue(movementPeriod, instant);
 
       assertTrue(segment.isDefined());
       assertEquals(expectedSegment, segment);
@@ -156,10 +158,10 @@ public class MovableSegmentTest {
       Point finalStartPoint = new Point(0.0d, 0.0d);
       Point finalEndPoint = new Point(10.0d, 10.0d);
 
-      MovableSegment msegment = new MovableSegment(initStartPoint, initEndPoint, finalStartPoint, finalEndPoint);
+      MovableSegmentIF msegment = new MovableSegment(initStartPoint, initEndPoint, finalStartPoint, finalEndPoint);
 
-      Segment expectedSegment = new Segment(initStartPoint, initEndPoint);
-      Segment segment = msegment.getInitial();
+      SegmentIF expectedSegment = new Segment(initStartPoint, initEndPoint);
+      SegmentIF segment = msegment.getInitial();
 
       assertTrue(segment.isDefined());
       assertEquals(expectedSegment, segment);
@@ -173,10 +175,10 @@ public class MovableSegmentTest {
       Point finalStartPoint = new Point(0.0d, 0.0d);
       Point finalEndPoint = new Point(10.0d, 10.0d);
 
-      MovableSegment msegment = new MovableSegment(initStartPoint, initEndPoint, finalStartPoint, finalEndPoint);
+      MovableSegmentIF msegment = new MovableSegment(initStartPoint, initEndPoint, finalStartPoint, finalEndPoint);
 
-      Segment expectedSegment = new Segment(finalStartPoint, finalEndPoint);
-      Segment segment = msegment.getFinal();
+      SegmentIF expectedSegment = new Segment(finalStartPoint, finalEndPoint);
+      SegmentIF segment = msegment.getFinal();
 
       assertTrue(segment.isDefined());
       assertEquals(expectedSegment, segment);

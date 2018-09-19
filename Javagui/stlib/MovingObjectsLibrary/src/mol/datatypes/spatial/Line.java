@@ -23,10 +23,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import mol.datatypes.GeneralType;
-import mol.datatypes.features.Spatial;
 import mol.datatypes.spatial.util.Halfsegment;
 import mol.datatypes.spatial.util.Rectangle;
-import mol.datatypes.spatial.util.Segment;
+import mol.interfaces.spatial.LineIF;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.spatial.util.HalfsegmentIF;
+import mol.interfaces.spatial.util.RectangleIF;
+import mol.interfaces.spatial.util.SegmentIF;
 
 /**
  * This class represents spatial objects of type 'Line'<br>
@@ -34,17 +37,17 @@ import mol.datatypes.spatial.util.Segment;
  * 
  * @author Markus Fuessel
  */
-public class Line extends GeneralType implements Spatial {
+public class Line extends GeneralType implements LineIF {
 
    /**
     * List of the line halfsegments
     */
-   private final List<Halfsegment> halfsegments;
+   private final List<HalfsegmentIF> halfsegments;
 
    /**
     * The minimum bounding box of this 'Line' object
     */
-   private Rectangle objectMBB;
+   private RectangleIF objectMBB;
 
    /**
     * Constructor for an empty 'Line' object
@@ -65,7 +68,7 @@ public class Line extends GeneralType implements Spatial {
     * 
     * @param points
     */
-   public Line(final List<Point> points) {
+   public Line(final List<PointIF> points) {
       this.halfsegments = new ArrayList<>(points.size() * 2);
       objectMBB = new Rectangle();
 
@@ -78,15 +81,13 @@ public class Line extends GeneralType implements Spatial {
       }
    }
 
-   /**
-    * Add the passed 'Segment' object to this 'Line' object<br>
-    * Adds internally two halfsegments to this 'Line' object<br>
-    * Updates the bounding box
+   /*
+    * (non-Javadoc)
     * 
-    * @param segment
-    * @return true if the adding was successful, false otherwise
+    * @see mol.interfaces.spatial.LineIF#add(mol.datatypes.spatial.util.SegmentIF)
     */
-   public boolean add(final Segment segment) {
+   @Override
+   public boolean add(final SegmentIF segment) {
 
       if (!segment.isDefined()) {
          return false;
@@ -95,19 +96,14 @@ public class Line extends GeneralType implements Spatial {
       return add(segment.getLeftPoint(), segment.getRightPoint());
    }
 
-   /**
-    * Add the passed 'Point' objects to this 'Line' object<br>
-    * Adds internally two halfsegments to this 'Line' object<br>
-    * Updates the bounding box
+   /*
+    * (non-Javadoc)
     * 
-    * @param p0
-    *           - first endpoint
-    * @param p1
-    *           - second endpoint
-    * 
-    * @return true if the adding was successful, false otherwise
+    * @see mol.interfaces.spatial.LineIF#add(mol.interfaces.spatial.PointIF,
+    * mol.interfaces.spatial.PointIF)
     */
-   public boolean add(final Point p0, final Point p1) {
+   @Override
+   public boolean add(final PointIF p0, final PointIF p1) {
       if (!p0.isDefined() || !p1.isDefined()) {
          return false;
       }
@@ -123,14 +119,14 @@ public class Line extends GeneralType implements Spatial {
 
    }
 
-   /**
-    * Add the passed halfsegment to this 'Line' object.<br>
-    * Updates the bounding box
+   /*
+    * (non-Javadoc)
     * 
-    * @param halfsegment
-    * @return true if halfsegment was added, false otherwise
+    * @see
+    * mol.interfaces.spatial.LineIF#add(mol.datatypes.spatial.util.HalfsegmentIF)
     */
-   public boolean add(final Halfsegment halfsegment) {
+   @Override
+   public boolean add(final HalfsegmentIF halfsegment) {
       if (!halfsegment.isDefined()) {
          return false;
       }
@@ -146,9 +142,12 @@ public class Line extends GeneralType implements Spatial {
       }
    }
 
-   /**
-    * Remove all segments from this 'Line' object and reset the bounding box
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mol.interfaces.spatial.LineIF#clear()
     */
+   @Override
    public void clear() {
       halfsegments.clear();
       objectMBB = new Rectangle();
@@ -170,25 +169,21 @@ public class Line extends GeneralType implements Spatial {
     * @see mol.datatypes.spatial.Spatial#getBoundingBox()
     */
    @Override
-   public Rectangle getBoundingBox() {
+   public RectangleIF getBoundingBox() {
       return objectMBB;
    }
 
-   /**
-    * Get the total length of this 'Line' object
+   /*
+    * (non-Javadoc)
     * 
-    * @param useSphericalGeometry
-    *           - if true spherical geometry is used to calculate the length in
-    *           metres, otherwise euclidean distance is used
-    * 
-    * @return euclidean or geographical length, depends on parameter
-    *         useSphericalGeometry
+    * @see mol.datatypes.spatial.LineIF#length(boolean)
     */
+   @Override
    public double length(final boolean useSphericalGeometry) {
       double length = 0.0d;
 
       if (isDefined()) {
-         for (Halfsegment halfsegment : halfsegments) {
+         for (HalfsegmentIF halfsegment : halfsegments) {
             if (halfsegment.isLeftDominating()) {
                length += halfsegment.length(useSphericalGeometry);
             }
@@ -198,12 +193,13 @@ public class Line extends GeneralType implements Spatial {
       return length;
    }
 
-   /**
-    * Get the halfsegments
+   /*
+    * (non-Javadoc)
     * 
-    * @return the halfsegments
+    * @see mol.interfaces.spatial.LineIF#getHalfsegments()
     */
-   public List<Halfsegment> getHalfsegments() {
+   @Override
+   public List<HalfsegmentIF> getHalfsegments() {
       return new ArrayList<>(halfsegments);
    }
 

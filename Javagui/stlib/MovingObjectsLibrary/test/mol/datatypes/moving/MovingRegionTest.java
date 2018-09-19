@@ -32,14 +32,15 @@ import org.junit.Test;
 
 import mol.TestUtil.TestUtilData;
 import mol.datatypes.interval.Period;
-import mol.datatypes.intime.Intime;
 import mol.datatypes.spatial.Point;
 import mol.datatypes.spatial.Region;
-import mol.datatypes.spatial.util.Rectangle;
 import mol.datatypes.time.TimeInstant;
-import mol.datatypes.unit.spatial.UnitRegion;
 import mol.datatypes.unit.spatial.UnitRegionConst;
 import mol.datatypes.unit.spatial.UnitRegionLinear;
+import mol.interfaces.intime.IntimeIF;
+import mol.interfaces.spatial.RegionIF;
+import mol.interfaces.spatial.util.RectangleIF;
+import mol.interfaces.unit.spatial.UnitRegionIF;
 
 /**
  * Tests for the 'MovingRegion' class
@@ -111,7 +112,6 @@ public class MovingRegionTest {
       MovingRegion mregion = new MovingRegion(region);
 
       assertTrue(mregion.isDefined());
-      assertFalse(mregion.isEmpty());
       assertEquals(1, mregion.getNoUnits());
    }
 
@@ -147,7 +147,7 @@ public class MovingRegionTest {
 
       Region region = new Region(new ArrayList<>(Arrays.asList(circle)));
 
-      UnitRegion uregion = new UnitRegionConst(
+      UnitRegionIF uregion = new UnitRegionConst(
             new Period("2018-01-30 00:00:00:000", "2018-02-30 00:00:00:000", true, false), region);
 
       int sizeBefore = discreteMovingRegion.getNoUnits();
@@ -182,7 +182,7 @@ public class MovingRegionTest {
 
       Region region = new Region(new ArrayList<>(Arrays.asList(circle)));
 
-      UnitRegion uregion = new UnitRegionConst(new Period(), region);
+      UnitRegionIF uregion = new UnitRegionConst(new Period(), region);
 
       int sizeBefore = discreteMovingRegion.getNoUnits();
 
@@ -281,8 +281,8 @@ public class MovingRegionTest {
 
       Region region = new Region(new ArrayList<>(Arrays.asList(circle)));
 
-      Rectangle objPBBBefore = discreteMovingRegion.getProjectionBoundingBox();
-      Rectangle expectedObjPBBAfter = objPBBBefore.merge(region.getBoundingBox());
+      RectangleIF objPBBBefore = discreteMovingRegion.getProjectionBoundingBox();
+      RectangleIF expectedObjPBBAfter = objPBBBefore.merge(region.getBoundingBox());
 
       discreteMovingRegion.add(new Period("2018-01-30 00:00:00:000", "2018-02-30 00:00:00:000", true, false), region);
 
@@ -296,8 +296,8 @@ public class MovingRegionTest {
             new Period("2018-01-30 00:00:00:000", "2018-02-30 00:00:00:000", true, false),
             TestUtilData.getMovableFaceDegenerate(50, 50, false));
 
-      Rectangle objPBBBefore = continuosMovingRegion.getProjectionBoundingBox();
-      Rectangle expectedObjPBBAfter = objPBBBefore.merge(uregion.getProjectionBoundingBox());
+      RectangleIF objPBBBefore = continuosMovingRegion.getProjectionBoundingBox();
+      RectangleIF expectedObjPBBAfter = objPBBBefore.merge(uregion.getProjectionBoundingBox());
 
       continuosMovingRegion.add(uregion);
 
@@ -317,7 +317,7 @@ public class MovingRegionTest {
    @Test
    public void testAtInstant_DiskreteMovingRegion_ValidInstant() {
 
-      Intime<Region> iregion = discreteMovingRegion.atInstant(new TimeInstant("2018-01-20 00:00:00:000"));
+      IntimeIF<RegionIF> iregion = discreteMovingRegion.atInstant(new TimeInstant("2018-01-20 00:00:00:000"));
 
       assertEquals(region3.getBoundingBox(), iregion.getValue().getBoundingBox());
    }
@@ -325,7 +325,7 @@ public class MovingRegionTest {
    @Test
    public void testAtInstant_ContinuosMovingRegionValidInstant_UndefinedCauseOfDegenerate() {
 
-      Intime<Region> iregion = continuosMovingRegion.atInstant(new TimeInstant("2018-01-29 23:59:59:999"));
+      IntimeIF<RegionIF> iregion = continuosMovingRegion.atInstant(new TimeInstant("2018-01-29 23:59:59:999"));
 
       assertFalse(iregion.isDefined());
    }
@@ -333,8 +333,8 @@ public class MovingRegionTest {
    @Test
    public void testAtInstant_UndefinedInstant_ShouldReturnUndefinedIntimeRegion() {
 
-      Intime<Region> iregionDMR = discreteMovingRegion.atInstant(new TimeInstant());
-      Intime<Region> iregionCMR = continuosMovingRegion.atInstant(new TimeInstant());
+      IntimeIF<RegionIF> iregionDMR = discreteMovingRegion.atInstant(new TimeInstant());
+      IntimeIF<RegionIF> iregionCMR = continuosMovingRegion.atInstant(new TimeInstant());
 
       assertFalse(iregionDMR.isDefined());
       assertFalse(iregionCMR.isDefined());
@@ -342,8 +342,8 @@ public class MovingRegionTest {
 
    @Test
    public void testGetValue_ValidInstant_ShouldReturnValidRegion() {
-      Region regionDMR = discreteMovingRegion.getValue(new TimeInstant("2018-01-20 00:00:00:000"));
-      Region regionCMR = continuosMovingRegion.getValue(new TimeInstant("2018-01-20 00:00:00:000"));
+      RegionIF regionDMR = discreteMovingRegion.getValue(new TimeInstant("2018-01-20 00:00:00:000"));
+      RegionIF regionCMR = continuosMovingRegion.getValue(new TimeInstant("2018-01-20 00:00:00:000"));
 
       assertTrue(regionDMR.isDefined());
       assertTrue(regionCMR.isDefined());
@@ -351,8 +351,8 @@ public class MovingRegionTest {
 
    @Test
    public void testGetValue_UndefinedInstant_ShouldReturnUndefinedRegion() {
-      Region regionDMR = discreteMovingRegion.getValue(new TimeInstant());
-      Region regionCMR = continuosMovingRegion.getValue(new TimeInstant());
+      RegionIF regionDMR = discreteMovingRegion.getValue(new TimeInstant());
+      RegionIF regionCMR = continuosMovingRegion.getValue(new TimeInstant());
 
       assertFalse(regionDMR.isDefined());
       assertFalse(regionCMR.isDefined());
@@ -361,8 +361,8 @@ public class MovingRegionTest {
    @Test
    public void testGetUnit_ValidPosition_ShouldReturnDefinedUnit() {
 
-      UnitRegion uregionDMR = discreteMovingRegion.getUnit(discreteMovingRegion.getNoUnits() - 1);
-      UnitRegion uregionCMR = continuosMovingRegion.getUnit(continuosMovingRegion.getNoUnits() - 1);
+      UnitRegionIF uregionDMR = discreteMovingRegion.getUnit(discreteMovingRegion.getNoUnits() - 1);
+      UnitRegionIF uregionCMR = continuosMovingRegion.getUnit(continuosMovingRegion.getNoUnits() - 1);
 
       assertTrue(uregionDMR.isDefined());
       assertTrue(uregionCMR.isDefined());
@@ -372,8 +372,8 @@ public class MovingRegionTest {
    @Test
    public void testGetUnit_InvalidPosition_ShouldReturnUndefinedUnit() {
 
-      UnitRegion uregionDMR = discreteMovingRegion.getUnit(discreteMovingRegion.getNoUnits());
-      UnitRegion uregionCMR = continuosMovingRegion.getUnit(continuosMovingRegion.getNoUnits());
+      UnitRegionIF uregionDMR = discreteMovingRegion.getUnit(discreteMovingRegion.getNoUnits());
+      UnitRegionIF uregionCMR = continuosMovingRegion.getUnit(continuosMovingRegion.getNoUnits());
 
       assertFalse(uregionDMR.isDefined());
       assertFalse(uregionCMR.isDefined());

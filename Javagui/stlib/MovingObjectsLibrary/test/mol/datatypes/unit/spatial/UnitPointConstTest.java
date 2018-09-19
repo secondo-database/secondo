@@ -32,6 +32,9 @@ import org.junit.Test;
 import mol.datatypes.interval.Period;
 import mol.datatypes.spatial.Point;
 import mol.datatypes.time.TimeInstant;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.time.TimeInstantIF;
+import mol.interfaces.unit.spatial.UnitPointIF;
 
 /**
  * Tests for the 'UnitPointConst' class
@@ -49,7 +52,7 @@ public class UnitPointConstTest {
 
    @Test
    public void testUnitPointConst_UndefinedObject() {
-      UnitPoint undefinedUPoint = new UnitPointConst();
+      UnitPointIF undefinedUPoint = new UnitPointConst();
 
       assertFalse(undefinedUPoint.isDefined());
    }
@@ -58,11 +61,11 @@ public class UnitPointConstTest {
    public void testGetValue_AtValidInstant() {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-09 23:59:59:999", true, true);
       Point point = new Point(2.0d, 3.0d);
-      UnitPoint upoint = new UnitPointConst(period, point);
+      UnitPointIF upoint = new UnitPointConst(period, point);
 
-      TimeInstant instant1 = new TimeInstant("2018-01-01 00:00:00:000");
-      TimeInstant instant2 = new TimeInstant("2018-01-05 00:00:00:000");
-      TimeInstant instant3 = new TimeInstant("2018-01-09 23:59:59:999");
+      TimeInstantIF instant1 = new TimeInstant("2018-01-01 00:00:00:000");
+      TimeInstantIF instant2 = new TimeInstant("2018-01-05 00:00:00:000");
+      TimeInstantIF instant3 = new TimeInstant("2018-01-09 23:59:59:999");
 
       assertEquals(point, upoint.getValue(instant1));
       assertEquals(point, upoint.getValue(instant2));
@@ -74,17 +77,17 @@ public class UnitPointConstTest {
    public void testGetValue_AtInvalidInstant_ShouldReturnUndefinedPoint() {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-09 23:59:59:999", false, false);
       Point origPoint = new Point(2.0d, 3.0d);
-      UnitPoint upoint = new UnitPointConst(period, origPoint);
+      UnitPointIF upoint = new UnitPointConst(period, origPoint);
 
-      TimeInstant instant1 = new TimeInstant("2018-01-01 00:00:00:000");
-      TimeInstant instant2 = new TimeInstant("2018-01-09 23:59:59:999");
-      TimeInstant instant3 = new TimeInstant("2017-01-01 00:00:00:000");
-      TimeInstant instant4 = new TimeInstant();
+      TimeInstantIF instant1 = new TimeInstant("2018-01-01 00:00:00:000");
+      TimeInstantIF instant2 = new TimeInstant("2018-01-09 23:59:59:999");
+      TimeInstantIF instant3 = new TimeInstant("2017-01-01 00:00:00:000");
+      TimeInstantIF instant4 = new TimeInstant();
 
-      Point point1 = upoint.getValue(instant1);
-      Point point2 = upoint.getValue(instant2);
-      Point point3 = upoint.getValue(instant3);
-      Point point4 = upoint.getValue(instant4);
+      PointIF point1 = upoint.getValue(instant1);
+      PointIF point2 = upoint.getValue(instant2);
+      PointIF point3 = upoint.getValue(instant3);
+      PointIF point4 = upoint.getValue(instant4);
 
       assertNotEquals(origPoint, point1);
       assertNotEquals(origPoint, point2);
@@ -102,7 +105,7 @@ public class UnitPointConstTest {
    public void testGetProjectionBoundingBox() {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-09 23:59:59:999", true, true);
       Point point = new Point(2.0d, 3.0d);
-      UnitPoint upoint = new UnitPointConst(period, point);
+      UnitPointIF upoint = new UnitPointConst(period, point);
 
       assertEquals(point.getBoundingBox(), upoint.getProjectionBoundingBox());
 
@@ -147,7 +150,7 @@ public class UnitPointConstTest {
       Period period2 = new Period("2018-02-01 00:00:00:000", "2018-02-09 23:59:59:999", false, false);
 
       UnitPointConst uPoint1 = new UnitPointConst(period1, new Point(1.0d, 2.3d));
-      UnitPoint uPoint2 = new UnitPointLinear(period2, new Point(1.0d, 2.3d), new Point(1.0d, 2.3d));
+      UnitPointIF uPoint2 = new UnitPointLinear(period2, new Point(1.0d, 2.3d), new Point(1.0d, 2.3d));
 
       assertFalse(uPoint1.equalValue(uPoint2));
    }
@@ -157,11 +160,11 @@ public class UnitPointConstTest {
 
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, true);
       Point point = new Point(2.0d, 3.0d);
-      UnitPoint oldUPoint = new UnitPointConst(period, point);
+      UnitPointIF oldUPoint = new UnitPointConst(period, point);
 
       Period newPeriod = new Period("2018-01-05 12:00:00:000", "2018-01-20 00:00:00:000", true, true);
 
-      UnitPoint newUPoint = oldUPoint.atPeriod(newPeriod);
+      UnitPointIF newUPoint = oldUPoint.atPeriod(newPeriod);
 
       assertEquals(period.intersection(newPeriod), newUPoint.getPeriod());
       assertEquals(point, newUPoint.getInitial());
@@ -173,11 +176,11 @@ public class UnitPointConstTest {
    public void testAtPeriod_NoIntersectingPeriod() {
       Period period = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, true);
       Point point = new Point(2.0d, 3.0d);
-      UnitPoint oldUPoint = new UnitPointConst(period, point);
+      UnitPointIF oldUPoint = new UnitPointConst(period, point);
 
       Period newPeriod = new Period("2018-01-15 12:00:00:000", "2018-01-20 00:00:00:000", true, true);
 
-      UnitPoint newUPoint = oldUPoint.atPeriod(newPeriod);
+      UnitPointIF newUPoint = oldUPoint.atPeriod(newPeriod);
 
       assertFalse(newUPoint.isDefined());
 

@@ -19,8 +19,10 @@
 
 package mol.datatypes.range;
 
-import mol.datatypes.interval.Period;
 import mol.datatypes.time.TimeInstant;
+import mol.interfaces.interval.PeriodIF;
+import mol.interfaces.range.PeriodsIF;
+import mol.interfaces.time.TimeInstantIF;
 
 /**
  * Concrete class for representation of 'Periods' objects. That are 'Range'
@@ -28,7 +30,7 @@ import mol.datatypes.time.TimeInstant;
  * 
  * @author Markus Fuessel
  */
-public class Periods extends Range<TimeInstant> {
+public class Periods extends Range<TimeInstantIF> implements PeriodsIF {
 
    /**
     * Simple constructor to create an empty 'Periods' object with the specified
@@ -44,32 +46,32 @@ public class Periods extends Range<TimeInstant> {
    /*
     * (non-Javadoc)
     * 
-    * @see mol.datatypes.range.Range#first()
+    * @see mol.datatypes.range.PeriodsIF#first()
     */
    @Override
-   public Period first() {
-      return (Period) super.first();
+   public PeriodIF first() {
+      return (PeriodIF) super.first();
    }
 
    /*
     * (non-Javadoc)
     * 
-    * @see mol.datatypes.range.Range#last()
+    * @see mol.datatypes.range.PeriodsIF#last()
     */
    @Override
-   public Period last() {
-      return (Period) super.last();
+   public PeriodIF last() {
+      return (PeriodIF) super.last();
    }
 
    /*
     * (non-Javadoc)
     * 
-    * @see mol.datatypes.rangeset.RangeSet#getInterval(int)
+    * @see mol.datatypes.range.PeriodsIF#get(int)
     */
    @Override
-   public Period get(final int index) {
+   public PeriodIF get(final int index) {
 
-      return (Period) super.get(index);
+      return (PeriodIF) super.get(index);
 
    }
 
@@ -79,7 +81,7 @@ public class Periods extends Range<TimeInstant> {
     * @see mol.datatypes.range.Range#getUndefinedValue()
     */
    @Override
-   protected TimeInstant getUndefinedObject() {
+   protected TimeInstantIF getUndefinedObject() {
 
       return new TimeInstant();
    }

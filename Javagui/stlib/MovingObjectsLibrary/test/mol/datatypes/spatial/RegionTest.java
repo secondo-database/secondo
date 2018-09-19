@@ -30,7 +30,9 @@ import java.util.List;
 import org.junit.Test;
 
 import mol.datatypes.spatial.util.Face;
-import mol.datatypes.spatial.util.Rectangle;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.spatial.RegionIF;
+import mol.interfaces.spatial.util.RectangleIF;
 
 /**
  * Tests for class 'Region'
@@ -57,7 +59,7 @@ public class RegionTest {
 
    @Test
    public void testRegion_PassDefinedFace_ShouldCreateNonEmptyDefinedRegion() {
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       points.add(new Point(0.0d, 0.0d));
       points.add(new Point(5.0d, 5.0d));
@@ -73,7 +75,7 @@ public class RegionTest {
 
    @Test
    public void testRegion_PassUndefinedFace_ShouldCreateEmptyUndefinedRegion() {
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       Face face = new Face(points);
 
@@ -85,7 +87,7 @@ public class RegionTest {
 
    @Test
    public void testRegion_PassListOfPoints_ShouldCreateNonEmptyDefinedRegion() {
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       points.add(new Point(0.0d, 0.0d));
       points.add(new Point(5.0d, 5.0d));
@@ -99,7 +101,7 @@ public class RegionTest {
 
    @Test
    public void testRegion_PassEmptyListOfPoints_ShouldCreateEmptyUndefinedRegion() {
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       Region region = new Region(points);
 
@@ -109,7 +111,7 @@ public class RegionTest {
 
    @Test
    public void testAdd_DefinedFace_ShouldBeAdded() {
-      List<Point> pointsFirstFace = new ArrayList<>();
+      List<PointIF> pointsFirstFace = new ArrayList<>();
 
       pointsFirstFace.add(new Point(0.0d, 0.0d));
       pointsFirstFace.add(new Point(5.0d, 5.0d));
@@ -117,11 +119,11 @@ public class RegionTest {
 
       Face face = new Face(pointsFirstFace);
 
-      Region region = new Region(face);
+      RegionIF region = new Region(face);
 
       int noComponentsBeforeAdd = region.getNoComponents();
 
-      List<Point> pointsSecFace = new ArrayList<>();
+      List<PointIF> pointsSecFace = new ArrayList<>();
 
       pointsSecFace.add(new Point(20.0d, 20.0d));
       pointsSecFace.add(new Point(25.0d, 25.0d));
@@ -140,7 +142,7 @@ public class RegionTest {
 
    @Test
    public void testAdd_UndefinedFace_ShouldNotBeAdded() {
-      List<Point> pointsFirstFace = new ArrayList<>();
+      List<PointIF> pointsFirstFace = new ArrayList<>();
 
       pointsFirstFace.add(new Point(0.0d, 0.0d));
       pointsFirstFace.add(new Point(5.0d, 5.0d));
@@ -148,11 +150,11 @@ public class RegionTest {
 
       Face face = new Face(pointsFirstFace);
 
-      Region region = new Region(face);
+      RegionIF region = new Region(face);
 
       int noComponentsBeforeAdd = region.getNoComponents();
 
-      List<Point> pointsSecFace = new ArrayList<>();
+      List<PointIF> pointsSecFace = new ArrayList<>();
 
       face = new Face(pointsSecFace);
 
@@ -166,7 +168,7 @@ public class RegionTest {
 
    @Test
    public void testGetBoundingBox() {
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       points.add(new Point(0.0d, 0.0d));
       points.add(new Point(5.0d, 5.0d));
@@ -174,7 +176,7 @@ public class RegionTest {
 
       Face face = new Face(points);
 
-      Rectangle expectedBB = face.getBoundingBox();
+      RectangleIF expectedBB = face.getBoundingBox();
 
       Region region = new Region(face);
 
@@ -183,7 +185,7 @@ public class RegionTest {
 
    @Test
    public void testGetBoundingBox_AddingDefinedFace_BBoxShouldChange() {
-      List<Point> pointsFirstFace = new ArrayList<>();
+      List<PointIF> pointsFirstFace = new ArrayList<>();
 
       pointsFirstFace.add(new Point(0.0d, 0.0d));
       pointsFirstFace.add(new Point(5.0d, 5.0d));
@@ -193,9 +195,9 @@ public class RegionTest {
 
       Region region = new Region(face);
 
-      Rectangle bBoxBeforeAdd = region.getBoundingBox();
+      RectangleIF bBoxBeforeAdd = region.getBoundingBox();
 
-      List<Point> pointsSecFace = new ArrayList<>();
+      List<PointIF> pointsSecFace = new ArrayList<>();
 
       pointsSecFace.add(new Point(20.0d, 20.0d));
       pointsSecFace.add(new Point(25.0d, 25.0d));
@@ -205,8 +207,8 @@ public class RegionTest {
 
       region.add(face);
 
-      Rectangle expectedBB = bBoxBeforeAdd.merge(face.getBoundingBox());
-      Rectangle bBoxAfterAdd = region.getBoundingBox();
+      RectangleIF expectedBB = bBoxBeforeAdd.merge(face.getBoundingBox());
+      RectangleIF bBoxAfterAdd = region.getBoundingBox();
 
       assertNotEquals(bBoxBeforeAdd, bBoxAfterAdd);
       assertEquals(expectedBB, bBoxAfterAdd);

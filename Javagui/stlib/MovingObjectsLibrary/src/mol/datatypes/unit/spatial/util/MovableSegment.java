@@ -21,9 +21,12 @@ package mol.datatypes.unit.spatial.util;
 
 import mol.datatypes.interval.Period;
 import mol.datatypes.spatial.Point;
-import mol.datatypes.spatial.util.Rectangle;
 import mol.datatypes.spatial.util.Segment;
-import mol.datatypes.time.TimeInstant;
+import mol.interfaces.interval.PeriodIF;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.spatial.util.RectangleIF;
+import mol.interfaces.spatial.util.SegmentIF;
+import mol.interfaces.time.TimeInstantIF;
 
 /**
  * This class represents 'MovableSegment' objects, which are generally used to
@@ -32,27 +35,27 @@ import mol.datatypes.time.TimeInstant;
  * @author Markus Fuessel
  *
  */
-public class MovableSegment {
+public class MovableSegment implements MovableSegmentIF {
 
    /**
     * The start point of this segment at the beginning of the movement
     */
-   private final Point initialStartPoint;
+   private final PointIF initialStartPoint;
 
    /**
     * The end point of this segment at the beginning of the movement
     */
-   private final Point initialEndPoint;
+   private final PointIF initialEndPoint;
 
    /**
     * The start point of this segment at the end of the movement
     */
-   private final Point finalStartPoint;
+   private final PointIF finalStartPoint;
 
    /**
     * The end point of this segment at the end of the movement
     */
-   private final Point finalEndPoint;
+   private final PointIF finalEndPoint;
 
    /**
     * Constructor for a 'MovableSegment'
@@ -62,8 +65,8 @@ public class MovableSegment {
     * @param finalStartPoint
     * @param finalEndPoint
     */
-   public MovableSegment(final Point initialStartPoint, final Point initialEndPoint, final Point finalStartPoint,
-                         final Point finalEndPoint) {
+   public MovableSegment(final PointIF initialStartPoint, final PointIF initialEndPoint, final PointIF finalStartPoint,
+                         final PointIF finalEndPoint) {
 
       this.initialStartPoint = initialStartPoint;
       this.initialEndPoint = initialEndPoint;
@@ -78,23 +81,19 @@ public class MovableSegment {
     * 
     * @param segment
     */
-   public MovableSegment(final Segment segment) {
+   public MovableSegment(final SegmentIF segment) {
       this(segment.getLeftPoint(), segment.getRightPoint(), segment.getLeftPoint(), segment.getRightPoint());
    }
 
-   /**
-    * This method returns a 'Segment' which is valid at the passed time instant
-    * within the period of the movement of this 'MovableSegment'
+   /*
+    * (non-Javadoc)
     * 
-    * @param movementPeriod
-    *           - the period in which the movement of this segment is defined
-    * @param instant
-    *           - time instant
-    * 
-    * @return a defined 'Segment' which is valid at the passed instant, otherwise
-    *         the returned 'Segment' is undefined
+    * @see
+    * mol.datatypes.unit.spatial.util.MovableSegmentIF#getValue(mol.interfaces.
+    * interval.PeriodIF, mol.interfaces.time.TimeInstantIF)
     */
-   public Segment getValue(final Period movementPeriod, final TimeInstant instant) {
+   @Override
+   public SegmentIF getValue(final PeriodIF movementPeriod, final TimeInstantIF instant) {
 
       if (movementPeriod.contains(instant, true)) {
          if (instant.equals(movementPeriod.getLowerBound())) {
@@ -127,70 +126,77 @@ public class MovableSegment {
       }
    }
 
-   /**
-    * Get the initial 'Segment' object at the beginning of the movement
+   /*
+    * (non-Javadoc)
     * 
-    * @return the initial 'Segment' object
+    * @see mol.datatypes.unit.spatial.util.MovableSegmentIF#getInitial()
     */
-   public Segment getInitial() {
+   @Override
+   public SegmentIF getInitial() {
       return new Segment(initialStartPoint, initialEndPoint);
    }
 
-   /**
-    * Get the final 'Segment' object at the end of the movement
+   /*
+    * (non-Javadoc)
     * 
-    * @return the final 'Segment' object
+    * @see mol.datatypes.unit.spatial.util.MovableSegmentIF#getFinal()
     */
-   public Segment getFinal() {
+   @Override
+   public SegmentIF getFinal() {
       return new Segment(finalStartPoint, finalEndPoint);
    }
 
-   /**
-    * Get the start point at the beginning of the movement
+   /*
+    * (non-Javadoc)
     * 
-    * @return the initial start point, a 'Point' object
+    * @see mol.datatypes.unit.spatial.util.MovableSegmentIF#getInitialStartPoint()
     */
-   public Point getInitialStartPoint() {
+   @Override
+   public PointIF getInitialStartPoint() {
       return initialStartPoint;
    }
 
-   /**
-    * Get the start point at the end of the movement
+   /*
+    * (non-Javadoc)
     * 
-    * @return the final start point, a 'Point' object
+    * @see mol.datatypes.unit.spatial.util.MovableSegmentIF#getFinalStartPoint()
     */
-   public Point getFinalStartPoint() {
+   @Override
+   public PointIF getFinalStartPoint() {
       return finalStartPoint;
    }
 
-   /**
-    * Get the end point at the beginning of the movement
+   /*
+    * (non-Javadoc)
     * 
-    * @return the initial end point, a 'Point' object
+    * @see mol.datatypes.unit.spatial.util.MovableSegmentIF#getInitialEndPoint()
     */
-   public Point getInitialEndPoint() {
+   @Override
+   public PointIF getInitialEndPoint() {
       return initialEndPoint;
    }
 
-   /**
-    * Get the end point at the end of the movement
+   /*
+    * (non-Javadoc)
     * 
-    * @return the final end point, a 'Point' object
+    * @see mol.datatypes.unit.spatial.util.MovableSegmentIF#getFinalEndPoint()
     */
-   public Point getFinalEndPoint() {
+   @Override
+   public PointIF getFinalEndPoint() {
       return finalEndPoint;
    }
 
    /**
-    * Getter for the projection bounding box of this 'MovableSegment' object
+    * Getter for the projection bounding box of this 'MovableSegmentIF' object
     * <p>
     * Combines the bounding box of the initial segment with the bounding box of the
     * final segment
     */
-   public Rectangle getProjectionBoundingBox() {
+   @Override
+   public RectangleIF getProjectionBoundingBox() {
 
-      Rectangle initialSegmentBB = getInitial().getBoundingBox();
-      Rectangle finalSegmentBB = getFinal().getBoundingBox();
+      RectangleIF initialSegmentBB = getInitial().getBoundingBox();
+      RectangleIF finalSegmentBB = getFinal().getBoundingBox();
 
       return initialSegmentBB.merge(finalSegmentBB);
    }

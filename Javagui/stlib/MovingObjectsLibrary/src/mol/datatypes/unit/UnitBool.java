@@ -19,7 +19,9 @@
 package mol.datatypes.unit;
 
 import mol.datatypes.base.BaseBool;
-import mol.datatypes.interval.Period;
+import mol.interfaces.base.BaseBoolIF;
+import mol.interfaces.interval.PeriodIF;
+import mol.interfaces.unit.UnitBoolIF;
 
 /**
  * This class represents 'UnitBool' objects and is used for 'MovingBool' objects
@@ -27,7 +29,7 @@ import mol.datatypes.interval.Period;
  * 
  * @author Markus Fuessel
  */
-public class UnitBool extends UnitObjectConst<BaseBool> {
+public class UnitBool extends UnitObjectConst<BaseBoolIF> implements UnitBoolIF {
 
    /**
     * Constructor for an undefined 'UnitBool' object<br>
@@ -46,7 +48,7 @@ public class UnitBool extends UnitObjectConst<BaseBool> {
     *           - the constant boolean value for this unit
     * 
     */
-   public UnitBool(final Period period, final boolean booleanValue) {
+   public UnitBool(final PeriodIF period, final boolean booleanValue) {
       this(period, new BaseBool(booleanValue));
    }
 
@@ -59,7 +61,7 @@ public class UnitBool extends UnitObjectConst<BaseBool> {
     *           - the constant BaseBool value for this unit
     * 
     */
-   public UnitBool(final Period period, final BaseBool baseBoolValue) {
+   public UnitBool(final PeriodIF period, final BaseBoolIF baseBoolValue) {
       super(period, baseBoolValue);
    }
 
@@ -68,9 +70,14 @@ public class UnitBool extends UnitObjectConst<BaseBool> {
     * 
     * @see mol.datatypes.unit.UnitObject#atPeriod(mol.datatypes.interval.Period)
     */
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mol.datatypes.unit.UnitBoolIF#atPeriod(mol.interfaces.interval.PeriodIF)
+    */
    @Override
-   public UnitBool atPeriod(Period period) {
-      Period newPeriod = this.getPeriod().intersection(period);
+   public UnitBoolIF atPeriod(PeriodIF period) {
+      PeriodIF newPeriod = this.getPeriod().intersection(period);
 
       if (!newPeriod.isDefined()) {
          return new UnitBool();
@@ -85,7 +92,7 @@ public class UnitBool extends UnitObjectConst<BaseBool> {
     * @see mol.datatypes.unit.UnitObjectConst#getUndefinedObject()
     */
    @Override
-   protected BaseBool getUndefinedObject() {
+   protected BaseBoolIF getUndefinedObject() {
       return new BaseBool();
    }
 

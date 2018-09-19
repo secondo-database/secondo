@@ -23,6 +23,8 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
+import mol.interfaces.base.BaseStringIF;
+
 /**
  * Tests for class 'BaseString'
  * 
@@ -41,24 +43,24 @@ public class BaseStringTest {
    public void testBaseStringCopyConstructor() {
       BaseString baseString = new BaseString("aBc");
 
-      BaseString copybaseString = new BaseString(baseString);
+      BaseStringIF copybaseString = new BaseString(baseString);
 
       assertEquals(baseString, copybaseString);
    }
 
    @Test
    public void testHashCode_DifferentObjectSameValue_HashCodeShouldBeEqual() {
-      BaseString stringA1 = new BaseString("aBc");
-      BaseString stringA2 = new BaseString("aBc");
+      BaseStringIF stringA1 = new BaseString("aBc");
+      BaseStringIF stringA2 = new BaseString("aBc");
 
       assertTrue(stringA1.hashCode() == stringA2.hashCode());
    }
 
    @Test
    public void testHashCode_DifferentValue_HashCodeShouldBeNonEqual() {
-      BaseString stringA = new BaseString("aBc");
-      BaseString stringB = new BaseString("abc");
-      BaseString stringC = new BaseString("abc ");
+      BaseStringIF stringA = new BaseString("aBc");
+      BaseStringIF stringB = new BaseString("abc");
+      BaseStringIF stringC = new BaseString("abc ");
 
       assertFalse(stringA.hashCode() == stringB.hashCode());
       assertFalse(stringB.hashCode() == stringC.hashCode());
@@ -102,10 +104,10 @@ public class BaseStringTest {
 
    @Test
    public void testEquals_EqualValue_ShouldBeTrue() {
-      BaseString stringA1 = new BaseString("aa");
-      BaseString stringA2 = new BaseString("aa");
-      BaseString stringB1 = new BaseString("a b");
-      BaseString stringB2 = new BaseString("a b");
+      BaseStringIF stringA1 = new BaseString("aa");
+      BaseStringIF stringA2 = new BaseString("aa");
+      BaseStringIF stringB1 = new BaseString("a b");
+      BaseStringIF stringB2 = new BaseString("a b");
 
       assertTrue(stringA1.equals(stringA2));
       assertTrue(stringB1.equals(stringB2));
@@ -114,9 +116,9 @@ public class BaseStringTest {
 
    @Test
    public void testEquals_NonEqualValue_ShouldBeFalse() {
-      BaseString stringA = new BaseString("aa");
-      BaseString stringB = new BaseString("aa ");
-      BaseString stringC = new BaseString("AA");
+      BaseStringIF stringA = new BaseString("aa");
+      BaseStringIF stringB = new BaseString("aa ");
+      BaseStringIF stringC = new BaseString("AA");
 
       assertFalse(stringA.equals(stringB));
       assertFalse(stringA.equals(stringC));
@@ -125,7 +127,7 @@ public class BaseStringTest {
 
    @Test
    public void testEquals_NullObject_ShouldBeFalse() {
-      BaseString baseString = new BaseString("aBc");
+      BaseStringIF baseString = new BaseString("aBc");
       Object object = null;
 
       assertFalse(baseString.equals(object));
@@ -134,7 +136,7 @@ public class BaseStringTest {
 
    @Test
    public void testEquals_SameObject_ShouldBeTrue() {
-      BaseString baseString = new BaseString("aBc");
+      BaseStringIF baseString = new BaseString("aBc");
 
       Object object = baseString;
 

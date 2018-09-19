@@ -28,6 +28,7 @@ import java.util.List;
 import org.junit.Test;
 
 import mol.datatypes.spatial.Point;
+import mol.interfaces.spatial.PointIF;
 
 /**
  * Tests for 'GeneralHelper' class methods
@@ -105,8 +106,8 @@ public class GeneralHelperTest {
    @Test
    public void testCounterClockwisePath_ClockwiseMovement_ShouldBeMinusOne() {
       Point p0 = new Point(0.0d, 0.0d);
-      Point p1 = new Point(10.0d, 0.0d);
-      Point p2 = new Point(0.0d, -10.0d);
+      PointIF p1 = new Point(10.0d, 0.0d);
+      PointIF p2 = new Point(0.0d, -10.0d);
 
       assertEquals(-1, GeneralHelper.counterClockwisePath(p0, p1, p2));
 
@@ -115,8 +116,8 @@ public class GeneralHelperTest {
    @Test
    public void testCounterClockwisePath_CounterClockwiseMovement_ShouldBePlusOne() {
       Point p0 = new Point(0.0d, 0.0d);
-      Point p1 = new Point(10.0d, 0.0d);
-      Point p2 = new Point(10.0d, 10.0d);
+      PointIF p1 = new Point(10.0d, 0.0d);
+      PointIF p2 = new Point(10.0d, 10.0d);
 
       assertEquals(1, GeneralHelper.counterClockwisePath(p0, p1, p2));
 
@@ -125,8 +126,8 @@ public class GeneralHelperTest {
    @Test
    public void testCounterClockwisePath_AllOnLineP2BetweenP0AndP1_ShouldBeZero() {
       Point p0 = new Point(0.0d, 0.0d);
-      Point p1 = new Point(10.0d, 0.0d);
-      Point p2 = new Point(5.0d, 0.0d);
+      PointIF p1 = new Point(10.0d, 0.0d);
+      PointIF p2 = new Point(5.0d, 0.0d);
 
       assertEquals(0, GeneralHelper.counterClockwisePath(p0, p1, p2));
 
@@ -135,8 +136,8 @@ public class GeneralHelperTest {
    @Test
    public void testCounterClockwisePath_AllOnLineP2BeforeP0_ShouldBeMinusOne() {
       Point p0 = new Point(0.0d, 0.0d);
-      Point p1 = new Point(10.0d, 0.0d);
-      Point p2 = new Point(-5.0d, 0.0d);
+      PointIF p1 = new Point(10.0d, 0.0d);
+      PointIF p2 = new Point(-5.0d, 0.0d);
 
       assertEquals(-1, GeneralHelper.counterClockwisePath(p0, p1, p2));
 
@@ -145,8 +146,8 @@ public class GeneralHelperTest {
    @Test
    public void testCounterClockwisePath_AllOnLineP2AfterP1_ShouldBePlusOne() {
       Point p0 = new Point(0.0d, 0.0d);
-      Point p1 = new Point(10.0d, 0.0d);
-      Point p2 = new Point(15.0d, 0.0d);
+      PointIF p1 = new Point(10.0d, 0.0d);
+      PointIF p2 = new Point(15.0d, 0.0d);
 
       assertEquals(1, GeneralHelper.counterClockwisePath(p0, p1, p2));
 
@@ -156,11 +157,11 @@ public class GeneralHelperTest {
    public void testDeterminePositionRatio_BetweenPoints() {
 
       Point startPoint = new Point(5.0d, 2.0d);
-      Point endPoint = new Point(15.0d, 2.0d);
+      PointIF endPoint = new Point(15.0d, 2.0d);
 
-      Point p0 = new Point(5.0d, 2.0d);
-      Point p1 = new Point(10.0d, 2.0d);
-      Point p2 = new Point(15.0d, 2.0d);
+      PointIF p0 = new Point(5.0d, 2.0d);
+      PointIF p1 = new Point(10.0d, 2.0d);
+      PointIF p2 = new Point(15.0d, 2.0d);
 
       assertEquals(0.0d, GeneralHelper.determinePositionRatio(p0, startPoint, endPoint), 0.0);
       assertEquals(0.5d, GeneralHelper.determinePositionRatio(p1, startPoint, endPoint), 0.0);
@@ -172,10 +173,10 @@ public class GeneralHelperTest {
    public void testDeterminePositionRatio_OutsidePoints() {
 
       Point startPoint = new Point(5.0d, 2.0d);
-      Point endPoint = new Point(15.0d, 2.0d);
+      PointIF endPoint = new Point(15.0d, 2.0d);
 
-      Point p0 = new Point(4.99999999d, 2.0d);
-      Point p1 = new Point(15.00000001d, 2.0d);
+      PointIF p0 = new Point(4.99999999d, 2.0d);
+      PointIF p1 = new Point(15.00000001d, 2.0d);
 
       assertTrue(GeneralHelper.determinePositionRatio(p0, startPoint, endPoint) < 0.0);
       assertTrue(GeneralHelper.determinePositionRatio(p1, startPoint, endPoint) > 1.0);
@@ -233,11 +234,11 @@ public class GeneralHelperTest {
    @Test
    public void testIntersection_OneIntersection() {
 
-      Point fixedPoint = new Point(1.0, 1.0);
+      PointIF fixedPoint = new Point(1.0, 1.0);
       Point initStartPoint = new Point(0.0, 0.0);
-      Point finalStartPoint = new Point(2.0, 0.0);
+      PointIF finalStartPoint = new Point(2.0, 0.0);
       Point initEndPoint = new Point(0.0, 2.0);
-      Point finalEndPoint = new Point(2.0, 2.0);
+      PointIF finalEndPoint = new Point(2.0, 2.0);
 
       List<CrossPointScalars> timePositions = GeneralHelper.intersection(fixedPoint, initStartPoint, finalStartPoint,
             initEndPoint, finalEndPoint);
@@ -251,11 +252,11 @@ public class GeneralHelperTest {
    @Test
    public void testIntersection_NoIntersection() {
 
-      Point fixedPoint = new Point(5.0, 5.0);
+      PointIF fixedPoint = new Point(5.0, 5.0);
       Point initStartPoint = new Point(0.0, 0.0);
-      Point finalStartPoint = new Point(2.0, 0.0);
+      PointIF finalStartPoint = new Point(2.0, 0.0);
       Point initEndPoint = new Point(0.0, 2.0);
-      Point finalEndPoint = new Point(2.0, 2.0);
+      PointIF finalEndPoint = new Point(2.0, 2.0);
 
       List<CrossPointScalars> timePositions = GeneralHelper.intersection(fixedPoint, initStartPoint, finalStartPoint,
             initEndPoint, finalEndPoint);

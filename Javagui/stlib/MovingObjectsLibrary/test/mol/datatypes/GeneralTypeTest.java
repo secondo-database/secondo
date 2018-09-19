@@ -23,6 +23,8 @@ import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.Test;
 
+import mol.interfaces.GeneralTypeIF;
+
 /**
  * Tests for base class 'GeneralType'
  * 
@@ -30,7 +32,7 @@ import org.junit.Test;
  */
 public class GeneralTypeTest {
 
-   public GeneralType typeInstance;
+   public GeneralTypeIF typeInstance;
 
    @Before
    public void setUp() {

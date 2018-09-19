@@ -20,27 +20,31 @@ package mol.datatypes.moving;
 
 import java.util.List;
 
-import mol.datatypes.features.Spatial;
 import mol.datatypes.interval.Period;
 import mol.datatypes.intime.Intime;
 import mol.datatypes.spatial.Line;
 import mol.datatypes.spatial.Point;
 import mol.datatypes.spatial.util.Rectangle;
-import mol.datatypes.unit.spatial.UnitPoint;
 import mol.datatypes.unit.spatial.UnitPointConst;
 import mol.datatypes.unit.spatial.UnitPointLinear;
+import mol.interfaces.interval.PeriodIF;
+import mol.interfaces.intime.IntimeIF;
+import mol.interfaces.moving.MovingPointIF;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.spatial.util.RectangleIF;
+import mol.interfaces.unit.spatial.UnitPointIF;
 
 /**
  * This class represents moving spatial objects of type 'MovingPoint'
  * 
  * @author Markus Fuessel
  */
-public class MovingPoint extends MovingObject<UnitPoint, Point> implements Spatial {
+public class MovingPoint extends MovingObject<UnitPointIF, PointIF> implements MovingPointIF {
 
    /**
     * The minimum projection bounding box in which the point moves
     */
-   private Rectangle objectPBB;
+   private RectangleIF objectPBB;
 
    /**
     * Basic constructor to create a empty 'MovingPoint' object
@@ -57,19 +61,19 @@ public class MovingPoint extends MovingObject<UnitPoint, Point> implements Spati
 
    /**
     * Constructor for a 'MovingPoint' object.<br>
-    * Creates the object out of the passed list of {@code Intime<Point>} objects.
+    * Creates the object out of the passed list of {@code Intime<PointIF>} objects.
     * 
     * @param intimePoints
-    *           - list of {@code Intime<Point>} objects
+    *           - list of {@code Intime<PointIF>} objects
     */
-   public MovingPoint(final List<Intime<Point>> intimePoints) {
+   public MovingPoint(final List<Intime<PointIF>> intimePoints) {
       this(intimePoints.size());
 
       int posLastPoint = intimePoints.size() - 1;
 
       for (int i = 0; i < posLastPoint; i++) {
-         Intime<Point> ip0 = intimePoints.get(i);
-         Intime<Point> ip1 = intimePoints.get(i + 1);
+         IntimeIF<PointIF> ip0 = intimePoints.get(i);
+         IntimeIF<PointIF> ip1 = intimePoints.get(i + 1);
 
          boolean isLastPoint = (i + 1 == posLastPoint);
 
@@ -84,7 +88,7 @@ public class MovingPoint extends MovingObject<UnitPoint, Point> implements Spati
     * 
     * @param point
     */
-   public MovingPoint(final Point point) {
+   public MovingPoint(final PointIF point) {
       this(1);
       add(new UnitPointConst(point));
       setDefined(point.isDefined());
@@ -96,7 +100,7 @@ public class MovingPoint extends MovingObject<UnitPoint, Point> implements Spati
     * @see mol.datatypes.moving.MovingObject#add(mol.datatypes.unit.UnitObject)
     */
    @Override
-   public boolean add(final UnitPoint unit) {
+   public boolean add(final UnitPointIF unit) {
 
       if (super.add(unit)) {
          objectPBB = objectPBB.merge(unit.getProjectionBoundingBox());
@@ -108,22 +112,15 @@ public class MovingPoint extends MovingObject<UnitPoint, Point> implements Spati
       }
    }
 
-   /**
-    * Append this 'MovingPoint' object by a further movement section defined by the
-    * passed values.<br>
-    * Creates an appropriate unit object and append this to this object.
+   /*
+    * (non-Javadoc)
     * 
-    * @param period
-    *           - time period of this movement section
-    * @param startPoint
-    *           - point at the beginning of the movement for this period
-    * @param endPoint
-    *           - point at the end of the movement for this period
-    * 
-    * @return true if the adding was successful, false otherwise
+    * @see mol.datatypes.moving.MovingPointIF#add(mol.interfaces.interval.PeriodIF,
+    * mol.interfaces.spatial.PointIF, mol.interfaces.spatial.PointIF)
     */
-   public boolean add(final Period period, final Point startPoint, final Point endPoint) {
-      UnitPoint upoint;
+   @Override
+   public boolean add(final PeriodIF period, final PointIF startPoint, final PointIF endPoint) {
+      UnitPointIF upoint;
 
       if (startPoint.almostEqual(endPoint)) {
          upoint = new UnitPointConst(period, startPoint);
@@ -135,21 +132,22 @@ public class MovingPoint extends MovingObject<UnitPoint, Point> implements Spati
       return add(upoint);
    }
 
-   /**
-    * Computes the the projection of this 'MovingPoint' object as a 'Line' object.
+   /*
+    * (non-Javadoc)
     * 
-    * @return a 'Line' object
+    * @see mol.datatypes.moving.MovingPointIF#trajectory()
     */
+   @Override
    public Line trajectory() {
       Line line = new Line(true);
       int size = getNoUnits();
 
       for (int i = 0; i < size; i++) {
 
-         UnitPoint up = getUnit(i);
+         UnitPointIF up = getUnit(i);
 
-         Point p0 = up.getInitial();
-         Point p1 = up.getFinal();
+         PointIF p0 = up.getInitial();
+         PointIF p1 = up.getFinal();
 
          if (!p0.almostEqual(p1)) {
             line.add(p0, p1);
@@ -165,28 +163,9 @@ public class MovingPoint extends MovingObject<UnitPoint, Point> implements Spati
     * 
     * @return a rectangle, the minimum bounding box in which the point moves
     */
-   public Rectangle getProjectionBoundingBox() {
+   @Override
+   public RectangleIF getProjectionBoundingBox() {
       return objectPBB;
-   }
-
-   /*
-    * (non-Javadoc)
-    * 
-    * @see mol.datatypes.features.Spatial#isEmpty()
-    */
-   @Override
-   public boolean isEmpty() {
-      return getNoUnits() == 0;
-   }
-
-   /*
-    * (non-Javadoc)
-    * 
-    * @see mol.datatypes.features.Spatial#getBoundingBox()
-    */
-   @Override
-   public Rectangle getBoundingBox() {
-      return getProjectionBoundingBox();
    }
 
    /*
@@ -195,7 +174,7 @@ public class MovingPoint extends MovingObject<UnitPoint, Point> implements Spati
     * @see mol.datatypes.moving.MovingObject#getUndefinedUnitObject()
     */
    @Override
-   protected UnitPoint getUndefinedUnitObject() {
+   protected UnitPointIF getUndefinedUnitObject() {
       return new UnitPointConst();
    }
 
@@ -207,7 +186,7 @@ public class MovingPoint extends MovingObject<UnitPoint, Point> implements Spati
     * @see mol.datatypes.moving.MovingObject#getUndefinedObject()
     */
    @Override
-   protected Point getUndefinedObject() {
+   protected PointIF getUndefinedObject() {
       return new Point();
    }
 

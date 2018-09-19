@@ -23,9 +23,14 @@ import java.util.Objects;
 
 import mol.datatypes.interval.Period;
 import mol.datatypes.spatial.Point;
-import mol.datatypes.spatial.util.Rectangle;
-import mol.datatypes.time.TimeInstant;
 import mol.datatypes.unit.UnitObject;
+import mol.interfaces.interval.PeriodIF;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.spatial.util.RectangleIF;
+import mol.interfaces.time.TimeInstantIF;
+import mol.interfaces.unit.UnitObjectConstIF;
+import mol.interfaces.unit.UnitObjectIF;
+import mol.interfaces.unit.spatial.UnitPointIF;
 
 /**
  * This class represents 'UnitPointConst' objects and is used for 'MovingPoint'
@@ -33,12 +38,12 @@ import mol.datatypes.unit.UnitObject;
  * 
  * @author Markus Fuessel
  */
-public class UnitPointConst extends UnitPoint {
+public class UnitPointConst extends UnitObject<PointIF> implements UnitPointIF, UnitObjectConstIF<PointIF> {
 
    /**
     * Constant value for a constant 'UnitPoint' object
     */
-   private final Point constPoint;
+   private final PointIF constPoint;
 
    /**
     * Constructor for an undefined 'UnitPointConst' object
@@ -50,7 +55,7 @@ public class UnitPointConst extends UnitPoint {
    /**
     * Constructor for an 'UnitPointConst' object with a maximum Period
     */
-   public UnitPointConst(Point point) {
+   public UnitPointConst(PointIF point) {
       super(Period.MAX);
       this.constPoint = point;
       setDefined(point.isDefined());
@@ -62,7 +67,7 @@ public class UnitPointConst extends UnitPoint {
     * @param period
     * @param point
     */
-   public UnitPointConst(final Period period, final Point point) {
+   public UnitPointConst(final PeriodIF period, final PointIF point) {
 
       super(period);
       this.constPoint = Objects.requireNonNull(point, "'point' must not be null");
@@ -74,7 +79,7 @@ public class UnitPointConst extends UnitPoint {
     * Get the projection bounding box for this constant unit point.
     */
    @Override
-   public Rectangle getProjectionBoundingBox() {
+   public RectangleIF getProjectionBoundingBox() {
 
       return constPoint.getBoundingBox();
    }
@@ -85,9 +90,9 @@ public class UnitPointConst extends UnitPoint {
     * @see mol.datatypes.unit.UnitObject#getValue(java.time.Instant)
     */
    @Override
-   public Point getValue(final TimeInstant instant) {
+   public PointIF getValue(final TimeInstantIF instant) {
 
-      Period period = getPeriod();
+      PeriodIF period = getPeriod();
 
       if (isDefined() && period.contains(instant)) {
          return getConstPoint();
@@ -100,11 +105,11 @@ public class UnitPointConst extends UnitPoint {
    /*
     * (non-Javadoc)
     * 
-    * @see mol.datatypes.unit.UnitObject#atPeriod(mol.datatypes.interval.Period)
+    * @see mol.datatypes.unit.UnitObject#atPeriod(mol.datatypes.interval.PeriodIF)
     */
    @Override
-   public UnitPointConst atPeriod(Period period) {
-      Period newPeriod = this.getPeriod().intersection(period);
+   public UnitPointConst atPeriod(PeriodIF period) {
+      PeriodIF newPeriod = this.getPeriod().intersection(period);
 
       if (!newPeriod.isDefined()) {
          return new UnitPointConst();
@@ -119,15 +124,15 @@ public class UnitPointConst extends UnitPoint {
     * @see mol.datatypes.unit.UnitObject#equalValue(mol.datatypes.unit.UnitObject)
     */
    @Override
-   public boolean equalValue(UnitObject<Point> otherUnitObject) {
+   public boolean equalValue(UnitObjectIF<PointIF> otherUnitObject) {
 
-      if (!(otherUnitObject instanceof UnitPointConst)) {
+      if (!(otherUnitObject instanceof UnitObjectConstIF || !otherUnitObject.isDefined())) {
          return false;
       }
 
-      UnitPointConst otherUnitPointConst = (UnitPointConst) otherUnitObject;
+      UnitObjectConstIF<?> otherUnitPointConst = (UnitObjectConstIF<?>) otherUnitObject;
 
-      return constPoint.equals(otherUnitPointConst.getConstPoint());
+      return constPoint.equals(otherUnitPointConst.getValue());
    }
 
    /**
@@ -135,7 +140,7 @@ public class UnitPointConst extends UnitPoint {
     * 
     * @return the value
     */
-   protected Point getConstPoint() {
+   protected PointIF getConstPoint() {
       return constPoint;
    }
 
@@ -145,7 +150,7 @@ public class UnitPointConst extends UnitPoint {
     * @see mol.datatypes.unit.spatial.UnitPoint#getInitial()
     */
    @Override
-   public Point getInitial() {
+   public PointIF getInitial() {
       return getConstPoint();
    }
 
@@ -155,7 +160,22 @@ public class UnitPointConst extends UnitPoint {
     * @see mol.datatypes.unit.spatial.UnitPoint#getFinal()
     */
    @Override
-   public Point getFinal() {
+   public PointIF getFinal() {
       return getConstPoint();
+   }
+
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mol.interfaces.unit.UnitObjectConstIF#getValue()
+    */
+   @Override
+   public PointIF getValue() {
+      return constPoint;
+   }
+
+   @Override
+   public boolean finalEqualToInitialValue(UnitObjectIF<PointIF> otherUnitObject) {
+      return getFinal().almostEqual(otherUnitObject.getInitial());
    }
 }

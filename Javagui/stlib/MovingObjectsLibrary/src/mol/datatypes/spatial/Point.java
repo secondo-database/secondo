@@ -22,8 +22,9 @@ package mol.datatypes.spatial;
 import java.util.Objects;
 
 import mol.datatypes.GeneralType;
-import mol.datatypes.features.Spatial;
 import mol.datatypes.spatial.util.Rectangle;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.spatial.util.RectangleIF;
 import mol.util.GeneralHelper;
 import mol.util.Vector2D;
 
@@ -32,14 +33,14 @@ import mol.util.Vector2D;
  * 
  * @author Markus Fuessel
  */
-public class Point extends GeneralType implements Spatial, Comparable<Point> {
+public class Point extends GeneralType implements PointIF {
 
    /**
     * Get the delta between start and end point on the x axis
     * 
     * @return the x axis delta
     */
-   public static double getDeltaX(final Point startPoint, final Point endPoint) {
+   public static double getDeltaX(final PointIF startPoint, final PointIF endPoint) {
       return endPoint.getXValue() - startPoint.getXValue();
    }
 
@@ -48,7 +49,7 @@ public class Point extends GeneralType implements Spatial, Comparable<Point> {
     * 
     * @return the y axis delta
     */
-   public static double getDeltaY(final Point startPoint, final Point endPoint) {
+   public static double getDeltaY(final PointIF startPoint, final PointIF endPoint) {
       return endPoint.getYValue() - startPoint.getYValue();
    }
 
@@ -107,50 +108,36 @@ public class Point extends GeneralType implements Spatial, Comparable<Point> {
     * @return the boundingBox
     */
    @Override
-   public Rectangle getBoundingBox() {
+   public RectangleIF getBoundingBox() {
       return new Rectangle(xValue, xValue, yValue, yValue);
    }
 
-   /**
-    * Get the distance between this and the passed point.<br>
-    * If this and the passed point are geographical points, then
-    * useSphericalGeometry should set to true to get the geographical distance.
-    * Otherwise euclidean distance is calculated and returned.
+   /*
+    * (non-Javadoc)
     * 
-    * @param otherPoint
-    *           - the other point to which the distance is to be calculated
-    * 
-    * @param useSphericalGeometry
-    *           - if true spherical geometry is used to calculate the distance in
-    *           metres, otherwise euclidean distance is used
-    * 
-    * @return euclidean or geographical distance, depends on parameter
-    *         useSphericalGeometry
+    * @see mol.datatypes.spatial.PointIF#distance(mol.datatypes.spatial.Point,
+    * boolean)
     */
-   public double distance(final Point otherPoint, final boolean useSphericalGeometry) {
+   @Override
+   public double distance(final PointIF otherPoint, final boolean useSphericalGeometry) {
 
       if (useSphericalGeometry) {
-         return GeneralHelper.distanceOrthodrome(xValue, yValue, otherPoint.xValue, otherPoint.yValue);
+         return GeneralHelper.distanceOrthodrome(xValue, yValue, otherPoint.getXValue(), otherPoint.getYValue());
       } else {
-         return GeneralHelper.distanceEuclidean(xValue, yValue, otherPoint.xValue, otherPoint.yValue);
+         return GeneralHelper.distanceEuclidean(xValue, yValue, otherPoint.getXValue(), otherPoint.getYValue());
       }
 
    }
 
-   /**
-    * Verify if this point and the passed one are almost equal. This means that the
-    * two points are considered the same if they differ only slightly.
+   /*
+    * (non-Javadoc)
     * 
-    * @param otherPoint
-    *           - the reference point with which to compare.
-    * 
-    * @return true, the two points are equal, false otherwise
-    * 
-    * @see mol.util.GeneralHelper#almostEqual(double d1, double d2)
+    * @see mol.datatypes.spatial.PointIF#almostEqual(mol.datatypes.spatial.Point)
     */
-   public boolean almostEqual(final Point otherPoint) {
-      return GeneralHelper.almostEqual(this.xValue, otherPoint.xValue)
-            && GeneralHelper.almostEqual(this.yValue, otherPoint.yValue);
+   @Override
+   public boolean almostEqual(final PointIF otherPoint) {
+      return GeneralHelper.almostEqual(this.xValue, otherPoint.getXValue())
+            && GeneralHelper.almostEqual(this.yValue, otherPoint.getYValue());
    }
 
    /**
@@ -164,7 +151,7 @@ public class Point extends GeneralType implements Spatial, Comparable<Point> {
     * @see java.lang.Comparable#compareTo(java.lang.Object)
     */
    @Override
-   public int compareTo(final Point otherPoint) {
+   public int compareTo(final PointIF otherPoint) {
 
       int doubleCompare;
 
@@ -187,11 +174,11 @@ public class Point extends GeneralType implements Spatial, Comparable<Point> {
    @Override
    public boolean equals(final Object obj) {
 
-      if (!(obj instanceof Point)) {
+      if (!(obj instanceof PointIF)) {
          return false;
       }
 
-      Point otherPoint = (Point) obj;
+      PointIF otherPoint = (PointIF) obj;
 
       return (this.compareTo(otherPoint) == 0);
 
@@ -213,6 +200,12 @@ public class Point extends GeneralType implements Spatial, Comparable<Point> {
     * 
     * @see mol.datatypes.spatial.Point#getXValue()
     */
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mol.datatypes.spatial.PointIF#getXValue()
+    */
+   @Override
    public double getXValue() {
       return xValue;
    }
@@ -220,32 +213,30 @@ public class Point extends GeneralType implements Spatial, Comparable<Point> {
    /*
     * (non-Javadoc)
     * 
-    * @see mol.datatypes.spatial.Point#getYValue()
+    * @see mol.datatypes.spatial.PointIF#getYValue()
     */
+   @Override
    public double getYValue() {
       return yValue;
    }
 
-   /**
-    * Add a 'Vector2D' to this 'Point'
+   /*
+    * (non-Javadoc)
     * 
-    * @param vector
-    *           - a 'Vector2D'
-    * 
-    * @return a new 'Point'
+    * @see mol.datatypes.spatial.PointIF#plus(mol.util.Vector2D)
     */
-   public Point plus(Vector2D vector) {
+   @Override
+   public PointIF plus(Vector2D vector) {
       return new Point(xValue + vector.x, yValue + vector.y);
    }
 
-   /**
-    * Subtract a 'Point' from this 'Point' to get a delta vector
+   /*
+    * (non-Javadoc)
     * 
-    * @param point
-    * 
-    * @return a delta 'Vector2D'
+    * @see mol.datatypes.spatial.PointIF#minus(mol.datatypes.spatial.Point)
     */
-   public Vector2D minus(Point point) {
-      return new Vector2D(xValue - point.xValue, yValue - point.yValue);
+   @Override
+   public Vector2D minus(PointIF point) {
+      return new Vector2D(xValue - point.getXValue(), yValue - point.getYValue());
    }
 }

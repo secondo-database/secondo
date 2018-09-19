@@ -21,13 +21,17 @@ package mol.datatypes.unit.spatial;
 import java.util.ArrayList;
 import java.util.List;
 
-import mol.datatypes.interval.Period;
 import mol.datatypes.spatial.Region;
 import mol.datatypes.spatial.util.Rectangle;
-import mol.datatypes.time.TimeInstant;
 import mol.datatypes.unit.UnitObject;
-import mol.datatypes.unit.spatial.util.MovableFace;
-import mol.datatypes.unit.spatial.util.MovableSegment;
+import mol.datatypes.unit.spatial.util.MovableFaceIF;
+import mol.datatypes.unit.spatial.util.MovableSegmentIF;
+import mol.interfaces.interval.PeriodIF;
+import mol.interfaces.spatial.RegionIF;
+import mol.interfaces.spatial.util.RectangleIF;
+import mol.interfaces.time.TimeInstantIF;
+import mol.interfaces.unit.UnitObjectIF;
+import mol.interfaces.unit.spatial.UnitRegionIF;
 
 /**
  * This class represents 'UnitRegionLinear' objects
@@ -37,17 +41,17 @@ import mol.datatypes.unit.spatial.util.MovableSegment;
  * 
  * @author Markus Fuessel
  */
-public class UnitRegionLinear extends UnitRegion {
+public class UnitRegionLinear extends UnitObject<RegionIF> implements UnitRegionIF {
 
    /**
     * List of 'MovableFace' objects
     */
-   private final List<MovableFace> movingFaces;
+   private final List<MovableFaceIF> movingFaces;
 
    /**
     * The minimum bounding box in which this 'UnitRegionLinear' moves and expands
     */
-   private Rectangle objectPBB;
+   private RectangleIF objectPBB;
 
    /**
     * Constructor for an undefined 'UnitRegionLinear' object.
@@ -63,7 +67,7 @@ public class UnitRegionLinear extends UnitRegion {
     * @param period
     *           - time period for which this unit is defined
     */
-   public UnitRegionLinear(final Period period) {
+   public UnitRegionLinear(final PeriodIF period) {
       super(period);
 
       this.movingFaces = new ArrayList<>();
@@ -82,7 +86,7 @@ public class UnitRegionLinear extends UnitRegion {
     * @param movingFace
     *           - a 'MovableFace' object
     */
-   public UnitRegionLinear(final Period period, final MovableFace movingFace) {
+   public UnitRegionLinear(final PeriodIF period, final MovableFaceIF movingFace) {
       this(period);
 
       setDefined(period.isDefined() && add(movingFace));
@@ -101,13 +105,13 @@ public class UnitRegionLinear extends UnitRegion {
     * @param movingFaces
     *           - List of 'MovableFace' objects
     */
-   public UnitRegionLinear(final Period period, final List<MovableFace> movingFaces) {
+   public UnitRegionLinear(final PeriodIF period, final List<MovableFaceIF> movingFaces) {
 
       this(period);
 
       boolean success = true;
 
-      for (MovableFace movingFace : movingFaces) {
+      for (MovableFaceIF movingFace : movingFaces) {
          if (!add(movingFace)) {
             success = false;
             break;
@@ -126,7 +130,7 @@ public class UnitRegionLinear extends UnitRegion {
     * 
     * @return true if adding was successful, false otherwise
     */
-   public boolean add(MovableFace movingFace) {
+   public boolean add(MovableFaceIF movingFace) {
       if (movingFaces.add(movingFace)) {
          objectPBB = objectPBB.merge(movingFace.getProjectionBoundingBox());
 
@@ -142,13 +146,13 @@ public class UnitRegionLinear extends UnitRegion {
     * @see mol.datatypes.unit.UnitObject#getValue(mol.datatypes.time.TimeInstant)
     */
    @Override
-   public Region getValue(TimeInstant instant) {
-      Period period = getPeriod();
+   public RegionIF getValue(TimeInstantIF instant) {
+      PeriodIF period = getPeriod();
 
       if (isDefined() && period.contains(instant)) {
-         Region region = new Region(true);
+         RegionIF region = new Region(true);
 
-         for (MovableFace movingFace : movingFaces) {
+         for (MovableFaceIF movingFace : movingFaces) {
             region.add(movingFace.getValue(period, instant));
          }
 
@@ -164,10 +168,10 @@ public class UnitRegionLinear extends UnitRegion {
    /**
     * Not implementet yet
     * 
-    * @see mol.datatypes.unit.UnitObject#atPeriod(mol.datatypes.interval.Period)
+    * @see mol.datatypes.unit.UnitObject#atPeriod(mol.interfaces.interval.PeriodIF)
     */
    @Override
-   public UnitRegionLinear atPeriod(Period period) {
+   public UnitRegionLinear atPeriod(PeriodIF period) {
 
       // TODO implement
       return new UnitRegionLinear();
@@ -180,7 +184,7 @@ public class UnitRegionLinear extends UnitRegion {
     * @see mol.datatypes.unit.UnitObject#equalValue(mol.datatypes.unit.UnitObject)
     */
    @Override
-   public boolean equalValue(UnitObject<Region> otherUnitObject) {
+   public boolean equalValue(UnitObjectIF<RegionIF> otherUnitObject) {
 
       return false;
    }
@@ -193,7 +197,7 @@ public class UnitRegionLinear extends UnitRegion {
     * UnitObject)
     */
    @Override
-   public boolean finalEqualToInitialValue(UnitObject<Region> otherUnitObject) {
+   public boolean finalEqualToInitialValue(UnitObjectIF<RegionIF> otherUnitObject) {
       return false;
    }
 
@@ -203,10 +207,10 @@ public class UnitRegionLinear extends UnitRegion {
     * @see mol.datatypes.unit.UnitObject#getInitial()
     */
    @Override
-   public Region getInitial() {
+   public RegionIF getInitial() {
       Region region = new Region(true);
 
-      for (MovableFace movingFace : movingFaces) {
+      for (MovableFaceIF movingFace : movingFaces) {
          region.add(movingFace.getInitial());
       }
 
@@ -224,7 +228,7 @@ public class UnitRegionLinear extends UnitRegion {
    public Region getFinal() {
       Region region = new Region(true);
 
-      for (MovableFace movingFace : movingFaces) {
+      for (MovableFaceIF movingFace : movingFaces) {
          region.add(movingFace.getFinal());
       }
 
@@ -239,10 +243,10 @@ public class UnitRegionLinear extends UnitRegion {
     * @see mol.datatypes.unit.spatial.UnitRegion#getMovingSegments()
     */
    @Override
-   public List<MovableSegment> getMovingSegments() {
-      List<MovableSegment> movingsegments = new ArrayList<>();
+   public List<MovableSegmentIF> getMovingSegments() {
+      List<MovableSegmentIF> movingsegments = new ArrayList<>();
 
-      for (MovableFace movingFace : movingFaces) {
+      for (MovableFaceIF movingFace : movingFaces) {
          movingsegments.addAll(movingFace.getMovingSegments());
       }
 
@@ -255,7 +259,7 @@ public class UnitRegionLinear extends UnitRegion {
     * @see mol.datatypes.unit.spatial.UnitSpatial#getProjectionBoundingBox()
     */
    @Override
-   public Rectangle getProjectionBoundingBox() {
+   public RectangleIF getProjectionBoundingBox() {
       return objectPBB;
    }
 

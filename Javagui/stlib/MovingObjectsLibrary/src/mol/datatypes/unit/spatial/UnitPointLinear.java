@@ -23,9 +23,13 @@ import java.util.Objects;
 
 import mol.datatypes.interval.Period;
 import mol.datatypes.spatial.Point;
-import mol.datatypes.spatial.util.Rectangle;
-import mol.datatypes.time.TimeInstant;
 import mol.datatypes.unit.UnitObject;
+import mol.interfaces.interval.PeriodIF;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.spatial.util.RectangleIF;
+import mol.interfaces.time.TimeInstantIF;
+import mol.interfaces.unit.UnitObjectIF;
+import mol.interfaces.unit.spatial.UnitPointIF;
 
 /**
  * This class represents 'UnitPointLinear' objects
@@ -35,17 +39,17 @@ import mol.datatypes.unit.UnitObject;
  * 
  * @author Markus Fuessel
  */
-public class UnitPointLinear extends UnitPoint {
+public class UnitPointLinear extends UnitObject<PointIF> implements UnitPointIF {
 
    /**
     * Point at the beginning of the unit period
     */
-   private final Point startPoint;
+   private final PointIF startPoint;
 
    /**
     * Point at the end of the unit period
     */
-   private final Point endPoint;
+   private final PointIF endPoint;
 
    /**
     * Constructor for an undefined 'UnitPointLinear' object
@@ -65,7 +69,7 @@ public class UnitPointLinear extends UnitPoint {
     * @param endPoint
     *           - point at which the linear movement ends
     */
-   public UnitPointLinear(final Period period, final Point startPoint, final Point endPoint) {
+   public UnitPointLinear(final PeriodIF period, final PointIF startPoint, final PointIF endPoint) {
 
       super(period);
       this.startPoint = Objects.requireNonNull(startPoint, "'startPoint' must not be null");
@@ -81,9 +85,9 @@ public class UnitPointLinear extends UnitPoint {
     * @see mol.datatypes.unit.UnitObject#getValue(java.time.Instant)
     */
    @Override
-   public Point getValue(final TimeInstant instant) {
+   public PointIF getValue(final TimeInstantIF instant) {
 
-      Period period = getPeriod();
+      PeriodIF period = getPeriod();
 
       if (isDefined() && period.contains(instant)) {
          if (instant.equals(period.getLowerBound())) {
@@ -110,11 +114,11 @@ public class UnitPointLinear extends UnitPoint {
    /*
     * (non-Javadoc)
     * 
-    * @see mol.datatypes.unit.UnitObject#atPeriod(mol.datatypes.interval.Period)
+    * @see mol.datatypes.unit.UnitObject#atPeriod(mol.datatypes.interval.PeriodIF)
     */
    @Override
-   public UnitPointLinear atPeriod(Period period) {
-      Period newPeriod = this.getPeriod().intersection(period);
+   public UnitPointLinear atPeriod(PeriodIF period) {
+      PeriodIF newPeriod = this.getPeriod().intersection(period);
 
       if (!newPeriod.isDefined()) {
          return new UnitPointLinear();
@@ -129,7 +133,7 @@ public class UnitPointLinear extends UnitPoint {
     * @see mol.datatypes.unit.UnitObject#equalValue(mol.datatypes.unit.UnitObject)
     */
    @Override
-   public boolean equalValue(UnitObject<Point> otherUnitObject) {
+   public boolean equalValue(UnitObjectIF<PointIF> otherUnitObject) {
 
       return false;
    }
@@ -158,7 +162,7 @@ public class UnitPointLinear extends UnitPoint {
     * @see mol.datatypes.unit.UnitObject#getInitial()
     */
    @Override
-   public Point getInitial() {
+   public PointIF getInitial() {
       return startPoint;
    }
 
@@ -168,7 +172,7 @@ public class UnitPointLinear extends UnitPoint {
     * @see mol.datatypes.unit.UnitObject#getFinal()
     */
    @Override
-   public Point getFinal() {
+   public PointIF getFinal() {
       return endPoint;
    }
 
@@ -179,12 +183,24 @@ public class UnitPointLinear extends UnitPoint {
     * point
     */
    @Override
-   public Rectangle getProjectionBoundingBox() {
+   public RectangleIF getProjectionBoundingBox() {
 
-      Rectangle startPointBB = startPoint.getBoundingBox();
-      Rectangle endPointBB = endPoint.getBoundingBox();
+      RectangleIF startPointBB = startPoint.getBoundingBox();
+      RectangleIF endPointBB = endPoint.getBoundingBox();
 
       return startPointBB.merge(endPointBB);
+   }
+
+   /*
+    * (non-Javadoc)
+    * 
+    * @see
+    * mol.interfaces.unit.UnitObjectIF#finalEqualToInitialValue(mol.interfaces.unit
+    * .UnitObjectIF)
+    */
+   @Override
+   public boolean finalEqualToInitialValue(UnitObjectIF<PointIF> otherUnitObject) {
+      return getFinal().almostEqual(otherUnitObject.getInitial());
    }
 
 }

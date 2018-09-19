@@ -22,14 +22,16 @@ package mol.datatypes.spatial.util;
 import java.util.List;
 
 import mol.datatypes.spatial.Line;
-import mol.datatypes.spatial.Point;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.spatial.util.CycleIF;
+import mol.interfaces.spatial.util.SegmentIF;
 
 /**
  * This utility class represents spatial objects of type 'Cycle'.<br>
  * 
  * @author Markus Fuessel
  */
-public class Cycle extends Line {
+public class Cycle extends Line implements CycleIF {
 
    /**
     * Constructor for an empty 'Cycle' object.
@@ -52,7 +54,7 @@ public class Cycle extends Line {
     * @param points
     *           - List of points
     */
-   public Cycle(final List<Point> points) {
+   public Cycle(final List<PointIF> points) {
       super(false);
 
       if (points.size() >= 3) {
@@ -66,22 +68,19 @@ public class Cycle extends Line {
       }
    }
 
-   /**
-    * Set the 'Cycle' object by passing a list of 'Segment' objects.<br>
-    * To create a valid 'Cycle' object the passed list have to contain three
-    * segments at least. Already existing segments in this 'Cycle' will be
-    * replaced.
+   /*
+    * (non-Javadoc)
     * 
-    * @param segments
-    *           - List of segments
+    * @see mol.datatypes.spatial.util.CycleIF#setCycleBySegmentList(java.util.List)
     */
-   public boolean setCycleBySegmentList(final List<Segment> segments) {
+   @Override
+   public boolean setCycleBySegmentList(final List<SegmentIF> segments) {
 
       if (segments.size() >= 3) {
 
          this.clear();
 
-         for (Segment segment : segments) {
+         for (SegmentIF segment : segments) {
             this.add(segment);
          }
 

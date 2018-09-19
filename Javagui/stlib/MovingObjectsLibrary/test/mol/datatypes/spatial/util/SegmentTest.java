@@ -25,6 +25,8 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 import mol.datatypes.spatial.Point;
+import mol.interfaces.spatial.util.RectangleIF;
+import mol.interfaces.spatial.util.SegmentIF;
 import mol.util.GeneralHelper;
 
 /**
@@ -50,7 +52,7 @@ public class SegmentTest {
       Point p0 = new Point(1.0d, 5.0d);
       Point p1 = new Point(1.0d, 7.0d);
 
-      Segment segment = new Segment(p0, p1);
+      SegmentIF segment = new Segment(p0, p1);
 
       assertEquals(p0, segment.getLeftPoint());
       assertEquals(p1, segment.getRightPoint());
@@ -62,7 +64,7 @@ public class SegmentTest {
       Point p0 = new Point(2.0d, 5.0d);
       Point p1 = new Point(1.0d, 7.0d);
 
-      Segment segment = new Segment(p0, p1);
+      SegmentIF segment = new Segment(p0, p1);
 
       assertEquals(p1, segment.getLeftPoint());
       assertEquals(p0, segment.getRightPoint());
@@ -85,7 +87,7 @@ public class SegmentTest {
       double x1 = 1.5d;
       double y1 = 7.0d;
 
-      Segment segment = new Segment(x0, y0, x1, y1);
+      SegmentIF segment = new Segment(x0, y0, x1, y1);
 
       assertEquals(new Point(x0, y0), segment.getLeftPoint());
       assertEquals(new Point(x1, y1), segment.getRightPoint());
@@ -121,21 +123,21 @@ public class SegmentTest {
 
    @Test
    public void testIsVertical_VerticalSegment_ShouldBeTrue() {
-      Segment segment = new Segment(0.0d, 0.0d, 0.0d, 10.0d);
+      SegmentIF segment = new Segment(0.0d, 0.0d, 0.0d, 10.0d);
 
       assertTrue(segment.isVertical());
    }
 
    @Test
    public void testIsVertical_NonVerticalSegment_ShouldBeFalse() {
-      Segment segment = new Segment(0.0d, 0.0d, 0.0001d, 10.0d);
+      SegmentIF segment = new Segment(0.0d, 0.0d, 0.0001d, 10.0d);
 
       assertFalse(segment.isVertical());
    }
 
    @Test
    public void testIsAlmostAPoint_SegmentWithVeryCloseEndPoints_ShouldBeTrue() {
-      Segment segment = new Segment(0.0d, 0.0d, 0.0d + (GeneralHelper.getEpsilon() / 10),
+      SegmentIF segment = new Segment(0.0d, 0.0d, 0.0d + (GeneralHelper.getEpsilon() / 10),
             0.0d - (GeneralHelper.getEpsilon() / 10));
 
       assertTrue(segment.isAlmostAPoint());
@@ -143,7 +145,7 @@ public class SegmentTest {
 
    @Test
    public void testIsAlmostAPoint_SegmentWithNotCloseEndPoints_ShouldBeFalse() {
-      Segment segment = new Segment(0.0d, 0.0d, 0.0d + (GeneralHelper.getEpsilon() * 1.1),
+      SegmentIF segment = new Segment(0.0d, 0.0d, 0.0d + (GeneralHelper.getEpsilon() * 1.1),
             0.0d - (GeneralHelper.getEpsilon() * 1.1));
 
       assertFalse(segment.isAlmostAPoint());
@@ -153,7 +155,7 @@ public class SegmentTest {
    public void testGetBoundingBox() {
       Point p0 = new Point(1.0d, 5.0d);
       Point p1 = new Point(1.0d, 7.0d);
-      Rectangle expectedPBB = p0.getBoundingBox().merge(p1.getBoundingBox());
+      RectangleIF expectedPBB = p0.getBoundingBox().merge(p1.getBoundingBox());
 
       Segment segment = new Segment(p0, p1);
 
@@ -163,8 +165,8 @@ public class SegmentTest {
    @Test
    public void testEquals_SegmentWithEqualCoordinates_ShouldBeTrue() {
 
-      Segment segment1 = new Segment(1.0d, 5.0d, 1.0d, 7.0d);
-      Segment segment2 = new Segment(1.0d, 5.0d, 1.0d, 7.0d);
+      SegmentIF segment1 = new Segment(1.0d, 5.0d, 1.0d, 7.0d);
+      SegmentIF segment2 = new Segment(1.0d, 5.0d, 1.0d, 7.0d);
 
       assertTrue(segment1.equals(segment2));
    }
@@ -172,8 +174,8 @@ public class SegmentTest {
    @Test
    public void testEquals_SegmentWithNonEqualCoordinates_ShouldBeFalse() {
 
-      Segment segment1 = new Segment(1.0d, 5.0d, 1.0d, 7.0d);
-      Segment segment2 = new Segment(1.0d, 5.0d, 1.1d, 7.0d);
+      SegmentIF segment1 = new Segment(1.0d, 5.0d, 1.0d, 7.0d);
+      SegmentIF segment2 = new Segment(1.0d, 5.0d, 1.1d, 7.0d);
 
       assertFalse(segment1.equals(segment2));
    }
@@ -182,7 +184,7 @@ public class SegmentTest {
    public void testEquals_SameObject_ShouldBeTrue() {
       Point p0 = new Point(1.0d, 5.0d);
       Point p1 = new Point(1.0d, 7.0d);
-      Segment segment = new Segment(p0, p1);
+      SegmentIF segment = new Segment(p0, p1);
       Object obj = segment;
 
       assertTrue(segment.equals(obj));
@@ -194,7 +196,7 @@ public class SegmentTest {
       Point p1 = new Point(1.0d, 7.0d);
       Object obj = null;
 
-      Segment segment = new Segment(p0, p1);
+      SegmentIF segment = new Segment(p0, p1);
 
       assertFalse(segment.equals(obj));
    }
@@ -202,8 +204,8 @@ public class SegmentTest {
    @Test
    public void testEquals_UndefinedSegment_ShouldBeFalse() {
 
-      Segment segment1 = new Segment(1.0d, 5.0d, 1.0d, 7.0d);
-      Segment segment2 = new Segment(new Point(), new Point());
+      SegmentIF segment1 = new Segment(1.0d, 5.0d, 1.0d, 7.0d);
+      SegmentIF segment2 = new Segment(new Point(), new Point());
 
       assertFalse(segment1.equals(segment2));
       assertFalse(segment2.equals(segment1));
@@ -212,8 +214,8 @@ public class SegmentTest {
    @Test
    public void testHashCode_SegmentWithEqualCoordinates_HashCodeShoulBeEqual() {
 
-      Segment segment1 = new Segment(1.0d, 5.0d, 1.0d, 7.0d);
-      Segment segment2 = new Segment(1.0d, 5.0d, 1.0d, 7.0d);
+      SegmentIF segment1 = new Segment(1.0d, 5.0d, 1.0d, 7.0d);
+      SegmentIF segment2 = new Segment(1.0d, 5.0d, 1.0d, 7.0d);
 
       assertTrue(segment1.hashCode() == segment2.hashCode());
    }
@@ -221,8 +223,8 @@ public class SegmentTest {
    @Test
    public void testHashCode_SegmentWithNonEqualCoordinates_HashCodeShoulBeNonEqual() {
 
-      Segment segment1 = new Segment(1.0d, 5.0d, 1.0d, 7.0d);
-      Segment segment2 = new Segment(1.0d, 5.0d, 1.0d, 7.1d);
+      SegmentIF segment1 = new Segment(1.0d, 5.0d, 1.0d, 7.0d);
+      SegmentIF segment2 = new Segment(1.0d, 5.0d, 1.0d, 7.1d);
 
       assertFalse(segment1.hashCode() == segment2.hashCode());
    }
@@ -234,7 +236,7 @@ public class SegmentTest {
 
       double expectedLength = 10.0d;
 
-      Segment segment = new Segment(p0, p1);
+      SegmentIF segment = new Segment(p0, p1);
 
       assertEquals(expectedLength, segment.length(false), 0.0d);
    }
@@ -246,7 +248,7 @@ public class SegmentTest {
 
       double expectedLength = 2821.70676d;
 
-      Segment segment = new Segment(p0, p1);
+      SegmentIF segment = new Segment(p0, p1);
 
       assertEquals(expectedLength, segment.length(true), 1.0d);
    }

@@ -34,20 +34,24 @@ import org.junit.Test;
 import mol.TestUtil.TestUtilData;
 import mol.datatypes.interval.Period;
 import mol.datatypes.intime.Intime;
-import mol.datatypes.moving.MovingBool;
-import mol.datatypes.moving.MovingObject;
 import mol.datatypes.moving.MovingPoint;
 import mol.datatypes.moving.MovingRegion;
 import mol.datatypes.spatial.Point;
 import mol.datatypes.spatial.Region;
 import mol.datatypes.spatial.util.Face;
 import mol.datatypes.time.TimeInstant;
-import mol.datatypes.unit.spatial.UnitPoint;
 import mol.datatypes.unit.spatial.UnitPointLinear;
-import mol.datatypes.unit.spatial.UnitRegion;
 import mol.datatypes.unit.spatial.UnitRegionConst;
 import mol.datatypes.unit.spatial.UnitRegionLinear;
 import mol.datatypes.unit.spatial.util.MovableSegment;
+import mol.datatypes.unit.spatial.util.MovableSegmentIF;
+import mol.interfaces.moving.MovingBoolIF;
+import mol.interfaces.moving.MovingObjectIF;
+import mol.interfaces.moving.MovingPointIF;
+import mol.interfaces.moving.MovingRegionIF;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.unit.spatial.UnitPointIF;
+import mol.interfaces.unit.spatial.UnitRegionIF;
 
 /**
  * Tests for 'InsidePointRegion' class methods
@@ -76,7 +80,7 @@ public class InsidePointRegionTest {
    private static Region region3;
 
    private MovingRegion continuosMovingRegion;
-   private MovingRegion discreteMovingRegion;
+   private MovingRegionIF discreteMovingRegion;
 
    @BeforeClass
    public static void setUpBeforeClass() throws Exception {
@@ -96,7 +100,7 @@ public class InsidePointRegionTest {
    @Before
    public void setUp() throws Exception {
 
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
       points.add(new Point(0, 0));
       points.add(new Point(0, 50));
       points.add(new Point(50, 50));
@@ -104,7 +108,7 @@ public class InsidePointRegionTest {
 
       regionWithoutHole = new Region(points);
 
-      List<Point> holePoints = new ArrayList<>();
+      List<PointIF> holePoints = new ArrayList<>();
       holePoints.add(new Point(20, 20));
       holePoints.add(new Point(20, 40));
       holePoints.add(new Point(40, 40));
@@ -144,11 +148,11 @@ public class InsidePointRegionTest {
 
       InsidePointRegion insidePMROp = new InsidePointRegion(new Point(10.0d, 10.0d), continuosMovingRegion);
 
-      MovingObject<?, ?> mobject1 = insidePMROp.getMobject1();
-      MovingObject<?, ?> mobject2 = insidePMROp.getMobject2();
+      MovingObjectIF<?, ?> mobject1 = insidePMROp.getMobject1();
+      MovingObjectIF<?, ?> mobject2 = insidePMROp.getMobject2();
 
-      assertTrue(mobject1 instanceof MovingPoint);
-      assertTrue(mobject2 instanceof MovingRegion);
+      assertTrue(mobject1 instanceof MovingPointIF);
+      assertTrue(mobject2 instanceof MovingRegionIF);
    }
 
    @Test
@@ -162,11 +166,11 @@ public class InsidePointRegionTest {
 
       InsidePointRegion insidePMROp = new InsidePointRegion(mpoint, regionWithHole);
 
-      MovingObject<?, ?> mobject1 = insidePMROp.getMobject1();
-      MovingObject<?, ?> mobject2 = insidePMROp.getMobject2();
+      MovingObjectIF<?, ?> mobject1 = insidePMROp.getMobject1();
+      MovingObjectIF<?, ?> mobject2 = insidePMROp.getMobject2();
 
-      assertTrue(mobject1 instanceof MovingPoint);
-      assertTrue(mobject2 instanceof MovingRegion);
+      assertTrue(mobject1 instanceof MovingPointIF);
+      assertTrue(mobject2 instanceof MovingRegionIF);
    }
 
    @Test
@@ -180,11 +184,11 @@ public class InsidePointRegionTest {
 
       InsidePointRegion insidePMROp = new InsidePointRegion(mpoint, continuosMovingRegion);
 
-      MovingObject<?, ?> mobject1 = insidePMROp.getMobject1();
-      MovingObject<?, ?> mobject2 = insidePMROp.getMobject2();
+      MovingObjectIF<?, ?> mobject1 = insidePMROp.getMobject1();
+      MovingObjectIF<?, ?> mobject2 = insidePMROp.getMobject2();
 
-      assertTrue(mobject1 instanceof MovingPoint);
-      assertTrue(mobject2 instanceof MovingRegion);
+      assertTrue(mobject1 instanceof MovingPointIF);
+      assertTrue(mobject2 instanceof MovingRegionIF);
    }
 
    @Test
@@ -223,12 +227,12 @@ public class InsidePointRegionTest {
       Point pointStart = new Point(-10.0d, 30.0d);
       Point pointEnd = new Point(100.0d, 30.0d);
 
-      UnitPoint upoint = new UnitPointLinear(periodPoint, pointStart, pointEnd);
-      UnitRegion uregion = new UnitRegionConst(periodRegion, regionWithoutHole);
+      UnitPointIF upoint = new UnitPointLinear(periodPoint, pointStart, pointEnd);
+      UnitRegionIF uregion = new UnitRegionConst(periodRegion, regionWithoutHole);
 
       InsidePointRegion insidePR = new InsidePointRegion(new MovingPoint(new Point(0, 0)), regionWithoutHole);
 
-      MovingBool mbool = insidePR.getUnitResult(upoint, uregion);
+      MovingBoolIF mbool = insidePR.getUnitResult(upoint, uregion);
 
       assertTrue(mbool.isDefined());
       assertEquals(periodPoint.getUpperBound(), mbool.getPeriods().getMaxValue());
@@ -241,10 +245,10 @@ public class InsidePointRegionTest {
       Point pointStart = new Point(-10.0d, 30.0d);
       Point pointEnd = new Point(100.0d, 30.0d);
 
-      UnitPoint upoint = new UnitPointLinear(period, pointStart, pointEnd);
-      UnitRegion uregion = new UnitRegionConst(period, regionWithHole);
+      UnitPointIF upoint = new UnitPointLinear(period, pointStart, pointEnd);
+      UnitRegionIF uregion = new UnitRegionConst(period, regionWithHole);
 
-      List<Intime<Point>> iPoints = InsidePointRegion.intersectionPoints(upoint, uregion);
+      List<Intime<PointIF>> iPoints = InsidePointRegion.intersectionPoints(upoint, uregion);
 
       assertEquals(4, iPoints.size());
    }
@@ -255,10 +259,10 @@ public class InsidePointRegionTest {
       Point pointStart = new Point(-10.0d, 300.0d);
       Point pointEnd = new Point(100.0d, 300.0d);
 
-      UnitPoint upoint = new UnitPointLinear(period, pointStart, pointEnd);
-      UnitRegion uregion = new UnitRegionConst(period, regionWithHole);
+      UnitPointIF upoint = new UnitPointLinear(period, pointStart, pointEnd);
+      UnitRegionIF uregion = new UnitRegionConst(period, regionWithHole);
 
-      List<Intime<Point>> iPoints = InsidePointRegion.intersectionPoints(upoint, uregion);
+      List<Intime<PointIF>> iPoints = InsidePointRegion.intersectionPoints(upoint, uregion);
 
       assertTrue(iPoints.isEmpty());
    }
@@ -269,16 +273,16 @@ public class InsidePointRegionTest {
       Point pointStart = new Point(-10.0d, 30.0d);
       Point pointEnd = new Point(100.0d, 30.0d);
 
-      UnitPoint upoint = new UnitPointLinear(period, pointStart, pointEnd);
+      UnitPointIF upoint = new UnitPointLinear(period, pointStart, pointEnd);
 
       Point initStartPoint = new Point(50.0, 0.0);
       Point finalStartPoint = new Point(30.0, 0.0);
       Point initEndPoint = new Point(50.0, 50.0);
       Point finalEndPoint = new Point(30.0, 50.0);
 
-      MovableSegment msegment = new MovableSegment(initStartPoint, initEndPoint, finalStartPoint, finalEndPoint);
+      MovableSegmentIF msegment = new MovableSegment(initStartPoint, initEndPoint, finalStartPoint, finalEndPoint);
 
-      Intime<Point> iPoint = InsidePointRegion.intersectionPoint(upoint, msegment);
+      Intime<PointIF> iPoint = InsidePointRegion.intersectionPoint(upoint, msegment);
 
       assertTrue(iPoint.isDefined());
    }
@@ -289,10 +293,10 @@ public class InsidePointRegionTest {
       Point pointStart = new Point(-10.0d, 300.0d);
       Point pointEnd = new Point(100.0d, 300.0d);
 
-      UnitPoint upoint = new UnitPointLinear(period, pointStart, pointEnd);
-      UnitRegion uregion = new UnitRegionConst(period, regionWithHole);
+      UnitPointIF upoint = new UnitPointLinear(period, pointStart, pointEnd);
+      UnitRegionIF uregion = new UnitRegionConst(period, regionWithHole);
 
-      List<Intime<Point>> iPoints = InsidePointRegion.intersectionPoints(upoint, uregion);
+      List<Intime<PointIF>> iPoints = InsidePointRegion.intersectionPoints(upoint, uregion);
 
       assertTrue(iPoints.isEmpty());
    }
@@ -306,7 +310,7 @@ public class InsidePointRegionTest {
       MovingPoint mpoint = new MovingPoint(0);
       mpoint.add(new UnitPointLinear(period, pointStart, pointEnd));
 
-      MovingBool mbool = new InsidePointRegion(mpoint, regionWithHole).getResult();
+      MovingBoolIF mbool = new InsidePointRegion(mpoint, regionWithHole).getResult();
 
       assertTrue(mbool.isDefined());
    }

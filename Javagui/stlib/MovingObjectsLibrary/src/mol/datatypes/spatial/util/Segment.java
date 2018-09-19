@@ -19,8 +19,10 @@
 
 package mol.datatypes.spatial.util;
 
-import mol.datatypes.features.Spatial;
 import mol.datatypes.spatial.Point;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.spatial.util.RectangleIF;
+import mol.interfaces.spatial.util.SegmentIF;
 import mol.util.GeneralHelper;
 
 /**
@@ -29,7 +31,7 @@ import mol.util.GeneralHelper;
  * 
  * @author Markus Fuessel
  */
-public class Segment implements Spatial {
+public class Segment implements SegmentIF {
 
    /**
     * The defined flag, indicates if a data type object is defined
@@ -39,12 +41,12 @@ public class Segment implements Spatial {
    /**
     * Left endpoint of this segment
     */
-   private final Point leftPoint;
+   private final PointIF leftPoint;
 
    /**
     * Right endpoint of this segment
     */
-   private final Point rightPoint;
+   private final PointIF rightPoint;
 
    /**
     * Constructor for a empty and undefined 'Segment' object.<br>
@@ -69,7 +71,7 @@ public class Segment implements Spatial {
     * @param p1
     *           - second endpoint
     */
-   public Segment(final Point p0, final Point p1) {
+   public Segment(final PointIF p0, final PointIF p1) {
       if (p0.compareTo(p1) <= 0) {
          this.leftPoint = p0;
          this.rightPoint = p1;
@@ -101,25 +103,23 @@ public class Segment implements Spatial {
       this(new Point(x0, y0), new Point(x1, y1));
    }
 
-   /**
-    * Verify if this 'Segment' intersects with the passed other 'Segment'.<br>
-    * - Intersection thru left endpoint is a valid intersection<br>
-    * - Intersection thru right endpoint is not a valid intersection
+   /*
+    * (non-Javadoc)
     * 
-    * @param other
-    *           - the other 'Segment'
-    * 
-    * @return true - both 'Segment' objects intersect each other, false - otherwise
+    * @see
+    * mol.datatypes.spatial.util.SegmentIF#intersect(mol.datatypes.spatial.util.
+    * SegmentIF)
     */
-   public boolean intersect(final Segment other) {
+   @Override
+   public boolean intersect(final SegmentIF other) {
 
-      int ccwLpRpOLp = GeneralHelper.counterClockwisePath(leftPoint, rightPoint, other.leftPoint);
-      int ccwLpRpORp = GeneralHelper.counterClockwisePath(leftPoint, rightPoint, other.rightPoint);
+      int ccwLpRpOLp = GeneralHelper.counterClockwisePath(leftPoint, rightPoint, other.getLeftPoint());
+      int ccwLpRpORp = GeneralHelper.counterClockwisePath(leftPoint, rightPoint, other.getRightPoint());
 
       if (((ccwLpRpOLp == 0 && ccwLpRpORp != 0) || ccwLpRpOLp * ccwLpRpORp < 0)) {
 
-         int ccwOLpORpLp = GeneralHelper.counterClockwisePath(other.leftPoint, other.rightPoint, leftPoint);
-         int ccwOLpORpRp = GeneralHelper.counterClockwisePath(other.leftPoint, other.rightPoint, rightPoint);
+         int ccwOLpORpLp = GeneralHelper.counterClockwisePath(other.getLeftPoint(), other.getRightPoint(), leftPoint);
+         int ccwOLpORpRp = GeneralHelper.counterClockwisePath(other.getLeftPoint(), other.getRightPoint(), rightPoint);
 
          return ((ccwOLpORpLp == 0 && ccwOLpORpRp != 0) || ccwOLpORpLp * ccwOLpORpRp < 0);
       }
@@ -127,11 +127,12 @@ public class Segment implements Spatial {
       return false;
    }
 
-   /**
-    * Is the alignment of this segment is vertical
+   /*
+    * (non-Javadoc)
     * 
-    * @return true - alignment is vertical, false otherwise
+    * @see mol.datatypes.spatial.util.SegmentIF#isVertical()
     */
+   @Override
    public boolean isVertical() {
 
       double x0 = leftPoint.getXValue();
@@ -140,11 +141,12 @@ public class Segment implements Spatial {
       return Double.compare(x0, x1) == 0;
    }
 
-   /**
-    * Verify if the end points of this segment are very close to each other
+   /*
+    * (non-Javadoc)
     * 
-    * @return true if the end points are very close to each other, false otherwise
+    * @see mol.datatypes.spatial.util.SegmentIF#isAlmostAPoint()
     */
+   @Override
    public boolean isAlmostAPoint() {
       return leftPoint.almostEqual(rightPoint);
    }
@@ -165,39 +167,37 @@ public class Segment implements Spatial {
     * @see mol.datatypes.spatial.Spatial#getBoundingBox()
     */
    @Override
-   public Rectangle getBoundingBox() {
+   public RectangleIF getBoundingBox() {
       return leftPoint.getBoundingBox().merge(rightPoint.getBoundingBox());
    }
 
-   /**
-    * Get the length of this 'Segment'
+   /*
+    * (non-Javadoc)
     * 
-    * @param useSphericalGeometry
-    *           - if true spherical geometry is used to calculate the length in
-    *           metres, otherwise euclidean distance is used
-    * 
-    * @return euclidean or geographical length, depends on parameter
-    *         useSphericalGeometry
+    * @see mol.datatypes.spatial.util.SegmentIF#length(boolean)
     */
+   @Override
    public double length(final boolean useSphericalGeometry) {
       return leftPoint.distance(rightPoint, useSphericalGeometry);
    }
 
-   /**
-    * Get the lower endpoint
+   /*
+    * (non-Javadoc)
     * 
-    * @return the leftPoint
+    * @see mol.datatypes.spatial.util.SegmentIF#getLeftPoint()
     */
-   public Point getLeftPoint() {
+   @Override
+   public PointIF getLeftPoint() {
       return leftPoint;
    }
 
-   /**
-    * Get the greater endpoint
+   /*
+    * (non-Javadoc)
     * 
-    * @return the rightPoint
+    * @see mol.datatypes.spatial.util.SegmentIF#getRightPoint()
     */
-   public Point getRightPoint() {
+   @Override
+   public PointIF getRightPoint() {
       return rightPoint;
    }
 
@@ -226,17 +226,17 @@ public class Segment implements Spatial {
          return true;
       }
 
-      if (!(obj instanceof Segment)) {
+      if (!(obj instanceof SegmentIF)) {
          return false;
       }
 
-      Segment otherSegment = (Segment) obj;
+      SegmentIF otherSegment = (SegmentIF) obj;
 
       if (!isDefined() || !otherSegment.isDefined()) {
          return false;
       }
 
-      return leftPoint.equals(otherSegment.leftPoint) && rightPoint.equals(otherSegment.rightPoint);
+      return leftPoint.equals(otherSegment.getLeftPoint()) && rightPoint.equals(otherSegment.getRightPoint());
    }
 
    /*

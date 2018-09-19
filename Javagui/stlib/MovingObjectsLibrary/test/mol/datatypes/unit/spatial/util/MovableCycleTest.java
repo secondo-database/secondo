@@ -32,9 +32,11 @@ import org.junit.Test;
 
 import mol.datatypes.interval.Period;
 import mol.datatypes.spatial.Point;
-import mol.datatypes.spatial.util.Cycle;
 import mol.datatypes.spatial.util.Rectangle;
 import mol.datatypes.time.TimeInstant;
+import mol.interfaces.spatial.util.CycleIF;
+import mol.interfaces.spatial.util.RectangleIF;
+import mol.interfaces.time.TimeInstantIF;
 
 /**
  * Tests for the 'MovableCycle' class
@@ -57,19 +59,19 @@ public class MovableCycleTest {
       Point iP2 = new Point(10.0d, 10.0d);
       Point iP3 = new Point(10.0d, 0.0d);
 
-      List<MovableSegment> msegments = new ArrayList<>();
+      List<MovableSegmentIF> msegments = new ArrayList<>();
 
       msegments.add(new MovableSegment(iP0, iP1, iP0, iP1));
       msegments.add(new MovableSegment(iP1, iP2, iP1, iP2));
       msegments.add(new MovableSegment(iP2, iP3, iP2, iP3));
       msegments.add(new MovableSegment(iP3, iP0, iP3, iP0));
 
-      MovableCycle mcycle = new MovableCycle(msegments);
+      MovableCycleIF mcycle = new MovableCycle(msegments);
 
       Period movementPeriod = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
-      TimeInstant instant = new TimeInstant("2018-01-05 00:00:00:000");
+      TimeInstantIF instant = new TimeInstant("2018-01-05 00:00:00:000");
 
-      Cycle cycle = mcycle.getValue(movementPeriod, instant);
+      CycleIF cycle = mcycle.getValue(movementPeriod, instant);
 
       assertTrue(cycle.isDefined());
       assertEquals(8, cycle.getHalfsegments().size());
@@ -82,19 +84,19 @@ public class MovableCycleTest {
       Point iP2 = new Point(10.0d, 10.0d);
       Point iP3 = new Point(10.0d, 0.0d);
 
-      List<MovableSegment> msegments = new ArrayList<>();
+      List<MovableSegmentIF> msegments = new ArrayList<>();
 
       msegments.add(new MovableSegment(iP0, iP1, iP0, iP1));
       msegments.add(new MovableSegment(iP1, iP2, iP1, iP2));
       msegments.add(new MovableSegment(iP2, iP3, iP2, iP3));
       msegments.add(new MovableSegment(iP3, iP0, iP3, iP0));
 
-      MovableCycle mcycle = new MovableCycle(msegments);
+      MovableCycleIF mcycle = new MovableCycle(msegments);
 
       Period movementPeriod = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
-      TimeInstant instant = new TimeInstant("2018-01-11 00:00:00:000");
+      TimeInstantIF instant = new TimeInstant("2018-01-11 00:00:00:000");
 
-      Cycle cycle = mcycle.getValue(movementPeriod, instant);
+      CycleIF cycle = mcycle.getValue(movementPeriod, instant);
 
       assertFalse(cycle.isDefined());
    }
@@ -110,7 +112,7 @@ public class MovableCycleTest {
       Point fP1 = new Point(10.0d, 10.0d);
       Point fP2 = new Point(10.0d, 0.0d);
 
-      List<MovableSegment> msegments = new ArrayList<>();
+      List<MovableSegmentIF> msegments = new ArrayList<>();
 
       msegments.add(new MovableSegment(iP0, iP1, fP0, fP0));
       msegments.add(new MovableSegment(iP1, iP1, fP0, fP1));
@@ -118,12 +120,12 @@ public class MovableCycleTest {
       msegments.add(new MovableSegment(iP2, iP3, fP1, fP2));
       msegments.add(new MovableSegment(iP3, iP0, fP2, fP0));
 
-      MovableCycle mcycle = new MovableCycle(msegments);
+      MovableCycleIF mcycle = new MovableCycle(msegments);
 
       Period movementPeriod = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
-      TimeInstant instant = new TimeInstant("2018-01-05 12:00:00:000");
+      TimeInstantIF instant = new TimeInstant("2018-01-05 12:00:00:000");
 
-      Cycle cycle = mcycle.getValue(movementPeriod, instant);
+      CycleIF cycle = mcycle.getValue(movementPeriod, instant);
 
       assertTrue(cycle.isDefined());
       assertEquals(10, cycle.getHalfsegments().size());
@@ -141,7 +143,7 @@ public class MovableCycleTest {
       Point fP1 = new Point(10.0d, 10.0d);
       Point fP2 = new Point(10.0d, 0.0d);
 
-      List<MovableSegment> msegments = new ArrayList<>();
+      List<MovableSegmentIF> msegments = new ArrayList<>();
 
       msegments.add(new MovableSegment(iP0, iP1, fP0, fP0));
       msegments.add(new MovableSegment(iP1, iP1, fP0, fP1));
@@ -149,12 +151,12 @@ public class MovableCycleTest {
       msegments.add(new MovableSegment(iP2, iP3, fP1, fP2));
       msegments.add(new MovableSegment(iP3, iP0, fP2, fP0));
 
-      MovableCycle mcycle = new MovableCycle(msegments);
+      MovableCycleIF mcycle = new MovableCycle(msegments);
 
       Period movementPeriod = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
-      TimeInstant instant = movementPeriod.getLowerBound();
+      TimeInstantIF instant = movementPeriod.getLowerBound();
 
-      Cycle cycle = mcycle.getValue(movementPeriod, instant);
+      CycleIF cycle = mcycle.getValue(movementPeriod, instant);
 
       assertTrue(cycle.isDefined());
       assertEquals(8, cycle.getHalfsegments().size());
@@ -172,7 +174,7 @@ public class MovableCycleTest {
       Point fP1 = new Point(10.0d, 10.0d);
       Point fP2 = new Point(10.0d, 0.0d);
 
-      List<MovableSegment> msegments = new ArrayList<>();
+      List<MovableSegmentIF> msegments = new ArrayList<>();
 
       msegments.add(new MovableSegment(iP0, iP1, fP0, fP0));
       msegments.add(new MovableSegment(iP1, iP1, fP0, fP1));
@@ -180,12 +182,12 @@ public class MovableCycleTest {
       msegments.add(new MovableSegment(iP2, iP3, fP1, fP2));
       msegments.add(new MovableSegment(iP3, iP0, fP2, fP0));
 
-      MovableCycle mcycle = new MovableCycle(msegments);
+      MovableCycleIF mcycle = new MovableCycle(msegments);
 
       Period movementPeriod = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
-      TimeInstant instant = movementPeriod.getUpperBound();
+      TimeInstantIF instant = movementPeriod.getUpperBound();
 
-      Cycle cycle = mcycle.getValue(movementPeriod, instant);
+      CycleIF cycle = mcycle.getValue(movementPeriod, instant);
 
       assertTrue(cycle.isDefined());
       assertEquals(6, cycle.getHalfsegments().size());
@@ -201,23 +203,23 @@ public class MovableCycleTest {
 
       Point fP0 = new Point(5.0d, 5.0d);
 
-      List<MovableSegment> msegments = new ArrayList<>();
+      List<MovableSegmentIF> msegments = new ArrayList<>();
 
       msegments.add(new MovableSegment(iP0, iP1, fP0, fP0));
       msegments.add(new MovableSegment(iP1, iP2, fP0, fP0));
       msegments.add(new MovableSegment(iP2, iP3, fP0, fP0));
       msegments.add(new MovableSegment(iP3, iP0, fP0, fP0));
 
-      MovableCycle mcycle = new MovableCycle(msegments);
+      MovableCycleIF mcycle = new MovableCycle(msegments);
 
       Period movementPeriod = new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false);
-      TimeInstant instant1 = new TimeInstant("2018-01-05 00:00:00:000");
-      TimeInstant instant2 = new TimeInstant("2018-01-08 00:00:00:000");
-      TimeInstant instant3 = movementPeriod.getUpperBound();
+      TimeInstantIF instant1 = new TimeInstant("2018-01-05 00:00:00:000");
+      TimeInstantIF instant2 = new TimeInstant("2018-01-08 00:00:00:000");
+      TimeInstantIF instant3 = movementPeriod.getUpperBound();
 
-      Cycle cycle1 = mcycle.getValue(movementPeriod, instant1);
-      Cycle cycle2 = mcycle.getValue(movementPeriod, instant2);
-      Cycle cycle3 = mcycle.getValue(movementPeriod, instant3);
+      CycleIF cycle1 = mcycle.getValue(movementPeriod, instant1);
+      CycleIF cycle2 = mcycle.getValue(movementPeriod, instant2);
+      CycleIF cycle3 = mcycle.getValue(movementPeriod, instant3);
 
       assertTrue(cycle1.isDefined());
       assertTrue(cycle2.isDefined());
@@ -235,7 +237,7 @@ public class MovableCycleTest {
       Point fP1 = new Point(10.0d, 10.0d);
       Point fP2 = new Point(10.0d, 0.0d);
 
-      List<MovableSegment> msegments = new ArrayList<>();
+      List<MovableSegmentIF> msegments = new ArrayList<>();
 
       msegments.add(new MovableSegment(iP0, iP1, fP0, fP0));
       msegments.add(new MovableSegment(iP1, iP1, fP0, fP1));
@@ -243,9 +245,9 @@ public class MovableCycleTest {
       msegments.add(new MovableSegment(iP2, iP3, fP1, fP2));
       msegments.add(new MovableSegment(iP3, iP0, fP2, fP0));
 
-      MovableCycle mcycle = new MovableCycle(msegments);
+      MovableCycleIF mcycle = new MovableCycle(msegments);
 
-      Cycle cycle = mcycle.getInitial();
+      CycleIF cycle = mcycle.getInitial();
 
       assertTrue(cycle.isDefined());
       assertEquals(8, cycle.getHalfsegments().size());
@@ -263,7 +265,7 @@ public class MovableCycleTest {
       Point fP1 = new Point(10.0d, 10.0d);
       Point fP2 = new Point(10.0d, 0.0d);
 
-      List<MovableSegment> msegments = new ArrayList<>();
+      List<MovableSegmentIF> msegments = new ArrayList<>();
 
       msegments.add(new MovableSegment(iP0, iP1, fP0, fP0));
       msegments.add(new MovableSegment(iP1, iP1, fP0, fP1));
@@ -271,9 +273,9 @@ public class MovableCycleTest {
       msegments.add(new MovableSegment(iP2, iP3, fP1, fP2));
       msegments.add(new MovableSegment(iP3, iP0, fP2, fP0));
 
-      MovableCycle mcycle = new MovableCycle(msegments);
+      MovableCycleIF mcycle = new MovableCycle(msegments);
 
-      Cycle cycle = mcycle.getFinal();
+      CycleIF cycle = mcycle.getFinal();
 
       assertTrue(cycle.isDefined());
       assertEquals(6, cycle.getHalfsegments().size());
@@ -291,7 +293,7 @@ public class MovableCycleTest {
       Point fP1 = new Point(10.0d, 10.0d);
       Point fP2 = new Point(10.0d, 0.0d);
 
-      List<MovableSegment> msegments = new ArrayList<>();
+      List<MovableSegmentIF> msegments = new ArrayList<>();
 
       msegments.add(new MovableSegment(iP0, iP1, fP0, fP0));
       msegments.add(new MovableSegment(iP1, iP1, fP0, fP1));
@@ -301,8 +303,8 @@ public class MovableCycleTest {
 
       MovableCycle mcycle = new MovableCycle(msegments);
 
-      Rectangle expectedPBB = new Rectangle(0.0d, 10.0d, 10.0d, 0.0d);
-      Rectangle currentPBB = mcycle.getProjectionBoundingBox();
+      RectangleIF expectedPBB = new Rectangle(0.0d, 10.0d, 10.0d, 0.0d);
+      RectangleIF currentPBB = mcycle.getProjectionBoundingBox();
 
       assertTrue(currentPBB.isDefined());
       assertEquals(expectedPBB, currentPBB);

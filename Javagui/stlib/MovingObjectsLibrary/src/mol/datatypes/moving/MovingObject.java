@@ -23,11 +23,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 import mol.datatypes.GeneralType;
-import mol.datatypes.interval.Period;
 import mol.datatypes.intime.Intime;
 import mol.datatypes.range.Periods;
-import mol.datatypes.time.TimeInstant;
-import mol.datatypes.unit.UnitObject;
+import mol.interfaces.GeneralTypeIF;
+import mol.interfaces.interval.PeriodIF;
+import mol.interfaces.intime.IntimeIF;
+import mol.interfaces.moving.MovingObjectIF;
+import mol.interfaces.range.PeriodsIF;
+import mol.interfaces.time.TimeInstantIF;
+import mol.interfaces.unit.UnitObjectIF;
 
 /**
  * Abstract Superclass for all 'MovingObject' subclasses<br>
@@ -44,13 +48,14 @@ import mol.datatypes.unit.UnitObject;
  *           <br>
  *           both types have to be compatible
  */
-public abstract class MovingObject<T1 extends UnitObject<T2>, T2 extends GeneralType> extends GeneralType {
+public abstract class MovingObject<T1 extends UnitObjectIF<T2>, T2 extends GeneralTypeIF> extends GeneralType
+      implements MovingObjectIF<T1, T2> {
 
    /**
     * Periods, 'Range' object over the full set of all periods for which this
     * 'MovingObject' object is defined
     */
-   private final Periods periods;
+   private final PeriodsIF periods;
 
    /**
     * Array of the mapped 'UnitObject' objects
@@ -69,23 +74,12 @@ public abstract class MovingObject<T1 extends UnitObject<T2>, T2 extends General
       this.units = new ArrayList<>(size);
    }
 
-   /**
-    * Add/append a new unit to this 'MovingObject' object.<br>
-    * Only appending is possible, if: <br>
-    * - the period of the passed unit is right adjacent with the period of the last
-    * unit, or<br>
-    * - the period of the passed unit is greater as the period of the last unit
-    * <br>
-    * <br>
-    * If the value of the last unit of this 'MovingObject' is equal to the value of
-    * the passed unit and if their periods are adjacent or intersects right, then
-    * the period of the last unit will be extended
+   /*
+    * (non-Javadoc)
     * 
-    * @param newUnit
-    *           - the unit to add/append
-    * 
-    * @return true if the passed unit was added, false otherwise
+    * @see mol.datatypes.moving.MovingObjectIF#add(T1)
     */
+   @Override
    public boolean add(T1 newUnit) {
 
       if (!this.isDefined() || !newUnit.isDefined()) {
@@ -94,7 +88,7 @@ public abstract class MovingObject<T1 extends UnitObject<T2>, T2 extends General
 
       int noUnits = getNoUnits();
 
-      Period newPeriod = newUnit.getPeriod();
+      PeriodIF newPeriod = newUnit.getPeriod();
 
       if (noUnits == 0) {
 
@@ -106,12 +100,12 @@ public abstract class MovingObject<T1 extends UnitObject<T2>, T2 extends General
       } else {
 
          T1 lastUnit = getUnit(noUnits - 1);
-         Period lastPeriod = lastUnit.getPeriod();
+         PeriodIF lastPeriod = lastUnit.getPeriod();
 
          if ((lastPeriod.rightAdjacent(newPeriod) || lastPeriod.intersectsRight(newPeriod))
                && lastUnit.equalValue(newUnit)) {
 
-            Period newLastPeriod = lastPeriod.merge(newPeriod);
+            PeriodIF newLastPeriod = lastPeriod.merge(newPeriod);
             lastUnit.setPeriod(newLastPeriod);
 
             periods.mergeAdd(newLastPeriod);
@@ -143,55 +137,57 @@ public abstract class MovingObject<T1 extends UnitObject<T2>, T2 extends General
 
    }
 
-   /**
-    * Get the number of units
+   /*
+    * (non-Javadoc)
     * 
-    * @return number of units
+    * @see mol.datatypes.moving.MovingObjectIF#getNoUnits()
     */
+   @Override
    public int getNoUnits() {
       return units.size();
    }
 
-   /**
-    * Get the 'Periods' range object, for which this MovingObject is defined.
+   /*
+    * (non-Javadoc)
     * 
-    * @return periods, a range object
+    * @see mol.datatypes.moving.MovingObjectIF#getPeriods()
     */
-   public Periods getPeriods() {
+   @Override
+   public PeriodsIF getPeriods() {
       return periods;
    }
 
-   /**
+   /*
+    * (non-Javadoc)
     * 
-    * @return
+    * @see mol.datatypes.moving.MovingObjectIF#getUnits()
     */
+   @Override
    public List<T1> getUnits() {
       return units;
    }
 
-   /**
-    * Check if the MovingObject exists at the given instant
+   /*
+    * (non-Javadoc)
     * 
-    * @param instant
-    * 
-    * @return true if MovingObject exists, false otherwise
+    * @see mol.datatypes.moving.MovingObjectIF#present(mol.interfaces.time.
+    * TimeInstantIF)
     */
-   public boolean present(final TimeInstant instant) {
+   @Override
+   public boolean present(final TimeInstantIF instant) {
       return periods.contains(instant);
    }
 
-   /**
-    * Get a {@code Intime<T2>} object, consists of the passed instant and the value
-    * of this 'MovingObject', which is defined at the passed instant
+   /*
+    * (non-Javadoc)
     * 
-    * @param instant
-    * 
-    * @return {@code Intime<T2>} object or an undefined, empty {@code Intime<T2>}
-    *         object if this 'MovingObject' is not defined at the passed instant
+    * @see
+    * mol.datatypes.moving.MovingObjectIF#atInstant(mol.datatypes.time.TimeInstant)
     */
-   public Intime<T2> atInstant(TimeInstant instant) {
+   @Override
+   public IntimeIF<T2> atInstant(TimeInstantIF instant) {
 
-      Intime<T2> intime;
+      IntimeIF<T2> intime;
 
       if (!isDefined() || !instant.isDefined()) {
          intime = new Intime<>();
@@ -204,47 +200,40 @@ public abstract class MovingObject<T1 extends UnitObject<T2>, T2 extends General
       return intime;
    }
 
-   /**
-    * Get the value of this 'MovingObject', a object of type {@code T2}, which is
-    * defined at the passed instant.
+   /*
+    * (non-Javadoc)
     * 
-    * @param instant
-    * 
-    * @return a object of type {@code T2}, if this 'MovingObject' is defined at the
-    *         passed, otherwise the returned object will be undefined
+    * @see
+    * mol.datatypes.moving.MovingObjectIF#getValue(mol.datatypes.time.TimeInstant)
     */
-   public T2 getValue(final TimeInstant instant) {
+   @Override
+   public T2 getValue(final TimeInstantIF instant) {
 
       T1 unit = getUnit(instant);
 
       return unit.getValue(instant);
    }
 
-   /**
-    * Get the 'UnitObject' which covers the passed instant of time in this
-    * 'MovingObject'
+   /*
+    * (non-Javadoc)
     * 
-    * @param instant
-    * 
-    * @return the 'UnitObject' which covers the passed instant of time or an
-    *         undefined, empty 'UnitObject' if the passed instant is not covered by
-    *         any 'UnitObject'
+    * @see
+    * mol.datatypes.moving.MovingObjectIF#getUnit(mol.datatypes.time.TimeInstant)
     */
-   public T1 getUnit(final TimeInstant instant) {
+   @Override
+   public T1 getUnit(final TimeInstantIF instant) {
 
       int unitPos = getUnitPosition(instant);
 
       return getUnit(unitPos);
    }
 
-   /**
-    * Returns the unit at the specified position in this 'MovingObject'.
+   /*
+    * (non-Javadoc)
     * 
-    * @param position
-    * 
-    * @return the unit at the specified position in this 'MovingObject' or an
-    *         undefined, empty unit if the passed position does not exists
+    * @see mol.datatypes.moving.MovingObjectIF#getUnit(int)
     */
+   @Override
    public T1 getUnit(final int position) {
       T1 unit;
 
@@ -257,22 +246,21 @@ public abstract class MovingObject<T1 extends UnitObject<T2>, T2 extends General
       return unit;
    }
 
-   /**
-    * Get the position of the unit in the units array which contains the given
-    * instant.
+   /*
+    * (non-Javadoc)
     * 
-    * @param instant
-    * 
-    * @return position of the unit in the array, -1 otherwise
+    * @see mol.datatypes.moving.MovingObjectIF#getUnitPosition(mol.datatypes.time.
+    * TimeInstant)
     */
-   public int getUnitPosition(final TimeInstant instant) {
+   @Override
+   public int getUnitPosition(final TimeInstantIF instant) {
 
       if (!isDefined() || !instant.isDefined()) {
          return -1;
       }
 
       T1 centerUnit;
-      Period centerPeriod;
+      PeriodIF centerPeriod;
       int centerPos;
 
       int firstPos = 0;
@@ -300,12 +288,12 @@ public abstract class MovingObject<T1 extends UnitObject<T2>, T2 extends General
       return -1;
    }
 
-   /**
-    * Check if this 'MovingObject' is closed, the period of the last unit is right
-    * closed.
+   /*
+    * (non-Javadoc)
     * 
-    * @return true if period of last unit is right closed, false otherwise
+    * @see mol.datatypes.moving.MovingObjectIF#isClosed()
     */
+   @Override
    public boolean isClosed() {
 
       if (getNoUnits() > 0) {

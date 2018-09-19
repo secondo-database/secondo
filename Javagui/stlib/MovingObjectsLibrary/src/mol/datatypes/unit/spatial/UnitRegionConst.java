@@ -25,12 +25,17 @@ import java.util.Objects;
 
 import mol.datatypes.interval.Period;
 import mol.datatypes.spatial.Region;
-import mol.datatypes.spatial.util.Halfsegment;
-import mol.datatypes.spatial.util.Rectangle;
-import mol.datatypes.time.TimeInstant;
 import mol.datatypes.unit.UnitObject;
-import mol.datatypes.unit.UnitObjectConst;
 import mol.datatypes.unit.spatial.util.MovableSegment;
+import mol.datatypes.unit.spatial.util.MovableSegmentIF;
+import mol.interfaces.interval.PeriodIF;
+import mol.interfaces.spatial.RegionIF;
+import mol.interfaces.spatial.util.HalfsegmentIF;
+import mol.interfaces.spatial.util.RectangleIF;
+import mol.interfaces.time.TimeInstantIF;
+import mol.interfaces.unit.UnitObjectConstIF;
+import mol.interfaces.unit.UnitObjectIF;
+import mol.interfaces.unit.spatial.UnitRegionIF;
 
 /**
  * This class represents 'UnitRegionConst' objects and is used for
@@ -39,12 +44,12 @@ import mol.datatypes.unit.spatial.util.MovableSegment;
  * 
  * @author Markus Fuessel
  */
-public class UnitRegionConst extends UnitRegion {
+public class UnitRegionConst extends UnitObject<RegionIF> implements UnitRegionIF, UnitObjectConstIF<RegionIF> {
 
    /**
     * Constant value for a constant 'UnitRegion' object
     */
-   private final Region constRegion;
+   private final RegionIF constRegion;
 
    /**
     * Constructor for an undefined 'UnitRegionConst' object
@@ -56,7 +61,7 @@ public class UnitRegionConst extends UnitRegion {
    /**
     * Constructor for an 'UnitRegionConst' object with a maximum Period
     */
-   public UnitRegionConst(Region region) {
+   public UnitRegionConst(RegionIF region) {
       super(Period.MAX);
       this.constRegion = region;
       setDefined(region.isDefined());
@@ -68,7 +73,7 @@ public class UnitRegionConst extends UnitRegion {
     * @param period
     * @param region
     */
-   public UnitRegionConst(final Period period, final Region region) {
+   public UnitRegionConst(final PeriodIF period, final RegionIF region) {
 
       super(period);
       this.constRegion = Objects.requireNonNull(region, "'region' must not be null");
@@ -79,11 +84,11 @@ public class UnitRegionConst extends UnitRegion {
    /*
     * (non-Javadoc)
     * 
-    * @see mol.datatypes.unit.UnitObject#atPeriod(mol.datatypes.interval.Period)
+    * @see mol.datatypes.unit.UnitObject#atPeriod(mol.datatypes.interval.PeriodIF)
     */
    @Override
-   public UnitRegionConst atPeriod(Period period) {
-      Period newPeriod = this.getPeriod().intersection(period);
+   public UnitRegionConst atPeriod(PeriodIF period) {
+      PeriodIF newPeriod = this.getPeriod().intersection(period);
 
       if (!newPeriod.isDefined()) {
          return new UnitRegionConst();
@@ -98,13 +103,13 @@ public class UnitRegionConst extends UnitRegion {
     * @see mol.datatypes.unit.UnitObject#equalValue(mol.datatypes.unit.UnitObject)
     */
    @Override
-   public boolean equalValue(UnitObject<Region> otherUnitObject) {
+   public boolean equalValue(UnitObjectIF<RegionIF> otherUnitObject) {
 
-      if (!(otherUnitObject instanceof UnitObjectConst<?>) || !otherUnitObject.isDefined()) {
+      if (!(otherUnitObject instanceof UnitObjectConstIF<?>) || !otherUnitObject.isDefined()) {
          return false;
       }
 
-      UnitObjectConst<Region> otherUnitRegionConstant = (UnitObjectConst<Region>) otherUnitObject;
+      UnitObjectConstIF<?> otherUnitRegionConstant = (UnitObjectConstIF<?>) otherUnitObject;
 
       return constRegion.equals(otherUnitRegionConstant.getValue());
 
@@ -118,7 +123,7 @@ public class UnitRegionConst extends UnitRegion {
     * UnitObject)
     */
    @Override
-   public boolean finalEqualToInitialValue(UnitObject<Region> otherUnitObject) {
+   public boolean finalEqualToInitialValue(UnitObjectIF<RegionIF> otherUnitObject) {
       return equalValue(otherUnitObject);
    }
 
@@ -126,7 +131,7 @@ public class UnitRegionConst extends UnitRegion {
     * Get the projection bounding box for this 'UnitRegionConst'
     */
    @Override
-   public Rectangle getProjectionBoundingBox() {
+   public RectangleIF getProjectionBoundingBox() {
       return constRegion.getBoundingBox();
    }
 
@@ -136,8 +141,8 @@ public class UnitRegionConst extends UnitRegion {
     * @see mol.datatypes.unit.UnitObject#getValue(mol.datatypes.time.TimeInstant)
     */
    @Override
-   public Region getValue(TimeInstant instant) {
-      Period period = getPeriod();
+   public RegionIF getValue(TimeInstantIF instant) {
+      PeriodIF period = getPeriod();
 
       if (isDefined() && period.contains(instant)) {
          return getConstRegion();
@@ -152,7 +157,7 @@ public class UnitRegionConst extends UnitRegion {
     * 
     * @return the value
     */
-   protected Region getConstRegion() {
+   protected RegionIF getConstRegion() {
       return constRegion;
    }
 
@@ -162,7 +167,7 @@ public class UnitRegionConst extends UnitRegion {
     * @see mol.datatypes.unit.UnitObject#getInitial()
     */
    @Override
-   public Region getInitial() {
+   public RegionIF getInitial() {
       return getConstRegion();
    }
 
@@ -172,7 +177,7 @@ public class UnitRegionConst extends UnitRegion {
     * @see mol.datatypes.unit.UnitObject#getFinal()
     */
    @Override
-   public Region getFinal() {
+   public RegionIF getFinal() {
       return getConstRegion();
    }
 
@@ -182,10 +187,10 @@ public class UnitRegionConst extends UnitRegion {
     * @see mol.datatypes.unit.spatial.UnitRegion#getMovingSegments()
     */
    @Override
-   public List<MovableSegment> getMovingSegments() {
-      List<MovableSegment> movingsegments = new ArrayList<>();
+   public List<MovableSegmentIF> getMovingSegments() {
+      List<MovableSegmentIF> movingsegments = new ArrayList<>();
 
-      for (Halfsegment halfsegment : constRegion.getHalfsegments()) {
+      for (HalfsegmentIF halfsegment : constRegion.getHalfsegments()) {
          if (halfsegment.isLeftDominating()) {
 
             movingsegments.add(new MovableSegment(halfsegment));
@@ -203,6 +208,16 @@ public class UnitRegionConst extends UnitRegion {
    @Override
    public int getNoMovingFaces() {
       return constRegion.getNoComponents();
+   }
+
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mol.interfaces.unit.UnitObjectConstIF#getValue()
+    */
+   @Override
+   public RegionIF getValue() {
+      return constRegion;
    }
 
 }

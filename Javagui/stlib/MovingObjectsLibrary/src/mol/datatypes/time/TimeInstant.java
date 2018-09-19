@@ -28,7 +28,7 @@ import java.util.Objects;
 import java.util.TimeZone;
 
 import mol.datatypes.GeneralType;
-import mol.datatypes.features.Orderable;
+import mol.interfaces.time.TimeInstantIF;
 
 /**
  * Class for representation of the 'Instant' data type.<br>
@@ -40,7 +40,7 @@ import mol.datatypes.features.Orderable;
  * 
  * @author Markus Fuessel
  */
-public class TimeInstant extends GeneralType implements Orderable<TimeInstant> {
+public class TimeInstant extends GeneralType implements TimeInstantIF {
 
    /**
     * The minimum supported {@code TimeInstant}, '-1000000000-01-01T00:00Z'.<br>
@@ -48,8 +48,7 @@ public class TimeInstant extends GeneralType implements Orderable<TimeInstant> {
     * 
     * @see java.time.Instant.MIN
     */
-   public static final TimeInstant MIN = new TimeInstant(Instant.MIN);
-
+   public static final TimeInstantIF MIN = new TimeInstant(Instant.MIN);
    /**
     * The maximum supported {@code TimeInstant},
     * '1000000000-12-31T23:59:59.999999999Z'.<br>
@@ -57,7 +56,7 @@ public class TimeInstant extends GeneralType implements Orderable<TimeInstant> {
     * 
     * @see java.time.Instant.MAX
     */
-   public static final TimeInstant MAX = new TimeInstant(Instant.MAX);
+   public static final TimeInstantIF MAX = new TimeInstant(Instant.MAX);
 
    /**
     * Static attribute to store date time format which is used for all instant
@@ -191,17 +190,13 @@ public class TimeInstant extends GeneralType implements Orderable<TimeInstant> {
       setDefined(original.isDefined());
    }
 
-   /**
-    * Create a new 'TimeInstant' object with the amount of milliseconds added to
-    * this 'TimeInstant' object
+   /*
+    * (non-Javadoc)
     * 
-    * @param millisToAdd
-    *           - the milliseconds to add, negativ or positive
-    * @return new TimeInstant
-    * 
-    * @see java.time.Instant#plusMillis(long)
+    * @see mol.datatypes.time.TimeInstantIF#plusMillis(long)
     */
-   public TimeInstant plusMillis(final long millisToAdd) {
+   @Override
+   public TimeInstantIF plusMillis(final long millisToAdd) {
       Instant newInstant = instant.plusMillis(millisToAdd);
       TimeInstant newTimeInstant = new TimeInstant(newInstant);
       newTimeInstant.setDefined(this.isDefined());
@@ -209,17 +204,13 @@ public class TimeInstant extends GeneralType implements Orderable<TimeInstant> {
       return newTimeInstant;
    }
 
-   /**
-    * Create a new 'TimeInstant' object with the amount of nanoseconds added to
-    * this 'TimeInstant' object
+   /*
+    * (non-Javadoc)
     * 
-    * @param nanosToAdd
-    *           - the nanoseconds to add, negativ or positive
-    * @return new TimeInstant
-    * 
-    * @see java.time.Instant#plusNanos(long)
+    * @see mol.datatypes.time.TimeInstantIF#plusNanos(long)
     */
-   public TimeInstant plusNanos(final long nanosToAdd) {
+   @Override
+   public TimeInstantIF plusNanos(final long nanosToAdd) {
       Instant newInstant = instant.plusNanos(nanosToAdd);
       TimeInstant newTimeInstant = new TimeInstant(newInstant);
       newTimeInstant.setDefined(this.isDefined());
@@ -227,17 +218,13 @@ public class TimeInstant extends GeneralType implements Orderable<TimeInstant> {
       return newTimeInstant;
    }
 
-   /**
-    * Create a new 'TimeInstant' object with the amount of milliseconds subtracted
-    * from this 'TimeInstant' object
+   /*
+    * (non-Javadoc)
     * 
-    * @param millisToSubtract
-    *           - the milliseconds to subtract, negativ or positive
-    * @return new TimeInstant
-    * 
-    * @see java.time.Instant#minusMillis(long)
+    * @see mol.datatypes.time.TimeInstantIF#minusMillis(long)
     */
-   public TimeInstant minusMillis(final long millisToSubtract) {
+   @Override
+   public TimeInstantIF minusMillis(final long millisToSubtract) {
       Instant newInstant = instant.minusMillis(millisToSubtract);
       TimeInstant newTimeInstant = new TimeInstant(newInstant);
       newTimeInstant.setDefined(this.isDefined());
@@ -245,17 +232,13 @@ public class TimeInstant extends GeneralType implements Orderable<TimeInstant> {
       return newTimeInstant;
    }
 
-   /**
-    * Create a new 'TimeInstant' object with the amount of nanoseconds subtracted
-    * from this 'TimeInstant' object
+   /*
+    * (non-Javadoc)
     * 
-    * @param nanosToSubtract
-    *           - the nanoseconds to subtract, negativ or positive
-    * @return new TimeInstant
-    * 
-    * @see java.time.Instant#minusNanos(long)
+    * @see mol.datatypes.time.TimeInstantIF#minusNanos(long)
     */
-   public TimeInstant minusNanos(final long nanosToSubtract) {
+   @Override
+   public TimeInstantIF minusNanos(final long nanosToSubtract) {
       Instant newInstant = instant.minusNanos(nanosToSubtract);
       TimeInstant newTimeInstant = new TimeInstant(newInstant);
       newTimeInstant.setDefined(this.isDefined());
@@ -269,7 +252,7 @@ public class TimeInstant extends GeneralType implements Orderable<TimeInstant> {
     * @see java.lang.Comparable#compareTo(java.lang.Object)
     */
    @Override
-   public int compareTo(final TimeInstant otherTimeInstant) {
+   public int compareTo(final TimeInstantIF otherTimeInstant) {
 
       return instant.compareTo(otherTimeInstant.getValue());
    }
@@ -291,7 +274,7 @@ public class TimeInstant extends GeneralType implements Orderable<TimeInstant> {
     */
    @Override
    public boolean equals(final Object obj) {
-      if (!(obj instanceof TimeInstant)) {
+      if (!(obj instanceof TimeInstantIF)) {
          return false;
       }
 
@@ -299,7 +282,7 @@ public class TimeInstant extends GeneralType implements Orderable<TimeInstant> {
          return true;
       }
 
-      TimeInstant otherInstant = (TimeInstant) obj;
+      TimeInstantIF otherInstant = (TimeInstantIF) obj;
 
       return compareTo(otherInstant) == 0;
    }
@@ -310,7 +293,7 @@ public class TimeInstant extends GeneralType implements Orderable<TimeInstant> {
     * @see mol.datatypes.util.Orderable#before(java.lang.Object)
     */
    @Override
-   public boolean before(final TimeInstant otherTimeInstant) {
+   public boolean before(final TimeInstantIF otherTimeInstant) {
 
       return (this.compareTo(otherTimeInstant) < 0);
    }
@@ -321,7 +304,7 @@ public class TimeInstant extends GeneralType implements Orderable<TimeInstant> {
     * @see mol.datatypes.util.Orderable#after(java.lang.Object)
     */
    @Override
-   public boolean after(final TimeInstant otherTimeInstant) {
+   public boolean after(final TimeInstantIF otherTimeInstant) {
 
       return (this.compareTo(otherTimeInstant) > 0);
    }
@@ -334,7 +317,7 @@ public class TimeInstant extends GeneralType implements Orderable<TimeInstant> {
     * @see mol.datatypes.util.Orderable#adjacent(java.lang.Object)
     */
    @Override
-   public boolean adjacent(final TimeInstant otherTimeInstant) {
+   public boolean adjacent(final TimeInstantIF otherTimeInstant) {
 
       return false;
    }
@@ -349,21 +332,22 @@ public class TimeInstant extends GeneralType implements Orderable<TimeInstant> {
       return "TimeInstant [instant=" + instant.atZone(defaultTimeZoneId) + ", isDefined()=" + isDefined() + "]";
    }
 
-   /**
-    * Getter for the Instant value
+   /*
+    * (non-Javadoc)
     * 
-    * @return the value
+    * @see mol.datatypes.time.TimeInstantIF#getValue()
     */
+   @Override
    public Instant getValue() {
       return instant;
    }
 
-   /**
-    * Converts this TimeInstant to the number of milliseconds from the epoch of
-    * 1970-01-01T00:00:00Z.
+   /*
+    * (non-Javadoc)
     * 
-    * @return the number of milliseconds since the epoch of 1970-01-01T00:00:00Z
+    * @see mol.datatypes.time.TimeInstantIF#toMilliseconds()
     */
+   @Override
    public long toMilliseconds() {
       return instant.toEpochMilli();
    }

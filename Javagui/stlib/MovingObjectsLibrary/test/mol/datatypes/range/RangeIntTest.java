@@ -28,6 +28,8 @@ import org.junit.Test;
 
 import mol.datatypes.base.BaseInt;
 import mol.datatypes.interval.IntervalInt;
+import mol.interfaces.base.BaseIntIF;
+import mol.interfaces.interval.IntervalIntIF;
 
 /**
  * Tests for class 'RangeInt'
@@ -81,7 +83,7 @@ public class RangeIntTest {
    public void testMergeAdd_AddIntersectingIntervalInt_NoComponentsShouldNotIncrease() {
       int noCompBeforeMergeAdd = staticRInt.getNoComponents();
 
-      IntervalInt lastIvInt = staticRInt.last();
+      IntervalIntIF lastIvInt = staticRInt.last();
       IntervalInt ivInt = new IntervalInt(lastIvInt.getLowerBound().getValue() + 1,
             lastIvInt.getUpperBound().getValue() + 10, true, true);
 
@@ -94,7 +96,7 @@ public class RangeIntTest {
    public void testMergeAdd_AddDisjointIntervalInt_NoComponentsShouldIncrease() {
       int noCompBeforeMergeAdd = staticRInt.getNoComponents();
 
-      IntervalInt lastIvInt = staticRInt.last();
+      IntervalIntIF lastIvInt = staticRInt.last();
       IntervalInt ivInt = new IntervalInt(lastIvInt.getUpperBound().getValue() + 2,
             lastIvInt.getUpperBound().getValue() + 10, true, true);
 
@@ -107,7 +109,7 @@ public class RangeIntTest {
    public void testMergeAdd_AddDisjointIntervalIntBeforeStaticRInt_MergeAddShouldFail() {
       int noCompBeforeMergeAdd = staticRInt.getNoComponents();
 
-      IntervalInt firstIvInt = staticRInt.first();
+      IntervalIntIF firstIvInt = staticRInt.first();
       IntervalInt ivInt = new IntervalInt(firstIvInt.getLowerBound().getValue() - 10,
             firstIvInt.getLowerBound().getValue() - 2, true, true);
 
@@ -351,8 +353,8 @@ public class RangeIntTest {
    @Test
    public void testContains_BaseIntLiesInRange_ShouldBeTrue() {
 
-      BaseInt bInt1 = new BaseInt(3);
-      BaseInt bInt2 = new BaseInt(12);
+      BaseIntIF bInt1 = new BaseInt(3);
+      BaseIntIF bInt2 = new BaseInt(12);
 
       assertTrue(staticRInt.contains(bInt1));
       assertTrue(staticRInt.contains(bInt2));
@@ -362,7 +364,7 @@ public class RangeIntTest {
    @Test
    public void testContains_BaseIntLiesNotInRange_ShouldBeFalse() {
 
-      BaseInt bInt = new BaseInt(100);
+      BaseIntIF bInt = new BaseInt(100);
 
       assertFalse(staticRInt.contains(bInt));
 
@@ -370,7 +372,7 @@ public class RangeIntTest {
 
    @Test
    public void testGetMinValue() {
-      BaseInt expectedBInt = staticRInt.first().getLowerBound();
+      BaseIntIF expectedBInt = staticRInt.first().getLowerBound();
 
       assertEquals(expectedBInt, staticRInt.getMinValue());
    }
@@ -378,14 +380,14 @@ public class RangeIntTest {
    @Test
    public void testGetMinValue_EmptyRangeInt_ResultShouldBeUndefined() {
       RangeInt emptyRangeInt = new RangeInt(0);
-      BaseInt resultBInt = emptyRangeInt.getMinValue();
+      BaseIntIF resultBInt = emptyRangeInt.getMinValue();
 
       assertFalse(resultBInt.isDefined());
    }
 
    @Test
    public void testGetMaxValue() {
-      BaseInt expectedBInt = staticRInt.last().getUpperBound();
+      BaseIntIF expectedBInt = staticRInt.last().getUpperBound();
 
       assertEquals(expectedBInt, staticRInt.getMaxValue());
    }
@@ -393,7 +395,7 @@ public class RangeIntTest {
    @Test
    public void testGetMaxValue_EmptyRangeInt_ResultShouldBeUndefined() {
       RangeInt emptyRangeInt = new RangeInt(0);
-      BaseInt resultBInt = emptyRangeInt.getMaxValue();
+      BaseIntIF resultBInt = emptyRangeInt.getMaxValue();
 
       assertFalse(resultBInt.isDefined());
    }

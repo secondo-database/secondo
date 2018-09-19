@@ -21,9 +21,11 @@ package mol.datatypes.unit;
 
 import java.util.Objects;
 
-import mol.datatypes.GeneralType;
-import mol.datatypes.interval.Period;
-import mol.datatypes.time.TimeInstant;
+import mol.interfaces.GeneralTypeIF;
+import mol.interfaces.interval.PeriodIF;
+import mol.interfaces.time.TimeInstantIF;
+import mol.interfaces.unit.UnitObjectConstIF;
+import mol.interfaces.unit.UnitObjectIF;
 
 /**
  * This abstract class represents 'UnitObjectConst{@code <T>}' objects and
@@ -34,7 +36,7 @@ import mol.datatypes.time.TimeInstant;
  *
  * @param <T>
  */
-public abstract class UnitObjectConst<T extends GeneralType> extends UnitObject<T> {
+public abstract class UnitObjectConst<T extends GeneralTypeIF> extends UnitObject<T> implements UnitObjectConstIF<T> {
 
    /**
     * Constant value for a constant unitobject
@@ -58,7 +60,7 @@ public abstract class UnitObjectConst<T extends GeneralType> extends UnitObject<
     *           - the constant value for this unit
     * 
     */
-   public UnitObjectConst(final Period period, final T constValue) {
+   public UnitObjectConst(final PeriodIF period, final T constValue) {
       super(period);
       this.constValue = Objects.requireNonNull(constValue, "'constValue' must not be null");
 
@@ -68,12 +70,12 @@ public abstract class UnitObjectConst<T extends GeneralType> extends UnitObject<
    /*
     * (non-Javadoc)
     * 
-    * @see mol.datatypes.unit.UnitObject#getValue(java.time.Instant)
+    * @see mol.datatypes.unit.UnitObjectIF#getValue(java.time.Instant)
     */
    @Override
-   public T getValue(final TimeInstant instant) {
+   public T getValue(final TimeInstantIF instant) {
 
-      Period period = getPeriod();
+      PeriodIF period = getPeriod();
 
       if (isDefined() && period.contains(instant)) {
          return getValue();
@@ -86,16 +88,17 @@ public abstract class UnitObjectConst<T extends GeneralType> extends UnitObject<
    /*
     * (non-Javadoc)
     * 
-    * @see mol.datatypes.unit.UnitObject#equalValue(mol.datatypes.unit.UnitObject)
+    * @see
+    * mol.datatypes.unit.UnitObjectIF#equalValue(mol.datatypes.unit.UnitObjectIF)
     */
    @Override
-   public boolean equalValue(UnitObject<T> otherUnitObject) {
+   public boolean equalValue(UnitObjectIF<T> otherUnitObject) {
 
       if (!(otherUnitObject instanceof UnitObjectConst<?>) || !otherUnitObject.isDefined()) {
          return false;
       }
 
-      UnitObjectConst<?> otherConstUnit = (UnitObjectConst<?>) otherUnitObject;
+      UnitObjectConstIF<?> otherConstUnit = (UnitObjectConstIF<?>) otherUnitObject;
 
       return constValue.equals(otherConstUnit.getValue());
    }
@@ -104,19 +107,18 @@ public abstract class UnitObjectConst<T extends GeneralType> extends UnitObject<
     * (non-Javadoc)
     * 
     * @see
-    * mol.datatypes.unit.UnitObject#finalEqualToInitialValue(mol.datatypes.unit.
-    * UnitObject)
+    * mol.datatypes.unit.UnitObjectIF#finalEqualToInitialValue(mol.datatypes.unit.
+    * UnitObjectIF)
     */
    @Override
-   public boolean finalEqualToInitialValue(UnitObject<T> otherUnitObject) {
+   public boolean finalEqualToInitialValue(UnitObjectIF<T> otherUnitObject) {
       return constValue.equals(otherUnitObject.getInitial());
    }
 
-   /**
-    * Getter for the constant value
-    * 
-    * @return the value
+   /* (non-Javadoc)
+    * @see mol.datatypes.unit.UnitObjectConstIF#getValue()
     */
+   @Override
    public T getValue() {
       return constValue;
    }
@@ -124,7 +126,7 @@ public abstract class UnitObjectConst<T extends GeneralType> extends UnitObject<
    /*
     * (non-Javadoc)
     * 
-    * @see mol.datatypes.unit.UnitObject#getInitial()
+    * @see mol.datatypes.unit.UnitObjectIF#getInitial()
     */
    @Override
    public T getInitial() {
@@ -134,7 +136,7 @@ public abstract class UnitObjectConst<T extends GeneralType> extends UnitObject<
    /*
     * (non-Javadoc)
     * 
-    * @see mol.datatypes.unit.UnitObject#getFinal()
+    * @see mol.datatypes.unit.UnitObjectIF#getFinal()
     */
    @Override
    public T getFinal() {

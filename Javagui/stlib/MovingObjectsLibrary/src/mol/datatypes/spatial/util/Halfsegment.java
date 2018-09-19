@@ -20,6 +20,8 @@
 package mol.datatypes.spatial.util;
 
 import mol.datatypes.spatial.Point;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.spatial.util.HalfsegmentIF;
 
 /**
  * Class to represent 'Halfsegment' objects
@@ -27,7 +29,7 @@ import mol.datatypes.spatial.Point;
  * @author Markus Fuessel
  *
  */
-public class Halfsegment extends Segment implements Comparable<Halfsegment> {
+public class Halfsegment extends Segment implements HalfsegmentIF {
 
    /**
     * Flag to indicate if the left point of this segment is the dominating point
@@ -57,7 +59,7 @@ public class Halfsegment extends Segment implements Comparable<Halfsegment> {
     * @param p1
     *           - second endpoint
     */
-   public Halfsegment(final Point p0, final Point p1, final boolean leftDominating) {
+   public Halfsegment(final PointIF p0, final PointIF p1, final boolean leftDominating) {
       super(p0, p1);
 
       this.leftDominating = leftDominating;
@@ -86,12 +88,13 @@ public class Halfsegment extends Segment implements Comparable<Halfsegment> {
       this(new Point(x0, y0), new Point(x1, y1), leftDominating);
    }
 
-   /**
-    * Get the dominating point
+   /*
+    * (non-Javadoc)
     * 
-    * @return point
+    * @see mol.datatypes.spatial.util.HalfsegmentIF#getDominatingPoint()
     */
-   public Point getDominatingPoint() {
+   @Override
+   public PointIF getDominatingPoint() {
       if (this.leftDominating) {
          return getLeftPoint();
       } else {
@@ -99,12 +102,13 @@ public class Halfsegment extends Segment implements Comparable<Halfsegment> {
       }
    }
 
-   /**
-    * Get the non dominating point
+   /*
+    * (non-Javadoc)
     * 
-    * @return point
+    * @see mol.datatypes.spatial.util.HalfsegmentIF#getNonDominatingPoint()
     */
-   public Point getNonDominatingPoint() {
+   @Override
+   public PointIF getNonDominatingPoint() {
       if (this.leftDominating) {
          return getRightPoint();
       } else {
@@ -112,11 +116,12 @@ public class Halfsegment extends Segment implements Comparable<Halfsegment> {
       }
    }
 
-   /**
-    * Is the left point the dominating point
+   /*
+    * (non-Javadoc)
     * 
-    * @return true - left point is dominating, false - right point is dominating
+    * @see mol.datatypes.spatial.util.HalfsegmentIF#isLeftDominating()
     */
+   @Override
    public boolean isLeftDominating() {
       return leftDominating;
    }
@@ -131,10 +136,10 @@ public class Halfsegment extends Segment implements Comparable<Halfsegment> {
     * @see java.lang.Comparable#compareTo(java.lang.Object)
     */
    @Override
-   public int compareTo(Halfsegment otherHS) {
+   public int compareTo(HalfsegmentIF otherHS) {
 
-      Point thisDP = getDominatingPoint();
-      Point otherDP = otherHS.getDominatingPoint();
+      PointIF thisDP = getDominatingPoint();
+      PointIF otherDP = otherHS.getDominatingPoint();
 
       int compareDP = thisDP.compareTo(otherDP);
 
@@ -154,8 +159,8 @@ public class Halfsegment extends Segment implements Comparable<Halfsegment> {
 
          } else {
 
-            Point thisNDP = getNonDominatingPoint();
-            Point otherNDP = otherHS.getNonDominatingPoint();
+            PointIF thisNDP = getNonDominatingPoint();
+            PointIF otherNDP = otherHS.getNonDominatingPoint();
 
             double thisGradient = (thisDP.getYValue() - thisNDP.getYValue())
                   / (thisDP.getXValue() - thisNDP.getXValue());
@@ -213,13 +218,13 @@ public class Halfsegment extends Segment implements Comparable<Halfsegment> {
          return false;
       }
 
-      if (!(obj instanceof Halfsegment)) {
+      if (!(obj instanceof HalfsegmentIF)) {
          return false;
       }
 
-      Halfsegment otherHS = (Halfsegment) obj;
+      HalfsegmentIF otherHS = (HalfsegmentIF) obj;
 
-      return leftDominating == otherHS.leftDominating;
+      return leftDominating == otherHS.isLeftDominating();
    }
 
 }

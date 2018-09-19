@@ -20,14 +20,14 @@
 package mol.datatypes.base;
 
 import mol.datatypes.GeneralType;
-import mol.datatypes.features.Orderable;
+import mol.interfaces.base.BaseStringIF;
 
 /**
  * Class for representation of the 'String' data type
  * 
  * @author Markus Fuessel
  */
-public class BaseString extends GeneralType implements Orderable<BaseString> {
+public class BaseString extends GeneralType implements BaseStringIF {
 
    /**
     * The string value
@@ -59,7 +59,7 @@ public class BaseString extends GeneralType implements Orderable<BaseString> {
     * @param original
     *           - the 'BaseString' object to copy
     */
-   public BaseString(final BaseString original) {
+   public BaseString(final BaseStringIF original) {
       this.value = original.getValue();
       setDefined(original.isDefined());
    }
@@ -70,7 +70,7 @@ public class BaseString extends GeneralType implements Orderable<BaseString> {
     * @see java.lang.Comparable#compareTo(java.lang.Object)
     */
    @Override
-   public int compareTo(final BaseString otherString) {
+   public int compareTo(final BaseStringIF otherString) {
 
       return value.compareTo(otherString.getValue());
    }
@@ -93,7 +93,7 @@ public class BaseString extends GeneralType implements Orderable<BaseString> {
    @Override
    public boolean equals(final Object obj) {
 
-      if (!(obj instanceof BaseString)) {
+      if (!(obj instanceof BaseStringIF)) {
          return false;
       }
 
@@ -101,7 +101,7 @@ public class BaseString extends GeneralType implements Orderable<BaseString> {
          return true;
       }
 
-      BaseString otherString = (BaseString) obj;
+      BaseStringIF otherString = (BaseStringIF) obj;
 
       return compareTo(otherString) == 0;
    }
@@ -112,7 +112,7 @@ public class BaseString extends GeneralType implements Orderable<BaseString> {
     * @see mol.datatypes.util.Orderable#before(java.lang.Object)
     */
    @Override
-   public boolean before(BaseString otherString) {
+   public boolean before(BaseStringIF otherString) {
 
       return (this.compareTo(otherString) < 0);
    }
@@ -123,7 +123,7 @@ public class BaseString extends GeneralType implements Orderable<BaseString> {
     * @see mol.datatypes.util.Orderable#after(java.lang.Object)
     */
    @Override
-   public boolean after(BaseString otherString) {
+   public boolean after(BaseStringIF otherString) {
 
       return (this.compareTo(otherString) > 0);
    }
@@ -131,22 +131,22 @@ public class BaseString extends GeneralType implements Orderable<BaseString> {
    /**
     * If this BaseString is adjacent to the passed BaseString
     * 
-    * @see mol.datatypes.features.Orderable#adjacent(java.lang.Object)
+    * @see mol.interfaces.features.Orderable#adjacent(java.lang.Object)
     */
    @Override
-   public boolean adjacent(BaseString otherString) {
+   public boolean adjacent(BaseStringIF otherString) {
 
       int thisLength = value.length();
-      int otherLength = otherString.value.length();
+      int otherLength = otherString.getValue().length();
 
       if (thisLength == otherLength) {
 
          String thisSubstring = value.substring(0, thisLength - 1);
-         String otherSubstring = otherString.value.substring(0, otherLength - 1);
+         String otherSubstring = otherString.getValue().substring(0, otherLength - 1);
 
          if (thisSubstring.equals(otherSubstring)) {
             char lastChar1 = value.charAt(thisLength - 1);
-            char lastChar2 = otherString.value.charAt(otherLength - 1);
+            char lastChar2 = otherString.getValue().charAt(otherLength - 1);
 
             return (Math.abs(lastChar1 - lastChar2) == 1);
          }
@@ -156,11 +156,12 @@ public class BaseString extends GeneralType implements Orderable<BaseString> {
       return false;
    }
 
-   /**
-    * Getter for the string value
+   /*
+    * (non-Javadoc)
     * 
-    * @return the value
+    * @see mol.datatypes.base.BaseStringIF#getValue()
     */
+   @Override
    public String getValue() {
       return value;
    }

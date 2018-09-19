@@ -30,6 +30,8 @@ import java.time.format.DateTimeFormatter;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import mol.interfaces.time.TimeInstantIF;
+
 /**
  * Tests for class 'TimeInstant'
  * 
@@ -55,7 +57,7 @@ public class TimeInstantTest {
    public void testTimeInstantCopyConstructor() {
       TimeInstant instant = new TimeInstant("2018-05-01 20:35:30:123");
 
-      TimeInstant copyInstant = new TimeInstant(instant);
+      TimeInstantIF copyInstant = new TimeInstant(instant);
 
       assertEquals(instant, copyInstant);
    }
@@ -92,23 +94,23 @@ public class TimeInstantTest {
 
    @Test
    public void testEquals_EqualTimeInstants_ShouldBeTrue() {
-      TimeInstant t1 = new TimeInstant("2018-05-01 20:35:30:123");
-      TimeInstant t2 = new TimeInstant("2018-05-01 20:35:30:123");
+      TimeInstantIF t1 = new TimeInstant("2018-05-01 20:35:30:123");
+      TimeInstantIF t2 = new TimeInstant("2018-05-01 20:35:30:123");
 
       assertTrue(t1.equals(t2));
    }
 
    @Test
    public void testEquals_NonEqualTimeInstants_ShouldBeFalse() {
-      TimeInstant t1 = new TimeInstant("2018-05-01 20:35:30:123");
-      TimeInstant t2 = new TimeInstant("2018-05-01 20:35:30:124");
+      TimeInstantIF t1 = new TimeInstant("2018-05-01 20:35:30:123");
+      TimeInstantIF t2 = new TimeInstant("2018-05-01 20:35:30:124");
 
       assertFalse(t1.equals(t2));
    }
 
    @Test
    public void testEquals_NullObject_ShouldBeFalse() {
-      TimeInstant t1 = new TimeInstant("2018-05-01 20:35:30:123");
+      TimeInstantIF t1 = new TimeInstant("2018-05-01 20:35:30:123");
       Object obj = null;
 
       assertFalse(t1.equals(obj));
@@ -116,7 +118,7 @@ public class TimeInstantTest {
 
    @Test
    public void testEquals_SameObject_ShouldBeTrue() {
-      TimeInstant t1 = new TimeInstant("2018-05-01 20:35:30:123");
+      TimeInstantIF t1 = new TimeInstant("2018-05-01 20:35:30:123");
       Object obj = t1;
 
       assertTrue(t1.equals(obj));
@@ -124,7 +126,7 @@ public class TimeInstantTest {
 
    @Test
    public void testPlusMillis_AddMillisecondToTimeInstant() {
-      TimeInstant t1 = new TimeInstant("2018-05-01 20:35:30:123").plusMillis(1);
+      TimeInstantIF t1 = new TimeInstant("2018-05-01 20:35:30:123").plusMillis(1);
       TimeInstant t2 = new TimeInstant("2018-05-01 20:35:30:124");
 
       assertTrue(t1.equals(t2));
@@ -134,7 +136,7 @@ public class TimeInstantTest {
    @Test
    public void testMinusMillis_SubtractMillisecondFromTimeInstant() {
       TimeInstant t1 = new TimeInstant("2018-05-01 20:35:30:123");
-      TimeInstant t2 = new TimeInstant("2018-05-01 20:35:30:124").minusMillis(1);
+      TimeInstantIF t2 = new TimeInstant("2018-05-01 20:35:30:124").minusMillis(1);
 
       assertTrue(t1.equals(t2));
       assertTrue(t1.compareTo(t1.minusMillis(1)) > 0);
@@ -193,7 +195,7 @@ public class TimeInstantTest {
    @Test
    public void testAdjacent_DifferentAndEqualInstants_ShouldBeAlwaysFalse() {
       TimeInstant t1 = new TimeInstant("2018-05-01 20:35:30:124");
-      TimeInstant t2 = new TimeInstant("2018-05-01 20:35:30:124");
+      TimeInstantIF t2 = new TimeInstant("2018-05-01 20:35:30:124");
 
       assertFalse(t1.adjacent(t2));
       assertFalse(t1.adjacent(t1.plusNanos(1)));
@@ -203,7 +205,7 @@ public class TimeInstantTest {
 
    @Test
    public void testToMilliseconds() {
-      TimeInstant instant = new TimeInstant("2018-05-01 20:35:30:124");
+      TimeInstantIF instant = new TimeInstant("2018-05-01 20:35:30:124");
       long expectedMillis = Duration.between(Instant.EPOCH, instant.getValue()).toMillis();
 
       assertEquals(expectedMillis, instant.toMilliseconds());

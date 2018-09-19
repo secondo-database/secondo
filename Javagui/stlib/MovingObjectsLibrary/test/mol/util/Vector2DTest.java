@@ -25,6 +25,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import mol.datatypes.spatial.Point;
+import mol.interfaces.spatial.PointIF;
 
 /**
  * Tests for the 'UnitRegionConstTest' class
@@ -100,7 +101,7 @@ public class Vector2DTest {
 
    @Test
    public void testToPoint() {
-      Point expectedPoint = new Point(4, 2);
+      PointIF expectedPoint = new Point(4, 2);
 
       assertEquals(expectedPoint, vectorX4Y2.toPoint());
    }

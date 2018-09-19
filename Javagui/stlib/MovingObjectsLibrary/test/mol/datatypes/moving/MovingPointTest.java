@@ -35,11 +35,13 @@ import mol.datatypes.interval.Period;
 import mol.datatypes.intime.Intime;
 import mol.datatypes.spatial.Line;
 import mol.datatypes.spatial.Point;
-import mol.datatypes.spatial.util.Rectangle;
 import mol.datatypes.time.TimeInstant;
-import mol.datatypes.unit.spatial.UnitPoint;
 import mol.datatypes.unit.spatial.UnitPointConst;
 import mol.datatypes.unit.spatial.UnitPointLinear;
+import mol.interfaces.intime.IntimeIF;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.spatial.util.RectangleIF;
+import mol.interfaces.unit.spatial.UnitPointIF;
 
 /**
  * Tests for the 'MovingPoint' class
@@ -80,12 +82,12 @@ public class MovingPointTest {
 
    @Test
    public void testMovingPoint_WithListIntimePoints() {
-      List<Intime<Point>> ipoints = new ArrayList<>();
+      List<Intime<PointIF>> ipoints = new ArrayList<>();
 
-      ipoints.add(new Intime<Point>(new TimeInstant("2018-01-01 00:00:00:000"), new Point(0.0d, 0.0d)));
-      ipoints.add(new Intime<Point>(new TimeInstant("2018-01-10 00:00:00:000"), new Point(10.0d, 10.0d)));
-      ipoints.add(new Intime<Point>(new TimeInstant("2018-01-20 00:00:00:000"), new Point(10.0d, 20.0d)));
-      ipoints.add(new Intime<Point>(new TimeInstant("2018-01-30 00:00:00:000"), new Point(20.0d, 5.0d)));
+      ipoints.add(new Intime<PointIF>(new TimeInstant("2018-01-01 00:00:00:000"), new Point(0.0d, 0.0d)));
+      ipoints.add(new Intime<PointIF>(new TimeInstant("2018-01-10 00:00:00:000"), new Point(10.0d, 10.0d)));
+      ipoints.add(new Intime<PointIF>(new TimeInstant("2018-01-20 00:00:00:000"), new Point(10.0d, 20.0d)));
+      ipoints.add(new Intime<PointIF>(new TimeInstant("2018-01-30 00:00:00:000"), new Point(20.0d, 5.0d)));
 
       MovingPoint mpointIP = new MovingPoint(ipoints);
 
@@ -107,7 +109,7 @@ public class MovingPointTest {
    public void testAdd_RightAdjacentUnitPoint_SuccessfulAppend() {
       int sizeBefore = mpointContinuos.getNoUnits();
 
-      UnitPoint upoint = new UnitPointLinear(
+      UnitPointIF upoint = new UnitPointLinear(
             new Period("2018-01-30 00:00:00:000", "2018-02-20 00:00:00:000", true, false), new Point(20.0d, 5.0d),
             new Point(20.0d, 20.0d));
 
@@ -122,7 +124,7 @@ public class MovingPointTest {
    public void testAdd_UnitPointWithLaterPeriod_SuccessfulAppend() {
       int sizeBefore = mpointContinuos.getNoUnits();
 
-      UnitPoint upoint = new UnitPointLinear(
+      UnitPointIF upoint = new UnitPointLinear(
             new Period("2018-02-15 00:00:00:000", "2018-02-20 00:00:00:000", true, false), new Point(20.0d, 5.0d),
             new Point(20.0d, 20.0d));
 
@@ -137,7 +139,7 @@ public class MovingPointTest {
    public void testAdd_UnitPoint_FailedAppend() {
       int sizeBefore = mpointContinuos.getNoUnits();
 
-      UnitPoint upoint = new UnitPointLinear(
+      UnitPointIF upoint = new UnitPointLinear(
             new Period("2018-01-15 00:00:00:000", "2018-02-20 00:00:00:000", true, false), new Point(20.0d, 5.0d),
             new Point(20.0d, 20.0d));
 
@@ -171,7 +173,7 @@ public class MovingPointTest {
 
       int sizeAfter = mpointContinuos.getNoUnits();
 
-      UnitPoint upoint = mpointContinuos.getUnit(sizeAfter - 1);
+      UnitPointIF upoint = mpointContinuos.getUnit(sizeAfter - 1);
 
       assertEquals(sizeBefore + 1, sizeAfter);
       assertTrue(upoint instanceof UnitPointConst);
@@ -181,7 +183,7 @@ public class MovingPointTest {
    public void testAdd_ConstantPointsWithAdjacentTimeperiod_SuccessfulWithoutIncreaseNumberOfUnits() {
       int sizeBefore = mpointDiscrete.getNoUnits();
 
-      UnitPoint lastUP = mpointDiscrete.getUnit(sizeBefore - 1);
+      UnitPointIF lastUP = mpointDiscrete.getUnit(sizeBefore - 1);
 
       boolean successful = mpointDiscrete.add(
             new Period("2018-01-30 00:00:00:000", "2018-02-20 00:00:00:000", true, false), lastUP.getFinal(),
@@ -223,16 +225,16 @@ public class MovingPointTest {
 
    @Test
    public void testAdd_UnitWithEqualFinalInitialValuePeriodIntersectOnBorder_Successful() {
-      List<Intime<Point>> ipoints = new ArrayList<>();
+      List<Intime<PointIF>> ipoints = new ArrayList<>();
 
-      ipoints.add(new Intime<Point>(new TimeInstant("2018-01-01 00:00:00:000"), new Point(0.0d, 0.0d)));
-      ipoints.add(new Intime<Point>(new TimeInstant("2018-01-10 00:00:00:000"), new Point(10.0d, 10.0d)));
-      ipoints.add(new Intime<Point>(new TimeInstant("2018-01-20 00:00:00:000"), new Point(10.0d, 20.0d)));
-      ipoints.add(new Intime<Point>(new TimeInstant("2018-01-30 00:00:00:000"), new Point(20.0d, 5.0d)));
+      ipoints.add(new Intime<PointIF>(new TimeInstant("2018-01-01 00:00:00:000"), new Point(0.0d, 0.0d)));
+      ipoints.add(new Intime<PointIF>(new TimeInstant("2018-01-10 00:00:00:000"), new Point(10.0d, 10.0d)));
+      ipoints.add(new Intime<PointIF>(new TimeInstant("2018-01-20 00:00:00:000"), new Point(10.0d, 20.0d)));
+      ipoints.add(new Intime<PointIF>(new TimeInstant("2018-01-30 00:00:00:000"), new Point(20.0d, 5.0d)));
 
       MovingPoint mpointIP = new MovingPoint(ipoints);
 
-      UnitPoint oldLastUnit = mpointIP.getUnit(mpointIP.getNoUnits() - 1);
+      UnitPointIF oldLastUnit = mpointIP.getUnit(mpointIP.getNoUnits() - 1);
 
       boolean isClosedBeforeAdd = oldLastUnit.getPeriod().isRightClosed();
 
@@ -250,16 +252,16 @@ public class MovingPointTest {
 
    @Test
    public void testAdd_UnitWithNonEqualFinalInitialValuePeriodIntersectOnBorder_Fail() {
-      List<Intime<Point>> ipoints = new ArrayList<>();
+      List<Intime<PointIF>> ipoints = new ArrayList<>();
 
-      ipoints.add(new Intime<Point>(new TimeInstant("2018-01-01 00:00:00:000"), new Point(0.0d, 0.0d)));
-      ipoints.add(new Intime<Point>(new TimeInstant("2018-01-10 00:00:00:000"), new Point(10.0d, 10.0d)));
-      ipoints.add(new Intime<Point>(new TimeInstant("2018-01-20 00:00:00:000"), new Point(10.0d, 20.0d)));
-      ipoints.add(new Intime<Point>(new TimeInstant("2018-01-30 00:00:00:000"), new Point(20.0d, 5.0d)));
+      ipoints.add(new Intime<PointIF>(new TimeInstant("2018-01-01 00:00:00:000"), new Point(0.0d, 0.0d)));
+      ipoints.add(new Intime<PointIF>(new TimeInstant("2018-01-10 00:00:00:000"), new Point(10.0d, 10.0d)));
+      ipoints.add(new Intime<PointIF>(new TimeInstant("2018-01-20 00:00:00:000"), new Point(10.0d, 20.0d)));
+      ipoints.add(new Intime<PointIF>(new TimeInstant("2018-01-30 00:00:00:000"), new Point(20.0d, 5.0d)));
 
       MovingPoint mpointIP = new MovingPoint(ipoints);
 
-      UnitPoint oldLastUnit = mpointIP.getUnit(mpointIP.getNoUnits() - 1);
+      UnitPointIF oldLastUnit = mpointIP.getUnit(mpointIP.getNoUnits() - 1);
 
       boolean isClosedBeforeAdd = oldLastUnit.getPeriod().isRightClosed();
 
@@ -301,8 +303,8 @@ public class MovingPointTest {
 
       Point p1 = new Point(20.0d, 5.0d);
       Point p2 = new Point(20.0d, 20.0d);
-      Rectangle objPBBBefore = mpointContinuos.getProjectionBoundingBox();
-      Rectangle expectedObjPBBAfter = objPBBBefore.merge(p1.getBoundingBox()).merge(p2.getBoundingBox());
+      RectangleIF objPBBBefore = mpointContinuos.getProjectionBoundingBox();
+      RectangleIF expectedObjPBBAfter = objPBBBefore.merge(p1.getBoundingBox()).merge(p2.getBoundingBox());
 
       mpointContinuos.add(new Period("2018-01-30 00:00:00:000", "2018-02-20 00:00:00:000", true, false), p1, p2);
 
@@ -319,7 +321,7 @@ public class MovingPointTest {
    @Test
    public void testAtInstant_ValidInstant() {
 
-      Intime<Point> ipoint = mpointContinuos.atInstant(new TimeInstant("2018-01-20 00:00:00:000"));
+      IntimeIF<PointIF> ipoint = mpointContinuos.atInstant(new TimeInstant("2018-01-20 00:00:00:000"));
 
       assertEquals(new Point(10.0, 20.0), ipoint.getValue());
    }
@@ -327,21 +329,21 @@ public class MovingPointTest {
    @Test
    public void testAtInstant_UndefinedInstant_ShouldReturnUndefinedIntimePoint() {
 
-      Intime<Point> ipoint = mpointContinuos.atInstant(new TimeInstant());
+      IntimeIF<PointIF> ipoint = mpointContinuos.atInstant(new TimeInstant());
 
       assertFalse(ipoint.isDefined());
    }
 
    @Test
    public void testGetValue_ValidInstant_ShouldReturnValidPoint() {
-      Point point = mpointContinuos.getValue(new TimeInstant("2018-01-20 00:00:00:000"));
+      PointIF point = mpointContinuos.getValue(new TimeInstant("2018-01-20 00:00:00:000"));
 
       assertEquals(new Point(10.0, 20.0), point);
    }
 
    @Test
    public void testGetValue_UndefinedInstant_ShouldReturnUndefinedPoint() {
-      Point point = mpointContinuos.getValue(new TimeInstant());
+      PointIF point = mpointContinuos.getValue(new TimeInstant());
 
       assertFalse(point.isDefined());
    }
@@ -349,7 +351,7 @@ public class MovingPointTest {
    @Test
    public void testGetUnit_ValidPosition_ShouldReturnDefinedUnit() {
 
-      UnitPoint upoint = mpointContinuos.getUnit(mpointContinuos.getNoUnits() - 1);
+      UnitPointIF upoint = mpointContinuos.getUnit(mpointContinuos.getNoUnits() - 1);
 
       assertTrue(upoint.isDefined());
 
@@ -358,7 +360,7 @@ public class MovingPointTest {
    @Test
    public void testGetUnit_InvalidPosition_ShouldReturnUndefinedUnit() {
 
-      UnitPoint upoint = mpointContinuos.getUnit(mpointContinuos.getNoUnits());
+      UnitPointIF upoint = mpointContinuos.getUnit(mpointContinuos.getNoUnits());
 
       assertFalse(upoint.isDefined());
 

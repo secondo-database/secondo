@@ -21,9 +21,11 @@ package mol.operations.predicates;
 import java.util.List;
 
 import mol.datatypes.spatial.Point;
-import mol.datatypes.spatial.Region;
-import mol.datatypes.spatial.util.Halfsegment;
 import mol.datatypes.spatial.util.Segment;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.spatial.RegionIF;
+import mol.interfaces.spatial.util.HalfsegmentIF;
+import mol.interfaces.spatial.util.SegmentIF;
 
 /**
  * Class with Inside operations for non temporal types
@@ -41,7 +43,7 @@ public class Inside {
     * 
     * @return true if the 'Point' is inside the 'Region', false otherwise
     */
-   public static boolean inside(final Point point, final Region region) {
+   public static boolean inside(final PointIF point, final RegionIF region) {
 
       if (!point.isDefined() || !region.isDefined()) {
          return false;
@@ -49,13 +51,13 @@ public class Inside {
 
       int intersections = 0;
 
-      Segment plumbline = new Segment(point, new Point(point.getXValue(), Double.MAX_VALUE));
+      SegmentIF plumbline = new Segment(point, new Point(point.getXValue(), Double.MAX_VALUE));
 
-      List<Halfsegment> halfsegments = region.getHalfsegments();
+      List<HalfsegmentIF> halfsegments = region.getHalfsegments();
 
       halfsegments.sort(null);
 
-      for (Halfsegment hs : halfsegments) {
+      for (HalfsegmentIF hs : halfsegments) {
          if (hs.isLeftDominating()) {
 
             if (hs.getLeftPoint().getXValue() > point.getXValue()) {

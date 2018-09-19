@@ -16,36 +16,19 @@
 //You should have received a copy of the GNU General Public License
 //along with SECONDO; if not, write to the Free Software
 //Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-package mol.datatypes.unit.spatial;
+package mol.interfaces.unit.spatial;
 
-import mol.datatypes.interval.Period;
-import mol.datatypes.spatial.Point;
-import mol.datatypes.unit.UnitObject;
+import mol.interfaces.features.MovableSpatial;
+import mol.interfaces.interval.PeriodIF;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.unit.UnitObjectIF;
 
 /**
- * Abstract base class for 'UnitPoint' objects
+ * Interface that should be provided by UnitPointIF objects
  * 
  * @author Markus Fuessel
  */
-public abstract class UnitPoint extends UnitSpatial<Point> {
-
-   /**
-    * Constructor for an undefined 'UnitPoint' object<br>
-    * Required for subclasses
-    */
-   protected UnitPoint() {
-   }
-
-   /**
-    * Base constructor for a 'UnitPoint' object<br>
-    * Required for subclasses
-    * 
-    * @param period,
-    *           the valid time period of this unit
-    */
-   protected UnitPoint(Period period) {
-      super(period);
-   }
+public interface UnitPointIF extends UnitObjectIF<PointIF>, MovableSpatial {
 
    /*
     * (non-Javadoc)
@@ -54,17 +37,13 @@ public abstract class UnitPoint extends UnitSpatial<Point> {
     * mol.datatypes.unit.UnitObject#finalEqualToInitialValue(mol.datatypes.unit.
     * UnitObject)
     */
-   @Override
-   public boolean finalEqualToInitialValue(UnitObject<Point> otherUnitObject) {
-      return getFinal().almostEqual(otherUnitObject.getInitial());
-   }
+   boolean finalEqualToInitialValue(UnitObjectIF<PointIF> otherUnitObject);
 
    /*
     * (non-Javadoc)
     * 
     * @see mol.datatypes.unit.UnitObject#atPeriod(mol.datatypes.interval.Period)
     */
-   @Override
-   public abstract UnitPoint atPeriod(Period period);
+   UnitPointIF atPeriod(PeriodIF period);
 
 }

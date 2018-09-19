@@ -22,6 +22,9 @@ package mol.datatypes.interval;
 import java.time.temporal.ChronoUnit;
 
 import mol.datatypes.time.TimeInstant;
+import mol.interfaces.interval.IntervalIF;
+import mol.interfaces.interval.PeriodIF;
+import mol.interfaces.time.TimeInstantIF;
 
 /**
  * Concrete class to represent 'Period' objects, an 'Interval' object with
@@ -30,7 +33,7 @@ import mol.datatypes.time.TimeInstant;
  * @author Markus Fuessel
  *
  */
-public class Period extends Interval<TimeInstant> {
+public class Period extends Interval<TimeInstantIF> implements PeriodIF {
 
    /**
     * A period with maximum range, from '-1000000000-01-01T00:00Z' to
@@ -39,11 +42,13 @@ public class Period extends Interval<TimeInstant> {
    public static final Period MAX = new Period(TimeInstant.MIN, TimeInstant.MAX, true, true);
 
    /**
-    * Calculate the amount of milliseconds between two passed 'TimeInstant' objects
+    * Calculate the amount of milliseconds between two passed 'TimeInstantIF'
+    * objects
     * 
     * @return amount of milliseconds
     */
-   public static long getDurationInMilliseconds(final TimeInstant startTimeInstant, final TimeInstant endTimeInstant) {
+   public static long getDurationInMilliseconds(final TimeInstantIF startTimeInstant,
+                                                final TimeInstantIF endTimeInstant) {
 
       return ChronoUnit.MILLIS.between(startTimeInstant.getValue(), endTimeInstant.getValue());
    }
@@ -66,7 +71,7 @@ public class Period extends Interval<TimeInstant> {
     * @param rightClosed
     *           boolean
     */
-   public Period(final TimeInstant lowerBound, final TimeInstant upperBound, final boolean leftClosed,
+   public Period(final TimeInstantIF lowerBound, final TimeInstantIF upperBound, final boolean leftClosed,
                  final boolean rightClosed) {
       super(lowerBound, upperBound, leftClosed, rightClosed);
    }
@@ -98,7 +103,7 @@ public class Period extends Interval<TimeInstant> {
     * @param original
     *           - the original 'Period' object to copy
     */
-   private Period(final Period original) {
+   private Period(final PeriodIF original) {
       this(original.getLowerBound(), original.getUpperBound(), original.isLeftClosed(), original.isRightClosed());
       setDefined(original.isDefined());
    }
@@ -109,16 +114,16 @@ public class Period extends Interval<TimeInstant> {
     * @see mol.datatypes.interval.Interval#copy()
     */
    @Override
-   public Period copy() {
+   public PeriodIF copy() {
       return new Period(this);
    }
 
-   /**
-    * Return the amount of milliseconds of this 'Period' object between lower bound
-    * and upper bound
+   /*
+    * (non-Javadoc)
     * 
-    * @return amount of milliseconds
+    * @see mol.datatypes.interval.PeriodIF#getDurationInMilliseconds()
     */
+   @Override
    public long getDurationInMilliseconds() {
       return getDurationInMilliseconds(getLowerBound(), getUpperBound());
    }
@@ -126,44 +131,44 @@ public class Period extends Interval<TimeInstant> {
    /*
     * (non-Javadoc)
     * 
-    * @see mol.datatypes.interval.Interval#merge(mol.datatypes.interval.Interval)
+    * @see mol.datatypes.interval.PeriodIF#merge(mol.datatypes.interval.IntervalIF)
     */
    @Override
-   public Period merge(Interval<TimeInstant> otherInterval) {
-      return (Period) super.merge(otherInterval);
+   public PeriodIF merge(IntervalIF<TimeInstantIF> otherInterval) {
+      return (PeriodIF) super.merge(otherInterval);
    }
 
    /*
     * (non-Javadoc)
     * 
     * @see
-    * mol.datatypes.interval.Interval#mergeLeft(mol.datatypes.interval.Interval)
+    * mol.datatypes.interval.PeriodIF#mergeLeft(mol.datatypes.interval.IntervalIF)
     */
    @Override
-   public Period mergeLeft(Interval<TimeInstant> otherInterval) {
-      return (Period) super.mergeLeft(otherInterval);
+   public PeriodIF mergeLeft(IntervalIF<TimeInstantIF> otherInterval) {
+      return (PeriodIF) super.mergeLeft(otherInterval);
    }
 
    /*
     * (non-Javadoc)
     * 
     * @see
-    * mol.datatypes.interval.Interval#mergeRight(mol.datatypes.interval.Interval)
+    * mol.datatypes.interval.PeriodIF#mergeRight(mol.datatypes.interval.IntervalIF)
     */
    @Override
-   public Period mergeRight(Interval<TimeInstant> otherInterval) {
-      return (Period) super.mergeRight(otherInterval);
+   public PeriodIF mergeRight(IntervalIF<TimeInstantIF> otherInterval) {
+      return (PeriodIF) super.mergeRight(otherInterval);
    }
 
    /*
     * (non-Javadoc)
     * 
-    * @see
-    * mol.datatypes.interval.Interval#intersection(mol.datatypes.interval.Interval)
+    * @see mol.datatypes.interval.PeriodIF#intersection(mol.datatypes.interval.
+    * IntervalIF)
     */
    @Override
-   public Period intersection(Interval<TimeInstant> otherInterval) {
-      return (Period) super.intersection(otherInterval);
+   public PeriodIF intersection(IntervalIF<TimeInstantIF> otherInterval) {
+      return (PeriodIF) super.intersection(otherInterval);
    }
 
 }

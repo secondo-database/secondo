@@ -20,6 +20,7 @@
 package mol.util;
 
 import mol.datatypes.spatial.Point;
+import mol.interfaces.spatial.PointIF;
 
 /**
  * Class to represent 'Vector2D' objects.<br>
@@ -113,7 +114,7 @@ public class Vector2D {
     * 
     * @return new 'Point'
     */
-   public Point toPoint() {
+   public PointIF toPoint() {
       return new Point(x, y);
    }
 

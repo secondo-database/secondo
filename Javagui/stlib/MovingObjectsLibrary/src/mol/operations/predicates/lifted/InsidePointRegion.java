@@ -22,21 +22,27 @@ package mol.operations.predicates.lifted;
 import java.util.ArrayList;
 import java.util.List;
 
-import mol.datatypes.GeneralType;
-import mol.datatypes.features.Spatial;
 import mol.datatypes.interval.Period;
 import mol.datatypes.intime.Intime;
 import mol.datatypes.moving.MovingBool;
 import mol.datatypes.moving.MovingPoint;
 import mol.datatypes.moving.MovingRegion;
 import mol.datatypes.spatial.Point;
-import mol.datatypes.spatial.Region;
-import mol.datatypes.spatial.util.Rectangle;
-import mol.datatypes.time.TimeInstant;
-import mol.datatypes.unit.UnitObject;
-import mol.datatypes.unit.spatial.UnitPoint;
-import mol.datatypes.unit.spatial.UnitRegion;
-import mol.datatypes.unit.spatial.util.MovableSegment;
+import mol.datatypes.unit.spatial.util.MovableSegmentIF;
+import mol.interfaces.GeneralTypeIF;
+import mol.interfaces.features.MovableSpatial;
+import mol.interfaces.interval.PeriodIF;
+import mol.interfaces.intime.IntimeIF;
+import mol.interfaces.moving.MovingBoolIF;
+import mol.interfaces.moving.MovingPointIF;
+import mol.interfaces.moving.MovingRegionIF;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.spatial.RegionIF;
+import mol.interfaces.spatial.util.RectangleIF;
+import mol.interfaces.time.TimeInstantIF;
+import mol.interfaces.unit.UnitObjectIF;
+import mol.interfaces.unit.spatial.UnitPointIF;
+import mol.interfaces.unit.spatial.UnitRegionIF;
 import mol.operations.predicates.Inside;
 import mol.util.CrossPointScalars;
 import mol.util.GeneralHelper;
@@ -59,7 +65,7 @@ public class InsidePointRegion extends BaseAlgorithm {
     * @param mregion
     *           - the 'MovingRegion'
     */
-   public InsidePointRegion(final Point point, final MovingRegion mregion) {
+   public InsidePointRegion(final PointIF point, final MovingRegionIF mregion) {
 
       setMObject1(new MovingPoint(point));
       setMObject2(mregion);
@@ -74,7 +80,7 @@ public class InsidePointRegion extends BaseAlgorithm {
     * @param region
     *           - the 'Region'
     */
-   public InsidePointRegion(final MovingPoint mpoint, final Region region) {
+   public InsidePointRegion(final MovingPointIF mpoint, final RegionIF region) {
 
       setMObject1(mpoint);
       setMObject2(new MovingRegion(region));
@@ -89,7 +95,7 @@ public class InsidePointRegion extends BaseAlgorithm {
     * @param mregion
     *           - the 'MovingRegion'
     */
-   public InsidePointRegion(final MovingPoint mpoint, final MovingRegion mregion) {
+   public InsidePointRegion(final MovingPointIF mpoint, final MovingRegionIF mregion) {
 
       setMObject1(mpoint);
       setMObject2(mregion);
@@ -100,14 +106,13 @@ public class InsidePointRegion extends BaseAlgorithm {
     * (non-Javadoc)
     * 
     * @see
-    * mol.operations.predicates.lifted.BaseAlgorithm#additionalChecksSuccessful(
-    * )
+    * mol.operations.predicates.lifted.BaseAlgorithm#additionalChecksSuccessful( )
     */
    @Override
    public boolean additionalChecksSuccessful() {
 
-      Rectangle bBoxObject1 = ((Spatial) getMobject1()).getBoundingBox();
-      Rectangle bBoxObject2 = ((Spatial) getMobject2()).getBoundingBox();
+      RectangleIF bBoxObject1 = ((MovableSpatial) getMobject1()).getProjectionBoundingBox();
+      RectangleIF bBoxObject2 = ((MovableSpatial) getMobject2()).getProjectionBoundingBox();
 
       return bBoxObject1.intersects(bBoxObject2);
    }
@@ -120,31 +125,30 @@ public class InsidePointRegion extends BaseAlgorithm {
     * unit.UnitObject, mol.datatypes.unit.UnitObject)
     */
    @Override
-   public MovingBool getUnitResult(final UnitObject<? extends GeneralType> uobject1,
-                                  final UnitObject<? extends GeneralType> uobject2) {
-      // TODO testen
+   public MovingBoolIF getUnitResult(final UnitObjectIF<? extends GeneralTypeIF> uobject1,
+                                     final UnitObjectIF<? extends GeneralTypeIF> uobject2) {
 
-      UnitPoint upoint = (UnitPoint) uobject1;
-      UnitRegion uregion = (UnitRegion) uobject2;
+      UnitPointIF upoint = (UnitPointIF) uobject1;
+      UnitRegionIF uregion = (UnitRegionIF) uobject2;
 
-      MovingBool mbool = new MovingBool(0);
+      MovingBoolIF mbool = new MovingBool(0);
 
-      Period period = upoint.getPeriod().intersection(uregion.getPeriod());
+      PeriodIF period = upoint.getPeriod().intersection(uregion.getPeriod());
 
-      UnitPoint newUPoint = upoint.atPeriod(period);
-      UnitRegion newURegion = uregion.atPeriod(period);
+      UnitPointIF newUPoint = upoint.atPeriod(period);
+      UnitRegionIF newURegion = uregion.atPeriod(period);
 
       if (newUPoint.isDefined() && newURegion.isDefined()
             && newUPoint.getProjectionBoundingBox().intersects(newURegion.getProjectionBoundingBox())) {
 
          boolean pointCurrentlyInside = Inside.inside(newUPoint.getInitial(), newURegion.getInitial());
 
-         TimeInstant lastInstant = period.getLowerBound();
+         TimeInstantIF lastInstant = period.getLowerBound();
          boolean lastLeftClosed = period.isLeftClosed();
 
-         List<Intime<Point>> intersectionPoints = intersectionPoints(newUPoint, newURegion);
+         List<Intime<PointIF>> intersectionPoints = intersectionPoints(newUPoint, newURegion);
 
-         for (Intime<Point> ipoint : intersectionPoints) {
+         for (IntimeIF<PointIF> ipoint : intersectionPoints) {
             Period boolPeriod = new Period(lastInstant, ipoint.getInstant(), lastLeftClosed, false);
 
             mbool.add(boolPeriod, pointCurrentlyInside);
@@ -172,13 +176,13 @@ public class InsidePointRegion extends BaseAlgorithm {
     * @param uregion
     * @return a sorted list of {@code Intime<Point>}
     */
-   public static List<Intime<Point>> intersectionPoints(final UnitPoint upoint, final UnitRegion uregion) {
+   public static List<Intime<PointIF>> intersectionPoints(final UnitPointIF upoint, final UnitRegionIF uregion) {
 
-      List<Intime<Point>> intersectionPoints = new ArrayList<>();
+      List<Intime<PointIF>> intersectionPoints = new ArrayList<>();
 
-      for (MovableSegment msegment : uregion.getMovingSegments()) {
+      for (MovableSegmentIF msegment : uregion.getMovingSegments()) {
          if (upoint.getProjectionBoundingBox().intersects(msegment.getProjectionBoundingBox())) {
-            Intime<Point> ipoint = intersectionPoint(upoint, msegment);
+            Intime<PointIF> ipoint = intersectionPoint(upoint, msegment);
 
             if (ipoint.isDefined()) {
                intersectionPoints.add(ipoint);
@@ -204,18 +208,18 @@ public class InsidePointRegion extends BaseAlgorithm {
     *           - a 'MovableSegment'
     * @return a {@code Intime<Point>}
     */
-   public static Intime<Point> intersectionPoint(final UnitPoint upoint, final MovableSegment msegment) {
+   public static Intime<PointIF> intersectionPoint(final UnitPointIF upoint, final MovableSegmentIF msegment) {
 
-      Period timePeriod = upoint.getPeriod();
+      PeriodIF timePeriod = upoint.getPeriod();
 
-      Point initialUPoint = upoint.getInitial();
-      Point finalUPoint = upoint.getFinal();
+      PointIF initialUPoint = upoint.getInitial();
+      PointIF finalUPoint = upoint.getFinal();
 
-      Point msInitialStartPoint = msegment.getInitialStartPoint();
-      Point msInitialEndPoint = msegment.getInitialEndPoint();
+      PointIF msInitialStartPoint = msegment.getInitialStartPoint();
+      PointIF msInitialEndPoint = msegment.getInitialEndPoint();
 
-      Point msFinalStartPoint = msegment.getFinalStartPoint();
-      Point msFinalEndPoint = msegment.getFinalEndPoint();
+      PointIF msFinalStartPoint = msegment.getFinalStartPoint();
+      PointIF msFinalEndPoint = msegment.getFinalEndPoint();
 
       List<CrossPointScalars> timePositions = GeneralHelper.intersection(new Point(0, 0),
             msInitialStartPoint.minus(initialUPoint).toPoint(), msFinalStartPoint.minus(finalUPoint).toPoint(),
@@ -225,10 +229,10 @@ public class InsidePointRegion extends BaseAlgorithm {
          double t = timePositions.get(0).timeScalar;
          Vector2D upDelta = finalUPoint.minus(initialUPoint);
 
-         Point crossPoint = initialUPoint.plus(upDelta.scale(t));
+         PointIF crossPoint = initialUPoint.plus(upDelta.scale(t));
 
          long deltaUPeriod = timePeriod.getDurationInMilliseconds();
-         TimeInstant initInstant = timePeriod.getLowerBound();
+         TimeInstantIF initInstant = timePeriod.getLowerBound();
 
          return new Intime<>(initInstant.plusMillis((long) (deltaUPeriod * t)), crossPoint);
       }

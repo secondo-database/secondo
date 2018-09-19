@@ -29,6 +29,9 @@ import java.util.List;
 import org.junit.Test;
 
 import mol.datatypes.spatial.Point;
+import mol.interfaces.spatial.PointIF;
+import mol.interfaces.spatial.util.FaceIF;
+import mol.interfaces.spatial.util.RectangleIF;
 
 /**
  * Tests for class 'Face'
@@ -39,7 +42,7 @@ public class FaceTest {
 
    @Test
    public void testFace_PassDefinedCycle_FaceShouldBeDefined() {
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       points.add(new Point(0.0d, 0.0d));
       points.add(new Point(5.0d, 5.0d));
@@ -55,7 +58,7 @@ public class FaceTest {
 
    @Test
    public void testFace_PassListOfPoints_FaceShouldBeDefined() {
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       points.add(new Point(0.0d, 0.0d));
       points.add(new Point(5.0d, 5.0d));
@@ -70,7 +73,7 @@ public class FaceTest {
 
    @Test
    public void testFace_PassEmptyListOfPoints_FaceShouldBeUndefined() {
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       Face face = new Face(points);
 
@@ -79,15 +82,15 @@ public class FaceTest {
 
    @Test
    public void testAdd_DefinedHoleCycle_ShouldBeAdded() {
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       points.add(new Point(0.0d, 0.0d));
       points.add(new Point(5.0d, 5.0d));
       points.add(new Point(10.0d, 0.0d));
 
-      Face face = new Face(points);
+      FaceIF face = new Face(points);
 
-      List<Point> holePoints = new ArrayList<>();
+      List<PointIF> holePoints = new ArrayList<>();
 
       holePoints.add(new Point(2.0d, 2.0d));
       holePoints.add(new Point(3.0d, 3.0d));
@@ -102,15 +105,15 @@ public class FaceTest {
 
    @Test
    public void testAdd_UndefinedHoleCycle_ShouldNotBeAdded() {
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       points.add(new Point(0.0d, 0.0d));
       points.add(new Point(5.0d, 5.0d));
       points.add(new Point(10.0d, 0.0d));
 
-      Face face = new Face(points);
+      FaceIF face = new Face(points);
 
-      List<Point> holePoints = new ArrayList<>();
+      List<PointIF> holePoints = new ArrayList<>();
 
       Cycle holeCycle = new Cycle(holePoints);
 
@@ -123,7 +126,7 @@ public class FaceTest {
 
    @Test
    public void testGetBoundingBox() {
-      List<Point> points = new ArrayList<>();
+      List<PointIF> points = new ArrayList<>();
 
       points.add(new Point(0.0d, 0.0d));
       points.add(new Point(5.0d, 5.0d));
@@ -132,7 +135,7 @@ public class FaceTest {
       Cycle cycle = new Cycle(points);
       Face face = new Face(cycle);
 
-      Rectangle expectedBB = cycle.getBoundingBox();
+      RectangleIF expectedBB = cycle.getBoundingBox();
 
       assertEquals(expectedBB, face.getBoundingBox());
 

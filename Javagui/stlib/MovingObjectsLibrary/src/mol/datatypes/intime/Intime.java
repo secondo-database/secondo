@@ -20,23 +20,25 @@
 package mol.datatypes.intime;
 
 import mol.datatypes.GeneralType;
-import mol.datatypes.time.TimeInstant;
+import mol.interfaces.GeneralTypeIF;
+import mol.interfaces.intime.IntimeIF;
+import mol.interfaces.time.TimeInstantIF;
 
 /**
  * Class for representation of the 'Intime' data type.<br>
  * Stores a value of type {@code <E>} and an 'TimeInstant' object
  * 
- * @author Markus Fuessel
- *
  * @param <E>
  *           - type of the value of a 'Intime' object
+ * 
+ * @author Markus Fuessel
  */
-public class Intime<E extends GeneralType> extends GeneralType implements Comparable<Intime<E>> {
+public class Intime<E extends GeneralTypeIF> extends GeneralType implements IntimeIF<E> {
 
    /**
     * The TimeInstant value
     */
-   private TimeInstant instant;
+   private TimeInstantIF instant;
 
    /**
     * The value of type {@code <E>} of this 'Intime' object
@@ -55,27 +57,29 @@ public class Intime<E extends GeneralType> extends GeneralType implements Compar
     * @param instant
     * @param value
     */
-   public Intime(final TimeInstant instant, final E value) {
+   public Intime(final TimeInstantIF instant, final E value) {
       this.instant = instant;
       this.value = value;
 
       setDefined(instant.isDefined() && value.isDefined());
    }
 
-   /**
-    * Get the 'TimeInstant'
+   /*
+    * (non-Javadoc)
     * 
-    * @return the instant
+    * @see mol.datatypes.intime.IntimeIF#getInstant()
     */
-   public TimeInstant getInstant() {
+   @Override
+   public TimeInstantIF getInstant() {
       return instant;
    }
 
-   /**
-    * Get the value of type {@code <E>}
+   /*
+    * (non-Javadoc)
     * 
-    * @return the value
+    * @see mol.datatypes.intime.IntimeIF#getValue()
     */
+   @Override
    public E getValue() {
       return value;
    }
@@ -93,7 +97,7 @@ public class Intime<E extends GeneralType> extends GeneralType implements Compar
     *         passed object.
     */
    @Override
-   public int compareTo(final Intime<E> otherIntimeObject) {
+   public int compareTo(final IntimeIF<E> otherIntimeObject) {
       return instant.compareTo(otherIntimeObject.getInstant());
    }
 

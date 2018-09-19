@@ -16,58 +16,42 @@
 //You should have received a copy of the GNU General Public License
 //along with SECONDO; if not, write to the Free Software
 //Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-package mol.datatypes.unit.spatial;
+package mol.interfaces.unit.spatial;
 
 import java.util.List;
 
-import mol.datatypes.interval.Period;
-import mol.datatypes.spatial.Region;
-import mol.datatypes.unit.spatial.util.MovableSegment;
+import mol.datatypes.unit.spatial.util.MovableSegmentIF;
+import mol.interfaces.features.MovableSpatial;
+import mol.interfaces.interval.PeriodIF;
+import mol.interfaces.spatial.RegionIF;
+import mol.interfaces.unit.UnitObjectIF;
 
 /**
- * Abstract base class for 'UnitRegion' objects
+ * Interface that should be provided by UnitRegionIF objects
  * 
  * @author Markus Fuessel
  */
-public abstract class UnitRegion extends UnitSpatial<Region> {
-
-   /**
-    * Constructor for an undefined 'UnitRegion' object<br>
-    * Required for subclasses
-    */
-   protected UnitRegion() {
-   }
-
-   /**
-    * Base constructor for a 'UnitRegion' object<br>
-    * Required for subclasses
-    * 
-    * @param period,
-    *           the valid time period of this unit
-    */
-   protected UnitRegion(Period period) {
-      super(period);
-   }
+public interface UnitRegionIF extends UnitObjectIF<RegionIF>, MovableSpatial {
 
    /*
     * (non-Javadoc)
     * 
     * @see mol.datatypes.unit.UnitObject#atPeriod(mol.datatypes.interval.Period)
     */
-   @Override
-   public abstract UnitRegion atPeriod(Period period);
+   UnitRegionIF atPeriod(PeriodIF period);
 
    /**
     * Get the number of moving faces in this 'UnitRegion' object
     * 
     * @return number of moving faces
     */
-   public abstract int getNoMovingFaces();
+   int getNoMovingFaces();
 
    /**
     * Get the all moving segments
     * 
     * @return list of 'MovableSegment' objects
     */
-   public abstract List<MovableSegment> getMovingSegments();
+   List<MovableSegmentIF> getMovingSegments();
+
 }

@@ -30,6 +30,8 @@ import org.junit.Test;
 
 import mol.datatypes.interval.Period;
 import mol.datatypes.time.TimeInstant;
+import mol.interfaces.interval.PeriodIF;
+import mol.interfaces.time.TimeInstantIF;
 
 /**
  * Tests for class 'Periods'
@@ -89,7 +91,7 @@ public class PeriodsTest {
    public void testMergeAdd_AddIntersectingPeriod_NoComponentsShouldNotIncrease() {
       int noCompBeforeMergeAdd = periodsOf2018.getNoComponents();
 
-      Period lastPeriod = periodsOf2018.last();
+      PeriodIF lastPeriod = periodsOf2018.last();
       Period period = new Period(lastPeriod.getLowerBound().plusMillis(10000),
             lastPeriod.getUpperBound().plusMillis(10000), true, true);
 
@@ -103,7 +105,7 @@ public class PeriodsTest {
    public void testMergeAdd_AddIntersectingPeriodCommonLeftBound_NoComponentsShouldNotIncrease() {
       int noCompBeforeMergeAdd = periodsOf2018.getNoComponents();
 
-      Period lastPeriod = periodsOf2018.last();
+      PeriodIF lastPeriod = periodsOf2018.last();
       Period period = new Period(lastPeriod.getLowerBound(), lastPeriod.getUpperBound().plusMillis(10000),
             lastPeriod.isLeftClosed(), true);
 
@@ -117,7 +119,7 @@ public class PeriodsTest {
    public void testMergeAdd_AddPeriodDifferByOneNanosecond_NoComponentsShouldIncrease() {
       int noCompBeforeMergeAdd = periodsOf2018.getNoComponents();
 
-      Period lastPeriod = periodsOf2018.last();
+      PeriodIF lastPeriod = periodsOf2018.last();
       Period period = new Period(lastPeriod.getUpperBound().plusNanos(1), lastPeriod.getUpperBound().plusMillis(10000),
             true, true);
 
@@ -130,7 +132,7 @@ public class PeriodsTest {
    public void testMergeAdd_AddDisjointPeriod_NoComponentsShouldIncrease() {
       int noCompBeforeMergeAdd = periodsOf2018.getNoComponents();
 
-      Period lastPeriod = periodsOf2018.last();
+      PeriodIF lastPeriod = periodsOf2018.last();
       Period period = new Period(lastPeriod.getUpperBound().plusMillis(10000),
             lastPeriod.getUpperBound().plusMillis(100000), true, true);
 
@@ -373,8 +375,8 @@ public class PeriodsTest {
    @Test
    public void testContains_InstantLiesInRange_ShouldBeTrue() {
 
-      TimeInstant instant1 = new TimeInstant("2018-01-10 00:00:00:000");
-      TimeInstant instant2 = new TimeInstant("2018-01-25 00:00:00:000");
+      TimeInstantIF instant1 = new TimeInstant("2018-01-10 00:00:00:000");
+      TimeInstantIF instant2 = new TimeInstant("2018-01-25 00:00:00:000");
 
       assertTrue(periodsOf2018.contains(instant1));
       assertTrue(periodsOf2018.contains(instant2));
@@ -384,7 +386,7 @@ public class PeriodsTest {
    @Test
    public void testContains_InstantLiesNotInRange_ShouldBeFalse() {
 
-      TimeInstant instant = new TimeInstant("2017-01-10 00:00:00:000");
+      TimeInstantIF instant = new TimeInstant("2017-01-10 00:00:00:000");
 
       assertFalse(periodsOf2018.contains(instant));
 
@@ -392,7 +394,7 @@ public class PeriodsTest {
 
    @Test
    public void testGetMinValue() {
-      TimeInstant expectedInstant = periodsOf2018.first().getLowerBound();
+      TimeInstantIF expectedInstant = periodsOf2018.first().getLowerBound();
 
       assertEquals(expectedInstant, periodsOf2018.getMinValue());
    }
@@ -400,14 +402,14 @@ public class PeriodsTest {
    @Test
    public void testGetMinValue_EmptyPeriods_ResultShouldBeUndefined() {
       Periods emptyPeriods = new Periods(0);
-      TimeInstant resultInstant = emptyPeriods.getMinValue();
+      TimeInstantIF resultInstant = emptyPeriods.getMinValue();
 
       assertFalse(resultInstant.isDefined());
    }
 
    @Test
    public void testGetMaxValue() {
-      TimeInstant expectedInstant = periodsOf2018.last().getUpperBound();
+      TimeInstantIF expectedInstant = periodsOf2018.last().getUpperBound();
 
       assertEquals(expectedInstant, periodsOf2018.getMaxValue());
    }
@@ -415,7 +417,7 @@ public class PeriodsTest {
    @Test
    public void testGetMaxValue_EmptyPeriods_ResultShouldBeUndefined() {
       Periods emptyPeriods = new Periods(0);
-      TimeInstant resultInstant = emptyPeriods.getMaxValue();
+      TimeInstantIF resultInstant = emptyPeriods.getMaxValue();
 
       assertFalse(resultInstant.isDefined());
    }

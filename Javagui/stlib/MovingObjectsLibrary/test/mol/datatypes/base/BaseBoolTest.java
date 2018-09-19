@@ -23,6 +23,8 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
+import mol.interfaces.base.BaseBoolIF;
+
 /**
  * Tests for class 'BaseBool'
  * 
@@ -42,8 +44,8 @@ public class BaseBoolTest {
       BaseBool falseBool = new BaseBool(false);
       BaseBool trueBool = new BaseBool(true);
 
-      BaseBool copyFalseBool = new BaseBool(falseBool);
-      BaseBool copyTrueBool = new BaseBool(trueBool);
+      BaseBoolIF copyFalseBool = new BaseBool(falseBool);
+      BaseBoolIF copyTrueBool = new BaseBool(trueBool);
 
       assertEquals(falseBool, copyFalseBool);
       assertEquals(trueBool, copyTrueBool);
@@ -51,10 +53,10 @@ public class BaseBoolTest {
 
    @Test
    public void testHashCode_DifferentObjectSameValue_HashCodeShouldBeEqual() {
-      BaseBool falseBool1 = new BaseBool(false);
-      BaseBool falseBool2 = new BaseBool(false);
-      BaseBool trueBool1 = new BaseBool(true);
-      BaseBool trueBool2 = new BaseBool(true);
+      BaseBoolIF falseBool1 = new BaseBool(false);
+      BaseBoolIF falseBool2 = new BaseBool(false);
+      BaseBoolIF trueBool1 = new BaseBool(true);
+      BaseBoolIF trueBool2 = new BaseBool(true);
 
       assertTrue(falseBool1.hashCode() == falseBool2.hashCode());
       assertTrue(trueBool1.hashCode() == trueBool2.hashCode());
@@ -62,8 +64,8 @@ public class BaseBoolTest {
 
    @Test
    public void testHashCode_DifferentValue_HashCodeShouldBeNonEqual() {
-      BaseBool falseBool = new BaseBool(false);
-      BaseBool trueBool = new BaseBool(true);
+      BaseBoolIF falseBool = new BaseBool(false);
+      BaseBoolIF trueBool = new BaseBool(true);
 
       assertFalse(trueBool.hashCode() == falseBool.hashCode());
    }
@@ -100,10 +102,10 @@ public class BaseBoolTest {
 
    @Test
    public void testEquals_EqualBooleanValue_ShouldBeTrue() {
-      BaseBool falseBool1 = new BaseBool(false);
-      BaseBool falseBool2 = new BaseBool(false);
-      BaseBool trueBool1 = new BaseBool(true);
-      BaseBool trueBool2 = new BaseBool(true);
+      BaseBoolIF falseBool1 = new BaseBool(false);
+      BaseBoolIF falseBool2 = new BaseBool(false);
+      BaseBoolIF trueBool1 = new BaseBool(true);
+      BaseBoolIF trueBool2 = new BaseBool(true);
 
       assertTrue(trueBool1.equals(trueBool2));
       assertTrue(falseBool1.equals(falseBool2));
@@ -112,8 +114,8 @@ public class BaseBoolTest {
 
    @Test
    public void testEquals_NonEqualBooleanValue_ShouldBeFalse() {
-      BaseBool falseBool = new BaseBool(false);
-      BaseBool trueBool = new BaseBool(true);
+      BaseBoolIF falseBool = new BaseBool(false);
+      BaseBoolIF trueBool = new BaseBool(true);
 
       assertFalse(trueBool.equals(falseBool));
 
@@ -121,7 +123,7 @@ public class BaseBoolTest {
 
    @Test
    public void testEquals_NullObject_ShouldBeFalse() {
-      BaseBool trueBool = new BaseBool(true);
+      BaseBoolIF trueBool = new BaseBool(true);
       Object object = null;
 
       assertFalse(trueBool.equals(object));
@@ -130,7 +132,7 @@ public class BaseBoolTest {
 
    @Test
    public void testEquals_SameObject_ShouldBeTrue() {
-      BaseBool trueBool = new BaseBool(true);
+      BaseBoolIF trueBool = new BaseBool(true);
 
       Object object = trueBool;
 
