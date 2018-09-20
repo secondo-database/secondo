@@ -114,10 +114,13 @@ if [ -n "$PSWD" ]; then
    export SECONDO_PSWD=$PSWD
 fi
 
+
+JAVAPATH=$(find $J2SDK_ROOT -iname libjsig.so | head -n 1 | sed "s/libjsig.so//")
+
 if [ -z "$LD_LIBRARY_PATH" ]; then
- LD_LIBRARY_PATH=$J2SDK_ROOT/lib
+ LD_LIBRARY_PATH=$JAVAPATH
 else
- LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$J2SDK_ROOT/lib
+ LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JAVAPATH
 fi
 
 
