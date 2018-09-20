@@ -23,6 +23,12 @@
 
 AUTOQUIT=""
 TRACE=""
+HOST=""
+PORT=""
+CONFIG=""
+PSWD=""
+USER=""
+
 
 while getopts "h:p:u:s:c:q" Option
 do
