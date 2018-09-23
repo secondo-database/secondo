@@ -196,7 +196,30 @@ class Face {
             ListExpr uregion = p.second();
             ret.addAll(FacesList2Triangles(uregion, z1, z2));
             p = le.first();
-        }
+        } else if (type.equals("pmregion")) {
+	    ListExpr points = le.first();
+	    ListExpr triangles = le.second();
+	    Point3d pl[] = new Point3d[points.listLength()];
+	    int i = 0;
+	    while (points.first() != null) {
+		    pl[i] = new Point3d(
+		    	points.first().first().realValue(),
+		    	points.first().second().realValue(),
+		    	points.first().third().realValue()
+			);
+		    i++;
+		    points = points.rest();
+	    }
+	    while (triangles.first() != null) {
+		    int idx1 = (int)triangles.first().first().realValue();
+		    int idx3 = (int)triangles.first().second().realValue();
+		    int idx2 = (int)triangles.first().third().realValue();
+		    ret.add(new Point3d(pl[idx1]));
+		    ret.add(new Point3d(pl[idx2]));
+		    ret.add(new Point3d(pl[idx3]));
+		    triangles = triangles.rest();
+	    }
+	}
 
         // Now translate and scale the result
         FixCoordinates(ret);
@@ -219,6 +242,7 @@ class Face {
      */
     private static void FixCoordinates(List<Point3d> l) {
         double minx, maxx, miny, maxy, minz, maxz;
+	List<Point3d> ret = new LinkedList();
         Point3d fp = l.get(0);
         minx = maxx = fp.x;
         miny = maxy = fp.y;

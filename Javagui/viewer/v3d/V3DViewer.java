@@ -161,7 +161,8 @@ public class V3DViewer extends SecondoViewer {
         }
         String TypeName = type.symbolValue();
         return (TypeName.equals("uregion")  || TypeName.equals("mregion") ||
-                TypeName.equals("uregion2") || TypeName.equals("mregion2"));
+                TypeName.equals("uregion2") || TypeName.equals("mregion2") ||
+		TypeName.equals("pmregion"));
     }
 
 
