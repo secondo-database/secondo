@@ -43,7 +43,7 @@ public class Inside {
     * 
     * @return true if the 'Point' is inside the 'Region', false otherwise
     */
-   public static boolean inside(final PointIF point, final RegionIF region) {
+   public static boolean execute(final PointIF point, final RegionIF region) {
 
       if (!point.isDefined() || !region.isDefined()) {
          return false;

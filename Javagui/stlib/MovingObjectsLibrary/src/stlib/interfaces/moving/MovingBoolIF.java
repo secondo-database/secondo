@@ -74,4 +74,18 @@ public interface MovingBoolIF extends MovingObjectIF<UnitBoolIF, BaseBoolIF> {
     */
    boolean add(MovingBoolIF otherMovingBool);
 
+   /**
+    * Get the minimal Value
+    * 
+    * @return the minValue
+    */
+   public BaseBoolIF getMinValue();
+
+   /**
+    * Get the maximal Value
+    * 
+    * @return the maxValue
+    */
+   public BaseBoolIF getMaxValue();
+
 }

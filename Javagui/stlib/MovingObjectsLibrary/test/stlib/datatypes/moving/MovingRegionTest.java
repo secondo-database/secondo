@@ -32,13 +32,11 @@ import org.junit.Test;
 
 import stlib.TestUtil.TestUtilData;
 import stlib.datatypes.interval.Period;
-import stlib.datatypes.moving.MovingRegion;
 import stlib.datatypes.spatial.Point;
 import stlib.datatypes.spatial.Region;
 import stlib.datatypes.time.TimeInstant;
 import stlib.datatypes.unit.spatial.UnitRegionConst;
 import stlib.datatypes.unit.spatial.UnitRegionLinear;
-import stlib.interfaces.intime.IntimeIF;
 import stlib.interfaces.spatial.RegionIF;
 import stlib.interfaces.spatial.util.RectangleIF;
 import stlib.interfaces.unit.spatial.UnitRegionIF;
@@ -303,42 +301,6 @@ public class MovingRegionTest {
       continuosMovingRegion.add(uregion);
 
       assertEquals(expectedObjPBBAfter, continuosMovingRegion.getProjectionBoundingBox());
-   }
-
-   @Test
-   public void testPresent_PassTimeInstant() {
-
-      assertTrue(discreteMovingRegion.present(new TimeInstant("2018-01-20 00:00:00:000")));
-      assertTrue(discreteMovingRegion.present(new TimeInstant("2018-01-25 00:00:00:000")));
-
-      assertTrue(continuosMovingRegion.present(new TimeInstant("2018-01-20 00:00:00:000")));
-      assertTrue(continuosMovingRegion.present(new TimeInstant("2018-01-25 00:00:00:000")));
-   }
-
-   @Test
-   public void testAtInstant_DiskreteMovingRegion_ValidInstant() {
-
-      IntimeIF<RegionIF> iregion = discreteMovingRegion.atInstant(new TimeInstant("2018-01-20 00:00:00:000"));
-
-      assertEquals(region3.getBoundingBox(), iregion.getValue().getBoundingBox());
-   }
-
-   @Test
-   public void testAtInstant_ContinuosMovingRegionValidInstant_UndefinedCauseOfDegenerate() {
-
-      IntimeIF<RegionIF> iregion = continuosMovingRegion.atInstant(new TimeInstant("2018-01-29 23:59:59:999"));
-
-      assertFalse(iregion.isDefined());
-   }
-
-   @Test
-   public void testAtInstant_UndefinedInstant_ShouldReturnUndefinedIntimeRegion() {
-
-      IntimeIF<RegionIF> iregionDMR = discreteMovingRegion.atInstant(new TimeInstant());
-      IntimeIF<RegionIF> iregionCMR = continuosMovingRegion.atInstant(new TimeInstant());
-
-      assertFalse(iregionDMR.isDefined());
-      assertFalse(iregionCMR.isDefined());
    }
 
    @Test

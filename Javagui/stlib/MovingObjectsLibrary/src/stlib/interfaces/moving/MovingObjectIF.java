@@ -22,7 +22,6 @@ package stlib.interfaces.moving;
 import java.util.List;
 
 import stlib.interfaces.GeneralTypeIF;
-import stlib.interfaces.intime.IntimeIF;
 import stlib.interfaces.range.PeriodsIF;
 import stlib.interfaces.time.TimeInstantIF;
 import stlib.interfaces.unit.UnitObjectIF;
@@ -80,27 +79,6 @@ public interface MovingObjectIF<T1 extends UnitObjectIF<T2>, T2 extends GeneralT
     * @return
     */
    List<T1> getUnits();
-
-   /**
-    * Check if the MovingObject exists at the given instant
-    * 
-    * @param instant
-    * 
-    * @return true if MovingObject exists, false otherwise
-    */
-   boolean present(TimeInstantIF instant);
-
-   /**
-    * Get a {@code IntimeIF<T2>} object, consists of the passed instant and the
-    * value of this 'MovingObject', which is defined at the passed instant
-    * 
-    * @param instant
-    * 
-    * @return {@code IntimeIF<T2>} object or an undefined, empty
-    *         {@code IntimeIF<T2>} object if this 'MovingObject' is not defined at
-    *         the passed instant
-    */
-   IntimeIF<T2> atInstant(TimeInstantIF instant);
 
    /**
     * Get the value of this 'MovingObject', a object of type {@code T2}, which is

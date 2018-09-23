@@ -92,7 +92,7 @@ public class BaseBool extends GeneralType implements BaseBoolIF {
     */
    @Override
    public boolean equals(final Object obj) {
-      if (!(obj instanceof BaseBoolIF)) {
+      if (!(obj instanceof BaseBoolIF) || !isDefined()) {
          return false;
       }
 

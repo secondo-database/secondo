@@ -95,28 +95,28 @@ public class InsideTest {
    public void testInside_PointInRegion_ShouldBeTrue() {
       Point point = new Point(10, 10);
 
-      assertTrue(Inside.inside(point, regionWithoutHole));
+      assertTrue(Inside.execute(point, regionWithoutHole));
    }
 
    @Test
    public void testInside_PointOutOfRegion_ShouldBeFalse() {
       Point point = new Point(100, 100);
 
-      assertFalse(Inside.inside(point, regionWithoutHole));
+      assertFalse(Inside.execute(point, regionWithoutHole));
    }
 
    @Test
    public void testInside_PointInHoleOfRegion_ShouldBeFalse() {
       Point point = new Point(30, 30);
 
-      assertFalse(Inside.inside(point, regionWithHole));
+      assertFalse(Inside.execute(point, regionWithHole));
    }
 
    @Test
    public void testInside_UndefinedPoint_ShouldBeFalse() {
       Point point = new Point();
 
-      assertFalse(Inside.inside(point, regionWithHole));
+      assertFalse(Inside.execute(point, regionWithHole));
    }
 
    @Test
@@ -125,9 +125,9 @@ public class InsideTest {
       Point point1 = new Point(50, 50);
       Point point2 = new Point(50, 99);
 
-      assertTrue(Inside.inside(point0, regionWithoutHoleOnCorner));
-      assertTrue(Inside.inside(point1, regionWithoutHoleOnCorner));
-      assertTrue(Inside.inside(point2, regionWithoutHoleOnCorner));
+      assertTrue(Inside.execute(point0, regionWithoutHoleOnCorner));
+      assertTrue(Inside.execute(point1, regionWithoutHoleOnCorner));
+      assertTrue(Inside.execute(point2, regionWithoutHoleOnCorner));
    }
 
    @Test
@@ -140,12 +140,12 @@ public class InsideTest {
       Point point4 = new Point(100, 50);
       Point point5 = new Point(100, 99);
 
-      assertFalse(Inside.inside(point0, regionWithoutHoleOnCorner));
-      assertFalse(Inside.inside(point1, regionWithoutHoleOnCorner));
-      assertFalse(Inside.inside(point2, regionWithoutHoleOnCorner));
+      assertFalse(Inside.execute(point0, regionWithoutHoleOnCorner));
+      assertFalse(Inside.execute(point1, regionWithoutHoleOnCorner));
+      assertFalse(Inside.execute(point2, regionWithoutHoleOnCorner));
 
-      assertFalse(Inside.inside(point3, regionWithoutHoleOnCorner));
-      assertFalse(Inside.inside(point4, regionWithoutHoleOnCorner));
-      assertFalse(Inside.inside(point5, regionWithoutHoleOnCorner));
+      assertFalse(Inside.execute(point3, regionWithoutHoleOnCorner));
+      assertFalse(Inside.execute(point4, regionWithoutHoleOnCorner));
+      assertFalse(Inside.execute(point5, regionWithoutHoleOnCorner));
    }
 }

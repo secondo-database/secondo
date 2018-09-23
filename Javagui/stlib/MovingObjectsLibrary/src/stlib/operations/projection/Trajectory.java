@@ -16,35 +16,55 @@
 //You should have received a copy of the GNU General Public License
 //along with SECONDO; if not, write to the Free Software
 //Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-package stlib.interfaces.moving;
 
-import stlib.interfaces.features.MovableSpatial;
-import stlib.interfaces.interval.PeriodIF;
+package stlib.operations.projection;
+
+import stlib.datatypes.spatial.Line;
+import stlib.interfaces.moving.MovingPointIF;
+import stlib.interfaces.spatial.LineIF;
 import stlib.interfaces.spatial.PointIF;
 import stlib.interfaces.unit.spatial.UnitPointIF;
 
 /**
- * Interface that should be provided by MovingPointIF objects
+ * Class with Trajectory operations on temporal spatial types
  * 
  * @author Markus Fuessel
- *
  */
-public interface MovingPointIF extends MovingObjectIF<UnitPointIF, PointIF>, MovableSpatial {
+public class Trajectory {
 
    /**
-    * Append this 'MovingPoint' object by a further movement section defined by the
-    * passed values.<br>
-    * Creates an appropriate unit object and append this to this object.
+    * Computes the the projection of this 'MovingPointIF' object as a 'LineIF'
+    * object.
     * 
-    * @param period
-    *           - time period of this movement section
-    * @param startPoint
-    *           - point at the beginning of the movement for this period
-    * @param endPoint
-    *           - point at the end of the movement for this period
+    * @param mpoint
     * 
-    * @return true if the adding was successful, false otherwise
+    * @return a 'LineIF' object
     */
-   boolean add(PeriodIF period, PointIF startPoint, PointIF endPoint);
+   public static LineIF execute(final MovingPointIF mpoint) {
+      Line line = new Line(true);
+      int size = mpoint.getNoUnits();
+
+      for (int i = 0; i < size; i++) {
+
+         UnitPointIF up = mpoint.getUnit(i);
+
+         PointIF p0 = up.getInitial();
+         PointIF p1 = up.getFinal();
+
+         if (!p0.almostEqual(p1)) {
+            line.add(p0, p1);
+         }
+
+      }
+
+      return line;
+   }
+
+   /**
+    * Private constructor to prevent instances of this class
+    */
+   private Trajectory() {
+
+   }
 
 }

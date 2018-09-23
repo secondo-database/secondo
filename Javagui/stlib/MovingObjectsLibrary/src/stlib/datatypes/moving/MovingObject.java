@@ -23,11 +23,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import stlib.datatypes.GeneralType;
-import stlib.datatypes.intime.Intime;
 import stlib.datatypes.range.Periods;
 import stlib.interfaces.GeneralTypeIF;
 import stlib.interfaces.interval.PeriodIF;
-import stlib.interfaces.intime.IntimeIF;
 import stlib.interfaces.moving.MovingObjectIF;
 import stlib.interfaces.range.PeriodsIF;
 import stlib.interfaces.time.TimeInstantIF;
@@ -165,39 +163,6 @@ public abstract class MovingObject<T1 extends UnitObjectIF<T2>, T2 extends Gener
    @Override
    public List<T1> getUnits() {
       return units;
-   }
-
-   /*
-    * (non-Javadoc)
-    * 
-    * @see stlib.interfaces.moving.MovingObjectIF#present(stlib.interfaces.time.
-    * TimeInstantIF)
-    */
-   @Override
-   public boolean present(final TimeInstantIF instant) {
-      return periods.contains(instant);
-   }
-
-   /*
-    * (non-Javadoc)
-    * 
-    * @see stlib.interfaces.moving.MovingObjectIF#atInstant(stlib.interfaces.time.
-    * TimeInstant)
-    */
-   @Override
-   public IntimeIF<T2> atInstant(TimeInstantIF instant) {
-
-      IntimeIF<T2> intime;
-
-      if (!isDefined() || !instant.isDefined()) {
-         intime = new Intime<>();
-      } else {
-         T2 value = getValue(instant);
-
-         intime = new Intime<>(instant, value);
-      }
-
-      return intime;
    }
 
    /*

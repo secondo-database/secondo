@@ -34,12 +34,10 @@ import org.junit.Test;
 import stlib.datatypes.interval.Period;
 import stlib.datatypes.intime.Intime;
 import stlib.datatypes.moving.MovingPoint;
-import stlib.datatypes.spatial.Line;
 import stlib.datatypes.spatial.Point;
 import stlib.datatypes.time.TimeInstant;
 import stlib.datatypes.unit.spatial.UnitPointConst;
 import stlib.datatypes.unit.spatial.UnitPointLinear;
-import stlib.interfaces.intime.IntimeIF;
 import stlib.interfaces.spatial.PointIF;
 import stlib.interfaces.spatial.util.RectangleIF;
 import stlib.interfaces.unit.spatial.UnitPointIF;
@@ -279,27 +277,6 @@ public class MovingPointTest {
    }
 
    @Test
-   public void testTrajectory_ShouldNotBeEmpty() {
-      mpointContinuos = new MovingPoint(0);
-
-      Point p1 = new Point(0.0, 0.0);
-      Point p2 = new Point(10.0, 10.0);
-      Point p3 = new Point(10.0, 20.0);
-      Point p4 = new Point(20.0, 5.0);
-
-      mpointContinuos.add(new Period("2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000", true, false), p1, p2);
-
-      mpointContinuos.add(new Period("2018-01-10 00:00:00:000", "2018-01-20 00:00:00:000", true, false), p2, p3);
-
-      mpointContinuos.add(new Period("2018-01-20 00:00:00:000", "2018-01-30 00:00:00:000", true, false), p3, p4);
-
-      Line trajectory = mpointContinuos.trajectory();
-
-      assertFalse(trajectory.isEmpty());
-
-   }
-
-   @Test
    public void testGetObjectPBB_VerifyPBBAfterAddingUnit() {
 
       Point p1 = new Point(20.0d, 5.0d);
@@ -310,29 +287,6 @@ public class MovingPointTest {
       mpointContinuos.add(new Period("2018-01-30 00:00:00:000", "2018-02-20 00:00:00:000", true, false), p1, p2);
 
       assertEquals(expectedObjPBBAfter, mpointContinuos.getProjectionBoundingBox());
-   }
-
-   @Test
-   public void testPresent_PassTimeInstant() {
-
-      assertTrue(mpointContinuos.present(new TimeInstant("2018-01-20 00:00:00:000")));
-      assertTrue(mpointContinuos.present(new TimeInstant("2018-01-25 00:00:00:000")));
-   }
-
-   @Test
-   public void testAtInstant_ValidInstant() {
-
-      IntimeIF<PointIF> ipoint = mpointContinuos.atInstant(new TimeInstant("2018-01-20 00:00:00:000"));
-
-      assertEquals(new Point(10.0, 20.0), ipoint.getValue());
-   }
-
-   @Test
-   public void testAtInstant_UndefinedInstant_ShouldReturnUndefinedIntimePoint() {
-
-      IntimeIF<PointIF> ipoint = mpointContinuos.atInstant(new TimeInstant());
-
-      assertFalse(ipoint.isDefined());
    }
 
    @Test

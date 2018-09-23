@@ -22,7 +22,6 @@ import java.util.List;
 
 import stlib.datatypes.interval.Period;
 import stlib.datatypes.intime.Intime;
-import stlib.datatypes.spatial.Line;
 import stlib.datatypes.spatial.Point;
 import stlib.datatypes.spatial.util.Rectangle;
 import stlib.datatypes.unit.spatial.UnitPointConst;
@@ -132,32 +131,6 @@ public class MovingPoint extends MovingObject<UnitPointIF, PointIF> implements M
       }
 
       return add(upoint);
-   }
-
-   /*
-    * (non-Javadoc)
-    * 
-    * @see stlib.interfaces.moving.MovingPointIF#trajectory()
-    */
-   @Override
-   public Line trajectory() {
-      Line line = new Line(true);
-      int size = getNoUnits();
-
-      for (int i = 0; i < size; i++) {
-
-         UnitPointIF up = getUnit(i);
-
-         PointIF p0 = up.getInitial();
-         PointIF p1 = up.getFinal();
-
-         if (!p0.almostEqual(p1)) {
-            line.add(p0, p1);
-         }
-
-      }
-
-      return line;
    }
 
    /**

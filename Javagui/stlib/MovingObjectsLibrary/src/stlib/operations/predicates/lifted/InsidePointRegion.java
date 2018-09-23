@@ -58,6 +58,39 @@ import stlib.util.Vector2D;
 public class InsidePointRegion extends BaseAlgorithm {
 
    /**
+    * Static method 'Point' inside 'MovingRegion'
+    * 
+    * @param point
+    * @param mregion
+    * @return MovingBoolIF
+    */
+   public static MovingBoolIF execute(final PointIF point, final MovingRegionIF mregion) {
+      return new InsidePointRegion(point, mregion).getResult();
+   }
+
+   /**
+    * Static method 'MovingPoint' inside 'Region'
+    * 
+    * @param mpoint
+    * @param region
+    * @return MovingBoolIF
+    */
+   public static MovingBoolIF execute(final MovingPointIF mpoint, final RegionIF region) {
+      return new InsidePointRegion(mpoint, region).getResult();
+   }
+
+   /**
+    * Static method 'MovingPoint' inside 'MovingRegion'
+    * 
+    * @param mpoint
+    * @param mregion
+    * @return MovingBoolIF
+    */
+   public static MovingBoolIF execute(final MovingPointIF mpoint, final MovingRegionIF mregion) {
+      return new InsidePointRegion(mpoint, mregion).getResult();
+   }
+
+   /**
     * Constructor for operation 'Point' inside 'MovingRegion'
     * 
     * @param point
@@ -106,7 +139,8 @@ public class InsidePointRegion extends BaseAlgorithm {
     * (non-Javadoc)
     * 
     * @see
-    * stlib.operations.predicates.lifted.BaseAlgorithm#additionalChecksSuccessful( )
+    * stlib.operations.predicates.lifted.BaseAlgorithm#additionalChecksSuccessful(
+    * )
     */
    @Override
    public boolean additionalChecksSuccessful() {
@@ -120,9 +154,8 @@ public class InsidePointRegion extends BaseAlgorithm {
    /*
     * (non-Javadoc)
     * 
-    * @see
-    * stlib.operations.predicates.lifted.BaseAlgorithm#unitFunction(stlib.datatypes.
-    * unit.UnitObject, stlib.datatypes.unit.UnitObject)
+    * @see stlib.operations.predicates.lifted.BaseAlgorithm#unitFunction(stlib.
+    * datatypes. unit.UnitObject, stlib.datatypes.unit.UnitObject)
     */
    @Override
    public MovingBoolIF getUnitResult(final UnitObjectIF<? extends GeneralTypeIF> uobject1,
@@ -141,7 +174,7 @@ public class InsidePointRegion extends BaseAlgorithm {
       if (newUPoint.isDefined() && newURegion.isDefined()
             && newUPoint.getProjectionBoundingBox().intersects(newURegion.getProjectionBoundingBox())) {
 
-         boolean pointCurrentlyInside = Inside.inside(newUPoint.getInitial(), newURegion.getInitial());
+         boolean pointCurrentlyInside = Inside.execute(newUPoint.getInitial(), newURegion.getInitial());
 
          TimeInstantIF lastInstant = period.getLowerBound();
          boolean lastLeftClosed = period.isLeftClosed();

@@ -33,6 +33,16 @@ import stlib.interfaces.unit.UnitBoolIF;
 public class MovingBool extends MovingObject<UnitBoolIF, BaseBoolIF> implements MovingBoolIF {
 
    /**
+    * The minimum value that this object reaches during its defined period of time
+    */
+   private BaseBoolIF minValue;
+
+   /**
+    * The maximum value that this object reaches during its defined period of time
+    */
+   private BaseBoolIF maxValue;
+
+   /**
     * Basic constructor to create a empty 'MovingBool' object
     * 
     * @param initialSize
@@ -41,7 +51,49 @@ public class MovingBool extends MovingObject<UnitBoolIF, BaseBoolIF> implements 
    public MovingBool(final int initialSize) {
       super(initialSize);
 
+      minValue = new BaseBool();
+      maxValue = new BaseBool();
+
       this.setDefined(true);
+   }
+
+   /*
+    * (non-Javadoc)
+    * 
+    * @see
+    * stlib.datatypes.moving.MovingObject#add(stlib.interfaces.unit.UnitObjectIF)
+    */
+   @Override
+   public boolean add(UnitBoolIF newUnit) {
+      if (super.add(newUnit)) {
+
+         setMinMaxValue(newUnit);
+
+         return true;
+      }
+      return false;
+   }
+
+   /**
+    * Set the minimum and maximum value if the current value exceeds these limits
+    * 
+    * @param newUnit
+    */
+   private void setMinMaxValue(UnitBoolIF newUnit) {
+      BaseBoolIF unitValue = newUnit.getValue();
+
+      if (getNoUnits() == 1) {
+         minValue = unitValue;
+         maxValue = unitValue;
+      } else {
+         if (minValue.compareTo(unitValue) > 0) {
+            minValue = unitValue;
+         }
+
+         if (maxValue.compareTo(unitValue) < 0) {
+            maxValue = unitValue;
+         }
+      }
    }
 
    /*
@@ -112,6 +164,26 @@ public class MovingBool extends MovingObject<UnitBoolIF, BaseBoolIF> implements 
    @Override
    protected BaseBoolIF getUndefinedObject() {
       return new BaseBool();
+   }
+
+   /*
+    * (non-Javadoc)
+    * 
+    * @see stlib.interfaces.moving.MovingBoolIF#getMinValue()
+    */
+   @Override
+   public BaseBoolIF getMinValue() {
+      return minValue;
+   }
+
+   /*
+    * (non-Javadoc)
+    * 
+    * @see stlib.interfaces.moving.MovingBoolIF#getMaxValue()
+    */
+   @Override
+   public BaseBoolIF getMaxValue() {
+      return maxValue;
    }
 
 }

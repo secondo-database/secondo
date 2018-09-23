@@ -35,7 +35,6 @@ import stlib.datatypes.moving.MovingBool;
 import stlib.datatypes.time.TimeInstant;
 import stlib.datatypes.unit.UnitBool;
 import stlib.interfaces.base.BaseBoolIF;
-import stlib.interfaces.intime.IntimeIF;
 import stlib.interfaces.unit.UnitBoolIF;
 
 /**
@@ -229,53 +228,6 @@ public class MovingBoolTest {
       assertFalse(successful);
       assertEquals(sizeMboolBefore, sizeMBoolAfter);
 
-   }
-
-   @Test
-   public void testPresent_PassDefinedTimeInstantInsideDefinedPeriod_ShouldBeTrue() {
-
-      assertTrue(mbool.present(new TimeInstant("2018-01-20 00:00:00:000")));
-      assertTrue(mbool.present(new TimeInstant("2018-01-25 00:00:00:000")));
-   }
-
-   @Test
-   public void testPresent_PassDefinedTimeInstantOutsideDefinedPeriod_ShouldBeFalse() {
-
-      assertFalse(mbool.present(new TimeInstant("2017-12-31 23:59:59:999")));
-      assertFalse(mbool.present(new TimeInstant("2018-01-30 00:00:00:000")));
-   }
-
-   @Test
-   public void testPresent_PassUndefinedTimeInstant_ShouldBeFalse() {
-
-      assertFalse(mbool.present(new TimeInstant()));
-   }
-
-   @Test
-   public void testAtInstant_DefinedInstantInsideDefinedPeriod_ShouldReturnDefinedIntimeBaseBool() {
-
-      IntimeIF<BaseBoolIF> ibool = mbool.atInstant(new TimeInstant("2018-01-20 00:00:00:000"));
-
-      assertTrue(ibool.isDefined());
-      assertEquals(new BaseBool(true), ibool.getValue());
-   }
-
-   @Test
-   public void testAtInstant_DefinedInstantOutsideDefinedPeriod_ShouldReturnUndefinedIntimeBaseBool() {
-
-      IntimeIF<BaseBoolIF> ibool1 = mbool.atInstant(new TimeInstant("2017-12-31 23:59:59:999"));
-      IntimeIF<BaseBoolIF> ibool2 = mbool.atInstant(new TimeInstant("2018-02-30 00:00:00:000"));
-
-      assertFalse(ibool1.isDefined());
-      assertFalse(ibool2.isDefined());
-   }
-
-   @Test
-   public void testAtInstant_UndefinedInstant_ShouldReturnUndefinedIntimeBaseBool() {
-
-      IntimeIF<BaseBoolIF> ibool = mbool.atInstant(new TimeInstant());
-
-      assertFalse(ibool.isDefined());
    }
 
    @Test
