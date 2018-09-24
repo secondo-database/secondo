@@ -25,7 +25,7 @@ class Face {
             RANGEZ = 5;
 
     // The colors of the 3d-triangles, add more colors here if needed
-    private final Color3b[] colors = {
+    private static final Color3b[] colors = {
         new Color3b(Color.RED),
         new Color3b(Color.BLUE),
         new Color3b(Color.YELLOW),
@@ -38,8 +38,8 @@ class Face {
     };
 
     private SecondoObject o; // The object to be displayed
-    private boolean compensateTranslation = false;
-    private boolean lightBackground = false;
+    private static boolean compensateTranslation = false;
+    private static boolean lightBackground = false;
 
     /**
      * Construct a new object to be displayed in 3d.
@@ -80,6 +80,43 @@ class Face {
      */
     public TriangleArray GetTriangleArray() {
         List<Point3d> points = MRegionList2Triangles();
+	FixCoordinates(points);
+	points.addAll(arrow());
+        TriangleArray ret = new TriangleArray(points.size(),
+                TriangleArray.COORDINATES | TriangleArray.COLOR_3);
+
+        Color3b c = nextColor();
+        Color3b white = new Color3b(Color.WHITE);
+        Color3b black = new Color3b(Color.BLACK);
+        for (int i = 0; i < points.size(); i++) {
+            // Each triangle is uniformy colored, so change the color every
+            // third iteration only
+            if (i % 3 == 0) {
+                c = nextColor();
+            }
+            ret.setCoordinate(i, points.get(i));
+            if (i < points.size() - 6) {
+                ret.setColor(i, c);
+            } else {
+                // The last six values are the arrow, which we want to be black
+                if (lightBackground) {
+                    ret.setColor(i, black);
+                } else {            // or white in case the background is black
+                    ret.setColor(i, white);
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    public static TriangleArray GetTriangleArray(List<Face> fcs) {
+        List<Point3d> points = new LinkedList();
+	for (Face f : fcs) {
+		points.addAll(f.MRegionList2Triangles());
+	}
+	FixCoordinates(points);
+	points.addAll(arrow());
         TriangleArray ret = new TriangleArray(points.size(),
                 TriangleArray.COORDINATES | TriangleArray.COLOR_3);
 
@@ -109,8 +146,8 @@ class Face {
     }
 
     // Get the color for the next triangle
-    private int cnr = 0; // the index of the next color to be displayed
-    private Color3b nextColor() {
+    private static int cnr = 0; // the index of the next color to be displayed
+    private static Color3b nextColor() {
         return colors[cnr++ % colors.length];
     }
 
@@ -221,8 +258,11 @@ class Face {
 	    }
 	}
 
-        // Now translate and scale the result
-        FixCoordinates(ret);
+	return ret;
+    }
+
+    public static List<Point3d> arrow() {
+        List<Point3d> ret = new LinkedList();
 
         // Draw an arrow for orientation
         ret.add(new Point3d(-RANGEX / 2 * 1.1, -RANGEY / 2 * 1.1, -RANGEZ / 2));
@@ -241,6 +281,8 @@ class Face {
      * @param l A list of points
      */
     private static void FixCoordinates(List<Point3d> l) {
+	if (l.isEmpty())
+		return;
         double minx, maxx, miny, maxy, minz, maxz;
 	List<Point3d> ret = new LinkedList();
         Point3d fp = l.get(0);

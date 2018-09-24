@@ -10,6 +10,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import gui.SecondoObject;
+import java.util.List;
 import java.util.LinkedList;
 import javax.media.j3d.Appearance;
 import javax.media.j3d.Background;
@@ -33,16 +34,13 @@ public class V3DViewer extends SecondoViewer {
     private final MenuVector MV = new MenuVector();
     private final JMenuItem MI_CageModel, MI_LightBackground;
     private final JMenuItem MI_CTransl, MI_AntiAliasing;
-    private JComboBox ComboBox = new JComboBox();
     private java.util.List ItemObjects = new LinkedList();
-    private SecondoObject CurrentObject = null;
     private final JScrollPane ScrollPane = new JScrollPane();
     private final SimpleUniverse universe;
 
     /* create a new StandardViewer */
     public V3DViewer() {
         setLayout(new BorderLayout());
-        add(BorderLayout.NORTH, ComboBox);
         
         GraphicsConfigTemplate3D template = new GraphicsConfigTemplate3D();
         template.setDoubleBuffer(GraphicsConfigTemplate3D.PREFERRED);
@@ -65,9 +63,7 @@ public class V3DViewer extends SecondoViewer {
         ActionListener redraw = new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (CurrentObject != null) {
-                    showObject();
-                }
+		    showObject();
             }
         };
 
@@ -75,47 +71,16 @@ public class V3DViewer extends SecondoViewer {
         MI_AntiAliasing.addActionListener(redraw);
         MI_CTransl.addActionListener(redraw);
         MI_LightBackground.addActionListener(redraw);
-
-        ComboBox.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent evt) {
-                showObject();
-                if (VC != null) {
-                    int index = ComboBox.getSelectedIndex();
-                    if (index >= 0) {
-                        try {
-                            CurrentObject = (SecondoObject) ItemObjects.get(index);
-                            VC.selectObject(V3DViewer.this, CurrentObject);
-                        } catch (Exception e) {
-                        }
-                    }
-                }
-            }
-        });
-
     }
 
 
     /* adds a new Object to this Viewer and display it */
     @Override
     public boolean addObject(SecondoObject o) {
-        if (isDisplayed(o)) {
-            selectObject(o);
-        } else {
-            ItemObjects.add(o);
-            ComboBox.addItem(o.getName());
-            try {
-                ComboBox.setSelectedIndex(ComboBox.getItemCount() - 1);
-                showObject();
-            } catch (Exception e) {
-            }
-        }
-        return true;
-    }
+	ItemObjects.add(o);
+	showObject();
 
-    /* returns true if o is a SecondoObject in this viewer */
-    public boolean isDisplayed(SecondoObject o) {
-        return CurrentObject == o;
+        return true;
     }
 
     /**
@@ -123,12 +88,8 @@ public class V3DViewer extends SecondoViewer {
      */
     @Override
     public void removeObject(SecondoObject o) {
-        if (ItemObjects.remove(o)) {
-            ComboBox.removeItem(o.getName());
-        }
-        if (CurrentObject == o) {
-            CurrentObject = null;
-        }
+        ItemObjects.remove(o);
+	showObject();
     }
 
     /**
@@ -137,13 +98,18 @@ public class V3DViewer extends SecondoViewer {
     @Override
     public void removeAll() {
         ItemObjects.clear();
-        ComboBox.removeAllItems();
-        CurrentObject = null;
         if (VC != null) {
             VC.removeObject(null);
         }
         showObject();
     }
+
+    /* returns true if o is a SecondoObject in this viewer */
+    @Override
+    public boolean isDisplayed(SecondoObject o) {
+	    return ItemObjects.contains(o);
+    }
+
 
 
     /* returns true if the object is a uregion or an mregion, which is all this
@@ -180,7 +146,6 @@ public class V3DViewer extends SecondoViewer {
     public boolean selectObject(SecondoObject O) {
         int i = ItemObjects.indexOf(O);
         if (i >= 0) {
-            ComboBox.setSelectedIndex(i);
             showObject();
             return true;
         } else //object not found
@@ -192,74 +157,75 @@ public class V3DViewer extends SecondoViewer {
     BranchGroup bg = null;
 
     private void showObject() {
+ 	   try {
+		    List<Face> fcs = new LinkedList();
+		    for (Object o : ItemObjects) {
+			    if (o instanceof SecondoObject) {
+				    Face f = new Face((SecondoObject) o, MI_CTransl.isSelected(),
+						    MI_LightBackground.isSelected());
+				    fcs.add(f);
+			    }
+		    }
+		    TriangleArray tri = Face.GetTriangleArray(fcs);
 
-        int index = ComboBox.getSelectedIndex();
-        if (index >= 0) {
-            try {
-                CurrentObject = (SecondoObject) ItemObjects.get(index);
-                Face f = new Face(CurrentObject, MI_CTransl.isSelected(),
-                        MI_LightBackground.isSelected());
-                TriangleArray tri = f.GetTriangleArray();
-
-                Appearance app = new Appearance();
-                PolygonAttributes pa = new PolygonAttributes();
-                if (MI_CageModel.isSelected()) {
-                    pa.setPolygonMode(PolygonAttributes.POLYGON_LINE);
-                } else {
-                    pa.setPolygonMode(PolygonAttributes.POLYGON_FILL);
-                }
-                pa.setCullFace(PolygonAttributes.CULL_NONE);
-                app.setPolygonAttributes(pa);
-                Shape3D shape = new Shape3D();
-                shape.setAppearance(app);
-                shape.setGeometry(tri);
-                Transform3D viewtransform3d = new Transform3D();
-                viewtransform3d.setTranslation(new Vector3f(0.0f, 0.0f, 1.0f));
-                TransformGroup tg = new TransformGroup(viewtransform3d);
-                tg.setCapability(TransformGroup.ALLOW_TRANSFORM_READ);
-                tg.setCapability(TransformGroup.ALLOW_TRANSFORM_WRITE);
-                tg.addChild(shape);
-                MouseRotate rotor = new MouseRotate();
-                MouseTranslate trans = new MouseTranslate();
-                rotor.setFactor(0.001f);
-                rotor.setSchedulingBounds(new BoundingSphere());
-                rotor.setTransformGroup(tg);
-                trans.setSchedulingBounds(new BoundingSphere());
-                trans.setTransformGroup(tg);
-                if (bg != null) {
-                    universe.getLocale().removeBranchGraph(bg);
-                }
-                bg = new BranchGroup();
-                if (MI_LightBackground.isSelected()) {
-                    Background background = new Background(255, 255, 255);
-                    background.setCapability(Background.ALLOW_COLOR_WRITE);
-                    BoundingSphere sphere = new BoundingSphere(new Point3d(0.0, 0.0,
-                            0.0),
-                            1000.0);
-                    background.setApplicationBounds(sphere);
-                    bg.addChild(background);
-                }
-                bg.addChild(tg);
-                bg.addChild(rotor);
-                bg.addChild(trans);
-                MouseWheelZoom mwz = new MouseWheelZoom(MouseBehavior.INVERT_INPUT);
-                mwz.setTransformGroup(universe.getViewingPlatform()
-                                      .getViewPlatformTransform());
-                mwz.setSchedulingBounds(new BoundingSphere());
-                bg.addChild(mwz);
-                bg.setCapability(BranchGroup.ALLOW_DETACH);
-                bg.compile();
-                universe.addBranchGraph(bg);
-                TransformGroup tg3 = universe.getViewingPlatform()
-                                             .getViewPlatformTransform();
-                universe.getViewer().getView()
-                        .setSceneAntialiasingEnable(MI_AntiAliasing.isSelected());
-                Transform3D t3d = new Transform3D();
-                t3d.setTranslation(new Vector3f(0.0f, 0.0f, 25));
-                tg3.setTransform(t3d);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+		    Appearance app = new Appearance();
+		    PolygonAttributes pa = new PolygonAttributes();
+		    if (MI_CageModel.isSelected()) {
+			    pa.setPolygonMode(PolygonAttributes.POLYGON_LINE);
+		    } else {
+			    pa.setPolygonMode(PolygonAttributes.POLYGON_FILL);
+		    }
+		    pa.setCullFace(PolygonAttributes.CULL_NONE);
+		    app.setPolygonAttributes(pa);
+		    Shape3D shape = new Shape3D();
+		    shape.setAppearance(app);
+		    shape.setGeometry(tri);
+		    Transform3D viewtransform3d = new Transform3D();
+		    viewtransform3d.setTranslation(new Vector3f(0.0f, 0.0f, 1.0f));
+		    TransformGroup tg = new TransformGroup(viewtransform3d);
+		    tg.setCapability(TransformGroup.ALLOW_TRANSFORM_READ);
+		    tg.setCapability(TransformGroup.ALLOW_TRANSFORM_WRITE);
+		    tg.addChild(shape);
+		    MouseRotate rotor = new MouseRotate();
+		    MouseTranslate trans = new MouseTranslate();
+		    rotor.setFactor(0.001f);
+		    rotor.setSchedulingBounds(new BoundingSphere());
+		    rotor.setTransformGroup(tg);
+		    trans.setSchedulingBounds(new BoundingSphere());
+		    trans.setTransformGroup(tg);
+		    if (bg != null) {
+			    universe.getLocale().removeBranchGraph(bg);
+		    }
+		    bg = new BranchGroup();
+		    if (MI_LightBackground.isSelected()) {
+			    Background background = new Background(255, 255, 255);
+			    background.setCapability(Background.ALLOW_COLOR_WRITE);
+			    BoundingSphere sphere = new BoundingSphere(new Point3d(0.0, 0.0,
+						    0.0),
+					    1000.0);
+			    background.setApplicationBounds(sphere);
+			    bg.addChild(background);
+		    }
+		    bg.addChild(tg);
+		    bg.addChild(rotor);
+		    bg.addChild(trans);
+		    MouseWheelZoom mwz = new MouseWheelZoom(MouseBehavior.INVERT_INPUT);
+		    mwz.setTransformGroup(universe.getViewingPlatform()
+				    .getViewPlatformTransform());
+		    mwz.setSchedulingBounds(new BoundingSphere());
+		    bg.addChild(mwz);
+		    bg.setCapability(BranchGroup.ALLOW_DETACH);
+		    bg.compile();
+		    universe.addBranchGraph(bg);
+		    TransformGroup tg3 = universe.getViewingPlatform()
+			    .getViewPlatformTransform();
+		    universe.getViewer().getView()
+			    .setSceneAntialiasingEnable(MI_AntiAliasing.isSelected());
+		    Transform3D t3d = new Transform3D();
+		    t3d.setTranslation(new Vector3f(0.0f, 0.0f, 25));
+		    tg3.setTransform(t3d);
+	    } catch (Exception e) {
+		    e.printStackTrace();
+	    }
     }
 }
