@@ -29,6 +29,23 @@ public class Region {
     public List<Face> getFaces () {
         return fcs;
     }
+
+    public void fixTopology () {
+	    List<Face> remove = new LinkedList();
+	    for (Face f1 : fcs) {
+		    for (Face f2 : fcs) {
+			    if (f1 == f2)
+				    continue;
+			    if (f1.contains(f2)) {
+				    f1.addHole(f2);
+				    remove.add(f2);
+			    }
+		    }
+	    }
+	    for (Face f : remove) {
+		    fcs.remove(f);
+	    }
+    }
     
     /**
      * Create a Region from nested list representation.

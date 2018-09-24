@@ -1,5 +1,6 @@
 package viewer.hoese.algebras.fixedmregion;
 
+import java.awt.Polygon;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -130,7 +131,29 @@ public class Face {
     public List<Face> getHoles () {
         return holes;
     }
-    
+
+
+    private Polygon p;
+    public boolean contains (Point point) {
+	    if (p == null) {
+		    p = new Polygon();
+		    for (Seg s : segs) {
+			    p.addPoint((int)s.s.x, (int)s.s.y);
+		    }
+	    }
+	    return p.contains(point.x, point.y);
+    }
+
+    public boolean contains (Face f) {
+	    return contains (f.getFirstPoint());
+    }
+
+    public Point getFirstPoint() {
+	    return segs.get(0).s;
+    }
+
+
+
     /**
      * Calculate the projection of this face unter transformation trans at
      * instant currentTime.

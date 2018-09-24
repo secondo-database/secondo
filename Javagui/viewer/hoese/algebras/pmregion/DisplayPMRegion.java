@@ -38,6 +38,7 @@ public class DisplayPMRegion extends DisplayTimeGraph {
         if (pmregion == null)
             return null;
         Region r = pmregion.project(t);
+	r.fixTopology();
         Area a = new Area();
         if (r != null) {
             for (int i = 0; i < r.getFaces().size(); i++) {
