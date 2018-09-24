@@ -2,7 +2,7 @@ CXX=clang++
 CPPFLAGS=-O3 -fPIC -Wall -ggdb
 LIBS=-lCGAL -lCGAL_Core -lboost_thread -lboost_system -lgmp -lmpfr
 LDFLAGS=$(LIBS)
-LIBOBJ=PMRegion_operations.o PMRegion_conversions.o PMRegion_helpers.o RList.o
+LIBOBJ=PMRegion_operations.o PMRegion_conversions.o PMRegion_helpers.o RList.o PMRegion_coverduration.o
 
 all: libpmregion.a pmregcli
 
@@ -17,7 +17,7 @@ libpmregion.a: $(LIBOBJ)
 	ar -cq $@ $(LIBOBJ)
 
 pmregcli: libpmregion.a pmregcli.o
-	$(CXX) -o pmregcli pmregcli.o $(LDFLAGS) libpmregion.a
+	$(CXX) -o pmregcli pmregcli.o $(LDFLAGS) libpmregion.a ../../../Tools/Utilities/satof.o
 
 clean:
 	rm  -f *.o *~ *.pch* pmregcli libpmregion.a

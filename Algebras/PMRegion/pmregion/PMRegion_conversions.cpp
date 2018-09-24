@@ -188,10 +188,7 @@ PMRegion PMRegion::fromMRegion (RList reg) {
         }
     }
 
-    Polyhedron p;
-    if (np.is_simple())
-        np.convert_to_polyhedron(p);
-    PMRegion pmreg(p);
+    PMRegion pmreg(nef2polyhedron(np));
 
     return pmreg;
 }
@@ -566,5 +563,60 @@ vector<Segment> mpoint2segments (RList& obj) {
 
         return segs;
 }
+
+/* Convert a Nef polyhedron to a normal polyhedron */
+Polyhedron nef2polyhedron (Nef_polyhedron& np) {
+    Polyhedron p;
+
+    
+    // If the polyhedron is simple, it can be converted directly
+    if (np.is_simple()) {
+        np.convert_to_polyhedron(p);
+        return p;
+    }
+
+    // Otherwise, a polygon soup has to be created
+    std::vector<Point3d> points;
+    std::vector<std::vector<std::size_t> > polygons;
+    for(Nef_polyhedron::Halffacet_const_iterator
+            f = np.halffacets_begin (),
+            end = np.halffacets_end();
+            f != end; ++f) {
+        if(f->is_twin()) continue;
+        for(Nef_polyhedron::Halffacet_cycle_const_iterator
+                fc = f->facet_cycles_begin(),
+                end = f->facet_cycles_end();
+                fc != end; ++fc)
+        {
+            if ( fc.is_shalfedge() )
+            {
+                Nef_polyhedron::SHalfedge_const_handle h = fc;
+                Nef_polyhedron::SHalfedge_around_facet_const_circulator hc(h),
+                                                                         he(hc);
+                std::vector<std::size_t> face;
+                CGAL_For_all(hc,he) {
+                    Nef_polyhedron::SVertex_const_handle v = hc->source();
+                    const Nef_polyhedron::Point_3& point = v->source()->point();
+                    std::vector<Point3d>::iterator it =
+                        find(points.begin(), points.end(), point);
+                    int idx = std::distance(points.begin(), it);
+                    if (it == points.end())
+                        points.push_back(point);
+                    face.push_back(idx);
+                }
+                polygons.push_back(face);
+            }
+        }
+    }
+
+    // The soup has to be oriented, converted to a mesh and triangulated
+    CGAL::Polygon_mesh_processing::orient_polygon_soup(points, polygons);
+    CGAL::Polygon_mesh_processing::polygon_soup_to_polygon_mesh(points,
+                                                                 polygons, p);
+    CGAL::Polygon_mesh_processing::triangulate_faces(p);
+
+    return p;
+}
+
 
 }

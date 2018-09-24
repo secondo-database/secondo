@@ -37,6 +37,12 @@
 #include <CGAL/AABB_face_graph_triangle_primitive.h>
 #include <CGAL/Polygon_2.h>
 #include <CGAL/Boolean_set_operations_2.h>
+#include <CGAL/Polygon_mesh_processing/triangulate_faces.h>
+#include <CGAL/Polygon_mesh_processing/orient_polygon_soup.h>
+#include <CGAL/Polygon_mesh_processing/polygon_soup_to_polygon_mesh.h>
+#include <CGAL/Polygon_mesh_processing/orientation.h>
+#include <CGAL/Polygon_mesh_processing/refine.h>
+#include <CGAL/Polygon_mesh_processing/fair.h>
 
 //typedef CGAL::Extended_cartesian< CGAL::Lazy_exact_nt<CGAL::Gmpq> > Kernel;
 typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
@@ -51,6 +57,7 @@ typedef Kernel::Point_3 Point3d;
 typedef Kernel::Point_2 Point2d;
 typedef Kernel::Plane_3 Plane;
 typedef Kernel::Segment_3 Segment;
+typedef Kernel::Segment_2 Segment2d;
 typedef CGAL::Polygon_2<Kernel> Polygon;
 typedef CGAL::Arr_segment_traits_2<Kernel> Traits_2;
 typedef Traits_2::Point_2 Point_2;
@@ -106,7 +113,7 @@ template <typename T> class Range {
         public:
                 map<T, T> range;
                 void addrange(T a, T b);
-		void print();
+                void print();
 };
 }
 
@@ -117,6 +124,7 @@ void Arrangement2Region(Arrangement::Face_iterator fi, pmr::RList& region);
 vector<Segment> mpoint2segments (pmr::RList& obj);
 std::set<Kernel::FT> getZEvents (Polyhedron p);
 pmr::RList Polygons2Region (vector<Polygon_with_holes_2> polygons);
+Polyhedron nef2polyhedron (Nef_polyhedron& np);
 }
 
 

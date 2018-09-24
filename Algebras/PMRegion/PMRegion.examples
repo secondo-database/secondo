@@ -25,6 +25,18 @@ Signature : pmregion -> region
 Example   : query traversedarea (cloud)
 Result    : file
 
+Operator  : translate
+Number    : 1
+Signature : pmregion x real x real x real -> pmregion
+Example   : query pmregion1 translate [100, 0, 0]
+Result    : file
+
+Operator  : coverduration
+Number    : 1
+Signature : pmregion -> pmregion
+Example   : query coverduration (cloud)
+Result    : file
+
 Operator  : inside
 Number    : 1
 Signature : mpoint x pmregion -> mbool

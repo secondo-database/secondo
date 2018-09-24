@@ -21,6 +21,8 @@ operator atinstant alias ATINSTANT pattern _ infixop _
 operator perimeter alias PERIMETER pattern op ( _ )
 operator area alias AREA pattern op ( _ )
 operator traversedarea alias TRAVERSEDAREA pattern op ( _ )
+operator translate alias TRANSLATE pattern _ op [list]
+operator coverduration alias COVERDURATION pattern op ( _ )
 operator inside alias INSIDE pattern _ infixop _
 operator union alias UNION pattern _ infixop _
 operator minus alias MINUS pattern _ infixop _

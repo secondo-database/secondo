@@ -22,7 +22,6 @@ namespace pmr {
 
 */
 
-
 /* Operation "union" of two pmregions */
 PMRegion PMRegion::operator+ (PMRegion &reg) {
     // Convert polyhedra to Nef polyhedra
@@ -31,8 +30,8 @@ PMRegion PMRegion::operator+ (PMRegion &reg) {
     Nef_polyhedron p12 = p1 + p2;
 
     PMRegion ret; // Convert it back to normal polyhedra
-    if (p12.is_simple())
-        p12.convert_to_polyhedron(ret.polyhedron);
+    ret.polyhedron = nef2polyhedron(p12);
+
     return ret;
 }
 
@@ -44,8 +43,8 @@ PMRegion PMRegion::operator* (PMRegion &reg) {
     Nef_polyhedron p12 = p1 * p2;
 
     PMRegion ret; // Convert it back to normal polyhedra
-    if (p12.is_simple())
-        p12.convert_to_polyhedron(ret.polyhedron);
+    ret.polyhedron = nef2polyhedron(p12);
+
     return ret;
 }
 
@@ -58,8 +57,8 @@ PMRegion PMRegion::operator- (PMRegion &reg) {
     Nef_polyhedron p12 = p1 - p2;
 
     PMRegion ret; // Convert it back to normal polyhedra
-    if (p12.is_simple())
-        p12.convert_to_polyhedron(ret.polyhedron);
+    ret.polyhedron = nef2polyhedron(p12);
+
     return ret;
 }
 
@@ -80,8 +79,8 @@ static Arrangement zplanecut (Polyhedron ph, Kernel::FT z) {
             it != pis.end(); ++it) {
         Segment *s = boost::get<Segment>(&((*it)->first));
         if (s != NULL && !s->is_degenerate())
-          CGAL::insert(arr, Segment_2(Point_2(s->source().x(), s->source().y()),
-                                    Point_2(s->target().x(), s->target().y())));
+            CGAL::insert(arr, Segment_2(Point_2(s->source().x(),
+                s->source().y()), Point_2(s->target().x(), s->target().y())));
     }
 
     return arr;
@@ -291,6 +290,10 @@ RList PMRegion::traversedarea () {
             Point3d p1 = h->vertex()->point();
             polygon.insert(polygon.vertices_end(), Point_2(p1.x(), p1.y()));
         } while (++h != he);
+        if (!polygon.is_simple()) {
+            // Empty polygon after projection
+            continue;
+        }
         if (polygon.orientation() == CGAL::NEGATIVE)
             polygon.reverse_orientation();
         ii.push_back(polygon);
@@ -298,6 +301,14 @@ RList PMRegion::traversedarea () {
     CGAL::join(ii.begin(), ii.end(), std::back_inserter(oi));
 
     return Polygons2Region(oi);
+}
+
+void PMRegion::translate(Kernel::FT x, Kernel::FT y, Kernel::FT z) {
+    Kernel::Vector_3 translate(x, y, z);
+    for (Polyhedron::Vertex_iterator v = polyhedron.vertices_begin();
+            v != polyhedron.vertices_end(); v++) {
+        v->point() = v->point() + translate;
+    }
 }
 
 }
