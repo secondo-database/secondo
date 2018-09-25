@@ -227,7 +227,7 @@ simple(Term,RelList,Simple) :-
   compare(>,Arg1,Arg2),
   commute(Term,RelList,Term2),
   simple(Term2,RelList,Simple),
-  dm(selectivity,['Simple/2 - Commuting arguments: ',Term, ' changed to', 
+  dm(selectivity,['Simple/2 - Commuting arguments: ',Term, ' changed to ', 
                   Simple,'.\n']),
   !.
 
