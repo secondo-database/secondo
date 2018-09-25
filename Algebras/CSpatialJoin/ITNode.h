@@ -29,8 +29,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <iostream>
 #include <vector>
 
-using namespace std;
-
 namespace csj {
 
   // structure to reprsent a node in IntSTree
