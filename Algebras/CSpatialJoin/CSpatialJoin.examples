@@ -1,0 +1,8 @@
+Database : BT
+Restore  : NO
+
+Operator : cspatialjoin
+Number   : 1
+Signature: stream(tblock) x stream(tblock) x symbol x symbol x int x int -> stream(tblock)
+Example  : query strassen feed toblocks[1] {a} strassen feed toblocks[1] {b} cspatialjoin[GeoData_a, GeoData_b, 32, 100] count
+Result   : (longint 0)

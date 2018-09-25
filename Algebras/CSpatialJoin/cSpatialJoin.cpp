@@ -41,7 +41,7 @@ join attribute for each argument relation.
 #include "Symbols.h"           
 #include "ListUtils.h"          
 #include <iostream>
-#include <math.h> 
+#include <math.h>
 #include "CRel.h"
 #include "CRelTC.h"
 #include "OperatorUtils.h"
@@ -50,8 +50,8 @@ join attribute for each argument relation.
 #include "TBlock.h"
 #include "TBlockTC.h"
 #include "cSpatialJoin.h"
-#include "cSpatialJoinProcessing.cpp"
-#include "BinaryTuple.h"   
+#include "BinaryTuple.h"
+#include "cSpatialJoinProcessingG.h"
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
@@ -61,6 +61,7 @@ using namespace std;
 using namespace CRelAlgebra;
 
 namespace csj {
+ 
 /*
 1.2 Class OperatorInfo
 
@@ -91,16 +92,17 @@ public:
               "where xi and yj are the names of the join"
               "attributes of the first and second stream,"
               "respectively.";
-    example = "query CityNode feed CityWay feed "
-              "cspatialjoin[NodeId, NodeRef, 32, 100] count";
+    example = "query Roads feed toblocks[1000] {a}"
+              "Roads feed toblocks[1000] {b}"
+              "cspatialjoin[GeoData_a, GeoData_b, 15, 2048] count";
   }
 };
 
 // constructor
 cSpatialJoin::cSpatialJoin() : Operator(Info(),
-                            valueMappings,
-                            SelectValueMapping,
-                            cspatialjoinTM) {
+                               valueMappings,
+                               SelectValueMapping,
+                               cspatialjoinTM) {
   SetUsesMemory();
 }
 
@@ -119,13 +121,13 @@ second stream, respectively.
 ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) { 
 // check the number of arguments
 // last two arguments are included for testing purposes
-// Argument 5 contains a max number of tuples per bucket
-// in partitioned binary table 
-// Argument 6 contains a number of stripes used for partition
 
 
-  if(!nl->HasLength(args, 6)) {
-    return listutils::typeError("Wrong number of arguments");
+  const uint64_t argNum = nl->ListLength(args);
+
+  if (argNum != 6)
+  {
+    return listutils::typeError("Expected six arguments.");
   }
 
   // first argument must be a stream of tuple-blocks
@@ -168,9 +170,9 @@ ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) {
 
   // sixth argument must an integer
   if(!CcInt::checkType(nl->Sixth(args))) {
-    return listutils::typeError("Error in sixth argument: "
+      return listutils::typeError("Error in sixth argument: "
                                     "Integer value expected");
-  }	
+  }
 
   // extract information about tuple block from args[]
   TBlockTI fTBlockInfo = TBlockTI(nl->Second(nl->First(args)), false);
@@ -278,7 +280,8 @@ class LocalInfo {
     // constructor
     LocalInfo(Word fs, Word ss,
               Word fi, Word si,
-              Word max, Word stripes,
+              Word stripes,
+              Word maxTuple,
               Supplier su):
         fStream(fs),
         sStream(ss),
@@ -286,7 +289,6 @@ class LocalInfo {
         fStreamIsEmpty(false),
         sStreamIsEmpty(false),
         firstRequest(true),
-        sIsFullyLoaded(false),
         fIsFulyyLoaded(false),
         memLimit(qp->GetMemorySize(s)*1024*1024), 
         fMemTBlock(0),
@@ -311,18 +313,15 @@ class LocalInfo {
     index = static_cast<CcInt*>(si.addr);
     sIndex = index->GetValue();
 
-    // test purpose!!!
-    // extract infprmation about max number of entry per bucket
-    // in partition table
-    index = static_cast<CcInt*>(max.addr);
-    maxEntryPerBucket = index->GetValue();
-
     // test purpose
     // extract information about a number of
     // partition stripes
     index = static_cast<CcInt*>(stripes.addr);
     numOfPartStripes = index->GetValue();
-    
+
+    index = static_cast<CcInt*>(maxTuple.addr);
+    maxTuplePerPart = index->GetValue();
+   
     fStream.open();
     sStream.open();
   }
@@ -331,18 +330,9 @@ class LocalInfo {
   // blocks and closes both streams
   ~LocalInfo() {
 
-    for(TBlock* tb : fTBlockVector) {
-      if(tb) {
-        tb->DecRef();
-			}
-		}
+    clearMemF();
+    clearMemS();
 
-    for(TBlock* tb : sTBlockVector) {
-      if(tb) {
-        tb->DecRef();
-			}
-		}
-		
 		if(joinState) {
       delete joinState;
     }
@@ -430,15 +420,15 @@ class LocalInfo {
   size_t getMemUsed() {
 
     return fMemTBlock
-    + fTBlockVector.size()*sizeof(TBlock*)
-    + sMemTBlock
-    + sTBlockVector.size()*sizeof(TBlock*)
-    + (fNumTuples + sNumTuples)*sizeof(binaryTuple)*4;
+         + sMemTBlock
+         + ((fNumTuples > sNumTuples) ?
+            fNumTuples : sNumTuples)*sizeof(binaryTuple)*4;
   }
     
   // Function loads tuple blocks from first and second streams until
   // either the alloted memory space is used or both streams are empty
   void streamsRequest() {
+ 
     while ((getMemUsed() < memLimit)
            && (!fStreamIsEmpty || !sStreamIsEmpty)) {
 
@@ -471,98 +461,98 @@ class LocalInfo {
         }
       }
 
-      if(firstRequest) {
-        firstRequest = false;
-        streamsRequest();
-        if(fStreamIsEmpty) {
-          fIsFulyyLoaded = true;
-        }
+      if(fStreamIsEmpty) {
         if(sStreamIsEmpty) {
-          sIsFullyLoaded = true;
-        }
-      
-      }
-      else {
-        
-        if(fStreamIsEmpty && sStreamIsEmpty) {
-          // both streams are processed
-          // nothing to do
+        // join complete
           if(joinState) {
             delete joinState;
             joinState = nullptr;
           }
           if(rTBlock->GetRowCount() == 0) {
             rTBlock->DecRef();
-
             return 0;
           }
           else {
-            
-            // return last (incomplete) tuple block
             return rTBlock;
-          }          
-        }
-        else { // one or both streams are not empty
-          // check if one of streams is fully loaded
+          }  
+        } // end of sStreamIsEmpty
+        else {
+        // first stream is empty, but second stream is not
+          clearMemS();
           if(fIsFulyyLoaded) {
-            // only first stream is fully loaded
-            // load tuple from second stream
-            // until it will be empty
-            clearMemS();
-            while((getMemUsed() < memLimit) && !sStreamIsEmpty) {
-              requestSecondStream();
-            }
-          }
-          if(sIsFullyLoaded) {
-            // only second stream is fully loaded
-            // load tuples from first stream
-            // until it will be empty
-            clearMemF();
-            while((getMemUsed() < memLimit) && !fStreamIsEmpty) {
-              requestFirstStream();
-            }
-          } // end of check
-          
-          // none of both streams is fully loaded
-        
-          if(sStreamIsEmpty) {
-            clearMemF();
-            clearMemS();
-            sStream.close();
-            sStreamIsEmpty = false;
-            sStream.open();
-            streamsRequest();
-          }
+            do {
+              if(!requestSecondStream()) {
+                 break;
+               }
+            } while(getMemUsed() < memLimit);
+          } // end of if fIsFullyLoaded
           else {
-            clearMemS();
-            while ((getMemUsed() < memLimit) && !sStreamIsEmpty) {
-              requestSecondStream();
+            clearMemF();
+            delete joinState;
+            joinState = nullptr;
+
+            if(requestSecondStream()) {
+              fStream.close();
+              fStream.open();
+              fStreamIsEmpty = false;
+              streamsRequest();
             }
+          } // end of if !fIsFullyLoaded
+        } // end of !sStreamIsEmpty
+      } // end of fStreamIsEmpty
+      else {
+        if(firstRequest) {
+          // if both streams are empty,
+          // then nothing to do
+          if(!requestFirstStream()) {
+            rTBlock->DecRef();
+            return 0; 
           }
-        } // end of both streams are not empty
-      } // end of not first request    
+          if(!requestSecondStream()) {
+            rTBlock->DecRef();
+            return 0;
+          }
+
+          // both streams are not empty
+          streamsRequest();
+
+          if(fStreamIsEmpty) {
+            fIsFulyyLoaded = true;
+          }
+
+          firstRequest = false;
+        }
+        else {
+        // not first request
+          clearMemF();
+            do {
+              if(!requestFirstStream()) {
+                 break;
+               }
+            } while(getMemUsed() < memLimit);
+        } // end of !firstRequest
+      } // end of !fStreamIsEmpty
 
       if((fTBlockVector.size() > 0) && (sTBlockVector.size() > 0)) {
-        if(joinState) {
-          
+        
+        if(joinState) {          
           delete joinState;
           joinState = nullptr;
-
-
         }
 
         joinState = new SpatialJoinState(fTBlockVector,
-                                           sTBlockVector,
-                                           fIndex,
-                                           sIndex,
-                                           fNumTuples,
-                                           sNumTuples,
-                                           rTBlockSize,
-                                           maxEntryPerBucket,
-                                           numOfPartStripes,
-                                           fDim,
-                                           sDim);
+                                         sTBlockVector,
+                                         fIndex,
+                                         sIndex,
+                                         fNumTuples,
+                                         sNumTuples,
+                                         rTBlockSize,
+                                         numOfPartStripes,
+                                         maxTuplePerPart,
+                                         fDim,
+                                         sDim);
       }
+      
     } // end of while loop
   } // end of getNext()
 
@@ -574,14 +564,13 @@ class LocalInfo {
     bool fStreamIsEmpty; // first stream is empty
     bool sStreamIsEmpty; // second stream is empty
     bool firstRequest; 
-    bool sIsFullyLoaded; // second stream is fully loaded
     bool fIsFulyyLoaded;
 
     uint64_t fIndex; // index of join attribute from first stream
     uint64_t sIndex; // index of join attribute from second stream
     uint64_t memLimit; // memory limit for operator
-    uint64_t maxEntryPerBucket;
     uint64_t numOfPartStripes;
+    uint64_t maxTuplePerPart;
     uint64_t fMemTBlock; // memory used by first stream
     uint64_t sMemTBlock; // memory used by second stream
     uint64_t fNumTuples; // number of tuples from first stream
@@ -602,37 +591,36 @@ class LocalInfo {
  1.5 Value Mapping
  
 */
- 
 int cspatialjoinVM(Word* args, Word& result, int message,
                    Word& local, Supplier s) {
-			
+
   LocalInfo* localInfo = static_cast<LocalInfo*>(local.addr);
 
   switch (message) {
     
-  case OPEN: {
-    if (localInfo) {
-      delete localInfo;
+    case OPEN: {        
+      if (localInfo) {
+        delete localInfo;
+      }
+      // wichtig : NICHT vergessen args[6] und args[7] auf 4, bzw. 5
+      // ändern (wegen tests) !!!
+      local.addr = new LocalInfo(args[0], args[1], args[6], args[7],
+                                 args[4], args[5], s);
+      return 0;
     }
-    // wichtig : NICHT vergessen args[6] und args[7] auf 4, bzw. 5
-    // ändern (wegen tests) !!!
-    local.addr = new LocalInfo(args[0], args[1], args[6], args[7],
-                               args[4], args[5], s);
-    return 0;
-  }
+        
+    case REQUEST: {
+      result.addr = localInfo ? localInfo->getNext() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
       
-  case REQUEST: {
-    result.addr = localInfo ? localInfo->getNext() : 0;
-    return result.addr ? YIELD : CANCEL;
-  }
-    
-  case CLOSE: {
-    if (localInfo) {
-      delete localInfo;
-      local.addr = 0;
-    }
+    case CLOSE: {
+      if (localInfo) {
+        delete localInfo;
+        local.addr = 0;
+      }    
     return 0;
-  }
+    }
   } // End switch
 
   return 0;
