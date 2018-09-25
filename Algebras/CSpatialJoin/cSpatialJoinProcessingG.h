@@ -378,8 +378,6 @@ class SpatialJoinState {
                                  
     sizeBAT1 = fBAT.size();
     sizeBAT2 = sBAT.size();
-
-cout<<"G"<<endl;
     
   }
 

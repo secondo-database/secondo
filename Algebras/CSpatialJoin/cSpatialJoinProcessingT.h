@@ -33,8 +33,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RectangleAlgebra.h"
 #include "SpatialAttrArray.h"
 
-using namespace CRelAlgebra;
-
 namespace csj {
 
   void firstPartitionX(std::vector<binaryTuple> &bat,
@@ -386,10 +384,6 @@ class SpatialJoinState {
 
     fSweepStruct = nullptr;
     sSweepStruct = nullptr;
-
-cout<<"T"<<endl;
-    
-
   }
 
   // Destructor                 
@@ -817,8 +811,8 @@ cout<<"T"<<endl;
   return true;
   } // end of sweepSearch
  
-  const std::vector<TBlock*> &fTBlockVector;
-  const std::vector<TBlock*> &sTBlockVector;
+  const std::vector<CRelAlgebra::TBlock*> &fTBlockVector;
+  const std::vector<CRelAlgebra::TBlock*> &sTBlockVector;
   uint64_t fIndex;
   uint64_t sIndex;
   uint64_t fNumTuples;
