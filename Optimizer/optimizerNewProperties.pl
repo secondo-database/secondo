@@ -1461,9 +1461,11 @@ plan_to_atom(tmatches(X, Y), Result) :-
 % special rule to handle special attribute ~rowid~
 plan_to_atom(rowid,' tupleid(.)' ) :- !.
 
-plan_to_atom(A, A) :-
-  string(A), 
-  write_list(['\nINFO: ', plan_to_atom(A, A),' found a string!\n']),
+plan_to_atom(A,A1) :-
+  string(A),
+  atom_string(A2,A),
+  %write_list(['\nINFO: ',plan_to_atom(A,A),' found a string!\n']),
+  my_concat_atom(['"',A2,'"'],'',A1),
   !.
 
 plan_to_atom(dbobject(Name), ExtName) :-	% fapra 2015/16
@@ -6052,7 +6054,9 @@ costEdge(Source, Target, PropertiesIn, Plan, PropertiesOut, Result,
 
 determineCost(Term, Sel, Pred, Result, Size, Cost) :-
   getMemory(Memory),
+	write('Cost function 2014 called for term '), write(Term), nl,
   cost(Term, Sel, Pred, Result, Memory, Size, _NAttrs, _TupleSize, Cost),
+	write('Cost function 2014 succeeded'), nl, nl,
   !.
 
 determineCost(Term, Sel, Pred, Result, Size, Cost) :-
