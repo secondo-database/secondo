@@ -51,7 +51,7 @@ join attribute for each argument relation.
 #include "TBlockTC.h"
 #include "cSpatialJoin.h"
 #include "BinaryTuple.h"
-#include "cSpatialJoinProcessingG.h"
+#include "cSpatialJoinProcessingL.h"
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
