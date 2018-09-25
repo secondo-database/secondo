@@ -39,6 +39,10 @@ import stlib.interfaces.unit.spatial.UnitPointIF;
  * 
  * @author Markus Fuessel
  */
+/**
+ * @author Markus Fuessel
+ *
+ */
 public class UnitPointLinear extends UnitObject<PointIF> implements UnitPointIF {
 
    /**
@@ -86,10 +90,21 @@ public class UnitPointLinear extends UnitObject<PointIF> implements UnitPointIF 
     */
    @Override
    public PointIF getValue(final TimeInstantIF instant) {
+      return getValue(instant, false);
+   }
+
+   /*
+    * (non-Javadoc)
+    * 
+    * @see stlib.interfaces.unit.UnitObjectIF#getValue(stlib.interfaces.time.
+    * TimeInstantIF, boolean)
+    */
+   @Override
+   public PointIF getValue(final TimeInstantIF instant, final boolean ignoreClosedFlags) {
 
       PeriodIF period = getPeriod();
 
-      if (isDefined() && period.contains(instant)) {
+      if (isDefined() && period.contains(instant, ignoreClosedFlags)) {
          if (instant.equals(period.getLowerBound())) {
             return getInitial();
 
@@ -125,7 +140,8 @@ public class UnitPointLinear extends UnitObject<PointIF> implements UnitPointIF 
          return new UnitPointLinear();
       }
 
-      return new UnitPointLinear(newPeriod, getValue(newPeriod.getLowerBound()), getValue(newPeriod.getUpperBound()));
+      return new UnitPointLinear(newPeriod, getValue(newPeriod.getLowerBound(), true),
+            getValue(newPeriod.getUpperBound(), true));
    }
 
    /**

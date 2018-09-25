@@ -70,14 +70,26 @@ public abstract class UnitObjectConst<T extends GeneralTypeIF> extends UnitObjec
    /*
     * (non-Javadoc)
     * 
-    * @see stlib.interfaces.unit.UnitObjectIF#getValue(java.time.Instant)
+    * @see stlib.interfaces.unit.UnitObjectIF#getValue(stlib.interfaces.time.
+    * TimeInstantIF)
     */
    @Override
    public T getValue(final TimeInstantIF instant) {
+      return getValue(instant, false);
+   }
+
+   /*
+    * (non-Javadoc)
+    * 
+    * @see stlib.interfaces.unit.UnitObjectIF#getValue(stlib.interfaces.time.
+    * TimeInstantIF, boolean)
+    */
+   @Override
+   public T getValue(final TimeInstantIF instant, final boolean ignoreClosedFlags) {
 
       PeriodIF period = getPeriod();
 
-      if (isDefined() && period.contains(instant)) {
+      if (isDefined() && period.contains(instant, ignoreClosedFlags)) {
          return getValue();
       } else {
          return getUndefinedObject();

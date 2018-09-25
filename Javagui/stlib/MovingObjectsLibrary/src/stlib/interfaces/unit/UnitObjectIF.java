@@ -84,6 +84,25 @@ public interface UnitObjectIF<T extends GeneralTypeIF> extends GeneralTypeIF, Co
    T getValue(TimeInstantIF instant);
 
    /**
+    * This method returns a object of type {@code T} which is valid at the given
+    * time instant, if this time instant lies inside the defined period of this
+    * unitobject<br>
+    * With {@code ignoreClosedFlags} set to true the interval is considered as
+    * closed.
+    * <p>
+    * otherwise the returned object is undefined
+    * 
+    * @param instant
+    *           the time instant
+    * 
+    * @param ignoreClosedFlags
+    *           - the left closed and right closed flags are ignored if true
+    * 
+    * @return object of type {@code T}
+    */
+   T getValue(TimeInstantIF instant, final boolean ignoreClosedFlags);
+
+   /**
     * This method reduces this 'UnitObject' by the passed time period. <br>
     * The passed time period musst intersect with the period of this unit object,
     * otherwise the returned object is undefined

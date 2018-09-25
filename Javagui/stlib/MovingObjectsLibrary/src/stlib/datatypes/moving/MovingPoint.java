@@ -21,7 +21,6 @@ package stlib.datatypes.moving;
 import java.util.List;
 
 import stlib.datatypes.interval.Period;
-import stlib.datatypes.intime.Intime;
 import stlib.datatypes.spatial.Point;
 import stlib.datatypes.spatial.util.Rectangle;
 import stlib.datatypes.unit.spatial.UnitPointConst;
@@ -60,12 +59,13 @@ public class MovingPoint extends MovingObject<UnitPointIF, PointIF> implements M
 
    /**
     * Constructor for a 'MovingPoint' object.<br>
-    * Creates the object out of the passed list of {@code Intime<PointIF>} objects.
+    * Creates the object out of the passed list of {@code IntimeIF<PointIF>}
+    * objects.
     * 
     * @param intimePoints
-    *           - list of {@code Intime<PointIF>} objects
+    *           - list of {@code IntimeIF<PointIF>} objects
     */
-   public MovingPoint(final List<Intime<PointIF>> intimePoints) {
+   public MovingPoint(final List<IntimeIF<PointIF>> intimePoints) {
       this(intimePoints.size());
 
       int posLastPoint = intimePoints.size() - 1;

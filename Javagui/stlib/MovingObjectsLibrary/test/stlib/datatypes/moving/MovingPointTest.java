@@ -38,6 +38,7 @@ import stlib.datatypes.spatial.Point;
 import stlib.datatypes.time.TimeInstant;
 import stlib.datatypes.unit.spatial.UnitPointConst;
 import stlib.datatypes.unit.spatial.UnitPointLinear;
+import stlib.interfaces.intime.IntimeIF;
 import stlib.interfaces.spatial.PointIF;
 import stlib.interfaces.spatial.util.RectangleIF;
 import stlib.interfaces.unit.spatial.UnitPointIF;
@@ -81,7 +82,7 @@ public class MovingPointTest {
 
    @Test
    public void testMovingPoint_WithListIntimePoints() {
-      List<Intime<PointIF>> ipoints = new ArrayList<>();
+      List<IntimeIF<PointIF>> ipoints = new ArrayList<>();
 
       ipoints.add(new Intime<PointIF>(new TimeInstant("2018-01-01 00:00:00:000"), new Point(0.0d, 0.0d)));
       ipoints.add(new Intime<PointIF>(new TimeInstant("2018-01-10 00:00:00:000"), new Point(10.0d, 10.0d)));
@@ -224,7 +225,7 @@ public class MovingPointTest {
 
    @Test
    public void testAdd_UnitWithEqualFinalInitialValuePeriodIntersectOnBorder_Successful() {
-      List<Intime<PointIF>> ipoints = new ArrayList<>();
+      List<IntimeIF<PointIF>> ipoints = new ArrayList<>();
 
       ipoints.add(new Intime<PointIF>(new TimeInstant("2018-01-01 00:00:00:000"), new Point(0.0d, 0.0d)));
       ipoints.add(new Intime<PointIF>(new TimeInstant("2018-01-10 00:00:00:000"), new Point(10.0d, 10.0d)));
@@ -251,7 +252,7 @@ public class MovingPointTest {
 
    @Test
    public void testAdd_UnitWithNonEqualFinalInitialValuePeriodIntersectOnBorder_Fail() {
-      List<Intime<PointIF>> ipoints = new ArrayList<>();
+      List<IntimeIF<PointIF>> ipoints = new ArrayList<>();
 
       ipoints.add(new Intime<PointIF>(new TimeInstant("2018-01-01 00:00:00:000"), new Point(0.0d, 0.0d)));
       ipoints.add(new Intime<PointIF>(new TimeInstant("2018-01-10 00:00:00:000"), new Point(10.0d, 10.0d)));

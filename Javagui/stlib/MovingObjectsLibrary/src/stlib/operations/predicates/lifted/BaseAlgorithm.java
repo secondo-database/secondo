@@ -76,7 +76,9 @@ public abstract class BaseAlgorithm {
             } else {
                MovingBoolIF mboolUnits = getUnitResult(uobject1, uobject2);
 
-               mboolResult.add(mboolUnits);
+               if (mboolUnits.getNoUnits() > 0) {
+                  mboolResult.add(mboolUnits);
+               }
 
                if (uobject1.periodEndsWithin(uobject2)) {
                   pos1++;

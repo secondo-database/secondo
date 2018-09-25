@@ -143,14 +143,25 @@ public class UnitRegionLinear extends UnitObject<RegionIF> implements UnitRegion
    /*
     * (non-Javadoc)
     * 
-    * @see stlib.interfaces.unit.UnitObjectIF#getValue(stlib.datatypes.time.
+    * @see stlib.interfaces.unit.UnitObjectIF#getValue(stlib.interfaces.time.
     * TimeInstantIF)
     */
    @Override
    public RegionIF getValue(TimeInstantIF instant) {
+      return getValue(instant, false);
+   }
+
+   /*
+    * (non-Javadoc)
+    * 
+    * @see stlib.interfaces.unit.UnitObjectIF#getValue(stlib.interfaces.time.
+    * TimeInstantIF, boolean)
+    */
+   @Override
+   public RegionIF getValue(TimeInstantIF instant, final boolean ignoreClosedFlags) {
       PeriodIF period = getPeriod();
 
-      if (isDefined() && period.contains(instant)) {
+      if (isDefined() && period.contains(instant, ignoreClosedFlags)) {
          RegionIF region = new Region(true);
 
          for (MovableFaceIF movingFace : movingFaces) {

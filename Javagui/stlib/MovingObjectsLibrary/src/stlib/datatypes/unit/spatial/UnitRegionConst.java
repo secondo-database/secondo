@@ -145,9 +145,20 @@ public class UnitRegionConst extends UnitObject<RegionIF> implements UnitRegionI
     */
    @Override
    public RegionIF getValue(TimeInstantIF instant) {
+      return getValue(instant, false);
+   }
+
+   /*
+    * (non-Javadoc)
+    * 
+    * @see stlib.interfaces.unit.UnitObjectIF#getValue(stlib.interfaces.time.
+    * TimeInstantIF, boolean)
+    */
+   @Override
+   public RegionIF getValue(TimeInstantIF instant, final boolean ignoreClosedFlags) {
       PeriodIF period = getPeriod();
 
-      if (isDefined() && period.contains(instant)) {
+      if (isDefined() && period.contains(instant, ignoreClosedFlags)) {
          return getConstRegion();
       } else {
          return new Region(false);

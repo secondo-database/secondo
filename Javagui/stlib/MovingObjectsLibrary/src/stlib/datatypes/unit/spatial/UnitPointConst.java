@@ -91,10 +91,21 @@ public class UnitPointConst extends UnitObject<PointIF> implements UnitPointIF, 
     */
    @Override
    public PointIF getValue(final TimeInstantIF instant) {
+      return getValue(instant, false);
+   }
+
+   /*
+    * (non-Javadoc)
+    * 
+    * @see stlib.interfaces.unit.UnitObjectIF#getValue(stlib.interfaces.time.
+    * TimeInstantIF, boolean)
+    */
+   @Override
+   public PointIF getValue(final TimeInstantIF instant, final boolean ignoreClosedFlags) {
 
       PeriodIF period = getPeriod();
 
-      if (isDefined() && period.contains(instant)) {
+      if (isDefined() && period.contains(instant, ignoreClosedFlags)) {
          return getConstPoint();
       } else {
          return new Point();
