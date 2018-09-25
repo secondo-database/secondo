@@ -29,67 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RectangleAlgebra.h"
 #include "SpatialAttrArray.h"
 
-using namespace std;
-using namespace CRelAlgebra;
-
 namespace csj {
-
-  void MergeSortList(vector<binaryTuple> &pss) {
-
-    uint64_t sizeIter;
-    uint64_t blockIter;
-    uint64_t lBlockIter;
-    uint64_t rBlockIter;
-    uint64_t mergeIter;
-    uint64_t lBorder;
-    uint64_t mBorder;
-    uint64_t rBorder;
-    uint64_t numTuples = pss.size();
-
-    for(sizeIter = 1; sizeIter < numTuples; sizeIter *= 2) {
-      for(blockIter=0; blockIter<numTuples-sizeIter; blockIter += 2*sizeIter) {
-        // We merge with the sorting of a pair of blocks starting
-        // with the blockIter element
-        // left has a size of sizeIter, right has a size of sizeIter or less
-        lBlockIter = 0;
-        rBlockIter = 0;
-        lBorder = blockIter;
-        mBorder = blockIter + sizeIter;
-        rBorder = blockIter + 2*sizeIter;
-        rBorder = (rBorder < numTuples) ? rBorder : numTuples;
-        vector<binaryTuple> SortedBlock(rBorder-lBorder);
-
-        // While in both arrays there are elements we select the smaller
-        // of them and put them in the sorted block
-        while(lBorder+lBlockIter < mBorder && mBorder+rBlockIter < rBorder) {
-          if(pss[lBorder+lBlockIter].yMax > pss[mBorder+rBlockIter].yMax) {
-            SortedBlock[lBlockIter+rBlockIter] = pss[lBorder + lBlockIter];
-            lBlockIter += 1;
-          }
-          else {
-            SortedBlock[lBlockIter+rBlockIter] = pss[mBorder+rBlockIter];
-            rBlockIter += 1;
-          }
-        }
-        
-        // After that, we enter the remaining elements
-        // from the left or right block
-        while(lBorder+lBlockIter < mBorder) {
-          SortedBlock[lBlockIter+rBlockIter] = pss[lBorder+lBlockIter];
-          lBlockIter += 1;
-        }
-        while(mBorder + rBlockIter < rBorder) {
-          SortedBlock[lBlockIter+rBlockIter] = pss[mBorder+rBlockIter];
-          rBlockIter += 1;
-        }
-
-        for(mergeIter = 0; mergeIter < lBlockIter + rBlockIter; mergeIter++) {
-          pss[lBorder+mergeIter] = SortedBlock[mergeIter];
-        }
-        SortedBlock.clear();
-      }
-    }
-  }
 
   void firstPartitionX(vector<binaryTuple> &bat,
                        vector<vector<binaryTuple>> &partBAT,
@@ -293,7 +233,8 @@ namespace csj {
     return tempNumPartStripes;
   }
 
-  vector<binaryTuple> createBAT(const vector<TBlock*> &tBlockVector,
+  vector<binaryTuple> createBAT(
+                             const vector<CRelAlgebra::TBlock*> &tBlockVector,
                              const uint64_t &joinIndex,
                              double &xMin,
                              double &xMax,
@@ -307,17 +248,18 @@ namespace csj {
     
     while(tBlockNum <= tBlockVector.size()) {
 
-      TBlockIterator tBlockIter = tBlockVector[tBlockNum-1]->GetIterator();
+      CRelAlgebra::TBlockIterator tBlockIter =
+                                       tBlockVector[tBlockNum-1]->GetIterator();
       uint64_t row = 0;
 
       while(tBlockIter.IsValid()) {
 
-        const TBlockEntry &tuple = tBlockIter.Get();
+        const CRelAlgebra::TBlockEntry &tuple = tBlockIter.Get();
         temp.blockNum = tBlockNum;
         temp.row = row;
 
         if(dim == 2) {
-          SpatialAttrArrayEntry<2> attribute = tuple[joinIndex];
+          CRelAlgebra::SpatialAttrArrayEntry<2> attribute = tuple[joinIndex];
           Rectangle<2> rec = attribute.GetBoundingBox();
           temp.xMin = rec.MinD(0);
           temp.xMax = rec.MaxD(0);
@@ -325,7 +267,7 @@ namespace csj {
           temp.yMax = rec.MaxD(1);
         }
         else {
-          SpatialAttrArrayEntry<3> attribute = tuple[joinIndex];
+          CRelAlgebra::SpatialAttrArrayEntry<3> attribute = tuple[joinIndex];
           Rectangle<3> rec = attribute.GetBoundingBox();
           temp.xMin = rec.MinD(0);
           temp.xMax = rec.MaxD(0);
@@ -360,8 +302,8 @@ namespace csj {
 class SpatialJoinState {
   public: 
   // Constructor
-  SpatialJoinState(const vector<TBlock*> &fTBlockVector_,
-                   const vector<TBlock*> &sTBlockVector_,
+  SpatialJoinState(const vector<CRelAlgebra::TBlock*> &fTBlockVector_,
+                   const vector<CRelAlgebra::TBlock*> &sTBlockVector_,
                    uint64_t fIndex_,
                    uint64_t sIndex_,
                    uint64_t fNumTuples_,
@@ -398,7 +340,8 @@ class SpatialJoinState {
                    eq_size(0),
                    partLevel(0),
                    bucketNumber(0),
-                   newTuple(new AttrArrayEntry[fNumColumns+sNumColumns]) {
+                   newTuple(new CRelAlgebra::AttrArrayEntry[fNumColumns
+                                                           +sNumColumns]) {
 
     // mask to decode bucket number
     bucketNumberMask = (1ULL << 24) - 1;
@@ -448,7 +391,7 @@ class SpatialJoinState {
     min.clear();
   }
 
-  bool nextTBlock(TBlock* ntb) {
+  bool nextTBlock(CRelAlgebra::TBlock* ntb) {
 
     // plane-sweep over all parts
     for(uint64_t tempPart = resumePart; tempPart < numStripes; tempPart++) {
@@ -608,7 +551,7 @@ class SpatialJoinState {
   }
 
 bool sweepSearch(vector<binaryTuple> &sweepStruct,
-                   TBlock* ntb,
+                   CRelAlgebra::TBlock* ntb,
                    binaryTuple searchTuple,
                    int stream,
                    uint64_t part) {
@@ -650,11 +593,11 @@ bool sweepSearch(vector<binaryTuple> &sweepStruct,
         // save next result tuple in result tuple block
         
         if(stream == 1) {
-          const TBlockEntry &fTuple = TBlockEntry(
+          const CRelAlgebra::TBlockEntry &fTuple = CRelAlgebra::TBlockEntry(
                 fTBlockVector[(searchTuple.blockNum & blockMask) - 1],
                 searchTuple.row & rowMask);
 
-          const TBlockEntry &sTuple = TBlockEntry(
+          const CRelAlgebra::TBlockEntry &sTuple = CRelAlgebra::TBlockEntry(
                 sTBlockVector[(tempTuple.blockNum & blockMask) - 1],
                 tempTuple.row & rowMask);
 
@@ -669,11 +612,11 @@ bool sweepSearch(vector<binaryTuple> &sweepStruct,
           ntb->Append(newTuple);
         }
         else {
-          const TBlockEntry &sTuple = TBlockEntry(
+          const CRelAlgebra::TBlockEntry &sTuple = CRelAlgebra::TBlockEntry(
                 sTBlockVector[(searchTuple.blockNum & blockMask) - 1],
                 searchTuple.row & rowMask);
 
-          const TBlockEntry &fTuple = TBlockEntry(
+          const CRelAlgebra::TBlockEntry &fTuple = CRelAlgebra::TBlockEntry(
                 fTBlockVector[(tempTuple.blockNum & blockMask) - 1],
                 tempTuple.row & rowMask);
 
@@ -700,8 +643,8 @@ bool sweepSearch(vector<binaryTuple> &sweepStruct,
   return true;
   } // end of sweepSearch
   
-  const vector<TBlock*> &fTBlockVector;
-  const vector<TBlock*> &sTBlockVector;
+  const vector<CRelAlgebra::TBlock*> &fTBlockVector;
+  const vector<CRelAlgebra::TBlock*> &sTBlockVector;
   uint64_t fIndex;
   uint64_t sIndex;
   uint64_t fNumTuples;
@@ -751,7 +694,6 @@ bool sweepSearch(vector<binaryTuple> &sweepStruct,
   uint64_t sizeBAT2;
 
 
-  AttrArrayEntry* const newTuple; // AttrArrayEntry* const newTuple;
-
+  CRelAlgebra::AttrArrayEntry* const newTuple;
 };
 }
