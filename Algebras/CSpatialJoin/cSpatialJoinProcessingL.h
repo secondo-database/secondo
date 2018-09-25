@@ -31,9 +31,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace csj {
 
-  void firstPartitionX(vector<binaryTuple> &bat,
-                       vector<vector<binaryTuple>> &partBAT,
-                       vector<uint64_t> &bucketCounter,
+  void firstPartitionX(std::vector<binaryTuple> &bat,
+                       std::vector<std::vector<binaryTuple>> &partBAT,
+                       std::vector<uint64_t> &bucketCounter,
                        uint64_t &numPartStripes,
                        double &xMin,
                        double &xMax) {
@@ -55,7 +55,7 @@ namespace csj {
     //initialization
     for(uint64_t i=0; i<numPartStripes; i++) {
       bucketCounter.push_back(0);
-      vector<binaryTuple> temp;
+      std::vector<binaryTuple> temp;
       partBAT.push_back(temp);
     }
       
@@ -85,13 +85,13 @@ namespace csj {
   
   }
 
-  uint64_t finalPartitionX(vector<vector<binaryTuple>> &pb1,
-                       vector<vector<binaryTuple>> &pb2,
-                       vector<binaryTuple> &b1,
-                       vector<binaryTuple> &b2,
-                       vector<uint64_t> &bc1,
-                       vector<uint64_t> &bc2,
-                       vector<double> &min,
+  uint64_t finalPartitionX(std::vector<std::vector<binaryTuple>> &pb1,
+                       std::vector<std::vector<binaryTuple>> &pb2,
+                       std::vector<binaryTuple> &b1,
+                       std::vector<binaryTuple> &b2,
+                       std::vector<uint64_t> &bc1,
+                       std::vector<uint64_t> &bc2,
+                       std::vector<double> &min,
                        uint64_t &stripes,
                        uint64_t &maxEntry,
                        uint64_t outPartNumber,
@@ -141,10 +141,10 @@ namespace csj {
         // and partition currently buckets in both tables
         // both buckets don't must be empty
         if((bucketPos1 > 0) && (bucketPos2 > 0)) {
-          vector<vector<binaryTuple>> tempPB1;
-          vector<vector<binaryTuple>> tempPB2;
-          vector<uint64_t> tempBC1;
-          vector<uint64_t> tempBC2;
+          std::vector<std::vector<binaryTuple>> tempPB1;
+          std::vector<std::vector<binaryTuple>> tempPB2;
+          std::vector<uint64_t> tempBC1;
+          std::vector<uint64_t> tempBC2;
 
           // compute temporary X-Min and X-Max
           tempXMin = xMin + ((xMax - xMin)/stripes)*i;
@@ -185,9 +185,9 @@ namespace csj {
     return partNumber;
   }
 
-  uint64_t spacePartitionX(vector<binaryTuple> &bat1,
-                           vector<binaryTuple> &bat2,
-                           vector<double> &min,
+  uint64_t spacePartitionX(std::vector<binaryTuple> &bat1,
+                           std::vector<binaryTuple> &bat2,
+                           std::vector<double> &min,
                            uint64_t &numPartStripes,
                            uint64_t maxEntryPerBucket,
                            double &xMin,
@@ -195,10 +195,12 @@ namespace csj {
                            uint64_t &divideFactor) {
 
     uint64_t tempNumPartStripes = numPartStripes;
-    vector<vector<binaryTuple>> partBAT1; // temporary partition table for bat1
-    vector<vector<binaryTuple>> partBAT2; // temporary partition table for bat2
-    vector<uint64_t> bucketCounter1; // contains number of tuples in bucket i
-    vector<uint64_t> bucketCounter2; // contains number of tuples in bucket i
+    // temporary partition table for bat1
+    std::vector<std::vector<binaryTuple>> partBAT1;
+    // temporary partition table for bat2
+    std::vector<std::vector<binaryTuple>> partBAT2; 
+    std::vector<uint64_t> bucketCounter1; //contains number of tuples in bucket
+    std::vector<uint64_t> bucketCounter2; //contains number of tuples in bucket
 
 
     // partition both binary tables for the first time
@@ -233,8 +235,8 @@ namespace csj {
     return tempNumPartStripes;
   }
 
-  vector<binaryTuple> createBAT(
-                             const vector<CRelAlgebra::TBlock*> &tBlockVector,
+  std::vector<binaryTuple> createBAT(
+                          const std::vector<CRelAlgebra::TBlock*> &tBlockVector,
                              const uint64_t &joinIndex,
                              double &xMin,
                              double &xMax,
@@ -242,7 +244,7 @@ namespace csj {
                              double &yMax,
                              size_t dim) {
                                
-    vector<binaryTuple> BAT;
+    std::vector<binaryTuple> BAT;
     uint64_t tBlockNum = 1;
     binaryTuple temp;
     
@@ -297,13 +299,11 @@ namespace csj {
     return BAT;
   }
 
-  
-
 class SpatialJoinState {
   public: 
   // Constructor
-  SpatialJoinState(const vector<CRelAlgebra::TBlock*> &fTBlockVector_,
-                   const vector<CRelAlgebra::TBlock*> &sTBlockVector_,
+  SpatialJoinState(const std::vector<CRelAlgebra::TBlock*> &fTBlockVector_,
+                   const std::vector<CRelAlgebra::TBlock*> &sTBlockVector_,
                    uint64_t fIndex_,
                    uint64_t sIndex_,
                    uint64_t fNumTuples_,
@@ -377,6 +377,9 @@ class SpatialJoinState {
                                  
     sizeBAT1 = fBAT.size();
     sizeBAT2 = sBAT.size();
+
+cout<<"L"<<endl;
+
   }
 
   // Destructor                 
@@ -519,7 +522,7 @@ class SpatialJoinState {
 
   private:
 
-  void sweepRemove(vector<binaryTuple> &sweepStruct,
+  void sweepRemove(std::vector<binaryTuple> &sweepStruct,
                                 binaryTuple bt) {
 
     uint64_t deletePos = 0;
@@ -540,17 +543,7 @@ class SpatialJoinState {
     }
   }
 
-  void sweepToScreen(vector<binaryTuple> &sweepStruct) {
-
-    for(uint64_t iter = 0; iter < sweepStruct.size(); iter++) {
-      cout<<"xMin: "<<sweepStruct[iter].xMin<<" xMax: ";
-      cout<<sweepStruct[iter].xMax<<" yMin: "<<sweepStruct[iter].yMin;
-      cout<<" yMax: "<<sweepStruct[iter].yMax<<endl;
-    }
-    cout<<endl;
-  }
-
-bool sweepSearch(vector<binaryTuple> &sweepStruct,
+bool sweepSearch(std::vector<binaryTuple> &sweepStruct,
                    CRelAlgebra::TBlock* ntb,
                    binaryTuple searchTuple,
                    int stream,
@@ -643,16 +636,16 @@ bool sweepSearch(vector<binaryTuple> &sweepStruct,
   return true;
   } // end of sweepSearch
   
-  const vector<CRelAlgebra::TBlock*> &fTBlockVector;
-  const vector<CRelAlgebra::TBlock*> &sTBlockVector;
+  const std::vector<CRelAlgebra::TBlock*> &fTBlockVector;
+  const std::vector<CRelAlgebra::TBlock*> &sTBlockVector;
   uint64_t fIndex;
   uint64_t sIndex;
   uint64_t fNumTuples;
   uint64_t sNumTuples;
   uint64_t rTBlockSize;
-  vector<binaryTuple> fBAT;
-  vector<binaryTuple> sBAT;
-  vector<double> min;
+  std::vector<binaryTuple> fBAT;
+  std::vector<binaryTuple> sBAT;
+  std::vector<double> min;
   uint64_t maxEntryPerBucket;
   uint64_t beginNumStripes;
   uint64_t numStripes;
@@ -672,8 +665,8 @@ bool sweepSearch(vector<binaryTuple> &sweepStruct,
   uint64_t resumePart;
   uint64_t resumeIter;
 
-  vector<binaryTuple> fSweepStruct;
-  vector<binaryTuple> sSweepStruct;
+  std::vector<binaryTuple> fSweepStruct;
+  std::vector<binaryTuple> sSweepStruct;
   bool resume;
 
   uint64_t divideFactor;
@@ -687,7 +680,7 @@ bool sweepSearch(vector<binaryTuple> &sweepStruct,
   uint64_t blockMask;
   uint64_t rowMask;
 
-  deque<Event> eq;
+  std::deque<Event> eq;
   Event tempEvent;
         
   uint64_t sizeBAT1;

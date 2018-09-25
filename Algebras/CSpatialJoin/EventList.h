@@ -27,9 +27,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "BinaryTuple.h"
 #include <deque>
 
-
-//using namespace std;
-
 namespace csj {
 
   struct Event {
@@ -43,7 +40,7 @@ namespace csj {
     double y; 
   };
   
-  void MergeSortY(deque<Event> &eq) {
+  void MergeSortY(std::deque<Event> &eq) {
 
     uint64_t sizeIter;
     uint64_t blockIter;
@@ -67,7 +64,7 @@ namespace csj {
         mBorder = blockIter + sizeIter;
         rBorder = blockIter + 2*sizeIter;
         rBorder = (rBorder < numTuples) ? rBorder : numTuples;
-        deque<Event> SortedBlock(rBorder-lBorder);
+        std::deque<Event> SortedBlock(rBorder-lBorder);
 
         // While in both arrays there are elements we select the smaller
         // of them and put them in the sorted block

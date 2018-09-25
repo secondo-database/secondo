@@ -57,9 +57,6 @@ extern NestedList *nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
-using namespace std;
-using namespace CRelAlgebra;
-
 namespace csj {
  
 /*
@@ -70,11 +67,11 @@ A subclass of class ~OperatorInfo~ is defined with information on the operator.
 */
 
 // Store signature as String.
-const string inSignature =
+const std::string inSignature =
   "stream (tblock (a ((x1 t1) ... (xn tn)))) x \n"
   "stream (tblock (b ((y1 d1) ... (ym dm)))) x \n"
   "xi x yj \n";
-const string outSignature =
+const std::string outSignature =
   "-> \n"
   "stream (tblock (c ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))";
   
@@ -135,7 +132,7 @@ ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) {
     return listutils::typeError("Error in  first argument: "
                                   "Stream expected.");
   }
-  if(!TBlockTI::Check(nl->Second(nl->First(args)))) {
+  if(!CRelAlgebra::TBlockTI::Check(nl->Second(nl->First(args)))) {
     return listutils::typeError("Error in  first argument: "
                                  "Stream of tuple-blocks expected.");
   }
@@ -145,7 +142,7 @@ ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) {
     return listutils::typeError("Error in  second argument.: "
                                     "Stream expected.");
   }
-  if(!TBlockTI::Check(nl->Second(nl->Second(args)))) {
+  if(!CRelAlgebra::TBlockTI::Check(nl->Second(nl->Second(args)))) {
     return listutils::typeError("Error in  second argument: "
                                     "Stream of tuple-blocks expected.");
   }
@@ -175,12 +172,14 @@ ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) {
   }
 
   // extract information about tuple block from args[]
-  TBlockTI fTBlockInfo = TBlockTI(nl->Second(nl->First(args)), false);
-  TBlockTI sTBlockInfo = TBlockTI(nl->Second(nl->Second(args)), false);
+  CRelAlgebra::TBlockTI fTBlockInfo =
+                     CRelAlgebra::TBlockTI(nl->Second(nl->First(args)), false);
+  CRelAlgebra::TBlockTI sTBlockInfo =
+                     CRelAlgebra::TBlockTI(nl->Second(nl->Second(args)), false);
 
   // extract names of column of attribute from args[]
-  string fAttrName = nl->SymbolValue(nl->Third(args));
-  string sAttrName = nl->SymbolValue(nl->Fourth(args));
+  std::string fAttrName = nl->SymbolValue(nl->Third(args));
+  std::string sAttrName = nl->SymbolValue(nl->Fourth(args));
 
   // search for column index in the first relation
   uint64_t fNameIndex;
@@ -233,8 +232,9 @@ ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) {
 
   // Initialize the type and size of result tuple block
   // and check for duplicates column names
-  TBlockTI rTBlockInfo = TBlockTI(false);
-  set<string> columnNames; // structure helps to eliminate the duplicates
+  CRelAlgebra::TBlockTI rTBlockInfo = CRelAlgebra::TBlockTI(false);
+  // structure helps to eliminate the duplicates
+  std::set<std::string> columnNames; 
 
   if(fTBlockInfo.GetDesiredBlockSize() >
 	   sTBlockInfo.GetDesiredBlockSize()) {
@@ -298,10 +298,10 @@ class LocalInfo {
         
         // Extract information about result tuple block type
         // and size
-        rTBlockTypeInfo(TBlockTI(qp->GetType(s), false)),
+        rTBlockTypeInfo(CRelAlgebra::TBlockTI(qp->GetType(s), false)),
         rTBlockInfo(rTBlockTypeInfo.GetBlockInfo()),
         rTBlockSize(rTBlockTypeInfo.GetDesiredBlockSize()
-        * TBlockTI::blockSizeFactor),
+        * CRelAlgebra::TBlockTI::blockSizeFactor),
         joinState(nullptr) {
 
     CcInt* index;
@@ -346,7 +346,7 @@ class LocalInfo {
   // Funktion requests tuple block from first stream and stores
   // them in fTBlockVector
   bool requestFirstStream() {
-    TBlock* tupleBlock = nullptr;
+    CRelAlgebra::TBlock* tupleBlock = nullptr;
         
     if(!(tupleBlock = fStream.request())) {
       fStreamIsEmpty = true;
@@ -366,7 +366,7 @@ class LocalInfo {
   // Funktion requests tuple block from second stream and stores
   // them in sTBlockVector
   bool requestSecondStream() {
-    TBlock* tupleBlock = nullptr;
+    CRelAlgebra::TBlock* tupleBlock = nullptr;
         
     if(!(tupleBlock = sStream.request())) {
       sStreamIsEmpty = true;
@@ -388,7 +388,7 @@ class LocalInfo {
   // stream to zero
   void clearMemF() {
     
-    for(TBlock* tb : fTBlockVector) {
+    for(CRelAlgebra::TBlock* tb : fTBlockVector) {
       if(tb) {
         tb->DecRef();
       }
@@ -404,7 +404,7 @@ class LocalInfo {
   // stream to zero
   void clearMemS() {
     
-    for(TBlock* tb : sTBlockVector) {
+    for(CRelAlgebra::TBlock* tb : sTBlockVector) {
       if(tb) {
         tb->DecRef();
 			}
@@ -449,9 +449,9 @@ class LocalInfo {
     }
   }
     
-  TBlock* getNext() {
+  CRelAlgebra::TBlock* getNext() {
 
-    TBlock* rTBlock = new TBlock(rTBlockInfo, 0, 0);
+    CRelAlgebra::TBlock* rTBlock = new CRelAlgebra::TBlock(rTBlockInfo, 0, 0);
          
     while(true) {
 
@@ -557,8 +557,8 @@ class LocalInfo {
   } // end of getNext()
 
   private:
-    Stream<TBlock> fStream;
-    Stream<TBlock> sStream;
+    Stream<CRelAlgebra::TBlock> fStream;
+    Stream<CRelAlgebra::TBlock> sStream;
     Supplier s;
 
     bool fStreamIsEmpty; // first stream is empty
@@ -576,12 +576,12 @@ class LocalInfo {
     uint64_t fNumTuples; // number of tuples from first stream
     uint64_t sNumTuples; // number of tuples from second stream
         
-    const TBlockTI rTBlockTypeInfo;
-    const PTBlockInfo rTBlockInfo;
+    const CRelAlgebra::TBlockTI rTBlockTypeInfo;
+    const CRelAlgebra::PTBlockInfo rTBlockInfo;
     const uint64_t rTBlockSize;
         
-    vector<TBlock*> fTBlockVector;
-    vector<TBlock*> sTBlockVector;
+    std::vector<CRelAlgebra::TBlock*> fTBlockVector;
+    std::vector<CRelAlgebra::TBlock*> sTBlockVector;
         
     SpatialJoinState* joinState;
 		

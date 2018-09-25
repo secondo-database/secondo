@@ -33,14 +33,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RectangleAlgebra.h"
 #include "SpatialAttrArray.h"
 
-using namespace std;
 using namespace CRelAlgebra;
 
 namespace csj {
 
-  void firstPartitionX(vector<binaryTuple> &bat,
-                       vector<vector<binaryTuple>> &partBAT,
-                       vector<uint64_t> &bucketCounter,
+  void firstPartitionX(std::vector<binaryTuple> &bat,
+                       std::vector<std::vector<binaryTuple>> &partBAT,
+                       std::vector<uint64_t> &bucketCounter,
                        uint64_t &numPartStripes,
                        double &xMin,
                        double &xMax) {
@@ -62,7 +61,7 @@ namespace csj {
     //initialization
     for(uint64_t i=0; i<numPartStripes; i++) {
       bucketCounter.push_back(0);
-      vector<binaryTuple> temp;
+      std::vector<binaryTuple> temp;
       partBAT.push_back(temp);
     }
       
@@ -92,13 +91,13 @@ namespace csj {
   
   }
 
-  uint64_t finalPartitionX(vector<vector<binaryTuple>> &pb1,
-                       vector<vector<binaryTuple>> &pb2,
-                       vector<binaryTuple> &b1,
-                       vector<binaryTuple> &b2,
-                       vector<uint64_t> &bc1,
-                       vector<uint64_t> &bc2,
-                       vector<double> &min,
+  uint64_t finalPartitionX(std::vector<std::vector<binaryTuple>> &pb1,
+                       std::vector<std::vector<binaryTuple>> &pb2,
+                       std::vector<binaryTuple> &b1,
+                       std::vector<binaryTuple> &b2,
+                       std::vector<uint64_t> &bc1,
+                       std::vector<uint64_t> &bc2,
+                       std::vector<double> &min,
                        uint64_t &stripes,
                        uint64_t &maxEntry,
                        uint64_t outPartNumber,
@@ -144,14 +143,14 @@ namespace csj {
       } // end of if none from both currently buckets is overload
       // if one of current buckets has more entries than maxEntryperBucket
       else {
-        // Create temporary structs for additional partition
+        // Create temporary structures for additional partition
         // and partition currently buckets in both tables
         // both buckets don't must be empty
         if((bucketPos1 > 0) && (bucketPos2 > 0)) {
-          vector<vector<binaryTuple>> tempPB1;
-          vector<vector<binaryTuple>> tempPB2;
-          vector<uint64_t> tempBC1;
-          vector<uint64_t> tempBC2;
+          std::vector<std::vector<binaryTuple>> tempPB1;
+          std::vector<std::vector<binaryTuple>> tempPB2;
+          std::vector<uint64_t> tempBC1;
+          std::vector<uint64_t> tempBC2;
 
           // compute temporary X-Min and X-Max
           tempXMin = xMin + ((xMax - xMin)/stripes)*i;
@@ -192,9 +191,9 @@ namespace csj {
     return partNumber;
   }
 
-  uint64_t spacePartitionX(vector<binaryTuple> &bat1,
-                           vector<binaryTuple> &bat2,
-                           vector<double> &min,
+  uint64_t spacePartitionX(std::vector<binaryTuple> &bat1,
+                           std::vector<binaryTuple> &bat2,
+                           std::vector<double> &min,
                            uint64_t &numPartStripes,
                            uint64_t maxEntryPerBucket,
                            double &xMin,
@@ -202,10 +201,12 @@ namespace csj {
                            uint64_t &divideFactor) {
 
     uint64_t tempNumPartStripes = numPartStripes;
-    vector<vector<binaryTuple>> partBAT1; // temporary partition table for bat1
-    vector<vector<binaryTuple>> partBAT2; // temporary partition table for bat2
-    vector<uint64_t> bucketCounter1; // contains number of tuples in bucket i
-    vector<uint64_t> bucketCounter2; // contains number of tuples in bucket i
+    // temporary partition table for bat1
+    std::vector<std::vector<binaryTuple>> partBAT1;
+    // temporary partition table for bat2
+    std::vector<std::vector<binaryTuple>> partBAT2; 
+    std::vector<uint64_t> bucketCounter1; //contains number of tuples in bucket
+    std::vector<uint64_t> bucketCounter2; //contains number of tuples in bucket
 
 
     // partition both binary tables for the first time
@@ -240,7 +241,8 @@ namespace csj {
     return tempNumPartStripes;
   }
 
-  vector<binaryTuple> createBAT(const vector<TBlock*> &tBlockVector,
+  std::vector<binaryTuple> createBAT(
+                          const std::vector<CRelAlgebra::TBlock*> &tBlockVector,
                              const uint64_t &joinIndex,
                              double &xMin,
                              double &xMax,
@@ -248,23 +250,24 @@ namespace csj {
                              double &yMax,
                              size_t dim) {
                                
-    vector<binaryTuple> BAT;
+    std::vector<binaryTuple> BAT;
     uint64_t tBlockNum = 1;
     binaryTuple temp;
     
     while(tBlockNum <= tBlockVector.size()) {
 
-      TBlockIterator tBlockIter = tBlockVector[tBlockNum-1]->GetIterator();
+      CRelAlgebra::TBlockIterator tBlockIter =
+                                       tBlockVector[tBlockNum-1]->GetIterator();
       uint64_t row = 0;
 
       while(tBlockIter.IsValid()) {
 
-        const TBlockEntry &tuple = tBlockIter.Get();
+        const CRelAlgebra::TBlockEntry &tuple = tBlockIter.Get();
         temp.blockNum = tBlockNum;
         temp.row = row;
 
         if(dim == 2) {
-          SpatialAttrArrayEntry<2> attribute = tuple[joinIndex];
+          CRelAlgebra::SpatialAttrArrayEntry<2> attribute = tuple[joinIndex];
           Rectangle<2> rec = attribute.GetBoundingBox();
           temp.xMin = rec.MinD(0);
           temp.xMax = rec.MaxD(0);
@@ -272,7 +275,7 @@ namespace csj {
           temp.yMax = rec.MaxD(1);
         }
         else {
-          SpatialAttrArrayEntry<3> attribute = tuple[joinIndex];
+          CRelAlgebra::SpatialAttrArrayEntry<3> attribute = tuple[joinIndex];
           Rectangle<3> rec = attribute.GetBoundingBox();
           temp.xMin = rec.MinD(0);
           temp.xMax = rec.MaxD(0);
@@ -302,19 +305,18 @@ namespace csj {
     return BAT;
   }
 
-  
-
 class SpatialJoinState {
   public: 
   // Constructor
-  SpatialJoinState(const vector<TBlock*> &fTBlockVector_,
-                   const vector<TBlock*> &sTBlockVector_,
+  SpatialJoinState(const std::vector<CRelAlgebra::TBlock*> &fTBlockVector_,
+                   const std::vector<CRelAlgebra::TBlock*> &sTBlockVector_,
                    uint64_t fIndex_,
                    uint64_t sIndex_,
                    uint64_t fNumTuples_,
                    uint64_t sNumTuples_,
                    uint64_t rTBlockSize_,
                    uint64_t numStripes_,
+                   uint64_t maxTuple_,
                    size_t fDim_,
                    size_t sDim_) :
 
@@ -325,7 +327,7 @@ class SpatialJoinState {
                    fNumTuples(fNumTuples_),
                    sNumTuples(sNumTuples_),
                    rTBlockSize(rTBlockSize_),
-                   maxEntryPerBucket(4096),
+                   maxEntryPerBucket(maxTuple_),
                    structFactor(numStripes_),
                    fDim(fDim_),
                    sDim(sDim_),
@@ -343,7 +345,8 @@ class SpatialJoinState {
                    eq_size(0),
                    partLevel(0),
                    bucketNumber(0),
-                   newTuple(new AttrArrayEntry[fNumColumns+sNumColumns]) {
+                   newTuple(new CRelAlgebra::AttrArrayEntry[fNumColumns
+                                                           +sNumColumns]) {
 
     // mask to decode bucket number
     bucketNumberMask = (1ULL << 24) - 1;
@@ -360,15 +363,14 @@ class SpatialJoinState {
     beginNumStripes = (fBAT.size() > sBAT.size()) ?
                        (fBAT.size())/maxEntryPerBucket :
                        (sBAT.size())/maxEntryPerBucket;
-                       
-    stripeWidth = (xMax - xMin)/beginNumStripes;
-                       
-    
+   
     if(beginNumStripes == 0) {
       beginNumStripes = 1;
     }
     
     numStripes = beginNumStripes;
+
+    stripeWidth = (xMax - xMin)/beginNumStripes;
     
     // factor used by computing of number of parts by additional partition
     divideFactor = sqrt(beginNumStripes);
@@ -384,7 +386,10 @@ class SpatialJoinState {
 
     fSweepStruct = nullptr;
     sSweepStruct = nullptr;
- 
+
+cout<<"T"<<endl;
+    
+
   }
 
   // Destructor                 
@@ -401,7 +406,7 @@ class SpatialJoinState {
     min.clear();
   }
 
-  bool nextTBlock(TBlock* ntb) {
+  bool nextTBlock(CRelAlgebra::TBlock* ntb) {
 
     double tempXMin;
     double tempXMax;
@@ -553,6 +558,11 @@ class SpatialJoinState {
     i = ((s->xMin <= t->xMax)
       && (s->xMax >= t->xMin));
 
+    // if both tuples are 3-dimensional
+    if(fDim == 3 && sDim == 3) {
+      i = i && ((s->zMin <= t->zMax) && (s->zMax >= t->zMin));
+      }
+
     // if both tuple was processed in last part
     if((s->xMin < (min[part] + stripeWidth*bucketNumber))
     && (t->xMin < (min[part] + stripeWidth*bucketNumber))) {
@@ -562,16 +572,16 @@ class SpatialJoinState {
     return i;
   } // end of intersectionTest
 
-  bool saveTupleInResultTupleBlock(TBlock *ntb, int stream,
+  bool saveTupleInResultTupleBlock(CRelAlgebra::TBlock *ntb, int stream,
                                    binaryTuple searchTuple,
                                    binaryTuple tempTuple) {
 
           if(stream == 1) {
-            const TBlockEntry &fTuple = TBlockEntry(
+            const CRelAlgebra::TBlockEntry &fTuple = CRelAlgebra::TBlockEntry(
                   fTBlockVector[(searchTuple.blockNum & blockMask) - 1],
                   searchTuple.row & rowMask);
 
-            const TBlockEntry &sTuple = TBlockEntry(
+            const CRelAlgebra::TBlockEntry &sTuple = CRelAlgebra::TBlockEntry(
                   sTBlockVector[(tempTuple.blockNum & blockMask) - 1],
                   tempTuple.row & rowMask);
 
@@ -585,11 +595,11 @@ class SpatialJoinState {
             ntb->Append(newTuple);
           }
           else {
-            const TBlockEntry &sTuple = TBlockEntry(
+            const CRelAlgebra::TBlockEntry &sTuple = CRelAlgebra::TBlockEntry(
                   sTBlockVector[(searchTuple.blockNum & blockMask) - 1],
                   searchTuple.row & rowMask);
 
-            const TBlockEntry &fTuple = TBlockEntry(
+            const CRelAlgebra::TBlockEntry &fTuple = CRelAlgebra::TBlockEntry(
                   fTBlockVector[(tempTuple.blockNum & blockMask) - 1],
                   tempTuple.row & rowMask);
 
@@ -605,11 +615,6 @@ class SpatialJoinState {
           }
 
           if(ntb->GetSize() > rTBlockSize) {
-
-
-//cout<<endl<<"FUUUULL!!!!!..."<<endl;
-//sleep(10);
-           
             return false;
           }
           
@@ -617,7 +622,7 @@ class SpatialJoinState {
   } // end of saveTupleInResultTupleBlock
 
   bool sweepSearch(ITNode *root,
-                   TBlock *ntb,
+                   CRelAlgebra::TBlock *ntb,
                    binaryTuple searchTuple,
                    int stream,
                    uint64_t part) {
@@ -640,10 +645,6 @@ class SpatialJoinState {
         resumeIterNode++;
       }
 
-
-//cout<<"search in root..."<<endl;
-      
-
       // search tuple cut the median by actually root
       if(searchTuple.xMin <= root->xMedian
          && searchTuple.xMax >= root->xMedian) {
@@ -652,6 +653,13 @@ class SpatialJoinState {
            
           tempTuple = root->vtL[j];
           intersection = true;
+
+          // if both tuples are 3-dimensional
+          if(fDim == 3 && sDim == 3) {
+            intersection = intersection &&
+                           ((searchTuple.zMin <= tempTuple.zMax)
+                        && (searchTuple.zMax >= tempTuple.zMin));
+          }
 
           // if both tuple was processed in last part
           if((searchTuple.xMin < (min[part] + stripeWidth*bucketNumber))
@@ -673,14 +681,12 @@ class SpatialJoinState {
 
         // search tuple lies on the left from median
         if(searchTuple.xMax < root->xMedian) {
+          uint64_t j = resumeIterNode;
 
-          for(uint64_t j = resumeIterNode; j < root->vtL.size(); j++) {
+          while((j < root->vtL.size())
+                && !(searchTuple.xMax < root->vtL[j].xMin)) {
              
             tempTuple = root->vtL[j];
-
-            if(searchTuple.xMax < root->vtL[j].xMin) {
-              break;
-            }
 
             if(intersectionTest(&searchTuple, &tempTuple, part)) {     
               if(!saveTupleInResultTupleBlock(ntb, stream,
@@ -689,20 +695,19 @@ class SpatialJoinState {
                 resume = true;
                 return false;
               }
-            } // end of if intersection 
-          } // end of external for-loop
+            } // end of if intersection
+          j++;  
+          } // end of while
         } // end of if
 
         // search tuple lies on the right from median
         if(searchTuple.xMin > root->xMedian) {
-          
-          for(uint64_t j = resumeIterNode; j < root->vtR.size(); j++) {
+          uint64_t j = resumeIterNode;
+
+          while((j < root->vtR.size())
+                && !(searchTuple.xMin > root->vtR[j].xMax)) {
              
             tempTuple = root->vtR[j];
-
-            if(searchTuple.xMin > root->vtR[j].xMax) {
-              break;
-            } 
 
             if(intersectionTest(&searchTuple, &tempTuple, part)) {
               if(!saveTupleInResultTupleBlock(ntb, stream,
@@ -712,15 +717,13 @@ class SpatialJoinState {
                 return false;
               }
             } // end of if intersection 
-          } // end of external for-loop
+          j++;
+          } // end of while
         } // end of if
       } // end of else
 
       root->rootIsDone = true;
       resumeIterNode = 0;
-
-
-//cout<<"root is done..."<<endl;
       
     } // end of if(!rootIsDone)
 
@@ -728,25 +731,17 @@ class SpatialJoinState {
     // now search in left subtree
     // if search intervall dont lies total right from median
     if(!(searchTuple.xMin > root->xMedian)) {
-      if(root->left != nullptr) {
-
-  //cout<<"to the left..."<<endl;
-        
+      if((root->left != nullptr) && (root->left->nodeIsDone == false)) {
+    
         if(!sweepSearch(root->left, ntb, searchTuple, stream, part)) {
           return false;
         }
         root->leftIsDone = true;
-
-  //cout<<"left son is done..."<<endl;
-        
       }
       // left subtree dont exist
       // search in left out list
       else {
         if(!root->leftIsDone) {
-
-
-  //cout<<"search im left out..."<<endl;
 
           if(resume) {
             resumeIterNode++;
@@ -762,7 +757,6 @@ class SpatialJoinState {
                                               searchTuple, tempTuple)){
                 resumeIterNode = j;
                 resume = true;
-    //cout<<"full by outL..."<<endl;
                 return false;
               }
             } // end of if intersection 
@@ -770,8 +764,6 @@ class SpatialJoinState {
 
           resumeIterNode = 0;
           root->leftIsDone = true;
-
-  //cout<<"left out is done..."<<endl;
           
         } // end of if !root->leftIsDone
       } // end of else
@@ -782,26 +774,17 @@ class SpatialJoinState {
     // now search in right subtree
     // if search intervall dont lies total left from median
     if(!(searchTuple.xMax < root->xMedian)) {
-      if(root->right != nullptr) {
-
-  //cout<<"to the right..."<<endl;
+      if((root->right != nullptr) && (root->right->nodeIsDone == false)) {
         
         if(!sweepSearch(root->right, ntb, searchTuple, stream, part)) {
           return false;
         }
-        root->rightIsDone = true;
-
-  //cout<<"right son is done..."<< endl;
-        
+        root->rightIsDone = true;        
       }
       // left subtree dont exist
       // search in left out list
       else {
         if(!root->rightIsDone) {
-
-
-  //cout<<"search in right out..."<<endl;
-          
 
           if(resume) {
             resumeIterNode++;
@@ -817,36 +800,33 @@ class SpatialJoinState {
                                               searchTuple, tempTuple)){
                 resumeIterNode = j;
                 resume = true;
-    //cout<<"full by outL..."<<endl;
                 return false;
               }
             } // end of if intersection 
           } // end of external for-loop outL
 
           resumeIterNode = 0;
-          root->rightIsDone = true;
-
-
-  //cout<<"right out is done..."<<endl;
-           
+          root->rightIsDone = true;           
         } // end of if !root->rightIsDone
       } // end of else    
     } // search at right is done
-
-  // search is done 
+  
+  // search is done
+  root->nodeIsDone = true;
+  
   return true;
   } // end of sweepSearch
  
-  const vector<TBlock*> &fTBlockVector;
-  const vector<TBlock*> &sTBlockVector;
+  const std::vector<TBlock*> &fTBlockVector;
+  const std::vector<TBlock*> &sTBlockVector;
   uint64_t fIndex;
   uint64_t sIndex;
   uint64_t fNumTuples;
   uint64_t sNumTuples;
   uint64_t rTBlockSize;
-  vector<binaryTuple> fBAT;
-  vector<binaryTuple> sBAT;
-  vector<double> min;
+  std::vector<binaryTuple> fBAT;
+  std::vector<binaryTuple> sBAT;
+  std::vector<double> min;
   uint64_t maxEntryPerBucket;
   uint64_t structFactor;
   uint64_t beginNumStripes;
@@ -882,14 +862,14 @@ class SpatialJoinState {
   uint64_t blockMask;
   uint64_t rowMask;
 
-  deque<Event> eq;
+  std::deque<Event> eq;
   Event tempEvent;
         
   uint64_t sizeBAT1;
   uint64_t sizeBAT2;
 
 
-  AttrArrayEntry* const newTuple; // AttrArrayEntry* const newTuple;
+  CRelAlgebra::AttrArrayEntry* const newTuple;
 
 };
 } // end of name space csj

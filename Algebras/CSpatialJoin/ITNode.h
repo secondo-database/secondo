@@ -33,10 +33,10 @@ namespace csj {
 
   // structure to reprsent a node in IntSTree
   struct ITNode {
-    vector<binaryTuple> vtR;
-    vector<binaryTuple> vtL;
-    vector<binaryTuple> outL;
-    vector<binaryTuple> outR;
+    std::vector<binaryTuple> vtR;
+    std::vector<binaryTuple> vtL;
+    std::vector<binaryTuple> outL;
+    std::vector<binaryTuple> outR;
     double xLeft;
     double xRight;
     double xMedian;

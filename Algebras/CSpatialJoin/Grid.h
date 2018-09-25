@@ -33,7 +33,7 @@ namespace csj {
 
     Grid() : cellNum(0) {}
     
-    vector<vector<binaryTuple>> cells;
+    std::vector<std::vector<binaryTuple>> cells;
     uint64_t cellNum; // number of grid cells
   };
 
@@ -42,77 +42,11 @@ namespace csj {
     gr.cellNum = cellNum_;
 
     for(uint64_t i=0; i<gr.cellNum; i++) {
-      vector<binaryTuple> temp;
+      std::vector<binaryTuple> temp;
       gr.cells.push_back(temp);
     }
     
   }
-
-  void toScreen(Grid &gr) {
-    for(uint64_t i=0; i<gr.cells.size(); i++) {
-      for(uint64_t k=0; k<gr.cells[i].size(); k++){
-        BinaryTupleToScreen(gr.cells[i][k], 2);
-      }
-      cout<<endl;
-    }
-  }
-
-  void MergeSortGridCell(vector<binaryTuple> &pss) {
-
-    uint64_t sizeIter;
-    uint64_t blockIter;
-    uint64_t lBlockIter;
-    uint64_t rBlockIter;
-    uint64_t mergeIter;
-    uint64_t lBorder;
-    uint64_t mBorder;
-    uint64_t rBorder;
-    uint64_t numTuples = pss.size();
-
-    for(sizeIter = 1; sizeIter < numTuples; sizeIter *= 2) {
-      for(blockIter=0; blockIter<numTuples-sizeIter; blockIter += 2*sizeIter) {
-        // We merge with the sorting of a pair of blocks starting
-        // with the blockIter element
-        // left has a size of sizeIter, right has a size of sizeIter or less
-        lBlockIter = 0;
-        rBlockIter = 0;
-        lBorder = blockIter;
-        mBorder = blockIter + sizeIter;
-        rBorder = blockIter + 2*sizeIter;
-        rBorder = (rBorder < numTuples) ? rBorder : numTuples;
-        vector<binaryTuple> SortedBlock(rBorder-lBorder);
-
-        // While in both arrays there are elements we select the smaller
-        // of them and put them in the sorted block
-        while(lBorder+lBlockIter < mBorder && mBorder+rBlockIter < rBorder) {
-          if(pss[lBorder+lBlockIter].yMax > pss[mBorder+rBlockIter].yMax) {
-            SortedBlock[lBlockIter+rBlockIter] = pss[lBorder + lBlockIter];
-            lBlockIter += 1;
-          }
-          else {
-            SortedBlock[lBlockIter+rBlockIter] = pss[mBorder+rBlockIter];
-            rBlockIter += 1;
-          }
-        }
-        
-        // After that, we enter the remaining elements
-        // from the left or right block
-        while(lBorder+lBlockIter < mBorder) {
-          SortedBlock[lBlockIter+rBlockIter] = pss[lBorder+lBlockIter];
-          lBlockIter += 1;
-        }
-        while(mBorder + rBlockIter < rBorder) {
-          SortedBlock[lBlockIter+rBlockIter] = pss[mBorder+rBlockIter];
-          rBlockIter += 1;
-        }
-
-        for(mergeIter = 0; mergeIter < lBlockIter + rBlockIter; mergeIter++) {
-          pss[lBorder+mergeIter] = SortedBlock[mergeIter];
-        }
-        SortedBlock.clear();
-      }
-    }
-  } // end of MergeSortGridCell
 
   void sweepPush(Grid &gr, binaryTuple bt, double xMin, double stripeWidth) {
 

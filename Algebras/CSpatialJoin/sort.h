@@ -33,7 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace csj {
   
-  void MergeSortNode(vector<binaryTuple> &pss) {
+  void MergeSortNode(std::vector<binaryTuple> &pss) {
 
     uint64_t sizeIter;
     uint64_t blockIter;
@@ -56,7 +56,7 @@ namespace csj {
         mBorder = blockIter + sizeIter;
         rBorder = blockIter + 2*sizeIter;
         rBorder = (rBorder < numTuples) ? rBorder : numTuples;
-        vector<binaryTuple> SortedBlock(rBorder-lBorder);
+        std::vector<binaryTuple> SortedBlock(rBorder-lBorder);
 
         // While in both arrays there are elements we select the smaller
         // of them and put them in the sorted block
@@ -90,7 +90,7 @@ namespace csj {
     }
   } // end of MergeSortNode
 
-  void MergeSortXLeft(vector<binaryTuple> &pss) {
+  void MergeSortXLeft(std::vector<binaryTuple> &pss) {
 
     uint64_t sizeIter;
     uint64_t blockIter;
@@ -113,7 +113,7 @@ namespace csj {
         mBorder = blockIter + sizeIter;
         rBorder = blockIter + 2*sizeIter;
         rBorder = (rBorder < numTuples) ? rBorder : numTuples;
-        vector<binaryTuple> SortedBlock(rBorder-lBorder);
+        std::vector<binaryTuple> SortedBlock(rBorder-lBorder);
 
         // While in both arrays there are elements we select the smaller
         // of them and put them in the sorted block
@@ -147,7 +147,7 @@ namespace csj {
     }
   } // end of MergeSortXLeft
 
-  void MergeSortXRight(vector<binaryTuple> &pss) {
+  void MergeSortXRight(std::vector<binaryTuple> &pss) {
 
     uint64_t sizeIter;
     uint64_t blockIter;
@@ -170,7 +170,7 @@ namespace csj {
         mBorder = blockIter + sizeIter;
         rBorder = blockIter + 2*sizeIter;
         rBorder = (rBorder < numTuples) ? rBorder : numTuples;
-        vector<binaryTuple> SortedBlock(rBorder-lBorder);
+        std::vector<binaryTuple> SortedBlock(rBorder-lBorder);
 
         // While in both arrays there are elements we select the smaller
         // of them and put them in the sorted block
