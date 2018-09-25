@@ -5822,7 +5822,9 @@ createCostEdge :- % use memory aware cost functions developed from 2014
   ),
   edgeSelectivity(Source, Target, Sel),
   getMemory(Memory),
+	write('Cost function 2014 called for term '), write(Term), nl,
   cost(Term, Sel, Pred, Result, Memory, Size, _NAttrs, _TupleSize, Cost),
+	write('Cost function 2014 succeeded'), nl, nl,
   assert(costEdge(Source, Target, Term, Result, Size, Cost)),
   fail.
 
