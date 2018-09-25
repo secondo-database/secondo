@@ -48,6 +48,7 @@ namespace csj {
     bool rootIsDone;
     bool leftIsDone;
     bool rightIsDone;
+    bool nodeIsDone;
   };
 
   // function deletes a tree
@@ -97,7 +98,8 @@ namespace csj {
     node->rootIsDone = false;
     node->leftIsDone = false;
     node->rightIsDone = false;
-
+    node->nodeIsDone = false;
+    
     return node;    
   }
 
@@ -252,55 +254,81 @@ namespace csj {
 
   void removeFromOutL(ITNode *node, binaryTuple bt) {
 
-    vector<binaryTuple> temp;
+    uint64_t deletePos = 0;
+    bool hit = false;
 
-    for(uint64_t i = 0; i < node->outL.size(); i++) {
-      if(!tuplesAreEqual(bt, node->outL[i])) {
-        temp.push_back(node->outL[i]);
+    // search for tuple 
+    while(!(deletePos == node->outL.size()) && !hit) {
+      if(tuplesAreEqual(bt, node->outL[deletePos])) {
+        hit = true;
       }
+      else {
+        deletePos++;
+      }
+    } // end of while
+    
+    if(hit) {
+      node->outL.erase(node->outL.begin()+deletePos);
     }
-    node->outL.clear();
-    node->outL = temp;
-    temp.clear();
 
   } // end of removeFRomOutL
 
   void removeFromOutR(ITNode *node, binaryTuple bt) {
 
-    vector<binaryTuple> temp;
+    uint64_t deletePos = 0;
+    bool hit = false;
 
-    for(uint64_t i = 0; i < node->outR.size(); i++) {
-      if(!tuplesAreEqual(bt, node->outR[i])) {
-        temp.push_back(node->outR[i]);
+    // search for tuple 
+    while(!(deletePos == node->outR.size()) && !hit) {
+      if(tuplesAreEqual(bt, node->outR[deletePos])) {
+        hit = true;
       }
+      else {
+        deletePos++;
+      }
+    } // end of while
+    
+    if(hit) {
+      node->outR.erase(node->outR.begin()+deletePos);
     }
-    node->outR.clear();
-    node->outR = temp;
-    temp.clear();
 
   } // end of removeFRomOutR
 
   void removeFromLR(ITNode *node, binaryTuple bt) {
 
-    vector<binaryTuple> temp;
+    uint64_t deletePos = 0;
+    bool hit = false;
 
-    for(uint64_t i = 0; i < node->vtL.size(); i++) {
-      if(!tuplesAreEqual(bt, node->vtL[i])) {
-        temp.push_back(node->vtL[i]);
+    // search for tuple 
+    while(!(deletePos == node->vtL.size()) && !hit) {
+      if(tuplesAreEqual(bt, node->vtL[deletePos])) {
+        hit = true;
       }
+      else {
+        deletePos++;
+      }
+    } // end of while
+    
+    if(hit) {
+      node->vtL.erase(node->vtL.begin()+deletePos);
     }
-    node->vtL.clear();
-    node->vtL = temp;
-    temp.clear();
 
-    for(uint64_t i = 0; i < node->vtR.size(); i++) {
-      if(!tuplesAreEqual(bt, node->vtR[i])) {
-        temp.push_back(node->vtR[i]);
+    deletePos = 0;
+    hit = false;
+    
+    // search for tuple 
+    while(!(deletePos == node->vtR.size()) && !hit) {
+      if(tuplesAreEqual(bt, node->vtR[deletePos])) {
+        hit = true;
       }
+      else {
+        deletePos++;
+      }
+    } // end of while
+    
+    if(hit) {
+      node->vtR.erase(node->vtR.begin()+deletePos);
     }
-    node->vtR.clear();
-    node->vtR = temp;
-    temp.clear();
     
   } // end of removeFromLR
 
@@ -369,6 +397,7 @@ namespace csj {
     node->rootIsDone = false;
     node->leftIsDone = false;
     node->rightIsDone = false;
+    node->nodeIsDone = false;
 
     stateCleaning(node->left);
     stateCleaning(node->right);

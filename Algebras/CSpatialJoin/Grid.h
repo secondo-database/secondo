@@ -158,18 +158,24 @@ namespace csj {
 
     for(uint64_t i=cellNumLeft; i<=cellNumRigth; i++) {
 
-      vector<binaryTuple> temp;
+      uint64_t deletePos = 0;
+      bool hit = false;
 
-      for(uint64_t j = 0; j < gr.cells[i].size(); j++) {
-        if(!tuplesAreEqual(bt, gr.cells[i][j])) {
-          temp.push_back(gr.cells[i][j]);
+      // search for tuple 
+      while(!(deletePos == gr.cells[i].size()) && !hit) {
+        if(tuplesAreEqual(bt, gr.cells[i][deletePos])) {
+          hit = true;
         }
+        else {
+          deletePos++;
+        }
+      } // end of while
+    
+      if(hit) {
+        gr.cells[i].erase(gr.cells[i].begin()+deletePos);
       }
-      gr.cells[i].clear();
-      gr.cells[i] = temp;
-      temp.clear();
-    }
-     
+    } // end of for
+    
   } // end of sweepRemove
 
   void deleteGrid(Grid &gr) {

@@ -368,6 +368,7 @@ class SpatialJoinState {
                    uint64_t sNumTuples_,
                    uint64_t rTBlockSize_,
                    uint64_t numStripes_,
+                   uint64_t maxTuple_,
                    size_t fDim_,
                    size_t sDim_) :
 
@@ -378,7 +379,7 @@ class SpatialJoinState {
                    fNumTuples(fNumTuples_),
                    sNumTuples(sNumTuples_),
                    rTBlockSize(rTBlockSize_),
-                   maxEntryPerBucket(4096),
+                   maxEntryPerBucket(maxTuple_),
                    beginNumStripes(numStripes_),
                    fDim(fDim_),
                    sDim(sDim_),
@@ -399,7 +400,6 @@ class SpatialJoinState {
                    bucketNumber(0),
                    newTuple(new AttrArrayEntry[fNumColumns+sNumColumns]) {
 
-    stripeWidth = (xMax - xMin)/beginNumStripes;
     // mask to decode bucket number
     bucketNumberMask = (1ULL << 24) - 1;
     // mask to decode block number
@@ -415,13 +415,13 @@ class SpatialJoinState {
     beginNumStripes = (fBAT.size() > sBAT.size()) ?
                        fBAT.size()/maxEntryPerBucket :
                        sBAT.size()/maxEntryPerBucket;
-    
-    if(beginNumStripes == 0) {
+
+      if(beginNumStripes == 0) {
       beginNumStripes = 1;
     }
     numStripes = beginNumStripes;
 
- //   cout<<"bns: "<<beginNumStripes;
+    stripeWidth = (xMax - xMin)/beginNumStripes;
     
     // factor used by computing of number of parts by additional partition
     divideFactor = sqrt(beginNumStripes);
@@ -429,12 +429,8 @@ class SpatialJoinState {
       divideFactor = 2;
     }
 
-   // cout<<"  df: "<<divideFactor;
-
     numStripes = spacePartitionX(fBAT, sBAT, min, numStripes,
                                  maxEntryPerBucket, xMin, xMax, divideFactor);
-
-     //                          cout<<"  ens: "<<numStripes<<endl;
                                  
     sizeBAT1 = fBAT.size();
     sizeBAT2 = sBAT.size();
@@ -583,19 +579,21 @@ class SpatialJoinState {
   void sweepRemove(vector<binaryTuple> &sweepStruct,
                                 binaryTuple bt) {
 
-    vector<binaryTuple> temp;
+    uint64_t deletePos = 0;
+    bool hit = false;
 
-    for(uint64_t i = 0; i < sweepStruct.size(); i++) {
-      if(!tuplesAreEqual(bt, sweepStruct[i])) {
-        temp.push_back(sweepStruct[i]);
+    // search for tuple 
+    while(!(deletePos == sweepStruct.size()) && !hit) {
+      if(tuplesAreEqual(bt, sweepStruct[deletePos])) {
+        hit = true;
       }
-    }
-    sweepStruct.clear();
-    sweepStruct = temp;
-    temp.clear();
-                                  
-    while((!sweepStruct.empty()) && (sweepStruct.back().yMax < bt.yMin)) {
-      sweepStruct.pop_back();
+      else {
+        deletePos++;
+      }
+    } // end of while
+    
+    if(hit) {
+      sweepStruct.erase(sweepStruct.begin()+deletePos);
     }
   }
 
@@ -633,6 +631,13 @@ bool sweepSearch(vector<binaryTuple> &sweepStruct,
       // intersection test
       intersection = ((searchTuple.xMin <= tempTuple.xMax)
                    && (searchTuple.xMax >= tempTuple.xMin));
+
+      // if both tuples are 3-dimensional
+      if(fDim == 3 && sDim == 3) {
+        intersection = intersection &&
+                       ((searchTuple.zMin <= tempTuple.zMax)
+                    && (searchTuple.zMax >= tempTuple.zMin));
+      }
 
       // if both tuple was processed in last part
       if((searchTuple.xMin < (min[part] + stripeWidth*bucketNumber))
