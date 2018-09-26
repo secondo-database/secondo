@@ -106,7 +106,7 @@ public class GpxReader implements SecondoImporter {
             if (result == null) {
                result = fileResult;
             } else {
-               result = ListExpr.concat(result, fileResult);
+               result = ListExpr.concat(result, fileResult.first());
             }
 
          } catch (Exception e) {
@@ -213,7 +213,7 @@ public class GpxReader implements SecondoImporter {
        * Constructor for a new gpx parser
        */
       public GPXParser() {
-         dateTimeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH:mm:ss:SSS");
+         dateTimeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH:mm:ss");
          timeZoneId = TimeZone.getDefault().toZoneId();
 
       }
