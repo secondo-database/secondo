@@ -40,7 +40,7 @@ Result    : TRUE
 Operator  : getotuples2
 Number    : 1
 Signature : stream(tuple(A (TID tid) B ) x rel(C) x orel(D) -> stream(tuple(A@B@C\Keyset(D)@D))
-Example   : query otestrel_aux_rtree windowintersectsS[bbox(thecenter)]  extend[ID_s0 : 31] otestrel_aux  otestrel getotuples2 count
+Example   : query otestrelAux_Box_rtree windowintersectsS[bbox(thecenter)]  extend[ID_s0 : 31] otestrelAux  otestrel getotuples2 count
 Result    : 44 
 
 
