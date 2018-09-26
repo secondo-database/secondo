@@ -1969,6 +1969,8 @@ writeDatabases(INQUIRY) :-
   nl,write('Available databases:'),nl,nl,
   writeDBList(DBLIST).
 
+:-assert(helpLine(showDatabases,0,[],
+                  'Display a list of all available databases.')).
 showDatabases :-
   secondo('list databases', DBS),
   !,
