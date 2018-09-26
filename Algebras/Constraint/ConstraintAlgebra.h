@@ -65,7 +65,7 @@ namespace Constraint {
 // constants:
 const std::string OP_EQ = "eq";
 const std::string OP_LEQ = "leq";
-double minMax[] = {-10000.0, 10000.0, -10000.0, 10000.0};
+const double minMax[] = {-10000.0, 10000.0, -10000.0, 10000.0};
 const Rectangle<2> WORLD(true, minMax);
 // Word-Coordinates (arbitionary big)
 const int X = 0;
