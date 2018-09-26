@@ -120,7 +120,7 @@ The first constructor. First one can set if the rectangle is defined,
  and if it is, the coordinates can be set.
 
 */
-  inline Rectangle( const bool defined, double* minMax );
+  inline Rectangle( const bool defined, const double* minMax );
   inline explicit Rectangle( const bool defined);
 
 /*
@@ -493,7 +493,7 @@ The first constructor. First one can set if the rectangle is defined,
 
 */
 template <unsigned dim>
-inline Rectangle<dim>::Rectangle( bool defined, double* minMax ):
+inline Rectangle<dim>::Rectangle( bool defined, const double* minMax ):
     StandardSpatialAttribute<dim>(defined)
 {
   for( unsigned i = 0; i < dim; i++ )
