@@ -452,7 +452,7 @@ public class GpxReader implements SecondoImporter {
    }
 
    /**
-    * A simple tubleCounter
+    * A simple tupleCounter
     * 
     * @author Markus Fuessel
     *
