@@ -26,4 +26,5 @@ libregSecondo.
 *.tex
 *.toc
 temp_nested_list
+TMP_*
 
