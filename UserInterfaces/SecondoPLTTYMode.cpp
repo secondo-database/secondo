@@ -107,6 +107,9 @@ bool globalAbort = false; // used if quit occurs within a script
 namespace pltty{
 
 
+bool plttydebug = false;
+
+
 // forward declaration of processCommands
 bool processCommands(istream&, bool,bool);
 
@@ -354,6 +357,8 @@ bool IsInternalCommand(const string& cmd){
   if(cmd=="quit") return true;
   if(cmd=="q") return true;
   if(cmd=="?") return true;
+  if(cmd=="debugOn") return true;
+  if(cmd=="debugOff") return true;
   if(cmd.size()>1){
     if(cmd[0]=='@'){
       return true;
@@ -391,8 +396,18 @@ bool processHelp(){
        << "@\%FILE   - read commands from file ignoring pd comments" << endl
        << "@&FILE   - read commands from file ignoring pd comments "
        << "until an error occurred" << endl
+       << "debugOn  - shows sql commands before sending to prolog" << endl
+       << "debugOff - switches of debugging messages " << endl
        << "quit     - exits the program" << endl;
      return true;
+}
+
+
+bool processDebug(bool enable){
+  cout << endl
+       << "switched debugging " << (enable?"on":"off") << endl;
+  plttydebug = enable;
+  return true;
 }
 
 
@@ -457,6 +472,12 @@ bool processInternalCommand(const string& cmd){
   }
   if(cmd=="?"){
      return processHelp();
+  }
+  if(cmd=="debugOn"){
+     return processDebug(true);  
+  }
+  if(cmd=="debugOff"){
+    return processDebug(false);
   }
   if(cmd.size()>1){
     if(cmd[0]=='@'){
@@ -1301,6 +1322,13 @@ solution, the values are printed out.
 */
 bool processPrologCommand(const string& cmd){
 
+
+   if(plttydebug){
+      cout << "process prolog command: " << endl 
+           << cmd 
+           << endl;
+   }
+
    fid_t fid = PL_open_foreign_frame();
 
   // convert command into a string and get list of bindings
@@ -1523,7 +1551,7 @@ bool isSqlCommand(string& cmd){
       return true;
    }
    // third token required
-   if(st.hasNextToken()){
+   if(!st.hasNextToken()){
      return false;
    }
    string third = st.nextToken();
@@ -1547,16 +1575,24 @@ bool processCommand(string& cmd){
   stringutils::trim(cmd);
   bool  isDot = !cmd.empty() && (cmd[cmd.length()-1]=='.');
   if(IsInternalCommand(cmd)){
-     // cout << "internal command recognized" << endl;
+     if(plttydebug){
+       cout << "internal command recognized" << endl;
+     }
      return processInternalCommand(cmd);
   } else if (isSqlCommand(cmd)) {
-     // cout << "sql command recognized" << endl;
+     if(plttydebug){
+       cout << "sql command recognized" << endl;
+     }
      return processSqlCommand(cmd,isDot);
   } else if(isDirectSecondoCommand(cmd)){
-     // cout << "direct secondo command recognized" << endl;
+     if(plttydebug){
+        cout << "direct secondo command recognized" << endl;
+     }
      return processDirectSecondoCommand(cmd);
   } else {
-     // cout << "general prolog command recognized" << endl;
+     if(plttydebug){
+       cout << "general prolog command recognized" << endl;
+     }
      return processPrologCommand(cmd);
   }
 }
