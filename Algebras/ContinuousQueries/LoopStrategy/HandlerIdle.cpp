@@ -139,7 +139,8 @@ void HandlerIdle::Initialize() {
             return !_coordinationClient.messages.empty();
         });
 
-        ProtocolHelpers::Message msg = ProtocolHelpers::decodeMessage(
+        ProtocolHelpers::Message msg = 
+        ProtocolHelpers::decodeMessage(
             _coordinationClient.messages.front()
         );
         _coordinationClient.messages.pop();

@@ -41,56 +41,71 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "Protocols.h"
-#include <iostream>
+#include <boost/algorithm/string.hpp>
+
 
 namespace continuousqueries {
 
 /*
 1 ProtocolHelpers class implementation
 
-Messages come as string, as nested lists. The TcpServer sents 
-(SOCKET)(MESSAGE). The SOCKET is an integer. The MESSAGE a string, 
-hopefully constructed by an Protocol Class. The MESSAGE itself 
-should be (COMMAND) (PARAMETERS).
+Messages come as string, a TcpServer Message or a TcpClient Message.
+It will be converted to a standardized ProtocolHelpers Message, which
+includes a valid flag and splits the body to the cmd and params.
 
 */
 
-// Should come as (SOCKET)((COMMAND) (PARAMETERS))
-ProtocolHelpers::Message ProtocolHelpers::decodeMessage(std::string msg)
+ProtocolHelpers::Message ProtocolHelpers::decodeMessage(std::string body)
 {
-    Message m;
-        m.valid = false;
-        m.cmd = msg;
-        m.params = msg;
-        m.socket = -1;
+    ProtocolHelpers::Message m;
+    m.body = body;
 
-    size_t endSocket, endCmd;
-    std::string cmd, params;
+    ProtocolHelpers::decodeBody(&m);
 
-    endSocket = msg.find(")((");
-    endCmd = msg.find(") (", endSocket);
-
-    if (msg.substr(0,1) != "(" || 
-        endSocket == std::string::npos || 
-        endCmd == std::string::npos) 
-    {
-        std::cout << "error 1 in message conversion\n";
-        return m;
-    }
-
-    try {
-        m.socket = std::stoi(msg.substr(1, endSocket-1));
-    } catch(...) {
-        std::cout << "error 2 in message conversion\n";
-        m.socket = -1;
-        return m;
-    }
-    
-    m.cmd = msg.substr(endSocket+3, endCmd-endSocket-3);
-    m.params = msg.substr(endCmd+3, msg.size()-endCmd-3-2);
-    m.valid = true;
-
+    if (m.cmd != "") m.valid = true;
     return m;
+}
+
+ProtocolHelpers::Message ProtocolHelpers::decodeMessage(TcpServer::Message msg)
+{
+    ProtocolHelpers::Message m;
+    m.body = msg.body;
+    m.timestamp = msg.timestamp;
+    m.socket = msg.socket;
+
+    ProtocolHelpers::decodeBody(&m);
+
+    if (m.cmd != "") m.valid = true;
+    return m;
+}
+
+ProtocolHelpers::Message ProtocolHelpers::decodeMessage(TcpClient::Message msg)
+{
+    ProtocolHelpers::Message m;
+    m.body = msg.body;
+    m.timestamp = msg.timestamp;
+    m.socket = msg.socket;
+
+    ProtocolHelpers::decodeBody(&m);
+
+    if (m.cmd != "") m.valid = true;
+    return m;
+}
+
+void ProtocolHelpers::decodeBody(ProtocolHelpers::Message* target) {
+    size_t cmdPos = target->body.find("<");
+
+    if (cmdPos == std::string::npos) 
+    {
+        target->valid = false;
+        target->cmd = "";
+        target->params = "";
+        return;
+    }
+
+    target->cmd = boost::algorithm::trim_copy(target->body.substr(0, cmdPos));
+    target->params = boost::algorithm::trim_copy(
+        target->body.substr(cmdPos + 1, target->body.size() - cmdPos));
 }
 
 /*
@@ -104,25 +119,25 @@ message to be sent by setting 'create' to true.
 std::string CgenToHidleP::registerHandler(bool create)
 {
     if (!create) return "hello";
-    return "(hello) ()";
+    return "hello<";
 }
 
 std::string CgenToHidleP::confirmHandler(int id, bool create)
 {
     if (!create) return "welcome";
-    return "(welcome) (" + std::to_string(id) + ")";
+    return "welcome<" + std::to_string(id);
 }
 
 std::string CgenToHidleP::shutdownHandler(std::string msg, bool create) 
 {
     if (!create) return "shutdown";
-    return "(shutdown) (" + msg + ")";
+    return "shutdown<" + msg;
 }
 
 std::string CgenToHidleP::becomeSpecificHandler(std::string type, bool create)
 {
     if (!create) return "become";
-    return "(become) (" + type + ")";
+    return "become<" + type;
 }
 
 } /* namespace continuousqueries */

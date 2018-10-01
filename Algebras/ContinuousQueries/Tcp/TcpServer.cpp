@@ -195,7 +195,10 @@ void TcpServer::Run()
                 // Push the incoming message to the queue
                 else 
                 {
-                    std::string msg = CreateMsg(sd, buffer);
+                    TcpServer::Message msg = CreateMsg(
+                        sd, 
+                        (std::string) buffer
+                    );
                     
                     PushMsgToQueue(msg);
 
@@ -206,42 +209,53 @@ void TcpServer::Run()
     }
 }
 
-std::string TcpServer::CreateMsg(int sockd, char buffer[MAXPACKETSIZE])
+TcpServer::Message TcpServer::CreateMsg(int sockd, std::string body)
 {
-    std::string msg(buffer);
-    // msg = msg.substr(0, msg.length()-1);
+    TcpServer::Message msg;
 
-    return "(" + std::to_string(sockd) + ")(" + msg + ")";
+    msg.body = body;
+    msg.socket = sockd;
+    msg.timestamp = std::chrono::duration_cast<std::chrono::milliseconds> (
+        std::chrono::system_clock::now().time_since_epoch()
+    ).count();
+
+    return msg;
 }
 
-std::string TcpServer::CreateConnectMsg(int sockd) 
+TcpServer::Message TcpServer::CreateConnectMsg(int sockd) 
 {
     struct sockaddr_in ad;
     int adlen = sizeof(ad);
     
     getpeername(sockd, (struct sockaddr*)&ad, (socklen_t*)&adlen);
+
+    std::string body = "connected<" +
+        (std::string) inet_ntoa(ad.sin_addr) + " " +
+        std::to_string(ntohs(ad.sin_port));
  
-    return "(" + std::to_string(sockd) + ")((connected) (" 
-        + inet_ntoa(ad.sin_addr) + " " 
-        + std::to_string(ntohs(ad.sin_port)) + "))";
+    return TcpServer::CreateMsg(sockd, body);
 }
 
-std::string TcpServer::CreateDisconnectMsg(int sockd)
+TcpServer::Message TcpServer::CreateDisconnectMsg(int sockd)
 {
     struct sockaddr_in ad;
     int adlen = sizeof(ad);
     
-    getpeername(sockd, (struct sockaddr*)&ad, (socklen_t*)&adlen);   
- 
-    return "(" + std::to_string(sockd) + ")((disconnected) (" 
-        + inet_ntoa(ad.sin_addr) + " " 
-        + std::to_string(ntohs(ad.sin_port)) + "))";
+    getpeername(sockd, (struct sockaddr*)&ad, (socklen_t*)&adlen);
+
+    std::string body = "disconnected<" +
+        (std::string) inet_ntoa(ad.sin_addr) + " " +
+        std::to_string(ntohs(ad.sin_port));
+
+    return TcpServer::CreateMsg(sockd, body);
 }
 
-void TcpServer::PushMsgToQueue(std::string msg) 
+void TcpServer::PushMsgToQueue(TcpServer::Message msg) 
 {
     std::lock_guard<std::mutex> guard(mqMutex);
-    std::cout << "TcpServer received '" + msg + "'. Pushing to queue.\n";
+    std::cout << "TcpServer received '" << msg.body 
+        << "' from port " << std::to_string(msg.socket)
+        << ". Pushing to queue.\n";
 
     messages.push(msg);
 

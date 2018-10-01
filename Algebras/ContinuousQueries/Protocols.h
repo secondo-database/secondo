@@ -45,20 +45,29 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define _DISTRIBUTE_STREAM_PROTOCOL_H_
 
 #include <string>
-// #include "ListUtils.h"
+#include <iostream>
+#include "Tcp/TcpServer.h"
+#include "Tcp/TcpClient.h"
 
 namespace continuousqueries {
 
 class ProtocolHelpers {
 public:
     struct Message {
-        bool valid;
-        int socket;
-        std::string cmd;
-        std::string params;
+        bool valid = false;
+        int socket = -1;
+        int64_t timestamp = 0;
+        std::string body = "";
+        std::string cmd = "";
+        std::string params = "";
     };
 
-    static Message decodeMessage(std::string msg);
+    static ProtocolHelpers::Message decodeMessage(std::string msg);
+    static ProtocolHelpers::Message decodeMessage(TcpClient::Message msg);
+    static ProtocolHelpers::Message decodeMessage(TcpServer::Message msg);
+
+private:
+    static void decodeBody(ProtocolHelpers::Message* target);
 };
 
 /*

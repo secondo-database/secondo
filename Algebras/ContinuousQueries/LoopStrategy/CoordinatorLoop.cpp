@@ -183,7 +183,7 @@ void CoordinatorLoop::Initialize() {
             }
 
         } else {
-            std::cout << "Message '" + msg.cmd + "' is invalid... \n";
+            std::cout << "Message '" + msg.body + "' is invalid... \n";
         }   
     }
 }

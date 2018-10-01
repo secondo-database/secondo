@@ -71,6 +71,12 @@ namespace continuousqueries {
 
 class TcpClient {
 public:
+    struct Message {
+        int socket=-1;
+        int64_t timestamp=0;
+        std::string body="";
+    };
+
     TcpClient(std::string ip, int port);
     ~TcpClient();
     
@@ -79,16 +85,16 @@ public:
     int GetMasterPort();
     int GetMasterSocket();
 
-    std::string CreateMsg(int sockd, char buffer[MAXPACKETSIZE]);
-    std::string CreateConnectMsg(int sockd);
-    std::string CreateDisconnectMsg(int sockd);
+    TcpClient::Message CreateMsg(int sockd, std::string body);
+    TcpClient::Message CreateConnectMsg(int sockd);
+    TcpClient::Message CreateDisconnectMsg(int sockd);
 
-    void PushMsgToQueue(std::string msg);
+    void PushMsgToQueue(TcpClient::Message msg);
     bool IsRunning();
 
     int Send(std::string msg);
     
-    std::queue<std::string> messages;
+    std::queue<TcpClient::Message> messages;
     std::mutex mqMutex;
     std::condition_variable mqCondition;
 

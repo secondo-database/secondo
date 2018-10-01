@@ -63,6 +63,7 @@ see TcpServer.cpp for details.
 #include <iostream>
 #include <condition_variable>
 #include <string>
+#include <chrono>
 
 namespace continuousqueries {
 
@@ -71,6 +72,12 @@ namespace continuousqueries {
 
 class TcpServer {
 public:
+    struct Message {
+        int socket=-1;
+        int64_t timestamp=0;
+        std::string body="";
+    };
+
     TcpServer();
     TcpServer(int port);
     ~TcpServer();
@@ -83,16 +90,16 @@ public:
     std::string GetIpFromSocket(int sockd);
     int         GetPortFromSocket(int sockd);
 
-    std::string CreateMsg(int sockd, char buffer[MAXPACKETSIZE]);
-    std::string CreateConnectMsg(int sockd);
-    std::string CreateDisconnectMsg(int sockd);
+    Message CreateMsg(int sockd, std::string body);
+    Message CreateConnectMsg(int sockd);
+    Message CreateDisconnectMsg(int sockd);
 
-    void PushMsgToQueue(std::string msg);
+    void PushMsgToQueue(Message msg);
     bool IsRunning();
 
     int Send(int socket, std::string msg);
     
-    std::queue<std::string> messages;
+    std::queue<Message> messages;
     std::mutex mqMutex;
     std::condition_variable mqCondition;
 
