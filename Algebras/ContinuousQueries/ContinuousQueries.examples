@@ -1,0 +1,14 @@
+Database : berlintest
+Restore  : NO
+
+Operator : createSSPHandler
+Number   : 1
+Signature: string x number -> int
+Example  : query createSSPHandler("127.0.0.1", 54000)
+Result   : 0
+
+Operator : createSSPCoordinator
+Number   : 1
+Signature: string x number -> int
+Example  : query createSSPHandler(54000, "loop")
+Result   : 54000
