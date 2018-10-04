@@ -480,6 +480,15 @@ All other functions and members are usual C++ stuff.
        // constructor initializing the object
        SCircle(const double _x, const double _y, const double _r):
           x(_x), y(_y), r(_r) {}
+       // copy constructor
+       SCircle(const SCircle& src): x(src.x), y(src.y),r(src.r){}
+       // assignment operator
+       SCircle& operator=(const SCircle& src) {
+           x = src.x;
+           y = src.y;
+           r = src.r;
+           return *this;
+       }
        // destructor
        ~SCircle(){}
        static const string BasicType(){ return "scircle";} 
@@ -1673,7 +1682,7 @@ a function computing a ~bool~ value from a ~real~ and an ~int~.
     ListExpr res = nl->Third(nl->Second(args));
     // result of the function must be an attribute again, e.g. in 
     // kind DATA
-    if(!listutils::isDATA(res)){
+    if(!Attribute::checkType(res)){
       return listutils::typeError("map result is not in kind DATA");
     }
     return nl->TwoElemList( listutils::basicSymbol<Stream<Attribute> >(),
@@ -4726,7 +4735,7 @@ int text2vstringVM ( Word * args , Word & result , int message ,
    result = qp->ResultStorage(s);
    VString* res = (VString*) result.addr;
    if(!arg->IsDefined()){
-      res->SetDefined(0);
+      res->SetDefined(false);
       return 0;
    }
    res->Set(true, arg->GetValue());
