@@ -40,5 +40,9 @@ operator importObject alias IMPORTOBJECT pattern op(_)
 operator importObject2 alias IMPORTOBJECT2 pattern op(_)
 
 # prefix operator
-operator text2vstring alias text2vstring pattern op(_)
+operator text2vstring alias TEXT2VSTRING pattern op(_)
+
+
+#postfix operator
+operator reverseStream alias REVERSESTREAM pattern _ op
 

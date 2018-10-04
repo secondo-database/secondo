@@ -99,6 +99,10 @@ Example   : query text2vstring('secondo secondo secondo secondo secondo')
 Result    : (vstring "secondo secondo secondo secondo secondo")
 
 
-
+Operator : reverseStream
+Number   : 1 
+Signature : stream(tuple) -> stream(tuple)
+Example   : query ten feed reverseStream reverseStream = ten feed
+Result    : TRUE
 
 

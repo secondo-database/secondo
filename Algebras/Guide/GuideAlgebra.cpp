@@ -382,6 +382,8 @@ Here, each include is commented with some functionality used.
 
 #include "Algebras/Relation-C++/RelationAlgebra.h" // use of tuples
 
+#include "FileSystem.h" // deletion of files
+
 
 #include <math.h>               // required for some operators
 #include <stack>
@@ -4759,6 +4761,319 @@ Operator text2vstringOp (
 );
 
 
+/*
+13 Operators using Memory
+
+In some cases, operators will require parts of the main memory to work 
+faster. In Secondo, such operator have to consider memory limitations
+that can be requested from the QueryProcessor. 
+
+An instance of a memory consuming operator has to call the function
+SetUsesMemory. A good place to do it is the algebra constructor.
+In the value mapping, the available memory for this operator node
+can be reqeusted by calling the function GetMemorySize(s), where s
+is the supplier given in the value mapping arguments.
+
+This mechanism is explained using the operator revert that receives a
+stream of tuples  and returns this stream in reverse order.
+
+
+13.1 The operator ~reverseStream~
+
+13.1.1 Type Mapping
+
+*/
+ListExpr reverseStreamTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("wrong number of arguments");
+  }
+  ListExpr arg1 = nl->First(args);
+  if(!Stream<Tuple>::checkType(arg1)){
+    return listutils::typeError("stream<TUPLE> expected");
+  }
+  return arg1;
+}
+
+
+/*
+13.1.2 LocalInfo class 
+
+*/
+size_t reverseStreamLI_FileNumber = 0;
+
+class reverseStreamLI{
+   public:
+
+/*
+~Constructor~
+
+*/     
+     reverseStreamLI(Word _stream, size_t _maxMem) : stream(_stream),
+        maxMem(_maxMem){
+        stream.open();
+        readInput();
+        stream.close();
+        in = 0;
+     }
+/*
+~Destructor~
+
+*/     
+     ~reverseStreamLI(){
+        clearMem();
+        closeFile();
+        // remove created files
+        while(!filenames.empty()){
+          string fn = filenames.back();
+          filenames.pop_back();
+          cout << "delete file" << fn << endl;
+          FileSystem::DeleteFileOrFolder(fn);
+        }
+
+        if(tt){
+           tt->DeleteIfAllowed();
+        }
+     }
+
+/*
+~Computing the next result element~
+
+*/
+     Tuple* getNext(){
+        if(!mmpart.empty()){
+           Tuple* res = mmpart.top();
+           mmpart.pop();
+           if(mmpart.empty()){
+              openNextFile(true);
+           }
+           return res;
+        }
+        return nextFromFile(); 
+     }
+
+   private:
+     Stream<Tuple> stream;
+     size_t  maxMem;
+     std::stack<Tuple*> mmpart;
+     std::vector<string> filenames;
+     TupleType* tt;
+     ifstream* in;
+
+
+/*
+Here, we read the complete input stream until the maximal available 
+memory is exhausted. In this case, we write the content of the stack.
+into a file. If the memory overflows again, the content is written into
+a new file.  
+
+*/
+     void readInput(){
+        size_t mem1 = sizeof(mmpart);
+        size_t mem = mem1;
+        Tuple* tuple;
+        tt = 0;
+        while( (tuple = stream.request()) ){
+           if(!tt){
+             tt = tuple->GetTupleType();
+             tt->IncReference();
+           }
+           mmpart.push(tuple);
+           mem += sizeof(void*) + tuple->GetMemSize();
+           if(mem > maxMem){
+              writeFile();
+              mem = mem1;
+           }
+        }
+        cout << "written " << filenames.size() << " files " << endl;
+     }
+
+
+/*
+Write the content of the stack into a file.
+
+*/
+     void writeFile(){
+        string name =  string("OP_reverseStream_")
+                      +stringutils::int2str(WinUnix::getpid())
+                      +string("_")
+                      + stringutils::int2str(reverseStreamLI_FileNumber)
+                      + string(".bin");
+        reverseStreamLI_FileNumber++;
+        filenames.push_back(name);
+        ofstream out(name.c_str(),ios::binary|ios::trunc);
+        while(!mmpart.empty()){
+           Tuple* t = mmpart.top();
+           mmpart.pop();
+           writeTuple(out,t);
+           t->DeleteIfAllowed();
+        }
+        out.close();
+     }
+
+/*
+Write a single tuple into a file.
+
+*/
+     void writeTuple(ofstream& out, Tuple* tuple){
+       size_t coreSize;
+       size_t extensionSize;
+       size_t flobSize;
+       size_t blocksize = tuple->GetBlockSize(coreSize, extensionSize, 
+                                        flobSize);
+       // allocate buffer and write flob into it
+       char* buffer = new char[blocksize];
+       tuple->WriteToBin(buffer, coreSize, extensionSize, flobSize); 
+       uint32_t tsize = blocksize;
+       out.write((char*) &tsize, sizeof(uint32_t));
+       out.write(buffer, tsize);
+       delete[] buffer;
+     }
+
+/*
+Removes remaining tuples from the stack.
+
+*/
+     void clearMem(){
+        while(!mmpart.empty()){
+          Tuple* t = mmpart.top();
+          mmpart.pop();
+          t->DeleteIfAllowed();
+        }
+     }
+
+
+/*
+Reads the next result tuple from a file.
+
+*/
+     Tuple* nextFromFile(){
+        if(!in){
+          return 0;
+        }
+        if(in->eof()) {
+          cout << "end of file reached" << endl;
+          openNextFile(false);
+        }
+        if(!in){
+           cout << "no next file" << endl;
+          return 0;
+        }
+        // size of the next tuple
+        uint32_t size;
+        in->read( (char*) &size, sizeof(uint32_t));
+        if(!in->good()){
+           openNextFile(false);
+           if(!in) return 0;
+           in->read( (char*) &size, sizeof(uint32_t));
+        }
+        if(size==0){
+           return 0; // some error occured
+        }
+        char* buffer = new char[size];
+        in->read(buffer, size);
+        if(!in->good()){
+           delete [] buffer;
+           cout << "error during reading file " << endl;
+           cout << "position " << in->tellg() << endl;
+           return 0; // error
+        }
+        Tuple* res = new Tuple(tt);
+        res->ReadFromBin(0, buffer );
+        delete[] buffer;
+        return res;
+     }
+
+/*
+Opens the next file. If this is not the first file, the
+currently opened files is closed and deleted afterward.
+
+*/
+     void openNextFile(bool first){
+        if(!first){
+          closeFile(); // closes and removes the currently open file
+        }
+        if(filenames.empty()){
+          return;
+        }
+        string name = filenames.back();
+        cout << "Open File " << name << endl;
+        in = new ifstream(name.c_str(), ios::binary); 
+     }
+        
+
+/*
+Closes and deletes the current opened file.
+
+*/
+     void closeFile(){ 
+        if(in){
+          in->close();
+          delete in;
+          in = 0;
+          string name = filenames.back();
+          filenames.pop_back();
+          cout << "delete file " << name << endl;
+          FileSystem::DeleteFileOrFolder(name); 
+        }
+     }
+
+
+};
+
+/*
+13.1.3 The Value Mapping
+
+*/
+
+int reverseStreamVM( Word*  args, Word& result, int message,
+               Word& local, Supplier  s ){
+
+    reverseStreamLI* li = (reverseStreamLI*) local.addr;
+    switch(message){
+       case OPEN: if(li){
+                    delete li;
+                  }
+                  local.addr = new reverseStreamLI(args[0],
+                                   qp->GetMemorySize(s)*1024*1024);
+                  return 0;
+       case REQUEST:
+                  result.addr = li?li->getNext():0;
+                  return result.addr?YIELD:CANCEL;
+       case CLOSE :
+                 if(li){
+                    delete li;
+                    local.addr = 0;
+                 }
+                 return 0;
+     }
+    return -1;
+}
+
+/*
+13.2.3 The specification.
+
+*/
+
+OperatorSpec reverseStreamSpec(
+       "stream(tuple) -> stream(tuple) ",
+       " _ reverseStream ",
+       "reverseStreams the order in a tuple stream",
+       "query ten feed reverseStream consume");
+
+
+/*
+13.2.4 The operator instance
+
+*/
+Operator reverseStreamOp(
+   "reverseStream",
+   reverseStreamSpec.getStr(),
+   reverseStreamVM,
+   Operator::SimpleSelect,
+   reverseStreamTM
+);
+
+
 
 /*
 8 Definition of the Algebra
@@ -4817,6 +5132,10 @@ class GuideAlgebra : public Algebra {
       importObject2Op.SetUsesArgsInTypeMapping();
 
       AddOperator(&text2vstringOp);
+
+      AddOperator(&reverseStreamOp);
+      reverseStreamOp.SetUsesMemory();
+
      }
  };
 
