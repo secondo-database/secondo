@@ -316,9 +316,10 @@ string checkSQLCommand(const string& cmd, bool& correct, string& errMsg){
            pos++;
            break;
         } 
-        case 3: // within an identifier to reqrite
+        case 3: // within an identifier to rewrite
             if(isIdentChar(c)){
-               res << tolower(c);
+               //res << tolower(c);
+               res << c;
                pos++;
             } else {
                state = 0;
