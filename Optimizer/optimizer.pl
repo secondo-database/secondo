@@ -7520,6 +7520,12 @@ isAttribute(Name, Rel) :-
   relation(Rel, List),
   member(Name, List), !.
 
+isAttribute(Name, Rel) :-
+  queryRel(Rel, _),
+  relation(Rel, List),
+  atom(Name),
+  downcase_atom(Name,NameDC),
+  member(NameDC, List), !.
 
 /*
 11.3.5 Modification of the Where-Clause
