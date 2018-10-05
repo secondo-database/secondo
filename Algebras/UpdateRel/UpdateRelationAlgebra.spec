@@ -21,6 +21,8 @@ operator createinsertrel alias CREATEINSERTREL pattern _ op
 operator createdeleterel alias CREATEDELETEREL pattern _ op
 operator createupdaterel alias CREATEUPDATEREL pattern _ op
 operator insert alias INSERT pattern _ _ op
+operator insert2 alias INSERT2 pattern _ _ op
+operator insert3 alias INSERT3 pattern _ _ op
 operator insertsave alias INSERTSAVE pattern _ _ _ op
 operator inserttuple alias INSERTTUPLE pattern _ op [list]
 operator inserttuplesave alias INSERTTUPLESAVE pattern _ _ op [list]

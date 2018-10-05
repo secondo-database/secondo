@@ -277,6 +277,40 @@ Operator extrelcreateupdaterel (
 );
 
 
+bool equalTuplesIgnore(ListExpr tuple1, ListExpr tuple2, bool wholeName){
+  ListExpr attrList1 = nl->Second(tuple1);
+  ListExpr attrList2 = nl->Second(tuple2);
+  while(!nl->IsEmpty(attrList1) && !nl->IsEmpty(attrList2)){
+     ListExpr attr1 = nl->First(attrList1);
+     ListExpr attr2 = nl->First(attrList2);
+     attrList1 = nl->Rest(attrList1);
+     attrList2 = nl->Rest(attrList2);
+     if(!nl->HasLength(attr1,2) || !nl->HasLength(attr2,2)){
+       return false;
+     }
+     if(!nl->Equal(nl->Second(attr1), nl->Second(attr2))){
+        return false;
+     }
+     if(!wholeName){
+        string a1 = nl->SymbolValue(nl->First(attr1));
+        string a2 = nl->SymbolValue(nl->First(attr2));
+        stringutils::toLower(a1);
+        stringutils::toLower(a2);
+        if( a1 != a2) {
+          return false;
+        }
+     }
+  }
+  if(!nl->IsEmpty(attrList1) || !nl->IsEmpty(attrList2)){
+    return false;
+  }
+  return true;
+
+
+
+}
+
+
 /*
 2.22 Operator ~insert~
 
@@ -297,8 +331,16 @@ General type mapping for operators ~insert~ ,~deletesearch~ and ~deletedirect~
         where X = (tuple ((a1 x1) ... (an xn)))
 ----
 
+The equalcheck determines how the equality of the stream tuple type and the
+relation typle type is checked. 
+    * 0 : complete equality,
+    * 1 : attribute names are checked case insensitiv,
+    * 2 : only the types are equal, attribute names are not checked 
+
+
 */
-ListExpr insertDeleteRelTypeMap( ListExpr& args, string opName )
+template<int equalCheck>
+ListExpr insertDeleteRelTypeMap( ListExpr args)
 {
   ListExpr first, second, rest,listn,lastlistn, outList;
   string argstr, argstr2;
@@ -319,12 +361,28 @@ ListExpr insertDeleteRelTypeMap( ListExpr& args, string opName )
     return listutils::typeError("second argument must be of type rel or orel");
   }
 
-  if(!nl->Equal(nl->Second(first),nl->Second(second))){
-   return listutils::typeError("tuple types must be equal");
+  ListExpr streamTuple = nl->Second(first);
+  ListExpr relTuple    = nl->Second(second);
+  switch(equalCheck){
+    case 0 : if(!nl->Equal(streamTuple,relTuple)){
+                return listutils::typeError("tuple types in stream and "
+                                            "relation differ");
+             }
+             break;
+    case 1: if(!equalTuplesIgnore(streamTuple, relTuple,false)){
+                return listutils::typeError("tuple types in stream and "
+                                            "relation differ");
+             }
+            break;
+    case 2: if(!equalTuplesIgnore(streamTuple, relTuple,true)){
+                return listutils::typeError("tuple types in stream and "
+                                            "relation differ");
+            }
+            break;
+    default : assert(false);
   }
 
-
-  // build resutllist
+  // build resultllist
   rest = nl->Second(nl->Second(second));
   listn = nl->OneElemList(nl->First(rest));
   lastlistn = listn;
@@ -346,15 +404,6 @@ ListExpr insertDeleteRelTypeMap( ListExpr& args, string opName )
   return outList;
 }
 
-/*
-2.22.1 Type mapping function of operator ~insert~
-
-*/
-
-ListExpr insertRelTypeMap(ListExpr args)
-{
-  return insertDeleteRelTypeMap(args, "insert");
-}
 
 /*
 2.22.2 Value mapping function of operator ~insert~
@@ -441,9 +490,46 @@ Operator extrelinsert (
   insertSpec,              // specification
   insertRelValueMap,       // value mapping
   Operator::SimpleSelect,  // trivial selection function
-  insertRelTypeMap         // type mapping
+  insertDeleteRelTypeMap<0>         // type mapping
 );
 
+
+OperatorSpec insert2Spec(
+ "stream(tuple(x)) x rel(tuple(x)) -> stream(tuple(x@[TID:tid]))",
+ "_ _ insert2",
+ "Inserts all tuples from the stream into a relation. "
+ "The schema of the tuple stream has to fit the schema of "
+ "the relation where attribute names are compared case insensitive.",
+ "query towns feed vilages insert count"
+
+);
+
+Operator extrelinsert2 (
+  "insert2",                // name
+  insert2Spec.getStr(),              // specification
+  insertRelValueMap,       // value mapping
+  Operator::SimpleSelect,  // trivial selection function
+  insertDeleteRelTypeMap<1>
+);
+
+
+OperatorSpec insert3Spec(
+ "stream(tuple(x)) x rel(tuple(x)) -> stream(tuple(x@[TID:tid]))",
+ "_ _ insert2",
+ "Inserts all tuples from the stream into a relation. "
+ "The schema of the tuple stream has to fit the schema of "
+ "the relation where attribute names are ignored.",
+ "query towns feed vilages insert count"
+
+);
+
+Operator extrelinsert3 (
+  "insert3",                // name
+  insert3Spec.getStr(),              // specification
+  insertRelValueMap,       // value mapping
+  Operator::SimpleSelect,  // trivial selection function
+  insertDeleteRelTypeMap<2>
+);
 /*
 2.23 Operator ~insertsave~
 
@@ -630,14 +716,8 @@ of tuples which is  basically the stream of deleted tuples but each
 tuple extended by an attribute of type 'tid' which is the tupleidentifier
 of the deleted tuple in the extended relation.
 
-2.24.1 TypeMapping for operator ~deletesearch~
-
 */
 
-ListExpr deleteSearchRelTypeMap( ListExpr args )
-{
-  return insertDeleteRelTypeMap(args, "deletesearch");
-}
 
 
 
@@ -851,7 +931,7 @@ Operator extreldeletesearch (
   deleteSearchSpec,            // specification
   deleteSearchRelValueMap,     // value mapping
   Operator::SimpleSelect,      // trivial selection function
-  deleteSearchRelTypeMap       // type mapping
+  insertDeleteRelTypeMap<0>       // type mapping
 );
 
 /*
@@ -864,17 +944,6 @@ which is  basically the stream of deleted tuples but each tuple extended
 by an attribute of type 'tid' which is the tupleidentifier of the deleted 
 tuple in the updated relation.
 
-2.25.1 TypeMapping for operator ~deletedirect~
-
-*/
-
-ListExpr deleteDirectRelTypeMap( ListExpr args )
-{
-  return insertDeleteRelTypeMap(args, "deletedirect");
-}
-
-
-/*
 2.25.2 Value mapping function of operator ~deletedirect~
 
 */
@@ -960,7 +1029,7 @@ Operator extreldeletedirect (
   deleteDirectSpec,            // specification
   deleteDirectRelValueMap,     // value mapping
   Operator::SimpleSelect,      // trivial selection function
-  deleteDirectRelTypeMap       // type mapping
+  insertDeleteRelTypeMap<0>       // type mapping
 );
 
 
@@ -5029,6 +5098,8 @@ class UpdateRelationAlgebra : public Algebra
     AddOperator(&extrelcreatedeleterel);
     AddOperator(&extrelcreateupdaterel);
     AddOperator(&extrelinsert);
+    AddOperator(&extrelinsert2);
+    AddOperator(&extrelinsert3);
     AddOperator(&extrelinsertsave);
     AddOperator(&extrelinserttuple);
     AddOperator(&extrelinserttuplesave);

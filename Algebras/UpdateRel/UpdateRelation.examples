@@ -77,6 +77,17 @@ Signature: stream(tuple(x)) x rel(tuple(x)) -> stream(tuple(x@[TID:tid]))]
 Example  : query Grossstaedte feed Kleinstaedte1 insert count
 Result   : 12
 
+Operator : insert2
+Number   : 1
+Signature: stream(tuple(x)) x rel(tuple(x)) -> stream(tuple(x@[TID:tid]))] 
+Example  : query Grossstaedte feed renameAttr[Plz : PLZ] Kleinstaedte1 insert2 count
+Result   : 12
+
+Operator : insert3
+Number   : 1
+Signature: stream(tuple(x)) x rel(tuple(x)) -> stream(tuple(x@[TID:tid]))] 
+Example  : query Grossstaedte feed renameAttr[CityName : SName, ZipCode : PLZ, Pop : Bev] Kleinstaedte1 insert3 count
+Result   : 12
 
 Operator : insertrtree
 Number   : 1
