@@ -619,7 +619,7 @@ public class CommandPanel extends JScrollPane {
   }
 
   /*
-   Changes all letters of words outside quotes starting with an upper case 
+   Changes the first letter of symbols outside quotes starting with an upper case 
    to lower case. Words insie quotes or words starting with a lower case
    are keept as there are.
 
@@ -852,7 +852,8 @@ public class CommandPanel extends JScrollPane {
           break;
           case 3: { // within an indentifier, convert all
             if(isIdentChar(c)){
-              buf.append(toLower(c));
+              //buf.append(toLower(c));
+              buf.append(c);
             } else {
               buf.append(c);
               if(c=='"'){
@@ -865,7 +866,7 @@ public class CommandPanel extends JScrollPane {
             }
           }
           break;
-          case 4: { // within an identifiert, convert nothing
+          case 4: { // within an identifier, convert nothing
             if(isIdentChar(c)){
               buf.append(c);
             } else {
