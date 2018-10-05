@@ -2083,7 +2083,7 @@ plan_to_atom(inserttuple(Rel, Values), Result) :-
 plan_to_atom(insert(Rel, InsertQuery),Result) :-
   plan_to_atom(InsertQuery, InsertQuery2),
   plan_to_atom(Rel, Rel2),
-  my_concat_atom([InsertQuery2, ' ', Rel2, ' insert'], Result),
+  my_concat_atom([InsertQuery2, ' ', Rel2, ' insert2'], Result),
   !.
 
 plan_to_atom(deletedirect(Rel, DeleteQuery),Result) :-
