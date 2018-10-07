@@ -62,6 +62,12 @@ namespace distributed2 {
     ListExpr dmapXTMT(ListExpr args);
 };
 
+namespace extrelationalg {
+
+    template<bool OptionalIntAllowed, int defaultValue>
+    ListExpr JoinTypeMap (ListExpr args);
+};
+
 namespace drel {
 
 /*
@@ -111,7 +117,7 @@ namespace drel {
         }
         else {
             return listutils::typeError(
-                err + ": first argument is not a d[f]rel" );
+                err + ": second argument is not a d[f]rel" );
         }
 
         if( !listutils::isRelDescription( nl->Second( drel1Type ) ) ||
@@ -126,6 +132,27 @@ namespace drel {
         ListExpr attr2List = 
             nl->Second( nl->Second( nl->Second( drel2Type ) ) );
 
+        // tpye map check for sortmergejoin
+        ListExpr joinTMresult = extrelationalg::JoinTypeMap<false, 0>( 
+            nl->FourElemList(
+                nl->TwoElemList(
+                    listutils::basicSymbol<Stream<Tuple>>( ),
+                    nl->TwoElemList(
+                        listutils::basicSymbol<Tuple>( ),
+                        attr1List ) ),
+                nl->TwoElemList(
+                    listutils::basicSymbol<Stream<Tuple>>( ),
+                    nl->TwoElemList(
+                        listutils::basicSymbol<Tuple>( ),
+                        attr2List ) ),
+                nl->First( nl->Third( args ) ),
+                nl->First( nl->Fourth( args ) ) ) );
+        
+        if( !nl->HasLength( joinTMresult, 3 ) ) {
+            return joinTMresult;
+        }
+
+        // type map check for dmap
         ListExpr fun = nl->TwoElemList(
             nl->FourElemList(
                 nl->SymbolAtom( "map" ),
@@ -170,6 +197,8 @@ namespace drel {
 
         cout << "dmapResult" << endl;
         cout << nl->ToString( dmapResult ) << endl;
+
+
 
         /*ListExpr resultType = nl->ThreeElemList(
             listutils::basicSymbol<DFRel>( ),
