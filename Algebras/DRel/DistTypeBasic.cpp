@@ -326,7 +326,7 @@ an operation. The pos starts with 0.
 
 */
     bool DistTypeBasic::repartiRequired( ListExpr distType, int pos ) {
-        
+
         distributionType dType;
         getTypeByNum( nl->IntValue( nl->First( distType ) ), dType );
 
@@ -340,7 +340,7 @@ an operation. The pos starts with 0.
 
         int attrPos = nl->IntValue( nl->Second( distType ) );
 
-        return pos == attrPos;
+        return pos != attrPos;
     }
 
 } // end of namespace drel
