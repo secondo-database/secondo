@@ -85,6 +85,8 @@ This type is used for basic distribution like random and replicated.
         virtual ListExpr toListExpr( ListExpr _typeInfo );
         virtual void print( );
 
+        static bool repartiRequired( ListExpr distType, int pos );
+
     protected:
 /*
 1.2 Members

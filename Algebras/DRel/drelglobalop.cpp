@@ -43,7 +43,7 @@ drelgroupby and drelrdup
 
 #include "DRelHelpers.h"
 #include "DRel.h"
-#include "Partitionier.hpp"
+#include "Partitioner.hpp"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

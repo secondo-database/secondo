@@ -317,4 +317,30 @@ Prints the dist type informations. Used for debugging.
         cout << getName( type ) << endl;
     }
 
+/*
+7.13 ~repartiRequired~
+
+Checks if the distType of an drel can be used without repartitioning for an 
+operation on the pos attribute. pos is the position of the attribute used in 
+an operation. The pos starts with 0.
+
+*/
+    bool DistTypeBasic::repartiRequired( ListExpr distType, int pos ) {
+
+        distributionType dType = getType( nl->SymbolValue( 
+            nl->First( distType ) ) );
+
+        if( dType == random ) {
+            return true;
+        }
+
+        if( dType == replicated ) {
+            return false;
+        }
+
+        int attrPos = nl->IntValue( nl->Second( distType ) );
+
+        return pos == attrPos;
+    }
+
 } // end of namespace drel

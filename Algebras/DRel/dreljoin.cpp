@@ -44,7 +44,7 @@ and drelitSpatialJoin
 
 #include "DRelHelpers.h"
 #include "DRel.h"
-#include "Partitionier.hpp"
+#include "Partitioner.hpp"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -88,6 +88,9 @@ namespace drel {
         ListExpr drel2Type = nl->First( nl->Second( args ) );
         ListExpr drel2Value = nl->Second( nl->Second( args ) );
 
+        ListExpr attr1Name = nl->First( nl->Third( args ) );
+        ListExpr attr2Name = nl->First( nl->Fourth( args ) );
+
         ListExpr darray1Type, darray2Type;
 
         if( DRel::checkType( drel1Type ) ) {
@@ -121,7 +124,7 @@ namespace drel {
         }
 
         if( !listutils::isRelDescription( nl->Second( drel1Type ) ) ||
-            !listutils::isRelDescription( nl->Second( drel1Type ) ) ) {
+            !listutils::isRelDescription( nl->Second( drel2Type ) ) ) {
             
             return listutils::typeError(
                 err + ": one of the d[f]rel's does not contain a relation" );
@@ -145,8 +148,8 @@ namespace drel {
                     nl->TwoElemList(
                         listutils::basicSymbol<Tuple>( ),
                         attr2List ) ),
-                nl->First( nl->Third( args ) ),
-                nl->First( nl->Fourth( args ) ) ) );
+                attr1Name,
+                attr2Name ) );
         
         if( !nl->HasLength( joinTMresult, 3 ) ) {
             return joinTMresult;
@@ -198,7 +201,40 @@ namespace drel {
         cout << "dmapResult" << endl;
         cout << nl->ToString( dmapResult ) << endl;
 
+        ListExpr drel1distType = nl->Third( drel1Type );
+        ListExpr drel2distType = nl->Third( drel2Type );
 
+        ListExpr attrType;
+        int attrPos1 = listutils::findAttribute( attr1List, 
+            nl->SymbolValue( attr1Name ), attrType );
+        int attrPos2 = listutils::findAttribute( attr2List, 
+            nl->SymbolValue( attr2Name ), attrType );
+
+        // repartitioning of drel1 or drel2 required?
+        bool drel1reparti = DistTypeBasic::repartiRequired( 
+            drel1distType, attrPos1 - 1 );
+        bool drel2reparti = DistTypeBasic::repartiRequired( 
+            drel2distType, attrPos2 - 1 );
+
+        if( drel1reparti ) {
+            cout << "repartitioning of first drel required..." << endl;
+        }
+
+        if( drel2reparti ) {
+            cout << "repartitioning of second drel required..." << endl;
+        }
+
+        bool keyMatch = false;
+        if( !drel1reparti && !drel2reparti ) {
+            if( nl->HasMinLength( drel1distType, 3 ) ) {
+                keyMatch = nl->IntValue( nl->Third( drel1distType ) ) 
+                    == nl->IntValue( nl->Third( drel2distType ) );
+            }
+        }
+
+        cout << keyMatch << endl;
+
+        cout << "made a decision about repartitioning..." << endl;
 
         /*ListExpr resultType = nl->ThreeElemList(
             listutils::basicSymbol<DFRel>( ),
