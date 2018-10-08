@@ -2717,7 +2717,7 @@ private void createMenuBar(){
    MI_ReplaceHistory.addActionListener(HistoryListener);
 
 
-   JMenu QueryMenu = new JMenu("Favoured Queries");
+   JMenu QueryMenu = new JMenu("Favored Queries");
    ProgramMenu.add(QueryMenu);
    MI_AddLastQuery = new JMenuItem("Add Last Query");
    MI_ShowQueries = new JMenuItem("Show");
@@ -3355,24 +3355,24 @@ private void loadHistory(File F,boolean replace,boolean showMessage){
       }
 }
 
-/** adds the last command to be a favoured query **/
+/** adds the last command to be a favored query **/
 public void addLastQuery(){
    ComPanel.addLastQuery();
 }
 
-/** Opens the dialog to select an of the favoured queries **/
+/** Opens the dialog to select an of the favored queries **/
 public void showQueries(){
    ComPanel.showQueries();
 }
 
-/** Saves all favoured quries into a file **/
+/** Saves all favored quries into a file **/
 public void saveQueries(){
   if(FC_Queries.showOpenDialog(this)==JFileChooser.APPROVE_OPTION){
       ComPanel.saveQueries(FC_Queries.getSelectedFile());
   }
 }
 
-/** loads the favoured queries from afile **/
+/** loads the favored queries from afile **/
 public void loadQueries(){
   if(FC_Queries.showSaveDialog(this)==JFileChooser.APPROVE_OPTION){
     ComPanel.saveQueries(FC_Queries.getSelectedFile());
