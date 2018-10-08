@@ -20,6 +20,7 @@
 package stlib.operations.interaction;
 
 import stlib.interfaces.moving.MovingObjectIF;
+import stlib.interfaces.range.PeriodsIF;
 import stlib.interfaces.time.TimeInstantIF;
 
 /**
@@ -42,6 +43,31 @@ public class Present {
     */
    public static boolean execute(final MovingObjectIF<?, ?> mobject, final TimeInstantIF instant) {
       return mobject.getPeriods().contains(instant);
+   }
+
+   /**
+    * Check if the passed Moving Object is defined during the passed periods
+    * 
+    * @param mobject
+    *           - the Moving Object
+    * @param periods
+    *           - the periods, set of time intervals
+    * 
+    * @return true, if the passed Moving Object is defined at any instant during
+    *         the passed periods, false otherwise
+    */
+   public static boolean execute(final MovingObjectIF<?, ?> mobject, final PeriodsIF periods) {
+      if (mobject == null || periods == null) {
+         return false;
+      }
+
+      if (!mobject.isDefined() || !periods.isDefined()) {
+         return false;
+      }
+
+      PeriodsIF mobjectPeriods = mobject.getPeriods();
+
+      return mobjectPeriods.intersects(periods);
    }
 
    /**

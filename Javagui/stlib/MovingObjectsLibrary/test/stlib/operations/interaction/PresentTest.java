@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import stlib.datatypes.interval.Period;
 import stlib.datatypes.moving.MovingBool;
+import stlib.datatypes.range.Periods;
 import stlib.datatypes.time.TimeInstant;
 
 /**
@@ -38,9 +39,9 @@ import stlib.datatypes.time.TimeInstant;
 public class PresentTest {
 
    /**
-    * [2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000), TRUE<br>
-    * [2018-01-10 00:00:00:000", "2018-01-20 00:00:00:000), FALSE<br>
-    * [2018-01-20 00:00:00:000", "2018-01-30 00:00:00:000), TRUE
+    * ["2018-01-01 00:00:00:000", "2018-01-10 00:00:00:000"), TRUE<br>
+    * ["2018-01-10 00:00:00:000", "2018-01-20 00:00:00:000"), FALSE<br>
+    * ["2018-01-20 00:00:00:000", "2018-01-30 00:00:00:000"), TRUE
     */
    private MovingBool mbool;
 
@@ -82,4 +83,32 @@ public class PresentTest {
       assertFalse(Present.execute(mbool, new TimeInstant()));
    }
 
+   @Test
+   public void testPresent_PassDefinedPeriodsObjectWithIntersections_ShouldBeTrue() {
+      Periods periods = new Periods(2);
+
+      periods.add(new Period("2017-12-01 00:00:00:000", "2018-01-05 00:00:00:000", true, false));
+      periods.add(new Period("2018-01-15 00:00:00:000", "2018-01-30 00:00:00:000", true, false));
+
+      assertTrue(Present.execute(mbool, periods));
+   }
+
+   @Test
+   public void testPresent_PassDefinedPeriodsObjectWithoutIntersections_ShouldBeTrue() {
+      Periods periods = new Periods(2);
+
+      periods.add(new Period("2017-12-01 00:00:00:000", "2018-01-01 00:00:00:000", true, false));
+      periods.add(new Period("2018-02-01 00:00:00:000", "2018-02-10 00:00:00:000", true, false));
+
+      assertFalse(Present.execute(mbool, periods));
+   }
+
+   @Test
+   public void testPresent_PassUndefinedPeriods_ShouldBeFalse() {
+
+      Periods periods = new Periods(0);
+      periods.setDefined(false);
+
+      assertFalse(Present.execute(mbool, periods));
+   }
 }

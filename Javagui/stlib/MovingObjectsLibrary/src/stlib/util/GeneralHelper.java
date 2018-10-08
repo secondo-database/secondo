@@ -194,7 +194,7 @@ public final class GeneralHelper {
     * @return a value between 0 and 1 indicates the ratio between the other two
     *         points
     * 
-    * @see http://twistedoakstudios.com/blog/Post2194_determining-exactly-ifwhenwhere-a-moving-line-intersected-a-moving-point
+    * @see https://github.com/Strilanc/Methods
     */
    public static double determinePositionRatio(PointIF point, PointIF startPoint, PointIF endPoint) {
       Vector2D deltaPointStart = point.minus(startPoint);
@@ -226,7 +226,7 @@ public final class GeneralHelper {
     * @return a List of 'CrossPointScalars' data objects with the determined
     *         scalars
     * 
-    * @see http://twistedoakstudios.com/blog/Post2194_determining-exactly-ifwhenwhere-a-moving-line-intersected-a-moving-point
+    * @see https://github.com/Strilanc/Methods
     */
    public static List<CrossPointScalars> intersection(PointIF fixedPoint, PointIF initStartPoint,
                                                       PointIF finalStartPoint, PointIF initEndPoint,
@@ -278,7 +278,7 @@ public final class GeneralHelper {
     * 
     * @return solutions as list of Double values
     * 
-    * @see http://twistedoakstudios.com/blog/Post2194_determining-exactly-ifwhenwhere-a-moving-line-intersected-a-moving-point
+    * @see https://github.com/Strilanc/Methods
     */
    public static List<Double> quadraticRoots(double a, double b, double c) {
       List<Double> results = new ArrayList<>();
