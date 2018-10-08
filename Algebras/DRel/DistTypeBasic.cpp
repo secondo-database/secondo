@@ -326,9 +326,9 @@ an operation. The pos starts with 0.
 
 */
     bool DistTypeBasic::repartiRequired( ListExpr distType, int pos ) {
-
-        distributionType dType = getType( nl->SymbolValue( 
-            nl->First( distType ) ) );
+        
+        distributionType dType;
+        getTypeByNum( nl->IntValue( nl->First( distType ) ), dType );
 
         if( dType == random ) {
             return true;
