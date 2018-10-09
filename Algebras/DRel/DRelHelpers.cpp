@@ -351,7 +351,7 @@ search.
 Computes the number of tuple in the given drel.
 
 */
-    int countDRel( string drel ) {
+    int DRelHelpers::countDRel( string drel ) {
 
         cout << endl;
         cout << "Start: Compute the size of the drel ..." << endl;

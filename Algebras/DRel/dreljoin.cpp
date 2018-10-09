@@ -224,41 +224,84 @@ namespace drel {
             cout << "repartitioning of second drel required..." << endl;
         }
 
-        bool keyMatch = false;
+        // no repartitioning required, check keys
         if( !drel1reparti && !drel2reparti ) {
-            if( nl->HasMinLength( drel1distType, 3 ) ) {
-                keyMatch = nl->IntValue( nl->Third( drel1distType ) ) 
-                    == nl->IntValue( nl->Third( drel2distType ) );
+
+            // both drels partitioned by range or spartial
+            if( nl->HasMinLength( drel1distType, 3 )
+             && nl->HasMinLength( drel2distType, 3 ) ) {
+
+                if( nl->IntValue( nl->Third( drel1distType ) ) 
+                    != nl->IntValue( nl->Third( drel2distType ) ) ) {
+
+                        cout << "key of the two drels do not match" << endl;
+                        drel1reparti = true;
+                        drel2reparti = true;
+                }
+            }
+            else {
+
+                //if one of the drels is partitioned by hash this drel 
+                //is choosen for repartitioning
+                if( nl->HasLength( drel1distType,2 ) ) {
+                    drel2reparti = false;
+                }
+
+                if( nl->HasLength( drel2distType,2 ) ) {
+                    drel1reparti = false;
+                }
+            }
+
+        }
+
+        int count = -1;
+        if( drel1reparti && drel2reparti ) {
+
+            int count1 = DRelHelpers::countDRel( nl->ToString( drel1Value ) );
+            int count2 = DRelHelpers::countDRel( nl->ToString( drel2Value ) );
+
+            if( count1 <= count2 ) {
+                count = count1;
+                drel2reparti = false;
+                cout << "repartition of the first drel will be done" << endl;
+            }
+            else {
+                count = count2;
+                drel1reparti = false;
+                cout << "repartition of the second drel will be done" << endl;
+                cout << "drel size" + std::to_string( count ) << endl;
             }
         }
 
-        cout << keyMatch << endl;
-
         cout << "made a decision about repartitioning..." << endl;
 
-        //int count1 = Partitioner::countDRel( nl->ToString( drel1Value ) );
-        //int count2 = Partitioner::countDRel( nl->ToString( drel2Value ) );
+        ListExpr resultType;
+        if( drel1reparti ) {
+            // drel1 repartitioning? use distribution type of drel2
+            resultType = nl->ThreeElemList(
+                listutils::basicSymbol<DFRel>( ),
+                nl->Second( nl->Third( dmapResult ) ),
+                drel2distType );
+        }
+        else {
+            // drel2 repartitioning? use distribution type of drel1
+            resultType = nl->ThreeElemList(
+                listutils::basicSymbol<DFRel>( ),
+                nl->Second( nl->Third( dmapResult ) ),
+                drel1distType );
+        }
 
-        /*ListExpr resultType = nl->ThreeElemList(
-            listutils::basicSymbol<DFRel>( ),
-            nl->Second( arg1Type ),
-            nl->FourElemList(
-                    nl->IntAtom( range ),
-                    nl->IntAtom( pos - 1 ),
-                    nl->IntAtom( rand( ) ),
-                    nl->TwoElemList(
-                        nl->SymbolAtom( Vector::BasicType( ) ),
-                        attrType ) ) );*/
+        cout << "res type" << endl;
+        cout << nl->ToString( resultType ) << endl;
 
-        /*ListExpr resultType = nl->TheEmptyList( );
+        ListExpr append = ConcatLists( 
+            nl->Second( dmapResult ), 
+            nl->ThreeElemList( 
+                nl->BoolAtom( drel1reparti ),
+                nl->BoolAtom( drel2reparti ),
+                nl->IntAtom( count ) ) );
 
-        int pos = 0;
-        ListExpr appendList = nl->ThreeElemList(
-            nl->StringAtom( "attrName" ),
-            nl->IntAtom( pos - 1 ),
-            nl->TextAtom( "fun" ) );
-
-        return nl->ThreeElemList( 
+        /*return nl->ThreeElemList( 
             nl->SymbolAtom( Symbols::APPEND( ) ),
             appendList,
             resultType );*/
