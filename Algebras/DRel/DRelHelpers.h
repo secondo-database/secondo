@@ -72,6 +72,8 @@ A class with usefull helper functions for the DRelAlgebra.
 
             static int getIndex( collection::Collection* vector, 
                 Attribute* attr );
+
+            static int countDRel( std::string drel );
     };
 
 } // end of namespace drel

@@ -345,4 +345,49 @@ search.
         return index;
     }
 
+/*
+1.13 ~countDRel~
+
+Computes the number of tuple in the given drel.
+
+*/
+    int countDRel( string drel ) {
+
+        cout << endl;
+        cout << "Start: Compute the size of the drel ..." << endl;
+
+        int count = -1;
+
+        string query =
+        "(tie (getValue (dmap (drelconvert " + drel + ")"
+        " \"\" (fun (dmapelem1 ARRAYFUNARG1) (count dmapelem1)))) "
+        "(fun (first2 ELEMENT) (second3 ELEMENT) (+first2 second3)))";
+
+        Word result;
+        if( !QueryProcessor::ExecuteQuery( query, result ) ) {
+            cout << "ERROR: Computation of the drel size failed!" << endl;
+            return count;
+        }
+
+        CcInt* res = ( CcInt* )result.addr;
+
+        if( !res ) {
+            cout << "ERROR: Computation of the drel size failed!" << endl;
+            return count;
+        }
+
+        if( !res->IsDefined( ) ) {
+            cout << "ERROR: Computation of the drel size failed!" << endl;
+            delete res;
+            return count;
+        }
+
+        count = res->GetValue( );
+        delete res;
+
+        cout << "Done. DRel size: " + to_string( count ) << endl;
+
+        return count;
+    }
+
 } // end of namespace drel
