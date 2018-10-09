@@ -301,6 +301,9 @@ namespace drel {
                 nl->BoolAtom( drel2reparti ),
                 nl->IntAtom( count ) ) );
 
+        cout << "append" << endl;
+        cout << nl->ToString( append ) << endl;
+
         /*return nl->ThreeElemList( 
             nl->SymbolAtom( Symbols::APPEND( ) ),
             appendList,
