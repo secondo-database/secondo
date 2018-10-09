@@ -5058,7 +5058,7 @@ OperatorSpec filterinsertSpec(
   "_ filterinsert[_,_]",
   "As the usual filter operator, this operator filters "
   "out tuples from a stream using a boolean function. "
-  "The removed tuples are nicht destroyed directly but "
+  "The removed tuples are "
   "inserted into a relation.",
   "query ten feed filterinsert[.No > 3, t2] count"
 );
