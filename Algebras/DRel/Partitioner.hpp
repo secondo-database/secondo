@@ -64,7 +64,7 @@ Class to repartition a DRel.
 
     public:
 /*
-1.1 Constructor
+1.1 Constructors
 
 */
         Partitioner( std::string _attr, ListExpr _boundaryType, R* _drel, 
@@ -73,6 +73,15 @@ Class to repartition a DRel.
             attr( _attr ), boundaryType( _boundaryType ), drel( _drel ), 
             sourcedType( _sourcedType ), targetdType( _targetdType ), 
             count( -1 ), boundary( 0 ), qp( 0 ), matrix( 0 ),
+            port( _port ), boundaryName( _boundaryName ) {
+        }
+
+        Partitioner( std::string _attr, ListExpr _boundaryType, R* _drel, 
+            ListExpr _sourcedType, ListExpr _targetdType, int _count, 
+            int _port, std::string _boundaryName ) :
+            attr( _attr ), boundaryType( _boundaryType ), drel( _drel ), 
+            sourcedType( _sourcedType ), targetdType( _targetdType ), 
+            count( _count ), boundary( 0 ), qp( 0 ), matrix( 0 ),
             port( _port ), boundaryName( _boundaryName ) {
         }
 
