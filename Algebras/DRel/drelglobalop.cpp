@@ -417,7 +417,7 @@ repartitioning the d[f]rel and execute a function on the d[f]rel.
 
         string boundaryName = distributed2::algInstance->getTempName();
 
-        Partitionier<R, T>* parti = new Partitionier<R, T>( attrName, 
+        Partitioner<R, T>* parti = new Partitioner<R, T>( attrName, 
             boundaryType, drel, qp->GetType( qp->GetSon( s, 0 ) ), 
             qp->GetType( s ), 1238, boundaryName );
 

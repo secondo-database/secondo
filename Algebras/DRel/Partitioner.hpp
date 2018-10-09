@@ -25,8 +25,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 */
-#ifndef _Partitionier_h_
-#define _Partitionier_h_
+#ifndef _Partitioner_h_
+#define _Partitioner_h_
 
 #include "Algebras/Collection/CollectionAlgebra.h"
 #include "DRelHelpers.h"
@@ -54,20 +54,20 @@ namespace distributed2 {
 
 namespace drel {
 /*
-1 ~Partitionier~
+1 ~Partitioner~
 
 Class to repartition a DRel.
 
 */
     template<class R, class T>
-    class Partitionier {
+    class Partitioner {
 
     public:
 /*
 1.1 Constructor
 
 */
-        Partitionier( std::string _attr, ListExpr _boundaryType, R* _drel, 
+        Partitioner( std::string _attr, ListExpr _boundaryType, R* _drel, 
             ListExpr _sourcedType, ListExpr _targetdType, int _port, 
             std::string _boundaryName ) :
             attr( _attr ), boundaryType( _boundaryType ), drel( _drel ), 
@@ -80,7 +80,7 @@ Class to repartition a DRel.
 1.2 Copy-Constructor
 
 */
-        Partitionier( const Partitionier& src ) :
+        Partitioner( const Partitioner& src ) :
             attr( src.attr ), boundaryType( src.boundaryType ), drel( src.drel ), 
             sourcedType( src.sourcedType ), targetdType( src.targetdType ), 
             count( src.count ), boundary( *( src.boundary ) ), qp( 0 ), 
@@ -92,7 +92,7 @@ Class to repartition a DRel.
 1.2 Assignment operator
 
 */
-        Partitionier& operator=( const Partitionier& src ) {
+        Partitioner& operator=( const Partitioner& src ) {
             if( this == &src ) {
                 return *this;
             }
@@ -114,7 +114,7 @@ Class to repartition a DRel.
 1.3 Destructor
 
 */
-        ~Partitionier( ) {
+        ~Partitioner( ) {
             delete boundary;
             if( qp ) {
                 qp->Destroy( tree, true );
@@ -543,6 +543,31 @@ This functions will compute the objects if they are not already created.
         }
 
 /*
+1.10.4 ~getArrayType~
+
+*/
+        ListExpr getArrayType( ) {
+            ListExpr arrayType;
+
+            if( nl->ToString( nl->First( sourcedType ) ) == 
+                DRel::BasicType( ) ) {
+
+                arrayType = nl->TwoElemList(
+                    listutils::basicSymbol<distributed2::DArray>( ),
+                    nl->Second( sourcedType ) );
+            }
+            else if( nl->ToString( nl->First( sourcedType ) ) == 
+                DFRel::BasicType( ) ) {
+
+                arrayType = nl->TwoElemList(
+                    listutils::basicSymbol<distributed2::DFArray>( ),
+                    nl->Second( sourcedType ) );
+            }
+
+            return arrayType;
+        }
+
+/*
 1.11 set functions
 
 1.11.1 ~setBoundary~
@@ -560,6 +585,16 @@ This functions will compute the objects if they are not already created.
             }
 
             boundary = _boundary;
+        }
+
+/*
+1.11.2 ~setCount~
+
+*/
+
+        void setCount( int _count ) {
+
+            count = _count;
         }
 
     private:
@@ -610,32 +645,7 @@ This functions will compute the objects if they are not already created.
         }
 
 /*
-1.15 ~getArrayType~
-
-*/
-        ListExpr getArrayType( ) {
-            ListExpr arrayType;
-
-            if( nl->ToString( nl->First( sourcedType ) ) == 
-                DRel::BasicType( ) ) {
-
-                arrayType = nl->TwoElemList(
-                    listutils::basicSymbol<distributed2::DArray>( ),
-                    nl->Second( sourcedType ) );
-            }
-            else if( nl->ToString( nl->First( sourcedType ) ) == 
-                DFRel::BasicType( ) ) {
-
-                arrayType = nl->TwoElemList(
-                    listutils::basicSymbol<distributed2::DFArray>( ),
-                    nl->Second( sourcedType ) );
-            }
-
-            return arrayType;
-        }
-
-/*
-1.16 ~createBoundaryPointerList~
+1.15 ~createBoundaryPointerList~
 
 */
         ListExpr createBoundaryPointerList( ) {
@@ -648,7 +658,7 @@ This functions will compute the objects if they are not already created.
         }
 
 /*
-1.17 ~createPartitionOpTree~
+1.16 ~createPartitionOpTree~
 
 */
         OpTree createPartitionOpTree( QueryProcessor* qp, ListExpr query ) {
@@ -672,7 +682,7 @@ This functions will compute the objects if they are not already created.
         }
 
 /*
-1.18 Members
+1.17 Members
 
 */
         std::string attr;
@@ -692,4 +702,4 @@ This functions will compute the objects if they are not already created.
     
 } // end of namespace drel
 
-#endif // _Partitionier_h_
+#endif // _Partitioner_h_

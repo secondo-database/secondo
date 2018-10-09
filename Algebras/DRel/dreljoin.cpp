@@ -236,6 +236,9 @@ namespace drel {
 
         cout << "made a decision about repartitioning..." << endl;
 
+        //int count1 = Partitioner::countDRel( nl->ToString( drel1Value ) );
+        //int count2 = Partitioner::countDRel( nl->ToString( drel2Value ) );
+
         /*ListExpr resultType = nl->ThreeElemList(
             listutils::basicSymbol<DFRel>( ),
             nl->Second( arg1Type ),
