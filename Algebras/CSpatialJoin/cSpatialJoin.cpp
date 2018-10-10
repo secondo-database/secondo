@@ -83,7 +83,7 @@ public:
   Info() {
     name = "cspatialjoin";
     signature = inSignature + outSignature;
-    syntax = "_ _ cspatialjoin [ _ , _ , _ , _]";
+    syntax = "_ _ cspatialjoin [ _ , _ ]";
     meaning = "Cache-conscious spatial join operator performing"
               "a partitioned spatial join on two tuple-streams,"
               "where xi and yj are the names of the join"
@@ -91,7 +91,7 @@ public:
               "respectively.";
     example = "query Roads feed toblocks[1000] {a}"
               "Roads feed toblocks[1000] {b}"
-              "cspatialjoin[GeoData_a, GeoData_b, 15, 2048] count";
+              "cspatialjoin[GeoData_a, GeoData_b] count";
   }
 };
 
@@ -122,9 +122,9 @@ ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) {
 
   const uint64_t argNum = nl->ListLength(args);
 
-  if (argNum != 6)
+  if (argNum != 4)
   {
-    return listutils::typeError("Expected six arguments.");
+    return listutils::typeError("Expected four arguments.");
   }
 
   // first argument must be a stream of tuple-blocks
@@ -157,18 +157,6 @@ ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) {
   if(!listutils::isSymbol(nl->Fourth(args))) {
     return listutils::typeError("Error in fourth argument: "
                                     "Attribute name expected");
-  }
-
-  // fifth argument must an integer
-  if(!CcInt::checkType(nl->Fifth(args))) {
-    return listutils::typeError("Error in fifth argument: "
-                                    "Integer value expected");
-  }
-
-  // sixth argument must an integer
-  if(!CcInt::checkType(nl->Sixth(args))) {
-      return listutils::typeError("Error in sixth argument: "
-                                    "Integer value expected");
   }
 
   // extract information about tuple block from args[]
@@ -280,8 +268,6 @@ class LocalInfo {
     // constructor
     LocalInfo(Word fs, Word ss,
               Word fi, Word si,
-              Word stripes,
-              Word maxTuple,
               Supplier su):
         fStream(fs),
         sStream(ss),
@@ -313,15 +299,6 @@ class LocalInfo {
     index = static_cast<CcInt*>(si.addr);
     sIndex = index->GetValue();
 
-    // test purpose
-    // extract information about a number of
-    // partition stripes
-    index = static_cast<CcInt*>(stripes.addr);
-    numOfPartStripes = index->GetValue();
-
-    index = static_cast<CcInt*>(maxTuple.addr);
-    maxTuplePerPart = index->GetValue();
-   
     fStream.open();
     sStream.open();
   }
@@ -602,10 +579,7 @@ int cspatialjoinVM(Word* args, Word& result, int message,
       if (localInfo) {
         delete localInfo;
       }
-      // wichtig : NICHT vergessen args[6] und args[7] auf 4, bzw. 5
-      // ändern (wegen tests) !!!
-      local.addr = new LocalInfo(args[0], args[1], args[6], args[7],
-                                 args[4], args[5], s);
+      local.addr = new LocalInfo(args[0], args[1], args[4], args[5], s);
       return 0;
     }
         
