@@ -11,8 +11,8 @@ pushd . \
 && make \
 && cd ~/secondo/ && make TTY \
 && cd ~/secondo/bin/ \
-&& TestRunnerSj $1 -i ~/secondo/Algebras/Temporal2/Temporal2.test \
-&& TestRunnerSj $1 -i ~/secondo/Algebras/Temporal2/Temporal2_open_close.test \
+&& SecondoBDB -test -i ~/secondo/Algebras/Temporal2/Temporal2.test \
+&& SecondoBDB -test -i ~/secondo/Algebras/Temporal2/Temporal2_open_close.test \
 && Selftest $1 tmp/Temporal2.examples \
 && SecondoTTYBDB
 popd

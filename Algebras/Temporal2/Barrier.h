@@ -1,7 +1,5 @@
 /*
-Barrier.h
-Created on: 27.05.2018
-Author: simon
+Shared memory barrier, used by OpBarrier.h/.cpp
 
 */
 
@@ -13,7 +11,6 @@ Author: simon
 #include <boost/interprocess/sync/interprocess_condition.hpp>
 #include <boost/interprocess/shared_memory_object.hpp>
 #include <boost/interprocess/mapped_region.hpp>
-//#include <boost/interprocess/managed_shared_memory.hpp>
 
 namespace temporal2algebra {
 

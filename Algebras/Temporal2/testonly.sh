@@ -7,7 +7,8 @@
 
 pushd . \
 
-cd ~/secondo/bin/ && TestRunnerSj $1 -i ~/secondo/Algebras/Temporal2/Temporal2.test \
+# cd ~/secondo/bin/ && TestRunnerSj $1 -i ~/secondo/Algebras/Temporal2/Temporal2.test \
+cd ~/secondo/bin/ && TestRunnerSj -i /home/simon/secondo/Algebras/Temporal2/Temporal2.test \
 
 popd
 

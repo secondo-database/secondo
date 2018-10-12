@@ -1,7 +1,6 @@
 /*
-MPoint2.h
-Created on: 03.05.2018
-    Author: simon
+moving point implementation with optional in-memory representation
+with similar Interface as temporalalgebra::MPoint
 
 */
 
@@ -12,25 +11,21 @@ Created on: 03.05.2018
 #include "../../Tools/Flob/DbArray.h"
 #include "Types.h"
 #include "Algebras/Temporal/TemporalAlgebra.h" // UPoint
- // for relation related pointers:
+// for relation related pointers:
 #include "Algebras/Relation-C++/RelationAlgebra.h"
-class TypeConstructor; // fwd dcl instead of #include TypeConstructor.h
+class TypeConstructor;
 
 
 namespace temporal2algebra {
 TypeConstructor* getMPoint2TypePtr();
 
-using namespace std;
-
 class MPoint2: public Attribute {
 
 public:
 
-    //TODO: refactor: separate "MPointInterface" methods from
-    // Memory related methods -> logging etc. only in memMethods
-    // should make handling correctly more easy
-    void memClear(); // used in genttc::Delete()
-    const MemStorageId getMemId() const; // used in cout and pushToMem
+    void memClear();
+    const MemStorageId getMemId() const;
+    void setMemId(const MemStorageId new_id);
 
     void memAppend(const temporalalgebra::UPoint& upoint);
     void SetBackReference(const BackReference& backReference);
@@ -55,91 +50,73 @@ public:
 
     MPoint2& operator=(const MPoint2& rhs);
 
+    ListExpr ToListExpr(const ListExpr& typeInfo) const;
+
+    bool ReadFrom(const ListExpr LE, const ListExpr& typeInfo);
+
+    std::string toString() const;
+
+    int Compare(const Attribute* rhs1) const;
+
+    bool Adjacent(const Attribute* rhs) const;
+
+    size_t HashValue() const;
+
+    void CopyFrom(const Attribute* attr);
 
 
-   ListExpr ToListExpr(const ListExpr& typeInfo) const;
+    MPoint2* Clone() const;
 
-   bool ReadFrom(const ListExpr LE, const ListExpr& typeInfo);
+    size_t Sizeof() const;
+    static const std::string BasicType();
+    static const bool checkType(const ListExpr type);
 
-   std::string toString() const;
+    static ListExpr Property();
 
-   int Compare(const Attribute* rhs1) const;
+    static bool CheckKind(ListExpr type, ListExpr& errorInfo);
 
-   bool Adjacent(const Attribute* rhs) const;
+    virtual void Initialize( SmiFileId fileId,
+            TupleId tupleId,
+            int attrno);
+    virtual void Finalize();
 
-   size_t HashValue() const;
+    ostream& Print(ostream &os) const;
 
-   void CopyFrom(const Attribute* attr);
+    inline virtual int NumOfFLOBs () const;
+    inline virtual Flob* GetFLOB ( const int i );
 
+    // Functions added to replace direct member access from TemporalAlgebra
+    Rectangle<3> GetBBox() const;
 
-   MPoint2* Clone() const;
+    // functions from temporalalgebra::Mapping and ::MPoint
+    // required in Operators copied from TemporalAlgebra
 
-   size_t Sizeof() const;
-   static const std::string BasicType();
-   static const bool checkType(const ListExpr type);
-
-   static ListExpr Property();
-
-   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
-
-   virtual void Initialize( SmiFileId fileId,
-           TupleId tupleId,
-           int attrno);
-   virtual void Finalize();
-
-   ostream& Print(ostream &os) const;
-
-   inline virtual int NumOfFLOBs () const;
-   inline virtual Flob* GetFLOB ( const int i );
-
-   // Functions added to replace direct member access from TemporalAlgebra
-   Rectangle<3> GetBBox() const;
-
-// functions from temporalalgebra::Mapping and ::MPoint
-// required in Operators copied from TemporalAlgebra
-
-   void Get( const int i, Unit& upi ) const;
-   int  GetNoComponents() const;
-   bool IsEmpty() const;
-   void Clear();
-   void StartBulkLoad();
-   void Add( const temporalalgebra::UPoint& unit );
-   // MergeAdd(smth.);
-   bool EndBulkLoad( const bool sort = true,
-           const bool checkvalid = false );
-   // Destroy();
-   bool IsOrdered() const;
-   void Resize(size_t n);
+    void Get( const int i, Unit& upi ) const;
+    int  GetNoComponents() const;
+    bool IsEmpty() const;
+    void Clear();
+    void StartBulkLoad();
+    void Add( const temporalalgebra::UPoint& unit );
+    // MergeAdd(smth.);
+    bool EndBulkLoad( const bool sort = true,
+            const bool checkvalid = false );
+    // Destroy();
+    bool IsOrdered() const;
+    void Resize(size_t n);
 
 private:
 
-   void RestoreBoundingBox(const bool force = false); //class invariant?
+    void RestoreBoundingBox(const bool force = false); //class invariant?
 
 private:
-   // members
-   bool ordered; // better: duringBulkProcessing
+    bool ordered; // better: duringBulkProcessing
 
-   // bool canDestroy // used in Delete und In fo  orig. MPoint
-   MemStorageId id;
-   DbArray <temporalalgebra::UPoint> units2;
-   Rectangle<3> bbox2;
+    // bool canDestroy // used in Delete und In fo  orig. MPoint
+    MemStorageId id;
+    DbArray <temporalalgebra::UPoint> units2;
+    Rectangle<3> bbox2;
 };
 
-//std::ostream &operator<<(std::ostream &os, MPoint2 const &l);
-
-
-
 } /* namespace temporal2algebra */
-
-
-// we need our own versions of Delete to correctly clean up the memory parts
-namespace gentc {
-
-    template<>
-    void Delete<temporal2algebra::MPoint2>(const ListExpr typeInfo,Word &w);
-
-    template<>
-    void Close<temporal2algebra::MPoint2>(const ListExpr typeInfo, Word& w );
-} /* namespace gentc */
 
 #endif /* ALGEBRAS_TEMPORAL2_MPOINT2_H_ */

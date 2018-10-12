@@ -1,7 +1,5 @@
 /*
-Types.cpp
-Created on: 26.05.2018
-Author: simon
+implementation of output methods for most of our types
 
 */
 
@@ -34,18 +32,19 @@ std::ostream &operator<<(std::ostream &os, LogOperation const &l) {
 }
 
 std::ostream &operator<<(std::ostream &os, LogData const &l) {
+    Unit unit;
+    l.flatUnit.createUnit(&unit);
     return os << "[op: " << l.operation
             << ", store: " << l.storageId
             << ", trans: " << l.transactionId
             << ", backref: " << l.backReference
-            << ", unit: " << l.unit
-            << ", intime: " << l.intime << "]";
+            << ", unit: " << unit << "]";
 }
 
 std::ostream &operator<<(std::ostream &os, QueueData2 const &l) {
     return os << "[lastElement: " << l.lastElement
             << ", tid: " << l.tid
-            << ", intime: " << l.intime << "]";
+            << ", intime: " << l.t << ", " << l.x << ", " << l.y << "]";
 }
 
 } /* namespace temporal2algebra */

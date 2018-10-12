@@ -2,107 +2,76 @@ Sequential: YES
 Database: temporal2test
 Restore: YES
 
-Operator : storageaction
-Number   : 1
-Signature: text -> int
-Example  : query storageaction ('pushMem');
-Result   : 0
-
-Operator : appendto
-Number   : 2
-Signature: stream(iT) x mT -> mT, where T in {bool, int, real, string, point}
-Example  : query [const ipoint value ("2007-12-24" (1.1 -2.2))] appendto [const mpoint value undef];
-Result   : (mpoint ((("2007-12-24" "2007-12-24" TRUE TRUE) (1.1 -2.2 1.1 -2.2))))
-
 Operator : streamvalve
-Number   : 3
+Number   : 1
 Signature: stream(alpha) x string -> stream(alpha)
 Example  : query intstream (1,3) streamvalve [] printstream count;
 Result   : 3
 
-Operator : streamvalve
-Number   : 4
-Signature: stream(alpha) x string -> stream(alpha)
-Example  : query intstream (1,3) streamvalve ['Open'] printstream count;
-Result   : 3
-
-Operator : streamvalve
-Number   : 5
-Signature: stream(alpha) x string -> stream(alpha)
-Example  : query intstream (1,3) streamvalve ['Random'] printstream count;
-Result   : 3
-
-Operator : streamvalve
-Number   : 6
-Signature: stream(alpha) x string -> stream(alpha)
-Example  : query intstream (1,3) streamvalve ['Random', 0, 1] printstream count;
-Result   : 3
-
 Operator : streamnext
-Number   : 7
+Number   : 2
 Signature: string x int -> int;
 Example  : query streamnext('NoSuchValve', 11);
 Result   : -1
 
 Operator : m2mm
-Number   : 8
+Number   : 3
 Signature: mpoint -> mpoint2;
 Example  : query [const mpoint value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))] m2mm;
 Result   : (mpoint2((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))
 
 Operator : mm2m
-Number   : 9
+Number   : 4
 Signature: mpoint2 -> mpoint;
 Example  : query [const mpoint2 value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))] mm2m;
 Result   : (mpoint((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))))
 
 Operator : barrier
-Number   : 10
+Number   : 5
 Signature: string x int -> int
 Example  : query barrier ('sampleid', 1);
 Result   : 1
 
 Operator : appendpositions
-Number   : 11
+Number   : 6
 Signature: stream(iT) x mT -> mT, where T in {bool, int, real, string, point}
 Example  : query pos_updates feed appendpositions ['trajectories', 'DestTid', 'IPos','Trajectory'] count;
 Result   : 100
 
 
 Operator : atperiods
-Number   : 12
+Number   : 7
 Signature: (mT periods) -> mT
 Example  : query train7 atperiods [const periods value (("2003-11-20-07:01:40" "20003-11-20-07:45" TRUE TRUE))]
 Result   : (mpoint2((("2003-11-20-07:01:40" "2003-11-20-07:01:44.586" TRUE FALSE)(-3519.76750330251 14374.09577278732 -3544.0 14312.0))(("2003-11-20-07:01:44.586" "2003-11-20-07:01:50" TRUE FALSE)(-3544.0 14312.0 -3560.0 14235.0))(("2003-11-20-07:01:50" "2003-11-20-07:02" TRUE FALSE)(-3560.0 14235.0 -3560.0 14235.0))))
 
 
 Operator : enterwormhole
-Number   : 22
+Number   : 8
 Signature: stream(X) x string -> int
 Example  : query pos_updates feed enterwormhole [''];
 Result   : 100
 
 Operator : leavewormhole
-Number   : 23
+Number   : 9
 Signature: string -> stream(X)
 Example  : query leavewormhole ('') count;
 Result   : 0
 
-
 Operator : bbox
-Number   : 13
+Number   : 10
 Signature: upoint -> rect3, mpoint2 -> rect3, ipoint -> rect3, periods -> rect3, instant -> rect3
 Example  : query bbox([const mpoint2 value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0)))])
 Result   : (rect3 (0.0 1.0 0.0 1.0 -2.0 -1.999305555555555))
 
 Operator : trajectory
-Number   : 32
+Number   : 11
 Signature: mpoint2 -> line
 Example  : query trajectory(train7)
 Result   : file
 
 Operator : translateappendS
-Number   : 38
+Number   : 12
 Signature: stream(tuple([a1 : t1, ...an : tn])) x ai x duration -> mpoint2, with ti = mpoint2
 Example  : query Trains feed head[3] translateappendS[Trip, [const duration value(0 40000)]]
 Result   : file

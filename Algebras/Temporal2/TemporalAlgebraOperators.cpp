@@ -1,7 +1,7 @@
 /*
-TemporalAlgebraOperators.cpp
-Created on: 01.07.2018
-Author: simon
+Operator definitions for example operators
+copied from TemporalAlgebra.h/.cpp
+and adapted to use free functions from TemporalAlgebraFunctions.h
 
 */
 
@@ -143,7 +143,7 @@ int Temporal2BBoxSelect( ListExpr args )
 }
 
 /*
-Since MPoint2 is not a subclass of ~SpatialAttribute~, it has no ~BoundingBox()~
+Since MPoint is not a subclass of ~SpatialAttribute~, it has no ~BoundingBox()~
 function. One could make it inherit from ~SpatialAttribute~, but than one had to
 restore all databases and adopt the Add, MergeAdd, +=, -=, etc.
 

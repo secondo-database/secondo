@@ -1,9 +1,5 @@
 /*
-OpBarrier.cpp
-Created on: 08.04.2018
-Author: simon
-
-implements a barrier
+implementation of operator barrier
 
 */
 
@@ -27,14 +23,14 @@ using namespace std;
 namespace temporal2algebra{
 
 struct BarrierInfo : OperatorInfo {
-  BarrierInfo() : OperatorInfo() {
-      name =      "barrier";
-      signature = "text x int -> int";
-      syntax =    "barrier ('<id>', <num_instances>)";
-      meaning =   "Waits until <num_of_instances> processes "
-              "have joined the barrier with <id>.\n"
-              "Returns the number of joining instances.";
-  }
+    BarrierInfo() : OperatorInfo() {
+        name =      "barrier";
+        signature = "text x int -> int";
+        syntax =    "barrier ('<id>', <num_instances>)";
+        meaning =   "Waits until <num_of_instances> processes "
+                "have joined the barrier with <id>.\n"
+                "Returns the number of joining instances.";
+    }
 };
 
 ListExpr Barrier_tm( ListExpr args ) {
@@ -44,8 +40,8 @@ ListExpr Barrier_tm( ListExpr args ) {
     }
     if (!FText::checkType(nl->First(args))) {
         return listutils::typeError("expected " + FText::BasicType()
-            + " as first argument, but got "
-            + nl->ToString(nl->First(args)));
+        + " as first argument, but got "
+        + nl->ToString(nl->First(args)));
     }
     if (!CcInt::checkType(nl->Second(args))) {
         return listutils::typeError("expected " + CcInt::BasicType()
@@ -62,27 +58,27 @@ int Barrier_sf( ListExpr args ) {
 }
 
 int Barrier_vm
-    ( Word* args, Word& result, int message, Word& local, Supplier s )
+( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-  cout << "Barrier_vm(): ";
-  std::string barrier_id = (static_cast<FText*>(args[0].addr))->GetValue();
-  cout << "barrier_id: '" << barrier_id << "', ";
-  int num_procs  = (static_cast<CcInt*>(args[1].addr))->GetValue();
-  cout << "num_procs: " << num_procs << endl;
+    cout << "Barrier_vm(): ";
+    std::string barrier_id = (static_cast<FText*>(args[0].addr))->GetValue();
+    cout << "barrier_id: '" << barrier_id << "', ";
+    int num_procs  = (static_cast<CcInt*>(args[1].addr))->GetValue();
+    cout << "num_procs: " << num_procs << endl;
 
-  Barrier myBarrier(barrier_id, num_procs);
-  int actual_num_of_procs = myBarrier.wait();
+    Barrier myBarrier(barrier_id, num_procs);
+    int actual_num_of_procs = myBarrier.wait();
 
-  result = qp->ResultStorage(s);
-  CcInt* res = static_cast<CcInt*>(result.addr);
-  *res = CcInt(actual_num_of_procs);
+    result = qp->ResultStorage(s);
+    CcInt* res = static_cast<CcInt*>(result.addr);
+    *res = CcInt(actual_num_of_procs);
 
-  return 0;
+    return 0;
 }
 
 ValueMapping Barrier_vms[] =
 {
-    Barrier_vm
+        Barrier_vm
 };
 
 Operator* getBarrierOpPtr() {
@@ -91,7 +87,7 @@ Operator* getBarrierOpPtr() {
             Barrier_vms,
             Barrier_sf,
             Barrier_tm
-           );
+    );
 }
 
 } // end of namespace temporal2algebra

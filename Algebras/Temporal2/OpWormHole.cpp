@@ -1,13 +1,5 @@
 /*
-OpEnterWormHole.cpp
-Created on: 08.04.2018
-Author: simon
-
-Limitations and ToDos:
-- Handle failures for RemoteEnterWormHole in a sensible way
-    (Default to NoneStremValve? "throw" secondo error?)
-- Refactoring: Move TypeMapping Checks and ValueMapping to EnterWormHole
-- Refactoring: Inroduce Factory for EnterWormHoles
+implementation of operators enterwormhole/leavewormhole
 
 */
 
@@ -40,15 +32,17 @@ using std::tr1::shared_ptr;
 namespace temporal2algebra{
 
 struct EnterWormHoleInfo : OperatorInfo {
-  EnterWormHoleInfo() : OperatorInfo() {
-    name =      "enterwormhole";
-    signature = "stream(alpha) x string -> int)";
-    syntax =    "<incoming_stream> enterwormhole [<MyId>]";
-    meaning =   "Redirects a stream to a different process"
-            " used to workaround transaction limitations.\n"
-            "Elements in the remote process can be retrieved by the"
-            " leavewormhole operator.";
-  }
+    EnterWormHoleInfo() : OperatorInfo() {
+        name =      "enterwormhole";
+        signature = "stream(tuple(ipoint, tid)) x string -> int)";
+        syntax =    "<incoming_stream> enterwormhole [<MyId>]";
+        meaning =   "Copies a stream tuples to a different process"
+                " used to workaround transaction limitations.\n"
+                "Elements in the remote process can be retrieved by the"
+                " leavewormhole operator.\n"
+                "ATTENTION: the tuples must only contain ipoint and tid"
+                " in the given order - otherwise bad things may happen.";
+    }
 };
 
 ListExpr EnterWormHole_tm( ListExpr args ) {
@@ -56,25 +50,26 @@ ListExpr EnterWormHole_tm( ListExpr args ) {
 
     int numArgs = nl->ListLength(args);
     if (numArgs != 2 ) {
-            stringstream s;
-            s << "expected 2 arguments, but got " << numArgs;
-            return listutils::typeError(s.str());
+        stringstream s;
+        s << "expected 2 arguments, but got " << numArgs;
+        return listutils::typeError(s.str());
     }
 
     ListExpr streamType = nl->First(args);
 
     if (!listutils::isStream(streamType)) {
         return listutils::typeError(
-                "expected stream as first argument (incoming stream), but got "
+                "expected stream (ipoint, tid) as first"
+                " argument (incoming stream), but got "
                 + nl->ToString(streamType));
     }
 
     ListExpr wormHoleId = nl->Second(args);
     if (!FText::checkType(wormHoleId)) {
-            return listutils::typeError("expected " + FText::BasicType()
-            + " as second argument (WormHole Id), but got "
-            + nl->ToString(wormHoleId));
-        }
+        return listutils::typeError("expected " + FText::BasicType()
+        + " as second argument (WormHole Id), but got "
+        + nl->ToString(wormHoleId));
+    }
 
     return NList(CcInt::BasicType()).listExpr();
 
@@ -83,7 +78,7 @@ ListExpr EnterWormHole_tm( ListExpr args ) {
 
 int EnterWormHole_sf( ListExpr args ) {
     cout << "EnterWormHole_sf(" << nl->ToString(args) << ")\n";
-  return 0;
+    return 0;
 }
 
 int EnterWormHole_vm( Word* args,
@@ -126,21 +121,26 @@ int EnterWormHole_vm( Word* args,
             int tidPos = 1;
 
             Tuple* tuple = static_cast<Tuple*>(elem.addr);
-            Intime* intime =
-                    static_cast<Intime*>(tuple->GetAttribute(ipointPos));
+            temporalalgebra::IPoint* intime =
+                    static_cast<temporalalgebra::IPoint*>
+            (tuple->GetAttribute(ipointPos));
             TupleIdentifier* tid =
                     static_cast<TupleIdentifier*>(tuple->GetAttribute(tidPos));
 
             QueueData2 qdata;
-            qdata.intime = *intime;
-            qdata.tid = *tid;
+            Point p = intime->value;
+            Instant i = intime->instant;
+            qdata.x = p.GetX();
+            qdata.y = p.GetY();
+            qdata.t = i.ToDouble();
+            qdata.tid = tid->GetTid();
             qdata.lastElement = false;
             cout << qdata << endl;
             memqueue->send(&qdata, sizeof(QueueData2), 0);
 
             tuple->DeleteIfAllowed();
         }
-       // elem->DeleteIfAllowed();
+        // elem->DeleteIfAllowed();
         qp->Request(args[0].addr, elem);
     }
 
@@ -161,7 +161,7 @@ int EnterWormHole_vm( Word* args,
 
 ValueMapping EnterWormHole_vms[] =
 {
-  EnterWormHole_vm
+        EnterWormHole_vm
 };
 
 Operator* getEnterWormHoleOpPtr() {
@@ -170,63 +170,63 @@ Operator* getEnterWormHoleOpPtr() {
             EnterWormHole_vms,
             EnterWormHole_sf,
             EnterWormHole_tm
-           );
-  //  op->SetUsesArgsInTypeMapping();
+    );
+    //  op->SetUsesArgsInTypeMapping();
     return op;
 }
 
 struct LeaveWormHoleInfo : OperatorInfo {
-  LeaveWormHoleInfo() : OperatorInfo() {
-    name =      "leavewormhole";
-    signature = "string -> stream(alpha)";
-    syntax =    "leavewormhole [<MyValveId>]";
-    meaning =   "provides a stream from another secondo"
-            " process (via enterwormhole).";
-  }
+    LeaveWormHoleInfo() : OperatorInfo() {
+        name =      "leavewormhole";
+        signature = "string -> stream(alpha)";
+        syntax =    "leavewormhole [<MyValveId>]";
+        meaning =   "provides a stream from another secondo"
+                " process (via enterwormhole).";
+    }
 };
 
 ListExpr LeaveWormHole_tm( ListExpr args ) {
     cout << "LeaveWormHole_tm(" << nl->ToString(args) << ")\n";
 
-       int numArgs = nl->ListLength(args);
-       if (numArgs != 1 ) {
-               stringstream s;
-               s << "expected 1 argument, but got " << numArgs;
-               return listutils::typeError(s.str());
-       }
+    int numArgs = nl->ListLength(args);
+    if (numArgs != 1 ) {
+        stringstream s;
+        s << "expected 1 argument, but got " << numArgs;
+        return listutils::typeError(s.str());
+    }
 
-       ListExpr wormHoleIdType = nl->First(nl->First(args));
-       if (!FText::checkType(wormHoleIdType)) {
-               return listutils::typeError("expected " + FText::BasicType()
-               + " as first argument (WormHole Id), but got "
-               + nl->ToString(wormHoleIdType));
-           }
+    ListExpr wormHoleIdType = nl->First(nl->First(args));
+    if (!FText::checkType(wormHoleIdType)) {
+        return listutils::typeError("expected " + FText::BasicType()
+        + " as first argument (WormHole Id), but got "
+        + nl->ToString(wormHoleIdType));
+    }
 
-       ListExpr wormHoleIdName = nl->Second(nl->First(args));
-           if (nl->AtomType(wormHoleIdName) != TextType) {
-               return listutils::typeError(
-                       "expected TextType contents in second Argument, but got "
-                       + nl->ToString(wormHoleIdName));
-           }
+    ListExpr wormHoleIdName = nl->Second(nl->First(args));
+    if (nl->AtomType(wormHoleIdName) != TextType) {
+        return listutils::typeError(
+                "expected TextType contents in second Argument, but got "
+                + nl->ToString(wormHoleIdName));
+    }
 
-       std::string wormHoleId = nl->Text2String(wormHoleIdName);
-       cout << wormHoleId;
+    std::string wormHoleId = nl->Text2String(wormHoleIdName);
+    cout << wormHoleId;
 
-       // connect to wormhole, read stream type and return that
+    // connect to wormhole, read stream type and return that
 
-       NList tid_attr("DestTid", TupleIdentifier::BasicType());
-       NList intime_attr("IPos", Intime::BasicType());
-       NList attrs(tid_attr, intime_attr);
-       return NList().tupleStreamOf( attrs ).listExpr();
+    NList tid_attr("DestTid", TupleIdentifier::BasicType());
+    NList intime_attr("IPos", Intime::BasicType());
+    NList attrs(tid_attr, intime_attr);
+    return NList().tupleStreamOf( attrs ).listExpr();
 
-       //return NList(CcInt::BasicType()).listExpr();
+    //return NList(CcInt::BasicType()).listExpr();
 
-   }
+}
 
 
 int LeaveWormHole_sf( ListExpr args ) {
     cout << "LeaveWormHole_sf(" << nl->ToString(args) << ")\n";
-  return 0;
+    return 0;
 }
 
 int LeaveWormHole_vm( Word* args,
@@ -310,9 +310,13 @@ int LeaveWormHole_vm( Word* args,
 
             ListExpr tupleType = nl->Second(GetTupleResultType(s));
             Tuple* res_tuple = new Tuple(tupleType);
+            TupleIdentifier* tid = new TupleIdentifier(true);
+            tid->SetTid(qdata.tid);
+            res_tuple->PutAttribute(0, tid);
 
-            res_tuple->PutAttribute(0, new TupleIdentifier(qdata.tid));
-            res_tuple->PutAttribute(1, new Intime(qdata.intime));
+            Instant i(qdata.t);
+            Point p(qdata.x, qdata.y);
+            res_tuple->PutAttribute(1, new Intime(i,p));
 
             result.setAddr(res_tuple);
 
@@ -405,7 +409,7 @@ int LeaveWormHole_vm( Word* args,
 
 ValueMapping LeaveWormHole_vms[] =
 {
-  LeaveWormHole_vm
+        LeaveWormHole_vm
 };
 
 Operator* getLeaveWormHoleOpPtr() {
@@ -414,7 +418,7 @@ Operator* getLeaveWormHoleOpPtr() {
             LeaveWormHole_vms,
             LeaveWormHole_sf,
             LeaveWormHole_tm
-           );
+    );
     op->SetUsesArgsInTypeMapping();
     return op;
 }

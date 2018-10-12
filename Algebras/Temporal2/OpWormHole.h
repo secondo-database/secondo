@@ -1,11 +1,12 @@
 /*
-OpWormHole.h
-Created on: 08.04.2018
-Author: simon
+Helper operators to workaround crashes using feed-operator
+and intermediate commits from appendpositions
+operator enterwormhole accepts stream and copies it into a memory queue
+operator leavewormhole reads from that queue creates a new stream
 
-Helper Operators to externally control a stream:
-insert a named EnterWormHole into any Secondo Stream to block that stream
-using the EnterWormHole Operator will allow the specified number of items through the stream
+Limitations:
+- only accepts tuple(ipoint, tid), everything else might cause serious trouble
+- no type checking on stream/tuple
 
 */
 
@@ -16,8 +17,8 @@ using the EnterWormHole Operator will allow the specified number of items throug
 class Operator;
 
 namespace temporal2algebra{
-  Operator* getEnterWormHoleOpPtr();
-  Operator* getLeaveWormHoleOpPtr();
+Operator* getEnterWormHoleOpPtr();
+Operator* getLeaveWormHoleOpPtr();
 }
 
 #endif /* ALGEBRAS_TEMPORAL2_OPWORMHOLE_H_ */

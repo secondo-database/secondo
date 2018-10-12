@@ -1,5 +1,5 @@
 /*
-
+operator to create a synchronization barrier between processes
 
 */
 
@@ -9,7 +9,7 @@
 class Operator;
 
 namespace temporal2algebra{
-  Operator* getBarrierOpPtr();
+Operator* getBarrierOpPtr();
 }
 
 #endif /* ALGEBRAS_TEMPORAL2_OPBARRIER_H_ */

@@ -1,7 +1,5 @@
 /*
-MovingCalculations.h
-Created on: 10.06.2018
-Author: simon
+calculate an extension unit based on a provide IPoint and the last UPoint
 
 */
 

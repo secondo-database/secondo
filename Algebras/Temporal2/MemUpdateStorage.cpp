@@ -1,11 +1,7 @@
 /*
-MemUpdateStorage.cpp
-Created on: 06.05.2018
-Author: simon
+implementation of MemUpdateStorage
 
 */
-
-
 
 #include "MemUpdateStorage.h"
 #include "MPoint2.h"
@@ -18,26 +14,29 @@ using namespace boost::interprocess;
 
 
 std::ostream &operator<<(std::ostream &os, SharedData const &l) {
+    Unit u;
+    l.finalUnit.createUnit(&u);
     os << "[SharedData: backReference: " << l.backReference <<
-            ", finalUnit:" << l.finalUnit <<"]";
+            ", finalUnit:" << u <<"]";
     SharedUnits::const_iterator it;
     for (it = l.units.begin(); it != l.units.end(); ++it) {
-        os << endl << *it;
+        it->createUnit(&u);
+        os << endl << u;
     }
     return os;
 }
 
 std::ostream &operator<<(std::ostream &os, SharedDataMapValue const &l) {
-   return os << "[SharedDataMapValue: id: " << l.first << " ]\n"
+    return os << "[SharedDataMapValue: id: " << l.first << " ]\n"
             << l.second;
 }
 
 std::ostream &operator<<(std::ostream &os, SharedMemStorage const &l) {
     os << "[SharedMemStorage: numOfUsers: " << l.numOfUsers
-       << ", lastKnownStorageId: " << l.lastKnownStorageId << "]";
+            << ", lastKnownStorageId: " << l.lastKnownStorageId << "]";
     SharedDataMap::const_iterator it;
     for (it = l.dataMap.begin(); it != l.dataMap.end(); ++it) {
-      os << "\n" << *it;
+        os << "\n" << *it;
     }
     return os;
 }
@@ -58,13 +57,13 @@ void MemUpdateStorage::initMem() {
         segment = boost::interprocess::managed_shared_memory
                 (boost::interprocess::create_only,
                         memStorageName.c_str(),
-                        65536);
+                        storage_size );
         VoidAllocator allocator(segment.get_segment_manager());
         cout << "creating SharedMemStorage:" << shMemDataName.c_str() << "\n";
 
         memdata = segment.construct<SharedMemStorage>
-            (shMemDataName.c_str())/*object name*/
-            (allocator/*allocator as last ctor arg*/);
+        (shMemDataName.c_str())
+        (allocator);
 
         newly_created=true;
     }
@@ -122,8 +121,8 @@ MemUpdateStorage::~MemUpdateStorage() {
 }
 
 MemUpdateStorage::MemUpdateStorage(std::string database) :
-                currentDbName(database),
-                newly_created(false)
+                        currentDbName(database),
+                        newly_created(false)
 {
     cout << "MemUpdateStorage::MemUpdateStorage(\""
             << database << "\")\n";
@@ -156,7 +155,7 @@ void MemUpdateStorage::memCreateId(MemStorageId id) {
 void MemUpdateStorage::memSetBackRef(const MemStorageId& id,
         const BackReference& backRef, const Unit& finalUnit) {
     cout << "MemUpdateStorage::memSetBackRef(id: " << id
-         << ", backRef: " << backRef << ")\n";
+            << ", backRef: " << backRef << ")\n";
     assertSameDb();
 
     // id should not have a backref:
@@ -173,23 +172,27 @@ bool MemUpdateStorage::memHasMemoryUnits(const MemStorageId id) const {
 }
 
 Unit MemUpdateStorage::memGet(const MemStorageId id, size_t memIndex) {
-        cout << "MemUpdateStorage::memGet(id: " << id
-                << ", memIndex: " << memIndex << ")\n";
-        assert (id > 0);
-        assertSameDb();
-        SharedDataMap::iterator it = memdata->dataMap.find(id);
-        assert(it != memdata->dataMap.end());
-        assert(memIndex < it->second.units.size());
-        return it->second.units.at(memIndex);
+    cout << "MemUpdateStorage::memGet(id: " << id
+            << ", memIndex: " << memIndex << ")\n";
+    assert (id > 0);
+    assertSameDb();
+    SharedDataMap::iterator it = memdata->dataMap.find(id);
+    assert(it != memdata->dataMap.end());
+    assert(memIndex < it->second.units.size());
+    Unit result;
+    it->second.units.at(memIndex).createUnit(&result);
+    return result;
 }
 
 Unit MemUpdateStorage::memGetFinalUnit(const MemStorageId id) {
-        cout << "MemUpdateStorage::memGet(id: " << id << ")\n";
-        assert (id > 0);
-        assertSameDb();
-        SharedDataMap::iterator it = memdata->dataMap.find(id);
-        assert(it != memdata->dataMap.end());
-        return it->second.finalUnit;
+    cout << "MemUpdateStorage::memGet(id: " << id << ")\n";
+    assert (id > 0);
+    assertSameDb();
+    SharedDataMap::iterator it = memdata->dataMap.find(id);
+    assert(it != memdata->dataMap.end());
+    Unit result;
+    it->second.finalUnit.createUnit(&result);
+    return result;
 }
 
 MemStorageId MemUpdateStorage::memGetId(const BackReference& backRef) const {
@@ -205,12 +208,12 @@ MemStorageId MemUpdateStorage::memGetId(const BackReference& backRef) const {
 }
 
 int MemUpdateStorage::memSize(const MemStorageId id) {
-        cout << "MemUpdateStorage::memSize(id: " << id << ")\n";
-        assert (id > 0);
-        assertSameDb();
-        SharedDataMap::iterator it = memdata->dataMap.find(id);
-        assert(it != memdata->dataMap.end());
-        return (int) it->second.units.size();
+    cout << "MemUpdateStorage::memSize(id: " << id << ")\n";
+    assert (id > 0);
+    assertSameDb();
+    SharedDataMap::iterator it = memdata->dataMap.find(id);
+    assert(it != memdata->dataMap.end());
+    return (int) it->second.units.size();
 }
 
 void MemUpdateStorage::memAppend
@@ -224,8 +227,9 @@ void MemUpdateStorage::memAppend
         cout << "no Storage for id :" << id << endl;
         assert(false);
     }
-    it->second.units.push_back(unit);
-    it->second.finalUnit = unit;
+    FlatUnit u(unit);
+    it->second.units.push_back(u);
+    it->second.finalUnit = u;
 }
 
 void MemUpdateStorage::memClear (const MemStorageId id) {
@@ -241,24 +245,38 @@ void MemUpdateStorage::memClear (const MemStorageId id) {
 
 MemStorageIds MemUpdateStorage::getIdsToPush() const {
     cout << "MemUpdateStorage::getIdsToPush()\n";
-        assertSameDb();
-        MemStorageIds res(0);
+    assertSameDb();
+    MemStorageIds res(0);
 
-        SharedDataMap::iterator it;
-        for (it =  memdata->dataMap.begin();
-                it !=  memdata->dataMap.end();
-                ++it) {
-            res.push_back(it->first);
-        }
-
-        cout << "found " << res.size() << " entries\n";
-        return res;
+    SharedDataMap::iterator it;
+    for (it =  memdata->dataMap.begin();
+            it !=  memdata->dataMap.end();
+            ++it) {
+        res.push_back(it->first);
     }
 
+    cout << "found " << res.size() << " entries\n";
+    return res;
+}
 
-int MemUpdateStorage::memPushToFlobs(const MemStorageId idToPush) {
+const BackReference
+MemUpdateStorage::getBackReference(const MemStorageId id) {
+    cout << "MemUpdateStorage::memGetBackReference(" << id << ")\n";
+    assert (id>0);
+    assertSameDb(); // probably can be removed if we check for id=0;
+
+    SharedDataMap::iterator it = memdata->dataMap.find(id);
+    if (it != memdata->dataMap.end()) {
+        return it->second.backReference;
+    }
+    return BackReference();
+}
+
+
+int MemUpdateStorage::memPushToFlobs(
+        const MemStorageId idToPush, bool keep_reference ) {
     cout << "MemUpdateStorage::memPushToFlobs(idToPush: "
-         << idToPush   << ")\n";
+            << idToPush   << ")\n";
 
     assert (idToPush > 0);
 
@@ -284,7 +302,7 @@ int MemUpdateStorage::memPushToFlobs(const MemStorageId idToPush) {
     SecondoCatalog* catalog = SecondoSystem::GetCatalog();
     if (!catalog->IsObjectName(relationName)) {
         cout << "no secondo object with name '" << relationName
-                        << "' found\n";
+                << "' found\n";
         return 0;
     }
 
@@ -324,6 +342,9 @@ int MemUpdateStorage::memPushToFlobs(const MemStorageId idToPush) {
     // this implicitly creates a new moving with all data
     // pushed to the flobs and empty backreference
     MPoint2* moving_for_update = moving->Clone();
+    if (keep_reference) {
+        moving_for_update->setMemId(moving->getMemId());
+    }
 
     std::vector<int> changedIndices(1);
     changedIndices[0] = backref_it->attrPos;
@@ -348,15 +369,4 @@ int MemUpdateStorage::memPushToFlobs(const MemStorageId idToPush) {
 
     return 1;
 }
-
-int MemUpdateStorage::printMem() const {
-    if (memdata) {
-            cout << *memdata << endl;
-            return 1;
-    } else {
-        cout << "no MemData present\n";
-        return 0;
-    }
-}
-
 } /* namespace temporal2algebra */

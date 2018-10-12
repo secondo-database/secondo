@@ -1,7 +1,7 @@
 /*
-MemStorageManager.h
-Created on: 22.05.2018
-Author: simon
+The MemStorageManager handles the lifetime of the MPoint2 related components:
+- in-memory data structure (MemUpdateStorage)
+- logger for in-memory updates (DbUpdateLogger)
 
 */
 
@@ -11,14 +11,11 @@ Author: simon
 #include <tr1/memory> // std::tr1::shared_ptr
 #include <string>
 #include <boost/interprocess/sync/named_mutex.hpp>
-// This should be obsolete once we create a template param..
 #include "Types.h"
 
 namespace temporal2algebra {
 
-// The MemUpdateStorage does the actual allocation etc.
-// We need to wrap it in order to correctly handle closing DB's
-// We can detect if we still have the same DB open, but do not get notified
+
 class MemUpdateStorage;
 typedef std::tr1::shared_ptr<MemUpdateStorage> MemUpdateStoragePtr;
 
@@ -42,7 +39,7 @@ public:
     void setBackRef(const MemStorageId& id,
             const BackReference& backRef, const Unit& finalUnit);
     bool hasMemoryUnits(const MemStorageId id);
-//    Units get(const MemStorageId id); /*const*/
+
     Unit Get(const MemStorageId id, size_t memIndex) ; /*const*/
     Unit getFinalUnit (const MemStorageId id); /*const*/
     MemStorageId getId(const BackReference& backRef);
@@ -50,13 +47,9 @@ public:
     void append(const MemStorageId id, const Unit& unit);
 
     void clear (const MemStorageId id);
-    int pushToFlobs();
-    int printLog();
-    int printMem();
+    int pushToFlobs(MemStorageId id_to_keep);
 
     void applyLog (const LogData& log);
-
-
 
 protected:
     MemStorageManager();
@@ -65,7 +58,7 @@ private:
     // helper to make sure we still have the correct Storage
     // if not: cleanup old Storage and connect/create to new Storage
     void ensureStorageConnection();
-//    MemStorageIds getIds();
+
 
 private:
     // single instance to handle all client access
@@ -75,9 +68,9 @@ private:
     std::string lastUsedDatabase;
     // synchronize creation of MemUpdateStorages:
     boost::interprocess::named_mutex storage_create_guard;
-    // Pointer to MemUpdateStorage for currentDatabase"
+    // Pointer to MemUpdateStorage for currentDatabase
     MemUpdateStoragePtr memUpdateStoragePtr;
-    // Handle for transaction log in database
+    // Pointer to transaction logger for in-memory updates
     DbUpdateLoggerPtr dbUpdateLoggerPtr;
 
     std::string smiLogFileName;

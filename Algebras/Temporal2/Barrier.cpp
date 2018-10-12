@@ -1,7 +1,5 @@
 /*
-Barrier.cpp
-Created on: 27.05.2018
-Author: simon
+Shared memory barrier, used by OpBarrier.h/.cpp
 
 */
 
@@ -17,7 +15,7 @@ using namespace boost::interprocess;
 using namespace std;
 
 Barrier::Barrier(std::string id, int num_of_procs) :
-        barrier_create_guard(boost::interprocess::open_or_create,
+                      barrier_create_guard(boost::interprocess::open_or_create,
                                 "mtx_Barrier_CreateGuard"),
                                 shm_name("temporal2_barrier_" + id){
 
@@ -37,8 +35,8 @@ Barrier::Barrier(std::string id, int num_of_procs) :
         cout << ex.what() << endl;
 
         shm_obj = shared_memory_object(open_only,
-                        shm_name.c_str(),
-                        read_write );
+                shm_name.c_str(),
+                read_write );
         region = mapped_region(shm_obj, read_write);
         void * addr = region.get_address();
         shmBarrierPtr = static_cast<ShmBarrier*>(addr);

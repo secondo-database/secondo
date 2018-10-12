@@ -1,7 +1,5 @@
 /*
-MemStorageManager.cpp
-Created on: 22.05.2018
-Author: simon
+implementation of MemStorageManager
 
 */
 
@@ -18,10 +16,10 @@ using boost::interprocess::scoped_lock;
 using boost::interprocess::named_mutex;
 
 MemStorageManager::MemStorageManager() :
-                lastUsedDatabase (""),
-                storage_create_guard(boost::interprocess::open_or_create,
-                        "mtx_MemStorageManager_CreateGuard"),
-                smiLogFileName("logfile")
+                      lastUsedDatabase (""),
+                      storage_create_guard(boost::interprocess::open_or_create,
+                                "mtx_MemStorageManager_CreateGuard"),
+                                smiLogFileName("logfile")
 {
     cout << "MemStorageManager::MemStorageManager()\n";
 }
@@ -64,7 +62,18 @@ const MemStorageId MemStorageManager::createId() {
 void MemStorageManager::setBackRef(const MemStorageId& id,
         const BackReference& backRef, const Unit& finalUnit) {
     ensureStorageConnection();
-    memUpdateStoragePtr->memSetBackRef(id, backRef, finalUnit);
+
+    try {
+        memUpdateStoragePtr->memSetBackRef(id, backRef, finalUnit);
+    }
+    catch (const boost::interprocess::interprocess_exception ex) {
+        // Memory full. Clean up then try again...
+        cout << "MemStorageManager::setBackRef - Memory full. Pushing.\n";
+        cout << ex.what() << endl;
+        pushToFlobs(0);
+        memUpdateStoragePtr->memSetBackRef(id, backRef, finalUnit);
+    }
+
     dbUpdateLoggerPtr->logSetBackRef(id, backRef, finalUnit);
 }
 
@@ -103,7 +112,20 @@ int MemStorageManager::Size(const MemStorageId id) /*const*/
 
 void MemStorageManager::append(const MemStorageId id, const Unit& unit){
     ensureStorageConnection();
-    memUpdateStoragePtr->memAppend(id, unit);
+    try {
+        memUpdateStoragePtr->memAppend(id, unit);
+    }
+    catch (const boost::interprocess::interprocess_exception ex) {
+        // Memory full. Clean up then try again...
+        cout << "MemStorageManager::append - Memory full. Pushing.\n";
+        cout << ex.what() << endl;
+        BackReference backRef = memUpdateStoragePtr->getBackReference(id);
+        pushToFlobs(id);
+        setBackRef(id, backRef, unit);
+        memUpdateStoragePtr->memAppend(id, unit);
+    }
+
+
     dbUpdateLoggerPtr->logAppend(id, unit);
 }
 
@@ -113,9 +135,7 @@ void MemStorageManager::clear (const MemStorageId id){
     dbUpdateLoggerPtr->logClear(id);
 }
 
-// TODO: rename this to smth like pushall, truncate, ...
-// Add methods to compact log? (to allow to keep data in log indefinitely)
-int MemStorageManager::pushToFlobs() {
+int MemStorageManager::pushToFlobs(MemStorageId id_to_keep) {
     cout << "MemStorageManager::pushToFlobs()\n";
     ensureStorageConnection();
     MemStorageIds idsToPush = memUpdateStoragePtr->getIdsToPush();
@@ -123,7 +143,8 @@ int MemStorageManager::pushToFlobs() {
     int countPushed(0);
     for (id_it = idsToPush.begin(); id_it != idsToPush.end(); ++id_it) {
         cout << "pushing id: " << *id_it << endl;
-        countPushed += memUpdateStoragePtr->memPushToFlobs(*id_it);
+        bool keep_id = (id_to_keep == *id_it)?true:false;
+        countPushed += memUpdateStoragePtr->memPushToFlobs(*id_it, keep_id);
         dbUpdateLoggerPtr->logPushToFlobs(*id_it);
     }
     // hack: just create the log, so we have something to delete
@@ -134,52 +155,35 @@ int MemStorageManager::pushToFlobs() {
     // log latest known id +1 to avoid conflict with existing ids
     MemStorageId dummyId = memUpdateStoragePtr->memCreateId();
     dbUpdateLoggerPtr->logCreateId(dummyId);
-    // need to lock smth... log, mem
 
-    // iterate over ids, for each:
-    // get backreference and units
-    // pushback units to attr. Flob
-    // mark memunit as obsolete
-
-    //int count = memUpdateStoragePtr->memPushToFlobs();
-
-    //dbUpdateLoggerPtr->logPushToFlobs();
     return countPushed;
-}
-
-int MemStorageManager::printLog() {
-    ensureStorageConnection();
-    return dbUpdateLoggerPtr->printLog();
-}
-
-int MemStorageManager::printMem() {
-    ensureStorageConnection();
-    return memUpdateStoragePtr->printMem();
 }
 
 void MemStorageManager::applyLog (const LogData& log){
     cout << "MemStorageManager::applyLog("
             << log << ")\n";
+    Unit unit;
+    log.createUnit(&unit);
     switch (log.operation) {
-        case LogOp_memCreateId:
-            memUpdateStoragePtr->memCreateId(log.storageId);
-            break;
-        case LogOp_memSetBackRef:
-            memUpdateStoragePtr->memSetBackRef(log.storageId,
-                    log.backReference, log.unit);
-            break;
-        case LogOp_memAppend:
-            memUpdateStoragePtr->memAppend(log.storageId, log.unit);
-            break;
-        case LogOp_memClear:
-            memUpdateStoragePtr->memClear(log.storageId);
-            break;
-        case LogOp_pushToFlobs:
-            memUpdateStoragePtr->memClear(log.storageId);
-            break;
-        default:
-            cout << "unhandled operation\n";
-            assert(false);
+    case LogOp_memCreateId:
+        memUpdateStoragePtr->memCreateId(log.storageId);
+        break;
+    case LogOp_memSetBackRef:
+        memUpdateStoragePtr->memSetBackRef(log.storageId,
+                log.backReference, unit );
+        break;
+    case LogOp_memAppend:
+        memUpdateStoragePtr->memAppend(log.storageId, unit);
+        break;
+    case LogOp_memClear:
+        memUpdateStoragePtr->memClear(log.storageId);
+        break;
+    case LogOp_pushToFlobs:
+        memUpdateStoragePtr->memClear(log.storageId);
+        break;
+    default:
+        cout << "unhandled operation\n";
+        assert(false);
     }
 }
 

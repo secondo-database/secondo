@@ -1,13 +1,5 @@
 /*
-OpAppendPositions.cpp
-Created on: 08.04.2018
-Author: simon
-
-Limitations and Todos:
-- only naive implementation
-    (optimization for fast concurrent updates is topic of bachelor thesis)
-- only MPoint implemented so far
-- only Streams (but no single IPoints) working
+implementation of operator appendpositions
 
 */
 
@@ -50,10 +42,12 @@ struct AppendPositionsInfo : OperatorInfo {
                 "x text x text x text (x int)"
                 " -> stream(tuple)";
         syntax =    "<stream(tuple1)> x <relation(tuple2)> appendpositions"
-                " ['<tid-src-attr>', '<pos-src-attr>', '<pos-dst-attr>']";
+                " ['<tid-src-attr>', '<pos-src-attr>', '<pos-dst-attr>',"
+                " <transaction_mode>]";
         meaning =   "Appends the positions from tuple1.pos-src-attr to"
                 " tuple2.pos-dst-attr where tuple2.tid = tuple1.tid-src-attr\n"
-                "The updates will be ";
+                "Choose transaction mode 1 for subcommits. ATTENTION: this will"
+                " crash secondo when using the feed operator.";
     }
 };
 
@@ -196,20 +190,20 @@ ListExpr AppendPositions_tm( ListExpr args ) {
 
     if (numArgs == 5) {
         return nl->ThreeElemList (
-                    nl->SymbolAtom ( Symbols::APPEND ()) ,
-                    nl->FourElemList (
-                            nl->IntAtom(0), // dummy
-                            nl->IntAtom(tupTidAttrPos),
-                            nl->IntAtom(tupAttrPos),
-                            nl->IntAtom(relAttrPos)) ,
-                            arg_tuplestreamType);
+                nl->SymbolAtom ( Symbols::APPEND ()) ,
+                nl->FourElemList (
+                        nl->IntAtom(0), // dummy
+                        nl->IntAtom(tupTidAttrPos),
+                        nl->IntAtom(tupAttrPos),
+                        nl->IntAtom(relAttrPos)) ,
+                        arg_tuplestreamType);
     }
 
     // numArgs == 6
     if(!CcInt::checkType(nl->First(nl->Sixth(args)))) {
-       return listutils::typeError("(optional) sixth argument must be of type "
-                    + CcInt::BasicType()
-            + ", but got " + nl->ToString(nl->First(nl->Sixth(args))));
+        return listutils::typeError("(optional) sixth argument must be of type "
+                + CcInt::BasicType()
+        + ", but got " + nl->ToString(nl->First(nl->Sixth(args))));
     }
 
     return nl->ThreeElemList (
@@ -281,7 +275,7 @@ void handleIpoint(const BackReference& backRef,
 
     if (destMemId <= 0) {
         cout << "no tuple found for '"
-                            << backRef << "'\n";
+                << backRef << "'\n";
         return;
     }
 

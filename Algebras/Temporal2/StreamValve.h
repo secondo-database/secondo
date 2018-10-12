@@ -1,7 +1,5 @@
 /*
-StreamValve.h
-Created on: 21.04.2018
-Author: simon
+different types of streamvalves used by operator streamvalve
 
 */
 

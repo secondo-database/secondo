@@ -1,39 +1,10 @@
 /*
-MemUpdateStorage.h
-Created on: 06.05.2018
-Author: simon
-
-Limitations and ToDos:
-* Implement
-* How to Handle Lifecycle:
--> within a single process - shared-ptr
---> If possible create once at secondo startup and destruct on secondo exit
---> How to avoid Memory leak (how/when destruct Singleton)
--> of shared Mem structure between processes?
---> shared memory shared-ptr available?
---> Implement?!
+wrapper around shared memory structure holding updates for MPoint2
+each secondo-process has its own MemUpdateStorage to access the shared mem
+for each open database exists a seperate shared mem
 
 */
 
-
-
-/*
-Problematic lifecycle/missing hooks:
-- Start Secondo
-- Call MPoint2 ctor -> no DB open yet...
-? Can we ensure to always have other ctor called with open DB??
-- Open DB
-? is there really no hook available ??
-* Here we need to recover from the logs:
-- a) Query/Update MPoint2 -> Read from DB
-- b) Create MPoint2 -> Write to DB
-- c) Delete MPoint2 (but would first read from DB)
-- Some more queries/updates/inserts/deletes
-- Close DB
-? Once again: a hook would be nice, e.g. distribute log to MPoint2s
-* But might do this during the next recovery?!
-
-*/
 
 #ifndef ALGEBRAS_TEMPORAL2_MEMUPDATESTORAGE_H_
 #define ALGEBRAS_TEMPORAL2_MEMUPDATESTORAGE_H_
@@ -42,16 +13,10 @@ Problematic lifecycle/missing hooks:
 #include <vector>
 #include "Algebras/Temporal/TemporalAlgebra.h"
 
-
 #include "Types.h"
 
-//#include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/interprocess/sync/named_upgradable_mutex.hpp>
 #include <boost/interprocess/sync/named_mutex.hpp>
-//#include <boost/interprocess/sync/interprocess_mutex.hpp>
-//#include <boost/interprocess/sync/interprocess_condition.hpp>
-//#include <boost/interprocess/shared_memory_object.hpp>
-//#include <boost/interprocess/mapped_region.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/interprocess/containers/vector.hpp>
 #include <boost/interprocess/containers/map.hpp>
@@ -63,11 +28,14 @@ Problematic lifecycle/missing hooks:
 
 namespace temporal2algebra {
 
+// change to adapte size of in-memory storage
+const int storage_size = 65536;
+
 typedef boost::interprocess::allocator
-        <Unit, boost::interprocess::managed_shared_memory::segment_manager>
+        <FlatUnit, boost::interprocess::managed_shared_memory::segment_manager>
 UnitAllocator;
 
-typedef boost::container::vector<Unit, UnitAllocator> SharedUnits;
+typedef boost::container::vector<FlatUnit, UnitAllocator> SharedUnits;
 
 typedef boost::interprocess::allocator
         <void, boost::interprocess::managed_shared_memory::segment_manager>
@@ -77,12 +45,12 @@ struct SharedData {
     SharedData(const BackReference& backref,
             const Unit& finalUnit,
             const VoidAllocator& alloc) :
-        backReference(backref),
-        finalUnit(finalUnit),
-        units(alloc) {}
+                backReference(backref),
+                finalUnit(finalUnit),
+                units(alloc) {}
 
     BackReference backReference;
-    Unit finalUnit;
+    FlatUnit finalUnit;
     SharedUnits units;
 };
 
@@ -108,9 +76,9 @@ struct SharedMemStorage {
     SharedDataMap dataMap;
 
     SharedMemStorage(const VoidAllocator& alloc):
-           numOfUsers(0),
-           lastKnownStorageId(0),
-           dataMap(alloc){};
+        numOfUsers(0),
+        lastKnownStorageId(0),
+        dataMap(alloc){};
 };
 
 std::ostream &operator<<(std::ostream &os, SharedData const &l);
@@ -141,8 +109,9 @@ public:
     void memClear (const MemStorageId id);
 
     MemStorageIds getIdsToPush() const;
-    int memPushToFlobs(const MemStorageId idToPush);
-    int printMem() const;
+    const BackReference getBackReference(const MemStorageId id);
+
+    int memPushToFlobs(const MemStorageId idToPush, bool keep_reference );
 
     bool isNewlyCreated() const;
 

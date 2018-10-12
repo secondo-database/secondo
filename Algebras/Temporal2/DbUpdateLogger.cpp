@@ -1,7 +1,5 @@
 /*
-DbUpdateLogger.cpp
-Created on: 26.05.2018
-Author: simon
+implementation of DbUpdateLogger
 
 */
 
@@ -12,8 +10,8 @@ namespace temporal2algebra {
 
 DbUpdateLogger::DbUpdateLogger(std::string database,
         std::string smiLogFileName) :
-                database(database),
-                smiLogFileName(smiLogFileName){
+                        database(database),
+                        smiLogFileName(smiLogFileName){
     smifile = new SmiRecordFile (true, sizeof(LogData));
 }
 
@@ -39,8 +37,8 @@ void DbUpdateLogger::logAppend(const MemStorageId id, const Unit& unit) {
 }
 
 void DbUpdateLogger::logClear (const MemStorageId id) {
-   LogData log(id, 0, LogOp_memClear);
-   writeLogRecord(log);
+    LogData log(id, 0, LogOp_memClear);
+    writeLogRecord(log);
 }
 
 void DbUpdateLogger::logPushToFlobs(const MemStorageId id){
@@ -56,8 +54,8 @@ void DbUpdateLogger::replayLog(MemStorageManager& manager) {
 
     SmiRecord rec;
     while (iterator.Next(rec)) {
-        SmiSize sz;
-        LogData* myLog = (LogData*)(rec.GetData(sz));
+        LogData* myLog = new LogData;
+        rec.Read(myLog, sizeof(LogData));
         cout << *myLog << endl;
         manager.applyLog(*myLog);
         delete myLog;
@@ -70,25 +68,6 @@ void DbUpdateLogger::truncateLog() {
     cout << "DbUpdateLogger::truncateLog()\n";
     bool res = smifile->Truncate();
     cout << "res: " << res << endl;
-}
-
-int DbUpdateLogger::printLog() {
-    cout << "DbUpdateLogger::printLog()\n";
-    smifile->Open(smiLogFileName);
-    SmiRecordFileIterator iterator;
-    smifile->SelectAll(iterator);
-
-    int count(0);
-    SmiRecord rec;
-    while (iterator.Next(rec)) {
-        SmiSize sz;
-        LogData* myLog = (LogData*)(rec.GetData(sz));
-        cout << *myLog << endl;
-        delete myLog;
-        ++count;
-    }
-    smifile->Close();
-    return count;
 }
 
 void DbUpdateLogger::writeLogRecord(const LogData& val) {

@@ -1,7 +1,6 @@
 /*
-DbUpdateLogger.h
-Created on: 26.05.2018
-Author: simon
+logger used by MemStorageManager to log in-memory updates
+uses SMI-File in database for logging.
 
 */
 

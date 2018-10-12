@@ -1,11 +1,7 @@
 /*
-OpStreamValve.h
-Created on: 08.04.2018
-Author: simon
-
-Helper Operators to externally control a stream:
-insert a named StreamValve into any Secondo Stream to block that stream
-using the StreamValve Operator will allow the specified number of items through the stream
+operator streamvalve:
+insert into any second stream to externally control its flow.
+use operator streamnext in other secondo process to let elements pass.
 
 */
 
@@ -16,7 +12,7 @@ using the StreamValve Operator will allow the specified number of items through 
 class Operator;
 
 namespace temporal2algebra{
-  Operator* getStreamValveOpPtr();
+Operator* getStreamValveOpPtr();
 }
 
 #endif /* ALGEBRAS_TEMPORAL2_OPSTREAMVALVE_H_ */
