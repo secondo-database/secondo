@@ -150,6 +150,18 @@ using namespace std;
 
 */
 
+bool cvsexportableAttrList(ListExpr attrList, ListExpr errorInfo){
+    while(!nl->IsEmpty(attrList)){
+      ListExpr attr = nl->First(attrList);
+      attrList = nl->Rest(attrList);
+      ListExpr atype = nl->Second(attr);
+      if(!am->CheckKind(Kind::CSVEXPORTABLE(), atype,errorInfo)){
+         return false;
+      }
+    }
+    return true;
+}
+
 ListExpr csvexportTM(ListExpr args){
   int len = nl->ListLength(args);
   if(len != 3 && len != 4 && len!=5){
@@ -174,10 +186,12 @@ ListExpr csvexportTM(ListExpr args){
     }
     if(!am->CheckKind(Kind::CSVEXPORTABLE(),nl->Second(stream),errorInfo)){
        if(listutils::isTupleStream(stream)){
-          return listutils::typeError("for processing a tuple stream one  "
-                                     "additional parameter is required"
-                                     " at least");
-
+          ListExpr attrList = nl->Second(nl->Second(stream));
+          if(!cvsexportableAttrList(attrList,errorInfo)){
+            return listutils::typeError("at least on attribute in tuple "
+                                        "is not csvexportable");
+          }
+          return stream;
        } else {
          return listutils::typeError("stream element not in "
                                      "kind csvexportable");
@@ -198,40 +212,15 @@ ListExpr csvexportTM(ListExpr args){
        return nl->TypeError();
     }
     ListExpr stream = nl->First(args);
-    if(nl->ListLength(stream)!=2 ||
-       !nl->IsEqual(nl->First(stream),Symbol::STREAM())){
-       ErrorReporter::ReportError("stream x text x bool [ x bool] expected");
-       return nl->TypeError();
+    if(!Stream<Tuple>::checkType(stream)){
+      return listutils::typeError("first argument does is not "
+                                  "a CSV exportable tuple stream");
     }
-    ListExpr tuple = nl->Second(stream);
-    if(nl->ListLength(tuple)!=2 ||
-       !nl->IsEqual(nl->First(tuple),Tuple::BasicType())){
-       ErrorReporter::ReportError("stream x text x bool [ x bool] expected");
-       return nl->TypeError();
-    }
-    ListExpr attrList = nl->Second(tuple);
-    if(nl->ListLength(attrList) < 1 ){
-       ErrorReporter::ReportError("stream x text x bool [ x bool] expected");
-       return nl->TypeError();
-    }
+    ListExpr attrList = nl->Second(nl->Second(stream));
     // check attrList
-    while(!nl->IsEmpty(attrList)){
-      ListExpr attr = nl->First(attrList);
-      attrList = nl->Rest(attrList);
-      if(nl->ListLength(attr)!=2){
-         ErrorReporter::ReportError("invalid tuple stream");
-         return nl->TypeError();
-      }
-      ListExpr aName = nl->First(attr);
-      ListExpr atype = nl->Second(attr);
-      if(nl->AtomType(aName)!=SymbolType){
-         ErrorReporter::ReportError("invalid tuple stream");
-         return nl->TypeError();
-      }
-      if(!am->CheckKind(Kind::CSVEXPORTABLE(), atype,errorInfo)){
-         ErrorReporter::ReportError("invalid kind in tuple");
-         return nl->TypeError();
-      }
+    if(!cvsexportableAttrList(attrList, errorInfo)){
+      return listutils::typeError("at least one attribute is not "
+                                  "in kind CSVEXPORTABLE");
     }
     return stream;
   }
@@ -373,7 +362,13 @@ int CsvExportVM2(Word* args, Word& result,
       qp->Open(args[0].addr);
       FText* fname = static_cast<FText*>(args[1].addr);
       CcBool* append  = static_cast<CcBool*>(args[2].addr);
-      CcBool* names   = static_cast<CcBool*>(args[3].addr);
+      bool names = false;
+      if(qp->GetNoSons(s)>3){
+        CcBool* snames   = static_cast<CcBool*>(args[3].addr);
+        if(snames->IsDefined()){
+           names = snames->GetValue();
+        }
+      }
       string sep = ",";
       if(qp->GetNoSons(s)==5){
         CcString* ccSep = static_cast<CcString*>(args[4].addr);
@@ -382,13 +377,13 @@ int CsvExportVM2(Word* args, Word& result,
            sep =",";
         }
       }
-      if(!fname->IsDefined() || !append->IsDefined() || !names->IsDefined()){
+      if(!fname->IsDefined() || !append->IsDefined() ){
          local.setAddr(0);
       } else {
          CsvExportLocalInfo* linfo;
          linfo = (new CsvExportLocalInfo(fname->GetValue(),
                                          append->GetBoolval(),
-                                         names->GetBoolval(),
+                                         names,
                                          sep,
                                          qp->GetType(s)));
          if(!linfo->isOk()){
@@ -438,11 +433,7 @@ ValueMapping csvexportmap[] =
 
 int csvExportSelect( ListExpr args )
 {
-  if(nl->ListLength(args)==3){
-   return 0;
-  } else {
-   return 1;
-  }
+  return Stream<Tuple>::checkType(nl->First(args))?1:0;
 }
 
 /*
