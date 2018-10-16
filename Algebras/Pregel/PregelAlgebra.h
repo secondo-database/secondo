@@ -42,8 +42,7 @@ This header file contains definitions of the Algebra constructor and some auxili
 #define SECONDO_PREGELALGEBRA_H
 
 #include <Algebra.h>
-#include "MessageBroker/MessageBroker.h"
-#include "Helpers/PregelContext.h"
+#include "PregelContext.h"
 #include "Helpers/typedefs.h"
 #include "Helpers/LoggerFactory.h"
 #include "Helpers/WorkerConfig.h"
