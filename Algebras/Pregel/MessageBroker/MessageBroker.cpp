@@ -40,7 +40,7 @@ This file defines the members of class MessageBroker
 #include "MessageBroker.h"
 #include "NetworkedClient.h"
 #include "LoopbackProxy.h"
-#include "../Helpers/typedefs.h"
+#include "../typedefs.h"
 #include <pthread.h>
 #include "../Helpers/LoggerFactory.h"
 #include "../PregelContext.h"

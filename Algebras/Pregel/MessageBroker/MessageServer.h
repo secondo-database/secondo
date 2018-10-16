@@ -47,7 +47,7 @@ This header file defines the class MessageServer
 #include <boost/thread.hpp>
 #include "DoubleQueue.h"
 #include "ComputeMonitor.h"
-#include "../Helpers/typedefs.h"
+#include "../typedefs.h"
 
 namespace pregel {
  class MessageServer {
