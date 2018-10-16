@@ -43,7 +43,7 @@ This header file contains declarations of the Algebra constructor and some auxil
 
 #include <Algebra.h>
 #include "PregelContext.h"
-#include "Helpers/typedefs.h"
+#include "typedefs.h"
 #include "Helpers/LoggerFactory.h"
 #include "Helpers/WorkerConfig.h"
 #include "Helpers/Commander.h"

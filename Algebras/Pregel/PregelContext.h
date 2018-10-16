@@ -43,7 +43,7 @@ This header file contains definitions of the PregelContext class
 
 #include <GenericTC.h>
 #include <ostream>
-#include "Helpers/typedefs.h"
+#include "typedefs.h"
 #include "Helpers/WorkerConfig.h"
 
 namespace pregel {
