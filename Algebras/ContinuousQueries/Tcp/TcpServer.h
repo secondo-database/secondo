@@ -96,6 +96,7 @@ public:
 
     void PushMsgToQueue(Message msg);
     bool IsRunning();
+    void Shutdown();
 
     int Send(int socket, std::string msg);
     

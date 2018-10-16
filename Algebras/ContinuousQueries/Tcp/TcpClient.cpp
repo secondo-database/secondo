@@ -46,28 +46,32 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace continuousqueries {
 
-TcpClient::TcpClient(std::string ip, int port): _ip(ip), _port(port), 
+TcpClient::TcpClient(std::string targetAddress, int targetPort): 
+    _targetAddress(targetAddress), 
+    _targetPort(targetPort), 
     _running(false) {}
 
 TcpClient::~TcpClient() {}
 
-void TcpClient::Run()
+void TcpClient::Shutdown()
 {
-    char buffer[MAXPACKETSIZE];
-    memset(buffer, 0, MAXPACKETSIZE);
+    _running = false;
+}
 
+void TcpClient::Initialize()
+{
     //create the master socket  
     if( (_master_socket = socket(AF_INET , SOCK_STREAM , 0)) == 0)   
     {   
-        perror("socket failed");   
-        exit(EXIT_FAILURE);   
+        perror("socket failed");
+        exit(EXIT_FAILURE);
     }   
      
     // create the address
     struct sockaddr_in address;
     address.sin_family = AF_INET;
-    address.sin_port = htons( _port );
-    inet_pton(AF_INET, _ip.c_str(), &address.sin_addr);
+    address.sin_port = htons( _targetPort );
+    inet_pton(AF_INET, _targetAddress.c_str(), &address.sin_addr);
 
     // connect to the server
     if ( connect(
@@ -79,6 +83,12 @@ void TcpClient::Run()
     }
          
     _running = true;
+}
+
+void TcpClient::Receive()
+{
+    char buffer[MAXPACKETSIZE];
+    memset(buffer, 0, MAXPACKETSIZE);
 
     while(_running) 
     {
@@ -109,8 +119,9 @@ void TcpClient::Run()
             
             PushMsgToQueue(msg);
 
-            memset(buffer, 0, MAXPACKETSIZE);
         }
+        
+        memset(buffer, 0, MAXPACKETSIZE);
     }
 }
 
@@ -134,7 +145,7 @@ TcpClient::Message TcpClient::CreateConnectMsg(int sockd)
     
     getpeername(sockd, (struct sockaddr*)&ad, (socklen_t*)&adlen);   
 
-    std::string body = "connected<" +
+    std::string body = "connected|" +
         (std::string) inet_ntoa(ad.sin_addr) + " " +
         std::to_string(ntohs(ad.sin_port));
 
@@ -148,7 +159,7 @@ TcpClient::Message TcpClient::CreateDisconnectMsg(int sockd)
 
     getpeername(sockd, (struct sockaddr*)&ad, (socklen_t*)&adlen);   
 
-    std::string body = "disconnected<" +
+    std::string body = "disconnected|" +
         (std::string) inet_ntoa(ad.sin_addr) + " " +
         std::to_string(ntohs(ad.sin_port));
 
@@ -159,7 +170,7 @@ void TcpClient::PushMsgToQueue(TcpClient::Message msg)
 {
     std::lock_guard<std::mutex> guard(mqMutex);
     std::cout << "TcpClient received '" << msg.body 
-        << "' from port " << std::to_string(msg.socket)
+        << "' from socket " << std::to_string(msg.socket)
         << ". Pushing to queue.\n";
 
     messages.push(msg);
@@ -167,9 +178,52 @@ void TcpClient::PushMsgToQueue(TcpClient::Message msg)
     mqCondition.notify_one();
 }
 
-int TcpClient::GetMasterPort()
+int TcpClient::Send(std::string msg) 
+{
+    std::cout << "TcpClient sending '" + msg + "'.\n";
+    return send(_master_socket, msg.c_str(), msg.length() + 1, 0) - 1;
+}
+
+void TcpClient::SendAsync(std::string msg)
+{
+    std::cout << "TcpClient adds '" + msg + "' to outgoing queue...";
+
+    if (msg == "") return;
+    
+    std::lock_guard<std::mutex> outgoingLock(_outgoingMsgsMutex);
+    _outgoingMsgsQueue.push(msg);
+    _outgoingMsgsCondition.notify_one();
+
+    std::cout << " done! \n";
+}
+
+void TcpClient::AsyncHandler()
+{
+    while (_running) 
+    {
+        std::unique_lock<std::mutex> outgoingLock(_outgoingMsgsMutex);
+
+        _outgoingMsgsCondition.wait(outgoingLock, [this] {
+            return !_outgoingMsgsQueue.empty();
+        });
+
+        std::string msg = _outgoingMsgsQueue.front();
+        _outgoingMsgsQueue.pop();
+        
+        outgoingLock.unlock();
+
+        Send(msg);
+    }
+}
+
+int TcpClient::GetServerPort()
 { 
-    return _port;
+    return _targetPort;
+}
+
+std::string TcpClient::GetServerAddress()
+{ 
+    return _targetAddress;
 }
 
 int TcpClient::GetMasterSocket()
@@ -180,12 +234,5 @@ int TcpClient::GetMasterSocket()
 bool TcpClient::IsRunning() {
     return _running;
 }
-
-int TcpClient::Send(std::string msg) 
-{
-    std::cout << "TcpClient sending '" + msg + "'.\n";
-    return send(_master_socket, msg.c_str(), msg.length() + 1, 0) - 1;
-}
-
 
 }

@@ -127,7 +127,7 @@ int createSSPCoordinator_VM(Word* args, Word& result, int message,
     if (cmd == "LOOP") {
         std::cout << "Creating a Loop Coordinator..." << endl;
         CoordinatorLoop coordinator(port);
-        coordinator.Initialize();
+        coordinator.Run();
         
     } else if (cmd == "RECOVER") {
         std::cout << "Recover from a crashed Coordinator..." << endl;

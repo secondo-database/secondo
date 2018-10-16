@@ -73,16 +73,18 @@ class TcpClient {
 public:
     struct Message {
         int socket=-1;
-        int64_t timestamp=0;
+        uint64_t timestamp=0;
         std::string body="";
     };
 
-    TcpClient(std::string ip, int port);
+    TcpClient(std::string targetAddress, int targetPort);
     ~TcpClient();
     
-    void Run();
+    void Initialize();
+    void Receive();
     
-    int GetMasterPort();
+    int GetServerPort();
+    std::string GetServerAddress();
     int GetMasterSocket();
 
     TcpClient::Message CreateMsg(int sockd, std::string body);
@@ -91,18 +93,26 @@ public:
 
     void PushMsgToQueue(TcpClient::Message msg);
     bool IsRunning();
-
+    void Shutdown();
+    
     int Send(std::string msg);
+    
+    void SendAsync(std::string msg);
+    void AsyncHandler();
     
     std::queue<TcpClient::Message> messages;
     std::mutex mqMutex;
     std::condition_variable mqCondition;
 
 private:
-    std::string _ip;
-    int _port;
+    std::string _targetAddress;
+    int _targetPort;
     bool _running;
     int _master_socket;
+
+    std::queue<std::string> _outgoingMsgsQueue;
+    std::mutex _outgoingMsgsMutex;
+    std::condition_variable _outgoingMsgsCondition;
 };
 
 }

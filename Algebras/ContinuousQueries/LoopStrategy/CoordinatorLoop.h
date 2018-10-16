@@ -74,6 +74,22 @@ public:
     // Destroy
     ~CoordinatorLoop();
 
+    enum class coordinatorStatus {initialze, run, shutdown};
+    enum class handlerType {idle, worker, streamsupplier, nomo, all };
+    enum class handlerStatus {inactive, active, unknown, all };
+
+    struct handlerStruct {
+        int socket;
+        int id;
+        std::string address;
+        int port;
+        handlerType type;
+        handlerStatus status;
+        bool awaitConfirmation; // TODO unneccessary, it's within type&status
+        uint64_t wait_since;
+        bool must_delete=false;
+    };
+
     // Initialize
     void Initialize();
 
@@ -83,23 +99,28 @@ public:
     // ReceiveCoordinationMessage
     void ReceiveCoordinationMessage(std::string);
 
-    // Optimize Network
-    int registerNewHandler(ProtocolHelpers::Message msg);
-    int confirmHandlerIntegrity(ProtocolHelpers::Message msg, int testId=0);
+    // reactions to messages
+    void doRegisterNewHandler(ProtocolHelpers::Message msg);
+    void doConfirmNewHandler(ProtocolHelpers::Message msg);
+    void doConfirmSpecialize(ProtocolHelpers::Message msg);
 
+    void doRemote(std::string cmd);
 
-    // Print Information
+    void createWorker(int id);
+    void createNoMo(int id);
 
-    enum handlerTypes {idle, worker, streamsupplier, nomo };
-    enum handlerStatus {inactice, active, unknown };
-    struct handlerStruct {
-        int socket;
-        int id;
-        std::string address;
-        int port;
-        handlerTypes type;
-        handlerStatus status;
-    };
+    void registerWorker(int id);
+    void registerNoMo(int id);
+    void registerStreamSupplier(int id);
+
+    void shutdownHandler(int id, std::string reason="");
+    void showStatus();
+
+    // helper functions
+    int firstIdleHandler();
+    int countHandlers(handlerType _type, handlerStatus _status);
+    int getIdFromSocket(int _socket);
+    bool confirmMessageIntegrity(ProtocolHelpers::Message msg, int testId);
 
 private:
     int _lastId;
@@ -107,10 +128,10 @@ private:
 
     TcpServer _coordinationServer;
     std::thread _coordinationServerThread;
+    coordinatorStatus _lifecyle;
 
-    // Manage handler
-    // TODO: Special list of asigned handlers
     std::map<int, handlerStruct> _handlers;
+    std::mutex _protectHandlers;
 
     // Manage queries
     // TODO: Datatype of queries, saving of registered queries

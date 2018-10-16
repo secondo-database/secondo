@@ -31,29 +31,28 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[Oe] [\"{O}]
 //[Ue] [\"{U}]
 //[x] [$\times $]
-//[&] [\&]
 //[->] [$\rightarrow $]
 //[toc] [\tableofcontents]
 
-[1] Implementation of Idle Handler
+[1] Implementation of the Stream Supplier
 
-The Idle Handler awaits a specialization. It can either become a worker or
-a notification [&] monitoring handler.
+The Stream Supplier pushes all tuple to the workers.
+The Coordinator tells him which worker exist.
 
 [toc]
 
-1 HandlerIdle class implementation
-see HandlerIdle.cpp for details.
+1 StreamSupplier class implementation
+see StreamSupplier.cpp for details.
 
 */
 
-#ifndef __HANDLERIDLE_H__
-#define __HANDLERIDLE_H__
+#ifndef __STREAMSUPPLIER_H__
+#define __STREAMSUPPLIER_H__
+
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
 #include "../Tcp/TcpClient.h"
 #include "../Protocols.h"
-#include "WorkerLoop.h"
-#include "NoMo.h"
 
 #include <map>
 #include <string>
@@ -65,21 +64,36 @@ see HandlerIdle.cpp for details.
 
 namespace continuousqueries {
 
-class HandlerIdle {
+class StreamSupplier {
 
 public:
     // Create
-    // HandlerIdle();
-    HandlerIdle(std::string address, int port);
+    StreamSupplier(std::string address, int port);
 
     // Destroy
-    ~HandlerIdle();
+    ~StreamSupplier();
+
+    struct workerStruct {
+        int socket;
+        int id;
+        std::string address;
+        int port;
+        TcpClient* ptrClient;
+        // std::thread asyncThread;
+    };
 
     // Initialize
     void Initialize();
 
+    // Run
+    void Run();
+
     // Shutdown
     void Shutdown();
+
+    void addWorker(int id, std::string address);
+
+    void pushTuple(Tuple* t);
 
 private:
     std::string _coordinatorAddress;
@@ -88,6 +102,13 @@ private:
 
     TcpClient _coordinationClient;
     std::thread _coordinationClientThread;
+
+    std::thread _ownThread;
+
+    int _lastTupleId;
+
+    bool _running;
+    std::map<int, workerStruct> _workers;
 };
 
 }

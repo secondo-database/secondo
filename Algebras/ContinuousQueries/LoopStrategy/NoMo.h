@@ -30,47 +30,78 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[Ae] [\"{A}]
 //[Oe] [\"{O}]
 //[Ue] [\"{U}]
+//[&] [\&]
 //[x] [$\times $]
 //[->] [$\rightarrow $]
 //[toc] [\tableofcontents]
 
-[1] Implementation of the operators for creating a Secondo Stram Processor.
+[1] Implementation of the Notification [&] Monitoring handler
+
+It informs users when there is a query-tuple hit.
 
 [toc]
 
-1 ContinuousQueries class implementation
+1 NoMo class implementation
+see NoMo.cpp for details.
 
 */
 
-#include "ContinuousQueriesAlgebra.h"
+#ifndef __NOMO_H__
+#define __NOMO_H__
 
+#include "../Tcp/TcpClient.h"
+#include "../Tcp/TcpServer.h"
+#include "../Protocols.h"
 
+#include <map>
+#include <string>
+#include <chrono>
+#include <thread>
+#include <mutex>
+#include <iostream>
+#include <condition_variable>
 
 namespace continuousqueries {
 
-extern Operator createSSPHandler_Op;
-extern Operator createSSPCoordinator_Op;
-extern Operator createSSPStreamSupplier_Op;
+class NoMo {
 
+public:
 
+    // Create
+    NoMo(int id, TcpClient* coordinationClient);
 
-ContinuousQueriesAlgebra::ContinuousQueriesAlgebra() {
+    // Destroy
+    ~NoMo();
 
-    AddOperator(&createSSPCoordinator_Op);
-    createSSPCoordinator_Op.SetUsesArgsInTypeMapping();
+    struct queryStruct {
+        int id;
+        std::string query;
+        std::vector<std::string> emails;
+    };
 
-    AddOperator(&createSSPHandler_Op);
-    createSSPHandler_Op.SetUsesArgsInTypeMapping();
+    // Initialize
+    void Initialize();
 
-    AddOperator(&createSSPStreamSupplier_Op);
-    createSSPStreamSupplier_Op.SetUsesArgsInTypeMapping();
+    // Run
+    void Run();
+
+    // NoMo handling
+    void addUserQuery(int id, std::string query, std::string email);
+
+    // Shutdown
+    void Shutdown();
+
+private:
+    TcpClient* _coordinationClient;
+    int _id;
+    bool _running;
+    int _basePort;
+
+    TcpServer _tupleServer;
+    std::thread _tupleServerThread;
+
+    std::map<int, queryStruct> _queries;
+};
+
 }
-
-extern "C" 
-Algebra* InitializeContinuousQueriesAlgebra(NestedList* nlRef, 
-    QueryProcessor* qpRef) {
-
-    return new ContinuousQueriesAlgebra();
-}
-
-} /* namespace continuousqueries */
+#endif

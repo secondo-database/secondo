@@ -34,41 +34,43 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[->] [$\rightarrow $]
 //[toc] [\tableofcontents]
 
-[1] Implementation of the idle handler.
+[1] Implementation of the stream supplier.
 
 [toc]
 
-1 IdleHandler class implementation
+1 StreamSupplier class implementation
 
 */
 
-#include "HandlerIdle.h"
+#include "StreamSupplier.h"
+#include <boost/algorithm/string.hpp>
 
 namespace continuousqueries {
 
 /*
 1.1 Constructor
 
-Creates a new HandlerIdle object.
+Creates a new StreamSupplier object.
 
 */
 
-HandlerIdle::HandlerIdle(std::string address, int port): 
+StreamSupplier::StreamSupplier(std::string address, int port): 
     _coordinatorAddress(address),
     _coordinatorPort(port),
     _id(0),
-    _coordinationClient(address, port)
+    _coordinationClient(address, port),
+    _lastTupleId(0)
 {
 }
 
 /*
 1.2 Destructor
 
-Destroys the HandlerIdle object and sets all ressources free.
+Destroys the StreamSupplier object and sets all ressources free.
 
 */
 
-HandlerIdle::~HandlerIdle() {
+StreamSupplier::~StreamSupplier() {
     Shutdown();
     // TODO: Verbindungen lösen, etc.
 }
@@ -83,10 +85,36 @@ initialitation is done. It pushes incoming messages to its queue.
 
 */
 
-void HandlerIdle::Initialize() {
+void StreamSupplier::Initialize()
+{
+    _ownThread = std::thread(
+        &StreamSupplier::Run, 
+        this
+    );
+
+    // wait for the connection to be established
+    if (!_id)
+    {
+        int count = 0;
+        std::cout << "Waiting a maximum of 60 seconds for Stream Supplier"
+            << " and at least one worker.";
+        
+        while ((!_id) and (count < (60*1000)) and (_workers.size()==0)) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            std::cout << ".";
+            count = count + 100;
+        }
+        if (_id) std::cout << " Done!\n";
+    }
+}
+
+
+void StreamSupplier::Run() {
+    _running = false;
+
     // start the client, received messages will be pushed to _MessageQueque
     _coordinationClient.Initialize();
-    
+
     _coordinationClientThread = std::thread(
         &TcpClient::Receive, 
         &_coordinationClient
@@ -98,7 +126,7 @@ void HandlerIdle::Initialize() {
     {
         int count = 0;
         std::cout << "Waiting a maximum of 60 seconds for the connection...";
-        while (!_coordinationClient.IsRunning() && count < (60*1000)) {
+        while ((!_coordinationClient.IsRunning()) and (count < (60*1000))) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             std::cout << ".";
             count = count + 100;
@@ -113,17 +141,20 @@ void HandlerIdle::Initialize() {
     do
     {
         sendl = _coordinationClient.Send(
-            CgenToHidleP::registerHandler("idle", true)
+            CgenToHidleP::registerHandler("streamsupplier", true)
         );
 
-        if (sendl != CgenToHidleP::registerHandler("idle", true).length())
+        if (sendl != CgenToHidleP::registerHandler("streamsupplier", true)
+            .length())
             std::cout << "error while sending registerHandler message \n";
-    } while (sendl != CgenToHidleP::registerHandler("idle", true).length());
+    } while (sendl != CgenToHidleP::registerHandler("streamsupplier", true)
+        .length());
 
-    // wait for a specilization
-    bool noSpecilization = true;
+    // wait for the id
+    bool hasId = false;
+    _running = true;
 
-    while (noSpecilization) {
+    while (_running) {
         std::unique_lock<std::mutex> lock(_coordinationClient.mqMutex);
 
         _coordinationClient.mqCondition.wait(lock, [this] {
@@ -140,7 +171,7 @@ void HandlerIdle::Initialize() {
 
         if (msg.valid) {
             // confirm the id set by the coordinator
-            if (msg.cmd == CgenToHidleP::confirmHandler()) 
+            if ((msg.cmd == CgenToHidleP::confirmHandler()) and (!hasId)) 
             {
                 int handlerId = 0;
                 
@@ -163,47 +194,37 @@ void HandlerIdle::Initialize() {
                 {
                     std::cout << "Set my ID to " << handlerId << ". \n";
                     _id = handlerId;
+                    hasId = true;
                 } else {
                     std::cout << "error while sending "
                         << "confirmHandler message \n";
                 }
-            } 
+            }
 
-            // get a specialization
-            if (msg.cmd == CgenToHidleP::specializeHandler()) 
+            // get a new worker
+            else if ((msg.cmd == CgenToStSuP::addWorker()) and (hasId)) 
             {
-                // an id is neccessary for a specialization
-                if (_id == 0) 
+                int workerId = 0;
+                std::string workerAddress = "";
+
+                std::vector<std::string> parts;
+
+                boost::split(parts, msg.params, 
+                    boost::is_any_of(std::string(1,ProtocolHelpers::seperator))
+                );
+                
+                try
                 {
-                    std::cout << "can't specialize without an id \n";
+                    workerId = std::stoi(parts[0]);
+                    workerAddress = parts[1];
+                }
+                catch(...)
+                {
+                    workerId = 0;
+                    std::cout << "failed to extract id or address \n";
                 }
 
-                // become a worker
-                if (msg.params == "worker|loop")
-                {
-                    WorkerLoop worker(_id, &_coordinationClient);
-                    
-                    worker.Initialize();
-
-                    noSpecilization = false;
-                }
-
-                // become a notification and monitoring handler
-                else if (msg.params == "nomo")
-                {
-                    NoMo nomo(_id, &_coordinationClient);
-
-                    nomo.Initialize();
-
-                    noSpecilization = false;
-                }
-
-                // unknown handler
-                else
-                {
-                    std::cout << "No idea what a " << msg.params 
-                        << " handler is.\n";
-                }
+                if (workerId) addWorker(workerId, workerAddress);
             }
 
             // force shutdown
@@ -213,13 +234,14 @@ void HandlerIdle::Initialize() {
                 std::cout << "shutting down due to " << msg.cmd 
                     << " " << msg.params << "\n";
                 
-                noSpecilization = false;
+                _running = false;
             } 
 
             // unknown command
             else 
             {
-                std::cout << "No handler for command " << msg.cmd << ".\n";
+                std::cout << "Waiting for ID or no handler " 
+                    << " for command " << msg.cmd << ".\n";
             }
 
         } else {
@@ -230,8 +252,58 @@ void HandlerIdle::Initialize() {
     Shutdown();
 }
 
-void HandlerIdle::Shutdown() {
+void StreamSupplier::pushTuple(Tuple* t)
+{
+    if (_workers.size() == 0) 
+        std::cout << "No worker connected. Tuple is lost. \n";
+    
+    std::string msg = StSuToWgenP::tuple(
+        ++_lastTupleId, 
+        t->WriteToBinStr(), 
+        true
+    );
+
+    for (std::map<int, workerStruct>::iterator it = _workers.begin(); 
+        it != _workers.end(); it++)
+    {   
+        std::cout << "Sending to worker with ID " << it->first << ". \n";
+
+        it->second.ptrClient->SendAsync(
+            msg
+        );
+    }
+}
+
+void StreamSupplier::addWorker(int id, std::string address)
+{
+    std::cout << id << "|" << address 
+              << ":" << _coordinatorPort+(id*10) << "\n";
+
+    workerStruct toAdd;
+    toAdd.id = id;
+    toAdd.port = _coordinatorPort + (id * 10);
+    toAdd.address = address;
+    toAdd.ptrClient = new TcpClient(address, _coordinatorPort + (id * 10));
+
+    toAdd.ptrClient->Initialize();
+
+    std::thread t = std::thread(
+        &TcpClient::AsyncHandler, 
+        toAdd.ptrClient
+    );
+
+    t.detach();
+
+    _workers.insert( std::pair<int, workerStruct>(id, toAdd));
+}
+
+void StreamSupplier::Shutdown() {
     // TODO: Verbindungen lösen, etc.
+    _running = false;
+    
+    _coordinationClient.Shutdown();
+
+    _ownThread.join();
 }
 
 }

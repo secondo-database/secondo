@@ -53,6 +53,11 @@ TcpServer::TcpServer(int port): _port(port), _running(false) {}
 
 TcpServer::~TcpServer() {}
 
+void TcpServer::Shutdown()
+{
+    _running = false;
+}
+
 void TcpServer::Run()
 {
     if (_port == -1) return;
@@ -229,7 +234,7 @@ TcpServer::Message TcpServer::CreateConnectMsg(int sockd)
     
     getpeername(sockd, (struct sockaddr*)&ad, (socklen_t*)&adlen);
 
-    std::string body = "connected<" +
+    std::string body = "connected|" +
         (std::string) inet_ntoa(ad.sin_addr) + " " +
         std::to_string(ntohs(ad.sin_port));
  
@@ -243,7 +248,7 @@ TcpServer::Message TcpServer::CreateDisconnectMsg(int sockd)
     
     getpeername(sockd, (struct sockaddr*)&ad, (socklen_t*)&adlen);
 
-    std::string body = "disconnected<" +
+    std::string body = "disconnected|" +
         (std::string) inet_ntoa(ad.sin_addr) + " " +
         std::to_string(ntohs(ad.sin_port));
 
@@ -254,7 +259,7 @@ void TcpServer::PushMsgToQueue(TcpServer::Message msg)
 {
     std::lock_guard<std::mutex> guard(mqMutex);
     std::cout << "TcpServer received '" << msg.body 
-        << "' from port " << std::to_string(msg.socket)
+        << "' from socket " << std::to_string(msg.socket)
         << ". Pushing to queue.\n";
 
     messages.push(msg);

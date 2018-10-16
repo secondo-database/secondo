@@ -124,6 +124,8 @@ int createSSPHandler_VM(Word* args, Word& result, int message,
     HandlerIdle handler(host, port);
     handler.Initialize();
 
+    // delete &handler;
+
     result = qp->ResultStorage(s);
     CcInt* res = (CcInt*) result.addr;
     res->Set(true, 0);

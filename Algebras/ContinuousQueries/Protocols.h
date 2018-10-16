@@ -46,21 +46,34 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <string>
 #include <iostream>
+#include <chrono>
 #include "Tcp/TcpServer.h"
 #include "Tcp/TcpClient.h"
 
 namespace continuousqueries {
+
+
+/*
+1 ...
+
+*/
 
 class ProtocolHelpers {
 public:
     struct Message {
         bool valid = false;
         int socket = -1;
-        int64_t timestamp = 0;
+        uint64_t timestamp = 0;
         std::string body = "";
         std::string cmd = "";
         std::string params = "";
     };
+
+    static const char seperator = '|';
+
+    static uint64_t getUnixTimestamp(const std::time_t* t=nullptr);
+
+    static void printMessage(ProtocolHelpers::Message msg);
 
     static ProtocolHelpers::Message decodeMessage(std::string msg);
     static ProtocolHelpers::Message decodeMessage(TcpClient::Message msg);
@@ -77,9 +90,10 @@ private:
 
 class CgenToHidleP {
 public:
-    static std::string registerHandler(bool create=false);
+    static std::string registerHandler(std::string type="idle", 
+        bool create=false);
     static std::string confirmHandler(int id=0, bool create=false);
-    static std::string becomeSpecificHandler(std::string type="", 
+    static std::string specializeHandler(std::string type="worker|loop", 
         bool create=false);
     static std::string shutdownHandler(std::string msg="", bool create=false);
 };
@@ -88,6 +102,59 @@ public:
 3 ...
 
 */
+
+class CgenToWloopP {
+public:
+    static std::string addNomo(int id=0, std::string address="", 
+        bool create=false);
+    static std::string addQuery(int id=0, std::string function="", 
+        bool create=false);
+};
+
+/*
+4 ...
+
+*/
+
+class CgenToNoMoP {
+public:
+    static std::string addUserQuery(int queryId=0, std::string query="", 
+        std::string mail="", bool create=false);
+};
+
+/*
+5 ...
+
+*/
+
+class CgenToStSuP {
+public:
+    static std::string addWorker(int workerId=0, std::string address="", 
+        bool create=false);
+};
+
+/*
+6 ...
+
+*/
+
+class WgenToNoMoP {
+public:
+    static std::string hit(std::string tuple="", std::string hitlist="", 
+        bool create=false);
+};
+
+/*
+7 ...
+
+*/
+
+class StSuToWgenP {
+public:
+    static std::string tuple(int id=0, std::string tuple="",
+        bool create=false);
+};
+
 
 } /* namespace continuousqueries */
 
