@@ -32,9 +32,7 @@ November 2018, J. Mende
 
 1 Overview
 
-This header file contains definitions of the Algebra constructor and some auxiliary functions.
-
-2 Defines and includes
+Definition of PregelAlgebra class
 
 */
 #include <Symbols.h>

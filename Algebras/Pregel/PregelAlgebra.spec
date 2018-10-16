@@ -8,9 +8,9 @@ operator startMessageServer alias STARTMESSAGESERVER pattern op (_)
 
 operator setupPregel alias SETUPPREGEL pattern op (_)
 
-operator initPregelMessages alias INITPREGELMESSAGES pattern _ op [_]
+operator initPregelMessages alias INITPREGELMESSAGES pattern _ op
 
-operator startLoopbackClient alias STARTLOOPBACKCLIENT pattern op (_)
+operator startLoopbackMessageClient alias STARTLOOPBACKMESSAGECLIENT pattern op (_)
 
 operator preparePregel alias PREPAREPREGEL pattern op (_)
 
@@ -18,7 +18,7 @@ operator startPregel alias STARTPREGEL pattern op (_)
 
 operator resetPregel alias RESETPREGEL pattern op ()
 
-operator initPregelMessageWorker alias INITPREGELMESSAGEWORKER pattern op (_,_)
+operator initPregelMessageWorker alias INITPREGELMESSAGEWORKER pattern op ()
 
 operator pregelHealth alias PREGELHEALTH pattern op ()
 

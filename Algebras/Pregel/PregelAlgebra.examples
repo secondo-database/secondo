@@ -1,0 +1,90 @@
+Database : berlin
+Restore  : No
+
+Operator : messageDistribute
+Number   : 1
+Signature: stream(tuple) x int -> bool
+Example  : query ten messageDistribute[6];
+Result   : TRUE
+
+Operator : messageFeed
+Number   : 1
+Signature: () -> bool
+Example  : query messageFeed();
+Result   : TRUE
+
+Operator : startMessageClient
+Number   : 1
+Signature: int x string x int -> bool
+Example  : query startMessageClient(1, "localhost", 1445);
+Result   : TRUE
+
+Operator : startMessageServer
+Number   : 1
+Signature: int -> bool
+Example  : query startMessageServer(1446);
+Result   : TRUE
+
+Operator : setupPregel
+Number   : 1
+Signature: query darray(int) -> darray(bool);
+Example  :
+Result   :
+
+Operator : initPregelMessages
+Number   : 1
+Signature: stream(tuple) -> bool
+Example  : query ten initPregelMessages;
+Result   : TRUE
+
+Operator : initPregelWorker
+Number   : 1
+Signature: int -> bool
+Example  : query initPregelWorker(2);
+Result   : TRUE
+
+Operator : preparePregel
+Number   : 1
+Signature: map(stream(tuple) x string -> stream(tuple)) -> bool
+Example  : query preparePregel(fun());
+Result   : TRUE
+
+Operator : startPregel
+Number   : 1
+Signature: int -> bool
+Example  : query startPregel(15);
+Result   : TRUE
+
+Operator : clearPregelWorker
+Number   : 1
+Signature: () -> bool
+Example  : query clearPregelWorker();
+Result   : TRUE
+
+operator initPregelMessageWorker alias INITPREGELMESSAGEWORKER pattern op (_,_)
+Operator : initPregelMessageWorker
+Number   : 1
+Signature: tuple x string -> bool
+Example  : query initPregelMessageWorker(Tuple, "Slot");
+Result   : TRUE
+
+operator pregelHealth alias PREGELHEALTH pattern op ()
+Operator : pregelHealth
+Number   : 1
+Signature: () -> string
+Example  : query pregelHealth();
+Result   : TRUE
+
+operator preparePregelWorker alias PREPAREPREGELWORKER pattern op (_,_,_)
+Operator : preparePregelWorker
+Number   : 1
+Signature: text x int x string -> bool
+Example  : query preparePregelWorker("function text", 6, "Slot")
+Result   : TRUE
+
+operator startPregelWorker alias STARTPREGELWORKER pattern op (_)
+Operator : startPregelWorker
+Number   : 1
+Signature: int -> bool
+Example  : query startPregelWorker(10);
+Result   : TRUE

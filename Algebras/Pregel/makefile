@@ -59,8 +59,7 @@ $(LIBOBJ): $(OBJECTS)
 clean:
 	$(clean-algebra)
 	make -C Operators/Messaging clean
-	make -C Operators/Messaging/MessageBroker clean
+	make -C MessageBroker clean
 	make -C Operators/OnMaster clean
 	make -C Operators/OnWorker clean
-	make -C Types clean
 	make -C Helpers clean
