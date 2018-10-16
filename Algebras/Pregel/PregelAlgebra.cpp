@@ -58,10 +58,6 @@ This header file contains definitions of the Algebra constructor and some auxili
 namespace pregel {
  extern QueryProcessor *qp;
 
- /*
- * 3.1 Constructor PregelAlgebra
- *
- * */
  PregelAlgebra::PregelAlgebra() {
   /*
    * Operators
@@ -86,47 +82,23 @@ namespace pregel {
   SetPregelFunctionWorker::setPregelFunctionWorker.SetUsesArgsInTypeMapping();
  }
 
- /*
-  * 3.2 Destructor PregelAlgebra
-  *
-  * */
  PregelAlgebra::~PregelAlgebra() {};
 
- /*
-  * 3.3 Singleton accessor
-  *
-  * */
  PregelAlgebra *PregelAlgebra::getAlgebra() {
   return algebra;
  }
 
- /*
-  * 3.4 Singleton instance
-  *
-  * */
  PregelAlgebra *PregelAlgebra::algebra = nullptr;
 
- /*
-  * 3.5 Singleton initializer
-  *
-  * */
  void PregelAlgebra::setAlgebra(PregelAlgebra *algebra) {
   assert(PregelAlgebra::algebra == nullptr); // singleton`
   PregelAlgebra::algebra = algebra;
  }
 
- /*
-  * 3.6 Auxiliary function
-  *
-  * */
  bool PregelAlgebra::amITheMaster() {
   return MessageBroker::get().numberOfClients() == 0;
  }
 
- /*
-  * 3.7 Status report function
-  *
-  * */
  void PregelAlgebra::healthReport(std::stringstream &sstream) {
   if (amITheMaster()) {
    sstream << "=== Pregel Health Report ===" << std::endl;
@@ -138,10 +110,6 @@ namespace pregel {
   PregelContext::get().healthReport(sstream);
  }
 
- /*
-  * 3.8 Reset function
-  *
-  * */
  void PregelAlgebra::reset() {
   BOOST_LOG_TRIVIAL(debug) << "Reset Algebra";
 
