@@ -20,7 +20,7 @@ operator resetPregel alias RESETPREGEL pattern op ()
 
 operator initPregelMessageWorker alias INITPREGELMESSAGEWORKER pattern op ()
 
-operator pregelHealth alias PREGELHEALTH pattern op ()
+operator pregelStatus alias PREGELSTATUS pattern op ()
 
 operator preparePregelWorker alias PREPAREPREGELWORKER pattern op (_,_)
 

@@ -68,11 +68,11 @@ Signature: tuple x string -> bool
 Example  : query initPregelMessageWorker(Tuple, "Slot");
 Result   : TRUE
 
-operator pregelHealth alias PREGELHEALTH pattern op ()
-Operator : pregelHealth
+operator pregelStatus alias PREGELSTATUS pattern op ()
+Operator : pregelStatus
 Number   : 1
 Signature: () -> string
-Example  : query pregelHealth();
+Example  : query pregelStatus();
 Result   : TRUE
 
 operator preparePregelWorker alias PREPAREPREGELWORKER pattern op (_,_,_)

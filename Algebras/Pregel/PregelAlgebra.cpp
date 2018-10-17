@@ -49,7 +49,7 @@ Definition of PregelAlgebra class
 #include "Operators/OnWorker/ResetPregel.h"
 #include "Operators/OnWorker/InitPregelMessageWorker.h"
 #include "Operators/OnWorker/StartLoopbackMessageClient.h"
-#include "Operators/OnWorker/PregelHealth.h"
+#include "Operators/OnWorker/PregelStatus.h"
 #include "Operators/OnWorker/StartPregelWorker.h"
 #include "PregelContext.h"
 
@@ -74,7 +74,7 @@ namespace pregel {
   AddOperator(&ResetPregel::resetPregel);
   AddOperator(&InitPregelMessageWorker::initPregelMessageWorker);
   AddOperator(&StartLoopbackMessageClient::startLoopbackMessageClient);
-  AddOperator(&PregelHealth::pregelHealth);
+  AddOperator(&PregelStatus::pregelStatus);
   AddOperator(&StartPregelWorker::startPregelWorker);
   AddOperator(&SetPregelFunctionWorker::setPregelFunctionWorker);
   SetPregelFunctionWorker::setPregelFunctionWorker.SetUsesArgsInTypeMapping();

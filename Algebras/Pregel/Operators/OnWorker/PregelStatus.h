@@ -56,7 +56,7 @@ public:
 
   static OperatorSpec operatorSpec;
 
-  static Operator pregelHealth;
+  static Operator pregelStatus;
 };
 }
 

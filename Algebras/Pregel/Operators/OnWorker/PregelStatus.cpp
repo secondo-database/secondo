@@ -68,7 +68,7 @@ namespace pregel {
   for (WorkerConfig *worker = workers();
        worker != nullptr; worker = workers()) {
    sstream << "+++Worker" << std::endl;
-   std::string query("query pregelHealth()");
+   std::string query("query pregelStatus()");
 
    std::function<std::string *(std::string &)> trimListStyle = [](
     std::string &response) -> std::string * {
@@ -99,11 +99,11 @@ namespace pregel {
   "() -> bool",
   "# ()",
   "() -> TRUE",
-  "query pregelHealth();"
+  "query pregelStatus();"
  );
 
- Operator PregelStatus::pregelHealth(
-  "pregelHealth",
+ Operator PregelStatus::pregelStatus(
+  "pregelStatus",
   PregelStatus::operatorSpec.getStr(),
   PregelStatus::valueMapping,
   Operator::SimpleSelect,
