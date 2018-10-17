@@ -45,7 +45,7 @@ This header file defines the class DoubleQueue
 #include <queue>
 #include <functional>
 #include "MessageWrapper.h"
-#include "../Helpers/typedefs.h"
+#include "../typedefs.h"
 #include <boost/thread.hpp>
 
 namespace pregel {
