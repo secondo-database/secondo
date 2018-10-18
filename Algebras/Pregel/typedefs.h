@@ -32,50 +32,31 @@ November 2018, J. Mende
 
 1 Overview
 
-This header file defines the class DoubleQueue
+This header file contains type and macro definitions
 
 2 Defines and includes
 
 */
 
-#ifndef SECONDO_SWITCHABLEBUFFER_H
-#define SECONDO_SWITCHABLEBUFFER_H
+#ifndef SECONDO_TYPEDEFS_H
+#define SECONDO_TYPEDEFS_H
 
-#include <ostream>
-#include <queue>
 #include <functional>
-#include "MessageWrapper.h"
-#include "../typedefs.h"
-#include <boost/thread.hpp>
+#include "../Distributed2/ConnectionInfo.h"
 
 namespace pregel {
- using MessageQueue = std::queue<MessageWrapper *>;
+ #define PRECONDITION(condition, message) \
+ if (!(condition)) { \
+  BOOST_LOG_TRIVIAL(error) << message; \
+  ((CcBool *) result.addr)->Set(true, false); \
+  return 0; \
+ }
 
- class DoubleQueue {
- public:
-  DoubleQueue();
+ using WorkerConnection = distributed2::ConnectionInfo;
 
-  friend std::ostream &
-  operator<<(std::ostream &os, DoubleQueue &buffer);
-
-  MessageQueue &getQueue(const int round);
-
-  unsigned long size(const int round);
-
-  void push(MessageWrapper *message, const int round);
-
-  MessageWrapper *pop(const int round);
-
-  void consume(const consumer<MessageWrapper> &callback,
-               const int round);
-
-  supplier<MessageWrapper> supply(const int round);
-
- private:
-  std::queue<MessageWrapper *> buffers[2];
-  boost::mutex lock[2];
- };
+ template<typename Type> using supplier = std::function<Type *()>;
+ template<typename Type> using consumer = std::function<void(Type *)>;
+ using executable = std::function<void()>;
 }
 
-
-#endif //SECONDO_SWITCHABLEBUFFER_H
+#endif //SECONDO_TYPEDEFS_H
