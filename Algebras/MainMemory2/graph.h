@@ -48,7 +48,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace graph {
 
-using namespace std;
 class Edge;
 class Vertex;
 class Graph;
@@ -325,7 +324,7 @@ Returns the memory size of this vertex.
       res->lowlink = lowlink;
       res->inStack = inStack;
       res->compNo = compNo;
-      vector<EdgeWrap>* e = new vector<EdgeWrap>();
+      std::vector<EdgeWrap>* e = new std::vector<EdgeWrap>();
       for(size_t i=0;i<edges->size();i++){
          EdgeWrap w = edges->at(i);
          Edge* ed = w()->clone();
@@ -485,12 +484,12 @@ class Graph {
 
 public:
     Graph() {
-        graph = new set<Vertex*, Vertex::EqualVertex>();
-        result = new vector<int>();
+        graph = new std::set<Vertex*, Vertex::EqualVertex>();
+        result = new std::vector<int>();
     }
 
     ~Graph() {
-      set<Vertex*,Vertex::EqualVertex>::iterator it = graph->begin();
+      std::set<Vertex*,Vertex::EqualVertex>::iterator it = graph->begin();
       while(it!=graph->end()) {
         Vertex* v = *it;
         delete v;
@@ -510,7 +509,7 @@ public:
     }
     
     void clearScc() {
-      set<Vertex*,Vertex::EqualVertex>::iterator it = graph->begin();
+      std::set<Vertex*,Vertex::EqualVertex>::iterator it = graph->begin();
       while(it!=graph->end()) {
         Vertex* v = *it;
         v->index = 0;
