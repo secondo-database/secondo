@@ -38,6 +38,8 @@ char usingfound;
 char isFile;
 char* filename;
 
+char* lastSymbol=0;
+
 
 %}
 
@@ -46,7 +48,8 @@ char* filename;
 
 whitespace [ \n\r\t\a\b\f\t\v]
 simplecomment [/][/].*[\n]
-string \"(.|\n)*\"
+stringdelimiter \"
+stringcontent (\\\"|[^"])
 commentstart [/]\*
 commentend  \*[/]
 letter [a-zA-Z_#]
@@ -55,27 +58,33 @@ symbol {letter}({letter}|{digit})*
 
 
 %x COMMENT
+%x STRING
  
 %%
 
 <INITIAL>{whitespace} {}
 <INITIAL>{simplecomment} {}
-<INITIAL>{string} {}
 <INITIAL>{symbol} {
-   if(strcmp(yytext,"using") == 0){
+   if((strcmp(yytext,"namespace") == 0)  &&
+       (lastSymbol != 0) &&
+       strcmp(lastSymbol,"using") == 0){
         if(isHeader){
-           fprintf(stderr,"found using in header file");
+           fprintf(stderr,"found using namespace in header file");
            if(isFile){
                fprintf(stderr," in file %s\n", filename);
             } else {
                fprintf(stderr," in input\n");
             }
-                  
             return 1;
         } else {
             usingfound = true;
         }
+   }
+   if(lastSymbol){
+     free(lastSymbol);
    } 
+   lastSymbol = strdup(yytext);
+
    if(strcmp(yytext,"#include")==0){
          if(usingfound){
                 fprintf(stderr,"found include after using");
@@ -91,11 +100,14 @@ symbol {letter}({letter}|{digit})*
 }
 
 
-<INITIAL>{commentstart} { BEGIN(COMMENT);}
+<INITIAL>{commentstart} { BEGIN(COMMENT); }
+<INITIAL>{stringdelimiter} { BEGIN(STRING); }
 <INITIAL>. {}
-<COMMENT>{commentend} {BEGIN(INITIAL);}
+<COMMENT>{commentend} {BEGIN(INITIAL); }
 <COMMENT>{whitespace} {}
 <COMMENT>. {}
+<STRING>{stringcontent} {}
+<STRING>{stringdelimiter} { BEGIN(INITIAL);}
 
 
 %%
@@ -129,6 +141,16 @@ int main(int argc, char** argv){
   }
 
   usingfound = false;
-  return yylex();
+  
+  //fprintf(stderr,"start to process file %s\n", argv[1+offset] );
+
+  int res  = yylex();
+
+  //fprintf(stderr,"file processed\n" );
+
+  if(lastSymbol){
+     free(lastSymbol);
+  }
+  return res;
 
 }
