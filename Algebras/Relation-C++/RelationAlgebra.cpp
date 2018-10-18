@@ -89,6 +89,7 @@ RelationAlgebra.h header file.
 #include "OperatorFilter.h"
 #include "OperatorProject.h"
 #include "OperatorFeedProject.h"
+#include "Messages.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -2194,7 +2195,6 @@ countboth_vm( Word* args, Word& result, int message,
 This operator generates messages! Refer to "Messages.h".
 
 */
-#include "Messages.h"
 int
 TCountStream2(Word* args, Word& result, int message,
               Word& local, Supplier s)
