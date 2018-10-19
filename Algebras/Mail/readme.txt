@@ -97,7 +97,7 @@ smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
 
 
 
-Make sure that the sasl_passwd.db und the sasl_passwd can only root can  read or write 
+Make sure for the sasl_passwd.db und the sasl_passwd that only root is able to read or write 
 those files.
 
 You can do it with:
