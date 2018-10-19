@@ -216,13 +216,13 @@ spelling within the current database.
 */
 
 % DCobj -> ExternalObj  RELIES ON STORED TRANSLATION!
-dcName2externalName(DC,External) :-
+dcName2externalName(DC, External) :-
   ground(DC),                    % first arg instantiated
   atomic(DC),                    % is DB object identifier
   secondoCatalogInfo(DC,External,_,_), % get external spelling from catalog
   !.
 % DCrel:DCattr -> ExternalAttr  RELIES ON STORED TRANSLATION!
-dcName2externalName(DC,External) :-
+dcName2externalName(DC, External) :-
   ground(DC),                    % first arg instantiated
   DC = _ : _,                    % is attribute identifier
   databaseName(DB),              % get current DB name
@@ -230,11 +230,20 @@ dcName2externalName(DC,External) :-
   internalName2externalName(Internal,External), % covert to external
   !.
 % ExternalObj -> DCobj  ALWAYS SUCCEEDS!
-dcName2externalName(DC,External) :-
+dcName2externalName(DC, External) :-
   ground(External),              % second arg instantiated
   atomic(External),              % is DB object identifier
   downcase_atom(External, DC),
   !.
+
+% ExternalType -> DCType  ALWAYS SUCCEEDS!
+dcName2externalName(DC, External) :-
+  ground(External),         	% second arg instantiated
+  External = [TypeCon | _ ],	% a composite type, use only 
+                                % outermost type constructor
+  downcase_atom(TypeCon, DC),
+  !.
+
 dcName2externalName(DC,External) :-
   write('ERROR:\tdcName2externalName('),write(DC),write(','),write(External),
   write(') failed!'), nl,
@@ -242,7 +251,6 @@ dcName2externalName(DC,External) :-
     -> ( write('--->\tProbably missing storedSpell/3 or secondoCatalogInfo/4 '),
          write('for 1st argument?!')
        )
-    ;  write('--->\tProbably 2nd argument is not atomic?!')
   ), !,
   nl,
   throw(error_Internal(database_dcName2externalName(DC,External)
@@ -3898,9 +3906,9 @@ updateDB(DB1) :-
 
 Analyses the relation schema for relation ~DCrel~ and sends a query to Secondo
 to inquire the relation's cardinality, the size information for tuples,
-detailed information on attribute sizes, the attribute types, the the spelling.
+detailed information on attribute sizes, the attribute types, the spelling.
 
-For each attribute, the type and size information is stored in a asserted facts
+For each attribute, the type and size information is stored in an asserted fact
 
 ----
   storedAttrSize(Database, Rel, Attr, Type, MemSize, CoreSize, LOBSize)
@@ -4648,9 +4656,9 @@ the database kernel.
 
 To calculate the proper sizes of attributes, the optimizer needs information
 on how much memory the representation of available Secondo datatypes need.
-To get this information, a systemtable with this information is queried whenever
-a database is opened (see file ~auxiliary.pl~). The systemtable is a relation
-contaning (among others) two attributes ~Type~ (containing the name of a
+To get this information, a system table with this information is queried whenever
+a database is opened (see file ~auxiliary.pl~). The system table is a relation
+containing (among others) two attributes ~Type~ (containing the name of a
 datatype) and ~Size~ (containing its size in byte).
 
 Type information is inquired from the database kernel and stored in facts
@@ -4664,7 +4672,7 @@ according fixed part of the data type in bytes (the minimum memory required
 excluding FLOB data, but inclusing other variable parts of the data)),
 ~NoFlobs~ is the number of FLOBS the type maintains, ~PersistencyModeDC~ is
 the type of storage mechanism used to save instances of this data type to disk.
-There are 4 differnt mechanisms:
+There are 4 different mechanisms:
 
   * (unspec) unspecified. This usually means, that the actual mechanism cannot
     be determined since the type is not in kind DATA.
@@ -4678,7 +4686,7 @@ There are 4 differnt mechanisms:
   * (szfc) serialize-fix-core. This type means, that the data type has a
     constant in-memory-size, but provides a serialization method to save itself
     into a byte string of variable length to be stored to disk. The entire
-    string is saved thisin the tuple core.
+    string is saved thus in the tuple core.
     The type has  constant memory and a constant (but usually smaller) disk
     core size. LOBs are currently not supported.
 
