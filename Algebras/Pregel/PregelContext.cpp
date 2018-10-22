@@ -63,12 +63,12 @@ namespace pregel {
   return os;
  }
 
- int PregelContext::getMessageSlotIndex() const {
-  return messageSlotIndex;
+ int PregelContext::getAddressIndex() const {
+  return addressIndex;
  }
 
- void PregelContext::setMessageSlotIndex(int messageSlotIndex) {
-  PregelContext::messageSlotIndex = messageSlotIndex;
+ void PregelContext::setAddressIndex(int addressIndex) {
+  PregelContext::addressIndex = addressIndex;
  }
 
  int PregelContext::getMessageServerPort() const {

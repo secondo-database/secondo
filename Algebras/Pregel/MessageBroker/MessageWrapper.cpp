@@ -81,7 +81,7 @@ namespace pregel {
 
  MessageWrapper::Header
  MessageWrapper::Header::fromTuple(Tuple *body, const int round) {
-  int index = PregelContext::get().getMessageSlotIndex();
+  int index = PregelContext::get().getAddressIndex();
   auto attribute = (CcInt *) body->GetAttribute(index);
   const int destination = attribute->GetValue();
   return {destination, DATA, 0, round};

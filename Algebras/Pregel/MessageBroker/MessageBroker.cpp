@@ -116,9 +116,8 @@ namespace pregel {
  }
 
  bool MessageBroker::startLoopbackProxy(int slot) {
-//  BOOST_LOG_TRIVIAL(info) << "start message loopback";
   try {
-   std::function<void(MessageWrapper *)> loopbackInsert =
+   consumer<MessageWrapper> loopbackInsert =
     [this](MessageWrapper *message) {
       if (message->getType() == MessageWrapper::MessageType::DATA) {
        this->inbox.push(message, message->getRound());
@@ -217,8 +216,8 @@ namespace pregel {
   return new supplier<MessageWrapper>(inbox.supply(superstep));
  }
 
- void
- MessageBroker::startNewRound(bool &allEmpty, executable &callMeWhenYoureDone) {
+ void MessageBroker::startNewRound(bool &allEmpty,
+                                   executable &callMeWhenYoureDone) {
   const unsigned long numberOfConnections = servers.size();
 
   if (numberOfConnections == 0) {
@@ -237,7 +236,7 @@ namespace pregel {
     callMeWhenYoureDone();
   };
 
-  auto monitor = new ComputeMonitor(numberOfConnections - 1/*Master*/,
+  auto monitor = new Monitor(numberOfConnections - 1/*Master*/,
                                     callback);
 
   for (MessageServer *server : servers) {

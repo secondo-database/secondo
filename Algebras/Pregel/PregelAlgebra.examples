@@ -61,11 +61,11 @@ Signature: () -> bool
 Example  : query clearPregelWorker();
 Result   : TRUE
 
-operator initPregelMessageWorker alias INITPREGELMESSAGEWORKER pattern op (_,_)
-Operator : initPregelMessageWorker
+operator expectPregelMessages alias EXPECTPREGELMESSAGES pattern op (_,_)
+Operator : expectPregelMessages
 Number   : 1
 Signature: tuple x string -> bool
-Example  : query initPregelMessageWorker(Tuple, "Slot");
+Example  : query expectPregelMessages(Tuple, "Slot");
 Result   : TRUE
 
 operator pregelStatus alias PREGELSTATUS pattern op ()

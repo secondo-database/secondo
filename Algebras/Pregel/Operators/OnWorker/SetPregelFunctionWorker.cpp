@@ -50,10 +50,10 @@ namespace pregel {
    return listutils::typeError("You must provide 2 arguments.");
   }
   const ListExpr function = nl->First(args);
-  auto messageSlotIndex = nl->Second(args);
+  auto addressIndex = nl->Second(args);
 
   // Uses args in type mapping
-  if (!nl->HasLength(function, 2) || !nl->HasLength(messageSlotIndex, 2)) {
+  if (!nl->HasLength(function, 2) || !nl->HasLength(addressIndex, 2)) {
    return listutils::typeError("Internal Failure");
   }
   auto functionType = nl->First(function);
@@ -64,7 +64,7 @@ namespace pregel {
     "The first argument must be a function");
   }
 
-  if (!CcInt::checkType(nl->First(messageSlotIndex))) {
+  if (!CcInt::checkType(nl->First(addressIndex))) {
    return listutils::typeError(
     "The second argument must be an int");
   }
@@ -109,17 +109,16 @@ namespace pregel {
   FORCE_LOG
   result = qp->ResultStorage(s);
   // ignnore actual function object at args[0]
-  auto messageSlotIndexInt = (CcInt *) args[1].addr;
+  auto addressIndexInt = (CcInt *) args[1].addr;
   auto queryText = (FText *) args[2].addr;
 
-  PRECONDITION(messageSlotIndexInt->IsDefined(),
-               "messageSlotIndex must be defined");
-  int messageSlotIndex = messageSlotIndexInt->GetIntval();
-  PRECONDITION(messageSlotIndex >= 0, "messageSlotIndex must not be negative");
+  PRECONDITION(addressIndexInt->IsDefined(), "addressIndex must be defined");
+  int addressIndex = addressIndexInt->GetIntval();
+  PRECONDITION(addressIndex >= 0, "addressIndex must not be negative");
 
   std::string query = queryText->GetValue();
   PregelContext::get().setFunction(query);
-  PregelContext::get().setMessageSlotIndex(messageSlotIndex);
+  PregelContext::get().setAddressIndex(addressIndex);
 
   ((CcBool *) result.addr)->Set(true, true);
   return 0;

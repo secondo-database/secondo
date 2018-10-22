@@ -18,7 +18,7 @@ operator startPregel alias STARTPREGEL pattern op (_)
 
 operator resetPregel alias RESETPREGEL pattern op ()
 
-operator initPregelMessageWorker alias INITPREGELMESSAGEWORKER pattern op ()
+operator expectPregelMessages alias EXPECTPREGELMESSAGES pattern op ()
 
 operator pregelStatus alias PREGELSTATUS pattern op ()
 

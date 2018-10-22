@@ -32,41 +32,37 @@ November 2018, J. Mende
 
 1 Overview
 
-This file defines the members of class ComputeMonitor
+This header file defines the class Monitor
+
+2 Defines and includes
 
 */
 
-#include "ComputeMonitor.h"
+#ifndef SECONDO_COMPUTEMESSAGINGCONTEXT_H
+#define SECONDO_COMPUTEMESSAGINGCONTEXT_H
 
-pregel::ComputeMonitor::ComputeMonitor(unsigned long numberOfServers,
-                                       std::function<void(
-                                        bool empty)> finishCallback)
- : finishedWorkerCounter(numberOfServers/*TODO: +1?*/),
-   callback(finishCallback), counterLock() {}
+#include <utility>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/condition_variable.hpp>
+#include "../Helpers/LoggerFactory.h"
 
-void pregel::ComputeMonitor::empty() {
- counterLock.lock();
- --finishedWorkerCounter;
- bool allFinished;
- allFinished = (finishedWorkerCounter == 0);
- counterLock.unlock();
+namespace pregel {
+ class Monitor {
+ public:
+  Monitor(unsigned long numberOfServers,
+                 std::function<void(bool empty)> finishCallback);
 
- if (!allFinished) {
-  return;
- }
- callback(allEmpty);
+  void empty();
+
+  void finish();
+
+ private:
+  unsigned long finishedWorkerCounter;
+  std::function<void(bool empty)> callback;
+  bool allEmpty = true;
+  boost::mutex counterLock;
+ };
 }
 
-void pregel::ComputeMonitor::finish() {
- counterLock.lock();
- allEmpty = false;
- --finishedWorkerCounter;
- bool allFinished;
- allFinished = (finishedWorkerCounter == 0);
- counterLock.unlock();
 
- if (!allFinished) {
-  return;
- }
- callback(false);
-}
+#endif //SECONDO_COMPUTEMESSAGINGCONTEXT_H

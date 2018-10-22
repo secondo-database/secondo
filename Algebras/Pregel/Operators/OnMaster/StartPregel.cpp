@@ -59,9 +59,8 @@ namespace pregel {
   return nl->SymbolAtom(CcBool::BasicType());
  }
 
- int
- StartPregel::valueMapping(Word *args, Word &result, int message, Word &local,
-                           Supplier s) {
+ int StartPregel::valueMapping(Word *args, Word &result, int, Word &,
+                               Supplier s) {
   result = qp->ResultStorage(s);
   CcInt *rounds = (CcInt *) args[0].addr;
 
@@ -72,8 +71,8 @@ namespace pregel {
   }
 
   auto connections = PregelContext::get().getConnections();
-  auto query =
-   "query startPregelWorker(" + std::to_string(rounds->GetValue()) + ");";
+  auto query = "query startPregelWorker(" +
+   std::to_string(rounds->GetValue()) + ");";
   supplier<Runner> runners = [rounds, &connections, &query]() -> Runner * {
     WorkerConnection *connection;
     if ((connection = connections()) != nullptr) {

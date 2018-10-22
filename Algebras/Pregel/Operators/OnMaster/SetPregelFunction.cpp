@@ -117,14 +117,14 @@ namespace pregel {
   // ignore actual function at args[0]
   // ignore attribute name at args[1]
   auto functionText = (FText *) args[2].addr;
-  auto messageSlotIndexInt = (CcInt *) args[3].addr;
+  auto addressIndexInt = (CcInt *) args[3].addr;
 
   std::string function = functionText->GetValue();
-  int messageSlotIndex = messageSlotIndexInt->GetValue();
+  int addressIndex = addressIndexInt->GetValue();
 
-  PregelContext::get().setMessageSlotIndex(messageSlotIndex);
+  PregelContext::get().setAddressIndex(addressIndex);
 
-  bool success = remoteQueryCall(function, messageSlotIndex);
+  bool success = remoteQueryCall(function, addressIndex);
 
   ((CcBool *) result.addr)->Set(true, success);
   return 0;

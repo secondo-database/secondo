@@ -261,7 +261,8 @@ namespace pregel {
                                            int messageServerPortIndex,
                                            int configIndex,
                                            std::string &dbName,
-                                           int slotNumber) noexcept(false) {
+                                           int slotNumber)
+                                           noexcept(false) {
   auto host = ((CcString *) tuple->GetAttribute(hostIndex))->GetValue();
   auto port = ((CcInt *) tuple->GetAttribute(portIndex))->GetIntval();
   auto messageServerPort = ((CcInt *) tuple->GetAttribute(
@@ -277,8 +278,6 @@ namespace pregel {
   }
 
   connection->switchDatabase(dbName, true, true);
-//  BOOST_LOG_TRIVIAL(debug) << "Switched to database \"" << dbName.c_str()
-//                           << "\"";
 
   return WorkerConfig(slotNumber, RemoteEndpoint(host, port),
                       messageServerPort, configFilePath,

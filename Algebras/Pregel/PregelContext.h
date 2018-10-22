@@ -65,7 +65,7 @@ namespace pregel {
   * */
   std::string messageType = "";
   std::string numericMessageType = "";
-  int messageSlotIndex = -1;
+  int addressIndex = -1;
 
   int superstep = 0;
   std::string function = "";
@@ -87,7 +87,7 @@ namespace pregel {
   void reset() {
    messageType = "";
    numericMessageType = "";
-   messageSlotIndex = -1;
+   addressIndex = -1;
    superstep = 0;
    function = "";
 
@@ -100,7 +100,7 @@ namespace pregel {
   *
   * */
   void healthReport(std::stringstream &sstream) {
-   sstream << "  MessageSlotIndex: " << messageSlotIndex << std::endl;
+   sstream << "  AddressIndex: " << addressIndex << std::endl;
    sstream << "  FunctionText: " << function << std::endl;
    sstream << "  Superstep: " << superstep << std::endl;
    sstream << "  MessageType          : " << messageType << std::endl;
@@ -130,9 +130,9 @@ namespace pregel {
 
   void increaseSuperstepCounter();
 
-  int getMessageSlotIndex() const;
+  int getAddressIndex() const;
 
-  void setMessageSlotIndex(int);
+  void setAddressIndex(int);
 
   int getMessageServerPort() const;
 

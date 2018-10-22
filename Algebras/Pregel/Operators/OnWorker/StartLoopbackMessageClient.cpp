@@ -56,20 +56,15 @@ namespace pregel {
   return nl->SymbolAtom(CcBool::BasicType());
  }
 
- int
- StartLoopbackMessageClient::valueMapping(Word *args, Word &result, int message,
-                                          Word &local, Supplier s) {
-  FORCE_LOG
+ int StartLoopbackMessageClient::valueMapping(Word *args, Word &result, int,
+                                              Word &, Supplier s) {
   result = qp->ResultStorage(s);
   CcInt *slotNrWrapper = (CcInt *) args[0].addr;
 
-  if (!slotNrWrapper->IsDefined()) {
-   BOOST_LOG_TRIVIAL(error) << "slotNr is undefined";
-   ((CcBool *) result.addr)->Set(true, false);
-   return 0;
-  }
-
+  PRECONDITION(slotNrWrapper->IsDefined(), "slotNr is undefined")
   int slotNr = slotNrWrapper->GetIntval();
+  PRECONDITION(slotNr >= 0, "slotNr must not be negative");
+
 
   bool loopbackProxyStarted = MessageBroker::get().startLoopbackProxy(slotNr);
 

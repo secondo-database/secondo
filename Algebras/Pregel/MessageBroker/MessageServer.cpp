@@ -241,7 +241,7 @@ namespace pregel {
   sstream << "      State: " << state << std::endl;
  }
 
- void MessageServer::setMonitor(ComputeMonitor *monitor) {
+ void MessageServer::setMonitor(Monitor *monitor) {
   this->monitor = monitor;
  }
 }

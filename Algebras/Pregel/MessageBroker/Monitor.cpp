@@ -32,33 +32,41 @@ November 2018, J. Mende
 
 1 Overview
 
-This header file contains the definition of the class InitPregelMessageWorker
-
-2 Defines and includes
+This file defines the members of class ComputeMonitor
 
 */
 
-#ifndef SECONDO_INITPREGELMESSAGEWORKER_H
-#define SECONDO_INITPREGELMESSAGEWORKER_H
+#include "Monitor.h"
 
-#include <Operator.h>
+pregel::Monitor::Monitor(unsigned long numberOfServers,
+                                       std::function<void(
+                                        bool empty)> finishCallback)
+ : finishedWorkerCounter(numberOfServers/*TODO: +1?*/),
+   callback(finishCallback), counterLock() {}
 
-namespace pregel {
-class InitPregelMessageWorker {
-public:
-  static ListExpr typeMapping(ListExpr args);
+void pregel::Monitor::empty() {
+ counterLock.lock();
+ --finishedWorkerCounter;
+ bool allFinished;
+ allFinished = (finishedWorkerCounter == 0);
+ counterLock.unlock();
 
-  static int valueMapping(Word *args,
-                          Word &result,
-                          int message,
-                          Word &local,
-                          void *s);
-
-  static OperatorSpec operatorSpec;
-
-  static Operator initPregelMessageWorker;
-};
+ if (!allFinished) {
+  return;
+ }
+ callback(allEmpty);
 }
 
+void pregel::Monitor::finish() {
+ counterLock.lock();
+ allEmpty = false;
+ --finishedWorkerCounter;
+ bool allFinished;
+ allFinished = (finishedWorkerCounter == 0);
+ counterLock.unlock();
 
-#endif //SECONDO_INITPREGELMESSAGEWORKER_H
+ if (!allFinished) {
+  return;
+ }
+ callback(false);
+}

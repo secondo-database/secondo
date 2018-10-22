@@ -62,7 +62,7 @@ namespace pregel {
   static void startReceivingMessages(bool &allEmpty);
 
  private:
-  static void compute(QueryProcessor *queryProcessor, std::string &function);
+  static bool compute(QueryProcessor *queryProcessor, std::string &function);
 
   static ListExpr convertToList(std::string &function);
  };

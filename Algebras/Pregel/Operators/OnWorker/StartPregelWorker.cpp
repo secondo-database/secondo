@@ -81,47 +81,45 @@ namespace pregel {
    return -1;
   }
 
+  QueryProcessor *queryProcessor = new QueryProcessor(
+   SecondoSystem::GetNestedList(), SecondoSystem::GetAlgebraManager());
 
   while (round < rounds || rounds < 0) {
    SuperstepCounter::increment();
 
-   QueryProcessor *queryProcessor = new QueryProcessor(
-    SecondoSystem::GetNestedList(), SecondoSystem::GetAlgebraManager());
+   const int lastRound = SuperstepCounter::get() - 1;
+   unsigned long messagesToProcess = MessageBroker::get()
+    .howManyMessagesInInbox(lastRound);
+
    bool allEmpty = true;
-   boost::thread receiver(
-    boost::bind(&StartPregelWorker::startReceivingMessages,
-                boost::ref(allEmpty)));
+   boost::thread receiver(boost::bind(
+    &StartPregelWorker::startReceivingMessages,
+    boost::ref(allEmpty)));
+
    compute(queryProcessor, function);
-   delete queryProcessor;
+
+   if (messagesToProcess <= 0) {
+    MessageBroker::get().broadcastEmptyMessage();
+   } else {
+    MessageBroker::get().broadcastFinishMessage();
+   }
 
    receiver.join();
+
    if (allEmpty) {
     break;
    }
    ++round;
   }
 
+  delete queryProcessor;
   ((CcBool *) result.addr)->Set(true, true);
   return 0;
  }
 
- OperatorSpec StartPregelWorker::operatorSpec(
-  "int -> bool",
-  "# (_)",
-  "rounds (negative for indefinite) -> success",
-  "query startPregelWorker(0);"
- );
-
- Operator StartPregelWorker::startPregelWorker(
-  "startPregelWorker",
-  StartPregelWorker::operatorSpec.getStr(),
-  StartPregelWorker::valueMapping,
-  Operator::SimpleSelect,
-  StartPregelWorker::typeMapping
- );
-
  void StartPregelWorker::startReceivingMessages(bool &allEmpty) {
   MessageBroker &broker = MessageBroker::get();
+
   bool receivedFromAll = false;
   boost::mutex lock;
   boost::condition_variable synch;
@@ -144,12 +142,8 @@ namespace pregel {
   });
  }
 
- void StartPregelWorker::compute(QueryProcessor *queryProcessor,
+ bool StartPregelWorker::compute(QueryProcessor *queryProcessor,
                                  std::string &function) {
-  const int lastRound = SuperstepCounter::get() - 1;
-  unsigned int messagesToProcess = MessageBroker::get().howManyMessagesInInbox(
-   lastRound);
-
   ListExpr query = nl->Second(convertToList(function));
 
   bool correct = false;
@@ -166,20 +160,14 @@ namespace pregel {
    BOOST_LOG_TRIVIAL(error) << "Invalid Function: correct: " << correct
                             << ", evaluable: " << evaluable << ", defined: "
                             << defined << "; Abort.";
-   return;
+   return false;
   }
 
-  Word &&result = queryProcessor->Request(opTree);
+  auto result = queryProcessor->Request(opTree);
 
   if (result.addr == nullptr) {
    BOOST_LOG_TRIVIAL(error) << "Query returned nullptr. Abort.";
-   return;
-  }
-
-  if (messagesToProcess <= 0) {
-   MessageBroker::get().broadcastEmptyMessage();
-  } else {
-   MessageBroker::get().broadcastFinishMessage();
+   return false;
   }
  }
 
@@ -191,4 +179,19 @@ namespace pregel {
   }
   return asList;
  }
+
+ OperatorSpec StartPregelWorker::operatorSpec(
+  "int -> bool",
+  "# (_)",
+  "rounds (negative for indefinite) -> success",
+  "query startPregelWorker(0);"
+ );
+
+ Operator StartPregelWorker::startPregelWorker(
+  "startPregelWorker",
+  StartPregelWorker::operatorSpec.getStr(),
+  StartPregelWorker::valueMapping,
+  Operator::SimpleSelect,
+  StartPregelWorker::typeMapping
+ );
 }
