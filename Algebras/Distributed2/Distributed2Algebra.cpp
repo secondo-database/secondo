@@ -13388,7 +13388,7 @@ int dmapXVM(Word* args, Word& result, int message,
       if(i>0 && (di->getType()==DARRAY)){
          cout << "darray found" << endl;
          if(!a0->equalMapping(*di, false)){
-            cout << ",apping unequal to a0" << endl;
+            cout << "mapping unequal to a0" << endl;
             ((DArrayBase*) result.addr)->makeUndefined();
             return 0;
          }
