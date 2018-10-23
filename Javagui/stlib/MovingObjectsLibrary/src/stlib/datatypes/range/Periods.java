@@ -19,6 +19,7 @@
 
 package stlib.datatypes.range;
 
+import stlib.datatypes.interval.Period;
 import stlib.datatypes.time.TimeInstant;
 import stlib.interfaces.interval.PeriodIF;
 import stlib.interfaces.range.PeriodsIF;
@@ -71,7 +72,15 @@ public class Periods extends Range<TimeInstantIF> implements PeriodsIF {
    @Override
    public PeriodIF get(final int index) {
 
-      return (PeriodIF) super.get(index);
+      PeriodIF period;
+
+      if (index >= 0 && index < this.getNoComponents()) {
+         period = (PeriodIF) super.get(index);
+      } else {
+         period = new Period();
+      }
+
+      return period;
 
    }
 
