@@ -1564,6 +1564,42 @@ bool isSqlCommand(string& cmd){
 }
 
 
+bool rewriteRestore(string& cmd){
+   stringutils::StringTokenizer st(cmd," \t\n",true);
+   if(!st.hasNextToken()) return false;
+   string c = st.nextToken();
+   if(c!="restore"){
+     return false;
+   }
+   vector<string> tokens;
+   tokens.push_back(c);
+   while(st.hasNextToken() && tokens.size()<6 ){
+      tokens.push_back(st.nextToken());
+   }  
+   if(tokens.size()==4){ // restore object
+     if(tokens[2]=="from"){
+        cmd = "restore '"+tokens[1]+"' from '"+tokens[3] +"'";
+        return  true;
+     } else {
+       return false;
+     }
+   }
+
+   if(tokens.size()==5){
+     if(tokens[1]=="database" && tokens[3]=="from"){
+        string source = tokens[4];
+        if(!stringutils::startsWith(source,"'")){
+          source = string("'") + source;
+        }
+        if(!stringutils::endsWith(source,"'")){
+          source += "'";
+        }
+        cmd = "restore database '"+tokens[2] + "' from "+ source;
+        return true;
+     }
+   }
+   return false;
+}
 
 /*
 ~processCommand~
@@ -1594,9 +1630,19 @@ bool processCommand(string& cmd){
      if(plttydebug){
        cout << "general prolog command recognized" << endl;
      }
+     if(rewriteRestore(cmd)){
+       if(plttydebug){
+         cout << "restore command recognized and rewritten to " 
+              << cmd << endl;
+       }
+     }
      return processPrologCommand(cmd);
   }
 }
+
+
+
+
 
 
 /*
