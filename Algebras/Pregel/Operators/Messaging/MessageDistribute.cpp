@@ -74,10 +74,6 @@ namespace pregel {
   Stream<Tuple> messageStream(args[0]);
 
   MessageBroker &broker = MessageBroker::get();
-  if (!broker.clientsAlive()) {
-   BOOST_LOG_TRIVIAL(error) << "Clients not ready. Abort.";
-   return -1;
-  }
 
   distributeMessages(messageStream, broker);
 

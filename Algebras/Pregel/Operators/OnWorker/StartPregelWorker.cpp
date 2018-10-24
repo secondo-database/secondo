@@ -169,6 +169,18 @@ namespace pregel {
    BOOST_LOG_TRIVIAL(error) << "Query returned nullptr. Abort.";
    return false;
   }
+
+  auto successBool = ((CcBool *) result.addr);
+  if (!successBool->IsDefined()) {
+   BOOST_LOG_TRIVIAL(error) << "Query returned undefined. Abort.";
+   return false;
+  }
+  if (successBool->GetValue() == false) {
+   BOOST_LOG_TRIVIAL(error) << "Query returned FALSE. Abort.";
+   return false;
+  }
+
+  return true;
  }
 
  ListExpr StartPregelWorker::convertToList(std::string &function) {

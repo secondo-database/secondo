@@ -70,7 +70,7 @@ namespace pregel {
     MessageBroker &broker = MessageBroker::get();
 
     const int lastRound = SuperstepCounter::get() - 1;
-    messageSupplier = broker.bufferSupplier(lastRound);
+    messageSupplier = broker.inboxSupplier(lastRound);
     local.addr = messageSupplier;
     return 0;
    }

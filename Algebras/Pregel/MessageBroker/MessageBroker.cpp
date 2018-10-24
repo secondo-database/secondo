@@ -212,7 +212,7 @@ namespace pregel {
   }
  }
 
- supplier<MessageWrapper> *MessageBroker::bufferSupplier(const int superstep) {
+ supplier<MessageWrapper> *MessageBroker::inboxSupplier(const int superstep) {
   return new supplier<MessageWrapper>(inbox.supply(superstep));
  }
 

@@ -73,10 +73,10 @@ namespace pregel {
                                 MessageType messageType,
                                 unsigned long messageLength,
                                 int round)
-  : destination(destination),
+  : recipient(destination),
     type(messageType),
     length(messageLength),
-    round(round) {
+    superstep(round) {
  }
 
  MessageWrapper::Header
@@ -90,13 +90,13 @@ namespace pregel {
  char *MessageWrapper::Header::write(char *buffer) const {
 //  BOOST_LOG_TRIVIAL(debug) << "Serializing header: " << *this;
   char *offset = buffer;
-  memcpy(offset, &destination, sizeof(int));
+  memcpy(offset, &recipient, sizeof(int));
   offset += sizeof(int);
   memcpy(offset, &type, sizeof(MessageType));
   offset += sizeof(MessageType);
   memcpy(offset, &length, sizeof(unsigned long));
   offset += sizeof(unsigned long);
-  memcpy(offset, &round, sizeof(int));
+  memcpy(offset, &superstep, sizeof(int));
   offset += sizeof(int);
 
   return offset;
@@ -155,11 +155,11 @@ namespace pregel {
  }
 
  int MessageWrapper::getDestination() const {
-  return header.destination;
+  return header.recipient;
  }
 
  void MessageWrapper::setDestination(int destination) {
-  header.destination = destination;
+  header.recipient = destination;
  }
 
  std::ostream &operator<<(std::ostream &os, const MessageWrapper &wrapper) {
@@ -191,9 +191,9 @@ namespace pregel {
 
  std::ostream &
  operator<<(std::ostream &os, const MessageWrapper::Header &header) {
-  os << "destination: " << header.destination << " type: " << header.type
+  os << "recipient: " << header.recipient << " type: " << header.type
      << " length: "
-     << header.length << " round: " << header.round;
+     << header.length << " superstep: " << header.superstep;
   return os;
  }
 

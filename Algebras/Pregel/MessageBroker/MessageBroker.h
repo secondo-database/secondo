@@ -103,7 +103,7 @@ namespace pregel {
 
   unsigned long howManyMessagesInInbox(int superstep);
 
-  supplier<MessageWrapper> *bufferSupplier(const int superstep);
+  supplier<MessageWrapper> *inboxSupplier(const int superstep);
 
   void sendMessage(MessageWrapper *message);
 

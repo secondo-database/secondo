@@ -77,10 +77,10 @@ namespace pregel {
 
    friend std::ostream &operator<<(std::ostream &os, const Header &header);
 
-   int destination = 0;
+   int recipient = 0;
    MessageType type = DATA;
    unsigned long length = 0;
-   int round = 0;
+   int superstep = 0;
   };
 
   const static size_t HEADER_SIZE = /*sizeof(Header)*/20;
@@ -143,11 +143,11 @@ namespace pregel {
   }
 
   inline int getRound() const {
-   return header.round;
+   return header.superstep;
   }
 
   inline void setRound(const int round) {
-   header.round = round;
+   header.superstep = round;
   }
 
   char *writeHeader() const {
