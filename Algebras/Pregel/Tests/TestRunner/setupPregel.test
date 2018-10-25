@@ -1,0 +1,49 @@
+delete database pregeltest;
+create database pregeltest;
+open database pregeltest;
+
+let Workers = [const rel(tuple([Host: string, Port: int, Config: string, MessageServerPort: int])) value
+(
+ ("127.0.0.1" 1471 "SecondoConfig.ini" 9898)
+ ("127.0.0.1" 1472 "SecondoConfig.ini" 9899)
+)];
+
+let WorkersMissingAttribute = [const rel(tuple([Host: string, Port: int, Config: string])) value
+(
+ ("127.0.0.1" 1471 "SecondoConfig.ini")
+ ("127.0.0.1" 1472 "SecondoConfig.ini")
+)];
+
+let WorkersWrongType = [const rel(tuple([Host: string, Port: int, Config: string])) value
+(
+ ("127.0.0.1" 1471 "SecondoConfig.ini")
+ ("127.0.0.1" 1472 "SecondoConfig.ini")
+)];
+
+#testcase WhenWrongTypeFail
+#yields error
+query setupPregel(1);
+
+#testcase WhenMissingAttributeFail
+#yields error
+query setupPregel(WorkersMissingAttribute);
+
+#testcase WhenWrongAttributeTypeFail
+#yields error
+query setupPregel(WorkersWrongType);
+
+#testcase WhenRelationIsNotDefinedFail
+#yields error
+query setupPregel(WorkersUndefined);
+
+#testcase WhenWrongNumberOfArguments
+#yields error
+query setupPregel(Workers, 1);
+
+#testcase WhenWrongNotation
+#yields error
+query setupPregel[Workers];
+
+#teardown
+close database;
+delete database pregeltest;

@@ -47,3 +47,14 @@ pregel::operator<<(std::ostream &os, const pregel::RemoteEndpoint &endpoint) {
  os << "host: " << endpoint.host << " port: " << endpoint.port;
  return os;
 }
+
+bool
+pregel::RemoteEndpoint::operator==(const pregel::RemoteEndpoint &rhs) const {
+ return host == rhs.host &&
+        port == rhs.port;
+}
+
+bool
+pregel::RemoteEndpoint::operator!=(const pregel::RemoteEndpoint &rhs) const {
+ return !(rhs == *this);
+}

@@ -50,6 +50,7 @@ This header file contains definitions of type mapping, vallue mapping and the op
 #include "../../Helpers/Commander.h"
 #include "../../MessageBroker/MessageBroker.h"
 #include "../../PregelAlgebra.h"
+#include "../../typedefs.h"
 
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
@@ -122,11 +123,11 @@ namespace pregel {
   );
  }
 
- int SetupPregel::valueMapping(Word *args, Word &resultStorage,
+ int SetupPregel::valueMapping(Word *args, Word &result,
                                int, Word &,
                                Supplier s) {
   FORCE_LOG
-  resultStorage = qp->ResultStorage(s);
+  result = qp->ResultStorage(s);
   PregelAlgebra::getAlgebra()->reset();
   auto relation = (Relation *) args[0].addr;
   int hostIndex = ((CcInt *) args[1].addr)->GetIntval();
@@ -134,12 +135,15 @@ namespace pregel {
   int messageServerPortIndex = ((CcInt *) args[3].addr)->GetIntval();
   int configIndex = ((CcInt *) args[4].addr)->GetIntval();
 
+  PRECONDITION(relation->GetNoTuples() > 1,
+   "You can't configure Pregel with less than two Workers.")
 
   try {
    int slotNumber = 0;
    std::string dbName = SecondoSystem::GetInstance()->GetDatabaseName();
 
    RelationIterator it(*relation, relation->GetTupleType());
+
    Tuple *tuple;
    while ((tuple = it.GetNextTuple()) != nullptr) {
     auto worker = workerFromTuple(tuple, hostIndex, portIndex,
@@ -156,17 +160,18 @@ namespace pregel {
   } catch (RemoteExecutionException &e) {
    BOOST_LOG_TRIVIAL(error)
     << "Failed to set up Pregel due to error during remote query. Will reset.";
-   ((CcBool *) resultStorage.addr)->Set(true, false);
+   ((CcBool *) result.addr)->Set(true, false);
    PregelAlgebra::getAlgebra()->reset();
    return -1;
   } catch (std::exception &e) {
    BOOST_LOG_TRIVIAL(error) << "Failed to start Clients. Will reset.";
-   ((CcBool *) resultStorage.addr)->Set(true, false);
+   ((CcBool *) result.addr)->Set(true, false);
    PregelAlgebra::getAlgebra()->reset();
    return -1;
   }
 
-  ((CcBool *) resultStorage.addr)->Set(true, true);
+  PregelContext::get().setUp();
+  ((CcBool *) result.addr)->Set(true, true);
   return 0;
  }
 
@@ -270,6 +275,11 @@ namespace pregel {
   auto configFilePath = ((CcString *) tuple->GetAttribute(
    configIndex))->GetValue();
 
+  RemoteEndpoint endpoint = RemoteEndpoint(host, port);
+  if (PregelContext::get().workerExists(endpoint, messageServerPort)) {
+   throw std::exception();
+  }
+  
   auto connection = WorkerConnection::createConnection(host, port,
                                                        configFilePath);
 
@@ -279,7 +289,7 @@ namespace pregel {
 
   connection->switchDatabase(dbName, true, true);
 
-  return WorkerConfig(slotNumber, RemoteEndpoint(host, port),
+  return WorkerConfig(slotNumber, endpoint,
                       messageServerPort, configFilePath,
                       connection);
  }

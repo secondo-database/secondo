@@ -1,0 +1,43 @@
+delete database pregeltest;
+create database pregeltest;
+open database pregeltest;
+
+let Compute = fun (tuples: stream (tuple([Slot: int, Value: int, Name: string]))) (tuples mconsume mfeed);
+let Size = fun (tuples: stream (tuple([Slot: int, Value: int, Name: string]))) (tuples count);
+let TwoStreams = fun (tuples: stream (tuple([Slot: int])), tuples2: stream (tuple([Slot: int]))) (tuples tuples2 concat);
+
+#testcase WhenAllArgumentsHaveRightTypeSucceedSuccess
+#yields success
+query setPregelFunction(Compute, Slot);
+
+#testcase WhenWrongTypeFail
+#yields error
+query setPregelFunction(Compute, 1);
+
+#testcase WhenFunctionIsNotDefinedFail
+#yields error
+query setPregelFunction(ComputeFunction, Slot);
+
+#testcase WhenAttributeDoesntExistFail
+#yields error
+query setPregelFunction(Compute, Attribute);
+
+#testcase WhenWrongNumberOfArgumentsFail
+#yields error
+query setPregelFunction(Compute);
+
+#testcase WhenWrongNotationFail
+#yields error
+query setPregelFunction[ComputeFunction, Slot];
+
+#testcase WhenFunctionHasWrongReturnTypeFail
+#yields error
+query setPregelFunction(Size, Slot);
+
+#testcase WhenFunctionHasWrongReturnTypeFail
+#yields error
+query setPregelFunction(TwoStreams, Slot);
+
+#teardown
+close database;
+delete database pregeltest;

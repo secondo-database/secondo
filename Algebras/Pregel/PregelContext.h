@@ -73,6 +73,14 @@ namespace pregel {
   int messageServerPort = 0;
   std::vector<WorkerConfig> workers = std::vector<WorkerConfig>();
 
+  enum Phase {
+   INITIAL,
+   SET_UP,
+   READY
+  };
+
+  Phase phase = INITIAL;
+
  public:
   /*
   * 3.3 Singleton accessor
@@ -93,6 +101,8 @@ namespace pregel {
 
    workers.clear();
    messageServerPort = 0;
+
+   phase = INITIAL;
   }
 
   /*
@@ -142,6 +152,22 @@ namespace pregel {
 
   void setFunction(std::string &);
 
+  bool inline isSetUp() {
+   return phase == SET_UP;
+  }
+
+  void inline setUp() {
+   phase = SET_UP;
+  }
+
+  bool inline isReady() {
+   return phase == READY;
+  }
+
+  void inline ready() {
+   phase = READY;
+  }
+
   /*
   * 3.7 Worker information supplier
   *
@@ -150,7 +176,10 @@ namespace pregel {
 
   supplier<WorkerConnection> getConnections();
 
-  void addWorker(WorkerConfig worker);
+  void addWorker(WorkerConfig worker) noexcept(false);
+
+  bool workerExists(RemoteEndpoint &endpoint,
+                    int messageServerPort);
 
   /*
   * 3.8 Stream concatenation operator

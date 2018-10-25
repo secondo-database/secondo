@@ -112,12 +112,14 @@ namespace pregel {
                                      int,
                                      Word &,
                                      Supplier s) {
-  FORCE_LOG
   result = qp->ResultStorage(s);
   // ignore actual function at args[0]
   // ignore attribute name at args[1]
   auto functionText = (FText *) args[2].addr;
   auto addressIndexInt = (CcInt *) args[3].addr;
+
+  PRECONDITION(PregelContext::get().isSetUp(),
+   "Please run \"query setupPregel(...) first.\"")
 
   std::string function = functionText->GetValue();
   int addressIndex = addressIndexInt->GetValue();
@@ -126,6 +128,7 @@ namespace pregel {
 
   bool success = remoteQueryCall(function, addressIndex);
 
+  PregelContext::get().ready();
   ((CcBool *) result.addr)->Set(true, success);
   return 0;
  }

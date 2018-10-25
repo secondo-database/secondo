@@ -56,7 +56,7 @@ namespace pregel {
 
  std::ostream &operator<<(std::ostream &os, const PregelContext &context) {
   os << " function: " << context.function <<
-  " routes: " << context.workers.size() << std::endl;
+     " routes: " << context.workers.size() << std::endl;
   for (auto worker : context.workers) {
    os << "route " << worker << std::endl;
   }
@@ -111,8 +111,26 @@ namespace pregel {
   return context;
  }
 
- void PregelContext::addWorker(WorkerConfig worker) {
+ void PregelContext::addWorker(WorkerConfig worker) noexcept(false) {
+  if (workerExists(worker.endpoint, worker.messageServerPort)) {
+   throw std::exception();
+  }
   workers.push_back(worker);
+ }
+
+ bool PregelContext::workerExists(RemoteEndpoint &endpoint,
+                                  int messageServerPort) {
+  for (auto it = workers.begin(); it != workers.end(); ++it) {
+   if (endpoint == (*it).endpoint) {
+    return true;
+   }
+   if (endpoint.host == (*it).endpoint.host &&
+       messageServerPort == (*it).messageServerPort) {
+    return true;
+   }
+  }
+
+  return false;
  }
 
  supplier<WorkerConfig> PregelContext::getWorkers() {

@@ -52,6 +52,10 @@ namespace pregel {
   friend std::ostream &
   operator<<(std::ostream &os, const RemoteEndpoint &endpoint);
 
+  bool operator==(const RemoteEndpoint &rhs) const;
+
+  bool operator!=(const RemoteEndpoint &rhs) const;
+
   const std::string host;
   const int port;
  };

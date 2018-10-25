@@ -1,0 +1,10 @@
+delete database pregeltest;
+create database pregeltest;
+open database pregeltest;
+let Workers = [const rel(tuple([Host: string, Port: int, Config: string, MessageServerPort: int])) value
+(
+ ("127.0.0.1" 1471 "SecondoConfig.ini" 9898)
+ ("127.0.0.1" 1472 "SecondoConfig.ini" 9898)
+)];
+# expected: FALSE
+query setupPregel(Workers);

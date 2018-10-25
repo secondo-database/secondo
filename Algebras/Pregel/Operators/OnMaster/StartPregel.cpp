@@ -64,6 +64,9 @@ namespace pregel {
   result = qp->ResultStorage(s);
   CcInt *rounds = (CcInt *) args[0].addr;
 
+  PRECONDITION(PregelContext::get().isReady(),
+               "Please run \"query setPregelFunction(...) first.\"")
+
   if (!rounds->IsDefined()) {
    BOOST_LOG_TRIVIAL(error) << "rounds is undefined";
    ((CcBool *) result.addr)->Set(true, false);

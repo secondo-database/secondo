@@ -83,7 +83,8 @@ namespace pregel {
    int superstep = 0;
   };
 
-  const static size_t HEADER_SIZE = /*sizeof(Header)*/20;
+  constexpr static size_t HEADER_SIZE = sizeof(int) + sizeof(MessageType) +
+                                        sizeof(unsigned long) + sizeof(int);
 
   static MessageWrapper *
   constructControlMessage(MessageType type, int destination, int superstep) {
