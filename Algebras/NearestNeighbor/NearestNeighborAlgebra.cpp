@@ -75,12 +75,20 @@ in a R-Tree. A new datatype is not given but there are some operators:
 #include "AlmostEqual.h"
 #include "Symbols.h"
 #include "ClosestPair.h"
+#include "TypeMapUtils.h"
+#include "Symbols.h"
+#include <sys/timeb.h>
+#include <string>
 
+extern NestedList* nl;
+extern QueryProcessor *qp;
 
 using namespace tbtree;
 using namespace temporalalgebra;
 using namespace std;
 using namespace datetime;
+using namespace mappings;
+using namespace std;
 
 /*
 The file "Algebra.h" is included, since the new algebra must be a subclass of
@@ -96,8 +104,6 @@ some operators get a rtree as argument.
 
 */
 
-extern NestedList* nl;
-extern QueryProcessor *qp;
 
 /*
 The variables above define some global references to unique system-wide
@@ -114,14 +120,7 @@ file "TypeMapUtils.h" which defines a namespace ~mappings~.
 
 */
 
-#include "TypeMapUtils.h"
-#include "Symbols.h"
-#include <sys/timeb.h>
 
-using namespace mappings;
-
-#include <string>
-using namespace std;
 double difftimeb( struct timeb* t1, struct timeb* t2 )
 {
   double dt1 = t1->time + (double)t1->millitm / 1000.0;
@@ -4389,66 +4388,67 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
               posSec = findActiveElem( localInfo->activeLine,
                 elem.distance, elem.pointInTime, elem.tuple2);
             }
-            else
+            else{
               posSec = posNext;
+      }    
 
-              bool KNeighbor = false;
-                IT posK = getKNeighbor(localInfo->activeLine,
-                               localInfo->k, KNeighbor, elem.pointInTime);
-                if(KNeighbor){
-                   if(localInfo->up_list.size() == 0)
-                      last_result_tid = posK->tuple->GetTupleId();
+            bool KNeighbor = false;
+            IT posK = getKNeighbor(localInfo->activeLine,
+                           localInfo->k, KNeighbor, elem.pointInTime);
+            if(KNeighbor){
+               if(localInfo->up_list.size() == 0)
+                  last_result_tid = posK->tuple->GetTupleId();
 
-                    int index = localInfo->up_list.size() - 1;
-                    Tuple* cloneTuple = NULL;
-                    if(index < 0){
-                      bool l =
-                            UPAtInstant(posK->tuple, posK->start, attrNr);
-                      bool r =
-                          UPAtInstant(posK->tuple, elem.pointInTime, attrNr);
+                int index = localInfo->up_list.size() - 1;
+                Tuple* cloneTuple = NULL;
+                if(index < 0){
+                  bool l =
+                        UPAtInstant(posK->tuple, posK->start, attrNr);
+                  bool r =
+                      UPAtInstant(posK->tuple, elem.pointInTime, attrNr);
 
-                        cloneTuple = changeTupleUnit(
-                          posK->tuple, attrNr, posK->start,
+                    cloneTuple = changeTupleUnit(
+                      posK->tuple, attrNr, posK->start,
+                      elem.pointInTime, l, r);
+                }else{
+                    UPoint temp_up = localInfo->up_list[index];
+                    Instant up_end = temp_up.timeInterval.end;
+
+                    bool l =
+                        UPAtInstant(posK->tuple, up_end, attrNr);
+                    bool r =
+                      UPAtInstant(posK->tuple, elem.pointInTime, attrNr);
+
+                    if(up_end < elem.pointInTime){
+                      cloneTuple = changeTupleUnit(
+                          posK->tuple, attrNr, up_end,
                           elem.pointInTime, l, r);
-                    }else{
-                        UPoint temp_up = localInfo->up_list[index];
-                        Instant up_end = temp_up.timeInterval.end;
-
-                        bool l =
-                            UPAtInstant(posK->tuple, up_end, attrNr);
-                        bool r =
-                          UPAtInstant(posK->tuple, elem.pointInTime, attrNr);
-
-                        if(up_end < elem.pointInTime){
-                          cloneTuple = changeTupleUnit(
-                              posK->tuple, attrNr, up_end,
-                              elem.pointInTime, l, r);
-                        }
-                     }
-                    if(cloneTuple != NULL){
-                      int pos = localInfo->eventQueue.GetPos();
-                      UPoint* up = (UPoint*)cloneTuple->GetAttribute(pos);
-
-//                       if(localInfo->AddNewUnit(up) == false)
-//                         localInfo->up_list.push_back(*up);
-
-                      if(localInfo->up_list.size() > 0 &&
-                         last_result_tid == posK->tuple->GetTupleId())
-                        localInfo->MergeUnit(up);
-                      else
-                        localInfo->up_list.push_back(*up);
-
-                      delete cloneTuple;
-
-                      ////////////record when the unit changes /////////////
-                      if(posK->tuple->GetTupleId() != last_result_tid){
-                        last_result_tid = posK->tuple->GetTupleId();
-  //                      cout<<"intersect "<<last_result_tid<<endl;
-                      }
-
                     }
+                 }
+                if(cloneTuple != NULL){
+                  int pos = localInfo->eventQueue.GetPos();
+                  UPoint* up = (UPoint*)cloneTuple->GetAttribute(pos);
+
+//                   if(localInfo->AddNewUnit(up) == false)
+//                     localInfo->up_list.push_back(*up);
+
+                  if(localInfo->up_list.size() > 0 &&
+                     last_result_tid == posK->tuple->GetTupleId())
+                    localInfo->MergeUnit(up);
+                  else
+                    localInfo->up_list.push_back(*up);
+
+                  delete cloneTuple;
+
+                  ////////////record when the unit changes /////////////
+                  if(posK->tuple->GetTupleId() != last_result_tid){
+                    last_result_tid = posK->tuple->GetTupleId();
+  //                  cout<<"intersect "<<last_result_tid<<endl;
+                  }
 
                 }
+
+            }
 
           //check if the first of the inters.-tuples is the k. and give it out
 
@@ -9374,15 +9374,17 @@ bool TBKnearestLocalInfo::CheckPrune(hpelem& elem)
             while(next != NULL){
                nextts = next->nodets;
                curte = cur->nodete;
-               if(nextts > curte)
+               if(nextts > curte) {
                 return false;
+               }
 
-                nextte = next->nodete;
+               nextte = next->nodete;
 
-                if(nextte >= elem.nodete && next->maxd < elem.mind)
+               if(nextte >= elem.nodete && next->maxd < elem.mind) {
                   return true;//prune
+               }
 
-                if(nextte < elem.nodete && next->maxd < elem.mind){
+               if(nextte < elem.nodete && next->maxd < elem.mind){
                     cur = next;
                     next = cur->next;
                     continue;
