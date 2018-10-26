@@ -90,7 +90,7 @@ Constants used inside this class.
 */
     static const int INCREASING = 1;
     static const int DECREASING = -1;
-    static const double TMIN = 1E-3;
+    static constexpr double TMIN = 0.001;
     static const int RECT_INTERSECTS = 0x80000000;
 
 /*
