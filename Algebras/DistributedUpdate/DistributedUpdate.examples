@@ -1,0 +1,10 @@
+Database: berlintest
+Restore : NO
+
+Operator : drelinsert
+Number   : 1
+Signature: stream(tuple(X)) x drel(rel(tuple(X))) -> dfrel(rel(tuple(x@[TID:tid]))) 
+Example  : query rel1 feed drel1 drelinsert
+Result   : bug
+Remark   : remote server required
+
