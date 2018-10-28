@@ -46,7 +46,6 @@ This file contains definitions of the members of class MessageFeed
 namespace pregel {
 
  ListExpr MessageFeed::typeMapping(ListExpr args) {
-//  FORCE_LOG
   if (!nl->HasLength(args, 0)) {
    return listutils::typeError("You must provide no arguments.");
   }
@@ -77,8 +76,8 @@ namespace pregel {
 
    case REQUEST : {
     messageSupplier = (supplier<MessageWrapper> *) local.addr;
-    MessageWrapper *message;
-    if ((message = (*messageSupplier)()) != nullptr) {
+    MessageWrapper *message = (*messageSupplier)();
+    if (message != nullptr) {
      result.setAddr(message->getBody());
      return YIELD;
     } else {

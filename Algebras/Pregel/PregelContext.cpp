@@ -52,6 +52,7 @@ namespace pregel {
 
  void PregelContext::setFunction(std::string &functionText) {
   function.swap(functionText);
+  functionText = function;
  }
 
  std::ostream &operator<<(std::ostream &os, const PregelContext &context) {

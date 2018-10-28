@@ -69,7 +69,8 @@ namespace pregel {
   char *buffer = message->serialize(size);
   socket->Write(buffer, size);
   if (message->getBody() != nullptr) {
-   delete message->getBody(); // When we write, we don't need the tuple anymore
+   message->getBody()->DeleteIfAllowed(); // When we write,
+   // we don't need the tuple anymore
   }
 
   delete message;

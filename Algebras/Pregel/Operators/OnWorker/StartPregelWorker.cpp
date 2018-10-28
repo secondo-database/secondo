@@ -74,12 +74,9 @@ namespace pregel {
   int round = 0;
 
   std::string function = PregelContext::get().getFunction();
-  if (function.empty()) {
-   BOOST_LOG_TRIVIAL(error) << "Function not defined. Please initialize with "
-                               "setPregelFunction(...) first.";
-   ((CcBool *) result.addr)->Set(true, false);
-   return -1;
-  }
+  PRECONDITION(!function.empty(),
+               "Function not defined. "
+               "Please initialize with \"setPregelFunction(...) first.");
 
   QueryProcessor *queryProcessor = new QueryProcessor(
    SecondoSystem::GetNestedList(), SecondoSystem::GetAlgebraManager());
@@ -91,10 +88,10 @@ namespace pregel {
    unsigned long messagesToProcess = MessageBroker::get()
     .howManyMessagesInInbox(lastRound);
 
-   bool allEmpty = true;
-   boost::thread receiver(boost::bind(
-    &StartPregelWorker::startReceivingMessages,
-    boost::ref(allEmpty)));
+   bool allEmpty = messagesToProcess == 0;
+   boost::thread receiver(
+    boost::bind(&StartPregelWorker::startReceivingMessages,
+                boost::ref(allEmpty)));
 
    compute(queryProcessor, function);
 
@@ -135,11 +132,9 @@ namespace pregel {
   broker.startNewRound(allEmpty, callMeWhenYoureDone);
 
   boost::unique_lock<boost::mutex> unique_lock(lock);
-  synch.wait(unique_lock, [&]() {
-    if (receivedFromAll) {
-    }
-    return receivedFromAll;
-  });
+  while (!receivedFromAll) {
+   synch.wait(unique_lock);
+  };
  }
 
  bool StartPregelWorker::compute(QueryProcessor *queryProcessor,

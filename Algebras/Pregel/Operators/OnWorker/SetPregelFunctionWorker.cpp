@@ -106,7 +106,6 @@ namespace pregel {
 
  int SetPregelFunctionWorker::valueMapping(Word *args, Word &result, int,
                                            Word &, Supplier s) {
-  FORCE_LOG
   result = qp->ResultStorage(s);
   // ignnore actual function object at args[0]
   auto addressIndexInt = (CcInt *) args[1].addr;

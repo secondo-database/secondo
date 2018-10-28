@@ -58,9 +58,23 @@ namespace pregel {
    DATA,
    EMPTY,
    FINISH,
-   INIT_DONE,
-   INTERRUPT
+   INIT_DONE
   };
+
+  static std::string typToString(MessageType value) {
+   switch (value) {
+    case DATA:
+     return "DATA";
+    case EMPTY:
+     return "EMPTY";
+    case FINISH:
+     return "FINISH";
+    case INIT_DONE:
+     return "INIT_DONE";
+    default:
+     return std::to_string(value);
+   }
+  }
 
   struct Header {
    Header(int destination, MessageType type, unsigned long length, int round);
