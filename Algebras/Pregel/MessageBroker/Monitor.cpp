@@ -41,15 +41,14 @@ This file defines the members of class ComputeMonitor
 pregel::Monitor::Monitor(unsigned long numberOfServers,
                                        std::function<void(
                                         bool empty)> finishCallback)
- : finishedWorkerCounter(numberOfServers/*TODO: +1?*/),
+ : finishedWorkerCounter(numberOfServers),
    callback(finishCallback), counterLock() {}
 
 void pregel::Monitor::empty() {
- counterLock.lock();
+ boost::lock_guard<boost::mutex> guard(counterLock);
  --finishedWorkerCounter;
  bool allFinished;
- allFinished = (finishedWorkerCounter == 0);
- counterLock.unlock();
+ allFinished = finishedWorkerCounter == 0;
 
  if (!allFinished) {
   return;
@@ -58,12 +57,11 @@ void pregel::Monitor::empty() {
 }
 
 void pregel::Monitor::finish() {
- counterLock.lock();
+ boost::lock_guard<boost::mutex> guard(counterLock);
  allEmpty = false;
  --finishedWorkerCounter;
  bool allFinished;
- allFinished = (finishedWorkerCounter == 0);
- counterLock.unlock();
+ allFinished = finishedWorkerCounter == 0;
 
  if (!allFinished) {
   return;

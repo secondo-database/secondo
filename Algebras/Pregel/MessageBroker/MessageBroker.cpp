@@ -43,6 +43,7 @@ This file defines the members of class MessageBroker
 #include "../typedefs.h"
 #include <pthread.h>
 #include "../Helpers/LoggerFactory.h"
+#include "../Helpers/Metrics.h"
 #include "../PregelContext.h"
 
 namespace pregel {
@@ -121,6 +122,7 @@ namespace pregel {
     [this](MessageWrapper *message) {
       if (message->getType() == MessageWrapper::MessageType::DATA) {
        this->inbox.push(message, message->getRound());
+       QUEUED_MESSAGE
       } else {
        delete message;
       }
@@ -195,6 +197,7 @@ namespace pregel {
   if (slotToClient.find(destination) == slotToClient.end()) {
    BOOST_LOG_TRIVIAL(warning) << "no client set up with destination "
                               << destination << ". Will delete message";
+   DISCARDED_MESSAGE
    delete message;
    return;
   }
@@ -205,7 +208,7 @@ namespace pregel {
  void MessageBroker::collectFromAllServers(int superstep) {
   consumer<MessageWrapper> moveToOwnBuffer =
    [this, superstep](MessageWrapper *message) {
-     inbox.push(message, superstep);
+   inbox.push(message, superstep);
    };
   for (auto server : servers) {
    server->drainBuffer(moveToOwnBuffer, superstep);
@@ -220,19 +223,11 @@ namespace pregel {
                                    executable &callMeWhenYoureDone) {
   const unsigned long numberOfConnections = servers.size();
 
-  if (numberOfConnections == 0) {
-//   BOOST_LOG_TRIVIAL(warning) << "no connections => return immediately";
-   allEmpty = true;
-   callMeWhenYoureDone();
-   return;
-  }
-
-  auto callback = (std::function<void(
-   bool)>) [this, &allEmpty, &callMeWhenYoureDone]
-   (bool empty) {
+  auto callback = (std::function<void(bool)>)
+   [this, &allEmpty, &callMeWhenYoureDone](bool empty) {
     int superstep = SuperstepCounter::get();
     collectFromAllServers(superstep);
-    allEmpty = empty; // not synch, but thread is waiting, or still busy anyway
+    allEmpty &= empty; // not synch, but thread is waiting, or still busy anyway
     callMeWhenYoureDone();
   };
 
@@ -254,7 +249,7 @@ namespace pregel {
   for (auto it = slotToClient.begin(); it != slotToClient.end(); ++it) {
    int destination = (*it).first;
    auto message = MessageWrapper::constructEmptyMessage(destination, superstep);
-   (*it).second->sendMessage(message);
+   sendMessage(message);
   }
  }
 
@@ -264,7 +259,7 @@ namespace pregel {
    int destination = (*it).first;
    auto message = MessageWrapper::constructFinishMessage(destination,
                                                          superstep);
-   (*it).second->sendMessage(message);
+   sendMessage(message);
   }
  }
 
@@ -274,7 +269,7 @@ namespace pregel {
    int destination = (*it).first;
    auto message = MessageWrapper::constructInitDoneMessage(destination,
                                                            superstep);
-   (*it).second->sendMessage(message);
+   sendMessage(message);
   }
  }
 

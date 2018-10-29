@@ -52,6 +52,7 @@ Definition of PregelAlgebra class
 #include "Operators/OnWorker/PregelStatus.h"
 #include "Operators/OnWorker/StartPregelWorker.h"
 #include "PregelContext.h"
+#include "Helpers/Metrics.h"
 
 namespace pregel {
  extern QueryProcessor *qp;
@@ -106,6 +107,9 @@ namespace pregel {
    MessageBroker::get().healthReport(sstream);
   }
   PregelContext::get().healthReport(sstream);
+  #ifdef GATHER_PREGEL_METRICS
+  Metrics::get().report().print(sstream);
+  #endif
  }
 
  void PregelAlgebra::reset() {

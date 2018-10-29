@@ -37,6 +37,7 @@ This file defines the members of class NetworkedClient
 */
 
 #include "NetworkedClient.h"
+#include "../Helpers/Metrics.h"
 
 namespace pregel {
  NetworkedClient::NetworkedClient(const RemoteEndpoint &host) noexcept(false) {
@@ -68,9 +69,11 @@ namespace pregel {
   unsigned long size;
   char *buffer = message->serialize(size);
   socket->Write(buffer, size);
+
   if (message->getBody() != nullptr) {
    message->getBody()->DeleteIfAllowed(); // When we write,
    // we don't need the tuple anymore
+   SENT_MESSAGE
   }
 
   delete message;

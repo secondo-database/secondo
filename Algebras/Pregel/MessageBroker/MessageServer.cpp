@@ -38,6 +38,7 @@ This file defines the members of class MessageServer
 
 #include "MessageServer.h"
 #include "../Helpers/LoggerFactory.h"
+#include "../Helpers/Metrics.h"
 #include "../PregelContext.h"
 
 namespace pregel {
@@ -125,11 +126,8 @@ namespace pregel {
    case MessageWrapper::MessageType::INIT_DONE:
     handleInitDoneMessage();
     return;
-   case MessageWrapper::MessageType::INTERRUPT:
-    waitToResumeReading();
-    return;
    case MessageWrapper::MessageType::DATA:
-//    BOOST_LOG_TRIVIAL(debug) << "receive DATA message: Extract tuple";
+    RECEIVED_MESSAGE
     break;
    default:
     return;
@@ -150,13 +148,17 @@ namespace pregel {
 
  void MessageServer::handleEmptyMessage() {
   if (monitor == nullptr) {
-   FORCE_LOG
    BOOST_LOG_TRIVIAL(error) << "Received EMPTY message outside of a round";
    return;
   }
-  setState(WAITING, false);
-  monitor->empty();
-  monitor = nullptr;
+  {
+   boost::lock_guard<boost::mutex> lock(stateLock);
+   state = WAITING;
+   auto monitorLocal = monitor;
+   monitor = nullptr;
+   monitorLocal->finish();
+   monitor->empty();
+  }
   // only iff it's the last one to finish,
   // it then collects the messages all together
   waitToResumeReading();
@@ -164,13 +166,17 @@ namespace pregel {
 
  void MessageServer::handleFinishedMessage() {
   if (monitor == nullptr) {
-   FORCE_LOG
    BOOST_LOG_TRIVIAL(error) << "Received EMPTY message outside of a round";
    return;
   }
-  setState(WAITING, false);
-  monitor->finish();
-  monitor = nullptr;
+  {
+   std::cout << "handle FINISH, wait\n";
+   boost::lock_guard<boost::mutex> lock(stateLock);
+   this->state = WAITING;
+   auto monitorLocal = monitor;
+   monitor = nullptr;
+   monitorLocal->finish();
+  }
   // only iff it's the last one to finish,
   // it also collects the messages all together
   waitToResumeReading();
@@ -193,6 +199,7 @@ namespace pregel {
 
  void MessageServer::waitToResumeReading() {
   boost::unique_lock<boost::mutex> lock(stateLock);
+  std::cout << "wait with reading\n";
   stateCondition.wait(lock, [&]() {
     return state == READING || thread->interruption_requested();
   });

@@ -91,7 +91,6 @@ namespace pregel {
 
   int index;
   try {
-   BOOST_LOG_TRIVIAL(debug) << "Looking up attribute name: " << attributeName;
    index = findAttribute(attributeName, nl->Second(tupleType));
   } catch (std::exception &e) {
    return listutils::typeError(
@@ -125,6 +124,7 @@ namespace pregel {
   int addressIndex = addressIndexInt->GetValue();
 
   PregelContext::get().setAddressIndex(addressIndex);
+  PregelContext::get().setFunction(function);
 
   bool success = remoteQueryCall(function, addressIndex);
 
@@ -159,6 +159,7 @@ namespace pregel {
     Commander::remoteQuery(worker->connection, query,
                            Commander::throwWhenFalse);
    } catch (RemoteExecutionException &e) {
+    BOOST_LOG_TRIVIAL(debug) << "failed to set function: " << e.getMessage();
     return false;
    }
   }
@@ -170,7 +171,6 @@ namespace pregel {
                                       noexcept(false) {
   ListExpr attributeType;
   int index = listutils::findAttribute(tupleType, attributeName, attributeType);
-  BOOST_LOG_TRIVIAL(debug) << "find attribute returned: " << index;
 
   if (index == 0 ||
       !nl->Equal(attributeType, nl->SymbolAtom(CcInt::BasicType()))) {

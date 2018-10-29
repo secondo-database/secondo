@@ -41,6 +41,7 @@ This file contains definitions of the members of class StartPregelWorker
 #include "StartPregelWorker.h"
 #include "../../MessageBroker/MessageBroker.h"
 #include "../../PregelContext.h"
+#include "../../Helpers/Metrics.h"
 #include <boost/thread.hpp>
 #include "../../../../include/SecParser.h"
 
@@ -83,6 +84,7 @@ namespace pregel {
 
   while (round < rounds || rounds < 0) {
    SuperstepCounter::increment();
+   PRODUCTIVE
 
    const int lastRound = SuperstepCounter::get() - 1;
    unsigned long messagesToProcess = MessageBroker::get()
@@ -101,10 +103,14 @@ namespace pregel {
     MessageBroker::get().broadcastFinishMessage();
    }
 
+   STOP_CLOCK
+   IDLE
    receiver.join();
 
+   STOP_CLOCK
    if (allEmpty) {
     break;
+    std::cout << "all workers returned empty: end early\n";
    }
    ++round;
   }
@@ -132,9 +138,9 @@ namespace pregel {
   broker.startNewRound(allEmpty, callMeWhenYoureDone);
 
   boost::unique_lock<boost::mutex> unique_lock(lock);
-  while (!receivedFromAll) {
-   synch.wait(unique_lock);
-  };
+  synch.wait(unique_lock, [&receivedFromAll] () {
+   return receivedFromAll;
+  });
  }
 
  bool StartPregelWorker::compute(QueryProcessor *queryProcessor,
