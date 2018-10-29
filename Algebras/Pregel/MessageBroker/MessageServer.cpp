@@ -156,8 +156,7 @@ namespace pregel {
    state = WAITING;
    auto monitorLocal = monitor;
    monitor = nullptr;
-   monitorLocal->finish();
-   monitor->empty();
+   monitorLocal->empty();
   }
   // only iff it's the last one to finish,
   // it then collects the messages all together
