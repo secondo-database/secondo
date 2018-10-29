@@ -27,8 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 
-1 Implementation of the secondo operators drelcreatebtree.
+1 Implementation of the secondo operators
 
+Implementation of drelcreatebtree and drelbulkloadrtree.
 This operators have the same value mapping witch calls the dloop operator of 
 the Distributed2Algebra.
 
@@ -66,7 +67,7 @@ namespace drel {
 /*
 1.1 Type Mapping
 
-Expects two D[F]Rels.
+Type mapping for drelcreatebtree. Expect a drel, a string and an attribute.
 
 */
     ListExpr drelcreatebtreeTM( ListExpr args ) {
@@ -77,23 +78,27 @@ Expects two D[F]Rels.
         cout << nl->ToString( args ) << endl;
         #endif
 
-        std::string err = "d[f]rel(X) x string x attr expected";
+        std::string err = "dfrel(X) x string x attr expected";
 
         if( !nl->HasLength( args, 3 ) ) {
             return listutils::typeError( err +
                 ": three arguments are expected" );
         }
 
-        if( !DRelHelpers::isListOfTwoElemLists( args ) ) {
-            return listutils::typeError( "internal Error" );
+        if( !DRel::checkType( nl->First( nl->First( args ) ) ) ) {
+            return listutils::typeError(
+                err + ": first argument is not a d[f]rel" );
         }
 
-        ListExpr drelType, relType, distType, drelName, darrayType;
-        if( !DRelHelpers::isDRelDescr( nl->First( args ), drelType, relType,
-            distType, drelName, darrayType ) ) {
-            return listutils::typeError( err +
-                ": first argument is not a d[f]rel" );
+        if( !CcString::checkType( nl->First( nl->Second( args ) ) ) ) {
+            return listutils::typeError(
+                err + ": second argument is not a string" );
         }
+
+        ListExpr relType =  nl->Second( nl->First( nl->First( args ) ) );
+        ListExpr darrayType = nl->TwoElemList(
+            listutils::basicSymbol<DArray>( ),
+            relType );
 
         // create function type to call dloopTM
         ListExpr funType = nl->TwoElemList(
@@ -122,7 +127,7 @@ Expects two D[F]Rels.
         // result type of dloop
         ListExpr result = dloopTM(
             nl->ThreeElemList(
-                nl->TwoElemList( darrayType, drelName ),
+                nl->TwoElemList( darrayType, nl->Second( nl->First( args ) ) ),
                 nl->Second( args ),
                 funType ) );
 
@@ -138,27 +143,137 @@ Expects two D[F]Rels.
             return result;
         }
 
-        ListExpr btreeType = nl->Second( nl->Third( result ) );
-        ListExpr append = nl->Second( result );
-        ListExpr newRes = nl->ThreeElemList(
-            nl->First( drelType ),  // drel or dfrel
-            btreeType,
-            nl->Third( drelType ) );  // disttype
+        return nl->ThreeElemList(
+            nl->SymbolAtom( Symbols::APPEND( ) ),
+            nl->Second( result ),
+            nl->Third( result ) );
+    }
+
+/*
+1.1 Type Mapping
+
+Type mapping for drelbulkloadrtree. Expect a drel, a string and an attribute.
+
+*/
+    ListExpr drelbulkloadrtreeTM( ListExpr args ) {
+
+        #ifdef DRELDEBUG
+        cout << "drelbulkloadrtreeTM" << endl;
+        cout << "args" << endl;
+        cout << nl->ToString( args ) << endl;
+        #endif
+
+        std::string err = "dfrel(X) x string x attr expected";
+
+        if( !nl->HasLength( args, 3 ) ) {
+            return listutils::typeError( err +
+                ": three arguments are expected" );
+        }
+
+        if( !DRel::checkType( nl->First( nl->First( args ) ) ) ) {
+            return listutils::typeError(
+                err + ": first argument is not a d[f]rel" );
+        }
+
+        if( !CcString::checkType( nl->First( nl->Second( args ) ) ) ) {
+            return listutils::typeError(
+                err + ": second argument is not a string" );
+        }
+
+        ListExpr relType =  nl->Second( nl->First( nl->First( args ) ) );
+        ListExpr darrayType = nl->TwoElemList(
+            listutils::basicSymbol<DArray>( ),
+            relType );
+
+        // create function type to call dloopTM
+        ListExpr funType = nl->TwoElemList(
+            nl->ThreeElemList(
+                nl->SymbolAtom( "map" ),
+                relType,
+                nl->FourElemList(
+                    nl->SymbolAtom( "rtree" ),
+                    nl->Second( relType ),
+                    nl->SymbolAtom( "rect" ),
+                    nl->BoolAtom( false ) ) ),
+            nl->ThreeElemList(
+                nl->SymbolAtom( "fun" ),
+                nl->TwoElemList(
+                    nl->SymbolAtom( "darrayelem_1" ),
+                    nl->SymbolAtom( "ARRAYFUNARG1" ) ),
+                nl->ThreeElemList(
+                    nl->SymbolAtom( "bulkloadrtree" ),
+                    nl->ThreeElemList(
+                        nl->SymbolAtom( "sortby" ),
+                        nl->ThreeElemList(
+                            nl->SymbolAtom( "extend" ),
+                            nl->TwoElemList(
+                                nl->SymbolAtom( "feed" ),
+                                nl->SymbolAtom( "darrayelem_1" ) ),
+                            nl->TwoElemList(
+                                nl->TwoElemList(
+                                    nl->SymbolAtom( "TID" ),
+                                    nl->ThreeElemList(
+                                        nl->SymbolAtom( "fun" ),
+                                        nl->TwoElemList(
+                                            nl->SymbolAtom( "tuple_2" ),
+                                            nl->SymbolAtom( "TUPLE" ) ),
+                                        nl->TwoElemList(
+                                            nl->SymbolAtom( "tupleid" ),
+                                            nl->SymbolAtom( "tuple_2" ) ) ) ),
+                                nl->TwoElemList(
+                                    nl->SymbolAtom( "MBR" ),
+                                    nl->ThreeElemList(
+                                        nl->SymbolAtom( "fun" ),
+                                        nl->TwoElemList(
+                                            nl->SymbolAtom( "tuple_3" ),
+                                            nl->SymbolAtom( "TUPLE" ) ),
+                                        nl->ThreeElemList(
+                                            nl->SymbolAtom( "attr" ),
+                                            nl->SymbolAtom( "tuple_3" ),
+                                            nl->Second( nl->Third( args ) 
+                                                ) ) ) ) ) ), // Attribute
+                        nl->OneElemList( 
+                            nl->SymbolAtom( "MBR" ) ) ),
+                    nl->SymbolAtom( "MBR" ) ) ) );
+
+        #ifdef DRELDEBUG
+        cout << "funType" << endl;
+        cout << nl->ToString( funType ) << endl;
+        #endif
+
+        // result type of dloop
+        ListExpr result = dloopTM(
+            nl->ThreeElemList(
+                nl->TwoElemList( darrayType, nl->Second( nl->First( args ) ) ),
+                nl->Second( args ),
+                funType ) );
+
+        #ifdef DRELDEBUG
+        cout << "dloopTM" << endl;
+        cout << nl->ToString( result ) << endl;
+        #endif
+
+        if( !nl->HasLength( result, 3 ) ) {
+            return result;
+        }
+        if( !DArray::checkType( nl->Third( result ) ) ) {
+            return result;
+        }
 
         return nl->ThreeElemList(
             nl->SymbolAtom( Symbols::APPEND( ) ),
-            append,
-            newRes );
+            nl->Second( result ),
+            nl->Third( result ) );
     }
 
 /*
 1.4 Value Mapping
 
 Uses a d[f]rel and creates a new drel. The d[f]rel is created by calling 
-the dmap value mapping of the Distributed2Algebra.
+the dloop value mapping of the Distributed2Algebra.
 
 */
-    template<class T, class R>
+    template<class T>
     int dreldloopVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
@@ -166,33 +281,24 @@ the dmap value mapping of the Distributed2Algebra.
         cout << "dreldloopVMT" << endl;
         #endif
 
-        dloopVMT<R>( args, result, message, local, s );
-
-        T* drel = ( T* )args[ 0 ].addr;
-        T* resultDRel = ( T* )result.addr;
-
-        if( !resultDRel->IsDefined( ) ) {
-            return 0;
-        }
-
-        resultDRel->setDistType( drel->getDistType( )->copy( ) );
+        dloopVMT<T>( args, result, message, local, s );
 
         return 0;
     }
 
 /*
-1.5 ValueMapping Array for dreldloop
+1.5 ValueMapping Array dreldloop
     
 Used by the operators with only a drel input.
 
 */
     ValueMapping dreldloopVM[ ] = {
-        dreldloopVMT<DRel, DArray>,
-        dreldloopVMT<DFRel, DFArray>
+        dreldloopVMT<DArray>,
+        dreldloopVMT<DFArray>
     };
 
 /*
-1.6 Selection function for dreldloop
+1.6 Selection function for dloop operators
 
 
 */
@@ -202,20 +308,35 @@ Used by the operators with only a drel input.
     }
 
 /*
-1.7 Specification of drelcreatebtree
+1.7 Specifications
+
+1.7.1 Specification of drelcreatebtree
 
 */
     OperatorSpec drelcreatebtreeSpec(
         " d[f]rel(X) x string x attr "
-        "-> d[f]rel(Y) ",
+        "-> darray(Y) ",
         " _ drelcreatebtree[_,_]",
-        "Compares to drels and return true, if the disttype are "
-        "equal. ",
+        "Creates a btree for a d[f]rel as a darray ",
         " query drel1 drelcreatebtree[\"drel1_Name\", Name]"
     );
 
 /*
-1.11 Operator instance of drelcreatebtree operator
+1.7.2 Specification of drelcreatebtree
+
+*/
+    OperatorSpec drelbulkloadrtreeSpec(
+        " d[f]rel(X) x string x attr "
+        "-> darray(Y) ",
+        " _ drelbulkloadrtree[_,_]",
+        "Creates a rtree for a d[f]rel as a darray ",
+        " query drel1 drelbulkloadrtree[\"drel1_Name\", GeoData]"
+    );
+
+/*
+1.8 Operator instances
+
+1.8.1 Operator instance of drelcreatebtree operator
 
 */
     Operator drelcreatebtreeOp(
@@ -225,6 +346,19 @@ Used by the operators with only a drel input.
         dreldloopVM,
         dreldloopSelect,
         drelcreatebtreeTM
+    );
+
+/*
+1.8.2 Operator instance of drelbulkloadrtree operator
+
+*/
+    Operator drelbulkloadrtreeOp(
+        "drelbulkloadrtree",
+        drelbulkloadrtreeSpec.getStr( ),
+        2,
+        dreldloopVM,
+        dreldloopSelect,
+        drelbulkloadrtreeTM
     );
 
 } // end of namespace drel

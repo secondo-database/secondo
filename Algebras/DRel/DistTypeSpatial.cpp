@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 */
-#define DRELDEBUG
+//#define DRELDEBUG
 
 #include "Algebras/Temporal/TemporalAlgebra.h"
 #include "DistTypeSpatial.h"
@@ -319,6 +319,7 @@ Returns the object as a list.
 
         #ifdef DRELDEBUG
         cout << "DistTypeSpatial::toListExpr" << endl;
+        cout << nl->ToString( typeInfo ) << endl;
         #endif
 
         return nl->FourElemList(

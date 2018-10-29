@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 Class with usefull helper functions for the DRelAlgebra
 
 */
-#define DRELDEBUG
+//#define DRELDEBUG
 
 #include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "Algebras/FText/FTextAlgebra.h"
@@ -40,6 +40,7 @@ Class with usefull helper functions for the DRelAlgebra
 
 #include "DRelHelpers.h"
 #include "DRel.h"
+#include "Partitioner.hpp"
 
 using namespace std;
 
@@ -389,5 +390,571 @@ Computes the number of tuple in the given drel.
 
         return count;
     }
+
+/*
+1.14 ~drelCheck~
+
+Checks if the list is a drel or dfrel expression.
+
+*/
+    bool DRelHelpers::drelCheck( ListExpr list ) {
+
+        distributionType type;
+        int attr, key;
+        ListExpr darray;
+
+        return drelCheck( list, darray, type, attr, key );
+    }
+
+/*
+1.15 ~drelCheck~
+
+Checks if the list is a drel or dfrel expression. Second argument will be 
+the corresponding darray or dfarray expression.
+
+*/
+    bool DRelHelpers::drelCheck( ListExpr list, ListExpr& darray ) {
+
+        distributionType type;
+        int attr, key;
+
+        return drelCheck( list, darray, type, attr, key );
+    }
+
+/*
+1.16 ~drelCheck~
+
+Checks if the list is a drel or dfrel expression. Second argument will be 
+the used distributionType of the d[f]rel.
+
+*/
+    bool DRelHelpers::drelCheck( ListExpr list, distributionType& type ) {
+
+        int attr, key;
+        ListExpr darray;
+
+        return drelCheck( list, darray, type, attr, key );
+    }
+
+/*
+1.17 ~drelCheck~
+
+Checks if the list is a drel or dfrel expression. The other arguments are the 
+corresponding d[f]array expression, the used distributionType, the attribute 
+number and the key. If the attribute nummber or the key are not used in the 
+d[f]rel, they are -1.
+
+*/
+    bool DRelHelpers::drelCheck( ListExpr list, ListExpr& darray, 
+        distributionType& type, int& attr, int& key ) {
+
+        if( DRel::checkType( list, type, attr, key ) ) {
+            darray = nl->TwoElemList(
+                listutils::basicSymbol<distributed2::DArray>( ),
+                nl->Second( list ) );
+        }
+        else if( DFRel::checkType( list, type, attr, key ) ) {
+            darray = nl->TwoElemList(
+                listutils::basicSymbol<distributed2::DFArray>( ),
+                nl->Second( list ) );
+        }
+        else {
+            return false;
+        }
+
+        return true;
+    }
+
+/*
+1.17 ~repartition4JoinRequired~
+
+Tests if for a join of two d[f]rels a repatition is requiered.
+
+*/
+    ListExpr DRelHelpers::repartition4JoinRequired( 
+        ListExpr drel1Value, ListExpr drel2Value,
+        ListExpr attr1Name, ListExpr attr2Name,
+        distributionType dType1, distributionType dType2, 
+        ListExpr attr1List, ListExpr attr2List, 
+        const int dAttr1, const int dAttr2, 
+        const int dKey1, const int dKey2,
+        bool& drel1reparti, bool& drel2reparti ) {
+
+        assert( listutils::isAttrList( attr1List ) );
+        assert( listutils::isAttrList( attr2List ) );
+        assert( dType1 != replicated || dType2 != replicated );
+
+        cout << "repartition4JoinRequired" << endl;
+
+        ListExpr attrType;
+        int attrPos1 = listutils::findAttribute( attr1List, 
+            nl->SymbolValue( attr1Name ), attrType );
+        int attrPos2 = listutils::findAttribute( attr2List, 
+            nl->SymbolValue( attr2Name ), attrType );
+
+        ListExpr resultDistType;
+
+        if( dType1 == hash && attrPos1 - 1 == dAttr1 ) {
+
+            if( dType2 == hash && attrPos2 - 1 == dAttr2 ) {
+                drel1reparti = false;
+                drel2reparti = false;
+                resultDistType = nl->TwoElemList(
+                    nl->IntAtom( hash ),
+                    nl->IntAtom( attrPos1 - 1 ) );
+            }
+            else if( dType2 == range && attrPos2 - 1 == dAttr2 ) {
+
+                int count1 = DRelHelpers::countDRel( 
+                    nl->ToString( drel1Value ) );
+                int count2 = DRelHelpers::countDRel( 
+                    nl->ToString( drel2Value ) );
+
+                if( count1 <= count2 ) {
+                    drel1reparti = false;
+                    drel2reparti = true;
+                    resultDistType = nl->TwoElemList(
+                        nl->IntAtom( hash ),
+                        nl->IntAtom( attrPos1 - 1 ) );
+
+                    cout << "count1 <= count2 " << endl;
+                }
+                else {
+                    cout << "dType1 == hash dType2 == range" << endl;
+                    drel1reparti = true;
+                    drel2reparti = false;
+                    resultDistType = nl->FourElemList(
+                        nl->IntAtom( range ),
+                        nl->IntAtom( nl->ListLength( attr1List ) 
+                                        + attrPos2 - 1 ),
+                        nl->IntAtom( dKey2 ),
+                        nl->TwoElemList(
+                            nl->SymbolAtom( Vector::BasicType( ) ),
+                            attrType ) );
+                }
+            }
+            else {
+                drel1reparti = false;
+                drel2reparti = true;
+                resultDistType = nl->TwoElemList(
+                    nl->IntAtom( hash ),
+                    nl->IntAtom( attrPos1 - 1 ) );
+            }
+        }
+        else if( dType1 == range && attrPos1 - 1 == dAttr1 ) {
+
+            if( dType2 == hash && attrPos2 - 1 == dAttr2 ) {
+
+                int count1 = DRelHelpers::countDRel( 
+                    nl->ToString( drel1Value ) );
+                int count2 = DRelHelpers::countDRel( 
+                    nl->ToString( drel2Value ) );
+
+                if( count1 <= count2 ) {
+                    drel1reparti = false;
+                    drel2reparti = true;
+                    resultDistType = nl->FourElemList(
+                        nl->IntAtom( range ),
+                        nl->IntAtom( nl->ListLength( attr1List ) 
+                                        + attrPos1 - 1 ),
+                        nl->IntAtom( dKey1 ),
+                        nl->TwoElemList(
+                            nl->SymbolAtom( Vector::BasicType( ) ),
+                            attrType ) );
+                }
+                else {
+                    drel1reparti = true;
+                    drel2reparti = false;
+                    resultDistType = nl->TwoElemList(
+                        nl->IntAtom( hash ),
+                        nl->IntAtom( nl->ListLength( attr1List ) 
+                                        + attrPos2 - 1 ) );
+                }
+            }
+            else if( dType2 == range && attrPos2 - 1 == dAttr2 ) {
+
+                if( dKey1 == dKey2 ) {
+                    drel1reparti = false;
+                    drel2reparti = false;
+                    resultDistType = nl->FourElemList(
+                        nl->IntAtom( range ),
+                        nl->IntAtom( nl->ListLength( attr1List ) 
+                                        + attrPos1 - 1 ),
+                        nl->IntAtom( dKey1 ),
+                        nl->TwoElemList(
+                            nl->SymbolAtom( Vector::BasicType( ) ),
+                            attrType ) );
+                }
+                else {
+
+                    int count1 = DRelHelpers::countDRel( 
+                        nl->ToString( drel1Value ) );
+                    int count2 = DRelHelpers::countDRel( 
+                        nl->ToString( drel2Value ) );
+
+                    if( count1 <= count2 ) {
+                        drel1reparti = false;
+                        drel2reparti = true;
+                        resultDistType = nl->FourElemList(
+                            nl->IntAtom( range ),
+                            nl->IntAtom( nl->ListLength( attr1List ) 
+                                            + attrPos1 - 1 ),
+                            nl->IntAtom( dKey1 ),
+                            nl->TwoElemList(
+                                nl->SymbolAtom( Vector::BasicType( ) ),
+                                attrType ) );
+                    }
+                    else {
+                        drel1reparti = true;
+                        drel2reparti = false;
+                        resultDistType = nl->FourElemList(
+                            nl->IntAtom( range ),
+                            nl->IntAtom( nl->ListLength( attr1List ) 
+                                            + attrPos2 - 1 ),
+                            nl->IntAtom( dKey1 ),
+                            nl->TwoElemList(
+                                nl->SymbolAtom( Vector::BasicType( ) ),
+                                attrType ) );
+                    }
+                }
+            }
+            else {
+                drel1reparti = false;
+                drel2reparti = true;
+                resultDistType = nl->FourElemList(
+                    nl->IntAtom( range ),
+                    nl->IntAtom( nl->ListLength( attr1List ) 
+                                    + attrPos2 - 1 ),
+                    nl->IntAtom( dKey1 ),
+                    nl->TwoElemList(
+                        nl->SymbolAtom( Vector::BasicType( ) ),
+                        attrType ) );
+            }
+        }
+        else if( dType2 == range && attrPos2 - 1 == dAttr2 ) {
+            drel1reparti = true;
+            drel2reparti = false;
+            resultDistType = nl->FourElemList(
+                nl->IntAtom( range ),
+                nl->IntAtom( nl->ListLength( attr1List ) 
+                                + attrPos2 - 1 ),
+                nl->IntAtom( dKey2 ),
+                nl->TwoElemList(
+                    nl->SymbolAtom( Vector::BasicType( ) ),
+                    attrType ) );
+        }
+        else if( dType2 == hash && attrPos2 - 1 == dAttr2 ) {
+            drel1reparti = true;
+            drel2reparti = false;
+            resultDistType = nl->TwoElemList(
+                nl->IntAtom( hash ),
+                nl->IntAtom( nl->ListLength( attr1List ) 
+                                + attrPos2 - 1 ) );
+        }
+        else {
+            drel1reparti = true;
+            drel2reparti = true;
+            resultDistType = nl->TwoElemList(
+                nl->IntAtom( hash ),
+                nl->IntAtom( attrPos1 - 1 ) );
+        }
+
+        drel1reparti = drel1reparti ? dType1 != replicated : drel1reparti;
+        drel2reparti = drel2reparti ? dType2 != replicated : drel2reparti;
+
+        cout << "resultDistType" << endl;
+        cout << nl->ToString( resultDistType ) << endl;
+
+        return resultDistType;
+    }
+
+/*
+1.17 ~removeAttrFromAttrList~
+
+Removes a attribute given as a symbol from an attribute list.
+
+*/
+    ListExpr DRelHelpers::removeAttrFromAttrList( 
+        ListExpr attrList, ListExpr attr ) {
+
+        assert( nl->IsAtom( attr ) && nl->AtomType( attr ) == SymbolType );
+
+        return removeAttrFromAttrList( attrList, nl->SymbolValue( attr ) );
+    }
+
+/*
+1.18 ~removeAttrFromAttrList~
+
+Removes a attribute given as a string from an attribute list.
+
+*/
+    ListExpr DRelHelpers::removeAttrFromAttrList( 
+        ListExpr attrList, string attr ) {
+
+        set<string> names = { attr };
+
+        ListExpr head, last;
+        listutils::removeAttributes( attrList, names, head, last );
+
+        return head;
+    }
+
+/*
+1.19 ~removeAttrFromAttrList~
+
+Removes a attribute list given as a string set from an attribute list.
+
+*/
+    ListExpr DRelHelpers::removeAttrFromAttrList( 
+        ListExpr attrList, set<string>& names ) {
+
+        ListExpr head, last;
+        listutils::removeAttributes( attrList, names, head, last );
+
+        return head;
+    }
+
+/*
+1.20 ~removePartitionAttributes~
+
+Removes all partition attributes from the attrList. The partition attributes 
+may be Original and Cell.
+
+*/
+    ListExpr DRelHelpers::removePartitionAttributes( ListExpr attrList, 
+        distributionType type ) {
+
+        if( type == replicated ) {
+            return removeAttrFromAttrList( attrList, "Original" );
+        }
+        else if( type == spatial2d || type == spatial3d ) {
+            set<string> names = { "Original", "Cell" };
+            return removeAttrFromAttrList( attrList, names );
+        }
+
+        return attrList;
+    }
+
+/*
+1.21 ~getRemovePartitonAttr~
+
+Returns the partition attributes for a distributionType.
+
+*/
+    ListExpr DRelHelpers::getRemovePartitonAttr( distributionType type ) {
+
+        if( type == replicated ) {
+            return nl->OneElemList( 
+                nl->SymbolAtom( "Original" ) );
+        }
+
+        if( type == spatial2d || type == spatial3d ) {
+            return nl->TwoElemList( 
+                nl->SymbolAtom( "Original" ), 
+                nl->SymbolAtom( "Cell" ) );
+        }
+
+        return nl->TheEmptyList( );
+    }
+
+/*
+1.22 Value Mapping ~createRepartitionQuery~
+
+Uses a d[f]rel and creates a repartition query. For the query the argument 
+query is used. The query is a nested list. If the query is used as subquery 
+the "elem" in the query has to be unique. Therefor the arument elem, elem2 
+and streamelem are used, default is "1". The drelType has to be the nestedlist
+type of the drel1. The resultDistType is the requiered distType. If range 
+partition is choosen drel2 has to be partitioned by range too. attrName is the
+partion attribute. The argument port is used if range partitioning is choosen 
+to bring the boundary object to the workers and create a dfmatrix.
+
+*/
+    template<class R, class Q, class T>
+    bool DRelHelpers::createRepartitionQuery( 
+        ListExpr drelType,
+        R* drel1, T* drel2,
+        ListExpr resultDistType,
+        string attrName,
+        int port,
+        ListExpr& query,
+        int elem1, int elem2,
+        int streamelem ) {
+
+        distributionType sourceDistType, targetDistType;
+        getTypeByNum( nl->IntValue( nl->First( resultDistType ) ),
+            targetDistType );
+
+        getTypeByNum( nl->IntValue( nl->First( nl->Third (drelType ) ) ),
+            sourceDistType );
+
+        if( targetDistType == range ) {
+
+            Partitioner<R, Q>* parti = new Partitioner<R, Q>( attrName, 
+                nl->Fourth( resultDistType ), drel1, drelType, 
+                ( ( DistTypeRange* )drel2->getDistType( ) )
+                    ->getBoundary( )->Clone( ), 1238 );
+
+            if( !parti->repartition2DFMatrix( ) ) {
+                cout << "repartition failed!!" << endl;
+                return false;
+            }
+
+            distributed2::DFMatrix* matrix = parti->getDFMatrix( );
+
+            delete parti;
+
+            if( !matrix || !matrix->IsDefined( ) ) {
+                cout << "repartition failed!!" << endl;
+                return false;
+            }
+
+            query = nl->FourElemList(
+                nl->SymbolAtom( "collect2" ),
+                    nl->TwoElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom( distributed2::DFMatrix::BasicType( ) ),
+                        nl->TwoElemList( 
+                            listutils::basicSymbol<Relation>( ),
+                            nl->TwoElemList(
+                                listutils::basicSymbol<Tuple>( ),
+                                DRelHelpers::removePartitionAttributes(
+                                            nl->Second( 
+                                                nl->Second( 
+                                                    nl->Second( drelType ) ) ),
+                                            targetDistType ) ) ),
+                        nl->Second( drelType ) ),
+                    nl->TwoElemList(
+                        nl->SymbolAtom( "ptr" ),
+                        listutils::getPtrList( matrix ) ) ),
+                nl->StringAtom( "" ),
+                nl->IntAtom( 1238 ) );
+        }
+        else {
+
+            ListExpr drelconvert = nl->TwoElemList(
+                nl->SymbolAtom( "drelconvert" ),
+                nl->TwoElemList(
+                    drelType,
+                    nl->TwoElemList(
+                        nl->SymbolAtom( "ptr" ),
+                        listutils::getPtrList( new R( *drel1 ) ) ) ) );
+
+            if( sourceDistType == replicated 
+             || sourceDistType == spatial2d 
+             || sourceDistType == spatial3d ) {
+
+                ListExpr removeAttr = DRelHelpers::getRemovePartitonAttr( 
+                        sourceDistType );
+
+                query = nl->FourElemList(
+                    nl->SymbolAtom( "collect2" ),
+                    nl->SixElemList(
+                        nl->SymbolAtom( "partitionF" ),
+                        drelconvert,
+                        nl->StringAtom( "" ),
+                        nl->FourElemList(
+                            nl->SymbolAtom( "fun" ),
+                            nl->TwoElemList( 
+                                nl->SymbolAtom( "elem"
+                                    + to_string( elem1 ) + "_1" ),
+                                nl->SymbolAtom( "FFR" ) ),
+                            nl->TwoElemList( 
+                                nl->SymbolAtom( "elem"
+                                    + to_string( elem2 ) + "_2" ),
+                                nl->SymbolAtom( "FFR" ) ),
+                            nl->ThreeElemList(
+                                nl->SymbolAtom( "remove" ),
+                                nl->ThreeElemList(
+                                    nl->SymbolAtom( "filter" ),
+                                    nl->TwoElemList( 
+                                        nl->SymbolAtom( "feed" ),
+                                        nl->SymbolAtom( "elem"
+                                            + to_string( elem1 ) + "_1" ) ),
+                                    nl->ThreeElemList(
+                                        nl->SymbolAtom( "fun" ),
+                                        nl->TwoElemList( 
+                                            nl->SymbolAtom( "streamelem_"
+                                                + to_string( streamelem ) ),
+                                            nl->SymbolAtom( "STREAMELEM" ) ),
+                                        nl->ThreeElemList(
+                                            nl->SymbolAtom( "=" ),
+                                            nl->ThreeElemList(
+                                                nl->SymbolAtom( "attr" ),
+                                                nl->SymbolAtom( "streamelem_"
+                                                    + to_string( streamelem ) ),
+                                                nl->SymbolAtom( "Original" ) ),
+                                            nl->BoolAtom( true ) ) ) ),
+                                removeAttr ) ),
+                        nl->FourElemList(
+                            nl->SymbolAtom( "fun" ),
+                            nl->TwoElemList(
+                                nl->SymbolAtom( "elem"
+                                    + to_string( elem1 ) + "_4" ),
+                                nl->SymbolAtom( "FFR" ) ),
+                            nl->TwoElemList(
+                                nl->SymbolAtom( "elem"
+                                    + to_string( elem2 ) + "_5" ),
+                                nl->SymbolAtom( "FFR" ) ),
+                            nl->ThreeElemList(
+                                nl->SymbolAtom( "hashvalue" ),
+                                nl->ThreeElemList(
+                                    nl->SymbolAtom( "attr" ),
+                                    nl->SymbolAtom( "elem" 
+                                        + to_string( elem2 ) + "_5" ),
+                                    nl->SymbolAtom( attrName ) ),
+                                nl->IntAtom( 99999 ) ) ),
+                            nl->IntAtom( 0 ) ),
+                        nl->StringAtom( "" ),
+                        nl->IntAtom( 1238 ) );
+
+            }
+            else {
+                query = nl->FourElemList(
+                    nl->SymbolAtom( "collect2" ),
+                    nl->FiveElemList(
+                        nl->SymbolAtom( "partition" ),
+                        drelconvert,
+                        nl->StringAtom( "" ),
+                        nl->ThreeElemList(
+                            nl->SymbolAtom( "fun" ),
+                            nl->TwoElemList(
+                                nl->SymbolAtom( "elem_"
+                                    + to_string( elem1 ) ),
+                                nl->SymbolAtom( "SUBSUBTYPE1" ) ),
+                            nl->ThreeElemList(
+                                nl->SymbolAtom( "hashvalue" ),
+                                nl->ThreeElemList(
+                                    nl->SymbolAtom( "attr" ),
+                                    nl->SymbolAtom( "elem_" 
+                                        + to_string( elem1 ) ),
+                                    nl->SymbolAtom( attrName ) ),
+                                nl->IntAtom( 99999 ) ) ),
+                            nl->IntAtom( 0 ) ),
+                        nl->StringAtom( "" ),
+                        nl->IntAtom( 1238 ) );
+            }
+        }
+
+        return true;
+    }
+
+    // function instantiations
+    template bool DRelHelpers::createRepartitionQuery<
+            DRel, distributed2::DArray, DRel>(
+        ListExpr, DRel*, DRel*, ListExpr, string, int, ListExpr&, 
+        int, int, int );
+    template bool DRelHelpers::createRepartitionQuery<
+            DRel, distributed2::DArray, DFRel>(
+        ListExpr, DRel*, DFRel*, ListExpr, string, int, ListExpr&, 
+        int, int, int );
+    template bool DRelHelpers::createRepartitionQuery<
+            DFRel, distributed2::DFArray, DRel>(
+        ListExpr, DFRel*, DRel*, ListExpr, string, int, ListExpr&, 
+        int, int, int );
+    template bool DRelHelpers::createRepartitionQuery<
+            DFRel, distributed2::DFArray, DFRel>(
+        ListExpr, DFRel*, DFRel*, ListExpr, string, int, ListExpr&, 
+        int, int, int );
 
 } // end of namespace drel

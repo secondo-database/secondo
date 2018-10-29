@@ -70,12 +70,19 @@ to query about the distributed data.
         std::string getTypeName( ) const;
         ListExpr toListExpr( ListExpr typeInfo ) const;
         static DRelT* readFrom( ListExpr typeInfo, ListExpr list );
+        static DistTypeBasic* readDistTypeFrom( 
+            ListExpr typeInfo, ListExpr list );
 
         template<class R>
         const bool equalDistType( R* drel );
 
         static const std::string BasicType( );
         static const bool checkType( const ListExpr list );
+        static const bool checkDistType( const ListExpr list );
+        static const bool checkType( const ListExpr list, 
+            distributionType& type, int& attr, int& key );
+        static const bool checkDistType( const ListExpr list, 
+            distributionType& dtype, int& attr, int& key );
         static ListExpr Property( );
 
         static Word In( const ListExpr typeInfo,

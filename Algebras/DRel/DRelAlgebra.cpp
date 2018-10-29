@@ -44,6 +44,7 @@ extern Operator DRELFUNARGTTT2OP;
 extern Operator DRELRELFUNARG1OP;
 
 extern Operator createboundaryOp;
+extern Operator getboundaryOp;
 extern Operator getBoundaryIndexOp;
 extern Operator rect2cellgridOp;
 
@@ -74,13 +75,16 @@ extern Operator drelcreatebtreeOp;
 extern Operator drelexactmatchOp;
 extern Operator drelrangeOp;
 
+extern Operator drelbulkloadrtreeOp;
+extern Operator drelwindowintersectsOp;
+
 extern Operator drelrdupOp;
 extern Operator drelsortOp;
 extern Operator drelgroupbyOp;
 extern Operator drelsortbyOp;
 
 extern Operator drelsortmergejoinOp;
-
+extern Operator drelitHashJoinOp;
 /*
 1 Implementation of the Algebra DRel
 
@@ -98,6 +102,7 @@ DRelAlgebra::DRelAlgebra() {
 
     AddOperator( &createboundaryOp );
     createboundaryOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &getboundaryOp );
     AddOperator( &getBoundaryIndexOp );
     AddOperator( &rect2cellgridOp );
 
@@ -141,6 +146,12 @@ DRelAlgebra::DRelAlgebra() {
     AddOperator( &drelrangeOp );
     drelrangeOp.SetUsesArgsInTypeMapping( );
 
+    AddOperator( &drelbulkloadrtreeOp );
+    drelbulkloadrtreeOp.SetUsesArgsInTypeMapping( );
+
+    AddOperator( &drelwindowintersectsOp );
+    drelwindowintersectsOp.SetUsesArgsInTypeMapping( );
+
     AddOperator( &drelrdupOp );
     drelrdupOp.SetUsesArgsInTypeMapping( );
     AddOperator( &drelsortOp );
@@ -152,6 +163,8 @@ DRelAlgebra::DRelAlgebra() {
 
     AddOperator( &drelsortmergejoinOp );
     drelsortmergejoinOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &drelitHashJoinOp );
+    drelitHashJoinOp.SetUsesArgsInTypeMapping( );
 }
 
 extern "C"

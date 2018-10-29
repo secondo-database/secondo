@@ -44,6 +44,11 @@ the Distributed2Algebra.
 #include "Algebras/Stream/Stream.h"
 #include "Algebras/Relation-C++/OperatorFilter.h"
 #include "Algebras/Relation-C++/OperatorProject.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
+#include "Algebras/Distributed2/CommandLogger.h"
+#include "Algebras/Distributed2/Distributed2Algebra.h"
+
+#include "Algebras/FText/FTextAlgebra.h"
 
 #include "DRelHelpers.h"
 #include "DRel.h"
@@ -54,11 +59,24 @@ extern QueryProcessor* qp;
 ListExpr RenameTypeMap( ListExpr args );
 
 namespace distributed2 {
+
+    extern Distributed2Algebra* algInstance;
+
     ListExpr dmapTM( ListExpr args );
+
+    template<int x>
+    ListExpr dmapXTMT( ListExpr args );
 
     template<class A>
     int dmapVMT( Word* args, Word& result, int message,
         Word& local, Supplier s );
+
+    int dmapXVM(Word* args, Word& result, int message,
+            Word& local, Supplier s );
+
+    template<class A, bool fromCat>
+    int shareVMT(Word* args, Word& result, int message,
+            Word& local, Supplier s );
 }
 
 namespace extrelationalg {
@@ -1513,11 +1531,9 @@ operator.
 
         ListExpr newDRelType;
         if( DArray::checkType( nl->Third( dmapResult ) ) ) {
-            cout << "result darray" << endl;
             newDRelType = listutils::basicSymbol<DRel>( );
         } else if( DFArray::checkType( nl->Third( dmapResult ) ) ) {
             newDRelType = listutils::basicSymbol<DFRel>( );
-            cout << "result dfarray" << endl;
         } else {
             return dmapResult;
         }
@@ -1533,6 +1549,147 @@ operator.
             nl->SymbolAtom( Symbols::APPEND( ) ),
             append,
             newRes );
+    }
+
+/*
+1.1.4 Type Mapping ~drelwindowintersectsTM~
+
+Expect a d[f]rel and an attrtibute list to execute a mapped function on the 
+the distributed relation. Type mapping for global simple operators with two 
+arguments.
+
+*/
+    ListExpr drelwindowintersectsTM( ListExpr args ) { 
+
+        std::string err = "darray[rtree] x d[f]rel(X) x rect expected";
+
+        if( !nl->HasLength( args, 3 ) ) {
+            return listutils::typeError( err +
+                ": four arguments are expected" );
+        }
+
+        if( !DRelHelpers::isListOfTwoElemLists( args ) ) {
+            return listutils::typeError( "internal Error" );
+        }
+
+        ListExpr arg1Type = nl->First( nl->First( args ) );
+        ListExpr arg2Type = nl->First( nl->Second( args ) );
+        ListExpr arg3Type = nl->First( nl->Third( args ) );
+        //ListExpr arg1Value = nl->Second( nl->First( args ) );
+        ListExpr arg2Value = nl->Second( nl->Second( args ) );
+        ListExpr arg3Value = nl->Second( nl->Third( args ) );
+
+        if( !DArray::checkType( arg1Type ) ) {
+            return listutils::typeError( 
+                err + ": first argument is not a darray" );
+        }
+
+        if( !listutils::isRTreeDescription( nl->Second( arg1Type ) ) ) {
+            return listutils::typeError( 
+                err + ": darray is not a rtree" );
+        }
+
+        ListExpr darrayType;
+        if( !DRelHelpers::drelCheck( arg2Type, darrayType ) ) {
+            return listutils::typeError( 
+                err + ": second argument is not a d[f]rel" );
+        }
+
+        if( !Rectangle<2>::checkType( arg3Type ) ) {
+            return listutils::typeError( 
+                err + ": third argument is rectangle" );
+        }
+
+        if( !nl->IsAtom( arg3Value ) 
+         || nl->AtomType( arg3Value ) != SymbolType ) {
+            return listutils::typeError( 
+                err + ": rectangle is not in catalog" );
+        }
+
+        //string tempName = distributed2::algInstance->getTempName( );
+        string tempName = nl->SymbolValue( arg3Value );
+
+        ListExpr map = nl->FourElemList(
+            nl->SymbolAtom( "map" ),
+            nl->Second( arg1Type ),
+            nl->Second( darrayType ),
+            nl->TwoElemList(
+                    listutils::basicSymbol<Stream<Tuple>>( ),
+                    nl->Second( nl->Second( darrayType ) ) ) );
+        ListExpr fun = nl->FourElemList(
+            nl->SymbolAtom( "fun" ),
+            nl->TwoElemList(
+                nl->SymbolAtom( "elem1_1" ),
+                nl->SymbolAtom( "ARRAYFUNARG1" ) ),
+            nl->TwoElemList(
+                nl->SymbolAtom( "elem2_2" ),
+                nl->SymbolAtom( "ARRAYFUNARG2" ) ),
+            nl->FourElemList(
+                nl->SymbolAtom( "windowintersects" ),
+                nl->SymbolAtom( "elem1_1" ),
+                nl->SymbolAtom( "elem2_2" ),
+                arg3Value ) );
+
+        // call dmapTM
+        ListExpr dmapResult = dmapXTMT<2>(
+            nl->FiveElemList(
+                nl->First( args ),
+                nl->TwoElemList( darrayType, arg2Value ),
+                nl->TwoElemList( 
+                    listutils::basicSymbol<CcString>( ),
+                    nl->StringAtom( "" ) ),
+                nl->TwoElemList( map, fun ),
+                nl->TwoElemList( 
+                    listutils::basicSymbol<CcInt>( ),
+                    nl->IntAtom( 1238 ) ) ) );
+
+        if( !nl->HasLength( dmapResult, 3 ) ) {
+            return dmapResult;
+        }
+
+        // dmapTM ok
+        ListExpr resultType = nl->ThreeElemList(
+            listutils::basicSymbol<DFRel>( ),
+            nl->Second( nl->Third( dmapResult ) ),
+            nl->Third( arg2Type ) );
+
+        // Bring rect to the workers
+        cout << "bring intersect argument to the workers" << endl;
+
+        ListExpr shareQuery = nl->FourElemList(
+            nl->SymbolAtom( "share" ),
+            nl->StringAtom( nl->SymbolValue( arg3Value ) ),
+            nl->BoolAtom( true ),
+            nl->TwoElemList(
+                nl->SymbolAtom( "drelconvert" ),
+                arg2Value ) );
+
+        Word result;
+        bool correct, evaluable, defined, isFunction;
+        string typeString, errorString;
+        QueryProcessor::ExecuteQuery( 
+            shareQuery, result, typeString, errorString, correct, evaluable, 
+            defined, isFunction );
+
+        FText* shareResult = ( FText* )result.addr;
+        if( !correct || !evaluable || !defined
+         || !shareResult->IsDefined( ) ) {
+            return listutils::typeError( 
+                "error while bring the argument to the workers" );
+        }
+        cout << shareResult->GetValue( ) << endl;
+        delete shareResult;
+
+        ListExpr append = nl->FourElemList(
+            nl->StringAtom( "" ),
+            nl->IntAtom( 1238 ),
+            nl->First( nl->Second( dmapResult ) ),
+            nl->Second( nl->Second( dmapResult ) ) );
+
+        return nl->ThreeElemList( 
+            nl->SymbolAtom( Symbols::APPEND( ) ),
+            append,
+            resultType );
     }
 
 /*
@@ -1555,18 +1712,61 @@ the dmap value mapping of the Distributed2Algebra.
         int parmNum = qp->GetNoSons( s );
         
         R* drel = ( R* )args[ 0 ].addr;
+        CcString* name = new CcString( "" );
 
         ArgVector argVec = {
             drel,
-            new CcString( "" ),
-            new CcBool( false, false ), // dummy, ignored by dmapVMT
+            name,
+            args[ 0 ].addr,     // ignored by dmapVMT
             args[ parmNum -3 ].addr,
             args[ parmNum -2 ].addr,
             args[ parmNum -1 ].addr };
 
         dmapVMT<T>( argVec, result, message, local, s );
 
-        R* resultDRel = ( R* )result.addr;
+        delete name;
+
+        DFRel* resultDRel = ( DFRel* )result.addr;
+        if( !resultDRel->IsDefined( ) ) {
+            return 0;
+        }
+
+        resultDRel->setDistType( drel->getDistType( )->copy( ) );
+
+        return 0;
+    }
+
+/*
+1.2 Value Mapping ~drelwindowintersectsVMT~
+
+Uses a d[f]rel and a d[f]array and creates a new drel. The d[f]rel is created 
+by calling the dmap2 value mapping of the Distributed2Algebra.
+
+*/
+    template<class R, class T>
+    int drelwindowintersectsVMT( Word* args, Word& result, int message,
+        Word& local, Supplier s ) {
+
+        #ifdef DRELDEBUG
+        cout << "dreldmap2VMT" << endl;
+        #endif
+
+        DFRel* resultDRel;
+        
+        R* drel = ( R* )args[ 1 ].addr;
+
+        ArgVector argVec = {
+            args[ 0 ].addr,
+            drel,
+            args[ 3 ].addr,   // name
+            args[ 2 ].addr,   // ingnored
+            args[ 4 ].addr,   // port
+            args[ 5 ].addr,   // stream?
+            args[ 6 ].addr }; // function
+
+        dmapXVM( argVec, result, message, local, s );
+
+        resultDRel = ( DFRel* )result.addr;
         if( !resultDRel->IsDefined( ) ) {
             return 0;
         }
@@ -1579,12 +1779,23 @@ the dmap value mapping of the Distributed2Algebra.
 /*
 1.3 ValueMapping Array for dmap
     
-Used by the operators with only a drel input.
+Used by the operators with only a d[f]rel input.
 
 */
     ValueMapping dreldmapVM[ ] = {
         dreldmapVMT<DRel, DArray>,
         dreldmapVMT<DFRel, DFArray>
+    };
+
+/*
+1.3 ValueMapping Array for dmap
+    
+Used by the operators with a darray and a d[f]rel as input.
+
+*/
+    ValueMapping dreldmap2VM[ ] = {
+        drelwindowintersectsVMT<DRel, DArray>,
+        drelwindowintersectsVMT<DFRel, DFArray>
     };
 
 /*
@@ -1761,6 +1972,21 @@ Operator specification of the drellsortby operator.
     );
 
 /*
+1.5.11 Specification of drelwindowintersects
+
+Operator specification of the drelwindowintersects operator.
+
+*/
+    OperatorSpec drelwindowintersectsSpec(
+        " darray(rtree(X)) x d[f]rel[X]"
+        "-> dfrel(X) ",
+        " _ _ drelwindowintersects[_]",
+        "Computes a windowsintersects of a darray with an rtree, an "
+        "d[f]rel and a rectangle.",
+        " query darray1 drel1 drelwindowintersects[rectangle]"
+    );
+
+/*
 1.6 Operator instance of operators using dmapVM
 
 1.6.1 Operator instance of drelfilter operator
@@ -1890,6 +2116,19 @@ Operator specification of the drellsortby operator.
         dreldmapVM,
         dreldmapSelect,
         drellsortbyTM
+    );
+
+/*
+1.6.11 Operator instance of drelwindowintersects operator
+
+*/
+    Operator drelwindowintersectsOp(
+        "drelwindowintersects",
+        drelwindowintersectsSpec.getStr( ),
+        2,
+        dreldmap2VM,
+        dreldmapSelect,
+        drelwindowintersectsTM
     );
 
 } // end of namespace drel

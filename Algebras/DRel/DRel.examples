@@ -13,6 +13,13 @@ Signature : stream(tuple(X)) x attr x int x int -> boundary(X)
 Example   : query plz feed createboundary[PLZ, 50, 41267]
 Result    : (boundary (2694 4639 6493 7512 9243 11551 14806 16247 17159 18246 19322 21084 22941 24235 25557 26703 28879 31568 33627 36133 38279 39524 41720 45318 47883 49794 52051 54405 55444 56357 57577 59818 63441 65510 67034 68744 71299 73453 75404 78091 80100 82432 84137 86522 88633 91325 94140 96507 98716 99955))
 
+Operator  : getboundary
+Number    : 1
+Signature : drel(rel(tuple(X))) -> boundary(X)
+Example   : query getboundary(drel1)
+Result    : bug
+Remark    : remote server required
+
 Operator  : getboundaryindex
 Number    : 1
 Signature : boundary x attr -> int
@@ -44,6 +51,13 @@ Operator  : drelpartition
 Number    : 1
 Signature : drel(tuple(X)) x attr -> drel(tuple(X))
 Example   : query drel1 drelpartition[PLZ]
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelpartition
+Number    : 2
+Signature : drel(tuple(X)) x attr x int -> drel(tuple(X))
+Example   : query drel1 drelpartition[PLZ, 5000]
 Result    : bug
 Remark    : remote server required
 
@@ -97,21 +111,35 @@ Remark    : remote server required
 
 Operator  : drelcreatebtree
 Number    : 1
-Signature : d[f]rel(rel(X)) x string x attr -> d[f]rel(btree(Y))
+Signature : d[f]rel(rel(X)) x string x attr -> darray(btree(Y))
 Example   : query drel1 drelcreatebtree["drel1_PLZ",PLZ]
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelbulkloadrtree
+Number    : 1
+Signature : d[f]rel(rel(X)) x string x attr -> darray(rtree(Y))
+Example   : query drel1 drelbulkloadrtree["drel1_GeoData",GeoData]
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelwindowintersects
+Number    : 1
+Signature : darray(rtree(X)) x d[f]rel(rel(X)) x rect -> dfrel(rel(X))
+Example   : query darray1 drel1 drelwindowintersects[rectangle]
 Result    : bug
 Remark    : remote server required
 
 Operator  : drelexactmatch
 Number    : 1
-Signature : drel(btree(X)) x drel(rel(X)) x ANY -> drel(rel(X))
+Signature : darray(btree(X)) x drel(rel(X)) x ANY -> drel(rel(X))
 Example   : query drel1_PLZ drel1 drelexactmatch[99998]
 Result    : bug
 Remark    : remote server required
 
 Operator  : drelrange
 Number    : 1
-Signature : drel(btree(X)) x drel(rel(X)) x ANY x ANY -> drel(rel(X))
+Signature : darray(btree(X)) x drel(rel(X)) x ANY x ANY -> drel(rel(X))
 Example   : query drel1_PLZ drel1 drelrange[90000,99998]
 Result    : bug
 Remark    : remote server required
@@ -216,7 +244,15 @@ Remark    : remote server required
 
 Operator  : drelsortmergejoin
 Number    : 1
-Signature : d[f]rel(rel(X)) x d[f]rel(rel(X)) x attr x attr -> d[f]rel(rel(X))
+Signature : d[f]rel(rel(X)) x d[f]rel(rel(X)) x attr x attr -> dfrel(rel(X))
 Example   : query drel1 drel2 drelsortmergejoin[PLZ, PLZ2]
+Result    : bug
+Remark    : remote server required
+
+
+Operator  : drelitHashJoin
+Number    : 1
+Signature : d[f]rel(rel(X)) x d[f]rel(rel(X)) x attr x attr -> dfrel(rel(X))
+Example   : query drel1 drel2 drelitHashJoin[PLZ, PLZ2]
 Result    : bug
 Remark    : remote server required

@@ -29,6 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 1 Implementation of the secondo operator getBoundaryIndex
 
 */
+//#define DRELDEBUG
+
 #include <iostream>
 
 #include "NestedList.h"
@@ -59,8 +61,10 @@ Except a boundary and an attribute with the same type as the bounary.
 */
     ListExpr getBoundaryIndexTM( ListExpr args ) {
 
-        cout << "getBoundaryIndexVM" << endl;
+        #ifdef DRELDEBUG
+        cout << "getBoundaryIndexTM" << endl;
         cout << nl->ToString( args ) << endl;
+        #endif
 
         std::string err = "vector(t), attr expected";
 

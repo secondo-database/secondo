@@ -5,7 +5,7 @@ operator rect2cellgrid alias RECT2CELLGRID pattern _ op [_]
 operator drelfdistribute alias DRELFDISTRIBUTE pattern _ op [_,_,_,_,_]
 operator dreldistribute alias DRELDISTRIBUTE pattern _ op [_,_,_,_,_]
 
-operator drelpartition alias DRELPARTITION pattern _ op [_]
+operator drelpartition alias DRELPARTITION pattern _ op [_,_]
 
 operator comparedisttype alias COMPAREDISTTYPE pattern _ _ op
 operator drelcollect_box alias DRELCOLLECTBOX pattern _ op[_]
@@ -16,6 +16,9 @@ operator drelsummarize alias DRELSUMMARIZE pattern _ op
 operator drelcreatebtree alias DRELCREATEBTREE pattern _ op[_,_]
 operator drelexactmatch alias DRELEXACTMATCH pattern _ _ op[_]
 operator drelrange alias DRELRANGE pattern _ _ op[_,_]
+
+operator drelbulkloadrtree alias DRELBULKLOADRTREE pattern _ op[_,_]
+operator drelwindowintersects alias DRELWINDOWINTERSECTS pattern _ _ op[_]
 
 operator drelfilter alias DRELFILTER pattern _ op[fun] implicit parameters elem1 types DRELFUNARG1
 operator drelproject alias DRELPROJECT pattern _ op [list]
@@ -34,4 +37,5 @@ operator drelsort alias DRELSORT pattern _ op
 operator drelgroupby alias DRELGROUPBY pattern _ op[list;funlist] implicit parameters elem1 types DRELRELFUNARG1
 operator drelsortby alias DRELSORTBY pattern _ op [list]
 
-operator drelsortmergejoin alias DRELSORTMERGEJOIN pattern _ _ op [_,_] implicit parameters elem1, elem2 types ARRAYFUNARGTTT1, ARRAYFUNARGTTT2
+operator drelsortmergejoin alias DRELSORTMERGEJOIN pattern _ _ op [_,_]
+operator drelitHashJoin alias DRELITHASHJOIN pattern _ _ op [_,_]

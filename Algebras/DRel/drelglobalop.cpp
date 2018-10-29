@@ -38,12 +38,11 @@ drelgroupby and drelrdup
 #include "SecParser.h"
 
 #include "Algebras/FText/FTextAlgebra.h"
-#include "Algebras/Distributed2/CommandLogger.h"
-#include "Algebras/Distributed2/Distributed2Algebra.h"
 
 #include "DRelHelpers.h"
 #include "DRel.h"
 #include "Partitioner.hpp"
+#include "BoundaryCalculator.hpp"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -56,6 +55,10 @@ namespace distributed2 {
 
     template<class A>
     int dmapVMT( Word* args, Word& result, int message,
+        Word& local, Supplier s );
+
+    template<class R>
+    int areduceVMT(Word* args, Word& result, int message,
         Word& local, Supplier s );
 };
 
@@ -318,8 +321,6 @@ arguments.
 
         ListExpr arg1Type = nl->First( nl->First( args ) );
         ListExpr arg2Type = nl->First( nl->Second( args ) );
-        //ListExpr arg3Type = nl->First( nl->Third( args ) );
-        //ListExpr arg2Value = nl->Second( nl->Second( args ) );
         ListExpr arg3Value = nl->Second( nl->Third( args ) );
         ListExpr relType = nl->Second( arg1Type );
         ListExpr distType = nl->Third( arg1Type );
@@ -374,7 +375,7 @@ arguments.
 
         if( fun == "" ) {
             return listutils::typeError(
-                    err + ": internal error" );
+                err + ": internal error" );
         }
 
         ListExpr appendList = nl->ThreeElemList(
@@ -400,41 +401,101 @@ repartitioning the d[f]rel and execute a function on the d[f]rel.
         Word& local, Supplier s ) {
 
         int parmNum = qp->GetNoSons( s );
-        ListExpr boundaryType = nl->Fourth( nl->Third( qp->GetType( s ) ) );
 
+        ListExpr boundaryType = nl->Fourth( nl->Third( qp->GetType( s ) ) );
+        ListExpr drelType = qp->GetType( qp->GetSon( s, 0 ) );
         R* drel = ( R* )args[ 0 ].addr;
+        int key = nl->IntValue( nl->Third( nl->Third( qp->GetType( s ) ) ) );
+        int pos = ( ( CcInt* )args[ parmNum - 2 ].addr )->GetValue( );
         string attrName = 
             ( ( CcString* )args[ parmNum - 3 ].addr )->GetValue( );
-        int pos = ( ( CcInt* )args[ parmNum - 2 ].addr )->GetValue( );
-        string funString = ( ( FText* )args[ parmNum - 1 ].addr )->GetValue( );
 
-        ListExpr fun;
-        if( !nl->ReadFromString( funString, fun ) ) {
+        collection::Collection* boundary;
+
+        BoundaryCalculator<R>* calc = new BoundaryCalculator<R>( 
+                attrName, boundaryType, drel, drelType, 1238 );
+
+        if( !calc->countDRel( ) ){
+            cout << "error while determining the relation size" 
+                    << endl;
             result = qp->ResultStorage( s );
             ( ( DFRel* )result.addr )->makeUndefined( );
             return 0;
         }
 
-        string boundaryName = distributed2::algInstance->getTempName();
+        if( !calc->computeBoundary( ) ){
+            cout << "error while computing the boundaries" << endl;
+            result = qp->ResultStorage( s );
+            ( ( DFRel* )result.addr )->makeUndefined( );
+            return 0;
+        }
+
+        boundary = calc->getBoundary( )->Clone( );
 
         Partitioner<R, T>* parti = new Partitioner<R, T>( attrName, 
-            boundaryType, drel, qp->GetType( qp->GetSon( s, 0 ) ), 
-            qp->GetType( s ), 1238, boundaryName );
+            boundaryType, drel, drelType, boundary->Clone( ), 1238 );
 
-        if( !parti->repartition2DFArray( fun, result, s ) ) {
+        if( !parti->repartition2DFMatrix( ) ) {
+            cout << "repartition failed!!" << endl;
             result = qp->ResultStorage( s );
             ( ( DFRel* )result.addr )->makeUndefined( );
-        }
-
-        DFRel* resultDrel = ( DFRel* )result.addr;
-        if( !resultDrel->IsDefined( ) ) {
             return 0;
         }
 
-        collection::Collection* boundary = parti->getBoundary( );
+        DFMatrix* matrix = parti->getDFMatrix( );
 
-        DistTypeRange* distType = new DistTypeRange( range, pos, boundary );
-        resultDrel->setDistType( distType );
+        if( !matrix || !matrix->IsDefined( ) ) {
+            cout << "repartition failed!!" << endl;
+            result = qp->ResultStorage( s );
+            ( ( DFRel* )result.addr )->makeUndefined( );
+            return 0;
+        }
+
+        ListExpr areduceQuery = nl->FiveElemList(
+            nl->SymbolAtom( "areduce" ),
+            nl->TwoElemList(
+                parti->getMatrixType( ),
+                nl->TwoElemList(
+                    nl->SymbolAtom( "ptr" ),
+                    listutils::getPtrList( matrix ) ) ),
+            nl->StringAtom( "" ),
+            nl->ThreeElemList(
+                nl->SymbolAtom( "fun" ),
+                nl->TwoElemList(
+                    nl->SymbolAtom( "elem_1" ),
+                    nl->SymbolAtom( "AREDUCEARG1" ) ),
+                nl->TwoElemList(
+                    nl->SymbolAtom( "feed" ),
+                    nl->SymbolAtom( "elem_1" ) ) ),
+            nl->IntAtom( 1238 ) );
+
+        string typeString, errorString;
+        bool correct = false;
+        bool evaluable = false;
+        bool defined = false;
+        bool isFunction = false;
+        Word areduceResult;
+        bool resBool = QueryProcessor::ExecuteQuery( areduceQuery, 
+            areduceResult, typeString, errorString, correct, evaluable,
+             defined, isFunction );
+
+        result = qp->ResultStorage( s );
+        DFRel* resultDFRel = ( DFRel* )result.addr;
+        
+        if( !resBool || !correct || !evaluable || !defined ) {
+            resultDFRel->makeUndefined( );
+            return 0;
+        }
+
+        resultDFRel->copyFrom( *( ( DArrayBase* )areduceResult.addr ) );
+
+        if( !resultDFRel->IsDefined( ) ) {
+            return 0;
+        }
+
+        DistTypeRange* distType = new DistTypeRange( 
+            range, pos, key, boundary );
+        resultDFRel->setDistType( distType );
 
         return 0;
     }

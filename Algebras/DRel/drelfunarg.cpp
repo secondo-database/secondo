@@ -59,9 +59,6 @@ namespace drel {
     template<bool rel, int pos>
     ListExpr DRELFUNARG( ListExpr args ) {
 
-        cout << "drelfunarg" << endl;
-        cout << nl->ToString( args ) << endl;
-
         if( !nl->HasMinLength( args, pos ) ) {
             return listutils::typeError( "too less arguments" );
         }
@@ -151,10 +148,15 @@ namespace drel {
         }
         ListExpr arg = nl->First( args );
 
-        if( DArray::checkType( arg ) ||
-            DFArray::checkType( arg ) ||
-            DRel::checkType( arg ) || 
-            DFRel::checkType( arg ) ) {
+        if( DArray::checkType( arg ) 
+         || SDArray::checkType( arg )
+         || DRel::checkType( arg ) ){
+            return nl->Second( arg );
+        }
+
+        if( DFArray::checkType( arg )
+         || DRel::checkType( arg )
+         || DFMatrix::checkType( arg ) ) {
 
             ListExpr res;
             if( makeFS ) {

@@ -61,6 +61,7 @@ to define the range.
 
 */
     ListExpr drelrangeTM( ListExpr args ) {
+
         std::string err = "drel(btree(X)) x drel(rel(X)) x ANY x ANY expected";
 
         if( !nl->HasLength( args, 4 ) ) {
@@ -72,24 +73,29 @@ to define the range.
             return listutils::typeError( "internal Error" );
         }
 
-        ListExpr drelBTreeType = nl->First( nl->First( args ) );
-        ListExpr drelBTreeValue = nl->Second( nl->First( args ) );
-        ListExpr bTreeType = nl->Second( drelBTreeType );
+        ListExpr darrayBTreeType = nl->First( nl->First( args ) );
+        ListExpr darrayBTreeValue = nl->Second( nl->First( args ) );
+        ListExpr bTreeType = nl->Second( darrayBTreeType );
         ListExpr drelType = nl->First( nl->Second( args ) );
         ListExpr drelValue = nl->Second( nl->Second( args ) );
         ListExpr relType = nl->Second( drelType );
 
+        cout << "bTreeType" << endl;
+        cout << nl->ToString( bTreeType ) << endl;
+
         ListExpr range1 = nl->Second( nl->Third( args ) );
         ListExpr range2 = nl->Second( nl->Fourth( args ) );
 
-        if( !DRel::checkType( drelType ) ) {
+        if( !DArray::checkType( darrayBTreeType ) ) {
             return listutils::typeError( err +
-                ": first argument is not a drel" );
+                ": first argument is not a darray" );
         }
 
-        ListExpr darrayBTreeType = nl->TwoElemList(
-            listutils::basicSymbol<DArray>( ),
-            bTreeType );
+        if( !DRel::checkType( drelType ) ) {
+            return listutils::typeError( err +
+                ": second argument is not a drel" );
+        }
+
         ListExpr darrayType = nl->TwoElemList(
             listutils::basicSymbol<DArray>( ),
             relType );
@@ -121,7 +127,7 @@ to define the range.
         // result type of dloop
         ListExpr result = dloop2TM(
             nl->FourElemList(
-                nl->TwoElemList( darrayBTreeType, drelBTreeValue ),
+                nl->TwoElemList( darrayBTreeType, darrayBTreeValue ),
                 nl->TwoElemList( darrayType, drelValue ),
                 nl->TwoElemList( 
                     listutils::basicSymbol<CcString>( ), 
@@ -135,16 +141,13 @@ to define the range.
             return result;
         }
 
-        ListExpr append = nl->Second( result );
-        ListExpr newRes = nl->ThreeElemList( 
-            listutils::basicSymbol<DRel>( ),
-            nl->Second( nl->Third( result ) ),
-            nl->Third( drelType ) );  // disttype
-
         return nl->ThreeElemList(
             nl->SymbolAtom( Symbols::APPEND( ) ),
-            append,
-            newRes );
+            nl->Second( result ),
+            nl->ThreeElemList( 
+                listutils::basicSymbol<DRel>( ),
+                nl->Second( nl->Third( result ) ),
+                nl->Third( drelType ) ) );
     }
 
 /*
@@ -163,17 +166,13 @@ value.
                 ": three arguments are expected" );
         }
 
-        ListExpr temp = args;
-        while( !nl->IsEmpty( temp ) ) {
-            if( !nl->HasLength( nl->First( temp ), 2 ) ) {
-                return listutils::typeError( "internal Error" );
-            }
-            temp = nl->Rest( temp );
+        if( !DRelHelpers::isListOfTwoElemLists( args ) ) {
+            return listutils::typeError( "internal Error" );
         }
 
-        ListExpr drelBTreeType = nl->First( nl->First( args ) );
-        ListExpr drelBTreeName = nl->Second( nl->First( args ) );
-        ListExpr bTreeType = nl->Second( drelBTreeType );
+        ListExpr darrayBTreeType = nl->First( nl->First( args ) );
+        ListExpr darrayBTreeValue = nl->Second( nl->First( args ) );
+        ListExpr bTreeType = nl->Second( darrayBTreeType );
         ListExpr drelType = nl->First( nl->Second( args ) );
         ListExpr drelName = nl->Second( nl->Second( args ) );
         ListExpr relType = nl->Second( drelType );
@@ -185,9 +184,6 @@ value.
                 ": first argument is not a drel" );
         }
 
-        ListExpr darrayBTreeType = nl->TwoElemList(
-            listutils::basicSymbol<DArray>( ),
-            bTreeType );
         ListExpr darrayType = nl->TwoElemList(
             listutils::basicSymbol<DArray>( ),
             relType );
@@ -218,7 +214,7 @@ value.
         // result type of dloop
         ListExpr result = dloop2TM(
             nl->FourElemList(
-                nl->TwoElemList( darrayBTreeType, drelBTreeName ),
+                nl->TwoElemList( darrayBTreeType, darrayBTreeValue ),
                 nl->TwoElemList( darrayType, drelName ),
                 nl->TwoElemList( listutils::basicSymbol<CcString>( ),
                     nl->StringAtom( "" ) ),
@@ -231,16 +227,13 @@ value.
             return result;
         }
 
-        ListExpr append = nl->Second( result );
-        ListExpr newRes = nl->ThreeElemList(
-            listutils::basicSymbol<DRel>( ),
-            nl->Second( nl->Third( result ) ),
-            nl->Third( drelType ) );  // disttype
-
         return nl->ThreeElemList(
             nl->SymbolAtom( Symbols::APPEND( ) ),
-            append,
-            newRes );
+            nl->Second( result ),
+            nl->ThreeElemList(
+                listutils::basicSymbol<DRel>( ),
+                nl->Second( nl->Third( result ) ),
+                nl->Third( drelType ) ) );
     }
 
 /*
@@ -255,14 +248,6 @@ Uses a distributed btree and a drel to call the range operator.
 
         DRel* drelBTree = ( DRel* )args[ 0 ].addr;
         DRel* drel = ( DRel* )args[ 1 ].addr;
-
-        // Compare dist types
-        if( !drelBTree->equalDistType<DRel>( drel ) ) {
-            result = qp->ResultStorage( s );
-            DRel* res = ( DRel* )result.addr;
-            res->makeUndefined( );
-            return 0;
-        }
 
         // FText with the function depends on the number of parameters
         ArgVector argVec = { drelBTree,
@@ -311,8 +296,8 @@ Used to locate the FText with the function for the dloop2 value mapping.
 
 */
     OperatorSpec drelrangeSpec(
-        " drel(X) x drel(X) x string "
-        "-> drel(X) ",
+        " darray(btree(X)) x drel(X) x string "
+        "-> darray(X) ",
         " _ _ drelrange[_,_]",
         "Uses a distributed btree and a drel to call the range operator.",
         " query drel1_Name drel1 drelrange[\"Berlin\",\"Mannheim\"]"
@@ -336,8 +321,8 @@ Used to locate the FText with the function for the dloop2 value mapping.
 
 */
     OperatorSpec drelexactmatchSpec(
-        " drel(X) x drel(X) x string "
-        "-> drel(X) ",
+        " darray(btree(X)) x drel(X) x string "
+        "-> darray(X) ",
         " _ _ drelexactmatch[_]",
         "Uses a distributed btree and a drel to call the exactmatch operator.",
         " query drel1_Name drel1 drelexactmatch[\"Berlin\"]"

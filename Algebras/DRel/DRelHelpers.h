@@ -32,11 +32,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Collection/CollectionAlgebra.h"
 #include "NestedList.h"
 
+#include "DistTypeEnum.h"
+
+//#define DRELDEBUG
+
 namespace distributed2 {
     class DArrayBase;
 }
 
 namespace drel {
+
 /*
 1 Class ~DRelHelpers~
 
@@ -74,6 +79,45 @@ A class with usefull helper functions for the DRelAlgebra.
                 Attribute* attr );
 
             static int countDRel( std::string drel );
+
+            static bool drelCheck( ListExpr list );
+            static bool drelCheck( ListExpr list, ListExpr& darray );
+            static bool drelCheck( ListExpr list, distributionType& type );
+            static bool drelCheck( ListExpr list, 
+                ListExpr& darray, distributionType& type, 
+                int& attr, int& key );
+
+            static ListExpr repartition4JoinRequired( 
+                ListExpr drel1Value, ListExpr drel2Value,
+                ListExpr attr1Name, ListExpr attr2Name,
+                distributionType dType1, distributionType dType2, 
+                ListExpr attr1List, ListExpr attr2List, 
+                const int dAttr1, const int dAttr2, 
+                const int dKey1, const int dKey2,
+                bool& drel1reparti, bool& drel2reparti );
+
+            static ListExpr removeAttrFromAttrList( 
+                ListExpr attrList, ListExpr attr );
+            static ListExpr removeAttrFromAttrList( 
+                ListExpr attrList, std::string attr );
+            static ListExpr removeAttrFromAttrList( 
+                ListExpr attrList, std::set<std::string>& names );
+            static ListExpr removePartitionAttributes( 
+                ListExpr attrList, distributionType type );
+            static ListExpr getRemovePartitonAttr( distributionType type );
+
+            template<class R, class Q, class T>
+            static bool createRepartitionQuery( 
+                ListExpr drelType,
+                R* drel1,
+                T* drel2,
+                ListExpr resultDistType,
+                string attrName,
+                int port,
+                ListExpr& query,
+                int elem1 = 1,
+                int elem2 = 2,
+                int streamelem = 3 );
     };
 
 } // end of namespace drel

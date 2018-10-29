@@ -325,22 +325,31 @@ operation on the pos attribute. pos is the position of the attribute used in
 an operation. The pos starts with 0.
 
 */
-    bool DistTypeBasic::repartiRequired( ListExpr distType, int pos ) {
+    bool DistTypeBasic::repartiRequired( ListExpr distType, int pos, 
+        distributionType reqDistType ) {
 
         distributionType dType;
         getTypeByNum( nl->IntValue( nl->First( distType ) ), dType );
 
-        if( dType == random ) {
+        if( dType != replicated && dType != reqDistType ) {
             return true;
         }
 
-        if( dType == replicated ) {
-            return false;
+        if( reqDistType == hash
+         || reqDistType == range 
+         || reqDistType == spatial2d
+         || reqDistType == spatial2d
+         || reqDistType == spatial3d ) {
+
+            if( nl->HasMinLength( distType, 2 )
+             && nl->IsAtom( nl->Second( distType ) )
+             && nl->AtomType( nl->Second( distType ) ) == IntType ) {
+                return pos != nl->IntValue( nl->Second( distType ) );
+             }
+             
         }
 
-        int attrPos = nl->IntValue( nl->Second( distType ) );
-
-        return pos != attrPos;
+        return true;
     }
 
 } // end of namespace drel

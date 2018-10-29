@@ -85,13 +85,11 @@ Expect a d[f]el.
         }
 
         if( DFRel::checkType( nl->First( args ) ) ) {
-
             return dsummarizeTM( nl->OneElemList( nl->TwoElemList( 
                 nl->SymbolAtom( DFArray::BasicType( ) ), 
                 nl->Second( nl->First( args ) ) ) ) );
         }
         if( DRel::checkType( nl->First( args ) ) ) {
-
             return dsummarizeTM( nl->OneElemList( nl->TwoElemList( 
                 nl->SymbolAtom( DArray::BasicType( ) ), 
                 nl->Second( nl->First( args ) ) ) ) );

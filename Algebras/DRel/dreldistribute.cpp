@@ -881,7 +881,7 @@ Value mapping of the distribute operator to distribute by hash.
                 nl->SymbolAtom( "attr" ),
                 nl->SymbolAtom( "t" ),
                 nl->SymbolAtom( attrName ) ), // Attributname for hashfunction
-            nl->IntAtom( 10000 ) );
+            nl->IntAtom( 99999 ) );
 
         ListExpr funList =
             nl->ThreeElemList(

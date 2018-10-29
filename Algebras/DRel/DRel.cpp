@@ -281,143 +281,140 @@ list has an error.
             return rel;
         }
 
-        DArrayT<T>* darray = DArrayT<T>::readFrom( nl->Second( list ) );
-        DRelT<T>* rel = new DRelT<T>( *darray );
-        delete darray;
-
-        ListExpr distType = nl->Third( list );
-
-        if( !nl->HasMinLength( distType, 1 ) ) {
+        if( !nl->HasLength( typeInfo, 3 ) ) {
+            DRelT<T>* rel = new DRelT<T>( 0 );
             rel->makeUndefined( );
             return rel;
         }
 
-        ListExpr typeDef = nl->First( distType );
+        DArrayT<T>* darray = DArrayT<T>::readFrom( nl->Second( list ) );
+        DRelT<T>* rel = new DRelT<T>( *darray );
+        delete darray;
+
+        DistTypeBasic* distrType = readDistTypeFrom(
+            nl->Third( typeInfo ), nl->Third( list ) );
+
+        if( !distrType ) {
+            rel->makeUndefined( );
+        }
+        else {
+            rel->setDistType( distrType );
+        }
+
+        return rel;
+    }
+
+    template<arrayType T>
+    DistTypeBasic* DRelT<T>::readDistTypeFrom( 
+        ListExpr typeInfo, ListExpr list ) {
+
+        if( !nl->HasMinLength( list, 1 ) ) {
+            return 0;
+        }
+
+        ListExpr typeDef = nl->First( list );
 
         if( !nl->IsAtom( typeDef )) {
-            rel->makeUndefined( );
-            return rel;
+            return 0;
         }
 
         distributionType type;
         if( nl->AtomType( typeDef ) == SymbolType ) {  // type by symbol
             if( !supportedType( nl->SymbolValue( typeDef ), type ) ) {
-                rel->makeUndefined( );
-                return rel;
+                return 0;
             }
         }
         else if( nl->AtomType( typeDef ) == IntType ) { // type by int
             if( !getTypeByNum( ( int )nl->IntValue( typeDef ), type ) ) {
-                rel->makeUndefined( );
-                return rel;
+                return 0;
             }
         }
         else {
-            rel->makeUndefined( );
-            return rel;
+            return 0;
         }
 
-        if( nl->HasLength( distType, 1 )
+        if( nl->HasLength( list, 1 )
          && ( type == random || type == replicated ) ) {
-            rel->setDistType( new DistTypeBasic( type ) );
-            return rel;
+            return new DistTypeBasic( type );
         }
 
-        if( !nl->HasMinLength( distType, 2 ) ) {
-            rel->makeUndefined( );
-            return rel;
+        if( !nl->HasMinLength( list, 2 ) ) {
+            return 0;
         }
 
-        if( !nl->IsAtom( nl->Second( distType ) )
-         || nl->AtomType( nl->Second( distType ) ) != IntType ) {
-            rel->makeUndefined( );
-            return rel;
+        if( !nl->IsAtom( nl->Second( list ) )
+         || nl->AtomType( nl->Second( list ) ) != IntType ) {
+            return 0;
         }
 
-        int attrPos = nl->IntValue( nl->Second( distType ) );
+        int attrPos = nl->IntValue( nl->Second( list ) );
         if( attrPos < 0 ) {
-            rel->makeUndefined( );
-            return rel;
+            return 0;
         }
 
-        if( nl->HasLength( distType, 2 ) && type == hash ) {
-            rel->setDistType( new DistTypeHash( type, attrPos ) );
-            return rel;
+        if( nl->HasLength( list, 2 ) && type == hash ) {
+            return new DistTypeHash( type, attrPos );
         }
 
-        if( !nl->HasLength( distType, 4 ) ) {
-            rel->makeUndefined( );
-            return rel;
+        if( !nl->HasLength( list, 4 ) ) {
+            return 0;
         }
 
-        if( !nl->IsAtom( nl->Third( distType ) )
-         || nl->AtomType( nl->Third( distType ) ) != IntType ) {
-            rel->makeUndefined( );
-            return rel;
+        if( !nl->IsAtom( nl->Third( list ) )
+         || nl->AtomType( nl->Third( list ) ) != IntType ) {
+            return 0;
         }
 
-        int key = nl->IntValue( nl->Third( distType ) );
+        int key = nl->IntValue( nl->Third( list ) );
 
         if( type == range ) {
             bool correct;
             ListExpr errorInfo;
             Word value = collection::Collection::In(
-                nl->Fourth( nl->Third( typeInfo ) ),
-                nl->Fourth( distType ), 0, errorInfo,
+                nl->Fourth( typeInfo ),
+                nl->Fourth( list ), 0, errorInfo,
                 correct );
 
             if( !correct ) {
-                rel->makeUndefined( );
-                return rel;
+                return 0;
                 
             }
 
-            rel->setDistType( new DistTypeRange(
-                type, attrPos, key, ( collection::Collection* ) value.addr ) );
-
-            return rel;
+            return new DistTypeRange(
+                type, attrPos, key, ( collection::Collection* ) value.addr );
         }
 
         if( type == spatial2d ) {
 
             temporalalgebra::CellGrid2D* grid =
                 DistTypeSpatial<temporalalgebra::CellGrid2D>::ReadFrom(
-                    nl->Fourth( nl->Third( typeInfo ) ),
-                    nl->Fourth( distType ) );
+                    nl->Fourth( typeInfo ),
+                    nl->Fourth( list ) );
 
             if( !grid ) {
-                rel->makeUndefined( );
-                return rel;
+                return 0;
             }
 
-            rel->setDistType(
-                new DistTypeSpatial<temporalalgebra::CellGrid2D>(
-                    type, attrPos, key, grid ) );
-
-            return rel;
+            return new DistTypeSpatial<temporalalgebra::CellGrid2D>(
+                type, attrPos, key, grid );
         }
         
         if( type == spatial3d ) {
 
             temporalalgebra::CellGrid<3>* grid =
                 DistTypeSpatial<temporalalgebra::CellGrid<3>>::ReadFrom(
-                    nl->Fourth( nl->Third( typeInfo ) ),
-                    nl->Fourth( distType ) );
+                    nl->Fourth( typeInfo ),
+                    nl->Fourth( list ) );
 
             if( !grid ) {
-                rel->makeUndefined( );
-                return rel;
+                return 0;
             }
 
-            rel->setDistType(
-                new DistTypeSpatial<temporalalgebra::CellGrid<3>>(
-                    type, attrPos, key, grid ) );
-
-            return rel;
+            return new DistTypeSpatial<temporalalgebra::CellGrid<3>>(
+                type, attrPos, key, grid );
         }
 
-        rel->makeUndefined( );
-        return rel;
+        return 0;
     }
 
 /*
@@ -475,6 +472,15 @@ Checks the type in the NestedList.
     template<arrayType T>
     const bool DRelT<T>::checkType( const ListExpr list ) {
 
+        distributionType type;
+        int attr, key;
+        return DRelT<T>::checkType( list, type, attr, key );
+    }
+
+    template<arrayType T>
+    const bool DRelT<T>::checkType( 
+        const ListExpr list, distributionType& type, int& attr, int& key ) {
+
         #ifdef DRELDEBUG
         cout << "DRelT::checkType" << endl;
         cout << "list" << endl;
@@ -491,13 +497,96 @@ Checks the type in the NestedList.
             return false;
         }
 
+        if( !listutils::isRelDescription( nl->Second( list ) ) ) {
+            return false;
+        }
+
         #ifdef DRELDEBUG
         ListExpr distTypeExpr = nl->Third( list );
         cout << "distTypeExpr" << endl;
         cout << nl->ToString( distTypeExpr ) << endl;
         #endif
 
+        if( !DRelT<T>::checkDistType( nl->Third( list ), type, attr, key ) ) {
+            return false;
+        }
+
         return true;
+    }
+
+    template<arrayType T>
+    const bool DRelT<T>::checkDistType( 
+        const ListExpr list, distributionType& type, int& attr, int& key ) {
+    
+        attr = key = -1;
+
+        if( !nl->HasMinLength( list, 1 ) ) {
+            return false;
+        }
+
+        ListExpr typeDef = nl->First( list );
+        if( !nl->IsAtom( typeDef )) {
+            return false;
+        }
+
+        if( nl->AtomType( typeDef ) == IntType ) {
+            if( !getTypeByNum( ( int )nl->IntValue( typeDef ), type ) ) {
+                return false;
+            }
+        }
+        else {
+            return false;
+        }
+
+        if( nl->HasLength( list, 1 )
+         && ( type == random || type == replicated ) ) {
+            return true;
+        }
+
+        if( !nl->HasMinLength( list, 2 ) ) {
+            return false;
+        }
+
+        if( !nl->IsAtom( nl->Second( list ) )
+         || nl->AtomType( nl->Second( list ) ) != IntType ) {
+            return false;
+        }
+
+        attr = nl->IntValue( nl->Second( list ) );
+        if( attr < 0 ) {
+            return false;
+        }
+
+        if( nl->HasLength( list, 2 ) && type == hash ) {
+            return true;
+        }
+
+        if( !nl->HasLength( list, 4 ) ) {
+            return false;
+        }
+
+        if( !nl->IsAtom( nl->Third( list ) )
+         || nl->AtomType( nl->Third( list ) ) != IntType ) {
+            return false;
+        }
+
+        key = nl->IntValue( nl->Third( list ) );
+
+        if( type == range ) {
+            return Vector::checkType( nl->Fourth( list ) );
+        }
+
+        if( type == spatial2d ) {
+            return temporalalgebra::CellGrid2D::checkType( 
+                nl->Fourth( list ) );
+        }
+        
+        if( type == spatial3d ) {
+            return temporalalgebra::CellGrid<3>::checkType( 
+                nl->Fourth( list ) );
+        }
+
+        return false;
     }
 
 /*

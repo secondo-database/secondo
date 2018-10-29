@@ -31,18 +31,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include <map>
 
+#include "DRelHelpers.h"
+
 #include "NestedList.h"
 #include "SecondoSMI.h"
 
 #include "Algebras/Distributed2/Dist2Helper.h"
 
-#include "DRelHelpers.h"
+#include "DistTypeEnum.h"
 
 namespace drel {
-
-    enum distributionType {
-        random, hash, range, spatial2d, spatial3d, replicated
-    };
 
     distributionType getType( const std::string _type );
     bool getTypeByNum( const int _num, distributionType& type );
@@ -85,7 +83,8 @@ This type is used for basic distribution like random and replicated.
         virtual ListExpr toListExpr( ListExpr _typeInfo );
         virtual void print( );
 
-        static bool repartiRequired( ListExpr distType, int pos );
+        static bool repartiRequired( ListExpr distType, int pos, 
+            distributionType reqDistType );
 
     protected:
 /*
