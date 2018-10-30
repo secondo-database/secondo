@@ -387,7 +387,7 @@ public class GpxReader implements SecondoImporter {
             if (GPXTags.NODE_TIME.getValue().equals(currentChildTP.getNodeName())) {
                instant = Instant.parse(currentChildTP.getTextContent());
 
-               return new TrackPoint(latVal, lonVal, instant);
+               return new TrackPoint(lonVal, latVal, instant);
             }
          }
 
