@@ -132,7 +132,7 @@ fi
 
 
 
-checkpd --strong
+#checkpd --strong
 
 rc=$?
 if [ $rc -ne 0 ]; then
