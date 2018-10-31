@@ -324,7 +324,14 @@ ALGEBRAS      += AuxiliaryAlgebra
 #ALGEBRAS     += TinAlgebra
 #ALGEBRA_DEPS += quadmath gmp
 
+#ALGEBRA_DIRS += LineFunction
+#ALGEBRAS     += LineFunctionAlgebra
 
+#ALGEBRA_DIRS += RoutePlanning
+#ALGEBRAS     += RoutePlanningAlgebra
+
+#ALGEBRA_DIRS += Pointcloud
+#ALGEBRAS     += PointcloudAlgebra
 
 
 #ALGEBRA_DIRS  += Constraint
