@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/LineFunction/LMapping.h"
 #include "LCompose.h"
-#include "PointCloud.h"
+#include "Algebras/Pointcloud/PointCloud.h"
 #include "TinForRoutePlanning.h"
 
 #ifdef USE_CGAL_LIBRARY
@@ -110,7 +110,8 @@ namespace routeplanningalgebra {
   */
   class Vector2D {
   public:
-    Vector2D(const Cpoint cpoint) : x(cpoint.getX()), y(cpoint.getY()) {}
+    Vector2D(const pointcloud::Cpoint cpoint) : x(cpoint.getX()), 
+                                                y(cpoint.getY()) {}
 
     Vector2D(const ::Point point) : x(point.GetX()), y(point.GetY()) {}
 
@@ -157,7 +158,7 @@ namespace routeplanningalgebra {
     const double y;
   };
 
-  bool isInProximity(const Cpoint &point,
+  bool isInProximity(const pointcloud::Cpoint &point,
                      const SimpleLine &sline,
                      const double proximity) {
     //Bounding box of point with margin
@@ -209,8 +210,8 @@ namespace routeplanningalgebra {
   /*
   Function that generates Points either random or static
   */
-  std::vector<Cpoint> generatePoints() {
-    std::vector<Cpoint> points;
+  std::vector<pointcloud::Cpoint> generatePoints() {
+    std::vector<pointcloud::Cpoint> points;
 #ifdef STATIC_NET
     points.push_back(Cpoint(1, 1, 2));
     points.push_back(Cpoint(3, 6, 5));
@@ -250,7 +251,7 @@ namespace routeplanningalgebra {
                  (1 - (std::abs(2 * (x - minX - (spanX / 2)) / spanX))) *
                  (1 - (std::abs(2 * (y - minY - (spanY / 2)) / spanY))) *
                  spanZ;
-      Cpoint cpoint(x, y, z);
+      pointcloud::Cpoint cpoint(x, y, z);
       points.push_back(cpoint);
     }
     // completely random height
@@ -266,11 +267,11 @@ namespace routeplanningalgebra {
   /*
   Function that generates Points either random or static
   */
-  std::vector<Cpoint>
+  std::vector<pointcloud::Cpoint>
   generatePoints(const double minx, const double spanx, const double miny,
                  const double spany, const double minz, const double spanz,
                  const unsigned number) {
-    std::vector<Cpoint> points;
+    std::vector<pointcloud::Cpoint> points;
 
     srand(number);
     for (unsigned i = 0; i < number; i++) {
@@ -281,7 +282,7 @@ namespace routeplanningalgebra {
                  (1 - (std::abs(2 * (x - minx - (spanx / 2)) / spanx))) *
                  (1 - (std::abs(2 * (y - miny - (spany / 2)) / spanx))) *
                  spanz;
-      Cpoint cpoint(x, y, z);
+      pointcloud::Cpoint cpoint(x, y, z);
       points.push_back(cpoint);
     }
 
@@ -292,23 +293,22 @@ namespace routeplanningalgebra {
   /*
   Function that filters only the points in proximity of the sline
   */
-  std::vector<Cpoint> getPointsInProximityToSline(SimpleLine *sline,
-                                                  Stream<PointCloud>
-                                                  &pointcloudStream,
+  std::vector<pointcloud::Cpoint> getPointsInProximityToSline(SimpleLine *sline,
+                               Stream<pointcloud::PointCloud> &pointcloudStream,
                                                   const double proximity) {
     assert(sline);
     assert(proximity > 0);
-    std::vector<Cpoint> points;
+    std::vector<pointcloud::Cpoint> points;
     pointcloudStream.open();
 
-    PointCloud *pointCloud;
+    pointcloud::PointCloud *pointCloud;
     unsigned inRange = 0;
     while ((pointCloud = pointcloudStream.request()) != 0) {
       const double startx = sline->StartPoint().GetX();
       const double starty = sline->StartPoint().GetY();
       const double endx = sline->EndPoint().GetX();
       const double endy = sline->EndPoint().GetY();
-      Cpoints *pointContainer = pointCloud->getAllPointsInRange(
+      pointcloud::Cpoints *pointContainer = pointCloud->getAllPointsInRange(
           std::min(startx, endx) - proximity,
           std::min(starty, endy) - proximity,
           std::max(startx, endx) + proximity,
@@ -320,7 +320,7 @@ namespace routeplanningalgebra {
       }
       inRange += pointContainer->GetNoCpoints();
       for (int i = 0; i < pointContainer->GetNoCpoints(); i++) {
-        const Cpoint &cpoint = pointContainer->GetCpoint(i);
+        const pointcloud::Cpoint &cpoint = pointContainer->GetCpoint(i);
         if (isInProximity(cpoint, *sline, proximity)) {
           points.push_back(cpoint);
         }
@@ -344,13 +344,14 @@ namespace routeplanningalgebra {
   /*
   Function that returns all points from the Pointcloud stream
   */
-  std::vector<Cpoint> getAllPoints(Stream<PointCloud> &pointcloudStream) {
-    std::vector<Cpoint> points;
+  std::vector<pointcloud::Cpoint> getAllPoints(Stream<pointcloud::PointCloud> 
+                                               &pointcloudStream) {
+    std::vector<pointcloud::Cpoint> points;
     pointcloudStream.open();
 
-    PointCloud *pointCloud;
+    pointcloud::PointCloud *pointCloud;
     while ((pointCloud = pointcloudStream.request()) != 0) {
-      Cpoints *pointContainer = pointCloud->getAllPointsInRange(
+      pointcloud::Cpoints *pointContainer = pointCloud->getAllPointsInRange(
           pointCloud->getMinX(),
           pointCloud->getMinY(),
           pointCloud->getMaxX(),
@@ -358,7 +359,7 @@ namespace routeplanningalgebra {
       );
       pointCloud->DeleteIfAllowed();
       for (int i = 0; i < pointContainer->GetNoCpoints(); i++) {
-        const Cpoint &cpoint = pointContainer->GetCpoint(i);
+        const pointcloud::Cpoint &cpoint = pointContainer->GetCpoint(i);
         points.push_back(cpoint);
       }
       delete pointContainer;
@@ -372,11 +373,11 @@ namespace routeplanningalgebra {
   /*
   Function that reads the points from the Pointcloud stream
   */
-  std::vector<Cpoint> readPoints(SimpleLine *sline,
-                                 Stream<PointCloud> &pointcloudStream) {
+  std::vector<pointcloud::Cpoint> readPoints(SimpleLine *sline,
+                             Stream<pointcloud::PointCloud> &pointcloudStream) {
 #ifdef DEBUG_MODE
     unsigned number = 0;
-    std::vector<Cpoint> points = generatePoints();
+    std::vector<pointcloud::Cpoint> points = generatePoints();
     if (sline) {
       for (unsigned i = 0; i < points.size(); i++) {
 //          if (isInProximity(points[i], *sline)) {
@@ -391,7 +392,7 @@ namespace routeplanningalgebra {
     return points;
 #else
     if (sline) {
-      vector<Cpoint> points = getPointsInProximityToSline(sline,
+      vector<pointcloud::Cpoint> points = getPointsInProximityToSline(sline,
                                                           pointcloudStream,
                                                           PROXIMITY_THRESHOLD);
       if (points.empty()) {
@@ -409,7 +410,7 @@ namespace routeplanningalgebra {
   /*
   Function that reduces point density for performance enhancement
   */
-  int preprocessPoints(std::vector<Cpoint> &points,
+  int preprocessPoints(std::vector<pointcloud::Cpoint> &points,
                        const SimpleLine *sline,
                        const double precision) {
     assert(precision >= 0);
@@ -529,11 +530,11 @@ namespace routeplanningalgebra {
   /*
   Add corners to make sure the sline is on the tin
   */
-  void addCorners(std::vector<Cpoint> &points, const SimpleLine *sline,
-                  const Cpoint *bounds = 0) {
+  void addCorners(std::vector<pointcloud::Cpoint> &points, 
+                const SimpleLine *sline, const pointcloud::Cpoint *bounds = 0) {
     double min[3] = {DBL_MAX, DBL_MAX, DBL_MAX};
     double max[2] = {-DBL_MAX, -DBL_MAX};
-    auto search = [&min, &max](const Cpoint &p) {
+    auto search = [&min, &max](const pointcloud::Cpoint &p) {
       const double x = p.getX();
       const double y = p.getY();
       const double z = p.getZ();
@@ -558,21 +559,21 @@ namespace routeplanningalgebra {
     for (int i = 0; i < sline->Size() / 2; i++) {
       sline->Get(i, hs);
 
-      search(Cpoint(
+      search(pointcloud::Cpoint(
           hs.GetSecPoint().GetX(), hs.GetSecPoint().GetY(), min[2]
       ));
       if (i == 0) {
-        search(Cpoint(
+        search(pointcloud::Cpoint(
             hs.GetDomPoint().GetX(), hs.GetDomPoint().GetY(), min[2]
         ));
       }
     }
 
     // four corners
-    points.push_back(Cpoint(min[0], min[1], min[2]));
-    points.push_back(Cpoint(max[0], min[1], min[2]));
-    points.push_back(Cpoint(max[0], max[1], min[2]));
-    points.push_back(Cpoint(min[0], max[1], min[2]));
+    points.push_back(pointcloud::Cpoint(min[0], min[1], min[2]));
+    points.push_back(pointcloud::Cpoint(max[0], min[1], min[2]));
+    points.push_back(pointcloud::Cpoint(max[0], max[1], min[2]));
+    points.push_back(pointcloud::Cpoint(min[0], max[1], min[2]));
 
     DETAIL << "Added Corners from: (" << min[0] << ", " << min[1] << ", "
            << min[2] << ") to (" << max[0] << ", " << max[1] << ")\r\n";
@@ -581,7 +582,7 @@ namespace routeplanningalgebra {
   /*
   Comparator for sorting the points by y value
   */
-  bool CompareByYDesc(const Cpoint i, const Cpoint j) {
+  bool CompareByYDesc(const pointcloud::Cpoint i, const pointcloud::Cpoint j) {
     return (i.getY() > j.getY());
   }
 
@@ -589,7 +590,8 @@ namespace routeplanningalgebra {
   Function that creates the tin from the points
   -uses TinForRoutePlanning class for TIN Algebra API
   */
-  tin::Tin *makeTinFromPoints(std::vector<Cpoint> points, const bool isTemp) {
+  tin::Tin *makeTinFromPoints(std::vector<pointcloud::Cpoint> points, 
+                              const bool isTemp) {
     unsigned long number = points.size();
     if (number == 0) {
       return 0;
@@ -604,7 +606,7 @@ namespace routeplanningalgebra {
     DEBUG << "Points sorted" << "\r\n";
 
     //Tin Algebra throws maths errors if points are too close to each other.
-    auto tooClose = [](const double *c, const Cpoint &p) -> bool {
+    auto tooClose = [](const double *c, const pointcloud::Cpoint &p) -> bool {
       return (std::abs(c[0] - p.getX()) +
               std::abs(c[1] - p.getY())) < 1e-10;
     };
@@ -966,7 +968,7 @@ namespace routeplanningalgebra {
     lreal->Clear();
 
     SimpleLine *sline = (SimpleLine *) args[0].addr;
-    Stream<PointCloud> stream(args[1]);
+    Stream<pointcloud::PointCloud> stream(args[1]);
     CcReal *ccReal = (CcReal *) args[2].addr;
 
     lreal->SetDefined(false);
@@ -1008,7 +1010,7 @@ namespace routeplanningalgebra {
     }
     double precision = ccReal->GetRealval();
 
-    std::vector<Cpoint> points;
+    std::vector<pointcloud::Cpoint> points;
 
     // Get only the points that are close to the sline
     points = readPoints(sline, stream);
@@ -1068,7 +1070,7 @@ namespace routeplanningalgebra {
       return listutils::typeError(
           "The first argument must be of type sline");
     }
-    if (!Stream<PointCloud>::checkType(pointCloudStream)) {
+    if (!Stream<pointcloud::PointCloud>::checkType(pointCloudStream)) {
       return listutils::typeError(
           "The second argument must be of type Stream<PointCloud>");
     }
@@ -1108,7 +1110,7 @@ namespace routeplanningalgebra {
   int LCompose::PointcloudToTin::pointcloud2TinVM(Word *args, Word &result,
                                                   int message, Word &local,
                                                   Supplier s) {
-    Stream<PointCloud> stream(args[0]);
+    Stream<pointcloud::PointCloud> stream(args[0]);
     CcReal *ccReal = (CcReal *) args[1].addr;
 
     if (!ccReal->IsDefined()) {
@@ -1117,7 +1119,7 @@ namespace routeplanningalgebra {
     }
     double precision = ccReal->GetRealval();
 
-    std::vector<Cpoint> points = readPoints(0, stream);
+    std::vector<pointcloud::Cpoint> points = readPoints(0, stream);
 
 
 
@@ -1157,7 +1159,7 @@ namespace routeplanningalgebra {
     const ListExpr pointCloudStream = nl->First(args);
     const ListExpr precision = nl->Second(args);
 
-    if (!Stream<PointCloud>::checkType(pointCloudStream)) {
+    if (!Stream<pointcloud::PointCloud>::checkType(pointCloudStream)) {
       return listutils::typeError(
           "The first argument must be of type Stream<PointCloud>");
     }

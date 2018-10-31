@@ -26,7 +26,8 @@
 # inlcude global definitions
 include ../../makefile.env
 CURRENT_ALGEBRA := RoutePlanningAlgebra
-ALGEBRA_DEPENDENCIES := RTreeAlgebra
+ALGEBRA_DEPENDENCIES := PointcloudAlgebra
+ALGEBRA_DEPENDENCIES += RTreeAlgebra
 ALGEBRA_DEPENDENCIES += OsmAlgebra
 ALGEBRA_DEPENDENCIES += TinAlgebra
 ALGEBRA_DEPENDENCIES += SpatialAlgebra
@@ -35,8 +36,11 @@ ALGEBRA_DEPENDENCIES += OrderedRelationAlgebra
 ALGEBRA_DEPENDENCIES += TrajectoryAnnotationAlgebra
 
 # expand compile flags if necessary
-#CCFLAGS += $(ALG_INC_DIRS) 
 CCFLAGS += -Werror -std=c++11
+
+#ifneq ($(platform),mac_osx)
+#  CCFLAGS += -std=c++0x
+#endif
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
@@ -52,13 +56,10 @@ include $(DEP_FILES)
 endif
 
 # generic rule for creating a library
-$(LIBOBJ): $(OBJECTS) 
-	make -C lasreader all
-	$(create-lib) lasreader/*.o lasreader/prjconvert/*.o
-
+$(LIBOBJ): $(OBJECTS)
+	$(create-lib)
 
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	make -C lasreader clean
