@@ -134,9 +134,7 @@ ListExpr drelinsertTM( ListExpr args ){
     ListExpr funList = nl->TwoElemList(
         nl->FourElemList(
             nl->SymbolAtom("map"),
-            nl->TwoElemList(
-                listutils::basicSymbol<frel>( ),
-                nl->Second( relType ) ),           
+            relType,           
             relType,
             result),
         nl->FourElemList(
@@ -156,13 +154,9 @@ ListExpr drelinsertTM( ListExpr args ){
     
     //cout << "funList: " << nl->ToString(funList) << endl;
     
-    ListExpr dfarrayType = nl->TwoElemList(
-                            listutils::basicSymbol<distributed2::DFArray>(),
-                            relType);
-    
     ListExpr dmapResult = distributed2::dmapXTMT<2>(
         nl->FiveElemList(
-            nl->TwoElemList(dfarrayType, drelValue), //type of stream d[f]rel?
+            nl->TwoElemList(darrayType, drelValue), //type of stream d[f]rel?
             nl->TwoElemList(darrayType, drelValue), 
             nl->TwoElemList(
                 listutils::basicSymbol<CcString>(),
@@ -210,7 +204,7 @@ ListExpr drelinsertTM( ListExpr args ){
         resType);
 }
 
-DFRel* createDFRelOpTree(QueryProcessor* qps,
+DRel* createDRelOpTree(QueryProcessor* qps,
                         Relation* rel, ListExpr relType,
                         DRel* drel, ListExpr drelType){
     
@@ -245,11 +239,11 @@ DFRel* createDFRelOpTree(QueryProcessor* qps,
     ListExpr query;
     if(type == replicated){
         query = nl->FiveElemList(
-                    nl->SymbolAtom("drelfdistribute"),
+                    nl->SymbolAtom("dreldistribute"),
                     relPtr, name, dtype, workers );
     } else if(type == drel::random){
         query = nl->SixElemList(
-                    nl->SymbolAtom("drelfdistribute"),
+                    nl->SymbolAtom("dreldistribute"),
                     relPtr, name, dtype, size, workers );
     } else if(type == drel::hash || type == range 
             || type == spatial2d || type == spatial3d){
@@ -264,7 +258,7 @@ DFRel* createDFRelOpTree(QueryProcessor* qps,
             
         query = listutils::concat( 
                             nl->OneElemList(
-                                nl->SymbolAtom("drelfdistribute")),
+                                nl->SymbolAtom("dreldistribute")),
                             nl->SixElemList(relPtr, name, dtype,
                                 nl->SymbolAtom(attrName), 
                                 size, workers));
@@ -280,17 +274,17 @@ DFRel* createDFRelOpTree(QueryProcessor* qps,
                    isFunction, tree, resultType); 
     qps->SetEvaluable(tree, true); 
     
-    DFRel* dfrel_tmp = 0;
+    DRel* drel_tmp = 0;
     if(!correct || !evaluable || !defined){
-        dfrel_tmp->makeUndefined();
+        drel_tmp->makeUndefined();
     } else {
         Word qRes;
         qps->EvalS(tree, qRes, OPEN);
         qps->Destroy(tree, false);
-        dfrel_tmp = (DFRel*) qRes.addr;
+        drel_tmp = (DRel*) qRes.addr;
     }
     
-    return dfrel_tmp;
+    return drel_tmp;
 }
 
 /*
@@ -333,13 +327,13 @@ int drelinsertVM(Word* args, Word& result, int message,
     
     //distribute relation in the same manner as drel
     QueryProcessor* qps = new QueryProcessor( nl, am );
-    DFRel* dfrel_tmp = createDFRelOpTree(qps,
+    DRel* drel_tmp = createDRelOpTree(qps,
                                     rel, relType, drel, drelType);
     //check for defined
     cout << "opTree created" << endl;
     
     //create argument vector for dmapXVM
-    ArgVector argVec = {dfrel_tmp, drel, new CcString(true, ""), 
+    ArgVector argVec = {drel_tmp, drel, new CcString(true, ""), 
                         new CcBool(false, false), //dummy, ignored by dmapXVM
                         new CcInt(true, 1238), // port
                         args[2].addr, args[3].addr};
