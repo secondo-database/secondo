@@ -123,8 +123,7 @@ int createSSPStreamSupplierTStream_VM(Word* args, Word& result, int message,
 
         case CLOSE:
         {
-            std::cout << " createSSPStreamSupplier: "
-                << "ValueMapping: CLOSE " << "\n";
+            LOG << " createSSPStreamSupplier: ValueMapping: CLOSE " << ENDL;
             if (local.addr != 0) {
                 local.setAddr(0);
             }

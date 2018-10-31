@@ -71,7 +71,7 @@ class WorkerLoop {
 
 public:
     // Create
-    WorkerLoop(int id, TcpClient* coordinationClient);
+    WorkerLoop(int id, std::string tupledescr, TcpClient* coordinationClient);
 
     // Destroy
     ~WorkerLoop();
@@ -81,7 +81,6 @@ public:
         std::string address;
         int port;
         TcpClient* ptrClient;
-        // std::thread asyncThread;
     };
 
     struct queryStruct {
@@ -89,7 +88,6 @@ public:
         std::string funText;
         ArgVectorPointer funargs;
         OpTree tree;
-        QueryProcessor* qp;
     };
 
     // Initialize
@@ -101,12 +99,13 @@ public:
     // The Loop
     void TightLoop();
     bool filterTuple(Tuple* tuple, OpTree& tree, 
-        ArgVectorPointer& funargs, QueryProcessor* qp);
+        ArgVectorPointer& funargs);
 
     // NoMo handling
     void addNoMo(int id, std::string address);
     void deleteNoMo(int id);
-    void notifyAllNoMos(std::string tuple, std::string hitlist);
+    void notifyAllNoMos(int tupleId, std::string tupleString, 
+        std::string hitlist);
 
     // Query handling
     void addQuery(int id, std::string function);
@@ -117,6 +116,7 @@ public:
 private:
     TcpClient* _coordinationClient;
     int _id;
+    std::string _tupledescr;
     int _basePort;
 
     bool _running;
@@ -128,6 +128,8 @@ private:
     std::thread _tightLoopThread;
 
     std::map<int, nomoStruct> _nomos;
+    std::vector<std::thread> _nomoThreads;
+
     std::map<int, queryStruct> _queries;
 };
 

@@ -62,6 +62,9 @@ see CoordinatorLoop.cpp for details.
 #include <iostream>
 #include <condition_variable>
 
+#include "ListUtils.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+
 namespace continuousqueries {
 
 class CoordinatorLoop {
@@ -69,7 +72,7 @@ class CoordinatorLoop {
 public:
     // Create
     CoordinatorLoop();
-    CoordinatorLoop(int port);
+    CoordinatorLoop(int port, std::string tupledescr);
 
     // Destroy
     ~CoordinatorLoop();
@@ -88,6 +91,18 @@ public:
         bool awaitConfirmation; // TODO unneccessary, it's within type&status
         uint64_t wait_since;
         bool must_delete=false;
+    };
+
+    struct userStruct {
+        std::string hash;
+        std::string email;
+        std::vector<int> ownqueries;
+    };
+
+    struct queryStruct {
+        int id;
+        std::string userhash;
+        std::string function;
     };
 
     // Initialize
@@ -112,15 +127,27 @@ public:
     void registerWorker(int id);
     void registerNoMo(int id);
     void registerStreamSupplier(int id);
+    void registerQuery(queryStruct query);
+
+    void doUserAuth(ProtocolHelpers::Message msg);
+    void doGetQueries(ProtocolHelpers::Message msg);
+    void doAddQuery(ProtocolHelpers::Message msg);
+
+    int selectWorker();
+    int selectNoMo();
 
     void shutdownHandler(int id, std::string reason="");
     void showStatus();
 
+    void Shutdown();
+
     // helper functions
     int firstIdleHandler();
     int countHandlers(handlerType _type, handlerStatus _status);
+    std::string getHashFromEmail(std::string email);
     int getIdFromSocket(int _socket);
     bool confirmMessageIntegrity(ProtocolHelpers::Message msg, int testId);
+    bool checkNewFunction(std::string function);
 
 private:
     int _lastId;
@@ -133,8 +160,12 @@ private:
     std::map<int, handlerStruct> _handlers;
     std::mutex _protectHandlers;
 
-    // Manage queries
-    // TODO: Datatype of queries, saving of registered queries
+    std::map<std::string, userStruct> _users;
+
+    int _lastQueryId;
+    std::map<int, queryStruct> _queries;
+
+    std::string _tupledescr;
 };
 
 }

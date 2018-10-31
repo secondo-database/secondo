@@ -10,11 +10,11 @@ Result   : 0
 Operator : createSSPCoordinator
 Number   : 1
 Signature: string x number -> int
-Example  : query createSSPHandler(54000, "loop")
+Example  : query createSSPHandler(54000, "loop", "((No int))")
 Result   : 54000
 
 Operator : createSSPStreamSupplier
 Number   : 1
 Signature: stream(tuple) x string x number -> stream(tuple)
-Example  : query ten feed createSSPStreamSupplier("127.0.0.1", 54000) consume
+Example  : query ten feed createSSPStreamSupplier["127.0.0.1", 54000] consume
 Result   : stream(tuple)

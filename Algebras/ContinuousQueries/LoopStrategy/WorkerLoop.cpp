@@ -58,9 +58,11 @@ Creates a new WorkerLoop object.
 */
 
 
-WorkerLoop::WorkerLoop(int id, TcpClient* coordinationClient): 
+WorkerLoop::WorkerLoop(int id, std::string tupledescr, 
+    TcpClient* coordinationClient):
     _coordinationClient(coordinationClient),
     _id(id),
+    _tupledescr(tupledescr),
     _basePort(coordinationClient->GetServerPort()),
     _tupleServer(coordinationClient->GetServerPort() + (id*10))
 {
@@ -69,7 +71,7 @@ WorkerLoop::WorkerLoop(int id, TcpClient* coordinationClient):
 // Destroy
 WorkerLoop::~WorkerLoop()
 {
-
+    Shutdown();
 }
 
 // Initialize
@@ -111,7 +113,7 @@ void WorkerLoop::Initialize()
 
     // confirm specialization
     (void) _coordinationClient->Send(
-        CgenToHidleP::specializeHandler("worker|loop", true)
+        WorkerGenP::confirmspecialize(true)
     );
 
     Run();
@@ -120,27 +122,50 @@ void WorkerLoop::Initialize()
 // Run
 void WorkerLoop::Run()
 {
-    while (_running) {
+    bool hasMsg = false;
+    ProtocolHelpers::Message msg;
+
+    while (_running) 
+    {
         std::unique_lock<std::mutex> lock(_coordinationClient->mqMutex);
 
-        _coordinationClient->mqCondition.wait(lock, [this] {
+        hasMsg = _coordinationClient->mqCondition.wait_for(
+            lock, 
+            std::chrono::milliseconds(5000),
+            [this] {
             return !_coordinationClient->messages.empty();
         });
+
+        // _coordinationClient->mqCondition.wait(lock, [this] {
+        //     return !_coordinationClient->messages.empty();
+        // });
+
+        if (!_running) {
+            LOG << "!_running-->continue" << ENDL;
+            lock.unlock();
+            continue;
+        }
         
-        ProtocolHelpers::Message msg = 
-        ProtocolHelpers::decodeMessage(
-            _coordinationClient->messages.front()
-        );
-        _coordinationClient->messages.pop();
-        
+        if (hasMsg)
+        {
+            msg = ProtocolHelpers::decodeMessage(
+                _coordinationClient->messages.front()
+            );
+            _coordinationClient->messages.pop();
+            
+        } else {
+            msg.valid = false;
+        }
+
         lock.unlock();
 
-        if (msg.valid) {
+        if (hasMsg && msg.valid) {
 
             // get a new nomo
-            if (msg.cmd == CgenToWloopP::addNomo()) 
+            if (msg.cmd == CoordinatorGenP::addhandler()) 
             {
                 int nomoId = 0;
+                std::string handlerType = "";
                 std::string nomoAddress = "";
 
                 std::vector<std::string> parts;
@@ -152,7 +177,8 @@ void WorkerLoop::Run()
                 try
                 {
                     nomoId = std::stoi(parts[0]);
-                    nomoAddress = parts[1];
+                    handlerType = parts[1];
+                    nomoAddress = parts[2];
                 }
                 catch(...)
                 {
@@ -160,11 +186,11 @@ void WorkerLoop::Run()
                     std::cout << "failed to extract id or address \n";
                 }
 
-                if (nomoId) addNoMo(nomoId, nomoAddress);
+                if (nomoId && handlerType=="nomo") addNoMo(nomoId, nomoAddress);
             } else
 
             // get a query
-            if (msg.cmd == CgenToWloopP::addQuery()) 
+            if (msg.cmd == CoordinatorGenP::addquery(0, "", false)) 
             {
                 int qId = 0;
                 std::string function = "";
@@ -190,11 +216,11 @@ void WorkerLoop::Run()
             } else
 
             // force shutdown
-            if (msg.cmd == CgenToHidleP::shutdownHandler() || 
+            if (msg.cmd == CoordinatorGenP::shutdown() || 
                 msg.cmd == "disconnected") 
             {
-                std::cout << "shutting down due to " << msg.cmd 
-                    << " " << msg.params << "\n";
+                LOG << "shutting down due to " << msg.cmd 
+                    << " " << msg.params << ENDL;
                 
                 _running = false;
             } 
@@ -206,7 +232,12 @@ void WorkerLoop::Run()
             }
 
         } else {
-            std::cout << "Message '" << msg.cmd << "' is invalid... \n";
+            if (hasMsg) 
+            {
+                std::cout << "Message '" + msg.cmd + "' is invalid... \n";
+            } else {
+                std::cout << "No Message. Timeout... \n";
+            }
         }   
     }
 }
@@ -214,23 +245,38 @@ void WorkerLoop::Run()
 void WorkerLoop::TightLoop() 
 {
     // wait for new tuple
+    bool hasMsg = false;
+    ProtocolHelpers::Message msg;
 
     while (_running) {
         std::unique_lock<std::mutex> lock(_tupleServer.mqMutex);
 
-        _tupleServer.mqCondition.wait(lock, [this] {
+        hasMsg = _tupleServer.mqCondition.wait_for(
+            lock, 
+            std::chrono::milliseconds(5000),
+            [this] {
             return !_tupleServer.messages.empty();
         });
+
+        if (!_running) {
+            LOG << "TL: !_running-->continue" << ENDL;
+            lock.unlock();
+            continue;
+        }
         
-        ProtocolHelpers::Message msg = 
-            ProtocolHelpers::decodeMessage(
-                _tupleServer.messages.front()
-            );
-        _tupleServer.messages.pop();
+        if (hasMsg)
+        {
+            msg = ProtocolHelpers::decodeMessage(
+                    _tupleServer.messages.front()
+                );
+            _tupleServer.messages.pop();
+        } else {
+            msg.valid = false;
+        }
         
         lock.unlock();
 
-        if ((msg.valid) and (msg.cmd=="tuple")) {
+        if (hasMsg && msg.valid && msg.cmd==StSuGenP::tuple()) {
             // extract informations
             int tupleId = 0;
             std::string tupleString = "";
@@ -249,19 +295,16 @@ void WorkerLoop::TightLoop()
             catch(...)
             {
                 tupleId = 0;
-                std::cout << "failed to extract id or tuple \n";
+                LOG << "failed to extract id or tuple" << ENDL;
             }
 
             if (!tupleId) continue;
 
             // create tuple
-            TupleType* tt;
             
             ListExpr attrlist;
-            std::string attrstring = "((No int))";
-            nl->ReadFromString(attrstring, attrlist);
+            nl->ReadFromString(_tupledescr, attrlist);
 
-            
             ListExpr resultTupleType = nl->TwoElemList(
                 nl->SymbolAtom(Tuple::BasicType()),
                 attrlist
@@ -269,41 +312,52 @@ void WorkerLoop::TightLoop()
 
             SecondoCatalog* sc = SecondoSystem::GetCatalog();
             ListExpr numResultTupleType = sc->NumericType(resultTupleType);
-            tt = new TupleType(numResultTupleType);
-            
 
-            Tuple* tuple;
-            tuple = new Tuple(tt);
+            TupleType* tt = new TupleType(numResultTupleType);
+            Tuple* tuple  = new Tuple(tt);
 
             tuple->ReadFromBinStr(0, tupleString);
 
-            // loop durch Queries, prüfe auf hit
+            // Beging creating the string representation of tuple
+            // ListExpr _tType = nl->OneElemList(
+            //     SecondoSystem::GetCatalog()->NumericType(
+            //         nl->TwoElemList(
+            //             nl->SymbolAtom(Tuple::BasicType()),
+            //             attrlist
+            //         )
+            //     )
+            // );
+            // ListExpr tupleValue;
+            // std::string message;
+            // tupleValue = tuple->Out(_tType);
+            // nl->WriteToString(message, tupleValue);
+            // LOG << message << ENDL;
+
+            // loop over Queries, check for hits
             std::string hitlist = "";
             bool anyhit = false;
 
             for (std::map<int, queryStruct>::iterator it = _queries.begin();
                 it != _queries.end(); it++)
             {
-                std::cout << "inWhile" << "\n";
-
-                if (filterTuple(
-                    tuple, it->second.tree, 
-                    it->second.funargs, 
-                    it->second.qp)
-                )
+                if (filterTuple(tuple, it->second.tree, it->second.funargs))
                 {
-                    std::cout << "inHit" << "\n";
-
                     anyhit = true;
                     hitlist += std::to_string(it->first);
                     hitlist += ",";
                 }
             }
 
+            tuple->DeleteIfAllowed();
+            tt->DeleteIfAllowed();
+            // delete sc;
+
             hitlist = hitlist.substr(0, hitlist.size()-1);
 
+            LOG << "tID: " << tupleId << "hl: " << hitlist << ENDL;
+
             // notify all nomos
-            if (anyhit) notifyAllNoMos(msg.params, hitlist);
+            if (anyhit) notifyAllNoMos(tupleId, tupleString, hitlist);
         }
     }
 }
@@ -316,7 +370,7 @@ True is returned when the result of the function is true.
 
 */
 bool WorkerLoop::filterTuple(Tuple* tuple, OpTree& tree, 
-    ArgVectorPointer& funargs, QueryProcessor* qqp) 
+    ArgVectorPointer& funargs) 
 {
     (*funargs)[0] = tuple;
     Word result;
@@ -326,22 +380,18 @@ bool WorkerLoop::filterTuple(Tuple* tuple, OpTree& tree,
     if (((Attribute*)result.addr)->IsDefined()) {
         return ((CcBool*)result.addr)->GetBoolval();
     }
+
     return false;
 }
 
-void WorkerLoop::notifyAllNoMos(std::string tuple, std::string hitlist)
+void WorkerLoop::notifyAllNoMos(int tupleId, std::string tupleString, 
+    std::string hitlist)
 {
-    std::cout << "notify " << hitlist << "\n";
-
     for (std::map<int, nomoStruct>::iterator it = _nomos.begin(); 
         it != _nomos.end(); it++)
     {
-        std::cout << "sent to " << it->first << "\n";
-
         it->second.ptrClient->SendAsync(
-            tuple + 
-            std::string(1, ProtocolHelpers::seperator) +
-            hitlist
+            WorkerGenP::hit(tupleId, tupleString, hitlist, true)
         );
     }
 }
@@ -349,7 +399,9 @@ void WorkerLoop::notifyAllNoMos(std::string tuple, std::string hitlist)
 // NoMo handling
 void WorkerLoop::addNoMo(int id, std::string address)
 {
-    std::cout << id << "|" << address << ":" << _basePort + (id * 10) << "\n";
+    LOG << "Adding NoMo " << id << "|" << address << ":" 
+        << _basePort + (id * 10) << ENDL;
+
     nomoStruct toAdd;
     toAdd.id = id;
     toAdd.port = _basePort + (id * 10);
@@ -357,26 +409,22 @@ void WorkerLoop::addNoMo(int id, std::string address)
     toAdd.ptrClient = new TcpClient(address, _basePort + (id * 10));
 
     toAdd.ptrClient->Initialize();
-
-    std::thread t = std::thread(
+    
+    _nomoThreads.push_back(std::thread(
         &TcpClient::AsyncHandler, 
         toAdd.ptrClient
-    );
-
-    t.detach();
+    ));
 
     _nomos.insert( std::pair<int, nomoStruct>(id, toAdd));
 }
 
 void WorkerLoop::deleteNoMo(int id)
-{
-
-}
+{}
 
 // Query handling
 void WorkerLoop::addQuery(int id, std::string function)
 {
-    std::cout << "adding " << id << "|" << function << "\n";
+    LOG << "Adding Query " << id << "|" << function << ENDL;
     queryStruct toAdd;
     toAdd.id = id;
     toAdd.funText = function;
@@ -384,12 +432,12 @@ void WorkerLoop::addQuery(int id, std::string function)
     // build funList
     ListExpr funList;
     if( !nl->ReadFromString(function, funList)) {
-        std::cout << "Error building funList" << "\n";
+        LOG << "Error building funList" << ENDL;
         return;
     }
 
-    QueryProcessor* qqp = new QueryProcessor(nl,
-        SecondoSystem::GetAlgebraManager());
+    // QueryProcessor* qqp = new QueryProcessor(nl,
+    //     SecondoSystem::GetAlgebraManager());
 
     // build the tree
     OpTree tree = 0;
@@ -400,7 +448,7 @@ void WorkerLoop::addQuery(int id, std::string function)
     bool isFunction = false;
 
     try {
-        qqp->Construct(
+        qp->Construct(
             funList,
             correct,
             evaluable,
@@ -410,12 +458,13 @@ void WorkerLoop::addQuery(int id, std::string function)
             resultType );
     }
     catch(SI_Error ERR_IN_QUERY_EXPR) {
-        std::cout << "Error building tree" << "\n";
+        LOG << "Error building tree" << ENDL;
         return;
     }
 
+
+
     toAdd.tree = tree;
-    toAdd.qp = qqp;
 
     // get the funargs
     toAdd.funargs = qp->Argument(tree);
@@ -426,8 +475,21 @@ void WorkerLoop::addQuery(int id, std::string function)
 // Shutdown
 void WorkerLoop::Shutdown()
 {
+    _running = false;
+
     _tupleServer.Shutdown();
     _tupleServerThread.join();
+    _tightLoopThread.join();
+    
+    for (std::map<int, nomoStruct>::iterator it = _nomos.begin(); 
+        it != _nomos.end(); it++)
+    {
+        it->second.ptrClient->Shutdown();
+    }
+
+    for (unsigned i=0; i < _nomoThreads.size(); i++) {
+        _nomoThreads[i].join();
+    }
 }
 
 }

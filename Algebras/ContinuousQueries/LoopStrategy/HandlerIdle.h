@@ -88,6 +88,7 @@ private:
 
     TcpClient _coordinationClient;
     std::thread _coordinationClientThread;
+    std::string _tupledescr;
 };
 
 }

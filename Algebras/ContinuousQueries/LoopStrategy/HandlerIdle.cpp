@@ -43,6 +43,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "HandlerIdle.h"
+#include <boost/algorithm/string.hpp>
 
 namespace continuousqueries {
 
@@ -68,7 +69,8 @@ Destroys the HandlerIdle object and sets all ressources free.
 
 */
 
-HandlerIdle::~HandlerIdle() {
+HandlerIdle::~HandlerIdle() 
+{
     Shutdown();
     // TODO: Verbindungen lösen, etc.
 }
@@ -83,7 +85,8 @@ initialitation is done. It pushes incoming messages to its queue.
 
 */
 
-void HandlerIdle::Initialize() {
+void HandlerIdle::Initialize() 
+{
     // start the client, received messages will be pushed to _MessageQueque
     _coordinationClient.Initialize();
     
@@ -91,7 +94,7 @@ void HandlerIdle::Initialize() {
         &TcpClient::Receive, 
         &_coordinationClient
     );
-    _coordinationClientThread.detach();
+    // _coordinationClientThread.detach();
     
     // wait for the connection to be established
     if (!_coordinationClient.IsRunning())
@@ -112,13 +115,11 @@ void HandlerIdle::Initialize() {
     size_t sendl;
     do
     {
-        sendl = _coordinationClient.Send(
-            CgenToHidleP::registerHandler("idle", true)
-        );
+        sendl = _coordinationClient.Send(IdleGenP::hello("idle", true));
 
-        if (sendl != CgenToHidleP::registerHandler("idle", true).length())
-            std::cout << "error while sending registerHandler message \n";
-    } while (sendl != CgenToHidleP::registerHandler("idle", true).length());
+        if (sendl != IdleGenP::hello("idle", true).length())
+            LOG << "error while sending registerHandler message" << ENDL;
+    } while (sendl != IdleGenP::hello("idle", true).length());
 
     // wait for a specilization
     bool noSpecilization = true;
@@ -139,49 +140,62 @@ void HandlerIdle::Initialize() {
         lock.unlock();
 
         if (msg.valid) {
-            // confirm the id set by the coordinator
-            if (msg.cmd == CgenToHidleP::confirmHandler()) 
+            // confirm the id and tupledescr set by the coordinator
+            if (msg.cmd == CoordinatorGenP::confirmhello()) 
             {
                 int handlerId = 0;
-                
+                std::string tupledescr = "";
+
+                std::vector<std::string> parts;
+
+                boost::split(parts, msg.params, 
+                    boost::is_any_of(std::string(1,ProtocolHelpers::seperator))
+                );
+
                 try
                 {
-                    handlerId = std::stoi(msg.params);
+                    handlerId = std::stoi(parts[0]);
+                    tupledescr = parts[1];
                 }
                 catch(...)
                 {
-                    std::cerr << "failed to convert id to int \n";
+                    handlerId = 0;
+                    LOG << "failed to convert id to int" 
+                        << " or receive the tupledescr" << ENDL;
                 }
                 
                 sendl = _coordinationClient.Send(
-                    CgenToHidleP::confirmHandler(handlerId, true)
+                    CoordinatorGenP::confirmhello(handlerId, tupledescr, true)
                 );
 
-                if (
-                    sendl == CgenToHidleP::confirmHandler(handlerId, true)
-                        .length() && handlerId) 
+                if (sendl == CoordinatorGenP::confirmhello(handlerId, 
+                    tupledescr, true).length() && handlerId) 
                 {
-                    std::cout << "Set my ID to " << handlerId << ". \n";
                     _id = handlerId;
+                    _tupledescr = tupledescr;
+
+                    LOG << "Set my ID to " << _id << ". Working with the "
+                        << "TupleDescription: " << _tupledescr << "." << ENDL;
                 } else {
-                    std::cout << "error while sending "
-                        << "confirmHandler message \n";
+                    LOG << "Failed to confirm the hello message..."
+                        << " probably shutting down soon." << ENDL;
                 }
             } 
 
             // get a specialization
-            if (msg.cmd == CgenToHidleP::specializeHandler()) 
+            if (msg.cmd == CoordinatorGenP::specialize()) 
             {
                 // an id is neccessary for a specialization
                 if (_id == 0) 
                 {
-                    std::cout << "can't specialize without an id \n";
+                    LOG << "can't specialize without an id" << ENDL;
+                    continue;
                 }
 
                 // become a worker
-                if (msg.params == "worker|loop")
+                if (msg.params == "worker")
                 {
-                    WorkerLoop worker(_id, &_coordinationClient);
+                    WorkerLoop worker(_id, _tupledescr, &_coordinationClient);
                     
                     worker.Initialize();
 
@@ -191,7 +205,7 @@ void HandlerIdle::Initialize() {
                 // become a notification and monitoring handler
                 else if (msg.params == "nomo")
                 {
-                    NoMo nomo(_id, &_coordinationClient);
+                    NoMo nomo(_id, _tupledescr, &_coordinationClient);
 
                     nomo.Initialize();
 
@@ -207,11 +221,11 @@ void HandlerIdle::Initialize() {
             }
 
             // force shutdown
-            else if (msg.cmd == CgenToHidleP::shutdownHandler() || 
+            else if (msg.cmd == CoordinatorGenP::shutdown() || 
                 msg.cmd == "disconnected") 
             {
-                std::cout << "shutting down due to " << msg.cmd 
-                    << " " << msg.params << "\n";
+                LOG << "shutting down due to " << msg.cmd 
+                    << " " << msg.params << ENDL;
                 
                 noSpecilization = false;
             } 
@@ -219,19 +233,25 @@ void HandlerIdle::Initialize() {
             // unknown command
             else 
             {
-                std::cout << "No handler for command " << msg.cmd << ".\n";
+                LOG << "No handler for command " << msg.cmd << ENDL;
             }
 
         } else {
-            std::cout << "Message '" + msg.cmd + "' is invalid... \n";
+            LOG << "Message '" + msg.cmd + "' is invalid..." << ENDL;
         }   
     }
 
-    Shutdown();
+    LOG << "Ende" << ENDL;
+    // Shutdown();
 }
 
-void HandlerIdle::Shutdown() {
-    // TODO: Verbindungen lösen, etc.
+void HandlerIdle::Shutdown() 
+{
+    LOG << "IdleHandler " << _id << " is shutting down ";
+    _coordinationClient.Shutdown();
+    LOG << "... _cC has shut down ";
+    _coordinationClientThread.join();
+    LOG << "... _cCT has joined. Finished! " << ENDL;
 }
 
 }

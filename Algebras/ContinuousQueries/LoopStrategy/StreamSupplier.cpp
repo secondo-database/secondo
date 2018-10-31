@@ -96,20 +96,25 @@ void StreamSupplier::Initialize()
     if (!_id)
     {
         int count = 0;
-        std::cout << "Waiting a maximum of 60 seconds for Stream Supplier"
-            << " and at least one worker.";
+        std::cout << "Waiting a maximum of 60 seconds for ID.";
         
-        while ((!_id) and (count < (60*1000)) and (_workers.size()==0)) {
+        while ((!_id) && (count < (60*1000))) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             std::cout << ".";
             count = count + 100;
         }
-        if (_id) std::cout << " Done!\n";
+        if (_id)
+        {
+            std::cout << " Done!\n";
+        } else {
+            Shutdown();
+        }
     }
 }
 
 
-void StreamSupplier::Run() {
+void StreamSupplier::Run() 
+{
     _running = false;
 
     // start the client, received messages will be pushed to _MessageQueque
@@ -119,7 +124,7 @@ void StreamSupplier::Run() {
         &TcpClient::Receive, 
         &_coordinationClient
     );
-    _coordinationClientThread.detach();
+    // _coordinationClientThread.detach();
     
     // wait for the connection to be established
     if (!_coordinationClient.IsRunning())
@@ -131,7 +136,7 @@ void StreamSupplier::Run() {
             std::cout << ".";
             count = count + 100;
         }
-        if (_coordinationClient.IsRunning()) std::cout << " Done!\n";
+        if (_coordinationClient.IsRunning()) LOG << " Done!" << ENDL;
     }
 
     if (!_coordinationClient.IsRunning()) return;
@@ -141,56 +146,86 @@ void StreamSupplier::Run() {
     do
     {
         sendl = _coordinationClient.Send(
-            CgenToHidleP::registerHandler("streamsupplier", true)
+            StSuGenP::hello(true)
         );
 
-        if (sendl != CgenToHidleP::registerHandler("streamsupplier", true)
-            .length())
-            std::cout << "error while sending registerHandler message \n";
-    } while (sendl != CgenToHidleP::registerHandler("streamsupplier", true)
-        .length());
+        if (sendl != StSuGenP::hello(true).length())
+            LOG << "error while sending registerHandler message" << ENDL;
+    } while (sendl != StSuGenP::hello(true).length());
 
     // wait for the id
     bool hasId = false;
+    bool hasMsg = false;
     _running = true;
 
+    ProtocolHelpers::Message msg;
+
     while (_running) {
+        LOG << "BEFORE LOCK _cC" << ENDL;
         std::unique_lock<std::mutex> lock(_coordinationClient.mqMutex);
 
-        _coordinationClient.mqCondition.wait(lock, [this] {
+        hasMsg = _coordinationClient.mqCondition.wait_for(
+            lock, 
+            std::chrono::milliseconds(5000),
+            [this] {
             return !_coordinationClient.messages.empty();
         });
+        LOG << "AFTER LOCK _cC: " << hasMsg << "!" << ENDL;
 
-        ProtocolHelpers::Message msg = 
-        ProtocolHelpers::decodeMessage(
-            _coordinationClient.messages.front()
-        );
-        _coordinationClient.messages.pop();
+        if (!_running) {
+            LOG << "!_running-->continue" << ENDL;
+            lock.unlock();
+            continue;
+        }
+
+        if (hasMsg)
+        {
+            msg = ProtocolHelpers::decodeMessage(
+                _coordinationClient.messages.front()
+            );
+            _coordinationClient.messages.pop();
+        } else {
+            msg.valid = false;
+        }
         
         lock.unlock();
 
-        if (msg.valid) {
-            // confirm the id set by the coordinator
-            if ((msg.cmd == CgenToHidleP::confirmHandler()) and (!hasId)) 
+        if (hasMsg && msg.valid) {
+            // get the id and tupledescr from the coordinator and confirm it
+            if (msg.cmd == CoordinatorGenP::confirmhello()) 
             {
+                if (hasId) 
+                {
+                    LOG << "ID already set!" << ENDL;
+                    continue;
+                }
+
                 int handlerId = 0;
+                std::string tupledescr;
                 
+                std::vector<std::string> parts;
+
+                boost::split(parts, msg.params, 
+                    boost::is_any_of(std::string(1,ProtocolHelpers::seperator))
+                );
+
                 try
                 {
-                    handlerId = std::stoi(msg.params);
+                    handlerId = std::stoi(parts[0]);
+                    tupledescr= parts[1];
                 }
                 catch(...)
                 {
-                    std::cerr << "failed to convert id to int \n";
+                    LOG << "failed to convert id to int" << ENDL;
                 }
                 
                 sendl = _coordinationClient.Send(
-                    CgenToHidleP::confirmHandler(handlerId, true)
+                    CoordinatorGenP::confirmhello(handlerId, tupledescr, true)
                 );
 
                 if (
-                    sendl == CgenToHidleP::confirmHandler(handlerId, true)
-                        .length() && handlerId) 
+                    sendl == CoordinatorGenP::confirmhello(handlerId, 
+                        tupledescr, true).length() && handlerId) 
                 {
                     std::cout << "Set my ID to " << handlerId << ". \n";
                     _id = handlerId;
@@ -202,9 +237,10 @@ void StreamSupplier::Run() {
             }
 
             // get a new worker
-            else if ((msg.cmd == CgenToStSuP::addWorker()) and (hasId)) 
+            else if ((msg.cmd == CoordinatorGenP::addhandler()) and (hasId)) 
             {
                 int workerId = 0;
+                std::string handlerType = "";
                 std::string workerAddress = "";
 
                 std::vector<std::string> parts;
@@ -216,7 +252,8 @@ void StreamSupplier::Run() {
                 try
                 {
                     workerId = std::stoi(parts[0]);
-                    workerAddress = parts[1];
+                    handlerType = parts[1];
+                    workerAddress = parts[2];
                 }
                 catch(...)
                 {
@@ -224,11 +261,12 @@ void StreamSupplier::Run() {
                     std::cout << "failed to extract id or address \n";
                 }
 
-                if (workerId) addWorker(workerId, workerAddress);
+                if (workerId && handlerType=="worker") 
+                    addWorker(workerId, workerAddress);
             }
 
             // force shutdown
-            else if (msg.cmd == CgenToHidleP::shutdownHandler() || 
+            else if (msg.cmd == CoordinatorGenP::shutdown() || 
                 msg.cmd == "disconnected") 
             {
                 std::cout << "shutting down due to " << msg.cmd 
@@ -245,11 +283,14 @@ void StreamSupplier::Run() {
             }
 
         } else {
-            std::cout << "Message '" + msg.cmd + "' is invalid... \n";
+            if (hasMsg) 
+            {
+                std::cout << "Message '" + msg.cmd + "' is invalid... \n";
+            } else {
+                std::cout << "No Message. Timeout... \n";
+            }
         }   
     }
-
-    Shutdown();
 }
 
 void StreamSupplier::pushTuple(Tuple* t)
@@ -257,7 +298,7 @@ void StreamSupplier::pushTuple(Tuple* t)
     if (_workers.size() == 0) 
         std::cout << "No worker connected. Tuple is lost. \n";
     
-    std::string msg = StSuToWgenP::tuple(
+    std::string msg = StSuGenP::tuple(
         ++_lastTupleId, 
         t->WriteToBinStr(), 
         true
@@ -287,23 +328,30 @@ void StreamSupplier::addWorker(int id, std::string address)
 
     toAdd.ptrClient->Initialize();
 
-    std::thread t = std::thread(
+    _workerThreads.push_back(std::thread(
         &TcpClient::AsyncHandler, 
         toAdd.ptrClient
-    );
-
-    t.detach();
+    ));
 
     _workers.insert( std::pair<int, workerStruct>(id, toAdd));
 }
 
 void StreamSupplier::Shutdown() {
-    // TODO: Verbindungen lösen, etc.
     _running = false;
     
     _coordinationClient.Shutdown();
-
+    _coordinationClientThread.join();
     _ownThread.join();
+
+    for (std::map<int, workerStruct>::iterator it = _workers.begin(); 
+        it != _workers.end(); it++)
+    {
+        it->second.ptrClient->Shutdown();
+    }
+
+    for (unsigned i=0; i < _workerThreads.size(); i++) {
+        _workerThreads[i].join();
+    }
 }
 
 }

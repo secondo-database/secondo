@@ -76,7 +76,7 @@ void TcpServer::Run()
     {   
         client_socket[i] = 0;   
     }   
-         
+
     //create a master socket  
     if( (_master_socket = socket(AF_INET , SOCK_STREAM , 0)) == 0)   
     {   
@@ -119,10 +119,16 @@ void TcpServer::Run()
 
     _running = true;
 
+    struct timeval timeout;
+
     while(_running) 
     {
         //clear the socket set  
         FD_ZERO(&readfds);   
+
+        // reset the timeout
+        timeout.tv_sec = 10;
+        timeout.tv_usec = 0;
      
         //add master socket to set  
         FD_SET(_master_socket, &readfds);
@@ -135,23 +141,27 @@ void TcpServer::Run()
             sd = client_socket[i];   
                  
             //if valid socket descriptor then add to read list  
-            if(sd > 0)   
-                FD_SET( sd , &readfds);   
+            if(sd > 0) FD_SET( sd , &readfds);   
                  
             //highest file descriptor number, need it for the select function
-            if(sd > max_sd)   
-                max_sd = sd;   
+            if(sd > max_sd) max_sd = sd;
         }   
      
-        //wait for an activity on one of the sockets , timeout is NULL , 
-        //so wait indefinitely 
-        activity = select( max_sd + 1 , &readfds , NULL , NULL , NULL);
+        //wait for an activity on one of the sockets , timeout is 10 sec
+        activity = select( max_sd + 1 , &readfds , NULL , NULL , &timeout);
        
         if ((activity < 0) && (errno!=EINTR))   
         {   
             printf("select error");   
-        }   
-             
+        } else
+
+        // check if there was an timeout
+        if (activity == 0) 
+        {
+            std::cout << "Timeout... \n";
+            continue;
+        } else
+
         //If something happened on the master socket,
         //then its an incoming connection  
         if (FD_ISSET(_master_socket, &readfds)) 
@@ -177,13 +187,15 @@ void TcpServer::Run()
                     break;   
                 }   
             }   
-        }   
-             
+        }
+
         //else it's some IO operation on some other socket 
-        for (i = 0; i < SOMAXCONN; i++) 
+        else 
         {
+            for (i = 0; i < SOMAXCONN; i++) 
+            {
             sd = client_socket[i];   
-                 
+
             if (FD_ISSET(sd , &readfds)) 
             {
                 // Check if it was for closing and read the incoming message
@@ -195,7 +207,7 @@ void TcpServer::Run()
                     // Close the socket and mark as 0 in list for reuse
                     close( sd );
                     client_socket[i] = 0;
-                }   
+                }
                      
                 // Push the incoming message to the queue
                 else 
@@ -210,8 +222,11 @@ void TcpServer::Run()
                     memset(buffer, 0, MAXPACKETSIZE);
                 }   
             }   
-        }   
+        }
     }
+    }
+
+    close(_master_socket);
 }
 
 TcpServer::Message TcpServer::CreateMsg(int sockd, std::string body)

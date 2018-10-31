@@ -79,7 +79,6 @@ public:
         std::string address;
         int port;
         TcpClient* ptrClient;
-        // std::thread asyncThread;
     };
 
     // Initialize
@@ -109,6 +108,8 @@ private:
 
     bool _running;
     std::map<int, workerStruct> _workers;
+    std::vector<std::thread> _workerThreads;
+    std::string _tupledescr;
 };
 
 }

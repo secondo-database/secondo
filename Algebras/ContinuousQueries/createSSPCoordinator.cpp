@@ -46,6 +46,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 // #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "QueryProcessor.h"
 #include "ListUtils.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include <boost/algorithm/string.hpp>
 #include "LoopStrategy/CoordinatorLoop.h"
 
@@ -65,14 +66,14 @@ namespace continuousqueries {
 */
 
 ListExpr createSSPCoordinator_TM(ListExpr args) {
-    // the list is coded as ( (<type> <query part>) (<type> <query part>) )
+    // the list is coded as ( (<type> <query part>) (<type> <query part>) ...)
 
     std::cout << "createSSPCoordinator: TypeMapping" << endl;
     std::cout << "Argument: " << nl->ToString(args) << endl;
 
-    // Check for text x int -> int
-    if (!(nl->HasLength(args,1) || nl->HasLength(args,2))) 
-        return listutils::typeError(" one or two arguments are expected");
+    // Check for int x text x text -> int
+    if (!nl->HasLength(args, 3))
+        return listutils::typeError(" three arguments are expected");
     
     ListExpr arg1Type = nl->First(args);
 
@@ -94,15 +95,23 @@ ListExpr createSSPCoordinator_TM(ListExpr args) {
             " portnumber between 0 and 65535 expected "
         );
 
-    // Check sercond argument (command)
+    // Check second argument (command)
     ListExpr arg2Type = nl->Second(args);
 
     if (!nl->HasLength(arg2Type, 2))
         return listutils::typeError(" internal error (command) ");
 
     if (!CcString::checkType(nl->First(arg2Type)))
-        return listutils::typeError(" string as command is expected");
+        return listutils::typeError(" command as string is expected");
 
+    // Check third argument (tupledescription/text)
+    ListExpr arg3Type = nl->Third(args);
+
+    if (!nl->HasLength(arg3Type, 2))
+        return listutils::typeError(" internal error (tupledescr) ");
+
+    if (!FText::checkType(nl->First(arg3Type)))
+        return listutils::typeError(" tupledescr as text is expected");
     return arg1Type;
 }
 
@@ -116,29 +125,35 @@ int createSSPCoordinator_VM(Word* args, Word& result, int message,
 
     std::cout << "createSSPCoordinator: ValueMapping" << endl;
 
-    CcInt*   ccport = (CcInt*) args[0].addr; 
-    CcString* cccmd = (CcString*) args[1].addr;
+    CcInt*   ccport        = (CcInt*) args[0].addr; 
+    CcString* cccmd        = (CcString*) args[1].addr;
+    FText*    fttupledescr = static_cast<FText*>(args[2].addr);  
+
     std::string cmd = cccmd->GetValue();
     boost::to_upper(cmd);
-    int port = ccport->GetValue();
 
     std::cout << "Creating the specified Coordinator..." << endl;
 
     if (cmd == "LOOP") {
         std::cout << "Creating a Loop Coordinator..." << endl;
-        CoordinatorLoop coordinator(port);
+        CoordinatorLoop coordinator(
+            ccport->GetValue(), 
+            fttupledescr->GetValue()
+        );
         coordinator.Run();
+
+        // delete coordinator;
         
     } else if (cmd == "RECOVER") {
         std::cout << "Recover from a crashed Coordinator..." << endl;
         std::cout << "TBD. Quitting..." << endl;
     } else {
-        std::cout << "No known command given. Quitting..." << endl;            
+        std::cout << "No known command given. Quitting..." << endl;
     }
     
     result = qp->ResultStorage(s);
     CcInt* res = (CcInt*) result.addr;
-    res->Set(true, port);
+    res->Set(true, ccport->GetValue());
     return 0;
 }
 

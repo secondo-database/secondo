@@ -61,6 +61,9 @@ see NoMo.cpp for details.
 #include <iostream>
 #include <condition_variable>
 
+#include "ListUtils.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+
 namespace continuousqueries {
 
 class NoMo {
@@ -68,7 +71,7 @@ class NoMo {
 public:
 
     // Create
-    NoMo(int id, TcpClient* coordinationClient);
+    NoMo(int id, std::string tupledescr, TcpClient* coordinationClient);
 
     // Destroy
     ~NoMo();
@@ -85,8 +88,14 @@ public:
     // Run
     void Run();
 
+    // Handle hits
+    void NotificationLoop();
+    void handleHit(int queryId, std::string tupleString, std::string hitlist);
+    std::string tupleBinaryStringToRealString(std::string tupleString);
+    
     // NoMo handling
-    void addUserQuery(int id, std::string query, std::string email);
+    void addUserQuery(int id, std::string query, 
+        std::string userhash, std::string email);
 
     // Shutdown
     void Shutdown();
@@ -94,11 +103,13 @@ public:
 private:
     TcpClient* _coordinationClient;
     int _id;
+    std::string _tupledescr;
     bool _running;
     int _basePort;
 
     TcpServer _tupleServer;
     std::thread _tupleServerThread;
+    std::thread _notificationLoopThread;
 
     std::map<int, queryStruct> _queries;
 };

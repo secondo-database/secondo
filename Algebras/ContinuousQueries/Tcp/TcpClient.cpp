@@ -56,16 +56,17 @@ TcpClient::~TcpClient() {}
 void TcpClient::Shutdown()
 {
     _running = false;
+    // close(_master_socket);
 }
 
 void TcpClient::Initialize()
 {
     //create the master socket  
-    if( (_master_socket = socket(AF_INET , SOCK_STREAM , 0)) == 0)   
-    {   
+    if( (_master_socket = socket(AF_INET , SOCK_STREAM , 0)) <= 0)
+    {
         perror("socket failed");
         exit(EXIT_FAILURE);
-    }   
+    }
      
     // create the address
     struct sockaddr_in address;
@@ -78,10 +79,10 @@ void TcpClient::Initialize()
         _master_socket, (struct sockaddr *)&address, sizeof(address)
     ) < 0 )
     {   
-        perror("connecting failed");   
-        exit(EXIT_FAILURE);   
+        perror("connecting failed\n");
+        exit(EXIT_FAILURE);
     }
-         
+
     _running = true;
 }
 
@@ -90,15 +91,28 @@ void TcpClient::Receive()
     char buffer[MAXPACKETSIZE];
     memset(buffer, 0, MAXPACKETSIZE);
 
+    struct timeval timeout;
+    timeout.tv_sec = 10;
+    timeout.tv_usec = 0;
+
+    if (setsockopt(_master_socket, SOL_SOCKET, 
+        SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0)
+    {
+        perror("setsockopt failed\n");
+        _running = false;
+    }
+
+
     while(_running) 
     {
         // wait for a message
+        std::cout << "Before recv \n";
         int bytesReceived = recv(_master_socket, buffer, MAXPACKETSIZE, 0);
 
-        // check if it was an error
+        // check if there was an timeout
         if (bytesReceived == -1) 
         {
-            // some error... ignore for the beginning
+            std::cout << "Timeout... \n";
         }
 
         // check if it was for closing
@@ -123,6 +137,8 @@ void TcpClient::Receive()
         
         memset(buffer, 0, MAXPACKETSIZE);
     }
+
+    close(_master_socket);
 }
 
 TcpClient::Message TcpClient::CreateMsg(int sockd, std::string body)
@@ -199,20 +215,27 @@ void TcpClient::SendAsync(std::string msg)
 
 void TcpClient::AsyncHandler()
 {
+    bool hasMsg = false;
+
     while (_running) 
     {
         std::unique_lock<std::mutex> outgoingLock(_outgoingMsgsMutex);
 
-        _outgoingMsgsCondition.wait(outgoingLock, [this] {
+        hasMsg = _outgoingMsgsCondition.wait_for(
+            outgoingLock, 
+            std::chrono::milliseconds(5000),
+            [this] {
             return !_outgoingMsgsQueue.empty();
         });
 
-        std::string msg = _outgoingMsgsQueue.front();
-        _outgoingMsgsQueue.pop();
-        
-        outgoingLock.unlock();
+        if (hasMsg)
+        {
+            std::string msg = _outgoingMsgsQueue.front();
+            _outgoingMsgsQueue.pop();
+            Send(msg);
+        }
 
-        Send(msg);
+        outgoingLock.unlock();
     }
 }
 

@@ -125,47 +125,28 @@ void ProtocolHelpers::decodeBody(ProtocolHelpers::Message* target) {
 }
 
 /*
-2 Protocol for general Coordinator and IdleHandlers
+2 Protocol for messages send by the (general/loop) Coordinator
 
 Returns the name of the command as default. Can also create the whole 
 message to be sent by setting 'create' to true.
 
 */
 
-std::string CgenToHidleP::registerHandler(std::string type, bool create)
+std::string CoordinatorGenP::confirmhello(int id, std::string tupledescr, 
+    bool create)
 {
-    std::string r = "hello";
-    if (!create) return r;
-    
-    r += ProtocolHelpers::seperator;
-    r += type;
-
-    return r;
-}
-
-std::string CgenToHidleP::confirmHandler(int id, bool create)
-{
-    std::string r = "welcome";
+    std::string r = "confirmhello";
     if (!create) return r;
     
     r += ProtocolHelpers::seperator;
     r += std::to_string(id);
-
-    return r;
-}
-
-std::string CgenToHidleP::shutdownHandler(std::string msg, bool create) 
-{
-    std::string r = "shutdown";
-    if (!create) return r;
-    
     r += ProtocolHelpers::seperator;
-    r += msg;
+    r += tupledescr;
 
     return r;
 }
 
-std::string CgenToHidleP::specializeHandler(std::string type, bool create)
+std::string CoordinatorGenP::specialize(std::string type, bool create)
 {
     std::string r = "specialize";
     if (!create) return r;
@@ -176,28 +157,23 @@ std::string CgenToHidleP::specializeHandler(std::string type, bool create)
     return r;
 }
 
-/*
-3 Protocol for general Coordinator and LoopWorker
-
-Returns the name of the command as default. Can also create the whole 
-message to be sent by setting 'create' to true.
-
-*/
-
-std::string CgenToWloopP::addNomo(int id, std::string address, bool create)
+std::string CoordinatorGenP::addhandler(int id, std::string type, 
+    std::string address, bool create)
 {
-    std::string r = "addnomo";
+    std::string r = "addhandler";
     if (!create) return r;
     
     r += ProtocolHelpers::seperator;
     r += std::to_string(id);
+    r += ProtocolHelpers::seperator;
+    r += type;
     r += ProtocolHelpers::seperator;
     r += address;
 
     return r;
 }
 
-std::string CgenToWloopP::addQuery(int id, std::string function, bool create)
+std::string CoordinatorGenP::addquery(int id, std::string function, bool create)
 {
     std::string r = "addquery";
     if (!create) return r;
@@ -210,16 +186,8 @@ std::string CgenToWloopP::addQuery(int id, std::string function, bool create)
     return r;
 }
 
-/*
-4 Protocol for general Coordinator and NoMo
-
-Returns the name of the command as default. Can also create the whole 
-message to be sent by setting 'create' to true.
-
-*/
-
-std::string CgenToNoMoP::addUserQuery(int queryId, std::string query, 
-        std::string mail, bool create)
+std::string CoordinatorGenP::addquery(int queryId, std::string function, 
+        std::string userhash, std::string mail, bool create)
 {
     std::string r = "adduserquery";
     if (!create) return r;
@@ -227,52 +195,120 @@ std::string CgenToNoMoP::addUserQuery(int queryId, std::string query,
     r += ProtocolHelpers::seperator;
     r += std::to_string(queryId);
     r += ProtocolHelpers::seperator;
-    r += query;
+    r += function;
+    r += ProtocolHelpers::seperator;
+    r += userhash;
     r += ProtocolHelpers::seperator;
     r += mail;
 
     return r;
 }
 
+std::string CoordinatorGenP::shutdown(std::string reason, bool create) 
+{
+    std::string r = "shutdown";
+    if (!create) return r;
+    
+    r += ProtocolHelpers::seperator;
+    r += reason;
+
+    return r;
+}
+
+std::string CoordinatorGenP::userauth(std::string type, 
+    std::string tupledescr, bool create)
+{
+    std::string r = "userauth";
+    if (!create) return r;
+
+    r += ProtocolHelpers::seperator;
+    r += type;
+    r += ProtocolHelpers::seperator;
+    r += tupledescr;
+
+    return r;
+}
+
+std::string CoordinatorGenP::getqueries(int id, 
+    std::string func, bool create)
+{
+    std::string r = "getqueries";
+    if (!create) return r;
+    
+    r += ProtocolHelpers::seperator;
+    r += std::to_string(id);
+    r += ProtocolHelpers::seperator;
+    r += func;
+
+    return r;
+}
+
+std::string CoordinatorGenP::remote(bool create) 
+{
+    std::string r = "remote";
+    return r;
+}
+
+std::string CoordinatorGenP::status(bool create) 
+{
+    std::string r = "status";
+    return r;
+}
 
 /*
-6 Protocol for general Coordinator and StreamSupplier
+3 Protocol for messages send by the Idle Handler
 
 Returns the name of the command as default. Can also create the whole 
 message to be sent by setting 'create' to true.
 
 */
 
-std::string CgenToStSuP::addWorker(int workerId, std::string address, 
-    bool create)
+std::string IdleGenP::hello(std::string type, bool create)
 {
-    std::string r = "addworker";
+    std::string r = "hello";
     if (!create) return r;
     
     r += ProtocolHelpers::seperator;
-    r += std::to_string(workerId);
+    r += type;
+
+    return r;
+}
+
+std::string IdleGenP::confirmspecialize(std::string type, bool create)
+{
+    std::string r = "confirmspecialize";
+    if (!create) return r;
+    
     r += ProtocolHelpers::seperator;
-    r += address;
+    r += type;
 
     return r;
 }
 
 /*
-6 Protocol for general Coordinator and NoMo
+4 Protocol for messages send by the (general/loop) Worker
 
 Returns the name of the command as default. Can also create the whole 
 message to be sent by setting 'create' to true.
 
 */
 
-std::string WgenToNoMoP::hit(std::string tuple, std::string hitlist, 
-    bool create)
+std::string WorkerGenP::confirmspecialize(bool create)
+{
+    if (!create) return IdleGenP::confirmspecialize();
+    return IdleGenP::confirmspecialize("worker", true);
+}
+
+std::string WorkerGenP::hit(int id, std::string tupleString, 
+    std::string hitlist, bool create)
 {
     std::string r = "hit";
     if (!create) return r;
-    
+
     r += ProtocolHelpers::seperator;
-    r += tuple;
+    r += std::to_string(id);
+    r += ProtocolHelpers::seperator;
+    r += tupleString;
     r += ProtocolHelpers::seperator;
     r += hitlist;
 
@@ -280,14 +316,34 @@ std::string WgenToNoMoP::hit(std::string tuple, std::string hitlist,
 }
 
 /*
-6 Protocol for Stream Supplier and Worker
+5 Protocol for messages send by the (general) NoMo
 
 Returns the name of the command as default. Can also create the whole 
 message to be sent by setting 'create' to true.
 
 */
 
-std::string StSuToWgenP::tuple(int id, std::string tuple, bool create)
+std::string NoMoGenP::confirmspecialize(bool create)
+{
+    if (!create) return IdleGenP::confirmspecialize();
+    return IdleGenP::confirmspecialize("nomo", true);
+}
+
+/*
+6 Protocol for messages send by the (general) Stream Supplier
+
+Returns the name of the command as default. Can also create the whole 
+message to be sent by setting 'create' to true.
+
+*/
+
+std::string StSuGenP::hello(bool create)
+{
+    if (!create) return IdleGenP::hello();
+    return IdleGenP::hello("streamsupplier", true);
+}
+
+std::string StSuGenP::tuple(int id, std::string tuple, bool create)
 {
     std::string r = "tuple";
     if (!create) return r;
