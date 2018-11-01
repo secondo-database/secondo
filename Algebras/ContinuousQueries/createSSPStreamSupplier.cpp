@@ -224,13 +224,12 @@ int createSSPStreamSupplier_Select(ListExpr args) {
 const std::string createSSPStreamSupplierOpSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>(stream (tuple([a1:d1, ... ,an:dn])) x string x int)"
-" -> (stream (tuple([a1:d1, ... ,an:dn]))))"
-"</text--->"
-"<text>_ createSSPStreamSupplier ( _, _ )</text--->"
+" -> (stream (tuple([a1:d1, ... ,an:dn]))))</text--->"
+"<text>_ createSSPStreamSupplier [ _, _ ]</text--->"
 "<text>Connect a Stream Supplier to a Coordinator "
 " specified by address and portnumber</text--->"
 "<text>query ten feed createSSPStreamSupplier"
-"(\"127.0.0.1\", 12300) consume</text--->"
+"[\"127.0.0.1\", 12300] consume</text--->"
 ") )";
 
 

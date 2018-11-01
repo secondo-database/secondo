@@ -3,13 +3,13 @@ Restore  : NO
 
 Operator : createSSPHandler
 Number   : 1
-Signature: string x number -> int
+Signature: string x int -> int
 Example  : query createSSPHandler("127.0.0.1", 54000)
 Result   : 0
 
 Operator : createSSPCoordinator
 Number   : 1
-Signature: string x number -> int
+Signature: int x string x text -> int
 Example  : query createSSPHandler(54000, "loop", "((No int))")
 Result   : 54000
 
@@ -18,3 +18,9 @@ Number   : 1
 Signature: stream(tuple) x string x number -> stream(tuple)
 Example  : query ten feed createSSPStreamSupplier["127.0.0.1", 54000] consume
 Result   : stream(tuple)
+
+Operator : foreverStream
+Number   : 1
+Signature: int x int x int -> stream(tuple)
+Example  : query foreverStream(100, 0, 0) count
+Result   : 100

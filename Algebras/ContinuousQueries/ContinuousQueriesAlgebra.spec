@@ -20,3 +20,5 @@
 operator createSSPCoordinator alias CREATESSPCOORDINATOR pattern op  ( _, _, _ )
 operator createSSPHandler alias CREATESSPHANDLER pattern op ( _, _ )
 operator createSSPStreamSupplier alias CREATESSPSTREAMSUPPLIER pattern _ op [ _, _ ]
+
+operator foreverStream alias FOREVERSTREAM pattern op ( _, _, _ )

@@ -183,11 +183,10 @@ int createSSPCoordinator_Select(ListExpr args) {
 
 const std::string createSSPCoordinatorOpSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>int x string -> int</text--->"
-"<text>createSSPCoordinator ( _, _ )</text--->"
-"<text>Creates the coordinator for the SSP system."
-" </text--->"
-"<text>query createSSPCoordinator(54000, \"loop\")"
+"( <text>int x string x text -> int</text--->"
+"<text>createSSPCoordinator ( _, _, _ )</text--->"
+"<text>Creates the coordinator for the SSP network.</text--->"
+"<text>query createSSPCoordinator(54000, \"loop\", \"((No int))\")"
 "</text--->"
 ") )";
 

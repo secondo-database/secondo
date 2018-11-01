@@ -44,13 +44,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "ContinuousQueriesAlgebra.h"
 
-
-
 namespace continuousqueries {
 
 extern Operator createSSPHandler_Op;
 extern Operator createSSPCoordinator_Op;
 extern Operator createSSPStreamSupplier_Op;
+extern Operator foreverStream_Op;
 
 
 
@@ -64,6 +63,9 @@ ContinuousQueriesAlgebra::ContinuousQueriesAlgebra() {
 
     AddOperator(&createSSPStreamSupplier_Op);
     createSSPStreamSupplier_Op.SetUsesArgsInTypeMapping();
+
+    AddOperator(&foreverStream_Op);
+    foreverStream_Op.SetUsesArgsInTypeMapping();
 }
 
 extern "C" 
