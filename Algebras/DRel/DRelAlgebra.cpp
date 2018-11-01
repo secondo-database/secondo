@@ -66,8 +66,8 @@ extern Operator drelprojectextendOp;
 extern Operator drelheadOp;
 extern Operator renameOp;
 
-extern Operator drellrdupOp;
-extern Operator drellsortOp;
+extern Operator lrdupOp;
+extern Operator lsortOp;
 extern Operator drellgroupbyOp;
 extern Operator drellsortbyOp;
 
@@ -124,10 +124,10 @@ DRelAlgebra::DRelAlgebra() {
     AddOperator( &renameOp );
     renameOp.SetUsesArgsInTypeMapping( );
 
-    AddOperator( &drellrdupOp );
-    drellrdupOp.SetUsesArgsInTypeMapping( );
-    AddOperator( &drellsortOp );
-    drellsortOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &lrdupOp );
+    lrdupOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &lsortOp );
+    lsortOp.SetUsesArgsInTypeMapping( );
     AddOperator( &drellgroupbyOp );
     drellgroupbyOp.SetUsesArgsInTypeMapping( );
     AddOperator( &drellsortbyOp );

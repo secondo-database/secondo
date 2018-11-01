@@ -64,9 +64,9 @@ namespace distributed2 {
 
 namespace drel {
 
-    ListExpr drellsortTM( ListExpr args );
+    ListExpr lsortTM( ListExpr args );
     ListExpr drellsortbyTM( ListExpr args );
-    ListExpr drellrdupTM( ListExpr args );
+    ListExpr lrdupTM( ListExpr args );
     ListExpr drellgroupbyTM( ListExpr args, bool global );
 
     template<class R, class T>
@@ -82,9 +82,9 @@ namespace drel {
             static ListExpr callDMapTM( ListExpr args, dmapLocalMapper i ) {
 
                 switch ( i ) {
-                    case lsort: return drellsortTM( args );
+                    case lsort: return lsortTM( args );
                     case lsortby: return drellsortbyTM( args );
-                    case lrdup: return drellrdupTM( args );
+                    case lrdup: return lrdupTM( args );
                     case lgroupby: return drellgroupbyTM( args, true );
                 }
 

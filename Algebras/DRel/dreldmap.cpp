@@ -25,9 +25,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 
-1 Implementation of the secondo operators drelfilter, drelproject, 
-drelprojectextend, drellsortby, drellgroupby, drellsort, drellrdup, 
-drelrename, drelhead and drelextend
+1 Implementation of the secondo operators drelfilter, project, 
+drelprojectextend, drellsortby, drellgroupby, lsort, lrdup, 
+lrename, drelhead and drelextend
 
 This operators have the same value mapping witch calls the dmap operator of 
 the Distributed2Algebra.
@@ -1007,16 +1007,16 @@ operator.
     }
 
 /*
-1.1.7 Type Mapping ~drellrdupTM~
+1.1.7 Type Mapping ~lrdupTM~
 
-Expect a d[f]rel and a symbol. Type mapping for the drellrdup
+Expect a d[f]rel and a symbol. Type mapping for the lrdup
 operator.
 
 */
-    ListExpr drellrdupTM( ListExpr args ) {
+    ListExpr lrdupTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "drellrdupTM" << endl;
+        cout << "lrdupTM" << endl;
         cout << "args" << endl;
         cout << nl->ToString( args ) << endl;
         #endif
@@ -1109,16 +1109,16 @@ operator.
     }
 
 /*
-1.1.8 Type Mapping ~drellsortTM~
+1.1.8 Type Mapping ~lsortTM~
 
-Expect a d[f]rel and a symbol. Type mapping for the drellsort
+Expect a d[f]rel and a symbol. Type mapping for the lsort
 operator.
 
 */
-    ListExpr drellsortTM( ListExpr args ) {
+    ListExpr lsortTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "drellsortTM" << endl;
+        cout << "lsortTM" << endl;
         cout << "args" << endl;
         cout << nl->ToString( args ) << endl;
         #endif
@@ -1903,35 +1903,35 @@ Operator specification of the rename operator.
     );
 
 /*
-1.5.7 Specification of drellrdup
+1.5.7 Specification of lrdup
 
-Operator specification of the drellrdup operator.
+Operator specification of the lrdup operator.
 
 */
-    OperatorSpec drellrdupSpec(
+    OperatorSpec lrdupSpec(
         " drel(X) "
         "-> drel(X) ",
-        " _ drellrdup",
+        " _ lrdup",
         "Removes duplicates in a d[f]rel. "
         "NOTE: Duplicates are only removed in a local array field "
         "and not in the global d[f]rel.",
-        " query drel1 drellrdup"
+        " query drel1 lrdup"
     );
 
 /*
-1.5.8 Specification of drellsort
+1.5.8 Specification of lsort
 
-Operator specification of the drellsort operator.
+Operator specification of the lsort operator.
 
 */
-    OperatorSpec drellsortSpec(
+    OperatorSpec lsortSpec(
         " drel(X) "
         "-> drel(X) ",
-        " _ drellsort",
+        " _ lsort",
         "Sorts a d[f]rel. "
         "NOTE: The operator only sorts the local array fields "
         "and not in global d[f]rel.",
-        " query drel1 drellsort"
+        " query drel1 lsort"
     );
     
 /*
@@ -2067,29 +2067,29 @@ Operator specification of the drelwindowintersects operator.
     );
     
 /*
-1.6.7 Operator instance of drellrdup operator
+1.6.7 Operator instance of lrdup operator
 
 */
-    Operator drellrdupOp(
-        "drellrdup",
-        drellrdupSpec.getStr( ),
+    Operator lrdupOp(
+        "lrdup",
+        lrdupSpec.getStr( ),
         2,
         dreldmapVM,
         dreldmapSelect,
-        drellrdupTM
+        lrdupTM
     );
     
 /*
-1.6.8 Operator instance of drellsort operator
+1.6.8 Operator instance of lsort operator
 
 */
-    Operator drellsortOp(
-        "drellsort",
-        drellsortSpec.getStr( ),
+    Operator lsortOp(
+        "lsort",
+        lsortSpec.getStr( ),
         2,
         dreldmapVM,
         dreldmapSelect,
-        drellsortTM
+        lsortTM
     );
     
 /*
