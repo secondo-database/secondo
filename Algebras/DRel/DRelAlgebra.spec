@@ -21,21 +21,21 @@ operator drelbulkloadrtree alias DRELBULKLOADRTREE pattern _ op[_,_]
 operator drelwindowintersects alias DRELWINDOWINTERSECTS pattern _ _ op[_]
 
 operator drelfilter alias DRELFILTER pattern _ op[fun] implicit parameters elem1 types DRELFUNARG1
-operator project alias PROJECT pattern _ op [list]
 operator drelextend alias DRELEXTEND pattern _ op [funlist] implicit parameters elem1 types DRELFUNARG1
 operator drelprojectextend alias DRELPROJECTEXTEND pattern _ op [list;funlist] implicit parameters elem1 types DRELFUNARG1
+operator project alias PROJECT pattern _ op [list]
 operator head alias HEAD pattern _ op[_]
 operator rename alias RENAME pattern _ op[_]
 
 operator lrdup alias LRDUP pattern _ op
 operator lsort alias LSORT pattern _ op
+operator lsortby alias LSORTBY pattern _ op [list]
 operator lgroupby alias DRELLGROUPBY pattern _ op[list;funlist] implicit parameters elem1 types DRELRELFUNARG1
-operator lsortby alias DRELLSORTBY pattern _ op [list]
 
-operator drelrdup alias DRELRDUP pattern _ op
-operator drelsort alias DRELSORT pattern _ op
+operator rdup alias RDUP pattern _ op
+operator sort alias LSORT pattern _ op
+operator sortby alias SORTBY pattern _ op [list]
 operator drelgroupby alias DRELGROUPBY pattern _ op[list;funlist] implicit parameters elem1 types DRELRELFUNARG1
-operator drelsortby alias DRELSORTBY pattern _ op [list]
 
 operator drelsortmergejoin alias DRELSORTMERGEJOIN pattern _ _ op [_,_]
 operator drelitHashJoin alias DRELITHASHJOIN pattern _ _ op [_,_]

@@ -25,8 +25,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 
-1 Implementation of the secondo operators drelsort, drelsortby, 
-drelgroupby and drelrdup
+1 Implementation of the secondo operators sort, sortby, 
+drelgroupby and rdup
 
 */
 //#define DRELDEBUG
@@ -566,35 +566,35 @@ must be moved to the right position for the dmap value mapping.
 /*
 1.5 Specification for all operators using dmapVM
 
-1.5.7 Specification of drelrdup
+1.5.7 Specification of rdup
 
-Operator specification of the drelrdup operator.
+Operator specification of the rdup operator.
 
 */
-    OperatorSpec drelrdupSpec(
+    OperatorSpec rdupSpec(
         " d[f]rel(X) "
         "-> d[f]rel(X) ",
-        " _ drelrdup",
+        " _ rdup",
         "Removes duplicates in a d[f]rel. "
         "NOTE: Duplicates are only removed from the global d[f]rel and a "
         "repartition may be done.",
-        " query drel1 drelrdup"
+        " query drel1 rdup"
     );
 
 /*
-1.5.8 Specification of drelsort
+1.5.8 Specification of sort
 
-Operator specification of the drelsort operator.
+Operator specification of the sort operator.
 
 */
-    OperatorSpec drelsortSpec(
+    OperatorSpec sortSpec(
         " d[f]rel(X) "
         "-> d[f]rel(X) ",
-        " _ drelsort",
+        " _ sort",
         "Sorts a d[f]rel. "
         "NOTE: The operator only sorts the global d[f]rel and a "
         "repartition may be done.",
-        " query drel1 drelsort"
+        " query drel1 sort"
     );
     
 /*
@@ -619,30 +619,30 @@ Operator specification of the drelgroupby operator.
     );
 
 /*
-1.5.10 Specification of drelsortby
+1.5.10 Specification of sortby
 
-Operator specification of the drelsortby operator.
+Operator specification of the sortby operator.
 
 */
-    OperatorSpec drelsortbySpec(
+    OperatorSpec sortbySpec(
         " d[f]rel(X) "
         "-> d[f]rel(X) ",
-        " _ drelsortby[attrlist]",
+        " _ sortby[attrlist]",
         "Sorts a d[f]rel by a specific attribute list. "
         "NOTE: The operator sorts the global d[f]rel and a "
         "repartition may be done.",
-        " query drel1 drelsortby[PLZ]"
+        " query drel1 sortby[PLZ]"
     );
 
 /*
 1.6 Operator instance of operators using dmapVM
 
-1.6.7 Operator instance of drelrdup operator
+1.6.7 Operator instance of rdup operator
 
 */
-    Operator drelrdupOp(
-        "drelrdup",
-        drelrdupSpec.getStr( ),
+    Operator rdupOp(
+        "rdup",
+        rdupSpec.getStr( ),
         4,
         drelgobalOpVM,
         drelglobalOpSelect,
@@ -650,12 +650,12 @@ Operator specification of the drelsortby operator.
     );
     
 /*
-1.6.8 Operator instance of drelsort operator
+1.6.8 Operator instance of sort operator
 
 */
-    Operator drelsortOp(
-        "drelsort",
-        drelsortSpec.getStr( ),
+    Operator sortOp(
+        "sort",
+        sortSpec.getStr( ),
         4,
         drelgobalOpVM,
         drelglobalOpSelect,
@@ -676,12 +676,12 @@ Operator specification of the drelsortby operator.
     );
 
 /*
-1.6.10 Operator instance of drelsortby operator
+1.6.10 Operator instance of sortby operator
 
 */
-    Operator drelsortbyOp(
-        "drelsortby",
-        drelsortbySpec.getStr( ),
+    Operator sortbyOp(
+        "sortby",
+        sortbySpec.getStr( ),
         4,
         drelgobalOpVM,
         drelglobalOpSelect,

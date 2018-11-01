@@ -172,10 +172,10 @@ Example   : query drel1 drelprojectextend[PLZ; PLZ2 : .PLZ + 1]
 Result    : bug
 Remark    : remote server required
 
-Operator  : drelhead
+Operator  : head
 Number    : 1
 Signature : drel(rel(X)) x int -> drel(rel(X))
-Example   : query drel1 drelhead[3]
+Example   : query drel1 head[3]
 Result    : bug
 Remark    : remote server required
 
@@ -186,17 +186,17 @@ Example   : query drel1 rename[t1]
 Result    : bug
 Remark    : remote server required
 
-Operator  : drellrdup
+Operator  : lrdup
 Number    : 1
 Signature : drel(rel(X)) -> drel(rel(X))
-Example   : query drel1 drellrdup
+Example   : query drel1 lrdup
 Result    : bug
 Remark    : remote server required
 
-Operator  : drellsort
+Operator  : lsort
 Number    : 1
 Signature : drel(rel(X)) -> drel(rel(X))
-Example   : query drel1 drellsort
+Example   : query drel1 lsort
 Result    : bug
 Remark    : remote server required
 
@@ -207,24 +207,24 @@ Example   : query drel1 drellgroupby[PLZ; Anz : group feed count]
 Result    : bug
 Remark    : remote server required
 
-Operator  : drellsortby
+Operator  : lsortby
 Number    : 1
 Signature : drel(rel(X)) x attr -> drel(rel(X))
-Example   : query drel1 drellsortby[PLZ]
+Example   : query drel1 lsortby[PLZ]
 Result    : bug
 Remark    : remote server required
 
-Operator  : drelrdup
+Operator  : rdup
 Number    : 1
 Signature : drel(rel(X)) -> drel(rel(X))
-Example   : query drel1 drelrdup
+Example   : query drel1 rdup
 Result    : bug
 Remark    : remote server required
 
-Operator  : drelsort
+Operator  : sort
 Number    : 1
 Signature : drel(rel(X)) -> drel(rel(X))
-Example   : query drel1 drelsort
+Example   : query drel1 sort
 Result    : bug
 Remark    : remote server required
 
@@ -235,10 +235,10 @@ Example   : query drel1 drelgroupby[PLZ; Anz : group feed count]
 Result    : bug
 Remark    : remote server required
 
-Operator  : drelsortby
+Operator  : sortby
 Number    : 1
 Signature : drel(rel(X)) x attr -> drel(rel(X))
-Example   : query drel1 drelsortby[PLZ]
+Example   : query drel1 sortby[PLZ]
 Result    : bug
 Remark    : remote server required
 

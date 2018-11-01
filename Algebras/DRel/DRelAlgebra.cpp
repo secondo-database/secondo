@@ -78,10 +78,10 @@ extern Operator drelrangeOp;
 extern Operator drelbulkloadrtreeOp;
 extern Operator drelwindowintersectsOp;
 
-extern Operator drelrdupOp;
-extern Operator drelsortOp;
+extern Operator rdupOp;
+extern Operator sortOp;
+extern Operator sortbyOp;
 extern Operator drelgroupbyOp;
-extern Operator drelsortbyOp;
 
 extern Operator drelsortmergejoinOp;
 extern Operator drelitHashJoinOp;
@@ -152,14 +152,14 @@ DRelAlgebra::DRelAlgebra() {
     AddOperator( &drelwindowintersectsOp );
     drelwindowintersectsOp.SetUsesArgsInTypeMapping( );
 
-    AddOperator( &drelrdupOp );
-    drelrdupOp.SetUsesArgsInTypeMapping( );
-    AddOperator( &drelsortOp );
-    drelsortOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &rdupOp );
+    rdupOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &sortOp );
+    sortOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &sortbyOp );
+    sortbyOp.SetUsesArgsInTypeMapping( );
     AddOperator( &drelgroupbyOp );
     drelgroupbyOp.SetUsesArgsInTypeMapping( );
-    AddOperator( &drelsortbyOp );
-    drelsortbyOp.SetUsesArgsInTypeMapping( );
 
     AddOperator( &drelsortmergejoinOp );
     drelsortmergejoinOp.SetUsesArgsInTypeMapping( );
