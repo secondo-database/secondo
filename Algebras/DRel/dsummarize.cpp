@@ -66,16 +66,13 @@ namespace drel {
 Expect a d[f]el.
 
 */
-    ListExpr drelsummarizeTM( ListExpr args ) {
+    ListExpr dsummarizeTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "drelsummarizeTM" << endl;
+        cout << "dsummarizeTM" << endl;
         cout << "args" << endl;
         cout << nl->ToString( args ) << endl;
         #endif
-
-        cout << "drelsummarizeTM" << endl;
-        cout << nl->ToString( args ) << endl;
 
         std::string err = "d[f]rel expected";
 
@@ -85,14 +82,16 @@ Expect a d[f]el.
         }
 
         if( DFRel::checkType( nl->First( args ) ) ) {
-            return dsummarizeTM( nl->OneElemList( nl->TwoElemList( 
-                nl->SymbolAtom( DFArray::BasicType( ) ), 
-                nl->Second( nl->First( args ) ) ) ) );
+            return distributed2::dsummarizeTM( 
+                nl->OneElemList( nl->TwoElemList( 
+                    nl->SymbolAtom( DFArray::BasicType( ) ), 
+                    nl->Second( nl->First( args ) ) ) ) );
         }
         if( DRel::checkType( nl->First( args ) ) ) {
-            return dsummarizeTM( nl->OneElemList( nl->TwoElemList( 
-                nl->SymbolAtom( DArray::BasicType( ) ), 
-                nl->Second( nl->First( args ) ) ) ) );
+            return distributed2::dsummarizeTM( 
+                nl->OneElemList( nl->TwoElemList( 
+                    nl->SymbolAtom( DArray::BasicType( ) ), 
+                    nl->Second( nl->First( args ) ) ) ) );
         }
 
         return listutils::typeError( err +
@@ -106,56 +105,57 @@ Selects all elements of the d[f]rel from the workers.
 
 */
     template<class T, class R>
-    int drelsummarizeVMT( Word* args, Word& result, int message,
+    int dsummarizeVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "drelsummarizeVMT" << endl;
+        cout << "dsummarizeVMT" << endl;
         #endif
 
-        return dsummarizeVMT<T, R>( args, result, message, local, s );
+        return distributed2::dsummarizeVMT<T, R>( 
+            args, result, message, local, s );
     }
 
 /*
 1.3 ValueMapping Array of drelsummarize
 
 */
-    ValueMapping drelsummarizeVM[ ] = {
-        drelsummarizeVMT<dsummarizeRelInfo<DArray>, DArray >,
-        drelsummarizeVMT<dsummarizeRelInfo<DFArray>, DFArray >
+    ValueMapping dsummarizeVM[ ] = {
+        dsummarizeVMT<dsummarizeRelInfo<DArray>, DArray >,
+        dsummarizeVMT<dsummarizeRelInfo<DFArray>, DFArray >
     };
 
 /*
-1.4 Selection function of drelsummarize
+1.4 Selection function of dsummarize
 
 */
-    int drelsummarizeSelect( ListExpr args ) {
+    int dsummarizeSelect( ListExpr args ) {
 
         return DRel::checkType( nl->First( args ) ) ? 0 : 1;
     }
 
 /*
-1.5 Specification of drelsummarize
+1.5 Specification of dsummarize
 
 */
-    OperatorSpec drelsummarizeSpec(
+    OperatorSpec dsummarizeSpec(
         "d[f]rel(rel(X)) -> stream(X)",
-        "_ drelsummarize",
+        "_ dsummarize",
         "Produces a stream of the drel elements.",
         "query drel1 dsummarize count"
     );
 
 /*
-1.6 Operator instance of drelsummarize operator
+1.6 Operator instance of dsummarize operator
 
 */
-    Operator drelsummarizeOp(
-        "drelsummarize",
-        drelsummarizeSpec.getStr( ),
+    Operator dsummarizeOp(
+        "dsummarize",
+        dsummarizeSpec.getStr( ),
         2,
-        drelsummarizeVM,
-        drelsummarizeSelect,
-        drelsummarizeTM
+        dsummarizeVM,
+        dsummarizeSelect,
+        dsummarizeTM
     );
 
 } // end of namespace drel

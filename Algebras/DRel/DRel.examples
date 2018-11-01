@@ -102,7 +102,7 @@ Example   : query darray1 drelconvert
 Result    : bug
 Remark    : remote server required
 
-Operator  : drelsummarize
+Operator  : dsummarize
 Number    : 1
 Signature : d[f]rel(rel(X)) -> stream(X)
 Example   : query drel1 dsummarize count
@@ -151,10 +151,10 @@ Example   : query drel1 drelfilter[.PLZ > 200]
 Result    : bug
 Remark    : remote server required
 
-Operator  : drelproject
+Operator  : project
 Number    : 1
 Signature : drel(rel(X)) x list -> stream(Y)
-Example   : query drel1 drelproject[PLZ, Ort] consume
+Example   : query drel1 project[PLZ, Ort] consume
 Result    : bug
 Remark    : remote server required
 
@@ -179,10 +179,10 @@ Example   : query drel1 drelhead[3]
 Result    : bug
 Remark    : remote server required
 
-Operator  : drelrename
+Operator  : rename
 Number    : 1
 Signature : drel(rel(X)) x ar -> drel(rel(X))
-Example   : query drel1 drelrename[t1]
+Example   : query drel1 rename[t1]
 Result    : bug
 Remark    : remote server required
 

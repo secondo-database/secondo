@@ -222,16 +222,16 @@ drelfilter operator.
     }
 
 /*
-1.1.2 Type Mapping ~drelprojectTM~
+1.1.2 Type Mapping ~projectTM~
 
-Expect a d[f]rel an attribute list. Type mapping for the drelproject 
+Expect a d[f]rel an attribute list. Type mapping for the project 
 operator.
 
 */
-    ListExpr drelprojectTM( ListExpr args ) {
+    ListExpr projectTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "drelprojectTM" << endl;
+        cout << "projectTM" << endl;
         cout << "args" << endl;
         cout << nl->ToString( args ) << endl;
         #endif
@@ -882,16 +882,16 @@ operator.
     }
 
 /*
-1.1.6 Type Mapping ~drelrenameTM~
+1.1.6 Type Mapping ~renameTM~
 
-Expect a d[f]rel and a symbol. Type mapping for the drelrename
+Expect a d[f]rel and a symbol. Type mapping for the rename
 operator.
 
 */
-    ListExpr drelrenameTM( ListExpr args ) {
+    ListExpr renameTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "drelrenameTM" << endl;
+        cout << "renameTM" << endl;
         cout << "args" << endl;
         cout << nl->ToString( args ) << endl;
         #endif
@@ -1814,18 +1814,18 @@ must be moved to the right position for the dmap value mapping.
 /*
 1.5 Specification for all operators using dmapVM
 
-1.5.1 Specification of drelproject
+1.5.1 Specification of project
 
-Operator specification of the drelporject operator.
+Operator specification of the porject operator.
 
 */
-    OperatorSpec drelprojectSpec(
+    OperatorSpec projectSpec(
         " drel(X) x attrlist "
         "-> drel(Y) ",
-        " _ drelproject[attrlist]",
+        " _ project[attrlist]",
         "Passed only the listed attributes to a stream. It is not allowed to "
         "create a new d[f]rel without the partion attribute.",
-        " query drel1 drelproject[PLZ, Ort] consume"
+        " query drel1 project[PLZ, Ort] consume"
     );
 
 /*
@@ -1887,19 +1887,19 @@ Operator specification of the drelhead operator.
     );
 
 /*
-1.5.6 Specification of drelrename
+1.5.6 Specification of rename
 
-Operator specification of the drelrename operator.
+Operator specification of the rename operator.
 
 */
-    OperatorSpec drelrenameSpec(
+    OperatorSpec renameSpec(
         " drel(X) x ar "
         "-> drel(X) ",
-        " _ drelrename[symbol]",
+        " _ rename[symbol]",
         "Renames all attribute names by adding"
         " them with the postfix passed as parameter. "
         "NOTE: parameter must be of symbol type.",
-        " query drel1 drelhead[t1]"
+        " query drel1 rename[A]"
     );
 
 /*
@@ -2005,13 +2005,13 @@ Operator specification of the drelwindowintersects operator.
 1.6.2 Operator instance of drelproject operator
 
 */
-    Operator drelprojectOp(
-        "drelproject",
-        drelprojectSpec.getStr( ),
+    Operator projectOp(
+        "project",
+        projectSpec.getStr( ),
         2,
         dreldmapVM,
         dreldmapSelect,
-        drelprojectTM
+        projectTM
     );
 
 /*
@@ -2057,13 +2057,13 @@ Operator specification of the drelwindowintersects operator.
 1.6.6 Operator instance of drelrename operator
 
 */
-    Operator drelrenameOp(
-        "drelrename",
-        drelheadSpec.getStr( ),
+    Operator renameOp(
+        "rename",
+        renameSpec.getStr( ),
         2,
         dreldmapVM,
         dreldmapSelect,
-        drelrenameTM
+        renameTM
     );
     
 /*

@@ -57,14 +57,14 @@ extern Operator compareDistTypeOp;
 extern Operator drelcollect_boxOp;
 extern Operator convertOp;
 
-extern Operator drelsummarizeOp;
+extern Operator dsummarizeOp;
 
 extern Operator drelfilterOp;
-extern Operator drelprojectOp;
+extern Operator projectOp;
 extern Operator drelextendOp;
 extern Operator drelprojectextendOp;
 extern Operator drelheadOp;
-extern Operator drelrenameOp;
+extern Operator renameOp;
 
 extern Operator drellrdupOp;
 extern Operator drellsortOp;
@@ -113,16 +113,16 @@ DRelAlgebra::DRelAlgebra() {
 
     AddOperator( &drelfilterOp );
     drelfilterOp.SetUsesArgsInTypeMapping( );
-    AddOperator( &drelprojectOp );
-    drelprojectOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &projectOp );
+    projectOp.SetUsesArgsInTypeMapping( );
     AddOperator( &drelextendOp );
     drelextendOp.SetUsesArgsInTypeMapping( );
     AddOperator( &drelprojectextendOp );
     drelprojectextendOp.SetUsesArgsInTypeMapping( );
     AddOperator( &drelheadOp );
     drelheadOp.SetUsesArgsInTypeMapping( );
-    AddOperator( &drelrenameOp );
-    drelrenameOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &renameOp );
+    renameOp.SetUsesArgsInTypeMapping( );
 
     AddOperator( &drellrdupOp );
     drellrdupOp.SetUsesArgsInTypeMapping( );
@@ -137,7 +137,7 @@ DRelAlgebra::DRelAlgebra() {
     AddOperator( &drelcollect_boxOp );
     AddOperator( &convertOp );
 
-    AddOperator( &drelsummarizeOp );
+    AddOperator( &dsummarizeOp );
 
     AddOperator( &drelcreatebtreeOp );
     drelcreatebtreeOp.SetUsesArgsInTypeMapping( );

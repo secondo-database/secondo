@@ -11,7 +11,7 @@ operator comparedisttype alias COMPAREDISTTYPE pattern _ _ op
 operator drelcollect_box alias DRELCOLLECTBOX pattern _ op[_]
 operator drelconvert alias DRELCONVERT pattern _ op
 
-operator drelsummarize alias DRELSUMMARIZE pattern _ op
+operator dsummarize alias DSUMMARIZE pattern _ op
 
 operator drelcreatebtree alias DRELCREATEBTREE pattern _ op[_,_]
 operator drelexactmatch alias DRELEXACTMATCH pattern _ _ op[_]
@@ -21,11 +21,11 @@ operator drelbulkloadrtree alias DRELBULKLOADRTREE pattern _ op[_,_]
 operator drelwindowintersects alias DRELWINDOWINTERSECTS pattern _ _ op[_]
 
 operator drelfilter alias DRELFILTER pattern _ op[fun] implicit parameters elem1 types DRELFUNARG1
-operator drelproject alias DRELPROJECT pattern _ op [list]
+operator project alias PROJECT pattern _ op [list]
 operator drelextend alias DRELEXTEND pattern _ op [funlist] implicit parameters elem1 types DRELFUNARG1
 operator drelprojectextend alias DRELPROJECTEXTEND pattern _ op [list;funlist] implicit parameters elem1 types DRELFUNARG1
 operator drelhead alias DRELHEAD pattern _ op[_] implicit parameters elem1 types DRELFUNARG1
-operator drelrename alias DRELRENAME pattern _ op[_]
+operator rename alias RENAME pattern _ op[_]
 
 operator drellrdup alias DRELLRDUP pattern _ op
 operator drellsort alias DRELLSORT pattern _ op
