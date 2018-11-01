@@ -74,9 +74,9 @@ ListExpr drelinsertTM( ListExpr args ){
     cout << nl->ToString( args ) << endl;
     
     //drel or dfrel?
-    std::string err = "stream(tuple(X)) x d[f]rel(rel(X)) expected";
+    std::string err = "stream(tuple(X)) x d[f]rel(rel(X)) x int expected";
     
-    if(!nl->HasLength(args,2)){
+    if(!nl->HasLength(args,3)){
         return listutils::typeError("wrong number of arguments");
     }
     if(!DRelHelpers::isListOfTwoElemLists(args)){
@@ -93,6 +93,11 @@ ListExpr drelinsertTM( ListExpr args ){
         distType, drelValue, darrayType)) {
         return listutils::typeError(err + 
                 ": second argument is not a d[f]rel"); //d[f]rel?   
+    }
+    ListExpr port = nl->Third(args);
+    if(!CcInt::checkType(nl->First(port))){
+        return listutils::typeError(err + 
+                ": last argument not of type int");
     }
     
     //streamType != relType (spatial2d, 3d, replicated)
@@ -120,7 +125,7 @@ ListExpr drelinsertTM( ListExpr args ){
                                     listutils::basicSymbol<CcBool>())))));
     }
 
-    cout<<"streamType new: " << nl->ToString(streamType) << endl;
+    //cout<<"streamType new: " << nl->ToString(streamType) << endl;
         
     ListExpr result = insertRelTypeMap(
                             nl->TwoElemList(streamType,relType));
@@ -162,8 +167,7 @@ ListExpr drelinsertTM( ListExpr args ){
                 listutils::basicSymbol<CcString>(),
                 nl->StringAtom("")),
             funList,
-            nl->TwoElemList(
-                listutils::basicSymbol<CcInt>(), nl->IntAtom(1238)))); //dummy
+            port)); 
     
     //cout << "dmapResult: " << nl->ToString(dmapResult) << endl;
    
@@ -191,12 +195,11 @@ ListExpr drelinsertTM( ListExpr args ){
                                     listutils::basicSymbol<Relation>(), 
                                     nl->Second(nl->First(nl->First(args))));
     
-    ListExpr append = nl->FiveElemList(
+    ListExpr append = nl->FourElemList(
                             nl->First(nl->Second(dmapResult)),
                             nl->Second(nl->Second(dmapResult)),
                             nl->TextAtom(nl->ToString(streamRelType)), 
-                            nl->TextAtom(nl->ToString(drelType)),
-                            nl->TextAtom(nl->ToString(drelType))); //not used
+                            nl->TextAtom(nl->ToString(drelType))); 
     
     return nl->ThreeElemList(
         nl->SymbolAtom(Symbols::APPEND()),
@@ -245,7 +248,7 @@ DRel* createDRelOpTree(QueryProcessor* qps,
         query = nl->SixElemList(
                     nl->SymbolAtom("dreldistribute"),
                     relPtr, name, dtype, size, workers );
-    } else if(type == drel::hash || type == range 
+    } else if(type == drel::hash || type == range
             || type == spatial2d || type == spatial3d){
         
         ListExpr attrList = nl->Second(nl->Second(nl->Second(drelType)));
@@ -297,8 +300,8 @@ int drelinsertVM(Word* args, Word& result, int message,
     
     Stream<Tuple> stream(args[0].addr);
     DRel* drel = (DRel*) args[1].addr; //D[f]Rel?
-    FText* relTypeText = (FText*) args[4].addr;
-    FText* drelTypeText = (FText*) args[5].addr;
+    FText* relTypeText = (FText*) args[5].addr;
+    FText* drelTypeText = (FText*) args[6].addr;
         
     ListExpr relType, drelType;
     if(    !nl->ReadFromString(relTypeText->GetValue(), relType)
@@ -309,8 +312,8 @@ int drelinsertVM(Word* args, Word& result, int message,
         return 0;
     }
     
-    cout<< "relType:" << nl->ToString(relType) << endl;
-    cout<< "drelType: " << nl->ToString(drelType) << endl;
+    //cout<< "relType:" << nl->ToString(relType) << endl;
+    //cout<< "drelType: " << nl->ToString(drelType) << endl;
         
     //collect all tuples from stream into relation 
     stream.open();
@@ -335,8 +338,7 @@ int drelinsertVM(Word* args, Word& result, int message,
     //create argument vector for dmapXVM
     ArgVector argVec = {drel_tmp, drel, new CcString(true, ""), 
                         new CcBool(false, false), //dummy, ignored by dmapXVM
-                        new CcInt(true, 1238), // port
-                        args[2].addr, args[3].addr};
+                        args[2].addr, args[3].addr, args[4].addr};
                         
     dmapXVM(argVec, result, message, local, s);
     
@@ -364,11 +366,11 @@ int drelinsertVM(Word* args, Word& result, int message,
     
 */
 OperatorSpec drelinsertSpec(
-    " stream(tuple(X)) x drel(rel(tuple(X))) "
+    " stream(tuple(X)) x drel(rel(tuple(X))) x int"
     "-> drel(rel(tuple(x@[TID:tid])))",
-    " _ _ drelinsert",
+    " _ _ drelinsert [_]",
     "Inserts tuples of the stream into the distributed relation.",
-    "query rel feed drel drelinsert"
+    "query rel feed drel drelinsert [1238]"
 );
 
 
@@ -377,11 +379,11 @@ OperatorSpec drelinsertSpec(
     
 */
 Operator drelinsertOp (
-    "drelinsert",                 // name
-    drelinsertSpec.getStr( ),          // specification
-    drelinsertVM,            // value mapping
-    Operator::SimpleSelect,       // trivial selection function
-    drelinsertTM            // type mapping
+    "drelinsert",                
+    drelinsertSpec.getStr( ),         
+    drelinsertVM,           
+    Operator::SimpleSelect,     
+    drelinsertTM           
 );
     
     

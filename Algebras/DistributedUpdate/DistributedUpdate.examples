@@ -3,8 +3,8 @@ Restore : NO
 
 Operator : drelinsert
 Number   : 1
-Signature: stream(tuple(X)) x drel(rel(tuple(X))) -> dfrel(rel(tuple(x@[TID:tid]))) 
-Example  : query rel1 feed drel1 drelinsert
+Signature: stream(tuple(X)) x drel(rel(tuple(X))) x int -> dfrel(rel(tuple(x@[TID:tid]))) 
+Example  : query rel1 feed drel1 drelinsert [1238]
 Result   : bug
 Remark   : remote server required
 
