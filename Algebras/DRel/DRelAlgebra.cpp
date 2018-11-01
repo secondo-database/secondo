@@ -63,7 +63,7 @@ extern Operator drelfilterOp;
 extern Operator projectOp;
 extern Operator drelextendOp;
 extern Operator drelprojectextendOp;
-extern Operator drelheadOp;
+extern Operator headOp;
 extern Operator renameOp;
 
 extern Operator lrdupOp;
@@ -119,8 +119,8 @@ DRelAlgebra::DRelAlgebra() {
     drelextendOp.SetUsesArgsInTypeMapping( );
     AddOperator( &drelprojectextendOp );
     drelprojectextendOp.SetUsesArgsInTypeMapping( );
-    AddOperator( &drelheadOp );
-    drelheadOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &headOp );
+    headOp.SetUsesArgsInTypeMapping( );
     AddOperator( &renameOp );
     renameOp.SetUsesArgsInTypeMapping( );
 

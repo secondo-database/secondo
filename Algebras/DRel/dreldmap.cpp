@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 Implementation of the secondo operators drelfilter, project, 
 drelprojectextend, drellsortby, drellgroupby, lsort, lrdup, 
-lrename, drelhead and drelextend
+lrename, head and drelextend
 
 This operators have the same value mapping witch calls the dmap operator of 
 the Distributed2Algebra.
@@ -771,16 +771,16 @@ combination of the operator extend.
     }
 
 /*
-1.1.5 Type Mapping ~drelheadTM~
+1.1.5 Type Mapping ~headTM~
 
-Expect a d[f]rel and an int value. Type mapping for the drelhead
+Expect a d[f]rel and an int value. Type mapping for the head
 operator.
 
 */
-    ListExpr drelheadTM( ListExpr args ) {
+    ListExpr headTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "drelheadTM" << endl;
+        cout << "headTM" << endl;
         cout << "args" << endl;
         cout << nl->ToString( args ) << endl;
         #endif
@@ -1873,17 +1873,17 @@ Operator specification of the drelextend operator.
     );
 
 /*
-1.5.5 Specification of drelhead
+1.5.5 Specification of head
 
-Operator specification of the drelhead operator.
+Operator specification of the head operator.
 
 */
-    OperatorSpec drelheadSpec(
+    OperatorSpec headSpec(
         " drel(X) x list "
         "-> drel(X) ",
-        " _ drelhead[int]",
+        " _ head[int]",
         "Passed only the first n tuple of each array field ",
-        " query drel1 drelhead[5]"
+        " query drel1 head[5]"
     );
 
 /*
@@ -2041,16 +2041,16 @@ Operator specification of the drelwindowintersects operator.
     );
 
 /*
-1.6.5 Operator instance of drelhead operator
+1.6.5 Operator instance of head operator
 
 */
-    Operator drelheadOp(
-        "drelhead",
-        drelheadSpec.getStr( ),
+    Operator headOp(
+        "head",
+        headSpec.getStr( ),
         2,
         dreldmapVM,
         dreldmapSelect,
-        drelheadTM
+        headTM
     );
     
 /*

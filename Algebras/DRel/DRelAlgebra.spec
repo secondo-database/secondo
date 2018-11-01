@@ -24,7 +24,7 @@ operator drelfilter alias DRELFILTER pattern _ op[fun] implicit parameters elem1
 operator project alias PROJECT pattern _ op [list]
 operator drelextend alias DRELEXTEND pattern _ op [funlist] implicit parameters elem1 types DRELFUNARG1
 operator drelprojectextend alias DRELPROJECTEXTEND pattern _ op [list;funlist] implicit parameters elem1 types DRELFUNARG1
-operator drelhead alias DRELHEAD pattern _ op[_] implicit parameters elem1 types DRELFUNARG1
+operator head alias HEAD pattern _ op[_]
 operator rename alias RENAME pattern _ op[_]
 
 operator lrdup alias LRDUP pattern _ op
