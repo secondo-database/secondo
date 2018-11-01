@@ -30,7 +30,7 @@ operator rename alias RENAME pattern _ op[_]
 operator lrdup alias LRDUP pattern _ op
 operator lsort alias LSORT pattern _ op
 operator lsortby alias LSORTBY pattern _ op [list]
-operator lgroupby alias DRELLGROUPBY pattern _ op[list;funlist] implicit parameters elem1 types DRELRELFUNARG1
+operator drellgroupby alias DRELLGROUPBY pattern _ op[list;funlist] implicit parameters elem1 types DRELRELFUNARG1
 
 operator rdup alias RDUP pattern _ op
 operator sort alias LSORT pattern _ op

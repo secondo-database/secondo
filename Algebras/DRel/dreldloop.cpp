@@ -85,20 +85,33 @@ Type mapping for drelcreatebtree. Expect a drel, a string and an attribute.
                 ": three arguments are expected" );
         }
 
-        if( !DRel::checkType( nl->First( nl->First( args ) ) ) ) {
+        if( !DRelHelpers::isListOfTwoElemLists( args ) ) {
+            return listutils::typeError( "internal Error" );
+        }
+
+        ListExpr arg1Type = nl->First( nl->First( args ) );
+        ListExpr arg2Type = nl->First( nl->Second( args ) );
+        ListExpr arg3Type = nl->First( nl->Third( args ) );
+        ListExpr arg1Value = nl->Second( nl->First( args ) );
+        ListExpr arg3Value = nl->Second( nl->Third( args ) );
+
+        ListExpr darrayType;
+        if( !DRelHelpers::drelCheck( arg1Type, darrayType ) ) {
             return listutils::typeError(
                 err + ": first argument is not a d[f]rel" );
         }
 
-        if( !CcString::checkType( nl->First( nl->Second( args ) ) ) ) {
+        if( !CcString::checkType( arg2Type ) ) {
             return listutils::typeError(
                 err + ": second argument is not a string" );
         }
 
-        ListExpr relType =  nl->Second( nl->First( nl->First( args ) ) );
-        ListExpr darrayType = nl->TwoElemList(
-            listutils::basicSymbol<DArray>( ),
-            relType );
+        if( !nl->IsAtom( arg3Type ) ) {
+            return listutils::typeError(
+                err + ": thrid argument is not an attribute" );
+        }
+
+        ListExpr relType =  nl->Second( darrayType );
 
         // create function type to call dloopTM
         ListExpr funType = nl->TwoElemList(
@@ -117,7 +130,7 @@ Type mapping for drelcreatebtree. Expect a drel, a string and an attribute.
                 nl->ThreeElemList(
                     nl->SymbolAtom( "createbtree" ),
                     nl->SymbolAtom( "darrayelem1" ),
-                    nl->Second( nl->Third( args ) ) ) ) );     // Attribute
+                    arg3Value ) ) );     // Attribute
 
         #ifdef DRELDEBUG
         cout << "funType" << endl;
@@ -127,7 +140,7 @@ Type mapping for drelcreatebtree. Expect a drel, a string and an attribute.
         // result type of dloop
         ListExpr result = dloopTM(
             nl->ThreeElemList(
-                nl->TwoElemList( darrayType, nl->Second( nl->First( args ) ) ),
+                nl->TwoElemList( darrayType, arg1Value ),
                 nl->Second( args ),
                 funType ) );
 
@@ -316,13 +329,13 @@ Used by the operators with only a drel input.
     OperatorSpec drelcreatebtreeSpec(
         " d[f]rel(X) x string x attr "
         "-> darray(Y) ",
-        " _ drelcreatebtree[_,_]",
+        " _ drelcreatebtree[_]",
         "Creates a btree for a d[f]rel as a darray ",
-        " query drel1 drelcreatebtree[\"drel1_Name\", Name]"
+        " query drel1 drelcreatebtree[\"\",Name]"
     );
 
 /*
-1.7.2 Specification of drelcreatebtree
+1.7.2 Specification of drelbulkloadtree
 
 */
     OperatorSpec drelbulkloadrtreeSpec(

@@ -68,8 +68,8 @@ extern Operator renameOp;
 
 extern Operator lrdupOp;
 extern Operator lsortOp;
+extern Operator lsortbyOp;
 extern Operator drellgroupbyOp;
-extern Operator drellsortbyOp;
 
 extern Operator drelcreatebtreeOp;
 extern Operator drelexactmatchOp;
@@ -128,10 +128,10 @@ DRelAlgebra::DRelAlgebra() {
     lrdupOp.SetUsesArgsInTypeMapping( );
     AddOperator( &lsortOp );
     lsortOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &lsortbyOp );
+    lsortbyOp.SetUsesArgsInTypeMapping( );
     AddOperator( &drellgroupbyOp );
     drellgroupbyOp.SetUsesArgsInTypeMapping( );
-    AddOperator( &drellsortbyOp );
-    drellsortbyOp.SetUsesArgsInTypeMapping( );
 
     AddOperator( &compareDistTypeOp );
     AddOperator( &drelcollect_boxOp );

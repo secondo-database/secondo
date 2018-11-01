@@ -65,7 +65,7 @@ namespace distributed2 {
 namespace drel {
 
     ListExpr lsortTM( ListExpr args );
-    ListExpr drellsortbyTM( ListExpr args );
+    ListExpr lsortbyTM( ListExpr args );
     ListExpr lrdupTM( ListExpr args );
     ListExpr drellgroupbyTM( ListExpr args, bool global );
 
@@ -83,7 +83,7 @@ namespace drel {
 
                 switch ( i ) {
                     case lsort: return lsortTM( args );
-                    case lsortby: return drellsortbyTM( args );
+                    case lsortby: return lsortbyTM( args );
                     case lrdup: return lrdupTM( args );
                     case lgroupby: return drellgroupbyTM( args, true );
                 }

@@ -112,7 +112,7 @@ Remark    : remote server required
 Operator  : drelcreatebtree
 Number    : 1
 Signature : d[f]rel(rel(X)) x string x attr -> darray(btree(Y))
-Example   : query drel1 drelcreatebtree["drel1_PLZ",PLZ]
+Example   : query drel1 drelcreatebtree["",PLZ]
 Result    : bug
 Remark    : remote server required
 

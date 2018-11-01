@@ -1429,16 +1429,16 @@ Type mapping for the drellgroup operator.
     }
 
 /*
-1.1.2 Type Mapping ~drellsortbyTM~
+1.1.2 Type Mapping ~lsortbyTM~
 
-Expect a d[f]rel an attribute list. Type mapping for the drellsortby
+Expect a d[f]rel an attribute list. Type mapping for the lsortby
 operator.
 
 */
-    ListExpr drellsortbyTM( ListExpr args ) {
+    ListExpr lsortbyTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "drellsortbyTM" << endl;
+        cout << "lsortbyTM" << endl;
         cout << "args" << endl;
         cout << nl->ToString( args ) << endl;
         #endif
@@ -1956,19 +1956,19 @@ Operator specification of the drellgroupby operator.
     );
 
 /*
-1.5.10 Specification of drellsortby
+1.5.10 Specification of lsortby
 
-Operator specification of the drellsortby operator.
+Operator specification of the lsortby operator.
 
 */
-    OperatorSpec drellsortbySpec(
+    OperatorSpec lsortbySpec(
         " drel(X) "
         "-> drel(X) ",
-        " _ drellsortby[attrlist]",
+        " _ lsortby[attrlist]",
         "Sorts a d[f]rel by a specific attribute list. "
         "NOTE: The operator only sorts the local array fields "
         "and not in global d[f]rel.",
-        " query drel1 drellsortby[PLZ]"
+        " query drel1 lsortby[PLZ]"
     );
 
 /*
@@ -2106,16 +2106,16 @@ Operator specification of the drelwindowintersects operator.
     );
 
 /*
-1.6.10 Operator instance of drellsortby operator
+1.6.10 Operator instance of lsortby operator
 
 */
-    Operator drellsortbyOp(
-        "drellsortby",
-        drellsortbySpec.getStr( ),
+    Operator lsortbyOp(
+        "lsortby",
+        lsortbySpec.getStr( ),
         2,
         dreldmapVM,
         dreldmapSelect,
-        drellsortbyTM
+        lsortbyTM
     );
 
 /*
