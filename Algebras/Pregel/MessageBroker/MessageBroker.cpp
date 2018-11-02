@@ -45,6 +45,7 @@ This file defines the members of class MessageBroker
 #include "../Helpers/LoggerFactory.h"
 #include "../Helpers/Metrics.h"
 #include "../PregelContext.h"
+#include <StandardTypes.h>
 
 namespace pregel {
  MessageBroker MessageBroker::broker;
@@ -121,8 +122,13 @@ namespace pregel {
    consumer<MessageWrapper> loopbackInsert =
     [this](MessageWrapper *message) {
       if (message->getType() == MessageWrapper::MessageType::DATA) {
-       this->inbox.push(message, message->getRound());
-       QUEUED_MESSAGE
+      auto value = ((CcReal *) message->getBody()->GetAttribute(1))->GetValue();
+      auto target = ((CcInt *) message->getBody()->GetAttribute(0))->GetValue();
+      std::cout << "Queue message to " << target << " in superstep "
+                << message->getRound() << ". It's tuple has VALUE " << value
+                << "\n";
+      this->inbox.push(message, message->getRound());
+      QUEUED_MESSAGE
       } else {
        delete message;
       }
@@ -208,8 +214,13 @@ namespace pregel {
  void MessageBroker::collectFromAllServers(int superstep) {
   consumer<MessageWrapper> moveToOwnBuffer =
    [this, superstep](MessageWrapper *message) {
-   inbox.push(message, superstep);
+    auto value = ((CcReal *) message->getBody()->GetAttribute(1))->GetValue();
+    auto target = ((CcInt *) message->getBody()->GetAttribute(0))->GetValue();
+     std::cout << "Collect message to " << target << " with value " << value
+               << "\n";
+    inbox.push(message, superstep);
    };
+  std::cout << "Collect messages in superstep " << superstep << "\n";
   for (auto server : servers) {
    server->drainBuffer(moveToOwnBuffer, superstep);
   }
