@@ -1,70 +1,19 @@
-delete database pagerank;
-create database pagerank;
 open database pagerank;
 
-let Pages = [const rel(tuple([Id: int, Value: real])) value
-(
- (1 0.1)
- (2 0.4)
- (3 0.5)
- (4 0.6)
- (5 0.7)
-)];
+let InitMessages = AddRoutingAddress(PagesPersistent feed projectextend[Id; Value: (1.0 / N)]) consume;
 
-let Links = [const rel(tuple([Source: int, Target: int])) value
-(
- (1 2)
- (1 3)
- (1 4)
- (2 4)
- (3 4)
- (3 5)
- (4 5)
-)];
+query setupPregel(Workers);
 
-query Pages feed Links feed sortmergejoin[Id, Source] consume;
+# may exist already, but is deleted at the end of a session
+let Pages = PagesPersistent feed mconsume;
+query remotePregelCommand('let Pages = PagesPersistent feed mconsume;');
 
-let D = 0.85;
+query setPregelFunction(ComputeRouted, Address);
 
-# let AddOutdeg = fun (pages: stream(tuple([Id: int, Value: real])), linksjoining: stream(tuple([Source: int, Target: int]))) (pages linksjoining sortmergejoin[Id, Source] groupby[Id; Outdeg: group feed count]);
+query InitMessages feed initPregelMessages;
 
-let CalculateBroadcastValue = fun (pages: stream(tuple([Id: int, Value: real])), linksjoining: stream(tuple([Source: int, Target: int]))) (pages linksjoining sortmergejoin[Id, Source] groupby[Id; NewValue: (group feed extract[Value]) / (group feed count) ]);
+query pregelStatus();
 
-# query CalculateBroadcastValue(Pages feed, Links feed) consume;
+query startPregel(10);
 
-# query CalculateBroadcastValue(Pages feed, Links feed) Links feed sortmergejoin[Id, Source] consume;
-
-
-let GenerateMessages = fun (pages: stream(tuple([Id: int, Value: real])), linksjoining: stream(tuple([Source: int, Target: int]))) (CalculateBroadcastValue(pages, linksjoining) linksjoining feed sortmergejoin[Id, Source] projectextend[; Id: .Target, Value: .NewValue]);
-
-# let Routing = fun (pages: stream(tuple([Id: int, Value: real])), linksjoining: stream(tuple([Source: int, Target: int]))) (pages linksjoining sortmergejoin[Id, Source] groupby[Id; NewValue: (group feed extract[Value]) / (group feed count) ]);
-
-query GenerateMessages(Pages feed, Links feed) consume;
-
-let PageRank = fun (incoming: rel (tuple([Id: int, Value: real]))) ((1 -D) + D * (incoming feed sum[Value]));
-
-query GenerateMessages(Pages feed, Links feed) sortby[Id] groupby[Id; NewValue: PageRank(group)];
-
-let NewMessages = GenerateMessages(Pages feed, Links feed) sortby[Id] groupby[Id; NewValue: PageRank(group)] projectextend[Id; Value: .NewValue] consume;
-
-let ExtractValue = fun (id: int, messages: stream(tuple([Id: int, Value: real]))) (messages rename[m] filter[.Id_m = id] extract[Value_m]);
-
-let OrElse = fun (subject: real, alternative: real) (ifthenelse(isdefined(subject), subject, alternative));
-
-query TestFunction(Pages, NewMessages feed);
-
-let UpdateRel = fun (pages: rel (tuple([Id: int, Value: real])), messages: stream(tuple([Id: int, Value: real]))) (pages feed pages updatedirect[Value: OrElse(ExtractValue(.Id, messages), .Value)] project[Id, Value]);
-
-let Compute = fun (pages: rel(tuple([Id: int, Value: real])), links: rel(tuple([Source: int, Target: int])), messages: stream(tuple([Id: int, Value: real]))) (GenerateMessages(UpdateRel(Pages, NewMessages feed), Links feed));
-
-
-query Compute(Pages, Links, NewMessages feed) consume;
-
-
-
-query Pages feed Pages updatedirect[];
-
-query Pages feed sortby[Source asc] groupby[Source; Sum: (PageRank (group))] consume;
-
-
-query Pages feed sortby[Source asc] groupby[Source; Outdeg: (OutDeg (group))] consume;
+query remotePregelCommand('query Pages;');
