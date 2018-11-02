@@ -49,10 +49,11 @@ namespace pregel {
   if (!nl->HasLength(args, 0)) {
    return listutils::typeError("You must provide no arguments.");
   }
-  auto savedType = PregelContext::get().getMessageType();
+  std::string savedType = PregelContext::get().getMessageType();
   ListExpr tupleType;
   if (!nl->ReadFromString(savedType, tupleType)) {
-   return listutils::typeError("Wrong tuple type.");
+   return listutils::typeError("Can't parse saved tuple type \"" +
+   savedType + "\". Was it set?");
   }
 
   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
@@ -66,6 +67,7 @@ namespace pregel {
 
   switch (streamOp) {
    case OPEN : {
+    std::cout << "Open messageFeed stream\n";
     MessageBroker &broker = MessageBroker::get();
 
     const int lastRound = SuperstepCounter::get() - 1;
@@ -79,6 +81,11 @@ namespace pregel {
     MessageWrapper *message = (*messageSupplier)();
     if (message != nullptr) {
      result.setAddr(message->getBody());
+     auto value = ((CcReal *) message->getBody()->GetAttribute(1))->GetValue();
+     auto target = ((CcInt *) message->getBody()->GetAttribute(0))->GetValue();
+     std::cout << "Popped message to " << target << " from superstep "
+               << message->getRound() << ". It's tuple has VALUE " << value
+               << "\n";
      return YIELD;
     } else {
      return CANCEL;

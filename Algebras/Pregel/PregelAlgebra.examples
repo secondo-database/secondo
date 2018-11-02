@@ -75,11 +75,11 @@ Signature: () -> string
 Example  : query pregelStatus();
 Result   : TRUE
 
-operator preparePregelWorker alias PREPAREPREGELWORKER pattern op (_,_,_)
-Operator : preparePregelWorker
+operator setPregelFunctionWorker alias SETPREGELFUNCTIONWORKER pattern op (_,_)
+Operator : setPregelFunctionWorker
 Number   : 1
-Signature: text x int x string -> bool
-Example  : query preparePregelWorker("function text", 6, "Slot")
+Signature: map x int -> bool
+Example  : query setPregelFunctionWorker(function, 6)
 Result   : TRUE
 
 operator startPregelWorker alias STARTPREGELWORKER pattern op (_)

@@ -25,3 +25,5 @@ operator pregelStatus alias PREGELSTATUS pattern op ()
 operator preparePregelWorker alias PREPAREPREGELWORKER pattern op (_,_)
 
 operator startPregelWorker alias STARTPREGELWORKER pattern op (_)
+
+operator remotePregelCommand alias REMOTEPREGELCOMMAND pattern op (_)

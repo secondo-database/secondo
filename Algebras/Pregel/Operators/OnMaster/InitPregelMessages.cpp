@@ -38,7 +38,6 @@ This header file contains definitions of type mapping, vallue mapping and the op
 
 */
 
-#include <regex>
 #include <ListUtils.h>
 #include <../../../Relation-C++/RelationAlgebra.h>
 #include <StandardTypes.h>
@@ -54,7 +53,6 @@ This header file contains definitions of type mapping, vallue mapping and the op
 namespace pregel {
 
  ListExpr InitPregelMessages::typeMapping(ListExpr args) {
-  FORCE_LOG
   if (!nl->HasLength(args, 1)) {
    return listutils::typeError("You must provide 1 argument.");
   }
@@ -80,7 +78,6 @@ namespace pregel {
 
  int InitPregelMessages::valueMapping(Word *args, Word &result, int,
                                       Word &, Supplier s) {
-  FORCE_LOG
   result = qp->ResultStorage(s);
   Stream<Tuple> messageStream(args[0]);
 

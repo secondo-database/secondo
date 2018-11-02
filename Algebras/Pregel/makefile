@@ -37,6 +37,7 @@ CCFLAGS += -DGATHER_PREGEL_METRICS
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
 all: check_dependencies $(OBJECTS) $(LIBOBJ)
+	make -C Operators
 	make -C Operators/Messaging
 	make -C Operators/OnMaster
 	make -C Operators/OnWorker
@@ -59,6 +60,7 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
+	make -C Operators clean
 	make -C Operators/Messaging clean
 	make -C MessageBroker clean
 	make -C Operators/OnMaster clean

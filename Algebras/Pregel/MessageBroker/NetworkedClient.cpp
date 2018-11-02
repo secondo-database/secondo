@@ -38,6 +38,7 @@ This file defines the members of class NetworkedClient
 
 #include "NetworkedClient.h"
 #include "../Helpers/Metrics.h"
+#include <StandardTypes.h>
 
 namespace pregel {
  NetworkedClient::NetworkedClient(const RemoteEndpoint &host) noexcept(false) {
@@ -71,6 +72,11 @@ namespace pregel {
   socket->Write(buffer, size);
 
   if (message->getBody() != nullptr) {
+   auto value = ((CcReal *) message->getBody()->GetAttribute(1))->GetValue();
+   auto target = ((CcInt *) message->getBody()->GetAttribute(0))->GetValue();
+   std::cout << "Send message to " << target << " in superstep "
+             << message->getRound() << ". It's tuple has VALUE " << value
+             << "\n";
    message->getBody()->DeleteIfAllowed(); // When we write,
    // we don't need the tuple anymore
    SENT_MESSAGE

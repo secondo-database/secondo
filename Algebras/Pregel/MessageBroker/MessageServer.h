@@ -67,7 +67,6 @@ namespace pregel {
   Socket *socket;
 
   DoubleQueue messageQueue;
-  int round = 0;
 
  public:
   explicit MessageServer(Socket *socket, executable initDoneCallback);

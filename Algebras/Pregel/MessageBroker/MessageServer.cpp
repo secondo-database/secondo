@@ -66,7 +66,6 @@ namespace pregel {
  }
 
  void MessageServer::run() {
-  FORCE_LOG
   setState(WAITING, false);
   waitToResumeReading();
   try {
@@ -143,7 +142,12 @@ namespace pregel {
  }
 
  void MessageServer::addMessage(MessageWrapper *message) {
-  messageQueue.push(message, round);
+  auto value = ((CcReal *) message->getBody()->GetAttribute(1))->GetValue();
+  auto target = ((CcInt *) message->getBody()->GetAttribute(0))->GetValue();
+  messageQueue.push(message, message->getRound());
+  std::cout << "Received message to " << target << " from superstep "
+            << message->getRound() << ". It's tuple has VALUE " << value
+            << "\n";
  }
 
  void MessageServer::handleEmptyMessage() {
@@ -202,11 +206,6 @@ namespace pregel {
   stateCondition.wait(lock, [&]() {
     return state == READING || thread->interruption_requested();
   });
-  updateRound();
- }
-
- void MessageServer::updateRound() {
-  round = SuperstepCounter::get();
  }
 
  void MessageServer::startReading() {
