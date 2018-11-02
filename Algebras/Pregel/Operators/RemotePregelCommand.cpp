@@ -53,7 +53,7 @@ namespace pregel {
   auto expression = nl->First(args);
 
   if (!FText::checkType(expression)) {
-   return listutils::typeError("second argument (expression) must be a text.");
+   return listutils::typeError("second argument (command) must be a text.");
   }
 
   return nl->SymbolAtom(CcBool::BasicType());
@@ -62,11 +62,11 @@ namespace pregel {
  int RemotePregelCommand::valueMapping(Word *args, Word &result, int, Word &,
                                        void *s) {
   result = qp->ResultStorage(s);
-  auto expressionText = (FText *) args[0].addr;
+  auto commandText = (FText *) args[0].addr;
 
-  PRECONDITION(expressionText->IsDefined(), "expressionText must be defined");
+  PRECONDITION(commandText->IsDefined(), "commandText must be defined");
 
-  std::string query = expressionText->GetValue();
+  std::string query = commandText->GetValue();
 
   const supplier<pregel::WorkerConfig> &workers =
    PregelContext::get().getWorkers();
@@ -79,10 +79,10 @@ namespace pregel {
   for (auto worker = workers(); worker != nullptr; worker = workers()) {
    try {
     auto result = Commander::remoteQuery(worker->connection, query, mapper);
-    std::cout << "result of let: " << *result;
+    std::cout << "result of command: " << *result;
     delete result;
    } catch (RemoteExecutionException &e) {
-    BOOST_LOG_TRIVIAL(error) << "Let command failed: " << query.c_str();
+    BOOST_LOG_TRIVIAL(error) << "Command failed: " << query.c_str();
     ((CcBool *) result.addr)->Set(true, false);
     return 0;
    }
