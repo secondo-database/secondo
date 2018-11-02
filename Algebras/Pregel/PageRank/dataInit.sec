@@ -1,0 +1,48 @@
+delete database pagerank;
+create database pagerank;
+open database pagerank;
+
+let Workers = [const rel(tuple([Host: string, Port: int, Config: string, MessageServerPort: int])) value
+(
+ ("127.0.0.1" 1471 "SecondoConfig.ini" 9898)
+ ("127.0.0.1" 1472 "SecondoConfig.ini" 9899)
+)];
+
+let WorkerNumber = Workers count;
+# = 2
+
+#
+# Dampening Factor
+#
+
+let D = 0.85;
+
+let PartitionFunction = fun (id: int) (hashvalue(id, WorkerNumber));
+
+#
+# Edges of the Graph
+#
+
+let Links = [const rel(tuple([Source: int, Target: int])) value
+(
+  (1 3)
+  (1 2)
+  (2 1)
+  (2 5)
+  (3 5)
+  (4 3)
+  (5 1)
+  (5 2)
+)];
+
+#
+# Vertices of the Graph
+#
+
+let PagesPersistent = Links feed projectextend[;Id: .Source] Links feed projectextend[;Id: .Target] concat sort rdup extend[Value: 0.0] consume;
+let N = PagesPersistent count;
+let Minimum = ((1 - D) / N);
+
+update PagesPersistent := PagesPersistent feed projectextend[Id; Value: 1.0 / N] consume;
+
+let Pages = PagesPersistent feed mconsume;

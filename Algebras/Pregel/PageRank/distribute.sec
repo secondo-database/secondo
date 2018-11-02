@@ -1,0 +1,21 @@
+let LinksD = Links feed ddistribute4["LinksD", PartitionFunction(.Source), WorkerNumber , Workers];
+let LinksSD = LinksD makeSimple[FALSE, "Links"];
+
+let PagesD = PagesPersistent feed ddistribute4["PagesD", PartitionFunction(.Id), WorkerNumber , Workers];
+let PagesSD = PagesD makeSimple[FALSE, "PagesPersistent"];
+
+query share("WorkerNumber", TRUE, Workers);
+query share("N", TRUE, Workers);
+query share("PartitionFunction", TRUE, Workers);
+query share("D", TRUE, Workers);
+query share("Minimum", TRUE, Workers);
+
+query share("AddRoutingAddress", TRUE, Workers);
+query share("RemoveRoutingAddress", TRUE, Workers);
+query share("CalculateBroadcastValue", TRUE, Workers);
+query share("GenerateMessages", TRUE, Workers);
+query share("PageRank", TRUE, Workers);
+query share("Reduce", TRUE, Workers);
+query share("UpdateRelById", TRUE, Workers);
+# query share("Compute", TRUE, Workers);
+query share("ComputeRouted", TRUE, Workers);
