@@ -184,3 +184,17 @@ let Minimum = ((1 - D) / N);
 update PagesPersistent := PagesPersistent feed projectextend[Id; Value: 1.0 / N] consume;
 
 let Pages = PagesPersistent feed mconsume;
+
+
+#
+# Connect Edge Pages => Leads to WAY! more Links, so use with caution
+#
+
+let ConnectEdgePages = fun (pages: rel(tuple([Id: int, Value: real])), links: rel(tuple([Source: int, Target: int]))) (links feed project[Target] sort links feed projectextend[;Target: .Source] sort mergediff projectextend[; Source: .Target] loopjoin[pages feed projectextend[; Target: .Id]]);
+
+# Fragments:
+# let PagesWithoutForwardLinks = Links feed project[Target] sort Links feed projectextend[;Target: .Source] sort mergediff consume;
+# let ExtraLinks = PagesWithoutForwardLinks feed projectextend[; Source: .Target] loopjoin[PagesPersistent feed projectextend[; Target: .Id]] consume;
+#
+
+update Links := Links feed ConnectEdgePages(PagesPersistent, Links) concat sortby[Source] consume;
