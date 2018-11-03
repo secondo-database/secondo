@@ -174,6 +174,15 @@ let Links = [const rel(tuple([Source: int, Target: int])) value
 )];
 
 #
+# Remove dangling Links
+#
+
+let RemoveDanglingLinks = fun (links: rel(tuple([Source: int, Target: int]))) (links feed sortby[Target] links feed project[Target] sort rdup links feed projectextend[;Target: .Source] sort rdup kmergediff kmergediff);
+
+# do this until it doesn't change anymore
+update Links := RemoveDanglingLinks(Links) consume;
+
+#
 # Vertices of the Graph
 #
 
@@ -193,8 +202,8 @@ let Pages = PagesPersistent feed mconsume;
 let ConnectEdgePages = fun (pages: rel(tuple([Id: int, Value: real])), links: rel(tuple([Source: int, Target: int]))) (links feed project[Target] sort links feed projectextend[;Target: .Source] sort mergediff projectextend[; Source: .Target] loopjoin[pages feed projectextend[; Target: .Id]]);
 
 # Fragments:
-# let PagesWithoutForwardLinks = Links feed project[Target] sort Links feed projectextend[;Target: .Source] sort mergediff consume;
+# let PagesWithoutForwardLinks = Links feed project[Target] sort rdup Links feed projectextend[;Target: .Source] sort mergediff consume;
 # let ExtraLinks = PagesWithoutForwardLinks feed projectextend[; Source: .Target] loopjoin[PagesPersistent feed projectextend[; Target: .Id]] consume;
 #
 
-update Links := Links feed ConnectEdgePages(PagesPersistent, Links) concat sortby[Source] consume;
+# update Links := Links feed ConnectEdgePages(PagesPersistent, Links) concat sortby[Source] consume;
