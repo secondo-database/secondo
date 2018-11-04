@@ -57,6 +57,8 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 ListExpr RenameTypeMap( ListExpr args );
+template<int operatorId>
+    ListExpr IndexQueryTypeMap( ListExpr args );
 
 namespace distributed2 {
 
@@ -199,17 +201,19 @@ drelfilter operator.
             return dmapResult;
         }
 
-        ListExpr newDRelType;
-        if( DArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRelType = listutils::basicSymbol<DRel>( );
-        } else if( DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRelType = listutils::basicSymbol<DFRel>( );
-        } else {
+        ListExpr newDRel;
+        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DRel>( );
+        }
+        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DFRel>( );
+        }
+        else {
             return dmapResult;
         }
 
         ListExpr newRes = nl->ThreeElemList(
-            newDRelType,
+            newDRel,
             nl->Second( nl->Third( dmapResult ) ),
             nl->Third( drelType ) );  // disttype
 
@@ -378,19 +382,19 @@ operator.
             return dmapResult;
         }
 
-        ListExpr newDRelType;
-        if( DArray::checkType( nl->Third( dmapResult ) ) ) {
-            cout << "result darray" << endl;
-            newDRelType = listutils::basicSymbol<DRel>( );
-        } else if( DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRelType = listutils::basicSymbol<DFRel>( );
-            cout << "result dfarray" << endl;
-        } else {
+        ListExpr newDRel;
+        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DRel>( );
+        }
+        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DFRel>( );
+        }
+        else {
             return dmapResult;
         }
 
         ListExpr newRes = nl->ThreeElemList(
-            newDRelType,
+            newDRel,
             nl->Second( nl->Third( dmapResult ) ),
             distType );
 
@@ -591,17 +595,19 @@ tuples. This is a combination of the operators project and extend.
             return dmapResult;
         }
 
-        ListExpr newDRelType;
-        if( DArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRelType = listutils::basicSymbol<DRel>( );
-        } else if( DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRelType = listutils::basicSymbol<DFRel>( );
-        } else {
+        ListExpr newDRel;
+        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DRel>( );
+        }
+        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DFRel>( );
+        }
+        else {
             return dmapResult;
         }
 
         ListExpr newRes = nl->ThreeElemList(
-            newDRelType,
+            newDRel,
             nl->Second( nl->Third( dmapResult ) ),
             distType );
 
@@ -748,17 +754,19 @@ combination of the operator extend.
             return dmapResult;
         }
 
-        ListExpr newDRelType;
-        if( DArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRelType = listutils::basicSymbol<DRel>( );
-        } else if( DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRelType = listutils::basicSymbol<DFRel>( );
-        } else {
+        ListExpr newDRel;
+        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DRel>( );
+        }
+        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DFRel>( );
+        }
+        else {
             return dmapResult;
         }
 
         ListExpr newRes = nl->ThreeElemList(
-            newDRelType,
+            newDRel,
             nl->Second( nl->Third( dmapResult ) ),
             distType );
 
@@ -859,17 +867,19 @@ operator.
             return dmapResult;
         }
 
-        ListExpr newDRelType;
-        if( DArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRelType = listutils::basicSymbol<DRel>( );
-        } else if( DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRelType = listutils::basicSymbol<DFRel>( );
-        } else {
+        ListExpr newDRel;
+        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DRel>( );
+        }
+        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DFRel>( );
+        }
+        else {
             return dmapResult;
         }
 
         ListExpr newRes = nl->ThreeElemList(
-            newDRelType,
+            newDRel,
             nl->Second( nl->Third( dmapResult ) ),
             distType );
 
@@ -984,17 +994,19 @@ operator.
             return dmapResult;
         }
 
-        ListExpr newDRelType;
-        if( DArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRelType = listutils::basicSymbol<DRel>( );
-        } else if( DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRelType = listutils::basicSymbol<DFRel>( );
-        } else {
+        ListExpr newDRel;
+        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DRel>( );
+        }
+        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DFRel>( );
+        }
+        else {
             return dmapResult;
         }
 
         ListExpr newRes = nl->ThreeElemList(
-            newDRelType,
+            newDRel,
             nl->Second( nl->Third( dmapResult ) ),
             distType );
 
@@ -1086,17 +1098,19 @@ operator.
             return dmapResult;
         }
 
-        ListExpr newDRelType;
-        if( DArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRelType = listutils::basicSymbol<DRel>( );
-        } else if( DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRelType = listutils::basicSymbol<DFRel>( );
-        } else {
+        ListExpr newDRel;
+        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DRel>( );
+        }
+        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DFRel>( );
+        }
+        else {
             return dmapResult;
         }
 
         ListExpr newRes = nl->ThreeElemList(
-            newDRelType,
+            newDRel,
             nl->Second( nl->Third( dmapResult ) ),
             distType );
 
@@ -1188,17 +1202,19 @@ operator.
             return dmapResult;
         }
 
-        ListExpr newDRelType;
-        if( DArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRelType = listutils::basicSymbol<DRel>( );
-        } else if( DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRelType = listutils::basicSymbol<DFRel>( );
-        } else {
+        ListExpr newDRel;
+        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DRel>( );
+        }
+        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DFRel>( );
+        }
+        else {
             return dmapResult;
         }
 
         ListExpr newRes = nl->ThreeElemList(
-            newDRelType,
+            newDRel,
             nl->Second( nl->Third( dmapResult ) ),
             distType );
 
@@ -1211,7 +1227,7 @@ operator.
     }
 
 /*
-1.1.1 Type Mapping ~drellgroupbyTM~
+1.1.9 Type Mapping ~drellgroupbyTM~
 
 Expect a d[f]rel, an attribute list to group the tuple and a function list.
 Type mapping for the drellgroup operator.
@@ -1401,18 +1417,20 @@ Type mapping for the drellgroup operator.
         if( !nl->HasLength( dmapResult, 3 ) ) {
             return dmapResult;
         }
-
-        ListExpr newDRelType;
-        if( DArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRelType = listutils::basicSymbol<DRel>( );
-        } else if( DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRelType = listutils::basicSymbol<DFRel>( );
-        } else {
+        
+        ListExpr newDRel;
+        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DRel>( );
+        }
+        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DFRel>( );
+        }
+        else {
             return dmapResult;
         }
 
         ListExpr newRes = nl->ThreeElemList(
-            newDRelType,
+            newDRel,
             nl->Second( nl->Third( dmapResult ) ),
             distType );
 
@@ -1429,7 +1447,7 @@ Type mapping for the drellgroup operator.
     }
 
 /*
-1.1.2 Type Mapping ~lsortbyTM~
+1.1.10 Type Mapping ~lsortbyTM~
 
 Expect a d[f]rel an attribute list. Type mapping for the lsortby
 operator.
@@ -1529,17 +1547,19 @@ operator.
             return dmapResult;
         }
 
-        ListExpr newDRelType;
-        if( DArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRelType = listutils::basicSymbol<DRel>( );
-        } else if( DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRelType = listutils::basicSymbol<DFRel>( );
-        } else {
+        ListExpr newDRel;
+        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DRel>( );
+        }
+        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DFRel>( );
+        }
+        else {
             return dmapResult;
         }
 
         ListExpr newRes = nl->ThreeElemList(
-            newDRelType,
+            newDRel,
             nl->Second( nl->Third( dmapResult ) ),
             distType );
 
@@ -1552,14 +1572,277 @@ operator.
     }
 
 /*
-1.1.4 Type Mapping ~drelwindowintersectsTM~
+1.1.13 Type Mapping rangeTM
+
+Expect two DRels (one with btree and one with a relation) and two values 
+to define the range.
+
+*/
+    ListExpr rangeTM( ListExpr args ) {
+
+        std::string err = "drel(btree(X)) x drel(rel(X)) x ANY x ANY expected";
+
+        cout << "args" << endl;
+        cout << nl->ToString( args ) << endl;
+
+        if( !nl->HasLength( args, 4 ) ) {
+            return listutils::typeError( err +
+                ": four arguments are expected" );
+        }
+
+        if( !DRelHelpers::isListOfTwoElemLists( args ) ) {
+            return listutils::typeError( "internal Error" );
+        }
+
+        ListExpr darrayBTreeType = nl->First( nl->First( args ) );
+        ListExpr darrayBTreeValue = nl->Second( nl->First( args ) );
+        ListExpr drelType = nl->First( nl->Second( args ) );
+        ListExpr drelValue = nl->Second( nl->Second( args ) );
+
+        ListExpr range1Type = nl->First( nl->Third( args ) );
+        ListExpr range2Type = nl->First( nl->Fourth( args ) );
+
+        ListExpr range1 = nl->Second( nl->Third( args ) );
+        ListExpr range2 = nl->Second( nl->Fourth( args ) );
+
+        ListExpr darrayType;
+        if( !DRelHelpers::drelCheck( 
+            drelType, darrayType ) ) {
+
+            return listutils::typeError(
+                err + ": second argument is not a d[f]rel" );
+        }
+
+        if( !DArray::checkType( darrayBTreeType ) ) {
+            return listutils::typeError( err +
+                ": first argument is not a darray" );
+        }
+
+        ListExpr bTreeType = nl->Second( darrayBTreeType );
+        ListExpr relType = nl->Second( drelType );
+
+        ListExpr result = IndexQueryTypeMap<2>(
+            nl->FourElemList(
+                bTreeType,
+                relType,
+                range1Type,
+                range2Type ) );
+
+        if( !listutils::isTupleStream( result ) ) {
+            return result;
+        }
+
+        if( DFRel::checkType( drelType ) ) {
+            relType = nl->TwoElemList(
+                listutils::basicSymbol<frel>( ),
+                nl->Second( relType ) );
+        }
+
+        // create function type to call dloop2TM
+        ListExpr funType = nl->TwoElemList(
+            nl->FourElemList(
+                nl->SymbolAtom( "map" ),
+                bTreeType,
+                relType,
+                relType ),
+            nl->FourElemList(
+                nl->SymbolAtom( "fun" ),
+                nl->TwoElemList(
+                    nl->SymbolAtom( "elem11" ),
+                    nl->SymbolAtom( "DARRAYELEM" ) ),
+                nl->TwoElemList(
+                    nl->SymbolAtom( "elem22" ),
+                    nl->SymbolAtom( "DARRAYELEM2" ) ),
+                nl->TwoElemList(
+                    nl->SymbolAtom( "consume" ),
+                    nl->FiveElemList(
+                        nl->SymbolAtom( "range" ),
+                        nl->SymbolAtom( "elem11" ),
+                        nl->SymbolAtom( "elem22" ),
+                        range1,
+                        range2 ) ) ) );
+
+        if( DFRel::checkType( drelType ) ) {
+            relType = nl->TwoElemList(
+                listutils::basicSymbol<frel>( ),
+                nl->Second( relType ) );
+        }
+
+        // result type of dmap2
+        ListExpr dmapResult = dmapXTMT<2>(
+            nl->FiveElemList(
+                nl->TwoElemList( darrayBTreeType, darrayBTreeValue ),
+                nl->TwoElemList( darrayType, drelValue ),
+                nl->TwoElemList( 
+                    listutils::basicSymbol<CcString>( ), 
+                    nl->StringAtom( "" ) ),
+                funType,
+                nl->TwoElemList( 
+                    listutils::basicSymbol<CcInt>( ),
+                    nl->IntAtom( 1238 ) ) ) );
+
+        if( !nl->HasLength( dmapResult, 3 ) ) {
+            return dmapResult;
+        }
+        
+        ListExpr newDRel;
+        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DRel>( );
+        }
+        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DFRel>( );
+        }
+        else {
+            return dmapResult;
+        }
+
+        ListExpr resultType = nl->ThreeElemList(
+            newDRel,
+            nl->Second( nl->Third( dmapResult ) ),
+            nl->Third( drelType ) );
+
+        ListExpr append = nl->ThreeElemList(
+                nl->IntAtom( 1238 ),
+                nl->First( nl->Second( dmapResult ) ),
+                nl->Second( nl->Second( dmapResult ) ) );
+
+        return nl->ThreeElemList( 
+            nl->SymbolAtom( Symbols::APPEND( ) ),
+            append,
+            resultType );
+    }
+
+/*
+1.1.12 Type Mapping exactmatchTM
+
+Expect two DRels (one with btree and one with a relation) and a search
+value.
+
+*/
+    ListExpr exactmatchTM( ListExpr args ) {
+
+        std::string err = "drel(btree(X)) x drel(rel(X)) x ANY expected";
+
+        if( !nl->HasLength( args, 3 ) ) {
+            return listutils::typeError( err +
+                ": three arguments are expected" );
+        }
+
+        if( !DRelHelpers::isListOfTwoElemLists( args ) ) {
+            return listutils::typeError( "internal Error" );
+        }
+
+        ListExpr darrayBTreeType = nl->First( nl->First( args ) );
+        ListExpr darrayBTreeValue = nl->Second( nl->First( args ) );
+        ListExpr drelType = nl->First( nl->Second( args ) );
+        ListExpr drelName = nl->Second( nl->Second( args ) );
+
+        ListExpr searchType = nl->First( nl->Third( args ) );
+        ListExpr searchValue = nl->Second( nl->Third( args ) );
+
+        ListExpr darrayType;
+        if( !DRelHelpers::drelCheck( 
+            drelType, darrayType ) ) {
+
+            return listutils::typeError(
+                err + ": second argument is not a d[f]rel" );
+        }
+
+        ListExpr bTreeType = nl->Second( darrayBTreeType );
+        ListExpr relType = nl->Second( drelType );
+
+        ListExpr result = IndexQueryTypeMap<3>(
+            nl->ThreeElemList(
+                bTreeType,
+                relType,
+                searchType ) );
+
+        if( !listutils::isTupleStream( result ) ) {
+            return result;
+        }
+
+        if( DFRel::checkType( drelType ) ) {
+            relType = nl->TwoElemList(
+                listutils::basicSymbol<frel>( ),
+                nl->Second( relType ) );
+        }
+
+        // create function type to call dloop2TM
+        ListExpr funType = nl->TwoElemList(
+            nl->FourElemList(
+                nl->SymbolAtom( "map" ),
+                bTreeType,
+                relType,
+                relType ),
+            nl->FourElemList(
+                nl->SymbolAtom( "fun" ),
+                nl->TwoElemList(
+                    nl->SymbolAtom( "elem11" ),
+                    nl->SymbolAtom( "DARRAYELEM" ) ),
+                nl->TwoElemList(
+                    nl->SymbolAtom( "elem22" ),
+                    nl->SymbolAtom( "DARRAYELEM2" ) ),
+                nl->TwoElemList(
+                    nl->SymbolAtom( "consume" ),
+                    nl->FourElemList(
+                        nl->SymbolAtom( "exactmatch" ),
+                        nl->SymbolAtom( "elem11" ),
+                        nl->SymbolAtom( "elem22" ),
+                        searchValue ) ) ) );
+
+        // result type of dloop
+        ListExpr dmapResult = dmapXTMT<2>(
+            nl->FiveElemList(
+                nl->TwoElemList( darrayBTreeType, darrayBTreeValue ),
+                nl->TwoElemList( darrayType, drelName ),
+                nl->TwoElemList( listutils::basicSymbol<CcString>( ),
+                    nl->StringAtom( "" ) ),
+                funType,
+                nl->TwoElemList( 
+                    listutils::basicSymbol<CcInt>( ),
+                    nl->IntAtom( 1238 ) ) ) );
+
+        if( !nl->HasLength( dmapResult, 3 ) ) {
+            return dmapResult;
+        }
+
+        ListExpr newDRel;
+        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DRel>( );
+        }
+        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
+            newDRel = listutils::basicSymbol<DFRel>( );
+        }
+        else {
+            return dmapResult;
+        }
+
+        ListExpr newRes = nl->ThreeElemList(
+            newDRel,
+            nl->Second( nl->Third( dmapResult ) ),
+            nl->Third( drelType ) );
+
+        ListExpr append = nl->FourElemList(
+            nl->StringAtom( "" ),
+            nl->IntAtom( 1238 ),
+            nl->First( nl->Second( dmapResult ) ),
+            nl->Second( nl->Second( dmapResult ) ) );
+
+        return nl->ThreeElemList(
+            nl->SymbolAtom( Symbols::APPEND( ) ),
+            append,
+            newRes );
+    }
+
+/*
+1.1.13 Type Mapping ~windowintersectsTM~
 
 Expect a d[f]rel and an attrtibute list to execute a mapped function on the 
 the distributed relation. Type mapping for global simple operators with two 
 arguments.
 
 */
-    ListExpr drelwindowintersectsTM( ListExpr args ) { 
+    ListExpr windowintersectsTM( ListExpr args ) { 
 
         std::string err = "darray[rtree] x d[f]rel(X) x rect expected";
 
@@ -1705,8 +1988,6 @@ the dmap value mapping of the Distributed2Algebra.
 
         #ifdef DRELDEBUG
         cout << "dreldmapVMT" << endl;
-        cout << "parm" << endl;
-        cout << parm << endl;
         #endif
 
         int parmNum = qp->GetNoSons( s );
@@ -1737,19 +2018,21 @@ the dmap value mapping of the Distributed2Algebra.
     }
 
 /*
-1.2 Value Mapping ~drelwindowintersectsVMT~
+1.3 Value Mapping ~dreldmap2VMT~
 
 Uses a d[f]rel and a d[f]array and creates a new drel. The d[f]rel is created 
 by calling the dmap2 value mapping of the Distributed2Algebra.
 
 */
     template<class R, class T>
-    int drelwindowintersectsVMT( Word* args, Word& result, int message,
+    int dreldmap2VMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
         cout << "dreldmap2VMT" << endl;
         #endif
+
+        int parmNum = qp->GetNoSons( s );
 
         DFRel* resultDRel;
         
@@ -1758,12 +2041,12 @@ by calling the dmap2 value mapping of the Distributed2Algebra.
         ArgVector argVec = {
             args[ 0 ].addr,
             drel,
-            args[ 3 ].addr,   // name
-            args[ 2 ].addr,   // ingnored
-            args[ 4 ].addr,   // port
-            args[ 5 ].addr,   // stream?
-            args[ 6 ].addr }; // function
-
+            args[ parmNum - 4 ].addr,   // name
+            args[ 0 ].addr,             // ingnored
+            args[ parmNum - 3 ].addr,   // port
+            args[ parmNum - 2 ].addr,   // stream?
+            args[ parmNum - 1 ].addr }; // function
+        
         dmapXVM( argVec, result, message, local, s );
 
         resultDRel = ( DFRel* )result.addr;
@@ -1777,7 +2060,53 @@ by calling the dmap2 value mapping of the Distributed2Algebra.
     }
 
 /*
-1.3 ValueMapping Array for dmap
+1.4 Value Mapping ~rangeVMT~
+
+Uses a d[f]rel and a d[f]array and creates a new drel. The d[f]rel is created 
+by calling the dmap2 value mapping of the Distributed2Algebra.
+
+*/
+    template<class R, class T>
+    int rangeVMT( Word* args, Word& result, int message,
+        Word& local, Supplier s ) {
+
+        #ifdef DRELDEBUG
+        cout << "rangeVMT" << endl;
+        #endif
+
+        int parmNum = qp->GetNoSons( s );
+
+        DFRel* resultDRel;
+        
+        CcString* name = new CcString( "" );
+        
+        R* drel = ( R* )args[ 1 ].addr;
+
+        ArgVector argVec = {
+            args[ 0 ].addr,
+            drel,
+            name,
+            args[ 0 ].addr,             // ingnored
+            args[ parmNum - 3 ].addr,   // port
+            args[ parmNum - 2 ].addr,   // stream?
+            args[ parmNum - 1 ].addr }; // function
+        
+        dmapXVM( argVec, result, message, local, s );
+
+        delete name;
+
+        resultDRel = ( DFRel* )result.addr;
+        if( !resultDRel->IsDefined( ) ) {
+            return 0;
+        }
+
+        resultDRel->setDistType( drel->getDistType( )->copy( ) );
+
+        return 0;
+    }
+
+/*
+1.5 ValueMapping Array for dmap
     
 Used by the operators with only a d[f]rel input.
 
@@ -1788,18 +2117,29 @@ Used by the operators with only a d[f]rel input.
     };
 
 /*
-1.3 ValueMapping Array for dmap
+1.6 ValueMapping Array for dmap
     
 Used by the operators with a darray and a d[f]rel as input.
 
 */
     ValueMapping dreldmap2VM[ ] = {
-        drelwindowintersectsVMT<DRel, DArray>,
-        drelwindowintersectsVMT<DFRel, DFArray>
+        dreldmap2VMT<DRel, DArray>,
+        dreldmap2VMT<DFRel, DFArray>
     };
 
 /*
-1.4 Selection function for dreldmap
+1.7 ValueMapping Array for dmap
+    
+Used by the operators with a darray and a d[f]rel as input.
+
+*/
+    ValueMapping rangeVM[ ] = {
+        rangeVMT<DRel, DArray>,
+        rangeVMT<DFRel, DFArray>
+    };
+
+/*
+1.8 Selection function for dreldmap
 
 Used to select the right position of the parameters. It is necessary, 
 because the dmap-Operator ignores the second parameter. So so parameters 
@@ -1812,9 +2152,9 @@ must be moved to the right position for the dmap value mapping.
     }
 
 /*
-1.5 Specification for all operators using dmapVM
+1.9 Specification for all operators using dmapVM
 
-1.5.1 Specification of project
+1.9.1 Specification of project
 
 Operator specification of the porject operator.
 
@@ -1829,7 +2169,7 @@ Operator specification of the porject operator.
     );
 
 /*
-1.5.2 Specification of drelfilter
+1.9.2 Specification of drelfilter
 
 Operator specification of the drelfilter operator.
 
@@ -1844,7 +2184,7 @@ Operator specification of the drelfilter operator.
     );
 
 /*
-1.5.3 Specification of drelprojectextend
+1.9.3 Specification of drelprojectextend
 
 Operator specification of the drelprojectextend operator.
 
@@ -1859,7 +2199,7 @@ Operator specification of the drelprojectextend operator.
     );
 
 /*
-1.5.4 Specification of drelextend
+1.9.4 Specification of drelextend
 
 Operator specification of the drelextend operator.
 
@@ -1873,7 +2213,7 @@ Operator specification of the drelextend operator.
     );
 
 /*
-1.5.5 Specification of head
+1.9.5 Specification of head
 
 Operator specification of the head operator.
 
@@ -1887,7 +2227,7 @@ Operator specification of the head operator.
     );
 
 /*
-1.5.6 Specification of rename
+1.9.6 Specification of rename
 
 Operator specification of the rename operator.
 
@@ -1903,7 +2243,7 @@ Operator specification of the rename operator.
     );
 
 /*
-1.5.7 Specification of lrdup
+1.9.7 Specification of lrdup
 
 Operator specification of the lrdup operator.
 
@@ -1919,7 +2259,7 @@ Operator specification of the lrdup operator.
     );
 
 /*
-1.5.8 Specification of lsort
+1.9.8 Specification of lsort
 
 Operator specification of the lsort operator.
 
@@ -1935,7 +2275,7 @@ Operator specification of the lsort operator.
     );
     
 /*
-1.5.9 Specification of drellgroupby
+1.9.9 Specification of drellgroupby
 
 Operator specification of the drellgroupby operator.
 
@@ -1956,7 +2296,7 @@ Operator specification of the drellgroupby operator.
     );
 
 /*
-1.5.10 Specification of lsortby
+1.9.10 Specification of lsortby
 
 Operator specification of the lsortby operator.
 
@@ -1972,24 +2312,48 @@ Operator specification of the lsortby operator.
     );
 
 /*
-1.5.11 Specification of drelwindowintersects
+1.9.11 Specification of windowintersects
 
-Operator specification of the drelwindowintersects operator.
+Operator specification of the windowintersects operator.
 
 */
-    OperatorSpec drelwindowintersectsSpec(
+    OperatorSpec windowintersectsSpec(
         " darray(rtree(X)) x d[f]rel[X]"
         "-> dfrel(X) ",
-        " _ _ drelwindowintersects[_]",
+        " _ _ windowintersects[_]",
         "Computes a windowsintersects of a darray with an rtree, an "
         "d[f]rel and a rectangle.",
-        " query darray1 drel1 drelwindowintersects[rectangle]"
+        " query darray1 drel1 windowintersects[rectangle]"
     );
 
 /*
-1.6 Operator instance of operators using dmapVM
+1.9.12 Specification of range
 
-1.6.1 Operator instance of drelfilter operator
+*/
+    OperatorSpec rangeSpec(
+        " darray(btree(X)) x drel(X) x string "
+        "-> darray(X) ",
+        " _ _ range[_,_]",
+        "Uses a distributed btree and a drel to call the range operator.",
+        " query drel1_Name drel1 range[\"Berlin\",\"Mannheim\"]"
+    );
+
+/*
+1.9.13 Specification of exactmatch
+
+*/
+    OperatorSpec exactmatchSpec(
+        " darray(btree(X)) x drel(X) x string "
+        "-> darray(X) ",
+        " _ _ exactmatch[_]",
+        "Uses a distributed btree and a drel to call the exactmatch operator.",
+        " query drel1_Name drel1 drelexactmatch[\"Berlin\"]"
+    );
+
+/*
+1.10 Operator instance of operators using dmapVM
+
+1.10.1 Operator instance of drelfilter operator
 
 */
     Operator drelfilterOp(
@@ -2002,7 +2366,7 @@ Operator specification of the drelwindowintersects operator.
     );
 
 /*
-1.6.2 Operator instance of drelproject operator
+1.10.2 Operator instance of drelproject operator
 
 */
     Operator projectOp(
@@ -2015,7 +2379,7 @@ Operator specification of the drelwindowintersects operator.
     );
 
 /*
-1.6.3 Operator instance of drelprojectextend operator
+1.10.3 Operator instance of drelprojectextend operator
 
 */
     Operator drelprojectextendOp(
@@ -2028,7 +2392,7 @@ Operator specification of the drelwindowintersects operator.
     );
 
 /*
-1.6.4 Operator instance of drelextend operator
+1.10.4 Operator instance of drelextend operator
 
 */
     Operator drelextendOp(
@@ -2041,7 +2405,7 @@ Operator specification of the drelwindowintersects operator.
     );
 
 /*
-1.6.5 Operator instance of head operator
+1.10.5 Operator instance of head operator
 
 */
     Operator headOp(
@@ -2054,7 +2418,7 @@ Operator specification of the drelwindowintersects operator.
     );
     
 /*
-1.6.6 Operator instance of drelrename operator
+1.10.6 Operator instance of drelrename operator
 
 */
     Operator renameOp(
@@ -2067,7 +2431,7 @@ Operator specification of the drelwindowintersects operator.
     );
     
 /*
-1.6.7 Operator instance of lrdup operator
+1.10.7 Operator instance of lrdup operator
 
 */
     Operator lrdupOp(
@@ -2080,7 +2444,7 @@ Operator specification of the drelwindowintersects operator.
     );
     
 /*
-1.6.8 Operator instance of lsort operator
+1.10.8 Operator instance of lsort operator
 
 */
     Operator lsortOp(
@@ -2093,7 +2457,7 @@ Operator specification of the drelwindowintersects operator.
     );
     
 /*
-1.6.9 Operator instance of drellgroupby operator
+1.10.9 Operator instance of drellgroupby operator
 
 */
     Operator drellgroupbyOp(
@@ -2106,7 +2470,7 @@ Operator specification of the drelwindowintersects operator.
     );
 
 /*
-1.6.10 Operator instance of lsortby operator
+1.10.10 Operator instance of lsortby operator
 
 */
     Operator lsortbyOp(
@@ -2119,16 +2483,42 @@ Operator specification of the drelwindowintersects operator.
     );
 
 /*
-1.6.11 Operator instance of drelwindowintersects operator
+1.10.11 Operator instance of windowintersects operator
 
 */
-    Operator drelwindowintersectsOp(
-        "drelwindowintersects",
-        drelwindowintersectsSpec.getStr( ),
+    Operator windowintersectsOp(
+        "windowintersects",
+        windowintersectsSpec.getStr( ),
         2,
         dreldmap2VM,
         dreldmapSelect,
-        drelwindowintersectsTM
+        windowintersectsTM
+    );
+
+/*
+1.10.12 Operator instance of range operator
+
+*/
+    Operator rangeOp(
+        "range",
+        rangeSpec.getStr( ),
+        2,
+        rangeVM,
+        dreldmapSelect,
+        rangeTM
+    );
+
+/*
+1.10.13 Operator instance of exactmatch operator
+
+*/
+    Operator exactmatchOp(
+        "exactmatch",
+        exactmatchSpec.getStr( ),
+        2,
+        dreldmap2VM,
+        dreldmapSelect,
+        exactmatchTM
     );
 
 } // end of namespace drel

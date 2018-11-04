@@ -14,11 +14,11 @@ operator drelconvert alias DRELCONVERT pattern _ op
 operator dsummarize alias DSUMMARIZE pattern _ op
 
 operator drelcreatebtree alias DRELCREATEBTREE pattern _ op[_,_]
-operator drelexactmatch alias DRELEXACTMATCH pattern _ _ op[_]
-operator drelrange alias DRELRANGE pattern _ _ op[_,_]
+operator exactmatch alias EXACTMATCH pattern _ _ op[_]
+operator range alias RANGE pattern _ _ op[_,_]
 
 operator drelbulkloadrtree alias DRELBULKLOADRTREE pattern _ op[_,_]
-operator drelwindowintersects alias DRELWINDOWINTERSECTS pattern _ _ op[_]
+operator windowintersects alias DRELWINDOWINTERSECTS pattern _ _ op[_]
 
 operator drelfilter alias DRELFILTER pattern _ op[fun] implicit parameters elem1 types DRELFUNARG1
 operator drelextend alias DRELEXTEND pattern _ op [funlist] implicit parameters elem1 types DRELFUNARG1

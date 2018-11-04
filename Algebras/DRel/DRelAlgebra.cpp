@@ -72,11 +72,11 @@ extern Operator lsortbyOp;
 extern Operator drellgroupbyOp;
 
 extern Operator drelcreatebtreeOp;
-extern Operator drelexactmatchOp;
-extern Operator drelrangeOp;
+extern Operator exactmatchOp;
+extern Operator rangeOp;
 
 extern Operator drelbulkloadrtreeOp;
-extern Operator drelwindowintersectsOp;
+extern Operator windowintersectsOp;
 
 extern Operator rdupOp;
 extern Operator sortOp;
@@ -141,16 +141,16 @@ DRelAlgebra::DRelAlgebra() {
 
     AddOperator( &drelcreatebtreeOp );
     drelcreatebtreeOp.SetUsesArgsInTypeMapping( );
-    AddOperator( &drelexactmatchOp );
-    drelexactmatchOp.SetUsesArgsInTypeMapping( );
-    AddOperator( &drelrangeOp );
-    drelrangeOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &exactmatchOp );
+    exactmatchOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &rangeOp );
+    rangeOp.SetUsesArgsInTypeMapping( );
 
     AddOperator( &drelbulkloadrtreeOp );
     drelbulkloadrtreeOp.SetUsesArgsInTypeMapping( );
 
-    AddOperator( &drelwindowintersectsOp );
-    drelwindowintersectsOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &windowintersectsOp );
+    windowintersectsOp.SetUsesArgsInTypeMapping( );
 
     AddOperator( &rdupOp );
     rdupOp.SetUsesArgsInTypeMapping( );

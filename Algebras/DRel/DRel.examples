@@ -123,24 +123,24 @@ Example   : query drel1 drelbulkloadrtree["drel1_GeoData",GeoData]
 Result    : bug
 Remark    : remote server required
 
-Operator  : drelwindowintersects
+Operator  : windowintersects
 Number    : 1
 Signature : darray(rtree(X)) x d[f]rel(rel(X)) x rect -> dfrel(rel(X))
-Example   : query darray1 drel1 drelwindowintersects[rectangle]
+Example   : query darray1 drel1 windowintersects[rectangle]
 Result    : bug
 Remark    : remote server required
 
-Operator  : drelexactmatch
+Operator  : exactmatch
 Number    : 1
 Signature : darray(btree(X)) x drel(rel(X)) x ANY -> drel(rel(X))
-Example   : query drel1_PLZ drel1 drelexactmatch[99998]
+Example   : query drel1_PLZ drel1 exactmatch[99998]
 Result    : bug
 Remark    : remote server required
 
-Operator  : drelrange
+Operator  : range
 Number    : 1
 Signature : darray(btree(X)) x drel(rel(X)) x ANY x ANY -> drel(rel(X))
-Example   : query drel1_PLZ drel1 drelrange[90000,99998]
+Example   : query drel1_PLZ drel1 range[90000,99998]
 Result    : bug
 Remark    : remote server required
 
