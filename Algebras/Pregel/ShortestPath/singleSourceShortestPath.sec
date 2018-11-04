@@ -1,0 +1,38 @@
+delete database shortestpath;
+create database shortestpath;
+open database shortestpath;
+
+let inf = 10000000;
+
+restore Edges from LinksStanford;
+update Edges := Edges feed sortby[Source] consume;
+
+#restore Nodes from Nodes;
+let NodesInit = Edges feed projectextend[;Id: .Source] Edges feed projectextend[;Id: .Target] concat sort rdup extend[Value: inf] consume;
+let Nodes = NodesInit feed mconsume;
+
+let Messages = [const rel(tuple([Id: int, Value: int])) value
+(
+  (1 0)
+)];
+
+
+let Compute = fun
+    (messages: stream(tuple([Id: int, Value: int])))
+    (   messages sortby[Id] rename[m] groupby[Id_m; MessageValue: group feed min[Value_m]]
+        Nodes mfeed addid
+            mergejoin[Id_m, Id] filter[.MessageValue < .Value]
+            Nodes
+                mupdatedirect2[TID; Value: .MessageValue]
+                Edges feed
+                    mergejoin[Id, Source] projectextend[; Id: .Target, Value: .Value + 1]);
+
+#let Route = fun
+#    (   messages: stream(tuple([Id: int, Value: int, Address: int])),
+#        func: map(stream(tuple((Id int) (Value int))), stream(tuple([Id: int, Value: int]))),
+#        partition: map(int, int) )
+#    (   func(messages project[Id, Value]) extend[Address: partition(.Id)]);
+
+
+
+while Messages count > 0 do update Messages := Compute(Messages feed) consume endwhile;
