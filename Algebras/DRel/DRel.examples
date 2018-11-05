@@ -249,10 +249,17 @@ Example   : query drel1 drel2 drelsortmergejoin[PLZ, PLZ2]
 Result    : bug
 Remark    : remote server required
 
-
 Operator  : drelitHashJoin
 Number    : 1
 Signature : d[f]rel(rel(X)) x d[f]rel(rel(X)) x attr x attr -> dfrel(rel(X))
 Example   : query drel1 drel2 drelitHashJoin[PLZ, PLZ2]
+Result    : bug
+Remark    : remote server required
+
+
+Operator  : inloopjoin
+Number    : 1
+Signature : d[f]rel(rel(X)) x darray(btree(Y)) x d[f]rel(rel(Z)) x attr -> dfrel(rel(X))
+Example   : query drel01 drel01_A drel11 inloopjoin[B]
 Result    : bug
 Remark    : remote server required

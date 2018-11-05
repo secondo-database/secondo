@@ -39,3 +39,5 @@ operator drelgroupby alias DRELGROUPBY pattern _ op[list;funlist] implicit param
 
 operator drelsortmergejoin alias DRELSORTMERGEJOIN pattern _ _ op [_,_]
 operator drelitHashJoin alias DRELITHASHJOIN pattern _ _ op [_,_]
+
+operator inloopjoin alias INLOOPJOIN pattern _ _ _op [_]

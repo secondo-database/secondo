@@ -85,6 +85,8 @@ extern Operator drelgroupbyOp;
 
 extern Operator drelsortmergejoinOp;
 extern Operator drelitHashJoinOp;
+
+extern Operator inloopjoinOp;
 /*
 1 Implementation of the Algebra DRel
 
@@ -165,6 +167,9 @@ DRelAlgebra::DRelAlgebra() {
     drelsortmergejoinOp.SetUsesArgsInTypeMapping( );
     AddOperator( &drelitHashJoinOp );
     drelitHashJoinOp.SetUsesArgsInTypeMapping( );
+
+    AddOperator( &inloopjoinOp );
+    inloopjoinOp.SetUsesArgsInTypeMapping( );
 }
 
 extern "C"
