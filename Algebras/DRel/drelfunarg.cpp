@@ -69,7 +69,6 @@ namespace drel {
         ListExpr arg = nl->First( args );
         if( DRel::checkType( arg )
          || DFRel::checkType( arg ) ) {
-            cout << rel << endl;
             if( rel ) {
                 return nl->Second( arg );
             }
@@ -135,76 +134,6 @@ namespace drel {
         0,
         Operator::SimpleSelect,
         DRELFUNARG<true, 1>
-    );
-
-    template<int pos, bool makeFS>
-    ListExpr DRELFUNARGTTT( ListExpr args ) {
-
-        if( !nl->HasMinLength( args, pos ) ){
-            return listutils::typeError( "too less arguments" );
-        }
-        for( int i = 1; i < pos; i++ ){
-            args = nl->Rest( args );
-        }
-        ListExpr arg = nl->First( args );
-
-        if( DArray::checkType( arg ) 
-         || SDArray::checkType( arg )
-         || DRel::checkType( arg ) ){
-            return nl->Second( arg );
-        }
-
-        if( DFArray::checkType( arg )
-         || DRel::checkType( arg )
-         || DFMatrix::checkType( arg ) ) {
-
-            ListExpr res;
-            if( makeFS ) {
-            res  = nl->TwoElemList(
-                    listutils::basicSymbol<fsrel>( ),
-                    nl->Second( nl->Second( arg ) ) );
-            } 
-            else {
-            res  = nl->TwoElemList(
-                    listutils::basicSymbol<frel>( ),
-                    nl->Second( nl->Second( arg ) ) );
-            }
-            return res;
-        }
-
-        return listutils::typeError("Invalid type found");
-    }
-
-    OperatorSpec DRELFUNARGTTT1SPEC(
-        "d[f]rel(rel(X)) x ... -> frel(X)",
-        "DRELFUNARGTTT1(_)",
-        "Type mapping operator.",
-        "query drel1 drellgroupby[PLZ; Anz: group feed count] drelsummarize "
-        "consume"
-    );
-
-    OperatorSpec DRELFUNARGTTT2SPEC(
-        "any x d[f]rel(rel(X)) ... -> frel(X)",
-        "DRELFUNARGTTT2(_)",
-        "Type mapping operator.",
-        "query drel1 drellgroupby[PLZ; Anz: group feed count] drelsummarize "
-        "consume"
-    );
-
-    Operator DRELFUNARGTTT1OP(
-        "DRELFUNARGTTT1",
-        DRELFUNARGTTT1SPEC.getStr( ),
-        0,
-        Operator::SimpleSelect,
-        DRELFUNARGTTT<1, false>
-    );
-
-    Operator DRELFUNARGTTT2OP(
-        "DRELFUNARGTTT2",
-        DRELFUNARGTTT2SPEC.getStr( ),
-        0,
-        Operator::SimpleSelect,
-        DRELFUNARGTTT<2, false>
     );
 
 } // end of namespace drel

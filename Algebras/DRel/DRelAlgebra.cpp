@@ -38,9 +38,6 @@ extern TypeConstructor DFRelTC;
 extern Operator DRELFUNARG1OP;
 extern Operator DRELFUNARG2OP;
 
-extern Operator DRELFUNARGTTT1OP;
-extern Operator DRELFUNARGTTT2OP;
-
 extern Operator DRELRELFUNARG1OP;
 
 extern Operator createboundaryOp;
