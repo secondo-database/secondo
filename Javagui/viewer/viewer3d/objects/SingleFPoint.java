@@ -24,9 +24,18 @@ import tools.Reporter;
 
 class SingleFPoint{
 
-int x;
-int y;
+double x;
+double y;
 double z;
+
+
+private double readNumeric(ListExpr l) throws NumberFormatException{
+   switch(l.atomType()){
+    case ListExpr.INT_ATOM: return l.intValue();
+    case ListExpr.REAL_ATOM: return l.realValue();
+   }
+   throw new NumberFormatException();
+}
 
 SingleFPoint(){
   x=0;
@@ -36,52 +45,35 @@ SingleFPoint(){
 
 
 
-public boolean readFromListExpr(ListExpr LE){
+public boolean readFromListExpr(ListExpr LE, boolean isPointcloud){
    if (LE==null)
       return false;
-   if(LE.listLength()!=3){
+   if(LE.listLength()<3){
       Reporter.writeError("wrong listlength"+LE.listLength());
       return false;
    }
    ListExpr LE1 = LE.first();
    ListExpr LE2 = LE.second();
    ListExpr LE3 = LE.third();
-   int tx,ty;
-   double tz;
-
-   if(LE1.isAtom() && LE1.atomType()==ListExpr.INT_ATOM)
-      tx = LE1.intValue();
-   else{
-      Reporter.writeError("error reading x:");
+   try {
+     double tx = readNumeric(LE1);
+     double ty = readNumeric(LE2);
+     double tz = readNumeric(LE3);
+     x = tx;
+     y = ty;
+     z = tz;
+     if(!isPointcloud){
+        if(z<0 || z > 1){
+           Reporter.writeError("error during reading coordinates:");
+           return false;
+        }
+     }
+     return true;
+   } catch(NumberFormatException e){
+      Reporter.writeError("error during reading coordinates:");
       return false;
+     
    }
-
-   if(LE2.isAtom() && LE2.atomType()==ListExpr.INT_ATOM)
-      ty = LE2.intValue();
-    else{
-      Reporter.writeError("error reading y");
-      return false;
-    }
-
-    if(LE3.isAtom() && ( LE3.atomType()==ListExpr.INT_ATOM | LE3.atomType()==ListExpr.REAL_ATOM))
-       if (LE3.atomType()==ListExpr.INT_ATOM)
-          tz=LE3.intValue();
-       else
-          tz=LE3.realValue();
-    else{
-       Reporter.writeError("error reading z");
-       return false;
-    }
-
-    if(tz<0 | tz>1){
-       Reporter.writeError("wrong z :"+z);
-       return false;
-    }
-
-    this.x = tx;
-    this.y = ty;
-    this.z = tz;
-    return true;
 }
 
 }

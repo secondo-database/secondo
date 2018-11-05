@@ -148,7 +148,7 @@ private void showPaintOptions(){
    if(! (type.isAtom() && type.atomType()==ListExpr.SYMBOL_ATOM))
       return false;
    String TypeName = type.symbolValue();
-   if (TypeName.equals("fpoint")){
+   if (TypeName.equals("fpoint") || TypeName.equals("pointcloud")){
        FPoint3D P3D = new FPoint3D();
        if(!P3D.readFromSecondoObject(o))
           return false;
@@ -231,7 +231,7 @@ private void showPaintOptions(){
     if (!(type.isAtom() && type.atomType()==ListExpr.SYMBOL_ATOM))
        return false;
     String TypeName = type.symbolValue();
-    return (TypeName.equals("fpoint") || TypeName.equals("fregion") || TypeName.equals("fline"));  
+    return (TypeName.equals("fpoint") || TypeName.equals("fregion") || TypeName.equals("fline") || TypeName.equals("pointcloud"));  
  }
 
 

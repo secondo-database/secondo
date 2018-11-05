@@ -40,9 +40,9 @@ public boolean checkType(SecondoObject SO){
   ListExpr LE = SO.toListExpr();
   if(LE.listLength()!=2) 
      return false;
-  else
-    return (LE.first().isAtom() && LE.first().atomType()==ListExpr.SYMBOL_ATOM && 
-            LE.first().symbolValue().equals("fpoint"));
+  return (LE.first().isAtom() && LE.first().atomType()==ListExpr.SYMBOL_ATOM && 
+         ( LE.first().symbolValue().equals("fpoint") || LE.first().symbolValue().equals("pointcloud")));
+  
 }
 
 /** read the value of this Fpoint from SO */
@@ -54,6 +54,11 @@ public boolean readFromSecondoObject(SecondoObject SO){
       return false;
    Name = SO.getName();
    myID = SO.getID();
+   if(LE.first().symbolValue().equals("pointcloud")){
+     isPointCloud = true;
+     return readPointCloud(LE.second());
+   }
+   isPointCloud = false;
    return readFromListExpr(LE.second());
 }
 
@@ -85,7 +90,7 @@ private boolean readFromListExpr(ListExpr LE){
   boolean ok = true; 
   while( !points_le.isEmpty() & ok) {
     P = new SingleFPoint();
-    if(P.readFromListExpr(points_le.first())){
+    if(P.readFromListExpr(points_le.first(),false)){
        SingleFPoints.add(P);
        points_le=points_le.rest();
     }
@@ -98,6 +103,24 @@ private boolean readFromListExpr(ListExpr LE){
 }
 
 
+private boolean readPointCloud(ListExpr LE){
+   if(LE.isEmpty()){
+     return false;
+   }
+   ScaleFactor = 1.0;
+   LE = LE.rest(); // ignore bounding box
+   while(!LE.isEmpty()){
+     SingleFPoint p = new SingleFPoint();
+     if(!p.readFromListExpr(LE.first(),true)){
+       return false;
+     }
+     SingleFPoints.add(p);
+     LE = LE.rest();
+   }
+   computePoints3D();
+   return true;
+}
+
 
 private void computePoints3D(){
   // compute the 3DPointVector
@@ -106,7 +129,19 @@ private void computePoints3D(){
   SingleFPoint P;
   BB.set(0,0,0,0,0,0);
   BoundingBox3D BB2= new BoundingBox3D();
-  for(int i=0;i<SingleFPoints.size();i++){
+
+  double minZ = Double.MAX_VALUE;
+  double maxZ = Double.MIN_VALUE;
+  if(isPointCloud){
+    for(int i=0;i<SingleFPoints.size();i++){
+        double z = ((SingleFPoint)SingleFPoints.get(i)).z;
+        if(z<minZ) minZ = z;
+        if(z>maxZ) maxZ = z;
+    }
+  }
+
+
+ for(int i=0;i<SingleFPoints.size();i++){
       P = (SingleFPoint) SingleFPoints.get(i);
       if(i==0) 
          BB.set(P.x,P.y,(int)(P.z*ScaleFactor),P.x,P.y,(int)(P.z*ScaleFactor));
@@ -114,10 +149,18 @@ private void computePoints3D(){
          BB2.set(P.x,P.y,(int)(P.z*ScaleFactor),P.x,P.y,(int)(P.z*ScaleFactor));
          BB.extend(BB2);
       } 
-
+      double z = P.z;
+      if(isPointCloud){
+         if(maxZ!=minZ){
+             z = (z - minZ) / (maxZ - minZ);
+         } else {
+             z = 0.5;
+         }
+         P.z = z;
+      } 
       P3D = new Point3D(P.x,P.y,
                           P.z*ScaleFactor,
-                          getRed(P.z),getGreen(P.z),getBlue(P.z));
+                          getRed(z),getGreen(z),getBlue(z));
       P3D.setID(myID); // each member of this FPoint has the same ID
       Points.append(P3D);
   }
@@ -189,6 +232,8 @@ private int minR=0,minG=0,minB=0,maxR=255,maxG=255,maxB=255;
 private ID myID= IDManager.getNextID();
 private String Name;
 private BoundingBox3D BB= new BoundingBox3D();;
+private boolean isPointCloud;
+
 }
 
 
