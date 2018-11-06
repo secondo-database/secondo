@@ -17,5 +17,4 @@ query share("GenerateMessages", TRUE, Workers);
 query share("PageRank", TRUE, Workers);
 query share("Reduce", TRUE, Workers);
 query share("UpdateRelById", TRUE, Workers);
-# query share("Compute", TRUE, Workers);
 query share("ComputeRouted", TRUE, Workers);

@@ -4,7 +4,7 @@ let InitMessages = AddRoutingAddress(PagesPersistent feed projectextend[Id; Valu
 
 query setupPregel(Workers);
 
-# may exist already, but is deleted at the end of a session
+# may exist already
 let Pages = PagesPersistent feed mconsume;
 query remotePregelCommand('let Pages = PagesPersistent feed mconsume;');
 
@@ -16,4 +16,6 @@ query pregelStatus();
 
 query startPregel(10);
 
-query remotePregelCommand('query Pages;');
+query remotePregelCommand('update PagesPersistent := Pages mfeed consume;');
+
+#query remotePregelCommand('query Pages;');

@@ -2,16 +2,6 @@ delete database pagerank;
 create database pagerank;
 open database pagerank;
 
-let Workers = [const rel(tuple([Host: string, Port: int, Config: string, MessageServerPort: int])) value
-(
-    ("127.0.0.1" 1471 "SecondoConfig.ini" 9898)
-    ("127.0.0.1" 1472 "SecondoConfig.ini" 9899)
-    ("127.0.0.1" 1473 "SecondoConfig.ini" 9900)
-    ("127.0.0.1" 1474 "SecondoConfig.ini" 9901)
-)];
-
-let WorkerNumber = Workers count;
-# = 4
 
 #
 # Dampening Factor
@@ -19,30 +9,35 @@ let WorkerNumber = Workers count;
 
 let D = 0.85;
 
+restore Workers from TwoTwoWorkers;
+let WorkerNumber = Workers count;
+
 let PartitionFunction = fun (id: int) (hashvalue(id, WorkerNumber));
 
 #
 # Edges of the Graph
 #
 
-restore Links from LinksLarge;
+restore Links from LinksStanfordNoDangling;
 
 #
-# Remove dangling Links
+# Remove dangling Links => Might take a while on big graphs, you may want to check to long an iteration takes first.
+# You can also see the rate at which it's converging pretty quickly.
+# The Stanford dataset with ~2.3 million edges took 50-ish iterations of 1:30min each to complete
 #
 
 let RemoveDanglingLinks = fun (links: rel(tuple([Source: int, Target: int]))) (links feed sortby[Target] links feed project[Target] sort rdup links feed projectextend[;Target: .Source] sort rdup kmergediff kmergediff);
 
-let NumberLinks = 100000000;
-while Links count < NumberLinks do { update NumberLinks := Links count | update Links := RemoveDanglingLinks(Links) consume} endwhile;
-delete NumberLinks;
+#let NumberLinks = 100000000;
+#while Links count < NumberLinks do { update NumberLinks := Links count | update Links := RemoveDanglingLinks(Links) consume | query Links count } endwhile;
+#delete NumberLinks;
 
 
 #
 # Vertices of the Graph
 #
 
-let PagesPersistent = Links feed projectextend[;Id: .Source] Links feed projectextend[;Id: .Target] concat sort rdup extend[Value: 0.0] consume;
+let PagesPersistent = Links feed projectextend[;Id: .Source, Value: 0.0] sort rdup consume;
 let N = PagesPersistent count;
 let Minimum = ((1 - D) / N);
 
@@ -56,10 +51,5 @@ let Pages = PagesPersistent feed mconsume;
 #
 
 let ConnectEdgePages = fun (pages: rel(tuple([Id: int, Value: real])), links: rel(tuple([Source: int, Target: int]))) (links feed project[Target] sort links feed projectextend[;Target: .Source] sort mergediff projectextend[; Source: .Target] loopjoin[pages feed projectextend[; Target: .Id]]);
-
-# Fragments:
-# let PagesWithoutForwardLinks = Links feed project[Target] sort rdup Links feed projectextend[;Target: .Source] sort mergediff consume;
-# let ExtraLinks = PagesWithoutForwardLinks feed projectextend[; Source: .Target] loopjoin[PagesPersistent feed projectextend[; Target: .Id]] consume;
-#
 
 # update Links := Links feed ConnectEdgePages(PagesPersistent, Links) concat sortby[Source] consume;
