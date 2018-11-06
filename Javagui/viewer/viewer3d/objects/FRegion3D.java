@@ -122,8 +122,8 @@ private void computeTriangles3D(){
   Point3DSimple P3D1,P3D2,P3D3;
   BoundingBox3D BB2 = new BoundingBox3D();
   int z1,z2,z3;
-  int minx,miny,minz;
-  int maxx,maxy,maxz;
+  double minx,miny,minz;
+  double maxx,maxy,maxz;
   for (int i=0;i<SingleTriangles.size();i++){
     ST = (SingleTriangle) SingleTriangles.get(i);
 
@@ -230,15 +230,15 @@ public boolean readFromListExpr(ListExpr LE){
   SingleFPoint tmpP1 = new SingleFPoint();
   SingleFPoint tmpP2 = new SingleFPoint();
   SingleFPoint tmpP3 = new SingleFPoint();
-  boolean ok =  tmpP1.readFromListExpr(LE.first());
+  boolean ok =  tmpP1.readFromListExpr(LE.first(),false);
   if(!ok)
      Reporter.writeError("Error reading :"+LE.first().writeListExprToString());
   else{
-     ok = tmpP2.readFromListExpr(LE.second());
+     ok = tmpP2.readFromListExpr(LE.second(),false);
      if(!ok)
         Reporter.writeError("Error reading :"+LE.second().writeListExprToString());
      else {
-        ok = tmpP3.readFromListExpr(LE.third());
+        ok = tmpP3.readFromListExpr(LE.third(),false);
         if(!ok)
            Reporter.writeError("error reading :"+LE.third().writeListExprToString());
       }

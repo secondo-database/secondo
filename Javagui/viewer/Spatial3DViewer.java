@@ -78,7 +78,7 @@ import viewer.spatial3D.*;
  */
 public class Spatial3DViewer extends SecondoViewer {
   
-  private enum AllowedObjects {point3d,surface3d,vector3d,volume3d}; //can be changed according to development of algebra
+  private enum AllowedObjects {point3d,surface3d,vector3d,volume3d,pointcloud}; //can be changed according to development of algebra
 
   private JTabbedPane configPane;
   private JComboBox itemsNameBox;   
@@ -152,6 +152,8 @@ public class Spatial3DViewer extends SecondoViewer {
    * Creates a MainWindow with all its components
   */
   public Spatial3DViewer(){
+
+    try{
 
     this.setLayout(new BorderLayout());
     
@@ -241,6 +243,10 @@ public class Spatial3DViewer extends SecondoViewer {
     settingsMenu.setEnabled(false);
     appearanceMenu.setEnabled(false);
     viewMenu.setEnabled(false);
+   } catch(Exception e){
+      e.printStackTrace();
+   }
+
     
   }
   
@@ -287,6 +293,8 @@ public class Spatial3DViewer extends SecondoViewer {
         itemsNameBox.setSelectedIndex(itemsNameBox.getItemCount()-1);
         }
       catch(Exception e){
+        //e.printStackTrace();
+
         Reporter.writeError("Error in addObject= " + e.getStackTrace());
         Reporter.writeError("Error in addObject= " + e.getClass() + " - "
           + e.getMessage()+" - "+ e.getCause() );
@@ -371,7 +379,7 @@ public class Spatial3DViewer extends SecondoViewer {
     }
     
     ListExpr type = attr?LE.second():LE.first(); // LE.secondo() is for attribute check
-    
+
     if(!type.isAtom() && !type.isEmpty()){
       return typeCheck(type,false); // goes one level deeper. recursive call;
     }
@@ -398,8 +406,11 @@ public class Spatial3DViewer extends SecondoViewer {
     }
 
     // check for single atom type
+
     for(AllowedObjects ao: AllowedObjects.values()){
-      if(typeName.equals(ao.toString()))return true;
+      if(typeName.equals(ao.toString())) {
+           return true;
+      }
     }
     return false;
   }

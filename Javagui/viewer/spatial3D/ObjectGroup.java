@@ -178,6 +178,9 @@ public class ObjectGroup {
         isSinglePoint = true;
         currentShape = createPoint(app, currentObjectList.second());
           break;
+        case "pointcloud":
+        currentShape = createPoints(app, currentObjectList.second().rest());
+        break;
         // surface3d volume3d
         case "surface3d":
         case "volume3d":
@@ -298,6 +301,71 @@ public class ObjectGroup {
     pntShape.setCapability(Shape3D.ALLOW_APPEARANCE_WRITE);
 
     return pntShape;
+    }
+
+  /**
+   * createPoints 
+   * creates a point set with a given Appearance
+   * 
+   * @param app Appearance
+   * @param value List Expression
+   * @return the created PointSet as a Shape
+   */
+  private Shape3D createPoints(Appearance app, ListExpr value) {
+
+     try{
+
+    //check if Object is defined
+    int length = value.listLength();
+
+    if (length<0){
+      isUndefined=true;
+      return null;
+    }
+    
+    if(length==0){
+      isUndefined = false;
+      return null;
+    }
+    
+    Point3f pntCoord[] = new Point3f[length];
+    for(int i=0;i<length;i++){
+      ListExpr p = value.first();
+      value = value.rest();
+      float x = (float) p.first().realValue();
+      float y = (float) p.second().realValue();
+      float z = (float) p.third().realValue();
+      //x = x * 100;
+      //y = y * 100;
+      pntCoord[i] = new Point3f(x, y, z);
+    }
+
+    // create point3d
+    PointArray pnt = new PointArray(length, GeometryArray.COORDINATES);
+    pnt.setCapability(GeometryArray.ALLOW_COORDINATE_READ);
+    pnt.setCoordinates(0, pntCoord);
+    
+
+    // set standard size of point to 5.0f pixels
+    PointAttributes pntAttr = new PointAttributes(pointSize, true);
+    pntAttr.setCapability(PointAttributes.ALLOW_SIZE_WRITE);
+    pntAttr.setCapability(PointAttributes.ALLOW_SIZE_READ);
+    app.setPointAttributes(pntAttr);
+
+    // create point shape
+    Shape3D pntShape = new Shape3D(pnt, app);
+    pntShape.setCapability(Shape3D.ALLOW_APPEARANCE_OVERRIDE_READ);
+    pntShape.setCapability(Shape3D.ALLOW_APPEARANCE_OVERRIDE_WRITE);
+    pntShape.setCapability(Shape3D.ALLOW_APPEARANCE_READ);
+    pntShape.setCapability(Shape3D.ALLOW_APPEARANCE_WRITE);
+
+    return pntShape;
+
+    } catch(Exception e){
+         e.printStackTrace();
+         return null;
+    }
+
     }
 
   /**
@@ -446,6 +514,9 @@ public class ObjectGroup {
               case "vector3d":
               elem = createPoint(app, valRow.first());
                 break;
+              case "pointcloud":
+              elem = createPoints(app, valRow.first().rest());
+              break;
               case "surface3d":
               case "volume3d":
               elem = createVolume(app, valRow.first());

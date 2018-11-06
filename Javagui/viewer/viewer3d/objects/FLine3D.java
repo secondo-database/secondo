@@ -116,7 +116,7 @@ private void computeLine3Ds(){
   Line3D L3D;
   Point3DSimple P3D1,P3D2;
   BB.set(0,0,0,0,0,0);
-  int minx,miny,minz,maxx,maxy,maxz;
+  double minx,miny,minz,maxx,maxy,maxz;
   BoundingBox3D BB2 = new BoundingBox3D();
   for (int i=0;i<SingleSegments.size();i++){
     SS = (SingleSegment) SingleSegments.get(i);
@@ -235,7 +235,7 @@ public boolean readFromListExpr(ListExpr LE){
      return false;
   SingleFPoint tmpP1 = new SingleFPoint();
   SingleFPoint tmpP2 = new SingleFPoint();
-  if(!( tmpP1.readFromListExpr(LE.first()) && tmpP2.readFromListExpr(LE.second())))
+  if(!( tmpP1.readFromListExpr(LE.first(),false) && tmpP2.readFromListExpr(LE.second(),false)))
      return false; 
    
   this.P1 = tmpP1;
