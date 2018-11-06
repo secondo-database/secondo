@@ -8,13 +8,19 @@ restore Edges from LinksStanford;
 update Edges := Edges feed sortby[Source] consume;
 
 #restore Nodes from Nodes;
-let NodesInit = Edges feed projectextend[;Id: .Source] Edges feed projectextend[;Id: .Target] concat sort rdup extend[Value: inf] consume;
-let Nodes = NodesInit feed mconsume;
+let NodesPersistent = Edges feed projectextend[;Id: .Source] Edges feed projectextend[;Id: .Target] concat sort rdup extend[Value: inf] consume;
+let Nodes = NodesPersistent feed mconsume;
 
 let Messages = [const rel(tuple([Id: int, Value: int])) value
 (
   (1 0)
 )];
+
+
+restore Workers from FourTwoWorkers;
+let WorkerNum = Workers count;
+
+let PartitionFunction = fun (id: int) (hashvalue(id, WorkerNum));
 
 
 let Compute = fun
@@ -27,12 +33,40 @@ let Compute = fun
                 Edges feed
                     mergejoin[Id, Source] projectextend[; Id: .Target, Value: .Value + 1]);
 
-#let Route = fun
-#    (   messages: stream(tuple([Id: int, Value: int, Address: int])),
-#        func: map(stream(tuple((Id int) (Value int))), stream(tuple([Id: int, Value: int]))),
-#        partition: map(int, int) )
-#    (   func(messages project[Id, Value]) extend[Address: partition(.Id)]);
+let ComputeRouted = fun
+    (   messages: stream(tuple([Id: int, Value: int, Address: int])))
+    (   Compute(messages project[Id, Value]) extend[Address: PartitionFunction(.Id)])
+
+#while Messages count > 0 do update Messages := Compute(Messages feed) consume endwhile;
 
 
 
-while Messages count > 0 do update Messages := Compute(Messages feed) consume endwhile;
+#
+# Distribute
+#
+let EdgesD = Edges feed ddistribute4["EdgesD", PartitionFunction(.Source), WorkerNum , Workers];
+let EdgesSD = EdgesD makeSimple[FALSE, "Edges"];
+
+let NodesD = NodesPersistent feed ddistribute4["NodesD", PartitionFunction(.Id), WorkerNum , Workers];
+let NodesSD = NodesD makeSimple[FALSE, "NodesPersistent"];
+
+query share("WorkerNum", TRUE, Workers);
+query share("PartitionFunction", TRUE, Workers);
+query share("Compute", TRUE, Workers);
+query share("ComputeRouted", TRUE, Workers);
+
+query closeWorkers();
+
+query setupPregel(Workers);
+
+query remotePregelCommand('let Nodes = NodesPersistent feed mconsume;');
+
+query setPregelFunction(ComputeRouted, Address);
+
+query Messages feed projectextend[;Id: 1000, Address: PartitionFunction(.Id)] initPregelMessages;
+
+query pregelStatus();
+
+query startPregel(1);
+
+# query startPregel(-1);
