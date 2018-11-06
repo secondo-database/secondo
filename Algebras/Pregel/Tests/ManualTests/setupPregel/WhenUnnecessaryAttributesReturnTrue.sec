@@ -1,0 +1,10 @@
+delete database pregeltest;
+create database pregeltest;
+open database pregeltest;
+let WorkersUnnecessaryAttribute = [const rel(tuple([Host: string, Port: int, Config: string, MessageServerPort: int, Useless: string])) value
+(
+ ("127.0.0.1" 1471 "SecondoConfig.ini" 9898 "justherebecause")
+ ("127.0.0.1" 1472 "SecondoConfig.ini" 9899 "alsojustherebecause")
+)];
+# expected: TRUE
+query setupPregel(WorkersUnnecessaryAttribute);
