@@ -102,7 +102,7 @@ namespace pregel {
   int messageServerPortPosition = listutils::findAttribute(tupleType,
                                                            "MessageServerPort",
                                                            messageServerPortType
-                                                           );
+  );
   if (!messageServerPortPosition) {
    BOOST_LOG_TRIVIAL(error) << "No \"MessageServerPort\" attribute in relation";
   }
@@ -126,7 +126,6 @@ namespace pregel {
  int SetupPregel::valueMapping(Word *args, Word &result,
                                int, Word &,
                                Supplier s) {
-  FORCE_LOG
   result = qp->ResultStorage(s);
   PregelAlgebra::getAlgebra()->reset();
   auto relation = (Relation *) args[0].addr;
@@ -136,7 +135,7 @@ namespace pregel {
   int configIndex = ((CcInt *) args[4].addr)->GetIntval();
 
   PRECONDITION(relation->GetNoTuples() > 1,
-   "You can't configure Pregel with less than two Workers.")
+               "You can't configure Pregel with less than two Workers.")
 
   try {
    int slotNumber = 0;
@@ -207,22 +206,27 @@ namespace pregel {
 
   {
    auto workers = PregelContext::get().getWorkers();
-   for (auto worker = workers(); worker != nullptr; worker = workers()) {
-    std::string query("query startLoopbackMessageClient(" +
-                      std::to_string(worker->slot) + ")");
-    Commander::remoteQuery(worker->connection, query,
-                           Commander::throwWhenFalse);
-   }
+   supplier<Runner> runners = [&workers]() -> Runner * {
+     WorkerConfig *worker;
+     if ((worker = workers()) != nullptr) {
+      std::string query = "query startLoopbackMessageClient(" +
+                          std::to_string(worker->slot) + ")";
+      return new Runner(worker->connection, query);
+     }
+     return nullptr;
+   };
+
+   Commander::broadcast(runners, Commander::throwWhenFalse, true);
   }
 
   {
-   auto workers = PregelContext::get().getWorkers();
-   for (auto worker = workers(); worker != nullptr; worker = workers()) {
-
-    auto remoteWorkers = PregelContext::get().getWorkers();
-    for (auto remote = remoteWorkers();
-         remote != nullptr;
-         remote = remoteWorkers()) {
+   std::vector<Runner *> runners;
+   auto remoteWorkers = PregelContext::get().getWorkers();
+   for (auto remote = remoteWorkers();
+        remote != nullptr;
+        remote = remoteWorkers()) {
+    auto workers = PregelContext::get().getWorkers();
+    for (auto worker = workers(); worker != nullptr; worker = workers()) {
 
      if (worker->slot == remote->slot) {
       continue;
@@ -236,25 +240,43 @@ namespace pregel {
                        std::to_string(slot) + ", \"" +
                        host.c_str() + "\", " +
                        std::to_string(port) + ")");
-     Commander::remoteQuery(worker->connection,
-                            query,
-                            Commander::throwWhenFalse);
+     auto runner = new Runner(worker->connection, query);
+     runners.push_back(runner);
     }
+
+    supplier<Runner> runnerSupplier = [&runners]() -> Runner * {
+      if (runners.empty()) {
+       return nullptr;
+      }
+      auto runner = runners.back();
+      runners.pop_back();
+      return runner;
+    };
+
+    Commander::broadcast(runnerSupplier, Commander::throwWhenFalse, true);
    }
   }
 
   {
    auto workers = PregelContext::get().getWorkers();
-   for (auto remote = workers(); remote != nullptr; remote = workers()) {
-
+   for (
+    auto remote = workers();
+    remote != nullptr;
+    remote = workers()
+    ) {
     const int &slot = remote->slot;
     const std::string &host = remote->endpoint.host;
     const int &port = remote->messageServerPort;
 
+    std::cout << "Attempting to connect to " << host << ":" << port << "\n";
     bool successful = broker.startClient(slot, RemoteEndpoint(host, port));
     if (!successful) {
-     BOOST_LOG_TRIVIAL(error) << "FAILED starting client";
-     throw std::exception();
+     BOOST_LOG_TRIVIAL(error)
+
+      << "FAILED starting client";
+     throw
+
+      std::exception();
     }
    }
   }
@@ -267,7 +289,7 @@ namespace pregel {
                                            int configIndex,
                                            std::string &dbName,
                                            int slotNumber)
-                                           noexcept(false) {
+ noexcept(false) {
   auto host = ((CcString *) tuple->GetAttribute(hostIndex))->GetValue();
   auto port = ((CcInt *) tuple->GetAttribute(portIndex))->GetIntval();
   auto messageServerPort = ((CcInt *) tuple->GetAttribute(
@@ -279,7 +301,7 @@ namespace pregel {
   if (PregelContext::get().workerExists(endpoint, messageServerPort)) {
    throw std::exception();
   }
-  
+
   auto connection = WorkerConnection::createConnection(host, port,
                                                        configFilePath);
 

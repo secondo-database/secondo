@@ -68,8 +68,6 @@ namespace pregel {
  void DoubleQueue::consume(const consumer<MessageWrapper> &callback,
                            const int round) {
   auto supplier = supply(round);
-  std::cout << "Consume from round " << round << ". Messages in buffer: "
-            << size(round) << "\n";
   MessageWrapper *message;
   while ((message = supplier()) != nullptr) {
    callback(message);
@@ -93,9 +91,7 @@ namespace pregel {
  void DoubleQueue::push(MessageWrapper *message, const int round) {
   boost::lock_guard<boost::mutex> guard(lock[(round + 2) % 2]);
   MessageQueue &queue = getQueue(round);
-  std::cout << "Push message in buffer " << round << "\n";
   queue.push(message);
-  std::cout << "Buffer size: " << queue.size() << "\n";
  }
 
  MessageQueue &DoubleQueue::getQueue(const int round) {

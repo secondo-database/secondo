@@ -174,21 +174,28 @@ namespace pregel {
     delete thread;
    }
 
-   auto returnSupplier = [resultStore, &asynchExceptions]() -> result_type * {
-     if (asynchExceptions) {
-      throw RemoteExecutionException("There were failing remote queries.");
-     }
-     if (resultStore == nullptr) {
-      return nullptr;
-     }
-     if (resultStore->empty()) {
-      delete resultStore;
-      return nullptr;
-     }
-     auto returnValue = resultStore->back();
-     resultStore->pop_back();
-     return returnValue;
-   };
+   auto returnSupplier =
+    [resultStore, &asynchExceptions]() mutable -> result_type * {
+      if (asynchExceptions) {
+       for (auto result : *resultStore) {
+        delete result;
+       }
+       resultStore->clear();
+       delete resultStore;
+       resultStore = nullptr;
+       throw RemoteExecutionException("There were failing remote queries.");
+      }
+      if (resultStore == nullptr) {
+       return nullptr;
+      }
+      if (resultStore->empty()) {
+       delete resultStore;
+       return nullptr;
+      }
+      auto returnValue = resultStore->back();
+      resultStore->pop_back();
+      return returnValue;
+    };
    return (supplier<result_type>) returnSupplier;
 
   }

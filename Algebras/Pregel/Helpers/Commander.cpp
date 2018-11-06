@@ -69,8 +69,10 @@ namespace pregel {
     << "But I have already run!?"; //TODO: limitation, or lenient?
   }
   if (!connection->check(false, commandLog)) {
-   throw RemoteExecutionException(
-    "Couldn't execute remote command: Worker not alive!");
+   if (!connection->reconnect(false, commandLog)) {
+    throw RemoteExecutionException(
+     "Couldn't execute remote command: Worker not alive!");
+   }
   }
 
   std::string errorMessage;

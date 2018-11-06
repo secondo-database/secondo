@@ -85,10 +85,6 @@ namespace pregel {
 
   bool serverMotherRunning();
 
-  bool clientsAlive() {
-   return true;
-  }
-
   void pauseServers();
 
   void stopServers();

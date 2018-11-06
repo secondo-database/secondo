@@ -122,11 +122,6 @@ namespace pregel {
    consumer<MessageWrapper> loopbackInsert =
     [this](MessageWrapper *message) {
       if (message->getType() == MessageWrapper::MessageType::DATA) {
-      auto value = ((CcReal *) message->getBody()->GetAttribute(1))->GetValue();
-      auto target = ((CcInt *) message->getBody()->GetAttribute(0))->GetValue();
-      std::cout << "Queue message to " << target << " in superstep "
-                << message->getRound() << ". It's tuple has VALUE " << value
-                << "\n";
       this->inbox.push(message, message->getRound());
       QUEUED_MESSAGE
       } else {
@@ -155,21 +150,23 @@ namespace pregel {
 
    int messageServerPort = PregelContext::get().getMessageServerPort();
    Socket *dummySocket = nullptr;
-   while (dummySocket == nullptr) {
-    dummySocket = Socket::Connect(socketAddress, std::to_string(
-     messageServerPort), Socket::SocketDomain::SockGlobalDomain);
+   dummySocket = Socket::Connect(socketAddress, std::to_string(
+    messageServerPort), Socket::SocketDomain::SockGlobalDomain, 10);
+   if (dummySocket != nullptr) {
+    delete dummySocket;
+    serverMother->join();
+    delete serverMother;
+    serverMother = nullptr;
+
+    if (globalSocket != nullptr) {
+     delete globalSocket;
+     globalSocket = nullptr;
+    }
+   } else {
+    BOOST_LOG_TRIVIAL(warning) << "There was a problem shutting down "
+                                  "the MessageServer. "
+                                  "There may remain open connections.";
    }
-   delete dummySocket;
-
-   serverMother->join();
-
-   if (globalSocket != nullptr) {
-    delete globalSocket;
-    globalSocket = nullptr;
-   }
-
-   delete serverMother;
-   serverMother = nullptr;
   }
 
   for (MessageServer *server : servers) {
@@ -214,13 +211,8 @@ namespace pregel {
  void MessageBroker::collectFromAllServers(int superstep) {
   consumer<MessageWrapper> moveToOwnBuffer =
    [this, superstep](MessageWrapper *message) {
-    auto value = ((CcReal *) message->getBody()->GetAttribute(1))->GetValue();
-    auto target = ((CcInt *) message->getBody()->GetAttribute(0))->GetValue();
-     std::cout << "Collect message to " << target << " with value " << value
-               << "\n";
     inbox.push(message, superstep);
    };
-  std::cout << "Collect messages in superstep " << superstep << "\n";
   for (auto server : servers) {
    server->drainBuffer(moveToOwnBuffer, superstep);
   }
@@ -287,9 +279,7 @@ namespace pregel {
  void MessageBroker::healthReport(std::stringstream &sstream) {
   sstream << "+++Broker" << std::endl;
   sstream << "  Queue: " << inbox << std::endl;
-  sstream << "  Clients (" << slotToClient.size() << ") : "
-          << (clientsAlive() ? "ready (always true)" : "error")
-          << std::endl;
+  sstream << "  Clients " << std::endl;
 
   for (auto client : slotToClient) {
    sstream << "  Client " << client.first << std::endl;

@@ -142,12 +142,7 @@ namespace pregel {
  }
 
  void MessageServer::addMessage(MessageWrapper *message) {
-  auto value = ((CcReal *) message->getBody()->GetAttribute(1))->GetValue();
-  auto target = ((CcInt *) message->getBody()->GetAttribute(0))->GetValue();
   messageQueue.push(message, message->getRound());
-  std::cout << "Received message to " << target << " from superstep "
-            << message->getRound() << ". It's tuple has VALUE " << value
-            << "\n";
  }
 
  void MessageServer::handleEmptyMessage() {
@@ -173,7 +168,6 @@ namespace pregel {
    return;
   }
   {
-   std::cout << "handle FINISH, wait\n";
    boost::lock_guard<boost::mutex> lock(stateLock);
    this->state = WAITING;
    auto monitorLocal = monitor;
@@ -187,7 +181,6 @@ namespace pregel {
 
  void MessageServer::handleInitDoneMessage() {
   if (monitor != nullptr) {
-   FORCE_LOG
    BOOST_LOG_TRIVIAL(error) << "Received PAUSE message inside of a round";
    return;
   }
@@ -202,7 +195,6 @@ namespace pregel {
 
  void MessageServer::waitToResumeReading() {
   boost::unique_lock<boost::mutex> lock(stateLock);
-  std::cout << "wait with reading\n";
   stateCondition.wait(lock, [&]() {
     return state == READING || thread->interruption_requested();
   });
