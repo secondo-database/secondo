@@ -1,0 +1,55 @@
+delete database pagerank;
+create database pagerank;
+open database pagerank;
+
+
+#
+# Dampening Factor
+#
+
+let D = 0.85;
+
+restore Workers from TwoTwoWorkers;
+let WorkerNumber = Workers count;
+
+let PartitionFunction = fun (id: int) (hashvalue(id, WorkerNumber));
+
+#
+# Edges of the Graph
+#
+
+restore Links from LinksStanfordNoDangling;
+
+#
+# Remove dangling Links => Might take a while on big graphs, you may want to check to long an iteration takes first.
+# You can also see the rate at which it's converging pretty quickly.
+# The Stanford dataset with ~2.3 million edges took 50-ish iterations of 1:30min each to complete
+#
+
+let RemoveDanglingLinks = fun (links: rel(tuple([Source: int, Target: int]))) (links feed sortby[Target] links feed project[Target] sort rdup links feed projectextend[;Target: .Source] sort rdup kmergediff kmergediff);
+
+#let NumberLinks = 100000000;
+#while Links count < NumberLinks do { update NumberLinks := Links count | update Links := RemoveDanglingLinks(Links) consume | query Links count } endwhile;
+#delete NumberLinks;
+
+
+#
+# Vertices of the Graph
+#
+
+let PagesPersistent = Links feed projectextend[;Id: .Source, Value: 0.0] sort rdup consume;
+let N = PagesPersistent count;
+let Minimum = ((1 - D) / N);
+
+update PagesPersistent := PagesPersistent feed projectextend[Id; Value: 1.0 / N] consume;
+
+let Pages = PagesPersistent feed mconsume;
+
+
+#
+# Connect Edge Pages => Leads to WAY! more Links, so use with caution
+#
+
+let ConnectEdgePages = fun (pages: rel(tuple([Id: int, Value: real])), links: rel(tuple([Source: int, Target: int]))) (links feed project[Target] sort links feed projectextend[;Target: .Source] sort mergediff projectextend[; Source: .Target] loopjoin[pages feed projectextend[; Target: .Id]]);
+
+# update Links := Links feed ConnectEdgePages(PagesPersistent, Links) concat sortby[Source] consume;

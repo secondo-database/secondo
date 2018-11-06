@@ -1,0 +1,31 @@
+#
+# Define and share Functions
+#
+
+# Add attribute Address to messages based on PartitionFunction()
+let AddRoutingAddress = fun (messages: stream(tuple([Id: int, Value: real]))) (messages extend[Address: PartitionFunction(.Id)]);
+
+# Remove attribute Address from incoming messages
+let RemoveRoutingAddress = fun (messages: stream(tuple([Id: int, Value: real, Address: int]))) (messages project[Id, Value]);
+
+# Calculate the value of messages sent from a Node (Page) = ItsValue / outdeg
+let CalculateBroadcastValue = fun (pages: stream(tuple([Id: int, Value: real])), linksjoining: stream(tuple([Source: int, Target: int]))) (pages linksjoining sortmergejoin[Id, Source] groupby[Id; NewValue: (group feed extract[Value]) / (group feed count) ]);
+
+# Generate a message for each outgoing edge
+let GenerateMessages = fun (pages: stream(tuple([Id: int, Value: real])), linksjoining: stream(tuple([Source: int, Target: int]))) (CalculateBroadcastValue(pages, linksjoining) linksjoining feed sortmergejoin[Id, Source] projectextend[; Id: .Target, Value: .NewValue]);
+
+# Calculate the new Value of a Page from the incoming Messages (rel, because it's used in groupby[])
+let PageRank = fun (incoming: rel (tuple([Id: int, Value: real]))) (Minimum + D * (incoming feed sum[Value]));
+
+# Merge all messages to the same Page together
+let Reduce = fun (messages: stream(tuple([Id: int, Value: real]))) (messages sortby[Id] groupby[Id; Value: PageRank(group)]);
+
+# In a sense this merges the new values with the current relation
+let UpdateRelById = fun (pages: mpointer(mem(rel(tuple([Id: int, Value: real])))), messages: stream(tuple([Id: int, Value: real]))) (pages mfeed addid project[Id, TID] messages pages mfeed projectextend[Id; Value: Minimum] concat sortby[Id] groupby[Id; Value: group feed max[Value]] rename[m] mergejoin[Id, Id_m] pages mupdatedirect2[TID; Value: .Value_m]);
+
+# Takes messages, maps the new PageRank value to their Page, persists them and generates new messages
+# let Compute = fun (pages: mpointer(mem(rel(tuple([Id: int, Value: real])))), links: stream(tuple([Source: int, Target: int])), messages: stream(tuple([Id: int, Value: real]))) (GenerateMessages(UpdateRelById(pages, Reduce(messages)), links));
+
+# Wraps the messages that Compute uses with the Address attribute first
+# let ComputeRouted = fun (messages: stream(tuple([Id: int, Value: real, Address: int]))) (AddRoutingAddress(Compute(Pages, Links feed, RemoveRoutingAddress(messages))));
+let ComputeRouted = fun (messages: stream(tuple([Id: int, Value: real, Address: int]))) (AddRoutingAddress(GenerateMessages(UpdateRelById(Pages, Reduce(RemoveRoutingAddress(messages))), Links feed)));
