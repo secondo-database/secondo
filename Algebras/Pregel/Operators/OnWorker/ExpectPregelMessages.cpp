@@ -68,10 +68,10 @@ namespace pregel {
  }
 
  OperatorSpec ExpectPregelMessages::operatorSpec(
-  "tuple x string -> bool",
-  "#(_,_)",
-  "message x attribute with slot nr -> success",
-  "query expectPregelMessages(message, \"Dest\");"
+  "() -> bool",
+  "# ()",
+  "() -> TRUE",
+  "query expectPregelMessages();"
  );
 
  Operator ExpectPregelMessages::expectPregelMessages(

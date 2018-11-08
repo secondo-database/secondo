@@ -81,7 +81,7 @@ namespace pregel {
  OperatorSpec StartLoopbackMessageClient::operatorSpec(
   "int -> bool",
   "# (_)",
-  "workerNo -> success",
+  "slot no -> success",
   "query startLoopbackMessageClient(1);"
  );
 

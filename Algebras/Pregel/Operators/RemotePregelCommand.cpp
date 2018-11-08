@@ -95,8 +95,8 @@ namespace pregel {
  OperatorSpec RemotePregelCommand::operatorSpec(
   "text -> bool",
   "# (_)",
-  "expression -> success",
-  "query remotePregelCommand('memload(Pages)');"
+  "command -> success",
+  "query remotePregelCommand('query pregelStatus();');"
  );
 
  Operator RemotePregelCommand::remotePregelCommand(

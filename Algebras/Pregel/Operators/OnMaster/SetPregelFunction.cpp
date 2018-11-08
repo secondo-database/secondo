@@ -134,10 +134,10 @@ namespace pregel {
  }
 
  OperatorSpec SetPregelFunction::operatorSpec(
-  "map(stream(tuple) x string -> stream(tuple)) -> bool",
-  "# (_)",
-  "compute function -> success",
-  "query preparePregel(fun(Stream:stream(tuple), stream(tuple)):true);"
+  "map(stream(tuple), stream(tuple)) x symbol -> bool",
+  "# (_,_)",
+  "compute function x address attribute name -> success",
+  "query setPregelFunction(Function, Address);"
  );
 
  Operator SetPregelFunction::setPregelFunction(

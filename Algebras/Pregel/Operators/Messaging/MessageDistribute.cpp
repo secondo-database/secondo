@@ -61,7 +61,7 @@ namespace pregel {
   if (!couldParse || !nl->Equal(savedType, tupleType)) {
    return listutils::typeError(
     "The tuple type must be coherent. Maybe it wasn't set yet. "
-    "Call \"initPregelMessages\" to set it.");
+    "Call \"setPregelFunction\" to set it.");
   }
 
   return nl->SymbolAtom(CcBool::BasicType());
@@ -82,10 +82,10 @@ namespace pregel {
  }
 
  OperatorSpec MessageDistribute::operatorSpec(
-  "stream(tuple) x int -> bool",
-  "_ # [_]",
-  "message stream x slot no -> success",
-  "query messageFeed() messageDistribute[1];"
+  "stream(tuple) -> bool",
+  "_ #",
+  "message stream -> success",
+  "query Messages feed messageDistribute;"
  );
 
  Operator MessageDistribute::messageDistribute(

@@ -113,7 +113,7 @@ namespace pregel {
   "stream(tuple) -> bool",
   "_ #",
   "message stream -> success",
-  "query initMessages feed initPregelMessages;"
+  "query InitMessages feed initPregelMessages;"
  );
 
  Operator InitPregelMessages::initPregelMessages(

@@ -175,8 +175,8 @@ namespace pregel {
  }
 
  OperatorSpec SetupPregel::operatorSpec(
-  "rel() -> bool",
-  "#(_)",
+  "rel -> bool",
+  "# (_)",
   "worker relation with message server ports -> success",
   "query setupPregel(Workers);"
  );

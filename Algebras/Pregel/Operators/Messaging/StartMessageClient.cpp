@@ -97,7 +97,7 @@ namespace pregel {
   "int x string x int -> bool",
   "# (_,_,_)",
   "worker no x host x port no -> success",
-  "query startMessageClient(2, localhost, 8001);"
+  "query startMessageClient(2, \"localhost\", 8001);"
  );
 
  Operator StartMessageClient::startMessageClient(
