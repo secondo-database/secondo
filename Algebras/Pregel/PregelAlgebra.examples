@@ -1,23 +1,23 @@
-Database : berlin
+Database : pregelexample
 Restore  : No
 
 Operator : messageDistribute
 Number   : 1
 Signature: stream(tuple) x int -> bool
-Example  : query ten messageDistribute[];
-Result   : TRUE
+Example  : query ten messageDistribute;
+Result   : typeerror
 
 Operator : messageFeed
 Number   : 1
 Signature: () -> bool
 Example  : query messageFeed();
-Result   : TRUE
+Result   : typeerror
 
 Operator : startMessageClient
 Number   : 1
 Signature: int x string x int -> bool
 Example  : query startMessageClient(1, "localhost", 1445);
-Result   : TRUE
+Result   : FALSE
 
 Operator : startMessageServer
 Number   : 1
@@ -27,64 +27,55 @@ Result   : TRUE
 
 Operator : setupPregel
 Number   : 1
-Signature: query darray(int) -> darray(bool);
-Example  :
-Result   :
+Signature: rel(tuple) -> bool;
+Example  : query setupPregel(Workers);
+Result   : FALSE
 
 Operator : initPregelMessages
 Number   : 1
 Signature: stream(tuple) -> bool
-Example  : query ten initPregelMessages;
+Example  : query Messages feed  initPregelMessages;
+Result   : typeerror
+
+Operator : expectPregelMessages
+Number   : 1
+Signature: () -> bool
+Example  : query expectPregelMessages();
 Result   : TRUE
 
-Operator : initPregelWorker
+Operator : setPregelFunction
 Number   : 1
-Signature: int -> bool
-Example  : query initPregelWorker(2);
-Result   : TRUE
+Signature: map(stream(tuple), stream(tuple)) x symbol -> bool
+Example  : query setPregelFunction(fun (messages: stream(tuple([Id: int]))) (messages project[Id]), Id);
+Result   : FALSE
 
-Operator : preparePregel
+Operator : setPregelFunctionWorker
 Number   : 1
-Signature: map(stream(tuple) x string -> stream(tuple)) -> bool
-Example  : query preparePregel(fun());
-Result   : TRUE
+Signature: map(stream(tuple), stream(tuple)) x int -> bool
+Example  : query setPregelFunctionWorker(fun (messages: stream(tuple([Id: int]))) (messages project[Id]), Id);
+Result   : FALSE
 
 Operator : startPregel
 Number   : 1
 Signature: int -> bool
 Example  : query startPregel(15);
-Result   : TRUE
+Result   : FALSE
 
-Operator : clearPregelWorker
+Operator : resetPregel
 Number   : 1
 Signature: () -> bool
-Example  : query clearPregelWorker();
-Result   : TRUE
-
-operator expectPregelMessages alias EXPECTPREGELMESSAGES pattern op (_,_)
-Operator : expectPregelMessages
-Number   : 1
-Signature: tuple x string -> bool
-Example  : query expectPregelMessages(Tuple, "Slot");
+Example  : query resetPregel();
 Result   : TRUE
 
 operator pregelStatus alias PREGELSTATUS pattern op ()
 Operator : pregelStatus
 Number   : 1
-Signature: () -> string
+Signature: () -> text
 Example  : query pregelStatus();
 Result   : TRUE
 
-operator setPregelFunctionWorker alias SETPREGELFUNCTIONWORKER pattern op (_,_)
-Operator : setPregelFunctionWorker
-Number   : 1
-Signature: map x int -> bool
-Example  : query setPregelFunctionWorker(function, 6)
-Result   : TRUE
-
-operator startPregelWorker alias STARTPREGELWORKER pattern op (_)
 Operator : startPregelWorker
 Number   : 1
 Signature: int -> bool
 Example  : query startPregelWorker(10);
-Result   : TRUE
+Result   : FALSE
