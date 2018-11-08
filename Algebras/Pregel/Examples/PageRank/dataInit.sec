@@ -2,15 +2,22 @@ delete database pagerank;
 create database pagerank;
 open database pagerank;
 
-
 #
-# Dampening Factor
+# Dampening factor
 #
 
 let D = 0.85;
 
+#
+# Extended worker relation
+#
+
 restore Workers from TwoTwoWorkers;
 let WorkerNumber = Workers count;
+
+#
+# Partition function
+#
 
 let PartitionFunction = fun (id: int) (hashvalue(id, WorkerNumber));
 

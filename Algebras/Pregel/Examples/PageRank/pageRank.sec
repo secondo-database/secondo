@@ -1,3 +1,13 @@
+#
+# Run the queries of the following files in the right order first:
+#
+# dataInit.sec
+# functions.sec
+# # quit
+# distribute.sec
+# # quit
+#
+
 open database pagerank;
 
 let InitMessages = AddRoutingAddress(PagesPersistent feed projectextend[Id; Value: (1.0 / N)]) consume;
@@ -14,6 +24,8 @@ query InitMessages feed initPregelMessages;
 
 query pregelStatus();
 
+
+# don't run this with a negative number !
 query startPregel(10);
 
 query remotePregelCommand('update PagesPersistent := Pages mfeed consume;');

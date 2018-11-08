@@ -23,9 +23,5 @@ let Reduce = fun (messages: stream(tuple([Id: int, Value: real]))) (messages sor
 # In a sense this merges the new values with the current relation
 let UpdateRelById = fun (pages: mpointer(mem(rel(tuple([Id: int, Value: real])))), messages: stream(tuple([Id: int, Value: real]))) (pages mfeed addid project[Id, TID] messages pages mfeed projectextend[Id; Value: Minimum] concat sortby[Id] groupby[Id; Value: group feed max[Value]] rename[m] mergejoin[Id, Id_m] pages mupdatedirect2[TID; Value: .Value_m]);
 
-# Takes messages, maps the new PageRank value to their Page, persists them and generates new messages
-# let Compute = fun (pages: mpointer(mem(rel(tuple([Id: int, Value: real])))), links: stream(tuple([Source: int, Target: int])), messages: stream(tuple([Id: int, Value: real]))) (GenerateMessages(UpdateRelById(pages, Reduce(messages)), links));
-
-# Wraps the messages that Compute uses with the Address attribute first
-# let ComputeRouted = fun (messages: stream(tuple([Id: int, Value: real, Address: int]))) (AddRoutingAddress(Compute(Pages, Links feed, RemoveRoutingAddress(messages))));
+# Compute function
 let ComputeRouted = fun (messages: stream(tuple([Id: int, Value: real, Address: int]))) (AddRoutingAddress(GenerateMessages(UpdateRelById(Pages, Reduce(RemoveRoutingAddress(messages))), Links feed)));
