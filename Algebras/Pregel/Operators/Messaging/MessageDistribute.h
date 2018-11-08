@@ -42,14 +42,12 @@ This header file contains the definition of the class MessageDistribute
 #define SECONDO_MESSAGEDISTRIBUTE_H
 
 #include <Operator.h>
-#include "../../Helpers/Logging.h"
+#include <boost/log/trivial.hpp>
 #include "../../MessageBroker/MessageBroker.h"
 #include "../../../Stream/Stream.h"
 
 namespace pregel {
 class MessageDistribute {
-private:
- static Logger LOG;
 public:
  static ListExpr typeMapping(ListExpr args);
 

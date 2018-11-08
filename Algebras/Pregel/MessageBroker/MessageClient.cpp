@@ -38,7 +38,7 @@ This file defines the virtual deconstructor of the abstract superclass MessageCl
 
 #include <iostream>
 #include "MessageClient.h"
-#include "../Helpers/Logging.h"
+#include <boost/log/trivial.hpp>
 
 namespace pregel {
  MessageClient::~MessageClient() {}

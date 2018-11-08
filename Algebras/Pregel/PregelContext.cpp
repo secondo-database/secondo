@@ -39,7 +39,7 @@ Defines PregelContext class
 #include "PregelContext.h"
 #include <GenericTC.h>
 #include "StandardTypes.h"
-#include "Helpers/Logging.h"
+#include <boost/log/trivial.hpp>
 #include "SecParser.h"
 
 

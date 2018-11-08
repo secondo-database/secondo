@@ -46,7 +46,7 @@ This header file contains definitions of type mapping, vallue mapping and the op
 #include "../../../Distributed2/DArray.h"
 #include "../../../Distributed2/Distributed2Algebra.h"
 #include "../../../Distributed2/ConnectionInfo.h"
-#include "../../Helpers/Logging.h"
+#include <boost/log/trivial.hpp>
 #include "../../Helpers/Commander.h"
 #include "../../MessageBroker/MessageBroker.h"
 #include "../../PregelAlgebra.h"

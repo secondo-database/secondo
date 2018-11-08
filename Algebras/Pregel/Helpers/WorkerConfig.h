@@ -44,7 +44,7 @@ This header file defines the class WorkerConfig
 #include <ostream>
 #include "RemoteEndpoint.h"
 #include "../typedefs.h"
-#include "Logging.h"
+#include <boost/log/trivial.hpp>
 
 namespace pregel {
  struct WorkerConfig {

@@ -40,7 +40,7 @@ This file contains definitions of the members of class PregelStatus
 #include <regex>
 #include <StandardTypes.h>
 #include "PregelStatus.h"
-#include "../../Helpers/Logging.h"
+#include <boost/log/trivial.hpp>
 #include "../../PregelAlgebra.h"
 #include "../../../FText/FTextAlgebra.h"
 #include "../../Helpers/Commander.h"

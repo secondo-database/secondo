@@ -45,7 +45,7 @@ This header file defines the class MessageWrapper
 #include <string>
 #include <ostream>
 #include "../../Relation-C++/RelationAlgebra.h"
-#include "../Helpers/Logging.h"
+#include <boost/log/trivial.hpp>
 
 namespace pregel {
  class MessageWrapper {

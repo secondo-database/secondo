@@ -40,7 +40,7 @@ This file contains definitions of the members of class SetPregelFunctionWorker
 #include <StandardTypes.h>
 #include <../../../FText/FTextAlgebra.h>
 #include "SetPregelFunctionWorker.h"
-#include "../../Helpers/Logging.h"
+#include <boost/log/trivial.hpp>
 #include "../../PregelContext.h"
 
 namespace pregel {

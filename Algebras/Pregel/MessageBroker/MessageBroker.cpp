@@ -42,7 +42,7 @@ This file defines the members of class MessageBroker
 #include "LoopbackProxy.h"
 #include "../typedefs.h"
 #include <pthread.h>
-#include "../Helpers/Logging.h"
+#include <boost/log/trivial.hpp>
 #include "../Helpers/Metrics.h"
 #include "../PregelContext.h"
 #include <StandardTypes.h>

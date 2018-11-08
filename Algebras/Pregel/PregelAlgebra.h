@@ -44,7 +44,7 @@ This header file contains declarations of the Algebra constructor and some auxil
 #include <Algebra.h>
 #include "PregelContext.h"
 #include "typedefs.h"
-#include "Helpers/Logging.h"
+#include <boost/log/trivial.hpp>
 #include "Helpers/WorkerConfig.h"
 #include "Helpers/Commander.h"
 #include <regex>
