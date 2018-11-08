@@ -1,0 +1,20 @@
+delete database pregeltest;
+create database pregeltest;
+open database pregeltest;
+
+
+#testcase WhenWrongTypeFail
+#yields error
+query startPregel(1.0);
+
+#testcase WhenWrongNumberOfArguments
+#yields error
+query startPregel(1, 12);
+
+#testcase WhenWrongNotation
+#yields error
+query startPregel[1];
+
+#teardown
+close database;
+delete database pregeltest;

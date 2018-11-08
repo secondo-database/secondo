@@ -1,0 +1,20 @@
+delete database pregeltest;
+create database pregeltest;
+open database pregeltest;
+
+
+#testcase WhenWrongTypeFail
+#yields error
+query remotePregelCommand("String");
+
+#testcase WhenWrongNumberOfArguments
+#yields error
+query remotePregelCommand();
+
+#testcase WhenWrongNotation
+#yields error
+query remotePregelCommand['query pregelStatus();'];
+
+#teardown
+close database;
+delete database pregeltest;

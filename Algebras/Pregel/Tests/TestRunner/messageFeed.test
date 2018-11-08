@@ -1,0 +1,11 @@
+delete database pregeltest;
+create database pregeltest;
+open database pregeltest;
+
+#testcase WhenNotSetFail
+#yields error
+query messageFeed() consume;
+
+#teardown
+close database;
+delete database pregeltest;

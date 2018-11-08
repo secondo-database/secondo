@@ -1,0 +1,24 @@
+delete database pregeltest;
+create database pregeltest;
+open database pregeltest;
+
+
+#testcase WhenWrongTypeFail
+#yields error
+query startMessageClient(1, 12, 13456);
+
+#testcase WhenWrongNumberOfArguments
+#yields error
+query startMessageClient(1, "zwei");
+
+#testcase WhenRightArgumentsSucceed
+#yields success
+query startMessageClient(1, "noHost", 12);
+
+#testcase WhenWrongNotation
+#yields error
+query startMessageClient[1, "zwei", 12];
+
+#teardown
+close database;
+delete database pregeltest;

@@ -1,0 +1,34 @@
+delete database pregeltest;
+create database pregeltest;
+open database pregeltest;
+
+let Messages = [const rel(tuple([Name: string, Age: int, Nickname: string])) value
+(
+ ("Erique" 12 "Eric")
+ ("Tyson" 65 "Ty")
+)];
+
+
+#testcase WhenWrongTypeFail
+#yields error
+query Messages messageDistribute;
+
+#testcase WhenRelationIsNotDefinedFail
+#yields error
+query UndefMessages feed messageDistribute;
+
+#testcase WhenWrongNumberOfArguments
+#yields error
+query Messages feed Messages feed messageDistribute;
+
+#testcase WhenWrongNotation
+#yields error
+query Messages feed messageDistribute[];
+
+#testcase WhenRightTypeButNotSetFail
+#yields error
+query Messages feed messageDistribute;
+
+#teardown
+close database;
+delete database pregeltest;
