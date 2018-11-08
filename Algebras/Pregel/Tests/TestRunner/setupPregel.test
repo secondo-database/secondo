@@ -44,6 +44,10 @@ query setupPregel(Workers, 1);
 #yields error
 query setupPregel[Workers];
 
+#testcase WhenRightParametersSucceed
+#yields success
+query setupPregel(Workers);
+
 #teardown
 close database;
 delete database pregeltest;
