@@ -59,7 +59,6 @@ namespace attrs = boost::log::attributes;
 namespace keywords = boost::log::keywords;
 
 namespace pregel {
-#define FORCE_LOG BOOST_LOG_SCOPED_THREAD_TAG("Force", true)
 #define DEBUG BOOST_LOG_SEV(logger, debug)
  enum severity_level {
   debug2,

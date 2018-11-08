@@ -87,7 +87,6 @@ namespace pregel {
    PregelContext::get().getWorkers();
   std::string query(
    "query expectPregelMessages()");
-  BOOST_LOG_TRIVIAL(debug) << "query: " << query;
 
   for (WorkerConfig *worker = workers();
        worker != nullptr; worker = workers()) {

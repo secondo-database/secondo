@@ -43,7 +43,6 @@ This file contains definitions of the members of classes MessageDistribute
 
 namespace pregel {
  ListExpr pregel::MessageDistribute::typeMapping(ListExpr args) {
-//  FORCE_LOG
   if (!nl->HasLength(args, 1)) {
    return listutils::typeError("You must provide 1 argument.");
   }
@@ -69,7 +68,6 @@ namespace pregel {
 
  int MessageDistribute::valueMapping(Word *args, Word &result, int ignored,
                                      Word &local, Supplier s) {
-  FORCE_LOG
   result = qp->ResultStorage(s);
   Stream<Tuple> messageStream(args[0]);
 

@@ -47,7 +47,6 @@ This file contains definitions of the members of class ExpectPregelMessages
 namespace pregel {
 
  ListExpr ExpectPregelMessages::typeMapping(ListExpr args) {
-  FORCE_LOG
   if (!nl->IsEmpty(args)) {
    return listutils::typeError("You must provide no arguments.");
   }

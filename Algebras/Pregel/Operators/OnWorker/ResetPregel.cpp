@@ -51,7 +51,6 @@ namespace pregel {
 
  int ResetPregel::valueMapping(Word *args, Word &result, int message,
                                Word &local, Supplier s) {
-  FORCE_LOG
   result = qp->ResultStorage(s);
 
   PregelAlgebra::getAlgebra()->reset();

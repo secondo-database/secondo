@@ -159,7 +159,7 @@ namespace pregel {
     Commander::remoteQuery(worker->connection, query,
                            Commander::throwWhenFalse);
    } catch (RemoteExecutionException &e) {
-    BOOST_LOG_TRIVIAL(debug) << "failed to set function: " << e.getMessage();
+    BOOST_LOG_TRIVIAL(error) << "failed to set function: " << e.getMessage();
     return false;
    }
   }

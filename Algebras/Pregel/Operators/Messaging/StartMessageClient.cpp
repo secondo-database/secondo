@@ -69,7 +69,6 @@ namespace pregel {
 
  int StartMessageClient::valueMapping(Word *args, Word &result, int message,
                                       Word &local, Supplier s) {
-//  FORCE_LOG
   result = qp->ResultStorage(s);
   CcInt *slotNoObj = (CcInt *) args[0].addr;
   CcString *hostObj = (CcString *) args[1].addr;

@@ -50,9 +50,6 @@ namespace pregel {
  }
 
  MessageServer::~MessageServer() {
-  FORCE_LOG
-  BOOST_LOG_TRIVIAL(debug) << "Destruct message server";
-
   if (!thread->timed_join(boost::posix_time::milliseconds(0))) {
    thread->interrupt();
    thread->join();
@@ -102,7 +99,6 @@ namespace pregel {
    }
 
    if (lengthRead < MessageWrapper::HEADER_SIZE && lengthRead > 0) {
-    FORCE_LOG
     BOOST_LOG_TRIVIAL(warning) << "header partially received (Read "
                                << lengthRead << "B / "
                                << MessageWrapper::HEADER_SIZE << "B)";

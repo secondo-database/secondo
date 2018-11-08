@@ -57,7 +57,6 @@ namespace pregel {
 
  int PregelStatus::valueMapping(Word *, Word &result, int,
                                 Word &, Supplier s) {
-  FORCE_LOG
   result = qp->ResultStorage(s);
   auto algebra = PregelAlgebra::getAlgebra();
 

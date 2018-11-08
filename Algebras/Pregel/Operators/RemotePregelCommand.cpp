@@ -70,7 +70,6 @@ namespace pregel {
 
   const supplier<pregel::WorkerConfig> &workers =
    PregelContext::get().getWorkers();
-  BOOST_LOG_TRIVIAL(debug) << "query: " << query;
 
   std::function<std::string *(std::string &)> mapper = [](std::string &result) {
     return new std::string(result);
