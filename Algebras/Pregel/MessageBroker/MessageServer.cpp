@@ -37,7 +37,7 @@ This file defines the members of class MessageServer
 */
 
 #include "MessageServer.h"
-#include "../Helpers/LoggerFactory.h"
+#include "../Helpers/Logging.h"
 #include "../Helpers/Metrics.h"
 #include "../PregelContext.h"
 

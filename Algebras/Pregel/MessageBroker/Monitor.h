@@ -44,7 +44,7 @@ This header file defines the class Monitor
 #include <utility>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition_variable.hpp>
-#include "../Helpers/LoggerFactory.h"
+#include "../Helpers/Logging.h"
 
 namespace pregel {
  class Monitor {

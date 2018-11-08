@@ -37,7 +37,7 @@ This file defines the members of class DoubleQueue
 */
 
 #include "DoubleQueue.h"
-#include "../Helpers/LoggerFactory.h"
+#include "../Helpers/Logging.h"
 
 namespace pregel {
  std::ostream &

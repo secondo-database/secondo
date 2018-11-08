@@ -42,7 +42,7 @@ This file defines the members of class MessageBroker
 #include "LoopbackProxy.h"
 #include "../typedefs.h"
 #include <pthread.h>
-#include "../Helpers/LoggerFactory.h"
+#include "../Helpers/Logging.h"
 #include "../Helpers/Metrics.h"
 #include "../PregelContext.h"
 #include <StandardTypes.h>
@@ -61,10 +61,10 @@ namespace pregel {
   return broker;
  }
 
- bool MessageBroker::startServerMother(const int port) {
+ bool MessageBroker::startTcpListener(const int port) {
   try {
    BOOST_LOG_TRIVIAL(info) << "start message server on port " << port;
-   serverMother = new boost::thread(
+   tcpListener = new boost::thread(
     boost::bind(&MessageBroker::acceptConnections, this, port)
    );
    return true;
@@ -143,8 +143,8 @@ namespace pregel {
  }
 
  void MessageBroker::stopServers() {
-  if (serverMotherRunning()) {
-   serverMother->interrupt();
+  if (tcpListenerRunning()) {
+   tcpListener->interrupt();
 
    const std::string &socketAddress = globalSocket->GetSocketAddress();
 
@@ -154,9 +154,9 @@ namespace pregel {
     messageServerPort), Socket::SocketDomain::SockGlobalDomain, 10);
    if (dummySocket != nullptr) {
     delete dummySocket;
-    serverMother->join();
-    delete serverMother;
-    serverMother = nullptr;
+    tcpListener->join();
+    delete tcpListener;
+    tcpListener = nullptr;
 
     if (globalSocket != nullptr) {
      delete globalSocket;
@@ -176,7 +176,7 @@ namespace pregel {
  }
 
  void MessageBroker::pauseServers() {
-  if (!serverMotherRunning()) {
+  if (!tcpListenerRunning()) {
    return;
   }
 
@@ -288,7 +288,7 @@ namespace pregel {
 
   int number = 0;
   sstream << "  Servers" << std::endl;
-  sstream << "    ServerMother: " << (serverMotherRunning() ? "up" : "down")
+  sstream << "    TCP-Listener: " << (tcpListenerRunning() ? "up" : "down")
           << std::endl;
   for (auto server : servers) {
    sstream << "    Server " << number++ << std::endl;
@@ -296,14 +296,14 @@ namespace pregel {
   }
  }
 
- bool MessageBroker::serverMotherRunning() {
-  if (serverMother == nullptr) {
+ bool MessageBroker::tcpListenerRunning() {
+  if (tcpListener == nullptr) {
    return false;
   }
-  if (!serverMother->joinable()) {
+  if (!tcpListener->joinable()) {
    return false;
   }
-  if (serverMother->try_join_for(boost::chrono::nanoseconds(1))) {
+  if (tcpListener->try_join_for(boost::chrono::nanoseconds(1))) {
    return false;
   }
   return true;

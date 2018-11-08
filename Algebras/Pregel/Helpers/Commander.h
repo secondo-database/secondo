@@ -44,7 +44,7 @@ This header file contains the declaration of the classes Commander, Runner and R
 #include "../typedefs.h"
 #include <utility>
 #include "../../Distributed2/ConnectionInfo.h"
-#include "LoggerFactory.h"
+#include "Logging.h"
 #include "../PregelContext.h"
 
 namespace pregel {

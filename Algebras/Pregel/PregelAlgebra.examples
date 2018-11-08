@@ -4,7 +4,7 @@ Restore  : No
 Operator : messageDistribute
 Number   : 1
 Signature: stream(tuple) x int -> bool
-Example  : query ten messageDistribute[6];
+Example  : query ten messageDistribute[];
 Result   : TRUE
 
 Operator : messageFeed

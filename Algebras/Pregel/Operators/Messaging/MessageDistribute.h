@@ -42,7 +42,7 @@ This header file contains the definition of the class MessageDistribute
 #define SECONDO_MESSAGEDISTRIBUTE_H
 
 #include <Operator.h>
-#include "../../Helpers/LoggerFactory.h"
+#include "../../Helpers/Logging.h"
 #include "../../MessageBroker/MessageBroker.h"
 #include "../../../Stream/Stream.h"
 

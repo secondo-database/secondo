@@ -39,7 +39,7 @@ This file defines the members of class LoopbackProxy
 #include <assert.h>
 #include "LoopbackProxy.h"
 #include "../typedefs.h"
-#include "../Helpers/LoggerFactory.h"
+#include "../Helpers/Logging.h"
 
 pregel::LoopbackProxy::~LoopbackProxy() {}
 

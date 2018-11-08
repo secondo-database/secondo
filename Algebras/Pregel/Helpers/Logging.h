@@ -69,31 +69,16 @@ namespace pregel {
   error
  };
 
-// using Logger = src::severity_logger_mt<severity_level>;
- typedef src::severity_logger_mt<severity_level> Logger;
+ using Logger = src::severity_logger_mt<severity_level>;
 
- class LoggerFactory {
+ class Logging {
  private:
-//  static std::unordered_map<std::string,
-// src::severity_logger_mt<severity_level>> loggers;
-//
   static bool initialized;
 
   static bool initialize();
 
  public:
   static Logger build(severity_level level = info);
-
-//  static Logger &getLogger(std::string type) {
-//   if (loggers.find(type) != loggers.end()) {
-//    return loggers.at(type);
-//   }
-//   auto logger = new src::severity_logger_mt<severity_level>();
-//   loggers.insert(
-//    std::pair<std::string, src::severity_logger_mt<severity_level>>(type,
-//                                                                    *logger));
-//   return *logger;
-//  }
  };
 
  extern Logger logger;

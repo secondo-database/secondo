@@ -110,7 +110,6 @@ namespace pregel {
    STOP_CLOCK
    if (allEmpty) {
     break;
-    std::cout << "all workers returned empty: end early\n";
    }
    ++round;
   }

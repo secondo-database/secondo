@@ -70,10 +70,10 @@ namespace pregel {
   MessageBroker &broker = MessageBroker::get();
 
   PregelContext::get().setMessageServerPort(port);
-  if (broker.serverMotherRunning()) {
+  if (broker.tcpListenerRunning()) {
    ((CcBool *) result.addr)->Set(true, false);
   } else {
-   bool success = broker.startServerMother(port);
+   bool success = broker.startTcpListener(port);
    ((CcBool *) result.addr)->Set(true, success);
   }
 

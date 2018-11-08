@@ -55,7 +55,7 @@ namespace pregel {
  private:
   static MessageBroker broker;
 
-  boost::thread *serverMother = nullptr;
+  boost::thread *tcpListener = nullptr;
 
   Socket *globalSocket = nullptr;
 
@@ -77,13 +77,13 @@ namespace pregel {
 
   static MessageBroker &get();
 
-  bool startServerMother(const int port);
+  bool startTcpListener(const int port);
 
   bool startClient(int slot, RemoteEndpoint host);
 
   bool startLoopbackProxy(int slot);
 
-  bool serverMotherRunning();
+  bool tcpListenerRunning();
 
   void pauseServers();
 

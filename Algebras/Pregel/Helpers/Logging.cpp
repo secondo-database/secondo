@@ -36,7 +36,7 @@ This file contains definitions of the members of class LoggerFactory
 
 */
 
-#include "LoggerFactory.h"
+#include "Logging.h"
 #include <boost/phoenix/bind.hpp>
 //#include <boost/bind.hpp>
 
@@ -45,13 +45,13 @@ namespace pregel {
  BOOST_LOG_ATTRIBUTE_KEYWORD(loggerLevel, "LoggerLevel", severity_level);
  BOOST_LOG_ATTRIBUTE_KEYWORD(force_logging, "Force", bool)
 
- bool LoggerFactory::initialized = LoggerFactory::initialize();
+ bool Logging::initialized = Logging::initialize();
 
- bool LoggerFactory::initialize() {
+ bool Logging::initialize() {
   return true;
  }
 
- Logger LoggerFactory::build(severity_level level) {
+ Logger Logging::build(severity_level level) {
   Logger logger;
 
   return logger;

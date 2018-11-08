@@ -46,7 +46,7 @@ This header file contains definitions of type mapping, vallue mapping and the op
 #include "../../../Distributed2/DArray.h"
 #include "../../../Distributed2/Distributed2Algebra.h"
 #include "../../../Distributed2/ConnectionInfo.h"
-#include "../../Helpers/LoggerFactory.h"
+#include "../../Helpers/Logging.h"
 #include "../../Helpers/Commander.h"
 #include "../../MessageBroker/MessageBroker.h"
 #include "../../PregelAlgebra.h"
@@ -290,12 +290,26 @@ namespace pregel {
                                            std::string &dbName,
                                            int slotNumber)
  noexcept(false) {
-  auto host = ((CcString *) tuple->GetAttribute(hostIndex))->GetValue();
-  auto port = ((CcInt *) tuple->GetAttribute(portIndex))->GetIntval();
-  auto messageServerPort = ((CcInt *) tuple->GetAttribute(
-   messageServerPortIndex))->GetIntval();
-  auto configFilePath = ((CcString *) tuple->GetAttribute(
-   configIndex))->GetValue();
+  auto hostString = (CcString *) tuple->GetAttribute(hostIndex);
+  auto portInt = (CcInt *) tuple->GetAttribute(portIndex);
+  auto messageServerPortInt = (CcInt *) tuple->GetAttribute(
+   messageServerPortIndex);
+  auto configFilePathString = (CcString *) tuple->GetAttribute(
+   configIndex);
+
+  if (!hostString->IsDefined() ||
+      !portInt->IsDefined() ||
+      !messageServerPortInt->IsDefined() ||
+      !configFilePathString->IsDefined()) {
+   BOOST_LOG_TRIVIAL(error)
+    << "The extended worker relation must not contain undefined values";
+   throw std::exception();
+  }
+
+  auto host = hostString->GetValue();
+  auto port = portInt->GetIntval();
+  auto messageServerPort = messageServerPortInt->GetIntval();
+  auto configFilePath = configFilePathString->GetValue();
 
   RemoteEndpoint endpoint = RemoteEndpoint(host, port);
   if (PregelContext::get().workerExists(endpoint, messageServerPort)) {
