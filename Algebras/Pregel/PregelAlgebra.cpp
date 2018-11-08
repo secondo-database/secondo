@@ -41,6 +41,7 @@ Definition of PregelAlgebra class
 #include "Operators/OnMaster/SetPregelFunction.h"
 #include "Operators/OnMaster/StartPregel.h"
 #include "Operators/OnMaster/SetupPregel.h"
+#include "Operators/OnMaster/RemotePregelCommand.h"
 #include "Operators/OnWorker/SetPregelFunctionWorker.h"
 #include "Operators/Messaging/MessageDistribute.h"
 #include "Operators/Messaging/StartMessageServer.h"
@@ -51,7 +52,6 @@ Definition of PregelAlgebra class
 #include "Operators/OnWorker/StartLoopbackMessageClient.h"
 #include "Operators/OnWorker/PregelStatus.h"
 #include "Operators/OnWorker/StartPregelWorker.h"
-#include "Operators/RemotePregelCommand.h"
 #include "PregelContext.h"
 #include "Helpers/Metrics.h"
 

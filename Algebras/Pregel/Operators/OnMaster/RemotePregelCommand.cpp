@@ -42,7 +42,7 @@ This file defines the members of class RemotePregelCommand
 #include "../../Helpers/WorkerConfig.h"
 #include <StandardTypes.h>
 #include <ListUtils.h>
-#include "FTextAlgebra.h"
+#include "../../../FText/FTextAlgebra.h"
 
 namespace pregel {
  ListExpr RemotePregelCommand::typeMapping(ListExpr args) {
