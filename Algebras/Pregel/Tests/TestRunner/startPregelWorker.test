@@ -5,21 +5,16 @@ open database pregeltest;
 
 #testcase WhenWrongTypeFail
 #yields error
-query startMessageServer(1.0);
-
-#testcase WhenRightArgumentsSucceed
-#yields success
-query startMessageServer(1900);
+query startPregelWorker(1.0);
 
 #testcase WhenWrongNumberOfArguments
 #yields error
-query startMessageServer(1, 12);
+query startPregelWorker(1, 12);
 
 #testcase WhenWrongNotation
 #yields error
-query startMessageServer[1];
+query startPregelWorker[1];
 
 #teardown
-query resetPregel();
 close database;
 delete database pregeltest;

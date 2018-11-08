@@ -7,6 +7,10 @@ open database pregeltest;
 #yields error
 query startPregel(1.0);
 
+#testcase WhenRightArgumentsSucceed
+#yields success
+query startPregel(1);
+
 #testcase WhenWrongNumberOfArguments
 #yields error
 query startPregel(1, 12);

@@ -44,7 +44,7 @@ query setupPregel(Workers, 1);
 #yields error
 query setupPregel[Workers];
 
-#testcase WhenRightParametersSucceed
+#testcase WhenRightArgumentsSucceed
 #yields success
 query setupPregel(Workers);
 
