@@ -111,6 +111,10 @@ public:
       return ok?header.numOfPoints(): 0; 
    }
 
+   int getPointFormat(){
+      return header.point_data_format;
+   }
+
 
 private:
   std::string filename;  
