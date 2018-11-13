@@ -43,6 +43,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Protocols.h"
 #include <boost/algorithm/string.hpp>
 
+extern NestedList* nl;
 
 namespace continuousqueries {
 
@@ -114,7 +115,7 @@ void ProtocolHelpers::decodeBody(ProtocolHelpers::Message* target) {
     if (cmdPos == std::string::npos) 
     {
         target->valid = false;
-        target->cmd = "";
+        target->cmd = target->body;
         target->params = "";
         return;
     }
@@ -122,6 +123,51 @@ void ProtocolHelpers::decodeBody(ProtocolHelpers::Message* target) {
     target->cmd = boost::algorithm::trim_copy(target->body.substr(0, cmdPos));
     target->params = boost::algorithm::trim_copy(
         target->body.substr(cmdPos + 1, target->body.size() - cmdPos));
+}
+
+ListExpr ProtocolHelpers::getQueryAttributes(std::string attrStr) 
+{
+    ListExpr attrList;
+    nl->ReadFromString(attrStr, attrList);
+
+    NList result;
+    NList current;
+
+    result.append(nl->TwoElemList( 
+        nl->SymbolAtom("QID"),
+        nl->SymbolAtom("int")
+    ));
+
+    int count = nl->ListLength(attrList);
+    
+    for(int i = 1; i <= count; i++)
+    {
+        current = nl->Nth(i, attrList);
+
+        result.append(nl->TwoElemList( 
+            nl->SymbolAtom(current.first().convertToString() + "_eq"),
+                current.second().listExpr()
+            )
+        );
+
+        if (!(current.second().convertToString() == "string") &&
+            !(current.second().convertToString() == "bool"))
+        {
+            result.append(nl->TwoElemList( 
+                nl->SymbolAtom(current.first().convertToString() + "_gt"),
+                    current.second().listExpr()
+                )
+            );
+
+            result.append(nl->TwoElemList( 
+                nl->SymbolAtom(current.first().convertToString() + "_lt"),
+                    current.second().listExpr()
+                )
+            );
+        }
+    }
+
+    return result.listExpr();
 }
 
 /*
@@ -215,16 +261,18 @@ std::string CoordinatorGenP::shutdown(std::string reason, bool create)
     return r;
 }
 
-std::string CoordinatorGenP::userauth(std::string type, 
-    std::string tupledescr, bool create)
+std::string CoordinatorGenP::userauth(std::string authtype, 
+    std::string tupledescr, std::string type, bool create)
 {
     std::string r = "userauth";
     if (!create) return r;
 
     r += ProtocolHelpers::seperator;
-    r += type;
+    r += authtype;
     r += ProtocolHelpers::seperator;
     r += tupledescr;
+    r += ProtocolHelpers::seperator;
+    r += type;
 
     return r;
 }

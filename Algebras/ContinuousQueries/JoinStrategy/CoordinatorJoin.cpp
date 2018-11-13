@@ -38,21 +38,23 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [toc]
 
-1 CoordinatorLoop class implementation
+1 CoordinatorJoin class implementation
 
 */
 
-#include "CoordinatorLoop.h"
+#include "CoordinatorJoin.h"
 
 namespace continuousqueries {
 
-CoordinatorLoop::CoordinatorLoop(int port, std::string tupledescr): 
-    CoordinatorGen::CoordinatorGen(port, tupledescr)
+CoordinatorJoin::CoordinatorJoin(int port, std::string attrlist): 
+    CoordinatorGen::CoordinatorGen(port, attrlist)
 {
-    _type = "loop";
+    _type = "join";
+
+    (void) ProtocolHelpers::getQueryAttributes(attrlist);
 }
 
-CoordinatorLoop::~CoordinatorLoop() {
+CoordinatorJoin::~CoordinatorJoin() {
 }
 
 /*
@@ -66,7 +68,7 @@ the place to implement the logic for restructuring the network.
 
 */
 
-void CoordinatorLoop::setupNetwork(int newHandlerId)
+void CoordinatorJoin::setupNetwork(int newHandlerId)
 {
     LOG << "in setupNetwork (Loop) " << newHandlerId << ENDL; 
     if (!newHandlerId) return;
@@ -78,7 +80,7 @@ void CoordinatorLoop::setupNetwork(int newHandlerId)
         createNoMo(newHandlerId);
     } else {
         LOG << "creating Worker" << ENDL; 
-        createWorker(newHandlerId, "loop");
+        createWorker(newHandlerId, "join|S_eq");
     }
 
     if (_lifecyle == coordinatorStatus::initialze) 
@@ -105,7 +107,7 @@ the new query.
 
 */
 
-void CoordinatorLoop::registerQuery(queryStruct query)
+void CoordinatorJoin::registerQuery(queryStruct query)
 {
     int w = selectWorker();
     if (!w) return;
@@ -148,10 +150,9 @@ a new query assigned.
 
 */
 
-int CoordinatorLoop::selectWorker()
+int CoordinatorJoin::selectWorker()
 {
     int candidateId = 0;
-    int candidateQueries = 0;
 
     for (std::map<int, handlerStruct>::iterator it = _handlers.begin(); 
         it != _handlers.end(); it++)
@@ -159,15 +160,9 @@ int CoordinatorLoop::selectWorker()
         if ((it->second.type == handlerType::worker) and 
             (it->second.status == handlerStatus::active)) 
         {
-            if ((candidateId == 0) || ((int) it->second.ownqueries.size() 
-                < candidateQueries)) {
-                candidateQueries = (int) it->second.ownqueries.size();
-                candidateId = it->first;
-            }
+            candidateId = it->first;
         }
     }
-
-    LOG << "sW: cID " << candidateId << " cQ# " << candidateQueries << ENDL;
 
     return candidateId;
 }
@@ -181,50 +176,9 @@ Secondo Query Processor.
 
 */
 
-bool CoordinatorLoop::checkNewFunction(std::string function) 
+bool CoordinatorJoin::checkNewFunction(std::string function) 
 {
-    // build funList
-    ListExpr funList;
-    if( !nl->ReadFromString(function, funList)) {
-        LOG << "Error building funList" << ENDL;
-        return false;
-    }
-
-    QueryProcessor* tqp = new QueryProcessor(nl,
-        SecondoSystem::GetAlgebraManager());
-
-    // build the tree
-    OpTree tree = 0;
-    ListExpr resultType;
-    bool correct = false;
-    bool evaluable = false;
-    bool defined = false;
-    bool isFunction = false;
-
-    try {
-        tqp->Construct(
-            funList,
-            correct,
-            evaluable,
-            defined,
-            isFunction,
-            tree,
-            resultType );
-    }
-    catch(SI_Error ERR_IN_QUERY_EXPR) {
-        LOG << "Error building tree" << ENDL;
-        delete tqp;
-        return false;
-    }
-
-    delete tqp;
-
-    LOG << "correct: " << correct << " && " 
-        << "evaluable: " << evaluable << " && " 
-        << "defined: " << defined << " && " 
-        << "isFunction: " << isFunction << ENDL;
-
-    return (correct && defined && isFunction);
+    return true;
 }
 
 }

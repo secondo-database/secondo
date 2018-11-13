@@ -22,3 +22,5 @@ operator createSSPHandler alias CREATESSPHANDLER pattern op ( _, _ )
 operator createSSPStreamSupplier alias CREATESSPSTREAMSUPPLIER pattern _ op [ _, _ ]
 
 operator foreverStream alias FOREVERSTREAM pattern op ( _, _, _ )
+
+operator relFromTupleBinStr alias RELFROMTUPLEBINSTR pattern op ( _, _ )

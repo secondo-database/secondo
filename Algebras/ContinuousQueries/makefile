@@ -39,14 +39,19 @@ CCFLAGS += -Werror -std=c++11
 TCPDEP = $(patsubst %.cpp, %.dep, $(wildcard Tcp/*.cpp))
 TCPOBJECTS = $(patsubst %.dep, %.$(OBJEXT), $(TCPDEP))
 
+GENERICDEP = $(patsubst %.cpp, %.dep, $(wildcard Generic/*.cpp))
+GENERICOBJECTS = $(patsubst %.dep, %.$(OBJEXT), $(GENERICDEP))
+
 LOOPSTRATEGYDEP = $(patsubst %.cpp, %.dep, $(wildcard LoopStrategy/*.cpp))
 LOOPSTRATEGYOBJECTS = $(patsubst %.dep, %.$(OBJEXT), $(LOOPSTRATEGYDEP))
 
+JOINSTRATEGYDEP = $(patsubst %.cpp, %.dep, $(wildcard JoinStrategy/*.cpp))
+JOINSTRATEGYOBJECTS = $(patsubst %.dep, %.$(OBJEXT), $(JOINSTRATEGYDEP))
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
-all: check_dependencies $(TCPOBJECTS) $(LOOPSTRATEGYOBJECTS) $(OBJECTS) $(LIBOBJ)
+all: check_dependencies $(TCPOBJECTS) $(GENERICOBJECTS) $(LOOPSTRATEGYOBJECTS) $(JOINSTRATEGYOBJECTS) $(OBJECTS) $(LIBOBJ)
 
 check_dependencies:
 	$(check-algebra-dependencies)
@@ -57,12 +62,14 @@ include $(DEP_FILES)
 endif
 
 # generic rule for creating a library
-$(LIBOBJ): $(OBJECTS) $(TCPOBJECTS) $(LOOPSTRATEGYOBJECTS)
+$(LIBOBJ): $(OBJECTS) $(TCPOBJECTS) $(GENERICOBJECTS) $(LOOPSTRATEGYOBJECTS) $(JOINSTRATEGYOBJECTS)
 	$(create-lib)
 
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
 	$(RM) $(TCPOBJECTS) $(TCPDEP)
-	$(RM) $(LOOPSTRATEGYOBJECTS) $(LOOPSTRATEGYDEP)
+	$(RM) $(GENERICOBJECTS) $(GENERICDEP)
+	$(RM) $(LOOPSTRATEGYOBJECTS) $(JOINSTRATEGYDEP)
+	$(RM) $(JOINSTRATEGYOBJECTS) $(LOOPSTRATEGYDEP)
 	$(clean-algebra)

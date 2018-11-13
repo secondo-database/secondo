@@ -48,8 +48,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ListUtils.h"
 #include "Algebras/FText/FTextAlgebra.h"
 #include <boost/algorithm/string.hpp>
-#include "LoopStrategy/CoordinatorLoop.h"
 
+#include "LoopStrategy/CoordinatorLoop.h"
+#include "JoinStrategy/CoordinatorJoin.h"
+#include "SecParser.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 // #include "Algebras/Stream/Stream.h"
 // #include "DistributeStreamServer.h"
 
@@ -141,16 +144,17 @@ int createSSPCoordinator_VM(Word* args, Word& result, int message,
             fttupledescr->GetValue()
         );
         coordinator.Run();
-
-        // delete coordinator;
-        
-    } else if (cmd == "RECOVER") {
-        std::cout << "Recover from a crashed Coordinator..." << endl;
-        std::cout << "TBD. Quitting..." << endl;
+    } else if (cmd == "JOIN") {
+        std::cout << "Creating a Join Coordinator..." << endl;
+        CoordinatorJoin coordinator(
+            ccport->GetValue(), 
+            fttupledescr->GetValue()
+        );
+        coordinator.Run();
     } else {
         std::cout << "No known command given. Quitting..." << endl;
     }
-    
+
     result = qp->ResultStorage(s);
     CcInt* res = (CcInt*) result.addr;
     res->Set(true, ccport->GetValue());

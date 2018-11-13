@@ -50,87 +50,53 @@ see WorkerLoop.cpp for details.
 #ifndef __WORKERLOOP_H__
 #define __WORKERLOOP_H__
 
-#include "../Tcp/TcpClient.h"
-#include "../Tcp/TcpServer.h"
-#include "../Protocols.h"
+#include "../Generic/WorkerGen.h"
 
-#include <map>
-#include <string>
-#include <chrono>
-#include <thread>
-#include <mutex>
-#include <iostream>
-#include <condition_variable>
+// #include "../Tcp/TcpClient.h"
+// #include "../Tcp/TcpServer.h"
+// #include "../Protocols.h"
 
-#include "ListUtils.h"
-#include "Algebras/Relation-C++/RelationAlgebra.h"
+// #include <map>
+// #include <string>
+// #include <chrono>
+// #include <thread>
+// #include <mutex>
+// #include <iostream>
+// #include <condition_variable>
+
+// #include "ListUtils.h"
+// #include "Algebras/Relation-C++/RelationAlgebra.h"
 
 namespace continuousqueries {
 
-class WorkerLoop {
+class WorkerLoop: public WorkerGen {
 
-public:
+  public:
     // Create
-    WorkerLoop(int id, std::string tupledescr, TcpClient* coordinationClient);
-
-    // Destroy
+    WorkerLoop(int id, std::string attrliststr, TcpClient* coordinationClient);
     ~WorkerLoop();
 
-    struct nomoStruct {
-        int id;
-        std::string address;
-        int port;
-        TcpClient* ptrClient;
-    };
-
     struct queryStruct {
-        int id;
-        std::string funText;
-        ArgVectorPointer funargs;
-        OpTree tree;
+      int id;
+      std::string funText;
+      ArgVectorPointer funargs;
+      OpTree tree;
     };
 
-    // Initialize
-    void Initialize();
-
-    // Run
-    void Run();
-
-    // The Loop
     void TightLoop();
     bool filterTuple(Tuple* tuple, OpTree& tree, 
         ArgVectorPointer& funargs);
 
-    // NoMo handling
-    void addNoMo(int id, std::string address);
-    void deleteNoMo(int id);
-    void notifyAllNoMos(int tupleId, std::string tupleString, 
-        std::string hitlist);
-
-    // Query handling
+        
     void addQuery(int id, std::string function);
 
-    // Shutdown
-    void Shutdown();
+    void showStatus();
 
-private:
-    TcpClient* _coordinationClient;
-    int _id;
-    std::string _tupledescr;
-    int _basePort;
-
-    bool _running;
-
-    QueryProcessor* _qp;
-
-    TcpServer _tupleServer;
-    std::thread _tupleServerThread;
-    std::thread _tightLoopThread;
-
-    std::map<int, nomoStruct> _nomos;
-    std::vector<std::thread> _nomoThreads;
-
+  private:
     std::map<int, queryStruct> _queries;
+
+    ListExpr _attrlist;
+    TupleType* _tt;
 };
 
 }

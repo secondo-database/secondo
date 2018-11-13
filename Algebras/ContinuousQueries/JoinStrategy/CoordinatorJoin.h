@@ -34,48 +34,49 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[->] [$\rightarrow $]
 //[toc] [\tableofcontents]
 
-[1] Implementation of the operators for creating a Secondo Stram Processor.
+[1] Implementation of the Coordinator (Worker type: Join)
+
+The Coordinator coordinates all handlers. He has to accept new handlers,
+give them an task and save information about them to optimize (and recover) 
+the network.
+
+He also receives all queries, saves them and assignes them to workers.
 
 [toc]
 
-1 ContinuousQueries class implementation
+1 CoordinatorJoin class implementation
+see CoordinatorJoin.cpp for details.
 
 */
 
-#include "ContinuousQueriesAlgebra.h"
+#ifndef __COORDINATORJOIN_H__
+#define __COORDINATORJOIN_H__
+
+#include "../Generic/CoordinatorGen.h"
 
 namespace continuousqueries {
 
-extern Operator createSSPHandler_Op;
-extern Operator createSSPCoordinator_Op;
-extern Operator createSSPStreamSupplier_Op;
-extern Operator foreverStream_Op;
-extern Operator relFromTupleBinStr_Op;
+class CoordinatorJoin: public CoordinatorGen {
 
+  public:
+    CoordinatorJoin(int port, std::string tupledescr);
+    ~CoordinatorJoin();
 
-ContinuousQueriesAlgebra::ContinuousQueriesAlgebra() {
+    // **************************************** //
+    // BUILD AND MAINTAN THE NETWORK            //
+    // This is where the loop and join          //
+    // coordinators differ from each other!     //
+    // **************************************** //
 
-    AddOperator(&createSSPCoordinator_Op);
-    createSSPCoordinator_Op.SetUsesArgsInTypeMapping();
+    void setupNetwork(int newHandlerId=0);
+    void registerQuery(queryStruct query);
+    int selectWorker();
+    
+    bool checkNewFunction(std::string function);
 
-    AddOperator(&createSSPHandler_Op);
-    createSSPHandler_Op.SetUsesArgsInTypeMapping();
+  private:
 
-    AddOperator(&createSSPStreamSupplier_Op);
-    createSSPStreamSupplier_Op.SetUsesArgsInTypeMapping();
+};
 
-    AddOperator(&foreverStream_Op);
-    foreverStream_Op.SetUsesArgsInTypeMapping();
-
-    AddOperator(&relFromTupleBinStr_Op);
-    relFromTupleBinStr_Op.SetUsesArgsInTypeMapping();
 }
-
-extern "C" 
-Algebra* InitializeContinuousQueriesAlgebra(NestedList* nlRef, 
-    QueryProcessor* qpRef) {
-
-    return new ContinuousQueriesAlgebra();
-}
-
-} /* namespace continuousqueries */
+#endif

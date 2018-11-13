@@ -46,7 +46,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 // #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "QueryProcessor.h"
 #include "ListUtils.h"
-#include "LoopStrategy/HandlerIdle.h"
+#include "Generic/HandlerIdle.h"
 // #include "Algebras/Stream/Stream.h"
 // #include "DistributeStreamServer.h"
 

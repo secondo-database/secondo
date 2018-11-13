@@ -50,9 +50,9 @@ format...
 #include "Algebras/Stream/Stream.h"
 #include "QueryProcessor.h"
 #include "ListUtils.h"
-#include "SecParser.h"
 
 #include "ForeverHelper.cpp"
+#include "Protocols.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -116,10 +116,10 @@ ListExpr foreverStream_TM(ListExpr args) {
             " (chance of undefined) can't be converted to numeric "
         );
 
-    if ((listutils::getNumValue(nl->Second(arg3Type)) < 0) ||
+    if ((listutils::getNumValue(nl->Second(arg3Type)) < -1) ||
         (listutils::getNumValue(nl->Second(arg3Type)) > 100)) {
             return listutils::typeError(
-                " (chance of undefined) between 0 and 100 expected "
+                " (chance of undefined) between -1 and 100 expected "
             );
         }
 
@@ -156,29 +156,60 @@ ListExpr foreverStream_TM(ListExpr args) {
                     )
                 );
 
-    return listutils::typeError(" (tuple type) between 0 and 1 expected ");
-}
+    if (listutils::getNumValue(nl->Second(arg2Type)) == 2) 
+        return  nl->TwoElemList( listutils::basicSymbol<Stream<Tuple>>(),
+                    nl->TwoElemList( listutils::basicSymbol<Tuple>(),
+                        nl->FourElemList(
+                            nl->TwoElemList( nl->SymbolAtom("I_eq"),
+                            listutils::basicSymbol<CcInt>()),
+                            nl->TwoElemList( nl->SymbolAtom("I_gt"),
+                            listutils::basicSymbol<CcInt>()),
+                            nl->TwoElemList( nl->SymbolAtom("I_lt"),
+                            listutils::basicSymbol<CcInt>()),
+                            nl->TwoElemList( nl->SymbolAtom("S_eq"),
+                            listutils::basicSymbol<CcString>())
+                        )
+                    )
+                );
 
-Word ExecuteQueryString(std::string querystring)
-{
-    Word resultword;
-    SecParser parser;
-    std::string exestring;
-
-    //  0 = success, 1 = error, 2 = stack overflow
-    if(parser.Text2List(querystring, exestring) == 0) 
+    if (listutils::getNumValue(nl->Second(arg2Type)) == 3)
     {
-        exestring = exestring.substr(7, exestring.length() - 9);
+        ListExpr res = nl->OneElemList(
+            nl->TwoElemList( nl->SymbolAtom("Id_eq"),
+                listutils::basicSymbol<CcString>()));
 
-        if ( !QueryProcessor::ExecuteQuery(exestring, resultword) ) 
-        {
-            resultword.setAddr(0);
-        }
-    } else {
-        resultword.setAddr(0);
+        ListExpr last = res;
+
+        last = nl->Append(last, nl->TwoElemList( nl->SymbolAtom("City_eq"),
+            listutils::basicSymbol<CcString>()));
+        last = nl->Append(last, nl->TwoElemList( nl->SymbolAtom("Month_eq"),
+            listutils::basicSymbol<CcString>()));
+
+        last = nl->Append(last, nl->TwoElemList( nl->SymbolAtom("Number_eq"),
+            listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList( nl->SymbolAtom("Number_gt"),
+            listutils::basicSymbol<CcInt>()));
+        last = nl->Append(last, nl->TwoElemList( nl->SymbolAtom("Number_lt"),
+            listutils::basicSymbol<CcInt>()));
+
+        last = nl->Append(last, nl->TwoElemList( nl->SymbolAtom("Fraction_eq"),
+            listutils::basicSymbol<CcReal>()));
+        last = nl->Append(last, nl->TwoElemList( nl->SymbolAtom("Fraction_gt"),
+            listutils::basicSymbol<CcReal>()));
+        last = nl->Append(last, nl->TwoElemList( nl->SymbolAtom("Fraction_lt"),
+            listutils::basicSymbol<CcReal>()));
+
+        last = nl->Append(last, nl->TwoElemList( nl->SymbolAtom("Valid_eq"),
+            listutils::basicSymbol<CcBool>()));
+
+        return  nl->TwoElemList( listutils::basicSymbol<Stream<Tuple>>(),
+                    nl->TwoElemList( listutils::basicSymbol<Tuple>(),
+                        res
+                    )
+                );
     }
 
-    return resultword;
+    return listutils::typeError(" (tuple type) between 0 and 3 expected ");
 }
 
 std::string RelationToString(Relation* rel)
@@ -225,9 +256,14 @@ class foreverStream_LI{
 
     Tuple* getNext()
     {
-        if (_count > _volume) return 0;
+        if (_volume && _count > _volume) return 0;
 
         Tuple* t = new Tuple(_resultTupleType);
+        int v1;
+        int v2;
+        double d1;
+        double d2;
+        int queryType;
 
         if (_type == 0)
         {
@@ -259,6 +295,319 @@ class foreverStream_LI{
             t->PutAttribute(5,  new CcBool(
                 ForeverHelper::getBool(_chanceOfUndefined), 
                 ForeverHelper::getBool()));
+        } else
+
+        if (_type == 2)
+        {
+            // There are 9 possible query types with a maximum of 2 ands:
+            // I=?, I>?, I<?, S=?
+            // I=? and S=?
+            // I>? and I<? -- first ? has to be smaller than second -> between
+            // I>? and S=?
+            // I<? and S=?
+            // I>? and I<? and S=?
+            // chanceOfUndefined means here: chance for a easy query 
+            // (where only one attribute is tested).
+
+            if (!ForeverHelper::getBool(_chanceOfUndefined))
+            {
+                queryType = rand() % 4 + 1;
+            } else {
+                queryType = 4 + rand() % 5 + 1;
+            }
+            
+            v1 = ForeverHelper::getInt(98);
+            v2 = v1 + ForeverHelper::getInt(100 - v1);
+            
+            switch (queryType)
+            {
+                case 1: // I=?
+                    t->PutAttribute(0,  new CcInt(
+                        true, 
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(1,  new CcInt(
+                        false,
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(2,  new CcInt(
+                        false, 
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(3,  new CcString(
+                        false, 
+                        ForeverHelper::getSmallString()));
+                    break;
+
+                case 2: // I>?
+                    t->PutAttribute(0,  new CcInt(
+                        false, 
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(1,  new CcInt(
+                        true,
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(2,  new CcInt(
+                        false, 
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(3,  new CcString(
+                        false, 
+                        ForeverHelper::getSmallString()));
+                    break;
+
+                case 3: // I<?
+                    t->PutAttribute(0,  new CcInt(
+                        false, 
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(1,  new CcInt(
+                        false,
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(2,  new CcInt(
+                        true, 
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(3,  new CcString(
+                        false, 
+                        ForeverHelper::getSmallString()));
+                    break;
+
+                case 4: // S=?
+                    t->PutAttribute(0,  new CcInt(
+                        false, 
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(1,  new CcInt(
+                        false,
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(2,  new CcInt(
+                        false, 
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(3,  new CcString(
+                        true, 
+                        ForeverHelper::getSmallString()));
+                    break;
+                
+                case 5: // I=? and S=?
+                    t->PutAttribute(0,  new CcInt(
+                        true, 
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(1,  new CcInt(
+                        false,
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(2,  new CcInt(
+                        false, 
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(3,  new CcString(
+                        true, 
+                        ForeverHelper::getSmallString()));
+                    break;
+
+                case 6: // I>? and I<? -- 1st ? smaller than 2nd -> between
+                    t->PutAttribute(0,  new CcInt(
+                        false, 
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(1,  new CcInt(
+                        true,
+                        v1));
+                    t->PutAttribute(2,  new CcInt(
+                        true, 
+                        v2));
+                    t->PutAttribute(3,  new CcString(
+                        false, 
+                        ForeverHelper::getSmallString()));
+                    break;
+                
+                case 7: // I>? and S=?
+                    t->PutAttribute(0,  new CcInt(
+                        false, 
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(1,  new CcInt(
+                        true,
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(2,  new CcInt(
+                        false, 
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(3,  new CcString(
+                        true, 
+                        ForeverHelper::getSmallString()));
+                    break;
+                
+                case 8: // I<? and S=?
+                    t->PutAttribute(0,  new CcInt(
+                        false, 
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(1,  new CcInt(
+                        false,
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(2,  new CcInt(
+                        true, 
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(3,  new CcString(
+                        true, 
+                        ForeverHelper::getSmallString()));
+                    break;
+                
+                case 9: // I>? and I<? and S=?
+                    t->PutAttribute(0,  new CcInt(
+                        false, 
+                        ForeverHelper::getInt()));
+                    t->PutAttribute(1,  new CcInt(
+                        true,
+                        v1));
+                    t->PutAttribute(2,  new CcInt(
+                        true, 
+                        v2));
+                    t->PutAttribute(3,  new CcString(
+                        true, 
+                        ForeverHelper::getSmallString()));
+                    break;
+
+                default:
+                    break;
+            }
+
+        } else
+
+        if (_type == 3)
+        {
+            bool choosen[10] = {false, false, false, false, false,
+                false, false, false, false, false};
+
+            if (_chanceOfUndefined == -1) 
+            {
+                for(size_t i = 0; i < 10; i++)
+                {
+                    choosen[i] = true;
+                }
+            }
+
+            v1 = ForeverHelper::getInt();
+            v2 = ForeverHelper::getInt();
+            d1 = ForeverHelper::getDouble();
+            d2 = ForeverHelper::getDouble();
+
+            if ((_chanceOfUndefined == -1) || 
+                (!ForeverHelper::getBool(_chanceOfUndefined)))
+            {                       // test one attribute
+                choosen[rand() % 10] = true;
+            } else {
+                queryType = ForeverHelper::getInt(53);
+                
+                if (queryType > 420) // test two attributes
+                {
+                    bool invalid;
+                    int test1;
+                    int test2;
+                    do {
+                        invalid = false;
+                        test1 = rand() % 10;
+                        test2 = rand() % 10;
+                                                
+                        if (test1 == test2) invalid = true;
+                        if ((test1 == 3 && (test2 == 4 || test2 == 5)) ||
+                            (test2 == 3 && (test1 == 4 || test1 == 5))) {
+                            invalid = true;
+                        }
+                        if ((test1 == 6 && (test2 == 7 || test2 == 8)) ||
+                            (test2 == 6 && (test1 == 7 || test1 == 8))) {
+                            invalid = true;
+                        }
+                    } while (invalid);
+                    
+                    if ((test1==4 && test2==5) || (test1==5 && test2==4)) {
+                        v1 = ForeverHelper::getInt(98);
+                        v2 = v1 + ForeverHelper::getInt(100 - v1);
+                    }
+
+                    if ((test1==7 && test2==8) || (test1==8 && test2==7)) {
+                        d1 = ForeverHelper::getDouble(5);
+                        d2 = ForeverHelper::getDouble(5) + d1;
+                    }
+
+                    choosen[test1] = true;
+                    choosen[test2] = true;
+                } else {            // test three attributes
+                    bool invalid;
+                    int test1;
+                    int test2;
+                    int test3;
+
+                    do {
+                        invalid = false;
+                        test1 = rand() % 10;
+                        test2 = rand() % 10;
+                        test3 = rand() % 10;
+                                                
+                        if (test1 == test2) invalid = true;
+                        if (test2 == test3) invalid = true;
+                        if (test3 == test1) invalid = true;
+
+                        if ((test1 == 3 && (test2 == 4 || test2 == 5 || 
+                                test3 == 4 || test3 == 5)) ||
+                            (test2 == 3 && (test1 == 4 || test1 == 5 || 
+                                test3 == 4 || test3 == 5)) ||
+                            (test3 == 3 && (test1 == 4 || test1 == 5 || 
+                                test2 == 4 || test2 == 5))) {
+                            invalid = true;
+                        }
+
+                        if ((test1 == 6 && (test2 == 7 || test2 == 8 || 
+                                test3 == 7 || test3 == 8)) ||
+                            (test2 == 6 && (test1 == 7 || test1 == 8 || 
+                                test3 == 7 || test3 == 8)) ||
+                            (test3 == 6 && (test1 == 7 || test1 == 8 || 
+                                test2 == 7 || test2 == 8))) {
+                            invalid = true;
+                        }
+                    } while (invalid);
+                    
+                    if (((test1==4 && test2==5) || (test1==5 && test2==4)) || 
+                        ((test1==4 && test3==5) || (test1==5 && test3==4)) || 
+                        ((test2==4 && test3==5) || (test2==5 && test3==4)))
+                    {
+                        v1 = ForeverHelper::getInt(98);
+                        v2 = v1 + ForeverHelper::getInt(100 - v1);
+                    }
+
+                    if (((test1==7 && test2==8) || (test1==8 && test2==7)) || 
+                        ((test1==7 && test3==8) || (test1==8 && test3==7)) || 
+                        ((test2==7 && test3==8) || (test2==8 && test3==7)))
+                    {
+                        d1 = ForeverHelper::getDouble(5);
+                        d2 = ForeverHelper::getDouble(5) + d1;
+                    }
+
+                    choosen[test1] = true;
+                    choosen[test2] = true;
+                    choosen[test3] = true;
+                }
+            }
+
+            t->PutAttribute(0,  new CcString(                   // ID_eq
+                choosen[0], 
+                ForeverHelper::getUniqueId()));
+            t->PutAttribute(1,  new CcString(                   // City_eq
+                choosen[1], 
+                ForeverHelper::getBigString()));
+            t->PutAttribute(2,  new CcString(                   // Month_eq
+                choosen[2], 
+                ForeverHelper::getSmallString()));
+            t->PutAttribute(3,  new CcInt(                      // Number_eq
+                choosen[3], 
+                ForeverHelper::getInt()));
+            t->PutAttribute(4,  new CcInt(                      // Number_gt
+                choosen[4], 
+                v1));
+            t->PutAttribute(5,  new CcInt(                      // Number_lt
+                choosen[5], 
+                v2));
+            t->PutAttribute(6,  new CcReal(                     // Fraction_eq
+                choosen[6], 
+                ForeverHelper::getDouble()));
+            t->PutAttribute(7,  new CcReal(                     // Fraction_gt
+                choosen[7], 
+                d1));
+            t->PutAttribute(8,  new CcReal(                     // Fraction_lt
+                choosen[8],
+                d2));
+            t->PutAttribute(9,  new CcBool(                     // Valid_eq
+                choosen[9], 
+                ForeverHelper::getBool()));
+
         }
 
         if (_volume) _count++;

@@ -49,6 +49,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Tcp/TcpServer.h"
 #include "Tcp/TcpClient.h"
 
+#include "ListUtils.h"
+#include "NList.h"
+extern NestedList* nl;
+
 namespace continuousqueries {
 
 
@@ -82,6 +86,8 @@ public:
     static ProtocolHelpers::Message decodeMessage(TcpClient::Message msg);
     static ProtocolHelpers::Message decodeMessage(TcpServer::Message msg);
 
+    static ListExpr getQueryAttributes(std::string attrList); 
+
 private:
     static void decodeBody(ProtocolHelpers::Message* target);
 };
@@ -113,8 +119,8 @@ public:
     static std::string shutdown(std::string reason="", bool create=false);
 
     // Webschnittstelle
-    static std::string userauth(std::string type="", std::string tupledescr="",
-        bool create=false);
+    static std::string userauth(std::string authtype="", 
+        std::string tupledescr="", std::string type="", bool create=false);
 
     static std::string getqueries(int id=0, std::string func="",
         bool create=false);

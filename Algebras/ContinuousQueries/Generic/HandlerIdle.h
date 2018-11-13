@@ -31,51 +31,66 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[Oe] [\"{O}]
 //[Ue] [\"{U}]
 //[x] [$\times $]
+//[&] [\&]
 //[->] [$\rightarrow $]
 //[toc] [\tableofcontents]
 
-[1] Implementation of the operators for creating a Secondo Stram Processor.
+[1] Implementation of Idle Handler
+
+The Idle Handler awaits a specialization. It can either become a worker or
+a notification [&] monitoring handler.
 
 [toc]
 
-1 ContinuousQueries class implementation
+1 HandlerIdle class implementation
+see HandlerIdle.cpp for details.
 
 */
 
-#include "ContinuousQueriesAlgebra.h"
+#ifndef __HANDLERIDLE_H__
+#define __HANDLERIDLE_H__
+
+#include "../Tcp/TcpClient.h"
+#include "../Protocols.h"
+#include "../LoopStrategy/WorkerLoop.h"
+#include "../JoinStrategy/WorkerJoin.h"
+#include "NoMo.h"
+
+#include <map>
+#include <string>
+#include <chrono>
+#include <thread>
+#include <mutex>
+#include <iostream>
+#include <condition_variable>
 
 namespace continuousqueries {
 
-extern Operator createSSPHandler_Op;
-extern Operator createSSPCoordinator_Op;
-extern Operator createSSPStreamSupplier_Op;
-extern Operator foreverStream_Op;
-extern Operator relFromTupleBinStr_Op;
+class HandlerIdle {
 
+public:
+    // Create
+    // HandlerIdle();
+    HandlerIdle(std::string address, int port);
 
-ContinuousQueriesAlgebra::ContinuousQueriesAlgebra() {
+    // Destroy
+    ~HandlerIdle();
 
-    AddOperator(&createSSPCoordinator_Op);
-    createSSPCoordinator_Op.SetUsesArgsInTypeMapping();
+    // Initialize
+    void Initialize();
 
-    AddOperator(&createSSPHandler_Op);
-    createSSPHandler_Op.SetUsesArgsInTypeMapping();
+    // Shutdown
+    void Shutdown();
 
-    AddOperator(&createSSPStreamSupplier_Op);
-    createSSPStreamSupplier_Op.SetUsesArgsInTypeMapping();
+private:
+    std::string _coordinatorAddress;
+    int _coordinatorPort;
+    int _id;
 
-    AddOperator(&foreverStream_Op);
-    foreverStream_Op.SetUsesArgsInTypeMapping();
+    TcpClient _coordinationClient;
+    std::thread _coordinationClientThread;
+    std::string _attrliststr;
+};
 
-    AddOperator(&relFromTupleBinStr_Op);
-    relFromTupleBinStr_Op.SetUsesArgsInTypeMapping();
 }
-
-extern "C" 
-Algebra* InitializeContinuousQueriesAlgebra(NestedList* nlRef, 
-    QueryProcessor* qpRef) {
-
-    return new ContinuousQueriesAlgebra();
-}
-
-} /* namespace continuousqueries */
+#endif
