@@ -156,17 +156,31 @@ void WorkerJoin::TightLoop()
 
             LOG << tupleId << "|" << tupleString << ENDL;
 
-            // Clear funktioniert zwar, aber crashed den Shutdown
-            executeQueryString("query tpl clear;");
 
             // Funktioniert und Shutdown geht.
-            executeQueryString("query relFromTupleBinStr('" + 
+            // Word w;
+            // CcInt* val;
+
+        // Funktioniert inkl Shutdown, wenn _querystring nicht ausgeführt wurde
+            (void) executeQueryString("query tpl clear;");
+            (void) executeQueryString("query relFromTupleBinStr('" + 
                 _tupleattrlist.convertToString() + "', '" + tupleString + 
                 "') feed tpl insert count");
 
-            Word w = executeQueryString(_querystring);
-            CcInt* val = (CcInt*) w.addr;
-            LOG << val->GetValue() << ENDL;
+            // (void) executeQueryString(_querystring);
+            
+            
+            // w = 
+            // val = (CcInt*) w.addr;
+            // LOG << "add " << val->GetValue() << ENDL;
+            // val->DeleteIfAllowed();
+            // w.setAddr(0);
+
+            // w = 
+            // val = (CcInt*) w.addr;
+            // LOG << "qs " << val->GetValue() << ENDL;
+            // val->DeleteIfAllowed();
+            // w.setAddr(0);
 
     // executeQueryString("query tpl feed count;");
     // LOG << "feed count geht" << ENDL;
@@ -261,7 +275,7 @@ void WorkerJoin::Initialize()
     btreeWord.setAddr(_qbtree);
     _sc->InsertObject("qbtree", "", relType, btreeWord, true);
 
-    LOG << nl->ToString(_sc->ListObjects()) << ENDL;
+    buildQueryString();
 }
 
 // Query handling
@@ -414,6 +428,7 @@ void WorkerJoin::buildQueryString()
     int grpcount1 = 0;
     int grpcount2 = 0;
     int grpcount3 = 0;
+    int sum = 0;
 
     for (std::vector<std::pair <std::string, std::string>>::iterator 
         it = _queryparts.begin(); 
@@ -464,6 +479,7 @@ void WorkerJoin::buildQueryString()
 
     std::string filterstring = "";
     std::vector<structQuerysort>::iterator index;
+    sum = grpcount1 + grpcount2 + grpcount3;
 
     while (grpcount1>0) 
     {
@@ -530,12 +546,15 @@ void WorkerJoin::buildQueryString()
 
     filterstring = filterstring.substr(0, filterstring.length()-5);
 
-    _querystring = "query " + getJoinStringPart() + 
-                        " filter[" + filterstring + "] consume;";
+    _querystring = "query " + getJoinStringPart();
+
+    if (sum>0) _querystring += " filter[" + filterstring + "]";
+
+    _querystring += " consume;";
 
     // _querystring = "query qbtree queries exactmatch[\"January\"] consume;";
-    _querystring  = "query qbtree queries exactmatch[tpl ";
-    _querystring += "feed head[1] extract[S]] count;";
+    // _querystring  = "query qbtree queries exactmatch[tpl ";
+    // _querystring += "feed extract[S]] count;";
     LOG << ENDL << ENDL << "QueryString: " << _querystring << ENDL << ENDL;
 }
 
@@ -543,7 +562,7 @@ std::string WorkerJoin::getFilterStringPart(structQuerysort elem)
 {
     return "((." + elem.qname + " = [const " + elem.type +" value undefined])"+
         " or (." + elem.qname + " " + elem.comp + 
-        " tpl feed head[1] extract[" + elem.tname + "]))";
+        " tpl feed extract[" + elem.tname + "]))";
 }
 
 std::string WorkerJoin::getJoinStringPart()
@@ -558,7 +577,7 @@ std::string WorkerJoin::getJoinStringPart()
     // if (comp == "lt") comp = ">";
 
     return "qbtree queries " + comp + 
-        "[tpl feed head[1] extract[" + tname + "]]";
+        "[tpl feed extract[" + tname + "]]";
 }
 
 
