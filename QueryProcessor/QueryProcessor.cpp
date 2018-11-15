@@ -5434,8 +5434,14 @@ QueryProcessor::ExecuteQuery( const ListExpr& commandList,
                         SecondoSystem::GetAlgebraManager(),
                         availableMemory );
   qpp->SetDebugLevel(debugLevel);
-  qpp->Construct( commandList, correct,
+
+  try{
+    qpp->Construct( commandList, correct,
                   evaluable, defined, isFunction, tree, resultType );
+  } catch(...){
+    delete qpp;
+    return false; 
+  }
   nli->WriteToString(typeString,resultType);
   if ( !defined )
   {
