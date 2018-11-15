@@ -64,6 +64,8 @@ NoMo::NoMo(int id, std::string tupledescr, TcpClient* coordinationClient):
     _basePort(coordinationClient->GetServerPort()),
     _tupleServer(coordinationClient->GetServerPort() + (id*10))
 {
+    _monitor = new Monitor(id, "nomo", "", coordinationClient, 
+            0.5 * 60 * 1000, 100);
 }
 
 // Destroy
@@ -75,6 +77,8 @@ NoMo::~NoMo()
 // Initialize
 void NoMo::Initialize()
 {
+    _fakemail = false;
+
     // start tuple server thread
     _tupleServerThread = std::thread(
         &TcpServer::Run, 
@@ -122,6 +126,8 @@ void NoMo::NotificationLoop()
     bool hasMsg = false;
     ProtocolHelpers::Message msg;
 
+    _monitor->startBatch();
+
     while (_running) {
         std::unique_lock<std::mutex> lock(_tupleServer.mqMutex);
 
@@ -133,7 +139,7 @@ void NoMo::NotificationLoop()
         });
 
         if (!_running) {
-            LOG << "TL: !_running-->continue" << ENDL;
+            _monitor->checkBatch();
             lock.unlock();
             continue;
         }
@@ -151,6 +157,8 @@ void NoMo::NotificationLoop()
         lock.unlock();
 
         if (hasMsg && msg.valid && msg.cmd==WorkerGenP::hit()) {
+            _monitor->startWorkRound();
+
             int tupleId = 0;
             std::string tupleString = "";
             std::string hitlist = "";
@@ -173,13 +181,15 @@ void NoMo::NotificationLoop()
                     << "tupleString or hitlist" << ENDL;
             }
 
-            LOG << "Data:" << tupleId << ", " 
-                << tupleString << ". " << hitlist << ENDL;
-            
-
-            if (tupleId) handleHit(tupleId, tupleString, hitlist);
+            if (tupleId) 
+            {
+                handleHit(tupleId, tupleString, hitlist);
+            } else {
+                _monitor->endWorkRound(0, 0, 0);
+            }
         }
     
+        _monitor->checkBatch();
     }
 }
 
@@ -200,7 +210,6 @@ void NoMo::Run()
         });
 
         if (!_running) {
-            LOG << "TL: !_running-->continue" << ENDL;
             lock.unlock();
             continue;
         }
@@ -247,6 +256,21 @@ void NoMo::Run()
                 if (queryId) addUserQuery(queryId, function, userhash, email);
             } else
 
+            // set fakemail
+            if (msg.cmd == CoordinatorGenP::setfakemail())
+            {
+                LOG << "setting fakemail to " << msg.params << ENDL;
+                
+                if (msg.params.substr(0,1) == "T" || 
+                    msg.params.substr(0,1) == "t" || 
+                    msg.params.substr(0,1) == "1")
+                {
+                    _fakemail = true;
+                } else {
+                    _fakemail = false;
+                }
+            } else
+
             // force shutdown
             if (msg.cmd == CoordinatorGenP::shutdown() || 
                 msg.cmd == "disconnected") 
@@ -260,15 +284,13 @@ void NoMo::Run()
             // unknown command
             else 
             {
-                std::cout << "No handler for command " << msg.cmd << ".\n";
+                LOG << "No handler for command " << msg.cmd << "." << ENDL;
             }
 
         } else {
             if (hasMsg)
             {
-                std::cout << "Message '" << msg.cmd << "' is invalid... \n";
-            } else {
-                std::cout << "No Message. Timeout... \n";
+                LOG << "Message '" << msg.cmd << "' is invalid..." << ENDL;
             }
         }   
     }
@@ -277,9 +299,98 @@ void NoMo::Run()
 void NoMo::handleHit(int tupleId, std::string tupleString, 
     std::string hitlist) 
 {
-    // create tuple
-    LOG << tupleId << " hit: " << tupleString << ": " << hitlist << ENDL;
-    LOG << tupleBinaryStringToRealString(tupleString) << ENDL;
+    std::string from = "ssp.dontreply@fernuni-hagen.de";
+    std::string subject = "Your Query Was Successfull!";
+    std::string message;
+    std::string email;
+    int sendMessages = 0;
+    int queryId = 0;
+
+    // iterate over hitlist
+    std::vector<std::string> hits;
+    boost::split(hits, hitlist, boost::is_any_of(","));
+
+    for (std::vector<std::string>::iterator it = hits.begin(); 
+                it != hits.end(); it++)
+    {
+        // get query Id
+        try {
+            queryId = std::stoi(*it);
+        } catch(...) {
+            tupleId = 0;
+            LOG << "failed to extract queryId" << ENDL;
+        }
+        if (!tupleId) continue;
+
+        // create message
+        message  = "You wanted to get informed if the following query was ";
+        message += "successfull: \n\n" + _queries[queryId].query + "\n\n";
+        message += "The tuple \n\n"+tupleBinaryStringToRealString(tupleString);
+        message += "\n\nfulfilled your conditions. \n\n";
+
+        // inform all users about hits
+        for (std::vector<std::string>::iterator iit = 
+            _queries[queryId].emails.begin();
+            iit != _queries[queryId].emails.end(); iit++)
+        {
+            email = *iit;
+            if (sendEmail(from, email, subject, message)) sendMessages++;
+        }
+    }
+
+    _monitor->endWorkRound(1, hits.size(), sendMessages);
+}
+
+bool NoMo::sendEmail(std::string from, std::string to, std::string subject, 
+    std::string message)
+{
+    LOG << ENDL << "*************************"
+        << ENDL << "To: " << to
+        << ENDL << "Subject: " << subject
+        << ENDL << "Message: " << message 
+        << ENDL << "*************************" << ENDL;
+
+    if (_fakemail) return false;
+
+    std::string querystring = "query sendmail(";
+    querystring += "'" + subject+ "', ";
+    querystring += "'" + from + "', ";
+    querystring += "'" + to + "', ";
+    querystring += "'" + message + "', '');";
+
+    Word resultword;
+    SecParser parser;
+    std::string exestring;
+    int parseRes = 0;
+    
+    try {
+        parser.Text2List(querystring, exestring);
+
+        //  0 = success, 1 = error, 2 = stack overflow
+        if (parseRes == 0) 
+        {
+            exestring = exestring.substr(7, exestring.length() - 9);
+
+            if ( !QueryProcessor::ExecuteQuery(exestring, resultword) ) 
+            {   
+                LOG << "Error while executing send query." << ENDL;
+                resultword.setAddr(0);
+            }
+        } else {
+            LOG << "Error while parsing send query: " << parseRes << ENDL;
+            resultword.setAddr(0);
+        }
+    } catch(const std::exception& e) {
+        LOG << "Catched an error while executing send query..." << ENDL;
+        resultword.setAddr(0);
+    }
+
+    if (resultword.addr == 0) return false;
+
+    CcBool* result = (CcBool*) resultword.addr;
+
+    if (!result->IsDefined()) return false;
+    return result->GetValue();
 }
 
 std::string NoMo::tupleBinaryStringToRealString(std::string tupleString)
@@ -338,9 +449,9 @@ void NoMo::addUserQuery(int queryId, std::string query,
     // add email to list
     _queries[queryId].emails.push_back(email);
 
-    std::cout << email << " and " << _queries[queryId].emails.size()-1 
+    LOG << email << " and " << _queries[queryId].emails.size()-1 
         << " others will be informed when Query " 
-        << queryId << " was hit." << "\n";
+        << queryId << " was hit." << ENDL;
 }
 
 // Shutdown

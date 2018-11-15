@@ -29,7 +29,8 @@ include ../../makefile.env
 # CollectionAlgebra RecordAlgebra RelationAlgebra DBServiceAlgebra Distributed2Algebra
 CURRENT_ALGEBRA := ContinuousQueriesAlgebra
 ALGEBRA_DEPENDENCIES := StandardAlgebra
-ALGEBRA_DEPENDENCIES += CStreamAlgebra
+ALGEBRA_DEPENDENCIES += RelationAlgebra
+ALGEBRA_DEPENDENCIES += MailAlgebra
 
 # expand compile flags if necessary
 CCFLAGS += $(ALG_INC_DIRS) 

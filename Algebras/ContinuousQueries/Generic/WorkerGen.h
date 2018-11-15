@@ -114,6 +114,8 @@ class WorkerGen {
     std::string _type;
     int _basePort;
 
+    Monitor* _monitor;
+
     bool _running;
 
     QueryProcessor* _qp;

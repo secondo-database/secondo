@@ -178,6 +178,19 @@ Secondo Query Processor.
 
 bool CoordinatorJoin::checkNewFunction(std::string function) 
 {
+    ListExpr newfunc;
+    
+    // has to be a valid list
+    if (!nl->ReadFromString(function, newfunc)) return false;
+    
+    int length = nl->ListLength(newfunc);
+
+    // three elements is the maximum
+    if (length > 3) return false;
+
+    // empty list not allowed
+    if (length == 0) return false;
+
     return true;
 }
 

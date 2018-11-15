@@ -60,6 +60,7 @@ see CoordinatorGen.cpp for details.
 #include <thread>
 #include <mutex>
 #include <iostream>
+#include <fstream>
 #include <condition_variable>
 
 #include "ListUtils.h"
@@ -114,9 +115,6 @@ public:
     void Initialize();
     void Run();
     void Shutdown();
-
-    // ReceiveCoordinationMessage
-    void ReceiveCoordinationMessage(std::string);
 
     // reactions to messages
     void doRegisterNewHandler(ProtocolHelpers::Message msg);
@@ -184,6 +182,8 @@ protected:
 
     std::string _tupledescr;
     std::string _type;
+
+    std::ofstream _logfile;
 };
 
 }

@@ -171,6 +171,106 @@ ListExpr ProtocolHelpers::getQueryAttributes(std::string attrStr)
 }
 
 /*
+2 Monitor Class Implementation
+
+A helper class to give all components a way to sent monitoring data
+back to the Coordinator.
+
+*/
+
+Monitor::Monitor(int id, std::string type, std::string info, 
+    TcpClient* coordinationClient, unsigned long maxMs, unsigned long maxTpl):
+    _id(id),
+    _type(type),
+    _info(info),
+    _coordinationClient(coordinationClient),
+    _maxMs(maxMs),
+    _maxTpl(maxTpl)
+{
+}
+
+Monitor::~Monitor()
+{
+}
+
+int64_t Monitor::getTimestampMs()
+{
+    return std::chrono::system_clock::now().time_since_epoch() /
+            std::chrono::milliseconds(1);
+}
+
+void Monitor::startBatch()
+{
+    _batchstart = getTimestampMs();
+    _batchend = 0;
+    _workingstart = 0;
+
+    _workingtime = 0;
+
+    _donetuples = 0;
+    _donequeries = 0;
+
+    _additionalInfo = 0;
+}
+
+void Monitor::checkBatch()
+{
+    _batchend = getTimestampMs();
+    int64_t batchtime = _batchend - _batchstart;
+
+    if ((_donetuples >= _maxTpl) ||
+        (batchtime >= _maxMs))
+    {
+        finishBatch();
+    }
+}
+
+void Monitor::finishBatch()
+{
+    std::cout << endl << "*******************************************" << endl
+              << "BS: " << _batchstart << "  |  "
+              << "BE: " << _batchend << "  |  "
+              << "BT: " << _batchend - _batchstart << "  |  "
+              << "WT: " << _workingtime << "  |  "
+              << "#T: " << _donetuples << "  |  "
+              << "#Q: " << _donequeries << "  |  "
+              << "AI: " << _additionalInfo
+              << endl << "*******************************************" << endl
+              << endl;
+
+    std::string data = "";
+    
+    data += std::to_string(_id) + ", ";
+    data += (_type) + ", ";
+    data += (_info) + ", ";
+    data += std::to_string(_batchstart) + ", ";
+    data += std::to_string(_batchend) + ", ";
+    data += std::to_string(_workingtime) + ", ";
+    data += std::to_string(_donetuples) + ", ";
+    data += std::to_string(_donequeries) + ", ";
+    data += std::to_string(_additionalInfo);
+
+    (void) _coordinationClient->Send(IdleGenP::logdata(data, true));
+
+    startBatch();
+}
+
+void Monitor::startWorkRound()
+{
+    _workingstart = getTimestampMs();
+}
+
+void Monitor::endWorkRound(int addTs, int addQs, 
+    int addInfo)
+{
+    _donetuples += addTs;
+    _donequeries += addQs;
+    _additionalInfo += addInfo;
+
+    _workingtime += (getTimestampMs() - _workingstart);
+}
+
+/*
 2 Protocol for messages send by the (general/loop) Coordinator
 
 Returns the name of the command as default. Can also create the whole 
@@ -303,6 +403,29 @@ std::string CoordinatorGenP::status(bool create)
     return r;
 }
 
+
+std::string CoordinatorGenP::setlogfile(bool create) 
+{
+    std::string r = "setlogfile";
+    return r;
+}
+
+std::string CoordinatorGenP::setfakemail(bool setto, bool create)
+{
+    std::string r = "setfakemail";
+    if (!create) return r;
+    
+    r += ProtocolHelpers::seperator;
+    if (setto)
+    {
+        r += "TRUE";
+    } else {
+        r += "FALSE";
+    }
+
+    return r;
+}
+
 /*
 3 Protocol for messages send by the Idle Handler
 
@@ -329,6 +452,17 @@ std::string IdleGenP::confirmspecialize(std::string type, bool create)
     
     r += ProtocolHelpers::seperator;
     r += type;
+
+    return r;
+}
+
+std::string IdleGenP::logdata(std::string data, bool create)
+{
+    std::string r = "logdata";
+    if (!create) return r;
+    
+    r += ProtocolHelpers::seperator;
+    r += data;
 
     return r;
 }

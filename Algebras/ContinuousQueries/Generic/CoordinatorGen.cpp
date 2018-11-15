@@ -76,18 +76,9 @@ Destroys the CoordinatorGen object and sets all ressources free.
 
 CoordinatorGen::~CoordinatorGen() 
 {
+    if (_logfile.is_open()) _logfile.close();
+
     Shutdown();
-}
-
-/*
-1.3 Receive Coordination Message
-
-Receives 
-
-*/
-
-void CoordinatorGen::ReceiveCoordinationMessage(std::string message) {
-
 }
 
 /*
@@ -181,6 +172,12 @@ void CoordinatorGen::Run() {
                     doConfirmSpecialize(msg);
                 } else
 
+                // a handler sends logdata
+                if (msg.cmd == IdleGenP::logdata()) {
+                    LOG << msg.params << ENDL;
+                    if (_logfile.is_open()) _logfile << msg.params << "\n";
+                } else
+
                 // webinterface registers new user
                 if (msg.cmd == CoordinatorGenP::userauth()) {
                     doUserAuth(msg);
@@ -194,6 +191,13 @@ void CoordinatorGen::Run() {
                 // webinterface adds a new query
                 if (msg.cmd == CoordinatorGenP::addquery(0, "", false)) {
                     doAddQuery(msg);
+                } else
+
+                // set the logfile
+                if (msg.cmd == CoordinatorGenP::setlogfile()) {
+                    LOG << "Log data will be saved in " << msg.params << ENDL;
+                    if (_logfile.is_open()) _logfile.close();
+                    _logfile.open(msg.params);
                 } else
 
                 // a way to send remote commands to another handler

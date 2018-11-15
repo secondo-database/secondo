@@ -77,8 +77,6 @@ WorkerGen::~WorkerGen()
 // Initialize
 void WorkerGen::Initialize()
 {
-    LOG << "WorlerLoop::Initialize" << ENDL;
-
     // start tuple server thread
     _tupleServerThread = std::thread(
         &TcpServer::Run, 
@@ -89,14 +87,14 @@ void WorkerGen::Initialize()
     if (!_tupleServer.IsRunning()) 
     {
         int count = 0;
-        std::cout << "Waiting a maximum of 60 seconds for the tuple"
-            << " receiving server to start... \n";
+        LOG << "Waiting a maximum of 60 seconds for the tuple"
+            << " receiving server to start... " << ENDL;
 
         while (!_tupleServer.IsRunning() && count < (60*1000)) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             count = count + 100;
         }
-        if (_tupleServer.IsRunning()) std::cout << " Done!\n";
+        if (_tupleServer.IsRunning()) LOG << " Done!" << ENDL;
     }
 
     if (!_tupleServer.IsRunning()) return;
@@ -230,15 +228,15 @@ void WorkerGen::Run()
             // unknown command
             else 
             {
-                std::cout << "No handler for command " << msg.cmd << ".\n";
+                LOG << "No handler for command " << msg.cmd << "." << ENDL;
             }
 
         } else {
             if (hasMsg) 
             {
-                std::cout << "Message '" + msg.cmd + "' is invalid... \n";
+                LOG << "Message '" + msg.cmd + "' is invalid... " << ENDL;
             } else {
-                std::cout << "No Message. Timeout... \n";
+                LOG << "No Message. Timeout... " << ENDL;
             }
         }   
     }

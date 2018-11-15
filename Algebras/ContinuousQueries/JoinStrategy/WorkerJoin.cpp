@@ -167,7 +167,7 @@ void WorkerJoin::TightLoop()
                 _tupleattrlist.convertToString() + "', '" + tupleString + 
                 "') feed tpl insert count");
 
-            // (void) executeQueryString(_querystring);
+            (void) executeQueryString(_querystring);
             
             
             // w = 
@@ -224,7 +224,7 @@ void WorkerJoin::TightLoop()
 void WorkerJoin::Initialize()
 {
     LOG << "WorkerJoin::Initialize" << ENDL;
-
+    
     Word tupleRelWord;
     Word queryRelWord;
     Word btreeWord;
@@ -275,6 +275,8 @@ void WorkerJoin::Initialize()
     btreeWord.setAddr(_qbtree);
     _sc->InsertObject("qbtree", "", relType, btreeWord, true);
 
+    _sc->CleanUp(false, true);
+    
     buildQueryString();
 }
 
@@ -405,19 +407,21 @@ std::string WorkerJoin::getUniqueId(int len)
 
 void WorkerJoin::showStatus()
 {
-    LOG << "WorkerJoin::Status" << ENDL;
+    LOG << "**************************************************" << ENDL;
+    LOG << "WorkerJoin::Status" << ENDL << ENDL;
 
+    LOG << "Current Query:" << ENDL << _querystring << ENDL;
+    
     LOG << "Query Parts and their number in queries: " << ENDL;
-
     for (std::vector<std::pair <std::string, std::string>>::iterator 
         it = _queryparts.begin(); 
         it != _queryparts.end(); it++)
     {
         LOG << it->first << ": " << _queries[it->first] << ENDL;
     }
-
-    LOG << ENDL << "***************************************" << ENDL << ENDL;
-    LOG << "Current Query:" << ENDL << _querystring << ENDL;
+    
+    LOG << "**************************************************" << ENDL;
+    
 }
 
 void WorkerJoin::buildQueryString()
@@ -555,6 +559,8 @@ void WorkerJoin::buildQueryString()
     // _querystring = "query qbtree queries exactmatch[\"January\"] consume;";
     // _querystring  = "query qbtree queries exactmatch[tpl ";
     // _querystring += "feed extract[S]] count;";
+
+    _querystring = "query queries count;";
     LOG << ENDL << ENDL << "QueryString: " << _querystring << ENDL << ENDL;
 }
 

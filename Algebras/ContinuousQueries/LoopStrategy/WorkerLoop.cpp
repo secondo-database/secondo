@@ -64,6 +64,8 @@ WorkerLoop::WorkerLoop(int id, std::string attrliststr,
 {
     _type = "loop";
 
+    _monitor = new Monitor(id, _type, "", coordinationClient, 
+        0.5 * 60 * 1000, 100);
 
     // Build TupleType once to speed up Tuple creation
     nl->ReadFromString(attrliststr, _attrlist);
@@ -98,9 +100,6 @@ void WorkerLoop::addQuery(int id, std::string function)
         LOG << "Error building funList" << ENDL;
         return;
     }
-
-    // QueryProcessor* qqp = new QueryProcessor(nl,
-    //     SecondoSystem::GetAlgebraManager());
 
     // build the tree
     OpTree tree = 0;
@@ -140,6 +139,8 @@ void WorkerLoop::TightLoop()
     bool hasMsg = false;
     ProtocolHelpers::Message msg;
 
+    _monitor->startBatch();
+
     while (_running) {
         std::unique_lock<std::mutex> lock(_tupleServer.mqMutex);
 
@@ -151,6 +152,7 @@ void WorkerLoop::TightLoop()
         });
 
         if (!_running) {
+            _monitor->checkBatch();
             lock.unlock();
             continue;
         }
@@ -168,6 +170,9 @@ void WorkerLoop::TightLoop()
         lock.unlock();
 
         if (hasMsg && msg.valid && msg.cmd==StSuGenP::tuple()) {
+
+            _monitor->startWorkRound();
+
             // extract informations
             int tupleId = 0;
             std::string tupleString = "";
@@ -189,8 +194,10 @@ void WorkerLoop::TightLoop()
                 LOG << "failed to extract id or tuple" << ENDL;
             }
 
-            if (!tupleId) continue;
-
+            if (!tupleId) {
+                _monitor->endWorkRound(0, 0, 0);
+                continue;
+            }
             // create tuple
             Tuple* tuple  = new Tuple(_tt);
 
@@ -198,14 +205,16 @@ void WorkerLoop::TightLoop()
 
             // loop over Queries, check for hits
             std::string hitlist = "";
-            bool anyhit = false;
+            int hits = 0;
+            int queries = 0;
 
             for (std::map<int, queryStruct>::iterator it = _queries.begin();
                 it != _queries.end(); it++)
             {
+                queries++;
                 if (filterTuple(tuple, it->second.tree, it->second.funargs))
                 {
-                    anyhit = true;
+                    hits++;
                     hitlist += std::to_string(it->first);
                     hitlist += ",";
                 }
@@ -219,8 +228,12 @@ void WorkerLoop::TightLoop()
             LOG << "tID: " << tupleId << "hl: " << hitlist << ENDL;
 
             // notify all nomos
-            if (anyhit) notifyAllNoMos(tupleId, tupleString, hitlist);
+            if (hits) notifyAllNoMos(tupleId, tupleString, hitlist);
+
+            _monitor->endWorkRound(1, queries, hits);
         }
+
+        _monitor->checkBatch();
     }
 }
 
@@ -250,6 +263,10 @@ bool WorkerLoop::filterTuple(Tuple* tuple, OpTree& tree,
 
 void WorkerLoop::showStatus()
 {
+    LOG << "**************************************************" << ENDL;
+    LOG << "WorkerLoop::Status" << ENDL << ENDL;
+    LOG << "Number of Queries: " << _queries.size() << ENDL;
+    LOG << "**************************************************" << ENDL;
 }
 
 }

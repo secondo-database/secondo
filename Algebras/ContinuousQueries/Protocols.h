@@ -65,7 +65,8 @@ includes a valid flag and splits the body to the cmd and params.
 
 */
 
-class ProtocolHelpers {
+class ProtocolHelpers 
+{
 public:
     struct Message {
         bool valid = false;
@@ -93,7 +94,65 @@ private:
 };
 
 /*
-2 Protocol for messages send by the (general/loop) Coordinator
+2 Monitor Class Implementation
+
+A helper class to give all components a way to sent monitoring data
+back to the Coordinator.
+When the TightLoop starts, the first startBatch() is called. When ever
+a tuple arrives, startWorkRound() is called, when it's done endWorkRound().
+
+If checkBatch() sees that the required time has passed or number of tuple
+had been processed, finishBatch() sends the message to the Coordinator and
+starts a new batch.
+
+*/
+
+class Monitor
+{
+public:
+    Monitor(int id, std::string type, std::string info, 
+        TcpClient* coordinationClient, 
+        unsigned long maxMs  = 5 * 60 * 1000,
+        unsigned long maxTpl =10000);
+
+    ~Monitor();
+
+    int64_t getTimestampMs();
+
+    void startBatch();
+    void checkBatch();
+    void finishBatch();
+
+    void startWorkRound();
+    void endWorkRound(int addTs, int addQs, int addInfo);
+
+private:
+    int _id;
+    std::string _type;
+    std::string _info;
+    TcpClient* _coordinationClient;
+
+    int64_t _batchstart;
+    int64_t _batchend;
+    int64_t _workingstart;
+
+    // How many ms was the handler working in this batch
+    unsigned long _workingtime;
+
+    // How man tuples and queries has he completet in this batch
+    unsigned long _donetuples;
+    unsigned long _donequeries;
+
+    // For worker, how many hits
+    unsigned long _additionalInfo;
+
+    // After how many ms or tuple should a batch end
+    unsigned long _maxMs;
+    unsigned long _maxTpl;
+};
+
+/*
+3 Protocol for messages send by the (general/loop) Coordinator
 
 Returns the name of the command as default. Can also create the whole 
 message to be sent by setting 'create' to true.
@@ -125,13 +184,15 @@ public:
     static std::string getqueries(int id=0, std::string func="",
         bool create=false);
 
-    // Debug
+    // Administrator
     static std::string remote(bool create=false);
     static std::string status(bool create=false);
+    static std::string setlogfile(bool create=false);
+    static std::string setfakemail(bool setto=true, bool create=false);
 };
 
 /*
-3 Protocol for messages send by the Idle Handler
+4 Protocol for messages send by the Idle Handler or a Handler in general
 
 Returns the name of the command as default. Can also create the whole 
 message to be sent by setting 'create' to true.
@@ -145,10 +206,13 @@ public:
     
     static std::string confirmspecialize(std::string type="", 
         bool create=false);
+
+    static std::string logdata(std::string data="", 
+        bool create=false);
 };
 
 /*
-4 Protocol for messages send by the (general/loop) Worker
+5 Protocol for messages send by the (general/loop) Worker
 
 Returns the name of the command as default. Can also create the whole 
 message to be sent by setting 'create' to true.
@@ -164,7 +228,7 @@ public:
 };
 
 /*
-5 Protocol for messages send by the (general) NoMo
+6 Protocol for messages send by the (general) NoMo
 
 Returns the name of the command as default. Can also create the whole 
 message to be sent by setting 'create' to true.
@@ -177,7 +241,7 @@ public:
 };
 
 /*
-6 Protocol for messages send by the (general) Stream Supplier
+7 Protocol for messages send by the (general) Stream Supplier
 
 Returns the name of the command as default. Can also create the whole 
 message to be sent by setting 'create' to true.
@@ -193,7 +257,7 @@ public:
 };
 
 /*
-7 LOG Helper
+8 LOG Helper
 
 Remove DEBUG OUTPUT to stop output.
 

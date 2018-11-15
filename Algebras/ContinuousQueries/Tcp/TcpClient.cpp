@@ -106,7 +106,6 @@ void TcpClient::Receive()
     while(_running) 
     {
         // wait for a message
-        std::cout << "Before recv \n";
         int bytesReceived = recv(_master_socket, buffer, MAXPACKETSIZE, 0);
 
         // check if there was an timeout
@@ -197,7 +196,9 @@ void TcpClient::PushMsgToQueue(TcpClient::Message msg)
 int TcpClient::Send(std::string msg) 
 {
     std::cout << "TcpClient sending '" + msg + "'.\n";
-    return send(_master_socket, msg.c_str(), msg.length() + 1, 0) - 1;
+    int res = send(_master_socket, msg.c_str(), msg.length()+1,MSG_NOSIGNAL)-1;
+    if (errno == EPIPE) PushMsgToQueue(CreateDisconnectMsg(_master_socket));
+    return res;
 }
 
 void TcpClient::SendAsync(std::string msg)

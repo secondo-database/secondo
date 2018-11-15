@@ -320,7 +320,11 @@ int TcpServer::Send(int socket, std::string msg)
 {
     std::cout << "TcpServer sending '" + msg + "' to Socket '" 
         << socket << "'.\n";
-    return send(socket, msg.c_str(), msg.length() + 1, 0) - 1;
+
+    int res = send(socket, msg.c_str(), msg.length() + 1, MSG_NOSIGNAL) - 1;
+    if (errno == EPIPE) PushMsgToQueue(CreateDisconnectMsg(socket));
+
+    return res;
 }
 
 

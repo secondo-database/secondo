@@ -79,6 +79,7 @@ public:
         std::string address;
         int port;
         TcpClient* ptrClient;
+        bool active;
     };
 
     // Initialize
@@ -104,6 +105,7 @@ private:
 
     std::thread _ownThread;
 
+    int _activeWorker;
     int _lastTupleId;
 
     bool _running;

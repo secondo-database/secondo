@@ -87,6 +87,8 @@ initialitation is done. It pushes incoming messages to its queue.
 
 void StreamSupplier::Initialize()
 {
+    _activeWorker = 0;
+
     _ownThread = std::thread(
         &StreamSupplier::Run, 
         this
@@ -96,16 +98,16 @@ void StreamSupplier::Initialize()
     if (!_id)
     {
         int count = 0;
-        std::cout << "Waiting a maximum of 60 seconds for ID.";
+        LOG << "Waiting a maximum of 60 seconds for ID.";
         
         while ((!_id) && (count < (60*1000))) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            std::cout << ".";
+            LOG << ".";
             count = count + 100;
         }
         if (_id)
         {
-            std::cout << " Done!\n";
+            LOG << " Done!" << ENDL;
         } else {
             Shutdown();
         }
@@ -124,16 +126,15 @@ void StreamSupplier::Run()
         &TcpClient::Receive, 
         &_coordinationClient
     );
-    // _coordinationClientThread.detach();
     
     // wait for the connection to be established
     if (!_coordinationClient.IsRunning())
     {
         int count = 0;
-        std::cout << "Waiting a maximum of 60 seconds for the connection...";
+        LOG << "Waiting a maximum of 60 seconds for the connection...";
         while ((!_coordinationClient.IsRunning()) and (count < (60*1000))) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            std::cout << ".";
+            LOG << ".";
             count = count + 100;
         }
         if (_coordinationClient.IsRunning()) LOG << " Done!" << ENDL;
@@ -161,7 +162,6 @@ void StreamSupplier::Run()
     ProtocolHelpers::Message msg;
 
     while (_running) {
-        LOG << "BEFORE LOCK _cC" << ENDL;
         std::unique_lock<std::mutex> lock(_coordinationClient.mqMutex);
 
         hasMsg = _coordinationClient.mqCondition.wait_for(
@@ -170,10 +170,8 @@ void StreamSupplier::Run()
             [this] {
             return !_coordinationClient.messages.empty();
         });
-        LOG << "AFTER LOCK _cC: " << hasMsg << "!" << ENDL;
 
         if (!_running) {
-            LOG << "!_running-->continue" << ENDL;
             lock.unlock();
             continue;
         }
@@ -227,12 +225,11 @@ void StreamSupplier::Run()
                     sendl == CoordinatorGenP::confirmhello(handlerId, 
                         tupledescr, true).length() && handlerId) 
                 {
-                    std::cout << "Set my ID to " << handlerId << ". \n";
+                    LOG << "Set my ID to " << handlerId << "." << ENDL;
                     _id = handlerId;
                     hasId = true;
                 } else {
-                    std::cout << "error while sending "
-                        << "confirmHandler message \n";
+                    LOG << "error while sending confirmHandler message" <<ENDL;
                 }
             }
 
@@ -258,7 +255,7 @@ void StreamSupplier::Run()
                 catch(...)
                 {
                     workerId = 0;
-                    std::cout << "failed to extract id or address \n";
+                    LOG << "failed to extract id or address" << ENDL;
                 }
 
                 if (workerId && handlerType=="worker") 
@@ -278,16 +275,16 @@ void StreamSupplier::Run()
             // unknown command
             else 
             {
-                std::cout << "Waiting for ID or no handler " 
-                    << " for command " << msg.cmd << ".\n";
+                LOG << "Waiting for ID or no handler " 
+                    << " for command " << msg.cmd << "." << ENDL;
             }
 
         } else {
             if (hasMsg) 
             {
-                std::cout << "Message '" + msg.cmd + "' is invalid... \n";
+                LOG << "Message '" + msg.cmd + "' is invalid..." << ENDL;
             } else {
-                std::cout << "No Message. Timeout... \n";
+                LOG << "No Message. Timeout..." << ENDL;
             }
         }   
     }
@@ -295,8 +292,11 @@ void StreamSupplier::Run()
 
 void StreamSupplier::pushTuple(Tuple* t)
 {
-    if (_workers.size() == 0) 
-        std::cout << "No worker connected. Tuple is lost. \n";
+    if (!_activeWorker) 
+    {
+        LOG << "No worker connected. Tuple is lost." << ENDL;
+        return;
+    }
     
     std::string msg = StSuGenP::tuple(
         ++_lastTupleId, 
@@ -307,23 +307,30 @@ void StreamSupplier::pushTuple(Tuple* t)
     for (std::map<int, workerStruct>::iterator it = _workers.begin(); 
         it != _workers.end(); it++)
     {   
-        std::cout << "Sending to worker with ID " << it->first << ". \n";
-
-        it->second.ptrClient->SendAsync(
-            msg
-        );
+        if (it->second.active && it->second.ptrClient->messages.empty())
+        {
+            LOG << "Sending to worker with ID " << it->first << "." << ENDL;
+            it->second.ptrClient->SendAsync(
+                msg
+            );
+        } else {
+            it->second.ptrClient->Shutdown();
+            it->second.active = false;
+            _activeWorker--;
+        }
     }
 }
 
 void StreamSupplier::addWorker(int id, std::string address)
 {
-    std::cout << id << "|" << address 
-              << ":" << _coordinatorPort+(id*10) << "\n";
+    LOG << id << "|" << address 
+              << ":" << _coordinatorPort+(id*10) << ENDL;
 
     workerStruct toAdd;
     toAdd.id = id;
     toAdd.port = _coordinatorPort + (id * 10);
     toAdd.address = address;
+    toAdd.active = true;
     toAdd.ptrClient = new TcpClient(address, _coordinatorPort + (id * 10));
 
     toAdd.ptrClient->Initialize();
@@ -334,6 +341,7 @@ void StreamSupplier::addWorker(int id, std::string address)
     ));
 
     _workers.insert( std::pair<int, workerStruct>(id, toAdd));
+    _activeWorker++;
 }
 
 void StreamSupplier::Shutdown() {

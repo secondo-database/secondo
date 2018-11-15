@@ -63,6 +63,7 @@ see NoMo.cpp for details.
 
 #include "ListUtils.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "SecParser.h"
 
 namespace continuousqueries {
 
@@ -97,6 +98,9 @@ public:
     void addUserQuery(int id, std::string query, 
         std::string userhash, std::string email);
 
+    bool sendEmail(std::string from, std::string to, std::string subject, 
+        std::string message);
+
     // Shutdown
     void Shutdown();
 
@@ -106,6 +110,9 @@ private:
     std::string _tupledescr;
     bool _running;
     int _basePort;
+
+    bool _fakemail;
+    Monitor* _monitor;
 
     TcpServer _tupleServer;
     std::thread _tupleServerThread;
