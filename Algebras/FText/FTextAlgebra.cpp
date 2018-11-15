@@ -3502,8 +3502,10 @@ int FTextValueMapEvaluate( Word* args, Word& result, int message,
       if (correct)
       { // evaluate command
         myTimer.start();
-        success =
-            QueryProcessor::ExecuteQuery(parsedCommand,
+
+        try{
+          success =
+              QueryProcessor::ExecuteQuery(parsedCommand,
                                          queryresultword,
                                          typestring,
                                          errorstring,
@@ -3511,6 +3513,10 @@ int FTextValueMapEvaluate( Word* args, Word& result, int message,
                                          evaluable,
                                          defined,
                                          isFunction);
+        } catch(...){
+           success = false;
+        }
+
         myTimeReal = myTimer.diffSecondsReal();
         myTimeCPU  = myTimer.diffSecondsCPU();
 
