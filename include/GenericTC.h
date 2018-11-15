@@ -250,7 +250,7 @@ void* Cast(void* addr){
 }
 
 
-static ListExpr GenProperty(std::string signature,
+inline ListExpr GenProperty(std::string signature,
                      std::string example_type_list,
                      std::string list_rep,
                      std::string example_list,
