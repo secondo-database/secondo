@@ -25,6 +25,12 @@ Signature: int x int x int -> stream(tuple)
 Example  : query foreverStream(100, 0, 0) count
 Result   : 100
 
+Operator : foreverQueries
+Number   : 1
+Signature: text x int x text x int x int -> test
+Example  : query foreverQueries('127.0.0.1', 12300, 'test@mailinator.com', 1, 1) feed count
+Result   : 1
+
 Operator : relFromTupleBinStr
 Number   : 1
 Signature: text x text -> rel(tuple)

@@ -324,14 +324,14 @@ void StreamSupplier::pushTuple(Tuple* t)
 void StreamSupplier::addWorker(int id, std::string address)
 {
     LOG << id << "|" << address 
-              << ":" << _coordinatorPort+(id*10) << ENDL;
+              << ":" << _coordinatorPort+(id) << ENDL;
 
     workerStruct toAdd;
     toAdd.id = id;
-    toAdd.port = _coordinatorPort + (id * 10);
+    toAdd.port = _coordinatorPort + (id);
     toAdd.address = address;
     toAdd.active = true;
-    toAdd.ptrClient = new TcpClient(address, _coordinatorPort + (id * 10));
+    toAdd.ptrClient = new TcpClient(address, _coordinatorPort + (id));
 
     toAdd.ptrClient->Initialize();
 

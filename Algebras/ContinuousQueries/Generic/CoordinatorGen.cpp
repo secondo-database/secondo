@@ -911,11 +911,11 @@ void CoordinatorGen::showStatus()
 
         if (it->second.type == handlerType::worker)
         std::cout << "Receive new tuple: " << it->second.address << ":"
-                  << _coordinationPort + (it->first*10) << "\n";
+                  << _coordinationPort + (it->first) << "\n";
 
         if (it->second.type == handlerType::nomo)
         std::cout << "Receive new hitd:  " << it->second.address << ":"
-                  << _coordinationPort + (it->first*10) << "\n";
+                  << _coordinationPort + (it->first) << "\n";
     }
 
     std::cout << "**************************************************" << "\n";

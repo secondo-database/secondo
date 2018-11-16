@@ -63,7 +63,7 @@ WorkerGen::WorkerGen(int id, std::string attrliststr,
     _id(id),
     _attrliststr(attrliststr),
     _basePort(coordinationClient->GetServerPort()),
-    _tupleServer(coordinationClient->GetServerPort() + (id*10))
+    _tupleServer(coordinationClient->GetServerPort() + (id))
 {
     LOG << "WorlerGen::Constructor" << ENDL;
 }
@@ -258,13 +258,13 @@ void WorkerGen::notifyAllNoMos(int tupleId, std::string tupleString,
 void WorkerGen::addNoMo(int id, std::string address)
 {
     LOG << "Adding NoMo " << id << "|" << address << ":" 
-        << _basePort + (id * 10) << ENDL;
+        << _basePort + (id) << ENDL;
 
     nomoStruct toAdd;
     toAdd.id = id;
-    toAdd.port = _basePort + (id * 10);
+    toAdd.port = _basePort + (id);
     toAdd.address = address;
-    toAdd.ptrClient = new TcpClient(address, _basePort + (id * 10));
+    toAdd.ptrClient = new TcpClient(address, _basePort + (id));
 
     toAdd.ptrClient->Initialize();
     

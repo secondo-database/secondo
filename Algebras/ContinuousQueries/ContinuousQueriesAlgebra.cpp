@@ -50,6 +50,7 @@ extern Operator createSSPHandler_Op;
 extern Operator createSSPCoordinator_Op;
 extern Operator createSSPStreamSupplier_Op;
 extern Operator foreverStream_Op;
+extern Operator foreverQueries_Op;
 extern Operator relFromTupleBinStr_Op;
 
 
@@ -66,6 +67,9 @@ ContinuousQueriesAlgebra::ContinuousQueriesAlgebra() {
 
     AddOperator(&foreverStream_Op);
     foreverStream_Op.SetUsesArgsInTypeMapping();
+
+    AddOperator(&foreverQueries_Op);
+    foreverQueries_Op.SetUsesArgsInTypeMapping();
 
     AddOperator(&relFromTupleBinStr_Op);
     relFromTupleBinStr_Op.SetUsesArgsInTypeMapping();

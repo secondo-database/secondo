@@ -51,7 +51,7 @@ format...
 #include "QueryProcessor.h"
 #include "ListUtils.h"
 
-#include "ForeverHelper.cpp"
+#include "ForeverHelper.h"
 #include "Protocols.h"
 
 extern NestedList* nl;

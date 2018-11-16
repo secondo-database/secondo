@@ -45,64 +45,58 @@ format...
 
 */
 
-#include <stdlib.h>
-#include <string>
+#include "ForeverHelper.h"
 
 namespace continuousqueries {
 
-struct ForeverHelper {
-    static std::string smallStringList[12];
-    static std::string bigStringList[500];
+std::string ForeverHelper::getUniqueId(const int len)
+{
+    static const char alphanum[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                    "abcdefghijklmnopqrstuvwxyz";
 
-    static std::string getUniqueId(const int len=40)
-    {
-        static const char alphanum[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                       "abcdefghijklmnopqrstuvwxyz";
+    std::string s;
 
-        std::string s;
-
-        for (int i = 0; i < len; ++i) {
-            s = s + alphanum[rand() % (sizeof(alphanum) - 1)];
-        }
-
-        return s;
+    for (int i = 0; i < len; ++i) {
+        s = s + alphanum[rand() % (sizeof(alphanum) - 1)];
     }
 
-    static int getInt(int upto=100)
-    {
-        if (upto <= 0) upto = 100; 
-        return rand() % upto + 1;
-    }
+    return s;
+}
+
+int ForeverHelper::getInt(int upto)
+{
+    if (upto <= 0) upto = 100; 
+    return rand() % upto + 1;
+}
+
+std::string ForeverHelper::getSmallString(int upto)
+{
+    if (upto > 12) upto = 12;
+    if (upto <= 0) upto = 12; 
+    return smallStringList[rand() % upto];
+}
+
+std::string ForeverHelper::getBigString(int upto)
+{
+    if (upto > 500) upto = 500;
+    if (upto <=  0) upto = 500; 
+
+    return smallStringList[rand() % upto];
+}
+
+double ForeverHelper::getDouble(int upto)
+{
+    if (upto <= 0) upto = 10; 
     
-    static std::string getSmallString(int upto=12)
-    {
-        if (upto > 12) upto = 12;
-        if (upto <= 0) upto = 12; 
-        return smallStringList[rand() % upto];
-    }
+    double f = (double) rand() / RAND_MAX;
+    return 0 + f * (upto);
+}
 
-    static std::string getBigString(int upto=500)
-    {
-        if (upto > 500) upto = 500;
-        if (upto <=  0) upto = 500; 
-
-        return smallStringList[rand() % upto];
-    }
-
-    static double getDouble(int upto=10)
-    {
-        if (upto <= 0) upto = 10; 
-        
-        double f = (double) rand() / RAND_MAX;
-        return 0 + f * (upto);
-    }
-
-    static bool getBool(int chanceOfFalse=50)
-    {
-        if (chanceOfFalse <= 0) return true;
-        return (rand() % 100 + 1) > chanceOfFalse;
-    }
-};
+bool ForeverHelper::getBool(int chanceOfFalse)
+{
+    if (chanceOfFalse <= 0) return true;
+    return (rand() % 100 + 1) > chanceOfFalse;
+}
 
 std::string ForeverHelper::smallStringList[12] = {
     "January", "February", "March", "April", "May", "June", "July",

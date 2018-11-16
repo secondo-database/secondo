@@ -163,6 +163,7 @@ void WorkerJoin::TightLoop()
 
         // Funktioniert inkl Shutdown, wenn _querystring nicht ausgeführt wurde
             (void) executeQueryString("query tpl clear;");
+
             (void) executeQueryString("query relFromTupleBinStr('" + 
                 _tupleattrlist.convertToString() + "', '" + tupleString + 
                 "') feed tpl insert count");
@@ -333,7 +334,9 @@ void WorkerJoin::addQuery(int id, std::string function)
 Word WorkerJoin::executeQueryString(std::string querystring)
 {
     LOG << "Executing: " << querystring << ENDL;
-
+    
+    _sc->CleanUp(false, true);
+    
     Word resultword;
     SecParser parser;
     std::string exestring;
@@ -560,7 +563,7 @@ void WorkerJoin::buildQueryString()
     // _querystring  = "query qbtree queries exactmatch[tpl ";
     // _querystring += "feed extract[S]] count;";
 
-    _querystring = "query queries count;";
+    // _querystring = "query queries count;";
     LOG << ENDL << ENDL << "QueryString: " << _querystring << ENDL << ENDL;
 }
 
