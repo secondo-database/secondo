@@ -73,7 +73,7 @@ class CoordinatorGen {
 public:
     // Create
     CoordinatorGen();
-    CoordinatorGen(int port, std::string tupledescr);
+    CoordinatorGen(int port, std::string attrliststr);
 
     // Destroy
     ~CoordinatorGen();
@@ -142,9 +142,10 @@ public:
 
         // organize query distribution
         virtual void registerQuery(queryStruct query)=0;
-        virtual int selectWorker()=0;
+        // virtual int selectWorker()=0; << is needed, but with different 
+        // parameters
         
-        virtual bool checkNewFunction(std::string function)=0;
+        virtual bool checkNewFunction(std::string function,std::string &err)=0;
 
         // for now, all coordinators work with one nomo, so no need to
         // implement this on the strategy level
@@ -180,7 +181,7 @@ protected:
     int _lastQueryId;
     std::map<int, queryStruct> _queries;
 
-    std::string _tupledescr;
+    std::string _attrliststr;
     std::string _type;
 
     std::ofstream _logfile;

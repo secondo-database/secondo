@@ -245,17 +245,26 @@ This function checks wether the filterfunction is true for a given tuple.
 True is returned when the result of the function is true.
 
 */
+
 bool WorkerLoop::filterTuple(Tuple* tuple, OpTree& tree, 
     ArgVectorPointer& funargs) 
 {
     (*funargs)[0] = tuple;
     Word result;
 
-    qp->EvalS(tree, result, REQUEST);
+    try
+    {
+        qp->EvalS(tree, result, REQUEST);
 
-    if (((Attribute*)result.addr)->IsDefined()) {
-        return ((CcBool*)result.addr)->GetBoolval();
+        if ((Attribute*)result.addr&&((Attribute*)result.addr)->IsDefined()) {
+            return ((CcBool*)result.addr)->GetBoolval();
+        }
     }
+    catch(const std::exception& e)
+    {
+        return false;
+    }
+
 
     return false;
 }

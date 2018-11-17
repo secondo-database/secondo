@@ -314,6 +314,8 @@ void StreamSupplier::pushTuple(Tuple* t)
                 msg
             );
         } else {
+            LOG << "ERR" << it->second.active << " | " 
+                << it->second.ptrClient->messages.empty() << ENDL;
             it->second.ptrClient->Shutdown();
             it->second.active = false;
             _activeWorker--;

@@ -181,12 +181,15 @@ Secondo Query Processor.
 
 */
 
-bool CoordinatorLoop::checkNewFunction(std::string function) 
+bool CoordinatorLoop::checkNewFunction(std::string function, std::string &err)
 {
+    err = "???";
+
     // build funList
     ListExpr funList;
     if( !nl->ReadFromString(function, funList)) {
         LOG << "Error building funList" << ENDL;
+        err = "Error building funList";
         return false;
     }
 
@@ -213,6 +216,7 @@ bool CoordinatorLoop::checkNewFunction(std::string function)
     }
     catch(SI_Error ERR_IN_QUERY_EXPR) {
         LOG << "Error building tree" << ENDL;
+        err = "Error building tree";
         delete tqp;
         return false;
     }

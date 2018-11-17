@@ -80,10 +80,10 @@ ListExpr relFromTupleBinStr_TM(ListExpr args) {
 
     // Check first argument (tupledescription/text)
     if (!nl->HasLength(arg1Type, 2))
-        return listutils::typeError(" internal error (tupledescr) ");
+        return listutils::typeError(" internal error (attrlist) ");
 
     if (!FText::checkType(nl->First(arg1Type)))
-        return listutils::typeError(" tupledescr as text expected");
+        return listutils::typeError(" attrlist as text expected");
 
     ListExpr tupledescr;
     nl->ReadFromString(

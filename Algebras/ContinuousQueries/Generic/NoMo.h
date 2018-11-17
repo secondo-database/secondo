@@ -59,6 +59,7 @@ see NoMo.cpp for details.
 #include <thread>
 #include <mutex>
 #include <iostream>
+#include <fstream>
 #include <condition_variable>
 
 #include "ListUtils.h"
@@ -112,6 +113,8 @@ private:
     int _basePort;
 
     bool _fakemail;
+    std::ofstream _fakemailfile;
+
     Monitor* _monitor;
 
     TcpServer _tupleServer;

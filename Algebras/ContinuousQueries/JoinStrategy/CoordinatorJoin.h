@@ -53,6 +53,8 @@ see CoordinatorJoin.cpp for details.
 #define __COORDINATORJOIN_H__
 
 #include "../Generic/CoordinatorGen.h"
+#include <limits>
+#include <algorithm>
 
 namespace continuousqueries {
 
@@ -62,6 +64,14 @@ class CoordinatorJoin: public CoordinatorGen {
     CoordinatorJoin(int port, std::string tupledescr);
     ~CoordinatorJoin();
 
+    struct querypartStruct {
+        std::string type;
+        std::string comp;
+        int group;
+        std::vector<int> worker;
+        std::vector<int> queries;
+    };
+
     // **************************************** //
     // BUILD AND MAINTAN THE NETWORK            //
     // This is where the loop and join          //
@@ -69,12 +79,18 @@ class CoordinatorJoin: public CoordinatorGen {
     // **************************************** //
 
     void setupNetwork(int newHandlerId=0);
+
+    int selectWorker(std::string function);
+    std::string selectWorkerJoinCondition();
+
     void registerQuery(queryStruct query);
-    int selectWorker();
-    
-    bool checkNewFunction(std::string function);
+    bool checkNewFunction(std::string function, std::string &err);
+
+    // bool isValidBool(ListExpr elem);
 
   private:
+    std::map<std::string, querypartStruct> _queryparts;
+    NList _attrlist;
 
 };
 

@@ -65,7 +65,8 @@ WorkerJoin::WorkerJoin(int id, std::string attrliststr,
     LOG << "WorlerJoin::Constructor" << ENDL;
 
     _type = "join";
-    _joinCondition = joincondition;
+    _joinCondition = joincondition; // changed here for one stop setup
+    // _joinCondition = "No_eq";
     _queryattrlist = ProtocolHelpers::getQueryAttributes(attrliststr);
     _sc = SecondoSystem::GetCatalog();
 
@@ -93,6 +94,95 @@ WorkerJoin::~WorkerJoin()
     // if (_querytt) _querytt->DeleteIfAllowed();
     // if (_queryrel) _tuplerel->DeleteAndTruncate();
     // if (_queryrel) _queryrel->DeleteAndTruncate();
+}
+
+void WorkerJoin::Initialize()
+{
+    LOG << "WorkerJoin::Initialize" << ENDL;
+    
+    Word tupleRelWord;
+    Word queryRelWord;
+    Word btreeWord;
+    ListExpr typeInfo;
+    ListExpr relType;
+
+    _sc->DeleteObject("tpl");
+    _sc->DeleteObject("queries");
+    _sc->DeleteObject("qbtree");
+
+    // Create the tpl object
+    typeInfo = nl->TwoElemList(
+        listutils::basicSymbol<Tuple>(), 
+        _tupleattrlist.listExpr()
+    );
+
+    relType = nl->TwoElemList(listutils::basicSymbol<Relation>(), typeInfo);
+
+    _tuplett = new TupleType(_sc->NumericType(typeInfo));
+    _tuplerel = new Relation(_tuplett);
+    
+    tupleRelWord.setAddr(_tuplerel);
+    _sc->InsertObject("tpl", "", relType, tupleRelWord, true);
+
+    // Create the queries object
+    typeInfo = nl->TwoElemList(
+        listutils::basicSymbol<Tuple>(), 
+        _queryattrlist.listExpr()
+    );
+
+    relType = nl->TwoElemList(listutils::basicSymbol<Relation>(), typeInfo);
+
+    _querytt  = new TupleType(_sc->NumericType(typeInfo));
+    _queryrel = new Relation(_querytt);
+
+    queryRelWord.setAddr(_queryrel);
+    _sc->InsertObject("queries", "", relType, queryRelWord, true);
+
+    LOG << "***************************" << ENDL;
+    LOG << "typeInfo: " << nl->ToString(typeInfo) << ENDL;
+    LOG << "JoinCond: " << _joinCondition << ENDL;
+    LOG << "***************************" << ENDL;
+
+    // Create the btree object
+    size_t jcPos = _queryattrlist.convertToString().find(_joinCondition);
+    std::string jcType =  _queryattrlist.convertToString().substr(
+        jcPos + _joinCondition.length() + 1,
+        1
+    );
+    
+    ListExpr jcTypeAtom;
+    SmiKey::KeyDataType jcTypeSmi;
+
+    if (jcType == "s")
+    {
+        jcTypeAtom = nl->SymbolAtom(CcString::BasicType());
+        jcTypeSmi = SmiKey::String;
+    } else
+    if (jcType == "i")
+    {
+        jcTypeAtom = nl->SymbolAtom(CcInt::BasicType());
+        jcTypeSmi = SmiKey::Integer;
+    } else
+    if (jcType == "r")
+    {
+        jcTypeAtom = nl->SymbolAtom(CcReal::BasicType());
+        jcTypeSmi = SmiKey::Float;
+    }
+
+    relType = nl->ThreeElemList(
+        nl->SymbolAtom(BTree::BasicType()), 
+        typeInfo,
+        jcTypeAtom
+    );
+    
+    _qbtree = new BTree(jcTypeSmi);
+
+    btreeWord.setAddr(_qbtree);
+    _sc->InsertObject("qbtree", "", relType, btreeWord, true);
+
+    _sc->CleanUp(false, true);
+    
+    buildQueryString();
 }
 
 void WorkerJoin::TightLoop()
@@ -156,129 +246,38 @@ void WorkerJoin::TightLoop()
 
             LOG << tupleId << "|" << tupleString << ENDL;
 
-
-            // Funktioniert und Shutdown geht.
-            // Word w;
-            // CcInt* val;
-
-        // Funktioniert inkl Shutdown, wenn _querystring nicht ausgeführt wurde
             (void) executeQueryString("query tpl clear;");
 
-            (void) executeQueryString("query relFromTupleBinStr('" + 
-                _tupleattrlist.convertToString() + "', '" + tupleString + 
-                "') feed tpl insert count");
+            Relation* tplr = (Relation*) executeQueryString(
+                "query relFromTupleBinStr('" + _tupleattrlist.convertToString()
+                 + "', '" + tupleString + "') feed tpl insert count").addr;
 
-            (void) executeQueryString(_querystring);
+            if (tplr->GetNoTuples() == 0)
+            {
+                LOG << "No tuple in tpl! relFromTupleBinStr failed!" << ENDL;
+                continue;
+            }
+
+            Relation* result=(Relation*) executeQueryString(_querystring).addr;
+
+            int hits = result->GetNoTuples();
+            std::string hitlist = "";
+
+            for(int i = 1; i <= hits; i++)
+            {
+                hitlist += result->GetTuple(i, true)->GetAttribute(0)->toText();
+                hitlist += ",";
+            }
             
-            
-            // w = 
-            // val = (CcInt*) w.addr;
-            // LOG << "add " << val->GetValue() << ENDL;
-            // val->DeleteIfAllowed();
-            // w.setAddr(0);
+            hitlist = hitlist.substr(0, hitlist.size()-1);
 
-            // w = 
-            // val = (CcInt*) w.addr;
-            // LOG << "qs " << val->GetValue() << ENDL;
-            // val->DeleteIfAllowed();
-            // w.setAddr(0);
+            LOG << "tID: " << tupleId << "hl: " << hitlist << ENDL;
 
-    // executeQueryString("query tpl feed count;");
-    // LOG << "feed count geht" << ENDL;
-    // executeQueryString("query tpl feed extract[I];");
-    // LOG << "feed extract geht" << ENDL;
+            // notify all nomos
+            if (hits) notifyAllNoMos(tupleId, tupleString, hitlist);
 
-    // Funktioniert nicht mehr!
-    // Relation* result = (Relation*) executeQueryString(_querystring).addr;
-    // LOG << "Number of hits: " << result->GetNoTuples() << ENDL;
-
-    //         // create tuple and insert it into tpl relation
-    //         // Tuple* tuple  = new Tuple(_tuplett);
-    //         // tuple->ReadFromBinStr(0, tupleString);
-            
-           
-    //         // _tuplerel->AppendTuple(tuple);
-
-    //         // Word tupleRelWord;
-    //         // tupleRelWord.setAddr(_tuplerel);
-
-    //         // _sc->UpdateObject("tpl", tupleRelWord);
-
-    //         // execute query string
-            
-
-    //         // LOG << "Number of hits: " << result->GetNoTuples() << ENDL;
-
-    //         std::string hitlist = "";
-    //         bool anyhit = false;
-
-    //         // tuple->DeleteIfAllowed();
-
-    //         hitlist = hitlist.substr(0, hitlist.size()-1);
-
-    //         // notify all nomos
-    //         if (anyhit) notifyAllNoMos(tupleId, tupleString, hitlist);
         }
     }
-}
-
-void WorkerJoin::Initialize()
-{
-    LOG << "WorkerJoin::Initialize" << ENDL;
-    
-    Word tupleRelWord;
-    Word queryRelWord;
-    Word btreeWord;
-    ListExpr typeInfo;
-    ListExpr relType;
-
-    _sc->DeleteObject("tpl");
-    _sc->DeleteObject("queries");
-    _sc->DeleteObject("qbtree");
-
-    // Create the tpl object
-    typeInfo = nl->TwoElemList(
-        listutils::basicSymbol<Tuple>(), 
-        _tupleattrlist.listExpr()
-    );
-
-    relType = nl->TwoElemList(listutils::basicSymbol<Relation>(), typeInfo);
-
-    _tuplett = new TupleType(_sc->NumericType(typeInfo));
-    _tuplerel = new Relation(_tuplett);
-    
-    tupleRelWord.setAddr(_tuplerel);
-    _sc->InsertObject("tpl", "", relType, tupleRelWord, true);
-
-    // Create the queries object
-    typeInfo = nl->TwoElemList(
-        listutils::basicSymbol<Tuple>(), 
-        _queryattrlist.listExpr()
-    );
-
-    relType = nl->TwoElemList(listutils::basicSymbol<Relation>(), typeInfo);
-
-    _querytt  = new TupleType(_sc->NumericType(typeInfo));
-    _queryrel = new Relation(_querytt);
-
-    queryRelWord.setAddr(_queryrel);
-    _sc->InsertObject("queries", "", relType, queryRelWord, true);
-
-    // Create the btree object
-    relType = nl->ThreeElemList(
-        nl->SymbolAtom(BTree::BasicType()), 
-        typeInfo,
-        nl->SymbolAtom(CcString::BasicType())
-    );
-
-    _qbtree = new BTree(SmiKey::String);
-
-    btreeWord.setAddr(_qbtree);
-    _sc->InsertObject("qbtree", "", relType, btreeWord, true);
-
-    _sc->CleanUp(false, true);
-    
-    buildQueryString();
 }
 
 // Query handling
@@ -482,15 +481,12 @@ void WorkerJoin::buildQueryString()
         qs.push_back(elem);
     }
 
-    LOG << "***" << grpcount1 << " " << grpcount2 << " " << grpcount3 << ENDL;
-
     std::string filterstring = "";
     std::vector<structQuerysort>::iterator index;
     sum = grpcount1 + grpcount2 + grpcount3;
 
     while (grpcount1>0) 
     {
-        LOG << "1" << ENDL;
         index = qs.end();
         for (std::vector<structQuerysort>::iterator it = qs.begin(); 
              it != qs.end(); it++)
@@ -511,7 +507,6 @@ void WorkerJoin::buildQueryString()
 
     while (grpcount2>0) 
     {
-        LOG << "2" << ENDL;
         index = qs.end();
         for (std::vector<structQuerysort>::iterator it = qs.begin(); 
              it != qs.end(); it++)
@@ -533,7 +528,6 @@ void WorkerJoin::buildQueryString()
     while (grpcount3>0) 
     {
         index = qs.end();
-        LOG << "3" << ENDL;
         for (std::vector<structQuerysort>::iterator it = qs.begin(); 
              it != qs.end(); it++)
         {
@@ -559,12 +553,7 @@ void WorkerJoin::buildQueryString()
 
     _querystring += " consume;";
 
-    // _querystring = "query qbtree queries exactmatch[\"January\"] consume;";
-    // _querystring  = "query qbtree queries exactmatch[tpl ";
-    // _querystring += "feed extract[S]] count;";
-
-    // _querystring = "query queries count;";
-    LOG << ENDL << ENDL << "QueryString: " << _querystring << ENDL << ENDL;
+    LOG << "QueryString: " << _querystring << ENDL;
 }
 
 std::string WorkerJoin::getFilterStringPart(structQuerysort elem)
@@ -582,8 +571,8 @@ std::string WorkerJoin::getJoinStringPart()
     std::string comp = _joinCondition.substr(_joinCondition.length()-2);
     
     if (comp == "eq") comp = "exactmatch";
-    // if (comp == "gt") comp = "<";
-    // if (comp == "lt") comp = ">";
+    if (comp == "gt") comp = "leftrange";
+    if (comp == "lt") comp = "rightrange";
 
     return "qbtree queries " + comp + 
         "[tpl feed extract[" + tname + "]]";

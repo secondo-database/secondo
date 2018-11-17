@@ -72,7 +72,7 @@ class CoordinatorLoop: public CoordinatorGen {
     void registerQuery(queryStruct query);
     int selectWorker();
 
-    bool checkNewFunction(std::string function);
+    bool checkNewFunction(std::string function, std::string &err);
 
   private:
 

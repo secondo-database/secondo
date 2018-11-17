@@ -58,12 +58,12 @@ Creates a new CoordinatorGen object.
 
 */
 
-CoordinatorGen::CoordinatorGen(int port, std::string tupledescr): 
+CoordinatorGen::CoordinatorGen(int port, std::string attrliststr): 
     _lastId(0),
     _coordinationPort(port),
     _coordinationServer(port),
     _lastQueryId(0),
-    _tupledescr(tupledescr)
+    _attrliststr(attrliststr)
 {
 }
 
@@ -162,7 +162,7 @@ void CoordinatorGen::Run() {
                     doRegisterNewHandler(msg);
                 } else
 
-                // new handler confirms his id and the tupledescr
+                // new handler confirms his id and the attrliststr
                 if (msg.cmd == CoordinatorGenP::confirmhello()) {
                     doConfirmNewHandler(msg);
                 } else
@@ -484,6 +484,9 @@ void CoordinatorGen::registerStreamSupplier(int id)
                 CoordinatorGenP::addhandler(it->first, "worker",
                     it->second.address, true)
             );
+            
+            LOG << it->first << ENDL;
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
             if ((size_t)sendl != CoordinatorGenP::addhandler(it->first, 
                 "worker", it->second.address, true).length())
@@ -560,11 +563,11 @@ void CoordinatorGen::doRegisterNewHandler(ProtocolHelpers::Message msg)
 
     int sendl = _coordinationServer.Send(
         msg.socket,
-        CoordinatorGenP::confirmhello(handler.id, _tupledescr, true)
+        CoordinatorGenP::confirmhello(handler.id, _attrliststr, true)
     );
 
     if ((size_t)sendl == 
-        CoordinatorGenP::confirmhello(handler.id, _tupledescr, true).length())
+        CoordinatorGenP::confirmhello(handler.id, _attrliststr, true).length())
     {
         _handlers.insert( std::pair<int, handlerStruct>(handler.id, handler));
     } else {
@@ -720,7 +723,7 @@ void CoordinatorGen::doUserAuth(ProtocolHelpers::Message msg)
 
         (void) _coordinationServer.Send(
             msg.socket,
-            CoordinatorGenP::userauth("register", _tupledescr, _type, true) 
+            CoordinatorGenP::userauth("register", _attrliststr, _type, true) 
             + "\n\n"
         );
         } else {
@@ -741,7 +744,7 @@ void CoordinatorGen::doUserAuth(ProtocolHelpers::Message msg)
 
             (void) _coordinationServer.Send(
                 msg.socket,
-                CoordinatorGenP::userauth("login", _tupledescr, _type, true)
+                CoordinatorGenP::userauth("login", _attrliststr, _type, true)
                 + "\n\n"
             );
         } else {
@@ -767,19 +770,6 @@ void CoordinatorGen::doGetQueries(ProtocolHelpers::Message msg)
 
         return;
     }
-
-    // check if there are any queries
-    // if (_users.find(msg.params)->second.ownqueries.size() == 0) 
-    // {
-    //     LOG << "User with hash " << msg.params << " has no queries."<<ENDL;
-
-    //     (void) _coordinationServer.Send(
-    //         msg.socket,
-    //         "error|No queries! \n\n"
-    //     );
-
-    //     return;
-    // }
 
     // send all queries
     for (unsigned i=0; i < _users.find(msg.params)
@@ -843,15 +833,16 @@ void CoordinatorGen::doAddQuery(ProtocolHelpers::Message msg)
         return;
     }
 
-    // add query
-    // check if the function is ok
-    if (!checkNewFunction(func)) {
-        LOG << "Error in provided function!" << ENDL;
+    // add query check if the function is ok
+    std::string err;
+
+    if (!checkNewFunction(func, err)) {
+        LOG << "Error in provided function: " << err << ENDL;
         // msg an client
         
         (void) _coordinationServer.Send(
             msg.socket,
-            CoordinatorGenP::addquery(0, "", false) + "|error \n\n"
+            CoordinatorGenP::addquery(0, "", false) + "|error " + err + " \n\n"
         );
         return;
     }

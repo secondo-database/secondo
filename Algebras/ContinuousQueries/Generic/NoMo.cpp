@@ -71,6 +71,7 @@ NoMo::NoMo(int id, std::string tupledescr, TcpClient* coordinationClient):
 // Destroy
 NoMo::~NoMo()
 {
+    if (_fakemailfile.is_open()) _fakemailfile.close();
     Shutdown();
 }
 
@@ -259,15 +260,28 @@ void NoMo::Run()
             // set fakemail
             if (msg.cmd == CoordinatorGenP::setfakemail())
             {
-                LOG << "setting fakemail to " << msg.params << ENDL;
+                LOG << "use f/F/0 for false, t/T/1 for std::cout only" << ENDL;
+                LOG << "everything else will be handled as filename" << ENDL;
                 
-                if (msg.params.substr(0,1) == "T" || 
-                    msg.params.substr(0,1) == "t" || 
-                    msg.params.substr(0,1) == "1")
+                if (msg.params.substr(0,1) == "F" || 
+                    msg.params.substr(0,1) == "f" || 
+                    msg.params.substr(0,1) == "0")
                 {
-                    _fakemail = true;
-                } else {
+                    LOG << "setting fakemail to 'false'" << ENDL;
                     _fakemail = false;
+                } else {
+                    _fakemail = true;
+                    LOG << "setting fakemail to 'true'" << ENDL;
+
+                    // save fakemails to file
+                    if (msg.params.length() > 1)
+                    {
+                        LOG << "Fake mails be saved in " << msg.params << ENDL;
+                        if (_fakemailfile.is_open()) _fakemailfile.close();
+                        _fakemailfile.open(msg.params);
+                    } else {
+                        LOG << "std::cout only" << ENDL;
+                    }
                 }
             } else
 
@@ -344,13 +358,18 @@ void NoMo::handleHit(int tupleId, std::string tupleString,
 bool NoMo::sendEmail(std::string from, std::string to, std::string subject, 
     std::string message)
 {
-    LOG << ENDL << "*************************"
-        << ENDL << "To: " << to
-        << ENDL << "Subject: " << subject
-        << ENDL << "Message: " << message 
-        << ENDL << "*************************" << ENDL;
+    std::string logmsg = "*************************\n";
+    logmsg += "To: " + to + "\n";
+    logmsg += "Subject: " + subject + "\n";
+    logmsg += "Message: " + message;
+    logmsg += "*************************\n\n";
 
-    if (_fakemail) return false;
+    LOG << logmsg;
+
+    if (_fakemail) {
+        if (_fakemailfile.is_open()) _fakemailfile << logmsg;
+        return false;
+    }
 
     std::string querystring = "query sendmail(";
     querystring += "'" + subject+ "', ";

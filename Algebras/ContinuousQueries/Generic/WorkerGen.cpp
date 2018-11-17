@@ -65,7 +65,7 @@ WorkerGen::WorkerGen(int id, std::string attrliststr,
     _basePort(coordinationClient->GetServerPort()),
     _tupleServer(coordinationClient->GetServerPort() + (id))
 {
-    LOG << "WorlerGen::Constructor" << ENDL;
+    LOG << "WorkerGen::Constructor" << ENDL;
 }
 
 // Destroy
