@@ -219,7 +219,7 @@ void Monitor::checkBatch()
     int64_t batchtime = _batchend - _batchstart;
 
     if ((_donetuples >= _maxTpl) ||
-        (batchtime >= _maxMs))
+        (batchtime >= (int64_t)_maxMs))
     {
         finishBatch();
     }

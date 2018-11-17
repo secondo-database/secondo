@@ -274,7 +274,7 @@ void WorkerLoop::showStatus()
 {
     LOG << "**************************************************" << ENDL;
     LOG << "WorkerLoop::Status" << ENDL << ENDL;
-    LOG << "Number of Queries: " << _queries.size() << ENDL;
+    LOG << "Number of Queries: " << (int)_queries.size() << ENDL;
     LOG << "**************************************************" << ENDL;
 }
 

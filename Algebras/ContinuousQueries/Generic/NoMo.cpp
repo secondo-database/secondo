@@ -468,7 +468,7 @@ void NoMo::addUserQuery(int queryId, std::string query,
     // add email to list
     _queries[queryId].emails.push_back(email);
 
-    LOG << email << " and " << _queries[queryId].emails.size()-1 
+    LOG << email << " and " << (int)_queries[queryId].emails.size()-1 
         << " others will be informed when Query " 
         << queryId << " was hit." << ENDL;
 }
