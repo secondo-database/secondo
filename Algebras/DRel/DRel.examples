@@ -20,6 +20,12 @@ Example   : query getboundary(drel1)
 Result    : bug
 Remark    : remote server required
 
+Operator  : file2stream
+Number    : 1
+Signature : string -> stream(tuple((Data text)))
+Example   : query file2stream("../Algebra/DRel/file2stream.cpp") head[1] count
+Result    : 1
+
 Operator  : getboundaryindex
 Number    : 1
 Signature : boundary x attr -> int
@@ -35,29 +41,43 @@ Result    : (cellgird2d (5 50 0.1 0.1 400))
 
 Operator  : drelfdistribute
 Number    : 1
-Signature : rel(tuple(X)) x string x symbol [x attr] [x int] rel(tuple(Y)) -> drel(tuple(X))
+Signature : rel(tuple(X)) x string x symbol [x attr] [x int] x rel(tuple(Y)) -> dfrel(rel(tuple(X)))
 Example   : query strassen drelfdistribute["", RANDOM, 5, Workers3]
 Result    : bug
 Remark    : remote server required
 
 Operator  : dreldistribute
 Number    : 1
-Signature : rel(tuple(X)) x string x symbol [x attr] [x int] rel(tuple(Y)) -> drel(tuple(X))
+Signature : rel(tuple(X)) x string x symbol [x attr] [x int] x rel(tuple(Y)) -> drel(rel(tuple(X)))
 Example   : query strassen dreldistribute["", RANGE, No, 5, Workers3]
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelimport
+Number    : 1
+Signature : string|ftext x string x int x rel(tuple(Y)) -> drel(rel(tuple(X)))
+Example   : query drelimport("/home/secondo/test.txt", "", 5, Workers3)
 Result    : bug
 Remark    : remote server required
 
 Operator  : drelpartition
 Number    : 1
-Signature : drel(tuple(X)) x attr -> drel(tuple(X))
+Signature : drel(tuple(X)) x attr -> dfrel(tuple(X))
 Example   : query drel1 drelpartition[PLZ]
 Result    : bug
 Remark    : remote server required
 
 Operator  : drelpartition
 Number    : 2
-Signature : drel(tuple(X)) x attr x int -> drel(tuple(X))
+Signature : drel(tuple(X)) x attr x int -> dfrel(tuple(X))
 Example   : query drel1 drelpartition[PLZ, 5000]
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelspatialpartition
+Number    : 1
+Signature : drel(tuple(X)) x attr -> dfrel(tuple(X))
+Example   : query drel1 drelspatialpartition[GeoData]
 Result    : bug
 Remark    : remote server required
 
@@ -132,127 +152,127 @@ Remark    : remote server required
 
 Operator  : exactmatch
 Number    : 1
-Signature : darray(btree(X)) x drel(rel(X)) x ANY -> drel(rel(X))
+Signature : darray(btree(X)) x drel(rel(X)) x ANY -> dfrel(rel(X))
 Example   : query drel1_PLZ drel1 exactmatch[99998]
 Result    : bug
 Remark    : remote server required
 
 Operator  : range
 Number    : 1
-Signature : darray(btree(X)) x drel(rel(X)) x ANY x ANY -> drel(rel(X))
+Signature : darray(btree(X)) x drel(rel(X)) x ANY x ANY -> dfrel(rel(X))
 Example   : query drel1_PLZ drel1 range[90000,99998]
 Result    : bug
 Remark    : remote server required
 
 Operator  : drelfilter
 Number    : 1
-Signature : (drel(rel(X)) (map x bool)) -> drel(rel(X))
+Signature : (drel(rel(X)) (map x bool)) -> dfrel(rel(X))
 Example   : query drel1 drelfilter[.PLZ > 200]
 Result    : bug
 Remark    : remote server required
 
 Operator  : project
 Number    : 1
-Signature : drel(rel(X)) x list -> stream(Y)
-Example   : query drel1 project[PLZ, Ort] consume
+Signature : drel(rel(X)) x list -> dfrel(rel(Y))
+Example   : query drel1 project[PLZ, Ort]
 Result    : bug
 Remark    : remote server required
 
 Operator  : drelextend
 Number    : 1
-Signature : drel(rel(X)) x funlist -> drel(rel(Y))
+Signature : drel(rel(X)) x funlist -> dfrel(rel(Y))
 Example   : query drel1 drelextend[PLZ2 : .PLZ + 1]
 Result    : bug
 Remark    : remote server required
 
 Operator  : drelprojectextend
 Number    : 1
-Signature : drel(rel(X)) x attrlist x funlist -> drel(rel(Y))
+Signature : drel(rel(X)) x attrlist x funlist -> dfrel(rel(Y))
 Example   : query drel1 drelprojectextend[PLZ; PLZ2 : .PLZ + 1]
 Result    : bug
 Remark    : remote server required
 
 Operator  : head
 Number    : 1
-Signature : drel(rel(X)) x int -> drel(rel(X))
+Signature : drel(rel(X)) x int -> dfrel(rel(X))
 Example   : query drel1 head[3]
 Result    : bug
 Remark    : remote server required
 
 Operator  : rename
 Number    : 1
-Signature : drel(rel(X)) x ar -> drel(rel(X))
+Signature : drel(rel(X)) x ar -> dfrel(rel(X))
 Example   : query drel1 rename[t1]
 Result    : bug
 Remark    : remote server required
 
 Operator  : lrdup
 Number    : 1
-Signature : drel(rel(X)) -> drel(rel(X))
+Signature : drel(rel(X)) -> dfrel(rel(X))
 Example   : query drel1 lrdup
 Result    : bug
 Remark    : remote server required
 
 Operator  : lsort
 Number    : 1
-Signature : drel(rel(X)) -> drel(rel(X))
+Signature : drel(rel(X)) -> dfrel(rel(X))
 Example   : query drel1 lsort
 Result    : bug
 Remark    : remote server required
 
 Operator  : drellgroupby
 Number    : 1
-Signature : drel(rel(X)) x attrlist x funlist -> drel(rel(Y))
+Signature : drel(rel(X)) x attrlist x funlist -> dfrel(rel(Y))
 Example   : query drel1 drellgroupby[PLZ; Anz : group feed count]
 Result    : bug
 Remark    : remote server required
 
 Operator  : lsortby
 Number    : 1
-Signature : drel(rel(X)) x attr -> drel(rel(X))
+Signature : drel(rel(X)) x attr -> dfrel(rel(X))
 Example   : query drel1 lsortby[PLZ]
 Result    : bug
 Remark    : remote server required
 
 Operator  : rdup
 Number    : 1
-Signature : drel(rel(X)) -> drel(rel(X))
+Signature : drel(rel(X)) -> dfrel(rel(X))
 Example   : query drel1 rdup
 Result    : bug
 Remark    : remote server required
 
 Operator  : sort
 Number    : 1
-Signature : drel(rel(X)) -> drel(rel(X))
+Signature : drel(rel(X)) -> dfrel(rel(X))
 Example   : query drel1 sort
 Result    : bug
 Remark    : remote server required
 
 Operator  : drelgroupby
 Number    : 1
-Signature : drel(rel(X)) x attrlist x funlist -> drel(rel(Y))
+Signature : drel(rel(X)) x attrlist x funlist -> dfrel(rel(Y))
 Example   : query drel1 drelgroupby[PLZ; Anz : group feed count]
 Result    : bug
 Remark    : remote server required
 
 Operator  : sortby
 Number    : 1
-Signature : drel(rel(X)) x attr -> drel(rel(X))
+Signature : drel(rel(X)) x attr -> dfrel(rel(X))
 Example   : query drel1 sortby[PLZ]
 Result    : bug
 Remark    : remote server required
 
-Operator  : drelsortmergejoin
+Operator  : sortmergejoin
 Number    : 1
 Signature : d[f]rel(rel(X)) x d[f]rel(rel(X)) x attr x attr -> dfrel(rel(X))
-Example   : query drel1 drel2 drelsortmergejoin[PLZ, PLZ2]
+Example   : query drel1 drel2 sortmergejoin[PLZ, PLZ2]
 Result    : bug
 Remark    : remote server required
 
-Operator  : drelitHashJoin
+Operator  : itHashJoin
 Number    : 1
 Signature : d[f]rel(rel(X)) x d[f]rel(rel(X)) x attr x attr -> dfrel(rel(X))
-Example   : query drel1 drel2 drelitHashJoin[PLZ, PLZ2]
+Example   : query drel1 drel2 itHashJoin[PLZ, PLZ2]
 Result    : bug
 Remark    : remote server required
 

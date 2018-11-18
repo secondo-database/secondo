@@ -44,11 +44,14 @@ extern Operator createboundaryOp;
 extern Operator getboundaryOp;
 extern Operator getBoundaryIndexOp;
 extern Operator rect2cellgridOp;
+extern Operator file2streamOp;
 
 extern Operator drelfdistributeOp;
 extern Operator dreldistributeOp;
+extern Operator drelimportOp;
 
 extern Operator drelpartitionOp;
+extern Operator drelspatialpartitionOp;
 
 extern Operator compareDistTypeOp;
 extern Operator drelcollect_boxOp;
@@ -80,8 +83,8 @@ extern Operator sortOp;
 extern Operator sortbyOp;
 extern Operator drelgroupbyOp;
 
-extern Operator drelsortmergejoinOp;
-extern Operator drelitHashJoinOp;
+extern Operator sortmergejoinOp;
+extern Operator itHashJoinOp;
 
 extern Operator inloopjoinOp;
 /*
@@ -104,11 +107,14 @@ DRelAlgebra::DRelAlgebra() {
     AddOperator( &getboundaryOp );
     AddOperator( &getBoundaryIndexOp );
     AddOperator( &rect2cellgridOp );
+    AddOperator( &file2streamOp );
 
     AddOperator( &drelfdistributeOp );
     AddOperator( &dreldistributeOp );
+    AddOperator( &drelimportOp );
 
     AddOperator( &drelpartitionOp );
+    AddOperator( &drelspatialpartitionOp );
 
     AddOperator( &drelfilterOp );
     drelfilterOp.SetUsesArgsInTypeMapping( );
@@ -160,10 +166,10 @@ DRelAlgebra::DRelAlgebra() {
     AddOperator( &drelgroupbyOp );
     drelgroupbyOp.SetUsesArgsInTypeMapping( );
 
-    AddOperator( &drelsortmergejoinOp );
-    drelsortmergejoinOp.SetUsesArgsInTypeMapping( );
-    AddOperator( &drelitHashJoinOp );
-    drelitHashJoinOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &sortmergejoinOp );
+    sortmergejoinOp.SetUsesArgsInTypeMapping( );
+    AddOperator( &itHashJoinOp );
+    itHashJoinOp.SetUsesArgsInTypeMapping( );
 
     AddOperator( &inloopjoinOp );
     inloopjoinOp.SetUsesArgsInTypeMapping( );

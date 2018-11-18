@@ -42,8 +42,8 @@ the Distributed2Algebra.
 #include "SecParser.h"
 
 #include "Algebras/Stream/Stream.h"
-#include "Algebras/Relation-C++/OperatorFilter.h"
 #include "Algebras/Relation-C++/OperatorProject.h"
+#include "Algebras/Relation-C++/OperatorFilter.h"
 #include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "Algebras/Distributed2/CommandLogger.h"
 #include "Algebras/Distributed2/Distributed2Algebra.h"
@@ -128,7 +128,7 @@ drelfilter operator.
         }
 
         ListExpr fun, map;
-        if( !DRelHelpers::replaceDRELFUNARG( nl->Second( args ), 
+        if( !DRelHelpers::replaceDRELFUNARG( nl->Second( args ),
             "STREAMELEM", fun, map ) ) {
             return listutils::typeError( err +
                 ": error in the function format" );
@@ -155,74 +155,33 @@ drelfilter operator.
             return result;
         }
 
-        if( DFRel::checkType( drelType ) ) {
-            relType = nl->TwoElemList(
-                listutils::basicSymbol<frel>( ),
-                nl->Second( relType ) );
-        }
-
-        // create function type to call dmapTM
-        ListExpr funList = nl->TwoElemList(
-            nl->ThreeElemList(
-                nl->SymbolAtom( "map" ),
-                relType,
-                result ),
-            nl->ThreeElemList(
-                nl->SymbolAtom( "fun" ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "dmapelem1" ),
-                    nl->SymbolAtom( "ARRAYFUNARG1" ) ),
-                    nl->ThreeElemList(
-                        nl->SymbolAtom( "filter" ),
-                        nl->TwoElemList(
-                            nl->SymbolAtom( "feed" ),
-                            nl->SymbolAtom( "dmapelem1" ) ),
-                        fun ) ) );
+        // create string to call dmap the call is devided in two parts
+        // the argument for the drel is missing and will be filled in the
+        // value mapping
+        string funText1 = "(dmap ";
+        string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
+            "(filter (feed dmapelem_1)" + nl->ToString( fun ) + ") ) )";
 
         #ifdef DRELDEBUG
-        cout << "funList" << endl;
-        cout << nl->ToString( funList ) << endl;
+        cout << "funText1" << endl;
+        cout << funText1 << endl;
+        cout << "funText2" << endl;
+        cout << funText2 << endl;
         #endif
 
-        ListExpr dmapResult = dmapTM(
-            nl->ThreeElemList(
-                nl->TwoElemList( darrayType, drelValue ),
-                nl->TwoElemList( 
-                    listutils::basicSymbol<CcString>( ), 
-                    nl->StringAtom( "" ) ),
-                funList ) );
-
-        #ifdef DRELDEBUG
-        cout << "dmapResult" << endl;
-        cout << nl->ToString( dmapResult ) << endl;
-        #endif
-
-        if( !nl->HasLength( dmapResult, 3 ) ) {
-            return dmapResult;
-        }
-
-        ListExpr newDRel;
-        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DRel>( );
-        }
-        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DFRel>( );
-        }
-        else {
-            return dmapResult;
-        }
-
-        ListExpr newRes = nl->ThreeElemList(
-            newDRel,
-            nl->Second( nl->Third( dmapResult ) ),
+        ListExpr resultType = nl->ThreeElemList(
+            listutils::basicSymbol<DFRel>( ),
+            relType,
             nl->Third( drelType ) );  // disttype
 
-        ListExpr append = nl->Second( dmapResult );
+        ListExpr append = nl->TwoElemList( 
+            nl->TextAtom( funText1 ),
+            nl->TextAtom( funText2 ) );
 
         return nl->ThreeElemList(
             nl->SymbolAtom( Symbols::APPEND( ) ),
             append,
-            newRes );
+            resultType );
     }
 
 /*
@@ -280,6 +239,10 @@ operator.
             return result;
         }
 
+        relType = nl->TwoElemList(
+            listutils::basicSymbol<Relation>( ),
+            nl->Second( nl->Third( result ) ) );
+
         #ifdef DRELDEBUG
         cout << "distType with attr pos to check" << endl;
         cout << nl->ToString( distType ) << endl;
@@ -317,15 +280,10 @@ operator.
                         nl->First( distType ),
                         nl->IntAtom( newPos ) );
                 }
-
-                drelType = nl->ThreeElemList(
-                    nl->First( drelType ),
-                    distType,
-                    nl->Third( drelType ) );
                 
                 #ifdef DRELDEBUG
-                cout << "new drelType" << endl;
-                cout << nl->ToString( drelType ) << endl;
+                cout << "new distType" << endl;
+                cout << nl->ToString( distType ) << endl;
                 #endif
             }
             else {
@@ -336,74 +294,33 @@ operator.
 
         }
 
-        if( DFRel::checkType( drelType ) ) {
-            relType = nl->TwoElemList(
-                listutils::basicSymbol<frel>( ),
-                nl->Second( relType ) );
-        }
-
-        // create function type to call dmapTM
-        ListExpr funList = nl->TwoElemList(
-            nl->ThreeElemList(
-                nl->SymbolAtom( "map" ),
-                relType,
-                nl->Third( result ) ),
-            nl->ThreeElemList(
-                nl->SymbolAtom( "fun" ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "dmapelem1" ),
-                    nl->SymbolAtom( "ARRAYFUNARG1" ) ),
-                nl->ThreeElemList(
-                    nl->SymbolAtom( "project" ),
-                    nl->TwoElemList(
-                        nl->SymbolAtom( "feed" ),
-                        nl->SymbolAtom( "dmapelem1" ) ),
-                    attrlist ) ) );
+        // create string to call dmap the call is devided in two parts
+        // the argument for the drel is missing and will be filled in the
+        // value mapping
+        string funText1 = "(dmap ";
+        string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
+            "(project (feed dmapelem_1)" + nl->ToString( attrlist ) + ") ) )";
 
         #ifdef DRELDEBUG
-        cout << "funList" << endl;
-        cout << nl->ToString( funList ) << endl;
+        cout << "funText1" << endl;
+        cout << funText1 << endl;
+        cout << "funText2" << endl;
+        cout << funText2 << endl;
         #endif
 
-        ListExpr dmapResult = dmapTM(
-            nl->ThreeElemList(
-                nl->TwoElemList( darrayType, drelValue ),
-                nl->TwoElemList(
-                    listutils::basicSymbol<CcString>( ),
-                    nl->StringAtom( "" ) ),
-                funList ) );
-
-        #ifdef DRELDEBUG
-        cout << "dmapResult" << endl;
-        cout << nl->ToString( dmapResult ) << endl;
-        #endif
-
-        if( !nl->HasLength( dmapResult, 3 ) ) {
-            return dmapResult;
-        }
-
-        ListExpr newDRel;
-        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DRel>( );
-        }
-        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DFRel>( );
-        }
-        else {
-            return dmapResult;
-        }
-
-        ListExpr newRes = nl->ThreeElemList(
-            newDRel,
-            nl->Second( nl->Third( dmapResult ) ),
+        ListExpr resultType = nl->ThreeElemList(
+            listutils::basicSymbol<DFRel>( ),
+            relType,
             distType );
 
-        ListExpr append = nl->Second( dmapResult );
+        ListExpr append = nl->TwoElemList( 
+            nl->TextAtom( funText1 ),
+            nl->TextAtom( funText2 ) );
 
         return nl->ThreeElemList(
             nl->SymbolAtom( Symbols::APPEND( ) ),
             append,
-            newRes );
+            resultType );
     }
 
 /*
@@ -498,6 +415,10 @@ tuples. This is a combination of the operators project and extend.
             return result;
         }
 
+        relType = nl->TwoElemList(
+            listutils::basicSymbol<Relation>( ),
+            nl->Second( nl->Third( result ) ) );
+
         // distribution by an attribute?
         if( nl->HasMinLength( distType, 2 ) ) {
 
@@ -548,75 +469,34 @@ tuples. This is a combination of the operators project and extend.
 
         }
 
-        if( DFRel::checkType( drelType ) ) {
-            relType = nl->TwoElemList(
-                listutils::basicSymbol<frel>( ),
-                nl->Second( relType ) );
-        }
-
-        // create function type to call dmapTM
-        ListExpr funList = nl->TwoElemList(
-            nl->ThreeElemList(
-                nl->SymbolAtom( "map" ),
-                relType,
-                nl->Third( result ) ),
-            nl->ThreeElemList(
-                nl->SymbolAtom( "fun" ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "dmapelem1" ),
-                    nl->SymbolAtom( "ARRAYFUNARG1" ) ),
-                nl->FourElemList(
-                    nl->SymbolAtom( "projectextend" ),
-                    nl->TwoElemList(
-                        nl->SymbolAtom( "feed" ),
-                        nl->SymbolAtom( "dmapelem1" ) ),
-                    attrlist,
-                    fun ) ) );
+        // create string to call dmap the call is devided in two parts
+        // the argument for the drel is missing and will be filled in the
+        // value mapping
+        string funText1 = "(dmap ";
+        string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
+            "(projectextend (feed dmapelem_1)" + nl->ToString( attrlist ) +
+            nl->ToString( fun ) + ") ) )";
 
         #ifdef DRELDEBUG
-        cout << "funList" << endl;
-        cout << nl->ToString( funList ) << endl;
+        cout << "funText1" << endl;
+        cout << funText1 << endl;
+        cout << "funText2" << endl;
+        cout << funText2 << endl;
         #endif
 
-        ListExpr dmapResult = dmapTM(
-            nl->ThreeElemList(
-                nl->TwoElemList( darrayType, drelValue ),
-                nl->TwoElemList(
-                    listutils::basicSymbol<CcString>( ),
-                    nl->StringAtom( "" ) ),
-                funList ) );
-
-        #ifdef DRELDEBUG
-        cout << "dmapResult" << endl;
-        cout << nl->ToString( dmapResult ) << endl;
-        #endif
-
-        if( !nl->HasLength( dmapResult, 3 ) ) {
-            return dmapResult;
-        }
-
-        ListExpr newDRel;
-        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DRel>( );
-        }
-        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DFRel>( );
-        }
-        else {
-            return dmapResult;
-        }
-
-        ListExpr newRes = nl->ThreeElemList(
-            newDRel,
-            nl->Second( nl->Third( dmapResult ) ),
+        ListExpr resultType = nl->ThreeElemList(
+            listutils::basicSymbol<DFRel>( ),
+            relType,
             distType );
 
-        ListExpr append = nl->Second( dmapResult );
+        ListExpr append = nl->TwoElemList( 
+            nl->TextAtom( funText1 ),
+            nl->TextAtom( funText2 ) );
 
         return nl->ThreeElemList(
             nl->SymbolAtom( Symbols::APPEND( ) ),
             append,
-            newRes );
+            resultType );
     }
 
 /*
@@ -708,74 +588,37 @@ combination of the operator extend.
             return result;
         }
 
-        if( DFRel::checkType( drelType ) ) {
-            relType = nl->TwoElemList(
-                listutils::basicSymbol<frel>( ),
-                nl->Second( relType ) );
-        }
+        relType = nl->TwoElemList(
+            listutils::basicSymbol<Relation>( ),
+            nl->Second( result ) );
 
-        // create function type to call dmapTM
-        ListExpr funList = nl->TwoElemList(
-            nl->ThreeElemList(
-                nl->SymbolAtom( "map" ),
-                relType,
-                result ),
-            nl->ThreeElemList(
-                nl->SymbolAtom( "fun" ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "dmapelem1" ),
-                    nl->SymbolAtom( "ARRAYFUNARG1" ) ),
-                nl->ThreeElemList(
-                    nl->SymbolAtom( "extend" ),
-                    nl->TwoElemList(
-                        nl->SymbolAtom( "feed" ),
-                        nl->SymbolAtom( "dmapelem1" ) ),
-                    fun ) ) );
+        // create string to call dmap the call is devided in two parts
+        // the argument for the drel is missing and will be filled in the
+        // value mapping
+        string funText1 = "(dmap ";
+        string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
+            "(extend (feed dmapelem_1)" + nl->ToString( fun ) + ") ) )";
 
         #ifdef DRELDEBUG
-        cout << "funList" << endl;
-        cout << nl->ToString( funList ) << endl;
+        cout << "funText1" << endl;
+        cout << funText1 << endl;
+        cout << "funText2" << endl;
+        cout << funText2 << endl;
         #endif
 
-        ListExpr dmapResult = dmapTM(
-            nl->ThreeElemList(
-                nl->TwoElemList( darrayType, drelValue ),
-                nl->TwoElemList(
-                    listutils::basicSymbol<CcString>( ),
-                    nl->StringAtom( "" ) ),
-                funList ) );
-
-        #ifdef DRELDEBUG
-        cout << "dmapResult" << endl;
-        cout << nl->ToString( dmapResult ) << endl;
-        #endif
-
-        if( !nl->HasLength( dmapResult, 3 ) ) {
-            return dmapResult;
-        }
-
-        ListExpr newDRel;
-        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DRel>( );
-        }
-        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DFRel>( );
-        }
-        else {
-            return dmapResult;
-        }
-
-        ListExpr newRes = nl->ThreeElemList(
-            newDRel,
-            nl->Second( nl->Third( dmapResult ) ),
+        ListExpr resultType = nl->ThreeElemList(
+            listutils::basicSymbol<DFRel>( ),
+            relType,
             distType );
 
-        ListExpr append = nl->Second( dmapResult );
+        ListExpr append = nl->TwoElemList( 
+            nl->TextAtom( funText1 ),
+            nl->TextAtom( funText2 ) );
 
         return nl->ThreeElemList(
             nl->SymbolAtom( Symbols::APPEND( ) ),
             append,
-            newRes );
+            resultType );
     }
 
 /*
@@ -819,76 +662,33 @@ operator.
                 ": second argument is not an integer" );
         }
 
-        if( DFRel::checkType( drelType ) ) {
-            relType = nl->TwoElemList(
-                listutils::basicSymbol<frel>( ),
-                nl->Second( relType ) );
-        }
-
-        // create function type to call dmapTM
-        ListExpr funList = nl->TwoElemList(
-            nl->ThreeElemList(
-                nl->SymbolAtom( "map" ),
-                relType,
-                nl->TwoElemList(
-                    listutils::basicSymbol<Stream<Tuple>>( ),
-                    nl->Second( relType ) ) ),
-            nl->ThreeElemList(
-                nl->SymbolAtom( "fun" ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "dmapelem1" ),
-                    nl->SymbolAtom( "ARRAYFUNARG1" ) ),
-                nl->ThreeElemList(
-                    nl->SymbolAtom( "head" ),
-                    nl->TwoElemList(
-                        nl->SymbolAtom( "feed" ),
-                        nl->SymbolAtom( "dmapelem1" ) ),
-                    secondValue ) ) );
+        // create string to call dmap the call is devided in two parts
+        // the argument for the drel is missing and will be filled in the
+        // value mapping
+        string funText1 = "(dmap ";
+        string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
+            "(head (feed dmapelem_1)" + nl->ToString( secondValue ) + ") ) )";
 
         #ifdef DRELDEBUG
-        cout << "funList" << endl;
-        cout << nl->ToString( funList ) << endl;
+        cout << "funText1" << endl;
+        cout << funText1 << endl;
+        cout << "funText2" << endl;
+        cout << funText2 << endl;
         #endif
 
-        ListExpr dmapResult = dmapTM(
-            nl->ThreeElemList(
-                nl->TwoElemList( darrayType, drelValue ),
-                nl->TwoElemList(
-                    listutils::basicSymbol<CcString>( ),
-                    nl->StringAtom( "" ) ),
-                funList ) );
-
-        #ifdef DRELDEBUG
-        cout << "dmapTM head" << endl;
-        cout << nl->ToString( dmapResult ) << endl;
-        #endif
-
-        if( !nl->HasLength( dmapResult, 3 ) ) {
-            return dmapResult;
-        }
-
-        ListExpr newDRel;
-        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DRel>( );
-        }
-        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DFRel>( );
-        }
-        else {
-            return dmapResult;
-        }
-
-        ListExpr newRes = nl->ThreeElemList(
-            newDRel,
-            nl->Second( nl->Third( dmapResult ) ),
+        ListExpr resultType = nl->ThreeElemList(
+            listutils::basicSymbol<DFRel>( ),
+            relType,
             distType );
 
-        ListExpr append = nl->Second( dmapResult );
+        ListExpr append = nl->TwoElemList( 
+            nl->TextAtom( funText1 ),
+            nl->TextAtom( funText2 ) );
 
         return nl->ThreeElemList(
             nl->SymbolAtom( Symbols::APPEND( ) ),
             append,
-            newRes );
+            resultType );
     }
 
 /*
@@ -942,80 +742,37 @@ operator.
             return result;
         }
 
-        #ifdef DRELDEBUG
-        cout << "rename tm" << endl;
-        cout << nl->ToString( result ) << endl;
-        #endif
+        relType = nl->TwoElemList(
+            listutils::basicSymbol<Relation>( ),
+            nl->Second( result ) );
 
-        if( DFRel::checkType( drelType ) ) {
-            relType = nl->TwoElemList(
-                listutils::basicSymbol<frel>( ),
-                nl->Second( relType ) );
-        }
-
-        // create function type to call dmapTM
-        ListExpr funList = nl->TwoElemList(
-            nl->ThreeElemList(
-                nl->SymbolAtom( "map" ),
-                relType,
-                result ),
-            nl->ThreeElemList(
-                nl->SymbolAtom( "fun" ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "dmapelem1" ),
-                    nl->SymbolAtom( "ARRAYFUNARG1" ) ),
-                nl->ThreeElemList(
-                    nl->SymbolAtom( "rename" ),
-                    nl->TwoElemList(
-                        nl->SymbolAtom( "feed" ),
-                        nl->SymbolAtom( "dmapelem1" ) ),
-                    secondValue ) ) );
+        // create string to call dmap the call is devided in two parts
+        // the argument for the drel is missing and will be filled in the
+        // value mapping
+        string funText1 = "(dmap ";
+        string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
+            "(rename (feed dmapelem_1)" + nl->ToString( secondValue ) + ") ) )";
 
         #ifdef DRELDEBUG
-        cout << "funList" << endl;
-        cout << nl->ToString( funList ) << endl;
+        cout << "funText1" << endl;
+        cout << funText1 << endl;
+        cout << "funText2" << endl;
+        cout << funText2 << endl;
         #endif
 
-        ListExpr dmapResult = dmapTM(
-            nl->ThreeElemList(
-                nl->TwoElemList( darrayType, drelValue ),
-                //nl->TwoElemList( darrayType, nl->SymbolAtom( "dummy" ) ),
-                nl->TwoElemList(
-                    listutils::basicSymbol<CcString>( ),
-                    nl->StringAtom( "" ) ),
-                funList ) );
-
-        #ifdef DRELDEBUG
-        cout << "dmapTM rename" << endl;
-        cout << nl->ToString( dmapResult ) << endl;
-        #endif
-
-        if( !nl->HasLength( dmapResult, 3 ) ) {
-            return dmapResult;
-        }
-
-        ListExpr newDRel;
-        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DRel>( );
-        }
-        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DFRel>( );
-        }
-        else {
-            return dmapResult;
-        }
-
-        ListExpr newRes = nl->ThreeElemList(
-            newDRel,
-            nl->Second( nl->Third( dmapResult ) ),
+        ListExpr resultType = nl->ThreeElemList(
+            listutils::basicSymbol<DFRel>( ),
+            relType,
             distType );
 
-        ListExpr append = nl->Second( dmapResult );
+        ListExpr append = nl->TwoElemList( 
+            nl->TextAtom( funText1 ),
+            nl->TextAtom( funText2 ) );
 
         return nl->ThreeElemList(
             nl->SymbolAtom( Symbols::APPEND( ) ),
             append,
-            newRes );
+            resultType );
     }
 
 /*
@@ -1051,75 +808,33 @@ operator.
                 ": first argument is not a d[f]rel" );
         }
 
-        if( DFRel::checkType( drelType ) ) {
-            relType = nl->TwoElemList(
-                listutils::basicSymbol<frel>( ),
-                nl->Second( relType ) );
-        }
-
-        // create function type to call dmapTM
-        ListExpr funList = nl->TwoElemList(
-            nl->ThreeElemList(
-                nl->SymbolAtom( "map" ),
-                relType,
-                nl->TwoElemList(
-                    listutils::basicSymbol<Stream<Tuple>>( ),
-                    nl->Second( relType ) ) ),
-            nl->ThreeElemList(
-                nl->SymbolAtom( "fun" ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "dmapelem1" ),
-                    nl->SymbolAtom( "ARRAYFUNARG1" ) ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "rdup" ),
-                    nl->TwoElemList(
-                        nl->SymbolAtom( "feed" ),
-                        nl->SymbolAtom( "dmapelem1" ) ) ) ) );
+        // create string to call dmap the call is devided in two parts
+        // the argument for the drel is missing and will be filled in the
+        // value mapping
+        string funText1 = "(dmap ";
+        string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
+            "(rdup (sort (feed dmapelem_1) ) ) ) )";
 
         #ifdef DRELDEBUG
-        cout << "funList" << endl;
-        cout << nl->ToString( funList ) << endl;
+        cout << "funText1" << endl;
+        cout << funText1 << endl;
+        cout << "funText2" << endl;
+        cout << funText2 << endl;
         #endif
 
-        ListExpr dmapResult = dmapTM(
-            nl->ThreeElemList(
-                nl->TwoElemList( darrayType, drelValue ),
-                nl->TwoElemList(
-                    listutils::basicSymbol<CcString>( ),
-                    nl->StringAtom( "" ) ),
-                funList ) );
-
-        #ifdef DRELDEBUG
-        cout << "dmapTM lrdup" << endl;
-        cout << nl->ToString( dmapResult ) << endl;
-        #endif
-
-        if( !nl->HasLength( dmapResult, 3 ) ) {
-            return dmapResult;
-        }
-
-        ListExpr newDRel;
-        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DRel>( );
-        }
-        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DFRel>( );
-        }
-        else {
-            return dmapResult;
-        }
-
-        ListExpr newRes = nl->ThreeElemList(
-            newDRel,
-            nl->Second( nl->Third( dmapResult ) ),
+        ListExpr resultType = nl->ThreeElemList(
+            listutils::basicSymbol<DFRel>( ),
+            relType,
             distType );
 
-        ListExpr append = nl->Second( dmapResult );
+        ListExpr append = nl->TwoElemList( 
+            nl->TextAtom( funText1 ),
+            nl->TextAtom( funText2 ) );
 
         return nl->ThreeElemList(
             nl->SymbolAtom( Symbols::APPEND( ) ),
             append,
-            newRes );
+            resultType );
     }
 
 /*
@@ -1155,75 +870,33 @@ operator.
                 ": first argument is not a d[f]rel" );
         }
 
-        if( DFRel::checkType( drelType ) ) {
-            relType = nl->TwoElemList(
-                listutils::basicSymbol<frel>( ),
-                nl->Second( relType ) );
-        }
-
-        // create function type to call dmapTM
-        ListExpr funList = nl->TwoElemList(
-            nl->ThreeElemList(
-                nl->SymbolAtom( "map" ),
-                relType,
-                nl->TwoElemList(
-                    listutils::basicSymbol<Stream<Tuple>>( ),
-                    nl->Second( relType ) ) ),
-            nl->ThreeElemList(
-                nl->SymbolAtom( "fun" ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "dmapelem1" ),
-                    nl->SymbolAtom( "ARRAYFUNARG1" ) ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "sort" ),
-                    nl->TwoElemList(
-                        nl->SymbolAtom( "feed" ),
-                        nl->SymbolAtom( "dmapelem1" ) ) ) ) );
+        // create string to call dmap the call is devided in two parts
+        // the argument for the drel is missing and will be filled in the
+        // value mapping
+        string funText1 = "(dmap ";
+        string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
+            "(sort (feed dmapelem_1) ) ) )";
 
         #ifdef DRELDEBUG
-        cout << "funList" << endl;
-        cout << nl->ToString( funList ) << endl;
+        cout << "funText1" << endl;
+        cout << funText1 << endl;
+        cout << "funText2" << endl;
+        cout << funText2 << endl;
         #endif
 
-        ListExpr dmapResult = dmapTM(
-            nl->ThreeElemList(
-                nl->TwoElemList( darrayType, drelValue ),
-                nl->TwoElemList(
-                    listutils::basicSymbol<CcString>( ),
-                    nl->StringAtom( "" ) ),
-                funList ) );
-
-        #ifdef DRELDEBUG
-        cout << "dmapTM lsort" << endl;
-        cout << nl->ToString( dmapResult ) << endl;
-        #endif
-
-        if( !nl->HasLength( dmapResult, 3 ) ) {
-            return dmapResult;
-        }
-
-        ListExpr newDRel;
-        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DRel>( );
-        }
-        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DFRel>( );
-        }
-        else {
-            return dmapResult;
-        }
-
-        ListExpr newRes = nl->ThreeElemList(
-            newDRel,
-            nl->Second( nl->Third( dmapResult ) ),
+        ListExpr resultType = nl->ThreeElemList(
+            listutils::basicSymbol<DFRel>( ),
+            relType,
             distType );
 
-        ListExpr append = nl->Second( dmapResult );
+        ListExpr append = nl->TwoElemList( 
+            nl->TextAtom( funText1 ),
+            nl->TextAtom( funText2 ) );
 
         return nl->ThreeElemList(
             nl->SymbolAtom( Symbols::APPEND( ) ),
             append,
-            newRes );
+            resultType );
     }
 
 /*
@@ -1233,7 +906,8 @@ Expect a d[f]rel, an attribute list to group the tuple and a function list.
 Type mapping for the drellgroup operator.
 
 */
-    ListExpr drellgroupbyTM( ListExpr args, bool global ) {
+    template<bool global>
+    ListExpr drellgroupbyTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
         cout << "drellgroupbyTM" << endl;
@@ -1318,6 +992,10 @@ Type mapping for the drellgroup operator.
             return result;
         }
 
+        relType = nl->TwoElemList(
+            listutils::basicSymbol<Relation>( ),
+            nl->Second( nl->Third( result ) ) );
+
         // distribution by an attribute?
         if( nl->HasMinLength( distType, 2 ) ) {
 
@@ -1352,11 +1030,6 @@ Type mapping for the drellgroup operator.
                         nl->IntAtom( newPos ) );
                 }
 
-                drelType = nl->ThreeElemList(
-                    nl->First( drelType ),
-                    distType,
-                    nl->Third( drelType ) );
-
                 #ifdef DRELDEBUG
                 cout << "new drelType" << endl;
                 cout << nl->ToString( drelType ) << endl;
@@ -1371,80 +1044,38 @@ Type mapping for the drellgroup operator.
 
         }
 
-        if( DFRel::checkType( drelType ) ) {
-            relType = nl->TwoElemList(
-                listutils::basicSymbol<frel>( ),
-                nl->Second( relType ) );
-        }
-
-        // create function type to call dmapTM
-        ListExpr funList = nl->TwoElemList(
-            nl->ThreeElemList(
-                nl->SymbolAtom( "map" ),
-                relType,
-                nl->Third( result ) ),
-            nl->ThreeElemList(
-                nl->SymbolAtom( "fun" ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "dmapelem1" ),
-                    nl->SymbolAtom( "ARRAYFUNARG1" ) ),
-                nl->FourElemList(
-                    nl->SymbolAtom( "groupby" ),
-                    nl->TwoElemList(
-                        nl->SymbolAtom( "feed" ),
-                        nl->SymbolAtom( "dmapelem1" ) ),
-                    attrlist,
-                    fun ) ) );
+        // create string to call dmap the call is devided in two parts
+        // the argument for the drel is missing and will be filled in the
+        // value mapping
+        string funText1 = "(dmap ";
+        string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
+            "(groupby (feed dmapelem_1) " + nl->ToString( attrlist ) + 
+            nl->ToString( fun ) + " ) ) )";
 
         #ifdef DRELDEBUG
-        cout << "funList" << endl;
-        cout << nl->ToString( funList ) << endl;
+        cout << "funText1" << endl;
+        cout << funText1 << endl;
+        cout << "funText2" << endl;
+        cout << funText2 << endl;
         #endif
 
-        ListExpr dmapResult = dmapTM(
-            nl->ThreeElemList(
-                nl->TwoElemList( darrayType, drelValue ),
-                nl->TwoElemList(
-                    listutils::basicSymbol<CcString>( ),
-                    nl->StringAtom( "" ) ),
-                funList ) );
-
-        #ifdef DRELDEBUG
-        cout << "dmapResult" << endl;
-        cout << nl->ToString( dmapResult ) << endl;
-        #endif
-
-        if( !nl->HasLength( dmapResult, 3 ) ) {
-            return dmapResult;
-        }
-        
-        ListExpr newDRel;
-        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DRel>( );
-        }
-        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DFRel>( );
-        }
-        else {
-            return dmapResult;
-        }
-
-        ListExpr newRes = nl->ThreeElemList(
-            newDRel,
-            nl->Second( nl->Third( dmapResult ) ),
+        ListExpr resultType = nl->ThreeElemList(
+            listutils::basicSymbol<DFRel>( ),
+            relType,
             distType );
 
-        ListExpr append = nl->Second( dmapResult );
+        ListExpr append = nl->TwoElemList( 
+            nl->TextAtom( funText1 ),
+            nl->TextAtom( funText2 ) );
 
         return nl->ThreeElemList(
             nl->SymbolAtom( Symbols::APPEND( ) ),
             append,
-            newRes );
+            resultType );
     }
 
-    ListExpr drellgroupbyTM( ListExpr args ) {
-        return drellgroupbyTM( args, false );
-    }
+    template ListExpr drellgroupbyTM<true>( ListExpr args );
+    template ListExpr drellgroupbyTM<false>( ListExpr args );
 
 /*
 1.1.10 Type Mapping ~lsortbyTM~
@@ -1481,6 +1112,7 @@ operator.
 
         ListExpr attrlist = nl->First( nl->Second( args ) );
 
+        // TM sortby
         ListExpr result = extrelationalg::SortByTypeMap(
             nl->TwoElemList(
                 nl->TwoElemList(
@@ -1488,87 +1120,39 @@ operator.
                     nl->Second( relType ) ),
                 attrlist ) );
 
-        #ifdef DRELDEBUG
-        cout << "sortby tm" << endl;
-        cout << nl->ToString( result ) << endl;
-        #endif
-
-        // sortby TM ok?
+        // sortby tm okay?
         if( !nl->HasLength( result, 3 ) ) {
             return result;
         }
-        if( !listutils::isTupleStream( nl->Third( result ) ) ) {
-            return result;
-        }
 
-        if( DFRel::checkType( drelType ) ) {
-            relType = nl->TwoElemList(
-                listutils::basicSymbol<frel>( ),
-                nl->Second( relType ) );
-        }
 
-        // create function type to call dmapTM
-        ListExpr funList = nl->TwoElemList(
-            nl->ThreeElemList(
-                nl->SymbolAtom( "map" ),
-                relType,
-                nl->Third( result ) ),
-            nl->ThreeElemList(
-                nl->SymbolAtom( "fun" ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "dmapelem1" ),
-                    nl->SymbolAtom( "ARRAYFUNARG1" ) ),
-                nl->ThreeElemList(
-                    nl->SymbolAtom( "sortby" ),
-                    nl->TwoElemList(
-                        nl->SymbolAtom( "feed" ),
-                        nl->SymbolAtom( "dmapelem1" ) ),
-                    attrlist ) ) );
+        // create string to call dmap the call is devided in two parts
+        // the argument for the drel is missing and will be filled in the
+        // value mapping
+        string funText1 = "(dmap ";
+        string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
+            "(sortby (feed dmapelem_1) " + nl->ToString( attrlist ) + " ) ) )";
 
         #ifdef DRELDEBUG
-        cout << "funList" << endl;
-        cout << nl->ToString( funList ) << endl;
+        cout << "funText1" << endl;
+        cout << funText1 << endl;
+        cout << "funText2" << endl;
+        cout << funText2 << endl;
         #endif
 
-        ListExpr dmapResult = dmapTM(
-            nl->ThreeElemList(
-                nl->TwoElemList( darrayType, drelValue ),
-                nl->TwoElemList(
-                    listutils::basicSymbol<CcString>( ),
-                    nl->StringAtom( "" ) ),
-                funList ) );
-
-        #ifdef DRELDEBUG
-        cout << "dmapResult" << endl;
-        cout << nl->ToString( dmapResult ) << endl;
-        #endif
-
-        if( !nl->HasLength( dmapResult, 3 ) ) {
-            return dmapResult;
-        }
-
-        ListExpr newDRel;
-        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DRel>( );
-        }
-        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DFRel>( );
-        }
-        else {
-            return dmapResult;
-        }
-
-        ListExpr newRes = nl->ThreeElemList(
-            newDRel,
-            nl->Second( nl->Third( dmapResult ) ),
+        ListExpr resultType = nl->ThreeElemList(
+            listutils::basicSymbol<DFRel>( ),
+            relType,
             distType );
 
-        ListExpr append = nl->Second( dmapResult );
+        ListExpr append = nl->TwoElemList( 
+            nl->TextAtom( funText1 ),
+            nl->TextAtom( funText2 ) );
 
         return nl->ThreeElemList(
             nl->SymbolAtom( Symbols::APPEND( ) ),
             append,
-            newRes );
+            resultType );
     }
 
 /*
@@ -1594,24 +1178,17 @@ to define the range.
             return listutils::typeError( "internal Error" );
         }
 
+        ListExpr drelType, relType, distType, drelValue, darrayType;
+        if( !DRelHelpers::isDRelDescr( nl->Second( args ), drelType, relType,
+            distType, drelValue, darrayType ) ) {
+            return listutils::typeError( err +
+                ": second argument is not a d[f]rel" );
+        }
+
         ListExpr darrayBTreeType = nl->First( nl->First( args ) );
-        ListExpr darrayBTreeValue = nl->Second( nl->First( args ) );
-        ListExpr drelType = nl->First( nl->Second( args ) );
-        ListExpr drelValue = nl->Second( nl->Second( args ) );
 
         ListExpr range1Type = nl->First( nl->Third( args ) );
         ListExpr range2Type = nl->First( nl->Fourth( args ) );
-
-        ListExpr range1 = nl->Second( nl->Third( args ) );
-        ListExpr range2 = nl->Second( nl->Fourth( args ) );
-
-        ListExpr darrayType;
-        if( !DRelHelpers::drelCheck( 
-            drelType, darrayType ) ) {
-
-            return listutils::typeError(
-                err + ": second argument is not a d[f]rel" );
-        }
 
         if( !DArray::checkType( darrayBTreeType ) ) {
             return listutils::typeError( err +
@@ -1619,7 +1196,6 @@ to define the range.
         }
 
         ListExpr bTreeType = nl->Second( darrayBTreeType );
-        ListExpr relType = nl->Second( drelType );
 
         ListExpr result = IndexQueryTypeMap<2>(
             nl->FourElemList(
@@ -1632,81 +1208,35 @@ to define the range.
             return result;
         }
 
-        if( DFRel::checkType( drelType ) ) {
-            relType = nl->TwoElemList(
-                listutils::basicSymbol<frel>( ),
-                nl->Second( relType ) );
-        }
+        ListExpr range1 = nl->Second( nl->Third( args ) );
+        ListExpr range2 = nl->Second( nl->Fourth( args ) );
 
-        // create function type to call dmap2TM
-        ListExpr funType = nl->TwoElemList(
-            nl->FourElemList(
-                nl->SymbolAtom( "map" ),
-                bTreeType,
-                relType,
-                relType ),
-            nl->FourElemList(
-                nl->SymbolAtom( "fun" ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "elem11" ),
-                    nl->SymbolAtom( "DARRAYELEM" ) ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "elem22" ),
-                    nl->SymbolAtom( "DARRAYELEM2" ) ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "consume" ),
-                    nl->FiveElemList(
-                        nl->SymbolAtom( "range" ),
-                        nl->SymbolAtom( "elem11" ),
-                        nl->SymbolAtom( "elem22" ),
-                        range1,
-                        range2 ) ) ) );
+        // create string to call dmap the call is devided in two parts
+        // the argument for the drel is missing and will be filled in the
+        // value mapping
+        string funText1 = "(dmap2 ";
+        string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
+            "(elem2_2 ARRAYFUNARG2) "
+            "(range elem1_1 elem2_2 " + nl->ToString( range1 ) + " " +
+            nl->ToString( range2 ) + " ) ) 1238 )";
 
-        if( DFRel::checkType( drelType ) ) {
-            relType = nl->TwoElemList(
-                listutils::basicSymbol<frel>( ),
-                nl->Second( relType ) );
-        }
-
-        // result type of dmap2
-        ListExpr dmapResult = dmapXTMT<2>(
-            nl->FiveElemList(
-                nl->TwoElemList( darrayBTreeType, darrayBTreeValue ),
-                nl->TwoElemList( darrayType, drelValue ),
-                nl->TwoElemList( 
-                    listutils::basicSymbol<CcString>( ), 
-                    nl->StringAtom( "" ) ),
-                funType,
-                nl->TwoElemList( 
-                    listutils::basicSymbol<CcInt>( ),
-                    nl->IntAtom( 1238 ) ) ) );
-
-        if( !nl->HasLength( dmapResult, 3 ) ) {
-            return dmapResult;
-        }
-        
-        ListExpr newDRel;
-        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DRel>( );
-        }
-        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DFRel>( );
-        }
-        else {
-            return dmapResult;
-        }
+        #ifdef DRELDEBUG
+        cout << "funText1" << endl;
+        cout << funText1 << endl;
+        cout << "funText2" << endl;
+        cout << funText2 << endl;
+        #endif
 
         ListExpr resultType = nl->ThreeElemList(
-            newDRel,
-            nl->Second( nl->Third( dmapResult ) ),
-            nl->Third( drelType ) );
+            listutils::basicSymbol<DFRel>( ),
+            relType,
+            distType );
 
-        ListExpr append = nl->ThreeElemList(
-                nl->IntAtom( 1238 ),
-                nl->First( nl->Second( dmapResult ) ),
-                nl->Second( nl->Second( dmapResult ) ) );
+        ListExpr append = nl->TwoElemList( 
+            nl->TextAtom( funText1 ),
+            nl->TextAtom( funText2 ) );
 
-        return nl->ThreeElemList( 
+        return nl->ThreeElemList(
             nl->SymbolAtom( Symbols::APPEND( ) ),
             append,
             resultType );
@@ -1733,23 +1263,20 @@ value.
         }
 
         ListExpr darrayBTreeType = nl->First( nl->First( args ) );
-        ListExpr darrayBTreeValue = nl->Second( nl->First( args ) );
-        ListExpr drelType = nl->First( nl->Second( args ) );
-        ListExpr drelName = nl->Second( nl->Second( args ) );
-
-        ListExpr searchType = nl->First( nl->Third( args ) );
-        ListExpr searchValue = nl->Second( nl->Third( args ) );
-
-        ListExpr darrayType;
-        if( !DRelHelpers::drelCheck( 
-            drelType, darrayType ) ) {
-
-            return listutils::typeError(
-                err + ": second argument is not a d[f]rel" );
+        if( !DArray::checkType( darrayBTreeType ) ) {
+            return listutils::typeError( err +
+                ": first argument is not a darray" );
         }
 
+        ListExpr drelType, relType, distType, drelValue, darrayType;
+        if( !DRelHelpers::isDRelDescr( nl->Second( args ), drelType, relType,
+            distType, drelValue, darrayType ) ) {
+            return listutils::typeError( err +
+                ": second argument is not a d[f]rel" );
+        }
+
+        ListExpr searchType = nl->First( nl->Third( args ) );
         ListExpr bTreeType = nl->Second( darrayBTreeType );
-        ListExpr relType = nl->Second( drelType );
 
         ListExpr result = IndexQueryTypeMap<3>(
             nl->ThreeElemList(
@@ -1761,77 +1288,37 @@ value.
             return result;
         }
 
-        if( DFRel::checkType( drelType ) ) {
-            relType = nl->TwoElemList(
-                listutils::basicSymbol<frel>( ),
-                nl->Second( relType ) );
-        }
+        ListExpr searchValue = nl->Second( nl->Third( args ) );
 
-        // create function type to call dmap2TM
-        ListExpr funType = nl->TwoElemList(
-            nl->FourElemList(
-                nl->SymbolAtom( "map" ),
-                bTreeType,
-                relType,
-                relType ),
-            nl->FourElemList(
-                nl->SymbolAtom( "fun" ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "elem11" ),
-                    nl->SymbolAtom( "DARRAYELEM" ) ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "elem22" ),
-                    nl->SymbolAtom( "DARRAYELEM2" ) ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "consume" ),
-                    nl->FourElemList(
-                        nl->SymbolAtom( "exactmatch" ),
-                        nl->SymbolAtom( "elem11" ),
-                        nl->SymbolAtom( "elem22" ),
-                        searchValue ) ) ) );
+        // create string to call dmap the call is devided in two parts
+        // the argument for the drel is missing and will be filled in the
+        // value mapping
+        string funText1 = "(dmap2 ";
+        string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
+            "(elem2_2 ARRAYFUNARG2) "
+            "(exactmatch elem1_1 elem2_2 " + nl->ToString( searchValue ) + 
+            " ) ) 1238 )";
 
-        // result type of dmap2TM
-        ListExpr dmapResult = dmapXTMT<2>(
-            nl->FiveElemList(
-                nl->TwoElemList( darrayBTreeType, darrayBTreeValue ),
-                nl->TwoElemList( darrayType, drelName ),
-                nl->TwoElemList( listutils::basicSymbol<CcString>( ),
-                    nl->StringAtom( "" ) ),
-                funType,
-                nl->TwoElemList( 
-                    listutils::basicSymbol<CcInt>( ),
-                    nl->IntAtom( 1238 ) ) ) );
+        #ifdef DRELDEBUG
+        cout << "funText1" << endl;
+        cout << funText1 << endl;
+        cout << "funText2" << endl;
+        cout << funText2 << endl;
+        #endif
 
-        if( !nl->HasLength( dmapResult, 3 ) ) {
-            return dmapResult;
-        }
+        ListExpr resultType = nl->ThreeElemList(
+            listutils::basicSymbol<DFRel>( ),
+            relType,
+            distType );
 
-        ListExpr newDRel;
-        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DRel>( );
-        }
-        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DFRel>( );
-        }
-        else {
-            return dmapResult;
-        }
-
-        ListExpr newRes = nl->ThreeElemList(
-            newDRel,
-            nl->Second( nl->Third( dmapResult ) ),
-            nl->Third( drelType ) );
-
-        ListExpr append = nl->FourElemList(
-            nl->StringAtom( "" ),
-            nl->IntAtom( 1238 ),
-            nl->First( nl->Second( dmapResult ) ),
-            nl->Second( nl->Second( dmapResult ) ) );
+        ListExpr append = nl->TwoElemList( 
+            nl->TextAtom( funText1 ),
+            nl->TextAtom( funText2 ) );
 
         return nl->ThreeElemList(
             nl->SymbolAtom( Symbols::APPEND( ) ),
             append,
-            newRes );
+            resultType );
     }
 
 /*
@@ -1848,93 +1335,41 @@ arguments.
 
         if( !nl->HasLength( args, 3 ) ) {
             return listutils::typeError( err +
-                ": four arguments are expected" );
+                ": three arguments are expected" );
         }
 
         if( !DRelHelpers::isListOfTwoElemLists( args ) ) {
             return listutils::typeError( "internal Error" );
         }
 
-        ListExpr arg1Type = nl->First( nl->First( args ) );
-        ListExpr arg2Type = nl->First( nl->Second( args ) );
+        ListExpr darrayBTreeType = nl->First( nl->First( args ) );
+        if( !DArray::checkType( darrayBTreeType ) ) {
+            return listutils::typeError( err +
+                ": first argument is not a darray" );
+        }
+
+        ListExpr drelType, relType, distType, drelValue, darrayType;
+        if( !DRelHelpers::isDRelDescr( nl->Second( args ), drelType, relType,
+            distType, drelValue, darrayType ) ) {
+            return listutils::typeError( err +
+                ": second argument is not a d[f]rel" );
+        }
+
         ListExpr arg3Type = nl->First( nl->Third( args ) );
-        //ListExpr arg1Value = nl->Second( nl->First( args ) );
-        ListExpr arg2Value = nl->Second( nl->Second( args ) );
         ListExpr arg3Value = nl->Second( nl->Third( args ) );
-
-        if( !DArray::checkType( arg1Type ) ) {
-            return listutils::typeError( 
-                err + ": first argument is not a darray" );
-        }
-
-        if( !listutils::isRTreeDescription( nl->Second( arg1Type ) ) ) {
-            return listutils::typeError( 
-                err + ": darray is not a rtree" );
-        }
-
-        ListExpr darrayType;
-        if( !DRelHelpers::drelCheck( arg2Type, darrayType ) ) {
-            return listutils::typeError( 
-                err + ": second argument is not a d[f]rel" );
-        }
 
         if( !Rectangle<2>::checkType( arg3Type ) ) {
             return listutils::typeError( 
                 err + ": third argument is rectangle" );
         }
 
-        if( !nl->IsAtom( arg3Value ) 
-         || nl->AtomType( arg3Value ) != SymbolType ) {
+        if( !nl->IsAtom( arg3Type ) ) {
             return listutils::typeError( 
-                err + ": rectangle is not in catalog" );
+                err + ": third argument is not a saved rectangle" );
         }
 
         //string tempName = distributed2::algInstance->getTempName( );
         string tempName = nl->SymbolValue( arg3Value );
-
-        ListExpr map = nl->FourElemList(
-            nl->SymbolAtom( "map" ),
-            nl->Second( arg1Type ),
-            nl->Second( darrayType ),
-            nl->TwoElemList(
-                    listutils::basicSymbol<Stream<Tuple>>( ),
-                    nl->Second( nl->Second( darrayType ) ) ) );
-        ListExpr fun = nl->FourElemList(
-            nl->SymbolAtom( "fun" ),
-            nl->TwoElemList(
-                nl->SymbolAtom( "elem1_1" ),
-                nl->SymbolAtom( "ARRAYFUNARG1" ) ),
-            nl->TwoElemList(
-                nl->SymbolAtom( "elem2_2" ),
-                nl->SymbolAtom( "ARRAYFUNARG2" ) ),
-            nl->FourElemList(
-                nl->SymbolAtom( "windowintersects" ),
-                nl->SymbolAtom( "elem1_1" ),
-                nl->SymbolAtom( "elem2_2" ),
-                arg3Value ) );
-
-        // call dmapTM
-        ListExpr dmapResult = dmapXTMT<2>(
-            nl->FiveElemList(
-                nl->First( args ),
-                nl->TwoElemList( darrayType, arg2Value ),
-                nl->TwoElemList( 
-                    listutils::basicSymbol<CcString>( ),
-                    nl->StringAtom( "" ) ),
-                nl->TwoElemList( map, fun ),
-                nl->TwoElemList( 
-                    listutils::basicSymbol<CcInt>( ),
-                    nl->IntAtom( 1238 ) ) ) );
-
-        if( !nl->HasLength( dmapResult, 3 ) ) {
-            return dmapResult;
-        }
-
-        // dmapTM ok
-        ListExpr resultType = nl->ThreeElemList(
-            listutils::basicSymbol<DFRel>( ),
-            nl->Second( nl->Third( dmapResult ) ),
-            nl->Third( arg2Type ) );
 
         // Bring rect to the workers
         cout << "bring intersect argument to the workers" << endl;
@@ -1945,7 +1380,7 @@ arguments.
             nl->BoolAtom( true ),
             nl->TwoElemList(
                 nl->SymbolAtom( "drelconvert" ),
-                arg2Value ) );
+                drelValue ) );
 
         Word result;
         bool correct, evaluable, defined, isFunction;
@@ -1963,13 +1398,32 @@ arguments.
         cout << shareResult->GetValue( ) << endl;
         delete shareResult;
 
-        ListExpr append = nl->FourElemList(
-            nl->StringAtom( "" ),
-            nl->IntAtom( 1238 ),
-            nl->First( nl->Second( dmapResult ) ),
-            nl->Second( nl->Second( dmapResult ) ) );
+        // create string to call dmap the call is devided in two parts
+        // the argument for the drel is missing and will be filled in the
+        // value mapping
+        string funText1 = "(dmap2 ";
+        string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
+            "(elem2_2 ARRAYFUNARG2) "
+            "(windowintersects elem1_1 elem2_2 " + tempName + 
+            " ) ) 1238 )";
 
-        return nl->ThreeElemList( 
+        #ifdef DRELDEBUG
+        cout << "funText1" << endl;
+        cout << funText1 << endl;
+        cout << "funText2" << endl;
+        cout << funText2 << endl;
+        #endif
+
+        ListExpr resultType = nl->ThreeElemList(
+            listutils::basicSymbol<DFRel>( ),
+            relType,
+            distType );
+
+        ListExpr append = nl->TwoElemList( 
+            nl->TextAtom( funText1 ),
+            nl->TextAtom( funText2 ) );
+
+        return nl->ThreeElemList(
             nl->SymbolAtom( Symbols::APPEND( ) ),
             append,
             resultType );
@@ -1996,254 +1450,241 @@ value.
             return listutils::typeError( "internal Error" );
         }
 
-        ListExpr arg1Type = nl->First( nl->First( args ) );
-        ListExpr arg2Type = nl->First( nl->Second( args ) );
-        ListExpr arg3Type = nl->First( nl->Third( args ) );
+        ListExpr drel1Type, rel1Type, dist1Type, drel1Value, darray1Type;
+        if( !DRelHelpers::isDRelDescr( nl->First( args ), drel1Type, rel1Type,
+            dist1Type, drel1Value, darray1Type ) ) {
+            return listutils::typeError( err +
+                ": first argument is not a d[f]rel" );
+        }
+
+        ListExpr darrayBTreeType = nl->First( nl->Second( args ) );
+        if( !DArray::checkType( darrayBTreeType ) ) {
+            return listutils::typeError( err +
+                ": second argument is not a darray" );
+        }
+        //ListExpr btreeType = nl->Second( nl->Second( args ) );
+
+        ListExpr drel2Type, rel2Type, dist2Type, drel2Value, darray2Type;
+        if( !DRelHelpers::isDRelDescr( nl->Third( args ), drel2Type, rel2Type,
+            dist2Type, drel2Value, darray2Type ) ) {
+            return listutils::typeError( err +
+                ": third argument is not a d[f]rel" );
+        }
+
         ListExpr arg4Type = nl->First( nl->Fourth( args ) );
-
-        ListExpr arg1Value = nl->Second( nl->First( args ) );
-        ListExpr arg2Value = nl->Second( nl->Second( args ) );
-        ListExpr arg3Value = nl->Second( nl->Third( args ) );
-        //ListExpr arg4Value = nl->Second( nl->Fourth( args ) );
-
-        ListExpr darray1Type, darray3Type;
-        if( !DRelHelpers::drelCheck( arg1Type, darray1Type ) ) {
-            return listutils::typeError( 
-                err + ": first argument is not a d[f]rel" );
+        if( !nl->IsAtom( arg4Type )
+          || nl->AtomType( arg4Type ) != SymbolType ) {
+            return listutils::typeError( err +
+                ": fourth argument is not an attribute" );
         }
 
-        if( !DArray::checkType( arg2Type ) ) {
-            return listutils::typeError( 
-                err + ": second argument is not a darray" );
-        }
+        // create string to call dmap the call is devided in two parts
+        // the argument for the drel is missing and will be filled in the
+        // value mapping
+        ListExpr arg4Value = nl->Second( nl->Fourth( args ) );
+        string funText1 = "(dmap3 ";
+        string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
+            "(elem2_2 ARRAYFUNARG2) (elem3_3 ARRAYFUNARG3) "
+            "(loopjoin (feed elem1_1) (fun (tuple_4 TUPLE) "
+            "(exactmatch elem2_2 elem3_3 (attr tuple_4 " +
+            nl->ToString( arg4Value ) + ") ) ) ) ) 1238 )";
 
-        ListExpr darray2Type = arg2Type;
-
-        if( !DRelHelpers::drelCheck( arg3Type, darray3Type ) ) {
-            return listutils::typeError( 
-                err + ": third argument is not a d[f]rel" );
-        }
-
-        ListExpr rel1Type = nl->Second( arg1Type );
-        ListExpr btreeType = nl->Second( arg2Type );
-        ListExpr rel3Type = nl->Second( arg3Type );
+        #ifdef DRELDEBUG
+        cout << "funText1" << endl;
+        cout << funText1 << endl;
+        cout << "funText2" << endl;
+        cout << funText2 << endl;
+        #endif
 
         ListExpr attr1List = nl->Second( nl->Second( rel1Type ) );
-        ListExpr attr3List = nl->Second( nl->Second( rel3Type ) );
+        ListExpr attr2List = nl->Second( nl->Second( rel2Type ) );
+        ListExpr relType = nl->TwoElemList(
+            listutils::basicSymbol<Relation>( ),
+            nl->TwoElemList(
+                listutils::basicSymbol<Tuple>( ),
+                ConcatLists( attr1List, attr2List ) ) );
 
-        // create function type to call dmap3TM
-        ListExpr funType = nl->TwoElemList(
-            nl->FiveElemList(
-                nl->SymbolAtom( "map" ),
-                rel1Type,
-                btreeType,
-                rel3Type,
-                nl->TwoElemList(
-                    listutils::basicSymbol<Stream<Tuple>>( ),
-                    nl->TwoElemList(
-                        listutils::basicSymbol<Tuple>( ),
-                        ConcatLists( attr1List, attr3List ) ) ) ),
-            nl->FiveElemList(
-                nl->SymbolAtom( "fun" ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "elem1_1" ),
-                    nl->SymbolAtom( "ARRAYFUNARG1" ) ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "elem2_2" ),
-                    nl->SymbolAtom( "ARRAYFUNARG2" ) ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "elem3_3" ),
-                    nl->SymbolAtom( "ARRAYFUNARG3" ) ),
-                    nl->ThreeElemList(
-                        nl->SymbolAtom( "loopjoin" ),
-                        nl->TwoElemList(
-                            nl->SymbolAtom( "feed" ),
-                            nl->SymbolAtom( "elem1_1" ) ),
-                        nl->ThreeElemList(
-                            nl->SymbolAtom( "fun" ),
-                            nl->TwoElemList(
-                                nl->SymbolAtom( "tuple_4" ),
-                                nl->SymbolAtom( "TUPLE" ) ),
-                            nl->FourElemList(
-                                nl->SymbolAtom( "exactmatch" ),
-                                nl->SymbolAtom( "elem2_2" ),
-                                nl->SymbolAtom( "elem3_3" ),
-                                nl->ThreeElemList(
-                                    nl->SymbolAtom( "attr" ),
-                                    nl->SymbolAtom( "tuple_4" ),
-                                    arg4Type ) ) ) ) ) ); 
+        ListExpr resultType = nl->ThreeElemList(
+            listutils::basicSymbol<DFRel>( ),
+            relType,
+            dist2Type );
 
-        // result type of dmap3TM
-        ListExpr dmapResult = dmapXTMT<3>(
-            nl->SixElemList(
-                nl->TwoElemList( darray1Type, arg1Value ),
-                nl->TwoElemList( darray2Type, arg2Value ),
-                nl->TwoElemList( darray3Type, arg3Value ),
-                nl->TwoElemList( listutils::basicSymbol<CcString>( ),
-                    nl->StringAtom( "" ) ),
-                funType,
-                nl->TwoElemList( 
-                    listutils::basicSymbol<CcInt>( ),
-                    nl->IntAtom( 1238 ) ) ) );
-
-        if( !nl->HasLength( dmapResult, 3 ) ) {
-            return dmapResult;
-        }
-
-        ListExpr newDRel;
-        if( !DArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DRel>( );
-        }
-        else if( !DFArray::checkType( nl->Third( dmapResult ) ) ) {
-            newDRel = listutils::basicSymbol<DFRel>( );
-        }
-        else {
-            return dmapResult;
-        }
-
-        ListExpr newRes = nl->ThreeElemList(
-            newDRel,
-            nl->Second( nl->Third( dmapResult ) ),
-            nl->Third( arg3Type ) );
-
-        ListExpr append = nl->FourElemList(
-            nl->StringAtom( "" ),
-            nl->IntAtom( 1238 ),
-            nl->First( nl->Second( dmapResult ) ),
-            nl->Second( nl->Second( dmapResult ) ) );
+        ListExpr append = nl->TwoElemList( 
+            nl->TextAtom( funText1 ),
+            nl->TextAtom( funText2 ) );
 
         return nl->ThreeElemList(
             nl->SymbolAtom( Symbols::APPEND( ) ),
             append,
-            newRes );
+            resultType );
     }
 
 /*
 1.2 Value Mapping ~dreldmapVMT~
 
 Uses a d[f]rel and creates a new drel. The d[f]rel is created by calling 
-the dmap value mapping of the Distributed2Algebra.
+the dmap operators of the Distributed2Algebra. The function is in the 
+text arguments of the typemapping.
 
 */
-    template<class R, class T>
-    int dreldmapVMT( Word* args, Word& result, int message,
+    template<class R, bool setDType>
+    int dreldmapNewVMT( Word* args, Word& result, int message,
+        Word& local, Supplier s ) {
+
+        #ifdef DRELDEBUG
+        cout << "dreldmapNewVMT" << endl;
+        #endif
+
+        int x = qp->GetNoSons( s );
+
+        R* drel = ( R* )args[ 0 ].addr;
+        FText* fun1 = ( FText* )args[ x - 2 ].addr;
+        FText* fun2 = ( FText* )args[ x - 1 ].addr;
+
+        result = qp->ResultStorage(s);
+        DFRel* resultDFRel = ( DFRel* )result.addr;
+
+        if( !drel->IsDefined( ) ) {
+            resultDFRel->makeUndefined( );
+            return 0;
+        }
+
+        // create dmap call with drel pointer
+        string drelptr = nl->ToString( DRelHelpers::createDRelConvert( 
+            qp->GetType( qp->GetSon( s, 0 ) ), drel ) );
+
+        string funText = fun1->GetValue( ) + drelptr + fun2->GetValue( );
+
+        #ifdef DRELDEBUG
+        cout << "funText" << endl;
+        cout << funText << endl;
+        #endif
+
+        ListExpr funList;
+        if( !nl->ReadFromString( funText, funList ) ) {
+            resultDFRel->makeUndefined( );
+        }
+
+        bool correct = false;
+        bool evaluable = false;
+        bool defined = false;
+        bool isFunction = false;
+        string typeString, errorString;
+        Word dmapResult;
+        if( !QueryProcessor::ExecuteQuery( funList, dmapResult, 
+                typeString, errorString,
+                correct, evaluable, defined, isFunction ) ) {
+            resultDFRel->makeUndefined( );
+            return 0;
+        }
+        
+        if( !correct || !evaluable || !defined ) {
+            resultDFRel->makeUndefined( );
+            return 0;
+        }
+
+        DFArray* dfarray = ( DFArray* )dmapResult.addr;
+        if( !dfarray->IsDefined( ) ) {
+            resultDFRel->makeUndefined( );
+            delete dfarray;
+            return 0;
+        }
+
+        resultDFRel->copyFrom( *dfarray );
+        delete dfarray;
+
+        if( setDType ) {
+            resultDFRel->setDistType( drel->getDistType( )->copy( ) );
+        }
+
+        return 0;
+    }
+
+    template int dreldmapNewVMT<DRel, false>( Word* args, Word& result, 
+        int message, Word& local, Supplier s );
+    template int dreldmapNewVMT<DFRel, false>( Word* args, Word& result, 
+        int message, Word& local, Supplier s );
+
+/*
+1.3 Value Mapping ~dreldmap2VMT~
+
+Uses a d[f]rel and a d[f]array and and creates a new drel. The d[f]rel 
+is created by calling the dmap operators of the Distributed2Algebra. 
+The function is in the text arguments of the typemapping.
+
+*/
+    template<class R>
+    int dreldmapNew2VMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
         cout << "dreldmapVMT" << endl;
         #endif
 
-        int parmNum = qp->GetNoSons( s );
-        
-        R* drel = ( R* )args[ 0 ].addr;
-        CcString* name = new CcString( "" );
+        int x = qp->GetNoSons( s );
 
-        ArgVector argVec = {
-            drel,
-            name,
-            args[ 0 ].addr,     // ignored by dmapVMT
-            args[ parmNum -3 ].addr,
-            args[ parmNum -2 ].addr,
-            args[ parmNum -1 ].addr };
+        DArray* darray = ( DArray* )args[ 0 ].addr;
+        R* drel = ( R* )args[ 1 ].addr;
+        FText* fun1 = ( FText* )args[ x - 2 ].addr;
+        FText* fun2 = ( FText* )args[ x - 1 ].addr;
 
-        dmapVMT<T>( argVec, result, message, local, s );
+        result = qp->ResultStorage(s);
+        DFRel* resultDFRel = ( DFRel* )result.addr;
 
-        delete name;
-
-        DFRel* resultDRel = ( DFRel* )result.addr;
-        if( !resultDRel->IsDefined( ) ) {
+        if( !drel->IsDefined( )
+         || !darray->IsDefined( ) ) {
+            resultDFRel->makeUndefined( );
             return 0;
         }
 
-        resultDRel->setDistType( drel->getDistType( )->copy( ) );
+        // create dmap call with drel pointer
+        string darrayptr = nl->ToString( DRelHelpers::createPointerList( 
+                qp->GetType( qp->GetSon( s, 0 ) ), darray ) );
+        string drelptr = nl->ToString( DRelHelpers::createDRelConvert( 
+            qp->GetType( qp->GetSon( s, 1 ) ), drel ) );
 
-        return 0;
-    }
-
-/*
-1.3 Value Mapping ~dreldmap2VMT~
-
-Uses a d[f]rel and a d[f]array and creates a new drel. The d[f]rel is created 
-by calling the dmap2 value mapping of the Distributed2Algebra.
-
-*/
-    template<class R, class T>
-    int dreldmap2VMT( Word* args, Word& result, int message,
-        Word& local, Supplier s ) {
+        string funText = fun1->GetValue( ) + darrayptr + drelptr + 
+            fun2->GetValue( );
 
         #ifdef DRELDEBUG
-        cout << "dreldmap2VMT" << endl;
+        cout << "funText" << endl;
+        cout << funText << endl;
         #endif
 
-        int parmNum = qp->GetNoSons( s );
+        ListExpr funList;
+        if( !nl->ReadFromString( funText, funList ) ) {
+            resultDFRel->makeUndefined( );
+        }
 
-        DFRel* resultDRel;
+        bool correct = false;
+        bool evaluable = false;
+        bool defined = false;
+        bool isFunction = false;
+        string typeString, errorString;
+        Word dmapResult;
+        if( !QueryProcessor::ExecuteQuery( funList, dmapResult, 
+                typeString, errorString,
+                correct, evaluable, defined, isFunction ) ) {
+            resultDFRel->makeUndefined( );
+            return 0;
+        }
         
-        R* drel = ( R* )args[ 1 ].addr;
-
-        ArgVector argVec = {
-            args[ 0 ].addr,
-            drel,
-            args[ parmNum - 4 ].addr,   // name
-            args[ 0 ].addr,             // ingnored
-            args[ parmNum - 3 ].addr,   // port
-            args[ parmNum - 2 ].addr,   // stream?
-            args[ parmNum - 1 ].addr }; // function
-        
-        dmapXVM( argVec, result, message, local, s );
-
-        resultDRel = ( DFRel* )result.addr;
-        if( !resultDRel->IsDefined( ) ) {
+        if( !correct || !evaluable || !defined ) {
+            resultDFRel->makeUndefined( );
             return 0;
         }
 
-        resultDRel->setDistType( drel->getDistType( )->copy( ) );
-
-        return 0;
-    }
-
-/*
-1.4 Value Mapping ~rangeVMT~
-
-Uses a d[f]rel and a d[f]array and creates a new drel. The d[f]rel is created 
-by calling the dmap2 value mapping of the Distributed2Algebra.
-
-*/
-    template<class R, class T>
-    int rangeVMT( Word* args, Word& result, int message,
-        Word& local, Supplier s ) {
-
-        #ifdef DRELDEBUG
-        cout << "rangeVMT" << endl;
-        #endif
-
-        int parmNum = qp->GetNoSons( s );
-
-        DFRel* resultDRel;
-        
-        CcString* name = new CcString( "" );
-        
-        R* drel = ( R* )args[ 1 ].addr;
-
-        ArgVector argVec = {
-            args[ 0 ].addr,
-            drel,
-            name,
-            args[ 0 ].addr,             // ingnored
-            args[ parmNum - 3 ].addr,   // port
-            args[ parmNum - 2 ].addr,   // stream?
-            args[ parmNum - 1 ].addr }; // function
-        
-        dmapXVM( argVec, result, message, local, s );
-
-        delete name;
-
-        resultDRel = ( DFRel* )result.addr;
-        if( !resultDRel->IsDefined( ) ) {
+        DFArray* dfarray = ( DFArray* )dmapResult.addr;
+        if( !dfarray->IsDefined( ) ) {
+            resultDFRel->makeUndefined( );
+            delete dfarray;
             return 0;
         }
 
-        resultDRel->setDistType( drel->getDistType( )->copy( ) );
+        resultDFRel->copyFrom( *dfarray );
+        delete dfarray;
+
+        resultDFRel->setDistType( drel->getDistType( )->copy( ) );
 
         return 0;
     }
@@ -2251,8 +1692,9 @@ by calling the dmap2 value mapping of the Distributed2Algebra.
 /*
 1.4 Value Mapping ~dreldmap3VMT~
 
-Uses a d[f]rel and creates a new drel. The d[f]rel is created by calling 
-the dmap value mapping of the Distributed2Algebra.
+Uses a d[f]rel and a d[f]array and and creates a new drel. The d[f]rel 
+is created by calling the dmap operators of the Distributed2Algebra. 
+The function is in the text arguments of the typemapping.
 
 */
     template<class R, class T>
@@ -2263,28 +1705,74 @@ the dmap value mapping of the Distributed2Algebra.
         cout << "dreldmap3VMT" << endl;
         #endif
 
-        int parmNum = qp->GetNoSons( s );
-        
-        R* drel = ( R* )args[ 0 ].addr;
+        int x = qp->GetNoSons( s );
 
-        ArgVector argVec = {
-            args[ 0 ].addr,
-            args[ 1 ].addr,
-            args[ 2 ].addr,
-            args[ parmNum -4 ].addr,
-            args[ 0 ].addr,     // ignored by dmapVMT
-            args[ parmNum -3 ].addr,
-            args[ parmNum -2 ].addr,
-            args[ parmNum -1 ].addr };
+        R* drel1 = ( R* )args[ 0 ].addr;
+        DArray* darray = ( DArray* )args[ 1 ].addr;
+        T* drel2 = ( T* )args[ 2 ].addr;
+        FText* fun1 = ( FText* )args[ x - 2 ].addr;
+        FText* fun2 = ( FText* )args[ x - 1 ].addr;
 
-        dmapXVM( argVec, result, message, local, s );
+        result = qp->ResultStorage(s);
+        DFRel* resultDFRel = ( DFRel* )result.addr;
 
-        DFRel* resultDRel = ( DFRel* )result.addr;
-        if( !resultDRel->IsDefined( ) ) {
+        if( !drel1->IsDefined( )
+         || !darray->IsDefined( )
+         || !drel2->IsDefined( ) ) {
+            resultDFRel->makeUndefined( );
             return 0;
         }
 
-        resultDRel->setDistType( drel->getDistType( )->copy( ) );
+        // create dmap call with drel pointer
+        string drel1ptr = nl->ToString( DRelHelpers::createDRelConvert( 
+            qp->GetType( qp->GetSon( s, 0 ) ), drel1 ) );
+        string darrayptr = nl->ToString( DRelHelpers::createPointerList( 
+            qp->GetType( qp->GetSon( s, 1 ) ), darray ) );
+        string drel2ptr = nl->ToString( DRelHelpers::createDRelConvert( 
+            qp->GetType( qp->GetSon( s, 2 ) ), drel2 ) );
+
+        string funText = fun1->GetValue( ) + drel1ptr + darrayptr + drel2ptr + 
+            " " + fun2->GetValue( );
+
+        #ifdef DRELDEBUG
+        cout << "funText" << endl;
+        cout << funText << endl;
+        #endif
+
+        ListExpr funList;
+        if( !nl->ReadFromString( funText, funList ) ) {
+            resultDFRel->makeUndefined( );
+        }
+
+        bool correct = false;
+        bool evaluable = false;
+        bool defined = false;
+        bool isFunction = false;
+        string typeString, errorString;
+        Word dmapResult;
+        if( !QueryProcessor::ExecuteQuery( funList, dmapResult, 
+                typeString, errorString,
+                correct, evaluable, defined, isFunction ) ) {
+            resultDFRel->makeUndefined( );
+            return 0;
+        }
+        
+        if( !correct || !evaluable || !defined ) {
+            resultDFRel->makeUndefined( );
+            return 0;
+        }
+
+        DFArray* dfarray = ( DFArray* )dmapResult.addr;
+        if( !dfarray->IsDefined( ) ) {
+            resultDFRel->makeUndefined( );
+            delete dfarray;
+            return 0;
+        }
+
+        resultDFRel->copyFrom( *dfarray );
+        delete dfarray;
+
+        resultDFRel->setDistType( drel2->getDistType( )->copy( ) );
 
         return 0;
     }
@@ -2295,9 +1783,9 @@ the dmap value mapping of the Distributed2Algebra.
 Used by the operators with only a d[f]rel input.
 
 */
-    ValueMapping dreldmapVM[ ] = {
-        dreldmapVMT<DRel, DArray>,
-        dreldmapVMT<DFRel, DFArray>
+    ValueMapping dreldmapNewVM[ ] = {
+        dreldmapNewVMT<DRel, true>,
+        dreldmapNewVMT<DFRel, true>
     };
 
 /*
@@ -2306,20 +1794,9 @@ Used by the operators with only a d[f]rel input.
 Used by the operators with a darray and a d[f]rel as input.
 
 */
-    ValueMapping dreldmap2VM[ ] = {
-        dreldmap2VMT<DRel, DArray>,
-        dreldmap2VMT<DFRel, DFArray>
-    };
-
-/*
-1.7 ValueMapping Array for dmap
-    
-Used by the operators with a darray and a d[f]rel as input.
-
-*/
-    ValueMapping rangeVM[ ] = {
-        rangeVMT<DRel, DArray>,
-        rangeVMT<DFRel, DFArray>
+    ValueMapping dreldmapNew2VM[ ] = {
+        dreldmapNew2VMT<DRel>,
+        dreldmapNew2VMT<DFRel>
     };
 
 /*
@@ -2328,17 +1805,15 @@ Used by the operators with a darray and a d[f]rel as input.
 Used by the operators with a darray and a d[f]rel as input.
 
 */
-    ValueMapping dreldmap3VM[ ] = {
-        dreldmap3VMT<DRel, DArray>,
-        dreldmap3VMT<DFRel, DFArray>
+    ValueMapping dreldmapNew3VM[ ] = {
+        dreldmap3VMT<DRel, DRel>,
+        dreldmap3VMT<DRel, DFRel>,
+        dreldmap3VMT<DFRel, DRel>,
+        dreldmap3VMT<DFRel, DFRel>
     };
 
 /*
-1.8 Selection function for dreldmap
-
-Used to select the right position of the parameters. It is necessary, 
-because the dmap-Operator ignores the second parameter. So so parameters 
-must be moved to the right position for the dmap value mapping.
+1.8 Selection functions for operators without repartitioning
 
 */
     int dreldmapSelect( ListExpr args ) {
@@ -2346,15 +1821,17 @@ must be moved to the right position for the dmap value mapping.
         return DRel::checkType( nl->First( args ) ) ? 0 : 1;
     }
 
-/*
-1.8 Selection function for dreldmap
+    int dreldmap2Select( ListExpr args ) {
 
-Same as drelmap select function, but it checks the thrid argument.
+        return DRel::checkType( nl->Second( args ) ) ? 0 : 1;
+    }
 
-*/
     int dreldmap3Select( ListExpr args ) {
+        // first and third drels
+        int x1 = DRel::checkType( nl->First( args ) ) ? 0 : 2;
+        int x2 = DRel::checkType( nl->Third( args ) ) ? 0 : 2;
 
-        return DRel::checkType( nl->Third( args ) ) ? 0 : 1;
+        return x1 + x2;
     }
 
 /*
@@ -2578,7 +2055,7 @@ Operator specification of the windowintersects operator.
         "drelfilter",
         drelfilterSpec.getStr( ),
         2,
-        dreldmapVM,
+        dreldmapNewVM,
         dreldmapSelect,
         drelfilterTM
     );
@@ -2591,7 +2068,7 @@ Operator specification of the windowintersects operator.
         "project",
         projectSpec.getStr( ),
         2,
-        dreldmapVM,
+        dreldmapNewVM,
         dreldmapSelect,
         projectTM
     );
@@ -2604,7 +2081,7 @@ Operator specification of the windowintersects operator.
         "drelprojectextend",
         drelprojectextendSpec.getStr( ),
         2,
-        dreldmapVM,
+        dreldmapNewVM,
         dreldmapSelect,
         drelprojectextendTM
     );
@@ -2617,7 +2094,7 @@ Operator specification of the windowintersects operator.
         "drelextend",
         drelextendSpec.getStr( ),
         2,
-        dreldmapVM,
+        dreldmapNewVM,
         dreldmapSelect,
         drelextendTM
     );
@@ -2630,7 +2107,7 @@ Operator specification of the windowintersects operator.
         "head",
         headSpec.getStr( ),
         2,
-        dreldmapVM,
+        dreldmapNewVM,
         dreldmapSelect,
         headTM
     );
@@ -2643,7 +2120,7 @@ Operator specification of the windowintersects operator.
         "rename",
         renameSpec.getStr( ),
         2,
-        dreldmapVM,
+        dreldmapNewVM,
         dreldmapSelect,
         renameTM
     );
@@ -2656,7 +2133,7 @@ Operator specification of the windowintersects operator.
         "lrdup",
         lrdupSpec.getStr( ),
         2,
-        dreldmapVM,
+        dreldmapNewVM,
         dreldmapSelect,
         lrdupTM
     );
@@ -2669,7 +2146,7 @@ Operator specification of the windowintersects operator.
         "lsort",
         lsortSpec.getStr( ),
         2,
-        dreldmapVM,
+        dreldmapNewVM,
         dreldmapSelect,
         lsortTM
     );
@@ -2682,9 +2159,9 @@ Operator specification of the windowintersects operator.
         "drellgroupby",
         drellgroupbySpec.getStr( ),
         2,
-        dreldmapVM,
+        dreldmapNewVM,
         dreldmapSelect,
-        drellgroupbyTM
+        drellgroupbyTM<false>
     );
 
 /*
@@ -2695,7 +2172,7 @@ Operator specification of the windowintersects operator.
         "lsortby",
         lsortbySpec.getStr( ),
         2,
-        dreldmapVM,
+        dreldmapNewVM,
         dreldmapSelect,
         lsortbyTM
     );
@@ -2708,8 +2185,8 @@ Operator specification of the windowintersects operator.
         "windowintersects",
         windowintersectsSpec.getStr( ),
         2,
-        dreldmap2VM,
-        dreldmapSelect,
+        dreldmapNew2VM,
+        dreldmap2Select,
         windowintersectsTM
     );
 
@@ -2721,8 +2198,8 @@ Operator specification of the windowintersects operator.
         "range",
         rangeSpec.getStr( ),
         2,
-        rangeVM,
-        dreldmapSelect,
+        dreldmapNew2VM,
+        dreldmap2Select,
         rangeTM
     );
 
@@ -2734,8 +2211,8 @@ Operator specification of the windowintersects operator.
         "exactmatch",
         exactmatchSpec.getStr( ),
         2,
-        dreldmap2VM,
-        dreldmapSelect,
+        dreldmapNew2VM,
+        dreldmap2Select,
         exactmatchTM
     );
 
@@ -2746,8 +2223,8 @@ Operator specification of the windowintersects operator.
     Operator inloopjoinOp(
         "inloopjoin",
         inloopjoinSpec.getStr( ),
-        2,
-        dreldmap3VM,
+        4,
+        dreldmapNew3VM,
         dreldmap3Select,
         inloopjoinTM
     );

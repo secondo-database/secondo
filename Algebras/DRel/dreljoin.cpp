@@ -25,8 +25,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 
-1 Implementation of the secondo operators drelsortmergejoin, drelitHashJoin, 
-and drelitSpatialJoin
+1 Implementation of the secondo operators sortmergejoin, itHashJoin, 
+and itSpatialJoin
 
 */
 //#define DRELDEBUG
@@ -90,6 +90,10 @@ parameters. Used for sortmergejoin and itHashJoin.
     ListExpr drelsimpleJoinTM( ListExpr args ) {
 
         string join = joinType == 0 ? "sortmergejoin" : "itHashJoin";
+
+        if( joinType < 0 || joinType > 1 ) {
+            return listutils::typeError( "join not supported" );
+        }
 
         std::string err = "d[f]rel(X) x d[f]rel(X) x attr x attr expected";
 
@@ -489,14 +493,14 @@ necessary. Used for sortmergejoin and itHashJoin.
 Used by the operators with only a drel input.
 
 */
-    ValueMapping drelsortmergejoinVM[ ] = {
+    ValueMapping sortmergejoinVM[ ] = {
         drelsimpleJoinVMT<DRel, DArray, DRel, DArray, 0>,
         drelsimpleJoinVMT<DFRel, DFArray, DRel, DArray, 0>,
         drelsimpleJoinVMT<DRel, DArray, DFRel, DFArray, 0>,
         drelsimpleJoinVMT<DFRel, DFArray, DFRel, DFArray, 0>
     };
 
-    ValueMapping drelitHashJoinVM[ ] = {
+    ValueMapping itHashJoinVM[ ] = {
         drelsimpleJoinVMT<DRel, DArray, DRel, DArray, 1>,
         drelsimpleJoinVMT<DFRel, DFArray, DRel, DArray, 1>,
         drelsimpleJoinVMT<DRel, DArray, DFRel, DFArray, 1>,
@@ -522,48 +526,48 @@ must be moved to the right position for the dmap value mapping.
 /*
 1.5 Specification for all operators using dmapVM
 
-1.5.7 Specification of drelsortmergejoin
+1.5.7 Specification of sortmergejoin
 
-Operator specification of the drelsortmergejoin operator.
+Operator specification of the sortmergejoin operator.
 
 */
-    OperatorSpec drelsortmergejoinSpec(
+    OperatorSpec sortmergejoinSpec(
         " d[f]rel(rel(X)) x d[f]rel(rel(X)) x attr x attr "
         "-> dfrel(rel(Y)) ",
-        " _ _ drelsortmergejoin[_,_]",
+        " _ _ sortmergejoin[_,_]",
         "Computes the equijoin of two d[f]rels using the new sort "
         "operator implementation.",
-        " query drel1 {p} drel2 {o} drelsortmergejoin[PLZ_p, PLZ_o]"
+        " query drel1 {p} drel2 {o} sortmergejoin[PLZ_p, PLZ_o]"
     );
 
-    OperatorSpec drelitHashJoinSpec(
+    OperatorSpec itHashJoinSpec(
         " d[f]rel(rel(X)) x d[f]rel(rel(X)) x attr x attr "
         "-> dfrel(rel(Y)) ",
-        " _ _ drelitHashJoin[_,_]",
+        " _ _ itHashJoin[_,_]",
         "Computes a hash join of two d[f]rels. ",
-        " query drel1 {p} drel2 {o} drelitHashJoin[PLZ_p, PLZ_o]"
+        " query drel1 {p} drel2 {o} itHashJoin[PLZ_p, PLZ_o]"
     );
 
 /*
 1.6 Operator instance of the join operators
 
-1.6.7 Operator instance of drelsortmergejoin operator
+1.6.7 Operator instance of sortmergejoin operator
 
 */
-    Operator drelsortmergejoinOp(
-        "drelsortmergejoin",
-        drelsortmergejoinSpec.getStr( ),
+    Operator sortmergejoinOp(
+        "sortmergejoin",
+        sortmergejoinSpec.getStr( ),
         4,
-        drelsortmergejoinVM,
+        sortmergejoinVM,
         drelsimpleJoinSelect,
         drelsimpleJoinTM<0>
     );
 
-    Operator drelitHashJoinOp(
-        "drelitHashJoin",
-        drelitHashJoinSpec.getStr( ),
+    Operator itHashJoinOp(
+        "itHashJoin",
+        itHashJoinSpec.getStr( ),
         4,
-        drelitHashJoinVM,
+        itHashJoinVM,
         drelsimpleJoinSelect,
         drelsimpleJoinTM<1>
     );

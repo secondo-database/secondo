@@ -225,13 +225,13 @@ attribute.
                 return 0;
             }
 
-            boundary = calc->getBoundary( )->Clone( );
+            boundary = calc->getBoundary( );
 
             delete calc;
         }
 
         Partitioner<R, T>* parti = new Partitioner<R, T>( attrName, 
-            boundaryType, drel, drelType, boundary->Clone( ), 1238 );
+            boundaryType, drel, drelType, boundary, 1238 );
 
         if( !parti->repartition2DFMatrix( ) ) {
             cout << "repartition failed!!" << endl;

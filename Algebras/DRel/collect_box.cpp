@@ -45,7 +45,7 @@ namespace drel {
 /*
 1.1 Type Mapping
 
-Expect a DRel or DFRel and another DRel or DFRel.
+Expect a stream of spatial objects and a boolean value.
 
 */
     ListExpr drelcollect_boxTM( ListExpr args ) {
@@ -77,8 +77,7 @@ Expect a DRel or DFRel and another DRel or DFRel.
 /*
 1.2 Value Mapping
 
-Compares the disttypes of two drels. Return true, if the drels have the 
-same disttype.
+Computes the bounding box from a stream of spatial attributes.
 
 */
     template<int dim>

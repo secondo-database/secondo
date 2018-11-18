@@ -104,6 +104,7 @@ A class with usefull helper functions for the DRelAlgebra.
                 ListExpr attrList, std::set<std::string>& names );
             static ListExpr removePartitionAttributes( 
                 ListExpr attrList, distributionType type );
+            static ListExpr addPartitionAttributes( ListExpr attrList );
             static ListExpr getRemovePartitonAttr( distributionType type );
 
             template<class R, class Q, class T>
@@ -118,6 +119,9 @@ A class with usefull helper functions for the DRelAlgebra.
                 int elem1 = 1,
                 int elem2 = 2,
                 int streamelem = 3 );
+
+            static ListExpr createPointerList( ListExpr type, void* ptr );
+            static ListExpr createDRelConvert( ListExpr type, void* ptr );
     };
 
 } // end of namespace drel

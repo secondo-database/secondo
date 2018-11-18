@@ -794,10 +794,16 @@ Value mapping of the distribute operator to replicate data.
         OpTree stream = createReplicationOpTree( 
             qps, rel, sourceType, workers->GetNoTuples( ) );
 
+        CcInt* slots = new CcInt( workers->GetNoTuples( ) );
+        CcBool* roundrobin = new CcBool( true, true );
+
         ArgVector argVec = { stream, args[ 1 ].addr,
-            new CcInt( workers->GetNoTuples( ), true ),
-            new CcBool( true, true ),  // only round robin
-            args[ 3 ].addr, args[ 4 ].addr, args[ 5 ].addr, args[ 6 ].addr };
+            slots,
+            roundrobin,
+            args[ 3 ].addr, 
+            args[ 4 ].addr, 
+            args[ 5 ].addr, 
+            args[ 6 ].addr };
 
         distribute3VMT<AType, DType, HType, CType>( argVec,
             result, message, local, s );
@@ -808,6 +814,8 @@ Value mapping of the distribute operator to replicate data.
         }
 
         delete qps;
+        delete slots;
+        delete roundrobin;
 
         return 0;
     }
@@ -828,10 +836,18 @@ Value mapping of the distribute operator to distribute by round robin.
         OpTree stream = createStreamOpTree(
             qps, nl->Second( qp->GetType( s ) ), rel );
 
+        CcBool* roundrobin = new CcBool( true, true );
+
         // new argument vector for distributqe3VMT
-        ArgVector argVec = { stream, args[ 1 ].addr, args[ 3 ].addr,
-            new CcBool( true, true ),  // only round robin
-            args[ 4 ].addr, args[ 5 ].addr, args[ 6 ].addr, args[ 7 ].addr };
+        ArgVector argVec = { 
+            stream, 
+            args[ 1 ].addr, 
+            args[ 3 ].addr,
+            roundrobin,
+            args[ 4 ].addr, 
+            args[ 5 ].addr, 
+            args[ 6 ].addr, 
+            args[ 7 ].addr };
 
         distribute3VMT<AType, DType, HType, CType>( argVec,
             result, message, local, s );
@@ -842,6 +858,7 @@ Value mapping of the distribute operator to distribute by round robin.
         }
 
         delete qps;
+        delete roundrobin;
 
         return 0;
     }    
@@ -915,8 +932,15 @@ Value mapping of the distribute operator to distribute by hash.
 
         // new argument vector for distribute4VMT with the OpTree passed to 
         // the valuemapping of the distribute3 operator.
-        ArgVector argVec = { stream, args[ 1 ].addr, tree, args[ 4 ].addr,
-            args[ 5 ].addr, args[ 6 ].addr, args[ 7 ].addr, args[ 8 ].addr };
+        ArgVector argVec = { 
+            stream, 
+            args[ 1 ].addr, 
+            tree, 
+            args[ 4 ].addr,
+            args[ 5 ].addr, 
+            args[ 6 ].addr, 
+            args[ 7 ].addr, 
+            args[ 8 ].addr };
 
         distribute4VMT<AType, DType, HType, CType>( argVec,
             result, message, local, s );
@@ -1063,8 +1087,15 @@ Value mapping of the distribute operator to distribute by range.
         }
 
         // new argument vector for distribute4VMT
-        ArgVector argVec = { stream, args[ 1 ].addr, tree, args[ 4 ].addr,
-            args[ 5 ].addr, args[ 6 ].addr, args[ 7 ].addr, args[ 8 ].addr };
+        ArgVector argVec = { 
+            stream, 
+            args[ 1 ].addr, 
+            tree, 
+            args[ 4 ].addr,
+            args[ 5 ].addr, 
+            args[ 6 ].addr, 
+            args[ 7 ].addr, 
+            args[ 8 ].addr };
 
         distribute4VMT<AType, DType, HType, CType>( argVec,
             result, message, local, s );
@@ -1094,7 +1125,8 @@ Value mapping of the distribute operator for spatial distribution.
         Word& local, Supplier s ) {
 
         Relation* rel = ( Relation* )args[ 0 ].addr;
-        CcInt* size = ( CcInt* )args[ 4 ].addr;
+        int size = ( ( CcInt* )args[ 4 ].addr )->GetIntval( );
+        size = 37; // static grid size. don't think about it
         string attrName = ( ( CcString* )args[ 10 ].addr )->GetValue( );
         FText* sourceRelType = ( FText* )args[ 11 ].addr;
 
@@ -1115,7 +1147,7 @@ Value mapping of the distribute operator for spatial distribution.
 
         // Create the grid to distribute
         GType* grid = createCellGrid<GType>( 
-            rel, sourceType, attrName, size->GetIntval( ) );
+            rel, sourceType, attrName, size );
 
         QueryProcessor* qps = new QueryProcessor( nl, am );
 
@@ -1124,9 +1156,16 @@ Value mapping of the distribute operator for spatial distribution.
         
         // new argument vector for distribute2VMT with the OpTree passed to 
         // the valuemapping of the distribute2 operator.
-        ArgVector argVec = { stream, args[ 1 ].addr, args[ 3 ].addr, 
-            args[ 4 ].addr, args[ 5 ].addr, args[ 6 ].addr, args[ 7 ].addr, 
-            args[ 8 ].addr, args[ 9 ].addr };
+        ArgVector argVec = { 
+            stream, 
+            args[ 1 ].addr, 
+            args[ 3 ].addr, 
+            args[ 4 ].addr, 
+            args[ 5 ].addr, 
+            args[ 6 ].addr, 
+            args[ 7 ].addr, 
+            args[ 8 ].addr, 
+            args[ 9 ].addr };
 
         ddistribute2VMT<AType, DType, HType, CType>( argVec,
             result, message, local, s );

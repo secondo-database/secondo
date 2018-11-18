@@ -1,11 +1,14 @@
 operator createboundary alias CREATEBOUNDARY pattern _ op [_,_,_]
 operator getboundaryindex alias GETBOUNDARYINDEX pattern op(_,_)
 operator rect2cellgrid alias RECT2CELLGRID pattern _ op [_]
+operator file2stream alias FILE2STREAM pattern op(_)
 
 operator drelfdistribute alias DRELFDISTRIBUTE pattern _ op [_,_,_,_,_]
 operator dreldistribute alias DRELDISTRIBUTE pattern _ op [_,_,_,_,_]
+operator drelimport alias DRELIMPORT pattern op(_,_,_,_)
 
 operator drelpartition alias DRELPARTITION pattern _ op [_,_]
+operator drelspatialpartition alias DRELSPATIALPARTITION pattern _ op [_,_]
 
 operator comparedisttype alias COMPAREDISTTYPE pattern _ _ op
 operator drelcollect_box alias DRELCOLLECTBOX pattern _ op[_]
@@ -37,7 +40,7 @@ operator sort alias LSORT pattern _ op
 operator sortby alias SORTBY pattern _ op [list]
 operator drelgroupby alias DRELGROUPBY pattern _ op[list;funlist] implicit parameters elem1 types DRELRELFUNARG1
 
-operator drelsortmergejoin alias DRELSORTMERGEJOIN pattern _ _ op [_,_]
-operator drelitHashJoin alias DRELITHASHJOIN pattern _ _ op [_,_]
+operator sortmergejoin alias DRELSORTMERGEJOIN pattern _ _ op [_,_]
+operator itHashJoin alias DRELITHASHJOIN pattern _ _ op [_,_]
 
 operator inloopjoin alias INLOOPJOIN pattern _ _ _op [_]

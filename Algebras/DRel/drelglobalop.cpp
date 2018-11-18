@@ -67,231 +67,91 @@ namespace drel {
     ListExpr lsortTM( ListExpr args );
     ListExpr lsortbyTM( ListExpr args );
     ListExpr lrdupTM( ListExpr args );
-    ListExpr drellgroupbyTM( ListExpr args, bool global );
+    template<bool global>
+    ListExpr drellgroupbyTM( ListExpr args );
 
-    template<class R, class T>
-    int dreldmapVMT( Word* args, Word& result, int message,
-        Word& local, Supplier s );
-
-    class dmapFunctionMapper {
-
-        public:
-
-            enum dmapLocalMapper { lsort, lsortby, lrdup, lgroupby };
-
-            static ListExpr callDMapTM( ListExpr args, dmapLocalMapper i ) {
-
-                switch ( i ) {
-                    case lsort: return lsortTM( args );
-                    case lsortby: return lsortbyTM( args );
-                    case lrdup: return lrdupTM( args );
-                    case lgroupby: return drellgroupbyTM( args, true );
-                }
-
-                return nl->TheEmptyList( );
-            }
-
-            static std::string getFun( dmapLocalMapper i ) {
-
-                switch ( i ) {
-                    case lsort: return "( fun( elem_1 AREDUCEARG1 )(sort ( "
-                        "feed elem_1 ) ) )";
-                    case lrdup: return "( fun( elem_1 AREDUCEARG1 )(rdup ( "
-                        "feed elem_1 ) ) )";
-                    default: return "";
-                }
-
-                return "";
-            }
-
-            static std::string getFun( ListExpr list, dmapLocalMapper i ) {
-
-                switch ( i ) {
-                    case lsortby: return "( fun( elem_1 AREDUCEARG1 )"
-                        "(sortby ( feed elem_1 ) " + nl->ToString( list ) + 
-                        " ) )";
-                    default: return "";
-                }
-
-                return "";
-            }
-            static std::string getFun( 
-                ListExpr list1, ListExpr list2, dmapLocalMapper i ) {
-
-                switch ( i ) {
-                    case lgroupby: return "( fun( elem_1 AREDUCEARG1 )"
-                        "(groupby ( feed elem_1 ) " + nl->ToString( list1 ) + 
-                        nl->ToString( list2 ) + " ) )";
-                    default: return "";
-                }
-
-                return "";
-            }
-    };
-
+    template<class R, bool setDType>
+    int dreldmapNewVMT( 
+        Word* args, Word& result, int message, Word& local, Supplier s );
 
 /*
-1.1 Type Mappings for all global operators with one d[f]rel
+1.1 Type Mappings for all global operators
 
-1.1.1 Type Mapping ~drelglobalOp2TM~
-
-Expect a d[f]rel and an attrtibute list to execute a mapped function on the 
-the distributed relation. Type mapping for global simple operators with two 
-arguments.
+1.1.1 Type Mapping ~sortTM~
 
 */
-    template<dmapFunctionMapper::dmapLocalMapper i>
-    ListExpr drelglobalOp2TM( ListExpr args ) {
+    ListExpr sortTM( ListExpr args ) {
 
-        std::string err = "d[f]rel(X) x attrlist expected";
+        string err = "d[f]rel(X) expected";
 
-        ListExpr dreldmapRes = dmapFunctionMapper::callDMapTM( 
-                        args, i );
+        ListExpr local = lsortTM( args );
 
-        if( !nl->HasLength( dreldmapRes, 3 ) ) {
-            return dreldmapRes;
+        if( !nl->HasLength( local, 3 ) ) {
+            return local;
         }
 
-        ListExpr arg1Type = nl->First( nl->First( args ) );
-        ListExpr relType = nl->Second( arg1Type );
-        ListExpr distType = nl->Third( arg1Type );
-        ListExpr arg2Type = nl->First( nl->Second( args ) );
-
-        std::string attrName = nl->SymbolValue( 
-            nl->First( arg2Type ) );
-        ListExpr attrList = nl->Second( nl->Second( relType ) );
-
-        ListExpr attrType;
-        int pos = listutils::findAttribute( attrList, attrName, attrType );
-        if( pos == 0 ) {
+        ListExpr darrayType;
+        distributionType dType;
+        int attr, key;
+        if( !DRelHelpers::drelCheck( 
+            nl->First( nl->First( args ) ), darrayType, dType, attr, key ) ) {
             return listutils::typeError(
-                err + ": attr name " + attrName + " not found" );
+                err + ": first argument is not a d[f]rel" );
         }
+
+        ListExpr relType = nl->Second( darrayType );
+        ListExpr firstAttr = nl->First( nl->Second( nl->Second( relType ) ) );
+        ListExpr attrName = nl->First( firstAttr );
+        ListExpr attrType = nl->Second( firstAttr );
 
         // Compare the first attribute with the current partion of the drel
         // If the attribute match with the distributtion attribute only lsortby
         // will be necessary.
-        if( nl->HasMinLength( distType, 2 ) ) {
+        string funText1, funText2;
+        bool repartition;
+        bool rangeRepartition = true;
 
-            distributionType type;
-            if( !getTypeByNum( ( int )
-                    ( nl->IntValue( nl->First( distType ) ) ), type ) ) {
-                        
-                return listutils::typeError(
-                    err + ": internal error" );
-            }
+        string boundName = "";
 
-            if( type == range ) {
-                int attrNum = ( int )
-                    ( nl->IntValue( nl->Second( distType ) ) );
+        if( dType == replicated || ( dType == range && attr == 0 ) ) {
 
-                if( attrNum == pos - 1 ) { 
-                    return dreldmapRes;
-                }
-            }
+            repartition = false;
+            funText1 = nl->TextValue( nl->First( nl->Second( local ) ) );
+            funText2 = nl->TextValue( nl->Second( nl->Second( local ) ) );
+
+        }
+        else {
+
+            repartition = true;
+            funText1 = "(areduce ";
+            funText2 = " \"\" (fun (elem_1 AREDUCEARG1) "
+                    "(sort (feed elem_1))) 1238)";
         }
 
-        ListExpr resultType = nl->ThreeElemList(
-            listutils::basicSymbol<DFRel>( ),
-            nl->Second( arg1Type ),
-            nl->FourElemList(
-                    nl->IntAtom( range ),
-                    nl->IntAtom( pos - 1 ),
-                    nl->IntAtom( rand( ) ),
-                    nl->TwoElemList(
-                        nl->SymbolAtom( Vector::BasicType( ) ),
-                        attrType ) ) );
+        ListExpr resultType = 
+            repartition ? 
+            nl->ThreeElemList(
+                listutils::basicSymbol<DFRel>( ),
+                relType,
+                nl->FourElemList(
+                        nl->IntAtom( range ),
+                        nl->IntAtom( 0 ),
+                        nl->IntAtom( rand( ) ),
+                        nl->TwoElemList(
+                            nl->SymbolAtom( Vector::BasicType( ) ),
+                            attrType ) ) ) : 
+            nl->ThreeElemList(
+                listutils::basicSymbol<DFRel>( ),
+                relType, 
+                nl->Third( nl->First( nl->First( args ) ) ) );
+                    
 
-        std::string fun =  dmapFunctionMapper::getFun( arg2Type, i );
-
-        if( fun == "" ) {
-            return listutils::typeError(
-                    err + ": internal error" );
-        }
-
-        ListExpr appendList = nl->ThreeElemList(
-            nl->StringAtom( attrName ),
-            nl->IntAtom( pos - 1 ),
-            nl->TextAtom( fun ) );
-
-        return nl->ThreeElemList( 
-            nl->SymbolAtom( Symbols::APPEND( ) ),
-            appendList,
-            resultType );
-    }
-
-/*
-1.1.2 Type Mapping ~drelglobalOpTM~
-
-Expect only a d[f]rel as argument. Execute a mapped function on the d[f]rel. 
-Used by global operators without any argumants expect the d[f]rel.
-
-*/
-    template<dmapFunctionMapper::dmapLocalMapper i>
-    ListExpr drelglobalOpTM( ListExpr args ) {
-
-        std::string err = "d[f]rel(X) expected";
-
-        ListExpr dreldmapRes = dmapFunctionMapper::callDMapTM( 
-                        args, i );
-
-        if( !nl->HasLength( dreldmapRes, 3 ) ) {
-            return dreldmapRes;
-        }
-
-        ListExpr arg1Type = nl->First( nl->First( args ) );
-        ListExpr relType = nl->Second( arg1Type );
-        ListExpr distType = nl->Third( arg1Type );
-
-        ListExpr attrList = nl->Second( nl->Second( relType ) );
-        ListExpr attrName = nl->First( nl->First( attrList ) );
-        ListExpr attrType = nl->Second( nl->First( attrList ) );
-
-        // Compare the first attribute with the current partion of the drel
-        // If the attribute match with the distributtion attribute only lsortby
-        // will be necessary.
-        if( nl->HasMinLength( distType, 2 ) ) {
-
-            distributionType type;
-            if( !getTypeByNum( ( int )
-                    ( nl->IntValue( nl->First( distType ) ) ), type ) ) {
-
-                return listutils::typeError(
-                    err + ": internal error" );
-            }
-
-            if( type == range ) {
-                int attrNum = ( int )
-                    ( nl->IntValue( nl->Second( distType ) ) );
-
-                if( attrNum == 0 ) { 
-                    return dreldmapRes;
-                }
-            }
-        }
-
-        ListExpr resultType = nl->ThreeElemList(
-            listutils::basicSymbol<DFRel>( ),
-            nl->Second( arg1Type ),
-            nl->FourElemList(
-                    nl->IntAtom( range ),
-                    nl->IntAtom( 0 ),
-                    nl->IntAtom( rand( ) ),
-                    nl->TwoElemList(
-                        nl->SymbolAtom( Vector::BasicType( ) ),
-                        attrType ) ) );
-
-        std::string fun =  dmapFunctionMapper::getFun( i );
-
-        if( fun == "" ) {
-            return listutils::typeError(
-                    err + ": internal error" );
-        }
-
-        ListExpr appendList = nl->ThreeElemList(
+        ListExpr appendList = nl->FiveElemList(
+            nl->BoolAtom( repartition ),
+            nl->BoolAtom( rangeRepartition ),
             nl->StringAtom( nl->SymbolValue( attrName ) ),
-            nl->IntAtom( 0 ),
-            nl->TextAtom( fun ) );
+            nl->TextAtom( funText1 ),
+            nl->TextAtom( funText2 ) );
 
         return nl->ThreeElemList( 
             nl->SymbolAtom( Symbols::APPEND( ) ),
@@ -300,88 +160,318 @@ Used by global operators without any argumants expect the d[f]rel.
     }
 
 /*
-1.1.3 Type Mapping ~drelglobalOp3TM~
-
-Expect a d[f]rel and an attrtibute list to execute a mapped function on the 
-the distributed relation. Type mapping for global simple operators with two 
-arguments.
+1.1.2 Type Mapping ~sortbyTM~
 
 */
-    template<dmapFunctionMapper::dmapLocalMapper i>
-    ListExpr drelglobalOp3TM( ListExpr args ) { 
+    ListExpr sortbyTM( ListExpr args ) {
 
-        std::string err = "d[f]rel(X) x attrlist x fun expected";
+        string err = "d[f]rel(X) x attrlist expected";
 
-        ListExpr dreldmapRes = dmapFunctionMapper::callDMapTM( 
-                        args, i );
+        ListExpr local = lsortbyTM( args );
 
-        if( !nl->HasLength( dreldmapRes, 3 ) ) {
-            return dreldmapRes;
+        if( !nl->HasLength( local, 3 ) ) {
+            return local;
         }
 
-        ListExpr arg1Type = nl->First( nl->First( args ) );
-        ListExpr arg2Type = nl->First( nl->Second( args ) );
-        ListExpr arg3Value = nl->Second( nl->Third( args ) );
-        ListExpr relType = nl->Second( arg1Type );
-        ListExpr distType = nl->Third( arg1Type );
-
-        std::string attrName = nl->SymbolValue( 
-            nl->First( arg2Type ) );
-        ListExpr attrList = nl->Second( nl->Second( relType ) );
-
-        ListExpr attrType;
-        int pos = listutils::findAttribute( attrList, attrName, attrType );
-        if( pos == 0 ) {
+        ListExpr darrayType;
+        distributionType dType;
+        int attr, key;
+        if( !DRelHelpers::drelCheck( 
+            nl->First( nl->First( args ) ), darrayType, dType, attr, key ) ) {
             return listutils::typeError(
-                err + ": attr name " + attrName + " not found" );
+                err + ": first argument is not a d[f]rel" );
         }
+
+        ListExpr relType = nl->Second( darrayType );
+        string attrName = nl->SymbolValue( 
+            nl->First( nl->Second( nl->Second( args ) ) ) );
+        ListExpr attrType;
+
+        int pos = listutils::findAttribute( 
+            nl->Second( nl->Second( relType ) ), 
+            attrName, attrType ) - 1;
 
         // Compare the first attribute with the current partion of the drel
         // If the attribute match with the distributtion attribute only lsortby
         // will be necessary.
-        if( nl->HasMinLength( distType, 2 ) ) {
+        string funText1, funText2;
+        string repartitionText1, repartitionText2;
+        bool repartition;
+        bool rangeRepartition = true;
 
-            distributionType type;
-            if( !getTypeByNum( ( int )
-                    ( nl->IntValue( nl->First( distType ) ) ), type ) ) {
+        if( dType == replicated || ( dType == range && attr == pos ) ) {
 
-                return listutils::typeError(
-                    err + ": internal error" );
-            }
+            repartition = false;
+            funText1 = nl->TextValue( nl->First( nl->Second( local ) ) );
+            funText2 = nl->TextValue( nl->Second( nl->Second( local ) ) );
 
-            if( type == range ) {
-                int attrNum = ( int )
-                    ( nl->IntValue( nl->Second( distType ) ) );
+        }
+        else {
 
-                if( attrNum == pos - 1 ) { 
-                    return dreldmapRes;
-                }
-            }
+            repartition = true;
+            string attrList = nl->ToString( nl->Second( nl->Second( args ) ) );
+
+            funText1 = "(areduce ";
+            funText2 = " \"\" (fun (elem_1 AREDUCEARG1) "
+                "(sortby (feed elem_1)" + attrList + ")) 1238)";
         }
 
-        ListExpr resultType = nl->ThreeElemList(
-            listutils::basicSymbol<DFRel>( ),
-            nl->Second( nl->Third( dreldmapRes ) ),
-            nl->FourElemList(
-                    nl->IntAtom( range ),
-                    nl->IntAtom( pos - 1 ),
-                    nl->IntAtom( rand( ) ),
-                    nl->TwoElemList(
-                        nl->SymbolAtom( Vector::BasicType( ) ),
-                        attrType ) ) );
+        ListExpr resultType = 
+            repartition ? 
+            nl->ThreeElemList(
+                listutils::basicSymbol<DFRel>( ),
+                relType,
+                nl->FourElemList(
+                        nl->IntAtom( range ),
+                        nl->IntAtom( 0 ),
+                        nl->IntAtom( rand( ) ),
+                        nl->TwoElemList(
+                            nl->SymbolAtom( Vector::BasicType( ) ),
+                            attrType ) ) ) : 
+            nl->ThreeElemList(
+                listutils::basicSymbol<DFRel>( ),
+                relType, 
+                nl->Third( nl->First( nl->First( args ) ) ) );
 
-        std::string fun =  dmapFunctionMapper::getFun( arg2Type,
-            arg3Value, i );
-
-        if( fun == "" ) {
-            return listutils::typeError(
-                err + ": internal error" );
-        }
-
-        ListExpr appendList = nl->ThreeElemList(
+        ListExpr appendList = nl->FiveElemList(
+            nl->BoolAtom( repartition ),
+            nl->BoolAtom( rangeRepartition ),
             nl->StringAtom( attrName ),
-            nl->IntAtom( pos - 1 ),
-            nl->First( nl->Second( dreldmapRes ) ) );
+            nl->TextAtom( funText1 ),
+            nl->TextAtom( funText2 ) );
+
+        return nl->ThreeElemList( 
+            nl->SymbolAtom( Symbols::APPEND( ) ),
+            appendList,
+            resultType );
+    }
+
+/*
+1.1.3 Type Mapping ~drelgroupbyTM~
+
+*/
+    ListExpr drelgroupbyTM( ListExpr args ) {
+
+        #ifdef DRELDEBUG
+        cout << "drelgroupbyTM" << endl;
+        cout << nl->ToString( args ) << endl;
+        #endif
+
+        string err = "d[f]rel(X) x attrlist expected";
+
+        ListExpr local = drellgroupbyTM<true>( args );
+
+        if( !nl->HasLength( local, 3 ) ) {
+            return local;
+        }
+
+        ListExpr darrayType;
+        distributionType dType;
+        int attr, key;
+        if( !DRelHelpers::drelCheck( 
+            nl->First( nl->First( args ) ), darrayType, dType, attr, key ) ) {
+            return listutils::typeError(
+                err + ": first argument is not a d[f]rel" );
+        }
+
+        ListExpr relType = nl->Second( darrayType );
+        string attrName = nl->SymbolValue( 
+            nl->First( nl->Second( nl->Second( args ) ) ) );
+        ListExpr attrType;
+
+        int pos = listutils::findAttribute( 
+            nl->Second( nl->Second( relType ) ), 
+            attrName, attrType ) - 1;
+
+        // Compare the first attribute with the current partion of the drel
+        // If the attribute match with the distributtion attribute only lsortby
+        // will be necessary.
+        string funText1, funText2;
+        string repartitionText1, repartitionText2;
+        bool repartition;
+        bool rangeRepartition = false;
+
+        if( dType == replicated || ( dType == range && attr == pos ) ) {
+
+            repartition = false;
+            funText1 = nl->TextValue( nl->First( nl->Second( local ) ) );
+            funText2 = nl->TextValue( nl->Second( nl->Second( local ) ) );
+
+        }
+        else {
+
+            ListExpr tempfun;
+            ListExpr groupfun = nl->TheEmptyList( );
+            ListExpr temp = nl->Second( nl->Third( args ) );
+            while( !nl->IsEmpty( temp ) ) {
+
+                if( !nl->HasLength( nl->First( temp ), 2 ) ) {
+                    return listutils::typeError( "internal Error" );
+                }
+
+                if( !DRelHelpers::replaceDRELFUNARG(
+                    nl->Second( nl->First( temp ) ),
+                    "GROUP", tempfun ) ) {
+                    return listutils::typeError( err +
+                        ": error in the function format" );
+                }
+
+                if( nl->IsEmpty( groupfun ) ) {
+                    groupfun = nl->OneElemList( nl->TwoElemList(
+                        nl->First( nl->First( temp ) ), tempfun ) );
+                } else {
+                    groupfun = listutils::concat( groupfun,
+                        nl->OneElemList( nl->TwoElemList(
+                            nl->First( nl->First( temp ) ), tempfun ) ) );
+                }
+
+                temp = nl->Rest( temp );
+            }
+
+            ListExpr attrList = nl->Second( nl->Second( args ) );
+            repartition = true;
+            cout << "repartition true" << endl;
+            if( dType == spatial2d || dType == spatial3d ) {
+                funText1 = "(areduce (partitionF ";
+                funText2 = " \"\" (fun (elem1_2 FFR) (elem2_2 FFR) "
+                    "(remove (filter (feed elem1_2) "
+                    "(fun (streamelem_3 STREAMELEM) "
+                    "(= (attr streamelem_3 Original) TRUE))) "
+                    "(Original Cell))) (fun (elem1_4 FFR) (elem2_5 FFR) "
+                    "(hashvalue (attr elem2_5 Name) 9999)) "
+                    "0) \"\" (fun (elem_6 AREDUCEARG1) (groupby "
+                    "(feed elem_6) " + nl->ToString( attrList ) + " "
+                    + nl->ToString( groupfun ) + " )) 1238)";
+            }
+            else {
+                funText1 = "(areduce (partition ";
+                funText2 = " \"\" (fun (elem_1 SUBSUBTYPE1) "
+                    "(hashvalue (attr elem_1 PLZ) 9999)) 0) "
+                    "\"\" (fun (elem_2 AREDUCEARG1) (groupby (feed elem_2)"
+                    + nl->ToString( attrList ) + " " + nl->ToString( groupfun )
+                    + ")) 1238)";
+            }
+        }
+
+        #ifdef DRELDEBUG
+        cout << "funText1" << endl;
+        cout << funText1 << endl;
+        cout << "funText2" << endl;
+        cout << funText2 << endl;
+        #endif
+
+        ListExpr resultType = 
+            repartition ? 
+            nl->ThreeElemList(
+                listutils::basicSymbol<DFRel>( ),
+                relType,
+                nl->TwoElemList(
+                        nl->IntAtom( hash ),
+                        nl->IntAtom( 0 ) ) ) : 
+            nl->ThreeElemList(
+                listutils::basicSymbol<DFRel>( ),
+                relType, 
+                nl->Third( nl->First( nl->First( args ) ) ) );
+
+        ListExpr appendList = nl->FiveElemList(
+            nl->BoolAtom( repartition ),
+            nl->BoolAtom( rangeRepartition ),
+            nl->StringAtom( attrName ),
+            nl->TextAtom( funText1 ),
+            nl->TextAtom( funText2 ) );
+
+        return nl->ThreeElemList( 
+            nl->SymbolAtom( Symbols::APPEND( ) ),
+            appendList,
+            resultType );
+    }
+
+/*
+1.1.4 Type Mapping ~rdupTM~
+
+*/
+    ListExpr rdupTM( ListExpr args ) {
+
+        string err = "d[f]rel(X) expected";
+
+        ListExpr local = lrdupTM( args );
+
+        if( !nl->HasLength( local, 3 ) ) {
+            return local;
+        }
+
+        ListExpr darrayType;
+        distributionType dType;
+        int attr, key;
+        if( !DRelHelpers::drelCheck( 
+            nl->First( nl->First( args ) ), darrayType, dType, attr, key ) ) {
+            return listutils::typeError(
+                err + ": first argument is not a d[f]rel" );
+        }
+
+        ListExpr relType = nl->Second( darrayType );
+        ListExpr firstAttr = nl->First( nl->Second( nl->Second( relType ) ) );
+        ListExpr attrName = nl->First( firstAttr );
+
+        // Compare the first attribute with the current partion of the drel
+        // If the attribute match with the distributtion attribute only lsortby
+        // will be necessary.
+        string funText1, funText2;
+        bool repartition;
+        bool rangeRepartition = false;
+
+        string boundName = "";
+
+        if( dType == replicated || dType == hash 
+         || ( dType == range && attr == 0 ) ) {
+
+            repartition = false;
+            funText1 = nl->TextValue( nl->First( nl->Second( local ) ) );
+            funText2 = nl->TextValue( nl->Second( nl->Second( local ) ) );
+
+        }
+        else {
+
+            repartition = true;
+            if( dType == spatial2d || dType == spatial3d ) {
+                funText1 = "(areduce (partitionF ";
+                funText2 = " \"\" (fun (elem1_1 FFR) (elem2_2 FFR) "
+                    "(remove (filter (feed elem1_1) "
+                    "(fun (streamelem_3 STREAMELEM) "
+                    "(= (attr streamelem_3 Original) TRUE))) "
+                    "(Original Cell))) (fun (elem1_4 FFR) (elem2_5 FFR) "
+                    "(hashvalue (attr elem2_5 Name) 9999)) "
+                    "0) \"\" (fun (elem_6 AREDUCEARG1) (rdup "
+                    "(feed elem_6))) 1238)";
+            }
+            else {
+                funText1 = "(areduce (partition ";
+                funText2 = " \"\" (fun (elem_1 SUBSUBTYPE1) "
+                    "(hashvalue (attr elem_1 PLZ) 9999)) 0) "
+                    "\"\" (fun (elem_2 AREDUCEARG1) (rdup (feed elem_2))) "
+                    "1238)";
+            }
+        }
+
+        ListExpr resultType = 
+            repartition ? 
+            nl->ThreeElemList(
+                listutils::basicSymbol<DFRel>( ),
+                relType,
+                nl->TwoElemList(
+                        nl->IntAtom( hash ),
+                        nl->IntAtom( 0 ) ) ) :
+            nl->ThreeElemList(
+                listutils::basicSymbol<DFRel>( ),
+                relType, 
+                nl->Third( nl->First( nl->First( args ) ) ) );
+
+        ListExpr appendList = nl->FiveElemList(
+            nl->BoolAtom( repartition ),
+            nl->BoolAtom( rangeRepartition ),
+            nl->StringAtom( nl->SymbolValue( attrName ) ),
+            nl->TextAtom( funText1 ),
+            nl->TextAtom( funText2 ) );
 
         return nl->ThreeElemList( 
             nl->SymbolAtom( Symbols::APPEND( ) ),
@@ -397,43 +487,69 @@ repartitioning the d[f]rel and execute a function on the d[f]rel.
 
 */
     template<class R, class T>
-    int drelgobalOpVMT( Word* args, Word& result, int message,
+    int drelglobaldmapVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
-        int parmNum = qp->GetNoSons( s );
+        int x = qp->GetNoSons( s );
 
-        ListExpr boundaryType = nl->Fourth( nl->Third( qp->GetType( s ) ) );
-        ListExpr drelType = qp->GetType( qp->GetSon( s, 0 ) );
+        distributionType dType;
+        int attr, key;
+        DFRel::checkDistType( 
+            nl->Third( qp->GetType( s ) ), dType, attr, key );
+
         R* drel = ( R* )args[ 0 ].addr;
-        int key = nl->IntValue( nl->Third( nl->Third( qp->GetType( s ) ) ) );
-        int pos = ( ( CcInt* )args[ parmNum - 2 ].addr )->GetValue( );
-        string attrName = 
-            ( ( CcString* )args[ parmNum - 3 ].addr )->GetValue( );
+        bool repartition = ( ( CcBool* )args[ x - 5 ].addr )->GetValue( );
+        bool repartitionRange = ( ( CcBool* )args[ x - 4 ].addr )->GetValue( );
 
-        collection::Collection* boundary;
+        // call other valuemapping to execute the query, if no boundaries 
+        // are necessary
+        if( !repartition || !repartitionRange ) {
+            dreldmapNewVMT<R, false>( args, result, message, local, s );
 
-        BoundaryCalculator<R>* calc = new BoundaryCalculator<R>( 
-                attrName, boundaryType, drel, drelType, 1238 );
-
-        if( !calc->countDRel( ) ){
-            cout << "error while determining the relation size" 
-                    << endl;
-            result = qp->ResultStorage( s );
-            ( ( DFRel* )result.addr )->makeUndefined( );
+            // if repartitioning is used set the disttype
+            if( repartition ) {
+                ( ( DFRel* )result.addr )->setDistType( 
+                    new DistTypeHash( dType, attr ) );
+            }
+            else {
+                // no repartitioning, use the distype of the source drel
+                ( ( DFRel* )result.addr )->setDistType( 
+                    drel->getDistType( )->copy( ) );
+            }
             return 0;
         }
+
+        ListExpr drelType = qp->GetType( qp->GetSon( s, 0 ) );
+        ListExpr boundaryType = nl->Fourth( nl->Third( qp->GetType( s ) ) );
+
+        string attrName = ( ( CcString* )args[ x - 3 ].addr )->GetValue( );
+        FText* fun1 = ( FText* )args[ x - 2 ].addr;
+        FText* fun2 = ( FText* )args[ x - 1 ].addr;
+
+        result = qp->ResultStorage( s );
+        DFRel* resultDFRel = ( DFRel* )result.addr;
+
+        if( !drel->IsDefined( ) ) {
+            resultDFRel->makeUndefined( );
+            return 0;
+        }
+        
+        // compute the boundary
+        BoundaryCalculator<R>* calc = new BoundaryCalculator<R>( 
+                attrName, boundaryType, new R( *drel ), drelType, 1238 );
 
         if( !calc->computeBoundary( ) ){
-            cout << "error while computing the boundaries" << endl;
-            result = qp->ResultStorage( s );
-            ( ( DFRel* )result.addr )->makeUndefined( );
+            resultDFRel->makeUndefined( );
             return 0;
+        
         }
 
-        boundary = calc->getBoundary( )->Clone( );
+        collection::Collection* boundary = calc->getBoundary( );
+        delete calc;
 
+        // create a dfmatrix of the d[f]rel
         Partitioner<R, T>* parti = new Partitioner<R, T>( attrName, 
-            boundaryType, drel, drelType, boundary->Clone( ), 1238 );
+            boundaryType, drel, drelType, boundary, 1238 );
 
         if( !parti->repartition2DFMatrix( ) ) {
             cout << "repartition failed!!" << endl;
@@ -443,62 +559,60 @@ repartitioning the d[f]rel and execute a function on the d[f]rel.
         }
 
         DFMatrix* matrix = parti->getDFMatrix( );
+        ListExpr matrixType = parti->getMatrixType( );
 
-        if( !matrix || !matrix->IsDefined( ) ) {
-            cout << "repartition failed!!" << endl;
-            result = qp->ResultStorage( s );
-            ( ( DFRel* )result.addr )->makeUndefined( );
-            return 0;
+        // create dmap call with drel pointer
+        string matrixptr = nl->ToString( DRelHelpers::createPointerList( 
+            matrixType, matrix ) );
+
+        string funText = fun1->GetValue( ) + matrixptr + fun2->GetValue( );
+
+        #ifdef DRELDEBUG
+        cout << "funText" << endl;
+        cout << funText << endl;
+        #endif
+
+        ListExpr funList;
+        if( !nl->ReadFromString( funText, funList ) ) {
+            resultDFRel->makeUndefined( );
         }
 
-        ListExpr areduceQuery = nl->FiveElemList(
-            nl->SymbolAtom( "areduce" ),
-            nl->TwoElemList(
-                parti->getMatrixType( ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "ptr" ),
-                    listutils::getPtrList( matrix ) ) ),
-            nl->StringAtom( "" ),
-            nl->ThreeElemList(
-                nl->SymbolAtom( "fun" ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "elem_1" ),
-                    nl->SymbolAtom( "AREDUCEARG1" ) ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "feed" ),
-                    nl->SymbolAtom( "elem_1" ) ) ),
-            nl->IntAtom( 1238 ) );
-
-        string typeString, errorString;
         bool correct = false;
         bool evaluable = false;
         bool defined = false;
         bool isFunction = false;
-        Word areduceResult;
-        bool resBool = QueryProcessor::ExecuteQuery( areduceQuery, 
-            areduceResult, typeString, errorString, correct, evaluable,
-             defined, isFunction );
-
-        result = qp->ResultStorage( s );
-        DFRel* resultDFRel = ( DFRel* )result.addr;
+        string typeString, errorString;
+        Word dmapResult;
+        if( !QueryProcessor::ExecuteQuery( funList, dmapResult, 
+                typeString, errorString,
+                correct, evaluable, defined, isFunction ) ) {
+            resultDFRel->makeUndefined( );
+            return 0;
+        }
         
-        if( !resBool || !correct || !evaluable || !defined ) {
+        if( !correct || !evaluable || !defined ) {
             resultDFRel->makeUndefined( );
             return 0;
         }
 
-        resultDFRel->copyFrom( *( ( DArrayBase* )areduceResult.addr ) );
-
-        if( !resultDFRel->IsDefined( ) ) {
+        DFArray* dfarray = ( DFArray* )dmapResult.addr;
+        if( !dfarray->IsDefined( ) ) {
+            resultDFRel->makeUndefined( );
+            delete dfarray;
             return 0;
         }
 
-        DistTypeRange* distType = new DistTypeRange( 
-            range, pos, key, boundary );
-        resultDFRel->setDistType( distType );
+        resultDFRel->copyFrom( *dfarray );
+
+        delete dfarray;
+        delete parti;
+
+        resultDFRel->setDistType( 
+            new DistTypeRange( dType, attr, key, boundary ) );
 
         return 0;
     }
+
 
 /*
 1.3 ValueMapping Array for dmap
@@ -506,11 +620,9 @@ repartitioning the d[f]rel and execute a function on the d[f]rel.
 Used by the operators with only a drel input.
 
 */
-    ValueMapping drelgobalOpVM[ ] = {
-        dreldmapVMT<DRel, DArray>,
-        dreldmapVMT<DFRel, DFArray>,
-        drelgobalOpVMT<DRel, DArray>,
-        drelgobalOpVMT<DFRel, DFArray>
+    ValueMapping drelglobaldmapVM[ ] = {
+        drelglobaldmapVMT<DRel, DArray>,
+        drelglobaldmapVMT<DFRel, DFArray>
     };
 
 /*
@@ -521,46 +633,9 @@ because the dmap-Operator ignores the second parameter. So so parameters
 must be moved to the right position for the dmap value mapping.
 
 */
-    int drelglobalOpSelect( ListExpr args ) {
+    int drelglobaldmapSelect( ListExpr args ) {
 
-        ListExpr distType = nl->Third( nl->First( args ) );
-
-        distributionType type;
-        getTypeByNum( ( int )( nl->IntValue( nl->First( distType ) ) ), type );
-
-        if( nl->HasLength( args, 1 ) ) {
-            if( type == range ) {
-
-                int attrNum = ( int ) 
-                    ( nl->IntValue( nl->Second( distType ) ) );
-
-                if( attrNum == 0 ) {
-                    return DRel::checkType( 
-                        nl->First( args ) ) ? 0 : 1;
-                }
-            }
-            return DRel::checkType( nl->First( args ) ) ? 2 : 3;
-        }
-        
-        if( type == range ) {
-
-            int attrNum = ( int ) ( nl->IntValue( nl->Second( distType ) ) );
-
-            ListExpr relType = nl->Second( nl->First( args ) );
-            ListExpr attrList = nl->Second( nl->Second( relType ) );
-            std::string attrName = nl->SymbolValue( 
-                nl->First( nl->Second( args ) ) );
-
-            ListExpr temp;
-            if( listutils::findAttribute( 
-                attrList, attrName, temp ) - 1 == attrNum ) {
-
-                return DRel::checkType( 
-                    nl->First( args ) ) ? 0 : 1;
-            }
-        }
-
-        return DRel::checkType( nl->First( args ) ) ? 2 : 3 ;
+        return DRel::checkType( nl->First( args ) ) ? 0 : 1 ;
     }
 
 /*
@@ -643,10 +718,10 @@ Operator specification of the sortby operator.
     Operator rdupOp(
         "rdup",
         rdupSpec.getStr( ),
-        4,
-        drelgobalOpVM,
-        drelglobalOpSelect,
-        drelglobalOpTM<dmapFunctionMapper::dmapLocalMapper::lrdup>
+        2,
+        drelglobaldmapVM,
+        drelglobaldmapSelect,
+        rdupTM
     );
     
 /*
@@ -656,10 +731,10 @@ Operator specification of the sortby operator.
     Operator sortOp(
         "sort",
         sortSpec.getStr( ),
-        4,
-        drelgobalOpVM,
-        drelglobalOpSelect,
-        drelglobalOpTM<dmapFunctionMapper::dmapLocalMapper::lsort>
+        2,
+        drelglobaldmapVM,
+        drelglobaldmapSelect,
+        sortTM
     );
     
 /*
@@ -669,10 +744,10 @@ Operator specification of the sortby operator.
     Operator drelgroupbyOp(
         "drelgroupby",
         drelgroupbySpec.getStr( ),
-        4,
-        drelgobalOpVM,
-        drelglobalOpSelect,
-        drelglobalOp3TM<dmapFunctionMapper::dmapLocalMapper::lgroupby>
+        2,
+        drelglobaldmapVM,
+        drelglobaldmapSelect,
+        drelgroupbyTM
     );
 
 /*
@@ -682,10 +757,10 @@ Operator specification of the sortby operator.
     Operator sortbyOp(
         "sortby",
         sortbySpec.getStr( ),
-        4,
-        drelgobalOpVM,
-        drelglobalOpSelect,
-        drelglobalOp2TM<dmapFunctionMapper::dmapLocalMapper::lsortby>
+        2,
+        drelglobaldmapVM,
+        drelglobaldmapSelect,
+        sortbyTM
     );
 
 } // end of namespace drel

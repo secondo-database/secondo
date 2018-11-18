@@ -75,6 +75,7 @@ Class to repartition a DRel by range.
             qp( new QueryProcessor( nl, am ) ), matrix( 0 ), port( _port ), 
             boundaryName( _boundaryName ), tree( 0 ) {
 
+            boundary->Copy( );
             dType = drel->getDistType( )->getDistType( );
         }
 
@@ -134,6 +135,10 @@ Class to repartition a DRel by range.
 
             if( boundary ) {
                 boundary->DeleteIfAllowed( );
+            }
+
+            if( matrix ) {
+                delete matrix;
             }
         }
 

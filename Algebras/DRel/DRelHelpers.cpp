@@ -662,9 +662,6 @@ Tests if for a join of two d[f]rels a repatition is requiered.
         drel1reparti = drel1reparti ? dType1 != replicated : drel1reparti;
         drel2reparti = drel2reparti ? dType2 != replicated : drel2reparti;
 
-        cout << "resultDistType" << endl;
-        cout << nl->ToString( resultDistType ) << endl;
-
         return resultDistType;
     }
 
@@ -733,6 +730,41 @@ may be Original and Cell.
         }
 
         return attrList;
+    }
+
+/*
+1.20 ~removePartitionAttributes~
+
+Removes all partition attributes from the attrList. The partition attributes 
+may be Original and Cell.
+
+*/
+    ListExpr DRelHelpers::addPartitionAttributes( ListExpr attrList ) {
+
+        ListExpr attrType;
+        int pos = listutils::findAttribute( 
+            attrList, "Cell", attrType );
+
+        if( pos != 0 ) {
+            return attrList;
+        }
+
+        attrList = ConcatLists( attrList, nl->OneElemList(
+            nl->TwoElemList(
+                nl->SymbolAtom( "Cell" ),
+                listutils::basicSymbol<CcInt>( ) ) ) );
+
+        pos = listutils::findAttribute( 
+            attrList, "Original", attrType );
+
+        if( pos != 0 ) {
+            return attrList;
+        }
+
+        return ConcatLists( attrList, nl->OneElemList(
+            nl->TwoElemList(
+                nl->SymbolAtom( "Original" ),
+                listutils::basicSymbol<CcBool>( ) ) ) );
     }
 
 /*
@@ -937,6 +969,28 @@ to bring the boundary object to the workers and create a dfmatrix.
         }
 
         return true;
+    }
+
+/*
+1.23 ~createPointerList~
+
+Creates a ListExpr for a pointer to a given type.
+
+*/
+    ListExpr DRelHelpers::createPointerList( ListExpr type, void* ptr ) {
+
+        return nl->TwoElemList(
+            type,
+            nl->TwoElemList(
+                nl->SymbolAtom( "ptr" ),
+                listutils::getPtrList( ptr ) ) );
+    }
+
+    ListExpr DRelHelpers::createDRelConvert( ListExpr type, void* ptr ) {
+
+        return nl->TwoElemList(
+            nl->SymbolAtom( "drelconvert" ),
+            createPointerList( type, ptr ) );
     }
 
     // function instantiations
