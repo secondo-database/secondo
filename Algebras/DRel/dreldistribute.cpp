@@ -560,12 +560,6 @@ Type mapping for the distribute operators.
 
             // create result type and append list for hash distribution
             if( requestedDistType == hash ) {
-                
-                if( !( CcInt::checkType( attrType ) ) ) {
-                    return listutils::typeError( 
-                        err + ": attribute is not of type " + 
-                            CcInt::BasicType( ) );
-                }
 
                 // get result type from distributed4 operator
                 ListExpr result = distribute4TMT<A>(
