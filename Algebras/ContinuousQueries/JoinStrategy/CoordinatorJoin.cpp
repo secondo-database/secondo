@@ -204,14 +204,23 @@ std::string CoordinatorJoin::selectWorkerJoinCondition()
             priorities[name] = std::numeric_limits<int>::max()
                 - _queryparts[name].group;
         } else {
-            priorities[name] = 
-                _queryparts[name].queries.size() 
-                    / _queryparts[name].worker.size();
+            if (_queryparts[name].queries.size()) 
+            {
+                // no queries but already at least one worker
+                // so the join condition with the least (inactive)
+                // worker should get the next worker
+                priorities[name] = 
+                    _queryparts[name].worker.size() * -1;
+            } else {
+                priorities[name] = 
+                    _queryparts[name].queries.size() 
+                        / _queryparts[name].worker.size();
+            }
         }
     }
 
     // find the highest priority
-    double max = 0;
+    int max = 0;
     for(i = count; i != 0; i--)
     {
         name = _attrlist.elem(i).first().convertToString();

@@ -91,7 +91,6 @@ class WorkerJoin: public WorkerGen {
 
       void buildQueryString();
       std::string getRelationDescription(NList attrlist);
-      std::string getUniqueId(int len=4);
 
       std::string getFilterStringPart(structQuerysort elem);
       std::string getJoinStringPart();
@@ -102,6 +101,7 @@ class WorkerJoin: public WorkerGen {
 
     std::string _joinCondition;
     std::string _querystring;
+    int _noqueries;
     
     NList _queryattrlist;
     NList _tupleattrlist;

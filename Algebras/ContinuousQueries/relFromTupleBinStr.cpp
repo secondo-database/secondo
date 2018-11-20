@@ -102,7 +102,7 @@ ListExpr relFromTupleBinStr_TM(ListExpr args) {
         return listutils::typeError(" binary string as text expected");
 
     return  nl->TwoElemList(
-        nl->SymbolAtom(Relation::BasicType()),
+        nl->SymbolAtom(TempRelation::BasicType()),
         nl->TwoElemList( 
             listutils::basicSymbol<Tuple>(),
             tupledescr
@@ -124,12 +124,6 @@ int relFromTupleBinStr_VM(Word* args, Word& result, int message,
     FText* fttuplebinstr = static_cast<FText*>(args[1].addr);  
     std::string tuplebinstr = fttuplebinstr->GetValue();
 
-    // Relation* rel = (Relation*)((qp->ResultStorage(s)).addr);
-    // if(rel->GetNoTuples() > 0)
-    // {
-        // rel->Clear();
-    // }
-    
     ListExpr resulttype;
     nl->ReadFromString(fttupledescr->GetValue(), resulttype);
 
@@ -147,6 +141,7 @@ int relFromTupleBinStr_VM(Word* args, Word& result, int message,
     t->ReadFromBinStr(0, tuplebinstr);
     
     Relation* rel = new Relation(tt);
+    
     rel->Clear();
     rel->AppendTuple(t);
     

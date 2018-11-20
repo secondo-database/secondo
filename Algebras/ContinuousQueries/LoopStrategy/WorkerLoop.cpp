@@ -64,9 +64,6 @@ WorkerLoop::WorkerLoop(int id, std::string attrliststr,
 {
     _type = "loop";
 
-    _monitor = new Monitor(id, _type, "", coordinationClient, 
-        0.5 * 60 * 1000, 100);
-
     // Build TupleType once to speed up Tuple creation
     nl->ReadFromString(attrliststr, _attrlist);
 
@@ -225,7 +222,7 @@ void WorkerLoop::TightLoop()
 
             hitlist = hitlist.substr(0, hitlist.size()-1);
 
-            LOG << "tID: " << tupleId << "hl: " << hitlist << ENDL;
+            LOG << "tID: " << tupleId << " | hl: " << hitlist << ENDL;
 
             // notify all nomos
             if (hits) notifyAllNoMos(tupleId, tupleString, hitlist);

@@ -65,8 +65,8 @@ WorkerJoin::WorkerJoin(int id, std::string attrliststr,
     LOG << "WorlerJoin::Constructor" << ENDL;
 
     _type = "join";
-    _joinCondition = joincondition; // changed here for one stop setup
-    // _joinCondition = "No_eq";
+    _joinCondition = joincondition;
+    
     _queryattrlist = ProtocolHelpers::getQueryAttributes(attrliststr);
     _sc = SecondoSystem::GetCatalog();
 
@@ -75,6 +75,7 @@ WorkerJoin::WorkerJoin(int id, std::string attrliststr,
     _tupleattrlist = tplattrs;
 
     // Reset queries map to 0
+    _noqueries = 0;
     int count = _queryattrlist.length();
     std::string name = "";
     for(int i = 1; i <= count; i++)
@@ -187,11 +188,11 @@ void WorkerJoin::Initialize()
 
 void WorkerJoin::TightLoop()
 {
-    LOG << "WorkerJoin::TightLoop" << ENDL;
-    
     // wait for new tuple
     bool hasMsg = false;
     ProtocolHelpers::Message msg;
+
+    _monitor->startBatch();
 
     while (_running) {
         std::unique_lock<std::mutex> lock(_tupleServer.mqMutex);
@@ -204,6 +205,7 @@ void WorkerJoin::TightLoop()
         });
 
         if (!_running) {
+            _monitor->checkBatch();
             lock.unlock();
             continue;
         }
@@ -221,6 +223,9 @@ void WorkerJoin::TightLoop()
         lock.unlock();
 
         if (hasMsg && msg.valid && msg.cmd==StSuGenP::tuple()) {
+
+            _monitor->startWorkRound();
+
             // extract informations
             int tupleId = 0;
             std::string tupleString = "";
@@ -242,7 +247,10 @@ void WorkerJoin::TightLoop()
                 LOG << "failed to extract id or tuple" << ENDL;
             }
 
-            if (!tupleId) continue;
+            if (!tupleId) {
+                _monitor->endWorkRound(0, 0, 0);
+                continue;
+            }
 
             LOG << tupleId << "|" << tupleString << ENDL;
 
@@ -255,6 +263,7 @@ void WorkerJoin::TightLoop()
             if (tplr->GetNoTuples() == 0)
             {
                 LOG << "No tuple in tpl! relFromTupleBinStr failed!" << ENDL;
+                _monitor->endWorkRound(0, 0, 0);
                 continue;
             }
 
@@ -271,12 +280,15 @@ void WorkerJoin::TightLoop()
             
             hitlist = hitlist.substr(0, hitlist.size()-1);
 
-            LOG << "tID: " << tupleId << "hl: " << hitlist << ENDL;
+            LOG << "tID: " << tupleId << " | hl: " << hitlist << ENDL;
 
             // notify all nomos
             if (hits) notifyAllNoMos(tupleId, tupleString, hitlist);
 
+            _monitor->endWorkRound(1, _noqueries, hits);
         }
+
+        _monitor->checkBatch();
     }
 }
 
@@ -326,7 +338,7 @@ void WorkerJoin::addQuery(int id, std::string function)
     qs += " count";
 
     (void) executeQueryString(qs);
-
+    _noqueries++;
     buildQueryString();
 }
 
@@ -391,20 +403,6 @@ std::string WorkerJoin::getRelationDescription(NList attrlist)
     result += "]))";
 
     return result;
-}
-
-std::string WorkerJoin::getUniqueId(int len)
-{
-    static const char alphanum[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                    "abcdefghijklmnopqrstuvwxyz";
-
-    std::string s;
-
-    for (int i = 0; i < len; ++i) {
-        s = s + alphanum[rand() % (sizeof(alphanum) - 1)];
-    }
-
-    return s;
 }
 
 void WorkerJoin::showStatus()
