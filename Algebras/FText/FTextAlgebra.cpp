@@ -2725,7 +2725,6 @@ int cryptVM(Word* args, Word& result, int message,
      return 0;
   }
   string a = arg->GetValue();
-  srand( (unsigned) time(0) ) ;
 
   char s1 = (rand() / ( RAND_MAX / 63 + 1 ))+46;
   char s2 = (rand() / ( RAND_MAX / 63 + 1 ))+46;
@@ -13742,6 +13741,7 @@ Operator queryTimeOp(
     if(traces)
       cout << '\n' <<"InitializeFTextAlgebra"<<'\n';
     ftext::FTextAlgebra* ptr = new ftext::FTextAlgebra();
+    srand( (unsigned) time(0) ) ;
     ptr->Init(nl, qp, am);
     return ptr;
   }
