@@ -452,10 +452,14 @@ int foreverQueries_VM( Word* args, Word& result, int message,
             + "|" + newQuery);
 
         std::cout << "Added Query: " << newQuery << endl;
-        std::cout << "Now waiting for 5 seconds..." << endl;
-        std::this_thread::sleep_for(std::chrono::seconds(5));
 
         newQuery = li->getNext();
+
+        if (newQuery!="")
+        {
+            std::cout << "Now waiting for 2 seconds..." << endl;
+            std::this_thread::sleep_for(std::chrono::seconds(2));
+        }
     } // repeat until li yields ""
 
     std::cout << "All done!" << endl;

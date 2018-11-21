@@ -183,6 +183,8 @@ void WorkerJoin::Initialize()
 
     _sc->CleanUp(false, true);
     
+    _tuplerel = (Relation*) executeQueryString("query tpl;").addr;
+    
     buildQueryString();
 }
 
@@ -254,20 +256,37 @@ void WorkerJoin::TightLoop()
 
             LOG << tupleId << "|" << tupleString << ENDL;
 
-            (void) executeQueryString("query tpl clear;");
+            // (void) executeQueryString("query tpl clear;");
 
-            Relation* tplr = (Relation*) executeQueryString(
-                "query relFromTupleBinStr('" + _tupleattrlist.convertToString()
-                 + "', '" + tupleString + "') feed tpl insert count").addr;
+            // Relation* tplr = (Relation*) executeQueryString(
+        //     "query relFromTupleBinStr('" + _tupleattrlist.convertToString()
+        //      + "', '" + tupleString + "') feed tpl insert consume;").addr;
 
-            if (tplr->GetNoTuples() == 0)
-            {
-                LOG << "No tuple in tpl! relFromTupleBinStr failed!" << ENDL;
-                _monitor->endWorkRound(0, 0, 0);
-                continue;
-            }
+            // if (tplr->GetNoTuples() == 0)
+            // {
+            //     LOG << "No tuple in tpl! relFromTupleBinStr failed!" << ENDL;
+            //     _monitor->endWorkRound(0, 0, 0);
+            //     continue;
+            // }
+
+            // Beginn ALTERNATIVE
+
+                Tuple* t = new Tuple(_tuplett);
+                t->ReadFromBinStr(0, tupleString);
+
+        // (void) executeQueryString("query tpl clear;");
+        // Relation* trel = (Relation*) executeQueryString("query tpl;").addr;
+                _tuplerel->Clear();
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+
+                _tuplerel->AppendTuple(t);
+
+            // Ende ALTERNATIVE
 
             Relation* result=(Relation*) executeQueryString(_querystring).addr;
+
+                t->DeleteIfAllowed();
 
             int hits = result->GetNoTuples();
             std::string hitlist = "";
