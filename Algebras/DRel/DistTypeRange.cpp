@@ -179,9 +179,11 @@ of a suported type to distribute by this type.
         cout << "DistTypeRange::allowedAttrType" << endl;
         #endif
 
-        return CcInt::checkType( _list )
+        /*return CcInt::checkType( _list )
             || CcString::checkType( _list )
-            || CcReal::checkType( _list );
+            || CcReal::checkType( _list );*/
+
+        return true;
     }
 
 /*
