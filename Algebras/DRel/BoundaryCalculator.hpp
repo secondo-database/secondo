@@ -119,16 +119,6 @@ Class to calculate boundaries for partitioning by range.
                 boundary->DeleteIfAllowed( );
             }
         }
-/*
-(((darray (rel (tuple ((Name string) (Typ string) (GeoData line) (Cell int) (Original bool))))) 
-(drelconvert drel05)) 
-(string "") 
-(
-    (map (rel (tuple ((Name string) (Typ string) (GeoData line) (Cell int) (Original bool)))) (rel (tuple ((Name string) (Typ string) (GeoData line) (Cell int) (Original bool)))) (stream (tuple ((Name string) (Typ string) (GeoData line) (Cell int) (Original bool))))) 
-    (fun (elem1_1 FFR) (elem2_2 FFR) (extend (extendstream (remove (feed elem1_1) (Original Cell)) ((Cell (fun (tuple_3 TUPLE) (cellnumber (bbox (attr tuple_3 GeoData)) grid))))) ((Original (fun (tuple_4 TUPLE) (= (attr tuple_4 Cell) (extract (transformstream (cellnumber (bbox (attr tuple_4 GeoData)) grid)) Elem)))))))
-)
-((map (tuple ((Name string) (Typ string) (GeoData line) (Cell int) (Original bool))) (tuple ((Name string) (Typ string) (GeoData line) (Cell int) (Original bool))) int) (fun (elem1_5 FFR) (elem2_6 FFR) (attr elem2_6 Cell))) (int 0))
-*/
 
 /*
 1.4 ~computeBoundary~
