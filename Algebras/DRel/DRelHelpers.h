@@ -121,7 +121,7 @@ A class with usefull helper functions for the DRelAlgebra.
                 int streamelem = 3 );
 
             static ListExpr createPointerList( ListExpr type, void* ptr );
-            static ListExpr createDRelConvert( ListExpr type, void* ptr );
+            static ListExpr createdrel2darray( ListExpr type, void* ptr );
     };
 
 } // end of namespace drel
