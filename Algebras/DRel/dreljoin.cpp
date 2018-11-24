@@ -165,7 +165,9 @@ parameters. Used for sortmergejoin and itHashJoin.
                 attr1Name,
                 attr2Name );
 
-        ListExpr joinTMresult = realJoinMMRTreeTM( joinTMArg );
+        ListExpr joinTMresult = joinType == 0 ?
+            extrelationalg::JoinTypeMap<false, 0>( joinTMArg ) :
+            extrel2::itHashJoinTM( joinTMArg );
         
         if( !nl->HasLength( joinTMresult, 3 ) ) {
             return joinTMresult;
@@ -175,7 +177,7 @@ parameters. Used for sortmergejoin and itHashJoin.
         bool rel2Flag = false;
         bool compatFlag = false;
 
-        if( dType1 == spatial2d || dType1 == spatial3d ) {
+        if( dType1 == hash || dType1 == range ) {
             ListExpr ftype;
             int pos =  listutils::findAttribute( 
                 resultAttr1List, nl->SymbolValue( attr1Name ), ftype );
@@ -184,7 +186,7 @@ parameters. Used for sortmergejoin and itHashJoin.
             }
         }
 
-        if( dType2 == spatial2d || dType2 == spatial3d ) {
+        if( dType2 == hash || dType2 == range ) {
             ListExpr ftype;
             int pos =  listutils::findAttribute( 
                 resultAttr2List, nl->SymbolValue( attr2Name ), ftype );
@@ -193,7 +195,7 @@ parameters. Used for sortmergejoin and itHashJoin.
             }
         }
 
-        if( rel1Flag && rel2Flag ) {
+        if( rel1Flag && rel2Flag && dType1 == range && dType2 == range ) {
             compatFlag = dKey1 == dKey2;
         }
 
@@ -257,18 +259,12 @@ parameters. Used for sortmergejoin and itHashJoin.
             int pos =  listutils::findAttribute( 
                 resultAttr1List, nl->SymbolValue( attr1Name ), ftype ) - 1;
 
-            
-
-            if( DistTypeSpatial<temporalalgebra::CellGrid2D>
-                ::allowedAttrType2d( ftype ) ) {
                 resultType = nl->ThreeElemList(
                     listutils::basicSymbol<DFRel>( ),
                     resultRel,
                     nl->TwoElemList( 
-                        nl->IntAtom( spatial2d ),
-                        nl->IntAtom( pos ),
-                        nl->IntAtom( rand( ) ) ) );
-            }
+                        nl->IntAtom( hash ),
+                        nl->IntAtom( pos ) ) );
         }
 
         string query1 = "(dmap2 ";
@@ -336,9 +332,6 @@ dfrel. The repartitioning of the two d[f]rels will be done automaticly if
 necessary. Used for sortmergejoin and itHashJoin.
 
 */
-
-//string darray1Ptr = nl->ToString( DRelHelpers::createPointerList( 
-//            matrixType, matrix ) );
     template<class R, class P, class T, class Q, int joinType>
     int drelsimpleJoinVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
@@ -390,11 +383,10 @@ necessary. Used for sortmergejoin and itHashJoin.
             }
         }
         else {  // must be range
-
             ListExpr boundaryType = nl->Fourth( 
                 nl->Third( qp->GetType( s ) ) );
 
-            if( relFlag[ 0 ] ) {
+            if( !relFlag[ 0 ] ) {
                 boundary = ( ( DistTypeRange* )drel2->getDistType( ) )
                     ->getBoundary( );
 
@@ -410,13 +402,19 @@ necessary. Used for sortmergejoin and itHashJoin.
 
                 partitionDRel1 = DRelHelpers::createPointerList( 
                     parti->getMatrixType( ), parti->getDFMatrix( ) );
+
+                partitionDRel1 = nl->FourElemList(
+                    nl->SymbolAtom( "collect2" ),
+                    partitionDRel1,
+                    nl->StringAtom( "" ),
+                    nl->IntAtom( 1240 ) );
             }
             else {
                 partitionDRel1 = DRelHelpers::createdrel2darray( 
                     drelType[ 0 ], drel1 );
             }
-            if( relFlag[ 1 ] ) {
-                boundary = ( ( DistTypeRange* )drel2->getDistType( ) )
+            if( !relFlag[ 1 ] ) {
+                boundary = ( ( DistTypeRange* )drel1->getDistType( ) )
                     ->getBoundary( );
 
                 Partitioner<T, Q>* parti = new Partitioner<T, Q>( 
@@ -429,8 +427,14 @@ necessary. Used for sortmergejoin and itHashJoin.
                     return 0;
                 }
 
-                partitionDRel1 = DRelHelpers::createPointerList( 
+                partitionDRel2 = DRelHelpers::createPointerList( 
                     parti->getMatrixType( ), parti->getDFMatrix( ) );
+
+                partitionDRel2 = nl->FourElemList(
+                    nl->SymbolAtom( "collect2" ),
+                    partitionDRel2,
+                    nl->StringAtom( "" ),
+                    nl->IntAtom( 1241 ) );
             }
             else {
                 partitionDRel2 = DRelHelpers::createdrel2darray( 
@@ -440,9 +444,6 @@ necessary. Used for sortmergejoin and itHashJoin.
         
         string queryS = query[ 0 ] + nl->ToString( partitionDRel1 ) +
             nl->ToString( partitionDRel2 ) + query[ 1 ];
-
-        cout << "queryS" << endl;
-        cout << queryS << endl;
 
         ListExpr queryR;
         nl->ReadFromString( queryS, queryR );

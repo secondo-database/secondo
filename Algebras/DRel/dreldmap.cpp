@@ -160,7 +160,8 @@ drelfilter operator.
         // value mapping
         string funText1 = "(dmap ";
         string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
-            "(filter (feed dmapelem_1)" + nl->ToString( fun ) + ") ) )";
+            "(consume (filter (feed dmapelem_1)" + nl->ToString( fun ) + 
+            ") ) ) )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -299,7 +300,8 @@ operator.
         // value mapping
         string funText1 = "(dmap ";
         string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
-            "(project (feed dmapelem_1)" + nl->ToString( attrlist ) + ") ) )";
+            "(consume (project (feed dmapelem_1)" + nl->ToString( attrlist ) + 
+            ") ) ) )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -474,8 +476,8 @@ tuples. This is a combination of the operators project and extend.
         // value mapping
         string funText1 = "(dmap ";
         string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
-            "(projectextend (feed dmapelem_1)" + nl->ToString( attrlist ) +
-            nl->ToString( fun ) + ") ) )";
+            "(consume (projectextend (feed dmapelem_1)" + 
+            nl->ToString( attrlist ) + nl->ToString( fun ) + ") ) )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -597,7 +599,8 @@ combination of the operator extend.
         // value mapping
         string funText1 = "(dmap ";
         string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
-            "(extend (feed dmapelem_1)" + nl->ToString( fun ) + ") ) )";
+            "(consume (extend (feed dmapelem_1)" + nl->ToString( fun ) + 
+            ") ) ) )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -667,7 +670,8 @@ operator.
         // value mapping
         string funText1 = "(dmap ";
         string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
-            "(head (feed dmapelem_1)" + nl->ToString( secondValue ) + ") ) )";
+            "(consume (head (feed dmapelem_1)" + nl->ToString( secondValue ) + 
+            ") ) ) )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -751,7 +755,8 @@ operator.
         // value mapping
         string funText1 = "(dmap ";
         string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
-            "(rename (feed dmapelem_1)" + nl->ToString( secondValue ) + ") ) )";
+            "(consume (rename (feed dmapelem_1)" + 
+            nl->ToString( secondValue ) + ") ) ) )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -813,7 +818,7 @@ operator.
         // value mapping
         string funText1 = "(dmap ";
         string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
-            "(rdup (sort (feed dmapelem_1) ) ) ) )";
+            "(consume (rdup (sort (feed dmapelem_1) ) ) ) ) )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -875,7 +880,7 @@ operator.
         // value mapping
         string funText1 = "(dmap ";
         string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
-            "(sort (feed dmapelem_1) ) ) )";
+            "(consume (sort (feed dmapelem_1) ) ) ) )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -1049,8 +1054,8 @@ Type mapping for the drellgroup operator.
         // value mapping
         string funText1 = "(dmap ";
         string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
-            "(groupby (feed dmapelem_1) " + nl->ToString( attrlist ) + 
-            nl->ToString( fun ) + " ) ) )";
+            "(consume (groupby (feed dmapelem_1) " + nl->ToString( attrlist ) +
+            nl->ToString( fun ) + " ) ) ) )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -1131,7 +1136,8 @@ operator.
         // value mapping
         string funText1 = "(dmap ";
         string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
-            "(sortby (feed dmapelem_1) " + nl->ToString( attrlist ) + " ) ) )";
+            "(consume (sortby (feed dmapelem_1) " + nl->ToString( attrlist ) + 
+            " ) ) ) )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -1217,8 +1223,8 @@ to define the range.
         string funText1 = "(dmap2 ";
         string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
             "(elem2_2 ARRAYFUNARG2) "
-            "(range elem1_1 elem2_2 " + nl->ToString( range1 ) + " " +
-            nl->ToString( range2 ) + " ) ) 1238 )";
+            "(consume (range elem1_1 elem2_2 " + nl->ToString( range1 ) + " " +
+            nl->ToString( range2 ) + " ) ) ) 1238 )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -1296,8 +1302,8 @@ value.
         string funText1 = "(dmap2 ";
         string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
             "(elem2_2 ARRAYFUNARG2) "
-            "(exactmatch elem1_1 elem2_2 " + nl->ToString( searchValue ) + 
-            " ) ) 1238 )";
+            "( consume (exactmatch elem1_1 elem2_2 " + 
+            nl->ToString( searchValue ) + " ) ) ) 1238 )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -1404,8 +1410,8 @@ arguments.
         string funText1 = "(dmap2 ";
         string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
             "(elem2_2 ARRAYFUNARG2) "
-            "(windowintersects elem1_1 elem2_2 " + tempName + 
-            " ) ) 1238 )";
+            "( consume (windowintersects elem1_1 elem2_2 " + tempName + 
+            " ) ) ) 1238 )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -1485,9 +1491,9 @@ value.
         string funText1 = "(dmap3 ";
         string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
             "(elem2_2 ARRAYFUNARG2) (elem3_3 ARRAYFUNARG3) "
-            "(loopjoin (feed elem1_1) (fun (tuple_4 TUPLE) "
+            "(consume (loopjoin (feed elem1_1) (fun (tuple_4 TUPLE) "
             "(exactmatch elem2_2 elem3_3 (attr tuple_4 " +
-            nl->ToString( arg4Value ) + ") ) ) ) ) 1238 )";
+            nl->ToString( arg4Value ) + ") ) ) ) ) ) 1238 )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
