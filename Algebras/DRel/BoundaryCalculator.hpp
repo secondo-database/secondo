@@ -142,7 +142,7 @@ Computes a boundary object.
                 sampleSize, count );
 
             std::string query =
-            "(createboundary (sort (dsummarize (dmap (drelconvert "
+            "(createboundary (sort (dsummarize (dmap (drel2darray "
             "(" + nl->ToString( sourcedType ) + " (ptr " + 
             nl->ToString( listutils::getPtrList( drel ) ) + "))) \"\" "
             "(fun (dmapelem1 ARRAYFUNARG1) (project (nth (feed "
@@ -186,7 +186,7 @@ Computes the number of tuple in the given drel.
             cout << "Start: Compute the size of the drel ..." << endl;
 
             std::string query =
-            "(tie (getValue (dmap (drelconvert (" + 
+            "(tie (getValue (dmap (drel2darray (" + 
             nl->ToString( sourcedType ) +
             " (ptr " + nl->ToString( listutils::getPtrList( drel ) ) + ")))"
             " \"\" (fun (dmapelem1 ARRAYFUNARG1) (count dmapelem1)))) "

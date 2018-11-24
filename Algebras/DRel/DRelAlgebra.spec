@@ -12,7 +12,7 @@ operator drelspatialpartition alias DRELSPATIALPARTITION pattern _ op [_,_]
 
 operator comparedisttype alias COMPAREDISTTYPE pattern _ _ op
 operator drelcollect_box alias DRELCOLLECTBOX pattern _ op[_]
-operator drelconvert alias DRELCONVERT pattern _ op
+operator drel2darray alias DREL2DARRAY pattern _ op
 
 operator dsummarize alias DSUMMARIZE pattern _ op
 

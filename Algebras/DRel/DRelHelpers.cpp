@@ -360,7 +360,7 @@ Computes the number of tuple in the given drel.
         int count = -1;
 
         string query =
-        "(tie (getValue (dmap (drelconvert " + drel + ")"
+        "(tie (getValue (dmap (drel2darray " + drel + ")"
         " \"\" (fun (dmapelem1 ARRAYFUNARG1) (count dmapelem1)))) "
         "(fun (first2 ELEMENT) (second3 ELEMENT) (+first2 second3)))";
 
@@ -864,8 +864,8 @@ to bring the boundary object to the workers and create a dfmatrix.
         }
         else {
 
-            ListExpr drelconvert = nl->TwoElemList(
-                nl->SymbolAtom( "drelconvert" ),
+            ListExpr drel2darray = nl->TwoElemList(
+                nl->SymbolAtom( "drel2darray" ),
                 nl->TwoElemList(
                     drelType,
                     nl->TwoElemList(
@@ -883,7 +883,7 @@ to bring the boundary object to the workers and create a dfmatrix.
                     nl->SymbolAtom( "collect2" ),
                     nl->SixElemList(
                         nl->SymbolAtom( "partitionF" ),
-                        drelconvert,
+                        drel2darray,
                         nl->StringAtom( "" ),
                         nl->FourElemList(
                             nl->SymbolAtom( "fun" ),
@@ -946,7 +946,7 @@ to bring the boundary object to the workers and create a dfmatrix.
                     nl->SymbolAtom( "collect2" ),
                     nl->FiveElemList(
                         nl->SymbolAtom( "partition" ),
-                        drelconvert,
+                        drel2darray,
                         nl->StringAtom( "" ),
                         nl->ThreeElemList(
                             nl->SymbolAtom( "fun" ),
@@ -986,10 +986,10 @@ Creates a ListExpr for a pointer to a given type.
                 listutils::getPtrList( ptr ) ) );
     }
 
-    ListExpr DRelHelpers::createDRelConvert( ListExpr type, void* ptr ) {
+    ListExpr DRelHelpers::createdrel2darray( ListExpr type, void* ptr ) {
 
         return nl->TwoElemList(
-            nl->SymbolAtom( "drelconvert" ),
+            nl->SymbolAtom( "drel2darray" ),
             createPointerList( type, ptr ) );
     }
 

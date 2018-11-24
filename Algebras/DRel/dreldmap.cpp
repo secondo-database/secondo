@@ -1379,7 +1379,7 @@ arguments.
             nl->StringAtom( nl->SymbolValue( arg3Value ) ),
             nl->BoolAtom( true ),
             nl->TwoElemList(
-                nl->SymbolAtom( "drelconvert" ),
+                nl->SymbolAtom( "drel2darray" ),
                 drelValue ) );
 
         Word result;
@@ -1550,7 +1550,7 @@ text arguments of the typemapping.
         }
 
         // create dmap call with drel pointer
-        string drelptr = nl->ToString( DRelHelpers::createDRelConvert( 
+        string drelptr = nl->ToString( DRelHelpers::createdrel2darray( 
             qp->GetType( qp->GetSon( s, 0 ) ), drel ) );
 
         string funText = fun1->GetValue( ) + drelptr + fun2->GetValue( );
@@ -1640,7 +1640,7 @@ The function is in the text arguments of the typemapping.
         // create dmap call with drel pointer
         string darrayptr = nl->ToString( DRelHelpers::createPointerList( 
                 qp->GetType( qp->GetSon( s, 0 ) ), darray ) );
-        string drelptr = nl->ToString( DRelHelpers::createDRelConvert( 
+        string drelptr = nl->ToString( DRelHelpers::createdrel2darray( 
             qp->GetType( qp->GetSon( s, 1 ) ), drel ) );
 
         string funText = fun1->GetValue( ) + darrayptr + drelptr + 
@@ -1724,11 +1724,11 @@ The function is in the text arguments of the typemapping.
         }
 
         // create dmap call with drel pointer
-        string drel1ptr = nl->ToString( DRelHelpers::createDRelConvert( 
+        string drel1ptr = nl->ToString( DRelHelpers::createdrel2darray( 
             qp->GetType( qp->GetSon( s, 0 ) ), drel1 ) );
         string darrayptr = nl->ToString( DRelHelpers::createPointerList( 
             qp->GetType( qp->GetSon( s, 1 ) ), darray ) );
-        string drel2ptr = nl->ToString( DRelHelpers::createDRelConvert( 
+        string drel2ptr = nl->ToString( DRelHelpers::createdrel2darray( 
             qp->GetType( qp->GetSon( s, 2 ) ), drel2 ) );
 
         string funText = fun1->GetValue( ) + drel1ptr + darrayptr + drel2ptr + 

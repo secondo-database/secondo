@@ -94,31 +94,31 @@ Signature : stream<SPATIAL2D> x bool -> rectangle
 Example   : query (strassen feed projecttransformstream[GeoData] drelcollect_box[TRUE]) = strassen feed extend[B : bbox(.GeoData)] aggregateB[B; fun(r1 : rect,r2: rect)      r1 union r2; [const rect value undef] ] 
 Result    : TRUE
 
-Operator  : drelconvert
+Operator  : drel2darray
 Number    : 1
 Signature : drel -> darray
-Example   : query drel1 drelconvert
+Example   : query drel1 drel2darray
 Result    : bug
 Remark    : remote server required
 
-Operator  : drelconvert
+Operator  : drel2darray
 Number    : 2
 Signature : darray -> drel
-Example   : query darray1 drelconvert
+Example   : query darray1 drel2darray
 Result    : bug
 Remark    : remote server required
 
-Operator  : drelconvert
+Operator  : drel2darray
 Number    : 3
 Signature : dfrel -> dfarray
-Example   : query drel1 drelconvert
+Example   : query drel1 drel2darray
 Result    : bug
 Remark    : remote server required
 
-Operator  : drelconvert
+Operator  : drel2darray
 Number    : 4
 Signature : dfarray -> dfrel
-Example   : query darray1 drelconvert
+Example   : query darray1 drel2darray
 Result    : bug
 Remark    : remote server required
 

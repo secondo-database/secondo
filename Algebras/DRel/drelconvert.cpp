@@ -108,7 +108,7 @@ Creates a d[f]array.
 
 */
     template<class T, class R>
-    int drelconvertVMT( Word* args, Word& result, int message,
+    int drel2darrayVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
         result = qp->ResultStorage( s );
@@ -149,8 +149,8 @@ Creates a d[f]rel.
 
 */
     ValueMapping convertVM[ ] = {
-        drelconvertVMT<DRel, distributed2::DArray>,
-        drelconvertVMT<DFRel, distributed2::DFArray>,
+        drel2darrayVMT<DRel, distributed2::DArray>,
+        drel2darrayVMT<DFRel, distributed2::DFArray>,
         darrayconvertVMT<distributed2::DArray, DRel>,
         darrayconvertVMT<distributed2::DFArray, DFRel>
     };
@@ -184,9 +184,9 @@ Creates a d[f]rel.
     OperatorSpec convertSpec(
         "d[f]rel(X) or d[f]array "
         "-> d[f]rel(X) or d[f]array ",
-        " _ drelconvert",
+        " _ drel2darray",
         "Convert a d[f]rel to a d[f]array or a dfrel to a dfarray. ",
-        " query drel1 drelconvert"
+        " query drel1 drel2darray"
     );
 
 /*
@@ -194,7 +194,7 @@ Creates a d[f]rel.
 
 */
     Operator convertOp(
-        "drelconvert",
+        "drel2darray",
         convertSpec.getStr( ),
         4,
         convertVM,

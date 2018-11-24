@@ -321,16 +321,16 @@ parameters. Used for sortmergejoin and itHashJoin.
     }
 
 /*
-1.2 ~createDRelConvert~
+1.2 ~createdrel2darray~
 
 Creates a d[f]array query for a pointer on a d[f]rel.
 The drelType argument has to be the nested list type of the drel object.
 
 */
     template<class R>
-    ListExpr createDRelConvert( ListExpr drelType, R* drel ) {
+    ListExpr createdrel2darray( ListExpr drelType, R* drel ) {
         return nl->TwoElemList(
-            nl->SymbolAtom( "drelconvert" ),
+            nl->SymbolAtom( "drel2darray" ),
             nl->TwoElemList(
                 drelType,
                 nl->TwoElemList(
@@ -391,7 +391,7 @@ necessary. Used for sortmergejoin and itHashJoin.
             }
         }
         else {
-            repartitionQuery[ 0 ] = createDRelConvert( drelType[ 0 ], drel1 );
+            repartitionQuery[ 0 ] = createdrel2darray( drelType[ 0 ], drel1 );
         }
 
         // create repartion query for the second drel if neccessary
@@ -411,7 +411,7 @@ necessary. Used for sortmergejoin and itHashJoin.
             }
         }
         else {
-            repartitionQuery[ 1 ] = createDRelConvert( drelType[ 1 ], drel2 );
+            repartitionQuery[ 1 ] = createdrel2darray( drelType[ 1 ], drel2 );
         }
 
         ListExpr query = nl->SixElemList(

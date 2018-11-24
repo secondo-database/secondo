@@ -174,7 +174,7 @@ Copies the grid object to all workers.
             std::string query =
             "(share2 \"" + gridName + "\" (" + nl->ToString( gridType ) + 
             "( ptr " + nl->ToString( listutils::getPtrList( grid ) ) + 
-            ")) TRUE (drelconvert (" + nl->ToString( sourcedType ) +
+            ")) TRUE (drel2darray (" + nl->ToString( sourcedType ) +
             " (ptr " + nl->ToString( listutils::getPtrList( drel ) ) + 
             "))))";
 
@@ -216,7 +216,7 @@ Copies the grid object to all workers.
             string gridCollect = 
                 "(rect2cellgrid (collect_box (transformstream "
                 "(dsummarize (dmap " + nl->ToString(
-                DRelHelpers::createDRelConvert( sourcedType, drel ) ) +
+                DRelHelpers::createdrel2darray( sourcedType, drel ) ) +
                 " \"\" (fun (dmapelem_1 ARRAYFUNARG1) "
                 "(projectextend (feed dmapelem_1) "
                 "() ((Box (fun (tuple_2 TUPLE) "
@@ -362,7 +362,7 @@ Repartitions the drel to a DFMatrix.
             if( dType == spatial2d || dType == spatial3d) {
 
                 queryS = "(partitionF " + nl->ToString(
-                    DRelHelpers::createDRelConvert( sourcedType, drel ) ) +
+                    DRelHelpers::createdrel2darray( sourcedType, drel ) ) +
                     "\"\" (fun (elem1_1 FFR) (elem2_2 FFR) (extend "
                     "(extendstream (remove (filter (feed elem1_1) "
                     "(fun (streamelem_3 STREAMELEM) (= (attr streamelem_3 "
@@ -378,7 +378,7 @@ Repartitions the drel to a DFMatrix.
             }
             else { // anpassen
                 queryS = "(partitionF " + nl->ToString(
-                    DRelHelpers::createDRelConvert( sourcedType, drel ) ) + 
+                    DRelHelpers::createdrel2darray( sourcedType, drel ) ) + 
                     "\"\" (fun (elem1_1 FFR) (elem2_2 FFR) (extend "
                     "(extendstream (feed elem1_1) ((Cell (fun (tuple_3 TUPLE)"
                     " (cellnumber (bbox (attr tuple_3 " + attr + ")) " 

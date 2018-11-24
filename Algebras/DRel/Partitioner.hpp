@@ -156,7 +156,7 @@ Copies the boundary object to all workers.
             std::string query =
             "(share2 \"" + boundaryName + "\" (" + nl->ToString( boundaryType ) + 
             "( ptr " + nl->ToString( listutils::getPtrList( boundary ) ) + 
-            ")) TRUE (drelconvert (" + nl->ToString( sourcedType ) +
+            ")) TRUE (drel2darray (" + nl->ToString( sourcedType ) +
             " (ptr " + nl->ToString( listutils::getPtrList( drel ) ) + 
             "))))";
 

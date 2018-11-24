@@ -102,7 +102,7 @@ namespace drel {
             nl->FourElemList(
                 nl->SymbolAtom( "dmap" ),
                 nl->TwoElemList(
-                    nl->SymbolAtom( "drelconvert" ),
+                    nl->SymbolAtom( "drel2darray" ),
                     nl->TwoElemList(
                         drelType,
                         nl->TwoElemList(
