@@ -37,13 +37,12 @@ and itSpatialJoin
 #include "StandardTypes.h"
 #include "SecParser.h"
 
-#include "Algebras/Distributed2/CommandLogger.h"
-#include "Algebras/Distributed2/Distributed2Algebra.h"
 #include "Algebras/Stream/Stream.h"
 #include "Algebras/FText/FTextAlgebra.h"
 
 #include "DRelHelpers.h"
 #include "DRel.h"
+#include "Partitioner.hpp"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -76,6 +75,8 @@ namespace extrel2 {
 
     ListExpr itHashJoinTM(ListExpr args);
 };
+
+ListExpr realJoinMMRTreeTM(ListExpr args);
 
 namespace drel {
 
@@ -117,6 +118,7 @@ parameters. Used for sortmergejoin and itHashJoin.
         ListExpr darray1Type, darray2Type;
         distributionType dType1, dType2;
         int dAttr1, dKey1, dAttr2, dKey2;
+        ListExpr resultType;
 
         if( !DRelHelpers::drelCheck( 
             drel1Type, darray1Type, dType1, dAttr1, dKey1 ) ) {
@@ -163,154 +165,128 @@ parameters. Used for sortmergejoin and itHashJoin.
                 attr1Name,
                 attr2Name );
 
-        ListExpr joinTMresult = joinType == 0 ? 
-                extrelationalg::JoinTypeMap<false, 0>( joinTMArg ) :
-                extrel2::itHashJoinTM( joinTMArg );
+        ListExpr joinTMresult = realJoinMMRTreeTM( joinTMArg );
         
         if( !nl->HasLength( joinTMresult, 3 ) ) {
             return joinTMresult;
         }
 
-        // type map check for dmap
-        ListExpr map = nl->FourElemList(
-                nl->SymbolAtom( "map" ),
-                ARRAYFUNARG<1, false>( nl->OneElemList( darray1Type ) ), 
-                ARRAYFUNARG<1, false>( nl->OneElemList( darray2Type ) ), 
-                nl->TwoElemList(
-                    listutils::basicSymbol<Stream<Tuple>>( ),
-                    nl->TwoElemList(
-                        listutils::basicSymbol<Tuple>( ),
-                    ConcatLists( resultAttr1List, resultAttr2List ) ) ) );
+        bool rel1Flag = false;
+        bool rel2Flag = false;
+        bool compatFlag = false;
 
-        ListExpr feed1, feed2;
+        if( dType1 == spatial2d || dType1 == spatial3d ) {
+            ListExpr ftype;
+            int pos =  listutils::findAttribute( 
+                resultAttr1List, nl->SymbolValue( attr1Name ), ftype );
+            if( dAttr1 == pos - 1 ) {
+                rel1Flag = true;
+            }
+        }
 
-        if( dType1 == replicated 
-         || dType1 == spatial2d
-         || dType1 == spatial3d ) {
+        if( dType2 == spatial2d || dType2 == spatial3d ) {
+            ListExpr ftype;
+            int pos =  listutils::findAttribute( 
+                resultAttr2List, nl->SymbolValue( attr2Name ), ftype );
+            if( dAttr2 == pos - 1 ) {
+                rel2Flag = true;
+            }
+        }
 
-            ListExpr removeAttr = DRelHelpers::getRemovePartitonAttr( dType1 );
+        if( rel1Flag && rel2Flag ) {
+            compatFlag = dKey1 == dKey2;
+        }
 
-            feed1 = nl->ThreeElemList(
-                nl->SymbolAtom( "remove" ),
-                nl->ThreeElemList(
-                    nl->SymbolAtom( "filter" ),
-                    nl->TwoElemList(
-                        nl->SymbolAtom( "feed" ),
-                        nl->SymbolAtom( "elem1_1" ) ),
-                    nl->ThreeElemList(
-                        nl->SymbolAtom( "fun" ),
-                        nl->TwoElemList(
-                            nl->SymbolAtom( "streamelem_1" ),
-                            nl->SymbolAtom( "STREAMELEM" ) ),
-                        nl->ThreeElemList(
-                            nl->SymbolAtom( "=" ),
-                            nl->ThreeElemList(
-                                nl->SymbolAtom( "attr" ),
-                                nl->SymbolAtom( "streamelem_1" ),
-                                nl->SymbolAtom( "Original" ) ),
-                            nl->BoolAtom( true ) ) ) ),
-                removeAttr );
+        ListExpr resultRel = nl->TwoElemList(
+            listutils::basicSymbol<Relation>( ),
+            nl->TwoElemList(
+                listutils::basicSymbol<Tuple>( ),
+                ConcatLists( 
+                    resultAttr1List, resultAttr2List ) ) );
+
+        if( rel1Flag && rel2Flag && compatFlag ) {
+            resultType = nl->ThreeElemList(
+                    listutils::basicSymbol<DFRel>( ),
+                    resultRel,
+                    nl->Third( nl->First( nl->First( args ) ) ) );
+        }
+        else if( rel1Flag && rel2Flag && !compatFlag ) {
+            
+            if( !nl->IsAtom( drel1Value )
+             || !nl->IsAtom( drel2Value )
+             || nl->AtomType( drel1Value ) != SymbolType
+             || nl->AtomType( drel2Value ) != SymbolType ) {
+                return listutils::typeError( 
+                    "cannot estimate drel size" );
+            }
+
+            int size1 = DRelHelpers::countDRel( nl->SymbolValue( drel1Value ) );
+            int size2 = DRelHelpers::countDRel( nl->SymbolValue( drel2Value ) );
+
+            if( size1 <= size2 ) {
+                resultType = nl->ThreeElemList(
+                    listutils::basicSymbol<DFRel>( ),
+                    resultRel,
+                    nl->Third( nl->First( nl->First( args ) ) ) );
+                    rel2Flag = false;
+                    cout << "repartition of drel 1 is necessary" << endl;
+            }
+            else {
+                resultType = nl->ThreeElemList(
+                    listutils::basicSymbol<DFRel>( ),
+                    resultRel,
+                    nl->Third( nl->First( nl->Second( args ) ) ) );
+                    rel1Flag = false;
+                    cout << "repartition of drel 2 is necessary" << endl;
+            }
+        }
+        else if( rel1Flag && !rel2Flag ) {
+            resultType = nl->ThreeElemList(
+                listutils::basicSymbol<DFRel>( ),
+                resultRel,
+                nl->Third( nl->First( nl->First( args ) ) ) );
+        }
+        else if( !rel1Flag && rel2Flag ) {
+            resultType = nl->ThreeElemList(
+                listutils::basicSymbol<DFRel>( ),
+                resultRel,
+                nl->Third( nl->First( nl->Second( args ) ) ) );
         }
         else {
-            feed1 = nl->TwoElemList(
-                nl->SymbolAtom( "feed" ),
-                nl->SymbolAtom( "elem1_1" ) );
+            ListExpr ftype;
+            int pos =  listutils::findAttribute( 
+                resultAttr1List, nl->SymbolValue( attr1Name ), ftype ) - 1;
+
+            
+
+            if( DistTypeSpatial<temporalalgebra::CellGrid2D>
+                ::allowedAttrType2d( ftype ) ) {
+                resultType = nl->ThreeElemList(
+                    listutils::basicSymbol<DFRel>( ),
+                    resultRel,
+                    nl->TwoElemList( 
+                        nl->IntAtom( spatial2d ),
+                        nl->IntAtom( pos ),
+                        nl->IntAtom( rand( ) ) ) );
+            }
         }
 
-        if( dType2 == replicated 
-         || dType2 == spatial2d
-         || dType2 == spatial3d ) {
+        string query1 = "(dmap2 ";
+  
+        string query2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
+            "(elem2_2 ARRAYFUNARG2) (" + join + " "
+            "(feed elem1_1) (feed elem2_2) " +
+            nl->SymbolValue( attr1Name ) + " " + 
+            nl->SymbolValue( attr2Name ) + ")) 1238)";
 
-            ListExpr removeAttr = DRelHelpers::getRemovePartitonAttr( dType2 );
-
-            feed2 = nl->ThreeElemList(
-                nl->SymbolAtom( "remove" ),
-                nl->ThreeElemList(
-                    nl->SymbolAtom( "filter" ),
-                    nl->TwoElemList(
-                        nl->SymbolAtom( "feed" ),
-                        nl->SymbolAtom( "elem2_2" ) ),
-                    nl->ThreeElemList(
-                        nl->SymbolAtom( "fun" ),
-                        nl->TwoElemList(
-                            nl->SymbolAtom( "streamelem_2" ),
-                            nl->SymbolAtom( "STREAMELEM" ) ),
-                        nl->ThreeElemList(
-                            nl->SymbolAtom( "=" ),
-                            nl->ThreeElemList(
-                                nl->SymbolAtom( "attr" ),
-                                nl->SymbolAtom( "streamelem_2" ),
-                                nl->SymbolAtom( "Original" ) ),
-                            nl->BoolAtom( true ) ) ) ),
-                removeAttr );
-        }
-        else {
-            feed2 = nl->TwoElemList(
-                nl->SymbolAtom( "feed" ),
-                nl->SymbolAtom( "elem2_2" ) );
-        }
-
-        ListExpr fun = nl->FourElemList(
-            nl->SymbolAtom( "fun" ),
+        ListExpr appendList = ConcatLists(
+            nl->FiveElemList( 
+                nl->BoolAtom( rel1Flag ),
+                nl->BoolAtom( rel2Flag ),
+                nl->BoolAtom( compatFlag ),
+                nl->TextAtom( query1 ),
+                nl->TextAtom( query2 ) ),
             nl->TwoElemList(
-                nl->SymbolAtom( "elem1_1" ),
-                nl->SymbolAtom( "ARRAYFUNARG1" ) ),
-            nl->TwoElemList(
-                nl->SymbolAtom( "elem2_2" ),
-                nl->SymbolAtom( "ARRAYFUNARG2" ) ),
-            nl->FiveElemList(
-                nl->SymbolAtom( join ),
-                feed1,
-                feed2,
-                attr1Name,
-                attr2Name ) );
-
-        ListExpr dmapResult = dmapXTMT<2>(
-            nl->FiveElemList(
-                nl->TwoElemList( darray1Type, drel1Value ),
-                nl->TwoElemList( darray2Type, drel2Value ),
-                nl->TwoElemList( 
-                    listutils::basicSymbol<CcString>( ),
-                    nl->StringAtom( "" ) ),
-                nl->TwoElemList( map, fun ),
-                nl->TwoElemList( 
-                    listutils::basicSymbol<CcInt>( ),
-                    nl->IntAtom( 1238 ) ) ) );
-
-        if( !nl->HasLength( dmapResult, 3 ) ) {
-            return dmapResult;
-        }
-
-        // Now TM for dmap2 Operator was successful
-        // Check for repartitioning
-        bool drel1reparti, drel2reparti;
-
-        ListExpr resultDistType = DRelHelpers::repartition4JoinRequired( 
-            drel1Value, drel2Value,
-            attr1Name, attr2Name,
-            dType1, dType2,
-            resultAttr1List, resultAttr2List,
-            dAttr1, dAttr2, dKey1, dKey2,
-            drel1reparti, drel2reparti );
-
-        if( drel1reparti ) {
-            cout << "repartitioning of first drel required..." << endl;
-        }
-
-        if( drel2reparti ) {
-            cout << "repartitioning of second drel required..." << endl;
-        }
-
-        ListExpr resultType = nl->ThreeElemList(
-            listutils::basicSymbol<DFRel>( ),
-            nl->Second( nl->Third( dmapResult ) ),
-            resultDistType );
-
-        ListExpr appendList = ConcatLists( 
-            nl->Second( dmapResult ), 
-            nl->FourElemList( 
-                nl->BoolAtom( drel1reparti ),
-                nl->BoolAtom( drel2reparti ),
                 nl->StringAtom( nl->SymbolValue( attr1Name ) ),
                 nl->StringAtom( nl->SymbolValue( attr2Name ) ) ) );
 
@@ -338,6 +314,20 @@ The drelType argument has to be the nested list type of the drel object.
                     listutils::getPtrList( new R( *drel ) ) ) ) );
     }
 
+    ListExpr hashPartition( ListExpr drelType, void* ptr, string attr, 
+        string elem ) {
+
+        string queryS = "(collect2 (partition " + nl->ToString(
+                DRelHelpers::createdrel2darray( drelType, ptr ) ) +
+                "\"\" (fun (elem_" + elem + " SUBSUBTYPE1) (hashvalue (attr "
+                "elem_" + elem + " " + attr + ") 99999)) 0) \"\" 1238)";
+
+        ListExpr query;
+        nl->ReadFromString( queryS, query );
+
+        return query;
+    }
+
 /*
 1.4 Value Mapping ~drelsimpleJoinVMT~
 
@@ -346,6 +336,9 @@ dfrel. The repartitioning of the two d[f]rels will be done automaticly if
 necessary. Used for sortmergejoin and itHashJoin.
 
 */
+
+//string darray1Ptr = nl->ToString( DRelHelpers::createPointerList( 
+//            matrixType, matrix ) );
     template<class R, class P, class T, class Q, int joinType>
     int drelsimpleJoinVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
@@ -355,133 +348,140 @@ necessary. Used for sortmergejoin and itHashJoin.
         R* drel1 = ( R* ) args[ 0 ].addr;
         T* drel2 = ( T* ) args[ 1 ].addr;
 
-        ListExpr resultDistType = nl->Third( qp->GetType( s ) );
-        distributionType targetDistType;
-        getTypeByNum( nl->IntValue( nl->First( resultDistType ) ),
-            targetDistType );
+        distributionType dType;
+        int attr, key;
+        DFRel::checkDistType( 
+            nl->Third( qp->GetType( s ) ), dType, attr, key );
 
         ListExpr drelType[ ] = {
             qp->GetType( qp->GetSon( s, 0 ) ),
             qp->GetType( qp->GetSon( s, 1 ) ) };
 
-        bool drelRepartiReq[ ] = {
-            ( ( CcBool* ) args[ 6 ].addr )->GetBoolval( ),
-            ( ( CcBool* ) args[ 7 ].addr )->GetBoolval( ) };
+        bool relFlag[ ] = { ( ( CcBool* ) args[ 4 ].addr )->GetBoolval( ),
+                            ( ( CcBool* ) args[ 5 ].addr )->GetBoolval( ) };
 
-        string attrName[ ] = {
-            ( ( CcString* ) args[ 8 ].addr )->GetValue( ),
-            ( ( CcString* ) args[ 9 ].addr )->GetValue( ) };
-
-        ListExpr repartitionQuery[ 2 ];
-        
-        // create repartion query for the first drel if neccessary
-        if( drelRepartiReq[ 0 ] ) {
-            if( !DRelHelpers::createRepartitionQuery<R, P, T>( 
-                    drelType[ 0 ],
-                    drel1,
-                    drel2,
-                    resultDistType,
-                    attrName[ 0 ],
-                    1238,
-                    repartitionQuery[ 0 ],
-                    1, 2, 3 ) ) {
-
-                result = qp->ResultStorage( s );
-                ( ( DFRel* )result.addr )->makeUndefined( );
-            }
-        }
-        else {
-            repartitionQuery[ 0 ] = createdrel2darray( drelType[ 0 ], drel1 );
-        }
-
-        // create repartion query for the second drel if neccessary
-        if( drelRepartiReq[ 1 ] ) {
-            if( !DRelHelpers::createRepartitionQuery<T, Q, R>( 
-                    drelType[ 1 ],
-                    drel2,
-                    drel1,
-                    resultDistType,
-                    attrName[ 1 ],
-                    1239,
-                    repartitionQuery[ 1 ],
-                    3, 4, 6 ) ) {
-
-                result = qp->ResultStorage( s );
-                ( ( DFRel* )result.addr )->makeUndefined( );
-            }
-        }
-        else {
-            repartitionQuery[ 1 ] = createdrel2darray( drelType[ 1 ], drel2 );
-        }
-
-        ListExpr query = nl->SixElemList(
-            nl->SymbolAtom( "dmap2" ),
-            repartitionQuery[ 0 ],
-            repartitionQuery[ 1 ],
-            nl->StringAtom( "" ),
-            nl->FourElemList(
-                nl->SymbolAtom( "fun" ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "elem1_3" ),
-                    nl->SymbolAtom( "ARRAYFUNARG1" ) ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "elem2_4" ),
-                    nl->SymbolAtom( "ARRAYFUNARG2" ) ),
-                nl->FiveElemList(
-                    nl->SymbolAtom( join ),
-                    nl->TwoElemList(
-                        nl->SymbolAtom( "feed" ),
-                        nl->SymbolAtom( "elem1_3" ) ),
-                    nl->TwoElemList(
-                        nl->SymbolAtom( "feed" ),
-                        nl->SymbolAtom( "elem2_4" ) ),
-                    nl->SymbolAtom( attrName[ 0 ] ),
-                    nl->SymbolAtom( attrName[ 1 ] ) ) ),
-            nl->IntAtom( 1240 ) );
-
-        string typeString, errorString;
-        bool correct = false;
-        bool evaluable = false;
-        bool defined = false;
-        bool isFunction = false;
-        Word queryResult;
-        bool resBool = QueryProcessor::ExecuteQuery( query, queryResult, 
-            typeString, errorString, correct, evaluable, defined, isFunction );
+        string query[ ] = { ( ( FText* ) args[ 7 ].addr )->GetValue( ),
+                            ( ( FText* ) args[ 8 ].addr )->GetValue( ) };
+        string attrName[ ] = { ( ( CcString* ) args[ 9 ].addr )->GetValue( ),
+                             ( ( CcString* ) args[ 10 ].addr )->GetValue( ) };
 
         result = qp->ResultStorage( s );
         DFRel* resultDFRel = ( DFRel* )result.addr;
 
-        if( !resBool || !correct || !evaluable || !defined ) {
+        ListExpr partitionDRel1, partitionDRel2;
+        collection::Collection* boundary;
+        if( dType == hash ) {
+            if( !relFlag[ 0 ] ) {
+                partitionDRel1 = hashPartition( 
+                    drelType[ 0 ], drel1, attrName[ 0 ], "1" );
+            }
+            else {
+                partitionDRel1 = DRelHelpers::createdrel2darray( 
+                    drelType[ 0 ], drel1 );
+            }
+
+            if( !relFlag[ 1 ] ) {
+                partitionDRel2 = hashPartition( 
+                    drelType[ 1 ], drel2, attrName[ 1 ], "2" );
+            }
+            else {
+                partitionDRel2 = DRelHelpers::createdrel2darray( 
+                    drelType[ 1 ], drel2 );
+            }
+        }
+        else {  // must be range
+
+            ListExpr boundaryType = nl->Fourth( 
+                nl->Third( qp->GetType( s ) ) );
+
+            if( relFlag[ 0 ] ) {
+                boundary = ( ( DistTypeRange* )drel2->getDistType( ) )
+                    ->getBoundary( );
+
+                Partitioner<R, P>* parti = new Partitioner<R, P>( 
+                    attrName[ 0 ], boundaryType, drel1, drelType[ 0 ], 
+                    boundary, 1240 );
+
+                if( !parti->repartition2DFMatrix( ) ) {
+                    cout << "repartition failed!!" << endl;
+                    resultDFRel->makeUndefined( );
+                    return 0;
+                }
+
+                partitionDRel1 = DRelHelpers::createPointerList( 
+                    parti->getMatrixType( ), parti->getDFMatrix( ) );
+            }
+            else {
+                partitionDRel1 = DRelHelpers::createdrel2darray( 
+                    drelType[ 0 ], drel1 );
+            }
+            if( relFlag[ 1 ] ) {
+                boundary = ( ( DistTypeRange* )drel2->getDistType( ) )
+                    ->getBoundary( );
+
+                Partitioner<T, Q>* parti = new Partitioner<T, Q>( 
+                    attrName[ 1 ], boundaryType, drel2, drelType[ 1 ], 
+                    boundary, 1241 );
+
+                if( !parti->repartition2DFMatrix( ) ) {
+                    cout << "repartition failed!!" << endl;
+                    resultDFRel->makeUndefined( );
+                    return 0;
+                }
+
+                partitionDRel1 = DRelHelpers::createPointerList( 
+                    parti->getMatrixType( ), parti->getDFMatrix( ) );
+            }
+            else {
+                partitionDRel2 = DRelHelpers::createdrel2darray( 
+                    drelType[ 1 ], drel2 );
+            }
+        }
+        
+        string queryS = query[ 0 ] + nl->ToString( partitionDRel1 ) +
+            nl->ToString( partitionDRel2 ) + query[ 1 ];
+
+        cout << "queryS" << endl;
+        cout << queryS << endl;
+
+        ListExpr queryR;
+        nl->ReadFromString( queryS, queryR );
+        bool correct = false;
+        bool evaluable = false;
+        bool defined = false;
+        bool isFunction = false;
+        string typeString, errorString;
+        Word dmapResult;
+        if( !QueryProcessor::ExecuteQuery( queryR, dmapResult, 
+                typeString, errorString,
+                correct, evaluable, defined, isFunction ) ) {
+            resultDFRel->makeUndefined( );
+            return 0;
+        }
+        
+        if( !correct || !evaluable || !defined ) {
             resultDFRel->makeUndefined( );
             return 0;
         }
 
-        resultDFRel->copyFrom( *( ( DFArray* )queryResult.addr ) );
-
-        if( !resultDFRel->IsDefined( ) ) {
+        DFArray* dfarray = ( DFArray* )dmapResult.addr;
+        if( !dfarray->IsDefined( ) ) {
+            resultDFRel->makeUndefined( );
+            delete dfarray;
             return 0;
         }
 
-        if( targetDistType == hash ) {
-            resultDFRel->setDistType( new DistTypeHash( hash, 
-                nl->IntValue( nl->Second( resultDistType ) ) ) );
+        resultDFRel->copyFrom( *dfarray );
+
+        delete dfarray;
+
+        if( dType == hash ) {
+            resultDFRel->setDistType( 
+                new DistTypeHash( dType, attr) );
         }
         else {
-
-            collection::Collection* resBoundary;
-            if( drelRepartiReq[ 0 ] ) {
-                resBoundary = ( ( DistTypeRange* )drel2->getDistType( ) )
-                        ->getBoundary( )->Clone( );
-            }
-            else {
-                resBoundary = ( ( DistTypeRange* )drel1->getDistType( ) )
-                        ->getBoundary( )->Clone( );
-            }
-
-            resultDFRel->setDistType( new DistTypeRange( range, 
-                nl->IntValue( nl->Second( resultDistType ) ),
-                nl->IntValue( nl->Third( resultDistType ) ),
-                resBoundary ) );
+            resultDFRel->setDistType( 
+                new DistTypeRange( dType, attr, key, boundary ) );
         }
 
         return 0;
