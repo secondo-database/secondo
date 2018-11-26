@@ -44,7 +44,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
-ListExpr insertRelTypeMap(ListExpr args);
+template<int equalCheck>
+ListExpr insertDeleteRelTypeMap(ListExpr args);
 
 using namespace drel;
 using namespace distributed2;
@@ -112,7 +113,7 @@ ListExpr drelinsertTM( ListExpr args ){
                                     listutils::basicSymbol<CcBool>() ) ) ) ) );
     }
         
-    ListExpr result = insertRelTypeMap( 
+    ListExpr result = insertDeleteRelTypeMap<0>( 
                                 nl->TwoElemList(streamType, relType) );
                                 
     if(!listutils::isTupleStream(result)){
