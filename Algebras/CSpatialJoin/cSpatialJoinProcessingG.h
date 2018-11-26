@@ -21,14 +21,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
    
-#include "StandardTypes.h"     
-//#include "CRel.h"
-//#include "TBlock.h"
-#include "BinaryTuple.h"
+#ifndef CSPATIALJOINPROCESSINGG_H_
+#define CSPATIALJOINPROCESSINGG_H_
+  
 #include "EventList.h"
 #include "Grid.h"
-#include "RectangleAlgebra.h"
-#include "SpatialAttrArray.h"
+#include "Algebras/CRel/SpatialAttrArray.h"
+
 
 namespace csj {
 
@@ -700,3 +699,5 @@ class SpatialJoinState {
   CRelAlgebra::AttrArrayEntry* const newTuple; 
 };
 }
+
+#endif // CSPATIALJOINPROCESSINGG_H_

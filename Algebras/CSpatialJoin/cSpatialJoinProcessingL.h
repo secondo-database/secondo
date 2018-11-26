@@ -20,14 +20,12 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
-   
-#include "StandardTypes.h"     
-//#include "CRel.h"
-//#include "TBlock.h"
-//#include "BinaryTuple.h"
+
+#ifndef CSPATIALJOINPROCESSINGL_H_
+#define CSPATIALJOINPROCESSINGL_H_
+  
 #include "EventList.h"
-#include "RectangleAlgebra.h"
-#include "SpatialAttrArray.h"
+#include "Algebras/CRel/SpatialAttrArray.h"
 
 namespace csj {
 
@@ -688,3 +686,5 @@ bool sweepSearch(std::vector<binaryTuple> &sweepStruct,
   CRelAlgebra::AttrArrayEntry* const newTuple;
 };
 }
+
+#endif // CSPATIALJOINPROCESSINGL_H_
