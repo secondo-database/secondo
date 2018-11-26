@@ -88,10 +88,7 @@ namespace spatial3d_geometric
     friend IntersectionPointResult intersection(const SimplePoint3d& p0,
                                                 const SimplePoint3d& p1,
                                                 const Triangle& triangle);
-  
-    friend IntersectionPointResult intersection(const SimplePoint3d& p0,
-                                                const Vector3d& segmentVector,
-                                                const Triangle& triangle);
+ 
   };
   
   IntersectionPointResult intersection(const SimplePoint3d& p0,

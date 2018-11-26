@@ -42,6 +42,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Spatial3DSetOps.h"
 #include "Spatial3DSTLfileops.h"
 #include "Spatial3DOperatorComponents.h"
+#include "QueryProcessor.h"
+#include "Algebras/Spatial/Point.h"
 
 
 extern NestedList* nl;
@@ -94,8 +96,108 @@ bla, bla, bla....
 
 
 
+/*
+~makepoint3D~
 
+*/
+ListExpr makePoint3DTM(ListExpr args){
+  if(nl->HasLength(args,2)){
+    if(!Point::checkType(nl->First(args))){
+      return listutils::typeError("point x {int,real} "
+                                  "or {int,real} ^ 3 expected)");
+    }
+    if(   !CcInt::checkType(nl->Second(args)) 
+       && !CcReal::checkType(nl->Second(args))) {
+      return listutils::typeError("point x {int,real} "
+                                  "or {int,real} ^ 3 expected)");
+    }
+    return listutils::basicSymbol<Point3d>();
+  }
 
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError("two or three argumentes expected");
+  }
+  while(!nl->IsEmpty(args)){
+    ListExpr first = nl->First(args);
+    args = nl->Rest(args);
+    if(!CcInt::checkType(first) && !CcReal::checkType(first)){
+      return listutils::typeError("expected {int,real} x "
+                                  "{int,real} x {int,real}");
+    }
+  }
+  return listutils::basicSymbol<Point3d>();
+}
+
+template<class X, class Y, class Z>
+int makePoint3DVMT(Word* args, Word& result, int message, 
+                   Word& local,Supplier s){
+  result = qp->ResultStorage(s);
+  Point3d* res = (Point3d*) result.addr;
+  X* x = (X*) args[0].addr;
+  Y* y = (Y*) args[1].addr;
+  Z* z = (Z*) args[2].addr;
+  if(!x->IsDefined() || !y->IsDefined() || !z->IsDefined()){
+    res->SetDefined(false);
+  } else {
+    res->set(x->GetValue(), y->GetValue(),z->GetValue());
+  }
+  return 0;
+}
+
+template<class Z>
+int makePoint3DVMT(Word* args, Word& result, int message, 
+                   Word& local,Supplier s){
+  result = qp->ResultStorage(s);
+  Point3d* res = (Point3d*) result.addr;
+  Point* p = (Point*) args[0].addr;
+  Z* z = (Z*) args[1].addr;
+  if(!p->IsDefined() || !z->IsDefined()){
+    res->SetDefined(false);
+  } else {
+    res->set(p->GetX(), p->GetY(),z->GetValue());
+  }
+  return 0;
+}
+
+ValueMapping makePoint3DVM[] = {
+   makePoint3DVMT<CcInt,CcInt,CcInt>,
+   makePoint3DVMT<CcInt,CcInt,CcReal>,
+   makePoint3DVMT<CcInt,CcReal,CcInt>,
+   makePoint3DVMT<CcInt,CcReal,CcReal>,
+   makePoint3DVMT<CcReal,CcInt,CcInt>,
+   makePoint3DVMT<CcReal,CcInt,CcReal>,
+   makePoint3DVMT<CcReal,CcReal,CcInt>,
+   makePoint3DVMT<CcReal,CcReal,CcReal>,
+   makePoint3DVMT<CcInt>,
+   makePoint3DVMT<CcReal>
+};
+
+int makePoint3DSelect(ListExpr args){
+  if(nl->HasLength(args,3)){
+    int n1 = CcInt::checkType(nl->First(args))?0:4;
+    int n2 = CcInt::checkType(nl->Second(args))?0:2;
+    int n3 = CcInt::checkType(nl->Third(args))?0:1;
+    return n1 + n2 + n3;
+  }
+  return CcInt::checkType(nl->Second(args))?8:9;
+}
+
+OperatorSpec makePoint3DSpec(
+  " {int,real} x {int,real} x {int,real} -> point3d "
+  " or point  x {int,real} -> point3d",
+  " makePoint3D(_,_,_)",
+  "Creates a new point in R^3 from the arguments",
+  "query makePoint3D(1, 3.5, 17)"
+);
+
+Operator makePoint3DOp(
+   "makePoint3D",
+   makePoint3DSpec.getStr(),
+   10,
+   makePoint3DVM,
+   makePoint3DSelect,
+   makePoint3DTM
+);
 
 
 /*
@@ -178,6 +280,9 @@ class Spatial3DAlgebra : public Algebra
     AddOperator(spatial3DConvert::getRegion2VolumePtr(),true); 
     //To be merged here after completion...
     AddOperator(spatial3DConvert::getMRegion2VolumePtr(),true); 
+
+    AddOperator(&makePoint3DOp);
+
   }
 
   ~Spatial3DAlgebra() {};

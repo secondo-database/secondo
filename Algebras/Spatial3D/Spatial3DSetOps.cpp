@@ -46,6 +46,7 @@ Betreuer: Dr. Thomas Behr, Fabio Vald[e]s
 #include "NestedList.h"
 #include "TypeMapUtils.h"
 #include "geometric_algorithm.h"
+#include "QueryProcessor.h"
 
 extern NestedList* nl;
 

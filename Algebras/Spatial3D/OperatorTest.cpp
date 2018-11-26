@@ -42,6 +42,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "geometric_algorithm_intersection_line_plane.h"
 #include "geometric_algorithm_intersection_triangles.h"
 #include "MultiObjectTriangleContainer.h"
+#include "QueryProcessor.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -2319,8 +2320,8 @@ void test_container_prepare_set_surface_simple()
                          SimplePoint3d(0,0,0));
 
   MultiObjectTriangleContainer container;
-  bool r1 = container.addTriangle(t1, 1, true);
-  bool r2 = container.addTriangle(t2, 2, true);
+  container.addTriangle(t1, 1, true);
+  container.addTriangle(t2, 2, true);
   
   container.prepareSetOperationSurface(1, 2, 3, 4, 5);
   container.exportObject(3, both);

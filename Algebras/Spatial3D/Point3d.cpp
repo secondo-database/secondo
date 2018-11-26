@@ -221,7 +221,8 @@ bool Point3d::operator==(Point3d& other) const
 
 const Rectangle<3> Point3d::BoundingBox(const Geoid* geoid) const 
 {
-  return Rectangle<3>(true, x, x, y, y, z, z);
+  double minMax[] = {x,y,y,y,z,z};
+  return Rectangle<3>(true, minMax);
 }
 
 double Point3d::Distance(const Rectangle<3>& rect, const Geoid* geoid = 0) const

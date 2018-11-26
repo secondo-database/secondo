@@ -210,3 +210,11 @@ Number   : 1
 Signature: int -> int
 Example  : query test(0);
 Result   : (int 1)
+
+Operator : makePoint3D
+Number   : 1
+Signature : {int,real} x {int,real} x {int,real} -> point3d
+Example   : query makePoint3D(1, 4.7, 16)
+Result    : (point3d ( 1 4.7 16))
+
+

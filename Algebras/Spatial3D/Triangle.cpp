@@ -83,7 +83,8 @@ Rectangle<3> Triangle::BoundingBox() const
   double yh = max(pA.getY(), max(pB.getY(), pC.getY()));
   double zl = min(pA.getZ(), min(pB.getZ(), pC.getZ()));
   double zh = max(pA.getZ(), max(pB.getZ(), pC.getZ()));
-  return Rectangle<3>(true, xl, xh, yl, yh, zl, zh);
+  double minMax[] = {xl,xh,yl,yh,zl,zh};
+  return Rectangle<3>(true, minMax);
 }
 
 ostream& operator<< (ostream& os, const Triangle& triangle) {

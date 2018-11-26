@@ -51,6 +51,7 @@ Betreuer: Dr. Thomas Behr, Fabio Vald[e]s
 #include "ListUtils.h"
 #include "Spatial3D.h"
 #include "Operator.h"
+#include "QueryProcessor.h"
 
 extern NestedList* nl;
 
@@ -126,9 +127,11 @@ be constructed volume3D.
         
         readNextStringToken(ifs, "normal");
         
-        float norm_vec_coord; // will be discarded
+        
+        //float norm_vec_coord; // will be discarded
         for (int i = 0; i <3; i++) {
-          norm_vec_coord = readNextDouble(ifs);
+          //norm_vec_coord = readNextDouble(ifs);
+          readNextDouble(ifs);
         }
         readNextStringToken(ifs, "outer");
         readNextStringToken(ifs, "loop");

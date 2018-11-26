@@ -820,8 +820,8 @@ void HGrid::Init( const vector<Vect2D>& tabp, const vector<MGInt>& tabn )
     map< Vect2D, IterGPnt>              mapNod;
     map< Vect2D, IterGPnt>::iterator    imap;
 
-//  char    sbuf[512];
-    double  d;
+  //  char    sbuf[512];
+    //double  d;
 
     nprev = 0;
     for ( i=0; i<(MGInt)tabn.size(); ++i)
@@ -829,7 +829,7 @@ void HGrid::Init( const vector<Vect2D>& tabp, const vector<MGInt>& tabn )
         v1 = tabp[nprev];
         v2 = tabp[nprev+tabn[i]-1];
 
-        d = (v2-v1).module();
+       // d = (v2-v1).module();
 
         if ( (v2-v1).module() < ZERO)
         {

@@ -95,7 +95,8 @@ bool SimplePoint3d::operator==(const SimplePoint3d& other) const
 
 Rectangle<3> SimplePoint3d::BoundingBox() const
 {
-  return Rectangle<3>(true, x, x, y, y, z, z);
+  double minMax[] = {x,y,y,y,z,z};
+  return Rectangle<3>(true, minMax);
 }
 
 std::ostream& operator<< (std::ostream& os, const SimplePoint3d& point) {
