@@ -30,8 +30,8 @@ int i;
 
 /* regular definitions */
 
-author                 <author>.*<\/author>
-title                  <title>.*<\/title>
+author                 <author[^>]*>.*<\/author>
+title                  <title[^>]*>.*<\/title>
 newline                [\n]
 
 %%

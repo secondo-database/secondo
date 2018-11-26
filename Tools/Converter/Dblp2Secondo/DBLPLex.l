@@ -32,23 +32,23 @@ int i;
 
 /* regular definitions */
 
-startarticle           <article.*>
+startarticle           <article[^>]*>
 endarticle             <\/article>
-startinproceedings     <inproceedings.*>
+startinproceedings     <inproceedings[^>]*>
 endinproceedings       <\/inproceedings>
-startproceedings       <proceedings.*>
+startproceedings       <proceedings[^>]*>
 endproceedings         <\/proceedings>
-startbook              <book[ ].*>
+startbook              <book[ ][^>]*>
 endbook                <\/book>
-startincollection      <incollection.*>
+startincollection      <incollection[^>]*>
 endincollection        <\/incollection>
-startphdthesis         <phdthesis.*>
+startphdthesis         <phdthesis[^>]*>
 endphdthesis           <\/phdthesis>
-startmasterthesis      <mastersthesis.*>
+startmasterthesis      <mastersthesis[^>]*>
 endmasterthesis        <\/mastersthesis>
-startwww               <www.*>
+startwww               <www[^>]*>
 endwww                 <\/www>
-author                 <author>[^(<\/)]*<\/author>
+author                 <author[^>]*>[^(<\/)]*<\/author>
 editor                 <editor>.*<\/editor>
 address                <address>.*<\/address>
 title                  <title>.*<\/title>
@@ -92,13 +92,19 @@ series                 <series>.*<\/series>
 {endwww}               { return(ENDWWW); }
 
 {author}               { yytext[yyleng-9]='\0';
-                         yylval.string = strdup(yytext+8);
+                         int index = 0;
+                         while(yytext[index]!='>'){
+                            index++;
+                         }
+                         //printf("index is %d\n",index);
+                         yylval.string = strdup(yytext+index+1);
                          // replace " by '
                          i=0;
                          while (yylval.string[i] != '\0') {
                            if (yylval.string[i] == '\"') yylval.string[i]='\'';
                            i++;
                          }
+                         //printf("found author: %s\n",yylval.string);
                          return(AUTHOR);
                        }
 {editor}               { yytext[yyleng-9]='\0';

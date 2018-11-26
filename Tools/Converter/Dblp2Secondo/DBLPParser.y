@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "db.h"
 
 #define DATABASE "access.db"
@@ -53,7 +54,7 @@ char* url="";
 char* school="";
 char* publisher="";
 char* isbn="";
-char* authorlist[200];
+char* authorlist[1000];
 char splitbuffer[50];
 char lowerbuffer[50];
 
@@ -139,7 +140,7 @@ documentlist    : document
                 | documentlist document
                 ;
 
-document        : article { }
+document        : article 
                 | inproceedings
                 | proceedings
                 | book
