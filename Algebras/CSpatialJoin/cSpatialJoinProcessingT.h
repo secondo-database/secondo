@@ -25,8 +25,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define CSPATIALJOINPROCESSINGT_H_
    
 #include "StandardTypes.h"     
-#include "CRel.h"
-#include "TBlock.h"
+//#include "CRel.h"
+//#include "TBlock.h"
 #include "BinaryTuple.h"
 #include "EventList.h"
 #include "ITNode.h"

@@ -42,13 +42,13 @@ join attribute for each argument relation.
 #include "ListUtils.h"          
 #include <iostream>
 #include <math.h>
-#include "CRel.h"
-#include "CRelTC.h"
+//#include "CRel.h"
+//#include "CRelTC.h"
 #include "OperatorUtils.h"
 #include "RelationAlgebra.h"
 #include "Stream.h"
-#include "TBlock.h"
-#include "TBlockTC.h"
+//#include "TBlock.h"
+//#include "TBlockTC.h"
 #include "cSpatialJoin.h"
 #include "BinaryTuple.h"
 #include "cSpatialJoinProcessingL.h"

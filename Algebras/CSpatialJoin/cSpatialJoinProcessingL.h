@@ -22,9 +22,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
    
 #include "StandardTypes.h"     
-#include "CRel.h"
-#include "TBlock.h"
-#include "BinaryTuple.h"
+//#include "CRel.h"
+//#include "TBlock.h"
+//#include "BinaryTuple.h"
 #include "EventList.h"
 #include "RectangleAlgebra.h"
 #include "SpatialAttrArray.h"
