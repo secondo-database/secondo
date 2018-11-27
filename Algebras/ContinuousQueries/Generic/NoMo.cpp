@@ -65,7 +65,7 @@ NoMo::NoMo(int id, std::string tupledescr, TcpClient* coordinationClient):
     _tupleServer(coordinationClient->GetServerPort() + (id))
 {
     _monitor = new Monitor(id, "nomo", "", coordinationClient, 
-            0.5 * 60 * 1000, 100);
+            1 * 60 * 1000, 5000);
 }
 
 // Destroy
