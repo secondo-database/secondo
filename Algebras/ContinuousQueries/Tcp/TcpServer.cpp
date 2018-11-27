@@ -80,7 +80,7 @@ void TcpServer::Run()
     //create a master socket  
     if( (_master_socket = socket(AF_INET , SOCK_STREAM , 0)) == 0)   
     {   
-        perror("socket failed");   
+        perror("socket failed\n");   
         exit(EXIT_FAILURE);   
     }   
      
@@ -89,7 +89,7 @@ void TcpServer::Run()
     if( setsockopt(_master_socket, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, 
           sizeof(opt)) < 0 )   
     {   
-        perror("setsockopt");   
+        perror("setsockopt\n");   
         exit(EXIT_FAILURE);   
     }   
      
@@ -101,7 +101,7 @@ void TcpServer::Run()
     //bind the socket to localhost and port  
     if (bind(_master_socket, (struct sockaddr *)&address, sizeof(address))<0)
     {   
-        perror("bind failed");   
+        perror("bind failed\n");   
         exit(EXIT_FAILURE);   
     }   
     printf("Listener on port %d \n", _port);   
@@ -115,7 +115,7 @@ void TcpServer::Run()
          
     //accept the incoming connection  
     addrlen = sizeof(address);
-    puts("Waiting for connections ...");
+    puts("Waiting for connections ...\n");
 
     _running = true;
 
@@ -152,13 +152,13 @@ void TcpServer::Run()
        
         if ((activity < 0) && (errno!=EINTR))   
         {   
-            printf("select error");   
+            printf("select error\n");   
         } else
 
         // check if there was an timeout
         if (activity == 0) 
         {
-            std::cout << "Timeout... \n";
+            // std::cout << "Timeout... \n";
             continue;
         } else
 
@@ -172,7 +172,7 @@ void TcpServer::Run()
                     (socklen_t*)&addrlen)
                 )<0)
             {
-                perror("accept");
+                perror("accept\n");
                 exit(EXIT_FAILURE);
             }
    
@@ -273,9 +273,9 @@ TcpServer::Message TcpServer::CreateDisconnectMsg(int sockd)
 void TcpServer::PushMsgToQueue(TcpServer::Message msg) 
 {
     std::lock_guard<std::mutex> guard(mqMutex);
-    std::cout << "TcpServer received '" << msg.body 
-        << "' from socket " << std::to_string(msg.socket)
-        << ". Pushing to queue.\n";
+    // std::cout << "TcpServer received '" << msg.body 
+    //     << "' from socket " << std::to_string(msg.socket)
+    //     << ". Pushing to queue.\n";
 
     messages.push(msg);
 
@@ -318,8 +318,8 @@ bool TcpServer::IsRunning() {
 
 int TcpServer::Send(int socket, std::string msg) 
 {
-    std::cout << "TcpServer sending '" + msg + "' to Socket '" 
-        << socket << "'.\n";
+    // std::cout << "TcpServer sending '" + msg + "' to Socket '" 
+    //     << socket << "'.\n";
 
     int res = send(socket, msg.c_str(), msg.length() + 1, MSG_NOSIGNAL) - 1;
     if (errno == EPIPE) PushMsgToQueue(CreateDisconnectMsg(socket));

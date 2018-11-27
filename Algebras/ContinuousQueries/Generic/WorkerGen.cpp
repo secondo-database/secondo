@@ -65,8 +65,6 @@ WorkerGen::WorkerGen(int id, std::string attrliststr,
     _basePort(coordinationClient->GetServerPort()),
     _tupleServer(coordinationClient->GetServerPort() + (id))
 {
-    LOG << "WorkerGen::Constructor" << ENDL;
-
     _monitor = new Monitor(id, _type, "", coordinationClient, 
         0.5 * 60 * 1000, 100);
 }
@@ -180,7 +178,7 @@ void WorkerGen::Run()
                 catch(...)
                 {
                     nomoId = 0;
-                    std::cout << "failed to extract id or address \n";
+                    std::cout << "failed to extract id or address" << endl;
                 }
 
                 if (nomoId && handlerType=="nomo") addNoMo(nomoId, nomoAddress);
@@ -206,7 +204,7 @@ void WorkerGen::Run()
                 catch(...)
                 {
                     qId = 0;
-                    std::cout << "failed to extract id or function \n";
+                    std::cout << "failed to extract id or function" << endl;
                 }
 
                 if (qId) addQuery(qId, function);
@@ -222,8 +220,8 @@ void WorkerGen::Run()
             if (msg.cmd == CoordinatorGenP::shutdown() || 
                 msg.cmd == "disconnected") 
             {
-                LOG << "shutting down due to " << msg.cmd 
-                    << " " << msg.params << ENDL;
+                std::cout << "shutting down due to " << msg.cmd 
+                    << " " << msg.params << endl;
                 
                 _running = false;
             } 
@@ -239,7 +237,7 @@ void WorkerGen::Run()
             {
                 LOG << "Message '" + msg.cmd + "' is invalid... " << ENDL;
             } else {
-                LOG << "No Message. Timeout... " << ENDL;
+                // Timeout
             }
         }   
     }

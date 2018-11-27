@@ -64,7 +64,7 @@ void TcpClient::Initialize()
     //create the master socket  
     if( (_master_socket = socket(AF_INET , SOCK_STREAM , 0)) <= 0)
     {
-        perror("socket failed");
+        perror("socket failed\n");
         exit(EXIT_FAILURE);
     }
      
@@ -111,7 +111,7 @@ void TcpClient::Receive()
         // check if there was an timeout
         if (bytesReceived == -1) 
         {
-            std::cout << "Timeout... \n";
+            // std::cout << "Timeout... \n";
         }
 
         // check if it was for closing
@@ -184,9 +184,9 @@ TcpClient::Message TcpClient::CreateDisconnectMsg(int sockd)
 void TcpClient::PushMsgToQueue(TcpClient::Message msg) 
 {
     std::lock_guard<std::mutex> guard(mqMutex);
-    std::cout << "TcpClient received '" << msg.body 
-        << "' from socket " << std::to_string(msg.socket)
-        << ". Pushing to queue.\n";
+    // std::cout << "TcpClient received '" << msg.body 
+    //     << "' from socket " << std::to_string(msg.socket)
+    //     << ". Pushing to queue.\n";
 
     messages.push(msg);
 
@@ -195,7 +195,7 @@ void TcpClient::PushMsgToQueue(TcpClient::Message msg)
 
 int TcpClient::Send(std::string msg) 
 {
-    std::cout << "TcpClient sending '" + msg + "'.\n";
+    // std::cout << "TcpClient sending '" + msg + "'.\n";
     int res = send(_master_socket, msg.c_str(), msg.length()+1,MSG_NOSIGNAL)-1;
     if (errno == EPIPE) PushMsgToQueue(CreateDisconnectMsg(_master_socket));
     return res;
@@ -203,15 +203,13 @@ int TcpClient::Send(std::string msg)
 
 void TcpClient::SendAsync(std::string msg)
 {
-    std::cout << "TcpClient adds '" + msg + "' to outgoing queue...";
+    // std::cout << "TcpClient adds '" + msg + "' to outgoing queue...";
 
     if (msg == "") return;
     
     std::lock_guard<std::mutex> outgoingLock(_outgoingMsgsMutex);
     _outgoingMsgsQueue.push(msg);
     _outgoingMsgsCondition.notify_one();
-
-    std::cout << " done! \n";
 }
 
 void TcpClient::AsyncHandler()

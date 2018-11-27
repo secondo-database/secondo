@@ -68,16 +68,13 @@ the place to implement the logic for restructuring the network.
 
 void CoordinatorLoop::setupNetwork(int newHandlerId)
 {
-    LOG << "in setupNetwork (Loop) " << newHandlerId << ENDL; 
     if (!newHandlerId) return;
 
     // create a nomo, if neccessary
     if (countHandlers(handlerType::nomo, handlerStatus::all) == 0)
     {
-        LOG << "creating NoMo" << ENDL; 
         createNoMo(newHandlerId);
     } else {
-        LOG << "creating Worker" << ENDL; 
         createWorker(newHandlerId, "loop");
     }
 
@@ -167,8 +164,6 @@ int CoordinatorLoop::selectWorker()
         }
     }
 
-    LOG << "sW: cID " << candidateId << " cQ# " << candidateQueries << ENDL;
-
     return candidateId;
 }
 
@@ -188,7 +183,7 @@ bool CoordinatorLoop::checkNewFunction(std::string function, std::string &err)
     // build funList
     ListExpr funList;
     if( !nl->ReadFromString(function, funList)) {
-        LOG << "Error building funList" << ENDL;
+        std::cout << "Error building funList" << endl;
         err = "Error building funList";
         return false;
     }
@@ -215,18 +210,13 @@ bool CoordinatorLoop::checkNewFunction(std::string function, std::string &err)
             resultType );
     }
     catch(SI_Error ERR_IN_QUERY_EXPR) {
-        LOG << "Error building tree" << ENDL;
+        std::cout << "Error building tree" << endl;
         err = "Error building tree";
         delete tqp;
         return false;
     }
 
     delete tqp;
-
-    LOG << "correct: " << correct << " && " 
-        << "evaluable: " << evaluable << " && " 
-        << "defined: " << defined << " && " 
-        << "isFunction: " << isFunction << ENDL;
 
     return (correct && defined && isFunction);
 }

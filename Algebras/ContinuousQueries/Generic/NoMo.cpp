@@ -102,9 +102,9 @@ void NoMo::Initialize()
 
     if (!_tupleServer.IsRunning()) return;
 
-    std::cout << "Done! Worker have to push hits "
+    LOG << "Done! Worker have to push hits "
         << "to this host on port "
-        << std::to_string(_tupleServer.GetMasterPort()) << ". \n";
+        << std::to_string(_tupleServer.GetMasterPort()) << ENDL;
 
     // confirm specialization
     (void) _coordinationClient->Send(
@@ -276,11 +276,12 @@ void NoMo::Run()
                     // save fakemails to file
                     if (msg.params.length() > 1)
                     {
-                        LOG << "Fake mails be saved in " << msg.params << ENDL;
+                        std::cout << "Fake mails be saved in " 
+                                  << msg.params << endl;
                         if (_fakemailfile.is_open()) _fakemailfile.close();
                         _fakemailfile.open(msg.params);
                     } else {
-                        LOG << "std::cout only" << ENDL;
+                        std::cout << "std::cout only" << endl;
                     }
                 }
             } else
@@ -289,8 +290,8 @@ void NoMo::Run()
             if (msg.cmd == CoordinatorGenP::shutdown() || 
                 msg.cmd == "disconnected") 
             {
-                LOG << "shutting down due to " << msg.cmd 
-                    << " " << msg.params << ENDL;
+                std::cout << "shutting down due to " << msg.cmd 
+                    << " " << msg.params << endl;
                 
                 _running = false;
             } 

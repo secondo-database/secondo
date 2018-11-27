@@ -137,8 +137,6 @@ the new query.
 
 void CoordinatorJoin::registerQuery(queryStruct query)
 {
-    LOG << "In RegisterQuery (Join)" << ENDL;
-
     int w = selectWorker(query.function);
     if (!w) return;
     LOG << w << ENDL;
@@ -284,8 +282,6 @@ int CoordinatorJoin::selectWorker(std::string function)
                 {
                     if (_queryparts[name].group <= candidateGroup)
                     {
-                                LOG << "In SelectWorker (Join) 3" << ENDL;
-
                         candidateGroup = _queryparts[name].group;
                         candidateQueries = (int) it->second.ownqueries.size();
                         candidateId = it->first;
@@ -294,8 +290,6 @@ int CoordinatorJoin::selectWorker(std::string function)
             }
         }
     }
-
-    LOG << "sW: cID " << candidateId << " cQ# " << candidateQueries << ENDL;
 
     return candidateId;
 }

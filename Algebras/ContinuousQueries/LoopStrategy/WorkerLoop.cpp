@@ -57,7 +57,6 @@ Creates a new WorkerLoop object.
 
 */
 
-
 WorkerLoop::WorkerLoop(int id, std::string attrliststr, 
     TcpClient* coordinationClient):
     WorkerGen::WorkerGen(id, attrliststr, coordinationClient)
@@ -94,7 +93,7 @@ void WorkerLoop::addQuery(int id, std::string function)
     // build funList
     ListExpr funList;
     if( !nl->ReadFromString(function, funList)) {
-        LOG << "Error building funList" << ENDL;
+        std::cout << "Error building funList" << endl;
         return;
     }
 
@@ -117,7 +116,7 @@ void WorkerLoop::addQuery(int id, std::string function)
             resultType );
     }
     catch(SI_Error ERR_IN_QUERY_EXPR) {
-        LOG << "Error building tree" << ENDL;
+        std::cout << "Error building tree" << endl;
         return;
     }
 
@@ -188,7 +187,7 @@ void WorkerLoop::TightLoop()
             catch(...)
             {
                 tupleId = 0;
-                LOG << "failed to extract id or tuple" << ENDL;
+                std::cout << "failed to extract id or tuple" << endl;
             }
 
             if (!tupleId) {
@@ -270,8 +269,8 @@ bool WorkerLoop::filterTuple(Tuple* tuple, OpTree& tree,
 void WorkerLoop::showStatus()
 {
     LOG << "**************************************************" << ENDL;
-    LOG << "WorkerLoop::Status" << ENDL << ENDL;
-    LOG << "Number of Queries: " << (int)_queries.size() << ENDL;
+    LOG << "WorkerLoop::Status"                         << ENDL << ENDL;
+    LOG << "Number of Queries: " << (int)_queries.size()        << ENDL;
     LOG << "**************************************************" << ENDL;
 }
 

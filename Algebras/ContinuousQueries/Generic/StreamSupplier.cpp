@@ -72,7 +72,6 @@ Destroys the StreamSupplier object and sets all ressources free.
 
 StreamSupplier::~StreamSupplier() {
     Shutdown();
-    // TODO: Verbindungen lösen, etc.
 }
 
 /*
@@ -284,7 +283,7 @@ void StreamSupplier::Run()
             {
                 LOG << "Message '" + msg.cmd + "' is invalid..." << ENDL;
             } else {
-                LOG << "No Message. Timeout..." << ENDL;
+                // Timeout
             }
         }   
     }
@@ -294,7 +293,7 @@ void StreamSupplier::pushTuple(Tuple* t)
 {
     if (!_activeWorker) 
     {
-        LOG << "No worker connected. Tuple is lost." << ENDL;
+        std::cout << "No worker connected. Tuple is lost." << endl;
         return;
     }
     

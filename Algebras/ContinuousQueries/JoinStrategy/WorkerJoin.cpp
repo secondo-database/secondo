@@ -62,8 +62,6 @@ WorkerJoin::WorkerJoin(int id, std::string attrliststr,
     TcpClient* coordinationClient, std::string joincondition):
     WorkerGen::WorkerGen(id, attrliststr, coordinationClient)
 {
-    LOG << "WorlerJoin::Constructor" << ENDL;
-
     _type = "join";
     _joinCondition = joincondition;
     
@@ -99,8 +97,6 @@ WorkerJoin::~WorkerJoin()
 
 void WorkerJoin::Initialize()
 {
-    LOG << "WorkerJoin::Initialize" << ENDL;
-    
     Word tupleRelWord;
     Word queryRelWord;
     Word btreeWord;
@@ -246,15 +242,13 @@ void WorkerJoin::TightLoop()
             catch(...)
             {
                 tupleId = 0;
-                LOG << "failed to extract id or tuple" << ENDL;
+                std::cout << "failed to extract id or tuple" << endl;
             }
 
             if (!tupleId) {
                 _monitor->endWorkRound(0, 0, 0);
                 continue;
             }
-
-            LOG << tupleId << "|" << tupleString << ENDL;
 
             // (void) executeQueryString("query tpl clear;");
 
@@ -286,8 +280,6 @@ void WorkerJoin::TightLoop()
 
             Relation* result=(Relation*) executeQueryString(_querystring).addr;
 
-                t->DeleteIfAllowed();
-
             int hits = result->GetNoTuples();
             std::string hitlist = "";
 
@@ -300,6 +292,10 @@ void WorkerJoin::TightLoop()
             hitlist = hitlist.substr(0, hitlist.size()-1);
 
             LOG << "tID: " << tupleId << " | hl: " << hitlist << ENDL;
+
+                t->DeleteIfAllowed();
+                // result->Close();
+                result->DeleteAndTruncate();
 
             // notify all nomos
             if (hits) notifyAllNoMos(tupleId, tupleString, hitlist);
@@ -314,8 +310,6 @@ void WorkerJoin::TightLoop()
 // Query handling
 void WorkerJoin::addQuery(int id, std::string function)
 {
-    LOG << "addQuery " << id << ": " << function << ENDL;
-    
     std::map<std::string, std::string> protofunction;
 
     for (std::vector<std::pair <std::string, std::string>>::iterator 
@@ -363,8 +357,6 @@ void WorkerJoin::addQuery(int id, std::string function)
 
 Word WorkerJoin::executeQueryString(std::string querystring)
 {
-    LOG << "Executing: " << querystring << ENDL;
-    
     _sc->CleanUp(false, true);
     
     Word resultword;
@@ -387,11 +379,11 @@ Word WorkerJoin::executeQueryString(std::string querystring)
 
             if ( !QueryProcessor::ExecuteQuery(exestring, resultword) ) 
             {   
-                LOG << "Error while executing query." << ENDL;
+                std::cout << "Error while executing query." << endl;
                 resultword.setAddr(0);
             }
         } else {
-            LOG << "Error while parsing query: " << parseRes << ENDL;
+            std::cout << "Error while parsing query: " << parseRes << endl;
             resultword.setAddr(0);
         }
 
@@ -399,7 +391,7 @@ Word WorkerJoin::executeQueryString(std::string querystring)
     }
     catch(const std::exception& e)
     {
-        LOG << "Catched an error while executing query..." << ENDL;
+        std::cout << "Catched an error while executing query..." << endl;
         resultword.setAddr(0);
     }
 
@@ -427,11 +419,12 @@ std::string WorkerJoin::getRelationDescription(NList attrlist)
 void WorkerJoin::showStatus()
 {
     LOG << "**************************************************" << ENDL;
-    LOG << "WorkerJoin::Status" << ENDL << ENDL;
+    LOG << "WorkerJoin::Status"                         << ENDL << ENDL;
 
-    LOG << "Current Query:" << ENDL << _querystring << ENDL;
+    LOG << "Current Query:" << ENDL << _querystring             << ENDL;
     
-    LOG << "Query Parts and their number in queries: " << ENDL;
+    LOG << "Query Parts and their number in queries: "          << ENDL;
+
     for (std::vector<std::pair <std::string, std::string>>::iterator 
         it = _queryparts.begin(); 
         it != _queryparts.end(); it++)
@@ -445,8 +438,6 @@ void WorkerJoin::showStatus()
 
 void WorkerJoin::buildQueryString()
 {
-    LOG << "WorkerJoin::buildQueryString" << ENDL;
-
     std::vector<structQuerysort> qs;
     int grpcount1 = 0;
     int grpcount2 = 0;
@@ -491,10 +482,6 @@ void WorkerJoin::buildQueryString()
             grpcount2++;
         }
 
-        LOG << "tname:" << elem.tname << " qname:" << elem.qname << " comp:" 
-            << elem.comp << " type:" << elem.type 
-            << " group:" << elem.group << " count:" << elem.count << ENDL;
-        
         qs.push_back(elem);
     }
 
