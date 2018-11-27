@@ -84,7 +84,7 @@ public:
     signature = inSignature + outSignature;
     syntax = "_ _ cspatialjoin [ _ , _ ]";
     meaning = "Cache-conscious spatial join operator performing"
-              "a partitioned spatial join on two tuple-streams,"
+              "a partitioned spatial join on two streams of tuple blocks,"
               "where xi and yj are the names of the join"
               "attributes of the first and second stream,"
               "respectively.";
