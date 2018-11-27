@@ -287,9 +287,9 @@ namespace csj {
       if(temp.yMax > yMax)
         yMax = temp.yMax;
 
-        BAT.push_back(temp);
-        ++row;
-        tBlockIter.MoveToNext();
+      BAT.push_back(temp);
+      ++row;
+      tBlockIter.MoveToNext();
       }
       ++tBlockNum;
     }
