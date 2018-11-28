@@ -313,11 +313,14 @@ void StreamSupplier::pushTuple(Tuple* t)
                 msg
             );
         } else {
-            LOG << "ERR" << it->second.active << " | " 
-                << it->second.ptrClient->messages.empty() << ENDL;
-            it->second.ptrClient->Shutdown();
-            it->second.active = false;
-            _activeWorker--;
+            if (it->second.active)
+            {
+                LOG << "Worker with ID " << it->first 
+                    << " disconnected. Removing worker." << ENDL;
+                it->second.ptrClient->Shutdown();
+                it->second.active = false;
+                _activeWorker--;
+            }
         }
     }
 }
