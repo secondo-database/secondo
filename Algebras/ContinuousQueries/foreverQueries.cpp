@@ -158,27 +158,40 @@ ListExpr foreverQueries_TM(ListExpr args) {
 class foreverQueries_LI {
   public:
     foreverQueries_LI(int volume, int type):
-        _volume(volume), _type(type), _count(1) 
+        _volume(volume), _type(type), _count(1), _currentTuple(1001) 
         {
         }
 
     ~foreverQueries_LI()
     {}
 
-    std::string getNext()
+    bool refreshRelation()
     {
-        std::string query = "";
         std::string exestring = "";
         Word exeword;
-        
+
+        if(_type==0||_type==2) exestring="(consume (foreverStream 1000 2 20))";
+        if(_type==1||_type==3) exestring="(consume (foreverStream 1000 3 20))";
+
+        if (!QueryProcessor::ExecuteQuery(exestring, exeword)) return false;
+        _result = (Relation*) exeword.addr;
+
+        return true;
+    }
+
+    std::string getNext()
+    {
         if (_volume && (_count > _volume)) return "";
 
-        if (_type==0||_type==2) exestring = "(consume (foreverStream 1 2 20))";
-        if (_type==1||_type==3) exestring = "(consume (foreverStream 1 3 20))";
+        if (_currentTuple == 1001)
+        {
+            if (!refreshRelation()) return "error";
+            _currentTuple = 1;
+        }
 
-        if (!QueryProcessor::ExecuteQuery(exestring, exeword)) return "error";
-        Relation* result = (Relation*) exeword.addr;
-        
+        Tuple* currentTuple = _result->GetTuple(_currentTuple, true);
+        std::string query = "";
+                
         if (_type == 0)
         {
             std::string parts[3];
@@ -188,30 +201,30 @@ class foreverQueries_LI {
 
             int count = 0;
 
-            if (result->GetTuple(1, true)->GetAttribute(0)->toText() != "-")
+            if (currentTuple->GetAttribute(0)->toText() != "-")
             {
-                parts[count] = "(=(attr t I)" + result->GetTuple(1, true)
+                parts[count] = "(=(attr t I)" + currentTuple
                     ->GetAttribute(0)->toText() + ")";
                 count++;
             }
 
-            if (result->GetTuple(1, true)->GetAttribute(1)->toText() != "-")
+            if (currentTuple->GetAttribute(1)->toText() != "-")
             {
-                parts[count] = "(>(attr t I)" + result->GetTuple(1, true)
+                parts[count] = "(>(attr t I)" + currentTuple
                     ->GetAttribute(1)->toText() + ")";
                 count++;
             }
 
-            if (result->GetTuple(1, true)->GetAttribute(2)->toText() != "-")
+            if (currentTuple->GetAttribute(2)->toText() != "-")
             {
-                parts[count] = "(<(attr t I)" + result->GetTuple(1, true)
+                parts[count] = "(<(attr t I)" + currentTuple
                     ->GetAttribute(2)->toText() + ")";
                 count++;
             }
 
-            if (result->GetTuple(1, true)->GetAttribute(3)->toText() != "-")
+            if (currentTuple->GetAttribute(3)->toText() != "-")
             {
-                parts[count] = "(=(attr t S)\"" + result->GetTuple(1, true)
+                parts[count] = "(=(attr t S)\"" + currentTuple
                     ->GetAttribute(3)->toText() + "\")";
                 count++;
             }
@@ -237,65 +250,65 @@ class foreverQueries_LI {
 
             int count = 0;
 
-            if (result->GetTuple(1, true)->GetAttribute(1)->toText() != "-")
+            if (currentTuple->GetAttribute(1)->toText() != "-")
             {
-                parts[count] = "(=(attr t City)\"" + result->GetTuple(1, true)
+                parts[count] = "(=(attr t City)\"" + currentTuple
                     ->GetAttribute(1)->toText() + "\")";
                 count++;
             }
 
-            if (result->GetTuple(1, true)->GetAttribute(2)->toText() != "-")
+            if (currentTuple->GetAttribute(2)->toText() != "-")
             {
-                parts[count] = "(=(attr t Month)\"" + result->GetTuple(1, true)
+                parts[count] = "(=(attr t Month)\"" + currentTuple
                     ->GetAttribute(2)->toText() + "\")";
                 count++;
             }
 
-            if (result->GetTuple(1, true)->GetAttribute(3)->toText() != "-")
+            if (currentTuple->GetAttribute(3)->toText() != "-")
             {
-                parts[count] = "(=(attr t Number)" + result->GetTuple(1, true)
+                parts[count] = "(=(attr t Number)" + currentTuple
                     ->GetAttribute(3)->toText() + ")";
                 count++;
             }
 
-            if (result->GetTuple(1, true)->GetAttribute(4)->toText() != "-")
+            if (currentTuple->GetAttribute(4)->toText() != "-")
             {
-                parts[count] = "(>(attr t Number)" + result->GetTuple(1, true)
+                parts[count] = "(>(attr t Number)" + currentTuple
                     ->GetAttribute(4)->toText() + ")";
                 count++;
             }
 
-            if (result->GetTuple(1, true)->GetAttribute(5)->toText() != "-")
+            if (currentTuple->GetAttribute(5)->toText() != "-")
             {
-                parts[count] = "(<(attr t Number)" + result->GetTuple(1, true)
+                parts[count] = "(<(attr t Number)" + currentTuple
                     ->GetAttribute(5)->toText() + ")";
                 count++;
             }
 
-            if (result->GetTuple(1, true)->GetAttribute(6)->toText() != "-")
+            if (currentTuple->GetAttribute(6)->toText() != "-")
             {
-                parts[count] = "(=(attr t Fraction)" + result->GetTuple(1,true)
+                parts[count] = "(=(attr t Fraction)" + currentTuple
                     ->GetAttribute(6)->toText() + ")";
                 count++;
             }
 
-            if (result->GetTuple(1, true)->GetAttribute(7)->toText() != "-")
+            if (currentTuple->GetAttribute(7)->toText() != "-")
             {
-                parts[count] = "(>(attr t Fraction)" + result->GetTuple(1,true)
+                parts[count] = "(>(attr t Fraction)" + currentTuple
                     ->GetAttribute(7)->toText() + ")";
                 count++;
             }
 
-            if (result->GetTuple(1, true)->GetAttribute(8)->toText() != "-")
+            if (currentTuple->GetAttribute(8)->toText() != "-")
             {
-                parts[count] = "(<(attr t Fraction)" + result->GetTuple(1,true)
+                parts[count] = "(<(attr t Fraction)" + currentTuple
                     ->GetAttribute(8)->toText() + ")";
                 count++;
             }
             
-            if (result->GetTuple(1, true)->GetAttribute(9)->toText() != "-")
+            if (currentTuple->GetAttribute(9)->toText() != "-")
             {
-                parts[count] = "(=(attr t Valid)" + result->GetTuple(1, true)
+                parts[count] = "(=(attr t Valid)" + currentTuple
                     ->GetAttribute(9)->toText() + ")";
                 count++;
             }
@@ -328,20 +341,20 @@ class foreverQueries_LI {
         {
             query += "(";
             
-            if (result->GetTuple(1, true)->GetAttribute(0)->toText() != "-")
-                query += "(I_eq " + result->GetTuple(1, true)->GetAttribute(0)
+            if (currentTuple->GetAttribute(0)->toText() != "-")
+                query += "(I_eq " + currentTuple->GetAttribute(0)
                     ->toText() + ")";
                     
-            if (result->GetTuple(1, true)->GetAttribute(1)->toText() != "-")
-                query += "(I_gt " + result->GetTuple(1, true)->GetAttribute(1)
+            if (currentTuple->GetAttribute(1)->toText() != "-")
+                query += "(I_gt " + currentTuple->GetAttribute(1)
                     ->toText() + ")";
             
-            if (result->GetTuple(1, true)->GetAttribute(2)->toText() != "-")
-                query += "(I_lt " + result->GetTuple(1, true)->GetAttribute(2)
+            if (currentTuple->GetAttribute(2)->toText() != "-")
+                query += "(I_lt " + currentTuple->GetAttribute(2)
                     ->toText() + ")";
 
-            if (result->GetTuple(1, true)->GetAttribute(3)->toText() != "-")
-                query += "(S_eq \"" + result->GetTuple(1, true)
+            if (currentTuple->GetAttribute(3)->toText() != "-")
+                query += "(S_eq \"" + currentTuple
                     ->GetAttribute(3)->toText() + "\")";
 
             query += ")";
@@ -351,40 +364,40 @@ class foreverQueries_LI {
         {
             query += "(";
             
-            if (result->GetTuple(1, true)->GetAttribute(1)->toText() != "-")
-                query += "(City_eq \"" + result->GetTuple(1, true)
+            if (currentTuple->GetAttribute(1)->toText() != "-")
+                query += "(City_eq \"" + currentTuple
                     ->GetAttribute(1)->toText() + "\")";
                     
-            if (result->GetTuple(1, true)->GetAttribute(2)->toText() != "-")
-                query += "(Month_eq \"" + result->GetTuple(1, true)
+            if (currentTuple->GetAttribute(2)->toText() != "-")
+                query += "(Month_eq \"" + currentTuple
                     ->GetAttribute(2)->toText() + "\")";
             
-            if (result->GetTuple(1, true)->GetAttribute(3)->toText() != "-")
-                query += "(Number_eq " + result->GetTuple(1, true)
+            if (currentTuple->GetAttribute(3)->toText() != "-")
+                query += "(Number_eq " + currentTuple
                     ->GetAttribute(3)->toText() + ")";
 
-            if (result->GetTuple(1, true)->GetAttribute(4)->toText() != "-")
-                query += "(Number_gt " + result->GetTuple(1, true)
+            if (currentTuple->GetAttribute(4)->toText() != "-")
+                query += "(Number_gt " + currentTuple
                     ->GetAttribute(4)->toText() + ")";
 
-            if (result->GetTuple(1, true)->GetAttribute(5)->toText() != "-")
-                query += "(Number_lt " + result->GetTuple(1, true)
+            if (currentTuple->GetAttribute(5)->toText() != "-")
+                query += "(Number_lt " + currentTuple
                     ->GetAttribute(5)->toText() + ")";
                     
-            if (result->GetTuple(1, true)->GetAttribute(6)->toText() != "-")
-                query += "(Fraction_eq " + result->GetTuple(1, true)
+            if (currentTuple->GetAttribute(6)->toText() != "-")
+                query += "(Fraction_eq " + currentTuple
                     ->GetAttribute(6)->toText() + ")";
             
-            if (result->GetTuple(1, true)->GetAttribute(7)->toText() != "-")
-                query += "(Fraction_gt " + result->GetTuple(1, true)
+            if (currentTuple->GetAttribute(7)->toText() != "-")
+                query += "(Fraction_gt " + currentTuple
                     ->GetAttribute(7)->toText() + ")";
 
-            if (result->GetTuple(1, true)->GetAttribute(8)->toText() != "-")
-                query += "(Fraction_lt " + result->GetTuple(1, true)
+            if (currentTuple->GetAttribute(8)->toText() != "-")
+                query += "(Fraction_lt " + currentTuple
                     ->GetAttribute(8)->toText() + ")";
             
-            if (result->GetTuple(1, true)->GetAttribute(9)->toText() != "-")
-                query += "(Valid_eq " + result->GetTuple(1, true)
+            if (currentTuple->GetAttribute(9)->toText() != "-")
+                query += "(Valid_eq " + currentTuple
                     ->GetAttribute(9)->toText() + ")";
 
             query += ")";
@@ -395,12 +408,16 @@ class foreverQueries_LI {
             query = "((City_eq \"" + ForeverHelper::getBigString() + "\"))";
 
         if (_volume) _count++;
+        _currentTuple++;
+
         return query;
     }
 
     int _volume;
     int _type;
     int _count;
+    int _currentTuple;
+    Relation* _result;
 };
 
 /*
@@ -457,8 +474,8 @@ int foreverQueries_VM( Word* args, Word& result, int message,
 
         if (newQuery!="")
         {
-            std::cout << "Now waiting for 2 seconds..." << endl;
-            std::this_thread::sleep_for(std::chrono::seconds(2));
+            std::cout << "Now waiting for 250 milliseconds..." << endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(250));
         }
     } // repeat until li yields ""
 
