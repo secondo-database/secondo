@@ -80,7 +80,7 @@ public:
 
     enum class coordinatorStatus {initialze, run, shutdown};
     enum class handlerType {idle, worker, streamsupplier, nomo, all };
-    enum class handlerStatus {inactive, active, unknown, all };
+    enum class handlerStatus {inactive, active, shutdown, unknown, all };
 
     struct handlerStruct {
         int socket;

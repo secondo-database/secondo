@@ -544,6 +544,16 @@ unique id of the new handler.
 void CoordinatorGen::doRegisterNewHandler(ProtocolHelpers::Message msg) 
 {
     std::lock_guard<std::mutex> guard(_protectHandlers);
+    
+    // checks if under this port an handler already exists. if true, that 
+    // handler had crashed
+    int checkedId = getIdFromSocket(msg.socket);
+    
+    if (checkedId)
+    {
+        LOG << "Handle crashed handler on socket " << msg.socket << ENDL;
+        _handlers[checkedId].must_delete = true;
+    }
 
     handlerStruct handler;
     handler.id = ++_lastId;
@@ -929,14 +939,14 @@ void CoordinatorGen::shutdownHandler(int id, std::string reason)
     _handlers[id].must_delete = true;
 
     std::cout << "Shutting down ID: " <<id<< ". Reason: '" << reason << "'\n";
-    // todo close socket in server
+    
 }
 
 /*
 1.X confirmMessageIntegrity
 
 Tests if the given handler exists and returns true if the sockets are 
-identically. Unclear if this is really needed.
+identically.
 
 */
 
@@ -1007,7 +1017,7 @@ int CoordinatorGen::getIdFromSocket(int _socket)
     for (std::map<int, handlerStruct>::iterator it = _handlers.begin(); 
         it != _handlers.end(); it++)
     {
-        if (it->second.socket == _socket)
+        if (it->second.socket == _socket && !it->second.must_delete)
             return it->first;
     }
 
