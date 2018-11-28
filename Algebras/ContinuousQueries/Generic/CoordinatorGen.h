@@ -80,7 +80,7 @@ public:
 
     enum class coordinatorStatus {initialze, run, shutdown};
     enum class handlerType {idle, worker, streamsupplier, nomo, all };
-    enum class handlerStatus {inactive, active, shutdown, unknown, all };
+    enum class handlerStatus {inactive, active, unknown, all };
 
     struct handlerStruct {
         int socket;
@@ -93,7 +93,7 @@ public:
         std::string info;
         std::vector<int> ownqueries;
 
-        bool awaitConfirmation; // TODO unneccessary, it's within type&status
+        bool awaitConfirmation;
         uint64_t wait_since;
         bool must_delete=false;
     };

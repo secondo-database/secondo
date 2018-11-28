@@ -977,7 +977,9 @@ int CoordinatorGen::countHandlers(handlerType _type, handlerStatus _status)
         if (((it->second.type == _type) and (it->second.status == _status))
         or ((handlerType::all == _type) and (it->second.status == _status))
         or ((it->second.type == _type) and (handlerStatus::all == _status)))
-        count++;
+        {
+            count++;
+        }
     }
 
     return count;
