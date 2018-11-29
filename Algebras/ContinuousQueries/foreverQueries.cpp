@@ -474,8 +474,8 @@ int foreverQueries_VM( Word* args, Word& result, int message,
 
         if (newQuery!="")
         {
-            std::cout << "Now waiting for 250 milliseconds..." << endl;
-            std::this_thread::sleep_for(std::chrono::milliseconds(250));
+            std::cout << "Now waiting for 100 milliseconds..." << endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
     } // repeat until li yields ""
 

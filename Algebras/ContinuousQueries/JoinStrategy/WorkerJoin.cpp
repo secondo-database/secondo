@@ -85,6 +85,9 @@ WorkerJoin::WorkerJoin(int id, std::string attrliststr,
         ));
         _queries[name] = 0;
     }
+
+    _monitor = new Monitor(id, "join", _joinCondition, coordinationClient, 
+        2 * 60 * 1000, 100);
 }
 
 WorkerJoin::~WorkerJoin()

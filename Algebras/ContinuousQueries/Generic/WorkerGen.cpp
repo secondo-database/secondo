@@ -65,8 +65,6 @@ WorkerGen::WorkerGen(int id, std::string attrliststr,
     _basePort(coordinationClient->GetServerPort()),
     _tupleServer(coordinationClient->GetServerPort() + (id))
 {
-    _monitor = new Monitor(id, _type, "", coordinationClient, 
-        1 * 60 * 1000, 5000);
 }
 
 // Destroy

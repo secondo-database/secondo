@@ -76,6 +76,8 @@ WorkerLoop::WorkerLoop(int id, std::string attrliststr,
 
     _tt = new TupleType(numResultTupleType);
     
+    _monitor = new Monitor(id, "worker", "loop", coordinationClient, 
+        2 * 60 * 1000, 5000);
 }
 
 WorkerLoop::~WorkerLoop() {
@@ -137,7 +139,8 @@ void WorkerLoop::TightLoop()
 
     _monitor->startBatch();
 
-    while (_running) {
+    while (_running) 
+    {
         std::unique_lock<std::mutex> lock(_tupleServer.mqMutex);
 
         hasMsg = _tupleServer.mqCondition.wait_for(
@@ -147,7 +150,8 @@ void WorkerLoop::TightLoop()
             return !_tupleServer.messages.empty();
         });
 
-        if (!_running) {
+        if (!_running) 
+        {
             _monitor->checkBatch();
             lock.unlock();
             continue;
@@ -165,8 +169,8 @@ void WorkerLoop::TightLoop()
         
         lock.unlock();
 
-        if (hasMsg && msg.valid && msg.cmd==StSuGenP::tuple()) {
-
+        if (hasMsg && msg.valid && msg.cmd==StSuGenP::tuple()) 
+        {
             _monitor->startWorkRound();
 
             // extract informations
@@ -222,6 +226,7 @@ void WorkerLoop::TightLoop()
             hitlist = hitlist.substr(0, hitlist.size()-1);
 
             LOG << "tID: " << tupleId << " | hl: " << hitlist << ENDL;
+            std::cout << ".";
 
             // notify all nomos
             if (hits) notifyAllNoMos(tupleId, tupleString, hitlist);
@@ -231,6 +236,8 @@ void WorkerLoop::TightLoop()
 
         _monitor->checkBatch();
     }
+
+    std::cout << endl;
 }
 
 

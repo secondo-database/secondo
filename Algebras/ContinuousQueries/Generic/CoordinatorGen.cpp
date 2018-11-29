@@ -174,7 +174,7 @@ void CoordinatorGen::Run() {
 
                 // a handler sends logdata
                 if (msg.cmd == IdleGenP::logdata()) {
-                    LOG << msg.params << ENDL;
+                    std::cout << msg.params << endl;
                     if (_logfile.is_open()) _logfile << msg.params << "\n";
                 } else
 
