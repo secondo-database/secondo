@@ -221,11 +221,10 @@ void WorkerLoop::TightLoop()
             }
 
             tuple->DeleteIfAllowed();
-            // delete sc;
 
             hitlist = hitlist.substr(0, hitlist.size()-1);
 
-            LOG << "tID: " << tupleId << " | hl: " << hitlist << ENDL;
+            std::cout << "Tpl: " << tupleId << " | Hits: " << hits << endl;
 
             // notify all nomos
             if (hits) notifyAllNoMos(tupleId, tupleString, hitlist);
