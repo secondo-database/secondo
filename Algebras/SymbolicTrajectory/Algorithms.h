@@ -3482,26 +3482,30 @@ double MBasic<B>::Distance_FIRST_LAST(const MBasic<B>& mb) const {
 template<class B>
 double MBasic<B>::Distance_ALL(const MBasic<B>& mb, const LabelFunction lf) 
                   const {
-  int n = GetNoComponents();
-  int m = mb.GetNoComponents();
+  int m = GetNoComponents();
+  int n = mb.GetNoComponents();
+  int dp[m+1][n+1];
   typename B::base b1, b2;
-  double dp[n][m];
-  for (int i = 0; i < n; i++) {
+  for (int i = 0; i <= m; i++) {
     dp[i][0] = i;
   }
-  for (int j = 0; j < m; j++) {
+  for (int j = 0; j <= n; j++) {
     dp[0][j] = j;
   }
-  for (int i = 1; i < n; i++) {
-    GetValue(i - 1, b1);
-    for (int j = 1; j < m; j++) {
+  for (int i = 1; i <= m; i++) {
+    for (int j = 1; j <= n; j++) {
+      GetValue(i - 1, b1);
       mb.GetValue(j - 1, b2);
-      dp[i][j] = std::min(dp[i - 1][j] + 1,
-                std::min(dp[i][j - 1] + 1, 
-                    dp[i -1][j - 1] + Tools::distance(b1, b2, lf)));
+      if (Tools::distance(b1, b2, lf) == 0) {
+        dp[i][j] = dp[i - 1][j - 1];
+      }
+      else {
+        dp[i][j] = std::min(dp[i][j - 1], std::min(dp[i - 1][j], 
+                                                   dp[i - 1][j - 1])) + 1;
+      }
     }
   }
-  return dp[n - 1][m - 1] / std::max(n, m);
+  return (double)(dp[m][n]) / std::max(m, n);
 }
 
 template<class B>
@@ -3561,7 +3565,7 @@ double MBasic<B>::Distance(const MBasic<B>& mb) const {
   if (IsEmpty() || mb.IsEmpty()) {
     return 1.0;
   }
-  DistanceFunction df = EQUAL_LABELS; // TODO: change
+  DistanceFunction df = ALL;
   LabelFunction lf = TRIVIAL;
   typename B::base b1, b2, bs1, bs2, be1, be2;
   switch (df) {
@@ -4815,15 +4819,13 @@ double MBasics<B>::Distance(const MBasics<B>& mbs) const {
     dp[0][j] = j;
   }
   std::set<typename B::base> basics1, basics2;
-  int fun = 0; // TODO: change
-  LabelFunction lf = TRIVIAL;
   for (int i = 1; i < n; i++) {
     GetValues(i - 1, basics1);
     for (int j = 1; j < m; j++) {
       mbs.GetValues(j - 1, basics2);
       dp[i][j] = std::min(dp[i - 1][j] + 1,
                  std::min(dp[i][j - 1] + 1, 
-           dp[i -1][j - 1] + Tools::distance(basics1, basics2, fun, lf)));
+           dp[i -1][j - 1] + Tools::distance(basics1, basics2)));
     }
   }
   return dp[n - 1][m - 1] / std::max(n, m);

@@ -1264,13 +1264,13 @@ ListExpr distanceTM(ListExpr args) {
 
 */
 int distanceSelect(ListExpr args) {
-  if (Label::checkType(nl->First(args)))   return 0; 
+  if (Label::checkType(nl->First(args)))   return 0;
   if (Labels::checkType(nl->First(args)))  return 1;
-  if (Place::checkType(nl->First(args)))   return 2; 
+  if (Place::checkType(nl->First(args)))   return 2;
   if (Places::checkType(nl->First(args)))  return 3;
-  if (MLabel::checkType(nl->First(args)))  return 4; 
+  if (MLabel::checkType(nl->First(args)))  return 4;
   if (MLabels::checkType(nl->First(args))) return 5;
-  if (MPlace::checkType(nl->First(args)))  return 6; 
+  if (MPlace::checkType(nl->First(args)))  return 6;
   if (MPlaces::checkType(nl->First(args))) return 7;
   return -1;
 }

@@ -1675,68 +1675,47 @@ void Tools::createNFAfromPersistent(DbArray<NFAtransition> &trans,
 double Tools::distance(const string& str1, const string& str2, 
                        const LabelFunction lf) {
   if (lf == TRIVIAL) {
-    return (str1 == str2 ? 0 : 1);
+    return (str1 == str2 ? 0.0 : 1.0);
   }
-  if (!str1.length() && !str2.length()) {
-    return 0;
+  if (str1.empty() && str2.empty()) {
+    return 0.0;
   }
-  double ld;
+  if (str1.empty() || str2.empty()) {
+    return 1.0;
+  }
+  double ld = 1.0;
   if (lf == EDIT) {
-    string newstr1, newstr2;
-    transform(str1.begin(), str1.end(), newstr1.begin(), ::tolower);
-    transform(str2.begin(), str2.end(), newstr2.begin(), ::tolower);
-    ld = stringutils::ld(newstr1, newstr2);
+    ld = stringutils::ld(str1, str2);
   }
-  ld = stringutils::ld(str1, str2);
-  return (lf % 2 == 0) ? ld / max(str1.length(), str2.length()) : ld;
+  return ld / max(str1.length(), str2.length());
 }
 
 double Tools::distance(const pair<string, unsigned int>& val1, 
                const pair<string, unsigned int>& val2, const LabelFunction lf) {
   double ld = Tools::distance(val1.first, val2.first, lf);
-  return (val1.second == val2.second ? ld / 2 : ld);
+  return ld / 2 + (val1.second == val2.second ? 0 : 0.5);
 }
 
 double Tools::distance(const set<string>& values1, const set<string>& values2,
-                       const int fun, const LabelFunction lf) {
+                       const LabelFunction lf) {
   if (values1.empty() && values2.empty()) {
     return 0;
   }
+  if (values1.empty() || values2.empty()) {
+    return 1;
+  }
   set<string>::iterator i1, i2;
-  multiset<double> dist;
-  if (values2.empty()) {
-    for (i1 = values1.begin(); i1 != values1.end(); i1++) {
-      dist.insert(lf % 2 == 0 ? 1 : i1->length());
-    }
-  }
-  else if (values1.empty()) {
+  double distsum = 0;
+  for (i1 = values1.begin(); i1 != values1.end(); i1++) {
     for (i2 = values2.begin(); i2 != values2.end(); i2++) {
-      dist.insert(lf % 2 == 0 ? 1 : i2->length());
+      distsum += Tools::distance(*i1, *i2, lf);
     }
   }
-  else {
-    for (i1 = values1.begin(); i1 != values1.end(); i1++) {
-      for (i2 = values2.begin(); i2 != values2.end(); i2++) {
-        dist.insert(Tools::distance(*i1, *i2, lf));
-      }
-    }
-  }
-  int m = values1.size();
-  int n = values2.size();
-  int limit = (fun % 5) % 2 == 1 ? min(m, n) : 
-              ((fun % 5) > 0 ? max(m, n) : m + n);
-  multiset<double>::iterator it = dist.begin();
-  double sum = 0;
-  for (int k = 0; k < limit; k++) {
-    sum += *it;
-    it++;
-  }
-  return fun < 5 ? sum / limit : sum;
+  return distsum / (values1.size() * values2.size());
 }
 
 double Tools::distance(set<pair<string, unsigned int> >& values1, 
- set<pair<string, unsigned int> >& values2, const int fun, 
- const LabelFunction lf) {
+            set<pair<string, unsigned int> >& values2, const LabelFunction lf) {
   if (values1.empty() && values2.empty()) {
     return 0;
   }
@@ -1744,23 +1723,14 @@ double Tools::distance(set<pair<string, unsigned int> >& values1,
     return 1;
   }
   set<pair<string, unsigned int> >::iterator i1, i2;
-  multiset<double> dist;
+  double distsum = 0;
   for (i1 = values1.begin(); i1 != values1.end(); i1++) {
     for (i2 = values2.begin(); i2 != values2.end(); i2++) {
-      double labelDist = double(stringutils::ld(i1->first, i2->first)) /
-                         max(i1->first.length(), i2->first.length());
-      dist.insert(labelDist + (i1->second == i2->second ? 0 : 0.5));
+      double dist = Tools::distance(i1->first, i2->first, lf);
+      distsum += dist / 2 + (i1->second == i2->second ? 0 : 0.5);
     }
   }
-  int limit = min(values1.size(), values2.size());
-  multiset<double>::iterator it = dist.begin();
-  double sum = 0;
-  for (int k = 0; k < limit; k++) {
-    sum += *it;
-    it++;
-  }
-  return (sum / limit + abs((int64_t)values1.size() - (int64_t)values2.size())/ 
-                        max(values1.size(), values2.size())) / 2;
+  return distsum / (values1.size() * values2.size());
 }
 
 DistanceFunSym Tools::getDistanceFunSym(std::string funName) {

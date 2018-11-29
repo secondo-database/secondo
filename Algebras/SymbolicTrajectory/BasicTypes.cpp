@@ -135,16 +135,14 @@ bool Label::operator==(const string& text) const {
 \subsection{Function ~Distance~}
 
 */
-double Label::Distance(const Label& lb, const LabelFunction lf) const {
+double Label::Distance(const Label& lb, const LabelFunction lf /* = EDIT */)
+                                                                         const {
   if (!IsDefined() && !lb.IsDefined()) {
     return 0;
   }
   string str1, str2;
   if (!IsDefined() || !lb.IsDefined()) {
-    if (lf % 2 == 0) {
-      return 1;
-    }
-    return IsDefined() ? Sizeof() : lb.Sizeof();
+    return 1;
   }
   GetValue(str1);
   lb.GetValue(str2);
@@ -584,11 +582,11 @@ ostream& operator<<(ostream& os, const Labels& lbs) {
 }
 
 /*
-\subsection{Function ~Contains~}
+\subsection{Function ~Distance~}
 
 */
-double Labels::Distance(const Labels& lbs, const int fun, 
-                        const LabelFunction lf) const {
+double Labels::Distance(const Labels& lbs, const LabelFunction lf /* = EDIT */) 
+                                                                         const {
   if (!IsDefined() && !lbs.IsDefined()) {
     return 0;
   }
@@ -599,8 +597,9 @@ double Labels::Distance(const Labels& lbs, const int fun,
   if (lbs.IsDefined()) {
     lbs.GetValues(values1);
   }
-  return Tools::distance(values1, values2, fun, lf);
+  return Tools::distance(values1, values2, lf);
 }
+
 
 /*
 \subsection{Function ~GetFLOB~}
@@ -1214,8 +1213,8 @@ bool Places::operator==(const Places& p) const {
 \subsection{Function ~Distance~}
 
 */
-double Places::Distance(const Places& p, const bool normalizeNum, 
-                        const bool normalizeLabel) const {
+double Places::Distance(const Places& p, const LabelFunction lf /* = EDIT */) 
+                                                                         const {
   if (!IsDefined() && !p.IsDefined()) {
     return 0;
   }

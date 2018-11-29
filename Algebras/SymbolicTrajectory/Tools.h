@@ -276,18 +276,16 @@ class Tools {
           DbArray<int> &fs, std::vector<std::map<int, int> > &nfa, 
           std::set<int> &finalStates);
   static double distance(const std::string& str1, const std::string& str2, 
-                         const LabelFunction lf);
+                         const LabelFunction lf = EDIT);
   static double distance(const std::pair<std::string, unsigned int>& val1, 
                        const std::pair<std::string, unsigned int>& val2, 
-                       const LabelFunction lf);
+                       const LabelFunction lf = EDIT);
   static double distance(const std::set<std::string>& values1, 
-                         const std::set<std::string>& values2,
-                         const int fun, const LabelFunction lf);
+           const std::set<std::string>& values2, const LabelFunction lf = EDIT);
   static double distance(std::set<std::pair<std::string, 
                          unsigned int> >& values1, 
                          std::set<std::pair<std::string, 
-                         unsigned int> >& values2,
-                         const int fun, const LabelFunction lf);
+                       unsigned int> >& values2, const LabelFunction lf = EDIT);
   static DistanceFunSym getDistanceFunSym(std::string funName);
   static bool getGeoFromORel(const std::string& relName, const unsigned int ref,
                              const bool bbox, Word& geo, std::string& type);

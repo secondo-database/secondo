@@ -70,25 +70,25 @@ Result   : (place ('Reus' 11))
 Operator : name
 Number   : 1
 Signature: place -> text
-Example  : query name([const place value ("Bartra" 5)])
-Result   : 'Bartra'
+Example  : query name([const place value ("Witsel" 28)])
+Result   : 'Witsel'
 
 Operator : ref
 Number   : 1
 Signature: place -> int
-Example  : query ref([const place value ("Bartra" 5)])
-Result   : 5
+Example  : query ref([const place value ("Witsel" 28)])
+Result   : 28
 
 Operator : =
 Number   : 1
 Signature: T x T -> bool,   where T in {label(s), place(s)}
-Example  : query [const labels value ('Reus' 'Sokratis')] = [const labels value ('Sokratis' 'Reus')]
+Example  : query [const labels value ('Reus' 'Akanji')] = [const labels value ('Akanji' 'Reus')]
 Result   : TRUE
 
 Operator : #
 Number   : 1
 Signature: T x T -> bool,   where T in {label(s), place(s)}
-Example  : query [const labels value ('Reus' 'Sokratis')] # [const labels value ('Sokratis' 'Reus')]
+Example  : query [const labels value ('Reus' 'Akanji')] # [const labels value ('Akanji' 'Reus')]
 Result   : FALSE
 
 Operator : union
@@ -119,7 +119,7 @@ Remark   : Operator not available without Recode library
 Operator : distance
 Number   : 1
 Signature: T x T -> real,   where T in {(m)label(s), (m)place(s)}
-Example  : query distance([const label value "Yarmolenko"], [const label value "Yarmolenko"])
+Example  : query distance([const label value "Witsel"], [const label value "Witsel"])
 Result   : 0.0
 
 Operator : distancesym

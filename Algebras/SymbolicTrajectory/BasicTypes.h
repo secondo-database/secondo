@@ -184,10 +184,7 @@ class Label : public Attribute {
   Label& operator=(const Label& lb) {CopyFrom(&lb); return *this;}
   bool operator==(const Label& lb) const;
   bool operator==(const std::string& text) const;
-  double Distance(const Label& lb) const {
-    return Distance(lb, TRIVIAL);
-  }
-  double Distance(const Label& lb, const LabelFunction lf) const;
+  double Distance(const Label& lb, const LabelFunction lf = EDIT) const;
 
   static bool readValueFrom(ListExpr LE, std::string& text, unitelem& unit);
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
@@ -264,11 +261,7 @@ class Labels : public Attribute {
   bool Recode(const std::string& from, const std::string& to, Labels& result);
   #endif
   friend std::ostream& operator<<(std::ostream& os, const Labels& lbs);
-  double Distance(const Labels& lbs) const {
-    return Distance(lbs, 0, TRIVIAL);
-  }
-  double Distance(const Labels& lbs, const int fun, const LabelFunction lf)
-         const;
+  double Distance(const Labels& lbs, const LabelFunction lf = EDIT) const;
 
   int NumOfFLOBs() const {return 2;}
   Flob *GetFLOB(const int i);
@@ -328,10 +321,7 @@ class Place : public Label {
   Place& operator=(const Place& p);
   bool operator==(const Place& p) const;
   bool operator==(const std::pair<std::string, unsigned int>& value) const;
-  double Distance(const Place& p) const {
-    return Distance(p, TRIVIAL);
-  }
-  double Distance(const Place& p, const LabelFunction lf) const;
+  double Distance(const Place& p, const LabelFunction lf = EDIT) const;
 
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(Place);}
@@ -402,11 +392,7 @@ class Places : public Attribute {
                                                       << e.second;}
   void operator=(const Places& p);
   bool operator==(const Places& p) const;
-  double Distance(const Places& p) const {
-    return Distance(p, false, false);
-  }
-  double Distance(const Places& p, const bool normalizeNum, 
-                  const bool normalizeLabel) const;
+  double Distance(const Places& p, const LabelFunction lf = EDIT) const;
 
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(Places);}
