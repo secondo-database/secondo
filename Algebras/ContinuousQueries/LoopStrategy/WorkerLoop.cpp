@@ -226,7 +226,6 @@ void WorkerLoop::TightLoop()
             hitlist = hitlist.substr(0, hitlist.size()-1);
 
             LOG << "tID: " << tupleId << " | hl: " << hitlist << ENDL;
-            std::cout << ".";
 
             // notify all nomos
             if (hits) notifyAllNoMos(tupleId, tupleString, hitlist);
@@ -236,8 +235,6 @@ void WorkerLoop::TightLoop()
 
         _monitor->checkBatch();
     }
-
-    std::cout << endl;
 }
 
 

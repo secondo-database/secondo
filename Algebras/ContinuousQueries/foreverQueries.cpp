@@ -474,12 +474,14 @@ int foreverQueries_VM( Word* args, Word& result, int message,
 
         if (newQuery!="")
         {
-            std::cout << "Now waiting for 100 milliseconds..." << endl;
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            std::cout << "Now waiting for 20 milliseconds..." << endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
     } // repeat until li yields ""
 
     std::cout << "All done!" << endl;
+
+    client.Shutdown();
 
     result = qp->ResultStorage(s);
     FText* res = (FText*) result.addr;
