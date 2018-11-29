@@ -6064,7 +6064,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   
   AddOperator(createTileAreasInfo(), createTileAreasVM, createTileAreasTM);
   
-  AddOperator(restoreTrajInfo(), restoreTrajVM, restoreTrajTM);
+//   AddOperator(restoreTrajInfo(), restoreTrajVM, restoreTrajTM);
   
 //   ValueMapping derivegroupsVMs[] = {derivegroupsVM<MLabel>,
 //     derivegroupsVM<MLabels>, derivegroupsVM<MPlace>, 

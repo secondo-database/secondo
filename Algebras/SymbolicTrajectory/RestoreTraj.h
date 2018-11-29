@@ -159,6 +159,50 @@ struct RoadCourse {
     }
     heightCourse.push_back(NewPair<int, raster2::RasterIndex<2> >(pos, ri));
   }
+  
+  bool restorePoints(const int first, const int last, Point& resultStart,
+                     Point& resultEnd) {
+    int left = binarySearchDirCourse(first, true);
+    int right = binarySearchDirCourse(last, false);
+    if (left == -1 || right == -1) {
+      return false;
+    }
+    resultStart = dirCourse[left].second;
+    resultEnd = dirCourse[right].second;
+    return true;
+  }
+  
+  int binarySearchDirCourse(const int value, const bool isMin) {
+    if (dirCourse.empty()) {
+      return -1;
+    }
+    int start = 0;
+    int end = dirCourse.size() - 1;
+    while (start <= end) {
+      int mid = (start + end) / 2;
+      if (dirCourse[mid].first == value) {
+        int limit = mid;
+        if (isMin) {
+          while (dirCourse[limit].first == value) {
+            limit--;
+          }
+        }
+        else {
+          while (dirCourse[limit].first == value) {
+            limit++;
+          }
+        }
+        return limit;
+      }
+      else if (value < dirCourse[mid].first){
+          end = mid - 1;
+      }
+      else{
+          start = mid + 1;
+      }
+    }
+    return -1;
+  }
     
   void clear() {
     dirCourse.clear();

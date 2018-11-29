@@ -1251,31 +1251,28 @@ RestoreTrajLI::RestoreTrajLI(Relation *e, BTree *ht, RTree2TID *st,
   edgesRel = 0;
   heightBtree = 0;
   segmentsRtree = 0;
-  Word roadCoursesPtr;
-  bool isDefined;
-  SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  if (!sc->GetObject("RoadCourses", roadCoursesPtr, isDefined)) {
-    cout << "Object RoadCourses does not exist." << endl;
-    return;
-  }
-  if (!isDefined) {
-    cout << "Object RoadCourses is undefined." << endl;
-    return;
-  }
-  Relation *roadCourses = static_cast<Relation*>(roadCoursesPtr.addr);
-  RelationIterator *rit = (RelationIterator*)(roadCourses->MakeScan());
-  Tuple *tuple = 0;
-  datetime::DateTime twoMinutes(0, 120000, datetime::durationtype);
-  while ((tuple = rit->GetNextTuple()) != 0) {
-    CcInt *tid = (CcInt*)(tuple->GetAttribute(0));
-    MLabel *mHeight = (MLabel*)(tuple->GetAttribute(1));
-    MLabel *mDir = (MLabel*)(tuple->GetAttribute(2));
-    if (!tid->IsDefined() || !mHeight->IsDefined() || !mDir->IsDefined()) {
-      cout << tid->IsDefined() << "  " << mHeight->IsDefined() << " "
-           << mDir->IsDefined() << endl;
-    }
-    NewPair<int, int> hLimits = height->LongestCommonSubsequence(*mHeight);
-    NewPair<int, int> dLimits = direction->LongestCommonSubsequence(*mDir);
+//   Word roadCoursesPtr;
+//   bool isDefined;
+//   SecondoCatalog* sc = SecondoSystem::GetCatalog();
+//   if (!sc->GetObject("RoadCourses", roadCoursesPtr, isDefined)) {
+//     cout << "Object RoadCourses does not exist." << endl;
+//     return;
+//   }
+//   if (!isDefined) {
+//     cout << "Object RoadCourses is undefined." << endl;
+//     return;
+//   }
+//   Relation *roadCourses = static_cast<Relation*>(roadCoursesPtr.addr);
+//   cout << roadCourses->GetNoTuples() << " tuples" << endl;
+//   RelationIterator *rit = (RelationIterator*)(roadCourses->MakeScan());
+//   Tuple *tuple = 0;
+  datetime::DateTime fiveMinutes(0, 180000, datetime::durationtype);
+  Point pt1(true), pt2(true);
+  for (unsigned int i = 0; i < ta->roadCourses.size(); i++) {
+    NewPair<int, int> hLimits = height->LongestCommonSubsequence(
+                                                  ta->roadCourses[i].heightSeq);
+    NewPair<int, int> dLimits = direction->LongestCommonSubsequence(
+                                                  ta->roadCourses[i].dirSeq);
     MLabel hPart(true), dPart(true), hPart2(true), dPart2(true);
     if (hLimits.first >= 0 && dLimits.first >= 0) {
       height->GetPart(hLimits.first, hLimits.second, hPart);
@@ -1288,12 +1285,16 @@ RestoreTrajLI::RestoreTrajLI(Relation *e, BTree *ht, RTree2TID *st,
         Interval<Instant> iv1, iv2;
         inter.Get(0, iv1);
         inter.Get(inter.GetNoComponents() - 1, iv2);
-        if (iv2.end - iv1.start > twoMinutes) {
+        if (iv2.end - iv1.start > fiveMinutes) {
           hPart.AtPeriods(inter, hPart2);
           dPart.AtPeriods(inter, dPart2);
-          cout << "found HEIGHT part: " << hPart2 << endl;
-          cout << "found DIR part: " << dPart2 << endl << "--------------------"
-               << endl << endl;
+          if (ta->roadCourses[i].restorePoints(dLimits.first, dLimits.second, 
+                                               pt1, pt2)) {
+            cout << "found HEIGHT part: " << hPart2 << endl;
+            cout << "found DIR part: " << dPart2 << endl;
+            cout << "between " << pt1 << " and " << pt2 << endl
+                 << "----------------------------------" << endl << endl;
+          }
         }
       }
     }

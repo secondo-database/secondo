@@ -583,8 +583,4 @@ Signature : sint -> tileareas
 Example   : query tostring(createTileAreas(doHgt) getTypeNL)
 Result    : "tileareas"
 
-Operator : restoreTraj
-Number   : 1
-Signature: rel(tuple(longint, text, sline, string, int)) x btree x rtree x sint x hash x mlabel x mlabel x mlabel -> stream(mpoint)
-Example  : query restoreTraj(EdgesExtDo, (EdgesExtDo createbtree[HeightCat]), (EdgesExtDo creatertree[Segment]), doHgt, (createHgtIndex(doHgt)), createMaxspeedRaster(doHgt, RoadsBDo, RoadsBDo_Curve_rtree), createTileAreas(doHgt), dir, hgt, spd) count
-Result   : 0
+
