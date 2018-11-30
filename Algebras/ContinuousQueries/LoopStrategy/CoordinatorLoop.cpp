@@ -44,6 +44,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "CoordinatorLoop.h"
 
+extern QueryProcessor* qp;
+
 namespace continuousqueries {
 
 CoordinatorLoop::CoordinatorLoop(int port, std::string tupledescr): 
@@ -178,6 +180,8 @@ Secondo Query Processor.
 
 bool CoordinatorLoop::checkNewFunction(std::string function, std::string &err)
 {
+    return true;
+    
     err = "???";
 
     // build funList
@@ -188,8 +192,8 @@ bool CoordinatorLoop::checkNewFunction(std::string function, std::string &err)
         return false;
     }
 
-    QueryProcessor* tqp = new QueryProcessor(nl,
-        SecondoSystem::GetAlgebraManager());
+    // QueryProcessor* tqp = new QueryProcessor(nl,
+    //     SecondoSystem::GetAlgebraManager());
 
     // build the tree
     OpTree tree = 0;
@@ -200,7 +204,7 @@ bool CoordinatorLoop::checkNewFunction(std::string function, std::string &err)
     bool isFunction = false;
 
     try {
-        tqp->Construct(
+        qp->Construct(
             funList,
             correct,
             evaluable,
@@ -212,11 +216,11 @@ bool CoordinatorLoop::checkNewFunction(std::string function, std::string &err)
     catch(SI_Error ERR_IN_QUERY_EXPR) {
         std::cout << "Error building tree" << endl;
         err = "Error building tree";
-        delete tqp;
+        // delete tqp;
         return false;
     }
 
-    delete tqp;
+    // delete tqp;
 
     return (correct && defined && isFunction);
 }

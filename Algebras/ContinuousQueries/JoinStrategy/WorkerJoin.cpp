@@ -106,11 +106,8 @@ void WorkerJoin::Initialize()
     ListExpr typeInfo;
     ListExpr relType;
 
-    _sc->DeleteObject("tpl");
-    _sc->DeleteObject("queries");
-    _sc->DeleteObject("qbtree");
-
     // Create the tpl object
+    _sc->DeleteObject("tpl");
     typeInfo = nl->TwoElemList(
         listutils::basicSymbol<Tuple>(), 
         _tupleattrlist.listExpr()
@@ -124,7 +121,13 @@ void WorkerJoin::Initialize()
     tupleRelWord.setAddr(_tuplerel);
     _sc->InsertObject("tpl", "", relType, tupleRelWord, true);
 
+bool recover = true;
+if (!recover)
+{
+    // Normally create all elements fresh
+
     // Create the queries object
+    _sc->DeleteObject("queries");
     typeInfo = nl->TwoElemList(
         listutils::basicSymbol<Tuple>(), 
         _queryattrlist.listExpr()
@@ -144,6 +147,7 @@ void WorkerJoin::Initialize()
     LOG << "***************************" << ENDL;
 
     // Create the btree object
+    _sc->DeleteObject("qbtree");
     size_t jcPos = _queryattrlist.convertToString().find(_joinCondition);
     std::string jcType =  _queryattrlist.convertToString().substr(
         jcPos + _joinCondition.length() + 1,
@@ -179,6 +183,34 @@ void WorkerJoin::Initialize()
 
     btreeWord.setAddr(_qbtree);
     _sc->InsertObject("qbtree", "", relType, btreeWord, true);
+
+} else {
+    // if recover is true, don't reset the btree and queries
+    // use the prepared objects insteald
+
+    // set the counter in the _queries object to the right number
+    // iterare over all query parts
+    std::string qf = "";
+    CcInt* countnos;
+
+    for (std::vector<std::pair <std::string, std::string>>::iterator 
+            it = _queryparts.begin(); 
+            it != _queryparts.end(); it++)
+    {
+        if (it->first == "QID") continue;
+        
+        qf = "query queries feed filter[not(." + it->first + 
+                " = [const " + it->second + " value undefined])] count";
+        countnos = (CcInt*) executeQueryString(qf).addr;
+
+        _queries[it->first] = countnos->GetValue();
+    }
+
+    qf = "query queries count;";
+    countnos = (CcInt*) executeQueryString(qf).addr;
+
+    _noqueries = countnos->GetValue();
+}
 
     _sc->CleanUp(false, true);
     
@@ -294,7 +326,7 @@ void WorkerJoin::TightLoop()
             
             hitlist = hitlist.substr(0, hitlist.size()-1);
 
-            LOG << "tID: " << tupleId << " | hl: " << hitlist << ENDL;
+            std::cout << "Tpl: " << tupleId << " | Hits: " << hits << endl;
 
                 t->DeleteIfAllowed();
                 // result->Close();
