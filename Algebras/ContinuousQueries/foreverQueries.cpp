@@ -58,6 +58,7 @@ format...
 #include "Tcp/TcpClient.h"
 #include <thread>
 #include <chrono>
+#include <boost/algorithm/string.hpp>
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -308,8 +309,8 @@ class foreverQueries_LI {
             
             if (currentTuple->GetAttribute(9)->toText() != "-")
             {
-                parts[count] = "(=(attr t Valid)" + currentTuple
-                    ->GetAttribute(9)->toText() + ")";
+                parts[count] = "(=(attr t Valid)" + boost::to_upper_copy(
+                    currentTuple->GetAttribute(9)->toText()) + ")";
                 count++;
             }
 
@@ -397,8 +398,8 @@ class foreverQueries_LI {
                     ->GetAttribute(8)->toText() + ")";
             
             if (currentTuple->GetAttribute(9)->toText() != "-")
-                query += "(Valid_eq " + currentTuple
-                    ->GetAttribute(9)->toText() + ")";
+                query += "(Valid_eq " + boost::to_upper_copy(
+                    currentTuple->GetAttribute(9)->toText()) + ")";
 
             query += ")";
         }
