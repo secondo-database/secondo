@@ -25,6 +25,17 @@ import extern.*;
 
 public class BinaryList implements SecondoImporter{
 
+public void setMaxStringLength(int dummy){
+  // handlet by nl module
+}
+
+public boolean supportsFile( File f){
+  if(f.isDirectory() || !f.exists()){
+    return false;
+  }
+  return f.getName().toLowerCase().endsWith(".bnl");
+}
+
 
 public ListExpr getList(String FileName){
   File F = new File(FileName);
@@ -39,7 +50,7 @@ public ListExpr getList(String FileName){
         LastError = "error in reading file";
      ListExpr Res = ListExpr.readBinaryFrom(FIS);
      try{FIS.close();}catch(Exception e2){}
-     return Res;
+     return ImportManager.extractFromObject(Res);
      } catch(Exception E){
         LastError = "error in opening file";
         return null;

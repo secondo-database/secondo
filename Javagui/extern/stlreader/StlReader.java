@@ -10,6 +10,16 @@ import tools.RefBool;
 
 public class StlReader implements SecondoImporter{
 
+  public void setMaxStringLength(int len){
+    // strings are not included here
+  }
+
+  public boolean supportsFile(File f){
+    if(f.isDirectory()){
+      return false;
+    }
+    return f.getName().toLowerCase().endsWith("stl");
+  }
 
   public ListExpr getList(String fileName){
 

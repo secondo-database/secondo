@@ -25,8 +25,33 @@ import extern.dbfreader.*;
 import sj.lang.ListExpr;
 import java.util.*;
 import tools.Reporter;
+import java.io.File;
 
 public class ShapeDbf implements SecondoImporter{
+
+  int strLength = -1;
+
+  public void setMaxStringLength(int len){
+    strLength = len; 
+  }
+
+  public boolean supportsFile(File f){
+    if(f.isDirectory() || !f.exists()){
+      return false;
+    }
+    
+    String fn = f.getAbsolutePath();
+    String lcfn = f.getName().toLowerCase();
+    if(lcfn.endsWith(".shp")){
+      String fn2 = fn.substring(0,fn.length()-4)+".dbf";
+      return (new File(fn2)).exists();
+    }    
+    if(lcfn.endsWith(".dbf")){
+      String fn2 = fn.substring(0,fn.length()-4)+".shp";
+      return (new File(fn2)).exists();
+    }    
+    return  false;
+  }
 
 public ListExpr getList(String FileName){
   LastError = "no error";
@@ -45,6 +70,9 @@ public ListExpr getList(String FileName){
   }
 
   Dbf3Reader DR = new Dbf3Reader();
+  if(strLength > 0){
+     DR.setMaxStringLength(strLength);
+  }
   ListExpr L2 = DR.getList(DBFName);
 
   if(L2==null){

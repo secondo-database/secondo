@@ -25,6 +25,7 @@ import extern.shapedbf.ShapeDbf;
 import extern.shapereader.ShapeReader;
 import extern.stlreader.StlReader;
 import extern.gpxreader.GpxReader;
+import extern.nl.NLImporter;
 import java.io.File;
 import extern.binarylist.*;
 import tools.Reporter;
@@ -37,103 +38,32 @@ public class ImportManager{
     if an error is occurred null is returned, the errormessage
     can be obtain with the getErrorText-Method.
     How the file is converted is determined by the file extension */
-public ListExpr importFile(String FileName){
-  long t1=System.currentTimeMillis();
-  ErrorText = "no error";
-  File F = new File(FileName);
-     if(!F.exists()){
-         ErrorText = "file not exists";
-         return null;
-     }
-
-
-  // d-base 3 files
-  if(FileName.toLowerCase().endsWith(".dbf")){
-     ListExpr Res = dbf3Reader.getList(FileName);
-     if(Res!=null){
-        return Res;
-     }
-     else{
-        ErrorText = dbf3Reader.getErrorString();
-     }
+public ListExpr importFile(String fileName){
+  error = "";
+  File F = new File(fileName);
+  if(!F.exists()){
+    error = "file does not exists";
+    return null;
   }
-
-  // shape files or combination of shape and dbf
-  if(FileName.toLowerCase().endsWith(".shp")){
-      String DBFile = FileName.substring(0,FileName.length()-3)+"dbf";
-      File F2 = new File(DBFile);
-      ListExpr Res;
-     if(F2.exists()){ // try to load combined shape-dbf
-         Res = shapedbfreader.getList(FileName);
-	     if(Res==null){
-           ErrorText = shapedbfreader.getErrorString();
-	         Reporter.writeError("combined shape-dbf failed :"+ErrorText);
-	         t1 = System.currentTimeMillis();
-	     }
-	 	 else{
-	         return Res;
-         }
-     }
-     Res = shapereader.getList(FileName);
-     if(Res==null)
-        ErrorText = shapereader.getErrorString();
-     else{
-            return Res;
-     }
- }
-
- // a binary nested list
- if(FileName.toLowerCase().endsWith(".bnl")){
-     BinaryList BN = new BinaryList();
-     ListExpr LE = BN.getList(FileName);
-     if(LE==null)
-        ErrorText = BN.getErrorString();
-     else{
-        return extractFromObject(LE);
-     }
+  for(int i=0;i<importers.size();i++){
+    SecondoImporter imp = importers.get(i);
+    if(imp.supportsFile(F)){
+      ListExpr res = imp.getList(fileName);
+      if(res!=null){
+         error = "no error";
+         return res;
+      } else {
+        if(error.length()>0) error += "\n";
+        error += imp.getFileDescription()+ " : " +imp.getErrorString();
+      }
+    }
   }
-  
- // stl files
- if(FileName.toLowerCase().endsWith(".stl")){
-     ListExpr res = stlReader.getList(FileName);
-     if(res!=null){
-        return res;
-     }
-     else{
-        ErrorText = stlReader.getErrorString();
-     }
-  }
-
-
-  // gpx-files or folder containing gpx files
-  if(FileName.toLowerCase().endsWith(".gpx") ||
-     (F.isDirectory() && contains(F,".gpx"))){
-     ListExpr res = gpxReader.getList(FileName);
-     if(res!=null){
-        return res;
-     }
-     else{
-        ErrorText = gpxReader.getErrorString();
-     }
-   }
-     
-
-  // ever try to load this file as nested list
-  t1 = System.currentTimeMillis();
-  ListExpr R = ListExpr.getListExprFromFile(FileName);
-  if(R==null){
-     if(ErrorText.equals("no error"));
-        ErrorText ="cannot load this file";
-     return null;
-  }else{
-   return extractFromObject(R);
-  }
-
+  return null;
 }
 
 
 
-private ListExpr extractFromObject(ListExpr LE){
+public static ListExpr extractFromObject(ListExpr LE){
    if(LE==null)
       return null;
    int length = LE.listLength();
@@ -165,8 +95,11 @@ private ListExpr extractFromObject(ListExpr LE){
   * importers which handle with strings
   */
 public void setMaxStringLength(int len){
-  if(len>0)
-    dbf3Reader.setMaxStringLength(len);
+  if(len > 0){
+    for(int i=0;i<importers.size();i++){
+      importers.get(i).setMaxStringLength(len);
+    }
+  }
 }
 
 
@@ -176,41 +109,26 @@ public Vector<String> getSupportedFormats(){
 
 
 public ImportManager(){
+   importers = new Vector<SecondoImporter>();
+   importers.add(new ShapeDbf()); 
+   importers.add(new Dbf3Reader());
+   importers.add(new ShapeReader()); 
+   importers.add(new StlReader());
+   importers.add(new BinaryList());
+   importers.add(new GpxReader());
+   importers.add(new NLImporter()); 
+
    supportedFormats = new Vector<String>();
-   supportedFormats.add(dbf3Reader.getFileDescription());
-   supportedFormats.add(shapereader.getFileDescription());
-   supportedFormats.add(shapedbfreader.getFileDescription());
-   supportedFormats.add(stlReader.getFileDescription());
-   supportedFormats.add(gpxReader.getFileDescription());
-   supportedFormats.add("objects stored as binary nested list (.bnl)");
-   supportedFormats.add("objects stored as textual nested list ");
+   for(int i=0;i<importers.size();i++){
+     supportedFormats.add(importers.get(i).getFileDescription());
+   }
 }
 
 
 
-private String ErrorText="";
-private Dbf3Reader dbf3Reader = new Dbf3Reader();
-private ShapeReader shapereader = new ShapeReader();
-private ShapeDbf shapedbfreader = new ShapeDbf();
-private StlReader  stlReader = new StlReader();
-private GpxReader  gpxReader = new GpxReader();
-
+private String error="";
+Vector<SecondoImporter> importers;
 private Vector<String> supportedFormats;
-
-private boolean contains(File F, String fileExtension){
-  if(!F.isDirectory()) return false;
-  fileExtension = fileExtension.toLowerCase();
-  File[] files = F.listFiles();
-  for(int i=0;i<files.length;i++){
-    if(files[i].isFile()){
-       if(files[i].getName().toLowerCase().endsWith(fileExtension)){
-         return true;
-       }
-    }
-  }
-  return false;
-}
-
 
 
 }

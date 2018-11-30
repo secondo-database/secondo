@@ -28,6 +28,9 @@ import tools.Reporter;
 
 public class ShapeReader implements SecondoImporter{
 
+public void setMaxStringLength(int len){
+  // strings are not included here
+}
 
 
 public ListExpr getList(String FileName){
@@ -107,6 +110,11 @@ private boolean openFile(File F){
        Last_Error = "i can't open the File";
        return false;
     }
+}
+
+public boolean supportsFile(File f){
+   if(f.isDirectory()) return false;
+   return f.getName().toLowerCase().endsWith("shp");
 }
 
 

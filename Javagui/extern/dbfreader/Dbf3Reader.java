@@ -114,6 +114,11 @@ public  ListExpr getList(String FileName){
 
 }
 
+public boolean supportsFile(File f){
+  if(f.isDirectory()) return false;
+  return f.getName().toLowerCase().endsWith("dbf");
+}
+
 public void setMaxStringLength(int len){
  if(len>0)
     MAX_STRING_LENGTH = len;

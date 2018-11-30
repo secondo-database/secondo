@@ -49,12 +49,42 @@ import sj.lang.ListExpr;
  *
  */
 public class GpxReader implements SecondoImporter {
+ 
+
+   public void setMaxStringLength(int dummy){}
 
    private String errorString = "NO_ERROR";
 
    private GPXParser gpxParser = new GPXParser();
 
    private Counter tubleCounter;
+
+  private boolean contains(File F, String fileExtension){
+     if(!F.isDirectory()) return false;
+     fileExtension = fileExtension.toLowerCase();
+     File[] files = F.listFiles();
+     for(int i=0;i<files.length;i++){
+       if(files[i].isFile()){
+          if(files[i].getName().toLowerCase().endsWith(fileExtension)){
+            return true;
+          }
+       }
+     }
+     return false;
+   }
+
+
+
+   public boolean supportsFile( File f){
+     if(!f.exists()){
+       return false;
+     }
+     if(f.isDirectory()){
+      return contains(f,".gpx");
+     }
+     return f.getName().toLowerCase().endsWith(".gpx");
+  }
+
 
    /**
     * Get the file content as nested list
