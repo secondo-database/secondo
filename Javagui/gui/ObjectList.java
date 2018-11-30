@@ -555,7 +555,6 @@ public int loadObject(){
        FileChooser.setSelectedFile(CurrentDir);
        FileChooser.setCurrentDirectory(CurrentDir);
        FileChooser.setMultiSelectionEnabled(true);
-       FileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
        if (FileChooser.showOpenDialog(this)==JFileChooser.APPROVE_OPTION){
            File[] Fs = FileChooser.getSelectedFiles();
            for(int i=0;i<Fs.length;i++){
