@@ -1,0 +1,57 @@
+.hr-text {
+  line-height: 1em;
+  position: relative;
+  outline: 0;
+  border: 0;
+  color: black;
+  text-align: center;
+  height: 1.5em;
+  opacity: .5;
+}
+
+.hr-text:before {
+    content: '';
+    background: linear-gradient(to right, transparent, #818078, transparent);
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 100%;
+    height: 1px;
+  }
+
+.hr-text:after {
+    content: attr(data-content);
+    position: relative;
+    display: inline-block;
+    color: black;
+
+    padding: 0 .5em;
+    line-height: 1.5em;
+    color: #818078;
+    background-color: #fcfcfa;
+  }
+
+.build-box {
+  min-width: 200px;
+  min-height: 100px;
+  padding: 10px;
+  margin: 10px;
+  display: inline-block;
+  box-sizing: border-box;
+  border: 2px solid black;
+  text-align: center;
+}
+
+.add-buttons {
+  display: inline-block;
+  margin: auto 0;
+}
+
+.add-button {
+  display: block;
+  margin: 5px;
+}
+
+.container {
+  padding: 2em;
+}

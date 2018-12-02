@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+
+    <!-- CDN Versions
+    <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/js-sha1/0.6.0/sha1.min.js"></script>
+    -->
+
+    <script src="lib/react.16.production.min.js"></script>
+    <script src="lib/react-dom.16.production.min.js"></script>
+    <script src="lib/babel.6.15.0.min.js"></script>
+    <script src="lib/sha1.0.6.0.js"></script>
+    
+    <!-- CDN Versions
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous"/>
+    -->
+
+    <link rel="stylesheet" href="lib/bootstrap.4.1.3.min.css"/>
+    <link rel="stylesheet" href="app.css"/>
+
+    <title>Secondo Stream Prozessor</title>
+  </head>
+
+  <body>
+    <div id="root"></div>
+
+    <!-- Load Components -->
+    <script src="components/App.js" type="text/babel"></script>
+    <script src="components/Login.js" type="text/babel"></script>
+    <script src="components/List.js" type="text/babel"></script>
+    <script src="components/BuildLoop.js" type="text/babel"></script>
+    <script src="components/BuildJoin.js" type="text/babel"></script>
+
+
+    <!-- Render Application -->
+    <script type="text/babel">
+
+      window.sspglobals = {
+        apiurl: "http://localhost/wss/api/api.php"
+      }
+
+      ReactDOM.render(
+        <App />,
+        document.getElementById("root")
+      )
+    </script>
+  </body>
+</html>
