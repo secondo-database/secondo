@@ -80,11 +80,24 @@ WorkerLoop::WorkerLoop(int id, std::string attrliststr,
         2 * 60 * 1000, 5000);
 }
 
+/*
+1.2 Destructor
+
+Destroys the WorkerLoop object.
+
+*/
+
 WorkerLoop::~WorkerLoop() {
     _tt->DeleteIfAllowed();
 }
 
-// Query handling
+/*
+1.3 addQuery
+
+Adds a user query.
+
+*/
+
 void WorkerLoop::addQuery(int id, std::string function)
 {
     LOG << "Adding Query " << id << "|" << function << ENDL;
@@ -130,6 +143,12 @@ void WorkerLoop::addQuery(int id, std::string function)
     _queries.insert( std::pair<int, queryStruct>(id, toAdd));
 }
 
+/*
+1.4 TightLoop
+
+Waits for new tuples and checks all registered queries against them.
+
+*/
 
 void WorkerLoop::TightLoop() 
 {
@@ -236,9 +255,8 @@ void WorkerLoop::TightLoop()
     }
 }
 
-
 /*
-1.3.5 filterTuple
+1.5 filterTuple
 
 This function checks wether the filterfunction is true for a given tuple.
 True is returned when the result of the function is true.
@@ -268,13 +286,19 @@ bool WorkerLoop::filterTuple(Tuple* tuple, OpTree& tree,
     return false;
 }
 
+/*
+1.6 showStatus
+
+Prints out some information.
+
+*/
 
 void WorkerLoop::showStatus()
 {
-    LOG << "**************************************************" << ENDL;
-    LOG << "WorkerLoop::Status"                         << ENDL << ENDL;
-    LOG << "Number of Queries: " << (int)_queries.size()        << ENDL;
-    LOG << "**************************************************" << ENDL;
+    std::cout << "**************************************************" << endl;
+    std::cout << "WorkerLoop::Status"                         << endl << endl;
+    std::cout << "Number of Queries: " << (int)_queries.size()        << endl;
+    std::cout << "**************************************************" << endl;
 }
 
 }

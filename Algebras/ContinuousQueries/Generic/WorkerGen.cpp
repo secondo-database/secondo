@@ -67,13 +67,25 @@ WorkerGen::WorkerGen(int id, std::string attrliststr,
 {
 }
 
-// Destroy
+/*
+1.2 Destructor
+
+Destroys the WorkerGen object.
+
+*/
+
 WorkerGen::~WorkerGen()
 {
     Shutdown();
 }
 
-// Initialize
+/*
+1.3 Initialize
+
+Prepares the worker.
+
+*/
+
 void WorkerGen::Initialize()
 {
     // start tuple server thread
@@ -118,7 +130,13 @@ void WorkerGen::Initialize()
     Run();
 }
 
-// Run
+/*
+1.4 Run
+
+Prepares the worker.
+
+*/
+
 void WorkerGen::Run()
 {
     bool hasMsg = false;
@@ -241,6 +259,13 @@ void WorkerGen::Run()
     }
 }
 
+/*
+1.5 notifyAllNoMos
+
+Notifies all NoMos about a hitlist.
+
+*/
+
 void WorkerGen::notifyAllNoMos(int tupleId, std::string tupleString, 
     std::string hitlist)
 {
@@ -253,7 +278,13 @@ void WorkerGen::notifyAllNoMos(int tupleId, std::string tupleString,
     }
 }
 
-// NoMo handling
+/*
+1.6 addNoMo
+
+Adds a NoMo.
+
+*/
+
 void WorkerGen::addNoMo(int id, std::string address)
 {
     LOG << "Adding NoMo " << id << "|" << address << ":" 
@@ -275,10 +306,13 @@ void WorkerGen::addNoMo(int id, std::string address)
     _nomos.insert( std::pair<int, nomoStruct>(id, toAdd));
 }
 
-void WorkerGen::deleteNoMo(int id)
-{}
+/*
+1.7 Shutdown
 
-// Shutdown
+Shuts the Worker down.
+
+*/
+
 void WorkerGen::Shutdown()
 {
     _running = false;

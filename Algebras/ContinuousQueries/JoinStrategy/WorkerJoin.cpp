@@ -90,13 +90,23 @@ WorkerJoin::WorkerJoin(int id, std::string attrliststr,
         2 * 60 * 1000, 100);
 }
 
+/*
+1.2 Destructor
+
+Destroys the WorkerJoin object.
+
+*/
+
 WorkerJoin::~WorkerJoin()
 {
-    // if (_tuplett) _tuplett->DeleteIfAllowed();
-    // if (_querytt) _querytt->DeleteIfAllowed();
-    // if (_queryrel) _tuplerel->DeleteAndTruncate();
-    // if (_queryrel) _queryrel->DeleteAndTruncate();
 }
+
+/*
+1.3 Initialize
+
+Prepares the WorkerJoin object.
+
+*/
 
 void WorkerJoin::Initialize()
 {
@@ -218,6 +228,13 @@ if (!recover)
     
     buildQueryString();
 }
+
+/*
+1.4 TightLoop
+
+Waits for new tuples and checks all registered queries against them.
+
+*/
 
 void WorkerJoin::TightLoop()
 {
@@ -342,7 +359,13 @@ void WorkerJoin::TightLoop()
     }
 }
 
-// Query handling
+/*
+1.5 addQuery
+
+Adds a new query.
+
+*/
+
 void WorkerJoin::addQuery(int id, std::string function)
 {
     std::map<std::string, std::string> protofunction;
@@ -390,6 +413,13 @@ void WorkerJoin::addQuery(int id, std::string function)
     buildQueryString();
 }
 
+/*
+1.6 executeQueryString
+
+Executes a query string. This doesn't work as expected.
+
+*/
+
 Word WorkerJoin::executeQueryString(std::string querystring)
 {
     _sc->CleanUp(false, true);
@@ -433,6 +463,14 @@ Word WorkerJoin::executeQueryString(std::string querystring)
     return resultword;
 }
 
+/*
+1.7 getRelationDescription
+
+Converts the attribut list in the string neccessary to create a relation
+in a query.
+
+*/
+
 std::string WorkerJoin::getRelationDescription(NList attrlist) 
 {
     std::string result = "rel(tuple([";   
@@ -451,25 +489,39 @@ std::string WorkerJoin::getRelationDescription(NList attrlist)
     return result;
 }
 
+/*
+1.8 showStatus
+
+Prints out some information.
+
+*/
+
 void WorkerJoin::showStatus()
 {
-    LOG << "**************************************************" << ENDL;
-    LOG << "WorkerJoin::Status"                         << ENDL << ENDL;
+    std::cout << "**************************************************" << endl;
+    std::cout << "WorkerJoin::Status"                         << endl << endl;
 
-    LOG << "Current Query:" << ENDL << _querystring             << ENDL;
+    std::cout << "Current Query:" << endl << _querystring             << endl;
     
-    LOG << "Query Parts and their number in queries: "          << ENDL;
+    std::cout << "Query Parts and their number in queries: "          << endl;
 
     for (std::vector<std::pair <std::string, std::string>>::iterator 
         it = _queryparts.begin(); 
         it != _queryparts.end(); it++)
     {
-        LOG << it->first << ": " << _queries[it->first] << ENDL;
+        std::cout << it->first << ": " << _queries[it->first] << endl;
     }
     
-    LOG << "**************************************************" << ENDL;
+    std::cout << "**************************************************" << endl;
     
 }
+
+/*
+1.9 buildQueryString
+
+Builds the query string based on the saved user queries.
+
+*/
 
 void WorkerJoin::buildQueryString()
 {
@@ -595,12 +647,26 @@ void WorkerJoin::buildQueryString()
     LOG << "QueryString: " << _querystring << ENDL;
 }
 
+/*
+1.10 getFilterStringPart
+
+Builds the filter part of the query string based on the given element.
+
+*/
+
 std::string WorkerJoin::getFilterStringPart(structQuerysort elem)
 {
     return "((." + elem.qname + " = [const " + elem.type +" value undefined])"+
         " or (." + elem.qname + " " + elem.comp + 
         " tpl feed extract[" + elem.tname + "]))";
 }
+
+/*
+1.11 getJoinStringPart
+
+Builds the join part of the query string based on the join condition.
+
+*/
 
 std::string WorkerJoin::getJoinStringPart()
 {

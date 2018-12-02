@@ -75,7 +75,7 @@ StreamSupplier::~StreamSupplier() {
 }
 
 /*
-1.4 Initialize
+1.3 Initialize
 
 Connects to the Coordinator to receive instructions about specilization.
 
@@ -113,6 +113,12 @@ void StreamSupplier::Initialize()
     }
 }
 
+/*
+1.4 Run
+
+Holds the connection to the Coordinator.
+
+*/
 
 void StreamSupplier::Run() 
 {
@@ -289,6 +295,13 @@ void StreamSupplier::Run()
     }
 }
 
+/*
+1.5 pushTuple
+
+Called by the Secondo operator who provides the stream.
+
+*/
+
 void StreamSupplier::pushTuple(Tuple* t)
 {
     if (!_activeWorker) 
@@ -325,6 +338,13 @@ void StreamSupplier::pushTuple(Tuple* t)
     }
 }
 
+/*
+1.6 addWorker
+
+Add a worker.
+
+*/
+
 void StreamSupplier::addWorker(int id, std::string address)
 {
     LOG << id << "|" << address 
@@ -347,6 +367,13 @@ void StreamSupplier::addWorker(int id, std::string address)
     _workers.insert( std::pair<int, workerStruct>(id, toAdd));
     _activeWorker++;
 }
+
+/*
+1.7 Shutdown
+
+Shuts down the stream supplier.
+
+*/
 
 void StreamSupplier::Shutdown() {
     _running = false;

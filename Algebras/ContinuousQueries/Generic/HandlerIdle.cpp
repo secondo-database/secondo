@@ -75,7 +75,7 @@ HandlerIdle::~HandlerIdle()
 }
 
 /*
-1.4 Initialize
+1.3 Initialize
 
 Connects to the Coordinator to receive instructions about specilization.
 
@@ -261,6 +261,13 @@ void HandlerIdle::Initialize()
     LOG << "Ende" << ENDL;
     // Shutdown();
 }
+
+/*
+1.4 Shutdown
+
+Shut down the idle handler.
+
+*/
 
 void HandlerIdle::Shutdown() 
 {

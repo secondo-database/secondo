@@ -100,7 +100,6 @@ class WorkerGen {
 
     // NoMo handling
     void addNoMo(int id, std::string address);
-    void deleteNoMo(int id);
     void notifyAllNoMos(int tupleId, std::string tupleString, 
         std::string hitlist);
 

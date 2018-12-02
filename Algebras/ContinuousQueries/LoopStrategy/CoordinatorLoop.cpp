@@ -48,17 +48,32 @@ extern QueryProcessor* qp;
 
 namespace continuousqueries {
 
+/*
+1.1 Constructor.
+
+Creates the object.
+
+*/
+
 CoordinatorLoop::CoordinatorLoop(int port, std::string tupledescr): 
     CoordinatorGen::CoordinatorGen(port, tupledescr)
 {
     _type = "loop";
 }
 
-CoordinatorLoop::~CoordinatorLoop() {
+/*
+1.2 Destructor.
+
+Destroys the object.
+
+*/
+
+CoordinatorLoop::~CoordinatorLoop() 
+{
 }
 
 /*
-1.X setupNetwork
+1.3 setupNetwork
 
 Decides what an idle worker should become. 
 Current strategy: Greedy worker. After creating one NoMo, all new confirmed
@@ -97,7 +112,7 @@ void CoordinatorLoop::setupNetwork(int newHandlerId)
 }
 
 /*
-1.X registerQuery
+1.4 registerQuery
 
 This function informs one worker and one nomo in the network about 
 the new query.
@@ -139,7 +154,7 @@ void CoordinatorLoop::registerQuery(queryStruct query)
 }
 
 /*
-1.X selectWorker
+1.5 selectWorker
 
 Returns the id of the worker who should work a query, 0 if there is none.
 Current strategy: the worker with the least amount of queries should get
@@ -170,7 +185,7 @@ int CoordinatorLoop::selectWorker()
 }
 
 /*
-1.X checkNewFunction
+1.6 checkNewFunction
 
 Checks if the provided function is a valid representation for this 
 coordinator type. In this case, it has to be a valid function for the 
@@ -180,7 +195,7 @@ Secondo Query Processor.
 
 bool CoordinatorLoop::checkNewFunction(std::string function, std::string &err)
 {
-    return true;
+    // return true;
     
     err = "???";
 

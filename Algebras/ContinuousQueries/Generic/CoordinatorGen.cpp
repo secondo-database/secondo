@@ -82,7 +82,7 @@ CoordinatorGen::~CoordinatorGen()
 }
 
 /*
-1.4 Run
+1.3 Run
 
 The coordination works completely event driven. He reacts to incoming messages
 according to his life cycle status:
@@ -103,7 +103,8 @@ to one of his messages, he stores this information within the handler struct.
 
 */
 
-void CoordinatorGen::Run() {
+void CoordinatorGen::Run() 
+{
     // start the server, received messages will be pushed to _MessageQueque
     _coordinationServerThread = std::thread(
         &TcpServer::Run, 
@@ -265,7 +266,13 @@ void CoordinatorGen::Run() {
     }
 }
 
-// returns the id of the first idle and active worker, 0 if there is none
+/*
+1.4 firstIdleHandler
+
+Returns the id of the first idle and active worker, 0 if there is none
+
+*/
+
 int CoordinatorGen::firstIdleHandler()
 {
     for (std::map<int, handlerStruct>::iterator it = _handlers.begin(); 
@@ -279,7 +286,13 @@ int CoordinatorGen::firstIdleHandler()
     return 0;
 }
 
-// returns the id of the nomo who should work a query, 0 if there is none
+/*
+1.5 selectNoMo
+
+Returns the id of the nomo who should work a query, 0 if there is none.
+
+*/
+
 int CoordinatorGen::selectNoMo()
 {
     for (std::map<int, handlerStruct>::iterator it = _handlers.begin(); 
@@ -294,7 +307,7 @@ int CoordinatorGen::selectNoMo()
 }
 
 /*
-1.X createWorker
+1.6 createWorker
 
 This function is called when an idle handler should be specialized to become
 a worker.
@@ -334,7 +347,7 @@ void CoordinatorGen::createWorker(int id, std::string type)
 } 
 
 /*
-1.X registerWorker
+1.7 registerWorker
 
 This function informs all other participients in the network about the new
 worker.
@@ -387,7 +400,7 @@ void CoordinatorGen::registerWorker(int id)
 }
 
 /*
-1.X createNoMo
+1.8 createNoMo
 
 This function is called when an idle handler should be specialized to become
 an nomo handler.
@@ -426,7 +439,7 @@ void CoordinatorGen::createNoMo(int id)
 } 
 
 /*
-1.X registerNoMo
+1.9 registerNoMo
 
 This function informs all existing worker in the network about the new 
 nomo.
@@ -461,7 +474,7 @@ void CoordinatorGen::registerNoMo(int id)
 }
 
 /*
-1.X registerStreamSupplier
+1.10 registerStreamSupplier
 
 This function informs the new stream supplier about all existing worker.
 
@@ -496,6 +509,13 @@ void CoordinatorGen::registerStreamSupplier(int id)
         }
     }
 }
+
+/*
+1.11 doRemote
+
+Sends a command to another handler.
+
+*/
 
 void CoordinatorGen::doRemote(std::string cmd)
 {
@@ -533,7 +553,7 @@ void CoordinatorGen::doRemote(std::string cmd)
 }
 
 /*
-1.X doRegisterNewHandler
+1.12 doRegisterNewHandler
 
 This function is called when ever a new handler wants to connect to the 
 network. The Coordinator reacts with a confirmHandler message including the
@@ -586,12 +606,10 @@ void CoordinatorGen::doRegisterNewHandler(ProtocolHelpers::Message msg)
 }
 
 /*
-1.X doConfirmNewHandler
+1.13 doConfirmNewHandler
 
 This function is called when ever a new handler responds to the confirm message
 by mirroring the assigned id. 
-
-
 
 If he fails to do that or if the coordinator is 
 not awaiting an confirmation message from this handler, the coordinator shuts
@@ -643,7 +661,7 @@ void CoordinatorGen::doConfirmNewHandler(ProtocolHelpers::Message msg)
 }
 
 /*
-1.X doConfirmSpecialize
+1.14 doConfirmSpecialize
 
 This function is called when ever a new handler confirms that he has 
 successfully specialized to a worker or nomo handler. His state is changed
@@ -688,6 +706,12 @@ void CoordinatorGen::doConfirmSpecialize(ProtocolHelpers::Message msg)
     }
 }
 
+/*
+1.15 doUserAuth
+
+Authenticate a user.
+
+*/
 
 void CoordinatorGen::doUserAuth(ProtocolHelpers::Message msg)
 {
@@ -765,6 +789,13 @@ void CoordinatorGen::doUserAuth(ProtocolHelpers::Message msg)
     }
 }
 
+/*
+1.16 doGetQueries
+
+Return the queries of a user.
+
+*/
+
 void CoordinatorGen::doGetQueries(ProtocolHelpers::Message msg)
 {
     // check if a valid user is asking for his queries
@@ -800,6 +831,13 @@ void CoordinatorGen::doGetQueries(ProtocolHelpers::Message msg)
         "\n\n"
     );
 }
+
+/*
+1.17 doAddQuery
+
+Add a users query.
+
+*/
 
 void CoordinatorGen::doAddQuery(ProtocolHelpers::Message msg)
 {
@@ -877,6 +915,13 @@ void CoordinatorGen::doAddQuery(ProtocolHelpers::Message msg)
     registerQuery(toAdd);
 }
 
+/*
+1.18 showStatus
+
+Print some general information.
+
+*/
+
 void CoordinatorGen::showStatus()
 {
     std::cout << "\n\n\n\n\n\n\n\n\n\n\n\n";
@@ -923,6 +968,13 @@ void CoordinatorGen::showStatus()
 
 }
 
+/*
+1.19 shutdownHandler
+
+Shut a handler down.
+
+*/
+
 void CoordinatorGen::shutdownHandler(int id, std::string reason)
 {
     if (_handlers.find(id) == _handlers.end()) 
@@ -943,7 +995,7 @@ void CoordinatorGen::shutdownHandler(int id, std::string reason)
 }
 
 /*
-1.X confirmMessageIntegrity
+1.20 confirmMessageIntegrity
 
 Tests if the given handler exists and returns true if the sockets are 
 identically.
@@ -961,7 +1013,7 @@ bool CoordinatorGen::confirmMessageIntegrity(
 }
 
 /*
-1.X countHandlers
+1.21 countHandlers
 
 Returns the number of specified handlers.
 
@@ -985,9 +1037,8 @@ int CoordinatorGen::countHandlers(handlerType _type, handlerStatus _status)
     return count;
 }
 
-
 /*
-1.X getHashFromEmail
+1.22 getHashFromEmail
 
 Returns the id of the handler with the corresponding socket. 
 Or 0, if there is none.
@@ -1007,7 +1058,7 @@ std::string CoordinatorGen::getHashFromEmail(std::string email)
 }
 
 /*
-1.X getIdFromSocket
+1.23 getIdFromSocket
 
 Returns the id of the handler with the corresponding socket. 
 Or 0, if there is none.
@@ -1025,6 +1076,13 @@ int CoordinatorGen::getIdFromSocket(int _socket)
 
     return 0;
 }
+
+/*
+1.24 Shutdown
+
+Shut down the Coordinator and all connected handler.
+
+*/
 
 void CoordinatorGen::Shutdown()
 {

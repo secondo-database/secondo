@@ -68,14 +68,26 @@ NoMo::NoMo(int id, std::string tupledescr, TcpClient* coordinationClient):
             1 * 60 * 1000, 5000);
 }
 
-// Destroy
+/*
+1.2 Destructor
+
+Destroys the NoMo object.
+
+*/
+
 NoMo::~NoMo()
 {
     if (_fakemailfile.is_open()) _fakemailfile.close();
     Shutdown();
 }
 
-// Initialize
+/*
+1.3 Initialize
+
+Initializes the NoMo.
+
+*/
+
 void NoMo::Initialize()
 {
     _fakemail = false;
@@ -121,6 +133,13 @@ void NoMo::Initialize()
 
     Run();
 }
+
+/*
+1.4 Initialize
+
+Waits for messages and does the notificion.
+
+*/
 
 void NoMo::NotificationLoop()
 {
@@ -194,7 +213,13 @@ void NoMo::NotificationLoop()
     }
 }
 
-// Run
+/*
+1.5 Run
+
+Keeps in contact with the Coordinator.
+
+*/
+
 void NoMo::Run()
 {
     bool hasMsg = false;
@@ -311,6 +336,13 @@ void NoMo::Run()
     }
 }
 
+/*
+1.6 handleHit
+
+Handles incoming hits.
+
+*/
+
 void NoMo::handleHit(int tupleId, std::string tupleString, 
     std::string hitlist) 
 {
@@ -355,6 +387,13 @@ void NoMo::handleHit(int tupleId, std::string tupleString,
 
     _monitor->endWorkRound(1, hits.size(), sendMessages);
 }
+
+/*
+1.7 sendEmail
+
+Sends out the mail.
+
+*/
 
 bool NoMo::sendEmail(std::string from, std::string to, std::string subject, 
     std::string message)
@@ -452,6 +491,13 @@ std::string NoMo::tupleBinaryStringToRealString(std::string tupleString)
     return message;
 }
 
+/*
+1.8 addUserQuery
+
+Adds a users query.
+
+*/
+
 void NoMo::addUserQuery(int queryId, std::string query, 
     std::string userhash, std::string email)
 {
@@ -474,7 +520,13 @@ void NoMo::addUserQuery(int queryId, std::string query,
         << queryId << " was hit." << ENDL;
 }
 
-// Shutdown
+/*
+1.9 Shutdown
+
+Shuts down the NoMo.
+
+*/
+
 void NoMo::Shutdown()
 {
     _running = false;
