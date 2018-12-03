@@ -22,7 +22,7 @@ all: $(CLASSFILES);
 
 
 .PHONY:jar
-jar:	all
+jar:	makedir	all
 	@cp lib/*.jar bin/.
 	@cd bin;find . -name "*jar" -exec jar -xf {} \; ; cd ..
 	@find bin -name "*jar" -exec rm -f {} \;
@@ -31,8 +31,12 @@ jar:	all
 	jar -cmf Manifest.txt jar/MapViewer.jar -C bin/ .
 	rm -f Manifest.txt
 	rm -frd bin/*
+	rmdir bin
 	@chmod ugo+x jar/MapViewer.jar
 
+.PHONY:makedir
+makedir:
+	mkdir bin
 
 .PHONY:clean
 clean:
