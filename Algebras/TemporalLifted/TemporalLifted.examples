@@ -1075,6 +1075,8 @@ Signature : periods x int -> mint
 Example   : query maximum( createmint(deftime(train7),3)) = 3
 Result    : TRUE
 
-
-
-
+Operator : frechetdistance
+Number   : 1
+Signature : mpoint x mpoint x geoid -> real
+Example   : query frechetdistance(train1, train7) > 10000.0
+Result    : TRUE

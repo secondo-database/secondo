@@ -477,6 +477,78 @@ void DistanceMPoint( const MPoint& p1, const MPoint& p2, MReal& result)
 }
 
 /*
+\subsection{Method ~getPointSequence~}
+
+Computes the sequence of points visited by a moving point; required for the
+frechetDistance method.
+
+*/
+void getPointSequence(const MPoint& mp, vector<Point>& result) {
+  result.clear();
+  if (!mp.IsDefined()) {
+    return;
+  }
+  if (mp.IsEmpty()) {
+    return;
+  }
+  UPoint up(true);
+  Point lastpt(false);
+  for (int i = 0; i < mp.GetNoComponents(); i++) {
+    mp.Get(i, up);
+    if (!AlmostEqual(up.p0, up.p1)) {
+      if (!lastpt.IsDefined()) { // first unit
+        result.push_back(up.p0);
+        result.push_back(up.p1);
+        lastpt = up.p1;
+      }
+      else {
+        if (!AlmostEqual(lastpt, up.p0)) { // spatial jump
+          result.push_back(up.p0);
+          result.push_back(up.p1);
+          lastpt = up.p1;
+        }
+        else { // extension
+          result.push_back(up.p1);
+          lastpt = up.p1;
+        }
+      }
+    }
+  }
+}
+
+/*
+\subsection{Method ~frechetDistance~}
+
+Implements the discrete Frechet distance between two moving points.
+
+*/
+void frechetDistance(const MPoint& mp1, const MPoint& mp2, const Geoid* geoid,
+                     CcReal* result) {
+  if (!mp1.IsDefined() || !mp2.IsDefined()) {
+    result->SetDefined(false);
+    return;
+  }
+  vector<Point> pts1, pts2;
+  getPointSequence(mp1, pts1);
+  getPointSequence(mp2, pts2);
+  unsigned int m = pts1.size();
+  unsigned int n = pts2.size();
+  double dp[m][n];
+  dp[0][0] = pts1[0].Distance(pts2[0], geoid);
+  for (unsigned int j = 1; j < n; j++) {
+    dp[0][j] = max(dp[0][j - 1], pts1[0].Distance(pts2[j], geoid));
+  }
+  for (unsigned int i = 1; i < m; i++) {
+    dp[i][0] = max(dp[i - 1][0], pts1[i].Distance(pts2[0], geoid));
+    for (unsigned int j = 1; j < n; j++) {
+      dp[i][j] = max(min(min(dp[i][j - 1], dp[i - 1][j]), dp[i - 1][j - 1]), 
+                     pts1[i].Distance(pts2[j], geoid));
+    }
+  }
+  result->Set(true, dp[m - 1][n - 1]);
+}
+
+/*
 1.1 Method ~FindEqualTimes4Real~
 
 Function FindEqualTimes4Real to find all times where u1 and u2 are
@@ -5223,6 +5295,27 @@ MovingDistanceTypeMapMReal( ListExpr args )
 }
 
 /*
+\subsection{Type mapping function ~MPointMPointMapReal~}
+
+It is for the operators ~frechetdistance~.
+
+*/
+ListExpr MPointMPointMapReal(ListExpr args) {
+  if (nl->HasLength(args, 2) || nl->HasLength(args, 3)) {
+    if (MPoint::checkType(nl->First(args)) && 
+        MPoint::checkType(nl->Second(args))) {
+      if (nl->HasLength(args, 3)) {
+        if (Geoid::checkType(nl->Third(args))) {
+          return nl->SymbolAtom(CcReal::BasicType());
+        }
+      }
+      return nl->SymbolAtom(CcReal::BasicType());
+    }
+  }
+  return listutils::typeError("2 or 3 arguments expected");
+}
+
+/*
 16.1 Type mapping function ~MovingIntersectionTypeMap~
 
 It is for the operator ~intersection~.
@@ -5940,6 +6033,18 @@ MovingDistanceSelect( ListExpr args )
   if(Point::checkType(arg1) && UPoint::checkType(arg2))
     return 6;
 
+  return -1; // This point should never be reached
+}
+
+/*
+16.2 Selection function ~FrechetDistanceSelect~
+
+Is used for the ~frechetdistance~ operation.
+
+*/
+int FrechetDistanceSelect(ListExpr args) {
+  if (nl->HasLength(args, 2)) return 0;
+  if (nl->HasLength(args, 3)) return 1;
   return -1; // This point should never be reached
 }
 
@@ -7656,6 +7761,25 @@ int MRealSMDistance( Word* args, Word& result, int message,
 }
 
 /*
+\subsection{Value mapping of operator ~frechetdistance~}
+
+*/
+template<bool hasGeoid>
+int FrechetDistance(Word* args, Word& result, int message,
+                                   Word& local, Supplier s) {
+  result = qp->ResultStorage(s);
+  CcReal *res = static_cast<CcReal*>(result.addr);
+  MPoint *mp1 = static_cast<MPoint*>(args[0].addr);
+  MPoint *mp2 = static_cast<MPoint*>(args[1].addr);
+  Geoid *geoid = 0;
+  if (hasGeoid) {
+    geoid = static_cast<Geoid*>(args[2].addr);
+  }
+  frechetDistance(*mp1, *mp2, geoid, res);
+  return 0;
+}
+
+/*
 16.3 Value mapping functions of operator ~and~ and ~or~ for mbool/mbool
 
 op == 1 -> AND, op == 2 -> OR
@@ -8256,6 +8380,10 @@ static ValueMapping temporaldistancemap[] = {
                 UPointMSDistance,
                 UPointSMDistance};
 
+static ValueMapping temporalfrechetdistancemap[] = {
+                FrechetDistance<false>,
+                FrechetDistance<true>};
+
 static ValueMapping temporalandmap[] = {
                 TemporalMMLogic<1>,
                 TemporalMSLogic<1>,
@@ -8479,6 +8607,15 @@ const string TemporalLiftSpecDistance
              "<text> distance( _, _ ) </text--->"
              "<text>returns the moving distance</text--->"
              "<text>distance( mpoint1, point1 )</text--->"
+             ") )";
+
+const string TemporalLiftSpecFrechetDistance
+           = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+             "\"Example\" ) "
+             "( <text>mpoint x mpoint (x geoid) -> real</text--->"
+             "<text>frechetdistance( _ , _ , _ ) </text--->"
+             "<text>returns the discrete Fréchet distance</text--->"
+             "<text>frechetdistance(mpoint1, mpoint2)</text--->"
              ") )";
 
 const string TemporalLiftSpecAnd
@@ -8707,6 +8844,13 @@ static Operator temporalmdistance( "distance",
                             MovingDistanceSelect,
                             MovingDistanceTypeMapMReal );
 
+static Operator temporalfrechetdistance("frechetdistance",
+                            TemporalLiftSpecFrechetDistance,
+                            2,
+                            temporalfrechetdistancemap,
+                            FrechetDistanceSelect,
+                            MPointMPointMapReal );
+
 static Operator temporaland( "and",
                             TemporalLiftSpecAnd,
                             3,
@@ -8792,6 +8936,7 @@ class TemporalLiftedAlgebra : public Algebra
     AddOperator( &perimeter);
     AddOperator( &area);
     AddOperator( &temporalmdistance);
+    AddOperator( &temporalfrechetdistance);
 
     AddOperator( &temporaland );
     AddOperator( &temporalor );
