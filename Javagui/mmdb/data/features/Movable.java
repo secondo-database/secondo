@@ -35,6 +35,6 @@ public interface Movable {
 	 * 
 	 * @return the list of periods
 	 */
-	List<Period> getPeriods();
+	List<Period> getPeriodList();
 
 }

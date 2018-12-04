@@ -33,97 +33,96 @@ import sj.lang.ListExpr;
  *
  * @author Alexander Castor
  */
-public abstract class UnitAttribute<T extends MemoryAttribute> extends MemoryAttribute implements
-		Movable {
+public abstract class UnitAttribute<T extends MemoryAttribute> extends MemoryAttribute implements Movable {
 
-	/**
-	 * The unit's period.
-	 */
-	private Period period;
+   /**
+    * The unit's period.
+    */
+   private Period period;
 
-	/**
-	 * The unit's value.
-	 */
-	private T value;
+   /**
+    * The unit's value.
+    */
+   private T value;
 
-	/**
-	 * Retrieves a uni object which will be used as value for this attribute.
-	 */
-	protected abstract T getUnitObject();
+   /**
+    * Retrieves a uni object which will be used as value for this attribute.
+    */
+   protected abstract T getUnitObject();
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see mmdb.data.attributes.MemoryAttribute#fromList(sj.lang.ListExpr)
-	 */
-	@Override
-	public void fromList(ListExpr list) throws ConversionException {
-		Period period = new Period();
-		period.fromList(list.first());
-		setPeriod(period);
-		T value = getUnitObject();
-		value.fromList(list.second());
-		setValue(value);
-	}
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mmdb.data.attributes.MemoryAttribute#fromList(sj.lang.ListExpr)
+    */
+   @Override
+   public void fromList(ListExpr list) throws ConversionException {
+      Period period = new Period();
+      period.fromList(list.first());
+      setPeriodMMDB(period);
+      T value = getUnitObject();
+      value.fromList(list.second());
+      setValue(value);
+   }
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see mmdb.data.attributes.MemoryAttribute#toList()
-	 */
-	@Override
-	public ListExpr toList() throws ConversionException {
-		return ListExpr.twoElemList(getPeriod().toList(), getValue().toList());
-	}
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mmdb.data.attributes.MemoryAttribute#toList()
+    */
+   @Override
+   public ListExpr toList() throws ConversionException {
+      return ListExpr.twoElemList(getPeriodMMDB().toList(), getValue().toList());
+   }
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see mmdb.data.features.Movable#getPeriods()
-	 */
-	@Override
-	public List<Period> getPeriods() {
-		List<Period> periods = new ArrayList<Period>();
-		periods.add(getPeriod());
-		return periods;
-	}
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mmdb.data.features.Movable#getPeriods()
+    */
+   @Override
+   public List<Period> getPeriodList() {
+      List<Period> periods = new ArrayList<Period>();
+      periods.add(getPeriodMMDB());
+      return periods;
+   }
 
-	/**
-	 * Getter for period.
-	 * 
-	 * @return the period
-	 */
-	public Period getPeriod() {
-		return period;
-	}
+   /**
+    * Getter for period.
+    * 
+    * @return the period
+    */
+   public Period getPeriodMMDB() {
+      return period;
+   }
 
-	/**
-	 * Setter for period.
-	 * 
-	 * @param period
-	 *            the period to set
-	 */
-	public void setPeriod(Period period) {
-		this.period = period;
-	}
+   /**
+    * Setter for period.
+    * 
+    * @param period
+    *           the period to set
+    */
+   public void setPeriodMMDB(Period period) {
+      this.period = period;
+   }
 
-	/**
-	 * Getter for value.
-	 * 
-	 * @return the value
-	 */
-	public T getValue() {
-		return value;
-	}
+   /**
+    * Getter for value.
+    * 
+    * @return the value
+    */
+   public T getValue() {
+      return value;
+   }
 
-	/**
-	 * Setter for value.
-	 * 
-	 * @param value
-	 *            the value to set
-	 */
-	public void setValue(T value) {
-		this.value = value;
-	}
+   /**
+    * Setter for value.
+    * 
+    * @param value
+    *           the value to set
+    */
+   public void setValue(T value) {
+      this.value = value;
+   }
 
 }

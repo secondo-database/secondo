@@ -21,6 +21,7 @@ package mmdb.data.attributes.date;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -30,6 +31,8 @@ import mmdb.data.features.Orderable;
 import mmdb.data.features.Parsable;
 import mmdb.error.convert.ConversionException;
 import sj.lang.ListExpr;
+import stlib.datatypes.time.TimeInstant;
+import stlib.interfaces.time.TimeInstantIF;
 
 /**
  * Object representation for database attributes of type 'instant'.
@@ -38,188 +41,198 @@ import sj.lang.ListExpr;
  */
 public class AttributeInstant extends MemoryAttribute implements Orderable, Parsable {
 
-	/**
-	 * Format for date of type yyyy-MM-dd HH:mm:ss.SSS.
-	 */
-	public static final SimpleDateFormat FORMAT_1;
+   /**
+    * Format for date of type yyyy-MM-dd HH:mm:ss.SSS.
+    */
+   public static final SimpleDateFormat FORMAT_1;
 
-	/**
-	 * Format for date of type yyyy-MM-dd-HH:mm:ss.
-	 */
-	public static final SimpleDateFormat FORMAT_2;
+   /**
+    * Format for date of type yyyy-MM-dd-HH:mm:ss.
+    */
+   public static final SimpleDateFormat FORMAT_2;
 
-	/**
-	 * Format for date of type yyyy-MM-dd-HH:mm.
-	 */
-	public static final SimpleDateFormat FORMAT_3;
+   /**
+    * Format for date of type yyyy-MM-dd-HH:mm.
+    */
+   public static final SimpleDateFormat FORMAT_3;
 
-	/**
-	 * Format for date of type yyyy-MM-dd.
-	 */
-	public static final SimpleDateFormat FORMAT_4;
+   /**
+    * Format for date of type yyyy-MM-dd.
+    */
+   public static final SimpleDateFormat FORMAT_4;
 
-	/**
-	 * The list of all formats.
-	 */
-	private static List<SimpleDateFormat> formats;
+   /**
+    * The list of all formats.
+    */
+   private static List<SimpleDateFormat> formats;
 
-	static {
-		FORMAT_1 = new SimpleDateFormat("yyyy-MM-dd-HH:mm:ss.SSS");
-		FORMAT_2 = new SimpleDateFormat("yyyy-MM-dd-HH:mm:ss");
-		FORMAT_3 = new SimpleDateFormat("yyyy-MM-dd-HH:mm");
-		FORMAT_4 = new SimpleDateFormat("yyyy-MM-dd");
-		FORMAT_1.setLenient(false);
-		FORMAT_2.setLenient(false);
-		FORMAT_3.setLenient(false);
-		FORMAT_4.setLenient(false);
-		formats = new ArrayList<SimpleDateFormat>();
-		formats.add(FORMAT_1);
-		formats.add(FORMAT_2);
-		formats.add(FORMAT_3);
-		formats.add(FORMAT_4);
-	}
+   static {
+      FORMAT_1 = new SimpleDateFormat("yyyy-MM-dd-HH:mm:ss.SSS");
+      FORMAT_2 = new SimpleDateFormat("yyyy-MM-dd-HH:mm:ss");
+      FORMAT_3 = new SimpleDateFormat("yyyy-MM-dd-HH:mm");
+      FORMAT_4 = new SimpleDateFormat("yyyy-MM-dd");
+      FORMAT_1.setLenient(false);
+      FORMAT_2.setLenient(false);
+      FORMAT_3.setLenient(false);
+      FORMAT_4.setLenient(false);
+      formats = new ArrayList<SimpleDateFormat>();
+      formats.add(FORMAT_1);
+      formats.add(FORMAT_2);
+      formats.add(FORMAT_3);
+      formats.add(FORMAT_4);
+   }
 
-	/**
-	 * The date value.
-	 */
-	private Date date;
+   /**
+    * The date value.
+    */
+   private Date date;
 
-	/**
-	 * The date's format.
-	 */
-	private SimpleDateFormat format;
+   /**
+    * The date's format.
+    */
+   private SimpleDateFormat format;
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see mmdb.data.attributes.MemoryAttribute#fromList(sj.lang.ListExpr)
-	 */
-	@Override
-	public void fromList(ListExpr list) throws ConversionException {
-		String dateString = list.stringValue();
-		for (SimpleDateFormat dateFormat : formats) {
-			synchronized (this) {
-				try {
-					setDate(dateFormat.parse(dateString));
-					setFormat(dateFormat);
-					return;
-				} catch (ParseException e) {
-					// nothing to do
-				}
-			}
-		}
-		throw new ConversionException("-> Could not parse date value from string");
-	}
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mmdb.data.attributes.MemoryAttribute#fromList(sj.lang.ListExpr)
+    */
+   @Override
+   public void fromList(ListExpr list) throws ConversionException {
+      String dateString = list.stringValue();
+      for (SimpleDateFormat dateFormat : formats) {
+         synchronized (this) {
+            try {
+               setDate(dateFormat.parse(dateString));
+               setFormat(dateFormat);
+               return;
+            } catch (ParseException e) {
+               // nothing to do
+            }
+         }
+      }
+      throw new ConversionException("-> Could not parse date value from string");
+   }
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see mmdb.data.attributes.MemoryAttribute#toList()
-	 */
-	@Override
-	public ListExpr toList() {
-		return ListExpr.stringAtom(format.format(getDate()));
-	}
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mmdb.data.attributes.MemoryAttribute#toList()
+    */
+   @Override
+   public ListExpr toList() {
+      return ListExpr.stringAtom(format.format(getDate()));
+   }
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(Object attribute) {
-		if (attribute == null) {
-			return false;
-		}
-		if (!(attribute instanceof AttributeInstant)) {
-			return false;
-		}
-		AttributeInstant instantOther = (AttributeInstant) attribute;
-		if (getDate().equals(instantOther.getDate())) {
-			return true;
-		}
-		return false;
-	}
+   /**
+    * Get the date as 'TimeInstantIF' object
+    * 
+    * @return
+    */
+   public TimeInstantIF toTimeInstantIF() {
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#hashCode()
-	 */
-	@Override
-	public int hashCode() {
-		return getDate().hashCode();
-	}
+      return new TimeInstant(date.toInstant());
+   }
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Comparable#compareTo(java.lang.Object)
-	 */
-	@Override
-	public int compareTo(Orderable attribute) {
-		Date dateOther = ((AttributeInstant) attribute).getDate();
-		return getDate().compareTo(dateOther);
-	}
+   /*
+    * (non-Javadoc)
+    * 
+    * @see java.lang.Object#equals(java.lang.Object)
+    */
+   @Override
+   public boolean equals(Object attribute) {
+      if (attribute == null) {
+         return false;
+      }
+      if (!(attribute instanceof AttributeInstant)) {
+         return false;
+      }
+      AttributeInstant instantOther = (AttributeInstant) attribute;
+      if (getDate().equals(instantOther.getDate())) {
+         return true;
+      }
+      return false;
+   }
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see mmdb.data.features.Parseable#parse(java.lang.String)
-	 */
-	@Override
-	public Parsable parse(String text) {
-		AttributeInstant result = new AttributeInstant();
-		synchronized (this) {
-			for (SimpleDateFormat dateFormat : formats) {
-				try {
-					result.setDate(dateFormat.parse(text));
-					result.setFormat(dateFormat);
-					return result;
-				} catch (ParseException e) {
-					// nothing to do
-				}
-			}
-		}
-		return null;
-	}
+   /*
+    * (non-Javadoc)
+    * 
+    * @see java.lang.Object#hashCode()
+    */
+   @Override
+   public int hashCode() {
+      return getDate().hashCode();
+   }
 
-	/**
-	 * Getter for date.
-	 * 
-	 * @return the date
-	 */
-	public Date getDate() {
-		return date;
-	}
+   /*
+    * (non-Javadoc)
+    * 
+    * @see java.lang.Comparable#compareTo(java.lang.Object)
+    */
+   @Override
+   public int compareTo(Orderable attribute) {
+      Date dateOther = ((AttributeInstant) attribute).getDate();
+      return getDate().compareTo(dateOther);
+   }
 
-	/**
-	 * Setter for date.
-	 * 
-	 * @param date
-	 *            the date to set
-	 */
-	public void setDate(Date date) {
-		this.date = date;
-	}
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mmdb.data.features.Parseable#parse(java.lang.String)
+    */
+   @Override
+   public Parsable parse(String text) {
+      AttributeInstant result = new AttributeInstant();
+      synchronized (this) {
+         for (SimpleDateFormat dateFormat : formats) {
+            try {
+               result.setDate(dateFormat.parse(text));
+               result.setFormat(dateFormat);
+               return result;
+            } catch (ParseException e) {
+               // nothing to do
+            }
+         }
+      }
+      return null;
+   }
 
-	/**
-	 * Getter for format.
-	 * 
-	 * @return the format
-	 */
-	public SimpleDateFormat getFormat() {
-		return format;
-	}
+   /**
+    * Getter for date.
+    * 
+    * @return the date
+    */
+   public Date getDate() {
+      return date;
+   }
 
-	/**
-	 * Setter for format.
-	 * 
-	 * @param format
-	 *            the format to set
-	 */
-	public void setFormat(SimpleDateFormat format) {
-		this.format = format;
-	}
+   /**
+    * Setter for date.
+    * 
+    * @param date
+    *           the date to set
+    */
+   public void setDate(Date date) {
+      this.date = date;
+   }
+
+   /**
+    * Getter for format.
+    * 
+    * @return the format
+    */
+   public SimpleDateFormat getFormat() {
+      return format;
+   }
+
+   /**
+    * Setter for format.
+    * 
+    * @param format
+    *           the format to set
+    */
+   public void setFormat(SimpleDateFormat format) {
+      this.format = format;
+   }
 
 }

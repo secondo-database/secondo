@@ -45,7 +45,7 @@ public class OperatorPresent implements ConditionOperator {
 	 * @return true if it is present, else false
 	 */
 	public static boolean operate(Movable movingObject, AttributeInstant instant) {
-		List<Period> periods = movingObject.getPeriods();
+		List<Period> periods = movingObject.getPeriodList();
 		Period period = new Period();
 		period.setStartTime(instant);
 		int index = Math.abs(Collections.binarySearch(periods, period) + 1);
@@ -69,7 +69,7 @@ public class OperatorPresent implements ConditionOperator {
 	 * @return true if it is present, else false
 	 */
 	public static boolean operate(Movable movingObject, AttributePeriods period) {
-		List<Period> movablePeriods = movingObject.getPeriods();
+		List<Period> movablePeriods = movingObject.getPeriodList();
 		List<Period> attributePeriods = period.getPeriods();
 		int c1 = 0;
 		int c2 = 0;

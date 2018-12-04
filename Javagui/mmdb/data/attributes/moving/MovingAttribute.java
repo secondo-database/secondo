@@ -34,81 +34,80 @@ import sj.lang.ListExpr;
  *
  * @author Alexander Castor
  */
-public abstract class MovingAttribute<T extends UnitAttribute<?>> extends MemoryAttribute implements
-		Movable {
+public abstract class MovingAttribute<T extends UnitAttribute<?>> extends MemoryAttribute implements Movable {
 
-	/**
-	 * The list of units.
-	 */
-	private List<T> units = new ArrayList<T>();
+   /**
+    * The list of units.
+    */
+   private List<T> units = new ArrayList<T>();
 
-	/**
-	 * Injects a value object.
-	 */
-	protected abstract T getMovableObject();
+   /**
+    * Injects a value object.
+    */
+   protected abstract T getMovableObject();
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see mmdb.data.attributes.MemoryAttribute#fromList(sj.lang.ListExpr)
-	 */
-	@Override
-	public void fromList(ListExpr list) throws ConversionException {
-		ListExpr tmp = list;
-		while (!tmp.isEmpty()) {
-			ListExpr unitList = tmp.first();
-			T unit = getMovableObject();
-			unit.fromList(unitList);
-			addUnit(unit);
-			tmp = tmp.rest();
-		}
-	}
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mmdb.data.attributes.MemoryAttribute#fromList(sj.lang.ListExpr)
+    */
+   @Override
+   public void fromList(ListExpr list) throws ConversionException {
+      ListExpr tmp = list;
+      while (!tmp.isEmpty()) {
+         ListExpr unitList = tmp.first();
+         T unit = getMovableObject();
+         unit.fromList(unitList);
+         addUnit(unit);
+         tmp = tmp.rest();
+      }
+   }
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see mmdb.data.attributes.MemoryAttribute#toList()
-	 */
-	@Override
-	public ListExpr toList() throws ConversionException {
-		ListExpr unitList = new ListExpr();
-		for (T unit : getUnits()) {
-			unitList = ListExpr.concat(unitList, unit.toList());
-		}
-		return unitList;
-	}
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mmdb.data.attributes.MemoryAttribute#toList()
+    */
+   @Override
+   public ListExpr toList() throws ConversionException {
+      ListExpr unitList = new ListExpr();
+      for (T unit : getUnitsMMDB()) {
+         unitList = ListExpr.concat(unitList, unit.toList());
+      }
+      return unitList;
+   }
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see mmdb.data.features.Movable#getPeriods()
-	 */
-	@Override
-	public List<Period> getPeriods() {
-		List<Period> periods = new ArrayList<Period>();
-		for (T unit : getUnits()) {
-			periods.add(unit.getPeriod());
-		}
-		return periods;
-	}
+   /*
+    * (non-Javadoc)
+    * 
+    * @see mmdb.data.features.Movable#getPeriods()
+    */
+   @Override
+   public List<Period> getPeriodList() {
+      List<Period> periods = new ArrayList<Period>();
+      for (T unit : getUnitsMMDB()) {
+         periods.add(unit.getPeriodMMDB());
+      }
+      return periods;
+   }
 
-	/**
-	 * Getter for units.
-	 * 
-	 * @return the units
-	 */
-	public List<T> getUnits() {
-		return units;
-	}
+   /**
+    * Getter for units.
+    * 
+    * @return the units
+    */
+   public List<T> getUnitsMMDB() {
+      return units;
+   }
 
-	/**
-	 * Adds a unit to the list.
-	 * 
-	 * @param unit
-	 *            the unit to be added
-	 */
-	public void addUnit(T unit) {
-		units.add(unit);
-	}
+   /**
+    * Adds a unit to the list.
+    * 
+    * @param unit
+    *           the unit to be added
+    */
+   public void addUnit(T unit) {
+      units.add(unit);
+   }
 
 }
