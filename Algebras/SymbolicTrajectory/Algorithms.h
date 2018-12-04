@@ -3484,7 +3484,7 @@ double MBasic<B>::Distance_ALL(const MBasic<B>& mb, const LabelFunction lf)
                   const {
   int m = GetNoComponents();
   int n = mb.GetNoComponents();
-  int dp[m+1][n+1];
+  int dp[m + 1][n + 1];
   typename B::base b1, b2;
   for (int i = 0; i <= m; i++) {
     dp[i][0] = i;

@@ -128,6 +128,12 @@ Signature: T x T x F -> real,   where T in {mlabel(s), mplace(s)}
 Example  : query distancesym(Dotraj feed filter[.No=4] extract[Trajectory], Dotraj feed filter[.No=6] extract[Trajectory], "prefix")
 Result   : 0.5
 
+Operator : hybriddistance
+Number   : 1
+Signature: T x mpoint x T x mpoint x real (x geoid) -> real, where T in {mlabel, mplace}
+Example  : query hybriddistance(mlabel1, Part feed extract[MP], mlabel1, Part feed extract[MP], 0.5)
+Result   : 0.0
+
 Operator : the_unit
 Number   : 6
 Signature: label x instant x instant x bool x bool -> ulabel
