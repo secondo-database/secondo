@@ -5223,6 +5223,69 @@ void MPoint::SquaredDistance( const MPoint& p, MReal& result,
   result.EndBulkLoad();
 }
 
+void MPoint::getPointSequence(vector<Point>& result) const {
+  result.clear();
+  if (!IsDefined()) {
+    return;
+  }
+  if (IsEmpty()) {
+    return;
+  }
+  UPoint up(true);
+  Point lastpt(false);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, up);
+    if (!AlmostEqual(up.p0, up.p1)) {
+      if (!lastpt.IsDefined()) { // first unit
+        result.push_back(up.p0);
+        result.push_back(up.p1);
+        lastpt = up.p1;
+      }
+      else {
+        if (!AlmostEqual(lastpt, up.p0)) { // spatial jump
+          result.push_back(up.p0);
+          result.push_back(up.p1);
+          lastpt = up.p1;
+        }
+        else { // extension
+          result.push_back(up.p1);
+          lastpt = up.p1;
+        }
+      }
+    }
+  }
+}
+
+double MPoint::FrechetDistance(const MPoint* mp, const Geoid* geoid) const {
+  if (!IsDefined() || !mp->IsDefined()) {
+    return -1;
+  }
+  if (IsEmpty() && mp->IsEmpty()) {
+    return 0.0;
+  }
+  if (IsEmpty() || mp->IsEmpty()) {
+    return INT_MAX;
+  }
+  vector<Point> pts1, pts2;
+  getPointSequence(pts1);
+  mp->getPointSequence(pts2);
+  unsigned int m = pts1.size();
+  unsigned int n = pts2.size();
+  double dp[m][n];
+  dp[0][0] = pts1[0].Distance(pts2[0], geoid);
+  for (unsigned int j = 1; j < n; j++) {
+    dp[0][j] = max(dp[0][j - 1], pts1[0].Distance(pts2[j], geoid));
+  }
+  for (unsigned int i = 1; i < m; i++) {
+    dp[i][0] = max(dp[i - 1][0], pts1[i].Distance(pts2[0], geoid));
+    for (unsigned int j = 1; j < n; j++) {
+      dp[i][j] = max(min(min(dp[i][j - 1], dp[i - 1][j]), dp[i - 1][j - 1]), 
+                     pts1[i].Distance(pts2[j], geoid));
+    }
+  }
+  return dp[m - 1][n - 1];
+}
+
 // Output an interval
 string iv2string(Interval<Instant> iv){
 

@@ -4227,6 +4227,15 @@ This operator returns a copy of the mpoint's restriction to a given region
 */
     void AtRegion(const Region *reg, MPoint &result) const;
 
+/*
+3.10.5.11 ~frechetDistance~ operator (TemporalLiftedAlgebra)
+
+Implements the discrete Frechet distance between two moving points and uses the
+auxiliary function getPointSequence.
+
+*/
+    void getPointSequence(vector<Point>& result) const;
+    double FrechetDistance(const MPoint* mp, const Geoid* geoid = 0) const;
 
 private:
    int IntervalRelation(Interval<Instant> &int_a_b,
