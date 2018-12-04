@@ -477,78 +477,6 @@ void DistanceMPoint( const MPoint& p1, const MPoint& p2, MReal& result)
 }
 
 /*
-\subsection{Method ~getPointSequence~}
-
-Computes the sequence of points visited by a moving point; required for the
-frechetDistance method.
-
-*/
-void getPointSequence(const MPoint& mp, vector<Point>& result) {
-  result.clear();
-  if (!mp.IsDefined()) {
-    return;
-  }
-  if (mp.IsEmpty()) {
-    return;
-  }
-  UPoint up(true);
-  Point lastpt(false);
-  for (int i = 0; i < mp.GetNoComponents(); i++) {
-    mp.Get(i, up);
-    if (!AlmostEqual(up.p0, up.p1)) {
-      if (!lastpt.IsDefined()) { // first unit
-        result.push_back(up.p0);
-        result.push_back(up.p1);
-        lastpt = up.p1;
-      }
-      else {
-        if (!AlmostEqual(lastpt, up.p0)) { // spatial jump
-          result.push_back(up.p0);
-          result.push_back(up.p1);
-          lastpt = up.p1;
-        }
-        else { // extension
-          result.push_back(up.p1);
-          lastpt = up.p1;
-        }
-      }
-    }
-  }
-}
-
-/*
-\subsection{Method ~frechetDistance~}
-
-Implements the discrete Frechet distance between two moving points.
-
-*/
-void frechetDistance(const MPoint& mp1, const MPoint& mp2, const Geoid* geoid,
-                     CcReal* result) {
-  if (!mp1.IsDefined() || !mp2.IsDefined()) {
-    result->SetDefined(false);
-    return;
-  }
-  vector<Point> pts1, pts2;
-  getPointSequence(mp1, pts1);
-  getPointSequence(mp2, pts2);
-  unsigned int m = pts1.size();
-  unsigned int n = pts2.size();
-  double dp[m][n];
-  dp[0][0] = pts1[0].Distance(pts2[0], geoid);
-  for (unsigned int j = 1; j < n; j++) {
-    dp[0][j] = max(dp[0][j - 1], pts1[0].Distance(pts2[j], geoid));
-  }
-  for (unsigned int i = 1; i < m; i++) {
-    dp[i][0] = max(dp[i - 1][0], pts1[i].Distance(pts2[0], geoid));
-    for (unsigned int j = 1; j < n; j++) {
-      dp[i][j] = max(min(min(dp[i][j - 1], dp[i - 1][j]), dp[i - 1][j - 1]), 
-                     pts1[i].Distance(pts2[j], geoid));
-    }
-  }
-  result->Set(true, dp[m - 1][n - 1]);
-}
-
-/*
 1.1 Method ~FindEqualTimes4Real~
 
 Function FindEqualTimes4Real to find all times where u1 and u2 are
@@ -7775,7 +7703,12 @@ int FrechetDistance(Word* args, Word& result, int message,
   if (hasGeoid) {
     geoid = static_cast<Geoid*>(args[2].addr);
   }
-  frechetDistance(*mp1, *mp2, geoid, res);
+  if (!mp1->IsDefined() || !mp2->IsDefined()) {
+    res->SetDefined(false);
+  }
+  else {
+    res->Set(true, mp1->FrechetDistance(mp2, geoid));
+  }
   return 0;
 }
 
