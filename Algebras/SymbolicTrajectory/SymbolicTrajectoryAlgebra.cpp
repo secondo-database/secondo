@@ -1487,7 +1487,7 @@ struct hybriddistanceInfo : OperatorInfo {
   hybriddistanceInfo() {
     name      = "hybriddistance";
     signature = "T x mpoint x T x mpoint x real -> real,  "
-                "where T in {mlabel(s), mplace(s)}";
+                "where T in {mlabel, mplace}";
     syntax    = "hybriddistance(_ , _ , _ , _, _);";
     meaning   = "Computes a distance between two trajectories. First, "
                 "a Levenshtein-based distance between the symbolic "
