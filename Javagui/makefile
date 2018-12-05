@@ -89,6 +89,7 @@ makedirs:
 	make -C gui all
 	make -C viewer viewers
 	make -C tools all
+	make -C stlib all
 	make -C mmdb all
 
 
@@ -102,6 +103,7 @@ clean: removedoc
 	make -C project clean
 	make -C tools clean
 	make -C viewer clean
+	make -C stlib clean
 	make -C mmdb clean
 	rm -rf Demo
 	rm -rf sj
