@@ -44,6 +44,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Spatial/SpatialAlgebra.h"
 #include "Algebras/Collection/CollectionAlgebra.h"
 
+#include "OpImportLAS.h"
+
 extern NestedList *nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
@@ -1114,6 +1116,7 @@ CloneCpoints
             AddOperator(&no_componentsOp, false);
             AddOperator(&importpointcloudOp, false);
             AddOperator(&extractpointsOp, false);
+            AddOperator(getImportLASOp());
 
         }
         ~PointcloudAlgebra() {};

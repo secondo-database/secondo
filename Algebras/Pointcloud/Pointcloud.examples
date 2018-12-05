@@ -33,3 +33,12 @@ Number   : 1
 Signature: pointcloud -> stream(tuple(Pos: point, Height: double)
 Example  : query extractpoints(importpointcloud("20110304_10SDH9607.las") transformstream extract[Elem]) count
 Result   : 2138
+
+Operator : importLAS
+Number   : 1
+Signature : text x bool -> stream(tuple)
+Example   : query '20110304_10SDH9607.las' importLAS[TRUE] count > 12
+Result    : TRUE
+
+
+
