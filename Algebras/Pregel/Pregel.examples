@@ -67,7 +67,6 @@ Signature: () -> bool
 Example  : query resetPregel();
 Result   : TRUE
 
-operator pregelStatus alias PREGELSTATUS pattern op ()
 Operator : pregelStatus
 Number   : 1
 Signature: () -> text
