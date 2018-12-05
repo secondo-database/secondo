@@ -160,8 +160,8 @@ drelfilter operator.
         // value mapping
         string funText1 = "(dmap ";
         string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
-            "(consume (filter (feed dmapelem_1)" + nl->ToString( fun ) + 
-            ") ) ) )";
+            "(filter (feed dmapelem_1)" + nl->ToString( fun ) + 
+            ") ) )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -300,8 +300,8 @@ operator.
         // value mapping
         string funText1 = "(dmap ";
         string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
-            "(consume (project (feed dmapelem_1)" + nl->ToString( attrlist ) + 
-            ") ) ) )";
+            "(project (feed dmapelem_1)" + nl->ToString( attrlist ) + 
+            ") ) )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -476,8 +476,8 @@ tuples. This is a combination of the operators project and extend.
         // value mapping
         string funText1 = "(dmap ";
         string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
-            "(consume (projectextend (feed dmapelem_1)" + 
-            nl->ToString( attrlist ) + nl->ToString( fun ) + ") ) )";
+            "(projectextend (feed dmapelem_1)" + 
+            nl->ToString( attrlist ) + nl->ToString( fun ) + ") )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -599,8 +599,8 @@ combination of the operator extend.
         // value mapping
         string funText1 = "(dmap ";
         string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
-            "(consume (extend (feed dmapelem_1)" + nl->ToString( fun ) + 
-            ") ) ) )";
+            "(extend (feed dmapelem_1)" + nl->ToString( fun ) + 
+            ") ) )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -670,8 +670,8 @@ operator.
         // value mapping
         string funText1 = "(dmap ";
         string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
-            "(consume (head (feed dmapelem_1)" + nl->ToString( secondValue ) + 
-            ") ) ) )";
+            "(head (feed dmapelem_1)" + nl->ToString( secondValue ) + 
+            ") ) )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -755,8 +755,8 @@ operator.
         // value mapping
         string funText1 = "(dmap ";
         string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
-            "(consume (rename (feed dmapelem_1)" + 
-            nl->ToString( secondValue ) + ") ) ) )";
+            "(rename (feed dmapelem_1)" + 
+            nl->ToString( secondValue ) + ") ) )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -818,7 +818,7 @@ operator.
         // value mapping
         string funText1 = "(dmap ";
         string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
-            "(consume (rdup (sort (feed dmapelem_1) ) ) ) ) )";
+            "(rdup (sort (feed dmapelem_1) ) ) ) )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -880,7 +880,7 @@ operator.
         // value mapping
         string funText1 = "(dmap ";
         string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
-            "(consume (sort (feed dmapelem_1) ) ) ) )";
+            "(sort (feed dmapelem_1) ) ) )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -1054,8 +1054,8 @@ Type mapping for the drellgroup operator.
         // value mapping
         string funText1 = "(dmap ";
         string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
-            "(consume (groupby (feed dmapelem_1) " + nl->ToString( attrlist ) +
-            nl->ToString( fun ) + " ) ) ) )";
+            "(groupby (feed dmapelem_1) " + nl->ToString( attrlist ) +
+            nl->ToString( fun ) + " ) ) )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -1136,8 +1136,8 @@ operator.
         // value mapping
         string funText1 = "(dmap ";
         string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
-            "(consume (sortby (feed dmapelem_1) " + nl->ToString( attrlist ) + 
-            " ) ) ) )";
+            "(sortby (feed dmapelem_1) " + nl->ToString( attrlist ) + 
+            " ) ) )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -1223,8 +1223,8 @@ to define the range.
         string funText1 = "(dmap2 ";
         string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
             "(elem2_2 ARRAYFUNARG2) "
-            "(consume (range elem1_1 elem2_2 " + nl->ToString( range1 ) + " " +
-            nl->ToString( range2 ) + " ) ) ) 1238 )";
+            "(range elem1_1 elem2_2 " + nl->ToString( range1 ) + " " +
+            nl->ToString( range2 ) + " ) ) 1238 )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -1302,8 +1302,8 @@ value.
         string funText1 = "(dmap2 ";
         string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
             "(elem2_2 ARRAYFUNARG2) "
-            "( consume (exactmatch elem1_1 elem2_2 " + 
-            nl->ToString( searchValue ) + " ) ) ) 1238 )";
+            "(exactmatch elem1_1 elem2_2 " + 
+            nl->ToString( searchValue ) + " ) ) 1238 )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -1410,8 +1410,8 @@ arguments.
         string funText1 = "(dmap2 ";
         string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
             "(elem2_2 ARRAYFUNARG2) "
-            "( consume (windowintersects elem1_1 elem2_2 " + tempName + 
-            " ) ) ) 1238 )";
+            "(windowintersects elem1_1 elem2_2 " + tempName + 
+            " ) ) 1238 )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -1491,9 +1491,9 @@ value.
         string funText1 = "(dmap3 ";
         string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
             "(elem2_2 ARRAYFUNARG2) (elem3_3 ARRAYFUNARG3) "
-            "(consume (loopjoin (feed elem1_1) (fun (tuple_4 TUPLE) "
+            "(loopjoin (feed elem1_1) (fun (tuple_4 TUPLE) "
             "(exactmatch elem2_2 elem3_3 (attr tuple_4 " +
-            nl->ToString( arg4Value ) + ") ) ) ) ) ) 1238 )";
+            nl->ToString( arg4Value ) + ") ) ) ) ) 1238 )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -1854,7 +1854,7 @@ Operator specification of the porject operator.
         " _ project[attrlist]",
         "Passed only the listed attributes to a stream. It is not allowed to "
         "create a new d[f]rel without the partion attribute.",
-        " query drel1 project[PLZ, Ort] consume"
+        " query drel1 project[PLZ, Ort]"
     );
 
 /*

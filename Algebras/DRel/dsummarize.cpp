@@ -38,6 +38,7 @@ drelsummarize uses a d[f]rel and creates a stream of tuple.
 #include "ListUtils.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
+#include "Algebras/Stream/Stream.h"
 
 #include "DRelHelpers.h"
 
@@ -76,26 +77,27 @@ Expect a d[f]el.
 
         std::string err = "d[f]rel expected";
 
-        if( ! nl->HasLength( args, 1 ) ) {
+        if( !nl->HasLength( args, 1 ) ) {
             return listutils::typeError( err + 
                 ": one argument is expected" );
         }
 
-        if( DFRel::checkType( nl->First( args ) ) ) {
-            return distributed2::dsummarizeTM( 
-                nl->OneElemList( nl->TwoElemList( 
-                    nl->SymbolAtom( DFArray::BasicType( ) ), 
-                    nl->Second( nl->First( args ) ) ) ) );
-        }
-        if( DRel::checkType( nl->First( args ) ) ) {
-            return distributed2::dsummarizeTM( 
-                nl->OneElemList( nl->TwoElemList( 
-                    nl->SymbolAtom( DArray::BasicType( ) ), 
-                    nl->Second( nl->First( args ) ) ) ) );
+        if( !DRel::checkType( nl->First( args ) )
+         && !DFRel::checkType( nl->First( args ) ) ) {
+            return listutils::typeError( err + 
+                ": first argument is not a d[f]rel" );
         }
 
-        return listutils::typeError( err +
-            ": first argument is not a d[f]rel" );
+        ListExpr rel = nl->Second( nl->First( args ) );
+        ListExpr attrList = nl->Second( nl->Second( rel ) );
+        attrList = DRelHelpers::removeAttrFromAttrList( attrList, "Cell" );
+        attrList = DRelHelpers::removeAttrFromAttrList( attrList, "Original" );
+
+        return nl->TwoElemList(
+            listutils::basicSymbol<Stream<Tuple>>( ),
+            nl->TwoElemList(
+                listutils::basicSymbol<Tuple>( ),
+                attrList ) );
     }
 
 /*
@@ -104,6 +106,33 @@ Expect a d[f]el.
 Selects all elements of the d[f]rel from the workers.
 
 */
+    template<class T>
+    int dsummarizeVMT( Word* args, Word& result, int message,
+        Word& local, Supplier s ) {
+
+        #ifdef DRELDEBUG
+        cout << "dsummarizeVMT" << endl;
+        #endif
+
+        return distributed2::dsummarizeVMT<dsummarizeRelInfo<T>, T>( 
+            args, result, message, local, s );
+    }
+
+    class DRelLocalSummarize {
+        public:
+        DRelLocalSummarize( DFRel* _drel ) :
+            drel( _drel ), local( ( Address ) 0 ), args{ drel } {
+        }
+
+        ~DRelLocalSummarize( ) {
+            delete drel;
+        }
+        
+        DFRel* drel;
+        Word local;
+        ArgVector args;
+    };
+
     template<class T, class R>
     int dsummarizeVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
@@ -112,8 +141,76 @@ Selects all elements of the d[f]rel from the workers.
         cout << "dsummarizeVMT" << endl;
         #endif
 
-        return distributed2::dsummarizeVMT<T, R>( 
-            args, result, message, local, s );
+        DRelLocalSummarize* li = ( DRelLocalSummarize* )local.addr;
+
+        switch( message ) {
+
+            case OPEN: 
+            {
+                if( li ) delete li;
+
+                R* drel = ( R* )args[ 0 ].addr;
+                string queryS;
+                ListExpr drelType = qp->GetType( qp->GetSon( s, 0 ) );
+                ListExpr drelPtr = DRelHelpers::createdrel2darray(
+                    drelType, drel );
+
+                if( drel->getDistType( )->getDistType( ) == replicated ) {
+                    queryS = "(dmap " + nl->ToString( drelPtr ) + " \"\" (fun "
+                        "(dmapelem_1 ARRAYFUNARG1) (remove (filter (feed "
+                        "dmapelem_1) (fun (streamelem_2 STREAMELEM) "
+                        "(= (attr streamelem_2 Original) TRUE))) "
+                        "(Original))))";
+                }
+                else {
+                    queryS = "(dmap " + nl->ToString( drelPtr ) + " \"\" (fun "
+                        "(dmapelem_1 ARRAYFUNARG1) (remove (filter (feed "
+                        "dmapelem_1) (fun (streamelem_2 STREAMELEM) "
+                        "(= (attr streamelem_2 Original) TRUE))) "
+                        "(Original Cell))))";
+                }
+
+                Word dfrelResult;
+                if( !QueryProcessor::ExecuteQuery( queryS, dfrelResult ) ) {
+                    cout << "error while remove the dist attributes" << endl;
+                    return CANCEL;
+                }
+
+                local.addr = new DRelLocalSummarize( 
+                    ( DFRel* )dfrelResult.addr );
+
+                DRelLocalSummarize* li = ( DRelLocalSummarize* )local.addr;
+
+                return distributed2::dsummarizeVMT<
+                    dsummarizeRelInfo<DFArray>, DFArray>( 
+                        li->args, result, message, li->local, s );
+
+                break;
+            }
+            case REQUEST:
+            {
+                return distributed2::dsummarizeVMT<
+                    dsummarizeRelInfo<DFArray>, DFArray>( 
+                        li->args, result, message, li->local, s );
+
+                break;
+            }
+            case CLOSE:
+            {
+                distributed2::dsummarizeVMT<
+                    dsummarizeRelInfo<DFArray>, DFArray>( 
+                        li->args, result, message, li->local, s );
+                
+                if( li ) {
+                    delete li;
+                    local.addr = 0;
+                }
+
+                break;
+            }
+        }
+
+        return -1;
     }
 
 /*
@@ -121,8 +218,10 @@ Selects all elements of the d[f]rel from the workers.
 
 */
     ValueMapping dsummarizeVM[ ] = {
-        dsummarizeVMT<dsummarizeRelInfo<DArray>, DArray >,
-        dsummarizeVMT<dsummarizeRelInfo<DFArray>, DFArray >
+        dsummarizeVMT<DArray>,
+        dsummarizeVMT<DFArray>,
+        dsummarizeVMT<DArray, DRel>,
+        dsummarizeVMT<DFArray, DFRel>
     };
 
 /*
@@ -131,7 +230,12 @@ Selects all elements of the d[f]rel from the workers.
 */
     int dsummarizeSelect( ListExpr args ) {
 
-        return DRel::checkType( nl->First( args ) ) ? 0 : 1;
+        distributionType type;
+        DRelHelpers::drelCheck( nl->First( args ), type );
+        int x = ( type == spatial2d || type == spatial3d ||
+                  type == replicated ) ? 2 : 0;
+
+        return DRel::checkType( nl->First( args ) ) ? 0 + x : 1 + x;
     }
 
 /*
@@ -152,7 +256,7 @@ Selects all elements of the d[f]rel from the workers.
     Operator dsummarizeOp(
         "dsummarize",
         dsummarizeSpec.getStr( ),
-        2,
+        4,
         dsummarizeVM,
         dsummarizeSelect,
         dsummarizeTM

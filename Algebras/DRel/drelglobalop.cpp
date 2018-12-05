@@ -125,7 +125,7 @@ namespace drel {
             repartition = true;
             funText1 = "(areduce ";
             funText2 = " \"\" (fun (elem_1 AREDUCEARG1) "
-                    "(consume (sort (feed elem_1)))) 1238)";
+                    "(sort (feed elem_1))) 1238)";
         }
 
         ListExpr resultType = 
@@ -213,7 +213,7 @@ namespace drel {
 
             funText1 = "(areduce ";
             funText2 = " \"\" (fun (elem_1 AREDUCEARG1) "
-                "(consume (sortby (feed elem_1)" + attrList + "))) 1238)";
+                "(sortby (feed elem_1)" + attrList + ")) 1238)";
         }
 
         ListExpr resultType = 
@@ -441,15 +441,15 @@ namespace drel {
                     "(= (attr streamelem_3 Original) TRUE))) "
                     "(Original Cell))) (fun (elem1_4 FFR) (elem2_5 FFR) "
                     "(hashvalue (attr elem2_5 Name) 9999)) "
-                    "0) \"\" (fun (elem_6 AREDUCEARG1) (consume (rdup "
-                    "(feed elem_6)))) 1238)";
+                    "0) \"\" (fun (elem_6 AREDUCEARG1) (rdup "
+                    "(feed elem_6))) 1238)";
             }
             else {
                 funText1 = "(areduce (partition ";
                 funText2 = " \"\" (fun (elem_1 SUBSUBTYPE1) "
                     "(hashvalue (attr elem_1 PLZ) 9999)) 0) "
-                    "\"\" (fun (elem_2 AREDUCEARG1) (consume "
-                    "(rdup (feed elem_2)))) 1238)";
+                    "\"\" (fun (elem_2 AREDUCEARG1) "
+                    "(rdup (feed elem_2))) 1238)";
             }
         }
 
