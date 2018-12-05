@@ -5,13 +5,15 @@ Operator : messageDistribute
 Number   : 1
 Signature: stream(tuple) x int -> bool
 Example  : query ten messageDistribute;
-Result   : typeerror
+Result   : unpredictable
+Remark   : The operator requires the message type to be initialized
 
 Operator : messageFeed
 Number   : 1
 Signature: () -> bool
 Example  : query messageFeed();
-Result   : typeerror
+Result   : unpredictable
+Remark   : The operator requires the message type to be initialized
 
 Operator : startMessageClient
 Number   : 1
@@ -35,7 +37,8 @@ Operator : initPregelMessages
 Number   : 1
 Signature: stream(tuple) -> bool
 Example  : query Messages feed  initPregelMessages;
-Result   : typeerror
+Result   : unpredictable
+Remark   : The operator requires the message type to be initialized
 
 Operator : expectPregelMessages
 Number   : 1
@@ -78,3 +81,16 @@ Number   : 1
 Signature: int -> bool
 Example  : query startPregelWorker(10);
 Result   : FALSE
+
+Operator : startLoopbackMessageClient
+Number   : 1
+Signature: int -> bool
+Example  : query startLoopbackMessageClient(-1);
+Result   : FALSE
+
+Operator : remotePregelCommand
+Number   : 1
+Signature: text -> bool
+Example  : query remotePregelCommand('list objects');
+Result   : unpredictable
+Remark   : The operator requires the pregel system to be initialized with setupPregel(...)
