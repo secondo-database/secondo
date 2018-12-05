@@ -86,8 +86,6 @@ void patternFlushBuffer();
 enum ExtBool {ST_FALSE, ST_TRUE, ST_UNDEF};
 enum Wildcard {NO, STAR, PLUS};
 enum IndexType {TRIE, BTREE, RTREE1, RTREE2, NONE};
-enum DistanceFunction {FIRST, LAST, FIRST_LAST, ALL, ALL_DURATION, 
-                       ALL_INTERVALS, EQUAL_LABELS};
 
 /*
 \section{Class ~IBasic~}

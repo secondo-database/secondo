@@ -1411,8 +1411,8 @@ distance: T x mpoint x T x mpoint x real (x geoid) -> real,
 
 */
 ListExpr hybriddistanceTM(ListExpr args) {
-  if (!nl->HasLength(args, 5) && !nl->HasLength(args, 6)) {
-    return NList::typeError("Expecting five or six arguments.");
+  if (!nl->HasLength(args, 6) && !nl->HasLength(args, 7)) {
+    return NList::typeError("Expecting six or seven arguments.");
   }
   ListExpr first = nl->First(args);
   ListExpr third = nl->Third(args);
@@ -1420,17 +1420,18 @@ ListExpr hybriddistanceTM(ListExpr args) {
       (MPlace::checkType(first)  && MPlace::checkType(third))) {
     if (MPoint::checkType(nl->Second(args)) && 
         MPoint::checkType(nl->Fourth(args)) &&
-        CcReal::checkType(nl->Fifth(args))) {
-      if (nl->HasLength(args, 6)) {
-        if (Geoid::checkType(nl->Sixth(args))) {
+        CcReal::checkType(nl->Fifth(args)) &&
+        CcReal::checkType(nl->Sixth(args))) {
+      if (nl->HasLength(args, 7)) {
+        if (Geoid::checkType(nl->Seventh(args))) {
           return nl->SymbolAtom(CcReal::BasicType());
         }
       }
       return nl->SymbolAtom(CcReal::BasicType());
     }
   }
-  return NList::typeError("Expecting T x mpoint x T x mpoint x real (x geoid), "
-                          "where T in {mplace, mlabel}");
+  return NList::typeError("Expecting T x mpoint x T x mpoint x real x real "
+                          "(x geoid), where T in {mplace, mlabel}");
 }
 
 /*
@@ -1439,8 +1440,8 @@ ListExpr hybriddistanceTM(ListExpr args) {
 */
 int hybriddistanceSelect(ListExpr args) {
   ListExpr first = nl->First(args);
-  if (MLabel::checkType(first)) return (nl->HasLength(args, 5) ? 0 : 2);
-  if (MPlace::checkType(first)) return (nl->HasLength(args, 5) ? 1 : 3);
+  if (MLabel::checkType(first)) return (nl->HasLength(args, 6) ? 0 : 2);
+  if (MPlace::checkType(first)) return (nl->HasLength(args, 6) ? 1 : 3);
   return -1;
 }
 
@@ -1457,17 +1458,23 @@ int hybriddistanceVM(Word* args, Word& result, int message, Word& local,
   MPoint *mp1 = static_cast<MPoint*>(args[1].addr);
   MPoint *mp2 = static_cast<MPoint*>(args[3].addr);
   CcReal *threshold = static_cast<CcReal*>(args[4].addr);
+  CcReal *scaleFactor = static_cast<CcReal*>(args[5].addr);
   Geoid *geoid = 0;
   if (hasGeoid) {
-    geoid = static_cast<Geoid*>(args[5].addr);
+    geoid = static_cast<Geoid*>(args[6].addr);
   }
   CcReal *res = static_cast<CcReal*>(result.addr);
   if (sym1->IsDefined() && sym2->IsDefined() && mp1->IsDefined() && 
-      mp2->IsDefined() && threshold->IsDefined()) {
+      mp2->IsDefined() && threshold->IsDefined() && scaleFactor->IsDefined()) {
+    if (threshold->GetValue() < 0.0 || threshold->GetValue() > 1.0) {
+      cout << "symbolic distance threshold must be in [0,1]" << endl;
+      res->SetDefined(false);
+      return 0;
+    }
     CcReal symres(true);
     double symDistance = sym1->Distance_ALL(*sym2, TRIVIAL);
     if (symDistance <= threshold->GetValue()) {
-      res->Set(true, mp1->FrechetDistance(mp2, geoid));
+      res->Set(true, mp1->FrechetDistance(mp2,geoid) / scaleFactor->GetValue());
     }
     else {
       res->Set(true, symDistance);
@@ -1486,17 +1493,66 @@ int hybriddistanceVM(Word* args, Word& result, int message, Word& local,
 struct hybriddistanceInfo : OperatorInfo {
   hybriddistanceInfo() {
     name      = "hybriddistance";
-    signature = "T x mpoint x T x mpoint x real -> real,  "
+    signature = "T x mpoint x T x mpoint x real x real -> real,  "
                 "where T in {mlabel, mplace}";
-    syntax    = "hybriddistance(_ , _ , _ , _, _);";
+    syntax    = "hybriddistance(_ , _ , _ , _, _ , _);";
     meaning   = "Computes a distance between two trajectories. First, "
                 "a Levenshtein-based distance between the symbolic "
                 "representations is computed. If it is below the threshold, "
                 "the discrete Fréchet distance is returned. Otherwise, the "
-                "result equals the Levenshtein-based symbolic distance.";
+                "result equals the Levenshtein-based symbolic distance, "
+                "divided by the scale factor.";
   }
 };
 
+/*
+\section{Operator ~gethybriddistanceparams~}
+
+gethybriddistanceparams: -> stream(tuple(Name: string, InputType: string, 
+                                         Value: string))
+
+\subsection{Type Mapping}
+
+*/
+ListExpr gethybriddistanceparamsTM(ListExpr args) {
+  if (nl->HasLength(args, 0)) {
+    ListExpr attrList = nl->ThreeElemList(
+                       nl->TwoElemList(nl->SymbolAtom("Name"),
+                                       nl->SymbolAtom(CcString::BasicType())),
+                       nl->TwoElemList(nl->SymbolAtom("InputType"),
+                                       nl->SymbolAtom(CcString::BasicType())),
+                       nl->TwoElemList(nl->SymbolAtom("Value"),
+                                       nl->SymbolAtom(CcString::BasicType())));
+    return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                           nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                                          attrList));
+  }
+  return listutils::typeError("No argument expected.");
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int gethybriddistanceparamsVM(Word* args, Word& result, int message, 
+                              Word& local, Supplier s) {
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct gethybriddistanceparamsInfo : OperatorInfo {
+  gethybriddistanceparamsInfo() {
+    name      = "gethybriddistanceparams";
+    signature = "-> stream(tuple(Name: string, InputType: string, "
+                "Value: string))";
+    syntax    = "gethybriddistanceparams();";
+    meaning   = "Returns the current parameter names, types, and values used "
+                "for the hybriddistance operator.";
+  }
+};
 
 /*
 \section{Generic operators for ~[i|m|u] [label|place] [s]?~}
@@ -5933,6 +5989,12 @@ class SymbolicTrajectoryAlgebra : public Algebra {
               hybriddistanceVM<MPlace, true>, 0};
   AddOperator(hybriddistanceInfo(), hybriddistanceVMs, hybriddistanceSelect, 
               hybriddistanceTM);
+  
+  AddOperator(gethybriddistanceparamsInfo(), gethybriddistanceparamsVM,
+              gethybriddistanceparamsTM);
+  
+//   AddOperator(&sethybriddistanceparam);
+//   sethybriddistanceparam.SetUsesArgsInTypeMapping();
 
   ValueMapping the_unitSymbolicVMs[] = {the_unitSymbolicVM<Label, ULabel>,
     the_unitSymbolicVM<Labels, ULabels>, the_unitSymbolicVM<Place, UPlace>,

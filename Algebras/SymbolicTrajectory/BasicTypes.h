@@ -44,6 +44,8 @@ Started July 2014, Fabio Vald\'{e}s
 namespace stj {
   
 enum LabelFunction {TRIVIAL, EDIT};
+enum DistanceFunction {FIRST, LAST, FIRST_LAST, ALL, ALL_DURATION, 
+                       ALL_INTERVALS, EQUAL_LABELS};
   
 template<class F, class S>
 class NewPair {
@@ -413,6 +415,40 @@ class Places : public Attribute {
  protected:
   Flob values;
   DbArray<NewPair<unsigned int, unsigned int> > posref;
+};
+
+struct HybridDistanceParameters {
+  HybridDistanceParameters() {
+    labelFun = TRIVIAL;
+    distFun = ALL;
+    threshold = 0.75;
+    scaleFactor = 30000.0;
+    geoid = 0;
+  }
+  
+  bool isCorrectType(std::string& name, ListExpr type) {
+    if (name == "labelFun")    return CcInt::checkType(type);
+    if (name == "distFun")     return CcInt::checkType(type);
+    if (name == "threshold")   return CcReal::checkType(type);
+    if (name == "scaleFactor") return CcReal::checkType(type);
+    if (name == "geoid")       return Geoid::checkType(type);
+  }
+  
+  void storeTuples() {
+//     ListExpr 
+//     TupleType *tt = 0;
+  }
+  
+  Tuple* getTuple() {
+    return 0;
+  }
+
+  LabelFunction labelFun; // function used for comparing two label values
+  DistanceFunction distFun; // function used for comparing two mlabel values
+  double threshold; // Fréchet dist is computed if symdist is below this value
+  double scaleFactor; // Fréchet dist is divided by this value
+  Geoid *geoid; // required for correct Fréchet dist computation, e.g., WGS1984
+  stack<Tuple*> tuple;
 };
 
 }
