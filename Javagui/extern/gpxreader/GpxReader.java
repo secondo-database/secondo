@@ -49,42 +49,12 @@ import sj.lang.ListExpr;
  *
  */
 public class GpxReader implements SecondoImporter {
- 
-
-   public void setMaxStringLength(int dummy){}
 
    private String errorString = "NO_ERROR";
 
    private GPXParser gpxParser = new GPXParser();
 
    private Counter tubleCounter;
-
-  private boolean contains(File F, String fileExtension){
-     if(!F.isDirectory()) return false;
-     fileExtension = fileExtension.toLowerCase();
-     File[] files = F.listFiles();
-     for(int i=0;i<files.length;i++){
-       if(files[i].isFile()){
-          if(files[i].getName().toLowerCase().endsWith(fileExtension)){
-            return true;
-          }
-       }
-     }
-     return false;
-   }
-
-
-
-   public boolean supportsFile( File f){
-     if(!f.exists()){
-       return false;
-     }
-     if(f.isDirectory()){
-      return contains(f,".gpx");
-     }
-     return f.getName().toLowerCase().endsWith(".gpx");
-  }
-
 
    /**
     * Get the file content as nested list
@@ -157,8 +127,8 @@ public class GpxReader implements SecondoImporter {
     * @return
     */
    public ListExpr getRelationHeader() {
-      String[] attrList = { "Id", "File", "TrackNo", "Track" };
-      String[] attrType = { "int", "string", "int", "mpoint" };
+      String[] attrList = { "Id", "File", "TrackNo", "Track", "Traj" };
+      String[] attrType = { "int", "string", "int", "mpoint", "line" };
 
       ListExpr TupleList = ListExpr
             .oneElemList(ListExpr.twoElemList(ListExpr.symbolAtom(attrList[0]), ListExpr.symbolAtom(attrType[0])));
@@ -196,8 +166,8 @@ public class GpxReader implements SecondoImporter {
    private enum GPXTags {
 
       NODE_GPX("gpx"), NODE_METADATA("metadata"), NODE_TRK("trk"), NODE_RTE("rte"), NODE_WPT("wpt"), NODE_EXTENSIONS(
-            "extensions"), NODE_TRKPT(
-                  "trkpt"), NODE_TRKSEG("trkseg"), ATTR_CREATOR("creator"), ATTR_VERSION("version"), NODE_TIME("time"),
+            "extensions"), NODE_TRKPT("trkpt"), NODE_TRKSEG("trkseg"), ATTR_CREATOR(
+                  "creator"), ATTR_VERSION("version"), NODE_TIME("time"), NODE_TIMESPAN("timeSpan"),
 
       ATTR_LAT("lat"), ATTR_LON("lon");
 
@@ -302,16 +272,23 @@ public class GpxReader implements SecondoImporter {
          ListExpr tupel = null;
          ListExpr tupelList = null;
          ListExpr mpointsNL = null;
+         ListExpr lineNL = null;
+
+         List<List<TrackPoint>> trackSegments = null;
 
          for (int idx = 0; idx < nodes.getLength(); idx++) {
             Node currentNode = nodes.item(idx);
 
             if (GPXTags.NODE_TRK.getValue().equals(currentNode.getNodeName())) {
                trackNo++;
-               mpointsNL = parseTrack(currentNode);
 
-               tupel = ListExpr.fourElemList(ListExpr.intAtom(tubleCounter.getNext()),
-                     ListExpr.stringAtom(gpxFile.getName()), ListExpr.intAtom(trackNo), mpointsNL);
+               trackSegments = getTrackSegments(currentNode);
+
+               mpointsNL = getMPointNL(trackSegments);
+               lineNL = getLineNL(trackSegments);
+
+               tupel = ListExpr.fiveElemList(ListExpr.intAtom(tubleCounter.getNext()),
+                     ListExpr.stringAtom(gpxFile.getName()), ListExpr.intAtom(trackNo), mpointsNL, lineNL);
 
                if (tubleCounter.current() <= 1) {
                   tupelList = ListExpr.oneElemList(tupel);
@@ -378,6 +355,125 @@ public class GpxReader implements SecondoImporter {
       }
 
       /**
+       * Parse a track node of the current gpx file
+       * 
+       * @param trackNode
+       * 
+       * @return a list of segments with a list of TrackPoint objects
+       * 
+       * @throws Exception
+       */
+      private List<List<TrackPoint>> getTrackSegments(Node trackNode) throws Exception {
+         List<List<TrackPoint>> trackSegments = new ArrayList<>();
+
+         NodeList trkSegNodes = trackNode.getChildNodes();
+
+         for (int idx = 0; idx < trkSegNodes.getLength(); idx++) {
+            Node currentTrkSegNode = trkSegNodes.item(idx);
+            List<TrackPoint> trkPointList = new ArrayList<>();
+
+            if (GPXTags.NODE_TRKSEG.getValue().equals(currentTrkSegNode.getNodeName())) {
+               NodeList trkPoints = currentTrkSegNode.getChildNodes();
+
+               TrackPoint currentTrkPoint = null;
+
+               for (int idxTP = 0; idxTP < trkPoints.getLength(); idxTP++) {
+
+                  Node currentTrkPointNode = trkPoints.item(idxTP);
+
+                  if (GPXTags.NODE_TRKPT.getValue().equals(currentTrkPointNode.getNodeName())) {
+
+                     currentTrkPoint = getTrackPoint(currentTrkPointNode);
+
+                     if (currentTrkPoint != null) {
+                        trkPointList.add(currentTrkPoint);
+                     }
+
+                  }
+
+               }
+            }
+
+            if (!trkPointList.isEmpty()) {
+               trackSegments.add(trkPointList);
+            }
+
+         }
+
+         return trackSegments;
+      }
+
+      /**
+       * Creates a mpoint value as nested list from a list of segments with TrackPoint
+       * objects
+       * 
+       * @param trackSegments
+       * 
+       * @return ListExpr, a mpoint value as nested list
+       */
+      private ListExpr getMPointNL(List<List<TrackPoint>> trackSegments) {
+         ListExpr result = null;
+
+         for (List<TrackPoint> trackSegment : trackSegments) {
+
+            TrackPoint lastTrkPoint = null;
+
+            for (TrackPoint currentTrkPoint : trackSegment) {
+
+               if (lastTrkPoint != null) {
+                  if (result == null) {
+                     result = ListExpr.oneElemList(getUPointNL(lastTrkPoint, currentTrkPoint));
+                  } else {
+                     result = ListExpr.concat(result, getUPointNL(lastTrkPoint, currentTrkPoint));
+                  }
+
+               }
+
+               lastTrkPoint = currentTrkPoint;
+
+            }
+
+         }
+
+         return result;
+      }
+
+      /**
+       * Creates a line value as nested list from a list of segments with TrackPoint
+       * objects
+       * 
+       * @param trackSegments
+       * 
+       * @return ListExpr, a line value as nested list
+       */
+      private ListExpr getLineNL(List<List<TrackPoint>> trackSegments) {
+         ListExpr result = null;
+
+         for (List<TrackPoint> trackSegment : trackSegments) {
+
+            TrackPoint lastTrkPoint = null;
+
+            for (TrackPoint currentTrkPoint : trackSegment) {
+
+               if (lastTrkPoint != null) {
+                  if (result == null) {
+                     result = ListExpr.oneElemList(getLineSegmentNL(lastTrkPoint, currentTrkPoint));
+                  } else {
+                     result = ListExpr.concat(result, getLineSegmentNL(lastTrkPoint, currentTrkPoint));
+                  }
+
+               }
+
+               lastTrkPoint = currentTrkPoint;
+
+            }
+
+         }
+
+         return result;
+      }
+
+      /**
        * Get the track point information from the current track point node
        * 
        * @param currentTrkPointNode
@@ -414,7 +510,8 @@ public class GpxReader implements SecondoImporter {
          for (int idxCTP = 0; idxCTP < childTP.getLength(); idxCTP++) {
             Node currentChildTP = childTP.item(idxCTP);
 
-            if (GPXTags.NODE_TIME.getValue().equals(currentChildTP.getNodeName())) {
+            if (GPXTags.NODE_TIME.getValue().equals(currentChildTP.getNodeName())
+                  || GPXTags.NODE_TIMESPAN.getValue().equals(currentChildTP.getNodeName())) {
                instant = Instant.parse(currentChildTP.getTextContent());
 
                return new TrackPoint(lonVal, latVal, instant);
@@ -448,6 +545,24 @@ public class GpxReader implements SecondoImporter {
          ListExpr points = ListExpr.fourElemList(x0, y0, x1, y1);
 
          return ListExpr.twoElemList(period, points);
+
+      }
+
+      /**
+       * Get a line segment value as nested list
+       * 
+       * @param tp0
+       * @param tp1
+       * 
+       * @return the line segment as nested list
+       */
+      private ListExpr getLineSegmentNL(final TrackPoint tp0, final TrackPoint tp1) {
+         ListExpr x0 = ListExpr.realAtom(tp0.x);
+         ListExpr y0 = ListExpr.realAtom(tp0.y);
+         ListExpr x1 = ListExpr.realAtom(tp1.x);
+         ListExpr y1 = ListExpr.realAtom(tp1.y);
+
+         return ListExpr.fourElemList(x0, y0, x1, y1);
 
       }
    }
