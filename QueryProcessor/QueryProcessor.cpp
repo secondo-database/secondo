@@ -3713,13 +3713,15 @@ the function in a database object.
     cmsg.error() << r.what() << endl;
     cmsg.send();
     correct = false;
-    return;
+    DestroyValuesArray();
+    throw ERR_IN_QUERY_EXPR;
   }
   catch(...){
     cmsg.error() << "Exception during AnnotateX"  << endl;
     cmsg.send();
     correct = false;
-    return;
+    DestroyValuesArray();
+    throw ERR_IN_QUERY_EXPR;
   }
 
   if ( nl->ListLength( list ) < 2 ) {
