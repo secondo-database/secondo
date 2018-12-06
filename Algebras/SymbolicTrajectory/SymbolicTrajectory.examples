@@ -138,7 +138,7 @@ Operator : gethybriddistanceparams
 Number   : 1
 Signature: -> stream(tuple(Name: string, InputType: string, Value: string))
 Example  : query gethybriddistanceparams() count
-Result   : 0
+Result   : 5
 
 Operator : the_unit
 Number   : 6

@@ -1374,5 +1374,213 @@ bool Places::ReadFrom(ListExpr LE, ListExpr typeInfo) {
   }
   return true;
 }
+
+/*
+\section{Functions for HybridDistanceParameters}
+
+*/
+bool HybridDistanceParameters::isCorrectType(std::string& name, ListExpr type) {
+  if (name == "labelFun")    return CcInt::checkType(type);
+  if (name == "distFun")     return CcInt::checkType(type);
+  if (name == "threshold")   return CcReal::checkType(type);
+  if (name == "scaleFactor") return CcReal::checkType(type);
+  if (name == "geoid")       return Geoid::checkType(type);
+  return false;
+}
+
+TupleType* HybridDistanceParameters::getTupleType() {
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  ListExpr ttlist = nl->TwoElemList(
+    nl->SymbolAtom(Tuple::BasicType()),
+                   nl->FiveElemList(
+                      nl->TwoElemList(nl->SymbolAtom("Name"),
+                                      nl->SymbolAtom(CcString::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("InputType"),
+                                      nl->SymbolAtom(CcString::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("DefaultValue"),
+                                      nl->SymbolAtom(CcString::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("CurrentValue"),
+                                      nl->SymbolAtom(CcString::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Description"),
+                                      nl->SymbolAtom(FText::BasicType()))));
+  ListExpr numttlist = sc->NumericType(ttlist);
+  return new TupleType(numttlist);
+}
+
+Tuple* HybridDistanceParameters::getNextTuple() {
+  if (memberNo > 4) {
+    return 0;
+  }
+  Tuple *tuple = new Tuple(tt);
+  tuple->PutAttribute(0, getName(memberNo));
+  tuple->PutAttribute(1, getType(memberNo));
+  tuple->PutAttribute(2, getDefault(memberNo));
+  tuple->PutAttribute(3, getValue(memberNo));
+  tuple->PutAttribute(4, getDescription(memberNo));
+  memberNo++;
+  return tuple;
+}
+
+CcString* HybridDistanceParameters::getName(unsigned int memberNo) {
+  CcString *result = new CcString(false);
+  switch (memberNo) {
+    case 0: {
+      result->Set(true, "Name");
+      break;
+    }
+    case 1: {
+      result->Set(true, "InputType");
+      break;
+    }
+    case 2: {
+      result->Set(true, "DefaultValue");
+      break;
+    }
+    case 3: {
+      result->Set(true, "CurrentValue");
+      break;
+    }
+    case 4: {
+      result->Set(true, "Description");
+      break;
+    }
+    default: {
+      return result;
+    }
+  }
+  return result;
+}
+
+CcString* HybridDistanceParameters::getType(unsigned int memberNo) {
+  CcString *result = new CcString(false);
+  switch (memberNo) {
+    case 0:
+    case 1: {
+      result->Set(true, CcInt::BasicType());
+      break;
+    }
+    case 2:
+    case 3: {
+      result->Set(true, CcReal::BasicType());
+      break;
+    }
+    case 4: {
+      result->Set(true, Geoid::BasicType());
+      break;
+    }
+    default: {
+      return result;
+    }
+  }
+  return result;
+}
+
+CcString* HybridDistanceParameters::getDefault(unsigned int memberNo) {
+  CcString *result = new CcString(false);
+  stringstream valuestr;
+  switch (memberNo) {
+    case 0: {
+      valuestr << getDefaultLabelFun();
+      break;
+    }
+    case 1: {
+      valuestr << getDefaultDistFun();
+      break;
+    }
+    case 2: {
+      valuestr << getDefaultThreshold();
+      break;
+    }
+    case 3: {
+      valuestr << getDefaultScaleFactor();
+      break;
+    }
+    case 4: {
+      valuestr << getDefaultGeoid();
+      break;
+    }
+    default: {
+      return result;
+    }
+  }
+  result->Set(true, valuestr.str());
+  return result;
+}
+
+CcString* HybridDistanceParameters::getValue(unsigned int memberNo) {
+  CcString *result = new CcString(false);
+  stringstream valuestr;
+  switch (memberNo) {
+    case 0: {
+      valuestr << labelFun;
+      break;
+    }
+    case 1: {
+      valuestr << distFun;
+      break;
+    }
+    case 2: {
+      valuestr << threshold;
+      break;
+    }
+    case 3: {
+      valuestr << scaleFactor;
+      break;
+    }
+    case 4: {
+      if (geoid == 0) {
+        valuestr << "0";
+      }
+      else {
+        valuestr << geoid->getName();
+      }
+      break;
+    }
+    default: {
+      return result;
+    }
+  }
+  result->Set(true, valuestr.str());
+  return result;
+}
+
+FText* HybridDistanceParameters::getDescription(unsigned int memberNo) {
+  FText *result = new FText(false);
+  switch (memberNo) {
+    case 0: {
+      result->Set(true, "Describes the function that compares two label values "
+                        "x and y. 0 means: dist(x,y) = (x == y ? 0 : 1).   1 "
+                        "means that the Levenshtein/edit distance is applied.");
+      break;
+    }
+    case 1: {
+      result->Set(true, "Describes the function that compares two mlabel values"
+                        "m and n. 0 means that the Levenshtein/edit distance is"
+                        " applied, where a unit is considered as a character.");
+      break;
+    }
+    case 2: {
+      result->Set(true, "If the symbolic distance exceeds this value, it is "
+                        "returned as result. Otherwise, the Fréchet distance "
+                        "is computed and returned.");
+      break;
+    }
+    case 3: {
+      result->Set(true, "If the Fréchet distance is computed, it is divided by"
+                        " this value, in order to make it comparable to the "
+                        "symbolic distance that is always in [0,1].");
+      break;
+    }
+    case 4: {
+      result->Set(true, "This parameter enables a certain projection, e.g., "
+                        "WGS1984, for computing the Fréchet distance.");
+      break;
+    }
+    default: {
+      result->SetDefined(false);
+    }
+  }
+  return result;
+}
  
 }

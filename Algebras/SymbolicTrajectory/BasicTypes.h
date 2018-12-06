@@ -34,6 +34,7 @@ Started July 2014, Fabio Vald\'{e}s
 #include "StandardTypes.h"
 #include "Algebras/Temporal/TemporalAlgebra.h"
 #include "Algebras/TemporalExt/TemporalExtAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "NestedList.h"
 #include "ListUtils.h"
 // #include "Tools.h"
@@ -419,36 +420,42 @@ class Places : public Attribute {
 
 struct HybridDistanceParameters {
   HybridDistanceParameters() {
-    labelFun = TRIVIAL;
-    distFun = ALL;
-    threshold = 0.75;
-    scaleFactor = 30000.0;
-    geoid = 0;
+    labelFun = getDefaultLabelFun();
+    distFun = getDefaultDistFun();
+    threshold = getDefaultThreshold();
+    scaleFactor = getDefaultScaleFactor();
+    geoid = getDefaultGeoid();
+    memberNo = 0;
+    tt = getTupleType();
   }
   
-  bool isCorrectType(std::string& name, ListExpr type) {
-    if (name == "labelFun")    return CcInt::checkType(type);
-    if (name == "distFun")     return CcInt::checkType(type);
-    if (name == "threshold")   return CcReal::checkType(type);
-    if (name == "scaleFactor") return CcReal::checkType(type);
-    if (name == "geoid")       return Geoid::checkType(type);
+  ~HybridDistanceParameters() {
+    tt->DeleteIfAllowed();
   }
   
-  void storeTuples() {
-//     ListExpr 
-//     TupleType *tt = 0;
-  }
-  
-  Tuple* getTuple() {
-    return 0;
-  }
+  bool isCorrectType(std::string& name, ListExpr type);
+  TupleType* getTupleType();
+  void storeTuples();
+  Tuple* getNextTuple();
+  CcString* getName(unsigned int memberNo);
+  CcString* getType(unsigned int memberNo);
+  CcString* getDefault(unsigned int memberNo);
+  CcString* getValue(unsigned int memberNo);
+  FText* getDescription(unsigned int memberNo);
+  LabelFunction getDefaultLabelFun() {return TRIVIAL;}
+  DistanceFunction getDefaultDistFun() {return ALL;}
+  double getDefaultThreshold() {return 0.75;}
+  double getDefaultScaleFactor() {return 30000.0;}
+  Geoid* getDefaultGeoid() {return 0;}
 
   LabelFunction labelFun; // function used for comparing two label values
   DistanceFunction distFun; // function used for comparing two mlabel values
-  double threshold; // Fréchet dist is computed if symdist is below this value
+  double threshold;// Fréchet dist is computed if symb dist is below this value
   double scaleFactor; // Fréchet dist is divided by this value
   Geoid *geoid; // required for correct Fréchet dist computation, e.g., WGS1984
-  stack<Tuple*> tuple;
+  
+  unsigned int memberNo;
+  TupleType *tt;
 };
 
 }

@@ -1516,13 +1516,17 @@ gethybriddistanceparams: -> stream(tuple(Name: string, InputType: string,
 */
 ListExpr gethybriddistanceparamsTM(ListExpr args) {
   if (nl->HasLength(args, 0)) {
-    ListExpr attrList = nl->ThreeElemList(
+    ListExpr attrList = nl->FiveElemList(
                        nl->TwoElemList(nl->SymbolAtom("Name"),
                                        nl->SymbolAtom(CcString::BasicType())),
                        nl->TwoElemList(nl->SymbolAtom("InputType"),
                                        nl->SymbolAtom(CcString::BasicType())),
-                       nl->TwoElemList(nl->SymbolAtom("Value"),
-                                       nl->SymbolAtom(CcString::BasicType())));
+                       nl->TwoElemList(nl->SymbolAtom("DefaultValue"),
+                                       nl->SymbolAtom(CcString::BasicType())),
+                       nl->TwoElemList(nl->SymbolAtom("CurrentValue"),
+                                       nl->SymbolAtom(CcString::BasicType())),
+                       nl->TwoElemList(nl->SymbolAtom("Description"),
+                                       nl->SymbolAtom(FText::BasicType())));
     return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                            nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                                                           attrList));
@@ -1536,6 +1540,35 @@ ListExpr gethybriddistanceparamsTM(ListExpr args) {
 */
 int gethybriddistanceparamsVM(Word* args, Word& result, int message, 
                               Word& local, Supplier s) {
+  HybridDistanceParameters *hdp = (HybridDistanceParameters*)local.addr;
+  switch (message) {
+    case OPEN: {
+      if (hdp) {
+        delete hdp;
+        local.addr = 0;
+      }
+      hdp = new HybridDistanceParameters();
+      local.addr = hdp;
+      return 0;
+    }
+    case REQUEST: {
+      if (!local.addr) {
+        result.addr = 0;
+        return CANCEL;
+      }
+      hdp = (HybridDistanceParameters*)local.addr;
+      result.addr = hdp->getNextTuple();
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (local.addr) {
+        hdp = (HybridDistanceParameters*)local.addr;
+        delete hdp;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
   return 0;
 }
 
@@ -1546,11 +1579,12 @@ int gethybriddistanceparamsVM(Word* args, Word& result, int message,
 struct gethybriddistanceparamsInfo : OperatorInfo {
   gethybriddistanceparamsInfo() {
     name      = "gethybriddistanceparams";
-    signature = "-> stream(tuple(Name: string, InputType: string, "
-                "Value: string))";
+    signature = "-> stream(tuple(Name: string, InputType: string, DefaultValue:"
+                "string, CurrentValue: string, Description: text))";
     syntax    = "gethybriddistanceparams();";
-    meaning   = "Returns the current parameter names, types, and values used "
-                "for the hybriddistance operator.";
+    meaning   = "Returns the name, input type, default value, current value, "
+                "and description of every parameter applied for the "
+                "hybriddistance operator.";
   }
 };
 
