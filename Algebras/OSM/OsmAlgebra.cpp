@@ -1622,10 +1622,10 @@ void FullOsmImport::divideOSMfile(const std::string& fileName,
      return;
   }
   std::string line;
-  LongInt numOfChars(0), charCounter(0), destId(-1), nextLimit(0);
+  size_t numOfChars(0), charCounter(0), destId(-1), nextLimit(0);
   std::streampos oldpos(0);
   source.seekg(0, std::ios::end);
-  numOfChars = (LongInt)source.tellg();
+  numOfChars = source.tellg();
   source.close();
   source.open(fileName.c_str(), std::ios::in);
   getline(source, line);
@@ -1657,7 +1657,7 @@ void FullOsmImport::divideOSMfile(const std::string& fileName,
   dest.open(getFileName(0).c_str(), std::ios::app);
   dest << line << endl;
   dest.close();
-  LongInt partSize = (numOfChars - source.tellg() - 1) / size + 1;
+  size_t partSize = (numOfChars - source.tellg() - 1) / size + 1;
   while (!source.eof() && source.good()) {
     if (charCounter >= nextLimit && isFileSwitchAllowed(line)) {
       if (dest.is_open()) {
@@ -1666,7 +1666,8 @@ void FullOsmImport::divideOSMfile(const std::string& fileName,
       }
       nextLimit += partSize;
       destId++;
-      dest.open(getFileName(destId.GetValue()).c_str(), std::ios::app);
+      cout << "destId=" << destId << endl;
+      dest.open(getFileName(destId).c_str(), std::ios::app);
     }
     getline(source, line);
     charCounter += line.length();
