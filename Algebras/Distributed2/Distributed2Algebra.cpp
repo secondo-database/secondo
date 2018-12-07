@@ -11804,7 +11804,8 @@ ListExpr dmapTM(ListExpr args){
   // the result will be a dfarray, otherwise a darray
   ListExpr resType = nl->TwoElemList(
                isStream?listutils::basicSymbol<DFArray>()
-                       :nl->First(arg1Type),
+                      : (SDArray::checkType(arg1Type)?nl->First(arg1Type)
+                                            :listutils::basicSymbol<DArray>()),
                funRes);
   
   return nl->ThreeElemList(
@@ -11854,7 +11855,7 @@ are only collected in the logger but not sent to a woker.
          sdarray = 0; 
        } else {
          dfarray = 0;
-         if(array->getType()==DARRAY){
+         if(array->getType()==DARRAY || array->getType()==DFARRAY){
             darray = !log?(DArray*) res:(DArray*)1;
             sdarray = 0;
          } else {
@@ -11863,18 +11864,22 @@ are only collected in the logger but not sent to a woker.
             sdarray = !log?(SDArray*) res:(SDArray*)1;
          }
        }
+       cout << "dfarray = " << dfarray << endl;
+       cout << "darray  = " << darray << endl;
+       cout << "sdarray = " << sdarray << endl;
+
        reconnectGlobal = algInstance->tryReconnect();
    }
 
    void start(){
        if(dfarray){
           startXArray<DFArray,fRun>(dfarray);
+       } else if(darray){
+          startXArray<DArray,dRun>(darray);
+       } else if(sdarray) {
+          startXArray<SDArray,dRun>(sdarray);
        } else {
-          if(array->getType()==DARRAY){
-             startXArray<DArray,dRun>(darray);
-          } else {
-             startXArray<SDArray,dRun>(sdarray);
-          }
+         assert(false);
        }
     }
 
@@ -11886,6 +11891,7 @@ are only collected in the logger but not sent to a woker.
     bool isRel;        // result is a relation
     bool isStream;      // result is a stream
     CommandLogger* log; // a logger
+
     DFArray* dfarray;   // result arrays,    
     DArray* darray;     // only one of them is
     SDArray* sdarray;   // not null
@@ -11907,6 +11913,11 @@ are only collected in the logger but not sent to a woker.
        // the mapping from slot to worker may change in the 
        // future if workers di
        if(!log){ 
+          assert(resArray!=0);
+          cout << "copy argument array into result array " << endl;
+          cout << "resArrayType = " << resArray->getType() << endl;
+          cout << "argumentArrayType = " << array->getType() << endl;
+
           *resArray = (*array);
        }
        // without any worker, we cannot do anything
@@ -12274,6 +12285,10 @@ Class for sending the commands to produce a dfarray.
 template<class A>
 int dmapVMT(Word* args, Word& result, int message,
             Word& local, Supplier s ){
+
+
+  cout << "DMapResult is " << nl->ToString(qp->GetType(s)) << endl;
+
   result = qp->ResultStorage(s);
   A* array = (A*) args[0].addr;
   CcString* name = (CcString*) args[1].addr;

@@ -28,9 +28,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
+#include <iostream>
+
 namespace distributed2{
 
 enum arrayType{DARRAY,DFARRAY, DFMATRIX, SDARRAY};
 
+
+
 }
+
+std::ostream& operator<<(std::ostream& o, const distributed2::arrayType& at);
 
