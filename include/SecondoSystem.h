@@ -91,10 +91,14 @@ The class ~SecondoSystem~ provides the following methods:
 #ifndef SECONDO_SYSTEM_H
 #define SECONDO_SYSTEM_H
 
+#include <vector>
+#include <string>
+
 #include "ErrorCodes.h"
 #include "NestedList.h"
 #include "Messages.h"
 #include "SecondoCatalog.h"
+#include "DatabaseListener.h"
 
 /**************************************************************************
 Forward declaration of several classes:
@@ -323,6 +327,11 @@ Aborts a transaction.
   inline int getHeart2() const{ return heart2;}
 
  
+   
+  void addDBListener(DatabaseListener* dbl);
+  void removeDBListener(DatabaseListener* dbl);
+
+ 
  private:
   SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc );
   SecondoSystem( const SecondoSystem& );
@@ -349,6 +358,8 @@ Are internal methods for restoring a database.
 
   int heart1;
   int heart2;
+
+  std::vector<DatabaseListener*> dblisteners;
 
 
 #ifdef SECONDO_WIN32 
