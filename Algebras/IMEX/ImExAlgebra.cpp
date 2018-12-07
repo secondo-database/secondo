@@ -5844,8 +5844,8 @@ ValueMapping moveFilevaluemap[] = {moveOrCopyFileVM<CcString, CcString, true>,
 */
 const string moveFileSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> {text|string} [ x bool ] -> text </text--->"
-    "<text> moveFile( OldName, NewName ) </text--->"
+    "( <text> {text|string}  x {text, string} [ x bool ] -> text </text--->"
+    "<text> moveFile( OldName, NewName [, createTargetDir]  ) </text--->"
     "<text> Move file OldName to file NewName. Can also be used to rename a "
     "file.\nReturns TRUE, iff move-command succeeds.\n If the optional boolean"
     " argument is present and TRUE, the parent directory of the target is "
@@ -5873,8 +5873,8 @@ Operator moveFile ( "moveFile",
 
 
 OperatorSpec copyFileSpec(
-  "{string,text} x {string,text} -> bool ",
-  "copyFile(source, dest)",
+  "{string,text} x {string,text} [ x bool] -> bool ",
+  "copyFile(source, dest [, createParent] )",
   "Copyies the file source to a file named dest. "
   "Returns the success of this operation.",
   "query copyFile('data.csv','data1.csv')"
