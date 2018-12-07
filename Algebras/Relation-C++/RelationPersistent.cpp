@@ -2906,7 +2906,7 @@ void Relation::Close()
   delete this;
 }
 
-void Relation::Delete()
+void Relation::Delete(bool shouldDeleteOnlyPersistentFiles /* = false*/)
 {
   tupleFile.Close();
   tupleFile.Drop();
@@ -2920,7 +2920,7 @@ void Relation::Delete()
   }
   ErasePointer();
 
-  delete this;
+  if(!shouldDeleteOnlyPersistentFiles) delete this;
 }
 
 void Relation::DeleteAndTruncate()

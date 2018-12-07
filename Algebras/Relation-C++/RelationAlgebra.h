@@ -2878,7 +2878,7 @@ Closes a relation.
 Corresponds to the ~Close~-function of type constructor ~rel~.
 
 */
-    void Delete();
+    void Delete(bool shouldDeleteOnlyPersistentFiles = false);
 /*
 Deletes a relation.
 Corresponds to the ~Delete~-function of type constructor ~rel~.
