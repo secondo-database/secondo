@@ -3,9 +3,12 @@
 *.dep
 *.fm
 *.class
+*.aux
+*.log
 makefile.algebras
 .gitignore
 .project
 .cproject
 .settings
+
 
