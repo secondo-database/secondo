@@ -93,6 +93,8 @@ The names of existing databases are stored in a list ~DBTable~.
 
 #include "../Tools/Flob/Flob.h"
 
+#include "DatabaseListener.h"
+
 using namespace std;
 
 SecondoSystem* SecondoSystem::instance = 0;

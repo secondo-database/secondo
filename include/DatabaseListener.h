@@ -23,7 +23,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#pragma once
+
 #include <string>
+#include "SecondoSystem.h"
 
 /*
 1 Database Listener
@@ -54,6 +57,14 @@ will be closed.
 
 */
      virtual void closeDatabase() = 0;
+
+
+     virtual ~DatabaseListener(){
+        SecondoSystem* sys =  SecondoSystem::GetInstance();
+        if(sys){
+           sys->removeDBListener(this);
+        }
+     }
 
 
 };

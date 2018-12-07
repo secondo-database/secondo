@@ -98,7 +98,10 @@ The class ~SecondoSystem~ provides the following methods:
 #include "NestedList.h"
 #include "Messages.h"
 #include "SecondoCatalog.h"
-#include "DatabaseListener.h"
+
+
+
+ 
 
 /**************************************************************************
 Forward declaration of several classes:
@@ -109,6 +112,7 @@ class AlgebraManager;
 class QueryProcessor;
 class SecondoCatalog;
 class DerivedObj;
+class DatabaseListener;
 
 /*
 1.3 Class "SecondoSystem"[1]
