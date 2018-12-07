@@ -5036,7 +5036,7 @@ bool SaveRTree( SmiRecord& valueRecord,
 template <unsigned dim>
 int SizeOfRTree()
 {
-  return 0;
+  return sizeof(SmiFileId);
 }
 template<unsigned dim>
 struct RTreeNodesLocalInfo {
