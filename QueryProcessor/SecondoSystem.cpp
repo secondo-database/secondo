@@ -243,6 +243,14 @@ Precondition: dbState = dbClosed.
       ok = ERR_SYSTEM_ERROR;
     }
   }
+
+  // inform registered listeners
+  if(ok){
+     std::vector<DatabaseListener*>::iterator it;
+     for(it=dblisteners.begin(); it!=dblisteners.end(); it++){
+        (*it)->openDatabase(dbname);
+     }
+  }
   return ok;
 }
 
@@ -259,6 +267,12 @@ Precondition: dbState = dbOpen.
   {
     cerr << " CloseDatabase: database is already closed!" << endl;
     assert( false );
+  }
+  if(IsDatabaseOpen() ){
+     std::vector<DatabaseListener*>::iterator it;
+     for(it=dblisteners.begin(); it!=dblisteners.end(); it++){
+        (*it)->closeDatabase();
+     }
   }
   catalog->Close();
   Flob::dropFiles();
@@ -944,6 +958,28 @@ SecondoSystem::SetHeartbeat(const int _heart1, const int _heart2){
   return true;
 }
 
+void SecondoSystem::addDBListener(DatabaseListener* dbl) {
+   if(dbl!=0){
+     for(size_t i=0;i<dblisteners.size();i++){
+        if(dblisteners[i]==dbl){
+           return;
+        }
+     }
+     dblisteners.push_back(dbl);
+   }
+}
+
+void SecondoSystem::removeDBListener(DatabaseListener* dbl) {
+   if(dbl!=0){
+      std::vector<DatabaseListener*>::iterator it;
+      for(it = dblisteners.begin(); it!=dblisteners.end(); it++){
+         if(*it == dbl){
+            dblisteners.erase(it);
+            return;
+         }
+      }
+   }
+}
 
 
 
