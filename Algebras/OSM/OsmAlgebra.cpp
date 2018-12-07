@@ -1666,7 +1666,6 @@ void FullOsmImport::divideOSMfile(const std::string& fileName,
       }
       nextLimit += partSize;
       destId++;
-      cout << "destId=" << destId << endl;
       dest.open(getFileName(destId).c_str(), std::ios::app);
     }
     getline(source, line);
