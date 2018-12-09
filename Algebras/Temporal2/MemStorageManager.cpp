@@ -8,7 +8,7 @@ implementation of MemStorageManager
 #include "DbUpdateLogger.h"
 #include "SecondoSMI.h" // SmiEnvironment::IsDatabaseOpen()
 #include <boost/interprocess/sync/scoped_lock.hpp>
-
+#include "SecondoSystem.h"
 #include "MPoint2.h" // TODO: remove dependency - see applyLog
 
 namespace temporal2algebra {
@@ -22,6 +22,9 @@ MemStorageManager::MemStorageManager() :
                                 smiLogFileName("logfile")
 {
     cout << "MemStorageManager::MemStorageManager()\n";
+    cout << "MemStorageManager::MemStorageManager() Registering DbListener\n";
+    // required methods for DatabaseListener
+    SecondoSystem::GetInstance()->addDBListener(this);
 }
 
 MemStorageManager::~MemStorageManager() {
@@ -214,5 +217,13 @@ void MemStorageManager::ensureStorageConnection() {
         }
     }
 }
+
+void MemStorageManager::openDatabase(const std::string& name){
+    cout << "MemStorageManager::openDatabase(" << name << ")\n;";
+};
+void MemStorageManager::closeDatabase(){
+    cout << "MemStorageManager::closeDatabase()\n";
+};
+
 
 } /* namespace temporal2algebra */

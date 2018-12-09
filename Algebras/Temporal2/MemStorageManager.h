@@ -12,6 +12,7 @@ The MemStorageManager handles the lifetime of the MPoint2 related components:
 #include <string>
 #include <boost/interprocess/sync/named_mutex.hpp>
 #include "Types.h"
+#include "DatabaseListener.h"
 
 namespace temporal2algebra {
 
@@ -22,7 +23,7 @@ typedef std::tr1::shared_ptr<MemUpdateStorage> MemUpdateStoragePtr;
 class DbUpdateLogger;
 typedef std::tr1::shared_ptr<DbUpdateLogger> DbUpdateLoggerPtr;
 
-class MemStorageManager {
+class MemStorageManager : public DatabaseListener {
 public:
     // we need to Access the StorageManager from MPoint2 (and other classes)
     // But we cannot pass it directly... so rely on singleton.
@@ -51,6 +52,10 @@ public:
 
     void applyLog (const LogData& log);
 
+    // required methods for DatabaseListener
+    virtual void openDatabase(const std::string& name);
+    virtual void closeDatabase();
+
 protected:
     MemStorageManager();
 
@@ -58,7 +63,6 @@ private:
     // helper to make sure we still have the correct Storage
     // if not: cleanup old Storage and connect/create to new Storage
     void ensureStorageConnection();
-
 
 private:
     // single instance to handle all client access

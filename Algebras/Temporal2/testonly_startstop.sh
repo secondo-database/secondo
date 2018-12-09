@@ -8,7 +8,7 @@
 
 pushd . \
 && cd ~/secondo/bin/ \
-&& TestRunnerSj $1 --no-tmp -i ~/secondo/Algebras/Temporal2/Temporal2_start_stop_secondo_1.test \
-&& TestRunnerSj $1 --no-tmp -i ~/secondo/Algebras/Temporal2/Temporal2_start_stop_secondo_2.test
+&& SecondoBDB -test  -i ~/secondo/Algebras/Temporal2/Temporal2_start_stop_secondo_1.test \
+&& SecondoBDB -test  -i ~/secondo/Algebras/Temporal2/Temporal2_start_stop_secondo_2.test
 popd
 
