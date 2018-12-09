@@ -514,7 +514,28 @@ Repartitions the drel to a DFMatrix.
 
 */
         ListExpr getMatrixType( ) {
-        
+
+            if( dType == spatial2d || dType == spatial3d ) {
+
+                ListExpr relType = nl->Second( nl->Second( sourcedType ) );
+
+                ListExpr attrList = nl->Second( relType );
+                attrList = DRelHelpers::removeAttrFromAttrList( 
+                    attrList, "Original" );
+                attrList = DRelHelpers::removeAttrFromAttrList( 
+                    attrList, "Cell" );
+
+                relType = nl->TwoElemList(
+                    listutils::basicSymbol<Relation>( ),
+                    nl->TwoElemList(
+                        listutils::basicSymbol<Tuple>( ),
+                        attrList ) );
+
+                return nl->TwoElemList(
+                    listutils::basicSymbol<distributed2::DFMatrix>( ),
+                    relType );
+            }
+            
             return nl->TwoElemList(
                 listutils::basicSymbol<distributed2::DFMatrix>( ),
                 nl->Second( sourcedType ) );

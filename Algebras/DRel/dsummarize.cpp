@@ -82,16 +82,22 @@ Expect a d[f]el.
                 ": one argument is expected" );
         }
 
-        if( !DRel::checkType( nl->First( args ) )
-         && !DFRel::checkType( nl->First( args ) ) ) {
+        distributionType type;
+        if( !DRelHelpers::drelCheck( nl->First( args ), type ) ) {
             return listutils::typeError( err + 
                 ": first argument is not a d[f]rel" );
         }
 
         ListExpr rel = nl->Second( nl->First( args ) );
         ListExpr attrList = nl->Second( nl->Second( rel ) );
-        attrList = DRelHelpers::removeAttrFromAttrList( attrList, "Cell" );
-        attrList = DRelHelpers::removeAttrFromAttrList( attrList, "Original" );
+        if( type == spatial2d || type == spatial3d || type == replicated ) {
+            attrList = DRelHelpers::removeAttrFromAttrList( 
+                attrList, "Original" );
+            if( type != replicated ) {
+                attrList = DRelHelpers::removeAttrFromAttrList( 
+                    attrList, "Cell" );
+            }
+        }
 
         return nl->TwoElemList(
             listutils::basicSymbol<Stream<Tuple>>( ),
@@ -138,7 +144,7 @@ Selects all elements of the d[f]rel from the workers.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "dsummarizeVMT" << endl;
+        cout << "dsummarizeVMT 2" << endl;
         #endif
 
         DRelLocalSummarize* li = ( DRelLocalSummarize* )local.addr;
@@ -167,7 +173,7 @@ Selects all elements of the d[f]rel from the workers.
                         "(dmapelem_1 ARRAYFUNARG1) (remove (filter (feed "
                         "dmapelem_1) (fun (streamelem_2 STREAMELEM) "
                         "(= (attr streamelem_2 Original) TRUE))) "
-                        "(Original Cell))))";
+                        "(Cell Original))))";
                 }
 
                 Word dfrelResult;

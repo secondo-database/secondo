@@ -259,12 +259,12 @@ parameters. Used for sortmergejoin and itHashJoin.
             int pos =  listutils::findAttribute( 
                 resultAttr1List, nl->SymbolValue( attr1Name ), ftype ) - 1;
 
-                resultType = nl->ThreeElemList(
-                    listutils::basicSymbol<DFRel>( ),
-                    resultRel,
-                    nl->TwoElemList( 
-                        nl->IntAtom( hash ),
-                        nl->IntAtom( pos ) ) );
+            resultType = nl->ThreeElemList(
+                listutils::basicSymbol<DFRel>( ),
+                resultRel,
+                nl->TwoElemList( 
+                    nl->IntAtom( hash ),
+                    nl->IntAtom( pos ) ) );
         }
 
         string query1 = "(dmap2 ";
@@ -311,12 +311,49 @@ The drelType argument has to be the nested list type of the drel object.
     }
 
     ListExpr hashPartition( ListExpr drelType, void* ptr, string attr, 
-        string elem ) {
+        int elem ) {
 
-        string queryS = "(collect2 (partition " + nl->ToString(
-                DRelHelpers::createdrel2darray( drelType, ptr ) ) +
-                "\"\" (fun (elem_" + elem + " SUBSUBTYPE1) (hashvalue (attr "
-                "elem_" + elem + " " + attr + ") 99999)) 0) \"\" 1238)";
+        string queryS;
+        distributionType type;
+        DRelHelpers::drelCheck( drelType, type );
+
+        
+
+        if( type == spatial2d || type == spatial3d ) {
+
+            string elem1str, elem2str, streamstr;
+
+            if( elem == 1 ) {
+                elem1str = std::to_string( elem + 4 );
+                elem2str = std::to_string( elem + 5 );
+                streamstr = std::to_string( elem + 6 );
+            }
+            else {
+                elem1str = std::to_string( elem + 5 );
+                elem2str = std::to_string( elem + 6 );
+                streamstr = std::to_string( elem + 7 );
+            }
+
+            queryS = "(collect2 (partitionF " + nl->ToString( 
+                DRelHelpers::createdrel2darray( drelType, ptr ) ) + " \"\" "
+                "(fun (elem" + elem1str + "_1 FFR) (elem" + elem2str + "_2 "
+                "FFR) (remove (filter (feed elem" + elem1str + "_1) (fun "
+                "(streamelem_" + streamstr + " STREAMELEM) (= (attr "
+                "streamelem_" + streamstr + " Original) TRUE))) (Original "
+                "Cell))) (fun (elem" + elem1str + "_4 FFR) (elem" + 
+                elem2str + "_5 FFR) (hashvalue (attr elem" + elem2str + "_5 "
+                "Name) 99999)) 0) \"\" 1238)";
+
+        }
+        else {
+            string elemstr = std::to_string( elem );
+
+            queryS = "(collect2 (partition " + nl->ToString(
+                    DRelHelpers::createdrel2darray( drelType, ptr ) ) +
+                    "\"\" (fun (elem_" + elemstr + " SUBSUBTYPE1) (hashvalue "
+                    "(attr elem_" + elemstr + " " + attr + ") 99999)) 0) \"\" "
+                    "1238)";
+        }
 
         ListExpr query;
         nl->ReadFromString( queryS, query );
@@ -366,7 +403,7 @@ necessary. Used for sortmergejoin and itHashJoin.
         if( dType == hash ) {
             if( !relFlag[ 0 ] ) {
                 partitionDRel1 = hashPartition( 
-                    drelType[ 0 ], drel1, attrName[ 0 ], "1" );
+                    drelType[ 0 ], drel1, attrName[ 0 ], 1 );
             }
             else {
                 partitionDRel1 = DRelHelpers::createdrel2darray( 
@@ -375,7 +412,7 @@ necessary. Used for sortmergejoin and itHashJoin.
 
             if( !relFlag[ 1 ] ) {
                 partitionDRel2 = hashPartition( 
-                    drelType[ 1 ], drel2, attrName[ 1 ], "2" );
+                    drelType[ 1 ], drel2, attrName[ 1 ], 2 );
             }
             else {
                 partitionDRel2 = DRelHelpers::createdrel2darray( 
@@ -447,6 +484,7 @@ necessary. Used for sortmergejoin and itHashJoin.
 
         ListExpr queryR;
         nl->ReadFromString( queryS, queryR );
+
         bool correct = false;
         bool evaluable = false;
         bool defined = false;

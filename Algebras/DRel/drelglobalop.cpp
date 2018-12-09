@@ -126,6 +126,20 @@ namespace drel {
             funText1 = "(areduce ";
             funText2 = " \"\" (fun (elem_1 AREDUCEARG1) "
                     "(sort (feed elem_1))) 1238)";
+            
+            if( dType == spatial2d || dType == spatial3d ) {
+
+                ListExpr attrList = nl->Second( nl->Second( relType ) );
+                attrList = DRelHelpers::removeAttrFromAttrList( 
+                    attrList, "Original" );
+                attrList = DRelHelpers::removeAttrFromAttrList( 
+                    attrList, "Cell" );
+                relType = nl->TwoElemList(
+                    listutils::basicSymbol<Relation>( ),
+                    nl->TwoElemList(
+                        listutils::basicSymbol<Tuple>( ),
+                        attrList ) );
+            }
         }
 
         ListExpr resultType = 
@@ -214,6 +228,19 @@ namespace drel {
             funText1 = "(areduce ";
             funText2 = " \"\" (fun (elem_1 AREDUCEARG1) "
                 "(sortby (feed elem_1)" + attrList + ")) 1238)";
+
+            if( dType == spatial2d || dType == spatial3d ) {
+                ListExpr attrList = nl->Second( nl->Second( relType ) );
+                attrList = DRelHelpers::removeAttrFromAttrList( 
+                    attrList, "Original" );
+                attrList = DRelHelpers::removeAttrFromAttrList( 
+                    attrList, "Cell" );
+                relType = nl->TwoElemList(
+                    listutils::basicSymbol<Relation>( ),
+                    nl->TwoElemList(
+                        listutils::basicSymbol<Tuple>( ),
+                        attrList ) );
+            }
         }
 
         ListExpr resultType = 
@@ -342,6 +369,17 @@ namespace drel {
                     "0) \"\" (fun (elem_6 AREDUCEARG1) (groupby "
                     "(feed elem_6) " + nl->ToString( attrList ) + " "
                     + nl->ToString( groupfun ) + " )) 1238)";
+
+                ListExpr attrList = nl->Second( nl->Second( relType ) );
+                attrList = DRelHelpers::removeAttrFromAttrList( 
+                    attrList, "Original" );
+                attrList = DRelHelpers::removeAttrFromAttrList( 
+                    attrList, "Cell" );
+                relType = nl->TwoElemList(
+                    listutils::basicSymbol<Relation>( ),
+                    nl->TwoElemList(
+                        listutils::basicSymbol<Tuple>( ),
+                        attrList ) );
             }
             else {
                 funText1 = "(areduce (partition ";
@@ -443,6 +481,17 @@ namespace drel {
                     "(hashvalue (attr elem2_5 Name) 9999)) "
                     "0) \"\" (fun (elem_6 AREDUCEARG1) (rdup "
                     "(feed elem_6))) 1238)";
+
+                ListExpr attrList = nl->Second( nl->Second( relType ) );
+                attrList = DRelHelpers::removeAttrFromAttrList( 
+                    attrList, "Original" );
+                attrList = DRelHelpers::removeAttrFromAttrList( 
+                    attrList, "Cell" );
+                relType = nl->TwoElemList(
+                    listutils::basicSymbol<Relation>( ),
+                    nl->TwoElemList(
+                        listutils::basicSymbol<Tuple>( ),
+                        attrList ) );
             }
             else {
                 funText1 = "(areduce (partition ";
