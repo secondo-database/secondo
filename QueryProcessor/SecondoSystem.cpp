@@ -247,7 +247,7 @@ Precondition: dbState = dbClosed.
   }
 
   // inform registered listeners
-  if(ok){
+  if(ok == ERR_NO_ERROR){
      std::vector<DatabaseListener*>::iterator it;
      for(it=dblisteners.begin(); it!=dblisteners.end(); it++){
         (*it)->openDatabase(dbname);
