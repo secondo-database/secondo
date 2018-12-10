@@ -227,15 +227,15 @@ Opens a database with name ~dbname~.
 Precondition: dbState = dbClosed.
 
 */
-  SI_Error ok = ERR_NO_ERROR;
+  SI_Error rc = ERR_NO_ERROR;
   if ( testMode && IsDatabaseOpen() )
   {
     cerr << " OpenDatabase: database is already open!" << endl;
     exit( 0 );
   }
 
-  ok = SmiEnvironment::OpenDatabase( dbname );
-  if ( ok == ERR_NO_ERROR )
+  rc = SmiEnvironment::OpenDatabase( dbname );
+  if ( rc == ERR_NO_ERROR )
   {
     SmiEnvironment::BeginTransaction();
     if ( catalog->Open() )
@@ -246,18 +246,18 @@ Precondition: dbState = dbClosed.
     {
       SmiEnvironment::AbortTransaction();
       SmiEnvironment::CloseDatabase();
-      ok = ERR_SYSTEM_ERROR;
+      rc = ERR_SYSTEM_ERROR;
     }
   }
 
   // inform registered listeners
-  if(ok == ERR_NO_ERROR){
+  if(rc == ERR_NO_ERROR){
      std::vector<DatabaseListener*>::iterator it;
      for(it=dblisteners.begin(); it!=dblisteners.end(); it++){
         (*it)->openDatabase(dbname);
      }
   }
-  return ok;
+  return rc;
 }
 
 bool
