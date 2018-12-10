@@ -140,6 +140,12 @@ Signature: -> stream(tuple(Name: string, InputType: string, Value: string))
 Example  : query gethybriddistanceparams() count
 Result   : 5
 
+Operator : sethybriddistanceparam
+Number   : 1
+Signature: string x T -> bool,   where T depends on the parameter to be set
+Example  : query sethybriddistanceparam("Threshold", 0.1909) 
+Result   : TRUE
+
 Operator : the_unit
 Number   : 6
 Signature: label x instant x instant x bool x bool -> ulabel

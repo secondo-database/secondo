@@ -10,6 +10,7 @@ operator distance alias DISTANCE pattern op ( _ , _ )
 operator distancesym alias DISTANCESYM pattern op ( _ , _ , _ )
 operator hybriddistance alias HYBRIDDISTANCE pattern op ( _ , _ , _ , _ , _ )
 operator gethybriddistanceparams alias GETHYBRIDDISTANCEPARAMS pattern op ()
+operator sethybriddistanceparam alias SETHYBRIDDISTANCEPARAM pattern op ( _ , _ )
 operator longestcommonsubsequence alias LONGESTCOMMONSUBSEQUENCE pattern op ( _ , _ )
 operator topattern alias TOPATTERN pattern _ op
 operator toclassifier alias TOCLASSIFIER pattern _ op

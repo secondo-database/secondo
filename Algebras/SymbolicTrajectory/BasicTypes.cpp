@@ -1380,10 +1380,11 @@ bool Places::ReadFrom(ListExpr LE, ListExpr typeInfo) {
 
 */
 bool HybridDistanceParameters::isCorrectType(std::string& name, ListExpr type) {
-  if (name == "labelFun")    return CcInt::checkType(type);
-  if (name == "distFun")     return CcInt::checkType(type);
+  transform(name.begin(), name.end(), name.begin(), ::tolower);
+  if (name == "labelfun")    return CcInt::checkType(type);
+  if (name == "distfun")     return CcInt::checkType(type);
   if (name == "threshold")   return CcReal::checkType(type);
-  if (name == "scaleFactor") return CcReal::checkType(type);
+  if (name == "scalefactor") return CcReal::checkType(type);
   if (name == "geoid")       return Geoid::checkType(type);
   return false;
 }
@@ -1425,23 +1426,23 @@ CcString* HybridDistanceParameters::getName(unsigned int memberNo) {
   CcString *result = new CcString(false);
   switch (memberNo) {
     case 0: {
-      result->Set(true, "Name");
+      result->Set(true, "labelFun");
       break;
     }
     case 1: {
-      result->Set(true, "InputType");
+      result->Set(true, "distFun");
       break;
     }
     case 2: {
-      result->Set(true, "DefaultValue");
+      result->Set(true, "threshold");
       break;
     }
     case 3: {
-      result->Set(true, "CurrentValue");
+      result->Set(true, "scaleFactor");
       break;
     }
     case 4: {
-      result->Set(true, "Description");
+      result->Set(true, "geoid");
       break;
     }
     default: {

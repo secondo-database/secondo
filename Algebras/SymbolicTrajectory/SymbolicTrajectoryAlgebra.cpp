@@ -1589,6 +1589,119 @@ struct gethybriddistanceparamsInfo : OperatorInfo {
 };
 
 /*
+\section{Operator ~sethybriddistanceparam~}
+
+sethybriddistanceparam: string x T -> bool,  where T corresponds to the type
+                                             of the mentioned parameter
+
+\subsection{Type Mapping}
+
+*/
+ListExpr sethybriddistanceparamTM(ListExpr args) {
+  if (!nl->HasLength(args, 2)) {
+    return listutils::typeError("Two arguments expected.");
+  }
+  if (!nl->HasLength(nl->First(args),2) || !nl->HasLength(nl->Second(args),2)) {
+    return listutils::typeError("Argument error.");
+  }
+  string memberName;
+  if (CcString::checkType(nl->First(nl->First(args)))) {
+    memberName = nl->StringValue(nl->Second(nl->First(args)));
+  }
+  else if (FText::checkType(nl->First(nl->First(args)))) {
+    memberName = nl->TextValue(nl->Second(nl->First(args)));
+  }
+  else {
+    return listutils::typeError("First argument must be a string or a text.");
+  }
+  if (!HybridDistanceParameters::isCorrectType(memberName,
+                                              nl->First(nl->Second(args)))) {
+    return listutils::typeError("Invalid parameter / type combination.");
+  }
+  return nl->SymbolAtom(CcBool::BasicType());
+}
+
+/*
+\subsection{Selection Function}
+
+*/
+int sethybriddistanceparamSelect(ListExpr args) {
+  if (FText::checkType(nl->First(args)))    return 0;
+  if (CcString::checkType(nl->First(args))) return 1;
+  return -1;
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+template<class T>
+int sethybriddistanceparamVM(Word* args, Word& result, int message, Word& local,
+                             Supplier s) {
+  result = qp->ResultStorage(s);
+  HybridDistanceParameters hdp;
+  T *memberName = static_cast<T*>(args[0].addr);
+  CcBool *res = static_cast<CcBool*>(result.addr);
+  res->SetDefined(false);
+  if (!memberName->IsDefined()) {
+    return 0;
+  }
+  else {
+    std::string name(memberName->GetValue());
+    transform(name.begin(), name.end(), name.begin(), ::tolower);
+    if (name == "labelfun") {
+      if ((static_cast<CcInt*>(args[1].addr))->IsDefined()) {
+        hdp.labelFun = static_cast<LabelFunction>(
+                               (static_cast<CcInt*>(args[1].addr))->GetValue());
+      }
+    }
+    else if (name == "distfun") {
+      if ((static_cast<CcInt*>(args[1].addr))->IsDefined()) {
+        hdp.distFun = static_cast<DistanceFunction>(
+                               (static_cast<CcInt*>(args[1].addr))->GetValue());
+      }
+    }
+    else if (name == "threshold") {
+      if ((static_cast<CcReal*>(args[1].addr))->IsDefined()) {
+        hdp.threshold = static_cast<CcReal*>(args[1].addr)->GetValue();
+      }
+    }
+    else if (name == "scaleFactor") {
+      if ((static_cast<CcReal*>(args[1].addr))->IsDefined()) {
+        hdp.scaleFactor = static_cast<CcReal*>(args[1].addr)->GetValue();
+      }
+    }
+    else if (name == "geoid") {
+      if ((static_cast<Geoid*>(args[1].addr))->IsDefined()) {
+        hdp.geoid = static_cast<Geoid*>(args[1].addr);
+      }
+    }
+    else {
+      return 0;
+    }
+    res->Set(true, true);
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+const string sethybriddistanceparamSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text> string x T -> bool </text--->"
+  "<text> Sets one of the parameters for the hybriddistance operator.\n"
+  "<text> query sethybriddistanceparam(\"Threshold\", 1909.0) </text--->) )";
+
+ValueMapping sethybriddistanceparamVMs[] = {sethybriddistanceparamVM<FText>,
+                                            sethybriddistanceparamVM<CcString>};
+
+Operator sethybriddistanceparam("sethybriddistanceparam", 
+                       sethybriddistanceparamSpec, 2, sethybriddistanceparamVMs,
+                       sethybriddistanceparamSelect, sethybriddistanceparamTM);
+
+/*
 \section{Generic operators for ~[i|m|u] [label|place] [s]?~}
 
 \subsection{Operator ~the\_unit~}
@@ -6027,8 +6140,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(gethybriddistanceparamsInfo(), gethybriddistanceparamsVM,
               gethybriddistanceparamsTM);
   
-//   AddOperator(&sethybriddistanceparam);
-//   sethybriddistanceparam.SetUsesArgsInTypeMapping();
+  AddOperator(&sethybriddistanceparam);
+  sethybriddistanceparam.SetUsesArgsInTypeMapping();
 
   ValueMapping the_unitSymbolicVMs[] = {the_unitSymbolicVM<Label, ULabel>,
     the_unitSymbolicVM<Labels, ULabels>, the_unitSymbolicVM<Place, UPlace>,

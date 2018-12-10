@@ -433,7 +433,7 @@ struct HybridDistanceParameters {
     tt->DeleteIfAllowed();
   }
   
-  bool isCorrectType(std::string& name, ListExpr type);
+  static bool isCorrectType(std::string& name, ListExpr type);
   TupleType* getTupleType();
   void storeTuples();
   Tuple* getNextTuple();
