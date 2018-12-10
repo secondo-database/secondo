@@ -728,6 +728,13 @@ operator.
                 ": first argument is not a d[f]rel" );
         }
 
+        distributionType dType;
+        DRelHelpers::drelCheck( nl->First( nl->First( args ) ), dType );
+        if( dType == replicated || dType == spatial2d || dType == spatial3d ) {
+            return listutils::typeError( err +
+                ": replicated or spatial distributed d[f]rel is not allowed" );
+        }
+
         ListExpr secondType = nl->First( nl->Second( args ) );
         ListExpr secondValue = nl->Second( nl->Second( args ) );
 
@@ -936,6 +943,17 @@ Type mapping for the drellgroup operator.
             distType, drelValue, darrayType ) ) {
             return listutils::typeError( err +
                 ": first argument is not a d[f]rel" );
+        }
+
+        distributionType dType;
+        DRelHelpers::drelCheck( nl->First( nl->First( args ) ), dType );
+        if( !global 
+         && ( dType == replicated 
+           || dType == spatial2d 
+           || dType == spatial3d ) ) {
+            
+            return listutils::typeError( err +
+                ": replicated or spatial distributed d[f]rel is not allowed" );
         }
 
         ListExpr attrlist = nl->First( nl->Second( args ) );
