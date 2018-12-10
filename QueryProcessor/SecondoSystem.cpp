@@ -181,6 +181,10 @@ Precondition: DBState = dbClosed.
     {
       ok = true;
       SmiEnvironment::CommitTransaction();
+      std::vector<DatabaseListener*>::iterator it;
+      for(it=dblisteners.begin(); it!=dblisteners.end(); it++){
+         (*it)->openDatabase(dbname);
+      }
     }
     else
     {
@@ -809,13 +813,6 @@ SecondoSystem::SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc )
 
 SecondoSystem::~SecondoSystem()
 {
-  delete algebraManager;
-  algebraManager=0;
-
-  delete nl;
-  nl = 0;
-  delete al;
-  al = 0;
 
   bool shutdownOk = false;
   if ( initialized )
@@ -835,6 +832,13 @@ SecondoSystem::~SecondoSystem()
     }
   }
 
+  delete algebraManager;
+  algebraManager=0;
+
+  delete nl;
+  nl = 0;
+  delete al;
+  al = 0;
   delete catalog;
   delete queryProcessor;
 
