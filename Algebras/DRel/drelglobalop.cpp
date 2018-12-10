@@ -301,7 +301,13 @@ namespace drel {
                 err + ": first argument is not a d[f]rel" );
         }
 
-        ListExpr relType = nl->Second( darrayType );
+        if( dType == replicated ) {
+            return listutils::typeError(
+                err + ": a replicated d[f]rel is not allowed" );
+        }
+
+        //ListExpr relType = nl->Second( darrayType );
+        ListExpr relType = nl->Second( nl->Third( local ) );
         string attrName = nl->SymbolValue( 
             nl->First( nl->Second( nl->Second( args ) ) ) );
         ListExpr attrType;
