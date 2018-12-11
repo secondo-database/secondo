@@ -5066,6 +5066,7 @@ Word CreateDFMatrix(const ListExpr typeInfo){
 template <class A>
 void DeleteDArray(const ListExpr typeInfo, Word& w){
   A* a = (A*) w.addr;
+  deleteRemoteObjects<A>(a);
   delete a;
   w.addr = 0;
 }
@@ -9156,7 +9157,7 @@ OperatorSpec dsummarizeSpec(
 Operator dsummarizeOp(
   "dsummarize",
   dsummarizeSpec.getStr(),
-  3,
+  5,
   dsummarizeVM,
   dsummarizeSelect,
   dsummarizeTM
@@ -10196,6 +10197,34 @@ class Object_Del{
 
 
 
+
+template<class A>
+void deleteRemoteObjects(A* array){
+  vector<Object_Del*> deleters;
+  vector<boost::thread*> threads;
+  for(size_t i=0;i<array->getSize();i++){
+    Object_Del* del = new Object_Del(array,i);
+    deleters.push_back(del);
+    boost::thread* thread = new boost::thread(&Object_Del::operator(),del);
+    threads.push_back(thread);
+  }
+  for(size_t i=0;i<threads.size();i++){
+     threads[i]->join();
+     delete threads[i];
+     delete deleters[i];
+  }
+}
+
+template void deleteRemoteObjects<SDArray>(SDArray* array);
+template void deleteRemoteObjects<DArray>(DArray* array);
+template void deleteRemoteObjects<DFArray>(DFArray* array);
+
+
+
+
+
+
+
 template<class A>
 int deleteRemoteObjectsVMT(Word* args, Word& result, int message,
             Word& local, Supplier s ){
@@ -10297,6 +10326,27 @@ class MatrixKiller{
        }
 };
 
+
+template<> void deleteRemoteObjects<DFMatrix>(DFMatrix* matrix){
+   set<string> usedHosts;
+   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+   vector<MatrixKiller*> killers;
+
+   for(size_t i=0;i<matrix->numOfWorkers();i++){
+     ConnectionInfo* ci = 
+            algInstance->getWorkerConnection(matrix->getWorker(i),dbname);
+     string host = ci->getHost();
+     if(usedHosts.find(host)==usedHosts.end()){
+         usedHosts.insert(host);
+         MatrixKiller* killer = new MatrixKiller(ci,dbname, matrix->getName());
+         killers.push_back(killer);        
+     }
+     ci->deleteIfAllowed();
+   }
+   for(size_t i=0;i<killers.size();i++){
+      delete killers[i];
+   }
+}
 
 int deleteRemoteObjectsVM_Matrix(Word* args, Word& result, int message,
             Word& local, Supplier s ){
