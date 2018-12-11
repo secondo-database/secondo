@@ -1,0 +1,132 @@
+restore database demo from demo;
+
+open database demo;
+
+# Demo 1: *******************************************************************************
+1)Prozess 1: query positions
+2)Prozess 1: feed appendPositions
+3)Prozess 1: query positions
+
+restore database demo from demo;
+open database demo;
+
+query positions1;
+query updates1;
+query updates1 feed appendpositions ['positions1', 'DestTid', 'IPos','Trajectory'] count;
+
+
+
+# Demo 2: *******************************************************************************
+1)Prozess1: feed appendpositions
+2)Prozess2: query positions
+
+restore database demo from demo;
+open database demo;
+
+query positions2;
+query updates2;
+query updates2 feed appendpositions ['positions2', 'DestTid', 'IPos','Trajectory'] count;
+
+# Demo 3a: *******************************************************************************
+1)Prozess 1: feed streamvalve appendpos
+2)Prozess 2: streamnext
+3)Prozess 3: query positions
+
+restore database demo from demo;
+open database demo;
+
+query positions3a;
+query updates3a;
+query updates3a feed streamvalve ['valve'] appendpositions ['positions3a', 'DestTid', 'IPos','Trajectory'] count;
+query streamnext ('valve', 10);
+
+query updates1 feed appendpositions ['positions1', 'DestTid', 'IPos','Trajectory'] count;
+
+# Demo 3b: *******************************************************************************
+Jetzt mit Zwischencommits:
+1)Prozess 1: feed streamvalve appendpos
+2)Prozess 2: streamnext
+3)Prozess 3: query positions
+
+restore database demo from demo;
+open database demo;
+
+query positions3b;
+query updates3b;
+query updates3b feed streamvalve ['valve'] appendpositions ['positions3b', 'DestTid', 'IPos','Trajectory', 1] count;
+query streamnext ('valve', 10);
+
+# Demo 3c: *******************************************************************************
+)Prozess 1: feed enterwormhole
+2)Prozess 2: leavewormhole streamvalve appendpos
+3)Prozess 3: streamnext
+4)Prozess 4: query positions
+
+restore database demo from demo;
+open database demo;
+
+query positions3c;
+query updates3c;
+query updates3c feed enterwormhole['hole'];
+query leavewormhole('hole') streamvalve ['valve'] appendpositions ['positions3c', 'DestTid', 'IPos','Trajectory', 1] count;
+query streamnext ('valve', 10);
+
+# Demo 4a: *******************************************************************************
+1)Prozess 1: feed appendpositions
+2)Prozess 1: close database
+3)Prozess 1: open database
+4)Prozess 1: query positions
+
+restore database demo from demo;
+open database demo;
+
+query positions4a;
+query updates4b;
+query updates4b feed enterwormhole('hole');
+query updates4a feed appendpositions ['positions4a', 'DestTid', 'IPos','Trajectory'] count;
+close database;
+
+
+
+# Demo 4b: *******************************************************************************
+1)Prozess 1: feed appendpositions
+2)Prozess 1: quit
+3)Prozess 1: open database
+4)Prozess 1: query positions
+
+restore database demo from demo;
+open database demo;
+
+query positions4b;
+query updates4b;
+query updates4b feed enterwormhole['hole'];
+query leavewormhole('hole') streamvalve ['valve'] appendpositions ['positions4b', 'DestTid', 'IPos','Trajectory', 1] count;
+query streamnext ('valve', 10);
+
+# Demo 5: *******************************************************************************
+1)Prozess 1: let mp = const mpoint ...
+2)Prozess 1: let mp2 = const mpoint2 ...
+3)Prozess 1: trajectory(mp)
+4)Prozess 1: trajectory(mp2)
+
+restore database demo from demo;
+open database demo;
+
+let mp1 = [const mpoint value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0)))];
+let mp2 = [const mpoint2 value ((("2000-01-01" "2000-01-01-00:01" TRUE FALSE)(0.0 0.0 1.0 1.0))(("2100-01-01" "2100-01-01-00:01" TRUE FALSE)(1.0 1.0 0.0 0.0)))];
+
+query mp1;
+query mp2;
+
+query trajectory(mp1);
+query trajectory(mp1); 
+
+
+# Bonus:
+restore database temporal2test from temporal2test;
+query train7;
+let mp1 = train7 mm2m;
+query trajectory(mp2);
+query trajectory(mp2) = trajectory(train7);
+
+
