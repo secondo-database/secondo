@@ -369,4 +369,9 @@ int MemUpdateStorage::memPushToFlobs(
 
     return 1;
 }
+
+int MemUpdateStorage::getNumberOfUsers() const {
+    return memdata?memdata->numOfUsers:-1;
+}
+
 } /* namespace temporal2algebra */

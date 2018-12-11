@@ -16,10 +16,10 @@ using boost::interprocess::scoped_lock;
 using boost::interprocess::named_mutex;
 
 MemStorageManager::MemStorageManager() :
-                      lastUsedDatabase (""),
-                      storage_create_guard(boost::interprocess::open_or_create,
-                                "mtx_MemStorageManager_CreateGuard"),
-                                smiLogFileName("logfile")
+               lastUsedDatabase (""),
+               storage_create_guard(boost::interprocess::open_or_create,
+                       "mtx_MemStorageManager_CreateGuard"),
+                        smiLogFileName("logfile")
 {
     cout << "MemStorageManager::MemStorageManager()\n";
     cout << "MemStorageManager::MemStorageManager() Registering DbListener\n";
@@ -201,6 +201,11 @@ void MemStorageManager::ensureStorageConnection() {
         // The memUpdateStoragePtr should still be valid, nothing to do.
         return;
     }
+
+    cout << "open database changed from " << lastUsedDatabase
+            << " to " << currentDatabase << "\n";
+    //assert (false): // should have been handled in openDatabase callback!
+
     lastUsedDatabase = currentDatabase;
     {
         scoped_lock<named_mutex>(storage_create_guard);
@@ -219,11 +224,25 @@ void MemStorageManager::ensureStorageConnection() {
 }
 
 void MemStorageManager::openDatabase(const std::string& name){
-    cout << "MemStorageManager::openDatabase(" << name << ")\n;";
-};
+    cout << "MemStorageManager::openDatabase(" << name << ")\n";
+    ensureStorageConnection();
+}
 void MemStorageManager::closeDatabase(){
     cout << "MemStorageManager::closeDatabase()\n";
-};
+
+    int numberOfUsers = memUpdateStoragePtr->getNumberOfUsers();
+    cout << "There are " << numberOfUsers << " users left.\n";
+    assert (numberOfUsers >= 1); // This actually belongs to memUpdate storage
+    if (numberOfUsers == 1) {
+        cout << "We are the last user of this MemStorage - Writeback!\n";
+        SmiEnvironment::BeginTransaction();
+        cout << "Started transaction\n";
+        int num_pushed = pushToFlobs(0);
+        cout << "pushed " << num_pushed << " MPoint to Database\n";
+        SmiEnvironment::CommitTransaction();
+        cout << "Committed transaction\n";
+    }
+}
 
 
 } /* namespace temporal2algebra */
