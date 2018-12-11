@@ -57,6 +57,8 @@ int M2MM_vm( Word* args, Word& result, int message,
     result = qp->ResultStorage(s);
     MPoint2* mpoint2 = static_cast<MPoint2*>(result.addr);
 
+    mpoint2->Clear();
+
     std::cout << "M2MM_vm got: "
             << *mpoint
             << std::endl;
