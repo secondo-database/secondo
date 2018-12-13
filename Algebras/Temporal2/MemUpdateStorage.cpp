@@ -293,6 +293,8 @@ int MemUpdateStorage::memPushToFlobs(
         return 0;
     }
 
+// we found some MemData:
+
 
     cout << "finding Backreference:\n";
     BackReference* backref_it = &(it->second.backReference);
@@ -303,6 +305,7 @@ int MemUpdateStorage::memPushToFlobs(
     if (!catalog->IsObjectName(relationName)) {
         cout << "no secondo object with name '" << relationName
                 << "' found\n";
+        memClear(idToPush);
         return 0;
     }
 
@@ -313,6 +316,7 @@ int MemUpdateStorage::memPushToFlobs(
     if (!relation) {
         cout << "couldn't get Relation* for '"
                 << relationName << "'\n";
+        memClear(idToPush);
         return 0;
     }
 
@@ -321,6 +325,7 @@ int MemUpdateStorage::memPushToFlobs(
 
     if (!tuple) {
         cout << "no tuple found\n";
+        memClear(idToPush);
         return 0;
     }
 
@@ -336,6 +341,7 @@ int MemUpdateStorage::memPushToFlobs(
                 << "moving: " << moving->getMemId()
                 << "idToPush: " << idToPush << endl;
         tuple->DeleteIfAllowed();
+        memClear(idToPush);
         return 0;
     }
 

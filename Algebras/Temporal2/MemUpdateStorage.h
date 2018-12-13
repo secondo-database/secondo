@@ -29,8 +29,8 @@ for each open database exists a seperate shared mem
 namespace temporal2algebra {
 
 // change to adapte size of in-memory storage
-//const int storage_size = 65536;
-const int storage_size = 1024;
+const int storage_size = 65536;
+//const int storage_size = 1024;
 
 typedef boost::interprocess::allocator
         <FlatUnit, boost::interprocess::managed_shared_memory::segment_manager>
