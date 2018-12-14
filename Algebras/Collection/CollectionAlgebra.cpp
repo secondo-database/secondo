@@ -1134,19 +1134,23 @@ cout << "GetCollType" << endl;
 #ifdef DEBUGHEAD
 cout << "SaveComponent" << endl;
 #endif
-    size_t index = elemFLOBDataOffset.Size();
-    size_t size = (size_t)(am->SizeOfObj(elemAlgId, elemTypeId))();
-    size_t offset = index*size;
-    if(elements.getSize()<(offset+size)) {
-      if(elements.getSize()<(8*size)) {
-        elements.resize(8*size);
-      } else {
-        elements.resize(elements.getSize()*2);
-      }
-    }
-    elements.write( (char*)(elem), size, offset );
 
-    offset = elementData.getSize();
+    // step1 backup original flob data from elem into 
+    std::vector<Flob> origFlobs;
+    for(int i=0;i<elem->NumOfFLOBs();i++){
+       Flob* tmpFlob = elem->GetFLOB(i);
+       origFlobs.push_back(*tmpFlob);
+    }
+
+    SmiFileId  fid = elementData.getFileId();
+    SmiRecordId rid = elementData.getRecordId();
+    char mode = elementData.getMode();
+
+
+    // save FLOBs
+    size_t offset = elementData.getSize();
+    size_t index = elemFLOBDataOffset.Size();
+    
     elemFLOBDataOffset.Append(offset);
     for(int i=0;i<elem->NumOfFLOBs();i++) {
       Flob* tempFLOB = elem->GetFLOB(i);
@@ -1156,7 +1160,30 @@ cout << "SaveComponent" << endl;
       tempFLOB->read(data, size, 0);
       elementData.write(data, size, offset);
       offset += size;
+      // change flob in Elem
+      Flob changedFlob = Flob::createFrom(fid,rid,offset, mode, size);
+      *elem->GetFLOB(i) = changedFlob;
     }
+
+
+    // store elements
+    size_t size = (size_t)(am->SizeOfObj(elemAlgId, elemTypeId))();
+    offset = index*size;
+    if(elements.getSize()<(offset+size)) {
+      if(elements.getSize()<(8*size)) {
+        elements.resize(8*size);
+      } else {
+        elements.resize(elements.getSize()*2);
+      }
+    }
+    elements.write( (char*)(elem), size, offset );
+
+    // restore flob
+    for(int i=0;i<elem->NumOfFLOBs();i++){
+       *elem->GetFLOB(i)  = origFlobs[i];
+    }
+
+
 
 
     if(collType == multiset) {
