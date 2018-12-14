@@ -142,16 +142,16 @@ Computes a boundary object.
                 sampleSize, count );
 
             std::string query =
-            "(createboundary (sort (dsummarize (dmap (drel2darray "
+            "(createboundary (consume (dsummarize (dmap (drel2darray "
             "(" + nl->ToString( sourcedType ) + " (ptr " + 
             nl->ToString( listutils::getPtrList( drel ) ) + "))) \"\" "
             "(fun (dmapelem1 ARRAYFUNARG1) (project (nth (feed "
             "dmapelem1) " + std::to_string( nthSample ) + " FALSE) (" + attr + 
-            ")))))) " + attr + " " + std::to_string( drel->getSize( ) ) + " " +
-            std::to_string( sampleSize ) + ")";
+            ")))))) " + attr + " " + std::to_string( drel->getSize( ) ) + " )";
 
             Word result;
             if( !QueryProcessor::ExecuteQuery( query, result ) ) {
+                cout << "hier" << endl;
                 cout << "ERROR: Create boundary object failed!" << endl;
                 return false;
             }

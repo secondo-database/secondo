@@ -86,6 +86,10 @@ using namespace distributed2;
 
 namespace drel {
 
+    template<bool instream>
+    int createboundaryVMT( 
+        Word* args, Word& result, int message, Word& local, Supplier s );
+
 /*
 1 ~createStreamOpTree~
 
@@ -969,69 +973,31 @@ Value mapping of the distribute operator to distribute by range.
         OpTree stream = createStreamOpTree(
             qps, nl->Second( qp->GetType( s ) ), rel );
 
-        CcInt* size = ( CcInt* )args[ 4 ].addr;
         string attrName = ( ( CcString* )args[ 9 ].addr )->GetValue( );
-        
         ListExpr attrType;
         int pos = listutils::findAttribute(
             nl->Second( nl->Second( nl->Second( qp->GetType( s ) ) ) ),
             attrName,
             attrType );
-
-        // get samplesize
-        vector<Attribute*> sample;
-        int count = rel->GetNoTuples( );
-
-        int sampleSize = DRelHelpers::computeSampleSize( count );
-        int nth = DRelHelpers::everyNthTupleForSample( sampleSize, count );
-
-        // create a sample
-        GenericRelationIterator* it = rel->MakeScan( );
-        Tuple* tuple;
-        while( ( tuple = it->GetNthTuple( nth, false ) ) ) {
-            sample.push_back( tuple->GetAttribute( pos - 1 )->Clone( ) );
-        }
-
-        // sort the sample
-        sort( sample.begin( ), sample.end( ), DRelHelpers::compareAttributes );
-
+        
         // create the boundary
-        int algebraId, typeId;
-        string typeName;
-        SecondoCatalog* sc = SecondoSystem::GetCatalog( );
-        sc->GetTypeId( nl->SymbolAtom( Vector::BasicType( ) ),
-            algebraId, typeId, typeName );
-        ListExpr vectorNumType = nl->TwoElemList(
-            nl->IntAtom( algebraId ), nl->IntAtom( typeId ) );
+        Word boundaryW;
+        ArgVector argVecB = {
+            rel,
+            args[ 2 ].addr, // dummy not used
+            args[ 4 ].addr,
+            args[ 9 ].addr
+        };
 
-        sc->GetTypeId( attrType, algebraId, typeId, typeName );
-        ListExpr attrNumType = nl->TwoElemList(
-            nl->IntAtom( algebraId ), nl->IntAtom( typeId ) );
+        createboundaryVMT<false>( argVecB, boundaryW, message, local, s );
+        collection::Collection* boundary = 
+            ( collection::Collection* )boundaryW.addr;
 
-        collection::Collection* boundary = new collection::Collection(
-            collection::vector,
-            nl->TwoElemList( vectorNumType, attrNumType ) );
-        boundary->Clear( );
-        boundary->SetDefined( true );
-
-        nth = DRelHelpers::everyNthTupleForArray( 
-            sample.size( ), size->GetValue( ) - 1 );
-        int i = 1;
-        for( vector<Attribute*>::iterator it = sample.begin( );
-            it != sample.end( ); ++it ) {
-
-            if( i == nth ) {
-                i = 1;
-                boundary->Insert( ( *it ), 1 );
-            } else {
-                i++;
-            }
-            ( *it )->DeleteIfAllowed( );
+        if( !boundary || !boundary->IsDefined( ) ) {
+            result = qp->ResultStorage( s );
+            RType* drel = ( RType* )result.addr;
+            drel->makeUndefined( );
         }
-
-        sample.clear( );
-
-        boundary->Finish( );
 
         // create the function to get the index of each attribute
         ListExpr funarg1 = nl->TwoElemList(

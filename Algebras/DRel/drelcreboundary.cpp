@@ -61,112 +61,52 @@ Get a relation, an attribute and a size object.
 
         std::string err = "rel(tuple(X)) x attr x int expected";
 
-        if( nl->HasLength( args, 3 ) ) {
-
-            if( !DRelHelpers::isListOfTwoElemLists( args ) ) {
-                return listutils::typeError( err + ": internal error" );
-            }
-
-            if( !Relation::checkType( nl->First( nl->First( args ) ) ) ) {
-                return listutils::typeError( err +
-                    ": first argument is not a relation" );
-            }
-        
-            if( ! listutils::isSymbol( nl->Second( nl->Second( args ) ) ) ) {
-                return listutils::typeError( err + 
-                    ": second argument has to be an attribute name" );
-            }
-        
-            if( ! CcInt::checkType( nl->First( nl->Third( args ) ) ) ) {
-                return listutils::typeError( err + 
-                    ": third argument has to be an integer" );
-            }
-
-            if( ! nl->IsAtom( nl->Second( nl->Third( args ) ) ) ) {
-                return listutils::typeError( err +
-                    ": internal error" );
-            }
-
-            if( nl->AtomType( nl->Second( nl->Third( args ) ) ) != IntType ) {
-                return listutils::typeError( err +
-                    ": internal error" );
-            }
-
-            if( ! ( nl->IntValue( nl->Second( nl->Third( args ) ) ) > 0 ) ) {
-                return listutils::typeError( err +
-                    ": third argument has to be an integer greater than 0" );
-            }
-        }
-        else if( nl->HasLength( args, 4 ) ) {
-
-            if( !DRelHelpers::isListOfTwoElemLists( args ) ) {
-                return listutils::typeError( err + ": internal error" );
-            }
-
-            if( !listutils::isTupleStream( nl->First( nl->First( args ) ) ) ) {
-                return listutils::typeError( err +
-                    ": first argument is not a tuple stream" );
-            }
-
-            if( !listutils::isSymbol( nl->Second( nl->Second( args ) ) ) ) {
-                return listutils::typeError( err +
-                    ": second argument has to be an attribute name" );
-            }
-
-            if( !CcInt::checkType( nl->First( nl->Third( args ) ) ) ) {
-                return listutils::typeError( err +
-                    ": third argument has to be an integer" );
-            }
-
-            if( !nl->IsAtom( nl->Second( nl->Third( args ) ) ) ) {
-                return listutils::typeError( err +
-                    ": internal error" );
-            }
-
-            if( nl->AtomType( nl->Second( nl->Third( args ) ) ) != IntType ) {
-                return listutils::typeError( err +
-                    ": internal error" );
-            }
-
-            if( !( nl->IntValue( nl->Second( nl->Third( args ) ) ) > 0 ) ) {
-                return listutils::typeError( err +
-                    ": third argument has to be an integer greater than 0" );
-            }
-
-            if( !CcInt::checkType( nl->First( nl->Fourth( args ) ) ) ) {
-                return listutils::typeError( err +
-                    ": fourth argument has to be an integer" );
-            }
-
-            if( !nl->IsAtom( nl->Second( nl->Fourth( args ) ) ) ) {
-                return listutils::typeError( err +
-                    ": internal error" );
-            }
-
-            if( nl->AtomType( nl->Second( nl->Fourth( args ) ) ) != IntType ) {
-                return listutils::typeError( err +
-                    ": internal error" );
-            }
-
-            if( !( nl->IntValue( nl->Second( nl->Fourth( args ) ) ) > 0 ) ) {
-                return listutils::typeError( err +
-                    ": fourth argument has to be an integer greater than 0" );
-            }
-        }
-        else {
+        if( !nl->HasLength( args, 3 ) ) {
             return listutils::typeError( err +
-                ": three or four arguments are expected" );
+                ": three arguments are expected" );
+        }
+
+        if( !DRelHelpers::isListOfTwoElemLists( args ) ) {
+            return listutils::typeError( err + ": internal error" );
+        }
+
+        if( !Relation::checkType( nl->First( nl->First( args ) ) ) ) {
+            return listutils::typeError( err +
+                ": first argument is not a relation" );
+        }
+    
+        if( ! listutils::isSymbol( nl->Second( nl->Second( args ) ) ) ) {
+            return listutils::typeError( err + 
+                ": second argument has to be an attribute name" );
+        }
+    
+        if( ! CcInt::checkType( nl->First( nl->Third( args ) ) ) ) {
+            return listutils::typeError( err + 
+                ": third argument has to be an integer" );
+        }
+
+        if( ! nl->IsAtom( nl->Second( nl->Third( args ) ) ) ) {
+            return listutils::typeError( err +
+                ": internal error" );
+        }
+
+        if( nl->AtomType( nl->Second( nl->Third( args ) ) ) != IntType ) {
+            return listutils::typeError( err +
+                ": internal error" );
+        }
+
+        if( ! ( nl->IntValue( nl->Second( nl->Third( args ) ) ) > 0 ) ) {
+            return listutils::typeError( err +
+                ": third argument has to be an integer greater than 0" );
         }
 
         std::string attrName = nl->SymbolValue(
             nl->Second( nl->Second( args ) ) );
         ListExpr attrList = nl->Second( nl->Second( 
                             nl->First( nl->First( args ) ) ) );
+
         ListExpr attrType;
-
-        int pos = listutils::findAttribute( attrList, attrName, attrType );
-
-        if( pos == 0 ) {
+        if( listutils::findAttribute( attrList, attrName, attrType ) == 0 ) {
             return listutils::typeError(
                 err + ": attr name " + attrName + " not found" );
         }
@@ -176,7 +116,7 @@ Get a relation, an attribute and a size object.
             attrType );
 
         ListExpr appendList = nl->OneElemList(
-            nl->IntAtom( pos - 1 ) );
+            nl->StringAtom( attrName ) );
 
         return nl->ThreeElemList( nl->SymbolAtom( Symbols::APPEND( ) ),
             appendList,
@@ -194,90 +134,60 @@ of the realation.
     int createboundaryVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
-        result = qp->ResultStorage( s );
-        collection::Collection* resultColl =
-            static_cast<collection::Collection*>( result.addr );
-        resultColl->Clear( );
-        resultColl->SetDefined( true );
+        ListExpr arg1Type = qp->GetType( qp->GetSon( s, 0 ) );
+        collection::Collection* resultColl;
 
-        CcInt* size = ( CcInt* )args[ 2 ].addr;
+        int size = ( ( CcInt* )args[ 2 ].addr )->GetValue( );
 
-        vector<Attribute*> sample;
-        int count, attrPos;
+        ListExpr arg1PtrList = DRelHelpers::createPointerList( 
+                arg1Type, args[ 0 ].addr );
 
-        if( instream ) {
-            count = ( ( CcInt* )args[ 3 ].addr )->GetValue( );
-            attrPos = ( ( CcInt* )args[ 4 ].addr )->GetValue( );
-        }
-        else {
-            count = ( ( Relation* )args[ 0 ].addr )->GetNoTuples( );
-            attrPos = ( ( CcInt* )args[ 3 ].addr )->GetValue( );
-        }
+        string attr, query;
 
-        int sampleSize = DRelHelpers::computeSampleSize( count );
-        int nth = DRelHelpers::everyNthTupleForSample(
-            sampleSize, count );
+        int count = ( ( Relation* )args[ 0 ].addr )->GetNoTuples( );
+        attr = ( ( CcString* )args[ 3 ].addr )->GetValue( );
+        string arg1 = "(feed " + nl->ToString( arg1PtrList ) + ")";
+        
+        int sampleS = DRelHelpers::computeSampleSize( count );
+        int nthS = DRelHelpers::everyNthTupleForSample( sampleS, count );
+        int nthB = DRelHelpers::everyNthTupleForArray( sampleS, size );
 
-        if( instream ) {
-            Stream<Tuple> stream( args[ 0 ] );
+        query = "(collect_vector (transformstream (nth (sort (nth"
+            " (project " + arg1 + " (" + attr + ") )" + 
+            std::to_string( nthS ) + " FALSE) )" + std::to_string( nthB ) +
+            " TRUE)))";
 
-            // create a sample
-            Tuple* tuple;
-            stream.open( );
-            int i = 1;
-            while( ( tuple = stream.request( ) ) ) {
-                if( i == nth ) {
-                    tuple->IncReference( );
-                    sample.push_back(
-                        tuple->GetAttribute( attrPos ) );
-                    i = 1;
-                } else {
-                    i++;
-                }
-                tuple->DeleteIfAllowed( );
-            }
-            stream.close( );
-        }
-        else {
-            Relation* rel = ( Relation* )args[ 0 ].addr;
+        ListExpr queryList;
+        if( !nl->ReadFromString( query, queryList ) ) {
 
-            // create a sample
-            GenericRelationIterator* it = rel->MakeScan( );
-            Tuple* tuple;
-            while( ( tuple = it->GetNthTuple( nth, false ) ) ) {
-                /*tuple->IncReference( );
-                sample.push_back( 
-                    tuple->GetAttribute( attrPos->GetValue( ) ) );*/
-                sample.push_back( 
-                    tuple->GetAttribute( attrPos )->Clone( ) );
-                tuple->DeleteIfAllowed( );
-            }
-            delete it;
+            result = qp->ResultStorage( s );
+            resultColl = static_cast<collection::Collection*>( result.addr );
+            resultColl->SetDefined( false );
+            return 0;
         }
 
+        bool correct = false;
+        bool evaluable = false;
+        bool defined = false;
+        bool isFunction = false;
+        string typeString, errorString;
+        if( !QueryProcessor::ExecuteQuery( queryList, result, 
+                typeString, errorString,
+                correct, evaluable, defined, isFunction ) ) {
 
-        // sort the sample
-        sort( sample.begin( ), sample.end( ), DRelHelpers::compareAttributes );
-
-        // create the boundary
-        nth = DRelHelpers::everyNthTupleForArray( 
-            sample.size( ), size->GetValue( ) );
-        int i = 1;
-        for( vector<Attribute*>::iterator it = sample.begin( );
-            it != sample.end( ); ++it ) {
-
-            if( i == nth ) {
-                i = 1;
-                resultColl->Insert( ( *it )->Clone( ), 1 );
-            } else {
-                i++;
-            }
-            ( *it )->DeleteIfAllowed( );
+            result = qp->ResultStorage( s );
+            resultColl = static_cast<collection::Collection*>( result.addr );
+            resultColl->SetDefined( false );
+            return 0;
         }
-
-        sample.clear( );
-
-        resultColl->Finish( );
+        
+        if( !correct || !evaluable || !defined ) {
+            
+            result = qp->ResultStorage( s );
+            resultColl = static_cast<collection::Collection*>( result.addr );
+            resultColl->SetDefined( false );
+            return 0;
+        }
 
         return 0;
     }
