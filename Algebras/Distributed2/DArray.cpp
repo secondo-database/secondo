@@ -231,18 +231,20 @@ ListExpr wrapType(const arrayType a, ListExpr subtype){
 
    DistTypeBase::DistTypeBase(const std::vector<DArrayElement>& _worker,
               const string& _name): 
-      worker(_worker), name(_name), defined(true){}
+      worker(_worker), name(_name), defined(true),keepRemoteObjects(false){}
                
    DistTypeBase::DistTypeBase( const string& _name):
-      worker(), name(_name), defined(true){}
+      worker(), name(_name), defined(true),keepRemoteObjects(false){}
    
    DistTypeBase::DistTypeBase( const DistTypeBase& src): worker(src.worker),
-            name(src.name), defined(src.defined) {}
+            name(src.name), defined(src.defined), 
+            keepRemoteObjects(src.keepRemoteObjects) {}
 
    DistTypeBase& DistTypeBase::operator=(const DistTypeBase& src){
       worker = src.worker;
       name = src.name;
       defined = src.defined;
+      keepRemoteObjects = src.keepRemoteObjects;
       return *this;
    }
 
@@ -557,6 +559,10 @@ bool DArrayBase::open(SmiRecord& valueRecord, size_t& offset,
      result.addr = new R(m,"");
      return true;
    }
+   bool keepRemoteObjects;
+   if(!readVar<bool>(keepRemoteObjects,valueRecord,offset)){
+      return false;
+   } 
    // array in smirecord is defined, read size
    size_t size;
    if(!readVar<size_t>(size,valueRecord,offset)){
@@ -579,13 +585,15 @@ bool DArrayBase::open(SmiRecord& valueRecord, size_t& offset,
         }
         m.push_back(me);
     }
-    res = new R(m,name);
+   res = new R(m,name);
+   res->setKeepRemoteObjects(keepRemoteObjects);
    int wn = 0;
 
 
    // append workers
    size_t numWorkers;
    if(!readVar<size_t>(numWorkers,valueRecord, offset)){
+     delete res;
      return false;
    }
    for(size_t i=0; i< numWorkers; i++){
@@ -614,6 +622,9 @@ bool DArrayBase::save(SmiRecord& valueRecord, size_t& offset,
     }
     if(!a->defined){
        return true;
+    }
+    if(!writeVar(a->keepRemoteObjects,valueRecord,offset)){
+      return false;
     }
     // size
     size_t s = a->getSize();
@@ -806,6 +817,11 @@ bool DFMatrix::open(SmiRecord& valueRecord, size_t& offset,
      result.addr = new DFMatrix(0,"");
      return true;
    }
+   bool keepRemoteObjects;
+   if(!readVar<bool>(keepRemoteObjects,valueRecord,offset)){
+      return false;
+   } 
+
    // array in smirecord is defined, read size
    size_t size;
    if(!readVar<size_t>(size,valueRecord,offset)){
@@ -818,8 +834,8 @@ bool DFMatrix::open(SmiRecord& valueRecord, size_t& offset,
    }
 
    DFMatrix* res = new DFMatrix(size,name);
+   res->setKeepRemoteObjects(keepRemoteObjects);
    int wn = 0;
-
 
    // append workers
    size_t numWorkers;
@@ -852,6 +868,9 @@ bool DFMatrix::save(SmiRecord& valueRecord, size_t& offset,
     }
     if(!a->defined){
        return true;
+    }
+    if(!writeVar(a->keepRemoteObjects,valueRecord,offset)){
+      return false;
     }
     // size
     size_t s = a->size;
@@ -1069,6 +1088,10 @@ bool SDArray::Open( SmiRecord& valueRecord,
       value.addr = res;
       return true;
    }
+   bool keepRemoteObjects;
+   if(!readVar<bool>(keepRemoteObjects,valueRecord,offset)){
+      return false;
+   } 
    // read number of workers and size of the name
    size_t size;
    valueRecord.Read(&size,sizeof(size_t), offset);
@@ -1094,6 +1117,7 @@ bool SDArray::Open( SmiRecord& valueRecord,
    }
    // build result
    SDArray* res = new SDArray(workers,name);
+   res->setKeepRemoteObjects(keepRemoteObjects);
    value.addr = res;
    return true;
 }
@@ -1106,6 +1130,11 @@ bool SDArray::Save( SmiRecord& valueRecord, size_t& offset,
    valueRecord.Write(&def,sizeof(bool),offset);
    offset+=sizeof(bool);
    if(!def) return true;
+
+   if(!writeVar(a->keepRemoteObjects,valueRecord,offset)){
+     return false;
+   }
+
    size_t size = a->getSize();
    string name = a->getName();
    size_t namesize = name.length();

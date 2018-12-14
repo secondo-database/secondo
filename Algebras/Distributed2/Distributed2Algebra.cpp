@@ -86,7 +86,7 @@ const int defaultTimeout = 0;
 DFSType* filesystem = 0;
 static dfs::log::Logger* dfslogger = new dfs::log::DefaultOutLogger();
 
-bool keepRemoteObjects = true;
+bool keepRemoteObjects = false;
 
 
 /*
@@ -10202,6 +10202,7 @@ template<class A>
 void deleteRemoteObjects(A* array){
   if(keepRemoteObjects) return;
   if(!array->IsDefined()) return;
+  if(array->getKeepRemoteObjects()) return;
   vector<Object_Del*> deleters;
   vector<boost::thread*> threads;
   for(size_t i=0;i<array->getSize();i++){
@@ -10332,6 +10333,7 @@ class MatrixKiller{
 template<> void deleteRemoteObjects<DFMatrix>(DFMatrix* matrix){
    if(keepRemoteObjects) return;
    if(!matrix->IsDefined()) return;
+   if(matrix->getKeepRemoteObjects()) return;
    set<string> usedHosts;
    string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
    vector<MatrixKiller*> killers;

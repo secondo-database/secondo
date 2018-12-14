@@ -134,11 +134,20 @@ standard map.
     return ss.str();
   }
 
+  inline bool getKeepRemoteObjects(){
+    return keepRemoteObjects;
+  }
+
+  inline void setKeepRemoteObjects(bool enable){
+     keepRemoteObjects = enable;
+  }
+
 
  protected:
     std::vector<DArrayElement> worker; // connection information
     std::string name;  // the basic name used on workers
     bool defined; // defined state of this array
+    bool keepRemoteObjects;
 
 
 /*
