@@ -86,7 +86,7 @@ const int defaultTimeout = 0;
 DFSType* filesystem = 0;
 static dfs::log::Logger* dfslogger = new dfs::log::DefaultOutLogger();
 
-
+bool keepRemoteObjects = true;
 
 
 /*
@@ -10200,6 +10200,7 @@ class Object_Del{
 
 template<class A>
 void deleteRemoteObjects(A* array){
+  if(keepRemoteObjects) return;
   vector<Object_Del*> deleters;
   vector<boost::thread*> threads;
   for(size_t i=0;i<array->getSize();i++){
@@ -10328,6 +10329,7 @@ class MatrixKiller{
 
 
 template<> void deleteRemoteObjects<DFMatrix>(DFMatrix* matrix){
+   if(keepRemoteObjects) return;
    set<string> usedHosts;
    string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
    vector<MatrixKiller*> killers;
@@ -22014,6 +22016,60 @@ Operator makeShortOp(
 
 
 /*
+2.123 ~keepRemoteObjects~
+
+*/
+ListExpr keepRemoteObjectsTM(ListExpr args){
+  if(nl->IsEmpty(args)){
+    return listutils::basicSymbol<CcBool>();
+  }
+  if(!nl->HasLength(args,1) ){
+    return listutils::typeError("bool or nothing expected "
+                                "(wrong number of arguments)");
+  }
+  if(!CcBool::checkType(nl->First(args))){
+    return listutils::typeError("bool expected");
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+int keepRemoteObjectsVM(Word* args, Word& result, int message,
+                 Word& local, Supplier s) {
+
+  if(qp->GetNoSons(s)==1){
+     CcBool* a = (CcBool*) args[0].addr;
+     if(a->IsDefined()){
+       keepRemoteObjects = a->GetValue();
+     }
+  }
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  res->Set(true, keepRemoteObjects);
+  return 0;
+}
+
+OperatorSpec keepRemoteObjectsSpec(
+  "-> bool or bool -> bool",
+  "keepRemoteObjects(_)",
+  "Returns the value of a internal variable. If teh optional "
+  "boolean argument is given, the value of this variable "
+  "is set before returning it. If the variable is true, "
+  "remote objects will be kept even if the master objects is "
+  "deleted. Otherwise, renote objects are dependent on the presence "
+  "of the master object.",
+  "query keepRemoteObjects(true)"
+);
+
+Operator keepRemoteObjectsOp(
+  "keepRemoteObjects",
+  keepRemoteObjectsSpec.getStr(),
+  keepRemoteObjectsVM,
+  Operator::SimpleSelect,
+  keepRemoteObjectsTM
+);
+
+
+/*
 3 Implementation of the Algebra
 
 */
@@ -22253,6 +22309,8 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&makeDArrayOp);
 
    AddOperator(&makeShortOp);
+
+   AddOperator(&keepRemoteObjectsOp);
 
    pprogView = new PProgressView();
    MessageCenter::GetInstance()->AddHandler(pprogView);
