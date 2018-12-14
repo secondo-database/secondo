@@ -55,7 +55,7 @@ extern Operator drelspatialpartitionOp;
 
 extern Operator compareDistTypeOp;
 extern Operator drelcollect_boxOp;
-extern Operator convertOp;
+extern Operator drel2darrayOp;
 
 extern Operator dsummarizeOp;
 
@@ -140,7 +140,7 @@ DRelAlgebra::DRelAlgebra() {
 
     AddOperator( &compareDistTypeOp );
     AddOperator( &drelcollect_boxOp );
-    AddOperator( &convertOp );
+    AddOperator( &drel2darrayOp );
 
     AddOperator( &dsummarizeOp );
 

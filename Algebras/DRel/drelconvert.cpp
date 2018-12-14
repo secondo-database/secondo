@@ -49,7 +49,7 @@ namespace drel {
 Get a d[f]rel or a d[f]arry as argument.
 
 */
-    ListExpr convertTM( ListExpr args ) {
+    ListExpr drel2darrayTM( ListExpr args ) {
 
         std::string err = "d[f]rel or d[f]array expected";
 
@@ -116,6 +116,7 @@ Creates a d[f]array.
         T* input = ( T* )args[ 0 ].addr;
         R* res = ( R* ) result.addr;
         res->copyFrom( *input );
+        // res set keepRemoteObjects 
 
         return 0;
     }
@@ -127,7 +128,7 @@ Creates a d[f]rel.
 
 */
     template<class T, class R>
-    int darrayconvertVMT( Word* args, Word& result, int message,
+    int darray2drelVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
         result = qp->ResultStorage( s );
@@ -135,6 +136,7 @@ Creates a d[f]rel.
         T* input = ( T* )args[ 0 ].addr;
         R* res = ( R* ) result.addr;
         res->copyFrom( *input );
+        // res set keepRemoteObjects 
 
         if( res->IsDefined( ) ) {
             DistTypeBasic* distType = new DistTypeBasic( random );
@@ -145,21 +147,21 @@ Creates a d[f]rel.
     }
 
 /*
-1.4 ValueMapping Array of convert2darray
+1.4 ValueMapping Array of drel2darray
 
 */
-    ValueMapping convertVM[ ] = {
+    ValueMapping drel2darrayVM[ ] = {
         drel2darrayVMT<DRel, distributed2::DArray>,
         drel2darrayVMT<DFRel, distributed2::DFArray>,
-        darrayconvertVMT<distributed2::DArray, DRel>,
-        darrayconvertVMT<distributed2::DFArray, DFRel>
+        darray2drelVMT<distributed2::DArray, DRel>,
+        darray2drelVMT<distributed2::DFArray, DFRel>
     };
 
 /*
 1.5 Selection function
 
 */
-    int convertSelect( ListExpr args ) {
+    int drel2darraySelect( ListExpr args ) {
 
         string type = nl->SymbolValue( nl->First( nl->First( args ) ) );
 
@@ -178,10 +180,10 @@ Creates a d[f]rel.
     }
 
 /*
-1.6 Specification of convert2darray
+1.6 Specification of drel2darray
 
 */
-    OperatorSpec convertSpec(
+    OperatorSpec drel2darraySpec(
         "d[f]rel(X) or d[f]array "
         "-> d[f]rel(X) or d[f]array ",
         " _ drel2darray",
@@ -190,16 +192,16 @@ Creates a d[f]rel.
     );
 
 /*
-1.7 Operator instance of convert2darray operator
+1.7 Operator instance of drel2darray operator
 
 */
-    Operator convertOp(
+    Operator drel2darrayOp(
         "drel2darray",
-        convertSpec.getStr( ),
+        drel2darraySpec.getStr( ),
         4,
-        convertVM,
-        convertSelect,
-        convertTM
+        drel2darrayVM,
+        drel2darraySelect,
+        drel2darrayTM
     );
 
 } // end of namespace drel
