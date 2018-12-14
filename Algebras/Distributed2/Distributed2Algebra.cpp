@@ -10201,6 +10201,7 @@ class Object_Del{
 template<class A>
 void deleteRemoteObjects(A* array){
   if(keepRemoteObjects) return;
+  if(!array->IsDefined()) return;
   vector<Object_Del*> deleters;
   vector<boost::thread*> threads;
   for(size_t i=0;i<array->getSize();i++){
@@ -10330,6 +10331,7 @@ class MatrixKiller{
 
 template<> void deleteRemoteObjects<DFMatrix>(DFMatrix* matrix){
    if(keepRemoteObjects) return;
+   if(!matrix->IsDefined()) return;
    set<string> usedHosts;
    string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
    vector<MatrixKiller*> killers;
