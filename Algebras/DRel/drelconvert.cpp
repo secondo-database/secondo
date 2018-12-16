@@ -116,7 +116,7 @@ Creates a d[f]array.
         T* input = ( T* )args[ 0 ].addr;
         R* res = ( R* ) result.addr;
         res->copyFrom( *input );
-        // res set keepRemoteObjects 
+        res->setKeepRemoteObjects( true );
 
         return 0;
     }
@@ -136,7 +136,7 @@ Creates a d[f]rel.
         T* input = ( T* )args[ 0 ].addr;
         R* res = ( R* ) result.addr;
         res->copyFrom( *input );
-        // res set keepRemoteObjects 
+        res->setKeepRemoteObjects( true );
 
         if( res->IsDefined( ) ) {
             DistTypeBasic* distType = new DistTypeBasic( random );
