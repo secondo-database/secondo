@@ -152,10 +152,10 @@ of the realation.
         int nthS = DRelHelpers::everyNthTupleForSample( sampleS, count );
         int nthB = DRelHelpers::everyNthTupleForArray( sampleS, size );
 
-        query = "(collect_vector (transformstream (nth (sort (nth"
+        query = "(collect_vector (head (transformstream (nth (sort (nth"
             " (project " + arg1 + " (" + attr + ") )" + 
             std::to_string( nthS ) + " FALSE) )" + std::to_string( nthB ) +
-            " TRUE)))";
+            " TRUE)) " + std::to_string( size ) + "))";
 
         ListExpr queryList;
         if( !nl->ReadFromString( query, queryList ) ) {
