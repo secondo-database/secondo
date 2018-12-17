@@ -43,6 +43,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 extern QueryProcessor* qp;
 
+
+namespace pointcloud_importLAS {
+
 /*
 1 Operator importing a LAS-File
 
@@ -242,8 +245,8 @@ void fillTuple5(Tuple* t, lasPoint5* p, size_t& offset){
 class importLASInfo{
 
   public:
-     importLASInfo(const std::string& _fn, bool _wgs, ListExpr _tt) : 
-         wgs(_wgs) {
+     importLASInfo(const std::string& _fn, bool _wgs, ListExpr _tt) :
+        wgs(_wgs) {
         reader = new lasreader(_fn);
         tt = new TupleType(_tt);
         pointType = reader->isOk()? reader->getPointFormat():0;
@@ -347,6 +350,7 @@ OperatorSpec importLASSpec(
 );
 
 
+
 Operator importLASOp(
   "importLAS",
   importLASSpec.getStr(),
@@ -356,9 +360,12 @@ Operator importLASOp(
 );
 
 
+} // end of namespace
+
+
 Operator* getImportLASOp(){
-   importLASOp.SetUsesArgsInTypeMapping();
-   return &importLASOp;
+   pointcloud_importLAS::importLASOp.SetUsesArgsInTypeMapping();
+   return &pointcloud_importLAS::importLASOp;
 }
 
 
