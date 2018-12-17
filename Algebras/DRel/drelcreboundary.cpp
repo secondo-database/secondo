@@ -155,7 +155,7 @@ of the realation.
         query = "(collect_vector (head (transformstream (nth (sort (nth"
             " (project " + arg1 + " (" + attr + ") )" + 
             std::to_string( nthS ) + " FALSE) )" + std::to_string( nthB ) +
-            " TRUE)) " + std::to_string( size ) + "))";
+            " TRUE)) " + std::to_string( size - 1 ) + "))";
 
         ListExpr queryList;
         if( !nl->ReadFromString( query, queryList ) ) {
