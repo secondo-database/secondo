@@ -339,7 +339,10 @@ the argument types ~argtypes~.
 
   ValueMapping GetValueMapping( const int index ) const
   {
-    assert((0 <= index) && (index < numOfFunctions));
+    if(!((0 <= index) && (index < numOfFunctions))){
+      std::cout << "index error in operator " << name << std::endl;
+      assert((0 <= index) && (index < numOfFunctions));
+    }
     return valueMap[index];
   }
 
