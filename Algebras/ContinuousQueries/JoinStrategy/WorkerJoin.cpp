@@ -131,7 +131,7 @@ void WorkerJoin::Initialize()
     tupleRelWord.setAddr(_tuplerel);
     _sc->InsertObject("tpl", "", relType, tupleRelWord, true);
 
-bool recover = true;
+bool recover = false;
 if (!recover)
 {
     // Normally create all elements fresh
