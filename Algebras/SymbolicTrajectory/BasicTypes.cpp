@@ -1390,6 +1390,9 @@ bool HybridDistanceParameters::isCorrectType(std::string& name, ListExpr type) {
 }
 
 TupleType* HybridDistanceParameters::getTupleType() {
+  if (tt) {
+    return tt;
+  }
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   ListExpr ttlist = nl->TwoElemList(
     nl->SymbolAtom(Tuple::BasicType()),
@@ -1405,14 +1408,15 @@ TupleType* HybridDistanceParameters::getTupleType() {
                       nl->TwoElemList(nl->SymbolAtom("Description"),
                                       nl->SymbolAtom(FText::BasicType()))));
   ListExpr numttlist = sc->NumericType(ttlist);
-  return new TupleType(numttlist);
+  tt = new TupleType(numttlist);
+  return tt;
 }
 
 Tuple* HybridDistanceParameters::getNextTuple() {
   if (memberNo > 4) {
     return 0;
   }
-  Tuple *tuple = new Tuple(tt);
+  Tuple *tuple = new Tuple(getTupleType());
   tuple->PutAttribute(0, getName(memberNo));
   tuple->PutAttribute(1, getType(memberNo));
   tuple->PutAttribute(2, getDefault(memberNo));
@@ -1582,6 +1586,47 @@ FText* HybridDistanceParameters::getDescription(unsigned int memberNo) {
     }
   }
   return result;
+}
+
+bool HybridDistanceParameters::setLabelFun(const int value) {
+  if (value < 0 || value >= 2) {
+    cout << "value must be either 0 or 1." << endl;
+    return false;
+  }
+  labelFun = (LabelFunction)value;
+  return true;
+}
+
+bool HybridDistanceParameters::setDistFun(const int value) {
+  if (value < 0 || value >= 7) {
+    cout << "value must be between 0 and 6." << endl;
+    return false;
+  }
+  distFun = (DistanceFunction)value;
+  return true;
+}
+
+bool HybridDistanceParameters::setThreshold(const double value) {
+  if (value < 0 || value > 1) {
+    cout << "value must be between 0 and 1." << endl;
+    return false;
+  }
+  threshold = value;
+  return true;
+}
+
+bool HybridDistanceParameters::setScaleFactor(const double value) {
+  if (value <= 0) {
+    cout << "value must be positive." << endl;
+    return false;
+  }
+  scaleFactor = value;
+  return true;
+}
+
+bool HybridDistanceParameters::setGeoid(Geoid *value) {
+  geoid = value;
+  return true;
 }
  
 }

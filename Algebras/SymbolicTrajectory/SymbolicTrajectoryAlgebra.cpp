@@ -1511,6 +1511,12 @@ struct hybriddistanceInfo : OperatorInfo {
 gethybriddistanceparams: -> stream(tuple(Name: string, InputType: string, 
                                          Value: string))
 
+\subsection{Instance for storing parameters}
+
+*/
+HybridDistanceParameters hdp;
+
+/*
 \subsection{Type Mapping}
 
 */
@@ -1540,32 +1546,33 @@ ListExpr gethybriddistanceparamsTM(ListExpr args) {
 */
 int gethybriddistanceparamsVM(Word* args, Word& result, int message, 
                               Word& local, Supplier s) {
-  HybridDistanceParameters *hdp = (HybridDistanceParameters*)local.addr;
+//   HybridDistanceParameters *hdp = (HybridDistanceParameters*)local.addr;
   switch (message) {
     case OPEN: {
-      if (hdp) {
-        delete hdp;
-        local.addr = 0;
-      }
-      hdp = new HybridDistanceParameters();
-      local.addr = hdp;
+//       if (hdp) {
+//         delete hdp;
+//         local.addr = 0;
+//       }
+//       hdp = new HybridDistanceParameters();
+//       local.addr = hdp;
       return 0;
     }
     case REQUEST: {
-      if (!local.addr) {
-        result.addr = 0;
-        return CANCEL;
-      }
-      hdp = (HybridDistanceParameters*)local.addr;
-      result.addr = hdp->getNextTuple();
+//       if (!local.addr) {
+//         result.addr = 0;
+//         return CANCEL;
+//       }
+//       hdp = (HybridDistanceParameters*)local.addr;
+      result.addr = hdp.getNextTuple();
       return result.addr ? YIELD : CANCEL;
     }
     case CLOSE: {
-      if (local.addr) {
-        hdp = (HybridDistanceParameters*)local.addr;
-        delete hdp;
-        local.addr = 0;
-      }
+//       if (local.addr) {
+//         hdp = (HybridDistanceParameters*)local.addr;
+//         delete hdp;
+//         local.addr = 0;
+//       }
+      hdp.memberNo = 0;
       return 0;
     }
   }
@@ -1639,7 +1646,6 @@ template<class T>
 int sethybriddistanceparamVM(Word* args, Word& result, int message, Word& local,
                              Supplier s) {
   result = qp->ResultStorage(s);
-  HybridDistanceParameters hdp;
   T *memberName = static_cast<T*>(args[0].addr);
   CcBool *res = static_cast<CcBool*>(result.addr);
   res->SetDefined(false);
@@ -1651,35 +1657,36 @@ int sethybriddistanceparamVM(Word* args, Word& result, int message, Word& local,
     transform(name.begin(), name.end(), name.begin(), ::tolower);
     if (name == "labelfun") {
       if ((static_cast<CcInt*>(args[1].addr))->IsDefined()) {
-        hdp.labelFun = static_cast<LabelFunction>(
-                               (static_cast<CcInt*>(args[1].addr))->GetValue());
+        int value = (static_cast<CcInt*>(args[1].addr))->GetValue();
+        res->Set(true, hdp.setLabelFun(value));
       }
     }
     else if (name == "distfun") {
       if ((static_cast<CcInt*>(args[1].addr))->IsDefined()) {
-        hdp.distFun = static_cast<DistanceFunction>(
-                               (static_cast<CcInt*>(args[1].addr))->GetValue());
+        int value = (static_cast<CcInt*>(args[1].addr))->GetValue();
+        res->Set(true, hdp.setDistFun(value));
       }
     }
     else if (name == "threshold") {
       if ((static_cast<CcReal*>(args[1].addr))->IsDefined()) {
-        hdp.threshold = static_cast<CcReal*>(args[1].addr)->GetValue();
+        double value = static_cast<CcReal*>(args[1].addr)->GetValue();
+        res->Set(true, hdp.setThreshold(value));
       }
     }
     else if (name == "scaleFactor") {
       if ((static_cast<CcReal*>(args[1].addr))->IsDefined()) {
-        hdp.scaleFactor = static_cast<CcReal*>(args[1].addr)->GetValue();
+        double value = static_cast<CcReal*>(args[1].addr)->GetValue();
+        res->Set(true, hdp.setScaleFactor(value));
       }
     }
     else if (name == "geoid") {
       if ((static_cast<Geoid*>(args[1].addr))->IsDefined()) {
-        hdp.geoid = static_cast<Geoid*>(args[1].addr);
+        res->Set(true, static_cast<Geoid*>(args[1].addr));
       }
     }
     else {
       return 0;
     }
-    res->Set(true, true);
   }
   return 0;
 }

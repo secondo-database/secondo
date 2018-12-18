@@ -426,11 +426,13 @@ struct HybridDistanceParameters {
     scaleFactor = getDefaultScaleFactor();
     geoid = getDefaultGeoid();
     memberNo = 0;
-    tt = getTupleType();
+    tt = 0;
   }
   
   ~HybridDistanceParameters() {
-    tt->DeleteIfAllowed();
+    if (tt) {
+      tt->DeleteIfAllowed();
+    }
   }
   
   static bool isCorrectType(std::string& name, ListExpr type);
@@ -447,6 +449,11 @@ struct HybridDistanceParameters {
   double getDefaultThreshold() {return 0.75;}
   double getDefaultScaleFactor() {return 30000.0;}
   Geoid* getDefaultGeoid() {return 0;}
+  bool setLabelFun(const int value);
+  bool setDistFun(const int value);
+  bool setThreshold(const double value);
+  bool setScaleFactor(const double value);
+  bool setGeoid(Geoid *value);
 
   LabelFunction labelFun; // function used for comparing two label values
   DistanceFunction distFun; // function used for comparing two mlabel values
