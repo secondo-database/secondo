@@ -17,7 +17,7 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator createbtree alias CREATEBTREE pattern _ op [ _ ]
+operator createbtree alias CREATEBTREE pattern _ op [ _,_ ]
 operator leftrange alias LEFTRANGE pattern _ _ op [ _ ]
 operator rightrange alias RIGHTRANGE pattern _ _ op [ _ ]
 operator range alias RANGE pattern _ _ op [ _, _ ]
