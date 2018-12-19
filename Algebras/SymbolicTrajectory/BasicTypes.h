@@ -433,6 +433,9 @@ struct HybridDistanceParameters {
     if (tt) {
       tt->DeleteIfAllowed();
     }
+    if (geoid) {
+      geoid->DeleteIfAllowed();
+    }
   }
   
   static bool isCorrectType(std::string& name, ListExpr type);

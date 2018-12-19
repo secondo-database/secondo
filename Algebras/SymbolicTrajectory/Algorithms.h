@@ -295,7 +295,8 @@ class MBasic : public Attribute {
          const;
   double Distance_EQUAL_LABELS(const MBasic<B>& mb, const LabelFunction lf)
          const;
-  double Distance(const MBasic<B>& mb) const;
+  double Distance(const MBasic<B>& mb, const DistanceFunction df = ALL, 
+                  const LabelFunction lf = TRIVIAL) const;
   int CommonPrefixSuffix(const MBasic<B>& mb, const bool prefix);
   double DistanceSym(const MBasic<B>& mb, const DistanceFunSym distfun);
   
@@ -3550,7 +3551,9 @@ double MBasic<B>::Distance_EQUAL_LABELS(const MBasic<B>& mb,
 
 */
 template<class B>
-double MBasic<B>::Distance(const MBasic<B>& mb) const {
+double MBasic<B>::Distance(const MBasic<B>& mb, 
+                           const DistanceFunction df /* = ALL */, 
+                           const LabelFunction lf /* = TRIVIAL */) const {
   if (!IsDefined() && !mb.IsDefined()) {
     return 0.0;
   }
@@ -3563,8 +3566,6 @@ double MBasic<B>::Distance(const MBasic<B>& mb) const {
   if (IsEmpty() || mb.IsEmpty()) {
     return 1.0;
   }
-  DistanceFunction df = ALL;
-  LabelFunction lf = TRIVIAL;
   typename B::base b1, b2, bs1, bs2, be1, be2;
   switch (df) {
     case FIRST: {

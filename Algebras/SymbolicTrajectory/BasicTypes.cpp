@@ -1625,7 +1625,7 @@ bool HybridDistanceParameters::setScaleFactor(const double value) {
 }
 
 bool HybridDistanceParameters::setGeoid(Geoid *value) {
-  geoid = value;
+  geoid = value->Clone();
   return true;
 }
  

@@ -1404,34 +1404,26 @@ struct distancesymInfo : OperatorInfo {
 /*
 \section{Operator ~hybriddistance~}
 
-distance: T x mpoint x T x mpoint x real (x geoid) -> real,
-          where T in {mplace, mlabel}
+distance: T x mpoint x T x mpoint -> real,   where T in {mplace, mlabel}
 
 \subsection{Type Mapping}
 
 */
 ListExpr hybriddistanceTM(ListExpr args) {
-  if (!nl->HasLength(args, 6) && !nl->HasLength(args, 7)) {
-    return NList::typeError("Expecting six or seven arguments.");
+  if (!nl->HasLength(args, 4)) {
+    return NList::typeError("Expecting four arguments.");
   }
   ListExpr first = nl->First(args);
   ListExpr third = nl->Third(args);
   if ((MLabel::checkType(first)  && MLabel::checkType(third))  || 
       (MPlace::checkType(first)  && MPlace::checkType(third))) {
     if (MPoint::checkType(nl->Second(args)) && 
-        MPoint::checkType(nl->Fourth(args)) &&
-        CcReal::checkType(nl->Fifth(args)) &&
-        CcReal::checkType(nl->Sixth(args))) {
-      if (nl->HasLength(args, 7)) {
-        if (Geoid::checkType(nl->Seventh(args))) {
-          return nl->SymbolAtom(CcReal::BasicType());
-        }
-      }
+        MPoint::checkType(nl->Fourth(args))) {
       return nl->SymbolAtom(CcReal::BasicType());
     }
   }
-  return NList::typeError("Expecting T x mpoint x T x mpoint x real x real "
-                          "(x geoid), where T in {mplace, mlabel}");
+  return NList::typeError("Expecting T x mpoint x T x mpoint,   "
+                          "where T in {mplace, mlabel}");
 }
 
 /*
@@ -1446,6 +1438,12 @@ int hybriddistanceSelect(ListExpr args) {
 }
 
 /*
+\subsection{Instance for storing parameters}
+
+*/
+HybridDistanceParameters hdp;
+
+/*
 \subsection{Value Mapping}
 
 */
@@ -1457,24 +1455,13 @@ int hybriddistanceVM(Word* args, Word& result, int message, Word& local,
   T *sym2 = static_cast<T*>(args[2].addr);
   MPoint *mp1 = static_cast<MPoint*>(args[1].addr);
   MPoint *mp2 = static_cast<MPoint*>(args[3].addr);
-  CcReal *threshold = static_cast<CcReal*>(args[4].addr);
-  CcReal *scaleFactor = static_cast<CcReal*>(args[5].addr);
-  Geoid *geoid = 0;
-  if (hasGeoid) {
-    geoid = static_cast<Geoid*>(args[6].addr);
-  }
   CcReal *res = static_cast<CcReal*>(result.addr);
   if (sym1->IsDefined() && sym2->IsDefined() && mp1->IsDefined() && 
-      mp2->IsDefined() && threshold->IsDefined() && scaleFactor->IsDefined()) {
-    if (threshold->GetValue() < 0.0 || threshold->GetValue() > 1.0) {
-      cout << "symbolic distance threshold must be in [0,1]" << endl;
-      res->SetDefined(false);
-      return 0;
-    }
+      mp2->IsDefined()) {
     CcReal symres(true);
-    double symDistance = sym1->Distance_ALL(*sym2, TRIVIAL);
-    if (symDistance <= threshold->GetValue()) {
-      res->Set(true, mp1->FrechetDistance(mp2,geoid) / scaleFactor->GetValue());
+    double symDistance = sym1->Distance(*sym2, hdp.distFun, hdp.labelFun);
+    if (symDistance <= hdp.threshold) {
+      res->Set(true, mp1->FrechetDistance(mp2, hdp.geoid) / hdp.scaleFactor);
     }
     else {
       res->Set(true, symDistance);
@@ -1511,12 +1498,6 @@ struct hybriddistanceInfo : OperatorInfo {
 gethybriddistanceparams: -> stream(tuple(Name: string, InputType: string, 
                                          Value: string))
 
-\subsection{Instance for storing parameters}
-
-*/
-HybridDistanceParameters hdp;
-
-/*
 \subsection{Type Mapping}
 
 */
@@ -1681,7 +1662,7 @@ int sethybriddistanceparamVM(Word* args, Word& result, int message, Word& local,
     }
     else if (name == "geoid") {
       if ((static_cast<Geoid*>(args[1].addr))->IsDefined()) {
-        res->Set(true, static_cast<Geoid*>(args[1].addr));
+        res->Set(true, hdp.setGeoid(static_cast<Geoid*>(args[1].addr)));
       }
     }
     else {
