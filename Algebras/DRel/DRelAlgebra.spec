@@ -14,6 +14,9 @@ operator comparedisttype alias COMPAREDISTTYPE pattern _ _ op
 operator drelcollect_box alias DRELCOLLECTBOX pattern _ op[_]
 operator drel2darray alias DREL2DARRAY pattern _ op
 
+operator count alias COUNT pattern _ op
+operator lcount alias LCOUNT pattern _ op[_]
+
 operator dsummarize alias DSUMMARIZE pattern _ op
 
 operator drelcreatebtree alias DRELCREATEBTREE pattern _ op[_,_]

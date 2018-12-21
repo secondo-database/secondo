@@ -57,6 +57,9 @@ extern Operator compareDistTypeOp;
 extern Operator drelcollect_boxOp;
 extern Operator drel2darrayOp;
 
+extern Operator countOp;
+extern Operator lcountOp;
+
 extern Operator dsummarizeOp;
 
 extern Operator drelfilterOp;
@@ -141,6 +144,9 @@ DRelAlgebra::DRelAlgebra() {
     AddOperator( &compareDistTypeOp );
     AddOperator( &drelcollect_boxOp );
     AddOperator( &drel2darrayOp );
+
+    AddOperator( &countOp );
+    AddOperator( &lcountOp );
 
     AddOperator( &dsummarizeOp );
 

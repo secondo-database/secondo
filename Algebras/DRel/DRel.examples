@@ -122,6 +122,20 @@ Example   : query darray1 drel2darray
 Result    : bug
 Remark    : remote server required
 
+Operator  : count
+Number    : 1
+Signature : drel -> int
+Example   : query drel1 count
+Result    : bug
+Remark    : remote server required
+
+Operator  : lcount
+Number    : 1
+Signature : drel -> darray
+Example   : query drel1 lcount[TRUE]
+Result    : bug
+Remark    : remote server required
+
 Operator  : dsummarize
 Number    : 1
 Signature : d[f]rel(rel(X)) -> stream(X)
