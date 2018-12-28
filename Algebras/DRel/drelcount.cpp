@@ -137,7 +137,8 @@ Get a d[f]rel and a bool as argument.
         }
         else {
             queryS = "(dmap " + drelptr + 
-                " \"\" (fun (dmapelem_1 ARRAYFUNARG1) (count dmapelem_1)))";
+                " \"\" (fun (dmapelem_1 ARRAYFUNARG1) (count (feed dmapelem_1)"
+                ")))";
         }
 
         ListExpr query;
@@ -209,7 +210,8 @@ Get a d[f]rel and a bool as argument.
         }
         else {
             queryS = "(dmap " + drelptr + 
-                " \"\" (fun (dmapelem_1 ARRAYFUNARG1) (count dmapelem_1)))";
+                " \"\" (fun (dmapelem_1 ARRAYFUNARG1) (count (feed dmapelem_1)"
+                ")))";
         }
 
         queryS = "(tie (getValue " + queryS +
