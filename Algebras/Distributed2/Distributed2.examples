@@ -816,3 +816,14 @@ Example   : query da1 makeShort["da1short", TRUE]
 Result    : bug
 Remark    : presence of an distributed secondo required
 
+
+Operator  : createSDArray
+Number    : 1
+Signature : string x rel -> sdarray
+Example   : query createSDArray("myObject", workers)
+Result    : bug
+Remark    : presence of an distributed Secondo required
+
+
+
+

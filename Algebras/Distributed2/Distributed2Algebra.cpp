@@ -22073,6 +22073,230 @@ Operator keepRemoteObjectsOp(
 );
 
 
+string getString(Attribute* attr, ListExpr type){
+  if(!attr->IsDefined()){
+    return "";
+  }
+  if(CcString::checkType(type)){
+     return ((CcString*)attr)->GetValue();
+  }
+  if(FText::checkType(type)){
+     return ((FText*)attr)->GetValue();
+  }
+  return "";
+}
+
+
+/*
+Operator ~createSDArray~
+
+*/
+ListExpr createSDArrayTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("wrong number of arguments");
+  }
+  // check uses args in type mapping
+  if(   !nl->HasLength(nl->First(args),2)
+     || !nl->HasLength(nl->Second(args),2)){
+    return listutils::typeError("internal error");
+  }  
+
+  // check first argument : the name 
+  ListExpr at1 = nl->First(args);
+  if(!CcString::checkType(nl->First(at1))){
+    return listutils::typeError("First argument is not a string");
+  }
+  if(nl->AtomType(nl->Second(at1))!=StringType){
+    return listutils::typeError("first argument is not constant");
+  }
+  string name = nl->StringValue(nl->Second(at1));
+  if(!stringutils::isIdent(name)){
+     return listutils::typeError("first argument is not a valid object name");
+  }
+
+  // check second argument: worker relation
+  ListExpr at2 = nl->Second(args);
+  ListExpr positions = nl->TheEmptyList();
+  ListExpr types = nl->TheEmptyList();
+  string errmsg;
+  if(!isWorkerRelDesc(nl->First(at2),positions,types,errmsg)){
+    return listutils::typeError("second argument is not a worker relation ("
+                                + errmsg+")");
+  }
+  if(nl->AtomType(nl->Second(at2))!=SymbolType){
+    return listutils::typeError("second argument is not a catalog relation");
+  }
+
+  SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+  Word rel;
+  bool defined;
+  string relname = nl->SymbolValue(nl->Second(at2));
+  if(!ctlg->GetObject(relname,rel, defined)){
+    return listutils::typeError("canno open relation " + relname);
+  }
+  if(!defined){
+    return listutils::typeError("the object " + relname 
+                                + " has no meaningful value");
+  }
+  Relation* r = (Relation*) rel.addr;
+  int noWorkers = r->GetNoTuples();
+  if(noWorkers == 0){
+    return listutils::typeError("The relation " + relname + " is empty");
+  }
+  // get the first tuple, connect to this worker and check the type of 
+  // the object with given name
+
+  GenericRelationIterator* it = r->MakeScan();
+  Tuple* tup = it->GetNextTuple();
+  delete it;
+  delete r;
+  if(!tup){
+    return listutils::typeError("problem in receiving the first "
+                                "tuple from relation " + relname);
+  }
+
+  string host = getString(tup->GetAttribute(nl->IntValue(nl->First(positions))),
+                          nl->First(types));
+  CcInt* Port = (CcInt*) tup->GetAttribute(nl->IntValue(nl->Second(positions)));
+  string cfg = getString(tup->GetAttribute(nl->IntValue(nl->Third(positions))),
+                         nl->Third(types));
+  if(host=="" || !Port->IsDefined() || cfg==""){
+    delete tup;
+    return listutils::typeError("invalid values in first tuple "
+                                "of worker relation");
+  }
+  int port = Port->GetValue();  
+  delete tup;
+  if(port<1){
+    return listutils::typeError("invalid port in first tuple "
+                                "of worker relation");
+  }
+  DArrayElement elem(host,port,0,cfg);
+  string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+  ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname); 
+  string query = "query " + name + " getTypeNL";
+  int errorCode;
+  double rt;
+
+  string resStr;
+  ci->simpleCommand(query, errorCode, errmsg, resStr,false, 
+                    rt, false, commandLog);
+  if(errorCode){
+    return listutils::typeError("retrieving type of " + name 
+                                + " leads to an error");
+  }
+
+
+  ListExpr resList;
+   
+  if(!nl->ReadFromString(resStr, resList)){
+    return listutils::typeError("invalid result in retrieving type of " + name);
+  }
+
+
+  if(!nl->HasLength(resList,2)){
+     return listutils::typeError("unexpected result in retrieving type of " 
+                                 + name);
+  }
+  if(nl->AtomType(nl->Second(resList))!=TextType){
+     return listutils::typeError("unexpected result value in "
+                                 "retrieving type of " + name);
+  }
+  string resText = nl->TextValue(nl->Second(resList));
+  if(!nl->ReadFromString(resText,resList)){
+    return listutils::typeError("getTypeNL returned invalid list format");
+  }
+  string tn;
+  int aid, tid;
+  if(!ctlg->LookUpTypeExpr(resList,tn,aid,tid)){
+    return listutils::typeError("getTypeNL returned an invalid "
+                                "type description");
+  }
+  return nl->ThreeElemList(
+               nl->SymbolAtom(Symbols::APPEND()),
+               positions,
+               SDArray::wrapType(resList));
+}
+
+template<class H, class C>
+int createSDArrayVMT(Word* args, Word& result, int message,
+                 Word& local, Supplier s) {
+
+  result = qp->ResultStorage(s);
+  SDArray* res = (SDArray*) result.addr;
+  res->setKeepRemoteObjects(true);
+  CcString* Name = (CcString*) args[0].addr;
+  Relation* rel = (Relation*) args[1].addr;
+  if(!Name->IsDefined()){
+     res->makeUndefined();
+     return 0;
+  }
+  // create an vector of DArrayElements from rel
+  vector<DArrayElement> elems;
+  int hostPos = ((CcInt*) args[2].addr)->GetValue();
+  int portPos = ((CcInt*) args[3].addr)->GetValue();
+  int cfgPos = ((CcInt*) args[4].addr)->GetValue();
+  GenericRelationIterator* it = rel->MakeScan();
+  Tuple* tup;
+  while((tup = it->GetNextTuple())){
+     H* host = (H*) tup->GetAttribute(hostPos);
+     CcInt* port = (CcInt*) tup->GetAttribute(portPos);
+     C* cfg = (C*) tup->GetAttribute(cfgPos);
+     if(host->IsDefined() && port->IsDefined() && cfg->IsDefined()){
+        DArrayElement elem(host->GetValue(), port->GetValue(), elems.size(),
+                           cfg->GetValue());
+        elems.push_back(elem);
+     }
+     tup->DeleteIfAllowed();
+  }
+  SDArray tmp(elems,Name->GetValue());
+  (*res) = tmp;
+  return 0;
+}
+
+
+ValueMapping createSDArrayVM[] = {
+   createSDArrayVMT<CcString,CcString>,
+   createSDArrayVMT<CcString,FText>,
+   createSDArrayVMT<FText,CcString>,
+   createSDArrayVMT<FText,FText>
+};
+
+int createSDArraySelect(ListExpr args){
+   ListExpr positions;
+   ListExpr types;
+   string err;
+   if(!isWorkerRelDesc(nl->Second(args),positions, types, err)){
+     return -1;
+   }
+   int n1 = CcString::checkType(nl->First(types))?0:2;
+   int n2 = CcString::checkType(nl->Third(types))?0:1;
+   return n1 + n2;
+}
+
+OperatorSpec createSDArraySpec(
+   "string x rel -> sdarray(X)",
+   "createSDArray(_,_)",
+   "Creates an SDarray from existing objects on workers",
+   "query makeSDArray(\"obj\",workers)"
+);
+
+Operator createSDArrayOp(
+   "createSDArray",
+   createSDArraySpec.getStr(),
+   4,
+   createSDArrayVM,
+   createSDArraySelect,
+   createSDArrayTM
+);
+
+
+
+
+
+
+
+
 /*
 3 Implementation of the Algebra
 
@@ -22315,6 +22539,10 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&makeShortOp);
 
    AddOperator(&keepRemoteObjectsOp);
+
+   AddOperator(&createSDArrayOp);
+   createSDArrayOp.SetUsesArgsInTypeMapping();
+
 
    pprogView = new PProgressView();
    MessageCenter::GetInstance()->AddHandler(pprogView);

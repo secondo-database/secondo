@@ -293,6 +293,8 @@ public:
         return si->setHeartbeat(hb1,hb2);
     }
 
+    inline NestedList* getNL(){ return mynl; }
+
 
 private:
 
