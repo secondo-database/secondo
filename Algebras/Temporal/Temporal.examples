@@ -772,3 +772,10 @@ Number   : 1
 Signature : {real, point} -> int
 Example   : query getGKZone(7.41)
 Result    : 2 
+
+Operator  : constmpoint
+Number    : 1
+Signature : periods x point -> mpoint
+Example   : query constmpoint(deftime(train1), mehringdamm)
+Result    : (mpoint ( ( ("2003-11-20-06:03" "2003-11-20-06:43" TRUE FALSE) (9396.0 9871.0 9396.0 9871.0))))
+

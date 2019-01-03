@@ -19601,6 +19601,73 @@ Operator getGKZoneOp(
 } // end of namespace ct
 
 
+/*
+Operator ~constmpoint~
+
+This operator creates a static point for a given periods.
+
+*/
+ListExpr constmpointTM(ListExpr args){
+  string err = "periods x point expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err+" (wrong number of args)");
+  }
+  if(!Periods::checkType(nl->First(args))){
+    return listutils::typeError(err+" (first arg is not a periods)");
+  }
+  if(!Point::checkType(nl->Second(args))){
+    return listutils::typeError(err+" (second arg is not a point)");
+  }
+  return listutils::basicSymbol<MPoint>();
+}
+
+int constmpointVM( Word* args, Word& result, int message, Word&
+                   local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  MPoint* res = (MPoint*) result.addr;
+  res->Clear();
+  Periods* periods = (Periods*) args[0].addr;
+  Point* point = (Point*) args[1].addr;
+  if(!periods->IsDefined() || !point->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  res->SetDefined(true);
+  double x = point->GetX();
+  double y = point->GetY();
+  for(int i=0;i<periods->GetNoComponents();i++){
+     Periods::unittype interval;
+     periods->Get(i,interval);
+     UPoint unit(interval,x,y,x,y);
+     res->MergeAdd(unit);
+  }
+  return 0;
+}
+
+OperatorSpec constmpointSpec(
+  "periods x point -> mpoint",
+  "constmpoint(_,_)",
+  "Creates a static mpoint at a certain position "
+  "that exists at given intervals",
+  "query constmpoint(periods1, point1)"
+);
+
+Operator constmpointOp(
+  "constmpoint",
+  constmpointSpec.getStr(),
+  constmpointVM,
+  Operator::SimpleSelect,
+  constmpointTM   
+);
+
+
+
+
+
+
+
+
 
 /*
 6 Creating the Algebra
@@ -19782,6 +19849,8 @@ class TemporalAlgebra : public Algebra
     AddOperator(&ct::replaceOp);
     AddOperator(&ct::removeOp);
     AddOperator(&ct::getGKZoneOp);
+
+    AddOperator(&constmpointOp);
 
 
 #ifdef USE_PROGRESS
