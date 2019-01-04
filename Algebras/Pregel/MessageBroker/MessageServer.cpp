@@ -46,6 +46,7 @@ namespace pregel {
   stateCondition(),
   initDoneCallback(initDoneCallback),
   socket(socket) {
+
   thread = new boost::thread(boost::bind(&MessageServer::run, this));
  }
 
@@ -66,7 +67,7 @@ namespace pregel {
   setState(WAITING, false);
   waitToResumeReading();
   try {
-   while (!thread->interruption_requested()) {
+   while (!boost::this_thread::interruption_requested()) {
     processMessage();
    }
   } catch (boost::thread_interrupted &e) {
@@ -192,7 +193,7 @@ namespace pregel {
  void MessageServer::waitToResumeReading() {
   boost::unique_lock<boost::mutex> lock(stateLock);
   stateCondition.wait(lock, [&]() {
-    return state == READING || thread->interruption_requested();
+    return state == READING || boost::this_thread::interruption_requested();
   });
  }
 
@@ -201,7 +202,6 @@ namespace pregel {
  }
 
  void MessageServer::requestPause() {
-//  setState(INTERRUPTED);
   setState(WAITING);
  }
 
