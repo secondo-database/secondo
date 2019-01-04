@@ -41,12 +41,7 @@ This file contains definitions of the members of classes Commander, Runner and R
 
 namespace pregel {
  Runner::Runner(WorkerConnection *connection, std::string &query)
-  : connection(connection), query(query), commandLog() {
-  if (!commandLog.logToFile("/home/squawk/Desktop/pregel/log/workerlog.log")) {
-   BOOST_LOG_TRIVIAL(warning)
-    << "Can't write log to file. for whatever reason.";
-  }
- }
+  : connection(connection), query(query), commandLog() {}
 
  Runner::~Runner() {}
 
@@ -65,8 +60,7 @@ namespace pregel {
 
  std::string Runner::run() noexcept(false) {
   if (hasRun) {
-   BOOST_LOG_TRIVIAL(warning)
-    << "But I have already run!?"; //TODO: limitation, or lenient?
+   BOOST_LOG_TRIVIAL(warning) << "But I have already run!?";
   }
   if (!connection->check(false, commandLog)) {
    if (!connection->reconnect(false, commandLog)) {
