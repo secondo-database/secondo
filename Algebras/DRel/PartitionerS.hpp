@@ -290,10 +290,10 @@ Repartitions the drel to a DFMatrix.
                     "Original) TRUE))) (Original Cell)) ((Cell (fun "
                     "(tuple_4 TUPLE) (cellnumber (bbox (attr tuple_4 "
                     + attr + "))"
-                    " grid))))) ((Original (fun (tuple_5 TUPLE) "
+                    " " + gridName + "))))) ((Original (fun (tuple_5 TUPLE) "
                     "(= (attr tuple_5 Cell) (extract (transformstream "
                     "(cellnumber (bbox (attr tuple_4 "
-                    + attr + ")) grid)) Elem)))))))";
+                    + attr + ")) " + gridName + ")) Elem)))))))";
 
                 partitionTMFun = nl->TwoElemList(
                     nl->FourElemList(
@@ -319,10 +319,11 @@ Repartitions the drel to a DFMatrix.
                     "(extend (extendstream (feed elem1_1)"
                     " ((Cell (fun (tuple_3 TUPLE) "
                     "(cellnumber (bbox (attr tuple_3 "
-                    + attr + ")) grid))))) "
+                    + attr + ")) " + gridName + "))))) "
                     "((Original (fun (tuple_4 TUPLE) (= (attr tuple_4 Cell) "
                     "(extract (transformstream (cellnumber (bbox "
-                    "(attr tuple_4 " + attr + ")) grid)) Elem)))))))";
+                    "(attr tuple_4 " + attr + ")) " + gridName + ")) "
+                    "Elem)))))))";
 
                 partitionTMFun = nl->TwoElemList(
                     nl->FourElemList(
@@ -363,7 +364,7 @@ Repartitions the drel to a DFMatrix.
 
                 queryS = "(partitionF " + nl->ToString(
                     DRelHelpers::createdrel2darray( sourcedType, drel ) ) +
-                    "\"\" (fun (elem1_1 FFR) (elem2_2 FFR) (extend "
+                    " \"\" (fun (elem1_1 FFR) (elem2_2 FFR) (extend "
                     "(extendstream (remove (filter (feed elem1_1) "
                     "(fun (streamelem_3 STREAMELEM) (= (attr streamelem_3 "
                     "Original) TRUE))) (Original Cell)) ((Cell (fun (tuple_4 "
@@ -379,7 +380,7 @@ Repartitions the drel to a DFMatrix.
             else { // anpassen
                 queryS = "(partitionF " + nl->ToString(
                     DRelHelpers::createdrel2darray( sourcedType, drel ) ) + 
-                    "\"\" (fun (elem1_1 FFR) (elem2_2 FFR) (extend "
+                    " \"\" (fun (elem1_1 FFR) (elem2_2 FFR) (extend "
                     "(extendstream (feed elem1_1) ((Cell (fun (tuple_3 TUPLE)"
                     " (cellnumber (bbox (attr tuple_3 " + attr + ")) " 
                     + nl->ToString( createGridPointerList( ) ) + ")))))"
@@ -524,7 +525,7 @@ Repartitions the drel to a DFMatrix.
 
 */
 
-        void setgrid( collection::Collection* _grid ) {
+        void setgrid( T* _grid ) {
 
             if( grid == _grid ) {
                 return;
@@ -535,6 +536,8 @@ Repartitions the drel to a DFMatrix.
             }
 
             grid = _grid;
+
+            grid->Copy( );
         }
 
     private:

@@ -69,98 +69,6 @@ using namespace distributed2;
 
 namespace drel {
 
-    template<class T>
-    bool computeCellGrid( ListExpr drelType, T* drel, bool filterOriginal, 
-        string attr, Word& result ) {
-
-        ListExpr filter;
-        if( filterOriginal ) {
-
-            filter = nl->ThreeElemList(
-                nl->SymbolAtom( "filter" ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "feed" ),
-                    nl->SymbolAtom( "dmapelem_1" ) ),
-                nl->ThreeElemList(
-                    nl->SymbolAtom( "fun" ),
-                    nl->TwoElemList(
-                        nl->SymbolAtom( "streamelem_2" ),
-                        nl->SymbolAtom( "STREAMELEM" ) ),
-                    nl->ThreeElemList(
-                        nl->SymbolAtom( "attr" ),
-                        nl->SymbolAtom( "streamelem_2" ),
-                        nl->SymbolAtom( "Original" ) ) ) );
-        }
-        else {
-            filter = nl->TwoElemList(
-                nl->SymbolAtom( "feed" ),
-                nl->SymbolAtom( "dmapelem_1" ) );
-        }
-
-        ListExpr query = nl->TwoElemList(
-            nl->SymbolAtom( "getValue" ),
-            nl->FourElemList(
-                nl->SymbolAtom( "dmap" ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "drel2darray" ),
-                    nl->TwoElemList(
-                        drelType,
-                        nl->TwoElemList(
-                            nl->SymbolAtom( "ptr" ),
-                            listutils::getPtrList( drel ) ) ) ),
-                nl->StringAtom( "" ),
-                nl->ThreeElemList(
-                nl->SymbolAtom( "fun" ),
-                nl->TwoElemList(
-                    nl->SymbolAtom( "dmapelem_1" ),
-                    nl->SymbolAtom( "ARRAYFUNARG1" ) ),
-                nl->ThreeElemList(
-                    nl->SymbolAtom( "rect2cellgrid" ),
-                    nl->ThreeElemList(
-                        nl->SymbolAtom( "drelcollect_box" ),
-                        nl->TwoElemList(
-                            nl->SymbolAtom( "transformstream" ),
-                            nl->FourElemList(
-                                nl->SymbolAtom( "projectextend" ),
-                                nl->ThreeElemList( 
-                                    nl->SymbolAtom( "remove" ),
-                                    filter,
-                                    DRelHelpers::getRemovePartitonAttr( 
-                                        spatial2d ) ),
-                                nl->TheEmptyList( ),
-                                nl->OneElemList(
-                                    nl->TwoElemList(
-                                        nl->SymbolAtom( "Box" ),
-                                        nl->ThreeElemList(
-                                            nl->SymbolAtom( "fun" ),
-                                            nl->TwoElemList(
-                                                nl->SymbolAtom( "tuple_2" ),
-                                                nl->SymbolAtom( "TUPLE" ) ),
-                                        nl->TwoElemList(
-                                            nl->SymbolAtom( "bbox" ),
-                                            nl->ThreeElemList(
-                                                nl->SymbolAtom( "attr" ),
-                                                nl->SymbolAtom( "tuple_2" ),
-                                                nl->SymbolAtom( attr ) ) ) ) )
-                                                     ) ) ),
-                        nl->BoolAtom( true ) ),
-                        nl->IntAtom( 37 ) ) ) ) );
-
-        cout << "query" << endl;
-        cout << nl->ToString( query ) << endl;
-        
-        string typeString, errorString;
-        bool correct = false;
-        bool evaluable = false;
-        bool defined = false;
-        bool isFunction = false;
-        bool resBool = QueryProcessor::ExecuteQuery( query, 
-            result, typeString, errorString, correct, evaluable,
-            defined, isFunction );
-
-        return correct && evaluable && defined && resBool;
-    }
-
 /*
 1.1 Type Mapping ~drelspatialpartitionTM~
 
@@ -301,25 +209,23 @@ Uses a d[f]rel and an attribute to repartition the d[f]rel by the given
 attribute.
 
 */
-    template<class R, class T, class G, bool gridParm>
+    template<class R, class T, int x, class G>
     int drelspatialpartitionVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
         cout << "drelspatialpartitionVMT" << endl;
         #endif
-        DFRel* resultDFRel = ( DFRel* )result.addr;
-
-        int x = qp->GetNoSons( s );
-
+        
         ListExpr drelType = qp->GetType( qp->GetSon( s, 0 ) );
         R* drel = ( R* )args[ 0 ].addr;
-        string attrName = ( ( CcString* )args[ x - 2 ].addr )->GetValue( );
-
-        distributionType dType;
-        int attr, key;
-        DFRel::checkDistType( 
-            nl->Third( qp->GetType( s ) ), dType, attr, key );
+        string attrName;
+        if( x == 0 ) {
+            attrName = ( ( CcString* )args[ 2 ].addr )->GetValue( );
+        }
+        else {
+            attrName = ( ( CcString* )args[ 3 ].addr )->GetValue( );
+        }
 
         // start partitioner
         PartitionerS<R, T, G>* parti =
@@ -327,72 +233,108 @@ attribute.
                 attrName, nl->Fourth( nl->Third( qp->GetType( s ) ) ),
                 drel, drelType, 1238 );
 
-        // compute the grid
-        if( !parti->computeGrid( ) ) {
+        if( x == 0 ) {
+            // compute the grid
+            if( !parti->computeGrid( ) ) {
+                result = qp->ResultStorage( s );
+                ( ( DFRel* )result.addr )->makeUndefined( );
+                return 0;
+            }
+            parti->getGrid( )->Copy( );
+        }
+        else if( x == 1 ) {
+            G* grid = ( G* )args[ 2 ].addr;
+            parti->setgrid( grid );
+        }
+        else if( x == 2 ) {
+            DistTypeBasic* inDType;
+            if( DRel::checkType( qp->GetType( qp->GetSon( s, 2 ) ) ) ) {
+                DRel* drelIn = ( DRel* )args[ 2 ].addr;
+                inDType = drelIn->getDistType( );
+            }
+            else {
+                DFRel* drelIn = ( DFRel* )args[ 2 ].addr;
+                inDType = drelIn->getDistType( );
+            }
 
-            resultDFRel->makeUndefined( );
+            G* grid = ( ( DistTypeSpatial<G>* )inDType )->getGrid( );
+            parti->setgrid( grid );
+        }
+
+        if( !parti->sharegrid( ) ) {
+            result = qp->ResultStorage( s );
+            ( ( DFRel* )result.addr )->makeUndefined( );
             return 0;
         }
 
-        // start repartitioning
         if( !parti->repartition2DFMatrix( ) ) {
-
-            resultDFRel->makeUndefined( );
+            result = qp->ResultStorage( s );
+            ( ( DFRel* )result.addr )->makeUndefined( );
             return 0;
         }
-
-        G* grid = parti->getGrid( );
-        grid->Copy( );
 
         DFMatrix* matrix = parti->getDFMatrix( );
-        ListExpr matrixType = parti->getMatrixType( );
 
-        string query = "(collect2 " + nl->ToString(
-            DRelHelpers::createPointerList( matrixType, matrix ) ) +
-            " \"\" 1238)";
-
-        Word resultDFArray;
-        if( !QueryProcessor::ExecuteQuery( query, resultDFArray) ) {
-            resultDFRel->makeUndefined( );
+        if( !matrix || !matrix->IsDefined( ) ) {
+            cout << "repartition failed!!" << endl;
+            result = qp->ResultStorage( s );
+            ( ( DFRel* )result.addr )->makeUndefined( );
             return 0;
         }
 
-        DFArray* dfarray = ( DFArray* )resultDFArray.addr;
-        resultDFRel->copyFrom( *dfarray );
+        CcString* name = new CcString( "" );
+        CcInt* port = new CcInt( true, 1238 );
+        ArgVector collect2Args = {
+            matrix,
+            name,
+            port };
 
+        collect2VM( collect2Args, result, message, local, s );
+        DFRel* resultDFRel = ( DFRel* )result.addr;
+
+        delete name;
+        delete port;
         delete parti;
-        delete dfarray;
-
-        DistTypeSpatial<G>* distType = new DistTypeSpatial<G>( 
-            range, attr, key, grid );
-        resultDFRel->setDistType( distType );
-
-        return 0;
-    }
-
-    template<class R, class T, bool gridParm>
-    int drelspatialpartitionVMT( Word* args, Word& result, int message,
-        Word& local, Supplier s ) {
-
-        #ifdef DRELDEBUG
-        cout << "drelspatialpartitionVMT" << endl;
-        #endif
-        result = qp->ResultStorage( s );
 
         distributionType dType;
         int attr, key;
         DFRel::checkDistType( 
             nl->Third( qp->GetType( s ) ), dType, attr, key );
 
+        DistTypeSpatial<G>* resultDType = new DistTypeSpatial<G>( 
+            dType, attr, key, parti->getGrid( ) );
+
+        resultDFRel->setDistType( resultDType );
+
+        return 0;
+    }
+
+    template<class R, class T, int x>
+    int drelspatialpartitionVMT( Word* args, Word& result, int message,
+        Word& local, Supplier s ) {
+
+        #ifdef DRELDEBUG
+        cout << "drelspatialpartitionVMT" << endl;
+        #endif
+
+        if( x < 0 || x > 3 ) {
+            result = qp->ResultStorage( s );
+            DFRel* resultDFRel = ( DFRel* )result.addr;
+            resultDFRel->makeUndefined( );
+            return 0;
+        }
+
+        distributionType dType;
+        DRelHelpers::drelCheck( qp->GetType( s ), dType );
+
+        // start partitioner
         if( dType == spatial2d ) {
-            drelspatialpartitionVMT
-                <R, T, temporalalgebra::CellGrid2D, gridParm>(
-                    args, result, message, local, s);     
+            drelspatialpartitionVMT<R, T, x, temporalalgebra::CellGrid2D>
+                ( args, result, message, local, s );
         }
         else {
-            drelspatialpartitionVMT
-                <R, T, temporalalgebra::CellGrid<3>, gridParm>(
-                    args, result, message, local, s);     
+            drelspatialpartitionVMT<R, T, x, temporalalgebra::CellGrid<3>>
+                ( args, result, message, local, s );
         }
 
         return 0;
@@ -403,10 +345,14 @@ attribute.
 
 */
     ValueMapping drelspatialpartitionVM[ ] = {
-        drelspatialpartitionVMT<DRel, DArray, false>,
-        drelspatialpartitionVMT<DFRel, DFArray, false>,
-        drelspatialpartitionVMT<DRel, DArray, true>,
-        drelspatialpartitionVMT<DFRel, DFArray, true>
+        drelspatialpartitionVMT<DRel, DArray, 0>,
+        drelspatialpartitionVMT<DFRel, DFArray, 0>,
+        drelspatialpartitionVMT<DRel, DArray, 1>,
+        drelspatialpartitionVMT<DFRel, DFArray, 1>,
+        drelspatialpartitionVMT<DRel, DArray, 2>,
+        drelspatialpartitionVMT<DFRel, DFArray, 2>,
+        drelspatialpartitionVMT<DRel, DArray, 3>,
+        drelspatialpartitionVMT<DFRel, DFArray, 3>
     };
 
 /*
@@ -415,13 +361,15 @@ attribute.
 */
     int drelspatialpartitionSelect( ListExpr args ) {
 
-        int x = nl->HasLength( args, 3 ) 
-             && ( Vector::checkType( nl->Third( args ) ) 
-                || DRel::checkType( nl->Third( args ) ) 
-                || DRel::checkType( nl->Third( args ) ) ) ?
-            2 : 0;
+        bool thirdArg = nl->HasLength( args, 3 );
+        int x = 0;
 
-        return DRel::checkType( nl->First( args ) ) ? x + 0 : x + 1;
+        if( thirdArg ) {
+            x = Vector::checkType( nl->Third( args ) ) ? 1 :
+                DRel::checkType( nl->Third( args ) ) ? 2 : 3;
+        }
+
+        return DRel::checkType( nl->First( args ) ) ? 2 * x : 2 * x + 1;
     }
 
 /*
@@ -446,7 +394,7 @@ attribute.
     Operator drelspatialpartitionOp(
         "drelspatialpartition",
         drelspatialpartitionSpec.getStr( ),
-        4,
+        8,
         drelspatialpartitionVM,
         drelspatialpartitionSelect,
         drelspatialpartitionTM
