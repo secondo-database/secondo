@@ -21758,6 +21758,14 @@ class makeDArraySlotRunner{
         ci->simpleCommand(cmd,err,errmsg, res, false,rt,false,commandLog,true,
                             algInstance->getTimeout());
         success = err == 0; 
+        if(!success){
+           cout << "command '" << cmd << "' failed" << endl;
+           cout << "with error code " << err << endl;
+           cout << "and error  message " << errmsg << endl;
+           cout << "server : " << ci->getHost() << endl;
+           cout << "port   : " << ci->getPort() << endl;
+           cout << "PID    : " << ci->serverPid() << endl;
+        }
      }
 };
 
