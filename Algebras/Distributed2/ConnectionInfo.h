@@ -295,6 +295,9 @@ public:
 
     inline NestedList* getNL(){ return mynl; }
 
+    inline SecondoInterfaceCS* getInterface(){
+       return si;
+    }
 
 private:
 
