@@ -6596,6 +6596,7 @@ int createDArrayVMT(Word* args, Word& result, int message,
 
    // set size, name and workers using standard mapping
    res->set(si,n,v);
+   
 
    // now, we have to check, on which worker the slots are stored
 
@@ -6703,7 +6704,7 @@ int createDArrayVMT(Word* args, Word& result, int message,
            res->setResponsible(i,themap[i]);
         }
      }
-  
+     res->setKeepRemoteObjects(true);
      return 0;
    } catch(SecondoException e){
      if(trace){
@@ -22259,6 +22260,7 @@ int createSDArrayVMT(Word* args, Word& result, int message,
   }
   SDArray tmp(elems,Name->GetValue());
   (*res) = tmp;
+  res->setKeepRemoteObjects(true);
   return 0;
 }
 
