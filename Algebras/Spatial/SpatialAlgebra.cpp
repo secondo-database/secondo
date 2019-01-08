@@ -10867,7 +10867,9 @@ int SpatialCollect_slineVMPointstream(Word* args, Word& result, int message,
         L->SetStartSmaller(*firstPoint < *secondPoint);
     }
     lp->DeleteIfAllowed();
-    secondPoint->DeleteIfAllowed();
+    if(secondPoint){
+        secondPoint->DeleteIfAllowed();
+    }
   }
   firstPoint->DeleteIfAllowed();
   return 0;
