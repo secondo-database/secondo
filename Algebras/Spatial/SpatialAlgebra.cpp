@@ -10793,79 +10793,84 @@ int SpatialCollect_slineVMPointstream(Word* args, Word& result, int message,
                                      Word& local, Supplier s){
   result = qp->ResultStorage(s);
   ResLineType* L = static_cast<ResLineType*>(result.addr);
-  Point* P0 = 0;
-  Point* P1 = 0;
-  Word elem;
   L->Clear();
   L->SetDefined( true );
-  qp->Open(args[0].addr);
-  qp->Request(args[0].addr, elem);
-  if(!qp->Received(args[0].addr)){
-    qp->Close(args[0].addr);
-    return 0;
-  }
-  P0 = static_cast<Point*>(elem.addr);
-  assert( P0 != 0 );
-  if(!P0->IsDefined()){ // found undefined Elem
-    qp->Close(args[0].addr);
+  CcBool* IgnoreUndef = (CcBool*) args[1].addr;
+  if(!IgnoreUndef->IsDefined()){
     L->SetDefined(false);
-    P0->DeleteIfAllowed();
-    qp->Close(args[0].addr);
     return 0;
   }
-  Point FirstPoint = *P0;
-  Point SecondPoint = FirstPoint;
-  Point LastPoint = FirstPoint;
-  bool first = true;
-  L->StartBulkLoad();
-  qp->Request(args[0].addr, elem);
-  while ( qp->Received(args[0].addr) ){
-    P1 = static_cast<Point*>(elem.addr);
-    assert( P1 != 0 );
-    if(!P1->IsDefined()){
-      qp->Close(args[0].addr);
-      L->Clear();
-      L->SetDefined(false);
-      if(P0){ P0->DeleteIfAllowed(); P0 = 0; }
-      if(P1){ P1->DeleteIfAllowed(); P1 = 0; }
-      qp->Close(args[0].addr);
-      return 0;
-    }
-    if (first)
-    {
-      SecondPoint = *P1;
-      first = false;
-    }
-    LastPoint = *P1;
-    if(AlmostEqual(*P0,*P1)){
-      qp->Request(args[0].addr, elem);
-      P1->DeleteIfAllowed();
-      P1 = 0;
-    } else {
-      HalfSegment hs(true, *P0, *P1); // create halfsegment
-      (*L) += (hs);
-      hs.SetLeftDomPoint( !hs.IsLeftDomPoint() ); //createcounter-halfsegment
-      (*L) += (hs);
-      P0->DeleteIfAllowed();
-      P0 = P1; P1 = 0;
-      qp->Request(args[0].addr, elem); // get next Point
-    }
-   }
-   L->EndBulkLoad(); // sort and realminize
-   if (L->IsCycle())
-   {
-     if (FirstPoint > SecondPoint) L->SetStartSmaller(false);
-     else L->SetStartSmaller(true);
-   }
-   else
-   {
-    if(FirstPoint > LastPoint) L->SetStartSmaller(false);
-    else L->SetStartSmaller(true);
-   }
+  bool ignoreUndef = IgnoreUndef->GetValue();
 
-   qp->Close(args[0].addr);
-   if(P0){ P0->DeleteIfAllowed(); P0 = 0; }
-     return 0;
+  Stream<Point> stream(args[0]);
+  Point* firstPoint = 0; // the very first point
+  Point* lp = 0; 
+  stream.open();
+
+  // search for the first defined point in stream
+  while( (firstPoint == 0) && ((lp = stream.request())!=0) ){
+    if(!lp->IsDefined()){
+       lp->DeleteIfAllowed();
+       if(!ignoreUndef){
+          L->SetDefined(false);
+          stream.close();
+          return 0;
+       }
+    } else {
+       firstPoint = (Point*) lp->Copy();
+    }
+  }
+ 
+  if(!firstPoint){ // no defined point found in stream
+    stream.close();
+    return 0;  // an empty line
+  }
+
+
+  Point* cp;
+  Point* secondPoint = 0;
+  // iterate over remaining points
+  L->StartBulkLoad();
+  while( (cp = stream.request()) != 0){
+    if(!cp->IsDefined()){ // spacial case undefined point in stream
+      cp->DeleteIfAllowed();
+      if(!ignoreUndef){
+         firstPoint->DeleteIfAllowed();
+         lp->DeleteIfAllowed();
+         stream.close();
+         L->Clear();
+         L->SetDefined(false);
+         return 0;
+      }
+    } else {
+      if(AlmostEqual(*lp,*cp)){
+         cp->DeleteIfAllowed(); //ignore point that is too close to the last one
+      } else { // normal case: add halfsegments
+         if(!secondPoint){
+            secondPoint = (Point*) cp->Copy();
+         }
+         HalfSegment hs(true, *lp, *cp); // create halfsegment
+         (*L) += (hs);
+         hs.SetLeftDomPoint( !hs.IsLeftDomPoint() ); 
+         (*L) += (hs);
+         lp->DeleteIfAllowed();
+         lp = cp;
+      }
+    }
+  }
+  stream.close();
+  L->EndBulkLoad(); // sort and realminize
+  if(lp){
+    if(!L->IsCycle()){
+        L->SetStartSmaller(*firstPoint < *lp);
+    } else {
+        L->SetStartSmaller(*firstPoint < *secondPoint);
+    }
+    lp->DeleteIfAllowed();
+    secondPoint->DeleteIfAllowed();
+  }
+  firstPoint->DeleteIfAllowed();
+  return 0;
 }
 
 template <class StreamLineType, class ResLineType>
