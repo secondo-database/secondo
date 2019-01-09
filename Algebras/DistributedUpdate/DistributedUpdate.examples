@@ -3,8 +3,70 @@ Restore : NO
 
 Operator : drelinsert
 Number   : 1
-Signature: stream(tuple(X)) x drel(rel(tuple(X))) x int -> dfrel(rel(tuple(x@[TID:tid]))) 
+Signature: stream(tuple(X)) x drel(rel(tuple(X))) x int -> dfrel(rel(tuple(X@[TID:tid]))) 
 Example  : query rel1 feed drel1 drelinsert [1238]
 Result   : bug
 Remark   : remote server required
 
+Operator : drelinserttuple
+Number   : 1
+Signature: drel(rel(tuple(X))) x attrlist x int -> dfrel(rel(tuple(X@[TID:tid]))) 
+Example  : query drel1 drelinserttuple [10, "West"; 1238]
+Result   : bug
+Remark   : remote server required
+
+Operator : dreldelete
+Number   : 1
+Signature: d[f]rel(rel(tuple(X))) x drel(rel(tuple(X))) x int -> dfrel(rel(tuple(X@[TID:tid]))) 
+Example  : query drel1 drelfilter[.No > 5] drel1 dreldelete [1238]
+Result   : bug
+Remark   : remote server required
+
+Operator : drelupdate
+Number   : 1
+Signature: d[f]rel(rel(tuple(X))) x drel(rel(tuple(X))) x funlist x int -> dfrel(rel(tuple(X@[X1_old ...Xn_old]@[TID:tid]))) 
+Example  : query drel1 drelfilter[.No > 5] drel1 drelupdate [BevT: .BevT + 1; 1238]
+Result   : bug
+Remark   : remote server required
+
+Operator : dreladdid
+Number   : 1
+Signature: drel(rel(tuple(X))) -> dfrel(rel(tuple(X@[TID:tid]))) 
+Example  : query drel dreladdid
+Result   : bug
+Remark   : remote server required
+
+Operator : dreldeletebyid
+Number   : 1
+Signature: d[f]rel(rel(tuple(X))) x drel(rel(tuple(Y))) x attr x int -> dfrel(rel(tuple(Y@[TID:tid]))) 
+Example  : query drel1 dreladdid head[5] drel1 dreldeletebyid[TID, 1238]
+Result   : bug
+Remark   : remote server required
+
+Operator : drelupdatebyid
+Number   : 1
+Signature: d[f]rel(rel(tuple(X))) x drel(rel(tuple(Y))) x attr x funlist x int -> dfrel(rel(tuple(X))) 
+Example  : query drel1 dreladdid drel1 drelupdatebyid [TID; No: ..No + 1; 1238]
+Result   : bug
+Remark   : remote server required
+
+Operator : drelinsertrtree
+Number   : 1
+Signature: d[f]rel(rel(tuple(X@[TID:tid]))) x da(rtree(tuple(X))) x attr x int -> dfrel(rel(tuple(X@[TID:tid]))) 
+Example  : query drel1 da_rtree drelinsertrtree [GeoData, 1238]
+Result   : bug
+Remark   : remote server required
+
+Operator : dreldeletertree
+Number   : 1
+Signature: d[f]rel(rel(tuple(X@[TID:tid]))) x da(rtree(tuple(X))) x attr x int -> dfrel(rel(tuple(X@[TID:tid]))) 
+Example  : query drel1 da_rtree dreldeletertree [GeoData, 1238]
+Result   : bug
+Remark   : remote server required
+
+Operator : drelupdatertree
+Number   : 1
+Signature: d[f]rel(rel(tuple(X@[X1_old t1]@...[Xn_old tn]@[TID:tid]))) x da(rtree(tuple(X))) x attr x int -> dfrel(rel(tuple(X@[X1_old t1]@...[Xn_old tn]@[TID:tid])))
+Example  : query drel1 da_rtree drelupdatertree [GeoData, 1238]
+Result   : bug
+Remark   : remote server required
