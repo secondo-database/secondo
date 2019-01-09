@@ -869,8 +869,6 @@ FeatureSignature::In(const ListExpr typeInfo, const ListExpr instance,
     ListExpr first = nl->Empty();
     ListExpr rest = instance;
       
-    std::cout << "in:" << std::endl;
-      
     while(!nl->IsEmpty(rest))
     {
         first = nl->First(rest);
