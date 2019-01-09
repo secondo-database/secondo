@@ -216,6 +216,8 @@ Type mapping for drelbulkloadrtree. Expect a drel, a string and an attribute.
                 nl->ThreeElemList(
                     nl->SymbolAtom( "bulkloadrtree" ),
                     nl->ThreeElemList(
+                      nl->SymbolAtom("remove"),
+                      nl->ThreeElemList(
                         nl->SymbolAtom( "sortby" ),
                         nl->ThreeElemList(
                             nl->SymbolAtom( "extend" ),
@@ -245,9 +247,11 @@ Type mapping for drelbulkloadrtree. Expect a drel, a string and an attribute.
                                             nl->SymbolAtom( "tuple_3" ),
                                             nl->Second( nl->Third( args ) 
                                                 ) ) ) ) ) ), // Attribute
-                        nl->OneElemList( 
-                            nl->SymbolAtom( "MBR" ) ) ),
-                    nl->SymbolAtom( "MBR" ) ) ) );
+                          nl->OneElemList( 
+                              nl->SymbolAtom( "MBR" ) ) ), // sortby
+                          nl->OneElemList( nl->SymbolAtom("MBR"))
+                        ),
+                        nl->Second( nl->Third( args )) )));
 
         #ifdef DRELDEBUG
         cout << "funType" << endl;
