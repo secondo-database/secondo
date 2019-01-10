@@ -40,6 +40,8 @@ extern boost::mutex nlparsemtx;
 boost::mutex createRelMut;
 boost::mutex copylistmutex;
 
+extern NestedList* nl;
+
 namespace distributed2
 {
 
@@ -659,13 +661,14 @@ void ConnectionInfo::simpleCommand(const string& command1,
                       command, runtime, serr.code);
     error = serr.code;
     errMsg = serr.msg;
-    // copy resultlist from local nested list to global nested list
-    {
+    if(nl!=mynl){
+        // copy resultlist from local nested list to global nested list
         boost::lock_guard < boost::mutex > guard(copylistmutex);
-        assert(mynl != nl);
         resList = mynl->CopyList(myResList, nl);
         mynl->Destroy(myResList);
-    }
+    } else {
+       resList = myResList;
+    }	    
 }
 
 /*
