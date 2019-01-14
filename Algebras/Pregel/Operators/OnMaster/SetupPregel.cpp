@@ -150,7 +150,7 @@ namespace pregel {
                                   slotNumber);
 
     PregelContext::get().addWorker(worker);
-
+    tuple->DeleteIfAllowed();
     ++slotNumber;
    }
 

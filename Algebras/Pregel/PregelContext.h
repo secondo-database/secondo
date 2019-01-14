@@ -45,6 +45,7 @@ This header file contains definitions of the PregelContext class
 #include <ostream>
 #include "typedefs.h"
 #include "Helpers/WorkerConfig.h"
+#include "Helpers/PregelStatus2Helper.h"
 
 namespace pregel {
  /*
@@ -116,6 +117,14 @@ namespace pregel {
    sstream << "  MessageType          : " << messageType << std::endl;
    sstream << "  MessageType (numeric):" << numericMessageType << std::endl;
    sstream << std::endl;
+  }
+  
+  void healthReport(PregelStatus2Helper& ps2h) {
+     ps2h.setAddressIndex(addressIndex);
+     ps2h.setFunctionText(function);
+     ps2h.setSuperStep(superstep); 
+     ps2h.setMessageType(messageType);
+     ps2h.setMessageTypeNumeric(numericMessageType);  
   }
 
   /*

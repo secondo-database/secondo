@@ -46,6 +46,7 @@ This header file contains the declaration of the classes Commander, Runner and R
 #include "../../Distributed2/ConnectionInfo.h"
 #include <boost/log/trivial.hpp>
 #include "../PregelContext.h"
+#include "Algebras/Distributed2/CommandLog.h"
 
 namespace pregel {
  template<typename result_type>

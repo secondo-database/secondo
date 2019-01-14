@@ -38,8 +38,7 @@ This header file defines the class Metrics
 
 */
 
-#ifndef SECONDO_STATISTICS_H
-#define SECONDO_STATISTICS_H
+#pragma once
 
 #define GATHER_PREGEL_METRICS
 
@@ -64,6 +63,7 @@ This header file defines the class Metrics
 #endif
 
 #include "../PregelContext.h"
+#include "../Helpers/PregelStatus2Helper.h"
 #include <chrono>
 
 namespace pregel {
@@ -101,6 +101,7 @@ std::chrono::duration_values<std::chrono::milliseconds>::zero()
    double productivity;
 
    void print(std::stringstream &sstream);
+   void fill(PregelStatus2Helper& ps2h);
   };
 
   static Metrics &get();
@@ -122,4 +123,3 @@ std::chrono::duration_values<std::chrono::milliseconds>::zero()
 }
 
 
-#endif //SECONDO_STATISTICS_H

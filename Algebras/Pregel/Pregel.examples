@@ -73,7 +73,13 @@ Result   : TRUE
 Operator : pregelStatus
 Number   : 1
 Signature: () -> text
-Example  : query pregelStatus();
+Example  : query pregelStatus() contains 'Messages';
+Result   : TRUE
+
+Operator : pregelStatus2
+Number   : 1
+Signature: () -> rel 
+Example  : query pregelStatus2() count > -1;
 Result   : TRUE
 
 Operator : startPregelWorker

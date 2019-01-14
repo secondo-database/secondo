@@ -47,6 +47,8 @@ This header file contains declarations of the Algebra constructor and some auxil
 #include <boost/log/trivial.hpp>
 #include "Helpers/WorkerConfig.h"
 #include "Helpers/Commander.h"
+#include "Helpers/PregelStatus2Helper.h"
+
 #include <regex>
 
 namespace pregel {
@@ -81,6 +83,7 @@ namespace pregel {
   void reset();
 
   void healthReport(std::stringstream &sstream);
+  void healthReport(PregelStatus2Helper& ps2h);
 
  private:
   /*

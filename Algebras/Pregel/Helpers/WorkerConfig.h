@@ -85,10 +85,11 @@ namespace pregel {
   }
 
   virtual ~WorkerConfig() {
-   if (connection == nullptr) {
+   /*if (connection != nullptr) {
     connection->killConnection();
     delete connection;
    }
+    */
   }
  };
 }

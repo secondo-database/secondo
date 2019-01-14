@@ -150,4 +150,18 @@ namespace pregel {
           (100.0 * productivity) << "%" << std::endl;
   sstream << std::endl;
  }
+
+ void Metrics::Report::fill(PregelStatus2Helper& ps2h){
+    ps2h.setMessagesSent(messagesSentOverNetwork);
+    ps2h.setMessagesDirect(messagesQueuedDirectly);
+    ps2h.setMessagesSentPerSuperstep(messagesSentPerSuperstep);
+    ps2h.setMessagesReceived(messagesReceived);
+    ps2h.setMessagesReceivedPerSuperStep(messagesReceivedPerSuperstep);
+    ps2h.setMessagesDiscarded(messagesDiscarded);
+    ps2h.setTimeProductive(timeProductive);
+    ps2h.setTimeIdle(timeIdle);
+    ps2h.setProductivity(100.0 * productivity);
+ }
+
+
 }

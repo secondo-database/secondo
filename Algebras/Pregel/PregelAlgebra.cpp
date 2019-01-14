@@ -51,6 +51,7 @@ Definition of PregelAlgebra class
 #include "Operators/OnWorker/ExpectPregelMessages.h"
 #include "Operators/OnWorker/StartLoopbackMessageClient.h"
 #include "Operators/OnWorker/PregelStatus.h"
+#include "Operators/OnWorker/PregelStatus2.h"
 #include "Operators/OnWorker/StartPregelWorker.h"
 #include "PregelContext.h"
 #include "Helpers/Metrics.h"
@@ -77,6 +78,7 @@ namespace pregel {
   AddOperator(&ExpectPregelMessages::expectPregelMessages);
   AddOperator(&StartLoopbackMessageClient::startLoopbackMessageClient);
   AddOperator(&PregelStatus::pregelStatus);
+  AddOperator(&PregelStatus2::pregelStatus2);
   AddOperator(&StartPregelWorker::startPregelWorker);
   AddOperator(&SetPregelFunctionWorker::setPregelFunctionWorker);
   SetPregelFunctionWorker::setPregelFunctionWorker.SetUsesArgsInTypeMapping();
@@ -114,6 +116,16 @@ namespace pregel {
   Metrics::get().report().print(sstream);
   #endif
  }
+
+ void PregelAlgebra::healthReport(PregelStatus2Helper& ps2h) {
+  PregelContext::get().healthReport(ps2h);
+  #ifdef GATHER_PREGEL_METRICS
+  Metrics::get().report().fill(ps2h);
+  #endif
+ }
+
+
+
 
  void PregelAlgebra::reset() {
   BOOST_LOG_TRIVIAL(debug) << "Reset Algebra";
