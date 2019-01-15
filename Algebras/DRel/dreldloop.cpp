@@ -206,7 +206,7 @@ Type mapping for drelbulkloadrtree. Expect a drel, a string and an attribute.
                 nl->FourElemList(
                     nl->SymbolAtom( "rtree" ),
                     nl->Second( relType ),
-                    nl->SymbolAtom( "rect" ),
+                    nl->Second( nl->Third( args )),
                     nl->BoolAtom( false ) ) ),
             nl->ThreeElemList(
                 nl->SymbolAtom( "fun" ),
