@@ -185,7 +185,7 @@ Type mapping for drelbulkloadrtree. Expect a drel, a string and an attribute.
 
         if( !DRel::checkType( nl->First( nl->First( args ) ) ) ) {
             return listutils::typeError(
-                err + ": first argument is not a d[f]rel" );
+                err + ": first argument is not a drel" );
         }
 
         if( !CcString::checkType( nl->First( nl->Second( args ) ) ) ) {
@@ -193,10 +193,27 @@ Type mapping for drelbulkloadrtree. Expect a drel, a string and an attribute.
                 err + ": second argument is not a string" );
         }
 
+        if(nl->AtomType(nl->First(nl->Third(args)))!=SymbolType){
+           return listutils::typeError("Third attribute is not a "
+                                       "valid attr name");
+        }
+
         ListExpr relType =  nl->Second( nl->First( nl->First( args ) ) );
+
+        ListExpr attrList = nl->Second(nl->Second(relType));
+        string attrName = nl->SymbolValue(nl->First(nl->Third(args)));
+        ListExpr attrType;
+ 
+        int index = listutils::findAttribute(attrList, attrName, attrType);
+        if(!index){
+          return listutils::typeError("Attribute " + attrName 
+                                     + " not part of the relation");
+        }
+
         ListExpr darrayType = nl->TwoElemList(
             listutils::basicSymbol<DArray>( ),
             relType );
+
 
         // create function type to call dloopTM
         ListExpr funType = nl->TwoElemList(
@@ -206,7 +223,7 @@ Type mapping for drelbulkloadrtree. Expect a drel, a string and an attribute.
                 nl->FourElemList(
                     nl->SymbolAtom( "rtree" ),
                     nl->Second( relType ),
-                    nl->SymbolAtom( "rect" ),
+                    attrType,
                     nl->BoolAtom( false ) ) ),
             nl->ThreeElemList(
                 nl->SymbolAtom( "fun" ),
