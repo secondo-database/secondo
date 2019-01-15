@@ -3795,7 +3795,7 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
   // For updates the inputtuples need to carry the old
   // attributevalues after the new values but their names with
   // an additional _old at the end
-  if (opName == "updatebtree")
+  if (opName == "updatertree")
   {
     // Compare first part of the streamdescription
     while (nl->ListLength(rest) > nl->ListLength(rtreeAttrList) + 1)
@@ -4283,7 +4283,7 @@ The inputstream is returned again as the result of this operator.
 
 ListExpr updateRTreeTypeMap( ListExpr args )
 {
-  return allUpdatesRTreeTypeMap (args, "updatebtree");
+  return allUpdatesRTreeTypeMap (args, "updatertree");
 }
 
 /*
