@@ -104,8 +104,17 @@ namespace pregel {
  OperatorSpec MessageFeed::operatorSpec(
   "() -> bool",
   "#",
-  "() -> success",
-  "query messageFeed() consume;"
+  "This operator consumes the message buffer of the message broker that is a "
+  "component of the Pregel system."
+  "Each message is a tuple and is provided as a stream as the result "
+  "of the operator.",
+  "query messageFeed() consume;",
+  "This operator belongs to the Pregel API."
+  "It may require knowledge of the system to effectively understand and use "
+  "all the operators that are provided."
+  "CAUTION: This operator is used internally by the Pregel system. "
+  "Hence you must not use it in queries yourself."
+  "Doing so may lead to inconsistent states of the Pregel system."
  );
 
  Operator MessageFeed::messageFeed(

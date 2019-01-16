@@ -83,8 +83,18 @@ namespace pregel {
  OperatorSpec StartMessageServer::operatorSpec(
   "int -> bool",
   "# (_)",
-  "port number -> success",
-  "query startMessageServer(9001);"
+  "This operator starts a message server locally as component of the "
+  "Pregel messaging system."
+  "It accepts connects over tcp on the specified port to a "
+  "(possibly) remote host that connects as a message client as counterpart."
+  "The server acts as a receiver for Pregel messages from other workers.",
+  "query startMessageServer(9001);",
+  "This operator belongs to the Pregel API."
+  "It may require knowledge of the system to effectively understand and "
+  "use all the operators that are provided."
+  "CAUTION: This operator is used internally by the Pregel system. "
+  "Hence you must not use it in queries yourself."
+  "Doing so may lead to inconsistent states of the Pregel system."
  );
 
  Operator StartMessageServer::startMessageServer(

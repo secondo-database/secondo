@@ -95,8 +95,21 @@ namespace pregel {
  OperatorSpec StartMessageClient::operatorSpec(
   "int x string x int -> bool",
   "# (_,_,_)",
-  "worker no x host x port no -> success",
-  "query startMessageClient(2, \"localhost\", 8001);"
+  "This operator starts a message client locally as component of the "
+  "Pregel messaging system."
+  "It connects to a (possibly) remote host that runs a message server "
+  "as counterpart."
+  "The client acts as a sender for Pregel messages to other workers."
+  "It has an index, which designates the logical address of the connected "
+  "message server."
+  "Arguments are (<index>, <host>, <port>)",
+  "query startMessageClient(2, \"localhost\", 8001);",
+  "This operator belongs to the Pregel API."
+  "It may require knowledge of the system to effectively understand and use "
+  "all the operators that are provided."
+  "CAUTION: This operator is used internally by the Pregel system. "
+  "Hence you must not use it in queries yourself."
+  "Doing so may lead to inconsistent states of the Pregel system."
  );
 
  Operator StartMessageClient::startMessageClient(

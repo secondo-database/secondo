@@ -82,8 +82,16 @@ namespace pregel {
  OperatorSpec MessageDistribute::operatorSpec(
   "stream(tuple) -> bool",
   "_ #",
-  "message stream -> success",
-  "query Messages feed messageDistribute;"
+  "This operator ingests a tuple stream and sends them as messages to "
+  "message servers of connected Workers."
+  "The result is simply a success flag.",
+  "query Messages feed messageDistribute;",
+  "This operator belongs to the Pregel API."
+  "It may require knowledge of the system to effectively understand and "
+  "use all the operators that are provided."
+  "CAUTION: This operator is used internally by the Pregel system. "
+  "Hence you must not use it in queries yourself."
+  "Doing so may lead to inconsistent states of the Pregel system."
  );
 
  Operator MessageDistribute::messageDistribute(
