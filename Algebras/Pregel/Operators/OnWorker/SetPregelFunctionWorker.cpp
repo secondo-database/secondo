@@ -126,8 +126,16 @@ namespace pregel {
  OperatorSpec SetPregelFunctionWorker::operatorSpec(
   "map(stream(tuple), stream(tuple)) x int -> bool",
   "# (_)",
-  "function x address attribute index -> success",
-  "query setPregelFunctionWorker(Function, 1);"
+  "This operator defines the function type of the Pregel system."
+  "The message type is set implicitly as it is derived from the type of the "
+  "input argument of the function."
+  "The argument of this operator must be of type map and the input and "
+  "return type of the SECONDO function must be of the same tuple type."
+  "NOTE: You must run the operator 'setupPregel(...) first.'",
+  "query setPregelFunctionWorker(Function, 1);",
+  "This operator belongs to the Pregel API."
+  "It may require knowledge of the system to effectively understand and "
+  "use all the operators that are provided."
  );
 
  Operator SetPregelFunctionWorker::setPregelFunctionWorker(

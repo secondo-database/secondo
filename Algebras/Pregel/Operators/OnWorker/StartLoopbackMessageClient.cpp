@@ -81,8 +81,17 @@ namespace pregel {
  OperatorSpec StartLoopbackMessageClient::operatorSpec(
   "int -> bool",
   "# (_)",
-  "slot no -> success",
-  "query startLoopbackMessageClient(1);"
+  "This operator is used analogous to 'startMessageClient(...)'."
+  "It also starts a message client, although the proxy doesn't send messages "
+  "to other hosts. It queues the messages directly into the input queue of the "
+  "local message broker.",
+  "query startLoopbackMessageClient(1);",
+  "This operator belongs to the Pregel API."
+  "It may require knowledge of the system to effectively understand and "
+  "use all the operators that are provided."
+  "CAUTION: This operator is used internally by the Pregel system. "
+  "Hence you must not use it in queries yourself."
+  "Doing so may lead to inconsistent states of the Pregel system."
  );
 
  Operator StartLoopbackMessageClient::startLoopbackMessageClient(

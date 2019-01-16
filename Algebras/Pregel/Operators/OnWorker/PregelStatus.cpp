@@ -97,8 +97,15 @@ namespace pregel {
  OperatorSpec PregelStatus::operatorSpec(
   "() -> bool",
   "# ()",
-  "() -> TRUE",
-  "query pregelStatus();"
+  "This operator queries status information about the Pregel system running "
+  "on the server (master) as well as all connected workers."
+  "This information contains the status of the messaging system "
+  "(clients, servers, buffers) and additionally metrics like "
+  "number of messages sent or time spent idling.",
+  "query pregelStatus();",
+  "This operator belongs to the Pregel API."
+  "It may require knowledge of the system to effectively understand and "
+  "use all the operators that are provided."
  );
 
  Operator PregelStatus::pregelStatus(

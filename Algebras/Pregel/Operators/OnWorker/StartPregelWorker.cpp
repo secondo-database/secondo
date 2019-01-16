@@ -195,8 +195,16 @@ namespace pregel {
  OperatorSpec StartPregelWorker::operatorSpec(
   "int -> bool",
   "# (_)",
-  "rounds (negative for indefinite) -> success",
-  "query startPregelWorker(0);"
+  "This operator starts the Pregel computation and executes as many supersteps"
+  "as specified or until the algorithm terminates."
+  "It always returns TRUE.",
+  "query startPregelWorker(0);",
+  "This operator belongs to the Pregel API."
+  "It may require knowledge of the system to effectively understand and "
+  "use all the operators that are provided."
+  "CAUTION: This operator is used internally by the Pregel system. "
+  "Hence you must not use it in queries yourself."
+  "Doing so may lead to inconsistent states of the Pregel system."
  );
 
  Operator StartPregelWorker::startPregelWorker(
