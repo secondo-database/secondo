@@ -62,8 +62,12 @@ namespace pregel {
  OperatorSpec ResetPregel::operatorSpec(
   "() -> bool",
   "#",
-  "() -> success",
-  "query resetPregel();"
+  "This operator resets the runtime state of the Pregel system. It does so "
+  "recursively for all connected workers.",
+  "query resetPregel();",
+  "This operator belongs to the Pregel API."
+  "It may require knowledge of the system to effectively understand and "
+  "use all the operators that are provided."
  );
 
  Operator ResetPregel::resetPregel(
