@@ -129,13 +129,15 @@ namespace pregel {
   "This operator defines the function type of the Pregel system."
   "The message type is set implicitly as it is derived from the type of the "
   "input argument of the function."
-  "The argument of this operator must be of type map and the input and "
-  "return type of the SECONDO function must be of the same tuple type."
-  "NOTE: You must run the operator 'setupPregel(...) first.'",
+  "In comparison to the analogous operator on the master, this one takes the "
+  "attribute index of the address attribute.",
   "query setPregelFunctionWorker(Function, 1);",
   "This operator belongs to the Pregel API."
   "It may require knowledge of the system to effectively understand and "
   "use all the operators that are provided."
+  "CAUTION: This operator is used internally by the Pregel system. "
+  "Hence you must not use it in queries yourself."
+  "Doing so may lead to inconsistent states of the Pregel system."
  );
 
  Operator SetPregelFunctionWorker::setPregelFunctionWorker(

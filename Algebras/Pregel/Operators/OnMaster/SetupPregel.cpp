@@ -177,8 +177,22 @@ namespace pregel {
  OperatorSpec SetupPregel::operatorSpec(
   "rel -> bool",
   "# (_)",
-  "worker relation with message server ports -> success",
-  "query setupPregel(Workers);"
+  "This operator initializes the Pregel system on a master compute node."
+  "It starts message servers and clients and thus connects the different "
+  "workers."
+  "You must provide a Worker relation containing their hostname, port, config"
+  "file path and additionally a message server port."
+  "This relation equals the specification of a worker relation that's used in "
+  "the Distributed2Algebra, except for the messageServerPort."
+  "The type of the relation must hence be:"
+  "(rel(tuple((Host string) (Config string) (Port int) "
+  "(MessageServerPort int)))"
+  ""
+  "The operator returns TRUE if all workers were successfully set up.",
+  "query setupPregel(Workers);",
+  "This operator belongs to the Pregel API."
+  "It may require knowledge of the system to effectively understand and "
+  "use all the operators that are provided."
  );
 
  Operator SetupPregel::setupPregel(

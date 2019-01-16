@@ -111,8 +111,17 @@ namespace pregel {
  OperatorSpec InitPregelMessages::operatorSpec(
   "stream(tuple) -> bool",
   "_ #",
-  "message stream -> success",
-  "query InitMessages feed initPregelMessages;"
+  "This operator initializes the Pregel system with messages from the "
+  "(logical) superstep '0'."
+  "It takes a stream of messages and sends them to the workers via the message "
+  "clients. The type of the tuples on the stream must adhere to "
+  "the type that was defined beforehand."
+  "The operator returns TRUE, as long as the workers are reachable and set up."
+  "NOTE: You must run 'setPregelFunction(...) first.'",
+  "query InitMessages feed initPregelMessages;",
+  "This operator belongs to the Pregel API."
+  "It may require knowledge of the system to effectively understand and "
+  "use all the operators that are provided."
  );
 
  Operator InitPregelMessages::initPregelMessages(

@@ -102,8 +102,13 @@ namespace pregel {
  OperatorSpec StartPregel::operatorSpec(
   "int -> bool",
   "# (_)",
-  "rounds (or negative for indefinite) -> success",
-  "query startPregel(10);"
+  "This operator starts the Pregel computation on the distributed workers."
+  "You must provide a maximum number of supersteps that should be executed."
+  "The operator always returns TRUE.",
+  "query startPregel(10);",
+  "This operator belongs to the Pregel API."
+  "It may require knowledge of the system to effectively understand and "
+  "use all the operators that are provided."
  );
 
  Operator StartPregel::startPregel(

@@ -94,8 +94,20 @@ namespace pregel {
  OperatorSpec RemotePregelCommand::operatorSpec(
   "text -> bool",
   "# (_)",
-  "command -> success",
-  "query remotePregelCommand('query pregelStatus();');"
+  "This operator is an auxiliary operator of the Pregel Algebra."
+  "It allows to execute an arbitrary SECONDO command on all workers."
+  "It takes the command as a 'text' and returns TRUE, if the commands were "
+  "valid and could be executed."
+  "NOTE: Use this operator to manage your distributed data."
+  "You may want to create in memory objects from persisted relations "
+  "for example. This can circumvent issues that exist when opening the same "
+  "database with multiple SECONDO servers as is a common source for problems "
+  "when using the Distributed2Algebra in conjunction with the Pregel algebra."
+  "For more information see the bachelor thesis that thematized this algebra.",
+  "query remotePregelCommand('query pregelStatus();');",
+  "This operator belongs to the Pregel API."
+  "It may require knowledge of the system to effectively understand and "
+  "use all the operators that are provided."
  );
 
  Operator RemotePregelCommand::remotePregelCommand(
