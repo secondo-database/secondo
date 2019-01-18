@@ -100,3 +100,12 @@ Signature: text -> bool
 Example  : query remotePregelCommand('list objects');
 Result   : unpredictable
 Remark   : The operator requires the pregel system to be initialized with setupPregel(...)
+
+
+Operator  : getPregelMessages
+Number    : 1
+Signature : -> stream(tuple)
+Example   : query getPregelMessages()
+Result    : unpredictable
+Remark    : The operator requires the pregel system to be initialized with setupPregel(...)
+
