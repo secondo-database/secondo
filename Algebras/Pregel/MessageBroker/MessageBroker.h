@@ -112,6 +112,9 @@ namespace pregel {
   void healthReport(std::stringstream &);
 
   unsigned long numberOfClients();
+
+  DoubleQueue& getInBox();
+
  };
 }
 

@@ -318,4 +318,10 @@ namespace pregel {
  unsigned long MessageBroker::numberOfClients() {
   return slotToClient.size();
  }
+
+ 
+ DoubleQueue& MessageBroker::getInBox() {
+    return inbox;
+ }	 
+
 }
