@@ -17,7 +17,7 @@ let Messages = [const rel(tuple([Id: int, Value: int])) value
 )];
 
 
-restore Workers from FourTwoWorkers;
+restore Workers from Workers12Pregel;			#FourTwoWorkers;
 let WorkerNum = Workers count;
 
 let PartitionFunction = fun (id: int) (hashvalue(id, WorkerNum));
@@ -63,7 +63,10 @@ query remotePregelCommand('let Nodes = NodesPersistent feed mconsume;');
 
 query setPregelFunction(ComputeRouted, Address);
 
-query Messages feed projectextend[;Id: 1000, Value : 0 , Address: PartitionFunction(.Id)] initPregelMessages;
+# query Messages feed projectextend[; Id: 1000, Address: PartitionFunction(.Id)] initPregelMessages;
+
+query Messages feed extend[Address: PartitionFunction(.Id)] initPregelMessages;
+
 
 query pregelStatus();
 
