@@ -4,7 +4,7 @@ open database shortestpath;
 
 let inf = 10000000;
 
-restore Edges from LinksStanford;
+restore Edges from '../Algebras/Pregel/Examples/PageRank/data/LinksStanford';
 update Edges := Edges feed sortby[Source] consume;
 
 #restore Nodes from Nodes;
@@ -63,7 +63,7 @@ query remotePregelCommand('let Nodes = NodesPersistent feed mconsume;');
 
 query setPregelFunction(ComputeRouted, Address);
 
-query Messages feed projectextend[;Id: 1000, Address: PartitionFunction(.Id)] initPregelMessages;
+query Messages feed projectextend[;Id: 1000, Value : 0 , Address: PartitionFunction(.Id)] initPregelMessages;
 
 query pregelStatus();
 

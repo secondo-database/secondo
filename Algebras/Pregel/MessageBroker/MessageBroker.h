@@ -61,8 +61,8 @@ namespace pregel {
 
   std::list<MessageServer *> servers = std::list<MessageServer *>();
 
-  std::map<int, MessageClient *> slotToClient =
-   std::map<int, MessageClient *>();
+  using mt = std::map<int, MessageClient *>;
+  mt slotToClient = mt();
 
   DoubleQueue inbox;
 

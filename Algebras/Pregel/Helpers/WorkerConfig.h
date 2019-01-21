@@ -48,14 +48,14 @@ This header file defines the class WorkerConfig
 
 namespace pregel {
  struct WorkerConfig {
-  friend std::ostream &
-  operator<<(std::ostream &os, const WorkerConfig &config) {
-   os << "slot: " << config.slot << " endpoint: " << config.endpoint
-      << " messageServerPort: "
-      << config.messageServerPort << " configFilePath: "
-      << config.configFilePath << " connection: "
-      << config.connection;
-   return os;
+
+  std::ostream& print(std::ostream& os) const{
+     os << "slot: " << slot;
+     os << " endpoint: " << endpoint;
+     os << " messageServerPort: " << messageServerPort;
+     os << " configFilePath: " << configFilePath;
+     os << " connection: " << connection;
+     return os;
   }
 
   int slot;
@@ -93,6 +93,8 @@ namespace pregel {
   }
  };
 }
+
+std::ostream& operator<<(std::ostream &os, const pregel::WorkerConfig &config);
 
 
 #endif //SECONDO_WORKERINFO_H

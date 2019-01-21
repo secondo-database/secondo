@@ -32,12 +32,13 @@ November 2018, J. Mende
 
 1 Overview
 
-This file contains definitions of the members of classes Commander, Runner and RemoteExecutionException
+This file contains definitions of the members of classes Commander,
+ Runner and RemoteExecutionException
 
 */
 
 #include "Commander.h"
-#include <regex>
+#include <boost/regex.hpp>
 
 namespace pregel {
  Runner::Runner(WorkerConnection *connection, std::string &query)
@@ -46,12 +47,14 @@ namespace pregel {
  Runner::~Runner() {}
 
  const resultMapper<bool> Commander::isTrue([](std::string &result) {
-   return new bool(std::regex_match(result, std::regex(".*TRUE\\)?$")));
+   return new bool(boost::regex_match(result, boost::regex(".*TRUE\\)?$")));
  });
 
  const resultMapper<void> Commander::throwWhenFalse(
   [](std::string &result) -> void * {
-    if (!std::regex_match(result, std::regex(".*TRUE\\)?$"))) {
+
+    boost::regex re(".*TRUE\\)?$");
+    if (!boost::regex_match(result, re)) {
      throw RemoteExecutionException("Remote query returned FALSE");
     }
     return (void *) nullptr;

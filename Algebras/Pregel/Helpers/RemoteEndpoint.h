@@ -49,8 +49,8 @@ namespace pregel {
  struct RemoteEndpoint {
   RemoteEndpoint(const std::string &host, const int port);
 
-  friend std::ostream &
-  operator<<(std::ostream &os, const RemoteEndpoint &endpoint);
+  friend std::ostream& operator<<(std::ostream& os, 
+                                const pregel::RemoteEndpoint& endpoint);
 
   bool operator==(const RemoteEndpoint &rhs) const;
 

@@ -226,13 +226,13 @@ namespace pregel {
                                    executable &callMeWhenYoureDone) {
   const unsigned long numberOfConnections = servers.size();
 
-  auto callback = (std::function<void(bool)>)
+  auto callback = static_cast<std::function<void(bool)> > (
    [this, &allEmpty, &callMeWhenYoureDone](bool empty) {
     int superstep = SuperstepCounter::get();
     collectFromAllServers(superstep);
     allEmpty &= empty; // not synch, but thread is waiting, or still busy anyway
     callMeWhenYoureDone();
-  };
+  });
 
   auto monitor = new Monitor(numberOfConnections - 1/*Master*/,
                                     callback);
@@ -322,6 +322,6 @@ namespace pregel {
  
  DoubleQueue& MessageBroker::getInBox() {
     return inbox;
- }	 
+ }         
 
 }

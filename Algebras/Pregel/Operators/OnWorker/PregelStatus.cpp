@@ -72,7 +72,9 @@ namespace pregel {
    std::function<std::string *(std::string &)> trimListStyle = [](
     std::string &response) -> std::string * {
      const std::regex regex("(^\\(text ')|( '\\)$)");
-     auto trimmed = new std::string(std::regex_replace(response, regex, ""));
+     std::string replacement("");
+     auto trimmed = new std::string(std::regex_replace(response, 
+                                    regex, replacement));
      return trimmed;
    };
 

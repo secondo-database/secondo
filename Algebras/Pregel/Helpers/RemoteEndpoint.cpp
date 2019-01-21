@@ -37,15 +37,19 @@ This file contains definitions of the members of class RemoteEndpoint
 */
 
 #include "RemoteEndpoint.h"
+#include <ostream>
 
 pregel::RemoteEndpoint::RemoteEndpoint(const std::string &name, const int port)
  :
  host(name), port(port) {}
 
+
+namespace pregel{
 std::ostream &
-pregel::operator<<(std::ostream &os, const pregel::RemoteEndpoint &endpoint) {
+operator<<(std::ostream &os, const RemoteEndpoint &endpoint) {
  os << "host: " << endpoint.host << " port: " << endpoint.port;
  return os;
+}
 }
 
 bool

@@ -98,7 +98,7 @@ namespace pregel {
   noexcept(false) {
    Runner runner(connection, query);
    std::string response = runner.run();
-   return mapper(response);
+   return  mapper(response);
   }
 
   template<typename result_type>

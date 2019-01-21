@@ -41,6 +41,7 @@ Defines PregelContext class
 #include "StandardTypes.h"
 #include <boost/log/trivial.hpp>
 #include "SecParser.h"
+#include "typedefs.h"
 
 
 namespace pregel {
@@ -55,14 +56,6 @@ namespace pregel {
   functionText = function;
  }
 
- std::ostream &operator<<(std::ostream &os, const PregelContext &context) {
-  os << " function: " << context.function <<
-     " routes: " << context.workers.size() << std::endl;
-  for (auto worker : context.workers) {
-   os << "route " << worker << std::endl;
-  }
-  return os;
- }
 
  int PregelContext::getAddressIndex() const {
   return addressIndex;
@@ -136,17 +129,18 @@ namespace pregel {
 
  supplier<WorkerConfig> PregelContext::getWorkers() {
   auto it = new std::vector<WorkerConfig>::iterator(workers.begin());
-  return (supplier<WorkerConfig>) [this, it]() mutable -> WorkerConfig * {
-    if (it != nullptr && *it != workers.end()) {
-     WorkerConfig *entry = &(**it);
-     ++(*it);
-     return entry;
-    }
+  return static_cast<supplier<WorkerConfig> > ( 
+    [this, it]() mutable -> WorkerConfig * {
+      if (it != nullptr && *it != workers.end()) {
+       WorkerConfig *entry = &(**it);
+       ++(*it);
+       return entry;
+      }
 
-    delete it;
-    it = nullptr;
-    return nullptr;
-  };
+      delete it;
+      it = nullptr;
+      return nullptr;
+    });
  }
 
  supplier<WorkerConnection> PregelContext::getConnections() {
@@ -187,3 +181,11 @@ namespace pregel {
   return get();
  }
 }
+
+
+
+std::ostream& operator<<(std::ostream& os,
+                         const pregel::PregelContext& context){
+   return context.print(os);
+}
+

@@ -190,12 +190,16 @@ namespace pregel {
   bool workerExists(RemoteEndpoint &endpoint,
                     int messageServerPort);
 
-  /*
-  * 3.8 Stream concatenation operator
-  *
-  * */
-  friend std::ostream &operator<<(std::ostream &os,
-                                  const PregelContext &context);
+
+  std::ostream& print(std::ostream& os) const{
+    os << " function: " << function 
+       << " routes: " << workers.size() << std::endl;
+    for (auto worker : workers) {
+      worker.print(os) << std::endl;
+    }
+    return os;
+  }
+
 
  };
 
