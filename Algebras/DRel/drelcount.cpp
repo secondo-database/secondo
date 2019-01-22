@@ -284,9 +284,9 @@ Get a d[f]rel and a bool as argument.
     OperatorSpec lcountSpec(
         "d[f]rel(X) x bool -> darray ",
         " _ lcount",
-        "Count the tuples in the partition of a d[f]rel. The secondo arument "
+        "Count the tuples in the partition of a d[f]rel. The second argument "
         "is for filtering replicated tuples while using spatial partitioning."
-        " TRUE for elemiate the replicateds while counting.",
+        " TRUE for eliminating the replicas while counting.",
         " query drel1 lcount"
     );
 
@@ -310,8 +310,8 @@ Get a d[f]rel and a bool as argument.
     OperatorSpec countSpec(
         "d[f]rel(X) -> int ",
         " _ count",
-        "Count the tuples of a d[f]rel. Replicated tuple of a spatial "
-        "distributed drel are only counted once.",
+        "Count the tuples of a d[f]rel. Replicated tuples of a spatially "
+        "distributed drel are counted only once.",
         " query drel1 count"
     );
 
