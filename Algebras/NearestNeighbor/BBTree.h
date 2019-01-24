@@ -33,7 +33,7 @@ of a moving point for a determines time interval.
 #define BBTREE_H
 
 
-
+#include "DateTime.h"
 #include "Algebras/Temporal/TemporalAlgebra.h" 
 #include "Algebras/Rectangle/RectangleAlgebra.h"
 #include <iostream>
@@ -318,15 +318,19 @@ inline bool AlmostEqual(const Instant& i1, const Instant& i2)const{
 
 inline bool ivInside(const temporalalgebra::Interval<timeType>& iv1, 
                      const temporalalgebra::Interval<timeType>& iv2) const{
+
+  const timeType& e1 = iv1.end;
+  const timeType& e2 = iv2.end;
   return( ( (iv1.start > iv2.start) || 
             (AlmostEqual(iv1.start, iv2.start) && ( !iv1.lc || iv2.lc ) ) ) &&
-          ( (iv1.end < iv2.end) || 
+          ( (e1 < e2) || 
             ( AlmostEqual(iv1.end, iv2.end) && ( !iv1.rc || iv2.rc ) ) ) );
 }
 
 inline bool ivDisjoint(const temporalalgebra::Interval<timeType>& iv1, 
                        const temporalalgebra::Interval<timeType>& iv2) const{
-  return( ( (iv1.end < iv2.start) || 
+  const timeType& e1 = iv1.end;
+  return( ( (e1 < iv2.start) || 
             ( AlmostEqual(iv1.end, iv2.start) && ( !iv1.lc || !iv2.lc ) ) ) ||
           ( (iv1.start > iv2.end) || 
             ( AlmostEqual(iv1.start, iv2.end) && ( !iv1.rc || !iv2.rc ) ) ) );
@@ -352,7 +356,9 @@ Rectangle<2> getBox(const temporalalgebra::Interval<timeType>& interval) const{
         mind = interval.start;
      }  
      timeType maxd;
-     if(interval.end<this->interval.end){
+     const timeType& ie = interval.end;
+     const timeType& te = this->interval.end;
+     if(ie<te){
         maxd = interval.end;
      } else {
         maxd = this->interval.end;

@@ -83,12 +83,7 @@ in a R-Tree. A new datatype is not given but there are some operators:
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
-using namespace tbtree;
 using namespace temporalalgebra;
-using namespace std;
-using namespace datetime;
-using namespace mappings;
-using namespace std;
 
 /*
 The file "Algebra.h" is included, since the new algebra must be a subclass of
@@ -3267,9 +3262,9 @@ public:
    int pos;                           // position of the attribute
    const MPoint* mpoint;
    int mpos;
-   DateTime lastStart;
+   datetime::DateTime lastStart;
    Tuple* lastTuple;                  // last Tuple read from stream
-   DateTime tupleStart;               // start instance of the next tuple
+   datetime::DateTime tupleStart;     // start instance of the next tuple
    priority_queue<EventElem> queue;   // the event queue
    Interval<Instant> iv;              // interval of the moving point
    int zone;
@@ -3365,7 +3360,7 @@ to a EventElement and inserted into the queue.
       if(queue.empty()){
         transfer(tupleStart);
       }  else {
-        DateTime i = queue.top().pointInTime;
+        datetime::DateTime i = queue.top().pointInTime;
         transfer(i);
       }
     }
@@ -3378,7 +3373,7 @@ to a EventElement and inserted into the queue.
 
 */
 
-  inline void transfer(DateTime& i){
+  inline void transfer(datetime::DateTime& i){
      bool t = false;
      while( (lastTuple && tupleStart <= i)  ||
             (lastTuple && !t)){
@@ -6093,11 +6088,11 @@ Supporting function creates a uint from a rect3.
    UInt rect2uint(const Rectangle<3> rect){
      double min = rect.MinD(2);
      double max = rect.MaxD(2);
-     DateTime dt1(datetime::instanttype);
-     DateTime dt2(datetime::instanttype);
+     datetime::DateTime dt1(datetime::instanttype);
+     datetime::DateTime dt2(datetime::instanttype);
      dt1.ReadFrom(min);
      dt2.ReadFrom(max);
-     Interval<DateTime> iv(dt1,dt2,true,true);
+     Interval<datetime::DateTime> iv(dt1,dt2,true,true);
      CcInt v(true,1);
      UInt res(iv,v);
      return res;
@@ -6468,11 +6463,11 @@ int rect2periodsFun (Word* args, Word& result, int message,
   }
   double min = arg->MinD(2);
   double max = arg->MaxD(2);
-  DateTime dt1(datetime::instanttype);
-  DateTime dt2(datetime::instanttype);
+  datetime::DateTime dt1(datetime::instanttype);
+  datetime::DateTime dt2(datetime::instanttype);
   dt1.ReadFrom(min);
   dt2.ReadFrom(max);
-  Interval<DateTime> iv(dt1,dt2,true,true);
+  Interval<datetime::DateTime> iv(dt1,dt2,true,true);
   res->Clear();
   res->Add(iv);
   return 0;
@@ -6920,10 +6915,13 @@ template<class timeType>
 bool CmpFiledEntry(const FieldEntry<timeType>& fe1,
 const FieldEntry<timeType>& fe2)
 {
+  const timeType& fe1e = fe1.end;
+  const timeType& fe2e = fe2.end;
+
   if(fe1.start != fe2.start)
     return fe1.start < fe2.start;
-  if(fe1.end != fe2.start)
-    return fe1.end < fe2.end;
+  if(fe1e != fe2.start)
+    return fe1e < fe2e;
   return fe1.nodeid < fe2.nodeid;
 
 }
@@ -8297,7 +8295,7 @@ struct TBKnearestLocalInfo
   unsigned int attrpos;
   bool scanFlag;
   Relation* relation;
-  TBTree* tbtree;
+  tbtree::TBTree* tbtree;
   R_Tree<3,TupleId>* rtree;
   double startTime,endTime;
   Line* mptraj;
@@ -8386,11 +8384,12 @@ void TBKnearestLocalInfo::ChinaknnInitialize(MPoint* mp)
     mp->Trajectory(*line);
     mptraj = new Line(*line);
     delete line;
-    tbtree::InnerNode<3,InnerInfo>* innernode =
-            dynamic_cast<InnerNode<3,InnerInfo>*>(root);
+    tbtree::InnerNode<3,tbtree::InnerInfo>* innernode =
+            dynamic_cast<tbtree::InnerNode<3,tbtree::InnerInfo>*>(root);
     //insert all the entries of the root into hp
     for(unsigned int i = 0;i < innernode->entryCount();i++){
-        const Entry<3,InnerInfo>* entry = innernode->getEntry(i);
+        const tbtree::Entry<3,tbtree::InnerInfo>* entry 
+                                               = innernode->getEntry(i);
         double tt1((double)entry->getBox().MinD(2));
         double tt2((double)entry->getBox().MaxD(2));
         if(!(tt1 >= endTime || tt2 <= startTime)){
@@ -9608,10 +9607,11 @@ void TBKnearestLocalInfo::ChinaknnFun(MPoint* mp)
     else if(top.tid == -1 && top.nodeid != -1){ // a node
         tbtree::BasicNode<3>* tbnode = tbtree->getNode(top.nodeid);
         if(tbnode->isLeaf()){ //leaf node
-            tbtree::TBLeafNode<3,TBLeafInfo>* leafnode =
-            dynamic_cast<TBLeafNode<3,TBLeafInfo>* > (tbnode);
+            tbtree::TBLeafNode<3,tbtree::TBLeafInfo>* leafnode =
+            dynamic_cast<tbtree::TBLeafNode<3,tbtree::TBLeafInfo>* > (tbnode);
             for(unsigned int i = 0;i < leafnode->entryCount();i++){
-              const Entry<3,TBLeafInfo>* entry = leafnode->getEntry(i);
+              const tbtree::Entry<3,tbtree::TBLeafInfo>* entry = 
+                                                        leafnode->getEntry(i);
               double t1((double)entry->getBox().MinD(2));
               double t2((double)entry->getBox().MaxD(2));
               if(!(t1 >= endTime || t2 <= startTime)){
@@ -9671,10 +9671,11 @@ void TBKnearestLocalInfo::ChinaknnFun(MPoint* mp)
               }
            }
         }else{ //inner node
-            tbtree::InnerNode<3,InnerInfo>* innernode =
-              dynamic_cast<InnerNode<3,InnerInfo>* > (tbnode);
+            tbtree::InnerNode<3,tbtree::InnerInfo>* innernode =
+              dynamic_cast<tbtree::InnerNode<3,tbtree::InnerInfo>* > (tbnode);
             for(unsigned int i = 0;i < innernode->entryCount();i++){
-              const Entry<3,InnerInfo>* entry = innernode->getEntry(i);
+              const tbtree::Entry<3,tbtree::InnerInfo>* entry 
+                                                     = innernode->getEntry(i);
               double t1((double)entry->getBox().MinD(2));
               double t2((double)entry->getBox().MaxD(2));
               if(!(t1 >= endTime || t2 <= startTime)){
@@ -10240,7 +10241,7 @@ int ChinaknearestFun (Word* args, Word& result, int message,
       localInfo->cic =
         new CoverInterval<double>(localInfo->startTime,localInfo->endTime);
 
-      localInfo->tbtree = (TBTree*)args[0].addr;
+      localInfo->tbtree = (tbtree::TBTree*)args[0].addr;
       localInfo->relation = (Relation*)args[1].addr;
       localInfo->counter = 0;
       localInfo->scanFlag = true;
