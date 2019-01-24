@@ -22183,6 +22183,10 @@ ListExpr createSDArrayTM(ListExpr args){
   DArrayElement elem(host,port,0,cfg);
   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
   ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname); 
+  if(!ci){
+    return listutils::typeError("Cannot connect to worker");
+  }
+
   string query = "query " + name + " getTypeNL";
   int errorCode;
   double rt;
