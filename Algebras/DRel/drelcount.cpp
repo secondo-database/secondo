@@ -120,10 +120,10 @@ Get a d[f]rel and a bool as argument.
 
         distributionType dType = drel->getDistType( )->getDistType( );
 
-        string drelptr = nl->ToString( DRelHelpers::createdrel2darray( 
+        std::string drelptr = nl->ToString( DRelHelpers::createdrel2darray( 
             qp->GetType( qp->GetSon( s, 0 ) ), args[ 0 ].addr ) );
 
-        string queryS;
+        std::string queryS;
 
         if( replTuple &&
            (  dType == replicated
@@ -153,7 +153,7 @@ Get a d[f]rel and a bool as argument.
         bool evaluable = false;
         bool defined = false;
         bool isFunction = false;
-        string typeString, errorString;
+        std::string typeString, errorString;
         if( !QueryProcessor::ExecuteQuery( query, result, 
                 typeString, errorString,
                 correct, evaluable, defined, isFunction ) ) {
@@ -194,10 +194,10 @@ Get a d[f]rel and a bool as argument.
 
         distributionType dType = drel->getDistType( )->getDistType( );
 
-        string drelptr = nl->ToString( DRelHelpers::createdrel2darray( 
+        std::string drelptr = nl->ToString( DRelHelpers::createdrel2darray( 
             qp->GetType( qp->GetSon( s, 0 ) ), args[ 0 ].addr ) );
 
-        string queryS;
+        std::string queryS;
 
         if( dType == replicated
          || dType == spatial2d
@@ -230,7 +230,7 @@ Get a d[f]rel and a bool as argument.
         bool evaluable = false;
         bool defined = false;
         bool isFunction = false;
-        string typeString, errorString;
+        std::string typeString, errorString;
         if( !QueryProcessor::ExecuteQuery( query, result, 
                 typeString, errorString,
                 correct, evaluable, defined, isFunction ) ) {

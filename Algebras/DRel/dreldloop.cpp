@@ -201,7 +201,7 @@ Type mapping for drelbulkloadrtree. Expect a drel, a string and an attribute.
         ListExpr relType =  nl->Second( nl->First( nl->First( args ) ) );
 
         ListExpr attrList = nl->Second(nl->Second(relType));
-        string attrName = nl->SymbolValue(nl->First(nl->Third(args)));
+        std::string attrName = nl->SymbolValue(nl->First(nl->Third(args)));
         ListExpr attrType;
  
         int index = listutils::findAttribute(attrList, attrName, attrType);

@@ -82,7 +82,7 @@ namespace drel {
 */
     ListExpr sortTM( ListExpr args ) {
 
-        string err = "d[f]rel(X) expected";
+        std::string err = "d[f]rel(X) expected";
 
         ListExpr local = lsortTM( args );
 
@@ -107,11 +107,11 @@ namespace drel {
         // Compare the first attribute with the current partion of the drel
         // If the attribute match with the distributtion attribute only lsortby
         // will be necessary.
-        string funText1, funText2;
+        std::string funText1, funText2;
         bool repartition;
         bool rangeRepartition = true;
 
-        string boundName = "";
+        std::string boundName = "";
 
         if( dType == replicated || ( dType == range && attr == 0 ) ) {
 
@@ -179,7 +179,7 @@ namespace drel {
 */
     ListExpr sortbyTM( ListExpr args ) {
 
-        string err = "d[f]rel(X) x attrlist expected";
+        std::string err = "d[f]rel(X) x attrlist expected";
 
         ListExpr local = lsortbyTM( args );
 
@@ -197,7 +197,7 @@ namespace drel {
         }
 
         ListExpr relType = nl->Second( darrayType );
-        string attrName = nl->SymbolValue( 
+        std::string attrName = nl->SymbolValue( 
             nl->First( nl->Second( nl->Second( args ) ) ) );
         ListExpr attrType;
 
@@ -208,8 +208,8 @@ namespace drel {
         // Compare the first attribute with the current partion of the drel
         // If the attribute match with the distributtion attribute only lsortby
         // will be necessary.
-        string funText1, funText2;
-        string repartitionText1, repartitionText2;
+        std::string funText1, funText2;
+        std::string repartitionText1, repartitionText2;
         bool repartition;
         bool rangeRepartition = true;
 
@@ -223,7 +223,8 @@ namespace drel {
         else {
 
             repartition = true;
-            string attrList = nl->ToString( nl->Second( nl->Second( args ) ) );
+            std::string attrList = nl->ToString( nl->Second( 
+                                                   nl->Second( args ) ) );
 
             funText1 = "(areduce ";
             funText2 = " \"\" (fun (elem_1 AREDUCEARG1) "
@@ -284,7 +285,7 @@ namespace drel {
         cout << nl->ToString( args ) << endl;
         #endif
 
-        string err = "d[f]rel(X) x attrlist expected";
+        std::string err = "d[f]rel(X) x attrlist expected";
 
         ListExpr local = drellgroupbyTM<true>( args );
 
@@ -308,7 +309,7 @@ namespace drel {
 
         //ListExpr relType = nl->Second( darrayType );
         ListExpr relType = nl->Second( nl->Third( local ) );
-        string attrName = nl->SymbolValue( 
+        std::string attrName = nl->SymbolValue( 
             nl->First( nl->Second( nl->Second( args ) ) ) );
         ListExpr attrType;
 
@@ -319,8 +320,8 @@ namespace drel {
         // Compare the first attribute with the current partion of the drel
         // If the attribute match with the distributtion attribute only lsortby
         // will be necessary.
-        string funText1, funText2;
-        string repartitionText1, repartitionText2;
+        std::string funText1, funText2;
+        std::string repartitionText1, repartitionText2;
         bool repartition;
         bool rangeRepartition = false;
 
@@ -436,7 +437,7 @@ namespace drel {
 */
     ListExpr rdupTM( ListExpr args ) {
 
-        string err = "d[f]rel(X) expected";
+        std::string err = "d[f]rel(X) expected";
 
         ListExpr local = lrdupTM( args );
 
@@ -460,11 +461,11 @@ namespace drel {
         // Compare the first attribute with the current partion of the drel
         // If the attribute match with the distributtion attribute only lsortby
         // will be necessary.
-        string funText1, funText2;
+        std::string funText1, funText2;
         bool repartition;
         bool rangeRepartition = false;
 
-        string boundName = "";
+        std::string boundName = "";
 
         if( dType == replicated || dType == hash 
          || ( dType == range && attr == 0 ) ) {
@@ -577,7 +578,7 @@ repartitioning the d[f]rel and execute a function on the d[f]rel.
         ListExpr drelType = qp->GetType( qp->GetSon( s, 0 ) );
         ListExpr boundaryType = nl->Fourth( nl->Third( qp->GetType( s ) ) );
 
-        string attrName = ( ( CcString* )args[ x - 3 ].addr )->GetValue( );
+        std::string attrName = ( ( CcString* )args[ x - 3 ].addr )->GetValue( );
         FText* fun1 = ( FText* )args[ x - 2 ].addr;
         FText* fun2 = ( FText* )args[ x - 1 ].addr;
 
@@ -617,10 +618,10 @@ repartitioning the d[f]rel and execute a function on the d[f]rel.
         ListExpr matrixType = parti->getMatrixType( );
 
         // create dmap call with drel pointer
-        string matrixptr = nl->ToString( DRelHelpers::createPointerList( 
+        std::string matrixptr = nl->ToString( DRelHelpers::createPointerList( 
             matrixType, matrix ) );
 
-        string funText = fun1->GetValue( ) + matrixptr + fun2->GetValue( );
+        std::string funText = fun1->GetValue( ) + matrixptr + fun2->GetValue( );
 
         #ifdef DRELDEBUG
         cout << "funText" << endl;
@@ -636,7 +637,7 @@ repartitioning the d[f]rel and execute a function on the d[f]rel.
         bool evaluable = false;
         bool defined = false;
         bool isFunction = false;
-        string typeString, errorString;
+        std::string typeString, errorString;
         Word dmapResult;
         if( !QueryProcessor::ExecuteQuery( funList, dmapResult, 
                 typeString, errorString,

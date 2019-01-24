@@ -142,11 +142,11 @@ of the realation.
         ListExpr arg1PtrList = DRelHelpers::createPointerList( 
                 arg1Type, args[ 0 ].addr );
 
-        string attr, query;
+        std::string attr, query;
 
         int count = ( ( Relation* )args[ 0 ].addr )->GetNoTuples( );
         attr = ( ( CcString* )args[ 3 ].addr )->GetValue( );
-        string arg1 = "(feed " + nl->ToString( arg1PtrList ) + ")";
+        std::string arg1 = "(feed " + nl->ToString( arg1PtrList ) + ")";
         
         int sampleS = DRelHelpers::computeSampleSize( count );
         int nthS = DRelHelpers::everyNthTupleForSample( sampleS, count );
@@ -170,7 +170,7 @@ of the realation.
         bool evaluable = false;
         bool defined = false;
         bool isFunction = false;
-        string typeString, errorString;
+        std::string typeString, errorString;
         if( !QueryProcessor::ExecuteQuery( queryList, result, 
                 typeString, errorString,
                 correct, evaluable, defined, isFunction ) ) {

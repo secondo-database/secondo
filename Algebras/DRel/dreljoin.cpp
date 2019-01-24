@@ -90,7 +90,7 @@ parameters. Used for sortmergejoin and itHashJoin.
     template<int joinType>
     ListExpr drelsimpleJoinTM( ListExpr args ) {
 
-        string join = joinType == 0 ? "sortmergejoin" : "itHashJoin";
+        std::string join = joinType == 0 ? "sortmergejoin" : "itHashJoin";
 
         if( joinType < 0 || joinType > 1 ) {
             return listutils::typeError( "join not supported" );
@@ -267,9 +267,9 @@ parameters. Used for sortmergejoin and itHashJoin.
                     nl->IntAtom( pos ) ) );
         }
 
-        string query1 = "(dmap2 ";
+        std::string query1 = "(dmap2 ";
   
-        string query2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
+        std::string query2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
             "(elem2_2 ARRAYFUNARG2) (" + join + " "
             "(feed elem1_1) (feed elem2_2) " +
             nl->SymbolValue( attr1Name ) + " " + 
@@ -310,10 +310,10 @@ The drelType argument has to be the nested list type of the drel object.
                     listutils::getPtrList( new R( *drel ) ) ) ) );
     }
 
-    ListExpr hashPartition( ListExpr drelType, void* ptr, string attr, 
+    ListExpr hashPartition( ListExpr drelType, void* ptr, std::string attr, 
         int elem ) {
 
-        string queryS;
+        std::string queryS;
         distributionType type;
         DRelHelpers::drelCheck( drelType, type );
 
@@ -321,7 +321,7 @@ The drelType argument has to be the nested list type of the drel object.
 
         if( type == spatial2d || type == spatial3d ) {
 
-            string elem1str, elem2str, streamstr;
+            std::string elem1str, elem2str, streamstr;
 
             if( elem == 1 ) {
                 elem1str = std::to_string( elem + 4 );
@@ -346,7 +346,7 @@ The drelType argument has to be the nested list type of the drel object.
 
         }
         else {
-            string elemstr = std::to_string( elem );
+            std::string elemstr = std::to_string( elem );
 
             queryS = "(collect2 (partition " + nl->ToString(
                     DRelHelpers::createdrel2darray( drelType, ptr ) ) +
@@ -373,7 +373,7 @@ necessary. Used for sortmergejoin and itHashJoin.
     int drelsimpleJoinVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
-        string join = joinType == 0 ? "sortmergejoin" : "itHashJoin";
+        std::string join = joinType == 0 ? "sortmergejoin" : "itHashJoin";
         
         R* drel1 = ( R* ) args[ 0 ].addr;
         T* drel2 = ( T* ) args[ 1 ].addr;
@@ -390,9 +390,10 @@ necessary. Used for sortmergejoin and itHashJoin.
         bool relFlag[ ] = { ( ( CcBool* ) args[ 4 ].addr )->GetBoolval( ),
                             ( ( CcBool* ) args[ 5 ].addr )->GetBoolval( ) };
 
-        string query[ ] = { ( ( FText* ) args[ 7 ].addr )->GetValue( ),
+        std::string query[ ] = { ( ( FText* ) args[ 7 ].addr )->GetValue( ),
                             ( ( FText* ) args[ 8 ].addr )->GetValue( ) };
-        string attrName[ ] = { ( ( CcString* ) args[ 9 ].addr )->GetValue( ),
+        std::string attrName[ ] = { 
+                             ( ( CcString* ) args[ 9 ].addr )->GetValue( ),
                              ( ( CcString* ) args[ 10 ].addr )->GetValue( ) };
 
         result = qp->ResultStorage( s );
@@ -479,7 +480,7 @@ necessary. Used for sortmergejoin and itHashJoin.
             }
         }
         
-        string queryS = query[ 0 ] + nl->ToString( partitionDRel1 ) +
+        std::string queryS = query[ 0 ] + nl->ToString( partitionDRel1 ) +
             nl->ToString( partitionDRel2 ) + query[ 1 ];
 
         ListExpr queryR;
@@ -489,7 +490,7 @@ necessary. Used for sortmergejoin and itHashJoin.
         bool evaluable = false;
         bool defined = false;
         bool isFunction = false;
-        string typeString, errorString;
+        std::string typeString, errorString;
         Word dmapResult;
         if( !QueryProcessor::ExecuteQuery( queryR, dmapResult, 
                 typeString, errorString,

@@ -156,7 +156,7 @@ Selects all elements of the d[f]rel from the workers.
                 if( li ) delete li;
 
                 R* drel = ( R* )args[ 0 ].addr;
-                string queryS;
+                std::string queryS;
                 ListExpr drelType = qp->GetType( qp->GetSon( s, 0 ) );
                 ListExpr drelPtr = DRelHelpers::createdrel2darray(
                     drelType, drel );

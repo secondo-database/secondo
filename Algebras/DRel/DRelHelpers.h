@@ -113,7 +113,7 @@ A class with usefull helper functions for the DRelAlgebra.
                 R* drel1,
                 T* drel2,
                 ListExpr resultDistType,
-                string attrName,
+                std::string attrName,
                 int port,
                 ListExpr& query,
                 int elem1 = 1,

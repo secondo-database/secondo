@@ -213,7 +213,7 @@ Copies the grid object to all workers.
 
         bool computeGrid( ) {
 
-            string gridCollect = 
+            std::string gridCollect = 
                 "(rect2cellgrid (collect_box (transformstream "
                 "(dsummarize (dmap " + nl->ToString(
                 DRelHelpers::createdrel2darray( sourcedType, drel ) ) +
@@ -226,7 +226,7 @@ Copies the grid object to all workers.
             ListExpr query;
             nl->ReadFromString( gridCollect, query );
 
-            string typeString, errorString;
+            std::string typeString, errorString;
             bool correct = false;
             bool evaluable = false;
             bool defined = false;
@@ -280,7 +280,7 @@ Repartitions the drel to a DFMatrix.
                             listutils::basicSymbol<Stream<Tuple>>( ),
                             newTupleType ) );
 
-            string extendStreamS;
+            std::string extendStreamS;
             ListExpr partitionTMFun;
 
             if( dType == spatial2d || dType == spatial3d) {
@@ -359,7 +359,7 @@ Repartitions the drel to a DFMatrix.
                     partitionTMFun,
                     partitionTMInt ) );
 
-            string queryS;
+            std::string queryS;
             if( dType == spatial2d || dType == spatial3d) {
 
                 queryS = "(partitionF " + nl->ToString(

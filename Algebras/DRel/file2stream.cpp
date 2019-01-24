@@ -57,7 +57,7 @@ Type mapping of the operator file2stream
 */
     ListExpr file2streamTM( ListExpr args ) {
 
-        string err = "string|text expected";
+        std::string err = "string|text expected";
 
         ListExpr arg1Type = nl->First( args );
 
@@ -82,9 +82,9 @@ Type mapping of the operator file2stream
     template<class R>
     class FileReader {
         public:
-            FileReader( string _file ) : file( _file ) {
+            FileReader( std::string _file ) : file( _file ) {
 
-                f.open( file, ios::in );
+                f.open( file, std::ios::in );
 
                 SecondoCatalog* sc = SecondoSystem::GetCatalog();
                 tupleType = sc->NumericType( 
@@ -111,7 +111,7 @@ Type mapping of the operator file2stream
                     return 0;
                 }
 
-                string line;
+                std::string line;
                 getline( f, line );
 
                 #ifdef DRELDEBUG
@@ -135,8 +135,8 @@ Type mapping of the operator file2stream
 
         private:
             ListExpr tupleType;
-            string file;
-            ifstream f;
+            std::string file;
+            std::ifstream f;
 
     };
 
@@ -160,7 +160,7 @@ Reads a file and create a drel.
 
             case OPEN: {
 
-                string filename = ( ( R* )args[ 0 ].addr )->GetValue( );
+                std::string filename = ( ( R* )args[ 0 ].addr )->GetValue( );
 
                 #ifdef DRELDEBUG
                 cout << "OPEN" << endl;

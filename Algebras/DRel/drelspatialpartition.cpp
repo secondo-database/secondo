@@ -219,7 +219,7 @@ attribute.
         
         ListExpr drelType = qp->GetType( qp->GetSon( s, 0 ) );
         R* drel = ( R* )args[ 0 ].addr;
-        string attrName;
+        std::string attrName;
         if( x == 0 ) {
             attrName = ( ( CcString* )args[ 2 ].addr )->GetValue( );
         }

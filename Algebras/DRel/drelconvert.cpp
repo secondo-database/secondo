@@ -163,7 +163,7 @@ Creates a d[f]rel.
 */
     int drel2darraySelect( ListExpr args ) {
 
-        string type = nl->SymbolValue( nl->First( nl->First( args ) ) );
+        std::string type = nl->SymbolValue( nl->First( nl->First( args ) ) );
 
         if( type == DRel::BasicType( ) ) {
             return 0;

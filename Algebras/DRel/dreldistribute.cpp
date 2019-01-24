@@ -239,7 +239,7 @@ used to distirbute the tuple.
     template<class T>
     OpTree createStreamCellGridOpTree(
         QueryProcessor* qps, Relation* rel, ListExpr relType,
-        string attrName, T* grid ) {
+        std::string attrName, T* grid ) {
 
         #ifdef DRELDEBUG
         cout << "createStreamCellGridOpTree" << endl;
@@ -350,7 +350,7 @@ target array.
 */
     template<class T>
     T* createCellGrid(
-        Relation* rel, ListExpr relType, string attrName, int size ) {
+        Relation* rel, ListExpr relType, std::string attrName, int size ) {
 
         #ifdef DRELDEBUG
         cout << "createCellGrid" << endl;
@@ -450,7 +450,7 @@ Type mapping for the distribute operators.
             listutils::basicSymbol<Stream<Tuple>>(), 
             nl->Second( relType ) );
 
-        string errmsg;
+        std::string errmsg;
         ListExpr types, positions;
         if( !( isWorkerRelDesc( workerRelType, positions, types, errmsg ) ) ) {
             return listutils::typeError(
@@ -877,7 +877,7 @@ Value mapping of the distribute operator to distribute by hash.
         OpTree stream = createStreamOpTree(
             qps, nl->Second( qp->GetType( s ) ), rel );
 
-        string attrName = ( ( CcString* )args[ 9 ].addr )->GetValue( );
+        std::string attrName = ( ( CcString* )args[ 9 ].addr )->GetValue( );
 
         ListExpr attrType;
         int pos = listutils::findAttribute(
@@ -973,7 +973,7 @@ Value mapping of the distribute operator to distribute by range.
         OpTree stream = createStreamOpTree(
             qps, nl->Second( qp->GetType( s ) ), rel );
 
-        string attrName = ( ( CcString* )args[ 9 ].addr )->GetValue( );
+        std::string attrName = ( ( CcString* )args[ 9 ].addr )->GetValue( );
         ListExpr attrType;
         int pos = listutils::findAttribute(
             nl->Second( nl->Second( nl->Second( qp->GetType( s ) ) ) ),
@@ -1087,7 +1087,7 @@ Value mapping of the distribute operator for spatial distribution.
         Relation* rel = ( Relation* )args[ 0 ].addr;
         int size = ( ( CcInt* )args[ 4 ].addr )->GetIntval( );
         size = 37; // static grid size. don't think about it
-        string attrName = ( ( CcString* )args[ 10 ].addr )->GetValue( );
+        std::string attrName = ( ( CcString* )args[ 10 ].addr )->GetValue( );
         FText* sourceRelType = ( FText* )args[ 11 ].addr;
 
 

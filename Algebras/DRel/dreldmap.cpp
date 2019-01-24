@@ -158,8 +158,8 @@ drelfilter operator.
         // create string to call dmap the call is devided in two parts
         // the argument for the drel is missing and will be filled in the
         // value mapping
-        string funText1 = "(dmap ";
-        string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
+        std::string funText1 = "(dmap ";
+        std::string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
             "(filter (feed dmapelem_1)" + nl->ToString( fun ) + 
             ") ) )";
 
@@ -298,8 +298,8 @@ operator.
         // create string to call dmap the call is devided in two parts
         // the argument for the drel is missing and will be filled in the
         // value mapping
-        string funText1 = "(dmap ";
-        string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
+        std::string funText1 = "(dmap ";
+        std::string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
             "(project (feed dmapelem_1)" + nl->ToString( attrlist ) + 
             ") ) )";
 
@@ -474,8 +474,8 @@ tuples. This is a combination of the operators project and extend.
         // create string to call dmap the call is devided in two parts
         // the argument for the drel is missing and will be filled in the
         // value mapping
-        string funText1 = "(dmap ";
-        string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
+        std::string funText1 = "(dmap ";
+        std::string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
             "(projectextend (feed dmapelem_1)" + 
             nl->ToString( attrlist ) + nl->ToString( fun ) + ") )";
 
@@ -597,8 +597,8 @@ combination of the operator extend.
         // create string to call dmap the call is devided in two parts
         // the argument for the drel is missing and will be filled in the
         // value mapping
-        string funText1 = "(dmap ";
-        string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
+        std::string funText1 = "(dmap ";
+        std::string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
             "(extend (feed dmapelem_1)" + nl->ToString( fun ) + 
             ") ) )";
 
@@ -668,8 +668,8 @@ operator.
         // create string to call dmap the call is devided in two parts
         // the argument for the drel is missing and will be filled in the
         // value mapping
-        string funText1 = "(dmap ";
-        string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
+        std::string funText1 = "(dmap ";
+        std::string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
             "(head (feed dmapelem_1)" + nl->ToString( secondValue ) + 
             ") ) )";
 
@@ -760,8 +760,8 @@ operator.
         // create string to call dmap the call is devided in two parts
         // the argument for the drel is missing and will be filled in the
         // value mapping
-        string funText1 = "(dmap ";
-        string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
+        std::string funText1 = "(dmap ";
+        std::string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
             "(rename (feed dmapelem_1)" + 
             nl->ToString( secondValue ) + ") ) )";
 
@@ -823,8 +823,8 @@ operator.
         // create string to call dmap the call is devided in two parts
         // the argument for the drel is missing and will be filled in the
         // value mapping
-        string funText1 = "(dmap ";
-        string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
+        std::string funText1 = "(dmap ";
+        std::string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
             "(rdup (sort (feed dmapelem_1) ) ) ) )";
 
         #ifdef DRELDEBUG
@@ -885,8 +885,8 @@ operator.
         // create string to call dmap the call is devided in two parts
         // the argument for the drel is missing and will be filled in the
         // value mapping
-        string funText1 = "(dmap ";
-        string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
+        std::string funText1 = "(dmap ";
+        std::string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
             "(sort (feed dmapelem_1) ) ) )";
 
         #ifdef DRELDEBUG
@@ -1070,8 +1070,8 @@ Type mapping for the drellgroup operator.
         // create string to call dmap the call is devided in two parts
         // the argument for the drel is missing and will be filled in the
         // value mapping
-        string funText1 = "(dmap ";
-        string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
+        std::string funText1 = "(dmap ";
+        std::string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
             "(groupby (feed dmapelem_1) " + nl->ToString( attrlist ) +
             nl->ToString( fun ) + " ) ) )";
 
@@ -1152,8 +1152,8 @@ operator.
         // create string to call dmap the call is devided in two parts
         // the argument for the drel is missing and will be filled in the
         // value mapping
-        string funText1 = "(dmap ";
-        string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
+        std::string funText1 = "(dmap ";
+        std::string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
             "(sortby (feed dmapelem_1) " + nl->ToString( attrlist ) + 
             " ) ) )";
 
@@ -1238,8 +1238,8 @@ to define the range.
         // create string to call dmap the call is devided in two parts
         // the argument for the drel is missing and will be filled in the
         // value mapping
-        string funText1 = "(dmap2 ";
-        string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
+        std::string funText1 = "(dmap2 ";
+        std::string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
             "(elem2_2 ARRAYFUNARG2) "
             "(range elem1_1 elem2_2 " + nl->ToString( range1 ) + " " +
             nl->ToString( range2 ) + " ) ) 1238 )";
@@ -1317,8 +1317,8 @@ value.
         // create string to call dmap the call is devided in two parts
         // the argument for the drel is missing and will be filled in the
         // value mapping
-        string funText1 = "(dmap2 ";
-        string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
+        std::string funText1 = "(dmap2 ";
+        std::string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
             "(elem2_2 ARRAYFUNARG2) "
             "(exactmatch elem1_1 elem2_2 " + 
             nl->ToString( searchValue ) + " ) ) 1238 )";
@@ -1393,7 +1393,7 @@ arguments.
         }
 
         //string tempName = distributed2::algInstance->getTempName( );
-        string tempName = nl->SymbolValue( arg3Value );
+        std::string tempName = nl->SymbolValue( arg3Value );
 
         // Bring rect to the workers
         cout << "bring intersect argument to the workers" << endl;
@@ -1408,7 +1408,7 @@ arguments.
 
         Word result;
         bool correct, evaluable, defined, isFunction;
-        string typeString, errorString;
+        std::string typeString, errorString;
         QueryProcessor::ExecuteQuery( 
             shareQuery, result, typeString, errorString, correct, evaluable, 
             defined, isFunction );
@@ -1425,8 +1425,8 @@ arguments.
         // create string to call dmap the call is devided in two parts
         // the argument for the drel is missing and will be filled in the
         // value mapping
-        string funText1 = "(dmap2 ";
-        string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
+        std::string funText1 = "(dmap2 ";
+        std::string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
             "(elem2_2 ARRAYFUNARG2) "
             "(windowintersects elem1_1 elem2_2 " + tempName + 
             " ) ) 1238 )";
@@ -1506,8 +1506,8 @@ value.
         // the argument for the drel is missing and will be filled in the
         // value mapping
         ListExpr arg4Value = nl->Second( nl->Fourth( args ) );
-        string funText1 = "(dmap3 ";
-        string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
+        std::string funText1 = "(dmap3 ";
+        std::string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
             "(elem2_2 ARRAYFUNARG2) (elem3_3 ARRAYFUNARG3) "
             "(loopjoin (feed elem1_1) (fun (tuple_4 TUPLE) "
             "(exactmatch elem2_2 elem3_3 (attr tuple_4 " +
@@ -1574,10 +1574,10 @@ text arguments of the typemapping.
         }
 
         // create dmap call with drel pointer
-        string drelptr = nl->ToString( DRelHelpers::createdrel2darray( 
+        std::string drelptr = nl->ToString( DRelHelpers::createdrel2darray( 
             qp->GetType( qp->GetSon( s, 0 ) ), drel ) );
 
-        string funText = fun1->GetValue( ) + drelptr + fun2->GetValue( );
+        std::string funText = fun1->GetValue( ) + drelptr + fun2->GetValue( );
 
         #ifdef DRELDEBUG
         cout << "funText" << endl;
@@ -1593,7 +1593,7 @@ text arguments of the typemapping.
         bool evaluable = false;
         bool defined = false;
         bool isFunction = false;
-        string typeString, errorString;
+        std::string typeString, errorString;
         Word dmapResult;
         if( !QueryProcessor::ExecuteQuery( funList, dmapResult, 
                 typeString, errorString,
@@ -1662,12 +1662,12 @@ The function is in the text arguments of the typemapping.
         }
 
         // create dmap call with drel pointer
-        string darrayptr = nl->ToString( DRelHelpers::createPointerList( 
+        std::string darrayptr = nl->ToString( DRelHelpers::createPointerList( 
                 qp->GetType( qp->GetSon( s, 0 ) ), darray ) );
-        string drelptr = nl->ToString( DRelHelpers::createdrel2darray( 
+        std::string drelptr = nl->ToString( DRelHelpers::createdrel2darray( 
             qp->GetType( qp->GetSon( s, 1 ) ), drel ) );
 
-        string funText = fun1->GetValue( ) + darrayptr + drelptr + 
+        std::string funText = fun1->GetValue( ) + darrayptr + drelptr + 
             fun2->GetValue( );
 
         #ifdef DRELDEBUG
@@ -1684,7 +1684,7 @@ The function is in the text arguments of the typemapping.
         bool evaluable = false;
         bool defined = false;
         bool isFunction = false;
-        string typeString, errorString;
+        std::string typeString, errorString;
         Word dmapResult;
         if( !QueryProcessor::ExecuteQuery( funList, dmapResult, 
                 typeString, errorString,
@@ -1748,15 +1748,15 @@ The function is in the text arguments of the typemapping.
         }
 
         // create dmap call with drel pointer
-        string drel1ptr = nl->ToString( DRelHelpers::createdrel2darray( 
+        std::string drel1ptr = nl->ToString( DRelHelpers::createdrel2darray( 
             qp->GetType( qp->GetSon( s, 0 ) ), drel1 ) );
-        string darrayptr = nl->ToString( DRelHelpers::createPointerList( 
+        std::string darrayptr = nl->ToString( DRelHelpers::createPointerList( 
             qp->GetType( qp->GetSon( s, 1 ) ), darray ) );
-        string drel2ptr = nl->ToString( DRelHelpers::createdrel2darray( 
+        std::string drel2ptr = nl->ToString( DRelHelpers::createdrel2darray( 
             qp->GetType( qp->GetSon( s, 2 ) ), drel2 ) );
 
-        string funText = fun1->GetValue( ) + drel1ptr + darrayptr + drel2ptr + 
-            " " + fun2->GetValue( );
+        std::string funText = fun1->GetValue( ) + drel1ptr + darrayptr 
+                            + drel2ptr + " " + fun2->GetValue( );
 
         #ifdef DRELDEBUG
         cout << "funText" << endl;
@@ -1772,7 +1772,7 @@ The function is in the text arguments of the typemapping.
         bool evaluable = false;
         bool defined = false;
         bool isFunction = false;
-        string typeString, errorString;
+        std::string typeString, errorString;
         Word dmapResult;
         if( !QueryProcessor::ExecuteQuery( funList, dmapResult, 
                 typeString, errorString,

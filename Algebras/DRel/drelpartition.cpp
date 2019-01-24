@@ -190,7 +190,7 @@ attribute.
         int key = nl->IntValue( nl->Third( nl->Third( qp->GetType( s ) ) ) );
 
         int x = ( qp->GetNoSons(s) == 5 ) ? 1 : 0;
-        string attrName = ( ( CcString* )args[ 2 + x ].addr )->GetValue( );
+        std::string attrName = ( ( CcString* )args[ 2 + x ].addr )->GetValue( );
         int pos = ( ( CcInt* )args[ 3 + x ].addr )->GetValue( );
 
         collection::Collection* boundary;

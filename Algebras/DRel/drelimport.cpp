@@ -67,7 +67,7 @@ namespace drel {
     ListExpr file2streamTM( ListExpr args );
 
     OpTree createfile2streamTree(
-        QueryProcessor* qps, string filename ) {
+        QueryProcessor* qps, std::string filename ) {
 
         bool correct = false;
         bool evaluable = false;
@@ -133,7 +133,7 @@ Type mapping of the operator drelimport
                 err + ": fourth argument is not a relation" );
         }
 
-        string errmsg;
+        std::string errmsg;
         ListExpr types, positions;
         if( !( isWorkerRelDesc( arg4Type, positions, types, errmsg ) ) ) {
             return listutils::typeError(
@@ -178,7 +178,7 @@ Reads a file and create a drel.
     int drelimportVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
-        string filename = ( ( R* )args[ 0 ].addr )->GetValue( );
+        std::string filename = ( ( R* )args[ 0 ].addr )->GetValue( );
 
         QueryProcessor* qps = new QueryProcessor( nl, am );
         OpTree stream = createfile2streamTree( qps, filename );
