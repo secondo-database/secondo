@@ -34,7 +34,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "FileRelations.h"
 #include "FileAttribute.h"
 
-using namespace std;
 
 extern boost::mutex nlparsemtx;
 boost::mutex createRelMut;
@@ -51,9 +50,9 @@ namespace distributed2
  Creates a new connection instance.
 
 */
-ConnectionInfo::ConnectionInfo(const string& _host,
+ConnectionInfo::ConnectionInfo(const std::string& _host,
                                const int _port,
-                               const string& _config,
+                               const std::string& _config,
                                SecondoInterfaceCS* _si,
                                NestedList* _mynl,
                                const size_t timeout,
@@ -90,7 +89,7 @@ ConnectionInfo::ConnectionInfo(const string& _host,
            stopTimeout(false);
         }
       } catch(...){
-        cerr << " Problem in ConnectionInfo constructor" << endl;
+        std::cerr << " Problem in ConnectionInfo constructor" << endl;
         if(timeout>0){
            stopTimeout(false);
         }
@@ -109,25 +108,25 @@ bool ConnectionInfo::reconnect(bool showCommands, CommandLog& log,
     try{
        this->si->Terminate();
     } catch(...) {
-       cerr << "reconnect: Exception during terminate" << endl;
+       std::cerr << "reconnect: Exception during terminate" << endl;
     }
     try{
        delete this->si;
     } catch(...) {
-       cerr << "reconnect: Exception during deletion of si " << endl;
+       std::cerr << "reconnect: Exception during deletion of si " << endl;
     }
     si = new SecondoInterfaceCS(true, mynl, true);
     si->addMessageHandler(hbobserver);
-    string user = "";
-    string passwd = "";
-    string errMsg;
+    std::string user = "";
+    std::string passwd = "";
+    std::string errMsg;
     si->setMaxAttempts(4);
     si->setTimeout(2);
     if (!si->Initialize(user, passwd, host, stringutils::int2str(port), config,
                         "",errMsg, true)) {
-      cerr << "reconnect: Initialisation of newly created "
+      std::cerr << "reconnect: Initialisation of newly created "
               "secondoInterface failed" << endl;
-      cerr << "Error : " << errMsg << endl;
+      std::cerr << "Error : " << errMsg << endl;
       return false;
     }
     if(si!=0){
@@ -144,7 +143,7 @@ bool ConnectionInfo::reconnect(bool showCommands, CommandLog& log,
            stopTimeout(false);
         }
       } catch(...){
-        cerr << "error during collecting standard information" << endl;
+        std::cerr << "error during collecting standard information" << endl;
         if(timeout>0){
            stopTimeout(false);
         }
@@ -194,7 +193,7 @@ void ConnectionInfo::deleteIfAllowed() {
  returns the remote host.
 
 */
-string ConnectionInfo::getHost() const
+std::string ConnectionInfo::getHost() const
 {
     return host;
 }
@@ -216,7 +215,7 @@ int ConnectionInfo::getPort() const
  remove monitor.
 
 */
-string ConnectionInfo::getConfig() const
+std::string ConnectionInfo::getConfig() const
 {
     return config;
 }
@@ -233,7 +232,7 @@ bool ConnectionInfo::check(bool showCommands,
                            const size_t timeout)
 {
     ListExpr res;
-    string cmd = "list databases";
+    std::string cmd = "list databases";
     SecErrInfo err;
     {
         guard_type guard(simtx);
@@ -253,7 +252,7 @@ bool ConnectionInfo::check(bool showCommands,
 
 
         double rt = sw.diffSecondsReal();
-        string home = this->getSecondoHome(showCommands, commandLog);
+        std::string home = this->getSecondoHome(showCommands, commandLog);
         commandLog.insert(this, this->getHost(), 
                           home,
                           cmd, rt, err.code);
@@ -286,9 +285,9 @@ void ConnectionInfo::setId(const int i)
 
 
 */
-void ConnectionInfo::simpleCommand(string command1,
+void ConnectionInfo::simpleCommand(std::string command1,
                                    int& err,
-                                   string& result,
+                                   std::string& result,
                                    bool rewrite,
                                    double& runtime,
                                    bool showCommands,
@@ -296,7 +295,7 @@ void ConnectionInfo::simpleCommand(string command1,
                                    bool forceExec /*=false*/,
                                    const size_t timeout /*=0*/)
 {
-    string command;
+    std::string command;
     if (rewrite)
     {
         rewriteQuery(command1, command);
@@ -346,7 +345,7 @@ void ConnectionInfo::simpleCommand(string command1,
  Returns the path of the secondo databases of the remote server.
 
 */
-string ConnectionInfo::getSecondoHome(bool showCommands,
+std::string ConnectionInfo::getSecondoHome(bool showCommands,
                                       CommandLog& commandLog)
 {
     return secondoHome;
@@ -368,18 +367,18 @@ bool ConnectionInfo::cleanUp(bool showCommands,
 {   
     guard_type guard(simtx);
     // first step : remove database objects
-    string command = "query getcatalog() "
+    std::string command = "query getcatalog() "
             "filter[.ObjectName startsWith \"TMP_\"] "
             "extend[OK : deleteObject(.ObjectName)] "
             " count";
     int err;
-    string res;
+    std::string res;
     double rt;
     simpleCommand(command, err, res, false, rt, showCommands, 
                   commandLog, false,timeout);
     bool result = err == 0;
-    string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-    string path = getSecondoHome(showCommands, commandLog) 
+    std::string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+    std::string path = getSecondoHome(showCommands, commandLog) 
                 + "/dfarrays/" + dbname + "/";
     command = "query getDirectory('" + path + "') "
             "filter[basename(.) startsWith \"TMP_\"] "
@@ -403,7 +402,7 @@ bool ConnectionInfo::cleanUp1(const size_t timeout) {
  Switches the remote server to another database.
 
 */
-bool ConnectionInfo::switchDatabase(const string& dbname,
+bool ConnectionInfo::switchDatabase(const std::string& dbname,
                                     bool createifnotexists,
                                     bool showCommands,
                                     bool forceExec,
@@ -414,7 +413,7 @@ bool ConnectionInfo::switchDatabase(const string& dbname,
     // close database ignore errors
     SecErrInfo serr;
     ListExpr resList;
-    string cmd = "close database";
+    std::string cmd = "close database";
     showCommand(si, host, port, cmd, true, showCommands);
     if(timeout>0){
        startTimeout(timeout,false);
@@ -469,10 +468,10 @@ bool ConnectionInfo::switchDatabase(const string& dbname,
 
 
 */
-void ConnectionInfo::simpleCommand(const string& command1,
+void ConnectionInfo::simpleCommand(const std::string& command1,
                                    int& error,
-                                   string& errMsg,
-                                   string& resList,
+                                   std::string& errMsg,
+                                   std::string& resList,
                                    const bool rewrite,
                                    double& runtime,
                                    bool showCommands,
@@ -481,7 +480,7 @@ void ConnectionInfo::simpleCommand(const string& command1,
                                    const size_t timeout)
 {
 
-    string command;
+    std::string command;
     if (rewrite)
     {
         rewriteQuery(command1, command);
@@ -529,10 +528,10 @@ void ConnectionInfo::simpleCommand(const string& command1,
  Performs a command that is given in nested list format.
 
 */
-void ConnectionInfo::simpleCommandFromList(const string& command1,
+void ConnectionInfo::simpleCommandFromList(const std::string& command1,
                                            int& error,
-                                           string& errMsg,
-                                           string& resList,
+                                           std::string& errMsg,
+                                           std::string& resList,
                                            const bool rewrite,
                                            double& runtime,
                                            bool showCommands,
@@ -545,7 +544,7 @@ void ConnectionInfo::simpleCommandFromList(const string& command1,
        startTimeout(timeout,true);
    }
    try{
-    string command;
+    std::string command;
     if (rewrite)
     {
         rewriteQuery(command1, command);
@@ -577,9 +576,9 @@ void ConnectionInfo::simpleCommandFromList(const string& command1,
        serr.msg = "command not executed";
     }
     if(serr.code != 0){
-       cerr << "error during secondo command" << endl;
-       cerr << "code : " << serr.code << endl;
-       cerr << "msg : " << serr.msg << endl;
+       std::cerr << "error during secondo command" << endl;
+       std::cerr << "code : " << serr.code << endl;
+       std::cerr << "msg : " << serr.msg << endl;
     }
 
 
@@ -601,7 +600,7 @@ void ConnectionInfo::simpleCommandFromList(const string& command1,
         mynl->Destroy(myResList);
     }
   } catch(...){
-     cerr << "Exception during simpleCommandFromList " << endl;
+     std::cerr << "Exception during simpleCommandFromList " << endl;
   }
   if(timeout>0){
       stopTimeout(true);
@@ -615,9 +614,9 @@ void ConnectionInfo::simpleCommandFromList(const string& command1,
 
 */
 
-void ConnectionInfo::simpleCommand(const string& command1,
+void ConnectionInfo::simpleCommand(const std::string& command1,
                                    int& error,
-                                   string& errMsg,
+                                   std::string& errMsg,
                                    ListExpr& resList,
                                    const bool rewrite,
                                    double& runtime,
@@ -627,7 +626,7 @@ void ConnectionInfo::simpleCommand(const string& command1,
                                    const size_t timeout)
 {
 
-    string command;
+    std::string command;
     if (rewrite)
     {
         rewriteQuery(command1, command);
@@ -668,7 +667,7 @@ void ConnectionInfo::simpleCommand(const string& command1,
         mynl->Destroy(myResList);
     } else {
        resList = myResList;
-    }	    
+    }    
 }
 
 /*
@@ -689,8 +688,8 @@ int ConnectionInfo::serverPid()
  It returns an error code.
 
 */
-int ConnectionInfo::sendFile(const string& local,
-                             const string& remote,
+int ConnectionInfo::sendFile(const std::string& local,
+                             const std::string& remote,
                              const bool allowOverwrite,
                              const size_t timeout)
 {
@@ -711,8 +710,8 @@ int ConnectionInfo::sendFile(const string& local,
  Transfers a remotely stored file to the local file system.
 
 */
-int ConnectionInfo::requestFile(const string& remote,
-                                const string& local,
+int ConnectionInfo::requestFile(const std::string& remote,
+                                const std::string& local,
                                 const bool allowOverwrite,
                                 const size_t timeout)
 {
@@ -733,12 +732,12 @@ int ConnectionInfo::requestFile(const string& remote,
  Returns the path on remote machine for requesting files.
 
 */
-string ConnectionInfo::getRequestFolder()
+std::string ConnectionInfo::getRequestFolder()
 {
     return requestFolder;
 }
 
-string ConnectionInfo::getRequestPath(){
+std::string ConnectionInfo::getRequestPath(){
    return requestPath;
 } 
 
@@ -750,7 +749,7 @@ string ConnectionInfo::getRequestPath(){
  This folder is a subdirectory of the request folder.
 
 */
-string ConnectionInfo::getSendFolder()
+std::string ConnectionInfo::getSendFolder()
 {
     return sendFolder;
 }
@@ -762,7 +761,7 @@ string ConnectionInfo::getSendFolder()
 
 */
 
-string ConnectionInfo::getSendPath()
+std::string ConnectionInfo::getSendPath()
 {
     return sendPath;
 }
@@ -771,18 +770,18 @@ string ConnectionInfo::getSendPath()
  1.20 Factory function
 
 */
-ConnectionInfo* ConnectionInfo::createConnection(const string& host,
+ConnectionInfo* ConnectionInfo::createConnection(const std::string& host,
                                                  const int port,
-                                                 string& config,
+                                                 std::string& config,
                                                  const size_t timeout,
                                                  const int heartbeat)
 {
 
     NestedList* mynl = new NestedList("temp_nested_list");
     SecondoInterfaceCS* si = new SecondoInterfaceCS(true, mynl, true);
-    string user = "";
-    string passwd = "";
-    string errMsg;
+    std::string user = "";
+    std::string passwd = "";
+    std::string errMsg;
     si->setMaxAttempts(4);
     si->setTimeout(1);
     if (!si->Initialize(user, passwd, host, stringutils::int2str(port), config,
@@ -805,7 +804,7 @@ ConnectionInfo* ConnectionInfo::createConnection(const string& host,
  creates a new object or updates an existing one on remote server.
 
 */
-bool ConnectionInfo::createOrUpdateObject(const string& name,
+bool ConnectionInfo::createOrUpdateObject(const std::string& name,
                                           ListExpr typelist,
                                           Word& value,
                                           bool showCommands,
@@ -824,7 +823,7 @@ bool ConnectionInfo::createOrUpdateObject(const string& name,
     guard_type guard(simtx);
     SecErrInfo serr;
     ListExpr resList;
-    string cmd = "delete " + name;
+    std::string cmd = "delete " + name;
     showCommand(si, host, port, cmd, true, showCommands);
     StopWatch sw;
     if(timeout>0){
@@ -845,7 +844,7 @@ bool ConnectionInfo::createOrUpdateObject(const string& name,
 
     showCommand(si, host, port, cmd, false, showCommands);
     // ignore error (object must not exist)
-    string filename = name + "_" + stringutils::int2str(WinUnix::getpid())
+    std::string filename = name + "_" + stringutils::int2str(WinUnix::getpid())
             + ".obj";
     storeObjectToFile(name, value, typelist, filename);
     cmd = "restore " + name + " from '" + filename + "'";
@@ -877,7 +876,7 @@ bool ConnectionInfo::createOrUpdateObject(const string& name,
  Accelerated version for relations.
 
 */
-bool ConnectionInfo::createOrUpdateRelation(const string& name,
+bool ConnectionInfo::createOrUpdateRelation(const std::string& name,
                                             ListExpr typeList,
                                             Word& value,
                                             bool showCommands,
@@ -888,7 +887,7 @@ bool ConnectionInfo::createOrUpdateRelation(const string& name,
 
     //guard_type guard(simtx);
     // write relation to a file
-    string filename = name + "_" + stringutils::int2str(WinUnix::getpid())
+    std::string filename = name + "_" + stringutils::int2str(WinUnix::getpid())
             + ".bin";
     if (!saveRelationToFile(typeList, value, filename))
     {
@@ -912,13 +911,13 @@ bool ConnectionInfo::createOrUpdateRelation(const string& name,
 
 */
 
-bool ConnectionInfo::createOrUpdateRelationFromBinFile(const string& name,
-                                                     const string& filename,
-                                                     bool showCommands,
-                                                     CommandLog& commandLog,
-                                                     const bool allowOverwrite,
-                                                     bool forceExec,
-                                                     const size_t timeout)
+bool ConnectionInfo::createOrUpdateRelationFromBinFile(const std::string& name,
+                                                const std::string& filename,
+                                                bool showCommands,
+                                                CommandLog& commandLog,
+                                                const bool allowOverwrite,
+                                                bool forceExec,
+                                                const size_t timeout)
 {
     guard_type guard(simtx);
 
@@ -938,12 +937,12 @@ bool ConnectionInfo::createOrUpdateRelationFromBinFile(const string& name,
     }
 
     // retrieve folder from which the filename can be read
-    string sendFolder = sendPath;
+    std::string sendFolder = sendPath;
 
-    string rfilename = sendFolder + "/" + filename;
+    std::string rfilename = sendFolder + "/" + filename;
     // delete existing object
 
-    string cmd = "delete " + name;
+    std::string cmd = "delete " + name;
     if (allowOverwrite)
     {
         showCommand(si, host, port, cmd, true, showCommands);
@@ -1011,13 +1010,13 @@ bool ConnectionInfo::createOrUpdateRelationFromBinFile(const string& name,
  from a local file.
 
 */
-bool ConnectionInfo::createOrUpdateAttributeFromBinFile(const string& name,
-                                                     const string& filename,
-                                                     bool showCommands,
-                                                     CommandLog& commandLog,
-                                                     const bool allowOverwrite,
-                                                     bool forceExec,
-                                                     const size_t timeout)
+bool ConnectionInfo::createOrUpdateAttributeFromBinFile(const std::string& name,
+                                                 const std::string& filename,
+                                                 bool showCommands,
+                                                 CommandLog& commandLog,
+                                                 const bool allowOverwrite,
+                                                 bool forceExec,
+                                                 const size_t timeout)
 {
     guard_type guard(simtx);
 
@@ -1038,12 +1037,12 @@ bool ConnectionInfo::createOrUpdateAttributeFromBinFile(const string& name,
     }
 
     // retrieve folder from which the filename can be read
-    string sendFolder = sendPath;
+    std::string sendFolder = sendPath;
 
-    string rfilename = sendFolder + "/" + filename;
+    std::string rfilename = sendFolder + "/" + filename;
     // delete existing object
 
-    string cmd = "delete " + name;
+    std::string cmd = "delete " + name;
     if (allowOverwrite)
     {
         showCommand(si, host, port, cmd, true, showCommands);
@@ -1108,7 +1107,7 @@ bool ConnectionInfo::createOrUpdateAttributeFromBinFile(const string& name,
 */
 bool ConnectionInfo::saveRelationToFile(ListExpr relType,
                                         Word& value,
-                                        const string& filename)
+                                        const std::string& filename)
 {
     BinRelWriter brw(filename, relType, FILE_BUFFER_SIZE);
     if(!brw.ok()){
@@ -1135,7 +1134,7 @@ bool ConnectionInfo::saveRelationToFile(ListExpr relType,
 */
 bool ConnectionInfo::saveAttributeToFile(ListExpr type,
                                          Word& value,
-                                         const string& filename)
+                                         const std::string& filename)
 {
     Attribute* attr = (Attribute*) value.addr;
     return FileAttribute::saveAttribute(type, attr, filename);
@@ -1148,10 +1147,10 @@ bool ConnectionInfo::saveAttributeToFile(ListExpr type,
 
 */
 
-bool ConnectionInfo::storeObjectToFile(const string& objName,
+bool ConnectionInfo::storeObjectToFile(const std::string& objName,
                                        Word& value,
                                        ListExpr typeList,
-                                       const string& fileName)
+                                       const std::string& fileName)
 {
     SecondoCatalog* ctl = SecondoSystem::GetCatalog();
     ListExpr valueList = ctl->OutObject(typeList, value);
@@ -1169,7 +1168,7 @@ bool ConnectionInfo::storeObjectToFile(const string& objName,
 
 */
 
-bool ConnectionInfo::retrieve(const string& objName,
+bool ConnectionInfo::retrieve(const std::string& objName,
                               ListExpr& resType,
                               Word& result,
                               bool checkType,
@@ -1194,7 +1193,8 @@ bool ConnectionInfo::retrieve(const string& objName,
         {
             return true;
         }
-        cerr << "Could not use fast retrieval for a relation, failback" << endl;
+        std::cerr << "Could not use fast retrieval for a relation, failback" 
+                  << endl;
     }
     {
       guard_type  guard(simtx);
@@ -1203,7 +1203,7 @@ bool ConnectionInfo::retrieve(const string& objName,
       }
       SecErrInfo serr;
       ListExpr myResList;
-      string cmd = "query " + objName;
+      std::string cmd = "query " + objName;
       showCommand(si, host, port, cmd, true, showCommands);
       StopWatch sw;
       if(!cmdLog || forceExec){
@@ -1267,7 +1267,7 @@ bool ConnectionInfo::retrieve(const string& objName,
  Special accelerated version for relations
 
 */
-bool ConnectionInfo::retrieveRelation(const string& objName,
+bool ConnectionInfo::retrieveRelation(const std::string& objName,
                                       ListExpr& resType,
                                       Word& result,
                                       bool showCommands,
@@ -1278,8 +1278,8 @@ bool ConnectionInfo::retrieveRelation(const string& objName,
 {
 
     //guard_type guard(simtx);
-    string fi = stringutils::int2str(fileIndex);
-    string fname1 = objName + "_" + fi + ".bin";
+    std::string fi = stringutils::int2str(fileIndex);
+    std::string fname1 = objName + "_" + fi + ".bin";
     if (!retrieveRelationFile(objName, fname1, showCommands,  
                               commandLog, forceExec,timeout))
     {
@@ -1296,7 +1296,7 @@ bool ConnectionInfo::retrieveRelation(const string& objName,
  Retrieves a relation which is on a remotely stored file.
 
 */
-bool ConnectionInfo::retrieveRelationInFile(const string& fileName,
+bool ConnectionInfo::retrieveRelationInFile(const std::string& fileName,
                                             ListExpr& resType,
                                             Word& result,
                                             bool showCommands,
@@ -1307,13 +1307,13 @@ bool ConnectionInfo::retrieveRelationInFile(const string& fileName,
     guard_type guard(simtx);
     result.addr = 0;
     // get the full path for requesting files
-    string rfpath;
+    std::string rfpath;
     try{
        rfpath = requestPath + "/";
     } catch(...){
        return false;
     }
-    string base = FileSystem::Basename(fileName);
+    std::string base = FileSystem::Basename(fileName);
     if (stringutils::startsWith(fileName, rfpath))
     {
         if(timeout>0){
@@ -1336,7 +1336,7 @@ bool ConnectionInfo::retrieveRelationInFile(const string& fileName,
     }
     // remote file located in a not accessible folder, send command
     // to copy it into a such folder
-    string cmd = "query copyFile('" + fileName + "', '" + rfpath + base
+    std::string cmd = "query copyFile('" + fileName + "', '" + rfpath + base
             + ".tmp')";
     SecErrInfo serr;
     ListExpr resList;
@@ -1370,8 +1370,8 @@ bool ConnectionInfo::retrieveRelationInFile(const string& fileName,
     if (!mynl->HasLength(resList, 2)
             || mynl->AtomType(mynl->Second(resList)) != BoolType)
     {
-        cerr << "command " << cmd << " returns unexpected result" << endl;
-        cerr << mynl->ToString(resList) << endl;
+        std::cerr << "command " << cmd << " returns unexpected result" << endl;
+        std::cerr << mynl->ToString(resList) << endl;
         return false;
     }
     if (!mynl->BoolValue(mynl->Second(resList)))
@@ -1385,7 +1385,7 @@ bool ConnectionInfo::retrieveRelationInFile(const string& fileName,
     // copy the file to local file system
     if (si->requestFile(base + ".tmp", base + ".tmp", true) != 0)
     {
-        cerr << "Requesting file " + base + ".tmp failed" << endl;
+        std::cerr << "Requesting file " + base + ".tmp failed" << endl;
         return false;
     }
     result = createRelationFromFile(base + ".tmp", resType);
@@ -1427,15 +1427,15 @@ bool ConnectionInfo::retrieveRelationInFile(const string& fileName,
 
 */
 
-bool ConnectionInfo::retrieveRelationFile(const string& objName,
-                                          const string& fname1,
+bool ConnectionInfo::retrieveRelationFile(const std::string& objName,
+                                          const std::string& fname1,
                                           bool showCommands,
                                           CommandLog& commandLog,
                                           bool forceExec, 
                                           const size_t timeout)
 {
     guard_type guard(simtx);
-    string rfname;
+    std::string rfname;
     try{
       rfname = requestPath + "/" + fname1;
     } catch(...){
@@ -1444,7 +1444,7 @@ bool ConnectionInfo::retrieveRelationFile(const string& objName,
     // save the remove relation into a binary file
     SecErrInfo serr;
     ListExpr resList;
-    string cmd = "query createDirectory('" + requestPath 
+    std::string cmd = "query createDirectory('" + requestPath 
             + "', TRUE) ";
     showCommand(si, host, port, cmd, true, showCommands);
     StopWatch sw;
@@ -1469,9 +1469,9 @@ bool ConnectionInfo::retrieveRelationFile(const string& objName,
     showCommand(si, host, port, cmd, false, showCommands);
     if (serr.code != 0)
     {
-        cerr << "Creating filetransfer directory failed" << endl;
-        cerr << "serr.code = " << serr.code << endl;
-        cerr << "serr.Msg = " << serr.msg << endl;
+        std::cerr << "Creating filetransfer directory failed" << endl;
+        std::cerr << "serr.code = " << serr.code << endl;
+        std::cerr << "serr.Msg = " << serr.msg << endl;
         if(timeout>0){
           stopTimeout(false);
         }
@@ -1538,19 +1538,19 @@ bool ConnectionInfo::retrieveRelationFile(const string& objName,
  even if the file is located outside the requestFile directory.
 
 */
-bool ConnectionInfo::retrieveAnyFile(const string& remoteName,
-                                     const string& localName,
+bool ConnectionInfo::retrieveAnyFile(const std::string& remoteName,
+                                     const std::string& localName,
                                      bool showCommands,
                                      CommandLog& commandLog,
                                      bool forceExec,
                                      const size_t timeout)
 {
     guard_type guard(simtx);
-    string rf = getRequestFolder();
+    std::string rf = getRequestFolder();
     bool copyRequired = !stringutils::startsWith(remoteName, rf);
-    string cn;
+    std::string cn;
     int err;
-    string errMsg;
+    std::string errMsg;
     ListExpr result;
     double rt;
     if (!copyRequired)
@@ -1559,7 +1559,7 @@ bool ConnectionInfo::retrieveAnyFile(const string& remoteName,
     } else
     {
         // create request dir
-        string cmd = "query createDirectory('" + rf + "', TRUE)";
+        std::string cmd = "query createDirectory('" + rf + "', TRUE)";
         simpleCommand(cmd, err, errMsg, result, false, rt, 
                       showCommands, commandLog, forceExec, timeout);
         if (err)
@@ -1569,33 +1569,33 @@ bool ConnectionInfo::retrieveAnyFile(const string& remoteName,
         }
         cn = "tmp_" + stringutils::int2str(serverPid()) + "_"
                 + FileSystem::Basename(remoteName);
-        string cf = getSecondoHome(showCommands, commandLog) 
+        std::string cf = getSecondoHome(showCommands, commandLog) 
                   + "/" + rf + "/" + cn;
         cmd = "query copyFile('" + remoteName + "','" + cf + "')";
         simpleCommand(cmd, err, errMsg, result, false, rt, showCommands, 
                       commandLog, forceExec, timeout);
         if (err)
         {
-            cerr << "command " << cmd << " failed" << endl;
+            std::cerr << "command " << cmd << " failed" << endl;
             return false;
         }
         if (!nl->HasLength(result, 2))
         {
-            cerr << "unexpected result for command " << cmd << endl;
-            cerr << "expected (type value), got " << nl->ToString(result)
+            std::cerr << "unexpected result for command " << cmd << endl;
+            std::cerr << "expected (type value), got " << nl->ToString(result)
                     << endl;
             return false;
         }
         if (nl->AtomType(nl->Second(result)) != BoolType)
         {
-            cerr << "unexpected result for command " << cmd << endl;
-            cerr << "expected (bool boolatom), got " << nl->ToString(result)
-                    << endl;
+            std::cerr << "unexpected result for command " << cmd << endl;
+            std::cerr << "expected (bool boolatom), got " 
+                      << nl->ToString(result) << endl;
             return false;
         }
         if (!nl->BoolValue(nl->Second(result)))
         {
-            cerr << "copying file failed" << endl;
+            std::cerr << "copying file failed" << endl;
             return false;
         }
 
@@ -1606,12 +1606,12 @@ bool ConnectionInfo::retrieveAnyFile(const string& remoteName,
     if (copyRequired)
     {
         // remove copy
-        string cmd = "query removeFile('" + cn + "')";
+        std::string cmd = "query removeFile('" + cn + "')";
         simpleCommand(cmd, err, errMsg, result, false, rt, showCommands, 
                       commandLog, forceExec, timeout);
         if (err)
         {
-            cerr << "command " << cmd << " failed" << endl;
+            std::cerr << "command " << cmd << " failed" << endl;
         }
     }
     return errres == 0;
@@ -1621,7 +1621,7 @@ bool ConnectionInfo::retrieveAnyFile(const string& remoteName,
  1.35 creates a relation from its binary file representation.
 
 */
-Word ConnectionInfo::createRelationFromFile(const string& fname,
+Word ConnectionInfo::createRelationFromFile(const std::string& fname,
                                             ListExpr& resType)
 {
 
@@ -1644,9 +1644,10 @@ Word ConnectionInfo::createRelationFromFile(const string& fname,
     ListExpr typeInFile = reader.getRelType();
     if (!nl->Equal(resType, typeInFile))
     {
-        cerr << "Type conflict between expected type and type in file" << endl;
-        cerr << "Expected : " << nl->ToString(resType) << endl;
-        cerr << "Type in  File " << nl->ToString(typeInFile) << endl;
+        std::cerr << "Type conflict between expected type and type in file" 
+                  << endl
+                  << "Expected : " << nl->ToString(resType) << endl
+                  << "Type in  File " << nl->ToString(typeInFile) << endl;
         tt->DeleteIfAllowed();
         return result;
     }
@@ -1668,7 +1669,7 @@ Word ConnectionInfo::createRelationFromFile(const string& fname,
     return result;
 }
 
-ostream& ConnectionInfo::print(ostream& o) const
+std::ostream& ConnectionInfo::print(std::ostream& o) const
 {
     o << host << ", " << port << ", " << config;
     return o;
