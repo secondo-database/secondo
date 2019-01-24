@@ -243,7 +243,6 @@ helping operators for indexing instant values in R-trees.
 
 #include "TemporalUnitAlgebra.h"
 #include "NestedList.h"
-#include "NList.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
 #include "Algebra.h"
@@ -262,17 +261,15 @@ helping operators for indexing instant values in R-trees.
 #include "GenericTC.h"
 #include "Algebras/Temporal/RefinementStream.h"
 #include "Algebras/TemporalLifted/TemporalLiftedAlgebra.h"
+#include "DateTime.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager* am;
 
 
-#include "DateTime.h"
-using namespace datetime;
-using namespace std;
 
-// #define TUA_DEBUG
+  // #define TUA_DEBUG
 
 
 namespace temporalalgebra{
@@ -291,7 +288,7 @@ const double MINDOUBLE = numeric_limits<double>::min();
 */
 
 // make a string from a numeric value
-string TUn2s(const double& i)
+std::string TUn2s(const double& i)
 {
   std::stringstream ss;
   std::string str;
@@ -301,9 +298,9 @@ string TUn2s(const double& i)
 }
 
 // make a string representation from a time interval
-string TUPrintTimeInterval( Interval<DateTime> iv )
+std::string TUPrintTimeInterval( Interval<datetime::DateTime> iv )
 {
-  string Result;
+  std::string Result;
 
   if (iv.lc)
     Result += "[";
@@ -320,9 +317,9 @@ string TUPrintTimeInterval( Interval<DateTime> iv )
 }
 
 // make a string representation from a point
-string TUPrintPoint( const Point& p )
+std::string TUPrintPoint( const Point& p )
 {
-  string Result;
+  std::string Result;
 
   if ( p.IsDefined() )
     Result = "( def  : ";
@@ -337,7 +334,7 @@ string TUPrintPoint( const Point& p )
 }
 
 // make a string representation from an upoint value
-string TUPrintUPoint( const UPoint& upoint )
+std::string TUPrintUPoint( const UPoint& upoint )
 {
   std::string Result;
 
@@ -356,7 +353,7 @@ string TUPrintUPoint( const UPoint& upoint )
 }
 
 // make a string representation from an ureal value
-string TUPrintUReal( UReal* ureal )
+std::string TUPrintUReal( UReal* ureal )
 {
   std::string Result;
 
@@ -394,7 +391,7 @@ Returns the instant at the middle of the interval defined by ~start~ and  ~end~.
 
 Instant TU_GetMidwayInstant(const Instant &start, const Instant &end)
 {
-  DateTime result(instanttype);
+  datetime::DateTime result(datetime::instanttype);
   result = start + ((end - start) / 2);
   return result;
 }
@@ -513,7 +510,7 @@ ListExpr
 TypeMapSpeed( ListExpr args )
 {
   int noargs = nl->ListLength( args );
-  string errmsg = "Expected ( {upoint|mpoint} [ x geoid ] ).";
+  std::string errmsg = "Expected ( {upoint|mpoint} [ x geoid ] ).";
   if( (noargs < 1) || (noargs >2) ) {
     return listutils::typeError(errmsg +" 1");
   }
@@ -587,7 +584,7 @@ int UnitPointSpeed(Word* args,Word& result,int message,Word& local,Supplier s)
 
 */
 
-const string
+const std::string
 TemporalSpecSpeed  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>mpoint [x geoid] -> mreal\n"
@@ -668,7 +665,7 @@ int Queryrect2d(Word* args, Word& result, int message, Word& local, Supplier s)
   double timevalue;
   double mininst, maxinst;
   Instant* Inv = (Instant*)args[0].addr;
-  DateTime tmpinst;
+  datetime::DateTime tmpinst;
 
   tmpinst.ToMinimum();
   mininst = tmpinst.ToDouble();
@@ -710,7 +707,7 @@ int Queryrect2d(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 
-const string
+const std::string
 TemporalSpecQueryrect2d  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>(instant) -> rect</text--->"
@@ -809,7 +806,7 @@ int Point2d( Word* args, Word& result, int message, Word& local, Supplier s )
 5.3.3 Specification for operator ~point2d~
 
 */
-const string
+const std::string
 TemporalSpecPoint2d  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>(periods) -> point</text--->"
@@ -871,10 +868,10 @@ int GetDuration( Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
   Periods* range = (Periods*)args[0].addr;
-  DateTime* Res = ((DateTime*)result.addr);
-  *Res = DateTime(0, 0, durationtype);
+  datetime::DateTime* Res = ((datetime::DateTime*)result.addr);
+  *Res = datetime::DateTime(0, 0, datetime::durationtype);
   if ( !range->IsDefined() )
-    ((DateTime*)result.addr)->SetDefined( false );
+    ((datetime::DateTime*)result.addr)->SetDefined( false );
   else
     {
       Res->SetDefined(true);
@@ -896,7 +893,7 @@ int GetDuration( Word* args, Word& result, int message,
 5.4.3 Specification for operator ~get\_duration~
 
 */
-const string
+const std::string
 TemporalSpecGetDuration  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>(periods) -> duration</text--->"
@@ -966,7 +963,8 @@ For ~the\_mvalue~, it is
 
 ListExpr TU_TM_themvalue( ListExpr args )
 {
-  string errmsg = "Expected (stream T), where T in{ubool,uint,upoint,ustring}";
+  std::string errmsg = "Expected (stream T), where T "
+                       "in{ubool,uint,upoint,ustring}";
   if(nl->ListLength(args) != 1){
     return listutils::typeError(errmsg);
   }
@@ -996,7 +994,8 @@ ListExpr TU_TM_themvalue( ListExpr args )
 }
 
 ListExpr the_mvalue2TM(ListExpr args){
-  string err = "stream(UT) , T in {bool. int, real, string, point} expected";
+  std::string err = "stream(UT) , T in {bool. int, real, "
+                    "string, point} expected";
   if(!nl->HasLength(args,1)){
     return  listutils::typeError(err);
   }
@@ -1019,7 +1018,7 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
            lastlistn, first2, second2, firstr, listfull, attrtype;
 
   int j;
-  string argstr, argstr2, attrname, inputtype, inputname, fulllist;
+  std::string argstr, argstr2, attrname, inputtype, inputname, fulllist;
 
   //check the list length.
   if(nl->ListLength(args)!=2){
@@ -1193,7 +1192,7 @@ int MappingMakemvaluePlain(Word* args,Word& result,int message,
 {
   Word currentUnit;
   Unit* unit1;
-  Instant lastInst(instanttype, 0);
+  Instant lastInst(datetime::instanttype, 0);
   bool lastRC= false;
   DbArray<Unit> allUnits(0);
   qp->Open(args[0].addr);
@@ -1272,7 +1271,7 @@ int the_mvalue2VM1(Word* args, Word& result, int message,
             res->MergeAdd(*unit);
             lastUnit->DeleteIfAllowed();
             lastUnit = unit;
-         } else if((unit->timeInterval.end < lastUnit->timeInterval.end) ||
+         } else if(((unit->timeInterval.end) < (lastUnit->timeInterval.end)) ||
                    ((unit->timeInterval.end ==lastUnit->timeInterval.end) && 
                     (!unit->timeInterval.rc || lastUnit->timeInterval.rc))) {
             // no part of the unit if after the last unit
@@ -1395,7 +1394,7 @@ int MappingMakemvalue_movingregionPlain(Word* args,Word& result,int message,
 5.5.3 Specification for operators ~makemvalue~, ~the\_mvalue~
 
 */
-const string
+const std::string
 TemporalSpecMakemvalue  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>For T in {bool, int, string, real, point, region*}:\n"
@@ -1409,7 +1408,7 @@ TemporalSpecMakemvalue  =
 "unit will result in an 'empty' moving object, not in an 'undef'.</text--->"
 "<text>query units(zug5) transformstream makemvalue[elem]</text---> ) )";
 
-const string
+const std::string
 TemporalSpecThemvalue  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>For T in {bool, int, string, real, point, region*}:\n"
@@ -1425,7 +1424,7 @@ TemporalSpecThemvalue  =
 "<text>query units(zug5) the_mvalue</text---> ) )";
 
 
-const string
+const std::string
 the_mvalue2Spec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>For T in {bool, int, string, real, point}:\n"
@@ -1446,7 +1445,7 @@ the_mvalue2Spec  =
 int
 ThemvalueSelect( ListExpr args )
 {
-  string argstr;
+  std::string argstr;
   nl->WriteToString(argstr, args);
   if ( argstr == "((stream ubool))" )   return 0;
   if ( argstr == "((stream uint))" )    return 1;
@@ -1477,7 +1476,7 @@ MakemvalueSelect( ListExpr args )
   ListExpr first, second, rest, listn,
            lastlistn, first2, second2, firstr;
 
-  string argstr, argstr2, attrname, inputtype, inputname;
+  std::string argstr, argstr2, attrname, inputtype, inputname;
 
   first = nl->First(args);
   second  = nl->Second(args);
@@ -1613,7 +1612,7 @@ int UnitPointTrajectory(Word* args, Word& result, int message,
 5.6.3 Specification for operator ~trajectory~
 
 */
-const string
+const std::string
 TemporalSpecTrajectory  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>upoint -> line</text--->"
@@ -1693,7 +1692,7 @@ int MappingUnitDefTime( Word* args, Word& result, int message,
 5.7.3 Specification for operator ~deftime~
 
 */
-const string
+const std::string
 TemporalSpecDefTime  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>uT -> periods \n"
@@ -1797,7 +1796,7 @@ int MappingUnitAtInstant( Word* args, Word& result, int message,
 5.8.3 Specification for operator ~atinstant~
 
 */
-const string
+const std::string
 TemporalSpecAtInstant  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>(uT instant) -> iT\n"
@@ -1846,7 +1845,7 @@ ListExpr
 UnitPeriodsTypeMap( ListExpr args )
 {
   ListExpr arg1, arg2;
-  string argstr;
+  std::string argstr;
 
   if ( nl->ListLength( args ) != 2 )
     {
@@ -2213,7 +2212,7 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
 5.9.3 Specification for operator ~atperiods~
 
 */
-const string
+const std::string
 TemporalSpecAtPeriods  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\") "
 "( <text>For T in {int, bool, real, string, point, region}:\n"
@@ -2448,7 +2447,7 @@ int MappingUnitStreamInstantFinal( Word* args, Word& result, int message,
 5.10.3 Specification for operator ~initial~ and ~final~
 
 */
-const string
+const std::string
 TemporalSpecInitial  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(       uT) -> iT\n"
@@ -2459,7 +2458,7 @@ TemporalSpecInitial  =
   "intime value corresponding to the (overall) initial instant.</text--->"
   "<text>initial( upoint1 )</text---> ) )";
 
-const string
+const std::string
 TemporalSpecFinal  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>)       uT) -> iT\n"
@@ -2612,7 +2611,7 @@ int MappingUnitPresent_p( Word* args, Word& result, int message,
 5.11.3 Specification for operator ~present~
 
 */
-const string
+const std::string
 TemporalSpecPresent  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>({m|u}T instant) -> bool\n"
@@ -2782,7 +2781,7 @@ int MappingUnitPasses( Word* args, Word& result, int message,
 5.12.3 Specification for operator ~passes~
 
 */
-const string
+const std::string
 TemporalSpecPasses =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>(uT T) -> bool\n"
@@ -2916,7 +2915,7 @@ int UnitPointVelocity(Word* args, Word& result, int message,
 5.16.3 Specification for operator ~velocity~
 
 */
-const string
+const std::string
 TemporalSpecVelocity=
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>mpoint -> mpoint\n"
@@ -3060,7 +3059,7 @@ int UnitPointDerivable( Word* args, Word& result, int message,
 5.17.3 Specification for operator ~derivable~
 
 */
-const string
+const std::string
 TemporalSpecDerivable=
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>mreal -> mbool\n"
@@ -3191,7 +3190,7 @@ int UnitPointDerivative( Word* args, Word& result, int message,
     }
   else // Unit is undefined
     {
-      DateTime t = DateTime(instanttype);
+      datetime::DateTime t = datetime::DateTime(datetime::instanttype);
       res->timeInterval = Interval<Instant>(t,t,true,true);
       res->a = 0;
       res->b = 0;
@@ -3206,7 +3205,7 @@ int UnitPointDerivative( Word* args, Word& result, int message,
 5.18.3 Specification for operator ~derivative~
 
 */
-const string
+const std::string
 TemporalSpecDerivative=
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>{m|u}real -> {m|u}real</text--->"
@@ -3280,7 +3279,7 @@ ListExpr
 TypeMapTemporalUnitDistance( ListExpr args )
 {
   ListExpr first, second;
-  string outstr1, outstr2;
+  std::string outstr1, outstr2;
 
   if ( nl->IsAtom( args ) || nl->ListLength( args ) != 2 )
     {
@@ -3763,7 +3762,7 @@ int TUDistance_UReal_Real( Word* args, Word& result, int message,
 
 */
 
-const string TemporalSpecDistance =
+const std::string TemporalSpecDistance =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "("
   "<text>For T in {point, int}:\n"
@@ -3995,7 +3994,7 @@ int atmaxUConst( Word* args, Word& result, int message,
 
 */
 
-const string TemporalSpecAtmax =
+const std::string TemporalSpecAtmax =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "("
@@ -4170,7 +4169,7 @@ int atminUConst( Word* args, Word& result, int message,
 
 */
 
-const string TemporalSpecAtmin =
+const std::string TemporalSpecAtmin =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "("
@@ -4245,7 +4244,7 @@ The operator has signature
 ListExpr TU_TM_Abs( ListExpr args )
 {
   ListExpr first;
-  string outstr1, outstr2;
+  std::string outstr1, outstr2;
 
   if ( nl->IsAtom( args ) || nl->ListLength( args ) != 1 )
   {
@@ -4387,7 +4386,7 @@ int TU_VM_Abs_UReal( Word* args, Word& result, int message,
 5.24.3 Specification for operator ~abs~
 
 */
-const string TU_Spec_Abs  =
+const std::string TU_Spec_Abs  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>uint -> uint\n"
     "ureal -> (stream ureal)</text--->"
@@ -4497,7 +4496,7 @@ C. (upoint line) [->] (stream upoint)  and  (line upoint) [->] (stream upoint)
 ListExpr TemporalUnitIntersectionTypeMap( ListExpr args )
 {
   ListExpr arg1, arg2;
-  string argstr1 = "", argstr2 = "";
+  std::string argstr1 = "", argstr2 = "";
 
   if( nl->ListLength( args ) == 2 )
     {
@@ -4951,7 +4950,7 @@ int temporalUnitIntersection_ureal_ureal( Word* args, Word& result, int message,
         result_times.Get(i, iv);
         if( iv.start == iv.end )
         { // simplify result to constant
-          DateTime T(durationtype);
+          datetime::DateTime T(datetime::durationtype);
           T = iv.start - ureal1->timeInterval.start;
           double t = T.ToDouble();
           double value = ureal1->a*t*t + ureal1->b*t + ureal1->c;
@@ -5437,7 +5436,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                      * (up->timeInterval.end.ToDouble()
                      -  up->timeInterval.start.ToDouble())
                      +  up->timeInterval.start.ToDouble());
-              t.SetType(instanttype);
+              t.SetType(datetime::instanttype);
 #ifdef TUA_DEBUG
               cout<<"t "<<t.ToString()<<endl;
 #endif
@@ -5455,7 +5454,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                       * (up->timeInterval.end.ToDouble()
                       -  up->timeInterval.start.ToDouble())
                       +  up->timeInterval.start.ToDouble());
-              t.SetType(instanttype);
+              t.SetType(datetime::instanttype);
 #ifdef TUA_DEBUG
               cout<<"t "<<t.ToString()<<endl;
 #endif
@@ -5473,7 +5472,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                       * (up->timeInterval.end.ToDouble()
                       -  up->timeInterval.start.ToDouble())
                       +  up->timeInterval.start.ToDouble());
-              t.SetType(instanttype);
+              t.SetType(datetime::instanttype);
 #ifdef TUA_DEBUG
               cout<<"t "<<t.ToString()<<endl;
 #endif
@@ -5491,7 +5490,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                       * (up->timeInterval.end.ToDouble()
                       - up->timeInterval.start.ToDouble())
                       + up->timeInterval.start.ToDouble());
-              t.SetType(instanttype);
+              t.SetType(datetime::instanttype);
 #ifdef TUA_DEBUG
               cout<<"t "<<t.ToString()<<endl;
 #endif
@@ -5534,7 +5533,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                 * (up->timeInterval.end.ToDouble()
                 -  up->timeInterval.start.ToDouble())
                 +  up->timeInterval.start.ToDouble());
-        t.SetType(instanttype);
+        t.SetType(datetime::instanttype);
 #ifdef TUA_DEBUG
         cout<<"t "<<t.ToString()<<endl;
 #endif
@@ -5576,7 +5575,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                   * (up->timeInterval.end.ToDouble()
                   -  up->timeInterval.start.ToDouble())
                   +  up->timeInterval.start.ToDouble());
-          t.SetType(instanttype);
+          t.SetType(datetime::instanttype);
 #ifdef TUA_DEBUG
           cout<<"t "<<t.ToString()<<endl;
 #endif
@@ -5650,7 +5649,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                    * (up->timeInterval.end.ToDouble()
                    -  up->timeInterval.start.ToDouble())
                    +  up->timeInterval.start.ToDouble());
-           t.SetType(instanttype);
+           t.SetType(datetime::instanttype);
 #ifdef TUA_DEBUG
            cout<<"t "<<t.ToString()<<endl;
 #endif
@@ -5668,7 +5667,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                    * (up->timeInterval.end.ToDouble()
                    -  up->timeInterval.start.ToDouble())
                    +  up->timeInterval.start.ToDouble());
-           t.SetType(instanttype);
+           t.SetType(datetime::instanttype);
 #ifdef TUA_DEBUG
            cout<<"t "<<t.ToString()<<endl;
 #endif
@@ -5686,7 +5685,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                    * (up->timeInterval.end.ToDouble()
                    -  up->timeInterval.start.ToDouble())
                    +  up->timeInterval.start.ToDouble());
-           t.SetType(instanttype);
+           t.SetType(datetime::instanttype);
 #ifdef TUA_DEBUG
            cout<<"t "<<t.ToString()<<endl;
 #endif
@@ -5704,7 +5703,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                    * (up->timeInterval.end.ToDouble()
                    -  up->timeInterval.start.ToDouble())
                    +  up->timeInterval.start.ToDouble());
-           t.SetType(instanttype);
+           t.SetType(datetime::instanttype);
 #ifdef TUA_DEBUG
            cout<<"t "<<t.ToString()<<endl;
 #endif
@@ -5744,7 +5743,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                 * (up->timeInterval.end.ToDouble()
                 -  up->timeInterval.start.ToDouble())
                 +  up->timeInterval.start.ToDouble());
-        t.SetType(instanttype);
+        t.SetType(datetime::instanttype);
         if((up->timeInterval.start == t && !up->timeInterval.lc)
          ||  (up->timeInterval.end == t && !up->timeInterval.rc)){
 #ifdef TUA_DEBUG
@@ -6335,7 +6334,7 @@ int temporalUnitIntersection_uregion_region( Word* args, Word& result,
 
 */
 
-const string  TemporalUnitIntersectionSpec  =
+const std::string  TemporalUnitIntersectionSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "("
@@ -6444,7 +6443,7 @@ int temporalunitIntersectionSelect( ListExpr args )
       nl->IsEqual( arg2, UPoint::BasicType() ) )    return 20;
 
   cerr << "ERROR: Unmatched case in temporalunitIntersectionSelect" << endl;
-  string argstr;
+  std::string argstr;
   nl->WriteToString(argstr, args);
   cerr << "       Argumets = '" << argstr << "'." << endl;
   return -1;
@@ -6563,7 +6562,7 @@ int AtUpR(Word* args, Word& result,
 5.13.3 Specification for operator ~at~
 
 */
-const string
+const std::string
 TemporalSpecAt =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>For T in {bool, int, string, point, region*}:\n"
@@ -6715,7 +6714,7 @@ int TUNoComponentsValueMap(Word* args, Word& result,
 5.31.3 Specification for operator ~no\_components~
 
 */
-const string TUNoComponentsSpec  =
+const std::string TUNoComponentsSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For T in {bool, int, real, point, region}:\n"
   "(uT) -> uint</text--->"
@@ -6806,7 +6805,7 @@ int TUIsemptyValueMap( Word* args, Word& result, int message,
 5.32.3 Specification for operator ~isempty~
 
 */
-const string TUIsemptySpec  =
+const std::string TUIsemptySpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For U in kind UNIT:\n"
   "U -> bool</text--->"
@@ -6895,7 +6894,7 @@ int TUNotValueMap(Word* args, Word& result, int message,
 5.33.3 Specification for operator ~not~
 
 */
-const string TUNotSpec  =
+const std::string TUNotSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>ubool -> ubool</text--->"
   "<text>not( _ )</text--->"
@@ -6972,7 +6971,7 @@ ListExpr TUBinaryBoolFuncTypeMap( ListExpr args )
         return nl->SymbolAtom(UBool::BasicType());
 
       // Error case:
-      string argstr1, argstr2;
+      std::string argstr1, argstr2;
       nl->WriteToString(argstr1, arg1);
       nl->WriteToString(argstr2, arg2);
       ErrorReporter::ReportError(
@@ -7102,7 +7101,7 @@ int TUOrValueMap(Word* args, Word& result, int message,
 5.34.3 Specification for operators ~and~ and ~or~
 
 */
-const string TUAndSpec  =
+const std::string TUAndSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(ubool ubool) -> ubool\n"
   "(ubool  bool) -> ubool\n"
@@ -7118,7 +7117,7 @@ const string TUAndSpec  =
   "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
-const string TUOrSpec  =
+const std::string TUOrSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(ubool ubool) -> ubool\n"
   "(ubool  bool) -> ubool\n"
@@ -7247,7 +7246,7 @@ ListExpr TUComparePredicatesTypeMap( ListExpr args )
               (nl->IsEqual( arg1, UPoint::BasicType() ) ) )
             return nl->SymbolAtom( CcBool::BasicType() );
         }
-        string argstr1, argstr2;
+        std::string argstr1, argstr2;
         nl->WriteToString(argstr1, arg1);
         nl->WriteToString(argstr2, arg2);
         ErrorReporter::ReportError(
@@ -7335,7 +7334,7 @@ int TUComparePredicatedValueMap(Word* args, Word& result, int message,
 5.35.3 Specification for operator ~ComparePredicates~
 
 */
-const string TUEqSpec  =
+const std::string TUEqSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(uT uT) -> bool\n</text--->"
   "<text>_ == _</text--->"
@@ -7346,7 +7345,7 @@ const string TUEqSpec  =
   "((\"2011-01-01\" \"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
-const string TUNEqSpec  =
+const std::string TUNEqSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(uT uT) -> bool\n</text--->"
   "<text>_ ## _</text--->"
@@ -7357,7 +7356,7 @@ const string TUNEqSpec  =
   "((\"2011-01-01\" \"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
-const string TULtSpec  =
+const std::string TULtSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(uT uT) -> bool\n</text--->"
   "<text>_ << _</text--->"
@@ -7368,7 +7367,7 @@ const string TULtSpec  =
   "((\"2011-01-01\" \"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
-const string TUBtSpec  =
+const std::string TUBtSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(uT uT) -> bool\n</text--->"
   "<text>_ >> _</text--->"
@@ -7379,7 +7378,7 @@ const string TUBtSpec  =
   "((\"2011-01-01\" \"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
-const string TULtEqSpec  =
+const std::string TULtEqSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(uT uT) -> bool\n</text--->"
   "<text>_ <<== _</text--->"
@@ -7390,7 +7389,7 @@ const string TULtEqSpec  =
   "((\"2011-01-01\" \"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
-const string TUBtEqSpec  =
+const std::string TUBtEqSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(uT uT) -> bool\n</text--->"
   "<text>_ >>== _</text--->"
@@ -7489,7 +7488,7 @@ ListExpr TUuint2urealTypeMap( ListExpr args )
       if( nl->IsEqual( arg1, UInt::BasicType() ) )
         return nl->SymbolAtom(UReal::BasicType());
       // Error case:
-      string argstr1;
+      std::string argstr1;
       nl->WriteToString(argstr1, arg1);
       ErrorReporter::ReportError(
           "Operator uint2ureal expects an argument of type 'uint', "
@@ -7528,7 +7527,7 @@ int TUuint2urealValueMap(Word* args, Word& result, int message,
 5.36.3 Specification for operator ~uint2ureal~
 
 */
-const string TUuint2urealSpec  =
+const std::string TUuint2urealSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>uint -> ureal\n</text--->"
   "<text>uint2ureal( _ )</text--->"
@@ -7579,7 +7578,7 @@ Operator temporalunituint2ureal
 ListExpr TemporalUnitInsideTypeMap( ListExpr args )
 {
   ListExpr arg1, arg2;
-  string argstr;
+  std::string argstr;
 
   if( nl->ListLength( args ) == 2 )
     {
@@ -7785,7 +7784,7 @@ int temporalUnitInside_ur_pts( Word* args, Word& result, int message,
 
 */
 
-const string  TemporalUnitInsideSpec  =
+const std::string  TemporalUnitInsideSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "("
@@ -7827,7 +7826,7 @@ int temporalunitInsideSelect( ListExpr args )
       nl->IsEqual( arg2, Points::BasicType() ) )  return 3;
 
   cerr << "ERROR: Unmatched case in temporalunitInsideSelect" << endl;
-  string argstr;
+  std::string argstr;
   nl->WriteToString(argstr, args);
   cerr << "       Argumets = '" << argstr << "'." << endl;
   return -1;
@@ -7863,7 +7862,7 @@ Operator temporalunitinside( "inside",
 ListExpr TemporalUnitBoolAggrTypeMap( ListExpr args )
 {
   ListExpr t;
-  string argstr;
+  std::string argstr;
 
   if ( nl->ListLength( args ) == 1 )
     {
@@ -7938,7 +7937,7 @@ int TemporalUnitSometimes_ubool( Word* args, Word& result, int message,
 
 */
 
-const string  TemporalUnitSometimesSpec =
+const std::string  TemporalUnitSometimesSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "("
@@ -8043,7 +8042,7 @@ int TemporalUnitNever_ubool( Word* args, Word& result, int message,
 5.39.3 Specification for operator ~never~
 
 */
-const string  TemporalUnitNeverSpec =
+const std::string  TemporalUnitNeverSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "("
@@ -8143,7 +8142,7 @@ int TemporalUnitAlways_ubool( Word* args, Word& result, int message,
 5.40.3 Specification for operator ~always~
 
 */
-const string  TemporalUnitAlwaysSpec =
+const std::string  TemporalUnitAlwaysSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "("
@@ -8454,7 +8453,7 @@ int TU_VM_TheUnit_iTdbb(Word* args, Word& result,
   result = (qp->ResultStorage( s ));
   ConstTemporalUnit<T> *res   = (ConstTemporalUnit<T> *)result.addr;
   Intime<T> *ip = (Intime<T> *)args[0].addr;
-  DateTime *dur = (DateTime*) args[1].addr;
+  datetime::DateTime *dur = (datetime::DateTime*) args[1].addr;
   CcBool *cl = (CcBool*)args[2].addr;
   CcBool *cr = (CcBool*)args[3].addr;
   bool clb, crb;
@@ -8469,9 +8468,11 @@ int TU_VM_TheUnit_iTdbb(Word* args, Word& result,
   clb = cl->GetBoolval();
   crb = cr->GetBoolval();
 
-  assert(dur->GetType() == durationtype);
-  if ( ( (*dur == DateTime(0,0,durationtype)) &&  (!clb || !crb) ) ||
-       ( (*dur == DateTime(0,1,durationtype)) && !( clb ||  crb) )    )
+  assert(dur->GetType() == datetime::durationtype);
+  if ( ( (*dur == datetime::DateTime(0,0,datetime::durationtype)) 
+         &&  (!clb || !crb) ) ||
+       ( (*dur == datetime::DateTime(0,1,datetime::durationtype)) 
+         && !( clb ||  crb) )    )
     // illegal interval setting
     { res->SetDefined( false ); return 0; }
   Interval<Instant> interval( ip->instant, ip->instant+(*dur), clb, crb );
@@ -8489,8 +8490,8 @@ int TU_VM_TheUnit_Tiibb(Word* args, Word& result,
   result = (qp->ResultStorage( s ));
   ConstTemporalUnit<T> *res = static_cast<ConstTemporalUnit<T> *>(result.addr);
   T       *value = static_cast<T*>(args[0].addr);
-  Instant *i1    = static_cast<DateTime*>(args[1].addr);
-  Instant *i2    = static_cast<DateTime*>(args[2].addr);
+  Instant *i1    = static_cast<datetime::DateTime*>(args[1].addr);
+  Instant *i2    = static_cast<datetime::DateTime*>(args[2].addr);
   CcBool  *cl    = static_cast<CcBool*>(args[3].addr);
   CcBool  *cr    = static_cast<CcBool*>(args[4].addr);
   bool clb, crb;
@@ -8582,7 +8583,7 @@ int TU_VM_TheUnit_ppiv(Word* args, Word& result, int message, Word& local,
 5.41.3 Specification for operator ~the\_unit~
 
 */
-const string  TU_Spec_TheUnit =
+const std::string  TU_Spec_TheUnit =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "("
@@ -8611,7 +8612,7 @@ const string  TU_Spec_TheUnit =
 */
 int TU_Select_TheUnit( ListExpr args )
 {
-  string argstr;
+  std::string argstr;
   nl->WriteToString(argstr, args);
 
   if (argstr == "(point point instant instant bool bool)")          return 0;
@@ -8716,7 +8717,7 @@ int TU_VM_TheIvalue(Word* args, Word& result,
 {
   result = (qp->ResultStorage( s ));
   Intime<T> *res   = (Intime<T> *) result.addr;
-  Instant   *inst  = (DateTime*)   args[0].addr;
+  Instant   *inst  = (datetime::DateTime*)   args[0].addr;
   T         *value = (T*)          args[1].addr;
   *res = Intime<T>(*inst, *value);
   return 0;
@@ -8727,7 +8728,7 @@ int TU_VM_TheIvalue(Word* args, Word& result,
 5.42.3 Specification for operator ~the\_ivalue~
 
 */
-const string  TU_Spec_TheIvalue =
+const std::string  TU_Spec_TheIvalue =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "("
@@ -8747,7 +8748,7 @@ const string  TU_Spec_TheIvalue =
 */
 int TU_Select_TheIvalue( ListExpr args )
 {
-  string argstr;
+  std::string argstr;
   nl->WriteToString(argstr, args);
 
   if (argstr == "(instant bool)")
@@ -8891,7 +8892,7 @@ ListExpr TUCompareValueEqPredicatesTypeMap( ListExpr args )
             return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                 nl->SymbolAtom( UBool::BasicType() ));
         }
-      string argstr;
+      std::string argstr;
       nl->WriteToString(argstr, args);
       if (argstr == "(bool ubool)"     || argstr == "(ubool bool)"     ||
           argstr == "(int uint)"       || argstr == "(unit int)"       ||
@@ -9394,13 +9395,17 @@ template<int opcode, int unit_arg>
   UBool newunit(true);
   TUCompareValueLocalInfo *localinfo;
   Interval<Instant>
-      iv(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false),
-  ivnew(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false);
+      iv(datetime::DateTime(0,0,datetime::instanttype), 
+         datetime::DateTime(0,0,datetime::instanttype), 
+         false, false),
+  ivnew(datetime::DateTime(0,0,datetime::instanttype), 
+        datetime::DateTime(0,0,datetime::instanttype), 
+        false, false);
   Interval<Instant> actIntv;
   Instant
-      start(instanttype),
-  end(instanttype),
-  testInst(instanttype);
+      start(datetime::instanttype),
+  end(datetime::instanttype),
+  testInst(datetime::instanttype);
   Periods *eqPeriods;
   int i, numEq, cmpres;
   bool compresult, lc;
@@ -9606,7 +9611,7 @@ int TU_VM_ComparePredicateValue_URegion(Word* args, Word& result,
 
 */
 
-const string TUEqVSpec  =
+const std::string TUEqVSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For T in {bool, int, string, real, point, region}\n"
   "(uT uT) -> (stream ubool)\n"
@@ -9619,7 +9624,7 @@ const string TUEqVSpec  =
   "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)] the_mvalue</text--->"
   ") )";
 
-const string TUNEqVSpec  =
+const std::string TUNEqVSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For T in {bool, int, string, real, point, region}\n"
   "(uT uT) -> (stream ubool)\n"
@@ -9632,7 +9637,7 @@ const string TUNEqVSpec  =
   "((\"2011-01-01\" \"2012-09-17\" FALSE TRUE) TRUE)] the_mvalue</text--->"
   ") )";
 
-const string TULtVSpec  =
+const std::string TULtVSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For T in {bool, int, string, real}\n"
   "(uT uT) -> (stream ubool)\n"
@@ -9645,7 +9650,7 @@ const string TULtVSpec  =
   "((\"2011-01-01\" \"2012-09-17\" FALSE TRUE) TRUE)] the_mvalue</text--->"
   ") )";
 
-const string TUBtVSpec  =
+const std::string TUBtVSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For T in {bool, int, string, real}\n"
   "(uT uT) -> (stream ubool)\n"
@@ -9658,7 +9663,7 @@ const string TUBtVSpec  =
   "((\"2011-01-01\" \"2012-09-17\" FALSE TRUE) TRUE)] the_mvalue</text--->"
   ") )";
 
-const string TULtEqVSpec  =
+const std::string TULtEqVSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For T in {bool, int, string, real}\n"
   "(uT uT) -> (stream ubool)\n"
@@ -9671,7 +9676,7 @@ const string TULtEqVSpec  =
   "((\"2011-01-01\" \"2012-09-17\" FALSE TRUE) TRUE)] the_mvalue</text--->"
   ") )";
 
-const string TUBtEqVSpec  =
+const std::string TUBtEqVSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For T in {bool, int, string, real}\n"
   "(uT uT) -> (stream ubool)\n"
@@ -9691,7 +9696,7 @@ const string TUBtEqVSpec  =
 template<int opcode>
 int TU_Select_ComparePredicateValue ( ListExpr args )
 {
-  string argstr;
+  std::string argstr;
   nl->WriteToString(argstr, args);
 
   if (argstr == "(ubool ubool)")
@@ -9906,7 +9911,7 @@ Calculate the spatial length of the movement.
 */
 ListExpr TUTypeMapLength( ListExpr args )
 {
-  string errmsg = "Expected (upoint) or (upoint x geoid).";
+  std::string errmsg = "Expected (upoint) or (upoint x geoid).";
   int noargs = nl->ListLength(args);
   if((noargs<1) || (noargs>2)){
     return listutils::typeError(errmsg);
@@ -9948,7 +9953,7 @@ int TUUnitLength(Word* args,Word& result,int message,Word& local,Supplier s)
 5.44.3 Specification for operator ~length~
 
 */
-const string TULengthSpec  =
+const std::string TULengthSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text> upoint [ x geoid ] -> real</text--->"
     "<text> length( Up [, Geoid ] )</text--->"
@@ -9996,7 +10001,7 @@ ListExpr
 TypeMapTemporalUnitCanMeet( ListExpr args )
 {
   ListExpr upoint1, upoint2, distance, duration;
-  string outstr;
+  std::string outstr;
 
   if ( nl->IsAtom( args ) || nl->ListLength( args ) != 4 )
     {
@@ -10158,7 +10163,7 @@ int TUCanMeet( Word* args, Word& result, int message,
 5.45.3 Specification for operator ~canmeet~
 
 */
-const string TemporalSpecCanMeet =
+const std::string TemporalSpecCanMeet =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "(<text>"
   "( upoint upoint real duration) -> bool</text--->"
@@ -10193,7 +10198,7 @@ ListExpr
 UnitWhenTypeMap( ListExpr args )
 {
   ListExpr arg1, arg2;
-  string argstr;
+  std::string argstr;
 
   if ( nl->ListLength( args ) != 2 )
     {
@@ -10574,7 +10579,7 @@ int MappingUnitStreamWhen( Word* args, Word& result, int message,
 5.46.3 Specification for operator ~atperiods~
 
 */
-const string
+const std::string
 TemporalSpecWhen  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\") "
 "( <text>For T in {int, bool, real, string, point, region}:\n"
@@ -10678,7 +10683,7 @@ int atRectUVM( Word* args, Word& result, int message, Word&
 */
 
 ListExpr atRectUTM(ListExpr args){
-  string err ="upoint x rect expected";
+  std::string err ="upoint x rect expected";
   if(!nl->HasLength(args,2)){
     return listutils::typeError(err + " (wrong number of arguments)");
   }
@@ -10693,7 +10698,7 @@ ListExpr atRectUTM(ListExpr args){
 5.47.3 Specification
 
 */
-const string atRectUSpec =
+const std::string atRectUSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>upoint x rect -> upoint </text---> "
     "<text> up atRect r  </text--->"
@@ -10729,7 +10734,7 @@ Operator atRectU( "atRect",
 5.47.1 Class ~SecInterval~
 
 */
-const string SecInterval::BasicType() {
+const std::string SecInterval::BasicType() {
   return "interval";
 }
 
@@ -10786,8 +10791,8 @@ void SecInterval::WriteTo(char *dest) {
   strcpy(dest, ToString().c_str());
 }
 
-string SecInterval::ToString() {
-  string result = "(" + start.ToString() + " " + end.ToString() + " "
+std::string SecInterval::ToString() {
+  std::string result = "(" + start.ToString() + " " + end.ToString() + " "
       + (lc ? "TRUE" : "FALSE") + " " + (rc ? "TRUE" : "FALSE") + ")";
   return result;
 }
@@ -10801,7 +10806,7 @@ ListExpr SecInterval::ToListExpr(const ListExpr typeInfo) const{
 }
 
 SmiSize SecInterval::SizeOfChars() {
-  string key = this->ToString();
+  std::string key = this->ToString();
   return (SmiSize)key.length();
 }
 
@@ -10812,8 +10817,8 @@ bool SecInterval::ReadFrom(const ListExpr instance, const ListExpr typeInfo){
   }
   if(!nl->HasLength(instance,4))
     return false;
-  DateTime s(instanttype);
-  DateTime e(instanttype);
+  datetime::DateTime s(datetime::instanttype);
+  datetime::DateTime e(datetime::instanttype);
   bool lc;
   bool rc;
   if (!s.ReadFrom(nl->First(instance), false)
@@ -10832,7 +10837,7 @@ bool SecInterval::ReadFrom(const ListExpr instance, const ListExpr typeInfo){
   return Set(s,e,lc,rc);
 }
 
-bool SecInterval::Set(const DateTime& s, const DateTime& e,
+bool SecInterval::Set(const datetime::DateTime& s, const datetime::DateTime& e,
                       const bool lc, const bool rc) {
   if ((s < e) || ((s == e) && lc && rc)) {
     SetDefined(true);
@@ -10849,7 +10854,7 @@ bool SecInterval::Set(const Interval<Instant>* iinst) {
   return Set(iinst->start, iinst->end, iinst->lc, iinst->rc);
 }
 
-bool SecInterval::SetStart(const DateTime& s, const bool lc) {
+bool SecInterval::SetStart(const datetime::DateTime& s, const bool lc) {
   if ((s < this->end) || ((s == this->end) && lc && this->rc)) {
     this->start = s;
     this->lc = lc;
@@ -10858,7 +10863,7 @@ bool SecInterval::SetStart(const DateTime& s, const bool lc) {
   return false;
 }
 
-bool SecInterval::SetEnd(const DateTime& e, const bool rc) {
+bool SecInterval::SetEnd(const datetime::DateTime& e, const bool rc) {
   if ((this->start < e) || ((this->start == e) && rc && this->lc)) {
     this->end = e;
     this->rc = rc;
@@ -10959,7 +10964,7 @@ GenTC<SecInterval> interval;
 5.47.5 Specification for operator ~contains~
 
 */
-const string ContainsSpec =
+const std::string ContainsSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\") "
   "( <text>periods x periods -> bool</text--->"
   "<text>_ contains _ </text--->"
@@ -11054,7 +11059,7 @@ int swapcoordVM(Word* args, Word& result, int message, Word& local, Supplier s){
 5.48.3 Specification for operator ~swapcoord~
 
 */
-const string swapcoordSpec =
+const std::string swapcoordSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\") "
   "( <text>mpoint -> mpoint</text--->"
   "<text>swapcoord( _ )</text--->"
