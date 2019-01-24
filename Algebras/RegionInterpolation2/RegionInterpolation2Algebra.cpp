@@ -25,7 +25,7 @@ Word InMRegion(const ListExpr typeInfo,
 using namespace temporalalgebra;
 
 
-static const string interpolate2spec =
+static const std::string interpolate2spec =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 " (<text>region x instant x region x instant [ x string ] -> mregion</text--->"
 "<text>interpolate2( _ , _ , _ , _ [ , _ ] )</text--->"
@@ -46,7 +46,7 @@ static RList ListExpr2Rl (ListExpr l);
 
 // Configure the fallbacks with their arguments here, in case the interpolation
 // failed for some reason.
-string fallbacks[] = {
+std::string fallbacks[] = {
    "mw",
    "null",
    "FALLBACK"
@@ -61,7 +61,7 @@ string fallbacks[] = {
  
 */
 ListExpr interpolate2typemap(ListExpr args) {
-    string err = "region x instant x region x instant [x string] expected";
+    std::string err = "region x instant x region x instant [x string] expected";
     int len = nl->ListLength(args);
     if ((len != 4) && (len != 5)) {
         return listutils::typeError(err + " (wrong number of arguments)");

@@ -82,7 +82,7 @@ class Tin: public noncopyable
  friend class routeplanningalgebra::TinForRoutePlanning;
 
 protected:
- deque<TinPart*> tinParts;
+ std::deque<TinPart*> tinParts;
  TinConfiguration config;
  AbstractType tinTypeCurrent;
  TinFeatures features;
@@ -92,7 +92,7 @@ protected:
  SmiRecordId contentId;
  R_Tree<2, uint32_t>* rtree;
 #endif
- map<ColumnKey, TinPart*> columnMap;
+ std::map<ColumnKey, TinPart*> columnMap;
  EventQueue* constructionQueue;
  bool defined;
 protected:
@@ -172,7 +172,7 @@ bool isDefined()const {
 class triangle_iterator {
 protected:
  Tin* tin;
- deque<TinPart*>::iterator itParts;
+ std::deque<TinPart*>::iterator itParts;
  TinPart::iterator itTriangles;
  int currentPart;
 
@@ -233,7 +233,7 @@ TIN_SIZE getSizeInMemory()
 {
 //ATTENTION this can only be an estimate,
 //since STL containers do not expose their size
- deque<TinPart *>::iterator it = tinParts.begin();
+ std::deque<TinPart *>::iterator it = tinParts.begin();
  TIN_SIZE size = 0;
 
  size += sizeof(*this);

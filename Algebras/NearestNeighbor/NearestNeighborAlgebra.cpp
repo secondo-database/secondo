@@ -182,7 +182,7 @@ ListExpr
 distanceScanTypeMap( ListExpr args )
 {
 
-  string errmsg = "rtree x rel x rectangle x int expected";
+  std::string errmsg = "rtree x rel x rectangle x int expected";
   if(nl->ListLength(args)!=4){
     ErrorReporter::ReportError(errmsg + "(wrong number of arguments)");
     return nl->TypeError();
@@ -274,7 +274,7 @@ distanceScanTypeMap( ListExpr args )
 ListExpr
 distanceScan2STypeMap( ListExpr args ) {
 
-  string err = "rtree x SPATIAL x int expected";
+  std::string err = "rtree x SPATIAL x int expected";
   if(!nl->HasLength(args,3)){
       return listutils::typeError(err + " (wrong number of args)");
   }
@@ -396,7 +396,7 @@ distanceScan3TypeMap( ListExpr args ) {
                                    "given as fifth element");
         return nl->TypeError();
      }
-     string attrName = nl->SymbolValue(attrNameList);
+     std::string attrName = nl->SymbolValue(attrNameList);
      ListExpr attrList = nl->Second(nl->Second(nl->Second(args)));
 
      rtreetype = nl->Third(nl->First(args));
@@ -456,8 +456,8 @@ distanceScan3TypeMap( ListExpr args ) {
     ErrorReporter::ReportError("Unsupported type within the rtree");
     return nl->TypeError();
   }
-  string rt = nl->SymbolValue(rtreetype);
-  string qt = nl->SymbolValue(queryTypeList);
+  std::string rt = nl->SymbolValue(rtreetype);
+  std::string qt = nl->SymbolValue(queryTypeList);
 
   if( (rt != Point::BasicType()) && (rt != Points::BasicType()) &&
       (rt != Line::BasicType()) && (rt != Region::BasicType()) &&
@@ -484,7 +484,7 @@ distanceScan3TypeMap( ListExpr args ) {
 */
 
 ListExpr distanceScan4TypeMap(ListExpr args){
-  string err = "rtree3(upoint) x rel x point x "
+  std::string err = "rtree3(upoint) x rel x point x "
                "instant x int [x attrname] expected";
   int len = nl->ListLength(args);
   if((len!=5)  && (len!=6)){
@@ -537,7 +537,7 @@ ListExpr distanceScan4TypeMap(ListExpr args){
        ErrorReporter::ReportError(err + " (invalid attribute name)");
        return listutils::typeError();
     }
-    string name = nl->SymbolValue(aname);
+    std::string name = nl->SymbolValue(aname);
     ListExpr type;
     int j = listutils::findAttribute(attrList, name, type);
     if(!j){
@@ -552,7 +552,7 @@ ListExpr distanceScan4TypeMap(ListExpr args){
                              nl->OneElemList(nl->IntAtom(j)),
                              res1);
   } else { // length ==5
-    string name;
+    std::string name;
     int j = listutils::findType(attrList,
                                 nl->SymbolAtom(UPoint::BasicType()),name);
     if(!j){
@@ -582,7 +582,7 @@ The function knearestTypeMap is the type map for the operator knearest
 template<bool allowZone>
 ListExpr KnearestTypeMap( ListExpr args )
 {
-  string msg = "stream x attrname x mpoint x int ";
+  std::string msg = "stream x attrname x mpoint x int ";
   if(allowZone){
      msg += "[x int] expected";
   } else {
@@ -617,7 +617,7 @@ ListExpr KnearestTypeMap( ListExpr args )
 
   int j;
   ListExpr attrType;
-  string attr = nl->SymbolValue(attrName);
+  std::string attr = nl->SymbolValue(attrName);
   j = FindAttribute(nl->Second(nl->Second(stream)),
                     attr,attrType);
 
@@ -649,7 +649,7 @@ The function knearestdistTypeMap is the type map for the operator knearestdist
 */
 ListExpr knearestdistTypeMap( ListExpr args )
 {
-  string msg = "stream x attrname x mpoint x int expected";
+  std::string msg = "stream x attrname x mpoint x int expected";
   if(nl->ListLength(args)!=4){
     ErrorReporter::ReportError(msg + "(invalid number of arguments");
     return nl->TypeError();
@@ -743,7 +743,7 @@ oldknearestFilterTypeMap( ListExpr args )
   AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERROR" ) );
 
-  string errmsg = "rtree x relation x mpoint x int expected";
+  std::string errmsg = "rtree x relation x mpoint x int expected";
 
   if(nl->ListLength(args)!=4){
     ErrorReporter::ReportError(errmsg);
@@ -857,7 +857,7 @@ v in {int | string} x string(rel) x string(btree) x
 
 */
 ListExpr isknnTypeMap(ListExpr args){
-  string idtype="";
+  std::string idtype="";
   if(nl->ListLength(args)!=5){
     ErrorReporter::ReportError("isknn: Invalid number of arguments");
     return nl->TypeError();
@@ -950,9 +950,9 @@ distanceScanSelect( ListExpr args )
 
 int distanceScan3Select(ListExpr args){
    // type indxed by the rtree
-   string t1 = nl->SymbolValue(nl->Third(nl->First(args)));
+   std::string t1 = nl->SymbolValue(nl->Third(nl->First(args)));
    // typr of query object
-   string t2 = nl->SymbolValue(nl->Third(args));
+   std::string t2 = nl->SymbolValue(nl->Third(args));
 
    if(t1==Point::BasicType()){
      if(t2==Point::BasicType()) return 0;
@@ -995,7 +995,7 @@ int distanceScan3Select(ListExpr args){
 
 int knearestdistSelect(ListExpr args)
 {
-  string msg = "stream x attrname x mpoint x int expected";
+  std::string msg = "stream x attrname x mpoint x int expected";
   if(nl->ListLength(args)!=4){
     ErrorReporter::ReportError(msg + "(invalid number of arguments");
     return nl->TypeError();
@@ -1418,8 +1418,8 @@ private:
    int maxInnerEntries;
    int minLeafEntries;
    int maxLeafEntries;
-   priority_queue< DSEntry<dim>*,
-                   vector<DSEntry<dim>* >,
+   std::priority_queue< DSEntry<dim>*,
+                   std::vector<DSEntry<dim>* >,
                    DSEComp<dim>  > dsqueue;
    TupleType* tt;
 };
@@ -1787,9 +1787,9 @@ private:
    int maxInnerEntries;
    int minLeafEntries;
    int maxLeafEntries;
-   priority_queue< DS3Entry<dim, IndexedType, QueryType, DistFun>*,
-                   vector<DS3Entry<dim, IndexedType, QueryType, DistFun>* >,
-                   DSE3Comp<dim, IndexedType, QueryType, DistFun>  > dsqueue;
+   std::priority_queue< DS3Entry<dim, IndexedType, QueryType, DistFun>*,
+                 std::vector<DS3Entry<dim, IndexedType, QueryType, DistFun>* >,
+                 DSE3Comp<dim, IndexedType, QueryType, DistFun>  > dsqueue;
    DistFun distFun;
 
    bool useMaxDist;
@@ -2159,8 +2159,8 @@ private:
    int maxInnerEntries;
    int minLeafEntries;
    int maxLeafEntries;
-   priority_queue< DS4Entry*,
-                   vector<DS4Entry* >,
+   std::priority_queue< DS4Entry*,
+                   std::vector<DS4Entry* >,
                    DSE4Comp  > dsqueue;
    Instant instant;
    double instantAsDouble;
@@ -2227,7 +2227,7 @@ the type EventElem and ActiveElem are defined in NearestNeighborAlgebra.h
 // instantiate static member currtime
 Instant ActiveElem::currtime(datetime::instanttype);
 
-typedef vector< ActiveElem >::iterator ITV;
+typedef std::vector< ActiveElem >::iterator ITV;
 typedef NNTree< ActiveElem >::iter IT;
 
 /*
@@ -2690,7 +2690,7 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
         r1 = b ? -c / b : -1;
         r2 = -1;  //there is only one result
       }
-      if( r1 > r2 ){ swap( r1, r2 );}
+      if( r1 > r2 ){ std::swap( r1, r2 );}
       if( (abs(r1 - r2) < 0.000000001)
         && ( (u1.a==0 && u2.a!=0) || (u2.a==0 && u1.a!=0) ))
       {
@@ -2799,7 +2799,7 @@ bool check(NNTree<ActiveElem> &t, Instant time)
   return true;
 }
 
-bool check(vector<ActiveElem> &v, Instant time)
+bool check(std::vector<ActiveElem> &v, Instant time)
 {
   double slope;
   double d = 0;
@@ -2858,7 +2858,7 @@ with the active elements. The sort order is the distance
 and the slope if the distance is the same
 
 */
-unsigned int insertActiveElem( vector<ActiveElem> &v, ActiveElem &e,
+unsigned int insertActiveElem( std::vector<ActiveElem> &v, ActiveElem &e,
                               Instant time)
 {
   if( v.size() == 0)
@@ -2899,7 +2899,7 @@ unsigned int insertActiveElem( vector<ActiveElem> &v, ActiveElem &e,
   return pos;
 }
 
-unsigned int findActiveElem( vector<ActiveElem> &v, MReal *distance,
+unsigned int findActiveElem( std::vector<ActiveElem> &v, MReal *distance,
                             Instant time, Tuple *tuple)
 {
   int pos(0), max(v.size()-1), start(0);
@@ -3265,7 +3265,7 @@ public:
    datetime::DateTime lastStart;
    Tuple* lastTuple;                  // last Tuple read from stream
    datetime::DateTime tupleStart;     // start instance of the next tuple
-   priority_queue<EventElem> queue;   // the event queue
+   std::priority_queue<EventElem> queue;   // the event queue
    Interval<Instant> iv;              // interval of the moving point
    int zone;
    bool zone_flag;
@@ -3318,7 +3318,7 @@ void init(){
         lastTuple  = static_cast<Tuple*>(current.addr);
         UPoint* up = static_cast<UPoint*>(lastTuple->GetAttribute(pos));
         if(up->timeInterval.start < lastStart){
-           cerr << "Detected invalid order in tuple stream" << endl;
+           std::cerr << "Detected invalid order in tuple stream" << endl;
            lastTuple->DeleteIfAllowed();
            lastTuple = 0;
            return;
@@ -3632,8 +3632,8 @@ private:
   Instant endTime;
   NNTree< ActiveElem > activeLine;
   unsigned int count;
-  vector<UPoint> up_list;
-  vector<MReal> dist_list;
+  std::vector<UPoint> up_list;
+  std::vector<MReal> dist_list;
   TupleType* resulttype;
 
 
@@ -3796,9 +3796,9 @@ private:
             } else {
               //the are some elements which has the same distance between
               //the two intersect elements, so calc like delete then insert
-              vector<ActiveElem> va;
-              set<Tuple*> s;
-              pair< set<Tuple*>::iterator, bool > pr;
+              std::vector<ActiveElem> va;
+              std::set<Tuple*> s;
+              std::pair< std::set<Tuple*>::iterator, bool > pr;
 
               ActiveElem newElem1(posFirst->distance,
                   posFirst->tuple, elem.pointInTime,
@@ -3853,7 +3853,7 @@ private:
                 }
               }
 
-              vector<IT> vit;
+              std::vector<IT> vit;
               for( unsigned int ii=0; ii < va.size(); ++ii )
               {
                   IT newPos = insertActiveElem( activeLine,
@@ -4026,12 +4026,12 @@ int knearestFun (Word* args, Word& result, int message,
          // compute the zone from the first point of mpoint
          int de = 3;
          int count = 120;
-         vector<int> de_list;
+         std::vector<int> de_list;
          for(int i = 0;i < count ;i ++){
            de_list.push_back(i*de);
          }
 
-         double delta = numeric_limits<double>::max();
+         double delta = std::numeric_limits<double>::max();
          UPoint up;
          mp->Get( 0, up);
          double x = up.p0.GetX();
@@ -4470,9 +4470,9 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
             }else{
               //the are some elements which has the same distance between
               //the two intersect elements, so calc like delete then insert
-              vector<ActiveElem> va;
-              set<Tuple*> s;
-              pair< set<Tuple*>::iterator, bool > pr;
+              std::vector<ActiveElem> va;
+              std::set<Tuple*> s;
+              std::pair< std::set<Tuple*>::iterator, bool > pr;
 
               ActiveElem newElem1(posFirst->distance,
                   posFirst->tuple, elem.pointInTime,
@@ -4528,7 +4528,7 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
                 else{break;}
               }
 
-              vector<IT> vit;
+              std::vector<IT> vit;
               for( unsigned int ii=0; ii < va.size(); ++ii ){
                   IT newPos = insertActiveElem( localInfo->activeLine,
                     va[ii], elem.pointInTime);
@@ -4955,9 +4955,9 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
             }else{
               //the are some elements which has the same distance between
               //the two intersect elements, so calc like delete then insert
-              vector<ActiveElem> va;
-              set<Tuple*> s;
-              pair< set<Tuple*>::iterator, bool > pr;
+              std::vector<ActiveElem> va;
+              std::set<Tuple*> s;
+              std::pair< std::set<Tuple*>::iterator, bool > pr;
 
               ActiveElem newElem1(posFirst->distance,
                   posFirst->tuple, elem.pointInTime,
@@ -5013,7 +5013,7 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
                 else{break;}
               }
 
-              vector<IT> vit;
+              std::vector<IT> vit;
               for( unsigned int ii=0; ii < va.size(); ++ii ){
                   IT newPos = insertActiveElem( localInfo->activeLine,
                     va[ii], elem.pointInTime);
@@ -5062,7 +5062,7 @@ this is the right function if the eventqueue is a vector
 
 */
 void checkIntersections(EventType type, Instant &time, unsigned int pos,
-                      vector< ActiveElem > &v,
+                      std::vector< ActiveElem > &v,
                       KNearestQueue &evq, Instant &endTime)
 {
   switch ( type ){
@@ -5149,7 +5149,7 @@ struct KnearestLocalInfoVector
   //int max;
   bool scanFlag;
   Instant startTime, endTime;
-  vector< ActiveElem > activeLine;
+  std::vector< ActiveElem > activeLine;
   KNearestQueue eventQueue;
 };
 
@@ -5497,7 +5497,8 @@ the recursive helpfunction of the function coverage
 
 */
 template<class timeType>
-void helpcoverage(int cycle, map<timeType, int> &m, R_Tree<3, TupleId>* rtree,
+void helpcoverage(int cycle, std::map<timeType, int> &m, 
+                  R_Tree<3, TupleId>* rtree,
                   timeType &t, SmiRecordId nodeid, int level)
 {
   const int dim = 3;
@@ -5520,7 +5521,7 @@ void helpcoverage(int cycle, map<timeType, int> &m, R_Tree<3, TupleId>* rtree,
       }
       else
       {
-        typedef typename map<timeType, int>::iterator ITMAP;
+        typedef typename std::map<timeType, int>::iterator ITMAP;
         ITMAP it = m.find(ts);
         while( it != m.end() && it->first < te)
         {
@@ -5548,10 +5549,10 @@ template<class timeType>
 int coverage(R_Tree<3, TupleId>* rtree, timeType &tEnd,
                  SmiRecordId nodeid, int level)
 {
-  map<timeType, int> m;
+  std::map<timeType, int> m;
   helpcoverage<timeType>( 0, m, rtree, tEnd, nodeid, level );
   helpcoverage<timeType>( 1, m, rtree, tEnd, nodeid, level );
-  typedef typename map<timeType , int>::const_iterator ITMAP;
+  typedef typename std::map<timeType , int>::const_iterator ITMAP;
   int result = 0;
   ITMAP it = m.begin();
   if( it != m.end() ) result = it->second;
@@ -5612,16 +5613,16 @@ struct KnearestFilterLocalInfo
   //int max;
   bool scanFlag;
   timeType startTime, endTime;
-  vector<FieldEntry<timeType> > vectorA;
-  vector<FieldEntry<timeType> > vectorB;
+  std::vector<FieldEntry<timeType> > vectorA;
+  std::vector<FieldEntry<timeType> > vectorB;
   NNSegTree<timeType> timeTree;
   Relation* relation;
   R_Tree<3, TupleId>* rtree;
   Relation* hats; //new
   BTree* btreehats;//new
 
-  map<SegEntry<timeType>, TupleId> resultMap;
-  typedef typename map<SegEntry<timeType>, TupleId>::const_iterator CIMAP;
+  std::map<SegEntry<timeType>, TupleId> resultMap;
+  typedef typename std::map<SegEntry<timeType>, TupleId>::const_iterator CIMAP;
   CIMAP mapit;
   KnearestFilterLocalInfo( const timeType &s, const timeType &e) :
     startTime(s), endTime(e), timeTree( s, e )
@@ -5810,7 +5811,7 @@ This function computes the coverage number for a three dimensional r-tree.
 
 */
 ListExpr coverageTypeMapCommon(ListExpr args, ListExpr result){
-  string err = " rtree(tuple(...) rect3 BOOL) expected";
+  std::string err = " rtree(tuple(...) rect3 BOOL) expected";
   if(nl->ListLength(args) != 1){
     ErrorReporter::ReportError(err + "1");
     return nl->TypeError();
@@ -5894,7 +5895,7 @@ inline ListExpr coverage2TypeMap(ListExpr args){
                     )))));
 }
 
-const string coverageSpec  =
+const std::string coverageSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>rtree(tuple ((x1 t1)...(xn tn)) ti) ->"
       " (stream (tuple ((Nodeid is)(Coverage uint))))</text--->"
@@ -5903,7 +5904,7 @@ const string coverageSpec  =
       "<text>query coverage(tree) count </text--->"
       ") )";
 
-const string coverage2Spec  =
+const std::string coverage2Spec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>rtree(tuple ((x1 t1)...(xn tn)) ti) ->"
       " (stream (tuple ((Nodeid is)(Level int)(Coverage mint))))</text--->"
@@ -6064,7 +6065,7 @@ If the tree is exhausted, NULL is returned.
 
  private:
    R_Tree<3, TupleId>* tree;     // the tree
-   stack<CoverageEntry> estack;  // the recursion stack
+   std::stack<CoverageEntry> estack;  // the recursion stack
    MInt* currentResult;          // the currently computed result
    int currentPos;               // position within the current result
    int currentNodeId;            // the current nodeId
@@ -6309,12 +6310,12 @@ int isknnFun (Word* args, Word& result, int message,
              Word& local, Supplier s){
   bool debugme= false;
 
-  string rel= ((CcString*)args[1].addr)->GetValue();
-  string btree= ((CcString*)args[2].addr)->GetValue();
-  string mboolAttr= ((CcString*)args[3].addr)->GetValue();
-  string idAttr= ((CcString*)args[4].addr)->GetValue();
-  string idType= ((CcString*)args[5].addr)->GetValue();
-  string id="";
+  std::string rel= ((CcString*)args[1].addr)->GetValue();
+  std::string btree= ((CcString*)args[2].addr)->GetValue();
+  std::string mboolAttr= ((CcString*)args[3].addr)->GetValue();
+  std::string idAttr= ((CcString*)args[4].addr)->GetValue();
+  std::string idType= ((CcString*)args[5].addr)->GetValue();
+  std::string id="";
   //qp->Request(args[0].addr, idWord); //Strangely causes the program to crash
   Word idWord;
   Supplier arg0= qp->GetSupplierSon(s, 0);
@@ -6331,7 +6332,7 @@ int isknnFun (Word* args, Word& result, int message,
     cout.flush();
   }
 
-  string queryListStr=
+  std::string queryListStr=
     " (ifthenelse"
     "  (="
     "   (count"
@@ -6479,7 +6480,7 @@ int rect2periodsFun (Word* args, Word& result, int message,
 
 */
 
-const string distanceScanSpec  =
+const std::string distanceScanSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\"  )"
       "( <text>rtree(tuple ((x1 t1)...(xn tn))"
       " ti) x rel(tuple ((x1 t1)...(xn tn))) x T x k ->"
@@ -6497,7 +6498,7 @@ const string distanceScanSpec  =
       "[[const point value (10539.0 14412.0)], 5] consume; </text--->"
       ") )";
 
-const string distanceScan2Spec  =
+const std::string distanceScan2Spec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>rtree(tuple ((x1 t1)...(xn tn))"
       " ti) x rel(tuple ((x1 t1)...(xn tn))) x T x k ->"
@@ -6513,7 +6514,7 @@ const string distanceScan2Spec  =
       "[zoogarten, 5] tconsume; </text--->"
       ") )";
 
-const string distanceScan2SSpec  =
+const std::string distanceScan2SSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>rtree(tuple ((x1 t1)...(xn tn))"
       " ti) x  T x k ->"
@@ -6529,7 +6530,7 @@ const string distanceScan2SSpec  =
       ") )";
 
 
-const string distanceScan3Spec  =
+const std::string distanceScan3Spec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>rtree(tuple ((x1 t1)...(xn tn))"
       " ti) x rel(tuple ((x1 t1)...(xn tn))) x T x k  [x attrname] [x real] ->"
@@ -6556,7 +6557,7 @@ const string distanceScan3Spec  =
       "</text--->"
       ") )";
 
-const string distanceScan4Spec  =
+const std::string distanceScan4Spec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>rtree3 x rel(T) x point x instant x int [ x attrname] "
       " -> stream(T) </text--->"
@@ -6570,7 +6571,7 @@ const string distanceScan4Spec  =
       "  [[const point value (10539.0 14412.0)], now(),  5] tconsume;"
       "</text--->))";
 
-const string knearestvectorSpec  =
+const std::string knearestvectorSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>stream(tuple ((x1 t1)...(xn tn))"
       " ti) x xi x mpoint x k ->"
@@ -6588,7 +6589,7 @@ const string knearestvectorSpec  =
       "[UTrip,train1, 2] consume;</text--->"
       ") )";
 
-const string knearestSpec  =
+const std::string knearestSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>stream(tuple ((x1 t1)...(xn tn))"
       " ti) x xi x mpoint x int [x int] ->"
@@ -6622,7 +6623,7 @@ const string knearestSpec  =
       "[UTrip,train1, 2] count;</text--->"
       ") )";
 
-const string knearestdistSpec  =
+const std::string knearestdistSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>stream(tuple ((x1 t1)...(xn tn))"
       " ti) x xi x mpoint x k -> mreal </text--->"
@@ -6632,7 +6633,7 @@ const string knearestdistSpec  =
       "[UTrip,train1, 2];</text--->"
       ") )";
 
-const string oldknearestFilterSpec  =
+const std::string oldknearestFilterSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>rtree(tuple ((x1 t1)...(xn tn))"
       " ti) x rel(tuple ((x1 t1)...(xn tn))) x mpoint x k ->"
@@ -6652,7 +6653,7 @@ const string oldknearestFilterSpec  =
       ") )";
 
 
-const string rect2periodsSpec  =
+const std::string rect2periodsSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>rect3 -> periods </text--->"
       "  <text> rect2periods(_)</text--->"
@@ -6661,7 +6662,7 @@ const string rect2periodsSpec  =
       "  <text>query rect2periods(rect1) </text--->"
       ") )";
 
-const string isknnSpec  =
+const std::string isknnSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>v in {int | string} x string(rel) x string(btree) x "
       "string(MBool) x string(ID) -> APPEND v mbool"
@@ -6783,7 +6784,7 @@ periods value.
 
 */
 ListExpr bboxesTM(ListExpr args){
-  string err = "stream(periods) x mpoint expected";
+  std::string err = "stream(periods) x mpoint expected";
   if(nl->ListLength(args) != 2){
      ErrorReporter::ReportError(err);
      return nl->TypeError();
@@ -6870,7 +6871,7 @@ int bboxesFun(Word* args, Word& result, int message,
 }
 
 
-const string bboxesSpec  =
+const std::string bboxesSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>stream(periods) x mpoint -> stream(rect)</text--->"
       "<text>_ bboxes [ _ ]</text--->"
@@ -6975,7 +6976,7 @@ int knearestFilterFun (Word* args, Word& result, int message,
       }
       delete tmp;
 ///////////////////
-      vector<unsigned int> randnum;
+      std::vector<unsigned int> randnum;
       srand(time(0));
       unsigned int entrycount = localInfo->rtree->MaxEntries(0);
       int count = 0;
@@ -7043,8 +7044,8 @@ int knearestFilterFun (Word* args, Word& result, int message,
                 }
               }
             }else{ //Internal node
-                vector<Interval<Instant> > interv;
-                vector<int> covs;
+                std::vector<Interval<Instant> > interv;
+                std::vector<int> covs;
                 CcInt* id = new CcInt(true,f.nodeid);
                 BTreeIterator* btreeiter = localInfo->btreehats->ExactMatch(id);
                 while(btreeiter->Next()){
@@ -7228,7 +7229,7 @@ knearestFilterTypeMap( ListExpr args )
   ListExpr queryobject = nl->Sixth(args);
   ListExpr quantity = nl->Nth(7,args);
 
-  string err = "rtree x rel x btree x attrname x mpoint x int expected";
+  std::string err = "rtree x rel x btree x attrname x mpoint x int expected";
 
   if( !listutils::isRTreeDescription(rtreeDescription) ||
       !listutils::isRelDescription(relDescription) ||
@@ -7241,7 +7242,7 @@ knearestFilterTypeMap( ListExpr args )
   }
 
   ListExpr attrType;
-  string aname = nl->SymbolValue(attrName);
+  std::string aname = nl->SymbolValue(attrName);
   int j = listutils::findAttribute(nl->Second(nl->Second(relDescription)),
                                    aname,attrType);
   if(j==0 || !listutils::isSymbol(attrType,UPoint::BasicType())){
@@ -7281,7 +7282,7 @@ knearestFilterTypeMap( ListExpr args )
              nl->OneElemList(nl->IntAtom(j)),
             res);
 }
-const string knearestFilterSpec  =
+const std::string knearestFilterSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>rtree(tuple ((x1 t1)...(xn tn))"
      " ti) x rel1(tuple ((x1 t1)...(xn tn))) x btree(tuple ((x1 t1)...(xn tn)))"
@@ -7338,11 +7339,11 @@ struct MQKnearest{
   BTree* btreeleafcov;
   unsigned int k;
   TupleType* resulttype;
-  vector<PointNeighbor> results;
-  vector<PointNeighbor>::iterator iter;
+  std::vector<PointNeighbor> results;
+  std::vector<PointNeighbor>::iterator iter;
   bool nextblock;
-  vector<Point> block; //split query objects into blocks
-  vector<Point> data; //the candidate for current block
+  std::vector<Point> block; //split query objects into blocks
+  std::vector<Point> data; //the candidate for current block
   int index; //position in rel querypoints
   MQKnearest(){}
 };
@@ -7364,14 +7365,14 @@ bool CmpEFE(const EFieldEntry<timeType>& fe1, const EFieldEntry<timeType>& fe2)
     return true;
   return false;
 }
-void Mqkfilter(MQKnearest* mqk,vector<TupleId>& datanode,BBox<2> query)
+void Mqkfilter(MQKnearest* mqk,std::vector<TupleId>& datanode,BBox<2> query)
 {
   int minentries = mqk->rtree->MinEntries(0);
   int maxentries = mqk->rtree->MaxEntries(0);
   SmiRecordId adr = mqk->rtree->RootRecordId();
-  vector<EFieldEntry<double> > array1;
-  vector<EFieldEntry<double> > array2;
-  vector<EFieldEntry<double> > candidate;
+  std::vector<EFieldEntry<double> > array1;
+  std::vector<EFieldEntry<double> > array2;
+  std::vector<EFieldEntry<double> > candidate;
   EFieldEntry<double> fe(adr,0,0,0,0,0);
   array1.push_back(fe);
   unsigned int pos;
@@ -7505,8 +7506,8 @@ bool CmpSLNNodeid(const Subleafnode& sln1,const Subleafnode& sln2)
   return false;
 }
 
-void MqkPartitionNode(MQKnearest* mqk, vector<Subleafnode> candidate,
-vector<Point>& ps,BBox<2> box) //ps--query objects, box -- query box
+void MqkPartitionNode(MQKnearest* mqk, std::vector<Subleafnode> candidate,
+std::vector<Point>& ps,BBox<2> box) //ps--query objects, box -- query box
 {
   for(unsigned int i = 0;i < candidate.size();i++){
       BBox<2> b(candidate[i].box);
@@ -7531,7 +7532,7 @@ vector<Point>& ps,BBox<2> box) //ps--query objects, box -- query box
     }
     num += val;
   }
-  vector<Subleafnode> candata;//real candidate
+  std::vector<Subleafnode> candata;//real candidate
   for(unsigned int i = 0;i < candidate.size();i++){
 
     if(candidate[i].mindist > dist)
@@ -7540,14 +7541,14 @@ vector<Point>& ps,BBox<2> box) //ps--query objects, box -- query box
   }
   stable_sort(candata.begin(),candata.end(),CmpSLNNodeid);//sort by nodeid
 //  cout<<"subleaf node "<<candata.size()<<endl;
-  vector<Point> datapoints;
+  std::vector<Point> datapoints;
   R_TreeNode<2,TupleId>* node;
   SmiRecordId adr;
   int minentries = mqk->rtree->MinEntries(0);
   int maxentries = mqk->rtree->MaxEntries(0);
   for(unsigned int i = 0;i < candata.size();){
     int nodeid = candata[i].nodeid;
-    vector<BBox<2> > range;
+    std::vector<BBox<2> > range;
     while(candata[i].nodeid == nodeid){
       range.push_back(candata[i].box);
       i++;
@@ -7583,14 +7584,14 @@ vector<Point>& ps,BBox<2> box) //ps--query objects, box -- query box
 
   Point* seedp = new Point(true, // choose centroid point as seed point
   x/ps.size(),y/ps.size());
-  vector<PointNeighbor> distance; //data points ordered
+  std::vector<PointNeighbor> distance; //data points ordered
   for(unsigned int j = 0;j < datapoints.size();j++){
       PointNeighbor* pd = new PointNeighbor(*seedp,datapoints[j]);
       distance.push_back(*pd);
       delete pd;
   }
   sort(distance.begin(),distance.end(),CmpPointNeighbor);
-   vector<PointNeighbor> tempstore;
+   std::vector<PointNeighbor> tempstore;
   for(unsigned int i = 0;i < ps.size();i++){
     Point* p1 = &ps[i];
     double threshold = 0;
@@ -7614,16 +7615,16 @@ vector<Point>& ps,BBox<2> box) //ps--query objects, box -- query box
 
   delete seedp;
 }
-void MqkPartition(MQKnearest* mqk, vector<TupleId>& datanode,BBox<2>& box)
+void MqkPartition(MQKnearest* mqk, std::vector<TupleId>& datanode,BBox<2>& box)
 {
    double minx = box.MinD(0);
    double miny = box.MinD(1);
    double maxx = box.MaxD(0);
    double maxy = box.MaxD(1);
-   vector<Point> ps1;
-   vector<Point> ps2;
-   vector<Point> ps3;
-   vector<Point> ps4;
+   std::vector<Point> ps1;
+   std::vector<Point> ps2;
+   std::vector<Point> ps3;
+   std::vector<Point> ps4;
   //partition query points into four quadrants
    for(unsigned int i = 0;i < mqk->block.size();i++){
     double x = mqk->block[i].GetX();
@@ -7667,7 +7668,7 @@ void MqkPartition(MQKnearest* mqk, vector<TupleId>& datanode,BBox<2>& box)
   max[1] = maxy;
   BBox<2> b2(true,min,max);
   //
-  vector<Subleafnode> candidate;//all subleaf node
+  std::vector<Subleafnode> candidate;//all subleaf node
   R_TreeNode<2,TupleId>* node;
   SmiRecordId adr;
   int minentries = mqk->rtree->MinEntries(0);
@@ -7766,12 +7767,12 @@ void Mqknearest(MQKnearest* mqk)
   BBox<2> box(true,min,max);
 
   //process with R-tree rel on data points, return a set of leaf nodeid
-  vector<TupleId> datanode;
+  std::vector<TupleId> datanode;
   Mqkfilter(mqk,datanode,box);
   MqkPartition(mqk,datanode,box);//partition method according to quadrant
 
   //following does not partition
-  vector<PointNeighbor> distance; //data points ordered
+  std::vector<PointNeighbor> distance; //data points ordered
 
 //brute force algorithm
 //  for(int i = 1;i <= mqk->querypoints->GetNoTuples();i++){
@@ -7839,7 +7840,7 @@ void Mqknearest(MQKnearest* mqk)
 
 }
 
-const string covleafnodeSpec  =
+const std::string covleafnodeSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text> datarel(tuple ((x1 t1)...(xn tn))) "
       " x rtree(tuple((x1 t1)...(xn tn)))"
@@ -7859,7 +7860,7 @@ ListExpr covleafnodeTypeMap(ListExpr args){
       return nl->TypeError();
   }
   ListExpr rtree2 = nl->Second(args);
-  string rtreedescription2;
+  std::string rtreedescription2;
   nl->WriteToString(rtreedescription2,rtree2);
   ListExpr rtsymbol2 = nl->First(rtree2);
 
@@ -8010,7 +8011,7 @@ Description message for knearest operators
 Chinese algorithm and Greece algorithm
 
 */
-const string GreeceknearestfilterSpec  =
+const std::string GreeceknearestfilterSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>rtree(tuple ((x1 t1)...(xn tn))"
       " ti) x rel(tuple ((x1 t1)...(xn tn)))"
@@ -8028,7 +8029,7 @@ const string GreeceknearestfilterSpec  =
       "<text>query UnitTrains_UTrip UnitTrains "
       " greeceknearest [UTrip,train1, 5] count;</text--->"
       ") )";
-const string ChinaknearestSpec  =
+const std::string ChinaknearestSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>tbtree(tuple ((x1 t1)...(xn tn))"
       " ti) x rel(tuple ((x1 t1)...(xn tn))) x mpoint x k ->"
@@ -8301,11 +8302,11 @@ struct TBKnearestLocalInfo
   Line* mptraj;
   CIC<double>* ci;//detect a time interval is fully covered
   bool iscovered; //used to detect time interval in Nearest_list
-  vector<Nearestlist> nlist;//main structure for pruning and record results
+  std::vector<Nearestlist> nlist;//main structure for pruning and record results
   Prunedist prunedist;
   BBox<2> mpbox;
-  priority_queue<hpelem> hp;
-  vector<hpelem> result;
+  std::priority_queue<hpelem> hp;
+  std::vector<hpelem> result;
   unsigned int counter;
   CoverInterval<double>* cic;
 
@@ -8329,16 +8330,16 @@ struct TBKnearestLocalInfo
   /*public function*/
   void UpdateInfoInNL(hpelem* elem,int i);
   void ReportResult();
-  void ParabolasTM(hpelem& elem,vector<hpelem>& nextupdatelist,int i,
+  void ParabolasTM(hpelem& elem,std::vector<hpelem>& nextupdatelist,int i,
                   hpelem*& head,hpelem*& cur,double& intersect,
                   double& elemstart,double& curstart);
-  void ParabolasMT(hpelem& elem,vector<hpelem>& nextupdatelist,int i,
+  void ParabolasMT(hpelem& elem,std::vector<hpelem>& nextupdatelist,int i,
                   hpelem*& head,hpelem*& cur,double& intersect,
                   double& elemstart,double& curstart);
-  void Parabolas(hpelem& elem,vector<hpelem>& nextupdatelist,int i,
+  void Parabolas(hpelem& elem,std::vector<hpelem>& nextupdatelist,int i,
                   hpelem*& head,hpelem*& cur,double& elemstart,
                   double& curstart);
-  void UpdateNearest(hpelem& elem,vector<hpelem>& nextupdatelist,int i);
+  void UpdateNearest(hpelem& elem,std::vector<hpelem>& nextupdatelist,int i);
 /*Greece algorithm function*/
   bool CheckPrune(hpelem& elem);
   void GreeceknnFunDF(MPoint* mp,int level,hpelem& elem);
@@ -8362,15 +8363,15 @@ void TBKnearestLocalInfo::ChinaknnInitialize(MPoint* mp)
  
  //Initialization NearestList and prunedist
  for(unsigned int i = 0;i < k;i++){
-    double mind = numeric_limits<double>::max();
-    double maxd = numeric_limits<double>::min();
+    double mind = std::numeric_limits<double>::max();
+    double maxd = std::numeric_limits<double>::min();
     double st = startTime;
     double et = startTime;
     Nearestlist nl(mind,maxd,new hpelem(-1,0,0,-1),st,et);
     nlist.push_back(nl);
   }
 
-  prunedist.dist = numeric_limits<double>::max();
+  prunedist.dist = std::numeric_limits<double>::max();
   prunedist.define = false;
 
 
@@ -8395,7 +8396,7 @@ void TBKnearestLocalInfo::ChinaknnInitialize(MPoint* mp)
         if(!(tt1 >= endTime || tt2 <= startTime)){
           BBox<2> entrybox = makexyBox(entry->getBox());//entry box
           double mindist = mptraj->Distance(entrybox);
-          double maxdist = numeric_limits<double>::max();
+          double maxdist = std::numeric_limits<double>::max();
           hpelem le(-1,mindist,maxdist,entry->getInfo().getPointer());
           le.nodets = tt1;
           le.nodete = tt2;
@@ -8530,7 +8531,7 @@ T is smaller first
 
 
 void TBKnearestLocalInfo::ParabolasTM(hpelem& elem
-,vector<hpelem>& nextupdatelist,int i,hpelem*& head,hpelem*& cur,
+,std::vector<hpelem>& nextupdatelist,int i,hpelem*& head,hpelem*& cur,
 double& intersect,double& elemstart,double& curstart)
 {
 
@@ -8597,7 +8598,7 @@ M is smaller first
 */
 
 void TBKnearestLocalInfo::ParabolasMT(hpelem& elem
-,vector<hpelem>& nextupdatelist,int i,hpelem*& head,hpelem*& cur,
+,std::vector<hpelem>& nextupdatelist,int i,hpelem*& head,hpelem*& cur,
 double& intersect,double& elemstart,double& curstart)
 {
 
@@ -8671,7 +8672,7 @@ function has to be split or not
 */
 
 void TBKnearestLocalInfo::Parabolas(hpelem& elem
-,vector<hpelem>& nextupdatelist,int i,hpelem*& head,hpelem*& cur,
+,std::vector<hpelem>& nextupdatelist,int i,hpelem*& head,hpelem*& cur,
 double& elemstart,double& curstart)
 {
 //  printf("%.12f %.12f\n",elem.nodets,elem.nodete);
@@ -9091,7 +9092,7 @@ Update k NearestList structure traverse the k nearest list
 */
 
 void TBKnearestLocalInfo::UpdateNearest(hpelem& elem,
-vector<hpelem>& nextupdatelist,int i)
+std::vector<hpelem>& nextupdatelist,int i)
 {
 
   double factor = 0.000000001;
@@ -9461,14 +9462,14 @@ traverse k nearestlist, and update it
 
 void TBKnearestLocalInfo::UpdatekNearest(hpelem& elem)
 {
-  list<hpelem> updatelist;
+  std::list<hpelem> updatelist;
 
 //    if(CheckPrune(local,elem) == false){ //faster
     if(elem.mind < prunedist.dist){
 
       updatelist.push_back(elem);
-      vector<hpelem> auxiliarylist;
-      vector<hpelem> templist;
+      std::vector<hpelem> auxiliarylist;
+      std::vector<hpelem> templist;
       for(unsigned int i = 0;i < k;i++){//for each NearestList
         while(updatelist.empty() == false){
             hpelem top = updatelist.front();
@@ -9505,14 +9506,14 @@ checkprune function
 
 void TBKnearestLocalInfo::UpdatekNearestG(hpelem& elem)
 {
-  list<hpelem> updatelist;
+  std::list<hpelem> updatelist;
 
 //    if(elem.mind < prunedist.dist){
 //     if(CheckPrune(elem) == false){
 
       updatelist.push_back(elem);
-      vector<hpelem> auxiliarylist;
-      vector<hpelem> templist;
+      std::vector<hpelem> auxiliarylist;
+      std::vector<hpelem> templist;
       for(unsigned int i = 0;i < k;i++){//for each NearestList
         while(updatelist.empty() == false){
             hpelem top = updatelist.front();
@@ -9708,15 +9709,15 @@ void TBKnearestLocalInfo::GreeceknearestInitialize(MPoint* mp)
   //Initialization NearestList and prunedist
 
   for(unsigned int i = 0;i < k;i++){
-    double mind = numeric_limits<double>::max();
-    double maxd = numeric_limits<double>::min();
+    double mind = std::numeric_limits<double>::max();
+    double maxd = std::numeric_limits<double>::min();
     double st = startTime;
     double et = startTime;
     Nearestlist nl(mind,maxd,new hpelem(-1,0,0,-1),st,et);
     nlist.push_back(nl);
   }
 
-  prunedist.dist = numeric_limits<double>::max();
+  prunedist.dist = std::numeric_limits<double>::max();
   prunedist.define = false;
 
   Line* line = new Line(0);
@@ -9774,7 +9775,7 @@ void TBKnearestLocalInfo::GreeceknnFunBF(MPoint* mp,int level,hpelem& elem)
                                  rtree->MaxEntries(level));
 
         if(tbnode->IsLeaf()){ //leaf node
-            vector<idtime> entryarray;
+            std::vector<idtime> entryarray;
             for(int i = 0; i < tbnode->EntryCount();i++){
                 R_TreeLeafEntry<3,TupleId> entry =
                        (R_TreeLeafEntry<3,TupleId>&)(*tbnode)[i];
@@ -9857,7 +9858,7 @@ void TBKnearestLocalInfo::GreeceknnFunBF(MPoint* mp,int level,hpelem& elem)
            }
         }else{ //inner node
 
-                vector<hpelem> branchlist;
+                std::vector<hpelem> branchlist;
                 for(int i = 0;i < tbnode->EntryCount();i++){
                       R_TreeInternalEntry<3> e =
                         (R_TreeInternalEntry<3>&)(*tbnode)[i];
@@ -9884,7 +9885,7 @@ void TBKnearestLocalInfo::GreeceknnFunBF(MPoint* mp,int level,hpelem& elem)
                       }
                 }
                 stable_sort(branchlist.begin(),branchlist.end());
-                vector<hpelem> prunelist;
+                std::vector<hpelem> prunelist;
 
                 for(unsigned int i = 0; i < branchlist.size();i++){
                   if(branchlist[i].mind <  prunedist.dist)
@@ -9920,7 +9921,7 @@ void TBKnearestLocalInfo::GreeceknnFunDF(MPoint* mp,int level,hpelem& elem)
 
   if(tbnode->IsLeaf()){ //leaf node
 
-      vector<idtime> entryarray;
+      std::vector<idtime> entryarray;
       for(int i = 0;i < tbnode->EntryCount();i++){
         R_TreeLeafEntry<dim,TupleId> e =
             (R_TreeLeafEntry<dim,TupleId>&)(*tbnode)[i];
@@ -10003,7 +10004,7 @@ void TBKnearestLocalInfo::GreeceknnFunDF(MPoint* mp,int level,hpelem& elem)
         }
       }
   }else{ //an internal node
-    vector<hpelem> branchlist;
+    std::vector<hpelem> branchlist;
     for(int i = 0;i < tbnode->EntryCount();i++){
        R_TreeInternalEntry<dim> e =
           (R_TreeInternalEntry<dim>&)(*tbnode)[i];
@@ -10030,7 +10031,7 @@ void TBKnearestLocalInfo::GreeceknnFunDF(MPoint* mp,int level,hpelem& elem)
           }
     }
     stable_sort(branchlist.begin(),branchlist.end());
-    vector<hpelem> prunelist;
+    std::vector<hpelem> prunelist;
 
     for(unsigned int i = 0; i < branchlist.size();i++){
 //        if(CheckPrune(branchlist[i]) == false)
@@ -10321,7 +10322,7 @@ operator knearestfilter
 ListExpr ChinaknearestTypeMap( ListExpr args )
 {
 
-  string errmsg = "tbtree x relation x utrip x mpoint x int expected";
+  std::string errmsg = "tbtree x relation x utrip x mpoint x int expected";
 
   if(nl->ListLength(args)!=5){
     ErrorReporter::ReportError(errmsg);
@@ -10385,7 +10386,7 @@ operator knearestfilter
 ListExpr GreeceknearestTypeMap( ListExpr args )
 {
 
-  string errmsg = "rtree x relation x utrip x mpoint x int expected";
+  std::string errmsg = "rtree x relation x utrip x mpoint x int expected";
 
   if(nl->ListLength(args)!=5){
     ErrorReporter::ReportError(errmsg);
@@ -10456,7 +10457,7 @@ Operator chinaknearest (
          ChinaknearestTypeMap    // type mapping
 );
 
-const string CellIndexSpec  =
+const std::string CellIndexSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>rtree(tuple ((x1 t1)...(xn tn))"
       " ti) x cellno ->"
@@ -10479,7 +10480,7 @@ operator cellindex
 ListExpr CellIndexTypeMap( ListExpr args )
 {
 
-  string errmsg = "rtree x cellnumber expected";
+  std::string errmsg = "rtree x cellnumber expected";
 
   if(nl->ListLength(args)!=2 ){
     ErrorReporter::ReportError(errmsg);
@@ -10494,7 +10495,7 @@ ListExpr CellIndexTypeMap( ListExpr args )
   }
 
 
-  string rtreedescription;
+  std::string rtreedescription;
   nl->WriteToString(rtreedescription,rtree);
 
 
@@ -10585,17 +10586,18 @@ struct CellIndex{
   CellIndex(R_Tree<dim,TupleId>*r, long no)
   :rtree(r),cellno(no){}
 
-  vector<Cell<dim> > cellq;
-  vector<double> gmin;
-  vector<double> gmax;
-  vector<double> cellsize;
+  std::vector<Cell<dim> > cellq;
+  std::vector<double> gmin;
+  std::vector<double> gmax;
+  std::vector<double> cellsize;
   SubCell tempcell;
 
   unsigned int counter;
   TupleType* resulttype;
   ~CellIndex(){delete resulttype;}
   void Partition_Cell();
-  void Accessfunction(int,vector<long>&,vector<long>&,vector<int>&);
+  void Accessfunction(int,std::vector<long>&,std::vector<long>&,
+                      std::vector<int>&);
 };
 /*
 It partitions the space covered by an R-tree into several cells and for each
@@ -10605,8 +10607,8 @@ the cell.
 */
 
 template<unsigned dim>
-void CellIndex<dim>::Accessfunction(int depth,vector<long>& start_index,
-vector<long>& end_index,vector<int>& pos)
+void CellIndex<dim>::Accessfunction(int depth,std::vector<long>& start_index,
+std::vector<long>& end_index,std::vector<int>& pos)
 {
   if(depth == dim - 1){
     for(long i = start_index[depth]; i <= end_index[depth];i++){
@@ -10666,7 +10668,7 @@ void CellIndex<dim>::Partition_Cell()
 /*double sizex = (long)floor((maxx-minx)/cellno);
   double sizey = (long)floor((maxy-miny)/cellno);*/
 
-  queue<SubCell> q_node;
+  std::queue<SubCell> q_node;
   SmiRecordId adr = rtree->RootRecordId();
   R_TreeNode<dim,TupleId>* node =
         rtree->GetMyNode(adr,false,
@@ -10681,12 +10683,12 @@ void CellIndex<dim>::Partition_Cell()
   }
   delete node;
 
-  vector<int> pos;
+  std::vector<int> pos;
 
-  vector<double> lower;
-  vector<double> upper;
-  vector<long> start_index;
-  vector<long> end_index;
+  std::vector<double> lower;
+  std::vector<double> upper;
+  std::vector<long> start_index;
+  std::vector<long> end_index;
 
   while(q_node.empty() == false){
     SubCell subcell = q_node.front();
@@ -10805,7 +10807,7 @@ ValueMapping CellIndexFunMap [] =
 int CellIndexSelect(ListExpr args)
 {
   ListExpr rtree = nl->First(args);
-  string rtreedescription;
+  std::string rtreedescription;
   nl->WriteToString(rtreedescription,rtree);
   ListExpr rtsymbol = nl->First(rtree);
 
@@ -10833,7 +10835,7 @@ Operator cellindex(
 ListExpr GnuplotNodeTypeMap( ListExpr args )
 {
 
-  string errmsg = "stream x attribute x string expected";
+  std::string errmsg = "stream x attribute x string expected";
 
   if(nl->ListLength(args)!=3){
     ErrorReporter::ReportError(errmsg);
@@ -10908,11 +10910,11 @@ int gnuplotnodeFun (Word* args, Word& result, int message,
     return 0;
   }
   CcString* file = (CcString*)args[2].addr;
-  ofstream datafile(file->GetValue().c_str());
+  std::ofstream datafile(file->GetValue().c_str());
   int pos = ((CcInt*)args[3].addr)->GetIntval() - 1;
   bool  finished = false;
-  vector<Box_data> data;
-  double min = numeric_limits<double>::max();
+  std::vector<Box_data> data;
+  double min = std::numeric_limits<double>::max();
   while(!finished){
     if(!finished){
       Tuple* tuple = static_cast<Tuple*>(current.addr);
@@ -10979,7 +10981,7 @@ int gnuplotnodeFun (Word* args, Word& result, int message,
 }
 
 
-const string GnuplotnodeSpec  =
+const std::string GnuplotnodeSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>a stream of tuples with 3D box attribute x output_file->"
       " output a file"
@@ -11044,9 +11046,9 @@ struct CellPart{
   unsigned int id;
   Tuple* lasttuple;
   double global_min;
-  vector<double> gmin;
-  vector<double> gmax;
-  vector<double> cellsize;
+  std::vector<double> gmin;
+  std::vector<double> gmax;
+  std::vector<double> cellsize;
   CellPart(Rectangle<3>* bbox,int x,int y,int z)
   :box(bbox),cellx(x),celly(y),cellt(z){
     count = 0;
@@ -11072,15 +11074,15 @@ struct CellPart{
   }
   ~CellPart(){if(resulttype != NULL)delete resulttype;}
 
-  vector<UPoint> ups;
-  vector<BBox<3> > cellbox; //store the box of each cell
+  std::vector<UPoint> ups;
+  std::vector<BBox<3> > cellbox; //store the box of each cell
 
   void AssignUPinCell();
-  void AccessFunction(int depth,vector<long>& start_index,
-       vector<long>& end_index,vector<int>& pos,UPoint* up);
+  void AccessFunction(int depth,std::vector<long>& start_index,
+       std::vector<long>& end_index,std::vector<int>& pos,UPoint* up);
 };
-void CellPart::AccessFunction(int depth,vector<long>& start_index,
-       vector<long>& end_index,vector<int>& pos,UPoint* up)
+void CellPart::AccessFunction(int depth,std::vector<long>& start_index,
+       std::vector<long>& end_index,std::vector<int>& pos,UPoint* up)
 {
   if(depth == 2){
     for(long i = start_index[depth]; i <= end_index[depth];i++){
@@ -11312,7 +11314,7 @@ void CellPart::AssignUPinCell()
   "<text></text--->"
   ") )";*/
 
-const string MergertreeSpec  =
+const std::string MergertreeSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" \"Comment\" ) "
   "(<text>(rtree1<d> (tuple ((x1 t1)...(xn tn))) ti) x \n"
@@ -11325,7 +11327,7 @@ const string MergertreeSpec  =
   "<text></text--->"
   ") )";
 
-const string MergeCovSpec  =
+const std::string MergeCovSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" \"Comment\" ) "
   "(<text>(rtree1<d> (tuple ((x1 t1)...(xn tn))) ti) x \n"
@@ -11339,7 +11341,7 @@ const string MergeCovSpec  =
   "<text></text--->"
   ") )";
 
-const string MergeCov2Spec  =
+const std::string MergeCov2Spec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" \"Comment\" ) "
   "(<text>(rtree1<d> (tuple ((x1 t1)...(xn tn))) ti) x \n"
@@ -11428,13 +11430,13 @@ ListExpr MergeRTreeTypeMap(ListExpr args)
 /////////////////////////////////////////////////////////
   ListExpr firstpara = nl->First(args);
   if(nl->ListLength(firstpara) != 4){
-    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    std::string err = "rtree(tuple(...) rect3 BOOL) expected";
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
 
   if(!listutils::isRTreeDescription(firstpara)){
-    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    std::string err = "rtree(tuple(...) rect3 BOOL) expected";
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
@@ -11444,7 +11446,7 @@ ListExpr MergeRTreeTypeMap(ListExpr args)
      nl->IsEqual(nl->First(firstpara),RTree3TID::BasicType()) ||
      nl->IsEqual(nl->First(firstpara),RTree4TID::BasicType()) ||
      nl->IsEqual(nl->First(firstpara),RTree8TID::BasicType()))){
-    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    std::string err = "rtree(tuple(...) rect3 BOOL) expected";
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
@@ -11452,12 +11454,12 @@ ListExpr MergeRTreeTypeMap(ListExpr args)
 
   ListExpr secondpara = nl->Second(args);
   if(nl->ListLength(secondpara) != 4){
-    string err = "rtree(tuple(...) rect BOOL) expected";
+    std::string err = "rtree(tuple(...) rect BOOL) expected";
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
   if(!listutils::isRTreeDescription(secondpara)){
-    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    std::string err = "rtree(tuple(...) rect3 BOOL) expected";
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
@@ -11466,7 +11468,7 @@ ListExpr MergeRTreeTypeMap(ListExpr args)
      nl->IsEqual(nl->First(firstpara),RTree3TID::BasicType()) ||
      nl->IsEqual(nl->First(firstpara),RTree4TID::BasicType()) ||
      nl->IsEqual(nl->First(firstpara),RTree8TID::BasicType()))){
-    string err = "rtree(tuple(...) rect BOOL) expected";
+    std::string err = "rtree(tuple(...) rect BOOL) expected";
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
@@ -11501,13 +11503,13 @@ ListExpr MergeCovTypeMap(ListExpr args)
 /////////////////////////////////////////////////////////
   ListExpr firstpara = nl->First(args);
   if(nl->ListLength(firstpara) != 4){
-    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    std::string err = "rtree(tuple(...) rect3 BOOL) expected";
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
 
   if(!listutils::isRTreeDescription(firstpara)){
-    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    std::string err = "rtree(tuple(...) rect3 BOOL) expected";
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
@@ -11517,7 +11519,7 @@ ListExpr MergeCovTypeMap(ListExpr args)
      nl->IsEqual(nl->First(firstpara),RTree3TID::BasicType()) ||
      nl->IsEqual(nl->First(firstpara),RTree4TID::BasicType()) ||
      nl->IsEqual(nl->First(firstpara),RTree8TID::BasicType()))){
-    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    std::string err = "rtree(tuple(...) rect3 BOOL) expected";
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
@@ -11531,7 +11533,7 @@ ListExpr MergeCovTypeMap(ListExpr args)
      !listutils::isRelDescription(third) ||
      !listutils::isBTreeDescription(fourth) ||
      !listutils::isBTreeDescription(fifth)){
-    string err = "rtree x rel1 x rel2 x btree1 x btree2 expected";
+    std::string err = "rtree x rel1 x rel2 x btree1 x btree2 expected";
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
@@ -11573,13 +11575,13 @@ ListExpr MergeCov2TypeMap(ListExpr args)
 /////////////////////////////////////////////////////////
   ListExpr firstpara = nl->First(args);
   if(nl->ListLength(firstpara) != 4){
-    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    std::string err = "rtree(tuple(...) rect3 BOOL) expected";
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
 
   if(!listutils::isRTreeDescription(firstpara)){
-    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    std::string err = "rtree(tuple(...) rect3 BOOL) expected";
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
@@ -11589,7 +11591,7 @@ ListExpr MergeCov2TypeMap(ListExpr args)
      nl->IsEqual(nl->First(firstpara),RTree3TID::BasicType()) ||
      nl->IsEqual(nl->First(firstpara),RTree4TID::BasicType()) ||
      nl->IsEqual(nl->First(firstpara),RTree8TID::BasicType()))){
-    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    std::string err = "rtree(tuple(...) rect3 BOOL) expected";
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
@@ -11599,7 +11601,7 @@ ListExpr MergeCov2TypeMap(ListExpr args)
   ListExpr third = nl->Third(args);
   if(!listutils::isRelDescription(second) ||
      !listutils::isBTreeDescription(third)){
-    string err = "rtree x rel x btree";
+    std::string err = "rtree x rel x btree";
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
@@ -12009,8 +12011,8 @@ struct Cov{
         Tuple* tuple1 = cov1->GetTuple(iter2->GetId(), false);
 //        cout<<"before "<<endl;
         UInt* ui = (UInt*)tuple1->GetAttribute(2);
-        vector<int> xindices;
-        vector<Attribute*> xattrs;
+        std::vector<int> xindices;
+        std::vector<Attribute*> xattrs;
         xindices.push_back(attr_pos);
         UInt* newui = new UInt(*ui);
         newui->constValue.Set(-1);
@@ -12311,7 +12313,7 @@ ListExpr countUnitsTM(ListExpr args){
      return listutils::typeError("second arg is not an attribute name");
    }
    ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
-   string name = nl->SymbolValue(an);
+   std::string name = nl->SymbolValue(an);
    ListExpr attrType;
    int index = listutils::findAttribute(attrList, name, attrType);
    if(!index){
@@ -12400,7 +12402,7 @@ class iCompare{
 };
 
 
-ostream& operator<<(ostream& o, const End& e){
+std::ostream& operator<<(std::ostream& o, const End& e){
   o << e.i << ", " << e.rc;
   return o;
 }
@@ -12418,7 +12420,7 @@ class UnitCounter{
 
         if(    (lastStart > _start)
             || ((lastStart == _start) && lastClosed && !lc)){
-           cerr << "Tuples are in invalid order " << endl;
+           std::cerr << "Tuples are in invalid order " << endl;
         }
         lastStart = _start;
         lastClosed = _lc;
@@ -12497,7 +12499,7 @@ class UnitCounter{
       MInt* res;
       Instant current;
       bool lc;
-      priority_queue<End, vector<End>, iCompare> ends;     
+      std::priority_queue<End, std::vector<End>, iCompare> ends;     
       size_t count; 
 
       Instant lastStart;  

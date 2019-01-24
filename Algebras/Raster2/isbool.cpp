@@ -24,6 +24,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace raster2 {
 
-string istype_helper<char>::name(){ return TYPE_NAME_ISBOOL();}
+std::string istype_helper<char>::name(){ return TYPE_NAME_ISBOOL();}
 
 }

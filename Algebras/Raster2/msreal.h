@@ -38,7 +38,7 @@ namespace raster2
         typedef CcReal wrapper_type;
         typedef temporalalgebra::UReal unit_type;
         typedef sreal spatial_type;
-        static string name();
+        static std::string name();
         static bool check(const NList& nl)
         {
           return (nl.isReal() || nl.isInt());

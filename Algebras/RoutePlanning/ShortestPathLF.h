@@ -275,27 +275,27 @@ namespace routeplanningalgebra {
                 #ifdef DEMO_MODE
                 string indexName = "EdgesCropIndex_Box_rtree";
                 #else
-                string indexName = "EdgeIndex_Box_rtree";
+                std::string indexName = "EdgeIndex_Box_rtree";
                 #endif
-                cout << "index: " << indexName << endl;
+                std::cout << "index: " << indexName << endl;
                 Word value;
                 bool defined = false;
                 ctlg->GetObject(indexName,value,defined);
                 if(!defined){
-                    cout << "could not initialise rtree" << endl;
+                    std::cout << "could not initialise rtree" << endl;
                     return defined;}
                 rtree = ((RTree2TID*)value.addr);
                 
                 //we also need a secondary relation to search for tuples
                 #ifdef DEMO_MODE
-                string dbName = "EdgesCropIndex";
+                std::string dbName = "EdgesCropIndex";
                 #else
-                string dbName = "EdgeIndex";
+                std::string dbName = "EdgeIndex";
                 #endif
-                cout << "db: " << dbName << endl;
+                std::cout << "db: " << dbName << endl;
                 ctlg->GetObject(dbName, value, defined);
                 if(!defined){
-                    cout << "db not found: " << dbName << endl;
+                    std::cout << "db not found: " << dbName << endl;
                     return defined;}
                 rel = ((Relation*)value.addr);
                 return defined;
@@ -308,31 +308,32 @@ namespace routeplanningalgebra {
                                  collection::Collection* prefs){
                 //get ids of nodes nearest to start and end points 
                 int start = 0, end = 0;
-                cout << success << endl;
+                std::cout << success << endl;
                 if(success == 0){
-                    cout << "indexes not initialised, return" << endl;
+                    std::cout << "indexes not initialised, return" << endl;
                     return;}
                 if(!startPoint->IsDefined() || !endPoint->IsDefined()){
-                    cout << "input points are undefined, return" << endl;
+                    std::cout << "input points are undefined, return" << endl;
                     return;}
                 start =getNearestTuple(startPoint, sourcePosIndex, sourceIndex);
                 end = getNearestTuple(endPoint, targetPosIndex, targetIndex);
                 if(start <= 0){
-                    cout<<"start point not found"<<endl;
+                    std::cout<<"start point not found"<<endl;
                     return;
                 }
                  if(end <= 0){
-                    cout<<"end point not found"<<endl;
+                    std::cout<<"end point not found"<<endl;
                     return;
                 }
                 OrderedRelationIterator* orelIt;
-                vector<void*> attributes(2);
-                vector<SmiKey::KeyDataType> kElems(2);
+                std::vector<void*> attributes(2);
+                std::vector<SmiKey::KeyDataType> kElems(2);
                 SmiKey test((int32_t) 0);
                 kElems[0] = test.GetType();
                 kElems[1] = test.GetType();
                 CcInt* minNodeId = new CcInt(true,0);
-                CcInt* maxNodeId = new CcInt(true,numeric_limits<int>::max());
+                CcInt* maxNodeId = new CcInt(true,
+                                             std::numeric_limits<int>::max());
                 TupleType* rtt = new TupleType(nl->Second(tupleType));
                 
                 //check the simplest case, maybe not necessary
@@ -422,7 +423,7 @@ namespace routeplanningalgebra {
                 if(!found){
                     //delete actNode; //actNode = 0;
                     //delete inQueue; //inQueue = 0;
-                    cout<<"no path exists"<<endl;
+                    std::cout<<"no path exists"<<endl;
                     attributes.clear();
                     kElems.clear();
                     rtt->DeleteIfAllowed(); // rtt = 0;
@@ -556,8 +557,8 @@ namespace routeplanningalgebra {
                  if(!success){return 0;}
                  Tuple* returnTuple = 0;
                  Point* returnPoint = 0;
-                 vector<void*> attributes(2);
-                 vector<SmiKey::KeyDataType> kElems(2);
+                 std::vector<void*> attributes(2);
+                 std::vector<SmiKey::KeyDataType> kElems(2);
                  SmiKey test((int32_t) 0);
                  kElems[0] = test.GetType();
                  kElems[1] = test.GetType();

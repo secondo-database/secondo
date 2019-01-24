@@ -73,7 +73,7 @@ template argument to the ~stype$<$T, Helper$>$~ class template.
     {
       typedef T implementation_type;
       typedef T wrapper_type;
-      static string name();
+      static std::string name();
       static bool check(const NList& nl);
       static T parse(const NList& nl);
       static NList print(const T& i);

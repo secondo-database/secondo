@@ -92,7 +92,7 @@ const Vertex* VertexContainerSet::insertVertex(const Vertex* v,
  if ((int)(setVertices.size() + 1) > getMaxVertexCount())
   throw std::runtime_error(E_VERTEXCONTAINER_INSERTVERTEX2);
 
- std::pair<set<Vertex>::iterator, bool> r = setVertices.insert((*v));
+ std::pair<std::set<Vertex>::iterator, bool> r = setVertices.insert((*v));
  if ((*r.first).getZ() != v->getZ())
   throw std::invalid_argument(E_VERTEXCONTAINER_INSERTVERTEX3);
 
@@ -135,7 +135,7 @@ TIN_SIZE VertexContainerSet::getContainerSizeOnDisc() const {
 }
 
 void VertexContainerSet::print(std::ostream& os) const {
- set<Vertex>::iterator it;
+ std::set<Vertex>::iterator it;
  os << "VertexContainer: " << " Maximum size on disc:" << getMaxSize();
  os << " Current size on disc:"
 
@@ -180,7 +180,7 @@ TinFeatures VertexContainerSet::getFeatures() const {
  return feat;
 }
 const Vertex* VertexContainerSet::getVertex(const Vertex& v) const {
- set<Vertex>::iterator it;
+ std::set<Vertex>::iterator it;
  it = setVertices.find(v);
  if (it != setVertices.end())
   return const_cast<Vertex*>(&(*it));
@@ -265,7 +265,7 @@ const Vertex* VertexContainerSet::getVertexByXIndex(const int i) const {
 void VertexContainerSet::unaryOp(VERTEX_Z (*op)(VERTEX_Z z),
   TinFeatures& feat) {
 
- set<Vertex>::iterator it = setVertices.begin();
+ std::set<Vertex>::iterator it = setVertices.begin();
 
  while (it != setVertices.end()) {
   Vertex* v = const_cast<Vertex*>(&(*it));
@@ -279,7 +279,7 @@ void VertexContainerSet::unaryOp(VERTEX_Z (*op)(VERTEX_Z z),
 }
 #ifndef UNIT_TEST
 void VertexContainerSet::unaryOp(void * function, TinFeatures& feat) {
- set<Vertex>::iterator it = setVertices.begin();
+ std::set<Vertex>::iterator it = setVertices.begin();
 
  Word result;
  CcReal vertex_z;
@@ -299,7 +299,7 @@ void VertexContainerSet::unaryOp(void * function, TinFeatures& feat) {
 #endif
 void VertexContainerSet::binaryOp(Tin& tt,
   VERTEX_Z (*op)(VERTEX_Z z1, VERTEX_Z z2), TinFeatures& feat) {
- set<Vertex>::iterator it = setVertices.begin();
+ std::set<Vertex>::iterator it = setVertices.begin();
 
  VERTEX_Z z_val;
 
@@ -392,7 +392,7 @@ void VertexContainerSet::rebuild(char* state, size_t & offset) {
 LOGP}
 ListExpr VertexContainerSet::outContainer() const {
  LOGP
- set<Vertex>::iterator it;
+ std::set<Vertex>::iterator it;
  it = setVertices.begin();
  ListExpr ret=nl->TheEmptyList(), tmp, last;
  if (it != setVertices.end()) {
@@ -413,7 +413,7 @@ bool VertexContainerSet::open(SmiRecord& valueRecord) {
  Vertex v;
  valueRecord.Read(maxSize);
  valueRecord.Read(noVertices);
- set<Vertex>::iterator preceedingIt;
+ std::set<Vertex>::iterator preceedingIt;
  LOG(noVertices)
 
  preceedingIt = setVertices.begin();

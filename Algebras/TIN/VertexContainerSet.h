@@ -33,7 +33,7 @@ namespace tin {
 
 class VertexContainerSet: public AbstractVertexContainer {
 protected:
- set<Vertex> setVertices;
+ std::set<Vertex> setVertices;
  mutable Vertex** tmpYorderedindex;
  mutable bool indexYUpToDate;
  mutable Vertex** tmpXorderedindex;

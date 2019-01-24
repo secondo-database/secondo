@@ -36,7 +36,7 @@ namespace raster2
     typedef CcInt wrapper_type;
     typedef temporalalgebra::MInt moving_type;
     typedef temporalalgebra::UInt unit_type;
-    static string name();
+    static std::string name();
     static bool check(const NList& nl) { return nl.isInt(); }
     static int parse(const NList& nl) { return nl.intval(); }
     static NList print(const int& i)

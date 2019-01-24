@@ -53,7 +53,7 @@ ListExpr closestPairsTM(ListExpr args){
    // arg 4 : relation 2
    // arg 5 : k (integer) (how many pairs should be found)#
 
-   string err = "expected: rtree x rel x rtree x rel x int";
+   std::string err = "expected: rtree x rel x rtree x rel x int";
 
    if(!nl->HasLength(args,5)){
       return listutils::typeError(err);
@@ -283,8 +283,8 @@ class ClosestPairLocalInfo{
      int k;
      int count;
      TupleType* tt;
-     priority_queue<closestPairEntry, 
-                    vector<closestPairEntry> , 
+     std::priority_queue<closestPairEntry, 
+                    std::vector<closestPairEntry> , 
                     closestPairEntryLess> heap;
 
     void init(){
@@ -414,8 +414,8 @@ class ClosestPairLocalInfo{
         Tuple* t2 = r2->GetTuple(tid2,true);
       
         if(t1==0 || t2==0){
-           cerr << "TupleId stored in rtree not found" << endl;
-           cerr << " computing closest pair canceled" << endl;
+           std::cerr << "TupleId stored in rtree not found" << endl;
+           std::cerr << " computing closest pair canceled" << endl;
            count = k;
            return 0; 
         }

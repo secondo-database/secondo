@@ -392,7 +392,8 @@ namespace routeplanningalgebra {
     return points;
 #else
     if (sline) {
-      vector<pointcloud::Cpoint> points = getPointsInProximityToSline(sline,
+      std::vector<pointcloud::Cpoint> points = 
+                                           getPointsInProximityToSline(sline,
                                                           pointcloudStream,
                                                           PROXIMITY_THRESHOLD);
       if (points.empty()) {
@@ -474,7 +475,7 @@ namespace routeplanningalgebra {
     typedef Kernel::Point_3 CGALPoint;
 
     // Converting to CGAL-class
-    vector<CGALPoint> cgalPoints;
+    std::vector<CGALPoint> cgalPoints;
     for (Cpoint p : points) {
       CGALPoint cp(p.getX(), p.getY(), p.getZ());
       cgalPoints.push_back(cp);
