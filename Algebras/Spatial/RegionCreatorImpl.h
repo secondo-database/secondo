@@ -28,7 +28,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "RegionCreator.h"
 
-using namespace std;
 
 template<template<typename T> class Array>
 void RegionCreator<Array>::createRegion(const Array<HalfSegment>* hss, 
@@ -150,10 +149,10 @@ size_t RegionCreator<Array>::intersects(const double x, const double y,
   double y1 = p1.GetY();
   double x2 = p2.GetX();
   double y2 = p2.GetY();
-  double x_min = min(x1,x2);
-  double x_max = max(x1,x2);
-  double y_min = min(y1,y2);
-  double y_max = max(y1,y2);
+  double x_min = std::min(x1,x2);
+  double x_max = std::max(x1,x2);
+  double y_min = std::min(y1,y2);
+  double y_max = std::max(y1,y2);
 
   if(!AlmostEqual(x_min,x) && (x_min > x)){ // segment right of (x,y)
       return 0; 
@@ -238,7 +237,7 @@ template<template<typename T> class Array>
        cout << "internal error, found index < 0 in " 
             << __FILE__ << "@" << __LINE__ << endl
             << "in function" << __PRETTY_FUNCTION__ << endl;
-       throw string("invalid index");
+       throw std::string("invalid index");
 
      }
      return index;
@@ -285,16 +284,16 @@ template<template<typename T> class Array>
      double y1 = hs.GetDomPoint().GetY();
      double x2 = hs.GetSecPoint().GetX();
      double y2 = hs.GetSecPoint().GetY();
-     double xmin = min(x1,x2);
+     double xmin = std::min(x1,x2);
      if(!AlmostEqual(xmin,x) && (xmin > x)){ //segment completely right of (x,y)
        return -1;
      }
-     double xmax = max(x1,x2);
-     double ymin = min(y1,y2);
+     double xmax = std::max(x1,x2);
+     double ymin = std::min(y1,y2);
      if(!AlmostEqual(ymin,y) && (ymin > y)){ // segment above (x,y)
        return -1;
      }
-     double ymax = max(y1,y2);
+     double ymax = std::max(y1,y2);
      if(!AlmostEqual(ymax,y) && (ymax < y)) { // segment below (x,y)
        return -1;
      }
@@ -331,16 +330,16 @@ template<template<typename T> class Array>
      double y1 = hs.GetDomPoint().GetY();
      double x2 = hs.GetSecPoint().GetX();
      double y2 = hs.GetSecPoint().GetY();
-     double xmax = max(x1,x2);
+     double xmax = std::max(x1,x2);
      if(!AlmostEqual(xmax,x) && (xmax <  x)){ //segment completely left of (x,y)
        return -1;
      }
-     double xmin = min(x1,x2);
-     double ymin = min(y1,y2);
+     double xmin = std::min(x1,x2);
+     double ymin = std::min(y1,y2);
      if(!AlmostEqual(ymin,y) && (ymin > y)){ // segment above (x,y)
        return -1;
      }
-     double ymax = max(y1,y2);
+     double ymax = std::max(y1,y2);
      if(!AlmostEqual(ymax,y) && (ymax < y)) { // segment below (x,y)
        return -1;
      }
@@ -375,25 +374,25 @@ template<template<typename T> class Array>
      double y1 = hs.GetDomPoint().GetY();
      double x2 = hs.GetSecPoint().GetX();
      double y2 = hs.GetSecPoint().GetY();
-     double ymax = max(y1,y2);
+     double ymax = std::max(y1,y2);
      
      if(!AlmostEqual(ymax,y) && (ymax < y)){ //segment completely under (x,y)
        //cout << "under" << endl;
        return -1;
      }
      
-     double xmin=min(x1,x2);
+     double xmin=std::min(x1,x2);
      if(!AlmostEqual(xmin,x) && xmin>x){
        // right of the ray
        return -1;
      }
-     double xmax = max(x1,x2);
+     double xmax = std::max(x1,x2);
      if(!AlmostEqual(xmax,x) && xmax < x){
         // left of the ray
         return -1; 
      }
 
-     double ymin = min(y1,y2);
+     double ymin = std::min(y1,y2);
      if(AlmostEqual(x1,x2)){ // vertical segment
         if(ymin<y){
            return 0;
@@ -421,25 +420,25 @@ template<template<typename T> class Array>
      double y1 = hs.GetDomPoint().GetY();
      double x2 = hs.GetSecPoint().GetX();
      double y2 = hs.GetSecPoint().GetY();
-     double ymin = min(y1,y2);
+     double ymin = std::min(y1,y2);
      
      if(!AlmostEqual(ymin,y) && (ymin  > y)){ //segment completely above (x,y)
        //cout << "above" << endl;
        return -1;
      }
      
-     double xmin=min(x1,x2);
+     double xmin=std::min(x1,x2);
      if(!AlmostEqual(xmin,x) && xmin>x){
        // right of the ray
        return -1;
      }
-     double xmax = max(x1,x2);
+     double xmax = std::max(x1,x2);
      if(!AlmostEqual(xmax,x) && xmax < x){
         // left of the ray
         return -1; 
      }
 
-     double ymax = max(y1,y2);
+     double ymax = std::max(y1,y2);
      if(AlmostEqual(x1,x2)){ // vertical segment
         if(ymax>y){
            return 0;
@@ -563,7 +562,7 @@ template<template<typename T> class Array>
         return;
       }
       // extend path until (sub) path is closed or dead end is found
-      vector<int> path;
+      std::vector<int> path;
       path.push_back(pos);
       HalfSegment hs;
       usage[pos] = 3; // part of current path
@@ -602,7 +601,7 @@ template<template<typename T> class Array>
                 // (sub) path found
                 int p = path.back();
                 path.pop_back();
-                cycles.push_back(vector<HalfSegment>());
+                cycles.push_back(std::vector<HalfSegment>());
                 while(p!=next && !path.empty()){
                   usage[p] = 2;
                   hss->Get(p,hs);
@@ -647,12 +646,12 @@ following properties:
 template<template<typename T> class Array>
    int RegionCreator<Array>::getStartPos(const Array<HalfSegment>* hss, 
                                   int pos, char* usage){
-      vector<pair<HalfSegment,int> > candidates;
+      std::vector<std::pair<HalfSegment,int> > candidates;
       // stores all unused halfsegments with same dompoint 
       HalfSegment hs;
       hss->Get(pos, hs);
       if((usage[pos]==0) && hs.IsLeftDomPoint()){
-         candidates.push_back(pair<HalfSegment,int>(hs,pos));
+         candidates.push_back(std::pair<HalfSegment,int>(hs,pos));
       }
 
       Point dp = hs.GetDomPoint();
@@ -665,7 +664,7 @@ template<template<typename T> class Array>
             done = true;
           } else {
             if( (usage[pos1]==0) && (hs.IsLeftDomPoint())){
-               candidates.push_back(pair<HalfSegment,int>(hs,pos1));
+               candidates.push_back(std::pair<HalfSegment,int>(hs,pos1));
             }
           }
           pos1--;
@@ -679,7 +678,7 @@ template<template<typename T> class Array>
             done = true;
           } else {
             if( (usage[pos1]==0) && (hs.IsLeftDomPoint())){
-               candidates.push_back(pair<HalfSegment,int>(hs,pos1));
+               candidates.push_back(std::pair<HalfSegment,int>(hs,pos1));
             }
           }
           pos1++;
@@ -768,7 +767,7 @@ int RegionCreator<Array>::getNext(const Array<HalfSegment>* hss, int pos,
       hss->Get(pos,hs);
       
       int ppos = hs.attr.partnerno;
-      vector<pair<HalfSegment,int> > candidates;
+      std::vector<std::pair<HalfSegment,int> > candidates;
       Point pdp = hs.GetSecPoint();
 
       //assert(usage[ppos] == 4);
@@ -784,7 +783,7 @@ int RegionCreator<Array>::getNext(const Array<HalfSegment>* hss, int pos,
            if(usage[ppos1] == 3){
               return ppos1;
            } else if(usage[ppos1]==0){
-              candidates.push_back(pair<HalfSegment,int>(hs1,ppos1));
+              candidates.push_back(std::pair<HalfSegment,int>(hs1,ppos1));
            }
          }
          ppos1--;
@@ -800,7 +799,7 @@ int RegionCreator<Array>::getNext(const Array<HalfSegment>* hss, int pos,
            if(usage[ppos1] == 3){
               return ppos1;
            } else if(usage[ppos1]==0){
-              candidates.push_back(pair<HalfSegment,int>(hs1,ppos1));
+              candidates.push_back(std::pair<HalfSegment,int>(hs1,ppos1));
            }
          }
          ppos1++;
@@ -816,8 +815,8 @@ int RegionCreator<Array>::getNext(const Array<HalfSegment>* hss, int pos,
       }
 
       //partition candidates to those ones left of hs and those ones right of hs
-      vector<pair<HalfSegment,int> > candidates_left;
-      vector<pair<HalfSegment,int> > candidates_right;
+      std::vector<std::pair<HalfSegment,int> > candidates_left;
+      std::vector<std::pair<HalfSegment,int> > candidates_right;
       Point dp = hs.GetDomPoint();
       Point sp = hs.GetSecPoint();
       for(unsigned int i=0;i<candidates.size();i++){
@@ -943,7 +942,8 @@ template<template<typename T> class Array>
                                 RegionT<Array>* result)const{
 
       if(cycles[cycle].size() < 3){
-          cerr << "found cycle with less than 3 halfsegments -> ignore" << endl;
+          std::cerr << "found cycle with less than 3 halfsegments -> ignore"
+                    << endl;
           return false;
       }
 

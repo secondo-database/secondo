@@ -115,14 +115,8 @@ file.
 #include "Symbols.h"
 #include "Algebras/Spatial/Geoid.h"
 #include "Algebras/MovingRegion/MovingRegionAlgebra.h"
-
 #include "RefinementStream.h"
 #include "Algebras/TemporalUnit/TemporalUnitAlgebra.h"
-
-
-extern NestedList* nl;
-extern QueryProcessor* qp;
-
 #include "DateTime.h"
 #include "TemporalAlgebra.h"
 #include "GenericTC.h"
@@ -130,7 +124,9 @@ extern QueryProcessor* qp;
 #include "Algebras/Stream/Stream.h"
 #include "Algebras/Spatial/DLine.h"
 
-using namespace std;
+extern NestedList* nl;
+extern QueryProcessor* qp;
+
 using namespace datetime;
 
 
@@ -153,9 +149,9 @@ bool isnan(double x)
 static int counter;
 
 
-string int2string(const int& number)
+std::string int2string(const int& number)
 {
-  ostringstream oss;
+  std::ostringstream oss;
   oss << number;
   return oss.str();
 }
@@ -174,8 +170,8 @@ bool IsMaximumPeriods(const Periods& p)
 const bool TA_DEBUG = false;  // debugging off
 // const bool TA_DEBUG = true;  // debugging on
 
-const double MAXDOUBLE = numeric_limits<double>::max();
-const double MINDOUBLE = -1.0 * numeric_limits<double>::max();
+const double MAXDOUBLE = std::numeric_limits<double>::max();
+const double MINDOUBLE = -1.0 * std::numeric_limits<double>::max();
 
 /*
 3 Implementation of C++ Classes
@@ -185,13 +181,13 @@ const double MINDOUBLE = -1.0 * numeric_limits<double>::max();
 */
 
 template<class alpha>
-ostream& operator<<(ostream& o, const Interval<alpha>& u){
+std::ostream& operator<<(std::ostream& o, const Interval<alpha>& u){
    return u.Print(o);
 }
 
-ostream& operator<<(ostream& o, const UPoint& u){
-   ios_base::fmtflags oldOptions = o.flags();
-   o.setf(ios_base::fixed,ios_base::floatfield);
+std::ostream& operator<<(std::ostream& o, const UPoint& u){
+   std::ios_base::fmtflags oldOptions = o.flags();
+   o.setf(std::ios_base::fixed,std::ios_base::floatfield);
    o.precision(8);
    if(!u.IsDefined()){
        o << "Undefined";
@@ -260,7 +256,7 @@ bool UReal::At( const CcReal& val, TemporalUnit<CcReal>& result )
 // of 0-2 Units!
 // Use UReal::PeriodAtValue() or UReal::AtValue() instead!
 {
-  cerr << "UReal::At() is not implementable! "
+  std::cerr << "UReal::At() is not implementable! "
           "Use UReal::AtValue() instead!"
        << endl;
   assert( false );
@@ -359,7 +355,7 @@ double AntiderivativeSQRTpoly2(const double a, const double b,
      anti2 = (1 / sqrt(a)) * log ( 2.0 * sqrt(a*X) + h1);
      t2 = f*anti2;
   } else {
-     cerr << " invalid case reached " << endl;
+     std::cerr << " invalid case reached " << endl;
      anti2 = 0;
   }
   double result = t1 + t2;
@@ -404,7 +400,7 @@ by the integral of a linear function between the values at the boundaries.
   double maxint = max*x;
 
   if( (result < minint) || (result > maxint)){
-     //cerr << " approximate used case:" << ucase << endl;
+     //std::cerr << " approximate used case:" << ucase << endl;
      if(xs<=0){ // approximate lineary between 0 and x
          double h = (x==0)?0:(v2-v1)/x;
          result = (0.5*h*x + v1)*x;
@@ -419,9 +415,9 @@ by the integral of a linear function between the values at the boundaries.
         result = res1+res2;
      }
      if( (result < minint) || (result > maxint)){
-          cerr << " error in approximation " << endl;
-          cerr << " range is " << minint << " ,  " << maxint << endl;
-          cerr << " but result is " << result << endl;
+          std::cerr << " error in approximation " << endl;
+          std::cerr << " range is " << minint << " ,  " << maxint << endl;
+          std::cerr << " but result is " << result << endl;
      }
   }
   return  result;
@@ -745,30 +741,31 @@ double UReal::PeriodsAtMin(bool& correct, Periods& times) const
   {
      correct = false;
      times.SetDefined( false );
-     return numeric_limits<double>::infinity();
+     return std::numeric_limits<double>::infinity();
   }
   times.SetDefined( true );
 
   double t = (timeInterval.end - timeInterval.start).ToDouble();
   double ts = 0.0;
   correct = true;
-  double min = numeric_limits<double>::infinity();
+  double min = std::numeric_limits<double>::infinity();
   Interval<Instant> iv;
   double v0 = c;               // TemporalFunction(t0);
   double v1 = a*t*t + b*t + c; // TemporalFunction(t1);
   // TemporalFunction for extremum:
-  double v2 = numeric_limits<double>::infinity();
+  double v2 = std::numeric_limits<double>::infinity();
   if(!AlmostEqual(a,0)){
      ts = (-1.0*b)/(2.0*a);
      if( (ts>0) && (ts < t)){
          v2 = a*ts*ts + b*ts + c;
      }
   }
-  if(isnan(v0) || isnan(v1) || isnan(v2))
+  if(std::isnan(v0) || std::isnan(v1) || std::isnan(v2))
   {
-      cerr << "UReal::Min(): cannot determine the value within a unit" << endl;
+      std::cerr << "UReal::Min(): cannot determine the value within a unit"
+                << endl;
       correct = false;
-      return numeric_limits<double>::infinity();
+      return std::numeric_limits<double>::infinity();
   }
   // determine the minimum of v0 .. v2
   min = v0;
@@ -831,30 +828,30 @@ double UReal::PeriodsAtMax(bool& correct, Periods& times) const
   {
      correct = false;
      times.SetDefined( false );
-     return -numeric_limits<double>::infinity();
+     return -std::numeric_limits<double>::infinity();
   }
   times.SetDefined( true );
 
   double t = (timeInterval.end - timeInterval.start).ToDouble();
   double ts = 0.0;
   correct = true;
-  double max = -numeric_limits<double>::infinity();
+  double max = -std::numeric_limits<double>::infinity();
   Interval<Instant> iv;
   double v0 = c;               // TemporalFunction(t0);
   double v1 = a*t*t + b*t + c; // TemporalFunction(t1);
   // TemporalFunction for extremum:
-  double v2 = -numeric_limits<double>::infinity();
+  double v2 = -std::numeric_limits<double>::infinity();
   if(!AlmostEqual(a,0)){
      ts = (-1.0*b)/(2.0*a);
      if( (ts>0) && (ts < t)){
          v2 = a*ts*ts + b*ts + c;
      }
   }
-  if(isnan(v0) || isnan(v1) || isnan(v2)){
-      cerr << "UReal::Max(): cannot determine the value within a unit"
+  if(std::isnan(v0) || std::isnan(v1) || std::isnan(v2)){
+      std::cerr << "UReal::Max(): cannot determine the value within a unit"
            << endl;
       correct = false;
-      return numeric_limits<double>::infinity();
+      return std::numeric_limits<double>::infinity();
   }
   // determaxe the maximum of v0 .. v2
   max = v0;
@@ -915,7 +912,7 @@ the periods, where it takes its minimum value.
            if a minimum is located at an open start/end instant.
 
 */
-int UReal::AtMin(vector<UReal>& result) const
+int UReal::AtMin(std::vector<UReal>& result) const
 {
   assert( IsDefined() );
   result.clear();
@@ -954,7 +951,7 @@ int UReal::AtMin(vector<UReal>& result) const
     if( correct )
       result.push_back(unit);
     else
-      cerr << "UReal::AtMin(): This should not happen!" << endl;
+      std::cerr << "UReal::AtMin(): This should not happen!" << endl;
   }
   return result.size();
 }
@@ -973,7 +970,7 @@ the periods, where it takes its maximum value.
            if a maximum is located at an open start/end instant.
 
 */
-int UReal::AtMax( vector<UReal>& result) const
+int UReal::AtMax( std::vector<UReal>& result) const
 {
   assert( IsDefined() );
   result.clear();
@@ -1014,7 +1011,7 @@ int UReal::AtMax( vector<UReal>& result) const
     if( correct )
       result.push_back(unit);
     else
-      cerr << "UReal::AtMax(): This should not happen!" << endl;
+      std::cerr << "UReal::AtMax(): This should not happen!" << endl;
   }
   return result.size();
 }
@@ -1032,7 +1029,7 @@ the periods, where it takes a certain value.
            if a maximum is located at an open start/end instant.
 
 */
-int UReal::AtValue(CcReal value, vector<UReal>& result) const
+int UReal::AtValue(CcReal value, std::vector<UReal>& result) const
 {
   assert( IsDefined() && value.IsDefined() );
   result.clear();
@@ -1161,10 +1158,10 @@ indicate whether their temporal values are equal or not.
 
 */
 
-int UReal::IsEqual(const UReal& other, vector<UBool>& result) const
+int UReal::IsEqual(const UReal& other, std::vector<UBool>& result) const
 {
   result.clear();
-  cerr << "UReal::IsEqual() Not Yet Implemented!" << endl;
+  std::cerr << "UReal::IsEqual() Not Yet Implemented!" << endl;
   return 0;
 }
 
@@ -1178,7 +1175,7 @@ Creates the absolute value for an UReal value.
           the number of results.
 
 */
-int UReal::Abs(vector<UReal>& result) const
+int UReal::Abs(std::vector<UReal>& result) const
 {
   assert( IsDefined() );
   result.clear();
@@ -1199,7 +1196,7 @@ int UReal::Abs(vector<UReal>& result) const
       end(instanttype),
       testInst(instanttype);
   Periods *eqPeriods;
-  vector< Interval<DateTime> > resPeriods;
+  std::vector< Interval<DateTime> > resPeriods;
   int i=0, numEq=0, cmpres=0;
   bool lc, rc;
   CcReal fccr1(true, 0.0), fccr2(true,0.0);
@@ -1295,7 +1292,7 @@ Creates the distance to an other UReal value.
           the number of results.
 
 */
-int UReal::Distance(const UReal& other, vector<UReal>& result) const
+int UReal::Distance(const UReal& other, std::vector<UReal>& result) const
 {
   assert( IsDefined() );
   assert( other.IsDefined() );
@@ -1326,7 +1323,7 @@ int UReal::Distance(const UReal& other, vector<UReal>& result) const
   return result.size();
 }
 
-    void UReal::CompUReal(UReal& ur2, int opcode, vector<UBool>& res)
+    void UReal::CompUReal(UReal& ur2, int opcode, std::vector<UBool>& res)
 {
   UReal *u1  = this;
   UReal *u2  = &ur2;
@@ -1892,7 +1889,7 @@ void UPoint::At(const Rectangle<2>& rect, UPoint& result) const{
   }
 
   if(e<s){
-    cerr << "Warning e < s ; s = " << s << ", e = " << e << endl;
+    std::cerr << "Warning e < s ; s = " << s << ", e = " << e << endl;
     result.SetDefined(false);
     return;
   }
@@ -1949,10 +1946,11 @@ void UPoint::AtInterval( const Interval<Instant>& i,
 
 void UPoint::Distance( const Point& p, UReal& result ) const {
   result.SetDefined(false);
-  vector<UReal> resvector;
+  std::vector<UReal> resvector;
   resvector.clear();
   Distance( p, resvector );
-  for(vector<UReal>::iterator i=resvector.begin(); i!=resvector.end(); i++){
+  for(std::vector<UReal>::iterator i=resvector.begin();
+      i!=resvector.end(); i++){
     if(i->IsDefined()){
       result = *i;
       return;
@@ -1961,7 +1959,7 @@ void UPoint::Distance( const Point& p, UReal& result ) const {
 }
 
 void UPoint::DistanceOrthodrome( const Point& p,
-                                 vector<UReal>& result,
+                                 std::vector<UReal>& result,
                                  const Geoid geoid,
                                  const double epsilon,  /*=  0.00001 */
                                  const Instant* tMin,   /*=  0       */
@@ -2043,7 +2041,7 @@ void UPoint::DistanceOrthodrome( const Point& p,
 }
 
 void UPoint::Distance( const Point& p,
-                       vector<UReal>& result,
+                       std::vector<UReal>& result,
                        const Geoid* geoid /*=0*/,
                        const double epsilon /*=0.00001*/) const
 {
@@ -2092,7 +2090,8 @@ void UPoint::Distance( const Point& p,
 
 double UPoint::Distance(const Rectangle<3>& rect,
                         const Geoid* geoid /*=0*/) const{
-  cerr << "UPoint::Distance(const Rectangle<3>&) not implemented yet" << endl;
+  std::cerr << "UPoint::Distance(const Rectangle<3>&) not implemented yet"
+            << endl;
   if( !IsDefined() || !rect.IsDefined() || (geoid && !geoid->IsDefined()) ){
     return -1;
   }
@@ -2116,7 +2115,7 @@ void UPoint::Distance( const UPoint& up,
   assert( up.IsDefined() );
   if(geoid){
     assert( geoid->IsDefined() );
-    cerr << "Spherical distance computation not implemented!" << endl;
+    std::cerr << "Spherical distance computation not implemented!" << endl;
     assert( false ); // TODO: implement spherical geometry
 
     // use HalfSegment::Distance(HalfSegment) to find DISTmin
@@ -2352,7 +2351,7 @@ void UPoint::Length( const Geoid& g, CcReal& result ) const
   return;
 }
 
-void UPoint::Direction( vector<UReal> &result,
+void UPoint::Direction( std::vector<UReal> &result,
                         const bool useHeading /*= false*/,
                         const Geoid* geoid    /*= 0*/,
                         const double epsilon  /*= 0.00001*/) const
@@ -2390,7 +2389,7 @@ void UPoint::Direction( vector<UReal> &result,
   double head0, head1;
   p0.DistanceOrthodromePrecise( p1, *geoid, valid, head0, head1);
   if( !valid || (head0<0) || (head1<0) ){ // ERROR!
-    cerr << __PRETTY_FUNCTION__ << ": Error computing directions." << endl;
+    std::cerr << __PRETTY_FUNCTION__ << ": Error computing directions." << endl;
     assert(false);
     return;
   }
@@ -2450,7 +2449,7 @@ void UPoint::Intersection(const UPoint &other, UPoint &result) const
       {
           result.SetDefined( false );
           if (TA_DEBUG)
-            cerr << "No intersection (0): deftimes do not overlap" << endl;
+            std::cerr << "No intersection (0): deftimes do not overlap" << endl;
           assert ( !result.IsDefined() || result.IsValid() );
           return; // nothing to do
       }
@@ -2483,11 +2482,11 @@ void UPoint::Intersection(const UPoint &other, UPoint &result) const
 
       if (TA_DEBUG)
       {
-        cerr << "    p1norm=";
-        p1norm.Print(cerr);
-        cerr << endl << "    p2norm=";
-        p2norm.Print(cerr);
-        cerr << endl;
+        std::cerr << "    p1norm=";
+        p1norm.Print(std::cerr);
+        std::cerr << endl << "    p2norm=";
+        p2norm.Print(std::cerr);
+        std::cerr << endl;
       }
       // test for identity:
       if ( p1norm.EqualValue( p2norm ))
@@ -2495,10 +2494,10 @@ void UPoint::Intersection(const UPoint &other, UPoint &result) const
           result = p1norm;
           if (TA_DEBUG)
           {
-            cerr << "Found intersection (1): equal upoints" << endl
+            std::cerr << "Found intersection (1): equal upoints" << endl
                  << "    Result=";
-            result.Print(cerr);
-            cerr << endl;
+            result.Print(std::cerr);
+            std::cerr << endl;
           }
           assert ( !result.IsDefined() || result.IsValid() );
           return;
@@ -2513,7 +2512,7 @@ void UPoint::Intersection(const UPoint &other, UPoint &result) const
            ((d1.GetY() < 0) && (d2.GetY() < 0)))
         { // no intersection (projections to X/Y do not cross each other)
           if (TA_DEBUG)
-            cerr << "No intersection (1) - projections do not intersect:"
+            std::cerr << "No intersection (1) - projections do not intersect:"
                  << endl
                  << "  d1X=" << d1.GetX() << " d2X=" << d2.GetX() << endl
                  << "  d1Y=" << d1.GetY() << " d2Y=" << d2.GetY() << endl;
@@ -2547,7 +2546,7 @@ where $t = t_x = t_y$. If $t_x \neq t_y$, then there is no intersection!
       t_y = (dt*d1.GetY() + t1*(dyp1-dyp2)) / (dyp1-dyp2);
 
       if (TA_DEBUG)
-        cerr << "  dt=" << dt << " t1=" << t1 << " t2=" << t2 << endl
+        std::cerr << "  dt=" << dt << " t1=" << t1 << " t2=" << t2 << endl
              << "  (dxp1-dxp2)=" << (dxp1-dxp2)
              << " (dyp1-dyp2)=" << (dyp1-dyp2) << endl
              << "  t_x=" << t_x << " t_y=" << t_y << endl;
@@ -2555,14 +2554,14 @@ where $t = t_x = t_y$. If $t_x \neq t_y$, then there is no intersection!
       // Standard case: (dxp1-dxp2) != 0.0 != (dyp1-dyp2)
       if ( AlmostEqual(t_x, t_y) && ( t_x >= t1) && ( t_x <= t2) )
         { // We found an intersection
-          if (TA_DEBUG) cerr << "  Case 1: X/Y variable" << endl;
+          if (TA_DEBUG) std::cerr << "  Case 1: X/Y variable" << endl;
           t.ReadFrom(t_x); // create Instant
           intersectionfound = true;
         }
       // Special case: (dxp1-dxp2) == 0.0 -- constant X
       else if ( AlmostEqual(dxp1-dxp2, 0.0) )
         {
-          if (TA_DEBUG) cerr << "  Case 2: constant X" << endl;
+          if (TA_DEBUG) std::cerr << "  Case 2: constant X" << endl;
           t_y = t1 + d1.GetY() * dt / (dyp1 - dyp2);
           t.ReadFrom(t_y); // create Instant
           intersectionfound = true;
@@ -2570,7 +2569,7 @@ where $t = t_x = t_y$. If $t_x \neq t_y$, then there is no intersection!
       // Special case: (dyp1-dyp2) == 0.0 -- constant Y
       else if ( AlmostEqual(dyp1-dyp2, 0.0) )
         {
-          if (TA_DEBUG) cerr << "  Case 3: constant Y" << endl;
+          if (TA_DEBUG) std::cerr << "  Case 3: constant Y" << endl;
           t_x = t1 + d1.GetX() * dt / (dxp1 - dxp2);
           t.ReadFrom(t_x); // create Instant
           intersectionfound = true;
@@ -2583,16 +2582,16 @@ where $t = t_x = t_y$. If $t_x \neq t_y$, then there is no intersection!
           result = UPoint(iv, p1, p1);
           if (TA_DEBUG)
             {
-              cerr << "Found intersection (2): intersection point" << endl
+              std::cerr << "Found intersection (2): intersection point" << endl
                    << "    Result=";
-              result.Print(cerr);
-              cerr << endl;
+              result.Print(std::cerr);
+              std::cerr << endl;
             }
             assert ( !result.IsDefined() || result.IsValid() );
             return;
         }
       // else: no result
-      if (TA_DEBUG) cerr << "No intersection (2)." << endl;
+      if (TA_DEBUG) std::cerr << "No intersection (2)." << endl;
       result.SetDefined( false );
       assert ( !result.IsDefined() || result.IsValid() );
       return;
@@ -2611,7 +2610,7 @@ void UPoint::Translate(const double xdiff, const double ydiff,
 }
 
 
-bool UPoint::AtRegion(const Region *r, vector<UPoint> &result) const {
+bool UPoint::AtRegion(const Region *r, std::vector<UPoint> &result) const {
 
   result.clear();
   if(!IsDefined() || !r->IsDefined() ) {
@@ -2632,7 +2631,7 @@ bool UPoint::AtRegion(const Region *r, vector<UPoint> &result) const {
   }
 
   // create a halfsegment hs using Trajectory() and compute intersection
-  vector<UPoint> tmpresult;
+  std::vector<UPoint> tmpresult;
   UPoint ures(false);
   Instant t_left(instanttype),  t_right(instanttype),
           t_start(instanttype), t_end(instanttype);
@@ -2652,7 +2651,7 @@ bool UPoint::AtRegion(const Region *r, vector<UPoint> &result) const {
 
 
   if(!segs.IsDefined()){
-    cerr << __PRETTY_FUNCTION__
+    std::cerr << __PRETTY_FUNCTION__
          << " WARNING: r->Intersection(traj, segs) is UNDEF for traj="
          << traj << "." <<endl;
   } else {
@@ -2667,7 +2666,7 @@ bool UPoint::AtRegion(const Region *r, vector<UPoint> &result) const {
         tmpUnit.At( hs.GetLeftPoint(), ures );
 
         if(!ures.IsDefined()){
-          cerr << __PRETTY_FUNCTION__
+          std::cerr << __PRETTY_FUNCTION__
             <<" WARNING: (1) undef linear intersection unit for hs=" <<hs<<endl;
           continue;
         }
@@ -2675,7 +2674,7 @@ bool UPoint::AtRegion(const Region *r, vector<UPoint> &result) const {
 
         tmpUnit.At( hs.GetRightPoint(), ures );
         if(!ures.IsDefined()){
-          cerr << __PRETTY_FUNCTION__
+          std::cerr << __PRETTY_FUNCTION__
             <<" WARNING: (2) undef linear intersection unit for hs=" <<hs<<endl;
         } else {
           t_right = ures.timeInterval.start;
@@ -2705,7 +2704,7 @@ bool UPoint::AtRegion(const Region *r, vector<UPoint> &result) const {
   r->TouchPoints(traj, points); // compute point intersections
 
   if(!points.IsDefined()){
-    cerr << __PRETTY_FUNCTION__
+    std::cerr << __PRETTY_FUNCTION__
          << " WARNING: r->TouchPoints(traj, points) is UNDEF for traj="
         << traj << "." << endl;
   } else {
@@ -2722,7 +2721,7 @@ bool UPoint::AtRegion(const Region *r, vector<UPoint> &result) const {
       if(!found) { // p is not already contained by segs --> keep it!
         At( p, ures ); // compute UPoint from position
         if(!ures.IsDefined()){
-          cerr << __PRETTY_FUNCTION__
+          std::cerr << __PRETTY_FUNCTION__
               << " WARNING: undef point intersection unit for p=" << p << endl;
         } else {
           tmpresult.push_back(ures); //    add the UPoint to tmpresult
@@ -2848,7 +2847,7 @@ double CellGrid2D::getMaxX() const {
 
 double CellGrid2D::getMaxY() const {
       // returns the maximum Y-coordinate lying on the grid
-      return wy < 0.0 ? y0 : numeric_limits<double>::max();
+      return wy < 0.0 ? y0 : std::numeric_limits<double>::max();
     }
 
 double CellGrid2D::getMinX() const {
@@ -2858,7 +2857,7 @@ double CellGrid2D::getMinX() const {
 
 double CellGrid2D::getMinY() const {
       // returns the minimum Y-coordinate lying on the grid
-      return wy > 0.0 ? y0 : numeric_limits<double>::min();
+      return wy > 0.0 ? y0 : std::numeric_limits<double>::min();
     }
 
 
@@ -2931,8 +2930,8 @@ Rectangle<2> CellGrid2D::getRowMBR(const int32_t &n) const {
         double min_val[2], max_val[2];
         double y1 = y0 + n     * wy;
         double y2 = y0 + (n+1) * wy;
-        min_val[0] = getMinX(); min_val[1] = min(y1,y2);
-        max_val[0] = getMaxX(); max_val[1] = max(y1,y2);
+        min_val[0] = getMinX(); min_val[1] = std::min(y1,y2);
+        max_val[0] = getMaxX(); max_val[1] = std::max(y1,y2);
         return Rectangle<2>( true, min_val, max_val );
       } else {
         return Rectangle<2>( false );
@@ -2946,8 +2945,8 @@ Rectangle<2> CellGrid2D::getColMBR(const int32_t &n) const {
         double min_val[2], max_val[2];
         double x1 = x0 + n * wx;
         double x2 = x0 + (n+1) * wx;
-        min_val[0] = min(x1,x2); min_val[1] = getMinY();
-        max_val[0] = max(x1,x2); max_val[1] = getMaxY();
+        min_val[0] = std::min(x1,x2); min_val[1] = getMinY();
+        max_val[0] = std::max(x1,x2); max_val[1] = getMaxY();
         return Rectangle<2>( true, min_val, max_val );
       } else {
         return Rectangle<2>( false );
@@ -2964,7 +2963,7 @@ int32_t CellGrid2D::getInvalidCellNo() const {
       return -666;
     }
 
-ostream& CellGrid2D::Print( ostream &os ) const {
+std::ostream& CellGrid2D::Print( std::ostream &os ) const {
   if( !IsDefined() )
   {
     return os << "(CellGrid2D: undefined)";
@@ -3028,7 +3027,7 @@ void CellGrid2D::CopyFrom(const Attribute* other) {
 }
 
 
-const string CellGrid2D::BasicType(){
+const std::string CellGrid2D::BasicType(){
    return "cellgrid2d";
 }
 
@@ -3087,7 +3086,7 @@ bool CellGrid2D::ReadFrom(const ListExpr value,const ListExpr typeInfo){
     return true;
 }
 
-ostream& operator<<(ostream& o, const CellGrid2D& u){
+std::ostream& operator<<(std::ostream& o, const CellGrid2D& u){
   return u.Print(o);
 }
 
@@ -3162,7 +3161,7 @@ void GridCellSeq::set(const int32_t &c, const DateTime &s, const DateTime &e){
 
 }
 
-ostream& GridCellSeq::Print( ostream &os ) const{
+std::ostream& GridCellSeq::Print( std::ostream &os ) const{
   if( !IsDefined() )
   {
     return os << "(GridCellSeq: undefined)";
@@ -3172,13 +3171,13 @@ ostream& GridCellSeq::Print( ostream &os ) const{
   return os;
 }
 
-ostream& operator<<(ostream& o, const GridCellSeq& u){
+std::ostream& operator<<(std::ostream& o, const GridCellSeq& u){
   return u.Print(o);
 }
 
 bool myCompare (DateTime i, DateTime j) { return (i<j); }
 
-void UPoint::GetGridCellSequence(CellGrid2D &g, vector<GridCellSeq> &res){
+void UPoint::GetGridCellSequence(CellGrid2D &g, std::vector<GridCellSeq> &res){
 //   cout << __PRETTY_FUNCTION__ << " called..." << endl;
 //   cout << "\t*this = " << *this << endl;
   res.clear();
@@ -3188,10 +3187,10 @@ void UPoint::GetGridCellSequence(CellGrid2D &g, vector<GridCellSeq> &res){
 //     cout << __PRETTY_FUNCTION__ << " finished." << endl;
     return;
   }
-  double minX = min(p0.GetX(),p1.GetX());
-  double minY = min(p0.GetY(),p1.GetY());
-  double maxX = max(p0.GetX(),p1.GetX());
-  double maxY = max(p0.GetY(),p1.GetY());
+  double minX = std::min(p0.GetX(),p1.GetX());
+  double minY = std::min(p0.GetY(),p1.GetY());
+  double maxX = std::max(p0.GetX(),p1.GetX());
+  double maxY = std::max(p0.GetY(),p1.GetY());
   if(    (minX > g.getMaxX()) || (minY > g.getMaxY())
       || (maxX < g.getMinX()) || (maxY < g.getMinY())){
     // p0 and p1 outside the grid and unit does not cross the grid.
@@ -3271,10 +3270,10 @@ void UPoint::GetGridCellSequence(CellGrid2D &g, vector<GridCellSeq> &res){
   if(unit_inside.IsDefined()){
     // create a vector of events where the unit crosses horizontal or vertical
     // grid lines and oder them by increasing time.
-    minX = min(unit_inside.p0.GetX(),unit_inside.p1.GetX());
-    minY = min(unit_inside.p0.GetY(),unit_inside.p1.GetY());
-    maxX = max(unit_inside.p0.GetX(),unit_inside.p1.GetX());
-    maxY = max(unit_inside.p0.GetY(),unit_inside.p1.GetY());
+    minX = std::min(unit_inside.p0.GetX(),unit_inside.p1.GetX());
+    minY = std::min(unit_inside.p0.GetY(),unit_inside.p1.GetY());
+    maxX = std::max(unit_inside.p0.GetX(),unit_inside.p1.GetX());
+    maxY = std::max(unit_inside.p0.GetY(),unit_inside.p1.GetY());
 
     int32_t startRow  = g.getYIndex(minY);
     int32_t endRow    = g.getYIndex(maxY);
@@ -3282,7 +3281,7 @@ void UPoint::GetGridCellSequence(CellGrid2D &g, vector<GridCellSeq> &res){
     int32_t startCol  = g.getXIndex(minX);
     int32_t endCol    = g.getXIndex(maxX);
 
-    vector<DateTime> events;
+    std::vector<DateTime> events;
 
     events.push_back(unit_inside.timeInterval.start); // add start
 //     cout << "\t\tAdded initial instant: " << unit_inside.timeInterval.start
@@ -3358,8 +3357,8 @@ void UPoint::GetGridCellSequence(CellGrid2D &g, vector<GridCellSeq> &res){
     // entry. Use midpoints between two consecutive events to compute according
     // cell number
 //     cout << "\tProcessing instants..." << endl;
-    vector<DateTime>::iterator curr;
-    vector<DateTime>::iterator last = events.begin();
+    std::vector<DateTime>::iterator curr;
+    std::vector<DateTime>::iterator last = events.begin();
     for(curr = events.begin(); curr< events.end(); curr++){
       if(*curr == *last){
         // for 1st entry: just proceed
@@ -3508,7 +3507,7 @@ void MInt::Hat(MInt& mint)
      return;
    }
    mint.SetDefined( true );
-   stack<UInt> uintstack;
+   std::stack<UInt> uintstack;
    UInt upi;
    UInt last,curuint;
    CcInt cur,top;
@@ -3517,9 +3516,9 @@ void MInt::Hat(MInt& mint)
 
    float lastarea = 0.0;
    Get(0,upi);
-   string starttime = upi.timeInterval.start.ToString();
+   std::string starttime = upi.timeInterval.start.ToString();
    Get(GetNoComponents() - 1,upi);
-   string endtime = upi.timeInterval.end.ToString();
+   std::string endtime = upi.timeInterval.end.ToString();
    int nocomponents;
    int i;
    bool defstart;
@@ -3907,7 +3906,7 @@ void MInt::fillUp(int value, MInt& result) const{
 
 
 int MInt::maximum() const{
-   int max = numeric_limits<int>::min();
+   int max = std::numeric_limits<int>::min();
    if(!IsDefined()){
       return max;
    }
@@ -3924,7 +3923,7 @@ int MInt::maximum() const{
 }
 
 int MInt::minimum() const{
-  int min = numeric_limits<int>::max();
+  int min = std::numeric_limits<int>::max();
    if(!IsDefined()){
       return min;
    }
@@ -3983,7 +3982,7 @@ double MReal::Integrate(){
    }
    int size = GetNoComponents();
    UReal unit;
-   stack<ISC> theStack;
+   std::stack<ISC> theStack;
 
    for(int i=0;i < size;i++){
       Get(i,unit);
@@ -4073,7 +4072,7 @@ void MReal::AtMin( MReal& result ) const
     return;
   }
   result.SetDefined( true );
-  double globalMin = numeric_limits<double>::infinity();
+  double globalMin = std::numeric_limits<double>::infinity();
   double localMin  = 0.0;
   int noLocalMin = 0;
   bool correct = true;
@@ -4084,14 +4083,14 @@ void MReal::AtMin( MReal& result ) const
   result.StartBulkLoad();
   for(int i=0; i<GetNoComponents(); i++)
   {
-//     cerr << "MReal::AtMin(): Processing unit "
+//     std::cerr << "MReal::AtMin(): Processing unit "
 //          << i << "..." << endl;
     last_ur = actual_ur;
     Get( i, actual_ur );
     localMin = actual_ur.Min(correct);
     if(!correct)
     {
-      cerr << "MReal::AtMin(): Cannot compute minimum value for unit "
+      std::cerr << "MReal::AtMin(): Cannot compute minimum value for unit "
            << i << "." << endl;
       continue;
     }
@@ -4102,13 +4101,13 @@ void MReal::AtMin( MReal& result ) const
       result.StartBulkLoad(); // we have to repeat this alter Clear()
       firstCall = true;
       last_ur.SetDefined(false);
-//       cerr << "MReal::AtMin(): New globalMin=" << globalMin << endl;
+//       std::cerr << "MReal::AtMin(): New globalMin=" << globalMin << endl;
     }
     if( localMin <= globalMin )
     { // this ureal contains global minima
-      vector<UReal> localMinimaVec;
+      std::vector<UReal> localMinimaVec;
       noLocalMin = actual_ur.AtMin( localMinimaVec );
-//       cerr << "MReal::AtMin(): Unit " << i << " has "
+//       std::cerr << "MReal::AtMin(): Unit " << i << " has "
 //            << noLocalMin << " minima" << endl;
       for(int j=0; j< noLocalMin; j++)
       {
@@ -4122,34 +4121,32 @@ void MReal::AtMin( MReal& result ) const
             )
           )
         {
-//           cerr << "MReal::AtMin(): unit overlaps last one." << endl;
+//           std::cerr << "MReal::AtMin(): unit overlaps last one." << endl;
           if( last_candidate.timeInterval.start
               == last_candidate.timeInterval.end )
           { // case 1: drop last_candidate (which is an instant-unit)
-//             cerr << "MReal::AtMin(): drop last unit." << endl;
+//             std::cerr << "MReal::AtMin(): drop last unit." << endl;
             last_candidate = candidate;
             continue;
           }
           else if( candidate.timeInterval.start
                    == candidate.timeInterval.end )
           { // case 2: drop candidate
-//             cerr << "MReal::AtMin(): drop actual unit." << endl;
+//             std::cerr << "MReal::AtMin(): drop actual unit." << endl;
             continue;
           }
           else
-            cerr << "MReal::AtMin(): This should not happen!" << endl;
+            std::cerr << "MReal::AtMin(): This should not happen!" << endl;
         }
         else
         { // All is fine. Just insert last_candidate.
-//        cerr << "MReal::AtMin(): unit does not overlap with last." << endl;
           if(firstCall)
           {
-//          cerr << "MReal::AtMin(): Skipping insertion of last unit." << endl;
             firstCall = false;
           }
           else
           {
-//             cerr << "MReal::AtMin(): Added last unit" << endl;
+//             std::cerr << "MReal::AtMin(): Added last unit" << endl;
             result.MergeAdd(last_candidate);
           }
           last_candidate = candidate;
@@ -4158,17 +4155,17 @@ void MReal::AtMin( MReal& result ) const
     }
 //     else
 //     {
-//       cerr << "MReal::AtMin(): Unit " << i
+//       std::cerr << "MReal::AtMin(): Unit " << i
 //            << " has no global minimum." << endl;
 //     }
   }
   if(!firstCall)
   {
     result.MergeAdd(last_candidate);
-//     cerr << "MReal::AtMin(): Added final unit" << endl;
+//     std::cerr << "MReal::AtMin(): Added final unit" << endl;
   }
 //   else
-//     cerr << "MReal::AtMin(): Skipping insertion of final unit." << endl;
+//     std::cerr << "MReal::AtMin(): Skipping insertion of final unit." << endl;
   result.EndBulkLoad();
 }
 
@@ -4181,7 +4178,7 @@ void MReal::AtMax( MReal& result ) const
     return;
   }
   result.SetDefined( true );
-  double globalMax = -numeric_limits<double>::infinity();
+  double globalMax = -std::numeric_limits<double>::infinity();
   double localMax  = 0.0;
   int noLocalMax = 0;
   bool correct = true;
@@ -4192,14 +4189,14 @@ void MReal::AtMax( MReal& result ) const
   result.StartBulkLoad();
   for(int i=0; i<GetNoComponents(); i++)
   {
-//     cerr << "MReal::AtMax(): Processing unit "
+//     std::cerr << "MReal::AtMax(): Processing unit "
 //          << i << "..." << endl;
     last_ur = actual_ur;
     Get( i, actual_ur );
     localMax = actual_ur.Max(correct);
     if(!correct)
     {
-      cerr << "MReal::AtMax(): Cannot compute maximum value for unit "
+      std::cerr << "MReal::AtMax(): Cannot compute maximum value for unit "
            << i << "." << endl;
       continue;
     }
@@ -4210,13 +4207,13 @@ void MReal::AtMax( MReal& result ) const
       result.StartBulkLoad(); // we have to repeat this alter Clear()
       firstCall = true;
       last_ur.SetDefined(false);
-//       cerr << "MReal::AtMax(): New globalMax=" << globalMax << endl;
+//       std::cerr << "MReal::AtMax(): New globalMax=" << globalMax << endl;
     }
     if( localMax >= globalMax )
     { // this ureal contains global maxima
-      vector<UReal> localMaximaVec;
+      std::vector<UReal> localMaximaVec;
       noLocalMax = actual_ur.AtMax( localMaximaVec );
-//       cerr << "MReal::AtMax(): Unit " << i << " has "
+//       std::cerr << "MReal::AtMax(): Unit " << i << " has "
 //            << noLocalMax << " maxima" << endl;
       for(int j=0; j< noLocalMax; j++)
       {
@@ -4230,34 +4227,32 @@ void MReal::AtMax( MReal& result ) const
             )
           )
         {
-//           cerr << "MReal::AtMax(): unit overlaps last one." << endl;
+//           std::cerr << "MReal::AtMax(): unit overlaps last one." << endl;
           if( last_candidate.timeInterval.start
               == last_candidate.timeInterval.end )
           { // case 1: drop last_candidate (which is an instant-unit)
-//             cerr << "MReal::AtMax(): drop last unit." << endl;
+//             std::cerr << "MReal::AtMax(): drop last unit." << endl;
             last_candidate = candidate;
             continue;
           }
           else if( candidate.timeInterval.start
                    == candidate.timeInterval.end )
           { // case 2: drop candidate
-//             cerr << "MReal::AtMax(): drop actual unit." << endl;
+//             std::cerr << "MReal::AtMax(): drop actual unit." << endl;
             continue;
           }
           else
-            cerr << "MReal::AtMax(): This should not happen!" << endl;
+            std::cerr << "MReal::AtMax(): This should not happen!" << endl;
         }
         else
         { // All is fine. Just insert last_candidate.
-//         cerr << "MReal::AtMax(): unit does not overlap with last." << endl;
           if(firstCall)
           {
-//          cerr << "MReal::AtMax(): Skipping insertion of last unit." << endl;
             firstCall = false;
           }
           else
           {
-//             cerr << "MReal::AtMax(): Added last unit" << endl;
+//             std::cerr << "MReal::AtMax(): Added last unit" << endl;
             result.MergeAdd(last_candidate);
           }
           last_candidate = candidate;
@@ -4266,17 +4261,17 @@ void MReal::AtMax( MReal& result ) const
     }
 //     else
 //     {
-//       cerr << "MReal::AtMax(): Unit " << i
+//       std::cerr << "MReal::AtMax(): Unit " << i
 //            << " has no global maximum." << endl;
 //     }
   }
   if(!firstCall)
   {
     result.MergeAdd(last_candidate);
-//     cerr << "MReal::AtMax(): Added final unit" << endl;
+//     std::cerr << "MReal::AtMax(): Added final unit" << endl;
   }
 //   else
-//     cerr << "MReal::AtMax(): Skipping insertion of final unit." << endl;
+//     std::cerr << "MReal::AtMax(): Skipping insertion of final unit." << endl;
   result.EndBulkLoad();
 }
 
@@ -4298,7 +4293,7 @@ void MReal::AtValue( const CcReal& ccvalue, MReal& result ) const
   result.StartBulkLoad();
   for(int i=0; i<GetNoComponents(); i++)
   {
-//     cerr << "MReal::AtValue(): Processing unit "
+//     std::cerr << "MReal::AtValue(): Processing unit "
 //          << i << "..." << endl;
     last_ur = actual_ur;
 //    cout << __PRETTY_FUNCTION__ << ": last_ur ="; last_ur.Print(cout);
@@ -4307,9 +4302,9 @@ void MReal::AtValue( const CcReal& ccvalue, MReal& result ) const
 //    cout << __PRETTY_FUNCTION__ << ": actual_ur ="; actual_ur.Print(cout);
 //    cout << endl;
     assert( actual_ur.IsDefined() );
-    vector<UReal> localResultVec;
+    std::vector<UReal> localResultVec;
     noLocalResults = actual_ur.AtValue( ccvalue, localResultVec );
-//    cerr << "MReal::AtValue(): Unit " << i << " has "
+//    std::cerr << "MReal::AtValue(): Unit " << i << " has "
 //         << noLocalResults << " results" << endl;
     for(int j=0; j< noLocalResults; j++)
     {
@@ -4325,33 +4320,33 @@ void MReal::AtValue( const CcReal& ccvalue, MReal& result ) const
           )
         )
       {
-//         cerr << "MReal::AtValue(): unit overlaps last one." << endl;
+//         std::cerr << "MReal::AtValue(): unit overlaps last one." << endl;
         if( last_candidate.timeInterval.start
             == last_candidate.timeInterval.end )
         { // case 1: drop last_candidate (which is an instant-unit)
-//           cerr << "MReal::AtValue(): drop last unit." << endl;
+//           std::cerr << "MReal::AtValue(): drop last unit." << endl;
           last_candidate = candidate;
           continue;
         }
         else if( candidate.timeInterval.start
                   == candidate.timeInterval.end )
         { // case 2: drop candidate
-//           cerr << "MReal::AtValue(): drop actual unit." << endl;
+//           std::cerr << "MReal::AtValue(): drop actual unit." << endl;
           continue;
         }
         else {
-          cerr << __PRETTY_FUNCTION__ << ": This should not happen!" << endl;
+          std::cerr << __PRETTY_FUNCTION__ << ": This should not happen!" 
+                    << endl;
         }
       }
       else
       { // All is fine. Just insert last_candidate.
-//         cerr << "MReal::AtValue(): unit does not overlap with last." << endl;
         if(firstCall) {
-//           cerr << "MReal::AtValue(): Skipping insertion of last unit."
+//           std::cerr << "MReal::AtValue(): Skipping insertion of last unit."
 //                << endl;
           firstCall = false;
         } else {
-//           cerr << "MReal::AtValue(): Adding last unit" << endl;
+//           std::cerr << "MReal::AtValue(): Adding last unit" << endl;
           result.MergeAdd(last_candidate);
         }
         last_candidate = candidate;
@@ -4359,16 +4354,15 @@ void MReal::AtValue( const CcReal& ccvalue, MReal& result ) const
     }
 //     else
 //     {
-//       cerr << "MReal::AtValue(): Unit " << i
+//       std::cerr << "MReal::AtValue(): Unit " << i
 //            << " does never take the value." << endl;
 //     }
   }
   if(!firstCall){
     result.MergeAdd(last_candidate);
-//     cerr << "MReal::AtValue(): Added final unit" << endl;
+//     std::cerr << "MReal::AtValue(): Added final unit" << endl;
   }
 //   else{
-//     cerr << "MReal::AtValue(): Skipping insertion of final unit." << endl;
 //   }
   result.EndBulkLoad();
 //cout << __PRETTY_FUNCTION__ << "result = "; Print(cout); cout << endl << endl;
@@ -4558,7 +4552,7 @@ void MReal::Simplify(const double epsilon, MReal& result) const{
       } else {
          if(useleft[i]){
              if(leftDefined){ // debug
-                cerr << "Overwrite left part of a ureal " << endl;
+                std::cerr << "Overwrite left part of a ureal " << endl;
              }
              start = unit.timeInterval.start;
              lc = unit.timeInterval.lc;
@@ -4567,7 +4561,7 @@ void MReal::Simplify(const double epsilon, MReal& result) const{
          }
          if(useright[i]){
              if(!leftDefined){ // debug
-                 cerr << "Close ureal without left definition " << endl;
+                 std::cerr << "Close ureal without left definition " << endl;
              } else{
                end = unit.timeInterval.end;
                rc = unit.timeInterval.rc;
@@ -4688,7 +4682,7 @@ void MPoint::Add( const UPoint& unit )
   RestoreBoundingBox(false);
 }
 
-void MPoint::Restrict( const vector< pair<int, int> >& intervals )
+void MPoint::Restrict( const std::vector< std::pair<int, int> >& intervals )
 {
   if(!IsDefined()){
     Clear();
@@ -4701,7 +4695,7 @@ void MPoint::Restrict( const vector< pair<int, int> >& intervals )
   RestoreBoundingBox();        // recalculate it
 }
 
-ostream& MPoint::Print( ostream &os ) const
+std::ostream& MPoint::Print( std::ostream &os ) const
 {
   if( !IsDefined() )
   {
@@ -5131,9 +5125,10 @@ void MPoint::Distance( const Point& p, MReal& result, const Geoid* geoid ) const
   result.StartBulkLoad();
   for( int i = 0; i < GetNoComponents(); i++ ){
     Get( i, uPoint );
-    vector<UReal> resvec;
+    std::vector<UReal> resvec;
     uPoint.Distance( p, resvec, geoid );
-    for(vector<UReal>::iterator it=resvec.begin(); it!=resvec.end(); it++ ){
+    for(std::vector<UReal>::iterator it=resvec.begin(); 
+        it!=resvec.end(); it++ ){
       if(it->IsDefined()){
         result.MergeAdd( *it );
       }
@@ -5156,9 +5151,10 @@ void MPoint::SquaredDistance( const Point& p, MReal& result,
   result.StartBulkLoad();
   for( int i = 0; i < GetNoComponents(); i++ ){
     Get( i, uPoint );
-    vector<UReal> resvec;
+    std::vector<UReal> resvec;
     uPoint.Distance( p, resvec, geoid );
-    for(vector<UReal>::iterator it(resvec.begin()); it!=resvec.end(); it++ ){
+    for(std::vector<UReal>::iterator it(resvec.begin()); 
+        it!=resvec.end(); it++ ){
       if(it->IsDefined()){
         UReal resunit(*it);
         if( resunit.r ) {
@@ -5209,7 +5205,7 @@ void MPoint::SquaredDistance( const MPoint& p, MReal& result,
     { // do not need to test for overlapping deftimes anymore...
       u1.Distance( u2, uReal, geoid );
       if(!uReal.IsDefined()){
-        cerr << __PRETTY_FUNCTION__
+        std::cerr << __PRETTY_FUNCTION__
              << "Invalid geographic coord found!" << endl;
         result.EndBulkLoad( false, false );
         result.Clear();
@@ -5223,7 +5219,7 @@ void MPoint::SquaredDistance( const MPoint& p, MReal& result,
   result.EndBulkLoad();
 }
 
-void MPoint::getPointSequence(vector<Point>& result) const {
+void MPoint::getPointSequence(std::vector<Point>& result) const {
   result.clear();
   if (!IsDefined()) {
     return;
@@ -5266,7 +5262,7 @@ double MPoint::FrechetDistance(const MPoint* mp, const Geoid* geoid) const {
   if (IsEmpty() || mp->IsEmpty()) {
     return INT_MAX;
   }
-  vector<Point> pts1, pts2;
+  std::vector<Point> pts1, pts2;
   getPointSequence(pts1);
   mp->getPointSequence(pts2);
   unsigned int m = pts1.size();
@@ -5274,22 +5270,23 @@ double MPoint::FrechetDistance(const MPoint* mp, const Geoid* geoid) const {
   double dp[m][n];
   dp[0][0] = pts1[0].Distance(pts2[0], geoid);
   for (unsigned int j = 1; j < n; j++) {
-    dp[0][j] = max(dp[0][j - 1], pts1[0].Distance(pts2[j], geoid));
+    dp[0][j] = std::max(dp[0][j - 1], pts1[0].Distance(pts2[j], geoid));
   }
   for (unsigned int i = 1; i < m; i++) {
-    dp[i][0] = max(dp[i - 1][0], pts1[i].Distance(pts2[0], geoid));
+    dp[i][0] = std::max(dp[i - 1][0], pts1[i].Distance(pts2[0], geoid));
     for (unsigned int j = 1; j < n; j++) {
-      dp[i][j] = max(min(min(dp[i][j - 1], dp[i - 1][j]), dp[i - 1][j - 1]), 
-                     pts1[i].Distance(pts2[j], geoid));
+      dp[i][j] = std::max(std::min(std::min(dp[i][j - 1], dp[i - 1][j]),
+                                            dp[i - 1][j - 1]), 
+                          pts1[i].Distance(pts2[j], geoid));
     }
   }
   return dp[m - 1][n - 1];
 }
 
 // Output an interval
-string iv2string(Interval<Instant> iv){
+std::string iv2string(Interval<Instant> iv){
 
-   string res ="";
+   std::string res ="";
    res += iv.lc?"[":"(";
    res += iv.start.ToString();
    res += ", ";
@@ -5469,7 +5466,7 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
      if(useleft[i]){
         // debug
         if(leftDefined){
-           cerr << " error in mpoint simplification,"
+           std::cerr << " error in mpoint simplification,"
                 << " overwrite an existing leftPoint "  << endl;
         }
         // end of debug
@@ -5481,7 +5478,7 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
      if(useright[i]){
         // debug
         if(!leftDefined){
-           cerr << " error in mpoint simplification,"
+           std::cerr << " error in mpoint simplification,"
                 << " rightdefined before leftdefined "  << endl;
 
         }
@@ -5869,7 +5866,7 @@ void MPoint::Direction( MReal* result,
     result->SetDefined(false);
     return;
   }
-  vector<UReal> resvector;
+  std::vector<UReal> resvector;
   UPoint unitin;
   for(int i=0;i<GetNoComponents();i++) {
     Get(i, unitin);
@@ -5878,7 +5875,7 @@ void MPoint::Direction( MReal* result,
   result->Clear();
   result->SetDefined(true);
   result->StartBulkLoad();
-  for(vector<UReal>::iterator iter = resvector.begin();
+  for(std::vector<UReal>::iterator iter = resvector.begin();
   iter != resvector.end(); iter++){
     if( iter->IsDefined() && iter->IsValid() ){
       result->MergeAdd(*iter);
@@ -5937,7 +5934,7 @@ struct intset{
      }
   }
 
-  set<int> member;
+  std::set<int> member;
   int refs;
 };
 
@@ -6005,7 +6002,7 @@ This function returns an iterator pointing to the begin of the
 contained intset.
 
 */
-    set<int>::iterator begin() const{
+    std::set<int>::iterator begin() const{
       return member->member.begin();
     }
 
@@ -6015,7 +6012,7 @@ contained intset.
 This function returns an iterator pointing to the end of the contained intset.
 
 */
-    set<int>::iterator end() const {
+    std::set<int>::iterator end() const {
       return member->member.end();
     }
 
@@ -6066,8 +6063,8 @@ Removes all point indexes.
 Recomputes the cluster's center.
 
 */
-   void recomputeCenter(const vector<Point>& points){
-      set<int>::iterator it;
+   void recomputeCenter(const std::vector<Point>& points){
+      std::set<int>::iterator it;
       double x = 0.0;
       double y = 0.0;
       for(it=begin();it!=end();it++){
@@ -6107,7 +6104,7 @@ search, the centers of the clusters are stored in the rtree ~tree~.
 
 int indexOfNearestCluster( const mmrtree::Rtree<2>& tree,
                            const Point& p,
-                           const vector<cluster>& clusters,
+                           const std::vector<cluster>& clusters,
                            const double& eps){
   double eps2 = eps*eps;
   int res = -1;
@@ -6123,10 +6120,10 @@ int indexOfNearestCluster( const mmrtree::Rtree<2>& tree,
   max[1] = y + eps + FACTOR;
   Rectangle<2> searchbox(true,min,max);
 
-  set<long> cands;
+  std::set<long> cands;
   tree.findAll(searchbox, cands);
 
-  set<long>::iterator it;
+  std::set<long>::iterator it;
   for(it = cands.begin(); it!=cands.end(); it++){
    cluster c = clusters[*it];
    double d = qdist(c.cx,c.cy,x,y);
@@ -6141,9 +6138,9 @@ int indexOfNearestCluster( const mmrtree::Rtree<2>& tree,
 
 // forward declaration
 void insertPoint(mmrtree::Rtree<2>& tree,
-                 const vector<Point>& points,
+                 const std::vector<Point>& points,
                  const int pos,
-                 vector<cluster>& clusters,
+                 std::vector<cluster>& clusters,
                  const double& eps);
 
 /*
@@ -6156,16 +6153,16 @@ cluster's center is greater than ~eps~.
 */
 void repairClusterAt(const int index,
                      mmrtree::Rtree<2>& tree,
-                     vector<cluster>& clusters,
-                     const vector<Point>& points,
+                     std::vector<cluster>& clusters,
+                     const std::vector<Point>& points,
                      const double& eps){
   double eps2 = eps*eps;
   clusters[index].forbidden = true;
   double cx = clusters[index].cx;
   double cy = clusters[index].cy;
   // store all invalid points to wrong
-  set<int>wrong;
-  set<int>::iterator it;
+  std::set<int>wrong;
+  std::set<int>::iterator it;
   for(it = clusters[index].begin();
       it != clusters[index].end();
       it++){
@@ -6200,9 +6197,9 @@ inserted into this cluster. The cluster's center is corrected and all
 
 */
 void insertPoint(mmrtree::Rtree<2>& tree,
-                 const vector<Point>& points,
+                 const std::vector<Point>& points,
                  const int pos,
-                 vector<cluster>& clusters,
+                 std::vector<cluster>& clusters,
                  const double& eps){
 
    Point p = points[pos];
@@ -6263,16 +6260,16 @@ Computes the center of the cluster and stored it in ~x~ and ~y~.
 */
 
 void getCenter(const cluster& cl,
-               const vector<Point>& points,
+               const std::vector<Point>& points,
                double& x, double& y){
  x = 0;
  y = 0;
  int size = cl.size();
  if(size==0){
-   cerr << "indexes smaller than zero" << endl;
+   std::cerr << "indexes smaller than zero" << endl;
    return;
  }
- set<int>::const_iterator it;
+ std::set<int>::const_iterator it;
  for(it=cl.begin();it!=cl.end();it++){
      x += points[*it].GetX();
      y += points[*it].GetY();
@@ -6289,9 +6286,9 @@ void getCenter(const cluster& cl,
 Computes the center of a cluster from the members.
 
 */
-void recomputeCenters(vector<cluster>& clusters,
-                      const vector<Point>& points){
-  vector<cluster>::iterator it;
+void recomputeCenters(std::vector<cluster>& clusters,
+                      const std::vector<Point>& points){
+  std::vector<cluster>::iterator it;
   for(it = clusters.begin(); it!=clusters.end();it++){
      getCenter(*it,points,it->cx,it->cy);
   }
@@ -6344,11 +6341,11 @@ Creates a map point -> point where each point within the points vector
 is assigned to the nearest cluster center.
 
 */
-map<DefPoint, DefPoint>* assignCluster(const vector<Point>& points,
+std::map<DefPoint, DefPoint>* assignCluster(const std::vector<Point>& points,
                                  const double& eps,
-                                 vector<Point>& centers){
+                                 std::vector<Point>& centers){
 
-  vector<cluster> clusters;
+  std::vector<cluster> clusters;
 
   mmrtree::Rtree<2> tree(2,5);
   for(unsigned int i=0;i<points.size();i++){
@@ -6370,11 +6367,11 @@ map<DefPoint, DefPoint>* assignCluster(const vector<Point>& points,
 
 
   // store as a map
-  map<DefPoint, DefPoint>* result= new map<DefPoint, DefPoint>();
+  std::map<DefPoint, DefPoint>* result= new std::map<DefPoint, DefPoint>();
   for(unsigned int i=0;i<clusters.size();i++){
     cluster c = clusters[i];
     Point center(true,c.cx,c.cy);
-    set<int>::iterator it;
+    std::set<int>::iterator it;
     centers.push_back(center);
     for(it=clusters[i].begin(); it!=clusters[i].end(); it++){
        Point p = points.at(*it);
@@ -6431,8 +6428,8 @@ into the result.
 
 */
 void split(const UPoint unit,
-           const set<long>& cands,
-           const vector<Point>& points,
+           const std::set<long>& cands,
+           const std::vector<Point>& points,
            MPoint& result,
            const double eps){
 
@@ -6449,7 +6446,7 @@ void split(const UPoint unit,
      return;
    }
 
-   set<DoublePoint> splitElements;
+   std::set<DoublePoint> splitElements;
 
    Point p0 = unit.p0;
    Point p1 = unit.p1;
@@ -6459,7 +6456,7 @@ void split(const UPoint unit,
 
    // determine the split positions as set of double values
 
-   set<long>::iterator cit;
+   std::set<long>::iterator cit;
 
    for(cit=cands.begin(); cit!=cands.end(); cit++){
       // check this computation
@@ -6515,7 +6512,7 @@ void split(const UPoint unit,
      return;
    }
 
-   set<DoublePoint>::iterator it;
+   std::set<DoublePoint>::iterator it;
 
 
    // split the unit
@@ -6560,7 +6557,7 @@ void split(const UPoint unit,
 
 
 void eqTimes(MPoint& mpoint,
-             vector<int>& indexes,
+             std::vector<int>& indexes,
              MPoint& changed,
              DbArray<bool>& used,
              DateTime& eps) {
@@ -6667,7 +6664,7 @@ void MPoint::EqualizeUnitsSpatial(const double epsilon,
    }
 
    // step 1: collect all start and endpoints of units within a set
-   set<Point> endPoints1;
+   std::set<Point> endPoints1;
    UPoint unit;
    for(int i=0;i< GetNoComponents(); i++){
        Get(i,unit);
@@ -6678,16 +6675,16 @@ void MPoint::EqualizeUnitsSpatial(const double epsilon,
    }
 
    // copy points from the set to a vector
-   vector<Point>  endPoints;
+   std::vector<Point>  endPoints;
 
-   set<Point>::iterator it;
+   std::set<Point>::iterator it;
    for(it=endPoints1.begin(); it!=endPoints1.end(); it++){
      endPoints.push_back(*it);
    }
 
   // step 2: build cluster and move the endpoints to the centers
-   vector<Point> centers;
-   map<DefPoint , DefPoint>* clusters;
+   std::vector<Point> centers;
+   std::map<DefPoint , DefPoint>* clusters;
    clusters = assignCluster(endPoints,epsilon,centers);
 
   if(skipSplit){
@@ -6724,7 +6721,7 @@ void MPoint::EqualizeUnitsSpatial(const double epsilon,
        tree.insert(centers[i].BoundingBox(),i);
    }
 
-   set<long> cands;
+   std::set<long> cands;
    for(int i=0;i<tmp.GetNoComponents();i++){
        tmp.Get(i,unit);
        if(AlmostEqual(unit.p0,unit.p1)){
@@ -7726,12 +7723,12 @@ void MPoint::AtRegion(const Region *r, MPoint &result) const {
   }
   // iterate through all units
   UPoint uPoint;
-  vector<UPoint> uResultVector;
+  std::vector<UPoint> uResultVector;
   for( int i = 1; i < GetNoComponents(); i++ ){
     Get( i, uPoint );
     if(!uPoint.AtRegion(r, uResultVector)) {
-      cerr << __PRETTY_FUNCTION__ << " WARNING: no result for UPoint (" << i
-           << "): uPoint = " << uPoint << endl;
+      std::cerr << __PRETTY_FUNCTION__ << " WARNING: no result for UPoint (" 
+                << i << "): uPoint = " << uPoint << endl;
       continue;
     }
     for(unsigned int j=0; j<uResultVector.size(); j++) {
@@ -8496,7 +8493,7 @@ or:    undef
 Word InUReal( const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  string errmsg;
+  std::string errmsg;
   correct = true;
   if ( nl->ListLength( instance ) == 2 )
   {
@@ -8746,7 +8743,7 @@ The Nested list form is like this:( ( 6.37  9.9  TRUE FALSE) (1.0 2.3 4.1 2.1) )
 Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  string errmsg;
+  std::string errmsg;
   if ( nl->ListLength( instance ) == 2 )
   {
     ListExpr first = nl->First( instance );
@@ -9387,8 +9384,8 @@ ListExpr ExtDeftimeTypeMap(ListExpr args){
      ErrorReporter::ReportError("simple types required");
      return nl->SymbolAtom( Symbol::TYPEERROR() );
   }
-  string sarg1 = nl->SymbolValue(arg1);
-  string sarg2 = nl->SymbolValue(arg2);
+  std::string sarg1 = nl->SymbolValue(arg1);
+  std::string sarg2 = nl->SymbolValue(arg2);
   if( (sarg1==MInt::BasicType()
     && sarg2==UInt::BasicType() ) ||
       (sarg1==MBool::BasicType()
@@ -10103,7 +10100,7 @@ ListExpr MovingTypeMapSimplify(ListExpr args){
 
 ListExpr MovingTypeMapBreakPoints(ListExpr args){
    int len = nl->ListLength(args);
-   string err = "mpoint x duration [ x real] expected";
+   std::string err = "mpoint x duration [ x real] expected";
    if( (len!=2) && (len!=3)){
      return listutils::typeError(err + " (wrong number of args)");
    }
@@ -10124,7 +10121,7 @@ Signature:  mpoint x duration x real -> periods
 
 */
 ListExpr breaksTM(ListExpr args){
-  string err = " mpoint x duration x real expected";
+  std::string err = " mpoint x duration x real expected";
   if(!nl->HasLength(args,3)){
     return listutils::typeError(err);
   }
@@ -10173,7 +10170,7 @@ ListExpr MovingTypeMapgk(ListExpr args){
 ListExpr DelayOperatorTypeMapping( ListExpr args )
 {
   int len = nl->ListLength(args);
-  string errmsg = "Expected mpoint x mpoint [x geoid].";
+  std::string errmsg = "Expected mpoint x mpoint [x geoid].";
   if((len<2) || (len>3)){
     return listutils::typeError(errmsg);
   }
@@ -10322,7 +10319,7 @@ ListExpr TypeMapApproximate(ListExpr args){
   int boolIndex = -1;
   int breakAttrIndex = -1;
 
-  string err = "stream(tuple) x attr_1 x attr_2 [ x bool] "
+  std::string err = "stream(tuple) x attr_1 x attr_2 [ x bool] "
                "[ x duration] [ x attr_3] expected"; 
   
   ListExpr stream = nl->First(args);
@@ -10343,7 +10340,7 @@ ListExpr TypeMapApproximate(ListExpr args){
   ListExpr type;
   ListExpr attrList = nl->Second(nl->Second(stream));
 
-  string name = nl->SymbolValue(attrname_time);
+  std::string name = nl->SymbolValue(attrname_time);
 
   int index1 = listutils::findAttribute(attrList, name, type);
 
@@ -10365,7 +10362,7 @@ ListExpr TypeMapApproximate(ListExpr args){
     " unknown in tuple stream");
   }
 
-  string restype;
+  std::string restype;
   if(listutils::isSymbol(type,Point::BasicType())){
       restype = MPoint::BasicType();
   }  else if (listutils::isSymbol(type,CcReal::BasicType())){
@@ -10575,7 +10572,7 @@ This type mapping function is used for the ~translate~ operator.
 ListExpr MPointTypeMapTranslate( ListExpr args )
 {
   ListExpr arg1, arg2;
-  string err = "mpoint x (duration x real x real) expected";
+  std::string err = "mpoint x (duration x real x real) expected";
 
   if ( nl->ListLength( args ) == 2 )
   {
@@ -10662,8 +10659,9 @@ For operator ~bbox~
 ListExpr TemporalBBoxTypeMap( ListExpr args )
 {
   int noargs = nl->ListLength( args );
-  string errmsg = "Expected (M [x geoid]) OR (T), where M in {upoint, mpoint, "
-                  "ipoint}, T in {instant,periods}.";
+  std::string errmsg = "Expected (M [x geoid]) OR (T), "
+                       "where M in {upoint, mpoint, "
+                       "ipoint}, T in {instant,periods}.";
   if ( (noargs<1) || (noargs>2) ){
     return listutils::typeError(errmsg);
   }
@@ -10732,7 +10730,8 @@ For operator ~bbox2d~
 ListExpr TemporalBBox2dTypeMap( ListExpr args )
 {
   int noargs =  nl->ListLength( args );
-  string errmsg = "Expected (T [x geoid]), where T in {upoint,mpoint,ipoint}";
+  std::string errmsg = "Expected (T [x geoid]), "
+                       "where T in {upoint,mpoint,ipoint}";
   if( (noargs<1) || (noargs>2) ){
     return listutils::typeError(errmsg);
   }
@@ -10763,7 +10762,7 @@ For operator ~theRange~
 ListExpr TemporalTheRangeTM( ListExpr args )
 {
   ListExpr arg1, arg2, arg3, arg4;
-  string argstr;
+  std::string argstr;
   nl->WriteToString(argstr, args);
 
   if ( nl->ListLength( args ) == 4 )
@@ -10870,7 +10869,7 @@ ListExpr TranslateAppendSTM(ListExpr args){
       ErrorReporter::ReportError("the second argument has to be a symbol");
       return nl->SymbolAtom(Symbol::TYPEERROR());
   }
-  string a1 = nl->SymbolValue(attrlist);
+  std::string a1 = nl->SymbolValue(attrlist);
 
   int a1index = -1;
 
@@ -10918,7 +10917,7 @@ ListExpr TranslateAppendSTM(ListExpr args){
          ErrorReporter::ReportError("invalid tuple type");
          return nl->SymbolAtom(Symbol::TYPEERROR());
      }
-     string aname = nl->SymbolValue(anl);
+     std::string aname = nl->SymbolValue(anl);
      if(aname==a1){
         if(a1index>=0){
            ErrorReporter::ReportError("attr name occurs twice");
@@ -11057,7 +11056,7 @@ ListExpr DisturbTypeMap(ListExpr args){
 */
 
 ListExpr LengthTypeMap(ListExpr args){
-  string errmsg = "Expected (mpoint) or (mpoint x string).";
+  std::string errmsg = "Expected (mpoint) or (mpoint x string).";
   int noargs = nl->ListLength(args);
   if((noargs<1) || (noargs>2)){
     return listutils::typeError(errmsg);
@@ -11079,7 +11078,7 @@ ListExpr LengthTypeMap(ListExpr args){
 
 */
 ListExpr MPointRealTypeMapMPoint(ListExpr args){
-   string err = "mpoint x real expected";
+   std::string err = "mpoint x real expected";
    if(nl->ListLength(args)!=2){
      ErrorReporter::ReportError(err);
      return nl->TypeError();
@@ -11101,7 +11100,7 @@ ListExpr MPointRealTypeMapMPoint(ListExpr args){
 
 */
 ListExpr EqualizeUTM(ListExpr args){
-   string err = "mpoint x real [x bool] expected";
+   std::string err = "mpoint x real [x bool] expected";
    int len = nl->ListLength(args);
    if((len!=2) && (len!=3)){
      ErrorReporter::ReportError(err);
@@ -11123,7 +11122,7 @@ ListExpr EqualizeUTM(ListExpr args){
 
 
 ListExpr MIntHatTypeMap(ListExpr args){
-   string err = "mint expected";
+   std::string err = "mint expected";
    if(nl->ListLength(args)!=1){
      ErrorReporter::ReportError(err);
      return nl->TypeError();
@@ -11143,7 +11142,7 @@ signatures:
 
 */
 ListExpr restrictTM(ListExpr args){
-  string err = "mint [x int] expected";
+  std::string err = "mint [x int] expected";
   int len = nl->ListLength(args);
   if(len!=1 && len!=2){
      ErrorReporter::ReportError(err);
@@ -11168,7 +11167,7 @@ signatures:
 
 */
 ListExpr SpeedUpTypeMap(ListExpr args){
-  string err = "mpoint x real expected";
+  std::string err = "mpoint x real expected";
   int len = nl->ListLength(args);
   if(len!=2){
      ErrorReporter::ReportError(err);
@@ -11191,7 +11190,7 @@ signatures:
 
 */
 ListExpr SubMoveTypeMap(ListExpr args){
-  string err = "mpoint x real expected";
+  std::string err = "mpoint x real expected";
   int len = nl->ListLength(args);
   if(len!=2){
      ErrorReporter::ReportError(err);
@@ -11213,7 +11212,7 @@ signatures:
 
 */
 ListExpr Mp2OneMpTypeMap(ListExpr args){
-  string err = "mpoint expected";
+  std::string err = "mpoint expected";
   int len = nl->ListLength(args);
   if(len!=3){
      ErrorReporter::ReportError(err);
@@ -11237,7 +11236,7 @@ signatures:
 
 */
 ListExpr P2MpTypeMap(ListExpr args){
-  string err = "point x instant x instant x int expected";
+  std::string err = "point x instant x instant x int expected";
   int len = nl->ListLength(args);
   if(len!=4){
      ErrorReporter::ReportError(err);
@@ -12151,7 +12150,7 @@ int LinearizeSelect(ListExpr args){
 */
 int ApproximateSelect(ListExpr args){
   ListExpr res = TypeMapApproximate(args);
-  string type = nl->SymbolValue(nl->Third(res));
+  std::string type = nl->SymbolValue(nl->Third(res));
   if(type == MPoint::BasicType()){
      return 0;
   } else if(type == MReal::BasicType()){
@@ -12849,7 +12848,7 @@ struct Linearize2_ureal_LocalInfo
   bool finished;
   int NoOfResults;
   int NoOfResultsDelivered;
-  vector<UReal> resultVector;
+  std::vector<UReal> resultVector;
 };
 int Linearize2_ureal(Word* args, Word& result,
                      int message, Word& local,
@@ -12915,7 +12914,8 @@ int Linearize2_ureal(Word* args, Word& result,
         }
         return 0;
     } // end switch
-    cerr << "Linearize2_ureal(): Unknown message (" << message << ")" << endl;
+    std::cerr << "Linearize2_ureal(): Unknown message (" << message << ")" 
+              << endl;
     return -1; // should not happen
 }
 
@@ -14400,7 +14400,7 @@ int LengthVM(Word* args, Word& result, int message,
       res->Set(false, 0.0);
       return 0;
     }
-    string geoidstr = geoidCcStr->GetValue();
+    std::string geoidstr = geoidCcStr->GetValue();
     bool valid = false;
     Geoid::GeoidName gn = Geoid::getGeoIdNameFromString(geoidstr,valid);
     if(!valid){
@@ -14635,7 +14635,7 @@ int Avg_SpeedVM( Word* args, Word& result, int message,
       res->Set(false, 0.0);
       return 0;
      }
-     string geoidstr = geoidCcStr->GetValue();
+     std::string geoidstr = geoidCcStr->GetValue();
      Geoid::GeoidName gn = Geoid::getGeoIdNameFromString(geoidstr,valid);
      if(!valid){
       res->Set(false, 0.0);
@@ -14762,7 +14762,7 @@ int Mp2OneMpVM( Word* args, Word& result, int message,
    double x = (cur.p0.GetX() + counter); // XRIS: NONSENSE here!
    double y = (cur.p0.GetY() + counter); // XRIS: NONSENSE here!
 
-   cerr << "WARNING: " << __PRETTY_FUNCTION__
+   std::cerr << "WARNING: " << __PRETTY_FUNCTION__
         << " called. This functions does nonsense! Please correct!" << endl;
 
    Point p(true,x,y);
@@ -15043,7 +15043,7 @@ function ~getNextResultTuple~
 template<class OBJTYPE>
 class GridCellEventsLocalInfo{
   public:
-    vector<GridCellSeq>::iterator currEvent;
+    std::vector<GridCellSeq>::iterator currEvent;
 
     GridCellEventsLocalInfo(OBJTYPE &m_,
                             const CcReal &x0, const CcReal &y0,
@@ -15153,7 +15153,7 @@ class GridCellEventsLocalInfo{
       return newTuple;
     }
 
-    ostream& Print( ostream &os ) {
+    std::ostream& Print( std::ostream &os ) {
       os << "(GridCellEventsLocalInfo: "
          << "\n\t m: " << *m
          << ",\n\t g: " << *g;
@@ -15173,13 +15173,13 @@ class GridCellEventsLocalInfo{
   private:
     OBJTYPE *m;
     CellGrid2D *g;
-    vector<GridCellSeq> events;
+    std::vector<GridCellSeq> events;
     TupleType *resultTupleType;
     uint32_t noUnits;
     uint32_t currUnitCnt;
     bool finished;
     bool allUnitsConsumed;
-    vector<GridCellSeq>::iterator eventIter;
+    std::vector<GridCellSeq>::iterator eventIter;
     int32_t cellLast;         // number of last visited cell
     GridCellSeq currentEvent; // the current cell info
 
@@ -15384,10 +15384,11 @@ class GridCellEventsLocalInfo{
       return true;
     }
 
-    ostream& printEvents( ostream &os, const string prefix = "\n\t",
-                                       const string prefix2 = "\t") {
+    std::ostream& printEvents( std::ostream &os, 
+                               const std::string prefix = "\n\t",
+                               const std::string prefix2 = "\t") {
       os << prefix2 << "events: [";
-      vector<GridCellSeq>::iterator i;
+      std::vector<GridCellSeq>::iterator i;
       for(i = events.begin(); i < events.end(); i++){
         os << prefix << prefix2 << *i;
       }
@@ -15397,7 +15398,7 @@ class GridCellEventsLocalInfo{
 };
 
 template<class OBJTYPE>
-ostream& operator<<(ostream& o, GridCellEventsLocalInfo<OBJTYPE>& u){
+std::ostream& operator<<(std::ostream& o, GridCellEventsLocalInfo<OBJTYPE>& u){
   return u.Print(o);
 }
 
@@ -15786,7 +15787,7 @@ ValueMapping GridCellEventsValueMapping[] = {
 16.4.2 Specification strings
 
 */
-const string TemporalSpecIsEmpty  =
+const std::string TemporalSpecIsEmpty  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>instant -> bool,\n"
   "rT -> bool, \n"
@@ -15799,7 +15800,7 @@ const string TemporalSpecIsEmpty  =
   "<text>query isempty( mpoint1 )</text--->"
   ") )";
 
-const string MappingTimeShiftSpec =
+const std::string MappingTimeShiftSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>moving(x) x duration -> moving(x)</text--->"
   "<text>_ timeshift[ _ ]</text--->"
@@ -15807,7 +15808,7 @@ const string MappingTimeShiftSpec =
   "<text>train7 timeshift[ create_duration(1, 0) ]</text--->"
   ") )";
 
-const string TemporalSpecEQ  =
+const std::string TemporalSpecEQ  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>(instant instant) -> bool, \n"
   "(rT rT) -> bool, \n"
@@ -15818,7 +15819,7 @@ const string TemporalSpecEQ  =
   "<text>query i1 = i2</text--->"
   ") )";
 
-const string TemporalSpecEQ2  =
+const std::string TemporalSpecEQ2  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>(moving(x) moving(x)) -> bool</text--->"
   "<text>_ equal _</text--->"
@@ -15827,7 +15828,7 @@ const string TemporalSpecEQ2  =
   "<text>query mi equal mi2</text--->"
   ") )";
 
-const string TemporalSpecNE  =
+const std::string TemporalSpecNE  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>(instant instant) -> bool,\n"
   "(rT rT)) -> bool, \n"
@@ -15838,7 +15839,7 @@ const string TemporalSpecNE  =
   "<text>query i1 # i2</text--->"
   ") )";
 
-const string TemporalSpecNE2  =
+const std::string TemporalSpecNE2  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>(mT mT) -> bool</text--->"
   "<text>_ nonequal _</text--->"
@@ -15847,7 +15848,7 @@ const string TemporalSpecNE2  =
   "<text>query mi1 nonequal mi2</text--->"
   ") )";
 
-const string TemporalSpecLT  =
+const std::string TemporalSpecLT  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>(instant instant) -> bool</text--->"
   "<text>_ < _</text--->"
@@ -15856,7 +15857,7 @@ const string TemporalSpecLT  =
   "<text>query i1 < i2</text--->"
   ") )";
 
-const string TemporalSpecLE  =
+const std::string TemporalSpecLE  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>(instant instant) -> bool</text--->"
   "<text>_ <= _</text--->"
@@ -15865,7 +15866,7 @@ const string TemporalSpecLE  =
   "<text>query i1 <= i2</text--->"
   ") )";
 
-const string TemporalSpecGT  =
+const std::string TemporalSpecGT  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>(instant instant) -> bool</text--->"
   "<text>_ > _</text--->"
@@ -15874,7 +15875,7 @@ const string TemporalSpecGT  =
   "<text>query i1 > i2</text--->"
   ") )";
 
-const string TemporalSpecGE  =
+const std::string TemporalSpecGE  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>(instant instant) -> bool</text--->"
   "<text>_ >= _</text--->"
@@ -15883,7 +15884,7 @@ const string TemporalSpecGE  =
   "<text>query i1 >= i2</text--->"
   ") )";
 
-const string TemporalSpecIntersects =
+const std::string TemporalSpecIntersects =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(rT rT) -> bool</text--->"
   "<text>_ intersects _</text--->"
@@ -15891,7 +15892,7 @@ const string TemporalSpecIntersects =
   "<text>query range1 intersects range2</text--->"
   ") )";
 
-const string TemporalSpecInside  =
+const std::string TemporalSpecInside  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(rT rT) -> bool,\n"
   "(T  rT) -> bool</text--->"
@@ -15900,7 +15901,7 @@ const string TemporalSpecInside  =
   "<text>query 5 inside rint</text--->"
   ") )";
 
-const string TemporalSpecBefore  =
+const std::string TemporalSpecBefore  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(rT rT) -> bool,\n"
   "(T rT) -> bool, (rT T) -> bool</text--->"
@@ -15909,7 +15910,7 @@ const string TemporalSpecBefore  =
   "<text>query 5 before rint</text--->"
   ") )";
 
-const string TemporalSpecIntersection =
+const std::string TemporalSpecIntersection =
   "( ( \"Signature\" \"Syntax\"\"Meaning\" \"Example\" ) "
   "( <text>(rT rT) -> rT</text--->"
   "<text>_ intersection _</text--->"
@@ -15917,7 +15918,7 @@ const string TemporalSpecIntersection =
   "<text>query range1 intersection range2</text--->"
   ") )";
 
-const string TemporalSpecUnion  =
+const std::string TemporalSpecUnion  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(rT rT) -> rT</text--->"
   "<text>_ union _</text--->"
@@ -15925,7 +15926,7 @@ const string TemporalSpecUnion  =
   "<text>query range1 union range2</text--->"
   ") )";
 
-const string TemporalSpecMinus  =
+const std::string TemporalSpecMinus  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(rT rT ) -> rT</text--->"
   "<text>_ minus _</text--->"
@@ -15933,7 +15934,7 @@ const string TemporalSpecMinus  =
   "<text>query range1 minus range2</text--->"
   ") )";
 
-const string TemporalSpecMinimum  =
+const std::string TemporalSpecMinimum  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>rT -> T</text--->"
   "<text>minimum ( _ )</text--->"
@@ -15941,7 +15942,7 @@ const string TemporalSpecMinimum  =
   "<text>minimum ( range1 )</text--->"
   ") )";
 
-const string TemporalSpecMaximum  =
+const std::string TemporalSpecMaximum  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>rT -> T</text--->"
   "<text>maximum ( _ )</text--->"
@@ -15949,7 +15950,7 @@ const string TemporalSpecMaximum  =
   "<text>maximum ( range1 )</text--->"
   ") )";
 
-const string TemporalSpecNoComponents =
+const std::string TemporalSpecNoComponents =
   "( ( \"Signature\" \"Syntax\"\"Meaning\" \"Example\" ) "
   "( <text>rT -> int,\n"
   "mT -> int</text--->"
@@ -15960,7 +15961,7 @@ const string TemporalSpecNoComponents =
   "<text>no_components ( mpoint1 )</text--->"
   ") )";
 
-const string TemporalSpecInst  =
+const std::string TemporalSpecInst  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>iT -> instant</text--->"
   "<text>inst ( _ )</text--->"
@@ -15968,14 +15969,14 @@ const string TemporalSpecInst  =
   "<text>inst ( i1 )</text--->"
   ") )";
 
-const string TemporalSpecVal  =
+const std::string TemporalSpecVal  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>iT -> x</text--->"
   "<text>val ( _ )</text--->"
   "<text>Return an intime value's value.</text--->"
   "<text>val ( i1 )</text--->"
   ") )";
-const string TemporalSpecUVal  =
+const std::string TemporalSpecUVal  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>uint -> int</text--->"
   "<text>uval ( _ )</text--->"
@@ -15983,7 +15984,7 @@ const string TemporalSpecUVal  =
   "<text>uval ( ui1 )</text--->"
   ") )";
 
-const string TemporalSpecAtInstant =
+const std::string TemporalSpecAtInstant =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(mT instant) -> iT</text--->"
   "<text>_ atinstant _ </text--->"
@@ -15992,7 +15993,7 @@ const string TemporalSpecAtInstant =
   "<text>mpoint1 atinstant instant1</text--->"
   ") )";
 
-const string TemporalSpecAtPeriods =
+const std::string TemporalSpecAtPeriods =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(mT periods) -> mT</text--->"
   "<text>_ atperiods _ </text--->"
@@ -16000,7 +16001,7 @@ const string TemporalSpecAtPeriods =
   "<text>mpoint1 atperiods periods1</text--->"
   ") )";
 
-const string TemporalSpecWhen =
+const std::string TemporalSpecWhen =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(mT mbool) -> mT</text--->"
   "<text>_ when[_] </text--->"
@@ -16009,7 +16010,7 @@ const string TemporalSpecWhen =
   "<text>mpoint1 when[speed(mpoint1) > 10.0]</text--->"
   ") )";
 
-const string TemporalSpecDefTime  =
+const std::string TemporalSpecDefTime  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>moving(x) -> periods</text--->"
   "<text>deftime( _ )</text--->"
@@ -16018,7 +16019,7 @@ const string TemporalSpecDefTime  =
   "<text>deftime( mp1 )</text--->"
   ") )";
 
-const string TemporalSpecTrajectory =
+const std::string TemporalSpecTrajectory =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mpoint -> line</text--->"
   "<text> trajectory( _ )</text--->"
@@ -16026,7 +16027,7 @@ const string TemporalSpecTrajectory =
   "<text>trajectory( mp1 )</text--->"
   ") )";
 
-const string TemporalSpecPresent  =
+const std::string TemporalSpecPresent  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(mT instant) -> bool,\n"
   "(mT periods) -> bool</text--->"
@@ -16036,7 +16037,7 @@ const string TemporalSpecPresent  =
   "<text>mpoint1 present instant1</text--->"
   ") )";
 
-const string TemporalSpecPasses =
+const std::string TemporalSpecPasses =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(mT T) -> bool; T in {Region, Rectangle2}"
   "</text--->"
@@ -16045,7 +16046,7 @@ const string TemporalSpecPasses =
   "<text>mpoint1 passes point1</text--->"
                                 ") )";
 
-const string TemporalSpecInitial  =
+const std::string TemporalSpecInitial  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mT -> iT</text--->"
   "<text>initial( _ )</text--->"
@@ -16053,7 +16054,7 @@ const string TemporalSpecInitial  =
   "<text>initial( mpoint1 )</text--->"
   ") )";
 
-const string TemporalSpecFinal  =
+const std::string TemporalSpecFinal  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mT -> iT</text--->"
   "<text>final( _ )</text--->"
@@ -16062,7 +16063,7 @@ const string TemporalSpecFinal  =
   "<text>final( mpoint1 )</text--->"
   ") )";
 
-const string TemporalSpecAt =
+const std::string TemporalSpecAt =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(mT T) -> mT</text--->"
   "<text> _ at _ </text--->"
@@ -16071,7 +16072,7 @@ const string TemporalSpecAt =
   "<text>mpoint1 at point1</text--->"
   ") )";
 
-const string TemporalSpecDistance =
+const std::string TemporalSpecDistance =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(mpoint point) -> mreal</text--->"
   "<text>distance( _, _ ) </text--->"
@@ -16079,7 +16080,7 @@ const string TemporalSpecDistance =
   "<text>distance( mpoint1, point1 )</text--->"
   ") )";
 
-const string TemporalSpecSquaredDistance =
+const std::string TemporalSpecSquaredDistance =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(mpoint point) -> mreal, (mpoint mpoint)->mreal</text--->"
   "<text>squareddistance( _, _ ) </text--->"
@@ -16088,7 +16089,7 @@ const string TemporalSpecSquaredDistance =
   ") )";
 
 
-const string TemporalSpecSimplify =
+const std::string TemporalSpecSimplify =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mpoint x real [ x duration ] -> mpoint |"
   " mreal x real -> mreal</text--->"
@@ -16099,7 +16100,7 @@ const string TemporalSpecSimplify =
   "<text>simplify( train7, 50.0, [const duration value (0, 10000)] )</text--->"
   ") )";
 
-const string TemporalSpecIntegrate =
+const std::string TemporalSpecIntegrate =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>{ureal , mreal} -> real</text--->"
   "<text>integrate( _ ) </text--->"
@@ -16107,7 +16108,7 @@ const string TemporalSpecIntegrate =
   "<text>integrate(mreal5000)</text--->"
   ") )";
 
-const string TemporalSpecLinearize =
+const std::string TemporalSpecLinearize =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text> t  -> t, where t in {mreal, ureal}</text--->"
   "<text>linearize( _ ) </text--->"
@@ -16115,7 +16116,7 @@ const string TemporalSpecLinearize =
   "<text>linearize(distance(train7, train6))</text--->"
   ") )";
 
-const string TemporalSpecApproximate =
+const std::string TemporalSpecApproximate =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>stream(tuple(a1: t1) (...(an,tn) x ai x aj [ x bool ] [ x duration ]"
   "-> mtj , (ti = instant, tj in {real,point,int,bool,string)</text--->"
@@ -16135,7 +16136,7 @@ const string TemporalSpecApproximate =
   "<text>  </text--->"
   ") )";
 
-const string TemporalSpecLinearize2 =
+const std::string TemporalSpecLinearize2 =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text> mreal -> mreal | \n"
   "   ureal -> (stream ureal)</text--->"
@@ -16144,7 +16145,7 @@ const string TemporalSpecLinearize2 =
   "<text>linearize2(distance(train7, train6))</text--->"
   ") )";
 
-const string TemporalSpecMin =
+const std::string TemporalSpecMin =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>{ureal,mreal}->real, mint->int</text--->"
   "<text>minimum( _ ) </text--->"
@@ -16152,7 +16153,7 @@ const string TemporalSpecMin =
   "<text>minimum(mreal5000)</text--->"
   ") )";
 
-const string TemporalSpecMax =
+const std::string TemporalSpecMax =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>{ureal,mreal}->real, mint->int</text--->"
   "<text>maximum( _ ) </text--->"
@@ -16160,7 +16161,7 @@ const string TemporalSpecMax =
   "<text>maximum(mreal5000)</text--->"
   ") )";
 
-const string TemporalSpecBreakPoints =
+const std::string TemporalSpecBreakPoints =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mpoint x duration [x real] -> points</text--->"
   "<text>breakpoints( m, d, e ) </text--->"
@@ -16172,7 +16173,7 @@ const string TemporalSpecBreakPoints =
   "<text>breakpoints( train7, [const duration value (0 1000)] )</text--->"
   ") )";
 
-const string breaksSpec =
+const std::string breaksSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mpoint x duration x real -> peridos</text--->"
   "<text>breaks( m, d, e ) </text--->"
@@ -16186,7 +16187,7 @@ const string breaksSpec =
 1.1.1 Spec for ~gk~
 
 */
-const string TemporalSpecgk =
+const std::string TemporalSpecgk =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>{mpoint,upoint} [ x int ] -> {mpoint,upoint}</text--->"
   "<text>gk( mp [, zone] ) </text--->"
@@ -16199,7 +16200,7 @@ const string TemporalSpecgk =
   "<text> gk( trip )</text--->"
   ") )";
 
-const string TemporalSpecVertices =
+const std::string TemporalSpecVertices =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mpoint -> points</text--->"
   "<text> vertices( _ ) </text--->"
@@ -16208,7 +16209,7 @@ const string TemporalSpecVertices =
   "<text> vertices( train7 )</text--->"
   ") )";
 
-const string TemporalSpecUnits  =
+const std::string TemporalSpecUnits  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For T in {bool, int, real, point}:\n"
   "   mT -> (stream uT)</text--->"
@@ -16217,7 +16218,7 @@ const string TemporalSpecUnits  =
   "<text>units( mpoint1 )</text--->"
   ") )";
 
-const string TemporalSpecGetUnit  =
+const std::string TemporalSpecGetUnit  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text> mT x int -> uT, where T in {bool, int, real, point}</text--->"
   "<text> getunit( M, N )</text--->"
@@ -16226,7 +16227,7 @@ const string TemporalSpecGetUnit  =
   "<text>mpoint1 getunit( 0 )</text--->"
   ") )";
 
-const string TemporalSpecGetPosition  =
+const std::string TemporalSpecGetPosition  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text> mT x instant -> int, where T in {bool, int, real, point, string, "
   "region}</text--->"
@@ -16237,7 +16238,7 @@ const string TemporalSpecGetPosition  =
   "</text--->"
   ") )";
 
-const string TemporalSpecBBox  =
+const std::string TemporalSpecBBox  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>upoint [x geoid] -> rect3,\n"
   "mpoint [x geoid] -> rect3,\n"
@@ -16251,7 +16252,7 @@ const string TemporalSpecBBox  =
   "<text>query bbox( upoint1 )</text--->"
   ") )";
 
-const string TemporalSpecMBRange  =
+const std::string TemporalSpecMBRange  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>rT -> rT, T in {int, real, bool, string}</text--->"
   "<text>mbrange ( _ )</text--->"
@@ -16260,7 +16261,7 @@ const string TemporalSpecMBRange  =
   "<text>query mbrange( deftime(train6) )</text--->"
   ") )";
 
-const string TemporalSpecBBoxOld  =
+const std::string TemporalSpecBBoxOld  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>upoint [x geoid] -> rect3,\n"
     "mpoint [x geoid] -> rect3,\n"
@@ -16274,7 +16275,7 @@ const string TemporalSpecBBoxOld  =
     "<text>query bbox( upoint1 )</text--->"
     ") )";
 
-const string TemporalSpecBBox2d  =
+const std::string TemporalSpecBBox2d  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>upoint [x geoid] -> rect,\n"
     "mpoint [x geoid] -> rect,\n"
@@ -16286,7 +16287,7 @@ const string TemporalSpecBBox2d  =
     "<text>query bbox2d( upoint1 )</text--->"
     ") )";
 
-const string MPointSpecTranslate  =
+const std::string MPointSpecTranslate  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mpoint x duration x real x real -> mpoint</text--->"
   "<text>_ translate[ ot, ox, oy ]</text--->"
@@ -16295,7 +16296,7 @@ const string MPointSpecTranslate  =
   "<text>query mp1 translate[[const duration value (5 10)],5.0,8.0]</text--->"
   ") )";
 
-const string TemporalSpecTheYear  =
+const std::string TemporalSpecTheYear  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>int -> periods</text--->"
   "<text> theyear( y )</text--->"
@@ -16303,7 +16304,7 @@ const string TemporalSpecTheYear  =
   "<text>theyear(2002)</text--->"
                                 ") )";
 
-const string TemporalSpecTheMonth  =
+const std::string TemporalSpecTheMonth  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>int x int -> periods</text--->"
   "<text> themonth( y, m )</text--->"
@@ -16311,7 +16312,7 @@ const string TemporalSpecTheMonth  =
   "<text>themonth(2002, 3)</text--->"
                                 ") )";
 
-const string TemporalSpecTheDay  =
+const std::string TemporalSpecTheDay  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>int x int x int -> periods</text--->"
   "<text>theday( y, m, d )</text--->"
@@ -16319,7 +16320,7 @@ const string TemporalSpecTheDay  =
   "<text>theday(2002, 6,3)</text--->"
   ") )";
 
-const string TemporalSpecTheHour  =
+const std::string TemporalSpecTheHour  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>int x int x int x int -> periods</text--->"
   "<text>thehour( y, m, d , h)</text--->"
@@ -16327,7 +16328,7 @@ const string TemporalSpecTheHour  =
   "<text>thehour(2002, 2, 28, 8)</text--->"
   ") )";
 
-const string TemporalSpecTheMinute =
+const std::string TemporalSpecTheMinute =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( "
   "<text>int x int x int x int x int -> periods</text--->"
@@ -16337,7 +16338,7 @@ const string TemporalSpecTheMinute =
   "<text>theminute(2002, 3, 28, 8, 59)</text--->"
   ") )";
 
-const string TemporalSpecTheSecond =
+const std::string TemporalSpecTheSecond =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>int x int x int x int x int x int -> periods</text--->"
   "<text>thesecond( y, m, d , h, min, sec )</text--->"
@@ -16346,7 +16347,7 @@ const string TemporalSpecTheSecond =
   "<text>thesecond(2002, 12, 31, 23, 59, 59)</text--->"
   ") )";
 
-const string TemporalSpecThePeriod =
+const std::string TemporalSpecThePeriod =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(periods periods) -> periods</text--->"
   "<text> theperiod( _, _ )</text--->"
@@ -16355,7 +16356,7 @@ const string TemporalSpecThePeriod =
   "<text>theperiod(theyear(2002), theyear(2004))</text--->"
   ") )";
 
-const string Box3dSpec  =
+const std::string Box3dSpec  =
   "( ( \"Signatures\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For S in {rect, instant, periods}:\n"
   "          S -> rect3 \n"
@@ -16367,7 +16368,7 @@ const string Box3dSpec  =
   "<text>query box3d(bbox(mehringdamm))</text--->"
   ") )";
 
-const string TemporalBox2dSpec =
+const std::string TemporalBox2dSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>{rect|rect3|rect4|rect8} -> rect</text--->"
   "<text>box2d( _ )</text--->"
@@ -16376,7 +16377,7 @@ const string TemporalBox2dSpec =
   "<text>box2d(r3)</text--->"
   ") )";
 
-const string TemporalMBool2MIntSpec =
+const std::string TemporalMBool2MIntSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mbool -> mint </text--->"
   "<text>mbool2mint( _ ) </text--->"
@@ -16385,7 +16386,7 @@ const string TemporalMBool2MIntSpec =
   "<text>mbool2mint(mb1)</text--->"
   ") )";
 
-const string TemporalMInt2MBoolSpec =
+const std::string TemporalMInt2MBoolSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mint -> mbool </text--->"
   "<text>mint2mbool( _ ) </text--->"
@@ -16394,7 +16395,7 @@ const string TemporalMInt2MBoolSpec =
   "<text>mint2mbool(zero())</text--->"
   ") )";
 
-const string TemporalMInt2MRealSpec =
+const std::string TemporalMInt2MRealSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mint -> mreal </text--->"
   "<text>mint2mreal( _ ) </text--->"
@@ -16402,7 +16403,7 @@ const string TemporalMInt2MRealSpec =
   "<text>mint2mreal(zero())</text--->"
   ") )";
 
-const string TemporalExtDeftimeSpec =
+const std::string TemporalExtDeftimeSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mT x uT -> mT with T in {bool, int}  </text--->"
   "<text>extenddeftime( m, u) </text--->"
@@ -16411,7 +16412,7 @@ const string TemporalExtDeftimeSpec =
   "<text>query extdeftime(mb ub)</text--->"
   ") )";
 
-const string TemporalTheRangeSpec =
+const std::string TemporalTheRangeSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>T x T x bool x bool -> rT with T in {bool, int, real, string}\n"
     "instant x instant x bool x bool -> periods</text--->"
@@ -16423,7 +16424,7 @@ const string TemporalTheRangeSpec =
     "<text>query theRange(mb ub)</text--->"
     ") )";
 
-const string TranslateAppendSpec =
+const std::string TranslateAppendSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint x mpoint x duration -> mpoint</text--->"
     "<text> mp1 translateappend [ mp2 dur ]</text--->"
@@ -16434,7 +16435,7 @@ const string TranslateAppendSpec =
     "[const duration value(0 10000)]]</text--->"
     ") )";
 
-const string TranslateAppendSSpec =
+const std::string TranslateAppendSSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>stream(tuple((a1 t1)...(an tn))) x ai x duration"
     " -> mpoint, where ti = mpoint</text--->"
@@ -16446,7 +16447,7 @@ const string TranslateAppendSSpec =
     " duration value(0 10000)]]</text--->"
     ") )";
 
-const string ReverseSpec =
+const std::string ReverseSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint -> mpoint</text--->"
     "<text> reverse( _ )</text--->"
@@ -16454,7 +16455,7 @@ const string ReverseSpec =
     "<text>query reverse(Train6) </text--->"
     ") )";
 
-const string SampleMPointSpec =
+const std::string SampleMPointSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint x duration [x bool [x bool] ] -> mpoint</text--->"
     "<text> samplempoint( m, dur )\n"
@@ -16468,7 +16469,7 @@ const string SampleMPointSpec =
     " [const duration value (0 2000)] ) </text--->"
     ") )";
 
-const string GPSSpec =
+const std::string GPSSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint x duration -> "
     "stream(tuple([Time: instant, Position:point])</text--->"
@@ -16480,7 +16481,7 @@ const string GPSSpec =
     " [const duratione value (0 2000)] ) count </text--->"
     ") )";
 
-const string DisturbSpec =
+const std::string DisturbSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint x real x real  -> mpoint </text---> "
     "<text> P disturb [ MD , SD ]</text--->"
@@ -16493,7 +16494,7 @@ const string DisturbSpec =
 Spec for ~length~
 
 */
-const string LengthSpec =
+const std::string LengthSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint -> real </text---> "
     "<text> length( Mp [, GeoidName ] ) </text--->"
@@ -16506,7 +16507,7 @@ const string LengthSpec =
     "<text>query length(train6) </text--->"
     ") )";
 
-const string EqualizeUSpec =
+const std::string EqualizeUSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint x real [ x bool] -> mpoint </text---> "
     "<text> MP equalizeU[ Dist, Split ] </text--->"
@@ -16518,7 +16519,7 @@ const string EqualizeUSpec =
     "<text>query train6 equalizeU[20.0]  </text--->"
     ") )";
 
-const string MintHatSpec =
+const std::string MintHatSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mint -> mint </text---> "
     "<text> hat(_) </text--->"
@@ -16533,7 +16534,7 @@ const string MintHatSpec =
     ") )";
 
 
-const string restrictSpec =
+const std::string restrictSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mint [x int] -> mint </text---> "
     "<text> restrict( MI [, Val]) </text--->"
@@ -16544,7 +16545,7 @@ const string restrictSpec =
     "<text>query restrict(noAtCenter)</text--->"
     ") )";
 
-const string speedupSpec =
+const std::string speedupSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint x real -> mpoint </text---> "
     "<text> MP speedup [ F ] </text--->"
@@ -16558,7 +16559,7 @@ const string speedupSpec =
 Spec for ~avg\_speed~
 
 */
-const string avg_speedSpec =
+const std::string avg_speedSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint [ x string ] -> real </text---> "
     "<text> avg_speed ( M [, GeoidName] ) </text--->"
@@ -16572,7 +16573,7 @@ const string avg_speedSpec =
     "<text>query avg_speed(train1)</text--->"
     ") )";
 
-const string submoveSpec =
+const std::string submoveSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint x real-> mpoint </text---> "
     "<text> MP submove [ F ] </text--->"
@@ -16581,7 +16582,7 @@ const string submoveSpec =
     "<text>query submove(train1)</text--->"
     ") )";
 
-const string TemporalSpecMp2Onemp  =
+const std::string TemporalSpecMp2Onemp  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mpoint x starttime x endtime -> x</text--->"
   "<text>mp2onemp ( mp, i1, i2 )</text--->"
@@ -16591,7 +16592,7 @@ const string TemporalSpecMp2Onemp  =
   "<text> query mp2onemp (train1 ,minimum(deftime(train1)),"
   "maximum(deftime(train1)))</text--->"
   ") )";
-const string TemporalSpecP2Mp  =
+const std::string TemporalSpecP2Mp  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mpoint x starttime x endtime -> x</text--->"
   "<text>p2mp ( _,_,_,_ )</text--->"
@@ -17916,12 +17917,12 @@ internally, but ~URegion~ externally.
 */
 ListExpr GetRefinementPartitionTypeMapping(ListExpr args){
   int noargs = nl->ListLength(args);
-  string errmsg = "Expected {uT1|mT1} x {uT2|mT2}, where T in "
+  std::string errmsg = "Expected {uT1|mT1} x {uT2|mT2}, where T in "
                   "{point, int, real, bool, string}";
   if(noargs!=2){
     return listutils::typeError(errmsg);
   }
-  set<string> supportedArgTypes;
+  std::set<std::string> supportedArgTypes;
   supportedArgTypes.insert(MPoint::BasicType());
   supportedArgTypes.insert(MReal::BasicType());
   supportedArgTypes.insert(MInt::BasicType());
@@ -17943,23 +17944,25 @@ ListExpr GetRefinementPartitionTypeMapping(ListExpr args){
     return listutils::typeError(errmsg);
   }
 
-  map<string,string> tm;
-  tm.insert(pair<string,string>(MPoint::BasicType(),UPoint::BasicType()));
-  tm.insert(pair<string,string>(MReal::BasicType(),UReal::BasicType()));
-  tm.insert(pair<string,string>(MInt::BasicType(),UInt::BasicType()));
-  tm.insert(pair<string,string>(MBool::BasicType(),UBool::BasicType()));
-  tm.insert(pair<string,string>(MString::BasicType(),UString::BasicType()));
-  tm.insert(pair<string,string>(UPoint::BasicType(),UPoint::BasicType()));
-  tm.insert(pair<string,string>(UReal::BasicType(),UReal::BasicType()));
-  tm.insert(pair<string,string>(UInt::BasicType(),UInt::BasicType()));
-  tm.insert(pair<string,string>(UBool::BasicType(),UBool::BasicType()));
-  tm.insert(pair<string,string>(UString::BasicType(),UString::BasicType()));
+  std::map<std::string,std::string> tm;
+  typedef std::pair<std::string,std::string> sp;
+
+  tm.insert(sp(MPoint::BasicType(),UPoint::BasicType()));
+  tm.insert(sp(MReal::BasicType(),UReal::BasicType()));
+  tm.insert(sp(MInt::BasicType(),UInt::BasicType()));
+  tm.insert(sp(MBool::BasicType(),UBool::BasicType()));
+  tm.insert(sp(MString::BasicType(),UString::BasicType()));
+  tm.insert(sp(UPoint::BasicType(),UPoint::BasicType()));
+  tm.insert(sp(UReal::BasicType(),UReal::BasicType()));
+  tm.insert(sp(UInt::BasicType(),UInt::BasicType()));
+  tm.insert(sp(UBool::BasicType(),UBool::BasicType()));
+  tm.insert(sp(UString::BasicType(),UString::BasicType()));
   // MRegion not supported due to problems with handling URegionEmb/URegion
 
-  string t1; nl->WriteToString(t1, first);
-  string t2; nl->WriteToString(t2, second);
-  map<string,string>::iterator r1_i = tm.find(t1);
-  map<string,string>::iterator r2_i = tm.find(t2);
+  std::string t1; nl->WriteToString(t1, first);
+  std::string t2; nl->WriteToString(t2, second);
+  std::map<std::string,std::string>::iterator r1_i = tm.find(t1);
+  std::map<std::string,std::string>::iterator r2_i = tm.find(t2);
   if((r1_i == tm.end()) || (r2_i == tm.end())){
     return listutils::typeError(errmsg);
   }
@@ -18152,12 +18155,12 @@ int GetRefinementPartitionVM( Word* args, Word& result, int message,
       return 0;
     }
     default:{
-      cerr << __PRETTY_FUNCTION__ << "Unknown message = " << message << "."
+      std::cerr << __PRETTY_FUNCTION__ << "Unknown message = " << message << "."
            << endl;
       return -1;
     }
   } // end switch
-  cerr << __PRETTY_FUNCTION__ << "Unknown message = " << message << "."
+  std::cerr << __PRETTY_FUNCTION__ << "Unknown message = " << message << "."
        << endl;
   return -1;
 }
@@ -18376,7 +18379,7 @@ Operator getrefinementpartition(
 */
 
 ListExpr atRectTM(ListExpr args){
-  string err ="mpoint x rect expected";
+  std::string err ="mpoint x rect expected";
   if(!nl->HasLength(args,2)){
     return listutils::typeError(err + " (wrong number of arguments)");
   }
@@ -18406,7 +18409,7 @@ int atRectVM( Word* args, Word& result, int message, Word&
 5.2.3.3 Specification
 
 */
-const string atRectSpec =
+const std::string atRectSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint x rect -> mpoint </text---> "
     "<text> mp atRect r  </text--->"
@@ -18438,7 +18441,7 @@ Signature:  mT x instant -> mT with T in { point, int, real }
 
 */
 ListExpr moveToTM(ListExpr args){
-   string err = "mt x instant with T in {point, int, real, bool} expected";
+   std::string err = "mt x instant with T in {point, int, real, bool} expected";
    if(!nl->HasLength(args,2)){
      return listutils::typeError(err + " (wrong number of arguments)");
    }
@@ -18508,7 +18511,7 @@ int moveToSelect(ListExpr args){
 
 */
 
-const string moveToSpec =
+const std::string moveToSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mT x instant -> mT with T in {point, int, real, bool)"
     "</text---> "
@@ -18544,7 +18547,7 @@ to ~d~ are removed.
 */
 ListExpr fillGapsTM(ListExpr args){
   int len = nl->ListLength(args);
-  string err = "{periods, mpoint} [x duration] expected";
+  std::string err = "{periods, mpoint} [x duration] expected";
   if( (len!=1) && (len!=2)){
     return listutils::typeError(err + " (wrong number of arguments)");
   }
@@ -18688,7 +18691,7 @@ int fillGapsSelect(ListExpr args){
 
 */
 
-const string fillGapsSpec =
+const std::string fillGapsSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text> T  [x duration] -> T, T in {periods,mpoint}"
     "</text---> "
@@ -18725,7 +18728,7 @@ Signature: periods x duration -> periods
 
 */
 ListExpr removeShortTM(ListExpr args){
-  string err = "periods x duration expected";
+  std::string err = "periods x duration expected";
   if(!nl->HasLength(args,2)){
     return listutils::typeError(err + " (wrong number of arguments");
   }
@@ -18776,7 +18779,7 @@ int removeShortVM( Word* args, Word& result, int message, Word&
 
 */
 
-const string removeShortSpec =
+const std::string removeShortSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text> periods x duration -> periods"
     "</text---> "
@@ -18812,7 +18815,7 @@ Signature : periods -> stream(periods)
 */
 
 ListExpr getIntervalsTM(ListExpr args){
-  string err = "periods expected";
+  std::string err = "periods expected";
   if(!nl->HasLength(args,1)){
      return listutils::typeError(err);
   } 
@@ -18885,7 +18888,7 @@ int getIntervalsVM(Word* args, Word& result, int message,
 5.2.6.3 Specification
 
 */
-const string getIntervalsSpec =
+const std::string getIntervalsSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text> periods -> stream(interval)"
     "</text---> "
@@ -18922,7 +18925,7 @@ Operator getIntervals(
 */
 
 ListExpr componentsTM(ListExpr args) {
-  string err = "one argument of type periods expected";
+  std::string err = "one argument of type periods expected";
   if (!nl->HasLength(args, 1)){
     return listutils::typeError(err);
   }
@@ -19034,7 +19037,7 @@ int componentsSelect(ListExpr args){
 5.2.7.3 Specification
 
 */
-const string componentsSpec =
+const std::string componentsSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text> periods -> stream(periods) ; mpoint -> stream(mpoint)"
     "</text---> "
@@ -19070,7 +19073,7 @@ ListExpr trajectory3TM(ListExpr args){
    if(!nl->HasLength(args,1)){
        return listutils::typeError("one argument expected");
    }
-   string err = "Mpoint expected";
+   std::string err = "Mpoint expected";
    if(!MPoint::checkType(nl->First(args))){
       return listutils::typeError(err);
    }
@@ -19107,7 +19110,7 @@ int trajectory3VM( Word* args, Word& result, int message, Word&
 5.2.7.3 Specification
 
 */
-const string trajectory3Spec =
+const std::string trajectory3Spec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text> mpoint -> dline"
     "</text---> "
@@ -19139,7 +19142,7 @@ Operator trajectory3(
 */
 
 ListExpr createPeriodsTM(ListExpr args){
-  string err = "instant x {instant, duration} x bool x bool expected";
+  std::string err = "instant x {instant, duration} x bool x bool expected";
   if(!nl->HasLength(args,4)){
      return listutils::typeError(err);
   }
@@ -19247,7 +19250,7 @@ Specification
 
 */
 
-const string createPeriodsSpec =
+const std::string createPeriodsSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text> instant x {instant,duration} x bool x bool -> periods"
     "</text---> "
@@ -19282,7 +19285,7 @@ this operator checks whether a periods value contains a certain instant.
 
 */
 ListExpr containsTM(ListExpr args){
-  string err = "periods x instant expected";
+  std::string err = "periods x instant expected";
   if(!nl->HasLength(args,2)){
     return listutils::typeError(err);
   }
@@ -19340,7 +19343,7 @@ another moving point.
 
 */
 ListExpr replaceTM(ListExpr args){
-  string err = "mpoint x {mpoint, upoint} expected";
+  std::string err = "mpoint x {mpoint, upoint} expected";
   if(!nl->HasLength(args,2)){
     return listutils::typeError(err + " (invalid number of args)");
   }
@@ -19608,7 +19611,7 @@ This operator creates a static point for a given periods.
 
 */
 ListExpr constmpointTM(ListExpr args){
-  string err = "periods x point expected";
+  std::string err = "periods x point expected";
   if(!nl->HasLength(args,2)){
     return listutils::typeError(err+" (wrong number of args)");
   }

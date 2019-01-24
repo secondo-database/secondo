@@ -291,7 +291,8 @@ Applied for the operator ~restoreTraj~.
 struct Tile {
   Tile(const int newX, const int newY) : x(newX), y(newY) {path.clear();}
   
-  Tile(const int newX, const int newY, const vector<NewPair<int, int> > newPath)
+  Tile(const int newX, const int newY, 
+       const std::vector<NewPair<int, int> > newPath)
        : x(newX), y(newY), path(newPath) {
     path.push_back(NewPair<int, int>(x, y));
   }
@@ -434,7 +435,7 @@ class RestoreTrajLI {
   void processNeighbors(const int origin, const Instant& inst,
                         const int height, std::set<int>& result);
   void getNeighborAreas(const int origin, const DirectionNum dirNum, 
-                        set<int>& result);
+                        std::set<int>& result);
   void retrieveAreasFromHeight(const int pos, std::set<int>& result);
   void updateCoords(const DirectionNum dir, int& x, int& y);
   int getHeightFromArea(const int areaNo);

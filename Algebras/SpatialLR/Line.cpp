@@ -443,7 +443,8 @@ Transforms this ~Line2~ to a ~Line~.
 */
   Line Line2::toLine() {
     if(hasQuads) {
-      cerr << "Line2 contains quad-segment. Invalid transformation." << endl;
+      std::cerr << "Line2 contains quad-segment. Invalid transformation." 
+                << endl;
       Line line = Line(0);
       line.SetDefined(false);
       return line;

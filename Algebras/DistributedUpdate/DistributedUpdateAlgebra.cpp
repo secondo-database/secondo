@@ -51,7 +51,7 @@ ListExpr updateSearchRelTypeMap(ListExpr args);
 ListExpr appendIdentifierTypeMap (ListExpr args);
 ListExpr updatedirect2TM(ListExpr args);
 ListExpr deletebyid2TM(ListExpr args);
-ListExpr allUpdatesRTreeTypeMap(ListExpr& args, string opName);
+ListExpr allUpdatesRTreeTypeMap(ListExpr& args, std::string opName);
 
 using namespace drel;
 using namespace distributed2;
@@ -214,7 +214,7 @@ DFRel* distributeSimilarToDRel( Relation* rel, ListExpr relType,
         for(int i = 0; i < attrPos; i++){
             attrList = nl->Rest(attrList); 
         }
-        string attrName = nl->ToString( nl->First(nl->First(attrList) ) );
+        std::string attrName = nl->ToString( nl->First(nl->First(attrList) ) );
             
         query = listutils::concat( 
                         nl->OneElemList(
@@ -786,7 +786,7 @@ ListExpr dreldeletebyidTM ( ListExpr args ){
     
     ListExpr attrList1 = nl->Second( nl->Second( relType1 ) );
     ListExpr attrType;
-    string name = nl->SymbolValue(attrName);
+    std::string name = nl->SymbolValue(attrName);
     int index = listutils::findAttribute(attrList1, name, attrType);
     if(!index){
     return listutils::typeError("Attribute not exist");
@@ -850,7 +850,7 @@ ListExpr dreldeletebyidTM ( ListExpr args ){
         resType);
 }
 
-ListExpr drelAllUpdatesRTreeTM (ListExpr& args, string opName ){
+ListExpr drelAllUpdatesRTreeTM (ListExpr& args, std::string opName ){
     
     /*
     cout << "insertrtreeTM" << endl;

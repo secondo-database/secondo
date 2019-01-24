@@ -279,8 +279,8 @@ namespace temporalalgebra{
 2.1 Definition of some constants and auxiliary functions
 
 */
-const double MAXDOUBLE = numeric_limits<double>::max();
-const double MINDOUBLE = numeric_limits<double>::min();
+const double MAXDOUBLE = std::numeric_limits<double>::max();
+const double MINDOUBLE = std::numeric_limits<double>::min();
 
 /*
 2.2 Auxiliary output functions
@@ -1164,7 +1164,7 @@ int MappingMakemvalue(Word* args,Word& result,int message,
         unit = static_cast<Unit*>(currentAttr);
         m->Add( *unit );
       } else {
-        cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef unit. "
+        std::cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef unit. "
              << endl;
       }
       currentTuple->DeleteIfAllowed();
@@ -1212,7 +1212,7 @@ int MappingMakemvaluePlain(Word* args,Word& result,int message,
       } else if(unit1->IsDefined()) {
           allUnits.Append(*unit1);
       } else {
-        cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef unit "
+        std::cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef unit "
              << endl;
       }
       unit1->DeleteIfAllowed();
@@ -1340,7 +1340,7 @@ int MappingMakemvalue_movingregion(Word* args,Word& result,int message,
       } else if(currentUnit->IsDefined()) {
           m->AddURegion( *currentUnit );
       } else {
-        cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef URegion "
+        std::cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef URegion "
              << endl;
       }
       currentTuple->DeleteIfAllowed();
@@ -1378,7 +1378,7 @@ int MappingMakemvalue_movingregionPlain(Word* args,Word& result,int message,
       } else if(unit->IsDefined()) {
           m->AddURegion( *unit );
       } else {
-        cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef URegion "
+        std::cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef URegion "
             << endl;
       }
       unit->DeleteIfAllowed();
@@ -3593,7 +3593,7 @@ struct TUDistanceLocalInfo
   bool finished;
   int NoOfResults;
   int NoOfResultsDelivered;
-  vector<UReal> resultVector;
+  std::vector<UReal> resultVector;
 };
 
 int TUDistance_UReal_UReal( Word* args, Word& result, int message,
@@ -3901,7 +3901,7 @@ struct AtExtrURealLocalInfo
 {
   int NoOfResults;
   int ResultsDelivered;
-  vector<UReal> resultUnitVector;
+  std::vector<UReal> resultUnitVector;
 };
 
 
@@ -4313,7 +4313,7 @@ struct TUAbsLocalInfo
   bool finished;
   int  NoOfResults;
   int  NoOfResultsDelivered;
-  vector<UReal> resultVector;
+  std::vector<UReal> resultVector;
 };
 
 // value mapping for ureal --> (stream ureal)
@@ -4634,7 +4634,7 @@ struct TUIntersectionLocalInfo
   int  NoOfResults;
   int  NoOfResultsDelivered;
   Word resultValues[2];       // Used if at most 2 results can occur
-  vector<Word> resultValues2; // Used if more than 2 results may occur
+  std::vector<Word> resultValues2; // Used if more than 2 results may occur
   MPoint *mpoint;             // Used for upoint x lines
 };
 
@@ -4903,7 +4903,7 @@ struct MappingUnitIntersection_rLocalInfo {
   bool finished;
   int  NoOfResults;          // total number of results
   int  ResultsDelivered;     // number of results already delivered
-  vector<UReal> resvector;   // the results
+  std::vector<UReal> resvector;   // the results
 };
 
 int temporalUnitIntersection_ureal_ureal( Word* args, Word& result, int message,
@@ -6076,7 +6076,7 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
     case OPEN:
 
 #ifdef TUA_DEBUG
-        cerr << "temporalUnitIntersection_upoint_uregion<"
+        std::cerr << "temporalUnitIntersection_upoint_uregion<"
              << uargindex << ", " << regionismoving
              << ">: Received OPEN" << endl;
 #endif
@@ -6090,7 +6090,7 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
       // initialize arguments, such that a0 always contains the upoint
       //                       and a1 the uregion/region
 #ifdef TUA_DEBUG
-      cerr << "  uargindex=" << uargindex << endl;
+      std::cerr << "  uargindex=" << uargindex << endl;
 #endif
       if (uargindex == 0)
         { a0 = args[0]; a1 = args[1]; }
@@ -6098,7 +6098,7 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
         { a0 = args[1]; a1 = args[0]; }
       else
         {
-          cerr << "temporalUnitIntersection_upoint_uregion<"
+          std::cerr << "temporalUnitIntersection_upoint_uregion<"
                << uargindex << ", " << regionismoving
                << ">: WRONG uargindex!" << endl;
           return -1;
@@ -6115,7 +6115,7 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
            (!regionismoving && !f->IsDefined()) )
         {
 #ifdef TUA_DEBUG
-            cerr << "  Undef arg -> Empty Result" << endl << endl;
+            std::cerr << "  Undef arg -> Empty Result" << endl << endl;
 #endif
           // nothing to do
         }
@@ -6145,25 +6145,26 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
           sli->NoOfResults = sli->mpoint->GetNoComponents();
           sli->finished = (sli->NoOfResults <= 0);
 #ifdef TUA_DEBUG
-          cerr << "  " << sli->NoOfResults << " result units" << endl << endl;
+          std::cerr << "  " << sli->NoOfResults << " result units" 
+                    << endl << endl;
 #endif
         }
 #ifdef TUA_DEBUG
-      cerr << "temporalUnitIntersection_upoint_uregion: Finished OPEN"
+      std::cerr << "temporalUnitIntersection_upoint_uregion: Finished OPEN"
            << endl;
 #endif
       return 0;
 
     case REQUEST:
 #ifdef TUA_DEBUG
-        cerr << "temporalUnitIntersection_upoint_uregion<"
+        std::cerr << "temporalUnitIntersection_upoint_uregion<"
              << uargindex << ", " << regionismoving
              << ">: Received REQUEST" << endl;
 #endif
       if(local.addr == 0)
         {
 #ifdef TUA_DEBUG
-          cerr << "temporalUnitIntersection_upoint_uregion<"
+          std::cerr << "temporalUnitIntersection_upoint_uregion<"
                << uargindex << ", " << regionismoving
                << ">: Finished REQUEST (1)" << endl;
 #endif
@@ -6173,7 +6174,7 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
       if(sli->finished)
         {
 #ifdef TUA_DEBUG
-          cerr << "temporalUnitIntersection_upoint_uregion<"
+          std::cerr << "temporalUnitIntersection_upoint_uregion<"
                << uargindex << ", " << regionismoving
                << ">: Finished REQUEST (2)" << endl;
 #endif
@@ -6185,7 +6186,7 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
           result.setAddr( cu.Clone() );
           sli->NoOfResultsDelivered++;
 #ifdef TUA_DEBUG
-          cerr << "temporalUnitIntersection_upoint_uregion<"
+          std::cerr << "temporalUnitIntersection_upoint_uregion<"
                << uargindex << ", " << regionismoving
                << ">: Finished REQUEST (YIELD)" << endl;
 #endif
@@ -6193,7 +6194,7 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
         }
       sli->finished = true;
 #ifdef TUA_DEBUG
-      cerr << "temporalUnitIntersection_upoint_uregion<"
+      std::cerr << "temporalUnitIntersection_upoint_uregion<"
            << uargindex << ", " << regionismoving
            << ">: Finished REQUEST (3)" << endl;
 #endif
@@ -6202,7 +6203,7 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
     case CLOSE:
 
 #ifdef TUA_DEBUG
-      cerr << "temporalUnitIntersection_upoint_uregion<"
+      std::cerr << "temporalUnitIntersection_upoint_uregion<"
            << uargindex << ", " << regionismoving
            << ">: Received CLOSE" << endl;
 #endif
@@ -6214,14 +6215,14 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
           local.setAddr(0);
         }
 #ifdef TUA_DEBUG
-      cerr << "temporalUnitIntersection_upoint_uregion<"
+      std::cerr << "temporalUnitIntersection_upoint_uregion<"
            << uargindex << ", " << regionismoving
            << ">: Finished CLOSE" << endl;
 #endif
       return 0;
     } // end switch
 
-  cerr << "temporalUnitIntersection_upoint_uregion<"
+  std::cerr << "temporalUnitIntersection_upoint_uregion<"
        << uargindex << ", " << regionismoving
        << ">: Received UNKNOWN COMMAND" << endl;
   return 0;
@@ -6242,7 +6243,7 @@ struct TUIntersectionUPointRegionLocalInfo
   bool finished;
   int  NoOfResults;
   int  NoOfResultsDelivered;
-  vector<UPoint> results;
+  std::vector<UPoint> results;
 };
 
 template<int uargindex>
@@ -6274,7 +6275,7 @@ int temporalUnitIntersection_upoint_region( Word* args, Word& result,
       } else if (uargindex == 1) {
         a0 = args[1]; a1 = args[0];
       } else {
-        cerr << __PRETTY_FUNCTION__ << ": WRONG uargindex!" << endl;
+        std::cerr << __PRETTY_FUNCTION__ << ": WRONG uargindex!" << endl;
         return -1;
       }
       u = static_cast<UPoint*>(a0.addr);
@@ -6285,7 +6286,7 @@ int temporalUnitIntersection_upoint_region( Word* args, Word& result,
           sli->NoOfResults = sli->results.size();
           sli->finished = (sli->NoOfResults <= 0);
         } else {
-          cerr << __PRETTY_FUNCTION__ << ": INFO: UPoint::AtRegion failed!"
+          std::cerr << __PRETTY_FUNCTION__ << ": INFO: UPoint::AtRegion failed!"
                << endl;
         }
       }
@@ -6314,7 +6315,7 @@ int temporalUnitIntersection_upoint_region( Word* args, Word& result,
       return 0;
     } // end switch
 
-  cerr << __PRETTY_FUNCTION__ << ": Received UNKNOWN COMMAND" << endl;
+  std::cerr << __PRETTY_FUNCTION__ << ": Received UNKNOWN COMMAND" << endl;
   return 0;
 }
 
@@ -6323,7 +6324,7 @@ int temporalUnitIntersection_uregion_region( Word* args, Word& result,
                                              int message,
                                              Word& local, Supplier s )
 {
-  cerr << "temporalUnitIntersection_uregion_region(): Not yet Implemented!"
+  std::cerr << "temporalUnitIntersection_uregion_region(): Not yet Implemented!"
        << endl;
   return 0;
 }
@@ -6442,10 +6443,11 @@ int temporalunitIntersectionSelect( ListExpr args )
   if( nl->IsEqual( arg1, Region::BasicType() )    &&
       nl->IsEqual( arg2, UPoint::BasicType() ) )    return 20;
 
-  cerr << "ERROR: Unmatched case in temporalunitIntersectionSelect" << endl;
+  std::cerr << "ERROR: Unmatched case in temporalunitIntersectionSelect" 
+            << endl;
   std::string argstr;
   nl->WriteToString(argstr, args);
-  cerr << "       Argumets = '" << argstr << "'." << endl;
+  std::cerr << "       Argumets = '" << argstr << "'." << endl;
   return -1;
 }
 
@@ -7639,7 +7641,7 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
     case OPEN:
 
 #ifdef TUA_DEBUG
-      cerr << "temporalUnitInside_up_ur: Received OPEN" << endl;
+      std::cerr << "temporalUnitInside_up_ur: Received OPEN" << endl;
 #endif
 
       sli = new TUInsideLocalInfo;
@@ -7660,7 +7662,7 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
       if ( !u->IsDefined() || !r->IsDefined() )
         {
 #ifdef TUA_DEBUG
-          cerr << "  Undef arg -> Empty Result" << endl << endl;
+          std::cerr << "  Undef arg -> Empty Result" << endl << endl;
 #endif
           // nothing to do
         }
@@ -7681,23 +7683,24 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
           sli->NoOfResults = sli->mbool->GetNoComponents();
           sli->finished = (sli->NoOfResults <= 0);
 #ifdef TUA_DEBUG
-          cerr << "  " << sli->NoOfResults << " result units" << endl << endl;
+          std::cerr << "  " << sli->NoOfResults << " result units" 
+                    << endl << endl;
 #endif
         }
 #ifdef TUA_DEBUG
-      cerr << "temporalUnitInside_up_ur: Finished OPEN"
+      std::cerr << "temporalUnitInside_up_ur: Finished OPEN"
            << endl;
 #endif
       return 0;
 
     case REQUEST:
 #ifdef TUA_DEBUG
-      cerr << "temporalUnitInside_up_ur: Received REQUEST"<< endl;
+      std::cerr << "temporalUnitInside_up_ur: Received REQUEST"<< endl;
 #endif
       if(local.addr == 0)
         {
 #ifdef TUA_DEBUG
-          cerr << "temporalUnitInside_up_ur: Finished REQUEST (1)" << endl;
+          std::cerr << "temporalUnitInside_up_ur: Finished REQUEST (1)" << endl;
 #endif
           return CANCEL;
         }
@@ -7705,7 +7708,7 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
       if(sli->finished)
         {
 #ifdef TUA_DEBUG
-          cerr << "temporalUnitInside_up_ur: Finished REQUEST (2)"<< endl;
+          std::cerr << "temporalUnitInside_up_ur: Finished REQUEST (2)"<< endl;
 #endif
           return CANCEL;
         }
@@ -7715,21 +7718,21 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
           result.setAddr( cu.Clone() );
           sli->NoOfResultsDelivered++;
 #ifdef TUA_DEBUG
-          cerr << "temporalUnitInside_up_ur: "
+          std::cerr << "temporalUnitInside_up_ur: "
                << "Finished REQUEST (YIELD)" << endl;
 #endif
           return YIELD;
         }
       sli->finished = true;
 #ifdef TUA_DEBUG
-      cerr << "temporalUnitInside_up_ur: Finished REQUEST (3)"<< endl;
+      std::cerr << "temporalUnitInside_up_ur: Finished REQUEST (3)"<< endl;
 #endif
       return CANCEL;
 
     case CLOSE:
 
 #ifdef TUA_DEBUG
-      cerr << "temporalUnitInside_up_ur: Received CLOSE"<< endl;
+      std::cerr << "temporalUnitInside_up_ur: Received CLOSE"<< endl;
 #endif
       if (local.addr != 0)
         {
@@ -7739,12 +7742,12 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
           local.setAddr(0);
         }
 #ifdef TUA_DEBUG
-      cerr << "temporalUnitInside_up_ur: Finished CLOSE"<< endl;
+      std::cerr << "temporalUnitInside_up_ur: Finished CLOSE"<< endl;
 #endif
       return 0;
     } // end switch
 
-  cerr << "temporalUnitInside_up_ur: Received UNKNOWN COMMAND"
+  std::cerr << "temporalUnitInside_up_ur: Received UNKNOWN COMMAND"
        << endl;
   return 0;
 }
@@ -7825,10 +7828,10 @@ int temporalunitInsideSelect( ListExpr args )
   if( nl->IsEqual( arg1, URegion::BasicType() )  &&
       nl->IsEqual( arg2, Points::BasicType() ) )  return 3;
 
-  cerr << "ERROR: Unmatched case in temporalunitInsideSelect" << endl;
+  std::cerr << "ERROR: Unmatched case in temporalunitInsideSelect" << endl;
   std::string argstr;
   nl->WriteToString(argstr, args);
-  cerr << "       Argumets = '" << argstr << "'." << endl;
+  std::cerr << "       Argumets = '" << argstr << "'." << endl;
   return -1;
 }
 
@@ -9195,7 +9198,7 @@ template <int opcode, int unit_arg>
 
       if ( !u1->IsDefined()) // || !u2->IsDefined() )
       {
-//           cerr << "Undef input" << endl;
+//           std::cerr << "Undef input" << endl;
         return 0;
       }
       iv = u1->timeInterval;
@@ -9310,7 +9313,7 @@ template<int opcode>
   UReal *u2  = (UReal*) args[1].addr;
   TUCompareValueLocalInfo *localinfo;
   UBool cu;
-  vector<UBool> res;
+  std::vector<UBool> res;
   switch (message)
   {
     case OPEN:
@@ -9601,7 +9604,7 @@ int TU_VM_ComparePredicateValue_URegion(Word* args, Word& result,
 //   URegion   *u1  = (URegion*) args[0].addr;
 //   URegion   *u2  = (URegion*) args[1].addr;
 
-  cerr << "TU_VM_ComparePredicateValue_URegion() not yet implemented!"
+  std::cerr << "TU_VM_ComparePredicateValue_URegion() not yet implemented!"
        << endl;
   return -1; // should not be reached
 }
@@ -10130,7 +10133,7 @@ int TUCanMeet( Word* args, Word& result, int message,
       UReal dist(0);
       u1ex.Distance( u2ex, dist );
       if(debugme)
-        dist.Print(cerr);
+        dist.Print(std::cerr);
       // 3- Compute the time when the distance reaches the distThreshould
       double c= dist.c - ((dist.r)?
           distThreshold->GetRealval() * distThreshold->GetRealval():
@@ -10761,7 +10764,7 @@ int SecInterval::Compare(const Attribute* attr) const {
   return Interval<Instant>::CompareTo(*si);
 }
 
-ostream& SecInterval::Print(ostream &os) const {
+std::ostream& SecInterval::Print(std::ostream &os) const {
   os << (lc?"[":"(");
   start.Print(os) << ", ";
   end.Print(os) << (rc?"]":")");

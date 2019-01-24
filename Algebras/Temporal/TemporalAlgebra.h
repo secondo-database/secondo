@@ -4234,7 +4234,7 @@ Implements the discrete Frechet distance between two moving points and uses the
 auxiliary function getPointSequence.
 
 */
-    void getPointSequence(vector<Point>& result) const;
+    void getPointSequence(std::vector<Point>& result) const;
     double FrechetDistance(const MPoint* mp, const Geoid* geoid = 0) const;
 
 private:

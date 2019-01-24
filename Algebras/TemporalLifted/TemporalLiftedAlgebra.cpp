@@ -6780,10 +6780,12 @@ int IsEmptyValueMap(Word* args, Word& result, int message,
     }
     pResult->SetDefined( true );
 
-    UBool uBool(true);
-    Unit1 ureg;
+    Unit1 ureg(true);
+
+
     pResult->StartBulkLoad();
     if(reg->GetNoComponents() < 1){
+      UBool uBool(true);
       uBool.timeInterval.lc = true;
       uBool.timeInterval.start.ToMinimum();
       uBool.timeInterval.start.SetType(instanttype);
@@ -6792,8 +6794,8 @@ int IsEmptyValueMap(Word* args, Word& result, int message,
       uBool.timeInterval.end.SetType(instanttype);
       uBool.constValue.Set(true,true);
       pResult->Add(uBool);
-    }
-    else{
+    } else {
+      UBool uBool(true);
       uBool.timeInterval.lc = true;
       uBool.timeInterval.start.ToMinimum();
       uBool.timeInterval.start.SetType(instanttype);
@@ -6819,10 +6821,9 @@ int IsEmptyValueMap(Word* args, Word& result, int message,
       }
       uBool.timeInterval.end.ToMaximum();
       uBool.timeInterval.end.SetType(instanttype);
-      if(ureg.timeInterval.end < uBool.timeInterval.end){
+      if(ureg.timeInterval.end.operator<(uBool.timeInterval.end)){
         uBool.timeInterval.rc = true;
         uBool.constValue.Set(true,true);
-
         pResult->MergeAdd(uBool);;
       }
     }
@@ -8250,7 +8251,8 @@ static ValueMapping temporalliftisemptyvaluemap[] = {
                 IsEmptyValueMap<MInt, UInt>,
                 IsEmptyValueMap<MReal, UReal>,
                 IsEmptyValueMap<MPoint, UPoint>,
-                IsEmptyValueMap<MString, UString>};
+                IsEmptyValueMap<MString, UString>
+        };
 
 static ValueMapping temporalliftinsidemap[] = {
                 MPointPointsInside<1>,

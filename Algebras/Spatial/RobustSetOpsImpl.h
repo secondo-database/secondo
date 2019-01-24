@@ -114,7 +114,7 @@ void addSplitPoint( const HalfSegment hsline,
    bool insideLeft = hsreg.insideLeft();
 
    //cout << "insert delta " << delta1 << endl;
-   res.push_back(pair<double,bool>(delta1,leftBehindDelta == insideLeft));
+   res.push_back(std::pair<double,bool>(delta1,leftBehindDelta == insideLeft));
 }
 
 
@@ -122,7 +122,8 @@ void addSplitPoint( const HalfSegment hsline,
 Compare function.
 
 */
-bool splitpointless(const pair<double,bool>& a, const pair<double,bool>& b);
+bool splitpointless(const std::pair<double,bool>& a, 
+                    const std::pair<double,bool>& b);
 
 
 /*
@@ -141,7 +142,7 @@ parts inside the region.
 */
 template<template<typename T>class Array>
 void insertLineParts(HalfSegment& hs, 
-                     vector<pair<double,bool> > splitpoints, 
+                     std::vector<std::pair<double,bool> > splitpoints, 
                      const RegionT<Array>& region,
                      LineT<Array>& result,
                      int& edgeno){
@@ -179,10 +180,11 @@ void insertLineParts(HalfSegment& hs,
     // if not present, 
     if(!AlmostEqual(splitpoints[0].first,0.0)){
        splitpoints.insert(splitpoints.begin(),
-                          pair<double,bool>(0.0,!splitpoints[0].second));
+                          std::pair<double,bool>(0.0,!splitpoints[0].second));
     } 
     if(!AlmostEqual(splitpoints.back().first,1.0)){
-       splitpoints.push_back(pair<double,bool>(1.0,!splitpoints.back().second));
+       splitpoints.push_back(
+           std::pair<double,bool>(1.0,!splitpoints.back().second));
     }
 
 
@@ -193,10 +195,10 @@ void insertLineParts(HalfSegment& hs,
     // in this case, we keep only one of the group
     // if there are different split directions, we remove all splits at
     // this position
-    vector<pair<double,bool> > splitpoints2;
+    std::vector<std::pair<double,bool> > splitpoints2;
     size_t pos = 0;
     while(pos <  splitpoints.size()){
-      pair<double,bool> first = splitpoints[pos];
+      std::pair<double,bool> first = splitpoints[pos];
       bool differ = false;
       size_t pos2 = pos + 1;
       bool done = pos2 >= splitpoints.size();
@@ -324,7 +326,7 @@ void intersection(const RegionT<Array1>& region,
    for(int i=0;i<line.Size();i++){
       line.Get(i,hs);
       if(hs.IsLeftDomPoint()){
-          vector<pair<double, bool> > splitPoints;
+          std::vector<std::pair<double, bool> > splitPoints;
           mmrtree::RtreeT<2,int>::iterator* it = tree.find(hs.BoundingBox());
           HalfSegment hs2;
           int const* pos;
@@ -345,8 +347,8 @@ enum splitKind  {normalSplit, startCommon, endCommon};
 
 class splitPointComp{
   public:
-  bool operator()(const pair<double,splitKind>& p1, 
-                  const pair<double,splitKind>& p2){
+  bool operator()(const std::pair<double,splitKind>& p1, 
+                  const std::pair<double,splitKind>& p2){
     if(p1.first<p2.first){
       return true;
     }
@@ -359,7 +361,7 @@ class splitPointComp{
 };
 
 
-string splitkind(splitKind i);
+std::string splitkind(splitKind i);
 
 
 template<template<typename T> class Array>
@@ -385,9 +387,9 @@ bool insertSegment(const HalfSegment& hs,
 
 template<template<typename T> class Array>
 void insertSegmentParts(HalfSegment& hs, 
-                        vector< pair<double, splitKind> >& splitpoints, 
-                        Array<HalfSegment>& result, 
-                        int& edgeno){
+                      std::vector< std::pair<double, splitKind> >& splitpoints, 
+                      Array<HalfSegment>& result, 
+                      int& edgeno){
 
 
    //cout << "insertsegmentparts called for " << hs.SimpleString() << endl;
@@ -405,11 +407,11 @@ void insertSegmentParts(HalfSegment& hs,
    sort(splitpoints.begin(), splitpoints.end(),cmp);
    if((splitpoints[0].first!=0.0) || (splitpoints[0].second!=normalSplit) ){
       splitpoints.insert(splitpoints.begin(), 
-                         pair<double,splitKind>(0.0,normalSplit));
+                         std::pair<double,splitKind>(0.0,normalSplit));
    }
    if((splitpoints.back().first!=1.0) || 
       (splitpoints.back().second!=normalSplit)){
-      splitpoints.push_back(pair<double,splitKind>(1.0,normalSplit));
+      splitpoints.push_back(std::pair<double,splitKind>(1.0,normalSplit));
    }
    double lastPos = splitpoints[0].first;
    splitKind lastKind = splitpoints[0].second;
@@ -457,10 +459,10 @@ bool commonPart(const HalfSegment& hs1, const HalfSegment& hs2,
                 double& delta1, double& delta2);
 
 void realminizeParallel(const HalfSegment& hs1, const HalfSegment& hs2,
-                        vector<pair<double,splitKind> >& splitPoints);
+                        std::vector<std::pair<double,splitKind> >& splitPoints);
 
 void realminize(HalfSegment& hs1, HalfSegment& hs2, const bool secondFirst, 
-                vector<pair<double,splitKind> >& splitpoints);
+                std::vector<std::pair<double,splitKind> >& splitpoints);
 
 
 template<template<typename T1> class Array1,
@@ -493,7 +495,7 @@ void realminize(const Array1<HalfSegment>& src,
           mmrtree::RtreeT<2,int>::iterator* it = tree.find(hs.BoundingBox());
           HalfSegment hs2;
           int const* pos;
-          vector<pair<double,splitKind> > splitPoints;
+          std::vector<std::pair<double,splitKind> > splitPoints;
           while( (pos = it->next()) != 0){
               if((*pos)!=i){
                  src.Get(*pos,hs2);
@@ -510,8 +512,8 @@ void realminize(const Array1<HalfSegment>& src,
 
 void crossings(const HalfSegment& hs1, 
                const HalfSegment& hs2,
-               set<Point,ApproxPointLess>& candidates,
-               set<Point,ApproxPointLess>& falseHitsCandidates);
+               std::set<Point,ApproxPointLess>& candidates,
+               std::set<Point,ApproxPointLess>& falseHitsCandidates);
 
 
 template<template<typename T1>class Array1,
@@ -540,8 +542,8 @@ void crossings(const LineT<Array1>& l1,
     }
 
     // step 2 process halfsegments of l2
-    set<Point,ApproxPointLess> candidates;
-    set<Point,ApproxPointLess> falseHitCandidates;
+    std::set<Point,ApproxPointLess> candidates;
+    std::set<Point,ApproxPointLess> falseHitCandidates;
 
     for(int i=0;i<l2.Size();i++){
        l2.Get(i,hs);
@@ -558,7 +560,7 @@ void crossings(const LineT<Array1>& l1,
     }
 
     result.StartBulkLoad();
-    set<Point,ApproxPointLess>::iterator it;
+    std::set<Point,ApproxPointLess>::iterator it;
   
     for(it = candidates.begin();it!=candidates.end();it++){
        if(falseHitCandidates.find(*it) == falseHitCandidates.end()){
@@ -833,7 +835,7 @@ void intersection(const LineT<Array1>& l1,
    result.Clear();
    result.SetDefined(true);
    result.StartBulkLoad();
-   vector<pair<double,bool> > v;
+   std::vector<std::pair<double,bool> > v;
    int edgeno = 0;
    for(int i=0;i<l2.Size();i++){
       l2.Get(i,hs);
