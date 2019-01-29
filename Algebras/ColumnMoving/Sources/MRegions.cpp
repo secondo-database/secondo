@@ -51,7 +51,7 @@ arrays.
  
 */
   CRelAlgebra::AttrArray* MRegions::Filter(
-    CRelAlgebra::SharedArray<const size_t> filter) const
+    CRelAlgebra::SharedArray<const uint64_t> filter) const
   {
     return new MRegions(*this, filter);
   }
@@ -60,7 +60,7 @@ arrays.
 ~GetCount~ returns the number of entries in the attribut array.
 
 */
-  size_t MRegions::GetCount() const
+  uint64_t MRegions::GetCount() const
   {
     return m_MRegions->size();
   }
@@ -70,7 +70,7 @@ arrays.
 to persistant storage.
 
 */
-  size_t MRegions::GetSize() const
+  uint64_t MRegions::GetSize() const
   {
     return  m_Edges->savedSize() +
             m_Cycles->savedSize() +
@@ -99,7 +99,7 @@ to persistant storage.
 ~Append~ adds the moving point at index ~row~ of the attribut array ~array~
 
 */
-  void MRegions::Append(const CRelAlgebra::AttrArray & array, size_t row)
+  void MRegions::Append(const CRelAlgebra::AttrArray & array, uint64_t row)
   {
     const MRegions & mrs = static_cast<const MRegions &>(array);
 
@@ -206,7 +206,7 @@ to persistant storage.
 ~IsDefined~ returns true, iff the moving point with index ~row~ has any units
 
 */
-  bool MRegions::IsDefined(size_t row) const
+  bool MRegions::IsDefined(uint64_t row) const
   {
     return unitCount(row) > 0;
   }
@@ -216,8 +216,8 @@ to persistant storage.
 at index ~rowB~ in ~arrayB~
 
 */
-  int MRegions::Compare(size_t rowA, const CRelAlgebra::AttrArray &arrayB,
-    size_t rowB) const
+  int MRegions::Compare(uint64_t rowA, const CRelAlgebra::AttrArray &arrayB,
+    uint64_t rowB) const
   {
     const MRegions & mpointsB = static_cast<const MRegions&>(arrayB);
 
@@ -283,7 +283,7 @@ at index ~rowB~ in ~arrayB~
 attribute ~value~
 
 */
-  int MRegions::Compare(size_t row, Attribute &value) const
+  int MRegions::Compare(uint64_t row, Attribute &value) const
   {
     MRegions mrs;
     mrs.Append(value);
@@ -294,12 +294,12 @@ attribute ~value~
 ~GetHash~ returns a hash value for the moving point at index ~row~
 
 */
-  size_t MRegions::GetHash(size_t row) const
+  uint64_t MRegions::GetHash(uint64_t row) const
   {
     if (m_Units->size() == 0)
       return 0;
 
-    return (size_t)(unit(0).interval.s ^ unit(0).interval.e);
+    return (uint64_t)(unit(0).interval.s ^ unit(0).interval.e);
   }
 
 
@@ -309,7 +309,7 @@ in ~row~ to an MPoint as defined in the temporal algebra for row oriented
 relations and returns it.
 
 */
-  Attribute * MRegions::GetAttribute(size_t row, bool clone) const
+  Attribute * MRegions::GetAttribute(uint64_t row, bool clone) const
   {
     temporalalgebra::MRegion* mr = new temporalalgebra::MRegion(0);
 

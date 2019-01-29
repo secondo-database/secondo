@@ -59,7 +59,6 @@ Also the operators on these types are defined.
 
 using std::vector;
 using std::string;
-using namespace CRelAlgebra;
 
 namespace col {
 
@@ -72,7 +71,7 @@ In the array ~allocBytes~ are listed several steps of memory allocation as
 they are used in the ~In~ function of each spatial type.
 
 */
-long allocBytes[20] = {     0,   //   initial value
+uint64_t allocBytes[20] = {     0,   //   initial value
                          8192,   // fit in L1 data cache
                         16384,   // fit in L1 data cache
                        245760,   // 256 KB L2 cache
@@ -109,7 +108,7 @@ Another result of this function is the time in nanoseconds passed
 since system start.
 
 */
-inline void benchmark(long &cycles, long &ns);
+void benchmark(long &cycles, long &ns);
 
 /*
 3 Implementation of column-oriented spatial types
@@ -902,7 +901,7 @@ known weakness:
 if the region overlaps the 180th longitude then the function fails.
 
 */
-  LongInts* pointsInside(ColPoint* cPoint);
+  CRelAlgebra::LongInts* pointsInside(ColPoint* cPoint);
 
 /*
 The function ~linesInside~ checks for each line of an ~aline~ type
@@ -916,7 +915,7 @@ and the line index will be stored in a ~longints~ result type.
 In any other case the line only crosses the region.
 
 */
-  LongInts* linesInside(ColLine* cLine);
+  CRelAlgebra::LongInts* linesInside(ColLine* cLine);
 
 /*
 The ~contain~ function is similar to the inside function except that not
@@ -924,7 +923,7 @@ the indices of the elements within are returned by result but the indices
 of the containing regions are returned as a ~longints~ type.
 
 */
-  LongInts* containsPoints(ColPoint* cPoint);
+  CRelAlgebra::LongInts* containsPoints(ColPoint* cPoint);
 
 /*
 The ~In~ function scans a nested-list (parameter ~instance~) and converts it

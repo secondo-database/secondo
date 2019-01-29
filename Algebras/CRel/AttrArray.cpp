@@ -369,7 +369,7 @@ void AttrArrayTypeConstructor::DefaultDelete(const ListExpr typeExpr,
 }
 
 bool AttrArrayTypeConstructor::DefaultOpen(SmiRecord &valueRecord,
-                                           uint64_t &offset,
+                                           size_t &offset,
                                            const ListExpr typeExpr, Word &value)
 {
   try
@@ -400,7 +400,7 @@ bool AttrArrayTypeConstructor::DefaultOpen(SmiRecord &valueRecord,
 }
 
 bool AttrArrayTypeConstructor::DefaultSave(SmiRecord &valueRecord,
-                                           uint64_t &offset,
+                                           size_t &offset,
                                            const ListExpr typeExpr, Word &value)
 {
   try

@@ -39,7 +39,7 @@ arrays.
  
 */
   CRelAlgebra::AttrArray* MPoints::Filter(
-    CRelAlgebra::SharedArray<const size_t> filter) const
+    CRelAlgebra::SharedArray<const uint64_t> filter) const
   {
     return new MPoints(*this, filter);
   }
@@ -48,7 +48,7 @@ arrays.
 ~GetCount~ returns the number of entries in the attribut array.
 
 */
-  size_t MPoints::GetCount() const
+  uint64_t MPoints::GetCount() const
   {
     return m_MPointsData->rowCount();
   }
@@ -58,7 +58,7 @@ arrays.
 to persistant storage.
 
 */
-  size_t MPoints::GetSize() const
+  uint64_t MPoints::GetSize() const
   {
     return m_MPointsData->savedSize() +
            m_DefTimes->savedSize() +
@@ -90,7 +90,7 @@ to persistant storage.
 ~Append~ adds the moving point at index ~row~ of the attribut array ~array~
 
 */
-  void MPoints::Append(const CRelAlgebra::AttrArray & array, size_t row)
+  void MPoints::Append(const CRelAlgebra::AttrArray & array, uint64_t row)
   {
     MPoints mpoints = static_cast<const MPoints &>(array);
     
@@ -161,7 +161,7 @@ to persistant storage.
 ~IsDefined~ returns true, iff the moving point with index ~row~ has any units
 
 */
-  bool MPoints::IsDefined(size_t row) const
+  bool MPoints::IsDefined(uint64_t row) const
   {
     return m_MPointsData->unitCount(row) > 0;
   }
@@ -171,8 +171,8 @@ to persistant storage.
 at index ~rowB~ in ~arrayB~
 
 */
-  int MPoints::Compare(size_t rowA, const CRelAlgebra::AttrArray &arrayB,
-    size_t rowB) const
+  int MPoints::Compare(uint64_t rowA, const CRelAlgebra::AttrArray &arrayB,
+    uint64_t rowB) const
   {
     const MPoints & mpointsB = static_cast<const MPoints&>(arrayB);
     int iDiff;
@@ -226,7 +226,7 @@ at index ~rowB~ in ~arrayB~
 attribute ~value~
 
 */
-  int MPoints::Compare(size_t row, Attribute &value) const
+  int MPoints::Compare(uint64_t row, Attribute &value) const
   {
     auto mpointB = static_cast<temporalalgebra::MPoint&>(value);
 
@@ -284,7 +284,7 @@ attribute ~value~
 ~GetHash~ returns a hash value for the moving point at index ~row~
 
 */
-  size_t MPoints::GetHash(size_t row) const
+  uint64_t MPoints::GetHash(uint64_t row) const
   {
     if (m_MPointsData->unitCount(row) == 0)
       return 0;
@@ -292,7 +292,7 @@ attribute ~value~
     MPointsData::UnitIterator i = m_MPointsData->unitIterator(row);
     checkrv(i.hasNext(), "hash logical error", 0);
     MPointsData::Unit u = i.next();
-    return (size_t)(u.interval.s ^ u.interval.e);
+    return (uint64_t)(u.interval.s ^ u.interval.e);
   }
 
 /*
@@ -301,7 +301,7 @@ in ~row~ to an MPoint as defined in the temporal algebra for row oriented
 relations and returns it.
 
 */
-  Attribute * MPoints::GetAttribute(size_t row, bool clone) const
+  Attribute * MPoints::GetAttribute(uint64_t row, bool clone) const
   {
     temporalalgebra::MPoint * attribute = 
       new temporalalgebra::MPoint(m_MPointsData->unitCount(row));

@@ -50,9 +50,9 @@ constructors required by the crel algebra for all attribute arrays.
 */
     MFsObjects();
     MFsObjects(CRelAlgebra::Reader& source);
-    MFsObjects(CRelAlgebra::Reader& source, size_t rowsCount);
+    MFsObjects(CRelAlgebra::Reader& source, uint64_t rowsCount);
     MFsObjects(const MFsObjects &array, 
-      const CRelAlgebra::SharedArray<const size_t> &filter);
+      const CRelAlgebra::SharedArray<const uint64_t> &filter);
 /*
 destructor
 
@@ -70,25 +70,25 @@ arrays.
  
 */
     virtual AttrArray* Filter(
-      CRelAlgebra::SharedArray<const size_t> filter) const;
+      CRelAlgebra::SharedArray<const uint64_t> filter) const;
 
 /*
 ~GetAttribute~ converts the entry in ~row~ to a attribute for row oriented
 relations.
 
 */
-    virtual Attribute *GetAttribute(size_t row, bool clone = true) const;
+    virtual Attribute *GetAttribute(uint64_t row, bool clone = true) const;
 /*
 ~GetCount~ returns the number of entries in the attribut array.
 
 */
-    virtual size_t GetCount() const;
+    virtual uint64_t GetCount() const;
 /*
 ~GetSize~ returns the amount of space needed to save this attribut array
 to persistant storage.
 
 */
-    virtual size_t GetSize() const;
+    virtual uint64_t GetSize() const;
 
 /*
 ~Save~ saves this attribut array
@@ -102,7 +102,7 @@ to persistant storage.
 ~Append~ adds the entry at index ~row~ of the attribut array ~array~
 
 */
-    virtual void Append(const CRelAlgebra::AttrArray & array, size_t row);
+    virtual void Append(const CRelAlgebra::AttrArray & array, uint64_t row);
 /*
 ~Append~ adds the row orientied attribute ~value~
 
@@ -123,27 +123,27 @@ to persistant storage.
 ~IsDefined~ returns true, iff the entry with index ~row~ is defined
 
 */
-    virtual bool IsDefined(size_t row) const;
+    virtual bool IsDefined(uint64_t row) const;
 
 /*
 ~Compare~ compares the entry at index ~rowA~ with the entry at index
 ~rowB~ in ~arrayB~
 
 */
-    virtual int  Compare(size_t rowA, const AttrArray& arrayB, 
-      size_t rowB) const;
+    virtual int  Compare(uint64_t rowA, const AttrArray& arrayB, 
+      uint64_t rowB) const;
 /*
 ~Compare~ compares the entry at index ~rowA~ with the row oriented
 attribute ~value~
 
 */
-    virtual int  Compare(size_t row, Attribute &value) const;
+    virtual int  Compare(uint64_t row, Attribute &value) const;
 
 /*
 ~GetHash~ returns a hash value for the entry at index ~row~
 
 */
-    virtual size_t GetHash(size_t row) const;
+    virtual uint64_t GetHash(uint64_t row) const;
 
 /*
 1.1.2 Operators
@@ -257,7 +257,7 @@ These constructors are required by the crel algebra
   }
 
   template<class Unit>
-  MFsObjects<Unit>::MFsObjects(CRelAlgebra::Reader& source, size_t rowsCount)
+  MFsObjects<Unit>::MFsObjects(CRelAlgebra::Reader& source, uint64_t rowsCount)
   {
     m_Units = std::make_shared<Array<Unit>>(source);
     m_MObjects = std::make_shared<Array<MObject>>(source);
@@ -266,7 +266,7 @@ These constructors are required by the crel algebra
 
   template<class Unit>
   MFsObjects<Unit>::MFsObjects(const MFsObjects &array,
-    const CRelAlgebra::SharedArray<const size_t> &filter) :
+    const CRelAlgebra::SharedArray<const uint64_t> &filter) :
     MObjects(array, filter),
     m_Units(array.m_Units),
     m_MObjects(array.m_MObjects)
@@ -284,7 +284,7 @@ arrays.
 */
   template<class Unit>
   CRelAlgebra::AttrArray* MFsObjects<Unit>::Filter(
-    CRelAlgebra::SharedArray<const size_t> filter) const
+    CRelAlgebra::SharedArray<const uint64_t> filter) const
   {
     return new MFsObjects<Unit>
       (*this, filter);
@@ -296,7 +296,7 @@ relations.
 
 */
   template<class Unit>
-  Attribute * MFsObjects<Unit>::GetAttribute(size_t row, bool clone) const
+  Attribute * MFsObjects<Unit>::GetAttribute(uint64_t row, bool clone) const
   {
     typename Unit::MAttr * mattr = new typename Unit::MAttr(unitCount(row));
     mattr->StartBulkLoad();
@@ -313,7 +313,7 @@ relations.
 
 */
   template<class Unit>
-  size_t MFsObjects<Unit>::GetCount() const
+  uint64_t MFsObjects<Unit>::GetCount() const
   {
     return m_MObjects->size();
   }
@@ -324,7 +324,7 @@ to persistant storage.
 
 */
   template<class Unit>
-  size_t MFsObjects<Unit>::
+  uint64_t MFsObjects<Unit>::
   GetSize() const
   {
     return  m_Units->savedSize() +
@@ -352,7 +352,7 @@ to persistant storage.
 */
   template<class Unit>
   void MFsObjects<Unit>::Append(const CRelAlgebra::AttrArray & array, 
-    size_t row)
+    uint64_t row)
   {
     const MFsObjects<Unit> & m = 
       static_cast<const MFsObjects<Unit> &>
@@ -416,7 +416,7 @@ to persistant storage.
 
 */
   template<class Unit>
-  bool MFsObjects<Unit>::IsDefined(size_t row) const
+  bool MFsObjects<Unit>::IsDefined(uint64_t row) const
   {
     return unitCount(row) > 0;
   }
@@ -427,8 +427,8 @@ to persistant storage.
 
 */
   template<class Unit>
-  int MFsObjects<Unit>::Compare(size_t rowA, 
-    const CRelAlgebra::AttrArray &arrayB, size_t rowB) 
+  int MFsObjects<Unit>::Compare(uint64_t rowA, 
+    const CRelAlgebra::AttrArray &arrayB, uint64_t rowB) 
   const
   {
     const MFsObjects<Unit> & mb = 
@@ -463,7 +463,7 @@ attribute ~value~
 
 */
   template<class Unit>
-  int MFsObjects<Unit>::Compare(size_t row, Attribute &value) const
+  int MFsObjects<Unit>::Compare(uint64_t row, Attribute &value) const
   {
     MFsObjects<Unit> mrs;
     mrs.Append(value);
@@ -475,13 +475,13 @@ attribute ~value~
 
 */
   template<class Unit>
-  size_t MFsObjects<Unit>::
-  GetHash(size_t row) const
+  uint64_t MFsObjects<Unit>::
+  GetHash(uint64_t row) const
   {
     if (m_Units->size() == 0)
       return 0;
 
-    return (size_t)(unit(0).interval().s ^ unit(0).interval().e);
+    return (uint64_t)(unit(0).interval().s ^ unit(0).interval().e);
   }
 
 /*
@@ -502,7 +502,7 @@ intime.
     typename Unit::Instants & result)
   {
     if (!instant.IsDefined()) {
-      for (size_t i = 0; i < GetFilter().GetCount(); i++)
+      for (uint64_t i = 0; i < GetFilter().GetCount(); i++)
         result.Append(temporalalgebra::Intime<typename Unit::Attr>(instant, 
                                                     Unit::undefinedAttr()));
 
@@ -548,7 +548,7 @@ to ~result~.
   atPeriods(temporalalgebra::Periods periods, MFsObjects & result)
   {
     if (!periods.IsDefined() || periods.GetNoComponents() == 0) {
-      for (size_t i = 0; i < GetFilter().GetCount(); i++)
+      for (uint64_t i = 0; i < GetFilter().GetCount(); i++)
         result.addMObject();
 
       return;
@@ -658,7 +658,7 @@ the computed new units are added to ~result~
   void MFsObjects<Unit>::at(typename Unit::Attr & value, MFsObjects & result)
   {
     if (!value.IsDefined()) {
-      for (size_t i = 0; i < GetFilter().GetCount(); i++)
+      for (uint64_t i = 0; i < GetFilter().GetCount(); i++)
         result.addMObject();
 
       return;
@@ -688,7 +688,7 @@ range. the computed new units are added to ~result~
   void MFsObjects<Unit>::at(typename Unit::RAttr & value, MFsObjects & result)
   {
     if (!value.IsDefined()) {
-      for (size_t i = 0; i < GetFilter().GetCount(); i++)
+      for (uint64_t i = 0; i < GetFilter().GetCount(); i++)
         result.addMObject();
 
       return;

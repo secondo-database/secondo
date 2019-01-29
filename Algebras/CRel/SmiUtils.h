@@ -32,36 +32,36 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace CRelAlgebra
 {
   void WriteOrThrow(SmiRecordFile &target, SmiRecordId recordId, char *source,
-                    uint64_t count, uint64_t &offset);
+                    size_t count, size_t &offset);
 
-  void WriteOrThrow(SmiRecord &target, char *source, uint64_t count,
-                    uint64_t &offset);
+  void WriteOrThrow(SmiRecord &target, char *source, size_t count,
+                    size_t &offset);
 
   template<class T>
-  void WriteOrThrow(SmiRecord &target, T &value, uint64_t &offset)
+  void WriteOrThrow(SmiRecord &target, T &value, size_t &offset)
   {
     WriteOrThrow(target, (char*)&value, sizeof(T), offset);
   }
 
   void ReadOrThrow(char *target, SmiRecordFile &source, SmiRecordId recordId,
-                   uint64_t count, uint64_t &offset);
+                   size_t count, size_t &offset);
 
-  void ReadOrThrow(char *target, SmiRecord &source, uint64_t count,
-                   uint64_t &offset);
+  void ReadOrThrow(char *target, SmiRecord &source, size_t count,
+                   size_t &offset);
 
-  char *ReadOrThrow(SmiRecordFile &source, SmiRecordId recordId, uint64_t count,
-                    uint64_t &offset);
+  char *ReadOrThrow(SmiRecordFile &source, SmiRecordId recordId, size_t count,
+                    size_t &offset);
 
-  char *ReadOrThrow(SmiRecord &source, uint64_t count, uint64_t &offset);
+  char *ReadOrThrow(SmiRecord &source, size_t count, size_t &offset);
 
   template<class T>
-  void ReadOrThrow(T &value, SmiRecord &source, uint64_t &offset)
+  void ReadOrThrow(T &value, SmiRecord &source, size_t &offset)
   {
     ReadOrThrow((char*)&value, source, sizeof(T), offset);
   }
 
   template<class T>
-  T ReadOrThrow(SmiRecord &source, uint64_t &offset)
+  T ReadOrThrow(SmiRecord &source, size_t &offset)
   {
     T value;
     ReadOrThrow((char*)&value, source, sizeof(T), offset);

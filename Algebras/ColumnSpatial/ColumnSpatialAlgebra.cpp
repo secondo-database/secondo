@@ -56,6 +56,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <ctime>
 #include <fstream>
 #include <cstring>
+#include <stdint.h>
 
 using std::vector;
 using std::fstream;
@@ -65,7 +66,6 @@ using namespace CRelAlgebra;
 extern NestedList *nl;
 extern QueryProcessor *qp;
 
-typedef long int64_t;
 
 namespace col {
 
@@ -75,9 +75,9 @@ namespace col {
 Benchmark cycles and nanoseconds.
 
 */
-inline void benchmark(long &cycles, long &ns) {
+inline void benchmark(unsigned &cycles, long &ns) {
   struct timespec ttime;
-  long lo, hi;
+  uint64_t lo, hi;
   // get nanoseconds from timer
   clock_gettime(CLOCK_MONOTONIC, &ttime);
   ns = (long)ttime.tv_sec * 1.0e9 + ttime.tv_nsec;
@@ -184,7 +184,7 @@ inline void benchmark(long &cycles, long &ns) {
     }
 
     // calculate and allocate sufficient memory for the tuple array
-    while ((long) (count * sizeof(sPoint)) >= allocBytes[step]) step++;
+    while ( (count * sizeof(sPoint)) >= allocBytes[step]) step++;
     aPoint = static_cast<sPoint*> (realloc(aPoint, allocBytes[step]));
     if (aPoint == NULL) {  // exit on memory overflow
       cmsg.inFunError("not enough memory for all lines!");
@@ -283,7 +283,7 @@ It uses the memcpy - function of the string-library
       }
 
       // allocate more memory if the actual allocated memory is insufficient
-      if ((long)((inCount + 1) * sizeof(sPoint)) >= allocBytes[step]) {
+      if (((inCount + 1) * sizeof(sPoint)) >= allocBytes[step]) {
         // allocate more memory - in C++ a type casting is necessary unlike in C
         inArray = static_cast<sPoint*>(realloc(inArray, allocBytes[++step]));
         if (inArray == NULL) {    // exit on memory overflow
@@ -632,8 +632,7 @@ each entry to the clone object.
     }
 
     // calculate and allocate sufficient memory for the tuple array
-    while ((long)
-          ((countLine + 2) * sizeof(sLine)) >= allocBytes[stepLine]) {
+    while ( ((countLine + 2) * sizeof(sLine)) >= allocBytes[stepLine]) {
       stepLine++;
     }
     aLine = static_cast<sLine*> (realloc(aLine, allocBytes[stepLine]));
@@ -655,8 +654,7 @@ each entry to the clone object.
 
       if(hs.IsLeftDomPoint() == true) {
         // allocates memory for the point array and appends the given segment
-        if ((long)
-           ((countSegment + 2) * sizeof(sSegment)) >= allocBytes[stepSegment]) {
+        if (((countSegment + 2) * sizeof(sSegment)) >= allocBytes[stepSegment]){
           // allocate more memory - in C++ a type casting is necessary
           aSegment = static_cast<sSegment*>
             (realloc(aSegment, allocBytes[++stepSegment]));
@@ -811,7 +809,7 @@ each entry to the clone object.
     while (!nl->IsEmpty(lineNL)) {  // as long as there are lines left
 
       // allocate more memory if the actual allocated memory is insufficient
-      if ((long)((cl + 2) * sizeof(sLine)) >= allocBytes[stepLine]) {
+      if (((cl + 2) * sizeof(sLine)) >= allocBytes[stepLine]) {
         // allocate more memory - C++ needs type casting unlike C
         inLine = static_cast<sLine*>(realloc(inLine, allocBytes[++stepLine]));
         if (inLine == NULL) {  // exit on memory overflow
@@ -842,7 +840,7 @@ each entry to the clone object.
         }
 
         // allocate more memory if the actual allocated memory is insufficient
-        if ((long)((cs + 2) * sizeof(sSegment)) >= allocBytes[stepSegment]) {
+        if (((cs + 2) * sizeof(sSegment)) >= allocBytes[stepSegment]) {
           // allocate more memory - C++ needs type casting unlike C
           inSeg = static_cast<sSegment*>
                       (realloc(inSeg, allocBytes[++stepSegment]));
@@ -1328,7 +1326,7 @@ each entry to the clone object.
     double y = p.GetY();
 
     // allocate more memory if actual allocated memory is insufficient
-    if ((long) ((countPoint + 2) * sizeof(sPoint)) >= allocBytes[stepPoint]) {
+    if (((countPoint + 2) * sizeof(sPoint)) >= allocBytes[stepPoint]) {
       // allocate more memory - in C++ a type casting is necessary
       stepPoint++;
       aPoint = static_cast<sPoint*> (realloc(aPoint, allocBytes[stepPoint]));
@@ -1358,7 +1356,7 @@ each entry to the clone object.
   int ColRegion::appendCycle(long cp, long &stepCycle) {
 
     // allocate more memory if actual allocated memory is insufficient
-    if ((long)
+    if (
       ((countCycle + 2) * sizeof(sCycle)) >= allocBytes[stepCycle]) {
       // allocate more memory - in C++ a type casting is necessary
       aCycle =static_cast<sCycle*>
@@ -1392,7 +1390,7 @@ each entry to the clone object.
     }
 
     // calculate and allocate sufficient memory for the tuple array
-    while ((long)
+    while (
           ((countRegion + 2) * sizeof(sRegion)) >= allocBytes[stepRegion]) {
       stepRegion++;
     }
@@ -2007,7 +2005,7 @@ and returns the region indices.
     ListExpr regionNL = instance;
     while (!nl->IsEmpty(regionNL)) {  // as long as there are regions left
       // allocate more memory if the actual allocated memory is insufficient
-      if ((long)
+      if (
         ((cr + 2) * sizeof(sRegion)) >= allocBytes[stepRegion]) {
         // allocate more memory - in C++ a type casting is necessary
         inRegion = static_cast<sRegion*>
@@ -2046,7 +2044,7 @@ and returns the region indices.
 
         while (!nl->IsEmpty(faceNL)) {  // cycles
           // allocate more memory if actual allocated memory is insufficient
-          if ((long)
+          if (
             ((cc + 2) * sizeof(sCycle)) >= allocBytes[stepCycle]) {
             // allocate more memory - in C++ a type casting is necessary
             inCycle =static_cast<sCycle*>
@@ -2075,7 +2073,7 @@ and returns the region indices.
             }
 
             // allocate more memory if actual allocated memory is insufficient
-            if ((long) ((cp + 2) * sizeof(sPoint)) >= allocBytes[stepPoint]) {
+            if ( ((cp + 2) * sizeof(sPoint)) >= allocBytes[stepPoint]) {
               // allocate more memory - in C++ a type casting is necessary
               inPoint = static_cast<sPoint*>
                 (realloc(inPoint, allocBytes[++stepPoint]));

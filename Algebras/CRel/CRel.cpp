@@ -84,7 +84,7 @@ CRel::~CRel()
   {
     if (m_blockRecord.modified)
     {
-      uint64_t offset = 0;
+      size_t offset = 0;
 
       WriteOrThrow(m_blockFile, m_blockRecord.index + 1, m_blockRecord.data,
                     m_blockRecordSize, offset);
@@ -419,7 +419,7 @@ CRel::BlockRecord &CRel::GetBlockRecord(uint64_t blockIndex) const
   {
     if (blockRecord.modified)
     {
-      uint64_t offset = 0;
+      size_t offset = 0;
 
       WriteOrThrow(m_blockFile, blockRecord.index + 1, blockRecord.data,
                    m_blockRecordSize, offset);
@@ -432,7 +432,7 @@ CRel::BlockRecord &CRel::GetBlockRecord(uint64_t blockIndex) const
 
   if (blockRecord.data == nullptr)
   {
-    uint64_t offset = 0;
+    size_t offset = 0;
 
     blockRecord.index = recordIndex;
 

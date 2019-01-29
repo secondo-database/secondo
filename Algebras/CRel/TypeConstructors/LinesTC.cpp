@@ -100,13 +100,13 @@ void LinesTC::Delete(const ListExpr typeExpr, Word &value)
   return DefaultDelete(typeExpr, value);
 }
 
-bool LinesTC::Open(SmiRecord &valueRecord, uint64_t &offset,
+bool LinesTC::Open(SmiRecord &valueRecord, size_t &offset,
                   const ListExpr typeExpr, Word &value)
 {
   return DefaultOpen(valueRecord, offset, typeExpr, value);
 }
 
-bool LinesTC::Save(SmiRecord &valueRecord, uint64_t &offset,
+bool LinesTC::Save(SmiRecord &valueRecord, size_t &offset,
                   const ListExpr typeExpr, Word &value)
 {
   return DefaultSave(valueRecord, offset, typeExpr, value);

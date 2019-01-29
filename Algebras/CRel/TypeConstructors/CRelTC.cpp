@@ -364,7 +364,7 @@ void CRelTC::Delete(const ListExpr, Word &value)
   value.addr = nullptr;
 }
 
-bool CRelTC::Open(SmiRecord &valueRecord, uint64_t &offset,
+bool CRelTC::Open(SmiRecord &valueRecord, size_t &offset,
                   const ListExpr typeExpr, Word &value)
 {
   try
@@ -388,7 +388,7 @@ bool CRelTC::Open(SmiRecord &valueRecord, uint64_t &offset,
   }
 }
 
-bool CRelTC::Save(SmiRecord &valueRecord, uint64_t &offset, const ListExpr,
+bool CRelTC::Save(SmiRecord &valueRecord, size_t &offset, const ListExpr,
                   Word &value)
 {
   try

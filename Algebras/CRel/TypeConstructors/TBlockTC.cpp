@@ -512,7 +512,7 @@ void TBlockTC::Delete(const ListExpr, Word &value)
   value.addr = nullptr;
 }
 
-bool TBlockTC::Open(SmiRecord &valueRecord, uint64_t &offset,
+bool TBlockTC::Open(SmiRecord &valueRecord, size_t &offset,
                     const ListExpr typeExpr, Word &value)
 {
   try
@@ -533,7 +533,7 @@ bool TBlockTC::Open(SmiRecord &valueRecord, uint64_t &offset,
   }
 }
 
-bool TBlockTC::Save(SmiRecord &valueRecord, uint64_t &offset, const ListExpr,
+bool TBlockTC::Save(SmiRecord &valueRecord, size_t &offset, const ListExpr,
                     Word &value)
 {
   try

@@ -57,9 +57,9 @@ attribute arrays.
 */
     MPoints();
     MPoints(CRelAlgebra::Reader& source);
-    MPoints(CRelAlgebra::Reader& source, size_t rowsCount);
+    MPoints(CRelAlgebra::Reader& source, uint64_t rowsCount);
     MPoints(const MPoints &array, 
-            const CRelAlgebra::SharedArray<const size_t> &filter);
+            const CRelAlgebra::SharedArray<const uint64_t> &filter);
 /*
 1.1.2 Destructor
 
@@ -76,27 +76,27 @@ arrays.
 
  
 */
-    virtual AttrArray* Filter(CRelAlgebra::SharedArray<const size_t> 
+    virtual AttrArray* Filter(CRelAlgebra::SharedArray<const uint64_t> 
                               filter) const;
 
 /*
 ~GetCount~ returns the number of entries in the attribut array.
 
 */
-    virtual size_t GetCount() const;
+    virtual uint64_t GetCount() const;
 /*
 ~GetSize~ returns the amount of space needed to save this attribut array
 to persistant storage.
 
 */
-    virtual size_t GetSize() const;
+    virtual uint64_t GetSize() const;
 /*
 ~GetAttribute~ converts the moving point 
 in ~row~ to an MPoint as defined in the temporal algebra for row oriented
 relations and returns it.
 
 */
-    virtual Attribute *GetAttribute(size_t row, bool clone = true) const;
+    virtual Attribute *GetAttribute(uint64_t row, bool clone = true) const;
 
 /*
 ~Save~ saves this attribut array
@@ -110,7 +110,7 @@ to persistant storage.
 ~Append~ adds the moving point at index ~row~ of the attribut array ~array~
 
 */
-    virtual void Append(const CRelAlgebra::AttrArray & array, size_t row);
+    virtual void Append(const CRelAlgebra::AttrArray & array, uint64_t row);
 /*
 or adds the row orientied MPoint ~value~
 
@@ -131,27 +131,27 @@ or adds the row orientied MPoint ~value~
 ~IsDefined~ returns true, iff the moving point with index ~row~ has any units
 
 */
-    virtual bool IsDefined(size_t row) const;
+    virtual bool IsDefined(uint64_t row) const;
 
 /*
 ~Compare~ compares the moving point at index ~rowA~ with the moving point
 at index ~rowB~ in ~arrayB~
 
 */
-    virtual int Compare(size_t rowA, const AttrArray& arrayB, 
-      size_t rowB) const;
+    virtual int Compare(uint64_t rowA, const AttrArray& arrayB, 
+      uint64_t rowB) const;
 /*
 ~Compare~ compares the moving point at index ~rowA~ with the row oriented
 attribute ~value~
 
 */
-    virtual int Compare(size_t row, Attribute &value) const;
+    virtual int Compare(uint64_t row, Attribute &value) const;
 
 /*
 ~GetHash~ returns a hash value for the moving point at index ~row~
 
 */
-    virtual size_t GetHash(size_t row) const;
+    virtual uint64_t GetHash(uint64_t row) const;
 
 /*
 1.1.2 Operators
@@ -323,7 +323,7 @@ attribute arrays.
       m_GridIndex = std::make_shared<GridIndex>(source);
   }
 
-  inline MPoints::MPoints(CRelAlgebra::Reader& source, size_t rowsCount)
+  inline MPoints::MPoints(CRelAlgebra::Reader& source, uint64_t rowsCount)
   {
     m_MPointsData = std::make_shared<MPointsData>(source);
     m_DefTimes = std::make_shared<DefTimes>(source);
@@ -336,7 +336,7 @@ attribute arrays.
   }
 
   inline MPoints::MPoints(const MPoints &array, 
-    const CRelAlgebra::SharedArray<const size_t> &filter) :
+    const CRelAlgebra::SharedArray<const uint64_t> &filter) :
     MObjects(array, filter),
     m_MPointsData(array.m_MPointsData),
     m_Mbr(array.m_Mbr),

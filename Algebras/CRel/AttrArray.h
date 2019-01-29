@@ -1234,10 +1234,10 @@ namespace CRelAlgebra
 
     static void DefaultDelete(const ListExpr typeExpr, Word &value);
 
-    static bool DefaultOpen(SmiRecord &valueRecord, uint64_t &offset,
+    static bool DefaultOpen(SmiRecord &valueRecord, size_t &offset,
                             const ListExpr typeExpr, Word &value);
 
-    static bool DefaultSave(SmiRecord &valueRecord, uint64_t &offset,
+    static bool DefaultSave(SmiRecord &valueRecord, size_t &offset,
                             const ListExpr typeExpr, Word &value);
 
     static void DefaultClose(const ListExpr typeExpr, Word &value);

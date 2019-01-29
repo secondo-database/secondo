@@ -54,7 +54,7 @@ moving boolean, moving integer and moving string.
 */
     MObjects();
     MObjects(const MObjects &array, 
-      const CRelAlgebra::SharedArray<const size_t> &filter);
+      const CRelAlgebra::SharedArray<const uint64_t> &filter);
     virtual ~MObjects() { }
 
 /*
@@ -113,7 +113,7 @@ in the attribute array.
   }
 
   inline MObjects::MObjects(const MObjects &array, 
-    const CRelAlgebra::SharedArray<const size_t> &filter) :
+    const CRelAlgebra::SharedArray<const uint64_t> &filter) :
     AttrArray(filter),
     m_DefTimes(array.m_DefTimes)
   {
