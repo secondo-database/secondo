@@ -1631,7 +1631,7 @@ void FullOsmImport::divideOSMfile(const std::string& fileName,
   getline(source, line);
   charCounter += line.length();
   for (int i = 0; i < size; i++) { // clear destination files if existing
-      string fn = getFileName(i);
+      std::string fn = getFileName(i);
       dest.open(fn.c_str(), std::ios::trunc);
       dest.close();
   }
