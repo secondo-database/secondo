@@ -185,12 +185,23 @@ Computes the number of tuple in the given drel.
             cout << endl;
             cout << "Start: Compute the size of the drel ..." << endl;
 
-            std::string query =
-            "(tie (getValue (dmap (drel2darray (" + 
-            nl->ToString( sourcedType ) +
-            " (ptr " + nl->ToString( listutils::getPtrList( drel ) ) + ")))"
-            " \"\" (fun (dmapelem1 ARRAYFUNARG1) (count dmapelem1)))) "
-            "(fun (first2 ELEMENT) (second3 ELEMENT) (+first2 second3)))";
+            std::string query;
+
+            if( R::BasicType( ) == DRel::BasicType( ) ) {
+                query = "(tie (getValue (dmap (drel2darray (" + 
+                nl->ToString( sourcedType ) +
+                " (ptr " + nl->ToString( listutils::getPtrList( drel ) ) +
+                " ))) \"\" (fun (dmapelem1 ARRAYFUNARG1) (count dmapelem1)))) "
+                "(fun (first2 ELEMENT) (second3 ELEMENT) (+first2 second3)))";
+            }
+            else {
+                query = "(tie (getValue (dmap (drel2darray (" + 
+                nl->ToString( sourcedType ) + 
+                " (ptr " + nl->ToString( listutils::getPtrList( drel ) ) + 
+                " ))) \"\" (fun (dmapelem_1 ARRAYFUNARG1) (count "
+                "(feed dmapelem_1))))) (fun (first_2 ELEMENT) "
+                "(second_3 ELEMENT) (+ first_2 second_3)))";
+            }
 
             Word result;
             if( !QueryProcessor::ExecuteQuery( query, result ) ) {

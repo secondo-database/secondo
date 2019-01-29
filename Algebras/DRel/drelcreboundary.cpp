@@ -150,12 +150,12 @@ of the realation.
         
         int sampleS = DRelHelpers::computeSampleSize( count );
         int nthS = DRelHelpers::everyNthTupleForSample( sampleS, count );
-        int nthB = DRelHelpers::everyNthTupleForArray( sampleS, size );
+        int nthB = DRelHelpers::everyNthTupleForArray( count / nthS, size );
 
         query = "(collect_vector (head (transformstream (nth (sort (nth"
             " (project " + arg1 + " (" + attr + ") )" + 
             std::to_string( nthS ) + " FALSE) )" + std::to_string( nthB ) +
-            " TRUE)) " + std::to_string( size - 1 ) + "))";
+            " TRUE)) " + std::to_string( size ) + "))";
 
         ListExpr queryList;
         if( !nl->ReadFromString( query, queryList ) ) {
