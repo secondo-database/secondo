@@ -1,0 +1,14 @@
+Database : berlintest
+Restore  : NO
+
+Operator : spatialJoinTouch
+Number   : 1
+Signature: stream(tuple([x_1 : t_1, ... x_n : t_n])) x stream (tuple([y_1 : t_1,...,y_m : t_m])) -> stream(tuple([x_1 : t_1,...,x_n : t_n, y_1 : t_1, ..., y_m : t_m])) ;
+Example  : query Flaechen feed {Flaeche} Sehenswuerdreg feed {PoI} spatialJoinTouch [ GeoData_Flaeche, GeoData_PoI] count
+Result   : 50
+
+Operator : spatialJoinTouch
+Number   : 2
+Signature: stream(tblock) x stream(tblock) x symbol x symbol -> stream(tblock)
+Example  : query Flaechen feed toblocks[1] {Flaeche} Sehenswuerdreg feed toblocks[1] {PoI} spatialJoinTouch[GeoData_Flaeche, GeoData_PoI] count
+Result   : 50
