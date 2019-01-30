@@ -133,7 +133,7 @@ void MPoint2::setMemId(const MemStorageId new_id) {
     cout << *this << "::Finalize()\n";
 }
 
-ostream& MPoint2::Print(ostream &os) const {
+std::ostream& MPoint2::Print(std::ostream &os) const {
     os << "[mpoint2 id: " << id << ", del.refs: " << del.refs
             << ", this: " << this
             << "]";

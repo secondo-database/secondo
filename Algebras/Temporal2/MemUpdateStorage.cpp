@@ -80,7 +80,7 @@ void MemUpdateStorage::initMem() {
                 << memdata->dataMap.size() << endl;
 
         return;
-    } catch (const exception ex) {
+    } catch (const std::exception ex) {
         cout << "Ups: MemUpdateStorage::initMem() - unhandled exeption:\n"
                 << ex.what() << endl;
         throw;

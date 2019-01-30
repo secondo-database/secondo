@@ -80,7 +80,7 @@ public:
             int attrno);
     virtual void Finalize();
 
-    ostream& Print(ostream &os) const;
+    std::ostream& Print(std::ostream &os) const;
 
     inline virtual int NumOfFLOBs () const;
     inline virtual Flob* GetFLOB ( const int i );

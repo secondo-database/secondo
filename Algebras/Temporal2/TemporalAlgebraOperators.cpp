@@ -81,7 +81,7 @@ int MPoint2AtPeriods( Word* args, Word& result, int message,
 
 ValueMapping temporalatperiodsmap[] = { MPoint2AtPeriods };
 
-const string TemporalSpecAtPeriods =
+const std::string TemporalSpecAtPeriods =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(mT periods) -> mT</text--->"
   "<text>_ atperiods _ </text--->"
@@ -110,7 +110,8 @@ For operator ~bbox~
 ListExpr Temporal2BBoxTypeMap( ListExpr args )
 {
   int noargs = nl->ListLength( args );
-  string errmsg = "Expected (M [x geoid]) OR (T), where M in {upoint, mpoint, "
+  std::string errmsg = 
+	          "Expected (M [x geoid]) OR (T), where M in {upoint, mpoint, "
                   "ipoint}, T in {instant,periods}.";
   if ( (noargs<1) || (noargs>2) ){
     return listutils::typeError(errmsg);
@@ -171,7 +172,7 @@ int MPoint2BBox(Word* args, Word& result, int message, Word& local,
 ValueMapping temporal2bboxmap[] = {
         MPoint2BBox };
 
-const string Temporal2SpecBBox  =
+const std::string Temporal2SpecBBox  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>upoint [x geoid] -> rect3,\n"
   "mpoint [x geoid] -> rect3,\n"
@@ -232,7 +233,7 @@ int MPointTrajectory( Word* args, Word& result, int message,
   return 0;
 }
 
-const string TemporalSpecTrajectory =
+const std::string TemporalSpecTrajectory =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mpoint -> line</text--->"
   "<text> trajectory( _ )</text--->"
@@ -282,7 +283,7 @@ ListExpr TranslateAppendSTM(ListExpr args){
       ErrorReporter::ReportError("the second argument has to be a symbol");
       return nl->SymbolAtom(Symbol::TYPEERROR());
   }
-  string a1 = nl->SymbolValue(attrlist);
+  std::string a1 = nl->SymbolValue(attrlist);
 
   int a1index = -1;
 
@@ -330,7 +331,7 @@ ListExpr TranslateAppendSTM(ListExpr args){
          ErrorReporter::ReportError("invalid tuple type");
          return nl->SymbolAtom(Symbol::TYPEERROR());
      }
-     string aname = nl->SymbolValue(anl);
+     std::string aname = nl->SymbolValue(anl);
      if(aname==a1){
         if(a1index>=0){
            ErrorReporter::ReportError("attr name occurs twice");
@@ -391,7 +392,7 @@ int TranslateAppendSVM(Word* args, Word& result,
    return 0;
 }
 
-const string TranslateAppendSSpec =
+const std::string TranslateAppendSSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>stream(tuple((a1 t1)...(an tn))) x ai x duration"
     " -> mpoint, where ti = mpoint</text--->"
