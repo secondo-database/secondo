@@ -75,7 +75,7 @@ namespace col {
 Benchmark cycles and nanoseconds.
 
 */
-inline void benchmark(unsigned &cycles, long &ns) {
+inline void benchmark(long &cycles, long &ns) {
   struct timespec ttime;
   uint64_t lo, hi;
   // get nanoseconds from timer
