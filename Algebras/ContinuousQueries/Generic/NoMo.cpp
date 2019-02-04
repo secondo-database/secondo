@@ -45,6 +45,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "NoMo.h"
 #include <boost/algorithm/string.hpp>
+#include "StringUtils.h"
 
 namespace continuousqueries {
 
@@ -415,7 +416,8 @@ bool NoMo::sendEmail(std::string from, std::string to, std::string subject,
     querystring += "'" + subject+ "', ";
     querystring += "'" + from + "', ";
     querystring += "'" + to + "', ";
-    querystring += "'" + message + "', '');";
+    std::string mask_message = stringutils::replaceAll(message,"'","\\'");
+    querystring += "'" + mask_message + "', '');";
 
     Word resultword;
     SecParser parser;
@@ -424,7 +426,6 @@ bool NoMo::sendEmail(std::string from, std::string to, std::string subject,
     
     try {
         parser.Text2List(querystring, exestring);
-
         //  0 = success, 1 = error, 2 = stack overflow
         if (parseRes == 0) 
         {
@@ -433,6 +434,7 @@ bool NoMo::sendEmail(std::string from, std::string to, std::string subject,
             if ( !QueryProcessor::ExecuteQuery(exestring, resultword) ) 
             {   
                 LOG << "Error while executing send query." << ENDL;
+		LOG << "NL query is " << exestring << ENDL;
                 resultword.setAddr(0);
             }
         } else {
