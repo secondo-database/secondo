@@ -13,7 +13,7 @@
 
 # open database nrw
 
-let DIR = '/home/ralf/Daten/nordrhein-westfalen-latest-free.shp/'
+let DIR = '/home/behr/secondo/bin/nrw2/'
 
 let Roads = dbimport2(DIR + 'gis_osm_roads_free_1.dbf') shpimport2(DIR + 'gis_osm_roads_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
@@ -43,13 +43,13 @@ let Pofw = dbimport2(DIR + 'gis_osm_pofw_free_1.dbf') shpimport2(DIR + 'gis_osm_
 
 let Water = dbimport2(DIR + 'gis_osm_water_a_free_1.dbf') shpimport2(DIR + 'gis_osm_water_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
-let TrafficA = dbimport2(DIR + 'gis.osm_traffic_a_free_1.dbf') shpimport2(DIR + 'gis.osm_traffic_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+let TrafficA = dbimport2(DIR + 'gis_osm_traffic_a_free_1.dbf') shpimport2(DIR + 'gis_osm_traffic_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
-let Traffic = dbimport2(DIR + 'gis.osm_traffic_free_1.dbf') shpimport2(DIR + 'gis.osm_traffic_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+let Traffic = dbimport2(DIR + 'gis_osm_traffic_free_1.dbf') shpimport2(DIR + 'gis_osm_traffic_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
-let TransportA = dbimport2(DIR + 'gis.osm_transport_a_free_1.dbf') shpimport2(DIR + 'gis.osm_transport_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+let TransportA = dbimport2(DIR + 'gis_osm_transport_a_free_1.dbf') shpimport2(DIR + 'gis_osm_transport_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
-let Transport = dbimport2(DIR + 'gis.osm_transport_free_1.dbf') shpimport2(DIR + 'gis.osm_transport_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+let Transport = dbimport2(DIR + 'gis_osm_transport_free_1.dbf') shpimport2(DIR + 'gis_osm_transport_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
 
 
