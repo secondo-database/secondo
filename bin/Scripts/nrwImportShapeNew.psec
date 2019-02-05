@@ -15,33 +15,33 @@
 
 let DIR = '/home/ralf/Daten/nordrhein-westfalen-latest-free.shp/'
 
-let Roads = dbimport2(DIR + 'gis.osm_roads_free_1.dbf') shpimport2(DIR + 'gis.osm_roads_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+let Roads = dbimport2(DIR + 'gis_osm_roads_free_1.dbf') shpimport2(DIR + 'gis_osm_roads_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
-let Waterways = dbimport2(DIR + 'gis.osm_waterways_free_1.dbf') shpimport2(DIR + 'gis.osm_waterways_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+let Waterways = dbimport2(DIR + 'gis_osm_waterways_free_1.dbf') shpimport2(DIR + 'gis_osm_waterways_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
-let Railways = dbimport2(DIR + 'gis.osm_railways_free_1.dbf') shpimport2(DIR + 'gis.osm_railways_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+let Railways = dbimport2(DIR + 'gis_osm_railways_free_1.dbf') shpimport2(DIR + 'gis_osm_railways_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
-let PointsA = dbimport2(DIR + 'gis.osm_pois_a_free_1.dbf') shpimport2(DIR + 'gis.osm_pois_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+let PointsA = dbimport2(DIR + 'gis_osm_pois_a_free_1.dbf') shpimport2(DIR + 'gis_osm_pois_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
-let Points = dbimport2(DIR + 'gis.osm_pois_free_1.dbf') shpimport2(DIR + 'gis.osm_pois_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+let Points = dbimport2(DIR + 'gis_osm_pois_free_1.dbf') shpimport2(DIR + 'gis_osm_pois_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
-let PlacesA = dbimport2(DIR + 'gis.osm_places_a_free_1.dbf') shpimport2(DIR + 'gis.osm_places_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+let PlacesA = dbimport2(DIR + 'gis_osm_places_a_free_1.dbf') shpimport2(DIR + 'gis_osm_places_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
-let Places = dbimport2(DIR + 'gis.osm_places_free_1.dbf') shpimport2(DIR + 'gis.osm_places_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+let Places = dbimport2(DIR + 'gis_osm_places_free_1.dbf') shpimport2(DIR + 'gis_osm_places_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
-let NaturalA = dbimport2(DIR + 'gis.osm_natural_a_free_1.dbf') shpimport2(DIR + 'gis.osm_natural_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+let NaturalA = dbimport2(DIR + 'gis_osm_natural_a_free_1.dbf') shpimport2(DIR + 'gis_osm_natural_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
-let Natural = dbimport2(DIR + 'gis.osm_natural_free_1.dbf') shpimport2(DIR + 'gis.osm_natural_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+let Natural = dbimport2(DIR + 'gis_osm_natural_free_1.dbf') shpimport2(DIR + 'gis_osm_natural_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
-let Buildings = dbimport2(DIR + 'gis.osm_buildings_a_free_1.dbf') shpimport2(DIR + 'gis.osm_buildings_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+let Buildings = dbimport2(DIR + 'gis_osm_buildings_a_free_1.dbf') shpimport2(DIR + 'gis_osm_buildings_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
-let Landuse = dbimport2(DIR + 'gis.osm_landuse_a_free_1.dbf') shpimport2(DIR + 'gis.osm_landuse_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+let Landuse = dbimport2(DIR + 'gis_osm_landuse_a_free_1.dbf') shpimport2(DIR + 'gis_osm_landuse_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
-let PofwA = dbimport2(DIR + 'gis.osm_pofw_a_free_1.dbf') shpimport2(DIR + 'gis.osm_pofw_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+let PofwA = dbimport2(DIR + 'gis_osm_pofw_a_free_1.dbf') shpimport2(DIR + 'gis_osm_pofw_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
-let Pofw = dbimport2(DIR + 'gis.osm_pofw_free_1.dbf') shpimport2(DIR + 'gis.osm_pofw_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+let Pofw = dbimport2(DIR + 'gis_osm_pofw_free_1.dbf') shpimport2(DIR + 'gis_osm_pofw_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
-let Water = dbimport2(DIR + 'gis.osm_water_a_free_1.dbf') shpimport2(DIR + 'gis.osm_water_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+let Water = dbimport2(DIR + 'gis_osm_water_a_free_1.dbf') shpimport2(DIR + 'gis_osm_water_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
 let TrafficA = dbimport2(DIR + 'gis.osm_traffic_a_free_1.dbf') shpimport2(DIR + 'gis.osm_traffic_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
