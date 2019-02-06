@@ -39,7 +39,7 @@ public:
   static const std::string& getStr() {
 
     static const std::string licenseStr = std::string(
-      "\nCopyright (C) 2004, University in Hagen, \n"
+      "\nCopyright (C) 2004-2019, University in Hagen, \n"
       "Department of Computer Science,  \n"
       "Database Systems for New Applications. \n\n"
       "This is free software; see the source for copying conditions.\n"
