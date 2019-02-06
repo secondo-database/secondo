@@ -3895,7 +3895,7 @@ private static void showLicence(){
 }
 
 private static final String Licence = 
-    " Copyright (C) 2008, University of Hagen, \n" +
+    " Copyright (C) 2008-2019, University of Hagen, \n" +
     " Faculty of Mathematics and  Computer Science,  \n"+
     " Database Systems for New Applications. \n\n"+
     " This is free software; see the source for copying conditions.\n" +
