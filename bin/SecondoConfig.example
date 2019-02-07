@@ -239,6 +239,12 @@ Persistent_AvgSize=512
 # if not enabled, the file is created but not updated during a query
 #RTFLAGS += QP:HEARTBEAT
 
+# Main memory buffers for global nested list storage used by the QueryProcessor.
+# Values are given in kB.
+# Defaults are NodeMem=2048, StringMem=1024, TextMem=1024
+#NodeMem=2048
+#StringMem=1024
+#TextMem=1024
 
 # --- ProgressEstimation Section ---
 
