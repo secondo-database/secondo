@@ -221,7 +221,10 @@ you comment out the line below.
    boost::mutex smtx;
 #endif
 
-NestedList::NestedList(string dir /* ="" */ )
+NestedList::NestedList(string dir /* ="" */,
+                       const uint32_t nodeMem,
+                       const uint32_t strMem,
+                       const uint32_t textMem )
 {
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::mutex> guard1(smtx);
@@ -250,7 +253,7 @@ NestedList::NestedList(string dir /* ="" */ )
   }
   ss << "TMP_NESTED_LIST_" << WinUnix::getpid() << "_" << instanceNo;
   basename = ss.str();
-  setMem(1024, 512, 512);
+  setMem(nodeMem, strMem, textMem);
   initializeListMemory();
 
 }
@@ -300,8 +303,8 @@ NestedList::setMem( Cardinal nodeMem, Cardinal strMem, Cardinal textMem)
    boost::lock_guard<boost::recursive_mutex> guard1(mtx);
 #endif
   nodeEntries = nodeMem * 1024 / sizeof(NodeRecord);
-  stringEntries = nodeMem * 1024 / sizeof(StringRecord);
-  textEntries = nodeMem * 1024 / sizeof(TextRecord);
+  stringEntries = strMem * 1024 / sizeof(StringRecord);
+  textEntries = textMem * 1024 / sizeof(TextRecord);
 }
 
 
@@ -317,9 +320,9 @@ NestedList::initializeListMemory()
    nodeTable   = BigArray<NodeRecord>::newInstance(basename+"_nodes",
                                                    nodeEntries,true);
    stringTable = BigArray<StringRecord>::newInstance(basename+"_strings",
-                                                     nodeEntries,true);
+                                                     stringEntries,true);
    textTable   = BigArray<TextRecord>::newInstance(basename+"_texts",
-                                                   nodeEntries,true);
+                                                   textEntries,true);
 
    typeError = SymbolAtom("typeerror");
    errorList = OneElemList( SymbolAtom("ERRORS") );

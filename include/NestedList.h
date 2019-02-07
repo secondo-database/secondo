@@ -544,7 +544,10 @@ class TextScanInfo{
 class NestedList
 {
  public:
-  NestedList(std::string dir="");
+  NestedList(std::string dir="",
+              const uint32_t nodeMem = 1024, 
+              const uint32_t strMem = 512,
+              const uint32_t textMem = 512);
 /*
 Creates an instance of a nested list container.
 
@@ -1142,14 +1145,25 @@ Transforms the text atom into C++ string object
 
 
 /*
+1.3.12 ~setMem~
 
-1.3.12 New Initialization of List Memory
+Changes the buffer sizes for the different used arrays. This will take 
+effect only after calling ~initializeListMemory~.
 
 */
 
   void setMem( Cardinal nodeMem, Cardinal strMem, Cardinal textMem);
 
-  void initializeListMemory();
+/*
+1.3.12 ~initializeListMemory~
+
+This function removes all existing ListExpr from the NestedList storage
+and creates new arrays for storing new lists. 
+
+*/
+
+  void initializeListMemory( ); 
+
 
 /*
 
@@ -1231,8 +1245,11 @@ operation. Thus destroying sublists is possible.
 #ifdef THREAD_SAFE
    mutable boost::recursive_mutex mtx;
 #endif
-   NestedList(const NestedList&);
+   NestedList(const NestedList& ); 
    NestedList& operator=(const NestedList&);
+
+
+
 
    std::string basename;
 
@@ -1371,7 +1388,7 @@ prototypes for functions used for the binary encoding/decoding of lists
                             unsigned long length,
                             unsigned long& pos );
   int32_t  ReadShort( std::istream& in ) const;
-  int32_t  ReadInt( std::istream& in, const int len = 4 ) const;
+  int32_t  ReadInt( std::istream& in, const int len = 4) const;
   void  ReadString( std::istream& in, std::string& outStr, 
                     unsigned long length ) const;
 
