@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <sstream>
 #include <map>
 #include <set>
-#include <deque>
+#include <vector>
 #include <utility>
 #include <stack>
 #include "NodeT.h"
@@ -39,8 +39,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Rectangle/RectangleAlgebra.h"
 
 namespace mmrtreetouch {
-
-
+    
     class RTreeTouch {
     public:
         NodeT* root;
@@ -53,9 +52,9 @@ namespace mmrtreetouch {
 
         ~RTreeTouch();
 
-        NodeT* constructTree(std::deque<NodeT*> sortedArray, int fanout);
+        NodeT* constructTree(std::vector<NodeT*> sortedArray, int fanout);
 
-        deque<Tuple*> getTuplesOverlappingOnTreeWith(Tuple* objectB);
+        vector<Tuple*> getTuplesOverlappingOnTreeWith(Tuple* objectB);
 
         int noLeaves();
 
@@ -71,22 +70,22 @@ namespace mmrtreetouch {
 
         bool outputOn;
 
-        deque<deque<NodeT*> > reGroupByConsideringFanout(
-                std::deque<NodeT*> sortedArray,
+        vector<vector<NodeT*> > reGroupByConsideringFanout(
+                std::vector<NodeT*> sortedArray,
                 int fanout
                 );
 
-        deque<Tuple*> joinPhase(NodeT* node, Tuple* objectB);
+        vector<Tuple*> joinPhase(NodeT* node, Tuple* objectB);
 
-        deque<NodeT*> getNodesOfInnerNodeRecursive(
+        vector<NodeT*> getNodesOfInnerNodeRecursive(
                 NodeT* node,
-                std::deque<NodeT*> leafNodes,
+                std::vector<NodeT*> leafNodes,
                 bool justLeafNodes = true
                 );
 
-        deque<Tuple*> getMatchingConcatenatedTuples(
+        vector<Tuple*> getMatchingConcatenatedTuples(
                 Tuple*B,
-                std::deque<NodeT*> leafNodes
+                std::vector<NodeT*> leafNodes
                 );
 
         string recursiveInfo(NodeT* subRoot);
