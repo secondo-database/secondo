@@ -7,8 +7,9 @@ Signature: stream(tuple([x_1 : t_1, ... x_n : t_n])) x stream (tuple([y_1 : t_1,
 Example  : query Flaechen feed {Flaeche} Sehenswuerdreg feed {PoI} spatialJoinTouch [ GeoData_Flaeche, GeoData_PoI] count
 Result   : 50
 
+
 Operator : spatialJoinTouch
 Number   : 2
-Signature: stream(tblock) x stream(tblock) x symbol x symbol -> stream(tblock)
-Example  : query Flaechen feed toblocks[1] {Flaeche} Sehenswuerdreg feed toblocks[1] {PoI} spatialJoinTouch[GeoData_Flaeche, GeoData_PoI] count
+Signature: mpointer(rel(tuple([x_1 : t_1, ... x_n : t_n]))) x mpointer(rel(tuple([x_1 : t_1, ... x_n : t_n]))) x symbol x symbol -> mpointer(rel(tuple([x_1 : t_1, ... x_n : t_n])))
+Example  : query Flaechen feed {a} mconsume Sehenswuerdreg feed {b} mconsume  spatialJoinTouch [ GeoData_a, GeoData_b] count
 Result   : 50
