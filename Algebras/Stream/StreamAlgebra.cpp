@@ -197,6 +197,9 @@ TypeMapStreamfeed( ListExpr args )
     return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
+  if(Tuple::checkType(arg1)){
+    return Stream<Tuple>::wrap(arg1);
+  }
   if(!listutils::isDATA(arg1)){
     return listutils::typeError(err);
   }
@@ -212,11 +215,13 @@ TypeMapStreamfeed( ListExpr args )
       }
     }
   }
-  return nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()), arg1);
+  return Stream<Attribute>::wrap(arg1);
 }
 
 /*
 5.19.2 Value Mapping for ~feed~
+
+T may be of type Attribute or Tuple
 
 */
 struct SFeedLocalInfo
@@ -226,6 +231,7 @@ struct SFeedLocalInfo
   bool progressinitialized;
   double* attrSize;
   double* attrSizeExt;
+  int noAttributes;
 
   SFeedLocalInfo(Attribute* arg, const bool isObject):
     finished( false ),
@@ -241,7 +247,21 @@ struct SFeedLocalInfo
     attrSize[0] = coresize + flobsize;
     attrSizeExt = new double[1];
     attrSizeExt[0] = coresize;
+    noAttributes = 1;
   }
+
+  SFeedLocalInfo(Tuple* arg, const bool isObject):
+    finished( false ),
+    sonIsObjectNode( isObject ),
+    progressinitialized( false )
+  {
+    attrSize = new double[1];
+    attrSize[0] = arg->GetExtSize();
+    attrSizeExt = new double[1];
+    attrSizeExt[0] = arg->GetRootSize();
+    noAttributes = arg->GetNoAttributes();
+  }
+
 
   ~SFeedLocalInfo(){
     if(attrSize) {delete[] attrSize; attrSize = 0;}
@@ -249,11 +269,13 @@ struct SFeedLocalInfo
   }
 };
 
+
+template<class T>
 int MappingStreamFeed( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   SFeedLocalInfo *linfo;
-  Attribute* arg = (static_cast<Attribute*>(args[0].addr));
+  T* arg = (static_cast<T*>(args[0].addr));
 
   switch( message ){
     case OPEN:{
@@ -319,7 +341,7 @@ int MappingStreamFeed( Word* args, Word& result, int message,
       pRes->Card = 1;    // cardinality
       pRes->Size = linfo->attrSize[0]; // total size
       pRes->SizeExt = linfo->attrSizeExt[0]; // size w/o FLOBS
-      pRes->noAttrs = 1;    //no of attributes
+      pRes->noAttrs = linfo->noAttributes;    //no of attributes
       pRes->attrSize = linfo->attrSize;
       pRes->attrSizeExt = linfo->attrSizeExt;
       pRes->sizesChanged = true;  //sizes have been recomputed
@@ -389,11 +411,15 @@ StreamSpecfeed=
 
 */
 
-ValueMapping streamfeedmap[] = { MappingStreamFeed, MappingStreamFeedStream };
+ValueMapping streamfeedmap[] = { MappingStreamFeed<Attribute>, 
+                                 MappingStreamFeedStream,
+                                 MappingStreamFeed<Tuple> };
 
 int StreamfeedSelect( ListExpr args )
 {
-  return listutils::isStream(nl->First(args))?1:0;
+  if(listutils::isStream(nl->First(args))) return 1;
+  return Attribute::checkType(nl->First(args))?0:2;
+  
 }
 
 /*
@@ -402,7 +428,7 @@ int StreamfeedSelect( ListExpr args )
 */
 Operator streamfeed( "feed",
                      StreamSpecfeed,
-                     2,
+                     3,
                      streamfeedmap,
                      StreamfeedSelect,
                      TypeMapStreamfeed);
