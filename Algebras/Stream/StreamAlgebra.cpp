@@ -6965,12 +6965,12 @@ class pbufferInfo{
        }
       
       ST* next(){
-         sem_read.wait();
+         sem_read.down();
          mtx.lock();
          ST* result = buffer.front();
          buffer.pop();
          mtx.unlock();
-         sem_write.signal();
+         sem_write.up();
          return result; 
       }
 
@@ -6994,12 +6994,12 @@ class pbufferInfo{
           stream.open();
           while(running){
             ST* elem = stream.request();
-            sem_write.wait();
+            sem_write.down();
             mtx.lock();
             buffer.push(elem);
             if(!elem) running = false;
             mtx.unlock();
-            sem_read.signal();
+            sem_read.up();
           }
        } 
 };

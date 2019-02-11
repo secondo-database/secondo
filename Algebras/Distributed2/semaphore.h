@@ -1,8 +1,6 @@
-
-
 /*
 
-
+'Semaphore' for threads.
 
 */
 
@@ -16,15 +14,8 @@
 
 class semaphore
 {
-    //The current semaphore count.
     unsigned int count_;
-
-    //mutex_ protects count_.
-    //Any code that reads or writes the count_ data must hold a lock on
-    //the mutex.
     boost::mutex mutex_;
-
-    //Code that increments count_ must notify the condition variable.
     boost::condition_variable condition_;
 
 public:
@@ -35,29 +26,13 @@ public:
     {
     }
 
-    unsigned int get_count() //for debugging/testing only
-    {
-        //The "lock" object locks the mutex when it's constructed,
-        //and unlocks it when it's destroyed.
+    void up() {
         boost::unique_lock<boost::mutex> lock(mutex_);
-        return count_;
-    }
-
-    void signal() //called "release" in Java
-    {
-        boost::unique_lock<boost::mutex> lock(mutex_);
-
         ++count_;
-
-        //Wake up any waiting threads. 
-        //Always do this, even if count_ wasn't 0 on entry. 
-        //Otherwise, we might not wake up enough waiting threads if we 
-        //get a number of signal() calls in a row.
         condition_.notify_one(); 
     }
 
-    void wait() //called "acquire" in Java
-    {
+    void down() {
         boost::unique_lock<boost::mutex> lock(mutex_);
         while (count_ == 0)
         {
