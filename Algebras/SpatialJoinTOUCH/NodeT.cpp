@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <typeinfo>
 
 using namespace mmrtreetouch;
+using namespace std;
 
 NodeT::NodeT(long maxPar, bool isLeafPar) {
     max = maxPar;

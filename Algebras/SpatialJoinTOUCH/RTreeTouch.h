@@ -39,7 +39,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Rectangle/RectangleAlgebra.h"
 
 namespace mmrtreetouch {
-    
+
     class RTreeTouch {
     public:
         NodeT* root;
@@ -54,7 +54,7 @@ namespace mmrtreetouch {
 
         NodeT* constructTree(std::vector<NodeT*> sortedArray, int fanout);
 
-        vector<Tuple*> getTuplesOverlappingOnTreeWith(Tuple* objectB);
+        std::vector<Tuple*> getTuplesOverlappingOnTreeWith(Tuple* objectB);
 
         int noLeaves();
 
@@ -70,25 +70,25 @@ namespace mmrtreetouch {
 
         bool outputOn;
 
-        vector<vector<NodeT*> > reGroupByConsideringFanout(
+        std::vector<std::vector<NodeT*> > reGroupByConsideringFanout(
                 std::vector<NodeT*> sortedArray,
                 int fanout
                 );
 
-        vector<Tuple*> joinPhase(NodeT* node, Tuple* objectB);
+        std::vector<Tuple*> joinPhase(NodeT* node, Tuple* objectB);
 
-        vector<NodeT*> getNodesOfInnerNodeRecursive(
+        std::vector<NodeT*> getNodesOfInnerNodeRecursive(
                 NodeT* node,
                 std::vector<NodeT*> leafNodes,
                 bool justLeafNodes = true
                 );
 
-        vector<Tuple*> getMatchingConcatenatedTuples(
+        std::vector<Tuple*> getMatchingConcatenatedTuples(
                 Tuple*B,
                 std::vector<NodeT*> leafNodes
                 );
 
-        string recursiveInfo(NodeT* subRoot);
+        std::string recursiveInfo(NodeT* subRoot);
 
     };
 } // end of namespace

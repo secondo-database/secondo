@@ -43,7 +43,7 @@ namespace STR {
             char direction,
             int leftAttrIndex);
 
-    vector<vector <Tuple *> > splitInSlices(
+    std::vector<std::vector <Tuple *> > splitInSlices(
             Tuple * arr[],
             int numOfPartitions,
             int array_size);
@@ -59,7 +59,7 @@ namespace STR {
             int numOfPartitions,
             int leftAttrIndex);
 
-    string bucketInfo(std::vector<mmrtreetouch::NodeT*> bucketVector);
+    std::string bucketInfo(std::vector<mmrtreetouch::NodeT*> bucketVector);
 
     void createArrayFromTupleVector(Tuple * arr[], std::vector<Tuple*> tuples);
 
