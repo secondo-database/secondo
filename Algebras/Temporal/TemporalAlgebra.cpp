@@ -5283,6 +5283,54 @@ double MPoint::FrechetDistance(const MPoint* mp, const Geoid* geoid) const {
   return dp[m - 1][n - 1];
 }
 
+void MPoint::removeNoise(const double maxspeed, const double maxdist,
+                         const Geoid *geoid, MPoint &result) const {
+  result.SetDefined(IsDefined());
+  if (!IsDefined()) {
+    return;
+  }
+  result.Clear();
+  if (GetNoComponents() <= 1) {
+    return;
+  }
+  UPoint up(true);
+  UReal urspeed(true);
+  Point startpos(true);
+  Instant starttime(instanttype);
+  CcReal speed(true), length(true);
+  bool exceeded(false), lc(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, up);
+    Instant mid = up.timeInterval.start 
+                  + ((up.timeInterval.end - up.timeInterval.start) / 2);
+    up.USpeed(urspeed, geoid);
+    urspeed.TemporalFunction(mid, speed);
+    if (geoid != 0) {
+      up.Length(*geoid, length);
+    }
+    else {
+      up.Length(length);
+    }
+    if (speed.GetValue() > maxspeed || length.GetValue() > maxdist) {
+      if (!exceeded) { // first exceeded unit, store start pos and time
+        startpos = up.p0;
+        starttime = up.timeInterval.start;
+        lc = up.timeInterval.lc;
+      }
+      exceeded = true;
+    }
+    else {
+      if (exceeded) { // sequence of too fast units ends
+        up.p0 = startpos;
+        up.timeInterval.start = starttime;
+        up.timeInterval.lc = lc;
+      }
+      exceeded = false;
+      result.Add(up);
+    }
+  }
+}
+
 // Output an interval
 std::string iv2string(Interval<Instant> iv){
 
@@ -18370,6 +18418,105 @@ Operator getrefinementpartition(
 );
 
 /*
+5.2.3 Operator ~removeNoise~
+
+*/
+
+/*
+5.2.3.1 Type Mapping for Operator ~removeNoise~
+
+*/
+ListExpr removeNoiseTM(ListExpr args){
+  if (!nl->HasLength(args, 3) && !nl->HasLength(args, 4)) {
+    return listutils::typeError("3 or 4 arguments expected");
+  }
+  if (!MPoint::checkType(nl->First(args))) {
+    return listutils::typeError("First argument must be an mpoint");
+  }
+  if (!CcReal::checkType(nl->Second(args))) {
+    return listutils::typeError("Second argument must be a real");
+  }
+  if (!CcReal::checkType(nl->Third(args))) {
+    return listutils::typeError("Third argument must be a real");
+  }
+  if (nl->HasLength(args, 4)) {
+    if (!Geoid::checkType(nl->Fourth(args))) {
+      return listutils::typeError("Fourth argument must be a geoid");
+    }
+  }
+  return nl->SymbolAtom(MPoint::BasicType());
+}
+
+/*
+5.2.3.2 Value Mapping
+
+*/
+template<bool hasGeoid>
+int removeNoiseVM(Word* args, Word& result, int message, Word& local,
+                  Supplier s) {
+  result = qp->ResultStorage(s);
+  MPoint* res = (MPoint*)result.addr;
+  MPoint* src = (MPoint*)args[0].addr;
+  CcReal* maxspeed = (CcReal*)args[1].addr;
+  CcReal* maxdist = (CcReal*)args[2].addr;
+  Geoid *geoid = 0;
+  if (qp->GetNoSons(s) == 4) {
+    geoid = (Geoid*)args[3].addr;
+  } 
+  if (!src->IsDefined() || !maxspeed->IsDefined() || !maxdist->IsDefined()) {
+    res->SetDefined(false);
+  }
+  else {
+    src->removeNoise(maxspeed->GetValue(), maxdist->GetValue(), geoid, *res);
+  }
+  return 0;
+}
+
+/*
+5.2.2.3 Value Mapping Array for Operator ~removeNoise~
+
+*/
+ValueMapping removeNoiseVMs[] = {removeNoiseVM<false>, removeNoiseVM<true>};
+
+/*
+5.2.2.4 Selection Function for Operator ~removeNoise~
+
+*/
+int removeNoiseSelect(ListExpr args) {
+  if (nl->HasLength(args, 3)) return 0;
+  if (nl->HasLength(args, 4)) return 1;
+  return -1;
+}
+
+/*
+5.2.2.5 Specification for Operator ~removeNoise~
+
+*/
+OperatorInfo removeNoiseOperatorInfo(
+  "removeNoise",
+  "mpoint x real x real [x geoid] -> mpoint",
+  "Movingpoint removeNoise[Maxspeed, Maxlength]",
+  "One outlier point in the raw data results in two long nonsense units in the "
+  "moving point. This operator detects them (according to the parameters) and "
+  "replaces them by one (usually short) unit.",
+  "query no_components(train7 removeNoise[10.0, 20.0])"
+  ""
+);
+
+
+/*
+5.2.2.6 Operator definition for ~removeNoise~
+
+*/
+Operator removeNoise(
+  removeNoiseOperatorInfo,
+  removeNoiseVMs,
+  removeNoiseSelect,
+  removeNoiseTM
+);
+
+
+/*
 5.2.3 Operator atRect
 
 5.2.3.1 Type Maspping
@@ -19833,6 +19980,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&gridcellevents);
     AddOperator(&temporalsquareddistance);
     AddOperator(&getrefinementpartition);
+    AddOperator(&removeNoise);
 
     AddOperator(&createCellGrid2D);
     AddOperator(&createCellGrid3D);

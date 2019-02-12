@@ -4236,6 +4236,17 @@ auxiliary function getPointSequence.
 */
     void getPointSequence(std::vector<Point>& result) const;
     double FrechetDistance(const MPoint* mp, const Geoid* geoid = 0) const;
+    
+/*
+3.10.5.11 ~removeNoise~ operator
+
+One outlier point in the raw data results in two long nonsense units in the
+moving point. This operator detects them (according to the parameters) and
+replaces them by one (usually short) unit.
+
+*/
+    void removeNoise(const double maxspeed, const double maxdist, 
+                     const Geoid *geoid, MPoint &result) const;
 
 private:
    int IntervalRelation(Interval<Instant> &int_a_b,
