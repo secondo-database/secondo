@@ -64,6 +64,8 @@ DEFAULTCCFLAGS += -Wall
 # Define some macros which define optional behaviour in some
 # libraries
 DEFAULTCCFLAGS += -D_REENTRANT -D_GLIBCPP_DEPRECATED 
+DEFAULTCCFLAGS += -std=c++11
+
 
 
 #On 32 bit systems, the file size is restrictec to 2GB
