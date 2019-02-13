@@ -171,12 +171,14 @@ defines the basic types of the query processor
 such as "ArgVectorPointer"[4], "Supplier"[4], "Word"[4], "Address"[4], etc.
 
 */
+#include <memory>
 #include "SecondoCatalog.h"
 #include "SecondoSystem.h"
 #include "LogMsg.h"
 #include "StopWatch.h"
 #include "DotSpec.h"
 #include "DateTime.h"
+#include "NewTreeListener.h"
 
 
 #define DEFAULT_GLOBAL_MEMORY 128
@@ -331,6 +333,10 @@ Returns the ~i~-th son of the operator node ~s~ of the operator
 tree.
 
 */
+  int GetId(const Supplier s) const;
+
+
+
   void SetupStreamArg( const Supplier funNode, const int num, Supplier opNode );
   
   bool Received( const Supplier s );
@@ -518,6 +524,16 @@ Returns the numeric type expression of the node ~s~ of the operator tree.
 /*
 Sets a node ~s~ of the operator tree as modified. The node must be
 of type ~Object~.
+
+*/
+
+  bool registerNewTreeListener( std::shared_ptr<NewTreeListener> listener);
+
+  bool unregisterNewTreeListener( std::shared_ptr<NewTreeListener> listener);
+
+
+
+/*
 
 3.2.2 Dealing with Counters
 
@@ -793,6 +809,9 @@ of the type constructor associated with the ~value~.
    }
 
  private:
+   std::vector<std::shared_ptr<NewTreeListener> > newTreeListeners;
+
+
 
   void saveModified(OpTree t);
 /*

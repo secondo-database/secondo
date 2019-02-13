@@ -1214,6 +1214,10 @@ OpTree getSon(OpTree tree, int index){
    return  (OpTree) tree->u.op.sons[index].addr;
 }
 
+int QueryProcessor::GetId(const Supplier s) const{
+   return ((OpTree) s)->id; 
+}
+
 
 ListExpr GetSimpleList(OpTree tree);
 
@@ -3843,7 +3847,43 @@ the function in a database object.
   if(tree){
      InitTree(tree);
   }
+  for(auto listener : newTreeListeners){
+     listener->handleNewTree(tree,expr);
+  }
 }
+
+bool QueryProcessor::registerNewTreeListener( 
+                                  std::shared_ptr<NewTreeListener> listener){
+  for(auto l : newTreeListeners){
+     if(l==listener){
+        return false;
+     }
+  }
+  newTreeListeners.push_back(listener);
+  return true;
+}
+
+bool QueryProcessor::unregisterNewTreeListener( 
+                                   std::shared_ptr<NewTreeListener> listener) {
+
+  size_t size = newTreeListeners.size();
+  bool found = false;
+  for(size_t i = 0;i<size && !found;i++){
+     if(newTreeListeners[i] == listener){
+        found = true;
+        if(i < size - 1){
+          std::swap(newTreeListeners[i], newTreeListeners[size-1]);
+        }
+     }
+  }
+  if(found){
+    newTreeListeners.pop_back();
+  }
+  return found;
+}
+
+
+
 
 void
 QueryProcessor::Destroy( void*& node, bool destroyRootValue )
