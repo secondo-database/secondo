@@ -431,6 +431,91 @@ struct toplacesInfo : OperatorInfo {
 };
 
 /*
+\section{Operator ~collect\_labels~}
+
+stream(T) x bool -> labels,   where T in {label, string, text}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr collect_labelsTM(ListExpr args) {
+  if (!nl->HasLength(args, 2)) {
+    return listutils::typeError("Two arguments expected");
+  }
+  if (!Stream<Label>::checkType(nl->First(args)) &&
+      !Stream<CcString>::checkType(nl->First(args)) &&
+      !Stream<FText>::checkType(nl->First(args))) {
+    return listutils::typeError("First argument must be a stream of label, "
+                                "string, or text");
+  }
+  if (!CcBool::checkType(nl->Second(args))) {
+    return listutils::typeError("Second argument must be a bool");
+  }
+  return nl->SymbolAtom(Labels::BasicType());
+}
+
+/*
+\subsection{Selection Function}
+
+*/
+int collect_labelsSelect(ListExpr args) {
+  if (Label::checkType(nl->Second(nl->First(args))))    return 0;
+  if (CcString::checkType(nl->Second(nl->First(args)))) return 1;
+  if (FText::checkType(nl->Second(nl->First(args))))    return 2;
+  return -1;
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+template <class T>
+int collect_labelsVM(Word* args, Word& result, int message, Word& local,
+                     Supplier s) {
+  result = qp->ResultStorage(s);
+  Labels* res = static_cast<Labels*>(result.addr);
+  res->Clean();
+  Stream<T> stream = static_cast<Stream<T> >(args[0].addr);
+  CcBool *ccignoreundef = static_cast<CcBool*>(args[1].addr);
+  if (!ccignoreundef->IsDefined()) {
+    res->SetDefined(false);
+    return 0;
+  }
+  bool ignoreundef = ccignoreundef->GetValue();
+  res->SetDefined(true);
+  stream.open();
+  T *elem = stream.request();
+  while (elem != 0) {
+    if (!elem->IsDefined() && !ignoreundef) {
+      res->SetDefined(false);
+      return 0;
+    }
+    else {
+      string elemstr = elem->GetValue();
+      res->Append(elemstr);
+    }
+    elem = stream.request();
+  }
+  stream.close();
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct collect_labelsInfo : OperatorInfo {
+  collect_labelsInfo() {
+    name      = "collect_labels";
+    signature = "stream(T) x bool -> labels, where T in {label, string, text}";
+    syntax    = "_ collect_labels[ _ ];";
+    meaning   = "Collects the stream elements into a labels value. If the "
+                "boolean parameter is true, undefined values are ignored. "
+                "Otherwise, the result is defined only if all elements are.";
+  }
+};
+
+/*
 \section{Operator ~contains~}
 
 contains: labels x {label(s), string, text} -> bool
@@ -6058,6 +6143,11 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   
   ValueMapping toplacesVMs[] = {toplacesVM_P, toplacesVM_T, 0};
   AddOperator(toplacesInfo(), toplacesVMs, toplacesSelect, toplacesTM);
+  
+  ValueMapping collect_labelsVMs[] = {collect_labelsVM<Label>, 
+    collect_labelsVM<CcString>, collect_labelsVM<FText>, 0};
+  AddOperator(collect_labelsInfo(), collect_labelsVMs, collect_labelsSelect,
+              collect_labelsTM);
 
   ValueMapping containsVMs[] = {containsSingleVM<Labels, Label>,
     containsSingleVM<Places, Place>, containsMultiVM<Labels, Labels>, 

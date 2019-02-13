@@ -4,20 +4,20 @@ Restore  : No
 Operator : tolabel
 Number   : 1
 Signature: (string | text) -> label
-Example  : query tolabel('Aubameyang')
-Result   : (label 'Aubameyang')
+Example  : query tolabel('Witsel')
+Result   : (label 'Witsel')
 
 Operator : tostring
 Number   : 1
 Signature: label -> string
-Example  : query tostring(tolabel('Aubameyang'))
-Result   : "Aubameyang"
+Example  : query tostring(tolabel('Witsel'))
+Result   : "Witsel"
 
 Operator : totext
 Number   : 1
 Signature: label -> text
-Example  : query totext(tolabel('Aubameyang'))
-Result   : 'Aubameyang'
+Example  : query totext(tolabel('Witsel'))
+Result   : 'Witsel'
 
 Operator : mstringtomlabel
 Number   : 1
@@ -43,6 +43,12 @@ Signature: text x int ... x text x int -> places
 Example  : query toplaces('Guerreiro', 13, 'Schmelzer', 29)
 Result   : (places (('Guerreiro' 13) ('Schmelzer' 29)))
 
+Operator : collect_labels
+Number   : 1
+Signature: stream(T) x bool -> labels,   where T in {label, string, text}
+Example  : query no_components(units(Dotraj feed extract[Trajectory]) transformstream projectextend[;L: val(final(.Elem))] projecttransformstream[L] collect_labels[TRUE])
+Result   : 6
+
 Operator : contains
 Number   : 1
 Signature: labels x label -> bool
@@ -52,7 +58,7 @@ Result   : TRUE
 Operator : contains
 Number   : 2
 Signature: places x place -> bool
-Example  : query [const places value (("Dembélé" 7) ("Piszczek" 26))] contains toplace("Reus", 11)
+Example  : query [const places value (("Sancho" 7) ("Piszczek" 26))] contains toplace("Reus", 11)
 Result   : FALSE
 
 Operator : intersects
