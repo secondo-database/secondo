@@ -5254,7 +5254,7 @@ void MPoint::getPointSequence(std::vector<Point>& result) const {
 
 double MPoint::FrechetDistance(const MPoint* mp, const Geoid* geoid) const {
   if (!IsDefined() || !mp->IsDefined()) {
-    return -1;
+    return -1.0;
   }
   if (IsEmpty() && mp->IsEmpty()) {
     return 0.0;
@@ -5265,6 +5265,9 @@ double MPoint::FrechetDistance(const MPoint* mp, const Geoid* geoid) const {
   std::vector<Point> pts1, pts2;
   getPointSequence(pts1);
   mp->getPointSequence(pts2);
+  if (pts1.empty() || pts2.empty()) {
+    return -1.0;
+  }
   unsigned int m = pts1.size();
   unsigned int n = pts2.size();
   double dp[m][n];
@@ -5298,7 +5301,8 @@ void MPoint::removeNoise(const double maxspeed, const double maxdist,
   Point startpos(true);
   Instant starttime(instanttype);
   CcReal speed(true), length(true);
-  bool exceeded(false), lc(true);
+  bool lc(true);
+  int exceeded = 0;
   for (int i = 0; i < GetNoComponents(); i++) {
     Get(i, up);
     Instant mid = up.timeInterval.start 
@@ -5317,16 +5321,18 @@ void MPoint::removeNoise(const double maxspeed, const double maxdist,
         starttime = up.timeInterval.start;
         lc = up.timeInterval.lc;
       }
-      exceeded = true;
+      exceeded++;
     }
     else {
-      if (exceeded) { // sequence of too fast units ends
+      if (exceeded > 1) { // sequence of at least 2 too fast units ends
         up.p0 = startpos;
         up.timeInterval.start = starttime;
         up.timeInterval.lc = lc;
       }
-      exceeded = false;
-      result.Add(up);
+      if (exceeded == 0 || exceeded > 1) {
+        result.Add(up);
+      }
+      exceeded = 0;
     }
   }
 }
