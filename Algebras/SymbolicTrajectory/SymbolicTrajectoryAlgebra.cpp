@@ -1500,15 +1500,16 @@ ListExpr hybriddistanceTM(ListExpr args) {
   }
   ListExpr first = nl->First(args);
   ListExpr third = nl->Third(args);
-  if ((MLabel::checkType(first)  && MLabel::checkType(third))  || 
-      (MPlace::checkType(first)  && MPlace::checkType(third))) {
+  if ((MLabel::checkType(first)  && MLabel::checkType(third)) || 
+      (MPlace::checkType(first)  && MPlace::checkType(third)) ||
+      (MLabels::checkType(first) && MLabels::checkType(third))) {
     if (MPoint::checkType(nl->Second(args)) && 
         MPoint::checkType(nl->Fourth(args))) {
       return nl->SymbolAtom(CcReal::BasicType());
     }
   }
   return NList::typeError("Expecting T x mpoint x T x mpoint,   "
-                          "where T in {mplace, mlabel}");
+                          "where T in {mlabel, mplace, mlabels}");
 }
 
 /*
@@ -1517,8 +1518,9 @@ ListExpr hybriddistanceTM(ListExpr args) {
 */
 int hybriddistanceSelect(ListExpr args) {
   ListExpr first = nl->First(args);
-  if (MLabel::checkType(first)) return (nl->HasLength(args, 6) ? 0 : 2);
-  if (MPlace::checkType(first)) return (nl->HasLength(args, 6) ? 1 : 3);
+  if (MLabel::checkType(first))  return (nl->HasLength(args, 6) ? 0 : 3);
+  if (MPlace::checkType(first))  return (nl->HasLength(args, 6) ? 1 : 4);
+  if (MLabels::checkType(first)) return (nl->HasLength(args, 6) ? 2 : 5);
   return -1;
 }
 
@@ -1543,13 +1545,19 @@ int hybriddistanceVM(Word* args, Word& result, int message, Word& local,
   CcReal *res = static_cast<CcReal*>(result.addr);
   if (sym1->IsDefined() && sym2->IsDefined() && mp1->IsDefined() && 
       mp2->IsDefined()) {
-    CcReal symres(true);
-    double symDistance = sym1->Distance(*sym2, hdp.distFun, hdp.labelFun);
-    if (symDistance <= hdp.threshold) {
-      res->Set(true, mp1->FrechetDistance(mp2, hdp.geoid) / hdp.scaleFactor);
+    double symdist = sym1->Distance(*sym2, hdp.distFun, hdp.labelFun);
+    if (symdist <= hdp.threshold) {
+//       cout << "symDist = " << symDistance << ", call Fréchet" << endl;
+      double frechetdist = mp1->FrechetDistance(mp2, hdp.geoid);
+      if (frechetdist < 0.0) { // error case
+        res->SetDefined(false);
+      }
+      else {
+        res->Set(true, frechetdist / hdp.scaleFactor);
+      }
     }
     else {
-      res->Set(true, symDistance);
+      res->Set(true, symdist);
     }
   }
   else {
@@ -1566,14 +1574,15 @@ struct hybriddistanceInfo : OperatorInfo {
   hybriddistanceInfo() {
     name      = "hybriddistance";
     signature = "T x mpoint x T x mpoint x real x real -> real,  "
-                "where T in {mlabel, mplace}";
-    syntax    = "hybriddistance(_ , _ , _ , _, _ , _);";
+                "where T in {mlabel, mplace, mlabels}";
+    syntax    = "hybriddistance( _ , _ , _ , _ );";
     meaning   = "Computes a distance between two trajectories. First, "
-                "a Levenshtein-based distance between the symbolic "
-                "representations is computed. If it is below the threshold, "
-                "the discrete Fréchet distance is returned. Otherwise, the "
-                "result equals the Levenshtein-based symbolic distance, "
-                "divided by the scale factor.";
+                "a distance between the symbolic representations is computed. "
+                "If it is below the threshold, the discrete Fréchet distance "
+                "is returned. Otherwise, the result equals the symbolic "
+                "distance divided by the scale factor. Distance function and "
+                "threshold can be changed via the sethybriddistanceparam "
+                "operator.";
   }
 };
 
@@ -6210,8 +6219,9 @@ class SymbolicTrajectoryAlgebra : public Algebra {
               distancesymTM);
   
   ValueMapping hybriddistanceVMs[] = {hybriddistanceVM<MLabel, false>,
-              hybriddistanceVM<MPlace, false>, hybriddistanceVM<MLabel, true>, 
-              hybriddistanceVM<MPlace, true>, 0};
+              hybriddistanceVM<MPlace, false>, hybriddistanceVM<MLabels, false>,
+              hybriddistanceVM<MLabel, true>, hybriddistanceVM<MPlace, true>,
+              hybriddistanceVM<MLabels, false>, 0};
   AddOperator(hybriddistanceInfo(), hybriddistanceVMs, hybriddistanceSelect, 
               hybriddistanceTM);
   

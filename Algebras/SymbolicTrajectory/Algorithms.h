@@ -390,7 +390,9 @@ class MBasics : public Attribute {
   void Recode(const std::string& from,const std::string& to,MBasics<B>& result);
   #endif
   std::ostream& Print(std::ostream& os) const;
-  double Distance(const MBasics<B>& mbs) const;
+  double Distance_ALL(const MBasics<B>& mbs, const LabelFunction lf) const;
+  double Distance(const MBasics<B>& mbs, const DistanceFunction df = ALL, 
+                  const LabelFunction lf = TRIVIAL) const;
   int CommonPrefixSuffix(const MBasics<B>& mbs, const bool prefix);
   double DistanceSym(const MBasics<B>& mbs, const DistanceFunSym distfun);
   
@@ -3566,7 +3568,6 @@ double MBasic<B>::Distance(const MBasic<B>& mb,
   if (IsEmpty() || mb.IsEmpty()) {
     return 1.0;
   }
-  typename B::base b1, b2, bs1, bs2, be1, be2;
   switch (df) {
     case FIRST: {
       return this->Distance_FIRST(mb);
@@ -4791,43 +4792,86 @@ std::ostream& MBasics<B>::Print(std::ostream& os) const {
 }
 
 /*
+\subsection{Function ~Distance\_ALL~}
+
+*/
+template<class B>
+double MBasics<B>::Distance_ALL(const MBasics<B>& mbs, const LabelFunction lf) 
+                   const {
+  int m = GetNoComponents();
+  int n = mbs.GetNoComponents();
+  int dp[m + 1][n + 1];
+  std::set<typename B::base> b1, b2;
+  double unitdist;
+  for (int i = 0; i <= m; i++) {
+    dp[i][0] = i;
+  }
+  for (int j = 0; j <= n; j++) {
+    dp[0][j] = j;
+  }
+  for (int i = 1; i <= m; i++) {
+    for (int j = 1; j <= n; j++) {
+      GetValues(i - 1, b1);
+      mbs.GetValues(j - 1, b2);
+      unitdist = Tools::distance(b1, b2, lf);
+      if (unitdist == 0) {
+        dp[i][j] = dp[i - 1][j - 1];
+      }
+      else {
+        dp[i][j] = std::min(dp[i][j - 1], std::min(dp[i - 1][j], 
+                                                  dp[i - 1][j - 1])) + unitdist;
+      }
+    }
+  }
+  return (double)(dp[m][n]) / std::max(m, n);
+}
+
+/*
 \subsection{Function ~Distance~}
 
 */
 template<class B>
-double MBasics<B>::Distance(const MBasics<B>& mbs) const {
+double MBasics<B>::Distance(const MBasics<B>& mbs, 
+                            const DistanceFunction df /* = ALL */, 
+                            const LabelFunction lf /* = TRIVIAL */) const {
   if (!IsDefined() && !mbs.IsDefined()) {
-    return 0;
+    return 0.0;
   }
   if (!IsDefined() || !mbs.IsDefined()) {
-    return 1;
+    return 1.0;
   }
   if (IsEmpty() && mbs.IsEmpty()) {
-    return 0;
+    return 0.0;
   }
   if (IsEmpty() || mbs.IsEmpty()) {
-    return 1;
+    return 1.0;
   }
-  int n = GetNoComponents() + 1;
-  int m = mbs.GetNoComponents() + 1;
-  double dp[n][m];
-  for (int i = 0; i < n; i++) {
-    dp[i][0] = i;
-  }
-  for (int j = 0; j < m; j++) {
-    dp[0][j] = j;
-  }
-  std::set<typename B::base> basics1, basics2;
-  for (int i = 1; i < n; i++) {
-    GetValues(i - 1, basics1);
-    for (int j = 1; j < m; j++) {
-      mbs.GetValues(j - 1, basics2);
-      dp[i][j] = std::min(dp[i - 1][j] + 1,
-                 std::min(dp[i][j - 1] + 1, 
-           dp[i -1][j - 1] + Tools::distance(basics1, basics2)));
+  switch (df) {
+//     case FIRST: {
+//       return this->Distance_FIRST(mbs);
+//     }
+//     case LAST: {
+//       return this->Distance_LAST(mbs);
+//     }
+//     case FIRST_LAST: {
+//       return this->Distance_FIRST_LAST(mbs);
+//     }
+    case ALL: {
+      return this->Distance_ALL(mbs, lf);
+    }
+//     case ALL_DURATION: {
+//       return this->Distance_ALL_DURATION(mbs, lf);
+//     }
+//     case ALL_INTERVALS: {
+//       return this->Distance_ALL_INTERVALS(mbs, lf);
+//     }
+//     case EQUAL_LABELS: {
+//       return this->Distance_EQUAL_LABELS(mbs, lf);
+//     }
+    default: {
+      return -1.0;
     }
   }
-  return dp[n - 1][m - 1] / std::max(n, m);
 }
 
 /*

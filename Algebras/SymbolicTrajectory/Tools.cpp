@@ -1673,7 +1673,7 @@ void Tools::createNFAfromPersistent(DbArray<NFAtransition> &trans,
 }
 
 double Tools::distance(const string& str1, const string& str2, 
-                       const LabelFunction lf) {
+                       const LabelFunction lf /* = TRIVIAL */) {
   if (lf == TRIVIAL) {
     return (str1 == str2 ? 0.0 : 1.0);
   }
@@ -1691,7 +1691,8 @@ double Tools::distance(const string& str1, const string& str2,
 }
 
 double Tools::distance(const pair<string, unsigned int>& val1, 
-               const pair<string, unsigned int>& val2, const LabelFunction lf) {
+                       const pair<string, unsigned int>& val2, 
+                       const LabelFunction lf /* = TRIVIAL */) {
   double ld = Tools::distance(val1.first, val2.first, lf);
   return ld / 2 + (val1.second == val2.second ? 0 : 0.5);
 }
@@ -1704,18 +1705,42 @@ double Tools::distance(const set<string>& values1, const set<string>& values2,
   if (values1.empty() || values2.empty()) {
     return 1;
   }
-  set<string>::iterator i1, i2;
-  double distsum = 0;
-  for (i1 = values1.begin(); i1 != values1.end(); i1++) {
-    for (i2 = values2.begin(); i2 != values2.end(); i2++) {
-      distsum += Tools::distance(*i1, *i2, lf);
+  set<string>::iterator i1(values1.begin()), i2(values2.begin());
+  int m(values1.size()), n(values2.size());
+  double distsum = 0.0;
+  double dist;
+  int i1count(0), i2count(0);
+  while (i1 != values1.end() && i2 != values2.end()) {
+    dist = Tools::distance(*i1, *i2, lf);
+    if (dist < 1) {
+//       cout << "  " << *i1 << " = " << *i2 << endl;
+      i1++;
+      i1count++;
+      i2++;
+      i2count++;
+      distsum += dist;
+    }
+    else {
+      if (*i1 < *i2) {
+//         cout << "  " << *i1 << " < " << *i2 << endl;
+        i1++;
+        i1count++;
+      }
+      else {
+//         cout << "  " << *i1 << " > " << *i2 << endl;
+        i2++;
+        i2count++;
+      }
+      distsum += 1.0;
     }
   }
-  return distsum / (values1.size() * values2.size());
+  distsum += std::max(m - i1count, n - i2count);
+  return distsum / (m + n);
 }
 
 double Tools::distance(set<pair<string, unsigned int> >& values1, 
-            set<pair<string, unsigned int> >& values2, const LabelFunction lf) {
+                       set<pair<string, unsigned int> >& values2, 
+                       const LabelFunction lf /* = TRIVIAL */) {
   if (values1.empty() && values2.empty()) {
     return 0;
   }

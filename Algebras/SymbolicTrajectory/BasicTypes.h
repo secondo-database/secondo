@@ -449,7 +449,7 @@ struct HybridDistanceParameters {
   FText* getDescription(unsigned int memberNo);
   LabelFunction getDefaultLabelFun() {return TRIVIAL;}
   DistanceFunction getDefaultDistFun() {return ALL;}
-  double getDefaultThreshold() {return 0.75;}
+  double getDefaultThreshold() {return 0.5;}
   double getDefaultScaleFactor() {return 30000.0;}
   Geoid* getDefaultGeoid() {return 0;}
   bool setLabelFun(const int value);
