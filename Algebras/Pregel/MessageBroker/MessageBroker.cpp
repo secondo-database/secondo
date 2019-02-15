@@ -37,6 +37,7 @@ This file defines the members of class MessageBroker
 */
 
 #include <iostream>
+#include <memory>
 #include "MessageBroker.h"
 #include "NetworkedClient.h"
 #include "LoopbackProxy.h"
@@ -234,7 +235,8 @@ namespace pregel {
     callMeWhenYoureDone();
   });
 
-  auto monitor = new Monitor(numberOfConnections - 1/*Master*/,
+  std::shared_ptr<Monitor> monitor =  
+                     std::make_shared<Monitor>(numberOfConnections - 1,
                                     callback);
 
   for (MessageServer *server : servers) {

@@ -44,6 +44,7 @@ This header file defines the class MessageServer
 
 #include <functional>
 #include <SocketIO.h>
+#include <memory>
 #include <boost/thread.hpp>
 #include "DoubleQueue.h"
 #include "Monitor.h"
@@ -61,7 +62,7 @@ namespace pregel {
   boost::mutex stateLock;
   boost::condition_variable stateCondition;
 
-  Monitor *monitor = nullptr;
+  std::shared_ptr<Monitor> monitor = nullptr;
   executable initDoneCallback;
   boost::thread *thread = nullptr;
   Socket *socket;
@@ -81,7 +82,7 @@ namespace pregel {
 
   void interrupt();
 
-  void setMonitor(Monitor *monitor);
+  void setMonitor(std::shared_ptr<Monitor> monitor);
 
   void drainBuffer(const consumer<MessageWrapper> &consumer,
                    const int round);

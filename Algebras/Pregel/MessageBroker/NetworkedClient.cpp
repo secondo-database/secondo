@@ -70,6 +70,7 @@ namespace pregel {
   unsigned long size;
   char *buffer = message->serialize(size);
   socket->Write(buffer, size);
+  socket->GetSocketStream().flush();
 
   if (message->getBody() != nullptr) {
    message->getBody()->DeleteIfAllowed(); // When we write,

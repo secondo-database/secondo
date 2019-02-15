@@ -58,10 +58,11 @@ namespace pregel {
    DATA,
    EMPTY,
    FINISH,
-   INIT_DONE
+   INIT_DONE,
+   UNKNOWN
   };
 
-  static std::string typToString(MessageType value) {
+  static std::string typToString(const MessageType value) {
    switch (value) {
     case DATA:
      return "DATA";

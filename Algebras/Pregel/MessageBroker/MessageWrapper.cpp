@@ -49,10 +49,10 @@ namespace pregel {
 
  MessageWrapper::Header MessageWrapper::Header::read(char *buffer) {
   char *offset = buffer;
-  int destination;
-  MessageType type;
-  unsigned long length;
-  int round;
+  int destination=-1;
+  MessageType type=MessageType::UNKNOWN;
+  unsigned long length = 0;
+  int round = 0;
 
   memcpy(&destination, offset, sizeof(int));
   offset += sizeof(int);

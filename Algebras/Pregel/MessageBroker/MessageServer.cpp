@@ -42,10 +42,10 @@ This file defines the members of class MessageServer
 #include "../PregelContext.h"
 
 namespace pregel {
- MessageServer::MessageServer(Socket *socket, executable initDoneCallback) :
+ MessageServer::MessageServer(Socket *_socket, executable _initDoneCallback) :
   stateCondition(),
-  initDoneCallback(initDoneCallback),
-  socket(socket) {
+  initDoneCallback(_initDoneCallback),
+  socket(_socket) {
 
   thread = new boost::thread(boost::bind(&MessageServer::run, this));
  }
@@ -60,7 +60,6 @@ namespace pregel {
   socket->Close(); //TODO: need to do more?
   delete socket;
 
-  delete monitor; // broker owns context
  }
 
  void MessageServer::run() {
@@ -83,18 +82,23 @@ namespace pregel {
  void MessageServer::processMessage() {
   boost::this_thread::interruption_point();
   char headerBuffer[MessageWrapper::HEADER_SIZE];
+  memset(headerBuffer,0,MessageWrapper::HEADER_SIZE);
+
   std::string bufferToString(headerBuffer, MessageWrapper::HEADER_SIZE);
   size_t lengthRead = 0;
+
+  char* offset = headerBuffer;
 
   while (lengthRead < MessageWrapper::HEADER_SIZE) {
    if (!stateIs(READING)) {
     return;
    }
-   lengthRead = socket->Read((void *) headerBuffer, MessageWrapper::HEADER_SIZE,
+   lengthRead = socket->Read((void *) offset, MessageWrapper::HEADER_SIZE,
                              MessageWrapper::HEADER_SIZE,
                              1);
 
    if (lengthRead < 0) {
+    // problem during reading data from socket
     interrupt();
     return;
    }
@@ -108,10 +112,12 @@ namespace pregel {
                                std::string(headerBuffer,
                                            MessageWrapper::HEADER_SIZE).c_str();
    }
+   offset += lengthRead;
   }
   auto header = MessageWrapper::Header::read(headerBuffer);
 
-  const int messageType = header.type;
+  const MessageWrapper::MessageType messageType = header.type;
+
   switch (messageType) {
    case MessageWrapper::MessageType::EMPTY:
     handleEmptyMessage();
@@ -126,6 +132,7 @@ namespace pregel {
     RECEIVED_MESSAGE
     break;
    default:
+    // BOOST_LOG_TRIVIAL(error) << "Received message of unknown type";
     return;
   }
 
@@ -161,7 +168,7 @@ namespace pregel {
 
  void MessageServer::handleFinishedMessage() {
   if (monitor == nullptr) {
-   BOOST_LOG_TRIVIAL(error) << "Received EMPTY message outside of a round";
+   BOOST_LOG_TRIVIAL(error) << "Received FINISH message outside of a round";
    return;
   }
   {
@@ -178,10 +185,10 @@ namespace pregel {
 
  void MessageServer::handleInitDoneMessage() {
   if (monitor != nullptr) {
-   BOOST_LOG_TRIVIAL(error) << "Received PAUSE message inside of a round";
+   BOOST_LOG_TRIVIAL(error) << "Received INIT_DONE message inside of a round";
    return;
   }
-
+  cout << "Handle INIT_DONE" << endl;
   initDoneCallback();
  }
 
@@ -234,7 +241,7 @@ namespace pregel {
   sstream << "      State: " << state << std::endl;
  }
 
- void MessageServer::setMonitor(Monitor *monitor) {
+ void MessageServer::setMonitor(std::shared_ptr<Monitor> monitor) {
   this->monitor = monitor;
  }
 }
