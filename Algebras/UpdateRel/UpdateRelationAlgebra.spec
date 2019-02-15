@@ -34,6 +34,7 @@ operator updatesearch alias UPDATESEARCH pattern _ _ op [funlist]implicit parame
 operator updatedirect alias UPDATEDIRECT pattern _ _ op [funlist]implicit parameter tuple type TUPLE
 
 operator updatedirect2 alias UPDATEDIRECT2 pattern _ _ op [ _ ; funlist ] implicit parameters tuple1, tuple2 types TUPLE, TUPLE2
+operator updatebyid2 alias UPDATEBYID2 pattern _ _ op [ _ ; funlist ] implicit parameters tuple1, tuple2 types TUPLE, TUPLE2
 
 operator updatesearchsave alias UPDATESEARCHSAVE pattern _ _ _ op [funlist]implicit parameter tuple type TUPLE
 operator updatedirectsave alias UPDATEDIRECTSAVE pattern _ _ _ op [funlist]implicit parameter tuple type TUPLE
@@ -46,7 +47,8 @@ operator deletertree alias DELETERTREE pattern _ _ op [ _ ]
 operator updatertree alias UPDATERTREE pattern _ _ op [ _ ]
 
 operator deletebyid2 alias DELETEBYID2 pattern _ _ op  [ _ ]
-operator deletebyid3 alias DELETEBYID3 pattern _ _ op  
+operator deletebyid3 alias DELETEBYID3 pattern _ _ op 
+operator deletebyid4 alias DELETEBYID4 pattern _ _ op [ _ ]  
 
 operator filterinsert alias FILTERINSERT pattern _ op[fun,_] implicit parameter tuple type TUPLE
 

@@ -1493,6 +1493,7 @@ Type mapping ~inserttuple~ on a relation
 */
 ListExpr insertTupleTypeMap(ListExpr args)
 {
+    
   ListExpr first,second, rest, rest2, listn, lastlistn, outList;
   string argstr="",valueString;
 
@@ -3858,6 +3859,7 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
   }
   //Test if type of the attriubte which shall be taken as a key is
   // the same as the keytype of the rtree
+  
   if(!nl->Equal(attrType,rtreeKeyType)){
     return listutils::typeError("attribute type in rtree and relation differ");
   }
@@ -4470,6 +4472,7 @@ Operator updatertree (
 
 */
 ListExpr updatedirect2TM(ListExpr args){
+    
   string err = "stream(tuple(X)) x rel(tuple(Y)) x AttrName x funlist expected";
   if(!nl->HasLength(args,4)){
      return listutils::typeError(err + " (wrong number of args)");
@@ -4707,12 +4710,260 @@ Operator updatedirect2Op(
   updatedirect2TM
 );
 
+ListExpr updatebyid2TM(ListExpr args){
+
+    cout << "updid2: " << nl->ToString(args) << endl; 
+
+    if(!nl->HasLength(args,4)){
+        return listutils::typeError("wrong number of args");
+    }
+    if(!Stream<Tuple>::checkType(nl->First(args))){
+        return listutils::typeError("first arg must be a tuple stream");
+    }
+    if(!Relation::checkType(nl->Second(args))){
+        return listutils::typeError("second arg must be a relation");
+    }
+    if(!listutils::isSymbol(nl->Third(args))){
+        return listutils::typeError("third arg is not a valid attribute name");
+    }
+    
+    ListExpr streamTuple = nl->Second(nl->First(args));
+    ListExpr streamAttrList = nl->Second(streamTuple);
+    string attrName = nl->SymbolValue(nl->Third(args));
+    ListExpr attrType;
+    int index = listutils::findAttribute(streamAttrList, attrName, attrType);
+    if(!index){
+        return listutils::typeError("Attribute " + attrName + " not in "
+                                    "tuple stream");
+    }
+    if(!TupleIdentifier::checkType(attrType)){
+        return listutils::typeError("Attribute " + attrName + " is "
+                                    "not of type tid");
+    }
+    
+    ListExpr appendList = nl->OneElemList(nl->IntAtom(index-1));
+    ListExpr last = appendList;
+    
+    ListExpr funList = nl->Fourth(args);
+    
+    ListExpr relTuple = nl->Second(nl->Second(args));
+    ListExpr relAttrList = nl->Second(relTuple);
+    
+    set<string> names;
+    while(!nl->IsEmpty(funList)){
+        ListExpr fun = nl->First(funList);
+        funList = nl->Rest(funList);
+        if(!nl->HasLength(fun, 2)){ // (<name> fundef)
+            return listutils::typeError("invalid function definition found");
+        }
+        ListExpr funName = nl->First(fun);
+        if(nl->AtomType(funName)!=SymbolType){
+            return listutils::typeError("invalid name for function");
+        }
+        string name = nl->SymbolValue(nl->First(fun));
+        if(names.find(name)!=names.end()){
+            return listutils::typeError("attr " + name + " set twice");
+        }
+        names.insert(name);
+        int rindex  = listutils::findAttribute(relAttrList, name, attrType);
+        if(rindex ==0){
+            return listutils::typeError("attribute " + name 
+                                        + " not in relation");
+        }
+        last = nl->Append(last,nl->IntAtom(rindex -1));
+        ListExpr fundef = nl->Second(fun);
+        if(!listutils::isMap<2>(fundef)){
+            return listutils::typeError("invalid function definition for "
+                                         + name );
+        }
+        // check function arguments and result
+        if(!nl->Equal(nl->Second(fundef), streamTuple)){
+            return listutils::typeError("invalid argument type"
+                                   " (1st arg) for function " + name);
+        }
+        if(!nl->Equal(nl->Third(fundef), relTuple)){
+            return listutils::typeError("invalid argument type (2nd arg) for "
+                                   "function " + name);
+        }
+        if(!nl->Equal(nl->Fourth(fundef), attrType)){
+            return listutils::typeError("function result for " + name + 
+                                  " not equal to the type in relation");
+        }
+    }
+    //build type of the resultstream
+    string oldName;
+    ListExpr oldAttribute;
+    ListExpr resAttrList = nl->Second(relTuple);
+    ListExpr rest = nl->Second(relTuple);
+    while(!nl->IsEmpty(rest)){
+        nl->WriteToString(oldName, nl->First(nl->First(rest)));
+        oldName += "_old";
+        oldAttribute = nl->OneElemList(nl->TwoElemList(
+                            nl->SymbolAtom(oldName),
+                            nl->Second(nl->First(rest))));
+        resAttrList = listutils::concat(resAttrList, oldAttribute);
+        rest = nl->Rest(rest);
+    }
+    resAttrList = listutils::concat(
+                        resAttrList,
+                        nl->OneElemList(nl->TwoElemList(
+                            nl->SymbolAtom("TID"),
+                            nl->SymbolAtom(TupleIdentifier::BasicType()))));
+    
+    return nl->ThreeElemList(
+            nl->SymbolAtom(Symbols::APPEND()),
+            appendList,
+            nl->TwoElemList(
+                listutils::basicSymbol<Stream<Tuple> >(),
+                nl->TwoElemList(
+                    listutils::basicSymbol<Tuple>(), resAttrList)));
+}
+
+class updatebyid2Info{
+
+    public:
+        updatebyid2Info(Word _stream, Relation* _rel, int _tidPos,
+                        Supplier _funlist, vector<int>& _attrPos,
+                        ListExpr _tt): stream(_stream), rel(_rel),
+                        tidPos(_tidPos), funlist(_funlist), 
+                        attrPos(_attrPos){
+            stream.open();
+            for(size_t i=0; i<attrPos.size(); i++){
+                Supplier s1 = qp->GetSupplier(funlist, i);
+                Supplier s2 = qp->GetSupplier(s1, 1);
+                funs.push_back(s2);
+                funargs.push_back(qp->Argument(s2));
+            }
+            tt = new TupleType(_tt);
+        }
+        
+        ~updatebyid2Info(){
+            stream.close();
+            tt->DeleteIfAllowed();
+        }
+        
+        Tuple* next(){
+            Tuple* inTuple = stream.request();
+            while(inTuple){
+                TupleIdentifier* tid =(TupleIdentifier*) 
+                                            inTuple->GetAttribute(tidPos);
+                if(tid->IsDefined()){
+                    Tuple* relTuple = rel->GetTuple(tid->GetTid(), true);
+                    if(relTuple){
+                        Tuple* outTuple = new Tuple(tt); 
+                        int offset = relTuple->GetNoAttributes();
+                        for(int i = 0; i < relTuple->GetNoAttributes(); i++){
+                            outTuple->CopyAttribute(i, relTuple,i+offset);
+                        }
+                        vector<Attribute*> changes = getChanges(
+                                                            inTuple, relTuple);
+                        rel->UpdateTuple(relTuple, attrPos, changes);
+                        for(int i = 0; i < relTuple->GetNoAttributes(); i++){
+                            outTuple->CopyAttribute(i, relTuple, i);
+                        }
+                        Attribute* tidAttr = new TupleIdentifier
+                                                        (true,tid->GetTid());
+                        outTuple->PutAttribute(offset*2 , tidAttr);
+                        inTuple->DeleteIfAllowed();
+                        relTuple->DeleteIfAllowed();
+                        return outTuple;
+                    }
+                }
+                inTuple->DeleteIfAllowed();
+                inTuple = stream.request();
+            }
+            return 0;
+        }
+
+    private:
+        Stream<Tuple> stream;
+        Relation* rel;
+        int tidPos;
+        Supplier funlist;
+        vector<int> attrPos;
+        TupleType* tt;
+        vector<Supplier> funs;
+        vector<ArgVectorPointer> funargs;
+        
+        vector<Attribute*> getChanges(Tuple* streamTuple, Tuple* relTuple){
+            vector<Attribute*> res;
+            for(size_t i=0;i<attrPos.size();i++){
+                (*(funargs[i]))[0].addr = streamTuple;
+                (*(funargs[i]))[1].addr = relTuple;
+                Word funres;
+                qp->Request(funs[i],funres);
+                res.push_back(((Attribute*)funres.addr)->Clone());
+            }
+            return res;
+        }
+};
+
+int updatebyid2VM(Word* args, Word& result, int message,
+                        Word& local, Supplier s)
+{
+    updatebyid2Info* li = (updatebyid2Info*) local.addr;
+    
+    switch(message){
+        case OPEN : {
+            if(li){
+                delete li;
+            } 
+            Relation* rel = (Relation*) args[1].addr;
+            int tidPos = ((CcInt*) args[4].addr)->GetValue();
+            Supplier funlist = qp->GetSon(s,3);
+            vector<int> repPos;
+            for(int i=5; i< qp->GetNoSons(s); i++){
+                repPos.push_back(((CcInt*) args[i].addr)->GetValue());
+            }
+            assert(repPos.size() == (size_t) qp->GetNoSons(funlist));
+            
+            ListExpr resTupleType = nl->Second(GetTupleResultType(s));
+            local.addr = new updatebyid2Info(args[0], rel, tidPos, 
+                                             funlist, repPos, resTupleType);
+            return 0;
+        }
+        case REQUEST:
+            result.addr = li?li->next():0;
+            return result.addr?YIELD:CANCEL;
+        case CLOSE:
+            if(li){
+                qp->SetModified(qp->GetSon(s, 1)); 
+                // mark relation to be updated
+                delete li;
+                local.addr =0;
+            }
+            return 0;
+    }
+    return -1; 
+}
+
+OperatorSpec updatebyid2Spec(
+    "stream(tuple(X)) x rel(tuple(Y)) x attr x funlist -> "
+    "stream(rel(tuple(Y@[Y1_old t1]@...[Yn_old tn]@[TID:tid])))",
+    "_ _ updatebyid2[ _ ; funlist ] ",
+    "Updates tuples in a relation. The tupleid comes from the first argument"
+    " and is specified by the attr argument. Each tuple is replaced by the "
+    "same tuple but with replaced attributes according to the functions. "
+    "The function may use parts from the stream (dot notation) or from the "
+    "tuple stored in the relation (double dot notation).",
+    "query ten feed addid ten updatebyid2[TID, No : .No + ..No * 2] count"
+);
+
+Operator updatebyid2Op(
+    "updatebyid2",
+    updatebyid2Spec.getStr(),
+    updatebyid2VM,
+    Operator::SimpleSelect,
+    updatebyid2TM
+);
+
 
 /*
 7.7 deletebyId2
 
 */
 ListExpr deletebyid2TM(ListExpr args){
+    
   if(!nl->HasLength(args,3)){
     return listutils::typeError("three arguments expected");
   }
@@ -4722,17 +4973,21 @@ ListExpr deletebyid2TM(ListExpr args){
   if(!Relation::checkType(nl->Second(args))){
     return listutils::typeError("Second arg mut be a relation");
   }
+  
   if(!listutils::isSymbol(nl->Third(args))){
     return listutils::typeError("third arg is not a valid attribute name");
   }
+  
   ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
   string name = nl->SymbolValue(nl->Third(args));
+  
   ListExpr attrType;
   int index = listutils::findAttribute(attrList,name,attrType);
   if(!index){
     return listutils::typeError("Attribute " + name + " not present in "
                                 "tuple stream");
   }
+  
   if(!TupleIdentifier::checkType(attrType)){
     return listutils::typeError("Attribute " + name + " is not a tuple id");
   }
@@ -4744,8 +4999,6 @@ ListExpr deletebyid2TM(ListExpr args){
     return listutils::typeError("name conflicts between tuple stream "
                                 "and relation");
   }
-
-
 
   return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
                             nl->OneElemList( nl->IntAtom(index-1)),
@@ -4953,6 +5206,156 @@ Operator deletebyid3Op(
    deletebyid3TM
 );
 
+/*
+deletebyid 4
+
+*/
+
+ListExpr deletebyid4TM(ListExpr args){
+    
+    if(!nl->HasLength(args,3)){
+        return listutils::typeError("three arguments expected");
+    }
+    if(!Stream<Tuple>::checkType(nl->First(args))){
+        return listutils::typeError("first arg must be a tuple stream");
+    }
+    if(!Relation::checkType(nl->Second(args))){
+        return listutils::typeError("second arg must be a relation");
+    }
+    if(!listutils::isSymbol(nl->Third(args))){
+        return listutils::typeError("third arg is not a valid attribute name");
+    }
+    
+    ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+    string attrName = nl->SymbolValue(nl->Third(args));
+    ListExpr attrType;
+    int index = listutils::findAttribute(attrList, attrName, attrType);
+    if(!index){
+        return listutils::typeError("Attribute " + attrName + " not in "
+                                    "tuple stream");
+    }
+    if(!TupleIdentifier::checkType(attrType)){
+        return listutils::typeError("Attribute " + attrName + " is "
+                                    "not a tuple identifier");
+    }
+    
+    ListExpr resAttrList = listutils::concat(
+                        nl->Second(nl->Second(nl->Second(args))),
+                        nl->OneElemList(nl->TwoElemList(
+                            nl->SymbolAtom("TID"),
+                            nl->SymbolAtom(TupleIdentifier::BasicType()))));
+
+    cout << "resAttrList: " << nl->ToString(resAttrList) << endl;
+
+    if(!listutils::isAttrList(resAttrList)){
+        return listutils::typeError("result attribute list is not valid");
+    }
+
+    return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                              nl->OneElemList( nl->IntAtom(index-1)),
+                              nl->TwoElemList(
+                                  listutils::basicSymbol<Stream<Tuple> >(),
+                                  nl->TwoElemList(
+                                      listutils::basicSymbol<Tuple>(),
+                                      resAttrList)));
+}
+
+class deletebyid4Info{
+    public:
+        deletebyid4Info(Word _stream, Relation* _rel, int _idPos, ListExpr _tt):
+        stream(_stream), rel(_rel), idPos(_idPos){
+            stream.open();
+            tt = new TupleType(_tt);
+        }
+
+        ~deletebyid4Info(){
+            stream.close();
+            tt->DeleteIfAllowed();
+        }
+
+        Tuple* next(){
+            while(true){
+                Tuple* inTuple = stream.request();
+                if(!inTuple){
+                    return 0;
+                }
+                TupleIdentifier* tid = (TupleIdentifier*)
+                                            inTuple->GetAttribute(idPos);
+                if(tid->IsDefined()){
+                    TupleId id = tid->GetTid();
+                    Tuple* delTuple = rel->GetTuple(id, true);
+                    if(delTuple){
+                        rel->DeleteTuple(delTuple);
+                        inTuple->DeleteIfAllowed();
+                        return createOutTuple(delTuple, id);
+                    }
+                }
+                inTuple->DeleteIfAllowed();
+            }
+        }
+        
+
+    private:
+        Stream<Tuple> stream;
+        Relation* rel;
+        int idPos;
+        TupleType* tt;
+
+        Tuple* createOutTuple(Tuple* t, TupleId tid){
+            Tuple* resTuple = new Tuple(tt);
+            for(int i = 0; i < t->GetNoAttributes(); i++){
+                resTuple->CopyAttribute(i,t,i);
+            }
+            //const TupleId& tid = t->GetTupleId();
+            Attribute* tidAttr = new TupleIdentifier(true,tid);
+            resTuple->PutAttribute(t->GetNoAttributes(), tidAttr);
+            
+            t->DeleteIfAllowed();
+            return resTuple;
+        }
+};
+
+int deletebyid4VM(Word* args, Word& result, int message,
+                        Word& local, Supplier s){
+    deletebyid4Info* li = (deletebyid4Info*) local.addr;
+    switch(message){
+        case OPEN : if(li) delete li;
+                    local.addr = new deletebyid4Info(args[0],
+                                    (Relation*) args[1].addr,
+                                    ((CcInt*) args[3].addr)->GetValue(),
+                                    nl->Second(GetTupleResultType(s)));
+                    return 0;
+        case REQUEST:
+                    result.addr = li?li->next():0;
+                    return result.addr?YIELD:CANCEL;
+        case CLOSE:
+            if(li){
+                    delete li;
+                    local.addr = 0;
+                    qp->SetModified(qp->GetSon(s, 1)); 
+            }
+                    return 0;
+    }
+    return -1;
+}
+
+OperatorSpec deletebyid4Spec(
+  "stream(tuple(X)) x rel(tuple(Y)) x attrName -> stream(tuple(Y@[TID:tid]))",
+  "_ _ deletebyid4[_]",
+  "Deletes all tuples from a relation (2nd arg) "
+  " specified by tuple ids in a tuple stream (first arg)"
+  "  referenced by an  attribute name (3rd arg)",
+  " query ten feed head[3] addid ten deletebyid4 [TID] consume"
+);
+
+Operator deletebyid4Op(
+  "deletebyid4",
+  deletebyid4Spec.getStr(),
+  deletebyid4VM,
+  Operator::SimpleSelect,
+  deletebyid4TM
+);
+
 
 /*
 Operator ~filterinsert~
@@ -5120,9 +5523,11 @@ class UpdateRelationAlgebra : public Algebra
     AddOperator( &updatertree );
 
     AddOperator( &updatedirect2Op);
+    AddOperator( &updatebyid2Op);
 
     AddOperator(&deletebyid2Op);
     AddOperator(&deletebyid3Op);
+    AddOperator(&deletebyid4Op);
 
     AddOperator(&filterinsertOp);
 
