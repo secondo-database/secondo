@@ -307,7 +307,14 @@ pointeri returned.
     return 0;
 
    } 
-  
+
+/*
+Returns an id for the node of the element last retrieved.
+
+*/
+   uintptr_t getNodeId() {
+       return path.empty() ? 0 : reinterpret_cast<uintptr_t>(path.top().first);
+   }
 
   private:
     // the current stack
