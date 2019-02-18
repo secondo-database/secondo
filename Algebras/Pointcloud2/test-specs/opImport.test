@@ -1,0 +1,107 @@
+########################################
+# INITIALIZATION
+########################################
+delete database pc2test;
+
+#setup pc2test Pointcloud2Algebra
+create database pc2test;
+open database pc2test;
+
+########################################
+# OPERATOR IMPORTXYZ
+########################################
+#testcase -1- importxyz0
+#yields ((pointcloud2 EUCLID) ((1.0 1.0 1.0) (2.0 2.0 2.0)))
+query importxyz ('../Algebras/Pointcloud2/test-specs/imports/test.csv', 1.0, 1.0, EUCLID);
+
+#testcase -2- importxyz1
+#yields ((pointcloud2 EUCLID) ((0.1 0.1 1.0) (0.2 0.2 2.0)))
+query importxyz ('../Algebras/Pointcloud2/test-specs/imports/test.csv', 0.1, 0.1, EUCLID);
+
+#testcase -3- importxyz2
+#yields ((pointcloud2 WGS84) ((0.1 0.1 1.0) (0.2 0.2 2.0)))
+query importxyz ('../Algebras/Pointcloud2/test-specs/imports/test.csv', 0.1, 0.1, WGS84);
+
+#testcase -4- importxyz3
+#yields error
+query importxyz ('../Algebras/Pointcloud2/test-specs/imports/not.exist', 0.1, 0.1, EUCLID);
+
+#testcase -5- importxyz4
+#yields ((pointcloud2 EUCLID) ())
+query importxyz ('../Algebras/Pointcloud2/test-specs/test-template', 0.1, 0.1, EUCLID);
+
+#testcase -6- importxyz5
+#yields error
+query importxyz ('../Algebras/Pointcloud2/test-specs/test-template', 0.1, 0.1, EUKLID);
+
+#testcase -7- importxyz6
+#yields error
+query importxyz (2.0, 0.1, 0.1, EUCLID);
+
+#testcase -8- importxyz7
+#yields error
+query importxyz ('../Algebras/Pointcloud2/test-specs/imports/test.csv', 0.1, 0.1, "EUCLID");
+
+#testcase -9- importxyz8
+#yields error
+query importxyz ('../Algebras/Pointcloud2/test-specs/imports/test.csv', "0.1", 0.1, EUCLID);
+
+########################################
+# OPERATOR IMPORTPC2FROMLAS
+########################################
+#testcase -10- import pointcloud2 from las file (58.587 points)
+#yields success
+let pc_las = importPc2FromLas('../Algebras/Pointcloud2/test-specs/imports/20110304_10SDH9607.las');
+
+#testcase -11- query size of imported las pointcloud2
+#yields (int 58587)
+query size(pc_las);
+
+#testcase -12- query bbox of imported las pointcloud2
+# tolerance_real 0.00001
+#yields (rect3 (-123.0256549401825 -123.0227804211702 38.00166429 38.00481811 \
+-2.27700001 1.71100001))
+query bbox(pc_las);
+
+#testcase -13- operator restrict on imported las pointcloud2 
+#yields (int 8766)
+query size(pc_las restrictPc2[[const rect3 value (-123.024 -123.023 38.002 38.003 
+-2.0 1.0)]]);
+
+#testcase -14- operator restrictXY on imported las pointcloud2 
+#yields (int 9056)
+query size(pc_las restrictXY[[const rect value (-123.024 -123.023 
+38.002 38.003)]]);
+
+#testcase -15- operator restrictZ on imported las pointcloud2 
+#yields (int 17)
+query size(pc_las restrictZ[1.5, 2.5]);
+
+########################################
+# OPERATOR IMPORTPC2FROMSTL
+########################################
+
+#testcase -16- import pointcloud2 from stl file in ascii format
+#yields success
+query importPc2FromStl("../Algebras/Pointcloud2/test-specs/imports/a.stl", 50000, 2, 0.0, 1);
+
+#testcase -17- import pointcloud2 from stl file in binary format 
+#yields success
+query importPc2FromStl("../Algebras/Pointcloud2/test-specs/imports/b.stl", 50000, 2, 0.0, 1);
+
+#testcase -18- import pointcloud2 from non-existing stl file
+#yields error
+query importPc2FromStl("../Algebras/Pointcloud2/test-specs/imports/non-existing-stl-file.stl", 50000, 1, 0.0, 1);
+
+#testcase -19- import pointcloud2 with invalid rotation mode (must be 0-2)
+#yields error
+query importPc2FromStl("../Algebras/Pointcloud2/test-specs/imports/a.stl", 50000, 3, 0.0, 1);
+
+#testcase -20- import pointcloud2 with wrong number (and type) of arguments
+#yields error
+query importPc2FromStl("../Algebras/Pointcloud2/test-specs/imports/a.stl", TRUE, 50000, 0, 0.0, 1);
+
+#teardown
+kill pc_las;
+close database;
+delete database pc2test;

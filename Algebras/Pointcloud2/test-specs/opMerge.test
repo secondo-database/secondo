@@ -1,0 +1,88 @@
+########################################
+# INITIALIZATION
+########################################
+delete database pc2test;
+
+#setup pc2test Pointcloud2Algebra
+create database pc2test;
+open database pc2test;
+
+let pcNameValue = [const pointcloud2 (EUCLID (tuple([Name: string, Value: real]))) value ( (1 6 1 ("GoldenerSchnitt" 1.618)) (0 5 7 ("Eulerkonstante" 0.5772)) )];
+let pcNameValue2 = [const pointcloud2 (EUCLID (tuple([Name: real, Value: string]))) value ( (3 1 4 (3.14 "Pi")) (0 0 0 (0.0 "Koordinatenursprung")) )];
+let pcNameValueEmpty = [const pointcloud2 (EUCLID (tuple([Name: string, Value: real]))) value ( )];
+let pcNameValueWGS84 = [const pointcloud2 (WGS84 (tuple([Name: string, Value: real]))) value ( (1 6 1 ("GoldenerSchnitt" 1.618)) (0 5 7 ("Eulerkonstante" 0.5772)) )];
+
+let pcNameAlter = [const pointcloud2 (EUCLID (tuple([Name: string, Alter: int]))) value ( (-9.9 0.0 4.1 ("Hans" 64)) (-0.1 -99.9 -6.0 ("Tim" 39)) (1.0 -5.1 -1.01 ("Karl" 1)) )];
+let pcNameAlterEmpty = [const pointcloud2 (EUCLID (tuple([Name: string, Alter: int]))) value (  )];
+let pcAlterName = [const pointcloud2 (EUCLID (tuple([Alter: int, Name: string]))) value ( (1.0 2.0 3.0 (10 "Haensel")) (4.0 5.0 6.0 (11 "Gretel")) )];
+
+let pcNoAttrs1 = [const pointcloud2(EUCLID) value ( (1 2 3) (4 5 6) )];
+let pcNoAttrs2 = [const pointcloud2(EUCLID) value ( (-1 -2 -3) (-4 -5 -6) )];
+
+let pc_test1 = rasterTestPc2(100, FALSE);
+let pc_test2 = rasterTestPc2(200, TRUE);
+
+let pc_las = importPc2FromLas('../Algebras/Pointcloud2/test-specs/imports/20110304_10SDH9607.las');
+
+########################################
+# OPERATOR - MERGE
+########################################
+
+#testcase -1- merge with match in one of two attributes
+#yields ((pointcloud2 (EUCLID (tuple((Name string))))) ( (1.0 6.0 1.0 ("GoldenerSchnitt")) (0.0 5.0 7.0 ("Eulerkonstante")) (-9.9 0.0 4.1 ("Hans")) (-0.1 -99.9 -6.0 ("Tim")) (1.0 -5.1 -1.01 ("Karl")) ))
+query merge(pcNameValue, pcNameAlter)  
+                                
+#testcase -2- merge with same attribute names, but attribut types do not match
+#yields ((pointcloud2 EUCLID) ( (1.0 6.0 1.0) (0.0 5.0 7.0) (3.0 1.0 4.0) (0.0 0.0 0.0) ) )
+query merge(pcNameValue, pcNameValue2)  
+            
+#testcase -3- merge with same tuple type, but second pointcloud is empty
+#yields ((pointcloud2(EUCLID(tuple((Name string)(Alter int))))) ( (-9.9 0.0 4.1 ("Hans" 64)) (-0.1 -99.90000000000001 -6.0 ("Tim" 39)) (1.0 -5.1 -1.01 ("Karl" 1)) ))
+query merge(pcNameAlter, pcNameAlterEmpty)
+
+#testcase -4- merge with same attribute names and types, but in different order
+#yields ((pointcloud2(EUCLID(tuple ( (Name string) (Alter int))))) ( (-9.9 0.0 4.1 ("Hans" 64)) (-0.1 -99.9 -6.0 ("Tim" 39)) (1.0 -5.1 -1.01 ("Karl" 1)) (1.0 2.0 3.0 ("Haensel" 10)) (4.0 5.0 6.0 ("Gretel" 11))))
+query merge(pcNameAlter, pcAlterName)
+
+#testcase -5- same as last testcase but with clouds in reverse order. 
+#yields ((pointcloud2(EUCLID(tuple ( (Alter int) (Name string))))) ( (1.0 2.0 3.0 (10 "Haensel")) (4.0 5.0 6.0 (11 "Gretel")) (-9.9 0.0 4.1 (64 "Hans")) (-0.1 -99.9 -6.0 (39 "Tim")) (1.0 -5.1 -1.01 (1 "Karl")) ))
+query merge(pcAlterName, pcNameAlter)
+
+#testcase -6- merge different reference systems
+#yields error
+query merge(pcNameValue, pcNameValueWGS84)
+
+#testcase -7- merge pointcloud with itself
+#yields ((pointcloud2 (EUCLID (tuple ((Name string)(Alter int))))) ( (-9.9 0.0 4.1 ("Hans" 64)) (-0.1 -99.9 -6.0 ("Tim" 39)) (1.0 -5.1 -1.01 ("Karl" 1)) (-9.9 0.0 4.1 ("Hans" 64)) (-0.1 -99.90000000000001 -6.0 ("Tim" 39)) (1.0 -5.1 -1.01 ("Karl" 1))))
+query merge(pcNameAlter, pcNameAlter)
+
+#testcase -8- merge empty pointclouds with one of two matching attributes
+#yields ((pointcloud2 (EUCLID (tuple((Name string))))) ( ))
+query merge(pcNameValueEmpty, pcNameAlterEmpty)  
+                                
+#testcase -9- merge pointclouds with no attributes
+#yields ( (pointcloud2 EUCLID) ((1.0 2.0 3.0) (4.0 5.0 6.0) (-1.0 -2.0 -3.0) (-4.0 -5.0 -6.0)))
+query merge(pcNoAttrs1, pcNoAttrs2)  
+
+#testcase -10- merge 2 random clouds
+#yields success
+query merge(pc_test1,pc_test2);
+
+#testcase -11- merge with lasimport and same rs
+#yields (int 58589)
+query size(merge(pcNameValueWGS84,pc_las));
+
+
+#teardown
+kill pcNameValue;
+kill pcNameValue2;
+kill pcNameValueEmpty;
+kill pcNameValueWGS84;
+kill pcNameAlter;
+kill pcNameAlterEmpty;
+kill pcAlterName;
+kill pcNoAttrs1;
+kill pcNoAttrs2;
+kill pc_las;
+close database;
+delete database pc2test;

@@ -1,0 +1,42 @@
+########################################
+# INITIALIZATION
+########################################
+delete database pc2test;
+
+#setup pc2test Pointcloud2Algebra
+create database pc2test;
+open database pc2test;
+
+# create two testing pointclouds 
+
+let pc_xyz = importxyz('../Algebras/Pointcloud2/test-specs/imports/test.csv', 1.0, 1.0, EUCLID);
+
+let pc_las = importPc2FromLas('../Algebras/Pointcloud2/test-specs/imports/20110304_10SDH9607.las');
+let pc_lasProject = pc_las projectUTM;
+
+query pc2SetParam("CELL_SIZE_IN_M", 0.8);
+query pc2SetParam("DELTA_ALT_IN_M", 20.0);
+query pc2SetParam("THRESHOLD_MERGE", 5.0);
+query pc2SetParam("DISTANCE_SIG_MAXIMA", 6.0);
+
+
+########################################
+# OPERATOR - ANALYSERASTER
+########################################
+
+#testcase -1- EUCLID
+#yields success
+let aR1 = pc_xyz analyzeRaster;
+                                
+#testcase -2- WGS84 projected to EUCLID
+#yields success
+let aR2 = pc_lasProject analyzeRaster;
+                                
+#teardown
+kill aR1;
+kill aR2;
+kill pc_xyz;
+kill pc_las;
+kill pc_lasProject;
+close database;
+delete database pc2test;

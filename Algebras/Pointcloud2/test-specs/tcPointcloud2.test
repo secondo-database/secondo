@@ -1,0 +1,129 @@
+########################################
+# INITIALIZATION
+########################################
+delete database pc2test;
+
+#setup pc2test Pointcloud2Algebra
+create database pc2test;
+open database pc2test;
+
+########################################
+# CREATE POINTCLOUD2
+# YIELDS SUCCESS
+########################################
+
+#testcase correct way to express undefined
+#yields success
+let lc0 = [const int value undefined];
+
+#testcase create undefined pointcloud2 
+#yields success
+let pc_undef = [const pointcloud2(EUCLID) value (undefined)];
+
+#testcase create pointcloud2 with no point (but correctly defined)
+#yields success
+let pc_empty = [const pointcloud2(EUCLID) value ()];
+
+#testcase create pointcloud2 with three points
+#yields success
+let pc_points = [const pointcloud2(EUCLID) value ((1 2 3) (3.0 1.0 2) (2 3 1.0))];
+
+#testcase create pointcloud2 with extra columns
+#yields success
+let pc_wtuple   = [const pointcloud2(EUCLID (tuple([Name: string, Value: real]))) 
+                         value ( (3 1 4 ("Pi" 3.1415)) 
+                                 (2 7 1 ("Euler" 2.71828 ))
+                                 (1 4 1 ("Wurzel2" 1.4142)) )];
+########################################
+# CREATE POINTCLOUD2
+# YIELDS ERROR
+########################################
+
+# TODO: die folgenden Queries sind falsch und liefern auch einen Fehler, 
+# der aber vom TestRunner nicht als Fehler anerkannt wird. 
+
+#testcase create pointcloud2 with no parameters
+#yields error
+query [const (pointcloud2) value ((1 1 1))];
+
+#testcase create pointcloud2 without specifying a reference system
+#yields error
+query [const pointcloud2() value ((1 1 1))];
+
+#testcase create pointcloud2 with invalid reference system (lower case)
+#yields error
+query [const pointcloud2(wgs84) value ((1 1 1) (2 2 2))];
+
+# TODO: invalid Tuples
+
+########################################
+# CLONE
+########################################
+
+#testcase clone undefined pointcloud2 
+#yields success
+let pc_undefclone = pc_undef;
+
+#testcase clone pointcloud2 with no point (but correctly defined)
+#yields success
+let pc_emptyclone = pc_empty;
+
+#testcase clone pointcloud with three points
+#yields success
+let pc_pointsclone = pc_points;
+
+#testcase clone pointcloud with extra columns
+#yields success
+let pc_wtupleclone = pc_wtuple;
+
+########################################
+# UPDATE
+########################################
+
+########################################
+# QUERY
+########################################
+
+#testcase query object pcundef containing an undefined pointcloud2
+#yields ((pointcloud2 EUCLID) undefined)
+query pc_undef;
+
+#testcase query object pcundefclone containing an undefined pointcloud2
+#yields ((pointcloud2 EUCLID) undefined)
+query pc_undefclone;
+
+#testcase query object pc0 containing an empty pointcloud2
+#yields ((pointcloud2 EUCLID) ())
+query pc_empty;
+
+#testcase query object pc0clone containing an empty pointcloud2
+#yields ((pointcloud2 EUCLID) ())
+query pc_emptyclone;
+
+#testcase query object pc3clone containing three points
+#yields ((pointcloud2 EUCLID) ((1.0 2.0 3.0) (3.0 1.0 2.0) (2.0 3.0 1.0)))
+query pc_pointsclone;
+
+#testcase query object pcxclone containing three points and extra columns
+#yields ((pointcloud2 (EUCLID (tuple((Name string)(Value real))))) \
+        ( (3.0 1.0 4.0 ("Pi" 3.1415)) \
+          (2.0 7.0 1.0 ("Euler" 2.71828)) \
+          (1.0 4.0 1.0 ("Wurzel2" 1.4142 )) ))
+query pc_wtupleclone;
+
+########################################
+# DELETE 
+########################################
+
+delete pc_undef;
+delete pc_undefclone;
+delete pc_empty;
+delete pc_emptyclone;
+delete pc_points;
+delete pc_pointsclone;
+delete pc_wtuple;
+delete pc_wtupleclone;
+
+#teardown
+close database;
+delete database pc2test;

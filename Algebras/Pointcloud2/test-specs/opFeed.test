@@ -1,0 +1,38 @@
+########################################
+# INITIALIZATION
+########################################
+delete database pc2testf;
+
+#setup pc2testf Pointcloud2Algebra
+create database pc2testf;
+open database pc2testf;
+
+let pc_undef    = [const pointcloud2(EUCLID) value (undefined)];
+let pc_empty    = [const pointcloud2(EUCLID) value ()];
+let pc_onepoint = [const pointcloud2(EUCLID) value ((1 1 1))];
+let pc_points   = [const pointcloud2(EUCLID) value ((1 2 3) (3.0 1.0 2) (2 3 1.0))];
+let pc_wtuple   = [const pointcloud2(WGS84 (tuple([Name: string, Value: real]))) 
+                   value ( 
+                   (3 1 4 ("Pi" 3.1415)) 
+                   (2 7 1 ("Euler" 2.71828 )) 
+                   (1 4 1 ("Wurzel2" 1.4142)) )];
+
+########################################
+# OPERATOR - FEED
+########################################
+
+#testcase -2- query size of feed from pc_wtuple
+#yields (int 3)
+query pc_wtuple feed count;     
+
+#testcase -3- query size of feed from pc_points
+#yields (int 3)
+query pc_points feed count;     
+                                
+#teardown
+kill pc_undef;
+kill pc_empty;
+kill pc_points;
+kill pc_wtuple;
+close database;
+delete database pc2testf;

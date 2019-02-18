@@ -1,0 +1,58 @@
+########################################
+# INITIALIZATION
+########################################
+delete database pc2testf;
+
+#setup pc2testf Pointcloud2Algebra
+create database pc2testf;
+open database pc2testf;
+
+
+########################################
+# OPERATOR - SetParam
+########################################
+
+#testcase -1- set CELL_SIZE_IN_M
+#yields (bool TRUE)
+query pc2SetParam("CELL_SIZE_IN_M", 0.5);
+
+#testcase -2- set DELTA_ALT_IN_M
+#yields (bool TRUE)
+query pc2SetParam("DELTA_ALT_IN_M", 5.5);  
+
+#testcase -3- set NEIGHBOUR_CELLS
+#yields (bool TRUE)
+query pc2SetParam("NEIGHBOUR_CELLS", FALSE);  
+
+#testcase -4- set THRESHOLD_MERGE
+#yields (bool TRUE)
+query pc2SetParam("THRESHOLD_MERGE", 5.5);  
+
+#testcase -5- set DISTANCE_SIG_MAXIMA
+#yields (bool TRUE)
+query pc2SetParam("DISTANCE_SIG_MAXIMA", 5.5);  
+
+#testcase -6- set DISTANCE_SIG_MAXIMA with wrong type
+#yields error
+query pc2SetParam("DISTANCE_SIG_MAXIMA", TRUE);  
+
+#testcase -7- set UNKNOWN_NAME
+#yields error
+query pc2SetParam("UNKNOWN", 3.1415);  
+
+#testcase -8- set wrong number of arguments
+#yields error
+query pc2SetParam("THRESHOLD_MERGE", 5.5, 42);  
+
+########################################
+# OPERATOR - GetParams
+########################################
+
+#testcase -9- getparams
+#yields success
+query pc2GetParams() count;
+
+                                
+#teardown
+close database;
+delete database pc2testf;

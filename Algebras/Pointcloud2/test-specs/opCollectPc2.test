@@ -1,0 +1,63 @@
+########################################
+# INITIALIZATION
+########################################
+delete database pc2testf;
+
+#setup pc2testf Pointcloud2Algebra
+create database pc2testf;
+open database pc2testf;
+
+let ps_undef    = [const rel(tuple([P: point, Alt: int, X: int])) value ((undefined undefined undefined))];
+let ps_pointInt = [const rel(tuple([P: point, Alt: int, X: int])) value (((1.0 2.0) 3 4) ((4.0 4.0) 1 12))];
+let ps_pointReal = [const rel(tuple([P: point, Alt: real, X: int])) value (((1.0 2.0) 3.0 4) ((4.0 4.0) 1.1 12))];
+let ps_point2Attr = [const rel(tuple([P: point, Alt: real, X: int, Y:string])) value (((1.0 2.0) 3.0 4 "hase") ((4.0 4.0) 1.1 12 "huhn"))];
+
+
+########################################
+# OPERATOR - COLLECTPC2
+########################################
+
+#testcase -1- query no attribute Alt Int
+#yields ((pointcloud2 EUCLID) ((1.0 2.0 3.0) (4.0 4.0 1.0)))
+query ps_pointInt feed collectPc2[P,Alt,EUCLID;];    
+
+#testcase -2- query attribute Alt Real
+#yields ((pointcloud2 (WGS84 (tuple((X int))))) ((1.0 2.0 3.0 (4)) (4.0 4.0 1.1 (12))))
+query ps_pointReal feed collectPc2[P,Alt,WGS84;X]; 
+
+#testcase -3- query more attributes
+#yields ((pointcloud2 (WGS84 (tuple((X int)(Y string))))) ((1.0 2.0 3.0 (4 "hase")) (4.0 4.0 1.1 (12 "huhn"))))
+query ps_point2Attr feed collectPc2[P,Alt,WGS84;X,Y];
+
+#testcase -4- query one attribute twice
+#yields ((pointcloud2 (WGS84 (tuple((X int)(X int))))) ((1.0 2.0 3.0 (4 4)) (4.0 4.0 1.1 (12 12))))
+query ps_pointReal feed collectPc2[P,Alt,WGS84;X,X]; 
+
+#testcase -5- query wrong attribute
+#yields ((pointcloud2 (WGS84 (tuple((X int))))) ((1.0 2.0 3.0 (4)) (4.0 4.0 1.1 (12))))
+query ps_pointReal feed collectPc2[P,Alt,WGS84;X,Y]; 
+
+#testcase -6- query wrong projection
+#yields error
+query ps_pointReal feed collectPc2[P,Alt,WGS22;X,Y]; 
+
+#testcase -7- query wrong alt
+#yields error
+query ps_pointReal feed collectPc2[P,P,WGS84;X,Y];
+
+#testcase -8- query wrong point
+#yields error
+query ps_pointReal feed collectPc2[HASE,Alt,WGS84;X,Y];
+
+#testcase -9- query undefined
+#yields ((pointcloud2 EUCLID) ())
+query ps_undef feed collectPc2[P,Alt,EUCLID;];    
+
+                                
+#teardown
+kill ps_undef;
+kill ps_pointInt;
+kill ps_pointReal;
+kill ps_point2Attr;
+close database;
+delete database pc2testf;

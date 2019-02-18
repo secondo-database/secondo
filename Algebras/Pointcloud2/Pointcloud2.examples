@@ -1,0 +1,183 @@
+Database : berlintest
+Restore  : NO
+
+Operator : bbox
+Number   : 1
+Signature: pointcloud2 -> rectangle<3>
+Example  : query bbox([const pointcloud2(EUCLID) value ((1 1 1) (2 2 2))])  
+Result   : (rect3 (1.0 2.0 1.0 2.0 1.0 2.0))
+Tolerance: 0.000001
+
+Operator : bbox2d
+Number   : 1
+Signature: pointcloud2 -> rect
+Example  : query bbox2d([const pointcloud2(EUCLID) value ((1 1 1) (2 2 2))])  
+Result   : (rect (1.0 2.0 1.0 2.0))
+Tolerance: 0.000001
+
+Operator : size
+Number   : 1
+Signature: pointcloud2 -> int
+Example  : query size([const pointcloud2(EUCLID) value ((1 1 1) (2 2 2) (-3 0 3))])  
+Result   : 3
+
+Operator : minZ
+Number   : 1
+Signature: pointcloud2 -> real
+Example  : query minZ([const pointcloud2(EUCLID) value ((1 1 1) (2 2 2))])  
+Result   : 1.0
+Tolerance: 0.00001
+
+Operator : maxZ
+Number   : 1
+Signature: pointcloud2 -> real
+Example  : query maxZ([const pointcloud2(EUCLID) value ((1 1 1) (2 2 2))])  
+Result   : 2.0
+Tolerance: 0.00001
+
+
+Operator : importxyz
+Number   : 1
+Signature: string x real x real x REF -> pointcloud2
+Example  : query importxyz ("../Algebras/Pointcloud2/test.csv", 1.0, 1.0, EUCLID)
+Result   : ((pointcloud2 EUCLID) ((1.0 1.0 1.0) (2.0 2.0 2.0)))
+
+Operator : importPc2FromLas
+Number   : 1
+Signature: string -> pointcloud2
+Example  : query size(importPc2FromLas("../bin/20110304_10SDH9607.las"))
+Result   : 58587
+
+Operator : importPc2FromStl
+Number   : 1
+Signature: string x int x int x real -> pointcloud2
+Example  : query (size(importPc2FromStl('../Algebras/Pointcloud2/test-specs/imports/a.stl', 10000, 2, 0.0, 1)) > 9000);
+Result   : TRUE
+
+Operator : feed
+Number   : 1
+Signature: pointcloud2(R,T) -> stream(tuple([P : point, Alt : real @ T]))
+Example  : query [const pointcloud2(EUCLID) value ((1 1 1) (2 2 2))] feed count
+Result   : 2
+
+Operator : collectPc2
+Number   : 1
+Signature: stream(tuple(...) xP xA xREF xZ1...Zn -> pointcloud2(REF, (tuple(|Z1:t1,...,Zn:tn|)))
+Example  : query [const pointcloud2(EUCLID) value ((1 1 1) (2 2 2))] feed collectPc2 [P,Alt,EUCLID;];
+Result   : ((pointcloud2 EUCLID) ((1.0 1.0 1.0) (2.0 2.0 2.0)))
+
+Operator : merge
+Number   : 1
+Signature: pointcloud2(R,T) x pointcloud2(R,S) -> pointcloud2(R, S T)
+Example  : query merge( [const pointcloud2 (EUCLID (tuple([Name: string, Value: real]))) value ( (1 6 1 ("GoldenerSchnitt" 1.618)) (0 5 7 ("Eulerkonstante" 0.5772)) )],[const pointcloud2 (EUCLID (tuple([Name: string, Alter: int]))) value ( (-9.9 0.0 4.1 ("Hans" 64)) (-0.1 -99.9 -6.0 ("Tim" 39)) (1.0 -5.1 -1.01 ("Karl" 1)) )] )  
+Result   : ((pointcloud2 (EUCLID (tuple((Name string))))) ( (1.0 6.0 1.0 ("GoldenerSchnitt")) (0.0 5.0 7.0 ("Eulerkonstante")) (-9.9 0.0 4.1 ("Hans")) (-0.1 -99.9 -6.0 ("Tim")) (1.0 -5.1 -1.01 ("Karl")) ))
+
+
+Operator : restrictPc2
+Number   : 1
+Signature: pointcloud2(X) x rect3 -> pointcloud2(X)
+Example  : query size([const pointcloud2(EUCLID) value ((1 1 1) (2 2 2) (-3 0 3))] restrictPc2[[const rect3 value (0 10 0 20 0 50)]]);
+Result   : 2
+
+Operator : restrictXY
+Number   : 1
+Signature: pointcloud2(X) x rect -> pointcloud2(X)
+Example  : query size([const pointcloud2(EUCLID) value ((1 1 1) (2 2 2) (-3 0 3))] restrictXY[[const rect value (0 10 0 20)]]);
+Result   : 2
+
+Operator : restrictZ
+Number   : 1
+Signature: pointcloud2(X) x real x real -> pointcloud2(X)
+Example  : query size([const pointcloud2(EUCLID) value ((1 1 1) (2 2 2) (-3 0 3))] restrictZ[1.5, 2.5]);
+Result   : 1
+
+Operator : restrictAttr
+Number   : 1
+Signature: pointcloud2(R,T) x (T->bool) -> pointcloud2(R,T)
+Example  : query [const pointcloud2(EUCLID (tuple([Val: int]))) value ( (1 1 1 (1)) (1 1 1 (2)) )] restrictAttr[fun (t: tuple([Val: int])) attr(t, Val) != 1] feed count;
+Result   : 1
+
+Operator : restrictRnd
+Number   : 1
+Signature: pointcloud2(X) x int -> pointcloud2(X)
+Example  : query [const pointcloud2(EUCLID) value ( (1 1 1) (2 2 2) (3 3 3))] restrictRnd[2] feed count;
+Result   : 2
+
+
+Operator : pc2SetParam
+Number   : 1
+Signature: string x T -> bool
+Example  : query pc2SetParam("CELL_SIZE_IN_M", 0.2)
+Result   : TRUE
+
+Operator : pc2SetParam
+Number   : 2
+Signature: string x T -> bool
+Example  : query pc2SetParam("CELL_SIZE_IN_M", 2000.0)
+Result   : FALSE
+
+Operator : pc2GetParams
+Number   : 1
+Signature: -> stream(tuple(Name,Type,Value,Default,Meaning))
+Example  : query (pc2GetParams() count > 10)
+Result   : TRUE
+
+Operator : analyzeRaster
+Number   : 1
+Signature: pc2(R,T) -> pc2(R,tuple(T,ObjID,CatID))
+Example  : query size([const pointcloud2(EUCLID) value ((1 1 1) (2 2 2))] analyzeRaster)
+Result   : 2
+
+Operator : rasterTestPc2
+Number   : 1
+Signature: bool -> pc2(EUCLID)
+Example  : query size(rasterTestPc2(100, TRUE))
+Result   : 10000
+
+Operator : UTMZone
+Number   : 1
+Signature: pointcloud2 -> int
+Example  : query [const pointcloud2(WGS84) value ((1 1 1) (2 2 2) (3 0 3))] UTMZone
+Result   : 31
+
+Operator : UTMSouth
+Number   : 1
+Signature: pointcloud2 -> bool
+Example  : query [const pointcloud2(WGS84) value ((1 1 1) (2 2 2) (3 0 3))] UTMSouth 
+Result   : TRUE
+
+Operator : clusterPc2
+Number   : 1
+Signature: pointcloud2(R,T) x real x int -> pointcloud2(R,T, int)
+Example  : query [const pointcloud2(EUCLID) value ( (1 1 1) (2 1 1) )] clusterPc2[2.0, 1];
+Result   : ((pointcloud2 (EUCLID (tuple ((Cluster int))))) ( (1.0 1.0 1.0 (1)) (2.0 1.0 1.0 (1)) ))
+
+Operator : removeNoise
+Number   : 1
+Signature: pointcloud2(R,T) x real x int -> pointcloud2(R,T)
+Example  : query [const pointcloud2(EUCLID) value ( (1 1 10) (1 1 1) (1 1 2))] removeNoise[1.1, 1];
+Result   : ((pointcloud2(EUCLID)) ( (1.0 1.0 1.0) (1.0 1.0 2.0) ))
+
+Operator : createPc2Shapes
+Number   : 1
+Signature: int^4 x real^5 x int^2 -> pointcloud2(EUCLID)
+Example  : query size(createPc2Shapes(1, 1, 1, 1, 0.5, 2.0, 3.0, 20.0, 0.01, 10, 1));
+Result   : 226
+
+Operator : analyzeGeom
+Number   : 1
+Signature: pc2(R,T) -> pc2(R,tuple(T,ObjID,CatID))
+Example  : query size([const pointcloud2(EUCLID) value ((1 1 1) (2 2 2))] analyzeGeom)
+Result   : 2
+
+Operator : projectUTM
+Number   : 1
+Signature: pointcloud2 -> pointcloud2
+Example  : query size([const pointcloud2(WGS84) value ((1 1 1) (2 2 2) (-3 0 3))] projectUTM)  
+Result   : 3
+
+Operator : projectWGS84
+Number   : 1
+Signature: pointcloud2, int, bool -> pointcloud2
+Example  : query size([const pointcloud2(EUCLID) value ((1 1 1) (2 2 2) (-3 0 3))] projectWGS84[1, FALSE])  
+Result   : 3

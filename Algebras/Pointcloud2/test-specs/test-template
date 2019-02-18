@@ -1,0 +1,41 @@
+# Operator-Test-Suites brauchen *nicht* testen:
+# - den Typ-Konstruktor
+# - Operatoren und Typen anderer Algebren
+# Also, vielleicht für uns, weil verschiedene Teile von Secondo
+# in unterschiedlicher Qualität implementiert sind, aber die fertige Test-Suite
+# sollte im besten Fall nur abdecken: 
+# - Grenz- und Exception-Fälle (Division durch 0, null/undef-Values)
+# - Fehlbenutzung (falscher Input-Typ (da reicht ein Fall wenn das Verhalten i.A. gleich ist))
+# - alle Code-Pfade im Operator-Code (VM und TM alle if-Bäume durchgehen)
+
+########################################
+# INITIALIZATION
+########################################
+delete database pc2test;
+
+#setup pc2test Pointcloud2Algebra
+create database pc2test;
+open database pc2test;
+
+let pc_undef    = [const pointcloud2(EUCLID) value (undefined)];
+let pc_empty    = [const pointcloud2(EUCLID) value ()];
+let pc_onepoint = [const pointcloud2(EUCLID) value ((1 1 1))];
+let pc_points   = [const pointcloud2(EUCLID) value ((1 2 3) (3.0 1.0 2) (2 3 1.0))];
+let pc_wtuple   = [const pointcloud2(EUCLID
+                        (tuple([Name: string, Value: real]))) 
+                         value ( (3 1 4 ("Pi" 3.1415)) 
+                                 (2 7 1 ("Euler" 2.71828 ))
+                                 (1 4 1 ("Wurzel2" 1.4142)) )];
+
+########################################
+# OPERATOR - TESTS
+########################################
+# wenn ihr tolerance_real benutzt, geht das erst nach dem ersten Testcase!
+                                
+#teardown
+kill pc_undef;
+kill pc_empty;
+kill pc_points;
+kill pc_wtuple;
+close database;
+delete database pc2test;

@@ -1,0 +1,169 @@
+########################################
+# INITIALIZATION
+########################################
+delete database pc2test;
+
+#setup pc2test Pointcloud2Algebra
+create database pc2test;
+open database pc2test;
+
+# create a pointcloud with points forming 
+#  a) a 3-dimensional "+" sign around (3 3 3)
+#  b) a zigzagging line starting from (10 20 30)
+#  c) a 3x2x2 "filled brick" starting from (50 0 0)
+#  d) noise at *7*
+#
+let pc_points = [const pointcloud2(EUCLID) value 
+   (
+    (1 3 3) (2 3 3) (3 3 3) (4 3 3) (5 3 3)
+    (3 1 3) (3 2 3)         (3 4 3) (3 5 3)
+    (3 3 1) (3 3 2)         (3 3 4) (3 3 5)
+    (10 20 30) (11 20 30) (11 21 30) 
+    (11 21 31) (12 21 31) (12 22 31) 
+    (12 22 32) (13 22 32) (13 23 32) 
+    (50 0 0) (51 0 0) (52 0 0)
+    (50 1 0) (51 1 0) (52 1 0)
+    (50 0 1) (51 0 1) (52 0 1)
+    (50 1 1) (51 1 1) (52 1 1)
+    (7 0 0) (0 7 0) (0 0 7) (7 7 7) (7 7 0) (0 7 7) 
+    (7 17 27) (17 17 17) (27 17 7) 
+    (47 0 0) (47 7 0) (47 7 7) 
+   )];
+
+# the same points in random order
+let pc_points_mix = [const pointcloud2(EUCLID) value 
+   (
+    (5 3 3) (13 22 32) (17 17 17) (10 20 30) (0 7 0) (3 1 3) (47 7 0) 
+    (11 21 31) (50 0 0) (0 0 7) (1 3 3) (11 20 30) (51 0 0) (7 7 7) 
+    (12 22 31) (3 4 3) (51 0 1) (3 3 2) (51 1 0) (7 7 0) (47 7 7)
+    (3 2 3) (12 22 32) (13 23 32) (0 7 7) (50 0 1) (3 5 3) (2 3 3) 
+    (52 1 0) (3 3 4) (27 17 7) (12 21 31) (52 0 1) (52 1 1) (7 0 0)
+    (11 21 30) (51 1 1) (3 3 3) (52 0 0) (7 17 27) (3 3 5) (50 1 1)
+    (3 3 1) (47 0 0) (4 3 3) (50 1 0) 
+   )];
+
+let pc_simple = [const pointcloud2(EUCLID) value 
+   ( (3 1 4) 
+     (2 7 1)
+     (1 4 1) 
+   )];
+
+let pc_wtuple = [const pointcloud2(EUCLID (tuple([Name: string, Value: real])))
+                         value ( (3 1 4 ("Pi" 3.1415)) 
+                                 (2 7 1 ("Euler" 2.71828 ))
+                                 (1 4 1 ("Wurzel2" 1.4142)) )];
+
+########################################
+# OPERATOR - CLUSTERPC2
+########################################
+
+#testcase -1- sorted points, small eps, require 2 neighbors
+#yields success
+query pc_points clusterPc2[1.1, 2];
+                                
+#testcase -2- mixed points, small eps, require 2 neighbors
+#yields success
+query pc_points_mix clusterPc2[1.1, 2];
+                                
+#testcase -3- mixed points, small eps, require 4 neighbors
+#yields success
+query pc_points_mix clusterPc2[1.1, 4];
+                                
+#testcase -4- mixed points, medium eps, require 4 neighbors
+#yields success
+query pc_points_mix clusterPc2[2.1, 4];
+                                
+#testcase -5- mixed points, high eps, require 4 neighbors
+#yields success
+query pc_points_mix clusterPc2[10.1, 4];
+                                
+#testcase -6- mixed points, very high eps, require 8 neighbors
+#yields success
+query pc_points_mix clusterPc2[30.1, 8];
+
+#testcase -7- mixed points, eps too low
+#yields success
+query pc_points_mix clusterPc2[0.9, 1];
+
+#testcase -8- import 10.000 points
+#yields success
+let pc = importxyz ('../Algebras/Pointcloud2/test-specs/imports/test.10Tsd.csv', 1.0, 1.0, EUCLID);
+# bbox is (rect3 (419180.93999999 419999.95000001 5702090.72999999 5703999.05000001 129.04999999 192.74000001))
+
+#testcase -9- clusterPc2
+#yields success
+query pc clusterPc2[3.0, 2];
+
+#testcase -10- clusterPc2 without attributes. starting from eps = sqrt(22) = 4.69..., a cluster is found, the third point being the core point with two density-reachable neighbors 
+#yields ((pointcloud2 (EUCLID (tuple((Cluster int))))) ((3.0 1.0 4.0 (1)) (2.0 7.0 1.0 (1)) (1.0 4.0 1.0 (1))))
+query pc_simple clusterPc2[4.7, 2];
+                                
+#testcase -11- clusterPc2 without attributes. minPts too high to find any clusters even with a very small eps
+#yields ((pointcloud2 (EUCLID (tuple((Cluster int))))) ((3.0 1.0 4.0 (0)) (2.0 7.0 1.0 (0)) (1.0 4.0 1.0 (0))))
+query pc_simple clusterPc2[0.1, 3];
+                                
+#testcase -12- clusterPc2 without attributes. with eps = 3.1 < sqrt(10) (the distance between point 1 and 3), all points are regarded as noise 
+#yields ((pointcloud2 (EUCLID (tuple((Cluster int))))) ((3.0 1.0 4.0 (0)) (2.0 7.0 1.0 (0)) (1.0 4.0 1.0 (0))))
+query pc_simple clusterPc2[3.1, 1];
+                                
+#testcase -13- clusterPc2 with attributes. with eps = 4.6 < sqrt(22), the first point is regarded as noise (too far from the third point)
+#yields ((pointcloud2(EUCLID (tuple((Name string)(Value real)(Cluster int))))) ( (3.0 1.0 4.0 ("Pi" 3.1415 0)) (2.0 7.0 1.0 ("Euler" 2.71828 1)) (1.0 4.0 1.0 ("Wurzel2" 1.4142 1)) ))
+query pc_wtuple clusterPc2[4.6, 1];
+
+
+                                
+#testcase -14- sorted points, small eps, require 2 neighbors
+#yields (int 34)
+query size(pc_points removeNoise[1.1, 2]);
+                                
+#testcase -15- mixed points, small eps, require 2 neighbors
+#yields (int 34)
+query size(pc_points_mix removeNoise[1.1, 2]);
+                                
+#testcase -16- mixed points, small eps, require 4 neighbors
+#yields (int 19)
+query size(pc_points_mix removeNoise[1.1, 4]);
+                                
+#testcase -17- mixed points, medium eps, require 4 neighbors
+#yields (int 34)
+query size(pc_points_mix removeNoise[2.1, 4]);
+                                
+#testcase -18- mixed points, high eps, require 4 neighbors
+#yields (int 44)
+query size(pc_points_mix removeNoise[10.1, 4]);
+                                
+#testcase -19- mixed points, very high eps, require 8 neighbors
+#yields (int 46)
+query size(pc_points_mix removeNoise[30.1, 8]);
+
+#testcase -20- mixed points, eps too low
+#yields (int 0)
+query size(pc_points_mix removeNoise[0.9, 1]);
+
+#testcase -21- removeNoise
+#yields (int 10417)
+query size(pc removeNoise[3.0, 2]);
+
+#testcase -22- removeNoise without attributes. starting from eps = sqrt(22) = 4.69..., a cluster is found, the third point being the core point with two density-reachable neighbors 
+#yields ((pointcloud2 (EUCLID)) ((3.0 1.0 4.0) (2.0 7.0 1.0) (1.0 4.0 1.0)))
+query pc_simple removeNoise[4.7, 2];
+                                
+#testcase -23- removeNoise without attributes. minPts too high to find any clusters even with a very small eps, so no points are left
+#yields ((pointcloud2 (EUCLID)) ())
+query pc_simple removeNoise[0.1, 3];
+                                
+#testcase -24- removeNoise without attributes. with eps = 3.1 < sqrt(10) (the distance between point 1 and 3), all points are regarded as noise 
+#yields ((pointcloud2 (EUCLID)) ())
+query pc_simple removeNoise[3.1, 1];
+                                
+#testcase -25- removeNoise with attributes. with eps = 4.6 < sqrt(22), the first point is regarded as noise (too far from the third point)
+#yields ((pointcloud2 (EUCLID (tuple((Name string)(Value real))))) ((2.0 7.0 1.0 ("Euler" 2.71828)) (1.0 4.0 1.0 ("Wurzel2" 1.4142))))
+query pc_wtuple removeNoise[4.6, 1];
+                                
+#teardown
+kill pc_points;
+kill pc_points_mix;
+kill pc_simple;
+kill pc_wtuple;
+close database;
+delete database pc2test;

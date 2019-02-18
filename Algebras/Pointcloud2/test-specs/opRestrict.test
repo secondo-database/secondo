@@ -1,0 +1,182 @@
+########################################
+# INITIALIZATION
+########################################
+delete database pc2test;
+
+#setup pc2test Pointcloud2Algebra
+create database pc2test;
+open database pc2test;
+
+let pc_undef    = [const pointcloud2(EUCLID) value (undefined)];
+let pc_undef_t  = [const pointcloud2(EUCLID
+                        (tuple([Name: string]))) value (undefined)];
+let pc_empty    = [const pointcloud2(EUCLID) value ()];
+let pc_points   = [const pointcloud2(EUCLID) value ((1 2 3) (3.0 1.0 2) (2 3 1.0))];
+let pc_wtuple   = [const pointcloud2(EUCLID 
+                        (tuple([Name: string, Value: real]))) 
+                         value ( (3 1 4 ("Pi" 3.1415)) 
+                                 (2 7 1 ("Euler" 2.71828 ))
+                                 (1 4 1 ("Wurzel2" 1.4142)) )];
+let pc_simtup   = [const pointcloud2(EUCLID
+                        (tuple([Val: int])))
+                         value ( (1 1 1 (1))
+                                 (1 1 1 (2)) )];
+                                 
+########################################
+# OPERATOR RESTRICT
+########################################
+#testcase -1- operator restrictPc2 with undefined pointcloud
+#yields ((pointcloud2 EUCLID) undefined)
+query pc_undef restrictPc2[[const rect3 value (-1.0 1.0 -10.0 10.0 -50.0 50.0)]];
+
+#testcase -2- operator restrictPc2 with empty pointcloud
+#yields ((pointcloud2 EUCLID) ())
+query pc_empty restrictPc2[[const rect3 value (-10.0 10.0 -10.0 10.0 -10.0 10.0)]];
+
+#testcase -3- operator restrictPc2 with all points inside the bbox
+#yields ((pointcloud2 EUCLID) ((1.0 2.0 3.0) (3.0 1.0 2.0) (2.0 3.0 1.0)))
+query pc_points restrictPc2[[const rect3 value (0 4 0 4 0 4)]];
+
+#testcase -4- operator restrictPc2 with points at bbox edges
+#yields ((pointcloud2 EUCLID) ((1.0 2.0 3.0) (3.0 1.0 2.0) (2.0 3.0 1.0)))
+query pc_points restrictPc2[[const rect3 value (1 3 1 3 1 3)]];
+
+#testcase -5- operator restrictPc2 removing points
+#yields ((pointcloud2 EUCLID) ((2.0 3.0 1.0)))
+query pc_points restrictPc2[[const rect3 value (1.5 2.5 0 4 0 4)]];
+
+#testcase -6- operator restrictPc2 resulting in empty pointcloud
+#yields ((pointcloud2 EUCLID) ())
+query pc_points restrictPc2[[const rect3 value (1.01 2.99 1.01 2.99 1.01 2.99)]];
+
+#testcase -7- operator restrictPc2 pointcloud with extra columns
+#yields ((pointcloud2 (EUCLID (tuple ((Name string)(Value real))))) \
+        ((3.0 1.0 4.0 ("Pi" 3.1415)) ))
+query pc_wtuple restrictPc2[[const rect3 value (2.0 4.0 0.9 1.1 3.99 4.01)]];
+
+
+#testcase -8- operator restrictPc2 with undefined rect3
+#yields ((pointcloud2 EUCLID) undefined)
+query pc_points restrictPc2[[const rect3 value undefined]];
+
+########################################
+# OPERATOR RESTRICTXY
+########################################
+#testcase -9- operator restrictXY with undefined pointcloud
+#yields ((pointcloud2 EUCLID) undefined)
+query pc_undef restrictXY[[const rect value (-1.0 1.0 -10.0 10.0)]];
+
+#testcase -10- operator restrictXY with empty pointcloud
+#yields ((pointcloud2 EUCLID) ())
+query pc_empty restrictXY[[const rect value (-10.0 10.0 -10.0 10.0)]];
+
+#testcase -11- operator restrictXY with all points inside the bbox
+#yields ((pointcloud2 EUCLID) ((1.0 2.0 3.0) (3.0 1.0 2.0) (2.0 3.0 1.0)))
+query pc_points restrictXY[[const rect value (0 4 0 4)]];
+
+#testcase -12- operator restrictXY with points at bbox edges
+#yields ((pointcloud2 EUCLID) ((1.0 2.0 3.0) (3.0 1.0 2.0) (2.0 3.0 1.0)))
+query pc_points restrictXY[[const rect value (1 3 1 3)]];
+
+#testcase -13- operator restrictXY removing points
+#yields ((pointcloud2 EUCLID) ((2.0 3.0 1.0)))
+query pc_points restrictXY[[const rect value (1.5 2.5 0 4)]];
+
+#testcase -14- operator restrictXY resulting in empty pointcloud
+#yields ((pointcloud2 EUCLID) ())
+query pc_points restrictXY[[const rect value (1.01 2.99 1.01 2.99)]];
+
+#testcase -15- operator restrictXY pointcloud with extra columns
+#yields ((pointcloud2 (EUCLID (tuple ((Name string)(Value real))))) \
+((3.0 1.0 4.0 ("Pi" 3.1415)) ))
+query pc_wtuple restrictXY[[const rect value (2.0 4.0 0.9 1.1)]];
+
+#testcase -16- operator restrictXY with undefined rect
+#yields ((pointcloud2 EUCLID) undefined)
+query pc_points restrictXY[[const rect value undefined]];
+
+########################################
+# OPERATOR RESTRICTZ
+########################################
+#testcase -17- operator restrictZ with undefined pointcloud
+#yields ((pointcloud2 EUCLID) undefined)
+query pc_undef restrictZ[-1000000.0, 1000000.0];
+
+#testcase -18- operator restrictZ with empty pointcloud
+#yields ((pointcloud2 EUCLID) ())
+query pc_empty restrictZ[-10.0, 10.0];
+
+#testcase -19- operator restrictZ with all points inside the bbox
+#yields ((pointcloud2 EUCLID) ((1.0 2.0 3.0) (3.0 1.0 2.0) (2.0 3.0 1.0)))
+query pc_points restrictZ[0.0, 4.0];
+
+#testcase -20- operator restrictZ with points at bbox edges
+#yields ((pointcloud2 EUCLID) ((1.0 2.0 3.0) (3.0 1.0 2.0) (2.0 3.0 1.0)))
+query pc_points restrictZ[1.0, 3.0];
+
+#testcase -21- operator restrictZ removing points
+#yields ((pointcloud2 EUCLID) ((3.0 1.0 2.0)))
+query pc_points restrictZ[1.5, 2.5];
+
+#testcase -22- operator restrictZ resulting in empty pointcloud
+#yields ((pointcloud2 EUCLID) ())
+query pc_points restrictZ[1.0001, 1.9999];
+
+#testcase -23- operator restrictZ pointcloud with extra columns
+#yields ((pointcloud2 (EUCLID (tuple ((Name string)(Value real))))) \
+((3.0 1.0 4.0 ("Pi" 3.1415)) ))
+query pc_wtuple restrictZ[3.99, 4.01];
+
+
+#testcase -24- operator restrictZ with undefined parameter
+#yields ((pointcloud2 EUCLID) undefined)
+query pc_points restrictZ[-10.0, [const real value undefined]];
+
+########################################
+# OPERATOR RESTRICTATTR
+########################################
+#testcase -25- operator restrictAttr with undefined pointcloud
+#yields ((pointcloud2 (EUCLID (tuple ((Name string))))) undefined)
+query pc_undef_t restrictAttr[fun (t: tuple([Val: int])) attr(t, Val) > 1];
+
+#testcase -26- operator restrictAttr success case
+#yields ((pointcloud2 (EUCLID (tuple ((Val int))))) \
+        ((1.0 1.0 1.0 (2)) ))
+query pc_simtup restrictAttr[fun (t: tuple([Val: int])) attr(t, Val) > 1];
+
+#testcase -27- operator restrictAttr on undefined pointcloud w/o tuple
+#yields error
+query pc_undef restrictAttr[fun (t: tuple([Val: int])) attr(t, Val) > 1];
+
+#testcase -27- operator restrictAttr with non-existing func-arg
+#yields error
+query pc_undef restrictAttr[fun (t: tuple([Err: real])) attr(t, Val) > 1];
+
+########################################
+# OPERATOR RESTRICT
+# YIELDS ERROR
+########################################
+#testcase -26- operator restrictPc2 with too few arguments
+#yields error
+query pc_points restrictPc2[];
+
+#testcase -27- operator restrictPc2 with too many arguments
+#yields error
+query pc_points restrictPc2[[const rect3 value (0 4 0 4 0 4)], 5.0];
+
+#testcase -28- operator restrictPc2 with wrong argument 1 type
+#yields error
+query 3.14159265 restrictPc2[[const rect3 value (0 4 0 4 0 4)]];
+
+#testcase -29- operator restrictPc2 with wrong argument 2 type
+#yields error
+query pc_points restrictPc2[[const rect value (0 4 0 4)]];
+                                
+#teardown
+kill pc_undef;
+kill pc_empty;
+kill pc_points;
+kill pc_wtuple;
+kill pc_simtup;
+close database;
+delete database pc2test;

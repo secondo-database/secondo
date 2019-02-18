@@ -1,0 +1,134 @@
+########################################
+# INITIALIZATION
+########################################
+delete database pc2test;
+
+#setup pc2test Pointcloud2Algebra
+create database pc2test;
+open database pc2test;
+
+let pc_undef    = [const pointcloud2(EUCLID) value (undefined)];
+let pc_empty    = [const pointcloud2(EUCLID) value ()];
+let pc_onepoint = [const pointcloud2(EUCLID) value ((1 1 1))];
+let pc_points   = [const pointcloud2(EUCLID) value ((1 2 3) (3.0 1.0 2) (2 3 1.0))];
+let pc_wtuple   = [const pointcloud2(WGS84 (tuple([Name: string, Value: real])))
+                         value ( (3 1 4 ("Pi" 3.1415)) 
+                                 (2 7 1 ("Euler" 2.71828 ))
+                                 (1 4 1 ("Wurzel2" 1.4142)) )];
+
+########################################
+# OPERATOR BBOX
+########################################
+#testcase -1- operator bbox on undefined pointcloud2
+#tolerance_real 0.00001
+#yields (rect3 undefined)
+query bbox(pc_undef);
+
+#testcase -2- operator bbox on empty pointcloud2
+#yields (rect3 undefined)
+query bbox(pc_empty);
+
+#testcase -3- operator bbox on pointcloud2 with one point
+#yields (rect3 (1.0 1.0 1.0 1.0 1.0 1.0))
+query bbox(pc_onepoint);
+
+#testcase -4- operator bbox on pointcloud2 with three points
+#yields (rect3 (1.0 3.0 1.0 3.0 1.0 3.0))
+query bbox(pc_points);
+
+#testcase -5- operator bbox on pointcloud2 with extra columns
+#yields (rect3 (1.0 3.0 1.0 7.0 1.0 4.0))
+query bbox(pc_wtuple);
+
+########################################
+# OPERATOR BBOX2D
+########################################
+#testcase -6- operator bbox2d on undefined pointcloud2 
+#yields (rect undefined)
+query bbox2d(pc_undef);
+
+#testcase -7- operator bbox2d on empty pointcloud2 
+#yields (rect undefined)
+query bbox2d(pc_empty);
+
+#testcase -8- operator bbox2 on pointcloud2 with one point
+#yields (rect (1.0 1.0 1.0 1.0))
+query bbox2d(pc_onepoint);
+
+#testcase -9- operator bbox2d on pointcloud2 with three points
+#yields (rect (1.0 3.0 1.0 3.0))
+query bbox2d(pc_points);
+
+#testcase -10- operator bbox2d on pointcloud2 with extra columns
+#yields (rect (1.0 3.0 1.0 7.0))
+query bbox2d(pc_wtuple);
+
+########################################
+# OPERATOR SIZE
+########################################
+#testcase -11- operator size on undefined pointcloud2
+#yields (int undefined)
+query size(pc_undef);
+
+#testcase -12- operator size on empty pointcloud2
+#yields (int 0)
+query size(pc_empty);
+
+#testcase -13- operator size on pointcloud2 with one point
+#yields (int 1)
+query size(pc_onepoint);
+
+#testcase -14- operator size on pointcloud2 with three points
+#yields (int 3)
+query size(pc_points);
+
+#testcase -15- operator size on pointcloud2 with extra columns
+#yields (int 3)
+query size(pc_wtuple);
+
+########################################
+# OPERATOR MINZ
+########################################
+#testcase -16- operator minZ on undefined pointcloud2
+#yields (real undefined)
+query minZ(pc_undef);
+
+#testcase -17- operator minZ on empty pointcloud2
+#yields (real undefined)
+query minZ(pc_empty);
+
+#testcase -18- operator minZ on pointcloud2 with three points
+#yields (real 1.0)
+query minZ(pc_points);
+
+#testcase -19- operator minZ on pointcloud2 with extra columns
+#yields (real 1.0)
+query minZ(pc_wtuple);
+
+########################################
+# OPERATOR MAXZ
+########################################
+#testcase -20- operator maxZ on undefined pointcloud2
+#yields (real undefined)
+query maxZ(pc_undef);
+
+#testcase -21- operator maxZ on empty pointcloud2
+#yields (real undefined)
+query maxZ(pc_empty);
+
+#testcase -22- operator maxZ on pointcloud2 with three points
+#yields (real 3.0)
+query maxZ(pc_points);
+
+#testcase -23- operator maxZ on pointcloud2 with extra columns
+#yields (real 4.0)
+query maxZ(pc_wtuple);
+
+#teardown
+kill pc_undef;
+kill pc_empty;
+kill pc_onepoint;
+kill pc_points;
+kill pc_wtuple;
+close database;
+delete database pc2test;
