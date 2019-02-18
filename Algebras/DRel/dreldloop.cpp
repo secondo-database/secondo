@@ -106,12 +106,23 @@ Type mapping for drelcreatebtree. Expect a drel, a string and an attribute.
                 err + ": second argument is not a string" );
         }
 
-        if( !nl->IsAtom( arg3Type ) ) {
+        if( nl->AtomType( arg3Type )!=SymbolType ) {
             return listutils::typeError(
                 err + ": thrid argument is not an attribute" );
         }
 
         ListExpr relType =  nl->Second( darrayType );
+
+        ListExpr indexType = nl->TheEmptyList();
+        ListExpr attrList = nl->Second(nl->Second(relType));
+        int attrIndex = listutils::findAttribute(attrList,
+                                                 nl->SymbolValue(arg3Type),
+                                                 indexType); 
+        if(!attrIndex){
+          return listutils::typeError("Attribute " + nl->SymbolValue(arg3Type)
+                                      + " is not part of the relation");
+        }
+
 
         // create function type to call dloopTM
         ListExpr funType = nl->TwoElemList(
@@ -121,7 +132,7 @@ Type mapping for drelcreatebtree. Expect a drel, a string and an attribute.
                 nl->ThreeElemList(
                     nl->SymbolAtom( "btree" ),
                     nl->Second( relType ),
-                    listutils::basicSymbol<CcInt>( ) ) ),
+                    indexType ) ),
             nl->ThreeElemList(
                 nl->SymbolAtom( "fun" ),
                 nl->TwoElemList(
