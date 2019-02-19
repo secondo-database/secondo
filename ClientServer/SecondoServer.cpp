@@ -1249,6 +1249,10 @@ int SecondoServer::Execute() {
       }
 
       } while (!iosock.fail() && !quit);
+
+      if(iosock.fail()){
+         cerr << "connection broken, terminate" << endl;
+      }
       
       iosock.exceptions(s);
 
