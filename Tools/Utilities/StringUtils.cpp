@@ -328,6 +328,32 @@ bool isIdent(const std::string& s){
   return true;
 }
 
+bool isMath(const char c){ 
+  if(stringutils::isDigit(c)) return false;
+  if(stringutils::isLetter(c)) return false;
+  const std::string disallowed = "()\"'_ \a\b\f\n\r\t\v";
+  for(char d : disallowed){
+    if(c == d) return false;
+  }
+  return true; 
+}
+
+bool isMath(const std::string& name){
+   for(char c : name){
+      if(!isMath(c)) return false;
+   }   
+   return true;
+}
+
+
+bool isSymbol(const std::string& name){
+    if(name.empty()) return false; 
+    if(isIdent(name)) return true;
+    return isMath(name);
+}
+
+
+
 
 size_t hashCode(const std::string& str){
     size_t  hash = 0;

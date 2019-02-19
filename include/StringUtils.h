@@ -166,8 +166,22 @@ Checks whether the string represents an identifier
 
 bool isIdent(const std::string& s);
 
+/*
+8 isMath
 
+This operator checks whether the provided string represents
+a math symbol.
 
+*/
+
+bool isMath(const std::string& name);
+
+/*
+This operator checks whether the provided string is 
+a valid symbol;
+
+*/
+bool isSymbol(const std::string& name);
 
 
 
