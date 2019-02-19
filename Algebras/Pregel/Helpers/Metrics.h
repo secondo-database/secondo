@@ -40,7 +40,7 @@ This header file defines the class Metrics
 
 #pragma once
 
-#define GATHER_PREGEL_METRICS
+ //#define GATHER_PREGEL_METRICS
 
 #ifdef GATHER_PREGEL_METRICS
 #define SENT_MESSAGE Metrics::get().sentMessage();
