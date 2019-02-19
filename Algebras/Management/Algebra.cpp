@@ -38,7 +38,7 @@ added.
 #include "NestedList.h"
 #include "SecondoSystem.h"
 #include "Symbols.h"
-
+#include "StringUtils.h"
 #include <fstream>
 
 using namespace std;
@@ -46,6 +46,31 @@ using namespace std;
 NestedList *nl;
 QueryProcessor *qp;
 AlgebraManager *am;
+
+
+/*
+~checkValidOperatorName~
+
+This function checks wether the provided name is a symbol.
+If the operator is a regular operator (no type map operator)
+then the first letter cannot be in upper case.
+
+*/
+
+bool checkValidOperatorName(const std::string& name, const bool isTMOP){
+   if(!stringutils::isSymbol(name)){
+     cerr << name << " is not a valid operator name, (not a symbol)" << endl;
+     return false;
+   }
+   if(isTMOP) return true;
+   char c = name[0];
+   if( c >='A' && c <= 'Z'){ // do not allow upper case
+     cerr << name << " is not a valid operator name, (starts upper case)" 
+          << endl;
+     return false;
+   }
+   return true;
+}
 
 
 OperatorInfo::OperatorInfo( const string& opName, const string& specStr)
@@ -132,6 +157,7 @@ Operator::Operator( const string& nm,
                     TypeMapping tm,
                     CreateCostEstimation* createCE)
 {
+  assert(checkValidOperatorName(nm, noF==0));
   name           = nm;
   specString     = specStr;
   numOfFunctions = noF;
@@ -169,6 +195,7 @@ Operator::Operator( const string& nm,
                     TypeMapping tm,
                     CreateCostEstimation createCE )
 {
+  assert(checkValidOperatorName(nm, vm==0));
   name           = nm;
   specString     = specStr;
   selectFunc     = sf;
@@ -209,6 +236,7 @@ Operator::Operator( const OperatorInfo& oi,
                     CreateCostEstimation createCE )
 {
   // define member attributes
+  assert(checkValidOperatorName(oi.name, vm==0));
   name           = oi.name;
   specString     = oi.str();
   spec           = oi;
@@ -257,6 +285,8 @@ Operator::Operator( const OperatorInfo& oi,
   excluded = false;
   int max = 0;
   while ( vms[max] != 0 ) { max++; }
+
+  assert(checkValidOperatorName(oi.name, max==0));
 
   // define member attributes
   name           = oi.name;
