@@ -46,7 +46,6 @@ namespace pregel {
   stateCondition(),
   initDoneCallback(_initDoneCallback),
   socket(_socket) {
-
   thread = new boost::thread(boost::bind(&MessageServer::run, this));
  }
 
@@ -80,7 +79,13 @@ namespace pregel {
  }
 
  void MessageServer::processMessage() {
+
+
   boost::this_thread::interruption_point();
+  if(!socket->IsOk()) {
+    interrupt();
+    return;
+  }
   char headerBuffer[MessageWrapper::HEADER_SIZE];
   memset(headerBuffer,0,MessageWrapper::HEADER_SIZE);
 
@@ -114,6 +119,10 @@ namespace pregel {
    }
    offset += lengthRead;
   }
+  if(!socket->IsOk()) {
+    interrupt();
+    return;
+  }
   auto header = MessageWrapper::Header::read(headerBuffer);
 
   const MessageWrapper::MessageType messageType = header.type;
@@ -133,6 +142,7 @@ namespace pregel {
     break;
    default:
     // BOOST_LOG_TRIVIAL(error) << "Received message of unknown type";
+    assert(false);
     return;
   }
 
@@ -185,10 +195,10 @@ namespace pregel {
 
  void MessageServer::handleInitDoneMessage() {
   if (monitor != nullptr) {
-   BOOST_LOG_TRIVIAL(error) << "Received INIT_DONE message inside of a round";
-   return;
+   // do not call finish here, initDone comes from master that is not
+   // counted
+   monitor = nullptr;
   }
-  cout << "Handle INIT_DONE" << endl;
   initDoneCallback();
  }
 
@@ -220,6 +230,9 @@ namespace pregel {
  void MessageServer::setState(MessageServer::State state, bool notify) {
   {
    boost::lock_guard<boost::mutex> lock(stateLock);
+   if(this->state == state){
+     return;
+   }
    this->state = state;
   }
   if (notify) {

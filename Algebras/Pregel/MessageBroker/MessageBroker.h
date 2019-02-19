@@ -86,6 +86,8 @@ namespace pregel {
   bool tcpListenerRunning();
 
   void pauseServers();
+  
+  void startServers();
 
   void stopServers();
 

@@ -93,6 +93,7 @@ namespace pregel {
     executable initDoneMessageHandler = [this]() {
       pauseServers();
       collectFromAllServers(SuperstepCounter::get());
+      startServers();
     };
 
     auto messageServer = new MessageServer(serverSocket,
@@ -312,6 +313,12 @@ namespace pregel {
  }
 
  void MessageBroker::expectInitMessages() {
+  for (MessageServer *server : servers) {
+   server->startReading();
+  }
+ }
+ 
+ void MessageBroker::startServers() {
   for (MessageServer *server : servers) {
    server->startReading();
   }
