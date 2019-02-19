@@ -36,10 +36,12 @@ operator rasterTestPc2 alias RASTERTESTPC2 pattern op(_,_)
 
 operator projectUTM alias PROJECTUTM pattern _ op
 operator projectWGS84 alias PROJECTWGS84 pattern _ op[_,_]
-operator UTMZone alias UTMZONE pattern _ op
-operator UTMSouth alias UTMSOUTH pattern _ op
+operator utmZone alias UTMZONE pattern _ op
+operator utmSouth alias UTMSOUTH pattern _ op
 
 operator clusterPc2 alias CLUSTERPC2 pattern _ op[_, _]
 operator removeNoise alias REMOVENOISE pattern _ op[_,_]
 operator createPc2Shapes alias CREATEPC2SHAPES pattern op(_,_,_,_,_,_,_,_,_,_,_)
 operator analyzeGeom alias ANALYZEGEOM pattern _ op
+
+

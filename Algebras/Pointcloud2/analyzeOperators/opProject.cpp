@@ -356,7 +356,7 @@ std::string op_UTMZone::getOperatorSpec(){
 }
 
 std::shared_ptr<Operator> op_UTMZone::getOperator(){
-  return std::make_shared<Operator>("UTMZone",
+  return std::make_shared<Operator>("utmZone",
       getOperatorSpec(),
       &op_UTMZone::UTMZoneVM,
       Operator::SimpleSelect,
@@ -420,7 +420,7 @@ std::string op_UTMSouth::getOperatorSpec(){
 }
 
 std::shared_ptr<Operator> op_UTMSouth::getOperator(){
-  return std::make_shared<Operator>("UTMSouth",
+  return std::make_shared<Operator>("utmSouth",
       getOperatorSpec(),
       &op_UTMSouth::UTMSouthVM,
       Operator::SimpleSelect,

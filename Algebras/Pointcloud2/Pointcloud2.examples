@@ -134,16 +134,16 @@ Signature: bool -> pc2(EUCLID)
 Example  : query size(rasterTestPc2(100, TRUE))
 Result   : 10000
 
-Operator : UTMZone
+Operator : utmZone
 Number   : 1
 Signature: pointcloud2 -> int
-Example  : query [const pointcloud2(WGS84) value ((1 1 1) (2 2 2) (3 0 3))] UTMZone
+Example  : query [const pointcloud2(WGS84) value ((1 1 1) (2 2 2) (3 0 3))] utmZone
 Result   : 31
 
-Operator : UTMSouth
+Operator : utmSouth
 Number   : 1
 Signature: pointcloud2 -> bool
-Example  : query [const pointcloud2(WGS84) value ((1 1 1) (2 2 2) (3 0 3))] UTMSouth 
+Example  : query [const pointcloud2(WGS84) value ((1 1 1) (2 2 2) (3 0 3))] utmSouth 
 Result   : TRUE
 
 Operator : clusterPc2
