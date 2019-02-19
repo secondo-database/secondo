@@ -46,6 +46,7 @@ This header file contains definitions of the PregelContext class
 #include "typedefs.h"
 #include "Helpers/WorkerConfig.h"
 #include "Helpers/PregelStatus2Helper.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
 namespace pregel {
  /*
@@ -65,7 +66,7 @@ namespace pregel {
   *
   * */
   std::string messageType = "";
-  std::string numericMessageType = "";
+  TupleType* tupleType = 0;
   int addressIndex = -1;
 
   int superstep = 0;
@@ -95,7 +96,10 @@ namespace pregel {
   * */
   void reset() {
    messageType = "";
-   numericMessageType = "";
+   if(tupleType){
+     tupleType->DeleteIfAllowed();
+     tupleType = 0;
+   }
    addressIndex = -1;
    superstep = 0;
    function = "";
@@ -104,6 +108,12 @@ namespace pregel {
    messageServerPort = 0;
 
    phase = INITIAL;
+  }
+
+  ~PregelContext(){
+     if(tupleType){
+       tupleType->DeleteIfAllowed();
+     }
   }
 
   /*
@@ -115,7 +125,6 @@ namespace pregel {
    sstream << "  FunctionText: " << function << std::endl;
    sstream << "  Superstep: " << superstep << std::endl;
    sstream << "  MessageType          : " << messageType << std::endl;
-   sstream << "  MessageType (numeric):" << numericMessageType << std::endl;
    sstream << std::endl;
   }
   
@@ -124,7 +133,7 @@ namespace pregel {
      ps2h.setFunctionText(function);
      ps2h.setSuperStep(superstep); 
      ps2h.setMessageType(messageType);
-     ps2h.setMessageTypeNumeric(numericMessageType);  
+     ps2h.setMessageTypeNumeric(messageType);  
   }
 
   /*
@@ -137,8 +146,8 @@ namespace pregel {
 
   void setNumericMessageType(ListExpr messageType);
 
-  std::string &getNumericMessageType() {
-   return numericMessageType;
+  TupleType* &getTupleType() {
+   return tupleType;
   }
 
   const int inline getCurrentSuperstep() {

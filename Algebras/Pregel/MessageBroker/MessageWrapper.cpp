@@ -142,11 +142,9 @@ namespace pregel {
  MessageWrapper *MessageWrapper::deserialize(char *buffer, Header header) {
   char *offset = buffer;
 
-  std::string &typeAsString = PregelContext::get().getNumericMessageType();
-  ListExpr typeAsList;
-  nl->ReadFromString(typeAsString, typeAsList);
+  TupleType* tupleType = PregelContext::get().getTupleType();
+  Tuple *tuple = new Tuple(tupleType);
 
-  Tuple *tuple = new Tuple(typeAsList);
   std::string read(offset, header.length);
 
   tuple->ReadFromBinStr(0, read);

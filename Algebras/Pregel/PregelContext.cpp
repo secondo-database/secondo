@@ -87,8 +87,10 @@ namespace pregel {
  }
 
  void PregelContext::setNumericMessageType(ListExpr numericMessageType) {
-  std::string numericTypeToString = nl->ToString(numericMessageType);
-  this->numericMessageType.swap(numericTypeToString);
+    if(tupleType){
+      tupleType->DeleteIfAllowed();
+    }
+    tupleType = new TupleType(numericMessageType);
  }
 
  void PregelContext::setRoundCounter(const int round) {
