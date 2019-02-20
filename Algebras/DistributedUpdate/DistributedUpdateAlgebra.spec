@@ -22,10 +22,21 @@ operator drelinserttuple alias DRELINSERTTUPLE pattern _ op [list; _]
 operator dreldelete alias DRELDELETE pattern _ _ op [_]
 operator drelupdate alias DRELUPDATE pattern _ _ op [funlist; _] implicit parameters elem1 types DRELFUNARG1
 
-operator dreladdid alias DRELADDID pattern _ op
 operator dreldeletebyid alias DRELDELETEBYID pattern _ _ op [_, _]
 operator drelupdatebyid alias DRELUPDATEBYID pattern _ _ op [_; funlist; _] implicit parameters elem1, elem2 types DRELFUNARG1, DRELFUNARG2 
 
 operator drelinsertrtree alias DRELINSERTRTREE pattern _ _ op [_, _]
 operator dreldeletertree alias DRELDELETERTREE pattern _ _ op [_, _]
 operator drelupdatertree alias DRELUPDATERTREE pattern _ _ op [_, _]
+
+operator drelinsertbtree alias DRELINSERTBTREE pattern _ _ op [_, _]
+operator dreldeletebtree alias DRELDELETEBTREE pattern _ _ op [_, _]
+operator drelupdatebtree alias DRELUPDATEBTREE pattern _ _ op [_, _]
+
+operator dreladdid alias DRELADDID pattern _ op
+operator drelfilteraddid alias DRELFILTERADDID pattern _ op [fun] implicit parameters elem1 types DRELFUNARG1
+
+operator drelfilterdelete alias DRELFILTERDELETE pattern _ op [fun] implicit parameters elem1 types DRELFUNARG1
+operator drelfilterupdate alias DRELFILTERUPDATE pattern _ op [fun; funlist] implicit parameters elem1 types DRELFUNARG1
+
+operator drelitspatialjoin alias DRELITSPATIALJOIN pattern _ _ op [_, _]
