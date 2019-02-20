@@ -34,6 +34,7 @@ This class represents a listener that can be registered at a QueryProcessor.
 
 #pragma once
 
+#include "NestedList.h" 
 struct OpNode;
 typedef OpNode* OpTree;
 
