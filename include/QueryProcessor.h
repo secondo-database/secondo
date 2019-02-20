@@ -426,6 +426,8 @@ get its son number ~no~.
  bool IsOperatorNode( const Supplier s ) const;
  bool IsFunctionNode( const Supplier s ) const;
 
+ Operator* GetOperator(const Supplier s) const;
+
 /*
 Check whether an argument node is of type OBJECT or OPERATOR.
 

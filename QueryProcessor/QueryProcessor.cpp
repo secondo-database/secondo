@@ -237,6 +237,8 @@ to determine selectivities of predicates while processing a query. Furthermore s
 #include "Application.h"
 #include "NList.h"
 
+
+
 // force a failed assertion. This will imply to print a stack trace
 #define qp_assert if( RTFlag::isActive("QP:assert") ) assert(false)
 
@@ -4986,6 +4988,17 @@ QueryProcessor::IsOperatorNode( const Supplier s ) const
   OpTree tree = static_cast<OpTree>( s );
   return tree->nodetype == Operator;
 }
+
+OpPtr 
+QueryProcessor::GetOperator(const Supplier s) const
+{
+  OpTree tree = static_cast<OpTree>( s );
+  if(tree->nodetype != Operator) {
+    return nullptr;
+  }
+  return tree->u.op.theOperator; 
+}
+
 
 bool
 QueryProcessor::IsFunctionNode( const Supplier s ) const
