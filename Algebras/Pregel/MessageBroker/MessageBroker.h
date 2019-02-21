@@ -55,13 +55,14 @@ namespace pregel {
  private:
   static MessageBroker broker;
 
-  boost::thread *tcpListener = nullptr;
+  std::shared_ptr<boost::thread> tcpListener = nullptr;
 
-  Socket *globalSocket = nullptr;
+  std::shared_ptr<Socket> globalSocket = nullptr;
 
-  std::list<MessageServer *> servers = std::list<MessageServer *>();
+  std::list<std::shared_ptr<MessageServer> > servers 
+                    = std::list< std::shared_ptr<MessageServer> >();
 
-  using mt = std::map<int, MessageClient *>;
+  using mt = std::map<int, std::shared_ptr<MessageClient> >;
   mt slotToClient = mt();
 
   DoubleQueue inbox;
@@ -89,11 +90,11 @@ namespace pregel {
   
   void startServers();
 
-  void stopServers();
+  void stopServers(bool killThreads);
 
   void stopClients();
 
-  void reset();
+  void reset(const bool killThreads);
 
   void expectInitMessages();
 
@@ -101,9 +102,9 @@ namespace pregel {
 
   unsigned long howManyMessagesInInbox(int superstep);
 
-  supplier<MessageWrapper> *inboxSupplier(const int superstep);
+  supplier2<MessageWrapper>*  inboxSupplier(const int superstep);
 
-  void sendMessage(MessageWrapper *message);
+  void sendMessage(std::shared_ptr<MessageWrapper> message);
 
   void broadcastEmptyMessage();
 

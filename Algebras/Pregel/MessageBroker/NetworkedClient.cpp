@@ -66,19 +66,13 @@ namespace pregel {
   }
  }
 
- void NetworkedClient::sendMessage(MessageWrapper *message) const {
+ void NetworkedClient::sendMessage(
+         std::shared_ptr<MessageWrapper> message) const {
   unsigned long size;
   char *buffer = message->serialize(size);
   socket->Write(buffer, size);
   socket->GetSocketStream().flush();
-
-  if (message->getBody() != nullptr) {
-   message->getBody()->DeleteIfAllowed(); // When we write,
-   // we don't need the tuple anymore
-   SENT_MESSAGE
-  }
-
-  delete message;
+  delete[] buffer;
  }
 
  void NetworkedClient::healthReport(std::stringstream &sstream) const {

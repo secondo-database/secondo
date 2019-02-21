@@ -32,7 +32,8 @@ November 2018, J. Mende
 
 1 Overview
 
-This header file contains definitions of type mapping, vallue mapping and the operator specification.
+This header file contains definitions of type mapping, vallue mapping 
+and the operator specification.
 
 2 Defines and includes
 
@@ -127,7 +128,7 @@ namespace pregel {
                                int, Word &,
                                Supplier s) {
   result = qp->ResultStorage(s);
-  PregelAlgebra::getAlgebra()->reset();
+  PregelAlgebra::getAlgebra()->reset(true);
   auto relation = (Relation *) args[0].addr;
   int hostIndex = ((CcInt *) args[1].addr)->GetIntval();
   int portIndex = ((CcInt *) args[2].addr)->GetIntval();
@@ -160,12 +161,12 @@ namespace pregel {
    BOOST_LOG_TRIVIAL(error)
     << "Failed to set up Pregel due to error during remote query. Will reset.";
    ((CcBool *) result.addr)->Set(true, false);
-   PregelAlgebra::getAlgebra()->reset();
+   PregelAlgebra::getAlgebra()->reset(true);
    return -1;
   } catch (std::exception &e) {
    BOOST_LOG_TRIVIAL(error) << "Failed to start Clients. Will reset.";
    ((CcBool *) result.addr)->Set(true, false);
-   PregelAlgebra::getAlgebra()->reset();
+   PregelAlgebra::getAlgebra()->reset(true);
    return -1;
   }
 
@@ -230,7 +231,12 @@ namespace pregel {
      return nullptr;
    };
 
-   Commander::broadcast(runners, Commander::throwWhenFalse, true);
+    auto dummy = Commander::broadcast(runners, Commander::throwWhenFalse, true);
+    // ensure to delete the result store
+    auto d1 = dummy();
+    while(d1 != nullptr){
+      d1 = dummy();
+    }
   }
 
   {
@@ -267,7 +273,15 @@ namespace pregel {
       return runner;
     };
 
-    Commander::broadcast(runnerSupplier, Commander::throwWhenFalse, true);
+    // besides the broadcast, we have to iterate over the result to free
+    // allocated memory for result
+    auto dummy = Commander::broadcast(runnerSupplier, 
+                                      Commander::throwWhenFalse, 
+                                      true);
+    auto d1 = dummy();
+    while(d1 != nullptr){
+      d1 = dummy();
+    }
    }
   }
 

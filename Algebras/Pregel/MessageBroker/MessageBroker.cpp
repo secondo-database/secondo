@@ -54,7 +54,7 @@ namespace pregel {
  MessageBroker::MessageBroker() : inbox() {}
 
  MessageBroker::~MessageBroker() {
-  stopServers();
+  stopServers(false);
   stopClients();
  }
 
@@ -65,7 +65,7 @@ namespace pregel {
  bool MessageBroker::startTcpListener(const int port) {
   try {
    BOOST_LOG_TRIVIAL(info) << "start message server on port " << port;
-   tcpListener = new boost::thread(
+   tcpListener = std::make_shared<boost::thread>(
     boost::bind(&MessageBroker::acceptConnections, this, port)
    );
    return true;
@@ -80,10 +80,11 @@ namespace pregel {
 
  void MessageBroker::acceptConnections(const int port) {
   try {
-   globalSocket = Socket::CreateGlobal("localhost", std::to_string(port));
+   globalSocket = std::shared_ptr<Socket>(Socket::CreateGlobal("localhost", 
+                                                       std::to_string(port)));
 
    while (!boost::this_thread::interruption_requested()) {
-    auto serverSocket = globalSocket->Accept();
+    std::shared_ptr<Socket> serverSocket(globalSocket->Accept());
     boost::this_thread::interruption_point();
     if (boost::this_thread::interruption_requested() ||
         serverSocket == nullptr || !serverSocket->IsOk()) {
@@ -96,7 +97,7 @@ namespace pregel {
       startServers();
     };
 
-    auto messageServer = new MessageServer(serverSocket,
+    auto messageServer = std::make_shared<MessageServer>(serverSocket,
                                            initDoneMessageHandler);
     servers.push_back(messageServer);
     boost::this_thread::interruption_point();
@@ -111,8 +112,8 @@ namespace pregel {
 
  bool MessageBroker::startClient(const int slot, const RemoteEndpoint host) {
   try {
-   auto client = new NetworkedClient(host);
-   slotToClient.insert(std::pair<int, NetworkedClient *>(slot, client));
+   auto client = std::make_shared<NetworkedClient>(host);
+   slotToClient.insert(std::make_pair(slot, client));
    return true;
   } catch (std::exception &e) {
    return false;
@@ -121,30 +122,30 @@ namespace pregel {
 
  bool MessageBroker::startLoopbackProxy(int slot) {
   try {
-   consumer<MessageWrapper> loopbackInsert =
-    [this](MessageWrapper *message) {
+   consumer2<MessageWrapper> loopbackInsert =
+    [this](std::shared_ptr<MessageWrapper> message) {
       if (message->getType() == MessageWrapper::MessageType::DATA) {
       this->inbox.push(message, message->getRound());
       QUEUED_MESSAGE
-      } else {
-       delete message;
-      }
+      } //else {
+        //delete message;
+        //}
     };
 
-   auto client = new LoopbackProxy(loopbackInsert);
-   slotToClient.insert(std::pair<int, LoopbackProxy *>(slot, client));
+   auto client = std::make_shared<LoopbackProxy>(loopbackInsert);
+   slotToClient.insert(std::make_pair(slot, client));
    return true;
   } catch (std::exception &e) {
    return false;
   }
  }
 
- void MessageBroker::reset() {
-  stopServers();
+ void MessageBroker::reset(const bool killThreads) {
+  stopServers(killThreads);
   stopClients();
  }
 
- void MessageBroker::stopServers() {
+ void MessageBroker::stopServers(bool killThreads) {
   if (tcpListenerRunning()) {
    tcpListener->interrupt();
 
@@ -157,11 +158,11 @@ namespace pregel {
    if (dummySocket != nullptr) {
     delete dummySocket;
     tcpListener->join();
-    delete tcpListener;
+    //delete tcpListener;
     tcpListener = nullptr;
 
     if (globalSocket != nullptr) {
-     delete globalSocket;
+     //delete globalSocket;
      globalSocket = nullptr;
     }
    } else {
@@ -171,9 +172,12 @@ namespace pregel {
    }
   }
 
-  for (MessageServer *server : servers) {
-   delete server;
+  if(killThreads){
+    for (auto server : servers) {
+       server->interrupt();
+    }
   }
+  
   servers.clear();
  }
 
@@ -182,37 +186,30 @@ namespace pregel {
    return;
   }
 
-  for (MessageServer *server : servers) {
+  for (auto server : servers) {
    server->requestPause();
   }
  }
 
  void MessageBroker::stopClients() {
-  std::for_each(slotToClient.begin(),
-                slotToClient.end(),
-                [](std::pair<int, MessageClient *> slotClientPair) {
-                  delete slotClientPair.second;
-                }
-  );
   slotToClient.clear();
  }
 
- void MessageBroker::sendMessage(MessageWrapper *message) {
+ void MessageBroker::sendMessage(std::shared_ptr<MessageWrapper> message) {
   const int destination = message->getDestination();
   if (slotToClient.find(destination) == slotToClient.end()) {
    BOOST_LOG_TRIVIAL(warning) << "no client set up with destination "
                               << destination << ". Will delete message";
    DISCARDED_MESSAGE
-   delete message;
    return;
   }
-  MessageClient *client = slotToClient.at(destination);
+  std::shared_ptr<MessageClient> client = slotToClient.at(destination);
   client->sendMessage(message);
  }
 
  void MessageBroker::collectFromAllServers(int superstep) {
-  consumer<MessageWrapper> moveToOwnBuffer =
-   [this, superstep](MessageWrapper *message) {
+  consumer2<MessageWrapper> moveToOwnBuffer =
+   [this, superstep](std::shared_ptr<MessageWrapper> message) {
     inbox.push(message, superstep);
    };
   for (auto server : servers) {
@@ -220,8 +217,8 @@ namespace pregel {
   }
  }
 
- supplier<MessageWrapper> *MessageBroker::inboxSupplier(const int superstep) {
-  return new supplier<MessageWrapper>(inbox.supply(superstep));
+ supplier2<MessageWrapper>* MessageBroker::inboxSupplier(const int superstep) {
+  return new supplier2<MessageWrapper> (inbox.supply(superstep));
  }
 
  void MessageBroker::startNewRound(bool &allEmpty,
@@ -240,7 +237,7 @@ namespace pregel {
                      std::make_shared<Monitor>(numberOfConnections - 1,
                                     callback);
 
-  for (MessageServer *server : servers) {
+  for (auto server : servers) {
    server->setMonitor(monitor);
    server->startReading();
   }
@@ -313,13 +310,13 @@ namespace pregel {
  }
 
  void MessageBroker::expectInitMessages() {
-  for (MessageServer *server : servers) {
+  for (auto server : servers) {
    server->startReading();
   }
  }
  
  void MessageBroker::startServers() {
-  for (MessageServer *server : servers) {
+  for (auto server : servers) {
    server->startReading();
   }
  }

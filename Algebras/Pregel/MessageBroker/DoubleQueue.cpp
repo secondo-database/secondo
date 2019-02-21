@@ -54,41 +54,43 @@ namespace pregel {
   return getQueue(round).size();
  }
 
- MessageWrapper *DoubleQueue::pop(const int round) {
+ std::shared_ptr<MessageWrapper> DoubleQueue::pop(const int round) {
   boost::lock_guard<boost::mutex> guard(lock[(round + 2) % 2]);
   MessageQueue &queue = getQueue(round);
   if (queue.empty()) {
    return nullptr;
   }
-  MessageWrapper *message = queue.front();
+  std::shared_ptr<MessageWrapper> message = queue.front();
   queue.pop();
   return message;
  }
 
- void DoubleQueue::consume(const consumer<MessageWrapper> &callback,
+ void DoubleQueue::consume(const consumer2<MessageWrapper> &callback,
                            const int round) {
   auto supplier = supply(round);
-  MessageWrapper *message;
+  std::shared_ptr<MessageWrapper> message;
   while ((message = supplier()) != nullptr) {
    callback(message);
   }
 //  Forwarder<MessageWrapper>(supplier, callback).consumeAll();
  }
 
- supplier<MessageWrapper> DoubleQueue::supply(const int round) {
+ supplier2<MessageWrapper> DoubleQueue::supply(const int round) {
   MessageQueue &queue = getQueue(round);
-  return supplier<MessageWrapper>([&queue, this, round]() -> MessageWrapper * {
+  return supplier2<MessageWrapper>([&queue, this, round]() 
+     -> std::shared_ptr<MessageWrapper>  {
     boost::lock_guard<boost::mutex> guard(this->lock[(round + 2) % 2]);
     if (queue.empty()) {
      return nullptr;
     }
-    MessageWrapper *message = queue.front();
+    std::shared_ptr<MessageWrapper> message = queue.front();
     queue.pop();
     return message;
   });
  }
 
- void DoubleQueue::push(MessageWrapper *message, const int round) {
+ void DoubleQueue::push(std::shared_ptr<MessageWrapper> message, 
+                        const int round) {
   boost::lock_guard<boost::mutex> guard(lock[(round + 2) % 2]);
   MessageQueue &queue = getQueue(round);
   queue.push(message);

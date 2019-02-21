@@ -63,7 +63,7 @@ namespace pregel {
  int
  MessageFeed::valueMapping(Word *, Word &result, int streamOp, Word &local,
                            Supplier) {
-  supplier<MessageWrapper> *messageSupplier;
+  supplier2<MessageWrapper> *messageSupplier;
 
   switch (streamOp) {
    case OPEN : {
@@ -76,10 +76,11 @@ namespace pregel {
    }
 
    case REQUEST : {
-    messageSupplier = (supplier<MessageWrapper> *) local.addr;
-    MessageWrapper *message = (*messageSupplier)();
+    messageSupplier = (supplier2<MessageWrapper> *) local.addr;
+    std::shared_ptr<MessageWrapper> message = (*messageSupplier)();
     if (message != nullptr) {
-     result.setAddr(message->getBody());
+     result.setAddr(message->getBody1());
+     //delete message; 
      return YIELD;
     } else {
      return CANCEL;
@@ -88,7 +89,7 @@ namespace pregel {
 
    case CLOSE :
     if (local.addr) {
-     messageSupplier = (supplier<MessageWrapper> *) local.addr;
+     messageSupplier = (supplier2<MessageWrapper> *) local.addr;
      delete messageSupplier;
      local.addr = nullptr;
     }

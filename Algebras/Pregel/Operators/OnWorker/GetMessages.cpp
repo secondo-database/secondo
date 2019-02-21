@@ -186,26 +186,27 @@ class GetMessagesInfo{
 
      Tuple* getTupleOnWorker(){
         if(!msgqueue1.empty()){
-          MessageWrapper* mw = msgqueue1.front();
+          std::shared_ptr<MessageWrapper> mw = msgqueue1.front();
           msgqueue1.pop();
           return getTupleOnWorker(mw);
         }         
         if(!msgqueue2.empty()){
-          MessageWrapper* mw = msgqueue2.front();
+          std::shared_ptr<MessageWrapper> mw = msgqueue2.front();
           msgqueue2.pop();
           return getTupleOnWorker(mw);
         }         
         return 0;
      }
 
-     Tuple* getTupleOnWorker(MessageWrapper* mw){
+     Tuple* getTupleOnWorker(std::shared_ptr<MessageWrapper> mw){
          Tuple* res = new Tuple(tt);
-         Tuple* msg = mw->getBody();
+         Tuple* msg = mw->getBody1();
          int pos = res->GetNoAttributes()-6;
          if(msg){ // overtake attributes from msg to res
            for(int i=0;i<msg->GetNoAttributes();i++){
              res->CopyAttribute(i,msg,i);
            }
+           msg->DeleteIfAllowed();
          } else { // create undefined attributes
            ListExpr attrList = nl->Second(tupleType);
            int p = 0;

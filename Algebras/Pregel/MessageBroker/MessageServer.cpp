@@ -35,14 +35,15 @@ November 2018, J. Mende
 This file defines the members of class MessageServer
 
 */
-
+#include <iostream>
 #include "MessageServer.h"
 #include <boost/log/trivial.hpp>
 #include "../Helpers/Metrics.h"
 #include "../PregelContext.h"
 
 namespace pregel {
- MessageServer::MessageServer(Socket *_socket, executable _initDoneCallback) :
+ MessageServer::MessageServer(std::shared_ptr<Socket>  _socket, 
+                              executable _initDoneCallback) :
   stateCondition(),
   initDoneCallback(_initDoneCallback),
   socket(_socket) {
@@ -50,15 +51,15 @@ namespace pregel {
  }
 
  MessageServer::~MessageServer() {
+  socket->GetSocketStream().setstate(std::ios_base::failbit);
+  socket->Close(); //TODO: need to do more?
   if (!thread->timed_join(boost::posix_time::milliseconds(0))) {
    thread->interrupt();
-   thread->join();
+   if(thread->joinable()){
+      thread->join();
+   }
   }
   delete thread;
-
-  socket->Close(); //TODO: need to do more?
-  delete socket;
-
  }
 
  void MessageServer::run() {
@@ -155,7 +156,7 @@ namespace pregel {
   addMessage(message);
  }
 
- void MessageServer::addMessage(MessageWrapper *message) {
+ void MessageServer::addMessage(std::shared_ptr<MessageWrapper> message) {
   messageQueue.push(message, message->getRound());
  }
 
@@ -202,7 +203,7 @@ namespace pregel {
   initDoneCallback();
  }
 
- void MessageServer::drainBuffer(const consumer<MessageWrapper> &consumer,
+ void MessageServer::drainBuffer(const consumer2<MessageWrapper> &consumer,
                                  const int round) {
   messageQueue.consume(consumer, round);
  }

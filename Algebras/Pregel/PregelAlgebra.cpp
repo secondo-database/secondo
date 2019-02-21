@@ -88,7 +88,9 @@ namespace pregel {
   AddOperator(&RemotePregelCommand::remotePregelCommand);
  }
 
- PregelAlgebra::~PregelAlgebra() {};
+ PregelAlgebra::~PregelAlgebra() {
+    reset(false);
+ };
 
  PregelAlgebra *PregelAlgebra::getAlgebra() {
   return algebra;
@@ -129,25 +131,28 @@ namespace pregel {
 
 
 
- void PregelAlgebra::reset() {
+ void PregelAlgebra::reset( bool informWorkers) {
   BOOST_LOG_TRIVIAL(debug) << "Reset Algebra";
 
-  auto workers = PregelContext::get().getWorkers();
-  std::string query("query resetPregel();");
+   if(informWorkers){
 
-  for (auto worker = workers(); worker != nullptr; worker = workers()) {
-   BOOST_LOG_TRIVIAL(info) << "Reset Worker";
-   try {
-    Commander::remoteQuery(worker->connection,
+     auto workers = PregelContext::get().getWorkers();
+     std::string query("query resetPregel();");
+
+     for (auto worker = workers(); worker != nullptr; worker = workers()) {
+      BOOST_LOG_TRIVIAL(info) << "Reset Worker";
+      try {
+       Commander::remoteQuery(worker->connection,
                            query,
                            Commander::throwWhenFalse);
-   } catch (RemoteExecutionException &e) {
-    BOOST_LOG_TRIVIAL(warning) << "Reset worker failed: Error during query";
-   }
+      } catch (RemoteExecutionException &e) {
+       BOOST_LOG_TRIVIAL(warning) << "Reset worker failed: Error during query";
+      }
+     }
   }
 
   BOOST_LOG_TRIVIAL(info) << "Reset Broker";
-  MessageBroker::get().reset();
+  MessageBroker::get().reset(false);
 
   BOOST_LOG_TRIVIAL(info) << "Reset Context";
   PregelContext::get().reset();

@@ -101,30 +101,32 @@ namespace pregel {
   constexpr static size_t HEADER_SIZE = sizeof(int) + sizeof(MessageType) +
                                         sizeof(unsigned long) + sizeof(int);
 
-  static MessageWrapper *
+  static std::shared_ptr<MessageWrapper>
   constructControlMessage(MessageType type, int destination, int superstep) {
-   MessageWrapper *message = new MessageWrapper(
+   std::shared_ptr<MessageWrapper> message = std::make_shared<MessageWrapper>(
     Header(destination, type, 0, superstep), nullptr);
    return message;
   }
 
-  static MessageWrapper *constructEmptyMessage(int destination, int superstep) {
+  static std::shared_ptr<MessageWrapper> 
+  constructEmptyMessage(int destination, int superstep) {
    return constructControlMessage(EMPTY, destination, superstep);
   }
 
-  static MessageWrapper *
+  static std::shared_ptr<MessageWrapper>
   constructFinishMessage(int destination, int superstep) {
    return constructControlMessage(FINISH, destination, superstep);
   }
 
-  static MessageWrapper *
+  static std::shared_ptr<MessageWrapper>
   constructInitDoneMessage(int destination, int superstep) {
    return constructControlMessage(INIT_DONE, destination, superstep);
   }
 
   MessageWrapper();
+  ~MessageWrapper();
 
-  static MessageWrapper *fromTuple(Tuple *tuple, int round);
+  static std::shared_ptr<MessageWrapper> fromTuple(Tuple *tuple, int round);
 
   MessageWrapper(Header header, Tuple *body);
 
@@ -132,11 +134,12 @@ namespace pregel {
 
   char *serialize(unsigned long &size);
 
-  static MessageWrapper *deserialize(char *buffer, Header header);
+  static std::shared_ptr<MessageWrapper>  
+  deserialize(char *buffer, Header header);
 
-  Tuple *getBody() const;
+  Tuple *getBody1() const;
 
-  void setBody(Tuple *body);
+  void setBody1(Tuple *body);
 
   void setDestination(int destination);
 

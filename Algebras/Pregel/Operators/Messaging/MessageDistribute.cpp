@@ -108,7 +108,8 @@ namespace pregel {
   stream.open();
   Tuple *tuple;
   while ((tuple = stream.request()) != nullptr) {
-   MessageWrapper *message = MessageWrapper::fromTuple(tuple, round);
+   std::shared_ptr<MessageWrapper> message 
+                            = MessageWrapper::fromTuple(tuple, round);
    broker.sendMessage(message);
   }
 

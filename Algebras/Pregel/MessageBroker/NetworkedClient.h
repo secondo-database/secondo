@@ -50,7 +50,7 @@ namespace pregel {
 
   ~NetworkedClient() override;
 
-  void sendMessage(MessageWrapper *message) const override;
+  void sendMessage(std::shared_ptr<MessageWrapper> message) const override;
 
   void healthReport(std::stringstream &sstream) const override;
 

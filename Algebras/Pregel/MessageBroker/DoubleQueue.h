@@ -49,7 +49,7 @@ This header file defines the class DoubleQueue
 #include <boost/thread.hpp>
 
 namespace pregel {
- using MessageQueue = std::queue<MessageWrapper *>;
+ using MessageQueue = std::queue<std::shared_ptr<MessageWrapper> >;
 
  class DoubleQueue {
  public:
@@ -62,17 +62,17 @@ namespace pregel {
 
   unsigned long size(const int round);
 
-  void push(MessageWrapper *message, const int round);
+  void push(std::shared_ptr<MessageWrapper> message, const int round);
 
-  MessageWrapper *pop(const int round);
+  std::shared_ptr<MessageWrapper> pop(const int round);
 
-  void consume(const consumer<MessageWrapper> &callback,
+  void consume(const consumer2<MessageWrapper> &callback,
                const int round);
 
-  supplier<MessageWrapper> supply(const int round);
+  supplier2<MessageWrapper> supply(const int round);
 
  private:
-  std::queue<MessageWrapper *> buffers[2];
+  std::queue< std::shared_ptr<MessageWrapper> > buffers[2];
   boost::mutex lock[2];
  };
 }

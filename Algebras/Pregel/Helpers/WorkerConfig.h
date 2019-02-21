@@ -48,6 +48,19 @@ This header file defines the class WorkerConfig
 
 namespace pregel {
  struct WorkerConfig {
+  private:
+    void killConnection(){
+       if(connection==nullptr){
+         return;
+       }
+       *numRefs = *numRefs -1;
+       if(*numRefs == 0){
+          connection->killConnection();
+          delete connection;
+          delete numRefs;
+       }
+    }
+  public:
 
   std::ostream& print(std::ostream& os) const{
      os << "slot: " << slot;
@@ -62,7 +75,8 @@ namespace pregel {
   RemoteEndpoint endpoint;
   int messageServerPort;
   std::string configFilePath;
-  WorkerConnection *connection;
+  WorkerConnection* connection;
+  size_t* numRefs;
 
   WorkerConfig(int slot, const RemoteEndpoint endpoint, int messageServerPort,
                const std::string configFilePath,
@@ -70,7 +84,11 @@ namespace pregel {
                                                messageServerPort(
                                                 messageServerPort),
                                                configFilePath(configFilePath),
-                                               connection(connection) {}
+                                               connection(connection) {
+     numRefs = new size_t;
+     *numRefs = 0;
+     if(connection) *numRefs = 1;
+  }
 
   bool connect() {
    auto connection = WorkerConnection::createConnection(endpoint.host,
@@ -80,18 +98,28 @@ namespace pregel {
     BOOST_LOG_TRIVIAL(error) << "Couldn't connect to worker.";
     return false;
    }
+   killConnection();
    this->connection = connection;
+   numRefs = new size_t;
+   *numRefs = 1;
    return true;
   }
 
+  WorkerConfig(const WorkerConfig& a): slot(a.slot), endpoint(a.endpoint),
+                                       messageServerPort(a.messageServerPort),
+                                       configFilePath(a.configFilePath),
+                                       connection(a.connection),
+                                       numRefs(a.numRefs) {
+     *numRefs = *numRefs + 1;
+  } 
+
+
   virtual ~WorkerConfig() {
-   /*if (connection != nullptr) {
-    connection->killConnection();
-    delete connection;
-   }
-    */
+      killConnection();
   }
  };
+
+
 }
 
 std::ostream& operator<<(std::ostream &os, const pregel::WorkerConfig &config);

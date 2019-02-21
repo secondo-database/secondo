@@ -80,7 +80,7 @@ namespace pregel {
   * */
   bool amITheMaster();
 
-  void reset();
+  void reset(const bool informWorkers);
 
   void healthReport(std::stringstream &sstream);
   void healthReport(PregelStatus2Helper& ps2h);

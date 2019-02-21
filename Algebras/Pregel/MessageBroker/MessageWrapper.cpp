@@ -42,7 +42,14 @@ This file defines the members of class MessageWrapper
 #include "../PregelContext.h"
 
 namespace pregel {
- MessageWrapper::MessageWrapper() : header() {}
+
+ MessageWrapper::MessageWrapper() : body(nullptr),header() {}
+
+ MessageWrapper::~MessageWrapper() {
+   if(body != nullptr){
+     body->DeleteIfAllowed();
+   }
+ }
 
  MessageWrapper::MessageWrapper(MessageWrapper::Header header, Tuple *body)
   : body(body), header(header) {}
@@ -108,12 +115,19 @@ namespace pregel {
   return buffer;
  }
 
- Tuple *MessageWrapper::getBody() const {
+ Tuple *MessageWrapper::getBody1() const {
+  if(body){
+     body->IncReference();
+  }
   return body;
  }
 
- void MessageWrapper::setBody(Tuple *body) {
-  MessageWrapper::body = body;
+ void MessageWrapper::setBody1(Tuple *body) {
+  if(this->body){
+    this->body->DeleteIfAllowed();
+  }
+  body->IncReference();
+  this->body = body;
  }
 
  unsigned long MessageWrapper::serialize(char *&buffer) {
@@ -139,7 +153,8 @@ namespace pregel {
   return size;
  }
 
- MessageWrapper *MessageWrapper::deserialize(char *buffer, Header header) {
+ std::shared_ptr<MessageWrapper> 
+ MessageWrapper::deserialize(char *buffer, Header header) {
   char *offset = buffer;
 
   TupleType* tupleType = PregelContext::get().getTupleType();
@@ -149,7 +164,7 @@ namespace pregel {
 
   tuple->ReadFromBinStr(0, read);
 
-  return new MessageWrapper(header, tuple);
+  return std::make_shared<MessageWrapper>(header, tuple);
  }
 
  int MessageWrapper::getDestination() const {
@@ -167,7 +182,9 @@ namespace pregel {
   }
   ListExpr messageType;
   nl->ReadFromString(PregelContext::get().getMessageType(), messageType);
-  ListExpr toList = wrapper.getBody()->SaveToList(messageType);
+  Tuple* tuple = wrapper.getBody1();
+  ListExpr toList = tuple->SaveToList(messageType);
+  tuple->DeleteIfAllowed();
   os << "data message:" << " body: " << nl->ToString(toList) << " header: "
      << wrapper.header;
   return os;
@@ -220,8 +237,9 @@ namespace pregel {
   return buffer;
  }
 
- MessageWrapper *MessageWrapper::fromTuple(Tuple *tuple, int round) {
+ std::shared_ptr<MessageWrapper> 
+ MessageWrapper::fromTuple(Tuple *tuple, int round) {
   Header header = Header::fromTuple(tuple, round);
-  return new MessageWrapper(header, tuple);
+  return std::make_shared<MessageWrapper>(header, tuple);
  }
 }

@@ -165,6 +165,8 @@ namespace pregel {
 
   auto result = queryProcessor->Request(opTree);
 
+  queryProcessor->Destroy(opTree, false);
+
   if (result.addr == nullptr) {
    BOOST_LOG_TRIVIAL(error) << "Query returned nullptr. Abort.";
    return false;
@@ -173,13 +175,15 @@ namespace pregel {
   auto successBool = ((CcBool *) result.addr);
   if (!successBool->IsDefined()) {
    BOOST_LOG_TRIVIAL(error) << "Query returned undefined. Abort.";
+   successBool->DeleteIfAllowed();
    return false;
   }
   if (successBool->GetValue() == false) {
    BOOST_LOG_TRIVIAL(error) << "Query returned FALSE. Abort.";
+   successBool->DeleteIfAllowed();
    return false;
   }
-
+  successBool->DeleteIfAllowed();
   return true;
  }
 

@@ -65,12 +65,13 @@ namespace pregel {
   std::shared_ptr<Monitor> monitor = nullptr;
   executable initDoneCallback;
   boost::thread *thread = nullptr;
-  Socket *socket;
+  std::shared_ptr<Socket> socket;
 
   DoubleQueue messageQueue;
 
  public:
-  explicit MessageServer(Socket *socket, executable initDoneCallback);
+  explicit MessageServer(std::shared_ptr<Socket> socket, 
+                         executable initDoneCallback);
 
   virtual ~MessageServer();
 
@@ -84,7 +85,7 @@ namespace pregel {
 
   void setMonitor(std::shared_ptr<Monitor> monitor);
 
-  void drainBuffer(const consumer<MessageWrapper> &consumer,
+  void drainBuffer(const consumer2<MessageWrapper> &consumer,
                    const int round);
 
   void healthReport(std::stringstream &sstream);
@@ -102,7 +103,7 @@ namespace pregel {
 
   void updateRound();
 
-  void inline addMessage(MessageWrapper *message);
+  void inline addMessage(std::shared_ptr<MessageWrapper> message);
 
   bool stateIs(State state);
 

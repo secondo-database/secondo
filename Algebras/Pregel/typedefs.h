@@ -41,6 +41,7 @@ This header file contains type and macro definitions
 #ifndef SECONDO_TYPEDEFS_H
 #define SECONDO_TYPEDEFS_H
 
+#include <memory>
 #include <functional>
 #include "../Distributed2/ConnectionInfo.h"
 
@@ -55,7 +56,11 @@ namespace pregel {
  using WorkerConnection = distributed2::ConnectionInfo;
 
  template<typename Type> using supplier = std::function<Type *()>;
+ template<typename Type> using supplier2 
+                         = std::function<std::shared_ptr<Type> ()>;
  template<typename Type> using consumer = std::function<void(Type *)>;
+ template<typename Type> using consumer2 
+                        = std::function<void(std::shared_ptr<Type> )>;
  using executable = std::function<void()>;
 }
 

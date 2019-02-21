@@ -156,7 +156,9 @@ namespace pregel {
       return;
      }
      resultLock.lock();
-     resultStore->push_back(result);
+     if(result!=nullptr){
+        resultStore->push_back(result);
+     }
      resultLock.unlock();
    };
 
@@ -178,9 +180,9 @@ namespace pregel {
    auto returnSupplier =
     [resultStore, &asynchExceptions]() mutable -> result_type * {
       if (asynchExceptions) {
-       for (auto result : *resultStore) {
-        delete result;
-       }
+       //for (auto result : *resultStore) {
+       // delete result;
+       //}
        resultStore->clear();
        delete resultStore;
        resultStore = nullptr;
@@ -191,6 +193,7 @@ namespace pregel {
       }
       if (resultStore->empty()) {
        delete resultStore;
+       resultStore = nullptr;
        return nullptr;
       }
       auto returnValue = resultStore->back();

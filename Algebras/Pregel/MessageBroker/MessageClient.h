@@ -51,7 +51,7 @@ namespace pregel {
  public:
   virtual ~MessageClient();
 
-  virtual void sendMessage(MessageWrapper *message) const = 0;
+  virtual void sendMessage(std::shared_ptr<MessageWrapper> message) const = 0;
 
   virtual void healthReport(std::stringstream &sstream) const = 0;
  };

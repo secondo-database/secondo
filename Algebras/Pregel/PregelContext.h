@@ -203,7 +203,7 @@ namespace pregel {
   std::ostream& print(std::ostream& os) const{
     os << " function: " << function 
        << " routes: " << workers.size() << std::endl;
-    for (auto worker : workers) {
+    for (auto& worker : workers) {
       worker.print(os) << std::endl;
     }
     return os;

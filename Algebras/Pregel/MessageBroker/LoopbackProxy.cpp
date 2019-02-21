@@ -44,9 +44,11 @@ This file defines the members of class LoopbackProxy
 pregel::LoopbackProxy::~LoopbackProxy() {}
 
 pregel::LoopbackProxy::LoopbackProxy(
- std::function<void(MessageWrapper * )> callback) : sendCallback(callback) {}
+ std::function<void(std::shared_ptr<MessageWrapper>  )> callback) :
+         sendCallback(callback) {}
 
-void pregel::LoopbackProxy::sendMessage(MessageWrapper *message) const {
+void pregel::LoopbackProxy::sendMessage(
+           std::shared_ptr<MessageWrapper> message) const {
  sendCallback(message);
 }
 

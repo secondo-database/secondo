@@ -48,14 +48,14 @@ This header file defines the class LoopbackProxy
 namespace pregel {
  class LoopbackProxy : public MessageClient {
  private:
-  const std::function<void(MessageWrapper *)> sendCallback;
+  const std::function<void(std::shared_ptr<MessageWrapper> )> sendCallback;
 
  public:
-  LoopbackProxy(std::function<void(MessageWrapper *)> callback);
+  LoopbackProxy(std::function<void(std::shared_ptr<MessageWrapper> )> callback);
 
   ~LoopbackProxy() override;
 
-  void sendMessage(MessageWrapper *message) const override;
+  void sendMessage(std::shared_ptr<MessageWrapper> message) const override;
 
   void healthReport(std::stringstream &sstream) const override;
  };

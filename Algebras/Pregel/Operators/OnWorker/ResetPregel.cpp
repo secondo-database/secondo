@@ -53,7 +53,7 @@ namespace pregel {
                                Word &local, Supplier s) {
   result = qp->ResultStorage(s);
 
-  PregelAlgebra::getAlgebra()->reset();
+  PregelAlgebra::getAlgebra()->reset(true);
 
   ((CcBool *) result.addr)->Set(true, true);
   return 0;
