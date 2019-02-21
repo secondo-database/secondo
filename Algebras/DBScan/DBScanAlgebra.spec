@@ -23,3 +23,4 @@
 operator dbscanR alias DBSCANR pattern _ op [list]
 operator dbscanM alias DBSCANM pattern _ op [list]
 operator dbscanF alias DBSCANF pattern _ op [list]
+operator dbscanTF alias DBSCANTF pattern _ op [list]

@@ -265,6 +265,45 @@ namespace clusterdbscanalg
     return o;
    }
  };
+ 
+/*
+1.8 Declarations and definition of the class ~TupleDist~
+
+*/ 
+template<class R>
+class TupleDist: public DistCount {
+  private:
+  QueryProcessor* qp;
+  Supplier fun;
+ 
+  public:  
+  void initialize(QueryProcessor* queryProcessor, Supplier function) {
+    qp = queryProcessor;
+    fun = function;
+  }
+
+  double operator() (const std::pair<Tuple*, TupleId>& p1,
+                     const std::pair<Tuple*, TupleId>& p2) {
+    cnt++;
+    assert(p1.first);
+    assert(p2.first);
+    Word funRes;
+    ArgVectorPointer vector;
+    vector = qp->Argument(fun);
+    ((*vector)[0]).setAddr(p1.first);
+    ((*vector)[1]).setAddr(p2.first);
+    qp->Request(fun, funRes);
+    R* result;
+    result = (R*)funRes.addr;
+    return result->GetValue();
+  }
+
+  std::ostream& print(const std::pair<Tuple*, TupleId>& p, std::ostream& o) {
+    o << *(p.first);
+    return o;
+  }
+};
+
 /*
 1.9 Declarations and definition of the class ~PictureDist~
 

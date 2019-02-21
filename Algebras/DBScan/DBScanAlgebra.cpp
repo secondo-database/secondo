@@ -804,6 +804,180 @@ int dbscanFVM1(Word* args, Word& result,
   dbscanFVM1<CcInt>,
   dbscanFVM1<CcReal> 
  };
+ 
+
+/*
+3  Operator ~dbscanTF~
+
+This operator works similarly to the ~dbScanF~ operator.
+The difference is that this operator allows the user to define
+a distance function based on tuples, including the possibility to process
+several attributes of a tuple.
+
+3.1 Type Mapping
+
+*/
+ListExpr dbscanTFTM(ListExpr args) {
+  if (nl->ListLength(args) != 2) {
+   return listutils::typeError("2 elements expected: Stream and argument list");
+  }
+  if(!Stream<Tuple>::checkType(nl->First(args))) {
+   return listutils::typeError("first argument is not a tuple stream");
+  }
+  ListExpr arguments = nl->Second(args);
+  if (nl->ListLength(arguments) != 4) {
+    return listutils::typeError("four arguments required after stream");
+  }
+  if (!CcReal::checkType(nl->Second(arguments))) {
+    return listutils::typeError("eps must have type real");
+  }
+  if (!CcInt::checkType(nl->Third(arguments))) {
+    return listutils::typeError("MinPts must have type int");
+  }
+  ListExpr fun = nl->Fourth(arguments);
+  if (!listutils::isMap<2>(fun)) {
+    return listutils::typeError("function with two arguments required");
+  }
+  if (!nl->Equal(nl->Second(fun), nl->Third(fun)) || 
+  (!CcReal::checkType(nl->Fourth(fun)) && !CcInt::checkType(nl->Fourth(fun)))) {
+    return listutils::typeError("fun is not of type: T x T -> {int, real} ");
+  }
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  ListExpr typeList;
+  ListExpr cidname = nl->First(arguments); 
+  string errormsg;
+  if (!listutils::isValidAttributeName(cidname, errormsg)) {
+    return listutils::typeError(errormsg);
+  }
+  string cidnamestr = nl->SymbolValue(cidname);
+  int pos = FindAttribute(attrList, cidnamestr, typeList);
+  if (pos!=0) {
+    return listutils::typeError("Attribute "+ cidnamestr + " already exists");
+  }
+  pos = FindAttribute(attrList, "Visited", typeList);
+  if (pos!=0) {
+    return listutils::typeError("Attribute Visited already exists");
+  }
+  pos = FindAttribute(attrList, "IsCore", typeList);
+  if (pos!=0) {
+    return listutils::typeError("Attribute IsCore already exists");
+  }
+  // Copy attrlist to newattrlist
+  attrList             = nl->Second(nl->Second(nl->First(args)));
+  ListExpr newAttrList = nl->OneElemList(nl->First(attrList));
+  ListExpr lastlistn   = newAttrList;
+  attrList = nl->Rest(attrList);
+  while (!(nl->IsEmpty(attrList))) {
+    lastlistn = nl->Append(lastlistn, nl->First(attrList));
+    attrList = nl->Rest(attrList);
+  }
+  lastlistn = nl->Append(lastlistn, nl->TwoElemList(cidname, 
+                                           nl->SymbolAtom(CcInt::BasicType())));
+  lastlistn = nl->Append(lastlistn, nl->TwoElemList(nl->SymbolAtom("Visited"),
+                                          nl->SymbolAtom(CcBool::BasicType())));
+  lastlistn = nl->Append(lastlistn, nl->TwoElemList(nl->SymbolAtom("IsCore"),
+                                          nl->SymbolAtom(CcBool::BasicType())));
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                         nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                         newAttrList));
+}
+
+
+/*
+3.1 Value Mapping
+
+The template argument specifies the result type of the distance function and
+may be CcInt or CcReal
+
+*/
+template <class R> 
+int dbscanTFVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  typedef  TupleDist<R> TupleComp;
+  typedef  dbscan::DBScanGen<dbscan::SetOfObjectsM<TupleComp, Tuple>, 
+                             TupleComp> dbscanclass;
+  dbscanclass* li = (dbscanclass*) local.addr;  
+  switch (message) {
+    case OPEN : {
+      Word stream = args[0];
+      Supplier supplier = qp->GetSupplier(args[1].addr, 1);
+      Word argument;
+      qp->Request(supplier, argument);
+      CcReal* eps = ((CcReal*)argument.addr);
+      supplier = qp->GetSupplier(args[1].addr, 2);
+      qp->Request(supplier, argument);
+      CcInt* minPts = ((CcInt*)argument.addr);
+      if (!eps->IsDefined() || !minPts->IsDefined()) {
+        return 0;
+      }
+      if (eps->GetValue() < 0 || minPts->GetValue() < 0) {
+        return 0;
+      }
+      ListExpr tt = (nl->Second(GetTupleResultType(s)));
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      size_t maxMem = (qp->GetMemorySize(s) * 1024);
+      TupleComp dist;
+      Supplier supplier2 = qp->GetSupplier(args[1].addr, 3);
+      dist.initialize(qp, supplier2);
+      local.addr = new dbscanclass(stream, tt, eps->GetValue(), 
+                                   minPts->GetValue(), maxMem, -1, dist);
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->next() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+    }
+  }
+  return 0;
+}
+ 
+/*
+1.3 Struct ~dbscanTFInfo~
+
+*/ 
+struct dbscanTFInfo :  OperatorInfo {
+  dbscanTFInfo() : OperatorInfo() {
+    name      = "dbscanTF";
+    signature = "stream(tuple) x Id x real x int x fun -> stream(tuple)";
+    syntax    = "_ dbscanTF [_, _, _, fun]";
+    meaning   = "Detects clusters from a given stream using MMM-Tree as index "
+    "structure. The first parameter is the name for the cluster ID attribute, "
+    "the third paramter is eps and the fourth parameter is MinPts. A tuple "
+    "stream will be returned but the tuple will have additional attributes as "
+    "visited and clusterID. In addition a distance function involving the input"
+    " tuples is required";
+    example   = "query Kneipen feed dbscanTF[No, 500.0, 5, fun(t1: tuple((Name "
+    "string) (Strasse string) (GeoData point)), t2: tuple((Name string) ("
+    "Strasse string) (GeoData point))) distance(attr(t1, GeoData), attr(t2, "
+    "GeoData))] sortby[No] groupby[No ; C : group count] count";  
+  }
+};
+
+/*
+1.4 Selection method 
+
+*/
+int dbscanTFSel(ListExpr args) {
+  ListExpr funResultType = nl->Fourth(nl->Fourth(nl->Second(args)));
+  if (CcInt::checkType(funResultType))  return 0;
+  if (CcReal::checkType(funResultType)) return 1;
+  return -1; 
+};
+
+/*
+1.5. Value mapping array 
+
+*/
+
+ValueMapping dbscanTFVMs[] = {dbscanTFVM<CcInt>, dbscanTFVM<CcReal>};
 
 /*
 Algebra class ~ClusterDBScanAlgebra~
@@ -824,6 +998,8 @@ Algebra class ~ClusterDBScanAlgebra~
     AddOperator(dbscanFInfo(),dbscanFVM, 
                 dbscanFSel, dbscanFTM)->SetUsesMemory();
 
+    AddOperator(dbscanTFInfo(),dbscanTFVMs, 
+                dbscanTFSel, dbscanTFTM)->SetUsesMemory();
    }
 
    ~ClusterDBScanAlgebra() {};

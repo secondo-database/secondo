@@ -61,7 +61,7 @@ namespace dbscan{
      SetOfObjectsM(Word _stream, ListExpr _tt, double _eps, 
                    size_t _maxMem, int _attrPos, D _dist):
           eps(_eps), attrPos(_attrPos), tree(0), 
-          buffer(0), tupleStates(), tt(0), resIt(0), dist(_dist) {
+          buffer(0), tupleStates(), tt(0), resIt(0), dist(_dist), dummy(0) {
        tt = new TupleType(_tt);
        initialize(_maxMem, _stream);
      }
@@ -156,7 +156,7 @@ the returned list.
 */
      std::list<TupleId>* getNeighbors(TupleId id){
         Tuple* tuple = buffer->GetTuple(id);
-        T* obj = (T*)tuple->GetAttribute(attrPos);
+        T* obj = getAttribute(tuple, attrPos, dummy);
         RangeIterator<std::pair<T*,TupleId>, D>* it  
               = tree->rangeSearch(std::make_pair(obj,id), eps);
         std::list<TupleId>* res = new std::list<TupleId>();
@@ -220,7 +220,37 @@ Changes the seed flag for a tuple.
      void setCore(TupleId id, bool value){
          tupleStates[id].isCore = value;
      }
-     
+
+/*
+1.13 ~getAttribute~
+
+Returns either the attribute of a tuple at a given position or the tuple itself,
+depending on the template class T.
+
+*/
+T* getAttribute(Tuple *tuple, const int pos, Attribute *a) {
+  return (T*)(tuple->GetAttribute(pos));
+}
+
+T* getAttribute(Tuple *tuple, const int pos, Tuple *t) {
+  return tuple;
+}
+
+/*
+1.13 ~isDefined~
+
+Returns either the result of the IsDefined function from the Attribute class or
+simply true, depending on the template class T.
+
+*/
+bool isDefined(Attribute *a) {
+  return a->IsDefined();
+}
+
+bool isDefined(Tuple *t) {
+  return true;
+}
+
 
   private:
 
@@ -236,6 +266,7 @@ Changes the seed flag for a tuple.
      TupleType* tt;   // the result tuple type
      GenericRelationIterator* resIt;  // iterator 
      D dist;                          // distance function
+     T *dummy; // used for invocation of getAttribute function
 
 /*
 1.14 ~initialize~
@@ -251,9 +282,9 @@ Processes the complete input stream and builds an r-tree index on it.
           stream.open();
           while((tuple = stream.request())){
              TupleId id = buffer->AppendTuple(tuple);
-             T* obj = (T*) tuple->GetAttribute(attrPos);
-             if(obj->IsDefined()){
-                 std::pair<T*,TupleId> p(obj,id);
+             T *obj = (T*)(getAttribute(tuple, attrPos, dummy));
+             if(isDefined(obj)){
+                 std::pair<T*, TupleId> p(obj, id);
                  tree->insert(p);
              }
              TupleInfo info(false,-1);
