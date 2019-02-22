@@ -1,0 +1,153 @@
+## execute with
+## TestRunner -i /home/fapra/secondo/Algebras/CDACSpatialJoin/CDACSpatialJoin.test
+## TestRunner --valgrindlc -i /home/fapra/secondo/Algebras/CDACSpatialJoin/CDACSpatialJoin.test
+
+########################################
+# INITIALIZATION
+########################################
+delete database CDACSJTest;
+
+#setup CDACSpatialJoinTest
+create database CDACSJTest;
+open database CDACSJTest;
+
+let noGeom = [const (rel (tuple ((PLZ int) (Ort string)) )) value ((78267 "Aach") (52092 "Aachen") (73434 "Aalen"))];
+
+########################################
+# OPERATOR - createRectangles1D
+########################################
+
+#testcase -1.1- createRectangles1D with wrong number of parameters
+#yields error
+query createRectangles1D(10, 3, 0.4, 0.6, 1, 42) count;
+
+#testcase -1.2- createRectangles1D with wrong type of parameters
+#yields error
+query createRectangles1D(10.0, 3.1415, 4, 6, "Text") count;
+
+#testcase -1.3- createRectangles1D, creating 10^3 tuples (reproducible)
+#yields (int 1000)
+query createRectangles1D(10, 3, 0.4, 0.6, 1) count;
+
+#testcase -1.4- createRectangles1D, creating 5^4 tuples (non-reproducible)
+#yields (int 625)
+query createRectangles1D(5, 4, 0.3, 0.5, 0) count;
+
+#testcase -1.5- createRectangles1D, checking first 3 of 1000^4 tuples
+#tolerance_real 0.001
+#yields ((rel (tuple ((Bbox rect1))))( \
+  ((488.318 578.353)) \
+  ((525.255 621.244)) \
+  ((483.284 568.422))))
+query createRectangles1D(1000, 4, 0.4, 0.6, 1) head[3] consume;
+
+
+########################################
+# OPERATOR - createRectangles2D
+########################################
+
+#testcase -2.1- createRectangles2D with wrong number of parameters
+#yields error
+query createRectangles2D(10, 3, 0.4, 0.6, 1, 42) count;
+
+#testcase -2.2- createRectangles2D with wrong type of parameters
+#yields error
+query createRectangles2D(10.0, 3.1415, 4, 6, "Text") count;
+
+#testcase -2.3- createRectangles2D, creating 10^3 tuples (reproducible)
+#yields (int 1000)
+query createRectangles2D(10, 3, 0.4, 0.6, 1) count;
+
+#testcase -2.4- createRectangles2D, creating 5^4 tuples (non-reproducible)
+#yields (int 625)
+query createRectangles2D(5, 4, 0.3, 0.5, 0) count;
+
+#testcase -2.5- createRectangles2D, checking first 3 of 1000^4 tuples
+# tolerance_real 0.001
+#yields ((rel (tuple ((Bbox rect))))( \
+  ((592.663 655.957 223.021 305.744)) \
+  ((593.693 662.697 246.000 324.874)) \
+  ((613.066 692.632 197.948 269.435))))
+query createRectangles2D(1000, 4, 0.4, 0.6, 1) head[3] consume;
+
+
+########################################
+# OPERATOR - createRectangles3D
+########################################
+
+#testcase -3.1- createRectangles3D with wrong number of parameters
+#yields error
+query createRectangles3D(10, 3, 0.4, 0.6, 1, 42) count;
+
+#testcase -3.2- createRectangles3D with wrong type of parameters
+#yields error
+query createRectangles3D(10.0, 3.1415, 4, 6, "Text") count;
+
+#testcase -3.3- createRectangles3D, creating 10^3 tuples (reproducible)
+#yields (int 1000)
+query createRectangles3D(10, 3, 0.4, 0.6, 1) count;
+
+#testcase -3.4- createRectangles3D, creating 5^4 tuples (non-reproducible)
+#yields (int 625)
+query createRectangles3D(5, 4, 0.3, 0.5, 0) count;
+
+#testcase -3.5- createRectangles3D, checking first 3 of 1000^4 tuples
+#tolerance_real 0.001
+#yields ((rel (tuple ((Bbox rect3))))( \
+  ((604.469 664.435 466.183 526.676 203.667 258.017)) \
+  ((601.270 662.332 474.853 523.913 201.892 259.531)) \
+  ((589.530 647.193 442.976 490.407 214.080 260.314))))
+query createRectangles3D(1000, 4, 0.4, 0.6, 1) head[3] consume;
+
+
+########################################
+# OPERATOR - CDACSpatialJoin
+########################################
+
+#testcase -4.1- CDACSpatialJoin with too many arguments
+#yields error
+query createRectangles2D(10, 4, 0.4, 0.6, 1) {a} createRectangles2D(10, 4, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b, Bbox_c] count;
+
+#testcase -4.1- CDACSpatialJoin with missing brackets
+#yields error
+query createRectangles2D(10, 4, 0.4, 0.6, 1) {a} createRectangles2D(10, 4, 0.4, 0.6, 2) {b} cdacspatialjoin count;
+
+#testcase -4.3- CDACSpatialJoin with wrong type of arguments
+#yields error
+query [const int value 42] [const real value 3.1415] cdacspatialjoin[Bbox_a, Bbox_b] count;
+
+#testcase -4.4- CDACSpatialJoin with invalid attribute names
+#yields error
+query createRectangles2D(10, 4, 0.4, 0.6, 1) {a} createRectangles2D(10, 4, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_c, Bbox_d] count;
+
+#testcase -4.5- CDACSpatialJoin with identical attribute names
+#yields error
+query createRectangles2D(10, 4, 0.4, 0.6, 1) createRectangles2D(10, 4, 0.4, 0.6, 2) cdacspatialjoin[Bbox, Bbox] count;
+
+#testcase -4.6- CDACSpatialJoin with no spatial information in first stream
+#yields error
+query noGeom feed createRectangles2D(10, 4, 0.4, 0.6, 2) cdacspatialjoin[] count;
+
+#testcase -4.7- CDACSpatialJoin with no spatial information in second stream
+#yields error
+query createRectangles2D(10, 4, 0.4, 0.6, 1) noGeom feed cdacspatialjoin[] count;
+
+#testcase -4.8- CDACSpatialJoin with four valid arguments
+#yields (longint 0)
+query createRectangles2D(10, 4, 0.4, 0.6, 1) {a} createRectangles2D(10, 4, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] count;
+## TODO: yields-Wert anpassen!
+
+#testcase -4.9- CDACSpatialJoin with three valid arguments
+#yields (longint 0)
+query createRectangles2D(10, 4, 0.4, 0.6, 1) {a} createRectangles2D(10, 4, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a] count;
+## TODO: yields-Wert anpassen!
+
+#testcase -4.10- CDACSpatialJoin with two valid arguments
+#yields (longint 0)
+query createRectangles2D(10, 4, 0.4, 0.6, 1) {a} createRectangles2D(10, 4, 0.4, 0.6, 2) {b} cdacspatialjoin[] count;
+## TODO: yields-Wert anpassen!
+
+#teardown
+kill noGeom;
+close database;
+delete database CDACSJTest;
