@@ -1,0 +1,32 @@
+Database : berlintest
+Restore  : NO
+
+Operator : cdacspatialjoin
+Number   : 1
+Signature: stream(tblock or tuple) x stream(tblock or tuple) x symbol x symbol -> stream(tblock)
+Example  : query strassen feed toblocks[1] {a} strassen feed toblocks[1] {b} cdacspatialjoin[GeoData_a, GeoData_b] count
+Result   : (longint 26492)
+
+Operator : cdacspatialjoin
+Number   : 2
+Signature: stream(tblock or tuple) x stream(tblock or tuple) x symbol x symbol -> stream(tblock)
+Example  : query strassen feed {a} strassen feed {b} cdacspatialjoin[GeoData_a, GeoData_b] count
+Result   : (longint 26492)
+
+Operator : createRectangles1D
+Number   : 1
+Signature: int x int x real x real x int -> stream(tuple(Rectangle<1>))
+Example  : query createRectangles1D(10, 4, 0.3, 0.4, 1) count
+Result   : 10000
+
+Operator : createRectangles2D
+Number   : 1
+Signature: int x int x real x real x int -> stream(tuple(Rectangle<2>))
+Example  : query createRectangles2D(10, 4, 0.3, 0.4, 1) count
+Result   : 10000
+
+Operator : createRectangles3D
+Number   : 1
+Signature: int x int x real x real x int -> stream(tuple(Rectangle<3>))
+Example  : query createRectangles3D(10, 4, 0.3, 0.4, 1) count
+Result   : 10000
