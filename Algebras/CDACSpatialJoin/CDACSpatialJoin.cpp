@@ -53,7 +53,7 @@ The operator returns a stream of tuple blocks.
 #include "Algebras/CRel/TypeConstructors/TBlockTC.h"
 #include "CDACSpatialJoin.h"
 #include "Edge.h" // TODO: nötig?
-
+#include "CacheInfo.h"
 
 typedef CRelAlgebra::TBlockTI::ColumnInfo TBlockColInfo;
 
@@ -476,6 +476,9 @@ LocalInfo::LocalInfo(InputStream* input1_, InputStream* input2_, Supplier s_) :
                     * CRelAlgebra::TBlockTI::blockSizeFactor),
         joinState(nullptr),
         joinStateCount(0) {
+#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+      CacheInfos::report(cout);
+#endif
 }
 
 /*
