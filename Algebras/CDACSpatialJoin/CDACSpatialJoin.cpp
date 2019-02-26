@@ -26,16 +26,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 Cache-conscious Spatial Join with Divide and Conquer
 
-The ~cdacspatialjoin~ operator performs a cache-conscious spatial join on
-two streams of tuples or tuple blocks, using a divide-and-conquer strategy.
-
-As arguments, ~cdacspatialjoin~ expects two streams of tuples or tuple blocks.
-Optionally, the name of the join attributes for each argument relation can be
-specified. If these attribute names are omitted, the first attribute with a
-suitable spatial kind is used.
-
-The operator returns a stream of tuple blocks.
-
 
 1.1 Imports
 
@@ -49,19 +39,22 @@ The operator returns a stream of tuple blocks.
 #include "Symbols.h"
 #include "ListUtils.h"
 
+#include "CDACSpatialJoin.h"
+#include "CacheInfo.h"
+#include "SortEdge.h"
+#include "JoinEdge.h"
+
 #include "Algebras/CRel/Operators/OperatorUtils.h"
 #include "Algebras/CRel/TypeConstructors/TBlockTC.h"
-#include "CDACSpatialJoin.h"
-#include "Edge.h" // TODO: nötig?
-#include "CacheInfo.h"
+
 
 typedef CRelAlgebra::TBlockTI::ColumnInfo TBlockColInfo;
 
 using namespace cdacspatialjoin;
 
 
-uint64_t CDACSpatialJoin::DEFAULT_BLOCK_SIZE = 1; // TODO: guten Wert finden,
-                                    // ggf. abhängig von qp->GetMemorySize(s)
+// TODO: guten Wert finden, ggf. abhängig von qp->GetMemorySize(s)
+uint64_t CDACSpatialJoin::DEFAULT_BLOCK_SIZE = 10;
 
 /*
 1.2 Class OperatorInfo
@@ -477,7 +470,10 @@ LocalInfo::LocalInfo(InputStream* input1_, InputStream* input2_, Supplier s_) :
         joinState(nullptr),
         joinStateCount(0) {
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
-      CacheInfos::report(cout);
+   cout << "sizeof(SortEdge) = " << sizeof(SortEdge) << endl;
+   cout << "sizeof(JoinEdge) = " << sizeof(JoinEdge) << endl;
+   cout << endl;
+   CacheInfos::report(cout);
 #endif
 }
 
@@ -514,9 +510,11 @@ void LocalInfo::requestInput() {
 }
 
 size_t LocalInfo::getUsedMem() {
-   return input1->getUsedMem() + input2->getUsedMem() +
-           std::max(input1->getTupleCount(), input2->getTupleCount())
-           * sizeof(Edge) * 4; // TODO: anpassen!;
+   size_t tupleSum = input1->getTupleCount() + input2->getTupleCount();
+   return    input1->getUsedMem()
+           + input2->getUsedMem()
+           + 2 * tupleSum * sizeof(SortEdge)
+           + 3 * tupleSum * sizeof(JoinEdge); // TODO: anpassen
 }
 
 /*

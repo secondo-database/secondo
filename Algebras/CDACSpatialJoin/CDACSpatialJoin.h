@@ -1,7 +1,9 @@
 /*
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Copyright (C) 2018,
+Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -17,8 +19,27 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+\tableofcontents
+
 
 1 CDACSpatialJoin operator
+
+The ~cdacspatialjoin~ operator performs a cache-conscious spatial join on
+two streams of tuples or tuple blocks, using a divide-and-conquer strategy.
+
+As arguments, ~cdacspatialjoin~ expects two streams of tuples or tuple blocks.
+Optionally, the name of the join attributes for each argument relation can be
+specified. If these attribute names are omitted, the first attribute with a
+suitable spatial kind is used. The operator returns a stream of tuple blocks.
+
+The algorithm is based on Ralf Hartmut Gueting, Werner Schilling: A
+practical divide-and-conquer algorithm for the rectangle intersection problem.
+Inf. Sci. 42(2): 95-112 (1987). While this paper describes the self join case,
+CDACSpatialJoin reports intersecting rectangles from two different rectangle
+sets (streams) A and B.
+
 
 */
 

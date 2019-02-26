@@ -7,6 +7,7 @@
 #include <ostream>
 #include <sstream>
 #include <sys/stat.h>
+#include <cmath>
 
 using namespace std;
 
@@ -43,6 +44,14 @@ std::string formatInt(const long num) {
       div /= 1000;
       leadingZeros = true;
    } while (true);
+   return result.str();
+}
+
+std::string formatMillis(const clock_t duration) {
+   stringstream result;
+   double durationSec = duration / static_cast<double>(CLOCKS_PER_SEC);
+   double durationMillis = std::round(durationSec * 1000.0);
+   result << formatInt(static_cast<long>(durationMillis)) << " ms";
    return result.str();
 }
 

@@ -133,19 +133,32 @@ query noGeom feed createRectangles2D(10, 4, 0.4, 0.6, 2) cdacspatialjoin[] count
 query createRectangles2D(10, 4, 0.4, 0.6, 1) noGeom feed cdacspatialjoin[] count;
 
 #testcase -4.8- CDACSpatialJoin with four valid arguments
-#yields (longint 0)
-query createRectangles2D(10, 4, 0.4, 0.6, 1) {a} createRectangles2D(10, 4, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] count;
-## TODO: yields-Wert anpassen!
+#yields (longint 146286)
+query createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] count;
 
 #testcase -4.9- CDACSpatialJoin with three valid arguments
-#yields (longint 0)
-query createRectangles2D(10, 4, 0.4, 0.6, 1) {a} createRectangles2D(10, 4, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a] count;
-## TODO: yields-Wert anpassen!
+#yields (longint 146286)
+query createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a] count;
 
 #testcase -4.10- CDACSpatialJoin with two valid arguments
-#yields (longint 0)
-query createRectangles2D(10, 4, 0.4, 0.6, 1) {a} createRectangles2D(10, 4, 0.4, 0.6, 2) {b} cdacspatialjoin[] count;
-## TODO: yields-Wert anpassen!
+#yields (longint 146286)
+query createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} cdacspatialjoin[] count;
+
+#testcase -4.11- compare CDACSpatialJoin result count (146.286) with spatialjoin result count
+#yields (bool TRUE)
+query (createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} cdacspatialjoin[] count) 
+    = (createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} spatialjoin[Bbox_a, Bbox_b] count);
+
+#testcase -4.12- compare CDACSpatialJoin result count (11.517) with itSpatialJoin result count
+#yields (bool TRUE)
+query (createRectangles2D(5, 5, 0.3, 0.5, 1) {a} createRectangles2D(8, 4, 0.2, 0.7, 2) {b} cdacspatialjoin[] count) 
+    = (createRectangles2D(5, 5, 0.3, 0.5, 1) {a} createRectangles2D(8, 4, 0.2, 0.7, 2) {b} itSpatialJoin[Bbox_a, Bbox_b] count);
+
+#testcase -4.13- compare CDACSpatialJoin result count (4.203) with cspatialjoin result count
+#yields (bool TRUE)
+query (createRectangles2D(3, 8, 0.4, 0.7, 1) {a} createRectangles2D(2, 14, 0.1, 0.8, 2) {b} cdacspatialjoin[] count) 
+    = (createRectangles2D(3, 8, 0.4, 0.7, 1) toblocks[1] {a} createRectangles2D(2, 14, 0.1, 0.8, 2) toblocks[1] {b} cspatialjoin[Bbox_a, Bbox_b] count);
+
 
 #teardown
 kill noGeom;

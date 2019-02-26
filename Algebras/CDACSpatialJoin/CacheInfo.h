@@ -38,32 +38,43 @@ to the CacheInfo instances.
 struct CacheInfo {
    /* the cache line size in bytes */
    const unsigned coherencyLineSize;
+
    /* the cache level, typically 1, 2, or 3 */
    const unsigned level;
+
    /* the number of sets (e.g., 64 for L1, 512 for L2, 8192 for L3) */
    const unsigned numberOfSets;
+
    /* the physical line partition */
    const unsigned physicalLinePartition;
+
    /* a list of the logical CPUs that share this cache, e.g. "0-1" for a
     * cache that is shared by logical CPUs 0 and 1 */
    const std::string sharedCpuList;
+
    /* a bitmap of the CPUs that share this cache, e.g. 0b00000011 */
    const unsigned sharedCpuMap;
+
    /* the size of the cache in bytes (e.g. 32768 for a 32 KB L1 cache) */
    const unsigned sizeInBytes;
+
    /* the cache type (Data, Instruction or Unified) */
    const CacheType type;
+
    /* the associativity, e.g. 8 for L1 and L2, 12-way for L3 */
    const unsigned waysOfAssociativity;
 
    /* the number of CPUs that share this cache (derived from sharedCpuMap) */
    unsigned sharedCpuCount;
 
+   // -----------------------------------------------------
+
+   /* constructor expects the path under which cache information is found */
    explicit CacheInfo(const std::string& path);
 
    ~CacheInfo() = default;
 
-   /* returns the cache size in KiB, e.g. 32 for L1, 256 for L2, 6144 for L3*/
+   /* returns the cache size in KiB, e.g. 32 for L1, 256 for L2, 6144 for L3 */
    unsigned getSizeInKiB() const;
 
    /* returns a string representation of the given cache type, e.g. "Data",
@@ -90,6 +101,7 @@ private:
    static CacheType readCacheType(const std::string& path, std::string file);
 };
 
+typedef std::shared_ptr<CacheInfo> CacheInfoPtr;
 
 /*
 1.3 CacheInfos class
@@ -106,7 +118,7 @@ public:
     * may be returned (check the "type" field of the returned instance).
     * Typically, level can be 1, 2, or 3. If no cache with the given parameters
     * exists, nullptr is returned. */
-   static const CacheInfo* getCacheInfo(CacheType type, unsigned level);
+   static const CacheInfoPtr getCacheInfo(CacheType type, unsigned level);
 
    /* reports a summary of all caches on this computer to the given output
     * stream */
@@ -118,7 +130,7 @@ private:
 
    /* the cache information for cpu0. It is assumed that all other cpus have
     * similar information */
-   std::vector<CacheInfo*> infos;
+   std::vector<CacheInfoPtr> infos;
 
    CacheInfos();
 
@@ -127,7 +139,7 @@ public:
 
 private:
    /* reports a summary of the given cache to the given output stream */
-   void report(const CacheInfo* info, std::ostream& out) const;
+   void report(const CacheInfoPtr& info, std::ostream& out) const;
 };
 
 } // end of namespace cdacspatialjoin

@@ -131,8 +131,7 @@ CacheInfos::CacheInfos() {
    int index = 0;
    while (directoryExists(INFO_PATH_CPU0_CACHE_ + to_string(index))) {
       const string path = INFO_PATH_CPU0_CACHE_ + to_string(index);
-      auto info = new CacheInfo(path);
-      infos.push_back(info);
+      infos.push_back(make_shared<CacheInfo>(path));
       ++index;
    }
 }
@@ -142,10 +141,10 @@ CacheInfos& CacheInfos::getOnlyInstance() {
    return onlyInstance;
 }
 
-const CacheInfo* CacheInfos::getCacheInfo(const CacheType type,
+const CacheInfoPtr CacheInfos::getCacheInfo(const CacheType type,
         const unsigned level) {
    CacheInfos& cacheInfos  = getOnlyInstance();
-   for (const CacheInfo* info : cacheInfos.infos) {
+   for (const CacheInfoPtr& info : cacheInfos.infos) {
       if (info->level == level &&
               (info->type == type || info->type == CacheType::Unified))
          return info;
@@ -156,12 +155,11 @@ const CacheInfo* CacheInfos::getCacheInfo(const CacheType type,
 void CacheInfos::report(std::ostream& out) {
    out << "Caches available:" << endl;
    CacheInfos& cacheInfos  = getOnlyInstance();
-   for (const CacheInfo* info : cacheInfos.infos)
+   for (const CacheInfoPtr& info : cacheInfos.infos)
       cacheInfos.report(info, out);
-   out << endl;
 }
 
-void CacheInfos::report(const CacheInfo* info, std::ostream& out) const {
+void CacheInfos::report(const CacheInfoPtr& info, std::ostream& out) const {
    // example output, cp. http://www.cpu-world.com/CPUs/Core_i7/
    //                     Intel-Core%20i7-3630QM%20Mobile%20processor.html :
    // L1         Data: 4 x   32 KB,   64 sets,  8-way, 64 bytes line size, *
