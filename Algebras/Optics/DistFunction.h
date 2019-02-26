@@ -312,6 +312,56 @@ namespace clusteropticsalg
     return o;
    }
  };
+
+/*
+1.8 Declarations and definition of the class ~TupleDist~
+
+*/ 
+template<class R>
+class TupleDist: public DistCount {
+  private:
+  QueryProcessor* qp;
+  Supplier fun;
+  ArgVectorPointer funargs;
+ 
+  public:
+  TupleDist(): qp(0), fun(0) {}
+
+  TupleDist(QueryProcessor * _qp, Supplier _fun) : qp(_qp), fun(_fun) {
+    funargs = qp->Argument(fun);
+  }
+
+  void initialize(QueryProcessor* queryProcessor, Supplier function) {
+    qp = queryProcessor;
+    fun = function;
+  }
+
+  double operator() (const std::pair<Tuple*, TupleId>& p1,
+                     const std::pair<Tuple*, TupleId>& p2) {
+    return operator()(p1.first, p2.first);
+  }
+
+  double operator() (Tuple *t1, Tuple *t2) {
+    cnt++;
+    assert(t1);
+    assert(t2);
+    Word funRes;
+    ArgVectorPointer vector;
+    vector = qp->Argument(fun);
+    ((*vector)[0]).setAddr(t1);
+    ((*vector)[1]).setAddr(t2);
+    qp->Request(fun, funRes);
+    R* result;
+    result = (R*)funRes.addr;
+    return result->GetValue();
+  }
+
+  std::ostream& print(const std::pair<Tuple*, TupleId>& p, std::ostream& o) {
+    o << *(p.first);
+    return o;
+  }
+};
+
 /*
 1.9 Declarations and definition of the class ~PictureDist~
 

@@ -95,8 +95,8 @@ class SetOfObjectsM{
        Tuple* tuple;
        while( (tuple = relIt->GetNextTuple()) ){
           TupleId id = relIt->GetTupleId();
-          T* obj = (T*) tuple->GetAttribute(attrPos);
-          if(obj->IsDefined()){
+          T* obj = (T*)(getAttribute(tuple, attrPos, dummy));
+          if(isDefined(obj)){
              std::pair<T*,TupleId> p(obj,id);
              tree->insert(p);
           }
@@ -141,7 +141,7 @@ class SetOfObjectsM{
 */
    std::list<TupleId>* getNeighbors( TupleId id){
       Tuple* tuple = buffer->GetTuple(id,false);
-      T* obj = (T*)tuple->GetAttribute(attrPos);
+      T* obj = (T*)(getAttribute(tuple, attrPos, dummy));
       RangeIterator<std::pair<T*,TupleId>, D>* it 
             = tree->rangeSearch(std::make_pair(obj,id), eps);
       std::list<TupleId>* res = new std::list<TupleId>();
@@ -181,15 +181,15 @@ class SetOfObjectsM{
     }
 
     inline double distance(Tuple* t1, Tuple* t2){
-      T* a1 = (T*) t1->GetAttribute(attrPos);
-      T* a2 = (T*) t2->GetAttribute(attrPos);
+      T* a1 = (T*)(getAttribute(t1, attrPos, dummy));
+      T* a2 = (T*)(getAttribute(t2, attrPos, dummy));
       return distfun(a1,a2); 
     }
      
     double distance(Tuple* t, TupleId id){
         Tuple* t2 = buffer->GetTuple(id,false);
-        double res =  distfun( (T*) t->GetAttribute(attrPos),
-                               (T*) t2->GetAttribute(attrPos));
+        double res =  distfun( (T*)(getAttribute(t, attrPos, dummy)),
+                               (T*)(getAttribute(t2, attrPos, dummy)));
         t2->DeleteIfAllowed();
         return res;
      }
@@ -253,6 +253,36 @@ called before this function returns meaningful results.
     }
 
 
+/*
+1.13 ~getAttribute~
+
+Returns either the attribute of a tuple at a given position or the tuple itself,
+depending on the template class T.
+
+*/
+T* getAttribute(Tuple *tuple, const int pos, Attribute *a) {
+  return (T*)(tuple->GetAttribute(pos));
+}
+
+T* getAttribute(Tuple *tuple, const int pos, Tuple *t) {
+  return tuple;
+}
+
+/*
+1.13 ~isDefined~
+
+Returns either the result of the IsDefined function from the Attribute class or
+simply true, depending on the template class T.
+
+*/
+bool isDefined(Attribute *a) {
+  return a->IsDefined();
+}
+
+bool isDefined(Tuple *t) {
+  return true;
+}
+
   private:
 
 /*
@@ -270,7 +300,7 @@ called before this function returns meaningful results.
      int epsPos;   // position of the chosen epsilon value
      std::vector<TupleId> result; // ordered result
      std::vector<TupleId>::iterator it;  // result iterator
-
+     T *dummy; // used for invocation of getAttribute function
 
 };
 

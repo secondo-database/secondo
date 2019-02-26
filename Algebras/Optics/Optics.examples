@@ -15,11 +15,18 @@ Example  : query (plz feed opticsF[PLZ, 10.0, 5, fun(i1: int, i2: int)i1 - i2] c
 Result   :  TRUE
 
 
+Operator : opticsTF
+Number   : 1
+Signature: stream(Tuple) -> stream(Tuple)
+Example  : query (Kneipen feed opticsTF[500.0, 5, fun(t1: tuple((Name: string, Strasse: string, GeoData: point)), t2: tuple((Name: string, Strasse: string, GeoData: point))) distance(attr(t1, GeoData), attr(t2, GeoData))] count) = (Kneipen count)
+Result   : TRUE
+
+
 Operator : opticsM
 Number   : 1
 Signature: stream(Tuple) -> stream(Tuple)
 Example  : query Kneipen feed opticsM[Name, 10.0, 5] count
-Result   :  284
+Result   : 284
 
 
 Operator : opticsR

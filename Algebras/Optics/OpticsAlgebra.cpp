@@ -812,6 +812,160 @@ namespace clusteropticsalg
  };
 
 
+
+
+
+/*
+3 Variant using an M-tree and a user-defined function processing two tuples
+
+3.1 Type mapping method ~opticsTFTM~
+
+*/
+ListExpr opticsTFTM(ListExpr args) {
+  if (nl->ListLength(args) != 2) {
+    return listutils::typeError("two elements expected");
+  }
+  if (!Stream<Tuple>::checkType(nl->First(args))) {
+    return listutils::typeError("tuple stream expected");
+  }
+  ListExpr arguments = nl->Second(args);
+  if (nl->ListLength(arguments) != 3) {
+    return listutils::typeError("three arguments required after stream");
+  }
+  if (!CcReal::checkType(nl->First(arguments))) {
+    return listutils::typeError("eps must have type real");
+  }
+  if (!CcInt::checkType(nl->Second(arguments))) {
+    return listutils::typeError("MinPts must have type int");
+  }
+  if (!listutils::isMap<2>(nl->Third(arguments))) {
+    return listutils::typeError("function with two arguments required");
+  }
+  ListExpr fun = nl->Third(arguments);
+  if (!nl->Equal(nl->Second(fun), nl->Third(fun)) ||
+  (!CcInt::checkType(nl->Fourth(fun)) && !CcReal::checkType(nl->Fourth(fun)))) {
+    return listutils::typeError("fun is not of type: T x T -> {int, real}");
+  }
+  //Copy attrlist to newattrlist
+  ListExpr attrList    = nl->Second(nl->Second(nl->First(args)));
+  ListExpr newAttrList = nl->OneElemList(nl->First(attrList));
+  ListExpr lastlistn   = newAttrList;
+  attrList = nl->Rest(attrList);
+  while (!(nl->IsEmpty(attrList))) {
+    lastlistn = nl->Append(lastlistn,nl->First(attrList));
+    attrList = nl->Rest(attrList);
+  }
+  lastlistn = nl->Append(lastlistn, nl->TwoElemList(nl->SymbolAtom("CoreDist"),
+                                          nl->SymbolAtom(CcReal::BasicType())));
+  lastlistn = nl->Append(lastlistn, nl->TwoElemList(nl->SymbolAtom("ReachDist"),
+                                          nl->SymbolAtom(CcReal::BasicType())));
+  lastlistn = nl->Append(lastlistn, nl->TwoElemList(nl->SymbolAtom("Processed"),
+                                          nl->SymbolAtom(CcBool::BasicType())));
+  lastlistn = nl->Append(lastlistn, nl->TwoElemList(nl->SymbolAtom("Eps"),
+                                          nl->SymbolAtom(CcReal::BasicType())));
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                         nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                         newAttrList));
+}
+
+/*
+3.2 Value Mapping Function
+
+*/
+template <class T, class DistComp>
+int opticsTFVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  typedef OpticsGen<T, SetOfObjectsM<DistComp,T>, DistComp> opticsclass;
+  opticsclass* info = (opticsclass*) local.addr;
+  switch (message) {
+    case OPEN : {
+      if (info) {
+        delete info;
+        local.addr = 0;
+      }
+      ListExpr resultType = nl->Second(GetTupleResultType(s));
+      Supplier son = qp->GetSupplier(args[1].addr, 0);
+      Word argument; 
+      qp->Request(son, argument);
+      CcReal* Eps = ((CcReal*)argument.addr);
+      son = qp->GetSupplier(args[1].addr, 1);
+      qp->Request(son, argument);
+      CcInt* MinPts  = ((CcInt*)argument.addr);
+      if (!Eps->IsDefined() || !MinPts->IsDefined()) {
+        return 0;
+      }
+      double eps = Eps->GetValue();
+      int minPts = MinPts->GetValue();
+      if(eps <= 0 || minPts <= 0) {
+        return 0;
+      }
+      size_t maxMem = qp->GetMemorySize(s) * 1024 * 1024; 
+      double UNDEFINED = -1.0;
+      son = qp->GetSupplier(args[1].addr, 2);
+      DistComp df(qp, son);
+      local.addr = new opticsclass(args[0], -1, eps, minPts, UNDEFINED, 
+                                   resultType, maxMem, df);
+      return 0;
+    } 
+    case REQUEST : {
+      result.addr = info ? info->next() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE : {
+      if (info) {
+        delete info;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
+3.3 Selection method for value mapping array ~opticsTFSelect~
+
+*/
+int opticsTFSelect(ListExpr args) {
+  ListExpr funResType = nl->Fourth(nl->Third(nl->Second(args)));
+  if (CcInt::checkType(funResType))  return 0;
+  if (CcReal::checkType(funResType)) return 1;
+  return -1; 
+};
+
+/*
+3.4 Value mapping array ~opticsFVM[]~
+
+*/
+
+ValueMapping opticsTFVMs[] = {opticsTFVM<Tuple, TupleDist<CcInt> >,
+                              opticsTFVM<Tuple, TupleDist<CcReal> >};
+
+
+/*
+3.5 Struct ~opticsInfoF~
+
+*/
+
+ struct opticsInfoTF : OperatorInfo
+ {
+  opticsInfoTF() : OperatorInfo()
+  {
+   name      = "opticsTF";
+   signature = "stream(Tuple) x real x int x fun -> stream(Tuple)";
+   syntax    = "_ opticsF [_, _, fun]";
+   meaning   = "This operator will order the data to identify the cluster "
+               "structure. The operator uses the MMMTree index structure. The "
+               "first paramater has to be a stream of tuple, the second is eps,"
+               " the third is MinPts and the fourth is a distance function "
+               "taking two tuples. The operator returns a stream of tuples.";
+   example   = "query Kneipen feed opticsTF[500.0, 5, fun(t1: tuple((Name: "
+               "string, Strasse: string, GeoData: point)), t2: tuple((Name: "
+               "string, Strasse: string, GeoData: point))) distance(attr(t1, "
+               "GeoData), attr(t2, GeoData))] count";
+   }
+ };
+
+
 /*
 4 Operator ~extractDbScan~
 
@@ -1050,6 +1204,10 @@ Operator extractDbScanOP(
     Operator* opf = 
         AddOperator(opticsInfoF(), opticsFVM, opticsFDisSL, opticsFTM);
     opf->SetUsesMemory();
+    
+    Operator* optf = 
+        AddOperator(opticsInfoTF(), opticsTFVMs, opticsTFSelect, opticsTFTM);
+    optf->SetUsesMemory();
 
     AddOperator(&extractDbScanOP);
 
