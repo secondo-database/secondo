@@ -5270,20 +5270,23 @@ double MPoint::FrechetDistance(const MPoint* mp, const Geoid* geoid) const {
   }
   unsigned int m = pts1.size();
   unsigned int n = pts2.size();
-  double dp[m][n];
-  dp[0][0] = pts1[0].Distance(pts2[0], geoid);
+  double *dp = new double[m * n];
+  dp[0] = pts1[0].Distance(pts2[0], geoid);
   for (unsigned int j = 1; j < n; j++) {
-    dp[0][j] = std::max(dp[0][j - 1], pts1[0].Distance(pts2[j], geoid));
+    dp[j*m] = std::max(dp[(j - 1)*m], pts1[0].Distance(pts2[j], geoid));
+//     y*sizeX + x
   }
   for (unsigned int i = 1; i < m; i++) {
-    dp[i][0] = std::max(dp[i - 1][0], pts1[i].Distance(pts2[0], geoid));
+    dp[i] = std::max(dp[i - 1], pts1[i].Distance(pts2[0], geoid));
     for (unsigned int j = 1; j < n; j++) {
-      dp[i][j] = std::max(std::min(std::min(dp[i][j - 1], dp[i - 1][j]),
-                                            dp[i - 1][j - 1]), 
+      dp[i+j*m] = std::max(std::min(std::min(dp[i+(j - 1)*m], dp[i - 1 + j*m]),
+                                            dp[i - 1 + (j - 1)*m]), 
                           pts1[i].Distance(pts2[j], geoid));
     }
   }
-  return dp[m - 1][n - 1];
+  double result = dp[m - 1 + (n - 1)*m];
+  delete[] dp;
+  return result;
 }
 
 void MPoint::removeNoise(const double maxspeed, const double maxdist,
