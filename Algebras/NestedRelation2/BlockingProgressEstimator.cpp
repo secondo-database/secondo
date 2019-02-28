@@ -35,14 +35,16 @@ the estimator can yield results.
 */
 nr2a::BlockingProgressEstimator::BlockingProgressEstimator
     (const bool waitForFirstOnly /*= false*/)
-    : m_predecessor(NULL), m_waitForFirstOnly(waitForFirstOnly)
+    : //m_predecessor(NULL), 
+    m_waitForFirstOnly(waitForFirstOnly)
 {
   //intentionally left blank
 }
 
 nr2a::BlockingProgressEstimator::BlockingProgressEstimator
     (Word predecessor, const bool waitForFirstOnly /*= false*/)
-    : m_predecessor(predecessor.addr), m_waitForFirstOnly(waitForFirstOnly)
+    : //m_predecessor(predecessor.addr), 
+    m_waitForFirstOnly(waitForFirstOnly)
 {
   //intentionally left blank
 }

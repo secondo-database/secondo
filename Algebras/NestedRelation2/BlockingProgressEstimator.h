@@ -55,7 +55,7 @@ class BlockingProgressEstimator :
     static CostEstimation * BuildWaitForFirstOnly();
 
   private:
-    void * m_predecessor;
+    //void * m_predecessor;
     bool m_waitForFirstOnly;
 };
 
