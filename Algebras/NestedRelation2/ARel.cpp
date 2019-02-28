@@ -46,8 +46,8 @@ namespace nr2a {
   static int arelsExisting = 0;
 #endif
 
-const int cTss = sizeof(u_int16_t); // Tuple size's size
-const int cBss = sizeof(u_int32_t); // Block size's size
+ //const int cTss = sizeof(u_int16_t); // Tuple size's size
+ //const int cBss = sizeof(u_int32_t); // Block size's size
 const int cFss = sizeof(SmiSize);   // Flob size's size
 
 ARel::Info::Info()
@@ -281,7 +281,7 @@ void ARel::ReadTuple(Tuple* tuple, const SmiSize & offset,
       dataReader.Read(flobSize);
       flobOffset+=cFss;
       Flob *flob = attr->GetFLOB(flobNo);
-      memset(flob, 0, sizeof(Flob));
+      memset((char*)flob, 0, sizeof(Flob));
       *flob = realFlobs[flobNo];
       FlobWriter attrFlobWriter(*flob, 0);
       attrFlobWriter.SetFrom(dataReader, flobSize);
