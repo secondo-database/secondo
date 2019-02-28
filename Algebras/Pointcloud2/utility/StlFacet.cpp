@@ -136,7 +136,7 @@ bool StlObject::read(std::string fileName) {
         fileStream.seekg(0);
         streamsize fileLength = fileStream.tellg();
         fileStream.seekg(0, std::ios::end);
-        fileLength = fileStream.tellg() - fileLength;
+        fileLength = (streamsize)fileStream.tellg() - fileLength;
         fileStream.seekg(0);
 
         // determine the file format
