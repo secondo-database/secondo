@@ -129,7 +129,11 @@ std::string DbScanPoint<dim>::getStringForBBox(const Rectangle<dim>& bbox) {
 }
 
 // ensure defined references for the dimensions needed
-template class DbScanPoint<3>;
-template class DbScanPoint<4>;
-template class DbScanPoint<5>;
-template class DbScanPoint<6>;
+namespace pointcloud2 {
+template struct DbScanPoint<3>;
+template struct DbScanPoint<4>;
+template struct DbScanPoint<5>;
+template struct DbScanPoint<6>;
+}
+
+

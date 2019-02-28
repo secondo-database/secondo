@@ -530,8 +530,9 @@ bool GeomPrimitive<dual>::isPointFarOutside(const double x, const double y,
 
     return (dist / diam > MAX_FACTOR);
 }
-
+namespace pointcloud2 {
 template class GeomPrimitive<3>;
 template class GeomPrimitive<4>;
 template class GeomPrimitive<5>;
 template class GeomPrimitive<6>;
+}

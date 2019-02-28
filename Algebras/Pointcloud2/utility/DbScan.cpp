@@ -636,7 +636,10 @@ void DbScan<dim>::constructMMRTree(
 // ensure defined references for the dimensions needed
 // see stackoverflow.com/questions/8752837/
 // undefined-reference-to-template-class-constructor
+namespace pointcloud2 {
 template class DbScan<3>;
 template class DbScan<4>;
 template class DbScan<5>;
 template class DbScan<6>;
+}
+
