@@ -777,9 +777,8 @@ bool Distributed2Algebra::serverExists(int s){
 
  int Distributed2Algebra::closeAllWorkers(){
     boost::lock_guard<boost::mutex> guard(workerMtx);
-    map<DArrayElement, pair<string,ConnectionInfo*> > ::iterator it;
     int count = 0;
-    for(it=workerconnections.begin(); it!=workerconnections.end(); it++){
+    for(auto it=workerconnections.begin(); it!=workerconnections.end(); it++){
        ConnectionInfo* ci = it->second.second;
        ci->deleteIfAllowed();
        count++;
@@ -22223,7 +22222,8 @@ ListExpr createSDArrayTM(ListExpr args){
   int aid, tid;
   if(!ctlg->LookUpTypeExpr(resList,tn,aid,tid)){
     return listutils::typeError("getTypeNL returned an invalid "
-                                "type description");
+                                "type description\n" 
+                                 + resText );
   }
   return nl->ThreeElemList(
                nl->SymbolAtom(Symbols::APPEND()),
