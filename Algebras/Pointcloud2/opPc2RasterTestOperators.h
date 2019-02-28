@@ -47,7 +47,7 @@ namespace pointcloud2 {
 
 class op_Pc2RasterTest{
     size_t _rasterSize = 0;
-    bool _even = false;
+    //bool _even = false;
 
     static ListExpr Pc2RasterTestTM(ListExpr args);
 
@@ -64,7 +64,9 @@ public:
     explicit op_Pc2RasterTest() = default;
 
     op_Pc2RasterTest(size_t rasterSize, bool even) :
-        _rasterSize(rasterSize), _even(even){}
+        _rasterSize(rasterSize)
+        //, _even(even)
+    {}
 
     ~op_Pc2RasterTest() = default;
 
