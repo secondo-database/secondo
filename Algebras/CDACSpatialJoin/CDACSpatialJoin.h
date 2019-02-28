@@ -50,6 +50,7 @@ sets (streams) A and B.
 #include "Operator.h"
 #include "QueryProcessor.h"
 #include "JoinState.h"
+#include "InputStream.h"
 #include "Algebras/Stream/Stream.h"
 #include "Algebras/CRel/TBlock.h"
 #include "Algebras/CRel/TypeConstructors/TBlockTC.h"
@@ -85,101 +86,7 @@ private:
 
 
 /*
-1.2 InputStream classes
-
-1.2.1 InputStream base class
-
-*/
-class InputStream {
-public:
-   const unsigned attrIndex; // index of join attribute
-
-   const unsigned dim; // dimension of join attribute
-
-   std::shared_ptr<std::vector<CRelAlgebra::TBlock*>> tBlocks;
-
-private:
-   uint64_t byteCount; // memory used by tBlocks
-
-   uint64_t tupleCount; // number of tuples stored in tBlocks
-
-protected:
-   bool done; // true if all input has been read from the stream
-
-
-public:
-   InputStream(unsigned attrIndex_, unsigned dim_);
-
-   virtual ~InputStream();
-
-   // Deletes all tuple blocks of this input stream from the operator
-   // and sets both the memory and tuple counters to zero
-   void clearMem();
-
-   // Requests tuple block from input stream and stores
-   // them in tBlockVector
-   bool request();
-
-   bool hasTBlocks() { return !tBlocks->empty(); }
-
-   size_t getUsedMem();
-
-   bool isDone() { return done; }
-
-   size_t getTupleCount() { return tupleCount; }
-
-   virtual void restart() = 0;
-
-private:
-   virtual CRelAlgebra::TBlock* requestBlock() = 0;
-};
-
-/*
-1.2.2 InputTBlockStream  class
-
-*/
-class InputTBlockStream : public InputStream {
-   Stream<CRelAlgebra::TBlock> tBlockStream;
-
-public:
-   InputTBlockStream(Word stream_, unsigned attrIndex_, unsigned dim_);
-
-   ~InputTBlockStream() override;
-
-   void restart() override;
-
-private:
-   CRelAlgebra::TBlock* requestBlock() override;
-};
-
-/*
-1.2.3 InputTupleStream  class
-
-*/
-class InputTupleStream : public InputStream {
-private:
-   Stream<Tuple> tupleStream;
-   const CRelAlgebra::PTBlockInfo blockInfo;
-   const uint64_t blockSize; // in bytes
-   const SmiFileId fileId = 0; // block is not persistent
-
-public:
-   // desiredBlockSize in MB
-   InputTupleStream(Word stream_, unsigned attrIndex_, unsigned dim_,
-          const CRelAlgebra::PTBlockInfo& blockInfo_,
-          uint64_t desiredBlockSize_);
-
-   ~InputTupleStream() override;
-
-   void restart() override;
-
-private:
-   CRelAlgebra::TBlock* requestBlock() override;
-};
-
-
-/*
-1.3 LocalInfo class
+1.2 LocalInfo class
 
 */
 class LocalInfo {
@@ -189,7 +96,6 @@ class LocalInfo {
    Supplier s;
 
    bool isFirstRequest;
-   bool isInput1FullyLoaded;
 
    uint64_t memLimit; // memory limit for operator
 
