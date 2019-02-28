@@ -103,7 +103,7 @@ void Write(const Flob* flob, const SmiSize offset,
     else
       cout << " ";
     a = buffer[i];
-    printf("%3hhu ", a);
+    printf("%3hhu ", (char) a);
     //"Printing" control characters might be a problem
     if((buffer[i]>=32) && (buffer[i]<=126))
       cout << buffer[i];
