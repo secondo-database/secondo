@@ -144,7 +144,7 @@ const double QUADDIFF = 0.0001;
 
 
 inline bool almostEqual(double d1, double d2){
-  return abs(d1-d2) <= DISTDELTA;
+  return std::abs(d1-d2) <= DISTDELTA;
 }
 
 
@@ -2675,9 +2675,9 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
       c = u2.a * x * x + u2.b * x + u2.c - u1.c;
     }
     d = b * b - 4 * a * c;
-    if( abs(a) <= QUADDIFF || d >= 0)
+    if( std::abs(a) <= QUADDIFF || d >= 0)
     {
-      if( abs(a) > QUADDIFF)
+      if( std::abs(a) > QUADDIFF)
       {
         d = sqrt(d);
         r1 = (-b - d) / (2 * a);
@@ -2691,7 +2691,7 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
         r2 = -1;  //there is only one result
       }
       if( r1 > r2 ){ std::swap( r1, r2 );}
-      if( (abs(r1 - r2) < 0.000000001)
+      if( (std::abs(r1 - r2) < 0.000000001)
         && ( (u1.a==0 && u2.a!=0) || (u2.a==0 && u1.a!=0) ))
       {
         //straight line intersects curve in one point, only boundary point
@@ -7390,9 +7390,9 @@ void Mqkfilter(MQKnearest* mqk,std::vector<TupleId>& datanode,BBox<2> query)
      }
       for(int i = 0; i < node->EntryCount();i++){ //Internal node
         R_TreeInternalEntry<2> e = (R_TreeInternalEntry<2>&)(*node)[i];
-        EFieldEntry<double> fe(e.pointer,query.Distance(e.box),
+        EFieldEntry<double> fe1(e.pointer,query.Distance(e.box),
         maxDistance(query,e.box),fe.level+1,0,0);
-        array2.push_back(fe);
+        array2.push_back(fe1);
       }
     }
     array1.clear();
