@@ -480,7 +480,7 @@ Repartitions the drel to a DFMatrix.
 
 */
         ListExpr getArrayType( ) {
-            ListExpr arrayType;
+            ListExpr arrayType=nl->TheEmptyList();
 
             if( nl->ToString( nl->First( sourcedType ) ) == 
                 DRel::BasicType( ) ) {
