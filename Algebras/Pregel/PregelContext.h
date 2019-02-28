@@ -209,6 +209,8 @@ namespace pregel {
     return os;
   }
 
+  int closeConnections();
+
 
  };
 

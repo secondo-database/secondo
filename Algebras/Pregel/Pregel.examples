@@ -1,6 +1,12 @@
 Database : pregelexample
 Restore  : No
 
+Operator  : closePregelConnections
+Number    : 1
+Signature : -> int
+Example   : query closePregelConnections()
+Result    : 0
+
 Operator : messageDistribute
 Number   : 1
 Signature: stream(tuple) x int -> bool

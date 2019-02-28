@@ -42,6 +42,7 @@ Definition of PregelAlgebra class
 #include "Operators/OnMaster/StartPregel.h"
 #include "Operators/OnMaster/SetupPregel.h"
 #include "Operators/OnMaster/RemotePregelCommand.h"
+#include "Operators/OnMaster/ClosePregelWorkers.h"
 #include "Operators/OnWorker/SetPregelFunctionWorker.h"
 #include "Operators/Messaging/MessageDistribute.h"
 #include "Operators/Messaging/StartMessageServer.h"
@@ -86,6 +87,7 @@ namespace pregel {
   SetPregelFunctionWorker::setPregelFunctionWorker.SetUsesArgsInTypeMapping();
 
   AddOperator(&RemotePregelCommand::remotePregelCommand);
+  AddOperator(&ClosePregelWorkers::closePregelWorkers);
  }
 
  PregelAlgebra::~PregelAlgebra() {

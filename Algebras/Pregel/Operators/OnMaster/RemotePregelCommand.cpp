@@ -81,7 +81,8 @@ namespace pregel {
     std::cout << "result of command: " << *result;
     delete result;
    } catch (RemoteExecutionException &e) {
-    BOOST_LOG_TRIVIAL(error) << "Command failed: " << query.c_str();
+    BOOST_LOG_TRIVIAL(error) << "Command failed: " << query.c_str()
+                             << e.what() ;
     ((CcBool *) result.addr)->Set(true, false);
     return 0;
    }

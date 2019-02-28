@@ -129,6 +129,13 @@ namespace pregel {
   return false;
  }
 
+ int PregelContext::closeConnections(){
+    int res = workers.size();
+    reset(); // clears also the connections
+    return res;
+ }
+
+
  supplier<WorkerConfig> PregelContext::getWorkers() {
   auto it = new std::vector<WorkerConfig>::iterator(workers.begin());
   return static_cast<supplier<WorkerConfig> > ( 
