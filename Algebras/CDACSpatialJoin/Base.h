@@ -18,7 +18,7 @@ enum SET : char {
 };
 constexpr unsigned SET_COUNT = 2;
 constexpr SET SETS[] { SET::A, SET::B };
-static std::string SET_NAMES[] { "A", "B" };
+const static std::string SET_NAMES[] { "A", "B" };
 
 typedef uint32_t EdgeIndex_t;
 typedef uint32_t RectInfoIndex_t;

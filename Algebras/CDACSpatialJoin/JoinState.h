@@ -20,6 +20,7 @@ where the bounding box of these tuples' GeoData intersect.
 #include "MergedArea.h"
 #include "Merger.h"
 #include "RectangleInfo.h"
+#include "InputStream.h"
 
 #include "Algebras/CRel/TBlock.h"
 #include "Algebras/Rectangle/RectangleAlgebra.h"
@@ -78,6 +79,14 @@ class JoinState {
     * set */
    std::vector<MergedAreaPtr> mergedAreas;
 
+   /* the number of MergedAreas to be created on the lowest level. Note that an
+    * "atomic" MergedArea is not created from a single JoinEdge but possibly
+    * from a sequence of JoinEdges that belong to the same set */
+   unsigned long level0AreaCountExpected = 0;
+
+   /* the number of MergedAreas already created on the lowest level */
+   unsigned long level0AreaCount = 0;
+
    /* the level (i.e. index in mergedAreas) at which the next merge operation
     * is performed (the result of which is stored one level higher, or
     * recursively merged with the entry at that level) */
@@ -112,16 +121,8 @@ public:
     * dimA/B: the dimension (2 or 3) of the spatial information;
     * outTBlockSize: the maximum size of the return TBlock in bytes;
     * joinStateId: the consecutive number of this JoinState instance */
-   JoinState(std::shared_ptr<std::vector<CRelAlgebra::TBlock*>> tBlocksA,
-         std::shared_ptr<std::vector<CRelAlgebra::TBlock*>> tBlocksB,
-         unsigned attrIndexA,
-         unsigned attrIndexB,
-         uint64_t tupleCountA,
-         uint64_t tupleCountB,
-         unsigned dimA,
-         unsigned dimB,
-         uint64_t outTBlockSize_,
-         unsigned joinStateId_);
+   JoinState(InputStream* inputA, InputStream* inputB,
+         uint64_t outTBlockSize_, unsigned joinStateId_);
 
    ~JoinState();
 
@@ -144,7 +145,10 @@ private:
    /* enters the given, newly created MergedArea to the mergedAreas vector at
     * the current mergeLevel; if another MergedArea is already stored at this
     * level, a new Merger is created to merge the two areas */
-   void enqueueMergedAreaOrCreateMerger(MergedAreaPtr &newArea);
+   void enqueueMergedAreaOrCreateMerger(MergedAreaPtr &newArea,
+                                        bool mayIncreaseMergeLevel);
+
+   void createMerger(MergedAreaPtr &area1, MergedAreaPtr &area2);
 
    /* appends a new tuple to the outTBlock, creating it from the input tuples
     * represented by the two given JoinEdges */

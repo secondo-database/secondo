@@ -49,6 +49,8 @@ class Merger {
    /* the second area to be merged (right neighbor of area1) */
    MergedAreaPtr area2;
 
+   bool isLastMerge;
+
    /* the result area to be calculated by the Merger */
    MergedAreaPtr result;
 
@@ -108,7 +110,7 @@ public:
    /* constructor expects two adjacent areas which shall be merged to a single
     * area. Note that the input areas must fulfil the invariants listed in the
     * MergedArea.h comment */
-   Merger(MergedAreaPtr& area1_, MergedAreaPtr& area2_);
+   Merger(MergedAreaPtr& area1_, MergedAreaPtr& area2_, bool isLastMerge_);
 
    /* destructor */
    ~Merger() = default;

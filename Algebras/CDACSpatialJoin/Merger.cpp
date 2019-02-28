@@ -11,9 +11,11 @@
 using namespace cdacspatialjoin;
 using namespace std;
 
-Merger::Merger(MergedAreaPtr& area1_, MergedAreaPtr& area2_) :
+Merger::Merger(MergedAreaPtr& area1_, MergedAreaPtr& area2_,
+        const bool isLastMerge_) :
       area1(area1_),
       area2(area2_),
+      isLastMerge(isLastMerge_),
       result(make_shared<MergedArea>(area1_, area2_)),
       currentTask(TASK::initialize) {
 
@@ -62,14 +64,19 @@ bool Merger::merge(AppendToOutput* output) {
 
    // post-processing: create the result MergedArea
    if (currentTask == TASK::postProcess) {
-      merge(leftASpan, 0, area2->leftA, 0, result->leftA);
-      merge(rightASpan, 0, area1->rightA, 0, result->rightA);
-      merge(area1->completeA, area2->completeA, leftRightA, result->completeA);
+      if (isLastMerge) {
+         // do nothing: the result areas are obsolete
+      } else {
+         merge(leftASpan, 0, area2->leftA, 0, result->leftA);
+         merge(rightASpan, 0, area1->rightA, 0, result->rightA);
+         merge(area1->completeA, area2->completeA, leftRightA,
+               result->completeA);
 
-      merge(leftBSpan, 0, area2->leftB, 0, result->leftB);
-      merge(rightBSpan, 0, area1->rightB, 0, result->rightB);
-      merge(area1->completeB, area2->completeB, leftRightB,
-            result->completeB);
+         merge(leftBSpan, 0, area2->leftB, 0, result->leftB);
+         merge(rightBSpan, 0, area1->rightB, 0, result->rightB);
+         merge(area1->completeB, area2->completeB, leftRightB,
+               result->completeB);
+      }
       currentTask = TASK::done;
    }
 
@@ -95,6 +102,7 @@ bool Merger::reportPairs(const std::vector<JoinEdge>& span,
    // inner loop of reportPairs() calls
    while (reportSubType < REPORT_SUB_TYPE_COUNT) {
       bool done = false;
+      // TODO: SubType 0 und 1 zusammen abarbeiten, ebenso SubType 2 und 3!
       if (reportSubType == 0)
          done = reportPairsSub(span, left, true, output);
       else if (reportSubType == 1)
@@ -206,7 +214,8 @@ void Merger::removeCompleteRectangles(
       const JoinEdge& edge2 = right2[index2];
       if (edge1 < edge2) {
          if (result->containsCounterpartOf(edge1)) {
-            leftRight.push_back(edge1);
+            if (!isLastMerge) // in the last merge, leftRight is obsolete
+               leftRight.push_back(edge1);
          } else {
             leftSpan.push_back(edge1);
          }
@@ -226,7 +235,8 @@ void Merger::removeCompleteRectangles(
    while (index1 < size1) {
       const JoinEdge& edge1 = left1[index1];
       if (result->containsCounterpartOf(edge1)) {
-         leftRight.push_back(edge1);
+         if (!isLastMerge) // in the last merge, leftRight is obsolete
+            leftRight.push_back(edge1);
       } else {
          leftSpan.push_back(edge1);
       }

@@ -93,6 +93,8 @@ public:
     * output*/
    std::string toString() const;
 
+   EdgeIndex_t getEdgeCount() { return edgeIndexEnd - edgeIndexStart; }
+
 private:
    /* returns true if the counterpart (i.e. the corresponding left or right
     * edge) of the given edge is found inside this MergedArea */

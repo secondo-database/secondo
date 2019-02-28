@@ -14,26 +14,17 @@
 using namespace cdacspatialjoin;
 using namespace std;
 
-JoinState::JoinState(
-        std::shared_ptr<std::vector<CRelAlgebra::TBlock*>> tBlocks1,
-        std::shared_ptr<std::vector<CRelAlgebra::TBlock*>> tBlocks2,
-        unsigned attrIndexA,
-        unsigned attrIndexB,
-        uint64_t tupleCountA,
-        uint64_t tupleCountB,
-        unsigned dimA,
-        unsigned dimB,
-        uint64_t outTBlockSize_,
-        unsigned joinStateId_) :
+JoinState::JoinState(InputStream* inputA, InputStream* inputB,
+        uint64_t outTBlockSize_, unsigned joinStateId_) :
 
-        tBlocks { std::move<>(tBlocks1), std::move<>(tBlocks2) },
-        attrIndices { attrIndexA, attrIndexB },
+        tBlocks { inputA->tBlocks, inputB->tBlocks },
+        attrIndices { inputA->attrIndex, inputB->attrIndex },
         columnCounts { tBlocks[SET::A].get()->at(0)->GetColumnCount(),
                       tBlocks[SET::B].get()->at(0)->GetColumnCount() },
-        tupleCounts { tupleCountA, tupleCountB },
-        tupleSum { tupleCountA + tupleCountB },
-        dims { dimA, dimB },
-        minDim(std::min(dimA, dimB)),
+        tupleCounts { inputA->getTupleCount(), inputB->getTupleCount() },
+        tupleSum { tupleCounts[SET::A] + tupleCounts[SET::B] },
+        dims { inputA->dim, inputB->dim },
+        minDim(std::min(inputA->dim, inputB->dim)),
         outTBlockSize(outTBlockSize_),
         joinStateId(joinStateId_),
         newTuple(new CRelAlgebra::AttrArrayEntry[
@@ -42,14 +33,25 @@ JoinState::JoinState(
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
    cout << endl << "JoinState " << joinStateId << " created: " << endl;
    for (SET set : SETS) {
+      InputStream* input = (set == SET::A) ? inputA : inputB;
       size_t size = tBlocks[set]->size();
       cout << "* set " << SET_NAMES[set] << ": "
            << formatInt(size) << (size == 1 ? " block " : " blocks ")
            << "with " << formatInt(tupleCounts[set]) << " tuples "
-           << "from stream " << SET_NAMES[set] << "; ";
+           << "from stream " << SET_NAMES[set] << " ";
+      if (input->isFullyLoaded()) {
+         cout << "(fully loaded); ";
+      } else if (set == SET::A && !inputB->isFullyLoaded()) {
+         // if neither stream fits completely into the main memory, only
+         // inputA may be re-opened ("passed") several times
+         cout << "(pass " << input->getOpenCount() << ", "
+              << "chunk " << input->getChunkCount() << "); ";
+      } else {
+         cout << "(chunk " << input->getChunkCount() << "); ";
+      }
       auto iter = tBlocks[set]->at(0)->GetIterator();
       if (iter.IsValid()) {
-         cout << "bbox of first entry is ";
+         cout << "first entry ";
          const CRelAlgebra::TBlockEntry &tuple = iter.Get();
          const unsigned attrIndex = attrIndices[set];
          if (dims[set] == 2) {
@@ -78,21 +80,11 @@ JoinState::JoinState(
    sortEdges.reserve(2 * tupleSum); // "2 *" for left and right edges
    Rectangle<3> bboxA = calculateBboxAndEdges(SET::A, true, bboxB, sortEdges,
            rectangleInfos);
-   if (bboxA.Intersects(bboxB)) {
-      // add the second set to sortEdges and rectangleInfos
-      bboxB = calculateBboxAndEdges(SET::B, true, bboxA, sortEdges,
-              rectangleInfos);
-   } else {
-      // the bounding boxes of both sets do not intersect, so no intersection
-      // between rectangles is possible
-      sortEdges.clear();
-      return; // TODO: testen
-   }
 
-   // report bounding boxes and sortEdges
+   // report bounding boxes
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
    for (SET set : SETS) {
-      cout << "* bbox of set " << SET_NAMES[set] << ": ";
+      cout << "* bounding box of set " << SET_NAMES[set] << ": ";
       Rectangle<3>& bbox = (set == SET::A) ? bboxA : bboxB;
       if (dims[set] == 2)
          bbox.Project2D(0, 1).Print(cout);
@@ -101,9 +93,28 @@ JoinState::JoinState(
       if (!bbox.IsDefined())
          cout << endl; // this is missing from Rectangle<dim>.Print
    }
+#endif
+
+   if (bboxA.Intersects(bboxB)) {
+      // add the second set to sortEdges and rectangleInfos
+      bboxB = calculateBboxAndEdges(SET::B, true, bboxA, sortEdges,
+              rectangleInfos);
+   } else {
+      // the bounding boxes of both sets do not intersect, so no intersection
+      // between any two rectangles from the two sets is possible
+      sortEdges.clear();
+#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+      cout << "* bounding boxes do not intersect; JoinState is being discarded"
+           << endl;
+#endif
+      return;
+   }
+
+   // report ignored rectangles and sortEdges
+#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
    long ignored = tupleSum - sortEdges.size() / 2;
    if (ignored > 0) {
-      double perc = round(ignored / static_cast<double>(tupleSum) * 100.0);
+      double perc = ignored / static_cast<double>(tupleSum) * 100.0;
       cout << "* " << formatInt(ignored) << " rectangles (" << perc << "%) "
            << "were ignored for being outside the other set's bounding box"
            << endl;
@@ -143,11 +154,18 @@ JoinState::JoinState(
       ++sortEdgeIndex;
    }
    joinEdges.reserve(2 * tupleSum);
+   SET lastSet = (rectangleInfos[sortEdges[0].rectInfoIndex].set == SET::A) ?
+           SET::B : SET::A;
+   level0AreaCountExpected = 0;
    for (SortEdge& sortEdge : sortEdges) {
       const RectangleInfo& rectInfo = rectangleInfos[sortEdge.rectInfoIndex];
-      joinEdges.emplace_back(sortEdge.yMin, rectInfo.yMax,
+      joinEdges.emplace_back(rectInfo.yMin, rectInfo.yMax,
               rectInfo.getEdgeIndex(!sortEdge.isLeft), sortEdge.isLeft,
               rectInfo.set, rectInfo.block, rectInfo.row);
+      if (rectInfo.set != lastSet) {
+         ++level0AreaCountExpected;
+         lastSet = rectInfo.set;
+      }
    }
    // sortEdges and rectangleInfos is now obsolete
 
@@ -155,6 +173,10 @@ JoinState::JoinState(
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
    cout << "* " << formatInt(joinEdges.size()) << " JoinEdges created in "
         << formatMillis(clock() - start) << endl;
+   cout << "* " << formatInt(level0AreaCountExpected) << " 'atomic' "
+        << "MergedAreas (with JoinEdges from the same set only) will be "
+        << "created on the lowest level." << endl;
+
    /*
    unsigned count2 = 0;
    for (const JoinEdge& joinEdge : joinEdges) {
@@ -202,6 +224,11 @@ Rectangle<3> JoinState::calculateBboxAndEdges(const SET set,
             if (!rec.IsDefined()) {
                skip = true; // omit this rectangle
             } else {
+               if (bbox2.IsDefined())
+                  bbox2.Extend(rec);
+               else // rec is the first rectangle
+                  bbox2 = rec;
+
                xMin = rec.MinD(0);
                xMax = rec.MaxD(0);
                yMin = rec.MinD(1);
@@ -212,11 +239,6 @@ Rectangle<3> JoinState::calculateBboxAndEdges(const SET set,
                    (xMax < otherBbox.MinD(0) || otherBbox.MaxD(0) < xMin ||
                     yMax < otherBbox.MinD(1) || otherBbox.MaxD(1) < yMin)) {
                   skip = true; // rec is outside the bbox of the other set
-               } else {
-                  if (bbox2.IsDefined())
-                     bbox2.Extend(rec);
-                  else // rec is the first rectangle
-                     bbox2 = rec;
                }
             }
 
@@ -225,17 +247,20 @@ Rectangle<3> JoinState::calculateBboxAndEdges(const SET set,
             Rectangle<3> rec = attr.GetBoundingBox();
             if (!rec.IsDefined()) {
                skip = true; // omit this rectangle
-            } else if (addToEdges && !otherBbox.Intersects(rec)) {
-               skip = true; // rec is outside the bbox of the other set
             } else {
-               xMin = rec.MinD(0);
-               xMax = rec.MaxD(0);
-               yMin = rec.MinD(1);
-               yMax = rec.MaxD(1);
                if (bbox3.IsDefined())
                   bbox3.Extend(rec);
                else // rec is the first rectangle
                   bbox3 = rec;
+
+               if (addToEdges && !otherBbox.Intersects(rec)) {
+                  skip = true; // rec is outside the bbox of the other set
+               } else {
+                  xMin = rec.MinD(0);
+                  xMax = rec.MaxD(0);
+                  yMin = rec.MinD(1);
+                  yMax = rec.MaxD(1);
+               }
             }
          } // end of "if (dim == ...)"
 
@@ -245,9 +270,9 @@ Rectangle<3> JoinState::calculateBboxAndEdges(const SET set,
          if (addToEdges && !skip) {
             auto rectInfoIndex =
                     static_cast<RectInfoIndex_t>(rectangleInfos.size());
-            rectangleInfos.emplace_back(yMax, set, blockNum, row);
-            sortEdges.emplace_back(xMin, yMin, rectInfoIndex, true);
-            sortEdges.emplace_back(xMax, yMin, rectInfoIndex, false);
+            rectangleInfos.emplace_back(yMin, yMax, set, blockNum, row);
+            sortEdges.emplace_back(xMin, rectInfoIndex, true);
+            sortEdges.emplace_back(xMax, rectInfoIndex, false);
          }
          ++row;
          iter.MoveToNext();
@@ -291,8 +316,7 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* outTBlock) {
          if (merger->merge(&appendToOutputFunc)) {
             // merger has completed
             MergedAreaPtr result = merger->getResult();
-            ++mergeLevel;
-            enqueueMergedAreaOrCreateMerger(result);
+            enqueueMergedAreaOrCreateMerger(result, true);
          } else {
             // outTBlock is full
             break;
@@ -310,13 +334,15 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* outTBlock) {
                joinEdges[joinEdgeIndex].set == set);
          MergedAreaPtr newArea = make_shared<MergedArea>(joinEdges, indexStart,
                  joinEdgeIndex, set);
+         ++level0AreaCount;
          // enqueue the newArea to mergedAreas or create a merger to
          // merge it with the MergedArea in mergedAreas[0]
-         enqueueMergedAreaOrCreateMerger(newArea);
+         enqueueMergedAreaOrCreateMerger(newArea, false);
 
       } else {
          // no current merge action, and no joinEdges left;
          // now merge lower level mergedAreas with higher level ones
+         assert (level0AreaCount == level0AreaCountExpected);
          MergedAreaPtr mergedArea2;
          for (unsigned level = 0; level < mergedAreas.size(); ++level) {
             if (!mergedAreas[level])
@@ -325,9 +351,8 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* outTBlock) {
                mergedArea2 = mergedAreas[level];
                mergedAreas[level] = nullptr;
             } else {
-               merger.reset(new Merger(mergedAreas[level], mergedArea2));
-               mergedAreas[level] = nullptr;
                mergeLevel = level;
+               createMerger(mergedAreas[level], mergedArea2);
                break;
             }
          }
@@ -353,19 +378,51 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* outTBlock) {
          << formatInt(outTupleCount) << " tuples returned in "
          << formatMillis(clock() - initializeCompleted)
          << " (intersection ratio "
-         << outTupleCount * 100.0 / (tupleCounts[SET::A] * tupleCounts[SET::B])
-         << "%)" << endl;
+         << outTupleCount * 1000000.0 /
+            (tupleCounts[SET::A] * tupleCounts[SET::B])
+         << " per million)" << endl;
 #endif
    }
 
    return (rowCount > 0);
 }
 
-void JoinState::enqueueMergedAreaOrCreateMerger(MergedAreaPtr& newArea) {
+void JoinState::enqueueMergedAreaOrCreateMerger(MergedAreaPtr& newArea,
+        const bool mayIncreaseMergeLevel) {
+
+   if (mayIncreaseMergeLevel) {
+      unsigned long remainingLevel0Areas = level0AreaCountExpected
+                                           - level0AreaCount;
+      // compare the remaining MergedAreas that are to be created on the
+      // lowest level with the number of MergedAreas that are already
+      // merged "inside" the "newArea" (which results from a merge)
+      if (remainingLevel0Areas == 0 ||
+          remainingLevel0Areas >= (1UL << (mergeLevel + 1))) {
+         // normal case: increase mergeLevel to enter result at the next
+         // level (or recursively merge it with the MergedArea stored
+         // there)
+         ++mergeLevel;
+      } else {
+         // special case at the end of the calculation: enter this
+         // result at the *same* mergeLevel (rather than at the next)
+         // to avoid unbalanced merges at the end (in which a very large
+         // MergedArea would be merged with a very small one)
+         assert (!mergedAreas[mergeLevel]);
+
+         // TODO: CDAC_SPATIAL_JOIN_DETAILED_REPORT_TO_CONSOLE verwenden:
+#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+         cout << "* keeping MergedArea with "
+              << formatInt(newArea->getEdgeCount()) << " edges "
+              << "on level " << mergeLevel
+              << " (" << formatInt(remainingLevel0Areas) << " MergedAreas "
+              << "left on lowest level)" << endl;
+#endif
+      }
+   }
+
    if (mergeLevel < mergedAreas.size() && mergedAreas[mergeLevel]) {
       // continue merging with the MergedArea at the next level
-      merger.reset(new Merger(mergedAreas[mergeLevel], newArea));
-      mergedAreas[mergeLevel] = nullptr;
+      createMerger(mergedAreas[mergeLevel], newArea);
    } else  {
       // enter result to new level / to free position in mergedAreas
       if (mergeLevel >= mergedAreas.size())
@@ -375,6 +432,23 @@ void JoinState::enqueueMergedAreaOrCreateMerger(MergedAreaPtr& newArea) {
       merger.reset(nullptr);
       mergeLevel = 0;
    }
+}
+
+void JoinState::createMerger(MergedAreaPtr &area1, MergedAreaPtr &area2) {
+   bool isLastMerge = (joinEdgeIndex == joinEdges.size() &&
+                       mergeLevel + 1 == mergedAreas.size());
+
+   // TODO: CDAC_SPATIAL_JOIN_DETAILED_REPORT_TO_CONSOLE verwenden:
+#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+   if (isLastMerge) {
+      cout << "* last merge: " << formatInt(area1->getEdgeCount()) << " + "
+         << formatInt(area2->getEdgeCount()) << " edges "
+         << "at level " << mergeLevel << endl;
+   }
+#endif
+
+   merger.reset(new Merger(area1, area2, isLastMerge));
+   mergedAreas[mergeLevel] = nullptr;
 }
 
 bool JoinState::appendToOutput(const JoinEdge& entryA, const JoinEdge& entryB,
@@ -391,7 +465,7 @@ bool JoinState::appendToOutput(const JoinEdge& entryA, const JoinEdge& entryB,
    // if both tuples are 3-dimensional, only now the z dimension is
    // being tested. If the tuples' bounding boxes do not intersect in the
    // z dimension, the pair is rejected at this late stage
-   if (minDim == 3) { // TODO: testen
+   if (minDim == 3) {
       CRelAlgebra::SpatialAttrArrayEntry<3> attrA = tupleA[attrIndices[SET::A]];
       CRelAlgebra::SpatialAttrArrayEntry<3> attrB = tupleB[attrIndices[SET::B]];
       const Rectangle<3>& bboxA = attrA.GetBoundingBox();
