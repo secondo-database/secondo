@@ -45,7 +45,7 @@ namespace cdacspatialjoin {
 
          // CDACSpatialJoin operator
          opCDACSpatialJoin.get()->SetUsesMemory();
-         AddOperator(opCDACSpatialJoin.get()); // TODO: "..., true"?
+         AddOperator(opCDACSpatialJoin.get());
 
          // createRectangles1D/2D/3D stream operators
          AddOperator(opCreateRectangles1D.get());

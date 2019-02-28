@@ -13,6 +13,17 @@ open database CDACSJTest;
 
 let noGeom = [const (rel (tuple ((PLZ int) (Ort string)) )) value ((78267 "Aach") (52092 "Aachen") (73434 "Aalen"))];
 
+let rectBelow1 = [const (rel (tuple ((Bbox rect)) )) value (((-0.99999 0.99999 -0.99999 0.99999)))];
+
+let rect1 = [const (rel (tuple ((Bbox rect)) )) value (((-1 1 -1 1)))];
+
+let rectOver1 = [const (rel (tuple ((Bbox rect)) )) value (((-1.00001 1.00001 -1.00001 1.00001)))];
+
+let rect2 = [const (rel (tuple ((Bbox rect)) )) value (((-2 2 -2 2)))];
+
+let rect100 = [const (rel (tuple ((Bbox rect)) )) value ( ((-2 -1 -2 -1)) ((-2 -1 -2 0)) ((-2 -1 -2 1)) ((-2 -1 -2 2)) ((-2 -1 -1 0)) ((-2 -1 -1 1)) ((-2 -1 -1 2)) ((-2 -1 0 1)) ((-2 -1 0 2)) ((-2 -1 1 2)) ((-2 0 -2 -1)) ((-2 0 -2 0)) ((-2 0 -2 1)) ((-2 0 -2 2)) ((-2 0 -1 0)) ((-2 0 -1 1)) ((-2 0 -1 2)) ((-2 0 0 1)) ((-2 0 0 2)) ((-2 0 1 2)) ((-2 1 -2 -1)) ((-2 1 -2 0)) ((-2 1 -2 1)) ((-2 1 -2 2)) ((-2 1 -1 0)) ((-2 1 -1 1)) ((-2 1 -1 2)) ((-2 1 0 1)) ((-2 1 0 2)) ((-2 1 1 2)) ((-2 2 -2 -1)) ((-2 2 -2 0)) ((-2 2 -2 1)) ((-2 2 -2 2)) ((-2 2 -1 0)) ((-2 2 -1 1)) ((-2 2 -1 2)) ((-2 2 0 1)) ((-2 2 0 2)) ((-2 2 1 2)) ((-1 0 -2 -1)) ((-1 0 -2 0)) ((-1 0 -2 1)) ((-1 0 -2 2)) ((-1 0 -1 0)) ((-1 0 -1 1)) ((-1 0 -1 2)) ((-1 0 0 1)) ((-1 0 0 2)) ((-1 0 1 2)) ((-1 1 -2 -1)) ((-1 1 -2 0)) ((-1 1 -2 1)) ((-1 1 -2 2)) ((-1 1 -1 0)) ((-1 1 -1 1)) ((-1 1 -1 2)) ((-1 1 0 1)) ((-1 1 0 2)) ((-1 1 1 2)) ((-1 2 -2 -1)) ((-1 2 -2 0)) ((-1 2 -2 1)) ((-1 2 -2 2)) ((-1 2 -1 0)) ((-1 2 -1 1)) ((-1 2 -1 2)) ((-1 2 0 1)) ((-1 2 0 2)) ((-1 2 1 2)) ((0 1 -2 -1)) ((0 1 -2 0)) ((0 1 -2 1)) ((0 1 -2 2)) ((0 1 -1 0)) ((0 1 -1 1)) ((0 1 -1 2)) ((0 1 0 1)) ((0 1 0 2)) ((0 1 1 2)) ((0 2 -2 -1)) ((0 2 -2 0)) ((0 2 -2 1)) ((0 2 -2 2)) ((0 2 -1 0)) ((0 2 -1 1)) ((0 2 -1 2)) ((0 2 0 1)) ((0 2 0 2)) ((0 2 1 2)) ((1 2 -2 -1)) ((1 2 -2 0)) ((1 2 -2 1)) ((1 2 -2 2)) ((1 2 -1 0)) ((1 2 -1 1)) ((1 2 -1 2)) ((1 2 0 1)) ((1 2 0 2)) ((1 2 1 2)) 
+ )];
+
 ########################################
 # OPERATOR - createRectangles1D
 ########################################
@@ -36,9 +47,9 @@ query createRectangles1D(5, 4, 0.3, 0.5, 0) count;
 #testcase -1.5- createRectangles1D, checking first 3 of 1000^4 tuples
 #tolerance_real 0.001
 #yields ((rel (tuple ((Bbox rect1))))( \
-  ((488.318 578.353)) \
-  ((525.255 621.244)) \
-  ((483.284 568.422))))
+  ((813.373 867.866)) \
+  ((813.322 880.311)) \
+  ((805.612 858.401))))
 query createRectangles1D(1000, 4, 0.4, 0.6, 1) head[3] consume;
 
 
@@ -65,9 +76,9 @@ query createRectangles2D(5, 4, 0.3, 0.5, 0) count;
 #testcase -2.5- createRectangles2D, checking first 3 of 1000^4 tuples
 # tolerance_real 0.001
 #yields ((rel (tuple ((Bbox rect))))( \
-  ((592.663 655.957 223.021 305.744)) \
-  ((593.693 662.697 246.000 324.874)) \
-  ((613.066 692.632 197.948 269.435))))
+  ((618.075 661.112 822.866 867.504)) \
+  ((631.791 675.070 811.430 863.197)) \
+  ((653.610 701.446 809.708 846.568))))
 query createRectangles2D(1000, 4, 0.4, 0.6, 1) head[3] consume;
 
 
@@ -94,9 +105,9 @@ query createRectangles3D(5, 4, 0.3, 0.5, 0) count;
 #testcase -3.5- createRectangles3D, checking first 3 of 1000^4 tuples
 #tolerance_real 0.001
 #yields ((rel (tuple ((Bbox rect3))))( \
-  ((604.469 664.435 466.183 526.676 203.667 258.017)) \
-  ((601.270 662.332 474.853 523.913 201.892 259.531)) \
-  ((589.530 647.193 442.976 490.407 214.080 260.314))))
+  ((694.327 750.894 897.878 950.151 422.922 463.201)) \
+  ((697.523 752.664 872.098 926.557 431.964 471.596)) \
+  ((694.567 744.474 870.262 916.680 401.140 445.207))))
 query createRectangles3D(1000, 4, 0.4, 0.6, 1) head[3] consume;
 
 
@@ -133,34 +144,71 @@ query noGeom feed createRectangles2D(10, 4, 0.4, 0.6, 2) cdacspatialjoin[] count
 query createRectangles2D(10, 4, 0.4, 0.6, 1) noGeom feed cdacspatialjoin[] count;
 
 #testcase -4.8- CDACSpatialJoin with four valid arguments
-#yields (longint 146286)
+#yields (longint 89843)
 query createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] count;
 
 #testcase -4.9- CDACSpatialJoin with three valid arguments
-#yields (longint 146286)
+#yields (longint 89843)
 query createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a] count;
 
 #testcase -4.10- CDACSpatialJoin with two valid arguments
-#yields (longint 146286)
+#yields (longint 89843)
 query createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} cdacspatialjoin[] count;
 
-#testcase -4.11- compare CDACSpatialJoin result count (146.286) with spatialjoin result count
+#testcase -4.11- compare CDACSpatialJoin result count (89.843) with spatialjoin result count
 #yields (bool TRUE)
 query (createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} cdacspatialjoin[] count) 
     = (createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} spatialjoin[Bbox_a, Bbox_b] count);
 
-#testcase -4.12- compare CDACSpatialJoin result count (11.517) with itSpatialJoin result count
+#testcase -4.12- compare CDACSpatialJoin result count (31.812) with itSpatialJoin result count
 #yields (bool TRUE)
 query (createRectangles2D(5, 5, 0.3, 0.5, 1) {a} createRectangles2D(8, 4, 0.2, 0.7, 2) {b} cdacspatialjoin[] count) 
     = (createRectangles2D(5, 5, 0.3, 0.5, 1) {a} createRectangles2D(8, 4, 0.2, 0.7, 2) {b} itSpatialJoin[Bbox_a, Bbox_b] count);
 
-#testcase -4.13- compare CDACSpatialJoin result count (4.203) with cspatialjoin result count
+#testcase -4.13- compare CDACSpatialJoin result count (13.018) with cspatialjoin result count
 #yields (bool TRUE)
-query (createRectangles2D(3, 8, 0.4, 0.7, 1) {a} createRectangles2D(2, 14, 0.1, 0.8, 2) {b} cdacspatialjoin[] count) 
-    = (createRectangles2D(3, 8, 0.4, 0.7, 1) toblocks[1] {a} createRectangles2D(2, 14, 0.1, 0.8, 2) toblocks[1] {b} cspatialjoin[Bbox_a, Bbox_b] count);
+query (createRectangles2D(4, 7, 0.4, 0.7, 1) {a} createRectangles2D(3, 9, 0.1, 0.8, 2) {b} cdacspatialjoin[] count)
+    = (createRectangles2D(4, 7, 0.4, 0.7, 1) toblocks[1] {a} createRectangles2D(3, 9, 0.1, 0.8, 2) toblocks[1] {b} cspatialjoin[Bbox_a, Bbox_b] count);
+
+#testcase -4.14- join 3D rectangles with 2D rectangles (z dimension is ignored)
+#yields (longint 2806)
+query createRectangles3D(10, 4, 0.2, 0.3, 1) createRectangles2D(10, 4, 0.2, 0.3, 2) {a} cdacspatialjoin[] count
+
+#testcase -4.15- join 2D rectangles with 3D rectangles (z dimension is ignored)
+#yields (longint 2806)
+query createRectangles2D(10, 4, 0.2, 0.3, 2) createRectangles3D(10, 4, 0.2, 0.3, 1) {a} cdacspatialjoin[] count
+
+#testcase -4.16- join 3D rectangles with 3D rectangles (z dimension is considered)
+#yields (longint 29)
+query createRectangles3D(10, 4, 0.2, 0.3, 1) createRectangles3D(10, 4, 0.2, 0.3, 2) {a} cdacspatialjoin[] count
+
+#testcase -4.17- all 100 rectangles with int coordinates in interval [-2, 2] must intersect with the rectangle (-1, -1) - (1, 1)
+#yields (longint 100)
+query rect100 feed rect1 feed {a} cdacspatialjoin[] count;
+
+#testcase -4.18- ... the same applies if positions are swapped
+#yields (longint 100)
+query rect1 feed rect100 feed {a} cdacspatialjoin[] count;
+
+#testcase -4.19- ... and for the slightly larger rectangle (-1.00001, -1.00001) - (1.00001, 1.00001)
+#yields (longint 100)
+query rect100 feed rectOver1 feed {a} cdacspatialjoin[] count;
+
+#testcase -4.20- ... and of course for the rectangle (-2, -2) - (2, 2)
+#yields (longint 100)
+query rect100 feed rect2 feed {a} cdacspatialjoin[] count;
+
+#testcase -4.21- ... but only 64 of the 100 rectangles should intersect with the rectangle (-0.99999, -0.99999) - (0.99999, 0.99999)  
+#yields (longint 64)
+query rect100 feed rectBelow1 feed {a} cdacspatialjoin[] count;
 
 
 #teardown
 kill noGeom;
+kill rectBelow1;
+kill rect1;
+kill rectOver1;
+kill rect2;
+kill rect100;
 close database;
 delete database CDACSJTest;

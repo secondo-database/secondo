@@ -335,120 +335,6 @@ int CDACSpatialJoin::valueMapping(
 
 // ========================================================
 /*
-1.5 InputStream class
-
-1.5.1 InputStream base class
-
-*/
-InputStream::InputStream(unsigned attrIndex_, unsigned dim_) :
-        attrIndex(attrIndex_),
-        dim(dim_),
-        tBlocks(new std::vector<CRelAlgebra::TBlock*>()),
-        byteCount(0),
-        tupleCount(0),
-        done(false) {
-}
-
-InputStream::~InputStream() {
-   clearMem();
-}
-
-void InputStream::clearMem() {
-   for (CRelAlgebra::TBlock* tBlock : *tBlocks) {
-      if (tBlock)
-         tBlock->DecRef();
-   }
-   tBlocks->clear();
-   byteCount = 0;
-   tupleCount = 0;
-}
-
-bool InputStream::request() {
-   CRelAlgebra::TBlock* tupleBlock = nullptr;
-   if (!(tupleBlock = this->requestBlock())) {
-      done = true;
-      return false;
-   }
-
-   tBlocks->push_back(tupleBlock);
-   byteCount += tupleBlock->GetSize();
-   tupleCount += tupleBlock->GetRowCount();
-   return true;
-}
-
-size_t InputStream::getUsedMem() {
-   return byteCount;
-}
-
-/*
-1.5.2 InputTBlockStream  class
-
-*/
-InputTBlockStream::InputTBlockStream(Word stream_,
-        unsigned attrIndex_, unsigned dim_) :
-        InputStream(attrIndex_, dim_),
-        tBlockStream(stream_) {
-   tBlockStream.open();
-}
-
-InputTBlockStream::~InputTBlockStream() {
-   tBlockStream.close();
-}
-
-CRelAlgebra::TBlock* InputTBlockStream::requestBlock() {
-   return tBlockStream.request();
-}
-
-void InputTBlockStream::restart() {
-   tBlockStream.close();
-   tBlockStream.open();
-   done = false;
-}
-
-
-/*
-1.5.3 InputTupleStream  class
-
-*/
-InputTupleStream::InputTupleStream(Word stream_,
-         unsigned attrIndex_, unsigned dim_,
-         const CRelAlgebra::PTBlockInfo& blockInfo_,
-         uint64_t desiredBlockSize_) :
-      InputStream(attrIndex_, dim_),
-      tupleStream(stream_),
-      blockInfo(blockInfo_),
-      blockSize(desiredBlockSize_ * CRelAlgebra::TBlockTI::blockSizeFactor) {
-   tupleStream.open();
-}
-
-InputTupleStream::~InputTupleStream() {
-   tupleStream.close();
-}
-
-CRelAlgebra::TBlock* InputTupleStream::requestBlock() {
-   // cp. Algebras/CRel/Operators/ToBlocks.cpp
-   Tuple *tuple = tupleStream.request();
-   if (!tuple)
-      return nullptr;
-
-   auto block = new CRelAlgebra::TBlock(blockInfo, fileId, fileId, nullptr);
-   do {
-      block->Append(*tuple);
-      tuple->DeleteIfAllowed();
-   } while (block->GetSize() < blockSize &&
-            (tuple = tupleStream.request()) != nullptr);
-   return block;
-}
-
-void InputTupleStream::restart() {
-   tupleStream.close();
-   tupleStream.open();
-   done = false;
-}
-
-
-// ========================================================
-/*
 1.5 LocalInfo class
 
 1.5.1 constructor
@@ -459,7 +345,6 @@ LocalInfo::LocalInfo(InputStream* input1_, InputStream* input2_, Supplier s_) :
         input2(input2_),
         s(s_),
         isFirstRequest(true),
-        isInput1FullyLoaded(false),
         memLimit(qp->GetMemorySize(s) * 1024 * 1024),
 
         // Extract information about result tuple block type and size
@@ -511,10 +396,28 @@ void LocalInfo::requestInput() {
 
 size_t LocalInfo::getUsedMem() {
    size_t tupleSum = input1->getTupleCount() + input2->getTupleCount();
-   return    input1->getUsedMem()
-           + input2->getUsedMem()
-           + 2 * tupleSum * sizeof(SortEdge)
-           + 3 * tupleSum * sizeof(JoinEdge); // TODO: anpassen
+
+   // first, we estimate the memory required by the JoinState constructor
+   // (of which the SortEdge and RectangleInfo part will be released on
+   // completion of the constructor):
+   size_t joinStateConstruction = tupleSum * (2 * sizeof(SortEdge) +
+           sizeof(RectangleInfo) + 2 * sizeof(JoinEdge));
+
+   // during JoinState execution, we must consider both JoinState::joinEdges
+   // (2 * sizeof(JoinEdge)) and JoinState::mergedAreas (1 * sizeof(...)):
+   // mergedAreas duplicate JoinEdges, but they are only constructed over time
+   // (not all at once), and the number of JoinEdges stored here is being
+   // reduced with every merge step, since MergedArea::complete only
+   // stores *one* edge (rather than two edges) per rectangle. Short of
+   // extreme cases (where all rectangles are completed only at the last
+   // merge step), it seems adequate to assume 1 * sizeof(JoinEdge) for all
+   // mergedAreas at a given time:
+   size_t joinStateExecution = tupleSum * ((2 + 1) * sizeof(JoinEdge));
+
+   // since JoinState construction and execution take place sequentially,
+   // the maximum (rather than the sum) can be used:
+   return  input1->getUsedMem() + input2->getUsedMem() +
+         std::max(joinStateConstruction, joinStateExecution);
 }
 
 /*
@@ -549,8 +452,6 @@ CRelAlgebra::TBlock* LocalInfo::getNext() {
          // read as much as possible from both input streams
          requestInput();
 
-         // remember whether input1 could be fully loaded into the main memory
-         isInput1FullyLoaded = input1->isDone();
          // continue creating a JoinState below
 
       } else if (input1->isDone() && input2->isDone()) {
@@ -564,7 +465,7 @@ CRelAlgebra::TBlock* LocalInfo::getNext() {
          // i.e. the tuple data did not fit completely into the main memory;
          // the tuples read so far were treated, now read and treat more data
 
-         if (isInput1FullyLoaded) {
+         if (input1->isFullyLoaded()) {
             // continue reading from input2
             input2->clearMem();
             do {
@@ -594,12 +495,8 @@ CRelAlgebra::TBlock* LocalInfo::getNext() {
       if (input1->hasTBlocks() && input2->hasTBlocks()) {
          assert (!joinState);
          ++joinStateCount;
-         joinState = new JoinState(
-                 input1->tBlocks, input2->tBlocks,
-                 input1->attrIndex, input2->attrIndex,
-                 input1->getTupleCount(), input2->getTupleCount(),
-                 input1->dim, input2->dim,
-                 outTBlockSize, joinStateCount);
+         joinState = new JoinState(input1, input2, outTBlockSize,
+                 joinStateCount);
       }
 
    } // end of while loop

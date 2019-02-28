@@ -75,7 +75,7 @@ The parameters are
   * *rndSeed*: 0 to get non-reproducible random rectangles; a positive value to
     get reproducible results. Note that two streams with the exact same
     parameters and equal, positive rndSeed values will provide the exact
-    same rectangles in the same order.
+    same rectangles in the same order, even if the stream is re-opened.
 
 To use ~createRectangle2D~ for testing the ~CDACSpatialJoin~ operator, a query
 may look like this:
@@ -181,9 +181,6 @@ class CreateRectanglesLocalInfo {
    /* the maximum factor by which a given area shrinks to the area
     of the next recursion */
    const double shrinkMax;
-   /* 0 to get non-reproducible random rectangles; a positive value to
-    get reproducible results */
-   const unsigned rndSeed;
    /* the tuple type of the tuples to be created by the stream */
    const ListExpr resultType;
 
@@ -196,7 +193,7 @@ class CreateRectanglesLocalInfo {
 
 public:
    CreateRectanglesLocalInfo(unsigned base_, unsigned exp_,
-           double shrinkMin_, double shrinkMax_, unsigned rndSeed_,
+           double shrinkMin_, double shrinkMax_, unsigned long rndSeed_,
            ListExpr resultType_);
 
    ~CreateRectanglesLocalInfo() = default;
@@ -206,6 +203,7 @@ public:
    Tuple* getNext();
 
 private:
+
    /* returns a random number in the given interval, using uniform real
     * distribution */
    double getRnd(double min, double max);
@@ -275,7 +273,25 @@ ListExpr CreateRectangles<dim>::TypeMapping(ListExpr args) {
            nl->SymbolAtom(Tuple::BasicType()), attrList);
 
    // (stream (tuple ((Bbox Rectangle<dim>))))
-   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), tupleExpr);
+   const ListExpr streamExpr = nl->TwoElemList(
+           nl->SymbolAtom(Symbol::STREAM()), tupleExpr);
+
+   // If in Value Mapping, the rndSeed parameter is 0, a stream of
+   // non-reproducible random rectangles should be created; however, if this
+   // same stream is opened twice or several times (as the "inner loop" of two
+   // large streams used by CDACSpatialJoin), we need to ensure that the same
+   // rectangles will be returned as the first time. Therefore, we determine a
+   // random value that will be passed to Value Mapping and remains fixed
+   // during the whole lifetime of this operator instance (we cannot store
+   // this value in the LocalInfo class since that will be deleted at every
+   // close call). If the caller sets rndSeed to a non-zero value, the
+   // fixedRndSeed will be ignored
+   std::random_device rd;
+   unsigned long fixedRndSeed = rd();
+
+   // use the append mechanism to return fixedRndSeed and the stream type
+   return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+           nl->OneElemList(nl->IntAtom(fixedRndSeed)), streamExpr);
 }
 
 /*
@@ -289,7 +305,6 @@ int CreateRectangles<dim>::ValueMapping(Word* args, Word& result, int message,
    auto li = static_cast<CreateRectanglesLocalInfo<dim>*>(local.addr);
    switch (message) {
       case OPEN: {
-         delete li;
          ListExpr resultType = GetTupleResultType(s);
          auto base = static_cast<unsigned>(
                  (static_cast<CcInt*>(args[0].addr))->GetValue());
@@ -297,11 +312,16 @@ int CreateRectangles<dim>::ValueMapping(Word* args, Word& result, int message,
                  (static_cast<CcInt*>(args[1].addr))->GetValue());
          auto shrinkMin = (static_cast<CcReal*>(args[2].addr))->GetValue();
          auto shrinkMax = (static_cast<CcReal*>(args[3].addr))->GetValue();
-         auto rndSeed = static_cast<unsigned>(
+         auto rndSeed = static_cast<unsigned long>(
                  (static_cast<CcInt*>(args[4].addr))->GetValue());
-         local.addr = new CreateRectanglesLocalInfo<dim>(
-                 base, exp, shrinkMin, shrinkMax, rndSeed,
-                 nl->Second(resultType));
+         if (rndSeed == 0) {
+            // use the fixedRndSeed created in Type Mapping
+            // (cp. the explanation there)
+            rndSeed = static_cast<unsigned long>(
+                    (static_cast<CcInt*>(args[5].addr))->GetValue());
+         }
+         local.addr = new CreateRectanglesLocalInfo<dim>(base, exp,
+                 shrinkMin, shrinkMax, rndSeed, nl->Second(resultType));
          return 0;
       }
       case REQUEST: {
@@ -372,21 +392,15 @@ CreateRectanglesElem<dim>::CreateRectanglesElem(Rectangle<dim> rect_,
 template<unsigned dim>
 CreateRectanglesLocalInfo<dim>::CreateRectanglesLocalInfo(
         unsigned base_, unsigned exp_, double shrinkMin_, double shrinkMax_,
-        unsigned rndSeed_, ListExpr resultType_) :
+        unsigned long rndSeed_, ListExpr resultType_) :
         base(base_), exp(exp_),
         shrinkMin(shrinkMin_),
         shrinkMax(shrinkMax_),
-        rndSeed(rndSeed_),
         resultType(resultType_),
         rndGenerator(0),
         distribution(0.0, 1.0) {
 
-   if (rndSeed_ <= 0) {
-      std::random_device rd;
-      rndGenerator.seed(rd());
-   } else {
-      rndGenerator.seed(rndSeed);
-   }
+   rndGenerator.seed(rndSeed_);
 
    double min[dim];
    double max[dim];
@@ -418,8 +432,9 @@ Tuple* CreateRectanglesLocalInfo<dim>::getNext() {
       double min[dim];
       double max[dim];
       for (unsigned d = 0; d < dim; ++d) {
-         min[d] = getRnd(frame.MinD(d), frame.MaxD(d) - elem.extentMax);
-         max[d] = min[d] + getRnd(elem.extentMin, elem.extentMax);
+         double extent = getRnd(elem.extentMin, elem.extentMax);
+         min[d] = getRnd(frame.MinD(d), frame.MaxD(d) - extent);
+         max[d] = min[d] + extent;
       }
       if (elemStack.size() >= exp) {
          result->PutAttribute(0, new Rectangle<dim>(true, min, max));
