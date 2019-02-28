@@ -38,6 +38,7 @@ context, value, default value, min value, max value and meaning.
 */
 
 #pragma once
+#include <string>
 #include <memory>
 #include <vector>
 #include <map>
