@@ -279,8 +279,8 @@ namespace temporalalgebra{
 2.1 Definition of some constants and auxiliary functions
 
 */
-const double MAXDOUBLE = std::numeric_limits<double>::max();
-const double MINDOUBLE = std::numeric_limits<double>::min();
+ // const double MAXDOUBLE = std::numeric_limits<double>::max();
+ // const double MINDOUBLE = std::numeric_limits<double>::min();
 
 /*
 2.2 Auxiliary output functions
@@ -4300,7 +4300,7 @@ int TU_VM_Abs_UInt( Word* args, Word& result, int message,
   else
   {
     c1 = (long) u1->constValue.GetIntval();
-    c = abs(c1);
+    c = std::abs(c1);
     ((UInt*)(result.addr))->timeInterval = u1->timeInterval;
     ((UInt*)(result.addr))->SetDefined( true );
     ((UInt*)(result.addr))->constValue.Set(true,c);
