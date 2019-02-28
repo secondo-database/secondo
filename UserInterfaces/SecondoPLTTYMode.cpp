@@ -1615,6 +1615,9 @@ bool rewriteRestore(string& cmd){
    if(!stringutils::startsWith(filename,"'")){
       filename = "'" + filename + "'";
    }
+   if(!stringutils::startsWith(name,"'")){
+      name = "'" + name + "'";
+   }
    cmd = "restore " + database + name + " from " + filename;
    return true;   
 }
