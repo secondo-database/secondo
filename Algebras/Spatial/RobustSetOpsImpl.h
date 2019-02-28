@@ -86,7 +86,7 @@ void addSplitPoint( const HalfSegment hsline,
 
    //cout << "delta2 = " << delta2 << endl;
    double delta1;
-   if(abs(u) > abs(x)){
+   if(std::abs(u) > std::abs(x)){
       delta1 = -1*((w+delta2*v)/u);
    } else {
       delta1 = -1*((z+delta2*y)/x);

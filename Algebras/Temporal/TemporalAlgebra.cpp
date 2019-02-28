@@ -4622,7 +4622,7 @@ void MReal::Simplify(const int min, const int max,
      Get(i,u);
      ureal.TemporalFunction(u.timeInterval.start,r_simple, true);
      u.TemporalFunction(u.timeInterval.start,r_orig,true);
-     distance  = abs(r_simple.GetRealval()- r_orig.GetRealval());
+     distance  = std::abs(r_simple.GetRealval()- r_orig.GetRealval());
      if(distance>maxDist){ // new maximum found
         maxDist = distance;
         maxIndex = i;

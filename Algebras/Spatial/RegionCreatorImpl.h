@@ -301,7 +301,7 @@ template<template<typename T> class Array>
        return -1;
      }
      if(AlmostEqual(y1,y2)){  // horizontal segment
-        return abs(x - xmax); // abs is for rounding errors
+        return std::abs(x - xmax); // abs is for rounding errors
      } 
     
      double delta = (y-y1)/(y2-y1);
@@ -345,7 +345,7 @@ template<template<typename T> class Array>
      }
      if(AlmostEqual(y1,y2)){  // horizontal segment
         // cout << "horizontal" << endl;
-        return abs(xmin - x); // abs is for rounding errors
+        return std::abs(xmin - x); // abs is for rounding errors
      } 
 
      double delta = (y-y1)/(y2-y1);
@@ -409,7 +409,7 @@ template<template<typename T> class Array>
      if(AlmostEqual(ycut,y)){
          return 0;
      }
-     return abs(ycut-y) ;
+     return std::abs(ycut-y) ;
   }
 
 template<template<typename T> class Array>
@@ -455,7 +455,7 @@ template<template<typename T> class Array>
      if(AlmostEqual(ycut,y)){ // nearly hit
          return 0;
      }
-     return abs(y-ycut) ;
+     return std::abs(y-ycut) ;
   }
 
 
