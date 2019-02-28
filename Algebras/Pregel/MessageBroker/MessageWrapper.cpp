@@ -43,6 +43,8 @@ This file defines the members of class MessageWrapper
 
 namespace pregel {
 
+ constexpr size_t MessageWrapper::HEADER_SIZE;
+
  MessageWrapper::MessageWrapper() : body(nullptr),header() {}
 
  MessageWrapper::~MessageWrapper() {
