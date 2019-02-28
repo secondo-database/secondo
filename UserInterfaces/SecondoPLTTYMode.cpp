@@ -850,7 +850,7 @@ bool isDirectSecondoCommand(const string& cmd){
 ~catalogChanges~
 
 This funciton checks whether a direct secondo command manipulates 
-the content of a database. In suche cases. the optimizer has to be
+the content of a database. In such cases. the optimizer has to be
 informed about this.
 
 */
@@ -861,11 +861,19 @@ bool catalogChanges(const string& cmd){
    } 
    string first = st.nextToken();
    if(   first=="if"      || stringutils::startsWith(cmd, "{") 
-      || first=="kill"    || first =="delete" || first=="derive"
-      || first=="create"  || first=="let" || stringutils::startsWith(cmd,"(")
+      || first=="kill"    ||  first=="derive"
+      || first=="let" || stringutils::startsWith(cmd,"(")
       || first=="restore"){
      return true;
    }
+   if( first =="create" || first=="delete"){
+     if(!st.hasNextToken()){
+        return false;
+     }
+     string second = st.nextToken();
+     return second!="database";
+   }
+
    return false;
 }
 
@@ -1567,38 +1575,48 @@ bool isSqlCommand(string& cmd){
 bool rewriteRestore(string& cmd){
    stringutils::StringTokenizer st(cmd," \t\n",true);
    if(!st.hasNextToken()) return false;
-   string c = st.nextToken();
-   if(c!="restore"){
+   string first = st.nextToken();
+   if(first!="restore"){
      return false;
    }
-   vector<string> tokens;
-   tokens.push_back(c);
-   while(st.hasNextToken() && tokens.size()<6 ){
-      tokens.push_back(st.nextToken());
-   }  
-   if(tokens.size()==4){ // restore object
-     if(tokens[2]=="from"){
-        cmd = "restore '"+tokens[1]+"' from '"+tokens[3] +"'";
-        return  true;
-     } else {
+   // the restore commands have the following formats
+   // restore a from b
+   // restore database a from b
+   // note that b may contain spaces
+   if(!st.hasNextToken()){
+     return false;
+   }
+   string second = st.nextToken();
+   string database = "";
+   string name ="";
+   if(second == "database"){
+     database = "database ";
+     if(!st.hasNextToken()){
        return false;
      }
+     name = st.nextToken();
+   } else {
+     name = second;
    }
-
-   if(tokens.size()==5){
-     if(tokens[1]=="database" && tokens[3]=="from"){
-        string source = tokens[4];
-        if(!stringutils::startsWith(source,"'")){
-          source = string("'") + source;
-        }
-        if(!stringutils::endsWith(source,"'")){
-          source += "'";
-        }
-        cmd = "restore database '"+tokens[2] + "' from "+ source;
-        return true;
-     }
+   if(!stringutils::isSymbol(name)){ // invalid database or object name
+     return false;
+   } 
+   if(!st.hasNextToken()){
+     return false;
    }
-   return false;
+   if(st.nextToken()!="from"){
+     return false;
+   }
+   if(!st.hasNextToken()){
+     return false;
+   }
+   string filename = st.getRest();
+   stringutils::trim(filename);
+   if(!stringutils::startsWith(filename,"'")){
+      filename = "'" + filename + "'";
+   }
+   cmd = "restore " + database + name + " from " + filename;
+   return true;   
 }
 
 /*
