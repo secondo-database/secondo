@@ -201,7 +201,7 @@ public:
 Returns the name of this primitive used for console outputs.
 
 */
-    virtual std::string getCaption(const bool plural) const = 0;
+    virtual std::string getCaption(const bool plural) const override = 0;
 
 /*
 2.2.2 get tuple size
