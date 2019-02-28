@@ -557,7 +557,8 @@ ARClassify::classify (std::vector<SmiFileId> rasters,
 
 
     // 5.1 Find best epsilon value
-    std::string scanresult[Pointcloud2::RASTER_CLASSIFY_SCANSERIES];
+    std::vector<std::string> scanresult(
+                                Pointcloud2::RASTER_CLASSIFY_SCANSERIES);
     for (size_t i = 0; i < Pointcloud2::RASTER_CLASSIFY_SCANSERIES; i++) {
         //DEBUG
         std::cout<<"Classify: RASTER_CLASSIFY_EPSILON: "
