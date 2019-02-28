@@ -41,7 +41,7 @@ public:
     Nr2aException(const std::string msg);
     virtual ~Nr2aException() throw ();
 
-  virtual const char * what();
+  virtual const char * what() const noexcept;
 
 protected:
   void Init(const char * const msg);
@@ -60,7 +60,7 @@ public:
     Nr2aParserException(const Nr2aException ex, const int line);
     virtual ~Nr2aParserException() throw ();
 
-  virtual const char * what();
+  virtual const char * what()const noexcept;
 
 private:
   void Init(const char * const msg, const int line);

@@ -60,7 +60,7 @@ Nr2aException::Init(const char * const msg)
   text = msg;
 }
 
-/*virtual*/const char *Nr2aException::what()
+/*virtual*/const char *Nr2aException::what() const noexcept
 {
   return text.c_str();
 }
@@ -89,7 +89,7 @@ Nr2aParserException::Nr2aParserException(const string msg,
 
 }
 
-/*virtual*/const char *Nr2aParserException::what()
+/*virtual*/const char *Nr2aParserException::what() const noexcept
 {
   return text.c_str();
 }
