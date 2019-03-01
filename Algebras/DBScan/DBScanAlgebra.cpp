@@ -840,7 +840,7 @@ ListExpr dbscanTFTM(ListExpr args) {
   }
   if (!nl->Equal(nl->Second(fun), nl->Third(fun)) || 
   (!CcReal::checkType(nl->Fourth(fun)) && !CcInt::checkType(nl->Fourth(fun)))) {
-    return listutils::typeError("fun is not of type: T x T -> {int, real} ");
+    return listutils::typeError("fun is not of type: T x T -> {int, real}");
   }
   ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
   ListExpr typeList;
