@@ -20,7 +20,8 @@ struct SortEdge {
    RectInfoIndex_t rectInfoIndex;
    bool isLeft;
 
-   SortEdge(double x_, RectInfoIndex_t rectInfoIndex_, bool isLeft_) :
+   SortEdge(const double x_, const RectInfoIndex_t rectInfoIndex_,
+           const bool isLeft_) :
            x(x_), rectInfoIndex(rectInfoIndex_), isLeft(isLeft_) {
    }
 

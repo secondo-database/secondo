@@ -39,7 +39,7 @@ Merger::Merger(MergedAreaPtr& area1_, MergedAreaPtr& area2_,
 }
 
 
-bool Merger::merge(AppendToOutput* output) {
+bool Merger::merge(const AppendToOutput* output) {
    // outer loop of reportPairs() calls
    while (currentTask == TASK::report && reportType < REPORT_TYPE_COUNT) {
       bool done = false;
@@ -90,6 +90,7 @@ MergedAreaPtr Merger::getResult() const {
 }
 
 void Merger::resetReportIndices() {
+   indexRBegin = 0;
    indexR = 0;
    indexSBegin = 0;
    indexS = 0;
@@ -98,19 +99,19 @@ void Merger::resetReportIndices() {
 bool Merger::reportPairs(const std::vector<JoinEdge>& span,
                          const std::vector<JoinEdge>& left,
                          const std::vector<JoinEdge>& complete,
-                         AppendToOutput* output) {
+                         const AppendToOutput* output) {
+
+   // speed up the (frequent) case that span is empty:
+   if (span.empty())
+      return true;
+
    // inner loop of reportPairs() calls
    while (reportSubType < REPORT_SUB_TYPE_COUNT) {
       bool done = false;
-      // TODO: SubType 0 und 1 zusammen abarbeiten, ebenso SubType 2 und 3!
       if (reportSubType == 0)
-         done = reportPairsSub(span, left, true, output);
+         done = reportPairsSub(span, left, output);
       else if (reportSubType == 1)
-         done = reportPairsSub(left, span, false, output);
-      else if (reportSubType == 2)
-         done = reportPairsSub(span, complete, true, output);
-      else if (reportSubType == 3)
-         done = reportPairsSub(complete, span, false, output);
+         done = reportPairsSub(span, complete, output);
 
       if (!done)
          return false; // outTBlock full, continue at next merge() call
@@ -126,68 +127,82 @@ bool Merger::reportPairs(const std::vector<JoinEdge>& span,
 }
 
 bool Merger::reportPairsSub(const std::vector<JoinEdge>& edgesR,
-                         const std::vector<JoinEdge>& edgesS,
-                         const bool reportEqualYMinValues,
-                         AppendToOutput* output) {
+                            const std::vector<JoinEdge>& edgesS,
+                            const AppendToOutput* output) {
 
    // get some values frequently used in the loop below
-   size_t sizeR = edgesR.size();
-   size_t sizeS = edgesS.size();
+   const size_t sizeR = edgesR.size();
+   const size_t sizeS = edgesS.size();
 
-   while (indexR < sizeR && indexSBegin < sizeS) {
-      // determine the current edgeR and its y range
-      const JoinEdge& edgeR = edgesR[indexR];
-      double yMinR = edgeR.yMin;
-      double yMaxR = edgeR.yMax;
+   while (indexRBegin < sizeR && indexSBegin < sizeS) {
+      // determine the current edgeR/SBegin
+      const JoinEdge& edgeRBegin = edgesR[indexRBegin];
+      const JoinEdge& edgeSBegin = edgesS[indexSBegin];
 
-      // determine the corresponding indexSBegin position. We need to ensure
-      // that edges with the same yMin value are not reported twice;
-      // therefore, for a given pair of vectors edgesR and edgesS,
-      // reportPairsSub() is once called with reportEqualYMinValues == true,
-      // and then called with swapped vectors and reportEqualYMinValues false.
-      if (reportEqualYMinValues) {
-         // compare yMin value using "<" (twice)
-         if (edgesS[indexSBegin].yMin < yMinR) {
-            do {
-               ++indexSBegin;
-            } while (indexSBegin < sizeS && edgesS[indexSBegin].yMin < yMinR);
+      if (edgeRBegin.yMin < edgeSBegin.yMin) {
+         const double yMaxR = edgeRBegin.yMax;
+
+         // find intersections of the y range of edgeRBegin and edges in
+         // edgesS[] (starting from indexSBegin)
+         if (indexS < indexSBegin)
             indexS = indexSBegin;
+         while (indexS < sizeS && edgesS[indexS].yMin <= yMaxR) {
+            // report pair of rectangles (represented by the two edges);
+            // output expects the rectangle from set A first:
+            bool outTBlockFull;
+            if (edgeRBegin.set == SET::A)
+               outTBlockFull = !(*output)(edgeRBegin, edgesS[indexS]);
+            else
+               outTBlockFull = !(*output)(edgesS[indexS], edgeRBegin);
+
+            // increase indexS before a possible "return false", so this pair
+            // will not be reported again
+            ++indexS;
+
+            if (outTBlockFull) {
+               // outTBlock is full. Index positions remain stored in
+               // this Merger instance for the next call (with a new outTBlock)
+               return false;
+            } // otherwise continue reporting
          }
-      } else {
-         // compare yMin values using  "<=" (twice)
-         if (edgesS[indexSBegin].yMin <= yMinR) {
-            do {
-               ++indexSBegin;
-            } while (indexSBegin < sizeS && edgesS[indexSBegin].yMin <= yMinR);
-            indexS = indexSBegin;
+         indexS = indexSBegin;
+
+         // proceed to next edge in edgesR
+         ++indexRBegin;
+
+      } else { // edgesSBegin[indexS].yMin <= edgesRBegin[indexR].yMin
+         const double yMaxS = edgeSBegin.yMax;
+
+         // find intersections of the y range of edgeSBegin and edges in
+         // edgesR[] (starting from indexRBegin)
+         if (indexR < indexRBegin)
+            indexR = indexRBegin;
+         while (indexR < sizeR && edgesR[indexR].yMin <= yMaxS) {
+            // report pair of rectangles (represented by the two edges);
+            // output expects the rectangle from set A first:
+            bool outTBlockFull;
+            if (edgeSBegin.set == SET::A)
+               outTBlockFull = !(*output)(edgeSBegin, edgesR[indexR]);
+            else
+               outTBlockFull = !(*output)(edgesR[indexR], edgeSBegin);
+
+            // increase indexR before a possible "return false", so this pair
+            // will not be reported again
+            ++indexR;
+
+            if (outTBlockFull) {
+               // outTBlock is full. Index positions remain stored in
+               // this Merger instance for the next call (with a new outTBlock)
+               return false;
+            } // otherwise continue reporting
          }
+         indexR = indexRBegin;
+
+         // proceed to next edge in edgesS
+         ++indexSBegin;
       }
       // TODO: binäre Suche verwenden, wenn sizeS sehr groß gegen sizeR ist?
 
-      // find intersections of edges in edgesS[] and the y range of edgeR
-      while (indexS < sizeS && edgesS[indexS].yMin <= yMaxR) {
-         // report pair of rectangles (represented by the two edges);
-         // output expects the rectangle from set A first:
-         bool outTBlockFull;
-         if (edgeR.set == SET::A)
-            outTBlockFull = !(*output)(edgeR, edgesS[indexS]);
-         else
-            outTBlockFull = !(*output)(edgesS[indexS], edgeR);
-
-         // increase indexS before a possible "return false", so this pair
-         // will not be reported again
-         ++indexS;
-
-         if (outTBlockFull) {
-            // outTBlock is full. Index positions remain stored in
-            // this Merger instance for the next call (with a new outTBlock)
-            return false;
-         } // otherwise continue reporting
-      }
-      indexS = indexSBegin;
-
-      // proceed to next edge in edgesR
-      ++indexR;
    }
    // report subtype completed
    return true;
@@ -201,8 +216,8 @@ void Merger::removeCompleteRectangles(
         std::vector<JoinEdge>& leftRight) {
 
    // get some values frequently used in the loops below
-   size_t size1 = left1.size();
-   size_t size2 = right2.size();
+   const size_t size1 = left1.size();
+   const size_t size2 = right2.size();
 
    // initialize indices
    size_t index1 = 0;
@@ -259,8 +274,8 @@ void Merger::merge(
         std::vector<JoinEdge>& dest) {
 
    // get some values frequently used in the loops below
-   size_t size1 = source1.size();
-   size_t size2 = source2.size();
+   const size_t size1 = source1.size();
+   const size_t size2 = source2.size();
 
    // initialize indices
    size_t index1 = startIndex1;
@@ -287,14 +302,14 @@ void Merger::merge(
 }
 
 void Merger::merge(const std::vector<JoinEdge>& source1,
-                          const std::vector<JoinEdge>& source2,
-                          const std::vector<JoinEdge>& source3,
-                          std::vector<JoinEdge>& dest) {
+                   const std::vector<JoinEdge>& source2,
+                   const std::vector<JoinEdge>& source3,
+                   std::vector<JoinEdge>& dest) {
 
    // get some values frequently used in the loops below
-   size_t size1 = source1.size();
-   size_t size2 = source2.size();
-   size_t size3 = source3.size();
+   const size_t size1 = source1.size();
+   const size_t size2 = source2.size();
+   const size_t size3 = source3.size();
 
    // initialize indices
    size_t index1 = 0;

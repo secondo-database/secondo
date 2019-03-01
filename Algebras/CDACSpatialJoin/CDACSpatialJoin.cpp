@@ -105,7 +105,7 @@ ListExpr CDACSpatialJoin::typeMapping(ListExpr args) {
 
    constexpr unsigned STREAM_COUNT = 2;
 
-   auto argCount = static_cast<unsigned>(nl->ListLength(args));
+   const auto argCount = static_cast<unsigned>(nl->ListLength(args));
    if (argCount < STREAM_COUNT || argCount > STREAM_COUNT + STREAM_COUNT)
       return listutils::typeError("Two, three or four arguments expected.");
 
@@ -123,7 +123,7 @@ ListExpr CDACSpatialJoin::typeMapping(ListExpr args) {
    // get information on the two input streams
    for (unsigned i = 0; i < STREAM_COUNT; ++i) {
       // first and second arguments must be a streams
-      std::string argPos1or2 = (i == 0) ? "first" : "second";
+      const std::string argPos1or2 = (i == 0) ? "first" : "second";
       stream[i] = (i == 0) ? nl->First(args) : nl->Second(args);
       if (!listutils::isStream(stream[i])) {
          return listutils::typeError("Error in " + argPos1or2 + " argument: "
@@ -149,7 +149,7 @@ ListExpr CDACSpatialJoin::typeMapping(ListExpr args) {
       if (STREAM_COUNT + i < argCount) {
          // extract join attribute names and indices
          // third and fourth argument must be an attribute name
-         std::string argPos3or4 = (i == 0) ? "third" : "fourth";
+         const std::string argPos3or4 = (i == 0) ? "third" : "fourth";
          ListExpr attrNameLE = (i == 0) ? nl->Third(args) : nl->Fourth(args);
          if (!listutils::isSymbol(attrNameLE)) {
             return listutils::typeError("Error in " + argPos3or4 +
@@ -162,7 +162,7 @@ ListExpr CDACSpatialJoin::typeMapping(ListExpr args) {
          }
 
          // join attributes must be a kind of SPATIALATTRARRAY2D / ...3D
-         TBlockColInfo& col = tBlockInfo[i].columnInfos[attrIndex[i]];
+         const TBlockColInfo& col = tBlockInfo[i].columnInfos[attrIndex[i]];
          if (listutils::isKind(col.type, Kind::SPATIALATTRARRAY2D())) {
             dim[i] = 2;
          } else if (listutils::isKind(col.type, Kind::SPATIALATTRARRAY3D())) {
@@ -285,13 +285,13 @@ int CDACSpatialJoin::valueMapping(
          InputStream* input[2];
          unsigned argIndex = 4;
          for (int i = 0; i < 2; ++i) {
-            auto attrIndex = static_cast<unsigned>(
+            const auto attrIndex = static_cast<unsigned>(
                     (static_cast<CcInt*>(args[argIndex++].addr))->GetValue());
-            auto dim = static_cast<unsigned>(
+            const auto dim = static_cast<unsigned>(
                     (static_cast<CcInt*>(args[argIndex++].addr))->GetValue());
-            auto isTBlockStream =
+            const auto isTBlockStream =
                     (static_cast<CcBool*>(args[argIndex++].addr))->GetValue();
-            auto tBlockColumns = static_cast<ListExpr>(
+            const auto tBlockColumns = static_cast<ListExpr>(
                     (static_cast<CcInt*>(args[argIndex++].addr))->GetValue());
             if (isTBlockStream) {
                // input is stream of tuple blocks
@@ -395,12 +395,12 @@ void LocalInfo::requestInput() {
 }
 
 size_t LocalInfo::getUsedMem() {
-   size_t tupleSum = input1->getTupleCount() + input2->getTupleCount();
+   const size_t tupleSum = input1->getTupleCount() + input2->getTupleCount();
 
    // first, we estimate the memory required by the JoinState constructor
    // (of which the SortEdge and RectangleInfo part will be released on
    // completion of the constructor):
-   size_t joinStateConstruction = tupleSum * (2 * sizeof(SortEdge) +
+   const size_t joinStateConstruction = tupleSum * (2 * sizeof(SortEdge) +
            sizeof(RectangleInfo) + 2 * sizeof(JoinEdge));
 
    // during JoinState execution, we must consider both JoinState::joinEdges
@@ -412,7 +412,7 @@ size_t LocalInfo::getUsedMem() {
    // extreme cases (where all rectangles are completed only at the last
    // merge step), it seems adequate to assume 1 * sizeof(JoinEdge) for all
    // mergedAreas at a given time:
-   size_t joinStateExecution = tupleSum * ((2 + 1) * sizeof(JoinEdge));
+   const size_t joinStateExecution = tupleSum * ((2 + 1) * sizeof(JoinEdge));
 
    // since JoinState construction and execution take place sequentially,
    // the maximum (rather than the sum) can be used:

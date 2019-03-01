@@ -408,7 +408,7 @@ CreateRectanglesLocalInfo<dim>::CreateRectanglesLocalInfo(
       min[d] = CREATE_RECTANGLES_RANGE_MIN;
       max[d] = CREATE_RECTANGLES_RANGE_MAX;
    }
-   Rectangle<dim> frame = Rectangle<dim>(true, min, max);
+   const Rectangle<dim> frame = Rectangle<dim>(true, min, max);
    CreateRectanglesElem<dim> firstElem { frame, shrinkMin, shrinkMax };
    elemStack.push(firstElem);
 }

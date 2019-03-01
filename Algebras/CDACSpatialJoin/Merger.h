@@ -37,7 +37,7 @@ class Merger {
 
    /* the number of different reportPairs() calls in the inner loop
     * (reportSubType) */
-   static constexpr unsigned REPORT_SUB_TYPE_COUNT = 4;
+   static constexpr unsigned REPORT_SUB_TYPE_COUNT = 2;
 
    /* a rough sequence of tasks to be performed by the Merger */
    enum TASK { initialize, report, postProcess, done };
@@ -49,6 +49,8 @@ class Merger {
    /* the second area to be merged (right neighbor of area1) */
    MergedAreaPtr area2;
 
+   /* true if this is the last merge operation called by a JoinState instance;
+    * the post-processing can then be omitted */
    bool isLastMerge;
 
    /* the result area to be calculated by the Merger */
@@ -96,6 +98,9 @@ class Merger {
    /* the subtype of reportPairs() call currently performed in the inner loop */
    unsigned reportSubType = 0;
 
+   /* the current start index of vector edgesR */
+   size_t indexRBegin = 0;
+
    /* the current index of vector edgesR */
    size_t indexR = 0;
 
@@ -120,7 +125,7 @@ public:
     * later (by calling this function again with a new outTBlock),
     * or true if merge was completed and the result can be obtained by
     * calling getResult() */
-   bool merge(AppendToOutput* output);
+   bool merge(const AppendToOutput* output);
 
    /* returns the resulting MergedArea. Must only be called after merge() was
     * completed (i.e. merge() returned true) */
@@ -154,7 +159,7 @@ private:
    bool reportPairs(const std::vector<JoinEdge>& span,
                     const std::vector<JoinEdge>& left,
                     const std::vector<JoinEdge>& complete,
-                    AppendToOutput* output);
+                    const AppendToOutput* output);
 
    /* reports rectangle intersections between
     * a) an edge in the "edgesR" vector (from one area and set), and
@@ -162,21 +167,20 @@ private:
     * returns true if completed, or false if outTBlock is full */
    bool reportPairsSub(const std::vector<JoinEdge>& edgesR,
                        const std::vector<JoinEdge>& edgesS,
-                       bool reportEqualYMinValues,
-                       AppendToOutput* output);
+                       const AppendToOutput* output);
 
    /* merges the given source vectors "source1" and "source2" (starting from
     * the given indices) into the destination vector "dest", using the sort
     * order determined by the JoinEdge operator<. Source vectors must already
     * be sorted in this order. */
-   void merge(const std::vector<JoinEdge>& source1, size_t startIndex1,
+   static void merge(const std::vector<JoinEdge>& source1, size_t startIndex1,
            const std::vector<JoinEdge>& source2, size_t startIndex2,
            std::vector<JoinEdge>& dest);
 
    /* merges the given source vectors "source1/2/3" into the destination vector
     * "dest", using the sort order determined by the JoinEdge operator<.
     * Source vectors must already be sorted in this order. */
-   void merge(const std::vector<JoinEdge>& source1,
+   static void merge(const std::vector<JoinEdge>& source1,
               const std::vector<JoinEdge>& source2,
               const std::vector<JoinEdge>& source3,
               std::vector<JoinEdge>& dest);

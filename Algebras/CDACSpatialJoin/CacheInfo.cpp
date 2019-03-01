@@ -58,7 +58,7 @@ std::string CacheInfo::readString(const string& path, const string file) {
 unsigned CacheInfo::readUnsigned(const string& path, const string file,
         int base /* = 10 */) {
    try {
-      string line = readString(path, file);
+      const string line = readString(path, file);
       size_t pos;
       return static_cast<unsigned>(stoi(line, &pos, base));
    } catch(invalid_argument& ex) {
@@ -68,7 +68,7 @@ unsigned CacheInfo::readUnsigned(const string& path, const string file,
 
 unsigned CacheInfo::readSizeInBytes(const string& path, const string file) {
    try {
-      string line = readString(path, file);
+      const string line = readString(path, file);
       size_t pos;
       auto value = static_cast<unsigned>(stoi(line, &pos));
       if (pos < line.size()) {
@@ -84,7 +84,7 @@ unsigned CacheInfo::readSizeInBytes(const string& path, const string file) {
 }
 
 CacheType CacheInfo::readCacheType(const string& path, const string file) {
-   string type = readString(path, file);
+   const string type = readString(path, file);
    if (boost::iequals(type, "Data"))
       return CacheType::Data;
    else if (boost::iequals(type, "Instruction"))
@@ -143,7 +143,7 @@ CacheInfos& CacheInfos::getOnlyInstance() {
 
 const CacheInfoPtr CacheInfos::getCacheInfo(const CacheType type,
         const unsigned level) {
-   CacheInfos& cacheInfos  = getOnlyInstance();
+   const CacheInfos& cacheInfos = getOnlyInstance();
    for (const CacheInfoPtr& info : cacheInfos.infos) {
       if (info->level == level &&
               (info->type == type || info->type == CacheType::Unified))
@@ -154,7 +154,7 @@ const CacheInfoPtr CacheInfos::getCacheInfo(const CacheType type,
 
 void CacheInfos::report(std::ostream& out) {
    out << "Caches available:" << endl;
-   CacheInfos& cacheInfos  = getOnlyInstance();
+   const CacheInfos& cacheInfos  = getOnlyInstance();
    for (const CacheInfoPtr& info : cacheInfos.infos)
       cacheInfos.report(info, out);
 }
