@@ -4228,6 +4228,14 @@ This operator returns a copy of the mpoint's restriction to a given region
     void AtRegion(const Region *reg, MPoint &result) const;
 
 /*
+3.10.5.11 ~DistanceStartEnd~ function
+
+Invoked by operator ~hybriddistance~ for a simplified distance computation.
+
+*/
+    double DistanceStartEnd(const MPoint& p, const Geoid* geoid = 0) const;
+
+/*
 3.10.5.11 ~frechetDistance~ operator (TemporalLiftedAlgebra)
 
 Implements the discrete Frechet distance between two moving points and uses the

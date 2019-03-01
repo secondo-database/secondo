@@ -5219,6 +5219,36 @@ void MPoint::SquaredDistance( const MPoint& p, MReal& result,
   result.EndBulkLoad();
 }
 
+double MPoint::DistanceStartEnd(const MPoint& p, const Geoid* geoid) const {
+  if (!IsDefined() && !p.IsDefined()) {
+    return 0.0;
+  }
+  if (!IsDefined() || !p.IsDefined()) {
+    return std::numeric_limits<double>::max();
+  }
+  if (geoid && !geoid->IsDefined()) {
+    return -1.0;
+  }
+  if (IsEmpty() && p.IsEmpty()) {
+    return 0.0;
+  }
+  if (IsEmpty() || p.IsEmpty()) {
+    return std::numeric_limits<double>::max();
+  }
+  UPoint u1(true), u2(true);
+  Get(0, u1);
+  p.Get(0, u2);
+  double startdist = u1.p0.Distance(u2.p0, geoid);
+  if (GetNoComponents() > 1) {
+    Get(GetNoComponents() - 1, u1);
+  }
+  if (p.GetNoComponents() > 1) {
+    p.Get(p.GetNoComponents() - 1, u2);
+  }
+  double enddist = u1.p1.Distance(u2.p1, geoid);
+  return (startdist + enddist) / 2;
+}
+
 void MPoint::getPointSequence(std::vector<Point>& result) const {
   result.clear();
   if (!IsDefined()) {
