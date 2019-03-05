@@ -78,7 +78,6 @@ namespace pregel {
   for (auto worker = workers(); worker != nullptr; worker = workers()) {
    try {
     auto result = Commander::remoteQuery(worker->connection, query, mapper);
-    std::cout << "result of command: " << *result;
     delete result;
    } catch (RemoteExecutionException &e) {
     BOOST_LOG_TRIVIAL(error) << "Command failed: " << query.c_str()

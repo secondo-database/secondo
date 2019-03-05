@@ -295,8 +295,6 @@ namespace pregel {
     const int &slot = remote->slot;
     const std::string &host = remote->endpoint.host;
     const int &port = remote->messageServerPort;
-
-    std::cout << "Attempting to connect to " << host << ":" << port << "\n";
     bool successful = broker.startClient(slot, RemoteEndpoint(host, port));
     if (!successful) {
      BOOST_LOG_TRIVIAL(error)
