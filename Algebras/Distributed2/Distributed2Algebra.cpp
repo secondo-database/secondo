@@ -26,7 +26,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include "./Timeout.h"
-
 #include "ConnectionInfo.h"
 #include "Dist2Helper.h"
 #include "Distributed2Algebra.h"
@@ -10876,6 +10875,7 @@ class shareInfo: public successListener{
    }
 
     void jobDone(int id, bool success){
+       boost::lock_guard<boost::mutex> guard(cntmtx);
        if(success){
           this->success++;
        } else {
@@ -10901,6 +10901,7 @@ class shareInfo: public successListener{
     int failed;
     int success;
     bool fromCatalog;
+    boost::mutex cntmtx; 
 
     void shareArray() {
        string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
@@ -10995,7 +10996,7 @@ int shareVMT(Word* args, Word& result, int message,
     array = (A*) args[2+q].addr;
   } else {
     // workers given in relation
-
+    // create a temporal array from it
     int hostPos = ((CcInt*) args[3+q].addr)->GetValue();
     int portPos = ((CcInt*) args[4+q].addr)->GetValue();
     int confPos = ((CcInt*) args[5+q].addr)->GetValue();
@@ -11031,7 +11032,6 @@ int shareVMT(Word* args, Word& result, int message,
      res->SetDefined(false);
      return 0;
   }
-  
   if(fromCat){
     shareInfo<A> info(objName->GetValue(), overwrite->GetValue(), array, res);
     info.share();
@@ -22600,6 +22600,7 @@ Algebra*
 
    distributed2::algInstance = new distributed2::Distributed2Algebra();
    distributed2::showCommands = false;   
+
    return distributed2::algInstance;
 }
 
