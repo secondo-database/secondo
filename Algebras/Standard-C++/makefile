@@ -29,6 +29,7 @@ include ../../makefile.env
 CURRENT_ALGEBRA := StandardAlgebra
 ALGEBRA_DEPENDENCIES := StreamAlgebra
 ALGEBRA_DEPENDENCIES += RelationAlgebra
+ALGEBRA_DEPENDENCIES += TupleIdentifierAlgebra
 
 
 # expand compile flags if necessary
