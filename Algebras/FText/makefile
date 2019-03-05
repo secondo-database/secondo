@@ -30,6 +30,9 @@ CURRENT_ALGEBRA := FTextAlgebra
 ALGEBRA_DEPENDENCIES := StandardAlgebra
 ALGEBRA_DEPENDENCIES += RelationAlgebra
 ALGEBRA_DEPENDENCIES += FunctionAlgebra
+ALGEBRA_DEPENDENCIES += StreamAlgebra
+ALGEBRA_DEPENDENCIES += TupleIdentifierAlgebra
+
 
 
 # include global definitions
