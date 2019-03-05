@@ -152,7 +152,7 @@ extern AlgebraManager* am;
 #include <boost/thread.hpp>
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/mutex.hpp>
-#include "Algebras/Distributed2/semaphore.h"
+#include "semaphore.h"
 #endif
 
 using namespace std;
