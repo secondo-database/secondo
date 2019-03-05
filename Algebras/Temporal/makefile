@@ -26,13 +26,30 @@
 # inlcude global definitions
 include ../../makefile.env
 
+CURRENT_ALGEBRA := TemporalAlgebra
+ALGEBRA_DEPENDENCIES := StandardAlgebra
+ALGEBRA_DEPENDENCIES += RelationAlgebra
+ALGEBRA_DEPENDENCIES += SpatialAlgebra
+ALGEBRA_DEPENDENCIES += MovingRegionAlgebra
+ALGEBRA_DEPENDENCIES += RectangleAlgebra
+ALGEBRA_DEPENDENCIES += StreamAlgebra
+ALGEBRA_DEPENDENCIES += TemporalUnitAlgebra
+ALGEBRA_DEPENDENCIES += TupleIdentifierAlgebra
+
+
+
+
 # expand compile flags if necessary
 #CCFLAGS += -Werror 
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
-all: $(OBJECTS) $(LIBOBJ)
+all: check_dependencies $(OBJECTS) $(LIBOBJ)
+
+check_dependencies:
+	$(check-algebra-dependencies)
+
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
