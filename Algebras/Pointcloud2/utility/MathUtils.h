@@ -80,7 +80,7 @@ public:
     }
 
     void print() const {
-        for (int i = 0; i < _mat.size(); ++i) {
+        for (size_t i = 0; i < _mat.size(); ++i) {
             for (int j = 0; j < colCount; ++j)
                 std::cout << _mat[i][j] << " ";
             std::cout << std::endl;

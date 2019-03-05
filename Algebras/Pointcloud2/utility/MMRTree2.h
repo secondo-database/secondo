@@ -573,14 +573,14 @@ the result will be false. Not usable for "object nodes".
 
 */
     bool append(Node* entry){
-        assert(count <= max);
+        assert((unsigned)count <= max);
         sons[count] = entry;
         if(count == 0)
             this->box = entry->box;
         else
             this->box = this->box.Union(entry->box);
         ++count;
-        return count <= max;
+        return (unsigned) count <= max;
     }
 
 /*
@@ -627,8 +627,8 @@ Returns the indexes for the seeds using quadratic split.
     std::pair<unsigned int, unsigned int> pickSeeds() const{
         std::pair<unsigned int, unsigned int> res;
         double d = 0;
-        for (unsigned int i = 0; i < count; ++i) {
-            for (unsigned int j = i + 1; j < count; ++j) {
+        for (int i = 0; i < count; ++i) {
+            for (int j = i + 1; j < count; ++j) {
                 double d2 = sons[i]->box.UnionArea(sons[j]->box) -
                         (sons[i]->box.Area() + sons[j]->box.Area());
                 if (d2 > d) {
@@ -695,11 +695,11 @@ If there is an underflow, the result will be false.
 
 */
     bool remove(unsigned int index) {
-        for (unsigned int i = index; i < count - 1; i++)
+        for (int i = index; i < count - 1; i++)
             sons[i] = sons[i + 1];
         sons[count - 1] = 0;
         --count;
-        return count >= (max / 2);
+        return (int)count >= (int)(max / 2);
     }
 
 /*
@@ -747,11 +747,13 @@ Implementation of the quadratic split algorithm.
         this->remove(std::min(index1, index2));
         unsigned min = max / 2;
         while (count > 0) {
-            if (count + node1->count == min) { // all entries to node1
+            if ((unsigned) (count + node1->count) == min) { 
+                // all entries to node1
                 for (int i = 0; i < count; ++i)
                     node1->append(sons[i]);
                 count = 0;
-            } else if (count + node2->count == min) { // all entries to node2
+            } else if ( (unsigned)(count + node2->count) == min) { 
+                // all entries to node2
                 for (int i = 0; i < count; ++i)
                     node2->append(sons[i]);
                 count = 0;

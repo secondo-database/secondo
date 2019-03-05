@@ -482,7 +482,7 @@ void DbScan<dim>::evaluateRun(std::vector<PointBase<dim>>& shapes,
         DbScanPoint<dim>& point = _points.get()->at(readIndex);
         // if the point belongs to noise, ignore it
         int clusterId = point._clusterId;
-        assert (clusterId <= clusterCount);
+        assert ((size_t)clusterId <= clusterCount);
         if (clusterId == SCAN_NOISE)
             continue;
 
@@ -493,7 +493,7 @@ void DbScan<dim>::evaluateRun(std::vector<PointBase<dim>>& shapes,
 
         // calculate the center of the clusters that will be used or refined
         PointBase<dim>& center = centers[centerInd];
-        for (int i = 0; i < dim; ++i)
+        for (unsigned i = 0; i < dim; ++i)
             center._coords[i] += point._coords[i];
 
         // if the point's cluster needs refinement, copy it and reset the
@@ -523,13 +523,13 @@ void DbScan<dim>::evaluateRun(std::vector<PointBase<dim>>& shapes,
         }
         PointBase<dim>& center = centers[centerInd];
         size_t clusterSize = _clusters[clusterId]._size;
-        for (int i = 0; i < dim; ++i)
+        for (unsigned i = 0; i < dim; ++i)
             center._coords[i] /= static_cast<double>(clusterSize);
 
         // since this center will either be added to shapes or is guaranteed
         // to be considered in later iterations, remove possible entries
         // from the refineClusters vector
-        for (int i = 0; i < refineClusters.size(); ++i) {
+        for (size_t i = 0; i < refineClusters.size(); ++i) {
             RefineClusterInfo<dim>& cluster = refineClusters[i];
             if (center.isInsideBbox(cluster.bbox)) {
                 // remove this entry by replacing it with the last entry
@@ -637,9 +637,9 @@ void DbScan<dim>::constructMMRTree(
 // see stackoverflow.com/questions/8752837/
 // undefined-reference-to-template-class-constructor
 namespace pointcloud2 {
-template class DbScan<3>;
-template class DbScan<4>;
-template class DbScan<5>;
-template class DbScan<6>;
+template class DbScan<3u>;
+template class DbScan<4u>;
+template class DbScan<5u>;
+template class DbScan<6u>;
 }
 

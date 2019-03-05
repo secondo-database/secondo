@@ -1774,7 +1774,7 @@ op_analyzeRaster::recalcOverlapping(std::vector<RasterPointSave> &rasterMem,
         arrayCount += overlapRXMin + 1;
       }
     }
-    if (rastersInX != 1 && !(i % rastersInX) == rastersInX- 1){
+    if (rastersInX != 1 && (i % rastersInX) !=  rastersInX- 1){
       rasterOverlapOverEdge.resize(rasterOverlapOverEdge.size()+1);
       for (size_t arrayCount = (overlapRYMax * _pointInMem) + overlapRXMax;
           arrayCount < _pointInMem2; arrayCount++){

@@ -119,7 +119,7 @@ void DbScanPoint<dim>::copyCoordsFrom(const DbScanPoint<dim>& source) {
 template<unsigned dim>
 std::string DbScanPoint<dim>::getStringForBBox(const Rectangle<dim>& bbox) {
     std::stringstream sb;
-    for (int d = 0; d < dim; ++d) {
+    for (unsigned d = 0; d < dim; ++d) {
         if (d > 0)
             sb << ", ";
         sb << bbox.MinD(d) << " - " << bbox.MaxD(d);
