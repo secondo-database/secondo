@@ -208,12 +208,4 @@ namespace raster2
   void swap(sstring& a, sstring& b);
 }
 
-namespace std {
-    template<>
-    inline void swap<raster2::sstring>(raster2::sstring& a, raster2::sstring&b)
-    {
-        raster2::swap(a, b);
-    }
-}
-
 #endif // RASTER2_SSTRING_H

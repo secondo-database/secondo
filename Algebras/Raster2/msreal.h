@@ -79,13 +79,4 @@ namespace raster2
     };
 }
 
-namespace std
-{
-    template<> inline void swap<raster2::msreal>
-        (raster2::msreal& a, raster2::msreal& b)
-    {
-        raster2::swap(a, b);
-    }
-}
-
 #endif

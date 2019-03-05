@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef RASTER2_MSBOOL_H_
 #define RASTER2_MSBOOL_H_
 
+#include <utility>
 #include "mstype.h"
 #include "sbool.h"
 
@@ -61,14 +62,4 @@ namespace raster2 {
     };
 
 }
-
-namespace std
-{
-    template<> inline void swap<raster2::msbool>
-        (raster2::msbool& a, raster2::msbool& b)
-    {
-        raster2::swap(a, b);
-    }
-}
-
 #endif /* SBOOL_H_ */

@@ -23,7 +23,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef RASTER2_ATPERIODS_H
 #define RASTER2_ATPERIODS_H
 
+#include <utility>
+
 #include <NList.h>
+
+
 
 #include "../msbool.h"
 #include "../msreal.h"
@@ -62,7 +66,7 @@ namespace raster2 {
           
         if(patperiodsResult != 0)
         {
-            std::swap(*pResult, *patperiodsResult);
+            swap(*pResult, *patperiodsResult);
             delete patperiodsResult;
         }
       }

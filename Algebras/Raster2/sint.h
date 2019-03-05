@@ -23,6 +23,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef RASTER2_SINT_H
 #define RASTER2_SINT_H
 
+#include <utility>
+
 #include "stype.h"
 
 namespace raster2
@@ -57,13 +59,5 @@ namespace raster2
   };
 }
 
-namespace std
-{
-  template<> inline void swap<raster2::sint>
-    (raster2::sint& a, raster2::sint& b)
-  {
-      raster2::swap(a, b);
-  }
-}
 
 #endif

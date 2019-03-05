@@ -59,13 +59,4 @@ namespace raster2
   typedef stype<char, sbool_helper> sbool;
 }
 
-namespace std
-{
-  template<> inline void swap<raster2::sbool>
-    (raster2::sbool& a, raster2::sbool& b)
-  {
-      raster2::swap(a, b);
-  }
-}
-
 #endif /* SBOOL_H_ */

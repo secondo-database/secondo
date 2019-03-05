@@ -223,13 +223,5 @@ namespace raster2
   void swap(msstring&, msstring&);
 }
 
-namespace std {
-    template<>
-    inline void swap<raster2::msstring>
-      (raster2::msstring& a, raster2::msstring&b)
-    {
-        raster2::swap(a, b);
-    }
-}
 
 #endif // RASTER2_MSSTRING_H

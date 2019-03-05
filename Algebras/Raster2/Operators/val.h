@@ -65,7 +65,7 @@ namespace raster2
           
         if(pvalResult != 0)
         {
-          std::swap(*pResult, *pvalResult);
+          swap(*pResult, *pvalResult);
           pvalResult->destroy();
           delete pvalResult;
         }

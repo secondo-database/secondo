@@ -67,7 +67,7 @@ namespace raster2
           
         if(patrangeResult != 0)
         {
-          std::swap(*pResult, *patrangeResult);
+          swap(*pResult, *patrangeResult);
           patrangeResult->destroy();
           delete patrangeResult;
         }
@@ -129,7 +129,7 @@ namespace raster2
 
       if(msout != 0)
       {
-         std::swap(*res, *msout);
+         swap(*res, *msout);
          delete msout;
       }
 

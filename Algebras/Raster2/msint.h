@@ -60,13 +60,4 @@ namespace raster2
     };
 }
 
-namespace std
-{
-    template<> inline void swap<raster2::msint>
-        (raster2::msint& a, raster2::msint& b)
-    {
-        raster2::swap(a, b);
-    }
-}
-
 #endif
