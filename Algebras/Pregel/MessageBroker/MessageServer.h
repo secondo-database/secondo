@@ -69,6 +69,10 @@ namespace pregel {
 
   DoubleQueue messageQueue;
 
+  boost::mutex monitormtx;
+  boost::condition_variable monitorCond;
+
+
  public:
   explicit MessageServer(std::shared_ptr<Socket> socket, 
                          executable initDoneCallback);

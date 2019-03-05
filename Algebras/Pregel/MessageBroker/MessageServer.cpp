@@ -161,9 +161,9 @@ namespace pregel {
  }
 
  void MessageServer::handleEmptyMessage() {
-  if (monitor == nullptr) {
-   BOOST_LOG_TRIVIAL(error) << "Received EMPTY message outside of a round";
-   return;
+  boost::unique_lock<boost::mutex> lock(monitormtx);
+  while(monitor==nullptr){
+    monitorCond.wait(lock);
   }
   {
    boost::lock_guard<boost::mutex> lock(stateLock);
@@ -178,9 +178,9 @@ namespace pregel {
  }
 
  void MessageServer::handleFinishedMessage() {
-  if (monitor == nullptr) {
-   BOOST_LOG_TRIVIAL(error) << "Received FINISH message outside of a round";
-   return;
+  boost::unique_lock<boost::mutex> lock(monitormtx);
+  while(monitor==nullptr){
+    monitorCond.wait(lock);
   }
   {
    boost::lock_guard<boost::mutex> lock(stateLock);
@@ -257,5 +257,6 @@ namespace pregel {
 
  void MessageServer::setMonitor(std::shared_ptr<Monitor> monitor) {
   this->monitor = monitor;
+  monitorCond.notify_all();
  }
 }
