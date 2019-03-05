@@ -1325,19 +1325,12 @@ bool IsRootObject( OpTree tree )
 
 /*
 
-This function is used to test if the query processor tree is composed by
-only an object which is certainly the root node and if this node is a
-constant value.
-
-*Precondition*: ~isRootObject(tree) == true~.
+This function checks whether an operator node represents 
+a constant object.
 
 */
 bool IsConstantObject( OpTree tree )
 {
-  if( IsRootObject( tree ) != true ) {
-    throw qp_error("The given tree is not a root object");
-  }
-
   return( tree->u.dobj.isConstant );
 }
 /**************************************************************************
