@@ -95,7 +95,7 @@ class AttrDelete
 {
   public:
     AttrDelete():
-    refs( 1 )
+    refs( 1 ),delInfo(ONE)
     // Note: variable isDefined belongs to the state of
     // Attribute objects thus the default constructor should
     // not change the value here since the default persistency
