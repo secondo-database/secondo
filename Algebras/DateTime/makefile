@@ -26,6 +26,11 @@
 # inlcude global definitions
 include ../../makefile.env
 
+CURRENT_ALGEBRA := DateTimeAlgebra
+ALGEBRA_DEPENDENCIES := StandardAlgebra
+ALGEBRA_DEPENDENCIES += FTextAlgebra
+
+
 # expand compile flags if necessary
 CCFLAGS += -Werror 
 
@@ -34,7 +39,11 @@ CCFLAGS += -Werror
 
 OBJECTS += dateconvscan.o dateconvparser.o
 .PHONY: all
-all:  $(OBJECTS) $(LIBOBJ)
+all:  check_dependencies  $(OBJECTS) $(LIBOBJ)
+
+check_dependencies:
+	$(check-algebra-dependencies)
+
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
