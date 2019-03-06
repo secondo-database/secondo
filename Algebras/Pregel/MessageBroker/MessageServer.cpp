@@ -148,11 +148,12 @@ namespace pregel {
   }
 
   const unsigned long bodySize = header.length;
-  char bodyBuffer[bodySize];
+  char* bodyBuffer = new char[bodySize];
   socket->Read((void *) bodyBuffer,
                bodySize); //blocking, but awaiting message body already
 
   auto message = MessageWrapper::deserialize(bodyBuffer, header);
+  delete[] bodyBuffer;
   addMessage(message);
  }
 
@@ -196,9 +197,11 @@ namespace pregel {
 
  void MessageServer::handleInitDoneMessage() {
   if (monitor != nullptr) {
-   // do not call finish here, initDone comes from master that is not
-   // counted
-   monitor = nullptr;
+    boost::lock_guard<boost::mutex> lock(stateLock);
+    this->state = WAITING;
+    auto monitorLocal = monitor;
+    monitor = nullptr;
+    monitorLocal->finish();
   }
   initDoneCallback();
  }
