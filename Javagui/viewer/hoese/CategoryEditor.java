@@ -646,7 +646,7 @@ public class CategoryEditor extends javax.swing.JDialog {
     SizeT.setText(Double.toString(cat.getPointSize(null,0)));
     //	  BasicStroke bs=Category.getLineStroke(cat.getLineStyle());
     WidthT.setText(Float.toString(cat.getLineWidth(null,0)));
-    ColorB.setBackground(cat.getLineColor(null,0));
+    ColorB.setBackground(cat.getLineColor(null,0,false));
     TypeCB.setSelectedIndex(cat.getLineStyle());
     int cap = cat.getCapStyle();
     int join = cat.getJoinStyle();

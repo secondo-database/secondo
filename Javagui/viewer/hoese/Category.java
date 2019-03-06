@@ -201,7 +201,23 @@ public class Category
    * @return The outline-color of the cat.
       * @see <a href="Categorysrc.html#">Source</a>
    */
-  public Color getLineColor (RenderAttribute renderAttribute, double time) {
+  public Color getLineColor (RenderAttribute renderAttribute, double time, boolean isLine) {
+    if(renderAttribute != null 
+       && attrRenderMethod==RENDER_RANDOM_COLOR
+       && isLine){
+           double value = renderAttribute.isDefined(time)?renderAttribute.getRenderValue(time):minValue;
+           Double d = new Double(value);
+           Color c = colorMap.get(d);
+           if(c!=null){
+              return c;
+           }
+           
+           c = new Color(Math.abs(random.nextInt()%255),
+                         Math.abs(random.nextInt()%255),
+                         Math.abs(random.nextInt()%255));
+           colorMap.put(d,c);
+           return c;
+    }
     if(renderAttribute==null || attrRenderMethod!=RENDER_LINE_COLOR){
         return  LineColor;
     } else {
@@ -771,7 +787,7 @@ public class Category
     Color c1, c2;
     String Name = "";
     ListExpr l = ListExpr.oneElemList(ListExpr.stringAtom(cat.getName()));
-    ListExpr le = ListExpr.append(l, color2list(cat.getLineColor(null,0)));
+    ListExpr le = ListExpr.append(l, color2list(cat.getLineColor(null,0, true)));
     le = ListExpr.append(le, ListExpr.intAtom(cat.getLineStyle()));
     le = ListExpr.append(le, ListExpr.realAtom(cat.getLineWidth(null,0)));
     le = ListExpr.append(le, ListExpr.boolAtom(cat.getPointasRect()));

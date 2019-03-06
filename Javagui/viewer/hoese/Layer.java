@@ -318,9 +318,9 @@ public class Layer extends JComponent {
            if(isColorRendering && dg.isLineType(i)){
                  cat.setRenderMethod(Category.RENDER_LINE_COLOR);
            }
-           Color aktLineColor = cat.getLineColor(dg.getRenderAttribute(),time);
+           Color aktLineColor = cat.getLineColor(dg.getRenderAttribute(),time, dg.isLineType(i));
            if (dg.getSelected()){
-                 aktLineColor = new Color(Color.white.getRGB() ^ cat.getLineColor(dg.getRenderAttribute(),time).getRGB());
+                 aktLineColor = new Color(Color.white.getRGB() ^ cat.getLineColor(dg.getRenderAttribute(),time, dg.isLineType(i)).getRGB());
            }
            if(isColorRendering){
                cat.setRenderMethod(Category.RENDER_COLOR);
@@ -402,7 +402,7 @@ public class Layer extends JComponent {
     }
     if(C==null){
         Category cat = dg.getCategory();
-        g2.setPaint(cat.getLineColor(null,0));
+        g2.setPaint(cat.getLineColor(null,0, false));
     } else {
         g2.setPaint(C);
     }
