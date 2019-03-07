@@ -1,0 +1,117 @@
+/*
+Create a graph suitable for Pregel computations.
+
+1 Connected Components
+
+*/
+
+
+
+
+query memclear()
+
+let Nodes = NodesPersistent feed mconsume;
+let Forward = EdgesForward feed createmgraph3[Source, Target, Cost, Size];
+let Backward = EdgesBackward feed createmgraph3[Source, Target, Cost, Size];
+
+
+query setupPregel(Workers);
+
+query remotePregelCommand('let Nodes = NodesPersistent feed mconsume;');
+
+query remotePregelCommand('let Forward = EdgesForward feed createmgraph3[Source, Target, Cost, Size]');
+
+query remotePregelCommand('let Backward = EdgesBackward feed createmgraph3[Source, Target, Cost, Size]');
+
+query setPregelFunction(Compute, NodePartition);
+
+
+
+
+# query remotePregelCommand('let NActive = Nodes mfeed filter[.Active] count')
+query remotePregelCommand('update NActive := Nodes mfeed filter[.Active] count')
+
+while createSDArray("NActive", Workers) getValue tie[. + ..] > 0 do
+{
+query NodesPersistent feed 
+  projectextend[; NodeId: .Id, NodePartition: .Partition]
+  extend[Message: "checkSingle", Value: 0]
+  initPregelMessages
+|
+query startPregel(1)
+|
+query startPregel(-1)
+|
+query NodesPersistent feed 
+  projectextend[; NodeId: .Id, NodePartition: .Partition]
+  extend[Message: "resetColor", Value: 0]
+  initPregelMessages
+|
+query startPregel(1)
+|
+query startPregel(-1)
+|
+query NodesPersistent feed 
+  projectextend[; NodeId: .Id, NodePartition: .Partition]
+  extend[Message: "maxBack", Value: 0]
+  initPregelMessages
+|
+query startPregel(1)
+|
+query startPregel(-1)
+|
+query remotePregelCommand('update NActive := Nodes mfeed filter[.Active] count')
+}
+endwhile
+
+/*
+----
+
+# Phase 1: Remove Singleton Components
+
+query NodesPersistent feed 
+  projectextend[; NodeId: .Id, NodePartition: .Partition]
+  extend[Message: "checkSingle", Value: 0]
+  initPregelMessages;
+
+query startPregel(1);
+query startPregel(-1)
+
+
+# Phase 2: Spread Maximum Color
+
+query NodesPersistent feed 
+  projectextend[; NodeId: .Id, NodePartition: .Partition]
+  extend[Message: "resetColor", Value: 0]
+  initPregelMessages;
+
+query startPregel(1);
+query startPregel(-1)
+
+
+# Phase 3: Spread Back to Predecessors of Maximum
+
+query NodesPersistent feed 
+  projectextend[; NodeId: .Id, NodePartition: .Partition]
+  extend[Message: "maxBack", Value: 0]
+  initPregelMessages;
+
+query startPregel(1);
+query startPregel(-1);
+
+*/
+
+
+# checking the results
+
+# query remotePregelCommand('let NodesQ = Nodes mfeed consume');
+query remotePregelCommand('update NodesQ := Nodes mfeed consume');
+query createSDArray("NodesQ", Workers) dsummarize consume;
+
+update Colors := createSDArray("NodesQ", Workers) dsummarize  sortby[Color] groupby[Color; Anzahl: group count] consume
+
+
+# reset nodes to Active
+
+# query Nodes mfeed addid filter[not(.Active)] Nodes mupdatedirect2[TID; Active: TRUE] consume
+

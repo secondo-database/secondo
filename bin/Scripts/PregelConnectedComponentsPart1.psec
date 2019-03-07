@@ -1,0 +1,193 @@
+/*
+Create a graph suitable for Pregel computations.
+
+1 Connected Components
+
+*/
+
+# restore Workers from '../bin/Workers12Pregel';
+# secondo('restore Workers from \'../bin/Workers12Pregel\' ');
+let WorkerNum = Workers count;
+
+let PartFun = fun (id: int) (hashvalue(id, WorkerNum));
+
+# restore EdgesA from EdgesHombruch;
+update EdgesA := EdgesA feed sortby[Source] consume;
+
+# add undefined curves (for applications in general)
+query EdgesA feed filter[not(isdefined(.Curve))] EdgesA updatedirect[Curve: create_sline(.SourcePos, .TargetPos)] count
+
+let NodesPersistent = EdgesA feed projectextend[; PrelId: .Source, Pos: .SourcePos] 
+  EdgesA feed projectextend[; PrelId: .Target, Pos: .TargetPos] concat 
+  sort rdup 
+  addcounter[Id, 1]
+  extend[Partition: PartFun(.Id)]
+  extend[Color: 0, Active: TRUE]
+  sortby[PrelId] 
+  consume
+
+# (PrelId int) (Pos point) (Id int) (Partition int) (Color int) (Active bool)
+
+let Size = (NodesPersistent feed max[Id]) + 1
+
+let EdgesForward = EdgesA feed  extend[Cost: size(gk(.Curve))]
+  project[Source, Target, Cost] extend[ActiveEdge: TRUE] 
+  NodesPersistent feed mergejoin[Source, PrelId]
+  NodesPersistent feed {n} itHashJoin[Target, PrelId_n]
+  projectextend[; Source: .Id, PartitionSource: .Partition, Target: .Id_n, 
+    PartitionTarget: .Partition_n, Cost: .Cost, ActiveEdge: TRUE]
+  consume
+
+# (Source, PartitionSource, Target, PartitionTarget, Cost, ActiveEdge)
+
+let EdgesBackward = EdgesForward feed projectextend[; Source: .Target, 
+  PartitionSource: .PartitionTarget, Target: .Source, 
+  PartitionTarget: .PartitionSource, Cost: .Cost, ActiveEdge: TRUE] sortby[Source] consume
+
+# (Source, PartitionSource, Target, PartitionTarget, Cost, ActiveEdge)
+
+
+
+
+query memclear()
+
+let Nodes = NodesPersistent feed mconsume;
+let Forward = EdgesForward feed createmgraph3[Source, Target, Cost, Size];
+let Backward = EdgesBackward feed createmgraph3[Source, Target, Cost, Size];
+
+
+
+let InitialMessages = NodesPersistent feed 
+  projectextend[; NodeId: .Id, NodePartition: .Partition]
+  extend[Message: "newColor", Value: .NodeId]
+  consume
+
+let NoMessages = fun() InitialMessages feed head[0]
+
+# (NodeId, NodePartition, Message, Value)
+
+/*
+
+----
+To all nodes: checkSingle()
+
+on checkSingle():
+  if count(successors) = 0 or count(predecessors) = 0 then
+    Color := Id;
+    send(predecessors, checkSingle());
+    send(successors, checkSingle());
+    disconnect;
+    Active := false;
+  endif
+----
+
+----
+To all nodes: resetColor()
+
+on resetColor():
+  Color := 0;
+  send(successors, newColor(Id));
+----
+
+
+*/
+
+
+let Compute = fun (messages: stream(tuple([NodeId: int, NodePartition: int, 
+    Message: string, Value: int])))
+  messages 
+  sortby[NodeId] groupby[NodeId, Message; Max: group feed max[Value]]
+  Nodes mfeed addid filter[.Active] mergejoin[NodeId, Id]
+  loopsel[fun(t: TUPLE)
+    attr(t, Message)
+    switch[
+      "checkSingle",
+        t feed filter[(Forward mg3numsuccessors[.Id] = 0) or 
+          (Backward mg3numsuccessors[.Id] = 0)]
+        Nodes mupdatedirect2[TID; Color: .Id, Active: FALSE]
+        loopsel[fun(t2: TUPLE) 
+          Backward mg3successors[attr(t2, Id)]
+          projectextend[; NodeId: .Target, 
+	    NodePartition: PartFun(.Target), 
+      	    Message: "checkSingle", Value: 0]  
+          Forward mg3successors[attr(t2, Id)]
+          projectextend[; NodeId: .Target, 
+	    NodePartition: PartFun(.Target), 
+      	    Message: "checkSingle", Value: 0] 
+          concat
+          t2 feed extend[DisconnectF: Forward mg3disconnect[.Id],
+            DisconnectB: Backward mg3disconnect[.Id]]
+            filter[FALSE]
+            projectextend[; NodeId: .Id, NodePartition: PartFun(.Id), 
+      	    Message: "checkSingle", Value: 0] 
+          concat
+        ]
+    ; "resetColor",
+        t feed
+        Nodes mupdatedirect2[TID; Color: 0]
+          projectextend[; NodeId: .Id, 
+	    NodePartition: PartFun(.Id), 
+      	    Message: "newColor", Value: .Id]  
+    ; "newColor", 
+        t feed filter[.Max > .Color] Nodes mupdatedirect2[TID; Color: .Max]
+        loopjoin[Forward mg3successors[.Id]]
+          projectextend[; NodeId: .Target, 
+	    NodePartition: PartFun(.Target), 
+      	    Message: "newColor", Value: .Color]  
+    ; "maxBack",
+        t feed filter[.Id = .Color] Nodes mupdatedirect2[TID; Active: FALSE]
+        loopjoin[Backward mg3successors[.Id]]
+          projectextend[; NodeId: .Target, 
+	    NodePartition: PartFun(.Target), 
+      	    Message: "maxColor", Value: .Color] 
+    ; "maxColor", 
+        t feed filter[.Color = .Max] Nodes mupdatedirect2[TID; Active: FALSE]
+        loopjoin[Backward mg3successors[.Id]]
+          projectextend[; NodeId: .Target, 
+	    NodePartition: PartFun(.Target), 
+      	    Message: "maxColor", Value: .Color] 
+    ; NoMessages()]
+  ]
+
+
+query share("Compute", TRUE, Workers);
+
+
+
+# query Nodes mfeed addid filter[not(.Active)] Nodes mupdatedirect2[TID; Active: TRUE] consume
+
+
+
+
+# NodeId, Partition, Message, Value, Id, Pos, Color, Active, TID
+
+
+#
+# Distribute
+#
+
+let NodesD = NodesPersistent feed ddistribute4["NodesD", PartFun(.Id), 
+  WorkerNum , Workers];
+let NodesSD = NodesD makeSimple[FALSE, "NodesPersistent"];
+delete NodesD
+
+let EdgesDf = EdgesForward feed ddistribute4["EdgesDf", 
+  PartFun(.Source), WorkerNum , Workers];
+let EdgesSDf = EdgesDf makeSimple[FALSE, "EdgesForward"];
+delete EdgesDf
+
+let EdgesDb = EdgesBackward feed ddistribute4["EdgesDb", 
+  PartFun(.Source), WorkerNum , Workers];
+let EdgesSDb = EdgesDb makeSimple[FALSE, "EdgesBackward"];
+delete EdgesDb
+
+query share("WorkerNum", TRUE, Workers);
+query share("PartFun", TRUE, Workers);
+query share("Size", TRUE, Workers);
+query share("InitialMessages", TRUE, Workers);
+query share("NoMessages", TRUE, Workers);
+
+
+
+
+
