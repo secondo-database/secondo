@@ -149,6 +149,7 @@ namespace pregel {
 
   const unsigned long bodySize = header.length;
   char* bodyBuffer = new char[bodySize];
+
   socket->Read((void *) bodyBuffer,
                bodySize); //blocking, but awaiting message body already
 

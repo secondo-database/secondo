@@ -68,8 +68,12 @@ namespace pregel {
 
  void NetworkedClient::sendMessage(
          std::shared_ptr<MessageWrapper> message) const {
+  
   unsigned long size;
-  char *buffer = message->serialize(size);
+  //char *buffer = message->serialize(size);
+  char* buffer = 0;
+  size = message->serialize(buffer);
+
   socket->Write(buffer, size);
   socket->GetSocketStream().flush();
   delete[] buffer;

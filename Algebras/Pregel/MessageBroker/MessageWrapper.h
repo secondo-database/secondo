@@ -82,6 +82,8 @@ namespace pregel {
 
    Header();
 
+   bool operator==(const Header& rhs) const;
+
    static Header fromTuple(Tuple *body, int round);
 
    static Header read(char *buffer);
@@ -128,11 +130,11 @@ namespace pregel {
 
   static std::shared_ptr<MessageWrapper> fromTuple(Tuple *tuple, int round);
 
+  bool operator==(const MessageWrapper& rhs) const;
+
   MessageWrapper(Header header, Tuple *body);
 
   unsigned long serialize(char *&buffer);
-
-  char *serialize(unsigned long &size);
 
   static std::shared_ptr<MessageWrapper>  
   deserialize(char *buffer, Header header);
