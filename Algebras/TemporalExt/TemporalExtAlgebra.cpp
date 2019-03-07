@@ -5378,10 +5378,10 @@ const string splitatgapsSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mT (x duration) -> stream(mT), where T in {bool, int, real, string, "
   "label(s), place(s), point, region} </text---> "
-  "<text> splitatgaps( _ ) </text--->"
+  "<text> splitAtGaps( _ , _ ) </text--->"
   "<text>Splits an mT at its temporal gaps. The object will not be splitted at "
-  "gaps with a duration shorter than the second parameter. </text--->"
-  "<text>query splitatgaps(train7) count</text--->"
+  "gaps with a duration shorter than the optional second parameter. </text--->"
+  "<text>query splitAtGaps(train7) count</text--->"
   ") )";
 
 struct EverNearerThanInfo : OperatorInfo {
