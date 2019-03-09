@@ -113,9 +113,30 @@ Example  : query drel1 drelfilterupdate[.No > 5; No: .No + 1]
 Result   : bug
 Remark   : remote server required
 
-Operator : drelitspatialjoin
+Operator : drelexactmatchS
+Number   : 1
+Signature: da(btree(tuple(X))) x ti -> dfarray(rel(tuple(Id tid))) 
+Example  : query da_btree drelexactmatchS [10]
+Result   : bug
+Remark   : remote server required
+
+Operator : drelrangeS
+Number   : 1
+Signature: da(btree(tuple(X))) x ti x ti -> dfarray(rel(tuple(Id tid))) 
+Example  : query da_btree drelrangeS [5, 10]
+Result   : bug
+Remark   : remote server required
+
+Operator : drelwindowintersectsS
+Number   : 1
+Signature: da(rtree(tuple(X))) x ti -> dfarray(rel(tuple(Id tid))) 
+Example  : query da_rtree drelwindowintersectsS [bbox(thecenter)]
+Result   : bug
+Remark   : remote server required
+
+Operator : drelspatialjoin
 Number   : 1
 Signature: d[f]rel(rel(tuple(X))) x d[f]rel(rel(tuple(Y))) x attr x attr -> dfrel(rel(tuple(X@Y))) 
-Example  : query drel1 drel2 drelitspatialjoin[GeoData, GeoData]
+Example  : query drel1 drel2 drelspatialjoin[GeoData, GeoData]
 Result   : bug
 Remark   : remote server required
