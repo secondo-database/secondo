@@ -1,0 +1,35 @@
+
+# Script for creating randomized passwords
+
+
+# define available characters by their ascii-Codes ( may be extended )
+
+let characters =  intstream(33,33) intstream(35,38) concat 
+                  intstream(48,57) concat intstream(65,90) concat 
+                  intstream(97,122) concat 
+                  namedtransformstream[Code] 
+                  extend [ C : char(.Code)] 
+                  addcounter[No,0] 
+                  consume
+
+
+# create a btree over available characters
+
+let characters_tree = characters createbtree[No]
+
+# create a function returning a single random character
+
+let rchar = fun() characters_tree characters exactmatch[randint(characters count - 1)] extract[C]
+
+# create a function returning a randomized word
+
+let rword = fun() intstream(0, 10 + randint(10) / 4) 
+            transformstream extend[ H : rchar() ] 
+            aggregate[H; fun(t1: string, t2 : string) t1 + t2; ""]
+
+
+
+
+
+
+
