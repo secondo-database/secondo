@@ -321,8 +321,12 @@ namespace pregel {
   }
  }
 
- unsigned long MessageBroker::numberOfClients() {
+ unsigned long MessageBroker::numberOfClients() const{
   return slotToClient.size();
+ }
+
+ unsigned long MessageBroker::numberOfServers() const {
+   return servers.size();
  }
 
  

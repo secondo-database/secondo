@@ -42,6 +42,8 @@ This header file defines the class Monitor
 #define SECONDO_COMPUTEMESSAGINGCONTEXT_H
 
 #include <utility>
+#include <iostream>
+#include <string>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/log/trivial.hpp>
@@ -55,6 +57,8 @@ namespace pregel {
   void empty();
 
   void finish();
+
+  std::ostream& print(std::ostream& out, const std::string& indent) const;
 
  private:
   unsigned long finishedWorkerCounter;

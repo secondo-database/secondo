@@ -71,11 +71,18 @@ namespace pregel {
 
    std::function<std::string *(std::string &)> trimListStyle = [](
     std::string &response) -> std::string * {
-     const std::regex regex("(^\\(text ')|( '\\)$)");
-     std::string replacement("");
-     auto trimmed = new std::string(std::regex_replace(response, 
-                                    regex, replacement));
-     return trimmed;
+      ListExpr res;
+      if(!nl->ReadFromString(response,res)){
+        return new std::string("error in parsing list received from worker");
+      }
+      if(!nl->HasLength(res,2)){
+        return new std::string("Invalid answer from worker");
+      }
+      res = nl->Second(res);
+      if(nl->AtomType(res)!=TextType){
+        return new std::string("pregel worker returns an non-text");
+      }
+      return new std::string(nl->TextValue(res));
    };
 
    std::string *response;

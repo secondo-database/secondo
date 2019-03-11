@@ -41,7 +41,7 @@ This header file defines the class MessageServer
 #ifndef SECONDO_MESSAGESERVER_H
 #define SECONDO_MESSAGESERVER_H
 
-
+#include <string>
 #include <functional>
 #include <SocketIO.h>
 #include <memory>
@@ -94,6 +94,8 @@ namespace pregel {
 
   void healthReport(std::stringstream &sstream);
 
+  std::string stateStr() const;
+
  private:
   void waitToResumeReading();
 
@@ -112,6 +114,9 @@ namespace pregel {
   bool stateIs(State state);
 
   void setState(State state, bool notify = true);
+
+  void bringAllMessagesToRound(const int round);
+
  };
 }
 

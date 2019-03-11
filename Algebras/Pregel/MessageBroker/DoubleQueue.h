@@ -71,6 +71,8 @@ namespace pregel {
 
   supplier2<MessageWrapper> supply(const int round);
 
+  void bringMessagesToRound(const int round);
+
  private:
   std::queue< std::shared_ptr<MessageWrapper> > buffers[2];
   boost::mutex lock[2];

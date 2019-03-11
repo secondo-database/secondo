@@ -42,8 +42,8 @@ This file defines the members of class DoubleQueue
 namespace pregel {
  std::ostream &
  operator<<(std::ostream &os, DoubleQueue &buffer) {
-  os << "buffers: [0]: " << buffer.getQueue(0).size() << " [1]: "
-     << buffer.getQueue(1).size();
+  os << "buffersize[0]: " << buffer.getQueue(0).size() 
+     << " buffersize[1]: " << buffer.getQueue(1).size();
   return os;
  }
 
@@ -99,4 +99,16 @@ namespace pregel {
  MessageQueue &DoubleQueue::getQueue(const int round) {
   return buffers[(round + 2) % 2];
  }
+
+ void DoubleQueue::bringMessagesToRound(const int round){
+    MessageQueue& source = getQueue(round+1);
+    MessageQueue& target = getQueue(round);
+    while(!source.empty()){
+       auto msg = source.front();
+       msg->setRound(round);
+       target.push(msg);
+       source.pop();     
+    }
+ }
+
 }

@@ -106,17 +106,18 @@ namespace pregel {
  }
 
  bool PregelAlgebra::amITheMaster() {
-  return MessageBroker::get().numberOfClients() == 0;
+  return MessageBroker::get().numberOfServers() == 0;
  }
 
  void PregelAlgebra::healthReport(std::stringstream &sstream) {
   if (amITheMaster()) {
-   sstream << "=== Pregel Health Report ===" << std::endl;
-   sstream << "+++ALGEBRA" << std::endl;
+   sstream << "=== Pregel Health Report MASTER ===" << std::endl;
    sstream << std::endl;
   } else {
-   MessageBroker::get().healthReport(sstream);
+   sstream << "=== Pregel Health Report WORKER ===" << std::endl;
+   sstream << std::endl;
   }
+  MessageBroker::get().healthReport(sstream);
   PregelContext::get().healthReport(sstream);
   #ifdef GATHER_PREGEL_METRICS
   Metrics::get().report().print(sstream);

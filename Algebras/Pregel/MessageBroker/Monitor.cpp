@@ -68,3 +68,15 @@ void pregel::Monitor::finish() {
  }
  callback(false);
 }
+
+std::ostream& pregel::Monitor::print(
+              std::ostream& out, 
+              const std::string& indent) const{
+   out << indent << "finishedWorkerCounter : " << finishedWorkerCounter 
+       << std::endl;
+   out << indent << "allEmpty              : " << (allEmpty?"true":"false")
+       << std::endl;
+   return out;
+}
+
+

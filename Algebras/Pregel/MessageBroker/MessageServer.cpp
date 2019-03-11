@@ -199,12 +199,18 @@ namespace pregel {
  void MessageServer::handleInitDoneMessage() {
   if (monitor != nullptr) {
     boost::lock_guard<boost::mutex> lock(stateLock);
-    this->state = WAITING;
     auto monitorLocal = monitor;
     monitor = nullptr;
     monitorLocal->finish();
   }
+  setState(WAITING, false);
+  bringAllMessagesToRound(SuperstepCounter::get());
   initDoneCallback();
+ }
+  
+
+ void MessageServer::bringAllMessagesToRound(const int round) {
+   messageQueue.bringMessagesToRound(round);
  }
 
  void MessageServer::drainBuffer(const consumer2<MessageWrapper> &consumer,
@@ -245,6 +251,15 @@ namespace pregel {
   }
  }
 
+
+ std::string MessageServer::stateStr()const{
+   switch(state){
+     case READING : return "READING";
+     case WAITING : return "WAITING"; 
+     default      : return "unknown";
+   }
+ }
+
  void MessageServer::healthReport(std::stringstream &sstream) {
   boost::lock_guard<boost::mutex> guard(stateLock);
   if (socket == nullptr) {
@@ -256,7 +271,15 @@ namespace pregel {
   sstream << "      Address: " << socket->GetSocketAddress().c_str()
           << std::endl;
 
-  sstream << "      State: " << state << std::endl;
+  sstream << "      State:   " << stateStr()  << std::endl;
+
+  sstream << "      Queue:   " << messageQueue << std::endl;
+  sstream << "      Monitor: " << (monitor==nullptr?"NULL":"PRESENT") 
+          << std::endl;
+  if(monitor!=nullptr){
+     monitor->print(sstream, "          ");
+  } 
+
  }
 
  void MessageServer::setMonitor(std::shared_ptr<Monitor> monitor) {
