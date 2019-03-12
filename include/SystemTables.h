@@ -425,6 +425,7 @@ class OperatorInfoTuple : public InfoTuple
    std::string example;
    std::string remark;
    std::string result;
+   bool supportsProgress;
 
    OperatorInfoTuple() {
 
@@ -436,6 +437,7 @@ class OperatorInfoTuple : public InfoTuple
      example = "";
      result = "";
      remark = "";
+     supportsProgress = false;
    }
    virtual ~OperatorInfoTuple() {}
 
@@ -450,6 +452,7 @@ class OperatorInfoTuple : public InfoTuple
      list.append( NList().textAtom(example) );
      list.append( NList().textAtom(result) );
      list.append( NList().textAtom(remark) );
+     list.append( NList().boolAtom(supportsProgress));
      return list;
    }
 
@@ -479,6 +482,7 @@ class OperatorInfoRel : public SystemInfoRel
      addAttribute("Example",   sym.TEXT()   );
      addAttribute("Result",    sym.TEXT()   );
      addAttribute("Remark",    sym.TEXT()   );
+     addAttribute("SupportsProgress",    sym.BOOL()   );
    }
 };
 

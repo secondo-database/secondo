@@ -2624,6 +2624,7 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
         t.example = oi.example;
         t.remark = oi.remark;
         t.result = "";
+        t.supportsProgress = op->SupportsProgress();
         r->append(&t, false);
         op->SetOpInfo(oi);
       } else {
@@ -2651,7 +2652,8 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
                 if(t->remark==""){
                  t->remark="type map operator";
                 }
-                t->result = "";
+                t->result = ""; 
+                t->supportsProgress = op->SupportsProgress();
                 r->append(t, false);
                 op->SetOpInfo(oi);
              } else {
@@ -2708,6 +2710,7 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
                   am->getOperator( algId, opId )->SetOpInfo(oi);
                }
                i++;
+               t.supportsProgress = op->SupportsProgress();
                r->append(&t, false);
 
               } // end for
