@@ -62,12 +62,33 @@ class JoinState {
    const unsigned joinStateId;
 
    // -----------------------------------------------------
+   // variables for computing SetRowBlock_t values (i.e. the "address" of
+   // a rectangle in the input TBlocks).
+   // Note that SET::A and SET::B have independent values for rowShift
+   // (and consequently for rowMask and blockMask)
+
+   /* the bit mask for the "set" information (SET::A / SET::B) which is
+    * always stored in the highest bit of a SetRowBlock_t value */
+   static constexpr SetRowBlock_t SET_MASK = 0x80000000;
+
+   /* the number of bits by which the row information is left-shifted
+    * inside a SetRowBlock_t. */
+   const unsigned rowShift[SET_COUNT];
+
+   /* the bit mask for the row information inside a SetRowBlock_t */
+   const SetRowBlock_t rowMask[SET_COUNT];
+
+   /* the bit mask for the block information in the lower bits of a
+    * SetRowBlock_t value. */
+   const SetRowBlock_t blockMask[SET_COUNT];
+
+   // -----------------------------------------------------
    // variables storing the current state of the operation, allowing it to
    // be interrupted when the outTBlock is full, and to be resumed later
 
    /* stores the left and right edges of each rectangle in both sets, sorted
     * by their x position (and then their yMin value) */
-   std::vector<JoinEdge> joinEdges; // TODO: wieder in edges umbenennen?
+   std::vector<JoinEdge> joinEdges;
 
    /* the index in joinEdges from which the next MergedArea will be created */
    EdgeIndex_t joinEdgeIndex = 0;
@@ -101,6 +122,15 @@ class JoinState {
    CRelAlgebra::AttrArrayEntry* const newTuple;
 
    // -----------------------------------------------------
+   // variables making appendToOutput() more efficient
+
+   /* the last source rectangle from set A that was used for output */
+   SetRowBlock_t lastAddressA;
+
+   /* the last source rectangle from set B that was used for output */
+   SetRowBlock_t lastAddressB;
+
+   // -----------------------------------------------------
    // statistical
 
    /* the clock() time at which the initialization of this JoinState instance
@@ -108,7 +138,7 @@ class JoinState {
    clock_t initializeCompleted;
 
    /* the number of (non-empty) outTBlocks returned by this JoinState */
-   unsigned tBlockCount;
+   unsigned outTBlockCount;
 
    /* the total number of output tuples returned by this JoinState */
    uint64_t outTupleCount;
@@ -132,6 +162,39 @@ public:
    bool nextTBlock(CRelAlgebra::TBlock* outTBlock);
 
 private:
+   static unsigned getRowShift(size_t blockCount);
+
+   static SetRowBlock_t getRowMask(size_t rowShift);
+
+   static SetRowBlock_t getBlockMask(size_t rowShift);
+
+   inline SetRowBlock_t getAddress(const SET set, const RowIndex_t row,
+                                   const BlockIndex_t block) const {
+      return ((set == SET::A) ? 0 : SET_MASK)
+            | static_cast<SetRowBlock_t>(row << rowShift[set]) | block;
+      // SetRowBlock_t address = ...;
+      // assert (set == getSet(address));
+      // assert (row == getRowIndex(address));
+      // assert (block == getBlockIndex(address));
+      // return address;
+   }
+
+   inline SET getSet(const SetRowBlock_t address) const {
+      return ((address & SET_MASK) == 0) ? SET::A : SET::B;
+   }
+
+   inline RowIndex_t getRowIndex(const SetRowBlock_t address) const {
+      const SET set = getSet(address);
+      return (address & rowMask[set]) >> rowShift[set];
+   }
+
+   inline BlockIndex_t getBlockIndex(const SetRowBlock_t address) const {
+      const SET set = getSet(address);
+      return static_cast<BlockIndex_t>(address & blockMask[set]);
+   }
+
+   std::string toString(const JoinEdge& joinEdge) const;
+
    /* calculates the bounding box of the given set; if addToEdges == true,
     * the edges of the rectangles in this set are added to sortEdges, and
     * information on these rectangles to rectangleInfos. otherBbox is only
@@ -140,19 +203,19 @@ private:
     * considered any further) */
    Rectangle<3> calculateBboxAndEdges(SET set, bool addToEdges,
            const Rectangle<3>& otherBbox, std::vector<SortEdge>& sortEdges,
-           std::vector<RectangleInfo>& rectangleInfos);
+           std::vector<RectangleInfo>& rectangleInfos) const;
 
    /* enters the given, newly created MergedArea to the mergedAreas vector at
     * the current mergeLevel; if another MergedArea is already stored at this
     * level, a new Merger is created to merge the two areas */
-   void enqueueMergedAreaOrCreateMerger(MergedAreaPtr &newArea,
+   void enqueueMergedAreaOrCreateMerger(MergedAreaPtr& newArea,
                                         bool mayIncreaseMergeLevel);
 
-   void createMerger(MergedAreaPtr &area1, MergedAreaPtr &area2);
+   void createMerger(MergedAreaPtr& area1, MergedAreaPtr& area2);
 
    /* appends a new tuple to the outTBlock, creating it from the input tuples
     * represented by the two given JoinEdges */
-   bool appendToOutput(const JoinEdge& entryA, const JoinEdge& entryB,
+   bool appendToOutput(const JoinEdge& entryS, const JoinEdge& entryT,
                        CRelAlgebra::TBlock* outTBlock);
 };
 

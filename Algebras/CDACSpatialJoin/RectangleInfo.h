@@ -16,15 +16,12 @@ struct RectangleInfo {
    EdgeIndex_t leftEdgeIndex;
    EdgeIndex_t rightEdgeIndex;
 
-   SET set;
-   BlockIndex_t block;
-   RowIndex_t row;
+   SetRowBlock_t address;
 
    RectangleInfo(const double yMin_, const double yMax_,
-                 const SET set_, const BlockIndex_t block_,
-                 const RowIndex_t row_):
+                 const SetRowBlock_t address_):
         yMin(yMin_), yMax(yMax_), leftEdgeIndex(0), rightEdgeIndex(0),
-        set(set_), block(block_), row(row_) {
+        address(address_) {
    }
 
    inline EdgeIndex_t getEdgeIndex(const bool left) const {

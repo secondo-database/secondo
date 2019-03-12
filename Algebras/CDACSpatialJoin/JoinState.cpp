@@ -19,21 +19,25 @@ JoinState::JoinState(InputStream* inputA, InputStream* inputB,
 
         tBlocks { inputA->tBlocks, inputB->tBlocks },
         attrIndices { inputA->attrIndex, inputB->attrIndex },
-        columnCounts { tBlocks[SET::A].get()->at(0)->GetColumnCount(),
-                      tBlocks[SET::B].get()->at(0)->GetColumnCount() },
+        columnCounts { tBlocks[SET::A]->at(0)->GetColumnCount(),
+                      tBlocks[SET::B]->at(0)->GetColumnCount() },
         tupleCounts { inputA->getTupleCount(), inputB->getTupleCount() },
         tupleSum { tupleCounts[SET::A] + tupleCounts[SET::B] },
         dims { inputA->dim, inputB->dim },
         minDim(std::min(inputA->dim, inputB->dim)),
         outTBlockSize(outTBlockSize_),
         joinStateId(joinStateId_),
+        rowShift { getRowShift(inputA->tBlocks->size()),
+                   getRowShift(inputB->tBlocks->size()) },
+        rowMask { getRowMask(rowShift[0]), getRowMask(rowShift[1]) },
+        blockMask { getBlockMask(rowShift[0]), getBlockMask(rowShift[1]) },
         newTuple(new CRelAlgebra::AttrArrayEntry[
                 columnCounts[SET::A] + columnCounts[SET::B]]) {
 
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
    cout << endl << "JoinState " << joinStateId << " created: " << endl;
    for (const SET set : SETS) {
-      InputStream* input = (set == SET::A) ? inputA : inputB;
+      const InputStream* input = (set == SET::A) ? inputA : inputB;
       const size_t size = tBlocks[set]->size();
       cout << "* set " << SET_NAMES[set] << ": "
            << formatInt(size) << (size == 1 ? " block " : " blocks ")
@@ -78,8 +82,8 @@ JoinState::JoinState(InputStream* inputA, InputStream* inputB,
    // the first set to sortEdges and rectangleInfos
    rectangleInfos.reserve(tupleSum);
    sortEdges.reserve(2 * tupleSum); // "2 *" for left and right edges
-   Rectangle<3> bboxA = calculateBboxAndEdges(SET::A, true, bboxB, sortEdges,
-           rectangleInfos);
+   const Rectangle<3> bboxA = calculateBboxAndEdges(SET::A, true, bboxB,
+           sortEdges, rectangleInfos);
 
    // report bounding boxes
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
@@ -126,6 +130,7 @@ JoinState::JoinState(InputStream* inputA, InputStream* inputB,
    clock_t start = clock();
 #endif
 
+
    std::sort(sortEdges.begin(), sortEdges.end()); // cp. Edge::operator<
 
    // report sorting
@@ -154,17 +159,18 @@ JoinState::JoinState(InputStream* inputA, InputStream* inputB,
       ++sortEdgeIndex;
    }
    joinEdges.reserve(2 * tupleSum);
-   SET lastSet = (rectangleInfos[sortEdges[0].rectInfoIndex].set == SET::A) ?
-           SET::B : SET::A;
+   SET lastSet = (getSet(rectangleInfos[sortEdges[0].rectInfoIndex].address)
+           == SET::A) ? SET::B : SET::A; // not the set of the first rectInfo
    level0AreaCountExpected = 0;
-   for (SortEdge& sortEdge : sortEdges) {
+   for (const SortEdge& sortEdge : sortEdges) {
       const RectangleInfo& rectInfo = rectangleInfos[sortEdge.rectInfoIndex];
       joinEdges.emplace_back(rectInfo.yMin, rectInfo.yMax,
               rectInfo.getEdgeIndex(!sortEdge.isLeft), sortEdge.isLeft,
-              rectInfo.set, rectInfo.block, rectInfo.row);
-      if (rectInfo.set != lastSet) {
+              rectInfo.address);
+      const SET set = getSet(rectInfo.address);
+      if (set != lastSet) {
          ++level0AreaCountExpected;
-         lastSet = rectInfo.set;
+         lastSet = set;
       }
    }
    // sortEdges and rectangleInfos is now obsolete
@@ -189,13 +195,47 @@ JoinState::JoinState(InputStream* inputA, InputStream* inputB,
 #endif
 
    initializeCompleted = clock();
-   tBlockCount = 0;
+   outTBlockCount = 0;
    outTupleCount = 0;
+
+   // set lastBlockA/B to a value that ensures the first "newTuple" to
+   // be fully assembled in the appendToOutput() function
+   lastAddressA = std::numeric_limits<SetRowBlock_t >::max();
+   lastAddressB = std::numeric_limits<SetRowBlock_t >::max();
+}
+
+unsigned JoinState::getRowShift(const size_t blockCount) {
+   unsigned shift = 0;
+   size_t blockId = blockCount - 1;
+   while (blockId != 0) {
+      ++shift;
+      blockId >>= 1;
+   }
+   return shift;
+}
+
+SetRowBlock_t JoinState::getRowMask(const size_t rowShift) {
+   return ~getBlockMask(rowShift) & ~SET_MASK;
+}
+
+SetRowBlock_t JoinState::getBlockMask(const size_t rowShift) {
+   return static_cast<SetRowBlock_t>((1U << rowShift) - 1);
+}
+
+std::string JoinState::toString(const JoinEdge& joinEdge) const {
+   stringstream st;
+   st << "y = [" << joinEdge.yMin << "; " << joinEdge.yMax << "]; ";
+   st << (joinEdge.getIsLeft() ? "left" : "right") << " edge ";
+   st << "from set " << SET_NAMES[getSet(joinEdge.address)] << ", ";
+   st << "block " << getBlockIndex(joinEdge.address) << ", ";
+   st << "row " << getRowIndex(joinEdge.address);
+   return st.str();
 }
 
 Rectangle<3> JoinState::calculateBboxAndEdges(const SET set,
         const bool addToEdges, const Rectangle<3>& otherBbox,
-        vector<SortEdge>& sortEdges, vector<RectangleInfo>& rectangleInfos) {
+        vector<SortEdge>& sortEdges, vector<RectangleInfo>& rectangleInfos)
+        const {
 
    // get some values that are used frequently in the loop below
    const unsigned attrIndex = attrIndices[set];
@@ -209,25 +249,24 @@ Rectangle<3> JoinState::calculateBboxAndEdges(const SET set,
    // iterate over the TBlocks of this set
    uint16_t blockNum = 0;
    for (TBlockPtr block : *tBlocks[set]) {
-      // iterate over the rows (tuples) of this tBlock
-      auto iter = block->GetIterator();
-      uint32_t row = 0;
-      while (iter.IsValid()) {
-         const CRelAlgebra::TBlockEntry& tuple = iter.Get();
 
-         // get the 2-dimensional extent of this tuple's GeoData
+      // iterate over the join attribute array of this tBlock
+      const CRelAlgebra::AttrArray& attrArray = block->GetAt(attrIndex);
+      auto iter = attrArray.GetIterator();
+      RowIndex_t row = 0;
+      while (iter.IsValid()) {
+         const CRelAlgebra::AttrArrayEntry& attrEntry = iter.Get();
+
+         // get the 2-dimensional extent of the current tuple's GeoData
          double xMin, xMax, yMin, yMax;
          bool skip = false;
          if (dim == 2) {
-            CRelAlgebra::SpatialAttrArrayEntry<2> attr = tuple[attrIndex];
-            const Rectangle<2> rec = attr.GetBoundingBox();
+            const Rectangle<2>& rec = ((CRelAlgebra::SpatialAttrArrayEntry<2>)
+                    attrEntry).GetBoundingBox();
             if (!rec.IsDefined()) {
                skip = true; // omit this rectangle
             } else {
-               if (bbox2.IsDefined())
-                  bbox2.Extend(rec);
-               else // rec is the first rectangle
-                  bbox2 = rec;
+               bbox2.Extend(rec);
 
                xMin = rec.MinD(0);
                xMax = rec.MaxD(0);
@@ -243,15 +282,12 @@ Rectangle<3> JoinState::calculateBboxAndEdges(const SET set,
             }
 
          } else { // dim == 3
-            CRelAlgebra::SpatialAttrArrayEntry<3> attr = tuple[attrIndex];
-            const Rectangle<3> rec = attr.GetBoundingBox();
+            const Rectangle<3>& rec = ((CRelAlgebra::SpatialAttrArrayEntry<3>)
+                    attrEntry).GetBoundingBox();
             if (!rec.IsDefined()) {
                skip = true; // omit this rectangle
             } else {
-               if (bbox3.IsDefined())
-                  bbox3.Extend(rec);
-               else // rec is the first rectangle
-                  bbox3 = rec;
+               bbox3.Extend(rec);
 
                if (addToEdges && !otherBbox.Intersects(rec)) {
                   skip = true; // rec is outside the bbox of the other set
@@ -270,7 +306,8 @@ Rectangle<3> JoinState::calculateBboxAndEdges(const SET set,
          if (addToEdges && !skip) {
             const auto rectInfoIndex =
                     static_cast<RectInfoIndex_t>(rectangleInfos.size());
-            rectangleInfos.emplace_back(yMin, yMax, set, blockNum, row);
+            rectangleInfos.emplace_back(yMin, yMax,
+                    getAddress(set, row, blockNum));
             sortEdges.emplace_back(xMin, rectInfoIndex, true);
             sortEdges.emplace_back(xMax, rectInfoIndex, false);
          }
@@ -300,7 +337,7 @@ JoinState::~JoinState() {
    delete[] newTuple;
 }
 
-bool JoinState::nextTBlock(CRelAlgebra::TBlock* outTBlock) {
+bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock) {
    if (joinEdges.empty()) // this may happen if the sets' bboxes
       return false;       // do not intersect
 
@@ -327,11 +364,12 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* outTBlock) {
          // all edges must be from the same set
          mergeLevel = 0;
          const EdgeIndex_t indexStart = joinEdgeIndex;
-         const SET set = joinEdges[joinEdgeIndex].set;
+         const SET set = getSet(joinEdges[joinEdgeIndex].address);
+         const auto joinEdgesSize = static_cast<EdgeIndex_t>(joinEdges.size());
          do {
             ++joinEdgeIndex;
-         } while (joinEdgeIndex < joinEdges.size() &&
-               joinEdges[joinEdgeIndex].set == set);
+         } while (joinEdgeIndex < joinEdgesSize &&
+               getSet(joinEdges[joinEdgeIndex].address) == set);
          MergedAreaPtr newArea = make_shared<MergedArea>(joinEdges, indexStart,
                  joinEdgeIndex, set);
          ++level0AreaCount;
@@ -369,12 +407,12 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* outTBlock) {
    // update statistics
    const uint64_t rowCount = outTBlock->GetRowCount();
    if (rowCount > 0) {
-      ++tBlockCount;
+      ++outTBlockCount;
       outTupleCount += rowCount;
    } else {
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
-      cout << "* " << formatInt(tBlockCount) << " "
-         << (tBlockCount == 1 ? "block" : "blocks") << " with "
+      cout << "* " << formatInt(outTBlockCount) << " "
+         << (outTBlockCount == 1 ? "block" : "blocks") << " with "
          << formatInt(outTupleCount) << " tuples returned in "
          << formatMillis(clock() - initializeCompleted)
          << " (intersection ratio "
@@ -433,11 +471,11 @@ void JoinState::enqueueMergedAreaOrCreateMerger(MergedAreaPtr& newArea,
    }
 }
 
-void JoinState::createMerger(MergedAreaPtr &area1, MergedAreaPtr &area2) {
+void JoinState::createMerger(MergedAreaPtr &area1,
+        MergedAreaPtr &area2) {
    const bool isLastMerge = (joinEdgeIndex == joinEdges.size() &&
                              mergeLevel + 1 == mergedAreas.size());
 
-   // TODO: CDAC_SPATIAL_JOIN_DETAILED_REPORT_TO_CONSOLE verwenden:
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
    if (isLastMerge) {
       cout << "* last merge: " << formatInt(area1->getEdgeCount()) << " + "
@@ -450,56 +488,80 @@ void JoinState::createMerger(MergedAreaPtr &area1, MergedAreaPtr &area2) {
    mergedAreas[mergeLevel] = nullptr;
 }
 
-bool JoinState::appendToOutput(const JoinEdge& entryA, const JoinEdge& entryB,
-                               CRelAlgebra::TBlock* outTBlock) {
+bool JoinState::appendToOutput(const JoinEdge& entryS, const JoinEdge& entryT,
+                               CRelAlgebra::TBlock* const outTBlock) {
+
+   const bool entrySIsSetA = (getSet(entryS.address) == SET::A);
+   const JoinEdge& entryA = entrySIsSetA ? entryS : entryT;
+   const JoinEdge& entryB = entrySIsSetA ? entryT : entryS;
+   const SetRowBlock_t addressA = entryA.address;
+   const SetRowBlock_t addressB = entryB.address;
+   const BlockIndex_t blockA = getBlockIndex(addressA);
+   const BlockIndex_t blockB = getBlockIndex(addressB);
+   const RowIndex_t rowA = getRowIndex(addressA);
+   const RowIndex_t rowB = getRowIndex(addressB);
 
    // get input tuples represented by the two given JoinEdges
-   const CRelAlgebra::TBlock* tBlockA = tBlocks[SET::A]->at(entryA.block);
-   const CRelAlgebra::TBlockEntry& tupleA =
-           CRelAlgebra::TBlockEntry(tBlockA, entryA.row);
-   const CRelAlgebra::TBlock* tBlockB = tBlocks[SET::B]->at(entryB.block);
-   const CRelAlgebra::TBlockEntry& tupleB =
-           CRelAlgebra::TBlockEntry(tBlockB, entryB.row);
+   const CRelAlgebra::TBlock* tBlockA = tBlocks[SET::A]->at(blockA);
+   const CRelAlgebra::TBlock* tBlockB = tBlocks[SET::B]->at(blockB);
 
    // if both tuples are 3-dimensional, only now the z dimension is
    // being tested. If the tuples' bounding boxes do not intersect in the
    // z dimension, the pair is rejected at this late stage
    if (minDim == 3) {
       const CRelAlgebra::SpatialAttrArrayEntry<3>& attrA =
-              tupleA[attrIndices[SET::A]];
+              tBlockA->GetAt(attrIndices[SET::A]).GetAt(rowA);
       const CRelAlgebra::SpatialAttrArrayEntry<3>& attrB =
-              tupleB[attrIndices[SET::B]];
+              tBlockB->GetAt(attrIndices[SET::B]).GetAt(rowB);
       const Rectangle<3>& bboxA = attrA.GetBoundingBox();
       const Rectangle<3>& bboxB = attrB.GetBoundingBox();
       if (bboxA.MaxD(2) < bboxB.MinD(2) || bboxB.MaxD(2) < bboxA.MinD(2))
          return true; // nothing was added to outTBlock, so result must be true
    }
 
-   unsigned newCol = 0;
-   for (SET set : SETS) {
-      const CRelAlgebra::TBlockEntry& tuple = (set == SET::A) ? tupleA : tupleB;
-
 #ifdef CDAC_SPATIAL_JOIN_DETAILED_REPORT_TO_CONSOLE
-      if (set == SET::A)
-         cout << endl;
-      bool isLeft = (set == SET::A) ? entryA.isLeft : entryB.isLeft;
-      cout << (isLeft ? "L" : "R") << SET_NAMES[set] << ": ";
+   cout << endl;
+   for (const SET set : SETS) {
+      const JoinEdge& entry = (set == SET::A) ? entryA : entryB;
+      const RowIndex_t row = (set == SET::A) ? rowA : rowB;
+      cout << (entry.getIsLeft() ? "L" : "R") << SET_NAMES[set] << ": ";
       const unsigned attrIndex = attrIndices[set];
+      const CRelAlgebra::TBlock* tBlock = (set == SET::A) ? tBlockA : tBlockB;
       if (dims[set] == 2) {
-         CRelAlgebra::SpatialAttrArrayEntry<2> attr = tuple[attrIndex];
+         const CRelAlgebra::SpatialAttrArrayEntry<2>& attr =
+                 tBlock->GetAt(attrIndex).GetAt(row);
          attr.GetBoundingBox().Print(cout); // prints an endl
       } else {
-         CRelAlgebra::SpatialAttrArrayEntry<3> attr = tuple[attrIndex];
+         const CRelAlgebra::SpatialAttrArrayEntry<3>& attr =
+                 tBlock->GetAt(attrIndex).GetAt(row);
          attr.GetBoundingBox().Print(cout); // prints an endl
       }
+   }
 #endif
 
-      for (uint64_t sourceCol = 0; sourceCol < columnCounts[set]; ++sourceCol) {
-         newTuple[newCol] = tuple[sourceCol];
-         ++newCol;
+   // copy attributes from tupleA and tupleB into the newTuple; if one of
+   // these tuples was already used when this function was last called,
+   // the corresponding newTuple[] entries can be reused
+   const size_t columnCountA = columnCounts[SET::A];
+   if (addressA != lastAddressA) {
+      const CRelAlgebra::TBlockEntry& tupleA =
+              CRelAlgebra::TBlockEntry(tBlockA, rowA);
+      for (uint64_t col = 0; col < columnCountA; ++col) {
+         newTuple[col] = tupleA[col];
       }
+      lastAddressA = addressA;
+   }
+   if (addressB != lastAddressB) {
+      const CRelAlgebra::TBlockEntry& tupleB =
+              CRelAlgebra::TBlockEntry(tBlockB, rowB);
+      const size_t columnCountB = columnCounts[SET::B];
+      for (uint64_t col = 0; col < columnCountB; ++col) {
+         newTuple[columnCountA + col] = tupleB[col];
+      }
+      lastAddressB = addressB;
    }
 
    outTBlock->Append(newTuple);
+
    return (outTBlock->GetSize() < this->outTBlockSize);
 }
