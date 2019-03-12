@@ -49,8 +49,8 @@ std::string formatInt(const long num) {
 
 std::string formatMillis(const clock_t duration) {
    stringstream result;
-   double durationSec = duration / static_cast<double>(CLOCKS_PER_SEC);
-   double durationMillis = std::round(durationSec * 1000.0);
+   const double durationSec = duration / static_cast<double>(CLOCKS_PER_SEC);
+   const double durationMillis = std::round(durationSec * 1000.0);
    result << formatInt(static_cast<long>(durationMillis)) << " ms";
    return result.str();
 }
@@ -65,7 +65,7 @@ inline char getPathSeparator() {
 
 
 std::string pathCombine(const std::string& path1, const std::string& path2) {
-   char separator = getPathSeparator();
+   const char separator = getPathSeparator();
    stringstream combined;
    combined << path1;
    if (   !path1.empty() && path1[path1.size() - 1] != separator

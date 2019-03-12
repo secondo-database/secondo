@@ -52,8 +52,6 @@ typedef CRelAlgebra::TBlockTI::ColumnInfo TBlockColInfo;
 
 using namespace cdacspatialjoin;
 
-
-// TODO: guten Wert finden, ggf. abhängig von qp->GetMemorySize(s)
 uint64_t CDACSpatialJoin::DEFAULT_BLOCK_SIZE = 10;
 
 /*
@@ -100,11 +98,10 @@ second stream, respectively.
 
 */
 ListExpr CDACSpatialJoin::typeMapping(ListExpr args) {
+   static constexpr unsigned STREAM_COUNT = 2;
+
    // check the number of arguments
    // last two arguments are included for testing purposes
-
-   constexpr unsigned STREAM_COUNT = 2;
-
    const auto argCount = static_cast<unsigned>(nl->ListLength(args));
    if (argCount < STREAM_COUNT || argCount > STREAM_COUNT + STREAM_COUNT)
       return listutils::typeError("Two, three or four arguments expected.");
@@ -150,7 +147,8 @@ ListExpr CDACSpatialJoin::typeMapping(ListExpr args) {
          // extract join attribute names and indices
          // third and fourth argument must be an attribute name
          const std::string argPos3or4 = (i == 0) ? "third" : "fourth";
-         ListExpr attrNameLE = (i == 0) ? nl->Third(args) : nl->Fourth(args);
+         const ListExpr attrNameLE = (i == 0) ?
+                 nl->Third(args) : nl->Fourth(args);
          if (!listutils::isSymbol(attrNameLE)) {
             return listutils::typeError("Error in " + argPos3or4 +
                " argument: Attribute name expected.");
@@ -218,7 +216,8 @@ ListExpr CDACSpatialJoin::typeMapping(ListExpr args) {
    }
 
    // compile information required by Value Mapping
-   ListExpr appendInfo = nl->OneElemList(nl->Empty()); // will be omitted below
+   // the nl->Empty() element will be omitted below:
+   const ListExpr appendInfo = nl->OneElemList(nl->Empty());
    ListExpr appendEnd = appendInfo;
    // ensure that the Value Mapping args will start at args[4]
    // even if parameters three and four were omitted by the caller
@@ -239,7 +238,7 @@ ListExpr CDACSpatialJoin::typeMapping(ListExpr args) {
 }
 
 CRelAlgebra::TBlockTI CDACSpatialJoin::getTBlockTI(
-        const ListExpr attributeList, uint64_t desiredBlockSize,
+        const ListExpr attributeList, const uint64_t desiredBlockSize,
         ListExpr& tBlockColumns) {
    // cp. ToBlocks::TypeMapping(ListExpr args) in ToBlocks.cpp
    // (which is private, however, so we need to copy it)
@@ -274,7 +273,7 @@ CRelAlgebra::TBlockTI CDACSpatialJoin::getTBlockTI(
 int CDACSpatialJoin::valueMapping(
         Word* args, Word& result, int message, Word& local, Supplier s) {
 
-   auto localInfo = static_cast<LocalInfo*>(local.addr);
+   auto localInfo = static_cast<CDACLocalInfo*>(local.addr);
 
    switch(message) {
       case OPEN: {
@@ -308,7 +307,10 @@ int CDACSpatialJoin::valueMapping(
                      tBlockTI.GetBlockInfo(), tBlockTI.GetDesiredBlockSize());
             }
          }
-         local.addr = new LocalInfo(input[0], input[1], s);
+         local.addr = new CDACLocalInfo(input[0], input[1], s);
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+         Merger::reportLoopStats(cout);
+#endif
          return 0;
       }
 
@@ -322,6 +324,10 @@ int CDACSpatialJoin::valueMapping(
             delete localInfo;
             local.addr = nullptr;
          }
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+         Merger::reportLoopStats(cout);
+         Merger::resetLoopStats();
+#endif
          return 0;
       }
 
@@ -340,7 +346,9 @@ int CDACSpatialJoin::valueMapping(
 1.5.1 constructor
 
 */
-LocalInfo::LocalInfo(InputStream* input1_, InputStream* input2_, Supplier s_) :
+CDACLocalInfo::CDACLocalInfo(InputStream* const input1_,
+                             InputStream* const input2_,
+        Supplier s_) :
         input1(input1_),
         input2(input2_),
         s(s_),
@@ -357,8 +365,8 @@ LocalInfo::LocalInfo(InputStream* input1_, InputStream* input2_, Supplier s_) :
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
    cout << "sizeof(SortEdge) = " << sizeof(SortEdge) << endl;
    cout << "sizeof(JoinEdge) = " << sizeof(JoinEdge) << endl;
+   cout << "sizeof(RectangleInfo) = " << sizeof(RectangleInfo) << endl;
    cout << endl;
-   CacheInfos::report(cout);
 #endif
 }
 
@@ -366,7 +374,7 @@ LocalInfo::LocalInfo(InputStream* input1_, InputStream* input2_, Supplier s_) :
 1.5.2  destructor
 
 */
-LocalInfo::~LocalInfo() {
+CDACLocalInfo::~CDACLocalInfo() {
    delete joinState;
    delete input1;
    delete input2;
@@ -376,7 +384,7 @@ LocalInfo::~LocalInfo() {
 1.5.3 support functions
 
 */
-void LocalInfo::requestInput() {
+void CDACLocalInfo::requestInput() {
    while ((getUsedMem() < memLimit)
          && (!input1->isDone() || !input2->isDone())) {
       if (input1->isDone())
@@ -394,7 +402,7 @@ void LocalInfo::requestInput() {
    }
 }
 
-size_t LocalInfo::getUsedMem() {
+size_t CDACLocalInfo::getUsedMem() const {
    const size_t tupleSum = input1->getTupleCount() + input2->getTupleCount();
 
    // first, we estimate the memory required by the JoinState constructor
@@ -424,7 +432,7 @@ size_t LocalInfo::getUsedMem() {
 1.5.4 getNext() function
 
 */
-CRelAlgebra::TBlock* LocalInfo::getNext() {
+CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
    auto outTBlock = new CRelAlgebra::TBlock(outTBlockInfo, 0, 0);
 
    while (true) {

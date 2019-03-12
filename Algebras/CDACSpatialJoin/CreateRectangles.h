@@ -125,7 +125,7 @@ class CreateRectangles {
    static int ValueMapping(Word *args, Word &result, int message,
                            Word &local, Supplier s);
 
-   std::string getOperatorSpec();
+   std::string getOperatorSpec() const;
 
 public:
    explicit CreateRectangles() = default;
@@ -155,7 +155,7 @@ struct CreateRectanglesElem {
    /* the iterator which runs from 0 to the (base) parameter */
    unsigned i;
 
-   CreateRectanglesElem(Rectangle<dim> rect_,
+   CreateRectanglesElem(const Rectangle<dim>& rect_,
            double shrinkMin_, double shrinkMax_);
 
    ~CreateRectanglesElem() = default;
@@ -225,10 +225,10 @@ ListExpr CreateRectangles<dim>::TypeMapping(ListExpr args) {
    st << "createRectangles" << dim << "D";
    st << "(int base, int exp, real shrinkMin, real shrinkMax, int rndSeed) ";
    st << "expected";
-   std::string err = st.str();
+   const std::string err = st.str();
 
    const int expectedArgsLength = 5;
-   int argsLength = nl->ListLength(args);
+   const int argsLength = nl->ListLength(args);
    if (argsLength != expectedArgsLength) {
       std::stringstream st2;
       st2 << "wrong number of arguments: got " << argsLength
@@ -242,15 +242,15 @@ ListExpr CreateRectangles<dim>::TypeMapping(ListExpr args) {
    size_t wrongCount = 0;
    for (int i = 1; i <= expectedArgsLength; ++i) {
       ListExpr arg = nl->First(rest);
-      bool expectedInt = (i <= 2 || i >= 5);
-      bool expectedReal = !expectedInt;
+      const bool expectedInt = (i <= 2 || i >= 5);
+      const bool expectedReal = !expectedInt;
 
       if ((   expectedInt  && !CcInt::checkType(arg))
           || (expectedReal && !CcReal::checkType(arg))) {
          if (wrongCount > 0)
             wrongArgTypes << ", ";
          ++wrongCount;
-         std::string typeName = expectedInt ? "int" : "real";
+         const std::string typeName = expectedInt ? "int" : "real";
          wrongArgTypes << i << " ( " << typeName << " expected)";
       }
       rest = nl->Rest(rest);
@@ -287,7 +287,7 @@ ListExpr CreateRectangles<dim>::TypeMapping(ListExpr args) {
    // close call). If the caller sets rndSeed to a non-zero value, the
    // fixedRndSeed will be ignored
    std::random_device rd;
-   unsigned long fixedRndSeed = rd();
+   const unsigned long fixedRndSeed = rd();
 
    // use the append mechanism to return fixedRndSeed and the stream type
    return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
@@ -306,12 +306,14 @@ int CreateRectangles<dim>::ValueMapping(Word* args, Word& result, int message,
    switch (message) {
       case OPEN: {
          ListExpr resultType = GetTupleResultType(s);
-         auto base = static_cast<unsigned>(
+         const auto base = static_cast<unsigned>(
                  (static_cast<CcInt*>(args[0].addr))->GetValue());
-         auto exp = static_cast<unsigned>(
+         const auto exp = static_cast<unsigned>(
                  (static_cast<CcInt*>(args[1].addr))->GetValue());
-         auto shrinkMin = (static_cast<CcReal*>(args[2].addr))->GetValue();
-         auto shrinkMax = (static_cast<CcReal*>(args[3].addr))->GetValue();
+         const auto shrinkMin =
+                 (static_cast<CcReal*>(args[2].addr))->GetValue();
+         const auto shrinkMax =
+                 (static_cast<CcReal*>(args[3].addr))->GetValue();
          auto rndSeed = static_cast<unsigned long>(
                  (static_cast<CcInt*>(args[4].addr))->GetValue());
          if (rndSeed == 0) {
@@ -346,9 +348,9 @@ int CreateRectangles<dim>::ValueMapping(Word* args, Word& result, int message,
 
 */
 template<unsigned dim>
-std::string CreateRectangles<dim>::getOperatorSpec(){
-   std::string rectName = "Rectangle<" + std::to_string(dim) + ">";
-   std::string opName = "createRectangles" + std::to_string(dim) + "D";
+std::string CreateRectangles<dim>::getOperatorSpec() const {
+   const std::string rectName = "Rectangle<" + std::to_string(dim) + ">";
+   const std::string opName = "createRectangles" + std::to_string(dim) + "D";
    return OperatorSpec(
            "int x int x double x double x int -> stream(" + rectName + ")",
            opName + "(base, exp, shrinkMin, shrinkMax, rndSeed) ",
@@ -359,7 +361,7 @@ std::string CreateRectangles<dim>::getOperatorSpec(){
 
 template<unsigned dim>
 std::shared_ptr<Operator> CreateRectangles<dim>::getOperator(){
-   std::string opName = "createRectangles" + std::to_string(dim) + "D";
+   const std::string opName = "createRectangles" + std::to_string(dim) + "D";
    return std::make_shared<Operator>(opName,
                                      getOperatorSpec(),
                                      &CreateRectangles::ValueMapping,
@@ -372,8 +374,8 @@ std::shared_ptr<Operator> CreateRectangles<dim>::getOperator(){
 
 */
 template<unsigned dim>
-CreateRectanglesElem<dim>::CreateRectanglesElem(Rectangle<dim> rect_,
-        double shrinkMin_, double shrinkMax_) :
+CreateRectanglesElem<dim>::CreateRectanglesElem(const Rectangle<dim>& rect_,
+        const double shrinkMin_, const double shrinkMax_) :
         rect(rect_) {
    double minEdge = rect.MaxD(0) - rect.MinD(0);
    for (unsigned d = 1; d < dim; ++d)
@@ -391,8 +393,9 @@ CreateRectanglesElem<dim>::CreateRectanglesElem(Rectangle<dim> rect_,
 */
 template<unsigned dim>
 CreateRectanglesLocalInfo<dim>::CreateRectanglesLocalInfo(
-        unsigned base_, unsigned exp_, double shrinkMin_, double shrinkMax_,
-        unsigned long rndSeed_, ListExpr resultType_) :
+        const unsigned base_, const unsigned exp_,
+        const double shrinkMin_, const double shrinkMax_,
+        const unsigned long rndSeed_, const ListExpr resultType_) :
         base(base_), exp(exp_),
         shrinkMin(shrinkMin_),
         shrinkMax(shrinkMax_),

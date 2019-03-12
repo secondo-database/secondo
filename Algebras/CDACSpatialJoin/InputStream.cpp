@@ -7,6 +7,8 @@
 #include "InputStream.h"
 #include "Algebras/CRel/TypeConstructors/TBlockTC.h"
 
+using namespace cdacspatialjoin;
+
 InputStream::InputStream(unsigned attrIndex_, unsigned dim_) :
         attrIndex(attrIndex_),
         dim(dim_),
@@ -49,7 +51,7 @@ bool InputStream::request() {
    return true;
 }
 
-size_t InputStream::getUsedMem() {
+size_t InputStream::getUsedMem() const {
    return byteCount;
 }
 
@@ -64,7 +66,7 @@ void InputStream::streamOpened() {
 
 */
 InputTBlockStream::InputTBlockStream(Word stream_,
-                                     unsigned attrIndex_, unsigned dim_) :
+        const unsigned attrIndex_, const unsigned dim_) :
         InputStream(attrIndex_, dim_),
         tBlockStream(stream_) {
    tBlockStream.open();
@@ -91,9 +93,9 @@ void InputTBlockStream::restart() {
 
 */
 InputTupleStream::InputTupleStream(Word stream_,
-                                   unsigned attrIndex_, unsigned dim_,
-                                   const CRelAlgebra::PTBlockInfo& blockInfo_,
-                                   uint64_t desiredBlockSize_) :
+        const unsigned attrIndex_, const unsigned dim_,
+        const CRelAlgebra::PTBlockInfo& blockInfo_,
+        const uint64_t desiredBlockSize_) :
         InputStream(attrIndex_, dim_),
         tupleStream(stream_),
         blockInfo(blockInfo_),

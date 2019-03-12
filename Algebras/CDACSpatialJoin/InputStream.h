@@ -10,6 +10,8 @@
 #include "Algebras/Stream/Stream.h"
 #include "Algebras/CRel/TBlock.h"
 
+namespace cdacspatialjoin {
+
 class InputStream {
 public:
    /* the index of the join attribute */
@@ -56,26 +58,26 @@ public:
     * vector  */
    bool request();
 
-   bool hasTBlocks() { return !tBlocks->empty(); }
+   bool hasTBlocks() const { return !tBlocks->empty(); }
 
    /* returns the number of bytes currently used by the TBlocks */
-   size_t getUsedMem();
+   size_t getUsedMem() const;
 
    /* returns true if the stream is completed */
-   bool isDone() { return done; }
+   bool isDone() const { return done; }
 
    /* returns the number of tuples currently stored in the TBlocks */
-   size_t getTupleCount() { return tupleCount; }
+   size_t getTupleCount() const { return tupleCount; }
 
    /* returns the number of times this stream was opened or re-opened */
-   unsigned getOpenCount() { return openCount; }
+   unsigned getOpenCount() const { return openCount; }
 
    /* returns the number of chunks since the stream was opened or re-opened */
-   unsigned getChunkCount() { return chunkCount; }
+   unsigned getChunkCount() const { return chunkCount; }
 
    /* returns true if all input could be read to main memory in the first
     * chunk (i.e. with no clearMem() call) */
-   bool isFullyLoaded() { return fullyLoaded; }
+   bool isFullyLoaded() const { return fullyLoaded; }
 
    virtual void restart() = 0;
 
@@ -129,4 +131,4 @@ private:
    CRelAlgebra::TBlock* requestBlock() override;
 };
 
-
+} // end of namespace cdacspatialjoin

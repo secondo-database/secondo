@@ -33,33 +33,30 @@ typedef std::shared_ptr<MergedArea> MergedAreaPtr;
 class MergedArea {
    /* the index in JoinState::joinEdges from which the JoinEdges covered by
     * this MergedArea start (inclusive) */
-   EdgeIndex_t edgeIndexStart;
+   const EdgeIndex_t edgeIndexStart;
    /* the index in JoinState::joinEdges at which the JoinEdges covered by
     * this MergedArea end (exclusive) */
-   EdgeIndex_t edgeIndexEnd;
-
-   // TODO: ggf. auch ausprobieren, ob joinEdges-Indizes statt Instanzen
-   // effizienter wären
+   const EdgeIndex_t edgeIndexEnd;
 
    /* the left edges from set A inside this MergedArea, for which the
     * corresponding right edge is not inside this MergedArea */
-   std::vector<JoinEdge> leftA;
+   JoinEdgeVec leftA;
    /* the right edges from set A inside this MergedArea, for which the
     * corresponding left edge is not inside this MergedArea */
-   std::vector<JoinEdge> rightA;
+   JoinEdgeVec rightA;
    /* the rectangles from set A represented in this MergedArea by both their
     * left and right edges */
-   std::vector<JoinEdge> completeA;
+   JoinEdgeVec completeA;
 
    /* the left edges from set B inside this MergedArea, for which the
     * corresponding right edge is not inside this MergedArea */
-   std::vector<JoinEdge> leftB;
+   JoinEdgeVec leftB;
    /* the right edges from set B inside this MergedArea, for which the
     * corresponding left edge is not inside this MergedArea */
-   std::vector<JoinEdge> rightB;
+   JoinEdgeVec rightB;
    /* the rectangles from set B represented in this MergedArea by both their
     * left and right edges */
-   std::vector<JoinEdge> completeB;
+   JoinEdgeVec completeB;
 
 public:
    /* instantiates an atomic MergedArea which covers an interval in which
@@ -73,34 +70,18 @@ public:
 
    ~MergedArea() = default;
 
-   /* returns the left edges from the given set inside this MergedArea */
-   inline std::vector<JoinEdge>& getLeft(SET set) {
-      return (set == SET::A) ? leftA : leftB;
-   }
-
-   /* returns the right edges from the given set inside this MergedArea */
-   inline std::vector<JoinEdge>& getRight(SET set) {
-      return (set == SET::A) ? rightA : rightB;
-   }
-
-   /* returns the rectangles from the given set fully represented inside this
-    * MergedArea */
-   inline std::vector<JoinEdge>& getComplete(SET set) {
-      return (set == SET::A) ? completeA : completeB;
-   }
-
    /* returns a short string representation of this MergedArea for console
     * output*/
    std::string toString() const;
 
-   EdgeIndex_t getEdgeCount() { return edgeIndexEnd - edgeIndexStart; }
+   EdgeIndex_t getEdgeCount() const { return edgeIndexEnd - edgeIndexStart; }
 
 private:
    /* returns true if the counterpart (i.e. the corresponding left or right
     * edge) of the given edge is found inside this MergedArea */
    inline bool containsCounterpartOf(const JoinEdge &edge) const {
-      return (edge.counterPartEdgeIndex >= edgeIndexStart &&
-              edge.counterPartEdgeIndex < edgeIndexEnd);
+      const EdgeIndex_t counterPart = edge.getCounterPartEdgeIndex();
+      return (counterPart >= edgeIndexStart && counterPart < edgeIndexEnd);
 }
 
 friend class Merger;

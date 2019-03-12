@@ -89,15 +89,15 @@ private:
 1.2 LocalInfo class
 
 */
-class LocalInfo {
-   InputStream* input1;
-   InputStream* input2;
+class CDACLocalInfo {
+   InputStream* const input1;
+   InputStream* const input2;
 
-   Supplier s;
+   const Supplier s;
 
    bool isFirstRequest;
 
-   uint64_t memLimit; // memory limit for operator
+   const uint64_t memLimit; // memory limit for operator
 
    const CRelAlgebra::TBlockTI outTypeInfo;
    const CRelAlgebra::PTBlockInfo outTBlockInfo;
@@ -108,11 +108,11 @@ class LocalInfo {
 
 public:
    // constructor
-   LocalInfo(InputStream* input1_, InputStream* input2_, Supplier s);
+   CDACLocalInfo(InputStream* input1_, InputStream* input2_, Supplier s);
 
    // destructor decreases the reference counters for all loaded tuple
    // blocks and closes both streams
-   ~LocalInfo();
+   ~CDACLocalInfo();
 
    CRelAlgebra::TBlock* getNext();
 
@@ -121,7 +121,7 @@ private:
 
    /* Computes the amount of memory in use, i.e. the size of the two block
     * vectors and of all binary tables */
-   size_t getUsedMem();
+   size_t getUsedMem() const;
 }; // end class LocalInfo
 
 } // end namespace cdacspatialjoin

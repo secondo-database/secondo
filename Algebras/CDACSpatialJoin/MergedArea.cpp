@@ -15,31 +15,30 @@ using namespace cdacspatialjoin;
 using namespace std;
 
 MergedArea::MergedArea(const vector<JoinEdge>& joinEdges,
-        const EdgeIndex_t edgeIndexStart_,
-        const EdgeIndex_t edgeIndexEnd_,
-        const SET set) :
-           edgeIndexStart(edgeIndexStart_),
-           edgeIndexEnd(edgeIndexEnd_) {
+                       const EdgeIndex_t edgeIndexStart_,
+                       const EdgeIndex_t edgeIndexEnd_,
+                       const SET set) :
+        edgeIndexStart(edgeIndexStart_),
+        edgeIndexEnd(edgeIndexEnd_) {
 
-   std::vector<JoinEdge>& left = getLeft(set);
-   std::vector<JoinEdge>& right = getRight(set);
-   std::vector<JoinEdge>& complete = getComplete(set);
+   JoinEdgeVec& left = (set == SET::A) ? leftA : leftB;
+   JoinEdgeVec& right = (set == SET::A) ? rightA : rightB;
+   JoinEdgeVec& complete = (set == SET::A) ? completeA : completeB;
 
    // read the JoinEdges from the given vector and enter them to the
    // appropriate vector left, right, or complete
    for (EdgeIndex_t i = edgeIndexStart; i < edgeIndexEnd; ++i) {
-      const JoinEdge &edge = joinEdges[i];
-      assert (edge.set == set);
+      const JoinEdge& edge = joinEdges[i];
 
       if (this->containsCounterpartOf(edge)) {
-         if (edge.isLeft) {
+         if (edge.getIsLeft()) {
             complete.push_back(edge);
          } else {
             // ignore edge (since the corresponding left edge is in this same
             // MergedArea and therefore is added to the "complete" vector
          }
       } else {
-         if (edge.isLeft)
+         if (edge.getIsLeft())
             left.push_back(edge);
          else
             right.push_back(edge);
