@@ -16,7 +16,7 @@ Result   : (longint 26492)
 Operator : cacheTest
 Number   : 1
 Signature: int -> bool
-Example  : query cacheTest(128)
+Example  : query cacheTest(1)
 Result   : (bool TRUE)
 
 Operator : createRectangles1D

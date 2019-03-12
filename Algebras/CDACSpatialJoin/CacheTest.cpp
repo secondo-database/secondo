@@ -88,7 +88,7 @@ ListExpr CacheTest::typeMapping(ListExpr args) {
    if (!CcInt::checkType(intensity))
       return listutils::typeError("argument 1: int expected");
 
-   return nl->OneElemList(nl->SymbolAtom(CcInt::BasicType()));
+   return nl->SymbolAtom(CcBool::BasicType());
 }
 
 /*
@@ -123,7 +123,7 @@ int CacheTest::valueMapping(
    }
    cout << endl;
 
-   result.addr = new CcBool(true, true);
+   qp->ResultStorage<CcBool>(result, s).Set(true, true);
 
    return 0;
 }
@@ -408,7 +408,7 @@ std::pair<clock_t, clock_t> CacheTestLocalInfo::testScope(
                sum2 += randomEntry(rndGenerator);
             }
          }
-         break;
+
       } else {
          assert (false); // unexpected accessType
       }
