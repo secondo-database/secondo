@@ -13,6 +13,12 @@ Signature: stream(tblock or tuple) x stream(tblock or tuple) x symbol x symbol -
 Example  : query strassen feed {a} strassen feed {b} cdacspatialjoin[GeoData_a, GeoData_b] count
 Result   : (longint 26492)
 
+Operator : cacheTest
+Number   : 1
+Signature: int -> bool
+Example  : query cacheTest(128)
+Result   : (bool TRUE)
+
 Operator : createRectangles1D
 Number   : 1
 Signature: int x int x real x real x int -> stream(tuple(Rectangle<1>))

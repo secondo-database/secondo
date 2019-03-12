@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AlgebraManager.h"
 
 #include "CDACSpatialJoin.h"
+#include "CacheTest.h"
 #include "CreateRectangles.h"
 
 namespace cdacspatialjoin {
@@ -31,6 +32,10 @@ namespace cdacspatialjoin {
       // CDACSpatialJoin operator
       std::shared_ptr<Operator> opCDACSpatialJoin =
               CDACSpatialJoin().getOperator();
+
+      // CacheTest operator
+      std::shared_ptr<Operator> opCacheTest =
+              CacheTest().getOperator();
 
       // createRectangles1D/2D/3D stream operators
       std::shared_ptr<Operator> opCreateRectangles1D =
@@ -46,6 +51,10 @@ namespace cdacspatialjoin {
          // CDACSpatialJoin operator
          opCDACSpatialJoin.get()->SetUsesMemory();
          AddOperator(opCDACSpatialJoin.get());
+
+         // cacheTest operator
+         opCacheTest.get()->SetUsesMemory();
+         AddOperator(opCacheTest.get());
 
          // createRectangles1D/2D/3D stream operators
          AddOperator(opCreateRectangles1D.get());
