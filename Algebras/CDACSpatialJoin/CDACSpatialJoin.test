@@ -25,6 +25,23 @@ let rect100 = [const (rel (tuple ((Bbox rect)) )) value ( ((-2 -1 -2 -1)) ((-2 -
  )];
 
 ########################################
+# OPERATOR - cacheTest
+########################################
+
+#testcase -0.1- cacheTest with wrong number of parameters
+#yields error
+query cacheTest(1, 2);
+
+#testcase -0.2- cacheTest with wrong parameter type
+#yields error
+query cacheTest("Text");
+
+#testcase -0.3- cacheTest with valid parameter
+#yields (bool TRUE)
+query cacheTest(1);
+
+
+########################################
 # OPERATOR - createRectangles1D
 ########################################
 
@@ -155,7 +172,7 @@ query createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 
 #yields (longint 89843)
 query createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} cdacspatialjoin[] count;
 
-#testcase -4.11- compare CDACSpatialJoin result count (89.843) with spatialjoin result count
+#testcase -4.11- compare CDACSpatialJoin result count (89.843) with spatialjoin result count (when spatialjoin is processed, InCcReal causes 96 bytes memory leak)
 #yields (bool TRUE)
 query (createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} cdacspatialjoin[] count) 
     = (createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} spatialjoin[Bbox_a, Bbox_b] count);
