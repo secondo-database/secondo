@@ -266,7 +266,7 @@ SecondoTTY::ProcessFile( const string& fileName , const bool stopOnError,
     if(!res){
       cout << "Errors during processing the file "  << fileName << "."<< endl; 
     } else {
-      cout << "File " << fileName << " successful processed." << endl;
+      cout << "File " << fileName << " successfully processed." << endl;
     }
     cin.rdbuf( oldBuffer );
     return res; 
