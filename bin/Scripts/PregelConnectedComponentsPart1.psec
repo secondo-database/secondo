@@ -1,24 +1,58 @@
 /*
-Create a graph suitable for Pregel computations.
+//paragraph [10] Title: [{\Large \bf ]  [}]
+//[@] [\verb+@+]
+//[%] [\%]
+//[&] [\&]
+//[ue] [\"{u}]
 
-1 Connected Components
+[10] Computing Strongly Connected Components in Pregel
+
+Part 1
+
+Ralf Hartmut G[ue]ting, March 12, 2019
+
+Run this script with ~SecondoTTYBDB~ and prefix [@][%] or [@][&]. Part 1 builds the graph and defines the computing function. Part 2 computes connected components and can be called repeatedly.
+
+Data needed are 
+
+  1 a relation with edges of the graph called ~EdgesA~ as it is created by script ~OrderedRelationGraphFromFullOSMImport.SEC~,
+
+  2 a relation ~Workers~ defining workers in the Pregel format. An example tuple is
+
+----
+             Host : 132.176.69.75
+             Port : 1783
+           Config : SecondoConfig.ini
+MessageServerPort : 1883
+----
+
+1 Create a Graph
 
 */
 
-# restore Workers from '../bin/Workers12Pregel';
-# secondo('restore Workers from \'../bin/Workers12Pregel\' ');
+# Database must exist and be open
+
+# adapt next line
+restore Workers from Workers12Pregel;
 let WorkerNum = Workers count;
 
 let PartFun = fun (id: int) (hashvalue(id, WorkerNum));
 
-# restore EdgesA from EdgesHombruch;
+# adapt one of next two lines
+# restore EdgesA from EdgesDortmund;
+let EdgesA = "EdgesDortmund.bin" ffeed5 consume;
+
 update EdgesA := EdgesA feed sortby[Source] consume;
 
 # add undefined curves (for applications in general)
-query EdgesA feed filter[not(isdefined(.Curve))] EdgesA updatedirect[Curve: create_sline(.SourcePos, .TargetPos)] count
+query EdgesA feed filter[not(isdefined(.Curve))] 
+  EdgesA updatedirect[Curve: create_sline(.SourcePos, .TargetPos)] 
+  count
 
-let NodesPersistent = EdgesA feed projectextend[; PrelId: .Source, Pos: .SourcePos] 
-  EdgesA feed projectextend[; PrelId: .Target, Pos: .TargetPos] concat 
+let NodesPersistent = 
+  EdgesA feed projectextend[; PrelId: .Source, Pos: .SourcePos] 
+  EdgesA feed projectextend[; PrelId: .Target, Pos: .TargetPos] 
+  concat 
   sort rdup 
   addcounter[Id, 1]
   extend[Partition: PartFun(.Id)]
@@ -26,47 +60,44 @@ let NodesPersistent = EdgesA feed projectextend[; PrelId: .Source, Pos: .SourceP
   sortby[PrelId] 
   consume
 
-# (PrelId int) (Pos point) (Id int) (Partition int) (Color int) (Active bool)
+# (PrelId int) (Pos point) (Id int) (Partition int) (Color int) 
+# (Active bool)
 
 let Size = (NodesPersistent feed max[Id]) + 1
 
 let EdgesForward = EdgesA feed  extend[Cost: size(gk(.Curve))]
-  project[Source, Target, Cost] extend[ActiveEdge: TRUE] 
+  project[Source, Target, Cost]  
   NodesPersistent feed mergejoin[Source, PrelId]
   NodesPersistent feed {n} itHashJoin[Target, PrelId_n]
   projectextend[; Source: .Id, PartitionSource: .Partition, Target: .Id_n, 
-    PartitionTarget: .Partition_n, Cost: .Cost, ActiveEdge: TRUE]
+    PartitionTarget: .Partition_n, Cost: .Cost]
   consume
 
-# (Source, PartitionSource, Target, PartitionTarget, Cost, ActiveEdge)
+# (Source, PartitionSource, Target, PartitionTarget, Cost)
 
 let EdgesBackward = EdgesForward feed projectextend[; Source: .Target, 
   PartitionSource: .PartitionTarget, Target: .Source, 
-  PartitionTarget: .PartitionSource, Cost: .Cost, ActiveEdge: TRUE] sortby[Source] consume
+  PartitionTarget: .PartitionSource, Cost: .Cost] sortby[Source] consume
 
-# (Source, PartitionSource, Target, PartitionTarget, Cost, ActiveEdge)
-
-
-
-
-query memclear()
-
-let Nodes = NodesPersistent feed mconsume;
-let Forward = EdgesForward feed createmgraph3[Source, Target, Cost, Size];
-let Backward = EdgesBackward feed createmgraph3[Source, Target, Cost, Size];
-
-
-
-let InitialMessages = NodesPersistent feed 
-  projectextend[; NodeId: .Id, NodePartition: .Partition]
-  extend[Message: "newColor", Value: .NodeId]
-  consume
-
-let NoMessages = fun() InitialMessages feed head[0]
-
-# (NodeId, NodePartition, Message, Value)
-
+# (Source, PartitionSource, Target, PartitionTarget, Cost)
 /*
+
+2 Computing Strongly Connected Components
+
+Nodes and edges have schemas:
+
+----
+Node(PrelId: int, Pos: point, Id: int, Partition: int, Color: int, 
+  Active: bool)
+Edge(Source: int, PartitionSource: int, Target: int, PartitionTarget: int, 
+  Cost: real)
+----
+
+Initially nodes are numbered 1, ..., ~n~ in field ~Id~, ~Color~ = 0, ~Active~ = TRUE. Only active nodes receive messages. 
+
+
+
+2.1 Phase 1: Remove Singleton Components
 
 ----
 To all nodes: checkSingle()
@@ -74,12 +105,14 @@ To all nodes: checkSingle()
 on checkSingle():
   if count(successors) = 0 or count(predecessors) = 0 then
     Color := Id;
+    Active := false;
     send(predecessors, checkSingle());
     send(successors, checkSingle());
     disconnect;
-    Active := false;
   endif
 ----
+
+2.2 Phase 2: Spread the Maximum Color
 
 ----
 To all nodes: resetColor()
@@ -87,11 +120,59 @@ To all nodes: resetColor()
 on resetColor():
   Color := 0;
   send(successors, newColor(Id));
+
+on newColor(X):
+  if X > Color then 
+    Color := X;
+    send(successor, newColor(X))
+  endif
 ----
 
+2.3 Phase 3: Spread Back to Predecessors of Maximum
+
+----
+To all nodes: maxBack()
+
+on maxBack():
+  if Color = Id then 
+    send(predecessor, maxColor(Color));
+    Active := FALSE
+  endif
+
+on maxColor(X):
+  if Color = X then send(predecessor, maxColor(X));
+    Active := FALSE
+  endif
+----
+
+2.4 Control
+
+----
+while count(ActiveNodes) = 0 do
+  Phase 1;
+  Phase 2;
+  Phase 3;
+endwhile
+----
+
+3 The Compute Function
+
+The node programs are implemented in the following ~Compute~ function.
 
 */
+query memclear()
 
+let Nodes = NodesPersistent feed mconsume;
+let Forward = EdgesForward feed createmgraph3[Source, Target, Cost, Size];
+let Backward = EdgesBackward feed 
+  createmgraph3[Source, Target, Cost, Size];
+
+let InitialMessages = NodesPersistent feed 
+  projectextend[; NodeId: .Id, NodePartition: .Partition]
+  extend[Message: "newColor", Value: .NodeId]
+  consume
+
+let NoMessages = fun() InitialMessages feed head[0]
 
 let Compute = fun (messages: stream(tuple([NodeId: int, NodePartition: int, 
     Message: string, Value: int])))
@@ -129,19 +210,22 @@ let Compute = fun (messages: stream(tuple([NodeId: int, NodePartition: int,
 	    NodePartition: PartFun(.Id), 
       	    Message: "newColor", Value: .Id]  
     ; "newColor", 
-        t feed filter[.Max > .Color] Nodes mupdatedirect2[TID; Color: .Max]
+        t feed filter[.Max > .Color] 
+        Nodes mupdatedirect2[TID; Color: .Max]
         loopjoin[Forward mg3successors[.Id]]
           projectextend[; NodeId: .Target, 
 	    NodePartition: PartFun(.Target), 
       	    Message: "newColor", Value: .Color]  
     ; "maxBack",
-        t feed filter[.Id = .Color] Nodes mupdatedirect2[TID; Active: FALSE]
+        t feed filter[.Id = .Color] 
+        Nodes mupdatedirect2[TID; Active: FALSE]
         loopjoin[Backward mg3successors[.Id]]
           projectextend[; NodeId: .Target, 
 	    NodePartition: PartFun(.Target), 
       	    Message: "maxColor", Value: .Color] 
     ; "maxColor", 
-        t feed filter[.Color = .Max] Nodes mupdatedirect2[TID; Active: FALSE]
+        t feed filter[.Color = .Max] 
+        Nodes mupdatedirect2[TID; Active: FALSE]
         loopjoin[Backward mg3successors[.Id]]
           projectextend[; NodeId: .Target, 
 	    NodePartition: PartFun(.Target), 
@@ -151,21 +235,10 @@ let Compute = fun (messages: stream(tuple([NodeId: int, NodePartition: int,
 
 
 query share("Compute", TRUE, Workers);
+/*
+4 Distribute Data to Workers
 
-
-
-# query Nodes mfeed addid filter[not(.Active)] Nodes mupdatedirect2[TID; Active: TRUE] consume
-
-
-
-
-# NodeId, Partition, Message, Value, Id, Pos, Color, Active, TID
-
-
-#
-# Distribute
-#
-
+*/
 let NodesD = NodesPersistent feed ddistribute4["NodesD", PartFun(.Id), 
   WorkerNum , Workers];
 let NodesSD = NodesD makeSimple[FALSE, "NodesPersistent"];
