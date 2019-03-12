@@ -14641,7 +14641,7 @@ ListExpr SUBTYPETM(ListExpr args){
    ListExpr arg = nl->First(args);
 
    for(int i=0;i<pos2;i++){
-      if(!nl->HasLength(arg,2)){
+      if(!nl->HasMinLength(arg,2)){
          return listutils::typeError("no subtype found");
       }
       arg = nl->Second(arg);
