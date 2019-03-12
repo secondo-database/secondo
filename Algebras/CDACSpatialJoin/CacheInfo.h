@@ -110,6 +110,9 @@ Provides information on the various caches on this computer.
 
 */
 class CacheInfos {
+   // -----------------------------------------------------
+   // static members and functions
+
    static CacheInfos& getOnlyInstance();
 
 public:
@@ -123,6 +126,9 @@ public:
    /* reports a summary of all caches on this computer to the given output
     * stream */
    static void report(std::ostream& out);
+
+   // -----------------------------------------------------
+   // instance members and functions
 
 private:
    /* the number of logical(!) cpus on this machine */

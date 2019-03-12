@@ -56,7 +56,7 @@ std::string CacheInfo::readString(const string& path, const string file) {
 }
 
 unsigned CacheInfo::readUnsigned(const string& path, const string file,
-        int base /* = 10 */) {
+                                 const int base /* = 10 */) {
    try {
       const string line = readString(path, file);
       size_t pos;
@@ -153,7 +153,7 @@ const CacheInfoPtr CacheInfos::getCacheInfo(const CacheType type,
 }
 
 void CacheInfos::report(std::ostream& out) {
-   out << "Caches available:" << endl;
+   out << endl << "Caches:" << endl;
    const CacheInfos& cacheInfos  = getOnlyInstance();
    for (const CacheInfoPtr& info : cacheInfos.infos)
       cacheInfos.report(info, out);
@@ -177,3 +177,4 @@ void CacheInfos::report(const CacheInfoPtr& info, std::ostream& out) const {
          << info->coherencyLineSize << " bytes line size, "
          << "physical line partition " << info->physicalLinePartition << endl;
 }
+
