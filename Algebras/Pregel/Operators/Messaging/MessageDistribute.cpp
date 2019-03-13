@@ -102,17 +102,20 @@ namespace pregel {
   MessageDistribute::typeMapping
  );
 
- void MessageDistribute::distributeMessages(Stream<Tuple> stream,
+size_t MessageDistribute::distributeMessages(Stream<Tuple> stream,
                                             MessageBroker &broker) {
   const int round = SuperstepCounter::get();
+  size_t count = 0;
   stream.open();
   Tuple *tuple;
   while ((tuple = stream.request()) != nullptr) {
    std::shared_ptr<MessageWrapper> message 
                             = MessageWrapper::fromTuple(tuple, round);
    broker.sendMessage(message);
+   count++;
   }
 
   stream.close();
+  return count;
  }
 }

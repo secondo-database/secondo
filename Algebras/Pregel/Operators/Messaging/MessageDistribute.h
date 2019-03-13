@@ -57,7 +57,7 @@ public:
                           Word &local,
                           void *s);
 
-  static void distributeMessages(Stream<Tuple>, MessageBroker &);
+  static size_t distributeMessages(Stream<Tuple>, MessageBroker &);
 
   static OperatorSpec operatorSpec;
 
