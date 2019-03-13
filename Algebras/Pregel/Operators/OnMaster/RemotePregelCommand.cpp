@@ -43,6 +43,10 @@ This file defines the members of class RemotePregelCommand
 #include <StandardTypes.h>
 #include <ListUtils.h>
 #include "../../../FText/FTextAlgebra.h"
+#include "Algebras/Distributed2/CommandLog.h"
+
+
+distributed2::CommandLog commandLog;
 
 namespace pregel {
  ListExpr RemotePregelCommand::typeMapping(ListExpr args) {
@@ -59,12 +63,70 @@ namespace pregel {
   return nl->SymbolAtom(CcBool::BasicType());
  }
 
+
+
+ class QueryRunner{
+   public:
+      QueryRunner(WorkerConnection* _connection, 
+                  const std::string& _query): connection(_connection),
+                                              query(_query){
+
+         runner = new boost::thread(&QueryRunner::run, this);
+      }
+
+      ~QueryRunner() {
+         runner->join();
+         delete runner;
+      }
+
+      std::string getResult(){
+         runner->join();
+         return result;
+      }
+
+      bool successful(){
+         runner->join();
+         return err==0;          
+      }
+
+      std::string errorMessage(){
+          runner->join();
+          return errMsg;
+      }
+
+
+      QueryRunner(const QueryRunner&) = delete;
+      QueryRunner(QueryRunner&& ) = delete;
+
+      
+      
+   private:
+      WorkerConnection* connection;
+      std::string query;
+      boost::thread* runner;
+      int err;
+      std::string errMsg;
+      std::string result;
+      
+
+      void run(){
+        double runtime = 0;
+        connection->simpleCommand(query, err, errMsg, result, false,
+                                  runtime, false, commandLog);
+      }
+
+ };
+
+
  int RemotePregelCommand::valueMapping(Word *args, Word &result, int, Word &,
                                        void *s) {
   result = qp->ResultStorage(s);
-  auto commandText = (FText *) args[0].addr;
-
-  PRECONDITION(commandText->IsDefined(), "commandText must be defined");
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  FText* commandText = (FText *) args[0].addr;
+  if(!commandText->IsDefined()){
+     res->Set(true,false);
+     return 0;
+  }
 
   std::string query = commandText->GetValue();
 
@@ -75,19 +137,40 @@ namespace pregel {
     return new std::string(result);
   };
 
+
+  std::vector<QueryRunner*> runners;
+
   for (auto worker = workers(); worker != nullptr; worker = workers()) {
-   try {
-    auto result = Commander::remoteQuery(worker->connection, query, mapper);
-    delete result;
-   } catch (RemoteExecutionException &e) {
-    BOOST_LOG_TRIVIAL(error) << "Command failed: " << query.c_str()
-                             << e.what() ;
-    ((CcBool *) result.addr)->Set(true, false);
-    return 0;
-   }
+     WorkerConnection* w = worker->connection;
+     if(w){
+         runners.push_back(new QueryRunner(w,query));
+     }
+  }
+  
+  size_t success = 0;
+  size_t failed  = 0;
+  std::string err;
+  for(QueryRunner* qr : runners){
+     if(qr->successful()){
+        success++;
+     } else {
+        if(failed == 0){
+           err = qr->errorMessage();
+        }
+        failed++;
+     } 
+     delete qr;
   }
 
-  ((CcBool *) result.addr)->Set(true, true);
+  if(failed>0){
+    cout << "command '" << query <<"' failed on " << failed 
+         << " workers " << endl;
+    cout << "the error on the first failed worker is " << err << endl;
+    res->Set(true,false);
+  } else {
+    res->Set(true,true);
+  }
+
   return 0;
  }
 
