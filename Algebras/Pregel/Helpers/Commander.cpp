@@ -74,8 +74,9 @@ namespace pregel {
 
   std::string errorMessage;
   std::string resultStore;
-  connection->simpleCommand(query, err, errorMessage, resultStore, rewriteQuery,
-                            runtime, printCommands, commandLog);
+  int err;
+  connection->simpleCommand(query, err, errorMessage, resultStore, false,
+                            runtime, false, commandLog);
 
   if (err != 0) {
    throw RemoteExecutionException(
