@@ -10,6 +10,8 @@ operator setupPregel alias SETUPPREGEL pattern op (_)
 
 operator initPregelMessages alias INITPREGELMESSAGES pattern _ op
 
+operator initPregelMessagesWorker alias INITPREGELMESSAGESWORKER pattern _ op
+
 operator startLoopbackMessageClient alias STARTLOOPBACKMESSAGECLIENT pattern op (_)
 
 operator setPregelFunction alias SETPREGELFUNCTION pattern op (_)

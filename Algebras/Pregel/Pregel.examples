@@ -115,3 +115,14 @@ Example   : query getPregelMessages()
 Result    : unpredictable
 Remark    : The operator requires the pregel system to be initialized with setupPregel(...)
 
+Operator  : initPregelMessagesWorker
+Number    : 1
+Signature :  stream(tuple(X)) -> int
+Example   : query remotePregelCommand('query msg feed initPregelMessagesWorker')
+Result    : crashes
+Remark    : under development
+
+
+
+
+
