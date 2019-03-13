@@ -49,6 +49,7 @@ This header file contains definitions of type mapping, vallue mapping and the op
 #include "../Messaging/MessageDistribute.h"
 #include "../../Helpers/Commander.h"
 #include "../../typedefs.h"
+#include "../../PregelAlgebra.h"
 
 namespace pregel {
 
@@ -56,6 +57,11 @@ namespace pregel {
   if (!nl->HasLength(args, 1)) {
    return listutils::typeError("You must provide 1 argument.");
   }
+  if(!PregelAlgebra::getAlgebra()->amITheMaster()){
+    return listutils::typeError("This is a master command");
+  }
+
+
   auto stream = nl->First(args);
 
   if (!listutils::isTupleStream(stream)) {
