@@ -566,7 +566,7 @@ the form (counterno, value).
 3.2.3 Procedures Exported for Testing Only
 
 */
-  ListExpr AnnotateX( const ListExpr expr, bool& defined );
+  ListExpr AnnotateX(const  ListExpr expr, bool& defined );
 /*
 Annotate query expression of ~expr~. Create tables for variables,
  reset ~valueno~ and ~functionno~, then call ~annotate~. Parameter
@@ -716,6 +716,10 @@ the query processor, and returned as a nested list within ~value~.
 Simple string arguments are not evaluated but returned directly.
 
 */
+
+   static ListExpr GetTypeOf(ListExpr valueExpr, NestedList* nl);
+
+
   void DestroyValuesArray();
 /*
 Destroys the ~values~ array. This function is used when there is a failure

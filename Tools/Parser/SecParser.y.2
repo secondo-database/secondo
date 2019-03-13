@@ -478,7 +478,10 @@ typeexpr  :  constructor  {$$ = $1;}
     |  ZZNAMING typeexpr  {$$ = NestedText::Concat(NestedText::AtomC("("),
             NestedText::Concat($1, NestedText::Concat(NestedText::AtomC(" "),
             NestedText::Concat($2,  NestedText::AtomC(")")))));}
-    
+    |  ZZTYPEOF '(' valueexpr ')' {
+         $$ = NestedText::Concat(NestedText::AtomC("(typeOf "),
+                NestedText::Concat($3, NestedText::AtomC(")")));
+       }
     ;
 
 
@@ -490,6 +493,10 @@ typeexpr2  :  constructor  {$$ = $1;}
               NestedText::Concat($3, NestedText::AtomC(")")))));}
     |  nestedlist 
         {$$ = $1;}
+    |  ZZTYPEOF '(' valueexpr ')' {
+         $$ = NestedText::Concat(NestedText::AtomC("(typeOf "),
+                NestedText::Concat($3, NestedText::AtomC(")")));
+       }
     ;
 
 constructor  :  ZZIDENTIFIER  {$$ = $1;}

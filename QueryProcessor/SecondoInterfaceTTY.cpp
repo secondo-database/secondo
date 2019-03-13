@@ -158,6 +158,8 @@ transactions of errorneous queries were not aborted.
 #include "SWI-Prolog.h"
 #include "SecondoPrologInterface.h"
 
+#include "SystemTables.h"
+
 #ifdef SECONDO_ANDROID
 #include "android/log.h"
 #endif
@@ -174,7 +176,6 @@ about them can be found in SystemInfoRel.h
 
 */
 
-#include "SystemTables.h"
 SystemTables* SystemTables::instance = 0;
 
 
@@ -1334,7 +1335,7 @@ Command\_<name>.
     }
 
     // --- Type definition
-
+    // format:  type <name> = <typeexpression>
     else if ( nl->IsEqual( first, "type" ) &&
              (length == 4) && nl->IsAtom( nl->Second( list ) ) &&
              (nl->AtomType( nl->Second( list )) == SymbolType) &&
@@ -1345,6 +1346,11 @@ Command\_<name>.
         StartCommand();
         typeName = nl->SymbolValue( nl->Second( list ) );
         ListExpr typeExpr = nl->Fourth( list );
+        if(nl->HasLength(typeExpr,2) 
+           && nl->IsEqual(nl->First(typeExpr),"typeOf")){
+           typeExpr = QueryProcessor::GetTypeOf(nl->Second(typeExpr),nl);
+        }
+
         ListExpr typeExpr2 = ctlg.ExpandedType( typeExpr );
 
         if ( ctlg.KindCorrect( typeExpr2, errorInfo ) )

@@ -126,6 +126,7 @@ tuple		{yylval = NestedText::Atom( yytext, yyleng ); return ZZTUPLE;}
 group		{yylval = NestedText::Atom( yytext, yyleng ); return ZZGROUP;}
 
 type		{yylval = NestedText::Atom( yytext, yyleng ); return ZZTYPE;}
+typeOf	{yylval = NestedText::Atom( yytext, yyleng ); return ZZTYPEOF;}
 delete		{yylval = NestedText::Atom( yytext, yyleng ); return ZZDELETE;}
 create		{yylval = NestedText::Atom( yytext, yyleng ); return ZZCREATE;}
 update		{yylval = NestedText::Atom( yytext, yyleng ); return ZZUPDATE;}

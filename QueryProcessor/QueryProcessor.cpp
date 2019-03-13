@@ -1373,7 +1373,7 @@ all objects mentioned in the expression have defined values.
 
 
 ListExpr
-QueryProcessor::Annotate( const ListExpr expr,
+QueryProcessor::Annotate( const ListExpr expr1,
                           NameIndex& varnames,
                           VarEntryTable& vartable,
                           bool& defined,
@@ -1794,6 +1794,20 @@ indirect object referring to the argument vector with the corresponding
 function index.
 
 */
+
+  ListExpr expr;
+
+  if(nl->HasLength(expr1,2) &&
+     nl->HasLength(nl->First(expr1),2) &&
+     nl->IsEqual(nl->First(nl->First(expr1)),"typeOf")){
+    ListExpr tv = nl->Second(nl->First(expr1));
+    ListExpr t = GetTypeOf(tv,nl);
+    expr = nl->TwoElemList(t,nl->Second(expr1));
+  }  else {
+    expr = expr1;
+  }
+
+
 
   int alId=0, opId=0, position=0, funindex=0, opFunId=0, errorPos=0;
 
@@ -2939,7 +2953,15 @@ arguments preceding this function argument in an operator application.
       {
         paramtype = nl->Second( nl->First( expr ) );
       }
-      ListExpr param = paramtype;
+      ListExpr param;
+      if(   nl->HasLength(paramtype,2) 
+         && nl->IsEqual(nl->First(paramtype),"typeOf")){
+         param = GetTypeOf(nl->Second(paramtype), nl);
+         paramtype = param;
+      } else {
+         param = paramtype;
+      }
+
       bool typeOk = false;
       if( nl->HasMinLength(param,2) && nl->IsEqual(nl->First(param), "stream")) 
       {
@@ -5406,6 +5428,26 @@ QueryProcessor::SetDebugLevel( const int level )
    traceProgress = (level & 32) > 0;
    debugTypeMapping = (level & 64) > 0;
 }
+
+ListExpr QueryProcessor::GetTypeOf(ListExpr expr, NestedList* nl){
+  QueryProcessor qpp(nl, SecondoSystem::GetAlgebraManager(),16);
+  bool correct,evaluable,defined,isFunction;
+  OpTree tree = nullptr; 
+  ListExpr resultType = nl->TheEmptyList();
+  try{
+     qpp.Construct(expr, correct, evaluable, defined, 
+                isFunction, tree, resultType,true);
+  } catch(...){
+    return nl->SymbolAtom("typeerror");
+  }
+  if(tree){
+     qpp.Destroy(tree, true);
+  }
+  return resultType;
+}
+
+
+
 
 bool
     QueryProcessor::ExecuteQuery( const string& queryListStr,
