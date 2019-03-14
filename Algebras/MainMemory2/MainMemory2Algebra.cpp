@@ -13041,7 +13041,7 @@ ListExpr mgconnectedcomponentsTypeMap(ListExpr args) {
       lastlistn = nl->Append(lastlistn,nl->First(rest));
       rest = nl->Rest(rest);
     }
-    string n1 = perNode?"CompNo_Source":"CompNo";
+    string n1 = perNode?"SourceComp":"CompNo";
     lastlistn = nl->Append(lastlistn,
                           nl->TwoElemList(
                             nl->SymbolAtom(n1),
@@ -13049,7 +13049,7 @@ ListExpr mgconnectedcomponentsTypeMap(ListExpr args) {
     if(perNode){
        lastlistn = nl->Append(lastlistn,
                           nl->TwoElemList(
-                            nl->SymbolAtom("CompNo2"),
+                            nl->SymbolAtom("TargetComp"),
                             listutils::basicSymbol<CcInt>()));
     }
 
@@ -13060,7 +13060,7 @@ ListExpr mgconnectedcomponentsTypeMap(ListExpr args) {
                                           listn));
 }
 
-template<bool iter>
+template<bool iter, bool perNode>
 class mgconnectedComponentsInfo{
   public:
     mgconnectedComponentsInfo(graph::Graph* _graph,
@@ -13119,17 +13119,23 @@ class mgconnectedComponentsInfo{
     }
 
     Tuple* createResultTuple(Tuple* tup){
-      graph::Vertex* w = graph->getVertex(vertexit->getPointer()->getDest());
-      int comp = w->getCompNo()==compNo?compNo:-2;
+      // copy original attributes
       Tuple* res = new Tuple(tt);
       for(int i=0; i<tup->GetNoAttributes(); i++) {
         res->CopyAttribute(i,tup,i);
       }     
-      res->PutAttribute(tup->GetNoAttributes(),new CcInt(true,comp));
-      return res;  
-
-    }
-
+      // append new Attributes
+      graph::Vertex* w = graph->getVertex(vertexit->getPointer()->getDest());
+      if(!perNode){
+        int comp = w->getCompNo()==compNo?compNo:-2;
+        res->PutAttribute(tup->GetNoAttributes(),new CcInt(true,comp));
+        return res;  
+      }
+      res->PutAttribute(tup->GetNoAttributes(),new CcInt(true,compNo));
+      res->PutAttribute(tup->GetNoAttributes()+1,
+                        new CcInt(true,w->getCompNo()));
+      return res;
+   }
 };
 
 /*
@@ -13137,12 +13143,12 @@ class mgconnectedComponentsInfo{
 7.37.2 Value Mapping Function of operator ~mgconnectedcomponents~
 
 */
-template<class T,bool iter>
+template<class T,bool iter, bool perNode>
 int mgconnectedcomponentsValMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
 
-  mgconnectedComponentsInfo<iter>* li =
-        (mgconnectedComponentsInfo<iter>*) local.addr;
+  mgconnectedComponentsInfo<iter, perNode>* li =
+        (mgconnectedComponentsInfo<iter, perNode>*) local.addr;
 
   switch (message) {
     case OPEN: {
@@ -13162,7 +13168,8 @@ int mgconnectedcomponentsValMap (Word* args, Word& result,
       ListExpr tupleType = GetTupleResultType(s);
       TupleType* tt = new TupleType(nl->Second(tupleType));
       
-      local.addr= new mgconnectedComponentsInfo<iter>(memgraph->getgraph(),tt); 
+      local.addr= new mgconnectedComponentsInfo<iter,perNode>(
+                                                 memgraph->getgraph(),tt); 
       return 0;
     }
 
@@ -13183,16 +13190,20 @@ int mgconnectedcomponentsValMap (Word* args, Word& result,
 
 
 ValueMapping mgconnectedcomponentsVM[] = {
-  mgconnectedcomponentsValMap<Mem,false>,
-  mgconnectedcomponentsValMap<MPointer,false>,
+  mgconnectedcomponentsValMap<Mem,false, false>,
+  mgconnectedcomponentsValMap<MPointer,false, false>,
 };
 
 
 ValueMapping mgconnectedcomponentsVM2[] = {
-  mgconnectedcomponentsValMap<Mem,true>,
-  mgconnectedcomponentsValMap<MPointer,true>,
+  mgconnectedcomponentsValMap<Mem,true, false>,
+  mgconnectedcomponentsValMap<MPointer,true, false>,
 };
 
+ValueMapping mgconnectedcomponentsVM3[] = {
+  mgconnectedcomponentsValMap<Mem,true, true>,
+  mgconnectedcomponentsValMap<MPointer,true, true>
+};
 
 
 int mgconnectedcomponentsSelect(ListExpr args){
@@ -13233,6 +13244,16 @@ Operator mgconnectedcomponentsOp (
     mgconnectedcomponentsVM2,
     mgconnectedcomponentsSelect,
     mgconnectedcomponentsTypeMap<false>
+);
+
+
+Operator mgconnectedcomponentsNOp (
+    "mgconnectedcomponentsN",
+    mgconnectedcomponentsSpec.getStr(),
+    2,
+    mgconnectedcomponentsVM3,
+    mgconnectedcomponentsSelect,
+    mgconnectedcomponentsTypeMap<true>
 );
 
 /*
@@ -18602,7 +18623,7 @@ Operator mg3disconnectOp(
 Operator mgconnectedcomponents
 
 */
-template<class G>
+template<class G,bool perNode>
 ListExpr mg23connectedcomponentsTM(ListExpr args){
   if(!nl->HasLength(args,1)){
     return listutils::typeError("one argument expected");
@@ -18616,20 +18637,40 @@ ListExpr mg23connectedcomponentsTM(ListExpr args){
   }
   ListExpr attrList = nl->Second(nl->Second(graph));
   ListExpr d;
-  if(listutils::findAttribute(attrList,"CompNo",d)){
-   return listutils::typeError("Graph representation contains an "
+  
+  if(!perNode){
+    if(listutils::findAttribute(attrList,"CompNo",d)){
+      return listutils::typeError("Graph representation contains an "
                                "attribute CompNo");
+    }
+    ListExpr cl = nl->OneElemList(nl->TwoElemList(
+                           nl->SymbolAtom("CompNo"),
+                           listutils::basicSymbol<CcInt>()));
+    attrList = listutils::concat(attrList,cl);
+  } else {
+    if(listutils::findAttribute(attrList,"SourceComp",d)){
+      return listutils::typeError("Graph representation contains an "
+                               "attribute SourceComp");
+    }
+    if(listutils::findAttribute(attrList,"TargetComp",d)){
+      return listutils::typeError("Graph representation contains an "
+                               "attribute TargetComp");
+    }
+    ListExpr cl = nl->TwoElemList(
+                     nl->TwoElemList(
+                           nl->SymbolAtom("SourceComp"),
+                           listutils::basicSymbol<CcInt>()),
+                     nl->TwoElemList(
+                           nl->SymbolAtom("TargetComp"),
+                           listutils::basicSymbol<CcInt>())
+                  );
+    attrList = listutils::concat(attrList,cl);
   }
-  ListExpr cl = nl->OneElemList(nl->TwoElemList(
-                         nl->SymbolAtom("CompNo"),
-                         listutils::basicSymbol<CcInt>()));
-  attrList = listutils::concat(attrList,cl);
-  return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
-                 nl->TwoElemList( listutils::basicSymbol<Tuple>(),
-                 attrList));
+  
+  return Stream<Tuple>::wrap(Tuple::wrap(attrList));
 }
 
-
+template<bool perNode>
 class mg23connectedcomponentsInfo{
   public:
      mg23connectedcomponentsInfo(MGraphCommon* _g, TupleType* _tt): 
@@ -18669,23 +18710,32 @@ class mg23connectedcomponentsInfo{
      list<MEdge>::const_iterator it;
 
      Tuple* createResultTuple(const MEdge& e){
-        int comp = compInfo[pos] == compInfo[e.target]?compInfo[pos]:-2;
         const Tuple* src = e.info;
         Tuple* res = new Tuple(tt);
         for(int i=0;i<src->GetNoAttributes();i++){
            res->CopyAttribute(i,src,i);
         }
-        res->PutAttribute(src->GetNoAttributes(),new CcInt(true,comp));
+        if(!perNode){
+           int comp = compInfo[pos] == compInfo[e.target]?compInfo[pos]:-2;
+           res->PutAttribute(src->GetNoAttributes(),new CcInt(true,comp));
+        } else {
+           int sourceComp = compInfo[pos];
+           int targetComp = compInfo[e.target];
+           res->PutAttribute(src->GetNoAttributes(),new CcInt(true,sourceComp));
+           res->PutAttribute(src->GetNoAttributes()+1,
+                             new CcInt(true,targetComp));
+        }
         return res;
      }
 
 };
 
-template<class GN, class Graph>
+template<class GN, class Graph, bool perNode>
 int mg23connectedcomponentsVMT(Word* args, Word& result, int message,
                  Word& local, Supplier s){
 
-   mg23connectedcomponentsInfo* li = (mg23connectedcomponentsInfo*) local.addr;
+   mg23connectedcomponentsInfo<perNode>* li = 
+                      (mg23connectedcomponentsInfo<perNode>*) local.addr;
    switch(message){
       case INIT: {
          qp->GetLocal2(s).addr = new TupleType( 
@@ -18710,7 +18760,7 @@ int mg23connectedcomponentsVMT(Word* args, Word& result, int message,
              return 0;
           }
           TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
-          local.addr = new mg23connectedcomponentsInfo(g,tt);
+          local.addr = new mg23connectedcomponentsInfo<perNode>(g,tt);
           return 0;
       }
       case REQUEST: {
@@ -18733,13 +18783,23 @@ int mg23connectedcomponentsSelect(ListExpr args){
 }
 
 ValueMapping mg2connectedcomponentsVM [] = {
-  mg23connectedcomponentsVMT<Mem,MGraph2>,
-  mg23connectedcomponentsVMT<MPointer,MGraph2>
+  mg23connectedcomponentsVMT<Mem,MGraph2, false>,
+  mg23connectedcomponentsVMT<MPointer,MGraph2, false>
 };
 
 ValueMapping mg3connectedcomponentsVM [] = {
-  mg23connectedcomponentsVMT<Mem,MGraph3>,
-  mg23connectedcomponentsVMT<MPointer,MGraph3>
+  mg23connectedcomponentsVMT<Mem,MGraph3, false>,
+  mg23connectedcomponentsVMT<MPointer,MGraph3, false>
+};
+
+ValueMapping mg2connectedcomponents2VM [] = {
+  mg23connectedcomponentsVMT<Mem,MGraph2, true>,
+  mg23connectedcomponentsVMT<MPointer,MGraph2, true>
+};
+
+ValueMapping mg3connectedcomponents2VM [] = {
+  mg23connectedcomponentsVMT<Mem,MGraph3, true>,
+  mg23connectedcomponentsVMT<MPointer,MGraph3, true>
 };
 
 
@@ -18756,7 +18816,7 @@ Operator mg2connectedcomponentsOp(
   2,
   mg2connectedcomponentsVM,
   mg23connectedcomponentsSelect,
-  mg23connectedcomponentsTM<MGraph2>
+  mg23connectedcomponentsTM<MGraph2,false>
 );
 
 Operator mg3connectedcomponentsOp(
@@ -18765,9 +18825,35 @@ Operator mg3connectedcomponentsOp(
   2,
   mg3connectedcomponentsVM,
   mg23connectedcomponentsSelect,
-  mg23connectedcomponentsTM<MGraph3>
+  mg23connectedcomponentsTM<MGraph3,false>
 );
 
+
+OperatorSpec mg23connctedcomponentsNSpec(
+  "mgraph{2,3} -> stream(tuple)",
+  "mgconnectedcomponents(_)",
+  "Append a component number to the graph nodes",
+  "query graph23 mgXconnectedcomponentsN count"
+);
+
+
+Operator mg2connectedcomponentsNOp(
+  "mg2connectedcomponentsN",
+  mg23connctedcomponentsNSpec.getStr(),
+  2,
+  mg2connectedcomponents2VM,
+  mg23connectedcomponentsSelect,
+  mg23connectedcomponentsTM<MGraph2,true>
+);
+
+Operator mg3connectedcomponentsNOp(
+  "mg3connectedcomponentsN",
+  mg23connctedcomponentsNSpec.getStr(),
+  2,
+  mg3connectedcomponents2VM,
+  mg23connectedcomponentsSelect,
+  mg23connectedcomponentsTM<MGraph3,true>
+);
 
 
 /*
@@ -20281,6 +20367,7 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mgshortestpathdOp);
           AddOperator(&mgshortestpathaOp);
           AddOperator(&mgconnectedcomponentsOp);
+          AddOperator(&mgconnectedcomponentsNOp);
           AddOperator(&mgconnectedcomponents_oldOp);
         
           AddOperator(&pwrapOp);
@@ -20345,6 +20432,8 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mg2exportddsgOp);
           AddOperator(&mg2connectedcomponentsOp);
           mg2connectedcomponentsOp.enableInitFinishSupport();
+          AddOperator(&mg2connectedcomponentsNOp);
+          mg2connectedcomponentsNOp.enableInitFinishSupport();
            
           // operators on mgraph3
           AddOperator(&createmgraph3Op);
@@ -20360,6 +20449,9 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mg3disconnectOp);
           AddOperator(&mg3connectedcomponentsOp);
           mg3connectedcomponentsOp.enableInitFinishSupport();
+          AddOperator(&mg3connectedcomponentsNOp);
+          mg3connectedcomponentsNOp.enableInitFinishSupport();
+          
           AddOperator(&mg3contractOp);
           AddOperator(&mg3minPathCostOp);
           AddOperator(&mg3exportddsgOp);

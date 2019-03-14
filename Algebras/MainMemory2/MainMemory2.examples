@@ -615,6 +615,12 @@ Signature : MGRAPH(tuple(x)) -> stream(tuple(a1:t1,...an+1:tn+1))
 Example   : query graph mgconnectedcomponents count;
 Result    : 74
 
+Operator  : mgconnectedcomponentsN
+Number    : 213
+Signature : MGRAPH(tuple(x)) -> stream(tuple(x @ SourceComp : int, TargetComp : int)
+Example   : query graph mgconnectedcomponents filter[.CompNo <0] count = graph mgconnectedcomponentsN filter[.SourceComp # .TargetComp] count
+Result    : TRUE
+
 Operator  : mgconnectedcomponents_old
 Number    : 214
 Signature : MGRAPH(tuple(x)) -> stream(tuple(a1:t1,...an+1:tn+1))
@@ -981,28 +987,33 @@ Signature : MGRAPH2 -> stream(tuple)
 Example   : query mgraph2_1  mg2connectedcomponents sortby[CompNo] krdup[CompNo] count
 Result    : 2
 
+Operator  : mg2connectedcomponentsN
+Number    : 913
+Signature : MGRAPH(tuple(x)) -> stream(tuple(x @ SourceComp : int, TargetComp : int)
+Example   : query mgraph2_1 mg2connectedcomponents filter[.CompNo <0] count = mgraph2_1 mg2connectedcomponentsN filter[.SourceComp # .TargetComp] count
+Result    : TRUE
 
 Operator  : createmgraph2flob
-Number    : 913
+Number    : 914
 Signature : stream(tuple) x IDENT x IDENT x fun -> mpointer(mem(mgraph(tuple@MG_Source,MG_Target,MG_Cost)))
 Example   : let mgraph2m =  otestrel feed createmgraph2flob[Id_s1,Id_s2, distance(.GeoData_s1,.GeoData_s2)] 
 Result    : ()
 
 
 Operator : mg2contract
-Number   : 914
+Number   : 915
 Signature : MGRAPH2 -> int
 Example   : query mg2contract(mgraph2_1,10,100,6,-1,2,0,0) > 0
 Result    : TRUE
 
 Operator : mg2minPathCost
-Number   : 915
+Number   : 916
 Signature : MGRAPH2 x int x int x int x int -> double
 Example   : query mg2minPathCost(mgraph2,1, 16, 10, 10) > 0
 Result    : TRUE
 
 Operator : mg2exportddsg
-Number   : 916
+Number   : 917
 Signature: MGRAPH2 x {string,text} x {int,real} -> bool
 Example  : query mgraph2 mg2exportddsg['mgraph2.ddsg', 1000]
 Result   : TRUE
@@ -1076,20 +1087,26 @@ Signature : MGRAPH3 -> stream(tuple)
 Example   : query mgraph3_1 mg3connectedcomponents sortby[CompNo] krdup[CompNo] count
 Result    : 1
 
+Operator  : mg3connectedcomponentsN
+Number    : 1011 
+Signature : MGRAPH(tuple(x)) -> stream(tuple(x @ SourceComp : int, TargetComp : int)
+Example   : query mgraph3_1 mg3connectedcomponents filter[.CompNo <0] count = mgraph3_1 mg3connectedcomponentsN filter[.SourceComp # .TargetComp] count
+Result    : TRUE
+
 Operator : mg3contract
-Number   :  1011
+Number   :  1012
 Signature : MGRAPH3 x int^7 -> int
 Example   : query mg3contract(mgraph3_1,10,100,6,-1,2,0,0)
 Result    : 0
 
 Operator : mg3minPathCost
-Number   : 1012
+Number   : 1013
 Signature : MGRAPH3 x int x int x int x int -> double
 Example   : query mg3minPathCost(mgraph3_1,1, 16, 10, 10) > 0
 Result    : TRUE
 
 Operator : mg3exportddsg
-Number   : 1013
+Number   : 1014
 Signature: MGRAPH3 x {string,text} x {int,real} -> bool
 Example  : query mgraph3_1 mg3exportddsg['mgraph3_1.ddsg', 1000]
 Result   : TRUE

@@ -116,6 +116,7 @@ operator mgshortestpatha alias MGSHORTESTPATHA pattern _ op [_,_,_; fun, fun]
          implicit parameter tuple type MTUPLE
 operator mgconnectedcomponents_old alias MGCONNECTEDCOMPONENTS_OLD pattern _ op 
 operator mgconnectedcomponents alias MGCONNECTEDCOMPONENTS pattern _ op 
+operator mgconnectedcomponentsN alias MGCONNECTEDCOMPONENTSN pattern _ op 
          
 operator momapmatchmht alias MOMAPMATCHMHT pattern op(_,_,_,_)
 
@@ -174,6 +175,7 @@ operator mg2numsuccessors alias MG2NUMSUCCESSORS pattern _ op[_]
 operator mg2numpredecessors alias MG2NUMPREDECESSORS pattern _ op[_]
 operator mg2disconnect alias MG2NUMPREDECESSORS pattern _ op[_]
 operator mg2connectedcomponents alias MG2CONNECTEDCOMPONENTS pattern _ op
+operator mg2connectedcomponentsN alias MG2CONNECTEDCOMPONENTSN pattern _ op
 operator mg2contract alias MG2CONTRACT pattern op(_,_,_,_)
 operator mg2minPathCost alias MG2MINPATHCOST pattern op(_,_,_,_,_)
 operator mg2exportddsg alias MG2EXPORTDDSG pattern _ op[_,_]
@@ -189,6 +191,7 @@ operator mg3numsuccessors alias MG3NUMSUCCESSORS pattern _ op[_]
 operator mg3numpredecessors alias MG3NUMPREDECESSORS pattern _ op[_]
 operator mg3disconnect alias MG3NUMPREDECESSORS pattern _ op[_]
 operator mg3connectedcomponents alias MG3CONNECTEDCOMPONENTS pattern _ op 
+operator mg3connectedcomponentsN alias MG3CONNECTEDCOMPONENTSN pattern _ op 
 operator mg3contract alias MG3CONTRACT pattern op(_,_,_,_)
 operator mg3minPathCost alias MG3MINPATHCOST pattern op(_,_,_,_,_)
 operator mg3exportddsg alias MG3EXPORTDDSG pattern _ op[_,_]
