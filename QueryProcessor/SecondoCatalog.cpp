@@ -1724,6 +1724,7 @@ Checks whether ~keywordName~ is a reserved word
     "value",
     "while",
     "changename",
+    "typeOf",
     0};
 
   for(int i=0; keywords[i]; i++){
