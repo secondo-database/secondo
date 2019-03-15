@@ -1338,6 +1338,21 @@ bool IsConstantObject( OpTree tree )
 
 */
 
+ListExpr RetrieveType(SecondoCatalog* ctlg, ListExpr expr){
+    if(nl->AtomType(expr) != SymbolType){
+      return expr;
+    }
+    string tn = nl->SymbolValue(expr);
+    if(ctlg->MemberType(tn)){
+       ListExpr res =  ctlg->GetTypeExpr(tn);
+       return res;
+    } else {
+      return expr;
+    }
+}
+
+
+
 ListExpr
 QueryProcessor::AnnotateX( const ListExpr expr, bool& defined )
 {
@@ -1807,8 +1822,6 @@ function index.
     expr = expr1;
   }
 
-
-
   int alId=0, opId=0, position=0, funindex=0, opFunId=0, errorPos=0;
 
   ListExpr first, rest, list, lastElem, typeExpr, numTypeExpr, typeList;
@@ -2120,6 +2133,9 @@ function index.
           if(GetCatalog()->LookUpTypeExpr(expr, typeName, algId,typeId)){
              string errMsg  = "Type name '" + typeName + 
                               "' used as an identifier.";
+
+              cout << "case iii-h : " << nl->ToString(expr) << endl;
+
              throw runtime_error(errMsg);
              return (nl->TheEmptyList());
            }          
@@ -2181,7 +2197,9 @@ function index.
         correct = true;
       } else {
         // constant value given as pair (<type> <value>)
-        value = GetCatalog()->InObject(nl->First( expr ),
+        ListExpr t = RetrieveType(GetCatalog(),nl->First(expr));
+        expr = nl->TwoElemList(t, nl->Second(expr));
+        value = GetCatalog()->InObject(t,
                                        nl->Second( expr ),
                                        errorPos, errorInfo, correct);
       }
@@ -3028,8 +3046,9 @@ arguments preceding this function argument in an operator application.
 }
 
 bool
-QueryProcessor::IsCorrectTypeExpr( const ListExpr expr )
+QueryProcessor::IsCorrectTypeExpr( const ListExpr expr1 )
 {
+  ListExpr expr = RetrieveType(GetCatalog(), expr1);
   ListExpr& errorInfo = nl->GetErrorList();
   return (GetCatalog()->KindCorrect( expr, errorInfo ));
 }
