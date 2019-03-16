@@ -8,6 +8,8 @@
 #include <string>
 #include <ctime>
 
+#include "Base.h"
+
 namespace cdacspatialjoin {
    /* Returns a formatted string representation of the given num, inserting
    thousands separators. */
@@ -28,4 +30,5 @@ namespace cdacspatialjoin {
    /* returns true if a directory with the given path exists in the file
     * system */
    bool directoryExists(const std::string& dir);
+
 }

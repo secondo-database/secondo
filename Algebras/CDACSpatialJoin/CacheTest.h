@@ -68,6 +68,7 @@ The total execution time of the test is approx. "a few seconds
 #include "Operator.h"
 #include "QueryProcessor.h"
 #include "CacheInfo.h"
+#include "Timer.h"
 
 namespace cdacspatialjoin {
 
@@ -171,8 +172,8 @@ private:
     * a) the "gross" duration sum (including array access), and
     * b) the duration of loops and random number generation (with no array
     * access). Use "a - b" to get the "net" duration of the array access */
-   std::pair<clock_t, clock_t> testScope(size_t scopeSizeKiB, size_t& sum1,
-           size_t& sum2);
+   void testScope(size_t scopeSizeKiB, size_t& sum1, size_t& sum2,
+           Timer& timer);
 
    /* clears all caches by filling them with the overwriteData array entries
     * (which are not used in the actual tests) */
@@ -181,7 +182,7 @@ private:
    /* reports the given test results to the given out stream */
    void reportTest(std::ostream& out, size_t scopeSizeKiB,
            unsigned int cacheLevel, bool printCacheLevel,
-           clock_t duration1Sum, clock_t duration2Sum) const;
+           Timer& timer) const;
 };
 
 } // end namespace cdacspatialjoin

@@ -201,13 +201,10 @@ CacheTestLocalInfo::CacheTestLocalInfo(ostream& out,
        << endl;
    switch (accessType) {
       case sequentialAccess: {
-         out << "- reading random entries from scopes of different sizes; "
-             << "on average, each entry is read "
-             << intensity / (double)randomDenom << " times" << endl;
-         out << "- e.g., " << intensity * 1024 / (double)randomDenom << " "
-             << "random entries are read from array scope 0..1023 "
-             << "(scope size 1 KiB), then random entries from scope 1024..2047 "
-             << "etc." << endl;
+         out << "- sequentially reading scopes of different sizes, "
+             << "repeating each scope " << intensity << " times" << endl;
+         out << "- e.g., array entries 0..1023 (scope size 1 KiB) are read "
+             << intensity << " times, then entries 1024..2047 etc." << endl;
          break;
       }
       case sequentialTwoLists: {
@@ -219,10 +216,13 @@ CacheTestLocalInfo::CacheTestLocalInfo(ostream& out,
          break;
       }
       case randomAccess: {
-         out << "- sequentially reading scopes of different sizes, "
-             << "repeating each scope " << intensity << " times" << endl;
-         out << "- e.g., array entries 0..1023 (scope size 1 KiB) are read "
-             << intensity << " times, then entries 1024..2047 etc." << endl;
+         out << "- reading random entries from scopes of different sizes; "
+             << "on average, each entry is read "
+             << intensity / (double)randomDenom << " times" << endl;
+         out << "- e.g., " << intensity * 1024 / (double)randomDenom << " "
+             << "random entries are read from array scope 0..1023 "
+             << "(scope size 1 KiB), then random entries from scope 1024..2047 "
+             << "etc." << endl;
          break;
       }
       default:
@@ -238,7 +238,11 @@ CacheTestLocalInfo::CacheTestLocalInfo(ostream& out,
    out << endl;
 
    // print the table header
-   out << "      scope size |   read access duration |  test avg - "
+   out << "      scope size |   read access duration |";
+#ifdef TIMER_USES_PAPI
+   out << " L1-I Misses | L1-Data Misses |     L2 Misses |     L3 Misses |";
+#endif
+   out << "  test avg - "
        << (accessType == sequentialAccess ? "loops only" : "loops/rand")
        << " = access only" << endl;
 }
@@ -260,6 +264,8 @@ void CacheTestLocalInfo::test(ostream& out) {
    bool printCacheLevel = true;
    size_t dataByteCount = dataCount * ENTRY_BYTE_COUNT;
 
+   Timer timer { CACHE_TEST_TASK_COUNT };
+
    // loop over scope sizes
    while (dataByteCount % (scopeSizeKiB * 1024) == 0) {
       // omit last test for accessType sequentialTwoLists (as the scope size
@@ -269,7 +275,8 @@ void CacheTestLocalInfo::test(ostream& out) {
          break;
 
       // perform test
-      auto durations = testScope(scopeSizeKiB, sum1, sum2);
+      timer.reset();
+      testScope(scopeSizeKiB, sum1, sum2, timer);
 
       // determine whether the size of the previous cache level has been
       // exceeded by the scope size in this test
@@ -281,8 +288,7 @@ void CacheTestLocalInfo::test(ostream& out) {
       }
 
       // report test results
-      reportTest(out, scopeSizeKiB, cacheLevel, printCacheLevel,
-              durations.first, durations.second);
+      reportTest(out, scopeSizeKiB, cacheLevel, printCacheLevel, timer);
       printCacheLevel = false;
 
       // increase scope size for the next test
@@ -295,8 +301,8 @@ void CacheTestLocalInfo::test(ostream& out) {
        << ")" << endl;
 }
 
-std::pair<clock_t, clock_t> CacheTestLocalInfo::testScope(
-        const size_t scopeSizeKiB, size_t& sum1, size_t& sum2) {
+void CacheTestLocalInfo::testScope(const size_t scopeSizeKiB,
+        size_t& sum1, size_t& sum2, Timer& timer) {
    const size_t entriesPerScope = scopeSizeKiB * 1024 / ENTRY_BYTE_COUNT;
    const size_t scopeCount = dataCount / entriesPerScope;
    const size_t rndsPerScope = (entriesPerScope * intensity) / randomDenom;
@@ -310,16 +316,13 @@ std::pair<clock_t, clock_t> CacheTestLocalInfo::testScope(
    std::uniform_int_distribution<size_t> randomScope(0, scopeCount - 1);
 
    // perform the test (TEST_COUNT) times
-   clock_t duration1Sum = 0;
-   clock_t duration2Sum = 0;
    for (unsigned test = 0; test < TEST_COUNT; ++test) {
       // clear all caches from data from the last test
       overwriteCaches(sum2);
 
       // perform the actual test, adding entries from data[] to sum1;
       // the use of locality depends on the scope size ("entriesPerScope")
-      const clock_t start1 = clock();
-
+      timer.start(CacheTestTask::fullTest);
       if (accessType == sequentialAccess) {
          // iterate over the scopes of the given size
          for (size_t scope = 0; scope < scopeCount; ++scope) {
@@ -365,13 +368,12 @@ std::pair<clock_t, clock_t> CacheTestLocalInfo::testScope(
       } else {
          assert (false); // unexpected accessType
       }
-
-      duration1Sum += clock() - start1;
+      timer.stop();
 
       // measure the time used for loops and random number generation only
       // (without data access) to subtract it from the first duration
       rndGenerator.seed(1); // create the same random sequence again
-      const clock_t start2 = clock();
+      timer.start(CacheTestTask::loopTest);
       if (accessType == sequentialAccess) {
          // increment sum2 using the same loop ranges as above
          for (size_t scope = 0; scope < scopeCount; ++scope) {
@@ -412,9 +414,8 @@ std::pair<clock_t, clock_t> CacheTestLocalInfo::testScope(
       } else {
          assert (false); // unexpected accessType
       }
-      duration2Sum += clock() - start2;
+      timer.stop();
    }
-   return make_pair<>(duration1Sum, duration2Sum);
 }
 
 void CacheTestLocalInfo::overwriteCaches(size_t& sum) {
@@ -428,12 +429,15 @@ void CacheTestLocalInfo::overwriteCaches(size_t& sum) {
 
 void CacheTestLocalInfo::reportTest(ostream& out, const size_t scopeSizeKiB,
         const unsigned cacheLevel, const bool printCacheLevel,
-        const clock_t duration1Sum, const clock_t duration2Sum) const {
+        Timer& timer) const {
 
    if (printCacheLevel) {
       // print horizontal separator
-      out << "-----------------+------------------------+-------------";
-      out << "------------------------" << endl;
+      out << "-----------------+------------------------+";
+#ifdef TIMER_USES_PAPI
+      out << "-------------+----------------+---------------+---------------+";
+#endif
+      out << "-------------------------------------" << endl;
 
       // report which cache level the current scope size fits into
       if (cacheLevel <= maxCacheLevel)
@@ -450,17 +454,29 @@ void CacheTestLocalInfo::reportTest(ostream& out, const size_t scopeSizeKiB,
       accessCount /= static_cast<double>(randomDenom);
    } // otherwise, keep accessCount
 
-   // calculate average duration of the above test
-   const clock_t duration1Avg = duration1Sum / TEST_COUNT;
-   const clock_t duration2Avg = duration2Sum / TEST_COUNT;
-   const clock_t durationDiff = duration1Avg - duration2Avg;
-   const auto durationPerBillion = static_cast<clock_t>(
-           durationDiff * 1.0E9 / accessCount);
+   // get average duration of the test (the timer keeps track of the number of
+   // task calls (TEST_COUNT) and can therefore provide the average values)
+   const Task* fullTest = timer.getTask(CacheTestTask::fullTest);
+   const Task* loopTest = timer.getTask(CacheTestTask::loopTest);
+   const clock_t fullTestTime = fullTest->getAvgTime();
+   const clock_t loopTestTime = loopTest->getAvgTime();
+   const clock_t arrayAccessTime = fullTestTime - loopTestTime;
+   const auto arrayAccessTimePer1E9 = static_cast<clock_t>(
+           arrayAccessTime * 1.0E9 / accessCount);
 
    // report test result (i.e. one line of the result table)
+   // note that 1E09 = German "Milliarde" = English "billion" (used here)
+   //       but 1E12 = German "Billion" = English "trillion" (not used here)
    out << setw(9) << formatInt(scopeSizeKiB) << " KiB |"
-       << setw(11) << formatMillis(durationPerBillion) << " per billion |"
-       << setw(10) << formatMillis(duration1Avg) << " - "
-       << setw(10) << formatMillis(duration2Avg) << " = "
-       << setw(10) << formatMillis(durationDiff) << endl;
+       << setw(11) << formatMillis(arrayAccessTimePer1E9) << " per billion |";
+#ifdef TIMER_USES_PAPI
+   out << setw(12) << formatInt(fullTest->getAvgL1InstrCacheMisses()) << " |"
+       << setw(15) << formatInt(fullTest->getAvgL1DataCacheMisses()) << " |"
+       << setw(14) << formatInt(fullTest->getAvgL2CacheMisses()) << " |"
+       << setw(14) << formatInt(fullTest->getAvgL3CacheMisses()) << " |";
+#endif
+   out << setw(10) << formatMillis(fullTestTime) << " - "
+       << setw(10) << formatMillis(loopTestTime) << " = "
+       << setw(10) << formatMillis(arrayAccessTime) << endl;
+
 }

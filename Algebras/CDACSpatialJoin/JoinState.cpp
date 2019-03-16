@@ -14,8 +14,10 @@
 using namespace cdacspatialjoin;
 using namespace std;
 
+
 JoinState::JoinState(InputStream* inputA, InputStream* inputB,
-        uint64_t outTBlockSize_, unsigned joinStateId_) :
+        uint64_t outTBlockSize_, unsigned joinStateId_,
+        std::shared_ptr<Timer>& timer_) :
 
         tBlocks { inputA->tBlocks, inputB->tBlocks },
         attrIndices { inputA->attrIndex, inputB->attrIndex },
@@ -27,6 +29,7 @@ JoinState::JoinState(InputStream* inputA, InputStream* inputB,
         minDim(std::min(inputA->dim, inputB->dim)),
         outTBlockSize(outTBlockSize_),
         joinStateId(joinStateId_),
+        timer(timer_),
         rowShift { getRowShift(inputA->tBlocks->size()),
                    getRowShift(inputB->tBlocks->size()) },
         rowMask { getRowMask(rowShift[0]), getRowMask(rowShift[1]) },
@@ -36,13 +39,24 @@ JoinState::JoinState(InputStream* inputA, InputStream* inputB,
 
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
    cout << endl << "JoinState " << joinStateId << " created: " << endl;
+
+   // sum up both sets and give the time used for requesting the streams
+   // timer->getListTime() will return the time for CDSjTask::requestData
+   const size_t sizeSum = tBlocks[SET::A]->size() + tBlocks[SET::B]->size();
+   cout << "* input: " << setw(2) << formatInt(sizeSum) << " blocks "
+        << "with " << setw(7) << formatInt(tupleSum) << " tuples "
+        << "requested in " << formatMillis(timer->getLastTime())
+        << " (= " << formatMillis(timer->getLastTime() / sizeSum)
+        << " per block)" << endl;
+
+   // details for each set
    for (const SET set : SETS) {
       const InputStream* input = (set == SET::A) ? inputA : inputB;
       const size_t size = tBlocks[set]->size();
       cout << "* set " << SET_NAMES[set] << ": "
-           << formatInt(size) << (size == 1 ? " block " : " blocks ")
-           << "with " << formatInt(tupleCounts[set]) << " tuples "
-           << "from stream " << SET_NAMES[set] << " ";
+           << setw(2) << formatInt(size) << (size == 1 ? " block " : " blocks")
+           << " with " << setw(7) << formatInt(tupleCounts[set]) << " tuples"
+           << " from stream " << SET_NAMES[set] << " ";
       if (input->isFullyLoaded()) {
          cout << "(fully loaded); ";
       } else if (set == SET::A && !inputB->isFullyLoaded()) {
@@ -73,6 +87,7 @@ JoinState::JoinState(InputStream* inputA, InputStream* inputB,
 
    // pre-calculate the bounding box of the second set (the parameter "false"
    // ensures the remaining parameters are not changed)
+   timer->start(CDSjTask::createSortEdges);
    vector<RectangleInfo> rectangleInfos;
    vector<SortEdge> sortEdges;
    Rectangle<3> bboxB = calculateBboxAndEdges(SET::B, false,
@@ -111,6 +126,7 @@ JoinState::JoinState(InputStream* inputA, InputStream* inputB,
       cout << "* bounding boxes do not intersect; JoinState is being discarded"
            << endl;
 #endif
+      timer->stop();
       return;
    }
 
@@ -127,16 +143,16 @@ JoinState::JoinState(InputStream* inputA, InputStream* inputB,
    if (ignored > 0)
       cout << "the remaining ";
    cout << formatInt(sortEdges.size() / 2) << " rectangles" << endl;
-   clock_t start = clock();
 #endif
 
-
-   std::sort(sortEdges.begin(), sortEdges.end()); // cp. Edge::operator<
+   timer->start(CDSjTask::sortSortEdges);
+   std::sort(sortEdges.begin(), sortEdges.end());
 
    // report sorting
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+   timer->stop();
    cout << "* " << formatInt(sortEdges.size()) << " SortEdges sorted in "
-        << formatMillis(clock() - start) << endl;
+        << formatMillis(timer->getLastTime()) << endl;
    /*
    unsigned count = 0;
    for (const SortEdge& edge : sortEdges) {
@@ -146,10 +162,10 @@ JoinState::JoinState(InputStream* inputA, InputStream* inputB,
          break;
    }
    */
-   start = clock();
 #endif
 
    // create JoinEdges
+   timer->start(CDSjTask::createJoinEdges);
    EdgeIndex_t sortEdgeIndex = 0;
    for (SortEdge& sortEdge : sortEdges) {
       if (sortEdge.isLeft)
@@ -177,8 +193,9 @@ JoinState::JoinState(InputStream* inputA, InputStream* inputB,
 
    // report JoinEdges
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+   timer->stop();
    cout << "* " << formatInt(joinEdges.size()) << " JoinEdges created in "
-        << formatMillis(clock() - start) << endl;
+        << formatMillis(timer->getLastTime()) << endl;
    cout << "* " << formatInt(level0AreaCountExpected) << " 'atomic' "
         << "MergedAreas (with JoinEdges from the same set only) will be "
         << "created on the lowest level." << endl;
@@ -194,14 +211,17 @@ JoinState::JoinState(InputStream* inputA, InputStream* inputB,
    */
 #endif
 
-   initializeCompleted = clock();
-   outTBlockCount = 0;
-   outTupleCount = 0;
-
    // set lastBlockA/B to a value that ensures the first "newTuple" to
    // be fully assembled in the appendToOutput() function
    lastAddressA = std::numeric_limits<SetRowBlock_t >::max();
    lastAddressB = std::numeric_limits<SetRowBlock_t >::max();
+
+   initializeCompleted = clock();
+   outTBlockCount = 0;
+   outTupleCount = 0;
+   joinCompleted = false;
+
+   timer->stop();
 }
 
 unsigned JoinState::getRowShift(const size_t blockCount) {
@@ -340,7 +360,10 @@ JoinState::~JoinState() {
 bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock) {
    if (joinEdges.empty()) // this may happen if the sets' bboxes
       return false;       // do not intersect
+   if (joinCompleted)
+      return false;
 
+   timer->start(CDSjTask::merge);
    do {
       // if two MergesAreas are currently being merged, ...
       if (merger) {
@@ -399,6 +422,7 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock) {
          } else {
             // join of the given data completed; outTBlock may contain
             // final result tuples
+            joinCompleted = true;
             break;
          }
       }
@@ -409,8 +433,9 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock) {
    if (rowCount > 0) {
       ++outTBlockCount;
       outTupleCount += rowCount;
-   } else {
+   }
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+   if (joinCompleted) {
       cout << "* " << formatInt(outTBlockCount) << " "
          << (outTBlockCount == 1 ? "block" : "blocks") << " with "
          << formatInt(outTupleCount) << " tuples returned in "
@@ -419,9 +444,10 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock) {
          << outTupleCount * 1000000.0 /
             (tupleCounts[SET::A] * tupleCounts[SET::B])
          << " per million)" << endl;
+  }
 #endif
-   }
 
+   timer->stop();
    return (rowCount > 0);
 }
 

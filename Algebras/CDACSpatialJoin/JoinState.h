@@ -21,6 +21,7 @@ where the bounding box of these tuples' GeoData intersect.
 #include "Merger.h"
 #include "RectangleInfo.h"
 #include "InputStream.h"
+#include "Timer.h"
 
 #include "Algebras/CRel/TBlock.h"
 #include "Algebras/Rectangle/RectangleAlgebra.h"
@@ -60,6 +61,8 @@ class JoinState {
 
    /* the consecutive number of this JoinState instance */
    const unsigned joinStateId;
+
+   std::shared_ptr<Timer> timer;
 
    // -----------------------------------------------------
    // variables for computing SetRowBlock_t values (i.e. the "address" of
@@ -143,6 +146,10 @@ class JoinState {
    /* the total number of output tuples returned by this JoinState */
    uint64_t outTupleCount;
 
+   /* is set to true once the join has completed; the outTBlock may still
+    * contain the last result tuples */
+   bool joinCompleted;
+
 public:
    /* constructor taking all data required from the input streams:
     * tBlocksA/B containing as much tuples as the main memory can hold;
@@ -152,7 +159,8 @@ public:
     * outTBlockSize: the maximum size of the return TBlock in bytes;
     * joinStateId: the consecutive number of this JoinState instance */
    JoinState(InputStream* inputA, InputStream* inputB,
-         uint64_t outTBlockSize_, unsigned joinStateId_);
+         uint64_t outTBlockSize_, unsigned joinStateId_,
+         std::shared_ptr<Timer>& timer_);
 
    ~JoinState();
 

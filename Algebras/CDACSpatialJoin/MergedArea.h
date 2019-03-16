@@ -27,10 +27,10 @@ MergedArea.
 
 namespace cdacspatialjoin {
 
-class MergedArea;
+struct MergedArea;
 typedef std::shared_ptr<MergedArea> MergedAreaPtr;
 
-class MergedArea {
+struct MergedArea {
    /* the index in JoinState::joinEdges from which the JoinEdges covered by
     * this MergedArea start (inclusive) */
    const EdgeIndex_t edgeIndexStart;
@@ -58,7 +58,6 @@ class MergedArea {
     * left and right edges */
    JoinEdgeVec completeB;
 
-public:
    /* instantiates an atomic MergedArea which covers an interval in which
     * only JoinEdges from the same set are to be found */
    MergedArea(const std::vector<JoinEdge>& joinEdges,
