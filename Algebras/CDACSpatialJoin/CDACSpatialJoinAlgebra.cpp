@@ -50,6 +50,7 @@ namespace cdacspatialjoin {
 
          // CDACSpatialJoin operator
          opCDACSpatialJoin.get()->SetUsesMemory();
+         opCDACSpatialJoin.get()->SetUsesArgsInTypeMapping();
          AddOperator(opCDACSpatialJoin.get());
 
          // cacheTest operator

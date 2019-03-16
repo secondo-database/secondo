@@ -51,6 +51,8 @@ sets (streams) A and B.
 #include "QueryProcessor.h"
 #include "JoinState.h"
 #include "InputStream.h"
+#include "Timer.h"
+
 #include "Algebras/Stream/Stream.h"
 #include "Algebras/CRel/TBlock.h"
 #include "Algebras/CRel/TypeConstructors/TBlockTC.h"
@@ -63,7 +65,15 @@ namespace cdacspatialjoin {
 */
 class CDACSpatialJoin {
 private:
-   static uint64_t DEFAULT_BLOCK_SIZE; // in MB
+   /* the number of input streams (always 2, used for semantic clarity only) */
+   static constexpr unsigned STREAM_COUNT = 2;
+
+   /* the maximum number of args provided type mapping */
+   static constexpr unsigned MAX_ARG_COUNT = 2 * STREAM_COUNT + 1;
+
+   /* the TBlock size in MiB used to create TBlocks for InputTupleStreams
+    * (i.e. when the input is tuples rather than TBlocks) */
+   static uint64_t DEFAULT_INPUT_BLOCK_SIZE;
 
 public:
    explicit CDACSpatialJoin() = default;
@@ -105,6 +115,8 @@ class CDACLocalInfo {
 
    JoinState* joinState;
    unsigned joinStateCount;
+
+   std::shared_ptr<Timer> timer;
 
 public:
    // constructor

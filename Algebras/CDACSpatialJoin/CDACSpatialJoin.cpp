@@ -52,7 +52,7 @@ typedef CRelAlgebra::TBlockTI::ColumnInfo TBlockColInfo;
 
 using namespace cdacspatialjoin;
 
-uint64_t CDACSpatialJoin::DEFAULT_BLOCK_SIZE = 10;
+uint64_t CDACSpatialJoin::DEFAULT_INPUT_BLOCK_SIZE = 10;
 
 /*
 1.2 Class OperatorInfo
@@ -66,17 +66,18 @@ public:
       name = "cdacspatialjoin";
       signature = "stream (tblock (a ((x1 t1) ... (xn tn)))) x \n"
          "stream (tblock (b ((y1 d1) ... (ym dm)))) x \n"
-         "xi x yj \n"
+         "xi x yj x int \n"
          "-> \n"
          "stream (tblock (c ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))";
-      syntax = "_ _ cdacspatialjoin [ _ , _ ]";
+      syntax = "_ _ cdacspatialjoin [ _ , _  , _ ]";
       meaning = "Cache-conscious spatial join operator performing "
                 "a partitioned spatial join on two streams of tuples or tuple "
                 "blocks, where xi and yj (both optional) are the names of the "
-                "join attributes of the first and second stream, respectively.";
+                "join attributes of the first and second stream, respectively, "
+                "and int is the (optional) size of the output TBlocks in MiB.";
       example = "query Roads feed toblocks[1000] {a}"
                 "Roads feed toblocks[1000] {b}"
-                "cdacspatialjoin[GeoData_a, GeoData_b] count";
+                "cdacspatialjoin[GeoData_a, GeoData_b, 10] count";
    }
 };
 
@@ -98,13 +99,11 @@ second stream, respectively.
 
 */
 ListExpr CDACSpatialJoin::typeMapping(ListExpr args) {
-   static constexpr unsigned STREAM_COUNT = 2;
-
    // check the number of arguments
    // last two arguments are included for testing purposes
    const auto argCount = static_cast<unsigned>(nl->ListLength(args));
-   if (argCount < STREAM_COUNT || argCount > STREAM_COUNT + STREAM_COUNT)
-      return listutils::typeError("Two, three or four arguments expected.");
+   if (argCount < STREAM_COUNT || argCount > MAX_ARG_COUNT)
+      return listutils::typeError("2-5 arguments expected.");
 
    // prepare values to hold information on the two input streams
    ListExpr stream[STREAM_COUNT];
@@ -121,7 +120,7 @@ ListExpr CDACSpatialJoin::typeMapping(ListExpr args) {
    for (unsigned i = 0; i < STREAM_COUNT; ++i) {
       // first and second arguments must be a streams
       const std::string argPos1or2 = (i == 0) ? "first" : "second";
-      stream[i] = (i == 0) ? nl->First(args) : nl->Second(args);
+      stream[i] = nl->First((i == 0) ? nl->First(args) : nl->Second(args));
       if (!listutils::isStream(stream[i])) {
          return listutils::typeError("Error in " + argPos1or2 + " argument: "
               "Stream expected.");
@@ -139,16 +138,16 @@ ListExpr CDACSpatialJoin::typeMapping(ListExpr args) {
       tBlockColumns[i] = 0; // is returned by getTBlockTI()
       tBlockInfo[i] = isTBlockStream[i] ?
          CRelAlgebra::TBlockTI(nl->Second(stream[i]), false) :
-         getTBlockTI(nl->Second(nl->Second(stream[i])), DEFAULT_BLOCK_SIZE,
-                     tBlockColumns[i]);
+         getTBlockTI(nl->Second(nl->Second(stream[i])),
+                 DEFAULT_INPUT_BLOCK_SIZE, tBlockColumns[i]);
 
       // depending on whether a third / fourth argument is given, ...
       if (STREAM_COUNT + i < argCount) {
          // extract join attribute names and indices
          // third and fourth argument must be an attribute name
          const std::string argPos3or4 = (i == 0) ? "third" : "fourth";
-         const ListExpr attrNameLE = (i == 0) ?
-                 nl->Third(args) : nl->Fourth(args);
+         const ListExpr attrNameLE = nl->First(
+                 (i == 0) ? nl->Third(args) : nl->Fourth(args));
          if (!listutils::isSymbol(attrNameLE)) {
             return listutils::typeError("Error in " + argPos3or4 +
                " argument: Attribute name expected.");
@@ -193,16 +192,25 @@ ListExpr CDACSpatialJoin::typeMapping(ListExpr args) {
       } // end of if (argCount >= 3 + i)"
    }
 
-   // Initialize the type and size of result tuple block
-   // and check for duplicates column names
+   // Initialize the type of result tuple block
    CRelAlgebra::TBlockTI resultTBlockInfo = CRelAlgebra::TBlockTI(false);
-   if (tBlockInfo[0].GetDesiredBlockSize()
-         > tBlockInfo[1].GetDesiredBlockSize()) {
-      resultTBlockInfo.SetDesiredBlockSize(tBlockInfo[0].GetDesiredBlockSize());
-   } else {
-      resultTBlockInfo.SetDesiredBlockSize(tBlockInfo[1].GetDesiredBlockSize());
+
+   // set the size of the result tuple block, using the larger input block size
+   uint64_t desiredBlockSize = std::max(tBlockInfo[0].GetDesiredBlockSize(),
+         tBlockInfo[1].GetDesiredBlockSize());
+   if (argCount == 5) {
+      // ... unless an explicit result block size is provided in the query
+      ListExpr outTBlockSizeLE = nl->Fifth(args);
+      if (!CcInt::checkType(nl->First(outTBlockSizeLE )))
+         return listutils::typeError("Error in fifth argument: int expected.");
+      const long blockSize = nl->IntValue(nl->Second(outTBlockSizeLE));
+      if (blockSize > 0)
+         desiredBlockSize = static_cast<uint64_t>(blockSize);
    }
-   std::set<std::string> columnNames; // helps to identify duplicates
+   resultTBlockInfo.SetDesiredBlockSize(desiredBlockSize);
+
+   // check for duplicate column names
+   std::set<std::string> columnNames;
    for (const TBlockColInfo& colInfo : tBlockInfo[0].columnInfos) {
       columnNames.insert(colInfo.name);
       resultTBlockInfo.columnInfos.push_back(colInfo);
@@ -221,7 +229,7 @@ ListExpr CDACSpatialJoin::typeMapping(ListExpr args) {
    ListExpr appendEnd = appendInfo;
    // ensure that the Value Mapping args will start at args[4]
    // even if parameters three and four were omitted by the caller
-   for (unsigned i = argCount; i < STREAM_COUNT + STREAM_COUNT; ++i) {
+   for (unsigned i = argCount; i < MAX_ARG_COUNT; ++i) {
       appendEnd = nl->Append(appendEnd, nl->IntAtom(0));
    }
    // append the actual information on the input streams
@@ -281,9 +289,9 @@ int CDACSpatialJoin::valueMapping(
          // extract information about the first and second stream, creating
          // InputStream instances for either a tuple block stream or a mere
          // tuple stream, respectively
-         InputStream* input[2];
-         unsigned argIndex = 4;
-         for (int i = 0; i < 2; ++i) {
+         InputStream* input[STREAM_COUNT];
+         unsigned argIndex = MAX_ARG_COUNT;
+         for (unsigned i = 0; i < STREAM_COUNT; ++i) {
             const auto attrIndex = static_cast<unsigned>(
                     (static_cast<CcInt*>(args[argIndex++].addr))->GetValue());
             const auto dim = static_cast<unsigned>(
@@ -297,9 +305,9 @@ int CDACSpatialJoin::valueMapping(
                input[i] = new InputTBlockStream(args[i], attrIndex, dim);
             } else {
                // input is stream of tuples which will be inserted into tuple
-               // blocks by this operator using the DEFAULT_BLOCK_SIZE
+               // blocks by this operator using the DEFAULT_INPUT_BLOCK_SIZE
                ListExpr tBlockType = nl->TwoElemList(nl->SymbolAtom("tblock"),
-                       nl->TwoElemList(nl->IntAtom(DEFAULT_BLOCK_SIZE),
+                       nl->TwoElemList(nl->IntAtom(DEFAULT_INPUT_BLOCK_SIZE),
                                tBlockColumns));
                // construct TBlockTI; information in tBlock type is not numeric
                CRelAlgebra::TBlockTI tBlockTI(tBlockType, false);
@@ -361,13 +369,15 @@ CDACLocalInfo::CDACLocalInfo(InputStream* const input1_,
         outTBlockSize(outTypeInfo.GetDesiredBlockSize()
                     * CRelAlgebra::TBlockTI::blockSizeFactor),
         joinState(nullptr),
-        joinStateCount(0) {
+        joinStateCount(0),
+        timer(nullptr) {
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
    cout << "sizeof(SortEdge) = " << sizeof(SortEdge) << endl;
    cout << "sizeof(JoinEdge) = " << sizeof(JoinEdge) << endl;
    cout << "sizeof(RectangleInfo) = " << sizeof(RectangleInfo) << endl;
    cout << endl;
 #endif
+   timer = std::make_shared<Timer>(CDSJ_TASK_NAMES);
 }
 
 /*
@@ -375,6 +385,10 @@ CDACLocalInfo::CDACLocalInfo(InputStream* const input1_,
 
 */
 CDACLocalInfo::~CDACLocalInfo() {
+#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+   timer->reportTable(cout, true, true, true, false, false);
+#endif
+
    delete joinState;
    delete input1;
    delete input2;
@@ -439,8 +453,10 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
       // if a JoinState has been created, ...
       if (joinState) {
          // ... return the next block of join results
-         if (joinState->nextTBlock(outTBlock))
+         if (joinState->nextTBlock(outTBlock)) {
+            timer->stop();
             return outTBlock;
+         }
 
          delete joinState;
          joinState = nullptr;
@@ -449,11 +465,13 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
       // read (more) data
       if (isFirstRequest) {
          // first attempt to read from the streams
+         timer->start(CDSjTask::requestData);
          isFirstRequest = false; // prevent this block from being entered twice
 
          // test if any of the streams is empty - then nothing to do
          if (!input1->request() || !input2->request()) {
             outTBlock->DecRef();
+            timer->stop();
             return nullptr;
          }
 
@@ -466,6 +484,7 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
          // all input was read, join is complete
          assert (outTBlock->GetRowCount() == 0);
          outTBlock->DecRef();
+         timer->stop();
          return nullptr;
 
       } else {
@@ -473,6 +492,7 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
          // i.e. the tuple data did not fit completely into the main memory;
          // the tuples read so far were treated, now read and treat more data
 
+         timer->start(CDSjTask::requestData);
          if (input1->isFullyLoaded()) {
             // continue reading from input2
             input2->clearMem();
@@ -502,9 +522,11 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
       // create a JoinState from the TBlocks that were read to the main memory
       if (input1->hasTBlocks() && input2->hasTBlocks()) {
          assert (!joinState);
+
+         timer->start(CDSjTask::createJoinState);
          ++joinStateCount;
          joinState = new JoinState(input1, input2, outTBlockSize,
-                 joinStateCount);
+                 joinStateCount, timer);
       }
 
    } // end of while loop
