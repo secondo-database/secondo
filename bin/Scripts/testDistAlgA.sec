@@ -2,9 +2,9 @@
 
 # next 2 lines to be adapted
 
-restore WORKERS from Workers14 
+restore WORKERS from Workers12
 
-let NSlots = 50
+let NSlots = 40 
 
 ##################################################################
 # 6.1 Random Partitioning
@@ -33,10 +33,16 @@ query Boundaries inserttuple['', 0] consume
 
 query memclear()
 
-query Boundaries feed letmconsume["Boundaries"] mcreateAVLtree[Name]
+# query Boundaries feed letmconsume["Boundaries"] mcreateAVLtree[Name]
+
+let BoundariesM = Boundaries feed mconsume
+
+let BoundariesM_Name = BoundariesM mcreateAVLtree[Name]
+
+
 
 let RoadsB3 = Roads feed filter[isdefined(.Name)]
-	ddistribute4["RoadsB3", "Boundaries_Name" "Boundaries" 
+	ddistribute4["RoadsB3", BoundariesM_Name BoundariesM 
 		matchbelow[.Name] extract[D], NSlots, WORKERS]
 
 
@@ -68,25 +74,25 @@ let RoadsB4 = Roads feed
 	dfdistribute2["RoadsB4", Cell, NSlots, WORKERS] 
 
 
-let BuildingsB4 = Buildings feed 
-  extend[EnlargedBox: enlargeRect(bbox(.GeoData), 0.01, 0.01)]
-  extendstream[Cell: cellnumber(.EnlargedBox, grid)] 
-  extend[Original: .Cell = cellnumber(.EnlargedBox, grid) 
-    transformstream extract[Elem] ] 
-  ddistribute2["BuildingsB4", Cell, NSlots, WORKERS]
+# let BuildingsB4 = Buildings feed 
+#   extend[EnlargedBox: enlargeRect(bbox(.GeoData), 0.01, 0.01)]
+#   extendstream[Cell: cellnumber(.EnlargedBox, grid)] 
+#   extend[Original: .Cell = cellnumber(.EnlargedBox, grid) 
+#     transformstream extract[Elem] ] 
+#   ddistribute2["BuildingsB4", Cell, NSlots, WORKERS]
 
 
 let BuildingsB1 = Buildings feed dfdistribute3["BuildingsB1", NSlots, TRUE, WORKERS]
 
 query share("grid", TRUE, WORKERS)
 
-let BuildingsB4a = BuildingsB1 partitionF["",
+let BuildingsB4 = BuildingsB1 partitionF["",
   . feed extend[EnlargedBox: enlargeRect(bbox(.GeoData), 0.01, 0.01)]
   extendstream[Cell: cellnumber(.EnlargedBox, grid)]
   extend[Original: .Cell = cellnumber(.EnlargedBox, grid)
     transformstream extract[Elem] ],
   ..Cell, 0]
-  collect2["BuildingsB4a", ftport]
+  collect2["BuildingsB4a", 1238]
 
 
 
