@@ -1,0 +1,791 @@
+/*
+Apply this script to an open database for NRW (Shape)
+
+*/
+
+restore dortmund from dortmund
+
+let BuildingsDo = Buildings feed filter[bbox(.GeoData) intersects dortmund] consume
+
+let LanduseDo = Landuse feed filter[bbox(.GeoData) intersects dortmund] consume
+
+let NaturalDo = Natural feed filter[bbox(.GeoData) intersects dortmund] consume
+
+let PlacesDo = Places feed filter[bbox(.GeoData) intersects dortmund] consume
+
+let PofwDo = Pofw feed filter[bbox(.GeoData) intersects dortmund] consume
+
+let PointsDo = Points feed filter[bbox(.GeoData) intersects dortmund] consume
+
+let RailwaysDo = Railways feed filter[bbox(.GeoData) intersects dortmund] consume
+
+let RoadsDo = Roads feed filter[bbox(.GeoData) intersects dortmund] consume
+
+let TrafficDo = Traffic feed filter[bbox(.GeoData) intersects dortmund] consume
+
+let TransportDo = Transport feed filter[bbox(.GeoData) intersects dortmund] consume
+
+let WaterDo = Water feed filter[bbox(.GeoData) intersects dortmund] consume
+
+let WaterwaysDo = Waterways feed filter[bbox(.GeoData) intersects dortmund] consume
+
+
+
+query BuildingsDo feed fconsume5["Data/BuildingsDo.bin"] count
+
+query LanduseDo feed fconsume5["Data/LanduseDo.bin"] count
+
+query NaturalDo feed fconsume5["Data/NaturalDo.bin"] count
+
+query PlacesDo feed fconsume5["Data/PlacesDo.bin"] count
+
+query PofwDo feed fconsume5["Data/PofwDo.bin"] count
+
+query PointsDo feed fconsume5["Data/PointsDo.bin"] count
+
+query RailwaysDo feed fconsume5["Data/RailwaysDo.bin"] count
+
+query RoadsDo feed fconsume5["Data/RoadsDo.bin"] count
+
+query TrafficDo feed fconsume5["Data/TrafficDo.bin"] count
+
+query TransportDo feed fconsume5["Data/TransportDo.bin"] count
+
+query WaterDo feed fconsume5["Data/WaterDo.bin"] count
+
+query WaterwaysDo feed fconsume5["Data/WaterwaysDo.bin"] count
+
+
+close database
+
+create database dortmundshp
+
+open database dortmundshp
+
+let Buildings = 'Data/BuildingsDo.bin' ffeed5 consume
+
+let Landuse = 'Data/LanduseDo.bin' ffeed5 consume
+
+let Natural = 'Data/NaturalDo.bin' ffeed5 consume
+
+let Places = 'Data/PlacesDo.bin' ffeed5 consume
+
+let Pofw = 'Data/PofwDo.bin' ffeed5 consume
+
+let Points = 'Data/PointsDo.bin' ffeed5 consume
+
+let Railways = 'Data/RailwaysDo.bin' ffeed5 consume
+
+let Roads = 'Data/RoadsDo.bin' ffeed5 consume
+
+let Traffic = 'Data/TrafficDo.bin' ffeed5 consume
+
+let Transport = 'Data/TransportDo.bin' ffeed5 consume
+
+let Water = 'Data/WaterDo.bin' ffeed5 consume
+
+let Waterways = 'Data/WaterwaysDo.bin' ffeed5 consume
+
+/*
+In a separate window, start monitor:
+
+----
+remoteMonitors Cluster4 start
+----
+
+Restore Workers:
+
+*/
+restore Workers from Workers4
+
+let NSlots = 20
+
+/*
+Create distributed relations
+
+The naming convention is:
+
+----
+<relation name>R<distribution type>
+
+<distribution type> :
+  r - RANDOM
+  g_<attribute> - RANGE
+  s_<attribute> - SPATIAL2D
+  st_<attribute> - SPATIAL3D
+----
+
+*/
+let RoadsRr = Roads dreldistribute["RoadsRr", RANDOM, NSlots, Workers]
+
+let RoadsRg_Name = Roads feed filter[isdefined(.Name)] consume 
+  dreldistribute["RoadsRg_Name", RANGE, Name, NSlots, Workers]
+
+let RoadsRs_GeoData = Roads 
+  dreldistribute["RoadsRs_GeoData", SPATIAL2D, GeoData, NSlots, Workers]
+
+query RoadsRs_GeoData lcount[TRUE] getValue
+
+query RoadsRs_GeoData lcount[TRUE] getValue tie[. + ..]
+
+query Roads count
+
+query RoadsRs_GeoData lcount[FALSE] getValue tie[. + ..]
+
+let WaterwaysRr = Waterways dreldistribute["WaterwaysRr", RANDOM, NSlots, Workers]
+
+
+/*
+----
+           Name : DRELFUNARG1
+         Algebra : DRelAlgebra
+       Signature : d[f]rel(rel(X)) x ... -> X
+          Syntax : DRELFUNARG1(_)
+         Meaning : Type mapping operator.
+         Example : query drel1 drelfilter[.PLZ=99998] drelsummarize consume
+          Result : 
+          Remark : type map operator
+SupportsProgress : FALSE
+
+            Name : DRELFUNARG2
+         Algebra : DRelAlgebra
+       Signature : d[f]rel(rel(X)) x ... -> X
+          Syntax : DRELFUNARG2(_)
+         Meaning : Type mapping operator.
+         Example : query drel1 drelprojectextend[PLZ; PLZ2 : .PLZ + 2] 
+                   drelsummarizeconsume
+          Result : 
+          Remark : type map operator
+SupportsProgress : FALSE
+
+            Name : DRELRELFUNARG1
+         Algebra : DRelAlgebra
+       Signature : d[f]rel(rel(X)) x ... -> rel(X)
+          Syntax : DRELRELFUNARG1(_)
+         Meaning : Type mapping operator.
+         Example : query drel1 drellgroupby[PLZ; Anz: group feed count] 
+                   drelsummarize consume
+          Result : 
+          Remark : type map operator
+SupportsProgress : FALSE
+----
+
+Type operators, no tests required.
+
+----
+            Name : createboundary
+         Algebra : DRelAlgebra
+       Signature :  rel(tuple(X)) x attr x int or stream(tuple(X)) x attr x int 
+                   x int -> boundary(x) 
+          Syntax :  _ createboundary[ _, _, _ ]
+         Meaning : Creates a boundary object for a relation. The boundaries are 
+                   determinated by a sample of the realtion.
+         Example : query plz createboundary[PLZ, 50]
+          Result : (boundary (2694 4639 6493 7512 9243 11551 14806 16247 17159 
+                   18246 19322 21084 22941 24235 25557 26703 
+                   28879 31568 33627 36133 38279 39524 41720 
+                   45318 47883 49794 52051 54405 55444 56357 
+                   57577 59818 63441 65510 67034 68744 71299 
+                   73453 75404 78091 80100 82432 84137 86522 
+                   88633 91325 94140 96507 98716 99955))
+          Remark : 
+SupportsProgress : FALSE
+----
+
+*/
+query Roads feed filter[isdefined(.Name)] consume createboundary[Name, 20]
+
+/*
+----
+            Name : createboundary
+         Algebra : DRelAlgebra
+       Signature :  rel(tuple(X)) x attr x int or stream(tuple(X)) x attr x int 
+                   x int -> boundary(x) 
+          Syntax :  _ createboundary[ _, _, _ ]
+         Meaning : Creates a boundary object for a relation. The boundaries are 
+                   determinated by a sample of the realtion.
+         Example : query plz feed createboundary[PLZ, 50, 41267]
+          Result : (boundary (2694 4639 6493 7512 9243 11551 14806 16247 17159 
+                   18246 19322 21084 22941 24235 25557 26703 
+                   28879 31568 33627 36133 38279 39524 41720 
+                   45318 47883 49794 52051 54405 55444 56357 
+                   57577 59818 63441 65510 67034 68744 71299 
+                   73453 75404 78091 80100 82432 84137 86522 
+                   88633 91325 94140 96507 98716 99955))
+          Remark : 
+SupportsProgress : FALSE
+----
+
+*/
+
+
+query Buildings createboundary[Osm_id, 20, 3000]
+
+# does not work
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            Name : getboundary
+         Algebra : DRelAlgebra
+       Signature :  d[f]rel(rel(tuple(X))) -> vector(x) 
+          Syntax :  getboundary(_)
+         Meaning : Get the boundary object of a partitioned by range d[f]rel. 
+         Example : query getboundary(drel1)
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : getboundaryindex
+         Algebra : DRelAlgebra
+       Signature :  vector x attr -> int 
+          Syntax :  getboundaryindex(_,_)
+         Meaning : Returns for an attribute the indexnumber within a boundary. 
+                   The boundary is a sorted vector.
+         Example : query getboundaryindex(boundary, PLZ)
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : rect2cellgrid
+         Algebra : DRelAlgebra
+       Signature :  [ rect / rect2 ] x int -> cellgrid2d, cellgrid3d 
+          Syntax :  _ rect2cellgrid[ _ ]
+         Meaning : Creates a 2d grid or a 3d grid for a given rectangle.
+         Example : query [const rect value(5 9 50 52)] rect2cellgrid[20]
+          Result : (cellgird2d (5 50 0.1 0.1 400))
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : file2stream
+         Algebra : DRelAlgebra
+       Signature :  string|text -> stream(tuple((Data text)))
+          Syntax :  file2stream(_)
+         Meaning : Imports a file and create a stream with the schema 
+                   stream(tuple((Data text)))
+         Example : query file2stream("../Algebra/DRel/file2stream.cpp") head[1] 
+                   count
+          Result : 1
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : drelfdistribute
+         Algebra : DRelAlgebra
+       Signature :  rel(tuple(X)) x string x distType [x ident] [x int] x 
+                   rel(tuple(Y)) -> drel(tuple(X)) 
+          Syntax :  _ drelfdistribute[ _, _, _, _, _]
+         Meaning : Distributes a relation to the workers of the worker relation.
+                    The first argument is the relation to 
+                   distribute. The second Argument is the 
+                   name for the resulting drel. If the name 
+                   is an empty string, a name is choosen 
+                   automatically. The Third argument is the 
+                   distribution type. Possible values are 
+                   RANDOM, HASH, RANGE, SPATIAL2D SPATIAL3D 
+                   and REPLICATED. This argument specifies 
+                   the type to distribute the relation to 
+                   the workers. The fourth argument is an 
+                   attribute to distribute the relation. 
+                   This attribute is required for the 
+                   distType HASH,  RANGE, SPATIAL2D and 
+                   SPATIAL3D and controls in which slot of 
+                   the resulting array is the corresponding 
+                   tuple inserted. The fifth argument 
+                   specifies the size of the resulting array.
+                    If REPLICATED is choosen this argument 
+                   is unnecessary. The last argument is the 
+                   worker relation. It must be a relation 
+                   having attributes Host, Port, and Config. 
+                   Host and Config must be of type string or 
+                   text, the Port attribute must be of type 
+                   int.
+         Example : query strassen drelfdistribute["", RANDOM, 5, Workers3]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : dreldistribute
+         Algebra : DRelAlgebra
+       Signature :  rel(tuple(X)) x string x distType [x ident] [x int] x 
+                   rel(tuple(Y)) -> drel(tuple(X)) 
+          Syntax :  _ dreldistribute[ _, _, _, _, _]
+         Meaning : Distributes a relation to the workers of the worker relation.
+                    The first argument is the relation to 
+                   distribute. The second Argument is the 
+                   name for the resulting drel. If the name 
+                   is an empty string, a name is choosen 
+                   automatically. The Third argument is the 
+                   distribution type. Possible values are 
+                   RANDOM, HASH, RANGE, SPATIAL2D SPATIAL3D 
+                   and REPLICATED. This argument specifies 
+                   the type to distribute the relation to 
+                   the workers. The fourth argument is an 
+                   attribute to distribute the relation. 
+                   This attribute is required for the 
+                   distType HASH,  RANGE, SPATIAL2D and 
+                   SPATIAL3D and controls in which slot of 
+                   the resulting array is the corresponding 
+                   tuple inserted. The fifth argument 
+                   specifies the size of the resulting array.
+                    If REPLICATED is choosen this argument 
+                   is unnecessary. The last argument is the 
+                   worker relation. It must be a relation 
+                   having attributes Host, Port, and Config. 
+                   Host and Config must be of type string or 
+                   text, the Port attribute must be of type 
+                   int.
+         Example : query strassen dreldistribute["", RANGE, No, 5, Workers3]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : drelimport
+         Algebra : DRelAlgebra
+       Signature :  string|text x string x int x rel -> drel(rel(tuple((Data 
+                   text))))
+          Syntax :  drelimport(_,_,_,_)
+         Meaning : Imports a file and create a random partitioned drel with 
+                   relation schema rel(tuple((Data text)))
+         Example : query drelimport("/home/secondo/test.txt", "", 5, Workers3)
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : drelpartition
+         Algebra : DRelAlgebra
+       Signature :  d[f]rel(X) x attr x [int|vector|d[f]rel] -> dfrel(X) 
+          Syntax :  _ drelpartition[_,_]
+         Meaning : Repartition of a d[f]rel with partition by range. The 
+                   attribute is the key attribute to 
+                   repartition the d[f]rel. Optional the 
+                   size of the d[f]rel can be used as an 
+                   argument if known or a vector for the 
+                   boundaries can be used. A existing by 
+                   range d[f]rel can also be used as third 
+                   argument
+         Example : query drel1 drelpartition[PLZ]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : drelpartition
+         Algebra : DRelAlgebra
+       Signature :  d[f]rel(X) x attr x [int|vector|d[f]rel] -> dfrel(X) 
+          Syntax :  _ drelpartition[_,_]
+         Meaning : Repartition of a d[f]rel with partition by range. The 
+                   attribute is the key attribute to 
+                   repartition the d[f]rel. Optional the 
+                   size of the d[f]rel can be used as an 
+                   argument if known or a vector for the 
+                   boundaries can be used. A existing by 
+                   range d[f]rel can also be used as third 
+                   argument
+         Example : query drel1 drelpartition[PLZ, 5000]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : drelspatialpartition
+         Algebra : DRelAlgebra
+       Signature :  d[f]rel(X) x attr x [cellgrid2d|cellgrid3d|d[f]rel] -> 
+                   dfrel(X) 
+          Syntax :  _ drelspatialpartition[_,_]
+         Meaning : Repartition of a d[f]rel with partition by spatial2d or 
+                   spatial3d. The attribute is the key 
+                   attribute to repartition the d[f]rel. 
+                   Optional a cellgrid2d or cellgrid3d can 
+                   be used. A existing by spatial2d or 
+                   spatial3d d[f]rel can also be used as 
+                   third argument
+         Example : query drel1 drelspatialpartition[GeoData]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : drelfilter
+         Algebra : DRelAlgebra
+       Signature :  drel(X) x fun -> drel(X) 
+          Syntax :  _ drelfilter[fun]
+         Meaning : Only tuples, fulfilling a certain condition are passed to 
+                   the new d[f]rel
+         Example : query drel1 drelfilter[.PLZ > 200]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : project
+         Algebra : DRelAlgebra
+       Signature :  drel(X) x attrlist -> drel(Y) 
+          Syntax :  _ project[attrlist]
+         Meaning : Passed only the listed attributes to a stream. It is not 
+                   allowed to create a new d[f]rel without 
+                   the partion attribute.
+         Example : query drel1 project[PLZ, Ort]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : drelextend
+         Algebra : DRelAlgebra
+       Signature :  drel(X) x funlist -> drel(X) 
+          Syntax :  _ drelextend[list]
+         Meaning : Extends the drel with additional attributes specified by the 
+                   funlist
+         Example : query drel1 drelextend[PLZ2 : .PLZ + 1]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : drelprojectextend
+         Algebra : DRelAlgebra
+       Signature :  drel(X) x attrlist x funlist -> drel(X) 
+          Syntax :  _ drelprojectextend[list; funlist]
+         Meaning : First projects the drel and then extends the drel with 
+                   additional attributes specified by the 
+                   funlist
+         Example : query drel1 drelprojectextend[PLZ; PLZ2 : .PLZ + 1]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : head
+         Algebra : DRelAlgebra
+       Signature :  drel(X) x list -> drel(X) 
+          Syntax :  _ head[int]
+         Meaning : Passed only the first n tuple of each array field 
+         Example : query drel1 head[3]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : rename
+         Algebra : DRelAlgebra
+       Signature :  drel(X) x ar -> drel(X) 
+          Syntax :  _ rename[symbol]
+         Meaning : Renames all attribute names by adding them with the postfix 
+                   passed as parameter. NOTE: parameter must 
+                   be of symbol type.
+         Example : query drel1 rename[t1]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : lrdup
+         Algebra : DRelAlgebra
+       Signature :  drel(X) -> drel(X) 
+          Syntax :  _ lrdup
+         Meaning : Removes duplicates in a d[f]rel. NOTE: Duplicates are only 
+                   removed in a local array field and not in 
+                   the global d[f]rel.
+         Example : query drel1 lrdup
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : lsort
+         Algebra : DRelAlgebra
+       Signature :  drel(X) -> drel(X) 
+          Syntax :  _ lsort
+         Meaning : Sorts a d[f]rel. NOTE: The operator only sorts the local 
+                   array fields and not in global d[f]rel.
+         Example : query drel1 lsort
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : lsortby
+         Algebra : DRelAlgebra
+       Signature :  drel(X) -> drel(X) 
+          Syntax :  _ lsortby[attrlist]
+         Meaning : Sorts a d[f]rel by a specific attribute list. NOTE: The 
+                   operator only sorts the local array 
+                   fields and not in global d[f]rel.
+         Example : query drel1 lsortby[PLZ]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : drellgroupby
+         Algebra : DRelAlgebra
+       Signature :  drel(X) x attrlist x funlist -> drel(X) 
+          Syntax :  _ drellgroupby[attrlist, funlist]
+         Meaning : Groups a d[f]rel according to attributes ai1, ..., aik and 
+                   feeds the groups to other functions. The 
+                   results of those functions are appended 
+                   to the grouping attributes. The empty 
+                   list is allowed for the grouping 
+                   attributes (this results in a single 
+                   group with all input tuples).NOTE: The 
+                   operator only groups the local array 
+                   fields and not in global d[f]rel.
+         Example : query drel1 drellgroupby[PLZ; Anz : group feed count]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : comparedisttype
+         Algebra : DRelAlgebra
+       Signature :  drel(X) x drel(X) -> bool 
+          Syntax :  _ _ comparedisttype
+         Meaning : Compares to drels and return true, if the disttype are equal.
+                    
+         Example : query drel1 drel2 comparedisttype
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : drelcollect_box
+         Algebra : DRelAlgebra
+       Signature : stream<SPATIAL> x bool -> rectangle
+          Syntax :  _ drelcollect_box[_]
+         Meaning : Computes the bounding box from a stream of spatial 
+                   attributesIf the second parameter is set 
+                   to be true, undefined elements  within 
+                   the stream are ignored. Otherwise an 
+                   undefined element will lead to an 
+                   undefined result.
+         Example : query (strassen feed projecttransformstream[GeoData] 
+                   drelcollect_box[TRUE]) = strassen feed 
+                   extend[B : bbox(.GeoData)] aggregateB[B; 
+                   fun(r1 : rect,r2: rect)      r1 union r2; 
+                   [const rect value undef] ]
+          Result : TRUE
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : drel2darray
+         Algebra : DRelAlgebra
+       Signature : d[f]rel(X) or d[f]array -> d[f]rel(X) or d[f]array 
+          Syntax :  _ drel2darray
+         Meaning : Convert a d[f]rel to a d[f]array or a dfrel to a dfarray. 
+         Example : query drel1 drel2darray
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : drel2darray
+         Algebra : DRelAlgebra
+       Signature : d[f]rel(X) or d[f]array -> d[f]rel(X) or d[f]array 
+          Syntax :  _ drel2darray
+         Meaning : Convert a d[f]rel to a d[f]array or a dfrel to a dfarray. 
+         Example : query darray1 drel2darray
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : drel2darray
+         Algebra : DRelAlgebra
+       Signature : d[f]rel(X) or d[f]array -> d[f]rel(X) or d[f]array 
+          Syntax :  _ drel2darray
+         Meaning : Convert a d[f]rel to a d[f]array or a dfrel to a dfarray. 
+         Example : query drel1 drel2darray
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : drel2darray
+         Algebra : DRelAlgebra
+       Signature : d[f]rel(X) or d[f]array -> d[f]rel(X) or d[f]array 
+          Syntax :  _ drel2darray
+         Meaning : Convert a d[f]rel to a d[f]array or a dfrel to a dfarray. 
+         Example : query darray1 drel2darray
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : count
+         Algebra : DRelAlgebra
+       Signature : d[f]rel(X) -> int 
+          Syntax :  _ count
+         Meaning : Count the tuples of a d[f]rel. Replicated tuples of a 
+                   spatially distributed drel are counted 
+                   only once.
+         Example : query drel1 count
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : lcount
+         Algebra : DRelAlgebra
+       Signature : d[f]rel(X) x bool -> darray 
+          Syntax :  _ lcount
+         Meaning : Count the tuples in the partition of a d[f]rel. The second 
+                   argument is for filtering replicated 
+                   tuples while using spatial partitioning. 
+                   TRUE for eliminating the replicas while 
+                   counting.
+         Example : query drel1 lcount[TRUE]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : dsummarize
+         Algebra : DRelAlgebra
+       Signature : d[f]rel(rel(X)) -> stream(X)
+          Syntax : _ dsummarize
+         Meaning : Produces a stream of the drel elements.
+         Example : query drel1 dsummarize count
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : drelcreatebtree
+         Algebra : DRelAlgebra
+       Signature :  d[f]rel(X) x string x attr -> darray(Y) 
+          Syntax :  _ drelcreatebtree[_]
+         Meaning : Creates a btree for a d[f]rel as a darray 
+         Example : query drel1 drelcreatebtree["",PLZ]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : exactmatch
+         Algebra : DRelAlgebra
+       Signature :  darray(btree(X)) x drel(X) x string -> darray(X) 
+          Syntax :  _ _ exactmatch[_]
+         Meaning : Uses a distributed btree and a drel to call the exactmatch 
+                   operator.
+         Example : query drel1_PLZ drel1 exactmatch[99998]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : range
+         Algebra : DRelAlgebra
+       Signature :  darray(btree(X)) x drel(X) x string -> darray(X) 
+          Syntax :  _ _ range[_,_]
+         Meaning : Uses a distributed btree and a drel to call the range 
+                   operator.
+         Example : query drel1_PLZ drel1 range[90000,99998]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : drelbulkloadrtree
+         Algebra : DRelAlgebra
+       Signature :  d[f]rel(X) x string x attr -> darray(Y) 
+          Syntax :  _ drelbulkloadrtree[_,_]
+         Meaning : Creates a rtree for a d[f]rel as a darray 
+         Example : query drel1 drelbulkloadrtree["drel1_GeoData",GeoData]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : windowintersects
+         Algebra : DRelAlgebra
+       Signature :  darray(rtree(X)) x d[f]rel[X]-> dfrel(X) 
+          Syntax :  _ _ windowintersects[_]
+         Meaning : Computes a windowsintersects of a darray with an rtree, an 
+                   d[f]rel and a rectangle.
+         Example : query darray1 drel1 windowintersects[rectangle]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : rdup
+         Algebra : DRelAlgebra
+       Signature :  d[f]rel(X) -> d[f]rel(X) 
+          Syntax :  _ rdup
+         Meaning : Removes duplicates in a d[f]rel. NOTE: Duplicates are only 
+                   removed from the global d[f]rel and a 
+                   repartition may be done.
+         Example : query drel1 rdup
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : sort
+         Algebra : DRelAlgebra
+       Signature :  d[f]rel(X) -> d[f]rel(X) 
+          Syntax :  _ sort
+         Meaning : Sorts a d[f]rel. NOTE: The operator only sorts the global 
+                   d[f]rel and a repartition may be done.
+         Example : query drel1 sort
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : sortby
+         Algebra : DRelAlgebra
+       Signature :  d[f]rel(X) -> d[f]rel(X) 
+          Syntax :  _ sortby[attrlist]
+         Meaning : Sorts a d[f]rel by a specific attribute list. NOTE: The 
+                   operator sorts the global d[f]rel and a 
+                   repartition may be done.
+         Example : query drel1 sortby[PLZ]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : drelgroupby
+         Algebra : DRelAlgebra
+       Signature :  d[f]rel(X) x attrlist x funlist -> d[f]rel(X) 
+          Syntax :  _ drelgroupby[attrlist, funlist]
+         Meaning : Groups a d[f]rel according to attributes ai1, ..., aik and 
+                   feeds the groups to other functions. The 
+                   results of those functions are appended 
+                   to the grouping attributes. The empty 
+                   list is allowed for the grouping 
+                   attributes (this results in a single 
+                   group with all input tuples).NOTE: The 
+                   operator groups the global d[f]rel and a 
+                   repartition may be done.
+         Example : query drel1 drelgroupby[PLZ; Anz : group feed count]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : sortmergejoin
+         Algebra : DRelAlgebra
+       Signature :  d[f]rel(rel(X)) x d[f]rel(rel(X)) x attr x attr -> 
+                   dfrel(rel(Y)) 
+          Syntax :  _ _ sortmergejoin[_,_]
+         Meaning : Computes the equijoin of two d[f]rels using the new sort 
+                   operator implementation.
+         Example : query drel1 drel2 sortmergejoin[PLZ, PLZ2]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : itHashJoin
+         Algebra : DRelAlgebra
+       Signature :  d[f]rel(rel(X)) x d[f]rel(rel(X)) x attr x attr -> 
+                   dfrel(rel(Y)) 
+          Syntax :  _ _ itHashJoin[_,_]
+         Meaning : Computes a hash join of two d[f]rels. 
+         Example : query drel1 drel2 itHashJoin[PLZ, PLZ2]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+            Name : inloopjoin
+         Algebra : DRelAlgebra
+       Signature :  d[f]rel(X) x fun -> dfrel(X) 
+          Syntax :  _ _ _ inloopjoin[_]
+         Meaning : Uses a d[f]rel and computes a loop join with an other d[f]
+                   rel and a btree. The function is static 
+                   with the exactmatch operator 
+         Example : query drel01 drel01_A drel11 inloopjoin[B]
+          Result : bug
+          Remark : 
+SupportsProgress : FALSE
+
+Secondo => 
+

@@ -1,0 +1,151 @@
+# Test file for Distributed Algebra 2
+
+# next 2 lines to be adapted
+
+restore WORKERS from Workers12
+
+let NSlots = 40 
+
+##################################################################
+# 6.1 Random Partitioning
+
+let RoadsB1 = Roads feed dfdistribute3["RoadsB1", NSlots, TRUE, WORKERS]
+
+# 2:09 min
+
+let RoadsR1 = Roads drelfdistribute["RoadsR1", RANDOM, NSlots, WORKERS]
+
+# 1:05 min
+
+##################################################################
+# 6.2 Hash Partitioning
+
+let RoadsB2 = Roads feed ddistribute4["RoadsB2", hashvalue(.Osm_id, 999997), NSlots, WORKERS]
+
+# 2:22 min
+
+let RoadsR2 = Roads dreldistribute["RoadsR2", HASH, Osm_id, NSlots, WORKERS] 
+
+# 1:48 min
+
+##################################################################
+# 6.3 Range Partitioning
+
+query Roads feed filter[isdefined(.Name)] count
+
+let S = Roads feed filter[isdefined(.Name)] nth[119, FALSE] 
+project[Name] sortby[Name] consume
+
+
+let Boundaries = S feedproject[Name] nth[100, TRUE]
+	addcounter[D, 1] project[Name, D] consume
+
+query Boundaries inserttuple['', 0] consume
+
+
+query memclear()
+
+let Boundaries2 = Boundaries feed mconsume
+
+let Boundaries2_Name = Boundaries2 mcreateAVLtree[Name]
+
+let RoadsB3 = Roads feed filter[isdefined(.Name)]
+  ddistribute4["RoadsB3", Boundaries2_Name Boundaries2 
+    matchbelow[.Name] extract[D], NSlots, WORKERS]
+
+# 1:02 min
+
+# Creating the full sorted order
+
+let RoadsB3S = RoadsB3 dmap["RoadsB3S", . feed sortby[Name]]
+
+# 3.9 sec
+
+##### Distributed relation
+
+let RoadsNamed = Roads feed filter[isdefined(.Name)] consume
+
+# 4:24 min
+
+let RoadsR3S = RoadsNamed dreldistribute["RoadsR3S", RANGE, Name, NSlots, 
+  WORKERS]
+
+# 4:43 min !!
+
+let RoadsR3Sb = RoadsNamed dreldistribute["RoadsR3Sb", RANGE, Name, NSlots, 
+  WORKERS]
+
+# 3:42 min
+
+
+##################################################################
+# 6.4 Spatial Partitioning
+
+query 
+  Buildings feed projectextend[; Box: bbox(.GeoData)]
+  Landuse feed projectextend[; Box: bbox(.GeoData)] concat
+  Natural feed projectextend[; Box: bbox(.GeoData)] concat
+  Places feed projectextend[; Box: bbox(.GeoData)] concat
+  Points feed projectextend[; Box: bbox(.GeoData)] concat
+  Railways feed projectextend[; Box: bbox(.GeoData)] concat
+  Roads feed projectextend[; Box: bbox(.GeoData)] concat
+  Waterways feed projectextend[; Box: bbox(.GeoData)] concat
+	transformstream collect_box[TRUE]
+
+let grid = [const cellgrid2d value (5.8 50.1 0.2 0.2 20)]
+
+let RoadsB4 = Roads feed 
+  extendstream[Cell: cellnumber(bbox(.GeoData), grid)] 
+	dfdistribute2["RoadsB4", Cell, NSlots, WORKERS] 
+
+# 1:37 min
+
+#####
+
+let RoadsR4 = Roads drelfdistribute["RoadsR4", SPATIAL2D, GeoData, NSlots, WORKERS]
+
+# 2:48 min
+
+
+let BuildingsB1 = Buildings feed dfdistribute3["BuildingsB1", NSlots, TRUE, WORKERS]
+
+# 13:48 min
+
+query share("grid", TRUE, WORKERS)
+
+let BuildingsB4a = BuildingsB1 partitionF["",
+  . feed extend[EnlargedBox: enlargeRect(bbox(.GeoData), 0.01, 0.01)]
+  extendstream[Cell: cellnumber(.EnlargedBox, grid)]
+  extend[Original: .Cell = cellnumber(.EnlargedBox, grid)
+    transformstream extract[Elem] ],
+  ..Cell, 0]
+  collect2["BuildingsB4a", 1238]
+
+# 2:40 min
+
+#####
+
+let BuildingsR1 = Buildings drelfdistribute["BuildingsR1", RANDOM, NSlots, 
+  WORKERS]
+
+# 11:33 min
+
+let BuildingsR4a = BuildingsR1 drelextend[EnlargedBox: 
+  enlargeRect(bbox(.GeoData), 0.01, 0.01) rect2region]
+  drelspatialpartition[EnlargedBox, RoadsR4]
+
+
+
+##################################################################
+# 6.5 Replication
+
+query share("Roads", FALSE, WORKERS)
+
+
+
+
+
+
+
+
+
