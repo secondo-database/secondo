@@ -67,24 +67,24 @@ endif
 
 while N > 0 do
 {
-query NodesPersistent feed 
+query remotePregelCommand('query Nodes mfeed filter[.Active]
   projectextend[; NodeId: .Id, NodePartition: .Partition]
   extend[Message: "checkSingle", Value: 0]
-  initPregelMessages
+  initPregelMessagesWorker')
 |
 query startPregel(-1)
 |
-query NodesPersistent feed 
+query remotePregelCommand('query Nodes mfeed filter[.Active]
   projectextend[; NodeId: .Id, NodePartition: .Partition]
   extend[Message: "resetColor", Value: 0]
-  initPregelMessages
+  initPregelMessagesWorker')
 |
 query startPregel(-1)
 |
-query NodesPersistent feed 
+query remotePregelCommand('query Nodes mfeed filter[.Active]
   projectextend[; NodeId: .Id, NodePartition: .Partition]
   extend[Message: "maxBack", Value: 0]
-  initPregelMessages
+  initPregelMessagesWorker')
 |
 query startPregel(-1)
 |
@@ -104,10 +104,10 @@ endwhile
 ----
 # Phase 1: Remove Singleton Components
 
-query NodesPersistent feed 
+query remotePregelCommand('query Nodes mfeed filter[.Active]
   projectextend[; NodeId: .Id, NodePartition: .Partition]
   extend[Message: "checkSingle", Value: 0]
-  initPregelMessages;
+  initPregelMessagesWorker')
 
 query startPregel(-1)
 
@@ -115,19 +115,19 @@ query startPregel(-1)
 
 # Phase 2: Spread Maximum Color
 
-query NodesPersistent feed 
+query remotePregelCommand('query Nodes mfeed filter[.Active]
   projectextend[; NodeId: .Id, NodePartition: .Partition]
   extend[Message: "resetColor", Value: 0]
-  initPregelMessages;
+  initPregelMessagesWorker')
 
 query startPregel(-1)
 
 # Phase 3: Spread Back to Predecessors of Maximum
 
-query NodesPersistent feed 
+query remotePregelCommand('query Nodes mfeed filter[.Active]
   projectextend[; NodeId: .Id, NodePartition: .Partition]
   extend[Message: "maxBack", Value: 0]
-  initPregelMessages;
+  initPregelMessagesWorker')
 
 query startPregel(-1);
 
