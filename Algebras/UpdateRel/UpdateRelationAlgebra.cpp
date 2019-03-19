@@ -2982,14 +2982,14 @@ int UpdateSearchSave(Word* args, Word& result, int message,
             {
               if(!compare(nextTup,tup) && !compare(tup,nextTup))
               {
-		int nextTupAttrs = nextTup->GetNoAttributes();
+               int nextTupAttrs = nextTup->GetNoAttributes();
                 newTuple = new Tuple( localTransport->resultTupleType );
                 assert( newTuple->GetNoAttributes() ==
                         2 * nextTupAttrs + 1);
                 for (int i = 0; i < nextTupAttrs; i++) {
                    newTuple->CopyAttribute(i, nextTup , i);
                    newTuple->CopyAttribute(i, nextTup , nextTupAttrs+i);
-		}
+                }
 
                 noOfAttrs = ((CcInt*)args[4].addr)->GetIntval();
                 // Supplier for the updatefunctions
@@ -3015,29 +3015,28 @@ int UpdateSearchSave(Word* args, Word& result, int message,
                     ((Attribute*)value.addr)->Clone();
                   (*newAttrs)[i-1] = newAttribute;
 
-		  // change attribute value for the output tuple
-		  newTuple->PutAttribute(index, newAttribute);
+                  // change attribute value for the output tuple
+                  newTuple->PutAttribute(index, newAttribute);
                 }
-		nextTup->IncReference();
+                nextTup->IncReference();
                 qp->SetModified(qp->GetSon(s, 1));
                 qp->SetModified(qp->GetSon(s, 2));
                 relation->UpdateTuple( nextTup,*changedIndices,*newAttrs);
 
-		// add tid to newTuple
-		const TupleId& tid = nextTup->GetTupleId();
+                // add tid to newTuple
+                const TupleId& tid = nextTup->GetTupleId();
                 Attribute* tidAttr = new TupleIdentifier(true,tid);
-                newTuple->PutAttribute(
-                  newTuple->GetNoAttributes() - 1, tidAttr);
+                newTuple->PutAttribute(newTuple->GetNoAttributes() - 1,tidAttr);
 
-		// copy the updated tuple into auxTuple and append it
-		// to the auxiliary relation
+                // copy the updated tuple into auxTuple and append it
+                // to the auxiliary relation
                 Tuple *auxTuple = new Tuple( auxRelation->GetTupleType() );
                 for (int i = 0; i < auxTuple->GetNoAttributes()-1; i++)
                 {
                   auxTuple->CopyAttribute(i, newTuple, i);
                 }
                 auxTuple->PutAttribute( auxTuple->GetNoAttributes()-1,
-				        tidAttr->Copy() );
+                                        tidAttr->Copy() );
 
                 auxRelation->AppendTuple(auxTuple);
 
@@ -3050,7 +3049,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
           }
           // Check if at least one updated tuple has to be send to
           // the outputstream
-	  Tuple* t = localTransport->lastUpdate();
+          Tuple* t = localTransport->lastUpdate();
           if ( t != 0 )
           {
             result.setAddr(t);
@@ -3058,13 +3057,11 @@ int UpdateSearchSave(Word* args, Word& result, int message,
           }
           tup->DeleteIfAllowed();
         }
-        else {
-	  // if (qp->Received(args[0].addr))
+        else { // if (qp->Received(args[0].addr))
           return CANCEL;
-	}
+        }
       }// while ( !tupleFound );
       return YIELD;
-
     } // case REQUEST
 
     case CLOSE :
@@ -3328,21 +3325,27 @@ int deleteByIdValueMap(Word* args, Word& result, int message,
       {
         *firstcall = false;
         resultType = GetTupleResultType( s );
-        resultTupleType = new TupleType( nl->Second( resultType ) );
         relation = (Relation*)(args[0].addr);
         assert(relation != 0);
         tid = (TupleIdentifier*)(args[1].addr);
-        resultTuple = new Tuple( resultTupleType );
-        deleteTuple = relation->GetTuple(tid->GetTid(), true);
+        if(tid->IsDefined()){
+           deleteTuple = relation->GetTuple(tid->GetTid(), true);
+        } else {
+           deleteTuple = 0;
+        }
         if (deleteTuple == 0)
         {
-           resultTupleType->DeleteIfAllowed();
-           resultTuple->DeleteIfAllowed();
            return CANCEL;
         }
-        for (int i = 0; i < deleteTuple->GetNoAttributes(); i++)
+
+        resultTupleType = new TupleType( nl->Second( resultType ) );
+        resultTuple = new Tuple( resultTupleType );
+
+        for (int i = 0; i < deleteTuple->GetNoAttributes(); i++) 
+        {
           resultTuple->PutAttribute(
             i, deleteTuple->GetAttribute(i)->Clone());
+        }
         relation->DeleteTuple(deleteTuple);
         qp->SetModified(qp->GetSon(s, 0));
         resultTuple->PutAttribute(
@@ -3565,27 +3568,29 @@ int updateByIdValueMap(Word* args, Word& result, int message,
       return 0;
 
     case REQUEST :
-    firstcall = (bool*) local.addr;
+      firstcall = (bool*) local.addr;
       if (*firstcall)
       {
         *firstcall = false;
-        resultType = GetTupleResultType( s );
-        resultTupleType = new TupleType( nl->Second( resultType ) );
         relation = (Relation*)(args[0].addr);
         assert(relation != 0);
         tid = (TupleIdentifier*)(args[1].addr);
-        resultTuple = new Tuple( resultTupleType );
-        updateTuple = relation->GetTuple(tid->GetTid(), true);
+        updateTuple = tid->IsDefined()?relation->GetTuple(tid->GetTid(), true)
+                                      : 0;
         if (updateTuple == 0)
         {
-           resultTupleType->DeleteIfAllowed();
-           resultTuple->DeleteIfAllowed();
            return CANCEL;
         }
+        resultType = GetTupleResultType( s );
+        resultTupleType = new TupleType( nl->Second( resultType ) );
+        resultTuple = new Tuple( resultTupleType );
+
         for (int i = 0; i < updateTuple->GetNoAttributes(); i++)
+        {
           resultTuple->PutAttribute(
             updateTuple->GetNoAttributes() +i,
             updateTuple->GetAttribute(i)->Clone());
+        }
         // Number of attributes to be replaced
         noOfAttrs = ((CcInt*)args[3].addr)->GetIntval();
         // Supplier for the functions
@@ -4711,8 +4716,6 @@ Operator updatedirect2Op(
 );
 
 ListExpr updatebyid2TM(ListExpr args){
-
-    cout << "updid2: " << nl->ToString(args) << endl; 
 
     if(!nl->HasLength(args,4)){
         return listutils::typeError("wrong number of args");
