@@ -4031,12 +4031,16 @@ Deletes an operator tree object.
            // result type as its value, so we have to change the
            // algebra id and type id from fun to its result type
             ListExpr t = tree->typeExpr;
-            if(nl->HasLength(t,3) && 
+            if(nl->HasMinLength(t,2) && 
                (nl->AtomType(nl->First(t))==SymbolType) && 
                (nl->SymbolValue(nl->First(t))=="map")){
-               GetCatalog()->LookUpTypeExpr( nl->Third(tree->typeExpr), 
-                                             typeName, algebraId, typeId );
+               while(!nl->IsEmpty(nl->Rest(t))){  // goto last element
+                 t = nl->Rest(t);
+               }
+               t = nl->First(t); // remove function brackets
+               GetCatalog()->LookUpTypeExpr(t, typeName, algebraId, typeId );
             }
+
             if( tree->u.dobj.isConstant ){
               (algebraManager->DeleteObj( algebraId, typeId ))
                 ( tree->numTypeExpr ,
@@ -4058,7 +4062,7 @@ Deletes an operator tree object.
               }
             }
           }
-    tree->u.dobj.value.addr = 0;
+          tree->u.dobj.value.addr = 0;
         }
         break;
       }
