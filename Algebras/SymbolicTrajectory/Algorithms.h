@@ -1023,7 +1023,7 @@ class TupleIndex {
              std::vector<RTree1TI*> r1, std::vector<RTree2TI*> r2,
              RTree1TI *tI, std::map<int, std::pair<IndexType, int> > aI,
              std::map<std::pair<IndexType, int>, int> iA, int mA, int64_t *fE);
-  TupleIndex(bool dummy) {}
+  TupleIndex(bool dummy) { timeIndex = 0;}
   TupleIndex(TupleIndex &src);
   ~TupleIndex() {deleteIndexes();}
   
