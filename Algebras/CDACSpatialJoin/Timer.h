@@ -49,7 +49,7 @@ used in the Timer class to count and report cache misses. To use PAPI,
     defined.
 
 */
-#define TIMER_USES_PAPI
+// #define TIMER_USES_PAPI
 
 namespace cdacspatialjoin {
 
