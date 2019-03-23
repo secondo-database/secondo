@@ -77,6 +77,7 @@ void Task::report(ostream& out) {
    // determine the common output length for runtime values
    constexpr int timeLength = 8;
 
+   cout << setfill(' ');
    cout << name << ": ";
    cout << "total " << setw(timeLength) << formatMillis(sumTime)
         << " (" << formatInt(count) << " calls, "
@@ -99,37 +100,42 @@ void Task::reportTable(std::ostream& out, const bool reportCount,
                         const bool reportMin, const bool reportMax,
                         const unsigned maxNameLength) const {
 
+   // set fill character ' ' (is set to '0' by Query Progress Estimation)
+   out << setfill(' ');
+
    // report the name and add spaces to align all names to the same length
    out << name;
-   for (unsigned i = 0; i < maxNameLength - name.size(); ++i)
-     out << " ";
+   if (name.size() < maxNameLength)
+      out << string(maxNameLength - name.size(), ' ');
    out << " |";
 
    // report the desired runtime information
    if (reportCount)
-      out << setw(7) << formatInt(count) << " |";
+      out << setw(countWidth - 1) << formatInt(count) << " |";
    if (reportSum)
-      out << setw(11) << formatMillis(sumTime) << " |";
+      out << setw(sumTimeWidth - 1) << formatMillis(sumTime) << " |";
    if (reportAvg)
-      out << setw(11) << formatMillis(getAvgTime()) << " |";
+      out << setw(avgTimeWidth - 1) << formatMillis(getAvgTime()) << " |";
    if (reportMin)
-      out << setw(11) << formatMillis(minTime) << " |";
+      out << setw(minTimeWidth - 1) << formatMillis(minTime) << " |";
    if (reportMax)
-      out << setw(11) << formatMillis(maxTime) << " |";
+      out << setw(maxTimeWidth - 1) << formatMillis(maxTime) << " |";
 
 #ifdef TIMER_USES_PAPI
    // report the desired cache miss information
    if (reportSum) {
-      out << setw(14) << formatInt(sumL1InstrMisses) << " |";
-      out << setw(14) << formatInt(sumL1DataMisses) << " |";
-      out << setw(14) << formatInt(sumL2Misses) << " |";
-      out << setw(14) << formatInt(sumL3Misses) << " |";
+      out << setw(sumL1IWidth - 1) << formatInt(sumL1InstrMisses) << " |";
+      out << setw(sumL1DWidth - 1) << formatInt(sumL1DataMisses) << " |";
+      out << setw(sumL2UWidth - 1) << formatInt(sumL2Misses) << " |";
+      out << setw(sumL3UWidth - 1) << formatInt(sumL3Misses) << " |";
    }
    if (reportAvg) {
-      out << setw(14) << formatInt(getAvgL1InstrCacheMisses()) << " |";
-      out << setw(14) << formatInt(getAvgL1DataCacheMisses()) << " |";
-      out << setw(14) << formatInt(getAvgL2CacheMisses()) << " |";
-      out << setw(14) << formatInt(getAvgL3CacheMisses()) << " |";
+      out << setw(avgL1IWidth - 1) << formatInt(getAvgL1InstrCacheMisses())
+          << " |";
+      out << setw(avgL1IWidth - 1) << formatInt(getAvgL1DataCacheMisses())
+          << " |";
+      out << setw(avgL1IWidth - 1) << formatInt(getAvgL2CacheMisses()) << " |";
+      out << setw(avgL1IWidth - 1) << formatInt(getAvgL3CacheMisses()) << " |";
    }
 #endif
    out << endl;
@@ -210,9 +216,9 @@ void Timer::start(const unsigned taskID /* = 0 */) {
    currentTask = taskID;
 }
 
-void Timer::stop() {
+clock_t Timer::stop() {
    if (currentTask < 0)
-      return;
+      return 0;
 
    lastTime = clock() - startTime;
 
@@ -234,6 +240,7 @@ void Timer::stop() {
 #endif
 
    currentTask = NO_TASK;
+   return lastTime;
 }
 
 Task* Timer::getCurrentTask() {
@@ -257,39 +264,40 @@ void Timer::reportTable(std::ostream& out, const bool reportCount,
                         const bool reportSum, const bool reportAvg,
                         const bool reportMin, const bool reportMax) const {
 
+   // set fill character ' ' (is set to '0' by Query Progress Estimation)
+   out << setfill(' ');
+   out << endl;
+
    // 1. print table header
 
    // a) name column
-   out << endl;
-   for (unsigned i = 0; i < maxNameLength; ++i)
-      out << " ";
-   out << " |";
+   out << string(maxNameLength + 1, ' ') << "|";
 
    // b) count and time columns
    if (reportCount)
-      out << "  count |";
+      out << setw(Task::countWidth - 1) << right << "count" << " |";
    if (reportSum)
-      out << " total time |";
+      out << setw(Task::sumTimeWidth - 1) << right << "total time" << " |";
    if (reportAvg)
-      out << "   avg time |";
+      out << setw(Task::avgTimeWidth - 1) << right << "avg time" << " |";
    if (reportMin)
-      out << "   min time |";
+      out << setw(Task::minTimeWidth - 1) << right << "min time" << " |";
    if (reportMax)
-      out << "   max time |";
+      out << setw(Task::maxTimeWidth - 1) << right << "max time" << " |";
 
 #ifdef TIMER_USES_PAPI
    // c) cache columns
    if (reportSum) {
-      out << " L1-Instr Miss |";
-      out << "  L1-Data Miss |";
-      out << "       L2 Miss |";
-      out << "       L3 Miss |";
+      out << setw(Task::sumL1IWidth - 1) << right << "L1-Instr Miss" << " |";
+      out << setw(Task::sumL1DWidth - 1) << right << "L1-Data Miss" << " |";
+      out << setw(Task::sumL2UWidth - 1) << right << "L2 Miss" << " |";
+      out << setw(Task::sumL3UWidth - 1) << right << "L3 Miss" << " |";
    }
    if (reportAvg) {
-      out << " L1-I Miss-avg |";
-      out << " L1-D Miss-avg |";
-      out << "   L2 Miss-avg |";
-      out << "   L3 Miss-avg |";
+      out << setw(Task::avgL1IWidth - 1) << right << "L1-I Miss-avg" << " |";
+      out << setw(Task::avgL1DWidth - 1) << right << "L1-D Miss-avg" << " |";
+      out << setw(Task::avgL2UWidth - 1) << right << "L2 Miss-avg" << " |";
+      out << setw(Task::avgL3UWidth - 1) << right << "L3 Miss-avg" << " |";
    }
 #endif
    out << endl;
@@ -301,35 +309,33 @@ void Timer::reportTable(std::ostream& out, const bool reportCount,
       // 2. = 4. print horizontal separator
 
       // a) name column
-      for (unsigned i = 0; i < maxNameLength; ++i)
-         out << "-";
-      out << "-+";
+      out << string(maxNameLength + 1, '-') << "+";
 
       // b) count and time columns
       if (reportCount)
-         out << "--------+";
+         out << string(Task::countWidth, '-') << "+";
       if (reportSum)
-         out << "------------+";
+         out << string(Task::sumTimeWidth, '-') << "+";
       if (reportAvg)
-         out << "------------+";
+         out << string(Task::avgTimeWidth, '-') << "+";
       if (reportMin)
-         out << "------------+";
+         out << string(Task::minTimeWidth, '-') << "+";
       if (reportMax)
-         out << "------------+";
+         out << string(Task::maxTimeWidth, '-') << "+";
 
 #ifdef TIMER_USES_PAPI
       // c) cache columns
       if (reportSum) {
-         out << "---------------+";
-         out << "---------------+";
-         out << "---------------+";
-         out << "---------------+";
+         out << string(Task::sumL1IWidth, '-') << "+";
+         out << string(Task::sumL1DWidth, '-') << "+";
+         out << string(Task::sumL2UWidth, '-') << "+";
+         out << string(Task::sumL3UWidth, '-') << "+";
       }
       if (reportAvg) {
-         out << "---------------+";
-         out << "---------------+";
-         out << "---------------+";
-         out << "---------------+";
+         out << string(Task::avgL1IWidth, '-') << "+";
+         out << string(Task::avgL1DWidth, '-') << "+";
+         out << string(Task::avgL2UWidth, '-') << "+";
+         out << string(Task::avgL3UWidth, '-') << "+";
       }
 #endif
       out << endl;

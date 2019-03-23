@@ -1,5 +1,8 @@
 /*
-1 Typedefs and constants for the CDACSpatialJoin operator
+1 Typedefs and constants for the CDACSpatialJoin(Count) operators
+
+To keep includes as limited as possible, this header contains common typedefs
+and constants used in the context of the CDACSpatialJoin(Count) operators.
 
 */
 
@@ -11,7 +14,6 @@
 
 #include <memory>
 #include <vector>
-
 
 namespace cdacspatialjoin {
 
@@ -50,12 +52,12 @@ typedef uint32_t RowIndex_t;  // this value may well exceed 65535
  * the TBlock where it originates from */
 typedef uint32_t SetRowBlock_t;
 
-/* lists the different tasks to be performed (each multiple times) during a
- * CDACSpatialJoin operation */
-enum CDSjTask : unsigned { // = CDACSpatialJoinTask
+/* short for "CDACSpatialJoinTask". Lists the different tasks to be performed
+ * (each multiple times) during a CDACSpatialJoin(Count) operation */
+enum CDSjTask : unsigned {
    /* the task of requesting data from the InputStreams */
    requestData,
-   /* the task of creating a Join State instance */
+   /* the task of creating a JoinState instance */
    createJoinState,
    /* the task of creating a vector of SortEdge instances */
    createSortEdges,
@@ -63,7 +65,8 @@ enum CDSjTask : unsigned { // = CDACSpatialJoinTask
    sortSortEdges,
    /* the task of creating a vector of JoinEdge instances */
    createJoinEdges,
-   /* the task of merging the JoinEdges and reporting the intersections */
+   /* the task of merging the JoinEdges and reporting (or counting) the
+    * intersections */
    merge
 };
 

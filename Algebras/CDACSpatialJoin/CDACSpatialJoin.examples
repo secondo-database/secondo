@@ -13,6 +13,18 @@ Signature: stream(tblock or tuple) x stream(tblock or tuple) x symbol x symbol -
 Example  : query strassen feed {a} strassen feed {b} cdacspatialjoin[GeoData_a, GeoData_b] count
 Result   : (longint 26492)
 
+Operator : cdacspatialjoincount
+Number   : 1
+Signature: stream(tblock or tuple) x stream(tblock or tuple) x symbol x symbol -> longint
+Example  : query strassen feed toblocks[1] {a} strassen feed toblocks[1] {b} cdacspatialjoincount[GeoData_a, GeoData_b]
+Result   : (longint 26492)
+
+Operator : cdacspatialjoincount
+Number   : 2
+Signature: stream(tblock or tuple) x stream(tblock or tuple) x symbol x symbol -> longint
+Example  : query strassen feed {a} strassen feed {b} cdacspatialjoincount[GeoData_a, GeoData_b]
+Result   : (longint 26492)
+
 Operator : cacheTest
 Number   : 1
 Signature: int -> bool

@@ -29,16 +29,17 @@ MergedArea::MergedArea(const vector<JoinEdge>& joinEdges,
    // appropriate vector left, right, or complete
    for (EdgeIndex_t i = edgeIndexStart; i < edgeIndexEnd; ++i) {
       const JoinEdge& edge = joinEdges[i];
+      const bool isLeft = edge.getIsLeft();
 
       if (this->containsCounterpartOf(edge)) {
-         if (edge.getIsLeft()) {
+         if (isLeft) {
             complete.push_back(edge);
          } else {
             // ignore edge (since the corresponding left edge is in this same
             // MergedArea and therefore is added to the "complete" vector
          }
       } else {
-         if (edge.getIsLeft())
+         if (isLeft)
             left.push_back(edge);
          else
             right.push_back(edge);

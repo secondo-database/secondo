@@ -49,7 +49,7 @@ used in the Timer class to count and report cache misses. To use PAPI,
     defined.
 
 */
-// #define TIMER_USES_PAPI
+#define TIMER_USES_PAPI
 
 namespace cdacspatialjoin {
 
@@ -62,6 +62,21 @@ L1 Instruction, L1 Data, L2 (unified), and L3 (unified) caches.
 
 */
 class Task {
+   // spacing
+   static const unsigned countWidth = 8;
+   static const unsigned sumTimeWidth = 13;
+   static const unsigned avgTimeWidth = sumTimeWidth;
+   static const unsigned minTimeWidth = sumTimeWidth;
+   static const unsigned maxTimeWidth = sumTimeWidth;
+   static const unsigned sumL1IWidth = 15;
+   static const unsigned sumL1DWidth = sumL1IWidth;
+   static const unsigned sumL2UWidth = sumL1IWidth;
+   static const unsigned sumL3UWidth = sumL1IWidth;
+   static const unsigned avgL1IWidth = 15;
+   static const unsigned avgL1DWidth = avgL1IWidth;
+   static const unsigned avgL2UWidth = avgL1IWidth;
+   static const unsigned avgL3UWidth = avgL1IWidth;
+
    /* the name of this task used in output */
    std::string name = "";
 
@@ -262,8 +277,8 @@ public:
 
    /* stops the Task call which was last started and stores the measured
     * runtime and cache misses to the variables that are accessible by the
-    * getLast...() functions */
-   void stop();
+    * getLast...() functions. Returns the measured runtime. */
+   clock_t stop();
 
    /* returns a pointer to the Task currently running (or nullptr if none of
     * the observed tasks is currently running) */

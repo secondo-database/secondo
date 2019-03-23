@@ -310,7 +310,6 @@ bool Merger::reportPairsSub1(const JoinEdge& edgeS,
 bool Merger::reportPairsSub11(const JoinEdge& edgeS,
                               const JoinEdge& edgeT,
                               const AppendToOutput* output) {
-
    if (indexTBegin == 0) {
       if ((edgeS.yMax >= edgeT.yMin && edgeS.yMin <= edgeT.yMax)) {
          // report intersection

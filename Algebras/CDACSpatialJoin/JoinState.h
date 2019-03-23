@@ -35,8 +35,15 @@ class JoinState {
    // -----------------------------------------------------
    // data from the input streams, given to the constructor
 
+   /* true if only the number of intersections should be counted;
+    * false if actual result tuples should be returned */
+   const bool countOnly;
+
    /* the TBlocks which were read from each of the two input streams */
    const std::shared_ptr<std::vector<CRelAlgebra::TBlock*>> tBlocks[SET_COUNT];
+
+   /* the TBlocks which were read from each of the two input streams */
+   const std::shared_ptr<std::vector<RectangleBlock*>> rBlocks[SET_COUNT];
 
    /* the position of the join attribute in the tuple (for each stream) */
    const unsigned attrIndices[SET_COUNT];
@@ -158,7 +165,7 @@ public:
     * dimA/B: the dimension (2 or 3) of the spatial information;
     * outTBlockSize: the maximum size of the return TBlock in bytes;
     * joinStateId: the consecutive number of this JoinState instance */
-   JoinState(InputStream* inputA, InputStream* inputB,
+   JoinState(bool countOnly_, InputStream* inputA, InputStream* inputB,
          uint64_t outTBlockSize_, unsigned joinStateId_,
          std::shared_ptr<Timer>& timer_);
 
@@ -168,6 +175,20 @@ public:
     * tuples were found, or false, if the operation is complete and no more
     * result tuples were found */
    bool nextTBlock(CRelAlgebra::TBlock* outTBlock);
+
+   size_t getOutTupleCount() const { return outTupleCount; }
+
+   static int compareSortEdges(const void* a, const void* b) {
+      // cp. SortEdge::operator<
+      const double ax = ((SortEdge*)a)->x;
+      const double bx = ((SortEdge*)b)->x;
+      if (ax < bx)
+         return -1;
+      if (ax > bx)
+         return 1;
+      return (((SortEdge*)a)->isLeft ? -1 : 0)
+           + (((SortEdge*)b)->isLeft ?  1 : 0);
+   }
 
 private:
    static unsigned getRowShift(size_t blockCount);
@@ -210,8 +231,24 @@ private:
     * that are completely outside the other set's bounding box need not be
     * considered any further) */
    Rectangle<3> calculateBboxAndEdges(SET set, bool addToEdges,
-           const Rectangle<3>& otherBbox, std::vector<SortEdge>& sortEdges,
-           std::vector<RectangleInfo>& rectangleInfos) const;
+           const Rectangle<3>& otherBbox,
+           std::unique_ptr<std::vector<SortEdge>>& sortEdges,
+           std::unique_ptr<std::vector<RectangleInfo>>& rectangleInfos) const;
+
+   Rectangle<3> calculateBboxAndEdges2D(SET set, bool addToEdges,
+           const Rectangle<3>& otherBbox,
+           std::unique_ptr<std::vector<SortEdge>>& sortEdges,
+           std::unique_ptr<std::vector<RectangleInfo>>& rectangleInfos) const;
+
+   Rectangle<3> calculateBboxAndEdges3D(SET set, bool addToEdges,
+           const Rectangle<3>& otherBbox,
+           std::unique_ptr<std::vector<SortEdge>>& sortEdges,
+           std::unique_ptr<std::vector<RectangleInfo>>& rectangleInfos) const;
+
+   Rectangle<3> calculateBboxAndEdgesCount(SET set, bool addToEdges,
+           const Rectangle<3>& otherBbox,
+           std::unique_ptr<std::vector<SortEdge>>& sortEdges,
+           std::unique_ptr<std::vector<RectangleInfo>>& rectangleInfos) const;
 
    /* enters the given, newly created MergedArea to the mergedAreas vector at
     * the current mergeLevel; if another MergedArea is already stored at this
@@ -221,10 +258,18 @@ private:
 
    void createMerger(MergedAreaPtr& area1, MergedAreaPtr& area2);
 
-   /* appends a new tuple to the outTBlock, creating it from the input tuples
-    * represented by the two given JoinEdges */
+   /* expects entryS and entryT to be representing two rectangles from
+    * different sets that intersect in the x and y dimensions; checks whether
+    * the rectangles intersect in the z dimension, too (if applicable), then
+    * appends a new tuple to the outTBlock */
    bool appendToOutput(const JoinEdge& entryS, const JoinEdge& entryT,
                        CRelAlgebra::TBlock* outTBlock);
+
+   /* expects entryS and entryT to be representing two rectangles from
+    * different sets that intersect in the x and y dimensions; checks whether
+    * the rectangles intersect in the z dimension, too (if applicable), then
+    * appends increases the result counter */
+   void countOutput(const JoinEdge& entryS, const JoinEdge& entryT);
 };
 
 } // end namespace

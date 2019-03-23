@@ -33,6 +33,10 @@ namespace cdacspatialjoin {
       std::shared_ptr<Operator> opCDACSpatialJoin =
               CDACSpatialJoin().getOperator();
 
+      // CDACSpatialJoinCount operator
+      std::shared_ptr<Operator> opCDACSpatialJoinCount =
+              CDACSpatialJoinCount().getOperator();
+
       // CacheTest operator
       std::shared_ptr<Operator> opCacheTest =
               CacheTest().getOperator();
@@ -52,6 +56,11 @@ namespace cdacspatialjoin {
          opCDACSpatialJoin.get()->SetUsesMemory();
          opCDACSpatialJoin.get()->SetUsesArgsInTypeMapping();
          AddOperator(opCDACSpatialJoin.get());
+
+         // CDACSpatialJoinCount operator
+         opCDACSpatialJoinCount.get()->SetUsesMemory();
+         opCDACSpatialJoinCount.get()->SetUsesArgsInTypeMapping();
+         AddOperator(opCDACSpatialJoinCount.get());
 
          // cacheTest operator
          opCacheTest.get()->SetUsesMemory();
