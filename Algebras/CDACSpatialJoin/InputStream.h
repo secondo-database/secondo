@@ -1,4 +1,34 @@
 /*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2019,
+Faculty of Mathematics and Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+
+//[<] [\ensuremath{<}]
+//[>] [\ensuremath{>}]
+
+\setcounter{tocdepth}{2}
+\tableofcontents
+
+
 1 InputStream classes
 
 InputStream encapsulates access to the underlying input stream which may
@@ -17,8 +47,8 @@ information is discarded from main memory.
 */
 #pragma once
 
-#include <memory>
-#include "RectangleBlock.h"
+#include "RectangleBlock.h" // -> ... -> <memory>
+
 #include "Algebras/Stream/Stream.h"
 #include "Algebras/CRel/TBlock.h"
 
@@ -45,11 +75,11 @@ public:
 
    /* the TupleBlocks (TBlocks) received from this stream in the current
     * chunk (in case full tuples are required) */
-   std::shared_ptr<std::vector<CRelAlgebra::TBlock*>> tBlocks;
+   std::vector<CRelAlgebra::TBlock*> tBlocks;
 
    /* the RectangleBlocks received from this stream in the current chunk
     * (in case rectangles are required only) */
-   std::shared_ptr<std::vector<RectangleBlock*>> rBlocks;
+   std::vector<RectangleBlock*> rBlocks;
 
 private:
    /* the memory used by tBlocks / rBlocks */
@@ -106,13 +136,13 @@ public:
    /* returns the number of RectangleBlocks (if only rectangles are kept) or
     * TBlocks (if full tuple information is kept) */
    size_t getBlockCount() const {
-      return rectanglesOnly ? rBlocks->size() : tBlocks->size();
+      return rectanglesOnly ? rBlocks.size() : tBlocks.size();
    }
 
    /* returns true if no information has been read to main memory since
     * construction (or since the last clearMem() call) */
    bool empty() const {
-      return rectanglesOnly ? rBlocks->empty() : tBlocks->empty();
+      return rectanglesOnly ? rBlocks.empty() : tBlocks.empty();
    }
 
    /* returns the number of bytes currently used by the tBlocks / rBlocks */
@@ -185,6 +215,7 @@ private:
    virtual bool requestRectangles() = 0;
 };
 
+
 /*
 1.2 InputTBlockStream  class
 
@@ -205,6 +236,7 @@ private:
 
    bool requestRectangles() override;
 };
+
 
 /*
 1.3 InputTupleStream  class

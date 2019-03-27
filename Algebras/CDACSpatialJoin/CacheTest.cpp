@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2018,
+Copyright (C) 2019,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -21,6 +21,11 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+
+//[<] [\ensuremath{<}]
+//[>] [\ensuremath{>}]
+
+\setcounter{tocdepth}{2}
 \tableofcontents
 
 
@@ -32,15 +37,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <iostream>
 #include <ostream>
 
-#include "NestedList.h"
-#include "AlgebraManager.h"
-#include "StandardTypes.h"
-#include "Symbols.h"
-#include "ListUtils.h"
-
 #include "CacheTest.h"
-#include "CacheInfo.h"
 #include "Utils.h"
+
+#include "QueryProcessor.h" // -> AlgebraManager.h -> NestedList.h
+#include "Symbols.h"
+#include "StandardTypes.h"
+#include "ListUtils.h"
 
 
 using namespace cdacspatialjoin;
@@ -137,7 +140,8 @@ CacheTestLocalInfo::CacheTestLocalInfo(ostream& out,
         const ACCESS_TYPE accessType_,
         const size_t intensity_ /* = 128 */) :
         accessType(accessType_),
-        intensity(intensity_) {
+        testCount(intensity_ == 0 ? 1 : NORMAL_TEST_COUNT),
+        intensity(intensity_ == 0 ? 1 : intensity_) {
 
    // print cache test title
    out << endl;
@@ -184,8 +188,6 @@ CacheTestLocalInfo::CacheTestLocalInfo(ostream& out,
    dataByteCount *= 8;
    dataCount = dataByteCount / ENTRY_BYTE_COUNT;
    data = new entryType[dataCount];
-   for (size_t i = 0; i < dataCount; ++i)
-      data[i] = i % 1023; // the actual content does not really matter
 
    // create another array large enough to "clear" all caches when starting a
    // test (so cache content from a previous test does not influence the test)
@@ -229,8 +231,8 @@ CacheTestLocalInfo::CacheTestLocalInfo(ostream& out,
          assert (false); // unexpected type
          break;
    }
-   if (TEST_COUNT > 1) {
-      out << "- each test is performed " << TEST_COUNT << " times, "
+   if (testCount > 1) {
+      out << "- each test is performed " << testCount << " times, "
           << "average results are reported" << endl;
    }
    out << "- horizontal separators show into which cache level the different "
@@ -242,9 +244,7 @@ CacheTestLocalInfo::CacheTestLocalInfo(ostream& out,
 #ifdef TIMER_USES_PAPI
    out << " L1-I Misses | L1-Data Misses |     L2 Misses |     L3 Misses |";
 #endif
-   out << "  test avg - "
-       << (accessType == sequentialAccess ? "loops only" : "loops/rand")
-       << " = access only" << endl;
+   out << "  test avg - loops only = access only" << endl;
 }
 
 CacheTestLocalInfo::~CacheTestLocalInfo() {
@@ -253,6 +253,10 @@ CacheTestLocalInfo::~CacheTestLocalInfo() {
 }
 
 void CacheTestLocalInfo::test(ostream& out) {
+   // initialize the random number generators with a constant seed to ensure
+   // reproducibility of the test
+   unsigned long RND_SEED = 1;
+
    // check sums are used to ensure the compiler does not "optimize away" the
    // array accesses (which are without effect otherwise)
    entryType sum1 = 0;
@@ -264,7 +268,7 @@ void CacheTestLocalInfo::test(ostream& out) {
    bool printCacheLevel = true;
    size_t dataByteCount = dataCount * ENTRY_BYTE_COUNT;
 
-   Timer timer { CACHE_TEST_TASK_COUNT };
+   Timer timer { TASK_COUNT };
 
    // loop over scope sizes
    while (dataByteCount % (scopeSizeKiB * 1024) == 0) {
@@ -276,7 +280,7 @@ void CacheTestLocalInfo::test(ostream& out) {
 
       // perform test
       timer.reset();
-      testScope(scopeSizeKiB, sum1, sum2, timer);
+      testScope(scopeSizeKiB, RND_SEED, sum1, sum2, timer);
 
       // determine whether the size of the previous cache level has been
       // exceeded by the scope size in this test
@@ -302,67 +306,79 @@ void CacheTestLocalInfo::test(ostream& out) {
 }
 
 void CacheTestLocalInfo::testScope(const size_t scopeSizeKiB,
+        const unsigned long rndSeed,
         size_t& sum1, size_t& sum2, Timer& timer) {
+
    const size_t entriesPerScope = scopeSizeKiB * 1024 / ENTRY_BYTE_COUNT;
    const size_t scopeCount = dataCount / entriesPerScope;
-   const size_t rndsPerScope = (entriesPerScope * intensity) / randomDenom;
+   const size_t scopeCountHalf = scopeCount / 2;
+   const size_t iterationsPerScope = (accessType == randomAccess) ?
+           entriesPerScope * intensity / randomDenom :
+           entriesPerScope * intensity;
+
    assert (entriesPerScope > 0);
    assert (scopeCount * entriesPerScope == dataCount);
+   if (accessType == sequentialTwoLists)
+      assert (scopeCount % 2 == 0);
 
-   // initialize the random number generator with a constant seed
-   // to ensure reproducibility
-   std::mt19937 rndGenerator(1);
-   std::uniform_int_distribution<size_t> randomEntry(0, entriesPerScope - 1);
+   // create a random sequence of scopes
+   std::mt19937 rndGenerator(rndSeed);
    std::uniform_int_distribution<size_t> randomScope(0, scopeCount - 1);
+   auto randomScopeStart = new size_t[scopeCount];
+   for (size_t i = 0; i < scopeCount; ++i)
+      randomScopeStart[i] = i * entriesPerScope;
+   for (size_t i = 0; i < scopeCount; ++i){
+      size_t j = randomScope(rndGenerator);
+      std::swap(randomScopeStart[i], randomScopeStart[j]);
+   }
 
-   // perform the test (TEST_COUNT) times
-   for (unsigned test = 0; test < TEST_COUNT; ++test) {
+   // prepare data[] by writing into each entry the index of the next entry
+   // that must be visited within the scope
+   if (accessType == sequentialAccess || accessType == sequentialTwoLists) {
+      createSequentialCycles(scopeCount, entriesPerScope);
+
+   } else if (accessType == randomAccess) {
+      createRandomCycles(scopeCount, entriesPerScope, rndSeed);
+
+   } else {
+      assert (false); // unexpected accessType
+   }
+
+   // perform the test (testCount) times
+   for (unsigned test = 0; test < testCount; ++test) {
       // clear all caches from data from the last test
       overwriteCaches(sum2);
 
-      // perform the actual test, adding entries from data[] to sum1;
-      // the use of locality depends on the scope size ("entriesPerScope")
+      // perform the actual test; the use of locality depends on the scope
+      // size ("entriesPerScope")
       timer.start(CacheTestTask::fullTest);
-      if (accessType == sequentialAccess) {
+      if (accessType == sequentialAccess || accessType == randomAccess) {
          // iterate over the scopes of the given size
          for (size_t scope = 0; scope < scopeCount; ++scope) {
-            size_t offset = scope * entriesPerScope;
-            // sequentially access the scope's entries (intensity) times
-            for (size_t pass = 0; pass < intensity; ++pass) {
-               for (size_t entry = 0; entry < entriesPerScope; ++entry) {
-                  sum1 += data[offset + entry];
-               }
+            // the start index is the first index of this scope
+            size_t index = randomScopeStart[scope]; // scope * entriesPerScope;
+            // access the scope's entries (intensity) times
+            for (size_t entry = 0; entry < iterationsPerScope; ++entry) {
+               index = data[index];
             }
+            // ensure that the loop is not "optimized away"
+            sum1 += index;
          }
 
       } else if (accessType == sequentialTwoLists) {
-         assert (scopeCount % 2 == 0);
          // the outer loop uses only half the scopeCount as two scopes will be
          // accessed each time
-         for (size_t scope = 0; scope < scopeCount / 2; ++scope) {
+         for (size_t scope = 0; scope < scopeCountHalf; ++scope) {
             // randomly select two different scopes
-            size_t offset1 = randomScope(rndGenerator) * entriesPerScope;
-            size_t offset2;
-            do {
-               offset2 = randomScope(rndGenerator) * entriesPerScope;
-            } while (offset1 == offset2 && scopeCount > 1);
+            size_t index1 = randomScopeStart[scope];
+            size_t index2 = randomScopeStart[scopeCountHalf + scope];
             // alternately access the entries of the scopes (intensity) times
-            for (size_t pass = 0; pass < intensity; ++pass) {
-               for (size_t entry = 0; entry < entriesPerScope; ++entry) {
-                  sum1 += data[offset1 + entry];
-                  sum1 += data[offset2 + entry];
-               }
+            for (size_t entry = 0; entry < iterationsPerScope; ++entry) {
+               index1 = data[index1];
+               index2 = data[index2];
             }
-         }
-
-      } else if (accessType == randomAccess) {
-         // iterate over the scopes of the given size
-         for (size_t scope = 0; scope < scopeCount; ++scope) {
-            size_t offset = scope * entriesPerScope;
-            // access random entries within the scope (rndsPerScope) times
-            for (size_t entry = 0; entry < rndsPerScope; ++entry) {
-               sum1 += data[offset + randomEntry(rndGenerator)];
-            }
+            // ensure that the loop is not "optimized away"
+            sum1 += index1 + index2;
          }
 
       } else {
@@ -372,43 +388,29 @@ void CacheTestLocalInfo::testScope(const size_t scopeSizeKiB,
 
       // measure the time used for loops and random number generation only
       // (without data access) to subtract it from the first duration
-      rndGenerator.seed(1); // create the same random sequence again
       timer.start(CacheTestTask::loopTest);
-      if (accessType == sequentialAccess) {
+      if (accessType == sequentialAccess || accessType == randomAccess) {
          // increment sum2 using the same loop ranges as above
          for (size_t scope = 0; scope < scopeCount; ++scope) {
-            sum2 += scope * entriesPerScope;
-            for (size_t pass = 0; pass < intensity; ++pass) {
-               for (size_t entry = 0; entry < entriesPerScope; ++entry) {
-                  ++sum2;
-               }
+            size_t index = randomScopeStart[scope];
+            for (size_t entry = 0; entry < iterationsPerScope; ++entry) {
+               ++index;
             }
+            // ensure that the loop is not "optimized away"
+            sum2 += index;
          }
 
       } else if (accessType == sequentialTwoLists) {
-         // increment sum2 using the same loop ranges and random number
-         // generations as above
-         for (size_t i = 0; i < scopeCount / 2; ++i) {
-            size_t offset1 = randomScope(rndGenerator) * entriesPerScope;
-            size_t offset2;
-            do {
-               offset2 = randomScope(rndGenerator) * entriesPerScope;
-            } while (offset1 == offset2 && scopeCount > 1);
-            for (size_t pass = 0; pass < intensity; ++pass) {
-               for (size_t entry = 0; entry < entriesPerScope; ++entry) {
-                  ++sum1;
-                  ++sum2;
-               }
+         // increment sum2 using the same loop ranges and scopes as above
+         for (size_t scope = 0; scope < scopeCountHalf; ++scope) {
+            size_t index1 = randomScopeStart[scope];
+            size_t index2 = randomScopeStart[scopeCountHalf + scope];
+            for (size_t entry = 0; entry < iterationsPerScope; ++entry) {
+               ++index1;
+               ++index2;
             }
-         }
-
-      } else if (accessType == randomAccess) {
-         // create the same random values as above and add them to sum2
-         for (size_t scope = 0; scope < scopeCount; ++scope) {
-            sum2 += scope * entriesPerScope;
-            for (size_t entry = 0; entry < rndsPerScope; ++entry) {
-               sum2 += randomEntry(rndGenerator);
-            }
+            // ensure that the loop is not "optimized away"
+            sum2 += index1 + index2;
          }
 
       } else {
@@ -416,14 +418,80 @@ void CacheTestLocalInfo::testScope(const size_t scopeSizeKiB,
       }
       timer.stop();
    }
+
+   delete[] randomScopeStart;
+}
+
+void CacheTestLocalInfo::createSequentialCycles(const size_t scopeCount,
+        const size_t entriesPerScope) const {
+   // iterate over the scopes of the given size
+   for (size_t scope = 0; scope < scopeCount; ++scope) {
+      size_t offset = scope * entriesPerScope;
+      // set each data entry to the index of the next entry
+      size_t loopEnd = offset + entriesPerScope;
+      for (size_t entry = offset; entry < loopEnd; ++entry)
+         data[entry] = entry + 1;
+      // set last entry in this scope to the index of the first in scope
+      data[loopEnd - 1] = offset;
+   }
+}
+
+void CacheTestLocalInfo::createRandomCycles(size_t scopeCount,
+        size_t entriesPerScope, const unsigned long rndSeed) const {
+   // initialize the random number generator
+   std::mt19937 rndGenerator(rndSeed);
+
+   // use auxiliary array
+   auto aux = new entryType[entriesPerScope];
+   // iterate over the scopes of the given size
+   for (size_t scope = 0; scope < scopeCount; ++scope) {
+      const size_t start = scope * entriesPerScope;
+      // fill aux array with entry indices of this scope,
+      // omitting first entry (e.g., aux = { 1025, 1026, ... 2047 })
+      size_t auxSize = entriesPerScope - 1;
+      for (size_t i = 0; i < auxSize; ++i)
+         aux[i] = start + i + 1;
+      // fill data with a random sequence of indices in this scope that
+      // form a single cycle (so, by following this cycle, all entries in
+      // this scope are being visited)
+      size_t entry = start;
+      while (auxSize > 0) {
+         // get random aux index
+         std::uniform_int_distribution<size_t> randomAux(0, auxSize - 1);
+         const size_t auxIndex = randomAux(rndGenerator);
+         const size_t nextEntry = aux[auxIndex];
+         data[entry] = nextEntry;
+         entry = nextEntry;
+         // remove entry from aux (replacing it with the last aux entry)
+         aux[auxIndex] = aux[--auxSize];
+      }
+      // set last entry in this sequence to the index of the first in scope
+      data[entry] = start;
+   }
+
+   /*
+   // test the sequence
+   for (size_t entry = 0; entry < entriesPerScope; ++entry)
+      aux[entry] = 0;
+   size_t index = 0;
+   for (size_t entry = 0; entry < entriesPerScope; ++entry) {
+      ++aux[index];
+      index = data[index];
+   }
+   for (size_t entry = 0; entry < entriesPerScope; ++entry)
+      assert (aux[entry] == 1);
+   */
+
+   delete[] aux;
 }
 
 void CacheTestLocalInfo::overwriteCaches(size_t& sum) {
    // clear all caches by sequentially reading the overwriteData
    // which is large enough to fill the largest cache on this machine
-   for (size_t i = 0; i < overwriteDataCount; ++i)
+   size_t count = overwriteDataCount;
+   for (size_t i = 0; i < count; ++i)
       sum += overwriteData[i];
-   for (size_t i = 0; i < overwriteDataCount; ++i)
+   for (size_t i = 0; i < count; ++i)
       sum -= overwriteData[i];
 }
 
@@ -455,7 +523,7 @@ void CacheTestLocalInfo::reportTest(ostream& out, const size_t scopeSizeKiB,
    } // otherwise, keep accessCount
 
    // get average duration of the test (the timer keeps track of the number of
-   // task calls (TEST_COUNT) and can therefore provide the average values)
+   // task calls (testCount) and can therefore provide the average values)
    const Task* fullTest = timer.getTask(CacheTestTask::fullTest);
    const Task* loopTest = timer.getTask(CacheTestTask::loopTest);
    const clock_t fullTestTime = fullTest->getAvgTime();

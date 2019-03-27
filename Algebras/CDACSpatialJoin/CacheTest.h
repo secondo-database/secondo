@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2018,
+Copyright (C) 2019,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -21,6 +21,11 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+
+//[<] [\ensuremath{<}]
+//[>] [\ensuremath{>}]
+
+\setcounter{tocdepth}{2}
 \tableofcontents
 
 
@@ -61,14 +66,13 @@ The total execution time of the test is approx. "a few seconds
 
 #pragma once
 
-#include <memory>
-#include <iostream>
 #include <ostream>
 
-#include "Operator.h"
-#include "QueryProcessor.h"
 #include "CacheInfo.h"
-#include "Timer.h"
+#include "Timer.h" // -> ... -> <memory>
+
+#include "Operator.h"
+
 
 namespace cdacspatialjoin {
 
@@ -101,6 +105,16 @@ private:
 class CacheTestLocalInfo {
    // typedef and constants
 
+   /* lists the different tasks to be performed (each multiple times) during a
+    * Cache Test operation */
+   enum CacheTestTask : unsigned {
+      fullTest,
+      loopTest
+   };
+
+   /* the number of items in the CacheTestTask enumeration */
+   static constexpr unsigned TASK_COUNT = 2;
+
 public:
    /* the access type to be tested */
    enum ACCESS_TYPE {
@@ -120,19 +134,24 @@ private:
    static constexpr size_t ENTRY_BYTE_COUNT = sizeof(entryType);
 
    /* the number of times a test is performed consecutively to determine the
-    * average execution time */
-   static constexpr unsigned TEST_COUNT = 4;
+    * average execution time; for fast tests, only 1 is used */
+   static constexpr unsigned NORMAL_TEST_COUNT = 4;
 
    /* since random number generation takes a lot of time, each random array
     * entry is only accessed "intensity / randomDenominator" times (on average),
     * rather than "intensity" times */
-   static constexpr size_t randomDenom = 16;
+   static constexpr size_t randomDenom = 32;
 
    // -----------------------------------------------------
    // variables passed to the constructor
 
    /* true for testing random access, false for sequential access */
    const ACCESS_TYPE accessType;
+
+   /* the number of times the test is performed. Usually set to
+    * NORMAL_TEST_COUNT; set to 1 if intensity parameter is 0 (in order to
+    * quickly test the operator) */
+   const unsigned testCount;
 
    /* the intensity of the test; test duration is a few seconds * intensity;
     * for meaningful results, intensity = 128 or higher should be used */
@@ -172,8 +191,8 @@ private:
     * a) the "gross" duration sum (including array access), and
     * b) the duration of loops and random number generation (with no array
     * access). Use "a - b" to get the "net" duration of the array access */
-   void testScope(size_t scopeSizeKiB, size_t& sum1, size_t& sum2,
-           Timer& timer);
+   void testScope(size_t scopeSizeKiB, unsigned long rndSeed,
+           size_t& sum1, size_t& sum2, Timer& timer);
 
    /* clears all caches by filling them with the overwriteData array entries
     * (which are not used in the actual tests) */
@@ -183,6 +202,17 @@ private:
    void reportTest(std::ostream& out, size_t scopeSizeKiB,
            unsigned int cacheLevel, bool printCacheLevel,
            Timer& timer) const;
+
+   /* initializes the data[] field using the given scope size: each data entry
+    * is set to contain the index of the next data entry in the scope; the last
+    * entry of a scope contains the index of the first entry */
+   void createSequentialCycles(size_t scopeCount, size_t entriesPerScope) const;
+
+   /* initializes the data[] field using the given scope size: each data entry
+    * is set to contain the index of a random other data entry in the scope;
+    * this chain of indices forms a single cycles within each scope */
+   void createRandomCycles(size_t scopeCount, size_t entriesPerScope,
+                           unsigned long rndSeed) const;
 };
 
 } // end namespace cdacspatialjoin

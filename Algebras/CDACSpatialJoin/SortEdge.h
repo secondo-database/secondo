@@ -1,19 +1,48 @@
 /*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2019,
+Faculty of Mathematics and Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+
+//[<] [\ensuremath{<}]
+//[>] [\ensuremath{>}]
+
+\setcounter{tocdepth}{2}
+\tableofcontents
+
+
 1 SortEdge class
 
 */
 
 #pragma once
 
-#include <memory>
-#include <cstdint>
-#include <iostream>
 #include <string>
-#include <sstream>
 
-#include "Base.h"
+#include "Base.h" // -> <memory>
 
 namespace cdacspatialjoin {
+
+/* the integer type used for vector<RectangleInfo> indices */
+typedef uint32_t RectInfoIndex_t;
 
 struct SortEdge {
    double x;
@@ -25,6 +54,9 @@ struct SortEdge {
            x(x_), rectInfoIndex(rectInfoIndex_), isLeft(isLeft_) {
    }
 
+   ~SortEdge() = default;
+
+   /*
    inline bool operator< (const SortEdge& other) const {
       return (x < other.x) || (x == other.x && isLeft && !other.isLeft);
       // Just sorting by x would not have the desired effect: Suppose our sets
@@ -54,14 +86,21 @@ struct SortEdge {
       // Thus the the intersection will be noticed before any rectangle is
       // added to the "complete" set.
    }
+   */
 
-   std::string toString() const {
-      std::stringstream st;
-      st << "x = " << x << ", "
-         << "rectInfo #" << rectInfoIndex << ", "
-         << (isLeft ? "left" : "right");
-      return st.str();
+   static int compare(const void* a, const void* b) {
+      // cp. SortEdge::operator<
+      const double ax = ((SortEdge*)a)->x;
+      const double bx = ((SortEdge*)b)->x;
+      if (ax < bx)
+         return -1;
+      if (ax > bx)
+         return 1;
+      return (((SortEdge*)a)->isLeft ? -1 : 0)
+             + (((SortEdge*)b)->isLeft ?  1 : 0);
    }
+
+   std::string toString() const;
 
 };
 

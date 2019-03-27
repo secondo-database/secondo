@@ -1,10 +1,41 @@
 /*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2019,
+Faculty of Mathematics and Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+
+//[<] [\ensuremath{<}]
+//[>] [\ensuremath{>}]
+
+\setcounter{tocdepth}{2}
+\tableofcontents
+
+
 1 InputStream class
 
 1.1 InputStream base class
 
 */
 #include "InputStream.h"
+
 #include "Algebras/CRel/TypeConstructors/TBlockTC.h"
 #include "Algebras/CRel/SpatialAttrArray.h"
 
@@ -19,10 +50,8 @@ InputStream::InputStream(const bool rectanglesOnly_, const unsigned attrIndex_,
         attrIndex(attrIndex_),
         attrCount(attrCount_),
         dim(dim_),
-        tBlocks(rectanglesOnly ?
-            nullptr : new std::vector<CRelAlgebra::TBlock*>()),
-        rBlocks(rectanglesOnly ?
-            new vector<RectangleBlock*>() : nullptr),
+        tBlocks {},
+        rBlocks {},
         byteCount(0),
         currentTupleCount(0),
         passTupleCount(0),
@@ -39,19 +68,15 @@ InputStream::~InputStream() {
 }
 
 void InputStream::clearMem() {
-   if (tBlocks.get()) {
-      for (CRelAlgebra::TBlock* tBlock : *tBlocks) {
-         if (tBlock)
-            tBlock->DecRef();
-      }
-      tBlocks->clear();
+   for (CRelAlgebra::TBlock* tBlock : tBlocks) {
+      if (tBlock)
+         tBlock->DecRef();
    }
-   if (rBlocks.get()) {
-      for (RectangleBlock* rBlock : *rBlocks) {
-         delete rBlock;
-      }
-      rBlocks->clear();
-   }
+   tBlocks.clear();
+   for (RectangleBlock* rBlock : rBlocks)
+      delete rBlock;
+   rBlocks.clear();
+
    if (openCount == 1 && currentTupleCount > 0) {
       totalTupleCount += currentTupleCount;
       ++chunksPerPass;
@@ -70,7 +95,7 @@ bool InputStream::request() {
       if (!(tupleBlock = this->requestBlock())) {
          return finishRequest(0, 0);
       } else {
-         tBlocks->push_back(tupleBlock);
+         tBlocks.push_back(tupleBlock);
          return finishRequest(tupleBlock->GetSize(), tupleBlock->GetRowCount());
       }
    }
@@ -105,14 +130,14 @@ Rectangle<2> InputStream::getRectangle2D(BlockIndex_t block, RowIndex_t row)
    assert (dim == 2);
 
    if (rectanglesOnly) {
-      if (block < rBlocks->size()) {
-         const RectangleBlock* rBlock = (*rBlocks)[block];
+      if (block < rBlocks.size()) {
+         const RectangleBlock* rBlock = rBlocks[block];
          if (row < rBlock->getRectangleCount())
             return rBlock->getRectangle2D(row);
       }
    } else {
-      if (block < tBlocks->size()) {
-         const CRelAlgebra::TBlock* tBlock = (*tBlocks)[block];
+      if (block < tBlocks.size()) {
+         const CRelAlgebra::TBlock* tBlock = tBlocks[block];
          if (row < tBlock->GetRowCount()) {
             return ((const CRelAlgebra::SpatialAttrArray<2>*)
                     &tBlock->GetAt(attrIndex))->GetBoundingBox(row);
@@ -128,14 +153,14 @@ Rectangle<3> InputStream::getRectangle3D(BlockIndex_t block, RowIndex_t row)
    assert (dim == 3);
 
    if (rectanglesOnly) {
-      if (block < rBlocks->size()) {
-         const RectangleBlock* rBlock = (*rBlocks)[block];
+      if (block < rBlocks.size()) {
+         const RectangleBlock* rBlock = rBlocks[block];
          if (row < rBlock->getRectangleCount())
             return rBlock->getRectangle3D(row);
       }
    } else {
-      if (block < tBlocks->size()) {
-         const CRelAlgebra::TBlock* tBlock = (*tBlocks)[block];
+      if (block < tBlocks.size()) {
+         const CRelAlgebra::TBlock* tBlock = tBlocks[block];
          if (row < tBlock->GetRowCount()) {
             return ((const CRelAlgebra::SpatialAttrArray<3>*)
                     &tBlock->GetAt(attrIndex))->GetBoundingBox(row);
@@ -147,11 +172,11 @@ Rectangle<3> InputStream::getRectangle3D(BlockIndex_t block, RowIndex_t row)
 }
 
 RectangleBlock* InputStream::getFreeRectangleBlock() {
-   if (rBlocks->empty() || rBlocks->back()->isFull()) {
+   if (rBlocks.empty() || rBlocks.back()->isFull()) {
       size_t sizeInBytes = DEFAULT_RECTANGLE_BLOCK_SIZE * 1024 * 1024;
-      rBlocks->emplace_back(new RectangleBlock(dim, sizeInBytes));
+      rBlocks.emplace_back(new RectangleBlock(dim, sizeInBytes));
    }
-   return rBlocks->back();
+   return rBlocks.back();
 }
 
 void InputStream::streamOpened() {

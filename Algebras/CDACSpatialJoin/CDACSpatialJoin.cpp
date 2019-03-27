@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2018,
+Copyright (C) 2019,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -21,6 +21,11 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+
+//[<] [\ensuremath{<}]
+//[>] [\ensuremath{>}]
+
+\setcounter{tocdepth}{2}
 \tableofcontents
 
 
@@ -31,22 +36,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include <iostream>
-#include <math.h>
 
-#include "NestedList.h"
+#include "CDACSpatialJoin.h" // -> ... -> SortEdge, JoinEdge
+
 #include "AlgebraManager.h"
-#include "StandardTypes.h"
 #include "Symbols.h"
-#include "ListUtils.h"
-
-#include "CDACSpatialJoin.h"
-#include "CacheInfo.h"
-#include "SortEdge.h"
-#include "JoinEdge.h"
-
-#include "Algebras/CRel/Operators/OperatorUtils.h"
-#include "Algebras/CRel/TypeConstructors/TBlockTC.h"
-#include "Algebras/Standard-C++/LongInt.h"
+#include "Algebras/CRel/Operators/OperatorUtils.h" // -> ListUtils.h
+#include "Algebras/Standard-C++/LongInt.h" // -> StandardTypes.h
 
 typedef CRelAlgebra::TBlockTI::ColumnInfo TBlockColInfo;
 
@@ -446,13 +442,25 @@ CDACLocalInfo::CDACLocalInfo(const bool countOnly_, InputStream* const input1_,
         joinStateCount(0),
         intersectionCount(0),
         timer(nullptr) {
-#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+
+   #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
    cout << "sizeof(SortEdge) = " << sizeof(SortEdge) << endl;
    cout << "sizeof(JoinEdge) = " << sizeof(JoinEdge) << endl;
    cout << "sizeof(RectangleInfo) = " << sizeof(RectangleInfo) << endl;
    cout << endl;
 #endif
-   timer = std::make_shared<Timer>(CDSJ_TASK_NAMES);
+
+   /* a vector of task names that correspond to the elements of the JoinTask
+    * enumeration */
+   const std::vector<std::string> taskNames { {
+         "requestData",
+         "createJoinState",
+         "createSortEdges",
+         "sortSortEdges",
+         "createJoinEdges",
+         "merge"
+   } };
+   timer = std::make_shared<Timer>(taskNames);
 }
 
 /*
@@ -552,7 +560,7 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
       // read (more) data
       if (isFirstRequest) {
          // first attempt to read from the streams
-         timer->start(CDSjTask::requestData);
+         timer->start(JoinTask::requestData);
          isFirstRequest = false; // prevent this block from being entered twice
 
          // test if any of the streams is empty - then nothing to do
@@ -583,7 +591,7 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
          // i.e. the tuple data did not fit completely into the main memory;
          // the tuples read so far were treated, now read and treat more data
 
-         timer->start(CDSjTask::requestData);
+         timer->start(JoinTask::requestData);
          if (input1->isFullyLoaded()) {
             // continue reading from input2
             input2->clearMem();
@@ -614,7 +622,7 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
       if (!input1->empty() && !input2->empty()) {
          assert (!joinState);
 
-         timer->start(CDSjTask::createJoinState);
+         timer->start(JoinTask::createJoinState);
          ++joinStateCount;
          joinState = new JoinState(countOnly, input1, input2, outTBlockSize,
                  joinStateCount, timer);

@@ -1,4 +1,34 @@
 /*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2019,
+Faculty of Mathematics and Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+
+//[<] [\ensuremath{<}]
+//[>] [\ensuremath{>}]
+
+\setcounter{tocdepth}{2}
+\tableofcontents
+
+
 1 MergedArea class
 
 Represents an area that contains all JoinEdges of both sets in a given
@@ -20,15 +50,12 @@ MergedArea.
 
 #pragma once
 
-#include <memory>
-#include <vector>
-
-#include "JoinEdge.h"
+#include "JoinEdge.h" // -> ... -> <memory>, <vector>
 
 namespace cdacspatialjoin {
 
 struct MergedArea;
-typedef std::shared_ptr<MergedArea> MergedAreaPtr;
+typedef MergedArea* MergedAreaPtr;
 
 struct MergedArea {
    /* the index in JoinState::joinEdges from which the JoinEdges covered by
@@ -65,7 +92,7 @@ struct MergedArea {
 
    /* instantiates a MergedArea that can hold the result of merging the given
     * MergedArea instances. area1 and area2 must be adjoining */
-   MergedArea(MergedAreaPtr& area1, MergedAreaPtr& area2);
+   MergedArea(MergedAreaPtr area1, MergedAreaPtr area2);
 
    ~MergedArea() = default;
 
@@ -78,12 +105,14 @@ struct MergedArea {
 private:
    /* returns true if the counterpart (i.e. the corresponding left or right
     * edge) of the given edge is found inside this MergedArea */
+   /*
    inline bool containsCounterpartOf(const JoinEdge &edge) const {
       const EdgeIndex_t counterPart = edge.getCounterPartEdgeIndex();
       return (counterPart >= edgeIndexStart && counterPart < edgeIndexEnd);
-}
+   }
+   */
 
-friend class Merger;
+   friend class Merger;
 };
 
 } // end of namespace cdacspatialjoin

@@ -21,49 +21,32 @@ let rectOver1 = [const (rel (tuple ((Bbox rect)) )) value (((-1.00001 1.00001 -1
 
 let rect2 = [const (rel (tuple ((Bbox rect)) )) value (((-2 2 -2 2)))];
 
-let rect100 = [const (rel (tuple ((Bbox rect)) )) value ( ((-2 -1 -2 -1)) ((-2 -1 -2 0)) ((-2 -1 -2 1)) ((-2 -1 -2 2)) ((-2 -1 -1 0)) ((-2 -1 -1 1)) ((-2 -1 -1 2)) ((-2 -1 0 1)) ((-2 -1 0 2)) ((-2 -1 1 2)) ((-2 0 -2 -1)) ((-2 0 -2 0)) ((-2 0 -2 1)) ((-2 0 -2 2)) ((-2 0 -1 0)) ((-2 0 -1 1)) ((-2 0 -1 2)) ((-2 0 0 1)) ((-2 0 0 2)) ((-2 0 1 2)) ((-2 1 -2 -1)) ((-2 1 -2 0)) ((-2 1 -2 1)) ((-2 1 -2 2)) ((-2 1 -1 0)) ((-2 1 -1 1)) ((-2 1 -1 2)) ((-2 1 0 1)) ((-2 1 0 2)) ((-2 1 1 2)) ((-2 2 -2 -1)) ((-2 2 -2 0)) ((-2 2 -2 1)) ((-2 2 -2 2)) ((-2 2 -1 0)) ((-2 2 -1 1)) ((-2 2 -1 2)) ((-2 2 0 1)) ((-2 2 0 2)) ((-2 2 1 2)) ((-1 0 -2 -1)) ((-1 0 -2 0)) ((-1 0 -2 1)) ((-1 0 -2 2)) ((-1 0 -1 0)) ((-1 0 -1 1)) ((-1 0 -1 2)) ((-1 0 0 1)) ((-1 0 0 2)) ((-1 0 1 2)) ((-1 1 -2 -1)) ((-1 1 -2 0)) ((-1 1 -2 1)) ((-1 1 -2 2)) ((-1 1 -1 0)) ((-1 1 -1 1)) ((-1 1 -1 2)) ((-1 1 0 1)) ((-1 1 0 2)) ((-1 1 1 2)) ((-1 2 -2 -1)) ((-1 2 -2 0)) ((-1 2 -2 1)) ((-1 2 -2 2)) ((-1 2 -1 0)) ((-1 2 -1 1)) ((-1 2 -1 2)) ((-1 2 0 1)) ((-1 2 0 2)) ((-1 2 1 2)) ((0 1 -2 -1)) ((0 1 -2 0)) ((0 1 -2 1)) ((0 1 -2 2)) ((0 1 -1 0)) ((0 1 -1 1)) ((0 1 -1 2)) ((0 1 0 1)) ((0 1 0 2)) ((0 1 1 2)) ((0 2 -2 -1)) ((0 2 -2 0)) ((0 2 -2 1)) ((0 2 -2 2)) ((0 2 -1 0)) ((0 2 -1 1)) ((0 2 -1 2)) ((0 2 0 1)) ((0 2 0 2)) ((0 2 1 2)) ((1 2 -2 -1)) ((1 2 -2 0)) ((1 2 -2 1)) ((1 2 -2 2)) ((1 2 -1 0)) ((1 2 -1 1)) ((1 2 -1 2)) ((1 2 0 1)) ((1 2 0 2)) ((1 2 1 2)) 
+let rect100 = [const (rel (tuple ((Bbox rect)) )) value ( ((-2 -1 -2 -1)) ((-2 -1 -2 0)) ((-2 -1 -2 1)) ((-2 -1 -2 2)) ((-2 -1 -1 0)) ((-2 -1 -1 1)) ((-2 -1 -1 2)) ((-2 -1 0 1)) ((-2 -1 0 2)) ((-2 -1 1 2)) ((-2 0 -2 -1)) ((-2 0 -2 0)) ((-2 0 -2 1)) ((-2 0 -2 2)) ((-2 0 -1 0)) ((-2 0 -1 1)) ((-2 0 -1 2)) ((-2 0 0 1)) ((-2 0 0 2)) ((-2 0 1 2)) ((-2 1 -2 -1)) ((-2 1 -2 0)) ((-2 1 -2 1)) ((-2 1 -2 2)) ((-2 1 -1 0)) ((-2 1 -1 1)) ((-2 1 -1 2)) ((-2 1 0 1)) ((-2 1 0 2)) ((-2 1 1 2)) ((-2 2 -2 -1)) ((-2 2 -2 0)) ((-2 2 -2 1)) ((-2 2 -2 2)) ((-2 2 -1 0)) ((-2 2 -1 1)) ((-2 2 -1 2)) ((-2 2 0 1)) ((-2 2 0 2)) ((-2 2 1 2)) ((-1 0 -2 -1)) ((-1 0 -2 0)) ((-1 0 -2 1)) ((-1 0 -2 2)) ((-1 0 -1 0)) ((-1 0 -1 1)) ((-1 0 -1 2)) ((-1 0 0 1)) ((-1 0 0 2)) ((-1 0 1 2)) ((-1 1 -2 -1)) ((-1 1 -2 0)) ((-1 1 -2 1)) ((-1 1 -2 2)) ((-1 1 -1 0)) ((-1 1 -1 1)) ((-1 1 -1 2)) ((-1 1 0 1)) ((-1 1 0 2)) ((-1 1 1 2)) ((-1 2 -2 -1)) ((-1 2 -2 0)) ((-1 2 -2 1)) ((-1 2 -2 2)) ((-1 2 -1 0)) ((-1 2 -1 1)) ((-1 2 -1 2)) ((-1 2 0 1)) ((-1 2 0 2)) ((-1 2 1 2)) ((0 1 -2 -1)) ((0 1 -2 0)) ((0 1 -2 1)) ((0 1 -2 2)) ((0 1 -1 0)) ((0 1 -1 1)) ((0 1 -1 2)) ((0 1 0 1)) ((0 1 0 2)) ((0 1 1 2)) ((0 2 -2 -1)) ((0 2 -2 0)) ((0 2 -2 1)) ((0 2 -2 2)) ((0 2 -1 0)) ((0 2 -1 1)) ((0 2 -1 2)) ((0 2 0 1)) ((0 2 0 2)) ((0 2 1 2)) ((1 2 -2 -1)) ((1 2 -2 0)) ((1 2 -2 1)) ((1 2 -2 2)) ((1 2 -1 0)) ((1 2 -1 1)) ((1 2 -1 2)) ((1 2 0 1)) ((1 2 0 2)) ((1 2 1 2))
  )];
-
-
-########################################
-# OPERATOR - cacheTest
-########################################
-
-#testcase -1.1- cacheTest with wrong number of parameters
-#yields error
-query cacheTest(1, 2);
-
-#testcase -1.2- cacheTest with wrong parameter type
-#yields error
-query cacheTest("Text");
-
-#testcase -1.3- cacheTest with valid parameter
-#yields (bool TRUE)
-query cacheTest(1);
 
 
 ########################################
 # OPERATOR - createRectangles1D
 ########################################
 
-#testcase -2.1.1- createRectangles1D with wrong number of parameters
+#testcase -1.1.1- createRectangles1D with wrong number of parameters
 #yields error
 query createRectangles1D(10, 3, 0.4, 0.6, 1, 42) count;
 
-#testcase -2.1.2- createRectangles1D with wrong type of parameters
+#testcase -1.1.2- createRectangles1D with wrong type of parameters
 #yields error
 query createRectangles1D(10.0, 3.1415, 4, 6, "Text") count;
 
 
-#testcase -2.1.3- createRectangles1D, creating 10^3 tuples (reproducible)
+#testcase -1.1.3- createRectangles1D, creating 10^3 tuples (reproducible)
 #yields (int 1000)
 query createRectangles1D(10, 3, 0.4, 0.6, 1) count;
 
-#testcase -2.1.4- createRectangles1D, creating 5^4 tuples (non-reproducible)
+#testcase -1.1.4- createRectangles1D, creating 5^4 tuples (non-reproducible)
 #yields (int 625)
 query createRectangles1D(5, 4, 0.3, 0.5, 0) count;
 
-#testcase -2.1.5- createRectangles1D, checking first 3 of 1000^4 tuples
+#testcase -1.1.5- createRectangles1D, checking first 3 of 1000^4 tuples
 #tolerance_real 0.001
 #yields ((rel (tuple ((Bbox rect1))))( \
   ((813.373 867.866)) \
@@ -76,24 +59,24 @@ query createRectangles1D(1000, 4, 0.4, 0.6, 1) head[3] consume;
 # OPERATOR - createRectangles2D
 ########################################
 
-#testcase -2.2.1- createRectangles2D with wrong number of parameters
+#testcase -1.2.1- createRectangles2D with wrong number of parameters
 #yields error
 query createRectangles2D(10, 3, 0.4, 0.6, 1, 42) count;
 
-#testcase -2.2.2- createRectangles2D with wrong type of parameters
+#testcase -1.2.2- createRectangles2D with wrong type of parameters
 #yields error
 query createRectangles2D(10.0, 3.1415, 4, 6, "Text") count;
 
 
-#testcase -2.2.3- createRectangles2D, creating 10^3 tuples (reproducible)
+#testcase -1.2.3- createRectangles2D, creating 10^3 tuples (reproducible)
 #yields (int 1000)
 query createRectangles2D(10, 3, 0.4, 0.6, 1) count;
 
-#testcase -2.2.4- createRectangles2D, creating 5^4 tuples (non-reproducible)
+#testcase -1.2.4- createRectangles2D, creating 5^4 tuples (non-reproducible)
 #yields (int 625)
 query createRectangles2D(5, 4, 0.3, 0.5, 0) count;
 
-#testcase -2.2.5- createRectangles2D, checking first 3 of 1000^4 tuples
+#testcase -1.2.5- createRectangles2D, checking first 3 of 1000^4 tuples
 # tolerance_real 0.001
 #yields ((rel (tuple ((Bbox rect))))( \
   ((618.075 661.112 822.866 867.504)) \
@@ -106,24 +89,24 @@ query createRectangles2D(1000, 4, 0.4, 0.6, 1) head[3] consume;
 # OPERATOR - createRectangles3D
 ########################################
 
-#testcase -2.3.1- createRectangles3D with wrong number of parameters
+#testcase -1.3.1- createRectangles3D with wrong number of parameters
 #yields error
 query createRectangles3D(10, 3, 0.4, 0.6, 1, 42) count;
 
-#testcase -2.3.2- createRectangles3D with wrong type of parameters
+#testcase -1.3.2- createRectangles3D with wrong type of parameters
 #yields error
 query createRectangles3D(10.0, 3.1415, 4, 6, "Text") count;
 
 
-#testcase -2.3.3- createRectangles3D, creating 10^3 tuples (reproducible)
+#testcase -1.3.3- createRectangles3D, creating 10^3 tuples (reproducible)
 #yields (int 1000)
 query createRectangles3D(10, 3, 0.4, 0.6, 1) count;
 
-#testcase -2.3.4- createRectangles3D, creating 5^4 tuples (non-reproducible)
+#testcase -1.3.4- createRectangles3D, creating 5^4 tuples (non-reproducible)
 #yields (int 625)
 query createRectangles3D(5, 4, 0.3, 0.5, 0) count;
 
-#testcase -2.3.5- createRectangles3D, checking first 3 of 1000^4 tuples
+#testcase -1.3.5- createRectangles3D, checking first 3 of 1000^4 tuples
 #tolerance_real 0.001
 #yields ((rel (tuple ((Bbox rect3))))( \
   ((694.327 750.894 897.878 950.151 422.922 463.201)) \
@@ -136,102 +119,102 @@ query createRectangles3D(1000, 4, 0.4, 0.6, 1) head[3] consume;
 # OPERATOR - CDACSpatialJoin
 ########################################
 
-#testcase -3.1.1- CDACSpatialJoin with too many arguments
+#testcase -2.1.1- CDACSpatialJoin with too many arguments
 #yields error
 query createRectangles2D(10, 4, 0.4, 0.6, 1) {a} createRectangles2D(10, 4, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b, Bbox_c, 10] count;
 
-#testcase -3.1.1- CDACSpatialJoin with missing brackets
+#testcase -2.1.1- CDACSpatialJoin with missing brackets
 #yields error
 query createRectangles2D(10, 4, 0.4, 0.6, 1) {a} createRectangles2D(10, 4, 0.4, 0.6, 2) {b} cdacspatialjoin count;
 
-#testcase -3.1.3- CDACSpatialJoin with wrong type of arguments
+#testcase -2.1.3- CDACSpatialJoin with wrong type of arguments
 #yields error
 query [const int value 42] [const real value 3.1415] cdacspatialjoin[Bbox_a, Bbox_b] count;
 
-#testcase -3.1.4- CDACSpatialJoin with invalid attribute names
+#testcase -2.1.4- CDACSpatialJoin with invalid attribute names
 #yields error
 query createRectangles2D(10, 4, 0.4, 0.6, 1) {a} createRectangles2D(10, 4, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_c, Bbox_d] count;
 
-#testcase -3.1.5- CDACSpatialJoin with identical attribute names
+#testcase -2.1.5- CDACSpatialJoin with identical attribute names
 #yields error
 query createRectangles2D(10, 4, 0.4, 0.6, 1) createRectangles2D(10, 4, 0.4, 0.6, 2) cdacspatialjoin[Bbox, Bbox] count;
 
-#testcase -3.1.6- CDACSpatialJoin with no spatial information in first stream
+#testcase -2.1.6- CDACSpatialJoin with no spatial information in first stream
 #yields error
 query noGeom feed createRectangles2D(10, 4, 0.4, 0.6, 2) cdacspatialjoin[] count;
 
-#testcase -3.1.7- CDACSpatialJoin with no spatial information in second stream
+#testcase -2.1.7- CDACSpatialJoin with no spatial information in second stream
 #yields error
 query createRectangles2D(10, 4, 0.4, 0.6, 1) noGeom feed cdacspatialjoin[] count;
 
 
-#testcase -3.2.1- CDACSpatialJoin with five valid arguments
+#testcase -2.2.1- CDACSpatialJoin with five valid arguments
 #yields (longint 89843)
 query createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b, 10] count;
 
-#testcase -3.2.2- CDACSpatialJoin tolerating negative fifth argument
+#testcase -2.2.2- CDACSpatialJoin tolerating negative fifth argument
 #yields (longint 89843)
 query createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b, -10] count;
 
-#testcase -3.2.3- CDACSpatialJoin with four valid arguments
+#testcase -2.2.3- CDACSpatialJoin with four valid arguments
 #yields (longint 89843)
 query createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] count;
 
-#testcase -3.2.4- CDACSpatialJoin with three valid arguments
+#testcase -2.2.4- CDACSpatialJoin with three valid arguments
 #yields (longint 89843)
 query createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a] count;
 
-#testcase -3.2.5- CDACSpatialJoin with two valid arguments
+#testcase -2.2.5- CDACSpatialJoin with two valid arguments
 #yields (longint 89843)
 query createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} cdacspatialjoin[] count;
 
 
-#testcase -3.3.1- compare CDACSpatialJoin result count (89.843) with spatialjoin result count (when spatialjoin is processed, InCcReal causes 96 bytes memory leak)
+#testcase -2.3.1- compare CDACSpatialJoin result count (89.843) with spatialjoin result count (when spatialjoin is processed, InCcReal causes 96 bytes memory leak)
 #yields (bool TRUE)
-query (createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} cdacspatialjoin[] count) 
+query (createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} cdacspatialjoin[] count)
     = (createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} spatialjoin[Bbox_a, Bbox_b] count);
 
-#testcase -3.3.2- compare CDACSpatialJoin result count (31.812) with itSpatialJoin result count
+#testcase -2.3.2- compare CDACSpatialJoin result count (31.812) with itSpatialJoin result count
 #yields (bool TRUE)
-query (createRectangles2D(5, 5, 0.3, 0.5, 1) {a} createRectangles2D(8, 4, 0.2, 0.7, 2) {b} cdacspatialjoin[] count) 
+query (createRectangles2D(5, 5, 0.3, 0.5, 1) {a} createRectangles2D(8, 4, 0.2, 0.7, 2) {b} cdacspatialjoin[] count)
     = (createRectangles2D(5, 5, 0.3, 0.5, 1) {a} createRectangles2D(8, 4, 0.2, 0.7, 2) {b} itSpatialJoin[Bbox_a, Bbox_b] count);
 
-#testcase -3.3.3- compare CDACSpatialJoin result count (13.018) with cspatialjoin result count
+#testcase -2.3.3- compare CDACSpatialJoin result count (13.018) with cspatialjoin result count
 #yields (bool TRUE)
 query (createRectangles2D(4, 7, 0.4, 0.7, 1) {a} createRectangles2D(3, 9, 0.1, 0.8, 2) {b} cdacspatialjoin[] count)
     = (createRectangles2D(4, 7, 0.4, 0.7, 1) toblocks[1] {a} createRectangles2D(3, 9, 0.1, 0.8, 2) toblocks[1] {b} cspatialjoin[Bbox_a, Bbox_b] count);
 
 
-#testcase -3.4.1- join 3D rectangles with 2D rectangles (z dimension is ignored)
+#testcase -2.4.1- join 3D rectangles with 2D rectangles (z dimension is ignored)
 #yields (longint 2806)
 query createRectangles3D(10, 4, 0.2, 0.3, 1) createRectangles2D(10, 4, 0.2, 0.3, 2) {a} cdacspatialjoin[] count
 
-#testcase -3.4.2- join 2D rectangles with 3D rectangles (z dimension is ignored)
+#testcase -2.4.2- join 2D rectangles with 3D rectangles (z dimension is ignored)
 #yields (longint 2806)
 query createRectangles2D(10, 4, 0.2, 0.3, 2) createRectangles3D(10, 4, 0.2, 0.3, 1) {a} cdacspatialjoin[] count
 
-#testcase -3.4.3- join 3D rectangles with 3D rectangles (z dimension is considered)
+#testcase -2.4.3- join 3D rectangles with 3D rectangles (z dimension is considered)
 #yields (longint 29)
 query createRectangles3D(10, 4, 0.2, 0.3, 1) createRectangles3D(10, 4, 0.2, 0.3, 2) {a} cdacspatialjoin[] count
 
 
-#testcase -3.5.1- all 100 rectangles with int coordinates in interval [-2, 2] must intersect with the rectangle (-1, -1) - (1, 1)
+#testcase -2.5.1- all 100 rectangles with int coordinates in interval [-2, 2] must intersect with the rectangle (-1, -1) - (1, 1)
 #yields (longint 100)
 query rect100 feed rect1 feed {a} cdacspatialjoin[] count;
 
-#testcase -3.5.2- ... the same applies if positions are swapped
+#testcase -2.5.2- ... the same applies if positions are swapped
 #yields (longint 100)
 query rect1 feed rect100 feed {a} cdacspatialjoin[] count;
 
-#testcase -3.5.3- ... and for the slightly larger rectangle (-1.00001, -1.00001) - (1.00001, 1.00001)
+#testcase -2.5.3- ... and for the slightly larger rectangle (-1.00001, -1.00001) - (1.00001, 1.00001)
 #yields (longint 100)
 query rect100 feed rectOver1 feed {a} cdacspatialjoin[] count;
 
-#testcase -3.5.4- ... and of course for the rectangle (-2, -2) - (2, 2)
+#testcase -2.5.4- ... and of course for the rectangle (-2, -2) - (2, 2)
 #yields (longint 100)
 query rect100 feed rect2 feed {a} cdacspatialjoin[] count;
 
-#testcase -3.5.5- ... but only 64 of the 100 rectangles should intersect with the rectangle (-0.99999, -0.99999) - (0.99999, 0.99999)
+#testcase -2.5.5- ... but only 64 of the 100 rectangles should intersect with the rectangle (-0.99999, -0.99999) - (0.99999, 0.99999)
 #yields (longint 64)
 query rect100 feed rectBelow1 feed {a} cdacspatialjoin[] count;
 
@@ -240,105 +223,123 @@ query rect100 feed rectBelow1 feed {a} cdacspatialjoin[] count;
 # OPERATOR - CDACSpatialJoinCount
 ########################################
 
-#testcase -4.1.1- CDACSpatialJoinCount with too many arguments
+#testcase -3.1.1- CDACSpatialJoinCount with too many arguments
 #yields error
 query createRectangles2D(10, 4, 0.4, 0.6, 1) {a} createRectangles2D(10, 4, 0.4, 0.6, 2) {b} cdacspatialjoincount[Bbox_a, Bbox_b, 10];
 
-#testcase -4.1.1- CDACSpatialJoinCount with missing brackets
+#testcase -3.1.1- CDACSpatialJoinCount with missing brackets
 #yields error
 query createRectangles2D(10, 4, 0.4, 0.6, 1) {a} createRectangles2D(10, 4, 0.4, 0.6, 2) {b} cdacspatialjoincount;
 
-#testcase -4.1.3- CDACSpatialJoinCount with wrong type of arguments
+#testcase -3.1.3- CDACSpatialJoinCount with wrong type of arguments
 #yields error
 query [const int value 42] [const real value 3.1415] cdacspatialjoincount[Bbox_a, Bbox_b];
 
-#testcase -4.1.4- CDACSpatialJoinCount with invalid attribute names
+#testcase -3.1.4- CDACSpatialJoinCount with invalid attribute names
 #yields error
 query createRectangles2D(10, 4, 0.4, 0.6, 1) {a} createRectangles2D(10, 4, 0.4, 0.6, 2) {b} cdacspatialjoincount[Bbox_c, Bbox_d];
 
-#testcase -4.1.5- CDACSpatialJoinCount with no spatial information in first stream
+#testcase -3.1.5- CDACSpatialJoinCount with no spatial information in first stream
 #yields error
 query noGeom feed createRectangles2D(10, 4, 0.4, 0.6, 2) cdacspatialjoincount[];
 
-#testcase -4.1.6- CDACSpatialJoinCount with no spatial information in second stream
+#testcase -3.1.6- CDACSpatialJoinCount with no spatial information in second stream
 #yields error
 query createRectangles2D(10, 4, 0.4, 0.6, 1) noGeom feed cdacspatialjoincount[];
 
 
-#testcase -4.2.1- CDACSpatialJoinCount with four valid arguments
+#testcase -3.2.1- CDACSpatialJoinCount with four valid arguments
 #yields (longint 89843)
 query createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} cdacspatialjoincount[Bbox_a, Bbox_b];
 
-#testcase -4.2.2- CDACSpatialJoinCount with three valid arguments
+#testcase -3.2.2- CDACSpatialJoinCount with three valid arguments
 #yields (longint 89843)
 query createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} cdacspatialjoincount[Bbox_a];
 
-#testcase -4.2.3- CDACSpatialJoinCount with two valid arguments
+#testcase -3.2.3- CDACSpatialJoinCount with two valid arguments
 #yields (longint 89843)
 query createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} cdacspatialjoincount[];
 
-#testcase -4.2.4- CDACSpatialJoinCount with identical attribute names is allowed as no result tuples must be created
+#testcase -3.2.4- CDACSpatialJoinCount with identical attribute names is allowed as no result tuples must be created
 #yields (longint 89843)
 query createRectangles2D(10, 3, 0.4, 0.6, 1) createRectangles2D(10, 3, 0.4, 0.6, 2) cdacspatialjoincount[Bbox, Bbox];
 
-#testcase -4.2.5- CDACSpatialJoinCount with two valid arguments and identical attribute names
+#testcase -3.2.5- CDACSpatialJoinCount with two valid arguments and identical attribute names
 #yields (longint 89843)
 query createRectangles2D(10, 3, 0.4, 0.6, 1) createRectangles2D(10, 3, 0.4, 0.6, 2) cdacspatialjoincount[];
 
 
-#testcase -4.3.1- compare CDACSpatialJoinCount result (89.843) with spatialjoin result count (when spatialjoin is processed, InCcReal causes 96 bytes memory leak)
+#testcase -3.3.1- compare CDACSpatialJoinCount result (89.843) with spatialjoin result count (when spatialjoin is processed, InCcReal causes 96 bytes memory leak)
 #yields (bool TRUE)
 query (createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} cdacspatialjoincount[])
     = (createRectangles2D(10, 3, 0.4, 0.6, 1) {a} createRectangles2D(10, 3, 0.4, 0.6, 2) {b} spatialjoin[Bbox_a, Bbox_b] count);
 
-#testcase -4.3.2- compare CDACSpatialJoinCount result (31.812) with itSpatialJoin result count
+#testcase -3.3.2- compare CDACSpatialJoinCount result (31.812) with itSpatialJoin result count
 #yields (bool TRUE)
 query (createRectangles2D(5, 5, 0.3, 0.5, 1) {a} createRectangles2D(8, 4, 0.2, 0.7, 2) {b} cdacspatialjoincount[])
     = (createRectangles2D(5, 5, 0.3, 0.5, 1) {a} createRectangles2D(8, 4, 0.2, 0.7, 2) {b} itSpatialJoin[Bbox_a, Bbox_b] count);
 
-#testcase -4.3.3- compare CDACSpatialJoinCount result (13.018) with cspatialjoin result count
+#testcase -3.3.3- compare CDACSpatialJoinCount result (13.018) with cspatialjoin result count
 #yields (bool TRUE)
 query (createRectangles2D(4, 7, 0.4, 0.7, 1) {a} createRectangles2D(3, 9, 0.1, 0.8, 2) {b} cdacspatialjoincount[])
     = (createRectangles2D(4, 7, 0.4, 0.7, 1) toblocks[1] {a} createRectangles2D(3, 9, 0.1, 0.8, 2) toblocks[1] {b} cspatialjoin[Bbox_a, Bbox_b] count);
 
-#testcase -4.3.4- compare CDACSpatialJoinCount result (13.018) with CDACSpatialJoin result count
+#testcase -3.3.4- compare CDACSpatialJoinCount result (13.018) with CDACSpatialJoin result count
 #yields (bool TRUE)
 query (createRectangles2D(4, 7, 0.4, 0.7, 1) {a} createRectangles2D(3, 9, 0.1, 0.8, 2) {b} cdacspatialjoincount[])
     = (createRectangles2D(4, 7, 0.4, 0.7, 1) {a} createRectangles2D(3, 9, 0.1, 0.8, 2) {b} cdacspatialjoin[] count);
 
 
-#testcase -4.4.1- join 3D rectangles with 2D rectangles (z dimension is ignored)
+#testcase -3.4.1- join 3D rectangles with 2D rectangles (z dimension is ignored)
 #yields (longint 2806)
 query createRectangles3D(10, 4, 0.2, 0.3, 1) createRectangles2D(10, 4, 0.2, 0.3, 2) {a} cdacspatialjoincount[];
 
-#testcase -4.4.2- join 2D rectangles with 3D rectangles (z dimension is ignored)
+#testcase -3.4.2- join 2D rectangles with 3D rectangles (z dimension is ignored)
 #yields (longint 2806)
 query createRectangles2D(10, 4, 0.2, 0.3, 2) createRectangles3D(10, 4, 0.2, 0.3, 1) {a} cdacspatialjoincount[];
 
-#testcase -4.4.3- join 3D rectangles with 3D rectangles (z dimension is considered)
+#testcase -3.4.3- join 3D rectangles with 3D rectangles (z dimension is considered)
 #yields (longint 29)
 query createRectangles3D(10, 4, 0.2, 0.3, 1) createRectangles3D(10, 4, 0.2, 0.3, 2) {a} cdacspatialjoincount[];
 
 
-#testcase -4.5.1- all 100 rectangles with int coordinates in interval [-2, 2] must intersect with the rectangle (-1, -1) - (1, 1)
+#testcase -3.5.1- all 100 rectangles with int coordinates in interval [-2, 2] must intersect with the rectangle (-1, -1) - (1, 1)
 #yields (longint 100)
 query rect100 feed rect1 feed {a} cdacspatialjoincount[];
 
-#testcase -4.5.2- ... the same applies if positions are swapped
+#testcase -3.5.2- ... the same applies if positions are swapped
 #yields (longint 100)
 query rect1 feed rect100 feed {a} cdacspatialjoincount[];
 
-#testcase -4.5.3- ... and for the slightly larger rectangle (-1.00001, -1.00001) - (1.00001, 1.00001)
+#testcase -3.5.3- ... and for the slightly larger rectangle (-1.00001, -1.00001) - (1.00001, 1.00001)
 #yields (longint 100)
 query rect100 feed rectOver1 feed {a} cdacspatialjoincount[];
 
-#testcase -4.5.4- ... and of course for the rectangle (-2, -2) - (2, 2)
+#testcase -3.5.4- ... and of course for the rectangle (-2, -2) - (2, 2)
 #yields (longint 100)
 query rect100 feed rect2 feed {a} cdacspatialjoincount[];
 
-#testcase -4.5.5- ... but only 64 of the 100 rectangles should intersect with the rectangle (-0.99999, -0.99999) - (0.99999, 0.99999)
+#testcase -3.5.5- ... but only 64 of the 100 rectangles should intersect with the rectangle (-0.99999, -0.99999) - (0.99999, 0.99999)
 #yields (longint 64)
 query rect100 feed rectBelow1 feed {a} cdacspatialjoincount[];
+
+
+########################################
+# OPERATOR - cacheTest
+########################################
+
+#testcase -4.1- cacheTest with wrong number of parameters
+#yields error
+query cacheTest(1, 2);
+
+#testcase -4.2- cacheTest with wrong parameter type
+#yields error
+query cacheTest("Text");
+
+#testcase -4.3- cacheTest with valid parameter
+#yields (bool TRUE)
+query cacheTest(0);
+
 
 #teardown
 kill noGeom;

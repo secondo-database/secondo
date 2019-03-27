@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2018,
+Copyright (C) 2019,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -21,6 +21,11 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+
+//[<] [\ensuremath{<}]
+//[>] [\ensuremath{>}]
+
+\setcounter{tocdepth}{2}
 \tableofcontents
 
 
@@ -46,14 +51,12 @@ sets (streams) A and B.
 
 #include <memory>
 
+#include "JoinState.h" // -> Timer;
+                       // -> ... -> InputStream
+                       //   -> "Algebras/Stream/Stream.h",
+                       //   -> "Algebras/CRel/TBlock.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
-#include "JoinState.h"
-#include "InputStream.h"
-#include "Timer.h"
-
-#include "Algebras/Stream/Stream.h"
-#include "Algebras/CRel/TBlock.h"
 #include "Algebras/CRel/TypeConstructors/TBlockTC.h"
 
 namespace cdacspatialjoin {

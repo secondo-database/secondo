@@ -1,4 +1,34 @@
 /*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2019,
+Faculty of Mathematics and Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+
+//[<] [\ensuremath{<}]
+//[>] [\ensuremath{>}]
+
+\setcounter{tocdepth}{2}
+\tableofcontents
+
+
 1 Timer class
 
 This class provides measurement of runtime and cache misses for a given number
@@ -16,12 +46,10 @@ and TIMER\_USES\_PAPI to be defined (see below).
 
 #pragma once
 
-#include <vector>
 #include <ctime>
-#include <iostream>
 #include <ostream>
 
-#include "Base.h"
+#include "Base.h" // -> vector
 
 /*
 1.2 Performance API (PAPI) usage
@@ -141,7 +169,7 @@ public:
    clock_t getMaxTime() const { return maxTime; }
 
    /* returns the average runtime between starting and stopping this task */
-   clock_t getAvgTime() const { return sumTime / count; }
+   clock_t getAvgTime() const { return (count == 0) ? 0 : sumTime / count; }
 
 #ifdef TIMER_USES_PAPI
    /* returns the total number of Level 1 Instruction Cache misses measured
@@ -162,19 +190,27 @@ public:
 
    /* returns the average number of Level 1 Instruction Cache misses measured
     * while this task was running */
-   size_t getAvgL1InstrCacheMisses() const { return sumL1InstrMisses / count; }
+   size_t getAvgL1InstrCacheMisses() const {
+      return count == 0 ? 0 : sumL1InstrMisses / count;
+   }
 
    /* returns the average number of Level 1 Data Cache misses measured
     * while this task was running */
-   size_t getAvgL1DataCacheMisses() const { return sumL1DataMisses / count; }
+   size_t getAvgL1DataCacheMisses() const {
+      return count == 0 ? 0 : sumL1DataMisses / count;
+   }
 
    /* returns the average number of Level 2 (Unified) Cache misses measured
     * while this task was running */
-   size_t getAvgL2CacheMisses() const { return sumL2Misses / count; }
+   size_t getAvgL2CacheMisses() const {
+      return count == 0 ? 0 : sumL2Misses / count;
+   }
 
    /* returns the average number of Level 3 (Unified) Cache misses measured
     * while this task was running */
-   size_t getAvgL3CacheMisses() const { return sumL3Misses / count; }
+   size_t getAvgL3CacheMisses() const {
+      return count == 0 ? 0 : sumL3Misses / count;
+   }
 #endif
 
 private:

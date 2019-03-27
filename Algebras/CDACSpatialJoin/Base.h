@@ -1,4 +1,34 @@
 /*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2019,
+Faculty of Mathematics and Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+
+//[<] [\ensuremath{<}]
+//[>] [\ensuremath{>}]
+
+\setcounter{tocdepth}{2}
+\tableofcontents
+
+
 1 Typedefs and constants for the CDACSpatialJoin(Count) operators
 
 To keep includes as limited as possible, this header contains common typedefs
@@ -18,77 +48,31 @@ and constants used in the context of the CDACSpatialJoin(Count) operators.
 namespace cdacspatialjoin {
 
 /* an enumeration for the rectangle sets to be joined */
-enum SET : char {
+enum SET {
    A = 0,
    B = 1
 };
 
-/* the number of rectangle sets to be joined (always 2) */
+/* the number of rectangle sets to be joined (always 2, but to be used for
+ * semantic clarity) */
 static constexpr unsigned SET_COUNT = 2;
-
-/* an array containing SET::A and SET::B for range loops */
-static constexpr SET SETS[] { SET::A, SET::B };
-
-/* the names of the two rectangle sets used in console output */
-static const std::string SET_NAMES[] { "A", "B" };
 
 /* the integer type used for indices in vectors of SortEdges or JoinEdges */
 typedef uint32_t EdgeIndex_t;
 
-/* the integer type used for indices in the RectangleInfo vector in the
- * JoinState constructor */
-typedef uint32_t RectInfoIndex_t;
-
-/* the integer type used for indices of the TBlocks of one of the input
- * streams. Since blocks contain at least 1 MB, 65535 blocks would require
- * 65 GB main memory, so uint16_t should be sufficient */
-typedef uint16_t BlockIndex_t;
+/* the integer type used for indices of the TBlocks or RectangleBlocks of an
+ * input streams */
+typedef uint32_t BlockIndex_t;
 
 /* the integer type used for indices of rows inside a TBlock */
-typedef uint32_t RowIndex_t;  // this value may well exceed 65535
+typedef uint32_t RowIndex_t;
 
 /* the integer type used to store the full "address" of a rectangle: the
- * set (= input stream A / B), the index of the TBlock and the row inside
- * the TBlock where it originates from */
+ * set (= input stream A / B), the index of the TBlock (or RectangleBlock),
+ * and the row inside the block. Since each rectangle requires at least
+ * 32 bytes of memory and only 512 MiB are provided per operator, this type
+ * must be able to address a maximum of 16 million rectangles, which easily
+ * fits into a uint32_t (the number of bits used for blocks / rows is flexible
+ * to adapt to very large or very many blocks) */
 typedef uint32_t SetRowBlock_t;
-
-/* short for "CDACSpatialJoinTask". Lists the different tasks to be performed
- * (each multiple times) during a CDACSpatialJoin(Count) operation */
-enum CDSjTask : unsigned {
-   /* the task of requesting data from the InputStreams */
-   requestData,
-   /* the task of creating a JoinState instance */
-   createJoinState,
-   /* the task of creating a vector of SortEdge instances */
-   createSortEdges,
-   /* the task of sorting the vector of SortEdge instances */
-   sortSortEdges,
-   /* the task of creating a vector of JoinEdge instances */
-   createJoinEdges,
-   /* the task of merging the JoinEdges and reporting (or counting) the
-    * intersections */
-   merge
-};
-
-/* a vector of task names that correspond to the elements of the CDSjTask
- * enumeration */
-static const std::vector<std::string> CDSJ_TASK_NAMES {{
-        "requestData",
-        "createJoinState",
-        "createSortEdges",
-        "sortSortEdges",
-        "createJoinEdges",
-        "merge"
-} };
-
-/* lists the different tasks to be performed (each multiple times) during a
- * Cache Test operation */
-enum CacheTestTask : unsigned {
-   fullTest,
-   loopTest
-};
-
-/* the number of items in the CacheTestTask enumeration */
-static constexpr unsigned CACHE_TEST_TASK_COUNT = 2;
-
 }

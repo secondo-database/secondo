@@ -1,4 +1,34 @@
 /*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2019,
+Faculty of Mathematics and Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+
+//[<] [\ensuremath{<}]
+//[>] [\ensuremath{>}]
+
+\setcounter{tocdepth}{2}
+\tableofcontents
+
+
 1 Merger
 
 This class merges two adjacent MergedArea instances into a new MergedArea.
@@ -27,11 +57,10 @@ To keep terminology clear,
 
 #pragma once
 
-#include <memory>
-#include <iostream>
 #include <ostream>
 
-#include "MergedArea.h"
+#include "MergedArea.h" // -> ... -> <memory>
+#include "IOData.h"
 
 namespace cdacspatialjoin {
 
@@ -85,6 +114,10 @@ class Merger {
     * the post-processing can then be omitted */
    const bool isLastMerge;
 
+   /* ioData holds all current input data and provides a function to add a
+    * result tuple to the output tuple block */
+   IOData* const ioData;
+
    /* the result area to be calculated by the Merger */
    MergedAreaPtr result;
 
@@ -125,60 +158,47 @@ class Merger {
    TASK currentTask;
 
    /* the type of reportPairs() call currently performed in the outer loop */
-   unsigned reportType = 0;
+   unsigned reportType;
 
-   /* the subtype of reportPairs() call currently performed in the inner loop */
-   unsigned reportSubType = 0;
+   /* the subtype of reportPairs() call currently performed in the inner
+    * loop */
+   unsigned reportSubType;
 
    /* the current start index of vector edgesS */
-   size_t indexSBegin = 0;
+   size_t indexSBegin;
 
    /* the current index of vector edgesS */
-   size_t indexS = 0;
+   size_t indexS;
 
    /* the current start index of vector edgesT */
-   size_t indexTBegin = 0;
+   size_t indexTBegin;
 
    /* the current index of vector T (starting from indexTBegin, indexT is being
     * incremented until edgeT.yMin exceeds edgeS.yMax ) */
-   size_t indexT = 0;
+   size_t indexT;
 
 public:
    /* constructor expects two adjacent areas which shall be merged to a single
     * area. Note that the input areas must fulfil the invariants listed in the
     * MergedArea.h comment */
-   Merger(MergedAreaPtr& area1_, MergedAreaPtr& area2_,
-           bool isLastMerge_);
+   Merger(MergedAreaPtr area1_, MergedAreaPtr area2_,
+           bool isLastMerge_, IOData* ioData_);
 
    /* destructor */
-   ~Merger() = default;
+   ~Merger();
 
    /* starts or continues merging the areas given in the constructor;
     * returns false if the outTBlock is full and merge needs to be resumed
     * later (by calling this function again with a new outTBlock),
     * or true if merge was completed and the result can be obtained by
     * calling getResult() */
-   bool merge(const AppendToOutput* output);
+   bool merge();
 
    /* returns the resulting MergedArea. Must only be called after merge() was
     * completed (i.e. merge() returned true) */
    MergedAreaPtr getResult() const;
 
 private:
-   /* for all edges in the input vectors left1 and right2,
-    * a) the newly completed rectangles are determined (i.e. rectangles with
-    * their left edge in area1 and their right edge in area2) and stored in
-    * the output vector leftRight; all other edges are either stored in
-    * b) leftSpan (left edges from area1 which span the complete x range of
-    * area2), or
-    * c) in rightSpan (right edges from area2 which span the complete x range
-    * of area1). */
-   void removeCompleteRectangles(const JoinEdgeVec& left1,
-                                 const JoinEdgeVec& right2,
-                                 JoinEdgeVec& leftSpan,
-                                 JoinEdgeVec& rightSpan,
-                                 JoinEdgeVec& leftRight);
-
    /* reports rectangle intersections between
     * a) an edge in the "span" vector (from one area and set), and
     * b) an edge in either the "left" or the "complete" vector (both from the
@@ -186,28 +206,24 @@ private:
     * Returns true if completed, or false if the output TBlock is full */
    bool reportPairs(const JoinEdgeVec& span,
                     const JoinEdgeVec& left,
-                    const JoinEdgeVec& complete,
-                    const AppendToOutput* output);
+                    const JoinEdgeVec& complete);
 
    /* reports rectangle intersections between
     * a) an edge in the "edgesS" vector (from one area and set), and
     * b) an edge in the "edgesT" vector (from the other area and set).
     * returns true if completed, or false if the output TBlock is full */
    bool reportPairsSub(const JoinEdgeVec& edgesS,
-                       const JoinEdgeVec& edgesT,
-                       const AppendToOutput* output);
+                       const JoinEdgeVec& edgesT);
 
    /* specialized version of reportPairsSub() for edgesS containing only 1
     * edge, but edgesT containing multiple edges */
    bool reportPairsSub1(const JoinEdge& edgeS,
-                       const JoinEdgeVec& edgesT,
-                       const AppendToOutput* output);
+                       const JoinEdgeVec& edgesT);
 
    /* specialized version of reportPairsSub() for both edgesS and edgesT
     * containing only 1 edge */
    bool reportPairsSub11(const JoinEdge& edgeS,
-                         const JoinEdge& edgeT,
-                         const AppendToOutput* output);
+                         const JoinEdge& edgeT);
 
    /* merges the given source vectors "source1" and "source2" (starting from
     * the given indices) into the destination vector "dest", using the sort
@@ -224,6 +240,20 @@ private:
                      const JoinEdgeVec& source2,
                      const JoinEdgeVec& source3,
                      JoinEdgeVec& dest);
+
+   /* for all edges in the input vectors left1 and right2,
+    * a) the newly completed rectangles are determined (i.e. rectangles with
+    * their left edge in area1 and their right edge in area2) and stored in
+    * the output vector leftRight; all other edges are either stored in
+    * b) leftSpan (left edges from area1 which span the complete x range of
+    * area2), or
+    * c) in rightSpan (right edges from area2 which span the complete x range
+    * of area1). */
+   void removeCompleteRectangles(const JoinEdgeVec& left1,
+                                 const JoinEdgeVec& right2,
+                                 JoinEdgeVec& leftSpan,
+                                 JoinEdgeVec& rightSpan,
+                                 JoinEdgeVec& leftRight);
 
 #ifdef CDAC_SPATIAL_JOIN_METRICS
    /* updates the loop statistics, adding a loop with the given count of

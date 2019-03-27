@@ -25,9 +25,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[<] [\ensuremath{<}]
 //[>] [\ensuremath{>}]
 
-\setcounter{tocdepth}{3}
+\setcounter{tocdepth}{2}
 \tableofcontents
-
 
 
 1 CreateRectangles Operators
@@ -95,10 +94,9 @@ query createRectangles2D(10, 2, 0.3, 0.4, 1) {a}
 #pragma once
 
 #include <memory>
-#include <stack>
+#include <stack> // std::stack
 #include <string>
-#include <iostream>
-#include <sstream>
+#include <sstream> // std::stringstream
 
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Algebras/Rectangle/RectangleAlgebra.h"

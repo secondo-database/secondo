@@ -1,7 +1,9 @@
 /*
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Copyright (C) 2019,
+Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -17,15 +19,26 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+
+//[<] [\ensuremath{<}]
+//[>] [\ensuremath{>}]
+
+\setcounter{tocdepth}{2}
+\tableofcontents
+
+
+1 CDACSpatialJoinAlgebra
 
 */
-
-#include "Algebra.h"
-#include "AlgebraManager.h"
 
 #include "CDACSpatialJoin.h"
 #include "CacheTest.h"
 #include "CreateRectangles.h"
+
+#include "Algebra.h"
+#include "AlgebraManager.h"
 
 namespace cdacspatialjoin {
    class CDACSpatialJoinAlgebra : public Algebra {
