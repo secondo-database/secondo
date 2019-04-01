@@ -117,10 +117,10 @@ The names of existing databases are stored in a list ~DBTable~.
 #include "ListUtils.h"
 #include "StringUtils.h"
 
-#include "Algebras/MainMemory2/MemCatalog.h"
-#include "Algebras/MainMemory2/MPointer.h"
-#include "Algebras/MainMemory2/MemoryObject.h"
-#include "Algebras/MainMemory2/Mem.h"
+#include "MemCatalog.h"
+#include "MPointer.h"
+#include "MemoryObject.h"
+#include "Mem.h"
 
 
 

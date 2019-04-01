@@ -87,7 +87,9 @@ LIB_SDBSYS_BASENAMES:=\
 	QueryProcessor/Progress \
 	QueryProcessor/SecondoSystem \
 	QueryProcessor/SecondoCatalog \
-	QueryProcessor/TypeMapUtils
+	QueryProcessor/TypeMapUtils \
+  QueryProcessor/MemoryObject \
+  QueryProcessor/MemCatalog
 
 
 LIB_SDBNL_OBJECTS   := $(addsuffix .$(OBJEXT), $(LIB_SDBNL_BASENAMES))
