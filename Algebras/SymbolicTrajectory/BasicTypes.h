@@ -47,6 +47,7 @@ namespace stj {
 enum LabelFunction {TRIVIAL, EDIT};
 enum DistanceFunction {FIRST, LAST, FIRST_LAST, ALL, ALL_DURATION, 
                        ALL_INTERVALS, EQUAL_LABELS};
+enum GeoDistanceFunction {GEO_FIRST, GEO_LAST, GEO_FIRST_LAST, FRECHET};
   
 template<class F, class S>
 class NewPair {
@@ -87,9 +88,8 @@ class NewPair {
   
   template<class X>
   void copy2ndFrom(const X newValue) {
-    if (sizeof(S) == sizeof(X)) {
-      memcpy(&second, &newValue, sizeof(S));
-    }
+    assert(sizeof(S) == sizeof(X));
+    memcpy(&second, &newValue, sizeof(S));
   }
 };
 
@@ -422,6 +422,7 @@ struct HybridDistanceParameters {
   HybridDistanceParameters() {
     labelFun = getDefaultLabelFun();
     distFun = getDefaultDistFun();
+    geoDistFun = getDefaultGeoDistFun();
     threshold = getDefaultThreshold();
     scaleFactor = getDefaultScaleFactor();
     geoid = getDefaultGeoid();
@@ -448,18 +449,21 @@ struct HybridDistanceParameters {
   CcString* getValue(unsigned int memberNo);
   FText* getDescription(unsigned int memberNo);
   LabelFunction getDefaultLabelFun() {return TRIVIAL;}
-  DistanceFunction getDefaultDistFun() {return ALL;}
-  double getDefaultThreshold() {return 0.5;}
-  double getDefaultScaleFactor() {return 30000.0;}
-  Geoid* getDefaultGeoid() {return 0;}
+  DistanceFunction getDefaultDistFun() {return FIRST_LAST;}
+  GeoDistanceFunction getDefaultGeoDistFun() {return GEO_FIRST_LAST;}
+  double getDefaultThreshold() {return 0.7;}
+  double getDefaultScaleFactor() {return 500000.0;}
+  Geoid* getDefaultGeoid() {return new Geoid("WGS1984");}
   bool setLabelFun(const int value);
   bool setDistFun(const int value);
+  bool setGeoDistFun(const int value);
   bool setThreshold(const double value);
   bool setScaleFactor(const double value);
   bool setGeoid(Geoid *value);
 
   LabelFunction labelFun; // function used for comparing two label values
   DistanceFunction distFun; // function used for comparing two mlabel values
+  GeoDistanceFunction geoDistFun; // function used for comparing two mpoints
   double threshold;// Fréchet dist is computed if symb dist is below this value
   double scaleFactor; // Fréchet dist is divided by this value
   Geoid *geoid; // required for correct Fréchet dist computation, e.g., WGS1984

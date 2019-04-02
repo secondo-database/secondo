@@ -1735,6 +1735,7 @@ double Tools::distance(const set<string>& values1, const set<string>& values2,
     }
   }
   distsum += std::max(m - i1count, n - i2count);
+//   cout << "distsum = " << distsum << "      ";
   return distsum / (m + n);
 }
 

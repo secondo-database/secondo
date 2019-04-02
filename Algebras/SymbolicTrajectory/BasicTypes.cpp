@@ -1383,6 +1383,7 @@ bool HybridDistanceParameters::isCorrectType(std::string& name, ListExpr type) {
   transform(name.begin(), name.end(), name.begin(), ::tolower);
   if (name == "labelfun")    return CcInt::checkType(type);
   if (name == "distfun")     return CcInt::checkType(type);
+  if (name == "geodistfun")  return CcInt::checkType(type);
   if (name == "threshold")   return CcReal::checkType(type);
   if (name == "scalefactor") return CcReal::checkType(type);
   if (name == "geoid")       return Geoid::checkType(type);
@@ -1413,7 +1414,7 @@ TupleType* HybridDistanceParameters::getTupleType() {
 }
 
 Tuple* HybridDistanceParameters::getNextTuple() {
-  if (memberNo > 4) {
+  if (memberNo > 5) {
     return 0;
   }
   Tuple *tuple = new Tuple(getTupleType());
@@ -1438,14 +1439,18 @@ CcString* HybridDistanceParameters::getName(unsigned int memberNo) {
       break;
     }
     case 2: {
-      result->Set(true, "threshold");
+      result->Set(true, "geoDistFun");
       break;
     }
     case 3: {
-      result->Set(true, "scaleFactor");
+      result->Set(true, "threshold");
       break;
     }
     case 4: {
+      result->Set(true, "scaleFactor");
+      break;
+    }
+    case 5: {
       result->Set(true, "geoid");
       break;
     }
@@ -1460,16 +1465,17 @@ CcString* HybridDistanceParameters::getType(unsigned int memberNo) {
   CcString *result = new CcString(false);
   switch (memberNo) {
     case 0:
-    case 1: {
+    case 1:
+    case 2: {
       result->Set(true, CcInt::BasicType());
       break;
     }
-    case 2:
-    case 3: {
+    case 3:
+    case 4: {
       result->Set(true, CcReal::BasicType());
       break;
     }
-    case 4: {
+    case 5: {
       result->Set(true, Geoid::BasicType());
       break;
     }
@@ -1493,14 +1499,18 @@ CcString* HybridDistanceParameters::getDefault(unsigned int memberNo) {
       break;
     }
     case 2: {
-      valuestr << getDefaultThreshold();
+      valuestr << getDefaultGeoDistFun();
       break;
     }
     case 3: {
-      valuestr << getDefaultScaleFactor();
+      valuestr << getDefaultThreshold();
       break;
     }
     case 4: {
+      valuestr << getDefaultScaleFactor();
+      break;
+    }
+    case 5: {
       if (getDefaultGeoid() == 0) {
         valuestr << "null" << endl;
       }
@@ -1530,14 +1540,18 @@ CcString* HybridDistanceParameters::getValue(unsigned int memberNo) {
       break;
     }
     case 2: {
-      valuestr << threshold;
+      valuestr << geoDistFun;
       break;
     }
     case 3: {
-      valuestr << scaleFactor;
+      valuestr << threshold;
       break;
     }
     case 4: {
+      valuestr << scaleFactor;
+      break;
+    }
+    case 5: {
       if (geoid == 0) {
         valuestr << "null";
       }
@@ -1570,18 +1584,24 @@ FText* HybridDistanceParameters::getDescription(unsigned int memberNo) {
       break;
     }
     case 2: {
+      result->Set(true, "Describes the function that compares two mpoint values"
+                        ". A value of 3 invokes the Fréchet distance, 2 only "
+                        "considers the start and end point.");
+      break;
+    }
+    case 3: {
       result->Set(true, "If the symbolic distance exceeds this value, it is "
                         "returned as result. Otherwise, the Fréchet distance "
                         "is computed and returned.");
       break;
     }
-    case 3: {
+    case 4: {
       result->Set(true, "If the Fréchet distance is computed, it is divided by"
                         " this value, in order to make it comparable to the "
                         "symbolic distance that is always in [0,1].");
       break;
     }
-    case 4: {
+    case 5: {
       result->Set(true, "This parameter enables a certain projection, e.g., "
                         "WGS1984, for computing the Fréchet distance.");
       break;
@@ -1608,6 +1628,15 @@ bool HybridDistanceParameters::setDistFun(const int value) {
     return false;
   }
   distFun = (DistanceFunction)value;
+  return true;
+}
+
+bool HybridDistanceParameters::setGeoDistFun(const int value) {
+  if (value < 0 || value >= 4) {
+    cout << "value must be between 0 and 4." << endl;
+    return false;
+  }
+  geoDistFun = (GeoDistanceFunction)value;
   return true;
 }
 

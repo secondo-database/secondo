@@ -1547,16 +1547,29 @@ int hybriddistanceVM(Word* args, Word& result, int message, Word& local,
       mp2->IsDefined()) {
     double symdist = sym1->Distance(*sym2, hdp.distFun, hdp.labelFun);
     if (symdist <= hdp.threshold) {
-//       cout << "symDist = " << symDistance << ", call Fréchet" << endl;
-      double frechetdist = mp1->FrechetDistance(mp2, hdp.geoid);
-      if (frechetdist < 0.0) { // error case
-        res->SetDefined(false);
+      double geodist = -1.0;
+      if (hdp.geoDistFun == GEO_FIRST_LAST) { // TODO: extend to switch - case
+        geodist = mp1->DistanceStartEnd(*mp2, hdp.geoid) / hdp.scaleFactor;
       }
       else {
-        res->Set(true, frechetdist / hdp.scaleFactor);
+        geodist = mp1->FrechetDistance(mp2, hdp.geoid) / hdp.scaleFactor;
+      }
+      if (geodist < 0.0) { // error case
+//         cout << "GeoDist NEGATIVE" << endl;
+        res->SetDefined(false);
+      }
+      else if (geodist >= 1.0) {
+//         cout << "symDist = " << symdist << " ===> GeoDist set to 1" << endl;
+        res->Set(true, 1.0);
+      }
+      else {
+//         cout << "symDist = " << symdist << " ===> GeoDist = " << geodist 
+//              << endl;
+        res->Set(true, geodist);
       }
     }
     else {
+//       cout << "symDist = " << symdist << endl;
       res->Set(true, symdist);
     }
   }
@@ -1742,13 +1755,19 @@ int sethybriddistanceparamVM(Word* args, Word& result, int message, Word& local,
         res->Set(true, hdp.setDistFun(value));
       }
     }
+    else if (name == "geodistfun") {
+      if ((static_cast<CcInt*>(args[1].addr))->IsDefined()) {
+        int value = (static_cast<CcInt*>(args[1].addr))->GetValue();
+        res->Set(true, hdp.setGeoDistFun(value));
+      }
+    }
     else if (name == "threshold") {
       if ((static_cast<CcReal*>(args[1].addr))->IsDefined()) {
         double value = static_cast<CcReal*>(args[1].addr)->GetValue();
         res->Set(true, hdp.setThreshold(value));
       }
     }
-    else if (name == "scaleFactor") {
+    else if (name == "scalefactor") {
       if ((static_cast<CcReal*>(args[1].addr))->IsDefined()) {
         double value = static_cast<CcReal*>(args[1].addr)->GetValue();
         res->Set(true, hdp.setScaleFactor(value));

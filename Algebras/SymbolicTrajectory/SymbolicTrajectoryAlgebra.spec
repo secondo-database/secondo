@@ -36,7 +36,6 @@ operator makemvalue2 alias MAKEMVALUE2 pattern _ op [ _ ]
 operator createml alias CREATEML pattern op ( _ , _ )
 operator createmlrelation alias CREATEMLRELATION pattern op ( _ , _ , _ )
 operator createtrie alias CREATETRIE pattern _ op [ _ ]
-operator derivegroups alias DERIVEGROUPS pattern _ op [ _ , _ ]
 operator createMaxspeedRaster alias CREATEMAXSPEEDRASTER pattern op( _ , _ , _ )
 operator createTileAreas alias CREATETILEAREAS pattern op( _ )
 operator restoreTraj alias RESTORETRAJ pattern op ( _ , _ , _ , _ , _ , _ , _ , _ , _ )

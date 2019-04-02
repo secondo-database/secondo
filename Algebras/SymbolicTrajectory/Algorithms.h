@@ -287,7 +287,7 @@ class MBasic : public Attribute {
   std::ostream& Print(std::ostream& os) const;  
   double Distance_FIRST(const MBasic<B>& mb) const;
   double Distance_LAST(const MBasic<B>& mb) const;
-  double Distance_FIRST_LAST(const MBasic<B>& mb) const;
+  double Distance_FIRST_LAST(const MBasic<B>& mb, const LabelFunction lf) const;
   double Distance_ALL(const MBasic<B>& mb, const LabelFunction lf) const;
   double Distance_ALL_DURATION(const MBasic<B>& mb, const LabelFunction lf)
          const;
@@ -296,7 +296,7 @@ class MBasic : public Attribute {
   double Distance_EQUAL_LABELS(const MBasic<B>& mb, const LabelFunction lf)
          const;
   double Distance(const MBasic<B>& mb, const DistanceFunction df = ALL, 
-                  const LabelFunction lf = TRIVIAL) const;
+          const LabelFunction lf = TRIVIAL, const double threshold = 1.0) const;
   int CommonPrefixSuffix(const MBasic<B>& mb, const bool prefix);
   double DistanceSym(const MBasic<B>& mb, const DistanceFunSym distfun);
   
@@ -390,9 +390,11 @@ class MBasics : public Attribute {
   void Recode(const std::string& from,const std::string& to,MBasics<B>& result);
   #endif
   std::ostream& Print(std::ostream& os) const;
+  double Distance_FIRST_LAST(const MBasics<B>& mbs, 
+                             const LabelFunction lf) const;
   double Distance_ALL(const MBasics<B>& mbs, const LabelFunction lf) const;
   double Distance(const MBasics<B>& mbs, const DistanceFunction df = ALL, 
-                  const LabelFunction lf = TRIVIAL) const;
+          const LabelFunction lf = TRIVIAL, const double threshold = 1.0) const;
   int CommonPrefixSuffix(const MBasics<B>& mbs, const bool prefix);
   double DistanceSym(const MBasics<B>& mbs, const DistanceFunSym distfun);
   
@@ -3446,38 +3448,32 @@ double MBasic<B>::Distance_LAST(const MBasic<B>& mb) const {
 }
 
 template<class B>
-double MBasic<B>::Distance_FIRST_LAST(const MBasic<B>& mb) const {
-  double result = 0.0;
+double MBasic<B>::Distance_FIRST_LAST(const MBasic<B>& mb, 
+                                      const LabelFunction lf) const {
   int n = GetNoComponents();
   int m = mb.GetNoComponents();
-  typename B::base bs1, bs2, be1, be2;
-  GetValue(0, bs1);
-  mb.GetValue(0, bs2);
-  GetValue(n - 1, be1);
-  mb.GetValue(m - 1, be2);
+  typename B::base s1, s2, e1, e2;
+  GetValue(0, s1);
+  mb.GetValue(0, s2);
   if (n == 1) {
     if (m == 1) {
-      result = (bs1 == bs2 ? 0 : 1);
+      return Tools::distance(s1, s2, lf);
     }
     else {
-      mb.GetValue(m - 1, be2);
-      result = ((bs1 == bs2 ? 0 : 1) + 
-                (bs1 == be2 ? 0 : 1)) / 2;
+      mb.GetValue(m - 1, e2);
+      return (Tools::distance(s1, s2, lf) + Tools::distance(s1, e2, lf)) / 2;
     }
   }
   else {
-    GetValue(n - 1, be1);
+    GetValue(n - 1, e1);
     if (m == 1) {
-      result = ((bs1 == bs2 ? 0 : 1) + 
-                (be1 == bs2 ? 0 : 1)) / 2;
+      return (Tools::distance(s1, s2, lf) + Tools::distance(e1, s2, lf)) / 2;
     }
     else {
-      mb.GetValue(m - 1, be2);
-      result = ((bs1 == bs2 ? 0 : 1) + 
-                (be1 == be2 ? 0 : 1)) / 2;
+      mb.GetValue(m - 1, e2);
+      return (Tools::distance(s1, s2, lf) + Tools::distance(e1, e2, lf)) / 2;
     }
   }
-  return result;
 }
 
 template<class B>
@@ -3555,7 +3551,8 @@ double MBasic<B>::Distance_EQUAL_LABELS(const MBasic<B>& mb,
 template<class B>
 double MBasic<B>::Distance(const MBasic<B>& mb, 
                            const DistanceFunction df /* = ALL */, 
-                           const LabelFunction lf /* = TRIVIAL */) const {
+                           const LabelFunction lf /* = TRIVIAL */,
+                           const double threshold /* = 1.0 */) const {
   if (!IsDefined() && !mb.IsDefined()) {
     return 0.0;
   }
@@ -3576,7 +3573,7 @@ double MBasic<B>::Distance(const MBasic<B>& mb,
       return this->Distance_LAST(mb);
     }
     case FIRST_LAST: {
-      return this->Distance_FIRST_LAST(mb);
+      return this->Distance_FIRST_LAST(mb, lf);
     }
     case ALL: {
       return this->Distance_ALL(mb, lf);
@@ -4008,8 +4005,9 @@ MBasics<B>* MBasics<B>::deserialize(const char *bytes) {
 
 */
 template<class B>
-std::ostream& operator<<(std::ostream& o, const MBasics<B>& mbs) {
-  o << nl->ToString(mbs.ToListExpr());
+std::ostream& operator<<(std::ostream& o, MBasics<B>& mbs) {
+  ListExpr typeInfo = nl->Empty();
+  o << nl->ToString(mbs.ToListExpr(typeInfo));
   return o;
 }
 
@@ -4792,7 +4790,38 @@ std::ostream& MBasics<B>::Print(std::ostream& os) const {
 }
 
 /*
-\subsection{Function ~Distance\_ALL~}
+\subsection{Function ~DISTANCE\_FIRST\_LAST~}
+
+*/
+template<class B>
+double MBasics<B>::Distance_FIRST_LAST(const MBasics<B>& mbs, 
+                                       const LabelFunction lf) const {
+  int n = GetNoComponents();
+  int m = mbs.GetNoComponents();
+  std::set<typename B::base> bs1, bs2, be1, be2;
+  GetValues(0, bs1);
+  mbs.GetValues(0, bs2);
+//   GetValue(n - 1, be1);
+//   mbs.GetValue(m - 1, be2);
+  if (n == 1) {
+    if (m == 1) {
+      return Tools::distance(bs1, bs2, lf);
+    }
+    mbs.GetValues(m - 1, be2);
+    return (Tools::distance(bs1, bs2, lf) + Tools::distance(bs1, be2, lf)) / 2;
+  }
+  else {
+    GetValues(n - 1, be1);
+    if (m == 1) {
+      return (Tools::distance(bs1, bs2, lf) + Tools::distance(be1, bs2, lf)) /2;
+    }
+    mbs.GetValues(m - 1, be2);
+    return (Tools::distance(bs1, bs2, lf) + Tools::distance(be1, be2, lf)) / 2;
+  }
+}
+
+/*
+\subsection{Function ~DISTANCE\_ALL~}
 
 */
 template<class B>
@@ -4833,7 +4862,8 @@ double MBasics<B>::Distance_ALL(const MBasics<B>& mbs, const LabelFunction lf)
 template<class B>
 double MBasics<B>::Distance(const MBasics<B>& mbs, 
                             const DistanceFunction df /* = ALL */, 
-                            const LabelFunction lf /* = TRIVIAL */) const {
+                            const LabelFunction lf /* = TRIVIAL */,
+                            const double threshold /* = 1.0 */) const {
   if (!IsDefined() && !mbs.IsDefined()) {
     return 0.0;
   }
@@ -4853,9 +4883,9 @@ double MBasics<B>::Distance(const MBasics<B>& mbs,
 //     case LAST: {
 //       return this->Distance_LAST(mbs);
 //     }
-//     case FIRST_LAST: {
-//       return this->Distance_FIRST_LAST(mbs);
-//     }
+    case FIRST_LAST: {
+      return this->Distance_FIRST_LAST(mbs, lf);
+    }
     case ALL: {
       return this->Distance_ALL(mbs, lf);
     }
