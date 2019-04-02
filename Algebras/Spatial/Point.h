@@ -924,7 +924,7 @@ stl containers,e.g. set.
 */
 class ApproxPointLess{
  public:
-  bool operator()(const Point& p1, const Point& p2){
+  bool operator()(const Point& p1, const Point& p2) const{
      if(!p1.IsDefined()){
         return p2.IsDefined();
      }

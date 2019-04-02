@@ -1252,7 +1252,7 @@ struct IndexMatchInfo {
 };
 
 struct cmp {
-  bool operator()(const IndexMatchInfo& imi1, const IndexMatchInfo& imi2) {
+  bool operator()(const IndexMatchInfo& imi1, const IndexMatchInfo& imi2)const {
     return imi1.binding < imi2.binding;
   }
 };

@@ -243,8 +243,7 @@ Derived functional STL object used to compare two tuple queue entries.
     public:
 
     TupleQueueCompare(const SortOrderSpecification& spec, int attributes)
-    : spec(spec)
-    , lexCmp()
+    : lexCmp()
     , specCmp(spec)
     , attributes(attributes)
     {
@@ -347,7 +346,7 @@ lexicographical in ascending order and 0 otherwise.
 
 */
 
-    const SortOrderSpecification& spec;
+    //const SortOrderSpecification& spec;
 /*
 Sort order specification.
 

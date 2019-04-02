@@ -21,6 +21,11 @@ include ../makefile.env
 include ../makefile.optimizer
 include ../makefile.jni
 
+ifeq ($(platform),mac_osx)
+  JH:= $(shell /usr/libexec/java_home)
+  JNIINCLUDE:= -I $(JH)/include -I $(JH)/include/darwin 
+endif
+
 INCLUDEFLAGS := -I. $(JNIINCLUDE) $(PLINCLUDEFLAGS) -I$(INCLUDEDIR)
 
 REG_SEC_DLL=$(OPTDIR)/$(DLLPREF)regSecondo.$(JNI_DLLEXT)
