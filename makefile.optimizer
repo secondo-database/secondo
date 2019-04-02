@@ -87,7 +87,7 @@ LIBREADLINE=$(AUXLIBS)/libreadline.a
 endif
 
 ifeq ($(platform),mac_osx)
-PLLDFLAGS :=  -L/opt/local/lib $(STDPLLDFLAGS) $(LIBREADLINE)  -lncurses -lm 
+PLLDFLAGS :=   $(STDPLLDFLAGS) $(LIBREADLINE)  -lncurses -lm 
 endif
 
 PLLDFLAGS += -loptparser
