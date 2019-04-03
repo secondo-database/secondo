@@ -123,7 +123,7 @@ ListExpr Pointcloud2::Out(ListExpr typeInfo, Word value) {
     // (see example in Pointcloud2::In function)
 
     ListExpr result = nl->TheEmptyList();
-    ListExpr last;
+    ListExpr last = nl->TheEmptyList();
 
     SmiRecordFileIterator it;
     pc2->_pointFile->SelectAll(it);

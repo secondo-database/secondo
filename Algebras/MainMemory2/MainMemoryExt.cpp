@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ListUtils.h"
 #include <vector>
 #include "Algebras/Stream/Stream.h"
+#include "Algebras/OrderedRelation/OrderedRelationAlgebra.h"
 #include "MainMemoryExt.h"
 
 #include "MemoryObject.h"

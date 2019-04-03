@@ -1916,7 +1916,11 @@ ListExpr updateTypeMap( ListExpr& args, string opName )
   ListExpr first, second,third,rest, listn,
            lastlistn, first2, second2, firstr,attrType,
            numberList, lastNumberList,oldAttribute, outlist;
-  int attrIndex, noAttrs ;
+  first= second = third = rest = listn
+       = lastlistn = first2 = second2 = firstr =attrType
+       = numberList = lastNumberList = oldAttribute = outlist 
+       = nl->TheEmptyList();
+ int attrIndex, noAttrs ;
   bool firstcall = true;
   string argstr, argstr2, argstr3, oldName;
 
@@ -2482,6 +2486,9 @@ ListExpr updateSaveTypeMap( ListExpr& args, string opName )
   ListExpr first, second,third,fourth, rest, listn,
            lastlistn, first2, second2, firstr,attrType,numberList,
            lastNumberList,oldAttribute, outlist;
+  first =  second = third = fourth =  rest =  listn = 
+           lastlistn =  first2 =  second2 =  firstr = attrType = numberList = 
+           lastNumberList = oldAttribute =  outlist = nl->TheEmptyList();
   int attrIndex, noAttrs ;
   bool firstcall = true;
 
@@ -3420,6 +3427,9 @@ ListExpr updateByIdTypeMap(ListExpr args)
   ListExpr first, second,third, rest, listn, lastlistn,
            first2, second2, firstr,attrType, numberList,
            lastNumberList,oldAttribute, outlist;
+  first =  second = third =  rest =  listn =  lastlistn = 
+           first2 =  second2 =  firstr = attrType =  numberList = 
+           lastNumberList = oldAttribute =  outlist = nl->TheEmptyList();
   string argstr,valueString, argstr2, argstr3, oldName;
   int attrIndex, noAttrs ;
   bool firstcall = true;

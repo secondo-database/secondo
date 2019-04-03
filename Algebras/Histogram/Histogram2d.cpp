@@ -1410,7 +1410,7 @@ pages 80-83, Aarhus, Denmark, June 2002.
     Word elemX, elemY;
     CcReal* streamObjX;
     CcReal* streamObjY;
-    HIST_REAL valueX, valueY, lastValueX, lastValueY;
+    HIST_REAL valueX=0, valueY=0, lastValueX=0, lastValueY=0;
     bool firstElemX, firstElemY;
     bool receivedX, receivedY;
 
@@ -1878,8 +1878,8 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
     NList tupleDescr = stream.second().second();
     int len = tupleDescr.length();
     bool foundX = false, foundY = false;
-    int indexX;
-    int indexY;
+    int indexX=0;
+    int indexY=0;
 
     int index = 1;
     for (; index <= len; ++index)
@@ -2113,14 +2113,14 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
     CcReal* attrXPtr;
     CcReal* attrYPtr;
 
-    HIST_REAL attrXValue;
-    HIST_REAL attrYValue;
+    HIST_REAL attrXValue=0;
+    HIST_REAL attrYValue=0;
 
-    HIST_REAL maxX;
-    HIST_REAL minX;
+    HIST_REAL maxX=0;
+    HIST_REAL minX=0;
 
-    HIST_REAL maxY;
-    HIST_REAL minY;
+    HIST_REAL maxY=0;
+    HIST_REAL minY=0;
 
     bool firstTuple = true;
 

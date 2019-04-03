@@ -637,7 +637,7 @@ index of the next unit of the same moving point.
       check(f1.type != LEFT_CLOSED && f1.type != LEFT_OPEN && 
             f1.type != LEFT_AND_RIGHT_CLOSED, "frames inconsistant");
 
-      bool lc, rc;
+      bool lc = false, rc=true; // will be overwritten later
       if (f0.type == LEFT_CLOSED) {
         lc = true;
       } else if (f0.type == CHAINED) {

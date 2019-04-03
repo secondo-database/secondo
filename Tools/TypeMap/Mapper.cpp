@@ -315,6 +315,8 @@ namespace typemap{
     */
 
       ListExpr args_res, args_res_decls_preds, bindings, bindings2, resType;
+      args_res= args_res_decls_preds= bindings
+              = bindings2= resType = nl->TheEmptyList();
       //Simple Signatures
       if (nl->HasLength(sigArgs, 2)) {
         // sig
@@ -557,6 +559,7 @@ namespace typemap{
 */
   ListExpr matches(ListExpr mList) {
     ListExpr bindings, B, Bindings1, Bindings2, Bindings3;
+    bindings= B= Bindings1= Bindings2= Bindings3 = nl->TheEmptyList();
   
     if ( !nl->IsAtom(nl->First(mList)) ) {
       //eliminate multiple round parantheses: (((1 2 3)))->((1 2 3))
@@ -718,6 +721,7 @@ namespace typemap{
 
   ListExpr matches2(ListExpr mList2) {
     ListExpr bindings, ArgTypeN, B, Bindings1;
+    bindings= ArgTypeN= B= Bindings1= nl->TheEmptyList();
     int N = nl->IntValue(nl->Third(mList2));
 
     //mList2:=(Args, (+, ArgType), 1)    
@@ -842,9 +846,11 @@ namespace typemap{
   
   
   ListExpr evalPred(ListExpr ePList) {
-    ListExpr bindings2;
+    ListExpr bindings2 = nl->TheEmptyList();
     ListExpr posNo1,  posNo2,  posNo3,  posNo4;
+    posNo1=  posNo2=  posNo3=  posNo4 = nl->TheEmptyList();
     ListExpr No1, No2, No3, No4, Bindings, Bindings2, Bindings3;
+    No1= No2= No3= No4= Bindings= Bindings2= Bindings3 = nl->TheEmptyList();
     
     // ePList := ( pred (var-list-no1) ... (var-list-noN) )
 
@@ -1153,7 +1159,7 @@ namespace typemap{
 */  
   ListExpr attrs(ListExpr attrsList) {
     ListExpr attrList, types, Types, numbers, Numbers;
-                               
+    attrList = types = Types = numbers = Numbers = nl->TheEmptyList();
     //attrs([Ident | Idents], Attrs, [Type | Types], [Number | Numbers]) :-
     //  isAttr(Ident, Type, Number, Attrs),
     //  attrs(Idents, Attrs, Types, Numbers).                 //PROLOG
@@ -1200,6 +1206,7 @@ namespace typemap{
 */
   ListExpr combine(ListExpr combList) { 
     ListExpr attrs, Attrs, Attrs2;
+    attrs = Attrs = Attrs2 = nl->TheEmptyList();
 
     //combine([Ident | Idents], [Type | Types], [ [Ident, Type] | Attrs]) :-
     //  combine(Idents, Types, Attrs).                            //PROLOG
@@ -1230,6 +1237,7 @@ namespace typemap{
 */
   ListExpr attrNames(ListExpr attrNList) { 
     ListExpr names, Names;
+    names = Names = nl->TheEmptyList();
   
     //attrNames([ [Ident, _] | Rest], [Ident | Names]) :-
     //  attrNames(Rest, Names).                                    //PROLOG
@@ -1450,6 +1458,7 @@ namespace typemap{
 */
   ListExpr apply(ListExpr aList) {
     ListExpr resType, Type, ArgTypes;
+    resType = Type = ArgTypes = nl->TheEmptyList();
   
     if (!nl->IsAtom(nl->First(aList))) {
   

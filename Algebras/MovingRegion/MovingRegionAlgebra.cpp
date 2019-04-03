@@ -4874,7 +4874,7 @@ the same coordinate, based on whether there are more $TSI\_LEAVE$ or
 $TSI\_ENTER$ intersections or the same number of them.
 
 */
-    TsiType lastType; /* CD: lastType is uninitialized! */
+    TsiType lastType = TSI_IGNORE; 
 
     if (MRA_DEBUG)
         for (unsigned int i = 0; i < vtsi.size(); i++)

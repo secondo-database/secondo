@@ -92,6 +92,13 @@ double euclidDist(FeatureSignatureTuple ist1,
 
 struct Cell
 {
+    Cell(): x(0),y(0),val(0){}
+    Cell(int _x, int _y, int _val): x(_x),y(_y),val(_val){}
+    void set(int _x, int _y, int _val){
+      x = _x;
+      y = _y,
+      val = _val; 
+    }
     int x;
     int y;
     long val;
@@ -396,7 +403,7 @@ void TransportProblem::findSimpleLoop(int x, int y)
         {    
             if (this->basicsMatrix[j][i])
             {    
-                Cell yb = {i, j, this->distanceMatrix[j][x]};
+                Cell yb (i, j, this->distanceMatrix[j][x]);
                 basics.push_back(yb);
             }
         }
@@ -410,7 +417,7 @@ void TransportProblem::findSimpleLoop(int x, int y)
     {
         if (this->basicsMatrix[y][i])
         {
-            Cell xb = {i, y, this->distanceMatrix[i][x]};
+            Cell xb (i, y, this->distanceMatrix[i][x]);
             xEntries.push_back(xb);
         }
     }
@@ -422,7 +429,7 @@ void TransportProblem::findSimpleLoop(int x, int y)
         if (this->basicsMatrix[j][x])
 
         {            
-            Cell xb = {x, j, this->distanceMatrix[j][x]};
+            Cell xb(x, j, this->distanceMatrix[j][x]);
             yEntries.push_back(xb);
         }
     }
@@ -441,12 +448,12 @@ void TransportProblem::findSimpleLoop(int x, int y)
                 {
                     if (b.y == ye.y)
                     {
-                        candidate = {b.x, b.y, 
-                            this->distanceMatrix[b.y][b.x]};
-                        yEntry = {ye.x, ye.y, 
-                            this->distanceMatrix[ye.y][ye.x]};
-                        xEntry = {c.x, c.y, 
-                            this->distanceMatrix[c.y][c.x]};
+                        candidate.set(b.x, b.y, 
+                            this->distanceMatrix[b.y][b.x]);
+                        yEntry.set(ye.x, ye.y, 
+                            this->distanceMatrix[ye.y][ye.x]);
+                        xEntry.set(c.x, c.y, 
+                            this->distanceMatrix[c.y][c.x]);
                         break;
                     }
                 }
@@ -454,12 +461,12 @@ void TransportProblem::findSimpleLoop(int x, int y)
         }
     }
     
-    this->loop.push_back({x, y, this->distanceMatrix[y][x]});    
-    this->loop.push_back({xEntry.x, xEntry.y, xEntry.val});
-    this->loop.push_back({candidate.x, candidate.y, candidate.val});
+    this->loop.push_back(Cell(x, y, this->distanceMatrix[y][x]));    
+    this->loop.push_back(Cell(xEntry.x, xEntry.y, xEntry.val));
+    this->loop.push_back(Cell(candidate.x, candidate.y, candidate.val));
     
     
-    this->loop.push_back({yEntry.x, yEntry.y, yEntry.val});
+    this->loop.push_back(Cell(yEntry.x, yEntry.y, yEntry.val));
     
     
     // find all basics in same row
@@ -468,7 +475,7 @@ void TransportProblem::findSimpleLoop(int x, int y)
     {
         if (this->basicsMatrix[y][i])
         {
-            Cell xb = {i, y, this->distanceMatrix[y][i]};
+            Cell xb(i, y, this->distanceMatrix[y][i]);
             xBasics.push_back(xb);            
         }
     }
@@ -478,7 +485,7 @@ void TransportProblem::findSimpleLoop(int x, int y)
     {
         if (this->basicsMatrix[j][x])
         {
-            Cell yb = {x, j, this->distanceMatrix[j][x]};
+            Cell yb(x, j, this->distanceMatrix[j][x]);
             yBasics.push_back(yb);
                 
         }
@@ -1445,7 +1452,7 @@ void TransportProblem::calcRowPenalties()
 int TransportProblem::getColLowestCost(int row)
 {
     int min = std::numeric_limits<int>::max();         
-    int idx;
+    int idx=0;
     //std::cout << "getColLowestCost in row:" << row << std::endl;
     for (int x = 0; x < (int)this->demSize; x++)
     {
@@ -1471,7 +1478,7 @@ int TransportProblem::getRowLowestCost(int col)
 {
     //std::cout << std::endl;
     int min = std::numeric_limits<int>::max();         
-    int idx;
+    int idx=0;
     //std::cout << "getRowLowestCost in col:" << col << std::endl;
     for ( int y = 0; y < (int)this->supSize; y++)
     {

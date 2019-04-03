@@ -232,7 +232,7 @@ BboxPredicate GpCone::getBboxPredicateForShape(
         // there is no intersection and false is returned; otherwise, the
         // bbox intersects with the cone.
         size_t combinations = (1 << DIMENSIONS);
-        bool sign;
+        bool sign = false;
         int d0 = shiftDim(0, shift);
         int d1 = shiftDim(1, shift);
         int d2 = shiftDim(2, shift);

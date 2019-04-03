@@ -234,8 +234,8 @@ const string& postcode,const string& ci, Point& result) {
   }
 
   cur = cur->children;
-  double ausg1;
-  double ausg2;
+  double ausg1=0;
+  double ausg2=0;
   bool f1 = false;
   bool f2 = false;
 

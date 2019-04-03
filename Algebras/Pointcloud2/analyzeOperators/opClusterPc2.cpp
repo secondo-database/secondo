@@ -159,7 +159,7 @@ ListExpr op_cluster::clusterOrRemoveNoiseTM(ListExpr args, ClusterOp op) {
         if (op == ClusterOp::ClusterPc2) {
             // Find the last attribute for the append method
             attrIndexCluster = 0;
-            ListExpr last;
+            ListExpr last = nl->TheEmptyList();
             while(!nl->IsEmpty(attributes)) {
                 last = attributes;
                 attributes = nl->Rest(attributes);

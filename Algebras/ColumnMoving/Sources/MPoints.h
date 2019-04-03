@@ -437,7 +437,7 @@ both moving points to calculate the result for inside.
     for (int r = 0; r < m_DefTimes->rowCount(); r++) {
       result.addMObject();
       
-      Interval ai, bi;
+      Interval ai(0,1,true,false), bi(0,1,true,false);
     
       int aii = m_DefTimes->intervalFirst(r);
       if (aii < m_DefTimes->intervalAfterLast(r))

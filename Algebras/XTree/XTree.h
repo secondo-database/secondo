@@ -585,7 +585,7 @@ unsigned XTree::topologicalSplit(
     unsigned split_index = minEntries;
     double overlap;
     double minOverlap = std::numeric_limits<double>::infinity();
-    bool lb;
+    bool lb = false;
 
     #ifdef XTREE_SPLIT_USE_MIN_DEADSPACE
     double minDeadspace = std::numeric_limits<double>::infinity();

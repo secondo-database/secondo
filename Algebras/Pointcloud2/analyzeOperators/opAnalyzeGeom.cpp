@@ -65,7 +65,7 @@ ListExpr op_analyzeGeom::analyzeGeomTM(ListExpr args) {
     int attrIndexObjID = -1;
     int attrIndexCatID = -1;
     bool hasTuples = Pointcloud2::isTupleCloud(cloudType);
-    ListExpr attrList;
+    ListExpr attrList = nl->TheEmptyList();
     if (hasTuples) {
         attrList = nl->Second(Pointcloud2::getTupleType(cloudType));
         ListExpr type;

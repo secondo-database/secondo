@@ -1517,8 +1517,8 @@ The function makes use of four arguments:
     Tuple* tuplePtr;
     CcReal* attrPtr;
     HIST_REAL attrValue;
-    HIST_REAL min;
-    HIST_REAL max;
+    HIST_REAL min=0;
+    HIST_REAL max=0;
     bool firstTuple = true;
 
     while (qp->Received(args[0].addr))

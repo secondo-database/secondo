@@ -77,7 +77,7 @@ SuffixTreeVertex* UkkonenTreeBuilder::CreateSuffixTree(std::string *nText)
 
   SuffixTreeVertex *curVertex = root;
   size_t curVertexDepth = 0;
-  SuffixTreeEdge *curEdge;
+  SuffixTreeEdge *curEdge = nullptr;
   SuffixTreeVertex *lastVertex = NULL;
   //start at extension 1, as extension 0 is always present
   size_t curExtension = 1;

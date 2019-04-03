@@ -552,8 +552,8 @@ int FindEqualTimes4Real(const UReal& u1, const UReal& u2, Instant t[4]){
         if(!AlmostEqual(val1, val2)){
           if(TLA_DEBUG)
             cout<<"false Point -> remove"<<endl;
-          for (int i = n; i < number; i++)
-            sol4[i] = sol4 [i + 1];
+          for (int i = n; i < number; i++) 
+            sol4[i] = sol4 [(i + 1)%4];
           number--;
           n--;
         }

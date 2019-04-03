@@ -167,7 +167,7 @@ ListExpr ExtendProjectOperator::TypeMapping(ListExpr args)
     indices.push_back(index);
   }
 
-  ListExpr newColumns = nl->Empty(), newColumnsEnd;
+  ListExpr newColumns = nl->Empty(), newColumnsEnd = nl->TheEmptyList();
   
   for (int i = 1; i <= nl->ListLength(extensionListArg); i++) {
     ListExpr extension = nl->Nth(i, extensionListArg);

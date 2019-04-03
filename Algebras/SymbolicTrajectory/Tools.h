@@ -41,6 +41,7 @@ Started July 2014, Fabio Vald\'{e}s
 #include "Algebras/Trie/InvertedFile.h"
 #include "Algebras/Standard-C++/LongInt.h"
 #include "Algebras/Spatial/Geoid.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "Algebras/OrderedRelation/OrderedRelationAlgebra.h"
 
  
@@ -75,6 +76,7 @@ struct UnitPos {
   }
 
   uint32_t pos;
+
 };
 
 /*
@@ -358,7 +360,7 @@ class Tools {
     typename InvertedFileT<PosType, UnitPos>::exactIterator* eit = 0;
     TupleId id;
     PosType wc;
-    UnitPos cc;
+    UnitPos cc(0);
     eit = inv->getExactIterator(str, 16777216);
     while (eit->next(id, wc, cc)) {
       NewPair<TupleId, PosType> pos(id, wc);
@@ -468,7 +470,7 @@ class Tools {
     switch (rel) {
       case STANDARD: {
         for (unsigned int i = 0; i < points.size(); i++) {
-          if (!((Point*)(points[i].addr))->Inside(spec, &wgs)) {
+          if (!( spec.Contains(*((Point*)(points[i].addr)),&wgs))) {
             return false;
           }
         }

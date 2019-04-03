@@ -425,9 +425,9 @@ void TransportProblem::findSimpleLoop(int x, int y)
         }
     }
     
-    Cell candidate;
-    Cell yEntry;
-    Cell xEntry;
+    Cell candidate = {0,0,0};
+    Cell yEntry = {0,0,0};
+    Cell xEntry = {0,0,0};
     for (auto c : xEntries)
     {
         for (auto b : basics)

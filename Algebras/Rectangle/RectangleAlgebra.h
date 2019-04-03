@@ -589,13 +589,9 @@ template <unsigned dim>
 inline Rectangle<dim>& Rectangle<dim>::operator=( const Rectangle<dim>& r )
 {
   this->del.isDefined = r.IsDefined();
-  if( (this->del.isDefined) )
-  {
-    for( unsigned i = 0; i < dim; i++ )
-    {
-      this->min[i] = r.min[i];
-      this->max[i] = r.max[i];
-    }
+  for( unsigned i = 0; i < dim; i++ ) {
+    this->min[i] = r.min[i];
+    this->max[i] = r.max[i];
   }
   assert( Proper() );
   return *this;

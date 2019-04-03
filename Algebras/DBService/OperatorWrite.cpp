@@ -118,7 +118,7 @@ int OperatorWrite::mapValue(
 
     bool async = static_cast<CcBool*>(args[2].addr)->GetValue();
 
-    int consumeResult;
+    int consumeResult=0;
     if(async)
     {
         consumeResult =

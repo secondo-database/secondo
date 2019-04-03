@@ -151,7 +151,9 @@ ListExpr op_merge::mergeTM(ListExpr args) {
     ListExpr attrList = nl->TheEmptyList();
     ListExpr indexListpc1 = nl->TheEmptyList();
     ListExpr indexListpc2 = nl->TheEmptyList();
-    ListExpr lastAttr,lastIndex1, lastIndex2;
+    ListExpr lastAttr = nl->TheEmptyList(),
+             lastIndex1 = nl->TheEmptyList(), 
+             lastIndex2 = nl->TheEmptyList();
     int pc1AttrIndex = 0;
     while (!nl->IsEmpty(pc1Attrs)) {
         const ListExpr current = nl->First(pc1Attrs);

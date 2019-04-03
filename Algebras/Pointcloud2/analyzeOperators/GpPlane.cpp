@@ -243,7 +243,7 @@ BboxPredicate GpPlane::getBboxPredicateForShape(
         // of the plane, in which case there is no intersection, and false is
         // returned; otherwise, the bbox intersects with the plane.
         size_t combinations = (1 << DIMENSIONS);
-        bool sign;
+        bool sign = false;
         for (size_t cornerBits = 0; cornerBits < combinations; ++cornerBits) {
             double x = (cornerBits & 1) ?
                     bbox.MinD(0) - tolerance : bbox.MaxD(0) + tolerance;

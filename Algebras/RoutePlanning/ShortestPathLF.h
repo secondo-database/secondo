@@ -522,7 +522,7 @@ namespace routeplanningalgebra {
                     std::cos(lat / 180 * PI) /*at ~lat~*/ / 360;
                 // convert length to meters and calculate average gradient
                 double avgGradient = height / (length * conversion);
-                CcInt* tmp;
+                CcInt* tmp = nullptr;
 
                 if(avgGradient < 0)
                     tmp = (CcInt*)prefs->GetComponent(0);

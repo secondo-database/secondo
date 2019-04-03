@@ -552,7 +552,7 @@ ARClassify::classify (std::vector<SmiFileId> rasters,
     double eps = Pointcloud2::RASTER_CLASSIFY_EPSILON;
     size_t minpts = Pointcloud2::RASTER_CLASSIFY_MINPTS;
     size_t maxClusterCount = 0;
-    double maxClusterCountEps;
+    double maxClusterCountEps = eps;
     size_t maxNoise = 0;
 
 

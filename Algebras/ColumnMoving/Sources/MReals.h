@@ -465,7 +465,7 @@ of iff its value is in the specified range
         rReal.Get(index, ri);
         double ys = ri.start.GetValue(), ye = ri.end.GetValue();
 
-        int64_t t00, t01, t10, t11;
+        int64_t t00=0, t01=0, t10=0, t11=0;
         int count0 = solveQuadratic(ys, t00, t01);
         int count1 = solveQuadratic(ye, t10, t11);
         bool i0 = ri.lc, i1 = ri.rc;

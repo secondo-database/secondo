@@ -63,10 +63,10 @@ Type Mappings
 */
 
     ListExpr shortestpathlfTM(ListExpr args) {
-       ListExpr lrealList;
-       ListExpr firstPointList;
-       ListExpr secondPointList;
-       ListExpr prefs;
+       ListExpr lrealList = nl->TheEmptyList();
+       ListExpr firstPointList = nl->TheEmptyList();
+       ListExpr secondPointList = nl->TheEmptyList();
+       ListExpr prefs = nl->TheEmptyList();
        int argNo = nl->ListLength(args);
         
         if(argNo != 4 && argNo != 6){ 
@@ -198,7 +198,7 @@ Type Mappings
         }
         
         //Check of lreal argument
-        int lrealIndex;
+        int lrealIndex = -1;
         if(argNo == 6){
             stringValue = nl->SymbolValue(lrealList);
             ListExpr lrealType;
@@ -300,8 +300,8 @@ Type Mappings
                 ListExpr tupleType = GetTupleResultType(s);
                 int noArgs = qp->GetNoSons(s);
                 OrderedRelation* orel = (OrderedRelation*) args[0].addr;
-                Point* startPoint;
-                Point* endPoint;
+                Point* startPoint=0;
+                Point* endPoint=0;
                 int sourceIdx, targetIdx;
                 int sourcePosIdx, targetPosIdx;
                 int slineIdx, lrealIdx;

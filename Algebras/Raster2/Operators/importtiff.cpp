@@ -1886,7 +1886,7 @@ bytes           meaning
      } else {
          cerr << "not an tiff file, endian code is wrong"  << endl;
          cerr << "Endian is read as " << hex 
-              << *((uint16_t*)order) << dec << endl;
+              << order[1] << order[0] << dec << endl;
              cout << "Problem reading ifde " << __FILE__ 
                   << ": " << __LINE__ << endl;
          throw(3);

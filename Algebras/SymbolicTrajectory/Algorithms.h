@@ -6973,6 +6973,7 @@ Word TupleIndex<PosType, PosType2>::In(const ListExpr typeInfo,
 template<class PosType, class PosType2>
 ListExpr TupleIndex<PosType, PosType2>::Out(ListExpr typeInfo, Word value) {
   ListExpr overviewlist, rtree1list, rtree2list, last1, last2;
+  overviewlist = rtree1list = rtree2list = last1 = last2 = nl->TheEmptyList();
   TupleIndex<PosType, PosType2> *ti = (TupleIndex<PosType,PosType2>*)value.addr;
   std::stringstream overview;
   Word val;
@@ -8211,8 +8212,7 @@ void TupleIndex<PosType, PosType2>::processBTree(Relation *rel, const int attr){
       mi->Get(j, ui);
       if (PosType::BasicType() == "unitpos") {
         pos.copy2ndFrom(j);
-      }
-      else {
+      } else {
         NewInterval niv(ui.timeInterval);
         pos.copy2ndFrom(niv);
       }

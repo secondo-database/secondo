@@ -1207,7 +1207,7 @@ moving region unit.
       //hit points
       
       double p = 0.0;
-      bool lc;
+      bool lc=true;
 
       for (auto & h : cleaned)
         if (h.type == LEFT_CLOSED || h.type == LEFT_OPEN) {
@@ -1605,7 +1605,7 @@ outside the moving region unit.
     }
     avoid.push_back(rI.e);
 
-    int64_t t;
+    int64_t t=0;
     int64_t delta = -1;
     int64_t last = rI.s;
 

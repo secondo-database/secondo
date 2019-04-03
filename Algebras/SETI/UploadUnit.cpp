@@ -127,6 +127,7 @@ Word UploadUnit::In( const ListExpr typeInfo, const ListExpr instance,
   else
   {
     cmsg.inFunError("The time stamp must be of string type!");
+    return result;
   }
 
   // Check position information

@@ -350,8 +350,8 @@ distanceScan3TypeMap( ListExpr args ) {
    bool maxD = false;
 
    if(nl->ListLength(args) > 2){
-     ListExpr last;
-     ListExpr args2;
+     ListExpr last = nl->TheEmptyList();
+     ListExpr args2 = nl->TheEmptyList();
      bool first = true;
      while(!nl->IsEmpty(args)){
        ListExpr f = nl->First(args);
@@ -2867,7 +2867,7 @@ unsigned int insertActiveElem( std::vector<ActiveElem> &v, ActiveElem &e,
     return 0;
   }
 
-  int pos, start, max;
+  int pos=0, start=0, max=0;
   max = v.size() - 1;
   start = 0;
   bool havePos = false;
@@ -10502,7 +10502,7 @@ ListExpr CellIndexTypeMap( ListExpr args )
 
 
   ListExpr cellnumber = nl->Second(args);
-  ListExpr MBR_ATOM;
+  ListExpr MBR_ATOM = nl->TheEmptyList();
 
   if(!listutils::isRTreeDescription(rtree)){
     return listutils::typeError("first argument must be an rtree");
@@ -11745,7 +11745,7 @@ struct Cov{
       bool flag2 = false;
       //get coverage from the first relation
       //delete them from the relation and create new ones into it
-      int NodeId1;
+      int NodeId1=0;
 
       while(iter1->Next()){
         flag1 = true;
@@ -11964,7 +11964,7 @@ struct Cov{
       bool flag1 = false;
       //get coverage from the first relation
       //delete them from the relation and create new ones into it
-      int NodeId1;
+      int NodeId1=0;
 
       while(iter1->Next()){
         flag1 = true;

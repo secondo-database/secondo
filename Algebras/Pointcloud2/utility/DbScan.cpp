@@ -606,10 +606,14 @@ void DbScan<dim>::constructMMRTree(
     // construct an MMRTree to point to the start index and point count
     // of each point sequence in "points"
     bool startSequence = true;
-    size_t nodeStartIndex; // the node's start index in points
+    size_t nodeStartIndex = 0; // the node's start index in points
     int i;
     double min[dim];
     double max[dim];
+    for( unsigned int i=0;i<dim;i++){
+      min[i] = max[i] = 0;
+    }
+
     while ((i = iter.get()->next()) > 0) {
         if (startSequence) {
             nodeStartIndex = i;

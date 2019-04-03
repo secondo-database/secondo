@@ -47,11 +47,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "NestedList.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
-#include "Algebras/OrderedRelation/OrderedRelationAlgebra.h"
 #include "MMRTree.h"
 #include "MMMTree.h"
 #include "AvlTree.h"
-#include "Algebras/Spatial/Point.h"
 #include "ttree.h"
 #include "graph.h"
 #include "PointerWrapper.h"

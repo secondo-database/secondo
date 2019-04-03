@@ -13061,7 +13061,7 @@ int ApproximateMvalue(Word* args, Word& result,
   Word actual;
 
 
-  VType lastValue,currentValue;
+  VType lastValue(false),currentValue(false);
   Instant lastInstant(instanttype),currentInstant(instanttype);
   bool first = true;
 

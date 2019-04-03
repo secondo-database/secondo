@@ -214,7 +214,7 @@ unsigned XTree::overlapMinimalSplit(
     unsigned split_index = minEntries;
     double overlap;
     double minOverlap = numeric_limits<double>::infinity();
-    bool lb;
+    bool lb=false;
 
     #ifdef __XTREE_SPLIT_USE_MIN_DEADSPACE
     double minDeadspace = numeric_limits<double>::infinity();

@@ -670,8 +670,8 @@ namespace pointcloud {
               // No special procedure as every point needs to be read.
               size_t pcSize = original->GetNoCpointnodes();
               Cpointnode pcNode;
-              double pc1MinMax[4];
-              double pc2MinMax[4];
+              double pc1MinMax[] = {0,0,0,0};
+              double pc2MinMax[] = {0,0,0,0};
  
               for (size_t k = 0; k < pcSize; k++) {
                   pcNode = original->GetCpointnode(k);

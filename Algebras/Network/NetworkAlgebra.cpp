@@ -448,7 +448,7 @@ bool chkPoint ( SimpleLine *&route, const Point point,
   bool result = false;
   HalfSegment hs;
   double k1, k2;
-  Point left, right;
+  Point left(true,0,0), right(true,0,0);
   for ( int i = 0; i < route->Size()-1; i++ )
   {
     route->Get ( i, hs );
@@ -536,14 +536,14 @@ Used by operator ~point2gpoint~
 
 */
 
-bool chkPoint03 ( SimpleLine *&route, const Point point,
+bool chkPoint03 ( SimpleLine *route, const Point point,
                   const bool startSmaller, const double tolerance,
                   double &pos, double &difference )
 {
   bool result = false;
-  HalfSegment hs;
+  HalfSegment hs(true,Point(true,0,0),Point(true,1,1));
   double k1, k2;
-  Point left, right;
+  Point left(false), right(false);
   for ( int i = 0; i < route->Size()-1; i++ )
   {
     route->Get ( i, hs );
@@ -637,7 +637,7 @@ bool lastchkPoint03 ( SimpleLine *&route, const Point point,
   bool result = false;
   HalfSegment hs;
   double k1, k2;
-  Point left, right;
+  Point left(false), right(false);
   for ( int i = 0; i < route->Size()-1; i++ )
   {
     route->Get ( i, hs );

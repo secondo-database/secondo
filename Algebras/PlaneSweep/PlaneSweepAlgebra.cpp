@@ -1660,6 +1660,8 @@ bool StatusLine::innerInter( const HalfSegment& hs1,
    first = false;               second = false;
    Coord xl,yl,xr,yr ,  Xl,Yl,Xr,Yr;
    double k, a, K, A;
+   k= a= K= A=0;
+
    xl=hs1.GetLeftPoint().GetX();  yl=hs1.GetLeftPoint().GetY();
    xr=hs1.GetRightPoint().GetX();  yr=hs1.GetRightPoint().GetY();
    if (xl!=xr)  // hs1 not vertical
@@ -1671,7 +1673,7 @@ bool StatusLine::innerInter( const HalfSegment& hs1,
    Xr=hs2.GetRightPoint().GetX();  Yr=hs2.GetRightPoint().GetY();
    if (Xl!=Xr)  // hs2 not vertical
    {     //K=(Yr-Yl) / (Xr-Xl);  A=Yl - K*Xl;
-      K=  (Yr - Yl) / (Xr - Xl);
+      K =  (Yr - Yl) / (Xr - Xl);
       A = Yl - K*Xl;
    }
    if ((xl==xr) && (Xl==Xr))  {
@@ -3224,7 +3226,7 @@ void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
         hscurr = hs1;
         status = FIRST;
       }
-      else if ( hs1 > hs2)
+      else
       {
         //cout << "hs1 > hs2" << endl;
         hscurrindex = j;
@@ -3734,10 +3736,10 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
    VStructure vs;
    StatusLine sl;
    XEvent event;
-   bool insertedCurrentSegment;
+   bool insertedCurrentSegment=false;
    int i=0, j=0;
    if ( pq.isEmpty())  return;
-   Coord sweepline=0, oldsweep;
+   Coord sweepline=0, oldsweep=0;
    // work out the ~PQueue~-object
    //cout << pq << endl;
    while ( (! pq.isEmpty()) || (vlist.Size() >= 1) )  {
@@ -4343,7 +4345,7 @@ void MakeOp::Intersection(const Region* reg1, const Region* reg2,Region* result)
          i ++;   j ++;   hsAkt = hs1;    status = BOTH;
       }
       else if ( hs1 < hs2) {i ++; hsAkt = hs1; status = FIRST;}
-      else if ( hs1 > hs2) {j ++; hsAkt = hs2; status = SECOND;}
+      else {j ++; hsAkt = hs2; status = SECOND;}
       aktSweep = hsAkt.GetDomPoint().GetX();
       if (hsAkt.IsLeftDomPoint() == false) {  // right end of segment
          hsAkt.SetLeftDomPoint(true);
@@ -4447,7 +4449,7 @@ void MakeOp::Intersection(const Region* reg1, const Region* reg2,Region* result)
           hs1.GetRightPoint()==hs2.GetRightPoint()){
          i ++;   j ++;   hsAkt = hs2;    status = BOTH; }
       else if ( hs1 < hs2) {i ++; hsAkt = hs1; status = FIRST;}
-      else if ( hs1 > hs2) {j ++; hsAkt = hs2; status = SECOND;}
+      else {j ++; hsAkt = hs2; status = SECOND;}
       aktSweep = hsAkt.GetDomPoint().GetX();
       if (hsAkt.IsLeftDomPoint() == false) {  // right end of segment
          if (status == SECOND || status == BOTH) {
@@ -4614,7 +4616,7 @@ bool MakeOp::P_Intersects(const Region* reg1, const Region* reg2)
           hs1.GetRightPoint()==hs2.GetRightPoint()){
          i ++;   j ++;   hsAkt = hs1;    status = BOTH;      }
       else if ( hs1 < hs2) {i ++; hsAkt = hs1; status = FIRST;}
-      else if ( hs1 > hs2) {j ++; hsAkt = hs2; status = SECOND;}
+      else {j ++; hsAkt = hs2; status = SECOND;}
       aktSweep = hsAkt.GetDomPoint().GetX();
       if (hsAkt.IsLeftDomPoint() == false) {  // right end of segment
          hsAkt.SetLeftDomPoint(true);
@@ -4707,7 +4709,7 @@ bool MakeOp::P_Intersects(const Region* reg, const Line* line)
          i ++; j ++; hsAkt = hs2; status = BOTH;
       }
       else if ( hs1 < hs2) {i ++; hsAkt = hs1; status = FIRST;}
-      else if ( hs1 > hs2) {j ++; hsAkt = hs2; status = SECOND;}
+      else {j ++; hsAkt = hs2; status = SECOND;}
       aktSweep = hsAkt.GetDomPoint().GetX();
       if (hsAkt.IsLeftDomPoint() == false) {  // right end of segment
          if (status == SECOND || status == BOTH) {
@@ -4841,7 +4843,7 @@ bool MakeOp::Intersects(const Region* reg1, const Region* reg2)
          return true;
       }
       else if ( hs1 < hs2) {i ++; hsAkt = hs1; status = FIRST;}
-      else if ( hs1 > hs2) {j ++; hsAkt = hs2;  status = SECOND;}
+      else {j ++; hsAkt = hs2;  status = SECOND;}
       aktSweep = hsAkt.GetDomPoint().GetX();
       if (hsAkt.IsLeftDomPoint() == false) {  // right end of segment
          hsAkt.SetLeftDomPoint(true);
@@ -4930,7 +4932,7 @@ bool MakeOp::Intersects (const Region* reg, const Line* line) {
           return true;
       }
       else if ( hs1 < hs2) {i ++; hsAkt = hs1; status = FIRST;}
-      else if ( hs1 > hs2) {j ++; hsAkt = hs2; status = SECOND;}
+      else {j ++; hsAkt = hs2; status = SECOND;}
       aktSweep = hsAkt.GetDomPoint().GetX();
       if ( hsAkt.IsLeftDomPoint() == false) {
          if (status == FIRST) {  // right end of segment of region
@@ -5078,13 +5080,13 @@ void MakeOp::Union(const Region* reg1, const Region* reg2,
              hs1.GetRightPoint()==hs2.GetRightPoint() ){
             i ++;   j ++;   hsAkt = hs1;    status = BOTH; }
          else if ( hs1 < hs2) {i ++; hsAkt = hs1; status = FIRST;}
-         else if ( hs1 > hs2) {j ++; hsAkt = hs2; status = SECOND;}
+         else {j ++; hsAkt = hs2; status = SECOND;}
       }
       else if (i < res1->Size() ) {
          //cout << "if2" << endl;
          res1->Get(i,hs1);  i ++;   hsAkt = hs1;  status = FIRST;
       }
-      else if ( j < res2->Size() ) {
+      else {
          //cout << "if3" << endl;
          res2->Get(j,hs2);  j ++;   hsAkt = hs2;  status = SECOND;
       }
@@ -5263,7 +5265,7 @@ void MakeOp::Minus(const Region* reg1, const Region* reg2, Region* result)
              hs1.GetRightPoint()==hs2.GetRightPoint() )
             {i ++; j ++; hsAkt = hs1;  status = BOTH;    }
          else if ( hs1 < hs2) { i ++; hsAkt = hs1; status = FIRST; }
-         else if ( hs1 > hs2) { j ++; hsAkt = hs2; status = SECOND; }
+         else { j ++; hsAkt = hs2; status = SECOND; }
       }
       else if (i < res1->Size() ) {
          res1->Get(i,hs1);  i ++;   hsAkt = hs1;  status = FIRST;
@@ -5382,7 +5384,7 @@ void MakeOp::Minus(const Line* line, const Region* reg,Line* result)
              hs1.GetRightPoint()==hs2.GetRightPoint()){
             i ++;   j ++;   hsAkt = hs2;    status = BOTH;  }
          else if ( hs1 < hs2) { i ++; hsAkt = hs1; status = FIRST;}
-         else if ( hs1 > hs2) { j ++; hsAkt = hs2; status = SECOND;}
+         else { j ++; hsAkt = hs2; status = SECOND;}
       }
       else if (i < resLine ->Size() ) {
          resLine -> Get(i,hs1); i ++; hsAkt = hs1; status = FIRST;}

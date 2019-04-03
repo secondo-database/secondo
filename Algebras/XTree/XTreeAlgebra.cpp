@@ -180,7 +180,7 @@ int creatextreeHPointRel_VM(
     Tuple *tuple;
     GenericRelationIterator *iter = relation->MakeScan();
 
-    unsigned dim;
+    unsigned dim=0;
     while ((tuple = iter->GetNextTuple()))
     {
         HPointAttr *attr = static_cast<HPointAttr*>(
@@ -257,7 +257,7 @@ int creatextreeHRectRel_VM(
     Tuple *tuple;
     GenericRelationIterator *iter = relation->MakeScan();
 
-    unsigned dim;
+    unsigned dim=0;
     while ((tuple = iter->GetNextTuple()))
     {
         HRectAttr *attr = static_cast<HRectAttr*>(
@@ -418,7 +418,7 @@ int creatextreeHPointStream_VM(
     qp->Open(stream);
     qp->Request(stream, wTuple);
 
-    unsigned dim;
+    unsigned dim=0;
     while (qp->Received(stream))
     {
         Tuple *tuple = static_cast<Tuple*>(wTuple.addr);
@@ -498,7 +498,7 @@ int creatextreeHRectStream_VM(
     qp->Open(stream);
     qp->Request(stream, wTuple);
 
-    unsigned dim;
+    unsigned dim=0;
     while (qp->Received(stream))
     {
         Tuple *tuple = static_cast<Tuple*>(wTuple.addr);

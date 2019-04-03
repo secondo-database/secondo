@@ -164,8 +164,8 @@ if (!recover)
         1
     );
     
-    ListExpr jcTypeAtom;
-    SmiKey::KeyDataType jcTypeSmi;
+    ListExpr jcTypeAtom = nl->TheEmptyList();
+    SmiKey::KeyDataType jcTypeSmi=SmiKey::Unknown;
 
     if (jcType == "s")
     {

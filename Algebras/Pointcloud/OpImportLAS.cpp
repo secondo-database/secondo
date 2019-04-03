@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Pointcloud/lasreader/lasreader.h"
 #include "Algebras/Pointcloud/lasreader/laspoint.h"
 #include "Algebras/Spatial/Point.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "QueryProcessor.h"
 #include "Operator.h"
 

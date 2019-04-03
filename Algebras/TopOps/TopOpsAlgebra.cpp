@@ -1446,7 +1446,7 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
   avlseg::AVLSegment* rightN=0; // the right neighbour of member
   avlseg::ownertype owner;
   OwnedPoint lastDomPoint; // initialized to be undefined
-  int src;
+  int src =0;
   avlseg::AVLSegment tmpL,tmpR,tmpM;
   bool empty1 = false;
   bool empty2 = false;
@@ -2030,7 +2030,7 @@ bool GetInt9M(Line const* const line1,
  int lastDomPointCount1 = 0;
  int lastDomPointCount2 = 0;
  avlseg::AVLSegment left1,right1,left2,right2,common;
- int src;
+ int src=0;
  avlseg::AVLSegment tmpL,tmpR;
 
  bool empty1 = false; // flag indicating end of line 1
@@ -2396,7 +2396,7 @@ bool GetInt9M(Line   const* const line,
  avlseg::AVLSegment left1,right1,left2,right2,common;
  avlseg::AVLSegment tmpL,tmpR;
 
- int src;
+ int src=0;
  int lastCoverageNum = 0;
 
  // plane sweep

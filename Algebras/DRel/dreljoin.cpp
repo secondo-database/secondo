@@ -400,7 +400,7 @@ necessary. Used for sortmergejoin and itHashJoin.
         DFRel* resultDFRel = ( DFRel* )result.addr;
 
         ListExpr partitionDRel1, partitionDRel2;
-        collection::Collection* boundary;
+        collection::Collection* boundary=0;
         if( dType == hash ) {
             if( !relFlag[ 0 ] ) {
                 partitionDRel1 = hashPartition( 

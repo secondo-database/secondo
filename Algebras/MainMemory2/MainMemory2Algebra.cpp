@@ -50,6 +50,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/FText/FTextAlgebra.h"
 //#include "MovingRegionAlgebra.h"
 #include "Algebras/Rectangle/RectangleAlgebra.h"
+#include "Algebras/Spatial/Point.h"
 #include "AvlTree.h"
 #include "StopWatch.h"
 
