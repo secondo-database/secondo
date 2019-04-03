@@ -219,6 +219,12 @@ Timer::Timer(const vector<string>& taskNames) :
 
 Timer::~Timer() {
    stop();
+#ifdef TIMER_USES_PAPI
+   // unfortunately, PAPI_shutdown() does NOT solve the memory leak within PAPI
+   // but rather multiplies it by the times PAPI is started and restarted.
+   // cp. https://bitbucket.org/icl/papi/issues/49/  ...
+   //       minimum-example-already-has-memory-leaks
+#endif
 }
 
 void Timer::start(const unsigned taskID /* = 0 */) {
