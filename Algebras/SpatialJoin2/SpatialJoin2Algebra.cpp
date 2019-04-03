@@ -3488,11 +3488,11 @@ double simLBZ=((lbz-gridZroot)/gridZwidth);
 double simRTZ=((rtz-gridZroot)/gridZwidth);
 
 if (is3D) {
-maxebene=max(maxebeneZ3D(simLBX,simLBY,simLBZ),
+maxebene=std::max(maxebeneZ3D(simLBX,simLBY,simLBZ),
               maxebeneZ3D(simRTX,simRTY,simRTZ));
 }
 else {
-maxebene=max(maxebeneZ2D(simLBX,simLBY),
+maxebene=std::max(maxebeneZ2D(simLBX,simLBY),
               maxebeneZ2D(simRTX,simRTY));
 }
 
@@ -3623,7 +3623,7 @@ else if (ebenen==2){
 else if (ebenen>2){
         if (by==1){cellziff=cellziff+1;}
         if (bz==1){cellziff=cellziff+4;}
-        cellziff=cellziff*(dim3)*(int)(pow(8,(max(0,ebenen-2)))); 
+        cellziff=cellziff*(dim3)*(int)(pow(8,(std::max(0,ebenen-2)))); 
     }
 
 return cellziff;
@@ -3640,7 +3640,7 @@ if (ebenen==2){
         cellziff=cellziff*dim2; 
     }
 else if (ebenen>2){
-        cellziff = cellziff*dim2*(int)(pow(4,(max(0,ebenen-2)))); 
+        cellziff = cellziff*dim2*(int)(pow(4,(std::max(0,ebenen-2)))); 
     }
 
 return cellziff;
