@@ -36,8 +36,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include <iostream>
+#include <ostream>
+#include <iomanip>
 
 #include "CDACSpatialJoin.h" // -> ... -> SortEdge, JoinEdge
+#include "Utils.h"
 
 #include "AlgebraManager.h"
 #include "Symbols.h"
@@ -47,6 +50,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 typedef CRelAlgebra::TBlockTI::ColumnInfo TBlockColInfo;
 
 using namespace cdacspatialjoin;
+using namespace std;
 
 uint64_t CDACSpatialJoin::DEFAULT_INPUT_BLOCK_SIZE = 10;
 
@@ -78,8 +82,8 @@ public:
    }
 };
 
-std::shared_ptr<Operator> CDACSpatialJoin::getOperator() {
-   return std::make_shared<Operator>(
+shared_ptr<Operator> CDACSpatialJoin::getOperator() {
+   return make_shared<Operator>(
            Info(),
            &CDACSpatialJoin::valueMapping,
            &CDACSpatialJoin::typeMapping);
@@ -116,7 +120,7 @@ ListExpr CDACSpatialJoin::typeMapping2(const bool countOnly, ListExpr args) {
    ListExpr tBlockColumns[STREAM_COUNT];
    CRelAlgebra::TBlockTI tBlockInfo[STREAM_COUNT] =
            { CRelAlgebra::TBlockTI(false), CRelAlgebra::TBlockTI(false) };
-   std::string attrName[STREAM_COUNT];
+   string attrName[STREAM_COUNT];
    uint64_t attrIndex[STREAM_COUNT];
    uint64_t attrCount[STREAM_COUNT];
    unsigned dim[STREAM_COUNT];
@@ -124,7 +128,7 @@ ListExpr CDACSpatialJoin::typeMapping2(const bool countOnly, ListExpr args) {
    // get information on the two input streams
    for (unsigned i = 0; i < STREAM_COUNT; ++i) {
       // first and second arguments must be a streams
-      const std::string argPos1or2 = (i == 0) ? "first" : "second";
+      const string argPos1or2 = (i == 0) ? "first" : "second";
       stream[i] = nl->First((i == 0) ? nl->First(args) : nl->Second(args));
       if (!listutils::isStream(stream[i])) {
          return listutils::typeError("Error in " + argPos1or2 + " argument: "
@@ -152,7 +156,7 @@ ListExpr CDACSpatialJoin::typeMapping2(const bool countOnly, ListExpr args) {
       if (STREAM_COUNT + i < argCount) {
          // extract join attribute names and indices
          // third and fourth argument must be an attribute name
-         const std::string argPos3or4 = (i == 0) ? "third" : "fourth";
+         const string argPos3or4 = (i == 0) ? "third" : "fourth";
          const ListExpr attrNameLE = nl->First(
                  (i == 0) ? nl->Third(args) : nl->Fourth(args));
          if (!listutils::isSymbol(attrNameLE)) {
@@ -227,8 +231,8 @@ ListExpr CDACSpatialJoin::typeMapping2(const bool countOnly, ListExpr args) {
 
       // set the size of the result tuple block, using the larger input block
       // size
-      uint64_t desiredBlockSize = std::max(tBlockInfo[0].GetDesiredBlockSize(),
-                                           tBlockInfo[1].GetDesiredBlockSize());
+      uint64_t desiredBlockSize = max(tBlockInfo[0].GetDesiredBlockSize(),
+                                      tBlockInfo[1].GetDesiredBlockSize());
       if (argCount == 5) {
          // ... unless an explicit result block size is provided in the query
          ListExpr outTBlockSizeLE = nl->Fifth(args);
@@ -242,7 +246,7 @@ ListExpr CDACSpatialJoin::typeMapping2(const bool countOnly, ListExpr args) {
       resultTBlockInfo.SetDesiredBlockSize(desiredBlockSize);
 
       // check for duplicate column names
-      std::set<std::string> columnNames;
+      set<string> columnNames;
       for (const TBlockColInfo& colInfo : tBlockInfo[0].columnInfos) {
          columnNames.insert(colInfo.name);
          resultTBlockInfo.columnInfos.push_back(colInfo);
@@ -398,8 +402,8 @@ public:
    }
 };
 
-std::shared_ptr<Operator> CDACSpatialJoinCount::getOperator() {
-   return std::make_shared<Operator>(
+shared_ptr<Operator> CDACSpatialJoinCount::getOperator() {
+   return make_shared<Operator>(
            Info(),
            &CDACSpatialJoinCount::valueMapping,
            &CDACSpatialJoinCount::typeMapping);
@@ -452,7 +456,7 @@ CDACLocalInfo::CDACLocalInfo(const bool countOnly_, InputStream* const input1_,
 
    /* a vector of task names that correspond to the elements of the JoinTask
     * enumeration */
-   const std::vector<std::string> taskNames { {
+   const vector<string> taskNames { {
          "requestData",
          "createJoinState",
          "createSortEdges",
@@ -460,7 +464,7 @@ CDACLocalInfo::CDACLocalInfo(const bool countOnly_, InputStream* const input1_,
          "createJoinEdges",
          "merge"
    } };
-   timer = std::make_shared<Timer>(taskNames);
+   timer = make_shared<Timer>(taskNames);
 }
 
 /*
@@ -584,6 +588,9 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
             outTBlock->DecRef();
          }
          timer->stop();
+#ifndef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+         cout << "\r" << string(82, ' ') << flush;
+#endif
          return nullptr;
 
       } else {
@@ -621,6 +628,17 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
       // create a JoinState from the data that was read to the main memory
       if (!input1->empty() && !input2->empty()) {
          assert (!joinState);
+
+#ifndef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+         cout << "\r" << "running "
+              << (countOnly ? "CDACSpatialJoinCount" : "CDACSpatialJoin");
+         if (joinStateCount > 0) {
+            cout << ": " << setw(11) << formatInt(intersectionCount)
+                 << " intersections found in " << joinStateCount
+                 << (joinStateCount == 1 ? " JoinState " : " JoinStates");
+         }
+         cout << "..." << flush;
+#endif
 
          timer->start(JoinTask::createJoinState);
          ++joinStateCount;
