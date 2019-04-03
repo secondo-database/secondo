@@ -97,7 +97,7 @@ class EdgePoint : public Point
 {
 
   public:
-    EdgePoint(): Point()
+    EdgePoint(): Point(true,0,0)
     {
     }
 
@@ -229,44 +229,21 @@ class SCycle
     int hs1Partnerno,hs2Partnerno;
     Point criticalPoint, nextPoint;
 
-    SCycle(){}
+    SCycle() {}
 
     SCycle( const HalfSegment &hs, const int partnerno,
             const HalfSegment &hsP,const int partnernoP,
-            const Point &criticalP, const Point &nextPOINT)
-    {
-      hs1 = hs;
-      hs2 = hsP;
-      hs1PosRight = hs1PosLeft = partnernoP;
-      hs2PosRight = hs2PosLeft = partnerno;
-      hs1Partnerno = partnerno;
-      hs2Partnerno = partnernoP;
+            const Point &criticalP, const Point &nextPOINT):
+    hs1(hs), hs2(hsP), 
+    hs1PosRight(partnernoP), hs1PosLeft(partnernoP),
+    hs2PosRight(partnerno),hs2PosLeft(partnerno),
+    goToCHS1Right(true),goToCHS1Left(true),
+    goToCHS2Right(true),goToCHS2Left(true),
+    hs1Partnerno(partnerno),hs2Partnerno(partnernoP),
+    criticalPoint(criticalP),nextPoint(nextPOINT)
+    { }
 
-      goToCHS1Right=goToCHS1Left=goToCHS2Right=goToCHS2Left=true;
-      criticalPoint = criticalP;
-      nextPoint = nextPOINT;
-    }
-
-    SCycle(const SCycle &sAux)
-    {
-      hs1 = sAux.hs1;
-      hs2 = sAux.hs2;
-      hs1PosRight  = sAux.hs1PosRight;
-      hs1PosLeft   = sAux.hs1PosLeft;
-      hs1Partnerno = sAux.hs1Partnerno ;
-      goToCHS1Right = sAux.goToCHS1Right;
-      goToCHS1Left  = sAux.goToCHS1Left;
-
-      hs2PosRight  = sAux.hs2PosRight;
-      hs2PosLeft   = sAux.hs2PosLeft;
-      hs2Partnerno = sAux.hs2Partnerno ;
-      goToCHS2Right = sAux.goToCHS2Right;
-      goToCHS2Left  = sAux.goToCHS2Left;
-
-      criticalPoint = sAux.criticalPoint;
-      nextPoint     = sAux.nextPoint;
-
-    }
+    SCycle(const SCycle &sAux) = default;
 
     ~SCycle()
     {}
@@ -412,7 +389,7 @@ double VectorSize(const Point &p1, const Point &p2, const Geoid* geoid = 0);
 11.1 Class ~Point~
 
 */
-inline Point::Point( const bool d, const Coord& x, const Coord& y ) :
+inline Point::Point( const bool d, const Coord x, const Coord y ) :
   StandardSpatialAttribute<2>(d),
   x( x ),
   y( y )
@@ -470,10 +447,8 @@ inline Point Point::Add( const Point& p, const Geoid* geoid /*=0*/ ) const
 inline Point& Point::operator=( const Point& p )
 {
   SetDefined( p.IsDefined() );
-  if( IsDefined() ){
-    x = p.x;
-    y = p.y;
-  }
+  x = p.x;
+  y = p.y;
   return *this;
 }
 

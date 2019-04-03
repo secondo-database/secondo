@@ -60,7 +60,7 @@ bool AlmostContains( const Array<Point>& points, const Point& p,
   if(min>max){
      return false;
   }
-  Point pa;
+  Point pa(true);
   if(min==max){ // search around the position found
      // search left of min
      int pos = min;
@@ -113,7 +113,7 @@ void PointsT<Array>::RemoveDuplicates()
  assert(IsOrdered());
  //Point allPoints[points.Size()];
  Array<Point> allPoints(points.Size());
- Point p;
+ Point p(true);
  for(int i=0;i<points.Size();i++){
     points.Get(i,p);
     bool found = AlmostContains(allPoints,p,0,
@@ -223,7 +223,7 @@ bool PointsT<Array>::Inside( const LineT<Array2>& l,
   if( !l.BoundingBox().Contains( bbox, geoid ) )
     return false;
 
-  Point p;
+  Point p(true);
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
@@ -259,7 +259,7 @@ bool PointsT<Array>::Inside( const RegionT<Array2>& r,
   if( !r.BoundingBox().Contains( bbox, geoid ) )
     return false;
 
-  Point p;
+  Point p(true);
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
@@ -322,7 +322,7 @@ bool PointsT<Array>::Intersects( const LineT<Array2>& l,
   if( !BoundingBox().Intersects( l.BoundingBox(), geoid ) )
     return false;
 
-  Point p;
+  Point p(true);
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
@@ -356,7 +356,7 @@ bool PointsT<Array>::Intersects( const RegionT<Array2>& r,
   if( !BoundingBox().Intersects( r.BoundingBox(), geoid ) )
     return false;
 
-  Point p;
+  Point p(true);
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
@@ -389,7 +389,7 @@ bool PointsT<Array>::Adjacent( const RegionT<Array2>& r,
   if( !BoundingBox().Intersects( r.BoundingBox(), geoid ) )
     return false;
 
-  Point p;
+  Point p(true);
   bool found = false;
   for( int i = 0; i < Size(); i++ )
   {
@@ -444,7 +444,7 @@ void PointsT<Array>::Intersection( const PointsT<Array2>& ps,
 
   object obj;
   status stat;
-  Point p;
+  Point p(true);
   SelectFirst_pp( *this, ps, obj, stat );
 
   result.StartBulkLoad();
@@ -480,7 +480,7 @@ void PointsT<Array>::Intersection( const LineT<Array2>& l,
   if( IsEmpty() || l.IsEmpty() )
     return;
 
-  Point p;
+  Point p(true);
   result.StartBulkLoad();
   for( int i = 0; i < Size(); i++ )
   {
@@ -490,6 +490,13 @@ void PointsT<Array>::Intersection( const LineT<Array2>& l,
   }
   result.EndBulkLoad( false, false );
 }
+
+
+/*
+Computes the set of points that is located in r.
+
+
+*/
 
 template<template<typename T>class Array>
 template<template<typename T2>class Array2,
@@ -510,7 +517,7 @@ void PointsT<Array>::Intersection( const RegionT<Array2>& r,
   if( IsEmpty() || r.IsEmpty() )
     return;
 
-  Point p;
+  Point p(true);
   result.StartBulkLoad();
   for( int i = 0; i < Size(); i++ )
   {
@@ -541,7 +548,7 @@ void PointsT<Array>::Intersection(
   if( IsEmpty() || l.IsEmpty() )
     return;
 
-  Point p;
+  Point p(true);
   result.StartBulkLoad();
   for( int i = 0; i < Size(); i++ )
   {
@@ -566,7 +573,7 @@ void PointsT<Array>::Minus( const Point& p, PointsT<Array2>& ps,
 
   assert( ordered );
   ps.StartBulkLoad();
-  Point pi;
+  Point pi(true);
   for( int i = 0; i < Size(); i++ ) {
     Get( i, pi );
     if( !AlmostEqual(pi, p) )
@@ -594,7 +601,7 @@ void PointsT<Array>::Minus( const PointsT<Array2>& ps, PointsT<Array3>& result,
   int size1 = this->Size();
   int size2 = ps.Size();
   int pos1 = 0, pos2 = 0;
-  Point p1, p2;
+  Point p1(true), p2(true);
 
   while(pos1<size1 && pos2<size2) {
     this->Get(pos1, p1);
@@ -632,7 +639,7 @@ void PointsT<Array>::Minus( const LineT<Array2>& l, PointsT<Array3>& result,
   assert( IsOrdered() );
   assert( l.IsOrdered() );
 
-  Point p;
+  Point p(true);
   result.StartBulkLoad();
   for( int i = 0; i < Size(); i++ )
   {
@@ -658,7 +665,7 @@ void PointsT<Array>::Minus( const RegionT<Array2>& r, PointsT<Array3>& result,
   assert( IsOrdered() );
   assert( r.IsOrdered() );
 
-  Point p;
+  Point p(true);
   result.StartBulkLoad();
   for( int i = 0; i < Size(); i++ )
   {
@@ -685,7 +692,7 @@ void PointsT<Array>::Minus( const SimpleLineT<Array2>& l,
   assert( IsOrdered() );
   assert( l.IsOrdered() );
 
-  Point p;
+  Point p(true);
   result.StartBulkLoad();
   for( int i = 0; i < Size(); i++ )
   {
@@ -710,7 +717,7 @@ void PointsT<Array>::Union( const Point& p, PointsT<Array2>& result,
   assert( ordered );
 
   result.StartBulkLoad();
-  Point pi;
+  Point pi(true);
   bool inserted = false;
   for( int i = 0; i < Size(); i++)
   {
@@ -751,7 +758,7 @@ void PointsT<Array>::Union( const PointsT<Array2>& ps,
   object obj;
   status stat;
   SelectFirst_pp( *this, ps, obj, stat );
-  Point p;
+  Point p(true);
 
   result.StartBulkLoad();
   while( stat != endboth )
@@ -809,7 +816,7 @@ double PointsT<Array>::Distance( const Point& p,
 
   double result = std::numeric_limits<double>::max();
   for( int i = 0; i < Size(); i++ ){
-    Point pi;
+    Point pi(true);
     Get( i, pi );
     if( AlmostEqual( p, pi ) ){
       return 0.0;
@@ -829,7 +836,7 @@ double PointsT<Array>::Distance( const PointsT<Array2>& ps,
   assert( !geoid || geoid->IsDefined() );
 
   double result = std::numeric_limits<double>::max();
-  Point pi, pj;
+  Point pi(true), pj(true);
   for( int i = 0; i < Size(); i++ ){
     Get( i, pi );
     for( int j = 0; j < ps.Size(); j++ ){
@@ -852,7 +859,7 @@ double PointsT<Array>::Distance( const Rectangle<2>& r,
   assert( r.IsDefined() );
   assert( !geoid || geoid->IsDefined() );
   double result = std::numeric_limits<double>::max();
-  Point pi;
+  Point pi(true);
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, pi );
@@ -872,7 +879,7 @@ bool PointsT<Array>::Intersects( const Rectangle<2>& r,
   if(!BoundingBox().Intersects(r,geoid)){
      return false;
   }
-  Point pi;
+  Point pi(true);
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, pi );
@@ -897,7 +904,7 @@ void PointsT<Array>::Translate( const Coord& x, const Coord& y,
 
   assert( ordered );
   result.StartBulkLoad();
-  Point p;
+  Point p(true);
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
@@ -921,7 +928,7 @@ void PointsT<Array>::Scale( const Coord& x, const Coord& y,
   result.SetDefined( true );
   result.Resize(Size());
   result.StartBulkLoad();
-  Point p;
+  Point p(true);
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
@@ -957,7 +964,7 @@ void PointsT<Array>::Rotate( const Coord& x, const Coord& y,
 
 
   result.StartBulkLoad();
-  Point p;
+  Point p(true);
   Point rot(true,0,0);
 
   for( int i = 0; i < Size(); i++ )
@@ -978,7 +985,7 @@ Point PointsT<Array>::theCenter() const{
      res.SetDefined(false);
    } else {
      int size = Size();
-     Point p;
+     Point p(true);
      double x = 0.0;
      double y = 0.0;
      for(int i=0;i<size;i++){
@@ -1001,7 +1008,7 @@ size_t PointsT<Array>::HashValue() const
 
   size_t h = 0;
 
-  Point p;
+  Point p(true);
   for( int i = 0; i < Size() && i < 5; i++ )
   {
     Get( i, p );
@@ -1016,7 +1023,7 @@ bool PointsT<Array>::IsValid() const
   if( IsEmpty() ) // IsEmpty() includes undef
     return true;
 
-  Point p1, p2;
+  Point p1(true), p2(true);
   Get( 0, p1 );
   if( !p1.IsDefined() ){
     std::cerr << __PRETTY_FUNCTION__ << ": Undefined Point!" << std::endl;
@@ -1097,7 +1104,7 @@ int PointsT<Array>::Compare( const PointsT<Array2>* ps) const{
   if( Size() < ps->Size() )
     return -1;
 
-  Point p1, p2;
+  Point p1(true), p2(true);
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p1);
@@ -1150,7 +1157,7 @@ int PointsT<Array>::CompareAlmost( const PointsT<Array2>* ps ) const
   if( Size() < ps->Size() )
     return -1;
 
-  Point p1, p2;
+  Point p1(true), p2(true);
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p1);
@@ -1276,7 +1283,7 @@ inline bool PointsT<Array>::operator==(const Point& p) const{
    if(Size()!=1){
      return false;
    }
-   Point p1;
+   Point p1(true);
    Get(0,p1);
    return AlmostEqual(p,p1);
 }
@@ -1354,7 +1361,7 @@ void SelectFirst_pp( const PointsT<Array1>& P1,
   P1.SelectFirst();
   P2.SelectFirst();
 
-  Point p1, p2;
+  Point p1(true), p2(true);
   bool gotP1 = P1.GetPt( p1 ),
        gotP2 = P2.GetPt( p2 );
 
@@ -1392,7 +1399,7 @@ void SelectNext_pp( const PointsT<Array1>& P1,
                     object& obj, status& stat )
 {
   // 1. get the current elements
-  Point p1, p2;
+  Point p1(true), p2(true);
   bool gotP1 = P1.GetPt( p1 ),
        gotP2 = P2.GetPt( p2 );
 

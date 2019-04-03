@@ -469,7 +469,7 @@ void addRegion2(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
     Region* reg = new Region(0);
     reg->StartBulkLoad();
     for(unsigned int j=0;j<cycle.size()-1;j++){
-       Point lp,rp;
+       Point lp(true),rp(true);
        bool smallb;
        smallb = (cycle[j] < cycle[j+1]);
        if(smallb){

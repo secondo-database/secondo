@@ -845,7 +845,7 @@ void LineT<Array>::Intersection(const PointsT<Array2>& ps,
    result.SetDefined(false);
    return;
  }
- Point p;
+ Point p(true);
  result.StartBulkLoad();
  for(int i=0;i<ps.Size(); i++){
    ps.Get(i,p);
@@ -1017,7 +1017,7 @@ void LineT<Array>::Crossings( const LineT<Array2>& l, PointsT<Array3>& result,
   assert( IsOrdered() );
   assert( l.IsOrdered() );
   HalfSegment hs1, hs2;
-  Point p;
+  Point p(true);
   result.StartBulkLoad();
   for( int i = 0; i < Size(); i++ ){
     Get( i, hs1 );
@@ -1050,7 +1050,7 @@ void LineT<Array>::Crossings(PointsT<Array2>& result,
   int size = Size();
   Point lastPoint(false);
   HalfSegment hs;
-  Point p;
+  Point p(true);
   int count = 0;
   result.StartBulkLoad();
   while(i<size){
@@ -1147,7 +1147,7 @@ double LineT<Array>::Distance( const PointsT<Array2>& ps,
   assert( IsOrdered() );
   assert( ps.IsOrdered() );
   HalfSegment hs;
-  Point p;
+  Point p(true);
   double result = std::numeric_limits<double>::max();
   double segDistance = -666.666;
   for( int i = 0; i < Size(); i++ ){
@@ -1369,8 +1369,8 @@ double m12 = y - x*s-y*c;
 
 result.StartBulkLoad();
 HalfSegment hso;
-Point p1;
-Point p2;
+Point p1(true);
+Point p2(true);
 
 for( int i = 0; i < Size(); i++ )
 {
@@ -1496,7 +1496,7 @@ if(IsEmpty()){
 }
 HalfSegment hs;
 HalfSegment hs_n; // neighbooring halfsegment
-Point p;
+Point p(true);
 int size = Size();
 result->StartBulkLoad();
 for(int i=0;i<size;i++){
@@ -1966,7 +1966,7 @@ void LineT<Array>::WindowClippingIn( const Rectangle<2> &window,
 
     if( hs.IsLeftDomPoint() )
     {
-      Point intersectionPoint;
+      Point intersectionPoint(true);
       hs.WindowClippingIn( window, hsInside, insidehs,
                             isIntersectionPoint,
                             intersectionPoint );
@@ -2006,7 +2006,7 @@ void LineT<Array>::WindowClippingOut( const Rectangle<2> &window,
 
     if( hs.IsLeftDomPoint() )
     {
-      Point intersectionPoint;
+      Point intersectionPoint(true);
       hs.WindowClippingIn( window, hsInside, outsidehs,
                             isIntersectionPoint,
                             intersectionPoint );

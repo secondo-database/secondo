@@ -165,8 +165,8 @@ void SelectFirst_pl( const Points& P, const Line& L,
   P.SelectFirst();
   L.SelectFirst();
 
-  Point p1;
-  Point p2;
+  Point p1(true);
+  Point p2(true);
   HalfSegment hs;
 
   bool gotPt = P.GetPt( p1 ),
@@ -206,8 +206,8 @@ void SelectNext_pl( const Points& P, const Line& L,
                     object& obj, status& stat )
 {
   // 1. get the current elements
-  Point p1;
-  Point p2;
+  Point p1(true);
+  Point p2(true);
   HalfSegment hs;
 
   bool gotPt = P.GetPt( p1 ),
@@ -292,8 +292,8 @@ void SelectFirst_pr( const Points& P, const Region& R,
   P.SelectFirst();
   R.SelectFirst();
 
-  Point p1;
-  Point p2;
+  Point p1(true);
+  Point p2(true);
   HalfSegment hs;
 
   bool gotPt = P.GetPt( p1 ),
@@ -332,8 +332,8 @@ void SelectNext_pr( const Points& P, const Region& R,
                     object& obj, status& stat )
 {
   // 1. get the current elements
-  Point p1;
-  Point p2;
+  Point p1(true);
+  Point p2(true);
   HalfSegment hs;
 
   bool gotPt = P.GetPt( p1 ),
@@ -1655,14 +1655,6 @@ CheckPoint( ListExpr type, ListExpr& errorInfo )
   return (listutils::isSymbol( type, Point::BasicType() ));
 }
 
-/*
-4.11 ~Cast~-function
-
-*/
-void* CastPoint(void* addr)
-{
-  return (new (addr) Point());
-}
 
 /*
 4.12 Creation of the type constructor instance
@@ -1677,7 +1669,7 @@ TypeConstructor point(
   OpenAttribute<Point>,
   SaveAttribute<Point>,  // object open and save
   ClosePoint,    ClonePoint,  //object close, and clone
-  CastPoint,                  //cast function
+  Point::Cast,                  //cast function
   SizeOfPoint,                //sizeof function
   CheckPoint);               //kind checking function
 
@@ -1689,7 +1681,7 @@ ostream& operator<<( ostream& o, const Points& ps )
   } else {
     for( int i = 0; i < ps.Size(); i++ )
     {
-      Point p;
+      Point p(true);
       ps.Get( i, p );
       o << " " << p;
     }
@@ -1804,7 +1796,7 @@ OutPoints( ListExpr typeInfo, Word value )
   if( points->IsEmpty() )
     return nl->TheEmptyList();
 
-  Point p;
+  Point p(true);
   assert( points->Get( 0, p ) );
   ListExpr result =
     nl->OneElemList( OutPoint( nl->TheEmptyList(), SetWord( (void*)&p ) ) );
@@ -2836,7 +2828,7 @@ bool HalfSegment::Intersection( const HalfSegment& hs,
         !AlmostEqual( yup, Ylow ) &&
         !AlmostEqual( ylow, Yup ) )
     {
-      Point p1, p2;
+      Point p1(true), p2(true);
       if( ylow > Ylow )
         p1.Set( xl, ylow );
       else
@@ -2873,7 +2865,7 @@ bool HalfSegment::Intersection( const HalfSegment& hs,
         !AlmostEqual( xr, Xl ) &&
         !AlmostEqual( xl, Xr ) )
     {
-      Point p1, p2;
+      Point p1(true), p2(true);
       if( xl > Xl )
         p1.Set( xl, yl );
       else
@@ -4429,10 +4421,10 @@ void AddPointToEdgeArray( const Point &p,
                           vector<EdgePoint> pointsOnEdge[4] )
 {
   EdgePoint *dp;
-  Point v;
+  Point v(true);
   AttrType attr;
   attr = hs.GetAttr();
-  Point p2;
+  Point p2(true);
   //If the left and right edges are been tested then
   //it is not need to check the angle
   //between the half segment and the edge. If the attribute
@@ -4731,7 +4723,7 @@ bool WGSGK::project(const Point& src, Point& result) const{
 
 bool WGSGK::project(const HalfSegment& src, HalfSegment& result) const{
   result = src;
-  Point p1,p2;
+  Point p1(true),p2(true);
   if(!project(src.GetLeftPoint(),p1)) return false;
   if(!project(src.GetRightPoint(),p2)) return false;
   if(p2<p1){
@@ -5015,7 +5007,7 @@ OutRegion( ListExpr typeInfo, Word value )
     ListExpr pointNL;
 
     int currFace = -999999, currCycle= -999999; // avoid uninitialized use
-    Point outputP, leftoverP;
+    Point outputP(true), leftoverP(true);
 
     for( int i = 0; i < RCopy->Size(); i++ )
     {
@@ -5411,7 +5403,7 @@ InRegion_old( const ListExpr typeInfo, const ListExpr instance,
 
           Points *cyclepoints= new Points( 8 ); // in memory
 
-          Point *currvertex,p1,p2,firstP;
+          Point *currvertex,p1(true),p2(true),firstP(true);
 
           //This function has the goal to store the half segments of
           //the cycle that is been treated. When the cycle's computation
@@ -8584,7 +8576,7 @@ SpatialSingle_ps( Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
   Points *ps = ((Points*)args[0].addr);
-  Point p;
+  Point p(true);
   if( ps->IsDefined() && (ps->Size() == 1) )
   {
     ps->Get( 0, p );
@@ -10079,7 +10071,7 @@ int SpatialGet(Word* args, Word& result, int message,
       return 0;
    }
 
-   Point p;
+   Point p(true);
    ps->Get(i,p);
    ((Point*)result.addr)->CopyFrom(&p);
    return 0;
@@ -10246,10 +10238,10 @@ int utmVM_ps(Word* args, Word& result, int message,
    res->Clear();
    res->Resize(p->Size());
    res->StartBulkLoad();
-   Point p1;
+   Point p1(true);
    for(int i=0;i<p->Size();i++){
       p->Get(i,p1);
-      Point p2;
+      Point p2(true);
       if(! utm(p1,p2)){
         res->EndBulkLoad();
         res->Clear();
@@ -10295,10 +10287,10 @@ int gkVM_ps(Word* args, Word& result, int message,
    res->SetDefined( true );
    res->Resize(p->Size());
    res->StartBulkLoad();
-   Point p1;
+   Point p1(true);
    for(int i=0;i<p->Size();i++){
       p->Get(i,p1);
-      Point p2;
+      Point p2(true);
       if(! gk.project(p1,p2)){
         res->EndBulkLoad();
         res->Clear();
@@ -10409,9 +10401,9 @@ void reverseGK(const Points* arg, Points* result){
   result->Resize(arg->Size());
   result->StartBulkLoad();
   for(int i=0; i< arg->Size(); i++){
-    Point p1;
+    Point p1(true);
     arg->Get(i,p1);
-    Point p2;
+    Point p2(true);
     bool ok = gk.getOrig(p1,p2);
     if(!ok || !p2.IsDefined()){
        result->Clear();
@@ -14264,7 +14256,7 @@ if no further cycle can be found.
    Rectangle<2> computeBox(const vector<int>& cycle){
       Rectangle<2> res(false);
       HalfSegment hs;
-      Point p;
+      Point p(true);
       for(size_t i=0;i<cycle.size();i++){
          line->Get(cycle[i],hs);
          p = hs.GetDomPoint();
@@ -14466,7 +14458,7 @@ inspection of dead ends more than once.
       vector<int>::iterator it;
       size_t outerPathStarts = cycleStarts.back();
       int smallestIndex = cycleStarts.back();
-      Point smallestDomPoint;
+      Point smallestDomPoint(true);
       for(size_t i=0;i<resPath.size();i++){
          line->Get(resPath[i],hs);
           if(usage[hs.attr.partnerno]==4){
@@ -16848,7 +16840,7 @@ int centroidDiscVM(Word* args, Word& result, int message, Word& local,
   }
   Point center = arg->theCenter();
   double rad =0;
-  Point p;
+  Point p(true);
   for(int i=0;i<size;i++){
      arg->Get(i,p);
      double d = center.Distance(p,geoid);
@@ -16975,7 +16967,7 @@ Disc getDisc(const Point* R, const int Rsize){
     if(pos==P.Size() || R.size()==3){
        return getDisc(R);
     }
-    Point p;
+    Point p(true);
     P.Get(pos,p);
     Disc d = sed(P,pos+1,R);
     if(!d.contains(p)){
@@ -16991,7 +16983,8 @@ struct sedEntry{
             const Point _R[3], 
             int _Rsize,
             const bool _cond):
-     pos(_pos),cond(_cond),Rsize(_Rsize){
+     pos(_pos),cond(_cond),Rsize(_Rsize),
+     R({_R[0],_R[1],_R[2]}){
      for(int i=0;i<Rsize;i++){
        R[i] = _R[i];
      }
@@ -17056,7 +17049,7 @@ Disc sedSt(Points& P){
           st.push(e2);
        } else {
           int pos = e.pos;
-          Point p;
+          Point p(true);
           P.Get(shuffle[pos],p);
           if(!d.contains(p)){
               sedEntry e1(e.pos+1,e.R,e.Rsize,true);

@@ -729,7 +729,7 @@ template<template<typename T> class Array>
      memset(critical,0,hss->Size()); // initialize with 0
      int count = 0;
      HalfSegment hs;
-     Point lastPoint;
+     Point lastPoint(true);
 
      for(int i=0;i<hss->Size();i++){
         hss->Get(i,hs);

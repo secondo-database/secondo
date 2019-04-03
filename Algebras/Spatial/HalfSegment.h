@@ -77,7 +77,7 @@ Creates a half segment copying the values from ~hs~.
 The destructor.
 
 */
-    inline ~HalfSegment() {}
+    inline ~HalfSegment(){}
 /*
 5.2 Member Functions
 

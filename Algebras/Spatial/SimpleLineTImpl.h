@@ -1317,7 +1317,7 @@ template<template<typename T> class Array>
 std::vector<SimpleLineT<Array> >* SimpleLineT<Array>::SplitAtPPoints(
  PointsT<Array>* pts)
 {
-  Point curPoint;
+  Point curPoint(true);
   double pos;
   SimpleLineT<Array> res(0);
   std::vector<SimpleLineT<Array> >* result = 

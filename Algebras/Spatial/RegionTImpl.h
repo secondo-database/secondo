@@ -932,7 +932,7 @@ void RegionT<Array>::Intersection(const PointsT<Array2>& ps,
     result.SetDefined(false);
     return;
   }
-  Point p;
+  Point p(true);
   result.StartBulkLoad();
   for(int i=0;i<ps.Size();i++){
     ps.Get(i,p);
@@ -1496,7 +1496,7 @@ double RegionT<Array>::Distance( const PointsT<Array2>& ps,
   }
 
   double result = std::numeric_limits<double>::max();
-  Point p;
+  Point p(true);
 
   for( int i = 0; i < ps.Size(); i++ ){
     ps.Get( i, p );
@@ -1670,10 +1670,10 @@ void RegionT<Array>::Rotate( const Coord& x, const Coord& y,
 
   result.StartBulkLoad();
   HalfSegment hso;
-  Point p1;
-  Point p2;
-  Point p1o;
-  Point p2o;
+  Point p1(true);
+  Point p2(true);
+  Point p1o(true);
+  Point p2o(true);
 
   for( int i = 0; i < Size(); i++ )
   {
@@ -1756,7 +1756,7 @@ void RegionT<Array>::TouchPoints( const LineT<Array2>& l,
   }
   assert( IsOrdered() && l.IsOrdered() );
   HalfSegment hs1, hs2;
-  Point p;
+  Point p(true);
   result.StartBulkLoad();
   for( int i = 0; i < Size(); i++ ){
     Get( i, hs1 );
@@ -1838,7 +1838,7 @@ void RegionT<Array>::CommonBorder(
   HalfSegment hs1, hs2;
   HalfSegment reshs;
   int edgeno = 0;
-  Point p;
+  Point p(true);
   result.StartBulkLoad();
   for( int i = 0; i < Size(); i++ ){
     Get( i, hs1 );

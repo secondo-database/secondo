@@ -51,14 +51,15 @@ class Disc : public Attribute{
        Attribute(src), x(src.x),y(src.y),radius(src.radius){}
 
    
-    Disc(const Point& p): Attribute(false){
+    Disc(const Point& p): Attribute(false),x(0),y(0),radius(0){
       if(!p.IsDefined()){
         return;
       }
       set(p.GetX(),p.GetY(),0);
     }
 
-    Disc(const Point& p1, const Point& p2): Attribute(false){
+    Disc(const Point& p1, const Point& p2): 
+       Attribute(false),x(0),y(0),radius(0){
       if(!p1.IsDefined() || !p2.IsDefined()){
         return;
       }
@@ -77,19 +78,19 @@ class Disc : public Attribute{
 
     Disc& operator=(const Disc& src){
       SetDefined(src.IsDefined());
-      x = src.x;
-      y = src.y;
-      radius = src.radius;
+      this->x = src.x;
+      this->y = src.y;
+      this->radius = src.radius;
       return *this;
     }
 
-    bool set(const double x, const double y, const double radius){
-      if(radius<0){
+    bool set(const double x, const double y, const double r){
+      if(r<0){
          return false;
       }
       this->x = x;
       this->y = y;
-      this->radius = radius;
+      this->radius = r;
       SetDefined(true);
       return true;
     }

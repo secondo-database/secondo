@@ -109,7 +109,7 @@ pair<double, double> Berlin2WGS::b2wgs(const double& x, const double& y) {
 HalfSegment Berlin2WGS::b2wgs(const HalfSegment& source) {
   Point lp = source.GetLeftPoint();
   Point rp = source.GetRightPoint();
-  Point newlp, newrp;
+  Point newlp(true), newrp(true);
   convert(&lp, &newlp);
   convert(&rp, &newrp);
   HalfSegment result(source);

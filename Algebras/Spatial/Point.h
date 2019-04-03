@@ -78,7 +78,7 @@ class Point: public StandardSpatialAttribute<2>
 This constructor should not be used:
 
 */
-    inline Point() {};
+   inline Point() {};
 
 /*
 There are two ways of constructing a point:
@@ -88,8 +88,8 @@ and two coordinate ~x~ and ~y~ values.
 
 */
     explicit Point( const bool d,
-                    const Coord& x = Coord(),
-                    const Coord& y = Coord() );
+                    const Coord x = 0,
+                    const Coord y = 0 );
 /*
 The second one receives a point ~p~ as argument and creates a point that is a
 copy of ~p~.
@@ -852,8 +852,12 @@ definition as an attribute.
       return listutils::isSymbol(type, BasicType());
     }
 
+    static void* Cast(void* addr) {
+      return (new (addr) Point());
+    }
 
   protected:
+
 /*
 4.5 Attributes
 

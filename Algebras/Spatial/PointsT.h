@@ -864,7 +864,7 @@ PointsT<ArrayT>& PointsT<ArrayT>::operator+=( const Point& p )
       else
         bbox = bbox.Union( p.BoundingBox() );
       Find( p, pos, true ); // find exact insertion position
-      Point auxp;
+      Point auxp(true);
       for( int i = points.Size() - 1; i >= pos; --i )
       {
         points.Get( i, &auxp );
