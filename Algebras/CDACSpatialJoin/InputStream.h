@@ -149,23 +149,23 @@ public:
    size_t getUsedMem() const;
 
    /* returns true if the stream is completed */
-   bool isDone() const { return done; }
+   inline bool isDone() const { return done; }
 
    /* returns the number of tuples currently stored in the tBlocks / rBlocks */
-   size_t getCurrentTupleCount() const { return currentTupleCount; }
+   inline size_t getCurrentTupleCount() const { return currentTupleCount; }
 
    /* returns the number of tuples received so far in this pass of the stream */
-   size_t getPassTupleCount() const { return passTupleCount; }
+   inline size_t getPassTupleCount() const { return passTupleCount; }
 
    /* returns the number of times this stream was opened or re-opened */
-   unsigned getOpenCount() const { return openCount; }
+   inline unsigned getOpenCount() const { return openCount; }
 
    /* returns the number of chunks since the stream was opened or re-opened */
-   unsigned getChunkCount() const { return currentChunkCount; }
+   inline unsigned getChunkCount() const { return currentChunkCount; }
 
    /* returns true if all input could be read to main memory in the first
     * chunk (i.e. with no clearMem() call) */
-   bool isFullyLoaded() const { return fullyLoaded; }
+   inline bool isFullyLoaded() const { return fullyLoaded; }
 
    /* returns true if the total tuple count of this stream is known (i.e. a
     * first pass of this stream has already been read) and enough tuples have
