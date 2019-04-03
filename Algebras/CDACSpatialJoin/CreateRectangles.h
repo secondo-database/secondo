@@ -97,6 +97,7 @@ query createRectangles2D(10, 2, 0.3, 0.4, 1) {a}
 #include <stack> // std::stack
 #include <string>
 #include <sstream> // std::stringstream
+#include <random>
 
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Algebras/Rectangle/RectangleAlgebra.h"
