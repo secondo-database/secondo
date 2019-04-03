@@ -453,7 +453,7 @@ Transforms this ~Line2~ to a ~Line~.
     l.StartBulkLoad();
     int edgeno = 0;
     double coords[2];
-    double x0, x1, y0, y1, movx, movy;
+    double x0=0, x1=0, y0=0, y1=0, movx=0, movy=0;
     int offset = 0;
     HalfSegment hs;
     Point lp, rp;

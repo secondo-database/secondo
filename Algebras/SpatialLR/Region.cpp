@@ -482,7 +482,7 @@ Clears all segments from ~coords~ and ~pointTypes~ and then adds them again
   void Region2::updateFLOBs() {
     coords.clean();
     pointTypes.clean();
-    Curve *lastcurve;
+    Curve *lastcurve=0;
     for (unsigned int i = 0; i < curves.size(); i++) {
       Curve *curve = curves.at(i);
       if (curve->getOrder() == Curve::SEG_MOVETO) {
