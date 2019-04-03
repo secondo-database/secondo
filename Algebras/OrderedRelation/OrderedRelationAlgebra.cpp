@@ -51,6 +51,7 @@ OrderedRelation.h header file.
 #include "Symbols.h"
 #include "Algebras/Standard-C++/LongInt.h"
 #include "Algebras/Stream/Stream.h"
+#include "AlgebraTypes.h"
 
 //#define DEBUG_OREL
 
@@ -963,7 +964,6 @@ cout << "Delete_Orel" << endl;
 }
 
 bool OrderedRelation::Open(SmiRecord& valueRecord, size_t& offset,
-#include "../../include/AlgebraTypes.h"
                       const ListExpr typeInfo, Word& value) {
 #ifdef DEBUG_OREL
 cout << "Open_Orel" << endl;
@@ -3624,7 +3624,7 @@ ListExpr getotuples2TM(ListExpr args){
    // check for TID attribute in the tuple stream and 
    // store the remaining attributes
    ListExpr outAttr = nl->TheEmptyList();
-   ListExpr outAttrLast;
+   ListExpr outAttrLast = nl->TheEmptyList();
    bool first = true;
    int tidIndex = 0;
    int index = 0;
