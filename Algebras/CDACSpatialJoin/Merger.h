@@ -64,10 +64,6 @@ To keep terminology clear,
 
 namespace cdacspatialjoin {
 
-// define a callback function for appending a result tuple to the
-// output TBlock (this saves us from including the whole JoinState.h)
-typedef std::function<bool(const JoinEdge&, const JoinEdge&)> AppendToOutput;
-
 class Merger {
 #ifdef CDAC_SPATIAL_JOIN_METRICS
    // statistical
