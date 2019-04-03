@@ -38,7 +38,7 @@ and constants used in the context of the CDACSpatialJoin(Count) operators.
 
 #pragma once
 
-#define CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+// #define CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
 // #define CDAC_SPATIAL_JOIN_DETAILED_REPORT_TO_CONSOLE
 // #define CDAC_SPATIAL_JOIN_METRICS
 

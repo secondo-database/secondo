@@ -189,7 +189,17 @@ public:
 
 private:
    /* creates a new Merger for the given areas, then deletes the areas */
-   Merger* createMerger(unsigned levelOfArea1, MergedAreaPtr area2);
+   inline Merger* createMerger(unsigned levelOfArea1, MergedAreaPtr area2) {
+      MergedAreaPtr area1 = mergedAreas[levelOfArea1];
+      mergedAreas[levelOfArea1] = nullptr;
+
+      const bool isLastMerge = (area1->edgeIndexStart == 0 &&
+                                area2->edgeIndexEnd == joinEdgesSize);
+
+      // move ownership of source areas (area1 and area2) to new Merger;
+      // source areas will be deleted in ~Merger()
+      return new Merger(area1, area2, isLastMerge, &ioData);
+   }
 };
 
 } // end namespace

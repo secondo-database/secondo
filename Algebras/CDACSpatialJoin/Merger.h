@@ -196,7 +196,11 @@ public:
 
    /* returns the resulting MergedArea. Must only be called after merge() was
     * completed (i.e. merge() returned true) */
-   MergedAreaPtr getResult() const;
+   inline MergedAreaPtr getResult() const {
+      // assert (currentTask == TASK::done);
+      return result;
+   }
+
 
 private:
    /* reports rectangle intersections between
@@ -218,12 +222,15 @@ private:
    /* specialized version of reportPairsSub() for edgesS containing only 1
     * edge, but edgesT containing multiple edges */
    bool reportPairsSub1(const JoinEdge& edgeS,
-                       const JoinEdgeVec& edgesT);
+                       const JoinEdgeVec& edgesT, size_t sizeT);
 
    /* specialized version of reportPairsSub() for both edgesS and edgesT
     * containing only 1 edge */
-   bool reportPairsSub11(const JoinEdge& edgeS,
+   inline bool reportPairsSub11(const JoinEdge& edgeS,
                          const JoinEdge& edgeT);
+   // this function is only called from one point in reportPairsSub(),
+   // requires just 82 bytes assembly code, but is used very often, so it
+   // deserves to be "inline"
 
    /* merges the given source vectors "source1" and "source2" (starting from
     * the given indices) into the destination vector "dest", using the sort

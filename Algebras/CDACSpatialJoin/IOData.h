@@ -219,14 +219,14 @@ private:
 
 public:
    /* sets the output tuple block to the given value (which may be nullptr) */
-   void setOutTBlock(CRelAlgebra::TBlock* outTBlock_) {
+   inline void setOutTBlock(CRelAlgebra::TBlock* outTBlock_) {
       outTBlock = outTBlock_;
    }
 
    /* returns the number of tuples that were added to the output tuple block
     * (or, in "countOnly" mode, the number of intersections that were
     * counted) */
-   uint64_t getOutTupleCount() const { return outTupleCount; }
+   inline uint64_t getOutTupleCount() const { return outTupleCount; }
 
    /* expects entryS and entryT to be representing two rectangles from
     * different sets that intersect in the x and y dimensions; checks whether

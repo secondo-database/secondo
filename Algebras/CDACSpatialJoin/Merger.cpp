@@ -70,12 +70,18 @@ Merger::Merger(MergedAreaPtr area1_, MergedAreaPtr area2_,
    cout << endl;
    cout << "merge " << area1->toString() << " | " << area2->toString() << endl;
 #endif
+#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+   if (isLastMerge) {
+      cout << "- last merge: " << formatInt(area1_->getEdgeCount()) << " + "
+           << formatInt(area2_->getEdgeCount()) << " edges " << endl;
+   }
+#endif
 
    // pre-process given areas by calculating from them the temporary vectors
    // leftA/BSpan, rightA/BSpan, and leftRightA/B
-   removeCompleteRectangles(area1->leftA, area2->rightA,
+   removeCompleteRectangles(area1_->leftA, area2_->rightA,
                             leftASpan, rightASpan, leftRightA);
-   removeCompleteRectangles(area1->leftB, area2->rightB,
+   removeCompleteRectangles(area1_->leftB, area2_->rightB,
                             leftBSpan, rightBSpan, leftRightB);
 
    currentTask = TASK::report;
@@ -185,13 +191,14 @@ bool Merger::reportPairsSub(const JoinEdgeVec& edgesS,
    const size_t sizeS = edgesS.size();
    const size_t sizeT = edgesT.size();
 
-   // refer special cases to specialized functions
+   // refer special cases to specialized functions. sizeS/T can be passed, too
+   // since up to 4 parameters can be passed in registers
    if (sizeS == 1 && sizeT == 1)
       return reportPairsSub11(edgesS[0], edgesT[0]);
    if (sizeS == 1)
-      return reportPairsSub1(edgesS[0], edgesT);
+      return reportPairsSub1(edgesS[0], edgesT, sizeT);
    if (sizeT == 1)
-      return reportPairsSub1(edgesT[0], edgesS);
+      return reportPairsSub1(edgesT[0], edgesS, sizeS);
    // otherwise, both sets contain multiple edges which will be treated below
 
    // improve performance by using local variables for fields
@@ -314,10 +321,7 @@ bool Merger::reportPairsSub(const JoinEdgeVec& edgesS,
 }
 
 bool Merger::reportPairsSub1(const JoinEdge& edgeS,
-                             const JoinEdgeVec& edgesT) {
-
-   // get some values frequently used in the loop below
-   const size_t sizeT = edgesT.size();
+                             const JoinEdgeVec& edgesT, const size_t sizeT) {
 
    // improve performance by using local variable for field "indexTBegin"
    IOData* const ioData_ = ioData;
@@ -377,7 +381,7 @@ bool Merger::reportPairsSub1(const JoinEdge& edgeS,
 }
 
 bool Merger::reportPairsSub11(const JoinEdge& edgeS,
-                              const JoinEdge& edgeT) {
+                             const JoinEdge& edgeT) {
    if (indexTBegin == 0) {
       if ((edgeS.yMax >= edgeT.yMin && edgeS.yMin <= edgeT.yMax)) {
          // report intersection
@@ -404,7 +408,7 @@ void Merger::addToLoopStats(size_t cycleCount) {
    unsigned lbCycleCount = 0; // the binary logarithm of cycleCount
    while (cycleCount != 0) {
       ++lbCycleCount;
-      cycleCount >>= 1;
+      cycleCount >>= 1U;
    }
    assert (lbCycleCount < LOOP_STATS_COUNT);
    ++loopStats[lbCycleCount];
@@ -461,7 +465,7 @@ void Merger::reportLoopStats(std::ostream& out) {
          cout << "< " << setw(7) << formatInt(cycleCount) << ": "
               << setw(14) << formatInt(loopStats[i]) << " loops"
               << " (" << loopStats[i] * 100.0 / totalLoopCount << " %)" << endl;
-         cycleCount <<= 1;
+         cycleCount <<= 1U;
       }
       cout << endl;
    }
@@ -652,7 +656,3 @@ void Merger::merge(const JoinEdgeVec& source1,
       merge(source1, index1, source2, index2, dest);
 }
 
-MergedAreaPtr Merger::getResult() const {
-   // assert (currentTask == TASK::done);
-   return result;
-}

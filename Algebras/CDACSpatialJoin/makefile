@@ -34,6 +34,7 @@ ALGEBRA_DEPENDENCIES += CRelAlgebra
 CCFLAGS += -Werror
 CCFLAGS += $(ALG_INC_DIRS)
 CCFLAGS += -std=c++11
+CCFLAGS += -O1 -finline-functions
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env

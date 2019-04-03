@@ -261,7 +261,9 @@ JoinState::JoinState(const bool countOnly_,
       expect /= 2.0;
    // thus, 2.0 <= expect < 4.0
    atomsExpectedStep = expect;
-   atomsExpectedNext = expect;
+   // rather than comparing with ">= std::round(atomsExpectedNext)" we will
+   // set atomsExpectedNext to be 0.5 less, so we can do without std::round
+   atomsExpectedNext = expect - 0.5;
 
    // pre-assign enough elements to mergedAreas vector, so its size() need not
    // be checked later
@@ -270,7 +272,7 @@ JoinState::JoinState(const bool countOnly_,
    while (shift > 0) {
       mergedAreas[levelCount] = nullptr;
       ++levelCount;
-      shift >>= 1;
+      shift >>= 1U;
    }
 
    // report JoinEdges and expected merges
@@ -352,7 +354,7 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_) {
          // on level 0 in order to grow a bit larger before it can move up to
          // level 1 (this is done to keep MergedArea sizes balanced)
          if (mergeLevel_ == 0) {
-            if (atomsCreated_ >= std::round(atomsExpectedNext_)) {
+            if (atomsCreated_ >= atomsExpectedNext_) {
                ++mergeLevel_;
                atomsExpectedNext_ += atomsExpectedStep_;
             } // otherwise, keep MergedArea on the same mergeLevel
@@ -396,7 +398,7 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_) {
       } else {
          // no current merge action, and no joinEdges left;
          // now merge lower level mergedAreas with higher level ones
-         assert (atomsCreated_ == atomsExpectedTotal);
+         // assert (atomsCreated_ == atomsExpectedTotal);
          MergedAreaPtr mergedArea2 = nullptr;
          for (unsigned level = 0; level < levelCount; ++level) {
             if (!mergedAreas_[level])
@@ -462,23 +464,3 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_) {
    return (outTBlockTupleCount > 0);
 }
 
-Merger* JoinState::createMerger(const unsigned levelOfArea1,
-        MergedAreaPtr area2) {
-
-   MergedAreaPtr area1 = mergedAreas[levelOfArea1];
-   mergedAreas[levelOfArea1] = nullptr;
-
-   const bool isLastMerge = (area1->edgeIndexStart == 0 &&
-                             area2->edgeIndexEnd == joinEdgesSize);
-
-#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
-   if (isLastMerge) {
-      cout << "- last merge: " << formatInt(area1->getEdgeCount()) << " + "
-         << formatInt(area2->getEdgeCount()) << " edges " << endl;
-   }
-#endif
-
-   // move ownership of source areas (area1 and area2) to new Merger;
-   // source areas will be deleted in ~Merger()
-   return new Merger(area1, area2, isLastMerge, &ioData);
-}

@@ -142,10 +142,10 @@ public:
 
    /* returns true if the reserved memory is full and no further rectangles
     * can be added */
-   bool isFull() const { return (count >= capacity); };
+   inline bool isFull() const { return (count >= capacity); };
 
    /* returns the number of rectangles currently stored in this instance */
-   size_t getRectangleCount() const { return count; }
+   inline size_t getRectangleCount() const { return count; }
 
    /* returns the memory (in bytes) used by the rectangles which are currently
     * stored in this RectangleBlock (excluding the overhead of
