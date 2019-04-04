@@ -77,6 +77,9 @@ namespace pregel {
   socket->Write(buffer, size);
   socket->GetSocketStream().flush();
   delete[] buffer;
+  if(message->getType() == MessageWrapper::MessageType::DATA){
+     SENT_MESSAGE
+  }
  }
 
  void NetworkedClient::healthReport(std::stringstream &sstream) const {
