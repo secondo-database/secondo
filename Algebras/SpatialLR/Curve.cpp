@@ -71,7 +71,7 @@ Saves a copy of all curves inside the first vector inside the second vector.
 void Curve::copyCurves(const vector<Curve *> *source, vector<Curve *> *target) {
   for (unsigned int i = 0; i < source->size(); i++) {
     Curve *sc = source->at(i);
-    Curve *tc;
+    Curve *tc = nullptr;
     switch (sc->getOrder()) {
       case SEG_MOVETO:
         tc = new MoveCurve(sc->getX0(), sc->getY0());
@@ -82,7 +82,9 @@ void Curve::copyCurves(const vector<Curve *> *source, vector<Curve *> *target) {
                            sc->getDirection());
         break;
     }
-    target->push_back(tc);
+    if(tc != nullptr){
+       target->push_back(tc);
+    }
   }
 }
 
