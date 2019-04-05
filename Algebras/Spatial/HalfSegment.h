@@ -35,7 +35,7 @@ inline bool AlmostEqual( const HalfSegment& hs1, const HalfSegment& hs2 );
 
 inline double ApplyFactor( const double d );
 
-class HalfSegment;
+
 /*
 5.14 Overloaded output operator
 
