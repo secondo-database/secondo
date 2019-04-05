@@ -1542,7 +1542,7 @@ distributeTypeMap( ListExpr inArgs )
               && nl->IsEqual(attrType, CcInt::BasicType()))
           {
             ListExpr attrList2 = nl->TheEmptyList();
-            ListExpr last;
+            ListExpr last = nl->TheEmptyList();
 
             while (!nl->IsEmpty(attrList)) {
               ListExpr attr = nl->First(attrList);
