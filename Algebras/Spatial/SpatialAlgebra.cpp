@@ -559,6 +559,27 @@ ostream& operator<<( ostream& o, const Point& p )
   return o;
 }
 
+const Rectangle<2> Point::BoundingBox(const Geoid* geoid /*=0*/) const
+{
+  assert( IsDefined() );
+  if( IsDefined() ) {
+    if( geoid && geoid->IsDefined() ){ // spherical case
+      double minx = MAX(-180, x - ApplyFactor(x));
+      double maxx = MIN(180, x+ ApplyFactor(x));
+      double miny = MAX(-90, y-ApplyFactor(y));
+      double maxy = MIN(90,y+ApplyFactor(y));
+      double minMax[] = {minx,maxx,miny,maxy};
+      return Rectangle<2>( true, minMax);
+    } else if(!geoid){
+      double minMax[] = { x - ApplyFactor(x),
+                          x + ApplyFactor(x),
+                          y - ApplyFactor(y),
+                          y + ApplyFactor(y) };
+      return Rectangle<2>( true, minMax);
+    }
+  } // else:
+  return Rectangle<2>( false );
+}
 ostream& Point::Print( ostream &os ) const
 {
   return os << *this;
@@ -17062,6 +17083,7 @@ Disc sedSt(Points& P){
        }
      }
    }
+   delete[] shuffle;
    return d;
 }
 

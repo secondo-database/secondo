@@ -126,7 +126,7 @@ Returns the point's bounding box which is a rectangle with (almost)
  no extension.
 
 */
-    inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
+    const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
 
     void Clear() {} // for compatibility with other spatial objects
 
@@ -951,6 +951,166 @@ class ApproxPointLess{
   }
 
 };
+
+
+
+/*
+11 The inline functions
+
+11.1 Class ~Point~
+
+*/
+inline Point::Point( const bool d, const Coord x, const Coord y ) :
+  StandardSpatialAttribute<2>(d),
+  x( x ),
+  y( y )
+{ }
+
+inline Point::Point( const Point& p ) :
+    StandardSpatialAttribute<2>(p.IsDefined()),
+    x( p.x ), y( p.y )
+{ }
+
+
+inline void Point::Set( const Coord& x, const Coord& y )
+{
+  SetDefined( true );
+  this->x = x;
+  this->y = y;
+}
+
+inline void Point::Set(const Point& p)
+{
+  SetDefined(p.IsDefined());
+  x = p.x;
+  y = p.y;     
+}
+
+inline Point Point::Add( const Point& p, const Geoid* geoid /*=0*/ ) const
+{
+  assert( IsDefined() && p.IsDefined() );
+  if( !IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ) {
+    return Point( false, 0.0, 0.0 );
+  }
+  return Point( true, this->x + p.x, this->y + p.y );
+}
+
+inline Point& Point::operator=( const Point& p )
+{
+  SetDefined( p.IsDefined() );
+  x = p.x;
+  y = p.y;
+  return *this;
+}
+
+inline bool Point::operator==( const Point& p ) const
+{
+  if(!IsDefined() && !p.IsDefined()){
+    return true;
+  }
+  if(!IsDefined() || !p.IsDefined()){
+    return false;
+  }
+
+  return AlmostEqual(x, p.x) && AlmostEqual(y, p.y); // changed by TB
+
+}
+
+template<template<typename T>class Array>
+inline bool Point::operator==(const PointsT<Array>& ps) const{
+   if(!IsDefined() && !ps.IsDefined()){
+     return true;
+   }
+   if(!IsDefined() || !ps.IsDefined()){
+     return false;
+   }
+   if(ps.Size()!=1){
+     return false;
+   }
+   Point p1;
+   ps.Get(0,p1);
+   return AlmostEqual(*this,p1);
+}
+
+
+inline bool Point::operator!=( const Point& p ) const
+{
+  return !( *this == p );
+}
+
+inline bool Point::operator<=( const Point& p ) const
+{
+  return !( *this > p );
+}
+
+inline bool Point::operator<( const Point& p ) const
+{
+  if( !IsDefined() ){
+    return p.IsDefined();
+  }
+  if ( !p.IsDefined() ){
+    return false;
+  }
+  bool eqx = AlmostEqual(x,p.x);
+  return (!eqx && (x < p.x) ) ||
+         (eqx && !AlmostEqual(y,p.y) && (y < p.y));
+ //  return x < p.x || (x == p.x && y < p.y); // changed by TB
+}
+
+inline bool Point::operator>=( const Point& p ) const
+{
+  return !( *this < p );
+}
+
+inline bool Point::operator>( const Point& p ) const
+{
+  assert( IsDefined() && p.IsDefined() );
+  if( !p.IsDefined() ){
+    return IsDefined();
+  }
+  if ( !IsDefined() ){
+    return false;
+  }
+  bool eqx = AlmostEqual(x,p.x);
+  return (!eqx && (x > p.x)) ||
+         (eqx && !AlmostEqual(y,p.y) && (y>p.y));
+  //  return x > p.x || ( x == p.x && y > p.y ); // changed by TB
+}
+
+
+
+
+inline Point Point::operator+( const Point& p ) const
+{
+  return Point( (IsDefined() && p.IsDefined()), x + p.x, y + p.y );
+}
+
+inline Point Point::operator-( const Point& p ) const
+{
+  return Point( (IsDefined() && p.IsDefined()), x - p.x, y - p.y );
+}
+
+inline Point Point::operator*( const double d ) const
+{
+  return Point( IsDefined(), x * d, y * d );
+}
+
+inline size_t Point::Sizeof() const
+{
+  return sizeof( *this );
+}
+
+inline void Point::Translate(const Coord& x, const Coord& y){
+  if( IsDefined() ){
+    this->x += x;
+    this->y += y;
+  }
+}
+
+inline void Point::Translate(const Coord& tx, const Coord& ty, Point& res)const{
+  res.Set(IsDefined(), x+tx, y+ty);
+}
+
 
 
 
