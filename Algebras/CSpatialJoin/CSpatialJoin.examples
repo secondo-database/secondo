@@ -1,8 +1,8 @@
-Database : BT
-Restore  : NO
+Database : berlintest
+Restore  : No
 
 Operator : cspatialjoin
 Number   : 1
 Signature: stream(tblock) x stream(tblock) x symbol x symbol -> stream(tblock)
-Example  : query strassen feed toblocks[1] {a} strassen feed toblocks[1] {b} cspatialjoin[GeoData_a, GeoData_b] count
-Result   : (longint 0)
+Example  : query (strassen feed toblocks[1] {a} strassen feed toblocks[1] {b} cspatialjoin[GeoData_a, GeoData_b] count) = (strassen feed strassen feed {b} itSpatialJoin[GeoData, GeoData_b] count)
+Result   : TRUE
