@@ -985,11 +985,11 @@ Point PointsT<Array>::theCenter() const{
      res.SetDefined(false);
    } else {
      int size = Size();
-     Point p(true);
+     Point p(true,0,0);
      double x = 0.0;
      double y = 0.0;
      for(int i=0;i<size;i++){
-         Get(i,p);
+         points.Get(i,p);
          x += p.GetX();
          y += p.GetY();
      }
@@ -1210,12 +1210,9 @@ inline PointsT<Array>::PointsT( const PointsT& ps ) :
 StandardSpatialAttribute<2>(ps.IsDefined()),
 points( ps.Size() ),
 bbox( ps.BoundingBox() ),
-ordered( true )
+ordered( ps.IsOrdered() )
 {
-  if( IsDefined() ) {
-    assert( ps.IsOrdered() );
-    convertDbArrays<Point>(ps.points,points);
-  }
+   convertDbArrays<Point>(ps.points,points);
 }
 
 
@@ -1225,12 +1222,9 @@ inline PointsT<Array>::PointsT( const PointsT<Array2>& ps ) :
 StandardSpatialAttribute<2>(ps.IsDefined()),
 points( ps.Size() ),
 bbox( ps.BoundingBox() ),
-ordered( true )
+ordered( ps.isOrdered() )
 {
-  if( IsDefined() ) {
-    assert( ps.IsOrdered() );
-    convertDbArrays<Point>(ps.points,points);
-  }
+  convertDbArrays<Point>(ps.points,points);
 }
 
 template<template<typename T>class Array>
@@ -1245,7 +1239,7 @@ template<template<typename T>class Array>
 inline bool PointsT<Array>::Get( const int i, Point& p ) const
 {
   assert( IsDefined() );
-  return points.Get( i, &p );
+  return points.Get( i, p );
 }
 
 template<template<typename T>class Array>
