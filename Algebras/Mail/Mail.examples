@@ -6,7 +6,8 @@ Operator : sendmail
 Number   : 1
 Signature: text, text, text, text, text   -> bool
 Example  : query sendmail('a subject', 'sender@universe2.com', 'receiver@universe1.com', 'message', 'copytosomeone@universe3.com')
-Result   : TRUE
+Result   : unpredictable
+Remark   : The result depends on the installation and the version of sendmail on the operating system 
 
 
 
