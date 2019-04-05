@@ -658,7 +658,7 @@ RTree<dim>::~RTree(){
         // calculates the amount the bounding box should be extended
         RTreeNode<dim>* target = NULL;
         unsigned int index=0;
-        double d;
+        double d = 0.0;
 
         for ( size_t i = 0; i < numberOfEntries; i++ ) {
           const Rectangle<dim>& value = node->GetValueAt( i );
