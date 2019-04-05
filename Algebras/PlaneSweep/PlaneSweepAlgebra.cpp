@@ -3731,7 +3731,7 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
 {
    // initalisations
    set<int> mi;
-   Point oldP;
+   Point oldP(true,0,0);
    VList vlist;
    VStructure vs;
    StatusLine sl;
@@ -5250,7 +5250,7 @@ void MakeOp::Minus(const Region* reg1, const Region* reg2, Region* result)
    HalfSegment hs1, hs2;
    result ->Clear();
    result->StartBulkLoad();
-   State status;
+   State status = State::BOTH;
    Coord aktSweep, oldSweep ;
    SEntry oldEntry1, oldEntry2;
    BinTreeNode<SEntry>* oldnode1;
@@ -5369,7 +5369,7 @@ void MakeOp::Minus(const Line* line, const Region* reg,Line* result)
    HalfSegment hs1, hs2;
    result ->Clear();
    result->StartBulkLoad();
-   State status;
+   State status = State::BOTH;
    Coord aktSweep, oldSweep ;
    SEntry oldEntry1;
    BinTreeNode<SEntry>* oldnode1;
