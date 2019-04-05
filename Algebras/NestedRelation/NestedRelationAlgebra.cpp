@@ -1533,8 +1533,8 @@ ListExpr gettuplesTM(ListExpr args){
     return listutils::typeError("stream does not contain a tid attribute");
   }
 
-  ListExpr newAttrList;
-  ListExpr last;
+  ListExpr newAttrList= nl->TheEmptyList();
+  ListExpr last = nl->TheEmptyList();
   bool firstA = true;
   int pos = 0;
   while(!nl->IsEmpty(attrList)){
