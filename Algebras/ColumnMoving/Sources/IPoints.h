@@ -252,7 +252,7 @@ or checks for equality with with the corresponding attribute type
       return new temporalalgebra::IPoint(0);
       
     if (!m_ValueDefined) {
-      Point r;
+      Point r(false,0,0);
       r.SetDefined(false);
       return new temporalalgebra::IPoint(Instant(m_Time), r);
     }
