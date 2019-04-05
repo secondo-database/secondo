@@ -899,7 +899,7 @@ unit has the value ~region~ during the time interval ~interval~
         }
         else
         {
-          check(false, "Wrong data format: discontiguous segments");
+          checkr(false, "Wrong data format: discontiguous segments");
         }
         
         addEdge(Edge{{outputP.GetX(), outputP.GetY()},
@@ -921,7 +921,7 @@ unit has the value ~region~ during the time interval ~interval~
             }
             else
             {
-              check(false, "Wrong data format: discontiguous segments");
+              checkr(false, "Wrong data format: discontiguous segments");
             }
 
             addEdge(Edge{{outputP.GetX(), outputP.GetY()},
@@ -947,7 +947,7 @@ unit has the value ~region~ during the time interval ~interval~
             }
             else
             {
-              check(false, "Wrong data format: discontiguous segments");
+              checkr(false, "Wrong data format: discontiguous segments");
             }
 
             addEdge(Edge{{outputP.GetX(), outputP.GetY()},
@@ -976,7 +976,7 @@ unit has the value ~region~ during the time interval ~interval~
           }
           else
           {
-            check(false, "Wrong data format: discontiguous segments");
+            checkr(false, "Wrong data format: discontiguous segments");
           }
 
           addEdge(Edge{{outputP.GetX(), outputP.GetY()},
