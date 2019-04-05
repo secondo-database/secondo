@@ -22,6 +22,8 @@ This part can be called repeatedly.
 */
 query memclear()
 
+query meminit(3000)
+
 let Nodes = NodesPersistent feed mconsume;
 let Forward = EdgesForward feed 
   createmgraph3[Source, Target, Cost, Size];
@@ -29,10 +31,12 @@ let Backward = EdgesBackward feed
   createmgraph3[Source, Target, Cost, Size];
 
 /*
-4.2 Set up Pregel
+4.2 Set Up Pregel
 
 */
 query setupPregel(Workers);
+
+query remotePregelCommand('query meminit(3000)');
 
 query remotePregelCommand('let Nodes = NodesPersistent feed mconsume;');
 

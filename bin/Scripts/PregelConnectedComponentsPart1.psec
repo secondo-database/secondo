@@ -38,9 +38,10 @@ let WorkerNum = Workers count;
 
 let PartFun = fun (id: int) (hashvalue(id, WorkerNum));
 
-# adapt one of next two lines
-# restore EdgesA from EdgesDortmund;
-let EdgesA = "EdgesDortmund.bin" ffeed5 consume;
+# adapt one of next lines
+# restore EdgesA from EdgesHombruch;
+# let EdgesA = "EdgesDortmund.bin" ffeed5 consume;
+let EdgesA = "EdgesArnsberg.bin" ffeed5 consume;
 
 update EdgesA := EdgesA feed sortby[Source] consume;
 
@@ -49,15 +50,17 @@ query EdgesA feed filter[not(isdefined(.Curve))]
   EdgesA updatedirect[Curve: create_sline(.SourcePos, .TargetPos)] 
   count
 
+#   extend[R: randint(999997)] sortby[R] remove[R]
+
 let NodesPersistent = 
   EdgesA feed projectextend[; PrelId: .Source, Pos: .SourcePos] 
   EdgesA feed projectextend[; PrelId: .Target, Pos: .TargetPos] 
   concat 
-  sort rdup 
+  sort rdup
+  extend[R: randint(999997)] sortby[R] remove[R]
   addcounter[Id, 1]
   extend[Partition: PartFun(.Id)]
   extend[Color: 0, Active: TRUE]
-  sortby[PrelId] 
   consume
 
 # (PrelId int) (Pos point) (Id int) (Partition int) (Color int) 
@@ -67,7 +70,7 @@ let Size = (NodesPersistent feed max[Id]) + 1
 
 let EdgesForward = EdgesA feed  extend[Cost: size(gk(.Curve))]
   project[Source, Target, Cost]  
-  NodesPersistent feed mergejoin[Source, PrelId]
+  NodesPersistent feed itHashJoin[Source, PrelId]
   NodesPersistent feed {n} itHashJoin[Target, PrelId_n]
   projectextend[; Source: .Id, PartitionSource: .Partition, Target: .Id_n, 
     PartitionTarget: .Partition_n, Cost: .Cost]
@@ -260,7 +263,8 @@ query share("Size", TRUE, Workers);
 query share("InitialMessages", TRUE, Workers);
 query share("NoMessages", TRUE, Workers);
 
-
+let nl = '
+'
 
 
 
