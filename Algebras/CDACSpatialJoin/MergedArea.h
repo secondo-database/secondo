@@ -102,6 +102,15 @@ struct MergedArea {
 
    EdgeIndex_t getEdgeCount() const { return edgeIndexEnd - edgeIndexStart; }
 
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+   /* returns the total number of JoinEdge instances stored in the various
+    * vectors of this MergedArea */
+   size_t getJoinEdgeCount() const;
+
+   /* returns the number of bytes currently used by this MergedArea */
+   size_t getUsedMemory() const;
+#endif
+
 private:
    /* returns true if the counterpart (i.e. the corresponding left or right
     * edge) of the given edge is found inside this MergedArea */

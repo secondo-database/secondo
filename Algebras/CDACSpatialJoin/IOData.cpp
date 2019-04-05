@@ -50,7 +50,7 @@ unsigned IOData::getRowShift(const size_t blockCount) {
    size_t blockId = blockCount - 1;
    while (blockId != 0) {
       ++shift;
-      blockId >>= 1;
+      blockId >>= 1U;
    }
    return shift;
 }
@@ -76,6 +76,7 @@ IOData::IOData(const bool countOnly_, InputStream* inputA, InputStream* inputB,
                    getRowShift(inputB->getBlockCount()) },
         rowMask { getRowMask(rowShift[0]), getRowMask(rowShift[1]) },
         blockMask { getBlockMask(rowShift[0]), getBlockMask(rowShift[1]) },
+        usedMemory { inputA->getUsedMem(), inputB->getUsedMem() },
         newTuple(new CRelAlgebra::AttrArrayEntry[
                       columnCounts[SET::A] + columnCounts[SET::B]]),
         outTBlockSize(outTBlockSize_) {
@@ -511,3 +512,16 @@ bool IOData::appendToOutput(const JoinEdge& entryS, const JoinEdge& entryT) {
       return (outTBlock->GetSize() < outTBlockSize);
    }
 }
+
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+size_t IOData::getUsedMemory() const {
+   size_t result = sizeof(IOData);
+   // usedMemory[] already stores the memory used in TBlocks / RBlocks:
+   result  += usedMemory[SET::A] + usedMemory[SET::B];
+   if (newTuple) {
+      result += (columnCounts[SET::A] + columnCounts[SET::B])
+                * sizeof(CRelAlgebra::AttrArrayEntry);
+   }
+   return result;
+}
+#endif

@@ -122,6 +122,10 @@ private:
     * SetRowBlock_t value. */
    const SetRowBlock_t blockMask[SET_COUNT];
 
+   /* the number of bytes used for the TBlocks / RBlocks of the respective
+    * input stream */
+   const size_t usedMemory[SET_COUNT];
+
    // -----------------------------------------------------
    // variables for the appendToOutput() function
 
@@ -233,6 +237,12 @@ public:
     * the rectangles intersect in the z dimension, too (if applicable), then
     * appends a new tuple to the outTBlock or increases the result counter */
    bool appendToOutput(const JoinEdge& entryS, const JoinEdge& entryT);
+
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+   /* returns the number of bytes currently used by this IOData instance,
+    * including the memory used for the tBlocks / rBlocks of the InputStreams */
+   size_t getUsedMemory() const;
+#endif
 };
 
 } // end of namespace cdacspatialjoin

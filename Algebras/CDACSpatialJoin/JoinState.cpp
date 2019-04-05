@@ -240,6 +240,23 @@ JoinState::JoinState(const bool countOnly_,
    }
    atomsExpectedTotal = atomsExpectedTotal_;
 
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+   // the first three values are constant within this JoinState;
+   // ioData and joinEdges will remain in memory during the lifetime of this
+   // JoinState, while SortEdges and RectangleInfos will be deleted below
+   usedInputDataMemory = ioData.getUsedMemory() + sizeof(JoinState);
+   usedSortEdgeMemory = sortEdges->size() * sizeof(SortEdge)
+                      + rectangleInfos->size() * sizeof(RectangleInfo);
+   usedJoinEdgeMemory = joinEdges_.size() * sizeof(JoinEdge);
+
+   // usedMergedAreaMemory and mergeJoinEdgeCount will change in the course of
+   // action of this JoinState; we keep track of their maximum values
+   usedMergedAreaMemory = 0;
+   usedMergedAreaMemoryMax = 0;
+   mergeJoinEdgeCount = 0;
+   mergeJoinEdgeCountMax = 0;
+#endif
+
    // sortEdges and rectangleInfos is now obsolete (but will anyway be
    // removed from memory when constructor terminates)
    delete sortEdges;
@@ -346,6 +363,12 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_) {
             break; // outTBlock is full, merging will be continued later
 
          // merger has completed
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+         usedMergedAreaMemoryMax = std::max(usedMergedAreaMemoryMax,
+                 usedMergedAreaMemory + merger_->getUsedMemory());
+         mergeJoinEdgeCountMax = std::max(mergeJoinEdgeCountMax,
+                 mergeJoinEdgeCount + merger_->getJoinEdgeCount(true));
+#endif
          MergedAreaPtr result = merger_->getResult();
          delete merger_;
          merger_ = nullptr;
@@ -369,6 +392,10 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_) {
             merger_ = createMerger(mergeLevel_, result);
          } else {
             // enter result to a free entry to wait for a merge partner
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+            usedMergedAreaMemory += result->getUsedMemory();
+            mergeJoinEdgeCount += result->getJoinEdgeCount();
+#endif
             mergedAreas_[mergeLevel_] = result;
             mergeLevel_ = 0;
          }
@@ -392,6 +419,10 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_) {
             merger_ = createMerger(0, newArea);
          } else  {
             // enter newArea to mergedAreas_[0] to merge it with the next atom
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+            usedMergedAreaMemory += newArea->getUsedMemory();
+            mergeJoinEdgeCount += newArea->getJoinEdgeCount();
+#endif
             mergedAreas_[0] = newArea;
          }
 
@@ -405,6 +436,12 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_) {
                continue;
             if (!mergedArea2) {
                mergedArea2 = mergedAreas_[level];
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+               // the memory used by mergedArea2 will be measured as part of
+               // the Merger in merger_->getUsedMemory()
+               usedMergedAreaMemory -= mergedArea2->getUsedMemory();
+               mergeJoinEdgeCount -= mergedArea2->getJoinEdgeCount();
+#endif
                mergedAreas_[level] = nullptr;
             } else {
                mergeLevel_ = level;
@@ -463,4 +500,36 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_) {
    timer->stop();
    return (outTBlockTupleCount > 0);
 }
+
+/* creates a new Merger for the given areas, then deletes the areas */
+Merger* JoinState::createMerger(unsigned levelOfArea1, MergedAreaPtr area2) {
+   MergedAreaPtr area1 = mergedAreas[levelOfArea1];
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+   // the memory used by area1 will be measured as part of the Merger in
+   // merger_->getUsedMemory()
+   usedMergedAreaMemory -= area1->getUsedMemory();
+   mergeJoinEdgeCount -= area1->getJoinEdgeCount();
+#endif
+   mergedAreas[levelOfArea1] = nullptr;
+
+   const bool isLastMerge = (area1->edgeIndexStart == 0 &&
+                             area2->edgeIndexEnd == joinEdgesSize);
+
+   // move ownership of source areas (area1 and area2) to new Merger;
+   // source areas will be deleted in ~Merger()
+   return new Merger(area1, area2, isLastMerge, &ioData);
+}
+
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+size_t JoinState::getTotalUsedMemoryMax() const {
+   // two components are used during the whole lifetime of the JoinState:
+   size_t usedWholeLifetime = usedInputDataMemory + usedJoinEdgeMemory;
+
+   // usedSortEdgeMemory is only used during instantiation,
+   // usedMergedAreaMemory[Max] is only used after instantiation, so the
+   // maximum of those two must be used (usually, that is the latter):
+   return usedWholeLifetime +
+          std::max(usedSortEdgeMemory, usedMergedAreaMemoryMax);
+}
+#endif
 

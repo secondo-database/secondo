@@ -189,6 +189,31 @@ class CDACLocalInfo {
    /* the number of intersections found so far */
    size_t intersectionCount;
 
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+   /* the maximum number of bytes used by any JoinState for its input data
+    * (i.e. the TBlocks / RBlocks stored in IOData)  */
+   size_t maxMemInputData = 0;
+
+   /* the maximum number of bytes used by any JoinState for its SortEdge and
+    * RectangleInfo instances */
+   size_t maxMemSortEdges = 0;
+
+   /* the maximum number of bytes used by any JoinState for its JoinEdge
+    * vector */
+   size_t maxMemJoinEdges = 0;
+
+   /* the maximum number of bytes used by any JoinState for its Merger and
+    * MergedArea instances */
+   size_t maxMemMergedAreas = 0;
+
+   /* the total maximum number of bytes used by any JoinState. Note that this
+    * is not necessarily the same as the sum of the other maxMem... values,
+    * since those maximum values may have occurred at different times */
+   size_t maxMemTotal = 0;
+
+   double maxJoinEdgeQuota = 0.0;
+#endif
+
    std::shared_ptr<Timer> timer;
 
 public:
@@ -207,9 +232,10 @@ public:
 private:
    void requestInput();
 
-   /* Computes the amount of memory in use, i.e. the size of the two block
-    * vectors and of all binary tables */
-   size_t getUsedMem() const;
+   /* Estimates the required amount of main memory, i.e. both the size of the
+    * two input TBlock / RBlock vectors, and the expected JoinState memory
+    * usage */
+   size_t getRequiredMemory() const;
 }; // end class LocalInfo
 
 } // end namespace cdacspatialjoin

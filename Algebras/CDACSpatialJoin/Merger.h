@@ -197,7 +197,6 @@ public:
       return result;
    }
 
-
 private:
    /* reports rectangle intersections between
     * a) an edge in the "span" vector (from one area and set), and
@@ -270,6 +269,15 @@ public:
    /* reports the loop statistics (while loops in Merger::reportPairsSub())
     * to the given out stream */
    static void reportLoopStats(std::ostream& out);
+
+   /* returns the total number of JoinEdge instances stored in this Merger,
+    * optionally including the input MergedAreas and the result MergedArea */
+   size_t getJoinEdgeCount(bool includeAreas) const;
+
+   /* returns the number of bytes currently used by this Merger, including
+    * the input MergedAreas and the result MergedArea */
+   size_t getUsedMemory() const;
+
 #endif
 };
 

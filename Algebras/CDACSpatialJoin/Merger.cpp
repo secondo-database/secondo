@@ -656,3 +656,23 @@ void Merger::merge(const JoinEdgeVec& source1,
       merge(source1, index1, source2, index2, dest);
 }
 
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+size_t Merger::getJoinEdgeCount(const bool includeAreas) const {
+   size_t joinEdgeCount =
+             leftASpan.size() + rightASpan.size() + leftRightA.size()
+           + leftBSpan.size() + rightBSpan.size() + leftRightB.size();
+   if (includeAreas) {
+      joinEdgeCount += area1->getJoinEdgeCount() + area2->getJoinEdgeCount();
+      joinEdgeCount += result->getJoinEdgeCount();
+   }
+   return joinEdgeCount;
+}
+
+size_t Merger::getUsedMemory() const {
+   size_t usedMemory = sizeof(Merger)
+       + getJoinEdgeCount(false) * sizeof(JoinEdge)
+       + area1->getUsedMemory() + area2->getUsedMemory()
+       + result->getUsedMemory();
+   return usedMemory;
+}
+#endif

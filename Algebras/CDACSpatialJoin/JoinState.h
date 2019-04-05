@@ -167,6 +167,37 @@ class JoinState {
     * contain the last result tuples */
    bool joinCompleted;
 
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+   /* the number of bytes used for the input data, i.e. the TBlocks / RBlocks
+    * stored in IOData, during the whole lifetime of this JoinState */
+   size_t usedInputDataMemory;
+
+   /* the number of bytes used temporarily in the constructor for SortEdge
+    * and RectangleInfo instances */
+   size_t usedSortEdgeMemory;
+
+   /* the number of bytes used for the JoinEdge vector during the whole
+    * lifetime of this JoinState  */
+   size_t usedJoinEdgeMemory;
+
+   /* the number of bytes currently used for the Merger instance and all
+    * MergedArea instances stored in mergedAreas[]. The variable is updated
+    * whenever a mergedAreas[] entry is set */
+   size_t usedMergedAreaMemory;
+
+   /* the maximum number of bytes that occurred in usedMergedAreaMemory
+    * during the lifetime of this JoinState instance */
+   size_t usedMergedAreaMemoryMax;
+
+   /* the number of of JoinEdge instances currently stored in the
+    * Merger instance and all MergedArea instances */
+   size_t mergeJoinEdgeCount;
+
+   /* the maximum number of JoinEdge instances that were required in the
+    * Merger and MergedArea instances at any given time */
+   size_t mergeJoinEdgeCountMax;
+#endif
+
 public:
    /* constructor taking all data required from the input streams:
     * attrIndexA/B: the positions of the join attributes;
@@ -187,19 +218,46 @@ public:
 
    size_t getOutTupleCount() const { return ioData.getOutTupleCount(); }
 
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+   /* the number of bytes used for the input data, i.e. the TBlocks / RBlocks
+    * stored in IOData, during the whole lifetime of this JoinState */
+   size_t getUsedInputDataMemory() const { return usedInputDataMemory; }
+
+   /* the number of bytes used temporarily in the constructor for SortEdge
+    * and RectangleInfo instances */
+   size_t getUsedSortEdgeMemory() const { return usedSortEdgeMemory; }
+
+   /* the number of bytes used for the JoinEdge vector during the whole
+    * lifetime of this JoinState  */
+   size_t getUsedJoinEdgeMemory() const { return usedJoinEdgeMemory; }
+
+   /* the number of bytes currently used for the Merger instance and all
+    * MergedArea instances stored in mergedAreas[]. The variable is updated
+    * whenever a mergedAreas[] entry is set */
+   size_t getUsedMergedAreaMemoryMax() const { return usedMergedAreaMemoryMax;}
+
+   /* the maximum number of main memory bytes used at any point during the
+    * lifetime of this JoinState */
+   size_t getTotalUsedMemoryMax() const;
+
+   /* returns a) the maximum number of JoinEdge instances that were required
+    * in the Merger and MergedArea instances at any given time, divided by
+    * b) the number of rectangles from both input streams (excluding those
+    * that were outside the other input stream's bounding box).
+    * This value is in [1.0, 2.0] and is useful to estimate the memory required
+    * for join operations. Samples with wide rectangles will produce a higher
+    * value than samples with narrow rectangles, since initially, left and
+    * right edges are stored for a rectangle, but as soon as a rectangle is
+    * "complete" inside a MergedArea, only one edge (the rectangle's
+    * Y-interval) is stored */
+   double getUsedJoinEdgeQuotaMax() const {
+      return mergeJoinEdgeCountMax / (joinEdgesSize / 2.0);
+   }
+#endif
+
 private:
    /* creates a new Merger for the given areas, then deletes the areas */
-   inline Merger* createMerger(unsigned levelOfArea1, MergedAreaPtr area2) {
-      MergedAreaPtr area1 = mergedAreas[levelOfArea1];
-      mergedAreas[levelOfArea1] = nullptr;
-
-      const bool isLastMerge = (area1->edgeIndexStart == 0 &&
-                                area2->edgeIndexEnd == joinEdgesSize);
-
-      // move ownership of source areas (area1 and area2) to new Merger;
-      // source areas will be deleted in ~Merger()
-      return new Merger(area1, area2, isLastMerge, &ioData);
-   }
+   inline Merger* createMerger(unsigned levelOfArea1, MergedAreaPtr area2);
 };
 
 } // end namespace

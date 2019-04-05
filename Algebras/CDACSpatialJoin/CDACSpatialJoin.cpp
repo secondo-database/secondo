@@ -447,7 +447,7 @@ CDACLocalInfo::CDACLocalInfo(const bool countOnly_, InputStream* const input1_,
         intersectionCount(0),
         timer(nullptr) {
 
-   #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
    cout << "sizeof(SortEdge) = " << sizeof(SortEdge) << endl;
    cout << "sizeof(JoinEdge) = " << sizeof(JoinEdge) << endl;
    cout << "sizeof(RectangleInfo) = " << sizeof(RectangleInfo) << endl;
@@ -472,7 +472,24 @@ CDACLocalInfo::CDACLocalInfo(const bool countOnly_, InputStream* const input1_,
 
 */
 CDACLocalInfo::~CDACLocalInfo() {
-// #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+   cout << endl;
+   cout << "Maximum memory used by any JoinState at different times (bytes): "
+        << endl;
+   cout << "* Input data : " << setw(11) << formatInt(maxMemInputData)
+        << " (during JoinState lifetime)" << endl;
+   cout << "* SortEdges  : " << setw(11) << formatInt(maxMemSortEdges)
+        << " (temporary, including RectangleInfos)" << endl;
+   cout << "* JoinEdges  : " << setw(11) << formatInt(maxMemJoinEdges)
+        << " (during JoinState lifetime)" << endl;
+   cout << "* MergedAreas: " << setw(11) << formatInt(maxMemMergedAreas)
+        << " (maximum JoinEdge quota " << maxJoinEdgeQuota << ")" << endl;
+   cout << "Total maximum memory used at any given time: "
+        << setw(11) << formatInt(maxMemTotal) << " bytes "
+        << "(" << formatInt(maxMemTotal >> 20U) << " MiB)" << endl;
+#endif
+
+   // #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
    timer->stop();
    timer->reportTable(cout, true, true, true, false, false);
 // #endif
@@ -487,7 +504,7 @@ CDACLocalInfo::~CDACLocalInfo() {
 
 */
 void CDACLocalInfo::requestInput() {
-   while ((getUsedMem() < memLimit)
+   while ((getRequiredMemory() < memLimit)
          && (!input1->isDone() || !input2->isDone())) {
       if (input1->isDone())
          input2->request();
@@ -506,7 +523,12 @@ void CDACLocalInfo::requestInput() {
    }
 }
 
-size_t CDACLocalInfo::getUsedMem() const {
+size_t CDACLocalInfo::getRequiredMemory() const {
+   // TODO: hier noch Parameter "unsigned addTupleBlocks" hinzufügen
+   // und mit (1) aufrufen, da ja geprüft werden soll, ob noch ein weiterer
+   // TBlock im Speicher Platz findet! Außerdem müsste für den outTBlock
+   // Platz reserviert werden ... dessen Größe müsste hier also bekannt sein
+
    const size_t tupleSum = input1->getCurrentTupleCount() +
            input2->getCurrentTupleCount();
 
@@ -517,15 +539,15 @@ size_t CDACLocalInfo::getUsedMem() const {
            sizeof(RectangleInfo) + 2 * sizeof(JoinEdge));
 
    // during JoinState execution, we must consider both JoinState::joinEdges
-   // (2 * sizeof(JoinEdge)) and JoinState::mergedAreas (1 * sizeof(...)):
-   // mergedAreas duplicate JoinEdges, but they are only constructed over time
-   // (not all at once), and the number of JoinEdges stored here is being
-   // reduced with every merge step, since MergedArea::complete only
-   // stores *one* edge (rather than two edges) per rectangle. Short of
-   // extreme cases (where all rectangles are completed only at the last
-   // merge step), it seems adequate to assume 1 * sizeof(JoinEdge) for all
-   // mergedAreas at a given time:
-   const size_t joinStateExecution = tupleSum * ((2 + 1) * sizeof(JoinEdge));
+   // (2 * ...) and JoinState::mergedAreas (another 2 * ...): mergedAreas
+   // duplicate JoinEdges. They are constructed over time (not all at once),
+   // and the number of JoinEdges stored here is being reduced with every merge
+   // step, since MergedArea::complete only stores *one* edge (rather than two
+   // edges) per rectangle. In extreme cases, however (where all rectangles are
+   // completed only with the last merge step), 2.0 * ... are required for all
+   // mergedAreas. If rectangles are narrower, a value in [1.0, 2.0] is
+   // possible. However, joinStateConstruction tends to be the dominant value
+   const size_t joinStateExecution = tupleSum * ((2 + 2) * sizeof(JoinEdge));
 
    // since JoinState construction and execution take place sequentially,
    // the maximum (rather than the sum) can be used:
@@ -557,6 +579,20 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
          }
          intersectionCount += joinState->getOutTupleCount();
 
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+         maxMemInputData = std::max(maxMemInputData,
+                 joinState->getUsedInputDataMemory());
+         maxMemSortEdges = std::max(maxMemSortEdges,
+                 joinState->getUsedSortEdgeMemory());
+         maxMemJoinEdges = std::max(maxMemJoinEdges,
+                 joinState->getUsedJoinEdgeMemory());
+         maxMemMergedAreas = std::max(maxMemMergedAreas,
+                 joinState->getUsedMergedAreaMemoryMax());
+         maxMemTotal = std::max(maxMemTotal,
+                 joinState->getTotalUsedMemoryMax());
+         maxJoinEdgeQuota = std::max(maxJoinEdgeQuota,
+                 joinState->getUsedJoinEdgeQuotaMax());
+#endif
          delete joinState;
          joinState = nullptr;
       }
@@ -589,7 +625,7 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
          }
          timer->stop();
 #ifndef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
-         cout << "\r" << string(82, ' ') << flush;
+         cout << "\r" << string(82, ' ') << "\r" << flush;
 #endif
          return nullptr;
 
@@ -604,13 +640,13 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
             input2->clearMem();
             do {
                input2->request();
-            } while (!input2->isDone() && getUsedMem() < memLimit);
+            } while (!input2->isDone() && getRequiredMemory() < memLimit);
          } else if (!input1->isDone()) {
             // continue reading from input1
             input1->clearMem();
             do {
                input1->request();
-            } while (!input1->isDone() && getUsedMem() < memLimit);
+            } while (!input1->isDone() && getRequiredMemory() < memLimit);
          } else {
             // input1 is done, but input2 is not
             input1->clearMem();

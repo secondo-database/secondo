@@ -122,3 +122,14 @@ std::string MergedArea::toString() const {
       st << edgeIndexStart << "--" << edgeIndexEnd - 1;
    return st.str();
 }
+
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+size_t MergedArea::getJoinEdgeCount() const {
+   return leftA.size() + rightA.size() + completeA.size()
+        + leftB.size() + rightB.size() + completeB.size();
+}
+
+size_t MergedArea::getUsedMemory() const {
+   return sizeof(MergedArea) + getJoinEdgeCount() * sizeof(JoinEdge);
+}
+#endif
