@@ -1,4 +1,4 @@
-Database : pregelexample
+Database : berlintest 
 Restore  : No
 
 Operator  : closePregelConnections
@@ -61,8 +61,8 @@ Result   : FALSE
 Operator : setPregelFunctionWorker
 Number   : 1
 Signature: map(stream(tuple), stream(tuple)) x int -> bool
-Example  : query setPregelFunctionWorker(fun (messages: stream(tuple([Id: int]))) (messages project[Id]), Id);
-Result   : FALSE
+Example  : query setPregelFunctionWorker(fun (messages: stream(tuple([Id: int]))) (messages project[Id]), 1);
+Result   : TRUE
 
 Operator : startPregel
 Number   : 1
