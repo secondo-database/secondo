@@ -25,7 +25,7 @@ to manipulate the Image like cut, scale, mirror and flipleft.
 
 */
 
-
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -67,7 +67,9 @@ JPEGPicture::JPEGPicture(char *filename)
             fseek(fp, 0 ,SEEK_SET);
 
             JPEGBuffer = new unsigned char[size];
-            fread(JPEGBuffer, size, 1, fp);
+            if(fread(JPEGBuffer, size, 1, fp) != 1) {
+		    std::cerr << "Error in reading file" << std::endl;
+	    }
             fclose(fp);
 
             ReadJPEGHeader(JPEGBuffer, size, &m_ulWidth, &m_ulHeight,
@@ -346,7 +348,7 @@ JPEGPicture* JPEGPicture::flipleft(unsigned long n)
 {
       int                  mode = n % 4;
       JPEGPicture      *pic;
-      int                  x,y,src_pos,dest_pos;
+      int                  x,y,src_pos,dest_pos = 0;
 
       // create image
       pic = new JPEGPicture();
@@ -412,7 +414,7 @@ JPEGPicture* JPEGPicture::flipleft(unsigned long n)
 JPEGPicture* JPEGPicture::mirror(bool dir)
 {
       JPEGPicture      *pic;
-      int                  x,y,src_pos,dest_pos;
+      int                  x,y,src_pos,dest_pos=0;
 
       // create image
       pic = new JPEGPicture();

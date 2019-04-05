@@ -562,9 +562,10 @@ bool Picture::Display(void) {
     cmd += " ";
     cmd += filename;
 
-    cerr << "Picture::Display() display command is '" << cmd << "'" << endl;
 
-    system(cmd.c_str());
+    if(system(cmd.c_str()) != 0){
+       cerr << " problem in executing external command " << cmd << endl;
+    }
 
     if (unlink(filename) < 0) {
         cerr << "Picture::Display() could not remove temporary file '"
