@@ -5115,14 +5115,14 @@ int rtf2txtfileVM(Word* args, Word& result,
        res->Set(true,true);
        
        return 0;
-     }
-    
-      else 
-       {
+     } else {
          res->Set(true,false);
-         system(del);
+         back = system(del);
+	 if(back != 0){
+           std::cerr << "Problem in deletion of temporarly file" << std::endl;
+         }
          return 0;
-       } 
+     } 
     
      
   }
@@ -7637,8 +7637,11 @@ class db3CollectInfo{
                    ListExpr _tt): stream(_stream){
        tt = new TupleType(_tt);
        char* outpath = (char*) malloc(PATH_MAX); 
-       realpath(_fileName.c_str(),outpath);
-       outabsolutepath = string(outpath);
+       if( realpath(_fileName.c_str(),outpath) == 0){
+          outabsolutepath = "";
+       } else {
+          outabsolutepath = string(outpath);
+       }
        free(outpath);
        out = new ofstream(_fileName.c_str(),ios_base::binary);
        outbuf = new char[FILE_BUFFER_SIZE];
