@@ -1,4 +1,4 @@
-Database : CRel2TestData
+Database : testData/CRel2TestData
 Restore  : No
 
 Operator : ccPartHashJoin
