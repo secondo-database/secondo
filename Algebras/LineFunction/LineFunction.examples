@@ -1,4 +1,4 @@
-Database : lftest
+Database : berlintest
 Restore  : NO
 
 Operator : heightatposition
@@ -18,13 +18,13 @@ Operator : lfdistance
 Number   : 1
 Signature: point x point  x sT x int -> real
 Example  : query  lfdistance ( [const point value ( 1.0 1.5 ) ] , [const point value ( 2.0 2.0 ) ], [const sint value ( ( 0.0 0.0 1.0 ) ( 2 2 ) ( 0 0 ( 1 2 3 4 ) ) ( 2 0 ( 5 6 7 8 ) ) (  0 2 ( 9 10 11 12 ) ) ( 2 2 ( 13 14 15 16 ) ) ) ], 2) / 1000
-Result   : ( real 124.24579047333566 )
+Result   : 124.2457904733357
 
 Operator : lfdistanceparam
 Number   : 1
 Signature: point x point x sT, string x string x string x real x real x real x real x real x real x real x real x real x real x real x real x real x real x real-> real )
 Example  : query lfdistanceparam  ( [const point value ( 1.0 1.5 ) ] , [const point value ( 2.0 2.0 ) ], [const sint value ( ( 0.0 0.0 1.0 ) ( 2 2 ) ( 0 0 ( 1 2 3 4 ) ) ( 2 0 ( 5 6 7 8 ) ) (  0 2 ( 9 10 11 12 ) ) ( 2 2 ( 13 14 15 16 ) ) ) ],"cycleway","no", "paved", 1.0 , 1.0 , 1.0 , 1.0 , 1.0 , 1.0 , 1.0 , 1.0 , 1.0 , 1.0 , 1.0 , 1.0 , 1.0, 1.0 , 1.0 )
-Result   : ( real 124.24579047333566 )
+Result   : ( real  124245.7904733357 )
 
 Operator : distanceWithGradient
 Number   : 1
