@@ -961,6 +961,7 @@ vector<Graph*> Graph::GetStronglyConnectedComponents() const {
      t.pos = (*vt)[i].GetPos();
      t.visited = false;
      t.dfs = 0;
+     t.sccIndex = 0;
      t.lowlink = 0;
      t.inStack = false;
      env.tVertices.push_back(t);
