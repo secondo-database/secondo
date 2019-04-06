@@ -40,7 +40,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/Relation-C++/OperatorFilter.h"
 
-#include <string.h>
+#include <string>
 #include <iostream>
 
 extern NestedList* nl;
@@ -55,8 +55,8 @@ ListExpr updateDirectRelTypeMap(ListExpr args);
 
 ListExpr appendIdentifierTypeMap (ListExpr args);
 
-ListExpr allUpdatesRTreeTypeMap(ListExpr& args, string opName);
-ListExpr allUpdatesBTreeTypeMap( const ListExpr& args, string opName);
+ListExpr allUpdatesRTreeTypeMap(ListExpr& args, std::string opName);
+ListExpr allUpdatesBTreeTypeMap( const ListExpr& args, std::string opName);
 
 template<int operatorId>
 ListExpr IndexQuerySTypeMap(ListExpr args);
@@ -74,16 +74,16 @@ namespace drelupdate{
 extern Operator drelspatialjoinOp;
     
 /*
-1.1 Type Mapping ~drelInsertDeleteTM~
+1. Operator ~drelinsert~
+
+1.1 Type Mapping ~drelinsert~
 
 */
 
 ListExpr drelinsertTM( ListExpr args ){
     
-    //cout << "drelinsertTM" << endl;
-    //cout << nl->ToString( args ) << endl;
-    
-    std::string err = "stream(tuple(X)) x drel(rel(X)) x int expected";
+    std::string err = "stream(tuple(X)) x drel(rel(tuple(X))) x int " 
+                      "expected";
     
     if(!nl->HasLength(args,3)){
         return listutils::typeError("wrong number of arguments");
@@ -95,7 +95,9 @@ ListExpr drelinsertTM( ListExpr args ){
                 ": first argument is not a stream");
     }
     ListExpr drelType = nl->Second( args );
-    if(!DRel::checkType( drelType ) ){
+    distributionType type;
+    int attr, key;
+    if(!DRel::checkType( drelType, type, attr, key ) ){
         return listutils::typeError(err +
                 ": second argument is not a drel");
     }
@@ -107,19 +109,13 @@ ListExpr drelinsertTM( ListExpr args ){
     
     //streamType != relType (spatial2d, 3d, replicated)
     ListExpr attrList = nl->Second(nl->Second( streamType ) );
-    ListExpr distType = nl->Third( drelType );
-    
-    distributionType type;
-    if( !getTypeByNum(nl->IntValue(nl->First(distType) ),type) ){
-        return listutils::typeError(
-                "distribution type not supported");
-    } else if (type == replicated){
+    if( type == replicated ){
         attrList = ConcatLists( 
                             attrList,
                             nl->OneElemList(nl->TwoElemList(
                                 nl->SymbolAtom("Original"),
-                                listutils::basicSymbol<CcBool>() ) ) ); 
-    } else if (type == spatial2d || type == spatial3d) {
+                                listutils::basicSymbol<CcBool>() ) ) );
+    } else if ( type == spatial2d || type == spatial3d ) {
         attrList = DRelHelpers::addPartitionAttributes( attrList );
     }
     
@@ -129,29 +125,20 @@ ListExpr drelinsertTM( ListExpr args ){
                         listutils::basicSymbol<Tuple>(), attrList) ); 
         
     ListExpr result = insertDeleteRelTypeMap<0>( nl->TwoElemList(
-                                    streamType, nl->Second(drelType) ) );
+                                  streamType, nl->Second(drelType) ) );
                                 
     if(!listutils::isTupleStream( result ) ){
         return result;
     }
-    
-    // create function for dmap2 operator
-    string funText = "(fun (dmapelem1 ARRAYFUNARG1) (dmapelem2 ARRAYFUNARG2) "
-                     "(insert (feed dmapelem1) dmapelem2)) ";
     
     ListExpr resType = nl->ThreeElemList(
                             listutils::basicSymbol<DFRel>(), 
                             nl->TwoElemList(
                                 listutils::basicSymbol<Relation>(), 
                                 nl->Second(result) ), 
-                            distType);
-
-    ListExpr append = nl->OneElemList( nl->TextAtom( funText ) );
-        
-    return nl->ThreeElemList(
-        nl->SymbolAtom(Symbols::APPEND()),
-        append,
-        resType);
+                            nl->Third(drelType) ); //distType
+    
+    return resType;
 }
 
 /*
@@ -161,29 +148,24 @@ Distributes a relation in the same manner as a given drel.
 
 */
 
-DFRel* distributeSimilarToDRel( Relation* rel, ListExpr relType,
-                                DRel* drel, ListExpr drelType){
-
+bool distributeSimilarToDRel( Relation* rel, ListExpr relType, DRel* drel,
+                              ListExpr drelType, DFRel*& dfrel_tmp ){
+    
+    std::string relPtr = nl->ToString( DRelHelpers::createPointerList(
+                                                      relType, rel) );
+    std::string drelPtr = nl->ToString( DRelHelpers::createdrel2darray(
+                                                        drelType, drel) );
+    
     distributionType type = drel->getDistType()->getDistType();
-    
-    
-    string relPtr = nl->ToString( DRelHelpers::createPointerList(
-                                                        relType, rel) );
-    string drelPtr = nl->ToString( DRelHelpers::createPointerList(
-                nl->TwoElemList(
-                    listutils::basicSymbol<distributed2::DArray>(),
-                    nl->Second(drelType) ),
-                drel) );
+    std::string dtype = getName(type);
 
-    string dtype = getName(type);
-    
-    string query2;
+    std::string query;
     if(type == replicated){
-        query2 = "(drelfdistribute " + relPtr + "\"TMP_DATA\" " + 
+        query = "(drelfdistribute " + relPtr + "\"TMP_DATA\" " + 
                 dtype + " (consume (getWorkers " + drelPtr + ")))";
     } 
     else if(type == drel::random){
-        query2 = "(drelfdistribute " + relPtr + "\"TMP_DATA\" " + 
+        query = "(drelfdistribute " + relPtr + "\"TMP_DATA\" " + 
                 dtype + " (size " + drelPtr + ") " +
                 "(consume (getWorkers " + drelPtr + ")))";
     }
@@ -198,45 +180,26 @@ DFRel* distributeSimilarToDRel( Relation* rel, ListExpr relType,
         for(int i = 0; i < attrPos; i++){
             attrList = nl->Rest(attrList); 
         }
-        string attrName = nl->ToString( nl->First(nl->First(attrList) ) );
+        std::string attr = nl->ToString( nl->First(nl->First(attrList) ) );
             
-        query2 = "(drelfdistribute " + relPtr + "\"TMP_DATA\" " +
-                dtype + " " + attrName + " (size " + drelPtr + ") " + 
+        query = "(drelfdistribute " + relPtr + "\"TMP_DATA\" " +
+                dtype + " " + attr + " (size " + drelPtr + ") " + 
                 "(consume (getWorkers " + drelPtr + ")))";
     }
-
-    cout<< "query2: " << query2 << endl;
     
-    DFRel* dfrel_tmp = 0;
-    
-    ListExpr query;
-    if( !nl->ReadFromString(query2, query) ){
-        dfrel_tmp->makeUndefined();
-        return dfrel_tmp;
-    }
-    
-    cout<< "query: " << nl->ToString(query) << endl;
-    
-    
-    bool correct, evaluable, defined, isFunction;
-    ListExpr resultType;
-    
-    OpTree tree = 0;
-    qp->Construct(query, correct, evaluable, defined, 
-                   isFunction, tree, resultType); 
-    qp->SetEvaluable(tree, true); 
-    
-    //DFRel* dfrel_tmp = 0;
-    if(!correct || !evaluable || !defined ){
-        dfrel_tmp->makeUndefined();
+    Word qRes;
+    if( !QueryProcessor::ExecuteQuery( query, qRes ) ) {
+        cout << "distribution of a stream to d[f]rel failed" << endl;
+        return false;
     } else {
-        Word qRes;
-        qp->EvalS(tree, qRes, OPEN);
-        qp->Destroy(tree, false);
         dfrel_tmp = (DFRel*) qRes.addr;
     }
+
+    if( !dfrel_tmp || !dfrel_tmp->IsDefined() ){
+        return false;
+    }
     
-    return dfrel_tmp;
+    return true;
 }
 
 /*
@@ -248,41 +211,25 @@ Removes temporary objects from a given dfrel.
 
 bool removeTempObjects(DFRel* dfrel_tmp, ListExpr drelType){
     
-    string dfrelPtr = nl->ToString(DRelHelpers::createPointerList(
+    std::string dfrelPtr = nl->ToString(DRelHelpers::createPointerList(
                 nl->TwoElemList(
                     listutils::basicSymbol<distributed2::DFArray>(),
                     nl->Second(drelType) ),
                 dfrel_tmp ) ) ; 
 
-    string query2 = "(deleteRemoteObjects " + dfrelPtr + ")";
+    std::string query = "(deleteRemoteObjects " + dfrelPtr + ")";
     
-    ListExpr query;
-    if( !nl->ReadFromString(query2, query) ){
-        return false;
-    }
-
-    bool correct, evaluable, defined, isFunction;
-    ListExpr resultType;
-    
-    OpTree tree = 0;
-    qp->Construct(query, correct, evaluable, defined, 
-                   isFunction, tree, resultType); 
-    qp->SetEvaluable(tree, true); 
-    
-    if(!correct || !evaluable || !defined ){
+    Word qRes;
+    if( !QueryProcessor::ExecuteQuery( query, qRes ) ) {
         return false;
     } else {
-        Word qRes;
-        qp->EvalS(tree, qRes, OPEN);
-        qp->Destroy(tree, false);
         int deletedObjects = ((CcInt*) qRes.addr)->GetValue();
-        bool success = deletedObjects > 0 ? true : false;
-        return success;
+        return deletedObjects > 0 ? true : false;
     }
 }
 
 /*
-1.2 Value Mapping ~drelinsertVM~
+1.2 Value Mapping ~drelinsert~
 
 */
 
@@ -292,7 +239,6 @@ int drelinsertVM(Word* args, Word& result, int message,
     Stream<Tuple> stream(args[0].addr);
     DRel* drel = (DRel*) args[1].addr; 
     CcInt* port = (CcInt*) args[2].addr;
-    FText* funText = (FText*) args[3].addr;
     
     result = qp->ResultStorage(s);
     DFRel* resultDFRel = (DFRel*)result.addr;
@@ -309,17 +255,21 @@ int drelinsertVM(Word* args, Word& result, int message,
     }
     stream.close();
     
-    //distribute relation in the same manner as a drel
-    //QueryProcessor* qps = new QueryProcessor( nl, am );
-    
+    //distribute relation similar to drel
     ListExpr relType = nl->TwoElemList(
-                            listutils::basicSymbol<Relation> (),
-                            nl->Second( qp->GetType( qp->GetSon(s,0) ) ) );
+                        listutils::basicSymbol<Relation> (),
+                        nl->Second( qp->GetType( qp->GetSon(s,0) ) ) );
     ListExpr drelType = qp->GetType( qp->GetSon(s,1) );
     
-    DFRel* dfrel_tmp = distributeSimilarToDRel(rel, relType,
-                                                drel, drelType);
-    
+    DFRel* dfrel_tmp = 0;
+    if( ! distributeSimilarToDRel(rel, relType, drel, 
+                                      drelType, dfrel_tmp) ){
+        resultDFRel->makeUndefined();
+        delete dfrel_tmp;
+        delete rel;
+        return 0;
+    }
+
     ListExpr arg1ptr = DRelHelpers::createPointerList(
             nl->TwoElemList(
                 listutils::basicSymbol<distributed2::DFArray>(),
@@ -332,39 +282,26 @@ int drelinsertVM(Word* args, Word& result, int message,
                 nl->Second(drelType) ),
             drel );
     
-    string query2 = "(dmap2 " + nl->ToString(arg1ptr) + nl->ToString(arg2ptr) +
-                    "\"\" " + funText->GetValue() + 
-                    boost::to_string( port->GetValue() ) + ")"; 
+    std::string query = "(dmap2 " + nl->ToString(arg1ptr) + 
+                                    nl->ToString(arg2ptr) + "\"\" "
+                         "(fun (elem1 ARRAYFUNARG1) (elem2 ARRAYFUNARG2) "
+                         "(insert (feed elem1) elem2)) " + 
+                         boost::to_string( port->GetValue() ) + ")"; 
                     
-    ListExpr query;
-    if( !nl->ReadFromString(query2, query)){
-        resultDFRel->makeUndefined();
-        return 0;
-    }
-    
-    //cout<< nl->ToString(query) << endl;
-    
-    bool correct, evaluable, defined, isFunction;
-    ListExpr resultType;
-    
-    OpTree tree = 0;
-    qp->Construct(query, correct, evaluable, defined, 
-                   isFunction, tree, resultType); 
-    qp->SetEvaluable(tree, true); 
-    
-    if(!correct || !evaluable || !defined ){
+    Word qRes;
+    if( !QueryProcessor::ExecuteQuery( query, qRes ) ) {
         resultDFRel->makeUndefined();
     } else {
-        Word qRes;
-        qp->EvalS(tree, qRes, OPEN);
-        qp->Destroy(tree, false);
-        resultDFRel = (DFRel*) qRes.addr;
-        if(resultDFRel->IsDefined()){
+        DFArray* dfarray = (DFArray*) qRes.addr;
+        if( !dfarray || !dfarray->IsDefined()){
+            resultDFRel->makeUndefined();
+        } else {
+            resultDFRel->copyFrom( *dfarray );
             resultDFRel->setDistType( drel->getDistType()->copy() );
         }
-        result.setAddr(resultDFRel);
+        delete dfarray;
     }
-    
+
     //delete temporary objects from remote server
     if( !removeTempObjects(dfrel_tmp, drelType) ){
         cout<<"temporary objects not deleted" << endl;
@@ -373,28 +310,62 @@ int drelinsertVM(Word* args, Word& result, int message,
     //check pointers
     delete dfrel_tmp;
     delete rel;
-    //delete qps;
     return 0;
 }
 
+/*
+1.3 Specification of ~drelinsert~
+
+*/
+
+OperatorSpec drelinsertSpec(
+    " stream(tuple(X)) x drel(rel(tuple(X))) x int "
+    "-> dfrel(rel(tuple(X@[TID:tid])))",
+    " _ _ drelinsert [_]",
+    "Inserts tuples of the stream into the distributed relation. "
+    "The tuples to insert should not contain the partition " 
+    "attributes (Cell, Original). The third argument specifies "
+    "a port number.",
+    "query rel1 feed drel1 drelinsert [1238]"
+);
+
+/*
+1.4 Definition of ~drelinsert~
+
+*/
+
+Operator drelinsertOp (
+    "drelinsert",                
+    drelinsertSpec.getStr( ),         
+    drelinsertVM,           
+    Operator::SimpleSelect,     
+    drelinsertTM           
+);
+
+/*
+2. Operator ~drelinserttuple~
+
+2.1 Type Mapping ~drelinserttuple~ 
+
+*/
+
 ListExpr drelinserttupleTM( ListExpr args ){
-    
-    //cout << "drelinserttupleTM" << endl;
-    //cout << nl->ToString(args) << endl;
     
     if(!nl->HasLength(args, 3) ){
         return listutils::typeError("wrong number of arguments");
     }
     
     ListExpr drelType = nl->First( args );
-    ListExpr tupleType = nl->Second( args );
+    ListExpr attrList = nl->Second( args );
     
     // check for correct types
-    if(!DRel::checkType( drelType ) ){
+    distributionType type;
+    int attr, key;
+    if(!DRel::checkType( drelType, type, attr, key ) ){
         return listutils::typeError(
                 "first argument is not a drel");
     }
-    if(nl->AtomType( tupleType ) != NoAtom){
+    if(nl->AtomType( attrList ) != NoAtom){ 
         return listutils::typeError(
                 "second argument must be a list of attributes");
     }
@@ -403,88 +374,50 @@ ListExpr drelinserttupleTM( ListExpr args ){
                 "last argument not of type int");
     }
     
-    //streamType != relType (spatial2d, 3d, replicated)
-    ListExpr attrList = nl->Second(nl->Second(nl->Second( drelType ) ) );
-    
-    distributionType type;
-    if(!getTypeByNum(nl->IntValue(nl->First( nl->Third( drelType ) ) ),type) ){
-        return listutils::typeError(  
-                "distribution type not supported"); 
-    } else if (type == replicated || type == spatial2d || type == spatial3d ){
-        attrList = DRelHelpers::removePartitionAttributes(attrList, type);
+    // attrList != relType (spatial2d, 3d, replicated) 
+    if( type == replicated ) {
+        attrList = ConcatLists( attrList, nl->OneElemList(
+                                 listutils::basicSymbol<CcBool>() ) );
+    } else if ( type == spatial2d || type == spatial3d ) {
+        attrList = ConcatLists( attrList, nl->TwoElemList(
+                                listutils::basicSymbol<CcInt>(),
+                                listutils::basicSymbol<CcBool>() ) );
     }
     
-    //cout << "attrList: " << nl->ToString(attrList) << endl;
-    
     ListExpr result = insertTupleTypeMap( nl->TwoElemList(
-                            nl->TwoElemList(
-                                listutils::basicSymbol<Relation>(),
-                                nl->TwoElemList(
-                                    listutils::basicSymbol<Tuple>(),
-                                    attrList ) ),
-                            tupleType ) );
+                                                nl->Second( drelType ),
+                                                attrList ) ); 
 
     if(!listutils::isTupleStream( result ) ){
         return result;
     }
     
-    // create function for dmap2 operator, maybe to VM?
-    string funText = "(fun (dmapelem1 ARRAYFUNARG1) (dmapelem2 ARRAYFUNARG2) "
-                     "(insert (feed dmapelem1) dmapelem2)) ";
-    
-    ListExpr resAttrList = listutils::concat(
-                nl->Second(nl->Second(nl->Second( drelType ) ) ),
-                nl->OneElemList(
-                    nl->TwoElemList(
-                        nl->SymbolAtom("TID"),
-                        nl->SymbolAtom(TupleIdentifier::BasicType() ) ) ) );
-
-    //cout << "resAttrList: " << nl->ToString(resAttrList) << endl;
-
     ListExpr resType = nl->ThreeElemList(
                             listutils::basicSymbol<DFRel>(),
                             nl->TwoElemList(
                                 listutils::basicSymbol<Relation>(),
-                                nl->TwoElemList(
-                                    listutils::basicSymbol<Tuple>(),
-                                    resAttrList) ),
+                                nl->Second( result ) ),
                             nl->Third( drelType ) ); //distType
-    
-    ListExpr append = nl->TwoElemList(
-                            nl->TextAtom( funText ),
-                            nl->TextAtom( nl->ToString(attrList) ) );
-    
-    return nl->ThreeElemList(
-        nl->SymbolAtom(Symbols::APPEND()),
-        append,
-        resType);
+
+    return resType;
 }
 
-int drelinserttupleVM(Word* args, Word& result, int message,
-           Word& local, Supplier s ){
-   
-    int argsNum = qp->GetNoSons( s );
-    
-    cout<< "argsNum: " << argsNum << endl;
+/*
+2.2 Value Mapping ~drelinserttuple~ 
 
+*/
+
+int drelinserttupleVM(Word* args, Word& result, int message,
+           Word& local, Supplier s ){  
+    
     DRel* drel = (DRel*) args[0].addr;
-    CcInt* port = (CcInt*) args[argsNum - 3].addr;
-    FText* funText = (FText*) args[argsNum - 2].addr;
-    FText* attrList = (FText*) args[argsNum - 1].addr;
+    CcInt* port = (CcInt*) args[2].addr;
     
     result = qp->ResultStorage(s);
     DFRel* resultDFRel = (DFRel*)result.addr;
     
-    ListExpr attrs;
-    if( !nl->ReadFromString(attrList->GetValue(), attrs ) ){
-        resultDFRel->makeUndefined();
-        return 0;
-    }
-    
-    cout<< "attrs: " << nl->ToString( attrs ) << endl;
-    
     ListExpr resTupleType = nl->Second(
-                                nl->Second( GetTupleResultType( s ) ) );
+                              nl->Second( GetTupleResultType( s ) ) );
     
     ListExpr rest, last, insertType;
     rest = nl->Second( resTupleType );
@@ -494,28 +427,24 @@ int drelinserttupleVM(Word* args, Word& result, int message,
     
     int i = 1;
     distributionType type = drel->getDistType()->getDistType();
-    if(type == replicated)
+    if(type == replicated) 
         i = 2;
     else if( type == spatial2d || type == spatial3d )
         i = 3;
     
-    
-    while(nl->ListLength( rest ) > i){ // for s2d, s3d, re
+    while(nl->ListLength( rest ) > i){ 
         last = nl->Append(last, nl->First( rest ) );
         rest = nl->Rest( rest );
     }
     insertType = nl->TwoElemList(nl->First( resTupleType ),
                                  insertType);
-        
-    cout << "insrtType: " << nl->ToString ( insertType ) << endl;
     
-    TupleType* insertTupleType = new TupleType( insertType );
-    Tuple* insertTuple = new Tuple( insertTupleType );
-    
+    //create a new tuple from the attribute list
+    Tuple* insertTuple = new Tuple( new TupleType( insertType ) );
     Supplier supplier = args[1].addr;
     Supplier supplier_i;
     Word attrValue;
-    Attribute* attr; //check ptr
+    Attribute* attr;
     for(int i = 0; i < insertTuple->GetNoAttributes(); i++){
         supplier_i = qp->GetSupplier(supplier, i);
         qp->Request(supplier_i, attrValue);
@@ -523,23 +452,29 @@ int drelinserttupleVM(Word* args, Word& result, int message,
         insertTuple->PutAttribute(i, attr->Clone() );
     }
     
-    Relation* rel = new Relation(insertTuple->GetTupleType() );
+    Relation* rel = new Relation( insertTuple->GetTupleType() );
     rel->AppendTuple( insertTuple );
-    
-    //distribute relation in the same manner as a drel
-    //QueryProcessor* qps = new QueryProcessor( nl, am );
-    
+    insertTuple->DeleteIfAllowed();
+
+    //distribute relation similar to drel
+    ListExpr drelType = qp->GetType( qp->GetSon(s,0) );
+    ListExpr attrs = DRelHelpers::removePartitionAttributes(
+                    nl->Second( nl->Second( nl->Second( drelType ) ) ),
+                    type );
     ListExpr relType = nl->TwoElemList(
                             listutils::basicSymbol<Relation> (),
                             nl->TwoElemList(
                                 listutils::basicSymbol<Tuple>(),
                                 attrs ) );
     
-    ListExpr drelType = qp->GetType( qp->GetSon(s,0) );
-    
-    //DFRel* dfrel_tmp = distributeSimilarToDRel(qps, rel, relType,
-    DFRel* dfrel_tmp = distributeSimilarToDRel(rel, relType,
-                                             drel, drelType );
+    DFRel* dfrel_tmp = 0;
+    if( ! distributeSimilarToDRel(rel, relType, drel, drelType, 
+                                                      dfrel_tmp) ){
+        resultDFRel->makeUndefined();
+        delete dfrel_tmp;
+        delete rel;
+        return 0;
+    }
     
     ListExpr arg1ptr = DRelHelpers::createPointerList(
             nl->TwoElemList(
@@ -553,53 +488,76 @@ int drelinserttupleVM(Word* args, Word& result, int message,
                 nl->Second(drelType) ),
             drel );
     
-    string query2 = "(dmap2 " + nl->ToString(arg1ptr) + nl->ToString(arg2ptr) +
-                    "\"\" " + funText->GetValue() + 
-                    boost::to_string( port->GetValue() ) + ")"; 
-                    
-    ListExpr query;
-    if( !nl->ReadFromString(query2, query)){
-        resultDFRel->makeUndefined();
-        return 0;
-    }
+    std::string query = "(dmap2 " + nl->ToString(arg1ptr) + 
+                                    nl->ToString(arg2ptr) + "\"\" "
+                         "(fun (elem1 ARRAYFUNARG1) (elem2 ARRAYFUNARG2) "
+                         "(insert (feed elem1) elem2)) " + 
+                         boost::to_string( port->GetValue() ) + ")"; 
     
-    bool correct, evaluable, defined, isFunction;
-    ListExpr resultType;
-    
-    OpTree tree = 0;
-    qp->Construct(query, correct, evaluable, defined, 
-                   isFunction, tree, resultType); 
-    qp->SetEvaluable(tree, true); 
-    
-    if(!correct || !evaluable || !defined ){
+    Word qRes;
+    if( !QueryProcessor::ExecuteQuery( query, qRes ) ) {
         resultDFRel->makeUndefined();
     } else {
-        Word qRes;
-        qp->EvalS(tree, qRes, OPEN);
-        qp->Destroy(tree, false);
-        resultDFRel = (DFRel*) qRes.addr;
-        if(resultDFRel->IsDefined()){
+        DFArray* dfarray = (DFArray*) qRes.addr;
+        if( !dfarray || !dfarray->IsDefined()){
+            resultDFRel->makeUndefined();
+        } else {
+            resultDFRel->copyFrom( *dfarray );
             resultDFRel->setDistType( drel->getDistType()->copy() );
         }
-        result.setAddr(resultDFRel);
+        delete dfarray;
     }
-    
-    //delete temporary objects from remote server 
+
+    //delete temporary objects from remote server
     if( !removeTempObjects(dfrel_tmp, drelType) ){
         cout<<"temporary objects not deleted" << endl;
-    }
+    }                    
     
     //check pointers
     delete dfrel_tmp;
     delete rel;
-    //delete qps;
     return 0;
 }
 
+/*
+2.3 Specification of ~drelinserttuple~
+
+*/
+
+OperatorSpec drelinserttupleSpec(
+    " drel(rel(tuple(X))) x [t1 ... tn] x int"
+    "-> dfrel(rel(tuple(X@[TID:tid])))",
+    " _ drelinserttuple [_; _]",
+    "Inserts a new tuple with the values from "
+    "the second argument list into the distributed relation. "
+    "The third argument specifies a port number. ",
+    "query drel1 drelinserttuple [\"Z\", 10 ; 1238]"
+);
+
+/*
+2.4 Definition of ~drelinserttuple~
+
+*/
+
+Operator drelinserttupleOp (
+    "drelinserttuple",                
+    drelinserttupleSpec.getStr( ),         
+    drelinserttupleVM,           
+    Operator::SimpleSelect,     
+    drelinserttupleTM           
+);
+
+/*
+3. Operators ~dreldelete~, ~drelupdate~, ~dreldeletebyid~,
+~drelupdatebyid~
+
+3.1 Type Mapping functions
+
+3.1.1 Type Mapping of ~dreldelete~ 
+
+*/
+
 ListExpr dreldeleteTM ( ListExpr args ){
-    
-    cout << "dreldeleteTM" << endl;
-    cout << nl->ToString( args ) << endl;
 
     if(!nl->HasLength(args, 3)){
         return listutils::typeError("wrong number of arguments");
@@ -617,8 +575,6 @@ ListExpr dreldeleteTM ( ListExpr args ){
             "second argument is not a drel");
     }
     
-    //check for equality of distribution types
-    
     ListExpr port = nl->Third(args);
     if( !CcInt::checkType( port ) ){
         return listutils::typeError(
@@ -632,24 +588,22 @@ ListExpr dreldeleteTM ( ListExpr args ){
                                 nl->Second(nl->Second( drelType1 ) ) ),
                             nl->Second( drelType2 ) ) );
     
-    //cout << nl->ToString(result) << endl;
-    
     if(!listutils::isTupleStream( result ) ){
         return result;
     }
     
     // create function type for dmap2 operator
-    string funText = "(fun (elem1 ARRAYFUNARG1) (elem2 ARRAYFUNARG2) "
-                     "(deletesearch (feed elem1) elem2)) ";
+    std::string fun = "(fun (elem1 ARRAYFUNARG1) (elem2 ARRAYFUNARG2) "
+                      "(deletesearch (feed elem1) elem2)) ";
     
     ListExpr resType = nl->ThreeElemList(
                             listutils::basicSymbol<DFRel>(),
                             nl->TwoElemList(
                                 listutils::basicSymbol<Relation>(),
-                                nl->Second(result) ),
-                            nl->Third( drelType1 ) );  //disttype1 = distType2
+                                nl->Second( result ) ),
+                            nl->Third( drelType2 ) ); 
     
-    ListExpr append = nl->OneElemList( nl->TextAtom( funText ) );
+    ListExpr append = nl->OneElemList( nl->TextAtom( fun ) );
     
     return nl->ThreeElemList(
         nl->SymbolAtom(Symbols::APPEND()),
@@ -657,11 +611,12 @@ ListExpr dreldeleteTM ( ListExpr args ){
         resType);
 }
 
+/*
+3.1.2 Type Mapping of ~drelupdate~ 
+
+*/
 
 ListExpr drelupdateTM ( ListExpr args ){
-    
-    cout << "drelupdateTM" << endl;
-    cout << nl->ToString( args ) << endl;
     
     if(!nl->HasLength(args, 4)){
         return listutils::typeError("wrong number of arguments");
@@ -681,8 +636,6 @@ ListExpr drelupdateTM ( ListExpr args ){
         return listutils::typeError(
             "second argument is not a drel");
     }
-    
-    //check for equality of distribution types
     
     ListExpr mapList = nl->First( nl->Third(args) ); 
     ListExpr funList = nl->Second( nl->Third(args) );
@@ -711,11 +664,6 @@ ListExpr drelupdateTM ( ListExpr args ){
         
         funList = nl->Rest( funList );
     }
-
-    /*
-    cout << nl->ToString(mapList) << endl;
-    cout << nl->ToString(funList_new) << endl;
-    */
     
     ListExpr port = nl->Fourth(args);
     if( !CcInt::checkType(nl->First( port ) ) ){
@@ -731,25 +679,23 @@ ListExpr drelupdateTM ( ListExpr args ){
                                 nl->Second( drelType2 ),
                                 mapList ) );
     
-    //cout << nl->ToString(result) << endl;
-    
     if( !nl->HasLength(result, 3) ){
         return result;
     }
     
     // create function for dmap2 operator
-    string funText = "(fun (elem1 ARRAYFUNARG1) (elem2 ARRAYFUNARG2) "
-                     "(updatesearch (feed elem1) elem2 " + 
+    std::string fun = "(fun (elem1 ARRAYFUNARG1) (elem2 ARRAYFUNARG2) "
+                      "(updatesearch (feed elem1) elem2 " + 
                        nl->ToString(funList_new) + ")) ";
                        
     ListExpr resType = nl->ThreeElemList(
                             listutils::basicSymbol<DFRel>(),
                             nl->TwoElemList(
                                 listutils::basicSymbol<Relation>(),
-                                nl->Second( nl->Third(result) ) ),
-                            nl->Third( drelType1 ) ); //disttype1 = distType2
+                                nl->Second( nl->Third( result ) ) ),
+                            nl->Third( drelType2 ) ); 
     
-    ListExpr append = nl->OneElemList( nl->TextAtom( funText ) );
+    ListExpr append = nl->OneElemList( nl->TextAtom( fun ) );
     
     return nl->ThreeElemList(
         nl->SymbolAtom(Symbols::APPEND()),
@@ -757,30 +703,34 @@ ListExpr drelupdateTM ( ListExpr args ){
         resType);
 }
 
+/*
+3.1.3 Type Mapping of ~dreldeletebyid~ 
+
+*/
+
 ListExpr dreldeletebyidTM ( ListExpr args ){
-    
-    cout << "dreldeletebyid2TM" << endl;
-    cout << nl->ToString( args ) << endl;
     
     if(!nl->HasLength(args, 4)){
         return listutils::typeError("wrong number of arguments");
     }
     // check for correct types
-    ListExpr argType1 = nl->First(args);
-    if( !DRel::checkType( argType1 ) && 
-        !DFRel::checkType( argType1 ) &&
-        !DArray::checkType( argType1 ) &&
-        !DFArray::checkType( argType1 ) ){
+    ListExpr arg1Type = nl->First(args);
+    if( !DRel::checkType( arg1Type ) && 
+        !DFRel::checkType( arg1Type ) &&
+        !DArray::checkType( arg1Type ) &&
+        !DFArray::checkType( arg1Type ) ){
         return listutils::typeError(
             "first argument is not a d[f]rel or a d[f]array");
+    }
+    if( !Relation::checkType( nl->Second( arg1Type ) ) ){
+        return listutils::typeError(
+            "wrong subtype of the first argument");
     }
     ListExpr drelType2 = nl->Second(args);
     if( !DRel::checkType( drelType2 ) ){
         return listutils::typeError(
             "second argument is not a drel");
     }
-    
-    //check for equality of distribution types
     
     ListExpr attrName = nl->Third(args);
     if(!listutils::isSymbol( attrName ) ){
@@ -795,31 +745,29 @@ ListExpr dreldeletebyidTM ( ListExpr args ){
 
     ListExpr result = deletebyid4TM(
                         nl->ThreeElemList(
-                            nl->TwoElemList(
+                            nl->TwoElemList( 
                                 listutils::basicSymbol<Stream<Tuple> >(),
-                                nl->Second( nl->Second( argType1 ) ) ),
+                                nl->Second( nl->Second( arg1Type ) ) ),
                             nl->Second( drelType2 ),
-                            attrName ) ); //check TID
-
-    //cout << nl->ToString(result) << endl;
+                            attrName ) ); 
     
     if( !nl->HasLength(result, 3) ){
         return result;
     }
     
     // create function for dmap2 operator
-    string attr = nl->ToString(attrName);
-    string funText = "(fun (elem1 ARRAYFUNARG1) (elem2 ARRAYFUNARG2) "
-                     "(deletebyid4 (feed elem1) elem2 " + attr + ")) ";
+    std::string attr = nl->ToString(attrName);
+    std::string fun = "(fun (elem1 ARRAYFUNARG1) (elem2 ARRAYFUNARG2) "
+                      "(deletebyid4 (feed elem1) elem2 " + attr + ")) ";
     
     ListExpr resType = nl->ThreeElemList(
                             listutils::basicSymbol<DFRel>(),
                             nl->TwoElemList(
                                 listutils::basicSymbol<Relation>(),
-                                nl->Second(nl->Third(result) ) ),
-                            nl->Third( drelType2 ) );  //disttype1 = distType2
+                                nl->Second( nl->Third( result) ) ),
+                            nl->Third( drelType2 ) );
     
-    ListExpr append = nl->OneElemList( nl->TextAtom( funText ) );
+    ListExpr append = nl->OneElemList( nl->TextAtom( fun ) );
     
     return nl->ThreeElemList(
         nl->SymbolAtom(Symbols::APPEND()),
@@ -827,10 +775,12 @@ ListExpr dreldeletebyidTM ( ListExpr args ){
         resType);
 }
 
+/*
+3.1.4 Type Mapping of ~drelupdatebyid~ 
+
+*/
+
 ListExpr drelupdatebyidTM ( ListExpr args ){
-    
-    //cout << "drelupdate2TM" << endl;
-    //cout << nl->ToString( args ) << endl;
     
     if(!nl->HasLength(args, 5)){
         return listutils::typeError("wrong number of arguments");
@@ -839,21 +789,23 @@ ListExpr drelupdatebyidTM ( ListExpr args ){
         return listutils::typeError("internal Error");
     }
     // check for correct types
-    ListExpr argType1 = nl->First( nl->First(args) );
-    if( !DRel::checkType( argType1 ) && 
-        !DFRel::checkType( argType1 ) &&
-        !DArray::checkType( argType1 ) &&
-        !DFArray::checkType( argType1 ) ){
+    ListExpr arg1Type = nl->First( nl->First(args) );
+    if( !DRel::checkType( arg1Type ) && 
+        !DFRel::checkType( arg1Type ) &&
+        !DArray::checkType( arg1Type ) &&
+        !DFArray::checkType( arg1Type ) ){
         return listutils::typeError(
             "first argument is not a d[f]rel or a d[f]array");
+    }
+    if( !Relation::checkType( nl->Second( arg1Type ) ) ){
+        return listutils::typeError(
+            "wrong subtype of the first argument");
     }
     ListExpr drelType2 = nl->First( nl->Second(args) );
     if( !DRel::checkType( drelType2 ) ){
         return listutils::typeError(
             "second argument is not a drel");
     }
-    
-    //check for equality of distribution types
     
     ListExpr attrName = nl->Second ( nl->Third( args ) );
     if(!listutils::isSymbol( attrName ) ){
@@ -913,33 +865,31 @@ ListExpr drelupdatebyidTM ( ListExpr args ){
     
     ListExpr result = updatebyid2TM(
                         nl->FourElemList(
-                            nl->TwoElemList(
+                            nl->TwoElemList( 
                                 listutils::basicSymbol<Stream<Tuple> >(),
-                                nl->Second( nl->Second(argType1) ) ),
-                            nl->Second(drelType2),
+                                nl->Second( nl->Second( arg1Type ) ) ),
+                            nl->Second( drelType2 ),
                             attrName,
                             mapList ) );
-    
-    //cout << nl->ToString(result) << endl;
     
     if( !nl->HasLength(result, 3) ){
         return result;
     }
     
     // create function for dmap2 operator
-    string attr = nl->ToString(attrName);
-    string funText = "(fun (elem1 ARRAYFUNARG1) (elem2 ARRAYFUNARG2) "
-                     "(updatebyid2 (feed elem1) elem2 " + attr + " " +
+    std::string attr = nl->ToString(attrName);
+    std::string fun = "(fun (elem1 ARRAYFUNARG1) (elem2 ARRAYFUNARG2) "
+                      "(updatebyid2 (feed elem1) elem2 " + attr + " " +
                        nl->ToString(funList_new) + "))";
     
     ListExpr resType = nl->ThreeElemList(
                             listutils::basicSymbol<DFRel>(),
                             nl->TwoElemList(
                                 listutils::basicSymbol<Relation>(),
-                                nl->Second(nl->Third(result) ) ),
-                            nl->Third( drelType2 ) ); //disttype1 = distType2
+                                nl->Second( nl->Third(result) ) ),
+                            nl->Third( drelType2 ) );
     
-    ListExpr append = nl->OneElemList( nl->TextAtom( funText ) );
+    ListExpr append = nl->OneElemList( nl->TextAtom( fun ) );
     
     return nl->ThreeElemList(
         nl->SymbolAtom(Symbols::APPEND()),
@@ -948,7 +898,10 @@ ListExpr drelupdatebyidTM ( ListExpr args ){
 }
 
 /*
-dmap2VM
+3.2 Value Mapping function
+
+used by ~dreldelete~, ~drelupdate~, ~dreldeletebyid~, ~drelupdatebyid~ 
+operators
 
 */
 
@@ -958,62 +911,50 @@ int dreldmap2VMT(Word* args, Word& result, int message,
     
     int argsNum = qp->GetNoSons( s );
     
-    R* drel1 = (R*) args[0].addr;
+    R* arg1 = (R*) args[0].addr;
     DRel* drel2 = (DRel*) args[1].addr;
     CcInt* port = (CcInt*) args[argsNum - 2].addr;
     FText* funText = (FText*) args[argsNum - 1].addr;
     
     result = qp->ResultStorage(s);
-    DFRel* resultDFRel = (DFRel*)result.addr; //D[f]Rel? expected
+    DFRel* resultDFRel = (DFRel*)result.addr;
     
     ListExpr arg1ptr;
     if( DRel::checkType( qp->GetType( qp->GetSon(s,0) ) ) ||
        DFRel::checkType( qp->GetType( qp->GetSon(s,0) ) ) ) {
        arg1ptr = DRelHelpers::createdrel2darray(
-                    qp->GetType( qp->GetSon(s,0) ), drel1 );   
+                    qp->GetType( qp->GetSon(s,0) ), arg1 );   
     } else {
        arg1ptr = DRelHelpers::createPointerList(
-                    qp->GetType( qp->GetSon(s,0) ), drel1 );
+                    qp->GetType( qp->GetSon(s,0) ), arg1 );
     }
     ListExpr arg2ptr = DRelHelpers::createdrel2darray(
                         qp->GetType( qp->GetSon(s,1) ), drel2 );
     
-    string query = "(dmap2 " + nl->ToString(arg1ptr) + nl->ToString(arg2ptr) +
-                   "\"\" " + funText->GetValue() + 
-                    boost::to_string( port->GetValue() ) + ")";
+    std::string query = "(dmap2 " + nl->ToString(arg1ptr) + 
+                                    nl->ToString(arg2ptr) +
+                        "\"\" " + funText->GetValue() + 
+                        boost::to_string( port->GetValue() ) + ")";
                     
-    ListExpr queryAsList;
-    if( !nl->ReadFromString(query, queryAsList)){
+    Word qRes;
+    if( !QueryProcessor::ExecuteQuery( query, qRes ) ) {
         resultDFRel->makeUndefined();
         return 0;
-    }
-    
-    //cout<< nl->ToString(queryAsList) << endl;
-    
-    bool correct, evaluable, defined, isFunction;
-    ListExpr resultType;
-    
-    OpTree tree = 0;
-    qp->Construct(queryAsList, correct, evaluable, defined, 
-                   isFunction, tree, resultType); 
-    qp->SetEvaluable(tree, true); 
-    
-    if(!correct || !evaluable || !defined ){
-        resultDFRel->makeUndefined();
-        return 0; //check
     } else {
-        Word qRes;
-        qp->EvalS(tree, qRes, OPEN);
-        qp->Destroy(tree, false);
-        resultDFRel = (DFRel*) qRes.addr;
-        if(resultDFRel->IsDefined()){ // not a good idea
-            resultDFRel->setDistType( drel2->getDistType()->copy() );
+        DFArray* dfarray = (DFArray*) qRes.addr;
+        if( !dfarray || !dfarray->IsDefined()){
+            resultDFRel->makeUndefined();
+            delete dfarray;
+            return 0;
         }
-        result.setAddr(resultDFRel);
+        resultDFRel->copyFrom( *dfarray );
+        resultDFRel->setDistType( drel2->getDistType()->copy() );
+        delete dfarray;
     }
     
     return 0;
 }
+
 
 ValueMapping dreldmap2VM[] = { 
     dreldmap2VMT<DArray>,
@@ -1025,11 +966,147 @@ int dreldmap2UpdSelect( ListExpr args ){
            DArray::checkType( nl->First( args ) ) ? 0 : 1;
 }
 
+/*
+3.3 Specifications
 
-ListExpr drelAllUpdatesRTreeTM (ListExpr& args, string opName ){
-    
-    //cout << "insertrtreeTM" << endl;
-    //cout << nl->ToString( args ) << endl;
+3.3.1 Specification of ~dreldelete~ 
+
+*/
+
+OperatorSpec dreldeleteSpec( 
+    " d[f]rel(rel(tuple(X))) x drel(rel(tuple(X))) x int"
+    "-> dfrel(rel(tuple(X@[TID:tid])))",
+    " _ _ dreldelete [_]",
+    "Deletes tuples from the distributed relation given "
+    "as a second argument. The first distributed relation "
+    "contains tuples to delete. The third argument "
+    "is a port number.",
+    "query drel1 drelfilter[.No > 5] drel1 dreldelete [1238]"
+);
+
+/*
+3.3.2 Specification of ~drelupdate~ 
+
+*/
+
+OperatorSpec drelupdateSpec( 
+    " d[f]rel(rel(tuple(X))) x drel(rel(tuple(X))) x funlist x int"
+    "-> dfrel(rel(tuple(X@[X1_old t1]@...[Xn_old tn]@[TID:tid])))",
+    " _ _ drelupdate [_ ; _]",
+    "Updates tuples in the distributed relation given " 
+    "as a second argument by replacing attributes as "
+    "specified in the funlist. The first distributed "
+    "relation contains tuples to update. The fourth argument "
+    "is a port number.", 
+    "query drel1 drelfilter[.No > 5] drel1 drelupdate [No: .No + 1; 1238]" 
+);
+
+/*
+3.3.3 Specification of ~dreldeletebyid~ 
+
+*/
+
+OperatorSpec dreldeletebyidSpec( 
+    " d[f]rel(rel(tuple(X))) x drel(rel(tuple(Y))) x attr x int"
+    "-> dfrel(rel(tuple(Y@[TID:tid]))),   "
+    " d[f]array(rel(tuple(X))) x drel(rel(tuple(Y))) x attr x int"
+    "-> dfrel(rel(tuple(Y@[TID:tid]))) ",
+    " _ _ dreldeletebyid [_, _]",
+    "Deletes tuples from the distributed relation given "
+    "as a second argument. The first argument contains "
+    "tuples to delete and specifies tupleids by the attr "
+    "argument. It can be of types d[f]array or d[f]rel. "
+    "The last argument is a port number.",
+    "query drel1 drelfilteraddid[.No > 5] drel1 dreldeletebyid[TID, 1238]"
+);
+
+/*
+3.3.4 Specification of ~drelupdatebyid~ 
+
+*/
+
+OperatorSpec drelupdatebyidSpec( 
+    " d[f]rel(rel(tuple(X))) x drel(rel(tuple(Y))) x attr x funlist x int"
+    "-> dfrel(rel(tuple(X))),   "
+    " d[f]array(rel(tuple(X))) x drel(rel(tuple(Y))) x attr x funlist x int"
+    "-> dfrel(rel(tuple(X)))",                            
+    " _ _ drelupdatebyid [_ ; _; _]",
+    "Updates tuples in the distributed relation given "
+    "as a second argument. The first argument contains  " 
+    "tuples to update and specifies tupleid by the attr "
+    "argument. It can be of types d[f]array or d[f]rel. "
+    "The functions may use parts from the first argument " 
+    "(dot notation) or from the second drel (double dot notation).",
+    "query drel1 dreladdid drel1 drelupdatebyid [TID; No: ..No + 1; 1238]"
+);
+
+/*
+3.4 Definitions 
+
+3.4.1 Definition of ~dreldelete~
+
+*/
+
+Operator dreldeleteOp (
+    "dreldelete",                
+    dreldeleteSpec.getStr( ),         
+    2,
+    dreldmap2VM,           
+    dreldmap2UpdSelect,      
+    dreldeleteTM           
+);
+
+/*
+3.4.2 Definition of ~drelupdate~
+
+*/
+
+Operator drelupdateOp (
+    "drelupdate",                
+    drelupdateSpec.getStr( ),         
+    2,
+    dreldmap2VM,           
+    dreldmap2UpdSelect,      
+    drelupdateTM           
+);
+
+/*
+3.4.3 Definition of ~dreldeletebyid~
+
+*/
+
+Operator dreldeletebyidOp (
+    "dreldeletebyid",                
+    dreldeletebyidSpec.getStr( ),         
+    2,
+    dreldmap2VM,           
+    dreldmap2UpdSelect,     
+    dreldeletebyidTM           
+);
+
+/*
+3.4.4 Definition of ~drelupdatebyid~
+
+*/
+
+Operator drelupdatebyidOp (
+    "drelupdatebyid",                
+    drelupdatebyidSpec.getStr( ),         
+    2,
+    dreldmap2VM,           
+    dreldmap2UpdSelect,     
+    drelupdatebyidTM           
+);
+
+/*
+4. Operators ~drelinsertrtree~, ~dreldeletertree~, ~drelupdatertree~,
+~drelinsertbtree~, ~dreldeletebtree~, ~drelupdatebtree~
+
+4.1 Type Mapping function for update distributed rtree
+
+*/
+
+ListExpr drelAllUpdatesRTreeTM (ListExpr& args, std::string opName ){
     
     if(!nl->HasLength(args, 4) ){
         return listutils::typeError("wrong number of arguments");
@@ -1064,26 +1141,24 @@ ListExpr drelAllUpdatesRTreeTM (ListExpr& args, string opName ){
                             attrName );
     
     ListExpr result = allUpdatesRTreeTypeMap(args2, opName);
-        
-    //cout << nl->ToString(result) << endl;
     
     if( !nl->HasLength(result, 3) ){
         return result;
     }
 
     //create function for dmap2 operator
-    string funText = "(fun (elem1 ARRAYFUNARG1) (elem2 ARRAYFUNARG2) "
-                     "(" + opName + " (feed elem1) elem2 " + 
+    std::string fun = "(fun (elem1 ARRAYFUNARG1) (elem2 ARRAYFUNARG2) "
+                      "(" + opName + " (feed elem1) elem2 " + 
                       nl->ToString(attrName) + "))";
 
     ListExpr resType = nl->ThreeElemList(
                             listutils::basicSymbol<DFRel>(),
                             nl->TwoElemList(
                                 listutils::basicSymbol<Relation>(),
-                                nl->Second(nl->Third(result) ) ),
-                            nl->Third(drelType));
+                                nl->Second( nl->Third( result ) ) ),
+                            nl->Third( drelType ) );
     
-    ListExpr append = nl->OneElemList( nl->TextAtom( funText ) );
+    ListExpr append = nl->OneElemList( nl->TextAtom( fun ) );
 
     return nl->ThreeElemList(
         nl->SymbolAtom(Symbols::APPEND()),
@@ -1091,22 +1166,39 @@ ListExpr drelAllUpdatesRTreeTM (ListExpr& args, string opName ){
         resType);
 }
 
+/*
+4.1.1 Type Mapping of ~drelinsertrtree~
+
+*/
+
 ListExpr drelinsertrtreeTM(ListExpr args){
     return drelAllUpdatesRTreeTM(args, "insertrtree");
 }
+
+/*
+4.1.2 Type Mapping of ~dreldeletertree~
+
+*/
 
 ListExpr dreldeletertreeTM(ListExpr args){
     return drelAllUpdatesRTreeTM(args, "deletertree");
 }
 
+/*
+4.1.3 Type Mapping of ~drelupdatertree~
+
+*/
+
 ListExpr drelupdatertreeTM(ListExpr args){
     return drelAllUpdatesRTreeTM(args, "updatertree");
 }
 
-ListExpr drelAllUpdatesBTreeTM (ListExpr& args, string opName ){
-    
-    cout << "btreeTM" << endl;
-    cout << nl->ToString( args ) << endl;
+/*
+4.2 Type Mapping function for update distributed btree
+
+*/
+
+ListExpr drelAllUpdatesBTreeTM (ListExpr& args, std::string opName ){
     
     if(!nl->HasLength(args, 4) ){
         return listutils::typeError("wrong number of arguments");
@@ -1149,18 +1241,18 @@ ListExpr drelAllUpdatesBTreeTM (ListExpr& args, string opName ){
     }
     
     //create function for dmap2 operator
-    string funText = "(fun (elem1 ARRAYFUNARG1) (elem2 ARRAYFUNARG2) "
-                     "(" + opName + " (feed elem1) elem2 " + 
+    std::string fun = "(fun (elem1 ARRAYFUNARG1) (elem2 ARRAYFUNARG2) "
+                      "(" + opName + " (feed elem1) elem2 " + 
                       nl->ToString(attrName) + "))";
 
     ListExpr resType = nl->ThreeElemList(
                             listutils::basicSymbol<DFRel>(), 
                             nl->TwoElemList(
                                 listutils::basicSymbol<Relation>(), 
-                                nl->Second(nl->Third(result) ) ), 
+                                nl->Second( nl->Third( result ) ) ), 
                             nl->Third( drelType ) );
 
-    ListExpr append = nl->OneElemList( nl->TextAtom( funText ) );
+    ListExpr append = nl->OneElemList( nl->TextAtom( fun ) );
         
     return nl->ThreeElemList(
         nl->SymbolAtom(Symbols::APPEND()),
@@ -1168,20 +1260,38 @@ ListExpr drelAllUpdatesBTreeTM (ListExpr& args, string opName ){
         resType);
 }
 
+/*
+4.2.1 Type Mapping of ~drelinsertbtree~
+
+*/
+
 ListExpr drelinsertbtreeTM(ListExpr args){
     return drelAllUpdatesBTreeTM(args, "insertbtree");
 }
 
+/*
+4.2.2 Type Mapping of ~dreldeletebtree~
+
+*/
+
 ListExpr dreldeletebtreeTM(ListExpr args){
     return drelAllUpdatesBTreeTM(args, "deletebtree");
 }
+
+/*
+4.2.3 Type Mapping of ~drelupdatebtree~
+
+*/
 
 ListExpr drelupdatebtreeTM(ListExpr args){
     return drelAllUpdatesBTreeTM(args, "updatebtree");
 }
 
 /*
-dmap2VM for Index
+4.3 Value Mapping function
+
+used by ~drelinsertrtree~, ~dreldeletertree~, ~drelupdatertree~, 
+~drelinsertbtree~, ~dreldeletebtree~, ~drelupdatebtree~ operators
 
 */
 
@@ -1197,43 +1307,32 @@ int dreldmap2IVMT(Word* args, Word& result, int message,
     FText* funText = (FText*) args[argsNum - 1].addr;
     
     result = qp->ResultStorage(s);
-    DFRel* resultDFRel = (DFRel*)result.addr; //D[f]Rel? expected
+    DFRel* resultDFRel = (DFRel*)result.addr;
     
     ListExpr arg1ptr = DRelHelpers::createdrel2darray(
                         qp->GetType( qp->GetSon(s,0) ), drel );
     ListExpr arg2ptr = DRelHelpers::createPointerList(
                         qp->GetType( qp->GetSon(s,1) ), da );
     
-    string query = "(dmap2 " + nl->ToString(arg1ptr) + nl->ToString(arg2ptr) +
-                   "\"\" " + funText->GetValue() + 
-                    boost::to_string( port->GetValue() ) + ")";
+    std::string query = "(dmap2 " + nl->ToString(arg1ptr) + 
+                                    nl->ToString(arg2ptr) +
+                        "\"\" " + funText->GetValue() + 
+                        boost::to_string( port->GetValue() ) + ")";
                     
-    ListExpr queryAsList;
-    if( !nl->ReadFromString(query, queryAsList)){
+    Word qRes;
+    if( !QueryProcessor::ExecuteQuery( query, qRes ) ) {
         resultDFRel->makeUndefined();
         return 0;
-    }
-    
-    bool correct, evaluable, defined, isFunction;
-    ListExpr resultType;
-    
-    OpTree tree = 0;
-    qp->Construct(queryAsList, correct, evaluable, defined, 
-                   isFunction, tree, resultType); 
-    qp->SetEvaluable(tree, true); 
-    
-    if(!correct || !evaluable || !defined ){
-        resultDFRel->makeUndefined();
-        return 0; //check
     } else {
-        Word qRes;
-        qp->EvalS(tree, qRes, OPEN);
-        qp->Destroy(tree, false);
-        resultDFRel = (DFRel*) qRes.addr;
-        if(resultDFRel->IsDefined()){ // not a good idea
-            resultDFRel->setDistType( drel->getDistType()->copy() );
+        DFArray* dfarray = (DFArray*) qRes.addr;
+        if( !dfarray || !dfarray->IsDefined()){
+            resultDFRel->makeUndefined();
+            delete dfarray;
+            return 0;
         }
-        result.setAddr(resultDFRel);
+        resultDFRel->copyFrom( *dfarray );
+        resultDFRel->setDistType( drel->getDistType()->copy() );
+        delete dfarray;
     }
     
     return 0;
@@ -1248,15 +1347,195 @@ int dreldmap2IUpdSelect( ListExpr args ){
     return DRel::checkType( nl->First( args ) ) ? 0 : 1;
 }
 
-ListExpr dreladdidTM ( ListExpr args ){
+/*
+4.4 Specifications
 
-    //cout << "dreladdidTM" << endl;
-    //cout << nl->ToString( args ) << endl;
+4.4.1 Specification of ~drelinsertrtree~
+
+*/
+
+OperatorSpec drelinsertrtreeSpec(
+    " d[f]rel(rel(tuple(X@[TID:tid]))) x da(rtree(tuple(X))) x attr x int"
+    "-> dfrel(rel(tuple(X@[TID:tid])))",
+    " _ _ drelinsertrtree [_, _]",
+    "Inserts references of tuples with tupleids into the "
+    "distributed rtree. ",
+    "query drel da_rtree drelinsertrtree [GeoData, 1238]"
+);
+
+/*
+4.4.2 Specification of ~dreldeletertree~
+
+*/
+
+OperatorSpec dreldeletertreeSpec( 
+    " d[f]rel(rel(tuple(X@[TID:tid]))) x da(rtree(tuple(X))) x attr x int"
+    "-> dfrel(rel(tuple(X@[TID:tid])))",
+    " _ _ dreldeletertree [_, _]",
+    "Deletes references of tuples with tupleids from the "
+    "distributed rtree. ",
+    "query drel da_rtree dreldeletertree [GeoData, 1238]"
+);
+
+/*
+4.4.3 Specification of ~drelupdatertree~
+
+*/
+
+OperatorSpec drelupdatertreeSpec( 
+    " d[f]rel(rel(tuple(X@[X1_old t1]@...[Xn_old tn]@[TID:tid]))) x"
+    " da(rtree(tuple(X))) x attr x int "
+    "-> dfrel(rel(tuple(X@[X1_old t1]@...[Xn_old tn]@[TID:tid])))",
+    " _ _ drelupdatertree [_, _]",
+    "Updates references of tuples with tupleids in the " 
+    "distributed rtree.",
+    "query drel da_rtree drelupdatertree [GeoData, 1238]"
+);
+
+/*
+4.4.4 Specification of ~drelinsertbtree~
+
+*/
+
+OperatorSpec drelinsertbtreeSpec(
+    " d[f]rel(rel(tuple(X@[TID:tid]))) x da(btree(tuple(X))) x attr x int"
+    "-> dfrel(rel(tuple(X@[TID:tid])))",
+    " _ _ drelinsertbtree [_, _]",
+    "Inserts references of tuples with tupleids into the "
+    "distributed btree. ",
+    "query drel da_btree drelinsertbtree [BevT, 1238]"
+);
+
+/*
+4.4.5 Specification of ~dreldeletebtree~
+
+*/
+
+OperatorSpec dreldeletebtreeSpec(
+    " d[f]rel(rel(tuple(X@[TID:tid]))) x da(btree(tuple(X))) x attr x int"
+    "-> dfrel(rel(tuple(X@[TID:tid])))",
+    " _ _ dreldeletebtree [_, _]",
+    "Deletes references of tuples with tupleids from the "
+    "distributed btree. ",
+    "query drel da_btree dreldeletebtree [BevT, 1238]"
+);
+
+/*
+4.4.6 Specification of ~drelupdatebtree~
+
+*/
+
+OperatorSpec drelupdatebtreeSpec( 
+    " d[f]rel(rel(tuple(X@[X1_old t1]@...[Xn_old tn]@[TID:tid]))) x"
+    " da(btree(tuple(X))) x attr x int "
+    "-> dfrel(rel(tuple(X@[X1_old t1]@...[Xn_old tn]@[TID:tid])))",
+    " _ _ drelupdatebtree [_, _]",
+    "Updates references of tuples with tupleids in the " 
+    "distributed btree.",
+    "query drel da_btree drelupdatebtree [BevT, 1238]"
+);
+
+/*
+4.5 Definitions
+
+4.5.1 Definition of ~drelinsertrtree~
+
+*/
+Operator drelinsertrtreeOp (
+    "drelinsertrtree",                
+    drelinsertrtreeSpec.getStr( ),         
+    2,
+    dreldmap2IVM,           
+    dreldmap2IUpdSelect,   
+    drelinsertrtreeTM           
+);
+
+/*
+4.5.2 Definition of ~dreldeletertree~
+
+*/
+
+Operator dreldeletertreeOp (
+    "dreldeletertree",                
+    dreldeletertreeSpec.getStr( ),         
+    2,
+    dreldmap2IVM,           
+    dreldmap2IUpdSelect,    
+    dreldeletertreeTM           
+);
+
+/*
+4.5.3 Definition of ~drelupdatertree~
+
+*/
+
+Operator drelupdatertreeOp (
+    "drelupdatertree",                
+    drelupdatertreeSpec.getStr( ),         
+    2,
+    dreldmap2IVM,           
+    dreldmap2IUpdSelect,      
+    drelupdatertreeTM           
+);
+
+/*
+4.5.4 Definition of ~drelinsertbtree~
+
+*/
+
+Operator drelinsertbtreeOp (
+    "drelinsertbtree",                
+    drelinsertbtreeSpec.getStr( ),         
+    2,
+    dreldmap2IVM,           
+    dreldmap2IUpdSelect,    
+    drelinsertbtreeTM           
+);
+
+/*
+4.5.5 Definition of ~dreldeletebtree~
+
+*/
+
+Operator dreldeletebtreeOp (
+    "dreldeletebtree",                
+    dreldeletebtreeSpec.getStr( ),         
+    2,
+    dreldmap2IVM,           
+    dreldmap2IUpdSelect,    
+    dreldeletebtreeTM           
+);
+
+/*
+4.5.6 Definition of ~drelupdatebtree~
+
+*/
+
+Operator drelupdatebtreeOp (
+    "drelupdatebtree",                
+    drelupdatebtreeSpec.getStr( ),
+    2,
+    dreldmap2IVM,           
+    dreldmap2IUpdSelect,     
+    drelupdatebtreeTM           
+);
+
+/*
+5. Operators ~dreladdid~, ~drelfilteraddid~, ~drelfilterdelete~,
+~drelfilterupdate~
+
+5.1 Type Mapping functions
+
+5.1.1 Type Mapping of ~dreladdid~
+
+*/
+
+ListExpr dreladdidTM ( ListExpr args ){
     
     if(!nl->HasLength(args, 1) ){
         return listutils::typeError("wrong number of arguments");
     }
-    ListExpr drelType = nl->First(args); //check
+    ListExpr drelType = nl->First(args); 
     if( !DRel::checkType( drelType ) && 
         !DFRel::checkType( drelType ) ){
         return listutils::typeError(
@@ -1267,16 +1546,14 @@ ListExpr dreladdidTM ( ListExpr args ){
                         nl->OneElemList(
                             nl->TwoElemList(
                                 listutils::basicSymbol<Stream<Tuple> >(),
-                                nl->Second( nl->Second(drelType) ) ) ) );
-    
-    //cout << nl->ToString(result) << endl;
+                                nl->Second( nl->Second( drelType ) ) ) ) );
     
     if(!listutils::isTupleStream( result ) ){
         return result;
     }
     
     // create function for dmap operator
-    string funText = "(fun (dmapelem1 ARRAYFUNARG1) (addid (feed dmapelem1)))";
+    std::string fun ="(fun (elem1 ARRAYFUNARG1) (addid (feed elem1)))";
     
     ListExpr resType = nl->ThreeElemList(
                             listutils::basicSymbol<DFRel>(),
@@ -1285,21 +1562,21 @@ ListExpr dreladdidTM ( ListExpr args ){
                                 nl->Second( result ) ),
                             nl->Third( drelType ) ); //distType
     
-    ListExpr append = nl->OneElemList( nl->TextAtom( funText ) );
+    ListExpr append = nl->OneElemList( nl->TextAtom( fun ) );
 
     return nl->ThreeElemList(
         nl->SymbolAtom(Symbols::APPEND()),
         append,
         resType);
 }
+
+/*
+5.1.2 Type Mapping of ~drelfilteraddid~
+
+*/
 
 ListExpr drelfilteraddidTM( ListExpr args ){
     
-    //cout << "drelfltrIDTM" << endl;
-    //cout << nl->ToString( args ) << endl;
-    
-    //"drel(rel(X)) x fun"; //dfrel
-    
     if(!nl->HasLength(args,2)){
         return listutils::typeError("wrong number of arguments");
     }
@@ -1311,74 +1588,7 @@ ListExpr drelfilteraddidTM( ListExpr args ){
     if(!DRelHelpers::isDRelDescr(nl->First(args), drelType, relType,
         distType, drelValue) ){
         return listutils::typeError(
-                "first argument is not a d[f]rel"); //d[f]rel
-    }
-    ListExpr fun, map;
-    if( !DRelHelpers::replaceDRELFUNARG( nl->Second( args ),
-        "STREAMELEM", fun, map) ){
-        return listutils::typeError(
-                "error in the function format");
-    }
-
-    ListExpr result = OperatorFilter::FilterTypeMap(
-                nl->TwoElemList(
-                    nl->TwoElemList(
-                        nl->TwoElemList(
-                            listutils::basicSymbol<Stream<Tuple> >(),
-                            nl->Second(relType) ),
-                        nl->TwoElemList(
-                            nl->SymbolAtom("feed"), //dummy
-                            drelValue ) ),
-                    nl->TwoElemList( map, fun ) ) );
-    
-    if(!listutils::isTupleStream( result ) ){
-        return result;
-    }
-    
-    ListExpr result2 = appendIdentifierTypeMap(nl->OneElemList( result ) );
-    
-    if(!listutils::isTupleStream( result2 ) ){
-        return result2;
-    }
-    
-    // create function for dmap operator
-    string funText = "(fun (dmapelem1 ARRAYFUNARG1) "
-            "(addid (filter (feed dmapelem1) " + nl->ToString(fun) + ")))";
-
-    ListExpr resType = nl->ThreeElemList(
-                            listutils::basicSymbol<DFRel>(), 
-                            nl->TwoElemList(
-                                listutils::basicSymbol<Relation>(), 
-                                nl->Second(result2) ), 
-                            distType);
-
-    ListExpr append = nl->OneElemList( nl->TextAtom( funText ) );
-        
-    return nl->ThreeElemList(
-        nl->SymbolAtom(Symbols::APPEND()),
-        append,
-        resType);
-}
-
-ListExpr drelfilterdeleteTM( ListExpr args ){
-    
-    //cout << "drelfltrdelTM" << endl;
-    //cout << nl->ToString( args ) << endl;
-    
-    //"drel(rel(X)) x fun"; //dfrel
-    
-    if(!nl->HasLength(args,2)){
-        return listutils::typeError("wrong number of arguments");
-    }
-    if(!DRelHelpers::isListOfTwoElemLists(args) ){
-        return listutils::typeError("internal error");
-    }
-    // check for correct types
-    ListExpr drelType, relType, distType, drelValue;
-    if(!DRelHelpers::isDRelDescr(nl->First(args), drelType, relType,
-        distType, drelValue) ){
-        return listutils::typeError(
-                "first argument is not a d[f]rel"); // dfrel!?
+                "first argument is not a d[f]rel"); 
     }
     ListExpr fun, map;
     if( !DRelHelpers::replaceDRELFUNARG( nl->Second( args ),
@@ -1392,7 +1602,7 @@ ListExpr drelfilterdeleteTM( ListExpr args ){
                     nl->TwoElemList(
                         nl->TwoElemList(
                             listutils::basicSymbol<Stream<Tuple> >(),
-                            nl->Second(relType) ),
+                            nl->Second( relType ) ),
                         nl->TwoElemList(
                             nl->SymbolAtom("feed"), //dummy
                             drelValue ) ),
@@ -1401,18 +1611,17 @@ ListExpr drelfilterdeleteTM( ListExpr args ){
     if(!listutils::isTupleStream( filterRes ) ){
         return filterRes;
     }
-
-    ListExpr result = insertDeleteRelTypeMap<0>( nl->TwoElemList(
-                                            filterRes, relType ) );
-
+    
+    ListExpr result = appendIdentifierTypeMap( nl->OneElemList( filterRes ) );
+    
     if(!listutils::isTupleStream( result ) ){
         return result;
     }
     
     // create function for dmap operator
-    string funText = "(fun (elem1 ARRAYFUNARG1) (deletedirect "
-        "(filter (feed elem1) " + nl->ToString(fun) + ") elem1))";
- 
+    std::string funText = "(fun (elem1 ARRAYFUNARG1) (addid (filter "
+                          "(feed elem1) " + nl->ToString(fun) + ")))";
+
     ListExpr resType = nl->ThreeElemList(
                             listutils::basicSymbol<DFRel>(), 
                             nl->TwoElemList(
@@ -1428,12 +1637,81 @@ ListExpr drelfilterdeleteTM( ListExpr args ){
         resType);
 }
 
+/*
+5.1.3 Type Mapping of ~drelfilterdelete~
+
+*/
+
+ListExpr drelfilterdeleteTM( ListExpr args ){
+    
+    if(!nl->HasLength(args,2)){
+        return listutils::typeError("wrong number of arguments");
+    }
+    if(!DRelHelpers::isListOfTwoElemLists(args) ){
+        return listutils::typeError("internal error");
+    }
+    // check for correct types
+    ListExpr drelType = nl->First( nl->First( args ) );
+    ListExpr drelValue = nl->Second( nl->First( args ) );
+    if( !DRel::checkType( drelType ) ){
+        return listutils::typeError(
+                "first argument is not a drel"); // ONLY DREL
+    }
+    ListExpr fun, map;
+    if( !DRelHelpers::replaceDRELFUNARG( nl->Second( args ),
+        "STREAMELEM", fun, map) ){
+        return listutils::typeError(
+                "error in the function format");
+    }
+
+    ListExpr filterRes = OperatorFilter::FilterTypeMap(
+                nl->TwoElemList(
+                    nl->TwoElemList(
+                        nl->TwoElemList(
+                            listutils::basicSymbol<Stream<Tuple> >(),
+                            nl->Second( nl->Second( drelType ) ) ),
+                        nl->TwoElemList(
+                            nl->SymbolAtom("feed"), //dummy
+                            drelValue ) ),
+                    nl->TwoElemList( map, fun ) ) );
+    
+    if(!listutils::isTupleStream( filterRes ) ){
+        return filterRes;
+    }
+
+    ListExpr result = insertDeleteRelTypeMap<0>( nl->TwoElemList(
+                                            filterRes, 
+                                            nl->Second( drelType ) ) );
+
+    if(!listutils::isTupleStream( result ) ){
+        return result;
+    }
+    
+    // create function for dmap operator
+    std::string funText = "(fun (elem1 ARRAYFUNARG1) (deletedirect "
+           "(filter (feed elem1) " + nl->ToString(fun) + ") elem1))";
+ 
+    ListExpr resType = nl->ThreeElemList(
+                            listutils::basicSymbol<DFRel>(), 
+                            nl->TwoElemList(
+                                listutils::basicSymbol<Relation>(), 
+                                nl->Second( result ) ), 
+                            nl->Third( drelType ) ); // distType
+
+    ListExpr append = nl->OneElemList( nl->TextAtom( funText ) );
+        
+    return nl->ThreeElemList(
+        nl->SymbolAtom(Symbols::APPEND()),
+        append,
+        resType);
+}
+
+/*
+5.1.4 Type Mapping of ~drelfilterupdate~
+
+*/
+
 ListExpr drelfilterupdateTM( ListExpr args ){
-    
-    //cout << "drelfltrupdTM" << endl;
-    //cout << nl->ToString( args ) << endl;
-    
-    //"drel(rel(X)) x filter fun x update fun "; //dfrel
     
     if(!nl->HasLength(args,3)){
         return listutils::typeError("wrong number of arguments");
@@ -1442,11 +1720,11 @@ ListExpr drelfilterupdateTM( ListExpr args ){
         return listutils::typeError("internal error");
     }
     // check for correct types
-    ListExpr drelType, relType, distType, drelValue;
-    if(!DRelHelpers::isDRelDescr(nl->First(args), drelType, relType,
-        distType, drelValue) ){
+    ListExpr drelType = nl->First( nl->First( args ) );
+    ListExpr drelValue = nl->Second( nl->First( args ) );
+    if( !DRel::checkType( drelType ) ){
         return listutils::typeError(
-                "first argument is not a d[f]rel"); // dfrel!?
+                "first argument is not a drel"); // ONLY DREL
     }
     ListExpr filter_fun, filter_map;
     if( !DRelHelpers::replaceDRELFUNARG( nl->Second( args ),
@@ -1460,7 +1738,7 @@ ListExpr drelfilterupdateTM( ListExpr args ){
                     nl->TwoElemList(
                         nl->TwoElemList(
                             listutils::basicSymbol<Stream<Tuple> >(),
-                            nl->Second(relType) ),
+                            nl->Second( nl->Second( drelType ) ) ),
                         nl->TwoElemList(
                             nl->SymbolAtom("feed"), //dummy
                             drelValue ) ),
@@ -1498,10 +1776,10 @@ ListExpr drelfilterupdateTM( ListExpr args ){
         update_funList = nl->Rest( update_funList );
     }
 
-    ListExpr result = updateDirectRelTypeMap( //updateSearchTM also possible
+    ListExpr result = updateDirectRelTypeMap( 
                             nl->ThreeElemList(
                                 filterRes,
-                                relType,
+                                nl->Second( drelType ), // relType
                                 update_mapList ) );
 
     if( !nl->HasLength(result, 3) ){
@@ -1509,7 +1787,7 @@ ListExpr drelfilterupdateTM( ListExpr args ){
     }
     
     // create function for dmap operator
-    string funText = "(fun (elem1 ARRAYFUNARG1) (updatedirect "
+    std::string funText = "(fun (elem1 ARRAYFUNARG1) (updatedirect "
           "(filter (feed elem1) " + nl->ToString(filter_fun) + ") elem1 " + 
            nl->ToString(funList_new) + "))";
            
@@ -1517,8 +1795,8 @@ ListExpr drelfilterupdateTM( ListExpr args ){
                             listutils::basicSymbol<DFRel>(), 
                             nl->TwoElemList(
                                 listutils::basicSymbol<Relation>(), 
-                                nl->Second( nl->Third(result) ) ), 
-                            distType);
+                                nl->Second( nl->Third( result ) ) ), 
+                            nl->Third( drelType ) ); //distType
 
     ListExpr append = nl->OneElemList( nl->TextAtom( funText ) );
         
@@ -1529,7 +1807,10 @@ ListExpr drelfilterupdateTM( ListExpr args ){
 }
 
 /*
-dmapVM
+5.2 Value Mapping function
+
+used by ~dreladdid~, ~drelfilteraddid~, ~drelfilterdelete~, 
+~drelfilterupdate~ operators
 
 */
 
@@ -1545,39 +1826,26 @@ int dreldmapVMT(Word* args, Word& result, int message,
     result = qp->ResultStorage(s);
     DFRel* resultDFRel = (DFRel*)result.addr;
     
-    string drelptr = nl->ToString(DRelHelpers::createdrel2darray
-                                (qp->GetType( qp->GetSon(s, 0) ), drel) );
+    ListExpr drelptr = DRelHelpers::createdrel2darray
+                            (qp->GetType( qp->GetSon(s, 0) ), drel);
 
-    string query = "(dmap " + drelptr + "\"\" " + funText->GetValue() + ")";
+    std::string query = "(dmap " + nl->ToString(drelptr) + "\"\" " + 
+                          funText->GetValue() + ")";
 
-    ListExpr queryAsList;
-    if( !nl->ReadFromString(query, queryAsList)){
+    Word qRes;
+    if( !QueryProcessor::ExecuteQuery( query, qRes ) ) {
         resultDFRel->makeUndefined();
         return 0;
-    }
-    
-    //cout<< nl->ToString(queryAsList) << endl;
-
-    bool correct, evaluable, defined, isFunction;
-    ListExpr resultType;
-    
-    OpTree tree = 0;
-    qp->Construct(queryAsList, correct, evaluable, defined, 
-                   isFunction, tree, resultType); 
-    qp->SetEvaluable(tree, true); 
-    
-    if(!correct || !evaluable || !defined ){
-        resultDFRel->makeUndefined(); //setAddr
-        return 0;
     } else {
-        Word qRes;
-        qp->EvalS(tree, qRes, OPEN);
-        qp->Destroy(tree, false);
-        resultDFRel = (DFRel*) qRes.addr;
-        if(resultDFRel->IsDefined()){
-            resultDFRel->setDistType( drel->getDistType()->copy() );
+        DFArray* dfarray = (DFArray*) qRes.addr;
+        if( !dfarray || !dfarray->IsDefined()){
+            resultDFRel->makeUndefined();
+            delete dfarray;
+            return 0;
         }
-        result.setAddr(resultDFRel);
+        resultDFRel->copyFrom( *dfarray );
+        resultDFRel->setDistType( drel->getDistType()->copy() );
+        delete dfarray;
     }
     
     return 0;
@@ -1592,15 +1860,147 @@ int dreldmapUpdSelect( ListExpr args ){
     return DRel::checkType( nl->First( args ) ) ? 0 : 1;
 }
 
+/*
+5.3 Specifications
+
+5.3.1 Specification of ~dreladdid~
+
+*/
+
+OperatorSpec dreladdidSpec( 
+    " d[f]rel(rel(tuple(X))) -> dfrel(rel(tuple(X@[TID:tid])))", 
+    " _ dreladdid",
+    "Appends tupleid attribute to each tuple of the "
+    "distributed relation. Must be applied directly "
+    "to the distributed relation, because other " 
+    "operators may corrupt tupleids.", 
+    "query drel1 dreladdid head[5] drel1 dreldeletebyid[TID, 1238]"
+);
+
+/*
+5.3.2 Specification of ~drelfilteraddid~
+
+*/
+
+OperatorSpec drelfilteraddidSpec( 
+    " d[f]rel(rel(tuple(X))) x fun -> dfrel(rel(tuple(X@[TID:tid])))", 
+    " _ drelfilteraddid [_]",
+    "Only tuples, fulfilling a certain condition are selected, "
+    "extended with the TID attribute and passed to the output "
+    "distributed relation.", 
+    "query drel1 drelfilteraddid [.No > 5] dreldeletebyid[TID, 1238]"
+);
+
+/*
+5.3.3 Specification of ~drelfilterdelete~
+
+*/
+
+OperatorSpec drelfilterdeleteSpec( 
+    "drel(rel(tuple(X))) x fun -> dfrel(rel(tuple(X@[TID:tid])))", 
+    " _ drelfilterdelete [_]",
+    "Only tuples, fulfilling a certain condition are selected "
+    "and deleted from the distributed relation. The output "
+    "distributed relation contains deleted tuples extended "
+    "with the TID attribute. ", 
+    "query drel1 drelfilterdelete[.No > 5]"
+);
+
+/*
+5.3.4 Specification of ~drelfilterupdate~
+
+*/
+
+OperatorSpec drelfilterupdateSpec( 
+    " drel(rel(tuple(X))) x fun x funlist -> "
+    " dfrel(rel(tuple(X@[X1_old t1]@...[Xn_old tn]@[TID:tid])))", 
+    " _ drelfilterupdate [filter_fun; update_funlist]",
+    "Only tuples, fulfilling a certain condition (second argument) "
+    "are selected and updated by replacing attributes as specified "
+    "in the funlist (third argument). The output "
+    "distributed relation contains updated tuples extended "
+    "with old attribute values and TID attribute. ", 
+    "query drel1 drelfilterupdate[.No > 5; No: .No + 1]"
+);
+
+/*
+5.4 Definitions
+
+5.4.1 Definition of ~dreladdid~
+
+*/
+
+Operator dreladdidOp (
+    "dreladdid",                
+    dreladdidSpec.getStr( ),
+    2,
+    dreldmapVM,           
+    dreldmapUpdSelect,     
+    dreladdidTM           
+);
+
+/*
+5.4.2 Definition of ~drelfilteraddid~
+
+*/
+
+Operator drelfilteraddidOp (
+    "drelfilteraddid",                
+    drelfilteraddidSpec.getStr( ),
+    2,
+    dreldmapVM,           
+    dreldmapUpdSelect,     
+    drelfilteraddidTM           
+);
+
+/*
+5.4.3 Definition of ~drelfilterdelete~
+
+*/
+
+Operator drelfilterdeleteOp (
+    "drelfilterdelete",                
+    drelfilterdeleteSpec.getStr( ),
+    2,
+    dreldmapVM,           
+    dreldmapUpdSelect,     
+    drelfilterdeleteTM           
+);
+
+/*
+5.4.4 Definition of ~drelfilterupdate~
+
+*/
+
+Operator drelfilterupdateOp (
+    "drelfilterupdate",                
+    drelfilterupdateSpec.getStr( ),
+    2,
+    dreldmapVM,           
+    dreldmapUpdSelect,     
+    drelfilterupdateTM           
+);
+
+/*
+6. Operators ~drelexactmatchS~, ~drelrangeS~, ~drelwindowintersectsS~
+
+6.1 Type Mapping functions
+
+6.1.1 Type Mapping of ~drelexactmatchS~, ~drelrangeS~
+ 
+*/
+
 //RANGE 2, EXACTMATCH 3
 template<int operatorId>
 ListExpr drelindexquerySTM (ListExpr args){
 
-    //nArgs 2/3
+    //check number of arguments 2/3
     if( !nl->HasLength( args, 2 ) && !nl->HasLength( args, 3 ) ){
         return listutils::typeError("wrong number of arguments");
     }
-    //list of two elements
+    if(!DRelHelpers::isListOfTwoElemLists( args ) ){
+        return listutils::typeError("internal error");
+    }
     ListExpr darrayBTreeType = nl->First( nl->First( args ) );
     if( !DArray::checkType( darrayBTreeType ) ){
         return listutils::typeError(
@@ -1608,15 +2008,15 @@ ListExpr drelindexquerySTM (ListExpr args){
     }
 
     ListExpr args2;
-    if( nl->HasLength( args, 2 ) ){
-        args2 = nl->TwoElemList(
-                    nl->Second( darrayBTreeType ),
-                    nl->First( nl->Second( args ) ) );
-    } else {
+    if( operatorId == 2 ){ 
         args2 = nl->ThreeElemList(
                     nl->Second( darrayBTreeType ),
                     nl->First( nl->Second( args ) ),
                     nl->First( nl->Third( args ) ) );
+    } else {
+        args2 = nl->TwoElemList(
+                    nl->Second( darrayBTreeType ),
+                    nl->First( nl->Second( args ) ) );
     }
     
     ListExpr result = IndexQuerySTypeMap<operatorId>( args2 );
@@ -1631,8 +2031,8 @@ ListExpr drelindexquerySTM (ListExpr args){
                                 listutils::basicSymbol<Relation>(),
                                 nl->Second( result ) ) );
 
-    string funText;
-    if(operatorId == 2){ 
+    std::string funText;
+    if( operatorId == 2 ){ 
         funText = "(fun (elem1 ARRAYFUNARG1) (rangeS elem1 " +
                 nl->ToString( nl->Second( nl->Second( args ) ) ) + " " +
                 nl->ToString( nl->Second( nl->Third( args ) ) ) + ")) ";
@@ -1649,12 +2049,19 @@ ListExpr drelindexquerySTM (ListExpr args){
         resType);
 }
 
+/*
+6.1.2 Type Mapping of ~drelwindowintersectsS~
+ 
+*/
+
 ListExpr drelwindowintersectsSTM (ListExpr args){
 
     if( !nl->HasLength( args, 2 ) ){
         return listutils::typeError("wrong number of arguments");
     }
-    //list of two elements
+    if(!DRelHelpers::isListOfTwoElemLists( args ) ){
+        return listutils::typeError("internal error");
+    }
     ListExpr darrayRTreeType = nl->First( nl->First( args ) );
     if( !DArray::checkType( darrayRTreeType ) ){
         return listutils::typeError(
@@ -1676,16 +2083,23 @@ ListExpr drelwindowintersectsSTM (ListExpr args){
                                 listutils::basicSymbol<Relation>(),
                                 nl->Second( result ) ) );
     
-    string funText = "(fun (elem1 ARRAYFUNARG1) (windowintersectsS elem1 " +
+    std::string fun = "(fun (elem1 ARRAYFUNARG1) (windowintersectsS elem1 " +
                 nl->ToString( nl->Second( nl->Second( args ) ) ) + ")) ";
                 
-    ListExpr append = nl->OneElemList( nl->TextAtom( funText ) );
+    ListExpr append = nl->OneElemList( nl->TextAtom( fun ) );
         
     return nl->ThreeElemList(
         nl->SymbolAtom(Symbols::APPEND()),
         append,
         resType);
 }
+
+/*
+6.2 Value Mapping function
+
+used by ~drelexactmatchS~, ~drelrangeS~, ~drelwindowintersectsS~ operators
+ 
+*/
 
 template<class A>
 int dreldmapSVMT(Word* args, Word& result, int message,
@@ -1699,33 +2113,18 @@ int dreldmapSVMT(Word* args, Word& result, int message,
     result = qp->ResultStorage(s);
     DFArray* resultDFArray = (DFArray*)result.addr;
     
-    string arg1ptr = nl->ToString(DRelHelpers::createPointerList
-                                (qp->GetType( qp->GetSon(s, 0) ), darray) );
+    ListExpr arg1ptr = DRelHelpers::createPointerList
+                            (qp->GetType( qp->GetSon(s, 0) ), darray);
 
-    string query = "(dmap " + arg1ptr + "\"\" " + funText->GetValue() + ")";
+    std::string query = "(dmap " + nl->ToString( arg1ptr ) + 
+                        "\"\" " + funText->GetValue() + ")";
 
-    ListExpr queryAsList;
-    if( !nl->ReadFromString(query, queryAsList)){
+    Word qRes;
+    if( !QueryProcessor::ExecuteQuery( query, qRes ) ) {
         resultDFArray->makeUndefined();
         return 0;
-    }
-    
-    bool correct, evaluable, defined, isFunction;
-    ListExpr resultType;
-    
-    OpTree tree = 0;
-    qp->Construct(queryAsList, correct, evaluable, defined, 
-                   isFunction, tree, resultType); 
-    qp->SetEvaluable(tree, true); 
-    
-    if(!correct || !evaluable || !defined ){
-        resultDFArray->makeUndefined(); //setAddr
-        return 0;
     } else {
-        Word qRes;
-        qp->EvalS(tree, qRes, OPEN);
-        qp->Destroy(tree, false);
-        resultDFArray = (DFArray*) qRes.addr; //check for defined
+        resultDFArray = (DFArray*) qRes.addr; 
         result.setAddr(resultDFArray);
     }
     
@@ -1742,171 +2141,13 @@ int dreldmapSUpdSelect( ListExpr args ){
 }
     
 /*
-1.3 Specification
+6.3 Specifications
+
+6.3.1 Specification of ~drelexactmatchS~
 
 */
 
-OperatorSpec drelinsertSpec(
-    " stream(tuple(X)) x drel(rel(tuple(X))) x int"
-    "-> dfrel(rel(tuple(X@[TID:tid])))",
-    " _ _ drelinsert [_]",
-    "Inserts tuples of the stream into the distributed relation. "
-    "The tuples to insert should not contain the partition " 
-    "attributes (Cell, Original). The third argument specifies "
-    "a port number",
-    "query rel1 feed drel1 drelinsert [1238]"
-);
-
-OperatorSpec drelinserttupleSpec(
-    " drel(rel(tuple(X))) x [t1 ... tn] x int"
-    "-> dfrel(rel(tuple(X@[TID:tid])))",
-    " _ drelinserttuple [_; _]",
-    "Inserts a new tuple with the values from "
-    "the second argument-list into the distributed relation. "
-    "The third argument specifies a port number. ",
-    "query drel1 drelinserttuple [\"Z\", 10 ; 1238]"
-);
-
-OperatorSpec dreldeleteSpec( 
-    " d[f]rel(rel(tuple(X))) x drel(rel(tuple(X))) x int"
-    "-> dfrel(rel(tuple(X@[TID:tid])))",
-    " _ _ dreldelete [_]",
-    "Deletes tuples contained in the first distributed relation "
-    "from the second distributed relation. The third argument "
-    "is a port number",
-    "query drel1 drelfilter[.No > 5] drel1 dreldelete [1238]"
-);
-
-OperatorSpec drelupdateSpec( 
-    " d[f]rel(rel(tuple(X))) x drel(rel(tuple(X))) x funlist x int"
-    "-> dfrel(rel(tuple(X@[X1_old t1]@...[Xn_old tn]@[TID:tid])))",
-    " _ _ drelupdate [_ ; _]",
-    "Updates tuples in the distributed relation given " 
-    "as second argument by replacing attributes as specified "
-    "in the funlist. The first distributed relation contains "
-    "tuples to update. ",
-    "query drel1 drelfilter[.No > 5] drel1 drelupdate [No: .No + 1; 1238]" 
-);
-
-OperatorSpec dreldeletebyidSpec( 
-    " d[f]rel(rel(tuple(X))) x drel(rel(tuple(Y))) x attr x int"
-    "-> dfrel(rel(tuple(Y@[TID:tid])))",
-    " _ _ dreldeletebyid [_ ]",
-    "Deletes tuples from the distributed relation given "
-    "as a second argument. The first distributed relation " 
-    "contains tuples to delete and specifies tupleid "
-    "by the attr argument.",
-    "query drel1 dreladdid head[5] drel1 dreldeletebyid[TID, 1238]"
-);
-
-OperatorSpec drelupdatebyidSpec( 
-    " d[f]rel(rel(tuple(X))) x drel(rel(tuple(Y))) x attr x funlist x int"
-    "-> dfrel(rel(tuple(X)))",
-    " _ _ drelupdatebyid [_ ; _; _]",
-    "Updates tuples in the distributed relation "
-    "given as a second argument. The first distributed relation " 
-    "contains tuples to update and specifies tupleid "
-    "by the attr argument. The functions may use parts " 
-    "from the first drel (dot notation) or " 
-    "from the second drel (double dot notation).",
-    "query drel1 dreladdid drel1 drelupdatebyid [TID; No: ..No + 1; 1238]"
-);
-
-OperatorSpec drelinsertrtreeSpec(
-    " d[f]rel(rel(tuple(X@[TID:tid]))) x da(rtree(tuple(X))) x attr x int"
-    "-> dfrel(rel(tuple(X@[TID:tid])))",
-    " _ _ drelinsertrtree [_, _]",
-    "Inserts references of tuples with tupleids into the "
-    "distributed rtree. ",
-    "query drel da_rtree drelinsertrtree [GeoData, 1238]"
-);
-
-OperatorSpec dreldeletertreeSpec( 
-    " d[f]rel(rel(tuple(X@[TID:tid]))) x da(rtree(tuple(X))) x attr x int"
-    "-> dfrel(rel(tuple(X@[TID:tid])))",
-    " _ _ dreldeletertree [_, _]",
-    "Deletes references of tuples with tupleids from the "
-    "distributed rtree. ",
-    "query drel da_rtree dreldeletertree [GeoData, 1238]"
-);
-
-OperatorSpec drelupdatertreeSpec( 
-    " d[f]rel(rel(tuple(X@[X1_old t1]@...[Xn_old tn]@[TID:tid]))) x"
-    " da(rtree(tuple(X))) x attr x int "
-    "-> dfrel(rel(tuple(X@[X1_old t1]@...[Xn_old tn]@[TID:tid])))",
-    " _ _ drelupdatertree [_, _]",
-    "Updates references of tuples with tupleids in the " 
-    "distributed rtree.",
-    "query drel da_rtree drelupdatertree [GeoData, 1238]"
-);
-
-OperatorSpec drelinsertbtreeSpec( //btree struct
-    " d[f]rel(rel(tuple(X@[TID:tid]))) x da(btree(tuple(X))) x attr x int"
-    "-> dfrel(rel(tuple(X@[TID:tid])))",
-    " _ _ drelinsertbtree [_, _]",
-    "Inserts references of tuples with tupleids into the "
-    "distributed btree. ",
-    "query drel da_btree drelinsertbtree [BevT, 1238]"
-);
-
-OperatorSpec dreldeletebtreeSpec( //btree struct
-    " d[f]rel(rel(tuple(X@[TID:tid]))) x da(btree(tuple(X))) x attr x int"
-    "-> dfrel(rel(tuple(X@[TID:tid])))",
-    " _ _ dreldeletebtree [_, _]",
-    "Deletes references of tuples with tupleids from the "
-    "distributed btree. ",
-    "query drel da_btree dreldeletebtree [BevT, 1238]"
-);
-
-OperatorSpec drelupdatebtreeSpec( //btree struct
-    " d[f]rel(rel(tuple(X@[X1_old t1]@...[Xn_old tn]@[TID:tid]))) x"
-    " da(btree(tuple(X))) x attr x int "
-    "-> dfrel(rel(tuple(X@[X1_old t1]@...[Xn_old tn]@[TID:tid])))",
-    " _ _ drelupdatebtree [_, _]",
-    "Updates references of tuples with tupleids in the " 
-    "distributed btree.",
-    "query drel da_btree drelupdatebtree [BevT, 1238]"
-);
-
-OperatorSpec dreladdidSpec( // check
-    " d[f]rel(rel(tuple(X))) -> dfrel(rel(tuple(x@[TID:tid])))", 
-    " _ dreladdid",
-    "Appends tupleid attribute to each tuple of the "
-    "distributed relation. Must be applied directly "
-    "to the distributed relation, because other " 
-    "operators may corrupt tupleids.", 
-    "query drel1 dreladdid head[5] drel1 dreldeletebyid[TID, 1238]"
-);
-
-OperatorSpec drelfilteraddidSpec( //check
-    " d[f]rel(rel(tuple(X))) x fun -> dfrel(rel(tuple(x@[TID:tid])))", 
-    " _ drelfilteraddid [_]",
-    "Only tuples, fulfilling a certain condition are selected, "
-    "extended with the TID attribute and passed to the output "
-    "distributed relation.", 
-    "query drel1 drelfilteraddid [.No > 5] dreldeletebyid[TID, 1238]"
-);
-
-OperatorSpec drelfilterdeleteSpec( 
-    "d[f]rel(rel(tuple(X))) x fun -> dfrel(rel(tuple(x@[TID:tid])))", 
-    " _ drelfilterdelete [_]",
-    "Only tuples, fulfilling a certain condition are selected, "
-    "extended with the TID attribute and deleted from the "
-    "distributed relation.", 
-    "query drel1 drelfilterdelete[.No > 5]"
-);
-
-OperatorSpec drelfilterupdateSpec( 
-    " d[f]rel(rel(tuple(X))) x fun x funlist -> "
-    " dfrel(rel(tuple(X@[X1_old t1]@...[Xn_old tn]@[TID:tid])))", 
-    " _ drelfilterupdate [filter_fun; update_funlist]",
-    "Only tuples, fulfilling a certain condition (second argument) "
-    "are selected and updated by replacing attributes as specified "
-    "in the funlist (third argument)", 
-    "query drel1 drelfilterupdate[.No > 5; No: .No + 1]"
-);
-
-OperatorSpec drelexactmatchSSpec( //btree struct
+OperatorSpec drelexactmatchSSpec( 
     " da(btree(tuple(X))) x ti -> dfarray(rel(tuple(Id tid)))",
     " _ drelexactmatchS [_]",
     "Uses the given distributed btree to find all tuple "
@@ -1914,15 +2155,25 @@ OperatorSpec drelexactmatchSSpec( //btree struct
     "query da_btree drelexactmatchS [10]"
 );
 
-OperatorSpec drelrangeSSpec( //btree struct
+/*
+6.3.2 Specification of ~drelrangeS~
+
+*/
+
+OperatorSpec drelrangeSSpec( 
     " da(btree(tuple(X))) x ti x ti-> dfarray(rel(tuple(Id tid)))",
-    " _ drelrangeS [_]",
+    " _ drelrangeS [_, _]",
     "Uses the given distributed btree to find all tuple "
     "identifiers where the key is between argument values ti. ",
     "query da_btree drelrangeS [5, 10]"
 );
 
-OperatorSpec drelwindowintersectsSSpec( //rtree struct
+/*
+6.3.3 Specification of ~drelwindowintersectsS~
+
+*/
+
+OperatorSpec drelwindowintersectsSSpec( 
     " da(rtree(tuple(X))) x ti -> dfarray(rel(tuple(Id tid)))",
     " _ drelwindowintersectsS [_]",
     "Uses the given distributed rtree to find all tuple "
@@ -1933,151 +2184,11 @@ OperatorSpec drelwindowintersectsSSpec( //rtree struct
 );
 
 /*
-1.4 Definition
+6.4 Definitions
+
+6.4.1 Definition of ~drelexactmatchS~
 
 */
-
-Operator drelinsertOp (
-    "drelinsert",                
-    drelinsertSpec.getStr( ),         
-    drelinsertVM,           
-    Operator::SimpleSelect,     
-    drelinsertTM           
-); 
-
-Operator drelinserttupleOp (
-    "drelinserttuple",                
-    drelinserttupleSpec.getStr( ),         
-    drelinserttupleVM,           
-    Operator::SimpleSelect,     
-    drelinserttupleTM           
-); 
-
-Operator dreldeleteOp (
-    "dreldelete",                
-    dreldeleteSpec.getStr( ),         
-    2,
-    dreldmap2VM,           
-    dreldmap2UpdSelect,      
-    dreldeleteTM           
-);
-
-Operator drelupdateOp (
-    "drelupdate",                
-    drelupdateSpec.getStr( ),         
-    2,
-    dreldmap2VM,           
-    dreldmap2UpdSelect,      
-    drelupdateTM           
-); 
-
-Operator dreldeletebyidOp (
-    "dreldeletebyid",                
-    dreldeletebyidSpec.getStr( ),         
-    2,
-    dreldmap2VM,           
-    dreldmap2UpdSelect,     
-    dreldeletebyidTM           
-);
-
-Operator drelupdatebyidOp (
-    "drelupdatebyid",                
-    drelupdatebyidSpec.getStr( ),         
-    2,
-    dreldmap2VM,           
-    dreldmap2UpdSelect,     
-    drelupdatebyidTM           
-);
-
-Operator drelinsertrtreeOp (
-    "drelinsertrtree",                
-    drelinsertrtreeSpec.getStr( ),         
-    2,
-    dreldmap2IVM,           
-    dreldmap2IUpdSelect,   
-    drelinsertrtreeTM           
-);
-
-Operator dreldeletertreeOp (
-    "dreldeletertree",                
-    dreldeletertreeSpec.getStr( ),         
-    2,
-    dreldmap2IVM,           
-    dreldmap2IUpdSelect,    
-    dreldeletertreeTM           
-);
-
-Operator drelupdatertreeOp (
-    "drelupdatertree",                
-    drelupdatertreeSpec.getStr( ),         
-    2,
-    dreldmap2IVM,           
-    dreldmap2IUpdSelect,      
-    drelupdatertreeTM           
-);
-
-Operator drelinsertbtreeOp (
-    "drelinsertbtree",                
-    drelinsertbtreeSpec.getStr( ),         
-    2,
-    dreldmap2IVM,           
-    dreldmap2IUpdSelect,    
-    drelinsertbtreeTM           
-);
-
-Operator dreldeletebtreeOp (
-    "dreldeletebtree",                
-    dreldeletebtreeSpec.getStr( ),         
-    2,
-    dreldmap2IVM,           
-    dreldmap2IUpdSelect,    
-    dreldeletebtreeTM           
-);
-
-Operator drelupdatebtreeOp (
-    "drelupdatebtree",                
-    drelupdatebtreeSpec.getStr( ),
-    2,
-    dreldmap2IVM,           
-    dreldmap2IUpdSelect,     
-    drelupdatebtreeTM           
-);
-
-Operator dreladdidOp (
-    "dreladdid",                
-    dreladdidSpec.getStr( ),
-    2,
-    dreldmapVM,           
-    dreldmapUpdSelect,     
-    dreladdidTM           
-);
-
-Operator drelfilteraddidOp (
-    "drelfilteraddid",                
-    drelfilteraddidSpec.getStr( ),
-    2,
-    dreldmapVM,           
-    dreldmapUpdSelect,     
-    drelfilteraddidTM           
-);
-
-Operator drelfilterdeleteOp (
-    "drelfilterdelete",                
-    drelfilterdeleteSpec.getStr( ),
-    2,
-    dreldmapVM,           
-    dreldmapUpdSelect,     
-    drelfilterdeleteTM           
-);
-
-Operator drelfilterupdateOp (
-    "drelfilterupdate",                
-    drelfilterupdateSpec.getStr( ),
-    2,
-    dreldmapVM,           
-    dreldmapUpdSelect,     
-    drelfilterupdateTM           
-);
 
 Operator drelexactmatchSOp (
     "drelexactmatchS",                
@@ -2088,6 +2199,11 @@ Operator drelexactmatchSOp (
     drelindexquerySTM<3>           
 );
 
+/*
+6.4.2 Definition of ~drelrangeS~
+
+*/
+
 Operator drelrangeSOp (
     "drelrangeS",                
     drelrangeSSpec.getStr( ),
@@ -2096,6 +2212,11 @@ Operator drelrangeSOp (
     dreldmapSUpdSelect,     
     drelindexquerySTM<2>             
 );
+
+/*
+6.4.3 Definition of ~drelwindowintersectsS~
+
+*/
 
 Operator drelwindowintersectsSOp (
     "drelwindowintersectsS",                
