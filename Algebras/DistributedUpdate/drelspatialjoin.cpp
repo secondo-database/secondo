@@ -51,8 +51,15 @@ ListExpr RenameTypeMap(ListExpr args);
 
 namespace drelupdate{
     
-ListExpr drelspatialjoinTM(ListExpr args){
+/*
+1. Operator ~drelspatialjoin~
 
+1.1. Type Mapping of ~drelspatialjoin~ 
+
+*/
+    
+ListExpr drelspatialjoinTM(ListExpr args){
+    
     std::string err = "d[f]rel(X) x d[f]rel(Y) x attr x attr expected";
     
     if( !nl->HasLength( args, 4 ) ){
@@ -92,7 +99,7 @@ ListExpr drelspatialjoinTM(ListExpr args){
     
     ListExpr attr1L, attr2L, attr1List, attr2List;
     attr1L = nl->Second( nl->Second( nl->Second( drel1Type ) ) );
-    attr2L = nl->Second( nl->Second( nl->Second( drel1Type ) ) ); 
+    attr2L = nl->Second( nl->Second( nl->Second( drel2Type ) ) ); 
 
     attr1List = DRelHelpers::removePartitionAttributes(attr1L, dType1);
     attr2List = DRelHelpers::removePartitionAttributes(attr2L, dType2);
@@ -113,11 +120,8 @@ ListExpr drelspatialjoinTM(ListExpr args){
                     attr2List ) ),
             nl->SymbolAtom("b") ) );
     
-    cout << "rename1Res: " << nl->ToString(rename1Res) << endl;
-    cout << "rename2Res: " << nl->ToString(rename2Res) << endl;
-    
-    string attr1 = nl->SymbolValue(attr1Name) + "_a";
-    string attr2 = nl->SymbolValue(attr2Name) + "_b";
+    std::string attr1 = nl->SymbolValue(attr1Name) + "_a";
+    std::string attr2 = nl->SymbolValue(attr2Name) + "_b";
     
     ListExpr spJoinTMresult = realJoinMMRTreeTM( nl->FourElemList(
                                             rename1Res,
@@ -252,7 +256,15 @@ ListExpr drelspatialjoinTM(ListExpr args){
                 resultType );
 }
 
-bool spatialPartition(ListExpr drel1Type, void* ptr1, string attr, 
+/*
+~spatial Partition~
+
+Repartitions the first d[f]rel by a given spatial attribute.
+Optional can be used a second d[f]rel, that already spatial partitioned.
+
+*/
+
+bool spatialPartition(ListExpr drel1Type, void* ptr1, std::string attr, 
                       ListExpr drel2Type, void* ptr2, DFRel*& resDFRel,
                       ListExpr& dfrelType){
     
@@ -271,28 +283,30 @@ bool spatialPartition(ListExpr drel1Type, void* ptr1, string attr,
     }
     
     bool correct, evaluable, defined, isFunction;
-    ListExpr resultType;
+    std::string typeString, errorString;
     
-    OpTree tree = 0;
-    qp->Construct(query, correct, evaluable, defined, 
-                    isFunction, tree, resultType); 
-    qp->SetEvaluable(tree, true); 
-    
-    if(!correct || !evaluable || !defined ){
+    Word qRes;
+    if( !QueryProcessor::ExecuteQuery( query, qRes, 
+                        typeString, errorString, 
+                        correct, evaluable, defined, isFunction ) ) {
         return false;
     } else {
-        Word qRes;
-        qp->EvalS(tree, qRes, OPEN);
-        qp->Destroy(tree, false);
-        resDFRel = ( DFRel* )qRes.addr;
-        if( !resDFRel->IsDefined() ){
+        resDFRel = (DFRel*) qRes.addr;
+        if( !resDFRel || !resDFRel->IsDefined() ) {
             return false;
         }
-        dfrelType = resultType;
+        if( !nl->ReadFromString(typeString, dfrelType) ){
+            return false;
+        }
     }
     
     return true;
 }
+
+/*
+1.2. Value Mapping of ~drelspatialjoin~
+
+*/
 
 //R1 first d[f]rel, R1 second d[f]rel, G gridType
 template<class R1, class R2, class G>
@@ -303,8 +317,8 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
     R2* drel2 = ( R2* ) args[1].addr;
     bool rel1Flag = ( (CcBool*) args[4].addr )->GetBoolval();
     bool rel2Flag = ( (CcBool*) args[5].addr )->GetBoolval();
-    string attr1 = ( (CcString*) args[6].addr )->GetValue();  
-    string attr2 = ( (CcString*) args[7].addr )->GetValue(); 
+    std::string attr1 = ( (CcString*) args[6].addr )->GetValue();  
+    std::string attr2 = ( (CcString*) args[7].addr )->GetValue(); 
     
     ListExpr drel1Type = qp->GetType( qp->GetSon(s,0) );
     ListExpr drel2Type = qp->GetType( qp->GetSon(s,1) );
@@ -393,7 +407,7 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
     }
     
     //share grid
-    string queryS = "(share2 \"grid\" " + nl->ToString(
+    std::string queryS = "(share2 \"grid\" " + nl->ToString(
                      DRelHelpers::createPointerList(
                         nl->Fourth( nl->Third( qp->GetType( s ) ) ), grid) ) +
                     " TRUE " + nl->ToString( drel1ptr ) +")";
@@ -402,17 +416,17 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
         cout << "share grid to the workers failed!" << endl;
         resultDFRel->makeUndefined();
         return 0;
-    } //not completed
+    }
                     
-    string filter1fun, filter2fun, filter3fun;
+    std::string filter1fun, filter2fun;
     
     filter1fun = "(fun (s1 STREAMELEM) (= (attr s1 Cell_a) (attr s1 Cell_b)))";
     filter2fun = "(fun (s2 STREAMELEM) (gridintersects (getObject \"grid\") "
                  "(bbox (attr s2 " + attr1 + "_a)) " 
                  "(bbox (attr s2 " + attr2 + "_b)) (attr s2 Cell_a)))";
     
-    //control attr for Cell and Original
-    string query ="(dmap2 " + nl->ToString(drel1ptr) + nl->ToString(drel2ptr) +
+    std::string query ="(dmap2 " + 
+            nl->ToString(drel1ptr) + nl->ToString(drel2ptr) +
            "\"\" (fun (elem1 ARRAYFUNARG1) (elem2 ARRAYFUNARG2) "
            "(remove (extend (filter (filter (itSpatialJoin "
            "(rename (feed elem1) a) (rename (feed elem2) b) " + attr1 + "_a " +
@@ -420,38 +434,24 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
            "(fun (t1 TUPLE) (attr t1 Cell_a))) (Original (fun (t2 TUPLE) "
            "TRUE)))) (Cell_a Original_a Cell_b Original_b))) 1238)";
             
-    ListExpr queryAsList;
-    if( !nl->ReadFromString(query, queryAsList)){
+    Word qRes;
+    if( !QueryProcessor::ExecuteQuery( query, qRes ) ) {
         resultDFRel->makeUndefined();
         return 0;
-    }
-    
-    cout << "query: " << nl->ToString(queryAsList) << endl;
-
-    bool correct, evaluable, defined, isFunction;
-    ListExpr resultType;
-    
-    OpTree tree = 0;
-    qp->Construct(queryAsList, correct, evaluable, defined, 
-                   isFunction, tree, resultType); 
-    qp->SetEvaluable(tree, true); 
-    
-    if(!correct || !evaluable || !defined ){
-        resultDFRel->makeUndefined();
-        return 0; //for distributed update also
     } else {
-        Word qRes;
-        qp->EvalS(tree, qRes, OPEN);
-        qp->Destroy(tree, false);
-        resultDFRel = (DFRel*) qRes.addr;
-        if( resultDFRel->IsDefined() ){
-            DistTypeSpatial<G>* resultDType = new DistTypeSpatial<G>( 
-                                                dType, attr, key, grid );
-            resultDFRel->setDistType( resultDType ); //new distType
+        DFArray* dfarray = (DFArray*) qRes.addr;
+        if( !dfarray || !dfarray->IsDefined()){
+            resultDFRel->makeUndefined();
+            delete dfarray;
+            return 0;
         }
-        result.setAddr(resultDFRel);
+        resultDFRel->copyFrom( *dfarray );
+        DistTypeSpatial<G>* resultDType = new DistTypeSpatial<G>( 
+                                                dType, attr, key, grid );
+        resultDFRel->setDistType( resultDType ); //new distType
+        delete dfarray;
     }
-    
+            
     return 0;
 }
 
@@ -489,7 +489,7 @@ int drelspatialjoinSelect( ListExpr args ) {
 }
 
 /*
-Specification of drelspatialjoin
+1.3. Specification of ~drelspatialjoin~
 
 */
 
@@ -497,12 +497,12 @@ OperatorSpec drelspatialjoinSpec(
     " d[f]rel(X) x d[f]rel(Y) x attr x attr "
     "-> dfrel(X@Y) ",
     " _ _ drelspatialjoin[_,_]",
-    "Computes the spatial join of two d[f]rels. ", //extend!
+    "Computes the spatial join of two d[f]rels. ", 
     " query drel1 drel2 drelspatialjoin[GeoData, GeoData]"
 );
 
 /*
-Operator instance of drelspatialjoin
+1.4. Operator instance of ~drelspatialjoin~
 
 */
 
