@@ -56,6 +56,7 @@ query setPregelFunction(Compute, NodePartition);
 
 
 4.3.1 Phase 1: Spread the Maximum Color to Neighborhood
+
 */
 query remotePregelCommand('query Nodes mfeed filter[.Active]
   projectextend[; NodeId: .Id, NodePartition: .Partition]
@@ -109,38 +110,26 @@ query startPregel(-1)
 
 
 
-query remotePregelCommand('{delete Nodes3 | let Nodes3 = Nodes mfeed consume}')
+query remotePregelCommand('{delete Nodes3 | let Nodes3 = 
+  Nodes mfeed consume}')
 
 {delete Nodes3 | let Nodes3 = createSDArray("Nodes3", Workers) dsummarize 
 consume}
 
 
 
-query remotePregelCommand('{delete Edges | let Edges = Forward mg3feed consume}')
+query remotePregelCommand('{delete Edges | let Edges = 
+  Forward mg3feed consume}')
 
-{delete Edges | let Edges = createSDArray("Edges", Workers) dsummarize consume}
+{delete Edges | let Edges = createSDArray("Edges", Workers) dsummarize 
+  consume}
 
-query Edges feed {e} Nodes3 feed filter[.State = 2] {n1} itHashJoin[Source_e, Id_n1] Nodes3 feed filter[.State = 2] {n2} itHashJoin[Target_e, Id_n2] project[Source_e, Pos_n1, Target_e, Pos_n2] extend[E: create_sline(.Pos_n1, .Pos_n2)] consume
+query Edges feed {e} Nodes3 feed filter[.State = 2] {n1} 
+  itHashJoin[Source_e, Id_n1] Nodes3 feed filter[.State = 2] {n2} 
+  itHashJoin[Target_e, Id_n2] project[Source_e, Pos_n1, Target_e, Pos_n2] 
+  extend[E: create_sline(.Pos_n1, .Pos_n2)] consume
 
 
-
-
-
-
-----
-For all nodes: send(Color, confirmColor(Id, Color));
-
-on confirmColor(Sender, X):
-  if X # Color then
-    send(Sender, colorIs(Color))
-  endif
-
-on colorIs(X):
-  if X # Color then
-    Color := X;
-    send(Color, confirmColor(Id, Color))
-  endif
-----
 
 
 
