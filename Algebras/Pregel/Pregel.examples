@@ -119,10 +119,15 @@ Operator  : initPregelMessagesWorker
 Number    : 1
 Signature :  stream(tuple(X)) -> int
 Example   : query remotePregelCommand('query msg feed initPregelMessagesWorker')
-Result    : crashes
-Remark    : under development
+Result    : unpredictable
+Remark    : The operator requires the pregel system to be initialized with setupPregel(...)
 
 
+Operator  : clearPregelMessages
+Number    : 1
+Signature :  -> bool
+Example   : query clearPregelMessages()
+Result    : TRUE
 
 
 

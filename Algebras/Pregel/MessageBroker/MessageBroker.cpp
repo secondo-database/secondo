@@ -334,4 +334,9 @@ namespace pregel {
     return inbox;
  }         
 
+ void MessageBroker::clearMessages(){
+    inbox.clear();
+ }
+
+
 }

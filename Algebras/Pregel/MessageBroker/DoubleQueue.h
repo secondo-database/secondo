@@ -73,6 +73,8 @@ namespace pregel {
 
   void bringMessagesToRound(const int round);
 
+  void clear();
+
  private:
   std::queue< std::shared_ptr<MessageWrapper> > buffers[2];
   boost::mutex lock[2];

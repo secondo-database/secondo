@@ -44,6 +44,7 @@ This file defines the members of class RemotePregelCommand
 #include <ListUtils.h>
 #include "../../../FText/FTextAlgebra.h"
 #include "Algebras/Distributed2/CommandLog.h"
+#include "QueryRunner.h"
 
 
 distributed2::CommandLog commandLog;
@@ -65,57 +66,38 @@ namespace pregel {
 
 
 
- class QueryRunner{
-   public:
-      QueryRunner(WorkerConnection* _connection, 
+ QueryRunner::QueryRunner(WorkerConnection* _connection, 
                   const std::string& _query): connection(_connection),
                                               query(_query){
 
          runner = new boost::thread(&QueryRunner::run, this);
-      }
+ }
 
-      ~QueryRunner() {
-         runner->join();
-         delete runner;
-      }
+ QueryRunner::~QueryRunner() {
+     runner->join();
+     delete runner;
+ }
 
-      std::string getResult(){
-         runner->join();
-         return result;
-      }
+ std::string QueryRunner::getResult(){
+    runner->join();
+    return result;
+ }
 
-      bool successful(){
-         runner->join();
-         return err==0;          
-      }
+ bool QueryRunner::successful(){
+    runner->join();
+    return err==0;          
+ }
 
-      std::string errorMessage(){
-          runner->join();
-          return errMsg;
-      }
+ std::string QueryRunner::errorMessage(){
+     runner->join();
+     return errMsg;
+ }
 
-
-      QueryRunner(const QueryRunner&) = delete;
-      QueryRunner(QueryRunner&& ) = delete;
-
-      
-      
-   private:
-      WorkerConnection* connection;
-      std::string query;
-      boost::thread* runner;
-      int err;
-      std::string errMsg;
-      std::string result;
-      
-
-      void run(){
-        double runtime = 0;
-        connection->simpleCommand(query, err, errMsg, result, false,
-                                  runtime, false, commandLog);
-      }
-
- };
+ void QueryRunner::run(){
+   double runtime = 0;
+   connection->simpleCommand(query, err, errMsg, result, false,
+                             runtime, false, commandLog);
+ }
 
 
  int RemotePregelCommand::valueMapping(Word *args, Word &result, int, Word &,

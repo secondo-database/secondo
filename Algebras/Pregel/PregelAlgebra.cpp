@@ -56,6 +56,7 @@ Definition of PregelAlgebra class
 #include "Operators/OnWorker/GetMessages.h"
 #include "Operators/OnWorker/StartPregelWorker.h"
 #include "Operators/OnWorker/InitPregelMessagesWorker.h"
+#include "Operators/OnWorker/ClearMessages.h"
 #include "PregelContext.h"
 #include "Helpers/Metrics.h"
 
@@ -91,6 +92,7 @@ namespace pregel {
   AddOperator(&ClosePregelWorkers::closePregelWorkers);
 
   AddOperator(&InitPregelMessagesWorker::initPregelMessagesWorker);
+  AddOperator(&ClearMessages::clearMessages);
 
  }
 

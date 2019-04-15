@@ -120,6 +120,8 @@ namespace pregel {
 
   DoubleQueue& getInBox();
 
+  void clearMessages(); 
+
  };
 }
 

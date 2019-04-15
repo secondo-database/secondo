@@ -42,6 +42,7 @@ This file contains definitions of the members of class SetPregelFunctionWorker
 #include "SetPregelFunctionWorker.h"
 #include <boost/log/trivial.hpp>
 #include "../../PregelContext.h"
+#include "../../MessageBroker/MessageBroker.h"
 
 namespace pregel {
 
@@ -107,7 +108,7 @@ namespace pregel {
  int SetPregelFunctionWorker::valueMapping(Word *args, Word &result, int,
                                            Word &, Supplier s) {
   result = qp->ResultStorage(s);
-  // ignnore actual function object at args[0]
+  // ignore actual function object at args[0]
   auto addressIndexInt = (CcInt *) args[1].addr;
   auto queryText = (FText *) args[2].addr;
 
@@ -118,6 +119,7 @@ namespace pregel {
   std::string query = queryText->GetValue();
   PregelContext::get().setFunction(query);
   PregelContext::get().setAddressIndex(addressIndex);
+  MessageBroker::get().clearMessages();
 
   ((CcBool *) result.addr)->Set(true, true);
   return 0;

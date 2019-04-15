@@ -111,4 +111,16 @@ namespace pregel {
     }
  }
 
+ void DoubleQueue::clear(){
+    MessageQueue& q1 = buffers[0];
+    while(!q1.empty()){
+      q1.pop();
+    }
+    MessageQueue& q2 = buffers[1];
+    while(!q2.empty()){
+      q2.pop();
+    }
+ }
+
+
 }
