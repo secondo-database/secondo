@@ -37,6 +37,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DRel/DRel.h"
 #include "Algebras/DRel/DRelHelpers.h"
 
+#include "Algebras/DRel/DistTypeEnum.h"
+
 #include <string.h>
 #include <iostream>
 
@@ -133,14 +135,9 @@ ListExpr drelspatialjoinTM(ListExpr args){
         return spJoinTMresult;
     }
 
-    ListExpr resAttrList = DRelHelpers::addPartitionAttributes(
-                nl->Second( nl->Second( nl->Third( spJoinTMresult ) ) ) );
-
     ListExpr resultRel = nl->TwoElemList(
-                                listutils::basicSymbol<Relation>( ),
-                                nl->TwoElemList(
-                                    listutils::basicSymbol<Tuple>( ),
-                                    resAttrList) );
+                            listutils::basicSymbol<Relation>( ),
+                            nl->Second( nl->Third( spJoinTMresult ) ) );
 
     ListExpr ftype1, ftype2;
     int pos1 = listutils::findAttribute( 
@@ -220,35 +217,17 @@ ListExpr drelspatialjoinTM(ListExpr args){
         }
     } 
 
-    //build result type
-    ListExpr resultType;
+    ListExpr resultType = nl->ThreeElemList(
+                            listutils::basicSymbol<DFRel>( ),
+                            resultRel,
+                            nl->OneElemList( nl->IntAtom( drel::random ) ) );
     
-    distributionType dType;
-    ListExpr cellgridtype;
-    if( allowedType2d_1 ) {
-        cellgridtype = listutils::
-                    basicSymbol<temporalalgebra::CellGrid2D>( );
-        dType = spatial2d;
-    } else {
-        cellgridtype = listutils::
-                    basicSymbol<temporalalgebra::CellGrid<3> >( );
-        dType = spatial3d;
-    }
-
-    resultType = nl->ThreeElemList(
-            listutils::basicSymbol<DFRel>( ),
-            resultRel,
-            nl->FourElemList( 
-                nl->IntAtom( dType ),
-                nl->IntAtom( pos1 - 1 ),
-                nl->IntAtom( rand() ),
-                cellgridtype) );
-    
-    ListExpr appendList = nl->FourElemList(
+    ListExpr appendList = nl->FiveElemList(
                             nl->BoolAtom( rel1Flag ),
                             nl->BoolAtom( rel2Flag ),
                             nl->StringAtom( nl->ToString( attr1Name ) ), 
-                            nl->StringAtom( nl->ToString( attr2Name ) ) );
+                            nl->StringAtom( nl->ToString( attr2Name ) ),
+                            nl->BoolAtom( allowedType2d_1 ) );
     
     return nl->ThreeElemList( 
                 nl->SymbolAtom( Symbols::APPEND( ) ),
@@ -304,6 +283,25 @@ bool spatialPartition(ListExpr drel1Type, void* ptr1, std::string attr,
 }
 
 /*
+~sharegrid~
+
+Distributes grid to the all workers contained within a given d[f]array.
+
+*/
+
+bool sharegrid(ListExpr gridType, void* grid, ListExpr darrayptr){
+    
+    std::string queryS = "(share2 \"grid\" " + nl->ToString(
+                     DRelHelpers::createPointerList( gridType, grid ) ) +
+                    " TRUE " + nl->ToString( darrayptr ) +")";
+    Word res;
+    if( !QueryProcessor::ExecuteQuery( queryS, res ) ) {
+        return false;
+    }
+    return true;
+}
+
+/*
 1.2. Value Mapping of ~drelspatialjoin~
 
 */
@@ -326,11 +324,7 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
     result = qp->ResultStorage( s );
     DFRel* resultDFRel = ( DFRel* )result.addr;
     
-    distributionType dType;
-    int attr, key;
-    DFRel::checkDistType( nl->Third( qp->GetType( s ) ), dType, attr, key );
-    
-    ListExpr drel1ptr, drel2ptr;
+    ListExpr drel1ptr, drel2ptr, gridType;
     G* grid = 0;
     if(rel1Flag && rel2Flag){
         
@@ -339,6 +333,7 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
         drel1ptr = DRelHelpers::createdrel2darray(drel1Type, drel1);
         drel2ptr = DRelHelpers::createdrel2darray(drel2Type, drel2);
         
+        gridType = nl->Fourth( nl->Third( drel1Type ) );
         grid = ( (DistTypeSpatial<G>*) drel1->getDistType( ) )->getGrid( );
         
     } else if(rel1Flag && !rel2Flag){ 
@@ -358,6 +353,7 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
         
         drel2ptr = DRelHelpers::createdrel2darray(dfrel2Type, dfrel2);
         
+        gridType = nl->Fourth( nl->Third( drel1Type ) );
         grid = ( (DistTypeSpatial<G>*) drel1->getDistType( ) )->getGrid( );
         
     } else if(!rel1Flag && rel2Flag){ 
@@ -376,6 +372,7 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
         drel1ptr = DRelHelpers::createdrel2darray(dfrel1Type, dfrel1);
         drel2ptr = DRelHelpers::createdrel2darray(drel2Type, drel2);
         
+        gridType = nl->Fourth( nl->Third( drel2Type ) );
         grid = ( (DistTypeSpatial<G>*) drel2->getDistType( ) )->getGrid( );
         
     } else { 
@@ -403,16 +400,12 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
         drel1ptr = DRelHelpers::createdrel2darray(dfrel1Type, dfrel1);
         drel2ptr = DRelHelpers::createdrel2darray(dfrel2Type, dfrel2);
         
+        gridType = nl->Fourth( nl->Third( dfrel1Type ) );
         grid = ( (DistTypeSpatial<G>*) dfrel1->getDistType( ) )->getGrid( ); 
     }
     
     //share grid
-    std::string queryS = "(share2 \"grid\" " + nl->ToString(
-                     DRelHelpers::createPointerList(
-                        nl->Fourth( nl->Third( qp->GetType( s ) ) ), grid) ) +
-                    " TRUE " + nl->ToString( drel1ptr ) +")";
-    Word res;
-    if( !QueryProcessor::ExecuteQuery( queryS, res ) ) {
+    if( !sharegrid(gridType, grid, drel1ptr) ){
         cout << "share grid to the workers failed!" << endl;
         resultDFRel->makeUndefined();
         return 0;
@@ -426,13 +419,12 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
                  "(bbox (attr s2 " + attr2 + "_b)) (attr s2 Cell_a)))";
     
     std::string query ="(dmap2 " + 
-            nl->ToString(drel1ptr) + nl->ToString(drel2ptr) +
-           "\"\" (fun (elem1 ARRAYFUNARG1) (elem2 ARRAYFUNARG2) "
-           "(remove (extend (filter (filter (itSpatialJoin "
-           "(rename (feed elem1) a) (rename (feed elem2) b) " + attr1 + "_a " +
-            attr2 +"_b) " + filter1fun +") " + filter2fun + ") ((Cell "
-           "(fun (t1 TUPLE) (attr t1 Cell_a))) (Original (fun (t2 TUPLE) "
-           "TRUE)))) (Cell_a Original_a Cell_b Original_b))) 1238)";
+                 nl->ToString(drel1ptr) + nl->ToString(drel2ptr) + "\"\" "
+                "(fun (elem1 ARRAYFUNARG1) (elem2 ARRAYFUNARG2) (remove "
+                "(filter (filter (itSpatialJoin (rename (feed elem1) a) "
+                "(rename (feed elem2) b) " + attr1 + "_a " + attr2 +"_b) " +
+                 filter1fun +") " + filter2fun + ") "
+                "(Cell_a Original_a Cell_b Original_b))) 1238)";
             
     Word qRes;
     if( !QueryProcessor::ExecuteQuery( query, qRes ) ) {
@@ -446,9 +438,7 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
             return 0;
         }
         resultDFRel->copyFrom( *dfarray );
-        DistTypeSpatial<G>* resultDType = new DistTypeSpatial<G>( 
-                                                dType, attr, key, grid );
-        resultDFRel->setDistType( resultDType ); //new distType
+        resultDFRel->setDistType( new DistTypeBasic( drel::random ) );
         delete dfarray;
     }
             
@@ -459,10 +449,9 @@ template<class R1, class R2>
 int drelspatialjoinVMT( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
-    distributionType dType;
-    DRelHelpers::drelCheck( qp->GetType( s ), dType );
+    bool gridType_2d = ( (CcBool*) args[8].addr )->GetBoolval();
     
-    if( dType == spatial2d ) {
+    if( gridType_2d ) {
         drelspatialjoinVMT<R1, R2, temporalalgebra::CellGrid2D>
                 ( args, result, message, local, s );
     } else {
