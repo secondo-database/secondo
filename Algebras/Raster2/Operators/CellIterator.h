@@ -337,7 +337,7 @@ class CellIterator3{
         cand[0] = hasNextX;
         cand[1] = hasNextY;
         cand[2] = hasNextT;
-        double min;
+        double min = 0.0;
         bool first = true;
         for(int i=0;i<3;i++){
            if(cand[i]){

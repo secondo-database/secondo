@@ -1472,7 +1472,7 @@ If one of the tags is not present, a undefined BBox is returned.
     int w= getWidth();
     int h = getHeight();
     double scale = getPixelScale();
-    double ties[4];
+    double ties[4] {0.0,0.0,0.0,0.0};
     if(!getModelTiePointTag(ties)){
        cout << "tiePointPixelTag missing or corrupt" << endl;
        Rectangle r(false);
