@@ -65,9 +65,87 @@ enum JoinTask : unsigned {
    merge
 };
 
+/*
+2 JoinStateMemoryInfo struct
+
+Encapsulates counters for the analysis of a JoinState's memory usage.
+
+*/
+struct JoinStateMemoryInfo {
+   /* the size of the JoinState::joinEdges vector (a copy of
+    * JoinState::joinEdgesSize) */
+   size_t joinEdgesSize;
+
+   /* the number of bytes used for the input data, i.e. the TBlocks / RBlocks
+    * stored in IOData, during the whole lifetime of this JoinState */
+   size_t usedInputDataMemory;
+
+   /* the number of bytes used temporarily in the constructor for RectangleInfo
+    * instances */
+   size_t usedRectInfoMemory;
+
+   /* the number of bytes used temporarily in the constructor for SortEdge
+    * instances */
+   size_t usedSortEdgeMemory;
+
+   /* the number of bytes used for the JoinEdge vector during the whole
+    * lifetime of this JoinState  */
+   size_t usedJoinEdgeMemory;
+
+   /* the number of bytes currently used for the Merger instance and all
+    * MergedArea instances stored in mergedAreas[]. The variable is updated
+    * whenever a mergedAreas[] entry is set */
+   size_t usedMergedAreaMemory;
+
+   /* the maximum number of bytes that occurred in usedMergedAreaMemory
+    * during the lifetime of this JoinState instance */
+   size_t usedMergedAreaMemoryMax;
+
+   /* the number of of JoinEdge instances currently stored in the
+    * Merger instance and all MergedArea instances */
+   size_t mergeJoinEdgeCount;
+
+   /* the maximum number of JoinEdge instances that were required in the
+    * Merger and MergedArea instances at any given time */
+   size_t mergeJoinEdgeCountMax;
+
+   /* initializes the memory statistics with the given information */
+   void initialize(size_t usedInputDataMemory_, size_t rectangleInfoCount,
+           size_t sortEdgeCount, size_t joinEdgeCount);
+
+   /* adds the memory used by the given MergedArea to the statistics of
+    * currently used memory */
+   inline void add(MergedAreaPtr mergedArea);
+
+   /* subtracts the memory used by the given MergedArea from the statistics of
+    * currently used memory */
+   inline void subtract(MergedAreaPtr mergedArea);
+
+   /* calculates the currently used memory (including MergedAreas and the given
+    * Merger) and possibly increases the maximum values */
+   inline void updateMaximum(Merger* merger);
+
+   /* the maximum number of main memory bytes used at any point during the
+    * lifetime of this JoinState */
+   size_t getTotalUsedMemoryMax() const;
+
+   /* returns a) the maximum number of JoinEdge instances that were required
+    * in the Merger and MergedArea instances at any given time, divided by
+    * b) the number of rectangles from both input streams (excluding those
+    * that were outside the other input stream's bounding box).
+    * This value is in [1.0, 2.0] and is useful to estimate the memory required
+    * for join operations. Samples with wide rectangles will produce a higher
+    * value than samples with narrow rectangles, since initially, left and
+    * right edges are stored for a rectangle, but as soon as a rectangle is
+    * "complete" inside a MergedArea, only one edge (the rectangle's
+    * Y-interval) is stored */
+   double getUsedJoinEdgeQuotaMax() const {
+      return mergeJoinEdgeCountMax / (joinEdgesSize  / 2.0);
+   }
+};
 
 /*
-2 JoinState class
+3 JoinState class
 
 At initialization, the JoinState class expects data from both input streams.
 Its public method nextTBlock() then fills the given outTBlock with result
@@ -93,6 +171,13 @@ class JoinState {
 
    /* the number of tuples stored in the current TBlocks (for each stream) */
    const uint64_t tupleCounts[SET_COUNT];
+
+   /* the number of the CDACSpatialJoin[Count] operator (or, more precisely,
+    * the CDACLocalInfo instance) that created this JoinState instance. This
+    * number can be used to distinguish several operators in console output */
+   const unsigned operatorNum;
+
+   const std::string outputPrefix;
 
    std::shared_ptr<Timer> timer;
 
@@ -168,34 +253,7 @@ class JoinState {
    bool joinCompleted;
 
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-   /* the number of bytes used for the input data, i.e. the TBlocks / RBlocks
-    * stored in IOData, during the whole lifetime of this JoinState */
-   size_t usedInputDataMemory;
-
-   /* the number of bytes used temporarily in the constructor for SortEdge
-    * and RectangleInfo instances */
-   size_t usedSortEdgeMemory;
-
-   /* the number of bytes used for the JoinEdge vector during the whole
-    * lifetime of this JoinState  */
-   size_t usedJoinEdgeMemory;
-
-   /* the number of bytes currently used for the Merger instance and all
-    * MergedArea instances stored in mergedAreas[]. The variable is updated
-    * whenever a mergedAreas[] entry is set */
-   size_t usedMergedAreaMemory;
-
-   /* the maximum number of bytes that occurred in usedMergedAreaMemory
-    * during the lifetime of this JoinState instance */
-   size_t usedMergedAreaMemoryMax;
-
-   /* the number of of JoinEdge instances currently stored in the
-    * Merger instance and all MergedArea instances */
-   size_t mergeJoinEdgeCount;
-
-   /* the maximum number of JoinEdge instances that were required in the
-    * Merger and MergedArea instances at any given time */
-   size_t mergeJoinEdgeCountMax;
+   JoinStateMemoryInfo memoryInfo;
 #endif
 
 public:
@@ -206,7 +264,7 @@ public:
     * outTBlockSize: the maximum size of the return TBlock in bytes;
     * joinStateId: the consecutive number of this JoinState instance */
    JoinState(bool countOnly_, InputStream* inputA_, InputStream* inputB_,
-         uint64_t outTBlockSize_, unsigned joinStateId_,
+         uint64_t outTBlockSize_, unsigned operatorNum_, unsigned joinStateId_,
          std::shared_ptr<Timer>& timer_);
 
    ~JoinState();
@@ -219,45 +277,16 @@ public:
    size_t getOutTupleCount() const { return ioData.getOutTupleCount(); }
 
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-   /* the number of bytes used for the input data, i.e. the TBlocks / RBlocks
-    * stored in IOData, during the whole lifetime of this JoinState */
-   size_t getUsedInputDataMemory() const { return usedInputDataMemory; }
-
-   /* the number of bytes used temporarily in the constructor for SortEdge
-    * and RectangleInfo instances */
-   size_t getUsedSortEdgeMemory() const { return usedSortEdgeMemory; }
-
-   /* the number of bytes used for the JoinEdge vector during the whole
-    * lifetime of this JoinState  */
-   size_t getUsedJoinEdgeMemory() const { return usedJoinEdgeMemory; }
-
-   /* the number of bytes currently used for the Merger instance and all
-    * MergedArea instances stored in mergedAreas[]. The variable is updated
-    * whenever a mergedAreas[] entry is set */
-   size_t getUsedMergedAreaMemoryMax() const { return usedMergedAreaMemoryMax;}
-
-   /* the maximum number of main memory bytes used at any point during the
-    * lifetime of this JoinState */
-   size_t getTotalUsedMemoryMax() const;
-
-   /* returns a) the maximum number of JoinEdge instances that were required
-    * in the Merger and MergedArea instances at any given time, divided by
-    * b) the number of rectangles from both input streams (excluding those
-    * that were outside the other input stream's bounding box).
-    * This value is in [1.0, 2.0] and is useful to estimate the memory required
-    * for join operations. Samples with wide rectangles will produce a higher
-    * value than samples with narrow rectangles, since initially, left and
-    * right edges are stored for a rectangle, but as soon as a rectangle is
-    * "complete" inside a MergedArea, only one edge (the rectangle's
-    * Y-interval) is stored */
-   double getUsedJoinEdgeQuotaMax() const {
-      return mergeJoinEdgeCountMax / (joinEdgesSize / 2.0);
-   }
+   const JoinStateMemoryInfo& getMemoryInfo() const { return memoryInfo; }
 #endif
 
 private:
    /* creates a new Merger for the given areas, then deletes the areas */
    inline Merger* createMerger(unsigned levelOfArea1, MergedAreaPtr area2);
+
+#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+   void reportLastMerge(MergedAreaPtr area1, MergedAreaPtr area2) const;
+#endif
 };
 
 } // end namespace

@@ -45,11 +45,14 @@ using namespace std;
 uint64_t InputStream::DEFAULT_RECTANGLE_BLOCK_SIZE = 10;
 
 InputStream::InputStream(const bool rectanglesOnly_, const unsigned attrIndex_,
-                         const unsigned attrCount_, const unsigned dim_) :
+                         const unsigned attrCount_, const unsigned dim_,
+                         const uint64_t blockSizeInMiB_) :
         rectanglesOnly(rectanglesOnly_),
         attrIndex(attrIndex_),
         attrCount(attrCount_),
         dim(dim_),
+        blockSizeInBytes(blockSizeInMiB_ *
+            CRelAlgebra::TBlockTI::blockSizeFactor),
         tBlocks {},
         rBlocks {},
         byteCount(0),
@@ -192,8 +195,9 @@ void InputStream::streamOpened() {
 */
 InputTBlockStream::InputTBlockStream(Word stream_, const bool rectanglesOnly_,
         const unsigned attrIndex_, const unsigned attrCount_,
-        const unsigned dim_) :
-        InputStream(rectanglesOnly_, attrIndex_, attrCount_, dim_),
+        const unsigned dim_, const uint64_t blockSizeInMiB_) :
+        InputStream(rectanglesOnly_, attrIndex_, attrCount_, dim_,
+                blockSizeInMiB_),
         tBlockStream(stream_) {
    tBlockStream.open();
    streamOpened();
@@ -260,11 +264,10 @@ InputTupleStream::InputTupleStream(Word stream_, const bool rectanglesOnly_,
         const unsigned attrIndex_, const unsigned attrCount_,
         const unsigned dim_, const CRelAlgebra::PTBlockInfo& blockInfo_,
         const uint64_t desiredBlockSizeInMiB_) :
-        InputStream(rectanglesOnly_, attrIndex_, attrCount_, dim_),
+        InputStream(rectanglesOnly_, attrIndex_, attrCount_, dim_,
+                    desiredBlockSizeInMiB_),
         tupleStream(stream_),
-        blockInfo(blockInfo_),
-        blockSize(desiredBlockSizeInMiB_ *
-             CRelAlgebra::TBlockTI::blockSizeFactor){
+        blockInfo(blockInfo_) {
    tupleStream.open();
    streamOpened();
 }
@@ -283,7 +286,7 @@ CRelAlgebra::TBlock* InputTupleStream::requestBlock() {
    do {
       block->Append(*tuple);
       tuple->DeleteIfAllowed();
-   } while (block->GetSize() < blockSize &&
+   } while (block->GetSize() < blockSizeInBytes &&
             (tuple = tupleStream.request()) != nullptr);
    return block;
 }

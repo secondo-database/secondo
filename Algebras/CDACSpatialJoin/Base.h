@@ -47,32 +47,50 @@ and constants used in the context of the CDACSpatialJoin(Count) operators.
 
 namespace cdacspatialjoin {
 
-/* an enumeration for the rectangle sets to be joined */
+/*
+an enumeration for the rectangle sets to be joined
+
+*/
 enum SET {
    A = 0,
    B = 1
 };
 
-/* the number of rectangle sets to be joined (always 2, but to be used for
- * semantic clarity) */
+/*
+the number of rectangle sets to be joined (always 2, but to be used for
+semantic clarity)
+
+*/
 static constexpr unsigned SET_COUNT = 2;
 
-/* the integer type used for indices in vectors of SortEdges or JoinEdges */
+/*
+the integer type used for indices in vectors of SortEdges or JoinEdges
+
+*/
 typedef uint32_t EdgeIndex_t;
 
-/* the integer type used for indices of the TBlocks or RectangleBlocks of an
- * input streams */
+/*
+the integer type used for indices of the TBlocks or RectangleBlocks of an
+input stream
+
+*/
 typedef uint32_t BlockIndex_t;
 
-/* the integer type used for indices of rows inside a TBlock */
+/*
+the integer type used for indices of rows inside a TBlock
+
+*/
 typedef uint32_t RowIndex_t;
 
-/* the integer type used to store the full "address" of a rectangle: the
- * set (= input stream A / B), the index of the TBlock (or RectangleBlock),
- * and the row inside the block. Since each rectangle requires at least
- * 32 bytes of memory and only 512 MiB are provided per operator, this type
- * must be able to address a maximum of 16 million rectangles, which easily
- * fits into a uint32_t (the number of bits used for blocks / rows is flexible
- * to adapt to very large or very many blocks) */
+/*
+the integer type used to store the full 'address' of a rectangle: the
+set (i. e. input stream A or B), the index of the TBlock (or RectangleBlock),
+and the row inside the block. Since each rectangle requires at least
+32 bytes of memory and only 512 MiB are provided per operator, this type
+must be able to address a maximum of 16 million rectangles, which easily
+fits into a uint32\_t (the number of bits used for blocks and rows is flexible
+to adapt to very large or very many blocks)
+
+*/
 typedef uint32_t SetRowBlock_t;
 }

@@ -143,12 +143,89 @@ private:
                            Word& local, Supplier s);
 };
 
+/*
+3 MemoryInfo struct
+
+Encapsulates counters for analysing the memory usage of the JoinState instances
+created by a CDACLocalInfo instance.
+
+*/
+struct MemoryInfo {
+   unsigned joinStateCount = 0;
+
+   /* the maximum number of bytes used by any JoinState for its input data
+    * (i.e. the TBlocks / RBlocks stored in IOData)  */
+   size_t maxMemInputData = 0;
+
+   /* the maximum number of bytes used by any JoinState for its SortEdge
+    * instances */
+   size_t maxMemSortEdges = 0;
+
+   /* the maximum number of bytes used by any JoinState for its RectangleInfo
+    * instances */
+   size_t maxMemRectInfos = 0;
+
+   /* the maximum number of bytes used by any JoinState for its JoinEdge
+    * vector */
+   size_t maxMemJoinEdges = 0;
+
+   /* the maximum number of bytes used by any JoinState for its Merger and
+    * MergedArea instances */
+   size_t maxMemMergedAreas = 0;
+
+   /* the total maximum number of bytes used by any JoinState. Note that this
+    * is not necessarily the same as the sum of the other maxMem... values,
+    * since those maximum values may have occurred at different times */
+   size_t maxMemTotal = 0;
+
+   /* the total number of bytes used by all JoinStates for their input data
+    * (i.e. the TBlocks / RBlocks stored in IOData)  */
+   size_t sumMemInputData = 0;
+
+   /* the total number of bytes used by all JoinStates for their SortEdge
+    * instances */
+   size_t sumMemSortEdges = 0;
+
+   /* the total number of bytes used by all JoinStates for their RectangleInfo
+    * instances */
+   size_t sumMemRectInfos  = 0;
+
+   /* the total number of bytes used by all JoinStates for their JoinEdge
+    * vector */
+   size_t sumMemJoinEdges = 0;
+
+   /* the total number of bytes used by all JoinStates for their Merger and
+    * MergedArea instances */
+   size_t sumMemMergedAreas = 0;
+
+   /* the total number of bytes used by all JoinStates. This equals the sum
+    * of the other sumMem... values */
+   size_t sumMemTotal = 0;
+
+   double maxJoinEdgeQuota = 0.0;
+
+
+   MemoryInfo() = default;
+
+   ~MemoryInfo() = default;
+
+   void add(const JoinStateMemoryInfo& joinStateInfo);
+
+   void print(std::ostream& out);
+
+private:
+   void printLine(std::ostream& out, const std::string& text,
+           size_t sumValue, size_t maxValue, const std::string& note,
+           unsigned cacheLineSize);
+};
 
 /*
-3 LocalInfo class
+4 LocalInfo class
 
 */
 class CDACLocalInfo {
+   static unsigned activeInstanceCount;
+
    /* true if this instance is used for the CDACSpatialJoinCount operator
     * (which only returns the number of intersecting rectangles);
     * false if it is used for the CDACSpatialJoin operator (which returns
@@ -177,7 +254,14 @@ class CDACLocalInfo {
    /* information on the output TBlock type; unused if countOnly == true */
    const CRelAlgebra::TBlockTI outTypeInfo;
    const CRelAlgebra::PTBlockInfo outTBlockInfo;
+
+   /* the size of the output TBlock in bytes */
    const uint64_t outTBlockSize;
+
+   /* a number with which different CDACLocalInfo instances can be
+    * distinguished in console output (e.g. if several CDACSpatialJoin[Count]
+    * operators are used within one query) */
+   const unsigned instanceNum;
 
    /* the current JoinState which operates on the data that could be read into
     * main memory */
@@ -190,28 +274,7 @@ class CDACLocalInfo {
    size_t intersectionCount;
 
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-   /* the maximum number of bytes used by any JoinState for its input data
-    * (i.e. the TBlocks / RBlocks stored in IOData)  */
-   size_t maxMemInputData = 0;
-
-   /* the maximum number of bytes used by any JoinState for its SortEdge and
-    * RectangleInfo instances */
-   size_t maxMemSortEdges = 0;
-
-   /* the maximum number of bytes used by any JoinState for its JoinEdge
-    * vector */
-   size_t maxMemJoinEdges = 0;
-
-   /* the maximum number of bytes used by any JoinState for its Merger and
-    * MergedArea instances */
-   size_t maxMemMergedAreas = 0;
-
-   /* the total maximum number of bytes used by any JoinState. Note that this
-    * is not necessarily the same as the sum of the other maxMem... values,
-    * since those maximum values may have occurred at different times */
-   size_t maxMemTotal = 0;
-
-   double maxJoinEdgeQuota = 0.0;
+   MemoryInfo memoryInfo;
 #endif
 
    std::shared_ptr<Timer> timer;
@@ -236,6 +299,8 @@ private:
     * two input TBlock / RBlock vectors, and the expected JoinState memory
     * usage */
    size_t getRequiredMemory() const;
+
+   std::string getOperatorName() const;
 }; // end class LocalInfo
 
 } // end namespace cdacspatialjoin

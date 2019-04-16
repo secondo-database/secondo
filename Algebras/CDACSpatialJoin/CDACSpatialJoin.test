@@ -219,6 +219,23 @@ query rect100 feed rect2 feed {a} cdacspatialjoin[] count;
 query rect100 feed rectBelow1 feed {a} cdacspatialjoin[] count;
 
 
+#testcase -2.6.1- feeding the result of one cdacspatialjoin into another cdacspatialjoin
+#yields (longint 147904)
+query createRectangles2D(10, 2, 0.4, 0.6, 1) {a} createRectangles2D(10, 2, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.4, 0.6, 3) {c} cdacspatialjoin[Bbox_a, Bbox_c] count;
+
+#testcase -2.6.2- feeding the results of two cdacspatialjoins into a third cdacspatialjoin
+#yields (longint 1696847)
+query createRectangles2D(10, 2, 0.4, 0.6, 1) {a} createRectangles2D(10, 2, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.3, 0.5, 3) {c} createRectangles2D(10, 2, 0.3, 0.5, 4) {d} cdacspatialjoin[Bbox_c, Bbox_d] cdacspatialjoin[Bbox_a, Bbox_d] count;
+
+#testcase -2.6.3- feeding the result of a 3D-cdacspatialjoin into a mixed 3D-/2D-cdacspatialjoin
+#yields (longint 126573)
+query createRectangles3D(10, 2, 0.4, 0.6, 1) {a} createRectangles3D(10, 2, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.4, 0.6, 3) {c} cdacspatialjoin[Bbox_a, Bbox_c] count;
+
+#testcase -2.6.4- feeding the results of two cdacspatialjoins (one 3D, the other 2D) into a third cdacspatialjoin
+#yields (longint 1300536)
+query createRectangles3D(10, 2, 0.4, 0.6, 1) {a} createRectangles3D(10, 2, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.3, 0.5, 3) {c} createRectangles2D(10, 2, 0.3, 0.5, 4) {d} cdacspatialjoin[Bbox_c, Bbox_d] cdacspatialjoin[Bbox_a, Bbox_d] count;
+
+
 ########################################
 # OPERATOR - CDACSpatialJoinCount
 ########################################
@@ -323,6 +340,22 @@ query rect100 feed rect2 feed {a} cdacspatialjoincount[];
 #yields (longint 64)
 query rect100 feed rectBelow1 feed {a} cdacspatialjoincount[];
 
+
+#testcase -3.6.1- feeding the result of a cdacspatialjoin into a cdacspatialjoincount
+#yields (longint 147904)
+query createRectangles2D(10, 2, 0.4, 0.6, 1) {a} createRectangles2D(10, 2, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.4, 0.6, 3) {c} cdacspatialjoincount[Bbox_a, Bbox_c];
+
+#testcase -3.6.2- feeding the results of two cdacspatialjoins into a cdacspatialjoincount
+#yields (longint 1696847)
+query createRectangles2D(10, 2, 0.4, 0.6, 1) {a} createRectangles2D(10, 2, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.3, 0.5, 3) {c} createRectangles2D(10, 2, 0.3, 0.5, 4) {d} cdacspatialjoin[Bbox_c, Bbox_d] cdacspatialjoincount[Bbox_a, Bbox_d];
+
+#testcase -3.6.3- feeding the result of a 3D-cdacspatialjoin into a mixed 3D-/2D-cdacspatialjoincount
+#yields (longint 126573)
+query createRectangles3D(10, 2, 0.4, 0.6, 1) {a} createRectangles3D(10, 2, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.4, 0.6, 3) {c} cdacspatialjoincount[Bbox_a, Bbox_c];
+
+#testcase -3.6.4- feeding the results of two cdacspatialjoins (one 3D, the other 2D) into a cdacspatialjoincount
+#yields (longint 1300536)
+query createRectangles3D(10, 2, 0.4, 0.6, 1) {a} createRectangles3D(10, 2, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.3, 0.5, 3) {c} createRectangles2D(10, 2, 0.3, 0.5, 4) {d} cdacspatialjoin[Bbox_c, Bbox_d] cdacspatialjoincount[Bbox_a, Bbox_d];
 
 ########################################
 # OPERATOR - cacheTest

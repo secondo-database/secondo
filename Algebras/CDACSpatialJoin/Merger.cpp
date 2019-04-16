@@ -43,12 +43,84 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace cdacspatialjoin;
 using namespace std;
 
+
+/*
+1 MergerStats struct
+
+*/
+MergerStats::MergerStats() :
+   reportPairsCount(0),
+   reportPairsSubCount(0),
+   reportPairsSub1Count(0),
+   reportPairsSub11Count(0),
+   loopStats {0} {
+}
+
+void MergerStats::add(size_t cycleCount) {
+   unsigned lbCycleCount = 0; // the binary logarithm of cycleCount
+   while (cycleCount != 0) {
+      ++lbCycleCount;
+      cycleCount >>= 1U;
+   }
+   assert (lbCycleCount < LOOP_STATS_COUNT);
+   ++loopStats[lbCycleCount];
+}
+
+void MergerStats::report(std::ostream& out) const {
+   unsigned lastEntry = 0;
+   uint64_t totalLoopCount = 0;
+   for (unsigned i = 0; i < LOOP_STATS_COUNT; ++i) {
+      if (loopStats[i] > 0) {
+         lastEntry = i;
+         totalLoopCount += loopStats[i];
+      }
+   }
+   if (lastEntry > 0) {
+      cout << endl << "Statistics for Merger::reportPairs(): "
+           << formatInt(reportPairsCount) << " calls; " << endl;
+
+      const uint64_t subSum = reportPairsSubCount + reportPairsSub1Count +
+                              reportPairsSub11Count;
+      cout << "Statistics for Merger::reportPairsSub(): "
+           << formatInt(subSum) << " calls total: " << endl;
+      cout << setw(14) << formatInt(reportPairsSubCount) << " calls "
+           << "(" << reportPairsSubCount * 100.0 / subSum << " %) "
+           << "with multiple edges in both sets + " << endl;
+      cout << setw(14) << formatInt(reportPairsSub1Count) << " calls "
+           << "(" << reportPairsSub1Count * 100.0 / subSum << " %) "
+           << "with only one edge in either of the sets + " << endl;
+      cout << setw(14) << formatInt(reportPairsSub11Count) << " calls "
+           << "(" << reportPairsSub11Count * 100.0 / subSum << " %) "
+           << "with only one edge in both of the sets" << endl;
+
+      cout << "In a total of   " << formatInt(totalLoopCount) << " loops "
+           << "in reportPairsSub() (multiple edges), the cycle count was ..."
+           << endl;
+
+      uint64_t cycleCount = 1;
+      for (unsigned i = 0; i <= lastEntry; ++i) {
+         if (i == 0 && loopStats[i] == 0)
+            continue; // skip this if such while loops are prevented
+         cout << "< " << setw(7) << formatInt(cycleCount) << ": "
+              << setw(14) << formatInt(loopStats[i]) << " loops"
+              << " (" << loopStats[i] * 100.0 / totalLoopCount << " %)" << endl;
+         cycleCount <<= 1U;
+      }
+      cout << endl;
+   }
+}
+
+
+/*
+2 Merger class
+
+*/
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-uint64_t Merger::reportPairsCount = 0;
-uint64_t Merger::reportPairsSubCount = 0;
-uint64_t Merger::reportPairsSub1Count = 0;
-uint64_t Merger::reportPairsSub11Count = 0;
-uint64_t Merger::loopStats[LOOP_STATS_COUNT];
+unique_ptr<MergerStats> Merger::stats(new MergerStats());
+
+void Merger::resetLoopStats() {
+   stats.reset(new MergerStats());
+}
 #endif
 
 Merger::Merger(MergedAreaPtr area1_, MergedAreaPtr area2_,
@@ -69,12 +141,6 @@ Merger::Merger(MergedAreaPtr area1_, MergedAreaPtr area2_,
 #ifdef CDAC_SPATIAL_JOIN_DETAILED_REPORT_TO_CONSOLE
    cout << endl;
    cout << "merge " << area1->toString() << " | " << area2->toString() << endl;
-#endif
-#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
-   if (isLastMerge) {
-      cout << "- last merge: " << formatInt(area1_->getEdgeCount()) << " + "
-           << formatInt(area2_->getEdgeCount()) << " edges " << endl;
-   }
 #endif
 
    // pre-process given areas by calculating from them the temporary vectors
@@ -175,7 +241,7 @@ bool Merger::reportPairs(const JoinEdgeVec& span,
    }
 
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-   ++reportPairsCount;
+   ++stats->reportPairsCount;
 #endif
 
    // report type completed, reset reportSubType to 0 for next reportType
@@ -218,7 +284,7 @@ bool Merger::reportPairsSub(const JoinEdgeVec& edgesS,
          // speed up the most frequent case (for many large joins, 99%)
          if (edgeTBegin.yMin > yMaxS) {
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-            addToLoopStats(0);
+            stats->add(0);
 #endif
             ++indexSBegin_;
             continue;
@@ -251,7 +317,7 @@ bool Merger::reportPairsSub(const JoinEdgeVec& edgesS,
             } // otherwise continue reporting
          }
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-         addToLoopStats(indexT_ - indexTBegin_);
+         stats->add(indexT_ - indexTBegin_);
 #endif
          indexT_ = indexTBegin_;
 
@@ -263,7 +329,7 @@ bool Merger::reportPairsSub(const JoinEdgeVec& edgesS,
          // speed up the most frequent case (for many large joins, 99%)
          if (edgeSBegin.yMin > yMaxT) {
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-            addToLoopStats(0);
+            stats->add(0);
 #endif
             ++indexTBegin_;
             continue;
@@ -296,7 +362,7 @@ bool Merger::reportPairsSub(const JoinEdgeVec& edgesS,
             } // otherwise continue reporting
          }
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-         addToLoopStats(indexS_ - indexSBegin_);
+         stats->add(indexS_ - indexSBegin_);
 #endif
          indexS_ = indexSBegin_;
 
@@ -307,7 +373,7 @@ bool Merger::reportPairsSub(const JoinEdgeVec& edgesS,
    }
 
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-   ++reportPairsSubCount;
+   ++stats->reportPairsSubCount;
 #endif
 
    // reset indices for next call
@@ -369,7 +435,7 @@ bool Merger::reportPairsSub1(const JoinEdge& edgeS,
    // now all possible intersections were reported
 
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-   ++reportPairsSub1Count;
+   ++stats->reportPairsSub1Count;
 #endif
 
    // reset indices for next call (indexSBegin and indexS were not used here)
@@ -393,7 +459,7 @@ bool Merger::reportPairsSub11(const JoinEdge& edgeS,
    }
 
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-   ++reportPairsSub11Count;
+   ++stats->reportPairsSub11Count;
 #endif
 
    // reset indices for next call
@@ -402,75 +468,6 @@ bool Merger::reportPairsSub11(const JoinEdge& edgeS,
    // report subtype completed
    return true;
 }
-
-#ifdef CDAC_SPATIAL_JOIN_METRICS
-void Merger::addToLoopStats(size_t cycleCount) {
-   unsigned lbCycleCount = 0; // the binary logarithm of cycleCount
-   while (cycleCount != 0) {
-      ++lbCycleCount;
-      cycleCount >>= 1U;
-   }
-   assert (lbCycleCount < LOOP_STATS_COUNT);
-   ++loopStats[lbCycleCount];
-}
-#endif
-
-#ifdef CDAC_SPATIAL_JOIN_METRICS
-void Merger::resetLoopStats() {
-   reportPairsCount = 0;
-   reportPairsSubCount = 0;
-   reportPairsSub1Count = 0;
-   reportPairsSub11Count = 0;
-   for (unsigned i = 0; i < LOOP_STATS_COUNT; ++i)
-      loopStats[i] = 0;
-}
-#endif
-
-#ifdef CDAC_SPATIAL_JOIN_METRICS
-void Merger::reportLoopStats(std::ostream& out) {
-   unsigned lastEntry = 0;
-   uint64_t totalLoopCount = 0;
-   for (unsigned i = 0; i < LOOP_STATS_COUNT; ++i) {
-      if (loopStats[i] > 0) {
-         lastEntry = i;
-         totalLoopCount += loopStats[i];
-      }
-   }
-   if (lastEntry > 0) {
-      cout << endl << "Statistics for Merger::reportPairs(): "
-           << formatInt(reportPairsCount) << " calls; " << endl;
-
-      const uint64_t subSum = reportPairsSubCount + reportPairsSub1Count +
-                              reportPairsSub11Count;
-      cout << "Statistics for Merger::reportPairsSub(): "
-           << formatInt(subSum) << " calls total: " << endl;
-      cout << setw(14) << formatInt(reportPairsSubCount) << " calls "
-           << "(" << reportPairsSubCount * 100.0 / subSum << " %) "
-           << "with multiple edges in both sets + " << endl;
-      cout << setw(14) << formatInt(reportPairsSub1Count) << " calls "
-           << "(" << reportPairsSub1Count * 100.0 / subSum << " %) "
-           << "with only one edge in either of the sets + " << endl;
-      cout << setw(14) << formatInt(reportPairsSub11Count) << " calls "
-           << "(" << reportPairsSub11Count * 100.0 / subSum << " %) "
-           << "with only one edge in both of the sets" << endl;
-
-      cout << "In a total of   " << formatInt(totalLoopCount) << " loops "
-           << "in reportPairsSub() (multiple edges), the cycle count was ..."
-           << endl;
-
-      uint64_t cycleCount = 1;
-      for (unsigned i = 0; i <= lastEntry; ++i) {
-         if (i == 0 && loopStats[i] == 0)
-            continue; // skip this if such while loops are prevented
-         cout << "< " << setw(7) << formatInt(cycleCount) << ": "
-              << setw(14) << formatInt(loopStats[i]) << " loops"
-              << " (" << loopStats[i] * 100.0 / totalLoopCount << " %)" << endl;
-         cycleCount <<= 1U;
-      }
-      cout << endl;
-   }
-}
-#endif
 
 void Merger::removeCompleteRectangles(
         const JoinEdgeVec& left1,
@@ -656,7 +653,6 @@ void Merger::merge(const JoinEdgeVec& source1,
       merge(source1, index1, source2, index2, dest);
 }
 
-#ifdef CDAC_SPATIAL_JOIN_METRICS
 size_t Merger::getJoinEdgeCount(const bool includeAreas) const {
    size_t joinEdgeCount =
              leftASpan.size() + rightASpan.size() + leftRightA.size()
@@ -675,4 +671,3 @@ size_t Merger::getUsedMemory() const {
        + result->getUsedMemory();
    return usedMemory;
 }
-#endif

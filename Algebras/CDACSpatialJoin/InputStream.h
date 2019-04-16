@@ -73,6 +73,9 @@ public:
    /* the dimension (2 or 3) of the join attribute */
    const unsigned dim;
 
+   /* the size of the TBlocks in bytes */
+   const uint64_t blockSizeInBytes;
+
    /* the TupleBlocks (TBlocks) received from this stream in the current
     * chunk (in case full tuples are required) */
    std::vector<CRelAlgebra::TBlock*> tBlocks;
@@ -120,7 +123,7 @@ public:
     * in main memory, otherwise full tuple information is kept. The join
     * attribute must be found at index attrIndex_; dim_ must be 2 or 3. */
    InputStream(bool rectanglesOnly_, unsigned attrIndex_, unsigned attrCount_,
-           unsigned dim_);
+           unsigned dim_, uint64_t blockSizeInMiB_);
 
    virtual ~InputStream();
 
@@ -225,7 +228,8 @@ class InputTBlockStream : public InputStream {
 
 public:
    InputTBlockStream(Word stream_, bool rectanglesOnly_, unsigned attrIndex_,
-                     unsigned attrCount_, unsigned dim_);
+                     unsigned attrCount_, unsigned dim_,
+                     uint64_t blockSizeInMiB_);
 
    ~InputTBlockStream() override;
 
@@ -250,9 +254,6 @@ private:
    /* the column configuration of the TBlocks that will be created from the
     * tuples */
    const CRelAlgebra::PTBlockInfo blockInfo;
-
-   /* the size of the TBlocks in bytes */
-   const uint64_t blockSize;
 
    /* the SmiFileId used when creating TBlocks */
    const SmiFileId fileId = 0;

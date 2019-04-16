@@ -100,16 +100,20 @@ struct MergedArea {
     * output*/
    std::string toString() const;
 
-   EdgeIndex_t getEdgeCount() const { return edgeIndexEnd - edgeIndexStart; }
+   /* returns the number of JoinEdges encompassed by this MergedArea. This
+    * refers to the x-sorted JoinState::joinEdges vector. Note that due to the
+    * "complete" vectors, this value may be higher than the value returned by
+    * getJoinEdgeCount() */
+   EdgeIndex_t getWidth() const { return edgeIndexEnd - edgeIndexStart; }
 
-#ifdef CDAC_SPATIAL_JOIN_METRICS
    /* returns the total number of JoinEdge instances stored in the various
-    * vectors of this MergedArea */
+    * vectors of this MergedArea. Note that due to the "complete" vectors, this
+    * value may be lower than the value returned by getWidth() */
    size_t getJoinEdgeCount() const;
 
-   /* returns the number of bytes currently used by this MergedArea */
+   /* returns the number of bytes currently used by this MergedArea, including
+    * the content of its vectors. */
    size_t getUsedMemory() const;
-#endif
 
 private:
    /* returns true if the counterpart (i.e. the corresponding left or right

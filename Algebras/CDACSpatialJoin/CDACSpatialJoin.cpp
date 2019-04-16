@@ -46,6 +46,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Symbols.h"
 #include "Algebras/CRel/Operators/OperatorUtils.h" // -> ListUtils.h
 #include "Algebras/Standard-C++/LongInt.h" // -> StandardTypes.h
+#include "CacheInfo.h"
 
 typedef CRelAlgebra::TBlockTI::ColumnInfo TBlockColInfo;
 
@@ -123,6 +124,7 @@ ListExpr CDACSpatialJoin::typeMapping2(const bool countOnly, ListExpr args) {
    string attrName[STREAM_COUNT];
    uint64_t attrIndex[STREAM_COUNT];
    uint64_t attrCount[STREAM_COUNT];
+   unsigned blockSize[STREAM_COUNT];
    unsigned dim[STREAM_COUNT];
 
    // get information on the two input streams
@@ -151,6 +153,7 @@ ListExpr CDACSpatialJoin::typeMapping2(const bool countOnly, ListExpr args) {
                  DEFAULT_INPUT_BLOCK_SIZE, tBlockColumns[i]);
 
       attrCount[i] = tBlockInfo[i].columnInfos.size();
+      blockSize[i] = tBlockInfo[i].GetDesiredBlockSize();
 
       // depending on whether a third / fourth argument is given, ...
       if (STREAM_COUNT + i < argCount) {
@@ -219,6 +222,7 @@ ListExpr CDACSpatialJoin::typeMapping2(const bool countOnly, ListExpr args) {
       appendEnd = nl->Append(appendEnd, nl->IntAtom(dim[i]));
       appendEnd = nl->Append(appendEnd, nl->BoolAtom(isTBlockStream[i]));
       appendEnd = nl->Append(appendEnd, nl->IntAtom(tBlockColumns[i]));
+      appendEnd = nl->Append(appendEnd, nl->IntAtom(blockSize[i]));
    }
 
    ListExpr resultType;
@@ -337,12 +341,12 @@ int CDACSpatialJoin::valueMapping2(const bool countOnly,
          size_t joinCount = localInfo->getIntersectionCount();
          qp->ResultStorage<LongInt>(result, s).Set(true, joinCount);
       }
-      delete localInfo;
-      local.addr = nullptr;
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-      Merger::reportLoopStats(cout);
+      Merger::stats->report(cout);
       Merger::resetLoopStats();
 #endif
+      delete localInfo;
+      local.addr = nullptr;
    }
 
    return 0;
@@ -353,7 +357,7 @@ InputStream* CDACSpatialJoin::createInputStream(const bool countOnly,
    // extract information about the first or second stream, creating an
    // InputStream instance for either a tuple block stream or a mere
    // tuple stream
-   unsigned argIndex = MAX_ARG_COUNT + 5 * streamIndex;
+   unsigned argIndex = MAX_ARG_COUNT + 6 * streamIndex;
    const auto attrIndex = static_cast<unsigned>(
            (static_cast<CcInt*>(args[argIndex++].addr))->GetValue());
    const auto attrCount = static_cast<unsigned>(
@@ -363,12 +367,14 @@ InputStream* CDACSpatialJoin::createInputStream(const bool countOnly,
    const auto isTBlockStream =
            (static_cast<CcBool*>(args[argIndex++].addr))->GetValue();
    const auto tBlockColumns = static_cast<ListExpr>(
+           (static_cast<CcInt*>(args[argIndex++].addr))->GetValue());
+   const auto blockSize = static_cast<uint64_t>(
            (static_cast<CcInt*>(args[argIndex].addr))->GetValue());
 
    if (isTBlockStream) {
       // input is stream of tuple blocks
       return new InputTBlockStream(args[streamIndex], countOnly, attrIndex,
-                                       attrCount, dim);
+                                       attrCount, dim, blockSize);
    } else {
       // input is stream of tuples which will be inserted into tuple
       // blocks by this operator using the DEFAULT_INPUT_BLOCK_SIZE
@@ -422,11 +428,99 @@ int CDACSpatialJoinCount::valueMapping(Word* args, Word& result, int message,
 
 // ========================================================
 /*
-1.5 LocalInfo class
-
-1.5.1 constructor
+1.5 MemoryInfo struct
 
 */
+void MemoryInfo::add(const JoinStateMemoryInfo& joinStateInfo) {
+   ++joinStateCount;
+
+   maxMemInputData = std::max(maxMemInputData,
+                              joinStateInfo.usedInputDataMemory);
+   maxMemSortEdges = std::max(maxMemSortEdges,
+                              joinStateInfo.usedSortEdgeMemory);
+   maxMemRectInfos = std::max(maxMemRectInfos,
+                              joinStateInfo.usedRectInfoMemory);
+   maxMemJoinEdges = std::max(maxMemJoinEdges,
+                              joinStateInfo.usedJoinEdgeMemory);
+   maxMemMergedAreas = std::max(maxMemMergedAreas,
+                                joinStateInfo.usedMergedAreaMemoryMax);
+   maxMemTotal = std::max(maxMemTotal,
+                          joinStateInfo.getTotalUsedMemoryMax());
+
+   sumMemInputData += joinStateInfo.usedInputDataMemory;
+   sumMemSortEdges += joinStateInfo.usedSortEdgeMemory;
+   sumMemRectInfos += joinStateInfo.usedRectInfoMemory;
+   sumMemJoinEdges += joinStateInfo.usedJoinEdgeMemory;
+   sumMemMergedAreas += joinStateInfo.usedMergedAreaMemoryMax;
+   sumMemTotal += joinStateInfo.getTotalUsedMemoryMax();
+
+   maxJoinEdgeQuota = std::max(maxJoinEdgeQuota,
+                               joinStateInfo.getUsedJoinEdgeQuotaMax());
+}
+
+void MemoryInfo::print(ostream& out) {
+   CacheInfoPtr cacheInfo = CacheInfos::getCacheInfo(CacheType::Data, 1);
+   const unsigned lineSize = cacheInfo ? cacheInfo->coherencyLineSize : 64U;
+   cout << endl;
+   if (joinStateCount > 1) {
+      cout << "Data type      |   total memory | JoinSt. max | JoinSt. avg |"
+           << " cache lines | note" << endl;
+      cout << "---------------+----------------+-------------+-------------+";
+   } else {
+      cout << "Data type      |         memory |"
+           << " cache lines | note" << endl;
+      cout << "---------------+----------------+";
+   }
+   cout << "-------------+" << string(39, '-') << endl;
+   printLine(cout, "Input data", sumMemInputData, maxMemInputData,
+             "same lifetime as respective JoinState", lineSize);
+   printLine(cout, "RectangleInfos", sumMemRectInfos, maxMemRectInfos,
+             "same lifetime as JoinState constructor", lineSize);
+   printLine(cout, "SortEdges", sumMemSortEdges, maxMemSortEdges,
+             "same lifetime as JoinState constructor", lineSize);
+   printLine(cout, "JoinEdges", sumMemJoinEdges, maxMemJoinEdges,
+             "same lifetime as respective JoinState", lineSize);
+   // for MergedAreas, memory was reserved for the worst case, i.e. for
+   // maxJoinEdgeQuota = 2.0 (which means that rectangles are very wide and
+   // JoinEdges are not moved to the "complete" set prior to the last merge)
+   // In any case, 1.0 <= maxJoinEdgeQuota <= 2.0.
+   stringstream stMaxQuota;
+   stMaxQuota << "reserved space used by max. "
+              << maxJoinEdgeQuota / 2.0 * 100.0 << "%";
+   printLine(cout, "MergedAreas", sumMemMergedAreas, maxMemMergedAreas,
+             stMaxQuota.str(), lineSize);
+
+   cout << endl << "Maximum memory used at any given time: "
+        << setw(11) << formatInt(maxMemTotal) << " bytes "
+        << "(" << formatInt(maxMemTotal >> 20U) << " MiB)" << endl;
+}
+
+void MemoryInfo::printLine(ostream& out, const string& text,
+        const size_t sumValue, const size_t maxValue, const string& note,
+        const unsigned cacheLineSize) {
+   out << text;
+   if (text.length() < 14) {
+      out << string(14 - text.length(), ' ');
+   }
+   out << " |" << setw(15) << formatInt(sumValue);
+   size_t avgValue = (joinStateCount > 0) ? sumValue / joinStateCount : 0;
+   if (joinStateCount > 1) {
+      out << " |" << setw(12) << formatInt(maxValue);
+      out << " |" << setw(12) << formatInt(avgValue);
+   }
+   out << " |" << setw(12) << formatInt(avgValue / cacheLineSize);
+   out << " | " << note << endl;
+}
+
+// ========================================================
+/*
+1.6 LocalInfo class
+
+1.6.1 constructor
+
+*/
+unsigned CDACLocalInfo::activeInstanceCount = 0;
+
 CDACLocalInfo::CDACLocalInfo(const bool countOnly_, InputStream* const input1_,
                              InputStream* const input2_, Supplier s_) :
         countOnly(countOnly_),
@@ -442,6 +536,7 @@ CDACLocalInfo::CDACLocalInfo(const bool countOnly_, InputStream* const input1_,
         outTBlockInfo(countOnly ? nullptr : outTypeInfo.GetBlockInfo()),
         outTBlockSize(countOnly ? 0 : outTypeInfo.GetDesiredBlockSize()
                     * CRelAlgebra::TBlockTI::blockSizeFactor),
+        instanceNum(++activeInstanceCount),
         joinState(nullptr),
         joinStateCount(0),
         intersectionCount(0),
@@ -468,50 +563,66 @@ CDACLocalInfo::CDACLocalInfo(const bool countOnly_, InputStream* const input1_,
 }
 
 /*
-1.5.2  destructor
+1.6.2  destructor
 
 */
 CDACLocalInfo::~CDACLocalInfo() {
-#ifdef CDAC_SPATIAL_JOIN_METRICS
-   cout << endl;
-   cout << "Maximum memory used by any JoinState at different times (bytes): "
-        << endl;
-   cout << "* Input data : " << setw(11) << formatInt(maxMemInputData)
-        << " (during JoinState lifetime)" << endl;
-   cout << "* SortEdges  : " << setw(11) << formatInt(maxMemSortEdges)
-        << " (temporary, including RectangleInfos)" << endl;
-   cout << "* JoinEdges  : " << setw(11) << formatInt(maxMemJoinEdges)
-        << " (during JoinState lifetime)" << endl;
-   cout << "* MergedAreas: " << setw(11) << formatInt(maxMemMergedAreas)
-        << " (maximum JoinEdge quota " << maxJoinEdgeQuota << ")" << endl;
-   cout << "Total maximum memory used at any given time: "
-        << setw(11) << formatInt(maxMemTotal) << " bytes "
-        << "(" << formatInt(maxMemTotal >> 20U) << " MiB)" << endl;
-#endif
-
-   // #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
    timer->stop();
-   timer->reportTable(cout, true, true, true, false, false);
-// #endif
 
+   // get operator info *before* "delete input1/2" may decrease
+   // activeInstanceCount (in case input1 and/or input2 used another
+   // CDACSpatialJoin operator)
+   stringstream opInfo;
+   if (activeInstanceCount > 1) {
+      opInfo << "operator " << instanceNum << " (" << getOperatorName() << ")";
+   } else {
+      opInfo << getOperatorName();
+   }
+   opInfo << " with "<< joinStateCount << " ";
+   opInfo << ((joinStateCount == 1) ? "JoinState" : "JoinStates");
+
+   // delete members
    delete joinState;
    delete input1;
    delete input2;
+
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+   // print memoryInfo (only after input1 and input2 were deleted: if input1
+   // and/or input2 used another CDACSpatialJoin operator, their memoryInfo
+   // (and timer) gets reported first which is more intuitive)
+   cout << endl << "Memory (in bytes and cache lines) used for "
+        << opInfo.str() << ":" << endl;
+   memoryInfo.print(cout);
+#endif
+
+// #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+   cout << endl << "Time used for " << opInfo.str() << ":" << endl;
+   timer->reportTable(cout, true, true, true, false, false);
+// #endif
+
+   --activeInstanceCount;
 }
 
 /*
-1.5.3 support functions
+1.6.3 support functions
 
 */
 void CDACLocalInfo::requestInput() {
-   while ((getRequiredMemory() < memLimit)
-         && (!input1->isDone() || !input2->isDone())) {
-      if (input1->isDone())
+   uint64_t blockSize1 = input1->blockSizeInBytes;
+   uint64_t blockSize2 = input2->blockSizeInBytes;
+   while (true) {
+      uint64_t usedMemory = getRequiredMemory();
+      bool deny1 = input1->isDone() || usedMemory + blockSize1 >= memLimit;
+      bool deny2 = input2->isDone() || usedMemory + blockSize2 >= memLimit;
+
+      if (deny1 && deny2)
+         break;
+      else if (deny1)
          input2->request();
-      else if (input2->isDone())
+      else if (deny2)
          input1->request();
       else {
-         // both streams are not done; choose the stream from which fewer
+         // both streams may be requested; choose the stream from which fewer
          // tuples have been read so far
          if (input1->getCurrentTupleCount() > input2->getCurrentTupleCount()
              || input1->isAverageTupleCountExceeded()) {
@@ -524,11 +635,6 @@ void CDACLocalInfo::requestInput() {
 }
 
 size_t CDACLocalInfo::getRequiredMemory() const {
-   // TODO: hier noch Parameter "unsigned addTupleBlocks" hinzufügen
-   // und mit (1) aufrufen, da ja geprüft werden soll, ob noch ein weiterer
-   // TBlock im Speicher Platz findet! Außerdem müsste für den outTBlock
-   // Platz reserviert werden ... dessen Größe müsste hier also bekannt sein
-
    const size_t tupleSum = input1->getCurrentTupleCount() +
            input2->getCurrentTupleCount();
 
@@ -555,8 +661,12 @@ size_t CDACLocalInfo::getRequiredMemory() const {
          std::max(joinStateConstruction, joinStateExecution);
 }
 
+string CDACLocalInfo::getOperatorName() const {
+   return countOnly ? "CDACSpatialJoinCount" : "CDACSpatialJoin";
+}
+
 /*
-1.5.4 getNext() function
+1.6.4 getNext() function
 
 */
 CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
@@ -580,18 +690,7 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
          intersectionCount += joinState->getOutTupleCount();
 
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-         maxMemInputData = std::max(maxMemInputData,
-                 joinState->getUsedInputDataMemory());
-         maxMemSortEdges = std::max(maxMemSortEdges,
-                 joinState->getUsedSortEdgeMemory());
-         maxMemJoinEdges = std::max(maxMemJoinEdges,
-                 joinState->getUsedJoinEdgeMemory());
-         maxMemMergedAreas = std::max(maxMemMergedAreas,
-                 joinState->getUsedMergedAreaMemoryMax());
-         maxMemTotal = std::max(maxMemTotal,
-                 joinState->getTotalUsedMemoryMax());
-         maxJoinEdgeQuota = std::max(maxJoinEdgeQuota,
-                 joinState->getUsedJoinEdgeQuotaMax());
+         memoryInfo.add(joinState->getMemoryInfo());
 #endif
          delete joinState;
          joinState = nullptr;
@@ -625,7 +724,7 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
          }
          timer->stop();
 #ifndef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
-         cout << "\r" << string(82, ' ') << "\r" << flush;
+         cout << "\r" << string(100, ' ') << "\r" << flush;
 #endif
          return nullptr;
 
@@ -637,16 +736,20 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
          timer->start(JoinTask::requestData);
          if (input1->isFullyLoaded()) {
             // continue reading from input2
+            uint64_t blockSize2 = input2->blockSizeInBytes;
             input2->clearMem();
             do {
                input2->request();
-            } while (!input2->isDone() && getRequiredMemory() < memLimit);
+            } while (!input2->isDone() &&
+                  getRequiredMemory() + blockSize2 < memLimit);
          } else if (!input1->isDone()) {
             // continue reading from input1
+            uint64_t blockSize1 = input1->blockSizeInBytes;
             input1->clearMem();
             do {
                input1->request();
-            } while (!input1->isDone() && getRequiredMemory() < memLimit);
+            } while (!input1->isDone() &&
+                  getRequiredMemory() + blockSize1 < memLimit);
          } else {
             // input1 is done, but input2 is not
             input1->clearMem();
@@ -666,20 +769,33 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
          assert (!joinState);
 
 #ifndef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
-         cout << "\r" << "running "
-              << (countOnly ? "CDACSpatialJoinCount" : "CDACSpatialJoin");
-         if (joinStateCount > 0) {
-            cout << ": " << setw(11) << formatInt(intersectionCount)
-                 << " intersections found in " << joinStateCount
-                 << (joinStateCount == 1 ? " JoinState " : " JoinStates");
+         // only report the progress of the last instance (if several
+         // CDACSpatialJoin[Count] operators are used within one query)
+         if (instanceNum == activeInstanceCount) {
+            cout << "\r" << "running "
+                 << (countOnly ? "CDACSpatialJoinCount" : "CDACSpatialJoin");
+            if (instanceNum > 1)
+               cout << " operator " << instanceNum;
+            if (joinStateCount > 0) {
+               cout << ": " << setw(11) << formatInt(intersectionCount)
+                    << " intersections found in " << joinStateCount
+                    << (joinStateCount == 1 ? " JoinState " : " JoinStates");
+            }
+            cout << "..." << flush;
          }
-         cout << "..." << flush;
 #endif
 
          timer->start(JoinTask::createJoinState);
          ++joinStateCount;
          joinState = new JoinState(countOnly, input1, input2, outTBlockSize,
-                 joinStateCount, timer);
+                 instanceNum, joinStateCount, timer);
+      } else {
+         // a "requestData" task was started above but both input streams were
+         // actually done; do not count this as a "requestData" instance
+         // to avoid distortion of the average requestData time
+         Task* curTask = timer->getCurrentTask();
+         if (curTask)
+            curTask->decreaseCount();
       }
 
    } // end of while loop

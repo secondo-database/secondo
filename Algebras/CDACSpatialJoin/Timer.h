@@ -154,7 +154,9 @@ public:
     * printed */
    void reportTable(std::ostream& out, bool reportCount, bool reportSum,
                     bool reportAvg, bool reportMin, bool reportMax,
-                    unsigned maxNameLength) const;
+                    bool reportPAPI, unsigned maxNameLength) const;
+
+   void decreaseCount() { --count; }
 
    /* returns the number of times this task was started and stopped so far */
    size_t getCount() const { return count; }
@@ -277,6 +279,9 @@ class Timer {
    clock_t lastTime = 0;
 
 #ifdef TIMER_USES_PAPI
+   /* is set to true if this Timer instance started the PAPI counters */
+   bool startedPAPI = false;
+
    /* the number of Level 1 Instruction Cache misses measured for the Task
     * call that was last stopped */
    size_t lastL1InstrMisses = 0;
@@ -293,6 +298,11 @@ class Timer {
     * call that was last stopped */
    size_t lastL3Misses = 0;
 #endif
+
+   /* is set to true if this Timer instance used PAPI counters at least once
+    * (if two or more CDACSpatialJoin operators work simultaneously, this may
+    * not be the case for one of the operators' timers) */
+   bool reportPAPI = false;
 
 public:
    /* instantiates a Timer for the given number of different task types and

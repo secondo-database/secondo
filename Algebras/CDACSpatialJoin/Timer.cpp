@@ -128,6 +128,7 @@ void Task::report(ostream& out) {
 void Task::reportTable(std::ostream& out, const bool reportCount,
                         const bool reportSum, const bool reportAvg,
                         const bool reportMin, const bool reportMax,
+                        const bool reportPAPI,
                         const unsigned maxNameLength) const {
 
    // set fill character ' ' (is set to '0' by Query Progress Estimation)
@@ -152,20 +153,24 @@ void Task::reportTable(std::ostream& out, const bool reportCount,
       out << setw(maxTimeWidth - 1) << formatMillis(maxTime) << " |";
 
 #ifdef TIMER_USES_PAPI
-   // report the desired cache miss information
-   if (reportSum) {
-      out << setw(sumL1IWidth - 1) << formatInt(sumL1InstrMisses) << " |";
-      out << setw(sumL1DWidth - 1) << formatInt(sumL1DataMisses) << " |";
-      out << setw(sumL2UWidth - 1) << formatInt(sumL2Misses) << " |";
-      out << setw(sumL3UWidth - 1) << formatInt(sumL3Misses) << " |";
-   }
-   if (reportAvg) {
-      out << setw(avgL1IWidth - 1) << formatInt(getAvgL1InstrCacheMisses())
-          << " |";
-      out << setw(avgL1IWidth - 1) << formatInt(getAvgL1DataCacheMisses())
-          << " |";
-      out << setw(avgL1IWidth - 1) << formatInt(getAvgL2CacheMisses()) << " |";
-      out << setw(avgL1IWidth - 1) << formatInt(getAvgL3CacheMisses()) << " |";
+   if (reportPAPI) {
+      // report the cache miss information
+      if (reportSum) {
+         out << setw(sumL1IWidth - 1) << formatInt(sumL1InstrMisses) << " |";
+         out << setw(sumL1DWidth - 1) << formatInt(sumL1DataMisses) << " |";
+         out << setw(sumL2UWidth - 1) << formatInt(sumL2Misses) << " |";
+         out << setw(sumL3UWidth - 1) << formatInt(sumL3Misses) << " |";
+      }
+      if (reportAvg) {
+         out << setw(avgL1IWidth - 1) << formatInt(getAvgL1InstrCacheMisses())
+             << " |";
+         out << setw(avgL1DWidth - 1) << formatInt(getAvgL1DataCacheMisses())
+             << " |";
+         out << setw(avgL2UWidth - 1) << formatInt(getAvgL2CacheMisses())
+             << " |";
+         out << setw(avgL3UWidth - 1) << formatInt(getAvgL3CacheMisses())
+             << " |";
+      }
    }
 #endif
    out << endl;
@@ -236,17 +241,21 @@ void Timer::start(const unsigned taskID /* = 0 */) {
    startTime = clock();
 
 #ifdef TIMER_USES_PAPI
-   // ensure that no Task is currently running in another Timer instance
-   // (this is only necessary if PAPI is being used, as otherwise overlapping
-   // measurements pose no problem)
-   assert (!papiCountersRunning);
-   // set the static variable 'papiCountersRunning' to true to prevent other
-   // Timer instances from simultaneously starting a task
-   papiCountersRunning = true;
+   // ensure that no PAPI counters are not already started by another Timer
+   // instance (this precaution only necessary if PAPI is being used, as
+   // otherwise overlapping measurements pose no problem)
+   if (!papiCountersRunning) {
+      // set the static variable 'papiCountersRunning' to true to prevent other
+      // Timer instances from simultaneously starting PAPI counters
+      papiCountersRunning = true;
 
-   // Start counting hardware events
-   if (PAPI_start_counters(papiEvents, papiEventCount) != PAPI_OK)
-      handlePapiError(1);
+      // remember that this Timer instance started the PAPI counters
+      startedPAPI = true;
+
+      // Start counting hardware events
+      if (PAPI_start_counters(papiEvents, papiEventCount) != PAPI_OK)
+         handlePapiError(1);
+   }
 #endif
 
    currentTask = taskID;
@@ -259,18 +268,26 @@ clock_t Timer::stop() {
    lastTime = clock() - startTime;
 
 #ifdef TIMER_USES_PAPI
-   // Stop counting hardware events
-   long long int papiValues[papiEventCount];
-   if (PAPI_stop_counters(papiValues, papiEventCount) != PAPI_OK)
-      handlePapiError(1);
-   papiCountersRunning = false;
+   // only if this Timer instance started the PAPI counters, ...
+   if (startedPAPI) {
+      // ... stop counting hardware events
+      long long int papiValues[papiEventCount];
+      if (PAPI_stop_counters(papiValues, papiEventCount) != PAPI_OK)
+         handlePapiError(1);
+      papiCountersRunning = false;
+      startedPAPI = false;
+      reportPAPI = true;
 
-   lastL1InstrMisses = static_cast<size_t>(papiValues[0]);
-   lastL1DataMisses = static_cast<size_t>(papiValues[1]);
-   lastL2Misses = static_cast<size_t>(papiValues[2]);
-   lastL3Misses = static_cast<size_t>(papiValues[3]);
-   tasks[currentTask].add(lastTime, lastL1InstrMisses, lastL1DataMisses,
-           lastL2Misses, lastL3Misses);
+      lastL1InstrMisses = static_cast<size_t>(papiValues[0]);
+      lastL1DataMisses = static_cast<size_t>(papiValues[1]);
+      lastL2Misses = static_cast<size_t>(papiValues[2]);
+      lastL3Misses = static_cast<size_t>(papiValues[3]);
+      tasks[currentTask].add(lastTime, lastL1InstrMisses, lastL1DataMisses,
+                             lastL2Misses, lastL3Misses);
+   } else {
+      // otherwise ignore PAPI counters
+      tasks[currentTask].add(lastTime);
+   }
 #else
    tasks[currentTask].add(lastTime);
 #endif
@@ -294,6 +311,7 @@ void Timer::reset() {
    // reset all tasks
    for (Task& task : tasks)
       task.reset();
+   reportPAPI = false;
 }
 
 void Timer::reportTable(std::ostream& out, const bool reportCount,
@@ -323,17 +341,19 @@ void Timer::reportTable(std::ostream& out, const bool reportCount,
 
 #ifdef TIMER_USES_PAPI
    // c) cache columns
-   if (reportSum) {
-      out << setw(Task::sumL1IWidth - 1) << right << "L1-Instr Miss" << " |";
-      out << setw(Task::sumL1DWidth - 1) << right << "L1-Data Miss" << " |";
-      out << setw(Task::sumL2UWidth - 1) << right << "L2 Miss" << " |";
-      out << setw(Task::sumL3UWidth - 1) << right << "L3 Miss" << " |";
-   }
-   if (reportAvg) {
-      out << setw(Task::avgL1IWidth - 1) << right << "L1-I Miss-avg" << " |";
-      out << setw(Task::avgL1DWidth - 1) << right << "L1-D Miss-avg" << " |";
-      out << setw(Task::avgL2UWidth - 1) << right << "L2 Miss-avg" << " |";
-      out << setw(Task::avgL3UWidth - 1) << right << "L3 Miss-avg" << " |";
+   if (reportPAPI) {
+      if (reportSum) {
+         out << setw(Task::sumL1IWidth - 1) << right << "L1-Instr Miss" << " |";
+         out << setw(Task::sumL1DWidth - 1) << right << "L1-Data Miss" << " |";
+         out << setw(Task::sumL2UWidth - 1) << right << "L2 Miss" << " |";
+         out << setw(Task::sumL3UWidth - 1) << right << "L3 Miss" << " |";
+      }
+      if (reportAvg) {
+         out << setw(Task::avgL1IWidth - 1) << right << "L1-I Miss-avg" << " |";
+         out << setw(Task::avgL1DWidth - 1) << right << "L1-D Miss-avg" << " |";
+         out << setw(Task::avgL2UWidth - 1) << right << "L2 Miss-avg" << " |";
+         out << setw(Task::avgL3UWidth - 1) << right << "L3 Miss-avg" << " |";
+      }
    }
 #endif
    out << endl;
@@ -361,17 +381,19 @@ void Timer::reportTable(std::ostream& out, const bool reportCount,
 
 #ifdef TIMER_USES_PAPI
       // c) cache columns
-      if (reportSum) {
-         out << string(Task::sumL1IWidth, '-') << "+";
-         out << string(Task::sumL1DWidth, '-') << "+";
-         out << string(Task::sumL2UWidth, '-') << "+";
-         out << string(Task::sumL3UWidth, '-') << "+";
-      }
-      if (reportAvg) {
-         out << string(Task::avgL1IWidth, '-') << "+";
-         out << string(Task::avgL1DWidth, '-') << "+";
-         out << string(Task::avgL2UWidth, '-') << "+";
-         out << string(Task::avgL3UWidth, '-') << "+";
+      if (reportPAPI) {
+         if (reportSum) {
+            out << string(Task::sumL1IWidth, '-') << "+";
+            out << string(Task::sumL1DWidth, '-') << "+";
+            out << string(Task::sumL2UWidth, '-') << "+";
+            out << string(Task::sumL3UWidth, '-') << "+";
+         }
+         if (reportAvg) {
+            out << string(Task::avgL1IWidth, '-') << "+";
+            out << string(Task::avgL1DWidth, '-') << "+";
+            out << string(Task::avgL2UWidth, '-') << "+";
+            out << string(Task::avgL3UWidth, '-') << "+";
+         }
       }
 #endif
       out << endl;
@@ -380,14 +402,14 @@ void Timer::reportTable(std::ostream& out, const bool reportCount,
          // 3. print table body
          for (const Task& task : tasks) {
             task.reportTable(out, reportCount, reportSum, reportAvg,
-                             reportMin, reportMax, maxNameLength);
+                             reportMin, reportMax, reportPAPI, maxNameLength);
             sum.add(task);
          }
 
       } else {
          // 5. print sum row
          sum.reportTable(out, reportCount, reportSum, reportAvg,
-                         reportMin, reportMax, maxNameLength);
+                         reportMin, reportMax, reportPAPI, maxNameLength);
       }
       if (tasks.size() == 1)
          break; // no sum needed for just one task

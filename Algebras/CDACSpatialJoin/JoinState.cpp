@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 \tableofcontents
 
 
-1 JoinState class
+1 includes
 
 */
 
@@ -47,14 +47,76 @@ using namespace cdacspatialjoin;
 using namespace std;
 
 
+/*
+2 JoinStateMemoryInfo struct
+
+*/
+void JoinStateMemoryInfo::initialize(const size_t usedInputDataMemory_,
+        const size_t rectangleInfoCount, const size_t sortEdgeCount,
+        const size_t joinEdgeCount) {
+   joinEdgesSize = joinEdgeCount;
+
+   // the first three values are constant within this JoinState;
+   // ioData and joinEdges will remain in memory during the lifetime of this
+   // JoinState, while SortEdges and RectangleInfos will be deleted below
+   usedInputDataMemory = usedInputDataMemory_;
+   usedRectInfoMemory = rectangleInfoCount * sizeof(RectangleInfo);
+   usedSortEdgeMemory = sortEdgeCount * sizeof(SortEdge);
+   usedJoinEdgeMemory = joinEdgesSize * sizeof(JoinEdge);
+
+   // usedMergedAreaMemory and mergeJoinEdgeCount will change in the course of
+   // action of this JoinState; we keep track of their maximum values
+   usedMergedAreaMemory = 0;
+   usedMergedAreaMemoryMax = 0;
+   mergeJoinEdgeCount = 0;
+   mergeJoinEdgeCountMax = 0;
+}
+
+void JoinStateMemoryInfo::add(MergedAreaPtr mergedArea) {
+   usedMergedAreaMemory += mergedArea->getUsedMemory();
+   mergeJoinEdgeCount += mergedArea->getJoinEdgeCount();
+}
+
+void JoinStateMemoryInfo::subtract(MergedAreaPtr mergedArea) {
+   usedMergedAreaMemory -= mergedArea->getUsedMemory();
+   mergeJoinEdgeCount -= mergedArea->getJoinEdgeCount();
+}
+
+void JoinStateMemoryInfo::updateMaximum(Merger* merger) {
+   usedMergedAreaMemoryMax = std::max(usedMergedAreaMemoryMax,
+           usedMergedAreaMemory + merger->getUsedMemory());
+   mergeJoinEdgeCountMax = std::max(mergeJoinEdgeCountMax,
+           mergeJoinEdgeCount + merger->getJoinEdgeCount(true));
+}
+
+size_t JoinStateMemoryInfo::getTotalUsedMemoryMax() const {
+   // two components are used during the whole lifetime of the JoinState:
+   size_t usedWholeLifetime = usedInputDataMemory + usedJoinEdgeMemory;
+
+   // usedSortEdgeMemory + usedRectInfoMemory is only used during instantiation,
+   // usedMergedAreaMemory[Max] is only used after instantiation, so the
+   // maximum of those two must be used (usually, that is the latter):
+   return usedWholeLifetime +
+          std::max(usedSortEdgeMemory + usedRectInfoMemory,
+                   usedMergedAreaMemoryMax);
+}
+
+
+/*
+3 JoinState class
+
+*/
 JoinState::JoinState(const bool countOnly_,
            InputStream* inputA, InputStream* inputB,
-           const uint64_t outTBlockSize_, const unsigned joinStateId_,
+           const uint64_t outTBlockSize_,
+           const unsigned operatorNum_, const unsigned joinStateId_,
            std::shared_ptr<Timer>& timer_) :
         ioData(countOnly_, inputA, inputB, outTBlockSize_),
         countOnly(countOnly_),
         tupleCounts { inputA->getCurrentTupleCount(),
                       inputB->getCurrentTupleCount() },
+        operatorNum(operatorNum_),
+        outputPrefix(2 * (operatorNum_ - 1), ' ' ),
         timer(timer_) {
 
    // get the number of tuples stored in the current TBlocks of both streams
@@ -64,7 +126,8 @@ JoinState::JoinState(const bool countOnly_,
    // get the runtime of the previous(!) task, i.e. requestData
    // (not the current Task createJoinState, therefore no timer->stop() here)
    clock_t createJoinStateTime = timer->getLastTime();
-   cout << endl << "JoinState " << joinStateId_ << " created: " << endl;
+   cout << endl << outputPrefix << "JoinState " << joinStateId_ << " created "
+        << "for operator " << operatorNum_ << endl;
 
    // sum up both sets and give the time used for requesting the streams
    // timer->getListTime() will return the time for JoinTask::requestData
@@ -73,6 +136,7 @@ JoinState::JoinState(const bool countOnly_,
    const string blockName = countOnly_ ?  "block " : "TBlock ";
    const string blocksName = countOnly_ ? "blocks" : "TBlocks";
    const string tuplesName = countOnly_ ? "rectangles" : "tuples";
+   cout << outputPrefix;
    cout << "# input: " << setw(2) << formatInt(sizeSum) << " " << blocksName
         << " (" << setw(7) << formatInt(usedMemSum / 1024) << " KiB)"
         << " with " << setw(9) << formatInt(tupleSum) << " " << tuplesName
@@ -86,7 +150,7 @@ JoinState::JoinState(const bool countOnly_,
       const InputStream* input = (set == SET::A) ? inputA : inputB;
       const size_t blockCount = input->getBlockCount();
       const size_t usedMem = input->getUsedMem();
-      cout << "- set " << IOData::getSetName(set) << ": "
+      cout << outputPrefix << "- set " << IOData::getSetName(set) << ": "
            << setw(2) << formatInt(blockCount)
            << " " << (blockCount == 1 ? blockName : blocksName)
            << " (" << setw(7) << formatInt(usedMem / 1024) << " KiB) with "
@@ -135,7 +199,8 @@ JoinState::JoinState(const bool countOnly_,
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
    for (const SET set : SETS) {
       const InputStream* input = (set == SET::A) ? inputA : inputB;
-      cout << "- bounding box of set " << IOData::getSetName(set) << ": ";
+      cout << outputPrefix << "- bounding box of set "
+           << IOData::getSetName(set) << ": ";
       const Rectangle<3>& bbox = (set == SET::A) ? bboxA : bboxB;
       if (input->dim == 2)
          bbox.Project2D(0, 1).Print(cout);
@@ -154,8 +219,8 @@ JoinState::JoinState(const bool countOnly_,
       // the bounding boxes of both sets do not intersect, so no intersection
       // between any two rectangles from the two sets is possible
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
-      cout << "# bounding boxes do not intersect; JoinState is being discarded"
-           << endl;
+      cout << outputPrefix << "# bounding boxes do not intersect; "
+                              "JoinState is being discarded" << endl;
 #endif
       timer->stop();
       delete sortEdges;
@@ -169,10 +234,12 @@ JoinState::JoinState(const bool countOnly_,
    const long ignored = tupleSum - sortEdges->size() / 2;
    if (ignored > 0) {
       const double perc = ignored / static_cast<double>(tupleSum) * 100.0;
+      cout << outputPrefix;
       cout << "- " << formatInt(ignored) << " rectangles (" << perc << "%) "
            << "were ignored for being outside the other set's bounding box"
            << endl;
    }
+   cout << outputPrefix;
    cout << "# " << formatInt(sortEdges->size()) << " SortEdges and "
         << formatInt(rectangleInfos->size()) << " RectangleInfos created ";
    if (ignored > 0)
@@ -191,6 +258,7 @@ JoinState::JoinState(const bool countOnly_,
    // report sorting
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
    clock_t sortSortEdgesTime = timer->stop();
+   cout << outputPrefix;
    cout << "- " << formatInt(sortEdges->size()) << " SortEdges sorted in "
         << formatMillis(sortSortEdgesTime) << endl;
    /*
@@ -241,20 +309,8 @@ JoinState::JoinState(const bool countOnly_,
    atomsExpectedTotal = atomsExpectedTotal_;
 
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-   // the first three values are constant within this JoinState;
-   // ioData and joinEdges will remain in memory during the lifetime of this
-   // JoinState, while SortEdges and RectangleInfos will be deleted below
-   usedInputDataMemory = ioData.getUsedMemory() + sizeof(JoinState);
-   usedSortEdgeMemory = sortEdges->size() * sizeof(SortEdge)
-                      + rectangleInfos->size() * sizeof(RectangleInfo);
-   usedJoinEdgeMemory = joinEdges_.size() * sizeof(JoinEdge);
-
-   // usedMergedAreaMemory and mergeJoinEdgeCount will change in the course of
-   // action of this JoinState; we keep track of their maximum values
-   usedMergedAreaMemory = 0;
-   usedMergedAreaMemoryMax = 0;
-   mergeJoinEdgeCount = 0;
-   mergeJoinEdgeCountMax = 0;
+   memoryInfo.initialize(ioData.getUsedMemory() + sizeof(JoinState),
+           rectangleInfos->size(), sortEdges->size(), joinEdgesSize);
 #endif
 
    // sortEdges and rectangleInfos is now obsolete (but will anyway be
@@ -295,8 +351,10 @@ JoinState::JoinState(const bool countOnly_,
    // report JoinEdges and expected merges
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
    clock_t createJoinEdgesTime = timer->stop();
+   cout << outputPrefix;
    cout << "- " << formatInt(joinEdges.size()) << " JoinEdges created in "
         << formatMillis(createJoinEdgesTime) << endl;
+   cout << outputPrefix;
    cout << "# " << formatInt(atomsExpectedTotal_) << " 'atomic' "
         << "MergedAreas (with JoinEdges from the same set only) will be "
         << "created and merged on levels 0 to " << (levelCount - 1)
@@ -364,10 +422,7 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_) {
 
          // merger has completed
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-         usedMergedAreaMemoryMax = std::max(usedMergedAreaMemoryMax,
-                 usedMergedAreaMemory + merger_->getUsedMemory());
-         mergeJoinEdgeCountMax = std::max(mergeJoinEdgeCountMax,
-                 mergeJoinEdgeCount + merger_->getJoinEdgeCount(true));
+         memoryInfo.updateMaximum(merger_);
 #endif
          MergedAreaPtr result = merger_->getResult();
          delete merger_;
@@ -393,8 +448,7 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_) {
          } else {
             // enter result to a free entry to wait for a merge partner
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-            usedMergedAreaMemory += result->getUsedMemory();
-            mergeJoinEdgeCount += result->getJoinEdgeCount();
+            memoryInfo.add(result);
 #endif
             mergedAreas_[mergeLevel_] = result;
             mergeLevel_ = 0;
@@ -420,8 +474,7 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_) {
          } else  {
             // enter newArea to mergedAreas_[0] to merge it with the next atom
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-            usedMergedAreaMemory += newArea->getUsedMemory();
-            mergeJoinEdgeCount += newArea->getJoinEdgeCount();
+            memoryInfo.add(newArea);
 #endif
             mergedAreas_[0] = newArea;
          }
@@ -437,10 +490,9 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_) {
             if (!mergedArea2) {
                mergedArea2 = mergedAreas_[level];
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-               // the memory used by mergedArea2 will be measured as part of
+               // the memory used by mergedArea2 will be considered as part of
                // the Merger in merger_->getUsedMemory()
-               usedMergedAreaMemory -= mergedArea2->getUsedMemory();
-               mergeJoinEdgeCount -= mergedArea2->getJoinEdgeCount();
+               memoryInfo.subtract(mergedArea2);
 #endif
                mergedAreas_[level] = nullptr;
             } else {
@@ -476,6 +528,7 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_) {
 
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
    if (joinCompleted) {
+      cout << outputPrefix;
       if (countOnly) {
          // count intersections only
          cout << "# " << formatInt(totalOutTupleCount)
@@ -505,31 +558,31 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_) {
 Merger* JoinState::createMerger(unsigned levelOfArea1, MergedAreaPtr area2) {
    MergedAreaPtr area1 = mergedAreas[levelOfArea1];
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-   // the memory used by area1 will be measured as part of the Merger in
+   // the memory used by area1 will be considered as part of the Merger in
    // merger_->getUsedMemory()
-   usedMergedAreaMemory -= area1->getUsedMemory();
-   mergeJoinEdgeCount -= area1->getJoinEdgeCount();
+   memoryInfo.subtract(area1);
 #endif
    mergedAreas[levelOfArea1] = nullptr;
 
    const bool isLastMerge = (area1->edgeIndexStart == 0 &&
                              area2->edgeIndexEnd == joinEdgesSize);
 
+#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+   if (isLastMerge)
+      reportLastMerge(area1, area2);
+#endif
+
    // move ownership of source areas (area1 and area2) to new Merger;
    // source areas will be deleted in ~Merger()
    return new Merger(area1, area2, isLastMerge, &ioData);
 }
 
-#ifdef CDAC_SPATIAL_JOIN_METRICS
-size_t JoinState::getTotalUsedMemoryMax() const {
-   // two components are used during the whole lifetime of the JoinState:
-   size_t usedWholeLifetime = usedInputDataMemory + usedJoinEdgeMemory;
-
-   // usedSortEdgeMemory is only used during instantiation,
-   // usedMergedAreaMemory[Max] is only used after instantiation, so the
-   // maximum of those two must be used (usually, that is the latter):
-   return usedWholeLifetime +
-          std::max(usedSortEdgeMemory, usedMergedAreaMemoryMax);
+#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+void JoinState::reportLastMerge(MergedAreaPtr area1, MergedAreaPtr area2)
+      const {
+   cout << outputPrefix;
+   cout << "- last merge: " << formatInt(area1->getWidth()) << " + "
+        << formatInt(area2->getWidth()) << " edges " << endl;
 }
 #endif
 

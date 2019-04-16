@@ -29,7 +29,70 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 \tableofcontents
 
 
-1 Merger
+1 includes
+
+*/
+
+#pragma once
+
+#include <ostream>
+
+#include "MergedArea.h" // -> ... -> <memory>
+#include "IOData.h"
+
+namespace cdacspatialjoin {
+
+/*
+2 MergerStats struct
+
+Encapsulates counters for the usage of the Merger::reportPairs...() functions
+and the iteration frequency of the while loops in Merger::reportPairsSub().
+
+*/
+struct MergerStats {
+   /* size of loopStats array (see below). 32 allows for up to
+    * 2^32 - 1 = approx. 4 billion cycles in while loops */
+   static constexpr unsigned LOOP_STATS_COUNT = 32;
+
+   /* the number of times reportPairs() was called */
+   uint64_t reportPairsCount;
+
+   /* the number of times reportPairsSub() was called (excluding special cases
+    * with only 1 edge in one of the sets) */
+   uint64_t reportPairsSubCount;
+
+   /* the number of times reportPairsSub() was called with only 1 edge in
+    * either (but not both) of the sets */
+   uint64_t reportPairsSub1Count;
+
+   /* the number of times reportPairsSub() was called with only 1 edge in
+    * both sets */
+   uint64_t reportPairsSub11Count;
+
+   /* statistics on the while loops in Merger::reportPairsSub():
+    * for each while loop with n cycles, the entry loopStats[lb n] is
+    * incremented by 1. For instance, loopStats[5] holds the number of while
+    * loops that had 16-31 (i.e. between 2^4 and 2^5 - 1) cycles */
+   uint64_t loopStats[LOOP_STATS_COUNT];
+
+public:
+   /* updates the loop statistics, adding a loop with the given count of
+    * cycles */
+   void add(size_t cycleCount);
+
+   /* constructor, setting all counters to 0 */
+   MergerStats();
+
+   /* destructor */
+   ~MergerStats() = default;
+
+   /* reports the loop statistics (while loops in Merger::reportPairsSub())
+    * to the given out stream */
+   void report(std::ostream& out) const;
+};
+
+/*
+3 Merger class
 
 This class merges two adjacent MergedArea instances into a new MergedArea.
 The process is interrupted whenever the output TBlock is full and can be
@@ -54,46 +117,17 @@ To keep terminology clear,
     * regarding edges, either (S=left and T=right) or (S=right and T=left);
 
 */
-
-#pragma once
-
-#include <ostream>
-
-#include "MergedArea.h" // -> ... -> <memory>
-#include "IOData.h"
-
-namespace cdacspatialjoin {
-
 class Merger {
+public:
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-   // statistical
-
-   /* the number of times reportPairs() was called */
-   static uint64_t reportPairsCount;
-
-   /* the number of times reportPairsSub() was called (excluding special cases
-    * with only 1 edge in one of the sets) */
-   static uint64_t reportPairsSubCount;
-
-   /* the number of times reportPairsSub() was called with only 1 edge in
-    * either (but not both) of the sets */
-   static uint64_t reportPairsSub1Count;
-
-   /* the number of times reportPairsSub() was called with only 1 edge in
-    * both sets */
-   static uint64_t reportPairsSub11Count;
-
-   /* size of loopStats array (see below). 32 allows for while loops up to
-    * 2^32 - 1 = approx. 4 billion cycles */
-   static constexpr unsigned LOOP_STATS_COUNT = 32;
-
-   /* statistics on the while loops in Merger::reportPairsSub():
-    * for each while loop with n cycles, the entry loopStats[lb n] is
-    * incremented by 1. For instance, loopStats[5] holds the number of while
-    * loops that had 16-31 (i.e. between 2^4 and 2^5 - 1) cycles */
-   static uint64_t loopStats[LOOP_STATS_COUNT];
+   /* statistics on the usage of Merger functions and the frequency
+    * iteration frequency of the while loops in Merger::reportPairsSub().
+    * Using a static instance is not a "pretty" solution but saves us from
+    * injecting a MergerStats instance into millions of Merger instances */
+   static std::unique_ptr<MergerStats> stats;
 #endif
 
+private:
    /* a rough sequence of tasks to be performed by the Merger */
    enum TASK { initialize, report, postProcess, done };
 
@@ -174,6 +208,8 @@ class Merger {
    size_t indexT;
 
 public:
+   static void resetLoopStats();
+
    /* constructor expects two adjacent areas which shall be merged to a single
     * area. Note that the input areas must fulfil the invariants listed in the
     * MergedArea.h comment */
@@ -257,19 +293,7 @@ private:
                                  JoinEdgeVec& rightSpan,
                                  JoinEdgeVec& leftRight);
 
-#ifdef CDAC_SPATIAL_JOIN_METRICS
-   /* updates the loop statistics, adding a loop with the given count of
-    * cycles */
-   static void addToLoopStats(size_t cycleCount);
-
 public:
-   /* resets the loop statistics to zero */
-   static void resetLoopStats();
-
-   /* reports the loop statistics (while loops in Merger::reportPairsSub())
-    * to the given out stream */
-   static void reportLoopStats(std::ostream& out);
-
    /* returns the total number of JoinEdge instances stored in this Merger,
     * optionally including the input MergedAreas and the result MergedArea */
    size_t getJoinEdgeCount(bool includeAreas) const;
@@ -278,7 +302,6 @@ public:
     * the input MergedAreas and the result MergedArea */
    size_t getUsedMemory() const;
 
-#endif
 };
 
 } // end of namespace cdacspatialjoin
