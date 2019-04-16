@@ -1157,12 +1157,11 @@ struct IndexRetrieval2 {
 
 */
 struct IndexMatchInfo {
-  IndexMatchInfo() {}
   
   IndexMatchInfo(std::vector<int> &b) : binding(b) {}
   
-  IndexMatchInfo(bool r, int n = 0) : 
-       range(r), next(n), prevElem(-1) {binding.clear();}
+  IndexMatchInfo(bool r=false, int n = 0) : 
+       range(r), next(n), prevElem(-1) , binding(){binding.clear();}
        
   IndexMatchInfo(bool r, int n, const std::vector<int> b, const int e) :
        range(r), next(n), prevElem(e) {if (b.size() > 0) {binding = b;}}

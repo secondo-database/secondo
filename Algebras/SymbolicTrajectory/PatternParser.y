@@ -890,7 +890,7 @@ int Condition::convertVarKey(const char *varKey, Tuple *t /* = 0 */,
                              ListExpr tupleType /* = 0 */) {
   string input(varKey), var;
   int key;
-  int dotpos = input.find('.');
+  size_t dotpos = input.find('.');
   string varInput(input.substr(0, dotpos));
   string kInput(input.substr(dotpos + 1));
   PatElem elem;
