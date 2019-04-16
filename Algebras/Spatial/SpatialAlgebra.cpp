@@ -15156,27 +15156,47 @@ Signature is Stream<SPATIAL> x bool -> rectangle
 */
 ListExpr collect_boxTM(ListExpr args){
   string err = "stream(spatial) x bool expected ";
-  if(!nl->HasLength(args,2)){
+  if (!nl->HasLength(args, 2)) {
     return listutils::typeError(err +  "  (wrong number of args)");
   }
-  if(!Stream<Attribute>::checkType(nl->First(args))){
-    return listutils::typeError(err +
-                             "  ( first arg is not an attribute stream)");
+  if (!Stream<Attribute>::checkType(nl->First(args))) {
+    return listutils::typeError(err +" (first arg is not an attribute stream)");
   }
-  if(!CcBool::checkType(nl->Second(args))){
+  if (!CcBool::checkType(nl->Second(args))) {
     return listutils::typeError(err + " (second arg is not a bool)");
   }
   ListExpr attr = nl->Second(nl->First(args));
-  if(!listutils::isKind(attr,Kind::SPATIAL2D())){
-    return listutils::typeError(err + " (attribute not in kind SPATIAL2D)");
+  if (listutils::isKind(attr, Kind::SPATIAL1D())) {
+    return listutils::basicSymbol<Rectangle<1> >();
   }
-  return listutils::basicSymbol<Rectangle<2> >();
+  if (listutils::isKind(attr, Kind::SPATIAL2D())) {
+    return listutils::basicSymbol<Rectangle<2> >();
+  }
+  if (listutils::isKind(attr, Kind::SPATIAL3D())) {
+    return listutils::basicSymbol<Rectangle<3> >();
+  }
+  if (listutils::isKind(attr, Kind::SPATIAL4D())) {
+    return listutils::basicSymbol<Rectangle<4> >();
+  }
+  if (listutils::isKind(attr, Kind::SPATIAL8D())) {
+    return listutils::basicSymbol<Rectangle<8> >();
+  }
+  return listutils::typeError(err + " (attribute not in kind SPATIALxD)");
+}
+
+int collect_boxSelect(ListExpr args) {
+  ListExpr attr = nl->Second(nl->First(args));
+  if (listutils::isKind(attr, Kind::SPATIAL1D())) return 0;
+  if (listutils::isKind(attr, Kind::SPATIAL2D())) return 1;
+  if (listutils::isKind(attr, Kind::SPATIAL3D())) return 2;
+  if (listutils::isKind(attr, Kind::SPATIAL4D())) return 3;
+  if (listutils::isKind(attr, Kind::SPATIAL8D())) return 4;
+  return -1;
 }
 
 template<int dim>
 int collect_boxVM(Word* args, Word& result, int message, Word& local,
-                       Supplier s )
-{
+                  Supplier s) {
   Stream<StandardSpatialAttribute<dim> > stream(args[0]);
   CcBool* ignoreUndefined = (CcBool*) args[1].addr;
   result = qp->ResultStorage(s);
@@ -15217,11 +15237,14 @@ int collect_boxVM(Word* args, Word& result, int message, Word& local,
   return 0;
 }
 
+ValueMapping collect_boxVMs[] = {collect_boxVM<1>, collect_boxVM<2>, 
+               collect_boxVM<3>, collect_boxVM<4>, collect_boxVM<8>};
+
 OperatorSpec collect_boxSpec (
     "stream<SPATIAL> x bool -> rectangle",
     " _ collect_box[_]",
     "Computes the bounding box from a stream of spatial attributes"
-    "If the second parameter is ste to be true, undefined elements "
+    "If the second parameter is set to be true, undefined elements"
     " within the stream are ignored. Otherwise an undefined element"
     " will lead to an undefined result.",
     "query strassen feed projecttransformstream[GeoData] collect_box[TRUE] "
@@ -15230,8 +15253,9 @@ OperatorSpec collect_boxSpec (
 Operator collect_box(
    "collect_box",
    collect_boxSpec.getStr(),
-   collect_boxVM<2>,
-   Operator::SimpleSelect,
+   5,
+   collect_boxVMs,
+   collect_boxSelect,
    collect_boxTM
 );
 
