@@ -88,9 +88,15 @@ cost(feedproject(rel(Rel, _), Project), _, _, _, _,
   cost(rel(Rel, _), _, _, _, _, Card, _, _, Cost1),
   getRelAttrList(Rel, OrigAttrs, _),
   attributes(Project, AList),
-  projectAttrList(OrigAttrs, AList, _, TSize),
+  projectAttrList(OrigAttrs, AList, _, TSize1),
   length(AList, NAttrs),
-  TSize = sizeTerm(MemoryFix, _, _),
+  % add memory required for embedding attributes in tuples
+  TSize1 = sizeTerm(MemoryFix, S2, S3),
+  TS1 is MemoryFix + 136,
+  ( NAttrs > 10 -> TS is TS1 + 8 * NAttrs 
+                 ; TS is TS1
+  ),
+  TSize  =  sizeTerm(TS,S2,S3),        
   feedprojectC(PerTuple, PerAttr, PerByte),
   Cost is Cost1 + Card * 
     (PerTuple + PerAttr * NAttrs + PerByte * MemoryFix).
