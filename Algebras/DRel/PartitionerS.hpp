@@ -35,6 +35,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Distributed2/CommandLogger.h"
 #include "Algebras/Distributed2/Distributed2Algebra.h"
 
+#include "Algebras/Distributed2/fsrel.h"
+
 //#define DRELDEBUG
 
 extern NestedList* nl;
@@ -220,7 +222,7 @@ Copies the grid object to all workers.
                 " \"\" (fun (dmapelem_1 ARRAYFUNARG1) "
                 "(projectextend (feed dmapelem_1) "
                 "() ((Box (fun (tuple_2 TUPLE) "
-                "(bbox (attr tuple_2 GeoData))))))))))"
+                "(bbox (attr tuple_2 " + attr +"))))))))))"
                 " TRUE) 37)";
 
             ListExpr query;
@@ -272,13 +274,29 @@ Repartitions the drel to a DFMatrix.
                         nl->Second( 
                             nl->Second( sourcedType ) ) ) ) );
             
+            ListExpr relType =   DRel::checkType( sourcedType )
+                        ? nl->Second( sourcedType )
+                        : nl->TwoElemList(
+                               listutils::basicSymbol<distributed2::fsrel>(),
+                               nl->Second( nl->Second( sourcedType ) ) );
+            
             ListExpr extendStreamMap = nl->FourElemList(
-                    nl->SymbolAtom( "map" ),
+                    nl->SymbolAtom( "map" ), 
+                    relType, 
+                    relType, 
+                    nl->TwoElemList(
+                            listutils::basicSymbol<Stream<Tuple>>( ),
+                            newTupleType ) );
+            
+            /*  // original version
+            ListExpr extendStreamMap = nl->FourElemList(
+                    nl->SymbolAtom( "map" ), 
                     nl->Second( sourcedType ),
                     nl->Second( sourcedType ),
                     nl->TwoElemList(
                             listutils::basicSymbol<Stream<Tuple>>( ),
                             newTupleType ) );
+            */
 
             std::string extendStreamS;
             ListExpr partitionTMFun;
@@ -396,18 +414,18 @@ Repartitions the drel to a DFMatrix.
             nl->ReadFromString( queryS, query );
 
             if( !nl->HasLength( resultType, 3 ) ) {
-                cout << "ERROR: Create new partitioning failed!" << endl;
+                cout << "ERROR: Create new partitioning failed!1" << endl;
                 return false;
             }
 
             ListExpr matrixType = nl->Third( resultType );
             if( !distributed2::DFMatrix::checkType( matrixType ) ) {
-                cout << "ERROR: Create new partitioning failed!" << endl;
+                cout << "ERROR: Create new partitioning failed!2" << endl;
                  return false;
             }
 
             if( !createPartitionOpTree( query ) ) {
-                cout << "ERROR: Create new partitioning failed!" << endl;
+                cout << "ERROR: Create new partitioning failed!3" << endl;
                 return false;
             }
 
@@ -436,7 +454,7 @@ Repartitions the drel to a DFMatrix.
             matrix = ( distributed2::DFMatrix* )result.addr;
 
             if( !matrix ) {
-                cout << "ERROR: Create new partitioning failed!" << endl;
+                cout << "ERROR: Create new partitioning failed!4" << endl;
                 qp->Destroy( tree, false );
                 delete qp;
                 matrix = 0;
@@ -444,7 +462,7 @@ Repartitions the drel to a DFMatrix.
             }
 
             if( !matrix->IsDefined( ) ) {
-                cout << "ERROR: Create new partitioning failed!" << endl;
+                cout << "ERROR: Create new partitioning failed!5" << endl;
                 qp->Destroy( tree, false );
                 delete qp;
                 matrix = 0;
