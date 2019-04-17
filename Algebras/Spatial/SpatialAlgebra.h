@@ -782,6 +782,32 @@ between 3 and 100. Otherwise, the result will be undefined.
 void generateCircle(Point* p, double radius, int n , Region* res);
 
 
+template<template<typename T>class Array>
+bool Point::Inside( const RegionT<Array>& r,
+                    const Geoid* geoid /*=0*/ ) const
+{
+  return r.Contains(*this,geoid);
+}
+
+template<template<typename T>class Array>
+bool Point::Inside( const LineT<Array>& l,
+                    const Geoid* geoid /*=0*/ ) const
+{
+  return l.Contains(*this,geoid);
+}
+
+template<template<typename T>class Array>
+bool Point::Inside(const SimpleLineT<Array>& l, const Geoid* geoid /*=0*/) const
+{
+  return l.Contains(*this,geoid);
+}
+
+template<template<typename T>class Array>
+bool Point::Inside( const PointsT<Array>& ps,
+                    const Geoid* geoid /*=0*/ ) const
+{
+  return ps.Contains(*this,geoid);
+}
 
 
 #endif // __SPATIAL_ALGEBRA_H__

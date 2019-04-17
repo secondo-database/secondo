@@ -617,32 +617,6 @@ string Point::toString(const Geoid* geoid /*=0*/) const {
   return s.str();
 }
 
-template<template<typename T>class Array>
-bool Point::Inside( const RegionT<Array>& r,
-                    const Geoid* geoid /*=0*/ ) const
-{
-  return r.Contains(*this,geoid);
-}
-
-template<template<typename T>class Array>
-bool Point::Inside( const LineT<Array>& l,
-                    const Geoid* geoid /*=0*/ ) const
-{
-  return l.Contains(*this,geoid);
-}
-
-template<template<typename T>class Array>
-bool Point::Inside(const SimpleLineT<Array>& l, const Geoid* geoid /*=0*/) const
-{
-  return l.Contains(*this,geoid);
-}
-
-template<template<typename T>class Array>
-bool Point::Inside( const PointsT<Array>& ps,
-                    const Geoid* geoid /*=0*/ ) const
-{
-  return ps.Contains(*this,geoid);
-}
 
 bool Point::Inside( const Rectangle<2>& r, const Geoid* geoid /*=0*/ ) const
 {

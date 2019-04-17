@@ -41,6 +41,8 @@ creating the graph model for walk planning.
 #include "PaveGraph.h"
 #include "GeneralType.h"
 #include "Indoor.h"
+#include "Algebras/Spatial/Point.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 
 using namespace network;
 using namespace std;

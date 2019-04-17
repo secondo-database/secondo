@@ -2451,7 +2451,7 @@ int FConsumeValueMap(Word* args, Word& result,
       return 0;
     }
 
-    SmiFileId flobFileId;
+    SmiFileId flobFileId=0;
     string flobFilePath;
     ofstream flobFile;
     if (noFlob)
@@ -3734,50 +3734,51 @@ ListExpr hdpJoinTypeMap(ListExpr args)
    
      NList attrAB;
      if (! (mapList.first().isSymbol(Symbol::MAP())
-         && mapList.fourth().checkStreamTuple(attrAB)))
+         && mapList.fourth().checkStreamTuple(attrAB))) {
        return l.typeError(typeErr);
-   
-       // Write the join result type into local default path,
-       // in case the following operators need.
-       NList joinResult =
-           NList(NList(Relation::BasicType()),
-                 NList(NList(Tuple::BasicType()), NList(attrAB)));
-       string typeFileName =
-           getLocalFilePath("", resultName, "_type", true);
-       ofstream typeFile(typeFileName.c_str());
-       if (!typeFile.good())
-         cerr << "Create typeInfo file Result_type "
-             "in default parallel path error!" << endl;
-       else
-       {
-         //The accepted input is a stream tuple
-         typeFile << joinResult.convertToString() << endl;
-         typeFile.close();
-       }
-       cerr << "\nSuccess created type file: "
-           << typeFileName << endl;
-   
-       // result type
-       NList a1(NList("MIndex"), NList(CcInt::BasicType()));
-       NList a2(NList("PIndex"), NList(CcInt::BasicType()));
-   
-       NList result(
-           NList(Symbols::STREAM()),
-             NList(NList(Tuple::BasicType()),
-               NList(
-                 NList(NList("MIndex"), NList(CcInt::BasicType())),
-                 NList(NList("PIndex"), NList(CcInt::BasicType())))));
-   
-       NList appList;
-       appList.append(NList(ss[0], true, true));
-       appList.append(NList(ss[1], true, true));
-       appList.append(NList(mapStr, true, true));
-       appList.append(NList(an[0], true, false));
-       appList.append(NList(an[1], true, false));
-       appList.append(NList(dre, false));
-   
-       return NList(NList(Symbol::APPEND()),
-                    appList, result).listExpr();
+     }
+  
+     // Write the join result type into local default path,
+     // in case the following operators need.
+     NList joinResult =
+         NList(NList(Relation::BasicType()),
+               NList(NList(Tuple::BasicType()), NList(attrAB)));
+     string typeFileName =
+         getLocalFilePath("", resultName, "_type", true);
+     ofstream typeFile(typeFileName.c_str());
+     if (!typeFile.good())
+       cerr << "Create typeInfo file Result_type "
+           "in default parallel path error!" << endl;
+     else
+     {
+       //The accepted input is a stream tuple
+       typeFile << joinResult.convertToString() << endl;
+       typeFile.close();
+     }
+     cerr << "\nSuccess created type file: "
+         << typeFileName << endl;
+  
+     // result type
+     NList a1(NList("MIndex"), NList(CcInt::BasicType()));
+     NList a2(NList("PIndex"), NList(CcInt::BasicType()));
+  
+     NList result(
+         NList(Symbols::STREAM()),
+           NList(NList(Tuple::BasicType()),
+             NList(
+               NList(NList("MIndex"), NList(CcInt::BasicType())),
+               NList(NList("PIndex"), NList(CcInt::BasicType())))));
+  
+     NList appList;
+     appList.append(NList(ss[0], true, true));
+     appList.append(NList(ss[1], true, true));
+     appList.append(NList(mapStr, true, true));
+     appList.append(NList(an[0], true, false));
+     appList.append(NList(an[1], true, false));
+     appList.append(NList(dre, false));
+  
+     return NList(NList(Symbol::APPEND()),
+                  appList, result).listExpr();
    
    }catch(...){
       return listutils::typeError("invalid input");

@@ -41,6 +41,9 @@ March, 2010 Jianqiu xu
 
 #include "Algebra.h"
 
+#include "Algebras/Spatial/Point.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+
 #include "NestedList.h"
 
 #include "QueryProcessor.h"
@@ -1186,33 +1189,33 @@ Implementation of template functions.
 void myinsertEvents(const myavlseg::MyAVLSegment& seg,
                   const bool createLeft,
                   const bool createRight,
-                  priority_queue<HalfSegment,
-                                 vector<HalfSegment>,
-                                 greater<HalfSegment> >& q1,
-                  priority_queue<HalfSegment,
-                                 vector<HalfSegment>,
-                                 greater<HalfSegment> >& q2);
+                  std::priority_queue<HalfSegment,
+                                 std::vector<HalfSegment>,
+                                 std::greater<HalfSegment> >& q1,
+                  std::priority_queue<HalfSegment,
+                                 std::vector<HalfSegment>,
+                                 std::greater<HalfSegment> >& q2);
 
 bool MysplitByNeighbour(avltree::AVLTree<myavlseg::MyAVLSegment>& sss,
                       myavlseg::MyAVLSegment& current,
                       myavlseg::MyAVLSegment*& neighbour,
-                      priority_queue<HalfSegment,
-                                     vector<HalfSegment>,
-                                     greater<HalfSegment> >& q1,
-                      priority_queue<HalfSegment,
-                                     vector<HalfSegment>,
-                                     greater<HalfSegment> >& q2);
+                      std::priority_queue<HalfSegment,
+                                     std::vector<HalfSegment>,
+                                     std::greater<HalfSegment> >& q1,
+                      std::priority_queue<HalfSegment,
+                                     std::vector<HalfSegment>,
+                                     std::greater<HalfSegment> >& q2);
 
 
 void MysplitNeighbours(avltree::AVLTree<myavlseg::MyAVLSegment>& sss,
                      myavlseg::MyAVLSegment *& leftN,
                      myavlseg::MyAVLSegment *& rightN,
-                     priority_queue<HalfSegment,
-                                    vector<HalfSegment>,
-                                    greater<HalfSegment> >& q1,
-                     priority_queue<HalfSegment,
-                                    vector<HalfSegment>,
-                                    greater<HalfSegment> >& q2);
+                     std::priority_queue<HalfSegment,
+                                    std::vector<HalfSegment>,
+                                    std::greater<HalfSegment> >& q1,
+                     std::priority_queue<HalfSegment,
+                                    std::vector<HalfSegment>,
+                                    std::greater<HalfSegment> >& q2);
 
 
 /*
@@ -1244,8 +1247,8 @@ void MyUnion(const RegionT<Array1>& reg1,
 }
 
 template<template<typename T> class Array>
-void SpacePartition:: ComputeRegion(vector<Point>& outer_region,
-                                    vector<RegionT<Array> >& regs)
+void SpacePartition:: ComputeRegion(std::vector<Point>& outer_region,
+                                    std::vector<RegionT<Array> >& regs)
 {
     /////////note that points are counter_clock_wise ordered///////////////
     //for(unsigned i = 0;i < outer_region.size();i++)
@@ -1419,8 +1422,8 @@ bool SpacePartition::SameSide1(RegionT<Array1>* reg1,
                                LineT<Array3>* r1r2,
                                Point* junp)
 {
-      vector<MyPoint> mps1;
-      vector<MyPoint> mps2;
+      std::vector<MyPoint> mps1;
+      std::vector<MyPoint> mps2;
       for(int i = 0;i < reg1->Size();i++){
           HalfSegment hs;
           reg1->Get(i,hs);
@@ -1456,12 +1459,12 @@ bool SpacePartition::SameSide1(RegionT<Array1>* reg1,
       
 
 
-      vector<Point> border1;
+      std::vector<Point> border1;
       border1.push_back(mps1[0].loc);
       border1.push_back(mps1[2].loc);
       border1.push_back(mps2[2].loc);
       border1.push_back(mps2[0].loc);
-      vector<Point> border;
+      std::vector<Point> border;
       const double delta_dist = 0.1;
       for(unsigned int i = 0;i < border1.size();i++){
         unsigned int j = 0;
@@ -1501,7 +1504,7 @@ bool SpacePartition::SameSide1(RegionT<Array1>* reg1,
         //three points collineation
         if(Collineation(border[0], border[1], border[2])) return false;
 
-            vector<Point> ps;
+            std::vector<Point> ps;
             if(GetClockwise(border[0], border[1], border[2])){
                 ps.push_back(border[1]);
                 ps.push_back(border[0]);
@@ -1513,7 +1516,7 @@ bool SpacePartition::SameSide1(RegionT<Array1>* reg1,
             }
 
         //should be counter clock wise
-            vector<Region> gap;
+            std::vector<Region> gap;
             ComputeRegion(ps, gap);
             assert(gap.size() > 0);
             outer_fillgap.push_back(gap[0]);
@@ -1535,7 +1538,7 @@ bool SpacePartition::SameSide1(RegionT<Array1>* reg1,
             return false;
           }else{
             temp->DeleteIfAllowed();
-            vector<Point> ps;
+            std::vector<Point> ps;
 
 //            cout<<border[3]<< border[0]<< border[2]<<endl;
             if(GetClockwise(border[3], border[0], border[2])){
@@ -1566,7 +1569,7 @@ bool SpacePartition::SameSide1(RegionT<Array1>* reg1,
 
                 if(GetClockwise(ps[index2], ps[index1], ps[index3]))break;
 
-                vector<Point> temp_ps;
+                std::vector<Point> temp_ps;
                 for(int j = ps.size() - 1;j >= 0;j--)
                   temp_ps.push_back(ps[j]);
                 ps.clear();
@@ -1578,14 +1581,14 @@ bool SpacePartition::SameSide1(RegionT<Array1>* reg1,
             ////////old checking////////////////
 //             assert( i < ps.size());
 //            //should be counter clock wise
-//             vector<Region> gap;
+//             std::vector<Region> gap;
 //             ComputeRegion(ps, gap);
 //             outer_fillgap.push_back(gap[0]);
 //             return true;
 
             /////four points can also be collineartion/////////
             if(i < ps.size()){
-              vector<Region> gap;
+              std::vector<Region> gap;
               ComputeRegion(ps, gap);
               assert(gap.size() > 0);
               outer_fillgap.push_back(gap[0]);
@@ -1597,14 +1600,14 @@ bool SpacePartition::SameSide1(RegionT<Array1>* reg1,
             /////////////////////////////////////////////////
 /*            cout<<"four points"<<endl;
             for(unsigned int j = 0;j < ps.size();j++){
-              vector<Point> ps1;
+              std::vector<Point> ps1;
               int index = (j + 1) % ps.size();
               for(int i = 0 ; i < ps.size() ;i++){
                   Point p = ps[index];
                   ps1.push_back(p);
                   index = (index + 1) % ps.size();
               }
-              vector<Region> result1;
+              std::vector<Region> result1;
               ComputeRegion(ps1, result1);
 
 
@@ -1640,8 +1643,8 @@ bool SpacePartition::SameSide2(RegionT<Array1>* reg1,
         return false;
       }
 
-      vector<MyPoint> mps1;
-      vector<MyPoint> mps2;
+      std::vector<MyPoint> mps1;
+      std::vector<MyPoint> mps2;
       for(int i = 0;i < reg1->Size();i++){
           HalfSegment hs;
           reg1->Get(i,hs);
@@ -1672,12 +1675,12 @@ bool SpacePartition::SameSide2(RegionT<Array1>* reg1,
 
 //      cout<<mps1[0].loc<<mps2[0].loc<<mps1[2].loc<<mps2[2].loc<<endl;
 
-      vector<Point> border1;
+      std::vector<Point> border1;
       border1.push_back(mps1[0].loc);
       border1.push_back(mps1[2].loc);
       border1.push_back(mps2[2].loc);
       border1.push_back(mps2[0].loc);
-      vector<Point> border;
+      std::vector<Point> border;
       const double delta_dist = 0.1;
       for(unsigned int i = 0;i < border1.size();i++){
         unsigned int j = 0;
@@ -1724,7 +1727,7 @@ bool SpacePartition::SameSide2(RegionT<Array1>* reg1,
           }
           if(Collineation(border[0], border[1], border[2])) return false;
 
-          vector<Point> ps;
+          std::vector<Point> ps;
           if(GetClockwise(border[0], border[1], border[2])){
                 ps.push_back(border[1]);
                 ps.push_back(border[0]);
@@ -1736,7 +1739,7 @@ bool SpacePartition::SameSide2(RegionT<Array1>* reg1,
           }
 
         //should be counter clock wise
-            vector<Region> gap;
+            std::vector<Region> gap;
             ComputeRegion(ps, gap);
             assert(gap.size() > 0);
             outer_fillgap.push_back(gap[0]);
@@ -1765,7 +1768,7 @@ bool SpacePartition::SameSide2(RegionT<Array1>* reg1,
             return false;
           }else{
             temp->DeleteIfAllowed();
-            vector<Point> ps;
+            std::vector<Point> ps;
 
             if(GetClockwise(border[3], border[0], border[2])){
                 ps.push_back(border[0]);
@@ -1788,7 +1791,7 @@ bool SpacePartition::SameSide2(RegionT<Array1>* reg1,
                 if(Collineation(ps[index1], ps[index2], ps[index3]))continue;
                 if(GetClockwise(ps[index2], ps[index1], ps[index3]))break;
 
-                vector<Point> temp_ps;
+                std::vector<Point> temp_ps;
                 for(int j = ps.size() - 1;j >= 0;j--)
                   temp_ps.push_back(ps[j]);
                 ps.clear();
@@ -1800,7 +1803,7 @@ bool SpacePartition::SameSide2(RegionT<Array1>* reg1,
 
         //should be counter clock wise
 
-            vector<Region> gap;
+            std::vector<Region> gap;
             ComputeRegion(ps, gap);
             assert(gap.size() > 0);
             outer_fillgap.push_back(gap[0]);
@@ -1912,8 +1915,10 @@ void MySetOp(const RegionT<Array1>& reg1,
       }
    }
 
-  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q1;
-  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q2;
+  std::priority_queue<HalfSegment,  std::vector<HalfSegment>,
+                                    std::greater<HalfSegment> > q1;
+  std::priority_queue<HalfSegment,  std::vector<HalfSegment>, 
+                                    std::greater<HalfSegment> > q2;
   avltree::AVLTree<myavlseg::MyAVLSegment> sss;
   myavlseg::ownertype owner;
   int pos1 = 0;
@@ -1956,18 +1961,19 @@ void MySetOp(const RegionT<Array1>& reg1,
           if(member){ // overlapping segment found
             if((member->getOwner()==myavlseg::both) ||
                (member->getOwner()==owner)){
-               cerr << "overlapping segments detected within a single region"
-                    << endl;
-               cerr << "the argument is "
-                    << (owner==myavlseg::first?"first":"second")
-                    << endl;
-               cerr.precision(16);
-               cerr << "stored is " << *member << endl;
-               cerr << "current = " << current << endl;
+               std::cerr << "overlapping segments detected "
+                            "within a single region"
+                         << endl;
+               std::cerr << "the argument is "
+                         << (owner==myavlseg::first?"first":"second")
+                         << endl;
+               std::cerr.precision(16);
+               std::cerr << "stored is " << *member << endl;
+               std::cerr << "current = " << current << endl;
                myavlseg::MyAVLSegment tmp_left, tmp_common, tmp_right;
                member->split(current,tmp_left, tmp_common, tmp_right, false);
-               cerr << "The common part is " << tmp_common << endl;
-               cerr << "The lenth = " << tmp_common.length() << endl;
+               std::cerr << "The common part is " << tmp_common << endl;
+               std::cerr << "The lenth = " << tmp_common.length() << endl;
                assert(false);
             }
             int parts = member->split(current,left1,common1,right1);
