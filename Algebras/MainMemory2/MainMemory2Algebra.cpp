@@ -51,6 +51,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#include "MovingRegionAlgebra.h"
 #include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "Algebras/Spatial/Point.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "AvlTree.h"
 #include "StopWatch.h"
 
