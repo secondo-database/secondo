@@ -1,0 +1,65 @@
+let cabsId =
+      csvimport2('cabsrome/taxipart.txt', 0, "", "; ", FALSE, FALSE)    
+      projectextend[; Id: str2int(.A_156),
+                      Inst: str2instant(substr(.A_2014_02_01 + '-' +  
+                                   replace(.A_00_00_00_739166_01, '+01', ''), 1, 23)),   
+                      Pos: makepoint(str2real(replace(.A_12_4877775603346_,')','')), 
+                            str2real(replace(.POINT_41_8836718276551, 'POINT(', '')))]
+      ddistribute4["CabsID", .Id mod 40, 40, workers]
+      dloop["CabsIDtrips", . feed sortby[Id, Inst] 
+                             groupby[Id; TotalTrip: group feed approximate[Inst, Pos, TRUE,
+                                                            create_duration(0, 60000)]]
+                             projectextendstream[Id; Trip: .TotalTrip 
+                                           sim_trips[create_duration(0, 180000), 100.0, 
+                                                     create_geoid("WGS1984")] ]
+                             filter[no_components(.Trip) > 1]
+            consume]
+
+
+let bboxR = cabsId dsummarize 
+      projectextend[; Bbox: bbox(.Trip)] transformstream 
+      collect_box[TRUE]
+
+let deltax = maxD(bboxR, 1) - minD(bboxR, 1)
+
+let deltay = maxD(bboxR, 2) - minD(bboxR, 2)
+
+let grid = createCellGrid3D(minD(bboxR, 1), minD(bboxR, 2), minD(bboxR, 3),
+                              maxD(bboxR, 1) + deltax, maxD(bboxR, 2) + deltay, 
+                              maxD(bboxR, 3), 4, 10)
+
+query share("grid", TRUE, workers)
+
+query share("deltax", TRUE, workers)
+
+query share("deltay", TRUE, workers)
+
+
+let cabsST = cabsId 
+      partitionF["", . feed 
+          projectextend[Id; Trip: .Trip translate[create_duration(0, 0),
+                                           ifthenelse((.Id mod 2) = 1, deltax, 0.0),
+                                           ifthenelse((.Id mod 4) > 1, deltay, 0.0)] ]
+          extendstream[Cell: cellnumber(bbox(.Trip), grid)],
+          ..Cell, 0]
+      collect2["", 1238]
+      dmap["cabsST", . feed consume]
+
+let cabsId_btree = cabsId dloop["cabsId_btree", . createbtree[Id]]
+
+let cabsST_rtree = cabsST
+    dloop["", . feed addid extend[T: bbox(.Trip)] bulkloadrtree[T] ]
+
+query cabsId_btree cabsId
+      dloop2["", . .. exactmatch[11] consume] 
+      dsummarize consume
+
+let qObject = rectangle3(12.464446, 12.5013, 41.879938, 41.911759, 
+                           instant2real(theInstant(2014, 02, 01, 19)),
+                           instant2real(theInstant(2014, 02, 01, 20)))
+
+query share("qObject", TRUE, workers)
+
+query cabsST_rtree cabsST
+      dmap2["", . .. windowintersects[qObject], 1238]
+      dsummarize consume
