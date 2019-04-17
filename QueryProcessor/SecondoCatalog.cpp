@@ -1336,7 +1336,10 @@ SecondoCatalog::RenameObject( const string& oldName,
   }
 
 
-  if(!IsValidIdentifier(newName,errorMessage)){
+  if(!IsValidIdentifier(newName,errorMessage) ||
+     IsReservedName(newName) ||
+     IsOperatorName(newName) ||
+     IsSystemObject(newName) ){
     errorMessage = "the new name is not valid";
     return ERR_IDENT_RESERVED;
   }
