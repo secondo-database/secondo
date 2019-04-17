@@ -2037,9 +2037,10 @@ SecondoInterfaceTTY::Command_Let( const ListExpr list, string& errorMessage,
       string objName = nl.SymbolValue( nl.Second( list ) );
       ListExpr valueExpr = nl.Fourth( list );
 
-      if ( ctlg.IsSystemObject(objName) ) {
-      errorCode = ERR_IDENT_RESERVED;
-
+      if ( ctlg.IsSystemObject(objName) ||
+           ctlg.IsReservedName(objName) ||
+           ctlg.IsOperatorName(objName) ) {
+        errorCode = ERR_IDENT_RESERVED;
       }
       else if ( ctlg.IsObjectName(objName) ) // identifier is already used
       {
