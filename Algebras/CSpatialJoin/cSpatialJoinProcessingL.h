@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace csj {
 
-  void firstPartitionX(std::vector<binaryTuple> &bat,
+  size_t firstPartitionX(std::vector<binaryTuple> &bat,
                        std::vector<std::vector<binaryTuple>> &partBAT,
                        std::vector<uint64_t> &bucketCounter,
                        uint64_t &numPartStripes,
@@ -56,22 +56,29 @@ namespace csj {
       std::vector<binaryTuple> temp;
       partBAT.push_back(temp);
     }
-      
+
+    size_t spanCount = 0;
     for(uint64_t i=0; i<numTuplesBAT; i++) {
       // compute a number of bucket left and rigth
       // and next free positon in  buckets
       // paste the tuple in buckets
+      bool span = true;
       if(bat[i].xMin < xMin) {
         bucketNumberLeft = 0; // used by further partitions
       }
       else {
         bucketNumberLeft = (bat[i].xMin-xMin)/stripeWidth;
+        span = false;
       }
       if(bat[i].xMax >= xMax) {
         bucketNumberRigth = numPartStripes-1; // used by further partitions
       }
       else {
         bucketNumberRigth = (bat[i].xMax-xMin)/stripeWidth;
+        span = false;
+      }
+      if (span) {
+        ++spanCount;
       }
 
       for(uint64_t j=bucketNumberLeft; j<=bucketNumberRigth; j++) {
@@ -80,7 +87,7 @@ namespace csj {
         bucketCounter[j]++;
       }
     }
-  
+    return spanCount;
   }
 
   uint64_t finalPartitionX(std::vector<std::vector<binaryTuple>> &pb1,
@@ -96,8 +103,10 @@ namespace csj {
                        double &xMin,
                        double &xMax,
                        uint64_t divideFactor,
-                       uint64_t partLevel) {
+                       uint64_t partLevel,
+                       bool forceEndRecursion = false) {
 
+    const uint64_t spanLimit = maxEntry / 2;
     uint64_t bucketPos1 = 0; // contains next free position in bucket
     uint64_t bucketPos2 = 0; // contains next free position in bucket
     uint64_t partNumber = outPartNumber;
@@ -111,7 +120,8 @@ namespace csj {
      
       // if none from both currently buckets is overload
       // and none from both is not empty
-      if((bucketPos1 < maxEntry) && (bucketPos2 < maxEntry)
+      if((forceEndRecursion ||
+           ((bucketPos1 < maxEntry) && (bucketPos2 < maxEntry)))
         && ((bucketPos1 > 0) && (bucketPos2 > 0))) {
         // save x-min for actually partition 
         min.push_back(xMin);
@@ -149,10 +159,17 @@ namespace csj {
           tempXMax = xMin + ((xMax - xMin)/stripes)*(i+1);
 
           // partition currently buckets
-          firstPartitionX(pb1[i], tempPB1, tempBC1,
-                            divideFactor, tempXMin, tempXMax);
-          firstPartitionX(pb2[i], tempPB2, tempBC2,
-                            divideFactor, tempXMin, tempXMax);
+          size_t spanCount1 = firstPartitionX(pb1[i], tempPB1, tempBC1,
+                              divideFactor, tempXMin, tempXMax);
+          size_t spanCount2 = firstPartitionX(pb2[i], tempPB2, tempBC2,
+                              divideFactor, tempXMin, tempXMax);
+
+          // stop recursion in the next step if in either pb1[i] or pb2[i],
+          // almost (maxEntry) rectangles span the whole x range (since further
+          // partitions cannot reduce the number of these rectangles)
+          bool forceEnd = (spanCount1 >= spanLimit ||
+                           spanCount2 >= spanLimit);
+
           pb1[i].clear();
           pb2[i].clear();
 
@@ -161,7 +178,7 @@ namespace csj {
                           tempBC1, tempBC2,
                           min, divideFactor, maxEntry,
                           partNumber, tempXMin, tempXMax,
-                          divideFactor, partLevel+1);
+                          divideFactor, partLevel+1, forceEnd);
 
           // free memory
           for(uint64_t i=0; i<divideFactor; i++) {
@@ -378,7 +395,7 @@ class SpatialJoinState {
 
   }
 
-  // Destructor                 
+  // Destructor
   ~SpatialJoinState() {
     
     delete[] newTuple;
@@ -631,7 +648,7 @@ bool sweepSearch(std::vector<binaryTuple> &sweepStruct,
 
   return true;
   } // end of sweepSearch
-  
+
   const std::vector<CRelAlgebra::TBlock*> &fTBlockVector;
   const std::vector<CRelAlgebra::TBlock*> &sTBlockVector;
   uint64_t fIndex;
