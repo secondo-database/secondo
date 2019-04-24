@@ -140,6 +140,12 @@ ALGEBRAS     += RectangleAlgebra
 ALGEBRA_DIRS += Spatial
 ALGEBRAS     += SpatialAlgebra
 
+#ALGEBRA_DIRS  += SpatialLR
+#ALGEBRAS     += SpatialLRAlgebra
+
+#ALGEBRA_DIRS  += Spatial3D
+#ALGEBRAS     += Spatial3DAlgebra
+
 ALGEBRA_DIRS += RobustPlaneSweep
 ALGEBRAS     += RobustPlaneSweepAlgebra
 
@@ -199,6 +205,16 @@ ALGEBRAS     += ImExAlgebra
 ALGEBRA_DIRS += MovingRegion
 ALGEBRAS     += MovingRegionAlgebra
 
+# ALGEBRA_DIRS  += FixedMRegion 
+# ALGEBRAS     += FixedMRegionAlgebra
+
+#ALGEBRA_DIRS += MRegionOps3
+#ALGEBRAS     += MRegionOps3Algebra
+#ALGEBRA_DEPS += gmpxx gmp
+
+#ALGEBRA_DIRS += RegionInterpolation2
+#ALGEBRAS     += RegionInterpolation2Algebra
+
 ALGEBRA_DIRS += PlaneSweep
 ALGEBRAS     += PlaneSweepAlgebra
 
@@ -230,6 +246,10 @@ ALGEBRA_DEPS += jpeg
 
 ALGEBRA_DIRS += Graph
 ALGEBRAS     += GraphAlgebra
+
+#ALGEBRA_DIRS  += HubLabeling 
+#ALGEBRAS     += HubLabelingAlgebra
+
 
 # needs the grahpviz library: www.graphviz.org
 #ALGEBRA_DIRS += GraphViz
@@ -281,11 +301,18 @@ ALGEBRAS      += ClusterAlgebra
 ALGEBRA_DIRS  += Optics 
 ALGEBRAS      += OpticsAlgebra
 
+#ALGEBRA_DIRS  += DBScan
+#ALGEBRAS     += DBScanAlgebra
+
 ALGEBRA_DIRS  += FileIndexAlgebra
 ALGEBRAS      += FileIndexAlgebra
 
 ALGEBRA_DIRS  += NestedRelation
 ALGEBRAS      += NestedRelationAlgebra
+
+#ALGEBRA_DIRS  += NestedRelation2
+#ALGEBRAS      += NestedRelation2Algebra
+
 
 ALGEBRA_DIRS  += Auxiliary
 ALGEBRAS      += AuxiliaryAlgebra
@@ -318,6 +345,29 @@ ALGEBRAS      += AuxiliaryAlgebra
 #CCFLAGS += -pthread -DTHREAD_SAFE
 #COMMON_LD_FLAGS += -lboost_thread-mt -lboost_system-mt
 
+#ALGEBRA_DIRS  += DRel 
+#ALGEBRAS     += DRelAlgebra
+
+#ALGEBRA_DIRS += DistributedUpdate
+#ALGEBRAS += DistributedUpdateAlgebra
+
+#ALGEBRA_DIRS  += Pregel
+#ALGEBRAS     += PregelAlgebra
+#COMMON_LD_FLAGS += -lboost_log -lboost_log_setup -lboost_system -lboost_date_time -lboost_thread -lboost_filesystem -lboost_chrono -lboost_regex
+
+#ALGEBRA_DIRS += Distributed4
+#ALGEBRAS += Distributed4Algebra
+#COMMON_LD_FLAGS += -lboost_filesystem
+
+#ALGEBRA_DIRS += DBService
+#ALGEBRAS += DBServiceAlgebra
+
+# ALGEBRA_DIRS  += DistributedClustering 
+# ALGEBRAS     += DistributedClusteringAlgebra
+
+# ALGEBRA_DIRS  += KeyValueStore 
+# ALGEBRAS     += KeyValueStoreAlgebra
+
 
 
 #ALGEBRA_DIRS += TIN
@@ -333,6 +383,8 @@ ALGEBRAS      += AuxiliaryAlgebra
 #ALGEBRA_DIRS += Pointcloud
 #ALGEBRAS     += PointcloudAlgebra
 
+#ALGEBRA_DIRS += Pointcloud2
+#ALGEBRAS += Pointcloud2Algebra
 
 #ALGEBRA_DIRS  += Constraint
 #ALGEBRAS      += ConstraintAlgebra
@@ -352,6 +404,9 @@ ALGEBRAS      += XTreeAlgebra
 #ALGEBRA_DIRS += OptAux
 #ALGEBRAS     += OptAuxAlgebra
 
+#ALGEBRA_DIRS += SETI
+#ALGEBRAS     += SETIAlgebra
+
 #ALGEBRA_DIRS += UGrid
 #ALGEBRAS     += UGridAlgebra
 
@@ -366,6 +421,10 @@ ALGEBRAS     += BTree2Algebra
 #ALGEBRA_DIRS += Traffic
 #ALGEBRAS     += TrafficAlgebra
 
+#ALGEBRA_DIRS += TrajectoryAnnotation
+#ALGEBRAS     += TrajectoryAnnotationAlgebra
+
+
 ALGEBRA_DIRS += Record
 ALGEBRAS     += RecordAlgebra
 
@@ -375,6 +434,9 @@ ALGEBRAS     += SpatialJoinAlgebra
 ALGEBRA_DIRS += Trie
 ALGEBRAS     += TrieAlgebra
 
+#ALGEBRA_DIRS += NearestNeighbor
+#ALGEBRAS     += NearestNeighborAlgebra
+
 
 ALGEBRA_DIRS += CostEstimation
 ALGEBRAS     += CostEstimationAlgebra
@@ -382,6 +444,10 @@ ALGEBRAS     += CostEstimationAlgebra
 #ALGEBRA_DIRS += MapMatching
 #ALGEBRAS     += MapMatchingAlgebra
 #ALGEBRA_DEPS += xml2
+
+#ALGEBRA_DIRS  += MapMatchingP
+#ALGEBRAS     += MapMatchingPAlgebra
+
 
 ALGEBRA_DIRS +=  SuffixTree
 ALGEBRAS     += SuffixTreeAlgebra
@@ -411,6 +477,9 @@ ALGEBRAS     += MMRTreeAlgebra
 #ALGEBRA_DIRS += RobustGeometry
 #ALGEBRAS   += RobustGeometryAlgebra
 
+#ALGEBRA_DIRS  += Hadoop
+#ALGEBRAS     += HadoopAlgebra
+
 #ALGEBRA_DIRS  += HadoopParallel
 #ALGEBRAS     += HadoopParallelAlgebra
 
@@ -430,6 +499,40 @@ ALGEBRAS     += JNetAlgebra
 #COMMON_LD_FLAGS += -L$(SECONDO_BUILD_DIR)/Tools/DFS/dfs -ldfs
 #COMMON_LD_FLAGS += -L$(SECONDO_BUILD_DIR)/Tools/DFS/shared -lshared
 #COMMON_LD_FLAGS += -L$(SECONDO_BUILD_DIR)/Tools/DFS/commlayer -lcommlayer
+
+#ALGEBRA_DIRS  += ContinuousUpdate
+#ALGEBRAS     += ContinuousUpdateAlgebra
+
+#ALGEBRA_DIRS  += ContinuousQueries
+#ALGEBRAS     += ContinuousQueriesAlgebra
+
+#ALGEBRA_DIRS  += CRel
+#ALGEBRAS     += CRelAlgebra
+
+#ALGEBRA_DIRS  += ColumnSpatial
+#ALGEBRAS     += ColumnSpatialAlgebra
+
+#ALGEBRA_DIRS  += ColumnMoving
+#ALGEBRAS     += ColumnMovingAlgebra
+
+#ALGEBRA_DIRS  += CRel2
+#ALGEBRAS     += CRel2Algebra
+
+#ALGEBRA_DIRS += CSpatialJoin
+#ALGEBRAS += CSpatialJoinAlgebra
+
+#ALGEBRA_DIRS += CDACSpatialJoin
+#ALGEBRAS += CDACSpatialJoinAlgebra
+
+#ALGEBRA_DIRS += SpatialJoin2
+#ALGEBRAS += SpatialJoin2Algebra
+
+# ALGEBRA_DIRS  += CompiledExpressions 
+# ALGEBRAS     += CompiledExpressionsAlgebra
+
+#ALGEBRA_DIRS  += Mail
+#ALGEBRAS     += MailAlgebra
+
 
 
 # JNI Algebras - Java code will be called from C++ code.
