@@ -54,8 +54,20 @@ query setPregelFunction(Compute, NodePartition);
 /*
 4.3 Computation
 
+4.3.1 Phase 1: Remove Singleton Components
 
-4.3.1 Phase 1: Spread the Maximum Color to Neighborhood
+*/
+query remotePregelCommand('query Nodes mfeed filter[.Active]
+  projectextend[; NodeId: .Id, NodePartition: .Partition]
+  extend[Message: "checkSingle", Single: 0, Value: 0]
+  initPregelMessagesWorker')
+
+query startPregel(-1)
+
+
+/*
+
+4.3.2 Phase 2: Spread the Maximum Color to Neighborhood
 
 */
 query remotePregelCommand('query Nodes mfeed filter[.Active]
@@ -65,16 +77,10 @@ query remotePregelCommand('query Nodes mfeed filter[.Active]
 
 query startPregel(20)
 
-# flush remaining messages
-query remotePregelCommand('{delete Nodes2 | let Nodes2 = Nodes mfeed consume}')
-
-query startPregel(-1)
-
-query remotePregelCommand('{delete Nodes | let Nodes = Nodes2 feed mconsume}');
-#end flush
+query clearPregelMessages()
 
 /*
-4.3.2 Phase 2: Confirm Color
+4.3.3 Phase 3: Confirm Color
 
 */
 query remotePregelCommand('query Nodes mfeed filter[.Active]
@@ -84,28 +90,21 @@ query remotePregelCommand('query Nodes mfeed filter[.Active]
 
 query startPregel(-1)
 
-/*
-4.3.3 Phase 3: Spread Back to Predecessors of Chiefs
-
-*/
-query remotePregelCommand('query Nodes mfeed filter[.Active]
-  projectextend[; NodeId: .Id, NodePartition: .Partition, 
-    Message: "maxBack2", Single: 0, Value: 0]
-  initPregelMessagesWorker')
-
-query startPregel(-1)
 
 /*
 4.3.4 Phase 4: Create Edges in Top Level Network
 
 */
 query remotePregelCommand('query Nodes mfeed filter[.Active]
-  filter[.State > 0] 
   projectextend[; NodeId: .Id, NodePartition: .Partition, 
     Message: "getSuccColor", Single: 0, Value: 0]
   initPregelMessagesWorker')
 
-query startPregel(-1)
+query startPregel(1)
+
+
+
+
 
 
 
@@ -124,8 +123,8 @@ query remotePregelCommand('{delete Edges | let Edges =
 {delete Edges | let Edges = createSDArray("Edges", Workers) dsummarize 
   consume}
 
-query Edges feed {e} Nodes3 feed filter[.State = 2] {n1} 
-  itHashJoin[Source_e, Id_n1] Nodes3 feed filter[.State = 2] {n2} 
+query Edges feed {e} Nodes3 feed filter[.Color = .Id] {n1} 
+  itHashJoin[Source_e, Id_n1] Nodes3 feed filter[.Color = .Id] {n2} 
   itHashJoin[Target_e, Id_n2] project[Source_e, Pos_n1, Target_e, Pos_n2] 
   extend[E: create_sline(.Pos_n1, .Pos_n2)] consume
 

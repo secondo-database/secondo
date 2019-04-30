@@ -39,8 +39,8 @@ let WorkerNum = Workers count;
 let PartFun = fun (id: int) (hashvalue(id, WorkerNum));
 
 # adapt one of next lines
-# restore EdgesA from EdgesHombruch;
-let EdgesA = "EdgesDortmund.bin" ffeed5 consume;
+restore EdgesA from EdgesHombruch;
+# let EdgesA = "EdgesDortmund.bin" ffeed5 consume;
 # let EdgesA = "EdgesArnsberg.bin" ffeed5 consume;
 
 update EdgesA := EdgesA feed sortby[Source] consume;
@@ -58,7 +58,7 @@ let NodesPersistent =
   extend[R: randint(999997)] sortby[R] remove[R]
   addcounter[Id, 1]
   extend[Partition: PartFun(.Id)]
-  extend[Color: 0, State: 0, Active: TRUE]
+  extend[Color: 0, Active: TRUE]
   consume
 
 # (PrelId int) (Pos point) (Id int) (Partition int) (Color int) 
@@ -89,15 +89,29 @@ Nodes and edges have schemas:
 
 ----
 Node(PrelId: int, Pos: point, Id: int, Partition: int, Color: int, 
-  State: int, Active: bool)
+  Active: bool)
 Edge(Source: int, PartitionSource: int, Target: int, PartitionTarget: int, 
   Cost: real)
 ----
 
-Initially nodes are numbered 1, ..., ~n~ in field ~Id~, ~Color~ = 0, ~State~ = 0, ~Active~ = TRUE. Only active nodes receive messages. 
+Initially nodes are numbered 1, ..., ~n~ in field ~Id~, ~Color~ = 0, ~Active~ = TRUE. Only active nodes receive messages. 
 
+2.1 Phase 1: Remove Singleton Components
 
-2.1 Phase 1: Spread the Maximum Color to Neighborhood
+----
+To all nodes: checkSingle()
+
+on checkSingle():
+  if count(successors) = 0 or count(predecessors) = 0 then
+    Color := Id;
+    Active := false;
+    send(predecessors, checkSingle());
+    send(successors, checkSingle());
+    disconnect;
+  endif
+----
+
+2.2 Phase 2: Spread the Maximum Color to Neighborhood
 
 We first propagate the maximum color to a neighborhood with radius 30 by letting Pregel run for 30 rounds.
 
@@ -117,13 +131,15 @@ on newColor(X):
   endif
 ----
 
-2.2 Phase 2: Confirm Color
+2.3 Phase 3: Confirm Color
 
 Now each node has received the largest color from some predecessor ~v~ within radius 30. It may be that ~v~ itself has received another color from an even stronger predecessor within radius 30 from ~v~.
 
 We now let each node ~w~ ask the respective node ~v~ whether it has changed its color. If so, the node ~v~ sends the new color to ~w~ which updates its color and sends a new confirmation request to the node providing the new color.
 
 In this way, after some iterations, each node has received the color of a ~chief~ which is a node that has successfully spread its color but not changed its color itself. Hence for a chief holds ~Id~ = ~Color~. This implies that now we have only as many colors as there are chiefs.
+
+The nodes that have received color ~c~ from chief ~c~ we call ~realm~(~c~)
 
 ----
 For all nodes: send(Color, confirmColor(Id, Color));
@@ -139,30 +155,10 @@ on colorIs(X):
     send(Color, confirmColor(Id, Color))
   endif
 ----   
-    
-2.3 Phase 3: Spread Back to Predecessors of Chiefs
-
-Now for each chief, we propagate its color to predecessors that already have this color. Those that are reached belong to its partial strong component; their state is set to 1. Chiefs are set to state 2, meaning they belong to a top level network.
-  
-----
-To all nodes: maxBack2()
-
-on maxBack2():
-  if Color = Id then 
-    send(predecessor, maxColor2(Color));
-    State := 2
-  endif
-
-on maxColor2(X):
-  if State = 0 and Color = X then send(predecessor, maxColor2(X));
-    State := 1
-  endif
-----
-
 
 2.4 Phase 4: Create Edges in Top Level Network
 
-We now consider edges between two nodes of state 1 or 2 (belonging to partial strong components) that have different colors. This means we have a directed connection between two partial strong components. If such connections exist in both directions, then the two partial connected components should be merged.
+We now consider edges between two nodes ~a~ and ~b~ that have different colors, say, from ~a~ to ~b~. This means we have a directed edge from ~realm~(~a~) to ~realm~(~b~)
 
 For each such edge, we create an additional edge of the same direction connecting the two chiefs, within the partition of the start chief.
 
@@ -175,13 +171,13 @@ send(successors, checkColor(Color, _))
 a successor receives exactly one message for each incoming color.
 
 ----
-To all nodes with State > 0: getSuccColor()
+To all nodes: getSuccColor()
 
 on getSuccColor():
   send(successors, checkColor(Color, _))
 
 on checkColor(X, _):
-  if State > 0 and Color # X then 
+  if Color # X then 
     send(X, createEdge(Color, _)) 
   endif
 
@@ -189,85 +185,6 @@ on createEdge(X, _):
   graph.insertEdge(Id, X, 1.0)
 ----
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2.1 Phase 1: Remove Singleton Components
-
-----
-To all nodes: checkSingle()
-
-on checkSingle():
-  if count(successors) = 0 or count(predecessors) = 0 then
-    Color := Id;
-    Active := false;
-    send(predecessors, checkSingle());
-    send(successors, checkSingle());
-    disconnect;
-  endif
-----
-
-2.2 Phase 2: Spread the Maximum Color
-
-----
-To all nodes: resetColor()
-
-on resetColor():
-  Color := 0;
-  send(successors, newColor(Id));
-
-on newColor(X):
-  if X > Color then 
-    Color := X;
-    send(successor, newColor(X))
-  endif
-----
-
-2.3 Phase 3: Spread Back to Predecessors of Maximum
-
-----
-To all nodes: maxBack()
-
-on maxBack():
-  if Color = Id then 
-    send(predecessor, maxColor(Color));
-    Active := FALSE
-  endif
-
-on maxColor(X):
-  if Color = X then send(predecessor, maxColor(X));
-    Active := FALSE
-  endif
-----
-
-2.4 Control
-
-----
-while count(ActiveNodes) = 0 do
-  Phase 1;
-  Phase 2;
-  Phase 3;
-endwhile
-----
 
 3 The Compute Function
 
@@ -340,34 +257,6 @@ let Compute = fun (messages: stream(tuple([NodeId: int,
         projectextend[; NodeId: .Color, 
 	    NodePartition: PartFun(.Color), 
       	    Message: "confirmColor", Single: .Id, Value: .Color]  
-    ; "maxBack",
-        t feed filter[.Id = .Color] 
-        Nodes mupdatedirect2[TID; Active: FALSE]
-        loopjoin[Backward mg3successors[.Id]]
-          projectextend[; NodeId: .Target, 
-	    NodePartition: PartFun(.Target), 
-      	    Message: "maxColor", Single: 0, Value: .Color] 
-    ; "maxColor", 
-        t feed filter[.Color = .Max] 
-        Nodes mupdatedirect2[TID; Active: FALSE]
-        loopjoin[Backward mg3successors[.Id]]
-          projectextend[; NodeId: .Target, 
-	    NodePartition: PartFun(.Target), 
-      	    Message: "maxColor", Single: 0, Value: .Color] 
-    ; "maxBack2",
-        t feed filter[.Id = .Color] 
-        Nodes mupdatedirect2[TID; State: 2]
-        loopjoin[Backward mg3successors[.Id]]
-          projectextend[; NodeId: .Target, 
-	    NodePartition: PartFun(.Target), 
-      	    Message: "maxColor2", Single: 0, Value: .Color] 
-    ; "maxColor2", 
-        t feed filter[.State = 0] filter[.Color = .Max] 
-        Nodes mupdatedirect2[TID; State: 1]
-        loopjoin[Backward mg3successors[.Id]]
-          projectextend[; NodeId: .Target, 
-	    NodePartition: PartFun(.Target), 
-      	    Message: "maxColor2", Single: 0, Value: .Color]
     ; "getSuccColor",
         t feed 
         loopjoin[Forward mg3successors[.Id]]
@@ -375,7 +264,7 @@ let Compute = fun (messages: stream(tuple([NodeId: int,
 	    NodePartition: PartFun(.Target), 
       	    Message: "checkColor", Single: .Color, Value: 0] 
     ; "checkColor",
-        t feed filter[.State > 0] filter[.Color # .Single]
+        t feed filter[.Color # .Single]
           projectextend[; NodeId: .Single, 
 	    NodePartition: PartFun(.Single), 
       	    Message: "createEdge", Single: .Color, Value: 0]
