@@ -891,6 +891,9 @@ Command\_<name>.
     SecondoSystem& sys = *SecondoSystem::GetInstance();
     AlgebraManager& am = *SecondoSystem::GetAlgebraManager();
 
+    qp.setInterfaceCommandText(commandText);
+
+
     // write textual command to progress protocol file
     if ( !qp.progressView ) qp.progressView = new ProgressView();
     qp.progressView->WriteCommandToProtocol( commandText );

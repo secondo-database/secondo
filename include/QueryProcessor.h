@@ -231,7 +231,13 @@ Destroys a query processor instance.
 Stores a ~ProgressView~ instance pointer to show progress.
 
 */
+  void setInterfaceCommandText(const std::string cmd){
+    interfaceCommandText = cmd;
+  }
 
+  std::string getInterfaceCommandText() const{
+     return interfaceCommandText;
+  }
 
 
 /************************************************************************** 
@@ -996,6 +1002,10 @@ The maximum memory available per operator.
 */
 
   size_t globalMemory;
+
+  std::string interfaceCommandText;
+
+
 /*
 The global memory available for all operators. To be distributed by query 
 processor.
