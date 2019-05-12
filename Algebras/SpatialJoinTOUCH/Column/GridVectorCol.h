@@ -39,10 +39,32 @@ namespace mmrtreetouch {
 
     class GridVectorCol {
 
+
+    public:
+        GridVectorCol(
+                nodeCol *node,
+                double _xCellDim,
+                double _yCellDim
+        );
+
+        ~GridVectorCol();
+
+        void addTuple(binaryTuple *bt);
+
+        std::pair <std::pair<int, int>, std::pair<int, int>>
+        getGridCoordinatesOf(
+                binaryTuple t
+        );
+
+        std::vector <std::pair<binaryTuple, binaryTuple>>
+        getTuplesOverlappingWith(
+                binaryTuple *fTuple,
+                std::vector <std::pair<binaryTuple, binaryTuple>> matchings
+        );
+
     private:
-        std::vector<std::vector<std::vector<binaryTuple> > > gridVectorCol;
 
-
+        Rectangle<2> box;
         double minX;
         double maxX;
         double minY;
@@ -55,8 +77,13 @@ namespace mmrtreetouch {
         long long int numOfYCells;
         long long int cellSize;
 
+        std::vector <std::vector<std::vector < binaryTuple>> >
+        gridVectorCol;
+
         int calculateIndexX(double coord);
+
         int calculateIndexY(double coord);
+
         void initializeGrid();
 
         void initializeGridArray(
@@ -69,27 +96,6 @@ namespace mmrtreetouch {
                 binaryTuple sTuple,
                 int i,
                 int j
-        );
-
-    public:
-        GridVectorCol(
-                nodeCol* node,
-                double _xCellDim,
-                double _yCellDim
-        );
-        ~GridVectorCol();
-
-        void addTuple(binaryTuple * bt);
-
-        std::pair<std::pair<int, int>, std::pair<int, int>>
-        getGridCoordinatesOf(
-                binaryTuple t
-        );
-
-        std::vector<std::pair<binaryTuple, binaryTuple>>
-        getTuplesOverlappingWith(
-                binaryTuple * fTuple,
-                std::vector<std::pair<binaryTuple, binaryTuple>> matchings
         );
     };
 }

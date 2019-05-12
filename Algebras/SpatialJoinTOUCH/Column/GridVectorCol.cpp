@@ -35,49 +35,34 @@ GridVectorCol::GridVectorCol(
         nodeCol* node,
         double _xCellDim,
         double _yCellDim
-) {
-    Rectangle<2> box = node->box;
+):
+box(node->box),
+minX((double) box.MinD(0)),
+maxX((double) box.MaxD(0)),
+minY((double) box.MinD(1)),
+maxY((double) box.MaxD(1)),
+xCellDim(_xCellDim == 0 ? 0.1: _xCellDim),
+yCellDim(_yCellDim == 0 ? 0.1: _yCellDim),
+xLength((maxX - minX) < 1 ? 1 : (maxX - minX)),
+yLength((maxY - minY) < 1 ? 1 : (maxY - minY)),
+numOfXCells((ullong) ceil(xLength / xCellDim)),
+numOfYCells((ullong) ceil(yLength / yCellDim)),
+gridVectorCol (
+        numOfXCells,
+        vector<vector<binaryTuple> >(numOfYCells, vector<binaryTuple >(0)))
+{
+    xCellDim = xLength / numOfXCells;
+    yCellDim = yLength / numOfYCells;
 
-    minX = (double) box.MinD(0);
-    maxX = (double) box.MaxD(0);
-    minY = (double) box.MinD(1);
-    maxY = (double) box.MaxD(1);
-
-    assert(minX < maxX);
-    assert(minY < maxY);
-
-    xLength = (maxX - minX) < 1 ? 1 : (maxX - minX);
-    yLength = (maxY - minY) < 1 ? 1 : (maxY - minY);
-
-    xCellDim = _xCellDim;
-    yCellDim = _yCellDim;
-    assert(xLength >= 0);
-    assert(yLength >= 0);
-    assert(xCellDim > 0);
-    assert(yCellDim > 0);
-
-    numOfXCells = (ullong) ceil(xLength / xCellDim);
-    numOfYCells = (ullong) ceil(yLength / yCellDim);
-
-
-    vector<vector<vector<binaryTuple> > > gridVectorCopy (
-            numOfXCells,
-            vector<vector<binaryTuple> >(numOfYCells, vector<binaryTuple >(0)));
-    gridVectorCol = gridVectorCopy;
-
-    assert(numOfXCells >= 1);
-    assert(numOfYCells >= 1);
-
-
-}
+ }
 
 GridVectorCol::~GridVectorCol() {};
 
 int GridVectorCol::calculateIndexX(double coord) {
 
-    ullong index = 0; // could become negative
-    double numRes = ((coord-minX) * numOfXCells) / xLength;
-    ullong roundDown = (ullong) floor(numRes);
+    int index;
+    int roundDown = (int) floor((coord-minX) / xCellDim);
+
     index = roundDown;
 
     if (roundDown == numOfXCells) {
@@ -98,9 +83,9 @@ int GridVectorCol::calculateIndexX(double coord) {
 
 int GridVectorCol::calculateIndexY(double coord) {
 
-    ullong index;
-    double numRes = ((coord-minY) * numOfYCells) / yLength;
-    ullong roundDown = (ullong) floor(numRes);
+    int index;
+    int roundDown = (int) floor((coord-minY) / yCellDim);
+
     index = roundDown;
 
     if (roundDown == numOfYCells) {
