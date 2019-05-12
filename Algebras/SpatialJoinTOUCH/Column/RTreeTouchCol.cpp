@@ -258,7 +258,6 @@ RTreeTouchCol::findMatchingsRecurvGrid(
         pair<double, double> cellDimension =
                 findAverageSizeOfTupleAs(leafNodes);
 
-
         GridVectorCol* grid = new GridVectorCol(
                 node,
                 cellDimension.first * cellFactor,

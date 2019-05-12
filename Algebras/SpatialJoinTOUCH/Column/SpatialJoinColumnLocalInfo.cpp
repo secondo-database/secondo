@@ -51,7 +51,7 @@ namespace STRColumn {
     vector<mmrtreetouch::nodeCol *> createBuckets(
             vector<binaryTuple *> tuples,
             int firstStreamWordIndex,
-            int _numOfPartitions
+            int _numOfItemsInBucket
     );
 }
 
@@ -96,7 +96,7 @@ SpatialJoinColumnLocalInfo::SpatialJoinColumnLocalInfo(
         Word firstStreamWordParam,
         Word secondStreamWordParam,
         Word _fanout,
-        Word _numOfPartitions,
+        Word _numOfItemsInBucket,
         Word cellFactorWord,
         int firstStreamWordIndex,
         int secondStreamWordIndex,
@@ -114,7 +114,7 @@ SpatialJoinColumnLocalInfo::SpatialJoinColumnLocalInfo(
     secondStreamWord = secondStreamWordParam;
 
     int fanout = ((CcInt*)_fanout.addr)->GetIntval();
-    int numOfPartitions = ((CcInt*)_numOfPartitions.addr)->GetIntval();
+    int numOfItemsInBucket = ((CcInt*)_numOfItemsInBucket.addr)->GetIntval();
     int cellFactor = ((CcInt*)cellFactorWord.addr)->GetIntval();
 
     _firstStreamIndex = firstStreamWordIndex;
@@ -127,7 +127,7 @@ SpatialJoinColumnLocalInfo::SpatialJoinColumnLocalInfo(
     btsB = createBinaryTuplesVector(sTBlockVector, _secondStreamIndex);
 
     vector<mmrtreetouch::nodeCol * > buckets =
-            STRColumn::createBuckets(bts, _firstStreamIndex, numOfPartitions);
+           STRColumn::createBuckets(bts, _firstStreamIndex, numOfItemsInBucket);
 
     rtree = new RTreeTouchCol(
             tt,
@@ -174,7 +174,6 @@ void SpatialJoinColumnLocalInfo::findMatchings()
         matchingVector.push_back(tempTBlock);
         tempTBlock = 0;
     }
-
 }
 
 TBlock* SpatialJoinColumnLocalInfo::NextResultTBlock () {
