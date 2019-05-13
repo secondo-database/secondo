@@ -11,7 +11,7 @@ Interface2=$(INCL)/Application.h
 
 
 
-HEADERS1=$$($(CPPC) -MM -I$(INCL) -I$(LAT) $(Interface1) $(DEFAULTCCFLAGS) | sed "s/.*://"  | sed -e 's/\\//g' | sort | uniq | tr -d "\n"  )
+HEADERS1=$$($(CPPC) -MM -I$(INCL) -I$(LAT) $(Interface1) $(DEFAULTCCFLAGS) | sed "s/.*://"  | sed -e 's/\\//g' | tr "[:blank:]" "\n" | sort | uniq | tr "\n" " " )
 DEPS1=$(HEADERS1)
 
 ifeq ($(platform),win32)
@@ -19,7 +19,7 @@ USEWIN:=-D SECONDO_WIN32
 endif
 
 
-HEADERS2 := $$($(CPPC) -MM -D CTABLE_PERSISTENT -D NL_PERSISTENT $(USEWIN)  -I$(INCL) -I$(LAT) $(Interface1) $(DEFAULTCCFLAGS) | sed "s/.*://"  | sed -e 's/\\//g' | sort | uniq | tr -d "\n"  )
+HEADERS2 := $$($(CPPC) -MM -D CTABLE_PERSISTENT -D NL_PERSISTENT $(USEWIN)  -I$(INCL) -I$(LAT) $(Interface1) $(DEFAULTCCFLAGS) | sed "s/.*://"  | sed -e 's/\\//g' |  tr "[:blank:]" "\n" | sort | uniq | tr "\n" " " )
 DEPS2=$(HEADERS2)
 
 
