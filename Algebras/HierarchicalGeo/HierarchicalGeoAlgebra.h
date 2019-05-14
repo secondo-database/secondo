@@ -98,15 +98,15 @@ The simple constructor. This constructor should not be used.
 
 */
 
-  Uncertain( bool is_defined):def(is_defined) {}
+  Uncertain( bool is_defined):epsilon(0),def(is_defined) {}
 
 /*
 Use this constructor when declaring uncertain object variables etc.
 
 */
 
-  Uncertain( const double& epsilon ):
-    epsilon ( epsilon ), def ( true )
+  Uncertain( const double& _epsilon ):
+    epsilon ( _epsilon ), def ( true )
     {}
 
 /*
