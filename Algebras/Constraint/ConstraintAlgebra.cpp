@@ -932,7 +932,7 @@ void TriangulateRegion(const Region* reg,
     region2convert->LogicSort();
     HalfSegment hs, hsnext;
     int currFace, currFace2convert, currCycle;
-    Point outputP, leftoverP;
+    Point outputP(false), leftoverP(false);
     currFace = -1;
     currFace2convert = -1;
     currCycle = -1;
@@ -1359,7 +1359,7 @@ void MergeTriangles2ConvexPolygons(
 	// only for (not already visited) diagonals:
 
       int iC1Edge = vComponents[iC1][FIRST];
-      int iC1VertexAdjacent2From, iC1VertexAdjacent2To;
+      int iC1VertexAdjacent2From =0, iC1VertexAdjacent2To=0;
     assert(iC1Edge!=-1);
       while(iC1Edge!=-1)
       {
@@ -1385,7 +1385,7 @@ void MergeTriangles2ConvexPolygons(
         iC1Edge = vEdges[iC1Edge][NEXT];
       }
       int iC2Edge = vComponents[iC2][FIRST];
-      int iC2VertexAdjacent2From, iC2VertexAdjacent2To;
+      int iC2VertexAdjacent2From = 0, iC2VertexAdjacent2To = 0;
       while(iC2Edge!=-1)
       {
         if(vEdges[i][PARTNER]!=iC2Edge &&
@@ -1411,9 +1411,9 @@ void MergeTriangles2ConvexPolygons(
         iC2Edge = vEdges[iC2Edge][NEXT];
       }
 
-  bool blnInnenWinkelFromOK, blnInnenWinkelToOK;
-  double oriatedAreaBefore;
-  double oriatedAreaAfter;
+  bool blnInnenWinkelFromOK = false, blnInnenWinkelToOK = false;
+  double oriatedAreaBefore = 0;
+  double oriatedAreaAfter = 0;
 
   oriatedAreaBefore = GetOrientedArea(
                     vVertices[vEdges[i][TO]][X],
@@ -1466,8 +1466,8 @@ void MergeTriangles2ConvexPolygons(
     if(blnInnenWinkelFromOK && blnInnenWinkelToOK)
       {
         // then the diagonal is not neccessary: do a merge:
-        int iSmallerComp, iBiggerComp;
-        int iSmallerCompEdge, iSmallerCompLastEdge;
+        int iSmallerComp =0, iBiggerComp=0;
+        int iSmallerCompEdge = 0, iSmallerCompLastEdge=0;
         if(vComponents[iC1][NO_EDGES] <= vComponents[iC2][NO_EDGES])
         {
           iSmallerComp = iC1;
@@ -3487,10 +3487,10 @@ ListExpr OutConstraint( ListExpr typeInfo, Word value )
   SymbolicRelation* symRel = (SymbolicRelation*)value.addr;
   SymbolicTuple pSymRelIP;
   LinearConstraint pLinConstraint;
-  ListExpr result;
-  ListExpr tempRes;
-  ListExpr lastCon;
-  ListExpr lastDis;
+  ListExpr result = nl->TheEmptyList();
+  ListExpr tempRes = nl->TheEmptyList();
+  ListExpr lastCon = nl->TheEmptyList();
+  ListExpr lastDis=nl->TheEmptyList();
 
   if(!symRel->IsDefined()){
     return nl->SymbolAtom( Symbol::UNDEFINED() );
@@ -5119,7 +5119,8 @@ int constraint2regionValueMap( Word* args, Word& result, int message,
                linConstraint2.Get_Op()==OP_LEQ &&
                linConstraint3.Get_Op()==OP_LEQ)
           {
-            ListExpr regionNL, resultNL, lastNL;
+            ListExpr regionNL, resultNL = nl->TheEmptyList(),
+		     lastNL = nl->TheEmptyList();
             Point2D startPoint2D, fromPoint2D, toPoint2D;
 
             for(int iLinC = symTuple.startIndex;
