@@ -17003,7 +17003,7 @@ struct sedEntry{
             int _Rsize,
             const bool _cond):
      pos(_pos),cond(_cond),Rsize(_Rsize),
-     R({_R[0],_R[1],_R[2]}){
+     R{_R[0],_R[1],_R[2]}{
      for(int i=0;i<Rsize;i++){
        R[i] = _R[i];
      }
