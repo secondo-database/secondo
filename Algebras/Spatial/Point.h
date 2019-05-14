@@ -960,10 +960,10 @@ class ApproxPointLess{
 11.1 Class ~Point~
 
 */
-inline Point::Point( const bool d, const Coord x, const Coord y ) :
+inline Point::Point( const bool d, const Coord _x, const Coord _y ) :
   StandardSpatialAttribute<2>(d),
-  x( x ),
-  y( y )
+  x( _x ),
+  y( _y )
 { }
 
 inline Point::Point( const Point& p ) :
