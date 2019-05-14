@@ -18627,6 +18627,9 @@ ListExpr getObjectFromFileTM(ListExpr args){
   if(!nl->HasLength(args,1)){
     return listutils::typeError("one argument expected");
   }
+  if(!nl->HasLength(nl->First(args),2)){
+    return listutils::typeError("internal error");
+  }	  
   ListExpr a1t = nl->First(nl->First(args));
   if(   !CcString::checkType(a1t)
      && !FText::checkType(a1t)

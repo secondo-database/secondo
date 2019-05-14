@@ -93,6 +93,15 @@ ListExpr CConsume::TypeMapping(ListExpr args)
     return GetTypeError("Expected two or three arguments.");
   }
 
+  // check for (type value) list
+  ListExpr tmp = args;
+  while(!nl->IsEmpty(tmp)){
+    if(!nl->HasLength(nl->First(tmp),2)){
+       return GetTypeError("internal error");
+    }
+    tmp = nl->Rest(tmp);
+  }
+
   if(argCount == 1){
     //One arg: type mapping overtaken from consume
     ListExpr blockType;
