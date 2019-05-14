@@ -215,7 +215,7 @@ This function overrides the function of the base class ~CECGImplSecondoOperator~
 */
   inline std::string getCodeOperatorEvalRequestBody(
     std::vector<CECGImplSecondoType*>(&signature))
-    throw (CECRuntimeError) {
+    /*throw (CECRuntimeError)*/ {
       std::string code = "";
       if (signature.size() != 2) //Insert the number of parameter.
         throw CECRuntimeError("Signature must contain 2 elements.");

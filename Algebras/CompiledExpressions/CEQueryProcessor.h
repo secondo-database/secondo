@@ -380,7 +380,7 @@ The function loaded the generated shared library.
 
 */
     void loadCompiledExpressions(std::string libName, CEQuery* ptrCEQY)
-        throw (CEQRuntimeError);
+        /*throw (CEQRuntimeError)*/;
 
 /*
 The function generates a list that contains the memory address of the functions

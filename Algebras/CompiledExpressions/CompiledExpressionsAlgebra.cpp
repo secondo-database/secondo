@@ -1210,7 +1210,7 @@ algera is not loaded.
 
 */
   int
-  CompiledExpressionsAlgebra::getThisAlgebraID() throw (CEARuntimeError) {
+  CompiledExpressionsAlgebra::getThisAlgebraID() /*throw (CEARuntimeError)*/{
     if (thisAlgID == -1)
       thisAlgID = am->GetAlgebraId("CompiledExpressionsAlgebra");
     
@@ -1227,7 +1227,7 @@ not found, the function throws an error.
 */
   int
   CompiledExpressionsAlgebra::getOperatorID(std::string name)
-  throw (CEARuntimeError) {
+  /*throw (CEARuntimeError)*/ {
     int idx = 0;
     bool found = false;
     while ( !found && idx < GetNumOps() ) {

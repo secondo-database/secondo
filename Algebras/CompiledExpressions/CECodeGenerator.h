@@ -306,7 +306,7 @@ A ~get~-function returned a string with the code from the body of the ~eval requ
 */
     virtual std::string getCodeOperatorEvalRequestBody
                         (std::vector<CECGImplSecondoType*>(&signature))
-      throw (CECRuntimeError);
+      /*throw (CECRuntimeError)*/;
     
 /*
 A ~get~-function returned a string with the code from the body of the ~eval close~-function.

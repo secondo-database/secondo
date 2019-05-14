@@ -101,7 +101,6 @@ documentation in the file ~CECodeStore.cpp~.
 
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 
-using namespace CompiledExpressions;
 namespace CompiledExpressions {
 
 /*
@@ -295,7 +294,8 @@ This function overrides the function of the base class ~CECGImplSecondoOperator~
 
 */
     inline std::string getCodeOperatorEvalRequestBody
-      (std::vector<CECGImplSecondoType*>(&signature)) throw (CECRuntimeError) {
+      (std::vector<CECGImplSecondoType*>(&signature))
+      /*throw (CECRuntimeError)*/{
       std::string code = "";
       if (signature.size() != 3)
         throw CECRuntimeError("Signature must contain 3 elements.");
@@ -431,7 +431,7 @@ This function overrides the function of the base class ~CECGImplSecondoOperator~
 
 */
   inline std::string getCodeOperatorEvalRequestBody
-    (std::vector<CECGImplSecondoType*>(&signature)) throw (CECRuntimeError) {
+    (std::vector<CECGImplSecondoType*>(&signature)) /*throw (CECRuntimeError)*/{
       std::string code = "";
       if (signature.size() != 2) //Insert the number of parameter.
         throw CECRuntimeError("Signature must contain 2 elements.");
@@ -571,7 +571,7 @@ This function overrides the function of the base class ~CECGImplSecondoOperator~
 
 */
   inline std::string getCodeOperatorEvalRequestBody
-    (std::vector<CECGImplSecondoType*>(&signature)) throw (CECRuntimeError) {
+    (std::vector<CECGImplSecondoType*>(&signature)) /*throw (CECRuntimeError)*/{
       std::string code = "";
       if (signature.size() != 2) //Insert the number of parameter.
         throw CECRuntimeError("Signature must contain 2 elements.");
@@ -724,7 +724,7 @@ This function overrides the function of the base class ~CECGImplSecondoOperator~
 
 */
   inline std::string getCodeOperatorEvalRequestBody
-    (std::vector<CECGImplSecondoType*>(&signature)) throw (CECRuntimeError) {
+    (std::vector<CECGImplSecondoType*>(&signature)) /*throw (CECRuntimeError)*/{
       std::string code = "";
       if (signature.size() != 2) //Insert the number of parameter.
         throw CECRuntimeError("Signature must contain 2 elements.");
@@ -890,7 +890,7 @@ This function overrides the function of the base class ~CECGImplSecondoOperator~
 
 */
   inline std::string getCodeOperatorEvalRequestBody
-    (std::vector<CECGImplSecondoType*>(&signature)) throw (CECRuntimeError) {
+    (std::vector<CECGImplSecondoType*>(&signature)) /*throw (CECRuntimeError)*/{
       std::string code = "";
       if (signature.size() != 2) //Insert the number of parameter.
         throw CECRuntimeError("Signature must contain 2 elements.");

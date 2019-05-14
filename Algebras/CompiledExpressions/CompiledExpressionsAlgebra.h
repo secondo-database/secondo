@@ -90,7 +90,6 @@ extern AlgebraManager* am;
 // forward declarations
 class DynamicLibrary;
 
-using namespace CompiledExpressions;
 namespace CompiledExpressions {
 
 // forward declarations from classes in the CompiledExpressions-namespace
@@ -390,14 +389,14 @@ This function returned the algebra-ID from the algebramanager or 0, if the
 algera is not loaded.
 
 */
-    int getThisAlgebraID() throw (CEARuntimeError);
+    int getThisAlgebraID() /*throw (CEARuntimeError)*/;
 
 /*
 This function returned the operator-ID of the spezified operator name. If the operator is
 not found, the function throws an error.
 
 */
-    int getOperatorID(std::string name) throw (CEARuntimeError);
+    int getOperatorID(std::string name) /*throw (CEARuntimeError)*/;
 
   private:
     static CompiledExpressionsAlgebra* instance;

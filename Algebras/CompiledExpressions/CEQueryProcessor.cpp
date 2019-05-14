@@ -899,7 +899,7 @@ This function loaded the generated shared library.
   void
   CEQueryProcessor::loadCompiledExpressions(std::string libName,
                                             CEQuery* ptrCEQY)
-  throw (CEQRuntimeError) {
+  /*throw (CEQRuntimeError)*/ {
     bool loadOK = false;
     if (ptrCEQY) {
       if (ptrCEQY->getPtrCEQYLibrary()->Load(libName)) {

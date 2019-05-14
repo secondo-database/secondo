@@ -191,14 +191,14 @@ saved the nested list with the memory address of the function in the shared libr
 */
     void loadCELibFunction(CEQuery* ptrCEQY,
                            ListExpr& returnType)
-    throw (CECRuntimeError);
+    /*throw (CECRuntimeError)*/;
 /*
 A ~get~-function returned a nested list with the memory address of the function in
 the shared library.
 
 */
     ListExpr& getCELibFunctionAddressNList()
-    throw (CECRuntimeError);
+    /*throw (CECRuntimeError)*/;
     
   private:
     int generateStatus;
@@ -235,7 +235,7 @@ A static function to create the ~CECompiler Operator Tree~.
 */
     static CECOpNode* createCECOpTree(ListExpr& expr,
                                       CECOpNode* father)
-    throw (CECRuntimeError);
+    /*throw (CECRuntimeError)*/;
 
 /*
 The Destructor.
@@ -403,7 +403,7 @@ A ~get~-function returned a pointer to the sonnode at the position ~posSon~.
 
 */
     CECOpNode* getPtrSonNode(const unsigned int posSon)
-    throw (CECRuntimeError);
+    /*throw (CECRuntimeError)*/;
 
 /*
 A enumeration with the various truth values that are used in the nodes.
