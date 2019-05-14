@@ -51,7 +51,7 @@ The roots of this function are the intersection times on the ~curve~
 
 */
 double ISSegCurve::f(double t) {
-    if (isnan(m)) // Line is parallel to y-axis
+    if (std::isnan(m)) // Line is parallel to y-axis
         return curve.fx(t) - c;
     else
         return curve.fy(t) - m * curve.fx(t) - c;

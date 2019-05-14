@@ -93,12 +93,12 @@ std::pair<double, double> Curve::getAdjacentIntersectionTimes(double t) {
         tprev = tmp;
     }
     it++;
-    if (found && it != is.end() && isnan(tnext)) {
+    if (found && it != is.end() && std::isnan(tnext)) {
         tnext = it->first;
     }
-    if (!isnan(tprev) && !valid((t + tprev) / 2))
+    if (!std::isnan(tprev) && !valid((t + tprev) / 2))
         tprev = nan("");
-    if (!isnan(tnext) && !valid((t + tnext) / 2))
+    if (!std::isnan(tnext) && !valid((t + tnext) / 2))
         tnext = nan("");
 
     return std::pair<double, double>(tprev, tnext);
@@ -184,13 +184,14 @@ std::pair<double, std::pair<double, Curve*> > Curve::getNext(double t1,
                           peer.second->getAdjacentIntersectionTimes(peer.first);
         for (int j = 0; j < 2; j++) { // Calculate the angle in both directions
             double tt = (j == 0) ? tts.first : tts.second;
-            if (isnan(tt))
+            if (std::isnan(tt))
                 continue;
             double a2 = peer.second->getAngle(peer.first, tt); // Angle on peer
             double a = getDeltaAngleCW(a1, a2); // Angle between two curve segs
             if (a < 0.00001) // Too small angle, probably a numeric error
                 continue;
-            if (isnan(bestangle) || a < bestangle) { // Remember the best match
+            if (std::isnan(bestangle) || a < bestangle) { 
+                // Remember the best match
                 bestangle = a;
                 bestpeer = std::pair<double, std::pair<double, Curve *> >
                                                                      (tt, peer);

@@ -1,5 +1,5 @@
 CC=g++
-CPPFLAGS=-O2 -fPIC -Wall -I../include -I/opt/local/include -ggdb -Wno-sign-compare -Wno-reorder -I.
+CPPFLAGS=-O2 -fPIC -Wall -I../../../include -I/opt/local/include -ggdb -Wno-sign-compare -Wno-reorder -I.
 LDFLAGS=-shared
 OBJ=$(patsubst %.cpp,%.o,$(wildcard *.cpp))
 

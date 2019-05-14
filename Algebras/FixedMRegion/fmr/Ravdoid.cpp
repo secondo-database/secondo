@@ -76,7 +76,7 @@ bool Ravdoid::valid (double t) {
     bool valid1 = !((t2 + PRECISION < tmin1) || (t2 - PRECISION > tmax1));
     bool valid2 = false;
     
-    if (!isnan(tmax2)) {
+    if (!std::isnan(tmax2)) {
         t2 = t * rot;
         while (t2 > tmax2)
             t2 -= 2 * M_PI;
@@ -84,7 +84,7 @@ bool Ravdoid::valid (double t) {
     }
     
     return (t >= 0) && (t <= 1) &&
-           (valid1 || valid2 || (isnan(tmax1) && isnan(tmax2)));
+           (valid1 || valid2 || (std::isnan(tmax1) && std::isnan(tmax2)));
 }
 
 /*
@@ -130,19 +130,19 @@ Ravdoid Ravdoid::create (Seg seg, TransformationUnit &tu) {
     double tmin = acos(c2) - angle;
     double tmax = acos(c1) - angle;
     double retp = -toff;
-    double boundary = isnan(tmax) ? tmin : tmax;
-    if (!isnan(boundary)) {
+    double boundary = std::isnan(tmax) ? tmin : tmax;
+    if (!std::isnan(boundary)) {
         while (retp > boundary)
             retp -= M_PI;
         while (retp < boundary)
             retp += M_PI;
     }
     
-    if (isnan(tmax) && !isnan(tmin)) {
+    if (std::isnan(tmax) && !std::isnan(tmin)) {
         tmax = -tmin + 2 * retp;
-    } else if (isnan(tmin) && !isnan(tmax)) {
+    } else if (std::isnan(tmin) && !std::isnan(tmax)) {
         tmin = -tmax + 2 * retp;
-    } else if (isnan(tmin) && isnan(tmax)) {
+    } else if (std::isnan(tmin) && std::isnan(tmax)) {
         tmin = 0;
         tmax = ((c1 > 0 && c2 > 0) || (c1 < 0 && c2 < 0)) ? 0 : 2.0 * M_PI;
     } else {

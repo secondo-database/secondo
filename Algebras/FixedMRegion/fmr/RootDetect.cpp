@@ -57,7 +57,7 @@ std::vector<double> RootDetect::findRoots (double cur, double end) {
         if ((prev < 0 && val > 0) || (prev > 0 && val < 0)) {
              // A transition between + and - has been found
             double root = findRootBinary(cur - STEP, cur, prev < 0);
-            if (!isnan(root)) {
+            if (!std::isnan(root)) {
                 ret.push_back(root);
             }
         }

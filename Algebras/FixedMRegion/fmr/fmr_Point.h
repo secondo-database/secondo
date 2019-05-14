@@ -68,7 +68,7 @@ public:
     Point rotate(Point center, double angle);
     double angle();
     double length();
-    bool valid() { return !isnan(x) && !isnan(y); }
+    bool valid() { return !std::isnan(x) && !std::isnan(y); }
     double distance(Point& p2) { return (*this-p2).length(); }
     
     std::string ToString();
