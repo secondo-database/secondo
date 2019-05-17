@@ -11142,10 +11142,14 @@ int Geojson2line(Word* args, Word& result, int message,
    string data = text -> GetValue();
    bool autoclose = autocloseBool -> GetValue();
 
-   bool contains = data.find("\"type\":\"Polygon\"") != std::string::npos;
+   bool containsPolygon = data.find("\"type\":\"Polygon\"") 
+      != std::string::npos;
 
-   if(! contains) {
-       cerr << "Input does not contain a Polygon" << endl;
+   bool containsLinestring = data.find("\"type\":\"LineString\"") 
+      != std::string::npos;
+
+   if(! containsPolygon && ! containsLinestring) {
+       cerr << "Input does not contain a Polygon or a LineString" << endl;
        res -> SetDefined(false);
        return 0; 
    }
@@ -11201,14 +11205,16 @@ int Geojson2line(Word* args, Word& result, int message,
    }
 
    // Check for closed path
-   if(simplepoints[0] != simplepoints[simplepoints.size() - 1]) {
-      if(! autoclose) {
-         cerr << "Error: Region is not closed" << endl;
-         res -> SetDefined(false);
-         return 0; 
-      } else {
-         // Close line
-         simplepoints.push_back(simplepoints[0]);
+   if(containsPolygon) {
+      if(simplepoints[0] != simplepoints[simplepoints.size() - 1]) {
+         if(! autoclose) {
+            cerr << "Error: Region is not closed" << endl;
+            res -> SetDefined(false);
+            return 0; 
+         } else {
+            // Close line
+            simplepoints.push_back(simplepoints[0]);
+         }
       }
    }
 
