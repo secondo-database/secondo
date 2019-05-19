@@ -66,7 +66,7 @@ public:
             int vRightIndexIn,
             TupleType* ttIn,
             int fanoutIn,
-            int numOfPartitionsIn,
+            int numOfItemsInBucket,
             int cellFactor
     );
 

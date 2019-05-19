@@ -24,7 +24,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define STR_H
 
 #include <iostream>
-#include "RTreeTouch.h"
+#include "tchNode.h"
+
 
 namespace STR {
 
@@ -33,7 +34,8 @@ namespace STR {
             int l,
             int r,
             char direction,
-            int leftAttrIndex);
+            int leftAttrIndex
+            );
 
     void merge(
             Tuple * arr[],
@@ -41,7 +43,8 @@ namespace STR {
             int m,
             int r,
             char direction,
-            int leftAttrIndex);
+            int leftAttrIndex
+            );
 
     std::vector<std::vector <Tuple *> > splitInSlices(
             Tuple * arr[],
@@ -50,22 +53,27 @@ namespace STR {
 
     std::vector<std::vector <Tuple *> > sortSecondDimension(
             std::vector<std::vector <Tuple *> > container,
-            int leftAttrIndex);
+            int leftAttrIndex,
+            int numOfPartitions,
+            int array_size
+            );
 
-    std::vector<mmrtreetouch::NodeT*> packInBuckets(
+    std::vector<mmrtreetouch::tchNode* > packInBuckets(
             std::vector<std::vector <Tuple *> > sortedSlicedList,
             int sizeOfSortedList,
             int arr_size,
             int numOfPartitions,
             int leftAttrIndex);
 
-    std::string bucketInfo(std::vector<mmrtreetouch::NodeT*> bucketVector);
+    std::string bucketInfo(std::vector<mmrtreetouch::tchNode* > bucketVector);
 
     void createArrayFromTupleVector(Tuple * arr[], std::vector<Tuple*> tuples);
 
-    std::vector<mmrtreetouch::NodeT*> createBuckets(
+    std::vector<mmrtreetouch::tchNode *> createBuckets(
             std::vector<Tuple*> tuples,
-            int firstStreamWordIndex);
+            int firstStreamWordIndex,
+            int _numOfPartitions
+            );
 
 } /* namespace STR */
 

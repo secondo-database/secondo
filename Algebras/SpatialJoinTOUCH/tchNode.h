@@ -21,8 +21,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef SECONDO_NODET_H
-#define SECONDO_NODET_H
+#ifndef SECONDO_tchNode_H
+#define SECONDO_tchNode_H
 
 #include <string.h>
 #include <iostream>
@@ -37,36 +37,35 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace mmrtreetouch {
 
-    class NodeT {
+    class tchNode {
     private:
-        bool boolean_is_Leaf;
+        bool is_Leaf;
 
     public:
-        Rectangle<2> box;    // the bounding box
-        long level;         // level of node in tree
-        long max;            // maximum number of children  
-        long noChildren;     // current number of children
-        long noObjects;      // current number of objects
-        long noObjectsB;      // current number of objects
-        std::vector<NodeT*> children;    // array of children
-        std::vector<Tuple*> objects;     // array of objects
-        std::vector<Tuple*> objectsB;     // array of objects
+        int level;
+        Rectangle<2> box;
+        long noChildren;
+        long noObjects;
+        long noObjectsB;
+        std::vector<tchNode*> children;
+        std::vector<Tuple*> objects;
+        std::vector<Tuple*> objectsB;
 
-        NodeT(long maxPar = 99999, bool isLeafPar=false);
+        tchNode(bool isLeafNode=false);
 
-        ~NodeT() {}
+        ~tchNode();
 
-        bool addChild(NodeT *child);
+        void addChild(tchNode *child);
 
-        void addChildren(std::vector<NodeT*> childrenV);
+        void addChildren(std::vector<tchNode*> childrenV);
 
         bool isLeaf();
 
-        bool addObject(Tuple *t, int leftStreamWordIndex);
+        void addObject(Tuple *t, int leftStreamWordIndex);
 
-        bool addObjectB(Tuple *t);
+        void addObjectB(Tuple *t);
     };
 
 }
 
-#endif //SECONDO_NODET_H
+#endif //SECONDO_tchNode_H

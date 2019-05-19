@@ -22,58 +22,55 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "Algebras/RTree/RTreeAlgebra.h"
-#include "RTreeTouch.h"
+#include "tchNode.h"
 #include <typeinfo>
 
 using namespace mmrtreetouch;
 using namespace std;
 
-NodeT::NodeT(long maxPar, bool isLeafPar) {
-    max = maxPar;
-    noChildren = 0;
-    noObjects = 0;
-    boolean_is_Leaf = isLeafPar;
+tchNode::tchNode(bool isLeafNode):
+    is_Leaf(isLeafNode),
+    noChildren(0),
+    noObjects(0),
+    noObjectsB(0)
+    {}
+
+tchNode::~tchNode() {
 }
 
-bool NodeT::addChild(NodeT *child) {
-    assert(noChildren <= max);
+void tchNode::addChild(tchNode *child) {
     children.push_back(child);
 
     assert(child->box.IsDefined());
 
-    if(noChildren == 0){ // adding the first child
+    if(noChildren == 0){
         this->box = child->box;
     } else {
         this->box = this->box.Union(child->box);
     }
     noChildren++;
     assert(this->box.IsDefined());
-
-    return noChildren <= max;
 }
 
-void NodeT::addChildren(vector<NodeT*> childrenV) {
+void tchNode::addChildren(vector<tchNode*> childrenV) {
     assert(noChildren == 0);
 
-    for (int i = 0; i < (int) childrenV.size(); i++) {
+    int vectorSize = (int) childrenV.size();
+    for (int i = 0; i < vectorSize; i++) {
         addChild(childrenV.at(i));
     }
 }
 
-bool NodeT::isLeaf() {
-    return boolean_is_Leaf;
+bool tchNode::isLeaf() {
+    return is_Leaf;
 }
 
-bool NodeT::addObject(Tuple *t, int leftStreamWordIndex) {
+void tchNode::addObject(Tuple *t, int leftStreamWordIndex) {
 
-    assert(noObjects <= max);
     objects.push_back(t);
 
     StandardSpatialAttribute<2> * attr1 =
             (StandardSpatialAttribute<2>*) t->GetAttribute(leftStreamWordIndex);
-
-    assert(attr1->BoundingBox().IsDefined());
-
 
     if(noObjects == 0){
         this->box = attr1->BoundingBox();
@@ -84,15 +81,11 @@ bool NodeT::addObject(Tuple *t, int leftStreamWordIndex) {
     assert(this->box.IsDefined());
 
     noObjects++;
-
-    return noObjects <= max;
 }
 
-bool NodeT::addObjectB(Tuple *t) {
+void tchNode::addObjectB(Tuple *t) {
 
     objectsB.push_back(t);
 
     noObjectsB++;
-
-    return noObjectsB <= max;
 }

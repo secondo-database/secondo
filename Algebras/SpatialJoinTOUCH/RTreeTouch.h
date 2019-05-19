@@ -24,43 +24,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef SECONDO_RTREE_H
 #define SECONDO_RTREE_H
 
-
-
-#include <string.h>
-#include <iostream>
-#include <sstream>
-#include <map>
-#include <set>
+#include "tchNode.h"
 #include <vector>
-#include <utility>
-#include <stack>
-#include "NodeT.h"
+#include "Column/BinaryTuple.h"
 
-#include "Algebras/Rectangle/RectangleAlgebra.h"
+
+class TupleType;
+class Tuple;
 
 namespace mmrtreetouch {
 
+
     class RTreeTouch {
-    public:
-        NodeT* root;
-
-        RTreeTouch(
-                TupleType* ttParam,
-                int _firstStreamWordIndex,
-                int _secondStreamWordIndex
-                );
-
-        ~RTreeTouch();
-
-        NodeT* constructTree(std::vector<NodeT*> sortedArray, int fanout);
-
-        std::vector<Tuple*> getTuplesOverlappingOnTreeWith(Tuple* objectB);
-
-        int noLeaves();
-
-        int noLeaves(NodeT* someNode);
-
-        void showSubTreeInfo(NodeT* subRoot);
 
     private:
         TupleType* tt;
@@ -69,28 +44,86 @@ namespace mmrtreetouch {
         int _secondStreamWordIndex;
 
         bool outputOn;
+        bool isM;
 
-        std::vector<std::vector<NodeT*> > reGroupByConsideringFanout(
-                std::vector<NodeT*> sortedArray,
+        std::vector<std::vector<tchNode *> > reGroupByConsideringFanout(
+                std::vector<tchNode * > sortedArray,
                 int fanout
-                );
+        );
 
-        std::vector<Tuple*> joinPhase(NodeT* node, Tuple* objectB);
+        std::vector<Tuple*> joinPhase(tchNode * node, Tuple* objectB);
 
-        std::vector<NodeT*> getNodesOfInnerNodeRecursive(
-                NodeT* node,
-                std::vector<NodeT*> leafNodes,
+        std::vector<tchNode *> getNodesOfInnerNodeRecursive(
+                tchNode * node,
+                std::vector<mmrtreetouch::tchNode *> leafNodes,
                 bool justLeafNodes = true
-                );
+        );
 
         std::vector<Tuple*> getMatchingConcatenatedTuples(
                 Tuple*B,
-                std::vector<NodeT*> leafNodes
+                std::vector<tchNode * > leafNodes
+        );
+
+        std::string recursiveInfo(tchNode * subRoot);
+
+        Tuple* concatenateTuples(Tuple* tupleA, Tuple* tupleB);
+
+        bool checkIfOverlapping(Tuple* tupleA, Tuple* tupleB);
+
+        std::vector<Tuple*> findMatchingsTopToBottomRecurs(
+                tchNode * node,
+                std::vector<Tuple*> matchings
                 );
 
-        std::string recursiveInfo(NodeT* subRoot);
+        std::vector<Tuple*> findMatchingsTopToBottomRecursWithGridFirstLeaves(
+                tchNode * node,
+                std::vector<Tuple*> matchings
+                );
+
+
+        std::pair<double, double> findAverageSize(std::vector<Tuple*> tuples);
+        std::pair<double, double> findAverageSizeOfTupleAs(
+                std::vector<tchNode*> leafNodes
+                );
+
+    protected:
+        int cellFactor;
+
+
+    public:
+        tchNode * root;
+
+        RTreeTouch(
+                TupleType* ttParam,
+                int _firstStreamWordIndex,
+                int _secondStreamWordIndex,
+                int _cellFactor,
+                bool _isM
+                );
+
+        virtual ~RTreeTouch();
+
+        tchNode * constructTree(
+                std::vector<tchNode * > sortedArray,
+                int fanout
+                );
+
+        std::vector<Tuple*> getTuplesOverlappingOnTreeWith(Tuple* objectB);
+
+        int noLeaves();
+
+        int noLeaves(tchNode * someNode);
+
+        void showSubTreeInfo(tchNode * subRoot);
+
+
+        int assignTupleB(Tuple* objectB);
+
+        std::vector<Tuple*> findMatchings();
+
+
 
     };
 } // end of namespace
 
-#endif
+#endif  // SECONDO_RTREE_H

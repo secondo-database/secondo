@@ -62,7 +62,7 @@ SpatialJoinMLocalInfo::SpatialJoinMLocalInfo(
         int vRightIndexIn,
         TupleType* ttIn,
         int fanoutIn,
-        int numOfPartitionsIn,
+        int numOfItemsInBucket,
         int cellFactor
 ) {
     vLeft = vLeftIn;
@@ -72,7 +72,7 @@ SpatialJoinMLocalInfo::SpatialJoinMLocalInfo(
     vector<tchNode*> buckets = STR::createBuckets(
             vLeft,
             vLeftIndexIn,
-            numOfPartitionsIn
+            numOfItemsInBucket
             );
 
     rtree = new RTreeTouch(tt, vLeftIndexIn, vRightIndexIn, cellFactor, true);

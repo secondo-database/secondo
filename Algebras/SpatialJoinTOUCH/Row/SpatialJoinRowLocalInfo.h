@@ -63,7 +63,7 @@ public:
             int secondStreamWordIndex,
             ListExpr ttl,
             int _fanout,
-            int _numOfPartitions,
+            int _numOfItemsInBucket,
             int _cellFactor
     );
 

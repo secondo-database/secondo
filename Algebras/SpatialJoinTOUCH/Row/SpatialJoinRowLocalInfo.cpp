@@ -42,7 +42,7 @@ namespace STR {
 vector<mmrtreetouch::tchNode *> createBuckets(
         vector<::Tuple*> tuples,
         int firstStreamWordIndex,
-        int _numOfPartitions
+        int _numOfItemsInBucket
 );
 }
 
@@ -69,7 +69,7 @@ SpatialJoinRowLocalInfo::SpatialJoinRowLocalInfo(
         int secondStreamWordIndex,
         ListExpr ttl,
         int _fanout,
-        int _numOfPartitions,
+        int _numOfItemsInBucket,
         int _cellFactor
 )
 {
@@ -88,7 +88,7 @@ SpatialJoinRowLocalInfo::SpatialJoinRowLocalInfo(
     vector<mmrtreetouch::tchNode * > buckets = STR::createBuckets(
             tuplesA,
             _firstStreamWordIndex,
-            _numOfPartitions
+            _numOfItemsInBucket
             );
 
     rtree = new RTreeTouch(

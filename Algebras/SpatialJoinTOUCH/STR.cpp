@@ -34,8 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include <iostream>
 #include <vector>
-#include "RTreeTouch.h"
-#include "NodeT.h"
+#include "tchNode.h"
 
 
 using namespace std;
@@ -45,23 +44,24 @@ namespace STR {
 
     vector<vector <Tuple *> > splitInSlices(
             Tuple * arr[],
-            int numOfPartitions,
+            int numOfItemsInBucket,
             int array_size)
     {
-        int numOfObjsInSlices = ceil((float)array_size/numOfPartitions)*2;
+        int numOfPartitions = ceil((double)array_size/numOfItemsInBucket);
 
         int counter = 0;
 
         vector<Tuple *> temp;
         vector<vector <Tuple *> > container;
-
+        temp.reserve(numOfItemsInBucket);
+        container.reserve(numOfPartitions);
 
         for( int i = 0; i < array_size; i++ ) {
             counter++;
 
             temp.push_back(arr[i]);
 
-            if (counter % numOfObjsInSlices == 0) {
+            if (counter % numOfItemsInBucket == 0) {
                 container.push_back(temp);
                 temp.clear();
             }
@@ -76,14 +76,19 @@ namespace STR {
 
     vector<vector <Tuple *> > sortSecondDimension(
             vector<vector <Tuple *> > container,
-            int leftAttrIndex)
+            int leftAttrIndex,
+            int numOfItemsInBucket,
+            int array_size
+    )
     {
+        int numOfPartitions = ceil((double)array_size/numOfItemsInBucket);
+
         vector<vector <Tuple *> > sortedSlicedList;
+        sortedSlicedList.reserve(numOfPartitions);
 
         for (vector<Tuple *> currentSlice: container) {
             Tuple * arr[currentSlice.size()];
             copy(currentSlice.begin(), currentSlice.end(), arr);
-            // it copies the content of currentSlice vector to arr (array)
 
             mergeSort(arr, 0, (int)(currentSlice.size()-1), 'y', leftAttrIndex);
 
@@ -97,30 +102,15 @@ namespace STR {
         return sortedSlicedList;
     }
 
-    string bucketInfo(vector<NodeT*> bucketVector)
+    string bucketInfo(vector<tchNode* > bucketVector)
     {
         stringstream info;
         info << (int)bucketVector.size() << "(";
 
-        //for(CRelAlgebra::TBlock* tb : fTBlockVector) {
-
-
         for (int i=0; i < (int)bucketVector.size(); i++) {
-        //for (NodeT* bucket: bucketVector) {
-            NodeT* bucket = bucketVector.at(i);
+            tchNode * bucket = bucketVector.at(i);
 
-            //info << (i+1) << "[";
             info << (i+1) << "[" << (int)bucket->objects.size();
-
-            /*
-            for (int j=0; j < (int) bucket->objects.size(); j++) {
-                Tuple* object = bucket->objects.at(j);
-                Attribute * attr =object->GetAttribute(0);
-
-                info << (j+1) <<"(Tuple title: " << attr->toText()  << ")";
-
-            }
-             */
 
             info << "]";
         }
@@ -132,16 +122,19 @@ namespace STR {
         return info.str();
     }
 
-    vector<NodeT*> packInBuckets(
+    vector<tchNode * > packInBuckets(
             vector<vector <Tuple *> > sortedSlicedList,
             int sizeOfSortedList,
             int initialListSize,
-            int numOfPartitions,
+            int numOfItemsInBucket,
             int leftStreamWordIndex)
     {
-        int numOfItemsInBucket = ceil((float)initialListSize/numOfPartitions);
-        vector<NodeT*> containerOfBuckets;
-        NodeT* bucketNode = NULL;
+        int numOfPartitions = ceil((double)initialListSize/numOfItemsInBucket);
+
+
+        vector<tchNode * > containerOfBuckets;
+        containerOfBuckets.reserve(numOfPartitions);
+        tchNode * bucketNode = NULL;
         int counter = 0;
 
         for (vector<Tuple *> innerList : sortedSlicedList) {
@@ -150,7 +143,7 @@ namespace STR {
                 counter++;
 
                 if (bucketNode == NULL) {
-                    bucketNode = new NodeT(99999, true);
+                    bucketNode = new  tchNode(true);
                 }
 
                 bucketNode->level = 0;
@@ -202,7 +195,7 @@ namespace STR {
             int leftAttrIndex)
     {
         Attribute * attr1, * attr2;
-        float valueL, valueR;
+        double valueL, valueR;
         int i, j, k;
         int n1 = m - l + 1;
         int n2 =  r - m;
@@ -268,7 +261,8 @@ namespace STR {
     void createArrayFromTupleVector(Tuple * arr[], vector<Tuple*> tuples) {
 
         // # 1. creating array
-        for (int i = 0; i< (int) tuples.size(); i++) {
+        int vectorSize =  (int) tuples.size();
+        for (int i = 0; i< vectorSize; i++) {
             arr[i] = tuples.at(i);
         }
         tuples.clear();
@@ -281,10 +275,14 @@ namespace STR {
      * 4. run mergeSort - sort by second dimension - y
      * 5. pack in buckets
      */
-    vector<NodeT*> createBuckets(
+    vector<tchNode * > createBuckets(
             vector<Tuple*> tuples,
-            int _firstStreamWordIndex) {
+            int _firstStreamWordIndex,
+            int _numOfItemsInBrucket
+    ) {
         int size = (int) tuples.size();
+
+        assert(size > 0);
 
         // # 1 create Array
         Tuple * arr[size] = {};
@@ -294,23 +292,26 @@ namespace STR {
         STR::mergeSort(arr, 0, size - 1, 'x', _firstStreamWordIndex);
 
         // # 3
-        int numOfPartitions = 10;
+        int numOfItemsInBrucket = _numOfItemsInBrucket;
         vector<vector <Tuple *> > container = STR::splitInSlices(
                 arr,
-                numOfPartitions,
+                numOfItemsInBrucket,
                 size);
 
         // # 4
         vector<vector <Tuple *> > sortedSlicedList = STR::sortSecondDimension(
                 container,
-                _firstStreamWordIndex);
+                _firstStreamWordIndex,
+                numOfItemsInBrucket,
+                size
+        );
 
         // # 5
         return STR::packInBuckets(
                 sortedSlicedList,
                 (int)sortedSlicedList.size(),
                 size,
-                numOfPartitions,
+                numOfItemsInBrucket,
                 _firstStreamWordIndex);
     }
 

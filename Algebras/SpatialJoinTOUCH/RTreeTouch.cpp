@@ -1,5 +1,5 @@
 /*
-----
+
 This file is part of SECONDO.
 
 Copyright (C) 2019,
@@ -19,62 +19,77 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
 
 */
 
 #include "Algebras/RTree/RTreeAlgebra.h"
-#include "RTreeTouch.h"
-#include "NodeT.h"
+#include "tchNode.h"
 #include <typeinfo>
-
+#include "Grid.h"
+#include "RTreeTouch.h"
 
 using namespace mmrtreetouch;
+using namespace std;
 
 
 RTreeTouch::RTreeTouch(
         TupleType* ttParam,
         int firstStreamWordIndex,
-        int secondStreamWordIndex
-        ) {
-    tt = ttParam;
-    outputOn = false;
-    _firstStreamWordIndex = firstStreamWordIndex;
-    _secondStreamWordIndex = secondStreamWordIndex;
-}
+        int secondStreamWordIndex,
+        int _cellFactor,
+        bool _isM
+):tt(ttParam),
+  _firstStreamWordIndex(firstStreamWordIndex) ,
+  _secondStreamWordIndex(secondStreamWordIndex),
+  isM(_isM),
+  cellFactor(_cellFactor)
+{ outputOn = false; }
 
 RTreeTouch::~RTreeTouch() {
 
-    // delete all Nodes
-    deque<NodeT*> nodes;
-    nodes = getNodesOfInnerNodeRecursive(root, nodes, false);
+    vector<tchNode*> nodes;
 
-    for (NodeT* node :nodes) {
-        delete node;
+    if (root) {
+        nodes = getNodesOfInnerNodeRecursive(root, nodes, false);
     }
 
-    delete root;
+    for (tchNode* node :nodes) {
+        if (node) {
+            node->objectsB.clear();
+            node->objects.clear();
+            node->children.clear();
+            delete node;
+            node = nullptr;
+        }
+    }
+
+    nodes.clear();
+
+    root = nullptr;
 }
 
-NodeT* RTreeTouch::constructTree(deque<NodeT*> sortedArray, int fanout) {
-    // sortedArray has the BucketNodes or Leaf Nodes
+tchNode * RTreeTouch::constructTree(
+        vector<tchNode * > sortedArray,
+        int fanout
+        ) {
 
     bool firstTime = true;
     long levelCounter = 0;
 
-    // here sortedArray is an Array with LeafNodes
-    deque<deque<NodeT*> > Pa = reGroupByConsideringFanout(sortedArray, fanout);
+    vector<vector<tchNode * > > Pa =
+            reGroupByConsideringFanout(sortedArray, fanout);
+
+    vector<tchNode * > nodes;
 
     // create from the bottom to the top the tree
     while ((int)Pa.size() > 1 || firstTime) {
         firstTime = false;
 
-        deque<NodeT*> nodes;
         levelCounter++;
 
-        for (deque<NodeT *> group : Pa) {
+        for (vector<tchNode * > group : Pa) {
 
-            NodeT* parentNode = new NodeT();
+            tchNode* parentNode = new tchNode();
             parentNode->addChildren(group);
             parentNode->level = levelCounter;
 
@@ -83,89 +98,61 @@ NodeT* RTreeTouch::constructTree(deque<NodeT*> sortedArray, int fanout) {
             nodes.push_back(parentNode);
         }
 
+        Pa.clear();
         Pa = reGroupByConsideringFanout(nodes, fanout);
+        nodes.clear();
     }
 
-    NodeT* rootNode = new NodeT();
+    root = new tchNode();
 
     if ((int)Pa.size() == 1 && (int)Pa.at(0).size() == 1) {
-        rootNode = Pa.front().front();
+        delete root;
+        root = Pa.front().front();
     } else if ((int)Pa.size() == 1) {
-        rootNode->level = levelCounter + 1;
-        rootNode->addChildren(Pa.front());
+        root->level = levelCounter + 1;
+        root->addChildren(Pa.front());
 
-        assert(rootNode->noChildren == (int)rootNode->children.size());
+        assert(root->noChildren == (int)root->children.size());
     }
 
-    root = rootNode; // root is a class property
-
-    return rootNode;
+    return root;
 }
 
-// Returns as vector all concatenated Tuples of ObjectA and ObjectB that overlap
-// In particular, it finds all leaf-Nodes (Objects of A) that overlap with given
-// ObjectB.
-deque<Tuple*> RTreeTouch::getTuplesOverlappingOnTreeWith(Tuple* tupleB) {
+vector<Tuple*> RTreeTouch::getTuplesOverlappingOnTreeWith(Tuple* tupleB) {
 
     StandardSpatialAttribute<2> * attr1 =
             (StandardSpatialAttribute<2>*) tupleB->GetAttribute(
                     _secondStreamWordIndex
-                    );
+            );
 
     Rectangle<2> boxB = attr1->BoundingBox();
-    NodeT * parent = NULL, * temp = NULL;
+    tchNode * parent = NULL, * temp = NULL;
     bool overlap;
     long numOfChildren;
-    NodeT* p = root;
-    deque<Tuple*> emptyVector;
-
-    if (outputOn) {
-        cout << "# tree level and num of Children: ";
-        cout << (int) p->level;
-        cout << " -- " << (int)p->children.size() << endl;
-    }
+    tchNode * p = root;
+    vector<Tuple*> emptyVector;
 
     while (!p->isLeaf()) {
         overlap = false;
         numOfChildren = 0;
 
-        for (NodeT* child : p->children) {
-            //child = p->children.at(i);
+        for (tchNode * child : p->children) {
 
             numOfChildren++;
-
-            child->box.SetDefined(true);
-            /*
-             * danger, SetDefined(true) should not be added here,
-             * fix the problem differently
-             */
 
             assert(child->box.IsDefined());
 
             if (boxB.Intersects(child->box, 0)) {
-                if (outputOn) {
-                    cout <<
-                    "##### current tree node is intersecting with TupleB"
-                    << endl;
-                    cout << "child i: " << " - level: " <<
-                    child->level << endl;
-                }
 
                 if (overlap) {
                     if (parent != NULL) {
-                        if (outputOn) {
-                            cout << "##### tree 5" << endl;
-                        }
 
-                        parent->addObjectB(tupleB); /// this is the place
+                        parent->addObjectB(tupleB);
+
                         return joinPhase(parent, tupleB);
                     }
                     return emptyVector;
                 } else {
-                    if (outputOn) {
-                        cout << "##### tree 6" << endl;
-                    }
-
                     overlap = true;
 
                     temp = child;
@@ -174,7 +161,6 @@ deque<Tuple*> RTreeTouch::getTuplesOverlappingOnTreeWith(Tuple* tupleB) {
                 }
 
                 if ((temp != NULL) && (numOfChildren == p->noChildren)) {
-                    // in case only last child intersects
                     p = temp;
                     break;
                 }
@@ -195,6 +181,7 @@ deque<Tuple*> RTreeTouch::getTuplesOverlappingOnTreeWith(Tuple* tupleB) {
     }
 
     p->addObjectB(tupleB);
+
     return joinPhase(p, tupleB);
 }
 
@@ -202,7 +189,7 @@ int RTreeTouch::noLeaves() {
     return noLeaves(root);
 }
 
-int RTreeTouch::noLeaves(NodeT* someNode) {
+int RTreeTouch::noLeaves(tchNode * someNode) {
 
     if(!someNode){
         return 0;
@@ -221,53 +208,32 @@ int RTreeTouch::noLeaves(NodeT* someNode) {
     }
 }
 
+vector<Tuple*> RTreeTouch::joinPhase(tchNode * node,Tuple* tupleB) {
 
-// Finds and returns as vector all leaf-Nodes that overlap with TupleB
-deque<Tuple*> RTreeTouch::joinPhase(NodeT* node,Tuple* tupleB) {
-
-    deque<NodeT*> leafNodes;
+    vector<tchNode * > leafNodes;
     leafNodes = getNodesOfInnerNodeRecursive(node, leafNodes);
 
     return getMatchingConcatenatedTuples(tupleB, leafNodes);
 }
 
-deque<Tuple*> RTreeTouch::getMatchingConcatenatedTuples(
+vector<Tuple*> RTreeTouch::getMatchingConcatenatedTuples(
         Tuple* tupleB,
-        deque<NodeT*> leafNodes
-        )
-    {
+        vector<tchNode * > leafNodes
+)
+{
 
-    StandardSpatialAttribute<2> * attr1 =
-            (StandardSpatialAttribute<2>*) tupleB->GetAttribute(
-                    _secondStreamWordIndex
-                    );
-    Rectangle<2> boxB = attr1->BoundingBox();
+    vector<Tuple*> matchingConcatenatedTuplesVector;
 
-    deque<Tuple*> matchingConcatenatedTuplesVector;
+    for (tchNode * leafNode: leafNodes) {
 
-    for (NodeT* leafNode: leafNodes) {
-
-        deque<Tuple*> objectsA = leafNode->objects;
+        vector<Tuple*> objectsA = leafNode->objects;
 
         for (Tuple* tupleA: objectsA) {
 
-            StandardSpatialAttribute<2> * attr1 =
-                    (StandardSpatialAttribute<2>*) tupleA->GetAttribute(
-                            _firstStreamWordIndex
-                            );
-            Rectangle<2> boxA = attr1->BoundingBox();
+            if (checkIfOverlapping(tupleA, tupleB)) {
 
-            if (boxA.Intersects(boxB, 0)) {
+                Tuple* result = concatenateTuples(tupleA, tupleB);
 
-                Tuple* result = new Tuple(tt);
-
-                Concat(tupleA, tupleB, result);
-
-                if (outputOn) {
-                    cout << " RTreeTouch.cpp: intersection exists with TupleA: "
-                    << tupleA->GetAttribute(0)->toText()
-                    << endl;
-                }
                 matchingConcatenatedTuplesVector.push_back(result);
             }
 
@@ -277,63 +243,59 @@ deque<Tuple*> RTreeTouch::getMatchingConcatenatedTuples(
     return matchingConcatenatedTuplesVector;
 }
 
-
-
-deque<NodeT*> RTreeTouch::getNodesOfInnerNodeRecursive(
-        NodeT* node,
-        deque<NodeT*> nodes,
+vector<tchNode * > RTreeTouch::getNodesOfInnerNodeRecursive(
+        tchNode * node,
+        vector<tchNode *> nodes,
         bool justLeafNodes
-        )
-    {
-
-        if (node->isLeaf()) {
-            nodes.push_back(node);
-
-            return nodes;
-        }
-
-        for (NodeT* child: node->children) {
-            //NodeT* child = node->children.at(i);
-
-            if (!justLeafNodes) {
-                nodes.push_back(child);
-            }
-
-            nodes = getNodesOfInnerNodeRecursive(child , nodes);
-        }
+)
+{
+    if (node->isLeaf()) {
+        nodes.push_back(node);
 
         return nodes;
+    }
+
+    for (tchNode * child: node->children) {
+        nodes = getNodesOfInnerNodeRecursive(child , nodes, justLeafNodes);
+    }
+
+    if (!justLeafNodes) {
+        nodes.push_back(node);
+    }
+
+    return nodes;
 }
 
-deque<deque<NodeT*> > RTreeTouch::reGroupByConsideringFanout(
-        deque<NodeT*> sortedArray,
+vector<vector<tchNode * > > RTreeTouch::reGroupByConsideringFanout(
+        vector<tchNode * > sortedArray,
         int fanout
-        )
-        { //you could change the name to ::groupNodesByConsideringFanout()
-            deque<deque<NodeT*> > reGroupPartitions;
+)
+{
+    vector<vector<tchNode * > > reGroupPartitions;
+    reGroupPartitions.reserve(fanout);
 
-            int counter = 0;
-            deque<NodeT*> innerContainer;
+    int counter = 0;
+    vector<tchNode * > innerContainer;
 
-            for (NodeT* item: sortedArray) {
-                counter++;
-                innerContainer.push_back(item);
+    for (tchNode * item: sortedArray) {
+        counter++;
+        innerContainer.push_back(item);
 
-                if ((counter > 0) && (counter % fanout == 0)) {
-                    reGroupPartitions.push_back(innerContainer);
-                    innerContainer.clear();
-                }
+        if ((counter > 0) && (counter % fanout == 0)) {
+            reGroupPartitions.push_back(innerContainer);
+            innerContainer.clear();
+        }
 
-            }
+    }
 
-            if (innerContainer.size() > 0) {
-                reGroupPartitions.push_back(innerContainer);
-            }
+    if (innerContainer.size() > 0) {
+        reGroupPartitions.push_back(innerContainer);
+    }
 
-            return reGroupPartitions;
+    return reGroupPartitions;
 }
 
-void RTreeTouch::showSubTreeInfo(NodeT* subRoot) {
+void RTreeTouch::showSubTreeInfo(tchNode * subRoot) {
 
     string infoStrOut;
 
@@ -342,19 +304,21 @@ void RTreeTouch::showSubTreeInfo(NodeT* subRoot) {
     cout << infoStrOut << endl;
 }
 
-string RTreeTouch::recursiveInfo(NodeT* subRoot) {
+string RTreeTouch::recursiveInfo(tchNode * subRoot) {
 
     stringstream info;
     string infoStrOut;
 
-    string type = "Node";
+    string type = "tchNode";
     if (subRoot->isLeaf()) {
         type = "LeafNode";
     }
 
+
     info << "(#" << type << "# - Level: " << subRoot->level <<
-    " - NumChildren: "  << (int)subRoot->children.size() <<
-    " - NumOfObjects: " << (int)subRoot->noObjects;
+         " - NumChildren: "  << (int)subRoot->children.size() <<
+         " - Num Tuples B : "  << (int)subRoot->noObjectsB <<
+         " - Num Tuples A : " << (int)subRoot->noObjects;
 
     if ((int)subRoot->children.size() > 0) {
 
@@ -377,3 +341,270 @@ string RTreeTouch::recursiveInfo(NodeT* subRoot) {
 
     return info.str();;
 }
+
+int RTreeTouch::assignTupleB(Tuple* tupleB) {
+
+    StandardSpatialAttribute<2> * attr1 =
+            (StandardSpatialAttribute<2>*) tupleB->GetAttribute(
+                    _secondStreamWordIndex
+            );
+
+    Rectangle<2> boxB = attr1->BoundingBox();
+    tchNode * parent = NULL, * temp = NULL;
+    bool overlap;
+    long numOfChildren;
+    tchNode * p = root;
+    vector<Tuple*> emptyVector;
+
+    while (!p->isLeaf()) {
+        overlap = false;
+        numOfChildren = 0;
+
+        for (tchNode * child : p->children) {
+
+            numOfChildren++;
+
+            assert(child->box.IsDefined());
+            assert(boxB.IsDefined());
+
+            if (boxB.Intersects(child->box, 0)) {
+
+                if (overlap) {
+                    if (parent != NULL) {
+
+                        parent->addObjectB(tupleB);
+                        return 0;
+                    }
+
+                    return 0;
+                } else {
+
+                    overlap = true;
+
+                    temp = child;
+
+                    parent = p;
+                }
+
+                if ((temp != NULL) && (numOfChildren == p->noChildren)) {
+                    p = temp;
+                    break;
+                }
+
+            } else if (
+                    (temp != NULL) && overlap &&
+                    (numOfChildren == p->noChildren)
+                    )
+            { // in case some of the first but not the last child intersects
+                p = temp;
+                break;
+            }
+        }
+
+        if (!overlap) {
+            // in case that in one level there is no overlap (although
+            // in the higher level there is an overlap)
+            return 0;
+        }
+    }
+
+    p->addObjectB(tupleB);
+
+    return 0;
+}
+
+
+vector<Tuple*> RTreeTouch::findMatchings() {
+
+    vector<Tuple*> matchings;
+
+    matchings =
+            findMatchingsTopToBottomRecursWithGridFirstLeaves(root, matchings);
+
+    return matchings;
+}
+
+vector<Tuple*> RTreeTouch::findMatchingsTopToBottomRecurs(
+        tchNode * node,
+        vector<Tuple*> matchings
+        ) {
+
+    if (node->noChildren > 0) {
+        for (tchNode * child: node->children) {
+            matchings = findMatchingsTopToBottomRecurs(child, matchings);
+        }
+    }
+
+    if (node->noObjectsB > 0) {
+        vector<Tuple*> Bs = node->objectsB;
+
+        vector<tchNode * > leafNodes;
+        leafNodes = getNodesOfInnerNodeRecursive(node, leafNodes);
+
+        for (Tuple* B: Bs) {
+            for (tchNode * leafNode: leafNodes) {
+                for (Tuple* A: leafNode->objects) {
+                    if (checkIfOverlapping(A,B)) {
+                        Tuple* res = concatenateTuples(A,B);
+                        matchings.push_back(res);
+                    }
+                }
+            }
+        }
+    }
+
+    return matchings;
+}
+
+vector<Tuple*> RTreeTouch::findMatchingsTopToBottomRecursWithGridFirstLeaves(
+        tchNode * node,
+        vector<Tuple*> matchings
+        ) {
+
+    if (node->noChildren > 0) {
+        for (tchNode * child: node->children) {
+
+            matchings =
+                    findMatchingsTopToBottomRecursWithGridFirstLeaves(
+                            child,
+                            matchings
+                            );
+        }
+    }
+
+    if (node->noObjectsB > 0) {
+        vector<Tuple*> Bs = node->objectsB;
+
+        vector<tchNode * > leafNodes;
+        leafNodes = getNodesOfInnerNodeRecursive(node, leafNodes);
+
+        pair<double, double> cellDimension
+                                    = findAverageSizeOfTupleAs(leafNodes);
+
+        Grid *grid = new Grid(
+                node,
+                cellDimension.first * cellFactor,
+                cellDimension.second * cellFactor,
+                _firstStreamWordIndex,
+                _secondStreamWordIndex,
+                tt
+        );
+
+        grid->numOfComp = 0;
+
+        for (tchNode *leafNode: leafNodes) {
+            for (Tuple *TupleA: leafNode->objects) {
+                grid->addTuple(TupleA, _firstStreamWordIndex);
+            }
+        }
+
+        for (Tuple *tupleB: Bs) {
+            matchings = grid->getTuplesOverlappingWith(
+                    tupleB,
+                    _secondStreamWordIndex,
+                    matchings
+            );
+        }
+
+        delete grid;
+
+        leafNodes.clear();
+
+
+    }
+
+    return matchings;
+}
+
+pair<double, double> RTreeTouch::findAverageSize(vector<Tuple*> tuples) {
+
+    double totalXCellDim = 0;
+    double totalYCellDim = 0;
+
+    for (Tuple* tuple: tuples) {
+        Attribute* attr = tuple->GetAttribute(_secondStreamWordIndex);
+
+        double xCellDim = attr->getMaxX() - attr->getMinX();
+        double yCellDim = attr->getMaxY() - attr->getMinY();
+
+        totalXCellDim += xCellDim;
+        totalYCellDim += yCellDim;
+    }
+
+    int totalNum = tuples.size();
+
+    assert(totalNum != 0);
+
+    double avgXCellDim = totalXCellDim / totalNum;
+    double avgYCellDim = totalYCellDim / totalNum;
+
+    return make_pair(avgXCellDim, avgYCellDim);
+}
+
+pair<double, double> RTreeTouch::findAverageSizeOfTupleAs(
+                                        vector<tchNode*> leafNodes
+                                        ) {
+
+    double totalXCellDim = 0;
+    double totalYCellDim = 0;
+    long counter = 0;
+
+    for (tchNode* leafNode:leafNodes ) {
+        int incr = leafNode->noObjects * 0.1;
+        incr = incr == 0 ? 1: incr;
+        for (int i = 0; i < leafNode->noObjects; i += incr) {
+
+            Attribute* attr = leafNode->objects[i]->GetAttribute(
+                                                        _firstStreamWordIndex
+                                                        );
+
+            double xCellDim = attr->getMaxX() - attr->getMinX();
+            double yCellDim = attr->getMaxY() - attr->getMinY();
+
+            totalXCellDim += xCellDim;
+            totalYCellDim += yCellDim;
+
+            counter++;
+        }
+    }
+
+    long totalNum = counter;
+
+    assert(totalNum != 0);
+
+    double avgXCellDim = totalXCellDim / totalNum;
+    double avgYCellDim = totalYCellDim / totalNum;
+
+
+    return make_pair(avgXCellDim, avgYCellDim);
+}
+
+bool RTreeTouch::checkIfOverlapping(Tuple* tupleA, Tuple* tupleB) {
+
+    StandardSpatialAttribute<2> * attrA1 =
+            (StandardSpatialAttribute<2>*) tupleA->GetAttribute(
+                    _firstStreamWordIndex
+            );
+
+    Rectangle<2> boxA = attrA1->BoundingBox();
+
+    StandardSpatialAttribute<2> * attrB1 =
+            (StandardSpatialAttribute<2>*) tupleB->GetAttribute(
+                    _secondStreamWordIndex
+            );
+
+    Rectangle<2> boxB = attrB1->BoundingBox();
+
+    if (boxA.Intersects(boxB, 0)) {
+        return true;
+    }
+
+    return false;
+}
+
+Tuple* RTreeTouch::concatenateTuples(Tuple* tupleA, Tuple* tupleB) {
+    Tuple* result = new Tuple(tt);
+    Concat(tupleA, tupleB, result);
+
+    return result;
+};

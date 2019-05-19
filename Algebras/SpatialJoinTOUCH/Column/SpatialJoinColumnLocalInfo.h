@@ -96,7 +96,7 @@ public:
             Word firstStreamWordParam,
             Word secondStreamWordParam,
             Word _fanout,
-            Word _numOfPartitions,
+            Word _numOfItemsInBucket,
             Word cellFactorWord,
             int firstStreamWordIndex,
             int secondStreamWordIndex,
