@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace STR {
 
     void mergeSort(
-            Tuple * arr[],
+            std::vector<Tuple *> &tuples,
             int64_t l,
             int64_t r,
             char direction,
@@ -38,7 +38,7 @@ namespace STR {
             );
 
     void merge(
-            Tuple * arr[],
+            std::vector<Tuple *> &tuples,
             int64_t l,
             int64_t m,
             int64_t r,
@@ -47,7 +47,7 @@ namespace STR {
             );
 
     std::vector<std::vector <Tuple *> > splitInSlices(
-            Tuple * arr[],
+            std::vector<Tuple *> tuples,
             int numOfPartitions,
             int64_t array_size);
 
@@ -66,8 +66,6 @@ namespace STR {
             int leftAttrIndex);
 
     std::string bucketInfo(std::vector<mmrtreetouch::tchNode* > bucketVector);
-
-    void createArrayFromTupleVector(Tuple * arr[], std::vector<Tuple*> tuples);
 
     std::vector<mmrtreetouch::tchNode *> createBuckets(
             std::vector<Tuple*> tuples,

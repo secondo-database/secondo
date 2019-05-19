@@ -43,7 +43,7 @@ using namespace mmrtreetouch;
 namespace STR {
 
     vector<vector <Tuple *> > splitInSlices(
-            Tuple * arr[],
+            vector<Tuple *> tuples,
             int numOfItemsInBucket,
             int64_t array_size)
     {
@@ -59,7 +59,7 @@ namespace STR {
         for( int64_t i = 0; i < array_size; i++ ) {
             counter++;
 
-            temp.push_back(arr[i]);
+            temp.push_back(tuples[i]);
 
             if (counter % numOfItemsInBucket == 0) {
                 container.push_back(temp);
@@ -87,17 +87,11 @@ namespace STR {
         sortedSlicedList.reserve(numOfPartitions);
 
         for (vector<Tuple *> currentSlice: container) {
-            Tuple * arr[currentSlice.size()];
-            copy(currentSlice.begin(), currentSlice.end(), arr);
 
-            mergeSort(arr, 0, (int64_t)(currentSlice.size()-1), 'y',
+            mergeSort(currentSlice, 0, (int64_t)(currentSlice.size()-1), 'y',
                     leftAttrIndex);
 
-            int64_t arraySize = sizeof(arr)/ sizeof(arr[0]);
-
-            vector<Tuple *> v(arr, arr + arraySize);
-
-            sortedSlicedList.push_back(v);
+            sortedSlicedList.push_back(currentSlice);
         }
 
         return sortedSlicedList;
@@ -170,7 +164,7 @@ namespace STR {
     }
 
     void mergeSort(
-            Tuple * arr[],
+            vector<Tuple *> &tuples,
             int64_t l,
             int64_t r,
             char direction,
@@ -180,15 +174,15 @@ namespace STR {
         {
             int64_t m = l+(r-l)/2;
 
-            mergeSort(arr, l, m, direction, leftAttrIndex);
-            mergeSort(arr, m+1, r, direction, leftAttrIndex);
+            mergeSort(tuples, l, m, direction, leftAttrIndex);
+            mergeSort(tuples, m+1, r, direction, leftAttrIndex);
 
-            merge(arr, l, m, r, direction, leftAttrIndex);
+            merge(tuples, l, m, r, direction, leftAttrIndex);
         }
     }
 
     void merge(
-            Tuple * arr[],
+            vector<Tuple *> &tuples,
             int64_t l,
             int64_t m,
             int64_t r,
@@ -201,12 +195,12 @@ namespace STR {
         int64_t n1 = m - l + 1;
         int64_t n2 =  r - m;
 
-        Tuple * L[n1], * R[n2];
+        vector<Tuple*> L(n1), R(n2);
 
         for (i = 0; i < n1; i++)
-            L[i] = arr[l + i];
+            L[i] = tuples[l + i];
         for (j = 0; j < n2; j++)
-            R[j] = arr[m + 1+ j];
+            R[j] = tuples[m + 1+ j];
 
         i = 0;
         j = 0;
@@ -233,12 +227,12 @@ namespace STR {
 
             if (valueL <= valueR)
             {
-                arr[k] = L[i];
+                tuples[k] = L[i];
                 i++;
             }
             else
             {
-                arr[k] = R[j];
+                tuples[k] = R[j];
                 j++;
             }
             k++;
@@ -246,27 +240,17 @@ namespace STR {
 
         while (i < n1)
         {
-            arr[k] = L[i];
+            tuples[k] = L[i];
             i++;
             k++;
         }
 
         while (j < n2)
         {
-            arr[k] = R[j];
+            tuples[k] = R[j];
             j++;
             k++;
         }
-    }
-
-    void createArrayFromTupleVector(Tuple * arr[], vector<Tuple*> tuples) {
-
-        // # 1. creating array
-        int64_t vectorSize =  (int64_t) tuples.size();
-        for (int64_t i = 0; i< vectorSize; i++) {
-            arr[i] = tuples.at(i);
-        }
-        tuples.clear();
     }
 
     /*
@@ -286,16 +270,14 @@ namespace STR {
         assert(size > 0);
 
         // # 1 create Array
-        Tuple * arr[size] = {};
-        STR::createArrayFromTupleVector(arr, tuples);
 
         // # 2 run mergeSort - sort by first dimension - x
-        STR::mergeSort(arr, 0, size - 1, 'x', _firstStreamWordIndex);
+        STR::mergeSort(tuples, 0, size - 1, 'x', _firstStreamWordIndex);
 
         // # 3
         int numOfItemsInBrucket = _numOfItemsInBrucket;
         vector<vector <Tuple *> > container = STR::splitInSlices(
-                arr,
+                tuples,
                 numOfItemsInBrucket,
                 size);
 
@@ -306,6 +288,7 @@ namespace STR {
                 numOfItemsInBrucket,
                 size
         );
+
 
         // # 5
         return STR::packInBuckets(
