@@ -51,9 +51,9 @@ Grid::Grid(
         yCellDim(_yCellDim == 0 ? 0.1: _yCellDim),
         xLength(maxX - minX),
         yLength(maxY - minY),
-        numOfXCells((int) ceil(xLength / xCellDim)),
-        numOfYCells((int) ceil(yLength / yCellDim)),
-        cellSize((int)node->objectsB.size()),
+        numOfXCells((int64_t) ceil(xLength / xCellDim)),
+        numOfYCells((int64_t) ceil(yLength / yCellDim)),
+        cellSize((int64_t)node->objectsB.size()),
         grid(
                 numOfXCells,
                 vector<vector<Tuple*> >(numOfYCells, vector<Tuple* >(0)))
@@ -67,9 +67,9 @@ Grid::Grid(
 Grid::~Grid() {
 };
 
-int Grid::calculateIndexX(double coord) {
-    int index;
-    int roundDown = (int) floor((coord-minX) / xCellDim);
+int64_t Grid::calculateIndexX(double coord) {
+    int64_t index;
+    int64_t roundDown = (int64_t) floor((coord-minX) / xCellDim);
 
     index = roundDown;
 
@@ -90,9 +90,9 @@ int Grid::calculateIndexX(double coord) {
 }
 
 
-int Grid::calculateIndexY(double coord) {
-    int index;
-    int roundDown = (int) floor((coord-minY) / yCellDim);
+int64_t Grid::calculateIndexY(double coord) {
+    int64_t index;
+    int64_t roundDown = (int64_t) floor((coord-minY) / yCellDim);
 
     index = roundDown;
 
@@ -114,17 +114,18 @@ int Grid::calculateIndexY(double coord) {
 
 
 
-pair<pair<int, int>, pair<int, int>> Grid::getGridCoordinatesOf(
+pair<pair<int64_t, int64_t>, pair<int64_t, int64_t>>
+Grid::getGridCoordinatesOf(
         Tuple* t,
         int attrIndex
         ) {
     Attribute* attr = t->GetAttribute(attrIndex);
 
-    int tMinX = calculateIndexX(attr->getMinX());
-    int tMaxX = calculateIndexX(attr->getMaxX());
+    int64_t tMinX = calculateIndexX(attr->getMinX());
+    int64_t tMaxX = calculateIndexX(attr->getMaxX());
 
-    int tMinY = calculateIndexY(attr->getMinY());
-    int tMaxY = calculateIndexY(attr->getMaxY());
+    int64_t tMinY = calculateIndexY(attr->getMinY());
+    int64_t tMaxY = calculateIndexY(attr->getMaxY());
 
     return make_pair(make_pair(tMinX, tMaxX), make_pair(tMinY, tMaxY));
 }
@@ -133,14 +134,14 @@ void Grid::addTuple(Tuple* t, int attrIndex) {
 
     Attribute* attr = t->GetAttribute(attrIndex);
 
-    int tMinX = calculateIndexX(attr->getMinX());
-    int tMaxX = calculateIndexX(attr->getMaxX());
+    int64_t tMinX = calculateIndexX(attr->getMinX());
+    int64_t tMaxX = calculateIndexX(attr->getMaxX());
 
-    int tMinY = calculateIndexY(attr->getMinY());
-    int tMaxY = calculateIndexY(attr->getMaxY());
+    int64_t tMinY = calculateIndexY(attr->getMinY());
+    int64_t tMaxY = calculateIndexY(attr->getMaxY());
     
-    for (int i = tMinX; i <= tMaxX; i++) {
-        for (int j = tMinY; j <= tMaxY; j++) {
+    for (int64_t i = tMinX; i <= tMaxX; i++) {
+        for (int64_t j = tMinY; j <= tMaxY; j++) {
             grid.at(i).at(j).push_back(t);
         }
     }
@@ -183,7 +184,8 @@ vector<Tuple*> Grid::getTuplesOverlappingWith(
         vector<Tuple*> matchings
 ) {
 
-    pair<pair<int, int>, pair<int, int>> indexes = getGridCoordinatesOf(
+    pair<pair<int64_t, int64_t>, pair<int64_t, int64_t>> indexes =
+            getGridCoordinatesOf(
             TupleB,
             attrIndex
     );
@@ -193,11 +195,11 @@ vector<Tuple*> Grid::getTuplesOverlappingWith(
 
     Rectangle<2> tupleBBox = attr2->BoundingBox();
 
-    pair<int, int> xPair = indexes.first;
-    pair<int, int> yPair = indexes.second;
+    pair<int64_t, int64_t> xPair = indexes.first;
+    pair<int64_t, int64_t> yPair = indexes.second;
 
-    for (int i = xPair.first; i <= xPair.second; i++) {
-        for (int j = yPair.first; j <= yPair.second; j++) {
+    for (int64_t i = xPair.first; i <= xPair.second; i++) {
+        for (int64_t j = yPair.first; j <= yPair.second; j++) {
             vector<Tuple*> temp = grid[i][j];
 
             for (Tuple* TupleA: temp) {
@@ -216,8 +218,8 @@ vector<Tuple*> Grid::getTuplesOverlappingWith(
                 double minX = (double) intersectionBox.MinD(0);
                 double minY = (double) intersectionBox.MinD(1);
 
-                int intersectionIndexX = calculateIndexX(minX);
-                int intersectionIndexY = calculateIndexY(minY);
+                int64_t intersectionIndexX = calculateIndexX(minX);
+                int64_t intersectionIndexY = calculateIndexY(minY);
 
                 if (intersectionIndexX == i && intersectionIndexY == j) {
                     if (checkIfOverlapping(TupleA, TupleB)) {
@@ -232,7 +234,8 @@ vector<Tuple*> Grid::getTuplesOverlappingWith(
     return  matchings;
 }
 
-bool Grid::tuplesIntersectInCell(Tuple* TupleA, Tuple* TupleB, int i, int j) {
+bool Grid::tuplesIntersectInCell(
+        Tuple* TupleA, Tuple* TupleB, int64_t i, int64_t j) {
 
     StandardSpatialAttribute<2> * attr1 =
             (StandardSpatialAttribute<2>*) TupleA->GetAttribute(fAttrIndex);
@@ -246,8 +249,8 @@ bool Grid::tuplesIntersectInCell(Tuple* TupleA, Tuple* TupleB, int i, int j) {
     double minX = (double) intersectionBox.MinD(0);
     double minY = (double) intersectionBox.MinD(1);
 
-    int intersectionIndexX = calculateIndexX(minX);
-    int intersectionIndexY = calculateIndexY(minY);
+    int64_t intersectionIndexX = calculateIndexX(minX);
+    int64_t intersectionIndexY = calculateIndexY(minY);
 
     if (intersectionIndexX == i && intersectionIndexY == j) {
         return true;

@@ -82,7 +82,7 @@ tchNode * RTreeTouch::constructTree(
     vector<tchNode * > nodes;
 
     // create from the bottom to the top the tree
-    while ((int)Pa.size() > 1 || firstTime) {
+    while ((int64_t)Pa.size() > 1 || firstTime) {
         firstTime = false;
 
         levelCounter++;
@@ -92,8 +92,6 @@ tchNode * RTreeTouch::constructTree(
             tchNode* parentNode = new tchNode();
             parentNode->addChildren(group);
             parentNode->level = levelCounter;
-
-            assert(parentNode->noChildren == (int)parentNode->children.size());
 
             nodes.push_back(parentNode);
         }
@@ -105,14 +103,14 @@ tchNode * RTreeTouch::constructTree(
 
     root = new tchNode();
 
-    if ((int)Pa.size() == 1 && (int)Pa.at(0).size() == 1) {
+    if ((int64_t)Pa.size() == 1 && (int64_t)Pa.at(0).size() == 1) {
         delete root;
         root = Pa.front().front();
-    } else if ((int)Pa.size() == 1) {
+    } else if ((int64_t)Pa.size() == 1) {
         root->level = levelCounter + 1;
         root->addChildren(Pa.front());
 
-        assert(root->noChildren == (int)root->children.size());
+        assert(root->noChildren == (int64_t)root->children.size());
     }
 
     return root;
@@ -185,11 +183,11 @@ vector<Tuple*> RTreeTouch::getTuplesOverlappingOnTreeWith(Tuple* tupleB) {
     return joinPhase(p, tupleB);
 }
 
-int RTreeTouch::noLeaves() {
+int64_t RTreeTouch::noLeaves() {
     return noLeaves(root);
 }
 
-int RTreeTouch::noLeaves(tchNode * someNode) {
+int64_t RTreeTouch::noLeaves(tchNode * someNode) {
 
     if(!someNode){
         return 0;
@@ -198,9 +196,9 @@ int RTreeTouch::noLeaves(tchNode * someNode) {
 
         return 1;
     }else {
-        int sum = 0;
+        int64_t sum = 0;
 
-        for(int i=0;i < (int)someNode->children.size(); i++){
+        for(int64_t i=0;i < (int64_t)someNode->children.size(); i++){
             sum += noLeaves(someNode->children.at(i));
         }
 
@@ -274,7 +272,7 @@ vector<vector<tchNode * > > RTreeTouch::reGroupByConsideringFanout(
     vector<vector<tchNode * > > reGroupPartitions;
     reGroupPartitions.reserve(fanout);
 
-    int counter = 0;
+    int64_t counter = 0;
     vector<tchNode * > innerContainer;
 
     for (tchNode * item: sortedArray) {
@@ -316,15 +314,15 @@ string RTreeTouch::recursiveInfo(tchNode * subRoot) {
 
 
     info << "(#" << type << "# - Level: " << subRoot->level <<
-         " - NumChildren: "  << (int)subRoot->children.size() <<
-         " - Num Tuples B : "  << (int)subRoot->noObjectsB <<
-         " - Num Tuples A : " << (int)subRoot->noObjects;
+         " - NumChildren: "  << (int64_t)subRoot->children.size() <<
+         " - Num Tuples B : "  << (int64_t)subRoot->noObjectsB <<
+         " - Num Tuples A : " << (int64_t)subRoot->noObjects;
 
-    if ((int)subRoot->children.size() > 0) {
+    if ((int64_t)subRoot->children.size() > 0) {
 
         info << " [ ";
 
-        for (int i=0; i < (int) subRoot->children.size(); i++) {
+        for (int64_t i=0; i < (int64_t) subRoot->children.size(); i++) {
 
 
             infoStrOut = recursiveInfo(subRoot->children.at(i));
@@ -342,7 +340,7 @@ string RTreeTouch::recursiveInfo(tchNode * subRoot) {
     return info.str();;
 }
 
-int RTreeTouch::assignTupleB(Tuple* tupleB) {
+int64_t RTreeTouch::assignTupleB(Tuple* tupleB) {
 
     StandardSpatialAttribute<2> * attr1 =
             (StandardSpatialAttribute<2>*) tupleB->GetAttribute(
@@ -531,7 +529,7 @@ pair<double, double> RTreeTouch::findAverageSize(vector<Tuple*> tuples) {
         totalYCellDim += yCellDim;
     }
 
-    int totalNum = tuples.size();
+    int64_t totalNum = tuples.size();
 
     assert(totalNum != 0);
 
@@ -550,9 +548,9 @@ pair<double, double> RTreeTouch::findAverageSizeOfTupleAs(
     long counter = 0;
 
     for (tchNode* leafNode:leafNodes ) {
-        int incr = leafNode->noObjects * 0.1;
+        int64_t incr = leafNode->noObjects * 0.1;
         incr = incr == 0 ? 1: incr;
-        for (int i = 0; i < leafNode->noObjects; i += incr) {
+        for (int64_t i = 0; i < leafNode->noObjects; i += incr) {
 
             Attribute* attr = leafNode->objects[i]->GetAttribute(
                                                         _firstStreamWordIndex

@@ -45,18 +45,18 @@ namespace STR {
     vector<vector <Tuple *> > splitInSlices(
             Tuple * arr[],
             int numOfItemsInBucket,
-            int array_size)
+            int64_t array_size)
     {
-        int numOfPartitions = ceil((double)array_size/numOfItemsInBucket);
+        int64_t numOfPartitions = ceil((double)array_size/numOfItemsInBucket);
 
-        int counter = 0;
+        int64_t counter = 0;
 
         vector<Tuple *> temp;
         vector<vector <Tuple *> > container;
         temp.reserve(numOfItemsInBucket);
         container.reserve(numOfPartitions);
 
-        for( int i = 0; i < array_size; i++ ) {
+        for( int64_t i = 0; i < array_size; i++ ) {
             counter++;
 
             temp.push_back(arr[i]);
@@ -78,10 +78,10 @@ namespace STR {
             vector<vector <Tuple *> > container,
             int leftAttrIndex,
             int numOfItemsInBucket,
-            int array_size
+            int64_t array_size
     )
     {
-        int numOfPartitions = ceil((double)array_size/numOfItemsInBucket);
+        int64_t numOfPartitions = ceil((double)array_size/numOfItemsInBucket);
 
         vector<vector <Tuple *> > sortedSlicedList;
         sortedSlicedList.reserve(numOfPartitions);
@@ -90,9 +90,10 @@ namespace STR {
             Tuple * arr[currentSlice.size()];
             copy(currentSlice.begin(), currentSlice.end(), arr);
 
-            mergeSort(arr, 0, (int)(currentSlice.size()-1), 'y', leftAttrIndex);
+            mergeSort(arr, 0, (int64_t)(currentSlice.size()-1), 'y',
+                    leftAttrIndex);
 
-            int arraySize = sizeof(arr)/ sizeof(arr[0]);
+            int64_t arraySize = sizeof(arr)/ sizeof(arr[0]);
 
             vector<Tuple *> v(arr, arr + arraySize);
 
@@ -105,12 +106,12 @@ namespace STR {
     string bucketInfo(vector<tchNode* > bucketVector)
     {
         stringstream info;
-        info << (int)bucketVector.size() << "(";
+        info << (int64_t)bucketVector.size() << "(";
 
-        for (int i=0; i < (int)bucketVector.size(); i++) {
+        for (int64_t i=0; i < (int64_t)bucketVector.size(); i++) {
             tchNode * bucket = bucketVector.at(i);
 
-            info << (i+1) << "[" << (int)bucket->objects.size();
+            info << (i+1) << "[" << (int64_t)bucket->objects.size();
 
             info << "]";
         }
@@ -124,22 +125,22 @@ namespace STR {
 
     vector<tchNode * > packInBuckets(
             vector<vector <Tuple *> > sortedSlicedList,
-            int sizeOfSortedList,
-            int initialListSize,
+            int64_t sizeOfSortedList,
+            int64_t initialListSize,
             int numOfItemsInBucket,
             int leftStreamWordIndex)
     {
-        int numOfPartitions = ceil((double)initialListSize/numOfItemsInBucket);
-
+        int64_t numOfPartitions =
+                ceil((double)initialListSize/numOfItemsInBucket);
 
         vector<tchNode * > containerOfBuckets;
         containerOfBuckets.reserve(numOfPartitions);
         tchNode * bucketNode = NULL;
-        int counter = 0;
+        int64_t counter = 0;
 
         for (vector<Tuple *> innerList : sortedSlicedList) {
 
-            while((int)innerList.size() > 0){
+            while((int64_t)innerList.size() > 0){
                 counter++;
 
                 if (bucketNode == NULL) {
@@ -170,14 +171,14 @@ namespace STR {
 
     void mergeSort(
             Tuple * arr[],
-            int l,
-            int r,
+            int64_t l,
+            int64_t r,
             char direction,
-            int leftAttrIndex)
+            int64_t leftAttrIndex)
     {
         if (l < r)
         {
-            int m = l+(r-l)/2;
+            int64_t m = l+(r-l)/2;
 
             mergeSort(arr, l, m, direction, leftAttrIndex);
             mergeSort(arr, m+1, r, direction, leftAttrIndex);
@@ -188,17 +189,17 @@ namespace STR {
 
     void merge(
             Tuple * arr[],
-            int l,
-            int m,
-            int r,
+            int64_t l,
+            int64_t m,
+            int64_t r,
             char direction,
-            int leftAttrIndex)
+            int64_t leftAttrIndex)
     {
         Attribute * attr1, * attr2;
         double valueL, valueR;
-        int i, j, k;
-        int n1 = m - l + 1;
-        int n2 =  r - m;
+        int64_t i, j, k;
+        int64_t n1 = m - l + 1;
+        int64_t n2 =  r - m;
 
         Tuple * L[n1], * R[n2];
 
@@ -261,8 +262,8 @@ namespace STR {
     void createArrayFromTupleVector(Tuple * arr[], vector<Tuple*> tuples) {
 
         // # 1. creating array
-        int vectorSize =  (int) tuples.size();
-        for (int i = 0; i< vectorSize; i++) {
+        int64_t vectorSize =  (int64_t) tuples.size();
+        for (int64_t i = 0; i< vectorSize; i++) {
             arr[i] = tuples.at(i);
         }
         tuples.clear();
@@ -280,7 +281,7 @@ namespace STR {
             int _firstStreamWordIndex,
             int _numOfItemsInBrucket
     ) {
-        int size = (int) tuples.size();
+        int64_t size = (int64_t) tuples.size();
 
         assert(size > 0);
 
@@ -309,7 +310,7 @@ namespace STR {
         // # 5
         return STR::packInBuckets(
                 sortedSlicedList,
-                (int)sortedSlicedList.size(),
+                (int64_t)sortedSlicedList.size(),
                 size,
                 numOfItemsInBrucket,
                 _firstStreamWordIndex);

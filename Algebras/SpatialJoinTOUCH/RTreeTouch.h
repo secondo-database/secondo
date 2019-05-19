@@ -110,14 +110,14 @@ namespace mmrtreetouch {
 
         std::vector<Tuple*> getTuplesOverlappingOnTreeWith(Tuple* objectB);
 
-        int noLeaves();
+        int64_t noLeaves();
 
-        int noLeaves(tchNode * someNode);
+        int64_t noLeaves(tchNode * someNode);
 
         void showSubTreeInfo(tchNode * subRoot);
 
 
-        int assignTupleB(Tuple* objectB);
+        int64_t assignTupleB(Tuple* objectB);
 
         std::vector<Tuple*> findMatchings();
 

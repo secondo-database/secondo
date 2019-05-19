@@ -55,18 +55,19 @@ namespace mmrtreetouch {
         double yCellDim;
         double xLength;
         double yLength;
-        int numOfXCells;
-        int numOfYCells;
-        int cellSize;
+        int64_t numOfXCells;
+        int64_t numOfYCells;
+        int64_t cellSize;
 
         std::vector<std::vector<std::vector<Tuple*> > > grid;
 
-        int calculateIndexX(double coord);
-        int calculateIndexY(double coord);
+        int64_t calculateIndexX(double coord);
+        int64_t calculateIndexY(double coord);
 
         bool checkIfOverlapping(Tuple* tupleA, Tuple* tupleB);
 
-        bool tuplesIntersectInCell(Tuple* fTuple, Tuple* sTuple, int i, int j);
+        bool tuplesIntersectInCell(
+                Tuple* fTuple, Tuple* sTuple, int64_t i, int64_t j);
 
         Tuple* concatenateTuples(Tuple* tupleA, Tuple* tupleB);
     public:
@@ -85,7 +86,7 @@ namespace mmrtreetouch {
 
         void addTuple(Tuple* t, int attrIndex);
 
-        std::pair<std::pair<int, int>, std::pair<int, int>>
+        std::pair<std::pair<int64_t, int64_t>, std::pair<int64_t, int64_t>>
         getGridCoordinatesOf(
                 Tuple* t,
                 int attrIndex

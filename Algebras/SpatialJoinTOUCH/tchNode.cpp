@@ -55,8 +55,8 @@ void tchNode::addChild(tchNode *child) {
 void tchNode::addChildren(vector<tchNode*> childrenV) {
     assert(noChildren == 0);
 
-    int vectorSize = (int) childrenV.size();
-    for (int i = 0; i < vectorSize; i++) {
+    int64_t vectorSize = (int64_t) childrenV.size();
+    for (int64_t i = 0; i < vectorSize; i++) {
         addChild(childrenV.at(i));
     }
 }

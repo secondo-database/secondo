@@ -31,37 +31,37 @@ namespace STR {
 
     void mergeSort(
             Tuple * arr[],
-            int l,
-            int r,
+            int64_t l,
+            int64_t r,
             char direction,
-            int leftAttrIndex
+            int64_t leftAttrIndex
             );
 
     void merge(
             Tuple * arr[],
-            int l,
-            int m,
-            int r,
+            int64_t l,
+            int64_t m,
+            int64_t r,
             char direction,
-            int leftAttrIndex
+            int64_t leftAttrIndex
             );
 
     std::vector<std::vector <Tuple *> > splitInSlices(
             Tuple * arr[],
             int numOfPartitions,
-            int array_size);
+            int64_t array_size);
 
     std::vector<std::vector <Tuple *> > sortSecondDimension(
             std::vector<std::vector <Tuple *> > container,
             int leftAttrIndex,
             int numOfPartitions,
-            int array_size
+            int64_t array_size
             );
 
     std::vector<mmrtreetouch::tchNode* > packInBuckets(
             std::vector<std::vector <Tuple *> > sortedSlicedList,
-            int sizeOfSortedList,
-            int arr_size,
+            int64_t sizeOfSortedList,
+            int64_t arr_size,
             int numOfPartitions,
             int leftAttrIndex);
 

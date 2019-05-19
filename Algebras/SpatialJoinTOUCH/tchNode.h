@@ -42,7 +42,7 @@ namespace mmrtreetouch {
         bool is_Leaf;
 
     public:
-        int level;
+        int64_t level;
         Rectangle<2> box;
         long noChildren;
         long noObjects;
