@@ -25,6 +25,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "DistributeIPC.h"
 #include "IPCMessages.h"
+#include <iostream>
+
 
 using namespace std;
 
@@ -64,7 +66,7 @@ bool DistributeIPC::init(int distributionId, string streamType,
       bool result = false;
       return conn->read(&result);
     } else {
-      cout << "Error: Wrong IPC response type.\n";
+	    std::cout << "Error: Wrong IPC response type.\n";
     }
 
   } else {
