@@ -532,6 +532,7 @@ position in the  priority queue must be corrected.
     int testIndex = actPosIndex;
     int n = actPosIndex;
     PQEntryOrel test;
+    test.prioval = -1;
     bool found = false;
     while ( testIndex > 0 && !found )
     {
