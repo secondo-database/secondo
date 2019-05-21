@@ -268,11 +268,13 @@ within the array.
 
 */
  inline bool Get( int index, DbArrayElement* elem ) const{
-   assert( index >= 0 );
-   assert( (size_t) index < nElements );
+   //assert( index >= 0 );
+   //assert( (size_t) index < nElements );
 
    if(!Flob::read((char*)elem, sizeof(DbArrayElement),
               index*sizeof(DbArrayElement))){
+     //memset(elem, 0, sizeof(DbArrayElement));	   
+     //elem = (new ((void*)elem) DbArrayElement);
      return false;
    }
    elem = (new ((void*)elem) DbArrayElement);
@@ -409,41 +411,33 @@ virtual bool Restrict( const std::vector< std::pair<int, int> >& intervals,
       assert( it->first <= it->second );
       newSize += ( ( it->second - it->first ) + 1 ) * sizeof( DbArrayElement );
   }
-assert( newSize <= Flob::getSize() );
-DbArray<DbArrayElement> res(newSize/sizeof(DbArrayElement));
-if( newSize == 0 ){
-  result = res;
-  return true;
-} else {
-  char *buffer = (char*)malloc( newSize );
-  size_t offset = 0;
-  DbArrayElement e;
-  // copy value into the temporarly buffer
-  for( std::vector< std::pair<int, int> >::const_iterator 
+  assert( newSize <= Flob::getSize() );
+  DbArray<DbArrayElement> res(newSize/sizeof(DbArrayElement));
+  if( newSize > 0 ){
+    size_t targetoffset = 0;
+    // copy value into the temporarly buffer
+    for( std::vector< std::pair<int, int> >::const_iterator 
        it = intervals.begin();
        it < intervals.end();
        it++ ) {
-    for( int j = it->first; j <= it->second; j++ ) {
-       if(!Get( j, &e )){
-          return false;
-       }
-       memcpy( buffer + offset,(char*) &e, sizeof( DbArrayElement ) );
-       offset += sizeof( DbArrayElement );
+	  // copy the whole interval into a buffer ibuffer
+	  size_t start = it->first;
+	  size_t end = it->second;
+          size_t bufsize = ((end-start)+1) * sizeof(DbArrayElement);
+	  char* ibuffer = new char[bufsize];
+	  Flob::read(ibuffer, bufsize, start*sizeof(DbArrayElement));
+	  // write ibuffer into res
+          res.Flob::write(ibuffer, bufsize, targetoffset);
+          targetoffset += bufsize;
+	  delete[] ibuffer;
     }
   }
-  res.nElements = newSize / sizeof( DbArrayElement );
-  res.maxElements = nElements;
-  if(!res.resize(nElements)){
-    free(buffer);
-    result = res;
-    return false;
-  }
-  bool bres = res.Flob::write(buffer, newSize, 0);
+  res.nElements = newSize/sizeof(DbArrayElement);
+  res.maxElements = newSize/sizeof(DbArrayElement);
   result = res;
-  free(buffer);
-  return bres;
+  return true; 
 }
-}
+
 
 /*
 ~GetFlobSize~
