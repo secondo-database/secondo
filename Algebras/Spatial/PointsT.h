@@ -631,13 +631,14 @@ definition as an attribute.
          WinUnix::writeLittle64(o,maxY);
          // number of points
          WinUnix::writeLittleEndian(o,size);
-         Point p(0,0);
          for(uint32_t i=0;i<size;i++){
-            points.Get(i,&p);
-            double x = p.GetX();
-            double y = p.GetY();
+            Point* p = new Point(true,0,0);
+            points.Get(i,p);
+            double x = p->GetX();
+            double y = p->GetY();
             WinUnix::writeLittle64(o,x);
             WinUnix::writeLittle64(o,y);
+	    delete p;
          }
        }
     }

@@ -1571,12 +1571,13 @@ void RegionT<Array>::Components( std::vector<RegionT<Array2>*>& components )
    components.push_back(new RegionT<Array2>(1));
    components[i]->StartBulkLoad();
   }
-  HalfSegment hs;
   for(int i=0;i<Size();i++){
-    Get(i,hs);
-    int face = hs.attr.faceno;
-    hs.attr.faceno = 0;
-    (*components[face]) += hs;
+    HalfSegment* hs = new HalfSegment(true, Point(true,0,0), Point(true,1,1));
+    region.Get(i,hs);
+    int face = hs->attr.faceno;
+    hs->attr.faceno = 0;
+    (*components[face]) += *hs;
+    delete hs; 
   }
   for(int i=0;i<noComponents;i++){
     components[i]->EndBulkLoad(false,false,false,false);

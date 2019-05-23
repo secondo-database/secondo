@@ -59,6 +59,7 @@ New distdata-types must be registered in the "DistDataReg::initialize"[4] method
 #ifndef __DISTDATA_REG_H__
 #define __DISTDATA_REG_H__
 
+#include <cstring>
 #include <iostream>
 #include <string>
 #include "StandardTypes.h"
@@ -253,11 +254,14 @@ class DistData
 {
 
 public:
+
+
+   DistData(bool dummy): m_size(0),m_value(0) {}	
 /*
 Constructor (initiates the object with a copy of the given "char"[4] array).
 
 */
-    inline DistData(size_t size, const void* value)
+    inline DistData(size_t size, const void* value)  __attribute__((nonnull))
         : m_size(size), m_value(new char[m_size])
     { memcpy(m_value, value, m_size); }
 

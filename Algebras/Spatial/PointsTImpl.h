@@ -985,10 +985,10 @@ Point PointsT<Array>::theCenter() const{
      res.SetDefined(false);
    } else {
      int size = Size();
-     Point p(true,0,0);
      double x = 0.0;
      double y = 0.0;
      for(int i=0;i<size;i++){
+         Point p(true,0,0);
          points.Get(i,p);
          x += p.GetX();
          y += p.GetY();
@@ -1008,10 +1008,10 @@ size_t PointsT<Array>::HashValue() const
 
   size_t h = 0;
 
-  Point p(true);
   for( int i = 0; i < Size() && i < 5; i++ )
   {
-    Get( i, p );
+    Point p(true,0,0);
+    points.Get( i, &p );
     h = h + (size_t)(5 * p.GetX() + p.GetY());
   }
   return h;

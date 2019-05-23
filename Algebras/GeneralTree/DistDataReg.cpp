@@ -270,7 +270,7 @@ DistData* DistDataReg::getFeatureSignature(const void* attr)
 	}
     
 	if (sig->GetNoFeatureSignatureTuples() == 0)
-		return new DistData(0, 0);
+		return new DistData(false);
 	
 	
     size_t siz = sig->GetNoFeatureSignatureTuples() 
@@ -337,13 +337,13 @@ DistData* DistDataReg::getDataPoints(const void* attr)
      return new DistData(1,&def);
   }
   if(points->Size()==0){ // empty points value
-     return new DistData(0,0);
+     return new DistData(false);
   }
   size_t s = 2 * points->Size() * sizeof(Coord);
   char* buffer = new char[s];
   size_t offset=0;
-  Point p;
   for(int i=0;i<points->Size();i++){
+     Point p;
      points->Get(i,p);
      Coord x = p.GetX();
      Coord y = p.GetY();
@@ -367,7 +367,7 @@ DistData* DistDataReg::getDataPoint(const void* attr) {
    const Point* point = static_cast<const Point*>(attr);
    // special treatment for undefined values
    if(!point->IsDefined()){ // undefined points value
-      return new DistData(0,0);
+      return new DistData(false);
    }
    // serialize the point
    Coord x = point->GetX();
