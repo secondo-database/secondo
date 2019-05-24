@@ -139,7 +139,8 @@ void Grid::addTuple(Tuple* t, int attrIndex) {
 
     int64_t tMinY = calculateIndexY(attr->getMinY());
     int64_t tMaxY = calculateIndexY(attr->getMaxY());
-    
+
+
     for (int64_t i = tMinX; i <= tMaxX; i++) {
         for (int64_t j = tMinY; j <= tMaxY; j++) {
             grid.at(i).at(j).push_back(t);
@@ -178,10 +179,17 @@ Tuple* Grid::concatenateTuples(Tuple* tupleA, Tuple* tupleB) {
     return result;
 };
 
-vector<Tuple*> Grid::getTuplesOverlappingWith(
+vector<Tuple*> Grid::getMatchings() {
+    return matchings;
+}
+
+void Grid::setMatchings(std::vector<Tuple*> _matchings) {
+    matchings = _matchings;
+}
+
+void Grid::getTuplesOverlappingWith(
         Tuple* TupleB,
-        int attrIndex,
-        vector<Tuple*> matchings
+        int attrIndex
 ) {
 
     pair<pair<int64_t, int64_t>, pair<int64_t, int64_t>> indexes =
@@ -198,6 +206,7 @@ vector<Tuple*> Grid::getTuplesOverlappingWith(
     pair<int64_t, int64_t> xPair = indexes.first;
     pair<int64_t, int64_t> yPair = indexes.second;
 
+
     for (int64_t i = xPair.first; i <= xPair.second; i++) {
         for (int64_t j = yPair.first; j <= yPair.second; j++) {
             vector<Tuple*> temp = grid[i][j];
@@ -210,7 +219,6 @@ vector<Tuple*> Grid::getTuplesOverlappingWith(
                     (StandardSpatialAttribute<2>*) TupleA->GetAttribute(
                             fAttrIndex
                             );
-
 
                 Rectangle<2> intersectionBox =
                         attr1->BoundingBox().Intersection(tupleBBox);
@@ -230,8 +238,6 @@ vector<Tuple*> Grid::getTuplesOverlappingWith(
             }
         }
     }
-
-    return  matchings;
 }
 
 bool Grid::tuplesIntersectInCell(

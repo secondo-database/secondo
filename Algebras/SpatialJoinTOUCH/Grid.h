@@ -58,6 +58,7 @@ namespace mmrtreetouch {
         int64_t numOfXCells;
         int64_t numOfYCells;
         int64_t cellSize;
+        std::vector<Tuple*> matchings;
 
         std::vector<std::vector<std::vector<Tuple*> > > grid;
 
@@ -92,10 +93,13 @@ namespace mmrtreetouch {
                 int attrIndex
                 );
 
-        std::vector<Tuple*> getTuplesOverlappingWith(
+        std::vector<Tuple*> getMatchings();
+
+        void setMatchings(std::vector<Tuple*> matchings);
+
+        void getTuplesOverlappingWith(
                 Tuple* fTuple,
-                int attrIndex,
-                std::vector<Tuple*> matchings
+                int attrIndex
         );
     };
 }

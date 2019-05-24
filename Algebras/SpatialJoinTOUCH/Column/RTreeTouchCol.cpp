@@ -243,12 +243,6 @@ RTreeTouchCol::findMatchingsRecurvGrid(
         vector<pair<binaryTuple, binaryTuple>> matchings
         ) {
 
-    if (node->noChildren > 0) {
-        for (nodeCol * child: node->children) {
-            matchings = findMatchingsRecurvGrid(child, matchings);
-        }
-    }
-
     if (node->noObjectsB > 0) {
         vector<binaryTuple *> Bs = node->objectsB;
 
@@ -270,16 +264,25 @@ RTreeTouchCol::findMatchingsRecurvGrid(
             }
         }
 
+        grid->setMatchings(matchings);
+
         for (binaryTuple * btB: Bs) {
-            matchings = grid->getTuplesOverlappingWith(btB, matchings);
+            //matchings = grid->getTuplesOverlappingWith(btB, matchings);
+            grid->getTuplesOverlappingWith(btB);
         }
 
-        leafNodes.clear();
+        matchings = grid->getMatchings();
 
         delete grid;
+
+        leafNodes.clear();
     }
 
-
+    if (node->noChildren > 0) {
+        for (nodeCol * child: node->children) {
+            matchings = findMatchingsRecurvGrid(child, matchings);
+        }
+    }
 
     return matchings;
 }

@@ -422,6 +422,7 @@ vector<Tuple*> RTreeTouch::findMatchings() {
     return matchings;
 }
 
+
 vector<Tuple*> RTreeTouch::findMatchingsTopToBottomRecurs(
         tchNode * node,
         vector<Tuple*> matchings
@@ -454,21 +455,12 @@ vector<Tuple*> RTreeTouch::findMatchingsTopToBottomRecurs(
     return matchings;
 }
 
+
+
 vector<Tuple*> RTreeTouch::findMatchingsTopToBottomRecursWithGridFirstLeaves(
         tchNode * node,
         vector<Tuple*> matchings
         ) {
-
-    if (node->noChildren > 0) {
-        for (tchNode * child: node->children) {
-
-            matchings =
-                    findMatchingsTopToBottomRecursWithGridFirstLeaves(
-                            child,
-                            matchings
-                            );
-        }
-    }
 
     if (node->noObjectsB > 0) {
         vector<Tuple*> Bs = node->objectsB;
@@ -488,31 +480,40 @@ vector<Tuple*> RTreeTouch::findMatchingsTopToBottomRecursWithGridFirstLeaves(
                 tt
         );
 
-        grid->numOfComp = 0;
-
         for (tchNode *leafNode: leafNodes) {
             for (Tuple *TupleA: leafNode->objects) {
                 grid->addTuple(TupleA, _firstStreamWordIndex);
             }
         }
 
+        grid->setMatchings(matchings);
+
         for (Tuple *tupleB: Bs) {
-            matchings = grid->getTuplesOverlappingWith(
+            grid->getTuplesOverlappingWith(
                     tupleB,
-                    _secondStreamWordIndex,
-                    matchings
+                    _secondStreamWordIndex
             );
         }
+
+        matchings = grid->getMatchings();
 
         delete grid;
 
         leafNodes.clear();
+    }
 
+    for (tchNode * child: node->children) {
 
+        matchings =
+                findMatchingsTopToBottomRecursWithGridFirstLeaves(
+                        child,
+                        matchings
+                );
     }
 
     return matchings;
 }
+
 
 pair<double, double> RTreeTouch::findAverageSize(vector<Tuple*> tuples) {
 

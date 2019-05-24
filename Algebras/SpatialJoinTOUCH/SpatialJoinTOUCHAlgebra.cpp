@@ -369,10 +369,6 @@ namespace sjt {
         long numOfBucketsValue  = nl->IntValue(numOfBucketsExpr);
         long cellFactorValue    = nl->IntValue(cellFactorExpr);
 
-        cout << nl->ToString(args) << endl;
-        cout << "###########" << endl;
-        cout << nl->ToString(fStream) << endl;
-
         ListExpr al1 = nl->Second(nl->Second(fStream));
         ListExpr al2 = nl->Second(nl->Second(sStream));
 

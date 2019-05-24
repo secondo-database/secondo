@@ -56,11 +56,16 @@ namespace mmrtreetouch {
                 binaryTuple t
         );
 
-        std::vector <std::pair<binaryTuple, binaryTuple>>
+        void
         getTuplesOverlappingWith(
-                binaryTuple *fTuple,
-                std::vector <std::pair<binaryTuple, binaryTuple>> matchings
+                binaryTuple *fTuple
         );
+
+        void setMatchings(
+                std::vector <std::pair<binaryTuple, binaryTuple>> matchings
+                );
+
+        std::vector <std::pair<binaryTuple, binaryTuple>> getMatchings();
 
     private:
 
@@ -76,6 +81,8 @@ namespace mmrtreetouch {
         long long int numOfXCells;
         long long int numOfYCells;
         long long int cellSize;
+
+        std::vector <std::pair<binaryTuple, binaryTuple>> matchings;
 
         std::vector <std::vector<std::vector < binaryTuple>> >
         gridVectorCol;

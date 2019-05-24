@@ -78,8 +78,7 @@ namespace mmrtreetouch {
         std::vector<Tuple*> findMatchingsTopToBottomRecursWithGridFirstLeaves(
                 tchNode * node,
                 std::vector<Tuple*> matchings
-                );
-
+        );
 
         std::pair<double, double> findAverageSize(std::vector<Tuple*> tuples);
         std::pair<double, double> findAverageSizeOfTupleAs(

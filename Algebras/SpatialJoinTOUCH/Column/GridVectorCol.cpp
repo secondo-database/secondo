@@ -117,9 +117,18 @@ pair<pair<int, int>, pair<int, int>> GridVectorCol::getGridCoordinatesOf(
     return make_pair(make_pair(tMinX, tMaxX), make_pair(tMinY, tMaxY));
 }
 
-vector<pair<binaryTuple, binaryTuple>> GridVectorCol::getTuplesOverlappingWith(
-        binaryTuple * tbB,
-        vector<pair<binaryTuple, binaryTuple>> matchings
+vector<pair<binaryTuple, binaryTuple>> GridVectorCol::getMatchings() {
+    return matchings;
+}
+
+void GridVectorCol::setMatchings(
+        vector<pair<binaryTuple, binaryTuple>> _matchings
+        ) {
+    matchings = _matchings;
+}
+
+void GridVectorCol::getTuplesOverlappingWith(
+        binaryTuple * tbB
 ) {
 
     pair<pair<int, int>, pair<int, int>> indexes = getGridCoordinatesOf(
@@ -146,8 +155,6 @@ vector<pair<binaryTuple, binaryTuple>> GridVectorCol::getTuplesOverlappingWith(
 
         }
     }
-
-    return  matchings;
 }
 
 bool GridVectorCol::tuplesIntersectInCell(
