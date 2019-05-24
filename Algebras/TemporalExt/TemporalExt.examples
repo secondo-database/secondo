@@ -392,3 +392,9 @@ Number   : 1
 Signature: mT (x duration) -> stream(mT), where T in {bool, int, real, string, label(s), place(s), point, region}
 Example  : query splitAtGaps(train1first train1second concat) count
 Result   : 2
+
+Operator : splitAtSpeed
+Number   : 1
+Signature: mpoint x real (x geoid) -> stream(mpoint)
+Example  : query splitAtSpeed(train1first, 0.1) count
+Result   : 23

@@ -46,3 +46,5 @@ operator concatS alias CONCATS pattern  _ op
 operator concatS2 alias CONCATS2 pattern  _ op [ _ ]
 operator everNearerThan alias EVERNEARERTHAN pattern op( _, _, _ )
 operator inside alias INSIDE pattern _ infixop _
+operator splitAtGaps alias SPLITATGAPS pattern op ( _ , _ )
+operator splitAtSpeed alias SPLITATSPEED pattern op ( _ , _ , _ )

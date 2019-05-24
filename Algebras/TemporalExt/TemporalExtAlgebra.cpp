@@ -1974,17 +1974,34 @@ class SplitAtGapsLI {
     if (!src->IsEmpty()) {
       src->Get(0, lastUnit);
       res->Add(lastUnit);
-      if (src->GetNoComponents() > 1) {
-        for (int i = 1; i < src->GetNoComponents(); i++) {
-          src->Get(i, unit);
-          if (unit.timeInterval.start == lastUnit.timeInterval.end) {
-            res->MergeAdd(unit);
+      if (dur == 0) {
+        if (src->GetNoComponents() > 1) {
+          for (int i = 1; i < src->GetNoComponents(); i++) {
+            src->Get(i, unit);
+            if (unit.timeInterval.start == lastUnit.timeInterval.end) {
+              res->MergeAdd(unit);
+            }
+            else {
+              result.push_back(res);
+              res = new T(true);
+            }
+            lastUnit = unit;
           }
-          else {
-            result.push_back(res);
-            res = new T(true);
+        }
+      }
+      else {
+        if (src->GetNoComponents() > 1) {
+          for (int i = 1; i < src->GetNoComponents(); i++) {
+            src->Get(i, unit);
+            if (unit.timeInterval.start <= lastUnit.timeInterval.end + *dur) {
+              res->MergeAdd(unit);
+            }
+            else {
+              result.push_back(res);
+              res = new T(true);
+            }
+            lastUnit = unit;
           }
-          lastUnit = unit;
         }
       }
     }
@@ -2001,6 +2018,67 @@ class SplitAtGapsLI {
 
  private:
   vector<T*> result;
+  size_t counter;
+};
+
+/*
+\subsection{Local Info Class for ~splitAtSpeed~}
+
+*/
+class SplitAtSpeedLI {
+ public:
+  SplitAtSpeedLI(MPoint *src, double maxspeed, Geoid *geoid) : counter(0) {
+    UPoint unit(true);
+    UReal uspeed(true);
+    MPoint *res = new MPoint(true);
+    if (src->IsEmpty()) {
+      result.push_back(res);
+      return;
+    }
+    bool correct1, correct2;
+    double min, max, speed;
+    for (int i = 0; i < src->GetNoComponents(); i++) {
+      src->Get(i, unit);
+      unit.USpeed(uspeed, geoid);
+      min = uspeed.Min(correct1);
+      max = uspeed.Max(correct2);
+      if (!correct1 || !correct2) {
+        if (correct1) {
+          speed = min;
+        }
+        else if (correct2) {
+          speed = max;
+        }
+        else {
+          speed = std::numeric_limits<double>::max();
+        }
+      }
+      else {
+        speed = (min + max) / 2;
+      }
+      if (speed <= maxspeed) {
+        res->MergeAdd(unit);
+      }
+      else {
+        if (!res->IsEmpty()) {
+          result.push_back(res);
+          res = new MPoint(true);
+        }
+      }
+    }
+    result.push_back(res);
+  }
+  
+  MPoint* nextResult() {
+    counter++;
+    if (counter - 1 >= result.size()) {
+      return 0;
+    }
+    return result[counter - 1];
+  }
+
+ private:
+  vector<MPoint*> result;
   size_t counter;
 };
 
@@ -2984,6 +3062,32 @@ ListExpr splitatgapsTM(ListExpr args) {
     }
   }
   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), a1);
+}
+
+/*
+\subsubsection{Type Mapping for ~splitAtSpeed~}
+
+signature:
+  mpoint x real (x geoid) -> stream(mpoint)
+
+*/
+ListExpr splitatspeedTM(ListExpr args) {
+  if (!(nl->HasLength(args, 2) || nl->HasLength(args, 3))) {
+    return listutils::typeError("Either two or three arguments expected");
+  }
+  if (!MPoint::checkType(nl->First(args))) {
+    return listutils::typeError("First argument must be an mpoint");
+  }
+  if (!CcReal::checkType(nl->Second(args))) {
+    return listutils::typeError("Second argument must be a real");
+  }
+  if (nl->HasLength(args, 3)) {
+    if (!Geoid::checkType(nl->Third(args))) {
+      return listutils::typeError("Third argument must be a geoid");
+    }
+  }
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                         nl->SymbolAtom(MPoint::BasicType()));
 }
 
 /*
@@ -4943,6 +5047,52 @@ int splitatgapsVM(Word* args, Word& result, int message, Word& local,
 
 }
 
+int splitatspeedVM(Word* args, Word& result, int message, Word& local,
+                   Supplier s) {
+  SplitAtSpeedLI *li = (SplitAtSpeedLI*)local.addr;
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        li = 0;
+        local.addr = 0;
+      }
+      MPoint *src = (MPoint*)args[0].addr;
+      CcReal *ccspeed = (CcReal*)args[1].addr;
+      if (!src->IsDefined() || !ccspeed->IsDefined()) {
+        return 0;
+      }
+      if (ccspeed->GetValue() < 0) {
+        cout << "speed limit must be a non-negative value" << endl;
+        return 0;
+      }
+      Geoid *geoid = 0;
+      if (qp->GetNoSons(s) == 3) {
+        geoid = (Geoid*)args[2].addr;
+        if (!geoid->IsDefined()) {
+          return 0;
+        }
+      }
+      local.addr = new SplitAtSpeedLI(src, ccspeed->GetValue(), geoid);
+    }
+    case REQUEST: {
+      result.addr = li ? li->nextResult() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+    default: {
+      return -1;
+    }
+  }
+
+}
+
 /*
 9.4 Definition of operators
 
@@ -5383,6 +5533,15 @@ const string splitatgapsSpec =
   "gaps with a duration shorter than the optional second parameter. </text--->"
   "<text>query splitAtGaps(train7) count</text--->"
   ") )";
+  
+const string splitatspeedSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mpoint x real (x geoid) -> stream(mpoint) </text---> "
+  "<text> splitAtSpeed( _ , _ , _ ) </text--->"
+  "<text>Splits an mpoint at units with a speed exceeding the second "
+  "argument </text--->"
+  "<text>query splitAtSpeed(train7, 0.1) count</text--->"
+  ") )";
 
 struct EverNearerThanInfo : OperatorInfo {
 
@@ -5639,6 +5798,13 @@ Operator splitatgaps(
     splitatgapsSelect,
     splitatgapsTM);
 
+Operator splitatspeed(
+    "splitAtSpeed",
+    splitatspeedSpec,
+    splitatspeedVM,
+    Operator::SimpleSelect,
+    splitatspeedTM);
+
 
 class TemporalExtAlgebra : public Algebra
 {
@@ -5705,6 +5871,7 @@ class TemporalExtAlgebra : public Algebra
         
         AddOperator(&berlin2wgs_lifted);
         AddOperator(&splitatgaps);
+        AddOperator(&splitatspeed);
 
     }
     ~TemporalExtAlgebra() {}
