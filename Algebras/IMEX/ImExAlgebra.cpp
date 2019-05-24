@@ -776,14 +776,14 @@ public:
 1.3.3 Get next csv field
 
 */
-      string getNextValue() {
+      string getNextValue(bool& eol) {
         
          parsermode mode = UNQUOTED_ENVIRONMENT;  
           
          string result;
          
          bool done = false;
-         
+         eol = false;      
          // Process bytes
          while(! done) {
     
@@ -823,6 +823,7 @@ public:
                 // Field separator or newline read?
                 if ((separator.find(c)!=string::npos) || (c == '\n')) {
                     done = true;
+                    eol = c == '\n';
                 } else {
                     result += c;
                 }
@@ -1471,17 +1472,29 @@ private:
       static char c = 0;
       static string nullstr(&c, 1);
       Tuple* result = BasicTuple->Clone();
-
-      for(unsigned int i=0;i<instances.size();i++){
+      bool eol;
+      unsigned  i = 0;
+      bool err;
+      while(i< instances.size()) {
          Attribute* attr = instances[i]->Clone();
+         err = false;
 
          if(csvinputstream -> isUnprocessedDataAvailable()){
-            attr->ReadFromString(csvinputstream -> getNextValue());
+            attr->ReadFromString(csvinputstream -> getNextValue(eol));
+            if(eol && i < instances.size()-1){ // incomplete line
+               i = 0;
+               err = true;
+            }
          } else {
             attr->SetDefined(false);
             defined = false;
          }
-         result->PutAttribute(i,attr);
+         if(err){
+            attr->DeleteIfAllowed();
+         } else { 
+            result->PutAttribute(i,attr);
+            i++;
+         }
       }
       
       // Callback
