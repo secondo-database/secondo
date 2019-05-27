@@ -273,6 +273,12 @@ struct R_TreeEntry
 {
   BBox<dim> box;
 
+
+
+  R_TreeEntry() {}
+
+  R_TreeEntry(BBox<dim> _box) : box(_box) {}
+
 /*
 If it is a leaf entry, then the bounding box spatially constains the spatial
 object. If it is an internal entry, the bounding box contains all bounding
@@ -319,20 +325,15 @@ The simple constructor.
 
 */
 
-  inline R_TreeInternalEntry( const BBox<dim>& box, SmiRecordId pointer = 0 ) :
-  pointer( pointer )
-  {
-    this->box = box;
-  }
+  inline R_TreeInternalEntry( const BBox<dim>& _box, SmiRecordId _pointer = 0 ):
+       R_TreeEntry<dim>(_box), pointer( _pointer ) { }
 /*
 The second constructor passing a bounding box and a page.
 
 */
   inline R_TreeInternalEntry( const R_TreeInternalEntry<dim>& e ):
-  pointer( e.pointer )
-  {
-    this->box = e.box;
-  }
+       R_TreeEntry<dim>(e.box), pointer(e.pointer) 
+  { }
 /*
 The copy constructor.
 
@@ -360,8 +361,8 @@ Returns the size of the entry in disk.
 
   void Read( char *buffer, int& offset )
   {
-    memcpy((char*)(&this->box), buffer+offset, sizeof(BBox<dim>) );
-    new(&this->box) BBox<dim>();
+    memcpy((char*)(&(this->box)), buffer+offset, sizeof(BBox<dim>) );
+    new(&(this->box)) BBox<dim>();
     offset += sizeof(BBox<dim>);
     memcpy( &pointer, buffer+offset, sizeof(SmiRecordId) );
     offset += sizeof(SmiRecordId);
@@ -405,19 +406,22 @@ The simple constructor.
 
 */
 
-  inline R_TreeLeafEntry( const BBox<dim>& box, const Info& info ) :
-  info( info )
+  inline R_TreeLeafEntry( const BBox<dim>& _box, const Info& _info ) :
+      R_TreeEntry<dim>(_box), info(_info)
   {
-    this->box = box;
   }
+
+  inline R_TreeLeafEntry( const BBox<dim>& _box) :
+      R_TreeEntry<dim>(_box) {}
+
+
 /*
 The second constructor passing a bounding box and the info.
 
 */
   inline R_TreeLeafEntry( const R_TreeLeafEntry<dim, Info>& e ):
-  info( e.info )
+    R_TreeEntry<dim>(e.box),  info( e.info )
   {
-    this->box = e.box;
   }
 /*
 The copy constructor.
@@ -1582,13 +1586,15 @@ void R_TreeNode<dim, LeafInfo>::Read( SmiRecord& record )
 
   assert( count <= maxEntries );
 
+  Rectangle<dim> box(true);
+
   // Now read the entry array.
   for( int i = 0; i < count; i++ )
   {
     if( leaf )
-      entries[ i ] = new R_TreeLeafEntry<dim, LeafInfo>();
+      entries[ i ] = new R_TreeLeafEntry<dim, LeafInfo>(box);
     else
-      entries[ i ] = new R_TreeInternalEntry<dim>();
+      entries[ i ] = new R_TreeInternalEntry<dim>(box,0);
 
     entries[ i ]->Read( buffer, offset );
   }
