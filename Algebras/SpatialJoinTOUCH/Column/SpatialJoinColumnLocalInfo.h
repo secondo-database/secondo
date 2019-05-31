@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define SECONDO_SPATIALJOINCOLUMNLOCALINFO_H
 
 #include "Algebras/CRel/TBlock.h"
-#include "BinaryTuple.h"
+#include "tupleBlockStr.h"
 
 
 class TupleType;
@@ -58,29 +58,29 @@ private:
     uint64_t rTBlockSize;
     uint64_t maxRow;
 
-    std::vector<mmrtreetouch::binaryTuple> bts;
-    std::vector<mmrtreetouch::binaryTuple> btsB;
+    std::vector<mmrtreetouch::tupleBlockStr> bts;
+    std::vector<mmrtreetouch::tupleBlockStr> btsB;
 
     CRelAlgebra::AttrArrayEntry* tuple;
 
     CRelAlgebra::TBlock* tempTBlock;
 
-    std::vector<mmrtreetouch::binaryTuple> getAllTuplesFromStream(
+    std::vector<mmrtreetouch::tupleBlockStr> getAllTuplesFromStream(
             Word stream,
             const uint64_t joinIndex
             );
 
     std::vector<CRelAlgebra::TBlock *> matchingVector;
 
-    void addbinaryTupleToTBlock(
-        std::pair<mmrtreetouch::binaryTuple ,
-        mmrtreetouch::binaryTuple > btPair,
+    void addtupleBlockStrToTBlock(
+        std::pair<mmrtreetouch::tupleBlockStr ,
+        mmrtreetouch::tupleBlockStr > btPair,
         CRelAlgebra::AttrArrayEntry* tuple,
         const size_t fNumColumns,
         const size_t sNumColumns
     );
 
-    void assignTuplesB(std::vector<mmrtreetouch::binaryTuple> BBTs);
+    void assignTuplesB(std::vector<mmrtreetouch::tupleBlockStr> BBTs);
 
     void findMatchings();
 

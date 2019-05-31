@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/CRel/SpatialAttrArray.h"
 #include "Algebras/CRel/TBlock.h"
 #include <typeinfo>
-#include "BinaryTuple.h"
+#include "tupleBlockStr.h"
 #include "Algebras/Rectangle/RectangleAlgebra.h"
 
 using namespace mmrtreetouch;
@@ -68,7 +68,7 @@ bool nodeCol::isLeaf() {
     return is_Leaf;
 }
 
-void nodeCol::addObject(binaryTuple t) {
+void nodeCol::addObject(tupleBlockStr t) {
 
     objects.push_back(t);
 
@@ -94,7 +94,7 @@ void nodeCol::addObject(binaryTuple t) {
     noObjects++;
 }
 
-void nodeCol::addObjectB(binaryTuple t) {
+void nodeCol::addObjectB(tupleBlockStr t) {
 
     objectsB.push_back(t);
 

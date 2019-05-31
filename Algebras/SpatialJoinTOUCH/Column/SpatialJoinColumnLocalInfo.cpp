@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RTreeTouchCol.h"
 #include "SpatialJoinColumnLocalInfo.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
-#include "BinaryTuple.h"
+#include "tupleBlockStr.h"
 
 class NestedList;
 class QueryProcessor;
@@ -49,7 +49,7 @@ using namespace CRelAlgebra;
 
 namespace STRColumn {
     vector<mmrtreetouch::nodeCol *> createBuckets(
-            vector<binaryTuple> tuples,
+            vector<tupleBlockStr> tuples,
             int _numOfItemsInBucket,
             int64_t &remainingMem
     );
@@ -123,8 +123,8 @@ SpatialJoinColumnLocalInfo::SpatialJoinColumnLocalInfo(
 
         btsB = getAllTuplesFromStream(secondStreamWord, _secondStreamIndex);
 
-        cout << "btsB size: " << sizeof(binaryTuple)*btsB.size() << endl;
-        cout << "btsA size: " << sizeof(binaryTuple)*bts.size() << endl;
+        cout << "btsB size: " << sizeof(tupleBlockStr)*btsB.size() << endl;
+        cout << "btsA size: " << sizeof(tupleBlockStr)*bts.size() << endl;
 
         if (remainingMem > 0) {
 
@@ -164,16 +164,17 @@ SpatialJoinColumnLocalInfo::SpatialJoinColumnLocalInfo(
     }
 }
 
-void SpatialJoinColumnLocalInfo::assignTuplesB(vector<binaryTuple> BBTs)
+void SpatialJoinColumnLocalInfo::assignTuplesB(vector<tupleBlockStr> BBTs)
 {
-    for (binaryTuple tupleB: BBTs) {
+    for (tupleBlockStr tupleB: BBTs) {
         rtree->assignTupleBs(tupleB);
     }
 }
 
 void SpatialJoinColumnLocalInfo::findMatchings()
 {
-    vector<pair<binaryTuple, binaryTuple >> matchings = rtree->findMatchings();
+    vector<pair<tupleBlockStr, tupleBlockStr >> matchings =
+            rtree->findMatchings();
 
     cout << "after tree findMatchings" << endl;
 
@@ -200,9 +201,9 @@ void SpatialJoinColumnLocalInfo::findMatchings()
 
     remainingMem -= sizeof(tempTBlock);
 
-    for (pair<binaryTuple, binaryTuple> btPair: matchings) {
+    for (pair<tupleBlockStr, tupleBlockStr> btPair: matchings) {
 
-        addbinaryTupleToTBlock(
+        addtupleBlockStrToTBlock(
                 btPair,
                 tuple,
                 fNumColumns,
@@ -233,15 +234,15 @@ TBlock* SpatialJoinColumnLocalInfo::NextResultTBlock () {
 
 
 // TODO: use second stream
-void SpatialJoinColumnLocalInfo::addbinaryTupleToTBlock(
-        pair<binaryTuple, binaryTuple> btPair,
+void SpatialJoinColumnLocalInfo::addtupleBlockStrToTBlock(
+        pair<tupleBlockStr, tupleBlockStr> btPair,
         AttrArrayEntry* tuple,
         const size_t fNumColumns,
         const size_t sNumColumns
         )
 {
-    binaryTuple fBT = btPair.first;
-    binaryTuple sBT = btPair.second;
+    tupleBlockStr fBT = btPair.first;
+    tupleBlockStr sBT = btPair.second;
 
     const CRelAlgebra::TBlockEntry &fTuple = CRelAlgebra::TBlockEntry(
             fTBlockVector[fBT.blockNum],
@@ -277,7 +278,7 @@ void SpatialJoinColumnLocalInfo::addbinaryTupleToTBlock(
     }
 }
 
-vector<mmrtreetouch::binaryTuple>
+vector<mmrtreetouch::tupleBlockStr>
         SpatialJoinColumnLocalInfo::getAllTuplesFromStream(
         const Word stream,
         const uint64_t joinIndex
@@ -288,9 +289,9 @@ vector<mmrtreetouch::binaryTuple>
     qp->Open (stream.addr);
     qp->Request (stream.addr, streamTBlockWord);
 
-    vector<binaryTuple> BT;
+    vector<tupleBlockStr> BT;
     uint64_t tBlockNum = 0;
-    binaryTuple temp;
+    tupleBlockStr temp;
 
     //cout << "A-1" << endl;
 
@@ -306,9 +307,9 @@ vector<mmrtreetouch::binaryTuple>
 
         while(tBlockIter.IsValid()) {
 
-            if (remainingMem-sizeof(binaryTuple) <= 0) {
+            if (remainingMem-sizeof(tupleBlockStr) <= 0) {
                 cout << "Memory is not enough 4" << endl;
-                remainingMem -= sizeof(binaryTuple);
+                remainingMem -= sizeof(tupleBlockStr);
                 return BT;
             }
 
@@ -343,7 +344,7 @@ vector<mmrtreetouch::binaryTuple>
             //cout << "A-3 5" << endl;
             tBlockIter.MoveToNext();
 
-            remainingMem -= sizeof(binaryTuple);
+            remainingMem -= sizeof(tupleBlockStr);
 
             //cout << "A-4" << endl;
         }

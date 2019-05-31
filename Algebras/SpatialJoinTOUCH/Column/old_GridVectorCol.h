@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <vector>
 #include <utility>
 #include <stack>
-#include "BinaryTuple.h"
+#include "tupleBlockStr.h"
 #include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "nodeCol.h"
 
@@ -54,9 +54,9 @@ namespace mmrtreetouch {
         long long int numOfYCells;
         long long int cellSize;
 
-        std::vector <std::pair<binaryTuple, binaryTuple>> matchings;
+        std::vector <std::pair<tupleBlockStr, tupleBlockStr>> matchings;
 
-        std::vector <std::vector<std::vector < binaryTuple>> >
+        std::vector <std::vector<std::vector < tupleBlockStr>> >
         gridVectorCol;
 
         int calculateIndexX(double coord);
@@ -71,8 +71,8 @@ namespace mmrtreetouch {
         );
 
         bool tuplesIntersectInCell(
-                binaryTuple fTuple,
-                binaryTuple sTuple,
+                tupleBlockStr fTuple,
+                tupleBlockStr sTuple,
                 int i,
                 int j
         );
@@ -89,23 +89,23 @@ namespace mmrtreetouch {
 
         ~GridVectorCol();
 
-        void addTuple(binaryTuple bt);
+        void addTuple(tupleBlockStr bt);
 
         std::pair <std::pair<int, int>, std::pair<int, int>>
         getGridCoordinatesOf(
-                binaryTuple t
+                tupleBlockStr t
         );
 
         void
         getTuplesOverlappingWith(
-                binaryTuple fTuple
+                tupleBlockStr fTuple
         );
 
         void setMatchings(
-                std::vector <std::pair<binaryTuple, binaryTuple>> matchings
+                std::vector <std::pair<tupleBlockStr, tupleBlockStr>> matchings
         );
 
-        std::vector <std::pair<binaryTuple, binaryTuple>> getMatchings();
+        std::vector <std::pair<tupleBlockStr, tupleBlockStr>> getMatchings();
     };
 }
 

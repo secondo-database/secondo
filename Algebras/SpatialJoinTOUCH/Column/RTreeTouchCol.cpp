@@ -168,7 +168,7 @@ void RTreeTouchCol::removeBsFromTree(nodeCol * node) {
 }
 
 
-int64_t RTreeTouchCol::assignTupleBs(binaryTuple bt) {
+int64_t RTreeTouchCol::assignTupleBs(tupleBlockStr bt) {
 
     double min[2];
     double max[2];
@@ -250,7 +250,7 @@ int64_t RTreeTouchCol::assignTupleBs(binaryTuple bt) {
     return 0;
 }
 
-vector<pair<binaryTuple , binaryTuple >> RTreeTouchCol::findMatchings() {
+vector<pair<tupleBlockStr , tupleBlockStr >> RTreeTouchCol::findMatchings() {
 
     findMatchingsRecurvGrid(root);
 
@@ -266,7 +266,7 @@ void RTreeTouchCol::findMatchingsRecurvGrid(
     }
 
     if (node->noObjectsB > 0) {
-        vector<binaryTuple> Bs = node->objectsB;
+        vector<tupleBlockStr> Bs = node->objectsB;
 
         vector<nodeCol *> leafNodes;
         leafNodes = getNodesOfInnerNodeRecursive(node, leafNodes);
@@ -290,14 +290,14 @@ void RTreeTouchCol::findMatchingsRecurvGrid(
         remainingMem -= sizeof(GridVectorCol);
 
         for (nodeCol* leafNode: leafNodes) {
-            for (binaryTuple btA: leafNode->objects) {
+            for (tupleBlockStr btA: leafNode->objects) {
                 grid->addTuple(btA);
             }
         }
 
         grid->setMatchings(matchings);
 
-        for (binaryTuple btB: Bs) {
+        for (tupleBlockStr btB: Bs) {
             grid->getTuplesOverlappingWith(btB);
 
             remainingMem = grid->remainingMem;
@@ -356,7 +356,7 @@ pair<double, double>
         int64_t incr = leafNode->noObjects * 0.1;
         incr = incr == 0 ? 1: incr;
         for (int64_t i = 0; i < leafNode->noObjects; i += incr) {
-            binaryTuple bt = leafNode->objects[i];
+            tupleBlockStr bt = leafNode->objects[i];
 
             double xCellDim = bt.xMax - bt.xMin;
             double yCellDim = bt.yMax - bt.yMin;

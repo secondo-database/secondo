@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 //#include "RTreeTouch.h"
 #include <vector>
-#include "BinaryTuple.h"
+#include "tupleBlockStr.h"
 #include "nodeCol.h"
 
 class TupleType;
@@ -37,7 +37,7 @@ namespace mmrtreetouch {
     class RTreeTouchCol {
     private:
 
-        std::vector<std::pair<binaryTuple, binaryTuple >> matchings;
+        std::vector<std::pair<tupleBlockStr, tupleBlockStr >> matchings;
 
         int cellFactor;
 
@@ -86,9 +86,9 @@ namespace mmrtreetouch {
 
         nodeCol * constructTree(std::vector<nodeCol *> sortedArray, int fanout);
 
-        int64_t assignTupleBs(binaryTuple bt);
+        int64_t assignTupleBs(tupleBlockStr bt);
 
-        std::vector<std::pair<binaryTuple , binaryTuple >> findMatchings();
+        std::vector<std::pair<tupleBlockStr , tupleBlockStr >> findMatchings();
 
         int noLeaves();
 

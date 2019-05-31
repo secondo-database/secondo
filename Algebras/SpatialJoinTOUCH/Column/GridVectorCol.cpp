@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <algorithm>
 #include "Algebras/RTree/RTreeAlgebra.h"
 #include <memory>
-#include "BinaryTuple.h"
+#include "tupleBlockStr.h"
 
 using namespace mmrtreetouch;
 using namespace std;
@@ -51,8 +51,8 @@ GridVectorCol::GridVectorCol(
     numOfXCells((ullong) ceil(xLength / xCellDim)),
     numOfYCells((ullong) ceil(yLength / yCellDim)),
     gridVectorCol (
-            numOfXCells,
-            vector<vector<binaryTuple> >(numOfYCells, vector<binaryTuple >(0))),
+       numOfXCells,
+       vector<vector<tupleBlockStr> >(numOfYCells, vector<tupleBlockStr >(0))),
     remainingMem(_remainingMem)
 {
     xCellDim = xLength / numOfXCells;
@@ -110,7 +110,7 @@ int64_t GridVectorCol::calculateIndexY(double coord) {
 
 pair<pair<int64_t, int64_t>, pair<int64_t, int64_t>>
 GridVectorCol::getGridCoordinatesOf(
-        binaryTuple bt
+        tupleBlockStr bt
 ) {
 
     int tMinX = calculateIndexX(bt.xMin);
@@ -122,18 +122,18 @@ GridVectorCol::getGridCoordinatesOf(
     return make_pair(make_pair(tMinX, tMaxX), make_pair(tMinY, tMaxY));
 }
 
-vector<pair<binaryTuple, binaryTuple>> GridVectorCol::getMatchings() {
+vector<pair<tupleBlockStr, tupleBlockStr>> GridVectorCol::getMatchings() {
     return matchings;
 }
 
 void GridVectorCol::setMatchings(
-        vector<pair<binaryTuple, binaryTuple>> _matchings
+        vector<pair<tupleBlockStr, tupleBlockStr>> _matchings
         ) {
     matchings = _matchings;
 }
 
 void GridVectorCol::getTuplesOverlappingWith(
-        binaryTuple tbB
+        tupleBlockStr tbB
 ) {
 
     pair<pair<int, int>, pair<int, int>> indexes = getGridCoordinatesOf(
@@ -146,13 +146,14 @@ void GridVectorCol::getTuplesOverlappingWith(
     for (int i = xPair.first; i <= xPair.second; i++) {
         for (int j = yPair.first; j <= yPair.second; j++) {
 
-            vector<binaryTuple> temp = gridVectorCol[i][j];
+            vector<tupleBlockStr> temp = gridVectorCol[i][j];
 
-            for (binaryTuple tbA: temp) {
+            for (tupleBlockStr tbA: temp) {
 
                 if (tuplesIntersectInCell(tbA, tbB, i, j)) {
 
-                    pair<binaryTuple, binaryTuple> res  = make_pair(tbA, tbB);
+                    pair<tupleBlockStr, tupleBlockStr> res  =
+                            make_pair(tbA, tbB);
 
                     matchings.push_back(res);
                 }
@@ -168,7 +169,7 @@ void GridVectorCol::getTuplesOverlappingWith(
 }
 
 bool GridVectorCol::tuplesIntersectInCell(
-        binaryTuple btA, binaryTuple btB, int64_t i, int64_t j) {
+        tupleBlockStr btA, tupleBlockStr btB, int64_t i, int64_t j) {
 
     double min[2];
     double max[2];
@@ -221,7 +222,7 @@ bool GridVectorCol::tuplesIntersectInCell(
     return false;
 }
 
-void GridVectorCol::addTuple(binaryTuple bt) {
+void GridVectorCol::addTuple(tupleBlockStr bt) {
 
     int tMinX = calculateIndexX(bt.xMin);
     int tMaxX = calculateIndexX(bt.xMax);

@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <iostream>
 #include "nodeCol.h"
-#include "BinaryTuple.h"
+#include "tupleBlockStr.h"
 
 
 namespace CRelAlgebra {
@@ -36,34 +36,34 @@ namespace CRelAlgebra {
 namespace STRColumn {
 
     void mergeSort(
-            std::vector<mmrtreetouch::binaryTuple> &tuples,
+            std::vector<mmrtreetouch::tupleBlockStr> &tuples,
             int64_t l,
             int64_t r,
             char direction
             );
 
     void merge(
-            std::vector<mmrtreetouch::binaryTuple> &tuples,
+            std::vector<mmrtreetouch::tupleBlockStr> &tuples,
             int64_t l,
             int64_t m,
             int64_t r,
             char direction
             );
 
-    std::vector<std::vector <mmrtreetouch::binaryTuple> > splitInSlices(
-            std::vector<mmrtreetouch::binaryTuple> tuples,
+    std::vector<std::vector <mmrtreetouch::tupleBlockStr> > splitInSlices(
+            std::vector<mmrtreetouch::tupleBlockStr> tuples,
             int numOfItemsInBucket,
             int64_t vectorSize
             );
 
-    std::vector<std::vector <mmrtreetouch::binaryTuple> > sortSecondDimension(
-            std::vector<std::vector <mmrtreetouch::binaryTuple> > container,
+    std::vector<std::vector <mmrtreetouch::tupleBlockStr> > sortSecondDimension(
+            std::vector<std::vector <mmrtreetouch::tupleBlockStr> > container,
             int numOfItemsInBucket,
             int64_t vectorSize
             );
 
     std::vector<mmrtreetouch::nodeCol* > packInBuckets(
-            std::vector<std::vector <mmrtreetouch::binaryTuple> >
+            std::vector<std::vector <mmrtreetouch::tupleBlockStr> >
                     sortedSlicedList,
             int64_t sizeOfSortedList,
             int64_t vectorSize,
@@ -73,7 +73,7 @@ namespace STRColumn {
     std::string bucketInfo(std::vector<mmrtreetouch::nodeCol* > bucketVector);
 
     std::vector<mmrtreetouch::nodeCol *> createBuckets(
-            std::vector<mmrtreetouch::binaryTuple> tuples,
+            std::vector<mmrtreetouch::tupleBlockStr> tuples,
             int numOfItemsInBucket,
             int64_t &remainingMem
     );

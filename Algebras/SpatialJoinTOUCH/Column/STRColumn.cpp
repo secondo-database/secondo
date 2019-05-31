@@ -38,7 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "nodeCol.h"
 
 #include "Algebras/CRel/TBlock.h"
-#include "BinaryTuple.h"
+#include "tupleBlockStr.h"
 
 namespace CRelAlgebra {
     //class TBlockEntry;
@@ -54,8 +54,8 @@ using namespace CRelAlgebra;
 
 namespace STRColumn {
 
-    vector<vector <binaryTuple> > splitInSlices(
-            vector<binaryTuple> tuples,
+    vector<vector <tupleBlockStr> > splitInSlices(
+            vector<tupleBlockStr> tuples,
             int numOfItemsInBucket,
             int64_t vectorSize)
     {
@@ -63,8 +63,8 @@ namespace STRColumn {
 
         int64_t counter = 0;
 
-        vector<binaryTuple> temp;
-        vector<vector <binaryTuple> > container;
+        vector<tupleBlockStr> temp;
+        vector<vector <tupleBlockStr> > container;
         temp.reserve(numOfItemsInBucket);
         container.reserve(numOfPartitions);
 
@@ -86,18 +86,18 @@ namespace STRColumn {
         return container;
     }
 
-    vector<vector <binaryTuple> > sortSecondDimension(
-            vector<vector <binaryTuple> > container,
+    vector<vector <tupleBlockStr> > sortSecondDimension(
+            vector<vector <tupleBlockStr> > container,
             int numOfItemsInBucket,
             int64_t vectorSize
             )
     {
         int64_t numOfPartitions = ceil((double)vectorSize/numOfItemsInBucket);
 
-        vector<vector <binaryTuple> > sortedSlicedList;
+        vector<vector <tupleBlockStr> > sortedSlicedList;
         sortedSlicedList.reserve(numOfPartitions);
 
-        for (vector<binaryTuple> currentSlice: container) {
+        for (vector<tupleBlockStr> currentSlice: container) {
 
             mergeSort(currentSlice, 0, (int64_t)(currentSlice.size()-1), 'y');
 
@@ -129,7 +129,7 @@ namespace STRColumn {
     }
 
     vector<nodeCol * > packInBuckets(
-            vector<vector <binaryTuple> > sortedSlicedList,
+            vector<vector <tupleBlockStr> > sortedSlicedList,
             int64_t sizeOfSortedList,
             int64_t initialListSize,
             int numOfItemsInBucket,
@@ -144,7 +144,7 @@ namespace STRColumn {
         nodeCol * bucketNode = NULL;
         int64_t counter = 0;
 
-        for (vector<binaryTuple> innerList : sortedSlicedList) {
+        for (vector<tupleBlockStr> innerList : sortedSlicedList) {
 
             int64_t sizeOfInnerList = (int64_t)innerList.size();
             while(sizeOfInnerList > 0){
@@ -187,7 +187,7 @@ namespace STRColumn {
     }
 
     void mergeSort(
-            vector<binaryTuple> &tuples,
+            vector<tupleBlockStr> &tuples,
             int64_t l,
             int64_t r,
             char direction
@@ -205,7 +205,7 @@ namespace STRColumn {
     }
 
     void merge(
-            vector<binaryTuple> &tuples,
+            vector<tupleBlockStr> &tuples,
             int64_t l,
             int64_t m,
             int64_t r,
@@ -213,12 +213,12 @@ namespace STRColumn {
             )
     {
         double valueL, valueR;
-        binaryTuple entryL, entryR;
+        tupleBlockStr entryL, entryR;
         int64_t i, j, k;
         int64_t n1 = m - l + 1;
         int64_t n2 =  r - m;
 
-        vector<binaryTuple> L(n1), R(n2);
+        vector<tupleBlockStr> L(n1), R(n2);
 
         for (i = 0; i < n1; i++)
             L[i] = tuples[l + i];
@@ -278,7 +278,7 @@ namespace STRColumn {
     }
 
     vector<nodeCol *> createBuckets(
-            vector<binaryTuple> tuples,
+            vector<tupleBlockStr> tuples,
             int _numOfItemsInBrucket,
             int64_t &remainingMem
             ) {
@@ -290,13 +290,13 @@ namespace STRColumn {
 
         // # 3
         int64_t numOfItemsInBrucket = _numOfItemsInBrucket;
-        vector<vector <binaryTuple> > container = STRColumn::splitInSlices(
+        vector<vector <tupleBlockStr> > container = STRColumn::splitInSlices(
                 tuples,
                 numOfItemsInBrucket,
                 size);
 
         // # 4
-        vector<vector <binaryTuple> > sortedSlicedList =
+        vector<vector <tupleBlockStr> > sortedSlicedList =
                 STRColumn::sortSecondDimension(
                     container,
                     numOfItemsInBrucket,

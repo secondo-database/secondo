@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define SECONDO_NODECOL_H
 
 #include "Algebras/CRel/SpatialAttrArray.h"
-#include "BinaryTuple.h"
+#include "tupleBlockStr.h"
 
 namespace mmrtreetouch {
 
@@ -39,8 +39,8 @@ namespace mmrtreetouch {
         long noChildren;
         long noObjects;
         long noObjectsB;
-        std::vector<binaryTuple> objects;
-        std::vector<binaryTuple> objectsB;
+        std::vector<tupleBlockStr> objects;
+        std::vector<tupleBlockStr> objectsB;
         std::vector<nodeCol*> children;
 
         nodeCol(bool isLeafNode=false);
@@ -53,8 +53,8 @@ namespace mmrtreetouch {
 
         bool isLeaf();
 
-        void addObject(binaryTuple t);
-        void addObjectB(binaryTuple t);
+        void addObject(tupleBlockStr t);
+        void addObjectB(tupleBlockStr t);
     };
 
 }
