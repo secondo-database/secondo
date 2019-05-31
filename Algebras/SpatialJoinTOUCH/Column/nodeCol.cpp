@@ -1,7 +1,8 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Copyright (C) 2019,
+Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -27,47 +28,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "BinaryTuple.h"
 #include "Algebras/Rectangle/RectangleAlgebra.h"
 
-
-namespace CRelAlgebra {
-    class TBlockEntry;
-    class TBlock;
-}
-
-using namespace std;
 using namespace mmrtreetouch;
-using namespace CRelAlgebra;
+using namespace std;
 
-void nodeCol::addObject(binaryTuple * t) {
-    objects.push_back(t);
+nodeCol::nodeCol(bool isLeafNode):
+    is_Leaf(isLeafNode),
+    noChildren(0),
+    noObjects(0),
+    noObjectsB(0)
+    {}
 
-    double min[2];
-    double max[2];
-    min[0] = t->xMin;
-    min[1] = t->yMin;
-    max[0] = t->xMax;
-    max[1] = t->yMax;
-
-    Rectangle<2>* boxbT = new Rectangle<2>(true, min, max);
-
-    if(noObjects == 0){
-        this->box = *boxbT;
-    } else {
-        this->box = this->box.Union(*boxbT);
-    }
-
-    delete boxbT;
-
-    assert(this->box.IsDefined());
-
-    noObjects++;
-
-}
-
-void nodeCol::addObjectB(binaryTuple * t) {
-
-    objectsB.push_back(t);
-
-    noObjectsB++;
+nodeCol::~nodeCol() {
 }
 
 void nodeCol::addChild(nodeCol *child) {
@@ -87,8 +58,45 @@ void nodeCol::addChild(nodeCol *child) {
 void nodeCol::addChildren(vector<nodeCol*> childrenV) {
     assert(noChildren == 0);
 
-    int vectorSize = (int) childrenV.size();
-    for (int i = 0; i < vectorSize; i++) {
+    int64_t vectorSize = (int64_t) childrenV.size();
+    for (int64_t i = 0; i < vectorSize; i++) {
         addChild(childrenV.at(i));
     }
+}
+
+bool nodeCol::isLeaf() {
+    return is_Leaf;
+}
+
+void nodeCol::addObject(binaryTuple t) {
+
+    objects.push_back(t);
+
+    double min[2];
+    double max[2];
+    min[0] = t.xMin;
+    min[1] = t.yMin;
+    max[0] = t.xMax;
+    max[1] = t.yMax;
+
+    Rectangle<2>* boxbT = new Rectangle<2>(true, min, max);
+
+    if(noObjects == 0){
+        this->box = *boxbT;
+    } else {
+        this->box = this->box.Union(*boxbT);
+    }
+
+    delete boxbT;
+
+    assert(this->box.IsDefined());
+
+    noObjects++;
+}
+
+void nodeCol::addObjectB(binaryTuple t) {
+
+    objectsB.push_back(t);
+
+    noObjectsB++;
 }

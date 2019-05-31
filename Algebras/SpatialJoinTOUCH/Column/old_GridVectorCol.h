@@ -1,9 +1,7 @@
 /*
-
 This file is part of SECONDO.
 
-Copyright (C) 2019,
-Faculty of Mathematics and Computer Science,
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -35,6 +33,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "nodeCol.h"
 
+class TupleType;
+
 namespace mmrtreetouch {
 
     class GridVectorCol {
@@ -50,28 +50,38 @@ namespace mmrtreetouch {
         double yCellDim;
         double xLength;
         double yLength;
-        int64_t numOfXCells;
-        int64_t numOfYCells;
-        int64_t cellSize;
+        long long int numOfXCells;
+        long long int numOfYCells;
+        long long int cellSize;
+
         std::vector <std::pair<binaryTuple, binaryTuple>> matchings;
 
         std::vector <std::vector<std::vector < binaryTuple>> >
         gridVectorCol;
 
-        int64_t calculateIndexX(double coord);
-        int64_t calculateIndexY(double coord);
+        int calculateIndexX(double coord);
+
+        int calculateIndexY(double coord);
+
+        void initializeGrid();
+
+        void initializeGridArray(
+                long long int nRows,
+                long long int nCols
+        );
 
         bool tuplesIntersectInCell(
                 binaryTuple fTuple,
                 binaryTuple sTuple,
-                int64_t i,
-                int64_t j
-                );
-
+                int i,
+                int j
+        );
 
     public:
+        int64_t remainingMem;
+
         GridVectorCol(
-                nodeCol* node,
+                nodeCol *node,
                 double _xCellDim,
                 double _yCellDim,
                 int64_t remainingMem
@@ -79,27 +89,25 @@ namespace mmrtreetouch {
 
         ~GridVectorCol();
 
-        int64_t remainingMem;
-
-        //
         void addTuple(binaryTuple bt);
 
-        std::pair <std::pair<int64_t, int64_t>, std::pair<int64_t, int64_t>>
+        std::pair <std::pair<int, int>, std::pair<int, int>>
         getGridCoordinatesOf(
                 binaryTuple t
         );
 
-        std::vector <std::pair<binaryTuple, binaryTuple>> getMatchings();
+        void
+        getTuplesOverlappingWith(
+                binaryTuple fTuple
+        );
 
         void setMatchings(
                 std::vector <std::pair<binaryTuple, binaryTuple>> matchings
         );
 
-        void getTuplesOverlappingWith(
-                binaryTuple fTuple
-        );
-
+        std::vector <std::pair<binaryTuple, binaryTuple>> getMatchings();
     };
 }
+
 
 #endif //SECONDO_GRIDVECTORCOL_H

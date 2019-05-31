@@ -34,22 +34,26 @@ typedef long long int ullong;
 GridVectorCol::GridVectorCol(
         nodeCol* node,
         double _xCellDim,
-        double _yCellDim
+        double _yCellDim,
+        int64_t _remainingMem
 ):
-box(node->box),
-minX((double) box.MinD(0)),
-maxX((double) box.MaxD(0)),
-minY((double) box.MinD(1)),
-maxY((double) box.MaxD(1)),
-xCellDim(_xCellDim < 0.0001 ? 0.1: _xCellDim),
-yCellDim(_yCellDim < 0.0001 ? 0.1: _yCellDim),
-xLength((maxX - minX) < 1 ? 1 : (maxX - minX)),
-yLength((maxY - minY) < 1 ? 1 : (maxY - minY)),
-numOfXCells((ullong) ceil(xLength / xCellDim)),
-numOfYCells((ullong) ceil(yLength / yCellDim)),
-gridVectorCol (
-        numOfXCells,
-        vector<vector<binaryTuple> >(numOfYCells, vector<binaryTuple >(0)))
+    box(node->box),
+    minX((double) box.MinD(0)),
+    maxX((double) box.MaxD(0)),
+    minY((double) box.MinD(1)),
+    maxY((double) box.MaxD(1)),
+    //xCellDim(_xCellDim < 0.0001 ? 0.1: _xCellDim),
+    xCellDim(_xCellDim == 0 ? 0.1: _xCellDim),
+    //yCellDim(_yCellDim < 0.0001 ? 0.1: _yCellDim),
+    yCellDim(_yCellDim == 0 ? 0.1: _yCellDim),
+    xLength((maxX - minX) < 1 ? 1 : (maxX - minX)),
+    yLength((maxY - minY) < 1 ? 1 : (maxY - minY)),
+    numOfXCells((ullong) ceil(xLength / xCellDim)),
+    numOfYCells((ullong) ceil(yLength / yCellDim)),
+    gridVectorCol (
+            numOfXCells,
+            vector<vector<binaryTuple> >(numOfYCells, vector<binaryTuple >(0))),
+    remainingMem(_remainingMem)
 {
     xCellDim = xLength / numOfXCells;
     yCellDim = yLength / numOfYCells;
@@ -58,10 +62,10 @@ gridVectorCol (
 
 GridVectorCol::~GridVectorCol() {};
 
-int GridVectorCol::calculateIndexX(double coord) {
+int64_t GridVectorCol::calculateIndexX(double coord) {
 
-    int index;
-    int roundDown = (int) floor((coord-minX) / xCellDim);
+    int64_t index;
+    int64_t roundDown = (int64_t) floor((coord-minX) / xCellDim);
 
     index = roundDown;
 
@@ -81,10 +85,10 @@ int GridVectorCol::calculateIndexX(double coord) {
     return index;
 }
 
-int GridVectorCol::calculateIndexY(double coord) {
+int64_t GridVectorCol::calculateIndexY(double coord) {
 
-    int index;
-    int roundDown = (int) floor((coord-minY) / yCellDim);
+    int64_t index;
+    int64_t roundDown = (int64_t) floor((coord-minY) / yCellDim);
 
     index = roundDown;
 
@@ -104,7 +108,8 @@ int GridVectorCol::calculateIndexY(double coord) {
     return index;
 }
 
-pair<pair<int, int>, pair<int, int>> GridVectorCol::getGridCoordinatesOf(
+pair<pair<int64_t, int64_t>, pair<int64_t, int64_t>>
+GridVectorCol::getGridCoordinatesOf(
         binaryTuple bt
 ) {
 
@@ -128,11 +133,11 @@ void GridVectorCol::setMatchings(
 }
 
 void GridVectorCol::getTuplesOverlappingWith(
-        binaryTuple * tbB
+        binaryTuple tbB
 ) {
 
     pair<pair<int, int>, pair<int, int>> indexes = getGridCoordinatesOf(
-            *tbB
+            tbB
     );
 
     pair<int, int> xPair = indexes.first;
@@ -145,11 +150,16 @@ void GridVectorCol::getTuplesOverlappingWith(
 
             for (binaryTuple tbA: temp) {
 
-                if (tuplesIntersectInCell(tbA, *tbB, i, j)) {
+                if (tuplesIntersectInCell(tbA, tbB, i, j)) {
 
-                    pair<binaryTuple, binaryTuple> res  = make_pair(tbA, *tbB);
+                    pair<binaryTuple, binaryTuple> res  = make_pair(tbA, tbB);
 
                     matchings.push_back(res);
+                }
+
+                if (remainingMem <= 0) {
+                    cout << "in GridVector" << endl;
+                    return;
                 }
             }
 
@@ -158,7 +168,7 @@ void GridVectorCol::getTuplesOverlappingWith(
 }
 
 bool GridVectorCol::tuplesIntersectInCell(
-        binaryTuple btA, binaryTuple btB, int i, int j) {
+        binaryTuple btA, binaryTuple btB, int64_t i, int64_t j) {
 
     double min[2];
     double max[2];
@@ -166,6 +176,14 @@ bool GridVectorCol::tuplesIntersectInCell(
     min[1] = btA.yMin;
     max[0] = btA.xMax;
     max[1] = btA.yMax;
+
+    if (remainingMem - 2*sizeof(Rectangle<2>) <= 0 ) {
+        cout << "Memory is not enough 5" << endl;
+        cout << "remainingMem: " << remainingMem << endl;
+        cout << "Rectangle: " << sizeof(Rectangle<2>) << endl;
+        remainingMem -= 2*sizeof(Rectangle<2>);
+        return false;
+    }
 
     Rectangle<2>* boxA = new Rectangle<2>(true, min, max);
 
@@ -175,6 +193,8 @@ bool GridVectorCol::tuplesIntersectInCell(
     max[1] = btB.yMax;
 
     Rectangle<2>* boxB = new Rectangle<2>(true, min, max);
+
+    remainingMem -= 2*sizeof(Rectangle<2>);
 
     // if the lower left edge of the intersection of the two boxes
     // is in the same cell then true, else false
@@ -189,8 +209,8 @@ bool GridVectorCol::tuplesIntersectInCell(
     double minX = (double) intersectionBox.MinD(0);
     double minY = (double) intersectionBox.MinD(1);
 
-    int intersectionIndexX = calculateIndexX(minX);
-    int intersectionIndexY = calculateIndexY(minY);
+    int64_t intersectionIndexX = calculateIndexX(minX);
+    int64_t intersectionIndexY = calculateIndexY(minY);
 
     if (intersectionIndexX == i && intersectionIndexY == j) {
         if (boxesIntersect) {
@@ -201,17 +221,17 @@ bool GridVectorCol::tuplesIntersectInCell(
     return false;
 }
 
-void GridVectorCol::addTuple(binaryTuple * bt) {
+void GridVectorCol::addTuple(binaryTuple bt) {
 
-    int tMinX = calculateIndexX(bt->xMin);
-    int tMaxX = calculateIndexX(bt->xMax);
+    int tMinX = calculateIndexX(bt.xMin);
+    int tMaxX = calculateIndexX(bt.xMax);
 
-    int tMinY = calculateIndexY(bt->yMin);
-    int tMaxY = calculateIndexY(bt->yMax);
+    int tMinY = calculateIndexY(bt.yMin);
+    int tMaxY = calculateIndexY(bt.yMax);
 
     for (int i = tMinX; i <= tMaxX; i++) {
         for (int j = tMinY; j <= tMaxY; j++) {
-            gridVectorCol[i][j].push_back(*bt);
+            gridVectorCol[i][j].push_back(bt);
         }
     }
 }

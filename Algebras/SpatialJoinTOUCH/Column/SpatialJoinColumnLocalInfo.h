@@ -58,22 +58,17 @@ private:
     uint64_t rTBlockSize;
     uint64_t maxRow;
 
-    std::vector<mmrtreetouch::binaryTuple *> bts;
-    std::vector<mmrtreetouch::binaryTuple *> btsB;
+    std::vector<mmrtreetouch::binaryTuple> bts;
+    std::vector<mmrtreetouch::binaryTuple> btsB;
 
     CRelAlgebra::AttrArrayEntry* tuple;
 
     CRelAlgebra::TBlock* tempTBlock;
 
-    void getAllTuplesFromStream(
+    std::vector<mmrtreetouch::binaryTuple> getAllTuplesFromStream(
             Word stream,
-            std::vector<const CRelAlgebra::TBlock*> &tBlockVector
+            const uint64_t joinIndex
             );
-
-    std::vector<mmrtreetouch::binaryTuple *> createBinaryTuplesVector(
-            std::vector<const CRelAlgebra::TBlock*> &TBlockVector,
-            const uint64_t &joinIndex
-    );
 
     std::vector<CRelAlgebra::TBlock *> matchingVector;
 
@@ -85,7 +80,7 @@ private:
         const size_t sNumColumns
     );
 
-    void assignTuplesB(std::vector<mmrtreetouch::binaryTuple *> BBTs);
+    void assignTuplesB(std::vector<mmrtreetouch::binaryTuple> BBTs);
 
     void findMatchings();
 
@@ -101,8 +96,11 @@ public:
             int firstStreamWordIndex,
             int secondStreamWordIndex,
             ListExpr ttl,
-            Supplier s
+            Supplier s,
+            int64_t _remainingMem
     );
+
+    int64_t remainingMem;
 
     ~SpatialJoinColumnLocalInfo();
 

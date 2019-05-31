@@ -49,9 +49,9 @@ using namespace CRelAlgebra;
 
 namespace STRColumn {
     vector<mmrtreetouch::nodeCol *> createBuckets(
-            vector<binaryTuple *> tuples,
-            int firstStreamWordIndex,
-            int _numOfItemsInBucket
+            vector<binaryTuple> tuples,
+            int _numOfItemsInBucket,
+            int64_t &remainingMem
     );
 }
 
@@ -77,17 +77,6 @@ SpatialJoinColumnLocalInfo::~SpatialJoinColumnLocalInfo() {
     }
     sTBlockVector.clear();
 
-    for (binaryTuple * bt :bts) {
-        delete bt;
-    }
-    bts.clear();
-
-    for (binaryTuple * bt :btsB) {
-        delete bt;
-    }
-    btsB.clear();
-
-
     delete[] tuple;
 };
 
@@ -101,14 +90,18 @@ SpatialJoinColumnLocalInfo::SpatialJoinColumnLocalInfo(
         int firstStreamWordIndex,
         int secondStreamWordIndex,
         ListExpr ttl,
-        Supplier s
+        Supplier s,
+        int64_t _remainingMem
 ):rTBlockTypeInfo(CRelAlgebra::TBlockTI(qp->GetType(s), false)),
   rTBlockInfo(rTBlockTypeInfo.GetBlockInfo()),
   rTBlockSize(rTBlockTypeInfo.GetDesiredBlockSize()
               * CRelAlgebra::TBlockTI::blockSizeFactor),
-  tuple(0)
+  tuple(0),
+  remainingMem(_remainingMem)
 {
     tt = new ::TupleType(ttl);
+
+    remainingMem -= sizeof(TupleType);
 
     firstStreamWord = firstStreamWordParam;
     secondStreamWord = secondStreamWordParam;
@@ -120,32 +113,60 @@ SpatialJoinColumnLocalInfo::SpatialJoinColumnLocalInfo(
     _firstStreamIndex = firstStreamWordIndex;
     _secondStreamIndex = secondStreamWordIndex;
 
-    getAllTuplesFromStream(firstStreamWord, fTBlockVector);
-    getAllTuplesFromStream(secondStreamWord, sTBlockVector);
+    cout << "1 " << endl;
 
-    bts = createBinaryTuplesVector(fTBlockVector, _firstStreamIndex);
-    btsB = createBinaryTuplesVector(sTBlockVector, _secondStreamIndex);
+    bts = getAllTuplesFromStream(firstStreamWord, _firstStreamIndex);
 
-    vector<mmrtreetouch::nodeCol * > buckets =
-           STRColumn::createBuckets(bts, _firstStreamIndex, numOfItemsInBucket);
+    cout << "3 " << endl;
 
-    rtree = new RTreeTouchCol(
-            tt,
-            _firstStreamIndex,
-            _secondStreamIndex,
-            cellFactor
-    );
+    if (remainingMem > 0) {
 
-    rtree->constructTree(buckets, fanout);
+        btsB = getAllTuplesFromStream(secondStreamWord, _secondStreamIndex);
 
-    assignTuplesB(btsB);
+        cout << "btsB size: " << sizeof(binaryTuple)*btsB.size() << endl;
+        cout << "btsA size: " << sizeof(binaryTuple)*bts.size() << endl;
 
-    findMatchings();
+        if (remainingMem > 0) {
+
+            vector<mmrtreetouch::nodeCol * > buckets =
+               STRColumn::createBuckets(bts, numOfItemsInBucket, remainingMem);
+
+            cout << "create buckets " << endl;
+
+            if (remainingMem > 0) {
+
+                rtree = new RTreeTouchCol(
+                        tt,
+                        _firstStreamIndex,
+                        _secondStreamIndex,
+                        cellFactor,
+                        remainingMem
+                );
+
+                remainingMem -= sizeof(RTreeTouchCol);
+
+                rtree->constructTree(buckets, fanout);
+
+                cout << "constructTree " << endl;
+
+
+                assignTuplesB(btsB);
+
+                cout << "assignTuplesB " << endl;
+
+                findMatchings();
+
+                cout << "findMatchings" << endl;
+
+                remainingMem = rtree->remainingMem;
+            }
+        }
+    }
 }
 
-void SpatialJoinColumnLocalInfo::assignTuplesB(vector<binaryTuple *> BBTs)
+void SpatialJoinColumnLocalInfo::assignTuplesB(vector<binaryTuple> BBTs)
 {
-    for (binaryTuple * tupleB: BBTs) {
+    for (binaryTuple tupleB: BBTs) {
         rtree->assignTupleBs(tupleB);
     }
 }
@@ -154,12 +175,30 @@ void SpatialJoinColumnLocalInfo::findMatchings()
 {
     vector<pair<binaryTuple, binaryTuple >> matchings = rtree->findMatchings();
 
+    cout << "after tree findMatchings" << endl;
+
     const size_t fNumColumns = fTBlockVector[0]->GetColumnCount();
     const size_t sNumColumns = sTBlockVector[0]->GetColumnCount();
 
+    if (remainingMem-sizeof(AttrArrayEntry) <= 0) {
+        cout << "Memory is not enough 1" << endl;
+        remainingMem -= sizeof(AttrArrayEntry);
+        return;
+    }
+
     tuple = new AttrArrayEntry[fNumColumns + sNumColumns];
 
+    remainingMem -= sizeof(AttrArrayEntry);
+
+    if (remainingMem-sizeof(tempTBlock) <= 0) {
+        cout << "Memory is not enough 2" << endl;
+        remainingMem -= sizeof(tempTBlock);
+        return;
+    }
+
     tempTBlock = new TBlock(rTBlockInfo, 0, 0);
+
+    remainingMem -= sizeof(tempTBlock);
 
     for (pair<binaryTuple, binaryTuple> btPair: matchings) {
 
@@ -177,6 +216,10 @@ void SpatialJoinColumnLocalInfo::findMatchings()
 }
 
 TBlock* SpatialJoinColumnLocalInfo::NextResultTBlock () {
+    if (remainingMem <= 0) {
+        return 0;
+    }
+
     if (!matchingVector.empty()) {
         TBlock *tBlockToReturn = matchingVector.back();
         matchingVector.pop_back();
@@ -221,66 +264,97 @@ void SpatialJoinColumnLocalInfo::addbinaryTupleToTBlock(
 
     if(tempTBlock->GetSize() >= rTBlockSize) { // if tempTBlock is full
         matchingVector.push_back(tempTBlock);
+
+        if (remainingMem-sizeof(tempTBlock) <= 0) {
+            cout << "Memory is not enough" << endl;
+            remainingMem -= sizeof(TBlock);
+            return;
+        }
+
         tempTBlock = new TBlock(rTBlockInfo, 0, 0);
+
+        remainingMem -= sizeof(TBlock);
     }
 }
 
-void SpatialJoinColumnLocalInfo::getAllTuplesFromStream(
-        const Word stream, vector<const TBlock*> &tBlockVector)
+vector<mmrtreetouch::binaryTuple>
+        SpatialJoinColumnLocalInfo::getAllTuplesFromStream(
+        const Word stream,
+        const uint64_t joinIndex
+        )
 {
     Word streamTBlockWord;
 
     qp->Open (stream.addr);
     qp->Request (stream.addr, streamTBlockWord);
 
+    vector<binaryTuple> BT;
+    uint64_t tBlockNum = 0;
+    binaryTuple temp;
+
+    //cout << "A-1" << endl;
+
     while (qp->Received (stream.addr) )
     {
         TBlock* tBlock = (TBlock*) streamTBlockWord.addr;
 
-        tBlockVector.push_back(tBlock);
+        //cout << "A-2" << endl;
+
+
+        CRelAlgebra::TBlockIterator tBlockIter = tBlock->GetIterator();
+        uint64_t row = 0;
+
+        while(tBlockIter.IsValid()) {
+
+            if (remainingMem-sizeof(binaryTuple) <= 0) {
+                cout << "Memory is not enough 4" << endl;
+                remainingMem -= sizeof(binaryTuple);
+                return BT;
+            }
+
+            const CRelAlgebra::TBlockEntry &tuple = tBlockIter.Get();
+
+            temp.blockNum = tBlockNum;
+            temp.row = row;
+
+            //cout << "A-3" << endl;
+
+            CRelAlgebra::SpatialAttrArrayEntry<2> attribute = tuple[joinIndex];
+
+            //cout << "A-3 1" << endl;
+
+            const Rectangle<2> &rec = attribute.GetBoundingBox();
+
+            //cout << "A-3 2" << endl;
+
+            temp.xMin = rec.MinD(0);
+            temp.xMax = rec.MaxD(0);
+            temp.yMin = rec.MinD(1);
+            temp.yMax = rec.MaxD(1);
+
+            //cout << "A-3 3" << endl;
+
+            BT.push_back(temp);
+
+
+
+            //cout << "A-3 4" << endl;
+            ++row;
+            //cout << "A-3 5" << endl;
+            tBlockIter.MoveToNext();
+
+            remainingMem -= sizeof(binaryTuple);
+
+            //cout << "A-4" << endl;
+        }
+
+        ++tBlockNum;
 
         qp->Request ( stream.addr, streamTBlockWord);
     }
 
     qp->Close (stream.addr);
-}
-
-vector<binaryTuple *> SpatialJoinColumnLocalInfo::createBinaryTuplesVector(
-        vector<const TBlock*> &TBlockVector,
-        const uint64_t &joinIndex
-        ) {
-
-    vector<binaryTuple* > BT;
-    uint64_t tBlockNum = 0;
-    binaryTuple * temp;
-
-    uint64_t tblockVectorSize = TBlockVector.size();
-    while(tBlockNum < tblockVectorSize) {
-
-        CRelAlgebra::TBlockIterator tBlockIter =
-                TBlockVector[tBlockNum]->GetIterator();
-        uint64_t row = 0;
-
-        while(tBlockIter.IsValid()) {
-
-            const CRelAlgebra::TBlockEntry &tuple = tBlockIter.Get();
-            temp = new binaryTuple();
-            temp->blockNum = tBlockNum;
-            temp->row = row;
-
-            CRelAlgebra::SpatialAttrArrayEntry<2> attribute = tuple[joinIndex];
-            Rectangle<2> rec = attribute.GetBoundingBox();
-            temp->xMin = rec.MinD(0);
-            temp->xMax = rec.MaxD(0);
-            temp->yMin = rec.MinD(1);
-            temp->yMax = rec.MaxD(1);
-
-            BT.push_back(temp);
-            ++row;
-            tBlockIter.MoveToNext();
-        }
-        ++tBlockNum;
-    }
 
     return BT;
 }
+

@@ -36,50 +36,46 @@ namespace CRelAlgebra {
 namespace STRColumn {
 
     void mergeSort(
-            mmrtreetouch::binaryTuple * arr[],
-            int l,
-            int r,
-            char direction,
-            int leftAttrIndex);
-
-    void merge(
-            mmrtreetouch::binaryTuple * arr[],
-            int l,
-            int m,
-            int r,
-            char direction,
-            int leftAttrIndex
+            std::vector<mmrtreetouch::binaryTuple> &tuples,
+            int64_t l,
+            int64_t r,
+            char direction
             );
 
-    std::vector<std::vector <mmrtreetouch::binaryTuple *> > splitInSlices(
-            mmrtreetouch::binaryTuple * arr[],
-            int numOfPartitions,
-            int array_size);
+    void merge(
+            std::vector<mmrtreetouch::binaryTuple> &tuples,
+            int64_t l,
+            int64_t m,
+            int64_t r,
+            char direction
+            );
 
-    std::vector<std::vector <mmrtreetouch::binaryTuple *> > sortSecondDimension(
-            std::vector<std::vector <mmrtreetouch::binaryTuple *> > container,
-            int leftAttrIndex,
-            int numOfPartitions
+    std::vector<std::vector <mmrtreetouch::binaryTuple> > splitInSlices(
+            std::vector<mmrtreetouch::binaryTuple> tuples,
+            int numOfItemsInBucket,
+            int64_t vectorSize
+            );
+
+    std::vector<std::vector <mmrtreetouch::binaryTuple> > sortSecondDimension(
+            std::vector<std::vector <mmrtreetouch::binaryTuple> > container,
+            int numOfItemsInBucket,
+            int64_t vectorSize
             );
 
     std::vector<mmrtreetouch::nodeCol* > packInBuckets(
-            std::vector<std::vector <mmrtreetouch::binaryTuple *> >
+            std::vector<std::vector <mmrtreetouch::binaryTuple> >
                     sortedSlicedList,
-            int sizeOfSortedList,
-            int arr_size,
-            int numOfPartitions,
-            int leftAttrIndex);
+            int64_t sizeOfSortedList,
+            int64_t vectorSize,
+            int numOfItemsInBucket
+            );
 
     std::string bucketInfo(std::vector<mmrtreetouch::nodeCol* > bucketVector);
 
-    void createArrayFromTupleVector(
-            mmrtreetouch::binaryTuple * arr[],
-            std::vector<mmrtreetouch::binaryTuple *> tuples);
-
     std::vector<mmrtreetouch::nodeCol *> createBuckets(
-            std::vector<mmrtreetouch::binaryTuple *> tuples,
-            int _firstStreamWordIndex,
-            int _numOfPartitions
+            std::vector<mmrtreetouch::binaryTuple> tuples,
+            int numOfItemsInBucket,
+            int64_t &remainingMem
     );
 
 } /* namespace STRColumn */

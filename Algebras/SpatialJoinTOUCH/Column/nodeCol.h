@@ -24,40 +24,38 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef SECONDO_NODECOL_H
 #define SECONDO_NODECOL_H
 
-#include "../tchNode.h"
 #include "Algebras/CRel/SpatialAttrArray.h"
 #include "BinaryTuple.h"
 
-
-
-namespace CRelAlgebra {
-    class TBlockEntry;
-    class TBlock;
-}
-
 namespace mmrtreetouch {
 
-    class tchNode;
+    class nodeCol {
+    private:
+        bool is_Leaf;
 
-    class nodeCol: public tchNode {
     public:
-        std::vector<binaryTuple *> objects;
-        std::vector<binaryTuple *> objectsB;
+        int64_t level;
+        Rectangle<2> box;
+        long noChildren;
+        long noObjects;
+        long noObjectsB;
+        std::vector<binaryTuple> objects;
+        std::vector<binaryTuple> objectsB;
         std::vector<nodeCol*> children;
 
+        nodeCol(bool isLeafNode=false);
 
-        void addObject(binaryTuple * t);
-        void addObjectB(binaryTuple * t);
+        ~nodeCol();
 
         void addChild(nodeCol *child);
 
         void addChildren(std::vector<nodeCol*> childrenV);
 
-        nodeCol(bool isLeafNode=false):tchNode(isLeafNode){};
+        bool isLeaf();
 
-        ~nodeCol() {};
+        void addObject(binaryTuple t);
+        void addObjectB(binaryTuple t);
     };
-
 
 }
 

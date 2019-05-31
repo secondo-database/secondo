@@ -54,26 +54,26 @@ using namespace CRelAlgebra;
 
 namespace STRColumn {
 
-    vector<vector <binaryTuple *> > splitInSlices(
-            binaryTuple * arr[],
-            int numOfPartitions,
-            int array_size)
+    vector<vector <binaryTuple> > splitInSlices(
+            vector<binaryTuple> tuples,
+            int numOfItemsInBucket,
+            int64_t vectorSize)
     {
-        int numOfObjsInSlices = ceil((double)array_size/numOfPartitions)*2;
+        int64_t numOfPartitions = ceil((double)vectorSize/numOfItemsInBucket);
 
-        int counter = 0;
+        int64_t counter = 0;
 
-        vector<binaryTuple *> temp;
-        vector<vector <binaryTuple *> > container;
-        temp.reserve(numOfObjsInSlices);
+        vector<binaryTuple> temp;
+        vector<vector <binaryTuple> > container;
+        temp.reserve(numOfItemsInBucket);
         container.reserve(numOfPartitions);
 
-        for( int i = 0; i < array_size; i++ ) {
+        for( int64_t i = 0; i < vectorSize; i++ ) {
             counter++;
 
-            temp.push_back(arr[i]);
+            temp.push_back(tuples[i]);
 
-            if (counter % numOfObjsInSlices == 0) {
+            if (counter % numOfItemsInBucket == 0) {
                 container.push_back(temp);
                 temp.clear();
             }
@@ -86,26 +86,22 @@ namespace STRColumn {
         return container;
     }
 
-    vector<vector <binaryTuple *> > sortSecondDimension(
-            vector<vector <binaryTuple *> > container,
-            int leftAttrIndex,
-            int numOfPartitions
+    vector<vector <binaryTuple> > sortSecondDimension(
+            vector<vector <binaryTuple> > container,
+            int numOfItemsInBucket,
+            int64_t vectorSize
             )
     {
-        vector<vector <binaryTuple *> > sortedSlicedList;
+        int64_t numOfPartitions = ceil((double)vectorSize/numOfItemsInBucket);
+
+        vector<vector <binaryTuple> > sortedSlicedList;
         sortedSlicedList.reserve(numOfPartitions);
 
-        for (vector<binaryTuple *> currentSlice: container) {
-            binaryTuple * arr[currentSlice.size()];
-            copy(currentSlice.begin(), currentSlice.end(), arr);
+        for (vector<binaryTuple> currentSlice: container) {
 
-            mergeSort(arr, 0, (int)(currentSlice.size()-1), 'y', leftAttrIndex);
+            mergeSort(currentSlice, 0, (int64_t)(currentSlice.size()-1), 'y');
 
-            int arraySize = sizeof(arr)/ sizeof(arr[0]);
-
-            vector<binaryTuple *> v(arr, arr + arraySize);
-
-            sortedSlicedList.push_back(v);
+            sortedSlicedList.push_back(currentSlice);
         }
 
         return sortedSlicedList;
@@ -115,12 +111,12 @@ namespace STRColumn {
     string bucketInfo(vector<nodeCol* > bucketVector)
     {
         stringstream info;
-        info << (int)bucketVector.size() << "(";
+        info << (int64_t)bucketVector.size() << "(";
 
-        for (int i=0; i < (int)bucketVector.size(); i++) {
+        for (int64_t i=0; i < (int64_t)bucketVector.size(); i++) {
             nodeCol * bucket = bucketVector.at(i);
 
-            info << (i+1) << "[" << (int)bucket->objects.size();
+            info << (i+1) << "[" << (int64_t)bucket->objects.size();
 
             info << "]";
         }
@@ -133,33 +129,44 @@ namespace STRColumn {
     }
 
     vector<nodeCol * > packInBuckets(
-            vector<vector <binaryTuple *> > sortedSlicedList,
-            int sizeOfSortedList,
-            int initialListSize,
-            int numOfPartitions,
-            int leftStreamWordIndex)
+            vector<vector <binaryTuple> > sortedSlicedList,
+            int64_t sizeOfSortedList,
+            int64_t initialListSize,
+            int numOfItemsInBucket,
+            int64_t &remainingMem
+            )
     {
-        int numOfItemsInBucket = ceil((double)initialListSize/numOfPartitions);
+        int64_t numOfPartitions =
+                ceil((double)initialListSize/numOfItemsInBucket);
+
         vector<nodeCol * > containerOfBuckets;
         containerOfBuckets.reserve(numOfPartitions);
         nodeCol * bucketNode = NULL;
-        int counter = 0;
+        int64_t counter = 0;
 
-        for (vector<binaryTuple *> innerList : sortedSlicedList) {
+        for (vector<binaryTuple> innerList : sortedSlicedList) {
 
-            int sizeOfInnerList = (int)innerList.size();
+            int64_t sizeOfInnerList = (int64_t)innerList.size();
             while(sizeOfInnerList > 0){
                 counter++;
 
+                if (bucketNode == NULL &&
+                    (remainingMem-sizeof(nodeCol) <= 0)) {
+                        cout << "Memory is not enough 10" << endl;
+                        remainingMem -= sizeof(nodeCol);
+                        return containerOfBuckets;
+                }
+
                 if (bucketNode == NULL) {
                     bucketNode = new  nodeCol(true);
+                    remainingMem -= sizeof(nodeCol);
                 }
 
                 bucketNode->level = 0;
                 bucketNode->addObject(innerList.front());
                 innerList.erase(innerList.begin());
 
-                sizeOfInnerList = (int)innerList.size();
+                sizeOfInnerList = (int64_t)innerList.size();
 
                 if(counter % numOfItemsInBucket == 0){
 
@@ -180,45 +187,43 @@ namespace STRColumn {
     }
 
     void mergeSort(
-            binaryTuple * arr[],
-            int l,
-            int r,
-            char direction,
-            int _firstStreamWordIndex
+            vector<binaryTuple> &tuples,
+            int64_t l,
+            int64_t r,
+            char direction
             )
     {
         if (l < r)
         {
-            int m = l+(r-l)/2;
+            int64_t m = l+(r-l)/2;
 
-            mergeSort(arr, l, m, direction, _firstStreamWordIndex);
-            mergeSort(arr, m+1, r, direction, _firstStreamWordIndex);
+            mergeSort(tuples, l, m, direction);
+            mergeSort(tuples, m+1, r, direction);
 
-            merge(arr, l, m, r, direction, _firstStreamWordIndex);
+            merge(tuples, l, m, r, direction);
         }
     }
 
     void merge(
-            binaryTuple * arr[],
-            int l,
-            int m,
-            int r,
-            char direction,
-            int _firstStreamWordIndex
+            vector<binaryTuple> &tuples,
+            int64_t l,
+            int64_t m,
+            int64_t r,
+            char direction
             )
     {
         double valueL, valueR;
-        binaryTuple * entryL,* entryR;
-        int i, j, k;
-        int n1 = m - l + 1;
-        int n2 =  r - m;
+        binaryTuple entryL, entryR;
+        int64_t i, j, k;
+        int64_t n1 = m - l + 1;
+        int64_t n2 =  r - m;
 
-        binaryTuple * L[n1], * R[n2];
+        vector<binaryTuple> L(n1), R(n2);
 
         for (i = 0; i < n1; i++)
-            L[i] = arr[l + i];
+            L[i] = tuples[l + i];
         for (j = 0; j < n2; j++)
-            R[j] = arr[m + 1+ j];
+            R[j] = tuples[m + 1+ j];
 
         i = 0;
         j = 0;
@@ -230,8 +235,8 @@ namespace STRColumn {
                 entryL = L[i];
                 entryR = R[j];
 
-                valueL = (entryL->xMin + entryL->xMax) / 2;
-                valueR = (entryR->xMin + entryR->xMax) / 2;
+                valueL = (entryL.xMin + entryL.xMax) / 2;
+                valueR = (entryR.xMin + entryR.xMax) / 2;
 
 
             } else if (direction == 'y') {
@@ -239,19 +244,19 @@ namespace STRColumn {
                 entryL = L[i];
                 entryR = R[j];
 
-                valueL = (entryL->yMin + entryL->yMax) / 2;
-                valueR = (entryR->yMin + entryR->yMax) / 2;
+                valueL = (entryL.yMin + entryL.yMax) / 2;
+                valueR = (entryR.yMin + entryR.yMax) / 2;
 
             }
 
             if (valueL <= valueR)
             {
-                arr[k] = L[i];
+                tuples[k] = L[i];
                 i++;
             }
             else
             {
-                arr[k] = R[j];
+                tuples[k] = R[j];
                 j++;
             }
             k++;
@@ -259,72 +264,54 @@ namespace STRColumn {
 
         while (i < n1)
         {
-            arr[k] = L[i];
+            tuples[k] = L[i];
             i++;
             k++;
         }
 
         while (j < n2)
         {
-            arr[k] = R[j];
+            tuples[k] = R[j];
             j++;
             k++;
         }
     }
 
-    void createArrayFromTupleVector(
-            binaryTuple * arr[], vector<binaryTuple *> tuples) {
-
-        long i = 0;
-
-        for (binaryTuple * bt: tuples) {
-            arr[i] = bt;
-            i++;
-        }
-        tuples.clear();
-    }
-
     vector<nodeCol *> createBuckets(
-            vector<binaryTuple *> tuples,
-            int _firstStreamWordIndex,
-            int _numOfPartitions
+            vector<binaryTuple> tuples,
+            int _numOfItemsInBrucket,
+            int64_t &remainingMem
             ) {
 
-        int size = (int) tuples.size();
-
-
-        // # 1 create Array
-        binaryTuple * arr[size] = {};
-        STRColumn::createArrayFromTupleVector(arr, tuples);
+        int64_t size = (int64_t) tuples.size();
 
         // # 2 run mergeSort - sort by first dimension - x
-        STRColumn::mergeSort(arr, 0, size - 1, 'x', _firstStreamWordIndex);
+        STRColumn::mergeSort(tuples, 0, size - 1, 'x');
 
         // # 3
-        int numOfPartitions = _numOfPartitions;
-        vector<vector <binaryTuple *> > container = STRColumn::splitInSlices(
-                arr,
-                numOfPartitions,
+        int64_t numOfItemsInBrucket = _numOfItemsInBrucket;
+        vector<vector <binaryTuple> > container = STRColumn::splitInSlices(
+                tuples,
+                numOfItemsInBrucket,
                 size);
 
         // # 4
-        vector<vector <binaryTuple *> > sortedSlicedList =
+        vector<vector <binaryTuple> > sortedSlicedList =
                 STRColumn::sortSecondDimension(
                     container,
-                    _firstStreamWordIndex,
-                    numOfPartitions
+                    numOfItemsInBrucket,
+                    size
         );
 
         // # 5
         return STRColumn::packInBuckets(
                 sortedSlicedList,
-                (int)sortedSlicedList.size(),
+                (int64_t)sortedSlicedList.size(),
                 size,
-                numOfPartitions,
-        _firstStreamWordIndex);
+                numOfItemsInBrucket,
+                remainingMem
+        );
 
 
     }
-
-
 }

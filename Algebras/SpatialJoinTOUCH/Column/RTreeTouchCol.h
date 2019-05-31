@@ -34,21 +34,17 @@ namespace mmrtreetouch {
 
     //class RTreeTouch;
 
-    class RTreeTouchCol { //: public RTreeTouch {
+    class RTreeTouchCol {
     private:
 
-        TupleType* tt;
+        std::vector<std::pair<binaryTuple, binaryTuple >> matchings;
 
-        int _firstStreamWordIndex;
-        int _secondStreamWordIndex;
         int cellFactor;
 
         std::vector<std::vector<nodeCol *> > reGroupByConsideringFanout(
                 std::vector<nodeCol * > sortedArray,
                 int fanout
         );
-
-
 
         std::vector<nodeCol * > getNodesOfInnerNodeRecursive(
                 nodeCol * node,
@@ -62,14 +58,26 @@ namespace mmrtreetouch {
 
         void removeBsFromTree(nodeCol* node);
 
+        void findMatchingsRecurvGrid(
+                nodeCol * node
+        );
+
+        //##
+
+        //bool checkIfOverlapping(Tuple* tupleA, Tuple* tupleB);
+
+        //#
 
     public:
+
+        int64_t remainingMem;
 
         RTreeTouchCol(
                 TupleType *ttParam,
                 int firstStreamWordIndex,
                 int secondStreamWordIndex,
-                int _cellFactor
+                int _cellFactor,
+                int64_t &remainingMem
         );
 
         ~RTreeTouchCol();
@@ -78,15 +86,9 @@ namespace mmrtreetouch {
 
         nodeCol * constructTree(std::vector<nodeCol *> sortedArray, int fanout);
 
-        int assignTupleBs(binaryTuple * bt);
-
+        int64_t assignTupleBs(binaryTuple bt);
 
         std::vector<std::pair<binaryTuple , binaryTuple >> findMatchings();
-        std::vector<std::pair<binaryTuple, binaryTuple >>
-        findMatchingsRecurvGrid(
-                    nodeCol * node,
-                    std::vector<std::pair<binaryTuple , binaryTuple >> matchings
-                    );
 
         int noLeaves();
 
@@ -95,8 +97,6 @@ namespace mmrtreetouch {
         std::string recursiveInfo(nodeCol * subRoot);
 
         void showSubTreeInfo(nodeCol * subRoot);
-
-
     };
 
 }

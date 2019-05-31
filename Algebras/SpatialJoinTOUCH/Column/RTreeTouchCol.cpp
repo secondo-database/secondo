@@ -34,11 +34,11 @@ RTreeTouchCol::RTreeTouchCol(
         TupleType* ttParam,
         int firstStreamWordIndex,
         int secondStreamWordIndex,
-        int _cellFactor
-):tt(ttParam),
-  _firstStreamWordIndex(firstStreamWordIndex) ,
-  _secondStreamWordIndex(secondStreamWordIndex),
-  cellFactor(_cellFactor)
+        int _cellFactor,
+        int64_t &_remainingMem
+):
+  cellFactor(_cellFactor),
+  remainingMem(_remainingMem)
 {}
 
 RTreeTouchCol::~RTreeTouchCol() {
@@ -77,7 +77,7 @@ nodeCol * RTreeTouchCol::constructTree(
 
     vector<nodeCol * > nodes;
 
-    int sizeOfPa = (int)Pa.size();
+    int64_t sizeOfPa = (int64_t)Pa.size();
     while ( sizeOfPa > 1 || firstTime) {
         firstTime = false;
 
@@ -85,32 +85,45 @@ nodeCol * RTreeTouchCol::constructTree(
 
         for (vector<nodeCol * > group : Pa) {
 
+            if (remainingMem-sizeof(nodeCol) <= 0 ) {
+                cout << "Memory is not enough 7" << endl;
+                remainingMem -= sizeof(nodeCol);
+                return nullptr;
+            }
+
             nodeCol* parentNode = new nodeCol();
             parentNode->addChildren(group);
             parentNode->level = levelCounter;
 
-            assert(parentNode->noChildren == (int)parentNode->children.size());
+            remainingMem -= sizeof(nodeCol);
 
             nodes.push_back(parentNode);
         }
 
         Pa.clear();
         Pa = reGroupByConsideringFanout(nodes, fanout);
-        sizeOfPa = (int)Pa.size();
+        sizeOfPa = (int64_t)Pa.size();
         nodes.clear();
 
     }
 
+    if (remainingMem-sizeof(nodeCol) <= 0 ) {
+        cout << "Memory is not enough 8" << endl;
+        return 0;
+    }
+
     root = new nodeCol();
 
-    if ((int)Pa.size() == 1 && (int)Pa.at(0).size() == 1) {
+    remainingMem -= sizeof(nodeCol);
+
+    if ((int64_t)Pa.size() == 1 && (int64_t)Pa.at(0).size() == 1) {
         delete root;
         root = Pa.front().front();
-    } else if ((int)Pa.size() == 1) {
+    } else if ((int64_t)Pa.size() == 1) {
         root->level = levelCounter + 1;
         root->addChildren(Pa.front());
 
-        assert(root->noChildren == (int)root->children.size());
+        assert(root->noChildren == (int64_t)root->children.size());
     }
 
     return root;
@@ -124,7 +137,7 @@ vector<vector<nodeCol * > > RTreeTouchCol::reGroupByConsideringFanout(
     vector<vector<nodeCol * > > reGroupPartitions;
     reGroupPartitions.reserve(fanout);
 
-    int counter = 0;
+    int64_t counter = 0;
     vector<nodeCol * > innerContainer;
 
     for (nodeCol * item: sortedArray) {
@@ -155,16 +168,24 @@ void RTreeTouchCol::removeBsFromTree(nodeCol * node) {
 }
 
 
-int RTreeTouchCol::assignTupleBs(binaryTuple * bt) {
+int64_t RTreeTouchCol::assignTupleBs(binaryTuple bt) {
 
     double min[2];
     double max[2];
-    min[0] = bt->xMin;
-    min[1] = bt->yMin;
-    max[0] = bt->xMax;
-    max[1] = bt->yMax;
+    min[0] = bt.xMin;
+    min[1] = bt.yMin;
+    max[0] = bt.xMax;
+    max[1] = bt.yMax;
+
+    if (remainingMem-sizeof(Rectangle<2>) <= 0 ) {
+        cout << "Memory is not enough 9" << endl;
+        remainingMem -= sizeof(Rectangle<2>);
+        return 0;
+    }
 
     Rectangle<2>* boxB = new Rectangle<2>(true, min, max);
+
+    remainingMem -= sizeof(Rectangle<2>);
 
     nodeCol * parent = NULL, * temp = NULL;
     bool overlap;
@@ -231,20 +252,21 @@ int RTreeTouchCol::assignTupleBs(binaryTuple * bt) {
 
 vector<pair<binaryTuple , binaryTuple >> RTreeTouchCol::findMatchings() {
 
-    vector<pair<binaryTuple , binaryTuple >> matchings;
-    matchings = findMatchingsRecurvGrid(root, matchings);
+    findMatchingsRecurvGrid(root);
 
     return matchings;
 }
 
-vector<pair<binaryTuple, binaryTuple>>
-RTreeTouchCol::findMatchingsRecurvGrid(
-        nodeCol * node,
-        vector<pair<binaryTuple, binaryTuple>> matchings
+void RTreeTouchCol::findMatchingsRecurvGrid(
+        nodeCol * node
         ) {
 
+    if (remainingMem <= 0) {
+        //return matchings;
+    }
+
     if (node->noObjectsB > 0) {
-        vector<binaryTuple *> Bs = node->objectsB;
+        vector<binaryTuple> Bs = node->objectsB;
 
         vector<nodeCol *> leafNodes;
         leafNodes = getNodesOfInnerNodeRecursive(node, leafNodes);
@@ -252,23 +274,38 @@ RTreeTouchCol::findMatchingsRecurvGrid(
         pair<double, double> cellDimension =
                 findAverageSizeOfTupleAs(leafNodes);
 
+        if (remainingMem-sizeof(GridVectorCol) <= 0 ) {
+            cout << "Memory is not enough 6" << endl;
+            remainingMem -= sizeof(GridVectorCol);
+            //return matchings;
+        }
+
         GridVectorCol* grid = new GridVectorCol(
                 node,
                 cellDimension.first * cellFactor,
-                cellDimension.second * cellFactor
+                cellDimension.second * cellFactor,
+                remainingMem
         );
 
+        remainingMem -= sizeof(GridVectorCol);
+
         for (nodeCol* leafNode: leafNodes) {
-            for (binaryTuple * btA: leafNode->objects) {
+            for (binaryTuple btA: leafNode->objects) {
                 grid->addTuple(btA);
             }
         }
 
         grid->setMatchings(matchings);
 
-        for (binaryTuple * btB: Bs) {
-            //matchings = grid->getTuplesOverlappingWith(btB, matchings);
+        for (binaryTuple btB: Bs) {
             grid->getTuplesOverlappingWith(btB);
+
+            remainingMem = grid->remainingMem;
+
+            if (remainingMem <= 0) {
+                cout << "getTuplesOverlappingWith" << endl;
+                //return matchings;
+            }
         }
 
         matchings = grid->getMatchings();
@@ -278,13 +315,11 @@ RTreeTouchCol::findMatchingsRecurvGrid(
         leafNodes.clear();
     }
 
-    if (node->noChildren > 0) {
-        for (nodeCol * child: node->children) {
-            matchings = findMatchingsRecurvGrid(child, matchings);
-        }
+    for (nodeCol * child: node->children) {
+        findMatchingsRecurvGrid(child);
     }
 
-    return matchings;
+    //return matchings;
 }
 
 vector<nodeCol * > RTreeTouchCol::getNodesOfInnerNodeRecursive(
@@ -318,11 +353,13 @@ pair<double, double>
     long counter = 0;
 
     for (nodeCol* leafNode:leafNodes ) {
+        int64_t incr = leafNode->noObjects * 0.1;
+        incr = incr == 0 ? 1: incr;
+        for (int64_t i = 0; i < leafNode->noObjects; i += incr) {
+            binaryTuple bt = leafNode->objects[i];
 
-        for (binaryTuple * bt: leafNode->objects) {
-
-            double xCellDim = bt->xMax - bt->xMin;
-            double yCellDim = bt->yMax - bt->yMin;
+            double xCellDim = bt.xMax - bt.xMin;
+            double yCellDim = bt.yMax - bt.yMin;
 
             totalXCellDim += xCellDim;
             totalYCellDim += yCellDim;
