@@ -73,13 +73,10 @@ namespace mmrtreetouch {
         GridVectorCol(
                 nodeCol* node,
                 double _xCellDim,
-                double _yCellDim,
-                int64_t remainingMem
+                double _yCellDim
         );
 
         ~GridVectorCol();
-
-        int64_t remainingMem;
 
         //
         void addTuple(tupleBlockStr bt);

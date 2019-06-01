@@ -50,8 +50,7 @@ using namespace CRelAlgebra;
 namespace STRColumn {
     vector<mmrtreetouch::nodeCol *> createBuckets(
             vector<tupleBlockStr> tuples,
-            int _numOfItemsInBucket,
-            int64_t &remainingMem
+            int _numOfItemsInBucket
     );
 }
 
@@ -90,18 +89,14 @@ SpatialJoinColumnLocalInfo::SpatialJoinColumnLocalInfo(
         int firstStreamWordIndex,
         int secondStreamWordIndex,
         ListExpr ttl,
-        Supplier s,
-        int64_t _remainingMem
+        Supplier s
 ):rTBlockTypeInfo(CRelAlgebra::TBlockTI(qp->GetType(s), false)),
   rTBlockInfo(rTBlockTypeInfo.GetBlockInfo()),
   rTBlockSize(rTBlockTypeInfo.GetDesiredBlockSize()
               * CRelAlgebra::TBlockTI::blockSizeFactor),
-  tuple(0),
-  remainingMem(_remainingMem)
+  tuple(0)
 {
     tt = new ::TupleType(ttl);
-
-    remainingMem -= sizeof(TupleType);
 
     firstStreamWord = firstStreamWordParam;
     secondStreamWord = secondStreamWordParam;
@@ -119,49 +114,33 @@ SpatialJoinColumnLocalInfo::SpatialJoinColumnLocalInfo(
 
     cout << "3 " << endl;
 
-    if (remainingMem > 0) {
+    btsB = getAllTuplesFromStream(secondStreamWord, _secondStreamIndex);
 
-        btsB = getAllTuplesFromStream(secondStreamWord, _secondStreamIndex);
+    vector<mmrtreetouch::nodeCol * > buckets =
+       STRColumn::createBuckets(bts, numOfItemsInBucket);
 
-        cout << "btsB size: " << sizeof(tupleBlockStr)*btsB.size() << endl;
-        cout << "btsA size: " << sizeof(tupleBlockStr)*bts.size() << endl;
+    cout << "create buckets " << endl;
 
-        if (remainingMem > 0) {
+    rtree = new RTreeTouchCol(
+            tt,
+            _firstStreamIndex,
+            _secondStreamIndex,
+            cellFactor
+    );
 
-            vector<mmrtreetouch::nodeCol * > buckets =
-               STRColumn::createBuckets(bts, numOfItemsInBucket, remainingMem);
+    rtree->constructTree(buckets, fanout);
 
-            cout << "create buckets " << endl;
-
-            if (remainingMem > 0) {
-
-                rtree = new RTreeTouchCol(
-                        tt,
-                        _firstStreamIndex,
-                        _secondStreamIndex,
-                        cellFactor,
-                        remainingMem
-                );
-
-                remainingMem -= sizeof(RTreeTouchCol);
-
-                rtree->constructTree(buckets, fanout);
-
-                cout << "constructTree " << endl;
+    cout << "constructTree " << endl;
 
 
-                assignTuplesB(btsB);
+    assignTuplesB(btsB);
 
-                cout << "assignTuplesB " << endl;
+    cout << "assignTuplesB " << endl;
 
-                findMatchings();
+    findMatchings();
 
-                cout << "findMatchings" << endl;
+    cout << "findMatchings" << endl;
 
-                remainingMem = rtree->remainingMem;
-            }
-        }
-    }
 }
 
 void SpatialJoinColumnLocalInfo::assignTuplesB(vector<tupleBlockStr> BBTs)
@@ -181,25 +160,9 @@ void SpatialJoinColumnLocalInfo::findMatchings()
     const size_t fNumColumns = fTBlockVector[0]->GetColumnCount();
     const size_t sNumColumns = sTBlockVector[0]->GetColumnCount();
 
-    if (remainingMem-sizeof(AttrArrayEntry) <= 0) {
-        cout << "Memory is not enough 1" << endl;
-        remainingMem -= sizeof(AttrArrayEntry);
-        return;
-    }
-
     tuple = new AttrArrayEntry[fNumColumns + sNumColumns];
 
-    remainingMem -= sizeof(AttrArrayEntry);
-
-    if (remainingMem-sizeof(tempTBlock) <= 0) {
-        cout << "Memory is not enough 2" << endl;
-        remainingMem -= sizeof(tempTBlock);
-        return;
-    }
-
     tempTBlock = new TBlock(rTBlockInfo, 0, 0);
-
-    remainingMem -= sizeof(tempTBlock);
 
     for (pair<tupleBlockStr, tupleBlockStr> btPair: matchings) {
 
@@ -217,9 +180,6 @@ void SpatialJoinColumnLocalInfo::findMatchings()
 }
 
 TBlock* SpatialJoinColumnLocalInfo::NextResultTBlock () {
-    if (remainingMem <= 0) {
-        return 0;
-    }
 
     if (!matchingVector.empty()) {
         TBlock *tBlockToReturn = matchingVector.back();
@@ -266,15 +226,7 @@ void SpatialJoinColumnLocalInfo::addtupleBlockStrToTBlock(
     if(tempTBlock->GetSize() >= rTBlockSize) { // if tempTBlock is full
         matchingVector.push_back(tempTBlock);
 
-        if (remainingMem-sizeof(tempTBlock) <= 0) {
-            cout << "Memory is not enough" << endl;
-            remainingMem -= sizeof(TBlock);
-            return;
-        }
-
         tempTBlock = new TBlock(rTBlockInfo, 0, 0);
-
-        remainingMem -= sizeof(TBlock);
     }
 }
 
@@ -293,60 +245,34 @@ vector<mmrtreetouch::tupleBlockStr>
     uint64_t tBlockNum = 0;
     tupleBlockStr temp;
 
-    //cout << "A-1" << endl;
-
     while (qp->Received (stream.addr) )
     {
         TBlock* tBlock = (TBlock*) streamTBlockWord.addr;
-
-        //cout << "A-2" << endl;
-
 
         CRelAlgebra::TBlockIterator tBlockIter = tBlock->GetIterator();
         uint64_t row = 0;
 
         while(tBlockIter.IsValid()) {
 
-            if (remainingMem-sizeof(tupleBlockStr) <= 0) {
-                cout << "Memory is not enough 4" << endl;
-                remainingMem -= sizeof(tupleBlockStr);
-                return BT;
-            }
-
             const CRelAlgebra::TBlockEntry &tuple = tBlockIter.Get();
 
             temp.blockNum = tBlockNum;
             temp.row = row;
 
-            //cout << "A-3" << endl;
-
             CRelAlgebra::SpatialAttrArrayEntry<2> attribute = tuple[joinIndex];
 
-            //cout << "A-3 1" << endl;
-
             const Rectangle<2> &rec = attribute.GetBoundingBox();
-
-            //cout << "A-3 2" << endl;
 
             temp.xMin = rec.MinD(0);
             temp.xMax = rec.MaxD(0);
             temp.yMin = rec.MinD(1);
             temp.yMax = rec.MaxD(1);
 
-            //cout << "A-3 3" << endl;
-
             BT.push_back(temp);
 
-
-
-            //cout << "A-3 4" << endl;
             ++row;
-            //cout << "A-3 5" << endl;
             tBlockIter.MoveToNext();
 
-            remainingMem -= sizeof(tupleBlockStr);
-
-            //cout << "A-4" << endl;
         }
 
         ++tBlockNum;

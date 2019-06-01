@@ -70,14 +70,11 @@ namespace mmrtreetouch {
 
     public:
 
-        int64_t remainingMem;
-
         RTreeTouchCol(
                 TupleType *ttParam,
                 int firstStreamWordIndex,
                 int secondStreamWordIndex,
-                int _cellFactor,
-                int64_t &remainingMem
+                int _cellFactor
         );
 
         ~RTreeTouchCol();

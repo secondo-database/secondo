@@ -96,11 +96,8 @@ public:
             int firstStreamWordIndex,
             int secondStreamWordIndex,
             ListExpr ttl,
-            Supplier s,
-            int64_t _remainingMem
+            Supplier s
     );
-
-    int64_t remainingMem;
 
     ~SpatialJoinColumnLocalInfo();
 

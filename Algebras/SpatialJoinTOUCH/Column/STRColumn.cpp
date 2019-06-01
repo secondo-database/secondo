@@ -132,8 +132,7 @@ namespace STRColumn {
             vector<vector <tupleBlockStr> > sortedSlicedList,
             int64_t sizeOfSortedList,
             int64_t initialListSize,
-            int numOfItemsInBucket,
-            int64_t &remainingMem
+            int numOfItemsInBucket
             )
     {
         int64_t numOfPartitions =
@@ -150,16 +149,8 @@ namespace STRColumn {
             while(sizeOfInnerList > 0){
                 counter++;
 
-                if (bucketNode == NULL &&
-                    (remainingMem-sizeof(nodeCol) <= 0)) {
-                        cout << "Memory is not enough 10" << endl;
-                        remainingMem -= sizeof(nodeCol);
-                        return containerOfBuckets;
-                }
-
                 if (bucketNode == NULL) {
                     bucketNode = new  nodeCol(true);
-                    remainingMem -= sizeof(nodeCol);
                 }
 
                 bucketNode->level = 0;
@@ -279,8 +270,7 @@ namespace STRColumn {
 
     vector<nodeCol *> createBuckets(
             vector<tupleBlockStr> tuples,
-            int _numOfItemsInBrucket,
-            int64_t &remainingMem
+            int _numOfItemsInBrucket
             ) {
 
         int64_t size = (int64_t) tuples.size();
@@ -308,8 +298,7 @@ namespace STRColumn {
                 sortedSlicedList,
                 (int64_t)sortedSlicedList.size(),
                 size,
-                numOfItemsInBrucket,
-                remainingMem
+                numOfItemsInBrucket
         );
 
 

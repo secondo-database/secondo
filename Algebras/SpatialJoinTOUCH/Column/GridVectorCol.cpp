@@ -34,8 +34,7 @@ typedef long long int ullong;
 GridVectorCol::GridVectorCol(
         nodeCol* node,
         double _xCellDim,
-        double _yCellDim,
-        int64_t _remainingMem
+        double _yCellDim
 ):
     box(node->box),
     minX((double) box.MinD(0)),
@@ -52,8 +51,7 @@ GridVectorCol::GridVectorCol(
     numOfYCells((ullong) ceil(yLength / yCellDim)),
     gridVectorCol (
        numOfXCells,
-       vector<vector<tupleBlockStr> >(numOfYCells, vector<tupleBlockStr >(0))),
-    remainingMem(_remainingMem)
+       vector<vector<tupleBlockStr> >(numOfYCells, vector<tupleBlockStr >(0)))
 {
     xCellDim = xLength / numOfXCells;
     yCellDim = yLength / numOfYCells;
@@ -157,11 +155,6 @@ void GridVectorCol::getTuplesOverlappingWith(
 
                     matchings.push_back(res);
                 }
-
-                if (remainingMem <= 0) {
-                    cout << "in GridVector" << endl;
-                    return;
-                }
             }
 
         }
@@ -178,14 +171,6 @@ bool GridVectorCol::tuplesIntersectInCell(
     max[0] = btA.xMax;
     max[1] = btA.yMax;
 
-    if (remainingMem - 2*sizeof(Rectangle<2>) <= 0 ) {
-        cout << "Memory is not enough 5" << endl;
-        cout << "remainingMem: " << remainingMem << endl;
-        cout << "Rectangle: " << sizeof(Rectangle<2>) << endl;
-        remainingMem -= 2*sizeof(Rectangle<2>);
-        return false;
-    }
-
     Rectangle<2>* boxA = new Rectangle<2>(true, min, max);
 
     min[0] = btB.xMin;
@@ -194,8 +179,6 @@ bool GridVectorCol::tuplesIntersectInCell(
     max[1] = btB.yMax;
 
     Rectangle<2>* boxB = new Rectangle<2>(true, min, max);
-
-    remainingMem -= 2*sizeof(Rectangle<2>);
 
     // if the lower left edge of the intersection of the two boxes
     // is in the same cell then true, else false

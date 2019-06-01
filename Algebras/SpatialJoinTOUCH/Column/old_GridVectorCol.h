@@ -78,13 +78,11 @@ namespace mmrtreetouch {
         );
 
     public:
-        int64_t remainingMem;
 
         GridVectorCol(
                 nodeCol *node,
                 double _xCellDim,
-                double _yCellDim,
-                int64_t remainingMem
+                double _yCellDim
         );
 
         ~GridVectorCol();

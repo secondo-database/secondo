@@ -74,8 +74,7 @@ namespace STRColumn {
 
     std::vector<mmrtreetouch::nodeCol *> createBuckets(
             std::vector<mmrtreetouch::tupleBlockStr> tuples,
-            int numOfItemsInBucket,
-            int64_t &remainingMem
+            int numOfItemsInBucket
     );
 
 } /* namespace STRColumn */

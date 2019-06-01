@@ -34,11 +34,9 @@ RTreeTouchCol::RTreeTouchCol(
         TupleType* ttParam,
         int firstStreamWordIndex,
         int secondStreamWordIndex,
-        int _cellFactor,
-        int64_t &_remainingMem
+        int _cellFactor
 ):
-  cellFactor(_cellFactor),
-  remainingMem(_remainingMem)
+  cellFactor(_cellFactor)
 {}
 
 RTreeTouchCol::~RTreeTouchCol() {
@@ -85,17 +83,9 @@ nodeCol * RTreeTouchCol::constructTree(
 
         for (vector<nodeCol * > group : Pa) {
 
-            if (remainingMem-sizeof(nodeCol) <= 0 ) {
-                cout << "Memory is not enough 7" << endl;
-                remainingMem -= sizeof(nodeCol);
-                return nullptr;
-            }
-
             nodeCol* parentNode = new nodeCol();
             parentNode->addChildren(group);
             parentNode->level = levelCounter;
-
-            remainingMem -= sizeof(nodeCol);
 
             nodes.push_back(parentNode);
         }
@@ -107,14 +97,7 @@ nodeCol * RTreeTouchCol::constructTree(
 
     }
 
-    if (remainingMem-sizeof(nodeCol) <= 0 ) {
-        cout << "Memory is not enough 8" << endl;
-        return 0;
-    }
-
     root = new nodeCol();
-
-    remainingMem -= sizeof(nodeCol);
 
     if ((int64_t)Pa.size() == 1 && (int64_t)Pa.at(0).size() == 1) {
         delete root;
@@ -177,15 +160,7 @@ int64_t RTreeTouchCol::assignTupleBs(tupleBlockStr bt) {
     max[0] = bt.xMax;
     max[1] = bt.yMax;
 
-    if (remainingMem-sizeof(Rectangle<2>) <= 0 ) {
-        cout << "Memory is not enough 9" << endl;
-        remainingMem -= sizeof(Rectangle<2>);
-        return 0;
-    }
-
     Rectangle<2>* boxB = new Rectangle<2>(true, min, max);
-
-    remainingMem -= sizeof(Rectangle<2>);
 
     nodeCol * parent = NULL, * temp = NULL;
     bool overlap;
@@ -261,10 +236,6 @@ void RTreeTouchCol::findMatchingsRecurvGrid(
         nodeCol * node
         ) {
 
-    if (remainingMem <= 0) {
-        //return matchings;
-    }
-
     if (node->noObjectsB > 0) {
         vector<tupleBlockStr> Bs = node->objectsB;
 
@@ -274,20 +245,11 @@ void RTreeTouchCol::findMatchingsRecurvGrid(
         pair<double, double> cellDimension =
                 findAverageSizeOfTupleAs(leafNodes);
 
-        if (remainingMem-sizeof(GridVectorCol) <= 0 ) {
-            cout << "Memory is not enough 6" << endl;
-            remainingMem -= sizeof(GridVectorCol);
-            //return matchings;
-        }
-
         GridVectorCol* grid = new GridVectorCol(
                 node,
                 cellDimension.first * cellFactor,
-                cellDimension.second * cellFactor,
-                remainingMem
+                cellDimension.second * cellFactor
         );
-
-        remainingMem -= sizeof(GridVectorCol);
 
         for (nodeCol* leafNode: leafNodes) {
             for (tupleBlockStr btA: leafNode->objects) {
@@ -299,13 +261,6 @@ void RTreeTouchCol::findMatchingsRecurvGrid(
 
         for (tupleBlockStr btB: Bs) {
             grid->getTuplesOverlappingWith(btB);
-
-            remainingMem = grid->remainingMem;
-
-            if (remainingMem <= 0) {
-                cout << "getTuplesOverlappingWith" << endl;
-                //return matchings;
-            }
         }
 
         matchings = grid->getMatchings();
