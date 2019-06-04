@@ -655,6 +655,10 @@ index of the next unit of the same moving point.
       } else if (f1.type == RIGHT_OPEN) {
         rc = false;
         firstFrameOfNextUnit = firstFrameOfUnit + 2;
+      } else {  // should never occur
+	rc = false;
+        firstFrameOfNextUnit = firstFrameOfUnit + 2;
+	assert(false);
       }
 
       unit.id = firstFrameOfUnit;
