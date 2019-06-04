@@ -595,6 +595,13 @@ Example  : query tiergarten scale[10.0]
 Result   : file
 
 
+Operator : scale
+Number   : 2
+Signature: for T in {point, points, line, region}: T x real x real -> T
+Example  : query tiergarten scale[1.0, 3.0] = tiergarten scale[1.0]
+Result   : FALSE
+
+
 Operator : single
 Number   : 1
 Signature: (points) -> point

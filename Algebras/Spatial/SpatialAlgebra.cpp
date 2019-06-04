@@ -9160,9 +9160,10 @@ int SpatialSelectScale( ListExpr args ) {
 const string SpatialSpecScale  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>for T in {point, points, line, region}: "
-  "T x real -> T</text--->"
-  "<text> _ scale [ _ ] </text--->"
-  "<text> scales an object by the given factor.</text--->"
+  "T x real (x real) -> T</text--->"
+  "<text> _ scale [ _ , _ ] </text--->"
+  "<text> scales an object by the given factor. If the user specifies two real "
+  "values, each of them represents the scale factor for one dimension</text--->"
   "<text> query region1 scale[1000.0]</text--->"
   ") )";
 
