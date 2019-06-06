@@ -682,8 +682,10 @@ int CreateRTreeRelSpatial(Word* args, Word& result, int message,
             max[2] = max[2]*864000;
             box.Set(true,min,max);
         }*/
-      R_TreeLeafEntry<dim, TupleId> e( box, tuple->GetTupleId() );
-      rtree->Insert( e );
+      if (box.IsDefined()) {
+        R_TreeLeafEntry<dim, TupleId> e( box, tuple->GetTupleId() );
+        rtree->Insert( e );
+      }
     }
     tuple->DeleteIfAllowed();
   }
@@ -717,11 +719,11 @@ int CreateRTreeStreamSpatial(Word* args, Word& result, int message,
     {
       BBox<dim> box = ((StandardSpatialAttribute<dim>*)tuple->
                         GetAttribute(attrIndex))->BoundingBox();
-      R_TreeLeafEntry<dim, TupleId>
-        e( box,
-           ((TupleIdentifier *)tuple->
+      if (box.IsDefined()) {
+        R_TreeLeafEntry<dim, TupleId> e( box, ((TupleIdentifier *)tuple->
              GetAttribute(tidIndex))->GetTid() );
-      rtree->Insert( e );
+        rtree->Insert( e );
+      }
     }
     tuple->DeleteIfAllowed();
     qp->Request(args[0].addr, wTuple);
@@ -788,9 +790,7 @@ int CreateRTreeStreamRect(Word* args, Word& result, int message,
       BBox<dim> *box = (BBox<dim>*)tuple->GetAttribute(attrIndex);
       if( box->IsDefined() )
       {
-        R_TreeLeafEntry<dim, TupleId>
-          e( *box,
-             ((TupleIdentifier *)tuple->
+        R_TreeLeafEntry<dim, TupleId> e( *box, ((TupleIdentifier *)tuple->
                GetAttribute(tidIndex))->GetTid() );
         rtree->Insert( e );
       }
@@ -830,19 +830,18 @@ int CreateRTree2LSpatial(Word* args, Word& result, int message,
         ((CcInt*)tuple->GetAttribute(tuple->GetNoAttributes()-1))->
           IsDefined() )
     {
-      BBox<dim> box =
-        ((StandardSpatialAttribute<dim>*)tuple->
+      BBox<dim> box = ((StandardSpatialAttribute<dim>*)tuple->
           GetAttribute(attrIndex))->BoundingBox();
-      R_TreeLeafEntry<dim, TwoLayerLeafInfo> e(
-        box,
-        TwoLayerLeafInfo(
+      if (box.IsDefined()) {
+        R_TreeLeafEntry<dim, TwoLayerLeafInfo> e(box, TwoLayerLeafInfo(
           ((TupleIdentifier *)tuple->
             GetAttribute(tidIndex))->GetTid(),
           ((CcInt*)tuple->
             GetAttribute(tuple->GetNoAttributes()-2))->GetIntval(),
           ((CcInt*)tuple->
             GetAttribute(tuple->GetNoAttributes()-1))->GetIntval()));
-      rtree->Insert( e );
+        rtree->Insert( e );
+      }
     }
     tuple->DeleteIfAllowed();
     qp->Request(args[0].addr, wTuple);
@@ -3438,19 +3437,18 @@ template<unsigned dim>
           ((CcInt*)tuple->GetAttribute(tuple->GetNoAttributes()-1))->
           IsDefined() )
     {
-      BBox<dim> box =
-          ((StandardSpatialAttribute<dim>*)tuple->
+      BBox<dim> box = ((StandardSpatialAttribute<dim>*)tuple->
           GetAttribute(attrIndex))->BoundingBox();
-      R_TreeLeafEntry<dim, TwoLayerLeafInfo> e(
-          box,
-          TwoLayerLeafInfo(
+      if (box.IsDefined()) {
+        R_TreeLeafEntry<dim, TwoLayerLeafInfo> e(box, TwoLayerLeafInfo(
               ((TupleIdentifier *)tuple->
               GetAttribute(tidIndex))->GetTid(),
           ((CcInt*)tuple->
               GetAttribute(tuple->GetNoAttributes()-2))->GetIntval(),
           ((CcInt*)tuple->
               GetAttribute(tuple->GetNoAttributes()-1))->GetIntval()));
-          rtree->InsertBulkLoad(e);
+        rtree->InsertBulkLoad(e);
+      }
     }
     tuple->DeleteIfAllowed();
     qp->Request(args[0].addr, wTuple);
@@ -4819,12 +4817,11 @@ Supplier s)
     {
         BBox<dim> box = ((StandardSpatialAttribute<dim>*)tuple->
               GetAttribute(attrIndex))->BoundingBox();
-
-        R_TreeLeafEntry<dim, TupleId>
-              e( box,
-                 ((TupleIdentifier *)tuple->
+        if (box.IsDefined()) {
+          R_TreeLeafEntry<dim, TupleId> e( box, ((TupleIdentifier *)tuple->
                      GetAttribute(tidIndex))->GetTid() );
-        rtree->InsertBulkLoad(e);
+          rtree->InsertBulkLoad(e);
+        }
     }
     tuple->DeleteIfAllowed();
     qp->Request(args[1].addr, wTuple);
