@@ -45,9 +45,9 @@ namespace STR {
     vector<vector <Tuple *> > splitInSlices(
             vector<Tuple *> tuples,
             int numOfItemsInBucket,
-            int64_t array_size)
+            int64_t vectorSize)
     {
-        int64_t numOfPartitions = ceil((double)array_size/numOfItemsInBucket);
+        int64_t numOfPartitions = ceil((double)vectorSize/numOfItemsInBucket);
 
         int64_t counter = 0;
 
@@ -56,7 +56,7 @@ namespace STR {
         temp.reserve(numOfItemsInBucket);
         container.reserve(numOfPartitions);
 
-        for( int64_t i = 0; i < array_size; i++ ) {
+        for( int64_t i = 0; i < vectorSize; i++ ) {
             counter++;
 
             temp.push_back(tuples[i]);
@@ -78,10 +78,10 @@ namespace STR {
             vector<vector <Tuple *> > container,
             int leftAttrIndex,
             int numOfItemsInBucket,
-            int64_t array_size
+            int64_t vectorSize
     )
     {
-        int64_t numOfPartitions = ceil((double)array_size/numOfItemsInBucket);
+        int64_t numOfPartitions = ceil((double)vectorSize/numOfItemsInBucket);
 
         vector<vector <Tuple *> > sortedSlicedList;
         sortedSlicedList.reserve(numOfPartitions);

@@ -49,13 +49,13 @@ namespace STR {
     std::vector<std::vector <Tuple *> > splitInSlices(
             std::vector<Tuple *> tuples,
             int numOfPartitions,
-            int64_t array_size);
+            int64_t vectorSize);
 
     std::vector<std::vector <Tuple *> > sortSecondDimension(
             std::vector<std::vector <Tuple *> > container,
             int leftAttrIndex,
             int numOfPartitions,
-            int64_t array_size
+            int64_t vectorSize
             );
 
     std::vector<mmrtreetouch::tchNode* > packInBuckets(

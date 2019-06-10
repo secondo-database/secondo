@@ -65,17 +65,27 @@ private:
 
     CRelAlgebra::TBlock* tempTBlock;
 
-    std::vector<mmrtreetouch::tupleBlockStr> getAllTuplesFromStream(
-            Word stream,
-            const uint64_t joinIndex
-            );
+    void getAllTuplesFromStreamA(
+            Word stream
+    );
+
+    void getAllTuplesFromStreamB(
+            Word stream
+    );
+
+    std::vector<mmrtreetouch::tupleBlockStr> createTupleBlockStrVectorA(
+            const uint64_t &joinIndex
+    );
+
+    std::vector<mmrtreetouch::tupleBlockStr> createTupleBlockStrVectorB(
+            const uint64_t &joinIndex
+    );
 
     std::vector<CRelAlgebra::TBlock *> matchingVector;
 
     void addtupleBlockStrToTBlock(
         std::pair<mmrtreetouch::tupleBlockStr ,
         mmrtreetouch::tupleBlockStr > btPair,
-        CRelAlgebra::AttrArrayEntry* tuple,
         const size_t fNumColumns,
         const size_t sNumColumns
     );
@@ -108,3 +118,4 @@ public:
 };
 
 #endif //SECONDO_SPATIALJOINCOLUMNLOCALINFO_H
+

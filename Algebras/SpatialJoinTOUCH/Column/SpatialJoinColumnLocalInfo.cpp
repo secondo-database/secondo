@@ -61,7 +61,6 @@ SpatialJoinColumnLocalInfo::~SpatialJoinColumnLocalInfo() {
     delete rtree;
 
     for (const TBlock* tb: fTBlockVector) {
-        //delete tb;
         if(tb) {
             tb->DecRef();
         }
@@ -69,7 +68,6 @@ SpatialJoinColumnLocalInfo::~SpatialJoinColumnLocalInfo() {
     fTBlockVector.clear();
 
     for (const TBlock* tb: sTBlockVector) {
-        //delete tb;
         if(tb) {
             tb->DecRef();
         }
@@ -108,18 +106,14 @@ SpatialJoinColumnLocalInfo::SpatialJoinColumnLocalInfo(
     _firstStreamIndex = firstStreamWordIndex;
     _secondStreamIndex = secondStreamWordIndex;
 
-    cout << "1 " << endl;
+    getAllTuplesFromStreamA(firstStreamWord);
+    getAllTuplesFromStreamB(secondStreamWord);
 
-    bts = getAllTuplesFromStream(firstStreamWord, _firstStreamIndex);
-
-    cout << "3 " << endl;
-
-    btsB = getAllTuplesFromStream(secondStreamWord, _secondStreamIndex);
+    bts = createTupleBlockStrVectorA(_firstStreamIndex);
+    btsB = createTupleBlockStrVectorB(_secondStreamIndex);
 
     vector<mmrtreetouch::nodeCol * > buckets =
        STRColumn::createBuckets(bts, numOfItemsInBucket);
-
-    cout << "create buckets " << endl;
 
     rtree = new RTreeTouchCol(
             tt,
@@ -130,16 +124,9 @@ SpatialJoinColumnLocalInfo::SpatialJoinColumnLocalInfo(
 
     rtree->constructTree(buckets, fanout);
 
-    cout << "constructTree " << endl;
-
-
     assignTuplesB(btsB);
 
-    cout << "assignTuplesB " << endl;
-
     findMatchings();
-
-    cout << "findMatchings" << endl;
 
 }
 
@@ -155,8 +142,6 @@ void SpatialJoinColumnLocalInfo::findMatchings()
     vector<pair<tupleBlockStr, tupleBlockStr >> matchings =
             rtree->findMatchings();
 
-    cout << "after tree findMatchings" << endl;
-
     const size_t fNumColumns = fTBlockVector[0]->GetColumnCount();
     const size_t sNumColumns = sTBlockVector[0]->GetColumnCount();
 
@@ -168,7 +153,6 @@ void SpatialJoinColumnLocalInfo::findMatchings()
 
         addtupleBlockStrToTBlock(
                 btPair,
-                tuple,
                 fNumColumns,
                 sNumColumns);
     }
@@ -196,7 +180,6 @@ TBlock* SpatialJoinColumnLocalInfo::NextResultTBlock () {
 // TODO: use second stream
 void SpatialJoinColumnLocalInfo::addtupleBlockStrToTBlock(
         pair<tupleBlockStr, tupleBlockStr> btPair,
-        AttrArrayEntry* tuple,
         const size_t fNumColumns,
         const size_t sNumColumns
         )
@@ -230,58 +213,120 @@ void SpatialJoinColumnLocalInfo::addtupleBlockStrToTBlock(
     }
 }
 
-vector<mmrtreetouch::tupleBlockStr>
-        SpatialJoinColumnLocalInfo::getAllTuplesFromStream(
-        const Word stream,
-        const uint64_t joinIndex
-        )
+void SpatialJoinColumnLocalInfo::getAllTuplesFromStreamA(
+        const Word stream)
 {
     Word streamTBlockWord;
 
     qp->Open (stream.addr);
     qp->Request (stream.addr, streamTBlockWord);
 
-    vector<tupleBlockStr> BT;
-    uint64_t tBlockNum = 0;
-    tupleBlockStr temp;
+    while (qp->Received (stream.addr) )
+    {
+        TBlock* tBlock = (TBlock*) streamTBlockWord.addr;
+
+        fTBlockVector.push_back(tBlock);
+
+        qp->Request ( stream.addr, streamTBlockWord);
+    }
+
+    qp->Close (stream.addr);
+}
+
+void SpatialJoinColumnLocalInfo::getAllTuplesFromStreamB(
+        const Word stream)
+{
+    Word streamTBlockWord;
+
+    qp->Open (stream.addr);
+    qp->Request (stream.addr, streamTBlockWord);
 
     while (qp->Received (stream.addr) )
     {
         TBlock* tBlock = (TBlock*) streamTBlockWord.addr;
 
-        CRelAlgebra::TBlockIterator tBlockIter = tBlock->GetIterator();
+        sTBlockVector.push_back(tBlock);
+
+        qp->Request ( stream.addr, streamTBlockWord);
+    }
+
+    qp->Close (stream.addr);
+}
+
+vector<tupleBlockStr> SpatialJoinColumnLocalInfo::createTupleBlockStrVectorA(
+        const uint64_t &joinIndex
+) {
+
+    vector<tupleBlockStr> BT;
+    uint64_t tBlockNum = 0;
+    tupleBlockStr temp;
+
+    uint64_t tblockVectorSize = fTBlockVector.size();
+    while(tBlockNum < tblockVectorSize) {
+
+        CRelAlgebra::TBlockIterator tBlockIter =
+                fTBlockVector[tBlockNum]->GetIterator();
         uint64_t row = 0;
 
         while(tBlockIter.IsValid()) {
 
             const CRelAlgebra::TBlockEntry &tuple = tBlockIter.Get();
-
             temp.blockNum = tBlockNum;
             temp.row = row;
 
             CRelAlgebra::SpatialAttrArrayEntry<2> attribute = tuple[joinIndex];
-
-            const Rectangle<2> &rec = attribute.GetBoundingBox();
-
+            Rectangle<2> rec = attribute.GetBoundingBox();
             temp.xMin = rec.MinD(0);
             temp.xMax = rec.MaxD(0);
             temp.yMin = rec.MinD(1);
             temp.yMax = rec.MaxD(1);
 
             BT.push_back(temp);
-
             ++row;
             tBlockIter.MoveToNext();
-
         }
 
         ++tBlockNum;
-
-        qp->Request ( stream.addr, streamTBlockWord);
     }
-
-    qp->Close (stream.addr);
 
     return BT;
 }
 
+vector<tupleBlockStr> SpatialJoinColumnLocalInfo::createTupleBlockStrVectorB(
+        const uint64_t &joinIndex
+) {
+
+    vector<tupleBlockStr> BT;
+    uint64_t tBlockNum = 0;
+    tupleBlockStr temp;
+
+    uint64_t tblockVectorSize = sTBlockVector.size();
+    while(tBlockNum < tblockVectorSize) {
+
+        CRelAlgebra::TBlockIterator tBlockIter =
+                sTBlockVector[tBlockNum]->GetIterator();
+        uint64_t row = 0;
+
+        while(tBlockIter.IsValid()) {
+
+            const CRelAlgebra::TBlockEntry &tuple = tBlockIter.Get();
+            temp.blockNum = tBlockNum;
+            temp.row = row;
+
+            CRelAlgebra::SpatialAttrArrayEntry<2> attribute = tuple[joinIndex];
+            Rectangle<2> rec = attribute.GetBoundingBox();
+            temp.xMin = rec.MinD(0);
+            temp.xMax = rec.MaxD(0);
+            temp.yMin = rec.MinD(1);
+            temp.yMax = rec.MaxD(1);
+
+            BT.push_back(temp);
+            ++row;
+            tBlockIter.MoveToNext();
+        }
+
+        ++tBlockNum;
+    }
+
+    return BT;
+}

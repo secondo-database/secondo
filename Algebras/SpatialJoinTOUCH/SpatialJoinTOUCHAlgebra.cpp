@@ -294,6 +294,8 @@ namespace sjt {
         SpatialJoinColumnLocalInfo* localInfo =
                     static_cast<SpatialJoinColumnLocalInfo*>(local.addr);
 
+        //uint64_t memLimit = qp->GetMemorySize(s)*1024*1024;
+
         switch (message) {
 
             case OPEN: {
@@ -362,11 +364,11 @@ namespace sjt {
         ListExpr cellFactor   = nl->First(nl->Seventh(args));
 
         ListExpr fanoutExpr       = nl->Second(nl->Fifth(args));
-        ListExpr numOfBucketsExpr = nl->Second(nl->Sixth(args));
+        ListExpr numOfItemsInBucketExpr = nl->Second(nl->Sixth(args));
         ListExpr cellFactorExpr   = nl->Second(nl->Seventh(args));
 
         long fanoutValue        = nl->IntValue(fanoutExpr);
-        long numOfBucketsValue  = nl->IntValue(numOfBucketsExpr);
+        long numOfItemsInBucketValue  = nl->IntValue(numOfItemsInBucketExpr);
         long cellFactorValue    = nl->IntValue(cellFactorExpr);
 
         ListExpr al1 = nl->Second(nl->Second(fStream));
@@ -375,7 +377,7 @@ namespace sjt {
         const int argNum = nl->ListLength(args);
 
         string err = "relation x relation x attribute name x attribute name "
-                     "x fanout x number of partitions x cell factor expected";
+                  "x fanout x number of items in bucket x cell factor expected";
 
         if (argNum != 7) {
             return listutils::typeError("Expected seven arguments.");
@@ -419,24 +421,19 @@ namespace sjt {
                                      " (seventh arg is not an integer)");
         }
 
-        if (fanoutValue < 1) {
-            return listutils::typeError("fanout should be a positive integer");
+        if (fanoutValue < 2) {
+            return listutils::typeError("fanout should be a positive integer "
+                                        "greater than 1");
         }
 
-        if (numOfBucketsValue < 1) {
-            return listutils::typeError("num of partitions "
+        if (numOfItemsInBucketValue < 1) {
+            return listutils::typeError("num of items in bucket "
                                         "should be a positive integer");
         }
 
         if (cellFactorValue < 1) {
             return listutils::typeError("cell factor "
                                         "should be a positive integer");
-        }
-
-        if (fanoutValue == 1 && numOfBucketsValue != 1) {
-            return listutils::typeError("Error in seventh argument: "
-                                  "Fanout cannot be equal to 1, "
-                                  "when number of Buckets is greater than 1.");
         }
 
         if(!listutils::disjointAttrNames(al1, al2)){
@@ -498,7 +495,7 @@ namespace sjt {
         long cellFactorValue   = nl->IntValue(cellFactorExpr);
 
         string err = "relation x relation x attribute name x attribute name "
-                     "x fanout x number of partitions x cell factor expected";
+                  "x fanout x number of items in bucket x cell factor expected";
 
         if(nl->ListLength(args)!=7){
             return listutils::typeError(err);
@@ -575,25 +572,20 @@ namespace sjt {
                             " (seventh arg is not an integer)");
         }
 
-        if (fanoutValue < 1) {
+        if (fanoutValue < 2) {
             return listutils::typeError("Error in fifth argument: "
-                                        "Fanout should be a positive integer.");
+                            "fanout should be a positive integer "
+                                        "greater than 1");
         }
 
         if (numOfBucketsValue < 1) {
             return listutils::typeError("Error in sixth argument: "
-                           "Num of partitions should be a positive integer.");
+                      "Num of items in bucket should be a positive integer.");
         }
 
         if (cellFactorValue < 1) {
             return listutils::typeError("Error in seventh argument: "
                                    "Cell factor should be a positive integer.");
-        }
-
-        if (fanoutValue == 1 && numOfBucketsValue != 1) {
-            return listutils::typeError("Error in seventh argument: "
-                                   "Fanout cannot be equal to 1, "
-                                   "when number of Buckets is greater than 1.");
         }
 
         ListExpr relType = nl->TwoElemList(
@@ -634,7 +626,7 @@ namespace sjt {
         const int argNum = nl->ListLength(args);
 
         string err = "relation x relation x attribute name x attribute name "
-                     "x fanout x number of partitions x cell factor expected";
+                 "x fanout x number of items in bucket x cell factor expected";
 
         if (argNum != 7)
         {
@@ -713,25 +705,20 @@ namespace sjt {
                              " (seventh arg is not an integer)");
         }
 
-        if (fanoutValue < 1) {
+        if (fanoutValue < 2) {
             return listutils::typeError("Error in fifth argument: "
-                                     "Fanout should be a positive integer.");
+                                  "fanout should be a positive integer "
+                                        "greater than 1");
         }
 
         if (numOfBucketsValue < 1) {
             return listutils::typeError("Error in sixth argument: "
-                             "Num of partitions should be a positive integer.");
+                        "Num of items in bucket should be a positive integer.");
         }
 
         if (cellFactorValue < 1) {
             return listutils::typeError("Error in seventh argument: "
                                    "Cell factor should be a positive integer.");
-        }
-
-        if (fanoutValue == 1 && numOfBucketsValue != 1) {
-            return listutils::typeError("Error in seventh argument: "
-                                   "Fanout cannot be equal to 1, "
-                                   "when number of Buckets is greater than 1.");
         }
 
         // Initialize the type and size of result tuple block
