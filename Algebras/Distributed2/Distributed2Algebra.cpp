@@ -19973,13 +19973,17 @@ ListExpr deleteRemoteDatabasesTM(ListExpr args){
      return listutils::typeError("one or two arguments expected");
    } 
    ListExpr rel;
+   string relarg;
    if(nl->HasLength(args,2)){
      if(!CcString::checkType(nl->First(args))){
-        return listutils::typeError("first arg must be a relation");
+        return listutils::typeError("if two arguments are given, the "
+                                    "first argument must be a string");
      }
      rel = nl->Second(args);
+     relarg = "second";
    } else {
      rel = nl->First(args);
+     relarg = "first";
    }
 
 
@@ -19987,7 +19991,7 @@ ListExpr deleteRemoteDatabasesTM(ListExpr args){
    ListExpr positions, types;
    string err;
    if(!isWorkerRelDesc(rel, positions, types, err)){
-      return listutils::typeError("arg is not a worker relation: "
+      return listutils::typeError(relarg + " arg is not a worker relation: "
                                   + err);
    }
 
