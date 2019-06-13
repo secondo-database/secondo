@@ -662,7 +662,6 @@ int CreateRTreeRelSpatial(Word* args, Word& result, int message,
 
   relation = (Relation*)args[0].addr;
   attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
-
   iter = relation->MakeScan();
   while( (tuple = iter->GetNextTuple()) != 0 )
   {
@@ -671,17 +670,6 @@ int CreateRTreeRelSpatial(Word* args, Word& result, int message,
     {
       BBox<dim> box = ((StandardSpatialAttribute<dim>*)(tuple->
                         GetAttribute(attrIndex)))->BoundingBox();
-/*if(dim == 3){
-            double min[3];
-            double max[3];
-            for(int i = 0;i < 3;i++){
-              min[i] = box.MinD(i);
-              max[i] = box.MaxD(i);
-            }
-            min[2] = min[2]*864000;
-            max[2] = max[2]*864000;
-            box.Set(true,min,max);
-        }*/
       if (box.IsDefined()) {
         R_TreeLeafEntry<dim, TupleId> e( box, tuple->GetTupleId() );
         rtree->Insert( e );
@@ -2734,9 +2722,6 @@ ListExpr GetTuples2TypeMap(ListExpr args)
 
   // check whether result attrlist is valid
   if (!listutils::isAttrList(newAttrList)){
-
-    cout << "ResultTupleType is " << nl->ToString(newAttrList) << endl;
-
 
     return listutils::typeError("Result after merging tuples is not a "
                                "valid attribute list (Possible reasons: "
