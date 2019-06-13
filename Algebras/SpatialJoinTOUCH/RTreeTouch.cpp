@@ -400,8 +400,7 @@ int64_t RTreeTouch::assignTupleB(Tuple* tupleB) {
         }
 
         if (!overlap) {
-            // in case that in one level there is no overlap (although
-            // in the higher level there is an overlap)
+            // in case that in one level there is no overlap
             return 0;
         }
     }

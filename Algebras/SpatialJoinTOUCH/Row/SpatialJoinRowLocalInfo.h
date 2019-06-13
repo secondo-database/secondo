@@ -32,7 +32,7 @@ namespace mmrtreetouch {
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
-
+// Row Version
 class SpatialJoinRowLocalInfo
 {
 private:

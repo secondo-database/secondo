@@ -73,6 +73,7 @@ SpatialJoinRowLocalInfo::SpatialJoinRowLocalInfo(
         int _cellFactor
 )
 {
+    // Row Version
     turnOn = false;
 
     tt = new ::TupleType(ttl);
