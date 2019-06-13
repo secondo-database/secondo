@@ -138,7 +138,7 @@ void SpatialJoinColumnLocalInfo::assignTuplesB(vector<tupleBlockStr> BBTs)
 }
 
 void SpatialJoinColumnLocalInfo::findMatchings()
-{    cout << "findmatchings started" << endl;
+{
 
     vector<pair<tupleBlockStr, tupleBlockStr >> matchings =
             rtree->findMatchings();
@@ -149,8 +149,6 @@ void SpatialJoinColumnLocalInfo::findMatchings()
     tuple = new AttrArrayEntry[fNumColumns + sNumColumns];
 
     tempTBlock = new TBlock(rTBlockInfo, 0, 0);
-
-    cout << "before adding to Tblock" << endl;
 
     for (pair<tupleBlockStr, tupleBlockStr> btPair: matchings) {
 
@@ -165,7 +163,6 @@ void SpatialJoinColumnLocalInfo::findMatchings()
         tempTBlock = 0;
     }
 
-    cout << "findmatchings finished" << endl;
 }
 
 TBlock* SpatialJoinColumnLocalInfo::NextResultTBlock () {
