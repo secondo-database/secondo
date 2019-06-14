@@ -26,7 +26,7 @@
 # inlcude global definitions
 include ../../makefile.env
 
-CURRENT_ALGEBRA := GuideAlgebra
+CURRENT_ALGEBRA := KafkaAlgebra
 ALGEBRA_DEPENDENCIES := StandardAlgebra
 ALGEBRA_DEPENDENCIES += RelationAlgebra
 
