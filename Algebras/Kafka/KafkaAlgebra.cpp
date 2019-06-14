@@ -61,6 +61,16 @@ using namespace std;
 
 namespace gstguide {
 
+
+    ///////////////////////////////////////
+    ///////////////////////////////////////
+
+//                Types
+
+    ///////////////////////////////////////
+    ///////////////////////////////////////
+
+
     class SCircle {
     public:
 // constructor doing nothing
@@ -259,12 +269,76 @@ namespace gstguide {
 
 
 
-    class KafkaAlgebra : public Algebra {
-    public:
-        KafkaAlgebra() : Algebra() {
 
-            AddTypeConstructor(&SCircleTC);
-            SCircleTC.AssociateKind(Kind::SIMPLE());
+    ///////////////////////////////////////
+    ///////////////////////////////////////
+
+//                Operators
+
+    ///////////////////////////////////////
+    ///////////////////////////////////////
+
+
+    ListExpr perimeterTM(ListExpr args) {
+        string err = "scircle expected";
+// check the number of arguments
+        if (!nl->HasLength(args, 1)) {
+            return listutils::typeError(err + " (wrong number of arguments)");
+        }
+// check type of the argument
+        if (!SCircle::checkType(nl->First(args))) {
+            return listutils::typeError(err);
+        }
+// return the result type
+        return listutils::basicSymbol<CcReal>();
+    }
+
+// @formatter:off
+    int perimeterVM(Word * args, Word & result, int message, Word & local,
+            Supplier s) {
+        SCircle *k = (SCircle *) args[0].addr; // get the argument and cast it
+        result = qp->ResultStorage(s); // use the result storage
+        CcReal *res = (CcReal *) result.addr; // cast the result
+        res->Set(true, k->
+
+                perimeter()
+
+        ); // compute and set the result
+        return 0;
+    }
+
+// @formatter:on
+
+OperatorSpec perimeterSpec(
+        "scircle -> real",
+        "perimeter(_)",
+        "Computes the perimeter of a disc.",
+        "query perimeter([const scircle value (1.0 8.0 16.0)])"
+);
+
+Operator perimeterOp(
+        "perimeter", // name of the operator
+        perimeterSpec.getStr(), // specification
+        perimeterVM, // value mapping
+        Operator::SimpleSelect, // selection function
+        perimeterTM // type mapping
+);
+
+///////////////////////////////////////
+///////////////////////////////////////
+
+//                Algebras
+
+///////////////////////////////////////
+///////////////////////////////////////
+
+
+class KafkaAlgebra : public Algebra {
+public:
+    KafkaAlgebra() : Algebra() {
+
+        AddTypeConstructor(&SCircleTC);
+        SCircleTC.AssociateKind(Kind::SIMPLE());
 
 //        AddTypeConstructor( &ACircleTC );
 //        ACircleTC.AssociateKind( Kind::DATA() );
@@ -286,7 +360,7 @@ namespace gstguide {
 //        VStringTC.AssociateKind(Kind::DATA());
 //
 //
-//        AddOperator(&perimeterOp);
+        AddOperator(&perimeterOp);
 //        AddOperator(&distNOp);
 //        AddOperator(&countNumberOp);
 //        AddOperator(&getCharsOp);
@@ -308,8 +382,8 @@ namespace gstguide {
 //        AddOperator(&reverseStreamOp);
 //        reverseStreamOp.SetUsesMemory();
 
-        }
-    };
+    }
+};
 
 } // End namespace
 
