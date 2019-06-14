@@ -6,7 +6,7 @@ CLASSPATH=..
 
 .PHONY:all
 
-all: Base64Encoder.class Base64Decoder.class TextFormat.class Environment.class Reporter.class
+all: Base64Encoder.class Base64Decoder.class TextFormat.class Environment.class Reporter.class Encryption.class
 
 
 
