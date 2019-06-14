@@ -1,0 +1,7 @@
+restore database berlintest from berlintest;
+open database berlintest;
+
+query Staedte;
+
+
+query [const scircle value (9.0 10.0 20.0)]
