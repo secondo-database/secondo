@@ -19,6 +19,7 @@ import javax.crypto.CipherOutputStream;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 
+import java.util.Base64;
 
 public class Encryption{
   private KeyPair keys = null;
@@ -26,10 +27,10 @@ public class Encryption{
   private Cipher encCipher = null;
   private Cipher decCipher = null;
 
-  public Encryption createInstance(){
+  public static Encryption createInstance(int keyBits){
     try{
      KeyPairGenerator keygen = KeyPairGenerator.getInstance(mode);
-     keygen.initialize(1024);
+     keygen.initialize(keyBits);
      KeyPair rsaKeys = keygen.genKeyPair();
      return new Encryption(rsaKeys);
     } catch(Exception e){
@@ -37,16 +38,35 @@ public class Encryption{
     }
   }
 
-  public Encryption(KeyPair kp) throws NoSuchAlgorithmException,NoSuchPaddingException,InvalidKeyException{
+
+  public static Encryption createInstance(String publicKey_PEM){
+   try {
+      publicKey_PEM = publicKey_PEM.replace("-----BEGIN PRIVATE KEY-----\n", "");
+      publicKey_PEM = publicKey_PEM.replace("-----END PRIVATE KEY-----", "");
+      byte[] encoded = Base64.getDecoder().decode(publicKey_PEM);
+      KeyFactory kf = KeyFactory.getInstance("RSA");
+      PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
+      PublicKey pubKey = kf.generatePublic(keySpec);
+      return new Encryption(pubKey); 
+   } catch(Exception e){
+      return null;
+   }
+  }
+  
+
+
+  private Encryption(KeyPair kp) throws NoSuchAlgorithmException,NoSuchPaddingException,InvalidKeyException{
      init(kp);
   } 
 
  
-  public Encryption(PublicKey k) throws NoSuchAlgorithmException,NoSuchPaddingException,InvalidKeyException{
+  private Encryption(PublicKey k) throws NoSuchAlgorithmException,NoSuchPaddingException,InvalidKeyException{
      init(new KeyPair(k,null));
   } 
 
   private void init(KeyPair kp) throws NoSuchAlgorithmException, NoSuchPaddingException,InvalidKeyException{
+
+    // TODO: seeding the used random number generator
     keys = kp;
     Key puk = kp.getPublic();
     if(puk!=null){
@@ -78,6 +98,12 @@ public class Encryption{
 
   public PublicKey getPublicKey(){
     return keys.getPublic();
+  }
+
+  public String getPublicKey_PEM(){
+    byte[] data = keys.getPublic().getEncoded();
+    String base64encoded = new String(Base64.getEncoder().encode(data));
+    return "-----BEGIN PUBLIC KEY-----\n" + base64encoded + "-----END PUBLIC KEY-----";
   }
 
 
