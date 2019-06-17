@@ -151,6 +151,13 @@ InternalSpelling within the current database.
 
 */
 
+
+updateDBHint() :-
+  write('possibly, the knowledge about the database is not up to date'),
+  nl,
+  write(' try updateCatalog and enter the query again.'),
+  !.
+
 /*
 NVK ADDED NR
 Nested relation support.
@@ -197,7 +204,8 @@ dcName2internalName(DC,Intern) :-
   ( ground(DC)
     -> write('--->\tProbably wrong spelling of 1st argument?!')
     ;  ( write('--->\tProbably missing storedSpell/3 or '),
-         write('secondoCatalogInfo/4 for 2nd argument?!')
+         write('secondoCatalogInfo/4 for 2nd argument?!'),
+         updateDBHint()
        )
   ), !,
   throw(error_Internal(database_dcName2internalName(DC,Intern)
@@ -249,7 +257,8 @@ dcName2externalName(DC,External) :-
   write(') failed!'), nl,
   ( ground(DC)
     -> ( write('--->\tProbably missing storedSpell/3 or secondoCatalogInfo/4 '),
-         write('for 1st argument?!')
+         write('for 1st argument?!'),
+         updateDBHint()
        )
   ), !,
   nl,
@@ -303,7 +312,8 @@ internalName2externalName(Intern,Extern) :-
   write(Extern),write(') failed!'), nl,
   ( ground(Intern)
     -> write('--->\tProbably 1st argument has unvalid internal spelling?!')
-    ;  write('--->\tProbably both arguments unbound? This should not happen!')
+    ;  write('--->\tProbably both arguments unbound? This should not happen!'),
+    updateDBHint()
   ), !,
   nl,
   throw(error_Internal(database_internalName2externalName(Intern,Extern)
