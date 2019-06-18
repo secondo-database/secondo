@@ -153,6 +153,7 @@ InternalSpelling within the current database.
 
 
 updateDBHint() :-
+  nl,
   write('possibly, the knowledge about the database is not up to date'),
   nl,
   write(' try updateCatalog and enter the query again.'),
@@ -282,6 +283,7 @@ internalName2externalName(lc(Intern),Extern) :-
   ground(Intern),
   Extern = Intern,
   !.
+
 internalName2externalName(Intern,Extern) :-
   ground(Intern),
   atomic(Intern),
@@ -307,6 +309,7 @@ internalName2externalName(Intern,Extern) :-
   my_concat_atom([PrefixDC,Suffix],'',InternDC),
   Intern = InternDC,
   !.
+
 internalName2externalName(Intern,Extern) :-
   write('ERROR:\tinternalName2externalName('),write(Intern),write(','),
   write(Extern),write(') failed!'), nl,
