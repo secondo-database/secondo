@@ -75,9 +75,11 @@ namespace pregel {
   int hostPosition = listutils::findAttribute(tupleType, "Host", hostType);
   if (!hostPosition) {
    BOOST_LOG_TRIVIAL(error) << "No \"Host\" attribute in relation";
+   return listutils::typeError("No host found in relation");
   }
   if (!CcString::checkType(hostType) /*&& !FText::checkType(hostType)*/) {
    BOOST_LOG_TRIVIAL(error) << "\"Host\" attribute not of type string";
+   return listutils::typeError("Host is not of type string");
   }
 
   ListExpr configType;
@@ -85,18 +87,22 @@ namespace pregel {
                                                 configType);
   if (!configPosition) {
    BOOST_LOG_TRIVIAL(error) << "No \"Config\" attribute in relation";
+   return listutils::typeError("no config attribute in relation");
   }
   if (!CcString::checkType(configType) /*&& !FText::checkType(configType)*/) {
    BOOST_LOG_TRIVIAL(error) << "\"Config\" attribute not of type string";
+   return listutils::typeError("Config attribute not of type string");
   }
 
   ListExpr portType;
   int portPosition = listutils::findAttribute(tupleType, "Port", portType);
   if (!portPosition) {
    BOOST_LOG_TRIVIAL(error) << "No \"Port\" attribute in relation";
+   return listutils::typeError("No Port attribute in relation");
   }
   if (!CcInt::checkType(portType)) {
    BOOST_LOG_TRIVIAL(error) << "\"Port\" attribute not of type int";
+   return listutils::typeError("Port attribute not of type int");
   }
 
   ListExpr messageServerPortType;
@@ -106,10 +112,12 @@ namespace pregel {
   );
   if (!messageServerPortPosition) {
    BOOST_LOG_TRIVIAL(error) << "No \"MessageServerPort\" attribute in relation";
+   return listutils::typeError("No MessageServerPort in Relation");
   }
   if (!CcInt::checkType(messageServerPortType)) {
    BOOST_LOG_TRIVIAL(error)
     << "\"MessageServerPort\" attribute not of type int";
+   return listutils::typeError("messageServerPort not of type int");
   }
 
   return nl->ThreeElemList(
