@@ -135,12 +135,11 @@ Get for an attribute the indexnumber within a boundary type.
 
 */
     OperatorSpec getBoundaryIndex(
-        " vector x attr "
-        "-> int ",
+        " vector(X) x X , X in DATA -> int",
         " getboundaryindex(_,_)",
-        "Returns for an attribute the indexnumber within a "
-        "boundary. The boundary is a sorted vector.",
-        "query getboundaryindex(boundary, PLZ)"
+        "Returns the indexnumber within a "
+        "boundary vector for a value. The boundary is a sorted vector.",
+        "query getboundaryindex(boundary, 60000)"
     );
 
 /*
