@@ -1359,7 +1359,47 @@ Signature : -> instant
 Example   : query  queryTime() <= now()
 Result    : TRUE
 
+Operator  : findFirst
+Number    : 1
+Signature : {string, text} x {string,text} -> int
+Example   : query findFirst('abcde',"c")
+Result    : 3
+
+Operator  : findFirst
+Number    : 2
+Signature : {string, text} x {string,text} x int -> int
+Example   : query findFirst('abcdec',"c",4)
+Result    : 6
+
+Operator  : findLast
+Number    : 1
+Signature : {string, text} x {string,text} [ x int] > int
+Example   : query findLast('abcdce',"c")
+Result    : 5
+
+Operator  : findFirstOf
+Number    : 1
+Signature : {string, text} x {string,text} [ x int] > int
+Example   : query findFirstOf('abcdce',"bc")
+Result    : 2
+
+Operator  : findLastOf
+Number    : 1
+Signature : {string, text} x {string,text} [ x int] > int
+Example   : query findLastOf('abcdce',"bc")
+Result    : 5
 
 
+Operator  : findFirstNotOf
+Number    : 1
+Signature : {string, text} x {string,text} [ x int] > int
+Example   : query findFirstNotOf('abcdce',"abce")
+Result    : 4
+
+Operator  : findLastNotOf
+Number    : 1
+Signature : {string, text} x {string,text} [ x int] > int
+Example   : query findLastNotOf('abcdce',"abce")
+Result    : 4
 
 

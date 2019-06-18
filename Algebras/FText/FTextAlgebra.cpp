@@ -13535,6 +13535,269 @@ Operator queryTimeOp(
 );
 
 
+/*
+Operators finding positions within a string/text
+
+*/
+ListExpr findPosTM(ListExpr args){
+   if(!nl->HasLength(args,2) && !nl->HasLength(args,3)){
+     return listutils::typeError("two or three arguments expected");
+   }
+   if(   !CcString::checkType(nl->First(args))
+      && !FText::checkType(nl->First(args))){
+     return listutils::typeError("first argument not of type string or text");
+   }
+   if(   !CcString::checkType(nl->Second(args))
+      && !FText::checkType(nl->Second(args))){
+     return listutils::typeError("Second argument not of type string or text");
+   }
+   if(nl->HasLength(args,2)){
+     return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                nl->OneElemList( nl->IntAtom(-1)),
+                listutils::basicSymbol<CcInt>());
+   } else {
+      if(!CcInt::checkType(nl->Third(args))){
+        return listutils::typeError("third argument not of type int");
+      }
+      return listutils::basicSymbol<CcInt>();
+   }
+
+   
+   
+}
+
+
+template<class A1, class A2, class F>
+int findPosVMT( Word* args, Word& result, int message, 
+                 Word& local, Supplier s ) {
+   A1* arg1 = (A1*) args[0].addr;
+   A2* arg2 = (A2*) args[1].addr;
+   CcInt* arg3 = (CcInt*) args[2].addr;
+   result = qp->ResultStorage(s);
+   CcInt* res = (CcInt*) result.addr;
+   if(!arg1->IsDefined() || !arg2->IsDefined() || !arg3->IsDefined()){
+     res->SetDefined(0);
+     return 0;
+   }
+   size_t r = F::fun(arg1->GetValue(), arg2->GetValue(), arg3->GetValue());
+   if(r==string::npos){
+     res->SetDefined(0);
+   } else {
+     res->Set(true,r+1);
+   }
+   return 0;
+}
+
+int findPosSelect(ListExpr args){
+  int n1 = CcString::checkType(nl->First(args))?0:2;
+  int n2 = CcString::checkType(nl->Second(args))?0:1;
+  return n1 + n2;
+}
+
+
+class FindFirst{
+ public: 
+  static size_t fun(const string& s1, const string& s2, int s){
+     if(s<1) s = 1;
+     return s1.find(s2,s-1);
+  }
+};
+
+OperatorSpec findFirstSpec(
+   "{string,text} x {string,text} [x int] -> int",
+   "findFirst(_,_,_)",
+   "Returns the positon of the first occurrence of the second argument within"
+   " the first argument. If the optional third argument is present, the "
+   "search starts at this position. " ,
+   "query findFirst('abc','b')"
+);
+
+ValueMapping findFirstVM[] = {
+   findPosVMT<CcString, CcString, FindFirst>, 
+   findPosVMT<CcString, FText, FindFirst>, 
+   findPosVMT<FText, CcString, FindFirst>, 
+   findPosVMT<FText, FText, FindFirst> 
+};
+
+Operator findFirstOp(
+  "findFirst",
+  findFirstSpec.getStr(),
+  4,
+  findFirstVM,
+  findPosSelect,
+  findPosTM
+);
+
+
+class FindLast{
+ public: 
+  static size_t fun(const string& s1, const string& s2, size_t s){
+     if(s<1) s = string::npos;
+     return s1.rfind(s2,s-1);
+  }
+};
+
+OperatorSpec findLastSpec(
+   "{string,text} x {string,text} [x int] -> int",
+   "findLast(_,_,_)",
+   "Returns the positon of the last occurrence of the second argument within"
+   " the first argument. If the optional third argument is present, the "
+   "search starts at this position. " ,
+   "query findLast('abcbcbc','b')"
+);
+
+ValueMapping findLastVM[] = {
+   findPosVMT<CcString, CcString, FindLast>, 
+   findPosVMT<CcString, FText, FindLast>, 
+   findPosVMT<FText, CcString, FindLast>, 
+   findPosVMT<FText, FText, FindLast> 
+};
+
+Operator findLastOp(
+  "findLast",
+  findLastSpec.getStr(),
+  4,
+  findLastVM,
+  findPosSelect,
+  findPosTM
+);
+
+class FindFirstOf{
+ public: 
+  static size_t fun(const string& s1, const string& s2, int s){
+     if(s<1) s = 1;
+     return s1.find_first_of(s2,s-1);
+  }
+};
+
+OperatorSpec findFirstOfSpec(
+   "{string,text} x {string,text} [x int] -> int",
+   "findFirstOf(_,_,_)",
+   "Returns the positon of the first occurrence some character in the second"
+   " argument within the first argument. If the optional third argument is",
+   " present, the search starts at this position. " ,
+   "query findFirstOf('abc','bc')"
+);
+
+ValueMapping findFirstOfVM[] = {
+   findPosVMT<CcString, CcString, FindFirstOf>, 
+   findPosVMT<CcString, FText, FindFirstOf>, 
+   findPosVMT<FText, CcString, FindFirstOf>, 
+   findPosVMT<FText, FText, FindFirstOf> 
+};
+
+Operator findFirstOfOp(
+  "findFirstOf",
+  findFirstOfSpec.getStr(),
+  4,
+  findFirstOfVM,
+  findPosSelect,
+  findPosTM
+);
+
+
+class FindLastOf{
+ public: 
+  static size_t fun(const string& s1, const string& s2, size_t s){
+     if(s<1) s = string::npos;
+     return s1.find_last_of(s2,s-1);
+  }
+};
+
+OperatorSpec findLastOfSpec(
+   "{string,text} x {string,text} [x int] -> int",
+   "findLastOf(_,_,_)",
+   "Returns the positon of the last occurrence of some character "
+   "in the second argument within"
+   " the first argument. If the optional third argument is present, the "
+   "search starts at this position. " ,
+   "query findLastOf('abcbcbc','bc')"
+);
+
+ValueMapping findLastOfVM[] = {
+   findPosVMT<CcString, CcString, FindLastOf>, 
+   findPosVMT<CcString, FText, FindLastOf>, 
+   findPosVMT<FText, CcString, FindLastOf>, 
+   findPosVMT<FText, FText, FindLastOf> 
+};
+
+Operator findLastOfOp(
+  "findLastOf",
+  findLastOfSpec.getStr(),
+  4,
+  findLastOfVM,
+  findPosSelect,
+  findPosTM
+);
+
+class FindFirstNotOf{
+ public: 
+  static size_t fun(const string& s1, const string& s2, int s){
+     if(s<1) s = 1;
+     return s1.find_first_not_of(s2,s-1);
+  }
+};
+
+OperatorSpec findFirstNotOfSpec(
+   "{string,text} x {string,text} [x int] -> int",
+   "findFirstNotOf(_,_,_)",
+   "Returns the positon of the first occurrence of some character not "
+   "in the second"
+   " argument within the first argument. If the optional third argument is",
+   " present, the search starts at this position. " ,
+   "query findFirstNotOf('abc','bc')"
+);
+
+ValueMapping findFirstNotOfVM[] = {
+   findPosVMT<CcString, CcString, FindFirstNotOf>, 
+   findPosVMT<CcString, FText, FindFirstNotOf>, 
+   findPosVMT<FText, CcString, FindFirstNotOf>, 
+   findPosVMT<FText, FText, FindFirstNotOf> 
+};
+
+Operator findFirstNotOfOp(
+  "findFirstNotOf",
+  findFirstNotOfSpec.getStr(),
+  4,
+  findFirstNotOfVM,
+  findPosSelect,
+  findPosTM
+);
+
+
+class FindLastNotOf{
+ public: 
+  static size_t fun(const string& s1, const string& s2, size_t s){
+     if(s<1) s = string::npos;
+     return s1.find_last_not_of(s2,s-1);
+  }
+};
+
+OperatorSpec findLastNotOfSpec(
+   "{string,text} x {string,text} [x int] -> int",
+   "findLastNotOf(_,_,_)",
+   "Returns the positon of the last occurrence of some character "
+   "not in the second argument within"
+   " the first argument. If the optional third argument is present, the "
+   "search starts at this position. " ,
+   "query findLastNotOf('abcbcbc','bc')"
+);
+
+ValueMapping findLastNotOfVM[] = {
+   findPosVMT<CcString, CcString, FindLastNotOf>, 
+   findPosVMT<CcString, FText, FindLastNotOf>, 
+   findPosVMT<FText, CcString, FindLastNotOf>, 
+   findPosVMT<FText, FText, FindLastNotOf> 
+};
+
+Operator findLastNotOfOp(
+  "findLastNotOf",
+  findLastNotOfSpec.getStr(),
+  4,
+  findLastNotOfVM,
+  findPosSelect,
+  findPosTM
+);
 
 
 
@@ -13694,6 +13957,13 @@ Operator queryTimeOp(
 
       AddOperator(&configFileOp);
       AddOperator(&queryTimeOp);
+
+      AddOperator(&findFirstOp);
+      AddOperator(&findLastOp);
+      AddOperator(&findFirstOfOp);
+      AddOperator(&findLastOfOp);
+      AddOperator(&findFirstNotOfOp);
+      AddOperator(&findLastNotOfOp);
 
 #ifdef RECODE
       AddOperator(&recode);
