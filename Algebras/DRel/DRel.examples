@@ -7,11 +7,6 @@ Signature : rel(tuple(X)) x attr x int -> boundary(X)
 Example   : query plz createboundary[PLZ, 50]
 Result    : (boundary (2694 4639 6493 7512 9243 11551 14806 16247 17159 18246 19322 21084 22941 24235 25557 26703 28879 31568 33627 36133 38279 39524 41720 45318 47883 49794 52051 54405 55444 56357 57577 59818 63441 65510 67034 68744 71299 73453 75404 78091 80100 82432 84137 86522 88633 91325 94140 96507 98716 99955))
 
-Operator  : createboundary
-Number    : 2
-Signature : stream(tuple(X)) x attr x int x int -> boundary(X)
-Example   : query plz feed createboundary[PLZ, 50, 41267]
-Result    : (boundary (2694 4639 6493 7512 9243 11551 14806 16247 17159 18246 19322 21084 22941 24235 25557 26703 28879 31568 33627 36133 38279 39524 41720 45318 47883 49794 52051 54405 55444 56357 57577 59818 63441 65510 67034 68744 71299 73453 75404 78091 80100 82432 84137 86522 88633 91325 94140 96507 98716 99955))
 
 Operator  : getboundary
 Number    : 1
@@ -29,9 +24,9 @@ Result    : 1
 Operator  : getboundaryindex
 Number    : 1
 Signature : boundary x attr -> int
-Example   : query getboundaryindex(boundary, PLZ)
-Result    : bug
-Remark    : remote server required
+Example   : query getboundaryindex(plz createboundary[PLZ, 50] , 40000)
+Result    : unpredictable
+Remark    : Result depends on a random sample 
 
 Operator  : rect2cellgrid
 Number    : 1
