@@ -337,9 +337,12 @@ search.
 
         int index = 0;
         while( index < count - 1 ) {
-            if( attr->Compare( vector->GetComponent( index ) ) <= 0 ) {
+            Attribute* vi = vector->GetComponent( index );
+            if( attr->Compare( vi ) <= 0 ) {
+                delete vi;
                 return index;
             }
+            delete vi;
             index++;
         }
 
