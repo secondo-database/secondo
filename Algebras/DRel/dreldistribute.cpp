@@ -86,8 +86,7 @@ using namespace distributed2;
 
 namespace drel {
 
-    template<bool instream>
-    int createboundaryVMT( 
+    int createboundaryVM( 
         Word* args, Word& result, int message, Word& local, Supplier s );
 
 /*
@@ -989,7 +988,7 @@ Value mapping of the distribute operator to distribute by range.
             args[ 9 ].addr
         };
 
-        createboundaryVMT<false>( argVecB, boundaryW, message, local, s );
+        createboundaryVM( argVecB, boundaryW, message, local, s );
         collection::Collection* boundary = 
             ( collection::Collection* )boundaryW.addr;
 

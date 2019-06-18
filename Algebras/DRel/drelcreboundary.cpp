@@ -130,8 +130,7 @@ Creates a boundary object by determinating the boundaries with a sample
 of the realation.
 
 */
-    template<bool instream>
-    int createboundaryVMT( Word* args, Word& result, int message,
+    int createboundaryVM( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
         ListExpr arg1Type = qp->GetType( qp->GetSon( s, 0 ) );
@@ -159,7 +158,6 @@ of the realation.
 
         ListExpr queryList;
         if( !nl->ReadFromString( query, queryList ) ) {
-
             result = qp->ResultStorage( s );
             resultColl = static_cast<collection::Collection*>( result.addr );
             resultColl->SetDefined( false );
@@ -171,7 +169,8 @@ of the realation.
         bool defined = false;
         bool isFunction = false;
         std::string typeString, errorString;
-        if( !QueryProcessor::ExecuteQuery( queryList, result, 
+        Word tmpResult;
+        if( !QueryProcessor::ExecuteQuery( queryList, tmpResult, 
                 typeString, errorString,
                 correct, evaluable, defined, isFunction ) ) {
 
@@ -187,37 +186,24 @@ of the realation.
             resultColl = static_cast<collection::Collection*>( result.addr );
             resultColl->SetDefined( false );
             return 0;
+        } else {
+          qp->DeleteResultStorage(s);
+          qp->ChangeResultStorage(s, tmpResult);
+          result = tmpResult;
         }
 
         return 0;
     }
 
-/*
-1.3 ValueMapping Array for createboundary
-
-*/
-ValueMapping createboundaryVM[ ] = {
-    createboundaryVMT<false>,
-    createboundaryVMT<true>
-};
-
-/*
-1.4 Selection function for createboundary
-
-*/
-int createboundarySelect( ListExpr args ) {
-
-    return nl->HasLength( args, 3 ) ? 0 : 1;
-}
 
 /*
 1.5 Specification of createboundary
 
 */
     OperatorSpec createboundary(
-        " rel(tuple(X)) x attr x int or stream(tuple(X)) x attr x int x int "
+        " rel(tuple(X)) x attr x int "
         "-> boundary(x) ",
-        " _ createboundary[ _, _, _ ]",
+        " _ createboundary[ _, _ ]",
         "Creates a boundary object for a relation. The boundaries "
         "are determinated by a sample of the relation.",
         " query plz createboundary[PLZ, 50]"
@@ -230,9 +216,8 @@ int createboundarySelect( ListExpr args ) {
     Operator createboundaryOp(
         "createboundary",
         createboundary.getStr( ),
-        2,
         createboundaryVM,
-        createboundarySelect,
+        Operator::SimpleSelect,
         createboundaryTM
     );
 
