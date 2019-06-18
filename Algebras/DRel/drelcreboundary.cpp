@@ -219,7 +219,7 @@ int createboundarySelect( ListExpr args ) {
         "-> boundary(x) ",
         " _ createboundary[ _, _, _ ]",
         "Creates a boundary object for a relation. The boundaries "
-        "are determinated by a sample of the realtion.",
+        "are determinated by a sample of the relation.",
         " query plz createboundary[PLZ, 50]"
     );
 
