@@ -18537,9 +18537,11 @@ OperatorInfo removeNoiseOperatorInfo(
   "Movingpoint removeNoise[Maxspeed, Maxlength]",
   "One outlier point in the raw data results in two long nonsense units in the "
   "moving point. This operator detects them (according to the parameters) and "
-  "replaces them by one (usually short) unit.",
-  "query no_components(train7 removeNoise[10.0, 20.0])"
-  ""
+  "replaces them by one (usually short) unit. For an mpoint given in WGS84 "
+  "coordinates, the maximum speed and length are given in meters per second and"
+  " meters, respectively.",
+  "query no_components(train7) = no_components(train7 removeNoise[10.0, 20.0])"
+  "FALSE"
 );
 
 
