@@ -36,3 +36,5 @@
 
      query [const scircle value (9.0 10.0 20.0)];
      query perimeter([const scircle value (1 2 3)]);
+
+    query "qwe" feed startsWithS["q"] consume;

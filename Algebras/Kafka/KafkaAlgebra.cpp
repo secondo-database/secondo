@@ -294,8 +294,8 @@ namespace gstguide {
     }
 
 // @formatter:off
-    int perimeterVM(Word * args, Word & result, int message, Word & local,
-            Supplier s) {
+    int perimeterVM(Word *args, Word &result, int message, Word &local,
+                    Supplier s) {
         SCircle *k = (SCircle *) args[0].addr; // get the argument and cast it
         result = qp->ResultStorage(s); // use the result storage
         CcReal *res = (CcReal *) result.addr; // cast the result
@@ -309,20 +309,115 @@ namespace gstguide {
 
 // @formatter:on
 
-OperatorSpec perimeterSpec(
-        "scircle -> real",
-        "perimeter(_)",
-        "Computes the perimeter of a disc.",
-        "query perimeter([const scircle value (1.0 8.0 16.0)])"
-);
+    OperatorSpec perimeterSpec(
+            "scircle -> real",
+            "perimeter(_)",
+            "Computes the perimeter of a disc.",
+            "query perimeter([const scircle value (1.0 8.0 16.0)])"
+    );
 
-Operator perimeterOp(
-        "perimeter", // name of the operator
-        perimeterSpec.getStr(), // specification
-        perimeterVM, // value mapping
-        Operator::SimpleSelect, // selection function
-        perimeterTM // type mapping
-);
+    Operator perimeterOp(
+            "perimeter", // name of the operator
+            perimeterSpec.getStr(), // specification
+            perimeterVM, // value mapping
+            Operator::SimpleSelect, // selection function
+            perimeterTM // type mapping
+    );
+
+
+
+//////////////////////////////
+//////////////////////////////
+// Stream -> Stream
+//////////////////////////////
+//////////////////////////////
+
+
+    ListExpr startsWithSTM(ListExpr args) {
+        if (!nl->HasLength(args, 2)) {
+            return listutils::typeError(" wrong number of args ");
+        }
+
+        if (!Stream<CcString>::checkType(nl->First(args))
+            || !CcString::checkType(nl->Second(args))) {
+            return listutils::typeError(" stream (string) x string expected ");
+        }
+        return nl->First(args);
+    }
+
+    class startsWithSLI {
+    public :
+// s is the stream argument , st the string argument
+        startsWithSLI(Word s, CcString *st) : stream(s), start(" ") {
+            def = st->IsDefined();
+            if (def) { start = st->GetValue(); }
+            stream.open();
+        }
+
+        ~ startsWithSLI() {
+            stream.close();
+        }
+
+        CcString *getNext() {
+            if (!def) { return 0; }
+            CcString *k;
+            while ((k = stream.request())) {
+                if (k->IsDefined()
+                    && stringutils::startsWith(k->GetValue(), start)) {
+                    return k;
+                }
+                k->DeleteIfAllowed();
+            }
+            return 0;
+        }
+
+    private :
+        Stream<CcString> stream;
+        string start;
+        bool def;
+    };
+
+
+    int startsWithSVM(Word *args, Word &result, int message,
+                      Word &local, Supplier s) {
+        startsWithSLI *li = (startsWithSLI *) local.addr;
+        switch (message) {
+            case OPEN :
+                if (li) {
+                    delete li;
+                }
+                local.addr = new startsWithSLI(args[0],
+                                               (CcString *) args[1].addr);
+                return 0;
+            case REQUEST :
+                result.addr = li ? li->getNext() : 0;
+                return result.addr ? YIELD : CANCEL;
+            case CLOSE :
+                if (li) {
+                    delete li;
+                    local.addr = 0;
+                }
+                return 0;
+        }
+        return 0;
+    }
+
+
+    OperatorSpec startsWithSSpec(
+            " stream ( string ) x string -> stream ( string ) ",
+            " _ startsWithS [ _ ] ",
+            " All strings in the stream not starting with the second "
+            " are filtered out from the stream ",
+            " query plz feed xxx [ Ort ] startsWithS (\" Ha \") count "
+    );
+
+    Operator startsWithSOp(
+            "startsWithS",
+            startsWithSSpec.getStr(),
+            startsWithSVM,
+            Operator::SimpleSelect,
+            startsWithSTM
+    );
 
 ///////////////////////////////////////
 ///////////////////////////////////////
@@ -333,12 +428,12 @@ Operator perimeterOp(
 ///////////////////////////////////////
 
 
-class KafkaAlgebra : public Algebra {
-public:
-    KafkaAlgebra() : Algebra() {
+    class KafkaAlgebra : public Algebra {
+    public:
+        KafkaAlgebra() : Algebra() {
 
-        AddTypeConstructor(&SCircleTC);
-        SCircleTC.AssociateKind(Kind::SIMPLE());
+            AddTypeConstructor(&SCircleTC);
+            SCircleTC.AssociateKind(Kind::SIMPLE());
 
 //        AddTypeConstructor( &ACircleTC );
 //        ACircleTC.AssociateKind( Kind::DATA() );
@@ -360,7 +455,8 @@ public:
 //        VStringTC.AssociateKind(Kind::DATA());
 //
 //
-        AddOperator(&perimeterOp);
+            AddOperator(&perimeterOp);
+            AddOperator(&startsWithSOp);
 //        AddOperator(&distNOp);
 //        AddOperator(&countNumberOp);
 //        AddOperator(&getCharsOp);
@@ -382,8 +478,8 @@ public:
 //        AddOperator(&reverseStreamOp);
 //        reverseStreamOp.SetUsesMemory();
 
-    }
-};
+        }
+    };
 
 } // End namespace
 
