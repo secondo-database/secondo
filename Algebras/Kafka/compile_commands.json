@@ -27,7 +27,7 @@
       "-DRECODE",
       "-Werror"
     ],
-    "file": "KafkaAlgebra.cpp"
+    "file": "KafkaConsumer.cpp"
   },
   {
     "directory": "/home/grisha/work/repository/secondo/Algebras/Kafka",
@@ -57,6 +57,6 @@
       "-DRECODE",
       "-Werror"
     ],
-    "file": "KafkaConsumer.cpp"
+    "file": "KafkaAlgebra.cpp"
   }
 ]

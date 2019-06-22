@@ -36,7 +36,8 @@ namespace kafka {
 
         if (!Stream<Tuple>::checkType(nl->First(args))
             || !CcString::checkType(nl->Second(args))) {
-            return listutils::typeError(" stream (string) x string expected ");
+            return listutils::typeError(" stream(Tuple) x KafkaTopic "
+                                        "expected ");
         }
         return nl->First(args);
     }
@@ -44,9 +45,7 @@ namespace kafka {
     class KafkaKonsumerLI {
     public :
 // s is the stream argument , st the string argument
-        KafkaKonsumerLI(Word s, CcString *st) : stream(s), start(" ") {
-            def = st->IsDefined();
-            if (def) { start = st->GetValue(); }
+        KafkaKonsumerLI(Word s, CcString *st) : stream(s), topic(" ") {
             stream.open();
         }
 
@@ -54,23 +53,22 @@ namespace kafka {
             stream.close();
         }
 
-        CcString *getNext() {
-            if (!def) { return 0; }
-            CcString *k;
-            while ((k = stream.request())) {
-                if (k->IsDefined()
-                    && stringutils::startsWith(k->GetValue(), start)) {
-                    return k;
-                }
-                k->DeleteIfAllowed();
+        Tuple *getNext() {
+            Tuple *k = stream.request();
+            if (k) {
+                writeToKafka(k);
+                return k;
             }
             return 0;
         }
 
+        void writeToKafka(Tuple *k) {
+            cout << "Tuple" << endl;
+        }
+
     private :
-        Stream<CcString> stream;
-        string start;
-        bool def;
+        Stream<Tuple> stream;
+        string topic;
     };
 
 
