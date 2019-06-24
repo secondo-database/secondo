@@ -41,14 +41,16 @@ public class Encryption{
 
   public static Encryption createInstance(String publicKey_PEM){
    try {
-      publicKey_PEM = publicKey_PEM.replace("-----BEGIN PRIVATE KEY-----\n", "");
-      publicKey_PEM = publicKey_PEM.replace("-----END PRIVATE KEY-----", "");
+      publicKey_PEM = publicKey_PEM.replace("-----BEGIN PUBLIC KEY-----", "");
+      publicKey_PEM = publicKey_PEM.replace("-----END PUBLIC KEY-----", "");
+      publicKey_PEM = publicKey_PEM.replace("\n", "");
       byte[] encoded = Base64.getDecoder().decode(publicKey_PEM);
       KeyFactory kf = KeyFactory.getInstance("RSA");
-      PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
+      X509EncodedKeySpec keySpec = new X509EncodedKeySpec(encoded);
       PublicKey pubKey = kf.generatePublic(keySpec);
       return new Encryption(pubKey); 
    } catch(Exception e){
+      e.printStackTrace();
       return null;
    }
   }
@@ -100,10 +102,28 @@ public class Encryption{
     return keys.getPublic();
   }
 
+  private String addBreaks(String src, int nuChars){
+     if(nuChars<1) return src;
+     int pos = 0;
+     String res = "";
+     int end = src.length();
+     while(pos < end){
+        if(pos>0) res += "\n";
+        int endpos = pos + nuChars;
+        if(endpos > end){
+           endpos = end;
+        } 
+        res += src.substring(pos,endpos);
+        pos = endpos;
+     }
+     return res;
+  }
+
   public String getPublicKey_PEM(){
     byte[] data = keys.getPublic().getEncoded();
     String base64encoded = new String(Base64.getEncoder().encode(data));
-    return "-----BEGIN PUBLIC KEY-----\n" + base64encoded + "-----END PUBLIC KEY-----";
+    base64encoded = addBreaks(base64encoded,64);
+    return "-----BEGIN PUBLIC KEY-----\n" + base64encoded + "\n-----END PUBLIC KEY-----";
   }
 
 
