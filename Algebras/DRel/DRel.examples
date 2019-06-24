@@ -32,7 +32,7 @@ Operator  : rect2cellgrid
 Number    : 1
 Signature : rect x int -> cellgird2d
 Example   : query [const rect value(5 9 50 52)] rect2cellgrid[20]
-Result    : (cellgird2d (5 50 0.1 0.1 400))
+Result    : (cellgrid2d (5.0 50.0 0.2 0.1 20))
 
 Operator  : drelfdistribute
 Number    : 1
