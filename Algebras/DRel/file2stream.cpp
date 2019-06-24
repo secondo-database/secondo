@@ -230,7 +230,8 @@ Reads a file and create a drel.
         " string|text -> stream(tuple((Data text)))",
         " file2stream(_)",
         "Imports a file and create a stream with the schema "
-        "stream(tuple((Data text)))",
+        "stream(tuple((Data text))). Each line in the file "
+        "represents a tuple in the result",
         " query int file2stream(\"import.txt\")"
     );
 
