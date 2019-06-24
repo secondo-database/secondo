@@ -24,6 +24,8 @@
 
 - Working with db
 
+    make TTY
+
      Start SecondoTTYBDB
         cd $SECONDO_BUILD_DIR/bin
         SecondoTTYBDB
@@ -31,7 +33,9 @@
      restore database berlintest from berlintest;
      open database berlintest;
 
+     list algebra KafkaAlgebra;
+
      query Staedte;
 
 
-     query plz feed kafka("KT") count
+     query plz feed kafka["KT"] count;

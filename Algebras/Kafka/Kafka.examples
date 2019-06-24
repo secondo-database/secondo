@@ -1,7 +1,21 @@
-restore database berlintest from berlintest;
-open database berlintest;
+Database: berlintest
+Restore: No
 
-query Staedte;
+Operator : kafka
+Number   : 2
+Signature   : stream x KafkaTopic -> stream
+Example  : query plz feed kafka["KT"] count
+Result   : 40
 
+Operator : perimeterGst
+Number   : 1
+Signature   : scircle -> real
+Example  : query perimeterGst([const scircleGst value (1 2 3 )])
+Result   : 18.85
+Tolerance : 0.02
 
-query [const scircle value (9.0 10.0 20.0)]
+Operator  : startsWithGst
+Number    : 1
+Signature : stream(string) x string -> stream(string)
+Example   : query intstream(1,1000) replaceElem[ num2string(.) ]  startsWithGst["22"] count
+Result    : 11

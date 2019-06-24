@@ -99,7 +99,7 @@ namespace kafka {
 
     OperatorSpec kafkaConsumerSpec(
             " stream ( Tuple ) x KafkaTopic -> stream ( Topic ) ",
-            " _ kafka [ _ ] ",
+            " _ kafka[_]",
             " All tuples in the stream are written out to Kafka topic ",
             " query plz feed kafka(\"KT\") count "
     );
