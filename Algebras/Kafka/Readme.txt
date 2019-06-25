@@ -7,7 +7,7 @@
     ALGEBRA_DIRS += Kafka
     ALGEBRAS     += KafkaAlgebra
     If the algebra uses third party libraries, add the line:
-    ALGEBRA_DEPS += <libname>
+    ALGEBRA_DEPS += rdkafka++
 
 
 - How to use makefiles in CLion
