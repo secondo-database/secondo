@@ -950,7 +950,7 @@ Value mapping of the distribute operator to distribute by hash.
         if( drel->IsDefined( ) ) {
             drel->setDistType( new DistTypeHash( hash, pos - 1 ) );
         }
-
+        qps->Destroy(stream,true);
         delete qps;
 
         return 0;
