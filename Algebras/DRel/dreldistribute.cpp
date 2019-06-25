@@ -699,7 +699,7 @@ Type mapping for the distribute operators.
                 if( !DistTypeSpatial<temporalalgebra::CellGrid<3>>
                     ::allowedAttrType3d( attrType ) ) {
                     return listutils::typeError( err + ": attribute type "
-                        "is not supported for spatial2d distribution" );
+                        "is not supported for spatial3d distribution" );
                 }
 
                 streamType = nl->TwoElemList( nl->First( streamType ),
@@ -810,6 +810,7 @@ Value mapping of the distribute operator to replicate data.
             drel->setDistType( new DistTypeBasic( replicated ) );
         }
 
+        qps->Destroy(stream,true);
         delete qps;
         delete slots;
         delete roundrobin;
@@ -1136,8 +1137,9 @@ Value mapping of the distribute operator for spatial distribution.
                 new DistTypeSpatial<GType>(
                     T, pos - 1, grid ) );
         }
-
+        qps->Destroy(stream, true);
         delete qps;
+        //delete grid;
 
         return 0;
 
