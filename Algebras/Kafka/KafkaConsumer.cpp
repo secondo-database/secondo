@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "KafkaConsumer.h"
+#include "KafkaClient.h"
 
 using namespace std;
 
@@ -47,10 +48,12 @@ namespace kafka {
 // s is the stream argument , st the string argument
         KafkaKonsumerLI(Word s, CcString *st) : stream(s), topic(" ") {
             stream.open();
+            kafkaProducerClient.Open("localhost", "test");
         }
 
         ~ KafkaKonsumerLI() {
             stream.close();
+            kafkaProducerClient.Close();
         }
 
         Tuple *getNext() {
@@ -63,12 +66,13 @@ namespace kafka {
         }
 
         void writeToKafka(Tuple *k) {
-            cout << "Tuple" << endl;
+            kafkaProducerClient.Write(k->WriteToBinStr());
         }
 
     private :
         Stream<Tuple> stream;
         string topic;
+        KafkaProducerClient kafkaProducerClient;
     };
 
 
