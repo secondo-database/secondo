@@ -854,6 +854,7 @@ Value mapping of the distribute operator to distribute by round robin.
             drel->setDistType( new DistTypeBasic( random ) );
         }
 
+        qps->Destroy(stream,true);
         delete qps;
         delete roundrobin;
 
