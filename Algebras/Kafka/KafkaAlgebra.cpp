@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 
 #include "KafkaConsumer.h"
+#include "KafkaProducer.h"
 
 
 extern NestedList *nl;
@@ -37,6 +38,11 @@ extern AlgebraManager *am;
 using namespace std;
 
 namespace kafka {
+
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
 
     class SCircle {
     public:
@@ -423,7 +429,183 @@ The final steps are the same as for other operators.
 
 
 
+/*
+5 Streams as Results of Operators (stream operators)
 
+If a stream is the result of an operator, we call such an operator
+stream-operator.  The main difference to other operators is in the
+value mapping function.
+
+We explain the implementation of a stream operator by the
+operator ~getChars~. This operator gets a single string as
+its argument and returns a stream of strings where each string
+corresponds to a single character of the argument.
+
+5.1 Type Mapping
+
+The type mapping of a stream operator has no specials. The creation
+of the result is a little bit more complicated as for simple types because
+the typed stream must be returned.
+
+*/
+    ListExpr getCharsTM(ListExpr args) {
+        // check number of arguments
+        if (!nl->HasLength(args, 1)) {
+            return listutils::typeError("wrong number of arguments");
+        }
+        // argument must be of type string
+        if (!CcString::checkType(nl->First(args))) {
+            return listutils::typeError("string expected");
+        }
+        // create the result type (stream string)
+        return nl->TwoElemList(listutils::basicSymbol<Stream<CcString> >(),
+                               listutils::basicSymbol<CcString>());
+    }
+
+/*
+5.2 LocalInfo Class
+
+The value mapping of a stream operator is called many times during the
+execution of a query. We need a structure, storing the current state
+of the operator. In the implementation of the ~getChars~ operator, we
+have to store the current position within the input string.  We encapsulate
+the state of the operator within a class and let do this class the
+whole work.
+
+*/
+    class getCharsLI {
+    public:
+        // constructor: initializes the class from the string argument
+        getCharsLI(CcString *arg) : input(""), pos(0) {
+            if (arg->IsDefined()) {
+                input = arg->GetValue();
+            }
+        }
+
+        // destructor
+        ~getCharsLI() {}
+
+        // this function returns the next result or null if the input is
+        // exhausted
+        CcString *getNext() {
+            if (pos >= input.length()) {
+                return 0;
+            }
+            CcString *res = new CcString(true, input.substr(pos, 1));
+            pos++;
+            return res;
+        }
+
+    private:
+        string input;  // input string
+        size_t pos;    // current position
+    };
+
+/*
+5.3 Value Mapping
+
+The value mapping of stream operators has a lot of differences compared to
+the value mapping of non-stream operator. One difference is
+that the ~message~ argument must be used to select the action to do. The messages
+are OPEN, REQUEST, and CLOSE. (if the operator supports progress estimation,
+some more messages must be handled).
+Furthermore, the ~local~ argument is used to store the current state of the
+operator (and doing the computations). The ~addr~ pointer of ~local~ is
+null at the first call of this operator. The operator is responsible to this
+pointer. After receiving a close message, the pointer must be set to null.
+Another difference to non-stream operators is that the result storage of
+~s~ is not used. Instead, we write newly created objects into the ~addr~ pointer
+of ~result~.
+
+When an OPEN message is received, we firstly check whether  a
+~localInfo~ is already stored by checking the ~addr~ unequal to null.
+If so, we delete this structure and create a new one.
+We set the ~addr~ pointer of the ~local~ argument to this structure. The result
+of an OPEN message is always 0.
+
+If a REQUEST message is received. We first look, whether we have already created
+a local info. If not, we set the ~addr~ pointer of ~result~ to null. If there
+is already such a structure, we compute the next result and store it into the
+~addr~ pointer of ~result~. The computation of the next result is delegated to
+the ~getNext~ function of the localInfo class. If there is a next result (addr
+pointer of result is not null), the operator returns YIELD, otherwise CANCEL.
+
+In the case of a CLOSE message, we free the memory allocated by the local info class
+and set the ~addr~ pointer of ~local~ to null. The result to a CLOSE message is
+always 0.
+
+*/
+    int getCharsVM(Word *args, Word &result, int message,
+                   Word &local, Supplier s) {
+        getCharsLI *li = (getCharsLI *) local.addr;
+        switch (message) {
+            case OPEN :
+                if (li) {
+                    delete li;
+                }
+                local.addr = new getCharsLI((CcString *) args[0].addr);
+                return 0;
+            case REQUEST:
+                result.addr = li ? li->getNext() : 0;
+                return result.addr ? YIELD : CANCEL;
+            case CLOSE:
+                if (li) {
+                    delete li;
+                    local.addr = 0;
+                }
+                return 0;
+        }
+        return 0;
+    }
+
+/*
+5.4 Specification
+
+The specification of a stream operator has no specials.
+
+*/
+
+    OperatorSpec getCharsSpec(
+            " string -> stream(string)",
+            " getCharsGst(_) ",
+            " Seperates the characters of a string. ",
+            " query  getCharsGst(\"secondo\") count"
+    );
+
+/*
+5.5 Operator instance
+
+The creation of the operator instance is the same as for non-stream operators.
+
+*/
+    Operator getCharsOp(
+            "getCharsGst",
+            getCharsSpec.getStr(),
+            getCharsVM,
+            Operator::SimpleSelect,
+            getCharsTM
+    );
+
+/*
+As usual, the final steps are:
+
+  * add the operator to the algebra
+
+  * define the syntax in the ~spec~ file
+
+  * give an example in the ~examples~ file
+
+  * test the operator in Secondo
+
+*/
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
 
     class KafkaAlgebra : public Algebra {
     public:
@@ -433,8 +615,11 @@ The final steps are the same as for other operators.
             SCircleTC.AssociateKind(Kind::SIMPLE());
 
             AddOperator(&kafkaConsumerOp);
+            AddOperator(&kafkaProducerOp);
+
             AddOperator(&perimeterOp);
             AddOperator(&startsWithSOp);
+            AddOperator(&getCharsOp);
         }
     };
 
