@@ -154,22 +154,24 @@ Get a d[f]rel and a bool as argument.
         bool defined = false;
         bool isFunction = false;
         std::string typeString, errorString;
-        if( !QueryProcessor::ExecuteQuery( query, result, 
+        result = qp->ResultStorage( s );
+        darray = ( DArray* )result.addr;
+        Word tmpResult;
+        if( !QueryProcessor::ExecuteQuery( query, tmpResult, 
                 typeString, errorString,
                 correct, evaluable, defined, isFunction ) ) {
-            result = qp->ResultStorage( s );
-            darray = ( DArray* )result.addr;
             darray->makeUndefined( );
             return 0;
         }
         
         if( !correct || !evaluable || !defined ) {
-            result = qp->ResultStorage( s );
             darray = ( DArray* )result.addr;
             darray->makeUndefined( );
             return 0;
         }
-
+        
+        (*darray) = (*( (DArray*) tmpResult.addr));
+        delete (DArray*) tmpResult.addr; 
         return 0;
     }
 
