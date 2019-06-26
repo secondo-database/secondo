@@ -119,7 +119,9 @@ Implementation.
 */
     template<class T>
     DistTypeSpatial<T>::~DistTypeSpatial( ) {
-
+        if(grid){
+          delete grid;
+        }
         #ifdef DRELDEBUG
         cout << "DistTypeSpatial destructor" << endl;
         #endif

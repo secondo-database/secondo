@@ -183,11 +183,11 @@ Get a d[f]rel and a bool as argument.
 
         DRel* drel = ( DRel* )args[ 0 ].addr;
 
-        CcInt* res;
+        
+        result = qp->ResultStorage( s );
+        CcInt* res = ( CcInt* )result.addr;
 
         if( !drel->IsDefined( ) ) {
-            result = qp->ResultStorage( s );
-            res = ( CcInt* )result.addr;
             res->SetDefined( false );
             return 0;
         }
@@ -218,10 +218,9 @@ Get a d[f]rel and a bool as argument.
             ") (fun (first_2 ELEMENT) (second_3 ELEMENT) "
             "(+ first_2 second_3)))";
 
+
         ListExpr query;
         if( !nl->ReadFromString( queryS, query ) ) {
-            result = qp->ResultStorage( s );
-            res = ( CcInt* )result.addr;
             res->SetDefined( false );
             return 0;
         }
@@ -231,22 +230,23 @@ Get a d[f]rel and a bool as argument.
         bool defined = false;
         bool isFunction = false;
         std::string typeString, errorString;
-        if( !QueryProcessor::ExecuteQuery( query, result, 
+        Word tmpResult;
+
+        if( !QueryProcessor::ExecuteQuery( query, tmpResult, 
                 typeString, errorString,
                 correct, evaluable, defined, isFunction ) ) {
-            result = qp->ResultStorage( s );
-            res = ( CcInt* )result.addr;
             res->SetDefined( false );
             return 0;
         }
         
         if( !correct || !evaluable || !defined ) {
-            result = qp->ResultStorage( s );
-            res = ( CcInt* )result.addr;
             res->SetDefined( false );
             return 0;
         }
-
+        // overtake result from query
+        CcInt* tmpRes = (CcInt*) tmpResult.addr;
+        res->CopyFrom(tmpRes);
+        delete tmpRes;
         return 0;
     }
 

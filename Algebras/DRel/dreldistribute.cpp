@@ -85,7 +85,7 @@ namespace distributed2 {
 using namespace distributed2;
 
 namespace drel {
-
+    template<bool changeResultStorage>
     int createboundaryVM( 
         Word* args, Word& result, int message, Word& local, Supplier s );
 
@@ -990,7 +990,7 @@ Value mapping of the distribute operator to distribute by range.
             args[ 9 ].addr
         };
 
-        createboundaryVM( argVecB, boundaryW, message, local, s );
+        createboundaryVM<false>( argVecB, boundaryW, message, local, s );
         collection::Collection* boundary = 
             ( collection::Collection* )boundaryW.addr;
 
@@ -1061,6 +1061,7 @@ Value mapping of the distribute operator to distribute by range.
         distribute4VMT<AType, DType, HType, CType>( argVec,
             result, message, local, s );
 
+        qp2->Destroy(tree,true);
         delete qp2;
 
         RType* drel = ( RType* )result.addr;
@@ -1068,6 +1069,7 @@ Value mapping of the distribute operator to distribute by range.
             drel->setDistType( new DistTypeRange( range, pos - 1, boundary ) );
         }
 
+        qps->Destroy(stream,true);
         delete qps;
 
         return 0;

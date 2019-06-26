@@ -113,6 +113,9 @@ Implementation.
         #ifdef DRELDEBUG
         cout << "DistTypeRange destructor" << endl;
         #endif
+        if(boundary){
+          delete boundary;
+        }
     }
 
 /*

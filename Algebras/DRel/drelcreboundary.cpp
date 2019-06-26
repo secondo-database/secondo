@@ -130,6 +130,7 @@ Creates a boundary object by determinating the boundaries with a sample
 of the realation.
 
 */
+    template <bool changeResultStorage>
     int createboundaryVM( Word* args, Word& result, int message,
         Word& local, Supplier s ) {
 
@@ -158,9 +159,13 @@ of the realation.
 
         ListExpr queryList;
         if( !nl->ReadFromString( query, queryList ) ) {
-            result = qp->ResultStorage( s );
-            resultColl = static_cast<collection::Collection*>( result.addr );
-            resultColl->SetDefined( false );
+            if(changeResultStorage){
+              result = qp->ResultStorage( s );
+              resultColl = static_cast<collection::Collection*>( result.addr );
+              resultColl->SetDefined( false );
+            } else {
+               result.addr = 0;
+            }
             return 0;
         }
 
@@ -173,22 +178,30 @@ of the realation.
         if( !QueryProcessor::ExecuteQuery( queryList, tmpResult, 
                 typeString, errorString,
                 correct, evaluable, defined, isFunction ) ) {
-
-            result = qp->ResultStorage( s );
-            resultColl = static_cast<collection::Collection*>( result.addr );
-            resultColl->SetDefined( false );
+            if(changeResultStorage){
+               result = qp->ResultStorage( s );
+               resultColl = static_cast<collection::Collection*>( result.addr );
+               resultColl->SetDefined( false );
+            } else {
+              result.addr = 0;
+            }
             return 0;
         }
         
         if( !correct || !evaluable || !defined ) {
-            
-            result = qp->ResultStorage( s );
-            resultColl = static_cast<collection::Collection*>( result.addr );
-            resultColl->SetDefined( false );
+            if(changeResultStorage){ 
+              result = qp->ResultStorage( s );
+              resultColl = static_cast<collection::Collection*>( result.addr );
+              resultColl->SetDefined( false );
+            } else {
+              result.addr = 0;
+            }
             return 0;
         } else {
-          qp->DeleteResultStorage(s);
-          qp->ChangeResultStorage(s, tmpResult);
+          if(changeResultStorage){
+             qp->DeleteResultStorage(s);
+             qp->ChangeResultStorage(s, tmpResult);
+          }
           result = tmpResult;
         }
 
@@ -216,9 +229,13 @@ of the realation.
     Operator createboundaryOp(
         "createboundary",
         createboundary.getStr( ),
-        createboundaryVM,
+        createboundaryVM<true>,
         Operator::SimpleSelect,
         createboundaryTM
     );
+
+    // instantiation of value mapping without changing result storage
+    template int createboundaryVM<false>(Word*, Word&, int, Word&, Supplier);
+
 
 } // end of namespace drel

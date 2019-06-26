@@ -201,6 +201,9 @@ Reads a file and create a drel.
         DRel* drel = ( DRel* )result.addr;
         drel->setDistType( new DistTypeBasic( random ) );
 
+        qps->Destroy(stream,true);
+        delete qps;
+
         return 0;
     }
 
