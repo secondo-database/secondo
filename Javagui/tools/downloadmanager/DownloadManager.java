@@ -12,6 +12,10 @@ import java.util.Queue;
 
 public class DownloadManager extends  DownloadObserver{
 
+   static {
+     System.setProperty("http.agent", "mozilla");
+   }
+
 
   /** Creates a new DownloadManager. 
    **/
