@@ -23,13 +23,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "KafkaProducer.h"
+#include "KafkaSource.h"
 
 using namespace std;
 
 namespace kafka {
 
-    ListExpr KafkaProducerTM(ListExpr args) {
+    ListExpr KafkaSourceTM(ListExpr args) {
         // check number of arguments
         if (!nl->HasLength(args, 1)) {
             return listutils::typeError("wrong number of arguments");
@@ -38,31 +38,45 @@ namespace kafka {
         if (!CcString::checkType(nl->First(args))) {
             return listutils::typeError("KafkaTopic expected");
         }
+
+        std::string typeString = "(stream (tuple ((PLZ int) (Ort string))))";
+        ListExpr res = 0;
+        if (!nl->ReadFromString(typeString, res)) {
+            cout << "Error reading type line: " << typeString << endl;
+        };
+        return res;
         // create the result type (stream Tuple)
-        return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
-                               listutils::basicSymbol<Tuple>());
+//        return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
+//                               listutils::basicSymbol<Tuple>());
     }
 
-    class KafkaProducerLI {
+    class KafkaSourceLI {
     public:
         // constructor: initializes the class from the string argument
-        KafkaProducerLI(CcString *arg) : input(""), pos(0) {
+        KafkaSourceLI(CcString *arg) : input(""), pos(0) {
             if (arg->IsDefined()) {
                 input = arg->GetValue();
             }
         }
 
         // destructor
-        ~KafkaProducerLI() {}
+        ~KafkaSourceLI() {}
 
         // this function returns the next result or null if the input is
         // exhausted
         Tuple *getNext(Supplier s) {
+            cout << "get Next called" << endl;
+            if (pos > 0)
+                return 0;
+            pos++;
             ListExpr resultType = GetTupleResultType(s);
             TupleType *tupleType = new TupleType(nl->Second(resultType));
+            cout << "tupleType generated" << endl;
             Tuple *res = new Tuple(tupleType);
+            cout << "tuple created" << endl;
             std::string source = "FgAAABAAnoYBADELAAAABTFHcmFiZQ==";
             res->ReadFromBinStr(0, source);
+            cout << "returning" << endl;
             return res;
         }
 
@@ -71,15 +85,15 @@ namespace kafka {
         size_t pos;    // current position
     };
 
-    int KafkaProducerVM(Word *args, Word &result, int message,
-                        Word &local, Supplier s) {
-        KafkaProducerLI *li = (KafkaProducerLI *) local.addr;
+    int KafkaSourceVM(Word *args, Word &result, int message,
+                      Word &local, Supplier s) {
+        KafkaSourceLI *li = (KafkaSourceLI *) local.addr;
         switch (message) {
             case OPEN :
                 if (li) {
                     delete li;
                 }
-                local.addr = new KafkaProducerLI((CcString *) args[0].addr);
+                local.addr = new KafkaSourceLI((CcString *) args[0].addr);
                 return 0;
             case REQUEST:
                 result.addr = li ? li->getNext(s) : 0;
@@ -94,19 +108,19 @@ namespace kafka {
         return 0;
     }
 
-    OperatorSpec KafkaProducerSpec(
+    OperatorSpec KafkaSourceSpec(
             " string -> stream(string)",
             " kafkastream(_) ",
             " Reads steam of tuples from kafka topic ",
             " query  kafkastream(\"KM\") count"
     );
 
-    Operator KafkaProducerOp(
+    Operator kafkaSourceOp(
             "kafkastream",
-            KafkaProducerSpec.getStr(),
-            KafkaProducerVM,
+            KafkaSourceSpec.getStr(),
+            KafkaSourceVM,
             Operator::SimpleSelect,
-            KafkaProducerTM
+            KafkaSourceTM
     );
 
 /*

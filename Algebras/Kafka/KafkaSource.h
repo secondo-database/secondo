@@ -24,8 +24,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 
-#ifndef KAFKA_KAFKAPRODUCER_H
-#define KAFKA_KAFKAPRODUCER_H
+#ifndef KAFKA_KAFKASOURCE_H
+#define KAFKA_KAFKASOURCE_H
 
 #include "Attribute.h" // implementation of attribute types
 #include "Algebra.h" // definition of the algebra
@@ -55,9 +55,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace kafka {
 
-    extern Operator kafkaProducerOp;
+    extern Operator kafkaSourceOp;
 
 }
 
 
-#endif //KAFKA_KAFKAPRODUCER_H
+#endif //KAFKA_KAFKASOURCE_H

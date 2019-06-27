@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 
 #include "KafkaConsumer.h"
-#include "KafkaProducer.h"
+#include "KafkaSource.h"
 
 
 extern NestedList *nl;
@@ -615,7 +615,7 @@ As usual, the final steps are:
             SCircleTC.AssociateKind(Kind::SIMPLE());
 
             AddOperator(&kafkaConsumerOp);
-            AddOperator(&kafkaProducerOp);
+            AddOperator(&kafkaSourceOp);
 
             AddOperator(&perimeterOp);
             AddOperator(&startsWithSOp);

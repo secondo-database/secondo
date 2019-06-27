@@ -40,6 +40,8 @@
 
      query plz feed kafka["KT"] count;
 
+     query kafkastream("KT") count;
+
  - Running kafka service
 
     https://kafka.apache.org/quickstart

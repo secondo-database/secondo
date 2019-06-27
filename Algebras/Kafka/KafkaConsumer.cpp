@@ -40,6 +40,9 @@ namespace kafka {
             return listutils::typeError(" stream(Tuple) x KafkaTopic "
                                         "expected ");
         }
+        std::string s;
+        nl->WriteToString(s, nl->First(args));
+        std::cout << "Type Sting: " << s << std::endl;
         return nl->First(args);
     }
 

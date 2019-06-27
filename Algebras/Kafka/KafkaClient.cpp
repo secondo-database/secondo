@@ -74,8 +74,8 @@ namespace kafka {
             std::cerr << "% Produce failed: " <<
                       RdKafka::err2str(resp) << std::endl;
         } else {
-            std::cerr << "% Produced message (" << len << " bytes)" <<
-                      std::endl;
+//            std::cerr << "% Produced message (" << len << " bytes)" <<
+//                      std::endl;
         }
 
         producer->poll(0);
