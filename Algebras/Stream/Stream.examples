@@ -399,6 +399,11 @@ Signature : stream(X) -> stream(X)
 Example   : query ten feed printStreamMessages count
 Result    : 10
 
+Operator  : contains
+Number    : 1
+Signature : stream(X) x X -> bool, X in DATA
+Example   : query intstream(1,23) contains 10
+Result    : TRUE
 
 
 

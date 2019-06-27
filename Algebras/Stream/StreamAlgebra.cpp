@@ -7329,6 +7329,61 @@ Operator printStreamMessagesOp(
   printStreamMessagesTM
 );
 
+/*
+Operator ~contains~
+
+*/
+ListExpr containsTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("2 arguments expected");
+  }
+  if(!Stream<Attribute>::checkType(nl->First(args))){
+    return listutils::typeError("first argument not a stream of DATA");
+  }
+  if(!Attribute::checkType(nl->Second(args))){
+    return listutils::typeError("second argument not in kind DATA");
+  }
+  if(!nl->Equal(nl->Second(nl->First(args)), nl->Second(args))){
+    return listutils::typeError("stream type and type of second "
+                                "argument differ");
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+int containsVM(Word* args, Word& result,
+           int message, Word& local, Supplier s){
+
+   Stream<Attribute> stream(args[0]);
+   Attribute* elem = (Attribute*) args[1].addr;
+   stream.open();
+   Attribute* a;
+   bool found = false;
+   while(!found && (a=stream.request())!=0){
+      found = a->Compare(elem) == 0;
+      a->DeleteIfAllowed();
+   }
+   stream.close();
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr;
+   res->Set(true,found);
+   return 0;
+}
+
+OperatorSpec containsSpec(
+   "stream<D> x D -> bool , with D in DATA",
+   "_ contains _ ",
+   "Checks whether the second argument is element of the stream "
+   "given as the first argument",
+   "query intstream(0,23) contains 10"
+);
+
+Operator containsOp(
+  "contains",
+  containsSpec.getStr(),
+  containsVM,
+  Operator::SimpleSelect,
+  containsTM
+);
 
 /*
 7 Creating the Algebra
@@ -7389,6 +7444,7 @@ public:
     AddOperator(&pbufferOp);
     AddOperator(&pbuffer1Op);
     AddOperator(&printStreamMessagesOp);
+    AddOperator(&containsOp);
 
 #ifdef USE_PROGRESS
     streamcount.EnableProgress();
