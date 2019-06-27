@@ -5064,7 +5064,7 @@ Word CreateDFMatrix(const ListExpr typeInfo){
 template <class A>
 void DeleteDArray(const ListExpr typeInfo, Word& w){
   A* a = (A*) w.addr;
-  deleteRemoteObjects<A>(a);
+  deleteRemoteObjects<A,false>(a);
   delete a;
   w.addr = 0;
 }
@@ -10088,7 +10088,7 @@ ListExpr deleteRemoteObjectsTM(ListExpr args){
   return listutils::basicSymbol<CcInt>();
 }
 
-
+template<bool isKill>
 class Object_Del{
 
    public:
@@ -10149,7 +10149,8 @@ class Object_Del{
         string errMsg;
         string resstr;
         double runtime;
-        ci->simpleCommand("delete " + objName, err, errMsg, resstr, 
+        string cmd = isKill?"kill ":"delete ";
+        ci->simpleCommand(cmd + objName, err, errMsg, resstr, 
                           false, runtime, showCommands, commandLog,
                           false, algInstance->getTimeout());
         if(err==0){
@@ -10197,17 +10198,18 @@ class Object_Del{
 
 
 
-template<class A>
+template<class A, bool isKill>
 void deleteRemoteObjects(A* array){
   if(keepRemoteObjects) return;
   if(!array->IsDefined()) return;
   if(array->getKeepRemoteObjects()) return;
-  vector<Object_Del*> deleters;
+  vector<Object_Del<isKill>*> deleters;
   vector<boost::thread*> threads;
   for(size_t i=0;i<array->getSize();i++){
-    Object_Del* del = new Object_Del(array,i);
+    Object_Del<isKill>* del = new Object_Del<isKill>(array,i);
     deleters.push_back(del);
-    boost::thread* thread = new boost::thread(&Object_Del::operator(),del);
+    boost::thread* thread = 
+           new boost::thread(&Object_Del<isKill>::operator(),del);
     threads.push_back(thread);
   }
   for(size_t i=0;i<threads.size();i++){
@@ -10217,17 +10219,20 @@ void deleteRemoteObjects(A* array){
   }
 }
 
-template void deleteRemoteObjects<SDArray>(SDArray* array);
-template void deleteRemoteObjects<DArray>(DArray* array);
-template void deleteRemoteObjects<DFArray>(DFArray* array);
+template void deleteRemoteObjects<SDArray,false>(SDArray* array);
+template void deleteRemoteObjects<DArray,false>(DArray* array);
+template void deleteRemoteObjects<DFArray,false>(DFArray* array);
+
+template void deleteRemoteObjects<SDArray,true>(SDArray* array);
+template void deleteRemoteObjects<DArray,true>(DArray* array);
+template void deleteRemoteObjects<DFArray,true>(DFArray* array);
 
 
 
 
 
 
-
-template<class A>
+template<class A, bool isKill>
 int deleteRemoteObjectsVMT(Word* args, Word& result, int message,
             Word& local, Supplier s ){
 
@@ -10254,19 +10259,21 @@ int deleteRemoteObjectsVMT(Word* args, Word& result, int message,
      }
   }
 
-  vector<Object_Del*> deleters;
+  vector<Object_Del<isKill>*> deleters;
   vector<boost::thread*> threads;
   int count = 0;
   if(!all){
-    Object_Del* del = new Object_Del(array,index);
+    Object_Del<isKill>* del = new Object_Del<isKill>(array,index);
     deleters.push_back(del);
-    boost::thread* thread = new boost::thread(&Object_Del::operator(),del);
+    boost::thread* thread = 
+        new boost::thread(&Object_Del<isKill>::operator(),del);
     threads.push_back(thread);
   } else {
     for(size_t i=0;i<array->getSize();i++){
-       Object_Del* del = new Object_Del(array,i);
+       Object_Del<isKill>* del = new Object_Del<isKill>(array,i);
        deleters.push_back(del);
-       boost::thread* thread = new boost::thread(&Object_Del::operator(),del);
+       boost::thread* thread = 
+            new boost::thread(&Object_Del<isKill>::operator(),del);
        threads.push_back(thread);
     }
   }
@@ -10329,7 +10336,7 @@ class MatrixKiller{
 };
 
 
-template<> void deleteRemoteObjects<DFMatrix>(DFMatrix* matrix){
+template<> void deleteRemoteObjects<DFMatrix,false>(DFMatrix* matrix){
    if(keepRemoteObjects) return;
    if(!matrix->IsDefined()) return;
    if(matrix->getKeepRemoteObjects()) return;
@@ -10394,10 +10401,10 @@ OperatorSpec deleteRemoteObjectsSpec(
  );
 
 ValueMapping deleteRemoteObjectsVM[] = {
-  deleteRemoteObjectsVMT<DArray>,
-  deleteRemoteObjectsVMT<DFArray>,
+  deleteRemoteObjectsVMT<DArray,false>,
+  deleteRemoteObjectsVMT<DFArray,false>,
   deleteRemoteObjectsVM_Matrix,
-  deleteRemoteObjectsVMT<SDArray>
+  deleteRemoteObjectsVMT<SDArray,false>
 };
 
 int deleteRemoteObjectsSelect(ListExpr args){
@@ -10426,6 +10433,32 @@ Operator deleteRemoteObjectsOp(
   deleteRemoteObjectsTM
 );
 
+OperatorSpec killRemoteObjectsSpec(
+     " {darray, dfarray,sdarray} [x int] | dfmatrix -> int",
+     "killRemoteObjects(_,_)",
+     "Kills the remote objects managed by a darray  or a dfarray object. "
+     "If the optionally integer argument is given, only the "
+     "object at the specified index is deleted. For a dfmatrix object, "
+     " only the deletion of all slots is possible.",
+     "query killRemoteObjects(da2)"
+ );
+
+ValueMapping killRemoteObjectsVM[] = {
+  deleteRemoteObjectsVMT<DArray,true>,
+  deleteRemoteObjectsVMT<DFArray,true>,
+  deleteRemoteObjectsVM_Matrix,
+  deleteRemoteObjectsVMT<SDArray,true>
+};
+
+
+Operator killRemoteObjectsOp(
+  "killRemoteObjects",
+  killRemoteObjectsSpec.getStr(),
+  4,
+  killRemoteObjectsVM,
+  deleteRemoteObjectsSelect,
+  deleteRemoteObjectsTM
+);
 
 /*
 12 Operator ~clone~
@@ -22070,7 +22103,7 @@ int keepRemoteObjectsVM(Word* args, Word& result, int message,
 OperatorSpec keepRemoteObjectsSpec(
   "-> bool or bool -> bool",
   "keepRemoteObjects(_)",
-  "Returns the value of a internal variable. If teh optional "
+  "Returns the value of a internal variable. If the optional "
   "boolean argument is given, the value of this variable "
   "is set before returning it. If the variable is true, "
   "remote objects will be kept even if the master objects is "
@@ -22312,6 +22345,71 @@ Operator createSDArrayOp(
 );
 
 
+/*
+The Operator ~getF~
+
+This operator applies a function to a single slot of a
+d[f]array and returns the result of this operation.
+The result of the function must be of type stream<tuple>
+or in kind DATA.
+
+*/
+ListExpr getFTM(ListExpr args){
+   // d[f]array(A) x int x (A -> B)
+   if(!nl->HasLength(args,3)){
+     return listutils::typeError("three arguments expected");
+   }
+   // check for usesArgsIn TM
+   ListExpr tmp = args;
+   while(!nl->IsEmpty(tmp)){
+     if(!nl->HasLength(nl->First(tmp),2)){
+       return listutils::typeError("internal error");
+     } 
+     tmp = nl->Rest(tmp);
+   }  
+   // first argument has to be of type d[f]array
+   ListExpr dat = nl->First(nl->First(args));
+   if(!DArray::checkType(dat) && !DFArray::checkType(dat)){
+     return listutils::typeError("first argument is not of type d[f]array");
+   }
+   ListExpr subtype = nl->Second(dat);
+   // second argument must be an int
+   if(!CcInt::checkType(nl->First(nl->Second(args)))){
+     return listutils::typeError("second argument is not of type int");
+   }
+   // third argument must be a fun : subtype -> REL + DATA
+   ListExpr funtype = nl->First(nl->Third(args));
+   if(!listutils::isMap<1>(funtype)){
+     return listutils::typeError("third argument is not a unary function");
+   }
+   ListExpr funarg = nl->Second(funtype);
+   if(!nl->Equal(subtype,funarg)){
+      return listutils::typeError("function argument differs to "
+                                  "d[f]array's subtype");
+   } 
+   ListExpr funres = nl->Third(funtype);
+   bool isStream = Stream<Tuple>::checkType(funres); 
+   if(!isStream && !listutils::isDATA(funres)){
+      return listutils::typeError("the functionresult is not in kind DATA "
+                                  "and not a stream of tuples");
+   }
+   // create result 
+   ListExpr res;
+   if(isStream){
+       res = Relation::wrap(nl->Second(funres));
+   } else {
+       res = funres;
+   }
+
+   return nl->ThreeElemList( nl->SymbolAtom( Symbols::APPEND()),
+                             nl->TwoElemList(
+                                  nl->BoolAtom(isStream),
+                                  nl->TextAtom(nl->ToString(
+                                       nl->Second(nl->Third(args))))),
+                             res);
+}
+
+
 
 
 
@@ -22398,6 +22496,7 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&dsummarizeOp);
    AddOperator(&getValueOp);
    AddOperator(&deleteRemoteObjectsOp);
+   AddOperator(&killRemoteObjectsOp);
    AddOperator(&cloneOp);
    AddOperator(&shareOp);
    AddOperator(&share2Op);
@@ -22559,7 +22658,7 @@ Distributed2Algebra::Distributed2Algebra(){
 
    AddOperator(&makeShortOp);
 
-   AddOperator(&keepRemoteObjectsOp);
+   //AddOperator(&keepRemoteObjectsOp);
 
    AddOperator(&createSDArrayOp);
    createSDArrayOp.SetUsesArgsInTypeMapping();

@@ -55,7 +55,7 @@ std::string getName(const arrayType  a);
 ListExpr wrapType(const arrayType  a, ListExpr subType);
 
 
-template<class A>
+template<class A, bool isKill>
 void deleteRemoteObjects(A* array);
 
 
@@ -227,7 +227,7 @@ class SDArray : public DistTypeBase {
 
      static  void Delete( const ListExpr typeInfo, Word& w ){
         SDArray* victim = (SDArray*) w.addr;
-        deleteRemoteObjects(victim);
+        deleteRemoteObjects<SDArray,false>(victim);
         delete victim;
         w.addr = 0;
      }

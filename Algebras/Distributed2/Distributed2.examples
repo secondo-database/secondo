@@ -286,6 +286,12 @@ Example   : query deleteRemoteObjects(da2)
 Result    : bug
 Remark    : remote server required
 
+Operator  : killRemoteObjects
+Number    : 1
+Signature : d[f]array(X) [x int] -> int
+Example   : query killRemoteObjects(da2)
+Result    : bug
+Remark    : remote server required
 
 Operator  : clone 
 Number    : 1
