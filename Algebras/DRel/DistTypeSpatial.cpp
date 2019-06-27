@@ -84,8 +84,8 @@ Implementation.
     template<class T>
     DistTypeSpatial<T>::DistTypeSpatial( const DistTypeSpatial& _distType ) :
         DistTypeHash( _distType ), 
-        key( _distType.key ), grid( _distType.grid ) {
-
+        key( _distType.key ) {
+        grid = new T(*(_distType.grid));
         #ifdef DRELDEBUG
         cout << "DistTypeSpatial copy constructor" << endl;
         #endif
@@ -109,7 +109,7 @@ Implementation.
         }
         DistTypeHash::operator=( _distType );
         key = _distType.key;
-        grid = _distType.grid;
+        grid->CopyFrom(_distType.grid);
         return *this;
     }
 
