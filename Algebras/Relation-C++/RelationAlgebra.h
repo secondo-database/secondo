@@ -2812,6 +2812,14 @@ To get the type name of a temporary relation, use TempRelation::BasicType().
       return listutils::isRelDescription(type);
     }
 
+    static ListExpr wrap(ListExpr tuple, bool check=false){
+       if(check && !Tuple::checkType(tuple)){
+         return nl->TheEmptyList();
+       }
+       return nl->TwoElemList(nl->SymbolAtom(BasicType()),
+                              tuple);
+    }
+
     static Relation *GetRelation (const SmiFileId fileId );
     SmiFileId GetFileId() { return tupleFile.GetFileId(); }
 /*
