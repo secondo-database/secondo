@@ -273,12 +273,6 @@ struct R_TreeEntry
 {
   BBox<dim> box;
 
-
-
-  R_TreeEntry() {}
-
-  R_TreeEntry(BBox<dim> _box) : box(_box) {}
-
 /*
 If it is a leaf entry, then the bounding box spatially constains the spatial
 object. If it is an internal entry, the bounding box contains all bounding
@@ -302,8 +296,6 @@ Reads an entry from the buffer. Offset is increased.
 Writes an entry to the buffer. Offset is increased.
 
 */
-  virtual bool IsLeaf() const = 0;
-
 };
 
 /*
@@ -321,30 +313,26 @@ Points to the child node.
 
 */
 
-  bool IsLeaf() const  {
-    return false;
-  } 
-
   inline R_TreeInternalEntry() {}
 /*
 The simple constructor.
 
 */
 
-  inline R_TreeInternalEntry( const BBox<dim>& _box, SmiRecordId _pointer):
-       R_TreeEntry<dim>(_box), pointer( _pointer ) { }
-
-
-  inline R_TreeInternalEntry( const BBox<dim>& _box):
-       R_TreeEntry<dim>(_box), pointer( 0 ) { }
-
+  inline R_TreeInternalEntry( const BBox<dim>& box, SmiRecordId pointer = 0 ) :
+  pointer( pointer )
+  {
+    this->box = box;
+  }
 /*
 The second constructor passing a bounding box and a page.
 
 */
   inline R_TreeInternalEntry( const R_TreeInternalEntry<dim>& e ):
-       R_TreeEntry<dim>(e.box), pointer(e.pointer) 
-  { }
+  pointer( e.pointer )
+  {
+    this->box = e.box;
+  }
 /*
 The copy constructor.
 
@@ -372,9 +360,8 @@ Returns the size of the entry in disk.
 
   void Read( char *buffer, int& offset )
   {
-    BBox<dim> b(false);
-    memcpy((void*) &b, buffer+offset, sizeof(BBox<dim>) );
-    this->box = b;
+    memcpy((char*)(&this->box), buffer+offset, sizeof(BBox<dim>) );
+    new(&this->box) BBox<dim>();
     offset += sizeof(BBox<dim>);
     memcpy( &pointer, buffer+offset, sizeof(SmiRecordId) );
     offset += sizeof(SmiRecordId);
@@ -418,26 +405,19 @@ The simple constructor.
 
 */
 
-  inline R_TreeLeafEntry( const BBox<dim>& _box, const Info& _info ) :
-      R_TreeEntry<dim>(_box), info(_info)
+  inline R_TreeLeafEntry( const BBox<dim>& box, const Info& info ) :
+  info( info )
   {
+    this->box = box;
   }
-
-  inline R_TreeLeafEntry( const BBox<dim>& _box) :
-      R_TreeEntry<dim>(_box) {}
-
-
-  bool IsLeaf() const {
-    return true;
-  }  
-
 /*
 The second constructor passing a bounding box and the info.
 
 */
   inline R_TreeLeafEntry( const R_TreeLeafEntry<dim, Info>& e ):
-    R_TreeEntry<dim>(e.box),  info( e.info )
+  info( e.info )
   {
+    this->box = e.box;
   }
 /*
 The copy constructor.
@@ -466,9 +446,8 @@ Returns the size of the entry in disk.
 
   void Read( char *buffer, int& offset )
   {
-    BBox<dim> b(false);
-    memcpy((char*)( &b), buffer+offset, sizeof(BBox<dim>) );
-    this->box = b;
+    memcpy((char*)( &this->box), buffer+offset, sizeof(BBox<dim>) );
+    new(&this->box) BBox<dim>();
     offset += sizeof(BBox<dim>);
     memcpy( &info, buffer+offset, sizeof(Info) );
     offset += sizeof(Info);
@@ -1580,7 +1559,7 @@ void R_TreeNode<dim, LeafInfo>::Read( SmiRecordFile *file,
                                       const SmiRecordId pointer )
 {
   SmiRecord record;
-  bool RecordSelected = file->SelectRecord( pointer, record, SmiFile::ReadOnly);
+  int RecordSelected = file->SelectRecord( pointer, record, SmiFile::ReadOnly );
   assert( RecordSelected );
   Read( record );
 }
@@ -1601,21 +1580,17 @@ void R_TreeNode<dim, LeafInfo>::Read( SmiRecord& record )
 
   offset += sizeof( count );
 
-  assert( count >=0 && count <= maxEntries );
-
-  Rectangle<dim> box(true);
+  assert( count <= maxEntries );
 
   // Now read the entry array.
   for( int i = 0; i < count; i++ )
   {
-    R_TreeEntry<dim>* e = 0;    
-    if( leaf ){
-      e = new R_TreeLeafEntry<dim, LeafInfo>(box);
-    } else {
-      e = new R_TreeInternalEntry<dim>(box,0);
-    }
-    e->Read( buffer, offset );
-    entries[i] = e;
+    if( leaf )
+      entries[ i ] = new R_TreeLeafEntry<dim, LeafInfo>();
+    else
+      entries[ i ] = new R_TreeInternalEntry<dim>();
+
+    entries[ i ]->Read( buffer, offset );
   }
 
   free(buffer);
@@ -1627,11 +1602,12 @@ template<unsigned dim, class LeafInfo>
 void R_TreeNode<dim, LeafInfo>::Write( SmiRecordFile *file,
                                        const SmiRecordId pointer )
 {
+
   if( modified )
   {
 
     SmiRecord record;
-    bool RecordSelected = file->SelectRecord( pointer, record, SmiFile::Update);
+    int RecordSelected = file->SelectRecord( pointer, record, SmiFile::Update );
     assert( RecordSelected );
     Write( record );
   }
@@ -2737,7 +2713,7 @@ void R_Tree<dim, LeafInfo>::ReadHeader()
 
   SmiRecord record;
 
-  bool RecordSelected =
+  int RecordSelected =
     file->SelectRecord( header.headerRecordId,
                         record,
                         SmiFile::ReadOnly );
@@ -2752,7 +2728,7 @@ template <unsigned dim, class LeafInfo>
 void R_Tree<dim, LeafInfo>::WriteHeader()
 {
   SmiRecord record;
-  bool RecordSelected =
+  int RecordSelected =
       file->SelectRecord( header.headerRecordId,
                           record,
                           SmiFile::Update );
@@ -4140,7 +4116,7 @@ void R_Tree<dim, LeafInfo>::MergeRtree()
 
   //get root node of the first rtree
   SmiRecord record1;
-  bool RecordSelected =
+  int RecordSelected =
     file->SelectRecord(header.second_head_id,record1,SmiFile::ReadOnly);
   assert(RecordSelected);
   Header temp_head;
@@ -4559,15 +4535,14 @@ template <unsigned dim, class LeafInfo>
 void R_Tree<dim, LeafInfo>::SwitchHeader(R_Tree<dim,LeafInfo>* rtree_in)
 {
   SmiRecord record1;
-  bool RecordSelected =
+  int RecordSelected =
     file->SelectRecord(rtree_in->HeaderRecordId(),record1,SmiFile::ReadOnly);
   assert(RecordSelected);
   Header temp_head;
   int RecordRead = record1.Read(&temp_head,sizeof(Header),0) == sizeof(Header);
   assert(RecordRead);
 
-  RecordSelected = file->SelectRecord(rtree_in->HeaderRecordId(),record1,
-                                      SmiFile::Update);
+  file->SelectRecord(rtree_in->HeaderRecordId(),record1,SmiFile::Update);
   assert(RecordSelected);
 
   //write second head into the file (recno-1)
