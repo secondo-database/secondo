@@ -9,7 +9,8 @@
 # imported using the script nrwImportShapeNew.psec
 #
 # The database must be open and the variables WORKERS and NSlots must 
-# have been set in the script testDistAlgA.sec
+# have been set in the script testDistAlgA.sec. Monitors for the WORKERS must be 
+# running.
 
 
 
