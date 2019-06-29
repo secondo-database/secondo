@@ -38,6 +38,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DRel/DRelHelpers.h"
 
 #include "Algebras/DRel/DistTypeEnum.h"
+#include "Algebras/Distributed2/CommandLogger.h"
+#include "Algebras/Distributed2/Distributed2Algebra.h"
 
 #include <string.h>
 #include <iostream>
@@ -46,7 +48,11 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 using namespace drel;
-using namespace distributed2;
+
+namespace distributed2{
+    
+    extern Distributed2Algebra* algInstance;
+}
 
 ListExpr realJoinMMRTreeTM(ListExpr args);
 ListExpr RenameTypeMap(ListExpr args); 
@@ -283,15 +289,34 @@ bool spatialPartition(ListExpr drel1Type, void* ptr1, std::string attr,
 }
 
 /*
-~sharegrid~
+~creategrid~
 
-Distributes grid to the all workers contained within a given d[f]array.
+Creates a grid object in the database.
 
 */
 
-bool sharegrid(ListExpr gridType, void* grid, ListExpr darrayptr){
+bool creategrid( ListExpr gridType, std::string gridName ){
     
-    std::string queryS = "(share2 \"grid\" " + nl->ToString(
+    std::string query = "(createObject \"" + gridName + "\" \"" +
+                           nl->ToString(gridType) + "\" TRUE)";
+    Word res;
+    if( !QueryProcessor::ExecuteQuery( query, res ) ) {
+        return false;
+    }
+    return true;
+}
+
+/*
+~sharegrid~
+
+Distributes a grid to the all workers contained within a given d[f]array.
+
+*/
+
+bool sharegrid(ListExpr gridType, std::string gridName,
+               void* grid, ListExpr darrayptr){
+    
+    std::string queryS = "(share2 \"" + gridName + "\" " + nl->ToString(
                      DRelHelpers::createPointerList( gridType, grid ) ) +
                     " TRUE " + nl->ToString( darrayptr ) +")";
     Word res;
@@ -300,6 +325,24 @@ bool sharegrid(ListExpr gridType, void* grid, ListExpr darrayptr){
     }
     return true;
 }
+
+/*
+~deletegrid~
+
+Deletes a grid object from the database
+
+*/
+
+bool deletegrid( std::string gridName ){
+    
+    std::string queryD = "(deleteObject \"" + gridName + "\")";
+    Word res;
+    if( !QueryProcessor::ExecuteQuery( queryD, res ) ) {
+        return false;
+    }
+    return true;
+}
+
 
 /*
 1.2. Value Mapping of ~drelspatialjoin~
@@ -403,9 +446,19 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
         gridType = nl->Fourth( nl->Third( dfrel1Type ) );
         grid = ( (DistTypeSpatial<G>*) dfrel1->getDistType( ) )->getGrid( ); 
     }
+
+    std::string gridName = distributed2::algInstance->getTempName( );
+    
+    //create grid object in the master's database to avoid further 
+    //errors with the Type Mapping function of the getObject operator
+    if( !creategrid( gridType, gridName ) ){
+        cout << "create grid database object failed!" << endl;
+        resultDFRel->makeUndefined();
+        return 0;
+    }
     
     //share grid
-    if( !sharegrid(gridType, grid, drel1ptr) ){
+    if( !sharegrid(gridType, gridName, grid, drel1ptr) ){
         cout << "share grid to the workers failed!" << endl;
         resultDFRel->makeUndefined();
         return 0;
@@ -414,7 +467,8 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
     std::string filter1fun, filter2fun;
     
     filter1fun = "(fun (s1 STREAMELEM) (= (attr s1 Cell_a) (attr s1 Cell_b)))";
-    filter2fun = "(fun (s2 STREAMELEM) (gridintersects (getObject \"grid\") "
+    filter2fun = "(fun (s2 STREAMELEM) (gridintersects " 
+                 "(getObject \"" + gridName + "\") "
                  "(bbox (attr s2 " + attr1 + "_a)) " 
                  "(bbox (attr s2 " + attr2 + "_b)) (attr s2 Cell_a)))";
     
@@ -429,17 +483,21 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
     Word qRes;
     if( !QueryProcessor::ExecuteQuery( query, qRes ) ) {
         resultDFRel->makeUndefined();
-        return 0;
     } else {
-        DFArray* dfarray = (DFArray*) qRes.addr;
+        distributed2::DFArray* dfarray = (distributed2::DFArray*) qRes.addr;
         if( !dfarray || !dfarray->IsDefined()){
             resultDFRel->makeUndefined();
             delete dfarray;
-            return 0;
+        } else {
+            resultDFRel->copyFrom( *dfarray );
+            resultDFRel->setDistType( new DistTypeBasic( drel::random ) );
+            delete dfarray;
         }
-        resultDFRel->copyFrom( *dfarray );
-        resultDFRel->setDistType( new DistTypeBasic( drel::random ) );
-        delete dfarray;
+    }
+    
+    //delete grid object from the master's database
+    if( !deletegrid( gridName ) ){
+        cout << "grid object not deleted" << endl;
     }
             
     return 0;
