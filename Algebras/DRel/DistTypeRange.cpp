@@ -78,9 +78,9 @@ Implementation.
 
 */
     DistTypeRange::DistTypeRange( const DistTypeRange& _distType ) :
-        DistTypeHash( _distType ), key( _distType.key ), 
-        boundary( _distType.boundary ) {
-
+        DistTypeHash( _distType ), key( _distType.key ) 
+        {
+        boundary = new collection::Collection(*(_distType.boundary));
         #ifdef DRELDEBUG
         cout << "DistTypeRange copy constructor" << endl;
         #endif
@@ -101,7 +101,7 @@ Implementation.
         }
         DistTypeHash::operator=( _distType );
         key = _distType.key;
-        boundary = _distType.boundary;
+        boundary->CopyFrom(_distType.boundary);
         return *this;
     }
 
