@@ -138,7 +138,7 @@ metadataMode(RdKafka::Conf *conf, RdKafka::Conf *tconf, std::string topic_str) {
 }
 
 static bool run = true;
-static bool exit_eof = false;
+static bool exit_eof = true;
 
 void msg_consume(RdKafka::Message *message, void *opaque) {
 
@@ -191,8 +191,8 @@ int main() {
      *
      * in this test we read only the first partition
      */
+    int32_t partition = 0;
 
-    int32_t partition = RdKafka::Topic::PARTITION_UA;
     int64_t start_offset = RdKafka::Topic::OFFSET_BEGINNING;
     /*
      * Create configuration objects
