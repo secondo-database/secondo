@@ -1,6 +1,10 @@
 https://github.com/edenhill/librdkafka
-
 sudo apt install librdkafka-dev
+
+ - Examples
+    https://github.com/edenhill/librdkafka/blob/master/examples/rdkafka_consumer_example.cpp
+    https://github.com/edenhill/librdkafka/blob/master/examples/rdkafka_example.cpp
+
 
 
  - Running kafka service
