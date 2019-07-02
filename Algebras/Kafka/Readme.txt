@@ -46,6 +46,8 @@
 
     https://kafka.apache.org/quickstart
 
+    cd /home/gstancul/work/kafka/kafka_2.12-2.2.0/
+
     bin/zookeeper-server-start.sh config/zookeeper.properties
     bin/kafka-server-start.sh config/server.properties
 
