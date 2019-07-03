@@ -1,0 +1,10 @@
+/*
+
+*/
+
+#ifndef READFROMKAFKA_SUBSCRIBER_H
+#define READFROMKAFKA_SUBSCRIBER_H
+
+#endif //READFROMKAFKA_SUBSCRIBER_H
+
+int runSubscriberConsuming();
