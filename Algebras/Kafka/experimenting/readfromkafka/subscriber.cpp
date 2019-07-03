@@ -5,8 +5,9 @@
 #include "subscriber.h"
 
 #include <iostream>
+#include <fcntl.h>
+#include <zconf.h>
 #include "librdkafka/rdkafkacpp.h"
-
 
 static int partition_cnt = 0;
 static int eof_cnt = 0;
@@ -43,7 +44,7 @@ public:
 static long msg_cnt = 0;
 static int64_t msg_bytes = 0;
 static int verbosity = 1;
-static bool exit_eof = false;
+static bool exit_eof = true; /* Control exit*/
 
 static bool run = true;
 
@@ -107,6 +108,29 @@ void msg_consume_ss(RdKafka::Message *message, void *opaque) {
     }
 }
 
+std::string create_uuid() {
+    std::string uuid;
+    char buffer[128];
+
+    const char *filename = "/proc/sys/kernel/random/uuid";
+    FILE *file = fopen(filename, "r");
+
+    // Does the proc file exists?
+    if (access(filename, R_OK) == -1) {
+        std::cerr << "Unable to get UUID from kernel" << std::endl;
+        exit(-1);
+    }
+
+    if (file) {
+        while (fscanf(file, "%s", buffer) != EOF) {
+            uuid.append(buffer);
+        }
+    }
+
+    fclose(file);
+    return uuid;
+}
+
 int runSubscriberConsuming() {
     std::cout << "Hello, World!" << std::endl;
 
@@ -132,7 +156,43 @@ int runSubscriberConsuming() {
     conf->set("metadata.broker.list", brokers, errstr);
 
 
-    if (conf->set("group.id", "id1", errstr) != RdKafka::Conf::CONF_OK) {
+    /*
+     * Optional
+     * */
+    if (conf->set("client.id", "kafka secondo client", errstr) !=
+        RdKafka::Conf::CONF_OK) {
+        std::cerr << errstr << std::endl;
+        exit(1);
+    }
+
+    /*
+     * should be generated e.g. UUID.randomUUID()
+    std::string groupId = "id2";
+     * */
+
+    std::string groupId = create_uuid();
+    std::cout << "groupId=" << groupId << std::endl;
+    if (conf->set("group.id", groupId, errstr) != RdKafka::Conf::CONF_OK) {
+        std::cerr << errstr << std::endl;
+        exit(1);
+    }
+
+
+    /*
+     *
+    properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
+     Works only with new group id
+
+    earliest: automatically reset the offset to the earliest offset
+    latest: automatically reset the offset to the latest offset
+    none: throw exception to the consumer if no previous offset is found or the
+     consumer's group
+    anything else: throw exception to the consumer.
+
+     */
+    if (conf->set("auto.offset.reset", "earliest", errstr) !=
+        RdKafka::Conf::CONF_OK) {
         std::cerr << errstr << std::endl;
         exit(1);
     }
