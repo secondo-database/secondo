@@ -35,8 +35,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----	cost(+Term, +Sel, +Pred, +Res, +Mem, -Card, -NAttrs, -TSize, -Cost)
 ----
 
-LineLengthTest
-
 The cost of an executable ~Term~ representing a predicate ~Pred~ with
 selectivity ~Sel~ is ~Cost~ and the cardinality of the result (number of tuples) is ~Card~. The resulting tuples have ~NAttrs~ attributes and tuple size terms ~TSize~ = sizeTerm(MemoryFix, DiskCore, DiskLOB). The result will belong to node ~Res~. If the root operator of the ~Term~ uses a memory buffer, the amount of available memory is ~Mem~ (in MB).
 
