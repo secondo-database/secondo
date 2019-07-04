@@ -57,8 +57,11 @@ int yyerror(const char *msg)
 }
 
 // define LaTeX Commands for verbatim typesetting
-char*  startProgram = "{\\small \\begin{quote} \\begin{verbatim}\n";
-char*  endProgram = "\n\\end{verbatim} \\end{quote}}\n\n";
+//char*  startProgram = "{\\small \\begin{quote} \\begin{verbatim}\n";
+//char*  endProgram = "\n\\end{verbatim} \\end{quote}}\n\n";
+
+char*  startProgram = "{\\small   \\begin{verbatim}\n";
+char*  endProgram = "\n\\end{verbatim}  }\n\n";
 
 char*  startVerbatim = "\\begin{pdverbatim}\n    ";
 char*  endVerbatim = "\n\\end{pdverbatim}\n"; 
