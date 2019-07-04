@@ -570,7 +570,7 @@ These costs are reflected in the following cost function.
 In the new Version of this the cost function is adjusted to the version of the regular hashjoin.
 If the Relation fits in 1 Partition into the memory, then the hashing is ignored and a similiar cost function as of hashjoin is used here. 
 This means only the Probing is relevant in this case. No. of Buckets is hard coded as its not part of the cost Arguments that are given to the cost function.
-If more then 1 Partition is needed, then the the Hashing is factored in additional to the write and read process of the second stream.
+If more then 1 Partition is needed, then the the Hashing is factored in additional to the write and read process of the second stream. 
 
 */
 
