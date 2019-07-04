@@ -1,5 +1,6 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{epsfig, times, color, alltt}
+\usepackage[a4paper, left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm]{geometry}
 \parindent0em
 \parskip0.8ex plus0.4ex minus 0.4ex
 \setcounter{secnumdepth}{4}
