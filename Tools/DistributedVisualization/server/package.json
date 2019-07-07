@@ -1,0 +1,46 @@
+{
+  "name": "secondo_visualisation_server_-_backend",
+  "version": "1.0.0",
+  "description": "Visualisation server for Distributed2 algebra",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "npm run build && npm run watch",
+    "build": "tslint -c tslint.json -p tsconfig.json && tsc",
+    "watch": "concurrently -k -p \"[{name}]\" -n \"TypeScript, Node\" -c \"yellow.bold,green.bold\"  \"npm run watch-ts\" \"npm run serve\"",
+    "watch-ts": "tsc -w",
+    "serve": "nodemon  dist/server.js"
+  },
+  "author": "Eugen Janzen",
+  "license": "SEE LICENSE IN license.txt",
+  "dependencies": {
+    "@types/body-parser": "^1.17.0",
+    "@types/compression": "0.0.36",
+    "@types/cookie-parser": "^1.4.1",
+    "@types/ejs": "^2.6.2",
+    "@types/errorhandler": "0.0.32",
+    "@types/express": "^4.16.1",
+    "@types/express-session": "^1.15.12",
+    "@types/lusca": "^1.5.0",
+    "axios": "^0.18.0",
+    "body-parser": "^1.18.3",
+    "compression": "^1.7.4",
+    "concurrently": "^4.1.0",
+    "cookie-parser": "^1.4.4",
+    "cron": "^1.7.0",
+    "ejs": "^2.6.1",
+    "errorhandler": "^1.5.0",
+    "express": "^4.16.4",
+    "express-session": "^1.16.1",
+    "express-validator": "^5.3.1",
+    "lusca": "^1.6.1",
+    "moment": "^2.24.0",
+    "reflect-metadata": "^0.1.13",
+    "shelljs": "^0.8.3",
+    "winston": "^3.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^1.18.11",
+    "tslint": "^5.15.0",
+    "typescript": "^3.4.3"
+  }
+}
