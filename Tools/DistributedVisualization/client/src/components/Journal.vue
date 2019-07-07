@@ -41,7 +41,7 @@
                           </div>
                         </v-card-title>
                         <v-card-text
-                          v-if="runningWorkerStatus !== undefined && Object.keys(runningWorkerStatus).length != 0"
+                          v-if="runningWorkerStatus !== undefined && Object.keys(runningWorkerStatus).length !== 0"
                         >
                           <v-item-group>
                             <div v-for="k of (runningWorkerStatus)" :key="k.node">
