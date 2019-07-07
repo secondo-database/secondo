@@ -1,4 +1,4 @@
-import { JournalController } from "../controllers/Jornal";
+import { JournalController } from "../controllers/Journal";
 import { RouteInterface } from "./RouteInterface";
 
 const JOURNAL_BASE: string = "journal";

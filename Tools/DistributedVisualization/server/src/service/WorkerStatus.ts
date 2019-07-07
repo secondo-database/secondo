@@ -7,7 +7,7 @@ import { WorkerDTO } from "../dto/Worker";
 const logger: Logger = require("../common/logger")(module);
 export class WorkerStatusService {
     public static getWorkerStatus(file: string): Promise<WorkerStatusDTO> {
-        const workerStatusFileLocation: string = Application.getSettings().distributed_algebra.log_localtion_absolute + "/" + file;
+        const workerStatusFileLocation: string = Application.getSettings().distributed_algebra.log_location_absolute + "/" + file;
         const errorMessage: string = "Error occured while reading WorkerStatus file: ";
         return new Promise<WorkerStatusDTO>((resolve: any, reject: any) => {
             readFile(workerStatusFileLocation, (err: NodeJS.ErrnoException, data: Buffer) => {

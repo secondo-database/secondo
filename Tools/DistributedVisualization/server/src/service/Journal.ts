@@ -7,7 +7,7 @@ const logger: Logger = require("../common/logger")(module);
 
 export class JournalService {
     public static getJournal(): Promise<JournalDTO[]> {
-        const journalFileLocation = Application.getSettings().distributed_algebra.log_localtion_absolute +
+        const journalFileLocation = Application.getSettings().distributed_algebra.log_location_absolute +
             "/" + Application.getSettings().distributed_algebra.journal_file_name;
         const errorMessage: string = "Error occured while reading Journal file: ";
         return new Promise<JournalDTO[]>((resolve: any, reject: any) => {
