@@ -69,9 +69,13 @@ Class to repartition a DRel by range.
 1.1 Constructors
 
 */
-        PartitionerS( std::string _attr, ListExpr _gridType, R* _drel, 
-            ListExpr _sourcedType, T* _grid, int _port, 
-            std::string _gridName ) :
+        PartitionerS( std::string _attr, 
+                      ListExpr _gridType, 
+                      R* _drel, 
+                      ListExpr _sourcedType, 
+                      T* _grid, 
+                      int _port, 
+                      std::string _gridName ) :
             attr( _attr ), gridType( _gridType ), drel( _drel ), 
             sourcedType( _sourcedType ), grid( _grid ), matrix( 0 ), 
             port( _port ), gridName( _gridName ),
@@ -91,6 +95,7 @@ Class to repartition a DRel by range.
             dType = drel->getDistType( )->getDistType( );
         }
 
+
         PartitionerS( std::string _attr, ListExpr _gridType, R* _drel, 
             ListExpr _sourcedType, int _port ) :  
             attr( _attr ), gridType( _gridType ), drel( _drel ), 
@@ -101,40 +106,19 @@ Class to repartition a DRel by range.
 
             dType = drel->getDistType( )->getDistType( );
         }
-
 /*
 1.2 Copy-Constructor
 
 */
-        PartitionerS( const PartitionerS& src ) :
-            attr( src.attr ), gridType( src.gridType ), 
-            drel( src.drel ), sourcedType( src.sourcedType ), 
-            grid( *( src.grid ) ), matrix( *( src.matrix ) ), 
-            port( src.port ), gridName( src.gridName ), 
-            dType( src.dType ) {
-        }
+
+        PartitionerS( const PartitionerS& src )  = delete;
 
 /*
 1.2 Assignment operator
 
 */
-        PartitionerS& operator=( const PartitionerS& src ) {
-            if( this == &src ) {
-                return *this;
-            }
-            attr = src.attr;
-            gridType = src.gridType;
-            drel = src.drel;
-            sourcedType = src.sourcedType;
-            grid = src.grid;
-            matrix = src.matrix;
-            port = src.port;
-            gridName = src.gridName;
-            qp = new QueryProcessor( nl, am );
-            dType = src.dType;
+        PartitionerS& operator=( const PartitionerS& src )  = delete;
 
-            return *this;
-        }
 
 /*
 1.3 Destructor
@@ -144,7 +128,9 @@ Class to repartition a DRel by range.
 
             if( qp && tree ) {
                 qp->Destroy( tree, false );
-                delete qp;
+            }
+            if(qp){
+              delete qp;
             }
 
             if( grid ) {
@@ -480,7 +466,6 @@ Repartitions the drel to a DFMatrix.
 
 */
         T* getGrid( ) {
-
             return grid;
         }
 
