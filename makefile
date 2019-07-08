@@ -338,6 +338,12 @@ Javagui/GBS.cfg: Javagui/GBS.cfg.sample
 bin/Replay.cfg: bin/Replay.cfg.example
 	$(cp-config-file)
 
+.PHONY: DistributedVisualization
+DistributedVisualization:
+	-npm --prefix Tools/DistributedVisualization/server install
+	-npm --prefix Tools/DistributedVisualization/server run build
+	-npm --prefix Tools/DistributedVisualization/client install
+	-npm --prefix Tools/DistributedVisualization/client run build_and_move
 
 .PHONY: help
 help:
