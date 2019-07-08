@@ -292,9 +292,6 @@ attribute.
         collect2VM( collect2Args, result, message, local, s );
         DFRel* resultDFRel = ( DFRel* )result.addr;
 
-        delete name;
-        delete port;
-        delete parti;
 
         distributionType dType;
         int attr, key;
@@ -305,6 +302,10 @@ attribute.
             dType, attr, key, parti->getGrid( ) );
 
         resultDFRel->setDistType( resultDType );
+        
+        delete name;
+        delete port;
+        delete parti;
 
         return 0;
     }
