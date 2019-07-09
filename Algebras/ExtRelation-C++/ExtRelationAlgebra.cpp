@@ -15275,7 +15275,59 @@ Operator swapOp(
 );
 
 
+ListExpr hashvalueTM(ListExpr args){
+  if(!nl->HasLength(args,1) && !nl->HasLength(args,2)){
+    return listutils::typeError("one argument expected");
+  }
+  if(!Tuple::checkType(nl->First(args))){
+    return listutils::typeError("tuple [x int] expected");
+  }
+  if(nl->HasLength(args,2)){
+    if(!CcInt::checkType(nl->Second(args))){
+      return listutils::typeError("second argument must be an int");
+    }
+    return listutils::basicSymbol<CcInt>();
+  }
+  return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                nl->OneElemList(nl->IntAtom(0)),
+                listutils::basicSymbol<CcInt>());
 
+}
+
+int hashvalueVM(Word* args, Word& result, int message,
+                     Word& local, Supplier s) {
+
+    Tuple* arg = (Tuple*) args[0].addr;
+    size_t hash = arg->HashValue();
+
+    int mv = -1;
+    CcInt* Mv = (CcInt*) args[1].addr;
+    if(Mv->IsDefined()){
+      mv = Mv->GetValue();
+    }
+    if(mv!=0){
+      hash = hash % mv;
+    }
+
+    result = qp->ResultStorage(s);
+    ((CcInt*) result.addr)->Set(true,hash);
+    return 0;
+}
+
+OperatorSpec hashvalueSpec(
+   "tuple -> int",
+   "hashvalue(_)",
+   "Returns a hashvalue for a complete tuple. ",
+   "query plz feed extend[H : hashvalue(.)] consume"
+);
+
+Operator hashvalueOp(
+  "hashvalue",
+  hashvalueSpec.getStr(),
+  hashvalueVM,
+  Operator::SimpleSelect,
+  hashvalueTM
+);
 
 /*
 
@@ -15431,6 +15483,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&addModCounterOp);
     addModCounterOp.enableInitFinishSupport();
     AddOperator(&swapOp);
+    AddOperator(&hashvalueOp);
 
 
 #ifdef USE_PROGRESS

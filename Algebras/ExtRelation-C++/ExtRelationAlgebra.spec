@@ -118,3 +118,5 @@ operator noRefs alias NOREFS pattern op(_)
 operator addModCounter alias ADDMODCOUNTER pattern _ op[_,_,fun,fun] implicit parameters tuple, value types TUPLE, int
 
 operator swap alias SWAP pattern _ op[_,_]
+
+operator hashvalue alias HASHVALUE pattern op(_,_)
