@@ -797,6 +797,7 @@ types of the operator to which this function is a parameter.
     { }
     bool isConstant;
     bool isList;
+    bool isPtr;
     int  algId;
     int  typeId;
     ListExpr typeInfo;
