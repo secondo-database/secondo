@@ -33,20 +33,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 Evaluating Cost Constants
 
-The Cost Constants will be evaluated with the Datasets obtained from 
+The cost constants will be evaluated with the datasets obtained from 
 
 http://download.geofabrik.de/europe/germany/nordrhein-westfalen-latest-free.shp.zip 
 
 these must be imported first e.g. through the script "nrwImportShapeNew.psec" into the database nrw.
-This Script is designed to use the database nrw where the Relation Cconst will be created to store the constants.
-Each Query will be executed three times, then the results(avg ElapsedTime) of these three executions will be transfered to relation Cconst.
-If necesseary, further calculations to determine the consants will be executed.
+This script is designed to use the database nrw where the relation Cconst will be created to store the constants.
+Each query will be executed three times, then the results(avg ElapsedTime) of these three executions will be transferred to relation Cconst.
+If necessary, further calculations to determine the constants will be executed.
 When the constants are fully determined they will be written in the costs2014.pl file at the end of the script.
-In the relation Cconst all Queries that are just auxiliary ones are stored with IDs higher than 100.
+In the relation Cconst all queries that are just auxiliary ones are stored with IDs higher than 100.
 This means that all IDs under 100 are the ones where the constants are stored.
-The relation that is used throughout the script is Roads, with variations Roads20 and Roads60. These contain all Roads with Maxspeed = 20 and 60 respectivly.
+The relation that is used throughout the script is Roads, with variations Roads20 and Roads60. These contain all Roads with Maxspeed = 20 and 60 respectively.
 Also the relation Waterways and Buildings are used.
-If a Query has a Ratio between ElapsedTime and CpuTime that is greater then 1.5 it will be ignored for evaluating the runtime of this query.
+If a query has a ratio between ElapsedTime and CpuTime that is greater than 1.5 it will be ignored for evaluating the runtime of this query.
 
 The script must be run without error detection, because the commentary produces errors in SECONDO.
 
@@ -54,7 +54,7 @@ Preparations:
 Download and Import nrw OSMdata
 Delete the existing constants in costs2014
 
-Schema of the Relation that is created to store the queries and resulting constants:
+Schema of the relation that is created to store the queries and resulting constants:
 
 ----	
 Cconst  [ ID:int  Query:string  ElapsedTime:real  CPUTime:real  
@@ -64,7 +64,7 @@ NoResTuple:int  NoCompTuple:int  Constant:real ]
 
 1.1 Basic constants
 
-First a few basic obejcts are defined, such as the new-line object for seperating the constants while writing them back to costs2014.pl
+First a few basic objects are defined, such as the new-line object for separating the constants while writing them back to costs2014.pl
 The ratio is defined and the relation Cconst itself.
 A timestamp is directly written to costs2014.pl to mark the start of the constant evaluation.
 
@@ -74,7 +74,7 @@ close database;
 open database nrw;
 delete Cconst;
 
-# Definition of Relation Cconst for storing the evaluated constants.
+# Definition of relation Cconst for storing the evaluated constants.
 let Cconst = [const rel(tuple([
   Id: string,
   Query: text,
@@ -102,10 +102,9 @@ delete c3;
 /*
 1.1.1 Feedproject
 
-For the evaluation of the feedproject predicate we need to determine 3 constants.
-Which is "per Tuple", "per Attribute" and "per Byte".
-Evaluation of "per Attribute" is done through 3 Queries each with a different number of attributes (1, 2 and 3). 
-Ratio is ignored and CpuTime instead of ElapsedTime is used, as tests showed that when projecting given attributes the runtime seams to be randomly off.
+For the evaluation of the feedproject predicate we need to determine 3 constants, which is "per Tuple", "per Attribute" and "per Byte".
+Evaluation of "per Attribute" is done through 3 queries each with a different number of attributes (1, 2 and 3). 
+Ratio is ignored and CpuTime instead of ElapsedTime is used, as tests showed that when projecting given attributes the runtime seems to be randomly off.
 So to get reliable values the CpuTime is used.
 
 ----	
@@ -156,10 +155,10 @@ Roads feedproject[Code] count,
 0.0] consume;
 
 /*
-The query was evaluated with 1, 2 or 3 attributes repsective. 
-The attributes were choosen with the same datatype and roughly the same size. 
+The query was evaluated with 1, 2 or 3 attributes respectively. 
+The attributes were chosen with the same datatype and roughly the same size. 
 Now the gaps between 1 \& 2 Attributes and 2 \& 3 Attributes will be determined. 
-After that the Average of these two define the constant "per Attribute".
+After that the average of these two defines the constant "per Attribute".
 
 */
 
@@ -229,7 +228,7 @@ Roads feedproject[Code] count,
 
 /*
 Evaluation of "per Byte":
-To evaluate this factor the script queries the relation Roads with two different Attributes and substracts the runtime as well as their sizes to determine the constant.
+To evaluate this factor the script queries the relation Roads with two different attributes and subtracts the runtime as well as their sizes to determine the constant.
 
 ----	
 query Roads feedproject [Maxspeed] count
@@ -293,8 +292,8 @@ round
 /*
 1.1.2 Feed
 
-The Relation Road is used again.
-Three Attributes with the same datatype and size are selected and the differences determine the "per Attribute" constant.
+The relation Road is used again.
+Three attributes with the same datatype and size are selected and the differences determine the "per Attribute" constant.
 We also need to determine the constant for "per Tuple".
 Definition of "per Attribute" is, as in feedproject, done through using CpuTime.
 
@@ -358,8 +357,8 @@ round
 ,6)]consume;
 
 /*
-For the "per Tuple" constant one query takes 100000 Tuples and another one 1000000 Tuples. 
-The time difference between these queries is then divided by the Tuples difference (900000).
+For the "per Tuple" constant one query takes 100000 tuples and another one 1000000 tuples. 
+The time difference between these queries is then divided by the tuples difference (900000).
 
 ----	
 query Roads feed head[100000] count
@@ -483,14 +482,14 @@ round
 /*
 1.1.4 Attribute Constant
 
-This constant is used throughout all Joinoperators. It is used to determine the cost for producing the results per tuple and attribute.
+This constant is used throughout all join operators. It is used to determine the cost for producing the results per tuple and attribute.
 
-Two Queries will be evaluated with 2 and 4 Attributes respective. 
-The first Query has 2 Attributes and produces 10 Million Result tuples. 
-The second Query has 4 Attributes and produces also 10 Million Result tuples.
-Difference between these two Queries, devided by 2 and then divided by 10 Mio, is the Constant per Attribute for each result tuple.
-In the script the runtime is divided by 20000 because of 10 Mio tuples for 2 additional Attributes would be a factor of 20000000. 
-After that the result would be multiplied by 1000 to convert the time to milliseocnds.
+Two queries will be evaluated with 2 and 4 attributes respectively. 
+The first query has 2 attributes and produces 10 million result tuples. 
+The second query has 4 attributes and produces also 10 million result tuples.
+Difference between these two queries, devided by 2 and then divided by 10 Mio, is the constant per attribute for each result tuple.
+In the script the runtime is divided by 20000 because of 10 Mio tuples for 2 additional attributes would be a factor of 20000000. 
+After that the result would be multiplied by 1000 to convert the time to milliseconds.
 So: ((Runtime Difference total) / 20000000) * 1000 is the same as ((Runtime Difference total)/ 20000).
 
 ----	
@@ -571,11 +570,11 @@ round
 /*
 1.1.5 Filter
 
-The Filter is evaluated through a Query with and without a filter predicate. The time difference is the constant for the filter predicate.
+The filter is evaluated through a query with and without a filter predicate. The time difference is the constant for the filter predicate.
 Roads is used again.
 The cost function contains a threshold value of 0.2 ms, corresponding to processing 2000 tuples, the standard sample size, within 400 ms.
-This was evaluated in the original costs2014.pl, through test with an "expensiv" query to determine this threshold (GeoData intersects X).
-This threshold is left untouched by the script as it is build in the cost function directly.
+This was evaluated in the original costs2014.pl, through test with an "expensive" query to determine this threshold (GeoData intersects X).
+This threshold is left untouched by the script as it is built in the cost function directly.
 
 ----	
 query Roads feed filter [(.Maxspeed > 50)] count
@@ -636,8 +635,8 @@ round
 1.1.6 Rename
 
 Cost is linear in the number of tuples, does not depend on the number of attributes or tuple size as just one pointer for the tuple is passed to the next operator.
-To determine the cost one query is executed without a rename and one with. 
-The Query Number 115 (Roads feed count) has already been executed and will be used here to define the running time without rename.
+To determine the cost one query is executed without and one with a rename. 
+The query Number 115 (Roads feed count) has already been executed and will be used here to define the running time without rename.
 
 ----	
 query Roads feed {r} count
@@ -681,12 +680,12 @@ round
 /*
 1.1.7 Extend
 
-The cost function was extended by a second constant which is "per Attribute". This constant factors for the cost increase if more than one Attribtue is extended.
+The cost function was extended by a second constant which is "per Attribute". These constant factors for the cost increase if more than one attribute is extended.
 
-The cost constants that will be determined are the cost per Tuple and the cost per Attribute.
-"per Tuple" is a simple query on the relation Roads with one extended Attribute.
-"per Attribute" is the difference between the runtime with 2 and 3 extended Attributes respective (usage of CpuTime).
-Again Query 115 (Roads feed count) is used as reference for the base time of query Roads feed count.
+The cost constants that will be determined are the cost per tuple and the cost per attribute.
+"per Tuple" is a simple query on the relation Roads with one extended attribute.
+"per Attribute" is the difference between the runtime with 2 and 3 extended attributes respectively (usage of CpuTime).
+Again query 115 (Roads feed count) is used as reference for the base time of query Roads feed count.
 
 ----	
 query Roads feed extend[Code2: .Code*10] count
@@ -779,7 +778,7 @@ round
 /*
 1.1.8 Remove
 
-Here one Attribute is removed from the stream through a simple query on the relation Roads.
+Here one attribute is removed from the stream through a simple query on the relation Roads.
 
 ----	
 query Roads feed remove[Code] count
@@ -865,11 +864,11 @@ round
 
 Cartesian Product of its 2 input streams, hashes the second stream and performs then the product.
 Contains of 2 variables, Hashing and Joining.
-The Constant is evaluated with the Relation Roads as second stream (for the Hashing) and an empty relation which is called Leer.
-Two Queries one with 100k Tuples and one with 600k tuples are executed with these two. The time difference divided by 500k additional tuples is the constant per (hash-)tuple.
+The constant is evaluated with the relation Roads as second stream (for the Hashing) and an empty relation which is called Leer.
+Two queries one with 100k tuples and one with 600k tuples are executed with these two. The time difference divided by 500k additional tuples is the constant per (hash-)tuple.
 
-For the product cost itself a query with 2 tuples from Roads is joined with 600k tuples.The Join then contains 1.2 million tuples.
-The runtime of that Query is reduced by the Hashphase so that the product cost is isolated.
+For the product cost itself a query with 2 tuples from Roads is joined with 600k tuples. The join then contains 1.2 million tuples.
+The runtime of that query is reduced by the hashphase so that the product cost is isolated.
 
 ----	
 query Leer feed {w} Roads feed head[100000] product count
@@ -965,12 +964,12 @@ round
 
 Cost contains a linear part which grows in the size of the relation. 
 Second part growth exponential with the tuples that are used by the function. 
-First Constant is evaluated through the Relation Roads and the operator ksmallest limited to 1 Tuple, this ensures that the cost is near the basic cost of this function.
+First constant is evaluated through the relation Roads and the operator ksmallest limited to 1 Tuple, this ensures that the cost is near the basic cost of this function.
 
-The second constant is then evaluated through a query that contains 800.000 and 1.200.000 Tuples.
+The second constant is then evaluated through a query that contains 800.000 and 1.200.000 tuples.
 The runtime is then reduced by the feed...count part and the basic cost from ksmallest. 
 After that the remaining time will be divided by the Term (Size x lognl(Size+1)) x 1000. 
-The mean of the 2 Queries should then factor the growth per tuple.
+The mean of the 2 queries should then factor the growth per tuple.
 
 ----	
 query Roads feed ksmallest[1;Code] count
@@ -1089,7 +1088,7 @@ query Cconst inserttuple[
 
 1.2.1 CreateBTree
 
-Special handling for distance-queries which have to create an temporary index.
+Special handling for distance-queries which have to create a temporary index.
 
 ----	
 let Roads_Code = Roads createbtree[Code]
@@ -1137,10 +1136,10 @@ delete Roads_Code3;
 /*
 1.2.2 Exactmatch
 
-The constant is linear in the size of the Result. It is evaluated through a rather simplistic query which uses the Relation Roads again and filters all roads named Heideweg.
-This query was originaly designed to query all roads with name Hauptstra{\ss}e but to correctly execute the PDview, to generate a PDF File of this script, it is needed to replace special german characters by latex symbols.
-With these symbols in the queries they would not be executed, so a compromise is made, to query a Name that contains none of such special characters. 
-As of 2019 the Name that is most common in NRW, without special chars, is Heideweg.
+The constant is linear in the size of the result. It is evaluated through a rather simplistic query which uses the relation Roads again and filters all roads named Heideweg.
+This query was originally designed to query all roads with name Hauptstra{\ss}e but to correctly execute the PDview, to generate a PDF file of this script, it is needed to replace special German characters by latex symbols.
+With these symbols in the queries they would not be executed, so a compromise is made, to query a name that contains none of such special characters. 
+As of 2019 the name that is most common in NRW, without special chars, is Heideweg.
 
 ----	 
 query Roads_Name_btree Roads exactmatch['Heideweg'] count
@@ -1252,8 +1251,8 @@ delete eichlinghofen;
 /*
 1.2.4 Leftrange
 
-Searches in a given B-Tree all tuples that are left from the argument. The cost is linear so the Constant will be determined using the B-Tree in Relation Roads again.
-Experiments showed that the range, leftrange and rightrange operators execute Queries in almost identical runtime. So this constant is used for all 3 of them.
+Searches in a given B-Tree all tuples that are left from the argument. The cost is linear so the constant will be determined using the B-Tree in relation Roads again.
+Experiments showed that the range, left range and right range operators execute queries in almost identical runtime. So this constant is used for all 3 of them.
 
 ----	
 query Roads_Name_btree Roads leftrange['z'] count
@@ -1296,19 +1295,19 @@ round
 
 1.3.1 Loopjoin
 
-Cost is critically dependend on the Buffer state of the system. 
-This means cold and warm states differ greatly in runtime. When a R-tree is used for the first time the Buffer is in cold status, meaning it is empty and the R-tree must be loaded completly.
+Cost is critically dependent on the buffer state of the system. 
+This means cold and warm states differ greatly in runtime. When an R-tree is used for the first time the buffer is in cold status, meaning it is empty and the R-tree must be loaded completely.
 After the first load it resides in the buffer, which means a second query on that index will be much faster than the first one. This is the warm buffer state. 
 Examples showed a factor by up to 10x in runtime.
 For the cost evaluation it is very difficult to determine in which state the system is to the runtime of the query. 
-So a mix of warm and cold states is used, this will never estimate the true runtime but is more precise then to assume an always cold or warm system. 
-This will be evaluated by a Query that is run 2 times, first one is cold and the second is in then warm state. 
+So a mix of warm and cold states is used, this will never estimate the true runtime but is more precisely then to assume an always cold or warm system. 
+This will be evaluated by a query that is run 2 times, first one is cold and the second is in then warm state. 
 The runtimes will be set in ratio and then divided by 2 to bring in the mix of warm and cold state.
-This state-factor is a second constant that will be used in the Query cost at the term (SizeX * CardY).
+This state-factor is a second constant that will be used in the query cost at the term (SizeX * CardY).
 
-The base cost is left untouched and will be evaluated over an empty Relation to isolate the basic cost constant.
-The exisiting relation Leer is used again (from Section Product).
-Here the Ratio is ignored because of warm/cold bufferstates.
+The base cost is left untouched and will be evaluated over an empty relation to isolate the basic cost constant.
+The existing relation Leer is used again (from Section Product).
+Here the ratio is ignored because of warm/cold buffer states.
 
 
 ----	
@@ -1414,15 +1413,15 @@ delete Leer;
 1.3.2 Symmjoin
 
 This is mostly copied from the original version of costs2014.pl.
-Like in the Filter constant there is a threshold implented to distinguish between a cheap and expensive predicate.
+Like in the filter constant there is a threshold implemented to distinguish between a cheap and expensive predicate.
 This threshold value is left untouched by the script and must be adjusted in the cost formula itself.
 
 To determine the cost constant two new relations are defined. 
 Roads20 with all Roads that have a Maxspeed of 20 and Roads60 with Maxspeed 60. 
-These two are choosen because of the small amount of tuples and runtime. Both have around 3000 Tuples (as of 2019).
+These two are chosen because of the small amount of tuples and runtime. Both have around 3000 Tuples (as of 2019).
 Experiments showed that the cost is linear in size to the tuples.
-The first Query runs with 1000000 Tuples, the second with 4000000.
-The time difference between these two is the amount for 3000000 Tuple in the symmjoin.
+The first query runs with 1000000 tuples, the second with 4000000.
+The time difference between these two is the amount for 3000000 tuple in the symmjoin.
 
 ----	
 let Roads60 = Roads feed filter [(.Maxspeed = 60)] consume
@@ -1506,7 +1505,7 @@ delete Roads60;
 /*
 1.3.3 SortMergeJoin
 
-The first Query only sorts one stream by one argmuent. Its cost is linear to the size of the argument.
+The first query only sorts one stream by one argument. Its cost is linear to the size of the argument.
 The second query is a join without producing a result. Time for this query contains the sorting of both relations as well as the probing phase.
 Query is run 4 times to eliminate the cold buffer status effect.
 
@@ -1598,7 +1597,7 @@ Time difference between the basic feedproject ... count and this query is the ti
 
 The second query adds the Probingphase but produces no results.
 
-The costfunction only uses the probing constant as the hashingphase is ignored because experiments showed that this phase is always extremly shorter then probing.
+The costfunction only uses the probing constant as the hashingphase is ignored because experiments showed that this phase is always extremely shorter then probing.
 
 ----	
 query Roads feed {r1} Roads feed {r2} 
@@ -1761,17 +1760,17 @@ round
 1.3.6 itHashJoin
 
 The cost function was first introduced in Costs2014.pl 
-As of constructing this scipt the costfunction was modified to a version that only accounts the Probing not the hashing (like in Hashjoin).
+As of constructing this script the costfunction was modified to a version that only accounts the probing not the hashing (like in Hashjoin).
 Documentation of the cost function is in costs2014.pl
 
-Cost constants are evaluated in a similiar manner as for hashjoin. Difference is that two Relations with more Tuples are used.
+Cost constants are evaluated in a similiar manner as for hashjoin. The difference is that two relations with more tuples are used.
 itHashJoin has 2 additional constants, for read and write of the Tuplefile for Stream 2.
-First two Queries evaluate the constants without partitioning and thus without using the Tuplefile. 
-The second one determines the Probingcost and uses the No. of Buckets 999997, that is the default value of the itHashJoin, to evaluate that constant.
-For this a Relation RoadsC2 is created to probe but not produce results.
+First two queries evaluate the constants without partitioning and thus without using the Tuplefile. 
+The second one determines the Probingcost and uses the No. of buckets 999997, that is the default value of the itHashJoin, to evaluate that constant.
+For this a relation RoadsC2 is created to probe but not produce results.
 
-For the Read and Write constants three Queries are used. 
-A base Query where the Relation fits completly in the Memory, after that a Query with two Partitions (and 300 MB Mem) and with three Partitions (and 150 MB Mem) is executed.
+For the Read and Write constants three queries are used. 
+A base query where the relation fits completely in the memory, after that a query with two partitions (and 300 MB Mem) and with three partitions (and 150 MB Mem) is executed.
 To determine the cost for reading the tuplefile we substract the time for the 2-Partitions-Query from the 3-Partitions-Query to determine the cost for 1 readprocess.
 Then this time is substracted from the difference between 2-Partitions-Query and the Basecost to isolate the writeprocess cost.
 
@@ -1888,9 +1887,9 @@ round
 
 /*
 Here the determination of the Read and Write Constants begin.
-First a few variables are defined to later check if the No. of Partitions were really 1, 2 and 3 respective. 
-If not the Constants may be off, due to the fact that the calculation is explicitly build to factor between 2 and 3 Partitions (or 1 and 2 respective).
-First Query executed 4 times to eliminate the cold buffer state.
+First a few variables are defined to later check if the No. of partitions were really 1, 2 and 3 respective. 
+If not the constants may be off, due to the fact that the calculation is explicitly build to factor between 2 and 3 Partitions (or 1 and 2 respective).
+First query executed 4 times to eliminate the cold buffer state.
 This is also written back to costs2014.pl as a commentary behind the constants.
 
 CpuTimes are used because the elapsed times seemed to be off.
@@ -2054,10 +2053,10 @@ delete RoadsC2;
 
 Costfunction is the same as for itHashjoin only the constants differ.
 Evaluation of the constants follows the same steps as for itHashJoin.
-A Relation based on Roads is created that contains tuples that have no overlapping BBoxes with relation Buildings. This is named RoadsNBuild.
+A relation based on Roads is created that contains tuples that have no overlapping BBoxes with relation Buildings. This is named RoadsNBuild.
 
-It is needed for a Query that probes but produces no results.
-The Evaluation of the read and write constants are done in a similiar manner like for itHashJoin. 
+It is needed for a query that probes but produces no results.
+The evaluation of the read and write constants are done in a similar manner like for itHashJoin. 
 
 ----	
 let RoadsNBuild = Roads feed{r} filter[(.Fclass_r = "bridleway")] 
@@ -2189,11 +2188,11 @@ round
 
 
 /*
-The Evaluation of the read and write constants are done in a similiar manner like for itHashJoin. 
+The evaluation of the read and write constants are done in a similiar manner like for itHashJoin. 
 
 Overhead of 353 was evaluated through a query with only the GeoData attribute and 512mb memory.
-The Join then finishes in 1 Partition and stores max 1062111 tuples. This would be (512*1024*1024) / 1062111 = 505.48 byte per tuple.
-As GeoData in relation Roads has a size of 152 the remaining size must be the overhead, which is 353.
+The join then finishes in 1 Partition and stores max 1062111 tuples. This would be (512*1024*1024) / 1062111 = 505.48 byte per tuple.
+As GeoData in relation Roads has a size of 152 the remaining size must be the overhead which is 353.
 
 CpuTimes are used because the elapsed times seemed to be off.
 Tests showed that with 2 or 3 partitions the elapsed times were shorter than with only 1 partition.
@@ -2391,15 +2390,14 @@ query Cconst feed csvexport['Cconst.csv', FALSE, TRUE, ";"] count;
 /* 
 3 Other Constants
 
-These constants are used in other Algebras such as the symbolic trajectory Algebra as well as the NearestNeighborAlgebra.
-Indextmatches needs an mlbale attribut to work on. So the database symtrajsmall is restored, as this DB contains Relations with the need attributes.
-To determine the constant a new Relation Dotraj2 is created. This one will be filled with round about 100.000 Tuples. The mblabel attribute will also be indexed beforehand, as Indextmatches is an index operator.
-After filling the realtion and indexing it, the script queries it to determine the time for Indextmatches. Time is linear in size of the Relation.
+These constants are used in other algebras such as the symbolic trajectory algebra as well as the NearestNeighborAlgebra.
+Indextmatches needs an mlbale attribut to work on. So the database symtrajsmall is restored, as this DB contains relations with the needed  attributes.
+To determine the constant a new relation Dotraj2 is created. This one will be filled with round about 100.000 tuples. The mblabel attribute will also be indexed beforehand, as Indextmatches is an index operator.
+After filling the relation and indexing it, the script queries it to determine the time for Indextmatches. Time is linear in size of the relation.
 
 Distancescan on the other hand 
 
-As these constants are determined in another Database it is not possible to write them back in the original relation Cconst in DB nrw. Instead another Version of Cconst is implemented and 
-these constants are directly appended into the csv-export.
+As these constants are determined in another database it is not possible to write them back in the original relation Cconst in DB nrw. Instead another version of Cconst is implemented and these constants are directly appended into the csv-export.
 Also the values are written directly back to costs2014. 
 All others are written at the end of the script.
 

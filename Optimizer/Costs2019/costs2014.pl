@@ -35,12 +35,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----	cost(+Term, +Sel, +Pred, +Res, +Mem, -Card, -NAttrs, -TSize, -Cost)
 ----
 
-The cost of an executable ~Term~ representing a predicate ~Pred~ with
-selectivity ~Sel~ is ~Cost~ and the cardinality of the result (number of tuples) is ~Card~. The resulting tuples have ~NAttrs~ attributes and tuple size terms ~TSize~ = sizeTerm(MemoryFix, DiskCore, DiskLOB). The result will belong to node ~Res~. If the root operator of the ~Term~ uses a memory buffer, the amount of available memory is ~Mem~ (in MB).
+The cost of an executable ~Term~ representing a predicate ~Pred~ with selectivity ~Sel~ is ~Cost~ and the cardinality of the result (number of tuples) is ~Card~. The resulting tuples have ~NAttrs~ attributes and tuple size terms ~TSize~ = sizeTerm(MemoryFix, DiskCore, DiskLOB). The result will belong to node ~Res~. If the root operator of the ~Term~ uses a memory buffer, the amount of available memory is ~Mem~ (in MB).
 
-This is evaluated recursively descending into the term. When the operator
-realizing the predicate (e.g. ~filter~) is encountered, the selectivity ~Sel~ is
-used to determine the size of the result. Usually only a single operator of this kind occurs within the term. However, with the filter and refine technique (used e.g. for spatial join), selectivity needs to be split into bounding-box selectivity and remaining selectivity.
+This is evaluated recursively descending into the term. When the operator realizing the predicate (e.g. ~filter~) is encountered, the selectivity ~Sel~ is used to determine the size of the result. Usually only a single operator of this kind occurs within the term. However, with the filter and refine technique (used e.g. for spatial join), selectivity needs to be split into bounding-box selectivity and remaining selectivity.
 
 
 1.1 Arguments
@@ -567,10 +564,10 @@ These costs are reflected in the following cost function.
 
 /*
 %KS ADDED
-In the new Version of this the cost function is adjusted to the version of the regular hashjoin.
-If the Relation fits in 1 Partition into the memory, then the hashing is ignored and a similiar cost function as of hashjoin is used here. 
-This means only the Probing is relevant in this case. No. of Buckets is hard coded as its not part of the cost Arguments that are given to the cost function.
-If more then 1 Partition is needed, then the the Hashing is factored in additional to the write and read process of the second stream. 
+In the new version of this the cost function is adjusted to the version of the regular hashjoin.
+If the relation fits in 1 Partition into the memory, then the hashing is ignored and a similiar cost function as of hashjoin is used here. 
+This means only the probing is relevant in this case. No. of buckets is hard coded as its not part of the cost arguments that are given to the cost function.
+If more then 1 Partition is needed, then the hashing is factored in additional to the write and read process of the second stream. 
 
 */
 
@@ -623,7 +620,7 @@ The task is to join tuples from two input streams that have overlapping bounding
 This operator works in the same way as ~itHashJoin~. 
 The only difference is that instead of a hash table, a main memory R-tree is used. 
 Probes search with a rectangle on this R-tree. 
-The cost formula is a bit different as for itHashJoin, as this operator does not involve Buckets.
+The cost formula is a bit different as for itHashJoin, as this operator does not involve buckets.
 So the cost of Hashing and Probing are determined individual.
 
 \[
@@ -665,7 +662,7 @@ cost(itSpatialJoin(Arg1, Arg2, _, _), Sel, Pred, Res, Mem,
 /*
 1.7.7 Sortmergejoin
 
-If cost for both Relations is exactly the same, it is assumed that it is the same relation with the same sorting attribute. 
+If cost for roth Relations is exactly the same, it is assumed that it is the same relation with the same sorting attribute. 
 therefore: Cost is CostX + CostY 	
 in that case the cost for the mergephase of sortmergejoin is 0, as the relation is the same and sorted beforehand.
 
