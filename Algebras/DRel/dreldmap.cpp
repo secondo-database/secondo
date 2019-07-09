@@ -477,7 +477,7 @@ tuples. This is a combination of the operators project and extend.
         std::string funText1 = "(dmap ";
         std::string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
             "(projectextend (feed dmapelem_1)" + 
-            nl->ToString( attrlist ) + nl->ToString( fun ) + ") )";
+            nl->ToString( attrlist ) + nl->ToString( fun ) + ") ) )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -1585,6 +1585,7 @@ text arguments of the typemapping.
         #endif
 
         ListExpr funList;
+
         if( !nl->ReadFromString( funText, funList ) ) {
             resultDFRel->makeUndefined( );
         }
@@ -1595,6 +1596,7 @@ text arguments of the typemapping.
         bool isFunction = false;
         std::string typeString, errorString;
         Word dmapResult;
+
         if( !QueryProcessor::ExecuteQuery( funList, dmapResult, 
                 typeString, errorString,
                 correct, evaluable, defined, isFunction ) ) {
@@ -1926,10 +1928,9 @@ Operator specification of the head operator.
 
 */
     OperatorSpec headSpec(
-        " drel(X) x list "
-        "-> drel(X) ",
+        " drel(X) x int -> drel(X) ",
         " _ head[int]",
-        "Passed only the first n tuple of each array field ",
+        " Reduces each slot to it's first n tuples. ",
         " query drel1 head[5]"
     );
 

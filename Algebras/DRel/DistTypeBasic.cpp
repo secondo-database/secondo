@@ -215,11 +215,13 @@ Compares the current DistType with another one.
         #ifdef DRELDEBUG
         cout << "DistTypeBasic::isEqual" << endl;
         #endif
-
+        if(_distType==nullptr){
+          return false;
+        }
         if( typeid( *_distType ) != typeid( *this ) ) {
             return false;
         }
-        return type == replicated;
+        return type == _distType->type;
     }
 
 /*
