@@ -1535,6 +1535,17 @@ void Tuple::ReadTupleFromBin(SmiFileId fileId,char* buf){
 }
 
 
+
+size_t Tuple::HashValue() const {
+   size_t hash = 0;
+   for(int i=0;i<GetNoAttributes();i++) {
+      hash +=  GetAttribute(i)->HashValue();
+   }
+   return hash;
+}
+
+
+
 TupleFileIterator::TupleFileIterator(TupleFile& f)
 : tupleFile(f)
 , data(0)

@@ -729,6 +729,8 @@ the objects.
 
     static ListExpr wrap(const ListExpr attrList, bool check = true);
 
+    size_t HashValue() const;
+
 
     static void InitCounters(bool visible);
     static void SetCounterValues();
