@@ -1880,6 +1880,7 @@ function index.
                                         expr, errorPos, errorInfo,
                                         correct );
         values[valueno].isConstant = true;
+        values[valueno].isPtr = false;
         values[valueno].isList = false;
         values[valueno].algId = algId;
         values[valueno].typeId = typeId;
@@ -1902,6 +1903,7 @@ function index.
                                         expr, errorPos, errorInfo,
                                         correct );
         values[valueno].isConstant = true;
+        values[valueno].isPtr = false;
         values[valueno].isList = false;
         values[valueno].algId = algId;
         values[valueno].typeId = typeId;
@@ -1924,6 +1926,7 @@ function index.
                                         expr, errorPos, errorInfo,
                                         correct );
         values[valueno].isConstant = true;
+        values[valueno].isPtr = false;
         values[valueno].isList = false;
         values[valueno].algId = algId;
         values[valueno].typeId = typeId;
@@ -1946,6 +1949,7 @@ function index.
                                         expr, errorPos, errorInfo,
                                         correct );
         values[valueno].isConstant = true;
+        values[valueno].isPtr = false;
         values[valueno].isList = false;
         values[valueno].algId = algId;
         values[valueno].typeId = typeId;
@@ -1968,6 +1972,7 @@ function index.
                                         expr, errorPos, errorInfo,
                                         correct );
         values[valueno].isConstant = true;
+        values[valueno].isPtr = false;
         values[valueno].isList = false;
         values[valueno].algId = algId;
         values[valueno].typeId = typeId;
@@ -1995,12 +2000,8 @@ function index.
                                        definedValue, hasNamedType );
           GetCatalog()->LookUpTypeExpr( typeExpr, typeName,
                                         algId, typeId );
-//           values[valueno].isConstant = false;
-//           values[valueno].isList = false;
-//           values[valueno].algId = algId;
-//           values[valueno].typeInfo = typeExpr;
-//           values[valueno].typeId = typeId;
           values[valueno].isConstant = false;
+          values[valueno].isPtr = false;
           values[valueno].isList = false;
           values[valueno].algId = algId;
           values[valueno].typeInfo = typeExpr;
@@ -2211,6 +2212,7 @@ function index.
         GetCatalog()->LookUpTypeExpr(nl->First(expr),
                                      typeName, algId, typeId );
         values[valueno].isConstant = false;
+        values[valueno].isPtr = false;
         values[valueno].isList = false;
         values[valueno].algId = algId;
         values[valueno].typeId = typeId;
@@ -2219,6 +2221,7 @@ function index.
 
         if( isPointer )
         {
+          values[valueno-1].isPtr = true;
           return (nl->TwoElemList(
                     nl->ThreeElemList(
                       expr,
@@ -3068,7 +3071,7 @@ QueryProcessor::DestroyValuesArray()
   {
     if( !values[i].isList )
     {
-      if(values[i].value.addr){
+      if(values[i].value.addr && !values[i].isPtr){
          if( values[i].isConstant ){
            (algebraManager->DeleteObj
              ( values[i].algId, values[i].typeId ))( values[i].typeInfo,
