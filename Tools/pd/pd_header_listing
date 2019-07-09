@@ -37,7 +37,7 @@
 \newenvironment{pdprogram}{\color{darkred}}
                         {\color{darkblue}}
 
-\newenvironment{pdverbatim}{\begin{alltt}\hspace{0.9cm}\rule[1.0eX]{2in}{0.1pt}\nopagebreak\footnotesize}
+\newenvironment{pdverbatim}{\begin{alltt}\hspace{0.9cm}\rule[1.0eX]{2in}{0.1pt}\nopagebreak\small}
                        {\hspace{0.9cm}\rule[2.0eX]{2in}{0.1pt}\nopagebreak\end{alltt}}
 
 \newcommand{\textred}[1]{\color{red}#1\color{darkred}}
@@ -47,7 +47,7 @@
      morekeywords={export, source, mkdir, cd}, sensitive=false, morecomment=[l]{\#}, morestring=[b]" }
 
 
-\newcommand{\lstsetSH}{\lstset{language=C++,basicstyle=\ttfamily\ifootnotesize,stringstyle=\textred,
+\newcommand{\lstsetSH}{\lstset{language=C++,basicstyle=\ttfamily\footnotesize,stringstyle=\textred,
 			backgroundcolor=\color{lightyellow},
 			showstringspaces=false,
 			commentstyle=\textcomment,
@@ -63,7 +63,7 @@
 
 
 \begin{document}
-\lstset{language=C++,basicstyle=\ttfamily\tiny,stringstyle=\textred,
+\lstset{language=C++,basicstyle=\ttfamily\footnotesize,stringstyle=\textred,
         backgroundcolor=\color{lightyellow},
         showstringspaces=false,
         commentstyle=\textcomment,
