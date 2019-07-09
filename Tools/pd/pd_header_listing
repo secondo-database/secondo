@@ -16,7 +16,7 @@
 \def‹{\"{U}}
 \defﬂ{\ss}
 
-\usepackage{epsfig, a4wide, xspace,color, listings, alltt}
+\usepackage{epsfig, xspace,color, listings, alltt}
 \lstloadlanguages{C++}
 \parindent0em
 \parskip0.8ex plus0.4ex minus 0.4ex
