@@ -1296,10 +1296,10 @@ round
 The costs are critically dependent on the buffer state of the system. 
 This means cold and warm states differ greatly in runtime. When an R-tree is used for the first time the buffer is in cold status, meaning it is empty and the R-tree must be loaded completely.
 After the first load it resides in the buffer, which means a second query on that index will be much faster than the first one. This is the warm buffer state. 
-Examples showed a factor by up to 10x in runtime.
-For the cost evaluation it is very difficult to determine in which state the system is to the runtime of the query. 
-So a mix of warm and cold states is used, this will never estimate the true runtime but is more precisely then to assume an always cold or warm system. 
-This will be evaluated by a query that is run 2 times, first one is cold and the second is in then warm state. 
+Examples have shown a factor by up to 10x in runtime.
+For the cost evaluation it is very difficult to determine in which state the system is concerning the runtime of the query. 
+So a mix of warm and cold states is used. This will never estimate the true runtime but is more precisely then to assume an always cold or warm system. 
+This will be evaluated by a query that is running two times. The first one is cold and the second is in warm state. 
 The runtimes will be set in ratio and then divided by 2 to bring in the mix of warm and cold state.
 This state-factor is a second constant that will be used in the query cost at the term (SizeX * CardY).
 
@@ -1417,7 +1417,7 @@ This threshold value is left untouched by the script and must be adjusted in the
 To determine the cost constant two new relations are defined. 
 Roads20 with all Roads that have a Maxspeed of 20 and Roads60 with Maxspeed 60. 
 These two are chosen because of the small amount of tuples and runtime. Both have around 3000 Tuples (as of 2019).
-Experiments showed that the cost is linear in size to the tuples.
+Experiments have shown that the cost is linear in size to the tuples.
 The first query runs with 1000000 tuples, the second with 4000000.
 The time difference between these two is the amount for 3000000 tuple in the symmjoin.
 
@@ -1503,9 +1503,9 @@ delete Roads60;
 /*
 1.3.3 SortMergeJoin
 
-The first query only sorts one stream by one argument. Its cost is linear to the size of the argument.
+The first query only sorts one stream by one argument. Its costs are linear to the size of the argument.
 The second query is a join without producing a result. Time for this query contains the sorting of both relations as well as the probing phase.
-Query is run 4 times to eliminate the cold buffer status effect.
+The query is running 4 times to eliminate the cold buffer status effect.
 
 ----	
 query Roads feed sortby [Code] count
