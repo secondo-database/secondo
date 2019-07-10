@@ -818,7 +818,7 @@ round
 /*
 1.1.9 Project
 
-Similiar to the evaluation of remove.
+Project is similiar to the evaluation of remove.
 Query 115 is used again to determine the time for Roads feed count.
 
 ----	query Roads feed project[Code] count
@@ -860,12 +860,12 @@ round
 /*
 1.1.10 Product
 
-Cartesian Product of its 2 input streams, hashes the second stream and performs then the product.
-Contains of 2 variables, Hashing and Joining.
-The constant is evaluated with the relation Roads as second stream (for the Hashing) and an empty relation which is called Leer.
-Two queries one with 100k tuples and one with 600k tuples are executed with these two. The time difference divided by 500k additional tuples is the constant per (hash-)tuple.
+The cartesian product of its two input streams, hashes the second stream and performs the product then.
+It contains of two variables, hashing and joining.
+The constant is evaluated with the relation Roads as the second stream (for the hashing) and an empty relation which is called Leer.
+Two queries, one with 100k tuples and one with 600k tules, are executed. The time difference divided by 500k additional tuples is the constant per (hash-)tuple.
 
-For the product cost itself a query with 2 tuples from Roads is joined with 600k tuples. The join then contains 1.2 million tuples.
+For the product cost itself a query with two tuples from Roads is joined with 600k tuples. The join then contains 1.2 million tuples.
 The runtime of that query is reduced by the hashphase so that the product cost is isolated.
 
 ----	
@@ -960,13 +960,13 @@ round
 /*
 1.1.11 Ksmallest
 
-Cost contains a linear part which grows in the size of the relation. 
-Second part growth exponential with the tuples that are used by the function. 
-First constant is evaluated through the relation Roads and the operator ksmallest limited to 1 Tuple, this ensures that the cost is near the basic cost of this function.
+The costs contain a linear part which grows in the size of the relation. 
+The second part growths exponential with number of tuples that are used by the function. 
+First constant is evaluated through the relation Roads and the operator ksmallest limited to one Tuple, this ensures that the costs are near the basic cost of this function.
 
-The second constant is then evaluated through a query that contains 800.000 and 1.200.000 tuples.
+The second constant is then evaluated using a query that contains 800.000 and 1.200.000 tuples.
 The runtime is then reduced by the feed...count part and the basic cost from ksmallest. 
-After that the remaining time will be divided by the Term (Size x lognl(Size+1)) x 1000. 
+After that, the remaining time will be divided by the Term (Size x lognl(Size+1)) x 1000. 
 The mean of the 2 queries should then factor the growth per tuple.
 
 ----	
@@ -1086,7 +1086,7 @@ query Cconst inserttuple[
 
 1.2.1 CreateBTree
 
-Special handling for distance-queries which have to create a temporary index.
+Special handling for distance queries which have to create a temporary index.
 
 ----	
 let Roads_Code = Roads createbtree[Code]
@@ -1135,8 +1135,8 @@ delete Roads_Code3;
 1.2.2 Exactmatch
 
 The constant is linear in the size of the result. It is evaluated through a rather simplistic query which uses the relation Roads again and filters all roads named Heideweg.
-This query was originally designed to query all roads with name Hauptstra{\ss}e but to correctly execute the PDview, to generate a PDF file of this script, it is needed to replace special German characters by latex symbols.
-With these symbols in the queries they would not be executed, so a compromise is made, to query a name that contains none of such special characters. 
+This query was originally designed to query all roads with name Hauptstra{\ss}e but execute the PDview correctly and for generating a PDF file of this script, it is needed to replace special German characters by latex symbols.
+The queries would not be executed with these symbols. Consequently a compromise is made to query a name that contains none of such special characters. 
 As of 2019 the name that is most common in NRW, without special chars, is Heideweg.
 
 ----	 
@@ -1176,7 +1176,7 @@ round
 /*
 1.2.3 Windowintersects
 
-Same cost estimation as in exactmatch only that here R-Trees are used. Cost is linear to the arguments size.
+Same cost estimation as in exactmatch except that here R-Trees are used. The costs are linear to the arguments size.
 An object eichlinghofen is created that represents a district of the city dortmund.
 Then the relation Buildings (which has n R-tree index) is used to determine the constant.
 
@@ -1250,7 +1250,7 @@ delete eichlinghofen;
 1.2.4 Leftrange
 
 Searches in a given B-Tree all tuples that are left from the argument. The cost is linear so the constant will be determined using the B-Tree in relation Roads again.
-Experiments showed that the range, left range and right range operators execute queries in almost identical runtime. So this constant is used for all 3 of them.
+Experiments showed that the range, left range and right range operators execute queries in almost identical runtime. So this constant is used for all three of them.
 
 ----	
 query Roads_Name_btree Roads leftrange['z'] count
@@ -1293,7 +1293,7 @@ round
 
 1.3.1 Loopjoin
 
-Cost is critically dependent on the buffer state of the system. 
+The costs are critically dependent on the buffer state of the system. 
 This means cold and warm states differ greatly in runtime. When an R-tree is used for the first time the buffer is in cold status, meaning it is empty and the R-tree must be loaded completely.
 After the first load it resides in the buffer, which means a second query on that index will be much faster than the first one. This is the warm buffer state. 
 Examples showed a factor by up to 10x in runtime.
