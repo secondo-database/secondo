@@ -145,7 +145,7 @@ CacheTestLocalInfo::CacheTestLocalInfo(ostream& out,
         intensity(intensity_ == 0 ? 1 : intensity_) {
 
    // print cache test title
-   out << endl;
+   out << setfill(' ') << endl;
    switch (accessType) {
       case sequentialAccess:
          out << "Cache test with sequential read access:" << endl;

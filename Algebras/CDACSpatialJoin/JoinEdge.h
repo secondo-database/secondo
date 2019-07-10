@@ -73,12 +73,12 @@ struct JoinEdge {
 
    static int compare(const void* a, const void* b) {
       // cp. SortEdge::operator<
-      const double ax = ((JoinEdge*)a)->yMin;
-      const double bx = ((JoinEdge*)b)->yMin;
-      if (ax < bx)
+      const double ay = ((JoinEdge*)a)->yMin;
+      const double by = ((JoinEdge*)b)->yMin;
+      if (ay < by)
          return -1;
       else
-         return (ax == bx) ? 0 : 1;
+         return (ay == by) ? 0 : 1;
    }
 
    /*

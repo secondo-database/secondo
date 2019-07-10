@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 \tableofcontents
 
 
-1 Cache-conscious Spatial Join with Divide and Conquer
+1 Cache-oriented Spatial Join with Divide and Conquer
 
 
 1.1 Imports
@@ -71,7 +71,7 @@ public:
          "-> \n"
          "stream (tblock (c ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))";
       syntax = "_ _ cdacspatialjoin [ _ , _  , _ ]";
-      meaning = "Cache-conscious spatial join operator using divide and "
+      meaning = "Cache-oriented spatial join operator using divide and "
                 "conquer to perform a spatial join on two streams of tuples "
                 "or tuple blocks, where xi and yj (both optional) are the "
                 "names of the join attributes of the first and second stream, "
@@ -94,10 +94,12 @@ shared_ptr<Operator> CDACSpatialJoin::getOperator() {
 /*
 1.3 Type Mapping
 
-The type mapping checks if exactly four arguments are passed to the operator.
-The first two arguments must be streams of tuple blocks. The second two
-arguments must be the names of the join attributes of the first and the
-second stream, respectively.
+The type mapping checks the number (2 to 5) and type of the arguments
+passed to the operator: Parameter 1 and 2 must either be streams of tuples,
+or streams of tuple blocks, respectively. Parameter 3 and 4 (optional) may be
+the names of the join attributes of the first and the second stream,
+respectively. Parameter 5 (optional, not expected for CDACSpatialJoinCount)
+may be the desired output TBlock size in MiB.
 
 */
 ListExpr CDACSpatialJoin::typeMapping(ListExpr args) {
@@ -557,7 +559,8 @@ CDACLocalInfo::CDACLocalInfo(const bool countOnly_, InputStream* const input1_,
          "createSortEdges",
          "sortSortEdges",
          "createJoinEdges",
-         "merge"
+         "merge",
+         "destructor"
    } };
    timer = make_shared<Timer>(taskNames);
 }
@@ -567,24 +570,27 @@ CDACLocalInfo::CDACLocalInfo(const bool countOnly_, InputStream* const input1_,
 
 */
 CDACLocalInfo::~CDACLocalInfo() {
+   timer->start(JoinTask::destructor);
+
+   // remember activeInstanceCount before "delete input1/2" may decrease it
+   // (in case input1 and/or input2 used another CDACSpatialJoin operator)
+   unsigned int activeInstanceCountCopy = activeInstanceCount;
+
+   // delete members
+   delete joinState;
+   delete input1;
+   delete input2;
+
    timer->stop();
 
-   // get operator info *before* "delete input1/2" may decrease
-   // activeInstanceCount (in case input1 and/or input2 used another
-   // CDACSpatialJoin operator)
    stringstream opInfo;
-   if (activeInstanceCount > 1) {
+   if (activeInstanceCountCopy > 1) {
       opInfo << "operator " << instanceNum << " (" << getOperatorName() << ")";
    } else {
       opInfo << getOperatorName();
    }
    opInfo << " with "<< joinStateCount << " ";
    opInfo << ((joinStateCount == 1) ? "JoinState" : "JoinStates");
-
-   // delete members
-   delete joinState;
-   delete input1;
-   delete input2;
 
 #ifdef CDAC_SPATIAL_JOIN_METRICS
    // print memoryInfo (only after input1 and input2 were deleted: if input1

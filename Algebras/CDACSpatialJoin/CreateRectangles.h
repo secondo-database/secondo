@@ -42,7 +42,7 @@ clusters of rectangles. Parameters:
 
 ----
 createRectangle2D(int base, int exp, real shrinkMin, real shrinkMax,
-int rndSeed)
+int rndSeed, int lockX = 0, int lockY = 0)
 
 ----
 
@@ -53,11 +53,14 @@ The parameters are
   * *exp*: the recursive depth. For instance, base = 10, exp = 3 will create
     1.000 rectangles:
 
-    * in depth 0, 10 large areas are defined on the canvas;
+    * in depth 0, 10 large areas are defined on the canvas (but not written
+      to the stream);
 
-    * in depth 1, 10 medium areas are defined within each large area;
+    * in depth 1, 10 medium areas are defined within each large area (but not
+      written to the stream);
 
-    * in depth 2, 10 small rectangles are drawn within each medium area.
+    * in depth 2, 10 small rectangles are created within each medium area
+      and written to the stream (since this is the final depth).
 
     exp = 1 (no recursion) can be used to avoid clusters, i.e. to get a
     simple random stream of (tuples with) rectangles
@@ -75,6 +78,17 @@ The parameters are
     get reproducible results. Note that two streams with the exact same
     parameters and equal, positive rndSeed values will provide the exact
     same rectangles in the same order, even if the stream is re-opened.
+
+  * *lockX* (optional): 0 for normal behavior; 1 for locking minX to the same
+    value for all rectangles (while maxX varies); 2 for locking maxX to the
+    same value for all rectangles (while minX varies); 3 for locking both
+    minX and maxX (i.e. all rectangles will be on top of each other, spanning
+    exactly the same x interval)
+
+  * *lockY* (optional): 0 for normal behavior; 1 for locking minY to the same
+    value for all rectangles; 2 for locking maxY to the same value for all
+    rectangles; 3 for locking both minY and maxY (i.e. all rectangles will be
+    next to each other, spanning exactly the same y interval)
 
 To use ~createRectangle2D~ for testing the ~CDACSpatialJoin~ operator, a query
 may look like this:
@@ -112,6 +126,9 @@ namespace cdacspatialjoin {
 */
 constexpr double CREATE_RECTANGLES_RANGE_MIN = 0.0;
 constexpr double CREATE_RECTANGLES_RANGE_MAX = 1000.0;
+constexpr double CREATE_RECTANGLES_RANGE_MID =
+        (CREATE_RECTANGLES_RANGE_MIN + CREATE_RECTANGLES_RANGE_MAX) / 2.0;
+enum LOCK_TYPE : unsigned { none = 0, min = 1, max = 2, both = 3 };
 
 /*
 1.3 CreateRectangles operator class
@@ -155,7 +172,7 @@ struct CreateRectanglesElem {
    unsigned i;
 
    CreateRectanglesElem(const Rectangle<dim>& rect_,
-           double shrinkMin_, double shrinkMax_);
+           double shrinkMin_, double shrinkMax_, const LOCK_TYPE lock[dim]);
 
    ~CreateRectanglesElem() = default;
 };
@@ -182,6 +199,9 @@ class CreateRectanglesLocalInfo {
    const double shrinkMax;
    /* the tuple type of the tuples to be created by the stream */
    const ListExpr resultType;
+   /* the locks used on dimension X/Y/Z: 0 = none, 1 = minimum value locked,
+    * 2 = maximum value locked, 3 = both locked */
+   LOCK_TYPE locks[dim];
 
    /* the standard mersenne twister engine */
    std::mt19937 rndGenerator;
@@ -193,7 +213,7 @@ class CreateRectanglesLocalInfo {
 public:
    CreateRectanglesLocalInfo(unsigned base_, unsigned exp_,
            double shrinkMin_, double shrinkMax_, unsigned long rndSeed_,
-           ListExpr resultType_);
+           const LOCK_TYPE locks_[], ListExpr resultType_);
 
    ~CreateRectanglesLocalInfo() = default;
 
@@ -222,16 +242,26 @@ template<unsigned dim>
 ListExpr CreateRectangles<dim>::TypeMapping(ListExpr args) {
    std::stringstream st;
    st << "createRectangles" << dim << "D";
-   st << "(int base, int exp, real shrinkMin, real shrinkMax, int rndSeed) ";
-   st << "expected";
+   st << "(int base, int exp, real shrinkMin, real shrinkMax, int rndSeed";
+   st << ", int lockX = 0";
+   if (dim >= 2) {
+      st << ", int lockY = 0";
+      if (dim >= 3) {
+         st << ", int lockZ = 0";
+      }
+   }
+   st << ") expected";
    const std::string err = st.str();
 
-   const int expectedArgsLength = 5;
+   const int expectedArgsLengthMin = 5;
+   const int expectedArgsLengthMax = expectedArgsLengthMin + dim;
    const int argsLength = nl->ListLength(args);
-   if (argsLength != expectedArgsLength) {
+   if (   argsLength < expectedArgsLengthMin
+       || argsLength > expectedArgsLengthMax) {
       std::stringstream st2;
       st2 << "wrong number of arguments: got " << argsLength
-         << " but expected " << expectedArgsLength << ": " << err;
+         << " but expected " << expectedArgsLengthMin
+         << " - " << expectedArgsLengthMax <<   ": " << err;
       return listutils::typeError(st2.str());
    }
 
@@ -239,13 +269,13 @@ ListExpr CreateRectangles<dim>::TypeMapping(ListExpr args) {
    std::stringstream wrongArgTypes;
    wrongArgTypes << "wrong argument type in argument ";
    size_t wrongCount = 0;
-   for (int i = 1; i <= expectedArgsLength; ++i) {
+   for (int i = 1; i <= argsLength; ++i) {
       ListExpr arg = nl->First(rest);
       const bool expectedInt = (i <= 2 || i >= 5);
       const bool expectedReal = !expectedInt;
 
-      if ((   expectedInt  && !CcInt::checkType(arg))
-          || (expectedReal && !CcReal::checkType(arg))) {
+      if ((   expectedInt  && !CcInt::checkType(nl->First(arg)))
+          || (expectedReal && !CcReal::checkType(nl->First(arg)))) {
          if (wrongCount > 0)
             wrongArgTypes << ", ";
          ++wrongCount;
@@ -288,9 +318,39 @@ ListExpr CreateRectangles<dim>::TypeMapping(ListExpr args) {
    std::random_device rd;
    const unsigned long fixedRndSeed = rd();
 
-   // use the append mechanism to return fixedRndSeed and the stream type
+   // compile information required by Value Mapping
+   // the nl->Empty() element will be omitted below:
+   const ListExpr appendInfo = nl->OneElemList(nl->Empty());
+   ListExpr appendEnd = appendInfo;
+
+   // check lockX/Y/Z values if provided, otherwise append parameter "0"
+   // for each omitted lock value
+   rest = args;
+   for (int i = 0; i < expectedArgsLengthMax; ++i) {
+      if (i < expectedArgsLengthMin) {
+         // skip the other parameters
+         rest = nl->Rest(rest);
+      } else if (i < argsLength) {
+         // check provided lock value
+         ListExpr arg = nl->First(rest);
+         long lock = nl->IntValue(nl->Second(arg));
+         if (lock < 0 || lock > 3) {
+            return listutils::typeError("expected lock values: 0 = none "
+                "(default), 1 = min locked, 2 = max locked, 3 = both locked");
+         }
+         rest = nl->Rest(rest);
+      } else {
+         // append default lock value 0
+         appendEnd = nl->Append(appendEnd, nl->IntAtom(0));
+      }
+   }
+   // append fixedRndSeed
+   appendEnd = nl->Append(appendEnd, nl->IntAtom(fixedRndSeed));
+
+
+   // use the append mechanism to return appendInfo and stream type
    return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
-           nl->OneElemList(nl->IntAtom(fixedRndSeed)), streamExpr);
+           nl->Rest(appendInfo), streamExpr);
 }
 
 /*
@@ -315,14 +375,19 @@ int CreateRectangles<dim>::ValueMapping(Word* args, Word& result, int message,
                  (static_cast<CcReal*>(args[3].addr))->GetValue();
          auto rndSeed = static_cast<unsigned long>(
                  (static_cast<CcInt*>(args[4].addr))->GetValue());
+         LOCK_TYPE locks[dim] {};
+         for (unsigned d = 0; d < dim; ++d) {
+            locks[d] = static_cast<LOCK_TYPE>(
+                    (static_cast<CcInt*>(args[5 + d].addr))->GetValue());
+         }
          if (rndSeed == 0) {
             // use the fixedRndSeed created in Type Mapping
             // (cp. the explanation there)
             rndSeed = static_cast<unsigned long>(
-                    (static_cast<CcInt*>(args[5].addr))->GetValue());
+                    (static_cast<CcInt*>(args[5 + dim].addr))->GetValue());
          }
          local.addr = new CreateRectanglesLocalInfo<dim>(base, exp,
-                 shrinkMin, shrinkMax, rndSeed, nl->Second(resultType));
+                 shrinkMin, shrinkMax, rndSeed, locks, nl->Second(resultType));
          return 0;
       }
       case REQUEST: {
@@ -350,9 +415,22 @@ template<unsigned dim>
 std::string CreateRectangles<dim>::getOperatorSpec() const {
    const std::string rectName = "Rectangle<" + std::to_string(dim) + ">";
    const std::string opName = "createRectangles" + std::to_string(dim) + "D";
+
+   std::string optSign = " x int";
+   std::string optList = ", lockX = 0";
+   if (dim >= 2) {
+      optSign += " x int";
+      optList += ", lockY = 0";
+      if (dim >= 3) {
+         optSign += " x int";
+         optList += ", lockZ = 0";
+      }
+   }
    return OperatorSpec(
-           "int x int x double x double x int -> stream(" + rectName + ")",
-           opName + "(base, exp, shrinkMin, shrinkMax, rndSeed) ",
+           "int x int x double x double" + optSign +
+              " -> stream(" + rectName + ")",
+           opName + "(base, exp, shrinkMin, shrinkMax, rndSeed" +
+              optList + ") ",
            "creates a reproducible stream of base^exp rectangles ",
            "query " + opName + "(10, 4, 0.3, 0.4, 1) count;"
    ).getStr();
@@ -374,13 +452,22 @@ std::shared_ptr<Operator> CreateRectangles<dim>::getOperator(){
 */
 template<unsigned dim>
 CreateRectanglesElem<dim>::CreateRectanglesElem(const Rectangle<dim>& rect_,
-        const double shrinkMin_, const double shrinkMax_) :
+        const double shrinkMin_, const double shrinkMax_,
+        const LOCK_TYPE lock[dim]) :
         rect(rect_) {
-   double minEdge = rect.MaxD(0) - rect.MinD(0);
-   for (unsigned d = 1; d < dim; ++d)
-      minEdge = std::min(minEdge, rect.MaxD(d) - rect.MinD(d));
-   extentMin = minEdge * shrinkMin_;
-   extentMax = minEdge * shrinkMax_;
+   // get the shortest edge, ignoring edges that are both min and max locked
+   double minEdge = std::numeric_limits<double>::max();
+   bool found = false;
+   for (unsigned d = 0; d < dim; ++d) {
+      if (lock[d] != LOCK_TYPE::both) {
+         minEdge = std::min(minEdge, rect.MaxD(d) - rect.MinD(d));
+         found = true;
+      }
+   }
+   // set minimum and maximum extent. If all dimensions are both min and max
+   // locked, these values will never be used
+   extentMin = found ? minEdge * shrinkMin_ : 0.0;
+   extentMax = found ? minEdge * shrinkMax_ : 0.0;
    i = 0;
 }
 
@@ -394,7 +481,8 @@ template<unsigned dim>
 CreateRectanglesLocalInfo<dim>::CreateRectanglesLocalInfo(
         const unsigned base_, const unsigned exp_,
         const double shrinkMin_, const double shrinkMax_,
-        const unsigned long rndSeed_, const ListExpr resultType_) :
+        const unsigned long rndSeed_, const LOCK_TYPE locks_[],
+        const ListExpr resultType_) :
         base(base_), exp(exp_),
         shrinkMin(shrinkMin_),
         shrinkMax(shrinkMax_),
@@ -407,11 +495,25 @@ CreateRectanglesLocalInfo<dim>::CreateRectanglesLocalInfo(
    double min[dim];
    double max[dim];
    for (unsigned d = 0; d < dim; ++d) {
-      min[d] = CREATE_RECTANGLES_RANGE_MIN;
-      max[d] = CREATE_RECTANGLES_RANGE_MAX;
+      locks[d] = locks_[d];
+      if (locks[d] != LOCK_TYPE::both) {
+         min[d] = CREATE_RECTANGLES_RANGE_MIN;
+         max[d] = CREATE_RECTANGLES_RANGE_MAX;
+      } else {
+         // if both locks apply (i.e. the min value and the max value should
+         // be locked), create a fixed interval for this dimension,
+         // using the average expected edge length
+         double fac = (shrinkMin + shrinkMax) / 2.0;
+         double extent = (CREATE_RECTANGLES_RANGE_MAX -
+                CREATE_RECTANGLES_RANGE_MIN) * fac; // use * fac at least once
+         for (unsigned i = 1; i < exp; ++i)
+            extent *= fac;
+         min[d] = CREATE_RECTANGLES_RANGE_MID - extent / 2.0;
+         max[d] = CREATE_RECTANGLES_RANGE_MID + extent / 2.0;
+      }
    }
    const Rectangle<dim> frame = Rectangle<dim>(true, min, max);
-   CreateRectanglesElem<dim> firstElem { frame, shrinkMin, shrinkMax };
+   CreateRectanglesElem<dim> firstElem { frame, shrinkMin, shrinkMax, locks };
    elemStack.push(firstElem);
 }
 
@@ -434,15 +536,33 @@ Tuple* CreateRectanglesLocalInfo<dim>::getNext() {
       double min[dim];
       double max[dim];
       for (unsigned d = 0; d < dim; ++d) {
-         double extent = getRnd(elem.extentMin, elem.extentMax);
-         min[d] = getRnd(frame.MinD(d), frame.MaxD(d) - extent);
-         max[d] = min[d] + extent;
+         double extent = (locks[d] == LOCK_TYPE::both) ? 0.0 :
+                 getRnd(elem.extentMin, elem.extentMax);
+         switch (locks[d]) {
+            case LOCK_TYPE::none:
+               min[d] = getRnd(frame.MinD(d), frame.MaxD(d) - extent);
+               max[d] = min[d] + extent;
+               break;
+            case LOCK_TYPE::min:
+               min[d] = frame.MinD(d); // min[d] is always the same
+               max[d] = min[d] + extent; // max[d] varies
+               break;
+            case LOCK_TYPE::max:
+               max[d] = frame.MaxD(d); // max[d] is always the same
+               min[d] = max[d] - extent; // min[d] varies
+               break;
+            default: // LOCK_TYPE::both
+               min[d] = frame.MinD(d); // both min[d] ...
+               max[d] = frame.MaxD(d); // ... and max[d] are always the same
+               break;
+         }
       }
       if (elemStack.size() >= exp) {
          result->PutAttribute(0, new Rectangle<dim>(true, min, max));
          break;
       }
-      elemStack.push({ Rectangle<dim>(true, min, max), shrinkMin, shrinkMax });
+      elemStack.push({ Rectangle<dim>(true, min, max), shrinkMin, shrinkMax,
+                       locks });
    } while(true);
 
    // remove completed elements from the stack

@@ -37,14 +37,32 @@ Signature: int x int x real x real x int -> stream(tuple(Rectangle<1>))
 Example  : query createRectangles1D(10, 4, 0.3, 0.4, 1) count
 Result   : 10000
 
+Operator : createRectangles1D
+Number   : 2
+Signature: int x int x real x real x int x int -> stream(tuple(Rectangle<1>))
+Example  : query createRectangles1D(10, 4, 0.3, 0.4, 1, 2) count
+Result   : 10000
+
 Operator : createRectangles2D
 Number   : 1
 Signature: int x int x real x real x int -> stream(tuple(Rectangle<2>))
 Example  : query createRectangles2D(10, 4, 0.3, 0.4, 1) count
 Result   : 10000
 
+Operator : createRectangles2D
+Number   : 2
+Signature: int x int x real x real x int x int x int -> stream(tuple(Rectangle<2>))
+Example  : query createRectangles2D(10, 4, 0.3, 0.4, 1, 0, 3) count
+Result   : 10000
+
 Operator : createRectangles3D
 Number   : 1
 Signature: int x int x real x real x int -> stream(tuple(Rectangle<3>))
 Example  : query createRectangles3D(10, 4, 0.3, 0.4, 1) count
+Result   : 10000
+
+Operator : createRectangles3D
+Number   : 2
+Signature: int x int x real x real x int x int x int x int -> stream(tuple(Rectangle<3>))
+Example  : query createRectangles3D(10, 4, 0.3, 0.4, 1, 0, 2, 3) count
 Result   : 10000

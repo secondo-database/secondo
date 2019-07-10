@@ -182,6 +182,7 @@ const CacheInfoPtr CacheInfos::getCacheInfo(const CacheType type,
 }
 
 void CacheInfos::report(std::ostream& out) {
+   out << setfill(' ');
    out << endl << "Caches:" << endl;
    const CacheInfos& cacheInfos  = getOnlyInstance();
    for (const CacheInfoPtr& info : cacheInfos.infos)

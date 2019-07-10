@@ -62,7 +62,9 @@ enum JoinTask : unsigned {
    createJoinEdges,
    /* the task of merging the JoinEdges and reporting (or counting) the
     * intersections */
-   merge
+   merge,
+   /* the task of destructing the CDACLocalInfo class */
+   destructor
 };
 
 /*

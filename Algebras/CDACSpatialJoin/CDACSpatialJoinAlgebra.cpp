@@ -80,8 +80,11 @@ namespace cdacspatialjoin {
          AddOperator(opCacheTest.get());
 
          // createRectangles1D/2D/3D stream operators
+         opCreateRectangles1D.get()->SetUsesArgsInTypeMapping();
          AddOperator(opCreateRectangles1D.get());
+         opCreateRectangles2D.get()->SetUsesArgsInTypeMapping();
          AddOperator(opCreateRectangles2D.get());
+         opCreateRectangles3D.get()->SetUsesArgsInTypeMapping();
          AddOperator(opCreateRectangles3D.get());
       }
    };

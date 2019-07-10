@@ -23,9 +23,9 @@ operator cdacspatialjoincount alias CDACSPATIALJOINCOUNT pattern _ _ op [_, _]
 
 operator cacheTest alias CACHETEST pattern op(_)
 
-operator createRectangles1D alias CREATERECTANGLES1D pattern op(_, _, _, _, _)
+operator createRectangles1D alias CREATERECTANGLES1D pattern op(_, _, _, _, _, _)
 
-operator createRectangles2D alias CREATERECTANGLES2D pattern op(_, _, _, _, _)
+operator createRectangles2D alias CREATERECTANGLES2D pattern op(_, _, _, _, _, _, _)
 
-operator createRectangles3D alias CREATERECTANGLES3D pattern op(_, _, _, _, _)
+operator createRectangles3D alias CREATERECTANGLES3D pattern op(_, _, _, _, _, _, _, _)
 

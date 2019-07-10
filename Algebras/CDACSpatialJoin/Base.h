@@ -31,8 +31,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 Typedefs and constants for the CDACSpatialJoin(Count) operators
 
-To keep includes as limited as possible, this header contains common typedefs
-and constants used in the context of the CDACSpatialJoin(Count) operators.
+To keep includes as limited as possible, this header contains common defines,
+typedefs and constants used in the context of the CDACSpatialJoin(Count)
+operators.
+
+For activating the Performance API (PAPI), see Timer.h.
 
 */
 

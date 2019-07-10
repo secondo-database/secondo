@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 CDACSpatialJoin operator
 
-The ~cdacspatialjoin~ operator performs a cache-conscious spatial join on
+The ~cdacspatialjoin~ operator performs a cache-oriented spatial join on
 two streams of tuples or tuple blocks, using a divide-and-conquer strategy.
 
 As arguments, ~cdacspatialjoin~ expects two streams of tuples or tuple blocks.
