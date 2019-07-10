@@ -24,8 +24,10 @@ export default {
   },
   mutations: {
     [SET_JOURNAL_ITEMS](state: any, journalItems: JournalDTO[]): void {
-      state.journalItems = journalItems;
-      TreeService.prepareTreeForDisplay(state.journalItems[0]);
+      if (journalItems.length > 0) {
+        state.journalItems = journalItems;
+        TreeService.prepareTreeForDisplay(state.journalItems[0]);
+      }
     },
     [SET_TREE_FOR_DISPLAY](state: any, treeForDisplay: TreeForDisplayDTO): void {
       state.treeForDisplay = treeForDisplay;
