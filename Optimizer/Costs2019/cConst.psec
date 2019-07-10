@@ -35,26 +35,25 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 The cost constants will be evaluated with the datasets obtained from 
 
-http://download.geofabrik.de/europe/germany/nordrhein-westfalen-latest-free.shp.zip 
+http://download.geofabrik.de/europe/germany/nordrhein-westfalen-latest-free.shp.zip. 
 
-these must be imported first e.g. through the script "nrwImportShapeNew.psec" into the database nrw.
+These must be imported first e.g. through the script ``nrwImportShapeNew.psec`` into the database nrw.
 This script is designed to use the database nrw where the relation Cconst will be created to store the constants.
-Each query will be executed three times, then the results(avg ElapsedTime) of these three executions will be transferred to relation Cconst.
+Each query will be executed three times, then the results(avg ElapsedTime) of these three executions will be transferred to the relation Cconst.
 If necessary, further calculations to determine the constants will be executed.
 When the constants are fully determined they will be written in the costs2014.pl file at the end of the script.
 In the relation Cconst all queries that are just auxiliary ones are stored with IDs higher than 100.
 This means that all IDs under 100 are the ones where the constants are stored.
-The relation that is used throughout the script is Roads, with variations Roads20 and Roads60. These contain all Roads with Maxspeed = 20 and 60 respectively.
+The relation that is used throughout the script is Roads, with variations Roads20 and Roads60. These contain all roads with Maxspeed = 20 and 60 respectively.
 Also the relation Waterways and Buildings are used.
 If a query has a ratio between ElapsedTime and CpuTime that is greater than 1.5 it will be ignored for evaluating the runtime of this query.
 
 The script must be run without error detection, because the commentary produces errors in SECONDO.
 
 Preparations:
-Download and Import nrw OSMdata
-Delete the existing constants in costs2014
-
-Schema of the relation that is created to store the queries and resulting constants:
+download and import nrw OSMdata.
+Delete the existing constants in costs2014 
+schema of the relation that is created to store the queries and resulting constants:
 
 ----	
 Cconst  [ ID:int  Query:string  ElapsedTime:real  CPUTime:real  
@@ -64,7 +63,7 @@ NoResTuple:int  NoCompTuple:int  Constant:real ]
 
 1.1 Basic constants
 
-First a few basic objects are defined, such as the new-line object for separating the constants while writing them back to costs2014.pl
+First a few basic objects are defined, such as the new-line object for separating the constants while writing them back to costs2014.pl.
 The ratio is defined and the relation Cconst itself.
 A timestamp is directly written to costs2014.pl to mark the start of the constant evaluation.
 
@@ -102,10 +101,10 @@ delete c3;
 /*
 1.1.1 Feedproject
 
-For the evaluation of the feedproject predicate we need to determine 3 constants, which is "per Tuple", "per Attribute" and "per Byte".
-Evaluation of "per Attribute" is done through 3 queries each with a different number of attributes (1, 2 and 3). 
-Ratio is ignored and CpuTime instead of ElapsedTime is used, as tests showed that when projecting given attributes the runtime seems to be randomly off.
-So to get reliable values the CpuTime is used.
+For the evaluation of the feedproject predicate we need to determine three constants, which are defined ``per tuple``, ``per attribute`` and ``per byte``.
+Evaluation ``per attribute`` is done through three queries each with a different number of attributes (one, two and three). 
+Ratio is ignored and CpuTime instead of ElapsedTime is used, as tests showed that when given attributes are projected the runtime seems to be randomly off.
+So, to get reliable values the CpuTime is used.
 
 ----	
 query Roads feedproject[Code] count
@@ -155,10 +154,10 @@ Roads feedproject[Code] count,
 0.0] consume;
 
 /*
-The query was evaluated with 1, 2 or 3 attributes respectively. 
-The attributes were chosen with the same datatype and roughly the same size. 
-Now the gaps between 1 \& 2 Attributes and 2 \& 3 Attributes will be determined. 
-After that the average of these two defines the constant "per Attribute".
+The query is evaluated with one, two or three attributes respectively. 
+The attributes are chosen with the same datatype and roughly the same size. 
+Now the gaps between one and two attributes and two and three attributes will be determined. 
+After that, the average of these two attributes defines the constant "per attribute".
 
 */
 
@@ -188,8 +187,8 @@ round
 ]consume;
 
 /*
-Evaluation of "per Tuple"
-Simply substract the cost for 1 Attribute from the overall runtime and divide through the number of tuples.
+Evaluation ``per Tuple``
+simply substracts the costs for one attribute from the overall runtime divided through the number of tuples.
 
 ----	
 query Roads feedproject[Maxspeed] count
@@ -227,8 +226,8 @@ Roads feedproject[Code] count,
 
 
 /*
-Evaluation of "per Byte":
-To evaluate this factor the script queries the relation Roads with two different attributes and subtracts the runtime as well as their sizes to determine the constant.
+Evaluation "per byte``:
+to evaluate this factor the script queries the relation Roads with two different attributes and subtracts the runtime as well as their sizes to determine the constant.
 
 ----	
 query Roads feedproject [Maxspeed] count
@@ -242,7 +241,7 @@ query Roads feedproject [Maxspeed] count;
 query Roads feedproject [Maxspeed] count;
 
 query Cconst inserttuple[
-"104", 
+``104", 
 'query Roads feedproject [Maxspeed] count', 
 SEC2COMMANDS feed tail[3] 
 filter[((.ElapsedTime / .CpuTime)< ratio)] avg[ElapsedTime],
@@ -293,9 +292,9 @@ round
 1.1.2 Feed
 
 The relation Road is used again.
-Three attributes with the same datatype and size are selected and the differences determine the "per Attribute" constant.
-We also need to determine the constant for "per Tuple".
-Definition of "per Attribute" is, as in feedproject, done through using CpuTime.
+Three attributes with the same datatype and size are selected and the differences determine the ``per attribute`` constant.
+We also need to determine the constant ``per tuple``.
+Definition ``per attribute`` is, as in feedproject, done using CpuTime.
 
 ----	
 query Roads feed project [Tunnel] count
@@ -357,7 +356,7 @@ round
 ,6)]consume;
 
 /*
-For the "per Tuple" constant one query takes 100000 tuples and another one 1000000 tuples. 
+For the ``per tuple`` constant one query takes 100000 tuples and another one 1000000 tuples. 
 The time difference between these queries is then divided by the tuples difference (900000).
 
 ----	
@@ -417,8 +416,8 @@ round
 1.1.3 Consume
 
 A simple relation is created.
-Important is that the Let-Operator generates 2 queries, one is the creation of the new relation and another one for updating infos of that relation.
-So the last 6 entries in SEC2COMMANDS must be retrieved and then filtered on the queries that contain the keyword 'let'.
+Important is that the let operator generates two queries. One is for the creation of the new relation and another one is updating infos of that relation.
+So the last six entries in SEC2COMMANDS must be retrieved and then filtered on the queries that contain the keyword 'let'.
 
 ----	
 let x = Waterways feed consume
@@ -484,13 +483,12 @@ round
 
 This constant is used throughout all join operators. It is used to determine the cost for producing the results per tuple and attribute.
 
-Two queries will be evaluated with 2 and 4 attributes respectively. 
-The first query has 2 attributes and produces 10 million result tuples. 
-The second query has 4 attributes and produces also 10 million result tuples.
-Difference between these two queries, devided by 2 and then divided by 10 Mio, is the constant per attribute for each result tuple.
-In the script the runtime is divided by 20000 because of 10 Mio tuples for 2 additional attributes would be a factor of 20000000. 
-After that the result would be multiplied by 1000 to convert the time to milliseconds.
-So: ((Runtime Difference total) / 20000000) * 1000 is the same as ((Runtime Difference total)/ 20000).
+Two queries will be evaluated with two and four attributes respectively. The first query has two attributes and produces 10 million result tuples. 
+The second query has four attributes and produces also 10 million result tuples.
+The difference between these two queries, devided by 2 and then divided by 10 Mio, is the constant per attribute for each result tuple.
+In the script the runtime is divided by 20000 because 10 Mio tuples for 2 additional attributes would be a factor of 20000000. 
+After that the result is multiplied by 1000 to convert the time to milliseconds.
+So, ((Runtime Difference total) / 20000000) * 1000 is the same as ((Runtime Difference total)/ 20000).
 
 ----	
 query Roads feedproject [Maxspeed] {r} 
@@ -570,10 +568,10 @@ round
 /*
 1.1.5 Filter
 
-The filter is evaluated through a query with and without a filter predicate. The time difference is the constant for the filter predicate.
+The filter is evaluated by a query with and without a filter predicate. The time difference is the constant for the filter predicate.
 Roads is used again.
-The cost function contains a threshold value of 0.2 ms, corresponding to processing 2000 tuples, the standard sample size, within 400 ms.
-This was evaluated in the original costs2014.pl, through test with an "expensive" query to determine this threshold (GeoData intersects X).
+The cost function contains a threshold value of 0.2 ms, corresponding to the processing of 2000 tuples (the standard sample size) within 400 ms.
+This is evaluated in the original costs2014.pl, using a test with an expensive query to determine this threshold (GeoData intersects X).
 This threshold is left untouched by the script as it is built in the cost function directly.
 
 ----	
@@ -634,9 +632,9 @@ round
 /*
 1.1.6 Rename
 
-Cost is linear in the number of tuples, does not depend on the number of attributes or tuple size as just one pointer for the tuple is passed to the next operator.
-To determine the cost one query is executed without and one with a rename. 
-The query Number 115 (Roads feed count) has already been executed and will be used here to define the running time without rename.
+The costs are linear in the number of tuples, but do not depend on the number of attributes or tuple size as just one pointer for the tuple is passed to the next operator.
+To determine the costs one query is executed without and one with a rename. 
+The query number 115 (Roads feed count) has already been executed and will be used here to define the running time without rename.
 
 ----	
 query Roads feed {r} count
@@ -680,12 +678,12 @@ round
 /*
 1.1.7 Extend
 
-The cost function was extended by a second constant which is "per Attribute". These constant factors for the cost increase if more than one attribute is extended.
+The cost function is extended by a second constant which is ``per attribute``. These constant factors for the costs increase if more than one attribute is extended.
 
 The cost constants that will be determined are the cost per tuple and the cost per attribute.
-"per Tuple" is a simple query on the relation Roads with one extended attribute.
-"per Attribute" is the difference between the runtime with 2 and 3 extended attributes respectively (usage of CpuTime).
-Again query 115 (Roads feed count) is used as reference for the base time of query Roads feed count.
+``per Tuple`` is a simple query on the relation Roads with one extended attribute.
+``per Attribute`` is the difference between the runtime with two and three extended attributes respectively (usage of CpuTime).
+Again query 115 (Roads feed count) is used as a reference for the base time of query Roads feed count.
 
 ----	
 query Roads feed extend[Code2: .Code*10] count
