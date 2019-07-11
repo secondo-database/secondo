@@ -1586,16 +1586,16 @@ round
 /*
 1.3.4 HashJoin
 
-Hashjoin contains 3 phases. 
-The Hash- and Probephase as well as processing the result tuples.
-The script evaluates the time for the Hashphase and the Probephase as the result is already determined through the attribute constant from chapter 1.1.4.
+The hashjoin contains 3 phases. 
+The hash- and probephase as well as processing the result tuples.
+The script evaluates the time for the hashphase and the probephase as the result is already determined through the attribute constant from chapter 1.1.4.
 
-First one is a query with joining but without producing results and thus without probing.
+The first one is a query with joining but without producing results and thus without probing.
 Time difference between the basic feedproject ... count and this query is the time for hashing the table.
 
-The second query adds the Probingphase but produces no results.
+The second query adds the probing phase but produces no results.
 
-The costfunction only uses the probing constant as the hashingphase is ignored because experiments showed that this phase is always extremely shorter then probing.
+The costfunction only uses the probing constant as the hashing phase is ignored because experiments showed that this phase is always extremely shorter then probing.
 
 ----	
 query Roads feed {r1} Roads feed {r2} 
@@ -1700,9 +1700,9 @@ round
 /*
 1.3.5 SpatialJoin
 
-The following query was used to determine the cost constant for spatialjoin (without producing results).
-As stated in costs2014.pl originalversion the cost is almost linear in size of the argument streams, therefore only one constant is used here.
-Relation Roads and Waterways are joined through a spatialjoin to determine this constant.
+The following query is used to determine the cost constant for the spatialjoin (without producing results).
+As stated in costs2014.pl originalversion the costs are almost linear in size of the argument streams, therefore only one constant is used here.
+The relations Roads and Waterways are joined through a spatialjoin to determine this constant.
 
 ----	
 query Roads feed {r} Waterways feed {w} spatialjoin[GeoData_r, GeoData_w] 
@@ -1758,21 +1758,21 @@ round
 1.3.6 itHashJoin
 
 The cost function was first introduced in Costs2014.pl 
-As of constructing this script the costfunction was modified to a version that only accounts the probing not the hashing (like in Hashjoin).
-Documentation of the cost function is in costs2014.pl
+It is modified to a version that only accounts the probing and not the hashing (like in hashjoin).
+The documentation of the cost function can be found in costs2014.pl.
 
-Cost constants are evaluated in a similiar manner as for hashjoin. The difference is that two relations with more tuples are used.
-itHashJoin has 2 additional constants, for read and write of the Tuplefile for Stream 2.
-First two queries evaluate the constants without partitioning and thus without using the Tuplefile. 
-The second one determines the Probingcost and uses the No. of buckets 999997, that is the default value of the itHashJoin, to evaluate that constant.
+Cost constants are evaluated in a similar manner as for the hashjoin. The difference is that two relations with more tuples are used.
+The itHashJoin has two additional constants for reading and writing of the tuple file for stream two.
+The first two queries evaluate the constants without partitioning and thus without using the tuple file. 
+The second one determines the probing cost and uses the number of buckets 999997, that is the default value of the itHashJoin, for evaluating that constant.
 For this a relation RoadsC2 is created to probe but not produce results.
 
-For the Read and Write constants three queries are used. 
-A base query where the relation fits completely in the memory, after that a query with two partitions (and 300 MB Mem) and with three partitions (and 150 MB Mem) is executed.
-To determine the cost for reading the tuplefile we substract the time for the 2-Partitions-Query from the 3-Partitions-Query to determine the cost for 1 readprocess.
-Then this time is substracted from the difference between 2-Partitions-Query and the Basecost to isolate the writeprocess cost.
+For the read and write constants three queries are used: 
+A base query where the relation fits completely in the memory. After that a query with two partitions (and 300 MB Mem) and one with three partitions (and 150 MB Mem) are executed.
+To determine the cost for reading the tuple file we subtract the time for the two-partitions-query from the three-partitions-query to determine the costs for one read process.
+Then, this time is subtracted from the difference between two-partitions-query and the base cost to isolate the write process cost.
 
-The Memory values need to be adjusted if the queries are not executed in 1, 2 and 3 Partitions with 512MB, 300MB and 150MB Memory each.
+The memory values need to be adjusted if the queries are not executed in one, two and three partitions with 512MB, 300MB and 150MB memory each.
 
 ----	
 let RoadsC2 = Roads feed head[300000] extend[Code2: .Code*15] consume
@@ -1884,14 +1884,14 @@ round
 * 1000,6)]consume; 
 
 /*
-Here the determination of the Read and Write Constants begin.
-First a few variables are defined to later check if the No. of partitions were really 1, 2 and 3 respective. 
-If not the constants may be off, due to the fact that the calculation is explicitly build to factor between 2 and 3 Partitions (or 1 and 2 respective).
-First query executed 4 times to eliminate the cold buffer state.
-This is also written back to costs2014.pl as a commentary behind the constants.
+Here, the determination of the read and write constants begin.
+First a few variables are defined for later checking if the number of partitions were really one, two and three respectively. 
+If not, the constants may be off, due to the fact that the calculation is explicitly build a to factor between two and three partitions (or one and two respectively).
+The first query is executed four times to eliminate the cold buffer state.
+This is written back to costs2014.pl as a commentary behind the constants.
 
 CpuTimes are used because the elapsed times seemed to be off.
-Tests showed that with 2 or 3 partitions the elapsed times were shorter than with only 1 partition.
+Tests showed that with two or three partitions the elapsed times are shorter than with only one partition.
 
 */
 
@@ -2049,7 +2049,7 @@ delete RoadsC2;
 /*
 1.3.7 itSpatialJoin
 
-Costfunction is the same as for itHashjoin only the constants differ.
+The cost function is the same as for itHashjoin only the constants differ.
 Evaluation of the constants follows the same steps as for itHashJoin.
 A relation based on Roads is created that contains tuples that have no overlapping BBoxes with relation Buildings. This is named RoadsNBuild.
 
@@ -2186,14 +2186,14 @@ round
 
 
 /*
-The evaluation of the read and write constants are done in a similiar manner like for itHashJoin. 
+The evaluation of the read and write constants are done in a similiar manner like for the itHashJoin. 
 
-Overhead of 353 was evaluated through a query with only the GeoData attribute and 512mb memory.
-The join then finishes in 1 Partition and stores max 1062111 tuples. This would be (512*1024*1024) / 1062111 = 505.48 byte per tuple.
-As GeoData in relation Roads has a size of 152 the remaining size must be the overhead which is 353.
+An overhead of 353 iss evaluated through a query with only the GeoData attribute and 512mb memory.
+The join then finishes in 1 Partition and stores max 1062111 tuples. This would be (51210241024) / 1062111 = 505.48 bytes per tuple.
+As GeoData in the relation Roads has a size of 152 the remaining size must be the overhead which is 353.
 
-CpuTimes are used because the elapsed times seemed to be off.
-Tests showed that with 2 or 3 partitions the elapsed times were shorter than with only 1 partition.
+CpuTimes is used because the elapsed times seemed to be off.
+Tests have shown that with two or three partitions the elapsed times are shorter than with only 1 partition.
 
 ----	
 query Buildings feedproject[GeoData] head[1000000] {b} 
@@ -2378,8 +2378,8 @@ delete SizeX;
 /* 
 2 Export
 
-The Relation cConst is exported for further usage and analyzing
-IF there is an old version of this file it will be overwritten
+The relation cConst is exported for further usage and analyzing.
+If there is an old version of this file it will be overwritten.
 
 */
 
@@ -2390,12 +2390,12 @@ query Cconst feed csvexport['Cconst.csv', FALSE, TRUE, ";"] count;
 
 These constants are used in other algebras such as the symbolic trajectory algebra as well as the NearestNeighborAlgebra.
 Indextmatches needs an mlbale attribut to work on. So the database symtrajsmall is restored, as this DB contains relations with the needed  attributes.
-To determine the constant a new relation Dotraj2 is created. This one will be filled with round about 100.000 tuples. The mblabel attribute will also be indexed beforehand, as Indextmatches is an index operator.
-After filling the relation and indexing it, the script queries it to determine the time for Indextmatches. Time is linear in size of the relation.
+To determine the constant a new relation Dotraj2 is created. This will be filled with round about 100.000 tuples. The mblabel attribute will also be indexed beforehand, as Indextmatches is an index operator.
+After filling the relation and indexing it, the script is executing a query to determine the time for Indextmatches. Time is linear in size of the relation.
 
-Distancescan on the other hand 
+Distancescan on the other hand. 
 
-As these constants are determined in another database it is not possible to write them back in the original relation Cconst in DB nrw. Instead another version of Cconst is implemented and these constants are directly appended into the csv-export.
+If these constants are determined in another database, it is not possible to write them back in the original relation Cconst in DB nrw. Instead another version of Cconst is implemented and these constants are directly appended into the csv-export.
 Also the values are written directly back to costs2014. 
 All others are written at the end of the script.
 
@@ -2490,8 +2490,8 @@ open database nrw;
 
 In this section all determined constants will be written back to the costs2014.pl file. 
 They will be added at the end of the file.
-The Script build a string that contains all relevant information. The constants are directly read from relation Cconst.
-An example looks like the following
+The Script builds a string that contains all relevant information. The constants are directly read from relation Cconst.
+An example looks like the following:
 
 ----
 let feedprC = "feedprojectC("+
@@ -2506,8 +2506,8 @@ feedprojectC(0.000636,0.000533,1e-06).
 
 ----
 
-At the beginning of the script a Timestamp was written in that file too, to distinguish between old and new determined constants.
-All constants are written back in chronological order, except for indextmatches. This is always the first constant as its written back directly after evaluation.
+At the beginning of the script a timestamp is written in that file too, to distinguish between old and new determined constants.
+All constants are written back in chronological order, except for indextmatches. This is always the first constant as it is written back directly after evaluation.
 
 */
 
