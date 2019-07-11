@@ -193,7 +193,7 @@ namespace sjt {
                 rightStreamWordIndexW = args[5];
 
                 int fanout = 32;
-                int numOfItemsInBucket = 12800
+                int numOfItemsInBucket = 12800;
                 int cellFactor = 2;
 
                 int leftStreamWordIndex =
