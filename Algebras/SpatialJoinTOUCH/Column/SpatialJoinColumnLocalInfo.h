@@ -100,9 +100,9 @@ public:
     SpatialJoinColumnLocalInfo(
             Word firstStreamWordParam,
             Word secondStreamWordParam,
-            Word _fanout,
-            Word _numOfItemsInBucket,
-            Word cellFactorWord,
+            int fanout,
+            int numOfItemsInBucket,
+            int cellFactor,
             int firstStreamWordIndex,
             int secondStreamWordIndex,
             ListExpr ttl,

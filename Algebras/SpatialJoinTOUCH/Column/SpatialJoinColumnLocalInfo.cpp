@@ -81,9 +81,9 @@ SpatialJoinColumnLocalInfo::~SpatialJoinColumnLocalInfo() {
 SpatialJoinColumnLocalInfo::SpatialJoinColumnLocalInfo(
         Word firstStreamWordParam,
         Word secondStreamWordParam,
-        Word _fanout,
-        Word _numOfItemsInBucket,
-        Word cellFactorWord,
+        int fanout,
+        int numOfItemsInBucket,
+        int cellFactor,
         int firstStreamWordIndex,
         int secondStreamWordIndex,
         ListExpr ttl,
@@ -98,10 +98,6 @@ SpatialJoinColumnLocalInfo::SpatialJoinColumnLocalInfo(
 
     firstStreamWord = firstStreamWordParam;
     secondStreamWord = secondStreamWordParam;
-
-    int fanout = ((CcInt*)_fanout.addr)->GetIntval();
-    int numOfItemsInBucket = ((CcInt*)_numOfItemsInBucket.addr)->GetIntval();
-    int cellFactor = ((CcInt*)cellFactorWord.addr)->GetIntval();
 
     _firstStreamIndex = firstStreamWordIndex;
     _secondStreamIndex = secondStreamWordIndex;

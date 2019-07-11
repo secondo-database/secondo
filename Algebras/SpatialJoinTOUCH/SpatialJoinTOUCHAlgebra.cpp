@@ -66,11 +66,16 @@ namespace sjt {
         spatialJoinRowInfo()
         {
             name        = "spatialJoinTouch";
-            signature   = "stream() x stream() x int x int -> stream()";
+            signature   = "stream(tuple(A)) x stream(tuple(B)) x a_i x b_j "
+                          "           -> stream(tuple(A o B)) ";
             syntax      = "_ _ spatialJoinTouch [_,_]";
-            meaning     = "Executes a spatial join between two streams "
-                          "of datasets";
-            example = "--";
+            meaning     = "Executes the Touch algorithm, which is a spatial "
+                          "join, between two streams of datasets. "
+                          "Further a_i and b_j must be of type rect or rect3 "
+                          "in A and B. The current query is performed on "
+                          "tuple streams.";
+            example = "query Roads feed {a} Buildings feed {b} "
+                      "spatialJoinTouch[GeoData_a, GeoData_b] count";
         }
     };
 
@@ -79,11 +84,18 @@ namespace sjt {
         spatialJoinMInfo()
         {
             name        = "spatialJoinTouch";
-            signature   = "Relation x Relation -> Relation";
+            signature   = "mpointer(mem(rel(tuple(A)))) x "
+                          "mpointer(mem(rel(tuple(B)))) x a_i x b_j"
+                          " -> stream(tuple(A o B)) ";
             syntax      = "_ _ spatialJoinTouch [_,_]";
-            meaning     = "Executes a spatial join between two Relations of "
-                          "datasets";
-            example = "--";
+            meaning     =  "Executes the Touch algorithm, which is a spatial "
+                           "join, between two memory relations. "
+                           "Further a_i and b_j must be of type rect or rect3 "
+                           "in A and B. The current query is performed on "
+                           "memory relations.";
+            example = "query Roads feed {a} mconsume Buildings feed {b} "
+                      "mconsume  spatialJoinTouch [ GeoData_a, GeoData_b] "
+                      "count";
         }
     };
 
@@ -92,12 +104,19 @@ namespace sjt {
         spatialJoinColumnInfo()
         {
             name        = "spatialJoinTouch";
-            signature   = "stream() x Stream() x int x int x int x int "
-                                                    "-> Stream()";
+            signature   = "stream(tblock(ma, ((na0, ca0) ... (nai, cai)))) x "
+                          "stream(tblock(ma, ((nb0, cb0) ... (nbi, cbi)))) x "
+                          "a_i x b_j "
+                          "-> stream(tblock(ma, ((nd0, cd0) ... (ndi, cdi))))";
             syntax      = "_ _ spatialJoinTouch [_,_]";
-            meaning     = "Executes a spatial join between "
-                          "two streams of datasets";
-            example = "--";
+            meaning     = "Executes the Touch algorithm, which is a spatial "
+                          "join, between two streams of datasets. "
+                          "Further a_i and b_j must be of type rect or rect3 "
+                          "in A and B. The current query is performed on "
+                          " tuple-block streams.";
+            example = "query Roads feed toblocks[1] {a} Buildings feed "
+                      "toblocks[1] {b} spatialJoinTouch[GeoData_a, GeoData_b] "
+                      "count";
         }
     };
 
@@ -170,17 +189,12 @@ namespace sjt {
 
                 leftStreamWord = args[0];
                 rightStreamWord = args[1];
-                leftStreamWordIndexW = args[7];
-                rightStreamWordIndexW = args[8];
+                leftStreamWordIndexW = args[4];
+                rightStreamWordIndexW = args[5];
 
-                Word fanoutWord = args[4];
-                Word numOfItemsInBucketWord = args[5];
-                Word cellFactorWord = args[6];
-
-                int fanout = ((CcInt*)fanoutWord.addr)->GetIntval();
-                int numOfItemsInBucket
-                        = ((CcInt*)numOfItemsInBucketWord.addr)->GetIntval();
-                int cellFactor = ((CcInt*)cellFactorWord.addr)->GetIntval();
+                int fanout = 32;
+                int numOfItemsInBucket = 12800
+                int cellFactor = 2;
 
                 int leftStreamWordIndex =
                         ((CcInt*)leftStreamWordIndexW.addr)->GetIntval()-1;
@@ -232,27 +246,21 @@ namespace sjt {
     int spatialJoinMFun (Word* args, Word& result,
                                        int message, Word& local, Supplier s)
     {
-        Word fanoutWord = args[4];
-        Word numOfItemsInBucketWord = args[5];
-        Word cellFactorWord = args[6];
-
-        int fanout = ((CcInt*)fanoutWord.addr)->GetIntval();
-        int numOfItemsInBucket =
-                ((CcInt*)numOfItemsInBucketWord.addr)->GetIntval();
-        int cellFactor = ((CcInt*)cellFactorWord.addr)->GetIntval();
+        int fanout = 32;
+        int numOfItemsInBucket = 12800;
+        int cellFactor = 2;
 
         MPointer* mPointerA = (MPointer*) args[0].addr;
         MPointer* mPointerB = (MPointer*) args[1].addr;
         MemoryRelObject* mrelA = (MemoryRelObject*) mPointerA->GetValue();
         MemoryRelObject* mrelB = (MemoryRelObject*) mPointerB->GetValue();
 
-        Word vAIndexWord = args[7];
-        Word vBIndexWord = args[8];
+        Word vAIndexWord = args[4];
+        Word vBIndexWord = args[5];
 
 
         int vAIndex = ((CcInt*)vAIndexWord.addr)->GetIntval()-1;
         int vBIndex = ((CcInt*)vBIndexWord.addr)->GetIntval()-1;
-
 
         vector<Tuple*>* vA = mrelA->getmmrel();
         vector<Tuple*>* vB = mrelB->getmmrel();
@@ -305,23 +313,24 @@ namespace sjt {
 
                 Word leftStreamWord = args[0];
                 Word rightStreamWord = args[1];
-                Word fanoutWord = args[4];
-                Word numOfItemsInBucketWord = args[5];
-                Word cellFactorWord = args[6];
-                Word vAIndexWord = args[7];
-                Word vBIndexWord = args[8];
+                Word vAIndexWord = args[4];
+                Word vBIndexWord = args[5];
 
                 int firstStreamIndex = ((CcInt*)vAIndexWord.addr)->GetIntval();
                 int secondStreamIndex = ((CcInt*)vBIndexWord.addr)->GetIntval();
+
+                int fanout = 32;
+                int numOfItemsInBucket = 12800;
+                int cellFactor = 2;
 
                 ListExpr ttl = nl->Second(nl->Second(GetTupleResultType(s)));
 
                 local.addr = new SpatialJoinColumnLocalInfo(
                         leftStreamWord,
                         rightStreamWord,
-                        fanoutWord,
-                        numOfItemsInBucketWord,
-                        cellFactorWord,
+                        fanout,
+                        numOfItemsInBucket,
+                        cellFactor,
                         firstStreamIndex,
                         secondStreamIndex,
                         ttl,
@@ -359,28 +368,16 @@ namespace sjt {
         ListExpr sStream      = nl->First(nl->Second(args));
         ListExpr attrName1    = nl->First(nl->Third(args));
         ListExpr attrName2    = nl->First(nl->Fourth(args));
-        ListExpr fanout       = nl->First(nl->Fifth(args));
-        ListExpr numOfBuckets = nl->First(nl->Sixth(args));
-        ListExpr cellFactor   = nl->First(nl->Seventh(args));
-
-        ListExpr fanoutExpr       = nl->Second(nl->Fifth(args));
-        ListExpr numOfItemsInBucketExpr = nl->Second(nl->Sixth(args));
-        ListExpr cellFactorExpr   = nl->Second(nl->Seventh(args));
-
-        long fanoutValue        = nl->IntValue(fanoutExpr);
-        long numOfItemsInBucketValue  = nl->IntValue(numOfItemsInBucketExpr);
-        long cellFactorValue    = nl->IntValue(cellFactorExpr);
 
         ListExpr al1 = nl->Second(nl->Second(fStream));
         ListExpr al2 = nl->Second(nl->Second(sStream));
 
         const int argNum = nl->ListLength(args);
 
-        string err = "relation x relation x attribute name x attribute name "
-                  "x fanout x number of items in bucket x cell factor expected";
+        string err = "relation x relation x attribute name x attribute name ";
 
-        if (argNum != 7) {
-            return listutils::typeError("Expected seven arguments.");
+        if (argNum != 4) {
+            return listutils::typeError("Expected four arguments.");
         }
 
 
@@ -406,34 +403,6 @@ namespace sjt {
         if(!listutils::isSymbol(attrName2)) {
             return listutils::typeError("Error in fourth argument: "
                                         "Attribute name expected.");
-        }
-
-        if(!CcInt::checkType(fanout)){
-            return listutils::typeError(err + " (fifth arg is not an integer)");
-        }
-
-        if(!CcInt::checkType(numOfBuckets)){
-            return listutils::typeError(err + " (sixth arg is not an integer)");
-        }
-
-        if(!CcInt::checkType(cellFactor)){
-            return listutils::typeError(err +
-                                     " (seventh arg is not an integer)");
-        }
-
-        if (fanoutValue < 2) {
-            return listutils::typeError("fanout should be a positive integer "
-                                        "greater than 1");
-        }
-
-        if (numOfItemsInBucketValue < 1) {
-            return listutils::typeError("num of items in bucket "
-                                        "should be a positive integer");
-        }
-
-        if (cellFactorValue < 1) {
-            return listutils::typeError("cell factor "
-                                        "should be a positive integer");
         }
 
         if(!listutils::disjointAttrNames(al1, al2)){
@@ -482,22 +451,11 @@ namespace sjt {
         ListExpr mpointer2    = nl->First(nl->Second(args));
         ListExpr nameL1       = nl->First(nl->Third(args));
         ListExpr nameL2       = nl->First(nl->Fourth(args));
-        ListExpr fanout       = nl->First(nl->Fifth(args));
-        ListExpr numOfBuckets = nl->First(nl->Sixth(args));
-        ListExpr cellFactor   = nl->First(nl->Seventh(args));
 
-        ListExpr fanoutExpr       = nl->Second(nl->Fifth(args));
-        ListExpr numOfBucketsExpr = nl->Second(nl->Sixth(args));
-        ListExpr cellFactorExpr   = nl->Second(nl->Seventh(args));
 
-        long fanoutValue       = nl->IntValue(fanoutExpr);
-        long numOfBucketsValue = nl->IntValue(numOfBucketsExpr);
-        long cellFactorValue   = nl->IntValue(cellFactorExpr);
+        string err = "relation x relation x attribute name x attribute name ";
 
-        string err = "relation x relation x attribute name x attribute name "
-                  "x fanout x number of items in bucket x cell factor expected";
-
-        if(nl->ListLength(args)!=7){
+        if(nl->ListLength(args)!=4){
             return listutils::typeError(err);
         }
 
@@ -559,35 +517,6 @@ namespace sjt {
             return listutils::typeError("attribute " + name2 + "not found");
         }
 
-        if(!CcInt::checkType(fanout)){
-            return listutils::typeError(err + " (fifth arg is not an integer)");
-        }
-
-        if(!CcInt::checkType(numOfBuckets)){
-            return listutils::typeError(err + " (sixth arg is not an integer)");
-        }
-
-        if(!CcInt::checkType(cellFactor)){
-            return listutils::typeError(err +
-                            " (seventh arg is not an integer)");
-        }
-
-        if (fanoutValue < 2) {
-            return listutils::typeError("Error in fifth argument: "
-                            "fanout should be a positive integer "
-                                        "greater than 1");
-        }
-
-        if (numOfBucketsValue < 1) {
-            return listutils::typeError("Error in sixth argument: "
-                      "Num of items in bucket should be a positive integer.");
-        }
-
-        if (cellFactorValue < 1) {
-            return listutils::typeError("Error in seventh argument: "
-                                   "Cell factor should be a positive integer.");
-        }
-
         ListExpr relType = nl->TwoElemList(
                 nl->SymbolAtom(Relation::BasicType()),
                 nl->TwoElemList(
@@ -611,26 +540,14 @@ namespace sjt {
         ListExpr sStream      = nl->First(nl->Second(args));
         ListExpr attrName1    = nl->First(nl->Third(args));
         ListExpr attrName2    = nl->First(nl->Fourth(args));
-        ListExpr fanout       = nl->First(nl->Fifth(args));
-        ListExpr numOfBuckets = nl->First(nl->Sixth(args));
-        ListExpr cellFactor   = nl->First(nl->Seventh(args));
-
-        ListExpr fanoutExpr       = nl->Second(nl->Fifth(args));
-        ListExpr numOfBucketsExpr = nl->Second(nl->Sixth(args));
-        ListExpr cellFactorExpr   = nl->Second(nl->Seventh(args));
-
-        long fanoutValue       = nl->IntValue(fanoutExpr);
-        long numOfBucketsValue = nl->IntValue(numOfBucketsExpr);
-        long cellFactorValue   = nl->IntValue(cellFactorExpr);
 
         const int argNum = nl->ListLength(args);
 
-        string err = "relation x relation x attribute name x attribute name "
-                 "x fanout x number of items in bucket x cell factor expected";
+        string err = "relation x relation x attribute name x attribute name ";
 
-        if (argNum != 7)
+        if (argNum != 4)
         {
-            return listutils::typeError("Expected seven arguments.");
+            return listutils::typeError("Expected four arguments.");
         }
 
 
@@ -690,35 +607,6 @@ namespace sjt {
         if(!GetIndexOfColumn(sTBlockInfo, sAttrName, sNameIndex)) {
             return listutils::typeError("Error in fourth argument: "
                                         "Invalid column name.");
-        }
-
-        if(!CcInt::checkType(fanout)){
-            return listutils::typeError(err + " (fifth arg is not an integer)");
-        }
-
-        if(!CcInt::checkType(numOfBuckets)){
-            return listutils::typeError(err + " (sixth arg is not an integer)");
-        }
-
-        if(!CcInt::checkType(cellFactor)){
-            return listutils::typeError(err +
-                             " (seventh arg is not an integer)");
-        }
-
-        if (fanoutValue < 2) {
-            return listutils::typeError("Error in fifth argument: "
-                                  "fanout should be a positive integer "
-                                        "greater than 1");
-        }
-
-        if (numOfBucketsValue < 1) {
-            return listutils::typeError("Error in sixth argument: "
-                        "Num of items in bucket should be a positive integer.");
-        }
-
-        if (cellFactorValue < 1) {
-            return listutils::typeError("Error in seventh argument: "
-                                   "Cell factor should be a positive integer.");
         }
 
         // Initialize the type and size of result tuple block
