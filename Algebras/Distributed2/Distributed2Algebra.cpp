@@ -44,6 +44,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "FileAttribute.h"
 #include "SecParser.h"
 
+
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 
@@ -54,7 +55,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 extern boost::mutex nlparsemtx;
-
 
 using namespace std;
 
@@ -8552,6 +8552,7 @@ class dloopInfo{
     boost::thread runner;
 
     void run(){
+       
        string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
        ConnectionInfo* ci = algInstance->getWorkerConnection(elem,dbname);
        if(!ci){
@@ -12153,6 +12154,9 @@ Class for sending the commands to produce a dfarray.
            if(!ci){ // no connection, no work
              return;
            }
+         ci->getInterface()->addMessageHandler(algInstance->progressObserver->
+         getProgressListener(mapper->array->getObjectNameForSlot(nr),
+         mapper->array->getWorkerForSlot(nr)));
 
            int maxtries = mapper->array->numOfWorkers() * 2; 
            string fun = mapper->funText->GetValue();
@@ -12256,6 +12260,14 @@ Class for sending the commands to produce a dfarray.
                 return;
              }
            } else { // successful finished command
+              ci->getInterface()
+              ->removeMessageHandler(algInstance->progressObserver->
+               getProgressListener(mapper->array->getObjectNameForSlot(nr), 
+               mapper->array->getWorkerForSlot(nr)));
+               algInstance->progressObserver->
+         commitWorkingOnSlotFinished(mapper->array->getObjectNameForSlot(nr), 
+         mapper->array->getWorkerForSlot(nr));
+
                  return;   
            }
            // nexttrie
@@ -12272,30 +12284,37 @@ Class for sending the commands to produce a dfarray.
 
     };
 
-    
+   
     class dRun{
       public:
         dRun(ConnectionInfo* _ci, const string& _dbname, int _nr, 
              Mapper* _mapper):
            ci(_ci), dbname(_dbname), nr(_nr), mapper(_mapper) {
            ci->copy();
+           
         }
 
        ~dRun(){
          ci->deleteIfAllowed();
        }
+      
 
 
         void run(){
+           
+          ci->getInterface()->addMessageHandler(algInstance->progressObserver->
+            getProgressListener(mapper->array->getObjectNameForSlot(nr),
+             mapper->array->getWorkerForSlot(nr)));
           int maxtries = 8; // TODO: make configurable this constant
           int numtries = maxtries;
           set<size_t> usedWorkers;
           bool reconnect = true;
           string fundef =  mapper->funText->GetValue();
           // name of argument
-          string n = mapper->array->getObjectNameForSlot(nr); 
+          string n = mapper->array->getObjectNameForSlot(nr);
           // name of result
           string name2;
+          
           if(mapper->log){
               name2 = mapper->name;
               if(mapper->darray){ 
@@ -12355,6 +12374,14 @@ Class for sending the commands to produce a dfarray.
                    return;
                  }
               } else { // successful finished command
+      ci->getInterface()->removeMessageHandler(algInstance->progressObserver->
+         getProgressListener(mapper->array->getObjectNameForSlot(nr), 
+                  mapper->array->getWorkerForSlot(nr)));
+         algInstance->progressObserver->
+            commitWorkingOnSlotFinished
+            (mapper->array->getObjectNameForSlot(nr), 
+            mapper->array->getWorkerForSlot(nr));
+
                  return;   
               }
               // nexttrie
@@ -12381,6 +12408,7 @@ int dmapVMT(Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   A* array = (A*) args[0].addr;
   CcString* name = (CcString*) args[1].addr;
+  algInstance->progressObserver->mappingCallback(qp->GetId(s), array);
    // ignore original fun at args[2];
   FText* funText = (FText*) args[3].addr;
   bool isRel = ((CcBool*) args[4].addr)->GetValue();
@@ -13337,6 +13365,12 @@ the sources and the correspnding function arguments are created.
            ConnectionInfo* c0 = algInstance->getWorkerConnection(
                                    info->arguments[0]->getWorkerForSlot(slot),
                                    info->dbname);
+
+            c0->getInterface()
+            ->addMessageHandler(algInstance->progressObserver->
+            getProgressListener
+            (info->arguments[0]->getObjectNameForSlot(slot),
+            info->arguments[0]->getWorkerForSlot(slot)));
            // create the command for result computation
            string cmd = createCommand(c0);
            // process the command
@@ -13362,6 +13396,17 @@ the sources and the correspnding function arguments are created.
               writeLog(c0,cmd,errMsg);
               showError(c0,cmd,err,errMsg);
            }
+
+         c0->getInterface()
+         ->removeMessageHandler(algInstance->progressObserver->
+            getProgressListener
+            (info->arguments[0]->getObjectNameForSlot(slot),
+            info->arguments[0]->getWorkerForSlot(slot)));
+           algInstance->progressObserver->
+                     commitWorkingOnSlotFinished
+                     (info->arguments[0]->getObjectNameForSlot(slot),
+                     info->arguments[0]->getWorkerForSlot(slot));
+
            // remove temporarly created objects.
            for(size_t i=0;i <info->arguments.size(); i++){
                removeTempData(i, c0);
@@ -13530,6 +13575,7 @@ int dmapXVM(Word* args, Word& result, int message,
         argTypes.push_back(qp->GetType(qp->GetSon(s,i)));
     }
 
+    algInstance->progressObserver->mappingCallback(qp->GetId(s), arrays[0]);
     dmapXInfo info(arrays, isRelation, argTypes,  name, funtext, streamRes, 
                    port, (DArrayBase*) result.addr);
     info.start();
@@ -16433,6 +16479,10 @@ class partitionInfo{
         if(!ci){
            return;
         }
+      
+         ci->getInterface()->addMessageHandler(algInstance->progressObserver->
+                        getProgressListener(array->getWorker(workerNumber)));
+
         // construct target directory for the matrix on ci
         string targetDir = ci->getSecondoHome(
                 showCommands, commandLog) + "/dfarrays/" + dbname
@@ -16480,7 +16530,15 @@ class partitionInfo{
            cerr << __FILE__ << "@"  << __LINE__ << endl;
            showError(ci,cmd,err,errMsg);
            writeLog(ci,cmd,errMsg);
+        } else {
+            ci->getInterface()
+            ->removeMessageHandler(algInstance->progressObserver->
+                        getProgressListener(array->getWorker(workerNumber)));
+             algInstance->progressObserver->
+               commitWorkingOnElementFinished(array->getWorker(workerNumber));
+
         }
+
      }
 
 
@@ -16656,7 +16714,7 @@ int partitionVMT(Word* args, Word& result, int message,
                     Word& local, Supplier s ){
 
    A* array = (A*) args[0].addr;
-
+   algInstance->progressObserver->mappingCallback(qp->GetId(s), array);
    CcString* name;
    CcInt* newSize;
    string funText="";
@@ -16735,6 +16793,7 @@ int partitionVMT(Word* args, Word& result, int message,
    for(size_t i=0;i<infos.size();i++){
        delete infos[i];
    }
+
    return 0;
 }
 
@@ -17908,6 +17967,13 @@ class slotGetter{
      void run(){
        // firstly, create a temp directory for all of my slots
        ConnectionInfo* ci = workers[myNumber];
+        ci->getInterface()->addMessageHandler(algInstance->progressObserver->
+                        getProgressListener(
+                           workers[myNumber]->getHost(),
+                           workers[myNumber]->getPort(),
+                           workers[myNumber]->getNum(),
+                           "part_1")); 
+
        // temoporal directory for partitined slots
        string dir = "tmp/"+tname+"/"+stringutils::int2str(myNumber)+"/";
        // final directory for dfarray
@@ -17941,8 +18007,20 @@ class slotGetter{
        for(size_t w=0;w<workers.size();w++){
           getFilesFromWorker(w, dir, ci);
        } 
-
+      
+      algInstance->progressObserver->
+                  commitWorkingOnElementFinished(
+                     workers[myNumber]->getHost(),
+                           workers[myNumber]->getPort(),
+                           workers[myNumber]->getNum(),
+                           "part_1");
        // create slots from distributed slots
+      ci->getInterface()->addMessageHandler(algInstance->progressObserver->
+                        getProgressListener(
+                           workers[myNumber]->getHost(),
+                           workers[myNumber]->getPort(),
+                           workers[myNumber]->getNum(),
+                           "part_2")); 
        int slot = myNumber;
        while(slot < size){
           createSlot(slot, dir,tdir, ci);
@@ -17953,6 +18031,20 @@ class slotGetter{
        ci->simpleCommand(cmd, err, errMsg, res, false, runtime,
                          showCommands, commandLog, false,
                          algInstance->getTimeout());
+
+      ci->getInterface()->removeMessageHandler(algInstance->progressObserver->
+                        getProgressListener(
+                           workers[myNumber]->getHost(),
+                           workers[myNumber]->getPort(),
+                           workers[myNumber]->getNum(),
+                           ""));
+      algInstance->progressObserver->
+                  commitWorkingOnElementFinished(
+                     workers[myNumber]->getHost(),
+                           workers[myNumber]->getPort(),
+                           workers[myNumber]->getNum(),
+                           "part_2");
+
        if(err){
           cerr << "Error in command " << cmd << endl;
           writeLog(ci,cmd,errMsg);
@@ -18077,7 +18169,9 @@ int collect2VM(Word* args, Word& result, int message,
 
    vector<slotGetter*> getters;
    string sname = matrix->getName();
-    
+
+   algInstance->progressObserver->mappingCallback(qp->GetId(s), matrix);
+
    for(size_t i=0;i<cis.size();i++){
       slotGetter* getter = new slotGetter(i, sname,n, matrix->getSize(), 
                                           cis, p, constRel);
@@ -18662,7 +18756,7 @@ ListExpr getObjectFromFileTM(ListExpr args){
   }
   if(!nl->HasLength(nl->First(args),2)){
     return listutils::typeError("internal error");
-  }	  
+  }
   ListExpr a1t = nl->First(nl->First(args));
   if(   !CcString::checkType(a1t)
      && !FText::checkType(a1t)
@@ -22703,10 +22797,10 @@ Algebra*
    InitializeDistributed2Algebra( NestedList* nlRef,
                              QueryProcessor* qpRef,
                              AlgebraManager* amRef ) {
-
+   ProgressObserver*  _progressObserver = new ProgressObserver(qpRef);
    distributed2::algInstance = new distributed2::Distributed2Algebra();
    distributed2::showCommands = false;   
-
+   distributed2::algInstance->progressObserver = _progressObserver;
    return distributed2::algInstance;
 }
 

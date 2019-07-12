@@ -28,11 +28,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "ErrorWriter.h"
 #include "DArray.h"
+#include "ProgressObserver.h"
 
 namespace distributed2 {
 
 class ConnectionInfo;
 class PProgressView;
+
+
 
 /*
 5 The Distributed2Algebra
@@ -397,7 +400,9 @@ connections.
     void enableDFS(const std::string& host,
                    const int port);
 
-    void disableDFS(); 
+    void disableDFS();
+
+    ProgressObserver* progressObserver;
 
 
   private:
