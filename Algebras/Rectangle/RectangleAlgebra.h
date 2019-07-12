@@ -274,6 +274,61 @@ Translates the rectangle given the translate vector ~t~.
     inline Rectangle<dim>& Translate( const double t[dim] );
 
 /*
+Overridings of some Attribute functions
+
+*/
+virtual double getMinX() const override { 
+   return min[0];
+}
+
+virtual double getMaxX() const override { 
+  return max[0]; 
+}
+
+virtual double getMinY() const override { 
+  return dim < 2 ? 0 : min[1]; 
+}
+
+virtual double getMaxY() const override { 
+  return dim < 2 ? 0 : max[1];
+}
+
+virtual double getMinZ() const override { 
+ return dim < 3 ? 0 : min[2];
+}
+
+virtual double getMaxZ() const override { 
+  return dim < 3 ? 0 : max[2]; 
+}
+
+
+/*
+Intervallength for a certain dimension.
+
+*/
+inline const double LengthD( int d ) const {
+
+   assert ( d >= 0 && (unsigned)d < dim);
+
+   return this->IsDefined()?max[d] - min[d]:-1;
+}
+
+
+/*
+Middle of an interval of a certain dimension.
+
+*/
+inline const double MidD( int d ) const {
+
+   assert ( d >= 0 && (unsigned)d < dim);
+
+   return (max[d] + min[d]) / 2.0;
+
+}
+
+
+
+/*
 Returns the intersection between this and the rectangle ~r~.
 
 This next functions are necessary for a ~rectangle~ be
