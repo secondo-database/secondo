@@ -8,7 +8,7 @@
 #include <fcntl.h>
 #include <zconf.h>
 #include "librdkafka/rdkafkacpp.h"
-#include "easylogging++.h"
+#include "easylogging++.h.jfc"
 
 static int partition_cnt = 0;
 static int eof_cnt = 0;
