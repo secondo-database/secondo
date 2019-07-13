@@ -17,7 +17,7 @@
 
  * */
 
-#include "easylogging++.h.jfc"
+#include "easylogging++.hpp"
 
 #if defined(AUTO_INITIALIZE_EASYLOGGINGPP)
 INITIALIZE_EASYLOGGINGPP
