@@ -22,42 +22,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
-
-#ifndef KAFKA_KAFKACLIENT_H
-#define KAFKA_KAFKACLIENT_H
+#ifndef KAFKA_UTILS_H
+#define KAFKA_UTILS_H
 
 #include <iostream>
-#include <librdkafka/rdkafkacpp.h>
 
 namespace kafka {
-
-    class KafkaProducerClient {
-    private:
-        std::string brokers;
-        std::string topic_str;
-        RdKafka::Producer *producer;
-    public:
-        void Open(std::string brokers, std::string topic_str);
-
-        void Write(std::string line);
-
-        void Write(void *payload, size_t len);
-
-        void Close();
-    };
-
-    class KafkaReaderClient {
-    private:
-        std::string brokers;
-        std::string topic_str;
-        RdKafka::KafkaConsumer *consumer;
-    public:
-        void Open(std::string brokers, std::string topic_str);
-
-        void Close();
-    };
-
-
+    std::string create_uuid();
 }
 
-#endif //KAFKA_KAFKACLIENT_H
+#endif //KAFKA_UTILS_H

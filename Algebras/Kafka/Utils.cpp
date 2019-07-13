@@ -22,42 +22,33 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
+#include "Utils.h"
 
-#ifndef KAFKA_KAFKACLIENT_H
-#define KAFKA_KAFKACLIENT_H
-
-#include <iostream>
-#include <librdkafka/rdkafkacpp.h>
+#include <zconf.h>
 
 namespace kafka {
 
-    class KafkaProducerClient {
-    private:
-        std::string brokers;
-        std::string topic_str;
-        RdKafka::Producer *producer;
-    public:
-        void Open(std::string brokers, std::string topic_str);
+    std::string create_uuid() {
+        std::string uuid;
+        char buffer[128];
 
-        void Write(std::string line);
+        const char *filename = "/proc/sys/kernel/random/uuid";
+        FILE *file = fopen(filename, "r");
 
-        void Write(void *payload, size_t len);
+        // Does the proc file exists?
+        if (access(filename, R_OK) == -1) {
+            std::cerr << "Unable to get UUID from kernel" << std::endl;
+            exit(-1);
+        }
 
-        void Close();
-    };
+        if (file) {
+            while (fscanf(file, "%s", buffer) != EOF) {
+                uuid.append(buffer);
+            }
+        }
 
-    class KafkaReaderClient {
-    private:
-        std::string brokers;
-        std::string topic_str;
-        RdKafka::KafkaConsumer *consumer;
-    public:
-        void Open(std::string brokers, std::string topic_str);
-
-        void Close();
-    };
-
+        fclose(file);
+        return uuid;
+    }
 
 }
-
-#endif //KAFKA_KAFKACLIENT_H

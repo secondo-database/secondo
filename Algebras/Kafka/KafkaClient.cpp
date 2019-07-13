@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "KafkaClient.h"
+#include "Utils.h"
 
 namespace kafka {
 
@@ -91,5 +92,77 @@ namespace kafka {
 
         delete producer;
     }
+
+
+    /*
+     * Reader
+     * */
+
+    void KafkaReaderClient::Open(std::string brokers, std::string topic_str) {
+        std::cout << "KafkaClient::Open" << std::endl;
+
+        this->topic_str = topic_str;
+        this->brokers = brokers;
+
+        std::string errstr;
+        RdKafka::Conf *conf = RdKafka::Conf::create(RdKafka::Conf::CONF_GLOBAL);
+
+        conf->set("metadata.broker.list", brokers, errstr);
+
+        /*
+         * Optional
+         * */
+        if (conf->set("client.id", "kafka secondo client", errstr) !=
+            RdKafka::Conf::CONF_OK) {
+            std::cerr << errstr << std::endl;
+            exit(1);
+        }
+
+        std::string groupId = create_uuid();
+        /* std::cout << "groupId=" << groupId << std::endl; */
+        if (conf->set("group.id", groupId, errstr) != RdKafka::Conf::CONF_OK) {
+            std::cerr << errstr << std::endl;
+            exit(1);
+        }
+
+        if (conf->set("auto.offset.reset", "earliest", errstr) !=
+            RdKafka::Conf::CONF_OK) {
+            std::cerr << errstr << std::endl;
+            exit(1);
+        }
+
+        std::vector <std::string> topics;
+        topics.push_back(topic_str);
+
+        consumer = RdKafka::KafkaConsumer::create(conf,
+                                                  errstr);
+        if (!consumer) {
+            std::cerr << "Failed to create consumer: " << errstr << std::endl;
+            exit(1);
+        }
+
+        delete conf;
+
+        std::cout << "% Created consumer " << consumer->name() << std::endl;
+
+        /*
+        * Subscribe to topics
+        */
+        RdKafka::ErrorCode err = consumer->subscribe(topics);
+        if (err) {
+            std::cerr << "Failed to subscribe to " << topics.size()
+                      << " topics: "
+                      << RdKafka::err2str(err) << std::endl;
+            exit(1);
+        }
+    }
+
+    void KafkaReaderClient::Close() {
+        consumer->close();
+        delete consumer;
+        RdKafka::wait_destroyed(5000);
+    }
+
+
 }
 

@@ -1,3 +1,9 @@
+- Installing librdkafka - the Apache Kafka C/C++ client library
+    https://github.com/edenhill/librdkafka
+
+    sudo apt install librdkafka-dev
+
+
 - Enable Algebra
 
     After that, insert a new entry in the file Algebras/Management/AlgebraList.i.cfg
