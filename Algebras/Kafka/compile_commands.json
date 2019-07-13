@@ -1,6 +1,6 @@
 [
  {
-  "directory": "/home/gstancul/work/repository/secondo/Algebras/Kafka",
+  "directory": "/home/grisha/work/repository/secondo/Algebras/Kafka", 
   "arguments": [
    "cc",
    "-c",
@@ -9,9 +9,9 @@
    "KafkaClient.cpp",
    "-fPIC",
    "-ggdb",
-   "-I/home/gstancul/work/repository/secondo/Tools/ListsAndTables",
+   "-I/home/grisha/work/repository/secondo/Tools/ListsAndTables",
    "-I.",
-   "-I/home/gstancul/work/repository/secondo/include",
+   "-I/home/grisha/work/repository/secondo/include",
    "-Wall",
    "-D_REENTRANT",
    "-D_GLIBCPP_DEPRECATED",
@@ -21,16 +21,16 @@
    "-DUSE_PROGRESS",
    "-DUSE_SERIALIZATION",
    "-I/usr/include",
-   "-I/home/gstancul/work/repository/secondo",
+   "-I/home/grisha/work/repository/secondo",
    "-DNO_MP3",
    "-DNO_IMAGESIMILARITY",
-   "-DRECODE",
+   "-DRECODE", 
    "-Werror"
-  ],
+  ], 
   "file": "KafkaClient.cpp"
  },
  {
-  "directory": "/home/gstancul/work/repository/secondo/Algebras/Kafka",
+  "directory": "/home/grisha/work/repository/secondo/Algebras/Kafka", 
   "arguments": [
    "cc",
    "-c",
@@ -39,9 +39,9 @@
    "KafkaAlgebra.cpp",
    "-fPIC",
    "-ggdb",
-   "-I/home/gstancul/work/repository/secondo/Tools/ListsAndTables",
+   "-I/home/grisha/work/repository/secondo/Tools/ListsAndTables",
    "-I.",
-   "-I/home/gstancul/work/repository/secondo/include",
+   "-I/home/grisha/work/repository/secondo/include",
    "-Wall",
    "-D_REENTRANT",
    "-D_GLIBCPP_DEPRECATED",
@@ -51,16 +51,16 @@
    "-DUSE_PROGRESS",
    "-DUSE_SERIALIZATION",
    "-I/usr/include",
-   "-I/home/gstancul/work/repository/secondo",
+   "-I/home/grisha/work/repository/secondo",
    "-DNO_MP3",
    "-DNO_IMAGESIMILARITY",
-   "-DRECODE",
+   "-DRECODE", 
    "-Werror"
-  ],
+  ], 
   "file": "KafkaAlgebra.cpp"
  },
  {
-  "directory": "/home/gstancul/work/repository/secondo/Algebras/Kafka",
+  "directory": "/home/grisha/work/repository/secondo/Algebras/Kafka", 
   "arguments": [
    "cc",
    "-c",
@@ -69,9 +69,9 @@
    "KafkaSource.cpp",
    "-fPIC",
    "-ggdb",
-   "-I/home/gstancul/work/repository/secondo/Tools/ListsAndTables",
+   "-I/home/grisha/work/repository/secondo/Tools/ListsAndTables",
    "-I.",
-   "-I/home/gstancul/work/repository/secondo/include",
+   "-I/home/grisha/work/repository/secondo/include",
    "-Wall",
    "-D_REENTRANT",
    "-D_GLIBCPP_DEPRECATED",
@@ -81,16 +81,16 @@
    "-DUSE_PROGRESS",
    "-DUSE_SERIALIZATION",
    "-I/usr/include",
-   "-I/home/gstancul/work/repository/secondo",
+   "-I/home/grisha/work/repository/secondo",
    "-DNO_MP3",
    "-DNO_IMAGESIMILARITY",
-   "-DRECODE",
+   "-DRECODE", 
    "-Werror"
-  ],
+  ], 
   "file": "KafkaSource.cpp"
  },
  {
-  "directory": "/home/gstancul/work/repository/secondo/Algebras/Kafka",
+  "directory": "/home/grisha/work/repository/secondo/Algebras/Kafka", 
   "arguments": [
    "cc",
    "-c",
@@ -99,9 +99,9 @@
    "KafkaConsumer.cpp",
    "-fPIC",
    "-ggdb",
-   "-I/home/gstancul/work/repository/secondo/Tools/ListsAndTables",
+   "-I/home/grisha/work/repository/secondo/Tools/ListsAndTables",
    "-I.",
-   "-I/home/gstancul/work/repository/secondo/include",
+   "-I/home/grisha/work/repository/secondo/include",
    "-Wall",
    "-D_REENTRANT",
    "-D_GLIBCPP_DEPRECATED",
@@ -111,12 +111,42 @@
    "-DUSE_PROGRESS",
    "-DUSE_SERIALIZATION",
    "-I/usr/include",
-   "-I/home/gstancul/work/repository/secondo",
+   "-I/home/grisha/work/repository/secondo",
+   "-DNO_MP3",
+   "-DNO_IMAGESIMILARITY",
+   "-DRECODE", 
+   "-Werror"
+  ], 
+  "file": "KafkaConsumer.cpp"
+ },
+ {
+  "directory": "/home/grisha/work/repository/secondo/Algebras/Kafka",
+  "arguments": [
+   "cc",
+   "-c",
+   "-o",
+   "Utils.o",
+   "Utils.cpp",
+   "-fPIC",
+   "-ggdb",
+   "-I/home/grisha/work/repository/secondo/Tools/ListsAndTables",
+   "-I.",
+   "-I/home/grisha/work/repository/secondo/include",
+   "-Wall",
+   "-D_REENTRANT",
+   "-D_GLIBCPP_DEPRECATED",
+   "-std=c++11",
+   "-D_FILE_OFFSET_BITS=64",
+   "-DNL_PERSISTENT",
+   "-DUSE_PROGRESS",
+   "-DUSE_SERIALIZATION",
+   "-I/usr/include",
+   "-I/home/grisha/work/repository/secondo",
    "-DNO_MP3",
    "-DNO_IMAGESIMILARITY",
    "-DRECODE",
    "-Werror"
   ],
-  "file": "KafkaConsumer.cpp"
+  "file": "Utils.cpp"
  }
 ]
