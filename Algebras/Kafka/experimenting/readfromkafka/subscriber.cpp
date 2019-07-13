@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <zconf.h>
 #include "librdkafka/rdkafkacpp.h"
+#include "easylogging++.h"
 
 static int partition_cnt = 0;
 static int eof_cnt = 0;
@@ -133,6 +134,7 @@ std::string create_uuid() {
 
 int runSubscriberConsuming() {
     std::cout << "Hello, World!" << std::endl;
+    LOG(INFO) << "My first info log using default logger";
 
     std::string brokers = "localhost";
     std::string errstr;
@@ -197,7 +199,7 @@ int runSubscriberConsuming() {
         exit(1);
     }
 
-    std::string topic_str = "test";
+    std::string topic_str = "test1";
     topics.push_back(topic_str);
 
     /*
@@ -224,10 +226,17 @@ int runSubscriberConsuming() {
         exit(1);
     }
 
+    std::cout << "Subscribed to topics" << std::endl;
+
+    std::vector<RdKafka::TopicPartition *> partitions;
+    consumer->assignment(partitions);
+    std::cout << "Partitions:" << partitions.size() << std::endl;
+
     /*
      * Consume messages
      */
     while (run) {
+        std::cout << "----------------" << std::endl;
         RdKafka::Message *msg = consumer->consume(1000);
         msg_consume_ss(msg, NULL);
         delete msg;

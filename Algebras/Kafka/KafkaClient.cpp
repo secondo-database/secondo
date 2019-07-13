@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "KafkaClient.h"
 #include "Utils.h"
+#include "easylogging++.h"
 
 namespace kafka {
 
@@ -98,6 +99,38 @@ namespace kafka {
      * Reader
      * */
 
+    class ExampleRebalanceCb : public RdKafka::RebalanceCb {
+    private:
+
+        static void
+        part_list_print(
+                const std::vector<RdKafka::TopicPartition *> &partitions) {
+            for (unsigned int i = 0; i < partitions.size(); i++)
+                std::cerr << partitions[i]->topic() <<
+                          "[" << partitions[i]->partition() << "], ";
+            std::cerr << "\n";
+        }
+
+    public:
+        int partition_cnt = 0;
+
+        void rebalance_cb(RdKafka::KafkaConsumer *consumer,
+                          RdKafka::ErrorCode err,
+                          std::vector<RdKafka::TopicPartition *> &partitions) {
+            std::cerr << "RebalanceCb: " << RdKafka::err2str(err) << ": ";
+
+            part_list_print(partitions);
+
+            if (err == RdKafka::ERR__ASSIGN_PARTITIONS) {
+                consumer->assign(partitions);
+                partition_cnt = (int) partitions.size();
+            } else {
+                consumer->unassign();
+                partition_cnt = 0;
+            }
+        }
+    };
+
     void KafkaReaderClient::Open(std::string brokers, std::string topic_str) {
         std::cout << "KafkaClient::Open" << std::endl;
 
@@ -107,6 +140,10 @@ namespace kafka {
         std::string errstr;
         RdKafka::Conf *conf = RdKafka::Conf::create(RdKafka::Conf::CONF_GLOBAL);
 
+        ex_rebalance_cb = new ExampleRebalanceCb();
+        conf->set("rebalance_cb", ex_rebalance_cb, errstr);
+
+        conf->set("enable.partition.eof", "true", errstr);
         conf->set("metadata.broker.list", brokers, errstr);
 
         /*
@@ -157,9 +194,67 @@ namespace kafka {
         }
     }
 
+    void KafkaReaderClient::Read() {
+        bool run = true;
+        while (run) {
+            RdKafka::Message *msg = consumer->consume(1000);
+            KafkaMessage *message = msg_consume(msg,
+                                                ex_rebalance_cb->partition_cnt);
+            run = message->run;
+            delete msg;
+        }
+
+    }
+
+    KafkaMessage *KafkaReaderClient::msg_consume(RdKafka::Message *message,
+                                                 int partition_cnt) {
+        KafkaMessage *result = new KafkaMessage();
+        result->run = true;
+
+        switch (message->err()) {
+
+            case RdKafka::ERR_NO_ERROR:
+                /* Real message */
+                msg_cnt++;
+                msg_bytes += message->len();
+                LOG(DEBUG) << "Read msg at offset " << message->offset();
+//                result->key = message->key();
+//                result->len = message->len();
+//                result->payload = message->payload();
+                break;
+
+            case RdKafka::ERR__PARTITION_EOF:
+                /* Last message */
+                if (exit_eof && ++eof_cnt == partition_cnt) {
+                    LOG(INFO) << "EOF reached for all " << partition_cnt <<
+                              " partition(s)";
+                    result->run = false;
+                }
+                break;
+
+            case RdKafka::ERR__TIMED_OUT:
+                LOG(ERROR) << "Consume failed(timeout): " << message->errstr();
+                result->run = false;
+                break;
+
+            case RdKafka::ERR__UNKNOWN_TOPIC:
+            case RdKafka::ERR__UNKNOWN_PARTITION:
+                LOG(ERROR) << "Consume failed: " << message->errstr();
+                result->run = false;
+                break;
+
+            default:
+                LOG(ERROR) << "Consume failed: " << message->errstr();
+                result->run = false;
+        }
+        return result;
+    }
+
+
     void KafkaReaderClient::Close() {
         consumer->close();
         delete consumer;
+        delete ex_rebalance_cb;
         RdKafka::wait_destroyed(5000);
     }
 

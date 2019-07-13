@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "KafkaSource.h"
+#include "KafkaClient.h"
 
 using namespace std;
 
@@ -45,9 +46,6 @@ namespace kafka {
             cout << "Error reading type line: " << typeString << endl;
         };
         return res;
-        // create the result type (stream Tuple)
-//        return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
-//                               listutils::basicSymbol<Tuple>());
     }
 
     class KafkaSourceLI {
@@ -57,15 +55,21 @@ namespace kafka {
             if (arg->IsDefined()) {
                 input = arg->GetValue();
             }
+
+            kafkaReaderClient.Open("localhost", "test");
         }
 
         // destructor
-        ~KafkaSourceLI() {}
+        ~KafkaSourceLI() {
+            kafkaReaderClient.Close();
+        }
 
         // this function returns the next result or null if the input is
         // exhausted
         Tuple *getNext(Supplier s) {
             cout << "get Next called" << endl;
+
+
             if (pos > 0)
                 return 0;
             pos++;
@@ -83,6 +87,7 @@ namespace kafka {
     private:
         string input;  // input string
         size_t pos;    // current position
+        KafkaReaderClient kafkaReaderClient;
     };
 
     int KafkaSourceVM(Word *args, Word &result, int message,

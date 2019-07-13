@@ -46,15 +46,35 @@ namespace kafka {
         void Close();
     };
 
+    struct KafkaMessage {
+        bool run = true;
+        std::string *key = NULL;
+        size_t len = 0;
+        void *payload = NULL;
+    };
+
+    class ExampleRebalanceCb;
+
     class KafkaReaderClient {
     private:
         std::string brokers;
         std::string topic_str;
         RdKafka::KafkaConsumer *consumer;
+        long msg_cnt = 0;
+        int64_t msg_bytes = 0;
+        bool exit_eof = true; /* Control exit*/
+
+        ExampleRebalanceCb *ex_rebalance_cb;
+        int eof_cnt = 0;
     public:
         void Open(std::string brokers, std::string topic_str);
 
+        void Read();
+
         void Close();
+
+    private:
+        KafkaMessage *msg_consume(RdKafka::Message *message, int partition_cnt);
     };
 
 
