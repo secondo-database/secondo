@@ -18,6 +18,6 @@ add_executable(Kafka
         KafkaSource.cpp
         KafkaSource.h
         log.cpp
-        log.h
+        log.hpp
         Utils.cpp
         Utils.h)
