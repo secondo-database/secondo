@@ -27,4 +27,5 @@ libregSecondo.
 *.toc
 temp_nested_list
 TMP_*
+libregSecondo.jnilib
 
