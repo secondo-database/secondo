@@ -51,7 +51,7 @@ namespace kafka {
     class KafkaSourceLI {
     public:
         // constructor: initializes the class from the string argument
-        KafkaSourceLI(CcString *arg) : input(""), pos(0) {
+        KafkaSourceLI(CcString *arg) : input("") {
             if (arg->IsDefined()) {
                 input = arg->GetValue();
             }
@@ -69,24 +69,20 @@ namespace kafka {
         Tuple *getNext(Supplier s) {
             cout << "get Next called" << endl;
 
+            std::string *source = kafkaReaderClient.ReadSting();
+            if (source == NULL) {
+                return NULL;
+            }
 
-            if (pos > 0)
-                return 0;
-            pos++;
             ListExpr resultType = GetTupleResultType(s);
             TupleType *tupleType = new TupleType(nl->Second(resultType));
-            cout << "tupleType generated" << endl;
             Tuple *res = new Tuple(tupleType);
-            cout << "tuple created" << endl;
-            std::string source = "FgAAABAAnoYBADELAAAABTFHcmFiZQ==";
-            res->ReadFromBinStr(0, source);
-            cout << "returning" << endl;
+            res->ReadFromBinStr(0, *source);
             return res;
         }
 
     private:
         string input;  // input string
-        size_t pos;    // current position
         KafkaReaderClient kafkaReaderClient;
     };
 

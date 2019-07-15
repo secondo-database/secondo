@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "KafkaClient.h"
 #include "Utils.h"
-#include "easylogging++.hpp"
+#include "easylogging++.h"
 
 namespace kafka {
 
@@ -168,7 +168,7 @@ namespace kafka {
             exit(1);
         }
 
-        std::vector <std::string> topics;
+        std::vector<std::string> topics;
         topics.push_back(topic_str);
 
         consumer = RdKafka::KafkaConsumer::create(conf,
@@ -194,16 +194,23 @@ namespace kafka {
         }
     }
 
-    void KafkaReaderClient::Read() {
+    std::string *KafkaReaderClient::ReadSting() {
         bool run = true;
+        char *payload;
+
         while (run) {
             RdKafka::Message *msg = consumer->consume(1000);
             KafkaMessage *message = msg_consume(msg,
                                                 ex_rebalance_cb->partition_cnt);
-            run = message->run;
+            run = message->run && message->payload == NULL;
+            payload = static_cast<char *>(message->payload);
             delete msg;
         }
-
+        if (payload != NULL) {
+            return new std::string(payload);
+        } else {
+            return NULL;
+        }
     }
 
     KafkaMessage *KafkaReaderClient::msg_consume(RdKafka::Message *message,
@@ -219,8 +226,8 @@ namespace kafka {
                 msg_bytes += message->len();
                 LOG(DEBUG) << "Read msg at offset " << message->offset();
 //                result->key = message->key();
-//                result->len = message->len();
-//                result->payload = message->payload();
+                result->len = message->len();
+                result->payload = message->payload();
                 break;
 
             case RdKafka::ERR__PARTITION_EOF:

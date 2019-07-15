@@ -69,7 +69,7 @@ namespace kafka {
     public:
         void Open(std::string brokers, std::string topic_str);
 
-        void Read();
+        std::string *ReadSting();
 
         void Close();
 
