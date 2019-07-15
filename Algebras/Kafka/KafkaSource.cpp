@@ -67,8 +67,6 @@ namespace kafka {
         // this function returns the next result or null if the input is
         // exhausted
         Tuple *getNext(Supplier s) {
-            cout << "get Next called" << endl;
-
             std::string *source = kafkaReaderClient.ReadSting();
             if (source == NULL) {
                 return NULL;

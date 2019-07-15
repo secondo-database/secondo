@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "KafkaClient.h"
 #include "Utils.h"
-#include "easylogging++.h"
+#include "log.h"
 
 namespace kafka {
 
@@ -220,6 +220,10 @@ namespace kafka {
 
         switch (message->err()) {
 
+            case RdKafka::ERR__TIMED_OUT:
+                LOG(DEBUG) << "Consume failed(timeout): " << message->errstr();
+                break;
+
             case RdKafka::ERR_NO_ERROR:
                 /* Real message */
                 msg_cnt++;
@@ -237,11 +241,6 @@ namespace kafka {
                               " partition(s)";
                     result->run = false;
                 }
-                break;
-
-            case RdKafka::ERR__TIMED_OUT:
-                LOG(ERROR) << "Consume failed(timeout): " << message->errstr();
-                result->run = false;
                 break;
 
             case RdKafka::ERR__UNKNOWN_TOPIC:
