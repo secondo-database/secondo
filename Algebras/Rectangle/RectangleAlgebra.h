@@ -147,7 +147,7 @@ Checks if the rectangle is defined.
 Checks if the rectangle is defined (For conformity with other spatial types)
 
 */
-    inline bool IsEmpty() const { return !(this->IsDefined()); };
+    inline bool IsEmpty() const override { return !(this->IsDefined()); };
 
 /*
 Redefinition of operator ~=~.
@@ -168,7 +168,7 @@ must be defined.
 
 */
     inline bool Intersects( const Rectangle<dim>& r,
-                            const Geoid* geoid=0 ) const;
+                            const Geoid* geoid=0 ) const override;
 /*
 Checks if the rectangle intersects with rectangle ~r~. If one of the
 involved rectangles is not defined, the result will be false;
@@ -239,7 +239,8 @@ Returns the Euclidean distance (~geoid~ = NULL) resp. spherical distance between
 two rectangles.
 
 */
-    inline double Distance(const Rectangle<dim>& r, const Geoid* geoid=0) const;
+    inline double Distance(const Rectangle<dim>& r, const Geoid* geoid=0)
+                           const override;
 
 
 /*
@@ -343,7 +344,8 @@ Returns the bounding box of the rectangle; this bounding Box is a clone
 of the rectangle.
 
 */
-    inline const Rectangle<dim> BoundingBox(const Geoid* geoid = 0) const;
+    inline const Rectangle<dim> BoundingBox(const Geoid* geoid = 0) 
+                                           const override;
 
     inline static const std::string BasicType() {
       if(dim==2){
@@ -359,19 +361,19 @@ of the rectangle.
       return listutils::isSymbol(type, BasicType());
     }
 
-    inline size_t Sizeof() const { return sizeof( *this ); }
+    inline size_t Sizeof() const override { return sizeof( *this ); }
 
-    inline size_t HashValue() const {
+    inline size_t HashValue() const override{
       size_t h = 0;
       for( unsigned i = 0; i < dim; i++ )
         h += size_t(4 * min[i] + max[i]);
       return h;
     }
 
-    inline void CopyFrom( const Attribute* right )
+    inline void CopyFrom( const Attribute* right ) override
       { *this = *(const Rectangle<dim>*)right; }
 
-    inline int Compare( const Attribute *arg ) const {
+    inline int Compare( const Attribute *arg ) const override{
       unsigned thispos, rpos;
       unsigned thismin[dim], rmin[dim];
       const Rectangle<dim>* r = (const Rectangle<dim>*)arg;
@@ -454,13 +456,13 @@ changes the ~this~ object and returns it.
 */
     inline const Rectangle<dim>& Extend(const double b);
 
-    inline bool Adjacent( const Attribute *arg ) const
+    inline bool Adjacent( const Attribute *arg ) const override
       { return false; }
 
-    inline Rectangle* Clone() const
+    inline Rectangle* Clone() const override
       { return new Rectangle<dim>( *this ); }
 
-    inline std::ostream& Print( std::ostream &os ) const {
+    inline std::ostream& Print( std::ostream &os ) const  override {
       if( this->IsDefined() ){
           os << "Rectangle: ( ";
           for(unsigned int i=0; i < dim; i++)
