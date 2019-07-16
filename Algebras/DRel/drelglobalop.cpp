@@ -285,7 +285,7 @@ namespace drel {
         cout << nl->ToString( args ) << endl;
         #endif
 
-        std::string err = "d[f]rel(X) x attrlist expected";
+        std::string err = "d[f]rel(X) x attrlist  x funlist expected";
 
         ListExpr local = drellgroupbyTM<true>( args );
 
@@ -309,6 +309,7 @@ namespace drel {
 
         //ListExpr relType = nl->Second( darrayType );
         ListExpr relType = nl->Second( nl->Third( local ) );
+
         std::string attrName = nl->SymbolValue( 
             nl->First( nl->Second( nl->Second( args ) ) ) );
         ListExpr attrType;
@@ -374,7 +375,8 @@ namespace drel {
                     "(Original Cell))) (fun (elem1_4 FFR) (elem2_5 FFR) "
                     "(hashvalue (attr elem2_5 Name) 9999)) "
                     "0) \"\" (fun (elem_6 AREDUCEARG1) (groupby "
-                    "(feed elem_6) " + nl->ToString( attrList ) + " "
+                    "(sortby (feed elem_6)"+ nl->ToString( attrList ) 
+                    + ") " + nl->ToString( attrList ) 
                     + nl->ToString( groupfun ) + " )) 1238)";
 
                 ListExpr attrList = nl->Second( nl->Second( relType ) );
@@ -391,9 +393,10 @@ namespace drel {
             else {
                 funText1 = "(areduce (partition ";
                 funText2 = " \"\" (fun (elem_1 SUBSUBTYPE1) "
-                    "(hashvalue (attr elem_1 PLZ) 9999)) 0) "
-                    "\"\" (fun (elem_2 AREDUCEARG1) (groupby "
-                    "(feed elem_2)" + nl->ToString( attrList ) + " " + 
+                    "(hashvalue (attr elem_1 " + attrName+" )  9999)) 0) "
+                    "\"\" (fun (elem_2 AREDUCEARG1) (groupby (sortby "
+                   "(feed elem_2)" + nl->ToString( attrList ) +" )"
+                    + nl->ToString( attrList ) + " " + 
                     nl->ToString( groupfun ) + ")) 1238)";
             }
         }
@@ -503,9 +506,9 @@ namespace drel {
             else {
                 funText1 = "(areduce (partition ";
                 funText2 = " \"\" (fun (elem_1 SUBSUBTYPE1) "
-                    "(hashvalue (attr elem_1 PLZ) 9999)) 0) "
+                    "(hashvalue elem_1 9999)) 0) "
                     "\"\" (fun (elem_2 AREDUCEARG1) "
-                    "(rdup (feed elem_2))) 1238)";
+                    "(rdup (sort (feed elem_2)))) 1238)";
             }
         }
 
@@ -592,7 +595,7 @@ repartitioning the d[f]rel and execute a function on the d[f]rel.
         
         // compute the boundary
         BoundaryCalculator<R>* calc = new BoundaryCalculator<R>( 
-                attrName, boundaryType, new R( *drel ), drelType, 1238 );
+                attrName, boundaryType, drel , drelType, 1238 );
 
         if( !calc->computeBoundary( ) ){
             resultDFRel->makeUndefined( );
