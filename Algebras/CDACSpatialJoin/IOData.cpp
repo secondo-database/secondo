@@ -385,8 +385,22 @@ Rectangle<3> IOData::calculateBboxAndEdgesCount(const SET set,
    return bbox;
 }
 
+void IOData::addToOutTupleCount(const uint64_t count) {
+   // assert (countOnly);
+   outTupleCount += count;
+}
 
-bool IOData::appendToOutput(const JoinEdge& entryS, const JoinEdge& entryT) {
+bool IOData::selfJoinAppendToOutput(const JoinEdge& entryS,
+        const JoinEdge& entryT) {
+   bool result = appendToOutput(entryS, entryT, true);
+   if ((entryS.address & ~SET_MASK) != (entryT.address & ~SET_MASK)) {
+      result = appendToOutput(entryT, entryS, true);
+   }
+   return result;
+}
+
+bool IOData::appendToOutput(const JoinEdge& entryS, const JoinEdge& entryT,
+          const bool overrideSet /* = false */) {
 #ifndef CDAC_SPATIAL_JOIN_DETAILED_REPORT_TO_CONSOLE
    // for this very common case, shortcut the rest of the code
    if (countOnly && minDim == 2) {
@@ -395,7 +409,8 @@ bool IOData::appendToOutput(const JoinEdge& entryS, const JoinEdge& entryT) {
    }
 #endif
 
-   const bool entrySIsSetA = (getSet(entryS.address) == SET::A);
+   const bool entrySIsSetA = overrideSet ? true :
+           (getSet(entryS.address) == SET::A);
    const JoinEdge& entryA = entrySIsSetA ? entryS : entryT;
    const JoinEdge& entryB = entrySIsSetA ? entryT : entryS;
    const SetRowBlock_t addressA = entryA.address;
@@ -404,7 +419,6 @@ bool IOData::appendToOutput(const JoinEdge& entryS, const JoinEdge& entryT) {
    const BlockIndex_t blockB = getBlockIndex(SET::B, addressB);
    const RowIndex_t rowA = getRowIndex(SET::A, addressA);
    const RowIndex_t rowB = getRowIndex(SET::B, addressB);
-
    if (countOnly) {
       // get input tuples represented by the two given JoinEdges
       const RectangleBlock* rBlockA = (*rBlocks[SET::A])[blockA];

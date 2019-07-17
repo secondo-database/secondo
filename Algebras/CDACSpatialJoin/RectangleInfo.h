@@ -45,6 +45,7 @@ information (yMin, yMax, address), then add information from the sort result
 #pragma once
 
 #include "Base.h"
+#include "IOData.h"
 
 namespace cdacspatialjoin {
 
@@ -80,6 +81,14 @@ struct RectangleInfo {
    }
 
    ~RectangleInfo() = default;
+
+   /* returns true if the y intervals of the given instances are identical
+    * and the addresses point to the same TBlock and row (but not necessarily
+    * to the same input set). This is useful for detecting self joins. */
+   inline bool operator== (const RectangleInfo& other) const {
+      return ((yMin == other.yMin) && (yMax == other.yMax) &&
+              ((address & ~SET_MASK) == (other.address & ~SET_MASK)));
+   }
 };
 
 } // end of namespace cdacspatialjoin

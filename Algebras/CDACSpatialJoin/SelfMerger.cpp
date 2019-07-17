@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 \tableofcontents
 
 
-1 Merger
+1 SelfMerger
 
 */
 
@@ -37,7 +37,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <iostream>
 #include <iomanip>
 
-#include "Merger.h"
+#include "SelfMerger.h"
 #include "Utils.h"
 
 using namespace cdacspatialjoin;
@@ -45,31 +45,31 @@ using namespace std;
 
 
 /*
-1 Merger class
+1 SelfMerger class
 
 */
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-unique_ptr<MergerStats> Merger::stats(new MergerStats());
+unique_ptr<MergerStats> SelfMerger::stats(new MergerStats());
 
-void Merger::resetLoopStats() {
+void SelfMerger::resetLoopStats() {
    stats.reset(new MergerStats());
 }
 #endif
 
-Merger::Merger(MergedAreaPtr area1_, MergedAreaPtr area2_,
-        const bool isLastMerge_, IOData* const ioData_) :
-      area1(area1_),
-      area2(area2_),
-      isLastMerge(isLastMerge_),
-      ioData(ioData_),
-      result(new MergedArea(area1, area2)),
-      currentTask(TASK::initialize),
-      reportType(0),
-      reportSubType(0),
-      indexSBegin(0),
-      indexS(0),
-      indexTBegin(0),
-      indexT(0) {
+SelfMerger::SelfMerger(SelfMergedAreaPtr area1_, SelfMergedAreaPtr area2_,
+               const bool isLastMerge_, IOData* const ioData_) :
+        area1(area1_),
+        area2(area2_),
+        isLastMerge(isLastMerge_),
+        ioData(ioData_),
+        result(new SelfMergedArea(area1, area2)),
+        currentTask(TASK::initialize),
+        reportType(0),
+        reportSubType(0),
+        indexSBegin(0),
+        indexS(0),
+        indexTBegin(0),
+        indexT(0) {
 
 #ifdef CDAC_SPATIAL_JOIN_DETAILED_REPORT_TO_CONSOLE
    cout << endl;
@@ -77,42 +77,32 @@ Merger::Merger(MergedAreaPtr area1_, MergedAreaPtr area2_,
 #endif
 
    // pre-process given areas by calculating from them the temporary vectors
-   // leftA/BSpan, rightA/BSpan, and leftRightA/B
-   removeCompleteRectangles(area1_->leftA, area2_->rightA,
-                            leftASpan, rightASpan, leftRightA);
-   removeCompleteRectangles(area1_->leftB, area2_->rightB,
-                            leftBSpan, rightBSpan, leftRightB);
+   // leftSpan, rightSpan, and leftRight
+   removeCompleteRectangles(area1_->left, area2_->right,
+                            leftSpan, rightSpan, leftRight);
 
    currentTask = TASK::report;
 }
 
-Merger::~Merger() {
+SelfMerger::~SelfMerger() {
    delete area1;
    delete area2;
 }
 
-bool Merger::merge() {
-   static constexpr unsigned REPORT_TYPE_COUNT = 4;
+bool SelfMerger::merge() {
+   static constexpr unsigned REPORT_TYPE_COUNT = 2;
 
    // outer loop of reportPairs() calls
    while (currentTask == TASK::report && reportType < REPORT_TYPE_COUNT) {
       bool done;
       switch(reportType) {
          case 0:
-            done = leftASpan.empty() ||
-                reportPairs(leftASpan, area2->leftB, area2->completeB);
+            done = leftSpan.empty() ||
+                   reportPairs(leftSpan, area2->left, area2->complete);
             break;
          case 1:
-            done = rightASpan.empty() ||
-                reportPairs(rightASpan, area1->leftB, area1->completeB);
-            break;
-         case 2:
-            done = leftBSpan.empty() ||
-                reportPairs(leftBSpan, area2->leftA, area2->completeA);
-            break;
-         case 3:
-            done = rightBSpan.empty() ||
-                reportPairs(rightBSpan, area1->leftA, area1->completeA);
+            done = rightSpan.empty() ||
+                   reportPairs(rightSpan, area1->left, area1->complete);
             break;
          default:
             assert (false); // unexpected case
@@ -129,20 +119,15 @@ bool Merger::merge() {
          currentTask = TASK::postProcess; // report fully completed
    }
 
-   // post-processing: create the result MergedArea
+   // post-processing: create the result SelfMergedArea
    if (currentTask == TASK::postProcess) {
       if (isLastMerge) {
          // do nothing: the result areas are obsolete
       } else {
-         merge(leftASpan, 0, area2->leftA, 0, result->leftA);
-         merge(rightASpan, 0, area1->rightA, 0, result->rightA);
-         merge(area1->completeA, area2->completeA, leftRightA,
-               result->completeA);
-
-         merge(leftBSpan, 0, area2->leftB, 0, result->leftB);
-         merge(rightBSpan, 0, area1->rightB, 0, result->rightB);
-         merge(area1->completeB, area2->completeB, leftRightB,
-               result->completeB);
+         merge(leftSpan, 0, area2->left, 0, result->left);
+         merge(rightSpan, 0, area1->right, 0, result->right);
+         merge(area1->complete, area2->complete, leftRight,
+               result->complete);
       }
       currentTask = TASK::done;
    }
@@ -151,14 +136,14 @@ bool Merger::merge() {
    return true;
 }
 
-bool Merger::reportPairs(const JoinEdgeVec& span,
+bool SelfMerger::reportPairs(const JoinEdgeVec& span,
                          const JoinEdgeVec& left,
                          const JoinEdgeVec& complete) {
    static constexpr unsigned REPORT_SUB_TYPE_COUNT = 2;
 
    // inner loop of reportPairs() calls
    while (reportSubType < REPORT_SUB_TYPE_COUNT) {
-      bool done = false;
+      bool done;
       if (reportSubType == 0) {
          done = left.empty() || reportPairsSub(span, left);
       } else { // reportSubType == 1
@@ -182,8 +167,8 @@ bool Merger::reportPairs(const JoinEdgeVec& span,
    return true;
 }
 
-bool Merger::reportPairsSub(const JoinEdgeVec& edgesS,
-                            const JoinEdgeVec& edgesT) {
+bool SelfMerger::reportPairsSub(const JoinEdgeVec& edgesS,
+                                const JoinEdgeVec& edgesT) {
 
    // get some values frequently used in the loop below; use specialized
    // functions if there is only one edge in one of the vectors
@@ -231,15 +216,15 @@ bool Merger::reportPairsSub(const JoinEdgeVec& edgesS,
             // report pair of rectangles (represented by the two edges);
             // edges can be passed to the output function in any order
             const bool outTBlockFull =
-                    !ioData_->appendToOutput(edgeSBegin, edgesT[indexT_]);
+                 !ioData_->selfJoinAppendToOutput(edgeSBegin, edgesT[indexT_]);
 
             // increase indexT before a possible "return false", so this pair
             // will not be reported again
             ++indexT_;
 
             if (outTBlockFull) {
-               // outTBlock is full. Index positions remain stored in
-               // this Merger instance for the next call (with a new outTBlock)
+               // outTBlock is full. Index positions remain stored in this
+               // SelfMerger instance for the next call (with a new outTBlock)
 
                // write back local copies to fields
                indexSBegin = indexSBegin_;
@@ -276,15 +261,15 @@ bool Merger::reportPairsSub(const JoinEdgeVec& edgesS,
             // report pair of rectangles (represented by the two edges);
             // edges can be passed to the output function in any order
             const bool outTBlockFull =
-                    !ioData_->appendToOutput(edgesS[indexS_], edgeTBegin);
+                 !ioData_->selfJoinAppendToOutput(edgesS[indexS_], edgeTBegin);
 
             // increase indexS before a possible "return false", so this pair
             // will not be reported again
             ++indexS_;
 
             if (outTBlockFull) {
-               // outTBlock is full. Index positions remain stored in
-               // this Merger instance for the next call (with a new outTBlock)
+               // outTBlock is full. Index positions remain stored in this
+               // SelfMerger instance for the next call (with a new outTBlock)
 
                // write back local copies to fields
                indexSBegin = indexSBegin_;
@@ -319,7 +304,7 @@ bool Merger::reportPairsSub(const JoinEdgeVec& edgesS,
    return true;
 }
 
-bool Merger::reportPairsSub1(const JoinEdge& edgeS,
+bool SelfMerger::reportPairsSub1(const JoinEdge& edgeS,
                              const JoinEdgeVec& edgesT, const size_t sizeT) {
 
    // improve performance by using local variable for field "indexTBegin"
@@ -335,7 +320,7 @@ bool Merger::reportPairsSub1(const JoinEdge& edgeS,
          break;
       ++indexTBegin_; // prepare next iteration in case of "return false"
       if (yMinS <= edgeTBegin.yMax) {
-         if (!ioData_->appendToOutput(edgeS, edgeTBegin)) {
+         if (!ioData_->selfJoinAppendToOutput(edgeS, edgeTBegin)) {
             // write back local copy to field
             indexTBegin = indexTBegin_;
             return false;
@@ -357,7 +342,7 @@ bool Merger::reportPairsSub1(const JoinEdge& edgeS,
          if (edgeT.yMin > yMaxS)
             break;
          ++indexT_; // prepare next iteration in case of "return false"
-         if (!ioData_->appendToOutput(edgeS, edgeT)) {
+         if (!ioData_->selfJoinAppendToOutput(edgeS, edgeT)) {
             // write back local copies to fields
             indexTBegin = indexTBegin_;
             indexT = indexT_;
@@ -379,12 +364,12 @@ bool Merger::reportPairsSub1(const JoinEdge& edgeS,
    return true;
 }
 
-bool Merger::reportPairsSub11(const JoinEdge& edgeS,
-                             const JoinEdge& edgeT) {
+bool SelfMerger::reportPairsSub11(const JoinEdge& edgeS,
+                              const JoinEdge& edgeT) {
    if (indexTBegin == 0) {
       if ((edgeS.yMax >= edgeT.yMin && edgeS.yMin <= edgeT.yMax)) {
          // report intersection
-         if (!ioData->appendToOutput(edgeS, edgeT)) {
+         if (!ioData->selfJoinAppendToOutput(edgeS, edgeT)) {
             indexTBegin = 1; // prevent multiple reporting
             return false;
          }
@@ -402,12 +387,12 @@ bool Merger::reportPairsSub11(const JoinEdge& edgeS,
    return true;
 }
 
-void Merger::removeCompleteRectangles(
+void SelfMerger::removeCompleteRectangles(
         const JoinEdgeVec& left1,
         const JoinEdgeVec& right2,
-        JoinEdgeVec& leftSpan,
-        JoinEdgeVec& rightSpan,
-        JoinEdgeVec& leftRight) {
+        JoinEdgeVec& leftSpan_,
+        JoinEdgeVec& rightSpan_,
+        JoinEdgeVec& leftRight_) {
 
    // get some values frequently used in the loops below
    const size_t size1 = left1.size();
@@ -429,10 +414,10 @@ void Merger::removeCompleteRectangles(
          const EdgeIndex_t counterPart = edge1.isLeftAndCounterPart &
                                          JoinEdge::COUNTER_PART_MASK;
          if (counterPart >= resultEdgeStart && counterPart < resultEdgeEnd) {
-            if (isNotLastMerge) // in the last merge, leftRight is obsolete
-               leftRight.push_back(edge1);
+            if (isNotLastMerge) // in the last merge, leftRight_ is obsolete
+               leftRight_.push_back(edge1);
          } else {
-            leftSpan.push_back(edge1);
+            leftSpan_.push_back(edge1);
          }
          ++index1;
       } else {
@@ -441,9 +426,9 @@ void Merger::removeCompleteRectangles(
                                          JoinEdge::COUNTER_PART_MASK;
          if (counterPart >= resultEdgeStart && counterPart < resultEdgeEnd) {
             // do nothing: the left counterpart is in left1
-            // and therefore was (or will be) added to leftRight
+            // and therefore was (or will be) added to leftRight_
          } else {
-            rightSpan.push_back(edge2);
+            rightSpan_.push_back(edge2);
          }
          ++index2;
       }
@@ -456,10 +441,10 @@ void Merger::removeCompleteRectangles(
       const EdgeIndex_t counterPart = edge1.isLeftAndCounterPart &
                                       JoinEdge::COUNTER_PART_MASK;
       if (counterPart >= resultEdgeStart && counterPart < resultEdgeEnd) {
-         if (isNotLastMerge) // in the last merge, leftRight is obsolete
-            leftRight.push_back(edge1);
+         if (isNotLastMerge) // in the last merge, leftRight_ is obsolete
+            leftRight_.push_back(edge1);
       } else {
-         leftSpan.push_back(edge1);
+         leftSpan_.push_back(edge1);
       }
       ++index1;
    }
@@ -472,15 +457,15 @@ void Merger::removeCompleteRectangles(
                                       JoinEdge::COUNTER_PART_MASK;
       if (counterPart >= resultEdgeStart && counterPart < resultEdgeEnd) {
          // do nothing: the left counterpart is in left1
-         // and therefore was (or will be) added to leftRight
+         // and therefore was (or will be) added to leftRight_
       } else {
-         rightSpan.push_back(edge2);
+         rightSpan_.push_back(edge2);
       }
       ++index2;
    }
 }
 
-void Merger::merge(
+void SelfMerger::merge(
         const JoinEdgeVec& source1, const size_t startIndex1,
         const JoinEdgeVec& source2, const size_t startIndex2,
         JoinEdgeVec& dest) {
@@ -524,7 +509,7 @@ void Merger::merge(
    }
 }
 
-void Merger::merge(const JoinEdgeVec& source1,
+void SelfMerger::merge(const JoinEdgeVec& source1,
                    const JoinEdgeVec& source2,
                    const JoinEdgeVec& source3,
                    JoinEdgeVec& dest) {
@@ -586,10 +571,9 @@ void Merger::merge(const JoinEdgeVec& source1,
       merge(source1, index1, source2, index2, dest);
 }
 
-size_t Merger::getJoinEdgeCount(const bool includeAreas) const {
+size_t SelfMerger::getJoinEdgeCount(const bool includeAreas) const {
    size_t joinEdgeCount =
-             leftASpan.size() + rightASpan.size() + leftRightA.size()
-           + leftBSpan.size() + rightBSpan.size() + leftRightB.size();
+           leftSpan.size() + rightSpan.size() + leftRight.size();
    if (includeAreas) {
       joinEdgeCount += area1->getJoinEdgeCount() + area2->getJoinEdgeCount();
       joinEdgeCount += result->getJoinEdgeCount();
@@ -597,10 +581,10 @@ size_t Merger::getJoinEdgeCount(const bool includeAreas) const {
    return joinEdgeCount;
 }
 
-size_t Merger::getUsedMemory() const {
-   size_t usedMemory = sizeof(Merger)
-       + getJoinEdgeCount(false) * sizeof(JoinEdge)
-       + area1->getUsedMemory() + area2->getUsedMemory()
-       + result->getUsedMemory();
+size_t SelfMerger::getUsedMemory() const {
+   size_t usedMemory = sizeof(SelfMerger)
+                       + getJoinEdgeCount(false) * sizeof(JoinEdge)
+                       + area1->getUsedMemory() + area2->getUsedMemory()
+                       + result->getUsedMemory();
    return usedMemory;
 }

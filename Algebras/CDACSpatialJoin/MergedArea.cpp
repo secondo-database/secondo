@@ -115,7 +115,7 @@ MergedArea::MergedArea(MergedAreaPtr area1, MergedAreaPtr area2) :
 std::string MergedArea::toString() const {
    stringstream st;
    // represent the MergedArea by the indices of JoinState::joinEdges
-   // that are covered (inclusive, therefor edgeIndexEnd - 1)
+   // that are covered (inclusive, therefore edgeIndexEnd - 1)
    if (edgeIndexStart + 1 == edgeIndexEnd)
       st << edgeIndexStart;
    else

@@ -89,6 +89,23 @@ void JoinStateMemoryInfo::updateMaximum(Merger* merger) {
            mergeJoinEdgeCount + merger->getJoinEdgeCount(true));
 }
 
+void JoinStateMemoryInfo::add(SelfMergedAreaPtr mergedArea) {
+   usedMergedAreaMemory += mergedArea->getUsedMemory();
+   mergeJoinEdgeCount += mergedArea->getJoinEdgeCount();
+}
+
+void JoinStateMemoryInfo::subtract(SelfMergedAreaPtr mergedArea) {
+   usedMergedAreaMemory -= mergedArea->getUsedMemory();
+   mergeJoinEdgeCount -= mergedArea->getJoinEdgeCount();
+}
+
+void JoinStateMemoryInfo::updateMaximum(SelfMerger* merger) {
+   usedMergedAreaMemoryMax = std::max(usedMergedAreaMemoryMax,
+           usedMergedAreaMemory + merger->getUsedMemory());
+   mergeJoinEdgeCountMax = std::max(mergeJoinEdgeCountMax,
+           mergeJoinEdgeCount + merger->getJoinEdgeCount(true));
+}
+
 size_t JoinStateMemoryInfo::getTotalUsedMemoryMax() const {
    // two components are used during the whole lifetime of the JoinState:
    size_t usedWholeLifetime = usedInputDataMemory + usedJoinEdgeMemory;
@@ -117,7 +134,8 @@ JoinState::JoinState(const bool countOnly_,
                       inputB->getCurrentTupleCount() },
         operatorNum(operatorNum_),
         outputPrefix(2 * (operatorNum_ - 1), ' ' ),
-        timer(timer_) {
+        timer(timer_),
+        selfJoin(false) {
 
    // get the number of tuples stored in the current TBlocks of both streams
    const uint64_t tupleSum = tupleCounts[SET::A] + tupleCounts[SET::B];
@@ -247,6 +265,45 @@ JoinState::JoinState(const bool countOnly_,
    cout << "in " << formatMillis(createSortEdgesTime) << endl;
 #endif
 
+   // detect self join
+   if (tupleCounts[0] == tupleCounts[1] && bboxA == bboxB
+       && sortEdges->size() == 2 * tupleSum
+       && rectangleInfos->size() == tupleSum) {
+      bool equal = true;
+      // check if the first half of the sortEdges (from stream A)
+      // equals  the second half (from stream B), using its operator==
+      for (size_t i = 0; i < tupleSum; ++i) {
+         if (!((*sortEdges)[i] == (*sortEdges)[tupleSum + i])) {
+            equal = false;
+            break;
+         }
+      }
+      if (equal) {
+         // check if the first half of the rectangleInfos (from stream A)
+         // equals the second half (from stream B) (see RectangleInfo::
+         // operator== for the fields that need to be compared)
+         size_t halfCount = tupleSum / 2;
+         for (size_t i = 0; i < halfCount; ++i) {
+            if (!((*rectangleInfos)[i] == (*rectangleInfos)[halfCount + i])) {
+               equal = false;
+               break;
+            }
+         }
+      }
+      if (equal) {
+         // both inputs are equal, so a self join can be performed
+         selfJoin = true;
+#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+         cout << outputPrefix << "# Self Join detected. "
+              << "Using algorithm on one set of edges only" << endl;
+#endif
+         // erase the second half of sortEdges (from stream B), keeping only
+         // the sortEdges from stream A. Erasing from rectangleInfos is not
+         // necessary
+         sortEdges->erase(sortEdges->begin() + tupleSum, sortEdges->end());
+      }
+   }
+
    timer->start(JoinTask::sortSortEdges);
 
    // std::qsort turns out to be 40-45% faster than std::sort although
@@ -286,24 +343,37 @@ JoinState::JoinState(const bool countOnly_,
    joinEdgesSize = sortEdges->size();
    joinEdges.reserve(joinEdgesSize);
 
-   // count the number of MergedAreas to be created on the lowest level. Note
-   // that an "atomic" MergedArea is not created from a single JoinEdge but
-   // possibly from a sequence of JoinEdges that belong to the same set
+   // count the number of (Self)MergedAreas to be created on the lowest level.
+   // Note that an "atomic" (Self)MergedArea is not necessarily created from a
+   // single JoinEdge but possibly from a sequence of JoinEdges that
+   //  a) belong to the same set (joining two inputs, using MergedArea)
+   //  b) are all right edges (self join, using SelfMergedArea)
    size_t atomsExpectedTotal_ = 0;
    bool isFirst = true;
    SET lastSet = SET::A; // any value
+   bool lastIsLeft = true;
    // improve performance by using local variable for field "joinEdges"
    std::vector<JoinEdge>& joinEdges_ = joinEdges;
    for (const SortEdge& sortEdge : *sortEdges) {
-      const RectangleInfo& rectInfo = (*rectangleInfos)[sortEdge.rectInfoIndex];
-      joinEdges_.emplace_back(rectInfo.yMin, rectInfo.yMax, (sortEdge.isLeft ?
-              rectInfo.rightEdgeIndex : rectInfo.leftEdgeIndex),
-              sortEdge.isLeft, rectInfo.address);
-      const SET set = IOData::getSet(rectInfo.address);
-      if (isFirst || set != lastSet) {
-         ++atomsExpectedTotal_;
-         lastSet = set;
-         isFirst = false;
+      const bool isLeft = sortEdge.isLeft;
+      const RectangleInfo& rectInfo =(*rectangleInfos)[sortEdge.rectInfoIndex];
+      joinEdges_.emplace_back(rectInfo.yMin, rectInfo.yMax,
+          (isLeft ? rectInfo.rightEdgeIndex : rectInfo.leftEdgeIndex),
+          isLeft, rectInfo.address);
+      if (selfJoin) {
+         // self join: allow a sequence of right edges, or a single left edge
+         if (lastIsLeft || isLeft) {
+            ++atomsExpectedTotal_;
+         }
+         lastIsLeft = isLeft;
+      } else {
+         // allow a sequence of edges from the same input
+         const SET set = IOData::getSet(rectInfo.address);
+         if (isFirst || set != lastSet) {
+            ++atomsExpectedTotal_;
+            lastSet = set;
+            isFirst = false;
+         }
       }
    }
    atomsExpectedTotal = atomsExpectedTotal_;
@@ -338,12 +408,13 @@ JoinState::JoinState(const bool countOnly_,
    // set atomsExpectedNext to be 0.5 less, so we can do without std::round
    atomsExpectedNext = expect - 0.5;
 
-   // pre-assign enough elements to mergedAreas vector, so its size() need not
-   // be checked later
+   // pre-assign enough elements to (self)mergedAreas vector, so its size()
+   // need not be checked later
    size_t shift = atomsExpectedTotal_;
    levelCount = 0;
    while (shift > 0) {
       mergedAreas[levelCount] = nullptr;
+      selfMergedAreas[levelCount] = nullptr;
       ++levelCount;
       shift >>= 1U;
    }
@@ -355,11 +426,13 @@ JoinState::JoinState(const bool countOnly_,
    cout << "- " << formatInt(joinEdges.size()) << " JoinEdges created in "
         << formatMillis(createJoinEdgesTime) << endl;
    cout << outputPrefix;
-   cout << "# " << formatInt(atomsExpectedTotal_) << " 'atomic' "
-        << "MergedAreas (with JoinEdges from the same set only) will be "
-        << "created and merged on levels 0 to " << (levelCount - 1)
+   cout << "# " << formatInt(atomsExpectedTotal_) << " 'atomic' MergedAreas ";
+   if (selfJoin)
+      cout << "(with a single left JoinEdge or several right JoinEdges) ";
+   else
+      cout << "(with JoinEdges from the same set only) ";
+   cout << "will be created and merged on levels 0 to " << (levelCount - 1)
         << endl;
-
 
    /*
    unsigned count2 = 0;
@@ -377,9 +450,11 @@ JoinState::JoinState(const bool countOnly_,
    joinCompleted = false;
 
    joinEdgeIndex = 0;
+   idJoinEdgeIndex = 0;
    atomsCreated = 0;
    mergeLevel = 0;
    merger = nullptr;
+   selfMerger = nullptr;
 
    timer->stop();
 }
@@ -387,7 +462,11 @@ JoinState::JoinState(const bool countOnly_,
 JoinState::~JoinState() {
    // assert (merger == nullptr);
    // for (MergedAreaPtr mergedArea : mergedAreas)
-    //   assert (mergedArea == nullptr);
+   //    assert (mergedArea == nullptr);
+
+   // assert (selfMerger == nullptr);
+   // for (SelfMergedAreaPtr selfMergedArea : selfMergedAreas)
+   //    assert (selfMergedArea == nullptr);
 }
 
 bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_) {
@@ -396,9 +475,14 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_) {
    if (joinCompleted)
       return false;
 
-   timer->start(JoinTask::merge);
-
    ioData.setOutTBlock(outTBlock_);
+
+   // use specialized method for self join
+   if (selfJoin) {
+      return selfJoinNextTBlock();
+   }
+
+   timer->start(JoinTask::merge);
    uint64_t outTupleCountAtStart = ioData.getOutTupleCount();
 
    // improve performance by using local variables for fields, allowing for
@@ -414,7 +498,7 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_) {
    Merger* merger_ = merger;
 
    do {
-      // if two MergesAreas are currently being merged, ...
+      // if two MergedAreas are currently being merged, ...
       if (merger_) {
          // continue merging
          if (!merger_->merge())
@@ -460,11 +544,11 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_) {
          mergeLevel_ = 0;
          const EdgeIndex_t indexStart = joinEdgeIndex_;
          const SetRowBlock_t set =
-                 joinEdges_[joinEdgeIndex_].address & IOData::SET_MASK;
+                 joinEdges_[joinEdgeIndex_].address & SET_MASK;
          do {
             ++joinEdgeIndex_;
          } while (joinEdgeIndex_ < joinEdgesSize_ && set ==
-                 (joinEdges_[joinEdgeIndex_].address & IOData::SET_MASK));
+                 (joinEdges_[joinEdgeIndex_].address & SET_MASK));
          auto newArea = new MergedArea(joinEdges_, indexStart, joinEdgeIndex_,
                  IOData::getSet(set));
          ++atomsCreated_;
@@ -585,4 +669,236 @@ void JoinState::reportLastMerge(MergedAreaPtr area1, MergedAreaPtr area2)
         << formatInt(area2->getWidth()) << " edges " << endl;
 }
 #endif
+
+
+bool JoinState::selfJoinNextTBlock() {
+   timer->start(JoinTask::merge);
+   uint64_t outTupleCountAtStart = ioData.getOutTupleCount();
+
+   // improve performance by using local variables for fields, allowing for
+   // better compiler optimization
+   const std::vector<JoinEdge>& joinEdges_ = joinEdges;
+   const size_t joinEdgesSize_ = joinEdgesSize;
+
+   // in a self join, each rectangle appears in both input A and input B and
+   // therefore an intersection must be reported for each rectangle. This is
+   // done at the beginning of this method, where idJoinEdgeIndex points
+   // to the next edge in joinEdges[] that will be considered
+   EdgeIndex_t idJoinEdgeIndex_ = idJoinEdgeIndex;
+   if (countOnly && idJoinEdgeIndex_ == 0) {
+      // for counting these intersections, we simply use half the number of
+      // joinEdges (where a left and a right edge is stored for each rectangle)
+      ioData.addToOutTupleCount(joinEdgesSize_ / 2);
+      idJoinEdgeIndex_ = joinEdgesSize_;
+   } else if (idJoinEdgeIndex_ < joinEdgesSize_) {
+      IOData& ioData_ = ioData;
+      while (idJoinEdgeIndex_ < joinEdgesSize_) {
+         const JoinEdge& joinEdge = joinEdges_[idJoinEdgeIndex_++];
+         if (!joinEdge.getIsLeft()) // report left edges only
+            continue;
+         // this intersection will only be reported once, so appendToOutput
+         // will be called, not selfJoinAppendToOutput
+         if (ioData_.appendToOutput(joinEdge, joinEdge, true))
+            continue; // the outTBlock has room for more tuples
+
+         // outTBlock is full, return from method
+         idJoinEdgeIndex = idJoinEdgeIndex_;
+         ++outTBlockCount;
+         // reference to outTBlock is not needed any more
+         ioData_.setOutTBlock(nullptr);
+         timer->stop();
+         return true;
+      }
+   }
+   idJoinEdgeIndex = idJoinEdgeIndex_;
+
+   // improve performance by using local variables for fields, allowing for
+   // better compiler optimization
+   const double atomsExpectedStep_ = atomsExpectedStep;
+   EdgeIndex_t joinEdgeIndex_ = joinEdgeIndex;
+   SelfMergedAreaPtr* mergedAreas_ = selfMergedAreas;
+   unsigned long atomsCreated_ = atomsCreated;
+   double atomsExpectedNext_ = atomsExpectedNext;
+   unsigned mergeLevel_ = mergeLevel;
+   SelfMerger* merger_ = selfMerger;
+
+   do {
+      // if two SelfMergedAreas are currently being merged, ...
+      if (merger_) {
+         // continue merging
+         if (!merger_->merge())
+            break; // outTBlock is full, merging will be continued later
+
+         // merger has completed
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+         memoryInfo.updateMaximum(merger_);
+#endif
+         SelfMergedAreaPtr result = merger_->getResult();
+         delete merger_;
+         merger_ = nullptr;
+
+         // increment mergeLevel - unless the result SelfMergedArea has to wait
+         // on level 0 in order to grow a bit larger before it can move up to
+         // level 1 (this is done to keep SelfMergedArea sizes balanced)
+         if (mergeLevel_ == 0) {
+            if (atomsCreated_ >= atomsExpectedNext_) {
+               ++mergeLevel_;
+               atomsExpectedNext_ += atomsExpectedStep_;
+            } // otherwise, keep SelfMergedArea on the same mergeLevel
+         } else { // SelfMergedAreas above mergeLevel 0 never have to wait
+            ++mergeLevel_;
+         }
+
+         // selfMergedAreas vector was pre-assigned to the required size in the
+         // constructor, so it can be used without checking its size
+         if (mergedAreas_[mergeLevel_]) {
+            // continue merging with the SelfMergedArea at the next level
+            merger_ = createSelfMerger(mergeLevel_, result);
+         } else {
+            // enter result to a free entry to wait for a merge partner
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+            memoryInfo.add(result);
+#endif
+            mergedAreas_[mergeLevel_] = result;
+            mergeLevel_ = 0;
+         }
+
+      } else if (joinEdgeIndex_ < joinEdgesSize_) {
+         // no current merge action; create new SelfMergedArea from next
+         // edge(s); allow a sequence of right edges or a single left edge
+         const EdgeIndex_t indexStart = joinEdgeIndex_;
+         bool isLeft = joinEdges_[joinEdgeIndex_].getIsLeft();
+         if (isLeft) {
+            ++joinEdgeIndex_;
+         } else {
+            do {
+               ++joinEdgeIndex_;
+            } while (joinEdgeIndex_ < joinEdgesSize_ &&
+                    !joinEdges_[joinEdgeIndex_].getIsLeft());
+         }
+         auto newArea = new SelfMergedArea(joinEdges_, indexStart,
+                 joinEdgeIndex_, isLeft);
+         ++atomsCreated_;
+
+         mergeLevel_ = 0;
+         if (mergedAreas_[0]) {
+            // merge newArea with the SelfMergedArea waiting at level 0
+            merger_ = createSelfMerger(0, newArea);
+         } else  {
+            // enter newArea to selfMergedAreas_[0] to merge it with the next
+            // atom
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+            memoryInfo.add(newArea);
+#endif
+            mergedAreas_[0] = newArea;
+         }
+
+      } else {
+         // no current merge action, and no joinEdges left;
+         // now merge lower level selfMergedAreas with higher level ones
+         // assert (atomsCreated_ == atomsExpectedTotal);
+         SelfMergedAreaPtr mergedArea2 = nullptr;
+         for (unsigned level = 0; level < levelCount; ++level) {
+            if (!mergedAreas_[level])
+               continue;
+            if (!mergedArea2) {
+               mergedArea2 = mergedAreas_[level];
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+               // the memory used by mergedArea2 will be considered as part of
+               // the SelfMerger in merger_->getUsedMemory()
+               memoryInfo.subtract(mergedArea2);
+#endif
+               mergedAreas_[level] = nullptr;
+            } else {
+               mergeLevel_ = level;
+               merger_ = createSelfMerger(level, mergedArea2);
+               break;
+            }
+         }
+         if (!merger_) {
+            // join of the given data completed; outTBlock may contain
+            // final result tuples
+            delete mergedArea2; // the result of the last merge
+            joinCompleted = true;
+            break;
+         } // otherwise, continue merging
+      }
+   } while (true);
+
+   // write back local copies to fields
+   joinEdgeIndex = joinEdgeIndex_;
+   atomsCreated = atomsCreated_;
+   atomsExpectedNext = atomsExpectedNext_;
+   mergeLevel = mergeLevel_;
+   selfMerger = merger_;
+
+   // update statistics
+   size_t totalOutTupleCount = ioData.getOutTupleCount();
+   uint64_t outTBlockTupleCount = totalOutTupleCount - outTupleCountAtStart;
+   if (!countOnly && outTBlockTupleCount > 0) {
+      // rowCount is ioData.outTBlock->GetRowCount();
+      ++outTBlockCount;
+   }
+
+#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+   if (joinCompleted) {
+      cout << outputPrefix;
+      if (countOnly) {
+         // count intersections only
+         cout << "# " << formatInt(totalOutTupleCount)
+              << " intersections counted ";
+      } else {
+         // actual result tuples were created
+         cout << "# " << formatInt(outTBlockCount) << " "
+              << (outTBlockCount == 1 ? "block" : "blocks") << " with "
+              << formatInt(totalOutTupleCount) << " tuples returned ";
+      }
+      cout   << "in " << formatMillis(clock() - initializeCompleted)
+         << " (intersection ratio "
+         << totalOutTupleCount * 1000000.0 /
+            (tupleCounts[SET::A] * tupleCounts[SET::B])
+         << " per million)" << endl;
+  }
+#endif
+
+   // reference to outTBlock is not needed any more
+   ioData.setOutTBlock(nullptr);
+
+   timer->stop();
+   return (outTBlockTupleCount > 0);
+}
+
+/* creates a new SelfMerger for the given areas, then deletes the areas */
+SelfMerger* JoinState::createSelfMerger(unsigned levelOfArea1,
+        SelfMergedAreaPtr area2) {
+   SelfMergedAreaPtr area1 = selfMergedAreas[levelOfArea1];
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+   // the memory used by area1 will be considered as part of the SelfMerger in
+   // merger_->getUsedMemory()
+   memoryInfo.subtract(area1);
+#endif
+   selfMergedAreas[levelOfArea1] = nullptr;
+
+   const bool isLastMerge = (area1->edgeIndexStart == 0 &&
+                             area2->edgeIndexEnd == joinEdgesSize);
+
+#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+   if (isLastMerge)
+      reportLastMerge(area1, area2);
+#endif
+
+   // move ownership of source areas (area1 and area2) to new SelfMerger;
+   // source areas will be deleted in ~SelfMerger()
+   return new SelfMerger(area1, area2, isLastMerge, &ioData);
+}
+
+#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+void JoinState::reportLastMerge(SelfMergedAreaPtr area1,
+                                SelfMergedAreaPtr area2) const {
+   cout << outputPrefix;
+   cout << "- last merge: " << formatInt(area1->getWidth()) << " + "
+        << formatInt(area2->getWidth()) << " edges " << endl;
+}
+#endif
+
 

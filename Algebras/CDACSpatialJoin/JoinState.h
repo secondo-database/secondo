@@ -37,6 +37,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
                     // -> InputStream, SortEdge, RectangleInfo, JoinEdge
                     // -> ... -> "Algebras/CRel/TBlock.h"
                     // -> ... -> "Algebras/Rectangle/RectangleAlgebra.h"
+#include "SelfMerger.h"
 #include "Timer.h"
 
 namespace cdacspatialjoin {
@@ -127,6 +128,18 @@ struct JoinStateMemoryInfo {
     * Merger) and possibly increases the maximum values */
    inline void updateMaximum(Merger* merger);
 
+   /* adds the memory used by the given SelfMergedArea to the statistics of
+    * currently used memory */
+   inline void add(SelfMergedAreaPtr mergedArea);
+
+   /* subtracts the memory used by the given SelfMergedArea from the statistics
+    * of currently used memory */
+   inline void subtract(SelfMergedAreaPtr mergedArea);
+
+   /* calculates the currently used memory (including SelfMergedAreas and the
+    * given SelfMerger) and possibly increases the maximum values */
+   inline void updateMaximum(SelfMerger* merger);
+
    /* the maximum number of main memory bytes used at any point during the
     * lifetime of this JoinState */
    size_t getTotalUsedMemoryMax() const;
@@ -159,6 +172,10 @@ If "countOnly == true" is passed in the constructor, intersections are merely
 counted, but no output tuples are written to the outTBlock. The result count
 can then be retrieved using the getOutTupleCount() getter.
 
+JoinState detects self joins (if the bounding boxes of both inputs are exactly
+identical, including the same TBlock positions) and treats this special case
+efficiently using specialized methods and classes (SelfMergedArea, SelfMerger).
+
 */
 class JoinState {
    /* ioData holds all current data from input both streams and provides
@@ -183,6 +200,11 @@ class JoinState {
 
    std::shared_ptr<Timer> timer;
 
+   /* true if a self join was detected, i.e. the rectangles in input A and B
+    * are identical, and the tuples appear in the same order and at the same
+    * addresses in the TBlocks of input A and B */
+   bool selfJoin;
+
    // -----------------------------------------------------
    // variables storing the current state of the operation, allowing it to
    // be interrupted when the outTBlock is full, and to be resumed later
@@ -194,8 +216,15 @@ class JoinState {
    /* equal to joinEdges.size() (but faster to access) */
    size_t joinEdgesSize;
 
-   /* the index in joinEdges from which the next MergedArea will be created */
+   /* the index in joinEdges from which the next (Self)MergedArea will be
+    * created */
    EdgeIndex_t joinEdgeIndex;
+
+   /* in a self join, each rectangle appears in both input A and input B and
+    * therefore an intersection must be reported for each rectangle. This is
+    * done at the beginning of selfJoinNextTBlock(), where this index points
+    * to the next edge in joinEdges which will be considered */
+   EdgeIndex_t idJoinEdgeIndex;
 
    static constexpr unsigned MERGED_AREAS_SIZE = 32;
 
@@ -205,6 +234,13 @@ class JoinState {
     * lowest level; here a MergedArea may only contain JoinEdges from one
     * set */
    MergedAreaPtr mergedAreas[MERGED_AREAS_SIZE];
+
+   /* for a self join, stores one SelfMergedArea for each level. A
+    * SelfMergedArea is waiting for the an adjacent SelfMergedArea with which
+    * it can be merged to a bigger SelfMergedArea (to be stored on the next
+    * level). index 0 represents the lowest level; here a SelfMergedArea may
+    * only contain one single JoinEdges */
+   SelfMergedAreaPtr selfMergedAreas[MERGED_AREAS_SIZE];
 
    unsigned levelCount;
 
@@ -239,6 +275,10 @@ class JoinState {
    /* the Merger that performs the currently running merge operation;
     * nullptr, if no merge operation is currently running */
    Merger* merger;
+
+   /* in a self join, the SelfMerger that performs the currently running merge
+    * operation; nullptr, if no merge operation is currently running */
+   SelfMerger* selfMerger;
 
    // -----------------------------------------------------
    // statistical
@@ -288,6 +328,19 @@ private:
 
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
    void reportLastMerge(MergedAreaPtr area1, MergedAreaPtr area2) const;
+#endif
+
+   /* self join version of nextTBlock. Fills the outTBlock in ioData with
+    * result tuples; returns true, if more tuples were found, or false, if the
+    * operation is complete and no more result tuples were found */
+   bool selfJoinNextTBlock();
+
+   /* creates a new Merger for the given areas, then deletes the areas */
+   inline SelfMerger* createSelfMerger(unsigned levelOfArea1,
+           SelfMergedAreaPtr area2);
+
+#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+   void reportLastMerge(SelfMergedAreaPtr area1, SelfMergedAreaPtr area2) const;
 #endif
 };
 

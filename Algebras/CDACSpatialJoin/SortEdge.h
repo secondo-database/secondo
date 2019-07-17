@@ -100,6 +100,12 @@ struct SortEdge {
              + (((SortEdge*)b)->isLeft ?  1 : 0);
    }
 
+   /* returns true if the x position and the isLeft field of the given
+    * instances are identical. This is useful for detecting self joins. */
+   inline bool operator==(const SortEdge& other) const {
+      return (x == other.x && isLeft == other.isLeft);
+   }
+
    std::string toString() const;
 
 };

@@ -96,4 +96,8 @@ to adapt to very large or very many blocks)
 
 */
 typedef uint32_t SetRowBlock_t;
+
+/* the bit mask for the "set" information (SET::A / SET::B) which is
+* always stored in the highest bit of a SetRowBlock_t value */
+static constexpr SetRowBlock_t SET_MASK = 0x80000000;
 }

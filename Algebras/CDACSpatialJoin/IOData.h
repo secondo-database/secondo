@@ -53,13 +53,13 @@ class IOData {
    // static constexpr and functions
 
 public:
-   /* the bit mask for the "set" information (SET::A / SET::B) which is
-    * always stored in the highest bit of a SetRowBlock_t value */
-   static constexpr SetRowBlock_t SET_MASK = 0x80000000;
-
    /* returns the "set" information stored in the given address */
    inline static SET getSet(const SetRowBlock_t address) {
       return ((address & SET_MASK) == 0) ? SET::A : SET::B;
+   }
+
+   inline static SetRowBlock_t removeSet(const SetRowBlock_t address) {
+      return (address ^ SET_MASK);
    }
 
    static std::string getSetName(SET set);
@@ -232,11 +232,22 @@ public:
     * counted) */
    inline uint64_t getOutTupleCount() const { return outTupleCount; }
 
+   /* adds the given number to the output tuple count which is used for the
+    * CDACSpatialJoinCount operator */
+   void addToOutTupleCount(uint64_t count);
+
+   /* expects entryS and entryT to be representing two rectangles in a self
+    * join that intersect in the x and y dimensions; checks whether
+    * the rectangles intersect in the z dimension, too (if applicable), then
+    * appends a new tuple to the outTBlock or increases the result counter */
+   bool selfJoinAppendToOutput(const JoinEdge& entryS, const JoinEdge& entryT);
+
    /* expects entryS and entryT to be representing two rectangles from
     * different sets that intersect in the x and y dimensions; checks whether
     * the rectangles intersect in the z dimension, too (if applicable), then
     * appends a new tuple to the outTBlock or increases the result counter */
-   bool appendToOutput(const JoinEdge& entryS, const JoinEdge& entryT);
+   bool appendToOutput(const JoinEdge& entryS, const JoinEdge& entryT,
+           bool overrideSet = false);
 
 #ifdef CDAC_SPATIAL_JOIN_METRICS
    /* returns the number of bytes currently used by this IOData instance,

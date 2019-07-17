@@ -464,6 +464,7 @@ CreateRectanglesElem<dim>::CreateRectanglesElem(const Rectangle<dim>& rect_,
          found = true;
       }
    }
+
    // set minimum and maximum extent. If all dimensions are both min and max
    // locked, these values will never be used
    extentMin = found ? minEdge * shrinkMin_ : 0.0;

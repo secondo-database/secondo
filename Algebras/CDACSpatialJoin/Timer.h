@@ -40,7 +40,52 @@ Measurement of cache misses requires the Performance API (PAPI) to be installed
 and TIMER\_USES\_PAPI to be defined (see below).
 
 
-1.1 includes
+1.1 Using Timer for other operators
+
+Timer can easily be used to analyse any other operator as well:
+
+  * add a Timer field in the LocalInfo class:
+
+----
+    #include "Algebras/CDACSpatialJoin/Timer.h"
+    class ... {
+    private:
+    std::shared_ptr<cdacspatialjoin::Timer> timer;
+----
+
+  * initialize "timer(nullptr)" in the LocalInfo constructor, then configure
+    it within the constructor, e.g. with
+
+----
+    std::vector<std::string> taskNames;
+    taskNames.emplace_back("createLocalInfo"); // task 0
+    taskNames.emplace_back("requestData");     // task 1
+    taskNames.emplace_back("createJoinState"); // task 2
+    taskNames.emplace_back("nextTBlock");      // task 3
+    taskNames.emplace_back("destructor");      // task 4
+    timer.reset(new cdacspatialjoin::Timer(taskNames));
+----
+
+  * at the beginning of each task, tell the timer which task is starting now,
+    using its taskNames index, e.g.
+
+----
+    timer->start(0); // start task 0 "createLocalInfo"
+----
+
+  * you may switch between tasks multiple times. Starting a task automatically
+    finishes the previous task.
+
+  * at the end of the LocalInfo destructor, to make Timer report the result
+    to the standard output add
+
+----
+    timer->stop();
+    timer->reportTable(std::cout, true, true, false, false, false);
+----
+
+
+1.2 includes
 
 */
 
@@ -52,7 +97,7 @@ and TIMER\_USES\_PAPI to be defined (see below).
 #include "Base.h" // -> vector
 
 /*
-1.2 Performance API (PAPI) usage
+1.3 Performance API (PAPI) usage
 
 If TIMER\_USES\_PAPI is defined, the Performance API (PAPI) will be
 used in the Timer class to count and report cache misses. To use PAPI,
@@ -82,7 +127,7 @@ used in the Timer class to count and report cache misses. To use PAPI,
 namespace cdacspatialjoin {
 
 /*
-1.3 Task class
+1.4 Task class
 
 Provides statistical information on the number of calls, the sum, minimum,
 maximum, and average runtime, and the sum and average cache misses on
@@ -240,7 +285,7 @@ private:
 
 
 /*
-1.4 Timer class
+1.5 Timer class
 
 */
 class Timer {
