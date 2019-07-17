@@ -1,0 +1,3779 @@
+########################################################################
+#### Compare SpatialJoin Implementations
+########################################################################
+
+# This script compares the performance of the following spatial join implementations 
+# by executing 71 queries for each operator:
+# - CDACSpatialJoin*
+# - CDACSpatialJoinCount*
+# - cspatialjoin*
+# - infoGrepSpatialJoin
+# - itSpatialJoin*
+# - spatialjoin
+# - spatialJoinTouch*
+# (*) for these implementations, both tuple streams and TBlock streams are tested as input. 
+
+# Running the script takes approx. 8 hours (on a Lenovo ThinkPad W5300 with intel Core i7). 
+# It may be started from secondo/bin using 
+#   SecondoTTYBDB -i ../Algebras/CDACSpatialJoin/compareSpatialJoinImpls.sec | tee ~/myOutputFile
+# to see the output on the console and simultaneously store it in myOutputFile.
+
+# Note that the algebras of the above operators must be activated in makefile.algebras, 
+# and the expected data (see below) must be provided. Ideally, PAPI should be installed and used 
+# by defining TIMER_USES_PAPI in Algebras/CDACSpatialJoin/Timer.h (see download and installation hints there). 
+
+# Timer.h can easily be used to analyse any other operator as well 
+# (see the "Using Timer for other operators" section in Timer.h)
+
+########################################################################
+#### expected data
+########################################################################
+
+# expected database 'nrw': 
+# ------------------------
+# http://download.geofabrik.de/europe/germany/nordrhein-westfalen-190201-free.shp.zip (downloaded 20.02.2019 16:23)
+# or for latest data: http://download.geofabrik.de/europe/germany/nordrhein-westfalen-latest-free.shp.zip
+# extracted and post-processed with 
+# SecondoTTYBDB -i /home/fapra/secondo/bin/nrwImportShape.psec
+# SecondoTTYBDB -i /home/fapra/secondo/bin/nrwCorrectShape.sec
+
+open database nrw
+
+# expected objects: 
+# -----------------
+# we generally use the largest 6 objects, but prefer Waterways over Natural in order to get 2x region, 2x line, 2x point:
+# Buildings (8'008'825 tuples, GeoData region)
+# Roads     (1'812'567 tuples, GeoData line)
+# Landuse     (673'580 tuples, GeoData region)
+# Points      (303'257 tuples, GeoData point)
+# Traffic     (232'411 tuples, GeoData point)
+# Waterways   (111'813 tuples, GeoData line)
+
+# not used here:
+# Natural     (222'463 tuples, GeoData point)
+# Railways     (49'654 tuples, GeoData line)
+# Water        (45'128 tuples, GeoData region)
+# etc.
+
+query Buildings count;
+query Roads count;
+query Landuse count;
+query Points count;
+query Traffic count;
+query Waterways count;
+
+# expected derived objects: 
+# -------------------------
+# let cbuildings = Buildings feed cconsume[10];
+# let croads = Roads feed cconsume[10];
+# let clanduse = Landuse feed cconsume[10];
+# let cpoints = Points feed cconsume[10];
+# let ctraffic = Traffic feed cconsume[10];
+# let cwaterways = Waterways feed cconsume[10];
+
+query (Buildings count = cbuildings count);
+query (Roads count = croads count);
+query (Landuse count = clanduse count);
+query (Points count = cpoints count);
+query (Traffic count = ctraffic count);
+query (Waterways count = cwaterways count);
+
+# expected additional objects: 
+# ----------------------------
+# (when running this make sure there are empty lines between commands!)
+# let crectanglesInput1a = createRectangles2D(2, 17, 0.60, 0.60, 1) cconsume[10]; 
+# let crectanglesInput1b = createRectangles2D(2, 17, 0.60, 0.60, 2) cconsume[10];
+# let crectanglesInput2a = createRectangles2D(2, 19, 0.55, 0.55, 1) cconsume[10]; 
+# let crectanglesInput2b = createRectangles2D(2, 19, 0.55, 0.55, 2) cconsume[10];
+# let crectanglesInput3a = createRectangles2D(2, 21, 0.55, 0.55, 1) cconsume[10]; 
+# let crectanglesInput3b = createRectangles2D(2, 21, 0.55, 0.55, 2) cconsume[10];
+# let crectanglesInput4a = createRectangles2D(2, 23, 0.58, 0.58, 1) cconsume[10]; 
+# let crectanglesInput4b = createRectangles2D(2, 23, 0.58, 0.58, 2) cconsume[10];
+# let crectanglesInput5a = createRectangles2D(2, 25, 0.55, 0.55, 1) cconsume[10]; 
+# let crectanglesInput5b = createRectangles2D(2, 25, 0.55, 0.55, 2) cconsume[10];
+
+# let crectanglesOutput1a = createRectangles2D(10, 5, 0.10, 0.10, 1) cconsume[10]; 
+# let crectanglesOutput1b = createRectangles2D(10, 5, 0.10, 0.10, 2) cconsume[10];
+# let crectanglesOutput2a = createRectangles2D(10, 5, 0.28, 0.37, 1) cconsume[10]; 
+# let crectanglesOutput2b = createRectangles2D(10, 5, 0.28, 0.37, 2) cconsume[10];
+# let crectanglesOutput3a = createRectangles2D(10, 5, 0.35, 0.45, 1) cconsume[10]; 
+# let crectanglesOutput3b = createRectangles2D(10, 5, 0.35, 0.45, 2) cconsume[10];
+# let crectanglesOutput4a = createRectangles2D(10, 5, 0.40, 0.59, 1) cconsume[10]; 
+# let crectanglesOutput4b = createRectangles2D(10, 5, 0.40, 0.59, 2) cconsume[10];
+# let crectanglesOutput5a = createRectangles2D(10, 5, 0.50, 0.70, 1) cconsume[10]; 
+# let crectanglesOutput5b = createRectangles2D(10, 5, 0.50, 0.70, 2) cconsume[10];
+
+# let crectanglesDispers1a = createRectangles2D(1000000, 1, 0.001, 0.001, 1) cconsume[10]; 
+# let crectanglesDispers1b = createRectangles2D(1000000, 1, 0.001, 0.001, 2) cconsume[10];
+# let crectanglesDispers2a = createRectangles2D(1000, 2, 0.0316, 0.0316, 1) cconsume[10]; 
+# let crectanglesDispers2b = createRectangles2D(1000, 2, 0.0316, 0.0316, 2) cconsume[10];
+# let crectanglesDispers3a = createRectangles2D(100, 3, 0.1, 0.1, 1) cconsume[10]; 
+# let crectanglesDispers3b = createRectangles2D(100, 3, 0.1, 0.1, 2) cconsume[10];
+# let crectanglesDispers4a = createRectangles2D(10, 6, 0.316, 0.316, 2) cconsume[10]; 
+# let crectanglesDispers4b = createRectangles2D(10, 6, 0.316, 0.316, 4) cconsume[10];
+# let crectanglesDispers5a = createRectangles2D(4, 10, 0.5, 0.5, 1) cconsume[10]; 
+# let crectanglesDispers5b = createRectangles2D(4, 10, 0.5, 0.5, 6) cconsume[10];
+
+# let crectanglesSize1a = createRectangles2D(100, 3, 0.098, 0.098, 1) cconsume[10]; 
+# let crectanglesSize1b = createRectangles2D(100, 3, 0.098, 0.098, 2) cconsume[10];
+# let crectanglesSize2a = createRectangles2D(100, 3, 0.050, 0.170, 1) cconsume[10]; 
+# let crectanglesSize2b = createRectangles2D(100, 3, 0.050, 0.170, 2) cconsume[10];
+# let crectanglesSize3a = createRectangles2D(100, 3, 0.020, 0.210, 1) cconsume[10]; 
+# let crectanglesSize3b = createRectangles2D(100, 3, 0.020, 0.210, 2) cconsume[10];
+# let crectanglesSize4a = createRectangles2D(100, 3, 0.007, 0.230, 1) cconsume[10]; 
+# let crectanglesSize4b = createRectangles2D(100, 3, 0.007, 0.230, 2) cconsume[10];
+# let crectanglesSize5a = createRectangles2D(100, 3, 0.002, 0.240, 1) cconsume[10]; 
+# let crectanglesSize5b = createRectangles2D(100, 3, 0.002, 0.240, 2) cconsume[10];
+
+# let crectanglesTower1a = createRectangles2D(4, 6, 0.2, 0.3, 1, 3, 0) cconsume[10]; 
+# let crectanglesTower1b = createRectangles2D(4, 6, 0.2, 0.3, 2, 3, 0) cconsume[10];
+# let crectanglesTower2a = createRectangles2D(4, 7, 0.2, 0.3, 1, 3, 0) cconsume[10]; 
+# let crectanglesTower2b = createRectangles2D(4, 7, 0.2, 0.3, 2, 3, 0) cconsume[10];
+# let crectanglesTower3a = createRectangles2D(4, 8, 0.2, 0.3, 1, 3, 0) cconsume[10]; 
+# let crectanglesTower3b = createRectangles2D(4, 8, 0.2, 0.3, 2, 3, 0) cconsume[10];
+# let crectanglesTower4a = createRectangles2D(4, 9, 0.2, 0.3, 1, 3, 0) cconsume[10]; 
+# let crectanglesTower4b = createRectangles2D(4, 9, 0.2, 0.3, 2, 3, 0) cconsume[10];
+# let crectanglesTower5a = createRectangles2D(4, 10, 0.2, 0.3, 1, 3, 0) cconsume[10]; 
+# let crectanglesTower5b = createRectangles2D(4, 10, 0.2, 0.3, 2, 3, 0) cconsume[10];
+
+# let crectanglesQueue1a = createRectangles2D(4, 6, 0.2, 0.3, 1, 0, 3) cconsume[10]; 
+# let crectanglesQueue1b = createRectangles2D(4, 6, 0.2, 0.3, 2, 0, 3) cconsume[10];
+# let crectanglesQueue2a = createRectangles2D(4, 7, 0.2, 0.3, 1, 0, 3) cconsume[10]; 
+# let crectanglesQueue2b = createRectangles2D(4, 7, 0.2, 0.3, 2, 0, 3) cconsume[10];
+# let crectanglesQueue3a = createRectangles2D(4, 8, 0.2, 0.3, 1, 0, 3) cconsume[10]; 
+# let crectanglesQueue3b = createRectangles2D(4, 8, 0.2, 0.3, 2, 0, 3) cconsume[10];
+# let crectanglesQueue4a = createRectangles2D(4, 9, 0.2, 0.3, 1, 0, 3) cconsume[10]; 
+# let crectanglesQueue4b = createRectangles2D(4, 9, 0.2, 0.3, 2, 0, 3) cconsume[10];
+# let crectanglesQueue5a = createRectangles2D(4, 10, 0.2, 0.3, 1, 0, 3) cconsume[10]; 
+# let crectanglesQueue5b = createRectangles2D(4, 10, 0.2, 0.3, 2, 0, 3) cconsume[10];
+
+# let crectanglesPlus1a = createRectangles2D(4, 6, 0.4, 0.55, 1, 3, 0) cconsume[10]; 
+# let crectanglesPlus1b = createRectangles2D(4, 6, 0.4, 0.55, 2, 0, 3) cconsume[10];
+# let crectanglesPlus2a = createRectangles2D(4, 7, 0.4, 0.55, 1, 3, 0) cconsume[10]; 
+# let crectanglesPlus2b = createRectangles2D(4, 7, 0.4, 0.55, 2, 0, 3) cconsume[10];
+# let crectanglesPlus3a = createRectangles2D(4, 8, 0.4, 0.55, 1, 3, 0) cconsume[10]; 
+# let crectanglesPlus3b = createRectangles2D(4, 8, 0.4, 0.55, 2, 0, 3) cconsume[10];
+# let crectanglesPlus4a = createRectangles2D(4, 9, 0.4, 0.55, 1, 3, 0) cconsume[10]; 
+# let crectanglesPlus4b = createRectangles2D(4, 9, 0.4, 0.55, 2, 0, 3) cconsume[10];
+# let crectanglesPlus5a = createRectangles2D(4, 10, 0.4, 0.55, 1, 3, 0) cconsume[10]; 
+# let crectanglesPlus5b = createRectangles2D(4, 10, 0.4, 0.55, 2, 0, 3) cconsume[10];
+
+query (crectanglesInput1a count = 131072);
+query (crectanglesInput1b count = 131072);
+query (crectanglesInput2a count = 524288);
+query (crectanglesInput2b count = 524288);
+query (crectanglesInput3a count = 2097152);
+query (crectanglesInput3b count = 2097152);
+query (crectanglesInput4a count = 8388608);
+query (crectanglesInput4b count = 8388608);
+query (crectanglesInput5a count = 33554432);
+query (crectanglesInput5b count = 33554432);
+
+query (crectanglesOutput1a count = 100000);
+query (crectanglesOutput1b count = 100000);
+query (crectanglesOutput2a count = 100000);
+query (crectanglesOutput2b count = 100000);
+query (crectanglesOutput3a count = 100000);
+query (crectanglesOutput3b count = 100000);
+query (crectanglesOutput4a count = 100000);
+query (crectanglesOutput4b count = 100000);
+query (crectanglesOutput5a count = 100000);
+query (crectanglesOutput5b count = 100000);
+
+query (crectanglesDispers1a count = 1000000);
+query (crectanglesDispers1b count = 1000000);
+query (crectanglesDispers2a count = 1000000);
+query (crectanglesDispers2b count = 1000000);
+query (crectanglesDispers3a count = 1000000);
+query (crectanglesDispers3b count = 1000000);
+query (crectanglesDispers4a count = 1000000);
+query (crectanglesDispers4b count = 1000000);
+query (crectanglesDispers5a count = 1048576);
+query (crectanglesDispers5b count = 1048576);
+
+query (crectanglesSize1a count = 1000000);
+query (crectanglesSize1b count = 1000000);
+query (crectanglesSize2a count = 1000000);
+query (crectanglesSize2b count = 1000000);
+query (crectanglesSize3a count = 1000000);
+query (crectanglesSize3b count = 1000000);
+query (crectanglesSize4a count = 1000000);
+query (crectanglesSize4b count = 1000000);
+query (crectanglesSize5a count = 1000000);
+query (crectanglesSize5b count = 1000000);
+
+query (crectanglesTower1a count = 4096);
+query (crectanglesTower1b count = 4096);
+query (crectanglesTower2a count = 16384);
+query (crectanglesTower2b count = 16384);
+query (crectanglesTower3a count = 65536);
+query (crectanglesTower3b count = 65536);
+query (crectanglesTower4a count = 262144);
+query (crectanglesTower4b count = 262144);
+query (crectanglesTower5a count = 1048576);
+query (crectanglesTower5b count = 1048576);
+
+query (crectanglesQueue1a count = 4096);
+query (crectanglesQueue1b count = 4096);
+query (crectanglesQueue2a count = 16384);
+query (crectanglesQueue2b count = 16384);
+query (crectanglesQueue3a count = 65536);
+query (crectanglesQueue3b count = 65536);
+query (crectanglesQueue4a count = 262144);
+query (crectanglesQueue4b count = 262144);
+query (crectanglesQueue5a count = 1048576);
+query (crectanglesQueue5b count = 1048576);
+
+query (crectanglesPlus1a count = 4096);
+query (crectanglesPlus1b count = 4096);
+query (crectanglesPlus2a count = 16384);
+query (crectanglesPlus2b count = 16384);
+query (crectanglesPlus3a count = 65536);
+query (crectanglesPlus3b count = 65536);
+query (crectanglesPlus4a count = 262144);
+query (crectanglesPlus4b count = 262144);
+query (crectanglesPlus5a count = 1048576);
+query (crectanglesPlus5b count = 1048576);
+
+########################################################################
+#### A1) CDACSpatialJoinCount from crectangles
+########################################################################
+
+# ====================================================================== Input: 131 K ... 32 M
+
+query crectanglesInput1a feed crectanglesInput1b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesInput2a feed crectanglesInput2b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesInput3a feed crectanglesInput3b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesInput4a feed crectanglesInput4b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesInput5a feed crectanglesInput5b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ====================================================================== Output: 1 ... 500 M
+
+query crectanglesOutput1a feed crectanglesOutput1b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesOutput2a feed crectanglesOutput2b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesOutput3a feed crectanglesOutput3b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesOutput4a feed crectanglesOutput4b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesOutput5a feed crectanglesOutput5b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ====================================================================== Dispersion: uniform ... clustered
+
+query crectanglesDispers1a feed crectanglesDispers1b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesDispers2a feed crectanglesDispers2b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesDispers3a feed crectanglesDispers3b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesDispers4a feed crectanglesDispers4b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesDispers5a feed crectanglesDispers5b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ====================================================================== Size: equal ... diverging
+
+query crectanglesSize1a feed crectanglesSize1b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesSize2a feed crectanglesSize2b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesSize3a feed crectanglesSize3b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesSize4a feed crectanglesSize4b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesSize5a feed crectanglesSize5b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ====================================================================== Tower: low ... high
+
+query crectanglesTower1a feed crectanglesTower1b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesTower2a feed crectanglesTower2b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesTower3a feed crectanglesTower3b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesTower4a feed crectanglesTower4b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesTower5a feed crectanglesTower5b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ====================================================================== Queue: short ... long
+
+query crectanglesQueue1a feed crectanglesQueue1b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesQueue2a feed crectanglesQueue2b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesQueue3a feed crectanglesQueue3b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesQueue4a feed crectanglesQueue4b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesQueue5a feed crectanglesQueue5b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ====================================================================== Plus: small ... large
+
+query crectanglesPlus1a feed crectanglesPlus1b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesPlus2a feed crectanglesPlus2b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesPlus3a feed crectanglesPlus3b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesPlus4a feed crectanglesPlus4b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query crectanglesPlus5a feed crectanglesPlus5b feed {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+########################################################################
+#### A2) CDACSpatialJoinCount from crel
+########################################################################
+
+query cbuildings feed cbuildings feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed croads feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed clanduse feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed cpoints feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed ctraffic feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed cwaterways feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ======================================================================
+
+query croads feed cbuildings feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query croads feed croads feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query croads feed clanduse feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query croads feed cpoints feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query croads feed ctraffic feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query croads feed cwaterways feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ======================================================================
+
+query clanduse feed cbuildings feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query clanduse feed croads feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query clanduse feed clanduse feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query clanduse feed cpoints feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query clanduse feed ctraffic feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query clanduse feed cwaterways feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ======================================================================
+
+query cpoints feed cbuildings feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query cpoints feed croads feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query cpoints feed clanduse feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query cpoints feed cpoints feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query cpoints feed ctraffic feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query cpoints feed cwaterways feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ======================================================================
+
+query ctraffic feed cbuildings feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed croads feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed clanduse feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed cpoints feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed ctraffic feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed cwaterways feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ======================================================================
+
+query cwaterways feed cbuildings feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed croads feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed clanduse feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed cpoints feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed ctraffic feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed cwaterways feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+########################################################################
+#### B1) CDACSpatialJoinCount from createRectangles2D
+########################################################################
+
+# ====================================================================== Input: 131 K ... 32 M
+
+query createRectangles2D(2, 17, 0.60, 0.60, 1) createRectangles2D(2, 17, 0.60, 0.60, 2) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 19, 0.55, 0.55, 1) createRectangles2D(2, 19, 0.55, 0.55, 2) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 21, 0.55, 0.55, 1) createRectangles2D(2, 21, 0.55, 0.55, 2) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 23, 0.58, 0.58, 1) createRectangles2D(2, 23, 0.58, 0.58, 2) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 25, 0.55, 0.55, 1) createRectangles2D(2, 25, 0.55, 0.55, 2) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ====================================================================== Output: 1 ... 500 M
+
+query createRectangles2D(10, 5, 0.10, 0.10, 1) createRectangles2D(10, 5, 0.10, 0.10, 2) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.28, 0.37, 1) createRectangles2D(10, 5, 0.28, 0.37, 2) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.35, 0.45, 1) createRectangles2D(10, 5, 0.35, 0.45, 2) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.40, 0.59, 1) createRectangles2D(10, 5, 0.40, 0.59, 2) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.50, 0.70, 1) createRectangles2D(10, 5, 0.50, 0.70, 2) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ====================================================================== Dispersion: uniform ... clustered
+
+query createRectangles2D(1000000, 1, 0.001, 0.001, 1) createRectangles2D(1000000, 1, 0.001, 0.001, 2) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(1000, 2, 0.0316, 0.0316, 1) createRectangles2D(1000, 2, 0.0316, 0.0316, 2) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.1, 0.1, 1) createRectangles2D(100, 3, 0.1, 0.1, 2) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 6, 0.316, 0.316, 2) createRectangles2D(10, 6, 0.316, 0.316, 4) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.5, 0.5, 1) createRectangles2D(4, 10, 0.5, 0.5, 6) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ====================================================================== Size: equal ... diverging
+
+query createRectangles2D(100, 3, 0.098, 0.098, 1) createRectangles2D(100, 3, 0.098, 0.098, 2) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.050, 0.170, 1) createRectangles2D(100, 3, 0.050, 0.170, 2) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.020, 0.210, 1) createRectangles2D(100, 3, 0.020, 0.210, 2) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.007, 0.230, 1) createRectangles2D(100, 3, 0.007, 0.230, 2) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.002, 0.240, 1) createRectangles2D(100, 3, 0.002, 0.240, 2) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ====================================================================== Tower: low ... high
+
+query createRectangles2D(4, 6, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 6, 0.2, 0.3, 2, 3, 0) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 7, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 7, 0.2, 0.3, 2, 3, 0) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 8, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 8, 0.2, 0.3, 2, 3, 0) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 9, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 9, 0.2, 0.3, 2, 3, 0) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 10, 0.2, 0.3, 2, 3, 0) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ====================================================================== Queue: short ... long
+
+query createRectangles2D(4, 6, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 6, 0.2, 0.3, 2, 0, 3) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 7, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 7, 0.2, 0.3, 2, 0, 3) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 8, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 8, 0.2, 0.3, 2, 0, 3) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 9, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 9, 0.2, 0.3, 2, 0, 3) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 10, 0.2, 0.3, 2, 0, 3) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ====================================================================== Plus: small ... large
+
+query createRectangles2D(4, 6, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 6, 0.4, 0.55, 2, 0, 3) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 7, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 7, 0.4, 0.55, 2, 0, 3) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 8, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 8, 0.4, 0.55, 2, 0, 3) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 9, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 9, 0.4, 0.55, 2, 0, 3) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 10, 0.4, 0.55, 2, 0, 3) {a} cdacspatialjoincount[Bbox, Bbox_a];
+
+########################################################################
+#### B2) CDACSpatialJoinCount from rel
+########################################################################
+
+query Buildings feed Buildings feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Roads feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Landuse feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Points feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Traffic feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Waterways feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ======================================================================
+
+query Roads feed Buildings feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Roads feed Roads feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Roads feed Landuse feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Roads feed Points feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Roads feed Traffic feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Roads feed Waterways feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ======================================================================
+
+query Landuse feed Buildings feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Roads feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Landuse feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Points feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Traffic feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Waterways feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ======================================================================
+
+query Points feed Buildings feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Points feed Roads feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Points feed Landuse feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Points feed Points feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Points feed Traffic feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Points feed Waterways feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ======================================================================
+
+query Traffic feed Buildings feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Roads feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Landuse feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Points feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Traffic feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Waterways feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ======================================================================
+
+query Waterways feed Buildings feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Roads feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Landuse feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Points feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Traffic feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Waterways feed {a} cdacspatialjoincount[GeoData, GeoData_a];
+
+########################################################################
+#### C1) CDACSpatialJoin from crectangles
+########################################################################
+
+# ====================================================================== Input: 131 K ... 32 M
+
+query crectanglesInput1a feed crectanglesInput1b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesInput2a feed crectanglesInput2b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesInput3a feed crectanglesInput3b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesInput4a feed crectanglesInput4b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesInput5a feed crectanglesInput5b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Output: 1 ... 500 M
+
+query crectanglesOutput1a feed crectanglesOutput1b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesOutput2a feed crectanglesOutput2b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesOutput3a feed crectanglesOutput3b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesOutput4a feed crectanglesOutput4b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesOutput5a feed crectanglesOutput5b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Dispersion: uniform ... clustered
+
+query crectanglesDispers1a feed crectanglesDispers1b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesDispers2a feed crectanglesDispers2b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesDispers3a feed crectanglesDispers3b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesDispers4a feed crectanglesDispers4b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesDispers5a feed crectanglesDispers5b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Size: equal ... diverging
+
+query crectanglesSize1a feed crectanglesSize1b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesSize2a feed crectanglesSize2b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesSize3a feed crectanglesSize3b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesSize4a feed crectanglesSize4b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesSize5a feed crectanglesSize5b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Tower: low ... high
+
+query crectanglesTower1a feed crectanglesTower1b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesTower2a feed crectanglesTower2b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesTower3a feed crectanglesTower3b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesTower4a feed crectanglesTower4b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesTower5a feed crectanglesTower5b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Queue: short ... long
+
+query crectanglesQueue1a feed crectanglesQueue1b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesQueue2a feed crectanglesQueue2b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesQueue3a feed crectanglesQueue3b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesQueue4a feed crectanglesQueue4b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesQueue5a feed crectanglesQueue5b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Plus: small ... large
+
+query crectanglesPlus1a feed crectanglesPlus1b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesPlus2a feed crectanglesPlus2b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesPlus3a feed crectanglesPlus3b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesPlus4a feed crectanglesPlus4b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesPlus5a feed crectanglesPlus5b feed {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+########################################################################
+#### C2) CDACSpatialJoin from crel
+########################################################################
+
+query cbuildings feed cbuildings feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed croads feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed clanduse feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed cpoints feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed ctraffic feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed cwaterways feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query croads feed cbuildings feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query croads feed croads feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query croads feed clanduse feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query croads feed cpoints feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query croads feed ctraffic feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query croads feed cwaterways feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query clanduse feed cbuildings feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query clanduse feed croads feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query clanduse feed clanduse feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query clanduse feed cpoints feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query clanduse feed ctraffic feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query clanduse feed cwaterways feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query cpoints feed cbuildings feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cpoints feed croads feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cpoints feed clanduse feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cpoints feed cpoints feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cpoints feed ctraffic feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cpoints feed cwaterways feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query ctraffic feed cbuildings feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed croads feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed clanduse feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed cpoints feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed ctraffic feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed cwaterways feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query cwaterways feed cbuildings feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed croads feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed clanduse feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed cpoints feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed ctraffic feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed cwaterways feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+########################################################################
+#### D1) CDACSpatialJoin from createRectangles2D
+########################################################################
+
+# ====================================================================== Input: 131 K ... 32 M
+
+query createRectangles2D(2, 17, 0.60, 0.60, 1) createRectangles2D(2, 17, 0.60, 0.60, 2) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 19, 0.55, 0.55, 1) createRectangles2D(2, 19, 0.55, 0.55, 2) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 21, 0.55, 0.55, 1) createRectangles2D(2, 21, 0.55, 0.55, 2) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 23, 0.58, 0.58, 1) createRectangles2D(2, 23, 0.58, 0.58, 2) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 25, 0.55, 0.55, 1) createRectangles2D(2, 25, 0.55, 0.55, 2) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Output: 1 ... 500 M
+
+query createRectangles2D(10, 5, 0.10, 0.10, 1) createRectangles2D(10, 5, 0.10, 0.10, 2) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.28, 0.37, 1) createRectangles2D(10, 5, 0.28, 0.37, 2) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.35, 0.45, 1) createRectangles2D(10, 5, 0.35, 0.45, 2) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.40, 0.59, 1) createRectangles2D(10, 5, 0.40, 0.59, 2) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.50, 0.70, 1) createRectangles2D(10, 5, 0.50, 0.70, 2) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Dispersion: uniform ... clustered
+
+query createRectangles2D(1000000, 1, 0.001, 0.001, 1) createRectangles2D(1000000, 1, 0.001, 0.001, 2) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(1000, 2, 0.0316, 0.0316, 1) createRectangles2D(1000, 2, 0.0316, 0.0316, 2) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.1, 0.1, 1) createRectangles2D(100, 3, 0.1, 0.1, 2) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 6, 0.316, 0.316, 2) createRectangles2D(10, 6, 0.316, 0.316, 4) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.5, 0.5, 1) createRectangles2D(4, 10, 0.5, 0.5, 6) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Size: equal ... diverging
+
+query createRectangles2D(100, 3, 0.098, 0.098, 1) createRectangles2D(100, 3, 0.098, 0.098, 2) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.050, 0.170, 1) createRectangles2D(100, 3, 0.050, 0.170, 2) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.020, 0.210, 1) createRectangles2D(100, 3, 0.020, 0.210, 2) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.007, 0.230, 1) createRectangles2D(100, 3, 0.007, 0.230, 2) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.002, 0.240, 1) createRectangles2D(100, 3, 0.002, 0.240, 2) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Tower: low ... high
+
+query createRectangles2D(4, 6, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 6, 0.2, 0.3, 2, 3, 0) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 7, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 7, 0.2, 0.3, 2, 3, 0) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 8, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 8, 0.2, 0.3, 2, 3, 0) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 9, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 9, 0.2, 0.3, 2, 3, 0) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 10, 0.2, 0.3, 2, 3, 0) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Queue: short ... long
+
+query createRectangles2D(4, 6, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 6, 0.2, 0.3, 2, 0, 3) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 7, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 7, 0.2, 0.3, 2, 0, 3) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 8, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 8, 0.2, 0.3, 2, 0, 3) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 9, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 9, 0.2, 0.3, 2, 0, 3) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 10, 0.2, 0.3, 2, 0, 3) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Plus: small ... large
+
+query createRectangles2D(4, 6, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 6, 0.4, 0.55, 2, 0, 3) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 7, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 7, 0.4, 0.55, 2, 0, 3) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 8, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 8, 0.4, 0.55, 2, 0, 3) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 9, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 9, 0.4, 0.55, 2, 0, 3) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 10, 0.4, 0.55, 2, 0, 3) {a} cdacspatialjoin[Bbox, Bbox_a] count;
+
+########################################################################
+#### D2) CDACSpatialJoin from rel
+########################################################################
+
+query Buildings feed Buildings feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Roads feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Landuse feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Points feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Traffic feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Waterways feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query Roads feed Buildings feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Roads feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Landuse feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Points feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Traffic feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Waterways feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query Landuse feed Buildings feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Roads feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Landuse feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Points feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Traffic feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Waterways feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query Points feed Buildings feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed Roads feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed Landuse feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed Points feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed Traffic feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed Waterways feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query Traffic feed Buildings feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Roads feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Landuse feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Points feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Traffic feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Waterways feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query Waterways feed Buildings feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Roads feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Landuse feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Points feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Traffic feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Waterways feed {a} cdacspatialjoin[GeoData, GeoData_a] count;
+
+########################################################################
+#### E1) cspatialjoin from crectangles
+########################################################################
+
+# ====================================================================== Input: 131 K ... 32 M
+
+query crectanglesInput1a feed crectanglesInput1b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesInput2a feed crectanglesInput2b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesInput3a feed crectanglesInput3b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesInput4a feed crectanglesInput4b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesInput5a feed crectanglesInput5b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Output: 1 ... 500 M
+
+query crectanglesOutput1a feed crectanglesOutput1b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesOutput2a feed crectanglesOutput2b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesOutput3a feed crectanglesOutput3b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesOutput4a feed crectanglesOutput4b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesOutput5a feed crectanglesOutput5b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Dispersion: uniform ... clustered
+
+query crectanglesDispers1a feed crectanglesDispers1b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesDispers2a feed crectanglesDispers2b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesDispers3a feed crectanglesDispers3b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesDispers4a feed crectanglesDispers4b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesDispers5a feed crectanglesDispers5b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Size: equal ... diverging
+
+query crectanglesSize1a feed crectanglesSize1b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesSize2a feed crectanglesSize2b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesSize3a feed crectanglesSize3b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesSize4a feed crectanglesSize4b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesSize5a feed crectanglesSize5b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Tower: low ... high
+
+query crectanglesTower1a feed crectanglesTower1b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated as it causes "Zeile 35:  9725 Getoetet                $runner $*" (GlobalMemory=16384)
+# query crectanglesTower2a feed crectanglesTower2b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated (see above)
+# query crectanglesTower3a feed crectanglesTower3b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated (see above)
+# query crectanglesTower4a feed crectanglesTower4b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated (see above)
+# query crectanglesTower5a feed crectanglesTower5b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Queue: short ... long
+
+query crectanglesQueue1a feed crectanglesQueue1b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesQueue2a feed crectanglesQueue2b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesQueue3a feed crectanglesQueue3b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesQueue4a feed crectanglesQueue4b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesQueue5a feed crectanglesQueue5b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Plus: small ... large
+
+query crectanglesPlus1a feed crectanglesPlus1b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated as it causes "Zeile 35:  9858 Speicherzugriffsfehler  (Speicherabzug geschrieben) $runner $*" (GlobalMemory=16384)
+# query crectanglesPlus2a feed crectanglesPlus2b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated (see above)
+# query crectanglesPlus3a feed crectanglesPlus3b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated (see above)
+# query crectanglesPlus4a feed crectanglesPlus4b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated (see above)
+# query crectanglesPlus5a feed crectanglesPlus5b feed {a} cspatialjoin[Bbox, Bbox_a] count;
+
+########################################################################
+#### E2) cspatialjoin from crel
+########################################################################
+
+query cbuildings feed cbuildings feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed croads feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed clanduse feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed cpoints feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed ctraffic feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed cwaterways feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query croads feed cbuildings feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query croads feed croads feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query croads feed clanduse feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query croads feed cpoints feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query croads feed ctraffic feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query croads feed cwaterways feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query clanduse feed cbuildings feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query clanduse feed croads feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query clanduse feed clanduse feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query clanduse feed cpoints feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query clanduse feed ctraffic feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query clanduse feed cwaterways feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query cpoints feed cbuildings feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cpoints feed croads feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cpoints feed clanduse feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cpoints feed cpoints feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cpoints feed ctraffic feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cpoints feed cwaterways feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query ctraffic feed cbuildings feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed croads feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed clanduse feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed cpoints feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed ctraffic feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed cwaterways feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query cwaterways feed cbuildings feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed croads feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed clanduse feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed cpoints feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed ctraffic feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed cwaterways feed {a} cspatialjoin[GeoData, GeoData_a] count;
+
+########################################################################
+#### F1) cspatialjoin from createRectangles2D
+########################################################################
+
+# ====================================================================== Input: 131 K ... 32 M
+
+query createRectangles2D(2, 17, 0.60, 0.60, 1) toblocks[10] createRectangles2D(2, 17, 0.60, 0.60, 2) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 19, 0.55, 0.55, 1) toblocks[10] createRectangles2D(2, 19, 0.55, 0.55, 2) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 21, 0.55, 0.55, 1) toblocks[10] createRectangles2D(2, 21, 0.55, 0.55, 2) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 23, 0.58, 0.58, 1) toblocks[10] createRectangles2D(2, 23, 0.58, 0.58, 2) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 25, 0.55, 0.55, 1) toblocks[10] createRectangles2D(2, 25, 0.55, 0.55, 2) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Output: 1 ... 500 M
+
+query createRectangles2D(10, 5, 0.10, 0.10, 1) toblocks[10] createRectangles2D(10, 5, 0.10, 0.10, 2) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.28, 0.37, 1) toblocks[10] createRectangles2D(10, 5, 0.28, 0.37, 2) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.35, 0.45, 1) toblocks[10] createRectangles2D(10, 5, 0.35, 0.45, 2) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.40, 0.59, 1) toblocks[10] createRectangles2D(10, 5, 0.40, 0.59, 2) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.50, 0.70, 1) toblocks[10] createRectangles2D(10, 5, 0.50, 0.70, 2) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Dispersion: uniform ... clustered
+
+query createRectangles2D(1000000, 1, 0.001, 0.001, 1) toblocks[10] createRectangles2D(1000000, 1, 0.001, 0.001, 2) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(1000, 2, 0.0316, 0.0316, 1) toblocks[10] createRectangles2D(1000, 2, 0.0316, 0.0316, 2) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.1, 0.1, 1) toblocks[10] createRectangles2D(100, 3, 0.1, 0.1, 2) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 6, 0.316, 0.316, 2) toblocks[10] createRectangles2D(10, 6, 0.316, 0.316, 4) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.5, 0.5, 1) toblocks[10] createRectangles2D(4, 10, 0.5, 0.5, 6) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Size: equal ... diverging
+
+query createRectangles2D(100, 3, 0.098, 0.098, 1) toblocks[10] createRectangles2D(100, 3, 0.098, 0.098, 2) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.050, 0.170, 1) toblocks[10] createRectangles2D(100, 3, 0.050, 0.170, 2) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.020, 0.210, 1) toblocks[10] createRectangles2D(100, 3, 0.020, 0.210, 2) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.007, 0.230, 1) toblocks[10] createRectangles2D(100, 3, 0.007, 0.230, 2) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.002, 0.240, 1) toblocks[10] createRectangles2D(100, 3, 0.002, 0.240, 2) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Tower: low ... high
+
+query createRectangles2D(4, 6, 0.2, 0.3, 1, 3, 0) toblocks[10] createRectangles2D(4, 6, 0.2, 0.3, 2, 3, 0) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated as it causes "Zeile 35:  9725 Getoetet                $runner $*" (GlobalMemory=16384)
+# query createRectangles2D(4, 7, 0.2, 0.3, 1, 3, 0) toblocks[10] createRectangles2D(4, 7, 0.2, 0.3, 2, 3, 0) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated (see above)
+# query createRectangles2D(4, 8, 0.2, 0.3, 1, 3, 0) toblocks[10] createRectangles2D(4, 8, 0.2, 0.3, 2, 3, 0) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated (see above)
+# query createRectangles2D(4, 9, 0.2, 0.3, 1, 3, 0) toblocks[10] createRectangles2D(4, 9, 0.2, 0.3, 2, 3, 0) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated (see above)
+# query createRectangles2D(4, 10, 0.2, 0.3, 1, 3, 0) toblocks[10] createRectangles2D(4, 10, 0.2, 0.3, 2, 3, 0) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Queue: short ... long
+
+query createRectangles2D(4, 6, 0.2, 0.3, 1, 0, 3) toblocks[10] createRectangles2D(4, 6, 0.2, 0.3, 2, 0, 3) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 7, 0.2, 0.3, 1, 0, 3) toblocks[10] createRectangles2D(4, 7, 0.2, 0.3, 2, 0, 3) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 8, 0.2, 0.3, 1, 0, 3) toblocks[10] createRectangles2D(4, 8, 0.2, 0.3, 2, 0, 3) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 9, 0.2, 0.3, 1, 0, 3) toblocks[10] createRectangles2D(4, 9, 0.2, 0.3, 2, 0, 3) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.2, 0.3, 1, 0, 3) toblocks[10] createRectangles2D(4, 10, 0.2, 0.3, 2, 0, 3) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Plus: small ... large
+
+query createRectangles2D(4, 6, 0.4, 0.55, 1, 3, 0) toblocks[10] createRectangles2D(4, 6, 0.4, 0.55, 2, 0, 3) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated as it causes "Zeile 35:  9858 Speicherzugriffsfehler  (Speicherabzug geschrieben) $runner $*" (GlobalMemory=16384)
+# query createRectangles2D(4, 7, 0.4, 0.55, 1, 3, 0) toblocks[10] createRectangles2D(4, 7, 0.4, 0.55, 2, 0, 3) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated (see above)
+# query createRectangles2D(4, 8, 0.4, 0.55, 1, 3, 0) toblocks[10] createRectangles2D(4, 8, 0.4, 0.55, 2, 0, 3) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated (see above)
+# query createRectangles2D(4, 9, 0.4, 0.55, 1, 3, 0) toblocks[10] createRectangles2D(4, 9, 0.4, 0.55, 2, 0, 3) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated (see above)
+# query createRectangles2D(4, 10, 0.4, 0.55, 1, 3, 0) toblocks[10] createRectangles2D(4, 10, 0.4, 0.55, 2, 0, 3) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+########################################################################
+#### F2) cspatialjoin from rel
+########################################################################
+
+query Buildings feed toblocks[10] Buildings feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed toblocks[10] Roads feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed toblocks[10] Landuse feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed toblocks[10] Points feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed toblocks[10] Traffic feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed toblocks[10] Waterways feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query Roads feed toblocks[10] Buildings feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed toblocks[10] Roads feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed toblocks[10] Landuse feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed toblocks[10] Points feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed toblocks[10] Traffic feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed toblocks[10] Waterways feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query Landuse feed toblocks[10] Buildings feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed toblocks[10] Roads feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed toblocks[10] Landuse feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed toblocks[10] Points feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed toblocks[10] Traffic feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed toblocks[10] Waterways feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query Points feed toblocks[10] Buildings feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed toblocks[10] Roads feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed toblocks[10] Landuse feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed toblocks[10] Points feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed toblocks[10] Traffic feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed toblocks[10] Waterways feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query Traffic feed toblocks[10] Buildings feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed toblocks[10] Roads feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed toblocks[10] Landuse feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed toblocks[10] Points feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed toblocks[10] Traffic feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed toblocks[10] Waterways feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query Waterways feed toblocks[10] Buildings feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed toblocks[10] Roads feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed toblocks[10] Landuse feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed toblocks[10] Points feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed toblocks[10] Traffic feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed toblocks[10] Waterways feed toblocks[10] {a} cspatialjoin[GeoData, GeoData_a] count;
+
+########################################################################
+#### G1) spatialJoinTouch from createRectangles2D
+########################################################################
+
+# ====================================================================== Input: 131 K ... 32 M
+
+query createRectangles2D(2, 17, 0.60, 0.60, 1) createRectangles2D(2, 17, 0.60, 0.60, 2) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 19, 0.55, 0.55, 1) createRectangles2D(2, 19, 0.55, 0.55, 2) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 21, 0.55, 0.55, 1) createRectangles2D(2, 21, 0.55, 0.55, 2) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+# for the next query, spatialJoinTouch reserves 43 GB virtual memory (of which 18 GB RAM) and creates a 24'626 x 49'362 grid. cpu time is 188.57, but time elapsed 1196.67 !
+query createRectangles2D(2, 23, 0.58, 0.58, 1) createRectangles2D(2, 23, 0.58, 0.58, 2) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+# line deactivated as it causes "Zeile 35: 11086 Getoetet                $runner $*" (GlobalMemory=16384)
+# query createRectangles2D(2, 25, 0.55, 0.55, 1) createRectangles2D(2, 25, 0.55, 0.55, 2) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ====================================================================== Output: 1 ... 500 M
+
+# a huge grid is created for these 100.000 very small rectangles, taking a lot (> 18 GB) of memory (and time)
+query createRectangles2D(10, 5, 0.10, 0.10, 1) createRectangles2D(10, 5, 0.10, 0.10, 2) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.28, 0.37, 1) createRectangles2D(10, 5, 0.28, 0.37, 2) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.35, 0.45, 1) createRectangles2D(10, 5, 0.35, 0.45, 2) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.40, 0.59, 1) createRectangles2D(10, 5, 0.40, 0.59, 2) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+# line deactivated as it causes "Zeile 35: 29095 Getoetet                $runner $*" (GlobalMemory=16384) after 73% matching 
+# (probably because all output tuples are kept in the main memory)
+# query createRectangles2D(10, 5, 0.50, 0.70, 1) createRectangles2D(10, 5, 0.50, 0.70, 2) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ====================================================================== Dispersion: uniform ... clustered
+
+query createRectangles2D(1000000, 1, 0.001, 0.001, 1) createRectangles2D(1000000, 1, 0.001, 0.001, 2) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(1000, 2, 0.0316, 0.0316, 1) createRectangles2D(1000, 2, 0.0316, 0.0316, 2) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.1, 0.1, 1) createRectangles2D(100, 3, 0.1, 0.1, 2) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 6, 0.316, 0.316, 2) createRectangles2D(10, 6, 0.316, 0.316, 4) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.5, 0.5, 1) createRectangles2D(4, 10, 0.5, 0.5, 6) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ====================================================================== Size: equal ... diverging
+
+query createRectangles2D(100, 3, 0.098, 0.098, 1) createRectangles2D(100, 3, 0.098, 0.098, 2) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.050, 0.170, 1) createRectangles2D(100, 3, 0.050, 0.170, 2) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.020, 0.210, 1) createRectangles2D(100, 3, 0.020, 0.210, 2) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.007, 0.230, 1) createRectangles2D(100, 3, 0.007, 0.230, 2) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.002, 0.240, 1) createRectangles2D(100, 3, 0.002, 0.240, 2) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ====================================================================== Tower: low ... high
+
+query createRectangles2D(4, 6, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 6, 0.2, 0.3, 2, 3, 0) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 7, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 7, 0.2, 0.3, 2, 3, 0) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 8, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 8, 0.2, 0.3, 2, 3, 0) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 9, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 9, 0.2, 0.3, 2, 3, 0) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 10, 0.2, 0.3, 2, 3, 0) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ====================================================================== Queue: short ... long
+
+query createRectangles2D(4, 6, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 6, 0.2, 0.3, 2, 0, 3) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 7, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 7, 0.2, 0.3, 2, 0, 3) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 8, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 8, 0.2, 0.3, 2, 0, 3) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 9, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 9, 0.2, 0.3, 2, 0, 3) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 10, 0.2, 0.3, 2, 0, 3) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ====================================================================== Plus: small ... large
+
+query createRectangles2D(4, 6, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 6, 0.4, 0.55, 2, 0, 3) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 7, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 7, 0.4, 0.55, 2, 0, 3) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 8, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 8, 0.4, 0.55, 2, 0, 3) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 9, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 9, 0.4, 0.55, 2, 0, 3) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 10, 0.4, 0.55, 2, 0, 3) {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+########################################################################
+#### G2) spatialJoinTouch from rel
+########################################################################
+
+query Buildings feed Buildings feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Roads feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Landuse feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Points feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Traffic feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated since it causes 
+# "DbEnv-Tmp: BDB0137 write: 0x1f217f430, 4096: No space left on device"
+# "DbEnv-Tmp: BDB3015 NativeFlobFile: write failed for page 29243288"
+# "DbEnv-Tmp: BDB3018 NativeFlobFile: unwritable page 29243288 remaining in the cache after error 28"
+# file secondo-databases/0tmp27017/NativeFlobFile is > 100 GB, then system crashes (out of hard disk memory)
+# query Buildings feed Waterways feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query Roads feed Buildings feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Roads feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Landuse feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Points feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Traffic feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+# the next query works, but in the process, secondo-databases/0tmp.../NativeFlobFile grows to approx. 56 GB (but is deleted in the end)
+query Roads feed Waterways feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query Landuse feed Buildings feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Roads feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Landuse feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Points feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Traffic feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+# the next query works, but in the process, secondo-databases/0tmp.../NativeFlobFile grows to approx. 11 GB (but is deleted in the end)
+query Landuse feed Waterways feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+# next line deactivated since it causes "std::bad_alloc, DbEnv: BDB4511 Error: closing the transaction region with active transactions" (GlobalMemory=16384, MaxLockObjects=1000000)
+# probably because the spatial attribute GeoData is of type point and Points is the first input
+# query Points feed Buildings feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated since it causes "std::bad_alloc, DbEnv: BDB4511 Error: closing the transaction region with active transactions" (GlobalMemory=16384, MaxLockObjects=1000000)
+# probably because the spatial attribute GeoData is of type point and Points is the first input
+# query Points feed Roads feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated since it causes "std::bad_alloc, DbEnv: BDB4511 Error: closing the transaction region with active transactions" (GlobalMemory=16384, MaxLockObjects=1000000)
+# probably because the spatial attribute GeoData is of type point and Points is the first input
+# query Points feed Landuse feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated since it causes "std::bad_alloc, DbEnv: BDB4511 Error: closing the transaction region with active transactions" (GlobalMemory=16384, MaxLockObjects=1000000)
+# probably because the spatial attribute GeoData is of type point and Points is the first input
+# query Points feed Points feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated since it causes "std::bad_alloc, DbEnv: BDB4511 Error: closing the transaction region with active transactions" (GlobalMemory=16384, MaxLockObjects=1000000)
+# probably because the spatial attribute GeoData is of type point and Points is the first input
+# query Points feed Traffic feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated since it causes "std::bad_alloc, DbEnv: BDB4511 Error: closing the transaction region with active transactions" (GlobalMemory=16384, MaxLockObjects=1000000)
+# probably because the spatial attribute GeoData is of type point and Points is the first input
+# query Points feed Waterways feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+# next line deactivated since it causes "std::bad_alloc, DbEnv: BDB4511 Error: closing the transaction region with active transactions" (GlobalMemory=16384, MaxLockObjects=1000000)
+# probably because the spatial attribute GeoData is of type point and Traffic is the first input
+# query Traffic feed Buildings feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated (see above)
+# query Traffic feed Roads feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated (see above)
+# query Traffic feed Landuse feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated (see above)
+# query Traffic feed Points feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated (see above)
+# query Traffic feed Traffic feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated (see above)
+# query Traffic feed Waterways feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+# next line deactivated since it causes 
+# "DbEnv-Tmp: BDB0137 write: 0x15f19be80, 4096: No space left on device"
+# "DbEnv-Tmp: BDB3015 NativeFlobFile: write failed for page 29280310"
+# "DbEnv-Tmp: BDB3018 NativeFlobFile: unwritable page 29280310 remaining in the cache after error 28"
+# file secondo-databases/0tmp16177/NativeFlobFile is 111,7 GB, then system crashes (out of hard disk memory)
+# query Waterways feed Buildings feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+# the next query works, but in the process, secondo-databases/0tmp.../NativeFlobFile grows to over 50 GB (but is deleted in the end)
+query Waterways feed Roads feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Landuse feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Points feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Traffic feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Waterways feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+########################################################################
+#### H1) itSpatialJoin from crectangles
+########################################################################
+
+# ====================================================================== Input: 131 K ... 32 M
+
+query crectanglesInput1a feed crectanglesInput1b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesInput2a feed crectanglesInput2b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesInput3a feed crectanglesInput3b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesInput4a feed crectanglesInput4b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesInput5a feed crectanglesInput5b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Output: 1 ... 500 M
+
+query crectanglesOutput1a feed crectanglesOutput1b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesOutput2a feed crectanglesOutput2b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesOutput3a feed crectanglesOutput3b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesOutput4a feed crectanglesOutput4b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesOutput5a feed crectanglesOutput5b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Dispersion: uniform ... clustered
+
+query crectanglesDispers1a feed crectanglesDispers1b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesDispers2a feed crectanglesDispers2b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesDispers3a feed crectanglesDispers3b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesDispers4a feed crectanglesDispers4b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesDispers5a feed crectanglesDispers5b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Size: equal ... diverging
+
+query crectanglesSize1a feed crectanglesSize1b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesSize2a feed crectanglesSize2b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesSize3a feed crectanglesSize3b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesSize4a feed crectanglesSize4b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesSize5a feed crectanglesSize5b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Tower: low ... high
+
+query crectanglesTower1a feed crectanglesTower1b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesTower2a feed crectanglesTower2b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesTower3a feed crectanglesTower3b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesTower4a feed crectanglesTower4b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesTower5a feed crectanglesTower5b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Queue: short ... long
+
+query crectanglesQueue1a feed crectanglesQueue1b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesQueue2a feed crectanglesQueue2b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesQueue3a feed crectanglesQueue3b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesQueue4a feed crectanglesQueue4b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesQueue5a feed crectanglesQueue5b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Plus: small ... large
+
+query crectanglesPlus1a feed crectanglesPlus1b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesPlus2a feed crectanglesPlus2b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesPlus3a feed crectanglesPlus3b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesPlus4a feed crectanglesPlus4b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesPlus5a feed crectanglesPlus5b feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+########################################################################
+#### H2) itSpatialJoin from crel
+########################################################################
+
+query cbuildings feed cbuildings feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed croads feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed clanduse feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed cpoints feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed ctraffic feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed cwaterways feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query croads feed cbuildings feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query croads feed croads feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query croads feed clanduse feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query croads feed cpoints feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query croads feed ctraffic feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query croads feed cwaterways feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query clanduse feed cbuildings feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query clanduse feed croads feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query clanduse feed clanduse feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query clanduse feed cpoints feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query clanduse feed ctraffic feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query clanduse feed cwaterways feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query cpoints feed cbuildings feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cpoints feed croads feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cpoints feed clanduse feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cpoints feed cpoints feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cpoints feed ctraffic feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cpoints feed cwaterways feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query ctraffic feed cbuildings feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed croads feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed clanduse feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed cpoints feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed ctraffic feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed cwaterways feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query cwaterways feed cbuildings feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed croads feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed clanduse feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed cpoints feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed ctraffic feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed cwaterways feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+########################################################################
+#### I1) itSpatialJoin from createRectangles2D
+########################################################################
+
+# ====================================================================== Input: 131 K ... 32 M
+
+query createRectangles2D(2, 17, 0.60, 0.60, 1) createRectangles2D(2, 17, 0.60, 0.60, 2) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 19, 0.55, 0.55, 1) createRectangles2D(2, 19, 0.55, 0.55, 2) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 21, 0.55, 0.55, 1) createRectangles2D(2, 21, 0.55, 0.55, 2) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 23, 0.58, 0.58, 1) createRectangles2D(2, 23, 0.58, 0.58, 2) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 25, 0.55, 0.55, 1) createRectangles2D(2, 25, 0.55, 0.55, 2) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Output: 1 ... 500 M
+
+query createRectangles2D(10, 5, 0.10, 0.10, 1) createRectangles2D(10, 5, 0.10, 0.10, 2) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.28, 0.37, 1) createRectangles2D(10, 5, 0.28, 0.37, 2) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.35, 0.45, 1) createRectangles2D(10, 5, 0.35, 0.45, 2) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.40, 0.59, 1) createRectangles2D(10, 5, 0.40, 0.59, 2) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.50, 0.70, 1) createRectangles2D(10, 5, 0.50, 0.70, 2) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Dispersion: uniform ... clustered
+
+query createRectangles2D(1000000, 1, 0.001, 0.001, 1) createRectangles2D(1000000, 1, 0.001, 0.001, 2) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(1000, 2, 0.0316, 0.0316, 1) createRectangles2D(1000, 2, 0.0316, 0.0316, 2) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.1, 0.1, 1) createRectangles2D(100, 3, 0.1, 0.1, 2) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 6, 0.316, 0.316, 2) createRectangles2D(10, 6, 0.316, 0.316, 4) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.5, 0.5, 1) createRectangles2D(4, 10, 0.5, 0.5, 6) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Size: equal ... diverging
+
+query createRectangles2D(100, 3, 0.098, 0.098, 1) createRectangles2D(100, 3, 0.098, 0.098, 2) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.050, 0.170, 1) createRectangles2D(100, 3, 0.050, 0.170, 2) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.020, 0.210, 1) createRectangles2D(100, 3, 0.020, 0.210, 2) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.007, 0.230, 1) createRectangles2D(100, 3, 0.007, 0.230, 2) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.002, 0.240, 1) createRectangles2D(100, 3, 0.002, 0.240, 2) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Tower: low ... high
+
+query createRectangles2D(4, 6, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 6, 0.2, 0.3, 2, 3, 0) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 7, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 7, 0.2, 0.3, 2, 3, 0) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 8, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 8, 0.2, 0.3, 2, 3, 0) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 9, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 9, 0.2, 0.3, 2, 3, 0) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 10, 0.2, 0.3, 2, 3, 0) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Queue: short ... long
+
+query createRectangles2D(4, 6, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 6, 0.2, 0.3, 2, 0, 3) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 7, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 7, 0.2, 0.3, 2, 0, 3) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 8, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 8, 0.2, 0.3, 2, 0, 3) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 9, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 9, 0.2, 0.3, 2, 0, 3) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 10, 0.2, 0.3, 2, 0, 3) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Plus: small ... large
+
+query createRectangles2D(4, 6, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 6, 0.4, 0.55, 2, 0, 3) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 7, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 7, 0.4, 0.55, 2, 0, 3) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 8, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 8, 0.4, 0.55, 2, 0, 3) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 9, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 9, 0.4, 0.55, 2, 0, 3) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 10, 0.4, 0.55, 2, 0, 3) {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+########################################################################
+#### I2) itSpatialJoin from rel
+########################################################################
+
+query Buildings feed Buildings feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Roads feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Landuse feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Points feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Traffic feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Waterways feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query Roads feed Buildings feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Roads feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Landuse feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Points feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Traffic feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Waterways feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query Landuse feed Buildings feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Roads feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Landuse feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Points feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Traffic feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Waterways feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query Points feed Buildings feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed Roads feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed Landuse feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed Points feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed Traffic feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed Waterways feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query Traffic feed Buildings feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Roads feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Landuse feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Points feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Traffic feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Waterways feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query Waterways feed Buildings feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Roads feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Landuse feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Points feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Traffic feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Waterways feed {a} itSpatialJoin[GeoData, GeoData_a] count;
+
+########################################################################
+#### J1) infoGrepSpatialJoin from createRectangles2D
+########################################################################
+
+# ====================================================================== Input: 131 K ... 32 M
+
+query createRectangles2D(2, 17, 0.60, 0.60, 1) createRectangles2D(2, 17, 0.60, 0.60, 2) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 19, 0.55, 0.55, 1) createRectangles2D(2, 19, 0.55, 0.55, 2) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 21, 0.55, 0.55, 1) createRectangles2D(2, 21, 0.55, 0.55, 2) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 23, 0.58, 0.58, 1) createRectangles2D(2, 23, 0.58, 0.58, 2) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 25, 0.55, 0.55, 1) createRectangles2D(2, 25, 0.55, 0.55, 2) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ====================================================================== Output: 1 ... 500 M
+
+query createRectangles2D(10, 5, 0.10, 0.10, 1) createRectangles2D(10, 5, 0.10, 0.10, 2) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.28, 0.37, 1) createRectangles2D(10, 5, 0.28, 0.37, 2) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.35, 0.45, 1) createRectangles2D(10, 5, 0.35, 0.45, 2) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.40, 0.59, 1) createRectangles2D(10, 5, 0.40, 0.59, 2) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.50, 0.70, 1) createRectangles2D(10, 5, 0.50, 0.70, 2) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ====================================================================== Dispersion: uniform ... clustered
+
+query createRectangles2D(1000000, 1, 0.001, 0.001, 1) createRectangles2D(1000000, 1, 0.001, 0.001, 2) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(1000, 2, 0.0316, 0.0316, 1) createRectangles2D(1000, 2, 0.0316, 0.0316, 2) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.1, 0.1, 1) createRectangles2D(100, 3, 0.1, 0.1, 2) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 6, 0.316, 0.316, 2) createRectangles2D(10, 6, 0.316, 0.316, 4) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.5, 0.5, 1) createRectangles2D(4, 10, 0.5, 0.5, 6) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ====================================================================== Size: equal ... diverging
+
+query createRectangles2D(100, 3, 0.098, 0.098, 1) createRectangles2D(100, 3, 0.098, 0.098, 2) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.050, 0.170, 1) createRectangles2D(100, 3, 0.050, 0.170, 2) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.020, 0.210, 1) createRectangles2D(100, 3, 0.020, 0.210, 2) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.007, 0.230, 1) createRectangles2D(100, 3, 0.007, 0.230, 2) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.002, 0.240, 1) createRectangles2D(100, 3, 0.002, 0.240, 2) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ====================================================================== Tower: low ... high
+
+query createRectangles2D(4, 6, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 6, 0.2, 0.3, 2, 3, 0) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 7, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 7, 0.2, 0.3, 2, 3, 0) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 8, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 8, 0.2, 0.3, 2, 3, 0) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 9, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 9, 0.2, 0.3, 2, 3, 0) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 10, 0.2, 0.3, 2, 3, 0) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ====================================================================== Queue: short ... long
+
+query createRectangles2D(4, 6, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 6, 0.2, 0.3, 2, 0, 3) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 7, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 7, 0.2, 0.3, 2, 0, 3) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 8, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 8, 0.2, 0.3, 2, 0, 3) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 9, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 9, 0.2, 0.3, 2, 0, 3) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 10, 0.2, 0.3, 2, 0, 3) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ====================================================================== Plus: small ... large
+
+query createRectangles2D(4, 6, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 6, 0.4, 0.55, 2, 0, 3) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 7, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 7, 0.4, 0.55, 2, 0, 3) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 8, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 8, 0.4, 0.55, 2, 0, 3) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 9, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 9, 0.4, 0.55, 2, 0, 3) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 10, 0.4, 0.55, 2, 0, 3) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+########################################################################
+#### J2) infoGrepSpatialJoin from rel
+########################################################################
+
+query Buildings feed Buildings feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Roads feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Landuse feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Points feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Traffic feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Waterways feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ======================================================================
+
+query Roads feed Buildings feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Roads feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Landuse feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Points feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Traffic feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Waterways feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ======================================================================
+
+query Landuse feed Buildings feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Roads feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Landuse feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Points feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Traffic feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Waterways feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ======================================================================
+
+query Points feed Buildings feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed Roads feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed Landuse feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed Points feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed Traffic feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed Waterways feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ======================================================================
+
+query Traffic feed Buildings feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Roads feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Landuse feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Points feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Traffic feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Waterways feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ======================================================================
+
+query Waterways feed Buildings feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Roads feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Landuse feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Points feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Traffic feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Waterways feed {a} infoGrepSpatialJoin[GeoData, GeoData_a, 4, 8] count;
+
+########################################################################
+#### K1) spatialjoin from createRectangles2D
+########################################################################
+
+# ====================================================================== Input: 131 K ... 32 M
+
+query createRectangles2D(2, 17, 0.60, 0.60, 1) createRectangles2D(2, 17, 0.60, 0.60, 2) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 19, 0.55, 0.55, 1) createRectangles2D(2, 19, 0.55, 0.55, 2) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 21, 0.55, 0.55, 1) createRectangles2D(2, 21, 0.55, 0.55, 2) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 23, 0.58, 0.58, 1) createRectangles2D(2, 23, 0.58, 0.58, 2) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(2, 25, 0.55, 0.55, 1) createRectangles2D(2, 25, 0.55, 0.55, 2) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Output: 1 ... 500 M
+
+query createRectangles2D(10, 5, 0.10, 0.10, 1) createRectangles2D(10, 5, 0.10, 0.10, 2) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.28, 0.37, 1) createRectangles2D(10, 5, 0.28, 0.37, 2) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.35, 0.45, 1) createRectangles2D(10, 5, 0.35, 0.45, 2) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.40, 0.59, 1) createRectangles2D(10, 5, 0.40, 0.59, 2) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 5, 0.50, 0.70, 1) createRectangles2D(10, 5, 0.50, 0.70, 2) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Dispersion: uniform ... clustered
+
+query createRectangles2D(1000000, 1, 0.001, 0.001, 1) createRectangles2D(1000000, 1, 0.001, 0.001, 2) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(1000, 2, 0.0316, 0.0316, 1) createRectangles2D(1000, 2, 0.0316, 0.0316, 2) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.1, 0.1, 1) createRectangles2D(100, 3, 0.1, 0.1, 2) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(10, 6, 0.316, 0.316, 2) createRectangles2D(10, 6, 0.316, 0.316, 4) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.5, 0.5, 1) createRectangles2D(4, 10, 0.5, 0.5, 6) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Size: equal ... diverging
+
+query createRectangles2D(100, 3, 0.098, 0.098, 1) createRectangles2D(100, 3, 0.098, 0.098, 2) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.050, 0.170, 1) createRectangles2D(100, 3, 0.050, 0.170, 2) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.020, 0.210, 1) createRectangles2D(100, 3, 0.020, 0.210, 2) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.007, 0.230, 1) createRectangles2D(100, 3, 0.007, 0.230, 2) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(100, 3, 0.002, 0.240, 1) createRectangles2D(100, 3, 0.002, 0.240, 2) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Tower: low ... high
+
+query createRectangles2D(4, 6, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 6, 0.2, 0.3, 2, 3, 0) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 7, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 7, 0.2, 0.3, 2, 3, 0) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 8, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 8, 0.2, 0.3, 2, 3, 0) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 9, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 9, 0.2, 0.3, 2, 3, 0) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.2, 0.3, 1, 3, 0) createRectangles2D(4, 10, 0.2, 0.3, 2, 3, 0) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Queue: short ... long
+
+query createRectangles2D(4, 6, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 6, 0.2, 0.3, 2, 0, 3) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 7, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 7, 0.2, 0.3, 2, 0, 3) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 8, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 8, 0.2, 0.3, 2, 0, 3) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 9, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 9, 0.2, 0.3, 2, 0, 3) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.2, 0.3, 1, 0, 3) createRectangles2D(4, 10, 0.2, 0.3, 2, 0, 3) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ====================================================================== Plus: small ... large
+
+query createRectangles2D(4, 6, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 6, 0.4, 0.55, 2, 0, 3) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 7, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 7, 0.4, 0.55, 2, 0, 3) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 8, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 8, 0.4, 0.55, 2, 0, 3) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 9, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 9, 0.4, 0.55, 2, 0, 3) {a} spatialjoin[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query createRectangles2D(4, 10, 0.4, 0.55, 1, 3, 0) createRectangles2D(4, 10, 0.4, 0.55, 2, 0, 3) {a} spatialjoin[Bbox, Bbox_a] count;
+
+########################################################################
+#### K2) spatialjoin from rel
+########################################################################
+
+query Buildings feed Buildings feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Roads feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Landuse feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Points feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Traffic feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Buildings feed Waterways feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query Roads feed Buildings feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Roads feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Landuse feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Points feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Traffic feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Roads feed Waterways feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query Landuse feed Buildings feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Roads feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Landuse feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Points feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Traffic feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Landuse feed Waterways feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query Points feed Buildings feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed Roads feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed Landuse feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed Points feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed Traffic feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Points feed Waterways feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query Traffic feed Buildings feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Roads feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Landuse feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Points feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Traffic feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Traffic feed Waterways feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query Waterways feed Buildings feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Roads feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Landuse feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Points feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Traffic feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query Waterways feed Waterways feed {a} spatialjoin[GeoData, GeoData_a] count;
+
+########################################################################
+#### L1) spatialJoinTouch from crectangles
+########################################################################
+
+# ====================================================================== Input: 131 K ... 32 M
+
+query crectanglesInput1a feed crectanglesInput1b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesInput2a feed crectanglesInput2b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesInput3a feed crectanglesInput3b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesInput4a feed crectanglesInput4b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+# line deactivated as it causes "Zeile 35: 11086 Getoetet                $runner $*" (GlobalMemory=16384)
+# query crectanglesInput5a feed crectanglesInput5b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ====================================================================== Output: 1 ... 500 M
+
+# a huge grid is created for these 100.000 very small rectangles, taking a lot (> 18 GB) of memory (and time)
+query crectanglesOutput1a feed crectanglesOutput1b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesOutput2a feed crectanglesOutput2b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesOutput3a feed crectanglesOutput3b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesOutput4a feed crectanglesOutput4b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+# line deactivated as it causes "QP:Eval Evaluation of operator failed. DbEnv: BDB4511 Error: closing the transaction region with active transactions" 
+# (GlobalMemory=16384) after 54% matching (probably because all output tuples are kept in the main memory)
+# query crectanglesOutput5a feed crectanglesOutput5b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ====================================================================== Dispersion: uniform ... clustered
+
+query crectanglesDispers1a feed crectanglesDispers1b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesDispers2a feed crectanglesDispers2b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesDispers3a feed crectanglesDispers3b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesDispers4a feed crectanglesDispers4b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesDispers5a feed crectanglesDispers5b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ====================================================================== Size: equal ... diverging
+
+query crectanglesSize1a feed crectanglesSize1b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesSize2a feed crectanglesSize2b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesSize3a feed crectanglesSize3b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesSize4a feed crectanglesSize4b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesSize5a feed crectanglesSize5b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ====================================================================== Tower: low ... high
+
+query crectanglesTower1a feed crectanglesTower1b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesTower2a feed crectanglesTower2b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesTower3a feed crectanglesTower3b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesTower4a feed crectanglesTower4b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesTower5a feed crectanglesTower5b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ====================================================================== Queue: short ... long
+
+query crectanglesQueue1a feed crectanglesQueue1b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesQueue2a feed crectanglesQueue2b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesQueue3a feed crectanglesQueue3b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesQueue4a feed crectanglesQueue4b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesQueue5a feed crectanglesQueue5b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ====================================================================== Plus: small ... large
+
+query crectanglesPlus1a feed crectanglesPlus1b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesPlus2a feed crectanglesPlus2b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesPlus3a feed crectanglesPlus3b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesPlus4a feed crectanglesPlus4b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+# ----------------------------------------------------------------------
+
+query crectanglesPlus5a feed crectanglesPlus5b feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+########################################################################
+#### L2) spatialJoinTouch from crel
+########################################################################
+
+query cbuildings feed cbuildings feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed croads feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed clanduse feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed cpoints feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cbuildings feed ctraffic feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+# next line deactivated since it causes "Zeile 35:  4176 Getoetet                $runner $*"
+# query cbuildings feed cwaterways feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query croads feed cbuildings feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query croads feed croads feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query croads feed clanduse feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query croads feed cpoints feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query croads feed ctraffic feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query croads feed cwaterways feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query clanduse feed cbuildings feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query clanduse feed croads feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query clanduse feed clanduse feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query clanduse feed cpoints feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query clanduse feed ctraffic feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query clanduse feed cwaterways feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query cpoints feed cbuildings feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cpoints feed croads feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cpoints feed clanduse feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cpoints feed cpoints feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cpoints feed ctraffic feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cpoints feed cwaterways feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+query ctraffic feed cbuildings feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed croads feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed clanduse feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed cpoints feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed ctraffic feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query ctraffic feed cwaterways feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ======================================================================
+
+# next line deactivated since it causes "Zeile 35:  6895 Getoetet                $runner $*"
+# query cwaterways feed cbuildings feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed croads feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed clanduse feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed cpoints feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed ctraffic feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+# ----------------------------------------------------------------------
+
+query cwaterways feed cwaterways feed {a} spatialJoinTouch[GeoData, GeoData_a] count;
+
+########################################################################
+
+close database
