@@ -70,6 +70,8 @@ void JoinStateMemoryInfo::initialize(const size_t usedInputDataMemory_,
    usedMergedAreaMemoryMax = 0;
    mergeJoinEdgeCount = 0;
    mergeJoinEdgeCountMax = 0;
+   outputTupleCount = 0;
+   outputDataSize = 0;
 }
 
 void JoinStateMemoryInfo::add(MergedAreaPtr mergedArea) {
@@ -104,6 +106,12 @@ void JoinStateMemoryInfo::updateMaximum(SelfMerger* merger) {
            usedMergedAreaMemory + merger->getUsedMemory());
    mergeJoinEdgeCountMax = std::max(mergeJoinEdgeCountMax,
            mergeJoinEdgeCount + merger->getJoinEdgeCount(true));
+}
+
+void JoinStateMemoryInfo::addOutputData(const uint64_t tupleCount,
+        const size_t bytes) {
+   outputTupleCount += tupleCount;
+   outputDataSize += bytes;
 }
 
 size_t JoinStateMemoryInfo::getTotalUsedMemoryMax() const {
@@ -239,6 +247,10 @@ JoinState::JoinState(const bool countOnly_,
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
       cout << outputPrefix << "# bounding boxes do not intersect; "
                               "JoinState is being discarded" << endl;
+#endif
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+      memoryInfo.initialize(ioData.getUsedMemory() + sizeof(JoinState),
+                      rectangleInfos->size(), sortEdges->size(), 0);
 #endif
       timer->stop();
       delete sortEdges;
@@ -603,33 +615,7 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_) {
    merger = merger_;
 
    // update statistics
-   size_t totalOutTupleCount = ioData.getOutTupleCount();
-   uint64_t outTBlockTupleCount = totalOutTupleCount - outTupleCountAtStart;
-   if (!countOnly && outTBlockTupleCount > 0) {
-      // rowCount is ioData.outTBlock->GetRowCount();
-      ++outTBlockCount;
-   }
-
-#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
-   if (joinCompleted) {
-      cout << outputPrefix;
-      if (countOnly) {
-         // count intersections only
-         cout << "# " << formatInt(totalOutTupleCount)
-              << " intersections counted ";
-      } else {
-         // actual result tuples were created
-         cout << "# " << formatInt(outTBlockCount) << " "
-              << (outTBlockCount == 1 ? "block" : "blocks") << " with "
-              << formatInt(totalOutTupleCount) << " tuples returned ";
-      }
-      cout   << "in " << formatMillis(clock() - initializeCompleted)
-         << " (intersection ratio "
-         << totalOutTupleCount * 1000000.0 /
-            (tupleCounts[SET::A] * tupleCounts[SET::B])
-         << " per million)" << endl;
-  }
-#endif
+   uint64_t outTBlockTupleCount = updateStatistics(outTupleCountAtStart);
 
    // reference to outTBlock is not needed any more
    ioData.setOutTBlock(nullptr);
@@ -670,6 +656,39 @@ void JoinState::reportLastMerge(MergedAreaPtr area1, MergedAreaPtr area2)
 }
 #endif
 
+uint64_t JoinState::updateStatistics(uint64_t outTupleCountAtStart) {
+   size_t totalOutTupleCount = ioData.getOutTupleCount();
+   uint64_t outTBlockTupleCount = totalOutTupleCount - outTupleCountAtStart;
+   if (!countOnly && outTBlockTupleCount > 0) {
+      // rowCount is ioData.outTBlock->GetRowCount();
+      ++outTBlockCount;
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+      memoryInfo.addOutputData(outTBlockTupleCount, ioData.getOutTBlockSize());
+#endif
+   }
+
+#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+   if (joinCompleted) {
+      cout << outputPrefix;
+      if (countOnly) {
+         // count intersections only
+         cout << "# " << formatInt(totalOutTupleCount)
+              << " intersections counted ";
+      } else {
+         // actual result tuples were created
+         cout << "# " << formatInt(outTBlockCount) << " "
+              << (outTBlockCount == 1 ? "block" : "blocks") << " with "
+              << formatInt(totalOutTupleCount) << " tuples returned ";
+      }
+      cout   << "in " << formatMillis(clock() - initializeCompleted)
+             << " (intersection ratio "
+             << totalOutTupleCount * 1000000.0 /
+                (tupleCounts[SET::A] * tupleCounts[SET::B])
+             << " per million)" << endl;
+   }
+#endif
+   return outTBlockTupleCount;
+}
 
 bool JoinState::selfJoinNextTBlock() {
    timer->start(JoinTask::merge);
@@ -703,7 +722,9 @@ bool JoinState::selfJoinNextTBlock() {
 
          // outTBlock is full, return from method
          idJoinEdgeIndex = idJoinEdgeIndex_;
-         ++outTBlockCount;
+
+         updateStatistics(outTupleCountAtStart);
+
          // reference to outTBlock is not needed any more
          ioData_.setOutTBlock(nullptr);
          timer->stop();
@@ -833,33 +854,7 @@ bool JoinState::selfJoinNextTBlock() {
    selfMerger = merger_;
 
    // update statistics
-   size_t totalOutTupleCount = ioData.getOutTupleCount();
-   uint64_t outTBlockTupleCount = totalOutTupleCount - outTupleCountAtStart;
-   if (!countOnly && outTBlockTupleCount > 0) {
-      // rowCount is ioData.outTBlock->GetRowCount();
-      ++outTBlockCount;
-   }
-
-#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
-   if (joinCompleted) {
-      cout << outputPrefix;
-      if (countOnly) {
-         // count intersections only
-         cout << "# " << formatInt(totalOutTupleCount)
-              << " intersections counted ";
-      } else {
-         // actual result tuples were created
-         cout << "# " << formatInt(outTBlockCount) << " "
-              << (outTBlockCount == 1 ? "block" : "blocks") << " with "
-              << formatInt(totalOutTupleCount) << " tuples returned ";
-      }
-      cout   << "in " << formatMillis(clock() - initializeCompleted)
-         << " (intersection ratio "
-         << totalOutTupleCount * 1000000.0 /
-            (tupleCounts[SET::A] * tupleCounts[SET::B])
-         << " per million)" << endl;
-  }
-#endif
+   uint64_t outTBlockTupleCount = updateStatistics(outTupleCountAtStart);
 
    // reference to outTBlock is not needed any more
    ioData.setOutTBlock(nullptr);

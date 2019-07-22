@@ -39,6 +39,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace cdacspatialjoin {
 
+struct JoinEdge;
+typedef std::vector<JoinEdge> JoinEdgeVec;
+
 struct JoinEdge {
    static constexpr EdgeIndex_t IS_LEFT_MASK = 0x8000000;
    static constexpr EdgeIndex_t COUNTER_PART_MASK = IS_LEFT_MASK - 1;
@@ -86,8 +89,39 @@ struct JoinEdge {
       return isLeftAndCounterPart & COUNTER_PART_MASK;
    }
    */
-};
 
-typedef std::vector<JoinEdge> JoinEdgeVec;
+   /* method used by Merger and SelfMerger:
+    * for all edges in the input vectors left1 and right2,
+    * a) the newly completed rectangles are determined (i.e. rectangles with
+    * their left edge in area1 and their right edge in area2) and stored in
+    * the output vector leftRight; all other edges are either stored in
+    * b) leftSpan (left edges from area1 which span the complete x range of
+    * area2), or
+    * c) in rightSpan (right edges from area2 which span the complete x range
+    * of area1). */
+   static void removeCompleteRectangles(
+           const JoinEdgeVec& left1, const JoinEdgeVec& right2,
+           JoinEdgeVec& leftSpan, JoinEdgeVec& rightSpan,
+           JoinEdgeVec& leftRight, bool isNotLastMerge,
+           EdgeIndex_t resultEdgeStart, EdgeIndex_t resultEdgeEnd);
+
+   /* method used by Merger and SelfMerger:
+    * merges the given source vectors "source1" and "source2" (starting from
+    * the given indices) into the destination vector "dest", using the sort
+    * order determined by the JoinEdge operator<. Source vectors must already
+    * be sorted in this order. */
+   static void merge(const JoinEdgeVec& source1, size_t startIndex1,
+                     const JoinEdgeVec& source2, size_t startIndex2,
+                     JoinEdgeVec& dest);
+
+   /* method used by Merger and SelfMerger:
+    * merges the given source vectors "source1/2/3" into the destination vector
+    * "dest", using the sort order determined by the JoinEdge operator<.
+    * Source vectors must already be sorted in this order. */
+   static void merge(const JoinEdgeVec& source1,
+                     const JoinEdgeVec& source2,
+                     const JoinEdgeVec& source3,
+                     JoinEdgeVec& dest);
+};
 
 } // end of namespace cdacspatialjoin

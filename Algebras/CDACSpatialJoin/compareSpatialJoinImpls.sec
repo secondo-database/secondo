@@ -4,24 +4,28 @@
 
 # This script compares the performance of the following spatial join implementations 
 # by executing 71 queries for each operator:
-# - CDACSpatialJoin*
-# - CDACSpatialJoinCount*
-# - cspatialjoin*
-# - infoGrepSpatialJoin
-# - itSpatialJoin*
-# - spatialjoin
-# - spatialJoinTouch*
+#
+#   operator              | algebra
+#   ----------------------+-----------------
+#   CDACSpatialJoin*      | CDACSpatialJoin 
+#   CDACSpatialJoinCount* | CDACSpatialJoin 
+#   cspatialjoin*         | CSpatialJoin 
+#   infoGrepSpatialJoin   | SpatialJoin2 
+#   itSpatialJoin*        | CRel / MMRTree
+#   spatialjoin           | SpatialJoin
+#   spatialJoinTouch*     | SpatialJoinTOUCH
+#
 # (*) for these implementations, both tuple streams and TBlock streams are tested as input. 
-
+# 
 # Running the script takes approx. 8 hours (on a Lenovo ThinkPad W5300 with intel Core i7). 
 # It may be started from secondo/bin using 
 #   SecondoTTYBDB -i ../Algebras/CDACSpatialJoin/compareSpatialJoinImpls.sec | tee ~/myOutputFile
 # to see the output on the console and simultaneously store it in myOutputFile.
-
+# 
 # Note that the algebras of the above operators must be activated in makefile.algebras, 
 # and the expected data (see below) must be provided. Ideally, PAPI should be installed and used 
 # by defining TIMER_USES_PAPI in Algebras/CDACSpatialJoin/Timer.h (see download and installation hints there). 
-
+#
 # Timer.h can easily be used to analyse any other operator as well 
 # (see the "Using Timer for other operators" section in Timer.h)
 
@@ -41,19 +45,23 @@ open database nrw
 
 # expected objects: 
 # -----------------
-# we generally use the largest 6 objects, but prefer Waterways over Natural in order to get 2x region, 2x line, 2x point:
-# Buildings (8'008'825 tuples, GeoData region)
-# Roads     (1'812'567 tuples, GeoData line)
-# Landuse     (673'580 tuples, GeoData region)
-# Points      (303'257 tuples, GeoData point)
-# Traffic     (232'411 tuples, GeoData point)
-# Waterways   (111'813 tuples, GeoData line)
-
-# not used here:
-# Natural     (222'463 tuples, GeoData point)
-# Railways     (49'654 tuples, GeoData line)
-# Water        (45'128 tuples, GeoData region)
-# etc.
+# we generally use the largest 6 objects of nrw, but prefer Waterways over Natural 
+# in order to get 2x region, 2x line, 2x point. 
+# 
+#   relation  | tuple count | GeoData |   TBlock data | per tuple | attribute count by type
+#   ----------+-------------+---------+---------------+-----------+----------------------------------
+#   Buildings |   8'008'825 | region  | 1'632'812 KiB | 209 bytes | 1 text, 3 string, 1 int, 1 region
+#   Roads     |   1'812'567 | line    | 1'056'223 KiB | 597 bytes | 1 text, 6 string, 3 int, 1 line
+#   Landuse   |     673'580 | region  |   129'915 KiB | 198 bytes | 1 text, 2 string, 1 int, 1 region
+#   Points    |     303'257 | point   |    25'958 KiB |  88 bytes | 1 text, 2 string, 1 int, 1 point
+#   Traffic   |     232'411 | point   |    18'909 KiB |  83 bytes | 1 text, 2 string, 1 int, 1 point
+#   Waterways |     111'813 | line    |   100'419 KiB | 920 bytes | 1 text, 2 string, 2 int, 1 line
+# 
+#   (not used here:)
+#   Natural   |     222'463 | point   |    16'567 KiB |  76 bytes | 1 text, 2 string, 1 int, 1 point
+#   Railways  |      49'654 | line    |    30'614 KiB | 631 bytes | 1 text, 2 string, 1 int, 1 point
+#   Water     |      45'128 | region  |     8'682 KiB | 197 bytes | 1 text, 2 string, 1 int, 1 point
+#   ... 
 
 query Buildings count;
 query Roads count;
@@ -78,9 +86,11 @@ query (Points count = cpoints count);
 query (Traffic count = ctraffic count);
 query (Waterways count = cwaterways count);
 
-# expected additional objects: 
+# expected additional objects:  
 # ----------------------------
-# (when running this make sure there are empty lines between commands!)
+# When running this make sure there are empty lines between commands!
+# The TBlock size of the following is always 48 bytes / tuple
+#
 # let crectanglesInput1a = createRectangles2D(2, 17, 0.60, 0.60, 1) cconsume[10]; 
 # let crectanglesInput1b = createRectangles2D(2, 17, 0.60, 0.60, 2) cconsume[10];
 # let crectanglesInput2a = createRectangles2D(2, 19, 0.55, 0.55, 1) cconsume[10]; 

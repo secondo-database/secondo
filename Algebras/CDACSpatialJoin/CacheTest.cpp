@@ -111,6 +111,7 @@ int CacheTest::valueMapping(
    // test sequential and random access
    CacheTestLocalInfo::ACCESS_TYPE accessTypes[] {
            CacheTestLocalInfo::ACCESS_TYPE::sequentialAccess,
+           CacheTestLocalInfo::ACCESS_TYPE::reverseSequentialAccess,
            CacheTestLocalInfo::ACCESS_TYPE::sequentialTwoLists,
            CacheTestLocalInfo::ACCESS_TYPE::randomAccess };
    for (CacheTestLocalInfo::ACCESS_TYPE accessType : accessTypes) {
@@ -149,6 +150,9 @@ CacheTestLocalInfo::CacheTestLocalInfo(ostream& out,
    switch (accessType) {
       case sequentialAccess:
          out << "Cache test with sequential read access:" << endl;
+         break;
+      case reverseSequentialAccess:
+         out << "Cache test with reverse sequential read access:" << endl;
          break;
       case sequentialTwoLists:
          out << "Cache test with sequential read access on two lists:" << endl;
@@ -206,7 +210,14 @@ CacheTestLocalInfo::CacheTestLocalInfo(ostream& out,
       case sequentialAccess: {
          out << "- sequentially reading scopes of different sizes, "
              << "repeating each scope " << intensity << " times" << endl;
-         out << "- e.g., array entries 0..1023 (scope size 1 KiB) are read "
+         out << "- e.g., array entries 0..1023 (scope size 8 KiB) are read "
+             << intensity << " times, then entries 1024..2047 etc." << endl;
+         break;
+      }
+      case reverseSequentialAccess: {
+         out << "- reading scopes of different sizes in reverse sequential "
+             << "order, repeating each scope " << intensity << " times" << endl;
+         out << "- e.g., array entries 0..1023 (scope size 8 KiB) are read "
              << intensity << " times, then entries 1024..2047 etc." << endl;
          break;
       }
@@ -215,7 +226,7 @@ CacheTestLocalInfo::CacheTestLocalInfo(ostream& out,
              << "and then scanned " << intensity << " times, alternately "
              << "reading entries from scope 1 and 2" << endl;
          out << "- e.g., a read sequence is entries 0, 8192, 1, 8193, 2, 8194, "
-             << "..., 1023, 9215 for scope size 1 KiB." << endl;
+             << "..., 1023, 9215 for scope size 8 KiB." << endl;
          break;
       }
       case randomAccess: {
@@ -224,7 +235,7 @@ CacheTestLocalInfo::CacheTestLocalInfo(ostream& out,
              << intensity / (double)randomDenom << " times" << endl;
          out << "- e.g., " << intensity * 1024 / (double)randomDenom << " "
              << "random entries are read from array scope 0..1023 "
-             << "(scope size 1 KiB), then random entries from scope 1024..2047 "
+             << "(scope size 8 KiB), then random entries from scope 1024..2047 "
              << "etc." << endl;
          break;
       }
@@ -326,8 +337,15 @@ void CacheTestLocalInfo::testScope(const size_t scopeSizeKiB,
    std::mt19937 rndGenerator(rndSeed);
    std::uniform_int_distribution<size_t> randomScope(0, scopeCount - 1);
    auto randomScopeStart = new size_t[scopeCount];
-   for (size_t i = 0; i < scopeCount; ++i)
-      randomScopeStart[i] = i * entriesPerScope;
+   if (accessType == reverseSequentialAccess) {
+      // start at the last entry of a scope
+      for (size_t i = 0; i < scopeCount; ++i)
+         randomScopeStart[i] = (i + 1) * entriesPerScope - 1;
+   } else {
+      // start at the first entry of a scope
+      for (size_t i = 0; i < scopeCount; ++i)
+         randomScopeStart[i] = i * entriesPerScope;
+   }
    for (size_t i = 0; i < scopeCount; ++i){
       size_t j = randomScope(rndGenerator);
       std::swap(randomScopeStart[i], randomScopeStart[j]);
@@ -337,6 +355,9 @@ void CacheTestLocalInfo::testScope(const size_t scopeSizeKiB,
    // that must be visited within the scope
    if (accessType == sequentialAccess || accessType == sequentialTwoLists) {
       createSequentialCycles(scopeCount, entriesPerScope);
+
+   } else if (accessType == reverseSequentialAccess) {
+      createReverseSequentialCycles(scopeCount, entriesPerScope);
 
    } else if (accessType == randomAccess) {
       createRandomCycles(scopeCount, entriesPerScope, rndSeed);
@@ -353,7 +374,9 @@ void CacheTestLocalInfo::testScope(const size_t scopeSizeKiB,
       // perform the actual test; the use of locality depends on the scope
       // size ("entriesPerScope")
       timer.start(CacheTestTask::fullTest);
-      if (accessType == sequentialAccess || accessType == randomAccess) {
+      if (accessType == sequentialAccess ||
+          accessType == reverseSequentialAccess ||
+          accessType == randomAccess) {
          // iterate over the scopes of the given size
          for (size_t scope = 0; scope < scopeCount; ++scope) {
             // the start index is the first index of this scope
@@ -390,7 +413,9 @@ void CacheTestLocalInfo::testScope(const size_t scopeSizeKiB,
       // measure the time used for loops and random number generation only
       // (without data access) to subtract it from the first duration
       timer.start(CacheTestTask::loopTest);
-      if (accessType == sequentialAccess || accessType == randomAccess) {
+      if (accessType == sequentialAccess ||
+          accessType == reverseSequentialAccess ||
+          accessType == randomAccess) {
          // increment sum2 using the same loop ranges as above
          for (size_t scope = 0; scope < scopeCount; ++scope) {
             size_t index = randomScopeStart[scope];
@@ -434,6 +459,20 @@ void CacheTestLocalInfo::createSequentialCycles(const size_t scopeCount,
          data[entry] = entry + 1;
       // set last entry in this scope to the index of the first in scope
       data[loopEnd - 1] = offset;
+   }
+}
+
+void CacheTestLocalInfo::createReverseSequentialCycles(const size_t scopeCount,
+        const size_t entriesPerScope) const {
+   // iterate over the scopes of the given size
+   for (size_t scope = 0; scope < scopeCount; ++scope) {
+      size_t offset = scope * entriesPerScope;
+      size_t loopEnd = offset + entriesPerScope;
+      // set first entry in this scope to the index of the last in scope
+      data[offset] = loopEnd - 1;
+      // set each data entry to the index of the next entry
+      for (size_t entry = offset + 1; entry < loopEnd; ++entry)
+         data[entry] = entry - 1;
    }
 }
 

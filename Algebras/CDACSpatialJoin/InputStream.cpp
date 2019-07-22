@@ -55,10 +55,11 @@ InputStream::InputStream(const bool rectanglesOnly_, const unsigned attrIndex_,
             CRelAlgebra::TBlockTI::blockSizeFactor),
         tBlocks {},
         rBlocks {},
-        byteCount(0),
+        currentByteCount(0),
         currentTupleCount(0),
         passTupleCount(0),
         totalTupleCount(0),
+        totalByteCount(0),
         openCount(0),
         currentChunkCount(0),
         chunksPerPass(0),
@@ -82,10 +83,11 @@ void InputStream::clearMem() {
 
    if (openCount == 1 && currentTupleCount > 0) {
       totalTupleCount += currentTupleCount;
+      totalByteCount += currentByteCount;
       ++chunksPerPass;
    }
-   byteCount = 0;
    currentTupleCount = 0;
+   currentByteCount = 0;
    // passTupleCount remains unchanged
    ++currentChunkCount;
 }
@@ -111,7 +113,7 @@ bool InputStream::finishRequest(uint64_t bytesAdded, uint64_t tuplesAdded) {
          fullyLoaded = true;
       return false;
    } else {
-      byteCount += bytesAdded;
+      currentByteCount += bytesAdded;
       currentTupleCount += tuplesAdded;
       passTupleCount += tuplesAdded;
       return true;
@@ -119,7 +121,15 @@ bool InputStream::finishRequest(uint64_t bytesAdded, uint64_t tuplesAdded) {
 }
 
 size_t InputStream::getUsedMem() const {
-   return byteCount;
+   return currentByteCount;
+}
+
+uint64_t InputStream::getTotalTupleCount() const {
+   return totalTupleCount + ((openCount == 1) ? currentTupleCount : 0);
+}
+
+uint64_t InputStream::getTotalByteCount() const {
+   return totalByteCount + ((openCount == 1) ? currentByteCount : 0);
 }
 
 bool InputStream::isAverageTupleCountExceeded() const {

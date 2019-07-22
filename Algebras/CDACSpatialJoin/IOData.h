@@ -232,6 +232,11 @@ public:
     * counted) */
    inline uint64_t getOutTupleCount() const { return outTupleCount; }
 
+   /* returns the number of bytes that were added to the output tuple block */
+   inline size_t getOutTBlockSize() const {
+      return (outTBlock == nullptr) ? 0 : outTBlock->GetSize();
+   }
+
    /* adds the given number to the output tuple count which is used for the
     * CDACSpatialJoinCount operator */
    void addToOutTupleCount(uint64_t count);

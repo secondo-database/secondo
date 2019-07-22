@@ -60,7 +60,7 @@ and access type (sequential / random). These results are obtained by
     duration is used as a result.
 
 The total execution time of the test is approx. "a few seconds
-(e.g. 6 seconds) * intensity", obviously depending on the machine.
+(e.g. 3 seconds) * intensity", obviously depending on the machine.
 
 */
 
@@ -119,6 +119,7 @@ public:
    /* the access type to be tested */
    enum ACCESS_TYPE {
       sequentialAccess,
+      reverseSequentialAccess,
       sequentialTwoLists,
       randomAccess
    };
@@ -207,6 +208,12 @@ private:
     * is set to contain the index of the next data entry in the scope; the last
     * entry of a scope contains the index of the first entry */
    void createSequentialCycles(size_t scopeCount, size_t entriesPerScope) const;
+
+   /* initializes the data[] field using the given scope size: each data entry
+    * is set to contain the index of the previous data entry in the scope; the
+    * first entry of a scope contains the index of the last entry */
+   void createReverseSequentialCycles(size_t scopeCount,
+           size_t entriesPerScope) const;
 
    /* initializes the data[] field using the given scope size: each data entry
     * is set to contain the index of a random other data entry in the scope;

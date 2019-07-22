@@ -456,8 +456,20 @@ void MemoryInfo::add(const JoinStateMemoryInfo& joinStateInfo) {
    sumMemMergedAreas += joinStateInfo.usedMergedAreaMemoryMax;
    sumMemTotal += joinStateInfo.getTotalUsedMemoryMax();
 
+   totalOutputTupleCount += joinStateInfo.outputTupleCount;
+   totalOutputDataSize += joinStateInfo.outputDataSize;
+
    maxJoinEdgeQuota = std::max(maxJoinEdgeQuota,
                                joinStateInfo.getUsedJoinEdgeQuotaMax());
+}
+
+void MemoryInfo::setInputSize(
+     const size_t totalInputATupleCount_, const size_t totalInputADataSize_,
+     const size_t totalInputBTupleCount_, const size_t totalInputBDataSize_) {
+   totalInputATupleCount = totalInputATupleCount_;
+   totalInputADataSize = totalInputADataSize_;
+   totalInputBTupleCount = totalInputBTupleCount_;
+   totalInputBDataSize = totalInputBDataSize_;
 }
 
 void MemoryInfo::print(ostream& out) {
@@ -474,13 +486,13 @@ void MemoryInfo::print(ostream& out) {
       cout << "---------------+----------------+";
    }
    cout << "-------------+" << string(39, '-') << endl;
-   printLine(cout, "Input data", sumMemInputData, maxMemInputData,
+   printLineMem(cout, "Input data", sumMemInputData, maxMemInputData,
              "same lifetime as respective JoinState", lineSize);
-   printLine(cout, "RectangleInfos", sumMemRectInfos, maxMemRectInfos,
+   printLineMem(cout, "RectangleInfos", sumMemRectInfos, maxMemRectInfos,
              "same lifetime as JoinState constructor", lineSize);
-   printLine(cout, "SortEdges", sumMemSortEdges, maxMemSortEdges,
+   printLineMem(cout, "SortEdges", sumMemSortEdges, maxMemSortEdges,
              "same lifetime as JoinState constructor", lineSize);
-   printLine(cout, "JoinEdges", sumMemJoinEdges, maxMemJoinEdges,
+   printLineMem(cout, "JoinEdges", sumMemJoinEdges, maxMemJoinEdges,
              "same lifetime as respective JoinState", lineSize);
    // for MergedAreas, memory was reserved for the worst case, i.e. for
    // maxJoinEdgeQuota = 2.0 (which means that rectangles are very wide and
@@ -489,15 +501,23 @@ void MemoryInfo::print(ostream& out) {
    stringstream stMaxQuota;
    stMaxQuota << "reserved space used by max. "
               << maxJoinEdgeQuota / 2.0 * 100.0 << "%";
-   printLine(cout, "MergedAreas", sumMemMergedAreas, maxMemMergedAreas,
+   printLineMem(cout, "MergedAreas", sumMemMergedAreas, maxMemMergedAreas,
              stMaxQuota.str(), lineSize);
 
    cout << endl << "Maximum memory used at any given time: "
         << setw(11) << formatInt(maxMemTotal) << " bytes "
-        << "(" << formatInt(maxMemTotal >> 20U) << " MiB)" << endl;
+        << "(" << formatInt(maxMemTotal >> 20U) << " MiB)" << endl << endl;
+
+   printLineInOut(cout, "Total input from stream A: ",
+           totalInputADataSize, totalInputATupleCount);
+   printLineInOut(cout, "Total input from stream B: ",
+           totalInputBDataSize, totalInputBTupleCount);
+   printLineInOut(cout, "Total output             : ",
+           totalOutputDataSize, totalOutputTupleCount);
+   cout << endl;
 }
 
-void MemoryInfo::printLine(ostream& out, const string& text,
+void MemoryInfo::printLineMem(ostream& out, const string& text,
         const size_t sumValue, const size_t maxValue, const string& note,
         const unsigned cacheLineSize) {
    out << text;
@@ -514,6 +534,18 @@ void MemoryInfo::printLine(ostream& out, const string& text,
    out << " | " << note << endl;
 }
 
+void MemoryInfo::printLineInOut(std::ostream& out, const std::string& text,
+                                uint64_t bytes, uint64_t tupleCount) {
+   out << text;
+   out << setw(15) << formatInt(bytes) << " bytes"
+        << " (" << formatInt(bytes >> 20U) << " MiB)";
+   if (tupleCount > 0) {
+      out << " = " << (bytes / (double)tupleCount) << " bytes "
+           << "* " << formatInt(tupleCount) << " tuples.";
+   }
+   out << endl;
+}
+
 // ========================================================
 /*
 1.6 LocalInfo class
@@ -523,11 +555,11 @@ void MemoryInfo::printLine(ostream& out, const string& text,
 */
 unsigned CDACLocalInfo::activeInstanceCount = 0;
 
-CDACLocalInfo::CDACLocalInfo(const bool countOnly_, InputStream* const input1_,
-                             InputStream* const input2_, Supplier s_) :
+CDACLocalInfo::CDACLocalInfo(const bool countOnly_, InputStream* const inputA_,
+                             InputStream* const inputB_, Supplier s_) :
         countOnly(countOnly_),
-        input1(input1_),
-        input2(input2_),
+        inputA(inputA_),
+        inputB(inputB_),
         s(s_),
         isFirstRequest(true),
         memLimit(qp->GetMemorySize(s) * 1024 * 1024),
@@ -572,14 +604,14 @@ CDACLocalInfo::CDACLocalInfo(const bool countOnly_, InputStream* const input1_,
 CDACLocalInfo::~CDACLocalInfo() {
    timer->start(JoinTask::destructor);
 
-   // remember activeInstanceCount before "delete input1/2" may decrease it
-   // (in case input1 and/or input2 used another CDACSpatialJoin operator)
+   // remember activeInstanceCount before "delete inputA/B" may decrease it
+   // (in case inputA and/or inputB used another CDACSpatialJoin operator)
    unsigned int activeInstanceCountCopy = activeInstanceCount;
 
    // delete members
    delete joinState;
-   delete input1;
-   delete input2;
+   delete inputA;
+   delete inputB;
 
    timer->stop();
 
@@ -593,8 +625,8 @@ CDACLocalInfo::~CDACLocalInfo() {
    opInfo << ((joinStateCount == 1) ? "JoinState" : "JoinStates");
 
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-   // print memoryInfo (only after input1 and input2 were deleted: if input1
-   // and/or input2 used another CDACSpatialJoin operator, their memoryInfo
+   // print memoryInfo (only after inputA and inputB were deleted: if inputA
+   // and/or inputB used another CDACSpatialJoin operator, their memoryInfo
    // (and timer) gets reported first which is more intuitive)
    cout << endl << "Memory (in bytes and cache lines) used for "
         << opInfo.str() << ":" << endl;
@@ -614,35 +646,35 @@ CDACLocalInfo::~CDACLocalInfo() {
 
 */
 void CDACLocalInfo::requestInput() {
-   uint64_t blockSize1 = input1->blockSizeInBytes;
-   uint64_t blockSize2 = input2->blockSizeInBytes;
+   uint64_t blockSize1 = inputA->blockSizeInBytes;
+   uint64_t blockSize2 = inputB->blockSizeInBytes;
    while (true) {
       uint64_t usedMemory = getRequiredMemory();
-      bool deny1 = input1->isDone() || usedMemory + blockSize1 >= memLimit;
-      bool deny2 = input2->isDone() || usedMemory + blockSize2 >= memLimit;
+      bool deny1 = inputA->isDone() || usedMemory + blockSize1 >= memLimit;
+      bool deny2 = inputB->isDone() || usedMemory + blockSize2 >= memLimit;
 
       if (deny1 && deny2)
          break;
       else if (deny1)
-         input2->request();
+         inputB->request();
       else if (deny2)
-         input1->request();
+         inputA->request();
       else {
          // both streams may be requested; choose the stream from which fewer
          // tuples have been read so far
-         if (input1->getCurrentTupleCount() > input2->getCurrentTupleCount()
-             || input1->isAverageTupleCountExceeded()) {
-            input2->request();
+         if (inputA->getCurrentTupleCount() > inputB->getCurrentTupleCount()
+             || inputA->isAverageTupleCountExceeded()) {
+            inputB->request();
          } else {
-            input1->request();
+            inputA->request();
          }
       }
    }
 }
 
 size_t CDACLocalInfo::getRequiredMemory() const {
-   const size_t tupleSum = input1->getCurrentTupleCount() +
-           input2->getCurrentTupleCount();
+   const size_t tupleSum = inputA->getCurrentTupleCount() +
+           inputB->getCurrentTupleCount();
 
    // first, we estimate the memory required by the JoinState constructor
    // (of which the SortEdge and RectangleInfo part will be released on
@@ -663,7 +695,7 @@ size_t CDACLocalInfo::getRequiredMemory() const {
 
    // since JoinState construction and execution take place sequentially,
    // the maximum (rather than the sum) can be used:
-   return input1->getUsedMem() + input2->getUsedMem() +
+   return inputA->getUsedMem() + inputB->getUsedMem() +
          std::max(joinStateConstruction, joinStateExecution);
 }
 
@@ -709,7 +741,7 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
          isFirstRequest = false; // prevent this block from being entered twice
 
          // test if any of the streams is empty - then nothing to do
-         if (!input1->request() || !input2->request()) {
+         if (!inputA->request() || !inputB->request()) {
             if (outTBlock) {
                outTBlock->DecRef();
             }
@@ -722,13 +754,18 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
 
          // continue creating a JoinState below
 
-      } else if (input1->isDone() && input2->isDone()) {
+      } else if (inputA->isDone() && inputB->isDone()) {
          // all input was read, join is complete
          if (outTBlock) {
             assert (outTBlock->GetRowCount() == 0);
             outTBlock->DecRef();
          }
          timer->stop();
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+         memoryInfo.setInputSize(
+                 inputA->getTotalTupleCount(), inputA->getTotalByteCount(),
+                 inputB->getTotalTupleCount(), inputB->getTotalByteCount());
+#endif
 #ifndef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
          cout << "\r" << string(100, ' ') << "\r" << flush;
 #endif
@@ -740,30 +777,30 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
          // the tuples read so far were treated, now read and treat more data
 
          timer->start(JoinTask::requestData);
-         if (input1->isFullyLoaded()) {
-            // continue reading from input2
-            uint64_t blockSize2 = input2->blockSizeInBytes;
-            input2->clearMem();
+         if (inputA->isFullyLoaded()) {
+            // continue reading from inputB
+            uint64_t blockSize2 = inputB->blockSizeInBytes;
+            inputB->clearMem();
             do {
-               input2->request();
-            } while (!input2->isDone() &&
+               inputB->request();
+            } while (!inputB->isDone() &&
                   getRequiredMemory() + blockSize2 < memLimit);
-         } else if (!input1->isDone()) {
-            // continue reading from input1
-            uint64_t blockSize1 = input1->blockSizeInBytes;
-            input1->clearMem();
+         } else if (!inputA->isDone()) {
+            // continue reading from inputA
+            uint64_t blockSize1 = inputA->blockSizeInBytes;
+            inputA->clearMem();
             do {
-               input1->request();
-            } while (!input1->isDone() &&
+               inputA->request();
+            } while (!inputA->isDone() &&
                   getRequiredMemory() + blockSize1 < memLimit);
          } else {
-            // input1 is done, but input2 is not
-            input1->clearMem();
-            input2->clearMem();
-            // read next bit from input2, restarting input1 from the beginning
-            // (i.e. input2 is the "outer loop", input1 the "inner loop")
-            if (input2->request()) {
-               input1->restart();
+            // inputA is done, but inputB is not
+            inputA->clearMem();
+            inputB->clearMem();
+            // read next bit from inputB, restarting inputA from the beginning
+            // (i.e. inputB is the "outer loop", inputA the "inner loop")
+            if (inputB->request()) {
+               inputA->restart();
                requestInput();
             }
          }
@@ -771,7 +808,7 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
       }
 
       // create a JoinState from the data that was read to the main memory
-      if (!input1->empty() && !input2->empty()) {
+      if (!inputA->empty() && !inputB->empty()) {
          assert (!joinState);
 
 #ifndef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
@@ -793,7 +830,7 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNext() {
 
          timer->start(JoinTask::createJoinState);
          ++joinStateCount;
-         joinState = new JoinState(countOnly, input1, input2, outTBlockSize,
+         joinState = new JoinState(countOnly, inputA, inputB, outTBlockSize,
                  instanceNum, joinStateCount, timer);
       } else {
          // a "requestData" task was started above but both input streams were

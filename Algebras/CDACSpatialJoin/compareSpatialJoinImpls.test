@@ -1,0 +1,514 @@
+## execute from secondo/bin with
+## TestRunner -i ../Algebras/CDACSpatialJoin/compareSpatialJoinImpls.test
+## TestRunner --valgrindlc -i ../Algebras/CDACSpatialJoin/compareSpatialJoinImpls.test
+
+# !! 12 queries were deactivated as they cause TestRunner to crash (see the comments below starting with !!)
+
+########################################
+# INITIALIZATION
+########################################
+delete database CDACSJTest;
+
+#setup CDACSpatialJoinTest
+create database CDACSJTest;
+open database CDACSJTest;
+
+let noGeom = [const (rel (tuple ((PLZ int) (Ort string)) )) value ((78267 "Aach") (52092 "Aachen") (73434 "Aalen"))];
+
+let rectBelow1 = [const (rel (tuple ((Bbox rect)) )) value (((-0.99999 0.99999 -0.99999 0.99999)))];
+
+let rect1 = [const (rel (tuple ((Bbox rect)) )) value (((-1 1 -1 1)))];
+
+let rectOver1 = [const (rel (tuple ((Bbox rect)) )) value (((-1.00001 1.00001 -1.00001 1.00001)))];
+
+let rect2 = [const (rel (tuple ((Bbox rect)) )) value (((-2 2 -2 2)))];
+
+let rect100 = [const (rel (tuple ((Bbox rect)) )) value ( ((-2 -1 -2 -1)) ((-2 -1 -2 0)) ((-2 -1 -2 1)) ((-2 -1 -2 2)) ((-2 -1 -1 0)) ((-2 -1 -1 1)) ((-2 -1 -1 2)) ((-2 -1 0 1)) ((-2 -1 0 2)) ((-2 -1 1 2)) ((-2 0 -2 -1)) ((-2 0 -2 0)) ((-2 0 -2 1)) ((-2 0 -2 2)) ((-2 0 -1 0)) ((-2 0 -1 1)) ((-2 0 -1 2)) ((-2 0 0 1)) ((-2 0 0 2)) ((-2 0 1 2)) ((-2 1 -2 -1)) ((-2 1 -2 0)) ((-2 1 -2 1)) ((-2 1 -2 2)) ((-2 1 -1 0)) ((-2 1 -1 1)) ((-2 1 -1 2)) ((-2 1 0 1)) ((-2 1 0 2)) ((-2 1 1 2)) ((-2 2 -2 -1)) ((-2 2 -2 0)) ((-2 2 -2 1)) ((-2 2 -2 2)) ((-2 2 -1 0)) ((-2 2 -1 1)) ((-2 2 -1 2)) ((-2 2 0 1)) ((-2 2 0 2)) ((-2 2 1 2)) ((-1 0 -2 -1)) ((-1 0 -2 0)) ((-1 0 -2 1)) ((-1 0 -2 2)) ((-1 0 -1 0)) ((-1 0 -1 1)) ((-1 0 -1 2)) ((-1 0 0 1)) ((-1 0 0 2)) ((-1 0 1 2)) ((-1 1 -2 -1)) ((-1 1 -2 0)) ((-1 1 -2 1)) ((-1 1 -2 2)) ((-1 1 -1 0)) ((-1 1 -1 1)) ((-1 1 -1 2)) ((-1 1 0 1)) ((-1 1 0 2)) ((-1 1 1 2)) ((-1 2 -2 -1)) ((-1 2 -2 0)) ((-1 2 -2 1)) ((-1 2 -2 2)) ((-1 2 -1 0)) ((-1 2 -1 1)) ((-1 2 -1 2)) ((-1 2 0 1)) ((-1 2 0 2)) ((-1 2 1 2)) ((0 1 -2 -1)) ((0 1 -2 0)) ((0 1 -2 1)) ((0 1 -2 2)) ((0 1 -1 0)) ((0 1 -1 1)) ((0 1 -1 2)) ((0 1 0 1)) ((0 1 0 2)) ((0 1 1 2)) ((0 2 -2 -1)) ((0 2 -2 0)) ((0 2 -2 1)) ((0 2 -2 2)) ((0 2 -1 0)) ((0 2 -1 1)) ((0 2 -1 2)) ((0 2 0 1)) ((0 2 0 2)) ((0 2 1 2)) ((1 2 -2 -1)) ((1 2 -2 0)) ((1 2 -2 1)) ((1 2 -2 2)) ((1 2 -1 0)) ((1 2 -1 1)) ((1 2 -1 2)) ((1 2 0 1)) ((1 2 0 2)) ((1 2 1 2))
+ )];
+
+
+########################################
+# OPERATOR - CDACSpatialJoinCount
+########################################
+
+#testcase -Count.1.1- join 3D rectangles with 2D rectangles (z dimension is ignored)
+#yields (longint 2806)
+query createRectangles3D(10, 4, 0.2, 0.3, 1) createRectangles2D(10, 4, 0.2, 0.3, 2) {a} cdacspatialjoincount[];
+
+#testcase -Count.1.2- join 2D rectangles with 3D rectangles (z dimension is ignored)
+#yields (longint 2806)
+query createRectangles2D(10, 4, 0.2, 0.3, 2) createRectangles3D(10, 4, 0.2, 0.3, 1) {a} cdacspatialjoincount[];
+
+#testcase -Count.1.3- join 3D rectangles with 3D rectangles (z dimension is considered)
+#yields (longint 29)
+query createRectangles3D(10, 4, 0.2, 0.3, 1) createRectangles3D(10, 4, 0.2, 0.3, 2) {a} cdacspatialjoincount[];
+
+
+#testcase -Count.2.1- all 100 rectangles with int coordinates in interval [-2, 2] must intersect with the rectangle (-1, -1) - (1, 1)
+#yields (longint 100)
+query rect100 feed rect1 feed {a} cdacspatialjoincount[];
+
+#testcase -Count.2.2- ... the same applies if positions are swapped
+#yields (longint 100)
+query rect1 feed rect100 feed {a} cdacspatialjoincount[];
+
+#testcase -Count.2.3- ... and for the slightly larger rectangle (-1.00001, -1.00001) - (1.00001, 1.00001)
+#yields (longint 100)
+query rect100 feed rectOver1 feed {a} cdacspatialjoincount[];
+
+#testcase -Count.2.4- ... and of course for the rectangle (-2, -2) - (2, 2)
+#yields (longint 100)
+query rect100 feed rect2 feed {a} cdacspatialjoincount[];
+
+#testcase -Count.2.5- ... but only 64 of the 100 rectangles should intersect with the rectangle (-0.99999, -0.99999) - (0.99999, 0.99999)
+#yields (longint 64)
+query rect100 feed rectBelow1 feed {a} cdacspatialjoincount[];
+
+
+#testcase -Count.3.1- feeding the result of a cdacspatialjoin into a cdacspatialjoincount
+#yields (longint 147904)
+query createRectangles2D(10, 2, 0.4, 0.6, 1) {a} createRectangles2D(10, 2, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.4, 0.6, 3) {c} cdacspatialjoincount[Bbox_a, Bbox_c];
+
+#testcase -Count.3.2- feeding the results of two cdacspatialjoins into a cdacspatialjoincount
+#yields (longint 1696847)
+query createRectangles2D(10, 2, 0.4, 0.6, 1) {a} createRectangles2D(10, 2, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.3, 0.5, 3) {c} createRectangles2D(10, 2, 0.3, 0.5, 4) {d} cdacspatialjoin[Bbox_c, Bbox_d] cdacspatialjoincount[Bbox_a, Bbox_d];
+
+#testcase -Count.3.3- feeding the result of a 3D-cdacspatialjoin into a mixed 3D-/2D-cdacspatialjoincount
+#yields (longint 126573)
+query createRectangles3D(10, 2, 0.4, 0.6, 1) {a} createRectangles3D(10, 2, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.4, 0.6, 3) {c} cdacspatialjoincount[Bbox_a, Bbox_c];
+
+#testcase -Count.3.4- feeding the results of two cdacspatialjoins (one 3D, the other 2D) into a cdacspatialjoincount
+#yields (longint 1300536)
+query createRectangles3D(10, 2, 0.4, 0.6, 1) {a} createRectangles3D(10, 2, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.3, 0.5, 3) {c} createRectangles2D(10, 2, 0.3, 0.5, 4) {d} cdacspatialjoin[Bbox_c, Bbox_d] cdacspatialjoincount[Bbox_a, Bbox_d];
+
+
+########################################
+# OPERATOR - CDACSpatialJoin
+########################################
+
+#testcase -CDAC.1.1- join 3D rectangles with 2D rectangles (z dimension is ignored)
+#yields (longint 2806)
+query createRectangles3D(10, 4, 0.2, 0.3, 1) createRectangles2D(10, 4, 0.2, 0.3, 2) {a} cdacspatialjoin[] count
+
+#testcase -CDAC.1.2- join 2D rectangles with 3D rectangles (z dimension is ignored)
+#yields (longint 2806)
+query createRectangles2D(10, 4, 0.2, 0.3, 2) createRectangles3D(10, 4, 0.2, 0.3, 1) {a} cdacspatialjoin[] count
+
+#testcase -CDAC.1.3- join 3D rectangles with 3D rectangles (z dimension is considered)
+#yields (longint 29)
+query createRectangles3D(10, 4, 0.2, 0.3, 1) createRectangles3D(10, 4, 0.2, 0.3, 2) {a} cdacspatialjoin[] count
+
+
+#testcase -CDAC.2.1- all 100 rectangles with int coordinates in interval [-2, 2] must intersect with the rectangle (-1, -1) - (1, 1)
+#yields (longint 100)
+query rect100 feed rect1 feed {a} cdacspatialjoin[] count;
+
+#testcase -CDAC.2.2- ... the same applies if positions are swapped
+#yields (longint 100)
+query rect1 feed rect100 feed {a} cdacspatialjoin[] count;
+
+#testcase -CDAC.2.3- ... and for the slightly larger rectangle (-1.00001, -1.00001) - (1.00001, 1.00001)
+#yields (longint 100)
+query rect100 feed rectOver1 feed {a} cdacspatialjoin[] count;
+
+#testcase -CDAC.2.4- ... and of course for the rectangle (-2, -2) - (2, 2)
+#yields (longint 100)
+query rect100 feed rect2 feed {a} cdacspatialjoin[] count;
+
+#testcase -CDAC.2.5- ... but only 64 of the 100 rectangles should intersect with the rectangle (-0.99999, -0.99999) - (0.99999, 0.99999)
+#yields (longint 64)
+query rect100 feed rectBelow1 feed {a} cdacspatialjoin[] count;
+
+
+#testcase -CDAC.3.1- feeding the result of one cdacspatialjoin into another cdacspatialjoin
+#yields (longint 147904)
+query createRectangles2D(10, 2, 0.4, 0.6, 1) {a} createRectangles2D(10, 2, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.4, 0.6, 3) {c} cdacspatialjoin[Bbox_a, Bbox_c] count;
+
+#testcase -CDAC.3.2- feeding the results of two cdacspatialjoins into a third cdacspatialjoin
+#yields (longint 1696847)
+query createRectangles2D(10, 2, 0.4, 0.6, 1) {a} createRectangles2D(10, 2, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.3, 0.5, 3) {c} createRectangles2D(10, 2, 0.3, 0.5, 4) {d} cdacspatialjoin[Bbox_c, Bbox_d] cdacspatialjoin[Bbox_a, Bbox_d] count;
+
+#testcase -CDAC.3.3- feeding the result of a 3D-cdacspatialjoin into a mixed 3D-/2D-cdacspatialjoin
+#yields (longint 126573)
+query createRectangles3D(10, 2, 0.4, 0.6, 1) {a} createRectangles3D(10, 2, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.4, 0.6, 3) {c} cdacspatialjoin[Bbox_a, Bbox_c] count;
+
+#testcase -CDAC.3.4- feeding the results of two cdacspatialjoins (one 3D, the other 2D) into a third cdacspatialjoin
+#yields (longint 1300536)
+query createRectangles3D(10, 2, 0.4, 0.6, 1) {a} createRectangles3D(10, 2, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.3, 0.5, 3) {c} createRectangles2D(10, 2, 0.3, 0.5, 4) {d} cdacspatialjoin[Bbox_c, Bbox_d] cdacspatialjoin[Bbox_a, Bbox_d] count;
+
+
+########################################
+# OPERATOR - cspatialjoin
+########################################
+
+#testcase -cSpJ.1.1- join 3D rectangles with 2D rectangles (z dimension is ignored)
+#yields (longint 2806)
+query createRectangles3D(10, 4, 0.2, 0.3, 1) toblocks[10] createRectangles2D(10, 4, 0.2, 0.3, 2) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count
+
+#testcase -cSpJ.1.2- join 2D rectangles with 3D rectangles (z dimension is ignored)
+#yields (longint 2806)
+query createRectangles2D(10, 4, 0.2, 0.3, 2) toblocks[10] createRectangles3D(10, 4, 0.2, 0.3, 1) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count
+
+#testcase -cSpJ.1.3- join 3D rectangles with 3D rectangles (z dimension is considered)
+#yields (longint 29)
+query createRectangles3D(10, 4, 0.2, 0.3, 1) toblocks[10] createRectangles3D(10, 4, 0.2, 0.3, 2) toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count
+
+
+# ! the next query should yield 100, but cspatialjoin returns 90 tuples
+#testcase -cSpJ.2.1- all 100 rectangles with int coordinates in interval [-2, 2] must intersect with the rectangle (-1, -1) - (1, 1)
+#yields (longint 100)
+query rect100 feed toblocks[10] rect1 feed toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+# ! the next query should yield 100, but cspatialjoin returns 90 tuples
+#testcase -cSpJ.2.2- ... the same applies if positions are swapped
+#yields (longint 100)
+query rect1 feed toblocks[10] rect100 feed toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+#testcase -cSpJ.2.3- ... and for the slightly larger rectangle (-1.00001, -1.00001) - (1.00001, 1.00001)
+#yields (longint 100)
+query rect100 feed toblocks[10] rectOver1 feed toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+#testcase -cSpJ.2.4- ... and of course for the rectangle (-2, -2) - (2, 2)
+#yields (longint 100)
+query rect100 feed toblocks[10] rect2 feed toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+#testcase -cSpJ.2.5- ... but only 64 of the 100 rectangles should intersect with the rectangle (-0.99999, -0.99999) - (0.99999, 0.99999)
+#yields (longint 64)
+query rect100 feed toblocks[10] rectBelow1 feed toblocks[10] {a} cspatialjoin[Bbox, Bbox_a] count;
+
+
+#testcase -cSpJ.3.1- feeding the result of one cspatialjoin into another cspatialjoin
+#yields (longint 147904)
+query createRectangles2D(10, 2, 0.4, 0.6, 1) toblocks[10] {a} createRectangles2D(10, 2, 0.4, 0.6, 2) toblocks[10] {b} cspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.4, 0.6, 3) toblocks[10] {c} cspatialjoin[Bbox_a, Bbox_c] count;
+
+#testcase -cSpJ.3.2- feeding the results of two cspatialjoins into a third cspatialjoin
+#yields (longint 1696847)
+query createRectangles2D(10, 2, 0.4, 0.6, 1) toblocks[10] {a} createRectangles2D(10, 2, 0.4, 0.6, 2) toblocks[10] {b} cspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.3, 0.5, 3) toblocks[10] {c} createRectangles2D(10, 2, 0.3, 0.5, 4) toblocks[10] {d} cspatialjoin[Bbox_c, Bbox_d] cspatialjoin[Bbox_a, Bbox_d] count;
+
+# ! the next query should yield 126573 but the final cspatialjoin returns only 50205 tuples. 
+#   however, if the first part is first saved to a temporary relation (2875 tuples) and then joined in a second step, the correct result 126573 is returned: 
+#     let ctemp1 = createRectangles3D(10, 2, 0.4, 0.6, 1) toblocks[10] {a} createRectangles3D(10, 2, 0.4, 0.6, 2) toblocks[10] {b} cspatialjoin[Bbox_a, Bbox_b] cconsume[10];
+#     query ctemp1 feed createRectangles2D(10, 2, 0.4, 0.6, 3) toblocks[10] {c} cspatialjoin[Bbox_a, Bbox_c] count;
+#testcase -cSpJ.3.3- feeding the result of a 3D-cspatialjoin into a mixed 3D-/2D-cspatialjoin
+#yields (longint 126573)
+query createRectangles3D(10, 2, 0.4, 0.6, 1) toblocks[10] {a} createRectangles3D(10, 2, 0.4, 0.6, 2) toblocks[10] {b} cspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.4, 0.6, 3) toblocks[10] {c} cspatialjoin[Bbox_a, Bbox_c] count;
+
+# ! the next query should yield 1300536 but the final cspatialjoin returns only 736068 tuples. 
+#   however, if the two parts are first saved to temporary relations (2875 / 1513 tuples) and then joined in a second step, the correct result 1300536 is returned: 
+#     let ctemp2 = createRectangles3D(10, 2, 0.4, 0.6, 1) toblocks[10] {a} createRectangles3D(10, 2, 0.4, 0.6, 2) toblocks[10] {b} cspatialjoin[Bbox_a, Bbox_b] cconsume[10];
+#     let ctemp3 = createRectangles2D(10, 2, 0.3, 0.5, 3) toblocks[10] {c} createRectangles2D(10, 2, 0.3, 0.5, 4) toblocks[10] {d} cspatialjoin[Bbox_c, Bbox_d] cconsume[10]
+#     query ctemp2 feed ctemp3 feed cspatialjoin[Bbox_a, Bbox_d] count;
+#testcase -cSpJ.3.4- feeding the results of two cspatialjoins (one 3D, the other 2D) into a third cspatialjoin
+#yields (longint 1300536)
+query createRectangles3D(10, 2, 0.4, 0.6, 1) toblocks[10] {a} createRectangles3D(10, 2, 0.4, 0.6, 2) toblocks[10] {b} cspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.3, 0.5, 3) toblocks[10] {c} createRectangles2D(10, 2, 0.3, 0.5, 4) toblocks[10] {d} cspatialjoin[Bbox_c, Bbox_d] cspatialjoin[Bbox_a, Bbox_d] count;
+
+
+########################################
+# OPERATOR - infoGrepSpatialJoin
+########################################
+
+# ! in the next query, rather than ignoring the z dimension, infoGrepSpatialJoin returns an error "Selected attributes have different dimensions" - which is a valid approach, too
+#testcase -infoGrepSpJ.1.1- join 3D rectangles with 2D rectangles (z dimension is ignored) 
+#yields error
+query createRectangles3D(10, 4, 0.2, 0.3, 1) createRectangles2D(10, 4, 0.2, 0.3, 2) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count
+
+# ! in the next query, rather than ignoring the z dimension, infoGrepSpatialJoin returns an error "Selected attributes have different dimensions" - which is a valid approach, too
+#testcase -infoGrepSpJ.1.2- join 2D rectangles with 3D rectangles (z dimension is ignored) 
+#yields error
+query createRectangles2D(10, 4, 0.2, 0.3, 2) createRectangles3D(10, 4, 0.2, 0.3, 1) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count
+
+# !! next testcase deactivated: "TestRunner: Zeile 36: 12900 Speicherzugriffsfehler  (Speicherabzug geschrieben) $runner $*"
+# #testcase -infoGrepSpJ.1.3- join 3D rectangles with 3D rectangles (z dimension is considered)
+# #yields (int 29)
+# query createRectangles3D(10, 4, 0.2, 0.3, 1) createRectangles3D(10, 4, 0.2, 0.3, 2) {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count
+
+
+#testcase -infoGrepSpJ.2.1- all 100 rectangles with int coordinates in interval [-2, 2] must intersect with the rectangle (-1, -1) - (1, 1)
+#yields (int 100)
+query rect100 feed rect1 feed {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+#testcase -infoGrepSpJ.2.2- ... the same applies if positions are swapped
+#yields (int 100)
+query rect1 feed rect100 feed {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+#testcase -infoGrepSpJ.2.3- ... and for the slightly larger rectangle (-1.00001, -1.00001) - (1.00001, 1.00001)
+#yields (int 100)
+query rect100 feed rectOver1 feed {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+#testcase -infoGrepSpJ.2.4- ... and of course for the rectangle (-2, -2) - (2, 2)
+#yields (int 100)
+query rect100 feed rect2 feed {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+#testcase -infoGrepSpJ.2.5- ... but only 64 of the 100 rectangles should intersect with the rectangle (-0.99999, -0.99999) - (0.99999, 0.99999)
+#yields (int 64)
+query rect100 feed rectBelow1 feed {a} infoGrepSpatialJoin[Bbox, Bbox_a, 4, 8] count;
+
+
+#testcase -infoGrepSpJ.3.1- feeding the result of one infoGrepSpatialJoin into another infoGrepSpatialJoin
+#yields (int 147904)
+query createRectangles2D(10, 2, 0.4, 0.6, 1) {a} createRectangles2D(10, 2, 0.4, 0.6, 2) {b} infoGrepSpatialJoin[Bbox_a, Bbox_b, 4, 8] createRectangles2D(10, 2, 0.4, 0.6, 3) {c} infoGrepSpatialJoin[Bbox_a, Bbox_c, 4, 8] count;
+
+#testcase -infoGrepSpJ.3.2- feeding the results of two infoGrepSpatialJoins into a third infoGrepSpatialJoin
+#yields (int 1696847)
+query createRectangles2D(10, 2, 0.4, 0.6, 1) {a} createRectangles2D(10, 2, 0.4, 0.6, 2) {b} infoGrepSpatialJoin[Bbox_a, Bbox_b, 4, 8] createRectangles2D(10, 2, 0.3, 0.5, 3) {c} createRectangles2D(10, 2, 0.3, 0.5, 4) {d} infoGrepSpatialJoin[Bbox_c, Bbox_d, 4, 8] infoGrepSpatialJoin[Bbox_a, Bbox_d, 4, 8] count;
+
+# ! in the next query, rather than ignoring the z dimension, infoGrepSpatialJoin returns an error "Selected attributes have different dimensions" - which is a valid approach, too
+#testcase -infoGrepSpJ.3.3- feeding the result of a 3D-infoGrepSpatialJoin into a mixed 3D-/2D-infoGrepSpatialJoin 
+#yields error
+query createRectangles3D(10, 2, 0.4, 0.6, 1) {a} createRectangles3D(10, 2, 0.4, 0.6, 2) {b} infoGrepSpatialJoin[Bbox_a, Bbox_b, 4, 8] createRectangles2D(10, 2, 0.4, 0.6, 3) {c} infoGrepSpatialJoin[Bbox_a, Bbox_c, 4, 8] count;
+
+# ! in the next query, rather than ignoring the z dimension, infoGrepSpatialJoin returns an error "Selected attributes have different dimensions" - which is a valid approach, too
+#testcase -infoGrepSpJ.3.4- feeding the results of two infoGrepSpatialJoins (one 3D, the other 2D) into a third infoGrepSpatialJoin 
+#yields error 
+query createRectangles3D(10, 2, 0.4, 0.6, 1) {a} createRectangles3D(10, 2, 0.4, 0.6, 2) {b} infoGrepSpatialJoin[Bbox_a, Bbox_b, 4, 8] createRectangles2D(10, 2, 0.3, 0.5, 3) {c} createRectangles2D(10, 2, 0.3, 0.5, 4) {d} infoGrepSpatialJoin[Bbox_c, Bbox_d, 4, 8] infoGrepSpatialJoin[Bbox_a, Bbox_d, 4, 8] count;
+
+
+########################################
+# OPERATOR - itSpatialJoin (rows)
+########################################
+
+#testcase -itSpJ-row.1.1- join 3D rectangles with 2D rectangles (z dimension is ignored)
+#yields (int 2806)
+query createRectangles3D(10, 4, 0.2, 0.3, 1) createRectangles2D(10, 4, 0.2, 0.3, 2) {a} itSpatialJoin[Bbox, Bbox_a] count
+
+#testcase -itSpJ-row.1.2- join 2D rectangles with 3D rectangles (z dimension is ignored)
+#yields (int 2806)
+query createRectangles2D(10, 4, 0.2, 0.3, 2) createRectangles3D(10, 4, 0.2, 0.3, 1) {a} itSpatialJoin[Bbox, Bbox_a] count
+
+#testcase -itSpJ-row.1.3- join 3D rectangles with 3D rectangles (z dimension is considered)
+#yields (int 29)
+query createRectangles3D(10, 4, 0.2, 0.3, 1) createRectangles3D(10, 4, 0.2, 0.3, 2) {a} itSpatialJoin[Bbox, Bbox_a] count
+
+
+#testcase -itSpJ-row.2.1- all 100 rectangles with int coordinates in interval [-2, 2] must intersect with the rectangle (-1, -1) - (1, 1)
+#yields (int 100)
+query rect100 feed rect1 feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+#testcase -itSpJ-row.2.2- ... the same applies if positions are swapped
+#yields (int 100)
+query rect1 feed rect100 feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+#testcase -itSpJ-row.2.3- ... and for the slightly larger rectangle (-1.00001, -1.00001) - (1.00001, 1.00001)
+#yields (int 100)
+query rect100 feed rectOver1 feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+#testcase -itSpJ-row.2.4- ... and of course for the rectangle (-2, -2) - (2, 2)
+#yields (int 100)
+query rect100 feed rect2 feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+#testcase -itSpJ-row.2.5- ... but only 64 of the 100 rectangles should intersect with the rectangle (-0.99999, -0.99999) - (0.99999, 0.99999)
+#yields (int 64)
+query rect100 feed rectBelow1 feed {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+
+#testcase -itSpJ-row.3.1- feeding the result of one itSpatialJoin into another itSpatialJoin
+#yields (int 147904)
+query createRectangles2D(10, 2, 0.4, 0.6, 1) {a} createRectangles2D(10, 2, 0.4, 0.6, 2) {b} itSpatialJoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.4, 0.6, 3) {c} itSpatialJoin[Bbox_a, Bbox_c] count;
+
+#testcase -itSpJ-row.3.2- feeding the results of two itSpatialJoins into a third itSpatialJoin
+#yields (int 1696847)
+query createRectangles2D(10, 2, 0.4, 0.6, 1) {a} createRectangles2D(10, 2, 0.4, 0.6, 2) {b} itSpatialJoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.3, 0.5, 3) {c} createRectangles2D(10, 2, 0.3, 0.5, 4) {d} itSpatialJoin[Bbox_c, Bbox_d] itSpatialJoin[Bbox_a, Bbox_d] count;
+
+#testcase -itSpJ-row.3.3- feeding the result of a 3D-itSpatialJoin into a mixed 3D-/2D-itSpatialJoin
+#yields (int 126573)
+query createRectangles3D(10, 2, 0.4, 0.6, 1) {a} createRectangles3D(10, 2, 0.4, 0.6, 2) {b} itSpatialJoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.4, 0.6, 3) {c} itSpatialJoin[Bbox_a, Bbox_c] count;
+
+#testcase -itSpJ-row.3.4- feeding the results of two itSpatialJoins (one 3D, the other 2D) into a third itSpatialJoin
+#yields (int 1300536)
+query createRectangles3D(10, 2, 0.4, 0.6, 1) {a} createRectangles3D(10, 2, 0.4, 0.6, 2) {b} itSpatialJoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.3, 0.5, 3) {c} createRectangles2D(10, 2, 0.3, 0.5, 4) {d} itSpatialJoin[Bbox_c, Bbox_d] itSpatialJoin[Bbox_a, Bbox_d] count;
+
+
+########################################
+# OPERATOR - itSpatialJoin (cols)
+########################################
+
+#testcase -itSpJ-col.1.1- join 3D rectangles with 2D rectangles (z dimension is ignored)
+#yields (longint 2806)
+query createRectangles3D(10, 4, 0.2, 0.3, 1) toblocks[10] createRectangles2D(10, 4, 0.2, 0.3, 2) toblocks[10] {a} itSpatialJoin[Bbox, Bbox_a] count
+
+#testcase -itSpJ-col.1.2- join 2D rectangles with 3D rectangles (z dimension is ignored)
+#yields (longint 2806)
+query createRectangles2D(10, 4, 0.2, 0.3, 2) toblocks[10] createRectangles3D(10, 4, 0.2, 0.3, 1) toblocks[10] {a} itSpatialJoin[Bbox, Bbox_a] count
+
+#testcase -itSpJ-col.1.3- join 3D rectangles with 3D rectangles (z dimension is considered)
+#yields (longint 29)
+query createRectangles3D(10, 4, 0.2, 0.3, 1) toblocks[10] createRectangles3D(10, 4, 0.2, 0.3, 2) toblocks[10] {a} itSpatialJoin[Bbox, Bbox_a] count
+
+
+#testcase -itSpJ-col.2.1- all 100 rectangles with int coordinates in interval [-2, 2] must intersect with the rectangle (-1, -1) - (1, 1)
+#yields (longint 100)
+query rect100 feed toblocks[10] rect1 feed toblocks[10] {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+#testcase -itSpJ-col.2.2- ... the same applies if positions are swapped
+#yields (longint 100)
+query rect1 feed toblocks[10] rect100 feed toblocks[10] {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+#testcase -itSpJ-col.2.3- ... and for the slightly larger rectangle (-1.00001, -1.00001) - (1.00001, 1.00001)
+#yields (longint 100)
+query rect100 feed toblocks[10] rectOver1 feed toblocks[10] {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+#testcase -itSpJ-col.2.4- ... and of course for the rectangle (-2, -2) - (2, 2)
+#yields (longint 100)
+query rect100 feed toblocks[10] rect2 feed toblocks[10] {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+#testcase -itSpJ-col.2.5- ... but only 64 of the 100 rectangles should intersect with the rectangle (-0.99999, -0.99999) - (0.99999, 0.99999)
+#yields (longint 64)
+query rect100 feed toblocks[10] rectBelow1 feed toblocks[10] {a} itSpatialJoin[Bbox, Bbox_a] count;
+
+
+#testcase -itSpJ-col.3.1- feeding the result of one itSpatialJoin into another itSpatialJoin
+#yields (longint 147904)
+query createRectangles2D(10, 2, 0.4, 0.6, 1) toblocks[10] {a} createRectangles2D(10, 2, 0.4, 0.6, 2) toblocks[10] {b} itSpatialJoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.4, 0.6, 3) toblocks[10] {c} itSpatialJoin[Bbox_a, Bbox_c] count;
+
+#testcase -itSpJ-col.3.2- feeding the results of two itSpatialJoins into a third itSpatialJoin
+#yields (longint 1696847)
+query createRectangles2D(10, 2, 0.4, 0.6, 1) toblocks[10] {a} createRectangles2D(10, 2, 0.4, 0.6, 2) toblocks[10] {b} itSpatialJoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.3, 0.5, 3) toblocks[10] {c} createRectangles2D(10, 2, 0.3, 0.5, 4) toblocks[10] {d} itSpatialJoin[Bbox_c, Bbox_d] itSpatialJoin[Bbox_a, Bbox_d] count;
+
+#testcase -itSpJ-col.3.3- feeding the result of a 3D-itSpatialJoin into a mixed 3D-/2D-itSpatialJoin
+#yields (longint 126573)
+query createRectangles3D(10, 2, 0.4, 0.6, 1) toblocks[10] {a} createRectangles3D(10, 2, 0.4, 0.6, 2) toblocks[10] {b} itSpatialJoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.4, 0.6, 3) toblocks[10] {c} itSpatialJoin[Bbox_a, Bbox_c] count;
+
+#testcase -itSpJ-col.3.4- feeding the results of two itSpatialJoins (one 3D, the other 2D) into a third itSpatialJoin
+#yields (longint 1300536)
+query createRectangles3D(10, 2, 0.4, 0.6, 1) toblocks[10] {a} createRectangles3D(10, 2, 0.4, 0.6, 2) toblocks[10] {b} itSpatialJoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.3, 0.5, 3) toblocks[10] {c} createRectangles2D(10, 2, 0.3, 0.5, 4) toblocks[10] {d} itSpatialJoin[Bbox_c, Bbox_d] itSpatialJoin[Bbox_a, Bbox_d] count;
+
+
+########################################
+# OPERATOR - spatialjoin
+########################################
+
+# !! next testcase deactivated: "TestRunner: Zeile 36: 12997 Speicherzugriffsfehler  (Speicherabzug geschrieben) $runner $*"
+# #testcase -spj.1.1- join 3D rectangles with 2D rectangles (z dimension is ignored)
+# #yields (int 2806)
+# query createRectangles3D(10, 4, 0.2, 0.3, 1) createRectangles2D(10, 4, 0.2, 0.3, 2) {a} spatialjoin[Bbox, Bbox_a] count
+
+# !! next testcase deactivated: "TestRunner: Zeile 36: 13010 Speicherzugriffsfehler  (Speicherabzug geschrieben) $runner $*"
+# #testcase -spj.1.2- join 2D rectangles with 3D rectangles (z dimension is ignored)
+# #yields (int 2806)
+# query createRectangles2D(10, 4, 0.2, 0.3, 2) createRectangles3D(10, 4, 0.2, 0.3, 1) {a} spatialjoin[Bbox, Bbox_a] count
+
+#testcase -spj.1.3- join 3D rectangles with 3D rectangles (z dimension is considered)
+#yields (int 29)
+query createRectangles3D(10, 4, 0.2, 0.3, 1) createRectangles3D(10, 4, 0.2, 0.3, 2) {a} spatialjoin[Bbox, Bbox_a] count
+
+
+#testcase -spj.2.1- all 100 rectangles with int coordinates in interval [-2, 2] must intersect with the rectangle (-1, -1) - (1, 1)
+#yields (int 100)
+query rect100 feed rect1 feed {a} spatialjoin[Bbox, Bbox_a] count;
+
+#testcase -spj.2.2- ... the same applies if positions are swapped
+#yields (int 100)
+query rect1 feed rect100 feed {a} spatialjoin[Bbox, Bbox_a] count;
+
+#testcase -spj.2.3- ... and for the slightly larger rectangle (-1.00001, -1.00001) - (1.00001, 1.00001)
+#yields (int 100)
+query rect100 feed rectOver1 feed {a} spatialjoin[Bbox, Bbox_a] count;
+
+#testcase -spj.2.4- ... and of course for the rectangle (-2, -2) - (2, 2)
+#yields (int 100)
+query rect100 feed rect2 feed {a} spatialjoin[Bbox, Bbox_a] count;
+
+#testcase -spj.2.5- ... but only 64 of the 100 rectangles should intersect with the rectangle (-0.99999, -0.99999) - (0.99999, 0.99999)
+#yields (int 64)
+query rect100 feed rectBelow1 feed {a} spatialjoin[Bbox, Bbox_a] count;
+
+
+# !! next testcase deactivated: "subtree: error in annotated expression "(functionerror typeerror)"";
+#    "subtree: list structure incorrect!"; "DbEnv: BDB4511 Error: closing the transaction region with active transactions"
+# #testcase -spj.3.1- feeding the result of one spatialjoin into another spatialjoin
+# #yields (int 147904)
+# query createRectangles2D(10, 2, 0.4, 0.6, 1) {a} createRectangles2D(10, 2, 0.4, 0.6, 2) {b} spatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.4, 0.6, 3) {c} spatialjoin[Bbox_a, Bbox_c] count;
+
+# !! next testcase deactivated: "subtree: error in annotated expression "(functionerror typeerror)"";
+#    "subtree: list structure incorrect!"; "DbEnv: BDB4511 Error: closing the transaction region with active transactions"
+# #testcase -spj.3.2- feeding the results of two spatialjoins into a third spatialjoin
+# #yields (int 1696847)
+# query createRectangles2D(10, 2, 0.4, 0.6, 1) {a} createRectangles2D(10, 2, 0.4, 0.6, 2) {b} spatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.3, 0.5, 3) {c} createRectangles2D(10, 2, 0.3, 0.5, 4) {d} spatialjoin[Bbox_c, Bbox_d] spatialjoin[Bbox_a, Bbox_d] count;
+
+# !! next testcase deactivated: "subtree: error in annotated expression "(functionerror typeerror)"";
+#    "subtree: list structure incorrect!"; "DbEnv: BDB4511 Error: closing the transaction region with active transactions"
+# #testcase -spj.3.3- feeding the result of a 3D-spatialjoin into a mixed 3D-/2D-spatialjoin
+# #yields (int 126573)
+# query createRectangles3D(10, 2, 0.4, 0.6, 1) {a} createRectangles3D(10, 2, 0.4, 0.6, 2) {b} spatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.4, 0.6, 3) {c} spatialjoin[Bbox_a, Bbox_c] count;
+
+# !! next testcase deactivated: "subtree: error in annotated expression "(functionerror typeerror)"";
+#    "subtree: list structure incorrect!"; "DbEnv: BDB4511 Error: closing the transaction region with active transactions"
+# #testcase -spj.3.4- feeding the results of two spatialjoins (one 3D, the other 2D) into a third spatialjoin
+# #yields (int 1300536)
+# query createRectangles3D(10, 2, 0.4, 0.6, 1) {a} createRectangles3D(10, 2, 0.4, 0.6, 2) {b} spatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.3, 0.5, 3) {c} createRectangles2D(10, 2, 0.3, 0.5, 4) {d} spatialjoin[Bbox_c, Bbox_d] spatialjoin[Bbox_a, Bbox_d] count;
+
+
+########################################
+# OPERATOR - spatialJoinTouch
+########################################
+
+# !! next testcase deactivated: "[Thread -1] /home/fapra/secondo/Algebras/Rectangle/RectangleAlgebra.h:653: Rectangle<dim>& Rectangle<dim>::operator=(const Rectangle<dim>&) [with unsigned int dim = 2u]: Assertion failed: Proper()";
+#    "TestRunner: Zeile 36: 13073 Abgebrochen             (Speicherabzug geschrieben) $runner $*"
+# #testcase -Touch.1.1- join 3D rectangles with 2D rectangles (z dimension is ignored)
+# #yields (int 2806)
+# query createRectangles3D(10, 4, 0.2, 0.3, 1) createRectangles2D(10, 4, 0.2, 0.3, 2) {a} spatialJoinTouch[Bbox, Bbox_a] count
+
+# !! next testcase deactivated: "[Thread -1] /home/fapra/secondo/Algebras/Rectangle/RectangleAlgebra.h:653: Rectangle<dim>& Rectangle<dim>::operator=(const Rectangle<dim>&) [with unsigned int dim = 2u]: Assertion failed: Proper()";
+#    "TestRunner: Zeile 36: 13086 Speicherzugriffsfehler  (Speicherabzug geschrieben) $runner $*"
+# (SpatialJoinRowLocalInfo::assignTuplesB(std::vector<Tuple*, std::allocator<Tuple*> >) at SpatialJoinRowLocalInfo.cpp:137)
+# #testcase -Touch.1.2- join 2D rectangles with 3D rectangles (z dimension is ignored)
+# #yields (int 2806)
+# query createRectangles2D(10, 4, 0.2, 0.3, 2) createRectangles3D(10, 4, 0.2, 0.3, 1) {a} spatialJoinTouch[Bbox, Bbox_a] count
+
+# !! next testcase deactivated: "[Thread -1] /home/fapra/secondo/Algebras/Rectangle/RectangleAlgebra.h:653: Rectangle<dim>& Rectangle<dim>::operator=(const Rectangle<dim>&) [with unsigned int dim = 2u]: Assertion failed: Proper()"
+# #testcase -Touch.1.3- join 3D rectangles with 3D rectangles (z dimension is considered)
+# #yields (int 29)
+# query createRectangles3D(10, 4, 0.2, 0.3, 1) createRectangles3D(10, 4, 0.2, 0.3, 2) {a} spatialJoinTouch[Bbox, Bbox_a] count
+
+
+#testcase -Touch.2.1- all 100 rectangles with int coordinates in interval [-2, 2] must intersect with the rectangle (-1, -1) - (1, 1)
+#yields (int 100)
+query rect100 feed rect1 feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+#testcase -Touch.2.2- ... the same applies if positions are swapped
+#yields (int 100)
+query rect1 feed rect100 feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+#testcase -Touch.2.3- ... and for the slightly larger rectangle (-1.00001, -1.00001) - (1.00001, 1.00001)
+#yields (int 100)
+query rect100 feed rectOver1 feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+#testcase -Touch.2.4- ... and of course for the rectangle (-2, -2) - (2, 2)
+#yields (int 100)
+query rect100 feed rect2 feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+#testcase -Touch.2.5- ... but only 64 of the 100 rectangles should intersect with the rectangle (-0.99999, -0.99999) - (0.99999, 0.99999)
+#yields (int 64)
+query rect100 feed rectBelow1 feed {a} spatialJoinTouch[Bbox, Bbox_a] count;
+
+
+#testcase -Touch.3.1- feeding the result of one spatialJoinTouch into another spatialJoinTouch
+#yields (int 147904)
+query createRectangles2D(10, 2, 0.4, 0.6, 1) {a} createRectangles2D(10, 2, 0.4, 0.6, 2) {b} spatialJoinTouch[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.4, 0.6, 3) {c} spatialJoinTouch[Bbox_a, Bbox_c] count;
+
+#testcase -Touch.3.2- feeding the results of two spatialJoinTouchs into a third spatialJoinTouch
+#yields (int 1696847)
+query createRectangles2D(10, 2, 0.4, 0.6, 1) {a} createRectangles2D(10, 2, 0.4, 0.6, 2) {b} spatialJoinTouch[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.3, 0.5, 3) {c} createRectangles2D(10, 2, 0.3, 0.5, 4) {d} spatialJoinTouch[Bbox_c, Bbox_d] spatialJoinTouch[Bbox_a, Bbox_d] count;
+
+# !! next testcase deactivated: "TestRunner: Zeile 36: 13184 Speicherzugriffsfehler  (Speicherabzug geschrieben) $runner $*"
+#    (SpatialJoinRowLocalInfo::assignTuplesB(std::vector<Tuple*, std::allocator<Tuple*> >) at SpatialJoinRowLocalInfo.cpp:137)
+# #testcase -Touch.3.3- feeding the result of a 3D-spatialJoinTouch into a mixed 3D-/2D-spatialJoinTouch
+# #yields (int 126573)
+# query createRectangles3D(10, 2, 0.4, 0.6, 1) {a} createRectangles3D(10, 2, 0.4, 0.6, 2) {b} spatialJoinTouch[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.4, 0.6, 3) {c} spatialJoinTouch[Bbox_a, Bbox_c] count;
+
+# !! next testcase deactivated: "TestRunner: Zeile 36: 13205 Speicherzugriffsfehler  (Speicherabzug geschrieben) $runner $*"
+#    (SpatialJoinRowLocalInfo::assignTuplesB(std::vector<Tuple*, std::allocator<Tuple*> >) at SpatialJoinRowLocalInfo.cpp:137)
+# #testcase -Touch.3.4- feeding the results of two spatialJoinTouchs (one 3D, the other 2D) into a third spatialJoinTouch
+# #yields (int 1300536)
+# query createRectangles3D(10, 2, 0.4, 0.6, 1) {a} createRectangles3D(10, 2, 0.4, 0.6, 2) {b} spatialJoinTouch[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.3, 0.5, 3) {c} createRectangles2D(10, 2, 0.3, 0.5, 4) {d} spatialJoinTouch[Bbox_c, Bbox_d] spatialJoinTouch[Bbox_a, Bbox_d] count;
+
+
+#teardown
+kill noGeom;
+kill rectBelow1;
+kill rect1;
+kill rectOver1;
+kill rect2;
+kill rect100;
+close database;
+delete database CDACSJTest;

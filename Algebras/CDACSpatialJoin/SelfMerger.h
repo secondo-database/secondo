@@ -201,36 +201,6 @@ private:
    // requires just 82 bytes assembly code, but is used very often, so it
    // deserves to be "inline"
 
-   /* merges the given source vectors "source1" and "source2" (starting from
-    * the given indices) into the destination vector "dest", using the sort
-    * order determined by the JoinEdge operator<. Source vectors must already
-    * be sorted in this order. */
-   static void merge(const JoinEdgeVec& source1, size_t startIndex1,
-                     const JoinEdgeVec& source2, size_t startIndex2,
-                     JoinEdgeVec& dest);
-
-   /* merges the given source vectors "source1/2/3" into the destination vector
-    * "dest", using the sort order determined by the JoinEdge operator<.
-    * Source vectors must already be sorted in this order. */
-   static void merge(const JoinEdgeVec& source1,
-                     const JoinEdgeVec& source2,
-                     const JoinEdgeVec& source3,
-                     JoinEdgeVec& dest);
-
-   /* for all edges in the input vectors left1 and right2,
-    * a) the newly completed rectangles are determined (i.e. rectangles with
-    * their left edge in area1 and their right edge in area2) and stored in
-    * the output vector leftRight; all other edges are either stored in
-    * b) leftSpan (left edges from area1 which span the complete x range of
-    * area2), or
-    * c) in rightSpan (right edges from area2 which span the complete x range
-    * of area1). */
-   void removeCompleteRectangles(const JoinEdgeVec& left1,
-                                 const JoinEdgeVec& right2,
-                                 JoinEdgeVec& leftSpan,
-                                 JoinEdgeVec& rightSpan,
-                                 JoinEdgeVec& leftRight);
-
 public:
    /* returns the total number of JoinEdge instances stored in this SelfMerger,
     * optionally including the input SelfMergedAreas and the result

@@ -85,8 +85,8 @@ public:
    std::vector<RectangleBlock*> rBlocks;
 
 private:
-   /* the memory used by tBlocks / rBlocks */
-   uint64_t byteCount;
+   /* the memory currently used by tBlocks / rBlocks */
+   uint64_t currentByteCount;
 
    /* the number of tuples currently stored in tBlocks / rBlocks */
    uint64_t currentTupleCount;
@@ -97,6 +97,11 @@ private:
    /* the total number of tuples provided by this stream. This value is only
     * known after the stream was fully read once (i.e. when openCount > 0) */
    uint64_t totalTupleCount;
+
+   /* the total memory used by all tBlocks / rBlocks read from this stream.
+    * This value is only known after the stream was fully read once
+    * (i.e. when openCount > 0) */
+   uint64_t totalByteCount;
 
 protected:
    /* the number of times this stream was opened or re-opened */
@@ -165,6 +170,15 @@ public:
 
    /* returns the number of chunks since the stream was opened or re-opened */
    inline unsigned getChunkCount() const { return currentChunkCount; }
+
+   /* the total number of tuples provided by this stream. This value is only
+   * known after the stream was fully read once (i.e. when openCount > 0) */
+   uint64_t getTotalTupleCount() const;
+
+   /* the total memory used by all tBlocks / rBlocks read from this stream.
+    * This value is only known after the stream was fully read once
+    * (i.e. when openCount > 0) */
+   uint64_t getTotalByteCount() const;
 
    /* returns true if all input could be read to main memory in the first
     * chunk (i.e. with no clearMem() call) */

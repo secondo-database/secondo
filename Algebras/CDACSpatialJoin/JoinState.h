@@ -112,6 +112,14 @@ struct JoinStateMemoryInfo {
     * Merger and MergedArea instances at any given time */
    size_t mergeJoinEdgeCountMax;
 
+   /* the number of output tuples created during the whole lifetime of this
+    * JoinState */
+   uint64_t outputTupleCount;
+
+   /* the size in bytes of all output data created during the whole lifetime
+    * of this JoinState (i.e. the size sum of all output TBlocks) */
+   size_t outputDataSize;
+
    /* initializes the memory statistics with the given information */
    void initialize(size_t usedInputDataMemory_, size_t rectangleInfoCount,
            size_t sortEdgeCount, size_t joinEdgeCount);
@@ -139,6 +147,9 @@ struct JoinStateMemoryInfo {
    /* calculates the currently used memory (including SelfMergedAreas and the
     * given SelfMerger) and possibly increases the maximum values */
    inline void updateMaximum(SelfMerger* merger);
+
+   /* adds the given number of tuples and bytes to the output data */
+   inline void addOutputData(uint64_t tupleCount, size_t byteCount);
 
    /* the maximum number of main memory bytes used at any point during the
     * lifetime of this JoinState */
@@ -342,6 +353,8 @@ private:
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
    void reportLastMerge(SelfMergedAreaPtr area1, SelfMergedAreaPtr area2) const;
 #endif
+
+   uint64_t updateStatistics(uint64_t outTupleCountAtStart);
 };
 
 } // end namespace
