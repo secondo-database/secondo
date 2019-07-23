@@ -54,6 +54,8 @@ the algebra instance.
 std::string getName(const arrayType  a);
 ListExpr wrapType(const arrayType  a, ListExpr subType);
 
+std::string getPName(const arrayType  a);
+ListExpr wrapPType(const arrayType  a, ListExpr subType);
 
 template<class A, bool isKill>
 void deleteRemoteObjects(A* array);
@@ -180,15 +182,13 @@ class SDArray : public DistTypeBase {
    }
 
      
-
-     
-     virtual size_t getSize() const {
-       return worker.size();
-     }
+  virtual size_t getSize() const {
+    return worker.size();
+  }
    
-     virtual arrayType getType() const{
-        return SDARRAY;
-     }
+  virtual arrayType getType() const{
+     return SDARRAY;
+  }
 
   const DArrayElement& getWorkerForSlot(int i)const{
     return worker[i];
@@ -198,73 +198,79 @@ class SDArray : public DistTypeBase {
     return slot;
   }
 
+  virtual bool isSlotUsed(int slot) const{
+    return IsDefined() && slot >=0 && (size_t)slot < worker.size();
+  }
+
+  void setUsedSlots(const std::set<int>& dummy) {} 
+
   std::string getObjectNameForSlot(int i) const{
      return name; 
   }
 
 
-     inline static std::string BasicType(){
-         return "sdarray";
-     } 
+  inline static std::string BasicType(){
+     return "sdarray";
+  } 
 
-     inline static bool checkType(ListExpr list){
-        return nl->HasLength(list,2) &&
-               listutils::isSymbol(nl->First(list),BasicType());
-     }
+  inline static bool checkType(ListExpr list){
+     return nl->HasLength(list,2) &&
+            listutils::isSymbol(nl->First(list),BasicType());
+  }
   
-     static ListExpr Property();
+  static ListExpr Property();
 
-     static Word IN( const ListExpr typeInfo, const ListExpr instance,
+  static Word IN( const ListExpr typeInfo, const ListExpr instance,
       const int errorPos, ListExpr& errorInfo, bool& correct );
 
-     static ListExpr Out( ListExpr typeInfo, Word value ) ;
+  static ListExpr Out( ListExpr typeInfo, Word value ) ;
 
-     static Word Create( const ListExpr typeInfo ) {
+  static Word Create( const ListExpr typeInfo ) {
         SDArray* res = new SDArray("");
         res->makeUndefined();
         return SetWord(res);
-     }
+  }
 
-     static  void Delete( const ListExpr typeInfo, Word& w ){
+  static  void Delete( const ListExpr typeInfo, Word& w ){
         SDArray* victim = (SDArray*) w.addr;
         deleteRemoteObjects<SDArray,false>(victim);
         delete victim;
         w.addr = 0;
-     }
+  }
 
-    static  bool Open( SmiRecord& valueRecord,
+  static  bool Open( SmiRecord& valueRecord,
                  size_t& offset, const ListExpr typeInfo,
                  Word& value );
 
-    static  bool Save( SmiRecord& valueRecord, size_t& offset,
+  static  bool Save( SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value );
 
-    static  void Close( const ListExpr typeInfo, Word& w ){
+  static  void Close( const ListExpr typeInfo, Word& w ){
         SDArray* victim = (SDArray*) w.addr;
         delete victim;
         w.addr = 0;
-    }
+  }
     
-    static Word Clone( const ListExpr typeInfo, const Word& w ) {
+  static Word Clone( const ListExpr typeInfo, const Word& w ) {
         SDArray* a = (SDArray*) w.addr;
         return SetWord(new SDArray(*a));
-    }
+  }
 
-    static void*  Cast( void* addr ) {
+  static void*  Cast( void* addr ) {
       return (new (addr) SDArray(23));
-    }
+  }
     
-    static bool TypeCheck(ListExpr type, ListExpr& errorInfo){
+  static bool TypeCheck(ListExpr type, ListExpr& errorInfo){
        return checkType(type);
-    }
+  }
 
-    static int SizeOf(){
+  static int SizeOf(){
       return 85; // size depends on an object, not clear what to return here
-    }
+  }
 
-    static ListExpr wrapType(ListExpr subtype){
+  static ListExpr wrapType(ListExpr subtype){
       return nl->TwoElemList( nl->SymbolAtom(BasicType()), subtype);
-    }
+  }
 
   private:
     // privacy is unknown to this class
@@ -303,6 +309,11 @@ The constructors create a darray from predefined values.
 
 */
      DArrayBase& operator=(const DArrayBase& src);
+
+
+     virtual bool isSlotUsed(int slot) const{
+       return IsDefined() && slot >=0 && (size_t) slot < getSize();
+     }
 
      
      void copyFrom(const DArrayBase& src){
@@ -345,7 +356,10 @@ the given index.
     }
    
 
-    size_t getSize() const;
+    size_t getSize() const {
+       boost::lock_guard<boost::recursive_mutex> guard(mapmtx);
+       return map.size();
+    }
 
 
 /*
@@ -416,7 +430,7 @@ deleting the return value, if the is one.
 
 */
      template<class R>
-     static R* readFrom(ListExpr list);
+     static R* readFrom(ListExpr list, bool partially);
 
 /*
 3.17 ~open~
@@ -424,9 +438,23 @@ deleting the return value, if the is one.
 Reads the content of darray from a SmiRecord.
 
 */
-     template<class R>
+     template<class R, bool partially>
      static bool open(SmiRecord& valueRecord, size_t& offset, 
                       const ListExpr typeInfo, Word& result);
+
+     virtual void setUsedSlots(const std::set<int>& dummy) {} 
+
+     virtual std::set<int> getUsedSlots(){
+         std::set<int> res;
+         for (size_t i=0;i<this->getSize(); i++){
+            res.insert(i);
+         }
+         return res;
+     }
+
+     virtual bool isPartially() const{
+        return false;
+     }
 
 
 /*
@@ -435,6 +463,7 @@ Reads the content of darray from a SmiRecord.
 Saves a darray to an SmiRecord.
 
 */
+     template<bool partially>
      static bool save(SmiRecord& valueRecord, size_t& offset,
                       const ListExpr typeInfo, Word& value);
 
@@ -609,20 +638,109 @@ class DArrayT: public DArrayBase{
 
 
   static DArrayT* readFrom(ListExpr list){
-    return DArrayBase::readFrom<DArrayT<type> >(list);
+    return DArrayBase::readFrom<DArrayT<type> >(list, false);
   }
 
 
-  arrayType getType()const{ return type; }
+  arrayType getType()const override{ return type; }
 
   static bool checkType(const ListExpr list);
+
 
 };
 
 typedef DArrayT<DARRAY> DArray;
 typedef DArrayT<DFARRAY> DFArray;
 
+template<arrayType T>
+class PDArrayT: public DArrayT<T> {
+public:
+   PDArrayT(const std::vector<uint32_t>&v, const std::string& name):
+       DArrayT<T>(v,name),usedSlots() {} 
 
+   PDArrayT(const int dummy):DArrayT<T>(dummy) {}
+
+   PDArrayT(const DArrayBase& src) : DArrayBase(src) {
+     for(size_t i=0;i<src.getSize();i++){
+        if(isSlotUsed(i)){
+          usedSlots.insert(i);
+        }
+     }
+   }
+   
+   PDArrayT& operator=(const DArrayBase& src){
+      DArrayBase::operator=(src);
+      usedSlots.clear();
+      for(size_t i=0;i<src.getSize(); i++){
+         if(src.isSlotUsed(i)){
+           usedSlots.insert(i);
+         }
+      }
+      return *this;
+   }
+
+   bool isSlotUsed(int i) const override{
+     if(!this->IsDefined()) {
+       return false;
+     }
+     if(i<0 || i>=this->getSize()) {
+        return false;
+     }
+     return usedSlots.find(i) != usedSlots.end();
+   }
+
+   PDArrayT& operator=(const SDArray& src){
+     this->set(src.getSize(),src.getName(),src.getWorkers());
+     if(!src.IsDefined()){
+       this->makeUndefined();
+     } else {
+       usedSlots.clear();
+       for(size_t i=0;i<src.getSize(); i++){
+          usedSlots.insert(i);
+       }
+     }
+     return *this;
+   }
+
+  static const std::string BasicType(){
+     return distributed2::getPName(T);;
+  }
+
+  static ListExpr wrapType(ListExpr subtype){
+     return distributed2::wrapPType(T, subtype); 
+  }
+
+
+  static PDArrayT* readFrom(ListExpr list){
+    return DArrayBase::readFrom<PDArrayT<T> >(list, true);
+  }
+
+
+  arrayType getType()const override{ 
+      return T;
+   }
+
+  static bool checkType(const ListExpr list);
+
+
+  void setUsedSlots(const std::set<int>& us) override{
+     usedSlots = us;
+  }
+
+   bool isPartially() const override{
+        return true;
+  }
+  std::set<int> getUsedSlots() override{
+     return usedSlots;
+  }
+
+  private:
+     std::set<int> usedSlots;
+};
+
+
+typedef PDArrayT<DARRAY> PDArray;
+typedef PDArrayT<DFARRAY> PDFArray;
 
 class DFMatrix: public DistTypeBase{
    public: 

@@ -1136,7 +1136,6 @@ ListExpr replaceSymbols(ListExpr list,
 template<typename T>
 ListExpr fun2cmd(ListExpr funlist, const vector<T>& funargs){
   if(!nl->HasLength(funlist, 2+ funargs.size())){
-    cout << "invalid length of list" << endl;
     return nl->TheEmptyList();
   } 
   if(!listutils::isSymbol(nl->First(funlist),"fun")){
@@ -4977,6 +4976,40 @@ ListExpr DArrayProperty(){
                               " ('localhost'  1235 'config.ini'))")));
 }
 
+ListExpr PDArrayProperty(){
+   return nl->TwoElemList(
+            nl->FourElemList(
+                 nl->StringAtom("Signature"),
+                 nl->StringAtom("Example Type List"), 
+                 nl->StringAtom("List Rep"),
+                 nl->StringAtom("Example List")),
+            nl->FourElemList(
+                 nl->StringAtom(" -> SIMPLE"),
+                 nl->StringAtom(" (pdarray <basictype>)"),
+                 nl->TextAtom("(name <map> ( s1 s2  ...)(u1 ...u_m)) where "
+                         "s_i =(server port config), u_i = int (used slot)"),
+                 nl->TextAtom(" ( mydarray (0 1 0 1) (('localhost' 1234 "
+                              "'config.ini')"
+                              " ('localhost'  1235 'config.ini')) ( 0 1) )")));
+}
+
+ListExpr PDFArrayProperty(){
+   return nl->TwoElemList(
+            nl->FourElemList(
+                 nl->StringAtom("Signature"),
+                 nl->StringAtom("Example Type List"), 
+                 nl->StringAtom("List Rep"),
+                 nl->StringAtom("Example List")),
+            nl->FourElemList(
+                 nl->StringAtom(" -> SIMPLE"),
+                 nl->StringAtom(" (pdfarray rel(...))"),
+                 nl->TextAtom("(name <map> ( s1 s2  ...)(u1 ...u_m)) where "
+                         "s_i =(server port config), u_i = int (used slot)"),
+                 nl->TextAtom(" ( mypdfarray (0 1 0 1) (('localhost' 1234 "
+                              "'config.ini')"
+                              " ('localhost'  1235 'config.ini')) ( 0 1) )")));
+}
+
 ListExpr DFArrayProperty(){
    return nl->TwoElemList(
             nl->FourElemList(
@@ -5033,6 +5066,7 @@ Word InDArray(const ListExpr typeInfo, const ListExpr instance,
 template<class A>
 ListExpr OutDArray(ListExpr typeInfo, Word value){
    A* da = (A*) value.addr;
+   assert(da); 
    return da->toListExpr();
 }
 
@@ -5113,7 +5147,7 @@ TypeConstructor DArrayTC(
   OutDArray<DArray>, InDArray<DArray>,
   0,0,
   CreateDArray<DArray>, DeleteDArray<DArray>,
-  DArray::open<DArray>, DArray::save,
+  DArray::open<DArray,false>, DArray::save<false>,
   CloseDArray<DArray>, CloneDArray<DArray>,
   CastDArray<DArray>,
   SizeOfDArray,
@@ -5126,12 +5160,35 @@ TypeConstructor DFArrayTC(
   OutDArray<DFArray>, InDArray<DFArray>,
   0,0,
   CreateDArray<DFArray>, DeleteDArray<DFArray>,
-  DFArray::open<DFArray>, DFArray::save,
+  DFArray::open<DFArray, false>, DFArray::save<false>,
   CloseDArray<DFArray>, CloneDArray<DFArray>,
   CastDArray<DFArray>,
   SizeOfDArray,
   DistTypeBaseCheck<DFArray> );
 
+TypeConstructor PDArrayTC(
+  PDArray::BasicType(),
+  PDArrayProperty,
+  OutDArray<PDArray>, InDArray<PDArray>,
+  0,0,
+  CreateDArray<PDArray>, DeleteDArray<PDArray>,
+  PDArray::open<PDArray,true>, PDArray::save<true>,
+  CloseDArray<PDArray>, CloneDArray<PDArray>,
+  CastDArray<PDArray>,
+  SizeOfDArray,
+  DistTypeBaseCheck<PDArray> );
+
+TypeConstructor PDFArrayTC(
+  PDFArray::BasicType(),
+  PDFArrayProperty,
+  OutDArray<PDFArray>, InDArray<PDFArray>,
+  0,0,
+  CreateDArray<PDFArray>, DeleteDArray<PDFArray>,
+  PDFArray::open<PDFArray,true>, PDFArray::save<true>,
+  CloseDArray<PDFArray>, CloneDArray<PDFArray>,
+  CastDArray<PDFArray>,
+  SizeOfDArray,
+  DistTypeBaseCheck<PDFArray> );
 
 
 TypeConstructor DFMatrixTC(
@@ -8742,13 +8799,14 @@ the resulting stream. Other subtypes are not supported.
 */
 ListExpr dsummarizeTM(ListExpr args){
 
-  string err="d[f]array(X) or sdarray(X) with X in rel or DATA expected";
+  string err="[p]d[f]array(X) or sdarray(X) with X in rel or DATA expected";
   if(!nl->HasLength(args,1)){
     return listutils::typeError(err);
   }
   ListExpr arg = nl->First(args);
   if(!DArray::checkType(arg) && !DFArray::checkType(arg)
-     && !SDArray::checkType(arg)){
+     && !SDArray::checkType(arg) && !PDArray::checkType(arg) 
+     && !PDFArray::checkType(arg)){
     return listutils::typeError(err);
   }
   ListExpr subtype = nl->Second(arg);
@@ -8861,9 +8919,12 @@ class dsummarizeAttrInfo : public successListener{
            while(runners.size() <= pos || !runners[pos].second){
                cond.wait(lock);
            }
-           Attribute* result = runners[pos].first->getAttribute();
-           delete runners[pos].first;
-           runners[pos].first = 0;
+           Attribute* result = 0;
+           if(runners[pos].first) {
+              result = runners[pos].first->getAttribute();
+              delete runners[pos].first;
+              runners[pos].first = 0;
+           }
            pos++;
            if(result){
               return result;
@@ -8894,14 +8955,20 @@ class dsummarizeAttrInfo : public successListener{
            string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
            string aname = array->getName();
            while(!stopped && runners.size() < array->getSize()){
-              DArrayElement elem = array->getWorkerForSlot(runners.size());
-              string objname = aname + "_" + 
-                               stringutils::int2str(runners.size());
-              dsummarizeAttrInfoRunner* r = new 
-                      dsummarizeAttrInfoRunner( elem, 
-                             objname, resType, dbname, runners.size(), this);
-              runners.push_back(make_pair(r,false));
-              r->start();
+              int index = runners.size();
+              if(array->isSlotUsed(index)) {
+                DArrayElement elem = array->getWorkerForSlot(runners.size());
+                string objname = aname + "_" + 
+                                 stringutils::int2str(runners.size());
+                dsummarizeAttrInfoRunner* r = new 
+                        dsummarizeAttrInfoRunner( elem, 
+                               objname, resType, dbname, runners.size(), this);
+                runners.push_back(make_pair(r,false));
+                r->start();
+              } else {
+                runners.push_back(
+                        make_pair<dsummarizeAttrInfoRunner*,bool>(0,true));
+              }
            }
       }
 };
@@ -8937,7 +9004,7 @@ class RelationFileGetter{
        }
        switch(array->getType()){
          case SDARRAY :
-         case DARRAY : retrieveFileFromObject(ci); break;
+         case DARRAY  : retrieveFileFromObject(ci); break;
          case DFARRAY : retrieveFileFromFile(ci); break;
          default: assert(false);
        }
@@ -8966,7 +9033,9 @@ class RelationFileGetter{
      }
 
      void retrieveFileFromFile(ConnectionInfo* ci){
+
        string rname = array->getName()+"_"+stringutils::int2str(index)+".bin";
+
        string path =
                ci->getSecondoHome(showCommands,
                                   commandLog) + "/dfarrays/" + dbname + "/"
@@ -8979,15 +9048,12 @@ class RelationFileGetter{
           listener->connectionFailed(index);
           return;
        }
+
        listener->fileAvailable(index, lname);
      }
 
 
 };
-
-
-
-
 
 template<class A>
 class dsummarizeRelInfo: public dsummarizeRelListener{
@@ -9011,15 +9077,18 @@ class dsummarizeRelInfo: public dsummarizeRelListener{
                  currentIndex ++;
               }
            }
-           if(currentIndex >= array->getSize()){
+           if(currentIndex >= filenames.size()){
              return 0;
            }
  
            // wait until runner for current slot is finished
            // file is available then or connection is broken 
-           runners[currentIndex]->join();
-           delete runners[currentIndex];
-           runners[currentIndex] = 0;
+           if(runners[currentIndex] != nullptr){
+              runners[currentIndex]->join();
+              delete runners[currentIndex];
+              runners[currentIndex] = 0;
+           }
+
            if(filenames[currentIndex].length()>0){
               ListExpr tType = 
                   SecondoSystem::GetCatalog()->NumericType(resType);
@@ -9068,13 +9137,18 @@ class dsummarizeRelInfo: public dsummarizeRelListener{
 
 
      void start(){
-
         for(size_t i=0;i< array->getSize();i++){
-           RelationFileGetter<A>* getter = 
-                          new RelationFileGetter<A>(array,i,this);
-           getters.push_back(getter);
-           filenames.push_back("");
-           runners.push_back(new boost::thread(*getter));
+           if(array->isSlotUsed(i)){
+              RelationFileGetter<A>* getter = 
+                            new RelationFileGetter<A>(array,i,this);
+             getters.push_back(getter);
+             filenames.push_back("");
+             runners.push_back(new boost::thread(*getter));
+           } else { // unused slot
+             filenames.push_back("");
+             runners.push_back(nullptr);
+             getters.push_back(nullptr);
+           } 
         }
      }
 };
@@ -9110,9 +9184,14 @@ int dsummarizeVMT(Word* args, Word& result, int message,
 ValueMapping dsummarizeVM[] = {
     dsummarizeVMT<dsummarizeRelInfo<DArray>, DArray >,
     dsummarizeVMT<dsummarizeRelInfo<SDArray>, SDArray >,
+    dsummarizeVMT<dsummarizeRelInfo<PDArray>, PDArray >,
+    dsummarizeVMT<dsummarizeRelInfo<PDFArray>, PDFArray >,
     dsummarizeVMT<dsummarizeRelInfo<DFArray>, DFArray >,
+
     dsummarizeVMT<dsummarizeAttrInfo<DArray>, DArray>,
-    dsummarizeVMT<dsummarizeAttrInfo<SDArray>, SDArray>
+    dsummarizeVMT<dsummarizeAttrInfo<SDArray>, SDArray>,
+    dsummarizeVMT<dsummarizeAttrInfo<PDArray>, PDArray >,
+    dsummarizeVMT<dsummarizeAttrInfo<PDFArray>, PDFArray >,
 };
 
 
@@ -9124,14 +9203,19 @@ int dsummarizeSelect(ListExpr args){
     n1 = 0;
   }else if(SDArray::checkType(arg)){
     n1 = 1;
-  } else if(DFArray::checkType(arg)){
+  } else if(PDArray::checkType(arg)){
     n1 = 2;
+  } else if(PDFArray::checkType(arg)){
+    n1 = 3;
+  } else if(DFArray::checkType(arg)){
+    n1 = 4;
   }
+
   int n2 = 0;
   if(Relation::checkType(subtype)){
     n2 = 0;
   } else {
-     n2 = 3;
+     n2 = 5;
   }
   return n1 + n2;
 }
@@ -9157,7 +9241,7 @@ OperatorSpec dsummarizeSpec(
 Operator dsummarizeOp(
   "dsummarize",
   dsummarizeSpec.getStr(),
-  5,
+  9,
   dsummarizeVM,
   dsummarizeSelect,
   dsummarizeTM
@@ -9396,9 +9480,9 @@ ValueMapping getValueVM[] = {
 
 OperatorSpec getValueSpec(
      "{darray(T),dfarray(T), sdarray(T)} -> array(T)",
-     "getValue(_)",
+     "_ getValue",
      "Converts a distributed array into a normal one.",
-     "query getValue(da2)"
+     "query da2 getValue"
      );
 
 
@@ -9410,6 +9494,174 @@ Operator getValueOp(
   getValueSelect,
   getValueTM
 );
+
+
+/*
+Operator ~getValueP~
+
+This operator is used for partially d[f] arrays.
+Beside the array, a standard value is required that is 
+used as the result of unused darray slots.
+
+*/
+ListExpr getValuePTM(ListExpr args){
+   if(!nl->HasLength(args,2)){
+      return listutils::typeError("2 arguments required");
+   }
+   if(!PDArray::checkType(nl->First(args)) 
+      && ! PDFArray::checkType(nl->First(args))){
+     return listutils::typeError("first argument must be a pd[f]array");
+   }
+   ListExpr subtype = nl->Second(nl->First(args));
+   ListExpr defType = nl->Second(args);
+   if(!nl->Equal(subtype,defType)){
+     return listutils::typeError("The default value differs from "
+                                 "the array's subtype");
+   }
+   return nl->TwoElemList( 
+              listutils::basicSymbol<arrayalgebra::Array>(),
+                  subtype);
+}
+
+
+template<class AType, class GType>
+class getValuePInfo : public getValueListener{
+
+  public:
+   getValuePInfo(AType* _arg, arrayalgebra::Array* _result, ListExpr _resType, 
+                Word& _defaultValue):
+    arg(_arg), result(_result), resType(_resType), algId(0),
+    typeId(0),n(-1),values(0), defaultValue(_defaultValue){
+      subType = nl->Second(_resType);
+   }
+
+   virtual ~getValuePInfo(){
+      if(values){
+         delete[] values;
+      }
+   }
+
+
+   void convert(){
+     if(!init()){
+        return;
+     }
+    vector<GType*> getters;
+    vector<boost::thread*> threads;
+    Word nothing((void*)0);
+    for(int i=0;i<n;i++){
+      if(arg->isSlotUsed(i)){
+         GType* getter = new GType(arg,i,this, nl->Second(resType));
+         getters.push_back(getter);
+         boost::thread* t = new boost::thread(*getter); 
+         threads.push_back(t);
+      } else {
+         jobDone(i,nothing); 
+      }
+    }
+    // for for finishing retrieving elements
+    for(size_t i =0 ;i<threads.size();i++){
+        threads[i]->join();
+    }
+    for(size_t i =0 ;i<threads.size();i++){
+        delete threads[i];
+    }
+    for(size_t i =0 ;i<getters.size();i++){
+       delete getters[i];  
+    }
+    result->initialize(algId,typeId,n,values);
+  } 
+
+  void jobDone(int id, Word value){
+    if(value.addr==0){ // problem in getting element
+       value = clone(subType,defaultValue); 
+    }
+    values[id] = value;
+  }
+
+  private:
+    AType* arg;
+    arrayalgebra::Array* result;
+    ListExpr resType;
+    int algId;
+    int typeId;
+    int n;
+    Word* values;
+    Word defaultValue;
+    ListExpr subType;
+    ObjectClone clone;
+   
+    
+    bool init(){
+       if(!arg->IsDefined()){
+         return false;
+       }
+       string typeName;
+       if(!SecondoSystem::GetCatalog()->LookUpTypeExpr(nl->Second(resType), 
+                                                 typeName, algId, typeId)){
+          cerr << "internal error, could not determine algid and typeId"
+               << " for " << nl->ToString(nl->Second( resType)) << endl;
+          return false;
+       }
+       n = arg->getSize();
+       Word std((void*)0);
+       values = new Word[n];
+       for(int i=0;i<n;i++){
+         values[i] = std;
+       }
+       clone = am->CloneObj(algId,typeId);
+       return true;
+    }
+};
+
+
+template<class AType, class GType>
+int getValuePVMT(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+
+   result = qp->ResultStorage(s);
+   AType* array = (AType*) args[0].addr;
+   arrayalgebra::Array* res = (arrayalgebra::Array*) result.addr;
+   if(array->IsDefined()){
+      getValuePInfo<AType,GType> info(array,res, qp->GetType(s), args[1]); 
+      info.convert();
+   } else {
+      res->setUndefined();
+   }
+   return 0;
+}
+
+
+int getValuePSelect(ListExpr args){
+  ListExpr a1 = nl->First(args);
+  if(PDArray::checkType(a1)) return 0;
+  if(PDFArray::checkType(a1)) return 1;
+  return -1;
+}
+
+ValueMapping getValuePVM[] = {
+  getValuePVMT<PDArray,getValueGetter<PDArray> >,
+  getValuePVMT<PDFArray,getValueFGetter>, 
+};
+
+OperatorSpec getValuePSpec(
+     "{pd[f]array(A) x A  -> array(A)",
+     "_ getValue [default]",
+     "Converts a partially distributed array into a normal one."
+     "Unused slots arr filled up with the given defaultValue",
+     "query pda23 getValue[0]"
+     );
+
+
+Operator getValuePOp(
+  "getValueP",
+  getValuePSpec.getStr(),
+  2,
+  getValuePVM,
+  getValuePSelect,
+  getValuePTM
+);
+
 
 
 /*
@@ -10983,8 +11235,6 @@ class shareInfo: public successListener{
       if(!fileCreated){
           isAttribute = false;
 
-          cout << "typeList = " << nl->ToString(typeList) << endl;
-
           isRelation = Relation::checkType(typeList);
           filename = name + "_" + stringutils::int2str(WinUnix::getpid()) 
                      + ".bin";
@@ -11804,12 +12054,30 @@ something other).
 */
 
 
-
+template<bool partial>
 ListExpr dmapTM(ListExpr args){
-  string err = "{d[f]array(X), sdarray}  x string x fun expected";
-  if(!nl->HasLength(args,3)){
-    return  listutils::typeError(err + " (wrong number of args)");
+
+  string err;
+  if(partial){
+     err = "stream(int) x {d[f]array(X), sdarray}  x string x fun expected";
+     if(!nl->HasLength(args,4)){
+         return listutils::typeError(err + " (wrong number of arguments");
+     } 
+     ListExpr stream = nl->First(args);
+     args = nl->Rest(args);
+     if(!nl->HasLength(stream,2)){ // uses args in  tm
+       return listutils::typeError("internal error");
+     }
+     if(!Stream<CcInt>::checkType(nl->First(stream))){
+       return listutils::typeError("first argument is not a stream of int");
+     }
+  } else {
+     err = "{d[f]array(X), sdarray}  x string x fun expected";
+     if(!nl->HasLength(args,3)){
+        return  listutils::typeError(err + " (wrong number of args)");
+     }
   }
+
   // check for internal correctness (uses Args in type mapping)
   if(   !nl->HasLength(nl->First(args),2)
       ||!nl->HasLength(nl->Second(args),2)
@@ -11897,6 +12165,13 @@ ListExpr dmapTM(ListExpr args){
                       : (SDArray::checkType(arg1Type)?nl->First(arg1Type)
                                             :listutils::basicSymbol<DArray>()),
                funRes);
+   if(partial){
+      resType =  nl->TwoElemList(
+               isStream?listutils::basicSymbol<PDFArray>()
+                       :listutils::basicSymbol<PDArray>(),
+               funRes);
+
+   }
   
   return nl->ThreeElemList(
           nl->SymbolAtom(Symbols::APPEND()),
@@ -11933,31 +12208,43 @@ are only collected in the logger but not sent to a woker.
           bool _isRel,      // result is a relation 
           bool _isStream,   // result is a tuple stream
           void* res,        // pointer to res or null
-          CommandLogger* _log): // pointer to a logger or null
+          CommandLogger* _log,
+          shared_ptr<set<int> > _parts): // pointer to a logger or null
           array(_array), aType(_aType), ccname(_name), 
           funText(_funText), isRel(_isRel),
-          isStream(_isStream), log(_log) {
+          isStream(_isStream), log(_log), parts(_parts) {
 
        dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+       dfarray = nullptr;
+       darray = nullptr;
+       sdarray = nullptr;
+       pdarray = nullptr;
+       pdfarray = nullptr;
+
        if(isStream){
-         dfarray = !log?(DFArray*) res:(DFArray*)1;
-         darray = 0;
-         sdarray = 0; 
+          
+         if(parts==nullptr){
+            dfarray = !log?(DFArray*) res:(DFArray*)1;
+          } else {
+            pdfarray = !log?(PDFArray*) res:(PDFArray*)1;
+          }
        } else {
-         dfarray = 0;
          if(array->getType()==DARRAY || array->getType()==DFARRAY){
-            darray = !log?(DArray*) res:(DArray*)1;
-            sdarray = 0;
+           if(parts==nullptr){
+               darray = !log?(DArray*) res:(DArray*)1;
+           } else {
+              pdarray = !log?(PDArray*) res:(PDArray*)1;
+           }
          } else {
             assert(array->getType()==SDARRAY);
-            darray = 0;
-            sdarray = !log?(SDArray*) res:(SDArray*)1;
+            if(parts==nullptr){
+               sdarray = !log?(SDArray*) res:(SDArray*)1;
+            } else {
+               pdarray = !log?(PDArray*) res:(PDArray*)1;
+
+            }
          }
        }
-       cout << "dfarray = " << dfarray << endl;
-       cout << "darray  = " << darray << endl;
-       cout << "sdarray = " << sdarray << endl;
-
        reconnectGlobal = algInstance->tryReconnect();
    }
 
@@ -11968,8 +12255,10 @@ are only collected in the logger but not sent to a woker.
           startXArray<DArray,dRun>(darray);
        } else if(sdarray) {
           startXArray<SDArray,dRun>(sdarray);
-       } else {
-         assert(false);
+       } else if(pdarray) {
+          startXArray<PDArray,dRun>(pdarray);
+       } else if(pdfarray) {
+          startXArray<PDFArray,fRun>(pdfarray);
        }
     }
 
@@ -11985,9 +12274,14 @@ are only collected in the logger but not sent to a woker.
     DFArray* dfarray;   // result arrays,    
     DArray* darray;     // only one of them is
     SDArray* sdarray;   // not null
+    PDArray* pdarray;
+    PDFArray* pdfarray;
+
     string name;
     string dbname;
     bool reconnectGlobal;
+    shared_ptr<set<int> > parts;
+
 
     template<class type, class rtype>
     void startXArray(type*& resArray ){
@@ -12004,10 +12298,6 @@ are only collected in the logger but not sent to a woker.
        // future if workers di
        if(!log){ 
           assert(resArray!=0);
-          cout << "copy argument array into result array " << endl;
-          cout << "resArrayType = " << resArray->getType() << endl;
-          cout << "argumentArrayType = " << array->getType() << endl;
-
           *resArray = (*array);
        }
        // without any worker, we cannot do anything
@@ -12016,6 +12306,9 @@ are only collected in the logger but not sent to a woker.
              resArray->makeUndefined();
          }
          return;
+       }
+       if(!log && parts!=nullptr){
+         resArray->setUsedSlots(*parts);
        }
        // create a new name for the result array 
        if(!ccname->IsDefined() || ccname->GetValue().length()==0){
@@ -12041,26 +12334,34 @@ are only collected in the logger but not sent to a woker.
           // no slots -> nothing to do
           return;
        }
+       if(parts!=nullptr){
+          if(parts->size() == 0){
+            return;
+          }
+       }
 
        // start for each slot a thread that applies the
        // function at the worker that is the slot's home 
        vector<rtype*> w;
        vector<boost::thread*> runners;
        for( size_t i=0;i< array->getSize();i++){
-          ConnectionInfo* ci = algInstance->getWorkerConnection(
+          
+          if(resArray->isSlotUsed(i)){
+             ConnectionInfo* ci = algInstance->getWorkerConnection(
                                  array->getWorkerForSlot(i), dbname);
-          if(ci){
-             ci->setLogger(log);
+            if(ci){
+               ci->setLogger(log);
+            }
+            rtype* r = new rtype(ci,dbname, i, this);
+            ci->deleteIfAllowed();
+            w.push_back(r);
+            boost::thread* runner = new boost::thread(&rtype::run, r);
+            runners.push_back(runner);
           }
-          rtype* r = new rtype(ci,dbname, i, this);
-          ci->deleteIfAllowed();
-          w.push_back(r);
-          boost::thread* runner = new boost::thread(&rtype::run, r);
-          runners.push_back(runner);
        }
 
        // wait for finishing the threads and delete them
-       for( size_t i=0;i< array->getSize();i++){
+       for( size_t i=0;i< runners.size();i++){
           runners[i]->join();
           delete runners[i];
           delete w[i];
@@ -12069,10 +12370,12 @@ are only collected in the logger but not sent to a woker.
 
        if(log){ // reset logger in connection infos
          for( size_t i=0;i< array->getSize();i++){
+          if(array->isSlotUsed(i)){
             ConnectionInfo* ci = algInstance->getWorkerConnection(
                                    array->getWorkerForSlot(i), dbname);
             ci->setLogger(0);
             ci->deleteIfAllowed();
+          }
          }
        }
     }
@@ -12323,9 +12626,12 @@ Class for sending the commands to produce a dfarray.
           } else {
              if(mapper->darray){
                 name2 = mapper->darray->getObjectNameForSlot(nr);
-             }else {
-                assert(mapper->sdarray);
+             }else if(mapper->sdarray){
                 name2 = mapper->sdarray->getObjectNameForSlot(nr);
+             } else if(mapper->pdarray){
+                name2 = mapper->pdarray->getObjectNameForSlot(nr);
+             } else {
+                assert(false);
              }
           }
 
@@ -12402,9 +12708,6 @@ template<class A>
 int dmapVMT(Word* args, Word& result, int message,
             Word& local, Supplier s ){
 
-
-  cout << "DMapResult is " << nl->ToString(qp->GetType(s)) << endl;
-
   result = qp->ResultStorage(s);
   A* array = (A*) args[0].addr;
   CcString* name = (CcString*) args[1].addr;
@@ -12414,12 +12717,52 @@ int dmapVMT(Word* args, Word& result, int message,
   bool isRel = ((CcBool*) args[4].addr)->GetValue();
   bool isStream = ((CcBool*) args[5].addr)->GetValue();
   Mapper<A> mapper(array, qp->GetType(qp->GetSon(s,0)), name, funText, 
-                   isRel, isStream, result.addr, 0);
+                   isRel, isStream, result.addr, 0, nullptr);
   mapper.start();
   
   return 0;
 }
 
+
+
+template<class A>
+int pdmapVMT(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  A* array = (A*) args[1].addr;
+
+  shared_ptr<set<int> > used = make_shared<set<int> >();
+  int max = array->getSize();
+  Stream<CcInt> stream(args[0]);
+  stream.open();
+  CcInt* slot;
+  while( (slot=stream.request()) != nullptr){
+    if(slot->IsDefined()){
+      int sl = slot->GetValue();
+      if(sl>=0 && sl<max){
+         used->insert(sl);
+      }
+    }
+    slot->DeleteIfAllowed();
+  }
+  stream.close();
+
+  CcString* name = (CcString*) args[2].addr;
+  algInstance->progressObserver->mappingCallback(qp->GetId(s), array);
+   // ignore original fun at args[2];
+  FText* funText = (FText*) args[4].addr;
+  bool isRel = ((CcBool*) args[5].addr)->GetValue();
+  bool isStream = ((CcBool*) args[6].addr)->GetValue();
+  Mapper<A> mapper(array, qp->GetType(qp->GetSon(s,0)), name, funText, 
+                   isRel, isStream, result.addr, 0, used);
+  mapper.start();
+  
+  return 0;
+}
+
+
+ // operator collecting the commands sent during dmap (without execution)
 template<class A>
 void dmapcommandsVMT(Word* args, Supplier s, CommandLogger* log ){
   A* array = (A*) args[0].addr;
@@ -12429,7 +12772,7 @@ void dmapcommandsVMT(Word* args, Supplier s, CommandLogger* log ){
   bool isRel = ((CcBool*) args[4].addr)->GetValue();
   bool isStream = ((CcBool*) args[5].addr)->GetValue();
   Mapper<A> mapper(array, qp->GetType(qp->GetSon(s,0)), name, funText, 
-                   isRel, isStream, 0, log);
+                   isRel, isStream, 0, log, nullptr);
   mapper.start();
 }
 
@@ -12479,8 +12822,46 @@ Operator dmapOp(
   3,
   dmapVM,
   dmapSelect,
-  dmapTM
+  dmapTM<false>
 );
+
+
+ValueMapping pdmapVM[] = {
+   pdmapVMT<DArray>,
+   pdmapVMT<DFArray>,
+   pdmapVMT<SDArray>
+};
+
+int pdmapSelect(ListExpr args){
+  ListExpr arg2 = nl->Second(args);
+  if(DArray::checkType(arg2)) return 0;
+  if(DFArray::checkType(arg2)) return 1;
+  if(SDArray::checkType(arg2)) return 2;
+  return -1;
+}
+
+OperatorSpec pdmapSpec(
+  "stream<int>  x d[f]array x string x fun -> d[f]array",
+  "_ _ pdmap[_,_]",
+  "Performs a function on a distributed [file] array. "
+  "If the string argument is empty or undefined, a name for "
+  "the result is chosen automatically. If not, the string "
+  "specifies the name. The result is of type pdfarray if "
+  "the function produces a tuple stream ; "
+  "otherwise the result is a pdarray. The first argument specifies "
+  " the slots to be processed",
+  "query intstream(1,10) filter[ (. mod 2) = 0 ]dfa8 dmap[\"\", . head[23]] "
+);
+
+Operator pdmapOp(
+  "pdmap",
+  pdmapSpec.getStr(),
+  3,
+  pdmapVM,
+  pdmapSelect,
+  dmapTM<true>
+);
+
 
 /*
 19 TypeMapOperator DFARRAYSTREAM
@@ -17604,7 +17985,6 @@ int areduceVMT(Word* args, Word& result, int message,
 
    DFMatrix* matrix1 = (DFMatrix*) args[0].addr;
    if(!matrix1->IsDefined()){
-      //cout << "Matrix is undefined" << endl;
       res->makeUndefined();
       return 0;
    }
@@ -17621,13 +18001,11 @@ int areduceVMT(Word* args, Word& result, int message,
    if(qp->GetNoSons(s)==7){
       matrix2 = (DFMatrix*) args[1].addr;
       if(!matrix2->IsDefined()){
-         //cout << "matrix2 is undefined" << endl;
          res->makeUndefined();
          return 0;
       }
 
       if(!matrix1->equalWorkers(*matrix2)){
-         //cout << "different worker specification" << endl;
          res->makeUndefined();
          return 0;
       }
@@ -18820,7 +19198,6 @@ int getObjectFromFileVM_Stream(Word* args, Word& result, int message,
               string n = fN->GetValue();
               li = new ffeed5Info(n);
               if(!li->isOK()){
-                 cout << "could not create ffeed4Infro from " << n << endl;
                  delete li;
                  return 0;
               }
@@ -22533,6 +22910,10 @@ Distributed2Algebra::Distributed2Algebra(){
    FRelTC.AssociateKind(Kind::SIMPLE());
    AddTypeConstructor(&FSRelTC);
    FSRelTC.AssociateKind(Kind::SIMPLE());
+   AddTypeConstructor(&PDArrayTC);
+   PDArrayTC.AssociateKind(Kind::SIMPLE());
+   AddTypeConstructor(&PDFArrayTC);
+   PDFArrayTC.AssociateKind(Kind::SIMPLE());
    
    AddTypeConstructor(&FObjTC);
    FObjTC.AssociateKind(Kind::SIMPLE());
@@ -22589,6 +22970,7 @@ Distributed2Algebra::Distributed2Algebra(){
 
    AddOperator(&dsummarizeOp);
    AddOperator(&getValueOp);
+   AddOperator(&getValuePOp);
    AddOperator(&deleteRemoteObjectsOp);
    AddOperator(&killRemoteObjectsOp);
    AddOperator(&cloneOp);
@@ -22610,6 +22992,8 @@ Distributed2Algebra::Distributed2Algebra(){
    dmapOp.SetUsesArgsInTypeMapping();
    AddOperator(&DFARRAYSTREAMOP);
 
+   AddOperator(&pdmapOp);
+   pdmapOp.SetUsesArgsInTypeMapping();
 
    AddOperator(&dmap2Op);
    dmap2Op.SetUsesArgsInTypeMapping();

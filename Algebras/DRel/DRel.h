@@ -814,7 +814,7 @@ Secondo Open function.
         cout << nl->ToString( typeInfo ) << endl;
         #endif
 
-        if( !distributed2::DArrayBase::open<distributed2::DArrayT<T>>( 
+        if( !distributed2::DArrayBase::open<distributed2::DArrayT<T>, false>( 
                 valueRecord, offset, typeInfo, value ) ) {
             cout << "darray open fail" << endl;
             return false;
@@ -997,7 +997,7 @@ Secondo Save function.
         cout << nl->ToString( typeInfo ) << endl;
         #endif
 
-        if( !distributed2::DArrayBase::save( valueRecord, offset, 
+        if( !distributed2::DArrayBase::save<false>( valueRecord, offset, 
                                              typeInfo, value ) ) {
             return false;
         }

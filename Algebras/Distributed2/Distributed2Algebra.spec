@@ -43,6 +43,7 @@ operator dloop2 alias DLOOP2 pattern _ _ op[_,fun] implicit parameters elem1, el
 
 
 operator dmap alias DMAP pattern _ op[_,fun] implicit parameter dmapelem type ARRAYFUNARG1
+operator pdmap alias PDMAP pattern _ _ op[_,fun] implicit parameter dmapelem type ARRAYFUNARG2
 operator dmap2 alias DMAP2 pattern _ _ op[_,fun,_] implicit parameters elem1, elem2 types ARRAYFUNARG1, ARRAYFUNARG2
 
 
@@ -59,6 +60,7 @@ operator dmap8 alias DMAP8 pattern _ _ _ _ _ _ _ _ op[_,fun,_] implicit paramete
 operator dsummarize alias DSUMMARIZE pattern _ op
 
 operator getValue alias GETVALUE pattern _op 
+operator getValueP alias GETVALUEP pattern _ op [_]
 
 operator deleteRemoteObjects alias DELETEREMOTEOBJECTS pattern op(_,_)
 

@@ -215,11 +215,26 @@ std::string getName(const arrayType a){
   return "unknown";
 }
 
+std::string getPName(const arrayType a){
+  switch(a){
+    case DARRAY: return "pdarray";
+    case DFARRAY: return "pdfarray";
+    case SDARRAY: return "psdarray";
+    case DFMATRIX : return "unknown";//partially type of dmatrix does not exist
+  }
+  assert(false);
+  return "unknown";
+}
+
 ListExpr wrapType(const arrayType a, ListExpr subtype){
   return nl->TwoElemList( nl->SymbolAtom(getName(a)),
                           subtype);
 }
 
+ListExpr wrapPType(const arrayType a, ListExpr subtype){
+  return nl->TwoElemList( nl->SymbolAtom(getPName(a)),
+                          subtype);
+}
 
 
 /*
@@ -325,10 +340,6 @@ DArrayBase::DArrayBase(const std::vector<uint32_t>& _map,
 }
 
 
-size_t DArrayBase::getSize() const{
-  boost::lock_guard<boost::recursive_mutex> guard(mapmtx);
-  return map.size();
-}
 
 
 DArrayBase::DArrayBase(const std::vector<uint32_t>& _map, 
@@ -449,6 +460,7 @@ void DArrayBase::setResponsible(size_t slot, size_t _worker){
 
 
 ListExpr DArrayBase::toListExpr() const{
+
   if(!defined){
     return listutils::getUndefined();
   }
@@ -465,31 +477,67 @@ ListExpr DArrayBase::toListExpr() const{
       }
   }
   boost::lock_guard<boost::recursive_mutex> guard(mapmtx);
+  ListExpr usedSlots = nl->TheEmptyList();
+  ListExpr uslast = nl->TheEmptyList();
+  bool usfirst = true;
+  if(this->isPartially()){
+     for(size_t i=0;i<this->getSize(); i++){
+        if(this->isSlotUsed(i)){
+           if(usfirst){
+              usedSlots = nl->OneElemList( nl->IntAtom(i));
+              uslast = usedSlots;
+              usfirst = false;
+           } else {
+              uslast = nl->Append(uslast, nl->IntAtom(i));
+           }
+        }
+     }
+  }
+
   if(isStdMap()){ 
-     return nl->ThreeElemList(nl->SymbolAtom(name), 
+     if(!this->isPartially()){
+        return nl->ThreeElemList(nl->SymbolAtom(name), 
                               nl->IntAtom(getSize()), 
                               wl); 
+     } else {
+        return nl->FourElemList(nl->SymbolAtom(name), 
+                              nl->IntAtom(getSize()), 
+                              wl, usedSlots); 
+
+     }
   } else if(map.empty()) {
-     return nl->ThreeElemList(nl->SymbolAtom(name), 
+     if(!this->isPartially()){
+        return nl->ThreeElemList(nl->SymbolAtom(name), 
                               nl->TheEmptyList(), 
                               wl);
+     } else {
+        return nl->FourElemList(nl->SymbolAtom(name), 
+                              nl->TheEmptyList(), 
+                              wl, usedSlots);
+
+     }
   } else {
      ListExpr lmap = nl->OneElemList(nl->IntAtom(map[0]));
      ListExpr last = lmap;
      for(size_t i=1;i<map.size();i++){
         last = nl->Append(last, nl->IntAtom(map[i]));
      }
-     return nl->ThreeElemList(nl->SymbolAtom(name), lmap, wl);
+     if(!this->isPartially()){
+         return nl->ThreeElemList(nl->SymbolAtom(name), lmap, wl);
+     } else {
+         return nl->FourElemList(nl->SymbolAtom(name), lmap, wl, usedSlots);
+     }
   }
 }
 
 template<class R>
-R* DArrayBase::readFrom(ListExpr list){
+R* DArrayBase::readFrom(ListExpr list, bool isPartially){
    if(listutils::isSymbolUndefined(list)){
       std::vector<uint32_t> m;
       return new R(m,"");
    }
-   if(!nl->HasLength(list,3)){
+   int requiredLength = isPartially?4:3;
+   if(!nl->HasLength(list,requiredLength)){
       return 0;
    }
    ListExpr Name = nl->First(list);
@@ -538,17 +586,38 @@ R* DArrayBase::readFrom(ListExpr list){
           m.push_back(mv);
       }
    }
+   std::set<int> usedSlots;
+   if(isPartially){
+      ListExpr usedSlotsList = nl->Fourth(list);
+      if(nl->AtomType(usedSlotsList) != NoAtom){
+         return 0;
+      }
+      while(!nl->IsEmpty(usedSlotsList)){
+        ListExpr slot = nl->First(usedSlotsList);
+        usedSlotsList = nl->Rest(usedSlotsList);
+        if(nl->AtomType(slot) != IntType){
+           return 0;
+        }
+        int s = nl->IntValue(slot);
+        if(s<0 || (size_t) s >= m.size()){
+           return 0;
+        }
+        usedSlots.insert(s);
+      }
+   }
    R* result = new R(m,name);
+   result->setUsedSlots(usedSlots);
    swap(result->worker,v);
    result->defined = true;
    return result;
 }
 
 
-template<class R>
+template<class R, bool partially>
 bool DArrayBase::open(SmiRecord& valueRecord, size_t& offset, 
                  const ListExpr __attribute__((unused)) typeInfo,
                  Word& result){
+
    bool defined;
    result.addr = 0;
    if(!readVar<bool>(defined,valueRecord,offset)){
@@ -606,14 +675,34 @@ bool DArrayBase::open(SmiRecord& valueRecord, size_t& offset,
       wn++;
       res->worker.push_back(elem);
    }
-
+   if(partially){
+     size_t numUsedSlots;
+     if(!readVar<size_t>(numUsedSlots, valueRecord,offset)){
+        delete res;
+        return false;
+     }
+     std::set<int> used;
+     int us;
+     for(size_t i=0;i<numUsedSlots;i++){
+        if(!readVar<int>(us, valueRecord,offset)){
+          delete res;
+          return false;
+        }
+        if(us >=0 && us < res->getSize()){
+          used.insert(us);
+        }
+     }
+     res->setUsedSlots(used);
+   }
    result.addr = res;
    return true;
 }
 
+template<bool partially>
 bool DArrayBase::save(SmiRecord& valueRecord, size_t& offset,
                  const ListExpr __attribute__((unused)) typeInfo, 
                  Word& value) {
+
 
     DArrayBase* a = (DArrayBase*) value.addr;
     // defined flag
@@ -651,9 +740,36 @@ bool DArrayBase::save(SmiRecord& valueRecord, size_t& offset,
             return false;
          }
     }
+
+
+    if(partially){
+        std::set<int> used = a->getUsedSlots();
+        size_t s = used.size();
+        if(!writeVar(s,valueRecord,offset)){
+          return false;
+        }
+        int c = 0;
+        for(auto it = used.begin();it!=used.end();it++){
+           int slot = *it;
+           c++;
+           if(!writeVar(slot,valueRecord,offset)){
+             return false;
+           }
+        }
+    }
     return true; 
 }
 
+  // instatiations
+template
+bool DArrayBase::save<true>(SmiRecord&, size_t& ,
+                 const ListExpr __attribute__((unused)) , 
+                 Word& );
+
+template
+bool DArrayBase::save<false>(SmiRecord&, size_t& ,
+                 const ListExpr __attribute__((unused)) , 
+                 Word& );
 
 std::vector<uint32_t> DArrayBase::createStdMap(const uint32_t size, 
                                      const int numWorkers){
@@ -763,6 +879,40 @@ bool DArrayT<T>::checkType(const ListExpr list){
     return true;
 }
 
+template<arrayType T>
+bool PDArrayT<T>::checkType(const ListExpr list){
+    if(!nl->HasLength(list,2)){
+       return false;
+    }  
+    if(!listutils::isSymbol(nl->First(list), BasicType())){
+        return false;
+    }
+    // for other than DARRAY, only relations are allowed as a
+    // subtype
+    if(T!=DARRAY){
+      return Relation::checkType(nl->Second(list));
+    }
+    // check that second arghument is an valid tyoe
+    SecondoCatalog* ctl = SecondoSystem::GetCatalog();
+    std::string name;
+    int algid, type;
+    if(!ctl->LookUpTypeExpr(nl->Second(list), name, algid, type)){
+       return false;
+    }
+    AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+    ListExpr errorInfo = listutils::emptyErrorInfo();
+    if(!am->TypeCheck(algid,type,nl->Second(list),errorInfo)){
+       return false;
+    }
+    return true;
+}
+
+// instantiation
+template
+bool PDArrayT<DARRAY>::checkType(const ListExpr list);
+
+template
+bool PDArrayT<DFARRAY>::checkType(const ListExpr list);
 
 
 /*
@@ -807,6 +957,7 @@ void DFMatrix::setSize(size_t newSize){
 bool DFMatrix::open(SmiRecord& valueRecord, size_t& offset, 
                  const ListExpr __attribute__((unused)) typeInfo, 
                  Word& result){
+
    bool defined;
    result.addr = 0;
    if(!readVar<bool>(defined,valueRecord,offset)){
@@ -975,13 +1126,20 @@ DFMatrix* DFMatrix::readFrom(ListExpr list){
 
 // template instantiaons
 
-template bool DArrayBase::open<DArray>(SmiRecord&, size_t&, 
+template bool DArrayBase::open<DArray, false>(SmiRecord&, size_t&, 
                                        const ListExpr, Word&);
-template bool DArrayBase::open<DFArray>(SmiRecord&, size_t&, 
+template bool DArrayBase::open<DFArray, false>(SmiRecord&, size_t&, 
                                        const ListExpr, Word&);
 
-template DArray* DArrayBase::readFrom<DArray>(ListExpr);
-template DFArray* DArrayBase::readFrom<DFArray>(ListExpr);
+template bool DArrayBase::open<PDArray, true>(SmiRecord&, size_t&, 
+                                       const ListExpr, Word&);
+template bool DArrayBase::open<PDFArray,true>(SmiRecord&, size_t&, 
+                                       const ListExpr, Word&);
+
+template DArray* DArrayBase::readFrom<DArray>(ListExpr, bool);
+template DFArray* DArrayBase::readFrom<DFArray>(ListExpr, bool);
+template PDArray* DArrayBase::readFrom<PDArray>(ListExpr, bool);
+template PDFArray* DArrayBase::readFrom<PDFArray>(ListExpr, bool);
 
 template class DArrayT<DARRAY>;
 template class DArrayT<DFARRAY>;

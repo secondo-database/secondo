@@ -222,6 +222,12 @@ Example   : query da8 dmap["", . feed head[25] ]
 Result    : bug
 Remark    : in development
 
+Operator  : pdmap
+Number    : 1
+Signature : stream(int) x dfarray x string x fun -> d[f]array
+Example   : query intstream(0,10) filter [ (. mod 2 ) = 0] da8 dmap["", . feed head[25] ]
+Result    : bug
+Remark    : in development
 
 Operator  : dloop2 
 Number    : 1
@@ -276,6 +282,14 @@ Operator : getValue
 Number   : 1
 Signature : d[f]array(X) -> array(X)
 Example   : query da2 getValue
+Result    : bug
+Remark    : remote server required
+
+
+Operator : getValueP
+Number   : 1
+Signature : pd[f]array(X) x X -> array(X)
+Example   : query pda2 getValueP [-1]
 Result    : bug
 Remark    : remote server required
 
