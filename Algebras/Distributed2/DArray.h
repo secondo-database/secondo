@@ -683,7 +683,7 @@ public:
      if(!this->IsDefined()) {
        return false;
      }
-     if(i<0 || i>=this->getSize()) {
+     if(i<0 || (size_t)i>=this->getSize()) {
         return false;
      }
      return usedSlots.find(i) != usedSlots.end();

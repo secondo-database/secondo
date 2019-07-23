@@ -688,7 +688,7 @@ bool DArrayBase::open(SmiRecord& valueRecord, size_t& offset,
           delete res;
           return false;
         }
-        if(us >=0 && us < res->getSize()){
+        if(us >=0 && (size_t)us < res->getSize()){
           used.insert(us);
         }
      }
