@@ -52,21 +52,24 @@ namespace kafka {
     public:
         // constructor: initializes the class from the string argument
         KafkaSourceLI(CcString *arg) : input("") {
-            if (arg->IsDefined()) {
+            def = arg->IsDefined();
+            if (def) {
                 input = arg->GetValue();
+                kafkaReaderClient.Open("localhost", input);
             }
-
-            kafkaReaderClient.Open("localhost", "test");
         }
 
         // destructor
         ~KafkaSourceLI() {
-            kafkaReaderClient.Close();
+            if (def) {
+                kafkaReaderClient.Close();
+            }
         }
 
         // this function returns the next result or null if the input is
         // exhausted
         Tuple *getNext(Supplier s) {
+            if (!def) { return NULL; }
             std::string *source = kafkaReaderClient.ReadSting();
             if (source == NULL) {
                 return NULL;
@@ -82,6 +85,7 @@ namespace kafka {
     private:
         string input;  // input string
         KafkaReaderClient kafkaReaderClient;
+        bool def;
     };
 
     int KafkaSourceVM(Word *args, Word &result, int message,

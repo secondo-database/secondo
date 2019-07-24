@@ -44,9 +44,9 @@
      query Staedte;
 
 
-     query plz feed kafka["KT"] count;
+     query plz feed kafka["test"] count;
 
-     query kafkastream("KT") count;
+     query kafkastream("test") count;
 
  - Running kafka service
 

@@ -50,13 +50,19 @@ namespace kafka {
     public :
 // s is the stream argument , st the string argument
         KafkaKonsumerLI(Word s, CcString *st) : stream(s), topic(" ") {
+            def = st->IsDefined();
+            if (def) {
+                topic = st->GetValue();
+                kafkaProducerClient.Open("localhost", topic);
+            }
             stream.open();
-            kafkaProducerClient.Open("localhost", "test");
         }
 
         ~ KafkaKonsumerLI() {
             stream.close();
-            kafkaProducerClient.Close();
+            if (def) {
+                kafkaProducerClient.Close();
+            }
         }
 
         Tuple *getNext() {
@@ -69,13 +75,16 @@ namespace kafka {
         }
 
         void writeToKafka(Tuple *k) {
-            kafkaProducerClient.Write(k->WriteToBinStr());
+            if (def) {
+                kafkaProducerClient.Write(k->WriteToBinStr());
+            }
         }
 
     private :
         Stream<Tuple> stream;
         string topic;
         KafkaProducerClient kafkaProducerClient;
+        bool def;
     };
 
 
