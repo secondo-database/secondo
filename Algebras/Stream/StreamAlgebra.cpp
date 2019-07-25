@@ -6972,10 +6972,13 @@ class pbufferInfo{
    public: 
       pbufferInfo(Word _stream, int _maxElems):
          stream(_stream), sem_read(0), sem_write(_maxElems){
+         stream.open();
          collect();
+         ok = 0;
       }
 
       ~pbufferInfo(){
+         cancel();
          running = false;
          runner->join();
          delete runner;
@@ -6984,6 +6987,9 @@ class pbufferInfo{
            ST* f = buffer.front();
            buffer.pop();
            if(f){
+              if(!check(f)){
+                cout << "delete invalid element" << endl;
+              }
               f->DeleteIfAllowed();
            }
          }
@@ -6997,7 +7003,20 @@ class pbufferInfo{
          buffer.pop();
          mtx.unlock();
          sem_write.up();
+         if(result && !check(result)){
+            cout << "return some element with invalid references" << endl;
+            cout << "there are " << ok << " valid returns before" << endl;
+         } else {
+            ok++;
+         }
          return result; 
+      }
+
+      void cancel() {
+         mtx.lock();
+         running = false;
+         sem_write.up();
+         mtx.unlock();
       }
 
 
@@ -7009,18 +7028,47 @@ class pbufferInfo{
        queue<ST*> buffer;
        bool running;
        boost::thread* runner;
+       int ok;
+       
  
        void collect(){
          running = true;
          runner = new boost::thread(&pbufferInfo::run,this);
        }
 
+       // debugging staff
+       bool check(Attribute* elem){
+          return elem->NoRefs() > 0; 
+       }
+
+       bool check(Tuple* t){
+         if(t->GetNumOfRefs() <=0){
+           cout << "Tuple already deleted" << endl;
+           return false;
+         }
+         for(int i=0;i<t->GetNoAttributes() ; i++){
+            Attribute* a = t->GetAttribute(i);
+            if(!a){
+               cout << "found null at " << i << endl;
+               return false;
+            }
+            if(a->NoRefs() <= 0){
+               cout << "found deleted attribute at " << i << endl;
+               return false;
+            }       
+         }
+         return true;
+       }
+
        // creator thread
        void run(){
-          stream.open();
           while(running){
-            ST* elem = stream.request();
             sem_write.down();
+            ST* elem = stream.request();
+
+            if(elem && !check(elem)){
+              cout << "received element with invalid references" << endl;
+            }
             mtx.lock();
             buffer.push(elem);
             if(!elem) running = false;
@@ -7046,6 +7094,8 @@ class pbufferInfo{
       ST* next(){
          return stream.request();
       }
+   
+      void cancel() {}
 
 
    private:
