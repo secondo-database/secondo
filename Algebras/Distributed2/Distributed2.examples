@@ -225,7 +225,7 @@ Remark    : in development
 Operator  : pdmap
 Number    : 1
 Signature : stream(int) x dfarray x string x fun -> d[f]array
-Example   : query intstream(0,10) filter [ (. mod 2 ) = 0] da8 dmap["", . feed head[25] ]
+Example   : query intstream(0,10) filter [ (. mod 2 ) = 0] da8 pdmap["", . feed head[25] ]
 Result    : bug
 Remark    : in development
 
