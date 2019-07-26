@@ -637,6 +637,57 @@ Result    : bug
 Remark    : under construction
 
 
+Operator  : pdmap2
+Number    : 1
+Signature : d[f]array^X x string x fun( K_i .. k_X -> r) -> df[f]array(r)
+Example   : query intstream(0,10) filter[ (. mod 3 ) = 0] dfa1 dfa2  pdmap2["da3", . feed  .. feed  product, 1238 ]
+Result    : bug
+Remark    : under construction
+
+
+Operator  : pdmap3
+Number    : 1
+Signature : d[f]array^3 x string x fun( K_i .. k_3 -> r) -> df[f]array(r)
+Example   : query intstream(0,10) filter[ (. mod 3 ) = 0] dfa1 dfa2  dfa3 pdmap3["dfa59", . feed  .. feed  product $3 concat , 1238 ]
+Result    : bug
+Remark    : under construction
+
+
+Operator  : pdmap4
+Number    : 1
+Signature : d[f]array^4 x string x fun( K_i .. k_4 -> r) -> df[f]array(r)
+Example   : query intstream(0,10) filter[ (. mod 3 ) = 0] dfa1 dfa2  dfa3 dfa4 pdmap4["dfa59", . feed  .. feed  product $3 feed concat $4 feed concat , 1238 ]
+Result    : bug
+Remark    : under construction
+
+Operator  : pdmap5
+Number    : 1
+Signature : d[f]array^5 x string x fun( K_i .. k_5 -> r) -> d[f]array(r)
+Example   : query intstream(0,10) filter[ (. mod 3 ) = 0] dfa1 dfa2  dfa3 dfa4 idfa5 pdmap5["dfa59", $1 + $2 + $3 + $4 +$5 , 1238 ]
+Result    : bug
+Remark    : under construction
+
+Operator  : pdmap6
+Number    : 1
+Signature : d[f]array^6 x string x fun( K_i .. k_6 -> r) -> d[f]array(r)
+Example   : query intstream(0,10) filter[ (. mod 3 ) = 0] dfa1 dfa2  dfa3 dfa4 dfa5 dfa6 pdmap6["dfa59", $1 + $2 + $3 + $4 + $5 + $6 , 1238 ]
+Result    : bug
+Remark    : under construction
+
+
+Operator  : pdmap7
+Number    : 1
+Signature : d[f]array^7 x string x fun( K_i .. k_7 -> r) -> d[f]array(r)
+Example   : query intstream(0,10) filter[ (. mod 3 ) = 0] dfa1 dfa2  dfa3 dfa4 dfa5 dfa6 dfa7 pdmap7["dfa59", $1 + $2 + $3 + $4 + $5 + $6 + $7, 1238 ]
+Result    : bug
+Remark    : under construction
+
+Operator  : pdmap8
+Number    : 1
+Signature : d[f]array^8 x string x fun( K_i .. k_8 -> r) -> d[f]array(r)
+Example   : query intstream(0,10) filter[ (. mod 3 ) = 0] dfa1 dfa2  dfa3 dfa4 dfa5 dfa6 dfa7 dfs8 pdmap8["dfa59", $1 + $2 + $3 + $4 + $5 + $6 + $7 - $8, 1238 ]
+Result    : bug
+Remark    : under construction
 
 Operator  : dproduct
 Number    : 1

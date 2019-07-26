@@ -13171,6 +13171,49 @@ ListExpr dmapXTMT(ListExpr args){
 }
 
 
+template<int x>
+ListExpr pdmapXTMT(ListExpr args) {
+   if(!nl->HasMinLength(args,2)){
+      return listutils::typeError("too few arguments");
+   }
+   ListExpr stream = nl->First(args);
+   if(!nl->HasLength(stream,2)){
+      return listutils::typeError("internal error");
+   }
+   stream = nl->First(stream); // extract type
+   if(!Stream<CcInt>::checkType(stream)){
+     return listutils::typeError("first argument is not an int stream");
+   }
+   args = nl->Rest(args);
+   ListExpr res = dmapXTMT<x>(args);
+   if(!nl->HasLength(res,3)){ // error in other arguments
+     return listutils::typeError();
+   }
+   // change restype by partial type
+   ListExpr resType = nl->Third(res);
+   if(!nl->HasLength(resType,2)){
+     return listutils::typeError("invalid resulttype from dmapX");
+   }
+   ListExpr mainType = nl->First(resType);
+   if(nl->AtomType(mainType) != SymbolType){
+     return listutils::typeError("invalid resulttype from dmapX");
+   }
+   string m = nl->SymbolValue(mainType);
+   if(m==DArray::BasicType()){
+     mainType = listutils::basicSymbol<PDArray>();
+   } else if( m==DFArray::BasicType()){
+     mainType = listutils::basicSymbol<PDFArray>();
+   } else {
+     return listutils::typeError("unsupported result type from dmapX");
+   }
+   resType = nl->TwoElemList( mainType, nl->Second(resType));
+   return nl->ThreeElemList( nl->First(res),
+                             nl->Second(res),
+                             resType);
+}
+
+
+
 /*
 7 ~transferRequired~
 
@@ -13423,11 +13466,15 @@ class dmapXInfo{
                vector<ListExpr> _argTypes,
                const string& _name, 
                const string& _funText, 
-               const bool _isStreamRes, const int _port, DArrayBase* _res): 
+               const bool _isStreamRes, 
+               const int _port, 
+               DArrayBase* _res,
+               set<int>* _parts): 
                arguments(_arguments),
                isRelation(_isRelation), argTypes(_argTypes),
                name(_name), funText(_funText), 
-               isStreamRes(_isStreamRes), port(_port), res(_res) {}
+               isStreamRes(_isStreamRes), port(_port), res(_res),
+               parts(_parts) {}
 
 
 /*
@@ -13481,6 +13528,10 @@ determines the distribution of the result array.
              map.push_back(arguments[0]->getWorkerIndexForSlot(i));
           }
           res->set(map, name, arguments[0]->getWorkers());
+
+          if(parts){
+            res->setUsedSlots(*parts);
+          }
           
           dbname = SecondoSystem::GetInstance()->GetDatabaseName();
 
@@ -13509,6 +13560,7 @@ determines the distribution of the result array.
      bool isStreamRes;       // result of the function is a stream ?
      int port;               // port for file transfer
      DArrayBase* res;        // the result array
+     set<int>* parts;
      size_t minSlots;        // number of slots within the result
      string dbname;          // name of the currently opened database
 
@@ -13549,11 +13601,13 @@ filetransfer is required into the result vector.
      void getFileTransferators(size_t arg, vector<DArrayElement>& result){
          DArrayBase* array = arguments[arg];
          for(size_t i=0;i<minSlots;i++){
+           if(res->isSlotUsed(i)){
              DArrayElement a0 = arguments[0]->getWorkerForSlot(i);
              DArrayElement ai = arguments[arg]->getWorkerForSlot(i);
              if(transferRequired(a0,ai,array->getType(),dbname)){
-                 result.push_back(ai);
+                result.push_back(ai);
              }  
+           }
          }
      }
 
@@ -13603,10 +13657,12 @@ the result for their slot.
 
 
         for(size_t i=0; i<minSlots; i++){
-            dmapXRunner* runner = new dmapXRunner(i, this);
-            runners.push_back(runner); 
+            if(res->isSlotUsed(i)){
+              dmapXRunner* runner = new dmapXRunner(i, this);
+              runners.push_back(runner); 
+            }
         }
-        for(size_t i=0; i<minSlots; i++){
+        for(size_t i=0; i<runners.size(); i++){
            delete runners[i]; 
         }
         return true; 
@@ -13887,7 +13943,7 @@ from other than the result worker.
 };
 
 
-
+template<bool partial>
 int dmapXVM(Word* args, Word& result, int message,
             Word& local, Supplier s ){
 
@@ -13901,22 +13957,25 @@ int dmapXVM(Word* args, Word& result, int message,
     //     in this case
     // the function as a text in nested list format
 
-    int x = qp->GetNoSons(s) - 5; // index until the name
 
+    int addArg = 0;
+    if(partial){
+      addArg = 1;
+    }
 
+    int x = qp->GetNoSons(s) - (5+addArg); // index until the name
     
     vector<DArrayBase*> arrays;
     vector<bool> isRelation; 
-    DArrayBase* a0 = (DArrayBase*) args[0].addr;
+    DArrayBase* a0 = (DArrayBase*) args[0+addArg].addr;
     for(int i=0;i<x;i++){
-      DArrayBase* di = (DArrayBase*) args[i].addr;
+      DArrayBase* di = (DArrayBase*) args[i+addArg].addr;
       arrays.push_back(di);
       isRelation.push_back(Relation::checkType(nl->Second(
-                                        qp->GetType(qp->GetSon(s,i)))));
+                                        qp->GetType(qp->GetSon(s,i+addArg)))));
       // if one darray is found with a worker mapping
       // unequal to the first arg, then break processing
-      if(i>0 && (di->getType()==DARRAY)){
-         cout << "darray found" << endl;
+      if(i>(0) && (di->getType()==DARRAY)){
          if(!a0->equalMapping(*di, false)){
             cout << "mapping unequal to a0" << endl;
             ((DArrayBase*) result.addr)->makeUndefined();
@@ -13927,11 +13986,11 @@ int dmapXVM(Word* args, Word& result, int message,
 
 
 
-    CcString* objName = (CcString*) args[x].addr;
+    CcString* objName = (CcString*) args[x+addArg].addr;
     // args[3] is the original fun and is not used here
-    CcInt* Port = (CcInt*) args[x+2].addr;
-    bool streamRes =  ((CcBool*)args[x+3].addr)->GetValue();
-    string funtext = ((FText*) args[x+4].addr)->GetValue();
+    CcInt* Port = (CcInt*) args[x+2+addArg].addr;
+    bool streamRes =  ((CcBool*)args[x+3+addArg].addr)->GetValue();
+    string funtext = ((FText*) args[x+4+addArg].addr)->GetValue();
     string name;
     int port = 0;
     if(Port->IsDefined()){
@@ -13953,13 +14012,36 @@ int dmapXVM(Word* args, Word& result, int message,
     }
     vector<ListExpr> argTypes;    
     for(int i=0;i<x;i++){
-        argTypes.push_back(qp->GetType(qp->GetSon(s,i)));
+        argTypes.push_back(qp->GetType(qp->GetSon(s,i+addArg)));
     }
 
     algInstance->progressObserver->mappingCallback(qp->GetId(s), arrays[0]);
+
+    set<int>* parts = nullptr;
+    if(partial){
+       parts = new set<int>;
+       int size = a0->getSize();
+       Stream<CcInt> pstream(args[0]);
+       pstream.open();
+       CcInt* slot;
+       while( (slot = pstream.request()) != nullptr){
+         if(slot->IsDefined()){
+           int s = slot->GetValue();
+           if(s>=0 && s< size){
+             parts->insert(s);
+           }
+         }
+         slot->DeleteIfAllowed();
+       }
+       pstream.close();
+    }
+
     dmapXInfo info(arrays, isRelation, argTypes,  name, funtext, streamRes, 
-                   port, (DArrayBase*) result.addr);
+                   port, (DArrayBase*) result.addr, parts);
     info.start();
+    if(parts){
+     delete parts;
+    }
 
     return 0;
 }
@@ -13983,7 +14065,7 @@ OperatorSpec dmapXSpec(
 Operator dmap2Op(
   "dmap2",
   dmapXSpec.getStr(),
-  dmapXVM,
+  dmapXVM<false>,
   Operator::SimpleSelect,
   dmapXTMT<2>
 );
@@ -13992,7 +14074,7 @@ Operator dmap2Op(
 Operator dmap3Op(
   "dmap3",
   dmapXSpec.getStr(),
-  dmapXVM,
+  dmapXVM<false>,
   Operator::SimpleSelect,
   dmapXTMT<3>
 );
@@ -14001,7 +14083,7 @@ Operator dmap3Op(
 Operator dmap4Op(
   "dmap4",
   dmapXSpec.getStr(),
-  dmapXVM,
+  dmapXVM<false>,
   Operator::SimpleSelect,
   dmapXTMT<4>
 );
@@ -14010,7 +14092,7 @@ Operator dmap4Op(
 Operator dmap5Op(
   "dmap5",
   dmapXSpec.getStr(),
-  dmapXVM,
+  dmapXVM<false>,
   Operator::SimpleSelect,
   dmapXTMT<5>
 );
@@ -14018,7 +14100,7 @@ Operator dmap5Op(
 Operator dmap6Op(
   "dmap6",
   dmapXSpec.getStr(),
-  dmapXVM,
+  dmapXVM<false>,
   Operator::SimpleSelect,
   dmapXTMT<6>
 );
@@ -14026,7 +14108,7 @@ Operator dmap6Op(
 Operator dmap7Op(
   "dmap7",
   dmapXSpec.getStr(),
-  dmapXVM,
+  dmapXVM<false>,
   Operator::SimpleSelect,
   dmapXTMT<7>
 );
@@ -14034,12 +14116,82 @@ Operator dmap7Op(
 Operator dmap8Op(
   "dmap8",
   dmapXSpec.getStr(),
-  dmapXVM,
+  dmapXVM<false>,
   Operator::SimpleSelect,
   dmapXTMT<8>
 );
 
 
+/*
+5 Operator dmapX
+
+*/
+OperatorSpec pdmapXSpec(
+  "stream(int) x d[f]array^x x string x fun x int -> pd[f]array",
+  "_ _ ... dmapX[_,_,_]",
+  "Joins the specified slots of x  distributed arrays",
+  "query intstream(0,10) filter[ (. mod 2) = 0] da 1 da2 "
+   "pdmap2(\"df3\" . .. product, 1238]"
+);
+
+Operator pdmap2Op(
+  "pdmap2",
+  pdmapXSpec.getStr(),
+  dmapXVM<true>,
+  Operator::SimpleSelect,
+  pdmapXTMT<2>
+);
+
+
+Operator pdmap3Op(
+  "pdmap3",
+  pdmapXSpec.getStr(),
+  dmapXVM<true>,
+  Operator::SimpleSelect,
+  pdmapXTMT<3>
+);
+
+
+Operator pdmap4Op(
+  "pdmap4",
+  pdmapXSpec.getStr(),
+  dmapXVM<true>,
+  Operator::SimpleSelect,
+  pdmapXTMT<4>
+);
+
+
+Operator pdmap5Op(
+  "pdmap5",
+  pdmapXSpec.getStr(),
+  dmapXVM<true>,
+  Operator::SimpleSelect,
+  pdmapXTMT<5>
+);
+
+Operator pdmap6Op(
+  "pdmap6",
+  pdmapXSpec.getStr(),
+  dmapXVM<true>,
+  Operator::SimpleSelect,
+  pdmapXTMT<6>
+);
+
+Operator pdmap7Op(
+  "pdmap7",
+  pdmapXSpec.getStr(),
+  dmapXVM<true>,
+  Operator::SimpleSelect,
+  pdmapXTMT<7>
+);
+
+Operator pdmap8Op(
+  "pdmap8",
+  pdmapXSpec.getStr(),
+  dmapXVM<true>,
+  Operator::SimpleSelect,
+  pdmapXTMT<8>
+);
 
 /*
 3.21 Type Map Operators ~DPRODUCTARG1~ and ~DPRODUCTARG2~
@@ -15310,6 +15462,21 @@ Operator ARRAYFUNARG8OP(
    0,
    Operator::SimpleSelect,
    ARRAYFUNARG<8, false>
+);
+
+OperatorSpec ARRAYFUNARG9SPEC(
+  "darray(X) x ... -> X, dfarray(rel(X)) x ... -> frel(X)",
+  "ARRAYFUNARG9(_)",
+  "Type mapping operator.",
+  "query is df1 df2 df3 df4 df5 df6 df7 df8 pdmap8 [\"df3\" . count]"
+);
+
+Operator ARRAYFUNARG9OP(
+  "ARRAYFUNARG9",
+   ARRAYFUNARG9SPEC.getStr(),
+   0,
+   Operator::SimpleSelect,
+   ARRAYFUNARG<9, false>
 );
 
 OperatorSpec AREDUCEARG1SPEC(
@@ -22997,7 +23164,6 @@ Distributed2Algebra::Distributed2Algebra(){
 
    AddOperator(&dmap2Op);
    dmap2Op.SetUsesArgsInTypeMapping();
-
    AddOperator(&dmap3Op);
    dmap3Op.SetUsesArgsInTypeMapping();
    AddOperator(&dmap4Op);
@@ -23011,6 +23177,22 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&dmap8Op);
    dmap8Op.SetUsesArgsInTypeMapping();
 
+   AddOperator(&pdmap2Op);
+   pdmap2Op.SetUsesArgsInTypeMapping();
+   AddOperator(&pdmap3Op);
+   pdmap3Op.SetUsesArgsInTypeMapping();
+   AddOperator(&pdmap4Op);
+   pdmap4Op.SetUsesArgsInTypeMapping();
+   AddOperator(&pdmap5Op);
+   pdmap5Op.SetUsesArgsInTypeMapping();
+   AddOperator(&pdmap6Op);
+   pdmap6Op.SetUsesArgsInTypeMapping();
+   AddOperator(&pdmap7Op);
+   pdmap7Op.SetUsesArgsInTypeMapping();
+   AddOperator(&pdmap8Op);
+   pdmap8Op.SetUsesArgsInTypeMapping();
+
+
    AddOperator(&ARRAYFUNARG1OP);
    AddOperator(&ARRAYFUNARG2OP);
    AddOperator(&ARRAYFUNARG3OP);
@@ -23019,6 +23201,7 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&ARRAYFUNARG6OP);
    AddOperator(&ARRAYFUNARG7OP);
    AddOperator(&ARRAYFUNARG8OP);
+   AddOperator(&ARRAYFUNARG9OP);
 
    AddOperator(&AREDUCEARG1OP);
    AddOperator(&AREDUCEARG2OP);
