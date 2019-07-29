@@ -5,7 +5,8 @@
 
 create database taxis;
 open database taxis;
-restore Workers from Workers;
+restore Workers from WorkersNewton;
+let NSlots = 160
 
 /*
 2 Data Import 
@@ -25,7 +26,7 @@ let RawDataById =
       str2real(
         substr(.Point, findFirst(.Point, "(") + 1,  findFirst(.Point, " ") - 1))  
   )]
-  ddistribute4["RawDataById", hashvalue(.Id, 999997) , 40, Workers]
+  ddistribute4["RawDataById", hashvalue(.Id, 999997) , NSlots, Workers]
   
 /*
 3 Creating Moving Objects
