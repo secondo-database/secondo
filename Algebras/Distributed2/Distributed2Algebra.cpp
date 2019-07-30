@@ -12457,9 +12457,11 @@ Class for sending the commands to produce a dfarray.
            if(!ci){ // no connection, no work
              return;
            }
+#ifdef DPROGRESS      
          ci->getInterface()->addMessageHandler(algInstance->progressObserver->
          getProgressListener(mapper->array->getObjectNameForSlot(nr),
          mapper->array->getWorkerForSlot(nr)));
+#endif
 
            int maxtries = mapper->array->numOfWorkers() * 2; 
            string fun = mapper->funText->GetValue();
@@ -12563,6 +12565,7 @@ Class for sending the commands to produce a dfarray.
                 return;
              }
            } else { // successful finished command
+#ifdef DPROGRESS
               ci->getInterface()
               ->removeMessageHandler(algInstance->progressObserver->
                getProgressListener(mapper->array->getObjectNameForSlot(nr), 
@@ -12570,6 +12573,7 @@ Class for sending the commands to produce a dfarray.
                algInstance->progressObserver->
          commitWorkingOnSlotFinished(mapper->array->getObjectNameForSlot(nr), 
          mapper->array->getWorkerForSlot(nr));
+#endif
 
                  return;   
            }
@@ -12604,10 +12608,11 @@ Class for sending the commands to produce a dfarray.
 
 
         void run(){
-           
+#ifdef DPROGRESS           
           ci->getInterface()->addMessageHandler(algInstance->progressObserver->
             getProgressListener(mapper->array->getObjectNameForSlot(nr),
              mapper->array->getWorkerForSlot(nr)));
+#endif
           int maxtries = 8; // TODO: make configurable this constant
           int numtries = maxtries;
           set<size_t> usedWorkers;
@@ -12680,6 +12685,7 @@ Class for sending the commands to produce a dfarray.
                    return;
                  }
               } else { // successful finished command
+#ifdef DPROGRESS
       ci->getInterface()->removeMessageHandler(algInstance->progressObserver->
          getProgressListener(mapper->array->getObjectNameForSlot(nr), 
                   mapper->array->getWorkerForSlot(nr)));
@@ -12687,6 +12693,7 @@ Class for sending the commands to produce a dfarray.
             commitWorkingOnSlotFinished
             (mapper->array->getObjectNameForSlot(nr), 
             mapper->array->getWorkerForSlot(nr));
+#endif
 
                  return;   
               }
@@ -12711,7 +12718,9 @@ int dmapVMT(Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   A* array = (A*) args[0].addr;
   CcString* name = (CcString*) args[1].addr;
+#ifdef DPROGRESS
   algInstance->progressObserver->mappingCallback(qp->GetId(s), array);
+#endif
    // ignore original fun at args[2];
   FText* funText = (FText*) args[3].addr;
   bool isRel = ((CcBool*) args[4].addr)->GetValue();
@@ -12749,7 +12758,9 @@ int pdmapVMT(Word* args, Word& result, int message,
   stream.close();
 
   CcString* name = (CcString*) args[2].addr;
+#ifdef DPROGRESS
   algInstance->progressObserver->mappingCallback(qp->GetId(s), array);
+#endif
    // ignore original fun at args[2];
   FText* funText = (FText*) args[4].addr;
   bool isRel = ((CcBool*) args[5].addr)->GetValue();
@@ -13803,11 +13814,13 @@ the sources and the correspnding function arguments are created.
                                    info->arguments[0]->getWorkerForSlot(slot),
                                    info->dbname);
 
+#ifdef DPROGRESS
             c0->getInterface()
             ->addMessageHandler(algInstance->progressObserver->
             getProgressListener
             (info->arguments[0]->getObjectNameForSlot(slot),
             info->arguments[0]->getWorkerForSlot(slot)));
+#endif
            // create the command for result computation
            string cmd = createCommand(c0);
            // process the command
@@ -13833,7 +13846,7 @@ the sources and the correspnding function arguments are created.
               writeLog(c0,cmd,errMsg);
               showError(c0,cmd,err,errMsg);
            }
-
+#ifdef DPROGRESS
          c0->getInterface()
          ->removeMessageHandler(algInstance->progressObserver->
             getProgressListener
@@ -13843,6 +13856,7 @@ the sources and the correspnding function arguments are created.
                      commitWorkingOnSlotFinished
                      (info->arguments[0]->getObjectNameForSlot(slot),
                      info->arguments[0]->getWorkerForSlot(slot));
+#endif
 
            // remove temporarly created objects.
            for(size_t i=0;i <info->arguments.size(); i++){
@@ -14014,8 +14028,9 @@ int dmapXVM(Word* args, Word& result, int message,
     for(int i=0;i<x;i++){
         argTypes.push_back(qp->GetType(qp->GetSon(s,i+addArg)));
     }
-
+#ifdef DPROGRESS
     algInstance->progressObserver->mappingCallback(qp->GetId(s), arrays[0]);
+#endif
 
     set<int>* parts = nullptr;
     if(partial){
@@ -17027,9 +17042,10 @@ class partitionInfo{
         if(!ci){
            return;
         }
-      
+#ifdef DPROGRESS      
          ci->getInterface()->addMessageHandler(algInstance->progressObserver->
                         getProgressListener(array->getWorker(workerNumber)));
+#endif
 
         // construct target directory for the matrix on ci
         string targetDir = ci->getSecondoHome(
@@ -17079,11 +17095,13 @@ class partitionInfo{
            showError(ci,cmd,err,errMsg);
            writeLog(ci,cmd,errMsg);
         } else {
+#ifdef DPROGRESS
             ci->getInterface()
             ->removeMessageHandler(algInstance->progressObserver->
                         getProgressListener(array->getWorker(workerNumber)));
              algInstance->progressObserver->
                commitWorkingOnElementFinished(array->getWorker(workerNumber));
+#endif
 
         }
 
@@ -17262,7 +17280,9 @@ int partitionVMT(Word* args, Word& result, int message,
                     Word& local, Supplier s ){
 
    A* array = (A*) args[0].addr;
+#ifdef DPROGRESS
    algInstance->progressObserver->mappingCallback(qp->GetId(s), array);
+#endif
    CcString* name;
    CcInt* newSize;
    string funText="";
@@ -18512,13 +18532,14 @@ class slotGetter{
      void run(){
        // firstly, create a temp directory for all of my slots
        ConnectionInfo* ci = workers[myNumber];
+#ifdef DPROGRESS
         ci->getInterface()->addMessageHandler(algInstance->progressObserver->
                         getProgressListener(
                            workers[myNumber]->getHost(),
                            workers[myNumber]->getPort(),
                            workers[myNumber]->getNum(),
                            "part_1")); 
-
+#endif
        // temoporal directory for partitined slots
        string dir = "tmp/"+tname+"/"+stringutils::int2str(myNumber)+"/";
        // final directory for dfarray
@@ -18552,7 +18573,8 @@ class slotGetter{
        for(size_t w=0;w<workers.size();w++){
           getFilesFromWorker(w, dir, ci);
        } 
-      
+
+#ifdef DPROGRESS      
       algInstance->progressObserver->
                   commitWorkingOnElementFinished(
                      workers[myNumber]->getHost(),
@@ -18566,6 +18588,7 @@ class slotGetter{
                            workers[myNumber]->getPort(),
                            workers[myNumber]->getNum(),
                            "part_2")); 
+#endif
        int slot = myNumber;
        while(slot < size){
           createSlot(slot, dir,tdir, ci);
@@ -18576,7 +18599,7 @@ class slotGetter{
        ci->simpleCommand(cmd, err, errMsg, res, false, runtime,
                          showCommands, commandLog, false,
                          algInstance->getTimeout());
-
+#ifdef DPROGRESS
       ci->getInterface()->removeMessageHandler(algInstance->progressObserver->
                         getProgressListener(
                            workers[myNumber]->getHost(),
@@ -18589,6 +18612,7 @@ class slotGetter{
                            workers[myNumber]->getPort(),
                            workers[myNumber]->getNum(),
                            "part_2");
+#endif
 
        if(err){
           cerr << "Error in command " << cmd << endl;
@@ -18714,8 +18738,9 @@ int collect2VM(Word* args, Word& result, int message,
 
    vector<slotGetter*> getters;
    string sname = matrix->getName();
-
+#ifdef DPROGRESS
    algInstance->progressObserver->mappingCallback(qp->GetId(s), matrix);
+#endif
 
    for(size_t i=0;i<cis.size();i++){
       slotGetter* getter = new slotGetter(i, sname,n, matrix->getSize(), 
@@ -23364,10 +23389,14 @@ Algebra*
    InitializeDistributed2Algebra( NestedList* nlRef,
                              QueryProcessor* qpRef,
                              AlgebraManager* amRef ) {
+#ifdef DPROGRESS
    ProgressObserver*  _progressObserver = new ProgressObserver(qpRef);
+#endif
    distributed2::algInstance = new distributed2::Distributed2Algebra();
    distributed2::showCommands = false;   
+#ifdef DPROGRESS
    distributed2::algInstance->progressObserver = _progressObserver;
+#endif
    return distributed2::algInstance;
 }
 

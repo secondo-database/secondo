@@ -28,7 +28,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "ErrorWriter.h"
 #include "DArray.h"
+
+#define DPROGRESS
+
+#ifdef DPROGRESS
 #include "ProgressObserver.h"
+#endif
+
 
 namespace distributed2 {
 
@@ -402,7 +408,9 @@ connections.
 
     void disableDFS();
 
+#ifdef DPROGRESS
     ProgressObserver* progressObserver;
+#endif
 
 
   private:
