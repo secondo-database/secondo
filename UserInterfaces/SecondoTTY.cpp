@@ -72,6 +72,7 @@ then you will be prompted for the filename.
 #include <sstream>
 #include <algorithm>
 #include <ctype.h>
+#include "getCommand.h"
 
 #ifdef READLINE
   #include <stdio.h>
@@ -458,115 +459,14 @@ SecondoTTY::IsInternalCommand( const string& line )
 bool
 SecondoTTY::GetCommand( const bool isPD)
 {
-  bool complete = false;
-  bool first = true;
-  string line = "";
-  cmd = "";
-  bool inPD = false;
-  while (!complete && !cin.eof() && !cin.fail())
-  {
-    line = "";
-    ShowPrompt( first );
-    #ifdef READLINE
-      if(isStdInput){
-         char* cline = readline(prompt.c_str());
-         line = string(cline);
-         free(cline);
-      }
-      else
-    #endif
-         getline( cin, line );
-
-
-
-    if ( line.length() > 0  || inPD) {
-      if ( !isStdInput )           // Echo input if not standard input
-      {
-        cout << " " << line << endl;
-      }
-      bool comment = false;
-      if(!isPD){
-         comment = line[0] == '#';
-      } else {
-        if(!inPD){
-          if(line.length()>0){
-             comment = line[0] == '#';
-          } 
-          if(!comment) {
-            if(line.length()>1){
-              if((line[0]=='/') && (line[1]=='/')){ // single line comment
-                 comment = true;
-              } else if((line[0]=='/') && (line[1]=='*')) { // big comment
-                 comment = true;
-                 inPD = true;
-              }
-            }
-          }
-        } else {
-          comment = true;
-          if(line.length()>1){
-            if( (line[0]=='*') && (line[1]=='/')){
-              inPD = false;
-              line = line.substr(2);
-              line = trim(line);
-              comment = line.empty();
-            }
-          }
-        }
-     }
-
-      if ( !comment )        // Process if not comment line
-      {
-        if ( line[line.length()-1] == ';' )
-        {
-          complete = true;
-          line.erase( line.length()-1 );
-        }
-        if ( first )               // Check for single line command
-        {
-          if ( !complete )
-          {
-            complete = IsInternalCommand( line );
-          }
-          cmd = line + " ";
-          first = false;
-        }
-        else
-        {
-          cmd = cmd + "\n" + line + " ";
-        }
-      }
-    }
-    else                           // Empty line ends command
-    {
-      complete = cmd.length() > 0;
-      first = true;
-    }
-  }
-
-
-  // remove spaces from the end of cmd
-  size_t end = cmd.find_last_not_of(" \t");
-  if(end==string::npos)
-     end = 0;
-  else
-     end += 1;
-  cmd = cmd.substr(0,end);
-  #ifdef READLINE
-     if(complete && (cmd.length()>0) && isStdInput){
-        // get the last entry from the history if avaiable
-        int noe = history_length;
-        string last = "";
-        if(noe){
-           HIST_ENTRY* he = history_get(noe);
-           if(he)
-               last = string(he->line);
-        }
-        if(last!=cmd && (cmd.find_last_not_of(" \t\n")!=string::npos))
-          add_history(cmd.c_str());
-       }
-  #endif
-  return (complete);
+  function<void(const bool)> showPrompt 
+                = [this](const bool first) {ShowPrompt(first); };
+  function<bool(const string&)> isInternalCommand 
+                = [this](const std::string& c) {return IsInternalCommand(c); };
+  bool res =  getCommand(cin, isPD, cmd,
+                    showPrompt, isInternalCommand,
+                    isStdInput, prompt);
+  return res;
 }
 
 bool

@@ -51,7 +51,8 @@ LIB_SDBUTILS_BASENAMES:=\
 	Tools/Flob/FlobManager \
 	Tools/Flob/PersistentFlobCache \
 	Tools/Flob/ExternalFileCache \
-	Tools/Utilities/AlmostEqual
+	Tools/Utilities/AlmostEqual \
+  UserInterfaces/getCommand
 
 # The following libraries have interdependencies to Nested lists
 # and Berkeley-DB thus they are only usable in the framework of

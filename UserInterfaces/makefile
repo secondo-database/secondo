@@ -53,6 +53,7 @@ APPLOBJECTS := \
 	cmsg.$(OBJEXT) \
 	MainTTYCS.$(OBJEXT) \
         MainTTYREPLAY.$(OBJEXT) \
+  getCommand.$(OBJEXT)
 
 APPLICATIONS := $(BINDIR)/Secondo$(SMIUP) \
 		$(BINDIR)/SecondoCS \
