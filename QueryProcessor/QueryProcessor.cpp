@@ -2769,12 +2769,18 @@ QueryProcessor::TestOverloadedOperators( const string&
       else
         cout << traceMsg.str() << "accepted!" << endl;
     }
-    bool excluded = algebraManager->getOperator(alId,opId)->isExcluded();
-    if(excluded){
-       resultType = nl->TypeError();
-       string msg = "";
-       ErrorReporter::GetErrorMessage(msg);
-       ErrorReporter::ReportError("operator has been excluded (no example)");
+
+    if(!nl->IsEqual( resultType, "typeerror" ) ){
+      bool excluded = algebraManager->getOperator(alId,opId)->isExcluded();
+      if(excluded){
+         resultType = nl->TypeError();
+         string msg = "";
+         ErrorReporter::GetErrorMessage(msg);
+         string opName = algebraManager->getOperator(alId,opId)->GetName();
+         ErrorReporter::ReportError("operator '" + opName 
+                                     +"' in algebra '" + algName+ 
+                                    "'has been excluded (no example)");
+      }
     }
 
     if ( !ErrorReporter::TypeMapError )
