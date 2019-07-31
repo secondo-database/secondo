@@ -128,6 +128,24 @@ void trim(std::string& str, std::string whiteSpaces) {
     }    
 }
 
+void trimRight(std::string& str, std::string whiteSpaces) {
+    std::string::size_type pos = str.find_last_not_of(whiteSpaces);
+    if(pos != std::string::npos) {
+      str.erase(pos + 1);
+    } else {
+     str.erase(str.begin(), str.end());
+    }    
+}
+
+void trimLeft(std::string& str, std::string whiteSpaces) {
+    std::string::size_type pos = str.find_first_not_of(whiteSpaces);
+    if(pos != std::string::npos) {
+      str.erase(0,pos);
+    } else {
+     str.erase(str.begin(), str.end());
+    }    
+}
+
 /*
 The following function is used to replace all occurences of a pattern within a
 string by an other pattern.

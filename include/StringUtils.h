@@ -111,6 +111,10 @@ removes whitespaces at the begin and at the end of the string.
 
 void trim(std::string& str, std::string whitespaces=" \r\n\t" );
 
+void trimRight(std::string& str, std::string whitespaces=" \r\n\t" );
+
+void trimLeft(std::string& str, std::string whitespaces=" \r\n\t" );
+
 /*
 The following function is used to replace all occurences of a pattern within a
 string by an other pattern.
