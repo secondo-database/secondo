@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
+#include "drelport.h"
 
 namespace drel {
 
@@ -90,6 +91,10 @@ extern Operator sortmergejoinOp;
 extern Operator itHashJoinOp;
 
 extern Operator inloopjoinOp;
+
+extern Operator setDRelPortOp;
+extern Operator getDRelPortOp;
+
 /*
 1 Implementation of the Algebra DRel
 
@@ -179,12 +184,17 @@ DRelAlgebra::DRelAlgebra() {
 
     AddOperator( &inloopjoinOp );
     inloopjoinOp.SetUsesArgsInTypeMapping( );
+
+    AddOperator(&setDRelPortOp);
+    AddOperator(&getDRelPortOp);
 }
 
 extern "C"
 Algebra*
    InitializeDRelAlgebra( NestedList* nlRef,
                           QueryProcessor* qpRef ) {
+
+   setDRelPort(1238);
    return new DRelAlgebra();
 }
 

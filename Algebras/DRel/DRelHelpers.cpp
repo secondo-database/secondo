@@ -41,6 +41,7 @@ Class with usefull helper functions for the DRelAlgebra
 #include "DRelHelpers.h"
 #include "DRel.h"
 #include "Partitioner.hpp"
+#include "drelport.h"
 
 using namespace std;
 
@@ -828,7 +829,7 @@ to bring the boundary object to the workers and create a dfmatrix.
             Partitioner<R, Q>* parti = new Partitioner<R, Q>( attrName, 
                 nl->Fourth( resultDistType ), drel1, drelType, 
                 ( ( DistTypeRange* )drel2->getDistType( ) )
-                    ->getBoundary( )->Clone( ), 1238 );
+                    ->getBoundary( )->Clone( ), getDRelPort() );
 
             if( !parti->repartition2DFMatrix( ) ) {
                 cout << "repartition failed!!" << endl;
@@ -863,7 +864,7 @@ to bring the boundary object to the workers and create a dfmatrix.
                         nl->SymbolAtom( "ptr" ),
                         listutils::getPtrList( matrix ) ) ),
                 nl->StringAtom( "" ),
-                nl->IntAtom( 1238 ) );
+                nl->IntAtom( getDRelPort() ) );
         }
         else {
 
@@ -941,7 +942,7 @@ to bring the boundary object to the workers and create a dfmatrix.
                                 nl->IntAtom( 99999 ) ) ),
                             nl->IntAtom( 0 ) ),
                         nl->StringAtom( "" ),
-                        nl->IntAtom( 1238 ) );
+                        nl->IntAtom( getDRelPort()  ) );
 
             }
             else {
@@ -967,7 +968,7 @@ to bring the boundary object to the workers and create a dfmatrix.
                                 nl->IntAtom( 99999 ) ) ),
                             nl->IntAtom( 0 ) ),
                         nl->StringAtom( "" ),
-                        nl->IntAtom( 1238 ) );
+                        nl->IntAtom( getDRelPort() ) );
             }
         }
 

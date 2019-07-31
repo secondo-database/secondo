@@ -43,6 +43,7 @@ and itSpatialJoin
 #include "DRelHelpers.h"
 #include "DRel.h"
 #include "Partitioner.hpp"
+#include "drelport.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -273,7 +274,7 @@ parameters. Used for sortmergejoin and itHashJoin.
             "(elem2_2 ARRAYFUNARG2) (" + join + " "
             "(feed elem1_1) (feed elem2_2) " +
             nl->SymbolValue( attr1Name ) + " " + 
-            nl->SymbolValue( attr2Name ) + ")) 1238)";
+            nl->SymbolValue( attr2Name ) + ")) "+ getDRelPortString() + ")";
 
         ListExpr appendList = ConcatLists(
             nl->FiveElemList( 
@@ -342,7 +343,7 @@ The drelType argument has to be the nested list type of the drel object.
                 "streamelem_" + streamstr + " Original) TRUE))) (Original "
                 "Cell))) (fun (elem" + elem1str + "_4 FFR) (elem" + 
                 elem2str + "_5 FFR) (hashvalue (attr elem" + elem2str + "_5 "
-                "Name) 99999)) 0) \"\" 1238)";
+                "Name) 99999)) 0) \"\" "+getDRelPortString()+")";
 
         }
         else {
@@ -352,7 +353,7 @@ The drelType argument has to be the nested list type of the drel object.
                     DRelHelpers::createdrel2darray( drelType, ptr ) ) +
                     "\"\" (fun (elem_" + elemstr + " SUBSUBTYPE1) (hashvalue "
                     "(attr elem_" + elemstr + " " + attr + ") 99999)) 0) \"\" "
-                    "1238)";
+                    + getDRelPortString()+")";
         }
 
         ListExpr query;

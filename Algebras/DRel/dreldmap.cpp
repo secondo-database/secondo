@@ -52,6 +52,7 @@ the Distributed2Algebra.
 
 #include "DRelHelpers.h"
 #include "DRel.h"
+#include "drelport.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -1242,7 +1243,7 @@ to define the range.
         std::string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
             "(elem2_2 ARRAYFUNARG2) "
             "(range elem1_1 elem2_2 " + nl->ToString( range1 ) + " " +
-            nl->ToString( range2 ) + " ) ) 1238 )";
+            nl->ToString( range2 ) + " ) ) " + getDRelPortString() +" )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -1321,7 +1322,7 @@ value.
         std::string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
             "(elem2_2 ARRAYFUNARG2) "
             "(exactmatch elem1_1 elem2_2 " + 
-            nl->ToString( searchValue ) + " ) ) 1238 )";
+            nl->ToString( searchValue ) + " ) ) "+ getDRelPortString() + " )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -1429,7 +1430,7 @@ arguments.
         std::string funText2 = "\"\" (fun (elem1_1 ARRAYFUNARG1) "
             "(elem2_2 ARRAYFUNARG2) "
             "(windowintersects elem1_1 elem2_2 " + tempName + 
-            " ) ) 1238 )";
+            " ) ) " + getDRelPortString() + " )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -1511,7 +1512,8 @@ value.
             "(elem2_2 ARRAYFUNARG2) (elem3_3 ARRAYFUNARG3) "
             "(loopjoin (feed elem1_1) (fun (tuple_4 TUPLE) "
             "(exactmatch elem2_2 elem3_3 (attr tuple_4 " +
-            nl->ToString( arg4Value ) + ") ) ) ) ) 1238 )";
+            nl->ToString( arg4Value ) + ") ) ) ) ) " 
+            + getDRelPortString() + " )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;

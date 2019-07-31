@@ -51,6 +51,7 @@ the Distributed2Algebra.
 #include "DRel.h"
 #include "Partitioner.hpp"
 #include "BoundaryCalculator.hpp"
+#include "drelport.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -202,7 +203,7 @@ attribute.
         else {
 
             BoundaryCalculator<R>* calc = new BoundaryCalculator<R>( 
-                attrName, boundaryType, drel, drelType, 1238 );
+                attrName, boundaryType, drel, drelType, getDRelPort() );
 
             if( x == 1 ) {
                 int count = ( ( CcInt* )args[ 2 ].addr )->GetIntval( );
@@ -231,7 +232,7 @@ attribute.
         }
 
         Partitioner<R, T>* parti = new Partitioner<R, T>( attrName, 
-            boundaryType, drel, drelType, boundary, 1238 );
+            boundaryType, drel, drelType, boundary, getDRelPort() );
 
         if( !parti->repartition2DFMatrix( ) ) {
             cout << "repartition failed!!" << endl;
@@ -250,7 +251,7 @@ attribute.
         }
 
         CcString* name = new CcString( "" );
-        CcInt* port = new CcInt( true, 1238 );
+        CcInt* port = new CcInt( true, getDRelPort() );
         ArgVector collect2Args = {
             matrix,
             name,

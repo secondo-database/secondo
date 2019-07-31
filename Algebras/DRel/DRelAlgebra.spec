@@ -47,3 +47,8 @@ operator sortmergejoin alias DRELSORTMERGEJOIN pattern _ _ op [_,_]
 operator itHashJoin alias DRELITHASHJOIN pattern _ _ op [_,_]
 
 operator inloopjoin alias INLOOPJOIN pattern _ _ _op [_]
+
+operator setDRelPort alias SETDRELPORT pattern op(_)
+operator getDRelPort alias GETDRELPORT pattern op()
+
+

@@ -43,6 +43,7 @@ drelgroupby and rdup
 #include "DRel.h"
 #include "Partitioner.hpp"
 #include "BoundaryCalculator.hpp"
+#include "drelport.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -125,7 +126,7 @@ namespace drel {
             repartition = true;
             funText1 = "(areduce ";
             funText2 = " \"\" (fun (elem_1 AREDUCEARG1) "
-                    "(sort (feed elem_1))) 1238)";
+                    "(sort (feed elem_1))) " + getDRelPortString() + ")";
             
             if( dType == spatial2d || dType == spatial3d ) {
 
@@ -228,7 +229,8 @@ namespace drel {
 
             funText1 = "(areduce ";
             funText2 = " \"\" (fun (elem_1 AREDUCEARG1) "
-                "(sortby (feed elem_1)" + attrList + ")) 1238)";
+                "(sortby (feed elem_1)" + attrList + ")) "
+                + getDRelPortString() + ")";
 
             if( dType == spatial2d || dType == spatial3d ) {
                 ListExpr attrList = nl->Second( nl->Second( relType ) );
@@ -377,7 +379,8 @@ namespace drel {
                     "0) \"\" (fun (elem_6 AREDUCEARG1) (groupby "
                     "(sortby (feed elem_6)"+ nl->ToString( attrList ) 
                     + ") " + nl->ToString( attrList ) 
-                    + nl->ToString( groupfun ) + " )) 1238)";
+                    + nl->ToString( groupfun ) + " )) " 
+                    + getDRelPortString() + ")";
 
                 ListExpr attrList = nl->Second( nl->Second( relType ) );
                 attrList = DRelHelpers::removeAttrFromAttrList( 
@@ -397,7 +400,8 @@ namespace drel {
                     "\"\" (fun (elem_2 AREDUCEARG1) (groupby (sortby "
                    "(feed elem_2)" + nl->ToString( attrList ) +" )"
                     + nl->ToString( attrList ) + " " + 
-                    nl->ToString( groupfun ) + ")) 1238)";
+                    nl->ToString( groupfun ) + ")) " + getDRelPortString() 
+                    + ")";
             }
         }
 
@@ -490,7 +494,7 @@ namespace drel {
                     "(Original Cell))) (fun (elem1_4 FFR) (elem2_5 FFR) "
                     "(hashvalue (attr elem2_5 Name) 9999)) "
                     "0) \"\" (fun (elem_6 AREDUCEARG1) (rdup "
-                    "(feed elem_6))) 1238)";
+                    "(feed elem_6))) " + getDRelPortString() + ")";
 
                 ListExpr attrList = nl->Second( nl->Second( relType ) );
                 attrList = DRelHelpers::removeAttrFromAttrList( 
@@ -508,7 +512,7 @@ namespace drel {
                 funText2 = " \"\" (fun (elem_1 SUBSUBTYPE1) "
                     "(hashvalue elem_1 9999)) 0) "
                     "\"\" (fun (elem_2 AREDUCEARG1) "
-                    "(rdup (sort (feed elem_2)))) 1238)";
+                    "(rdup (sort (feed elem_2)))) " + getDRelPortString() +")";
             }
         }
 
@@ -595,7 +599,7 @@ repartitioning the d[f]rel and execute a function on the d[f]rel.
         
         // compute the boundary
         BoundaryCalculator<R>* calc = new BoundaryCalculator<R>( 
-                attrName, boundaryType, drel , drelType, 1238 );
+                attrName, boundaryType, drel , drelType, getDRelPort());
 
         if( !calc->computeBoundary( ) ){
             resultDFRel->makeUndefined( );
@@ -608,7 +612,7 @@ repartitioning the d[f]rel and execute a function on the d[f]rel.
 
         // create a dfmatrix of the d[f]rel
         Partitioner<R, T>* parti = new Partitioner<R, T>( attrName, 
-            boundaryType, drel, drelType, boundary, 1238 );
+            boundaryType, drel, drelType, boundary, getDRelPort() );
 
         if( !parti->repartition2DFMatrix( ) ) {
             cout << "repartition failed!!" << endl;

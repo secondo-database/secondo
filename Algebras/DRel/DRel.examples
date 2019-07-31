@@ -292,3 +292,17 @@ Signature : d[f]rel(rel(X)) x darray(btree(Y)) x d[f]rel(rel(Z)) x attr -> dfrel
 Example   : query drel01 drel01_A drel11 inloopjoin[B]
 Result    : bug
 Remark    : remote server required
+
+Operator  : getDRelPort
+Number    : 1
+Signature : -> int
+Example   : query getDRelPort()
+Result    : 1238
+
+Operator  : setDRelPort
+Number    : 1
+Signature : int -> bool
+Example   : query setDRelPort(1238)
+Result    : TRUE
+
+

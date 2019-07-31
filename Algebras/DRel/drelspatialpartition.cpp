@@ -53,6 +53,7 @@ the Distributed2Algebra.
 #include "DRel.h"
 #include "PartitionerS.hpp"
 #include "BoundaryCalculator.hpp"
+#include "drelport.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -231,7 +232,7 @@ attribute.
         PartitionerS<R, T, G>* parti =
             new PartitionerS<R, T, G>(
                 attrName, nl->Fourth( nl->Third( qp->GetType( s ) ) ),
-                drel, drelType, 1238 );
+                drel, drelType, getDRelPort() );
 
         if( x == 0 ) {
             // compute the grid
@@ -283,7 +284,7 @@ attribute.
         }
 
         CcString* name = new CcString( "" );
-        CcInt* port = new CcInt( true, 1238 );
+        CcInt* port = new CcInt( true, getDRelPort() );
         ArgVector collect2Args = {
             matrix,
             name,
