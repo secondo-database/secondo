@@ -1,0 +1,28 @@
+Database: berlintest
+Restore : No
+
+Operator : multicount
+Number   : 1
+Signature : stream x stream ... -> int
+Example   : query multicount(ten feed, intstream(1,10) , plz feed) = ten count + intstream(1,10) count + plz count
+Result   : TRUE
+
+Operator  : pbuffer
+Number    : 1
+Signature : stream x int -> stream
+Example   : query plz feed pbuffer[100] count = plz count
+Result    : TRUE
+
+Operator  : pbuffer1
+Number    : 1
+Signature : stream  -> stream
+Example   : query plz feed pbuffer1 count = plz count
+Result    : TRUE
+
+Operator  : pbufferU
+Number    : 1
+Signature : stream  -> stream
+Example   : query plz feed pbufferU count = plz count
+Result    : TRUE
+
+
