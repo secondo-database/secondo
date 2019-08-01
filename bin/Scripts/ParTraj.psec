@@ -16,6 +16,9 @@ let myPort = 61239
 
 */
 
+let Start = createintdarray("Start", Workers);
+delete Start;
+
 let RawDataById =
   [const rel(tuple([Id: int, DateTime: string, Point: string])) value ()]
   csvimport['cabsrome/taxidata00', 0, "", ";", FALSE, FALSE]
