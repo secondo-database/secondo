@@ -6,7 +6,8 @@
 create database taxis;
 open database taxis;
 restore Workers from WorkersNewton;
-let NSlots = 160
+let NSlots = 160;
+let myPort = 61239
 
 /*
 2 Data Import 
@@ -73,7 +74,7 @@ let CabsId = CabsTrips
     ]
   ]
   partition["", hashvalue(.Id, 999997), 0]
-  collect2["", 1238]
+  collect2["", myPort]
   dmap["CabsId", . feed consume]
   
 /*
@@ -98,7 +99,7 @@ let CabsST = CabsId
   partitionF["", . feed 
     extendstream[Cell: cellnumber(bbox(.Trip), grid)], 
     ..Cell, 120]
-  collect2["", 1238]
+  collect2["", myPort]
   dmap["CabsST", . feed consume]
 
 /*
@@ -129,7 +130,7 @@ let CabsST_Trip_rtree = CabsST
 
 */
 query CabsId_Id_btree CabsId
-  dmap2["", . .. exactmatch[11], 1238] 
+  dmap2["", . .. exactmatch[11], myPort] 
   dsummarize consume
 
 /*
@@ -147,14 +148,15 @@ query CabsST_Trip_rtree CabsST
   dmap2["", . .. windowintersects[qObject] 
     filter[gridintersects(grid, qObject, bbox(.Trip), .Cell)]
     filter[.Trip passes rectproject(qObject, 1, 2) rect2region]
-    filter[.Trip present rect2periods(qObject)], 1238]
+    filter[.Trip present rect2periods(qObject)], 
+  myPort]
   dsummarize consume
 
 query hashvalue(11, 999997);
 query cellnumber(qObject, grid) consume
 
 query hashvalue(11, 999997) feed CabsId_Id_btree CabsId
-  pdmap2["", . .. exactmatch[11], 1238] 
+  pdmap2["", . .. exactmatch[11], myPort] 
   dsummarize consume
   
 
