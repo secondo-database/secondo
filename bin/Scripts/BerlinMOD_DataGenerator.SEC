@@ -302,13 +302,13 @@ let Crossings =
         project[Crossroads]
         filter[not(isempty(.Crossroads))]
         aggregateB[Crossroads; fun(P1: points, P2: points)
-                               P1 union P2; [const points value ()]]
+                               P1 union1 P2; [const points value ()]]
       )
-      union
+      union1
       (streets1 feed
           projectextend[; B : boundary(.GeoData)]
           aggregateB[B; fun(P3 : points, P4 : points)
-                        P3 union P4; [const points value ()]]
+                        P3 union1 P4; [const points value ()]]
       );
 
 # (3.1.2.2) Split the latter line object into polylines:
@@ -324,7 +324,7 @@ let nodes2 =
   sections2 feed
   projectextend[; EndPoints: boundary(.Part)]
   aggregateB[EndPoints; fun(P1: points, P2: points)
-                        P1 union P2 ; [const points value ()]];
+                        P1 union1 P2 ; [const points value ()]];
 
 
 # (3.1.2.4) Create a relation with all nodes
@@ -524,7 +524,7 @@ let HomeNodesPartition1 =
           HomeRegionVector,.M),nodes2)]
         aggregate[Tmpp
           ;fun(P1: points, P2 : points )
-           P1 union P2
+           P1 union1 P2
           ; [const points value ()] ] ) ]
   sortby[I]
   projecttransformstream[Reg] collect_vector;
@@ -539,7 +539,7 @@ let WorkNodesPartition1 =
           WorkRegionVector,.M),nodes2)]
         aggregate[Tmpp
           ;fun(P1: points, P2 : points )
-           P1 union P2
+           P1 union1 P2
           ; [const points value ()] ] ) ]
   sortby[I]
   projecttransformstream[Reg] collect_vector;
