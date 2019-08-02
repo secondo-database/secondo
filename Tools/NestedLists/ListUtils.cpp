@@ -954,4 +954,35 @@ Checks whether the list represents a stream.
 
 
 
+ListExpr replaceSymbols(ListExpr list, 
+                        const map<string,ListExpr>& replacements){
+
+  if(nl->IsEmpty(list)){
+     return nl->TheEmptyList();
+  }
+  switch(nl->AtomType(list)){
+     case SymbolType: {
+       string symb = nl->SymbolValue(list);
+       map<string,ListExpr>::const_iterator it = replacements.find(symb);
+       if(it==replacements.end()){
+         return list;
+       } else {
+         return it->second;
+       }
+     }
+     case NoAtom: {
+       ListExpr first = nl->OneElemList( replaceSymbols(nl->First(list),
+                                               replacements));
+       ListExpr last = first;
+       list = nl->Rest(list);
+       while(!nl->IsEmpty(list)){
+          last = nl->Append(last, replaceSymbols(nl->First(list),replacements));
+          list = nl->Rest(list);
+       }
+       return first;
+     }
+     default: return list;    
+  } 
+}
+
 } // end of namespace listutils

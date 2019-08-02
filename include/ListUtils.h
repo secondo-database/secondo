@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "NestedList.h"
 #include <set>
+#include <map>
 
 
 extern NestedList* nl;
@@ -410,6 +411,11 @@ template<class C>
 ListExpr basicSymbol(){
    return nl->SymbolAtom(C::BasicType());
 }
+
+
+ListExpr replaceSymbols(ListExpr list, 
+                      const std::map<std::string,ListExpr>& replacements);
+
 
 } // end of namespace
 #endif
