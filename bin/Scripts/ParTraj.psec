@@ -101,7 +101,7 @@ query share("grid", TRUE, Workers)
 let CabsST = CabsId 
   partitionF["", . feed 
     extendstream[Cell: cellnumber(bbox(.Trip), grid)], 
-    ..Cell, 120]
+    ..Cell, NSlots]
   collect2["", myPort]
   dmap["CabsST", . feed consume]
 

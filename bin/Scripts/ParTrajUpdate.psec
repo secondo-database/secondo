@@ -16,7 +16,7 @@ let RawDataByIdUpdate =
       str2real(
         substr(.Point, findFirst(.Point, "(") + 1,  findFirst(.Point, " ") - 1))  
   )]
-  ddistribute4["RawDataByIdUpdate", hashvalue(.Id, 999997) , 40, Workers]
+  ddistribute4["RawDataByIdUpdate", hashvalue(.Id, 999997) , NSLots, Workers]
 
 /*
 1.2 Creating Moving Objects
@@ -136,19 +136,83 @@ query UpdatePairs CabsId CabsId_Id_btree
   myPort] getValue 
 
 
+/*
+1.4 Updating CabsST
 
+Redistribute:
 
+*/
 
+let CabsSTUpdate = CabsIdUpdate
+  partitionF["", . feed 
+    extendstream[Cell: cellnumber(bbox(.Trip), grid)]
+    extend[Original: .Cell = cellnumber(bbox(.Trip), grid) extract[]], 
+    ..Cell, NSlots]
+  collect2["", myPort]
+  dmap["CabsSTUpdate", . feed consume]
 
+/*
+Insert:
 
+*/
+query CabsSTUpdate CabsST CabsST_Trip_rtree 
+  dmap3["", . feed $2 insert $3 insertrtree[Trip] count, myPort] getValue
 
+/*
+Find update pairs:
 
+*/
+let UpdatePairsST = CabsST CabsST 
+  dmap2["UpdatePairsST", . feed addid
+    filter[UpdateStart > inst(final(.Trip))]
+    filter[(UpdateStart - inst(final(.Trip))) 
+      < create_duration(0, 60000)] {c1} 
+    .. feed addid
+      filter[UpdateStart < inst(initial(.Trip))]
+      filter[(inst(initial(.Trip)) - UpdateStart) 
+      < create_duration(0, 60000)] {c2} 
+    itHashJoin[Id_c1, Id_c2]
+    filter[
+      (inst(initial(.Trip_c2)) - inst(final(.Trip_c1))) 
+        < create_duration(0, 60000)] consume, 
+  myPort]
 
+/*
+Insert concatenated trips:
 
+*/
 
+query UpdatePairsST CabsST CabsST_Trip_rtree 
+  dmap3["", . feed 
+    projectextend[
+    ; Id: .Id_c1,
+      Trip: 
+        units(.Trip_c1) 
+        the_unit(val(final(.Trip_c1)), val(initial(.Trip_c2)),
+          inst(final(.Trip_c1)), inst(initial(.Trip_c2)),
+          TRUE, FALSE) feed concat
+        units(.Trip_c2) concat transformstream
+        makemvalue[Elem]
+    ] 
+    $2 insert
+    $3 insertrtree[Trip]
+    count, 
+  myPort] getValue
 
+/*
+Delete trips contained in upate pairs:
 
+*/
 
+query UpdatePairsST CabsST CabsST_Trip_rtree
+  dmap3["", 
+    . feed projectextend[; TID: .TID_c1] 
+    . feed projectextend[; TID: .TID_c2] 
+    concat
+    $2 deletebyid4[TID]
+    $3 deletebtree[Id]
+    count,
+  myPort] getValue 
 
 
 
