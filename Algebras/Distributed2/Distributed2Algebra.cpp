@@ -13955,7 +13955,10 @@ int dmapXVM(Word* args, Word& result, int message,
       // unequal to the first arg, then break processing
       if(i>(0) && (di->getType()==DARRAY)){
          if(!a0->equalMapping(*di, false)){
-            cout << "mapping unequal to a0" << endl;
+            cout << "dmap"<<x << ":"
+                 << "the " << (i+1) << "th argument is a darray "
+                 << "and the mapping of the argument from the slots to the "
+                 << "workers differs to the first argument ";
             ((DArrayBase*) result.addr)->makeUndefined();
             return 0;
          }
