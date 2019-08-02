@@ -619,6 +619,364 @@ Operator pbufferUOp(
 );
 
 
+/*
+Operator ~pfilterS~
+
+This operator filters a tuple stream with a number of 
+threads. This operator is not order preservative.
+
+*/
+
+ListExpr renameFunArgs(ListExpr fun, const std::string post){
+   if(nl->HasMinLength(fun,2) && nl->IsEqual(nl->First(fun),"fun")){
+      // list is a function
+      // step 1. collect the argunnet names
+      std::map<std::string, ListExpr> rep;
+      ListExpr rest = nl->Rest(fun);
+      while(!nl->HasLength(rest,1)){ // last elem is the definition
+        ListExpr first = nl->First(rest);
+        rest = nl->Rest(rest);
+        assert(nl->HasLength(first,2));  // (name type)
+        ListExpr n = nl->First(first);
+        assert(nl->AtomType(n)==SymbolType);
+        std::string name = nl->SymbolValue(n);
+        rep[name] = nl->SymbolAtom(name + post);
+      }
+      fun = listutils::replaceSymbols(fun,rep);
+   } 
+   if(nl->AtomType(fun) != NoAtom){
+      return fun;
+   }
+   if(nl->IsEmpty(fun)){
+      return fun;
+   }
+   // for no atoms, call renameFunArgs recursively
+   ListExpr res = nl->OneElemList( renameFunArgs(nl->First(fun), post));
+   ListExpr last = res;
+   ListExpr rest = nl->Rest(fun);
+   while(!nl->IsEmpty(rest)){
+     last = nl->Append(last, renameFunArgs(nl->First(rest), post));
+     rest = nl->Rest(rest);
+   } 
+   return res;
+}
+
+
+ListExpr pfilterSTM(ListExpr args){
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError("three arguments required");
+  }
+  ListExpr tmp = args;
+  while(!nl->IsEmpty(tmp)){
+    if(!nl->HasLength(nl->First(tmp), 2)){
+      return listutils::typeError("internal error");
+    }
+    tmp = nl->Rest(tmp);
+  }
+  ListExpr stream = nl->First(nl->First(args));
+  if(!Stream<Tuple>::checkType(stream)){
+    return listutils::typeError("first element must be a tuple stream");
+  }
+  if(!CcInt::checkType(nl->First(nl->Second(args)))){
+    return listutils::typeError("second argument is not of type int");
+  }
+  ListExpr intL = nl->Second(nl->Second(args));
+  if(nl->AtomType(intL) != IntType){
+    return listutils::typeError("only constants allowed for number of threads");
+  }
+  int nt = nl->IntValue(intL);
+  if(nt < 1 || nt > 15){
+    return listutils::typeError("the number of threads must be "
+                                "between 1 and 15");
+  }
+  ListExpr fun = nl->Third(args);
+  ListExpr funt = nl->First(fun);
+  if(!listutils::isMap<1>(funt)){
+    return listutils::typeError("third artgument is not a unary function");
+  }
+  ListExpr funarg = nl->Second(funt);
+  if(!nl->Equal(funarg,nl->Second(stream))){
+    return listutils::typeError("function argument differs from stream type");
+  }
+
+
+  ListExpr funres   = nl->Third(funt);
+  if(!CcBool::checkType(funres)){
+    return listutils::typeError("function result is not of type bool");
+  }
+ 
+  ListExpr fundef = nl->Second(fun);
+
+ ListExpr fa = nl->Second(fundef);
+ fundef = nl->ThreeElemList(
+                 nl->First(fundef),
+                 nl->TwoElemList(
+                     nl->First(fa),       
+                     funarg),
+                 nl->Third(fundef));
+  nt--;  // one function is already there
+  if(nt==0){
+     return stream;
+  }
+
+  ListExpr funDefX = renameFunArgs(fundef,"_1");
+  ListExpr alist = nl->OneElemList(funDefX);
+  ListExpr last = alist;
+  nt--;
+
+  for(int i=0;i<nt;i++){
+    std::string ns = "_"+stringutils::int2str((i+2));
+    funDefX = renameFunArgs(fundef,ns);
+    last = nl->Append(last, funDefX);
+  }
+
+  return nl->ThreeElemList(
+            nl->SymbolAtom(Symbols::APPEND()),
+            alist,
+            stream
+         );
+}
+
+template<class T>
+class SyncStream{
+ public:
+  SyncStream(Word& w) : stream(w), endReached(false){}
+
+  void open(){
+    mtx.lock();
+    endReached = false;
+    stream.open();
+    mtx.unlock();
+  }
+
+  void close(){
+    mtx.lock();
+    endReached = true;
+    stream.close();
+    mtx.unlock();
+  }
+
+  T* request(){
+    mtx.lock();
+    T* res;
+    if(endReached){
+       res = 0;
+    } else {
+       res =  stream.request();
+       if(res==0){
+         endReached = true;
+       }
+    }
+    mtx.unlock();
+    return res;
+  }
+
+ private:
+   Stream<T> stream;
+   bool endReached;
+   boost::mutex mtx;
+}; 
+
+template<class T>
+class Consumer{
+ 
+   public:
+    
+     virtual ~Consumer() {}
+ 
+     virtual void elemAvailable(T* elem) = 0;
+
+     virtual void cancel() = 0;
+
+};
+
+
+template<class T>
+class pfilterSThread{
+  public:
+    pfilterSThread(SyncStream<T>* _stream, 
+                  Word _fun,
+                  Consumer<T>* _consumer): stream(_stream),
+                  fun(_fun), consumer(_consumer){
+
+      funArgs = qp->Argument(fun.addr);
+      running = true;
+      sendNull = false;
+      runner = new boost::thread(&pfilterSThread<T>::run, this);
+    }
+
+    ~pfilterSThread(){
+      runner->join();
+      delete runner;  
+    }
+
+    void cancel(){
+       running = false;
+    }
+  
+ private:
+    SyncStream<T>* stream;
+    Word fun;
+    Consumer<T>* consumer;
+    ArgVectorPointer funArgs;
+    bool running;
+    boost::thread* runner;
+    Word res;
+    bool sendNull;
+    
+     void run(){
+       while(running){
+          T* elem = stream->request();
+          if(elem==nullptr){
+            running = false;
+            consumer->elemAvailable(elem);
+            sendNull = true;
+          } else {
+             if(!check(elem)){
+                elem->DeleteIfAllowed();
+             } else {
+                consumer->elemAvailable(elem);
+             }
+          }
+       }
+       if(!sendNull){
+         consumer->elemAvailable(0);
+         sendNull = true;
+       }
+    }
+
+    bool check(T* elem){
+      (*funArgs)[0] = elem;
+      qp->Request(fun.addr,res);
+      CcBool* b = (CcBool*) res.addr;
+      return b->IsDefined() && b->GetValue();
+    }
+
+};
+
+template<class T>
+class pfilterSInfo : public Consumer<T>{
+
+  public:
+
+     pfilterSInfo(Word& _stream, std::vector<Word>& _funs): 
+        stream(_stream), funs(_funs), buffer(funs.size()*2) {
+        stream.open();
+        runs = funs.size();
+        for(int i=0; i< funs.size();i++){
+          runners.push_back(new pfilterSThread<T>(&stream, funs[i], this));
+        }
+     }
+
+     ~pfilterSInfo(){
+       for(int i=0;i<runners.size();i++){
+          runners[i]->cancel();
+       }
+       // ensure that each runner can insert a pending element
+       T* elem;
+       while( !buffer.empty() ){
+          buffer.pop_back(&elem);
+          if(elem){
+             elem->DeleteIfAllowed();
+          }
+       } 
+       for(int i=0;i<runners.size();i++){
+          delete runners[i];
+       }
+       while( !buffer.empty() ){
+          buffer.pop_back(&elem);
+          if(elem){
+             elem->DeleteIfAllowed();
+          }
+       } 
+       stream.close();
+     }
+
+     T* next(){
+        T* elem;
+        buffer.pop_back(&elem);
+        return elem;    
+     }
+
+     void elemAvailable(T* elem){
+       mtx.lock();
+       if(elem){
+         buffer.push_front(elem); 
+       } else {
+          runs--;
+          if(runs==0){
+            buffer.push_front(elem);
+          }
+       }
+       mtx.unlock();
+     }
+
+     void cancel() {
+       for(int i=0;i<runners.size();i++){
+          runners[i]->cancel();
+       }
+     } 
+
+  private:
+     SyncStream<T> stream;
+     std::vector<Word> funs;
+     bounded_buffer<T*> buffer;
+     std::vector<pfilterSThread<T>*> runners;
+     boost::mutex mtx;
+     size_t runs; 
+     
+};
+
+
+template<class T>
+int pfilterSVMT(Word* args, Word& result,
+           int message, Word& local, Supplier s){
+
+ pfilterSInfo<T>* li = (pfilterSInfo<T>*) local.addr;
+ switch (message){
+    case OPEN:{
+            if(li){
+              delete li;
+            }
+            std::vector<Word> funs;
+            for(int i=2; i< qp->GetNoSons(s); i++){
+                funs.push_back(args[i]);
+            }
+            local.addr = new pfilterSInfo<T>(args[0], funs);
+            return 0;
+          }
+    case REQUEST:{
+            result.addr = li?li->next(): 0;
+            return result.addr?YIELD:CANCEL;
+          }
+    case CLOSE: {
+           if(li){
+             delete li;
+             local.addr = 0;
+           }
+           return 0;
+         }
+ }
+ return -1;
+};
+
+OperatorSpec pfilterSSpec(
+  " stream(Tuple) x int x (tuple->bool) -> stream(tuple)",
+  " _ pfilterS[_,_] ",
+  " Filters tuples from a stream that a not fulfilling a "
+  " given condition, Filtering is done used several threads "
+  "where the number of threads is given in the second argument."
+  "Note that the ordering of the input stream is not prevented",
+  " query plz pfilterS[10, .PLZ < 7000] count"
+);
+
+Operator pfilterSOp(
+  "pfilterS",
+  pfilterSSpec.getStr(),
+  pfilterSVMT<Tuple>,
+  Operator::SimpleSelect,
+  pfilterSTM
+);
 
 
 /*
@@ -636,11 +994,13 @@ public:
     AddOperator(&pbuffer1Op);
     AddOperator(&pbufferUOp);
 
+    AddOperator(&pfilterSOp);
+    pfilterSOp.SetUsesArgsInTypeMapping();
+
   }
 
   ~ParallelAlgebra() {};
 };
-
 
 
 
