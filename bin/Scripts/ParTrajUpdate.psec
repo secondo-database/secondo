@@ -146,7 +146,7 @@ Redistribute:
 let CabsSTUpdate = CabsIdUpdate
   partitionF["", . feed 
     extendstream[Cell: cellnumber(bbox(.Trip), grid)]
-    extend[Original: .Cell = cellnumber(bbox(.Trip), grid) extract[]], 
+    extend[Box: bbox(.Trip)], 
     ..Cell, NSlots]
   collect2["", myPort]
   dmap["CabsSTUpdate", . feed consume]
@@ -156,7 +156,7 @@ Insert:
 
 */
 query CabsSTUpdate CabsST CabsST_Trip_rtree 
-  dmap3["", . feed $2 insert $3 insertrtree[Trip] count, myPort] getValue
+  dmap3["", . feed $2 insert $3 insertrtree[Box] count, myPort] getValue
 
 /*
 Find update pairs:
