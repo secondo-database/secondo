@@ -16,7 +16,7 @@ let RawDataByIdUpdate =
       str2real(
         substr(.Point, findFirst(.Point, "(") + 1,  findFirst(.Point, " ") - 1))  
   )]
-  ddistribute4["RawDataByIdUpdate", hashvalue(.Id, 999997) , NSLots, Workers]
+  ddistribute4["RawDataByIdUpdate", hashvalue(.Id, 999997) , NSlots, Workers]
 
 /*
 1.2 Creating Moving Objects
