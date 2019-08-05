@@ -48,6 +48,8 @@ extern QueryProcessor* qp;
 extern AlgebraManager* am;
 
 
+namespace parallelalg {
+
 ListExpr multicountTM(ListExpr args){
    if(nl->IsEmpty(args)){
      return listutils::typeError("at least one argument expected");
@@ -742,6 +744,12 @@ class SyncStream{
  public:
   SyncStream(Word& w) : stream(w), endReached(false){}
 
+
+  ~SyncStream(){
+    mtx.lock();
+    mtx.unlock();
+  } 
+
   void open(){
     mtx.lock();
     endReached = false;
@@ -786,7 +794,7 @@ class Consumer{
  
      virtual void elemAvailable(T* elem) = 0;
 
-     virtual void cancel() = 0;
+     //virtual void cancel() = 0;
 
 };
 
@@ -978,6 +986,373 @@ Operator pfilterSOp(
   pfilterSTM
 );
 
+/*
+Operator pextend
+
+*/
+ListExpr pextendTM(ListExpr args){
+
+  // strem(tuple) x funlist
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError("stream(tuple) x funlist expected");
+  }
+  // because we have to replicate the functions, we uses the args in 
+  // type mapping
+  if(!listutils::checkUsesArgsInTypeMapping(args)){
+    return listutils::typeError("internal error");
+  }
+  ListExpr stream = nl->First(nl->First(args));
+  if(!Stream<Tuple>::checkType(stream)){
+    return listutils::typeError("first argument is not a tuple stream");
+  }
+  if(!CcInt::checkType(nl->First(nl->Second(args)))){
+     return listutils::typeError("second argument is not an int");
+  }
+  if(nl->AtomType(nl->Second(nl->Second(args)))!=IntType){
+     return listutils::typeError("second argument is not a constant int");
+  }
+  int nt = nl->IntValue(nl->Second(nl->Second(args)));
+  if(nt <1 || nt > 15){
+    return listutils::typeError("the number of thread must be "
+                                "between 1 and 15");
+  }
+
+  // the last argument consists of a list of function types and the list of 
+  // function definitions
+  ListExpr funtypes = nl->First(nl->Third(args));
+  ListExpr fundefs = nl->Second(nl->Third(args));
+  if(nl->AtomType(funtypes)!=NoAtom){
+    return listutils::typeError("the third argument is not a function list");
+  }
+  if(nl->IsEmpty(funtypes)){
+    return listutils::typeError("an empty function list is not allowed");
+  }
+  if(nl->ListLength(funtypes)!=nl->ListLength(fundefs)){
+   return listutils::typeError("The number of function definitions differs "
+                                "to the number of function types");
+  }
+
+  ListExpr tuple = nl->Second(stream);
+
+  // check the functions and build the result attrlist
+  std::vector<ListExpr> fundefvec;
+
+  std::set<std::string> names;
+  ListExpr attrList = nl->Second(tuple);
+  while(!nl->IsEmpty(attrList)){
+    names.insert(nl->SymbolValue(nl->First(nl->First(attrList))));
+    attrList = nl->Rest(attrList);
+  }
+ 
+
+  ListExpr attrAppend = nl->TheEmptyList();
+  ListExpr attrLast = nl->TheEmptyList();
+  bool first = true;
+
+  while(!nl->IsEmpty(funtypes)){
+    ListExpr funtype = nl->First(funtypes);
+    ListExpr fundef  = nl->First(fundefs);
+    funtypes = nl->Rest(funtypes);
+    fundefs = nl->Rest(fundefs);
+    // check whether type is a named function
+    if(!nl->HasLength(funtype, 2) || !nl->HasLength(fundef,2)){
+      return listutils::typeError("fund invalid element in function list");
+    }    
+    if(nl->AtomType(nl->First(funtype)) != SymbolType){
+       return listutils::typeError("invalid name for function");
+    }
+    std::string error;
+    if(!listutils::isValidAttributeName(nl->First(funtype),error)){
+      return listutils::typeError(error);
+    }
+    std::string n = nl->SymbolValue(nl->First(funtype));
+    if(names.find(n) != names.end()){
+      return listutils::typeError("Attribute name " + n 
+                  +" is part of the original tuple or used more than once");
+    }
+    names.insert(n);
+    funtype = nl->Second(funtype);
+    if(!listutils::isMap<1>(funtype)){
+      return listutils::typeError("invalid function definition");
+    }
+    if(!nl->Equal(tuple, nl->Second(funtype))){
+       return listutils::typeError("function argument for attribute " + n 
+                                   + " difers to the stream tuple type");
+    }
+    ListExpr funres = nl->Third(funtype);
+    if(!Attribute::checkType(funres)){
+      return listutils::typeError("function result for " + n 
+                                   + " is not in kind DATA");
+    }
+    if(first){
+      attrAppend = nl->OneElemList(nl->TwoElemList(nl->SymbolAtom(n), funres));
+      attrLast = attrAppend;
+      first = false;
+    }  else {
+      attrLast = nl->Append(attrLast, 
+                            nl->TwoElemList(nl->SymbolAtom(n), funres));
+    }
+    fundef = nl->Second(fundef);
+    // replace type (maybe some type operator) by the real type
+    fundef = nl->ThreeElemList(
+                     nl->First(fundef),
+                     nl->TwoElemList(
+                         nl->First(nl->Second(fundef)),
+                         nl->Second(funtype)),
+                     nl->Third(fundef));
+     fundefvec.push_back(fundef);
+  }
+
+  ListExpr resAttrList = listutils::concat(nl->Second(tuple), attrAppend);
+  ListExpr resType = Stream<Tuple>::wrap(Tuple::wrap(resAttrList));
+
+  nt--;
+  if(nt==0){  // only one thread, nothing to append
+    return resType;
+  }
+
+  ListExpr appendList = nl->TheEmptyList();
+  ListExpr appendLast = nl->TheEmptyList();
+
+
+
+  for(int i=0;i<nt;i++){
+    std::string ns = "_"+stringutils::int2str((i+2));
+    for(size_t f = 0; f<fundefvec.size();f++){
+       ListExpr fundef = fundefvec[f];
+       ListExpr funDefX = renameFunArgs(fundef,ns);
+       if(i==0 && f==0){
+         appendList = nl->OneElemList(funDefX);
+         appendLast = appendList;
+       } else {
+          appendLast = nl->Append(appendLast, funDefX);
+       }
+    }        
+  }
+  return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                            appendList,
+                            resType);
+
+}
+
+
+class pextendthread{
+
+  public:
+
+      pextendthread(SyncStream<Tuple>* s, std::vector<Supplier>& _functions, 
+                    TupleType* _tt, Consumer<Tuple>* consumer):
+                    stream(s), functions(_functions),tt(_tt), 
+                    consumer(consumer){
+         running = true;
+         for(size_t i=0;i<functions.size(); i++){
+            funargs.push_back(qp->Argument(functions[i]));
+         }
+
+         t = new boost::thread(&pextendthread::run, this);
+      }
+
+      void cancel(){
+          running = false;
+      }
+
+      ~pextendthread(){
+         t->join();
+         delete t;
+      }
+
+  private:
+      SyncStream<Tuple>* stream;
+      std::vector<Supplier> functions;
+      TupleType* tt;
+      Consumer<Tuple>* consumer;
+      std::vector<ArgVectorPointer> funargs;
+      bool running;
+      boost::thread* t;
+      Word resWord;
+
+            
+      void run(){
+         while(running){
+           Tuple* t = stream->request();
+           if(t==0){
+              running=false;
+              consumer->elemAvailable(0);
+           } else {
+             Tuple* resTuple = extendTuple(t);
+             t->DeleteIfAllowed();
+             consumer->elemAvailable(resTuple);
+           }
+         }
+      }
+
+      Tuple* extendTuple(Tuple* t){
+        Tuple* res = new Tuple(tt);
+        // copy original attributes
+        int k = t->GetNoAttributes();
+        for(int i=0;i<k; i++){
+          res->CopyAttribute(i,t,i);
+        }
+        // extend the tuple
+        for(size_t i=0;i<functions.size(); i++){
+           res->PutAttribute(k+i, evalFun(i, t));
+        }
+        return res;
+      }
+
+
+     Attribute* evalFun(int i, Tuple* t){
+        (*funargs[i])[0] = t;
+        qp->Request(functions[i],resWord);
+        return ((Attribute*)resWord.addr)->Clone();
+     }
+
+
+};
+
+
+class pextendInfo : public Consumer<Tuple>{
+  public:
+     pextendInfo(Word _stream, 
+                 std::vector<std::vector<Supplier>>& _functions,
+                 ListExpr _tt): stream(_stream), tt(0), 
+                 buffer(2*_functions.size()) {
+        stream.open();
+        tt = new TupleType(_tt);
+        runs = _functions.size();
+        for(size_t i = 0; i<_functions.size(); i++){
+           runners.push_back(new pextendthread(&stream, _functions[i],
+                                               tt, this));         
+        }
+     }
+
+     ~pextendInfo(){
+       for(size_t i=0;i< runners.size();i++){
+          runners[i]->cancel();
+       }
+       Tuple* f;
+       while(!buffer.empty()){
+         buffer.pop_back(&f);
+         if(f){
+            f->DeleteIfAllowed();
+         }
+       }
+       for(size_t i=0;i< runners.size();i++){
+          delete runners[i];
+       }
+       while(!buffer.empty()){
+         buffer.pop_back(&f);
+         if(f){
+            f->DeleteIfAllowed();
+         }
+       }
+       tt->DeleteIfAllowed();
+       stream.close();
+     }
+
+     Tuple* next(){
+         Tuple* result;
+         buffer.pop_back(&result);
+         return result; 
+     }
+
+     void elemAvailable(Tuple* elem) {
+       if(elem){
+         buffer.push_front(elem); 
+       } else {
+          mtx.lock();
+          runs--;
+          if(runs==0){
+            buffer.push_front(elem);
+          }
+          mtx.unlock();
+       }
+     };
+
+
+  private: 
+     SyncStream<Tuple> stream;
+     TupleType* tt;
+     bounded_buffer<Tuple*>  buffer;
+     boost::mutex mtx;
+     size_t runs;
+
+     std::vector<pextendthread*> runners;
+
+
+};
+
+
+
+int pextendVM(Word* args, Word& result,
+           int message, Word& local, Supplier s){
+
+  pextendInfo* li = (pextendInfo*) local.addr;
+  switch(message){
+     case OPEN : {
+                    if(li) {
+                       delete li;
+                    }
+                    int nt = ((CcInt*)args[1].addr)->GetValue();
+                    std::vector<std::vector<Supplier> > functions;
+                    // append original functions
+                    Supplier supplier = args[2].addr;
+                    int nooffuns = qp->GetNoSons(supplier);
+                    std::vector<Supplier> f1;
+                    for(int i=0;i<nooffuns;i++){
+                      Supplier supplier2 = qp->GetSupplier(supplier, i);
+                      Supplier fun =  qp->GetSupplier(supplier2,1);
+                      f1.push_back(fun);
+                    }
+                    functions.push_back(f1);
+                    int o = 3;
+
+                    int nosons = qp->GetNoSons(s);
+                    for(int i=0;i<nt-1;i++){
+                      std::vector<Supplier> fi;
+                      for(int i=0;i<nooffuns;i++){
+                         assert(o<nosons);
+                         fi.push_back(args[o].addr);
+                         o++;
+                      }
+                      functions.push_back(fi);
+                    } 
+                    local.addr = new pextendInfo(args[0], functions, 
+                                     nl->Second(GetTupleResultType(s))); 
+                    return 0;
+                 }
+
+      case REQUEST:  result.addr = li?li->next():0;
+                     return result.addr?YIELD:CANCEL; 
+      case CLOSE: if(li){
+                    delete li;
+                    local.addr = 0;
+                  }
+                  return 0;
+
+  }
+
+  return -1;
+
+
+}
+
+OperatorSpec pextendSpec(
+  "stream(tuple(X)) x int x funlist -> stream(tuple(X@EXT)) ",
+  " _ pexetend[ f1, f2 ,... ] ",
+  "Extends each tuple of the incoming stream by new attributes.",
+  "query plz feed extend[10, P1 : .PLZ +1 ] "
+);
+
+
+Operator pextendOp(
+  "pextend",
+  pextendSpec.getStr(),
+  pextendVM,
+  Operator::SimpleSelect,
+  pextendTM
+);
+
 
 /*
 7 Creating the Algebra
@@ -997,6 +1372,9 @@ public:
     AddOperator(&pfilterSOp);
     pfilterSOp.SetUsesArgsInTypeMapping();
 
+    AddOperator(&pextendOp);
+    pextendOp.SetUsesArgsInTypeMapping();
+
   }
 
   ~ParallelAlgebra() {};
@@ -1004,7 +1382,7 @@ public:
 
 
 
-
+} // end of namespace
 
 /*
 7 Initialization
@@ -1029,7 +1407,7 @@ InitializeParallelAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (new ParallelAlgebra());
+  return (new parallelalg::ParallelAlgebra());
 }
 
 
