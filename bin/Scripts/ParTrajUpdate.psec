@@ -124,7 +124,7 @@ Delete trips belonging to update pairs:
 
 */
 
-query UpdatePairs CabsId CabsId_Id_btree
+query UpdatePairsId CabsId CabsId_Id_btree
   dmap3["", 
     . feed projectextend[; TID: .TID_c1] 
     . feed projectextend[; TID: .TID_c2] 
