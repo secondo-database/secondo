@@ -83,8 +83,8 @@ Find update pairs:
 
 */
 
-let UpdatePairs = CabsId CabsId 
-  dmap2["UpdatePairs", . feed addid
+let UpdatePairsId = CabsId CabsId 
+  dmap2["UpdatePairsId", . feed addid
     filter[UpdateStart > inst(final(.Trip))]
     filter[(UpdateStart - inst(final(.Trip))) 
       < create_duration(0, 60000)] {c1} 
@@ -97,13 +97,12 @@ let UpdatePairs = CabsId CabsId
       (inst(initial(.Trip_c2)) - inst(final(.Trip_c1))) 
         < create_duration(0, 60000)] consume, 
   myPort]
-
 /*
 Insert concatenated trips:
 
 */
 
-query UpdatePairs CabsId CabsId_Id_btree 
+query UpdatePairsId CabsId CabsId_Id_btree 
   dmap3["", . feed 
     projectextend[
     ; Id: .Id_c1,
@@ -172,6 +171,7 @@ let UpdatePairsST = CabsST CabsST
       filter[(inst(initial(.Trip)) - UpdateStart) 
       < create_duration(0, 60000)] {c2} 
     itHashJoin[Id_c1, Id_c2]
+    filter[.Cell_c1 = .Cell_c2]
     filter[
       (inst(initial(.Trip_c2)) - inst(final(.Trip_c1))) 
         < create_duration(0, 60000)] consume, 
@@ -192,13 +192,14 @@ query UpdatePairsST CabsST CabsST_Trip_rtree
           inst(final(.Trip_c1)), inst(initial(.Trip_c2)),
           TRUE, FALSE) feed concat
         units(.Trip_c2) concat transformstream
-        makemvalue[Elem]
+        makemvalue[Elem],
+      Cell: .Cell_c1
     ] 
+    extend[Box: bbox(.Trip)]
     $2 insert
-    $3 insertrtree[Trip]
+    $3 insertrtree[Box]
     count, 
   myPort] getValue
-
 /*
 Delete trips contained in upate pairs:
 
@@ -210,7 +211,7 @@ query UpdatePairsST CabsST CabsST_Trip_rtree
     . feed projectextend[; TID: .TID_c2] 
     concat
     $2 deletebyid4[TID]
-    $3 deletebtree[Id]
+    $3 deletertree[Box]
     count,
   myPort] getValue 
 

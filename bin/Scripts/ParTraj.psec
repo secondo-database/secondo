@@ -5,9 +5,16 @@
 
 create database taxis;
 open database taxis;
+
+/*
+Adapt the following:
+
+*/
 restore Workers from WorkersNewton;
-let NSlots = 160;
-let myPort = 61239
+
+let NSlots = 40;
+let NSlots2 = 120;
+let myPort = 1238
 
 /*
 2 Data Import 
@@ -100,7 +107,8 @@ query share("grid", TRUE, Workers)
 
 let CabsST = CabsId 
   partitionF["", . feed 
-    extendstream[Cell: cellnumber(bbox(.Trip), grid)], 
+    extendstream[Cell: cellnumber(bbox(.Trip), grid)]
+    extend[Box: bbox(.Trip)], 
     ..Cell, NSlots]
   collect2["", myPort]
   dmap["CabsST", . feed consume]
@@ -119,7 +127,7 @@ let CabsId_Id_btree = CabsId dmap["CabsId_Id_btree", . createbtree[Id]]
 
 */
 let CabsST_Trip_rtree = CabsST
-  dmap["CabsST_Trip_rtree",  . feed addid extend[Box: bbox(.Trip)] 
+  dmap["CabsST_Trip_rtree",  . feed addid  
     extend[ScaledBox: scalerect(.Box, 1000000.0, 1000000.0, 1000.0)]
     sortby[ScaledBox]
     remove[ScaledBox]
