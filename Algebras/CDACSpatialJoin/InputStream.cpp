@@ -44,10 +44,10 @@ using namespace std;
 
 uint64_t InputStream::DEFAULT_RECTANGLE_BLOCK_SIZE = 10;
 
-InputStream::InputStream(const bool rectanglesOnly_, const unsigned attrIndex_,
-                         const unsigned attrCount_, const unsigned dim_,
-                         const uint64_t blockSizeInMiB_) :
-        rectanglesOnly(rectanglesOnly_),
+InputStream::InputStream(const OutputType outputType_,
+        const unsigned attrIndex_, const unsigned attrCount_,
+        const unsigned dim_, const uint64_t blockSizeInMiB_) :
+        outputType(outputType_),
         attrIndex(attrIndex_),
         attrCount(attrCount_),
         dim(dim_),
@@ -77,9 +77,16 @@ void InputStream::clearMem() {
          tBlock->DecRef();
    }
    tBlocks.clear();
+
    for (RectangleBlock* rBlock : rBlocks)
       delete rBlock;
    rBlocks.clear();
+
+   for (Tuple* tuple : tuples) {
+      if (tuple)
+         tuple->DeleteIfAllowed();
+   }
+   tuples.clear();
 
    if (openCount == 1 && currentTupleCount > 0) {
       totalTupleCount += currentTupleCount;
@@ -93,16 +100,25 @@ void InputStream::clearMem() {
 }
 
 bool InputStream::request() {
-   if (rectanglesOnly) {
-      return requestRectangles();
-   } else {
-      CRelAlgebra::TBlock* tupleBlock = nullptr;
-      if (!(tupleBlock = this->requestBlock())) {
-         return finishRequest(0, 0);
-      } else {
-         tBlocks.push_back(tupleBlock);
-         return finishRequest(tupleBlock->GetSize(), tupleBlock->GetRowCount());
+   switch(outputType) {
+      case outputCount: {
+         return requestRectangles();
       }
+      case outputTupleStream: {
+         return requestTuples();
+      }
+      case outputTBlockStream: {
+         CRelAlgebra::TBlock* tupleBlock = nullptr;
+         if (!(tupleBlock = this->requestBlock())) {
+            return finishRequest(0, 0);
+         } else {
+            tBlocks.push_back(tupleBlock);
+            return finishRequest(tupleBlock->GetSize(),
+                                 tupleBlock->GetRowCount());
+         }
+      }
+      default:
+         return false;
    }
 }
 
@@ -117,6 +133,32 @@ bool InputStream::finishRequest(uint64_t bytesAdded, uint64_t tuplesAdded) {
       currentTupleCount += tuplesAdded;
       passTupleCount += tuplesAdded;
       return true;
+   }
+}
+
+size_t InputStream::getBlockCount() const {
+   switch(outputType) {
+      case outputCount:
+         return rBlocks.size();
+      case outputTupleStream:
+         return 1;
+      case outputTBlockStream:
+         return tBlocks.size();
+      default:
+         return true;
+   }
+}
+
+bool InputStream::empty() const {
+   switch(outputType) {
+      case outputCount:
+         return rBlocks.empty();
+      case outputTupleStream:
+         return tuples.empty();
+      case outputTBlockStream:
+         return tBlocks.empty();
+      default:
+         return true;
    }
 }
 
@@ -142,13 +184,16 @@ Rectangle<2> InputStream::getRectangle2D(BlockIndex_t block, RowIndex_t row)
       const {
    assert (dim == 2);
 
-   if (rectanglesOnly) {
+   if (outputType == outputCount) {
       if (block < rBlocks.size()) {
          const RectangleBlock* rBlock = rBlocks[block];
          if (row < rBlock->getRectangleCount())
             return rBlock->getRectangle2D(row);
       }
-   } else {
+   } else if (outputType == outputTupleStream) {
+      return ((const StandardSpatialAttribute<2>*)
+              tuples[row]->GetAttribute(attrIndex))->BoundingBox();
+   } else { // outputType == outputTBlockStream
       if (block < tBlocks.size()) {
          const CRelAlgebra::TBlock* tBlock = tBlocks[block];
          if (row < tBlock->GetRowCount()) {
@@ -165,13 +210,16 @@ Rectangle<3> InputStream::getRectangle3D(BlockIndex_t block, RowIndex_t row)
          const {
    assert (dim == 3);
 
-   if (rectanglesOnly) {
+   if (outputType == outputCount) {
       if (block < rBlocks.size()) {
          const RectangleBlock* rBlock = rBlocks[block];
          if (row < rBlock->getRectangleCount())
             return rBlock->getRectangle3D(row);
       }
-   } else {
+   } else if (outputType == outputTupleStream) {
+      return ((const StandardSpatialAttribute<3>*)
+              tuples[row]->GetAttribute(attrIndex))->BoundingBox();
+   } else { // outputType == outputTBlockStream
       if (block < tBlocks.size()) {
          const CRelAlgebra::TBlock* tBlock = tBlocks[block];
          if (row < tBlock->GetRowCount()) {
@@ -203,12 +251,13 @@ void InputStream::streamOpened() {
 1.2 InputTBlockStream  class
 
 */
-InputTBlockStream::InputTBlockStream(Word stream_, const bool rectanglesOnly_,
+InputTBlockStream::InputTBlockStream(Word stream_, const OutputType outputType_,
         const unsigned attrIndex_, const unsigned attrCount_,
         const unsigned dim_, const uint64_t blockSizeInMiB_) :
-        InputStream(rectanglesOnly_, attrIndex_, attrCount_, dim_,
+        InputStream(outputType_, attrIndex_, attrCount_, dim_,
                 blockSizeInMiB_),
         tBlockStream(stream_) {
+   assert (outputType_ != outputTupleStream);
    tBlockStream.open();
    streamOpened();
 }
@@ -270,11 +319,11 @@ void InputTBlockStream::restart() {
 1.3 InputTupleStream  class
 
 */
-InputTupleStream::InputTupleStream(Word stream_, const bool rectanglesOnly_,
+InputTupleStream::InputTupleStream(Word stream_, const OutputType outputType_,
         const unsigned attrIndex_, const unsigned attrCount_,
         const unsigned dim_, const CRelAlgebra::PTBlockInfo& blockInfo_,
         const uint64_t desiredBlockSizeInMiB_) :
-        InputStream(rectanglesOnly_, attrIndex_, attrCount_, dim_,
+        InputStream(outputType_, attrIndex_, attrCount_, dim_,
                     desiredBlockSizeInMiB_),
         tupleStream(stream_),
         blockInfo(blockInfo_) {
@@ -284,6 +333,18 @@ InputTupleStream::InputTupleStream(Word stream_, const bool rectanglesOnly_,
 
 InputTupleStream::~InputTupleStream() {
    tupleStream.close();
+}
+
+bool InputTupleStream::requestTuples() {
+   Tuple* tuple = nullptr;
+   uint64_t tupleCount = 0;
+   uint64_t sizeSum = 0;
+   while (sizeSum < blockSizeInBytes && (tuple = tupleStream.request())) {
+      tuples.push_back(tuple);
+      ++tupleCount;
+      sizeSum += tuple->GetMemSize();
+   }
+   return finishRequest(sizeSum, tupleCount);
 }
 
 CRelAlgebra::TBlock* InputTupleStream::requestBlock() {

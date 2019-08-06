@@ -70,16 +70,6 @@ To keep terminology clear,
 
 */
 class Merger {
-public:
-#ifdef CDAC_SPATIAL_JOIN_METRICS
-   /* statistics on the usage of Merger functions and the
-    * iteration frequency of the while loops in Merger::reportPairsSub().
-    * Using a static instance is not a "pretty" solution but saves us from
-    * injecting a MergerStats instance into millions of Merger instances */
-   static std::unique_ptr<MergerStats> stats;
-#endif
-
-private:
    /* a rough sequence of tasks to be performed by the Merger */
    enum TASK { initialize, report, postProcess, done };
 
@@ -160,10 +150,6 @@ private:
    size_t indexT;
 
 public:
-#ifdef CDAC_SPATIAL_JOIN_METRICS
-   static void resetLoopStats();
-#endif
-
    /* constructor expects two adjacent areas which shall be merged to a single
     * area. Note that the input areas must fulfil the invariants listed in the
     * MergedArea.h comment */

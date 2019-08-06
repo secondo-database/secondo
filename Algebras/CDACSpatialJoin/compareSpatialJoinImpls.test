@@ -83,58 +83,113 @@ query createRectangles3D(10, 2, 0.4, 0.6, 1) {a} createRectangles3D(10, 2, 0.4, 
 
 
 ########################################
-# OPERATOR - CDACSpatialJoin
+# OPERATOR - CDACSpatialJoin (rows)
 ########################################
 
-#testcase -CDAC.1.1- join 3D rectangles with 2D rectangles (z dimension is ignored)
-#yields (longint 2806)
+#testcase -CDAC-row.1.1- join 3D rectangles with 2D rectangles (z dimension is ignored)
+#yields (int 2806)
 query createRectangles3D(10, 4, 0.2, 0.3, 1) createRectangles2D(10, 4, 0.2, 0.3, 2) {a} cdacspatialjoin[] count
 
-#testcase -CDAC.1.2- join 2D rectangles with 3D rectangles (z dimension is ignored)
-#yields (longint 2806)
+#testcase -CDAC-row.1.2- join 2D rectangles with 3D rectangles (z dimension is ignored)
+#yields (int 2806)
 query createRectangles2D(10, 4, 0.2, 0.3, 2) createRectangles3D(10, 4, 0.2, 0.3, 1) {a} cdacspatialjoin[] count
 
-#testcase -CDAC.1.3- join 3D rectangles with 3D rectangles (z dimension is considered)
-#yields (longint 29)
+#testcase -CDAC-row.1.3- join 3D rectangles with 3D rectangles (z dimension is considered)
+#yields (int 29)
 query createRectangles3D(10, 4, 0.2, 0.3, 1) createRectangles3D(10, 4, 0.2, 0.3, 2) {a} cdacspatialjoin[] count
 
 
-#testcase -CDAC.2.1- all 100 rectangles with int coordinates in interval [-2, 2] must intersect with the rectangle (-1, -1) - (1, 1)
-#yields (longint 100)
+#testcase -CDAC-row.2.1- all 100 rectangles with int coordinates in interval [-2, 2] must intersect with the rectangle (-1, -1) - (1, 1)
+#yields (int 100)
 query rect100 feed rect1 feed {a} cdacspatialjoin[] count;
 
-#testcase -CDAC.2.2- ... the same applies if positions are swapped
-#yields (longint 100)
+#testcase -CDAC-row.2.2- ... the same applies if positions are swapped
+#yields (int 100)
 query rect1 feed rect100 feed {a} cdacspatialjoin[] count;
 
-#testcase -CDAC.2.3- ... and for the slightly larger rectangle (-1.00001, -1.00001) - (1.00001, 1.00001)
-#yields (longint 100)
+#testcase -CDAC-row.2.3- ... and for the slightly larger rectangle (-1.00001, -1.00001) - (1.00001, 1.00001)
+#yields (int 100)
 query rect100 feed rectOver1 feed {a} cdacspatialjoin[] count;
 
-#testcase -CDAC.2.4- ... and of course for the rectangle (-2, -2) - (2, 2)
-#yields (longint 100)
+#testcase -CDAC-row.2.4- ... and of course for the rectangle (-2, -2) - (2, 2)
+#yields (int 100)
 query rect100 feed rect2 feed {a} cdacspatialjoin[] count;
 
-#testcase -CDAC.2.5- ... but only 64 of the 100 rectangles should intersect with the rectangle (-0.99999, -0.99999) - (0.99999, 0.99999)
-#yields (longint 64)
+#testcase -CDAC-row.2.5- ... but only 64 of the 100 rectangles should intersect with the rectangle (-0.99999, -0.99999) - (0.99999, 0.99999)
+#yields (int 64)
 query rect100 feed rectBelow1 feed {a} cdacspatialjoin[] count;
 
 
-#testcase -CDAC.3.1- feeding the result of one cdacspatialjoin into another cdacspatialjoin
-#yields (longint 147904)
+#testcase -CDAC-row.3.1- feeding the result of one cdacspatialjoin into another cdacspatialjoin
+#yields (int 147904)
 query createRectangles2D(10, 2, 0.4, 0.6, 1) {a} createRectangles2D(10, 2, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.4, 0.6, 3) {c} cdacspatialjoin[Bbox_a, Bbox_c] count;
 
-#testcase -CDAC.3.2- feeding the results of two cdacspatialjoins into a third cdacspatialjoin
-#yields (longint 1696847)
+#testcase -CDAC-row.3.2- feeding the results of two cdacspatialjoins into a third cdacspatialjoin
+#yields (int 1696847)
 query createRectangles2D(10, 2, 0.4, 0.6, 1) {a} createRectangles2D(10, 2, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.3, 0.5, 3) {c} createRectangles2D(10, 2, 0.3, 0.5, 4) {d} cdacspatialjoin[Bbox_c, Bbox_d] cdacspatialjoin[Bbox_a, Bbox_d] count;
 
-#testcase -CDAC.3.3- feeding the result of a 3D-cdacspatialjoin into a mixed 3D-/2D-cdacspatialjoin
-#yields (longint 126573)
+#testcase -CDAC-row.3.3- feeding the result of a 3D-cdacspatialjoin into a mixed 3D-/2D-cdacspatialjoin
+#yields (int 126573)
 query createRectangles3D(10, 2, 0.4, 0.6, 1) {a} createRectangles3D(10, 2, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.4, 0.6, 3) {c} cdacspatialjoin[Bbox_a, Bbox_c] count;
 
-#testcase -CDAC.3.4- feeding the results of two cdacspatialjoins (one 3D, the other 2D) into a third cdacspatialjoin
-#yields (longint 1300536)
+#testcase -CDAC-row.3.4- feeding the results of two cdacspatialjoins (one 3D, the other 2D) into a third cdacspatialjoin
+#yields (int 1300536)
 query createRectangles3D(10, 2, 0.4, 0.6, 1) {a} createRectangles3D(10, 2, 0.4, 0.6, 2) {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.3, 0.5, 3) {c} createRectangles2D(10, 2, 0.3, 0.5, 4) {d} cdacspatialjoin[Bbox_c, Bbox_d] cdacspatialjoin[Bbox_a, Bbox_d] count;
+
+
+########################################
+# OPERATOR - CDACSpatialJoin (cols)
+########################################
+
+#testcase -CDAC-col.1.1- join 3D rectangles with 2D rectangles (z dimension is ignored)
+#yields (longint 2806)
+query createRectangles3D(10, 4, 0.2, 0.3, 1) toblocks[1] createRectangles2D(10, 4, 0.2, 0.3, 2) toblocks[1] {a} cdacspatialjoin[] count
+
+#testcase -CDAC-col.1.2- join 2D rectangles with 3D rectangles (z dimension is ignored)
+#yields (longint 2806)
+query createRectangles2D(10, 4, 0.2, 0.3, 2) toblocks[1] createRectangles3D(10, 4, 0.2, 0.3, 1) toblocks[1] {a} cdacspatialjoin[] count
+
+#testcase -CDAC-col.1.3- join 3D rectangles with 3D rectangles (z dimension is considered)
+#yields (longint 29)
+query createRectangles3D(10, 4, 0.2, 0.3, 1) toblocks[1] createRectangles3D(10, 4, 0.2, 0.3, 2) toblocks[1] {a} cdacspatialjoin[] count
+
+
+#testcase -CDAC-col.2.1- all 100 rectangles with int coordinates in interval [-2, 2] must intersect with the rectangle (-1, -1) - (1, 1)
+#yields (longint 100)
+query rect100 feed toblocks[1] rect1 feed toblocks[1] {a} cdacspatialjoin[] count;
+
+#testcase -CDAC-col.2.2- ... the same applies if positions are swapped
+#yields (longint 100)
+query rect1 feed toblocks[1] rect100 feed toblocks[1] {a} cdacspatialjoin[] count;
+
+#testcase -CDAC-col.2.3- ... and for the slightly larger rectangle (-1.00001, -1.00001) - (1.00001, 1.00001)
+#yields (longint 100)
+query rect100 feed toblocks[1] rectOver1 feed toblocks[1] {a} cdacspatialjoin[] count;
+
+#testcase -CDAC-col.2.4- ... and of course for the rectangle (-2, -2) - (2, 2)
+#yields (longint 100)
+query rect100 feed toblocks[1] rect2 feed toblocks[1] {a} cdacspatialjoin[] count;
+
+#testcase -CDAC-col.2.5- ... but only 64 of the 100 rectangles should intersect with the rectangle (-0.99999, -0.99999) - (0.99999, 0.99999)
+#yields (longint 64)
+query rect100 feed toblocks[1] rectBelow1 feed toblocks[1] {a} cdacspatialjoin[] count;
+
+
+#testcase -CDAC-col.3.1- feeding the result of one cdacspatialjoin into another cdacspatialjoin
+#yields (longint 147904)
+query createRectangles2D(10, 2, 0.4, 0.6, 1) toblocks[1] {a} createRectangles2D(10, 2, 0.4, 0.6, 2) toblocks[1] {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.4, 0.6, 3) toblocks[1] {c} cdacspatialjoin[Bbox_a, Bbox_c] count;
+
+#testcase -CDAC-col.3.2- feeding the results of two cdacspatialjoins into a third cdacspatialjoin
+#yields (longint 1696847)
+query createRectangles2D(10, 2, 0.4, 0.6, 1) toblocks[1] {a} createRectangles2D(10, 2, 0.4, 0.6, 2) toblocks[1] {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.3, 0.5, 3) toblocks[1] {c} createRectangles2D(10, 2, 0.3, 0.5, 4) toblocks[1] {d} cdacspatialjoin[Bbox_c, Bbox_d] cdacspatialjoin[Bbox_a, Bbox_d] count;
+
+#testcase -CDAC-col.3.3- feeding the result of a 3D-cdacspatialjoin into a mixed 3D-/2D-cdacspatialjoin
+#yields (longint 126573)
+query createRectangles3D(10, 2, 0.4, 0.6, 1) toblocks[1] {a} createRectangles3D(10, 2, 0.4, 0.6, 2) toblocks[1] {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.4, 0.6, 3) toblocks[1] {c} cdacspatialjoin[Bbox_a, Bbox_c] count;
+
+#testcase -CDAC-col.3.4- feeding the results of two cdacspatialjoins (one 3D, the other 2D) into a third cdacspatialjoin
+#yields (longint 1300536)
+query createRectangles3D(10, 2, 0.4, 0.6, 1) toblocks[1] {a} createRectangles3D(10, 2, 0.4, 0.6, 2) toblocks[1] {b} cdacspatialjoin[Bbox_a, Bbox_b] createRectangles2D(10, 2, 0.3, 0.5, 3) toblocks[1] {c} createRectangles2D(10, 2, 0.3, 0.5, 4) toblocks[1] {d} cdacspatialjoin[Bbox_c, Bbox_d] cdacspatialjoin[Bbox_a, Bbox_d] count;
 
 
 ########################################

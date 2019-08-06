@@ -46,6 +46,15 @@ and the iteration frequency of the while loops in Merger::reportPairsSub().
 
 */
 struct MergerStats {
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+   /* statistics on the usage of SelfMerger functions and the
+    * iteration frequency of the while loops in (Self)Merger::reportPairsSub().
+    * Using a static instance is not a "pretty" solution but saves us from
+    * injecting a MergerStats instance into millions of (Self)Merger
+    * instances */
+   static std::unique_ptr<MergerStats> onlyInstance;
+#endif
+
    /* size of loopStats array (see below). 32 allows for up to
     * 2^32 - 1 = approx. 4 billion cycles in while loops */
    static constexpr unsigned LOOP_STATS_COUNT = 32;
@@ -75,6 +84,8 @@ public:
    /* updates the loop statistics, adding a loop with the given count of
     * cycles */
    void add(size_t cycleCount);
+
+   void reset();
 
    /* constructor, setting all counters to 0 */
    MergerStats();

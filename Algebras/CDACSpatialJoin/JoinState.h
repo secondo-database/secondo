@@ -53,8 +53,6 @@ to get distinct Timer evaluation for each task.
 enum JoinTask : unsigned {
    /* the task of requesting data from the InputStreams */
    requestData,
-   /* the task of creating a JoinState instance */
-   createJoinState,
    /* the task of creating a vector of SortEdge instances */
    createSortEdges,
    /* the task of sorting the vector of SortEdge instances */
@@ -64,8 +62,9 @@ enum JoinTask : unsigned {
    /* the task of merging the JoinEdges and reporting (or counting) the
     * intersections */
    merge,
-   /* the task of destructing the CDACLocalInfo class */
-   destructor
+   /* the task of clearing the input stream memory (and destructing the
+    * CDACLocalInfo class) */
+   clearMemory
 };
 
 /*
@@ -119,6 +118,11 @@ struct JoinStateMemoryInfo {
    /* the size in bytes of all output data created during the whole lifetime
     * of this JoinState (i.e. the size sum of all output TBlocks) */
    size_t outputDataSize;
+
+   /* the maximum size in bytes of one chunk of output data (i.e. one output
+    * TBlock or one chunk of output tuples) created during the lifetime of this
+    * JoinState */
+   size_t outputDataSizeMax;
 
    /* initializes the memory statistics with the given information */
    void initialize(size_t usedInputDataMemory_, size_t rectangleInfoCount,
@@ -195,9 +199,7 @@ class JoinState {
     * is passed to Merger instances) */
    IOData ioData;
 
-   /* true if only the number of intersections should be counted;
-    * false if actual result tuples should be returned */
-   const bool countOnly;
+   const OutputType outputType;
 
    /* the number of tuples stored in the current TBlocks (for each stream) */
    const uint64_t tupleCounts[SET_COUNT];
@@ -301,6 +303,9 @@ class JoinState {
    /* the number of (non-empty) outTBlocks returned by this JoinState */
    unsigned outTBlockCount;
 
+   /* the number of bytes returned by this JoinState */
+   size_t outputSize;
+
    /* is set to true once the join has completed; the outTBlock may still
     * contain the last result tuples */
    bool joinCompleted;
@@ -316,7 +321,8 @@ public:
     * dimA/B: the dimension (2 or 3) of the spatial information;
     * outTBlockSize: the maximum size of the return TBlock in bytes;
     * joinStateId: the consecutive number of this JoinState instance */
-   JoinState(bool countOnly_, InputStream* inputA_, InputStream* inputB_,
+   JoinState(OutputType outputType_, TupleType* tupleType_,
+         InputStream* inputA_, InputStream* inputB_,
          uint64_t outTBlockSize_, unsigned operatorNum_, unsigned joinStateId_,
          std::shared_ptr<Timer>& timer_);
 
@@ -325,7 +331,8 @@ public:
    /* fills the given outTBlock with result tuples; returns true, if more
     * tuples were found, or false, if the operation is complete and no more
     * result tuples were found */
-   bool nextTBlock(CRelAlgebra::TBlock* outTBlock_);
+   bool nextTBlock(CRelAlgebra::TBlock* outTBlock_,
+           std::vector<Tuple*>* outTuples_);
 
    size_t getOutTupleCount() const { return ioData.getOutTupleCount(); }
 

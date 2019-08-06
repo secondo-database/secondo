@@ -81,13 +81,19 @@ private:
    // -----------------------------------------------------
    // data from the input streams, given to the constructor
 
-   /* true if only the number of intersections should be counted;
-    * false if actual result tuples should be returned */
-   const bool countOnly;
+   /* the desired output type (count, tuple stream or TBlock stream) */
+   const OutputType outputType;
+
+   /* the output tuple type (if the desired outputType is a tuple stream) */
+   TupleType* outputTupleType;
 
    /* the TupleBlocks (TBlocks) received from the two input streams
     * (in case full tuples are required) */
    std::vector<CRelAlgebra::TBlock*>* tBlocks[SET_COUNT];
+
+   /* the tuples received from the two input streams
+    * (in case the output should be a tuple stream, too) */
+   std::vector<Tuple*>* tuples[SET_COUNT];
 
    /* the RectangleBlocks received from the two input streams
     * (in case rectangles are required only) */
@@ -142,16 +148,25 @@ private:
    /* the last source rectangle from set B that was used for output */
    SetRowBlock_t lastAddressB;
 
+   /* the output TBlock (used only if a TBlock stream is the desired output) */
    CRelAlgebra::TBlock* outTBlock = nullptr;
 
-   /* the total number of output tuples returned by this JoinState */
-   uint64_t outTupleCount;
+   /* the output tuples (used only if a tuple stream is the desired output) */
+   std::vector<Tuple*>* outTuples = nullptr;
+
+   /* the total number of output tuples returned by this JoinState. The next
+    * chunk of these tuples is temporarily stored either in outTBlock or in
+    * outTuples. */
+   uint64_t outTupleCount = 0;
+
+   /* the size in bytes of all output tuples returned by this JoinState */
+   uint64_t outTuplesSize = 0;
 
 
 public:
    /* creates an IOData instance from the given InpuStreams */
-   IOData(bool countOnly_, InputStream* inputA, InputStream* inputB,
-          uint64_t outTBlockSize_);
+   IOData(OutputType outputType_, TupleType* outputTupleType_,
+          InputStream* inputA, InputStream* inputB, uint64_t outTBlockSize_);
 
    ~IOData();
 
@@ -174,14 +189,29 @@ private:
    /* specializes calculateBboxAndEdges() for 2-dimensional input data in
     * TBlocks (nevertheless, a 3-dimensional bounding box is returned to
     * provide for cases of mixed 2-/3-dimensional input data) */
-   Rectangle<3> calculateBboxAndEdges2D(SET set, bool addToEdges,
+   Rectangle<3> calculateBboxAndEdges2DFromTBlocks(SET set, bool addToEdges,
            const Rectangle<3>& otherBbox,
            std::vector<SortEdge>* sortEdges,
            std::vector<RectangleInfo>* rectangleInfos) const;
 
    /* specializes calculateBboxAndEdges() for 3-dimensional input data in
     * TBlocks */
-   Rectangle<3> calculateBboxAndEdges3D(SET set, bool addToEdges,
+   Rectangle<3> calculateBboxAndEdges3DFromTBlocks(SET set, bool addToEdges,
+           const Rectangle<3>& otherBbox,
+           std::vector<SortEdge>* sortEdges,
+           std::vector<RectangleInfo>* rectangleInfos) const;
+
+   /* specializes calculateBboxAndEdges() for 2-dimensional input data in
+    * Tuples (nevertheless, a 3-dimensional bounding box is returned to
+    * provide for cases of mixed 2-/3-dimensional input data) */
+   Rectangle<3> calculateBboxAndEdges2DFromTuples(SET set, bool addToEdges,
+           const Rectangle<3>& otherBbox,
+           std::vector<SortEdge>* sortEdges,
+           std::vector<RectangleInfo>* rectangleInfos) const;
+
+   /* specializes calculateBboxAndEdges() for 3-dimensional input data in
+    * Tuples */
+   Rectangle<3> calculateBboxAndEdges3DFromTuples(SET set, bool addToEdges,
            const Rectangle<3>& otherBbox,
            std::vector<SortEdge>* sortEdges,
            std::vector<RectangleInfo>* rectangleInfos) const;
@@ -222,9 +252,16 @@ private:
    }
 
 public:
-   /* sets the output tuple block to the given value (which may be nullptr) */
-   inline void setOutTBlock(CRelAlgebra::TBlock* outTBlock_) {
+   /* sets the output tuple block and tuple vector to the given value,
+    * Depending on the desired outputType, either outTBlock is used (for an
+    * output stream of TBlocks), or outTuples (for an output stream of tuples),
+    * or none (for CDACSpatialJoinCount). If not used, outTBlock and outTuples
+    * may be nullptr. */
+   inline void setOutput(CRelAlgebra::TBlock* outTBlock_,
+           std::vector<Tuple*>* outTuples_) {
       outTBlock = outTBlock_;
+      outTuples = outTuples_;
+      outTuplesSize = 0;
    }
 
    /* returns the number of tuples that were added to the output tuple block
@@ -232,10 +269,8 @@ public:
     * counted) */
    inline uint64_t getOutTupleCount() const { return outTupleCount; }
 
-   /* returns the number of bytes that were added to the output tuple block */
-   inline size_t getOutTBlockSize() const {
-      return (outTBlock == nullptr) ? 0 : outTBlock->GetSize();
-   }
+   /* returns the number of bytes that were added to the output */
+   size_t getOutputSize() const;
 
    /* adds the given number to the output tuple count which is used for the
     * CDACSpatialJoinCount operator */

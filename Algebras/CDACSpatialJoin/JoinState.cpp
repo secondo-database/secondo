@@ -72,6 +72,7 @@ void JoinStateMemoryInfo::initialize(const size_t usedInputDataMemory_,
    mergeJoinEdgeCountMax = 0;
    outputTupleCount = 0;
    outputDataSize = 0;
+   outputDataSizeMax = 0;
 }
 
 void JoinStateMemoryInfo::add(MergedAreaPtr mergedArea) {
@@ -112,6 +113,7 @@ void JoinStateMemoryInfo::addOutputData(const uint64_t tupleCount,
         const size_t bytes) {
    outputTupleCount += tupleCount;
    outputDataSize += bytes;
+   outputDataSizeMax = std::max(outputDataSizeMax, bytes);
 }
 
 size_t JoinStateMemoryInfo::getTotalUsedMemoryMax() const {
@@ -123,7 +125,7 @@ size_t JoinStateMemoryInfo::getTotalUsedMemoryMax() const {
    // maximum of those two must be used (usually, that is the latter):
    return usedWholeLifetime +
           std::max(usedSortEdgeMemory + usedRectInfoMemory,
-                   usedMergedAreaMemoryMax);
+                   usedMergedAreaMemoryMax) + outputDataSizeMax;
 }
 
 
@@ -131,13 +133,14 @@ size_t JoinStateMemoryInfo::getTotalUsedMemoryMax() const {
 3 JoinState class
 
 */
-JoinState::JoinState(const bool countOnly_,
+JoinState::JoinState(const OutputType outputType_,
+           TupleType* tupleType_,
            InputStream* inputA, InputStream* inputB,
            const uint64_t outTBlockSize_,
            const unsigned operatorNum_, const unsigned joinStateId_,
            std::shared_ptr<Timer>& timer_) :
-        ioData(countOnly_, inputA, inputB, outTBlockSize_),
-        countOnly(countOnly_),
+        ioData(outputType_, tupleType_, inputA, inputB, outTBlockSize_),
+        outputType(outputType_),
         tupleCounts { inputA->getCurrentTupleCount(),
                       inputB->getCurrentTupleCount() },
         operatorNum(operatorNum_),
@@ -149,26 +152,34 @@ JoinState::JoinState(const bool countOnly_,
    const uint64_t tupleSum = tupleCounts[SET::A] + tupleCounts[SET::B];
 
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
-   // get the runtime of the previous(!) task, i.e. requestData
-   // (not the current Task createJoinState, therefore no timer->stop() here)
-   clock_t createJoinStateTime = timer->getLastTime();
+   // get the runtime of the current task, i.e. requestData
+   clock_t requestDataTime = timer->stop();
    cout << endl << outputPrefix << "JoinState " << joinStateId_ << " created "
         << "for operator " << operatorNum_ << endl;
 
    // sum up both sets and give the time used for requesting the streams
-   // timer->getListTime() will return the time for JoinTask::requestData
    const size_t sizeSum = inputA->getBlockCount() + inputB->getBlockCount();
    const size_t usedMemSum = inputA->getUsedMem() + inputB->getUsedMem();
-   const string blockName = countOnly_ ?  "block " : "TBlock ";
-   const string blocksName = countOnly_ ? "blocks" : "TBlocks";
-   const string tuplesName = countOnly_ ? "rectangles" : "tuples";
+   const bool countOnly = (outputType_ == outputCount);
+   const string blockName = countOnly ?  "block " : "TBlock ";
+   const string blocksName = countOnly ? "blocks" : "TBlocks";
+   const string tuplesName = countOnly ? "rectangles" : "tuples";
    cout << outputPrefix;
-   cout << "# input: " << setw(2) << formatInt(sizeSum) << " " << blocksName
-        << " (" << setw(7) << formatInt(usedMemSum / 1024) << " KiB)"
-        << " with " << setw(9) << formatInt(tupleSum) << " " << tuplesName
-        << " requested in " << formatMillis(createJoinStateTime)
-        << " (= " << formatMillis(createJoinStateTime / sizeSum)
-        << " per block)" << endl;
+   cout << "# input: ";
+   if (outputType_ == outputTupleStream) {
+      cout << setw(7) << formatInt(usedMemSum / 1024) << " KiB";
+
+   } else {
+      cout << setw(2) << formatInt(sizeSum) << " " << blocksName
+           << " (" << setw(7) << formatInt(usedMemSum / 1024) << " KiB)";
+   }
+   cout << " with " << setw(9) << formatInt(tupleSum) << " " << tuplesName
+        << " requested in " << formatMillis(requestDataTime);
+   if (outputType_ != outputTupleStream) {
+      cout << " (= " << formatMillis(requestDataTime / sizeSum)
+           << " per block)";
+   }
+   cout << endl;
 
    // details for each set
    static constexpr SET SETS[] { SET::A, SET::B };
@@ -176,11 +187,15 @@ JoinState::JoinState(const bool countOnly_,
       const InputStream* input = (set == SET::A) ? inputA : inputB;
       const size_t blockCount = input->getBlockCount();
       const size_t usedMem = input->getUsedMem();
-      cout << outputPrefix << "- set " << IOData::getSetName(set) << ": "
-           << setw(2) << formatInt(blockCount)
-           << " " << (blockCount == 1 ? blockName : blocksName)
-           << " (" << setw(7) << formatInt(usedMem / 1024) << " KiB) with "
-           << setw(9) << formatInt(input->getCurrentTupleCount())
+      cout << outputPrefix << "- set " << IOData::getSetName(set) << ": ";
+      if (outputType_ == outputTupleStream) {
+         cout << setw(7) << formatInt(usedMem / 1024) << " KiB";
+      } else {
+         cout << setw(2) << formatInt(blockCount)
+              << " " << (blockCount == 1 ? blockName : blocksName)
+              << " (" << setw(7) << formatInt(usedMem / 1024) << " KiB)";
+      }
+      cout << " with " << setw(9) << formatInt(input->getCurrentTupleCount())
            << " " << tuplesName << " (last entry id:"
            << setw(10) << formatInt(input->getPassTupleCount()) << ")"
            << " from stream " << IOData::getSetName(set) << " ";
@@ -459,6 +474,7 @@ JoinState::JoinState(const bool countOnly_,
 
    initializeCompleted = clock();
    outTBlockCount = 0;
+   outputSize = 0;
    joinCompleted = false;
 
    joinEdgeIndex = 0;
@@ -481,13 +497,14 @@ JoinState::~JoinState() {
    //    assert (selfMergedArea == nullptr);
 }
 
-bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_) {
+bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_,
+                           std::vector<Tuple*>* const outTuples_) {
    if (joinEdges.empty()) // this may happen if the sets' bboxes
       return false;       // do not intersect
    if (joinCompleted)
       return false;
 
-   ioData.setOutTBlock(outTBlock_);
+   ioData.setOutput(outTBlock_, outTuples_);
 
    // use specialized method for self join
    if (selfJoin) {
@@ -618,7 +635,7 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_) {
    uint64_t outTBlockTupleCount = updateStatistics(outTupleCountAtStart);
 
    // reference to outTBlock is not needed any more
-   ioData.setOutTBlock(nullptr);
+   ioData.setOutput(nullptr, nullptr);
 
    timer->stop();
    return (outTBlockTupleCount > 0);
@@ -659,26 +676,33 @@ void JoinState::reportLastMerge(MergedAreaPtr area1, MergedAreaPtr area2)
 uint64_t JoinState::updateStatistics(uint64_t outTupleCountAtStart) {
    size_t totalOutTupleCount = ioData.getOutTupleCount();
    uint64_t outTBlockTupleCount = totalOutTupleCount - outTupleCountAtStart;
-   if (!countOnly && outTBlockTupleCount > 0) {
+   if (outputType != outputCount && outTBlockTupleCount > 0) {
       // rowCount is ioData.outTBlock->GetRowCount();
       ++outTBlockCount;
+      outputSize += ioData.getOutputSize();
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-      memoryInfo.addOutputData(outTBlockTupleCount, ioData.getOutTBlockSize());
+      memoryInfo.addOutputData(outTBlockTupleCount, ioData.getOutputSize());
 #endif
    }
 
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
    if (joinCompleted) {
       cout << outputPrefix;
-      if (countOnly) {
-         // count intersections only
-         cout << "# " << formatInt(totalOutTupleCount)
-              << " intersections counted ";
-      } else {
-         // actual result tuples were created
-         cout << "# " << formatInt(outTBlockCount) << " "
-              << (outTBlockCount == 1 ? "block" : "blocks") << " with "
-              << formatInt(totalOutTupleCount) << " tuples returned ";
+      switch (outputType) {
+         case outputCount:
+            cout << "# " << formatInt(totalOutTupleCount)
+                 << " intersections counted ";
+            break;
+         case outputTupleStream:
+            cout << "# " << formatInt(outputSize / 1024) << " KiB with "
+                 << formatInt(totalOutTupleCount) << " tuples returned ";
+            break;
+         case outputTBlockStream:
+            cout << "# " << formatInt(outTBlockCount) << " "
+                 << (outTBlockCount == 1 ? "block" : "blocks")
+                 << " (" << formatInt(outputSize / 1024) << " KiB) with "
+                 << formatInt(totalOutTupleCount) << " tuples returned ";
+            break;
       }
       cout   << "in " << formatMillis(clock() - initializeCompleted)
              << " (intersection ratio "
@@ -704,7 +728,7 @@ bool JoinState::selfJoinNextTBlock() {
    // done at the beginning of this method, where idJoinEdgeIndex points
    // to the next edge in joinEdges[] that will be considered
    EdgeIndex_t idJoinEdgeIndex_ = idJoinEdgeIndex;
-   if (countOnly && idJoinEdgeIndex_ == 0) {
+   if (outputType == outputCount && idJoinEdgeIndex_ == 0) {
       // for counting these intersections, we simply use half the number of
       // joinEdges (where a left and a right edge is stored for each rectangle)
       ioData.addToOutTupleCount(joinEdgesSize_ / 2);
@@ -726,7 +750,7 @@ bool JoinState::selfJoinNextTBlock() {
          updateStatistics(outTupleCountAtStart);
 
          // reference to outTBlock is not needed any more
-         ioData_.setOutTBlock(nullptr);
+         ioData_.setOutput(nullptr, nullptr);
          timer->stop();
          return true;
       }
@@ -857,7 +881,7 @@ bool JoinState::selfJoinNextTBlock() {
    uint64_t outTBlockTupleCount = updateStatistics(outTupleCountAtStart);
 
    // reference to outTBlock is not needed any more
-   ioData.setOutTBlock(nullptr);
+   ioData.setOutput(nullptr, nullptr);
 
    timer->stop();
    return (outTBlockTupleCount > 0);

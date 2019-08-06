@@ -46,6 +46,10 @@ using namespace std;
 1 MergerStats struct
 
 */
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+unique_ptr<MergerStats> MergerStats::onlyInstance(new MergerStats());
+#endif
+
 MergerStats::MergerStats() :
         reportPairsCount(0),
         reportPairsSubCount(0),
@@ -62,6 +66,15 @@ void MergerStats::add(size_t cycleCount) {
    }
    assert (lbCycleCount < LOOP_STATS_COUNT);
    ++loopStats[lbCycleCount];
+}
+
+void MergerStats::reset() {
+   reportPairsCount = 0;
+   reportPairsSubCount = 0;
+   reportPairsSub1Count = 0;
+   reportPairsSub11Count = 0;
+   for (unsigned i = 0; i < LOOP_STATS_COUNT; ++i)
+      loopStats[i] = 0;
 }
 
 void MergerStats::report(std::ostream& out) const {

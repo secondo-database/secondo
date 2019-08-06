@@ -54,15 +54,22 @@ information is discarded from main memory.
 
 namespace cdacspatialjoin {
 
+enum OutputType {
+   outputCount,
+   outputTupleStream,
+   outputTBlockStream
+};
+
 class InputStream {
 public:
    /* the default size in RectangleBlock instances in MiB */
    static uint64_t DEFAULT_RECTANGLE_BLOCK_SIZE;
 
-   /* true if the InputStream should merely accumulate rectangles in rBlocks
-    * (and discard the rest of the tuple information); false if full tuples
-    * should be stored in tBlocks */
-   const bool rectanglesOnly;
+   /* the outputType determines the data that InputStream will accumulate:
+    * - outputCount: rectangles in rBlocks (discarding the tuples / TBlocks)
+    * - outputTupleStream: input tuples
+    * - outputTBlockStream: input TBlocks (possibly created from tuples) */
+   const OutputType outputType;
 
    /* the index of the join attribute */
    const unsigned attrIndex;
@@ -79,6 +86,10 @@ public:
    /* the TupleBlocks (TBlocks) received from this stream in the current
     * chunk (in case full tuples are required) */
    std::vector<CRelAlgebra::TBlock*> tBlocks;
+
+   /* the tuples received from this stream in the current chunk (in case the
+    * output should be a tuple stream, too) */
+   std::vector<Tuple*> tuples;
 
    /* the RectangleBlocks received from this stream in the current chunk
     * (in case rectangles are required only) */
@@ -124,10 +135,10 @@ protected:
 
 public:
    /* creates a new InputStream to encapsulate reading the underlying stream.
-    * If rectanglesOnly is true, only the bbox of the join attribute is kept
-    * in main memory, otherwise full tuple information is kept. The join
+    * outputType determines whether only the bbox of the join attribute is kept
+    * in main memory, or full tuple information (in Tuples or TBlocks). The join
     * attribute must be found at index attrIndex_; dim_ must be 2 or 3. */
-   InputStream(bool rectanglesOnly_, unsigned attrIndex_, unsigned attrCount_,
+   InputStream(OutputType outputType_, unsigned attrIndex_, unsigned attrCount_,
            unsigned dim_, uint64_t blockSizeInMiB_);
 
    virtual ~InputStream();
@@ -143,15 +154,11 @@ public:
 
    /* returns the number of RectangleBlocks (if only rectangles are kept) or
     * TBlocks (if full tuple information is kept) */
-   size_t getBlockCount() const {
-      return rectanglesOnly ? rBlocks.size() : tBlocks.size();
-   }
+   size_t getBlockCount() const;
 
    /* returns true if no information has been read to main memory since
     * construction (or since the last clearMem() call) */
-   bool empty() const {
-      return rectanglesOnly ? rBlocks.empty() : tBlocks.empty();
-   }
+   bool empty() const;
 
    /* returns the number of bytes currently used by the tBlocks / rBlocks */
    size_t getUsedMem() const;
@@ -227,6 +234,10 @@ private:
     * from tuples requested from the underlying stream) */
    virtual CRelAlgebra::TBlock* requestBlock() = 0;
 
+   /* requests tuples from the underlying tuple stream until either the
+    * stream is exhausted, or blockSizeInBytes is exceeded */
+   virtual bool requestTuples() = 0;
+
    /* creates a new RectangleBlock from tuples or TBlocks requested from the
     * underlying stream */
    virtual bool requestRectangles() = 0;
@@ -241,7 +252,7 @@ class InputTBlockStream : public InputStream {
    Stream<CRelAlgebra::TBlock> tBlockStream;
 
 public:
-   InputTBlockStream(Word stream_, bool rectanglesOnly_, unsigned attrIndex_,
+   InputTBlockStream(Word stream_, OutputType outputType_, unsigned attrIndex_,
                      unsigned attrCount_, unsigned dim_,
                      uint64_t blockSizeInMiB_);
 
@@ -250,6 +261,8 @@ public:
    void restart() override;
 
 private:
+   bool requestTuples() override { assert(false); return false; }
+
    CRelAlgebra::TBlock* requestBlock() override;
 
    bool requestRectangles() override;
@@ -273,7 +286,7 @@ private:
    const SmiFileId fileId = 0;
 
 public:
-   InputTupleStream(Word stream_, bool rectanglesOnly_, unsigned attrIndex_,
+   InputTupleStream(Word stream_, OutputType outputType_, unsigned attrIndex_,
            unsigned attrCount_, unsigned dim_,
            const CRelAlgebra::PTBlockInfo& blockInfo_,
            uint64_t desiredBlockSizeInMiB_);
@@ -283,6 +296,8 @@ public:
    void restart() override;
 
 private:
+   bool requestTuples() override;
+
    CRelAlgebra::TBlock* requestBlock() override;
 
    bool requestRectangles() override;

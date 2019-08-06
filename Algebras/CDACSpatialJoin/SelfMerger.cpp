@@ -48,14 +48,6 @@ using namespace std;
 1 SelfMerger class
 
 */
-#ifdef CDAC_SPATIAL_JOIN_METRICS
-unique_ptr<MergerStats> SelfMerger::stats(new MergerStats());
-
-void SelfMerger::resetLoopStats() {
-   stats.reset(new MergerStats());
-}
-#endif
-
 SelfMerger::SelfMerger(SelfMergedAreaPtr area1_, SelfMergedAreaPtr area2_,
                const bool isLastMerge_, IOData* const ioData_) :
         area1(area1_),
@@ -160,7 +152,7 @@ bool SelfMerger::reportPairs(const JoinEdgeVec& span,
    }
 
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-   ++stats->reportPairsCount;
+   ++MergerStats::onlyInstance->reportPairsCount;
 #endif
 
    // report type completed, reset reportSubType to 0 for next reportType
@@ -203,7 +195,7 @@ bool SelfMerger::reportPairsSub(const JoinEdgeVec& edgesS,
          // speed up the most frequent case (for many large joins, 99%)
          if (edgeTBegin.yMin > yMaxS) {
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-            stats->add(0);
+            MergerStats::onlyInstance->add(0);
 #endif
             ++indexSBegin_;
             continue;
@@ -236,7 +228,7 @@ bool SelfMerger::reportPairsSub(const JoinEdgeVec& edgesS,
             } // otherwise continue reporting
          }
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-         stats->add(indexT_ - indexTBegin_);
+         MergerStats::onlyInstance->add(indexT_ - indexTBegin_);
 #endif
          indexT_ = indexTBegin_;
 
@@ -248,7 +240,7 @@ bool SelfMerger::reportPairsSub(const JoinEdgeVec& edgesS,
          // speed up the most frequent case (for many large joins, 99%)
          if (edgeSBegin.yMin > yMaxT) {
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-            stats->add(0);
+            MergerStats::onlyInstance->add(0);
 #endif
             ++indexTBegin_;
             continue;
@@ -281,7 +273,7 @@ bool SelfMerger::reportPairsSub(const JoinEdgeVec& edgesS,
             } // otherwise continue reporting
          }
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-         stats->add(indexS_ - indexSBegin_);
+         MergerStats::onlyInstance->add(indexS_ - indexSBegin_);
 #endif
          indexS_ = indexSBegin_;
 
@@ -292,7 +284,7 @@ bool SelfMerger::reportPairsSub(const JoinEdgeVec& edgesS,
    }
 
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-   ++stats->reportPairsSubCount;
+   ++MergerStats::onlyInstance->reportPairsSubCount;
 #endif
 
    // reset indices for next call
@@ -354,7 +346,7 @@ bool SelfMerger::reportPairsSub1(const JoinEdge& edgeS,
    // now all possible intersections were reported
 
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-   ++stats->reportPairsSub1Count;
+   ++MergerStats::onlyInstance->reportPairsSub1Count;
 #endif
 
    // reset indices for next call (indexSBegin and indexS were not used here)
@@ -378,7 +370,7 @@ bool SelfMerger::reportPairsSub11(const JoinEdge& edgeS,
    }
 
 #ifdef CDAC_SPATIAL_JOIN_METRICS
-   ++stats->reportPairsSub11Count;
+   ++MergerStats::onlyInstance->reportPairsSub11Count;
 #endif
 
    // reset indices for next call

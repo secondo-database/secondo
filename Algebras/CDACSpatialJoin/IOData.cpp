@@ -36,6 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "IOData.h"
 
 #include "Algebras/CRel/SpatialAttrArray.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
 using namespace cdacspatialjoin;
 using namespace std;
@@ -63,10 +64,13 @@ SetRowBlock_t IOData::getBlockMask(const size_t rowShift) {
    return static_cast<SetRowBlock_t>((1U << rowShift) - 1);
 }
 
-IOData::IOData(const bool countOnly_, InputStream* inputA, InputStream* inputB,
+IOData::IOData(const OutputType outputType_, TupleType* outputTupleType_,
+               InputStream* inputA, InputStream* inputB,
                const uint64_t outTBlockSize_):
-        countOnly { countOnly_ },
+        outputType { outputType_ },
+        outputTupleType { outputTupleType_ },
         tBlocks { &inputA->tBlocks, &inputB->tBlocks },
+        tuples { &inputA->tuples, &inputB->tuples},
         rBlocks { &inputA->rBlocks, &inputB->rBlocks },
         attrIndices { inputA->attrIndex, inputB->attrIndex },
         columnCounts { inputA->attrCount, inputB->attrCount },
@@ -114,21 +118,32 @@ Rectangle<3> IOData::calculateBboxAndEdges(const SET set,
 
    // to optimize runtime, two distinct versions are being used
    // for the 2D and 3D cases:
-   if (countOnly) {
+   if (outputType == outputCount) {
       return calculateBboxAndEdgesCount(set, addToEdges, otherBbox, sortEdges,
                                         rectangleInfos);
-   } else if (dims[set] == 2) {
-      return calculateBboxAndEdges2D(set, addToEdges, otherBbox, sortEdges,
-                                     rectangleInfos);
-   } else if (dims[set] == 3) {
-      return calculateBboxAndEdges3D(set, addToEdges, otherBbox, sortEdges,
-                                     rectangleInfos);
+   } else if (outputType == outputTBlockStream) {
+      if (dims[set] == 2) {
+         return calculateBboxAndEdges2DFromTBlocks(set, addToEdges, otherBbox,
+                                                   sortEdges, rectangleInfos);
+      } else if (dims[set] == 3) {
+         return calculateBboxAndEdges3DFromTBlocks(set, addToEdges, otherBbox,
+                                                   sortEdges, rectangleInfos);
+      }
+   } else if (outputType == outputTupleStream) {
+      if (dims[set] == 2) {
+         return calculateBboxAndEdges2DFromTuples(set, addToEdges, otherBbox,
+                                                   sortEdges, rectangleInfos);
+      } else if (dims[set] == 3) {
+         return calculateBboxAndEdges3DFromTuples(set, addToEdges, otherBbox,
+                                                   sortEdges, rectangleInfos);
+      }
    } else {
       assert (false);
    }
+   return Rectangle<3>(false);
 }
 
-Rectangle<3> IOData::calculateBboxAndEdges2D(const SET set,
+Rectangle<3> IOData::calculateBboxAndEdges2DFromTBlocks(const SET set,
         const bool addToEdges, const Rectangle<3>& otherBbox,
         vector<SortEdge>* sortEdges,
         vector<RectangleInfo>* rectangleInfos) const {
@@ -217,7 +232,7 @@ Rectangle<3> IOData::calculateBboxAndEdges2D(const SET set,
    return Rectangle<3>(defined, min, max);
 }
 
-Rectangle<3> IOData::calculateBboxAndEdges3D(const SET set,
+Rectangle<3> IOData::calculateBboxAndEdges3DFromTBlocks(const SET set,
         const bool addToEdges, const Rectangle<3>& otherBbox,
         vector<SortEdge>* sortEdges,
         vector<RectangleInfo>* rectangleInfos) const {
@@ -312,12 +327,185 @@ Rectangle<3> IOData::calculateBboxAndEdges3D(const SET set,
    return Rectangle<3>(defined, min, max);
 }
 
+Rectangle<3> IOData::calculateBboxAndEdges2DFromTuples(const SET set,
+        const bool addToEdges, const Rectangle<3>& otherBbox,
+        vector<SortEdge>* sortEdges,
+        vector<RectangleInfo>* rectangleInfos) const {
+
+   assert (dims[set] == 2);
+   assert (!addToEdges || otherBbox.IsDefined());
+
+   // get some values that are used frequently in the loop below
+   const unsigned attrIndex = attrIndices[set];
+   auto rectInfoIndex = static_cast<RectInfoIndex_t>(rectangleInfos->size());
+
+   // the bbox of the other set serves as a filter to the rectangles in this set
+   const double filterXMin = otherBbox.MinD(0);
+   const double filterXMax = otherBbox.MaxD(0);
+   const double filterYMin = otherBbox.MinD(1);
+   const double filterYMax = otherBbox.MaxD(1);
+
+   // at the same time, calculate the bbox of this set
+   double bboxXMin = numeric_limits<double>::max();
+   double bboxXMax = -numeric_limits<double>::max();
+   double bboxYMin = numeric_limits<double>::max();
+   double bboxYMax = -numeric_limits<double>::max();
+
+   // iterate over the TBlocks of this set
+   const std::vector<Tuple*>* tuplesOfSet = tuples[set];
+   RowIndex_t row = 0;
+   const BlockIndex_t blockNum = 0;
+   for (Tuple* tuple : *tuplesOfSet) {
+      ++row;
+      // get the 2-dimensional extent of the current tuple's GeoData
+      const Rectangle<2>& rec = ((StandardSpatialAttribute<2>*)
+              tuple->GetAttribute(attrIndex))->BoundingBox();
+      if (!rec.IsDefined())
+         continue;
+
+      // get rectangle position
+      const double xMin = rec.MinD(0);
+      const double xMax = rec.MaxD(0);
+      const double yMin = rec.MinD(1);
+      const double yMax = rec.MaxD(1);
+
+      // extend the set's bbox
+      if (xMin < bboxXMin)
+         bboxXMin = xMin;
+      if (xMax > bboxXMax)
+         bboxXMax = xMax;
+      if (yMin < bboxYMin)
+         bboxYMin = yMin;
+      if (yMax > bboxYMax)
+         bboxYMax = yMax;
+
+      if (!addToEdges)
+         continue;
+
+      // simulate otherBbox.Intersects(rec) for the x and y dimensions
+      if ((xMax < filterXMin || filterXMax < xMin ||
+           yMax < filterYMin || filterYMax < yMin)) {
+         // rec is outside the bbox of the other set
+         continue;
+      }
+
+      // add the rectangle information and its two edges to the
+      // output vectors; otherwise, calculate the set's bounding
+      // box only
+      rectangleInfos->emplace_back(yMin, yMax,
+                                   getAddress(set, row - 1, blockNum));
+      sortEdges->emplace_back(xMin, rectInfoIndex, true);
+      sortEdges->emplace_back(xMax, rectInfoIndex, false);
+      ++rectInfoIndex;
+   }
+
+   // return this set's bounding box
+   // to keep things simple, a Rectangle<3> is returned in this case, too;
+   // for the z-dimension, anything will be allowed (in case the other set
+   // has three-dimensional information)
+   double bboxZMin = -numeric_limits<double>::max();
+   double bboxZMax = numeric_limits<double>::max();
+   const double min[] { bboxXMin, bboxYMin, bboxZMin };
+   const double max[] { bboxXMax, bboxYMax, bboxZMax };
+   const bool defined = (bboxXMin < numeric_limits<double>::max());
+   return Rectangle<3>(defined, min, max);
+}
+
+Rectangle<3> IOData::calculateBboxAndEdges3DFromTuples(const SET set,
+        const bool addToEdges, const Rectangle<3>& otherBbox,
+        vector<SortEdge>* sortEdges,
+        vector<RectangleInfo>* rectangleInfos) const {
+
+   assert (dims[set] == 3);
+   assert (!addToEdges || otherBbox.IsDefined());
+
+   // get some values that are used frequently in the loop below
+   const unsigned attrIndex = attrIndices[set];
+   auto rectInfoIndex = static_cast<RectInfoIndex_t>(rectangleInfos->size());
+
+   // the bbox of the other set serves as a filter to the rectangles in this set
+   const double filterXMin = otherBbox.MinD(0);
+   const double filterXMax = otherBbox.MaxD(0);
+   const double filterYMin = otherBbox.MinD(1);
+   const double filterYMax = otherBbox.MaxD(1);
+   const double filterZMin = otherBbox.MinD(2);
+   const double filterZMax = otherBbox.MaxD(2);
+
+   // at the same time, calculate the bbox of this set
+   double bboxXMin = numeric_limits<double>::max();
+   double bboxXMax = -numeric_limits<double>::max();
+   double bboxYMin = numeric_limits<double>::max();
+   double bboxYMax = -numeric_limits<double>::max();
+   double bboxZMin = numeric_limits<double>::max();
+   double bboxZMax = -numeric_limits<double>::max();
+
+   // iterate over the TBlocks of this set
+   const std::vector<Tuple*>* tuplesOfSet = tuples[set];
+   RowIndex_t row = 0;
+   const BlockIndex_t blockNum = 0;
+   for (Tuple* tuple : *tuplesOfSet) {
+      ++row;
+      // get the 2-dimensional extent of the current tuple's GeoData
+      const Rectangle<3>& rec = ((StandardSpatialAttribute<3>*)
+              tuple->GetAttribute(attrIndex))->BoundingBox();
+      if (!rec.IsDefined())
+         continue;
+
+      // get rectangle position
+      const double xMin = rec.MinD(0);
+      const double xMax = rec.MaxD(0);
+      const double yMin = rec.MinD(1);
+      const double yMax = rec.MaxD(1);
+      const double zMin = rec.MinD(2);
+      const double zMax = rec.MaxD(2);
+
+      // extend the set's bbox
+      if (xMin < bboxXMin)
+         bboxXMin = xMin;
+      if (xMax > bboxXMax)
+         bboxXMax = xMax;
+      if (yMin < bboxYMin)
+         bboxYMin = yMin;
+      if (yMax > bboxYMax)
+         bboxYMax = yMax;
+      if (zMin < bboxZMin)
+         bboxZMin = zMin;
+      if (zMax > bboxZMax)
+         bboxZMax = zMax;
+
+      if (!addToEdges)
+         continue;
+
+      // simulate otherBbox.Intersects(rec)
+      if ((xMax < filterXMin || filterXMax < xMin ||
+           yMax < filterYMin || filterYMax < yMin ||
+           zMax < filterZMin || filterZMax < zMin)) {
+         // rec is outside the bbox of the other set
+         continue;
+      }
+
+      // add the rectangle information and its two edges to the
+      // output vectors
+      rectangleInfos->emplace_back(yMin, yMax,
+                                   getAddress(set, row - 1, blockNum));
+      sortEdges->emplace_back(xMin, rectInfoIndex, true);
+      sortEdges->emplace_back(xMax, rectInfoIndex, false);
+      ++rectInfoIndex;
+   }
+
+   // return this set's bounding box
+   const double min[] { bboxXMin, bboxYMin, bboxZMin };
+   const double max[] { bboxXMax, bboxYMax, bboxZMax };
+   const bool defined = (bboxXMin < numeric_limits<double>::max());
+   return Rectangle<3>(defined, min, max);
+}
+
 Rectangle<3> IOData::calculateBboxAndEdgesCount(const SET set,
         const bool addToEdges, const Rectangle<3>& otherBbox,
         vector<SortEdge>* sortEdges,
         vector<RectangleInfo>* rectangleInfos) const {
 
-   assert (countOnly);
+   assert (outputType == outputCount);
    assert (!addToEdges || otherBbox.IsDefined());
 
    // get some values that are used frequently in the loop below
@@ -385,6 +573,19 @@ Rectangle<3> IOData::calculateBboxAndEdgesCount(const SET set,
    return bbox;
 }
 
+size_t IOData::getOutputSize() const {
+   switch(outputType) {
+      case outputCount:
+         return 0;
+      case outputTBlockStream:
+         return (outTBlock == nullptr) ? 0 : outTBlock->GetSize();
+      case outputTupleStream:
+         return outTuplesSize;
+      default:
+         return 0;
+   }
+}
+
 void IOData::addToOutTupleCount(const uint64_t count) {
    // assert (countOnly);
    outTupleCount += count;
@@ -403,7 +604,7 @@ bool IOData::appendToOutput(const JoinEdge& entryS, const JoinEdge& entryT,
           const bool overrideSet /* = false */) {
 #ifndef CDAC_SPATIAL_JOIN_DETAILED_REPORT_TO_CONSOLE
    // for this very common case, shortcut the rest of the code
-   if (countOnly && minDim == 2) {
+   if (outputType == outputCount && minDim == 2) {
       ++outTupleCount;
       return true;
    }
@@ -419,7 +620,7 @@ bool IOData::appendToOutput(const JoinEdge& entryS, const JoinEdge& entryT,
    const BlockIndex_t blockB = getBlockIndex(SET::B, addressB);
    const RowIndex_t rowA = getRowIndex(SET::A, addressA);
    const RowIndex_t rowB = getRowIndex(SET::B, addressB);
-   if (countOnly) {
+   if (outputType == outputCount) {
       // get input tuples represented by the two given JoinEdges
       const RectangleBlock* rBlockA = (*rBlocks[SET::A])[blockA];
       const RectangleBlock* rBlockB = (*rBlocks[SET::B])[blockB];
@@ -453,7 +654,7 @@ bool IOData::appendToOutput(const JoinEdge& entryS, const JoinEdge& entryT,
       ++outTupleCount;
       return true;
 
-   } else { // !countOnly, i.e. create actual output tuples
+   } else if (outputType == outputTBlockStream) {
 
       // get input tuples represented by the two given JoinEdges
       const CRelAlgebra::TBlock* tBlockA = (*tBlocks[SET::A])[blockA];
@@ -524,6 +725,55 @@ bool IOData::appendToOutput(const JoinEdge& entryS, const JoinEdge& entryT,
       ++outTupleCount;
 
       return (outTBlock->GetSize() < outTBlockSize);
+
+   } else if (outputType == outputTupleStream) {
+
+      // get input tuples represented by the two given JoinEdges
+      Tuple* tupleA = (*tuples[SET::A])[rowA];
+      Tuple* tupleB = (*tuples[SET::B])[rowB];
+
+      // if both tuples are 3-dimensional, only now the z dimension is
+      // being tested. If the tuples' bounding boxes do not intersect in the
+      // z dimension, the pair is rejected at this late stage
+      if (minDim == 3) {
+         const Rectangle<3>& bboxA = ((StandardSpatialAttribute<3>*)
+                 tupleA->GetAttribute(attrIndices[SET::A]))->BoundingBox();
+         const Rectangle<3>& bboxB = ((StandardSpatialAttribute<3>*)
+                 tupleB->GetAttribute(attrIndices[SET::B]))->BoundingBox();
+         if (bboxA.MaxD(2) < bboxB.MinD(2) || bboxB.MaxD(2) < bboxA.MinD(2))
+            return true; // nothing was added to outTBlock
+      }
+
+#ifdef CDAC_SPATIAL_JOIN_DETAILED_REPORT_TO_CONSOLE
+      cout << endl;
+      static constexpr SET SETS[] { SET::A, SET::B };
+      for (const SET set : SETS) {
+         const JoinEdge& entry = (set == SET::A) ? entryA : entryB;
+         cout << (entry.getIsLeft() ? "L" : "R") << getSetName(set) << ": ";
+         const Tuple* tuple = (set == SET::A) ? tupleA : tupleB;
+         if (dims[set] == 2) {
+            const Rectangle<2>& bbox = ((StandardSpatialAttribute<2>*)
+                    tuple->GetAttribute(attrIndices[set]))->BoundingBox();
+            bbox.Print(cout); // prints an endl
+         } else {
+            const Rectangle<3>& bbox = ((StandardSpatialAttribute<3>*)
+                    tuple->GetAttribute(attrIndices[set]))->BoundingBox();
+            bbox.Print(cout); // prints an endl
+         }
+      }
+#endif
+
+      // copy attributes from tupleA and tupleB into the newTuple_
+      auto newTuple_ = new Tuple(outputTupleType);
+      Concat(tupleA, tupleB, newTuple_);
+      outTuples->push_back(newTuple_);
+      ++outTupleCount;
+      outTuplesSize += newTuple_->GetMemSize();
+      return (outTuplesSize < outTBlockSize);
+
+   } else {
+      assert (false);
+      return false;
    }
 }
 

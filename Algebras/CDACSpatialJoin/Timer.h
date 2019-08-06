@@ -60,9 +60,8 @@ Timer can easily be used to analyse any other operator as well:
     std::vector<std::string> taskNames;
     taskNames.emplace_back("createLocalInfo"); // task 0
     taskNames.emplace_back("requestData");     // task 1
-    taskNames.emplace_back("createJoinState"); // task 2
-    taskNames.emplace_back("nextTBlock");      // task 3
-    taskNames.emplace_back("destructor");      // task 4
+    taskNames.emplace_back("nextTBlock");      // task 2
+    taskNames.emplace_back("destructor");      // task 3
     timer.reset(new cdacspatialjoin::Timer(taskNames));
 ----
 

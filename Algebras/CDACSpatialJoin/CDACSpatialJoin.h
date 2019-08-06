@@ -93,10 +93,7 @@ private:
    static int valueMapping(Word* args, Word& result, int message,
                            Word& local, Supplier s);
 
-   static int valueMapping2(bool countOnly, Word* args, Word& result,
-                            int message, Word& local, Supplier s);
-
-   static InputStream* createInputStream(bool countOnly, Word* args,
+   static InputStream* createInputStream(OutputType outputType, Word* args,
            unsigned streamIndex);
 
    friend class CDACSpatialJoinCount;
@@ -139,8 +136,7 @@ private:
 
    static ListExpr typeMapping(ListExpr args);
 
-   static int valueMapping(Word* args, Word& result, int message,
-                           Word& local, Supplier s);
+   // for valueMapping, CDACSpatialJoin::valueMapping is used
 };
 
 /*
@@ -173,6 +169,11 @@ struct MemoryInfo {
     * MergedArea instances */
    size_t maxMemMergedAreas = 0;
 
+   /* the maximum size in bytes of one chunk of output data (i.e. one output
+    * TBlock or one chunk of output tuples) created during the lifetime of
+    * this */
+   size_t maxMemOutputDataSize = 0;
+
    /* the total maximum number of bytes used by any JoinState. Note that this
     * is not necessarily the same as the sum of the other maxMem... values,
     * since those maximum values may have occurred at different times */
@@ -197,6 +198,11 @@ struct MemoryInfo {
    /* the total number of bytes used by all JoinStates for their Merger and
     * MergedArea instances */
    size_t sumMemMergedAreas = 0;
+
+   /* the total number of bytes used by all JoinStates for their respective
+    * largest chunk of output data (i.e. for the largest output TBlock or the
+    * largest chunk of output tuples) */
+   size_t sumMemOutputDataSizeMax = 0;
 
    /* the total number of tuples provided by input stream A (in one pass) */
    size_t totalInputATupleCount = 0;
@@ -252,11 +258,24 @@ private:
 class CDACLocalInfo {
    static unsigned activeInstanceCount;
 
-   /* true if this instance is used for the CDACSpatialJoinCount operator
-    * (which only returns the number of intersecting rectangles);
-    * false if it is used for the CDACSpatialJoin operator (which returns
-    * actual result tuples) */
-   const bool countOnly;
+   /* if the desired output type is a tuple stream, the join operation will
+    * use a vector of tuples to temporarily store some output tuples. This
+    * value determines how much main memory (in MiB) may be used by these
+    * output tuples, before the temporary output tuple vector is flushed to the
+    * stream */
+   static uint64_t OUTPUT_TUPLE_VECTOR_MEM_SIZE_MIB;
+
+   /* the desired output type: outputCount, if only the number of intersecting
+    * rectangles should be returned (i.e. the CDACSpatialJoinCount operator was
+    * called); outputTupleStream, if the result tuples should be returned as
+    * a stream of tuples; outputTBlockStream, if the result tuples should be
+    * returned as a stream of tuple blocks (both done by the CDACSpatialJoin
+    * operator) */
+   const OutputType outputType;
+
+   /* the TupleType of the output tuples (if the desired outputType is a tuple
+    * stream) */
+   TupleType* outputTupleType;
 
    /* the first input stream. If neither stream can be kept in the main memory
     * at once, inputA is used as the inner loop (i.e. it is closed and
@@ -299,6 +318,16 @@ class CDACLocalInfo {
    /* the number of intersections found so far */
    size_t intersectionCount;
 
+   /* the current output tuple block (used only if the desired outputType is a
+    * stream of TBlocks) */
+   CRelAlgebra::TBlock* outTBlock;
+
+   /* the current vector for output tuples (used only if the desired
+    * outputType is a stream of tuples). This vector serves as a temporary
+    * store and is flushed once the tuples exceed the memory limit given by
+    * OUTPUT\_TUPLE\_VECTOR\_MEM\_SIZE\_MIB */
+   std::vector<Tuple*>* outTuples;
+
 #ifdef CDAC_SPATIAL_JOIN_METRICS
    MemoryInfo memoryInfo;
 #endif
@@ -307,16 +336,20 @@ class CDACLocalInfo {
 
 public:
    // constructor
-   CDACLocalInfo(bool countOnly_, InputStream* inputA_, InputStream* inputB_,
-           Supplier s);
+   CDACLocalInfo(OutputType outputType_, ListExpr outputTupleTypeLE,
+           InputStream* inputA_, InputStream* inputB_, Supplier s);
 
    // destructor decreases the reference counters for all loaded tuple
    // blocks and closes both streams
    ~CDACLocalInfo();
 
-   CRelAlgebra::TBlock* getNext();
-
    size_t getIntersectionCount() const { return intersectionCount; }
+
+   CRelAlgebra::TBlock* getNextTBlock();
+
+   Tuple* getNextTuple();
+
+   bool getNext();
 
 private:
    void requestInput();
