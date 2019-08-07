@@ -865,13 +865,13 @@ class pfilterSInfo : public Consumer<T>{
         stream(_stream), funs(_funs), buffer(funs.size()*2) {
         stream.open();
         runs = funs.size();
-        for(int i=0; i< funs.size();i++){
+        for(size_t i=0; i< funs.size();i++){
           runners.push_back(new pfilterSThread<T>(&stream, funs[i], this));
         }
      }
 
      ~pfilterSInfo(){
-       for(int i=0;i<runners.size();i++){
+       for(size_t i=0;i<runners.size();i++){
           runners[i]->cancel();
        }
        // ensure that each runner can insert a pending element
@@ -882,7 +882,7 @@ class pfilterSInfo : public Consumer<T>{
              elem->DeleteIfAllowed();
           }
        } 
-       for(int i=0;i<runners.size();i++){
+       for(size_t i=0;i<runners.size();i++){
           delete runners[i];
        }
        while( !buffer.empty() ){
