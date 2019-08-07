@@ -93,7 +93,7 @@ using an r-tree as index structure.
   ListExpr arguments = nl->Second(args);
 
   if(nl->ListLength(arguments)!=4) {
-   ErrorReporter::ReportError("non conform list of cluster attribut, "
+   ErrorReporter::ReportError("non conform list of cluster attribute, "
     "attribute name as cluster ID, Eps and MinPts");
    return nl->TypeError();
   }
@@ -253,14 +253,14 @@ using an r-tree as index structure.
   dbscanRInfo() : OperatorInfo()
   {
    name      = "dbscanR";
-   signature = "stream(Tuple) -> stream(Tuple)";
+   signature = "stream(Tuple) x Id x Id x real x int  -> stream(Tuple)";
    syntax    = "_ dbscanR [_, _, _, _]";
    meaning   = "Detects cluster from a given stream using MMR-Tree as index "
    "structure. The first parameter has to be a bbox, the second parameter is "
    "the name for the cluster ID attribute, the  third paramter is eps and "
    "the fourth parameter is MinPts. A tuple stream will be returned but the "
-   "tuple will have additional attributes as bbox, visited and clusterID";
-   example   = "query Kneipen feed extend[B : bbox(.GeoData)] dbscanRT "
+   "tuple will have additional attributes as IsCore, Visited and ClusterID";
+   example   = "query Kneipen feed extend[B : bbox(.GeoData)] dbscanR "
        "[B, No, 1000.0, 5] consume";
   }
  };
@@ -491,13 +491,13 @@ int dbscanMVM1(Word* args, Word& result,
   dbscanMInfo() : OperatorInfo()
   {
    name      = "dbscanM";
-   signature = "stream(Tuple) -> stream(Tuple)";
+   signature = "stream(Tuple) x Id x Id x real x int ->> stream(Tuple)";
    syntax    = "_ dbscanM [_, _, _, _]";
-   meaning   = "Detects cluster from a given stream using MMM-Tree as index "
+   meaning   = "Detects cluster from a given stream using an MMM-Tree as index "
    "structure. The first parameter is the attribute to cluster, the second "
-   "parameter is the name for the cluster ID attribute, the  third paramter "
+   "parameter is the name for the cluster ID attribute, the  third parameter "
    "is eps and the fourth parameter is MinPts. A tuple stream will be returned "
-   "but the tuple will have additional attributes as visited and clusterID";
+   "but the tuple will have additional attributes as Visited and the clusterID";
    example   = "query Kneipen feed dbscanM[GeoData, CID, 1000.0, 5] consume";
    
   }
@@ -767,16 +767,20 @@ int dbscanFVM1(Word* args, Word& result,
   dbscanFInfo() : OperatorInfo()
   {
    name      = "dbscanF";
-   signature = "stream(Tuple) -> stream(Tuple)";
+   signature = "stream(tuple) x ID x ID x real x int x fun -> stream(tuple)";
    syntax    = "_ dbscanF [_, _, _, _, fun]";
-   meaning   = "Detects cluster from a given stream using MMM-Tree as index "
-   "structure. The first parameter is the attribute to cluster, the second "
-   "parameter is the name for the cluster ID attribute, the  third paramter "
-   "is eps and the fourth parameter is MinPts. A tuple stream will be returned "
-   "but the tuple will have additional attributes as visited "
-   "and clusterID. In addition a distance function is required";
-   example   = "query plz feed dbscanMT[PLZ, CID, 1000.0, 5, "
-   "fun(i1: int, i2: int)i1 - i2] consume";  
+   meaning   = "Detects cluster from a given stream using an MMM-Tree as index "
+   "structure. The first argument is a tuple stream containing the data. "
+   "The second argument is the attribute to cluster, the third "
+   "argument is the name for the cluster ID attribute, the  fourth argument "
+   "is eps and the fifth argument is MinPts. "
+   "The last argument is a function mapping from a pair of cluster attributes "
+   " to the distance between their values."
+   "A tuple stream will be returned "
+   "that will have additional attributes as visited "
+   "and clusterID. ";
+   example   = "query plz feed dbscanF[PLZ, CID, 1000.0, 5, "
+   "fun(i1: int, i2: int) abs(i1 - i2)] consume";  
   }
  };
  
@@ -948,12 +952,14 @@ struct dbscanTFInfo :  OperatorInfo {
     name      = "dbscanTF";
     signature = "stream(tuple) x Id x real x int x fun -> stream(tuple)";
     syntax    = "_ dbscanTF [_, _, _, fun]";
-    meaning   = "Detects clusters from a given stream using MMM-Tree as index "
-    "structure. The first parameter is the name for the cluster ID attribute, "
-    "the third paramter is eps and the fourth parameter is MinPts. A tuple "
+    meaning   = "Detects clusters in a given stream using MMM-Tree as index "
+    "structure. The first parameter is the name for the new attribute "
+    "containing the cluster number." 
+    "The second  parameter is eps and the third parameter is MinPts. The last "
+    "parameter is a function defining the distance between the incoming tuples."
+    " A tuple "
     "stream will be returned but the tuple will have additional attributes as "
-    "visited and clusterID. In addition a distance function involving the input"
-    " tuples is required";
+    "visited and clusterID. ";
     example   = "query Kneipen feed dbscanTF[No, 500.0, 5, fun(t1: tuple((Name "
     "string) (Strasse string) (GeoData point)), t2: tuple((Name string) ("
     "Strasse string) (GeoData point))) distance(attr(t1, GeoData), attr(t2, "
