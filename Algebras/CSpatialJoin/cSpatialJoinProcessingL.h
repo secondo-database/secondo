@@ -30,65 +30,183 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace csj {
 
   size_t firstPartitionX(std::vector<binaryTuple> &bat,
+
                        std::vector<std::vector<binaryTuple>> &partBAT,
+
                        std::vector<uint64_t> &bucketCounter,
+
                        uint64_t &numPartStripes,
+
                        double &xMin,
+
                        double &xMax) {
 
-    double stripeWidth = 0;
-    
-    uint64_t numTuplesBAT = bat.size();
-    uint64_t bucketNumberLeft; // first bucket where tuple is stored
-    uint64_t bucketNumberRigth; // last bucket where tuple is stored
+ 
 
-    // partition both binary tables 
+   double stripeWidth = 0;
 
-    stripeWidth = (xMax - xMin)/numPartStripes;
+ 
 
-    // Tables patition
-    bucketNumberLeft = 0;
-    bucketNumberRigth = 0;
+   uint64_t numTuplesBAT = bat.size();
 
-    //initialization
-    for(uint64_t i=0; i<numPartStripes; i++) {
+   uint64_t bucketNumberLeft; // first bucket where tuple is stored
+
+   uint64_t bucketNumberRigth; // last bucket where tuple is stored
+
+ 
+
+   // partition both binary tables
+
+ 
+
+   stripeWidth = (xMax - xMin)/numPartStripes;
+
+ 
+
+   // Tables patition
+
+   bucketNumberLeft = 0;
+
+   bucketNumberRigth = 0;
+
+ 
+
+   //initialization
+
+   for(uint64_t i=0; i<numPartStripes; i++) {
+
       bucketCounter.push_back(0);
-      std::vector<binaryTuple> temp;
-      partBAT.push_back(temp);
-    }
 
-    size_t spanCount = 0;
-    for(uint64_t i=0; i<numTuplesBAT; i++) {
+      std::vector<binaryTuple> temp;
+
+      partBAT.push_back(temp);
+
+   }
+
+ 
+
+   // determine how many rectangles span the whole source bucket, and
+
+   // whether all edges (left and right) inside the bucket are at the same
+
+   // X position
+
+   size_t spanCount = 0;
+
+   bool hasFirstX = false;
+
+   double firstX = 0.0;
+
+   bool allXAreAlmostEqual = false;
+
+ 
+
+   for(uint64_t i=0; i<numTuplesBAT; i++) {
+
       // compute a number of bucket left and rigth
+
       // and next free positon in  buckets
+
       // paste the tuple in buckets
+
       bool span = true;
+
       if(bat[i].xMin < xMin) {
-        bucketNumberLeft = 0; // used by further partitions
+
+         bucketNumberLeft = 0; // used by further partitions
+
       }
+
       else {
-        bucketNumberLeft = (bat[i].xMin-xMin)/stripeWidth;
-        span = false;
+
+         bucketNumberLeft = (bat[i].xMin-xMin)/stripeWidth;
+
+         span = false;
+
+         if (!hasFirstX) {
+
+            firstX = bat[i].xMin;
+
+            hasFirstX = true;
+
+            allXAreAlmostEqual = true;
+
+         } else if (allXAreAlmostEqual && !AlmostEqual(bat[i].xMin, firstX)) {
+
+            allXAreAlmostEqual = false;
+
+         }
+
       }
+
       if(bat[i].xMax >= xMax) {
-        bucketNumberRigth = numPartStripes-1; // used by further partitions
+
+         bucketNumberRigth = numPartStripes-1; // used by further partitions
+
       }
+
       else {
-        bucketNumberRigth = (bat[i].xMax-xMin)/stripeWidth;
-        span = false;
+
+         bucketNumberRigth = (bat[i].xMax-xMin)/stripeWidth;
+
+         span = false;
+
+         if (!hasFirstX) {
+
+            firstX = bat[i].xMax;
+
+            hasFirstX = true;
+
+            allXAreAlmostEqual = true;
+
+         } else if (allXAreAlmostEqual && !AlmostEqual(bat[i].xMax, firstX)) {
+
+            allXAreAlmostEqual = false;
+
+         }
+
       }
+
       if (span) {
-        ++spanCount;
+
+         ++spanCount;
+
       }
+
+ 
 
       for(uint64_t j=bucketNumberLeft; j<=bucketNumberRigth; j++) {
-        partBAT[j].push_back(bat[i]);
-        // compute next free position in current bucket
-        bucketCounter[j]++;
+
+         partBAT[j].push_back(bat[i]);
+
+         // compute next free position in current bucket
+
+         bucketCounter[j]++;
+
       }
-    }
-    return spanCount;
-  }
+
+   }
+
+ 
+
+   if (allXAreAlmostEqual) {
+
+      // all edges (left and right) inside the bucket are (almost) at the same
+
+      // X position, so there will always be a partition that contains all
+
+      // those edges; therefore the recursion must be forced to end
+
+      return numTuplesBAT;
+
+   } else {
+
+      return spanCount;
+
+   }
+
+}
+
 
   uint64_t finalPartitionX(std::vector<std::vector<binaryTuple>> &pb1,
                        std::vector<std::vector<binaryTuple>> &pb2,
