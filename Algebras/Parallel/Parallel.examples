@@ -37,6 +37,27 @@ Signature : stream(tuple) x int x funlist -> stream(tuple)
 Example   : query plz feed pextend[10; P : .PLZ + 32] count = plz count
 Result    : TRUE
 
+Operator  : pextendstream
+Number    : 1
+Signature : stream(tuple) x int x (tuple -> stream(attr))  -> stream(tuple@attr)
+Example   : query plz feed pextendstream[10; P : intstream(1,20)] count = ((plz count)*20)
+Result    : TRUE
 
+Operator  : punion
+Number    : 1
+Signature : stream(tuple) xstream(tuple) -> stream(tuple)
+Example   : query plz feed plz feed punion count = (2* plz count)
+Result    : TRUE
 
+Operator  : ploopsel
+Number    : 1
+Signature : stream(tuple) x int x (tupleA -> stream(tupleB)) -> stream(tupleB)
+Example   : query Orte feed {o} ploopsel[4, intstream(1,10) namedtransformstream[N] ] count > 2
+Result    : TRUE
+
+Operator  : ploopjoin
+Number    : 1
+Signature : stream(tuple) x int x (tupleA -> stream(tupleB)) -> stream(tupleAB)
+Example   : query Orte feed {o} ploopjoin[4, intstream(1,10) namedtransformstream[N] ] count > 2
+Result    : TRUE
 

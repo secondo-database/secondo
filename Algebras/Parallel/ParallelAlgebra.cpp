@@ -42,6 +42,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <bounded_buffer.hpp>
 #include <vector>
 #include <queue>
+#include <atomic>
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -742,30 +743,26 @@ ListExpr pfilterSTM(ListExpr args){
 template<class T>
 class SyncStream{
  public:
-  SyncStream(Word& w) : stream(w), endReached(false){}
+  SyncStream(Word& w) : stream(w), endReached(true){}
 
 
   ~SyncStream(){
-    mtx.lock();
-    mtx.unlock();
   } 
 
   void open(){
-    mtx.lock();
+    boost::lock_guard<boost::mutex> guard(mtx);
     endReached = false;
     stream.open();
-    mtx.unlock();
   }
 
   void close(){
-    mtx.lock();
+    boost::lock_guard<boost::mutex> guard(mtx);
     endReached = true;
     stream.close();
-    mtx.unlock();
   }
 
   T* request(){
-    mtx.lock();
+    boost::lock_guard<boost::mutex> guard(mtx);
     T* res;
     if(endReached){
        res = 0;
@@ -775,7 +772,6 @@ class SyncStream{
          endReached = true;
        }
     }
-    mtx.unlock();
     return res;
   }
 
@@ -793,8 +789,6 @@ class Consumer{
      virtual ~Consumer() {}
  
      virtual void elemAvailable(T* elem) = 0;
-
-     //virtual void cancel() = 0;
 
 };
 
@@ -918,12 +912,6 @@ class pfilterSInfo : public Consumer<T>{
        }
        mtx.unlock();
      }
-
-     void cancel() {
-       for(int i=0;i<runners.size();i++){
-          runners[i]->cancel();
-       }
-     } 
 
   private:
      SyncStream<T> stream;
@@ -1355,6 +1343,773 @@ Operator pextendOp(
 
 
 /*
+Operator ~pextendstream~
+
+*/
+ListExpr pextendstreamTM(ListExpr args){
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError("2 arguments expected");
+  }
+  if(!listutils::checkUsesArgsInTypeMapping(args)){
+    return listutils::typeError("internal error");
+  }
+  ListExpr stream = nl->First(nl->First(args));
+  if(!Stream<Tuple>::checkType(stream)){
+    return listutils::typeError("first argument is not a tuple stream");
+  }
+  ListExpr ntl = nl->First(nl->Second(args));
+  if(!CcInt::checkType(ntl)){
+    return listutils::typeError("the second argument is not an integer");    
+  }
+  ntl = nl->Second(nl->Second(args));
+  if(nl->AtomType(ntl)!=IntType){
+    return listutils::typeError("the second argument is not "
+                                "a constant integer");
+  }
+  int nt = nl->IntValue(ntl);
+  if(nt<1 || nt>15){
+    return listutils::typeError("the number of threads must be "
+                                "a number between 1 and 15");
+  }
+
+  ListExpr funType = nl->First(nl->Third(args));
+  if(!nl->HasLength(funType,1)){
+     return listutils::typeError("exactly one funtion expected");
+  }
+  funType = nl->First(funType);
+  if(!nl->HasLength(funType,2)){
+     return listutils::typeError("named function expected");
+  }
+
+  ListExpr ename = nl->First(funType);
+  std::string error;
+  if(!listutils::isValidAttributeName(ename, error)){
+    return listutils::typeError(error);
+  }
+  std::string name = nl->SymbolValue(ename);
+  ListExpr dummy;
+  ListExpr attrList = nl->Second(nl->Second(stream));
+  if(listutils::findAttribute(attrList,name,dummy)>0){
+   return listutils::typeError("Attribute " + name + " is already present "
+                               "in the incoming tuples");
+  }
+  funType = nl->Second(funType);
+  if(!listutils::isMap<1>(funType)){
+    return listutils::typeError("third arg is not an unary function");
+  }
+  if(!nl->Equal(nl->Second(stream),nl->Second(funType))){
+    return listutils::typeError("function argument and stream "
+                                "element are not equal");
+  }
+  if(!Stream<Attribute>::checkType(nl->Third(funType))){
+    return listutils::typeError("the result of the function is "
+                                "not a stream of DATA");
+  } 
+  ListExpr resAttrList = listutils::concat(attrList, nl->OneElemList( 
+                              nl->TwoElemList(
+                                nl->SymbolAtom(name),
+                               nl->Second(nl->Third(funType)))));
+  ListExpr resType = Stream<Tuple>::wrap(Tuple::wrap(resAttrList));
+ 
+  ListExpr fundef = nl->First(nl->Second(nl->Third(args)));
+  fundef = nl->Second(fundef); // ignore new attribute name
+  // exchange argument type
+  fundef = nl->ThreeElemList(
+                  nl->First(fundef),
+                  nl->TwoElemList( 
+                     nl->First(nl->Second(fundef)),
+                     nl->Second(stream)),
+                  nl->Third(fundef));
+
+   nt--;  // the first function is given already
+   if(nt==0){
+      return resType;
+   }
+   ListExpr appendList = nl->OneElemList(
+                               renameFunArgs(fundef,"_1"));
+   ListExpr appendLast = appendList;
+   for(int i=1;i<nt;i++){
+      appendLast = nl->Append( appendLast,
+                  renameFunArgs(fundef, "_" + stringutils::int2str(i+1)));
+   }   
+
+   return nl->ThreeElemList( 
+                 nl->SymbolAtom(Symbols::APPEND()),
+                 appendList,
+                 resType);
+
+}
+
+
+class pextendstreamThread{
+  public:
+      pextendstreamThread(SyncStream<Tuple>* _stream,
+                          Supplier _function,
+                          TupleType* _tt,
+                          Consumer<Tuple>* _consumer):
+                stream(_stream), fun(_function),
+                tt(_tt), consumer(_consumer) {
+          funarg = qp->Argument(fun);
+          running = true;
+          runner = new boost::thread(&pextendstreamThread::run,
+                                     this);
+      }
+
+      ~pextendstreamThread(){
+         runner->join();
+         delete runner;
+      }
+
+      void cancel(){
+        running = false;
+      }
+                          
+
+  private:
+     SyncStream<Tuple>* stream;
+     Supplier fun;
+     TupleType* tt;
+     Consumer<Tuple>* consumer;
+     ArgVectorPointer funarg;
+     boost::thread* runner;
+     Word funRes;
+     bool running; 
+
+
+     void run(){
+        while(running){
+           Tuple* t = stream->request();
+           if(!t){
+              running = false;
+              consumer->elemAvailable(0);
+           } else {
+              (*funarg)[0] = t;
+              qp->Open(fun);
+              qp->Request(fun, funRes);
+              while(qp->Received(fun) && running){
+                Attribute* na = (Attribute*) funRes.addr;
+                Tuple* resTuple = createNewTuple(t,na);
+                consumer->elemAvailable(resTuple);
+                funRes.addr = 0; 
+                qp->Request(fun, funRes);
+              }
+              if(funRes.addr){
+                 ((Tuple*) funRes.addr)->DeleteIfAllowed();
+              }
+              qp->Close(fun);
+              t->DeleteIfAllowed();      
+           }
+        }
+     }
+
+     Tuple* createNewTuple(Tuple* origTuple, Attribute* na){
+       Tuple* resTuple = new Tuple(tt);
+       int num = origTuple->GetNoAttributes();
+       for(int i=0;i<num;i++){
+         resTuple->CopyAttribute(i,origTuple,i);
+       }
+       resTuple->PutAttribute(num,na);
+       return resTuple;
+     }
+};
+
+
+class pextendstreamInfo : public Consumer<Tuple>{
+  public:
+     pextendstreamInfo(Word _stream, 
+                 std::vector<Supplier>& _functions,
+                 ListExpr _tt): stream(_stream), tt(0), 
+                 buffer(10*_functions.size()) {
+        stream.open();
+        tt = new TupleType(_tt);
+        runs = _functions.size();
+        for(size_t i = 0; i<_functions.size(); i++){
+           runners.push_back(new pextendstreamThread(&stream, _functions[i],
+                                               tt, this));         
+        }
+     }
+
+     ~pextendstreamInfo(){
+       for(size_t i=0;i< runners.size();i++){
+          runners[i]->cancel();
+       }
+       Tuple* f;
+       while(!buffer.empty()){
+         buffer.pop_back(&f);
+         if(f){
+            f->DeleteIfAllowed();
+         }
+       }
+       for(size_t i=0;i< runners.size();i++){
+          delete runners[i];
+       }
+       while(!buffer.empty()){
+         buffer.pop_back(&f);
+         if(f){
+            f->DeleteIfAllowed();
+         }
+       }
+       tt->DeleteIfAllowed();
+       stream.close();
+     }
+
+     Tuple* next(){
+         Tuple* result;
+         buffer.pop_back(&result);
+         return result; 
+     }
+
+     void elemAvailable(Tuple* elem) {
+       if(elem){
+         buffer.push_front(elem); 
+       } else {
+          mtx.lock();
+          runs--;
+          if(runs==0){
+            buffer.push_front(elem);
+          }
+          mtx.unlock();
+       }
+     };
+
+
+  private: 
+     SyncStream<Tuple> stream;
+     TupleType* tt;
+     bounded_buffer<Tuple*>  buffer;
+     boost::mutex mtx;
+     size_t runs;
+
+     std::vector<pextendstreamThread*> runners;
+
+
+};
+
+
+int pextendstreamVM(Word* args, Word& result,
+           int message, Word& local, Supplier s){
+
+  pextendstreamInfo* li = (pextendstreamInfo*) local.addr;
+  switch(message){
+     case OPEN : {
+                    if(li) {
+                       delete li;
+                    }
+                    int nt = ((CcInt*)args[1].addr)->GetValue();
+                    std::vector<Supplier>  functions;
+                    // append original functions
+                    Supplier supplier = args[2].addr;
+                    int nooffuns = qp->GetNoSons(supplier);
+                    assert(nooffuns == 1);
+                    Supplier supplier2 = qp->GetSupplier(supplier, 0);
+                    Supplier fun =  qp->GetSupplier(supplier2,1);
+                    functions.push_back(fun);
+                    
+                    int o = 3;
+
+                    for(int i=0;i<nt-1;i++){
+                       functions.push_back(args[o].addr);
+                       o++;
+                    }
+                    local.addr = new pextendstreamInfo(args[0], functions, 
+                                     nl->Second(GetTupleResultType(s))); 
+                    return 0;
+                 }
+
+      case REQUEST:  result.addr = li?li->next():0;
+                     return result.addr?YIELD:CANCEL; 
+      case CLOSE: if(li){
+                    delete li;
+                    local.addr = 0;
+                  }
+                  return 0;
+
+  }
+
+  return -1;
+}
+
+OperatorSpec pextendstreamSpec(
+  "stream(tuple(X) ) x int x (tuple(X) -> stream(DATA)) "
+  "-> stream(tuple(X @DATA))",
+  " _ pextendstream[_,_] ",
+  " Extends all incoming tuples with all attributes prdocuced by "
+  " the function using a given number of threads",
+  "query plz feed pextendstream[10, N : intstream(1,20)] count"
+);
+
+Operator pextendstreamOp(
+  "pextendstream",
+  pextendstreamSpec.getStr(),
+  pextendstreamVM,
+  Operator::SimpleSelect,
+  pextendstreamTM
+);
+
+/*
+Operator ~punion~
+
+Returns all tuples from both input streams.
+
+*/
+ListExpr punionTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("2 arguments expected");
+  }
+  if(!Stream<Tuple>::checkType(nl->First(args))){
+    return listutils::typeError("first argument is not a tuple stream");
+  } 
+  if(!nl->Equal(nl->First(args), nl->Second(args))){
+    return listutils::typeError("two tuples streams having the "
+                                "same tuple type expected");
+  }
+  return nl->First(args);
+}
+
+
+class punionInfo{
+
+  public:
+     punionInfo(Word s1, Word s2): stream1(s1), stream2(s2), buffer(4), 
+        runs(2), running1(true), running2(true){
+        stream1.open();
+        stream2.open();
+        
+        t1 = new boost::thread(&punionInfo::run1, this);
+        t2 = new boost::thread(&punionInfo::run2, this);
+     }
+
+     ~punionInfo(){
+        running1 = false;
+        running2 = false;
+        // remove remaining elements in buffer
+        while(!buffer.empty()){
+           Tuple* t;
+           buffer.pop_back(&t);
+           if(t){
+             t->DeleteIfAllowed();
+           }
+        }
+        t1->join();
+        t2->join();
+        delete t1;
+        delete t2;
+        while(!buffer.empty()){
+           Tuple* t;
+           buffer.pop_back(&t);
+           if(t){
+             t->DeleteIfAllowed();
+           }
+        }
+        stream1.close();
+        stream2.close();
+     }
+
+     Tuple* next(){
+        Tuple* res;
+        buffer.pop_back(&res);
+        return res; 
+     }
+
+
+  private:
+     Stream<Tuple> stream1;
+     Stream<Tuple> stream2;
+     bounded_buffer<Tuple*> buffer;
+     int runs;
+     bool running1;
+     bool running2;
+     boost::thread* t1;
+     boost::thread* t2;
+     boost::mutex mtx;
+
+     void run1(){
+       while(running1){
+          Tuple* t = stream1.request();
+          if(t){
+            buffer.push_front(t);
+          } else {
+            boost::lock_guard<boost::mutex> guard(mtx);
+            runs--;
+            if(runs==0){
+               buffer.push_front(0);
+            }
+            running1 = false; 
+          }
+       }
+     }
+     
+    void run2(){
+       while(running2){
+          Tuple* t = stream2.request();
+          if(t){
+            buffer.push_front(t);
+          } else {
+            boost::lock_guard<boost::mutex> guard(mtx);
+            runs--;
+            if(runs==0){
+               buffer.push_front(0);
+            }
+            running2 = false; 
+          }
+       }
+     }
+};
+
+
+int punionVM(Word* args, Word& result,
+             int message, Word& local, Supplier s){
+
+   punionInfo* li = (punionInfo*) local.addr;
+   switch(message){
+      case OPEN: if(li) delete li;
+                 local.addr = new punionInfo(args[0], args[1]);
+                 return 0;
+      case REQUEST: result.addr = li?li->next(): 0;
+                    return result.addr?YIELD:CANCEL;
+      case CLOSE: if(li){
+                    delete li;
+                    local.addr = 0;
+                  }
+                  return 0;
+   }
+   return -1;
+}
+
+OperatorSpec punionSpec(
+   "stream(tuple) x stream(tuple) -> stream(tuple) ",
+   "_ _ punion",
+   "Returns the union of the tuple streams. The "
+   "incoming tuples are asked by separate threads. The "
+   "order of the result is not predictable. ",
+   "query plz feed plz feed punion count"
+);
+
+Operator punionOp(
+  "punion",
+  punionSpec.getStr(),
+  punionVM,
+  Operator::SimpleSelect, 
+  punionTM
+);
+
+/*
+Operator ~ploopsel~
+
+*/
+template<bool isJoin>
+ListExpr ploopselTM(ListExpr args){
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError("three arguments expected");
+  }
+  if(!listutils::checkUsesArgsInTypeMapping(args)){
+    return listutils::typeError("internal error");
+  }
+  ListExpr instream = nl->First(nl->First(args));
+  if(!Stream<Tuple>::checkType(instream)){
+    return listutils::typeError("first argument is not a tuple stream");
+  }
+  if(!CcInt::checkType(nl->First(nl->Second(args)))){
+    return listutils::typeError("second argument is not an int");
+  }
+  ListExpr ntl = nl->Second(nl->Second(args));
+  if(nl->AtomType(ntl) != IntType){
+    return listutils::typeError("second argument is not a constant int");
+  }
+  int nt = nl->IntValue(ntl);
+  if(nt <1 || nt > 15){
+    return listutils::typeError("the number of threads must be "
+                                "between 1 and 15");
+  }
+  ListExpr funcomplete = nl->Third(args);
+  ListExpr funtype = nl->First(funcomplete);
+  if(!listutils::isMap<1>(funtype)){
+    return listutils::typeError("third argument is not a unary function");
+  }
+  if(!nl->Equal(nl->Second(instream), nl->Second(funtype))){
+    return listutils::typeError("argument type of function differs "
+                                "from tuple type in stream");
+  }
+  ListExpr resType = nl->Third(funtype);
+  if(!Stream<Tuple>::checkType(resType)){
+    return listutils::typeError("the functions does not produce "
+                                "a stream of tuples");
+  }
+
+
+  if(isJoin){
+    ListExpr alist1 = nl->Second(nl->Second(instream));
+    ListExpr alist2 = nl->Second(nl->Second(resType));
+
+    ListExpr alist = listutils::concat(alist1,alist2);
+    resType = Stream<Tuple>::wrap(Tuple::wrap(alist));
+    if(!Stream<Tuple>::checkType(resType)){
+      return listutils::typeError("name conflicts in tuple types");
+    }
+  }
+
+  if(nt==1){
+    return resType;
+  }
+
+  ListExpr fundef = nl->Second(funcomplete);
+  fundef = nl->ThreeElemList(
+                  nl->First(fundef),
+                  nl->TwoElemList(
+                      nl->First(nl->Second(fundef)),
+                      nl->Second(funtype)),
+                  nl->Third(fundef));
+
+  ListExpr appendList = nl->OneElemList(renameFunArgs(fundef, "_1"));
+  ListExpr appendLast = appendList;
+
+  for(int i=2;i<nt;i++){
+     ListExpr fd = renameFunArgs(fundef, "_" + stringutils::int2str(i));
+     appendLast = nl->Append(appendLast, fd);
+  } 
+
+  return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                           appendList,
+                           resType);
+}
+
+template<bool isJoin>
+class ploopselthread{
+
+  public:
+
+     ploopselthread(SyncStream<Tuple>* _stream, 
+                    Supplier _fun,
+                    Consumer<Tuple>* _consumer, 
+                    TupleType* _tt, 
+                    boost::mutex* _fmtx):
+        stream(_stream), fun(_fun), consumer(_consumer), tt(_tt), fmtx(_fmtx){
+        if(tt){
+           tt->IncReference();
+        }
+        funarg = qp->Argument(fun);
+        running = true;
+        thread = new boost::thread(&ploopselthread<isJoin>::run, this);
+     }
+ 
+
+     ~ploopselthread(){
+        running = false;
+        thread->join();
+        delete thread;
+        if(tt){
+           tt->DeleteIfAllowed();
+        }
+     }
+
+     void cancel(){
+        running = false;
+     }
+
+  private:
+     SyncStream<Tuple>* stream;
+     Supplier fun;
+     Consumer<Tuple>* consumer;
+     TupleType* tt;
+     boost::mutex* fmtx;
+     ArgVectorPointer funarg;
+     boost::thread* thread;
+     Word funres;
+     std::atomic_bool running;
+
+     void run(){
+        while(running){
+          Tuple* inTuple = stream->request();
+          if(!inTuple){
+             running = false;
+             consumer->elemAvailable(0);
+          } else {
+             (*funarg)[0] = inTuple;
+             fmtx->lock();
+             qp->Open(fun);
+             fmtx->unlock();
+             qp->Request(fun,funres);
+             while( qp->Received(fun) && running){
+                Tuple* ftuple = (Tuple*) funres.addr;
+                Tuple* resTuple = constructResTuple(inTuple, ftuple);
+                funres.addr = 0;
+                consumer->elemAvailable(resTuple);
+                qp->Request(fun,funres);
+             }
+             if(funres.addr){
+               ((Tuple*) funres.addr)->DeleteIfAllowed();
+             }
+             inTuple->DeleteIfAllowed();  
+             fmtx->lock();
+             qp->Close(fun);
+             fmtx->unlock();
+          }
+        }
+     }
+
+     Tuple* constructResTuple(Tuple* inTuple, Tuple* funTuple){
+        if(!isJoin){
+           return funTuple;
+        }
+        Tuple* resTuple = new Tuple(tt);
+
+        int num = inTuple->GetNoAttributes();
+        for(int i=0;i<num;i++){
+           resTuple->CopyAttribute(i,inTuple,i);
+        }
+        for(int i=0;i<funTuple->GetNoAttributes();i++){
+           resTuple->CopyAttribute(i,funTuple,i+num);
+        }
+        funTuple->DeleteIfAllowed();
+        return resTuple;
+     }   
+};
+
+template<bool isJoin>
+class ploopselInfo : public Consumer<Tuple>{
+  public:
+     ploopselInfo(Word _stream, 
+                 std::vector<Supplier> _functions,
+                 ListExpr _tt): stream(_stream), tt(0), 
+                 buffer(10*_functions.size()) {
+
+
+        stream.open();
+        if(isJoin){
+            tt = new TupleType(_tt);
+        }
+        runs = _functions.size();
+        for(size_t i = 0; i<_functions.size(); i++){
+           runners.push_back(new ploopselthread<isJoin>(&stream, _functions[i],
+                                               this, tt, &fmtx));         
+        }
+     }
+
+     ~ploopselInfo(){
+       for(size_t i=0;i< runners.size();i++){
+          runners[i]->cancel();
+       }
+       Tuple* f;
+       while(!buffer.empty()){
+         buffer.pop_back(&f);
+         if(f){
+            f->DeleteIfAllowed();
+         }
+       }
+       for(size_t i=0;i< runners.size();i++){
+          delete runners[i];
+       }
+       while(!buffer.empty()){
+         buffer.pop_back(&f);
+         if(f){
+            f->DeleteIfAllowed();
+         }
+       }
+       if(tt){
+           tt->DeleteIfAllowed();
+       }
+       stream.close();
+     }
+
+     Tuple* next(){
+         Tuple* result;
+         buffer.pop_back(&result);
+         return result; 
+     }
+
+     void elemAvailable(Tuple* elem) {
+       if(elem){
+         buffer.push_front(elem); 
+       } else {
+          mtx.lock();
+          runs--;
+          if(runs==0){ // the last runner has no more elements
+            buffer.push_front(elem);
+          }
+          mtx.unlock();
+       }
+     };
+
+
+  private: 
+     SyncStream<Tuple> stream;
+     TupleType* tt;
+     bounded_buffer<Tuple*>  buffer;
+     boost::mutex mtx;
+     size_t runs;
+     boost::mutex fmtx;
+
+     std::vector<ploopselthread<isJoin>*> runners;
+};
+
+template<bool isJoin>
+int ploopselVM(Word* args, Word& result,
+             int message, Word& local, Supplier s){
+
+   ploopselInfo<isJoin>* li = (ploopselInfo<isJoin>*) local.addr;
+   switch(message){
+      case OPEN: {  if(li) delete li;
+                    std::vector<Supplier> funs;
+                    for(int i=2;i<qp->GetNoSons(s);i++){
+                       Supplier s = args[i].addr;
+                       funs.push_back(s);
+                    }
+                    size_t nt = ((CcInt*)args[1].addr)->GetValue();
+                    assert(nt==funs.size());
+                    local.addr = new ploopselInfo<isJoin>(args[0], funs,
+                                       nl->Second(GetTupleResultType(s))) ;
+                    return 0;
+                  }
+      case REQUEST: result.addr = li?li->next(): 0;
+                    return result.addr?YIELD:CANCEL;
+      case CLOSE: if(li){
+                    delete li;
+                    local.addr = 0;
+                  }
+                  return 0;
+   }
+   return -1;
+}
+
+OperatorSpec ploopselSpec(
+   "stream(tupleA) x int x fun(tupleA -> stream(tupleB)) -> stream(tupleB) ",
+   "_ ploopsel[_,fun]",
+   "Returns the tuples created by a function applied to"
+   "each tuple of a stream. Procseeing is done using a set of threads  ",
+   "query Orte feed {o} ploopsel[10, plz_Ort plz exactmatch[.Ort_o]]"
+);
+
+Operator ploopselOp(
+  "ploopsel",
+  ploopselSpec.getStr(),
+  ploopselVM<false>,
+  Operator::SimpleSelect, 
+  ploopselTM<false>
+);
+
+
+OperatorSpec ploopjoinSpec(
+   "stream(tupleA) x int x fun(tupleA -> stream(tupleB)) -> stream(tupleAB) ",
+   "_ ploopjoin[_,fun]",
+   "Returns the concatenation of tuples from the input stream "
+   "with all tuples produced by the function." 
+   "Processing is done using a set of threads  ",
+   "query Orte feed {o} ploopjoin[10, plz_Ort plz exactmatch[.Ort_o] {a}]"
+);
+
+Operator ploopjoinOp(
+  "ploopjoin",
+  ploopjoinSpec.getStr(),
+  ploopselVM<true>,
+  Operator::SimpleSelect, 
+  ploopselTM<true>
+);
+
+
+
+
+
+/*
 7 Creating the Algebra
 
 */
@@ -1374,6 +2129,17 @@ public:
 
     AddOperator(&pextendOp);
     pextendOp.SetUsesArgsInTypeMapping();
+
+    AddOperator(&pextendstreamOp);
+    pextendstreamOp.SetUsesArgsInTypeMapping();
+
+    AddOperator(&punionOp);
+
+    AddOperator(&ploopselOp);
+    ploopselOp.SetUsesArgsInTypeMapping();
+    
+    AddOperator(&ploopjoinOp);
+    ploopjoinOp.SetUsesArgsInTypeMapping();
 
   }
 
