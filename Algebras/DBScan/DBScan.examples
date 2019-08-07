@@ -22,5 +22,5 @@ Result   : 8
 Operator : dbscanTF
 Number   : 1
 Signature: stream(Tuple) x Id x real x int x fun -> stream(Tuple)
-Example  : query Kneipen feed dbscanTF[No, 500.0, 5, fun(t1: tuple((Name: string, Strasse: string, GeoData: point)), t2: tuple((Name: string, Strasse: string, GeoData: point))) distance(attr(t1, GeoData), attr(t2, GeoData))] sortby[No] groupby[No ; C : group count] count
+Example  : query Kneipen feed dbscanTF[No, 500.0, 5, distance(.GeoData, ..GeoData) ] sortby[No] groupby[No ; C : group count] count
 Result   : 8

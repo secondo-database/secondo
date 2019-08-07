@@ -822,16 +822,13 @@ several attributes of a tuple.
 
 */
 ListExpr dbscanTFTM(ListExpr args) {
-  if (nl->ListLength(args) != 2) {
-   return listutils::typeError("2 elements expected: Stream and argument list");
+  if (nl->ListLength(args) != 5) {
+   return listutils::typeError("5 arguments expected");
   }
   if(!Stream<Tuple>::checkType(nl->First(args))) {
    return listutils::typeError("first argument is not a tuple stream");
   }
-  ListExpr arguments = nl->Second(args);
-  if (nl->ListLength(arguments) != 4) {
-    return listutils::typeError("four arguments required after stream");
-  }
+  ListExpr arguments = nl->Rest(args);
   if (!CcReal::checkType(nl->Second(arguments))) {
     return listutils::typeError("eps must have type real");
   }
@@ -902,14 +899,13 @@ int dbscanTFVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   dbscanclass* li = (dbscanclass*) local.addr;  
   switch (message) {
     case OPEN : {
-      Word stream = args[0];
-      Supplier supplier = qp->GetSupplier(args[1].addr, 1);
-      Word argument;
-      qp->Request(supplier, argument);
-      CcReal* eps = ((CcReal*)argument.addr);
-      supplier = qp->GetSupplier(args[1].addr, 2);
-      qp->Request(supplier, argument);
-      CcInt* minPts = ((CcInt*)argument.addr);
+      Word stream = args[0]; // stream
+      // args[1] = new argument name -> ignore
+      // args[2] = epsilon
+      // args[3] = minPts
+      // args[4] = function: tuple x tuple -> real
+      CcReal* eps = (CcReal*) args[2].addr;
+      CcInt* minPts = (CcInt*) args[3].addr;
       if (!eps->IsDefined() || !minPts->IsDefined()) {
         return 0;
       }
@@ -923,7 +919,7 @@ int dbscanTFVM(Word* args, Word& result, int message, Word& local, Supplier s) {
       }
       size_t maxMem = (qp->GetMemorySize(s) * 1024);
       TupleComp dist;
-      Supplier supplier2 = qp->GetSupplier(args[1].addr, 3);
+      Supplier supplier2 = args[4].addr; 
       dist.initialize(qp, supplier2);
       local.addr = new dbscanclass(stream, tt, eps->GetValue(), 
                                    minPts->GetValue(), maxMem, -1, dist);
@@ -972,7 +968,7 @@ struct dbscanTFInfo :  OperatorInfo {
 
 */
 int dbscanTFSel(ListExpr args) {
-  ListExpr funResultType = nl->Fourth(nl->Fourth(nl->Second(args)));
+  ListExpr funResultType = nl->Fourth(nl->Fifth(args));
   if (CcInt::checkType(funResultType))  return 0;
   if (CcReal::checkType(funResultType)) return 1;
   return -1; 
