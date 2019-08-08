@@ -230,7 +230,6 @@ This struct contains the private attributes of the class ~Tuple~.
       {
         DEBUG_MSG("call attributes[" << i << "]->DeleteIfAllowed() with"
                     << " del.refs = " << (int)attributes[i]->del.refs)
-
         attributes[i]->DeleteIfAllowed();
         attributes[i] = 0;
       }

@@ -62,6 +62,10 @@ derived attribute class must implement.
 #include "AlmostEqual.h"
 #include <limits>
 
+#ifdef THREAD_SAFE
+#include <boost/thread/lock_guard.hpp>
+#include <boost/thread/mutex.hpp>
+#endif
 
 Attribute* Attribute::Create(char* state,
                               size_t& offset, const ListExpr typeInfo ) {
@@ -173,6 +177,9 @@ Default open function.
 
     bool Attribute::DeleteIfAllowed( const bool destroyFlobs /*=true*/ )
     {
+      #ifdef THREAD_SAFE
+      mtx.lock();
+      #endif
       assert( del.refs > 0 );
       del.refs--;
       if( del.refs == 0 )
@@ -183,6 +190,9 @@ Default open function.
             GetFLOB(i)->destroyIfNonPersistent();
           }
         }
+        #ifdef THREAD_SAFE
+        mtx.unlock();
+        #endif
         if( del.IsDelete() )
           delete this;
         else {
@@ -190,6 +200,9 @@ Default open function.
         }
         return true;
       }
+      #ifdef THREAD_SAFE
+      mtx.unlock();
+      #endif
       return false;
     }
 /*
@@ -213,6 +226,9 @@ persist without being referenced any more.
 
     Attribute* Attribute::Copy()
     {
+      #ifdef THREAD_SAFE
+      boost::lock_guard<boost::mutex> guard(mtx); 
+      #endif
       if( del.refs == std::numeric_limits<uint16_t>::max() )
         return Clone();
       del.refs++;

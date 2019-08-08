@@ -847,7 +847,7 @@ Returns the size of attribute i including its extension part.
    inline size_t GetMemSize() const{
       size_t tupleMemSize = sizeof(*this);
       if(noAttributes > MAX_NUM_OF_ATTR){ // do not use standard
-        tupleMemSize += noAttributes + sizeof(Attribute*);
+        tupleMemSize += noAttributes * sizeof(Attribute*);
       }
 
       for( size_t i = 0; i < noAttributes; i++)
