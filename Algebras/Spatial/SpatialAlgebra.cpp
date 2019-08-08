@@ -15219,7 +15219,7 @@ OperatorSpec collect_boxSpec (
     "stream<SPATIAL> x bool -> rectangle",
     " _ collect_box[_]",
     "Computes the bounding box from a stream of spatial attributes"
-    "If the second parameter is set to be true, undefined elements"
+    "If the second parameter is set to be false, undefined elements"
     " within the stream are ignored. Otherwise an undefined element"
     " will lead to an undefined result.",
     "query strassen feed projecttransformstream[GeoData] collect_box[TRUE] "
