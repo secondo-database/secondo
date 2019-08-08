@@ -109,7 +109,7 @@ let CabsST = CabsId
   partitionF["", . feed 
     extendstream[Cell: cellnumber(bbox(.Trip), grid)]
     extend[Box: bbox(.Trip)], 
-    ..Cell, NSlots]
+    ..Cell, 0]
   collect2["", myPort]
   dmap["CabsST", . feed consume]
 
