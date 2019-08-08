@@ -62,8 +62,8 @@ let CabsTrips = RawDataById
 */
 let bboxR = CabsTrips
   dmap["", . feed projectextend[; Box: bbox(.Trip)] transformstream 
-    collect_box[TRUE]] 
-  dsummarize collect_box[TRUE]
+    collect_box[FALSE]] 
+  dsummarize collect_box[FALSE]
 
 let deltax = maxD(bboxR, 1) - minD(bboxR, 1);
 let deltay = maxD(bboxR, 2) - minD(bboxR, 2)
