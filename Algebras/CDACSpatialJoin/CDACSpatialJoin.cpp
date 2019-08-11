@@ -53,8 +53,8 @@ typedef CRelAlgebra::TBlockTI::ColumnInfo TBlockColInfo;
 using namespace cdacspatialjoin;
 using namespace std;
 
-uint64_t CDACSpatialJoin::DEFAULT_INPUT_BLOCK_SIZE = 10;
-uint64_t CDACLocalInfo::OUTPUT_TUPLE_VECTOR_MEM_SIZE_MIB = 10;
+uint64_t CDACSpatialJoin::DEFAULT_INPUT_BLOCK_SIZE_MIB = 10;
+uint64_t CDACLocalInfo::OUTPUT_TUPLE_VECTOR_MEM_SIZE_KIB = 2048; // TODO: 2048
 
 /*
 1.2 Class OperatorInfo
@@ -160,7 +160,7 @@ ListExpr CDACSpatialJoin::typeMapping2(const bool countOnly, ListExpr args) {
       tBlockInfo[i] = isTBlockStream[i] ?
          CRelAlgebra::TBlockTI(nl->Second(stream[i]), false) :
          getTBlockTI(nl->Second(nl->Second(stream[i])),
-                 DEFAULT_INPUT_BLOCK_SIZE, tBlockColumns[i]);
+                     DEFAULT_INPUT_BLOCK_SIZE_MIB, tBlockColumns[i]);
 
       attrCount[i] = tBlockInfo[i].columnInfos.size();
       blockSize[i] = tBlockInfo[i].GetDesiredBlockSize();
@@ -433,7 +433,7 @@ InputStream* CDACSpatialJoin::createInputStream(const OutputType outputType,
       // input is stream of tuples which will be inserted into tuple
       // blocks by this operator using the DEFAULT_INPUT_BLOCK_SIZE
       ListExpr tBlockType = nl->TwoElemList(nl->SymbolAtom("tblock"),
-              nl->TwoElemList(nl->IntAtom(DEFAULT_INPUT_BLOCK_SIZE),
+              nl->TwoElemList(nl->IntAtom(DEFAULT_INPUT_BLOCK_SIZE_MIB),
                               tBlockColumns));
       // construct TBlockTI; information in tBlock type is not numeric
       CRelAlgebra::TBlockTI tBlockTI(tBlockType, false);
@@ -493,8 +493,10 @@ void MemoryInfo::add(const JoinStateMemoryInfo& joinStateInfo) {
                               joinStateInfo.usedJoinEdgeMemory);
    maxMemMergedAreas = std::max(maxMemMergedAreas,
                               joinStateInfo.usedMergedAreaMemoryMax);
-   maxMemOutputDataSize = std::max(maxMemOutputDataSize,
-                              joinStateInfo.outputDataSizeMax);
+   maxMemOutputDataAddSize = std::max(maxMemOutputDataAddSize,
+                              joinStateInfo.outputDataAddSizeMax);
+   maxMemOutputDataMemSize = std::max(maxMemOutputDataMemSize,
+                                      joinStateInfo.outputDataMemSizeMax);
    maxMemTotal = std::max(maxMemTotal,
                               joinStateInfo.getTotalUsedMemoryMax());
 
@@ -503,11 +505,13 @@ void MemoryInfo::add(const JoinStateMemoryInfo& joinStateInfo) {
    sumMemRectInfos += joinStateInfo.usedRectInfoMemory;
    sumMemJoinEdges += joinStateInfo.usedJoinEdgeMemory;
    sumMemMergedAreas += joinStateInfo.usedMergedAreaMemoryMax;
-   sumMemOutputDataSizeMax += joinStateInfo.outputDataSizeMax;
+   sumMemOutputDataAddSizeMax += joinStateInfo.outputDataAddSizeMax;
+   sumMemOutputDataMemSizeMax += joinStateInfo.outputDataMemSizeMax;
    sumMemTotal += joinStateInfo.getTotalUsedMemoryMax();
 
    totalOutputTupleCount += joinStateInfo.outputTupleCount;
-   totalOutputDataSize += joinStateInfo.outputDataSize;
+   totalOutputDataAddSize += joinStateInfo.outputDataAddSize;
+   totalOutputDataMemSize += joinStateInfo.outputDataMemSize;
 
    maxJoinEdgeQuota = std::max(maxJoinEdgeQuota,
                                joinStateInfo.getUsedJoinEdgeQuotaMax());
@@ -522,7 +526,7 @@ void MemoryInfo::setInputSize(
    totalInputBDataSize = totalInputBDataSize_;
 }
 
-void MemoryInfo::print(ostream& out) {
+void MemoryInfo::print(ostream& out, OutputType outputType) {
    CacheInfoPtr cacheInfo = CacheInfos::getCacheInfo(CacheType::Data, 1);
    const unsigned lineSize = cacheInfo ? cacheInfo->coherencyLineSize : 64U;
    cout << endl;
@@ -553,8 +557,8 @@ void MemoryInfo::print(ostream& out) {
               << maxJoinEdgeQuota / 2.0 * 100.0 << "%";
    printLineMem(cout, "MergedAreas", sumMemMergedAreas, maxMemMergedAreas,
              stMaxQuota.str(), lineSize);
-   printLineMem(cout, "Output data", sumMemOutputDataSizeMax,
-           maxMemOutputDataSize, "refers to the largest output block",
+   printLineMem(cout, "Output data", sumMemOutputDataAddSizeMax,
+           maxMemOutputDataAddSize, "refers to the largest output block",
            lineSize);
 
    cout << endl << "Maximum memory used at any given time: "
@@ -562,11 +566,20 @@ void MemoryInfo::print(ostream& out) {
         << "(" << formatInt(maxMemTotal >> 20U) << " MiB)" << endl << endl;
 
    printLineInOut(cout, "Total input from stream A: ",
-           totalInputADataSize, totalInputATupleCount);
+           totalInputADataSize, totalInputATupleCount, "");
    printLineInOut(cout, "Total input from stream B: ",
-           totalInputBDataSize, totalInputBTupleCount);
-   printLineInOut(cout, "Total output             : ",
-           totalOutputDataSize, totalOutputTupleCount);
+           totalInputBDataSize, totalInputBTupleCount, "");
+   if (outputType == outputTupleStream) {
+      printLineInOut(cout, "Additional output data   : ",
+         totalOutputDataAddSize, totalOutputTupleCount,
+         "(excluding Attribute instances shared between input and output)");
+      printLineInOut(cout, "Total output data        : ",
+         totalOutputDataMemSize, totalOutputTupleCount,
+         "(including Attribute instances shared between input and output)");
+   } else {
+      printLineInOut(cout, "Total output data        : ",
+                     totalOutputDataMemSize, totalOutputTupleCount, "");
+   }
    cout << endl;
 }
 
@@ -588,15 +601,15 @@ void MemoryInfo::printLineMem(ostream& out, const string& text,
 }
 
 void MemoryInfo::printLineInOut(std::ostream& out, const std::string& text,
-                                uint64_t bytes, uint64_t tupleCount) {
+        uint64_t bytes, uint64_t tupleCount, const std::string& note) {
    out << text;
    out << setw(15) << formatInt(bytes) << " bytes"
         << " (" << formatInt(bytes >> 20U) << " MiB)";
    if (tupleCount > 0) {
       out << " = " << (bytes / (double)tupleCount) << " bytes "
-           << "* " << formatInt(tupleCount) << " tuples.";
+           << "* " << formatInt(tupleCount) << " tuples";
    }
-   out << endl;
+   out << " " << note << endl;
 }
 
 // ========================================================
@@ -626,10 +639,10 @@ CDACLocalInfo::CDACLocalInfo(const OutputType outputType_,
             CRelAlgebra::TBlockTI(true)),
         outTBlockInfo(outputType == outputTBlockStream ?
             outTypeInfo.GetBlockInfo() : nullptr),
-        outTBlockSize(outputType == outputTBlockStream ?
+        outBufferSize(outputType == outputTBlockStream ?
             outTypeInfo.GetDesiredBlockSize()
                 * CRelAlgebra::TBlockTI::blockSizeFactor :
-            OUTPUT_TUPLE_VECTOR_MEM_SIZE_MIB * 1024 * 1024),
+            OUTPUT_TUPLE_VECTOR_MEM_SIZE_KIB * 1024),
         instanceNum(++activeInstanceCount),
         joinState(nullptr),
         joinStateCount(0),
@@ -705,7 +718,7 @@ CDACLocalInfo::~CDACLocalInfo() {
    // (and timer) gets reported first which is more intuitive)
    cout << endl << "Memory (in bytes and cache lines) used for "
         << opInfo.str() << ":" << endl;
-   memoryInfo.print(cout);
+   memoryInfo.print(cout, outputType);
 #endif
 
 // #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
@@ -768,9 +781,9 @@ size_t CDACLocalInfo::getRequiredMemory() const {
    // possible. However, joinStateConstruction tends to be the dominant value
    const size_t joinStateExecution = tupleSum * ((2 + 2) * sizeof(JoinEdge));
 
-   // outTBlockSize contains the number bytes reserved for the output TBlock
+   // outBufferSize contains the number bytes reserved for the output TBlock
    // or the output tuple vector.
-   size_t outputData = (outputType == outputCount) ? 0 : outTBlockSize;
+   size_t outputData = (outputType == outputCount) ? 0 : outBufferSize;
 
    // since JoinState construction and execution take place sequentially,
    // the maximum (rather than the sum) can be used:
@@ -825,7 +838,6 @@ bool CDACLocalInfo::getNext() {
          } else {
             // ... or calculate the next block of join results
             if (joinState->nextTBlock(outTBlock, outTuples)) {
-               timer->stop();
                return true;
             }
          }
@@ -846,7 +858,6 @@ bool CDACLocalInfo::getNext() {
 
          // test if any of the streams is empty - then nothing to do
          if (!inputA->request() || !inputB->request()) {
-            timer->stop();
             return false;
          }
 
@@ -857,7 +868,6 @@ bool CDACLocalInfo::getNext() {
 
       } else if (inputA->isDone() && inputB->isDone()) {
          // all input was read, join is complete
-         timer->stop();
 #ifdef CDAC_SPATIAL_JOIN_METRICS
          memoryInfo.setInputSize(
                  inputA->getTotalTupleCount(), inputA->getTotalByteCount(),
@@ -936,7 +946,7 @@ bool CDACLocalInfo::getNext() {
          // timer->start(...) see JoinState constructor
          ++joinStateCount;
          joinState = new JoinState(outputType, outputTupleType,
-                 inputA, inputB, outTBlockSize, instanceNum, joinStateCount,
+                 inputA, inputB, outBufferSize, instanceNum, joinStateCount,
                  timer);
       } else {
          // a "requestData" task was started above but both input streams were

@@ -139,8 +139,9 @@ private:
     * compile the next output tuple and pass it to the outTBlock */
    CRelAlgebra::AttrArrayEntry* const newTuple;
 
-   /* the maximum size of the return TBlock in bytes */
-   const uint64_t outTBlockSize;
+   /* the maximum size of the output buffer (i.e. the output TBlock or
+    * the outTuples vector) in bytes */
+   const uint64_t outBufferSize;
 
    /* the last source rectangle from set A that was used for output */
    SetRowBlock_t lastAddressA;
@@ -159,14 +160,21 @@ private:
     * outTuples. */
    uint64_t outTupleCount = 0;
 
-   /* the size in bytes of all output tuples returned by this JoinState */
-   uint64_t outTuplesSize = 0;
+   /* if the result stream is a tuple stream, outTuplesSizeMax is the
+    * maximum number of output tuples that can be temporarily stored in
+    * the outTuples vector, before the vector must to be flushed to the
+    * output stream */
+   uint64_t outTuplesSizeMax = 0;
 
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+   /* the MemSize in bytes of all output tuples returned by a nextTBlock call */
+   uint64_t outTuplesMemSize = 0;
+#endif
 
 public:
-   /* creates an IOData instance from the given InpuStreams */
+   /* creates an IOData instance from the given InputStreams */
    IOData(OutputType outputType_, TupleType* outputTupleType_,
-          InputStream* inputA, InputStream* inputB, uint64_t outTBlockSize_);
+          InputStream* inputA, InputStream* inputB, uint64_t outBufferSize_);
 
    ~IOData();
 
@@ -261,7 +269,9 @@ public:
            std::vector<Tuple*>* outTuples_) {
       outTBlock = outTBlock_;
       outTuples = outTuples_;
-      outTuplesSize = 0;
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+      outTuplesMemSize = 0;
+#endif
    }
 
    /* returns the number of tuples that were added to the output tuple block
@@ -269,8 +279,19 @@ public:
     * counted) */
    inline uint64_t getOutTupleCount() const { return outTupleCount; }
 
-   /* returns the number of bytes that were added to the output */
-   size_t getOutputSize() const;
+   /* returns the number of bytes that were additionally reserved from memory
+    * for the output tuples created by this IOData instance. In case of an
+    * output tuple stream, this differs from getOutputMemSize() since the
+    * output tuples point to the same Attribute instances as the input tuples */
+   size_t getOutputAddSize(uint64_t tuplesAdded) const;
+
+#ifdef CDAC_SPATIAL_JOIN_METRICS
+   /* returns the total memory size of the tuples that were added to the
+    * output by this IOData instance, including the memory used for Attribute
+    * instances that are referred to from both the input and the output tuples
+    * */
+   size_t getOutputMemSize() const;
+#endif
 
    /* adds the given number to the output tuple count which is used for the
     * CDACSpatialJoinCount operator */

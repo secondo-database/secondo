@@ -115,14 +115,25 @@ struct JoinStateMemoryInfo {
     * JoinState */
    uint64_t outputTupleCount;
 
-   /* the size in bytes of all output data created during the whole lifetime
-    * of this JoinState (i.e. the size sum of all output TBlocks) */
-   size_t outputDataSize;
+   /* the size in bytes of all output data additionally created during the
+    * whole lifetime of this JoinState (i.e. the size sum of all output
+    * TBlocks, or the GetRootSize of all output tuples) */
+   size_t outputDataAddSize;
 
-   /* the maximum size in bytes of one chunk of output data (i.e. one output
-    * TBlock or one chunk of output tuples) created during the lifetime of this
-    * JoinState */
-   size_t outputDataSizeMax;
+   /* the size in bytes of all output tuples created during the whole lifetime
+    * of this JoinState (i.e. the size sum of all output TBlocks, or the
+    * GetMemSize of all output tuples) */
+   size_t outputDataMemSize;
+
+   /* the maximum outputDataAddSize value of one chunk of output data (i.e.
+    * one output TBlock or one chunk of output tuples) created during the
+    * lifetime of this JoinState */
+   size_t outputDataAddSizeMax;
+
+   /* the maximum outputDataMemSize value of one chunk of output data (i.e.
+    * one output TBlock or one chunk of output tuples) created during the
+    * lifetime of this JoinState */
+   size_t outputDataMemSizeMax;
 
    /* initializes the memory statistics with the given information */
    void initialize(size_t usedInputDataMemory_, size_t rectangleInfoCount,
@@ -152,8 +163,13 @@ struct JoinStateMemoryInfo {
     * given SelfMerger) and possibly increases the maximum values */
    inline void updateMaximum(SelfMerger* merger);
 
-   /* adds the given number of tuples and bytes to the output data */
-   inline void addOutputData(uint64_t tupleCount, size_t byteCount);
+   /* adds the given number of tuples and bytes to the output data. While
+    * memAddByteCount is the number of bytes that were additionally
+    * reserved from memory, memSizeByteCount is the whole MemSize of the
+    * output tuples (including the size of Attribute instances that are shared
+    * with input tuples) */
+   inline void addOutputData(uint64_t tupleCount, size_t memAddByteCount,
+           size_t memSizeByteCount);
 
    /* the maximum number of main memory bytes used at any point during the
     * lifetime of this JoinState */
@@ -303,8 +319,14 @@ class JoinState {
    /* the number of (non-empty) outTBlocks returned by this JoinState */
    unsigned outTBlockCount;
 
-   /* the number of bytes returned by this JoinState */
-   size_t outputSize;
+#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+   /* the number of bytes that were additionally reserved from memory
+    * for the output tuples created by this JoinState instance. In case of an
+    * output tuple stream, this may be smaller than the MemSize of the tuples
+    * since the output tuples point to the same Attribute instances as the
+    * input tuples */
+   size_t outputAddSize;
+#endif
 
    /* is set to true once the join has completed; the outTBlock may still
     * contain the last result tuples */
@@ -319,11 +341,11 @@ public:
     * attrIndexA/B: the positions of the join attributes;
     * tupleCountA/B: the number of tuples stored in the given tBlocks;
     * dimA/B: the dimension (2 or 3) of the spatial information;
-    * outTBlockSize: the maximum size of the return TBlock in bytes;
+    * outBufferSize: the maximum size of the output buffer in bytes;
     * joinStateId: the consecutive number of this JoinState instance */
    JoinState(OutputType outputType_, TupleType* tupleType_,
          InputStream* inputA_, InputStream* inputB_,
-         uint64_t outTBlockSize_, unsigned operatorNum_, unsigned joinStateId_,
+         uint64_t outBufferSize_, unsigned operatorNum_, unsigned joinStateId_,
          std::shared_ptr<Timer>& timer_);
 
    ~JoinState();
