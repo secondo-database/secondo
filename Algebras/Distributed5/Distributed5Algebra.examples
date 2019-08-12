@@ -1,0 +1,24 @@
+Database: berlintest
+Restore : No
+
+Operator : ARRAYORTASKSFUNARG1
+Number   : 1
+Signature: darray(X) x ... -> X, stream(task(X)) x ... -> X
+Example  : query df1 dmap_S ["df3" . count]
+Result   : 
+
+
+Operator : dmap_S
+Number   : 1
+Signature: d[f]array/tasks(darray) x string x fun -> stream(task)
+Example  : query 
+Result   : 
+
+
+Operator : schedule_S
+Number   : 1
+Signature: tasks -> darray
+Example  : query 
+Result   : 
+
+
