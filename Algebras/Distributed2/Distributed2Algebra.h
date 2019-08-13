@@ -26,10 +26,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#pragma once
+
+
 #include "ErrorWriter.h"
 #include "DArray.h"
 
-#define DPROGRESS
+ // #define DPROGRESS
 
 #ifdef DPROGRESS
 #include "ProgressObserver.h"
