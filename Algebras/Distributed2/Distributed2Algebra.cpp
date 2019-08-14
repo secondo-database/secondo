@@ -20762,6 +20762,7 @@ class deleteRemoteDatabasesInfo{
         // to delete should be present
 
         cmd = "open database " + name;
+        si->Secondo( cmd, resList,err);
         if(err.code==0){
             cmd = "query secondoHome()";
             si->Secondo(cmd,resList,err);
