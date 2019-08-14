@@ -9335,8 +9335,13 @@ class getValueInfo : public getValueListener{
    }
 
    virtual ~getValueInfo(){
-      delete[] values;
+      valueAccessMtx.lock();
+      if(values){
+         delete[] values;
+      }
+      valueAccessMtx.unlock();
    }
+
 
 
    void convert(){
@@ -9361,10 +9366,14 @@ class getValueInfo : public getValueListener{
     for(size_t i =0 ;i<getters.size();i++){
        delete getters[i];  
     }
-    result->initialize(algId,typeId,n,values);
+    {
+       boost::lock_guard<boost::mutex> guard(valueAccessMtx);
+       result->initialize(algId,typeId,n,values);
+    }
   } 
 
   void jobDone(int id, Word value){
+    boost::lock_guard<boost::mutex> guard(valueAccessMtx);
     if(value.addr==0){ // problem in getting element
        // set some default value 
        boost::lock_guard<boost::mutex> guard(createRelMut);
@@ -9388,6 +9397,7 @@ class getValueInfo : public getValueListener{
     int n;
     Word* values;
     bool isData;
+    boost::mutex valueAccessMtx;
     
     bool init(){
        if(!arg->IsDefined()){
