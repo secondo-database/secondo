@@ -67,11 +67,13 @@ public:
     void deleteIfAllowed();
 
     ConnectionInfo* copy(){
+        boost::lock_guard<boost::mutex> guard(norefmtx);
         noReferences++;
         return this;
     }
 
-    size_t getNoReferences() const{
+    size_t getNoReferences() {
+       boost::lock_guard<boost::mutex> guard(norefmtx);
        return noReferences;
     }
 
@@ -319,6 +321,8 @@ private:
     std::string requestPath;
     std::string sendFolder;
     std::string sendPath;
+    boost::mutex norefmtx;
+
 
     typedef boost::recursive_mutex mutex_type;
     typedef boost::lock_guard<mutex_type> guard_type;

@@ -179,10 +179,14 @@ ConnectionInfo::~ConnectionInfo()
 }
 
 void ConnectionInfo::deleteIfAllowed() {
+       norefmtx.lock();
        assert(noReferences>0);
        noReferences--;
        if(noReferences==0){
+          norefmtx.unlock();
           delete this;
+       } else {
+          norefmtx.unlock();
        }
 }
 
