@@ -20837,7 +20837,8 @@ int deleteRemoteDatabasesVMT(Word* args, Word& result, int message,
                delete li;
                local.addr = 0;
              }
-
+             algInstance->disconnect();
+             algInstance->closeAllWorkers();
              string n = SecondoSystem::GetInstance()->GetDatabaseName();
              int relPos = 0;
              if(qp->GetNoSons(s)==5){
