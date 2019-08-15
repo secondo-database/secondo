@@ -41,7 +41,6 @@ makedirsnormal:
 	$(MAKE) -C pd 
 	$(MAKE) -C SyntaxParser
 	$(MAKE) -C TypeMap
-	$(MAKE) -C ProgressWatcher
 
 .PHONY: makedirsjni
 makedirsjni:
