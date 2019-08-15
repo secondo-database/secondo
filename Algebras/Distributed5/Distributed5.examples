@@ -1,0 +1,22 @@
+Database: berlintest
+Restore : No
+
+Operator : ARRAYORTASKSFUNARG1
+Number   : 1
+Signature: darray(X) x ... -> X | stream(task(X)) x ... -> X
+Example  : query Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] dmapS["", .] dmapS["", . count] schedule getValue tie[. + ..]
+Result   : 83
+
+
+Operator : dmapS
+Number   : 1
+Signature: d[f]array/tasks(darray) x string x fun -> stream(task)
+Example  : query Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] dmapS["", .] dmapS["", . count] schedule getValue tie[. + ..]
+Result   : 83
+
+
+Operator : schedule
+Number   : 1
+Signature: stream(task) -> darray
+Example  : query Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] dmapS["", .] dmapS["", . count] schedule getValue tie[. + ..]
+Result   : 83

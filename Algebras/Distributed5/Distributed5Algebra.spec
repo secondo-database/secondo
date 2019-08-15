@@ -17,5 +17,5 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator dmap_S alias dmap_S pattern  _ op[_,fun] implicit parameter dmapelem type ARRAYORTASKSFUNARG1
-operator schedule_S alias schedule_S pattern  _ op
+operator dmapS alias dmapS pattern  _ op[_,fun] implicit parameter dmapelem type ARRAYORTASKSFUNARG1
+operator schedule alias schedule pattern  _ op

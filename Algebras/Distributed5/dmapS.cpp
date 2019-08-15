@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "dmap_S.h"
+#include "dmapS.h"
 
 using namespace std;
 using namespace distributed2;
@@ -56,11 +56,11 @@ Input Parameter can be a stream of tasks coming from a previous dmap\_S Operator
 
 */
 
-ListExpr dmap_STM(ListExpr args)
+ListExpr dmapSTM(ListExpr args)
 {
     string err = "{{darray(X)}  x string x fun} expected";
 
-    //ensure that exactly 3 argument comes into dmap_S
+    //ensure that exactly 3 argument comes into dmapS
     if (!nl->HasLength(args, 3))
     {
         return listutils::typeError(err + " (wrong number of args)");
@@ -169,20 +169,20 @@ ListExpr dmap_STM(ListExpr args)
 
 */
 
-class dmap_SLI
+class dmapSLI
 {
 public:
-    //constructor of the dmap_S Local Information
+    //constructor of the dmapS Local Information
     //string is the Function text
     //remoteName is the name of the relation in the slots
-    dmap_SLI(string t, string remoteName)
+    dmapSLI(string t, string remoteName)
     {
         this->stream = 0;
         this->dmapFunction = t;
         this->remoteName = remoteName;
     }
 
-    dmap_SLI(Word stream, string dmapFunction, string remoteName)
+    dmapSLI(Word stream, string dmapFunction, string remoteName)
     {
         this->stream = new Stream<Task>(stream);
         this->dmapFunction = dmapFunction;
@@ -190,7 +190,7 @@ public:
         this->stream->open();
     }
 
-    ~dmap_SLI()
+    ~dmapSLI()
     {
         if (stream)
         {
@@ -203,7 +203,7 @@ public:
     //adds the task t to the list of all tasks
     //manages also the predecessor and successor tasks of this tasks
     //if task is not a leaf (so there are some other
-    // dmap_S operators in between), 
+    // dmapS operators in between), 
     //the task can just be forwarded.
     //if task is the leaf, the next incoming task is the successor of the
     // task and visa versa.
@@ -272,14 +272,14 @@ private:
 dmap\_S Value Mapping when a DARRAY comes as in put
 
 */
-int dmap_SVM_DArray(Word *args, 
+int dmapSVM_DArray(Word *args, 
             Word &result, 
             int message, 
             Word &local, 
             Supplier s)
 {
 
-    dmap_SLI *li = (dmap_SLI *)local.addr;
+    dmapSLI *li = (dmapSLI *)local.addr;
     DArray *incomingDArray;
 
     FText *incomingFunction;
@@ -315,7 +315,7 @@ int dmap_SVM_DArray(Word *args,
         }
 
         local.addr = li = 
-            new dmap_SLI(incomingFunction->GetValue(), remoteName);
+            new dmapSLI(incomingFunction->GetValue(), remoteName);
 
         for (size_t i = 0; i < incomingDArray->getSize(); i++)
         {
@@ -350,14 +350,14 @@ int dmap_SVM_DArray(Word *args,
 dmap\_S Value Mapping when a stream of tasks comes as in put
 
 */
-int dmap_SVM_Task(Word *args, 
+int dmapSVM_Task(Word *args, 
                     Word &result, 
                     int message, 
                     Word &local, 
                     Supplier s)
 {
 
-    dmap_SLI *li = (dmap_SLI *)local.addr;
+    dmapSLI *li = (dmapSLI *)local.addr;
     Word incomingStream;
 
     FText *incomingFunction;
@@ -392,7 +392,7 @@ int dmap_SVM_Task(Word *args,
         }
 
         local.addr = li = 
-                new dmap_SLI(incomingStream, 
+                new dmapSLI(incomingStream, 
                     incomingFunction->GetValue(), 
                     remoteName);
         return 0;
@@ -413,12 +413,12 @@ int dmap_SVM_Task(Word *args,
     return 0;
 }
 
-ValueMapping dmap_SVM[] = {
-    dmap_SVM_DArray,
-    dmap_SVM_Task};
+ValueMapping dmapSVM[] = {
+    dmapSVM_DArray,
+    dmapSVM_Task};
 
 //Checks which type of Value Mapping is required.  DArray vs. Task Stream
-int dmap_SSelect(ListExpr args)
+int dmapSSelect(ListExpr args)
 {
     if (DArray::checkType(nl->First(args)))
     {
@@ -433,17 +433,17 @@ int dmap_SSelect(ListExpr args)
     return -1;
 }
 
-OperatorSpec dmap_SSpec(
+OperatorSpec dmapSSpec(
     "d[f]array/tasks(darray) x string x fun -> stream(task)",
-    "_ dmap_S[_,_]",
+    "_ dmapS[_,_]",
     "Creates a stream of tasks",
     "");
 
-Operator dmap_SOp(
-    "dmap_S",
-    dmap_SSpec.getStr(),
+Operator dmapSOp(
+    "dmapS",
+    dmapSSpec.getStr(),
     2,
-    dmap_SVM,
-    dmap_SSelect,
-    dmap_STM);
+    dmapSVM,
+    dmapSSelect,
+    dmapSTM);
 } // namespace distributed5

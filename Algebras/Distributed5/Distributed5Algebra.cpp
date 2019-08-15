@@ -26,9 +26,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "Algebras/Distributed5/schedule_S.h"
+#include "Algebras/Distributed5/schedule.h"
 #include "Algebras/Distributed5/Task.h"
-#include "Algebras/Distributed5/dmap_S.h"
+#include "Algebras/Distributed5/dmapS.h"
 #include "Algebras/Distributed5/ARRAYORTASKSFUNARG.h"
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
@@ -43,9 +43,9 @@ class Distributed5Algebra : public Algebra
 public:
     Distributed5Algebra() : Algebra()
     {
-        AddOperator(&dmap_SOp);
-        dmap_SOp.SetUsesArgsInTypeMapping();
-        AddOperator(&schedule_SOp);
+        AddOperator(&dmapSOp);
+        dmapSOp.SetUsesArgsInTypeMapping();
+        AddOperator(&scheduleOp);
         AddTypeConstructor(&TaskTC);
         TaskTC.AssociateKind(Kind::SIMPLE());
 

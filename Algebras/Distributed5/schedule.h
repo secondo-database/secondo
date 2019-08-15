@@ -26,10 +26,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-
-#ifndef DISTRIBUTE5_DMAP_S_H
-#define DISTRIBUTE5_DMAP_S_H
-
+#ifndef DISTRIBUTE5_SCHEDULE_H
+#define DISTRIBUTE5_SCHEDULE_H
 #include "Attribute.h"
 #include "Algebra.h"
 #include "NestedList.h"
@@ -52,7 +50,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace distributed5{
 
-extern Operator dmap_SOp;
+extern Operator scheduleOp;
 
 }
+
 #endif

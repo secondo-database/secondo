@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "schedule_S.h"
+#include "schedule.h"
 
 using namespace std;
 using namespace distributed2;
@@ -47,7 +47,7 @@ The operator schedule\_S is responsible for distributing the tasks from a tuple 
 
 */
 
-ListExpr schedule_STM(ListExpr args)
+ListExpr scheduleTM(ListExpr args)
 {
 
     string err = "stream<tasks> expected";
@@ -89,7 +89,7 @@ ListExpr schedule_STM(ListExpr args)
 
 */
 
-int schedule_SVM(Word *args, Word &result, int message,
+int scheduleVM(Word *args, Word &result, int message,
                  Word &local, Supplier s)
 {
     result = qp->ResultStorage(s);
@@ -125,13 +125,13 @@ int schedule_SVM(Word *args, Word &result, int message,
             //take one out and start the task...
             task = allTasksToBeStarted.back();
             allTasksToBeStarted.pop_back();
-            cout << "\n SCHEDULE::" << task->toString() << "\n";
+            //cout << "\n SCHEDULE::" << task->toString() << "\n";
             task->run();
             //For all successor task, decrease the number of remaining tasks
             task->decNumberOfRemainingTasksForSuccessors();
             //check if there are now possible tasks which can be started.
             //If that is the case, check, if this task came already
-            //in the schedule_S stream.
+            //in the schedule stream.
             //If that is the case, add this task to the queue of task,
             //which can possibly be started.
             //If that is not the case - the task will came in later and
@@ -155,7 +155,7 @@ int schedule_SVM(Word *args, Word &result, int message,
                 }
             }
             //If the task is a leaf the result of the 
-            //schedule_S operator is the result of the query for this slot.
+            //schedule operator is the result of the query for this slot.
             if (task->isLeaf())
             {
                 TaskType tt = task->getTaskType();
@@ -183,16 +183,16 @@ int schedule_SVM(Word *args, Word &result, int message,
     return 0;
 }
 
-OperatorSpec schedule_SSpec(
+OperatorSpec scheduleSpec(
     "tasks -> darray",
-    "_ schedule_S",
+    "_ schedule",
     "Computes the result of the query.",
     "");
 
-Operator schedule_SOp(
-    "schedule_S",
-    schedule_SSpec.getStr(),
-    schedule_SVM,
+Operator scheduleOp(
+    "schedule",
+    scheduleSpec.getStr(),
+    scheduleVM,
     Operator::SimpleSelect,
-    schedule_STM);
+    scheduleTM);
 } // namespace distributed5
