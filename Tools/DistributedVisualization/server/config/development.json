@@ -4,6 +4,8 @@
         "log_location_absolute": "/home/eugen/secondo_running/secondo/bin/distributed_logs"
     },
     "general": {
-        "show_only_running_jobs": false
+        "show_only_running_jobs": false,
+        "http_port": 3000,
+        "https_port": 3443
     }
 }

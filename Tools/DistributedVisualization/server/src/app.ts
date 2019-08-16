@@ -93,7 +93,7 @@ export class Application {
             Application.appSettings = settings;
             const app: express.Application = express();
 
-            app.set("port", process.env.PORT || 3000);
+            app.set("port", Application.appSettings.general.http_port);
             app.set("view engine", "ejs");
             app.use(compression());
             app.use(bodyparser_json());
@@ -140,7 +140,7 @@ export class Application {
             // Try to load certificates. If no certificates are found https will not start
             try {
                 logger.debug("Will use ssl");
-                app.set("port_ssh", process.env.PORT_SSH || 3343);
+                app.set("port_ssh", Application.appSettings.general.https_port);
                 const serverHTTPS: https_server = createHttpsServer({
                     //ca: fs.readFileSync(process.cwd() + "/certificates/ca.pem"),
                     cert: readFileSync(process.cwd() + "/certificates/cer.pem"),
