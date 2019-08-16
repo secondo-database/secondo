@@ -36,7 +36,7 @@
             <g v-for="(index) of numOfSlotsPerWorker" :key="index">
               <rect
                 :x="0 + index_w*(rectDimension+rectOffsetX)"
-                :y="rectDimension*5 + rectDimension*2 + index*(rectDimension+rectOffsetY)"
+                :y="rectDimension*collect2FirstStepSizeFactor + rectDimension + index*(rectDimension+rectOffsetY)"
                 :width="rectDimension"
                 :height="rectDimension"
                 :fill="rectFillFinished"
@@ -44,7 +44,7 @@
               <rect
                 v-if="worker.slots[1] !== 'finished'"
                 :x="0 + index_w*(rectDimension+rectOffsetX) + strokeWidth/2"
-                :y="rectDimension*5 + rectDimension*2 + index*(rectDimension+rectOffsetY) + strokeWidth/2"
+                :y="rectDimension*collect2FirstStepSizeFactor + rectDimension + index*(rectDimension+rectOffsetY) + strokeWidth/2"
                 :width="rectDimension - strokeWidth"
                 :height="rectDimensionForRunning(worker.runningProgress, worker.slots, index, true) - strokeWidth"
                 :fill="rectFillNotFinished"
@@ -52,6 +52,7 @@
             </g>
           </g>
         </svg>
+        <!-- horizontal -->
         <svg
           v-else
           class="svg_matrix"
@@ -87,6 +88,7 @@
         class="svg_matrix_container"
         :style="paddingBottomStyle"
       >
+      <!-- collect2 start-->
         <svg
           v-if="isCollect2 === true"
           class="svg_matrix"
@@ -140,6 +142,7 @@
             </g>
           </g>
         </svg>
+        <!-- collect2 end -->
         <svg
           v-else
           class="svg_matrix"
@@ -216,7 +219,9 @@ export default class Matrix extends Vue {
       if (this.isCollect2) {
         return (
           this.numOfSlotsPerWorker * this.rectDimension +
-          this.numOfSlotsPerWorker * this.rectOffsetY * 5 +
+          this.rectDimension * this.rectOffsetY * 2 +
+          this.rectDimension * this.pCollect2FirstStepSizeFactor +
+          this.numOfSlotsPerWorker * this.rectOffsetY * 2 +
           this.boxOffset
         );
       } else {
@@ -239,6 +244,10 @@ export default class Matrix extends Vue {
 
   get boxOffset(): number {
     return 12 + this.matrixData[0].slots.length * this.rectOffsetY;
+  }
+
+  get boxOffsetCollect2(): number {
+    return 12 + this.numOfSlotsPerWorker * this.rectOffsetY;
   }
 
   get rectDimension(): number {

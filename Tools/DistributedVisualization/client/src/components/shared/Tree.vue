@@ -1,6 +1,6 @@
 <template>
   <v-container grid-list-xl>
-    <v-layout row wrap class="my-5" align-center>
+    <v-layout row wrap align-center>
       <div id="svg_container" class="svg_chart_container" :style="paddingBottomStyle">
         <svg
           class="svg_chart"
@@ -92,7 +92,7 @@ export default class Tree extends Vue {
         maxH = n.y;
       }
     }
-    this.pHeight = maxH + 10 * this.treeHierarchy.descendants().length + 50;
+    this.pHeight = maxH + 10 * this.treeHierarchy.descendants().length + 40;
   }
 
   get paddingBottomStyle(): string {

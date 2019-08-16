@@ -35,9 +35,7 @@ export class TreeService {
 
     public static getArguments(journal: JournalDTO, node: string): string {
         const op: string = journal.nodeOperatorMapping[node];
-        if (this.isDmap(op)) {
-            return this.getDmapArguments(journal.nodeArgumentsMapping[node], op);
-        }
+        return this.getOperatorArguments(journal.nodeArgumentsMapping[node], op);
         return journal.nodeArgumentsMapping[node];
     }
 
@@ -173,11 +171,11 @@ export class TreeService {
             if (elem.children && elem.children.length > 0) {
                 this.enrichTree(elem, journal);
             } else {
-                if (elem.operator && this.isDmap(elem.operator)) {
+                if (elem.operator) {
                     elem.children = new Array();
                     const child: TreeForDisplayDTO =
                         this.createChild("-1",
-                            this.getDmapArguments(journal.nodeArgumentsMapping[elem.name], elem.operator),
+                            this.getOperatorArguments(journal.nodeArgumentsMapping[elem.name], elem.operator),
                             false,
                             elem.ready,
                             true);
@@ -188,16 +186,8 @@ export class TreeService {
         }
     }
 
-    private static isDmap(op: string): boolean {
-        if (op === "dmap"
-            || op === "dmap2"
-            || op === "dmap3") {
-            return true;
-        }
-        return false;
-    }
 
-    private static getDmapArguments(rawArgs: string, op: string): string {
+    private static getOperatorArguments(rawArgs: string, op: string): string {
         if (rawArgs === undefined) {
             return "";
         }
@@ -213,6 +203,12 @@ export class TreeService {
                 break;
             case "dmap3":
                 nArgs = args[0].trimRight() + ", " + args[1].trimRight() + ", " + args[2];
+                break;
+            case "partitionF":
+                nArgs = args[0];
+                break;
+            case "collect2":
+                nArgs = args[0];
                 break;
         }
         return nArgs;
