@@ -666,7 +666,7 @@ ListExpr renameFunArgs(ListExpr fun, const std::string post){
 
 
 ListExpr pfilterSTM(ListExpr args){
-  if(!nl->HasLength(args,3)){
+  if(!nl->HasLength(args,5)){
     return listutils::typeError("three arguments required");
   }
   ListExpr tmp = args;
@@ -692,10 +692,17 @@ ListExpr pfilterSTM(ListExpr args){
     return listutils::typeError("the number of threads must be "
                                 "between 1 and 15");
   }
-  ListExpr fun = nl->Third(args);
+  if(!CcInt::checkType(nl->First(nl->Third(args)))){
+    return listutils::typeError("third argument is not an int");
+  }
+  if(!CcInt::checkType(nl->First(nl->Fourth(args)))){
+    return listutils::typeError("fourth argument is not an int");
+  }
+
+  ListExpr fun = nl->Fifth(args);
   ListExpr funt = nl->First(fun);
   if(!listutils::isMap<1>(funt)){
-    return listutils::typeError("third artgument is not a unary function");
+    return listutils::typeError("fifth argument is not a unary function");
   }
   ListExpr funarg = nl->Second(funt);
   if(!nl->Equal(funarg,nl->Second(stream))){
@@ -775,6 +782,23 @@ class SyncStream{
     return res;
   }
 
+  void request(std::vector<T*>& buffer, int elems){
+    boost::lock_guard<boost::mutex> guard(mtx);
+    buffer.clear();
+    if(endReached){
+      buffer.push_back(nullptr);
+      return;
+    }
+    for( int i=0;i<elems && !endReached; i++){
+      T* res = stream.request(); 
+      if(res==0){
+         endReached = true;
+      }
+      buffer.push_back(res);
+    }
+  }
+
+
  private:
    Stream<T> stream;
    bool endReached;
@@ -794,22 +818,50 @@ class Consumer{
 
 
 template<class T>
+class ConsumerV : public Consumer<T>{
+   public:
+     virtual void elemsAvailable(std::vector<T*>* elems) = 0;
+    
+};
+
+
+template<class T>
 class pfilterSThread{
   public:
-    pfilterSThread(SyncStream<T>* _stream, 
+    pfilterSThread(SyncStream<T>* _stream,
+                  int _inbuffer,
+                  int _outbuffer, 
                   Word _fun,
-                  Consumer<T>* _consumer): stream(_stream),
+                  ConsumerV<T>* _consumer): stream(_stream),
+                  inbuffer(_inbuffer),
+                  outbuffer(_outbuffer),
                   fun(_fun), consumer(_consumer){
 
       funArgs = qp->Argument(fun.addr);
       running = true;
       sendNull = false;
-      runner = new boost::thread(&pfilterSThread<T>::run, this);
+      if(inbuffer<2 && outbuffer<2){
+          // single input single output version
+          runner = new boost::thread(&pfilterSThread<T>::run, this);
+      } else {
+          // more complex version
+          runner = new boost::thread(&pfilterSThread<T>::runX, this);
+      }
     }
 
     ~pfilterSThread(){
       runner->join();
-      delete runner;  
+      delete runner;
+      for(size_t i=currentPos;i<inbufferV.size(); i++){
+        if(inbufferV[i] != nullptr){
+           inbufferV[i]->DeleteIfAllowed();
+        }
+      } 
+      for(size_t i=0;i<outbufferV.size(); i++){
+        if(outbufferV[i]!=nullptr){
+           outbufferV[i]->DeleteIfAllowed();
+        }
+      } 
     }
 
     void cancel(){
@@ -818,13 +870,18 @@ class pfilterSThread{
   
  private:
     SyncStream<T>* stream;
+    size_t inbuffer;
+    size_t outbuffer;
     Word fun;
-    Consumer<T>* consumer;
+    ConsumerV<T>* consumer;
     ArgVectorPointer funArgs;
     bool running;
     boost::thread* runner;
     Word res;
     bool sendNull;
+    std::vector<T*> inbufferV;
+    std::vector<T*> outbufferV;
+    size_t currentPos;
     
      void run(){
        while(running){
@@ -847,6 +904,48 @@ class pfilterSThread{
        }
     }
 
+    void runX(){
+       while(running){
+          inbufferV.clear();
+          stream->request(inbufferV, inbuffer);
+          currentPos = 0;
+          while(currentPos < inbufferV.size() && running){
+             T* elem = inbufferV[currentPos];
+             currentPos ++;
+             if(elem==nullptr){
+                running = false;
+                elemAvailable(elem);
+                sendNull = true;
+             } else {
+                if(!check(elem)){
+                   elem->DeleteIfAllowed();
+                } else {
+                   elemAvailable(elem);
+                }
+            }
+          }
+       }
+       if(!sendNull){
+         elemAvailable(0);
+         sendNull = true;
+       }
+    }
+
+
+    void elemAvailable(T* elem){
+        if(outbuffer<2){
+          consumer->elemAvailable(elem);
+        } else {
+          outbufferV.push_back(elem);
+          if((outbufferV.size() >= outbuffer) || (elem==nullptr)){
+             // maximum size reached or end of stream
+             consumer->elemsAvailable(&outbufferV);
+             outbufferV.clear();
+          }
+       }
+    }
+
+
     bool check(T* elem){
       (*funArgs)[0] = elem;
       qp->Request(fun.addr,res);
@@ -857,16 +956,24 @@ class pfilterSThread{
 };
 
 template<class T>
-class pfilterSInfo : public Consumer<T>{
+class pfilterSInfo : public ConsumerV<T>{
 
   public:
 
-     pfilterSInfo(Word& _stream, std::vector<Word>& _funs): 
-        stream(_stream), funs(_funs), buffer(funs.size()*2) {
+     pfilterSInfo(Word& _stream, 
+                  size_t _inbuffer, 
+                  size_t _outbuffer,
+                  std::vector<Word>& _funs): 
+        stream(_stream),inbuffer(_inbuffer), 
+        outbuffer(_outbuffer),funs(_funs), 
+        buffer(funs.size()*2),
+        bufferV(funs.size()*2) {
         stream.open();
         runs = funs.size();
+        current_Pos = 0;
         for(size_t i=0; i< funs.size();i++){
-          runners.push_back(new pfilterSThread<T>(&stream, funs[i], this));
+          runners.push_back(new pfilterSThread<T>(&stream, inbuffer, 
+                                                  outbuffer, funs[i], this));
         }
      }
 
@@ -882,6 +989,17 @@ class pfilterSInfo : public Consumer<T>{
              elem->DeleteIfAllowed();
           }
        } 
+       std::vector<T*> v;
+       while( !bufferV.empty() ){
+          bufferV.pop_back(&v);
+          for(size_t i=0;i<v.size();i++){ 
+            elem = v[i];
+            if(elem){
+               elem->DeleteIfAllowed();
+            }
+          }
+       } 
+ 
        for(size_t i=0;i<runners.size();i++){
           delete runners[i];
        }
@@ -891,13 +1009,35 @@ class pfilterSInfo : public Consumer<T>{
              elem->DeleteIfAllowed();
           }
        } 
+       while( !bufferV.empty() ){
+          bufferV.pop_back(&v);
+          for(size_t i=0;i<v.size();i++){ 
+            elem = v[i];
+            if(elem){
+               elem->DeleteIfAllowed();
+            }
+          }
+       } 
+       for(size_t i = current_Pos; i<current_out.size(); i++){
+         current_out[i]->DeleteIfAllowed();
+       }
        stream.close();
      }
 
      T* next(){
-        T* elem;
-        buffer.pop_back(&elem);
-        return elem;    
+       if(outbuffer < 2){ 
+          T* elem;
+          buffer.pop_back(&elem);
+          return elem;    
+       }
+       while(current_Pos >= current_out.size()){
+          // get the next buffer from bufferV
+          current_Pos = 0;
+          bufferV.pop_back(&current_out);
+       }
+       T* res = current_out[current_Pos];
+       current_Pos++;
+       return res;
      }
 
      void elemAvailable(T* elem){
@@ -912,14 +1052,37 @@ class pfilterSInfo : public Consumer<T>{
        }
        mtx.unlock();
      }
+     
+     void elemsAvailable(std::vector<T*>* v1){
+       mtx.lock();
+       if(v1->size()>0){
+         std::vector<T*> v = *v1;
+         if(v.back()==nullptr){ // end of stream from this thread
+            runs--;
+            if(runs>0){
+              v.pop_back();
+            }
+         }
+         if(v.size() > 0){
+           bufferV.push_front(v); 
+         }
+       }
+       mtx.unlock();
+     }
+     
 
   private:
      SyncStream<T> stream;
+     int inbuffer;
+     int outbuffer; 
      std::vector<Word> funs;
      bounded_buffer<T*> buffer;
+     bounded_buffer<std::vector<T*> > bufferV;
      std::vector<pfilterSThread<T>*> runners;
      boost::mutex mtx;
      size_t runs; 
+     std::vector<T*> current_out;
+     size_t current_Pos;
      
 };
 
@@ -934,11 +1097,30 @@ int pfilterSVMT(Word* args, Word& result,
             if(li){
               delete li;
             }
+            CcInt* inB = (CcInt*) args[2].addr;
+            int inbuffer = 1;
+            if(inB->IsDefined()){
+               inbuffer = inB->GetValue();
+               if(inbuffer <1) {
+                  inbuffer = 1;
+               }
+            } 
+            CcInt* outB = (CcInt*) args[3].addr;
+            int outbuffer = 1;
+            if(outB->IsDefined()){
+               outbuffer = outB->GetValue();
+               if(outbuffer <1) {
+                  outbuffer = 1;
+               }
+            } 
             std::vector<Word> funs;
-            for(int i=2; i< qp->GetNoSons(s); i++){
+            for(int i=4; i< qp->GetNoSons(s); i++){
                 funs.push_back(args[i]);
             }
-            local.addr = new pfilterSInfo<T>(args[0], funs);
+            local.addr = new pfilterSInfo<T>(args[0],
+                                             inbuffer, 
+                                             outbuffer, 
+                                             funs);
             return 0;
           }
     case REQUEST:{
@@ -957,13 +1139,15 @@ int pfilterSVMT(Word* args, Word& result,
 };
 
 OperatorSpec pfilterSSpec(
-  " stream(Tuple) x int x (tuple->bool) -> stream(tuple)",
+  " stream(Tuple) x int x int x int x (tuple->bool) -> stream(tuple)",
   " _ pfilterS[_,_] ",
   " Filters tuples from a stream that a not fulfilling a "
   " given condition, Filtering is done used several threads "
   "where the number of threads is given in the second argument."
+  "the third and the fourth argument are sizes of the input buffer "
+  "and the output buffer of each thread. "
   "Note that the ordering of the input stream is not prevented",
-  " query plz pfilterS[10, .PLZ < 7000] count"
+  " query plz pfilterS[10, 100, 30,  .PLZ < 7000] count"
 );
 
 Operator pfilterSOp(

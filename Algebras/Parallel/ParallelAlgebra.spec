@@ -24,7 +24,7 @@ operator multicount alias MULTICOUNT pattern op(_,_,_)
 operator pbuffer alias PBUFFER pattern _ op [_] 
 operator pbuffer1 alias PBUFFER1 pattern _ op  
 operator pbufferU alias PBUFFERU pattern _ op  
-operator pfilterS alias PFILTERS pattern _ op[_,fun] implicit parameter streamelem type STREAMELEM
+operator pfilterS alias PFILTERS pattern _ op[_,_,_,fun] implicit parameter streamelem type STREAMELEM
 operator pextend alias PEXTEND pattern _ op[_; funlist] implicit parameter streamelem type STREAMELEM
 operator pextendstream alias PEXTENDSTREAM pattern _ op[_; funlist] implicit parameter streamelem type STREAMELEM
 operator punion alias PUNION pattern _ _ op
