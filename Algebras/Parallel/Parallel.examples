@@ -40,7 +40,7 @@ Result    : TRUE
 Operator  : pextendstream
 Number    : 1
 Signature : stream(tuple) x int x int x int x (tuple -> stream(attr))  -> stream(tuple@attr)
-Example   : query plz feed pextendstream[10i, 10, 200,; P : intstream(1,20)] count = ((plz count)*20)
+Example   : query plz feed pextendstream[10, 10, 200; P : intstream(1,20)] count = ((plz count)*20)
 Result    : TRUE
 
 Operator  : punion
