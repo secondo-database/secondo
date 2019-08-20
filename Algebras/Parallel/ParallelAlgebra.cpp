@@ -2121,8 +2121,8 @@ Returns all tuples from both input streams.
 
 */
 ListExpr punionTM(ListExpr args){
-  if(!nl->HasLength(args,2)){
-    return listutils::typeError("2 arguments expected");
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError("3 arguments expected");
   }
   if(!Stream<Tuple>::checkType(nl->First(args))){
     return listutils::typeError("first argument is not a tuple stream");
@@ -2131,6 +2131,9 @@ ListExpr punionTM(ListExpr args){
     return listutils::typeError("two tuples streams having the "
                                 "same tuple type expected");
   }
+  if(!CcInt::checkType(nl->Third(args))){
+     return listutils::typeError("third argument not of type int");
+  }
   return nl->First(args);
 }
 
@@ -2138,7 +2141,8 @@ ListExpr punionTM(ListExpr args){
 class punionInfo{
 
   public:
-     punionInfo(Word s1, Word s2): stream1(s1), stream2(s2), buffer(4), 
+     punionInfo(Word s1, Word s2, size_t buffersize): 
+        stream1(s1), stream2(s2), buffer(buffersize), 
         runs(2), running1(true), running2(true){
         stream1.open();
         stream2.open();
@@ -2151,24 +2155,12 @@ class punionInfo{
         running1 = false;
         running2 = false;
         // remove remaining elements in buffer
-        while(!buffer.empty()){
-           Tuple* t;
-           buffer.pop_back(&t);
-           if(t){
-             t->DeleteIfAllowed();
-           }
-        }
+        deleteBuffer(buffer);
         t1->join();
         t2->join();
         delete t1;
         delete t2;
-        while(!buffer.empty()){
-           Tuple* t;
-           buffer.pop_back(&t);
-           if(t){
-             t->DeleteIfAllowed();
-           }
-        }
+        deleteBuffer(buffer);
         stream1.close();
         stream2.close();
      }
@@ -2230,9 +2222,16 @@ int punionVM(Word* args, Word& result,
 
    punionInfo* li = (punionInfo*) local.addr;
    switch(message){
-      case OPEN: if(li) delete li;
-                 local.addr = new punionInfo(args[0], args[1]);
-                 return 0;
+      case OPEN: {
+                  if(li) delete li;
+                  size_t bufferSize = 4;
+                  CcInt* bs = (CcInt*) args[2].addr;
+                  if(bs->IsDefined() && bs->GetValue() > 4){
+                      bufferSize = bs->GetValue();
+                  } 
+                  local.addr = new punionInfo(args[0], args[1], bufferSize);
+                   return 0;
+                 }
       case REQUEST: result.addr = li?li->next(): 0;
                     return result.addr?YIELD:CANCEL;
       case CLOSE: if(li){
@@ -2245,12 +2244,13 @@ int punionVM(Word* args, Word& result,
 }
 
 OperatorSpec punionSpec(
-   "stream(tuple) x stream(tuple) -> stream(tuple) ",
-   "_ _ punion",
+   "stream(tuple) x stream(tuple) x int -> stream(tuple) ",
+   "_ _ punion[_]",
    "Returns the union of the tuple streams. The "
    "incoming tuples are asked by separate threads. The "
-   "order of the result is not predictable. ",
-   "query plz feed plz feed punion count"
+   "order of the result is not predictable. The last argument "
+   "is the size of the outbut buffer.",
+   "query plz feed plz feed punion [120] count"
 );
 
 Operator punionOp(
