@@ -23,36 +23,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "KafkaConsumer.h"
-#include "KafkaSource.h"
+#include <iostream>
 
+std::string *getString();
 
-extern NestedList *nl;
-extern QueryProcessor *qp;
-extern AlgebraManager *am;
+int main() {
+    std::cout << "Hello, World!" << std::endl;
 
-using namespace std;
-
-namespace kafka {
-
-
-    class KafkaAlgebra : public Algebra {
-    public:
-        KafkaAlgebra() : Algebra() {
-            AddOperator(&kafkaConsumerOp);
-            kafkaConsumerOp.SetUsesArgsInTypeMapping();
-            AddOperator(&kafkaSourceOp);
-            kafkaSourceOp.SetUsesArgsInTypeMapping();
-
-        }
-    };
-
-} // End namespace
-
-extern "C"
-Algebra *
-InitializeKafkaAlgebra(NestedList *nlRef,
-                       QueryProcessor *qpRef) {
-    return new kafka::KafkaAlgebra;
+    std::string *s = getString();
+    std::string str = *s;
+    return 0;
 }
 
+std::string *getString() {
+    return nullptr;
+}

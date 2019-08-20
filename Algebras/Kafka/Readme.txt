@@ -1,3 +1,7 @@
+- Open points/ TODOs
+    -- Kafkastream does not work with first record, fix
+    -- localhost from constant to parameter
+
 - Installing librdkafka - the Apache Kafka C/C++ client library
     https://github.com/edenhill/librdkafka
 

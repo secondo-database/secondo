@@ -24,26 +24,82 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "KafkaConsumer.h"
+#include "KafkaSource.h"
 #include "KafkaClient.h"
 
 using namespace std;
 
 namespace kafka {
 
+    void writeTypeString(string typeString, string string1);
+
     ListExpr kafkaConsumerTM(ListExpr args) {
         if (!nl->HasLength(args, 2)) {
             return listutils::typeError(" wrong number of args ");
         }
 
-        if (!Stream<Tuple>::checkType(nl->First(args))
-            || !CcString::checkType(nl->Second(args))) {
-            return listutils::typeError(" stream(Tuple) x KafkaTopic "
-                                        "expected ");
+        ListExpr tupleStreamArg = nl->First(args);
+        // the list is coded as (<type> <query part>)
+        if (!nl->HasLength(tupleStreamArg, 2)) {
+            return listutils::typeError(
+                    "internal error, tupleStreamArg invalid");
         }
-        std::string s;
-        nl->WriteToString(s, nl->First(args));
-        std::cout << "Type Sting: " << s << std::endl;
-        return nl->First(args);
+
+        if (!Stream<Tuple>::checkType(nl->First(tupleStreamArg))) {
+            return listutils::typeError(" stream(Tuple) expected ");
+        }
+
+        std::string typeString;
+        nl->WriteToString(typeString, nl->First(tupleStreamArg));
+        cout << "typeString: " << typeString << endl;
+
+
+        ListExpr topicArg = nl->Second(args);
+        // the list is coded as (<type> <query part>)
+//        std::string t;
+//        nl->WriteToString(t, topicArg);
+//        cout << "Topic Expresion: " << t;
+
+        if (!nl->HasLength(topicArg, 2)) {
+            return listutils::typeError("internal error, "
+                                        "topicArg invalid");
+        }
+
+        if (!CcString::checkType(nl->First(topicArg))) {
+            return listutils::typeError(
+                    "String (as type for topic name) expected");
+        }
+
+        ListExpr fn = nl->Second(topicArg);
+        if (nl->AtomType(fn) != StringType) {
+            return listutils::typeError("topic name not constant");
+        }
+        string topic = nl->StringValue(fn);
+        cout << "Topic: " << topic << endl;
+
+        std::string topicTypeString = readTypeString(topic);
+        cout << "topicTypeString: " << topicTypeString << endl;
+
+        if (topicTypeString.empty()) {
+            writeTypeString(topic, typeString);
+        } else if (topicTypeString.compare(typeString)) {
+            return listutils::typeError("The kafka topic has a"
+                                        " different type");
+        }
+
+        return nl->First(tupleStreamArg);
+    }
+
+    void writeTypeString(string topic, string typeString) {
+        std::cout << "Writing Type Sting: " << typeString << " to topic"
+                  << topic << std::endl;
+
+        KafkaProducerClient kafkaProducerClient;
+        kafkaProducerClient.Open("localhost", topic);
+        kafkaProducerClient.Write(typeString);
+        kafkaProducerClient.Close();
+
+        std::cout << "Writing Type Sting done" << std::endl;
     }
 
     class KafkaKonsumerLI {

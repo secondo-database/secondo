@@ -57,6 +57,9 @@ namespace kafka {
 
     extern Operator kafkaSourceOp;
 
+    std::string readTypeString(std::string basicString);
+
+
 }
 
 

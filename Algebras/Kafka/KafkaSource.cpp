@@ -48,14 +48,30 @@ namespace kafka {
         return res;
     }
 
+    std::string readTypeString(string topic) {
+        cout << "readTypeString started. topic:" << topic << endl;
+        KafkaReaderClient kafkaReaderClient;
+        kafkaReaderClient.Open("localhost", topic);
+        std::string *source = kafkaReaderClient.ReadSting();
+        if (source == nullptr) {
+            cout << "readTypeString is null" << endl;
+            return "";
+        }
+        std::string result = *source;
+        delete source;
+        kafkaReaderClient.Close();
+        cout << "readTypeString:" << result << endl;
+        return result;
+    }
+
     class KafkaSourceLI {
     public:
         // constructor: initializes the class from the string argument
-        KafkaSourceLI(CcString *arg) : input("") {
+        KafkaSourceLI(CcString *arg) : topic("") {
             def = arg->IsDefined();
             if (def) {
-                input = arg->GetValue();
-                kafkaReaderClient.Open("localhost", input);
+                topic = arg->GetValue();
+                kafkaReaderClient.Open("localhost", topic);
             }
         }
 
@@ -83,7 +99,7 @@ namespace kafka {
         }
 
     private:
-        string input;  // input string
+        string topic;
         KafkaReaderClient kafkaReaderClient;
         bool def;
     };
@@ -125,20 +141,6 @@ namespace kafka {
             Operator::SimpleSelect,
             KafkaSourceTM
     );
-
-/*
-As usual, the final steps are:
-
-  * add the operator to the algebra
-
-  * define the syntax in the ~spec~ file
-
-  * give an example in the ~examples~ file
-
-  * test the operator in Secondo
-
-*/
-
 
 
 }
