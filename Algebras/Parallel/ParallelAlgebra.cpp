@@ -1165,8 +1165,9 @@ Operator pextend
 ListExpr pextendTM(ListExpr args){
 
   // strem(tuple) x funlist
-  if(!nl->HasLength(args,3)){
-    return listutils::typeError("stream(tuple) x funlist expected");
+  if(!nl->HasLength(args,5)){
+    return listutils::typeError("stream(tuple) x int x int x"
+                                " int x funlist expected");
   }
   // because we have to replicate the functions, we uses the args in 
   // type mapping
@@ -1188,11 +1189,18 @@ ListExpr pextendTM(ListExpr args){
     return listutils::typeError("the number of thread must be "
                                 "between 1 and 15");
   }
+  if(!CcInt::checkType(nl->First(nl->Third(args)))){
+    return listutils::typeError("third argument is not an int");
+  }
+  if(!CcInt::checkType(nl->First(nl->Fourth(args)))){
+    return listutils::typeError("fourth argument is not an int");
+  }
+
 
   // the last argument consists of a list of function types and the list of 
   // function definitions
-  ListExpr funtypes = nl->First(nl->Third(args));
-  ListExpr fundefs = nl->Second(nl->Third(args));
+  ListExpr funtypes = nl->First(nl->Fifth(args));
+  ListExpr fundefs = nl->Second(nl->Fifth(args));
   if(nl->AtomType(funtypes)!=NoAtom){
     return listutils::typeError("the third argument is not a function list");
   }
@@ -1312,16 +1320,26 @@ class pextendthread{
 
   public:
 
-      pextendthread(SyncStream<Tuple>* s, std::vector<Supplier>& _functions, 
-                    TupleType* _tt, Consumer<Tuple>* consumer):
-                    stream(s), functions(_functions),tt(_tt), 
+      pextendthread(SyncStream<Tuple>* s, 
+                    size_t _inbufferSize,
+                    size_t _outBufferSize,
+                    std::vector<Supplier>& _functions, 
+                    TupleType* _tt, 
+                    ConsumerV<Tuple>* consumer):
+                    stream(s), 
+                    inbufferSize(_inbufferSize),
+                    outbufferSize(_outBufferSize),
+                    functions(_functions),tt(_tt), 
                     consumer(consumer){
          running = true;
          for(size_t i=0;i<functions.size(); i++){
             funargs.push_back(qp->Argument(functions[i]));
          }
-
-         t = new boost::thread(&pextendthread::run, this);
+         if(inbufferSize < 2) {
+              t = new boost::thread(&pextendthread::run, this);
+         } else {
+              t = new boost::thread(&pextendthread::runX, this);
+         }
       }
 
       void cancel(){
@@ -1331,30 +1349,79 @@ class pextendthread{
       ~pextendthread(){
          t->join();
          delete t;
+         // process remaining elements in outbuffer
+         for(size_t i = 0; i< outBuffer.size(); i++){
+            if(outBuffer[i]){
+               outBuffer[i]->DeleteIfAllowed();
+            }
+         }
       }
 
   private:
       SyncStream<Tuple>* stream;
+      size_t inbufferSize;
+      size_t outbufferSize;
       std::vector<Supplier> functions;
       TupleType* tt;
-      Consumer<Tuple>* consumer;
+      ConsumerV<Tuple>* consumer;
       std::vector<ArgVectorPointer> funargs;
       bool running;
       boost::thread* t;
       Word resWord;
+      std::vector<Tuple*> inBuffer;
+      std::vector<Tuple*> outBuffer;
 
-            
+
       void run(){
+         bool sendNull = false;
          while(running){
            Tuple* t = stream->request();
            if(t==0){
               running=false;
-              consumer->elemAvailable(0);
+              elemAvailable(0);
+              sendNull = true;
            } else {
              Tuple* resTuple = extendTuple(t);
              t->DeleteIfAllowed();
-             consumer->elemAvailable(resTuple);
+             elemAvailable(resTuple);
            }
+         }
+         if(!sendNull){
+           elemAvailable(0);
+         }
+      }
+
+            
+      void runX(){
+        bool sendNull = false;
+         while(running){
+           inBuffer.clear();
+           stream->request(inBuffer, inbufferSize);
+           size_t pos = 0;
+           while( pos < inBuffer.size() && running){
+              Tuple* t = inBuffer[pos];
+              pos++;
+              if(t==0){
+                  running=false;
+                  elemAvailable(0);
+                  sendNull = true;
+              } else {
+                 Tuple* resTuple = extendTuple(t);
+                 t->DeleteIfAllowed();
+                 elemAvailable(resTuple);
+              }
+           }
+           // canceled, remove remaining elements from inBuffer
+           while(pos < inBuffer.size()){
+              if(inBuffer[pos]){
+                 inBuffer[pos]->DeleteIfAllowed();
+              }
+              pos++;
+           }
+           inBuffer.clear();
+         }
+         if(!sendNull){
+           elemAvailable(0);
          }
       }
 
@@ -1379,21 +1446,63 @@ class pextendthread{
         return ((Attribute*)resWord.addr)->Clone();
      }
 
-
+     inline void elemAvailable(Tuple* tuple){
+        if(outbufferSize < 2){ 
+           consumer->elemAvailable(tuple);
+        } else {
+           outBuffer.push_back(tuple);
+           if(outBuffer.size() >= outbufferSize || !running){
+             consumer->elemsAvailable(&outBuffer);
+             outBuffer.clear();
+           }
+        }
+     }
 };
 
+void deleteBuffer(bounded_buffer<Tuple*>&  buffer){
+   Tuple* f;
+   while(!buffer.empty()){
+      buffer.pop_back(&f);
+      if(f){
+         f->DeleteIfAllowed();
+      }
+   }
+}
 
-class pextendInfo : public Consumer<Tuple>{
+void deleteBufferV(bounded_buffer<std::vector<Tuple*> >&  bufferV){
+   std::vector<Tuple*> victim;
+   while(!bufferV.empty()){
+     bufferV.pop_back(&victim);
+     for(auto t : victim){
+         if(t){
+           t->DeleteIfAllowed();
+         }
+     }
+   }
+}
+
+class pextendInfo : public ConsumerV<Tuple>{
   public:
-     pextendInfo(Word _stream, 
+     pextendInfo(Word _stream,
+                 size_t _inBufferSize,
+                 size_t _outBufferSize, 
                  std::vector<std::vector<Supplier>>& _functions,
-                 ListExpr _tt): stream(_stream), tt(0), 
-                 buffer(2*_functions.size()) {
+                 ListExpr _tt): 
+                 stream(_stream), 
+                 inBufferSize(_inBufferSize),
+                 outBufferSize(_outBufferSize),
+                 tt(0), 
+                 buffer(2*_functions.size()),
+                 bufferV(2*_functions.size()) {
         stream.open();
         tt = new TupleType(_tt);
         runs = _functions.size();
+        currentOutPos = 0;
+        count = 0;
         for(size_t i = 0; i<_functions.size(); i++){
-           runners.push_back(new pextendthread(&stream, _functions[i],
+           runners.push_back(new pextendthread(&stream, 
+                                               inBufferSize, outBufferSize,
+                                               _functions[i],
                                                tt, this));         
         }
      }
@@ -1402,30 +1511,39 @@ class pextendInfo : public Consumer<Tuple>{
        for(size_t i=0;i< runners.size();i++){
           runners[i]->cancel();
        }
-       Tuple* f;
-       while(!buffer.empty()){
-         buffer.pop_back(&f);
-         if(f){
-            f->DeleteIfAllowed();
-         }
-       }
+       deleteBuffer(buffer);
+       deleteBufferV(bufferV);
        for(size_t i=0;i< runners.size();i++){
           delete runners[i];
        }
-       while(!buffer.empty()){
-         buffer.pop_back(&f);
-         if(f){
-            f->DeleteIfAllowed();
-         }
-       }
+       deleteBuffer(buffer);
+       deleteBufferV(bufferV);
        tt->DeleteIfAllowed();
        stream.close();
+       // delete remaining elements in outbuffer
+       while(currentOutPos < currentOut.size()){
+           Tuple* t = currentOut[currentOutPos];
+           currentOutPos++;
+           if(t){
+              t->DeleteIfAllowed();
+           }
+       }
      }
 
      Tuple* next(){
-         Tuple* result;
-         buffer.pop_back(&result);
-         return result; 
+       if(outBufferSize<2){
+          Tuple* result;
+          buffer.pop_back(&result);
+          return result; 
+       }
+       if(currentOutPos >= currentOut.size()) {
+          currentOut.clear();
+          bufferV.pop_back(&currentOut);
+          currentOutPos = 0;
+       }
+       Tuple* res = currentOut[currentOutPos];
+       currentOutPos++;
+       return res;
      }
 
      void elemAvailable(Tuple* elem) {
@@ -1441,15 +1559,39 @@ class pextendInfo : public Consumer<Tuple>{
        }
      };
 
+     void elemsAvailable(std::vector<Tuple*>* elems) {
+       std::vector<Tuple*> v = *elems;
+       if(v.back()==nullptr){
+          mtx.lock();
+           runs--;
+           if(runs>0){
+             v.pop_back();
+           }
+          mtx.unlock();
+       }
+       if(v.size()>0) {
+           bufferV.push_front(v);
+       }
+     };
+     
+
 
   private: 
      SyncStream<Tuple> stream;
+     size_t inBufferSize;
+     size_t outBufferSize; 
      TupleType* tt;
      bounded_buffer<Tuple*>  buffer;
+     bounded_buffer<std::vector<Tuple*> >  bufferV;
      boost::mutex mtx;
      size_t runs;
-
      std::vector<pextendthread*> runners;
+     std::vector<Tuple*> currentOut;
+     size_t currentOutPos;
+
+     size_t count;
+
+
 
 
 };
@@ -1465,10 +1607,28 @@ int pextendVM(Word* args, Word& result,
                     if(li) {
                        delete li;
                     }
+                    // 0 = stream, 
+                    // 1 = noThreads
+                    // 2 = inputbuffer size
+                    // 3 = outputbuffer size
+                    // 4 = original funlist
+                    // ... appended functions
+   
                     int nt = ((CcInt*)args[1].addr)->GetValue();
+                    size_t inbufferSize = 1;
+                    CcInt* is = (CcInt*) args[2].addr;
+                    if(is->IsDefined() && is->GetValue()>0){
+                        inbufferSize = is->GetValue();
+                    }
+                    size_t outbufferSize = 1;
+                    CcInt* os = (CcInt*) args[3].addr;
+                    if(os->IsDefined() && os->GetValue()>0){
+                        outbufferSize = os->GetValue();
+                    }
+
                     std::vector<std::vector<Supplier> > functions;
                     // append original functions
-                    Supplier supplier = args[2].addr;
+                    Supplier supplier = args[4].addr;
                     int nooffuns = qp->GetNoSons(supplier);
                     std::vector<Supplier> f1;
                     for(int i=0;i<nooffuns;i++){
@@ -1477,7 +1637,7 @@ int pextendVM(Word* args, Word& result,
                       f1.push_back(fun);
                     }
                     functions.push_back(f1);
-                    int o = 3;
+                    int o = 5;
 
                     int nosons = qp->GetNoSons(s);
                     for(int i=0;i<nt-1;i++){
@@ -1489,8 +1649,11 @@ int pextendVM(Word* args, Word& result,
                       }
                       functions.push_back(fi);
                     } 
-                    local.addr = new pextendInfo(args[0], functions, 
-                                     nl->Second(GetTupleResultType(s))); 
+                    local.addr = new pextendInfo(args[0],
+                                       inbufferSize,
+                                       outbufferSize,
+                                       functions, 
+                                       nl->Second(GetTupleResultType(s))); 
                     return 0;
                  }
 
@@ -1510,10 +1673,15 @@ int pextendVM(Word* args, Word& result,
 }
 
 OperatorSpec pextendSpec(
-  "stream(tuple(X)) x int x funlist -> stream(tuple(X@EXT)) ",
-  " _ pexetend[ f1, f2 ,... ] ",
-  "Extends each tuple of the incoming stream by new attributes.",
-  "query plz feed extend[10, P1 : .PLZ +1 ] "
+  "stream(tuple(X)) x int x x int x int x funlist -> stream(tuple(X@EXT)) ",
+  " _ pextend[nt, ib, ob; f1, f2 ,... ] ",
+  "Extends each tuple of the incoming stream by new attributes."
+  "The first int argument specifies the number of threads, the next argument "
+  "specifies the size of the input buffer of each thread, the next argument "
+  "specifies the size of the output buffer of each thread. " 
+  "The functions define the actual extension part. " 
+  "Note that the order of the tuples in the stream may be changed.",
+  "query plz feed extend[10, 100, 50;  P1 : .PLZ +1 ] "
 );
 
 
@@ -1531,8 +1699,8 @@ Operator ~pextendstream~
 
 */
 ListExpr pextendstreamTM(ListExpr args){
-  if(!nl->HasLength(args,3)){
-    return listutils::typeError("2 arguments expected");
+  if(!nl->HasLength(args,5)){
+    return listutils::typeError("5 arguments expected");
   }
   if(!listutils::checkUsesArgsInTypeMapping(args)){
     return listutils::typeError("internal error");
@@ -1555,8 +1723,16 @@ ListExpr pextendstreamTM(ListExpr args){
     return listutils::typeError("the number of threads must be "
                                 "a number between 1 and 15");
   }
+  if(!CcInt::checkType(nl->First(nl->Third(args)))){
+     return listutils::typeError("third arg not of type int");
+  }
+  if(!CcInt::checkType(nl->First(nl->Fourth(args)))){
+     return listutils::typeError("fourth arg not of type int");
+  }
 
-  ListExpr funType = nl->First(nl->Third(args));
+
+
+  ListExpr funType = nl->First(nl->Fifth(args));
   if(!nl->HasLength(funType,1)){
      return listutils::typeError("exactly one funtion expected");
   }
@@ -1579,7 +1755,7 @@ ListExpr pextendstreamTM(ListExpr args){
   }
   funType = nl->Second(funType);
   if(!listutils::isMap<1>(funType)){
-    return listutils::typeError("third arg is not an unary function");
+    return listutils::typeError("fifth arg is not an unary function");
   }
   if(!nl->Equal(nl->Second(stream),nl->Second(funType))){
     return listutils::typeError("function argument and stream "
@@ -1595,7 +1771,7 @@ ListExpr pextendstreamTM(ListExpr args){
                                nl->Second(nl->Third(funType)))));
   ListExpr resType = Stream<Tuple>::wrap(Tuple::wrap(resAttrList));
  
-  ListExpr fundef = nl->First(nl->Second(nl->Third(args)));
+  ListExpr fundef = nl->First(nl->Second(nl->Fifth(args)));
   fundef = nl->Second(fundef); // ignore new attribute name
   // exchange argument type
   fundef = nl->ThreeElemList(
@@ -1628,15 +1804,23 @@ ListExpr pextendstreamTM(ListExpr args){
 class pextendstreamThread{
   public:
       pextendstreamThread(SyncStream<Tuple>* _stream,
+                          size_t _inBufferSize,
+                          size_t _outBufferSize,
                           Supplier _function,
                           TupleType* _tt,
-                          Consumer<Tuple>* _consumer):
-                stream(_stream), fun(_function),
+                          ConsumerV<Tuple>* _consumer):
+                stream(_stream), inBufferSize(_inBufferSize),
+                outBufferSize(_outBufferSize),fun(_function),
                 tt(_tt), consumer(_consumer) {
           funarg = qp->Argument(fun);
           running = true;
-          runner = new boost::thread(&pextendstreamThread::run,
+          if(inBufferSize < 2){
+             runner = new boost::thread(&pextendstreamThread::run,
                                      this);
+          } else {
+             runner = new boost::thread(&pextendstreamThread::runX,
+                                     this);
+          }
       }
 
       ~pextendstreamThread(){
@@ -1651,21 +1835,24 @@ class pextendstreamThread{
 
   private:
      SyncStream<Tuple>* stream;
+     size_t inBufferSize;
+     size_t outBufferSize;
      Supplier fun;
      TupleType* tt;
-     Consumer<Tuple>* consumer;
+     ConsumerV<Tuple>* consumer;
      ArgVectorPointer funarg;
      boost::thread* runner;
      Word funRes;
      bool running; 
-
+     std::vector<Tuple*> inBuffer;
+     std::vector<Tuple*> outBuffer;
 
      void run(){
         while(running){
            Tuple* t = stream->request();
            if(!t){
               running = false;
-              consumer->elemAvailable(0);
+              elemAvailable(0);
            } else {
               (*funarg)[0] = t;
               qp->Open(fun);
@@ -1673,7 +1860,7 @@ class pextendstreamThread{
               while(qp->Received(fun) && running){
                 Attribute* na = (Attribute*) funRes.addr;
                 Tuple* resTuple = createNewTuple(t,na);
-                consumer->elemAvailable(resTuple);
+                elemAvailable(resTuple);
                 funRes.addr = 0; 
                 qp->Request(fun, funRes);
               }
@@ -1685,6 +1872,60 @@ class pextendstreamThread{
            }
         }
      }
+     
+
+     void runX(){
+        while(running){
+           stream->request(inBuffer, inBufferSize);
+           size_t pos = 0;
+           while(pos < inBuffer.size() && running){
+               Tuple* t = inBuffer[pos];
+               pos++;
+               if(!t){
+                  running = false;
+                  elemAvailable(0);
+               } else {
+                  (*funarg)[0] = t;
+                  qp->Open(fun);
+                  qp->Request(fun, funRes);
+                  while(qp->Received(fun) && running){
+                    Attribute* na = (Attribute*) funRes.addr;
+                    Tuple* resTuple = createNewTuple(t,na);
+                    elemAvailable(resTuple);
+                    funRes.addr = 0; 
+                    qp->Request(fun, funRes);
+                  }
+                  if(funRes.addr){
+                     ((Tuple*) funRes.addr)->DeleteIfAllowed();
+                  }
+                  qp->Close(fun);
+                  t->DeleteIfAllowed();      
+               }
+           }
+           while(pos < inBuffer.size()) {
+               if(inBuffer[pos]) inBuffer[pos]->DeleteIfAllowed();
+                pos++;
+           }
+        }
+     }
+
+
+
+     void elemAvailable( Tuple* t){
+        if(outBufferSize < 2){
+           consumer->elemAvailable(t);
+        } else {
+           outBuffer.push_back(t);
+           if(outBuffer.size()>= outBufferSize || !running){
+               consumer->elemsAvailable(&outBuffer);
+               outBuffer.clear();
+           }
+        }
+
+     }
+
+
+
 
      Tuple* createNewTuple(Tuple* origTuple, Attribute* na){
        Tuple* resTuple = new Tuple(tt);
@@ -1698,17 +1939,27 @@ class pextendstreamThread{
 };
 
 
-class pextendstreamInfo : public Consumer<Tuple>{
+class pextendstreamInfo : public ConsumerV<Tuple>{
   public:
      pextendstreamInfo(Word _stream, 
+                 size_t _inBufferSize,
+                 size_t _outBufferSize,
                  std::vector<Supplier>& _functions,
-                 ListExpr _tt): stream(_stream), tt(0), 
-                 buffer(10*_functions.size()) {
+                 ListExpr _tt): stream(_stream),
+                 inBufferSize(_inBufferSize),
+                 outBufferSize(_outBufferSize),
+                 tt(0), 
+                 buffer(10*_functions.size()),
+                 bufferV(2*_functions.size()) {
         stream.open();
         tt = new TupleType(_tt);
         runs = _functions.size();
+        currentOutPos = 0;
         for(size_t i = 0; i<_functions.size(); i++){
-           runners.push_back(new pextendstreamThread(&stream, _functions[i],
+           runners.push_back(new pextendstreamThread(&stream, 
+                                               inBufferSize, 
+                                               outBufferSize,
+                                               _functions[i],
                                                tt, this));         
         }
      }
@@ -1717,30 +1968,29 @@ class pextendstreamInfo : public Consumer<Tuple>{
        for(size_t i=0;i< runners.size();i++){
           runners[i]->cancel();
        }
-       Tuple* f;
-       while(!buffer.empty()){
-         buffer.pop_back(&f);
-         if(f){
-            f->DeleteIfAllowed();
-         }
-       }
+       deleteBuffer(buffer);
+       deleteBufferV(bufferV);
        for(size_t i=0;i< runners.size();i++){
           delete runners[i];
        }
-       while(!buffer.empty()){
-         buffer.pop_back(&f);
-         if(f){
-            f->DeleteIfAllowed();
-         }
-       }
+       deleteBuffer(buffer);
+       deleteBufferV(bufferV);
        tt->DeleteIfAllowed();
        stream.close();
      }
 
      Tuple* next(){
-         Tuple* result;
-         buffer.pop_back(&result);
-         return result; 
+        if(outBufferSize < 2) {
+           Tuple* result;
+           buffer.pop_back(&result);
+           return result; 
+        }
+        while(currentOutPos >= currentOut.size()){
+            currentOut.clear();
+            bufferV.pop_back(&currentOut);
+            currentOutPos = 0;
+        }
+        return currentOut[currentOutPos++];
      }
 
      void elemAvailable(Tuple* elem) {
@@ -1754,15 +2004,36 @@ class pextendstreamInfo : public Consumer<Tuple>{
           }
           mtx.unlock();
        }
-     };
+     }
+
+     void elemsAvailable(std::vector<Tuple*>* elems){
+        std::vector<Tuple*> v = *elems;
+        mtx.lock();
+        if(v.back() == nullptr){
+           runs--;
+           if(runs > 0){
+              v.pop_back();
+           }
+        }
+        mtx.unlock();
+        if(v.size() > 0){
+          bufferV.push_front(v);
+        }
+     }
+
 
 
   private: 
      SyncStream<Tuple> stream;
+     size_t inBufferSize;
+     size_t outBufferSize;
      TupleType* tt;
      bounded_buffer<Tuple*>  buffer;
+     bounded_buffer<std::vector<Tuple*> >  bufferV;
      boost::mutex mtx;
      size_t runs;
+     std::vector<Tuple*> currentOut;
+     size_t currentOutPos;
 
      std::vector<pextendstreamThread*> runners;
 
@@ -1782,21 +2053,32 @@ int pextendstreamVM(Word* args, Word& result,
                     int nt = ((CcInt*)args[1].addr)->GetValue();
                     std::vector<Supplier>  functions;
                     // append original functions
-                    Supplier supplier = args[2].addr;
+                    size_t ibs = 1;
+                    CcInt* inbuffer = (CcInt*) args[2].addr;
+                    if(inbuffer->IsDefined() && inbuffer->GetValue() >0){
+                        ibs = inbuffer->GetValue();
+                    }
+                    size_t obs = 1;
+                    CcInt* outbuffer = (CcInt*) args[3].addr;
+                    if(outbuffer->IsDefined() && outbuffer->GetValue() >0){
+                        obs = outbuffer->GetValue();
+                    }
+                    Supplier supplier = args[4].addr;
                     int nooffuns = qp->GetNoSons(supplier);
                     assert(nooffuns == 1);
                     Supplier supplier2 = qp->GetSupplier(supplier, 0);
                     Supplier fun =  qp->GetSupplier(supplier2,1);
                     functions.push_back(fun);
                     
-                    int o = 3;
+                    int o = 5;
 
                     for(int i=0;i<nt-1;i++){
                        functions.push_back(args[o].addr);
                        o++;
                     }
-                    local.addr = new pextendstreamInfo(args[0], functions, 
-                                     nl->Second(GetTupleResultType(s))); 
+                    local.addr = new pextendstreamInfo(args[0],ibs, obs, 
+                                          functions, 
+                                          nl->Second(GetTupleResultType(s))); 
                     return 0;
                  }
 
@@ -1814,12 +2096,14 @@ int pextendstreamVM(Word* args, Word& result,
 }
 
 OperatorSpec pextendstreamSpec(
-  "stream(tuple(X) ) x int x (tuple(X) -> stream(DATA)) "
+  "stream(tuple(X) ) x int x int x int x (tuple(X) -> stream(DATA)) "
   "-> stream(tuple(X @DATA))",
   " _ pextendstream[_,_] ",
-  " Extends all incoming tuples with all attributes prdocuced by "
-  " the function using a given number of threads",
-  "query plz feed pextendstream[10, N : intstream(1,20)] count"
+  " Extends all incoming tuples with all attributes produced by "
+  " the function using a given number of threads. The last two "
+  "integer arguments specifies the size of the input buffer and output "
+  "buffer of each thread.",
+  "query plz feed pextendstream[10,50, 100; N : intstream(1,20)] count"
 );
 
 Operator pextendstreamOp(
