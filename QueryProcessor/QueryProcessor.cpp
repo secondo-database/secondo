@@ -2946,7 +2946,8 @@ arguments preceding this function argument in an operator application.
         else if ( GetCatalog()->IsOperatorName( name2 ) )
         { /* name2 is a type operator */
           ListExpr opList = GetCatalog()->GetOperatorIds( name2 );
-          ListExpr typeList = nl->Rest( fatherargtypes );
+          ListExpr typeList = nl->IsEmpty(fatherargtypes)? nl->TheEmptyList()
+                                              : nl->Rest( fatherargtypes );
 
           int alId = 0;
           int opId = 0;
