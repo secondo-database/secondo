@@ -4,3 +4,9 @@
 *.fm
 *.class
 *.toc
+*.aux
+*.dvi
+*.log
+*.pdf
+*.tex
+
