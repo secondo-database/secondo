@@ -4086,7 +4086,7 @@ STREAMELEMTypeMap( ListExpr args )
       return first;
     }
   }
-  return nl->SymbolAtom(Symbol::TYPEERROR());
+  return listutils::typeError("at least one argument expected"); 
 }
 
 const string STREAMELEMSpec =
