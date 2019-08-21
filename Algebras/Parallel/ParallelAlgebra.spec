@@ -29,8 +29,8 @@ operator pextend alias PEXTEND pattern _ op[_,_,_; funlist] implicit parameter s
 operator pextendstream alias PEXTENDSTREAM pattern _ op[_,_,_; funlist] implicit parameter streamelem type STREAMELEM
 operator punion alias PUNION pattern _ _ op[_]
 
-operator ploopsel alias PLOOPSEL pattern _ op[_, fun] implicit parameter streamelem type STREAMELEM
-operator ploopjoin alias PLOOPJOIN pattern _ op[_, fun] implicit parameter streamelem type STREAMELEM
+operator ploopsel alias PLOOPSEL pattern _ op[_,_,_, fun] implicit parameter streamelem type STREAMELEM
+operator ploopjoin alias PLOOPJOIN pattern _ op[_,_,_, fun] implicit parameter streamelem type STREAMELEM
 
 
 

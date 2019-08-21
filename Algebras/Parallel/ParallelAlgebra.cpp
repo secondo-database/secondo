@@ -840,11 +840,11 @@ class pfilterSThread{
       funArgs = qp->Argument(fun.addr);
       running = true;
       sendNull = false;
-      if(inbuffer<2 && outbuffer<2){
-          // single input single output version
+      if(inbuffer<2){
+          // single input version
           runner = new boost::thread(&pfilterSThread<T>::run, this);
       } else {
-          // more complex version
+          // make use of inputBuffer 
           runner = new boost::thread(&pfilterSThread<T>::runX, this);
       }
     }
@@ -888,18 +888,18 @@ class pfilterSThread{
           T* elem = stream->request();
           if(elem==nullptr){
             running = false;
-            consumer->elemAvailable(elem);
+            elemAvailable(elem);
             sendNull = true;
           } else {
              if(!check(elem)){
                 elem->DeleteIfAllowed();
              } else {
-                consumer->elemAvailable(elem);
+                elemAvailable(elem);
              }
           }
        }
        if(!sendNull){
-         consumer->elemAvailable(0);
+         elemAvailable(0);
          sendNull = true;
        }
     }
@@ -2267,7 +2267,7 @@ Operator ~ploopsel~
 */
 template<bool isJoin>
 ListExpr ploopselTM(ListExpr args){
-  if(!nl->HasLength(args,3)){
+  if(!nl->HasLength(args,5)){
     return listutils::typeError("three arguments expected");
   }
   if(!listutils::checkUsesArgsInTypeMapping(args)){
@@ -2289,7 +2289,14 @@ ListExpr ploopselTM(ListExpr args){
     return listutils::typeError("the number of threads must be "
                                 "between 1 and 15");
   }
-  ListExpr funcomplete = nl->Third(args);
+  if(!CcInt::checkType(nl->First(nl->Third(args)))){
+    return listutils::typeError("third argument is not an int");
+  }
+  if(!CcInt::checkType(nl->First(nl->Fourth(args)))){
+    return listutils::typeError("Fourth argument is not an int");
+  }
+
+  ListExpr funcomplete = nl->Fifth(args);
   ListExpr funtype = nl->First(funcomplete);
   if(!listutils::isMap<1>(funtype)){
     return listutils::typeError("third argument is not a unary function");
@@ -2303,7 +2310,6 @@ ListExpr ploopselTM(ListExpr args){
     return listutils::typeError("the functions does not produce "
                                 "a stream of tuples");
   }
-
 
   if(isJoin){
     ListExpr alist1 = nl->Second(nl->Second(instream));
@@ -2347,17 +2353,25 @@ class ploopselthread{
   public:
 
      ploopselthread(SyncStream<Tuple>* _stream, 
+                    size_t _inBufferSize,
+                    size_t _outBufferSize,
                     Supplier _fun,
-                    Consumer<Tuple>* _consumer, 
+                    ConsumerV<Tuple>* _consumer, 
                     TupleType* _tt, 
                     boost::mutex* _fmtx):
-        stream(_stream), fun(_fun), consumer(_consumer), tt(_tt), fmtx(_fmtx){
+        stream(_stream), inBufferSize(_inBufferSize), 
+        outBufferSize(_outBufferSize),
+        fun(_fun), consumer(_consumer), tt(_tt), fmtx(_fmtx){
         if(tt){
            tt->IncReference();
         }
         funarg = qp->Argument(fun);
         running = true;
-        thread = new boost::thread(&ploopselthread<isJoin>::run, this);
+        if(inBufferSize < 2) { 
+            thread = new boost::thread(&ploopselthread<isJoin>::run, this);
+        } else {
+            thread = new boost::thread(&ploopselthread<isJoin>::runX, this);
+        }
      }
  
 
@@ -2376,21 +2390,49 @@ class ploopselthread{
 
   private:
      SyncStream<Tuple>* stream;
+     size_t inBufferSize;
+     size_t outBufferSize;
      Supplier fun;
-     Consumer<Tuple>* consumer;
+     ConsumerV<Tuple>* consumer;
      TupleType* tt;
      boost::mutex* fmtx;
      ArgVectorPointer funarg;
      boost::thread* thread;
      Word funres;
      std::atomic_bool running;
+     std::vector<Tuple*> outBuffer;
 
      void run(){
         while(running){
           Tuple* inTuple = stream->request();
+          generateResults(inTuple);
+        }
+     }
+
+     void runX(){
+       std::vector<Tuple*> inBuffer;
+       size_t pos;
+       while(running){
+         inBuffer.clear();
+         stream->request(inBuffer, inBufferSize);
+         pos = 0;
+         while(pos<inBuffer.size() && running){
+            generateResults(inBuffer[pos]);
+            inBuffer[pos] = nullptr;
+            pos++;
+         }
+         // kill remaining input tuples 
+         while( pos < inBuffer.size()) {
+            inBuffer[pos]->DeleteIfAllowed();
+            pos++;
+         }
+       }
+     }
+
+     void generateResults(Tuple* inTuple){
           if(!inTuple){
              running = false;
-             consumer->elemAvailable(0);
+             elemAvailable(0);
           } else {
              (*funarg)[0] = inTuple;
              fmtx->lock();
@@ -2401,19 +2443,33 @@ class ploopselthread{
                 Tuple* ftuple = (Tuple*) funres.addr;
                 Tuple* resTuple = constructResTuple(inTuple, ftuple);
                 funres.addr = 0;
-                consumer->elemAvailable(resTuple);
+                elemAvailable(resTuple);
                 qp->Request(fun,funres);
              }
              if(funres.addr){
                ((Tuple*) funres.addr)->DeleteIfAllowed();
              }
-             inTuple->DeleteIfAllowed();  
+             inTuple->DeleteIfAllowed();
              fmtx->lock();
              qp->Close(fun);
              fmtx->unlock();
           }
-        }
      }
+     
+
+    void elemAvailable( Tuple* t){
+        if(outBufferSize < 2){
+           consumer->elemAvailable(t);
+        } else {
+           outBuffer.push_back(t);
+           if(outBuffer.size()>= outBufferSize || !running){
+               consumer->elemsAvailable(&outBuffer);
+               outBuffer.clear();
+           }
+        }
+
+     }
+
 
      Tuple* constructResTuple(Tuple* inTuple, Tuple* funTuple){
         if(!isJoin){
@@ -2434,21 +2490,26 @@ class ploopselthread{
 };
 
 template<bool isJoin>
-class ploopselInfo : public Consumer<Tuple>{
+class ploopselInfo : public ConsumerV<Tuple>{
   public:
-     ploopselInfo(Word _stream, 
+     ploopselInfo(Word _stream,
+                 size_t _inBufferSize, size_t _outBufferSize, 
                  std::vector<Supplier> _functions,
-                 ListExpr _tt): stream(_stream), tt(0), 
-                 buffer(10*_functions.size()) {
+                 ListExpr _tt): stream(_stream),
+                 inBufferSize(_inBufferSize), outBufferSize(_outBufferSize),
+                 tt(0), buffer(2*_functions.size()), 
+                 bufferV(2*_functions.size()) {
 
 
         stream.open();
         if(isJoin){
             tt = new TupleType(_tt);
         }
+        currentOutPos = 0;
         runs = _functions.size();
         for(size_t i = 0; i<_functions.size(); i++){
-           runners.push_back(new ploopselthread<isJoin>(&stream, _functions[i],
+           runners.push_back(new ploopselthread<isJoin>(&stream, inBufferSize, 
+                                               outBufferSize, _functions[i],
                                                this, tt, &fmtx));         
         }
      }
@@ -2457,22 +2518,13 @@ class ploopselInfo : public Consumer<Tuple>{
        for(size_t i=0;i< runners.size();i++){
           runners[i]->cancel();
        }
-       Tuple* f;
-       while(!buffer.empty()){
-         buffer.pop_back(&f);
-         if(f){
-            f->DeleteIfAllowed();
-         }
-       }
+       deleteBuffer(buffer);
+       deleteBufferV(bufferV);
        for(size_t i=0;i< runners.size();i++){
           delete runners[i];
        }
-       while(!buffer.empty()){
-         buffer.pop_back(&f);
-         if(f){
-            f->DeleteIfAllowed();
-         }
-       }
+       deleteBuffer(buffer);
+       deleteBufferV(bufferV);
        if(tt){
            tt->DeleteIfAllowed();
        }
@@ -2480,9 +2532,19 @@ class ploopselInfo : public Consumer<Tuple>{
      }
 
      Tuple* next(){
+       // without output vectors
+       if(outBufferSize < 2){
          Tuple* result;
          buffer.pop_back(&result);
          return result; 
+       }
+       // with output for each thread
+       while(currentOutPos >= currentOut.size()){
+         currentOut.clear();
+         bufferV.pop_back(&currentOut);
+         currentOutPos = 0;
+       }      
+       return currentOut[currentOutPos++];
      }
 
      void elemAvailable(Tuple* elem) {
@@ -2498,14 +2560,33 @@ class ploopselInfo : public Consumer<Tuple>{
        }
      };
 
+     void elemsAvailable(std::vector<Tuple*>* v1){
+        std::vector<Tuple*> v = *v1;
+        if(v.back() == nullptr){
+          mtx.lock();
+          runs--;
+          if(runs>0){ // the last runner has no more elements
+            v.pop_back();
+          }
+          mtx.unlock();
+        }
+        if(v.size() > 0){
+           bufferV.push_front(v);
+       }
+     }
 
   private: 
      SyncStream<Tuple> stream;
+     size_t inBufferSize;
+     size_t outBufferSize;
      TupleType* tt;
      bounded_buffer<Tuple*>  buffer;
+     bounded_buffer<std::vector<Tuple*> >  bufferV;
      boost::mutex mtx;
      size_t runs;
      boost::mutex fmtx;
+     std::vector<Tuple*> currentOut;
+     size_t currentOutPos;
 
      std::vector<ploopselthread<isJoin>*> runners;
 };
@@ -2518,13 +2599,24 @@ int ploopselVM(Word* args, Word& result,
    switch(message){
       case OPEN: {  if(li) delete li;
                     std::vector<Supplier> funs;
-                    for(int i=2;i<qp->GetNoSons(s);i++){
+                    size_t inBufferSize = 1;
+                    CcInt* ibs = (CcInt*) args[2].addr;
+                    if(ibs->IsDefined() && ibs->GetValue() > 1){
+                       inBufferSize = ibs->GetValue();
+                    }
+                    size_t outBufferSize = 1;
+                    CcInt* obs = (CcInt*) args[3].addr;
+                    if(obs->IsDefined() && obs->GetValue() > 1){
+                       outBufferSize = obs->GetValue();
+                    }
+                    for(int i=4;i<qp->GetNoSons(s);i++){
                        Supplier s = args[i].addr;
                        funs.push_back(s);
                     }
                     size_t nt = ((CcInt*)args[1].addr)->GetValue();
                     assert(nt==funs.size());
-                    local.addr = new ploopselInfo<isJoin>(args[0], funs,
+                    local.addr = new ploopselInfo<isJoin>(args[0],
+                                       inBufferSize, outBufferSize,  funs,
                                        nl->Second(GetTupleResultType(s))) ;
                     return 0;
                   }
@@ -2542,8 +2634,11 @@ int ploopselVM(Word* args, Word& result,
 OperatorSpec ploopselSpec(
    "stream(tupleA) x int x fun(tupleA -> stream(tupleB)) -> stream(tupleB) ",
    "_ ploopsel[_,fun]",
-   "Returns the tuples created by a function applied to"
-   "each tuple of a stream. Procseeing is done using a set of threads  ",
+   "Returns the tuples created by a function applied to "
+   "each tuple of a stream. Processing is done using a set of threads. "
+   "The number of threads is given by the first integer argument. " 
+   "The other  two integers defined the size of the input buffer and "
+   "the output bufffer of each thread.",
    "query Orte feed {o} ploopsel[10, plz_Ort plz exactmatch[.Ort_o]]"
 );
 
@@ -2561,7 +2656,10 @@ OperatorSpec ploopjoinSpec(
    "_ ploopjoin[_,fun]",
    "Returns the concatenation of tuples from the input stream "
    "with all tuples produced by the function." 
-   "Processing is done using a set of threads  ",
+   "Processing is done using a set of threads.  "
+   "The number of threads is given by the first integer argument. " 
+   "The other  two integers defined the size of the input buffer and "
+   "the output bufffer of each thread.",
    "query Orte feed {o} ploopjoin[10, plz_Ort plz exactmatch[.Ort_o] {a}]"
 );
 

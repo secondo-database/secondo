@@ -51,13 +51,13 @@ Result    : TRUE
 
 Operator  : ploopsel
 Number    : 1
-Signature : stream(tuple) x int x (tupleA -> stream(tupleB)) -> stream(tupleB)
-Example   : query Orte feed {o} ploopsel[4, intstream(1,10) namedtransformstream[N] ] count > 2
+Signature : stream(tuple) x int x int x int x (tupleA -> stream(tupleB)) -> stream(tupleB)
+Example   : query Orte feed {o} ploopsel[4,20, 100, intstream(1,10) namedtransformstream[N] ] count > 2
 Result    : TRUE
 
 Operator  : ploopjoin
 Number    : 1
-Signature : stream(tuple) x int x (tupleA -> stream(tupleB)) -> stream(tupleAB)
-Example   : query Orte feed {o} ploopjoin[4, intstream(1,10) namedtransformstream[N] ] count > 2
+Signature : stream(tuple) x int x int x int x (tupleA -> stream(tupleB)) -> stream(tupleAB)
+Example   : query Orte feed {o} ploopjoin[4, 20, 100, intstream(1,10) namedtransformstream[N] ] count > 2
 Result    : TRUE
 
