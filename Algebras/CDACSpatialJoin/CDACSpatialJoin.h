@@ -281,7 +281,7 @@ class CDACLocalInfo {
     * value determines how much main memory (in KiB) may be used by these
     * output tuples, before the temporary output tuple vector is flushed to the
     * stream */
-   static uint64_t OUTPUT_TUPLE_VECTOR_MEM_SIZE_KIB;
+   static uint64_t DEFAULT_OUTPUT_TUPLE_VECTOR_MEM_SIZE_KIB;
 
    /* the desired output type: outputCount, if only the number of intersecting
     * rectangles should be returned (i.e. the CDACSpatialJoinCount operator was
@@ -320,7 +320,11 @@ class CDACLocalInfo {
 
    /* the size of the output buffer (i.e. the output TBlock or the outTuples
     * vector) in bytes */
-   const uint64_t outBufferSize;
+   uint64_t outBufferSize;
+
+   /* the maximum number of tuples allowed in the output buffer (for
+    * outputTupleStream) */
+   uint64_t outBufferTupleCountMax;
 
    /* a number with which different CDACLocalInfo instances can be
     * distinguished in console output (e.g. if several CDACSpatialJoin[Count]

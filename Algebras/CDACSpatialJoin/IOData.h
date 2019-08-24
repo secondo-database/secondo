@@ -141,7 +141,7 @@ private:
 
    /* the maximum size of the output buffer (i.e. the output TBlock or
     * the outTuples vector) in bytes */
-   const uint64_t outBufferSize;
+   uint64_t outBufferSize;
 
    /* the last source rectangle from set A that was used for output */
    SetRowBlock_t lastAddressA;
@@ -160,11 +160,11 @@ private:
     * outTuples. */
    uint64_t outTupleCount = 0;
 
-   /* if the result stream is a tuple stream, outTuplesSizeMax is the
+   /* if the result stream is a tuple stream, outBufferTupleCountMax is the
     * maximum number of output tuples that can be temporarily stored in
     * the outTuples vector, before the vector must to be flushed to the
     * output stream */
-   uint64_t outTuplesSizeMax = 0;
+   uint64_t outBufferTupleCountMax = 0;
 
 #ifdef CDAC_SPATIAL_JOIN_METRICS
    /* the MemSize in bytes of all output tuples returned by a nextTBlock call */
@@ -174,7 +174,8 @@ private:
 public:
    /* creates an IOData instance from the given InputStreams */
    IOData(OutputType outputType_, TupleType* outputTupleType_,
-          InputStream* inputA, InputStream* inputB, uint64_t outBufferSize_);
+          InputStream* inputA, InputStream* inputB, uint64_t outBufferSize_,
+          uint64_t outBufferTupleCountMax_);
 
    ~IOData();
 

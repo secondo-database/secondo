@@ -141,9 +141,11 @@ JoinState::JoinState(const OutputType outputType_,
            TupleType* tupleType_,
            InputStream* inputA, InputStream* inputB,
            const uint64_t outBufferSize_,
+           const uint64_t outBufferTupleCountMax_,
            const unsigned operatorNum_, const unsigned joinStateId_,
            std::shared_ptr<Timer>& timer_) :
-        ioData(outputType_, tupleType_, inputA, inputB, outBufferSize_),
+        ioData(outputType_, tupleType_, inputA, inputB,
+               outBufferSize_, outBufferTupleCountMax_),
         outputType(outputType_),
         tupleCounts { inputA->getCurrentTupleCount(),
                       inputB->getCurrentTupleCount() },
@@ -514,7 +516,6 @@ bool JoinState::nextTBlock(CRelAlgebra::TBlock* const outTBlock_,
       return selfJoinNextTBlock();
    }
 
-   timer->start(JoinTask::merge);
    uint64_t outTupleCountAtStart = ioData.getOutTupleCount();
 
    // improve performance by using local variables for fields, allowing for
@@ -723,7 +724,6 @@ uint64_t JoinState::updateStatistics(uint64_t outTupleCountAtStart) {
 }
 
 bool JoinState::selfJoinNextTBlock() {
-   timer->start(JoinTask::merge);
    uint64_t outTupleCountAtStart = ioData.getOutTupleCount();
 
    // improve performance by using local variables for fields, allowing for

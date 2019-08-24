@@ -54,7 +54,7 @@ using namespace cdacspatialjoin;
 using namespace std;
 
 uint64_t CDACSpatialJoin::DEFAULT_INPUT_BLOCK_SIZE_MIB = 10;
-uint64_t CDACLocalInfo::OUTPUT_TUPLE_VECTOR_MEM_SIZE_KIB = 2048; // TODO: 2048
+uint64_t CDACLocalInfo::DEFAULT_OUTPUT_TUPLE_VECTOR_MEM_SIZE_KIB = 256;
 
 /*
 1.2 Class OperatorInfo
@@ -642,7 +642,7 @@ CDACLocalInfo::CDACLocalInfo(const OutputType outputType_,
         outBufferSize(outputType == outputTBlockStream ?
             outTypeInfo.GetDesiredBlockSize()
                 * CRelAlgebra::TBlockTI::blockSizeFactor :
-            OUTPUT_TUPLE_VECTOR_MEM_SIZE_KIB * 1024),
+            DEFAULT_OUTPUT_TUPLE_VECTOR_MEM_SIZE_KIB * 1024),
         instanceNum(++activeInstanceCount),
         joinState(nullptr),
         joinStateCount(0),
@@ -670,6 +670,45 @@ CDACLocalInfo::CDACLocalInfo(const OutputType outputType_,
          "clearMemory"
    } };
    timer = make_shared<Timer>(taskNames);
+
+   if (outputTupleType) {
+      // since the input tuples and their attributes already exist in memory
+      // when an output tuple is concatenated, the output tuple will usually
+      // only get pointers to these attributes. Therefore it is sufficient to
+      // measure the size of an empty tuple to get the extra memory size
+      // required for output tuples
+      auto emptyTuple = new Tuple(outputTupleType);
+      uint64_t emptyTupleMemSize = emptyTuple->GetMemSize();
+      emptyTuple->DeleteIfAllowed();
+      outBufferTupleCountMax = outBufferSize / emptyTupleMemSize;
+      // we keep outTuplesSizeMax within the interval [1; 65534]:
+      if (outBufferTupleCountMax < 1) {
+         outBufferTupleCountMax = 1;
+      } else if (outBufferTupleCountMax >
+         std::numeric_limits<uint16_t>::max() - 1) {
+         // see Attribute::Copy() in Algebras/Relation-C++/Attribute.cpp:
+         // Once 65535 references to an attribute exist, the attribute will
+         // be cloned each time another reference is required as the reference
+         // counter AttrDelete::refs is of type uint16_t. In case of a
+         // large input rectangle (which would typically be part of many
+         // intersections!), every single attribute including its FLOBs will
+         // then be cloned (x - 65535) times. This can be very costly, e.g. for
+         // the tuple of the river Rhine in the Waterways relation of the NRW
+         // database, which has > 1 million intersections with Buildings.
+         // To avoid all this, we limit outTuplesSizeMax to ensure that no
+         // output tuple's attributes will be referenced more than 65535 times
+         // before the output tuples are flushed to the stream and consumed.
+         outBufferTupleCountMax = std::numeric_limits<uint16_t>::max() - 1;
+      }
+      // recalculate outBufferSize to match outBufferTupleCountMax
+      outBufferSize = outBufferTupleCountMax * emptyTupleMemSize;
+#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+      cout << "Output buffer: max. "
+           << formatInt(outBufferTupleCountMax) << " tuples = "
+           << formatInt(outBufferSize) << " bytes / "
+           << formatInt(emptyTupleMemSize) << " bytes per tuple." << endl;
+#endif
+   }
 }
 
 /*
@@ -813,9 +852,10 @@ CRelAlgebra::TBlock* CDACLocalInfo::getNextTBlock() {
    return nullptr;
 }
 
+
 Tuple* CDACLocalInfo::getNextTuple() {
    if (!outTuples->empty() || getNext()) {
-      Tuple* tuple  = outTuples->back();
+      Tuple* tuple = outTuples->back();
       outTuples->pop_back();
       // do NOT perform tuple->DeleteIfAllowed() here
       return tuple;
@@ -946,8 +986,9 @@ bool CDACLocalInfo::getNext() {
          // timer->start(...) see JoinState constructor
          ++joinStateCount;
          joinState = new JoinState(outputType, outputTupleType,
-                 inputA, inputB, outBufferSize, instanceNum, joinStateCount,
-                 timer);
+                 inputA, inputB, outBufferSize, outBufferTupleCountMax,
+                 instanceNum, joinStateCount, timer);
+         timer->start(JoinTask::merge);
       } else {
          // a "requestData" task was started above but both input streams were
          // actually done; do not count this as a "requestData" instance

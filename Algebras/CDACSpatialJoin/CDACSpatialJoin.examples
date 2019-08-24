@@ -11,7 +11,7 @@ Operator : cdacspatialjoin
 Number   : 2
 Signature: stream(tblock or tuple) x stream(tblock or tuple) x symbol x symbol -> stream(tblock)
 Example  : query strassen feed {a} strassen feed {b} cdacspatialjoin[GeoData_a, GeoData_b] count
-Result   : (longint 26492)
+Result   : (int 26492)
 
 Operator : cdacspatialjoincount
 Number   : 1

@@ -342,10 +342,12 @@ public:
     * tupleCountA/B: the number of tuples stored in the given tBlocks;
     * dimA/B: the dimension (2 or 3) of the spatial information;
     * outBufferSize: the maximum size of the output buffer in bytes;
+    * outBufferTupleCountMax: the maximum tuple count in the output buffer
     * joinStateId: the consecutive number of this JoinState instance */
    JoinState(OutputType outputType_, TupleType* tupleType_,
          InputStream* inputA_, InputStream* inputB_,
-         uint64_t outBufferSize_, unsigned operatorNum_, unsigned joinStateId_,
+         uint64_t outBufferSize_, uint64_t outBufferTupleCountMax_,
+         unsigned operatorNum_, unsigned joinStateId_,
          std::shared_ptr<Timer>& timer_);
 
    ~JoinState();

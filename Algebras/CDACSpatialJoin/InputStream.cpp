@@ -342,7 +342,7 @@ bool InputTupleStream::requestTuples() {
    while (sizeSum < blockSizeInBytes && (tuple = tupleStream.request())) {
       tuples.push_back(tuple);
       ++tupleCount;
-      sizeSum += tuple->GetMemSize();
+      sizeSum += sizeof(Tuple*) + tuple->GetMemSize();
    }
    return finishRequest(sizeSum, tupleCount);
 }

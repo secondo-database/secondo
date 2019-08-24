@@ -66,7 +66,8 @@ SetRowBlock_t IOData::getBlockMask(const size_t rowShift) {
 
 IOData::IOData(const OutputType outputType_, TupleType* outputTupleType_,
                InputStream* inputA, InputStream* inputB,
-               const uint64_t outBufferSize_):
+               const uint64_t outBufferSize_,
+               const uint64_t outBufferTupleCountMax_):
         outputType { outputType_ },
         outputTupleType { outputTupleType_ },
         tBlocks { &inputA->tBlocks, &inputB->tBlocks },
@@ -83,7 +84,8 @@ IOData::IOData(const OutputType outputType_, TupleType* outputTupleType_,
         usedMemory { inputA->getUsedMem(), inputB->getUsedMem() },
         newTuple(new CRelAlgebra::AttrArrayEntry[
                       columnCounts[SET::A] + columnCounts[SET::B]]),
-        outBufferSize(outBufferSize_) {
+        outBufferSize(outBufferSize_),
+        outBufferTupleCountMax(outBufferTupleCountMax_) {
 
    // set lastBlockA/B to a value that ensures the first "newTuple" to
    // be fully assembled in the appendToOutput() function
@@ -91,11 +93,6 @@ IOData::IOData(const OutputType outputType_, TupleType* outputTupleType_,
    lastAddressB = std::numeric_limits<SetRowBlock_t >::max();
 
    outTupleCount = 0;
-   if (outputTupleType_) {
-      outTuplesSizeMax = outBufferSize_ / outputTupleType_->GetCoreSize();
-      if (outTuplesSizeMax < 1)
-         outTuplesSizeMax = 1;
-   }
 #ifdef CDAC_SPATIAL_JOIN_METRICS
    outTuplesMemSize = 0;
 #endif
@@ -802,7 +799,7 @@ bool IOData::appendToOutput(const JoinEdge& entryS, const JoinEdge& entryT,
       // Note that outTupleCount only counts the tuples added by the current
       // JoinState (and IOData) instance, and a half full outTuples vector
       // may be passed to a newly created IOData instance.
-      return outTuples->size() < outTuplesSizeMax;
+      return outTuples->size() < outBufferTupleCountMax;
 
    } else {
       assert (false);
