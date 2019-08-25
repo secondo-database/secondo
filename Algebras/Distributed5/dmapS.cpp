@@ -30,7 +30,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 using namespace distributed2;
 
-
 /*
 
 0 Functions from distributed2Algebras
@@ -47,7 +46,7 @@ namespace distributed5
 
 /*
 
-1 dmap\_S Operator
+1 dmapS Operator
 
 Creates a stream of tasks. 
 Input Parameter can be a stream of tasks coming from a previous dmap\_S Operator or a DArray.
@@ -58,7 +57,8 @@ Input Parameter can be a stream of tasks coming from a previous dmap\_S Operator
 
 ListExpr dmapSTM(ListExpr args)
 {
-    string err = "{{darray(X)}  x string x fun} expected";
+    string err =
+        "{{darray(X) / stream(task(darray(X)))}  x string x fun} expected";
 
     //ensure that exactly 3 argument comes into dmapS
     if (!nl->HasLength(args, 3))
@@ -67,9 +67,9 @@ ListExpr dmapSTM(ListExpr args)
     }
 
     // check for internal correctness (uses Args in type mapping)
-    if (!nl->HasLength(nl->First(args), 2) 
-        || !nl->HasLength(nl->Second(args), 2) 
-        || !nl->HasLength(nl->Third(args), 2))
+    if (!nl->HasLength(nl->First(args), 2) ||
+        !nl->HasLength(nl->Second(args), 2) ||
+        !nl->HasLength(nl->Third(args), 2))
     {
         return listutils::typeError("internal error");
     }
@@ -78,9 +78,10 @@ ListExpr dmapSTM(ListExpr args)
     ListExpr arg2Type = nl->First(nl->Second(args));
     ListExpr arg3Type = nl->First(nl->Third(args));
 
-    bool arg1Ok = DArray::checkType(arg1Type) 
-    || (Stream<Task>::checkType(arg1Type) 
-    && Task::checkType(nl->Second(arg1Type)));
+    // i.e. arg1Type = (darray int) or (stream (task (darray int)))
+    bool arg1Ok = DArray::checkType(arg1Type) ||
+                  (Stream<Task>::checkType(arg1Type) &&
+                   DArray::checkType(Task::innerType(nl->Second(arg1Type))));
 
     if (
         !arg1Ok ||
@@ -96,7 +97,7 @@ ListExpr dmapSTM(ListExpr args)
     ListExpr funRes = nl->Third(arg3Type);
     //expected Function Argument type
     ListExpr expFunArg = Stream<Task>::checkType(arg1Type)
-                             ? nl->Second(nl->Second(arg1Type))
+                             ? Task::resultType(nl->Second(arg1Type))
                              : nl->Second(arg1Type);
 
     if (!nl->Equal(expFunArg, funArg))
@@ -149,11 +150,14 @@ ListExpr dmapSTM(ListExpr args)
     // if the origin function result is a tuple stream,
     // the result will be a dfarray, otherwise a darray
     // ----We only support DARRAY---
+    // i.e. (stream (task (darray int)))
     ListExpr resType = nl->TwoElemList(
         listutils::basicSymbol<Stream<Task>>(),
         nl->TwoElemList(
             listutils::basicSymbol<Task>(),
-            funRes));
+            nl->TwoElemList(
+                listutils::basicSymbol<DArray>(),
+                funRes)));
 
     return nl->ThreeElemList(
         nl->SymbolAtom(Symbols::APPEND()),
@@ -203,7 +207,7 @@ public:
     //adds the task t to the list of all tasks
     //manages also the predecessor and successor tasks of this tasks
     //if task is not a leaf (so there are some other
-    // dmapS operators in between), 
+    // dmapS operators in between),
     //the task can just be forwarded.
     //if task is the leaf, the next incoming task is the successor of the
     // task and visa versa.
@@ -272,11 +276,11 @@ private:
 dmap\_S Value Mapping when a DARRAY comes as in put
 
 */
-int dmapSVM_DArray(Word *args, 
-            Word &result, 
-            int message, 
-            Word &local, 
-            Supplier s)
+int dmapSVM_DArray(Word *args,
+                   Word &result,
+                   int message,
+                   Word &local,
+                   Supplier s)
 {
 
     dmapSLI *li = (dmapSLI *)local.addr;
@@ -299,8 +303,8 @@ int dmapSVM_DArray(Word *args,
         incomingFunction = (FText *)args[3].addr;
 
         // create a new name for the result array
-        if (!incomingRemoteName->IsDefined() 
-            || incomingRemoteName->GetValue().length() == 0)
+        if (!incomingRemoteName->IsDefined() ||
+            incomingRemoteName->GetValue().length() == 0)
         {
             remoteName = algInstance->getTempName();
         }
@@ -314,7 +318,7 @@ int dmapSVM_DArray(Word *args,
             return 0;
         }
 
-        local.addr = li = 
+        local.addr = li =
             new dmapSLI(incomingFunction->GetValue(), remoteName);
 
         for (size_t i = 0; i < incomingDArray->getSize(); i++)
@@ -322,7 +326,7 @@ int dmapSVM_DArray(Word *args,
             //create list of Data Tasks
             li->addTask(
                 new Task(
-                    incomingDArray->getWorkerForSlot(i), 
+                    incomingDArray->getWorkerForSlot(i),
                     incomingDArray->getName(), i));
         }
         return 0;
@@ -350,11 +354,11 @@ int dmapSVM_DArray(Word *args,
 dmap\_S Value Mapping when a stream of tasks comes as in put
 
 */
-int dmapSVM_Task(Word *args, 
-                    Word &result, 
-                    int message, 
-                    Word &local, 
-                    Supplier s)
+int dmapSVM_Task(Word *args,
+                 Word &result,
+                 int message,
+                 Word &local,
+                 Supplier s)
 {
 
     dmapSLI *li = (dmapSLI *)local.addr;
@@ -376,8 +380,8 @@ int dmapSVM_Task(Word *args,
         incomingFunction = (FText *)args[3].addr;
 
         // create a new name for the result array
-        if (!incomingRemoteName->IsDefined() 
-                || incomingRemoteName->GetValue().length() == 0)
+        if (!incomingRemoteName->IsDefined() ||
+            incomingRemoteName->GetValue().length() == 0)
         {
             remoteName = algInstance->getTempName();
         }
@@ -391,10 +395,10 @@ int dmapSVM_Task(Word *args,
             return 0;
         }
 
-        local.addr = li = 
-                new dmapSLI(incomingStream, 
-                    incomingFunction->GetValue(), 
-                    remoteName);
+        local.addr = li =
+            new dmapSLI(incomingStream,
+                        incomingFunction->GetValue(),
+                        remoteName);
         return 0;
 
     case REQUEST:
@@ -434,7 +438,7 @@ int dmapSSelect(ListExpr args)
 }
 
 OperatorSpec dmapSSpec(
-    "d[f]array/tasks(darray) x string x fun -> stream(task)",
+    "darray(X)/tasks(darray(X)) x string x fun -> tasks(darray(Y))",
     "_ dmapS[_,_]",
     "Creates a stream of tasks",
     "");

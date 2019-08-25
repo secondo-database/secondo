@@ -31,7 +31,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 using namespace distributed2;
 
-
 extern boost::mutex nlparsemtx;
 /*
 
@@ -115,6 +114,7 @@ namespace distributed5
 {
 
 CommandLog commandLog;
+int Task::nextId = 0;
 
 /*
 
@@ -136,6 +136,8 @@ Task::Task()
 Task::Task(TaskType taskType)
 {
     this->taskType = taskType;
+    nextId++;
+    id = nextId;
 }
 
 /*
@@ -157,6 +159,8 @@ Task::Task(DArrayElement dArrayElement, string name, size_t slot)
     this->config = dArrayElement.getConfig();
     this->worker = dArrayElement.getNum();
     this->slot = slot;
+    nextId++;
+    id = nextId;
 }
 
 /*
@@ -170,6 +174,8 @@ Task::Task(string dmapFunction, string resultName)
     this->taskType = Function;
     this->dmapFunction = dmapFunction;
     this->resultName = resultName;
+    nextId++;
+    id = nextId;
 }
 
 /*
@@ -186,7 +192,7 @@ Task::~Task()
 1.5 Basic Type - Task
 
 */
-const string Task::BasicType() { return "Task"; }
+const string Task::BasicType() { return "task"; }
 
 /*
 
@@ -367,6 +373,12 @@ size_t Task::getSlot()
     return slot;
 }
 
+//returns the worker on which the task has to start
+int Task::getWorker()
+{
+    return worker;
+}
+
 //returns if the task is a leaf
 bool Task::isLeaf()
 {
@@ -383,6 +395,27 @@ void Task::setLeaf(bool leaf)
 {
     this->leaf = leaf;
 }
+
+
+//returns the task as a string - needed for debugging...
+string Task::getFunction(){
+    return dmapFunction;
+}
+
+//returns the task as a string - needed for debugging...
+std::vector<Task *> Task::getSuccessors(){
+    return listOfSucc;
+}
+
+std::vector<Task *> Task::getPredecessor(){
+    return listOfPre;
+}
+
+int Task::getId(){
+    return id;
+}
+
+
 
 //returns the task as a string - needed for debugging...
 string Task::toString()

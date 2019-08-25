@@ -36,7 +36,7 @@ namespace distributed5
 {
 
 /*
-1 schedule\_S
+1 schedule
 
 The operator schedule\_S is responsible for distributing the tasks from a tuple stream to the worker.
 */
@@ -50,7 +50,7 @@ The operator schedule\_S is responsible for distributing the tasks from a tuple 
 ListExpr scheduleTM(ListExpr args)
 {
 
-    string err = "stream<tasks> expected";
+    string err = "tasks(darray) expected";
 
     //ensure that exactly 1 argument comes into schedule
     if (!nl->HasLength(args, 1))
@@ -62,25 +62,17 @@ ListExpr scheduleTM(ListExpr args)
     ListExpr arg1Type = nl->First(args);
     if (!Stream<Task>::checkType(arg1Type))
     {
-        return listutils::typeError(err);
+        return listutils::typeError(err + " (tasks expected)");
     }
 
     //ensure that the stream is of type Tasks
-    ListExpr streamType = nl->Second(arg1Type);
-    if (!Task::checkType(streamType))
+    ListExpr taskType = Task::innerType(nl->Second(arg1Type));
+    if (!DArray::checkType(taskType))
     {
-        return listutils::typeError(err);
+        return listutils::typeError(err + " (darray expected)");
     }
 
-    //defines the result type
-    ListExpr contentType = nl->Second(streamType);
-
-    //result is a DArray of result type
-    ListExpr resultType = nl->TwoElemList(
-        listutils::basicSymbol<DArray>(),
-        contentType);
-
-    return resultType;
+    return taskType;
 }
 
 /*
@@ -184,7 +176,7 @@ int scheduleVM(Word *args, Word &result, int message,
 }
 
 OperatorSpec scheduleSpec(
-    "tasks -> darray",
+    "tasks(darray(X)) -> darray(X)",
     "_ schedule",
     "Computes the result of the query.",
     "");

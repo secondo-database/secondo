@@ -19,3 +19,4 @@
 
 operator dmapS alias dmapS pattern  _ op[_,fun] implicit parameter dmapelem type ARRAYORTASKSFUNARG1
 operator schedule alias schedule pattern  _ op
+operator tasks2tuples alias tasks2tuples pattern  _ op

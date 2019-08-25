@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Distributed5/schedule.h"
 #include "Algebras/Distributed5/Task.h"
 #include "Algebras/Distributed5/dmapS.h"
+#include "Algebras/Distributed5/tasks2tuples.h"
 #include "Algebras/Distributed5/ARRAYORTASKSFUNARG.h"
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
@@ -48,7 +49,7 @@ public:
         AddOperator(&scheduleOp);
         AddTypeConstructor(&TaskTC);
         TaskTC.AssociateKind(Kind::SIMPLE());
-
+        AddOperator(&tasks2tuplesOp);
         AddOperator(&ARRAYORTASKSFUNARG1Op);
     }
 };

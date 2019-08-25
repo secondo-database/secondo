@@ -26,7 +26,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-
 #ifndef DISTRIBUTE5_TASK_H
 #define DISTRIBUTE5_TASK_H
 #include "Attribute.h"
@@ -52,7 +51,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/ref.hpp>
 #include <boost/thread.hpp>
 
-namespace distributed5{
+namespace distributed5
+{
 
 enum TaskType
 {
@@ -62,13 +62,14 @@ enum TaskType
     Error
 };
 
-class Task{
+class Task
+{
 public:
     Task();
     Task(TaskType taskType);
-    Task(distributed2::DArrayElement dArrayElement, 
-            std::string name, 
-            size_t slot);
+    Task(distributed2::DArrayElement dArrayElement,
+         std::string name,
+         size_t slot);
     Task(std::string dmapFunction, std::string resultName);
     ~Task();
     static const std::string BasicType();
@@ -86,15 +87,32 @@ public:
     distributed2::DArrayElement GetDArrayElement();
     std::string getName();
     size_t getSlot();
+    int getWorker();
     bool isLeaf();
     void setLeaf(bool leaf);
     std::string toString();
+    std::string getFunction();
+    int getId();
+    static int nextId;
+    std::vector<Task *> getSuccessors();
+    std::vector<Task *> getPredecessor();
+    
 
-    private:
+    static const ListExpr innerType(const ListExpr list)
+    {
+        return nl->Second(list);
+    }
+
+    static const ListExpr resultType(const ListExpr list)
+    {
+        return nl->Second(nl->Second(list));
+    }
+
+private:
     bool taskStarted = false;
     bool taskFinished = false;
     int numberOfRemainingTasks = 0;
-    std::vector<Task*> listOfSucc;
+    std::vector<Task *> listOfSucc;
     std::vector<Task *> listOfPre;
     std::string slotID;
     TaskType taskType;
@@ -112,9 +130,11 @@ public:
     std::string resultName;
     //task attributes
     bool leaf = true;
+    int id;
+    
 };
 
 extern TypeConstructor TaskTC;
-}
+} // namespace distributed5
 
 #endif

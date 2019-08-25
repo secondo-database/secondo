@@ -31,49 +31,56 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 using namespace distributed2;
 
-
-namespace distributed5{
+namespace distributed5
+{
 /*
 
 1 TypeMapOperators ARRAYORTASKSFUNARG1, ARRAYORTASKSFUNARG2 up to ARRAYORTASKSFUNARG8
 
 */
-template<int pos>
-ListExpr ARRAYORTASKSFUNARG_TM(ListExpr args){
+template <int pos>
+ListExpr ARRAYORTASKSFUNARG_TM(ListExpr args)
+{
 
-  if(!nl->HasMinLength(args,pos)){
+  if (!nl->HasMinLength(args, pos))
+  {
     return listutils::typeError("too less arguments");
   }
-  for(int i=1;i<pos;i++){
+  for (int i = 1; i < pos; i++)
+  {
     args = nl->Rest(args);
   }
   ListExpr arg = nl->First(args);
+  // i.e. arg = (darray int) or (stream (task (darray int)))
 
-  if(DArray::checkType(arg)){
-     return nl->Second(arg);
+  // i.e. arg = (darray int)
+  if (DArray::checkType(arg))
+  {
+    // i.e. return int;
+    return nl->Second(arg);
   }
 
-  if(Stream<Task>::checkType(arg) && Task::checkType(nl->Second(arg))){
-     return nl->Second(nl->Second(arg));
+  // i.e. arg = (stream (task (darray int)))
+  if (Stream<Task>::checkType(arg) &&
+      DArray::checkType(Task::innerType(nl->Second(arg))))
+  {
+    // i.e. return int;
+    return Task::resultType(nl->Second(arg));
   }
 
   return listutils::typeError("Invalid type found");
 }
 
-
-
 OperatorSpec ARRAYORTASKSFUNARG1Spec(
-  "darray(X) x ... -> X, stream(task(X)) x ... -> X",
-  "ARRAYORTASKSFUNARG1(_)",
-  "Type mapping operator.",
-  "query df1 dmap_S [\"df3\" . count]"
-);
+    "darray(X) x ... -> X, stream(task(X)) x ... -> X",
+    "ARRAYORTASKSFUNARG1(_)",
+    "Type mapping operator.",
+    "query df1 dmap_S [\"df3\" . count]");
 
 Operator ARRAYORTASKSFUNARG1Op(
-  "ARRAYORTASKSFUNARG1",
-   ARRAYORTASKSFUNARG1Spec.getStr(),
-   0,
-   Operator::SimpleSelect,
-   ARRAYORTASKSFUNARG_TM<1>
-);
-}
+    "ARRAYORTASKSFUNARG1",
+    ARRAYORTASKSFUNARG1Spec.getStr(),
+    0,
+    Operator::SimpleSelect,
+    ARRAYORTASKSFUNARG_TM<1>);
+} // namespace distributed5
