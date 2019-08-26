@@ -17,6 +17,8 @@ add_executable(Kafka
         KafkaConsumer.h
         KafkaSource.cpp
         KafkaSource.h
+        StreamStopping.cpp
+        StreamStopping.h
         log.cpp
         log.hpp
         Utils.cpp

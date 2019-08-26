@@ -31,54 +31,110 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <thread>
 
-#define PORT 8080
+
+class SimpleSocket {
+    int sockfd;
+    struct sockaddr_in address;
+    int port;
+    std::thread *sockThread;
+    bool socketShutdown = false;
+public:
+
+    bool signalReceived = false;
+
+    SimpleSocket(int portParam) : port(portParam) {
+    }
+
+    int open() {
+        // Creating socket file descriptor
+        if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+            perror("socket failed");
+            return 1;
+        }
+
+        // Forcefully attaching socket to the port 8080
+        int opt = 1;
+        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
+                       &opt, sizeof(opt))) {
+            perror("setsockopt");
+            return 2;
+        }
+
+        // Forcefully attaching socket to the port 8080
+        address.sin_family = AF_INET;
+        address.sin_addr.s_addr = INADDR_ANY;
+        address.sin_port = htons(port);
+        if (bind(sockfd, (struct sockaddr *) &address,
+                 sizeof(address)) < 0) {
+            perror("bind failed");
+            return 3;
+        }
+        if (listen(sockfd, 3) < 0) {
+            perror("listen");
+            return 4;
+        }
+        sockThread = new std::thread([this] { this->waitForConnection(); });
+    }
+
+    void waitForConnection() {
+        std::cout << "Starting waiting for connection" << std::endl;
+        int new_socket, valread;
+        int addrlen = sizeof(address);
+        char const *expected = "Finish";
+        char const *responseAccepted = "Finish accepted";
+        char const *responseIgnored = "False request";
+
+        while (!signalReceived) {
+            if ((new_socket = accept(sockfd, (struct sockaddr *) &address,
+                                     (socklen_t *) &addrlen)) < 0) {
+                if (socketShutdown)
+                    return;
+                perror("accept");
+                exit(EXIT_FAILURE);
+            }
+            char buffer[1024] = {0};
+            valread = read(new_socket, buffer, 1024);
+            printf("Received signal: %s\n", buffer);
+            signalReceived = strcmp(expected, buffer) == 0;
+            if (signalReceived)
+                send(new_socket, responseAccepted, strlen(responseAccepted), 0);
+            else
+                send(new_socket, responseIgnored, strlen(responseAccepted), 0);
+        }
+    }
+
+    int close() {
+        socketShutdown = true;
+        shutdown(sockfd, SHUT_RD);
+        ::close(sockfd);
+        sockThread->join();
+        delete sockThread;
+    }
+
+    ~SimpleSocket() {
+    }
+
+};
 
 int main() {
-    std::cout << "Hello, World!" << std::endl;
 
-    int server_fd, new_socket, valread;
-    struct sockaddr_in address;
-    int opt = 1;
-    int addrlen = sizeof(address);
-    char buffer[1024] = {0};
-    char *hello = "Hello from server";
+    std::cout << "Starting socket server self stop" << std::endl;
+    SimpleSocket simpleSocket1(8080);
+    simpleSocket1.open();
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    simpleSocket1.close();
+    std::cout << "Finished 1" << std::endl;
 
-// Creating socket file descriptor
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
-        perror("socket failed");
-        exit(EXIT_FAILURE);
+    std::cout << "Starting socket server for waiting" << std::endl;
+    SimpleSocket simpleSocket2(8080);
+    simpleSocket2.open();
+    while (!simpleSocket2.signalReceived) {
+        std::cout << "Waiting" << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
-
-    // Forcefully attaching socket to the port 8080
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
-                   &opt, sizeof(opt))) {
-        perror("setsockopt");
-        exit(EXIT_FAILURE);
-    }
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(PORT);
-
-    // Forcefully attaching socket to the port 8080
-    if (bind(server_fd, (struct sockaddr *) &address,
-             sizeof(address)) < 0) {
-        perror("bind failed");
-        exit(EXIT_FAILURE);
-    }
-    if (listen(server_fd, 3) < 0) {
-        perror("listen");
-        exit(EXIT_FAILURE);
-    }
-    if ((new_socket = accept(server_fd, (struct sockaddr *) &address,
-                             (socklen_t *) &addrlen)) < 0) {
-        perror("accept");
-        exit(EXIT_FAILURE);
-    }
-    valread = read(new_socket, buffer, 1024);
-    printf("%s\n", buffer);
-    send(new_socket, hello, strlen(hello), 0);
-    printf("Hello message sent\n");
-
+    simpleSocket2.close();
+    std::cout << "Finished 2" << std::endl;
     return 0;
 }

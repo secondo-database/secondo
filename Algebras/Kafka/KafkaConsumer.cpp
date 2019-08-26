@@ -84,10 +84,10 @@ namespace kafka {
         std::cout << "Writing Type Sting done" << std::endl;
     }
 
-    class KafkaKonsumerLI {
+    class FinishStreamLI {
     public :
 // s is the stream argument , st the string argument
-        KafkaKonsumerLI(Word s, CcString *st) : stream(s), topic(" ") {
+        FinishStreamLI(Word s, CcString *st) : stream(s), topic(" ") {
             def = st->IsDefined();
             if (def) {
                 topic = st->GetValue();
@@ -96,7 +96,7 @@ namespace kafka {
             stream.open();
         }
 
-        ~ KafkaKonsumerLI() {
+        ~ FinishStreamLI() {
             stream.close();
             if (def) {
                 kafkaProducerClient.Close();
@@ -128,14 +128,14 @@ namespace kafka {
 
     int kafkaConsumerVM(Word *args, Word &result, int message,
                         Word &local, Supplier s) {
-        KafkaKonsumerLI *li = (KafkaKonsumerLI *) local.addr;
+        FinishStreamLI *li = (FinishStreamLI *) local.addr;
         switch (message) {
             case OPEN :
                 if (li) {
                     delete li;
                 }
-                local.addr = new KafkaKonsumerLI(args[0],
-                                                 (CcString *) args[1].addr);
+                local.addr = new FinishStreamLI(args[0],
+                                                (CcString *) args[1].addr);
                 return 0;
             case REQUEST :
                 result.addr = li ? li->getNext() : 0;

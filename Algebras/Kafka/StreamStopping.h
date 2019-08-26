@@ -23,39 +23,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "KafkaConsumer.h"
-#include "KafkaSource.h"
-#include "StreamStopping.h"
+#ifndef KAFKA_STREAMSTOPPING_H
+#define KAFKA_STREAMSTOPPING_H
 
 
-extern NestedList *nl;
-extern QueryProcessor *qp;
-extern AlgebraManager *am;
-
-using namespace std;
+#include "Algebra.h"
 
 namespace kafka {
 
+    extern Operator finishStreamOp;
+    extern Operator signalFinishOp;
 
-    class KafkaAlgebra : public Algebra {
-    public:
-        KafkaAlgebra() : Algebra() {
-            AddOperator(&kafkaConsumerOp);
-            kafkaConsumerOp.SetUsesArgsInTypeMapping();
-            AddOperator(&kafkaSourceOp);
-            kafkaSourceOp.SetUsesArgsInTypeMapping();
-
-            AddOperator(&finishStreamOp);
-            AddOperator(&signalFinishOp);
-        }
-    };
-
-} // End namespace
-
-extern "C"
-Algebra *
-InitializeKafkaAlgebra(NestedList *nlRef,
-                       QueryProcessor *qpRef) {
-    return new kafka::KafkaAlgebra;
 }
 
+#endif //KAFKA_STREAMSTOPPING_H
