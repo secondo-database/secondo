@@ -35,17 +35,39 @@ namespace kafka {
         if (!nl->HasLength(args, 1)) {
             return listutils::typeError("wrong number of arguments");
         }
-        // argument must be of type string
-        if (!CcString::checkType(nl->First(args))) {
-            return listutils::typeError("KafkaTopic expected");
-        }
 
-        std::string typeString = "(stream (tuple ((PLZ int) (Ort string))))";
+        ListExpr topicArg = nl->First(args);
+        ListExpr error = validateTopicArg(topicArg);
+        if (error)
+            return error;
+        string topic = nl->StringValue(nl->Second(topicArg));
+        std::string typeString = readTypeString(topic);
+        cout << "topicTypeString: " << typeString << endl;
+
         ListExpr res = 0;
         if (!nl->ReadFromString(typeString, res)) {
             cout << "Error reading type line: " << typeString << endl;
         };
         return res;
+    }
+
+
+    ListExpr validateTopicArg(ListExpr topicArg) {
+        if (!nl->HasLength(topicArg, 2)) {
+            return listutils::typeError("internal error, "
+                                        "topicArg invalid");
+        }
+
+        if (!CcString::checkType(nl->First(topicArg))) {
+            return listutils::typeError(
+                    "String (as type for topic name) expected");
+        }
+
+        ListExpr fn = nl->Second(topicArg);
+        if (nl->AtomType(fn) != StringType) {
+            return listutils::typeError("topic name not constant");
+        }
+        return 0;
     }
 
     std::string readTypeString(string topic) {
@@ -72,6 +94,8 @@ namespace kafka {
             if (def) {
                 topic = arg->GetValue();
                 kafkaReaderClient.Open("localhost", topic);
+                std::string *typeString = kafkaReaderClient.ReadSting();
+                delete typeString;
             }
         }
 
@@ -95,6 +119,7 @@ namespace kafka {
             TupleType *tupleType = new TupleType(nl->Second(resultType));
             Tuple *res = new Tuple(tupleType);
             res->ReadFromBinStr(0, *source);
+            delete source;
             return res;
         }
 

@@ -59,6 +59,7 @@ namespace kafka {
 
     std::string readTypeString(std::string basicString);
 
+    ListExpr validateTopicArg(ListExpr args);
 
 }
 

@@ -12,9 +12,12 @@
 
 - Working with db
 
-    make TTY
+    Build
+        cd $SECONDO_BUILD_DIR
+        make TTY
 
      Start SecondoTTYBDB
+
         cd $SECONDO_BUILD_DIR/bin
         SecondoTTYBDB
 

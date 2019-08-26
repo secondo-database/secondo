@@ -55,28 +55,10 @@ namespace kafka {
 
 
         ListExpr topicArg = nl->Second(args);
-        // the list is coded as (<type> <query part>)
-//        std::string t;
-//        nl->WriteToString(t, topicArg);
-//        cout << "Topic Expresion: " << t;
-
-        if (!nl->HasLength(topicArg, 2)) {
-            return listutils::typeError("internal error, "
-                                        "topicArg invalid");
-        }
-
-        if (!CcString::checkType(nl->First(topicArg))) {
-            return listutils::typeError(
-                    "String (as type for topic name) expected");
-        }
-
-        ListExpr fn = nl->Second(topicArg);
-        if (nl->AtomType(fn) != StringType) {
-            return listutils::typeError("topic name not constant");
-        }
-        string topic = nl->StringValue(fn);
-        cout << "Topic: " << topic << endl;
-
+        ListExpr error = validateTopicArg(topicArg);
+        if (error)
+            return error;
+        string topic = nl->StringValue(nl->Second(topicArg));
         std::string topicTypeString = readTypeString(topic);
         cout << "topicTypeString: " << topicTypeString << endl;
 
