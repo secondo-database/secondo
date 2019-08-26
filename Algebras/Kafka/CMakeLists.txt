@@ -19,6 +19,7 @@ add_executable(Kafka
         KafkaSource.h
         StreamStopping.cpp
         StreamStopping.h
+        SignalingSockets.h
         log.cpp
         log.hpp
         Utils.cpp

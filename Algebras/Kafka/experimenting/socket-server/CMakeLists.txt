@@ -5,4 +5,7 @@ set(CMAKE_CXX_STANDARD 14)
 
 SET(CMAKE_CXX_FLAGS -pthread)
 
-add_executable(socket_server main.cpp)
+add_executable(socket_server
+        main.cpp
+        ../../SignalingSockets.h
+        )

@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ListUtils.h" // useful functions for nested lists
 #include "Algebras/Stream/Stream.h" // wrapper for secondo streams
 #include "Algebras/Relation-C++/RelationAlgebra.h" // use of tuples
+#include "SignalingSockets.h"
 #include <stack>
 
 using namespace std;
@@ -53,12 +54,12 @@ namespace kafka {
 
     class FinishStreamLI {
     public :
-// s is the stream argument , st the string argument
-        FinishStreamLI(Word s, CcInt *st) : stream(s), port(0) {
+// s is the stream argument , st the int argument
+        FinishStreamLI(Word s, CcInt *st) : stream(s) {
             def = st->IsDefined();
             if (def) {
-                port = st->GetValue();
-//                kafkaProducerClient.Open("localhost", topic);
+                int port = st->GetValue();
+                signallingSocket.open(port); // TODO: return code
             }
             stream.open();
         }
@@ -66,12 +67,12 @@ namespace kafka {
         ~ FinishStreamLI() {
             stream.close();
             if (def) {
-//                kafkaProducerClient.Close();
+                signallingSocket.close(); // TODO: return code
             }
         }
 
         Tuple *getNext() {
-            if (finishSignalReceived) {
+            if (signallingSocket.isSignalReceived()) {
                 return 0;
             }
             Tuple *k = stream.request();
@@ -83,9 +84,9 @@ namespace kafka {
 
     private :
         Stream<Tuple> stream;
-        long port;
         bool def;
-        bool finishSignalReceived;
+
+        SignallingSocket signallingSocket;
     };
 
 
@@ -113,7 +114,6 @@ namespace kafka {
         return 0;
     }
 
-
     OperatorSpec finishStreamSpec(
             " stream ( Tuple ) x Port -> stream ( Tuple ) ",
             " _ finishStream[_]",
@@ -131,12 +131,39 @@ namespace kafka {
     );
 
 
+    ListExpr signalFinishTM(ListExpr args) {
+        if (!nl->HasLength(args, 2)) {
+            return listutils::typeError(" wrong number of args ");
+        }
+
+        if (!CcString::checkType(nl->First(args))
+            || !CcInt::checkType(nl->Second(args))) {
+            return listutils::typeError(" ip x Port "
+                                        "expected ");
+        }
+        // TODO: Some empty result
+        return listutils::basicSymbol<CcReal>();
+    }
+
+    int signalFinishVM(Word *args, Word &result, int message,
+                       Word &local, Supplier s) {
+        // TODO: Implement
+        return 0;
+    }
+
+    OperatorSpec signalFinishSpec(
+            " host x Port -> empty? ",
+            " signalFinish(host, port)",
+            " Sends finish signal to finishStream operator ",
+            " query signalFinish(\"127.0.0.1\", 8080)"
+    );
+
     Operator signalFinishOp(
             "signalFinish",
-            finishStreamSpec.getStr(),
-            finishStreamVM,
+            signalFinishSpec.getStr(),
+            signalFinishVM,
             Operator::SimpleSelect,
-            finishStreamTM
+            signalFinishTM
     );
 
 }
