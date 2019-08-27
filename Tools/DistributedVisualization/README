@@ -1,0 +1,86 @@
+Distributed Visualization Installation Instructions
+===================================================
+
+(1) On the computer hosting the master of the Distributed2Algebra, install the tools node.js + npm (see https://nodejs.org/en/download/)
+
+# Using Ubuntu
+curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+One can check successful installation with
+
+ralf@newton1:~$ node -v
+v10.16.2
+ralf@newton1:~$ npm -v
+6.9.0
+
+(2) In the secondo directory, run
+
+make DistributedVisualization
+
+(3) Create a directory
+
+secondo/bin/distributed_logs
+
+(4) Set directory for distributed logs
+
+In the file
+
+secondo/Tools/DistributedVisualization/server/config/development.json
+
+edit the line
+
+	"log_location_absolute": "/home/ralf/secondo/bin/distributed_logs
+
+to the path of your distributed_logs directory.
+
+
+(4) Set host IP address and port for server
+
+In the same file development.json
+
+edit the line
+
+        "http_port": 3000,
+
+and set the port to a desired port number exclusively available for this server. This is the server side.
+
+
+(5) Set host IP address and port for client
+
+In the directory secondo/Tools/DistributedVisualization/client/src/config 
+
+edit the file 
+
+default.ts
+
+In the line  
+
+	base_url: "http://localhost:3000"
+
+set IP address and port of the host. This is the client side. Must be the same port as for the server.
+
+
+
+
+
+
+
+Starting the Visualization
+==========================
+
+(1) Start the visualization server:
+
+In directory /secondo/Tools/DistributedVisualization/server
+
+npm run start
+
+(2) In a web browser, goto
+
+http://<server IP>:<port>
+
+for example
+
+http://132.176.69.45:3000
+
+It should work once a distributed query has been run.
