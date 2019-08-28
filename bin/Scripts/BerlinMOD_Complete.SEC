@@ -1,0 +1,6 @@
+@@Scripts/BerlinMOD_DataGenerator.SEC;
+@@Scripts/BerlinMOD_CreateObjects.SEC;
+@@Scripts/BerlinMOD_OBA-Queries.SEC;
+@@Scripts/BerlinMOD_TBA-Queries.SEC;
+
+quit;
