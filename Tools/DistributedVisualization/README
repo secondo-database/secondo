@@ -35,7 +35,7 @@ edit the line
 to the path of your distributed_logs directory.
 
 
-(4) Set host IP address and port for server
+(5) Set host IP address and port for server
 
 In the same file development.json
 
@@ -46,7 +46,7 @@ edit the line
 and set the port to a desired port number exclusively available for this server. This is the server side.
 
 
-(5) Set host IP address and port for client
+(6) Set host IP address and port for client
 
 In the directory secondo/Tools/DistributedVisualization/client/src/config 
 
