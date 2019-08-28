@@ -31,7 +31,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 using namespace distributed2;
 
-
 namespace distributed5
 {
 
@@ -50,7 +49,7 @@ The operator schedule\_S is responsible for distributing the tasks from a tuple 
 ListExpr scheduleTM(ListExpr args)
 {
 
-    string err = "tasks(darray) expected";
+    string err = "stream(task(darray)) expected";
 
     //ensure that exactly 1 argument comes into schedule
     if (!nl->HasLength(args, 1))
@@ -75,6 +74,103 @@ ListExpr scheduleTM(ListExpr args)
     return taskType;
 }
 
+class Scheduler
+{
+
+public:
+    void scheduleTask(Task *task)
+    {
+        boost::lock_guard<boost::recursive_mutex> lock(mutex);
+        allThreads.push_back(
+            new boost::thread(
+                boost::bind(
+                    &Scheduler::runTask, this, task)));
+    }
+
+    void join()
+    {
+        mutex.lock();
+        while (!allThreads.empty())
+        {
+
+            boost::thread *a = allThreads.front();
+            allThreads.pop_front();
+            mutex.unlock();
+            a->join();
+            delete a;
+            mutex.lock();
+        }
+
+        mutex.unlock();
+    }
+
+    void addWaitingTask(Task *task)
+    {
+        boost::lock_guard<boost::recursive_mutex> lock(mutex);
+        allTasksWaiting.push_back(task);
+    }
+
+    vector<DArrayElement> myResult;
+    string dArrayName;
+
+private:
+    void runTask(Task *task)
+    {
+        task->run();
+        boost::lock_guard<boost::recursive_mutex> lock(mutex);
+        //For all successor task, decrease the number of remaining tasks
+        task->decNumberOfRemainingTasksForSuccessors();
+        //check if there are now possible tasks which can be started.
+        //If that is the case, check, if this task came already
+        //in the schedule stream.
+        //If that is the case, add this task to the queue of task,
+        //which can possibly be started.
+        //If that is not the case - the task will came in later and
+        // will be checked if it can be started.
+        //This is needed, because the tasks themselve are connected.
+        //So it can be, that a task is finished, and because they
+        //are connected over their successor list, a task should be started,
+        //but the task has not came into the schedule operator.
+        vector<Task *> tasksPossibleToStart =
+            task->checkSuccessorsTasksToStart();
+        for (size_t i = 0; i < tasksPossibleToStart.size(); i++)
+        {
+            std::vector<Task *>::iterator foundPlace =
+                std::find(allTasksWaiting.begin(), allTasksWaiting.end(),
+                          tasksPossibleToStart[i]);
+
+            if (foundPlace != allTasksWaiting.end())
+            {
+                scheduleTask(tasksPossibleToStart[i]);
+                allTasksWaiting.erase(foundPlace);
+            }
+        }
+        //If the task is a leaf the result of the
+        //schedule operator is the result of the query for this slot.
+        if (task->isLeaf())
+        {
+            TaskType tt = task->getTaskType();
+            if (tt == TaskType::Error)
+            {
+                //ToDo Add Errorhandling
+                dArrayName = "Error";
+            }
+            else
+            {
+                dArrayName = task->getName();
+                while (myResult.size() <= task->getSlot())
+                {
+                    myResult.push_back(DArrayElement("", 0, 0, ""));
+                }
+                myResult[task->getSlot()] = task->GetDArrayElement();
+            }
+        }
+    }
+    deque<boost::thread *> allThreads;
+    vector<Task *> allTasksWaiting;
+    boost::recursive_mutex mutex;
+};
+
 /*
 
 1.2 Value Mapping
@@ -82,94 +178,31 @@ ListExpr scheduleTM(ListExpr args)
 */
 
 int scheduleVM(Word *args, Word &result, int message,
-                 Word &local, Supplier s)
+               Word &local, Supplier s)
 {
     result = qp->ResultStorage(s);
     Stream<Task> stream(args[0]);
     stream.open();
     Task *task;
     DArray *res = (DArray *)result.addr;
-    vector<DArrayElement> myResult;
-    string dArrayName;
-    vector<Task *> allTasksWaiting;
+    Scheduler scheduler;
 
     //As long as there are still incoming tasks...
     while ((task = stream.request()))
     {
-        //create a queue of tasks, which can possibly be started
-        std::deque<Task *> allTasksToBeStarted;
         //if incoming task can be started...
         if (task->taskCanBeStarted())
         {
-            //... add this task to the queue of possible tasks to start.
-            allTasksToBeStarted.push_back(task);
+            scheduler.scheduleTask(task);
         }
         else
         {
-            //... else add this task to the queue of waiting tasks
-            //which can be started later.
-            allTasksWaiting.push_back(task);
-        }
-
-        //As long as there are tasks which can be started...
-        while (allTasksToBeStarted.size() != 0)
-        {
-            //take one out and start the task...
-            task = allTasksToBeStarted.back();
-            allTasksToBeStarted.pop_back();
-            //cout << "\n SCHEDULE::" << task->toString() << "\n";
-            task->run();
-            //For all successor task, decrease the number of remaining tasks
-            task->decNumberOfRemainingTasksForSuccessors();
-            //check if there are now possible tasks which can be started.
-            //If that is the case, check, if this task came already
-            //in the schedule stream.
-            //If that is the case, add this task to the queue of task,
-            //which can possibly be started.
-            //If that is not the case - the task will came in later and
-            // will be checked if it can be started.
-            //This is needed, because the tasks themselve are connected.
-            //So it can be, that a task is finished, and because they
-            //are connected over their successor list, a task should be started,
-            //but the task has not came into the schedule operator.
-            vector<Task *> tasksPossibleToStart =
-                task->checkSuccessorsTasksToStart();
-            for (size_t i = 0; i < tasksPossibleToStart.size(); i++)
-            {
-                std::vector<Task *>::iterator foundPlace =
-                    std::find(allTasksWaiting.begin(), allTasksWaiting.end(),
-                              tasksPossibleToStart[i]);
-
-                if (foundPlace != allTasksWaiting.end())
-                {
-                    allTasksToBeStarted.push_back(tasksPossibleToStart[i]);
-                    allTasksWaiting.erase(foundPlace);
-                }
-            }
-            //If the task is a leaf the result of the 
-            //schedule operator is the result of the query for this slot.
-            if (task->isLeaf())
-            {
-                TaskType tt = task->getTaskType();
-                if (tt == TaskType::Error)
-                {
-                    //ToDo Add Errorhandling
-                    dArrayName = "Error";
-                }
-                else
-                {
-                    dArrayName = task->getName();
-                    while (myResult.size() <= task->getSlot())
-                    {
-                        myResult.push_back(DArrayElement("", 0, 0, ""));
-                    }
-                    myResult[task->getSlot()] = task->GetDArrayElement();
-                }
-            }
+            scheduler.addWaitingTask(task);
         }
     }
 
-    res->set(dArrayName, myResult);
+    scheduler.join();
+    res->set(scheduler.dArrayName, scheduler.myResult);
     stream.close();
 
     return 0;

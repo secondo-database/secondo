@@ -283,7 +283,7 @@ void Task::run()
         string errMsg;
         string r;
         double runtime;
-        bool showCommands = true;
+        bool showCommands = false;
         if (!ci)
         {
             return;

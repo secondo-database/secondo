@@ -3,26 +3,26 @@ Restore : No
 
 Operator : ARRAYORTASKSFUNARG1
 Number   : 1
-Signature: darray(X) x ... -> X | tasks(darray(X)) x ... -> X
+Signature: darray(X) x ... -> X | stream(task(darray(X))) x ... -> X
 Example  : query Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] dmapS["", .] dmapS["", . count] schedule getValue tie[. + ..]
 Result   : 83
 
 
 Operator : dmapS
 Number   : 1
-Signature: darray(X)/tasks(darray(X)) x string x fun -> tasks(darray(Y))
+Signature: darray(X)/stream(task(darray(X))) x string x fun -> stream(task(darray(Y)))
 Example  : query Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] dmapS["", .] dmapS["", . count] schedule getValue tie[. + ..]
 Result   : 83
 
 
 Operator : schedule
 Number   : 1
-Signature: tasks(darray(X)) -> darray(X)
+Signature: stream(task(darray(X))) -> darray(X)
 Example  : query Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] dmapS["", .] dmapS["", . count] schedule getValue tie[. + ..]
 Result   : 83
 
 Operator : tasks2tuples
 Number   : 1
-Signature: stream(task(X)) -> tuples(X)
+Signature: stream(task(X)) -> stream(tuples(X))
 Example  : query CabsId dmapS["", . feed filter[.Id = 1039] project[Id] consume] tasks2tuples consume
 Result   : 

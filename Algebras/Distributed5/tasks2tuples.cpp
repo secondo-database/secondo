@@ -51,19 +51,22 @@ ListExpr tasks2tuplesTM(ListExpr args)
         return listutils::typeError(err + " (tasks expected)");
     }
 
-    ListExpr attrList = nl->SixElemList(
+    ListExpr attrList = nl->Cons(
         nl->TwoElemList(nl->SymbolAtom("ID"),
                         listutils::basicSymbol<FText>()),
-        nl->TwoElemList(nl->SymbolAtom("Task Type"),
-                        listutils::basicSymbol<FText>()),
-        nl->TwoElemList(nl->SymbolAtom("Task Function"),
-                        listutils::basicSymbol<FText>()),
-        nl->TwoElemList(nl->SymbolAtom("Worker"),
-                        listutils::basicSymbol<FText>()),
-        nl->TwoElemList(nl->SymbolAtom("List of Successors Tasks"),
-                        listutils::basicSymbol<FText>()),
-        nl->TwoElemList(nl->SymbolAtom("List of Predecessor Tasks"),
-                        listutils::basicSymbol<FText>()));
+        nl->SixElemList(
+            nl->TwoElemList(nl->SymbolAtom("TaskType"),
+                            listutils::basicSymbol<FText>()),
+            nl->TwoElemList(nl->SymbolAtom("TaskFunction"),
+                            listutils::basicSymbol<FText>()),
+            nl->TwoElemList(nl->SymbolAtom("Worker"),
+                            listutils::basicSymbol<FText>()),
+            nl->TwoElemList(nl->SymbolAtom("Slot"),
+                            listutils::basicSymbol<FText>()),
+            nl->TwoElemList(nl->SymbolAtom("SuccessorTasks"),
+                            listutils::basicSymbol<FText>()),
+            nl->TwoElemList(nl->SymbolAtom("PredecessorTasks"),
+                            listutils::basicSymbol<FText>())));
 
     return Stream<Tuple>::wrap(Tuple::wrap(attrList));
 }
@@ -99,27 +102,31 @@ public:
         {
         case TaskType::Data:
             tuple->PutAttribute(1, new FText(true, "Data Task"));
-            tuple->PutAttribute(2, new FText(true, ""));
+            tuple->PutAttribute(2, new FText(true, "N/A"));
             tuple->PutAttribute(
                 3,
                 new FText(true, std::to_string(task->getWorker())));
+            tuple->PutAttribute(
+                4,
+                new FText(true, std::to_string(task->getSlot())));
             break;
         case TaskType::Function:
             tuple->PutAttribute(1, new FText(true, "Function Task"));
             tuple->PutAttribute(2, new FText(true, task->getFunction()));
-            tuple->PutAttribute(
-                3,
-                new FText(true, std::to_string(task->getWorker())));
+            tuple->PutAttribute(3, new FText(true, "N/A"));
+            tuple->PutAttribute(4, new FText(true, "N/A"));
             break;
         case TaskType::Error:
             tuple->PutAttribute(1, new FText(true, "Error Task"));
-            tuple->PutAttribute(2, new FText(true, ""));
-            tuple->PutAttribute(3, new FText(true, ""));
+            tuple->PutAttribute(2, new FText(true, "-"));
+            tuple->PutAttribute(3, new FText(true, "-"));
+            tuple->PutAttribute(4, new FText(true, "-"));
             break;
         default:
             tuple->PutAttribute(1, new FText(true, ""));
             tuple->PutAttribute(2, new FText(true, ""));
             tuple->PutAttribute(3, new FText(true, ""));
+            tuple->PutAttribute(4, new FText(true, ""));
         }
 
         string listOfSuccString = "";
@@ -130,7 +137,7 @@ public:
             listOfSuccString = listOfSuccString.append(
                 std::to_string(listOfSucc[i]->getId()) + " ");
         }
-        tuple->PutAttribute(4, new FText(true, listOfSuccString));
+        tuple->PutAttribute(5, new FText(true, listOfSuccString));
 
         string listOfPreString = "";
 
@@ -140,7 +147,7 @@ public:
             listOfPreString = listOfPreString.append(
                 std::to_string(listOfPre[i]->getId()) + " ");
         }
-        tuple->PutAttribute(5, new FText(true, listOfPreString));
+        tuple->PutAttribute(6, new FText(true, listOfPreString));
 
         return tuple;
     }
