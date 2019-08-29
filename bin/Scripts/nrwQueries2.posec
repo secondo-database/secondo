@@ -1,0 +1,119 @@
+/*
+1 Selection
+
+1.1 Without Index
+
+*/
+
+optimize(select count(*) from roads where name starts "Univers")
+
+optimize(select * from buildings where geodata intersects eichlinghofen)
+
+
+/*
+1.2 Creating a Standard Index
+
+*/
+
+optimize(create index on roads columns name)
+
+/*
+1.3 Using a Standard Index
+
+*/
+
+optimize(select count(*) from roads where name starts "Univers")
+
+/*
+1.4 Creating a Spatial Index
+
+*/
+
+optimize(create index on buildings columns geodata)
+
+/*
+1.5 Using a Spatial Index
+
+*/
+
+optimize(select * from buildings where geodata intersects eichlinghofen)
+
+/*
+2 Join
+
+2.1 Equijoin
+
+*/
+
+optimize(select * from [natural as n1, natural as n2] 
+where [n1:name = n2:name, n1:osm_id < n2:osm_id])
+
+/*
+2.2 Spatial Join
+
+*/
+
+optimize(select count(*) from [roads as r, waterways as w] 
+where r:geodata intersects w:geodata)
+
+/*
+Expressions in the Select Clause
+
+*/
+
+optimize(select [r:osm_id, r:name, w:osm_id, w:name, 
+	intersection(r:geodata, w:geodata) as bridgeposition]
+from [roads as r, waterways as w] 
+where r:geodata intersects w:geodata)
+
+/*
+2.3 General Join
+
+*/
+
+optimize(select * from [roads as r, waterways as w] 
+where [r:name contains w:name,
+	r:type contains "pedestrian", w:type contains "river"])
+
+
+/*
+2.4 Index-Based Equijoin
+
+*/
+
+optimize(select * from [roads as r1, roads]
+where [r1:name = name, r1:osm_id < osm_id, r1:type contains "raceway"])
+
+
+/*
+2.5 Index-Based Spatial Join
+
+*/
+
+optimize(select count(*) from [roads as r, buildings as b] 
+where [distance(gk(r:geodata), gk(b:geodata)) < 500, 
+	r:type contains "raceway"])
+
+
+/*
+3 Aggregation
+
+3.1 Counting
+
+*/
+
+optimize(select [type, count(*) as cnt]
+from roads
+groupby type)
+
+
+/*
+3.2 Sum, Average
+
+*/
+
+optimize(select [type, avg(width) as awidth]
+from waterways
+where between(width, 0, 10000)
+groupby[type])
+
