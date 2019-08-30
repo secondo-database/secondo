@@ -248,6 +248,9 @@ to determine selectivities of predicates while processing a query. Furthermore s
 
 using namespace std;
 
+extern QueryProcessor* qp;
+
+
 string
 ErrorStr(const string& msg, const string& file, const int& line)
 {
@@ -3893,7 +3896,7 @@ the function in a database object.
   if(tree){
      InitTree(tree);
   }
-  for(auto listener : newTreeListeners){
+  for(auto listener : qp->newTreeListeners){
      listener->handleNewTree(tree,expr);
   }
 }
