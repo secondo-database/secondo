@@ -1,6 +1,6 @@
 <template>
-  <v-container grid-list-xl fluid>
-    <v-layout row wrap class="my-1" align-center>
+  <v-container grid-list-xl fluid class="pt-0 mt-0">
+    <v-layout row wrap align-center>
       <v-flex xs12>
         <v-alert v-model="errorAlert" dismissible type="error">{{error}}</v-alert>
         <span
@@ -11,26 +11,30 @@
           <v-flex v-for="journalItem in journalItems" :key="journalItem.id" xs12 md12>
             <v-item-group>
               <v-container grid-list-xl fluid>
-                <v-layout wrap>
+                <v-layout row wrap>
                   <v-item>
-                    <v-flex xs12 md12>
-                      <v-card xs12 md12>
-                        <v-card-title primary-title>
-                          <div>
-                            <!-- <div class="headline">{{journalItem.job_id}}</div> -->
-                          </div>
-                          <v-spacer></v-spacer>
-                        </v-card-title>
-                        <v-card-text>
-                          <div class="font-weight-regular">
-                            Entered query:
-                            <span class="font-italic">{{journalItem.query}}</span>
-                          </div>
-                          <Tree :treeData="getTreeDataForJournalItem(journalItem)" />
-                        </v-card-text>
-                        <v-card-actions></v-card-actions>
-                      </v-card>
-                    </v-flex>
+                    <v-layout row wrap class="pl-0 pr-0 mr-0 ml-0" style="">
+                      <v-flex wrap xs12 md4 lg4>
+                        <v-card>
+                          <v-card-text>
+                            <div class="font-weight-regular">
+                              Entered query:
+                              <span class="font-italic">{{journalItem.query}}</span>
+                            </div>
+                          </v-card-text>
+                        </v-card>
+                      </v-flex>
+                      <v-flex xs12 md8 lg8>
+                        <v-card class="pt-0 mt-0">
+                          <v-card-text>
+                            <Tree
+                              :treeData="getTreeDataForJournalItem(journalItem)"
+                              class="mt-0 pt-0 mb-0 pb-0"
+                            />
+                          </v-card-text>
+                        </v-card>
+                      </v-flex>
+                    </v-layout>
                   </v-item>
                   <v-item>
                     <v-flex xs12 md12>
@@ -39,8 +43,12 @@
                           <div>
                             <div class="title">Status of workers</div>
                           </div>
+                          <v-spacer></v-spacer>
+                          <v-btn color="info" flat @click="scrollWorkerStatus">
+                            Scrolling {{pWorkerScrolling ? "Off" : "On"}}
+                             </v-btn>
                         </v-card-title>
-                        <v-card-text
+                        <v-card-text :class="workerStatusClass"
                           v-if="runningWorkerStatus !== undefined && Object.keys(runningWorkerStatus).length !== 0"
                         >
                           <v-item-group>
@@ -110,6 +118,7 @@ export default class Journal extends Vue {
   private pollingWorkerStatus!: any;
   private pErrorAlert: boolean = false;
   private pTreeDialog: boolean = false;
+  private pWorkerScrolling: boolean = false;
   private pWorkerStatusRenderingKey: number = 0;
 
   public closeTreeDialog(): void {
@@ -146,6 +155,10 @@ export default class Journal extends Vue {
 
   public getTreeDataForJournalItem(journalItem: JournalDTO): object {
     return this.$store.getters.treeForDisplay;
+  }
+
+  public scrollWorkerStatus(): void {
+    this.pWorkerScrolling = !this.pWorkerScrolling;
   }
 
   @Watch("error")
@@ -201,6 +214,9 @@ export default class Journal extends Vue {
     return this.$store.getters.error;
   }
 
+  get workerStatusClass(): string {
+    return this.pWorkerScrolling ? "workerScrolled" : "";
+  }
   protected mounted() {
     this.dispatchGetJournalAction();
     this.pollJournal();
@@ -237,3 +253,9 @@ export default class Journal extends Vue {
   }
 }
 </script>
+<style scoped>
+.workerScrolled {
+  height: 30em;
+  overflow-y: scroll;
+}
+</style>

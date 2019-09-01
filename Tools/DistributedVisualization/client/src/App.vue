@@ -3,7 +3,12 @@
     <v-toolbar light fixed app>
       <v-toolbar-title>SECONDO</v-toolbar-title>
       <v-spacer></v-spacer>
-      <div v-if="journalItems !== undefined && journalItems[0] !== undefined">
+      <div
+        v-if="journalItems !== undefined && journalItems[0] !== undefined"
+        class="pr-0 mr-0"
+        wrap
+        row
+      >
         <v-chip
           :color="journalItems[0].status === 'running' ? 'indigo' : 'green'"
           text-color="white"
