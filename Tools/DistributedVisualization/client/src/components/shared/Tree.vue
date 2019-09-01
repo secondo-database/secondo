@@ -92,11 +92,11 @@ export default class Tree extends Vue {
         maxH = n.y;
       }
     }
-    this.pHeight = maxH + 10 * this.treeHierarchy.descendants().length + 40;
+    this.pHeight = maxH + 5 * this.treeHierarchy.descendants().length + 30;
   }
 
   get paddingBottomStyle(): string {
-    return "padding-bottom: " + this.height + "px";
+    return "";
   }
 
   get strokeWidth(): number {
@@ -153,7 +153,7 @@ export default class Tree extends Vue {
   text-decoration: line-through;
 }
 .svg_chart_container {
-  display: inline-block;
+  display: flex;
   position: relative;
   width: 100%;
   vertical-align: top;
@@ -161,8 +161,8 @@ export default class Tree extends Vue {
 }
 .svg_chart {
   display: inline-block;
-  position: absolute;
-  top: 0;
+  /* position: absolute; */
+  top: 0px;
   left: 0;
 }
 </style>
