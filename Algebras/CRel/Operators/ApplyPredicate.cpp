@@ -189,7 +189,7 @@ int ApplyPredicate::TBlockValueMapping(ArgVector args, Word &result, int,
     const ListExpr tupleType =
       TBlockTI(qp->GetType(qp->GetSon(s, 0)), false).GetTupleTypeExpr();
 
-    Tuple tuple = Tuple(SecondoSystem::GetCatalog()->NumericType(tupleType));
+    Tuple tuple(SecondoSystem::GetCatalog()->NumericType(tupleType));
 
     //The function's parameter
     (*qp->Argument(predicate))[0].addr = &tuple;
