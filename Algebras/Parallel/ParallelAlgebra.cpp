@@ -43,6 +43,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <vector>
 #include <queue>
 #include <atomic>
+#include <stack>
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -2673,6 +2674,456 @@ Operator ploopjoinOp(
 
 
 
+/*
+Type Mapping Operator ~PAGGRT~
+
+*/
+
+ListExpr PAGGRTTM(ListExpr args){
+  if(!nl->HasMinLength(args,2)){
+    return listutils::typeError("at Least two elements expected");
+  } 
+  if(!Stream<Tuple>::checkType(nl->First(args))){
+    return listutils::typeError("first argument is not a tuple stream");
+  }
+  ListExpr attr = nl->Second(args);
+  if(nl->AtomType(attr) != SymbolType){
+    return listutils::typeError("second argument is not a valid "
+                                 "attribute name");
+  }
+  std::string aName = nl->SymbolValue(attr);
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  ListExpr attrType = nl->TheEmptyList();
+  int index = listutils::findAttribute(attrList, aName, attrType);
+  if(index == 0){
+    return listutils::typeError("Attribute " + aName + 
+                                " is not part of the tuple");
+  }
+  return attrType;
+}
+
+OperatorSpec PAGGRTSpec(
+  "stream(tuple) x IDENT  x ... ->  DATA",
+  "PAGGRT(_,_,...)",
+  "Extracts the type of the attribute specified in the second "
+  " argument from the tuple stream . ",
+  " query ten feed  paggregate[No,2,2; . + .. ; 0 ] "
+);
+ 
+Operator PAGGRTOp(
+   "PAGGRT",
+   PAGGRTSpec.getStr(),
+   0,
+   Operator::SimpleSelect,
+   PAGGRTTM
+);
+
+
+
+
+/*
+Operator ~paggregate~
+
+*/
+ListExpr paggregateTM(ListExpr args){
+  if(!nl->HasLength(args,6)){
+    return listutils::typeError("5 arguments expected");
+  }
+  if(!listutils::checkUsesArgsInTypeMapping(args)){
+    return listutils::typeError("internal error");
+  }
+  // first argument : a tuple stream
+  ListExpr stream = nl->First(nl->First(args));
+  if(!Stream<Tuple>::checkType(stream)){
+    return listutils::typeError("first argument is not a tuple stream");
+  }
+  // second argument: attribute name in tuples
+  ListExpr attrName = nl->First(nl->Second(args));
+  if(nl->AtomType(attrName) != SymbolType){
+    return listutils::typeError("The second argument is not a "
+                                "valid attribute name");
+  }
+  std::string aName = nl->SymbolValue(attrName);
+  ListExpr attrList = nl->Second(nl->Second(stream));
+  ListExpr attrType = nl->TheEmptyList();
+  int index = listutils::findAttribute(attrList, aName, attrType);
+  if(index == 0){
+     return listutils::typeError("Attribute " + aName 
+                               + " not part of the tuple");
+  }
+  index--;
+  // third argument: number of threads
+  if(!CcInt::checkType(nl->First(nl->Third(args)))){
+     return listutils::typeError("third argument is not an integer");
+  }
+  ListExpr noThreads = nl->Second(nl->Third(args));
+  if(nl->AtomType(noThreads) != IntType){
+     return listutils::typeError("third argument is not a constant integer");
+  }
+  int threads = nl->IntValue(noThreads);
+  if(threads < 2 || threads > 15){
+    return listutils::typeError("number of threads must be between 2 and 15");
+  }
+  // fourth argument: size of the input buffer, invalid values 
+  // will be set to 5 in value mapping
+  if(!CcInt::checkType(nl->First(nl->Fourth(args)))){
+     return listutils::typeError("fourth argument is not an integer");
+  }
+  // fifth argument: the aggregate function
+  ListExpr funtype = nl->First(nl->Fifth(args));
+  if(!listutils::isMap<2>(funtype)){
+     return listutils::typeError("fifth argument is not a binary function");
+  }
+  if(!nl->Equal(nl->Second(funtype), attrType)){
+     return listutils::typeError("first arg of the function is not of the "
+                            "same type as the attribute " + aName);
+  }
+  if(!nl->Equal(nl->Third(funtype), attrType)){
+     return listutils::typeError("second arg of the function is not of the "
+                            "same type as the attribute " + aName);
+  }
+  if(!nl->Equal(nl->Fourth(funtype), attrType)){
+     return listutils::typeError("result of the function is not of the "
+                            "same type as the attribute " + aName);
+  }
+  // sixth argument: the default value
+  if(!nl->Equal(nl->First(nl->Sixth(args)), attrType)){
+     return listutils::typeError("the default value is not of the same  type"
+                        " as the attribute " + aName);
+  }
+  ListExpr fundef = nl->Second(nl->Fifth(args)); 
+
+  // replace attr types in function by real types
+  fundef = nl->FourElemList(
+                  nl->First(fundef),
+                  nl->TwoElemList(nl->First(nl->Second(fundef)), attrType),
+                  nl->TwoElemList(nl->First(nl->Third(fundef)), attrType),
+                  nl->Fourth(fundef));
+
+  ListExpr appendList = nl->OneElemList(nl->IntAtom(index));
+  ListExpr appendLast = appendList;
+
+  for(int i=1;i<threads;i++){ // note: 0 is the original function
+     ListExpr fd = renameFunArgs(fundef, "_" + stringutils::int2str(i));
+     appendLast = nl->Append(appendLast, fd);
+  } 
+
+  return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                            appendList,
+                            attrType);
+}
+
+
+class stackelem{
+  public:
+     stackelem(Attribute* _attr): attr(_attr), level(1) {}
+     stackelem(Attribute* _attr, int _level): attr(_attr), level(_level){}
+     stackelem(const stackelem& e): attr(e.attr), level(e.level){}
+
+     Attribute* attr;
+     int level;
+
+};
+
+
+template<bool useStack>
+class paggregateThread{
+
+ public:
+    paggregateThread(SyncStream<Tuple>* _stream,
+                    int _attrIndex, 
+                    size_t _inBufferSize,
+                    Supplier _fun,
+                    Consumer<Attribute>* _consumer) :
+                stream(_stream), 
+                attrIndex(_attrIndex),
+                inBufferSize(_inBufferSize),
+                fun(_fun), consumer(_consumer) {
+                funargs = qp->Argument(fun);
+                if(!useStack){
+                    thread = new boost::thread(
+                                  &paggregateThread<useStack>::run, this);
+                } else {
+                    thread = new boost::thread(
+                                  &paggregateThread<useStack>::runStack, this);
+                }
+           }
+     
+    ~paggregateThread(){
+        thread->join();
+        delete thread;
+    }
+
+
+
+  private:
+      SyncStream<Tuple>* stream;
+      int attrIndex;
+      size_t inBufferSize;
+      Supplier fun;
+      Consumer<Attribute>* consumer;
+      ArgVectorPointer funargs;
+      Word funres;
+      std::atomic_bool running;
+      boost::thread* thread;
+      std::stack<stackelem> stack1; 
+
+      void run(){
+         std::vector<Tuple*> inBuffer;
+         running = true;
+         Attribute* result;
+         while(running){
+            inBuffer.clear();
+            stream->request(inBuffer, inBufferSize);
+            result = computeResultSimple(inBuffer); 
+            if(result != nullptr) {
+               consumer->elemAvailable(result);
+            }
+         }
+      }
+
+      Attribute* computeResultSimple(std::vector<Tuple*>& elems){
+          Tuple* tuple = elems[0];
+          if(tuple==nullptr){
+             running = false;
+             return nullptr;
+          }
+          Attribute* res = tuple->GetAttribute(attrIndex)->Copy();
+          tuple->DeleteIfAllowed();
+          for(size_t i=1; i< elems.size(); i++){
+               tuple = elems[i];
+               if(tuple==nullptr){
+                  running = false;
+               } else {
+                  res = aggregate(res, tuple);
+               }
+          }
+          return res;
+      }
+
+
+     void runStack(){
+         std::vector<Tuple*> inBuffer;
+         running = true;
+         size_t count = 0;
+         while(running){
+            inBuffer.clear();
+            stream->request(inBuffer, inBufferSize);
+            count += inBuffer.size();
+            for(size_t i = 0; i< inBuffer.size(); i++){
+               Tuple* tuple = inBuffer[i];
+               if(tuple==nullptr){
+                 running = false;
+               } else {
+                 putToStack(tuple->GetAttribute(attrIndex)->Copy());
+                 tuple->DeleteIfAllowed();
+               }
+            }
+         }
+         aggregateStack(false);
+         if(!stack1.empty()){
+             Attribute* res = stack1.top().attr;
+             stack1.pop();
+             assert(stack1.empty());
+             consumer->elemAvailable(res);
+         }
+     }
+
+
+      Attribute* computeResultStack(std::vector<Tuple*>& elems){
+          for(size_t i=0; i< elems.size(); i++){
+               Tuple* tuple = elems[i];
+               if(tuple==nullptr){
+                  running = false;
+               } else {
+                  putToStack(tuple->GetAttribute(attrIndex)->Copy());
+                  tuple->DeleteIfAllowed(); 
+               }
+          }
+          aggregateStack(false);
+          if(stack1.empty()) return 0;
+          Attribute* result = stack1.top().attr;
+          stack1.pop();
+          return result;
+      }
+      
+      void putToStack(Attribute* attr){
+         stackelem se(attr);
+         stack1.push(se);
+         aggregateStack(true);
+      }
+      
+      stackelem aggregate(stackelem& s1, stackelem& s2){
+          s1.attr = computeFun(s1.attr,s2.attr);
+          s1.level++;
+          return s1;
+      }
+      
+      void aggregateStack(bool useLevel){
+         while(stack1.size() > 1) {
+             stackelem top = stack1.top();
+             stack1.pop();
+             if(useLevel){
+               if(top.level != stack1.top().level){
+                  stack1.push(top);
+                  return;
+               }
+             } 
+             stackelem top2 = stack1.top();
+             stack1.pop();
+             stack1.push(aggregate(top,top2));
+         }
+      }
+
+
+
+      Attribute* aggregate(Attribute* current, Tuple* tuple){
+         Attribute* a2 = tuple->GetAttribute(attrIndex)->Copy();
+         tuple->DeleteIfAllowed();
+         return computeFun(current, a2);
+      }
+
+      Attribute* computeFun(Attribute* a1, Attribute* a2){
+         (*funargs)[0] = a1;
+         (*funargs)[1] = a2;
+         qp->Request(fun, funres);
+         qp->ReInitResultStorage(fun);
+         Attribute* result = (Attribute*) funres.addr;
+         a1->DeleteIfAllowed();
+         a2->DeleteIfAllowed();
+         return result;
+      }
+
+
+
+};
+
+
+template<bool useStack>
+class paggregateInfo : public Consumer<Attribute> {
+
+   public:
+     paggregateInfo(Word& _stream,
+                    int _index,
+                    size_t _inBufferSize,
+                    std::vector<Word>& _funs
+                   ) :
+                  stream(_stream) {
+           fun = _funs[0].addr;
+           funargs = qp->Argument(fun);
+           currentResult = nullptr;
+           stream.open();
+           for(size_t i=1;i<_funs.size(); i++){
+              runners.push_back(new paggregateThread<useStack>(
+                                          &stream, _index, _inBufferSize, 
+                                          _funs[i].addr, this));
+           }  
+     }
+
+     ~paggregateInfo(){
+        stream.close();
+     }
+
+
+     void elemAvailable( Attribute* elem){
+       boost::lock_guard<boost::mutex> guard(mtx);
+       if(elem != nullptr){
+          if(currentResult==nullptr){
+             currentResult = elem; 
+          } else {
+             computeNextResult(elem);
+          }
+       }
+     }
+
+     Attribute* getResult(){
+        for(size_t i=0;i<runners.size(); i++){
+           delete runners[i];
+        }
+        return currentResult;
+     }
+
+                  
+  private:
+     SyncStream<Tuple> stream;
+     std::vector<paggregateThread<useStack>*> runners;
+     Supplier fun;
+     ArgVectorPointer funargs;
+     boost::mutex mtx;
+     Attribute* currentResult;
+     Word funres;
+
+     void computeNextResult(Attribute* elem){
+       (*funargs)[0] = currentResult;
+       (*funargs)[1] = elem; 
+       qp->Request(fun, funres);
+       qp->ReInitResultStorage(fun);
+       currentResult->DeleteIfAllowed();
+       elem->DeleteIfAllowed();
+       currentResult = (Attribute*) funres.addr;
+     }
+};
+
+
+template<bool useStack>
+int paggregateVM(Word* args, Word& result,
+           int message, Word& local, Supplier s){
+
+   // args[0] : stream
+   // args[1] : attribute name
+   // args[2] : number of threads
+   // args[3] : size of inBuffer
+   // args[4] : original function
+   // args[5] : default value
+   // args[6] : attribute index
+   // args[7] ... : copy of function
+   
+   int attrIndex = ((CcInt*) args[6].addr)-> GetValue();
+   int inBufferSize = 4;
+   CcInt* bs = (CcInt*) args[3].addr;
+   if(bs->IsDefined() && bs->GetValue() > 3){
+      inBufferSize = bs->GetValue();
+   }
+   std::vector<Word> funs;
+   funs.push_back(args[4]);
+   for(int i=7; i<qp->GetNoSons(s); i++){
+      funs.push_back(args[i]);
+   }
+   paggregateInfo<useStack> info(args[0], attrIndex, inBufferSize, funs);
+   Attribute* resultAttr = info.getResult();
+   if(resultAttr == nullptr){
+      resultAttr = ((Attribute*) args[5].addr) -> Clone();
+   }
+   Word r(resultAttr);
+   qp->DeleteResultStorage(s);
+   qp->ChangeResultStorage(s,r);
+   result = qp->ResultStorage(s);
+   return 0;
+}
+
+OperatorSpec paggregateSpec(
+   "stream(tuple) x IDENT x int x int x fun x DATA -> DATA",
+   "stream paggregate[AttrName, noThreads, inBufferSize; fun ; defaultValue]",
+   "Aggregates over all tuples in the stream using a function. "
+   "Evaluation is done in parallel. ",
+   "query ten feed paggregate[No, 3, 8; fun( int i1, int i2) i1 + i1; 0]"
+);
+
+Operator paggregateOp(
+   "paggregate",
+   paggregateSpec.getStr(),
+   paggregateVM<false>,
+   Operator::SimpleSelect,
+   paggregateTM
+);
+
+Operator paggregateBOp(
+   "paggregateB",
+   paggregateSpec.getStr(),
+   paggregateVM<true>,
+   Operator::SimpleSelect,
+   paggregateTM
+);
 
 
 /*
@@ -2706,6 +3157,14 @@ public:
     
     AddOperator(&ploopjoinOp);
     ploopjoinOp.SetUsesArgsInTypeMapping();
+
+    AddOperator(&paggregateOp);
+    paggregateOp.SetUsesArgsInTypeMapping();
+    
+    AddOperator(&paggregateBOp);
+    paggregateBOp.SetUsesArgsInTypeMapping();
+
+    AddOperator(&PAGGRTOp);
 
   }
 

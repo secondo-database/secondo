@@ -61,3 +61,14 @@ Signature : stream(tuple) x int x int x int x (tupleA -> stream(tupleB)) -> stre
 Example   : query Orte feed {o} ploopjoin[4, 20, 100, intstream(1,10) namedtransformstream[N] ] count > 2
 Result    : TRUE
 
+Operator : paggregate
+Number   : 1
+Signature : stream(tuple) x IDENT x int x int x fun x DATA -> DATA
+Example   : query thousand feed paggregate[No, 8,10; . + ..; 0] = thousand feed aggregateB[No; fun(i1 : int, i2 : int) i1 + i2; 0]
+Result    : TRUE
+
+Operator : paggregateB
+Number   : 1
+Signature : stream(tuple) x IDENT x int x int x fun x DATA -> DATA
+Example   : query thousand feed paggregateB[No, 8,10; . + ..; 0] 
+Result    : 500500

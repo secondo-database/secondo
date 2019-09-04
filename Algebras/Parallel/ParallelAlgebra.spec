@@ -32,6 +32,9 @@ operator punion alias PUNION pattern _ _ op[_]
 operator ploopsel alias PLOOPSEL pattern _ op[_,_,_, fun] implicit parameter streamelem type STREAMELEM
 operator ploopjoin alias PLOOPJOIN pattern _ op[_,_,_, fun] implicit parameter streamelem type STREAMELEM
 
+operator paggregate alias PAGGREGATE pattern _ op[_,_,_;fun; _] implicit parameters arg1, arg2 types PAGGRT, PAGGRT
+operator paggregateB alias PAGGREGATEB pattern _ op[_,_,_;fun; _] implicit parameters arg1, arg2 types PAGGRT, PAGGRT
+
 
 
 
