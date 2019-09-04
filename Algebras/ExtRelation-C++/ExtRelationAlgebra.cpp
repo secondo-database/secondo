@@ -15329,6 +15329,60 @@ Operator hashvalueOp(
   hashvalueTM
 );
 
+
+/*
+Type Map Operator ~AGGRTYPE~
+
+This opertaor takes a tuple stream, an attribute name, and 
+may be further elements. It extracts the type of the attribute
+with given name from the tuple stream. Other attributes are
+ignored.
+
+*/
+ListExpr AGGRTYPETM(ListExpr args){
+  if(!nl->HasMinLength(args,2)){
+    return listutils::typeError("at least 2 arguments expected");
+  }
+  if(!Stream<Tuple>::checkType(nl->First(args))){
+    return listutils::typeError("First argument is not a tuple stream");
+  }
+  if(nl->AtomType(nl->Second(args)) != SymbolType){
+    return listutils::typeError("Second argument ist not "
+                                "a valid attribute name");
+  }
+  string aname = nl->SymbolValue(nl->Second(args));
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  ListExpr attrType = nl->TheEmptyList();
+  int index = listutils::findAttribute(attrList, aname, attrType);
+  if(index == 0){
+    return listutils::typeError("Attribute " + aname + 
+                                " not part of the tuple");
+  }
+  return attrType;
+}
+
+OperatorSpec AGGRTYPESpec(
+   "stream(tuple) x IDENT [ x ... ] -> DATA",
+   "AGGRTYPE(_,_,...)",
+   "Extracts the type of an attribute from a tuple "
+   "stream description. Type Map Operator. ",
+   "query ten feed aggregteB[No; . + ..; 0] "
+);
+
+Operator AGGRTYPEOp(
+  "AGGRTYPE",
+  AGGRTYPESpec.getStr(),
+  0,
+  Operator::SimpleSelect,
+  AGGRTYPETM
+);
+
+
+
+
+
+
+
 /*
 
 3 Class ~ExtRelationAlgebra~
@@ -15484,8 +15538,8 @@ class ExtRelationAlgebra : public Algebra
     addModCounterOp.enableInitFinishSupport();
     AddOperator(&swapOp);
     AddOperator(&hashvalueOp);
-
-
+    AddOperator(&AGGRTYPEOp);
+     
 #ifdef USE_PROGRESS
 // support for progress queries
    extrelextend.EnableProgress();
