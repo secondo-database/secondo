@@ -64,7 +64,7 @@ Result    : TRUE
 Operator : paggregate
 Number   : 1
 Signature : stream(tuple) x IDENT x int x int x fun x DATA -> DATA
-Example   : query thousand feed paggregate[No, 8,10; . + ..; 0] = thousand feed aggregateB[No; fun(i1 : int, i2 : int) i1 + i2; 0]
+Example   : query thousand feed paggregate[No, 8,10; . + ..; 0] = thousand feed aggregateB[No; . + .. ; 0]
 Result    : TRUE
 
 Operator : paggregateB
