@@ -22,6 +22,6 @@
 
 operator opticsR alias OPTICSR pattern _ op [list]
 operator opticsM alias OPTICSM pattern _ op [list]
-operator opticsF alias OPTICSF pattern _ op [list]
+operator opticsF alias OPTICSF pattern _ op [_,_,_,fun] implicit parameters argument1, argument2 types AGGRTYPE, AGGRTYPE
 operator opticsTF alias OPTICSTF pattern _ op [list]
 operator extractDbScan alias EXTRACTDBSCAN pattern _ op[_]

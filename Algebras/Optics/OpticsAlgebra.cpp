@@ -578,10 +578,9 @@ namespace clusteropticsalg
 */
  ListExpr opticsFTM( ListExpr args )
  {    
-  if(nl->ListLength(args)!=2)
+  if(nl->ListLength(args)!=5)
   {
-   ErrorReporter::ReportError("two element expected");
-   return nl->TypeError();
+   return listutils::typeError("5 elements expected ");
   }
 
   ListExpr stream = nl->First(args);
@@ -592,40 +591,32 @@ namespace clusteropticsalg
   }
 
   //Check the arguments
-  ListExpr arguments = nl->Second(args);
+  ListExpr arguments = nl->Rest(args);
 
-  if(nl->ListLength(arguments)!=4)
-  {
-   ErrorReporter::ReportError("non conform list (four arguments expected)");
-   return nl->TypeError();
-  }
-  
   if(!CcReal::checkType(nl->Second(arguments)))
   {
-   return listutils::typeError("arg2 is not a real (Eps)");
+   return listutils::typeError("arg3 is not a real (Eps)");
   }
   
   if(!CcInt::checkType(nl->Third(arguments)))
   {
-   return listutils::typeError("arg3 is not an int (MinPts)");
+   return listutils::typeError("arg4 is not an int (MinPts)");
   }
   
   if(!listutils::isMap<2>(nl->Fourth(arguments)))
   {
-   return listutils::typeError("arg4 is not a map");
+   return listutils::typeError("arg5 is not a map");
   }
   ListExpr funres = nl->Fourth(nl->Fourth(arguments));
   if(!CcInt::checkType(funres) &&
      !CcReal::checkType(funres)){
-    return listutils::typeError("function reault not of type int or real");
+    return listutils::typeError("function result not of type int or real");
   }
 
-  
-  
   //Check the attribute name, is it in the tuple list
   ListExpr attrType;
   ListExpr attrList = nl->Second(nl->Second(stream));
-  string attrName = nl->SymbolValue(nl->First(nl->Second(args)));
+  string attrName = nl->SymbolValue(nl->Second(args));
   int found = FindAttribute(attrList, attrName, attrType);
   if(found == 0)
   {
@@ -709,10 +700,7 @@ namespace clusteropticsalg
     //set the result type of the tuple
     ListExpr resultType = nl->Second(GetTupleResultType(s));
     //set the given eps
-    Supplier son = qp->GetSupplier(args[1].addr, 1);
-    Word argument; 
-    qp->Request(son, argument);
-    CcReal* Eps = ((CcReal*) argument.addr);
+    CcReal* Eps = (CcReal*) args[2].addr;
     if(!Eps->IsDefined()){
       return 0;
     }
@@ -722,9 +710,7 @@ namespace clusteropticsalg
     }
     
     //set the given minPts
-    son = qp->GetSupplier(args[1].addr, 2);
-    qp->Request(son, argument);
-    CcInt* MinPts  = ((CcInt*)argument.addr);
+    CcInt* MinPts = (CcInt*) args[3].addr;
     if(!MinPts->IsDefined()){
       return 0;
     }
@@ -733,13 +719,11 @@ namespace clusteropticsalg
        return 0;
     }
     //set the index of the attribute in the tuple
-    int attrPos = static_cast<CcInt*>(args[2].addr)->GetIntval();
+    int attrPos = static_cast<CcInt*>(args[5].addr)->GetIntval();
     size_t maxMem = qp->GetMemorySize(s)*1024*1024; 
     double UNDEFINED = -1.0;
 
-    son = qp->GetSupplier(args[1].addr, 3);
-    DistComp df(qp,son);
-    //df.initialize(qp, son);
+    DistComp df(qp,args[4].addr);
     local.addr = new opticsclass(
                           args[0], attrPos, eps, minPts, 
                           UNDEFINED, resultType, maxMem, df);
@@ -767,7 +751,7 @@ namespace clusteropticsalg
 */
  int opticsFDisSL(ListExpr args)
  {
-  ListExpr funResType = nl->Fourth(nl->Fourth(nl->Second(args)));
+  ListExpr funResType = nl->Fourth(nl->Fifth(args));
   if(CcInt::checkType(funResType)) return 0;
   if(CcReal::checkType(funResType)) return 1;
   
