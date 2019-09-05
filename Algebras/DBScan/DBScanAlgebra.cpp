@@ -565,7 +565,7 @@ is able to process arbitrary attribute data types.
 
 */
 ListExpr dbscanFTM( ListExpr args ) {
-  if(nl->ListLength(args)!=2) {
+  if(nl->ListLength(args)!=6) {
    return listutils::typeError("two elements expected. " 
             "Stream and argument list");
   }
@@ -575,12 +575,7 @@ ListExpr dbscanFTM( ListExpr args ) {
    return listutils::typeError("first argument is not stream(Tuple)");
   }
 
-  ListExpr arguments = nl->Second(args);
-
-  if(nl->ListLength(arguments)!=5) {
-   return listutils::typeError("non conform list of cluster attribut, "
-    "attribute name as cluster ID, Eps and MinPts, distfun");
-  }
+  ListExpr arguments = nl->Rest(args);
 
   if(!CcReal::checkType(nl->Third(arguments))) {
    return listutils::typeError("no numeric Eps");
@@ -712,14 +707,11 @@ int dbscanFVM1(Word* args, Word& result,
    {
     // arg0 : stream
     Word stream = args[0];
-    Supplier supplier = qp->GetSupplier(args[1].addr, 2);
-    Word argument;
-    qp->Request(supplier, argument);
-    CcReal* eps = ((CcReal*)argument.addr);
-    supplier = qp->GetSupplier(args[1].addr, 3);
-    qp->Request(supplier, argument);
-    CcInt* minPts = ((CcInt*)argument.addr);
-    int cid = ((CcInt*)args[2].addr)->GetValue();
+    // arg1 : name of the attribute to cluster
+    // arg2 : name for cluster-ID
+    CcReal* eps = (CcReal*)args[3].addr;
+    CcInt* minPts = (CcInt*)args[4].addr;
+    int cid = ((CcInt*)args[6].addr)->GetValue();
     ListExpr resultType = GetTupleResultType( s );
     ListExpr tt = ( nl->Second( resultType ) );
     if(li) { 
@@ -735,7 +727,7 @@ int dbscanFVM1(Word* args, Word& result,
     }
    
     DistComp dist;
-    Supplier supplier2 = qp->GetSupplier(args[1].addr, 4);
+    Supplier supplier2 = args[5].addr;
     dist.initialize(qp, supplier2); 
     local.addr = new dbscanclass(stream,tt, 
                                  eps->GetValue(),
@@ -791,7 +783,7 @@ int dbscanFVM1(Word* args, Word& result,
 */
  int dbscanFSel(ListExpr args)
  {
-  ListExpr funResult= nl->Fourth(nl->Fifth(nl->Second(args)));
+  ListExpr funResult= nl->Fourth(nl->Sixth(args));
   if(CcInt::checkType(funResult)) return 0;
   if(CcReal::checkType(funResult)) return 1;
   return -1; 

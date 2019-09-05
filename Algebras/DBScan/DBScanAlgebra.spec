@@ -22,5 +22,5 @@
 
 operator dbscanR alias DBSCANR pattern _ op [list]
 operator dbscanM alias DBSCANM pattern _ op [list]
-operator dbscanF alias DBSCANF pattern _ op [list]
+operator dbscanF alias DBSCANF pattern _ op [_,_,_,_,fun] implicit parameters argument1, argument2 types AGGRTYPE, AGGRTYPE
 operator dbscanTF alias DBSCANTF pattern _ op [_,_,_,fun] implicit parameters streamelem1, streamelem2 types STREAMELEM, STREAMELEM
