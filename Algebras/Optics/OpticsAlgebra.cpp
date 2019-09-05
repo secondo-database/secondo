@@ -806,13 +806,13 @@ namespace clusteropticsalg
 
 */
 ListExpr opticsTFTM(ListExpr args) {
-  if (nl->ListLength(args) != 2) {
+  if (nl->ListLength(args) != 4) {
     return listutils::typeError("two elements expected");
   }
   if (!Stream<Tuple>::checkType(nl->First(args))) {
     return listutils::typeError("tuple stream expected");
   }
-  ListExpr arguments = nl->Second(args);
+  ListExpr arguments = nl->Rest(args);
   if (nl->ListLength(arguments) != 3) {
     return listutils::typeError("three arguments required after stream");
   }
@@ -867,13 +867,8 @@ int opticsTFVM(Word* args, Word& result, int message, Word& local, Supplier s) {
         local.addr = 0;
       }
       ListExpr resultType = nl->Second(GetTupleResultType(s));
-      Supplier son = qp->GetSupplier(args[1].addr, 0);
-      Word argument; 
-      qp->Request(son, argument);
-      CcReal* Eps = ((CcReal*)argument.addr);
-      son = qp->GetSupplier(args[1].addr, 1);
-      qp->Request(son, argument);
-      CcInt* MinPts  = ((CcInt*)argument.addr);
+      CcReal* Eps = (CcReal*) args[1].addr;
+      CcInt* MinPts = (CcInt*) args[2].addr;
       if (!Eps->IsDefined() || !MinPts->IsDefined()) {
         return 0;
       }
@@ -884,8 +879,7 @@ int opticsTFVM(Word* args, Word& result, int message, Word& local, Supplier s) {
       }
       size_t maxMem = qp->GetMemorySize(s) * 1024 * 1024; 
       double UNDEFINED = -1.0;
-      son = qp->GetSupplier(args[1].addr, 2);
-      DistComp df(qp, son);
+      DistComp df(qp, args[3].addr);
       local.addr = new opticsclass(args[0], -1, eps, minPts, UNDEFINED, 
                                    resultType, maxMem, df);
       return 0;
@@ -910,7 +904,7 @@ int opticsTFVM(Word* args, Word& result, int message, Word& local, Supplier s) {
 
 */
 int opticsTFSelect(ListExpr args) {
-  ListExpr funResType = nl->Fourth(nl->Third(nl->Second(args)));
+  ListExpr funResType = nl->Fourth(nl->Fourth(args));
   if (CcInt::checkType(funResType))  return 0;
   if (CcReal::checkType(funResType)) return 1;
   return -1; 
