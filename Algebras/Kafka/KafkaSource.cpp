@@ -32,16 +32,29 @@ namespace kafka {
 
     ListExpr KafkaSourceTM(ListExpr args) {
         // check number of arguments
-        if (!nl->HasLength(args, 1)) {
+        if (!nl->HasLength(args, 3)) {
             return listutils::typeError("wrong number of arguments");
         }
 
-        ListExpr topicArg = nl->First(args);
+        ListExpr brokerArg = nl->First(args);
+        ListExpr brokerError = validateBrokerArg(brokerArg);
+        if (brokerError)
+            return brokerError;
+        string broker = nl->StringValue(nl->Second(brokerArg));
+
+        ListExpr topicArg = nl->Second(args);
         ListExpr error = validateTopicArg(topicArg);
         if (error)
             return error;
         string topic = nl->StringValue(nl->Second(topicArg));
-        std::string typeString = readTypeString(topic);
+
+        ListExpr booleanArg = nl->Third(args);
+        ListExpr booleanError = validateBooleanArg(booleanArg);
+        if (booleanError)
+            return booleanError;
+        bool continuous = nl->BoolValue(nl->Second(booleanArg));
+
+        std::string typeString = readTypeString(broker, topic);
         cout << "topicTypeString: " << typeString << endl;
 
         ListExpr res = 0;
@@ -88,10 +101,28 @@ namespace kafka {
         return 0;
     }
 
-    std::string readTypeString(string topic) {
+    ListExpr validateBooleanArg(ListExpr booleanArg) {
+        if (!nl->HasLength(booleanArg, 2)) {
+            return listutils::typeError("internal error, "
+                                        "boolean invalid");
+        }
+
+        if (!CcBool::checkType(nl->First(booleanArg))) {
+            return listutils::typeError(
+                    "Boolean expected");
+        }
+
+        ListExpr fn = nl->Second(booleanArg);
+        if (nl->AtomType(fn) != StringType) {
+            return listutils::typeError("Boolean constant");
+        }
+        return 0;
+    }
+
+    std::string readTypeString(string broker, string topic) {
         cout << "readTypeString started. topic:" << topic << endl;
         KafkaReaderClient kafkaReaderClient;
-        kafkaReaderClient.Open("localhost", topic);
+        kafkaReaderClient.Open(broker, topic);
         std::string *source = kafkaReaderClient.ReadSting();
         if (source == nullptr) {
             cout << "readTypeString is null" << endl;
@@ -107,11 +138,12 @@ namespace kafka {
     class KafkaSourceLI {
     public:
         // constructor: initializes the class from the string argument
-        KafkaSourceLI(CcString *arg) : topic("") {
-            def = arg->IsDefined();
+        KafkaSourceLI(CcString *brokerArg, CcString *topicArg) : topic("") {
+            def = topicArg->IsDefined();
             if (def) {
-                topic = arg->GetValue();
-                kafkaReaderClient.Open("localhost", topic);
+                topic = topicArg->GetValue();
+                std::string broker = brokerArg->GetValue();
+                kafkaReaderClient.Open(broker, topic);
                 std::string *typeString = kafkaReaderClient.ReadSting();
                 delete typeString;
             }
@@ -155,7 +187,8 @@ namespace kafka {
                 if (li) {
                     delete li;
                 }
-                local.addr = new KafkaSourceLI((CcString *) args[0].addr);
+                local.addr = new KafkaSourceLI((CcString *) args[0].addr,
+                                               (CcString *) args[1].addr);
                 return 0;
             case REQUEST:
                 result.addr = li ? li->getNext(s) : 0;
@@ -171,10 +204,10 @@ namespace kafka {
     }
 
     OperatorSpec KafkaSourceSpec(
-            " string -> stream(string)",
-            " kafkastream(_) ",
+            " string,string,boolean -> stream(string)",
+            " kafkastream(_,_,_) ",
             " Reads steam of tuples from kafka topic ",
-            " query  kafkastream(\"KM\") count"
+            " query  kafkastream(\"localhost\", \"KM\", false) count"
     );
 
     Operator kafkaSourceOp(

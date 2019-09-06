@@ -65,7 +65,7 @@ namespace kafka {
         if (error)
             return error;
         string topic = nl->StringValue(nl->Second(topicArg));
-        std::string topicTypeString = readTypeString(topic);
+        std::string topicTypeString = readTypeString(broker, topic);
         cout << "topicTypeString: " << topicTypeString << endl;
 
         if (topicTypeString.empty()) {

@@ -57,11 +57,14 @@ namespace kafka {
 
     extern Operator kafkaSourceOp;
 
-    std::string readTypeString(std::string basicString);
+    std::string readTypeString(std::string broker, std::string topic);
 
-    ListExpr validateTopicArg(ListExpr args);
+    ListExpr validateTopicArg(ListExpr arg);
 
-    ListExpr validateBrokerArg(ListExpr args);
+    ListExpr validateBrokerArg(ListExpr arg);
+
+    ListExpr validateBooleanArg(ListExpr arg);
+
 }
 
 
