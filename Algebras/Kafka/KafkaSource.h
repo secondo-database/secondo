@@ -61,6 +61,7 @@ namespace kafka {
 
     ListExpr validateTopicArg(ListExpr args);
 
+    ListExpr validateBrokerArg(ListExpr args);
 }
 
 

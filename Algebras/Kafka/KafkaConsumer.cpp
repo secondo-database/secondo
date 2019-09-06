@@ -31,10 +31,11 @@ using namespace std;
 
 namespace kafka {
 
-    void writeTypeString(string typeString, string string1);
+    void writeTypeString(std::string brokersParam, string typeString,
+                         string string1);
 
     ListExpr kafkaConsumerTM(ListExpr args) {
-        if (!nl->HasLength(args, 2)) {
+        if (!nl->HasLength(args, 3)) {
             return listutils::typeError(" wrong number of args ");
         }
 
@@ -53,8 +54,13 @@ namespace kafka {
         nl->WriteToString(typeString, nl->First(tupleStreamArg));
         cout << "typeString: " << typeString << endl;
 
+        ListExpr brokerArg = nl->Second(args);
+        ListExpr errorBroker = validateBrokerArg(brokerArg);
+        if (errorBroker)
+            return errorBroker;
+        string broker = nl->StringValue(nl->Second(brokerArg));
 
-        ListExpr topicArg = nl->Second(args);
+        ListExpr topicArg = nl->Third(args);
         ListExpr error = validateTopicArg(topicArg);
         if (error)
             return error;
@@ -63,7 +69,7 @@ namespace kafka {
         cout << "topicTypeString: " << topicTypeString << endl;
 
         if (topicTypeString.empty()) {
-            writeTypeString(topic, typeString);
+            writeTypeString(broker, topic, typeString);
         } else if (topicTypeString.compare(typeString)) {
             return listutils::typeError("The kafka topic has a"
                                         " different type");
@@ -72,31 +78,34 @@ namespace kafka {
         return nl->First(tupleStreamArg);
     }
 
-    void writeTypeString(string topic, string typeString) {
+    void
+    writeTypeString(std::string brokersParam, string topic, string typeString) {
         std::cout << "Writing Type Sting: " << typeString << " to topic"
                   << topic << std::endl;
 
         KafkaProducerClient kafkaProducerClient;
-        kafkaProducerClient.Open("localhost", topic);
+        kafkaProducerClient.Open(brokersParam, topic);
         kafkaProducerClient.Write(typeString);
         kafkaProducerClient.Close();
 
         std::cout << "Writing Type Sting done" << std::endl;
     }
 
-    class FinishStreamLI {
+    class KafkaKonsumerLI {
     public :
-// s is the stream argument , st the string argument
-        FinishStreamLI(Word s, CcString *st) : stream(s), topic(" ") {
-            def = st->IsDefined();
+// s is the stream argument , brokerSt, topicSt the string argument
+        KafkaKonsumerLI(Word s, CcString *brokerSt, CcString *topicSt) : stream(
+                s), topic(" ") {
+            def = topicSt->IsDefined();
             if (def) {
-                topic = st->GetValue();
-                kafkaProducerClient.Open("localhost", topic);
+                topic = topicSt->GetValue();
+                string broker = brokerSt->GetValue();
+                kafkaProducerClient.Open(broker, topic);
             }
             stream.open();
         }
 
-        ~ FinishStreamLI() {
+        ~ KafkaKonsumerLI() {
             stream.close();
             if (def) {
                 kafkaProducerClient.Close();
@@ -128,14 +137,15 @@ namespace kafka {
 
     int kafkaConsumerVM(Word *args, Word &result, int message,
                         Word &local, Supplier s) {
-        FinishStreamLI *li = (FinishStreamLI *) local.addr;
+        KafkaKonsumerLI *li = (KafkaKonsumerLI *) local.addr;
         switch (message) {
             case OPEN :
                 if (li) {
                     delete li;
                 }
-                local.addr = new FinishStreamLI(args[0],
-                                                (CcString *) args[1].addr);
+                local.addr = new KafkaKonsumerLI(args[0],
+                                                 (CcString *) args[1].addr,
+                                                 (CcString *) args[2].addr);
                 return 0;
             case REQUEST :
                 result.addr = li ? li->getNext() : 0;
@@ -152,10 +162,10 @@ namespace kafka {
 
 
     OperatorSpec kafkaConsumerSpec(
-            " stream ( Tuple ) x KafkaTopic -> stream ( Topic ) ",
-            " _ kafka[_]",
+            " stream ( Tuple ) x Brokers x KafkaTopic -> stream ( Topic ) ",
+            " _ kafka[_,_]",
             " All tuples in the stream are written out to Kafka topic ",
-            " query plz feed kafka(\"KT\") count "
+            " query plz feed kafka(\"localhost\",\"KT\") count "
     );
 
     Operator kafkaConsumerOp(

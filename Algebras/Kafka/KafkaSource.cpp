@@ -70,6 +70,24 @@ namespace kafka {
         return 0;
     }
 
+    ListExpr validateBrokerArg(ListExpr topicArg) {
+        if (!nl->HasLength(topicArg, 2)) {
+            return listutils::typeError("internal error, "
+                                        "BrokerArg invalid");
+        }
+
+        if (!CcString::checkType(nl->First(topicArg))) {
+            return listutils::typeError(
+                    "String (as type for Broker name) expected");
+        }
+
+        ListExpr fn = nl->Second(topicArg);
+        if (nl->AtomType(fn) != StringType) {
+            return listutils::typeError("Broker name not constant");
+        }
+        return 0;
+    }
+
     std::string readTypeString(string topic) {
         cout << "readTypeString started. topic:" << topic << endl;
         KafkaReaderClient kafkaReaderClient;
