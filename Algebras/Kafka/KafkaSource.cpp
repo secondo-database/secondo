@@ -52,7 +52,7 @@ namespace kafka {
         ListExpr booleanError = validateBooleanArg(booleanArg);
         if (booleanError)
             return booleanError;
-        bool continuous = nl->BoolValue(nl->Second(booleanArg));
+//        bool continuous = nl->BoolValue(nl->Second(booleanArg));
 
         std::string typeString = readTypeString(broker, topic);
         cout << "topicTypeString: " << typeString << endl;
