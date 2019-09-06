@@ -44,6 +44,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <queue>
 #include <atomic>
 #include <stack>
+#include "SyncStream.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -748,63 +749,6 @@ ListExpr pfilterSTM(ListExpr args){
          );
 }
 
-template<class T>
-class SyncStream{
- public:
-  SyncStream(Word& w) : stream(w), endReached(true){}
-
-
-  ~SyncStream(){
-  } 
-
-  void open(){
-    boost::lock_guard<boost::mutex> guard(mtx);
-    endReached = false;
-    stream.open();
-  }
-
-  void close(){
-    boost::lock_guard<boost::mutex> guard(mtx);
-    endReached = true;
-    stream.close();
-  }
-
-  T* request(){
-    boost::lock_guard<boost::mutex> guard(mtx);
-    T* res;
-    if(endReached){
-       res = 0;
-    } else {
-       res =  stream.request();
-       if(res==0){
-         endReached = true;
-       }
-    }
-    return res;
-  }
-
-  void request(std::vector<T*>& buffer, int elems){
-    boost::lock_guard<boost::mutex> guard(mtx);
-    buffer.clear();
-    if(endReached){
-      buffer.push_back(nullptr);
-      return;
-    }
-    for( int i=0;i<elems && !endReached; i++){
-      T* res = stream.request(); 
-      if(res==0){
-         endReached = true;
-      }
-      buffer.push_back(res);
-    }
-  }
-
-
- private:
-   Stream<T> stream;
-   bool endReached;
-   boost::mutex mtx;
-}; 
 
 template<class T>
 class Consumer{
@@ -3126,6 +3070,9 @@ Operator paggregateBOp(
 );
 
 
+Operator* getPsortOp();
+
+
 /*
 7 Creating the Algebra
 
@@ -3165,6 +3112,10 @@ public:
     paggregateBOp.SetUsesArgsInTypeMapping();
 
     AddOperator(&PAGGRTOp);
+
+    Operator* psort = getPsortOp();
+    psort->SetUsesMemory();
+    AddOperator(psort);
 
   }
 
