@@ -264,6 +264,14 @@ namespace kafka {
         RdKafka::wait_destroyed(5000);
     }
 
+    bool KafkaReaderClient::isExitEof() const {
+        return exit_eof;
+    }
+
+    void KafkaReaderClient::setExitEof(bool exitEof) {
+        exit_eof = exitEof;
+    }
+
 
 }
 

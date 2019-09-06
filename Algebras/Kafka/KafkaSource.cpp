@@ -138,14 +138,17 @@ namespace kafka {
     class KafkaSourceLI {
     public:
         // constructor: initializes the class from the string argument
-        KafkaSourceLI(CcString *brokerArg, CcString *topicArg) : topic("") {
+        KafkaSourceLI(CcString *brokerArg, CcString *topicArg,
+                      CcBool *continuousArg) : topic("") {
             def = topicArg->IsDefined();
             if (def) {
                 topic = topicArg->GetValue();
                 std::string broker = brokerArg->GetValue();
+                bool continuous = continuousArg->GetValue();
                 kafkaReaderClient.Open(broker, topic);
                 std::string *typeString = kafkaReaderClient.ReadSting();
                 delete typeString;
+                kafkaReaderClient.setExitEof(!continuous);
             }
         }
 
@@ -188,7 +191,9 @@ namespace kafka {
                     delete li;
                 }
                 local.addr = new KafkaSourceLI((CcString *) args[0].addr,
-                                               (CcString *) args[1].addr);
+                                               (CcString *) args[1].addr,
+                                               (CcBool *) args[1].addr
+                );
                 return 0;
             case REQUEST:
                 result.addr = li ? li->getNext(s) : 0;

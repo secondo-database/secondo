@@ -62,8 +62,8 @@ namespace kafka {
         RdKafka::KafkaConsumer *consumer;
         long msg_cnt = 0;
         int64_t msg_bytes = 0;
-        bool exit_eof = true; /* Control exit*/
-
+        /* Control exit*/
+        bool exit_eof = true;
         ExampleRebalanceCb *ex_rebalance_cb;
         int eof_cnt = 0;
     public:
@@ -73,6 +73,10 @@ namespace kafka {
 
         void Close();
 
+        /* Control exit*/
+        bool isExitEof() const;
+
+        void setExitEof(bool exitEof);
     private:
         KafkaMessage *msg_consume(RdKafka::Message *message, int partition_cnt);
     };
