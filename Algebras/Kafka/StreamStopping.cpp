@@ -77,10 +77,7 @@ namespace kafka {
                 return 0;
             }
             Tuple *k = stream.request();
-            if (k) {
-                return k;
-            }
-            return 0;
+            return k;
         }
 
     private :
@@ -160,7 +157,7 @@ namespace kafka {
         // TODO: Remove when the result in signalFinishTM is fixed
         result = qp->ResultStorage(s);
         CcReal *res = (CcReal *) result.addr;
-        res->Set(true, 0 );
+        res->Set(true, 0);
 
         return 0;
     }

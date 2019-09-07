@@ -20,6 +20,8 @@ add_executable(Kafka
         StreamStopping.cpp
         StreamStopping.h
         SignalingSockets.h
+        ConsoleConsumer.cpp
+        ConsoleConsumer.h
         log.cpp
         log.hpp
         Utils.cpp

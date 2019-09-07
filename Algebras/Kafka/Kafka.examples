@@ -25,21 +25,8 @@ Signature: signalFinish(host, port)
 Example  : query signalFinish("localhost", 8080)
 Result   : 0
 
-Operator : perimeterGst
-Number   : 1
-Signature   : scircle -> real
-Example  : query perimeterGst([const scircleGst value (1 2 3 )])
-Result   : 18.85
-Tolerance : 0.02
-
-Operator  : startsWithGst
-Number    : 1
-Signature : stream(string) x string -> stream(string)
-Example   : query intstream(1,1000) replaceElem[ num2string(.) ]  startsWithGst["22"] count
-Result    : 11
-
-Operator : getCharsGst
-Number   : 1
-Signature: string -> stream(string)
-Example  : query getCharsGst("Secondo") count
-Result   : 7
+Operator : consoleConsumer
+Number   : 0
+Signature   : stream -> stream
+Example  : query plz feed consoleConsumer count
+Result   : 40
