@@ -196,14 +196,16 @@ namespace kafka {
 
     std::string *KafkaReaderClient::ReadSting() {
         bool run = true;
-        char *payload;
+        char *payload = NULL;
 
         while (run) {
+            LOG(DEBUG) << "Starting consuming next message from kafka";
             RdKafka::Message *msg = consumer->consume(1000);
             KafkaMessage *message = msg_consume(msg,
                                                 ex_rebalance_cb->partition_cnt);
             run = message->run && message->payload == NULL;
-            payload = static_cast<char *>(message->payload);
+            if (message->payload)
+                payload = static_cast<char *>(message->payload);
             delete msg;
         }
         if (payload != NULL) {
@@ -222,6 +224,8 @@ namespace kafka {
 
             case RdKafka::ERR__TIMED_OUT:
                 LOG(DEBUG) << "Consume failed(timeout): " << message->errstr();
+                if (exit_on_timeout)
+                    result->run = false;
                 break;
 
             case RdKafka::ERR_NO_ERROR:
@@ -239,6 +243,7 @@ namespace kafka {
                 if (exit_eof && ++eof_cnt == partition_cnt) {
                     LOG(INFO) << "EOF reached for all " << partition_cnt <<
                               " partition(s)";
+                    eof_cnt = 0;
                     result->run = false;
                 }
                 break;
@@ -263,15 +268,6 @@ namespace kafka {
         delete ex_rebalance_cb;
         RdKafka::wait_destroyed(5000);
     }
-
-    bool KafkaReaderClient::isExitEof() const {
-        return exit_eof;
-    }
-
-    void KafkaReaderClient::setExitEof(bool exitEof) {
-        exit_eof = exitEof;
-    }
-
 
 }
 

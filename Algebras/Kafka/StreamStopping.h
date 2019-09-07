@@ -29,6 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebra.h"
 
+#define MILLI_SECOND_MULTIPLIER  1000000
+
 namespace kafka {
 
     extern Operator finishStreamOp;

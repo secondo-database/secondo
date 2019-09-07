@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "KafkaSource.h"
 #include "KafkaClient.h"
+#include "log.hpp"
 
 using namespace std;
 
@@ -144,11 +145,11 @@ namespace kafka {
             if (def) {
                 topic = topicArg->GetValue();
                 std::string broker = brokerArg->GetValue();
-                bool continuous = continuousArg->GetValue();
+                continuous = continuousArg->GetValue();
                 kafkaReaderClient.Open(broker, topic);
                 std::string *typeString = kafkaReaderClient.ReadSting();
                 delete typeString;
-                kafkaReaderClient.setExitEof(!continuous);
+                kafkaReaderClient.setExitOnTimeout(continuous);
             }
         }
 
@@ -176,10 +177,14 @@ namespace kafka {
             return res;
         }
 
+        bool isContinuous(){
+            return continuous;
+        }
     private:
         string topic;
         KafkaReaderClient kafkaReaderClient;
         bool def;
+        bool continuous;
     };
 
     int KafkaSourceVM(Word *args, Word &result, int message,
@@ -196,8 +201,16 @@ namespace kafka {
                 );
                 return 0;
             case REQUEST:
-                result.addr = li ? li->getNext(s) : 0;
-                return result.addr ? YIELD : CANCEL;
+                LOG(DEBUG) << "KafkaSourceVM request";
+                if (li){
+                    result.addr = li->getNext(s);
+                    if (li->isContinuous())
+                        return YIELD;
+                    return result.addr ? YIELD : CANCEL;
+                } else {
+                    result.addr = 0;
+                    return CANCEL;
+                }
             case CLOSE:
                 if (li) {
                     delete li;

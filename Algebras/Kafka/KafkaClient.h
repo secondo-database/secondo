@@ -66,6 +66,7 @@ namespace kafka {
         bool exit_eof = true;
         ExampleRebalanceCb *ex_rebalance_cb;
         int eof_cnt = 0;
+        bool exit_on_timeout = false;
     public:
         void Open(std::string brokers, std::string topic_str);
 
@@ -73,10 +74,14 @@ namespace kafka {
 
         void Close();
 
-        /* Control exit*/
-        bool isExitEof() const;
+        bool isExitOnTimeout() const {
+            return exit_on_timeout;
+        }
 
-        void setExitEof(bool exitEof);
+        void setExitOnTimeout(bool exitOnTimeout) {
+            exit_on_timeout = exitOnTimeout;
+        }
+
     private:
         KafkaMessage *msg_consume(RdKafka::Message *message, int partition_cnt);
     };

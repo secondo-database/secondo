@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Stream/Stream.h" // wrapper for secondo streams
 #include "Algebras/Relation-C++/RelationAlgebra.h" // use of tuples
 #include "SignalingSockets.h"
+#include "log.hpp"
 #include <stack>
 
 using namespace std;
@@ -77,7 +78,21 @@ namespace kafka {
                 return 0;
             }
             Tuple *k = stream.request();
+            while (k == 0 && !signallingSocket.isSignalReceived()) {
+                LOG(DEBUG) << "Waiting for result";
+                sleepMS(100);
+                k = stream.request();
+            }
             return k;
+        }
+
+        void sleepMS(int milliseconds) const {
+            // 1 millisecond = 1,000,000 Nanoseconds
+            const long INTERVAL_MS = milliseconds * MILLI_SECOND_MULTIPLIER;
+            timespec sleepValue = {0};
+
+            sleepValue.tv_nsec = INTERVAL_MS;
+            nanosleep(&sleepValue, NULL);
         }
 
     private :
