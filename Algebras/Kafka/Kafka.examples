@@ -13,6 +13,18 @@ Signature: string -> stream(tuple)
 Example  : query kafkastream("KT") count
 Result   : 7
 
+Operator : finishStream
+Number   : 2
+Signature: stream x Port -> stream
+Example  : query kafkastream("KT") finishStream[8080] count
+Result   : 7
+
+Operator : signalFinish
+Number   : 2
+Signature: signalFinish(host, port)
+Example  : query signalFinish("localhost", 8080)
+Result   : 0
+
 Operator : perimeterGst
 Number   : 1
 Signature   : scircle -> real

@@ -22,6 +22,7 @@
         SecondoTTYBDB
 
      restore database berlintest from berlintest;
+
      open database berlintest;
 
      list algebra KafkaAlgebra;
@@ -29,9 +30,14 @@
      query Staedte;
 
 
-     query plz feed kafka["test"] count;
+     query plz feed kafka["localhost","test"] count;
 
-     query kafkastream("test") count;
+     query kafkastream("localhost", "test", FALSE) count;
+     query kafkastream("localhost", "test", TRUE) count;
+
+     query kafkastream("localhost", "test", TRUE) finishStream[8080] count;
+     query finishStream(8080) count;
+
 
  - Running kafka service
 

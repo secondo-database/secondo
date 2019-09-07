@@ -113,8 +113,8 @@ namespace kafka {
         }
 
         ListExpr fn = nl->Second(booleanArg);
-        if (nl->AtomType(fn) != StringType) {
-            return listutils::typeError("Boolean constant");
+        if (nl->AtomType(fn) != BoolType) {
+            return listutils::typeError("Boolean not BoolType");
         }
         return 0;
     }
@@ -192,7 +192,7 @@ namespace kafka {
                 }
                 local.addr = new KafkaSourceLI((CcString *) args[0].addr,
                                                (CcString *) args[1].addr,
-                                               (CcBool *) args[1].addr
+                                               (CcBool *) args[2].addr
                 );
                 return 0;
             case REQUEST:
