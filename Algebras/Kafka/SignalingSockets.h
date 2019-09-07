@@ -166,7 +166,6 @@ private:
 
         for (char **addr = host->h_addr_list; *addr != 0; ++addr) {
             bzero(&serv_addr, sizeof(serv_addr));
-            int addrlen;
 
             switch (host->h_addrtype) {
                 case AF_INET: {
@@ -175,7 +174,6 @@ private:
                     saddr->sin_family = AF_INET;
                     bcopy(*addr, &(saddr->sin_addr), host->h_length);
                     saddr->sin_port = htons(port_number);
-                    addrlen = sizeof(*saddr);
                     break;
                 }
 
@@ -185,7 +183,6 @@ private:
                     saddr->sin6_family = AF_INET6;
                     bcopy(*addr, &(saddr->sin6_addr), host->h_length);
                     saddr->sin6_port = htons(port_number);
-                    addrlen = sizeof(*saddr);
                     break;
                 }
             }

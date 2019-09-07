@@ -158,6 +158,7 @@ namespace kafka {
         signallingClient.sendSignal(host, port); // TODO: return code
 
         // TODO: Remove when the result in signalFinishTM is fixed
+        result = qp->ResultStorage(s);
         CcReal *res = (CcReal *) result.addr;
         res->Set(true, 0 );
 
