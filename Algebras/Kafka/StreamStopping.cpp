@@ -133,6 +133,7 @@ namespace kafka {
 
 
     ListExpr signalFinishTM(ListExpr args) {
+        cout << "signalFinishTM called" << endl;
         if (!nl->HasLength(args, 2)) {
             return listutils::typeError(" wrong number of args ");
         }
@@ -148,7 +149,18 @@ namespace kafka {
 
     int signalFinishVM(Word *args, Word &result, int message,
                        Word &local, Supplier s) {
-        // TODO: Implement
+        CcString *hostArg = (CcString *) args[0].addr;
+        CcInt *portArg = (CcInt *) args[1].addr;
+        std::string host = hostArg->GetValue();
+        int port = portArg->GetIntval();
+
+        SignallingClient signallingClient;
+        signallingClient.sendSignal(host, port); // TODO: return code
+
+        // TODO: Remove when the result in signalFinishTM is fixed
+        CcReal *res = (CcReal *) result.addr;
+        res->Set(true, 0 );
+
         return 0;
     }
 

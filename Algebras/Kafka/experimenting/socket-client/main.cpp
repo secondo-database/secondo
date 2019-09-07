@@ -30,5 +30,5 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 int main() {
     std::cout << "Hello, World!" << std::endl;
     SignallingClient signallingClient;
-    return signallingClient.sendSignal("127.0.0.1", 8080);
+    return signallingClient.sendSignal("localhost", 8080);
 }

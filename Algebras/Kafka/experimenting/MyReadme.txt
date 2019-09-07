@@ -35,8 +35,8 @@
      query kafkastream("localhost", "test", FALSE) count;
      query kafkastream("localhost", "test", TRUE) count;
 
-     query kafkastream("localhost", "test", TRUE) finishStream[8080] count;
-     query finishStream(8080) count;
+     query kafkastream("localhost", "test", TRUE) finishStream[8080] consume;
+     query signalFinish("localhost", 8080);
 
 
  - Running kafka service
