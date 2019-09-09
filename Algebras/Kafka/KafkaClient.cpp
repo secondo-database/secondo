@@ -50,6 +50,7 @@ namespace kafka {
     }
 
     void KafkaProducerClient::Write(std::string line) {
+        LOG(DEBUG) << "KafkaProducerClient::Write line: " << line;
         this->Write(const_cast<char *>(line.c_str()), line.size());
     }
 
@@ -87,7 +88,7 @@ namespace kafka {
     void KafkaProducerClient::Close() {
 
         while (producer->outq_len() > 0) {
-            std::cerr << "Waiting for " << producer->outq_len() << std::endl;
+            LOG(DEBUG) << "Waiting for " << producer->outq_len();
             producer->poll(1000);
         }
 
@@ -204,9 +205,14 @@ namespace kafka {
             KafkaMessage *message = msg_consume(msg,
                                                 ex_rebalance_cb->partition_cnt);
             run = message->run && message->payload == NULL;
-            if (message->payload)
+            if (message->payload) {
                 payload = static_cast<char *>(message->payload);
-            delete msg;
+                LOG(DEBUG) << "KafkaReaderClient::ReadSting res:  " << payload;
+            } else {
+                LOG(DEBUG)
+                        << "KafkaReaderClient::ReadSting res: payload is NULL ";
+            }
+            delete msg; // TODO !!!!!
         }
         if (payload != NULL) {
             return new std::string(payload);
@@ -236,9 +242,6 @@ namespace kafka {
 //                result->key = message->key();
                 result->len = message->len();
                 result->payload = message->payload();
-                if (result->payload)
-                    LOG(DEBUG) << "Len:  " << result->len
-                     << "Payload: " << result->payload;
                 break;
 
             case RdKafka::ERR__PARTITION_EOF:

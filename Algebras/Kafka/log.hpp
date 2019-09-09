@@ -37,7 +37,7 @@ enum typelog {
 
 struct structlog {
     bool headers = false;
-    typelog level = WARN;
+    typelog level = DEBUG;
 };
 
 extern structlog LOGCFG;

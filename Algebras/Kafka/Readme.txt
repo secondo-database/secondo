@@ -1,6 +1,9 @@
 - Open points/ TODOs
-    fix Segmentation fault if new message arrives
-    sendSignal - CommitTransaction() failed! But the previous command was successful. and error handling
+    -- fix Segmentation fault if new message arrives
+    CommitTransaction() failed! But the previous command was successful in query kafkastream("localhost", "test", TRUE) finishStream[8080] consoleConsumer count;
+    finishStream Segmentation fault
+    Chage [(, finishStream[8080] -> finishStream(8080), same for kafka["localhost","test"]
+    Should be kafkastream and finishStream combined?
 
 - Installing librdkafka - the Apache Kafka C/C++ client library
     https://github.com/edenhill/librdkafka

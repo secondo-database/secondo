@@ -53,10 +53,9 @@ namespace kafka {
         ListExpr booleanError = validateBooleanArg(booleanArg);
         if (booleanError)
             return booleanError;
-//        bool continuous = nl->BoolValue(nl->Second(booleanArg));
 
         std::string typeString = readTypeString(broker, topic);
-        cout << "topicTypeString: " << typeString << endl;
+        LOG(DEBUG) << "topicTypeString: " << typeString;
 
         ListExpr res = 0;
         if (!nl->ReadFromString(typeString, res)) {
@@ -121,18 +120,18 @@ namespace kafka {
     }
 
     std::string readTypeString(string broker, string topic) {
-        cout << "readTypeString started. topic:" << topic << endl;
+        LOG(DEBUG) << "readTypeString started. topic:" << topic;
         KafkaReaderClient kafkaReaderClient;
         kafkaReaderClient.Open(broker, topic);
         std::string *source = kafkaReaderClient.ReadSting();
         if (source == nullptr) {
-            cout << "readTypeString is null" << endl;
+            LOG(WARN) << "readTypeString is null";
             return "";
         }
         std::string result = *source;
         delete source;
         kafkaReaderClient.Close();
-        cout << "readTypeString:" << result << endl;
+        LOG(DEBUG) << "readTypeString:" << result;
         return result;
     }
 
@@ -172,14 +171,19 @@ namespace kafka {
             ListExpr resultType = GetTupleResultType(s);
             TupleType *tupleType = new TupleType(nl->Second(resultType));
             Tuple *res = new Tuple(tupleType);
+            LOG(DEBUG) << "tuple created";
+            LOG(DEBUG) << "Try to read " << *source;
             res->ReadFromBinStr(0, *source);
+            LOG(DEBUG) << "Tuple readFromBinStr finished";
             delete source;
+            LOG(DEBUG) << "KafkaSourceLI.getNext before return";
             return res;
         }
 
-        bool isContinuous(){
+        bool isContinuous() {
             return continuous;
         }
+
     private:
         string topic;
         KafkaReaderClient kafkaReaderClient;
@@ -202,7 +206,7 @@ namespace kafka {
                 return 0;
             case REQUEST:
                 LOG(DEBUG) << "KafkaSourceVM request";
-                if (li){
+                if (li) {
                     result.addr = li->getNext(s);
                     if (li->isContinuous())
                         return YIELD;
