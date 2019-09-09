@@ -132,6 +132,7 @@ class psortThread{
             outHeap = 0;
             inBufferPos = 0;
             tt->IncReference();
+            count = 0; 
             runner = new boost::thread(&psortThread<TupleCompare>::run, this);
         }
 
@@ -146,6 +147,7 @@ class psortThread{
             tt->DeleteIfAllowed();
             if(h1) delete h1;
             if(h2) delete h2;
+            std::cout << "thread has processed " << count << " tuples" << endl;
         }
 
         OutHeap* getOut(){
@@ -168,6 +170,7 @@ class psortThread{
         mmheap::mmheap<Tuple*, TupleSmaller>* h2;
         std::vector<Tuple*> inBuffer;
         size_t inBufferPos;
+        size_t count;
  
         void run(){
            partition();
@@ -209,8 +212,8 @@ class psortThread{
 
         TupleFile* currentFile = 0;
         Tuple* lastWritten = 0;
-        size_t count = 0;
         h1->startBulkload();
+        count = 0;
 
         while( (nextTuple = nextInTuple()) ){
            count++;
@@ -447,9 +450,159 @@ Operator psortOp(
    psortTM
 );
 
+/*
+2. Operator psortby
+
+*/
+ListExpr psortbyTM(ListExpr args){
+  if(!nl->HasLength(args,4)){
+    return listutils::typeError("invalid number of arguments");
+  }
+  if(!Stream<Tuple>::checkType(nl->First(args))){
+    return listutils::typeError("First argument is not a tuple stream");
+  }
+  if(!CcInt::checkType(nl->Second(args))){
+    return listutils::typeError("Second argument not of type int");
+  }
+  if(!CcInt::checkType(nl->Third(args))){
+    return listutils::typeError("Third argument not of type int");
+  }
+  ListExpr orderList = nl->Fourth(args);
+  if(nl->AtomType(orderList) != NoAtom){
+    return listutils::typeError("fourth argument is not a list");
+  }
+  std::vector<std::pair<int,bool> > order;
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  while(!nl->IsEmpty(orderList)){
+     ListExpr first = nl->First(orderList);
+     orderList = nl->Rest(orderList);
+     bool asc = true;
+     ListExpr attr;
+     if(nl->AtomType(first) == SymbolType){
+        attr = first;
+     } else if(nl->AtomType(first) == NoAtom){
+        if(!nl->HasLength(first,2)){
+            return listutils::typeError("Elements in the ordering list must "
+                                        "be an attribute name optionally "
+                                        "followed by  asc or desc"); 
+        }
+        attr = nl->First(first);
+        ListExpr dir = nl->Second(first);
+        if(!nl->IsEqual(dir,"asc") && !nl->IsEqual(dir,"desc")){
+           return listutils::typeError("invalid order direction, "
+                                       "allowed are asc and desc");
+        }
+        asc = nl->IsEqual(dir,"asc");
+     } else {
+       return listutils::typeError("Elements in the ordering list must be an "
+                                   "attribute name optionally followed by "
+                                   " asc or desc"); 
+     }
+     std::string aname = nl->SymbolValue(attr);
+     ListExpr attrType = nl->TheEmptyList();
+     int index = listutils::findAttribute(attrList, aname, attrType);
+     if(index == 0){
+         return listutils::typeError("attribute " + aname 
+                                     + " not part of the tuples");
+     }
+     order.push_back(std::make_pair(index-1, asc));
+  }
+  ListExpr appendList = nl->OneElemList( nl->IntAtom(order[0].first));
+  ListExpr last = appendList;
+  last = nl->Append(last, nl->BoolAtom(order[0].second));
+  for(size_t i=1; i< order.size(); i++){
+     last = nl->Append(last, nl->IntAtom(order[i].first));
+     last = nl->Append(last, nl->BoolAtom(order[i].second));
+  }
+  return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                           appendList,
+                           nl->First(args));
+}
+
+
+int psortbyVM(Word* args, Word& result,
+           int message, Word& local, Supplier s){
+
+   psortInfo<TupleSmaller>* li = (psortInfo<TupleSmaller>*) local.addr;
+   switch(message){
+     case OPEN :{if(li){  delete li; }
+                 size_t noThreads = 4;
+                 CcInt* NoThreads = (CcInt*) args[1].addr;
+                 if(NoThreads->IsDefined()){
+                     noThreads = NoThreads->GetValue();
+                     if(noThreads<2) noThreads = 2;
+                     if(noThreads>15) noThreads = 15;
+                 }
+                 size_t inBufferSize = 100;
+                 CcInt* InBufferSize = (CcInt*) args[2].addr;
+                 if(InBufferSize->IsDefined()){
+                     inBufferSize = InBufferSize->GetValue();
+                     if(inBufferSize<1) inBufferSize = 1;
+                 }
+                 size_t mem = qp->GetMemorySize(s)*1024*1024;
+                 size_t maxFiles = 256;
+                 // args[3] is the original list
+                 int pos = 4;
+                 std::vector<std::pair<int,bool> > cv;
+                 while(pos < qp->GetNoSons(s)){
+                   int index = ((CcInt*) args[pos].addr)->GetValue();
+                   pos++;
+                   bool asc = ((CcBool*) args[pos].addr)->GetValue();
+
+                   cv.push_back(std::make_pair(index,asc));
+                   pos++;
+                 }
+                 
+                 TupleSmaller ts(cv);
+
+
+                 ListExpr tt = nl->Second(GetTupleResultType(s));
+                 local.addr = new psortInfo<TupleSmaller>( args[0], 
+                                       noThreads,inBufferSize, mem, 
+                                       maxFiles, tt, ts);
+                 return 0;
+              } 
+      case REQUEST : result.addr = li?li->next():0;
+                     return result.addr?YIELD:CANCEL;
+      case CLOSE: {
+                     if(li){
+                         delete li;
+                         local.addr = 0;
+                     }
+                     return 0;
+                  }
+   }
+   return -1;
+}
+
+OperatorSpec psortbySpec(
+   "stream(tuple) x int x int x (IDENT [x {asc, desc}])+  -> stream(tuple)",
+   "_ psort[_,_; list] ",
+   "Sorts a stream of tuples according to the selected order. "
+   "The first argument is the tuple stream, "
+   "the second argument is the number of threads (2-15), the third "
+   " argument is the size of the input buffer for each thead. "
+   "It follows a list consiting of the ordering attributes optionally "
+   "followed by the ordering direction for each attribute.",
+   " query plz psortby[6,100; PLZ asc, Ort desc] count ");
+
+Operator psortbyOp(
+   "psortby",
+   psortbySpec.getStr(),
+   psortbyVM,
+   Operator::SimpleSelect,
+   psortbyTM
+);
+
+
+
+
 
 Operator* getPsortOp(){
    return  &psortOp;
+}
+Operator* getPsortbyOp(){
+   return  &psortbyOp;
 }
 
 } 

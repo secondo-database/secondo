@@ -36,6 +36,6 @@ operator paggregate alias PAGGREGATE pattern _ op[_,_,_;fun; _] implicit paramet
 operator paggregateB alias PAGGREGATEB pattern _ op[_,_,_;fun; _] implicit parameters arg1, arg2 types PAGGRT, PAGGRT
 
 operator psort alias PSORT pattern _ op [_,_,_] 
-
+operator psortby alias PSORTBY pattern _ op[_,_;list]
 
 

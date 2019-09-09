@@ -3071,6 +3071,7 @@ Operator paggregateBOp(
 
 
 Operator* getPsortOp();
+Operator* getPsortbyOp();
 
 
 /*
@@ -3116,6 +3117,9 @@ public:
     Operator* psort = getPsortOp();
     psort->SetUsesMemory();
     AddOperator(psort);
+    Operator* psortby = getPsortbyOp();
+    psortby->SetUsesMemory();
+    AddOperator(psortby);
 
   }
 
