@@ -1,5 +1,6 @@
 - Open points/ TODOs
-    fix Segmentation fault
+    fix Segmentation fault if new message arrives
+    sendSignal - CommitTransaction() failed! But the previous command was successful. and error handling
 
 - Installing librdkafka - the Apache Kafka C/C++ client library
     https://github.com/edenhill/librdkafka

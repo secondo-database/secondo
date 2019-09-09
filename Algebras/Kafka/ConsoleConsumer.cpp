@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ListUtils.h" // useful functions for nested lists
 #include "Algebras/Stream/Stream.h" // wrapper for secondo streams
 #include "Algebras/Relation-C++/RelationAlgebra.h" // use of tuples
+#include "log.hpp"
 #include <stack>
 
 namespace kafka {
@@ -82,10 +83,12 @@ namespace kafka {
                 result.addr = li ? li->getNext() : 0;
                 return result.addr ? YIELD : CANCEL;
             case CLOSE :
+                LOG(DEBUG) << "consoleConsumerVM closing";
                 if (li) {
                     delete li;
                     local.addr = 0;
                 }
+                LOG(DEBUG) << "consoleConsumerVM closed";
                 return 0;
         }
         return 0;

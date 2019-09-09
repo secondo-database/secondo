@@ -118,10 +118,12 @@ namespace kafka {
                 result.addr = li ? li->getNext() : 0;
                 return result.addr ? YIELD : CANCEL;
             case CLOSE :
+                LOG(DEBUG) << "finishStreamVM closing";
                 if (li) {
                     delete li;
                     local.addr = 0;
                 }
+                LOG(DEBUG) << "finishStreamVM closed";
                 return 0;
         }
         return 0;

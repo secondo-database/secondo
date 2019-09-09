@@ -33,7 +33,7 @@
      query plz feed kafka["localhost","test"] count;
 
      query kafkastream("localhost", "test", FALSE) count;
-     query kafkastream("localhost", "test", TRUE) count;
+     % query kafkastream("localhost", "test", TRUE) count;
 
      query kafkastream("localhost", "test", TRUE) finishStream[8080] consume;
      query signalFinish("localhost", 8080);
@@ -41,9 +41,10 @@
     query plz feed consoleConsumer count;
 
     query kafkastream("localhost", "test", TRUE) finishStream[8080] consoleConsumer consume;
+    query kafkastream("localhost", "test", TRUE) finishStream[8080] consoleConsumer count;
+
     query plz feed filter [.Ort="Karlsruhe"] consume;
     query plz feed filter [.PLZ=76189] consume;
-
     query plz feed filter [.PLZ=76189] kafka["localhost","test"] consume;
 
  - Running kafka service

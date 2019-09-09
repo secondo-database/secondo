@@ -212,10 +212,12 @@ namespace kafka {
                     return CANCEL;
                 }
             case CLOSE:
+                LOG(DEBUG) << "KafkaSourceVM closing";
                 if (li) {
                     delete li;
                     local.addr = 0;
                 }
+                LOG(DEBUG) << "KafkaSourceVM closed";
                 return 0;
         }
         return 0;

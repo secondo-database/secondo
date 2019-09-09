@@ -236,6 +236,9 @@ namespace kafka {
 //                result->key = message->key();
                 result->len = message->len();
                 result->payload = message->payload();
+                if (result->payload)
+                    LOG(DEBUG) << "Len:  " << result->len
+                     << "Payload: " << result->payload;
                 break;
 
             case RdKafka::ERR__PARTITION_EOF:
