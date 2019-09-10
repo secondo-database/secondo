@@ -38,6 +38,8 @@ static const int ERROR_CLI_UNABLE_TO_RESOLVE_HOST = 2;
 static const int ERROR_CLI_RESOLVED_HOST_TYPE_NOT_SUPPORTED = 3;
 static const int ERROR_CLI_CONNECTION_FAILED = 4;
 
+#define SOCKET_DEBUG 0
+
 #include <iostream>
 
 #include <unistd.h>
@@ -99,11 +101,13 @@ public:
     }
 
     int close() {
+        if (SOCKET_DEBUG) std::cout << "Closing signaling socket" << std::endl;
         socketShutdown = true;
         shutdown(sockfd, SHUT_RD);
         ::close(sockfd);
         sockThread->join();
         delete sockThread;
+        if (SOCKET_DEBUG) std::cout << "signaling socket closed" << std::endl;
         return 0;
     }
 
@@ -113,7 +117,9 @@ public:
 
 private:
     void waitForConnection() {
-        std::cout << "Starting waiting for connection" << std::endl;
+        if (SOCKET_DEBUG)
+            std::cout << "Starting waiting for connection"
+                      << std::endl;
         int new_socket;
         int addrlen = sizeof(address);
         char const *expected = "Finish";
@@ -137,6 +143,8 @@ private:
             else
                 send(new_socket, responseIgnored, strlen(responseIgnored), 0);
         }
+        if (SOCKET_DEBUG)
+            std::cout << "Exit waiting for connection" << std::endl;
     }
 
 };
