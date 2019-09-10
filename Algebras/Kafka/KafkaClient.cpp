@@ -196,9 +196,8 @@ namespace kafka {
     }
 
     std::string *KafkaReaderClient::ReadSting() {
+        std::string *result = NULL;
         bool run = true;
-        char *payload = NULL;
-
         while (run) {
             LOG(DEBUG) << "Starting consuming next message from kafka";
             RdKafka::Message *msg = consumer->consume(1000);
@@ -206,19 +205,16 @@ namespace kafka {
                                                 ex_rebalance_cb->partition_cnt);
             run = message->run && message->payload == NULL;
             if (message->payload) {
-                payload = static_cast<char *>(message->payload);
+                char *payload = static_cast<char *>(message->payload);
                 LOG(DEBUG) << "KafkaReaderClient::ReadSting res:  " << payload;
+                result = new std::string(payload, message->len);
             } else {
                 LOG(DEBUG)
                         << "KafkaReaderClient::ReadSting res: payload is NULL ";
             }
-            delete msg; // TODO !!!!!
+            delete msg;
         }
-        if (payload != NULL) {
-            return new std::string(payload);
-        } else {
-            return NULL;
-        }
+        return result;
     }
 
     KafkaMessage *KafkaReaderClient::msg_consume(RdKafka::Message *message,
