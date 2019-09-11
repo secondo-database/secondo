@@ -134,7 +134,8 @@ namespace kafka {
             " _ finishStream[_]",
             " All tuples in the stream are written to the output, "
             "but stops by receiving stop signal from signalFinish ",
-            " query plz feed finishStream[8080] count "
+            " query kafkastream(\"localhost\", \"test\", TRUE) "
+            "finishStream[8080] consoleConsumer count; "
     );
 
     Operator finishStreamOp(

@@ -1,7 +1,4 @@
 - Open points/ TODOs
-    CommitTransaction() failed! But the previous command was successful in query kafkastream("localhost", "test", TRUE) finishStream[8080] consoleConsumer count;
-    Chage [(, finishStream[8080] -> finishStream(8080), same for kafka["localhost","test"]
-    Should be kafkastream and finishStream combined?
 
 - Installing librdkafka - the Apache Kafka C/C++ client library
     https://github.com/edenhill/librdkafka
@@ -31,5 +28,3 @@
 - Working with Kafka from secondo:
 
      open database berlintest;
-     query plz feed kafka["test"] count;
-     query kafkastream("test") count;

@@ -1,14 +1,3 @@
-- How to use makefiles in CLion
-
-    https://www.jetbrains.com/help/clion/managing-makefile-projects.html
-    https://blog.jetbrains.com/clion/2018/08/working-with-makefiles-in-clion-using-compilation-db/
-
-    pip install compiledb
-     add export PATH="$HOME/.local/bin:$PATH" to .bashrc, to make it work as described in
-     https://github.com/nickdiego/compiledb/issues/37
-
-    Usage:
-     compiledb make
 
 - Working with db
 
@@ -65,3 +54,14 @@
 
     -- Start a consumer
     bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic test --from-beginning
+
+- Multiuser secondo
+
+    cd $SECONDO_BUILD_DIR/bin
+    SecondoMonitor
+    > STARTUP
+
+    SecondoTTYCS
+
+- Other Instance
+export SECONDO_CONFIG=${HOME}/work/thirdInstance/SecondoConfig.ini
