@@ -56,7 +56,7 @@ public:
     1.2 Destructor
 
     */
-    ~TreeListener();
+    virtual ~TreeListener();
 
     /*
     ~handleNewTree~
