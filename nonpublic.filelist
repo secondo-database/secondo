@@ -17,6 +17,7 @@ TrafficAlgebra Traffic
 RIndexAlgebra RIndex
 PreciseAlgebra Precise
 MTopRelAlgebra MTopRel
+ParallelAlgebra Parallel
 
 
 # Plugins
