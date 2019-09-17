@@ -52,7 +52,6 @@ Distributed4Algebra Distributed4
 FixedMRegionAlgebra FixedMRegion
 KeyValueStoreAlgebra KeyValueStore
 MidiAlgebra Midi
-MP3bAlgebra MP3b
 MRegionOps2Algebra MRegionOps2
 Spatial3DAlgebra Spatial3D
 TimeSequenceAlgebra TimeSequence
