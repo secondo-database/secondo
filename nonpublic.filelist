@@ -26,7 +26,6 @@ ParallelAlgebra Parallel
 
 # Student's algebras
 ChessAlgebra Chess
-ConstraintAlgebra Constraint
 HierarchicalGeoAlgebra HierarchicalGeo
 MRegionOpsAlgebra MRegionOps
 Network2Algebra Network2
