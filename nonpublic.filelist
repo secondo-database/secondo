@@ -56,7 +56,6 @@ MP3bAlgebra MP3b
 MRegionOps2Algebra MRegionOps2
 Spatial3DAlgebra Spatial3D
 TimeSequenceAlgebra TimeSequence
-TINAlgebra TIN
 TypeMapTestAlgebra TypeMapTest
 MainMemoryAlgebra MainMemory
 
