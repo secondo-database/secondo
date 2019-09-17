@@ -41,7 +41,7 @@ January-May 2008, Mirko Dibbert
 
 #ifndef NO_MP3
 //---------cru--------
-#include "FVector.h"
+#include "Algebras/MP3b/FVector.h"
 //--------------------
 #endif
 
