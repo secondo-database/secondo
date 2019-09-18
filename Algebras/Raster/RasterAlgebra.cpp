@@ -606,7 +606,7 @@ CalcRasterFun (Word* args, Word& result, int message, Word& local, Supplier s,
               SignatureType signature, RasterType rasterType)
 {
   HalfSegment chs;
-  Raster4CRS* raster4CRS;
+  Raster4CRS* raster4CRS=0;
   Signature4CRS* assinatura;
 
   Region *r1 = NULL;

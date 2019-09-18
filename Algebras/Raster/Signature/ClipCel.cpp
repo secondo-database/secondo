@@ -487,7 +487,7 @@ void ClipCel::evaluateNewSegmentsTopEdge(bool &consideredLeftVertex,
   }
 }
 //---------------------------------------------------------------------------
-bool ClipCel::GetAcceptedPoint(vector <TurningPoint>vTurningPoint,int &i,
+bool ClipCel::GetAcceptedPoint(std::vector <TurningPoint>vTurningPoint,int &i,
 	                   const int &end, TurningPoint &ep)
 {
   //id is the indice of the current point in the scan

@@ -65,8 +65,9 @@ sizeOfBlock( sizeOfBlock )
   attr_map.header.dx = dx;
   attr_map.header.dy = dy;
 
-  for( i = 0; (sizeOfBlock >> i) != 0; i++ );
+  for( i = 0; (sizeOfBlock >> i) != 0; i++ ){
     attr_map.header.potency = i - 1;
+  }
   
   map->potency = attr_map.header.potency;
   
