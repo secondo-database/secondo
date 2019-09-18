@@ -19,6 +19,9 @@ PreciseAlgebra Precise
 MTopRelAlgebra MTopRel
 ParallelAlgebra Parallel
 
+# Algebras that not compile
+CompiledExpressionsAlgebra CompiledExpressions
+
 
 # Plugins
 
