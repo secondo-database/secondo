@@ -237,9 +237,10 @@ bool RepTree::EqualWithDepth(const RepTree* T2, const int depth)const{
     if(this->content!=T2->content)
        return false;
     bool ok = true;
-    for(int i=0;i<this->content&&ok;i++)
+    for(int i=0;i<this->content&&ok;i++) {
          ok = this->sons[i]->EqualWithDepth(T2->sons[i],depth-1);
-         return ok;
+    }
+    return ok;
     }
 
 

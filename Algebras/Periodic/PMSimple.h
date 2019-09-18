@@ -1008,11 +1008,11 @@ void PMSimple<T, Unit>::TakeValuesFrom( DbArray<Unit>& linearMoves,
 
    this->linearMoves.Clear(); 
    this->linearMoves.Destroy();
-   this->compositeMoves.Clear();
+   this->compositeMoves.clean();
    this->compositeMoves.Destroy();
-   this->compositeSubMoves.Clear();
+   this->compositeSubMoves.clean();
    this->compositeSubMoves.Destroy();
-   this->periodicMoves.Clear();
+   this->periodicMoves.clean();
    this->periodicMoves.Destroy();
    this->linearMoves = linearMoves;
    this->compositeMoves = compositeMoves;

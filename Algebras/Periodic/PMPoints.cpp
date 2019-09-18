@@ -552,12 +552,14 @@ value of the p.m. points represented in the value list.
 bool PMPoints::AddSubMovesSize(const ListExpr value,int &LMSize, int &PtsSize,
                               int &CMSize, int &SMSize,int &PMSize){
     __TRACE__
-// all moves have the length 2
-if(::nl->ListLength(value)!=2)
-   return false;
-ListExpr type = ::nl->First(value);
-if(::nl->AtomType(type)!=SymbolType)
-  return false;
+  // all moves have the length 2
+  if(::nl->ListLength(value)!=2){
+     return false;
+  }
+  ListExpr type = ::nl->First(value);
+  if(::nl->AtomType(type)!=SymbolType){
+    return false;
+  }
   // in a linear move we have to increment the size of LM
   // and to add the number of contained Points 
   if(::nl->IsEqual(type,"linear")){

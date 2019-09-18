@@ -497,7 +497,6 @@ result will be undefined.
 */
    T Next(){
       T res;
-      if(!elem) return res;
       res = elem->entry;
       elem = elem->next;
       return res;
