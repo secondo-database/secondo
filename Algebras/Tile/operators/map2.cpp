@@ -257,10 +257,10 @@ int map2Functiontmt(Word* pArguments,
 
               typename SourceType2Properties::RectangleType boundingBox2;
               pSourceType2->bbox(boundingBox2);
-
+              double minMax[] = {boundingBox2.MinD(0), boundingBox2.MaxD(0),
+                 boundingBox2.MinD(1), boundingBox2.MaxD(1)};
               typename SourceType1Properties::RectangleType boundingBox22
-              (true, boundingBox2.MinD(0), boundingBox2.MaxD(0),
-               boundingBox2.MinD(1), boundingBox2.MaxD(1));
+                (true, minMax);
 
               typename SourceType1Properties::RectangleType boundingBox =
               boundingBox1.Union(boundingBox22);
@@ -415,10 +415,11 @@ int map2Functionmtt(Word* pArguments,
 
               typename SourceType2Properties::RectangleType boundingBox2;
               pSourceType2->bbox(boundingBox2);
-
+              double minMax[] = { boundingBox1.MinD(0), boundingBox1.MaxD(0),
+               boundingBox1.MinD(1), boundingBox1.MaxD(1)
+              };
               typename SourceType2Properties::RectangleType boundingBox12
-              (true, boundingBox1.MinD(0), boundingBox1.MaxD(0),
-               boundingBox1.MinD(1), boundingBox1.MaxD(1));
+              (true,minMax );
 
               typename SourceType2Properties::RectangleType boundingBox =
               boundingBox2.Union(boundingBox12);

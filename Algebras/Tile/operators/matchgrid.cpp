@@ -178,17 +178,13 @@ int matchgridFunctiont(Word* pArguments,
                   { 
                     Index<2> resultCurrentIndex
                     ((int[]){resultColumn, resultRow});
-                    
-                    Rectangle<2> currentBoundingBox
-                    (true,
-                     gridX +
-                     resultCurrentIndex[0] * gridLength,
-                     gridX +
-                     (resultCurrentIndex[0] + 1) * gridLength,
-                     gridY +
-                     resultCurrentIndex[1] * gridLength,
-                     gridY +
-                     (resultCurrentIndex[1] + 1) * gridLength);
+                   
+                    double minMax[] = { 
+                     gridX + resultCurrentIndex[0] * gridLength,
+                     gridX + (resultCurrentIndex[0] + 1) * gridLength,
+                     gridY + resultCurrentIndex[1] * gridLength,
+                     gridY + (resultCurrentIndex[1] + 1) * gridLength};
+                    Rectangle<2> currentBoundingBox(true, minMax);
 
                     Index<2> sourceStartIndex
                     ((int[]){(int)std::floor((currentBoundingBox.MinD(0) -
@@ -229,8 +225,8 @@ int matchgridFunctiont(Word* pArguments,
                              pUseWeight->IsDefined() &&
                              pUseWeight->GetValue())
                           {
-                            Rectangle<2> sourceBoundingBox
-                            (sourceGridX +
+                            double minMax[] = {
+                             sourceGridX +
                              sourceCurrentIndex[0] *
                              sourceGridLength,
                              sourceGridX +
@@ -241,7 +237,8 @@ int matchgridFunctiont(Word* pArguments,
                              sourceGridLength,
                              sourceGridY +
                              (sourceCurrentIndex[1] + 1) *
-                             sourceGridLength);
+                             sourceGridLength};
+                            Rectangle<2> sourceBoundingBox(true,minMax);
                               
                             Rectangle<2> overlapRectangle =
                             currentBoundingBox.Intersection
@@ -469,19 +466,16 @@ int matchgridFunctionmt(Word* pArguments,
                   {
                     Index<3> resultCurrentIndex
                     ((int[]){resultColumn, resultRow, resultTime});
-
-                    Rectangle<3> currentBoundingBox
-                    (true,
-                     gridX +
-                     resultCurrentIndex[0] * gridLength,
-                     gridX +
-                     (resultCurrentIndex[0] + 1) * gridLength,
-                     gridY +
-                     resultCurrentIndex[1] * gridLength,
-                     gridY +
-                     (resultCurrentIndex[1] + 1) * gridLength,
+                   
+                    double minMax[] = {
+                     gridX + resultCurrentIndex[0] * gridLength,
+                     gridX + (resultCurrentIndex[0] + 1) * gridLength,
+                     gridY + resultCurrentIndex[1] * gridLength,
+                     gridY + (resultCurrentIndex[1] + 1) * gridLength,
                      resultCurrentIndex[2] * gridDuration,
-                     (resultCurrentIndex[2] + 1) * gridDuration);
+                     (resultCurrentIndex[2] + 1) * gridDuration};
+
+                    Rectangle<3> currentBoundingBox (true, minMax);
 
                     Index<3> sourceStartIndex
                     ((int[]){(int)std::floor((currentBoundingBox.MinD(0) -
@@ -530,23 +524,19 @@ int matchgridFunctionmt(Word* pArguments,
                                pUseWeight->IsDefined() &&
                                pUseWeight->GetValue())
                             {
-                              Rectangle<3> sourceBoundingBox
-                              (sourceGridX +
-                               sourceCurrentIndex[0] *
-                               sourceGridLength,
-                               sourceGridX +
-                               (sourceCurrentIndex[0] + 1) *
-                               sourceGridLength,
-                               sourceGridY +
-                               sourceCurrentIndex[1] *
-                               sourceGridLength,
-                               sourceGridY +
-                               (sourceCurrentIndex[1] + 1) *
-                               sourceGridLength,
-                               sourceCurrentIndex[2] *
-                               sourceGridDuration,
-                               (sourceCurrentIndex[2] + 1) *
-                               sourceGridDuration);
+                             double minMax[] = {
+                                sourceGridX + sourceCurrentIndex[0] 
+                                              * sourceGridLength,
+                                sourceGridX + (sourceCurrentIndex[0] + 1) 
+                                              * sourceGridLength,
+                                sourceGridY + sourceCurrentIndex[1] 
+                                              * sourceGridLength,
+                               sourceGridY + (sourceCurrentIndex[1] + 1)
+                                              * sourceGridLength,
+                               sourceCurrentIndex[2] * sourceGridDuration,
+                               (sourceCurrentIndex[2] + 1) * sourceGridDuration
+                              };
+                              Rectangle<3> sourceBoundingBox(true,minMax);
 
                               Rectangle<3> overlapRectangle =
                               currentBoundingBox.Intersection
