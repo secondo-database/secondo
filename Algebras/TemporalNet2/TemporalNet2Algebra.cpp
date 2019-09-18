@@ -9453,7 +9453,7 @@ dynamically at runtime.
 
 */
 
-extern "C" Algebra* InitializeTemporalNetAlgebra( NestedList* in_pNL,
+extern "C" Algebra* InitializeTemporalNet2Algebra( NestedList* in_pNL,
                                                   QueryProcessor* in_pQP )
 {
   nl = in_pNL;
