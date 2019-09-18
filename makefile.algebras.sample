@@ -176,8 +176,14 @@ ALGEBRAS     += Raster2Algebra
 ALGEBRA_DIRS += Network
 ALGEBRAS     += NetworkAlgebra
 
+#ALGEBRA_DIRS += Network2
+#ALGEBRAS     += Network2Algebra
+
 ALGEBRA_DIRS += TemporalNet
 ALGEBRAS     += TemporalNetAlgebra
+
+#ALGEBRA_DIRS += TemporalNet2
+#ALGEBRAS     += TemporalNet2Algebra
 
 ALGEBRA_DIRS += STPattern
 ALGEBRAS     += STPatternAlgebra
@@ -216,8 +222,8 @@ ALGEBRAS     += MovingRegionAlgebra
 #ALGEBRAS     += MovingRegion3Algebra
 
 
-# ALGEBRA_DIRS  += FixedMRegion 
-# ALGEBRAS     += FixedMRegionAlgebra
+#ALGEBRA_DIRS  += FixedMRegion 
+#ALGEBRAS     += FixedMRegionAlgebra
 
 #ALGEBRA_DIRS += MRegionOps3
 #ALGEBRAS     += MRegionOps3Algebra
@@ -390,11 +396,11 @@ ALGEBRAS      += AuxiliaryAlgebra
 #ALGEBRA_DIRS += DBService
 #ALGEBRAS += DBServiceAlgebra
 
-# ALGEBRA_DIRS  += DistributedClustering 
-# ALGEBRAS     += DistributedClusteringAlgebra
+#ALGEBRA_DIRS  += DistributedClustering 
+#ALGEBRAS     += DistributedClusteringAlgebra
 
-# ALGEBRA_DIRS  += KeyValueStore 
-# ALGEBRAS     += KeyValueStoreAlgebra
+#ALGEBRA_DIRS  += KeyValueStore 
+#ALGEBRAS     += KeyValueStoreAlgebra
 
 
 
@@ -403,7 +409,7 @@ ALGEBRAS      += AuxiliaryAlgebra
 #ALGEBRA_DEPS += quadmath gmp
 
 #Algebra_DIRS += Tile
-#Algebra += TileAlgebra
+#ALGEBRAS += TileAlgebra
 
 #ALGEBRA_DIRS += LineFunction
 #ALGEBRAS     += LineFunctionAlgebra
@@ -558,8 +564,8 @@ ALGEBRAS     += JNetAlgebra
 #ALGEBRA_DIRS += SpatialJoin2
 #ALGEBRAS += SpatialJoin2Algebra
 
-# ALGEBRA_DIRS  += CompiledExpressions 
-# ALGEBRAS     += CompiledExpressionsAlgebra
+#ALGEBRA_DIRS  += CompiledExpressions 
+#ALGEBRAS     += CompiledExpressionsAlgebra
 
 #ALGEBRA_DIRS  += Mail
 #ALGEBRAS     += MailAlgebra
