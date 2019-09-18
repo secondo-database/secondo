@@ -315,8 +315,8 @@ ALGEBRAS     += CollectionAlgebra
 ALGEBRA_DIRS  += Cluster
 ALGEBRAS      += ClusterAlgebra
 
-ALGEBRA_DIRS += Cluster2
-ALGEBRAS += Cluster2Algebra
+#ALGEBRA_DIRS += Cluster2
+#ALGEBRAS += Cluster2Algebra
 
 
 
