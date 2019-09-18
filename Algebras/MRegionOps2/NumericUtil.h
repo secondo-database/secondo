@@ -70,7 +70,7 @@ public:
     //static const double eps = 0.001;
 	//static const double eps = 0.0001;
 	//static const double eps = 0.00001;
-	static const double eps = 0.000001;
+	static constexpr double eps = 0.000001;
 	//static const double eps = 0.0000001;
     //static const double eps = 0.00000001;
 	

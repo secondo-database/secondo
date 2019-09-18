@@ -359,7 +359,7 @@ double endT, unsigned int index)
 
 /*
     vector<PFace*>::iterator iter;
-    for (iter = myRelevantPFaces.begin(); iter != myRelevantPFaces.end(); iter++)
+   for (iter = myRelevantPFaces.begin(); iter != myRelevantPFaces.end(); iter++)
     {
         cout << "processing relevant pface\n";    
         if((*iter)->HasIntersegs()==true)
@@ -399,7 +399,6 @@ double endT, unsigned int index)
 */
     cout << "adding resultUnit to final result...";
 
-DbArray<MSegmentData>* array=(DbArray<MSegmentData>*)resultMRegion->GetFLOB(1);
 /*    
     URegionEmb2* ure = resultUnit->ConvertToURegionEmb(array,interval);
     resultMRegion->Add(*ure);

@@ -208,7 +208,7 @@ void IntersectionSegment::InvertAreaDirection()
 
 Point3D IntersectionSegment::Evaluate(const mpq_class mpqt) const {
 
-    double t = mpqt.get_d();
+    //double t = mpqt.get_d();
     // We compute the intersection point
     // of the horizontal plane, defined by t, and this segment.
     

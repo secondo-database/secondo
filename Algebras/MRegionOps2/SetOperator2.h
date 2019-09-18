@@ -85,13 +85,13 @@ according to the signature a [x] b [->] res.
     SetOperator2(MRegion2* const _a,
                  MRegion2* const _b,
                  MRegion2* const _res) :
-                 a(_a), b(_b), res(_res),bRes(false){
+                 bRes(0),a(_a), b(_b), res(_res){
     };
     //cstor for boolean result
     SetOperator2(MRegion2* const _a,
                  MRegion2* const _b,
                  bool* const _res) :
-                 a(_a), b(_b), res(0),bRes(_res){
+                 bRes(_res),a(_a), b(_b), res(0){
     };
     
     bool* bRes;

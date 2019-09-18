@@ -591,8 +591,9 @@ public:
     if (x < p.x)
             return true;
 
-    if (x > p.x)
+    if (x > p.x) {
             return false;
+    }
             
             return (y < p.y);
     }
