@@ -373,13 +373,14 @@ OctreeCell::covers(OctreeElement* _element){
 void
 OctreeCell::printCoordinates(){
   ::std::cout << "element coordinates: ";
-  for (int a=0; a < this->dimensions; a++)
+  for(int a=0; a < this->dimensions; a++) {
     ::std::cout << ::std::setiosflags(::std::ios::fixed) << 
     ::std::setprecision(2) << this->coordinates[a] << ", ";
     ::std::cout << "halfsidelength: " << 
     ::std::setiosflags(::std::ios::fixed) << 
     ::std::setprecision(4) <<this->halfSideLength;
     ::std::cout << " contains: " << this->pointsContained << '\n';
+  }
 }
 
 OctreeCell*
