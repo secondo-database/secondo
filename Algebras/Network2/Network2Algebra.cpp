@@ -11216,7 +11216,7 @@ dynamically at runtime.
 
 extern "C"
   Algebra*
-  InitializeNetworkAlgebra ( NestedList* nlRef,
+  InitializeNetwork2Algebra ( NestedList* nlRef,
                              QueryProcessor* qpRef )
 {
   nl = nlRef;
