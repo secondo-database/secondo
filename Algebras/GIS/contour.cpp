@@ -203,7 +203,7 @@ class hSegment{
      }
 
      bool operator==(const hSegment& h)const{
-       return (level==level) && AlmostEqual(p1,h.p1) && AlmostEqual(p2,h.p2);
+       return (level==h.level) && AlmostEqual(p1,h.p1) && AlmostEqual(p2,h.p2);
      }
 
      bool operator<(const hSegment& h) const{
