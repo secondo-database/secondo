@@ -672,7 +672,8 @@ const Rectangle<2> SegmentData::BoundingBox(const Flob& preciseCoordinates,
  double maxX = xd < xs ? xs : xd;
  double minY = yd < ys ? yd : ys;
  double maxY = yd < ys ? ys : yd;
- return *(new Rectangle<2>( true, minX , maxX ,minY ,maxY ));
+ double minMax[] = {minX , maxX ,minY ,maxY };
+ return Rectangle<2>( true, minMax );
 }
 
 /*

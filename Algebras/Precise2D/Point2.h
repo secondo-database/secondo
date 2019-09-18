@@ -318,11 +318,13 @@ inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const{
     return *(new Rectangle<2>( true, x , (x+1) ,y ,(y+1) ));*/
     double x = getPreciseX().get_d() + getGridX();
     double y = getPreciseY().get_d() + getGridY();
-    return *(new Rectangle<2>( true, x , x ,y ,y ));
+    double minMax[] = {x , x ,y ,y };
+    return Rectangle<2>( true, minMax);
    }
 
   }
-  return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+  double minMax[] = {0,0,0,0};
+  return Rectangle<2>(false, minMax);
 
 }
 
