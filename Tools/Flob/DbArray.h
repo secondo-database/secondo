@@ -202,12 +202,12 @@ inline bool copyTo(DbArray<DbArrayElement>& dest, int sourceOffset,
     return true;
   }
   if( numberOfElems < 0 || sourceOffset < 0 || destOffset < 0 ||
-      nElements < sourceOffset + numberOfElems ||
-      destOffset > dest.nElements) { //wrong arguments
+      (int) nElements < sourceOffset + numberOfElems ||
+      destOffset > (int)dest.nElements) { //wrong arguments
     return false;
   }
 
-  if(dest.maxElements < destOffset + numberOfElems){
+  if((int)dest.maxElements < destOffset + numberOfElems){
     // resize of the destination Flob
     if(!dest.resize(destOffset + numberOfElems)){
        return false;
@@ -223,7 +223,7 @@ inline bool copyTo(DbArray<DbArrayElement>& dest, int sourceOffset,
   size_t writeOffset = destOffset * sizeof(DbArrayElement);
   bool ok = dest.Flob::write(buffer, size, writeOffset);
   delete [] buffer;
-  dest.nElements = (dest.nElements > (numberOfElems + destOffset))?
+  dest.nElements = ((int)dest.nElements > (numberOfElems + destOffset))?
       dest.nElements: (numberOfElems + destOffset);
   return ok;
 }
