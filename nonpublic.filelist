@@ -8,70 +8,31 @@
 ### Format: algebra-name algebra-directory ###
 ###                                        ###
 
-# Research in progress
-FlockAlgebra Flock
-IndoorAlgebra Indoor
-MAttiaTestsAlgebra MAttiaTests
-PartitionedStreamAlgebra PartitionedStream
-TrafficAlgebra Traffic
-RIndexAlgebra RIndex
-PreciseAlgebra Precise
-MTopRelAlgebra MTopRel
-ParallelAlgebra Parallel
-
-# Algebras that not compile
-CompiledExpressionsAlgebra CompiledExpressions
-
-
-# Plugins
-
-
-
-# Student's algebras
-ChessAlgebra Chess
-HierarchicalGeoAlgebra HierarchicalGeo
-MRegionOpsAlgebra MRegionOps
+# Algebras that are in development, out of date,
+# or research in progress
+MainMemoryAlgebra  MainMemory
 Network2Algebra Network2
-NestedRelation2Algebra NestedRelation2
-PointSequenceAlgebra PointSequence
-RasterAlgebra Raster
-RasterSpatialAlgebra RasterSpatial
-RegionInterpolationAlgebra RegionInterpolation
-SETIAlgebra SETI
 TemporalNet2Algebra TemporalNet2
-UGridAlgebra UGrid
-UrelAlgebra Urel
-WebAlgebra Web
-MovingRegion2Algebra MovingRegion2
-MovingRegion3Algebra MovingRegion3
-NestedRelation2Algebra NestedRelation2
-SpatialJoin2Algebra SpatialJoin2
-Cluster2Algebra Cluster2
-ContinuousUpdateAlgebra ContinuousUpdate
+ChessAlgebra Chess
 DistributedAlgebra Distributed
 Distributed3Algebra Distributed3
-Distributed4Algebra Distributed4
-FixedMRegionAlgebra FixedMRegion
-KeyValueStoreAlgebra KeyValueStore
-MidiAlgebra Midi
-MRegionOps2Algebra MRegionOps2
-Spatial3DAlgebra Spatial3D
-TimeSequenceAlgebra TimeSequence
-TypeMapTestAlgebra TypeMapTest
-MainMemoryAlgebra MainMemory
-
-
-
-
+DistributedAlgebra5 Distributed5
+OldRelationAlgebra OldRelation-C++
+RIndexAlgebra RIndex
+CompiledExpressionsAlgebra CompiledExpressions
+MAttiaAlgebra MAttia
+MTopRelAlgebra MTopRel
+PreciseAlgebra Precise
+KafkaAlgebra Kafka
+ParallelAlgebra Parallel
+Temporal2Algebra Temporal2
+SpatialJoinTOUCHAlgebra SpatialJoinTOUCH
 
 
 # Java algebras - not longer supported
 FuzzyAlgebra Fuzzy
 JBBoxAlgebra JBBox
 RoseAlgebra Rose
-
-# old stuff
-OldRelationAlgebra OldRelation-C++
 
 
 ###             ###
