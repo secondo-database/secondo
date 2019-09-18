@@ -71,6 +71,10 @@ ALGEBRAS     += StreamAlgebra
 ALGEBRA_DIRS += Function-C++
 ALGEBRAS     += FunctionAlgebra
 
+#ALGEBRA_DIRS += MainMemory 
+#ALGEBRAS     += MainMemoryAlgebra
+
+
 ALGEBRA_DIRS += MainMemory2 
 ALGEBRAS     += MainMemory2Algebra
 
@@ -205,6 +209,13 @@ ALGEBRAS     += ImExAlgebra
 ALGEBRA_DIRS += MovingRegion
 ALGEBRAS     += MovingRegionAlgebra
 
+#ALGEBRA_DIRS += MovingRegion2
+#ALGEBRAS     += MovingRegion2Algebra
+
+#ALGEBRA_DIRS += MovingRegion3
+#ALGEBRAS     += MovingRegion3Algebra
+
+
 # ALGEBRA_DIRS  += FixedMRegion 
 # ALGEBRAS     += FixedMRegionAlgebra
 
@@ -298,6 +309,11 @@ ALGEBRAS     += CollectionAlgebra
 ALGEBRA_DIRS  += Cluster
 ALGEBRAS      += ClusterAlgebra
 
+ALGEBRA_DIRS += Cluster2
+ALGEBRAS += Cluster2Algebra
+
+
+
 ALGEBRA_DIRS  += Optics 
 ALGEBRAS      += OpticsAlgebra
 
@@ -345,6 +361,14 @@ ALGEBRAS      += AuxiliaryAlgebra
 #CCFLAGS += -pthread -DTHREAD_SAFE
 #COMMON_LD_FLAGS += -lboost_thread-mt -lboost_system-mt
 
+
+#ALGEBRA_DIRS += Distributed3
+#ALGEBRAS += Distributed3Algebra
+#DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
+#CCFLAGS += -pthread -DTHREAD_SAFE
+#COMMON_LD_FLAGS += -lboost_thread -lboost_system
+
+
 #ALGEBRA_DIRS  += DRel 
 #ALGEBRAS     += DRelAlgebra
 
@@ -357,6 +381,10 @@ ALGEBRAS      += AuxiliaryAlgebra
 
 #ALGEBRA_DIRS += Distributed4
 #ALGEBRAS += Distributed4Algebra
+#COMMON_LD_FLAGS += -lboost_filesystem
+
+#ALGEBRA_DIRS += Distributed5
+#ALGEBRAS += Distributed5Algebra
 #COMMON_LD_FLAGS += -lboost_filesystem
 
 #ALGEBRA_DIRS += DBService
@@ -373,6 +401,9 @@ ALGEBRAS      += AuxiliaryAlgebra
 #ALGEBRA_DIRS += TIN
 #ALGEBRAS     += TinAlgebra
 #ALGEBRA_DEPS += quadmath gmp
+
+#Algebra_DIRS += Tile
+#Algebra += TileAlgebra
 
 #ALGEBRA_DIRS += LineFunction
 #ALGEBRAS     += LineFunctionAlgebra
@@ -533,7 +564,89 @@ ALGEBRAS     += JNetAlgebra
 #ALGEBRA_DIRS  += Mail
 #ALGEBRAS     += MailAlgebra
 
+#ALGEBRA_DIRS += Cassandra
+#ALGEBRAS     += CassandraAlgebra
 
+#ALGEBRA_DIRS += Flock
+#ALGEBRAS += FlockAlgebra
+
+#ALGEBRA_DIRS += GIS
+#ALGEBRAS += GISAlgebra
+
+#ALGEBRA_DIRS += GPattern
+#ALGEBRAS += GPatternAlgebra
+
+#ALGEBRA_DIRS += HybridTrajectory
+#ALGEBRAS += HybridTrajectoryAlgebra
+
+#ALGEBRA_DIRS += Indoor
+#ALGEBRAS += IndoorAlgebra
+
+#ALGEBRA_DIRS += MAttia
+#ALGEBRAS += MAttiaAlgebra
+
+#ALGEBRA_DIRS += MRegionOps
+#ALGEBRAS += MRegionOpsAlgebra
+
+#ALGEBRA_DIRS += MRegionOps2
+#ALGEBRAS += MRegionOps2Algebra
+
+#ALGEBRA_DIRS += MTopRel
+#ALGEBRAS += MTopRelAlgebra
+
+#ALGEBRA_DIRS += Periodic
+#ALGEBRAS += PeriodicAlgebra
+
+#ALGEBRA_DIRS += Precise
+#ALGEBRAS += PreciseAlgebra
+
+#ALGEBRA_DIRS += Precise2D
+#ALGEBRAS += Precise2DAlgebra
+
+#ALGEBRA_DIRS += Kafka
+#ALGEBRAS += KafkaAlgebra
+
+#ALGEBRA_DIRS += Raster
+#ALGEBRAS += RasterAlgebra
+
+#ALGEBRA_DIRS += RasterSpatial
+#ALGEBRAS += RasterSpatialAlgebra
+
+#ALGEBRA_DIRS += Region2
+#ALGEBRAS += Region2Algebra
+
+#ALGEBRA_DIRS += RegionInterpolation
+#ALGEBRAS += RegionInterpolationAlgebra
+
+#ALGEBRA_DIRS += RemoteStream
+#ALGEBRAS += RemoteStreamAlgebra
+
+#ALGEBRA_DIRS += SharedStream
+#ALGEBRAS += SharedStreamAlgebra
+
+#ALGEBRA_DIRS += Parallel
+#ALGEBRAS += ParallelAlgebra
+
+#ALGEBRA_DIRS += Temporal2
+#ALGEBRAS += Temporal2Algebra
+
+#ALGEBRA_DIRS += TimeSequence
+#ALGEBRAS += TimeSequenceAlgebra
+
+#ALGEBRA_DIRS += TransportationMode
+#ALGEBRAS += TransportationModeAlgebra
+
+#ALGEBRA_DIRS += TupleVector
+#ALGEBRAS += TupleVectorAlgebra
+
+#ALGEBRA_DIRS += TypeMapTest
+#ALGEBRAS += TypeMapTestAlgebra
+
+#ALGEBRA_DIRS += Urel
+#ALGEBRAS += UrelAlgebra
+
+#ALGEBRA_DIRS += SpatialJoinTOUCH
+#ALGEBRAS += SpatialJoinTOUCHAlgebra
 
 # JNI Algebras - Java code will be called from C++ code.
 
