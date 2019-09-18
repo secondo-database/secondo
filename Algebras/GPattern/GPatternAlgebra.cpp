@@ -182,7 +182,8 @@ void MSetIndex::AppendInsertionsIntoNodeLog(set<int>& deltaNodes,
     list<CompressedInMemUSet>::iterator& curUSet, int curUSetIndex)
 {
   map<int, set<int> > nodeNeighbors;
-  int _edge, _node;
+  int _edge; 
+  int _node;
   pair<int, int> edgeNodes;
   map<int, set<int> >::iterator pos;
   for(set<int>::iterator it= (*curUSet).added.begin(); it !=
@@ -198,7 +199,7 @@ void MSetIndex::AppendInsertionsIntoNodeLog(set<int>& deltaNodes,
     {
       set<int> s; s.insert(_edge);
       assert(
-          nodeNeighbors.insert(make_pair<int, set<int> >(_node, s)).second);
+       nodeNeighbors.insert(std::make_pair(_node, s)).second);
     }
 
     _node= edgeNodes.second;
@@ -207,9 +208,10 @@ void MSetIndex::AppendInsertionsIntoNodeLog(set<int>& deltaNodes,
       (*pos).second.insert(_edge);
     else
     {
-      set<int> s; s.insert(_edge);
+      set<int> s; 
+      s.insert(_edge);
       assert(
-          nodeNeighbors.insert(make_pair<int, set<int> >(_node, s)).second);
+        nodeNeighbors.insert(std::make_pair(_node, s)).second);
     }
   }
 
@@ -771,7 +773,7 @@ void GPatternHelper::FindLargeDynamicComponents(CompressedInMemMSet& Accumlator,
     list<CompressedMSet*>*& finalResStream, int depth)
 {
   bool debugme= false;
-  list<CompressedInMemUSet>::iterator cur= begin;
+  //list<CompressedInMemUSet>::iterator cur= begin;
   set<int> s;
   list<CompressedMSet*>* resStream= 0;
   finalResStream= new list<CompressedMSet*>(0);
@@ -992,7 +994,7 @@ void GPatternHelper::FindDynamicComponents(CompressedInMemMSet& Accumlator,
     (*compIt)->ExtendResStreamsTillNow(*ResultParts, (*cur).endtime, (*cur).rc);
   ++cur;
 
-  list<vector<int> >::iterator resultIt= ResultStream->begin();
+  //list<vector<int> >::iterator resultIt= ResultStream->begin();
   while(!ResultStream->empty())
   {
     CompressedMSet* result=

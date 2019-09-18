@@ -212,7 +212,7 @@ public:
 
 } // end of namespace temporalalgebra
 
-extern "C"Algebra*
+extern "C" Algebra*
 InitializeMRegionOpsAlgebra( NestedList* nlRef,
         QueryProcessor* qpRef ) {
 
