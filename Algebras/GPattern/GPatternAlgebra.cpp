@@ -48,6 +48,7 @@ using namespace RegionInterpol;
 
 namespace GPattern{
 
+bool CheckRemoveEntry::changed = false;
 
 /*
 GPatternHelper

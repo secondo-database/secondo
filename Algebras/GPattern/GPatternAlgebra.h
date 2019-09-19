@@ -181,7 +181,6 @@ class CheckRemoveEntry {
         int id, std::vector<ChangeRecord>& ch, MSetIndex* i, int64_t _dMS);
     bool operator() (MSetIndex::NodeLogEntry& logEntry);
 };
-bool CheckRemoveEntry::changed = false;
 /*
 GPatternHelper
 
