@@ -217,4 +217,4 @@ ObjectList::ObjectList(void) {
 }
 
 
-#endif __NAMEDOBJECT_C
+#endif // __NAMEDOBJECT_C
