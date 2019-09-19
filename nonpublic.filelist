@@ -98,8 +98,6 @@ Javagui/tools/MovingPointBuilder.java
 Javagui/tools/PeriodExtractor.java
 Javagui/tools/PeriodicPointBuilder.java
 
-StorageManager/bdbUpdateFile.cpp
-
 
 bin/Scripts/replayNrwImportShape.SEC
 bin/Scripts/BerlinMOD_DataGenerator.SEC
