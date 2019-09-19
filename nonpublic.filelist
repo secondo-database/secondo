@@ -16,7 +16,7 @@ TemporalNet2Algebra TemporalNet2
 ChessAlgebra Chess
 DistributedAlgebra Distributed
 Distributed3Algebra Distributed3
-DistributedAlgebra5 Distributed5
+Distributed5Algebra Distributed5
 OldRelationAlgebra OldRelation-C++
 RIndexAlgebra RIndex
 CompiledExpressionsAlgebra CompiledExpressions
