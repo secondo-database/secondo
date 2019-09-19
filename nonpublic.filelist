@@ -27,7 +27,7 @@ KafkaAlgebra Kafka
 ParallelAlgebra Parallel
 Temporal2Algebra Temporal2
 SpatialJoinTOUCHAlgebra SpatialJoinTOUCH
-
+RasterSpatialAlgebra RasterSpatial
 
 # Java algebras - not longer supported
 FuzzyAlgebra Fuzzy
