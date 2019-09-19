@@ -408,7 +408,7 @@ ALGEBRAS      += AuxiliaryAlgebra
 #ALGEBRAS     += TinAlgebra
 #ALGEBRA_DEPS += quadmath gmp
 
-#Algebra_DIRS += Tile
+#ALGEBRA_DIRS += Tile
 #ALGEBRAS += TileAlgebra
 
 #ALGEBRA_DIRS += LineFunction
