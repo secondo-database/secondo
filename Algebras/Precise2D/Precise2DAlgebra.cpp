@@ -1994,6 +1994,10 @@ Spatial2Rect_TypeMap( ListExpr args )
   if ( nl->ListLength( args )!=1 ){
     return listutils::typeError("Only one argument expected.");
   }
+  if(nl->AtomType(nl->First(args))!=SymbolType){
+    return listutils::typeError("First argument is not in "
+                                "{pointp,pointsp ird linep}");
+  }
   string type = nl->SymbolValue(nl->First( args ));
   if ( type != Point2::BasicType() &&
        type != Points2::BasicType() &&
