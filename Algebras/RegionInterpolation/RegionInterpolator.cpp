@@ -131,14 +131,16 @@ static ListExpr interpolateTypeMap(ListExpr args)
     }
     if( nl->ListLength(args)!=3+COUNTWEIGHT)
     {
-      for (int i=4; i<=3+COUNTWEIGHT; i++)
-      {
-          if(!nl->IsEqual(nl->Nth(i,args),CcReal::BasicType()))
-         {
-            ErrorReporter::ReportError("all weights must be of type real");
-         }
-      }
+       return listutils::typeError("invalid number of arguments");
     }
+    for (int i=4; i<=3+COUNTWEIGHT; i++)
+    {
+        if(!nl->IsEqual(nl->Nth(i,args),CcReal::BasicType()))
+       {
+          ErrorReporter::ReportError("all weights must be of type real");
+       }
+    }
+    
     return nl->SymbolAtom(URegion::BasicType());
 }
 
