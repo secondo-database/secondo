@@ -1,4 +1,4 @@
-Database  : interpolate2db
+Database  : ../Algebras/RegionInterpolation2/interpolate2db
 Restore   : Yes
 
 Operator  : interpolate2
