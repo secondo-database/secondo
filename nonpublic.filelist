@@ -29,6 +29,7 @@ Temporal2Algebra Temporal2
 SpatialJoinTOUCHAlgebra SpatialJoinTOUCH
 RasterSpatialAlgebra RasterSpatial
 TypeMapTestAlgebra TypeMapTest
+TransportationMode TransportationModeAlgebra
 
 # Java algebras - not longer supported
 FuzzyAlgebra Fuzzy
