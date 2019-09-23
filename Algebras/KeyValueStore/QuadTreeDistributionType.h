@@ -73,7 +73,7 @@ class QuadNodeType : public QuadNode {
 
  private:
   inline QuadNodeType() {}
-  friend class ConstructorFunctions<QuadNodeType>;
+  friend struct ConstructorFunctions<QuadNodeType>;
 };
 
 struct qtnodeInfo : ConstructorInfo {
@@ -144,7 +144,7 @@ class QuadTreeDistributionType : public QuadTreeDistribution {
 
  private:
   inline QuadTreeDistributionType() {}
-  friend class ConstructorFunctions<QuadTreeDistributionType>;
+  friend struct ConstructorFunctions<QuadTreeDistributionType>;
 };
 
 struct qtdistributionInfo : ConstructorInfo {
