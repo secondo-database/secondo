@@ -775,7 +775,7 @@ Now instantiate the class ~HashJoinState~ with the right template parameter.
           } else
           {
             throw std::runtime_error(
-                sizeBinaryTuple
+                stringutils::int2str(sizeBinaryTuple)
                   + ": wrong size of binaryTuple. 4, 8, and 16 allowed only.");
           }
         }
