@@ -850,8 +850,7 @@ void MakeBO::checkIS(const robustGeometry::BOLine& line1,
 }
 void MakeBO::checkIS(robustGeometry::BOEvent& currEv,
 		const robustGeometry::BOLine& currSeg){
-	robustGeometry::BOLine* evSeg = &currEv.getLine();
-	 checkIS( *evSeg, currSeg);
+	 checkIS( currEv.getLine(), currSeg);
 }
 
 void MakeBO::addLineToSweepLine( const robustGeometry::BOLine& line )

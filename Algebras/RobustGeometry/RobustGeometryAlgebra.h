@@ -167,7 +167,7 @@ for finding and sorting the BOLine by increasing x and y
 
 class CompBOLine{
 public:
-	bool operator()(BOLine l1, BOLine l2) {
+	bool operator()(const BOLine& l1, const BOLine& l2) const {
 		if ( l1.getX1() < l2.getX1() )
 			return true;
 		else if ( (l1.getX1() == l2.getX1() ) &&
@@ -207,7 +207,7 @@ for finding and sorting the BOLine by increasing x and y and owner
 
 class CompBOLineXYOwn{
 public:
-	bool operator()(BOLine l1, BOLine l2) {
+	bool operator()(BOLine l1, BOLine l2) const {
 		if ( l1.getX1() < l2.getX1() )
 			return true;
 		else if ( (l1.getX1() == l2.getX1() ) &&
@@ -274,9 +274,9 @@ public:
 	double getOrigX( ) const { return origX; };
 	double getOrigY( ) const { return origY; };
 
-	BOLine& getLine( ) { return line; };
-	BOLine& getLine1( ) { return line1; };
-	BOLine& getLine2( ) { return line2; };
+	BOLine getLine( )  const { return line; };
+	BOLine getLine1( ) const { return line1; };
+	BOLine getLine2( ) const { return line2; };
 	BOPointType getPointType( )const { return pointType; };
 	BOOwnerType getOwner( )const { return owner; };
 	void Print(ostream& out) const;
@@ -303,7 +303,7 @@ for finding and sorting the BOEvents by increasing x and y
 
 class CompBOEventXY{
 public:
-	bool operator()(BOEvent e1, BOEvent e2) {
+	bool operator()(const BOEvent& e1, const BOEvent& e2) const {
 	if ( e1.getX() < e2.getX() )
 		return true;
 	else if ( (e1.getX() == e2.getX() ) &&
@@ -395,7 +395,7 @@ for sorting the batch by increasing x
 
 class CompBatch{
 public:
-	bool operator()(HOBatch e1, HOBatch e2) {
+	bool operator()(HOBatch e1, HOBatch e2)const {
 		if ( e1.getX() < e2.getX() )
 			return true;
 		else
@@ -502,7 +502,8 @@ a tolerance square contains the boundary of a grid corresponding to the scaleFac
 */
 class CompToleranceSquareY{
 public:
-	bool operator()(ToleranceSquare t1, ToleranceSquare t2) {
+	bool operator()(const ToleranceSquare& t1, 
+                        const ToleranceSquare& t2)const {
 		if ( t1.getY21() < t2.getY21() )
 			return true;
 		else if ( ( t1.getY21() == t2.getY21() ) &&
