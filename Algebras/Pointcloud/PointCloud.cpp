@@ -364,10 +364,10 @@ namespace pointcloud {
     /*
     Getter / Setter and help functions
     */
-    double PointCloud::getMinX() { return minX; }
-    double PointCloud::getMaxX() { return maxX; }
-    double PointCloud::getMinY() { return minY; }
-    double PointCloud::getMaxY() { return maxY; }
+    double PointCloud::getMinX() const { return minX; }
+    double PointCloud::getMaxX() const { return maxX; }
+    double PointCloud::getMinY() const { return minY; }
+    double PointCloud::getMaxY() const { return maxY; }
 
     void     PointCloud::setMinX(const double minx) {
         minX = minx;

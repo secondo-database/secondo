@@ -447,10 +447,10 @@ namespace pointcloud {
         /*
         Getter / Setter and help functions
         */
-        double getMinX();
-        double getMaxX();
-        double getMinY();
-        double getMaxY();
+        double getMinX() const;
+        double getMaxX() const;
+        double getMinY() const;
+        double getMaxY() const;
         double getMinZ() const{
            return minZ; 
         }
