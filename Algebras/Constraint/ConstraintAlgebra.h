@@ -593,8 +593,6 @@ Debug and Test-function
 Attributes of a linear constraints:
 
 */
-    bool defined;
-    unsigned int dim;
     double a1;
     double a2;
     double b;
