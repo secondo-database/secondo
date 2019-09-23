@@ -10803,7 +10803,7 @@ int CMPointTrajectory( Word* args, Word& result, int message,
   string querystring;
   result = qp->ResultStorage( s );
 
-  if( args[0].addr > 0 )
+  if( args[0].addr != 0 )
   {
     // create the query list:
     strTrajectPtr << (long)args[0].addr;
@@ -11518,41 +11518,39 @@ int HCMPointTrajectory( Word* args, Word& result, int message,
   string querystring;
   result = qp->ResultStorage( s );
 
-  if( &cmp > 0 )
-  {
-    // create the query list:
-    strTrajectPtr << (long)&cmp;
+  // create the query list:
+  strTrajectPtr << (long)&cmp;
 
-    // +++++ for debugging purposes only +++
-    //cout << "Das aufgerufene Objekt hat die Adresse: " << strTrajectPtr.str()
-    //  << ".\n";
+  // +++++ for debugging purposes only +++
+  //cout << "Das aufgerufene Objekt hat die Adresse: " << strTrajectPtr.str()
+  //  << ".\n";
 
-    querystring =
-    "(aggregateB"
-      "(projectextend"
-        "(namedtransformstream"
-          "(units (cmpoint (ptr " + strTrajectPtr.str() + ")) )"
-          "Unit)"
-        "()"
-        "("
-          "(regions"
-            "(fun"
-              "(tuple1 TUPLE)"
-                "(trajectory"
-                  "(attr tuple1 Unit))))))"
-      "regions"
-      "(fun"
-        "(r1 region)"
-        "(r2 region)"
-        "(union_new r1 r2))"
-      "(region"
-        "()))";
+  querystring =
+  "(aggregateB"
+    "(projectextend"
+      "(namedtransformstream"
+        "(units (cmpoint (ptr " + nl->ToString(listutils::getPtrList(&cmp))  
+        + ")) )"
+        "Unit)"
+      "()"
+      "("
+        "(regions"
+          "(fun"
+            "(tuple1 TUPLE)"
+              "(trajectory"
+                "(attr tuple1 Unit))))))"
+    "regions"
+    "(fun"
+      "(r1 region)"
+      "(r2 region)"
+      "(union_new r1 r2))"
+    "(region"
+      "()))";
 
-    // +++++ for debugging purposes only +++++
-    //cout << querystring << endl;
-    if( !QueryProcessor::ExecuteQuery(querystring, result) )
-      cout << "Error in executing operator query" << endl;
-  }
+  // +++++ for debugging purposes only +++++
+  //cout << querystring << endl;
+  if( !QueryProcessor::ExecuteQuery(querystring, result) )
+    cout << "Error in executing operator query" << endl;
 
   cmp.DeleteIfAllowed();
 
