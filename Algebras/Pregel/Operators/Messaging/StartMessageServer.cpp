@@ -65,7 +65,7 @@ namespace pregel {
 
   PRECONDITION(portNo->IsDefined(), "portNo is undefined");
   int port = portNo->GetValue();
-  PRECONDITION(portNo > 0, "port must be greater than 0");
+  PRECONDITION(port > 0, "port must be greater than 0");
 
   MessageBroker &broker = MessageBroker::get();
 
