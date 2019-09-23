@@ -484,7 +484,7 @@ struct RegNode{
     RegNode(int theRegId, set<int> edgeIdsSet)
     {
         regId = theRegId;
-        edgeIdsSet = edgeIdsSet;
+        this->edgeIdsSet = edgeIdsSet;
         //distance = 0.0000002;
     }
 
