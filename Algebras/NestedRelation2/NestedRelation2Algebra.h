@@ -227,8 +227,8 @@ template<class TypeType>
 void NestedRelation2Algebra::AddTypeToAlgebra(const bool isData)
 {
   TypeConstructor *tc = new TypeConstructor(
-      typename TypeType::Info::Info(),
-      typename TypeType::Functions::Functions());
+      typename TypeType::Info(),
+      typename TypeType::Functions());
   if (isData)
   {
     tc->AssociateKind(Kind::DATA());
