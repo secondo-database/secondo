@@ -318,7 +318,7 @@ op_analyzeRaster::calculateObjects(std::vector<SmiFileId>& rasters,
 
       //memory structure of raster partition
       std::vector<RasterPoint> rasterMem =
-          std::move(fillrastermem(*pc2RasterPart, x, y));
+          fillrastermem(*pc2RasterPart, x, y);
 
       //flooding & calculation ground & split
       int maxObjectN = flooding(rasterMem, areaNumber, rastersBbox.back());
@@ -900,7 +900,7 @@ void op_analyzeRaster::mergeLocMax(std::vector<RasterPoint>& rasterMem,
 
   //initialize data structure for all points to be merged with local maximum
   std::vector<std::pair <size_t,size_t>> newLocMax =
-      std::move(fillVectorWithLocMax(rasterMem, arrayCount));
+      fillVectorWithLocMax(rasterMem, arrayCount);
 
   bool countLocMax =
       calcNearLocMaxByHorn(rasterMem, arrayCount, areaNumber, newLocMax);
@@ -908,7 +908,7 @@ void op_analyzeRaster::mergeLocMax(std::vector<RasterPoint>& rasterMem,
   //fill gap by Gift-Wrapping algorithm (convex hull)
   if (countLocMax){
     std::vector<std::pair <size_t,size_t>> hullLocMax =
-        std::move(calcConvexHull(newLocMax));
+        calcConvexHull(newLocMax);
 
     //fill convex hull to compute significant maximum by edge list algorithm
     fillConvexHull(rasterMem, hullLocMax, areaNumberLocMax);

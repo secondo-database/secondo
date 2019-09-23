@@ -55,10 +55,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 0.1 Constants Defines
 
 */
-constexpr int PAGE_SIZE = 4000;
-const std::string CLUSTER_ATTR_NAME = "Cluster";
 
 namespace pointcloud2 {
+
+constexpr int PC2PAGE_SIZE = 4000;
+const std::string CLUSTER_ATTR_NAME = "Cluster";
 
 /*
 0.3 Convenience Typedefs

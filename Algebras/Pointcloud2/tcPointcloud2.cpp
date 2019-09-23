@@ -542,7 +542,7 @@ Pointcloud2::Pointcloud2(const ListExpr& typeInfo) : _pointCount(0)
                                                 false));
     _pointFile->Create();
 
-    _rtree = RTreePtr(new RTreeType(PAGE_SIZE, false));
+    _rtree = RTreePtr(new RTreeType(PC2PAGE_SIZE, false));
 
     //Relation is optional => no exception throwing
     if( nl->HasLength(typeInfo, 2) ) {
@@ -986,7 +986,7 @@ size_t Pointcloud2::copySelectionFrom(const Pointcloud2* source,
 
     // also, using the RTree is only worth the effort if there are more
     // than just a few blocks in the SmiRecordFile:
-    constexpr size_t POINT_COUNT_THRESHOLD = 8 * PAGE_SIZE / sizeof(PcPoint);
+    constexpr size_t POINT_COUNT_THRESHOLD = 8 * PC2PAGE_SIZE / sizeof(PcPoint);
 
     const double intersectionRatio = intersectionBbox.Area()/sourceBbox.Area();
     const bool useRTree = (intersectionRatio < INTERSECTION_RATIO_THRESHOLD
