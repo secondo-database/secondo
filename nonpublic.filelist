@@ -35,6 +35,7 @@ HierarchicalGeoAlgebra HierarchicalGeo
 MRegionOps3Algebra MRegionOps3
 MRegionOpsAlgebra MRegionOps
 FlockAlgebra Flock
+MovingRegion2Algebra MovingRegion2
 
 
 
