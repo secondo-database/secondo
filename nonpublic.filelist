@@ -30,6 +30,14 @@ SpatialJoinTOUCHAlgebra SpatialJoinTOUCH
 RasterSpatialAlgebra RasterSpatial
 TypeMapTestAlgebra TypeMapTest
 TransportationModeAlgebra TransportationMode
+Spatial3DAlgebra Spatial3D
+HierarchicalGeoAlgebra HierarchicalGeo
+MRegionOps3Algebra MRegionOps3
+MRegionOpsAlgebra MRegionOps
+FlockAlgebra Flock
+
+
+
 
 # Java algebras - not longer supported
 FuzzyAlgebra Fuzzy
