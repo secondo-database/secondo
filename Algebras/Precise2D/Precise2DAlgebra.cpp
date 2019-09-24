@@ -37,6 +37,7 @@
 #define PRECISE2DALGEBRA_CPP_
 
 #include "Precise2DAlgebra.h"
+#include "StringUtils.h"
 
 //includes for the Gnu Multiple Precision (GMP) library
 #include <stdio.h>
@@ -306,7 +307,7 @@ Word Point2::InPoint2(const ListExpr typeInfo, const ListExpr instance,
   }
  } else {
   if (nl->ListLength(instance)<2){
-   message = nl->ListLength(instance) + "are not enough "
+   message = stringutils::int2str(nl->ListLength(instance)) + "are not enough "
      "arguments.";
   } else {
    message = "There are too many arguments.";

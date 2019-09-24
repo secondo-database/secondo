@@ -366,9 +366,9 @@ bool ConvexHullTreeNode :: isDirtyHash()
 
 */
 
-void ConvexHullTreeNode :: setParent(RegionTreeNode *myParent)
+void ConvexHullTreeNode :: setParent(RegionTreeNode *_myParent)
 {  
-    myParent = myParent;
+    myParent = _myParent;
     myParent->setDirtyHash();
 }
 /*
@@ -392,13 +392,13 @@ void ConvexHullTreeNode :: setLevel(int lev)
 1.1  setHole()
  
 */                
-void ConvexHullTreeNode :: setHole(bool isHole)
+void ConvexHullTreeNode :: setHole(bool _isHole)
 {
-    isHole = isHole;
+    hole = _isHole;
     vector<ConvexHullTreeNode*> children = this->getChildren();
     for(unsigned int i = 0; i < children.size(); i++)
     {
-        children.at(i)->setHole(isHole);
+        children.at(i)->setHole(_isHole);
     }
     //delete children;;
     setDirtyHash();

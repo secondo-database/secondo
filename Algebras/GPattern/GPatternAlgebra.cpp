@@ -3829,7 +3829,6 @@ Evaluating the gpattern results
     list<CompressedInMemUSet>::iterator begin= 
       accumlator.units.begin(), end, tmp;
     //cast the CompressedInMemMSet into an InMemMSet
-    begin != accumlator.units.end();
     while(begin != accumlator.units.end())
     {
       end= accumlator.GetPeriodEndUnit(begin);

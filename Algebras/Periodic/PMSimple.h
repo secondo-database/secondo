@@ -979,11 +979,10 @@ void PMSimple<T, Unit>::CopyValuesFrom( DbArray<Unit>& linearMoves,
   this->compositeMoves.copyFrom(compositeMoves);
   this->compositeSubMoves.copyFrom(compositeSubMoves);
   this->periodicMoves.copyFrom(periodicMoves);
-  this.defined=defined;
-  this.canDelete=false;
+  SetDefined(defined);
   this->interval.Equalize(&interval);
   this->startTime.Equalize(&startTime);
-  this.submove=submove; 
+  this->submove=submove; 
 } 
 
 /*
@@ -1019,9 +1018,9 @@ void PMSimple<T, Unit>::TakeValuesFrom( DbArray<Unit>& linearMoves,
    this->compositeSubMoves = compositeSubMoves;
    this->periodicMoves = periodicMoves;
    this->defined = defined;
-   this.interval = interval;
-   this.startTimes = startTime;
-   this.submove = submove;
+   this->interval = interval;
+   this->startTimes = startTime;
+   this->submove = submove;
 }
 
 

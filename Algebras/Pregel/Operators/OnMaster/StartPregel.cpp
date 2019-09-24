@@ -76,7 +76,7 @@ namespace pregel {
   auto connections = PregelContext::get().getConnections();
   auto query = "query startPregelWorker(" +
    std::to_string(rounds->GetValue()) + ");";
-  supplier<Runner> runners = [rounds, &connections, &query]() -> Runner * {
+  supplier<Runner> runners = [&connections, &query]() -> Runner * {
     WorkerConnection *connection;
     if ((connection = connections()) != nullptr) {
      return new Runner(connection, query);

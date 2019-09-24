@@ -439,8 +439,6 @@ class SpatialJoinState {
                    const std::vector<CRelAlgebra::TBlock*> &sTBlockVector_,
                    uint64_t fIndex_,
                    uint64_t sIndex_,
-                   uint64_t fNumTuples_,
-                   uint64_t sNumTuples_,
                    uint64_t rTBlockSize_,
                    uint64_t numStripes_,
                    uint64_t maxTuple_,
@@ -451,8 +449,6 @@ class SpatialJoinState {
                    sTBlockVector(sTBlockVector_),
                    fIndex(fIndex_),
                    sIndex(sIndex_),
-                   fNumTuples(fNumTuples_),
-                   sNumTuples(sNumTuples_),
                    rTBlockSize(rTBlockSize_),
                    maxEntryPerBucket(8192),
                    beginNumStripes(1),
@@ -771,8 +767,6 @@ bool sweepSearch(std::vector<binaryTuple> &sweepStruct,
   const std::vector<CRelAlgebra::TBlock*> &sTBlockVector;
   uint64_t fIndex;
   uint64_t sIndex;
-  uint64_t fNumTuples;
-  uint64_t sNumTuples;
   uint64_t rTBlockSize;
   std::vector<binaryTuple> fBAT;
   std::vector<binaryTuple> sBAT;

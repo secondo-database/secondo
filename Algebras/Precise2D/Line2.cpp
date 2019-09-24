@@ -347,7 +347,7 @@ void SegmentData::SetPreciseLeftX(Flob& preciseCoordinates, mpq_class lx) {
  }
  assert(preciseCoordinates.write(s, xLeftNumOfChars + 1, xLeftPos));
 
- delete s;
+ delete[] s;
 }
 
 /*
@@ -379,7 +379,7 @@ void SegmentData::SetPreciseLeftY(Flob& preciseCoordinates, mpq_class ly) {
  }
  assert(preciseCoordinates.write(s, yLeftNumOfChars + 1, yLeftPos));
 
- delete s;
+ delete[] s;
 }
 
 /*
@@ -411,7 +411,7 @@ void SegmentData::SetPreciseRightX(Flob& preciseCoordinates, mpq_class rx) {
  }
  assert(preciseCoordinates.write(s, xRightNumOfChars + 1, xRightPos));
 
- delete s;
+ delete[] s;
 }
 
 /*
@@ -443,7 +443,7 @@ void SegmentData::SetPreciseRightY(Flob& preciseCoordinates, mpq_class ry) {
  }
  assert(preciseCoordinates.write(s, yRightNumOfChars + 1, yRightPos));
 
- delete s;
+ delete[] s;
 }
 
 /*
@@ -496,7 +496,7 @@ void SegmentData::SetPreciseLeftCoordinates(Point2* lp,
   } else {
    assert(preciseCoordinates.write(s, length, yLeftPos));
   }
-  delete s;
+  delete[] s;
  }
 }
 
@@ -552,7 +552,7 @@ void SegmentData::SetPreciseRightCoordinates(Point2* rp,
      preciseCoordinates.write(s, xRightNumOfChars + yRightNumOfChars + 1,
        yRightPos));
   }
-  delete s;
+  delete[] s;
  }
 }
 

@@ -765,8 +765,8 @@ runs are written to g1 and g2.
 
 class ContourLineLocalInfo2{
 public:
-  ContourLineLocalInfo2(const int _interval, ListExpr tupleType, size_t mem) :
-      interval(_interval),pos(0){
+  ContourLineLocalInfo2(ListExpr tupleType, size_t mem) 
+  {
      tt = new TupleType(tupleType);
      store = new segmentStorage(mem);
   }
@@ -811,9 +811,6 @@ public:
   }
 
   private:
-    int interval;
-    size_t pos;
-   // vector<hSegment> v; 
     segmentStorage* store;
     TupleType* tt;
 
@@ -913,9 +910,7 @@ Return value: stream of tuple (level, line)
 #else
          mem = qp->GetMemorySize(s)*1024*1024;
 #endif         
-         li = new LIT(interval, 
-                                    nl->Second(GetTupleResultType(s)),
-                                    mem);
+         li = new LIT( nl->Second(GetTupleResultType(s)), mem);
         
         local.addr = li;
 
@@ -1335,7 +1330,7 @@ Return value: stream of tuple (level, line)
 #else
          mem = qp->GetMemorySize(s)*1024*1024;
 #endif         
-        li = new ContourLineLocalInfo2(interval, 
+        li = new ContourLineLocalInfo2( 
                                   nl->Second(GetTupleResultType(s)),
                                   mem);
 

@@ -99,18 +99,21 @@ and optionally the flag ~isBasic~.
 Returns the bounding box of the point.
 
 */
-	inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
+	inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const
+           override;
         
 /*
 Returns the value of ~defined~.
 
 */
-        inline bool IsDefined() const { return defined; }
+        inline bool IsDefined() const override { return defined; }
 /*
 Sets the value of ~defined~.
 
 */
-	inline void SetDefined(bool defined) { this->defined = defined; }
+	inline void SetDefined(bool defined) override {
+            this->defined = defined;
+        }
 
 /*
 Operators redefinition and comparison operators.
@@ -118,6 +121,9 @@ Operators redefinition and comparison operators.
 */
         inline Reg2GridPoint& operator=(const Reg2GridPoint& other);
 	inline bool Equal(const Reg2GridPoint& other) const;
+        bool Equal(const Attribute* rhs) const override{
+          return Equal( *( (Reg2GridPoint*) rhs));
+        }
 	inline int Compare(const Reg2GridPoint& other) const;
 	inline bool operator==(const Reg2GridPoint& other) const;
 	inline bool operator!=(const Reg2GridPoint& other) const;
@@ -132,26 +138,26 @@ Functions for use as StandardSpatialAttribute.
 
 */
         inline double Distance
-            ( const Rectangle<2>& r, const Geoid* geoid=0 ) const;
+            ( const Rectangle<2>& r, const Geoid* geoid=0 ) const override;
         inline bool Intersects
-            (const Rectangle<2>& rect, const Geoid* geoid=0 ) const 
+            (const Rectangle<2>& rect, const Geoid* geoid=0 ) const override
             { return false; };
 
-        inline bool IsEmpty()const{ return !IsDefined(); }
+        inline bool IsEmpty()const override{ return !IsDefined(); }
 
-        inline size_t Sizeof() const
+        inline size_t Sizeof() const override
 	{
 	  return sizeof( *this );
 	}
 
-	inline size_t HashValue() const
+	inline size_t HashValue() const override
 	{
 	  if( !IsDefined() )
 	    return 0;
 	  return (size_t)(5*x + y);
 	}
 
-	inline void CopyFrom( const Attribute* right )
+	inline void CopyFrom( const Attribute* right ) override
 	{
 	  const Reg2GridPoint* p = (const Reg2GridPoint*)right;
 	  SetDefined( p->IsDefined() );
@@ -163,7 +169,7 @@ Functions for use as StandardSpatialAttribute.
 	  }
 	}
 
-	inline int Compare( const Attribute *arg ) const
+	inline int Compare( const Attribute *arg ) const override
 	{ // CD: Implementation following guidelines from Attribute.h:
 	  const Reg2GridPoint* p = (const Reg2GridPoint*)arg;
 	  if( !IsDefined() && !p->IsDefined() )
@@ -179,12 +185,12 @@ Functions for use as StandardSpatialAttribute.
 	  return 0;
 	}
 
-	inline bool Adjacent( const Attribute *arg ) const
+	inline bool Adjacent( const Attribute *arg ) const override
 	{
 	  return false;
 	}
 
-	inline Reg2GridPoint* Clone() const
+	inline Reg2GridPoint* Clone() const override
 	{
 	  return new Reg2GridPoint( *this );
 	}

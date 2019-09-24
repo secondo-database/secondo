@@ -2127,14 +2127,10 @@ bool ResultUnit::Check() const {
         const MSegment* ms2 = &msegments[i+1];
 
         const Point2D a1(ms1->GetInitial().GetStart());
-        const Point2D b1(ms1->GetInitial().GetEnd());
         const Point2D c1(ms1->GetFinal().GetStart());
-        const Point2D d1(ms1->GetFinal().GetEnd());
 
         const Point2D a2(ms2->GetInitial().GetStart());
-        const Point2D b2(ms2->GetInitial().GetEnd());
         const Point2D c2(ms2->GetFinal().GetStart());
-        const Point2D d2(ms2->GetFinal().GetEnd());
 
         if (a1 == a2 && c1 == c2) {
 

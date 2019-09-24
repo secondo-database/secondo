@@ -40,7 +40,6 @@ June, 2010  Jianqiu Xu
 //#define __TRACE__ cout <<  __FILE__ << "::" << __LINE__;
 #define __TRACE__
 
-using namespace std;
 
 #include "../../Tools/Flob/Flob.h"
 #include "../../Tools/Flob/DbArray.h"
@@ -68,6 +67,7 @@ using namespace std;
 #include <sstream>
 #include <limits>
 
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

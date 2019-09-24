@@ -520,8 +520,6 @@ class LocalInfo {
                                          sTBlockVector,
                                          fIndex,
                                          sIndex,
-                                         fNumTuples,
-                                         sNumTuples,
                                          rTBlockSize,
                                          numOfPartStripes,
                                          maxTuplePerPart,

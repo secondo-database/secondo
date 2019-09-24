@@ -240,7 +240,7 @@ void PointData::SetPreciseX(Flob* preciseCoordinates, mpq_class x) {
  bool ok = preciseCoordinates->write(s, xNumOfChars + 1, xStartPos);
  assert(ok);
 
- delete s;
+ delete[] s;
 }
 
 void PointData::SetPreciseY(Flob* preciseCoordinates, mpq_class y) {
@@ -267,7 +267,7 @@ void PointData::SetPreciseY(Flob* preciseCoordinates, mpq_class y) {
  bool ok = preciseCoordinates->write(s, yNumOfChars + 1, yStartPos);
  assert(ok);
 
- delete s;
+ delete[] s;
 }
 
 /*

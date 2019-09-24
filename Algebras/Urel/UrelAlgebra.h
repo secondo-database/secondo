@@ -296,7 +296,7 @@ private:
       std::vector<URel1Tuple> &tupleList);
   std::vector<URel1Tuple>  GetAllTuples(const Instant desTime);
 
-  friend class ConstructorFunctions<Urel1> ;
+  friend struct ConstructorFunctions<Urel1> ;
 };
 
 #endif //URELALGE_H

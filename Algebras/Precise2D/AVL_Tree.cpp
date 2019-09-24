@@ -5914,7 +5914,7 @@ void SetOp(const Line2& line1, const Line2& line2, Line2& result,
 
  if (!line1.BoundingBox().Intersects(line2.BoundingBox(), geoid)) {
   switch (op) {
-  case avlseg::union_op: {
+  case union_op: {
    result.StartBulkLoad();
    int edgeno = 0;
    int s = line1.Size();
@@ -5950,11 +5950,11 @@ void SetOp(const Line2& line1, const Line2& line2, Line2& result,
    result.EndBulkLoad();
    return;
   }
-  case avlseg::difference_op: {
+  case difference_op: {
    result = line1;
    return;
   }
-  case avlseg::intersection_op: {
+  case intersection_op: {
    return;
   }
   default:
@@ -6138,7 +6138,7 @@ void SetOpWithScaling(const Line2& line1, const Line2& line2, Line2& result,
 
  if (!line1.BoundingBox().Intersects(line2.BoundingBox(), geoid)) {
   switch (op) {
-  case avlseg::union_op: {
+  case union_op: {
    result.StartBulkLoad();
    int edgeno = 0;
    int s = line1.Size();
@@ -6174,11 +6174,11 @@ void SetOpWithScaling(const Line2& line1, const Line2& line2, Line2& result,
    result.EndBulkLoad();
    return;
   }
-  case avlseg::difference_op: {
+  case difference_op: {
    result = line1;
    return;
   }
-  case avlseg::intersection_op: {
+  case intersection_op: {
    return;
   }
   default:
@@ -7055,12 +7055,12 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
  result.SetDefined(true);
  if (reg1.Size() == 0) {
   switch (op) {
-  case avlseg::union_op:
+  case union_op:
    result = reg2;
    return;
-  case avlseg::intersection_op:
+  case intersection_op:
    return; // empty region
-  case avlseg::difference_op:
+  case difference_op:
    return; // empty region
   default:
    assert(false);
@@ -7068,12 +7068,12 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
  }
  if (reg2.Size() == 0) {
   switch (op) {
-  case avlseg::union_op:
+  case union_op:
    result = reg1;
    return;
-  case avlseg::intersection_op:
+  case intersection_op:
    return;
-  case avlseg::difference_op:
+  case difference_op:
    result = reg1;
    return;
   default:
@@ -7085,7 +7085,7 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
 
  if (!reg1.BoundingBox().Intersects(reg2.BoundingBox(), geoid)) {
   switch (op) {
-  case avlseg::union_op: {
+  case union_op: {
    result.StartBulkLoad();
    int edgeno = 0;
    int s = reg1.Size();
@@ -7133,11 +7133,11 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
    result.EndBulkLoad();
    return;
   }
-  case avlseg::difference_op: {
+  case difference_op: {
    result = reg1;
    return;
   }
-  case avlseg::intersection_op: {
+  case intersection_op: {
    return;
   }
   default:
@@ -7820,12 +7820,12 @@ void SetOpWithScaling(/*const*/Region2& reg1, /*const*/Region2& reg2,
  result.SetDefined(true);
  if (reg1.Size() == 0) {
   switch (op) {
-  case avlseg::union_op:
+  case union_op:
    result = reg2;
    return;
-  case avlseg::intersection_op:
+  case intersection_op:
    return; // empty region
-  case avlseg::difference_op:
+  case difference_op:
    return; // empty region
   default:
    assert(false);
@@ -7833,12 +7833,12 @@ void SetOpWithScaling(/*const*/Region2& reg1, /*const*/Region2& reg2,
  }
  if (reg2.Size() == 0) {
   switch (op) {
-  case avlseg::union_op:
+  case union_op:
    result = reg1;
    return;
-  case avlseg::intersection_op:
+  case intersection_op:
    return;
-  case avlseg::difference_op:
+  case difference_op:
    result = reg1;
    return;
   default:
@@ -7848,7 +7848,7 @@ void SetOpWithScaling(/*const*/Region2& reg1, /*const*/Region2& reg2,
 
  if (!reg1.BoundingBox().Intersects(reg2.BoundingBox(), geoid)) {
   switch (op) {
-  case avlseg::union_op: {
+  case union_op: {
    result.StartBulkLoad();
    int edgeno = 0;
    int s = reg1.Size();
@@ -7896,11 +7896,11 @@ void SetOpWithScaling(/*const*/Region2& reg1, /*const*/Region2& reg2,
    result.EndBulkLoad();
    return;
   }
-  case avlseg::difference_op: {
+  case difference_op: {
    result = reg1;
    return;
   }
-  case avlseg::intersection_op: {
+  case intersection_op: {
    return;
   }
   default:

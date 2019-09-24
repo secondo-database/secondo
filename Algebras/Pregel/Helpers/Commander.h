@@ -59,8 +59,6 @@ namespace pregel {
   bool hasRun = false;
   int err = 0;
   double runtime = 0.0;
-  bool rewriteQuery = true;
-  bool printCommands = true;
 
   distributed2::CommandLog commandLog;
 
