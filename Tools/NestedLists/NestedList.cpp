@@ -302,9 +302,10 @@ NestedList::setMem( Cardinal nodeMem, Cardinal strMem, Cardinal textMem)
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard1(mtx);
 #endif
-  nodeEntries = nodeMem * 1024 / sizeof(NodeRecord);
-  stringEntries = strMem * 1024 / sizeof(StringRecord);
-  textEntries = textMem * 1024 / sizeof(TextRecord);
+  nodeEntries = (nodeMem * 1024) / sizeof(NodeRecord);
+  stringEntries = (strMem * 1024) / sizeof(StringRecord);
+  textEntries = (textMem * 1024) / sizeof(TextRecord);
+
 }
 
 
