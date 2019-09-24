@@ -798,12 +798,12 @@ SecondoSystem::GetDatabaseName()
 */
 SecondoSystem::SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc )
 {
-  nl = new NestedList(nlfolder);
-  al = new NestedList(nlfolder);
-  NList::setNLRef(nl);
+  this->nl = new NestedList(nlfolder);
+  this->al = new NestedList(nlfolder);
+  NList::setNLRef(this->nl);
 
-  algebraManager = new AlgebraManager( *nl, getAlgebraEntryFunc );
-  queryProcessor = new QueryProcessor( nl, algebraManager );
+  algebraManager = new AlgebraManager( *(this->nl), getAlgebraEntryFunc );
+  queryProcessor = new QueryProcessor( this->nl, algebraManager );
   catalog        = 0;
   initialized    = false;
   testMode       = false; // Todo: Should be configurable in SecondoConfig.ini
