@@ -271,8 +271,8 @@ void CacheTestLocalInfo::test(ostream& out) {
 
    // check sums are used to ensure the compiler does not "optimize away" the
    // array accesses (which are without effect otherwise)
-   entryType sum1 = 0;
-   uint64_t sum2 = 0;
+   size_t sum1 = 0;
+   size_t sum2 = 0;
 
    // start with a scope size of 1 KiB, then double it in each loop
    size_t scopeSizeKiB = 1;

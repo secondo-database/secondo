@@ -586,9 +586,9 @@ double CreateRectanglesLocalInfo<dim>::getRnd(double min, double max) {
 template class CreateRectangles<1>;
 template class CreateRectangles<2>;
 template class CreateRectangles<3>;
-template class CreateRectanglesElem<1>;
-template class CreateRectanglesElem<2>;
-template class CreateRectanglesElem<3>;
+template struct CreateRectanglesElem<1>;
+template struct CreateRectanglesElem<2>;
+template struct CreateRectanglesElem<3>;
 template class CreateRectanglesLocalInfo<1>;
 template class CreateRectanglesLocalInfo<2>;
 template class CreateRectanglesLocalInfo<3>;

@@ -223,7 +223,6 @@ class JoinState {
    /* the number of the CDACSpatialJoin[Count] operator (or, more precisely,
     * the CDACLocalInfo instance) that created this JoinState instance. This
     * number can be used to distinguish several operators in console output */
-   const unsigned operatorNum;
 
    const std::string outputPrefix;
 

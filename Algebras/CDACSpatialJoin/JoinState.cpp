@@ -149,7 +149,6 @@ JoinState::JoinState(const OutputType outputType_,
         outputType(outputType_),
         tupleCounts { inputA->getCurrentTupleCount(),
                       inputB->getCurrentTupleCount() },
-        operatorNum(operatorNum_),
         outputPrefix(2 * (operatorNum_ - 1), ' ' ),
         timer(timer_),
         selfJoin(false) {
