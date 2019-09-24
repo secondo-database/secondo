@@ -43,6 +43,7 @@ ContinuousQueriesAlgebra ContinuousQueries
 ContinuousUpdateAlgebra ContinuousUpdate
 GPatternAlgebra GPattern
 TransportationModeAlgebra TransportationMode
+TimeSequenceAlgebra TimeSequence
 
 
 
