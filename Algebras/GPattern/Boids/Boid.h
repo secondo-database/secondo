@@ -85,10 +85,6 @@ update, and the previous acceleration and velocity.
   virtual bool
   update(const double &elapsedSeconds, const double sampleIntervalSeconds);
 
-  virtual bool
-  update(const double &elapsedSeconds){
-    return SimObject::update(elapsedSeconds);
-  }
 
   void SetGenerator(BoidGenerator* BG);
 

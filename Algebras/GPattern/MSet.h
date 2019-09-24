@@ -299,15 +299,14 @@ is undefined, or the Instant is not within the unit's timeInterval.
   virtual bool At( const IntSet& val, TemporalUnit<IntSet>& result ) const;
   virtual void AtInterval( const temporalalgebra::Interval<Instant>& i,
                            TemporalUnit<IntSet>& result ) const;
-  virtual bool EqualValue( const temporalalgebra::TemporalUnit<IntSet>& i) 
-                         const;
+  virtual bool EqualValue( const USet& i ) const;
 /*
 Returns ~true~ if the value of this temporal unit is defined and equal to the
 value of the temporal unit ~i~ and ~false~ if they are different.
 
 */
 
-  virtual bool Merge( const  temporalalgebra::TemporalUnit<IntSet>& i) ;
+  virtual bool Merge( const USet& i ) ;
 /*
 Merges unit ~i~ into this unit if possible and return ~true~. Otherwise do
 not modify this unit and return ~false~.
@@ -489,8 +488,8 @@ public:
   ~MSet() { }
   //MRegion* MSet2MRegion(vector<int>* ids, vector<MPoint*>* sourceMPoints,
   //    Instant& samplingDuration);
-  void Add( const unittype& unit );
-  void MergeAdd( const unittype& unit );
+  void Add( const USet& unit );
+  void MergeAdd( const USet& unit );
   void LiftedUnion(MSet& arg, MSet& res);
   void LiftedUnion2(MSet& arg, MSet& res);
   void LiftedUnion(MSet& arg);
