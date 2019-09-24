@@ -406,7 +406,7 @@ ALGEBRAS      += AuxiliaryAlgebra
 
 #ALGEBRA_DIRS += TIN
 #ALGEBRAS     += TinAlgebra
-#ALGEBRA_DEPS += quadmath gmp
+#ALGEBRA_DEPS += quadmath gmp gmpxx
 
 #ALGEBRA_DIRS += Tile
 #ALGEBRAS += TileAlgebra
@@ -529,7 +529,7 @@ ALGEBRAS     += JNetAlgebra
 
 #ALGEBRA_DIRS += PMRegion
 #ALGEBRAS     += PMRegionAlgebra
-#ALGEBRA_DEPS += CGAL boost_thread boost_system mpfr gmp
+#ALGEBRA_DEPS += CGAL boost_thread boost_system mpfr gmp gmpxx
 
 #ALGEBRA_DIRS  += DFS
 #ALGEBRAS      += DFSAlgebra
