@@ -42,6 +42,7 @@ HierarchicalGeoAlgebra HierarchicalGeo
 ContinuousQueriesAlgebra ContinuousQueries
 ContinuousUpdateAlgebra ContinuousUpdate
 GPatternAlgebra GPattern
+TransportationModeAlgebra TransportationMode
 
 
 
