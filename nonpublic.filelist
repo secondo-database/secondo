@@ -36,6 +36,11 @@ MRegionOps3Algebra MRegionOps3
 MRegionOpsAlgebra MRegionOps
 FlockAlgebra Flock
 MovingRegion2Algebra MovingRegion2
+MRegionOps2Algebra MRegionOps2
+FixedMRegionAlgebra FixedMRegion
+HierarchicalGeoAlgebra HierarchicalGeo
+ContinuousQueriesAlgebra ContinuousQueries
+ContinuousUpdateAlgebra ContinuousUpdate
 
 
 
