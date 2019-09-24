@@ -473,7 +473,7 @@ void QuadTreeDistribution::addWeightNode(QuadNode* base, QuadNode* add,
 
 void QuadTreeDistribution::resetMaxGlobalIds() {
   if (root) {
-    propagateDown(root, [this](QuadNode* node) { node->maxGlobalId = 0; });
+    propagateDown(root, [](QuadNode* node) { node->maxGlobalId = 0; });
   }
 }
 
