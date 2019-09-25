@@ -231,7 +231,7 @@ export default class Journal extends Vue {
   private pollJournal() {
     this.pollingJournal = setInterval(() => {
       this.dispatchGetJournalAction();
-    }, 10000);
+    }, 1000);
   }
 
   private pollRunningJobWorkerStatus() {
