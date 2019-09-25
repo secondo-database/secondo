@@ -81,6 +81,16 @@ or checks for equality with with the corresponding attribute type
 */
     bool Equals(const temporalalgebra::IPoint &value) const;
 
+    template<class Z>
+    int CompareAlmost(const Z& z) const{
+       return Compare(z);
+    }   
+
+    template<class Z>
+    bool EqualsAlmost(const Z& z) const{
+       return Equals(z);
+    } 
+
 /*
 ~IsDefined~ returns wether the entry is defined
 

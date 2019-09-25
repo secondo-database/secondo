@@ -94,6 +94,17 @@ or checks for equality with with the corresponding attribute type
 
 */
     bool Equals(const temporalalgebra::IRegion & value) const;
+
+    template<class Z>
+    int CompareAlmost(const Z& z) const{
+       return Compare(z);
+    }   
+
+    template<class Z>
+    bool EqualsAlmost(const Z& z) const{
+       return Equals(z);
+    } 
+
 /*
 ~GetHash~ returns a hash value for the entry
 
