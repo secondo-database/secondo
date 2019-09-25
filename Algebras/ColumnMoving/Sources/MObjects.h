@@ -68,16 +68,16 @@ which still have to be implemented by attribute arrays derived
 from this class.
 
 */
-    virtual int  CompareAlmost(size_t rowA, const AttrArray &arrayB, 
-      size_t rowB) const;
-    virtual bool Equals(size_t rowA, const AttrArray &arrayB, 
-      size_t rowB) const;
-    virtual bool EqualsAlmost(size_t rowA, const AttrArray &arrayB, 
-      size_t rowB) const;
+    virtual int  CompareAlmost(uint64_t rowA, const AttrArray &arrayB, 
+      uint64_t rowB) const override;
+    virtual bool Equals(uint64_t rowA, const AttrArray &arrayB, 
+      uint64_t rowB) const override;
+    virtual bool EqualsAlmost(uint64_t rowA, const AttrArray &arrayB, 
+      uint64_t rowB) const override;
 
-    virtual int  CompareAlmost(size_t row, Attribute &value) const;
-    virtual bool Equals(size_t row, Attribute &value) const;
-    virtual bool EqualsAlmost(size_t row, Attribute &value) const;
+    virtual int  CompareAlmost(uint64_t  row, Attribute &value) const override;
+    virtual bool Equals(uint64_t  row, Attribute &value) const override;
+    virtual bool EqualsAlmost(uint64_t row, Attribute &value) const override;
 
 /*
 1.1.3 Operators

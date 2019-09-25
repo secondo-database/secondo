@@ -40,35 +40,35 @@ which still have to be implemented by attribute arrays derived
 from this class.
 
 */
-  int MObjects::CompareAlmost(size_t rowA, const CRelAlgebra::AttrArray 
-    &arrayB, size_t rowB) const
+  int MObjects::CompareAlmost(uint64_t rowA, const CRelAlgebra::AttrArray 
+    &arrayB, uint64_t rowB) const
   {
     return Compare(rowA, arrayB, rowB);
   }
 
-  int MObjects::CompareAlmost(size_t row, Attribute &value) const
+  int MObjects::CompareAlmost(uint64_t row, Attribute &value) const
   {
     return Compare(row, value);
   }
 
-  bool MObjects::Equals(size_t rowA, const CRelAlgebra::AttrArray &arrayB,
-    size_t rowB) const
+  bool MObjects::Equals(uint64_t  rowA, const CRelAlgebra::AttrArray &arrayB,
+    uint64_t rowB) const
   {
     return Compare(rowA, arrayB, rowB) == 0;
   }
 
-  bool MObjects::Equals(size_t row, Attribute &value) const
+  bool MObjects::Equals(uint64_t row, Attribute &value) const
   {
     return Compare(row, value) == 0;
   }
 
-  bool MObjects::EqualsAlmost(size_t rowA, 
-    const CRelAlgebra::AttrArray &arrayB, size_t rowB) const
+  bool MObjects::EqualsAlmost(uint64_t rowA, 
+    const CRelAlgebra::AttrArray &arrayB, uint64_t rowB) const
   {
     return Compare(rowA, arrayB, rowB) == 0;
   }
 
-  bool MObjects::EqualsAlmost(size_t row, Attribute &value) const
+  bool MObjects::EqualsAlmost(uint64_t row, Attribute &value) const
   {
     return Compare(row, value) == 0;
   }

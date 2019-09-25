@@ -767,7 +767,7 @@ minimum and maximum of the moving object entry are updated.
 
       Interval interval {0, 0, true, false};
 
-      if (!unitCount(row) == 0) {
+      if (unitCount(row) != 0) {
         Unit& u = unit(unitAfterLast(row) - 1);
         interval.s = (static_cast<int64_t>(u.interval().e * 1.1) 
                      / MILLISECONDS + 1) * MILLISECONDS;
