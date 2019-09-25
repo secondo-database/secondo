@@ -1,0 +1,37 @@
+Distributed Visualization: How to implement visualization for an operator
+=========================================================================
+
+
+SECONDO-Kernel: Distributed2 directory
+======================================
+
+(1) Add the new operator to the if-clause in TreeListener::observeOrNot. After that the operator will be included in the list of observable operators and will
+be prepared for visualization.
+
+Next steps need to be executed in the file Distributed2Algebra.cpp. Use the global variables progressOberver or algInstance->progressOberver for calls
+to the global ProgressObserver instance in that class.
+
+(2) Find the mapping method of your operator and add a callback to the method ProgressObserver::mappingCallback.
+There are several overloads of this method for different arguments.
+
+(3) In the execution method of the operator, at the beginning of the run() method, register a message handler by calling addMessageHandler on the
+Secondo interface and provide a progress listener by calling ProgressObserver::getProgressListener. Choose the overload which suits your arguments.
+
+(4) At the end of the run() method, right after a call to ci->simpleCommandFromList (or similar method which executes the commands on the workers) 
+remove the registered message handler by calling removeMessageHandler on the Secondo interface and in this method make another
+call to the method ProgressObserver::getProgressListener to provide the right progress listener for the worker. This progress listener will be removed from the
+Secondo interface.
+
+(5) Right after that make a call to the method ProgressListener::commitWorkingOnElementFinished. Use an overload which suits your data. This will mark the
+operator as finished and update the progress if needed.
+
+
+Visualization component: client
+===============================
+(1) Add the new operator to the switch statement in the method getOperatorArguments in the file src/service/Tree.ts. This method
+splits the raw arguments provided by the ProgressObserver on the Secondo side and returns a formatted string which is then
+displayed in the visualization GUI.
+
+(2) If you need custom visualization components for the operator (like it was done for the operator collect2), you have to extend the implementation in the files
+src/components/shared/Matrix.vue (this file describes the visualization of the status of workers data) and in the file
+src/components/shared/Tree.vue (this file describes the visualization of the tree data)
