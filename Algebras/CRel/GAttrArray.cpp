@@ -32,13 +32,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SmiUtils.h"
 #include "TypeUtils.h"
 
-using namespace CRelAlgebra;
 
 using listutils::emptyErrorInfo;
 using std::max;
 using std::string;
 
 extern AlgebraManager *am;
+
+
+namespace CRelAlgebra {
 
 GAttrArrayInfo::GAttrArrayInfo()
 {
@@ -284,7 +286,7 @@ void GAttrArray::Append(Attribute &value)
   Attribute *attribute = (Attribute*)attributeDataEnd;
 
   //copy the new attribute's data
-  memcpy(attribute, &value, attributeSize);
+  memcpy((void*)attribute, (void*) &value, attributeSize);
 
   const uint64_t flobCount = info.attributeFLOBCount;
 
@@ -694,3 +696,5 @@ template class GSpatialAttrArray<2>;
 template class GSpatialAttrArray<3>;
 template class GSpatialAttrArray<4>;
 template class GSpatialAttrArray<8>;
+
+} // end of namepsace

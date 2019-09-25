@@ -99,4 +99,5 @@ namespace CRelAlgebra
 
     GSpatialAttrArrayTC();
   };
+
 }
