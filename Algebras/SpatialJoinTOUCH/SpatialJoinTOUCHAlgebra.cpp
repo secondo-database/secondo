@@ -364,6 +364,15 @@ namespace sjt {
     ListExpr
     spatialJoinTouchRow::spatialJoinRowType( ListExpr args )
     {
+               
+        const int argNum = nl->ListLength(args);
+        if (argNum != 4) {
+            return listutils::typeError("Expected four arguments.");
+        }
+        if(!listutils:: checkUsesArgsInTypeMapping(args)){
+           return listutils::typeError("internal error");
+        }
+
         ListExpr fStream      = nl->First(nl->First(args));
         ListExpr sStream      = nl->First(nl->Second(args));
         ListExpr attrName1    = nl->First(nl->Third(args));
@@ -372,13 +381,9 @@ namespace sjt {
         ListExpr al1 = nl->Second(nl->Second(fStream));
         ListExpr al2 = nl->Second(nl->Second(sStream));
 
-        const int argNum = nl->ListLength(args);
 
         string err = "relation x relation x attribute name x attribute name ";
 
-        if (argNum != 4) {
-            return listutils::typeError("Expected four arguments.");
-        }
 
 
         // first argument must be a stream of tuple-blocks
@@ -445,6 +450,16 @@ namespace sjt {
     ListExpr
     spatialJoinTouchM::spatialJoinMType( ListExpr args )
     {
+        string err = "relation x relation x attribute name x attribute name ";
+
+        if(nl->ListLength(args)!=4){
+            return listutils::typeError(err);
+        }
+        if(!listutils::checkUsesArgsInTypeMapping(args)){
+            return listutils::typeError("internal error");
+        }
+
+
         ListExpr a1;
         ListExpr a2;
         ListExpr mpointer1    = nl->First(nl->First(args));
@@ -453,11 +468,6 @@ namespace sjt {
         ListExpr nameL2       = nl->First(nl->Fourth(args));
 
 
-        string err = "relation x relation x attribute name x attribute name ";
-
-        if(nl->ListLength(args)!=4){
-            return listutils::typeError(err);
-        }
 
         if (!MPointer::checkType(mpointer1)){
             return listutils::typeError("a mpointer to a relation or "
@@ -536,11 +546,6 @@ namespace sjt {
 
     ListExpr spatialJoinTouchColumn::spatialJoinColumnType(ListExpr args) {
 
-        ListExpr fStream      = nl->First(nl->First(args));
-        ListExpr sStream      = nl->First(nl->Second(args));
-        ListExpr attrName1    = nl->First(nl->Third(args));
-        ListExpr attrName2    = nl->First(nl->Fourth(args));
-
         const int argNum = nl->ListLength(args);
 
         string err = "relation x relation x attribute name x attribute name ";
@@ -549,6 +554,15 @@ namespace sjt {
         {
             return listutils::typeError("Expected four arguments.");
         }
+        if(!listutils::checkUsesArgsInTypeMapping(args)){
+          return listutils::typeError("internal error");
+        }
+
+        ListExpr fStream      = nl->First(nl->First(args));
+        ListExpr sStream      = nl->First(nl->Second(args));
+        ListExpr attrName1    = nl->First(nl->Third(args));
+        ListExpr attrName2    = nl->First(nl->Fourth(args));
+
 
 
         // first argument must be a stream of tuple-blocks
