@@ -298,32 +298,18 @@ namespace CRelAlgebra
     SimpleFSAttrArray(const SimpleFSAttrArray &instance) = delete;
 
     template <class V>
-    static int TCompareAlmost(const T &entry, V &value,
-                              char(*)[!T::isPrecise] = 0)
+    static int TCompareAlmost(const T &entry, V &value)
     {
       return entry.CompareAlmost(value);
     }
 
-    template <class V>
-    static int TCompareAlmost(const T &entry, V &value,
-                              char(*)[T::isPrecise] = 0)
-    {
-      return entry.Compare(value);
-    }
 
     template <class V>
-    static bool TEqualsAlmost(const T &entry, V &value,
-                              char(*)[!T::isPrecise] = 0)
+    static bool TEqualsAlmost(const T &entry, V &value)
     {
       return entry.EqualsAlmost(value);
     }
 
-    template <class V>
-    static bool TEqualsAlmost(const T &entry, V &value,
-                              char(*)[T::isPrecise] = 0)
-    {
-      return entry.Equals(value);
-    }
   };
 
   /*
@@ -640,32 +626,18 @@ namespace CRelAlgebra
     SimpleVSAttrArray(const SimpleVSAttrArray &instance) = delete;
 
     template <class V>
-    static int TCompareAlmost(const T &entry, V &value,
-                              char(*)[!T::isPrecise] = 0)
+    static int TCompareAlmost(const T &entry, V &value)
     {
       return entry.CompareAlmost(value);
     }
 
-    template <class V>
-    static int TCompareAlmost(const T &entry, V &value,
-                              char(*)[T::isPrecise] = 0)
-    {
-      return entry.Compare(value);
-    }
 
     template <class V>
-    static bool TEqualsAlmost(const T &entry, V &value,
-                              char(*)[!T::isPrecise] = 0)
+    static bool TEqualsAlmost(const T &entry, V &value)
     {
       return entry.EqualsAlmost(value);
     }
 
-    template <class V>
-    static bool TEqualsAlmost(const T &entry, V &value,
-                              char(*)[T::isPrecise] = 0)
-    {
-      return entry.Equals(value);
-    }
 
     SimpleVSAttrArrayEntry GetEntry(uint64_t row) const
     {

@@ -37,14 +37,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Symbols.h"
 #include "TypeUtils.h"
 
-using namespace CRelAlgebra;
-using namespace CRelAlgebra::Operators;
 
 using std::string;
 using std::vector;
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
+
+namespace CRelAlgebra{
+
+namespace Operators{
+
 
 //Filter------------------------------------------------------------------------
 
@@ -410,3 +413,6 @@ TBlock *Filter<project>::State::Request()
 
 template class Filter<true>;
 template class Filter<false>;
+
+} // end of namespace
+} // end of namespace 

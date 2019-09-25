@@ -182,6 +182,11 @@ namespace CRelAlgebra
 
       return cmp;
     }
+    
+    template<class Z>
+    int CompareAlmost(const Z& z) const{
+      return Compare(z);
+    }
 
     bool Equals(const LineEntry &other) const
     {
@@ -192,6 +197,12 @@ namespace CRelAlgebra
     {
       return Compare(value) == 0;
     }
+
+    template<class Z>
+    bool EqualsAlmost(const Z& z) const{
+      return Equals(z);
+    }
+
 
     uint64_t GetHash() const
     {

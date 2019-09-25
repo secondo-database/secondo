@@ -36,7 +36,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "TypeConstructor.h"
 #include "TypeUtils.h"
 
-using namespace CRelAlgebra;
 using namespace listutils;
 
 using listutils::isStream;
@@ -46,6 +45,9 @@ using stringutils::any2str;
 
 extern NestedList *nl;
 extern AlgebraManager *am;
+
+
+namespace CRelAlgebra{
 
 //GSpatialAttrArrayTI<dim>------------------------------------------------------
 
@@ -382,3 +384,8 @@ template class GSpatialAttrArrayTC<2>;
 template class GSpatialAttrArrayTC<3>;
 template class GSpatialAttrArrayTC<4>;
 template class GSpatialAttrArrayTC<8>;
+
+
+} // namespace CRelAlgebra 
+
+

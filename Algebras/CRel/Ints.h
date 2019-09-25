@@ -81,6 +81,11 @@ namespace CRelAlgebra
       return this->value == undefined ? 0 : 1;
     }
 
+    template<class Z>
+    int CompareAlmost(const Z& v) const{
+      return Compare(v);
+    }
+
     bool Equals(const IntEntry &value) const
     {
       return this->value == value.value;
@@ -94,6 +99,11 @@ namespace CRelAlgebra
       }
 
       return this->value == undefined;
+    }
+
+    template<class Z>
+    bool EqualsAlmost(const Z& z) const{
+      return Equals(z);
     }
 
     uint64_t GetHash() const

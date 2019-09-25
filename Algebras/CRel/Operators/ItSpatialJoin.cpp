@@ -264,7 +264,7 @@ ListExpr ItSpatialJoin::TypeMapping(ListExpr args)
 
   for (const TBlockTI::ColumnInfo &columnInfo : blockAInfo.columnInfos)
   {
-    columnNames.insert(columnInfo.name).second;
+    columnNames.insert(columnInfo.name);
 
     resultBlockInfo.columnInfos.push_back(columnInfo);
   }

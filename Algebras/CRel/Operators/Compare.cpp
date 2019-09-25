@@ -40,14 +40,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "TypeConstructor.h"
 #include "TypeUtils.h"
 
-using namespace CRelAlgebra;
-using namespace CRelAlgebra::Operators;
 
 using std::exception;
 using std::string;
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
+
+
+namespace CRelAlgebra {
+namespace Operators{
 
 //ApplyPredicate----------------------------------------------------------------
 
@@ -271,3 +273,8 @@ template class Compare<CompareMode::LessOrEqual>;
 template class Compare<CompareMode::Equal>;
 template class Compare<CompareMode::GreaterOrEqual>;
 template class Compare<CompareMode::Greater>;
+
+} // end of namespace
+} // end of namespace
+
+
