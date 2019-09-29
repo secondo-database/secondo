@@ -67,6 +67,7 @@ SetRowBlock_t IOData::getBlockMask(const size_t rowShift) {
 IOData::IOData(const OutputType outputType_, TupleType* outputTupleType_,
                InputStream* inputA, InputStream* inputB,
                const uint64_t outBufferSize_,
+               const uint64_t outTupleAddSize_,
                const uint64_t outBufferTupleCountMax_):
         outputType { outputType_ },
         outputTupleType { outputTupleType_ },
@@ -82,10 +83,11 @@ IOData::IOData(const OutputType outputType_, TupleType* outputTupleType_,
         rowMask { getRowMask(rowShift[0]), getRowMask(rowShift[1]) },
         blockMask { getBlockMask(rowShift[0]), getBlockMask(rowShift[1]) },
         usedMemory { inputA->getUsedMem(), inputB->getUsedMem() },
-        newTuple(new CRelAlgebra::AttrArrayEntry[
-                      columnCounts[SET::A] + columnCounts[SET::B]]),
         outBufferSize(outBufferSize_),
-        outBufferTupleCountMax(outBufferTupleCountMax_) {
+        outTupleAddSize(outTupleAddSize_),
+        outBufferTupleCountMax(outBufferTupleCountMax_),
+        newTuple(new CRelAlgebra::AttrArrayEntry[
+            columnCounts[SET::A] + columnCounts[SET::B]]) {
 
    // set lastBlockA/B to a value that ensures the first "newTuple" to
    // be fully assembled in the appendToOutput() function
@@ -588,7 +590,7 @@ size_t IOData::getOutputAddSize(const uint64_t tuplesAdded) const {
          // since output tuples refer to the same Attribute instances as
          // input tuples, this value may be significantly smaller than
          // getOutputMemSize()
-         return tuplesAdded * outputTupleType->GetCoreSize();
+         return tuplesAdded * outTupleAddSize;
       default:
          return 0;
    }

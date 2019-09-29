@@ -349,6 +349,12 @@ class Timer {
    bool reportPAPI = false;
 
 public:
+#ifdef TIMER_USES_PAPI
+   /* tests the duration and cache misses created by consecutive calls to
+    * Timer::start() and thus to PAPI. */
+   static void testPAPIOverhead(std::ostream& out);
+#endif
+
    /* instantiates a Timer for the given number of different task types and
     * assigns standard names (Task 0, Task 1, etc.) to these tasks */
    explicit Timer(unsigned taskCount);

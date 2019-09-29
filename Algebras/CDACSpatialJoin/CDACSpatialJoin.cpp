@@ -353,11 +353,19 @@ int CDACSpatialJoin::valueMapping(Word* args, Word& result, int message,
         Word& local, Supplier s) {
 
    auto localInfo = static_cast<CDACLocalInfo*>(local.addr);
+
+   // get the desired output type. Note that for message == CLOSE, this value
+   // is NOT reliable (e.g. it may be outputCount in a CDACSpatialJoin query)!
+   // example: let partOfMensa = [const (rel (tuple ((Bbox rect)) )) value
+   //                            (((7.49577 7.49578 51.3767 51.3768)))];
+   //         query cbuildings feed partOfMensa feed cdacspatialjoin[] consume;
+   // Now, when valueMapping is called with message == CLOSE, outputType
+   // is set to outputCount (= 0), although this is a outputTBlockStream query.
    const auto outputType = static_cast<OutputType>(
            (static_cast<CcInt*>(args[MAX_ARG_COUNT].addr))->GetValue());
 
    // OPEN: create LocalInfo instance
-   if (outputType == outputCount || message == OPEN) {
+   if (message == OPEN) { // TODO: outputType == outputCount ||
       delete localInfo;
       ListExpr tupleTypeLE = (outputType == outputTupleStream) ?
                              nl->Second(GetTupleResultType(s)) : 0;
@@ -371,8 +379,11 @@ int CDACSpatialJoin::valueMapping(Word* args, Word& result, int message,
 #endif
    }
 
-   // REQUEST: depending on the desired output:
-   if (outputType == outputCount) {
+   // REQUEST: depending on the desired outputType.
+   if (message == CLOSE) {
+      // with message == CLOSE, the value of outputType is not reliable,
+      // so we must not depend on it. Therefore this block is skipped.
+   } else if (outputType == outputCount) { // already for message == OPEN
       // call getNext() simply to count intersections
       localInfo->getNext();
       size_t joinCount = localInfo->getIntersectionCount();
@@ -389,8 +400,8 @@ int CDACSpatialJoin::valueMapping(Word* args, Word& result, int message,
       return result.addr ? YIELD : CANCEL;
    }
 
-   // CLOSE:
-   if (outputType == outputCount || message == CLOSE) {
+   // CLOSE
+   if (message == CLOSE) {
 #ifdef CDAC_SPATIAL_JOIN_METRICS
       MergerStats::onlyInstance->report(cout);
       MergerStats::onlyInstance->reset();
@@ -643,6 +654,8 @@ CDACLocalInfo::CDACLocalInfo(const OutputType outputType_,
             outTypeInfo.GetDesiredBlockSize()
                 * CRelAlgebra::TBlockTI::blockSizeFactor :
             DEFAULT_OUTPUT_TUPLE_VECTOR_MEM_SIZE_KIB * 1024),
+        outTupleAddSize(0),
+        outBufferTupleCountMax(0),
         instanceNum(++activeInstanceCount),
         joinState(nullptr),
         joinStateCount(0),
@@ -678,9 +691,9 @@ CDACLocalInfo::CDACLocalInfo(const OutputType outputType_,
       // measure the size of an empty tuple to get the extra memory size
       // required for output tuples
       auto emptyTuple = new Tuple(outputTupleType);
-      uint64_t emptyTupleMemSize = emptyTuple->GetMemSize();
+      outTupleAddSize = emptyTuple->GetMemSize();
       emptyTuple->DeleteIfAllowed();
-      outBufferTupleCountMax = outBufferSize / emptyTupleMemSize;
+      outBufferTupleCountMax = outBufferSize / outTupleAddSize;
       // we keep outTuplesSizeMax within the interval [1; 65534]:
       if (outBufferTupleCountMax < 1) {
          outBufferTupleCountMax = 1;
@@ -701,7 +714,7 @@ CDACLocalInfo::CDACLocalInfo(const OutputType outputType_,
          outBufferTupleCountMax = std::numeric_limits<uint16_t>::max() - 1;
       }
       // recalculate outBufferSize to match outBufferTupleCountMax
-      outBufferSize = outBufferTupleCountMax * emptyTupleMemSize;
+      outBufferSize = outBufferTupleCountMax * outTupleAddSize;
 #ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
       cout << "Output buffer: max. "
            << formatInt(outBufferTupleCountMax) << " tuples = "
@@ -986,8 +999,8 @@ bool CDACLocalInfo::getNext() {
          // timer->start(...) see JoinState constructor
          ++joinStateCount;
          joinState = new JoinState(outputType, outputTupleType,
-                 inputA, inputB, outBufferSize, outBufferTupleCountMax,
-                 instanceNum, joinStateCount, timer);
+                 inputA, inputB, outBufferSize, outTupleAddSize,
+                 outBufferTupleCountMax, instanceNum, joinStateCount, timer);
          timer->start(JoinTask::merge);
       } else {
          // a "requestData" task was started above but both input streams were

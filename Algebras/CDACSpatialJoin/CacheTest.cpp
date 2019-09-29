@@ -105,6 +105,10 @@ int CacheTest::valueMapping(
    auto intensity = static_cast<size_t>(
            static_cast<CcInt*>(args[0].addr)->GetValue());
 
+#ifdef TIMER_USES_PAPI
+   // Timer::testPAPIOverhead(cout);
+#endif
+
    // report the available caches
    CacheInfos::report(cout);
 

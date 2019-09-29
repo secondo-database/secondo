@@ -198,6 +198,24 @@ int Timer::papiEvents[papiEventCount] {
 };
 #endif
 
+#ifdef TIMER_USES_PAPI
+void Timer::testPAPIOverhead(ostream& out) {
+   unsigned counts[] { 1, 10, 100, 1000, 10000, 100000, 1000000 };
+   Timer timer { 7 };
+
+   unsigned task = 0;
+   for (unsigned count : counts) {
+      for (unsigned i = 0; i < count; ++i) {
+         timer.start(task);
+      }
+      ++task;
+   }
+   timer.stop();
+   out << "Duration of PAPI calls only:" << endl;
+   timer.reportTable(out, true, true, false, false, false);
+}
+#endif
+
 Timer::Timer(const unsigned taskCount) :
       tasks { taskCount } {
 

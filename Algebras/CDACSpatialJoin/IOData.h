@@ -135,13 +135,26 @@ private:
    // -----------------------------------------------------
    // variables for the appendToOutput() function
 
+   /* the maximum size of the output buffer (i.e. the output TBlock or
+    * the outTuples vector) in bytes */
+   const uint64_t outBufferSize;
+
+   /* the additional memory required for each output tuple (if an output tuple
+    * stream is required). Since the input tuples and their attributes already
+    * exist in memory when an output tuple is concatenated, the output tuple
+    * will usually only get pointers to these attributes, so outTupleAddSize
+    * does not count the attribute sizes */
+   const uint64_t outTupleAddSize;
+
+   /* if the result stream is a tuple stream, outBufferTupleCountMax is the
+    * maximum number of output tuples that can be temporarily stored in
+    * the outTuples vector, before the vector must to be flushed to the
+    * output stream */
+   const uint64_t outBufferTupleCountMax;
+
    /* an array of attributes of the result tuple type; this is used to
     * compile the next output tuple and pass it to the outTBlock */
    CRelAlgebra::AttrArrayEntry* const newTuple;
-
-   /* the maximum size of the output buffer (i.e. the output TBlock or
-    * the outTuples vector) in bytes */
-   uint64_t outBufferSize;
 
    /* the last source rectangle from set A that was used for output */
    SetRowBlock_t lastAddressA;
@@ -160,12 +173,6 @@ private:
     * outTuples. */
    uint64_t outTupleCount = 0;
 
-   /* if the result stream is a tuple stream, outBufferTupleCountMax is the
-    * maximum number of output tuples that can be temporarily stored in
-    * the outTuples vector, before the vector must to be flushed to the
-    * output stream */
-   uint64_t outBufferTupleCountMax = 0;
-
 #ifdef CDAC_SPATIAL_JOIN_METRICS
    /* the MemSize in bytes of all output tuples returned by a nextTBlock call */
    uint64_t outTuplesMemSize = 0;
@@ -175,7 +182,7 @@ public:
    /* creates an IOData instance from the given InputStreams */
    IOData(OutputType outputType_, TupleType* outputTupleType_,
           InputStream* inputA, InputStream* inputB, uint64_t outBufferSize_,
-          uint64_t outBufferTupleCountMax_);
+          uint64_t outTupleAddSize_, uint64_t outBufferTupleCountMax_);
 
    ~IOData();
 

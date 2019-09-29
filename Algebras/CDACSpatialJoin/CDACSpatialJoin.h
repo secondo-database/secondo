@@ -322,6 +322,13 @@ class CDACLocalInfo {
     * vector) in bytes */
    uint64_t outBufferSize;
 
+   /* the additional memory required for each output tuple (if an output tuple
+    * stream is required). Since the input tuples and their attributes already
+    * exist in memory when an output tuple is concatenated, the output tuple
+    * will usually only get pointers to these attributes, so outTupleAddSize
+    * does not count the attribute sizes */
+   uint64_t outTupleAddSize;
+
    /* the maximum number of tuples allowed in the output buffer (for
     * outputTupleStream) */
    uint64_t outBufferTupleCountMax;

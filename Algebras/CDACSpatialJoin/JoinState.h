@@ -117,7 +117,7 @@ struct JoinStateMemoryInfo {
 
    /* the size in bytes of all output data additionally created during the
     * whole lifetime of this JoinState (i.e. the size sum of all output
-    * TBlocks, or the GetRootSize of all output tuples) */
+    * TBlocks, or the sizeof all output tuples without attributes) */
    size_t outputDataAddSize;
 
    /* the size in bytes of all output tuples created during the whole lifetime
@@ -345,7 +345,8 @@ public:
     * joinStateId: the consecutive number of this JoinState instance */
    JoinState(OutputType outputType_, TupleType* tupleType_,
          InputStream* inputA_, InputStream* inputB_,
-         uint64_t outBufferSize_, uint64_t outBufferTupleCountMax_,
+         uint64_t outBufferSize_, uint64_t outTupleAddSize_,
+         uint64_t outBufferTupleCountMax_,
          unsigned operatorNum_, unsigned joinStateId_,
          std::shared_ptr<Timer>& timer_);
 
