@@ -1508,10 +1508,10 @@ class RegionMgmt
 
 
 // Initialize static members of RegionMgmt.
-vector<Region> RegionMgmt::nodeRegions = *new vector<Region>;
-vector<int> RegionMgmt::nodeIdNewValues = *new vector<int>;
-int RegionMgmt::regionId = *new int(10547);
-int RegionMgmt::regionEdgeId = *new int(10000);
+vector<Region> RegionMgmt::nodeRegions;
+vector<int> RegionMgmt::nodeIdNewValues;
+int RegionMgmt::regionId = 10547;
+int RegionMgmt::regionEdgeId = 10000;
 bool RegionMgmt::idLoaded = false;
 
 
