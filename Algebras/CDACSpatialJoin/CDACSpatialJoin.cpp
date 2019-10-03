@@ -365,7 +365,7 @@ int CDACSpatialJoin::valueMapping(Word* args, Word& result, int message,
            (static_cast<CcInt*>(args[MAX_ARG_COUNT].addr))->GetValue());
 
    // OPEN: create LocalInfo instance
-   if (message == OPEN) { // TODO: outputType == outputCount ||
+   if (message == OPEN) {
       delete localInfo;
       ListExpr tupleTypeLE = (outputType == outputTupleStream) ?
                              nl->Second(GetTupleResultType(s)) : 0;
@@ -735,22 +735,32 @@ CDACLocalInfo::~CDACLocalInfo() {
    // (in case inputA and/or inputB used another CDACSpatialJoin operator)
    unsigned int activeInstanceCountCopy = activeInstanceCount;
 
-   // delete members
-   delete outputTupleType;
-   delete joinState;
-   delete inputA;
-   delete inputB;
-
    if (outTBlock) {
       outTBlock->DecRef();
       outTBlock = nullptr;
    }
 
    if (outTuples) {
-      for (Tuple* tuple : *outTuples)
-         tuple->DeleteIfAllowed();
-      outTuples->clear();
+      // normally, outTuples should be empty, but just in case ...
+      if (!outTuples->empty()) {
+         for (Tuple* tuple : *outTuples)
+            tuple->DeleteIfAllowed();
+         outTuples->clear();
+      }
       delete outTuples;
+   }
+
+   delete joinState;
+   delete inputA;
+   delete inputB;
+
+   // outputTupleType may still be used in the output tuples which were
+   // written to the stream, so rather than simply deleting outTupleType, we
+   // must call DeleteIfAllowed() which decreases the reference counter. This
+   // should happen only after treating inputA, inputB, and outTuples above.
+   if (outputTupleType) {
+      outputTupleType->DeleteIfAllowed();
+      outputTupleType = nullptr;
    }
 
    timer->stop();
@@ -873,11 +883,8 @@ Tuple* CDACLocalInfo::getNextTuple() {
       // do NOT perform tuple->DeleteIfAllowed() here
       return tuple;
    }
-   if (!outTuples->empty()) {
-      for (Tuple* tuple : *outTuples)
-         tuple->DeleteIfAllowed();
-      outTuples->clear();
-   }
+   // getNext() should have returned true if any outTuples were created
+   assert (outTuples->empty());
    return nullptr;
 }
 

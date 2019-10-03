@@ -68,6 +68,7 @@ CacheInfo::CacheInfo(const std::string& path) :
          ++sharedCpuCount;
       cpuBits >>= 1;
    }
+   sharedCpuCount = std::max(sharedCpuCount, 1U); // at least one
 }
 
 std::string CacheInfo::readString(const string& path, const string file) {
@@ -199,12 +200,12 @@ void CacheInfos::report(const CacheInfoPtr& info, std::ostream& out) const {
    // (* = "physical line partition 1" for all)
 
    out << "* L" << info->level << " "
-         << setw(12) << CacheInfo::toString(info->type) << ": "
-         << cpuCount / info->sharedCpuCount << " x "
-         << setw(4) << info->getSizeInKiB() << " KB, "
-         << setw(4) << info->numberOfSets << " sets, "
-         << setw(2) << info->waysOfAssociativity << "-way, "
-         << info->coherencyLineSize << " bytes line size, "
-         << "physical line partition " << info->physicalLinePartition << endl;
+       << setw(12) << CacheInfo::toString(info->type) << ": "
+       << cpuCount / std::max(info->sharedCpuCount, 1U) << " x "
+       << setw(4) << info->getSizeInKiB() << " KB, "
+       << setw(4) << info->numberOfSets << " sets, "
+       << setw(2) << info->waysOfAssociativity << "-way, "
+       << info->coherencyLineSize << " bytes line size, "
+       << "physical line partition " << info->physicalLinePartition << endl;
 }
 
