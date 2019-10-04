@@ -93,9 +93,9 @@ namespace kafka {
 
     class KafkaKonsumerLI {
     public :
-// s is the stream argument , brokerSt, topicSt the string argument
-        KafkaKonsumerLI(Word s, CcString *brokerSt, CcString *topicSt) : stream(
-                s), topic(" ") {
+// streamArg is the stream argument , brokerSt, topicSt the string argument
+        KafkaKonsumerLI(Word streamArg, CcString *brokerSt, CcString *topicSt)
+                : stream(streamArg), topic(" ") {
             def = topicSt->IsDefined();
             if (def) {
                 topic = topicSt->GetValue();
