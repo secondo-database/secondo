@@ -48,7 +48,7 @@ operator mergecov2 alias MERGECOV2 pattern op(_,_,_)
 operator knearest_dist alias KNEAREST_DIST pattern _ op [_,_, _]
 
 
-operator closestPairs alias CLOSESTPAIRS pattern _ _ _ _ op [_]
+operator closestPairs alias CLOSESTPAIRS pattern _ _ _ _ op [_,_]
 
 operator countUnits alias COUNTUNITS pattern _ op[_]
 

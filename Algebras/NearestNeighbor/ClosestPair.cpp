@@ -52,10 +52,11 @@ ListExpr closestPairsTM(ListExpr args){
    // arg 3 : rtree 2
    // arg 4 : relation 2
    // arg 5 : k (integer) (how many pairs should be found)#
+   // optional arg 6: suffix for second relation to avoid name conflicts
 
-   std::string err = "expected: rtree x rel x rtree x rel x int";
+   std::string err = "expected: rtree x rel x rtree x rel x int [x suffix]";
 
-   if(!nl->HasLength(args,5)){
+   if(!nl->HasLength(args,5) && !nl->HasLength(args,6)){
       return listutils::typeError(err);
    }
    if(   !R_Tree<2,TupleId>::checkType(nl->First(args)) 
@@ -65,9 +66,39 @@ ListExpr closestPairsTM(ListExpr args){
       || !CcInt::checkType(nl->Fifth(args))){
       return listutils::typeError(err);
    }
-   ListExpr attrList = listutils::concat(
+   ListExpr attrList = nl->TheEmptyList();
+   if(nl->HasLength(args,5)){
+      attrList = listutils::concat(
                           nl->Second(nl->Second(nl->Second(args))),
                           nl->Second(nl->Second(nl->Fourth(args))));
+   } else {
+     ListExpr sfx = nl->Sixth(args);
+     if(nl->AtomType(sfx) != SymbolType){
+       return listutils::typeError("The 6th argument must be a symbol");
+     }
+     std::string suffix = nl->SymbolValue(sfx);
+     ListExpr attrList1 = nl->Second(nl->Second(nl->Second(args)));
+     ListExpr attrList2 = nl->Second(nl->Second(nl->Fourth(args)));
+     // append attrList1
+     attrList = nl->OneElemList(nl->First(attrList1));
+     ListExpr last = attrList;
+     attrList1 = nl->Rest(attrList1);
+     while(!nl->IsEmpty(attrList1)){
+       last = nl->Append(last, nl->First(attrList1));
+       attrList1 = nl->Rest(attrList1);
+     } 
+     // append renamed attrList2;
+     suffix = std::string("_")+suffix;
+     while(!nl->IsEmpty(attrList2)){
+        ListExpr first = nl->First(attrList2);
+        attrList2 = nl->Rest(attrList2);
+        ListExpr newName = nl->SymbolAtom( nl->SymbolValue(nl->First(first))
+                                           + suffix);
+        ListExpr app = nl->TwoElemList( newName, nl->Second(first));
+        last = nl->Append(last,app);
+     } 
+   }
+
    if(!listutils::isAttrList(attrList)){
      return listutils::typeError("problem in concatenating attribute "
                                  "lists (may be name conflicts)");

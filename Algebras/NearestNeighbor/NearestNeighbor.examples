@@ -115,14 +115,14 @@ Operator : chinaknearest
 Number   : 6
 Signature: ((tbtree (tuple ((x1 t1)...(xn tn))) ti)(rel1 (tuple ((x1 t1)...(xn tn)))) x  mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
 Example  : query UnitTrains_UTrip_tbtree UnitTrains chinaknearest[UTrip,train1, 5] count
-Result   : 8737
+Result   : bug
 
 
 Operator : cellindex
 Number   : 6
 Signature: rtree(tuple ((x1 t1)...(xn tn)) ti) x cellno -> (stream (tuple ((x1 t1)...(xn tn))))
 Example  : query cellindex(Kinos_GeoData_rtree,10) count
-Result   : 0
+Result   : 114
 
 
 Operator : isknn
