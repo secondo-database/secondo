@@ -44,7 +44,6 @@ namespace mmrtreetouch {
         int _secondStreamWordIndex;
 
         bool outputOn;
-        bool isM;
 
         std::vector<std::vector<tchNode *> > reGroupByConsideringFanout(
                 std::vector<tchNode * > sortedArray,
@@ -96,8 +95,7 @@ namespace mmrtreetouch {
                 TupleType* ttParam,
                 int _firstStreamWordIndex,
                 int _secondStreamWordIndex,
-                int _cellFactor,
-                bool _isM
+                int _cellFactor
                 );
 
         virtual ~RTreeTouch();

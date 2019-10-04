@@ -52,7 +52,6 @@ namespace mmrtreetouch {
         double yLength;
         int64_t numOfXCells;
         int64_t numOfYCells;
-        int64_t cellSize;
         std::vector <std::pair<tupleBlockStr, tupleBlockStr>> matchings;
 
         std::vector <std::vector<std::vector < tupleBlockStr>> >

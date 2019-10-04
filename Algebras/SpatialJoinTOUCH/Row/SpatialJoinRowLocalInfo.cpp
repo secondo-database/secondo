@@ -96,8 +96,7 @@ SpatialJoinRowLocalInfo::SpatialJoinRowLocalInfo(
             tt,
             firstStreamWordIndex,
             secondStreamWordIndex,
-            cellFactor,
-            false
+            cellFactor
             );
 
     int fanout = _fanout;

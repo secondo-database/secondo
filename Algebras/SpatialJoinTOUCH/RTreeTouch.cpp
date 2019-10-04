@@ -36,12 +36,10 @@ RTreeTouch::RTreeTouch(
         TupleType* ttParam,
         int firstStreamWordIndex,
         int secondStreamWordIndex,
-        int _cellFactor,
-        bool _isM
+        int _cellFactor
 ):tt(ttParam),
   _firstStreamWordIndex(firstStreamWordIndex) ,
   _secondStreamWordIndex(secondStreamWordIndex),
-  isM(_isM),
   cellFactor(_cellFactor)
 { outputOn = false; }
 

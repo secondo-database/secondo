@@ -55,7 +55,6 @@ private:
 
     mmrtreetouch::RTreeTouch * rtree;
 
-    bool turnOn;
 
 public:
 

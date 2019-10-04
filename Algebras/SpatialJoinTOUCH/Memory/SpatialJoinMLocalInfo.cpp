@@ -75,7 +75,7 @@ SpatialJoinMLocalInfo::SpatialJoinMLocalInfo(
             numOfItemsInBucket
             );
 
-    rtree = new RTreeTouch(tt, vLeftIndexIn, vRightIndexIn, cellFactor, true);
+    rtree = new RTreeTouch(tt, vLeftIndexIn, vRightIndexIn, cellFactor);
 
     int fanout = fanoutIn;
 

@@ -56,7 +56,6 @@ private:
     const CRelAlgebra::TBlockTI rTBlockTypeInfo;
     const CRelAlgebra::PTBlockInfo rTBlockInfo;
     uint64_t rTBlockSize;
-    uint64_t maxRow;
 
     std::vector<mmrtreetouch::tupleBlockStr> bts;
     std::vector<mmrtreetouch::tupleBlockStr> btsB;
