@@ -64,7 +64,7 @@ Operator : oldknearestfilter
 Number   : 6
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
 Example  : query UTOrdered_rtree UTOrdered oldknearestfilter[train1, 5] count
-Result   : 1683
+Result   : 1674
 
 Operator : oldknearestfilter
 Number   : 7
@@ -109,13 +109,14 @@ Operator : greeceknearest
 Number   : 6
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel1 (tuple ((x1 t1)...(xn tn)))) x  mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
 Example  : query UTOrdered_rtree UTOrdered greeceknearest[UTrip,train1, 3] count
-Result   : 4418
+Result   : 4665
 
 Operator : chinaknearest
 Number   : 6
 Signature: ((tbtree (tuple ((x1 t1)...(xn tn))) ti)(rel1 (tuple ((x1 t1)...(xn tn)))) x  mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
 Example  : query UnitTrains_UTrip_tbtree UnitTrains chinaknearest[UTrip,train1, 5] count
 Result   : bug
+Remark   : returns an empty result but should not do so
 
 
 Operator : cellindex
@@ -157,7 +158,7 @@ Result   : 0
 Operator : closestPairs
 Number   : 1
 Signature: rtree x rel(tuple(X)) x rtree x rel(tuple(Y)) x int -> stream(tuple(X.Y))
-Example  : query Kinos_GeoData_rtree Kinos SWP_Pos_rtree SWP  closestPairs[7] count 
+Example  : query Kinos_GeoData_rtree Kinos  Kinos_GeoData_rtree Kinos closestPairs[7,a] count 
 Result   : 7
 
 Operator : countUnits
