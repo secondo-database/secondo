@@ -64,4 +64,4 @@
     SecondoTTYCS
 
 - Other Instance
-export SECONDO_CONFIG=${HOME}/work/thirdInstance/SecondoConfig.ini
+    export SECONDO_CONFIG=${HOME}/work/thirdInstance/SecondoConfig.ini

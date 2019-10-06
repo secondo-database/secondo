@@ -125,7 +125,7 @@ namespace kafka {
         kafkaReaderClient.Open(broker, topic);
         std::string *source = kafkaReaderClient.ReadSting();
         if (source == nullptr) {
-            LOG(WARN) << "readTypeString is null";
+            LOG(DEBUG) << "readTypeString is null";
             return "";
         }
         std::string result = *source;

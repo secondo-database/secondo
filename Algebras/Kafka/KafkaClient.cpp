@@ -27,10 +27,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Utils.h"
 #include "log.hpp"
 
+#define KAFKA_CLIENT_PRINT_DEBUG_INFO 0
+
 namespace kafka {
 
     void KafkaProducerClient::Open(std::string brokers, std::string topic_str) {
-        std::cout << "KafkaClient::Open" << std::endl;
+        LOG(DEBUG) << "KafkaClient::Open";
 
         this->topic_str = topic_str;
         this->brokers = brokers;
@@ -46,7 +48,7 @@ namespace kafka {
             exit(1);
         }
 
-        std::cout << "% Created producer " << producer->name() << std::endl;
+        LOG(DEBUG) << "% Created producer " << producer->name();
     }
 
     void KafkaProducerClient::Write(std::string line) {
@@ -118,9 +120,11 @@ namespace kafka {
         void rebalance_cb(RdKafka::KafkaConsumer *consumer,
                           RdKafka::ErrorCode err,
                           std::vector<RdKafka::TopicPartition *> &partitions) {
-            std::cerr << "RebalanceCb: " << RdKafka::err2str(err) << ": ";
 
-            part_list_print(partitions);
+            if (KAFKA_CLIENT_PRINT_DEBUG_INFO) {
+                std::cerr << "RebalanceCb: " << RdKafka::err2str(err) << ": ";
+                part_list_print(partitions);
+            }
 
             if (err == RdKafka::ERR__ASSIGN_PARTITIONS) {
                 consumer->assign(partitions);
@@ -133,7 +137,7 @@ namespace kafka {
     };
 
     void KafkaReaderClient::Open(std::string brokers, std::string topic_str) {
-        std::cout << "KafkaClient::Open" << std::endl;
+        LOG(DEBUG) << "KafkaClient::Open";
 
         this->topic_str = topic_str;
         this->brokers = brokers;
@@ -181,7 +185,7 @@ namespace kafka {
 
         delete conf;
 
-        std::cout << "% Created consumer " << consumer->name() << std::endl;
+        std::cout << "Created consumer " << consumer->name() << std::endl;
 
         /*
         * Subscribe to topics
@@ -243,7 +247,7 @@ namespace kafka {
             case RdKafka::ERR__PARTITION_EOF:
                 /* Last message */
                 if (exit_eof && ++eof_cnt == partition_cnt) {
-                    LOG(INFO) << "EOF reached for all " << partition_cnt <<
+                    LOG(DEBUG) << "EOF reached for all " << partition_cnt <<
                               " partition(s)";
                     eof_cnt = 0;
                     result->run = false;

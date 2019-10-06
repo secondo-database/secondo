@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "KafkaConsumer.h"
 #include "KafkaSource.h"
 #include "KafkaClient.h"
+#include "log.hpp"
 
 using namespace std;
 
@@ -80,15 +81,15 @@ namespace kafka {
 
     void
     writeTypeString(std::string brokersParam, string topic, string typeString) {
-        std::cout << "Writing Type Sting: " << typeString << " to topic"
-                  << topic << std::endl;
+        LOG(INFO) << "Writing Type Sting: " << typeString << " to topic "
+                  << topic;
 
         KafkaProducerClient kafkaProducerClient;
         kafkaProducerClient.Open(brokersParam, topic);
         kafkaProducerClient.Write(typeString);
         kafkaProducerClient.Close();
 
-        std::cout << "Writing Type Sting done" << std::endl;
+        LOG(DEBUG) << "Writing Type Sting done";
     }
 
     class KafkaKonsumerLI {
