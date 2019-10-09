@@ -1156,16 +1156,32 @@ query now();
 
 #export QueryRegions
 
+# define a function that returns the segments of a region in order of cycles
+
 query ifthenelse(P_EXPORT_TYPE = "Shape",
           (QueryRegions feed
               shpexport['queryregions',Region]
               db3export['queryregions'] count),
          ifthenelse(P_EXPORT_TYPE = "CSV",
-          (QueryRegions feed projectextendstream[
-              Id; Vertex : components(vertices(.Region))]
-              projectextend[Id; Vertex_x : getx(get(.Vertex,0)),
-                                Vertex_Y : gety(get(.Vertex,0)) ]
-              csvexport['queryregions.csv',FALSE,TRUE] count),
+          (QueryRegions feed loopjoin[ 
+                   halfSegments(.Region)
+                   filter[.Ldp]
+                   sortby[FaceNo, CycleNo, EdgeNo]
+                   projectextend[FaceNo, CycleNo, EdgeNo; B : boundary(.Segment)]
+                   projectextend[FaceNo, CycleNo, EdgeNo; PL : get(.B,0), PR : get(.B, 1) ]
+                   extend_last[RS : (.PR = ..PL) or (.PR = ..PR) :: FALSE]
+                   extend_next[RF : ifthenelse(.EdgeNo=0, (.PL = ..PL) or (.PL = ..PR), FALSE):: FALSE]
+                   replaceAttr[RS : .RS or .RF]
+                   projectextend[FaceNo, CycleNo, EdgeNo; P1 : ifthenelse(.RS,.PR,.PL) , 
+                                                          P2 : ifthenelse(not(.RS),.PR,.PL)
+                   ]
+                   projectextend[; SegNo : .EdgeNo, 
+                                    Xstart : getx(.P1), 
+                                    Ystart : gety(.P1), 
+                                    Xend   : getx(.P2), 
+                                    Yend   : gety(.P2) ] 
+             ] project[Id,SegNo,Xstart,Ystart,Xend,Yend]
+             csvexport['queryregions.csv',FALSE,TRUE] count),
            ifthenelse(P_EXPORT_TYPE = "Secondo Nested List",
              bool2int(QueryRegions saveObject["QueryRegions",'queryregions.obj']),
            -1)));
