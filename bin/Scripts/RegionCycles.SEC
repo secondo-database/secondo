@@ -1,0 +1,30 @@
+let cyclefun = fun(r1: region) halfSegments(r1) 
+                   filter[.Ldp] 
+                   sortby[FaceNo, CycleNo, EdgeNo] 
+                   projectextend[FaceNo, CycleNo, EdgeNo; B : boundary(.Segment)]  
+                   projectextend[FaceNo, CycleNo, EdgeNo; PL : get(.B,0), PR : get(.B, 1) ]  
+                   extend_last[RS : (.PR = ..PL) or (.PR = ..PR) :: FALSE] 
+                   extend_next[RF : ifthenelse(.EdgeNo=0, (.PL = ..PL) or (.PL = ..PR), FALSE):: FALSE]
+                   replaceAttr[RS : .RS or .RF] 
+                   projectextend[FaceNo, CycleNo, EdgeNo; P1 : ifthenelse(.RS,.PR,.PL) , 
+                                                          P2 : ifthenelse(not(.RS),.PR,.PL)
+                   ] 
+
+#
+# This function returns the segments of a region ordered in a cyclic way.
+# The last point of a segment is equals  the first point of the next segemnt.
+# It works as follows:
+# First, the halfsegments of a region are returned with additional information as
+# FaceNo, CycleNo and EdgeNo. Only a single segment is used. We use only the 
+# halfsegment that has a left dominating point.
+# After that, we extract the both end points of each segment. 
+# Now, we have to check whether the points must be swapped. This is the case if the 
+# previous 'segment' has an endpoint equals to the second point of the current segment.
+# A special treatment for the first segment is done. We swap its end points if the next (the second)
+# segment has a point equals to the first point of this segment. 
+# 
+
+
+
+
+
