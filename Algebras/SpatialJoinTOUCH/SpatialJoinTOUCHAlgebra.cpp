@@ -378,9 +378,6 @@ namespace sjt {
         ListExpr attrName1    = nl->First(nl->Third(args));
         ListExpr attrName2    = nl->First(nl->Fourth(args));
 
-        ListExpr al1 = nl->Second(nl->Second(fStream));
-        ListExpr al2 = nl->Second(nl->Second(sStream));
-
 
         string err = "relation x relation x attribute name x attribute name ";
 
@@ -397,6 +394,9 @@ namespace sjt {
             return listutils::typeError("Error in  second argument.: "
                                         "Tuple Stream expected.");
         }
+
+        ListExpr al1 = nl->Second(nl->Second(fStream));
+        ListExpr al2 = nl->Second(nl->Second(sStream));
 
         // third argument must be an attribute name
         if(!listutils::isSymbol(attrName1)) {
