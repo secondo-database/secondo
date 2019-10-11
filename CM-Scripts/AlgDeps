@@ -79,6 +79,15 @@ if [ ! -f DirAlg.secondo ]; then
 egrep -I -w -o -f AllInits.secondo -r $SECONDO_BUILD_DIR/Algebras   | sed "s#"$SECONDO_BUILD_DIR"/Algebras/##" | sed "s#/.*:# #" | sort | uniq  | sort -k1,1 > DirAlg.secondo
 fi
 
+if [ "$1" = "--onlylist" ]; then
+  exit
+fi
+
+
+ALGDIR=$SECONDO_BUILD_DIR/Algebras/$1
+DIR=$PWD
+
+cd $ALGDIR
 # go into the specified algebra directory
 
 if [ "$1" = "-m" ]; then
@@ -86,10 +95,6 @@ if [ "$1" = "-m" ]; then
   shift
 fi
 
-ALGDIR=$SECONDO_BUILD_DIR/Algebras/$1
-DIR=$PWD
-
-cd $ALGDIR
 find $ALGDIR -type f -name "*.dep" -exec cat {} \; | grep -v ":" |  sed "s/[ \t][ \t]*/\n/g" | grep -v -e '^[[:space:]]*$'  | grep -v "[\]" | sed "s#.*#realpath &#" | sh | sort | uniq | grep Algebras | sed "s#"$SECONDO_BUILD_DIR"/Algebras/##"  | sed "s/.*/dirname &/" | sh | sort | uniq | grep -vw $1 | join - $DIR/DirAlg.secondo | awk '{print $2}' | sed "s/Initialize//" 
 
 cd $DIR
