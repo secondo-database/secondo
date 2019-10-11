@@ -1,0 +1,128 @@
+
+
+#How to identify dependencies between Secondo algebras automatically?
+#
+
+#First, we have to build a table that maps an algebra directory to an 
+#algebra name. Mostly this will be the name of the algebra without the 
+#Algebra extension (e.g., SpatialAlgebra in directory Spatial), but there is 
+#no requirement to follow this rule (e.g. RelationAlgebra in Relation-C++).
+
+
+#The starting point is the AlgebraList.i.cfg that contains the names of all
+#interesting algebras. Dependencies to non-listed algebras cannot exist (i hope).
+
+#For each Algebra, this file contains an entry:
+#ALGEBRA_INCLUDE(<number>,AlgebraName)
+
+#Within each Algebra, there must exist a function Initialize<XXX> where <XXX> is the 
+#name of the algebra listed in AlgebraList.i.cfg.
+
+#In a first step, we extract the function names from the file:
+# and store them into an auxiliary file called InitFunctions.secondo
+
+# - We filter for the lines containing ALGEBRA_INCLUDE,
+# - we remove the part until the comma
+# - we remove the closing bracket
+# - we remove whitespaces
+# - we remove duplicates
+# - we add the leading Initialize
+
+if [ "$1" = "--help" ]; then
+
+echo "  usage :   AlgDeps [-f] [-m] <AlgebraDirectory>"
+echo
+echo "This script finds for a given algebra directory the names of all "
+echo "algebras from that the algebra in the given directory depends directly."
+echo
+echo "  -f force clean creating of all files (required after changed within secondo)"
+echo "  -m calls make before scanning the dep files (required if algebra not already build)"
+exit  
+fi
+
+
+if [ "$1" = "-f" ]; then
+  rm -f InitFunctions.secondo
+  rm -f AllInits.secondo
+  rm -f DirAlg.secondo
+  shift
+fi
+
+if [ ! -f InitFunctions.secondo ]; then
+cat $SECONDO_BUILD_DIR/Algebras/Management/AlgebraList.i.cfg | grep ALGEBRA_INCLUDE | sed "s/.*,//" | sed "s/)//" | sed "s/[ \t]*//" | sort | uniq | sed "s/.*/Initialize&/" > InitFunctions.secondo
+  rm -f AllInits.secondo
+  rm -f DirAlg.secondo
+fi
+   
+
+# build a regex file for grep
+
+
+if [ ! -f AllInits.secondo ]; then
+FIRST=""
+
+while read line; do
+  if [ -z $FIRST ]; then
+    echo -n $line 
+    FIRST="FALSE"
+  else
+    echo -n "|"$line
+  fi
+done < InitFunctions.secondo >AllInits.secondo
+  rm -f DirAlg.secondo
+fi
+
+
+#find the files to for the algebras
+
+if [ ! -f DirAlg.secondo ]; then
+egrep -I -w -o -f AllInits.secondo -r $SECONDO_BUILD_DIR/Algebras   | sed "s#"$SECONDO_BUILD_DIR"/Algebras/##" | sed "s#/.*:# #" | sort | uniq  | sort -k1,1 > DirAlg.secondo
+fi
+
+# go into the specified algebra directory
+
+if [ "$1" = "-m" ]; then
+  make
+  shift
+fi
+
+ALGDIR=$SECONDO_BUILD_DIR/Algebras/$1
+DIR=$PWD
+
+cd $ALGDIR
+find $ALGDIR -type f -name "*.dep" -exec cat {} \; | grep -v ":" |  sed "s/[ \t][ \t]*/\n/g" | grep -v -e '^[[:space:]]*$'  | grep -v "[\]" | sed "s#.*#realpath &#" | sh | sort | uniq | grep Algebras | sed "s#"$SECONDO_BUILD_DIR"/Algebras/##"  | sed "s/.*/dirname &/" | sh | sort | uniq | grep -vw $1 | join - $DIR/DirAlg.secondo | awk '{print $2}' | sed "s/Initialize//" 
+
+cd $DIR
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
