@@ -47,7 +47,6 @@ OrderedRelation.h header file.
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Tools/Flob/DbArray.h"
 #include <limits>
-#include "Algebras/BTree/BTreeAlgebra.h"
 #include "Symbols.h"
 #include "Algebras/Standard-C++/LongInt.h"
 #include "Stream.h"
