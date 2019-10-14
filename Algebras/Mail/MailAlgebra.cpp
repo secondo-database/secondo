@@ -70,10 +70,6 @@ This file contains the implementation import / export operators.
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "SecondoSystem.h"
 #include "Algebras/FText/FTextAlgebra.h"
-#include "Algebras/Spatial/SpatialAlgebra.h"
-#include "DateTime.h"
-#include "Algebras/TopOps/TopOpsAlgebra.h"
-#include "Algebras/BinaryFile/BinaryFileAlgebra.h"
 #include "Tools/Flob/DbArray.h"
 #include "Symbols.h"
 #include "FileSystem.h"
@@ -82,9 +78,6 @@ This file contains the implementation import / export operators.
 #include "StringUtils.h"
 #include "version.h"
 
-#include "DbVersion.h"
-#include "Algebras/Spatial/RegionTools.h"
-#include "Algebras/IMEX/NMEAImporter.h"
 #include "Stream.h"
 #include <string>
 
