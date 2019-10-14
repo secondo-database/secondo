@@ -44,7 +44,6 @@ the Distributed2Algebra.
 #include "Stream.h"
 #include "Algebras/Relation-C++/OperatorFilter.h"
 #include "Algebras/Relation-C++/OperatorProject.h"
-#include "Algebras/BTree2/op_createbtree2.h"
 
 #include "DRelHelpers.h"
 #include "DRel.h"
