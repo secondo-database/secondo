@@ -46,7 +46,7 @@ This algebra provides precise types based on rationals of arbitrary size.
 #include "Algebras/Spatial/Point.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"
 #include "Algebras/FText/FTextAlgebra.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 
 

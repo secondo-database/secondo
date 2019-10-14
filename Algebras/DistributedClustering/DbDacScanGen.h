@@ -45,7 +45,7 @@ Member Class and TYPE, the Secondo Type.
  #include "AlgebraTypes.h"
  #include "Algebras/Relation-C++/RelationAlgebra.h"
  #include "StandardTypes.h"
- #include "Algebras/Stream/Stream.h"
+ #include "Stream.h"
  #include "Cluster.h"
  #include "Member.h"
  #include <utility>

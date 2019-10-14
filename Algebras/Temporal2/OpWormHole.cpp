@@ -10,7 +10,7 @@ implementation of operators enterwormhole/leavewormhole
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/FText/FTextAlgebra.h"
 #include "Algebras/TupleIdentifier/TupleIdentifier.h"
 

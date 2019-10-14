@@ -38,7 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/Distributed2/CommandLogger.h"
 #include "Algebras/Distributed2/Distributed2Algebra.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/FText/FTextAlgebra.h"
 
 #include "DRelHelpers.h"

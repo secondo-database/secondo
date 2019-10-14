@@ -41,7 +41,7 @@ FileIndexAlgebra
 #include "StandardTypes.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"
 #include "ListUtils.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "Algebras/FText/FTextAlgebra.h"
 #include "Algebras/TupleIdentifier/TupleIdentifier.h"

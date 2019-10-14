@@ -53,7 +53,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JoinStrategy/CoordinatorJoin.h"
 #include "SecParser.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
-// #include "Algebras/Stream/Stream.h"
+// #include "Stream.h"
 // #include "DistributeStreamServer.h"
 
 extern NestedList* nl;

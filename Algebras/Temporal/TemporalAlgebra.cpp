@@ -121,7 +121,7 @@ file.
 #include "TemporalAlgebra.h"
 #include "GenericTC.h"
 #include "GenOps.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/Spatial/DLine.h"
 
 extern NestedList* nl;

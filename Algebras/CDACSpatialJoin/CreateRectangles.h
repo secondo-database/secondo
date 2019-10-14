@@ -115,7 +115,7 @@ query createRectangles2D(10, 2, 0.3, 0.4, 1) {a}
 
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Algebras/Rectangle/RectangleAlgebra.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Operator.h"
 
 namespace cdacspatialjoin {

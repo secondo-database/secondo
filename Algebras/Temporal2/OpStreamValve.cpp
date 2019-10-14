@@ -11,7 +11,7 @@ implementation of operator streamvalve
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/FText/FTextAlgebra.h"
 
 #include "TypeMapUtils.h"

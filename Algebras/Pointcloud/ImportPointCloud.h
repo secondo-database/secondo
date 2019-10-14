@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StandardTypes.h"  
 #include "Symbols.h"
 #include "Tools/Flob/DbArray.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "ListUtils.h"
 #include <AlgebraTypes.h>
 #include <Operator.h>

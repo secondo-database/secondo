@@ -30,9 +30,8 @@ underscore and a given postfix. This is done for subrelations too.
 #ifndef ALGEBRAS_NESTEDRELATION2_OPERATORS_RENAME_H_
 #define ALGEBRAS_NESTEDRELATION2_OPERATORS_RENAME_H_
 
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 
-using namespace std;
 namespace nr2a {
 
 class Rename
@@ -67,8 +66,8 @@ class Rename
   private:
     Rename();
     // Declared, but not defined => Linker error on usage
-    static bool RenameTypes(const ListExpr type, const string & postfix,
-        ListExpr & outType, string & errorMsg, const bool sub=false);
+    static bool RenameTypes(const ListExpr type, const std::string & postfix,
+        ListExpr & outType, std::string & errorMsg, const bool sub=false);
 };
 
 } /* namespace nr2a*/

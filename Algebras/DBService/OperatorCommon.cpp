@@ -34,7 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/DBServiceClient.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/OperatorCommon.hpp"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 
 using namespace std;
 

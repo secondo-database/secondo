@@ -30,7 +30,7 @@
 #ifndef ALGEBRAS_NESTEDRELATION2_OPERATORS_GETTUPLES_H_
 #define ALGEBRAS_NESTEDRELATION2_OPERATORS_GETTUPLES_H_
 
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 
 namespace nr2a {
 

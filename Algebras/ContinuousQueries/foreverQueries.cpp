@@ -47,7 +47,7 @@ format...
 
 
 #include "Algebras/Relation-C++/RelationAlgebra.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "QueryProcessor.h"
 #include "ListUtils.h"
 #include "Algebras/FText/FTextAlgebra.h"

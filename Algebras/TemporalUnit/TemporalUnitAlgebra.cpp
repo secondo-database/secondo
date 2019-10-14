@@ -257,7 +257,7 @@ helping operators for indexing instant values in R-trees.
 #include "PolySolver.h"
 #include "ListUtils.h"
 #include "Symbols.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "GenericTC.h"
 #include "Algebras/Temporal/RefinementStream.h"
 #include "Algebras/TemporalLifted/TemporalLiftedAlgebra.h"

@@ -71,7 +71,7 @@ For more detailed information see SpatialAlgebra.h.
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "RegionTools.h"
 #include "Symbols.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "RegionCreator.h"
 #include "StringUtils.h"
 

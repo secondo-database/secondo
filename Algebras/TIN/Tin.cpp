@@ -26,7 +26,7 @@
 #include "TinPart.h"
 #ifndef UNIT_TEST
 #include "Algebras/Spatial/Point.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Attribute.h"
 #include "Algebras/Rectangle/RectangleAlgebra.h"

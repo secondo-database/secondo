@@ -71,7 +71,7 @@ for query processing.
 #include "SystemInfoRel.h"
 #include "Environment.h"
 #include "Symbols.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "ListUtils.h"
 
 /*

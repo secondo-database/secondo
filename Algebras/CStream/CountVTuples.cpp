@@ -32,7 +32,7 @@ This operator count the number of vtuples within a stream
 #include "VTuple.h"
 #include "NestedList.h"
 #include "Operator.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "ListUtils.h"
 #include "StandardTypes.h"
 

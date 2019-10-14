@@ -38,7 +38,7 @@ This file contains definitions of the members of class GetMessages
 */
 
 #include <ListUtils.h>
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include <StandardTypes.h>
 #include "GetMessages.h"

@@ -39,7 +39,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NList.h"
 #include "Symbols.h"
 #include "ListUtils.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 
 
 namespace pointcloud {

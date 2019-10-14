@@ -30,7 +30,7 @@ further processed. The tuples' order in the stream is not specified.
 #ifndef ALGEBRAS_NESTEDRELATION2_OPERATORS_FEED_H_
 #define ALGEBRAS_NESTEDRELATION2_OPERATORS_FEED_H_
 
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 
 namespace nr2a {
 

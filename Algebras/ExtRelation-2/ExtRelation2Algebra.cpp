@@ -67,7 +67,7 @@ for my master's thesis
 #include "Symbols.h"
 #include "Sort.h"
 
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 
 #include "Sort2Heaps.h"
 

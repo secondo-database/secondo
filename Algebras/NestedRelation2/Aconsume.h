@@ -32,9 +32,8 @@ algebra it is postfixed.
 #ifndef ALGEBRAS_NESTEDRELATION2_OPERATORS_CONSUME_H_
 #define ALGEBRAS_NESTEDRELATION2_OPERATORS_CONSUME_H_
 
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 
-using namespace std;
 namespace nr2a {
 
 class Aconsume

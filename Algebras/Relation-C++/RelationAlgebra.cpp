@@ -78,7 +78,7 @@ RelationAlgebra.h header file.
 #include "NList.h"
 #include "ListUtils.h"
 #include "Symbols.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 
 #ifdef USE_PROGRESS
 #include "../CostEstimation/RelationAlgebraCostEstimation.h"

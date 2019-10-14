@@ -89,7 +89,7 @@ Operations on the darray-elements are carried out on the remote machines.
 #include "DBAccessGuard.h"
 #include "StringUtils.h"
 #include "Symbols.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "ThreadedMemoryCntr.h"
 #include <sys/timeb.h>
 

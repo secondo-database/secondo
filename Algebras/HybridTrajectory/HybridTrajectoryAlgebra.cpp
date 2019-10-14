@@ -47,7 +47,7 @@ This algebra includes the operators ~by~ and ~atperiods~.
 #include "Algebras/Temporal/TemporalAlgebra.h"
 #include "Algebras/TemporalExt/TemporalExtAlgebra.h"
 #include "DateTime.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/TemporalUnit/TemporalUnitAlgebra.h"
 #include "Algebras/NestedRelation/NestedRelationAlgebra.h"
 #include "Algebras/SymbolicTrajectory/Algorithms.h"

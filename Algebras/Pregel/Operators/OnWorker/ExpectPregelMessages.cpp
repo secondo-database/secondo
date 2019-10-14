@@ -42,7 +42,7 @@ This file contains definitions of the members of class ExpectPregelMessages
 #include <StandardTypes.h>
 #include "ExpectPregelMessages.h"
 #include "../../MessageBroker/MessageBroker.h"
-#include "../../../Stream/Stream.h"
+#include "Stream.h"
 
 namespace pregel {
 

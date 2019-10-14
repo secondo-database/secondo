@@ -32,7 +32,7 @@ This operator prints out the  vtuples within a stream.
 #include "VTuple.h"
 #include "NestedList.h"
 #include "Operator.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "ListUtils.h"
 #include "StandardTypes.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"

@@ -49,7 +49,7 @@ class Count
         {
           name = "count";
           signature = ARel::BasicType() + " -> " + CcInt::BasicType();
-          appendSignature(string("nrel2") + " -> " + CcInt::BasicType());
+          appendSignature(std::string("nrel2") + " -> " + CcInt::BasicType());
           syntax = "_ count";
           meaning = "Returns the amount of tuples in the given relation.";
           example = "query MyNestedRelation count";

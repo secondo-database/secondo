@@ -49,7 +49,7 @@ information is discarded from main memory.
 
 #include "RectangleBlock.h" // -> ... -> <memory>
 
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/CRel/TBlock.h"
 
 namespace cdacspatialjoin {

@@ -59,7 +59,7 @@
 #include "Tools/Flob/Flob.h"
 #include "SuffixTreeAlgebra.h"
 #include "Algebras/FText/FTextAlgebra.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;

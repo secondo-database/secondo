@@ -36,7 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "QueryProcessor.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "StandardTypes.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include <string>
 #include "../TBlock.h"
 #include "../TypeConstructors/TBlockTC.h"

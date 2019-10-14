@@ -59,7 +59,7 @@
 #include "Attribute.h"
 #include "Tools/Flob/Flob.h"
 #include "Algebras/FText/FTextAlgebra.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Progress.h"
 #include "Profiles.h"
 

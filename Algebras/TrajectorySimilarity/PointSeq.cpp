@@ -163,7 +163,7 @@ If $duration$ is ~undefined~ or not positive, the result is ~undefined~.
 #include "DateTime.h"          // DateTime
 #include "Algebras/Spatial/DLine.h"
 #include "Algebras/Spatial/Point.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/Temporal/TemporalAlgebra.h"   // MPoint
 
 #include "ConstructorTemplates.h"

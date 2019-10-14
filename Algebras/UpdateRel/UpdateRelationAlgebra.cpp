@@ -54,7 +54,7 @@ searched on can be hold in an random memory based hash table.
 #include "Algebras/RTree/RTreeAlgebra.h"
 #include "ListUtils.h"
 #include "Symbols.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include <assert.h>
 #include "Algebras/OrderedRelation/OrderedRelationAlgebra.h"
 

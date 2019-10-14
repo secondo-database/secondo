@@ -26,7 +26,7 @@
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Tin.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/Raster2/stype.h"
 #include "Algebras/Raster2/sreal.h"
 

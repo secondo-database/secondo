@@ -65,7 +65,7 @@ April 2012. Dieter Capek
 #include "Symbols.h"
 #include "ListUtils.h"
 #include "DateTime.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/FText/FTextAlgebra.h"
 #include "SecondoCatalog.h"
 

@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <ListUtils.h>
 #include <../../../Relation-C++/RelationAlgebra.h>
 #include <StandardTypes.h>
-#include "../../../Stream/Stream.h"
+#include "Stream.h"
 #include "ClosePregelWorkers.h"
 #include "../../MessageBroker/MessageWrapper.h"
 #include "../../PregelContext.h"

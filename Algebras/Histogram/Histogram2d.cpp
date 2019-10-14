@@ -40,7 +40,7 @@ December 2007, S.H[oe]cher,M.H[oe]ger,A.Belz,B.Poneleit
 #include "Algebras/ExtRelation-C++/Tupleorder.h"
 #include "AlmostEqual.h"
 #include "Symbols.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 
 using namespace std;
 

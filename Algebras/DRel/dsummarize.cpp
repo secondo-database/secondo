@@ -38,7 +38,7 @@ drelsummarize uses a d[f]rel and creates a stream of tuple.
 #include "ListUtils.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 
 #include "DRelHelpers.h"
 

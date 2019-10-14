@@ -42,7 +42,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SocketIO.h"
 #include "Algebras/Distributed2/FileRelations.h"
 #include "Algebras/Distributed2/fsrel.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/Distributed2/DArray.h"
 #include "Algebras/Distributed2/Distributed2Algebra.h"
 #include "Algebras/FText/FTextAlgebra.h"

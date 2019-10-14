@@ -93,7 +93,7 @@ class DblpParser : public XmlParserInterface
     Tuple *m_currentTuple;
     NRel *m_nrel;
     ListExpr m_tupleType;
-    string m_authorsText;
+    std::string m_authorsText;
     ARel *m_authorsList;
     ListExpr m_authorsType;
     ARel *m_keywords;

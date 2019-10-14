@@ -41,7 +41,7 @@ This header file contains definitions of type mapping, vallue mapping and the op
 #include <ListUtils.h>
 #include <../../../Relation-C++/RelationAlgebra.h>
 #include <StandardTypes.h>
-#include "../../../Stream/Stream.h"
+#include "Stream.h"
 #include "InitPregelMessages.h"
 #include "../../MessageBroker/MessageWrapper.h"
 #include "../../PregelContext.h"

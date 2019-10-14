@@ -47,7 +47,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ListUtils.h"
 #include "StringUtils.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "NList.h"
 #include "Algebras/Array/ArrayAlgebra.h"
 #include "SocketIO.h"

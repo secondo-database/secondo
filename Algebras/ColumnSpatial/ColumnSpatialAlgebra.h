@@ -54,7 +54,7 @@ Also the operators on these types are defined.
 #include "../../include/QueryProcessor.h"   // needed for value mappings
 #include "../../include/TypeConstructor.h"  // constructor for Secondo Types
 #include "../Spatial/SpatialAlgebra.h"      // spatial types and operators
-#include "../Stream/Stream.h"               // wrapper for secondo streams
+#include "Stream.h"               // wrapper for secondo streams
 #include "../CRel/Ints.h"                   // type for id result list
 
 using std::vector;

@@ -45,7 +45,7 @@ join attribute for each argument relation.
 #include "Algebras/CRel/TypeConstructors/CRelTC.h"
 #include "Algebras/CRel/Operators/OperatorUtils.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/CRel/TBlock.h"
 #include "Algebras/CRel/TypeConstructors/TBlockTC.h"
 #include "cSpatialJoin.h"

@@ -35,9 +35,8 @@ can be adjusted to support the testing of filter conditions.
 #ifndef ALGEBRAS_NESTEDRELATION2_OPERATORS_GENREL_H_
 #define ALGEBRAS_NESTEDRELATION2_OPERATORS_GENREL_H_
 
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 
-using namespace std;
 namespace nr2a {
 
 class GenRel

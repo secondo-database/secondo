@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h" // required at many places
 #include "Operator.h" // for operator creation
 #include "ListUtils.h" // useful functions for nested lists
-#include "Algebras/Stream/Stream.h" // wrapper for secondo streams
+#include "Stream.h" // wrapper for secondo streams
 #include "Algebras/Relation-C++/RelationAlgebra.h" // use of tuples
 #include "log.hpp"
 #include <stack>

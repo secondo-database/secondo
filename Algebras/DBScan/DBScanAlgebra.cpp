@@ -46,7 +46,7 @@ This file contains the implementation of the DBScanAlgebra.
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "StandardTypes.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"
 #include "DistFunction.h"

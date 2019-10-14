@@ -33,7 +33,7 @@ Generic head operator without progress support
 #include "VTuple.h"
 #include "NestedList.h"
 #include "Operator.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "ListUtils.h"
 #include "StandardTypes.h"
 

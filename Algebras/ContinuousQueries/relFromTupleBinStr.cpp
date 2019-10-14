@@ -50,7 +50,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include <boost/algorithm/string.hpp>
 
-// #include "Algebras/Stream/Stream.h"
+// #include "Stream.h"
 // #include "DistributeStreamServer.h"
 
 extern NestedList* nl;

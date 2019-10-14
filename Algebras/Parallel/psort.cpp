@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include <boost/thread.hpp>
 
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "RTuple.h"
 #include "NestedList.h"

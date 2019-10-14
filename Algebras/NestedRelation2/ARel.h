@@ -35,7 +35,6 @@ attributes. Such attribute relations are implemented in the class "ARel"[2].
 #include "../Tools/Flob/DbArray.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 
-using namespace std;
 
 namespace nr2a {
 
@@ -106,7 +105,7 @@ class ARel : public Attribute
     static Word Clone(const ListExpr typeInfo, const Word& w);
     static bool CheckType(ListExpr type, ListExpr& errorInfo);
     static int SizeOfObj();
-    static const string BasicType();
+    static const std::string BasicType();
 
     static TypeConstructor GetTypeConstructor();
 

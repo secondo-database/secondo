@@ -41,7 +41,7 @@ the Distributed2Algebra.
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/Relation-C++/OperatorFilter.h"
 #include "Algebras/Relation-C++/OperatorProject.h"
 #include "Algebras/BTree2/op_createbtree2.h"

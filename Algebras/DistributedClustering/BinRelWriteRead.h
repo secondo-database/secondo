@@ -46,7 +46,7 @@ and write files.
 #include "QueryProcessor.h"
 #include "ListUtils.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Attribute.h"
 #include "StandardTypes.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"

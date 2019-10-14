@@ -41,7 +41,7 @@ the Distributed2Algebra.
 #include "StandardTypes.h"
 #include "SecParser.h"
 
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/FText/FTextAlgebra.h"
 #include "Algebras/Temporal/TemporalAlgebra.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"

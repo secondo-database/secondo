@@ -33,7 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/thread.hpp>
 #include "../../../../include/SecParser.h"
 #include "../Messaging/MessageDistribute.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "../../PregelAlgebra.h"
 #include "StartPregelWorker.h"
 

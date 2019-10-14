@@ -44,7 +44,7 @@ This header file contains the definition of the class MessageDistribute
 #include <Operator.h>
 #include <boost/log/trivial.hpp>
 #include "../../MessageBroker/MessageBroker.h"
-#include "../../../Stream/Stream.h"
+#include "Stream.h"
 
 namespace pregel {
 class MessageDistribute {

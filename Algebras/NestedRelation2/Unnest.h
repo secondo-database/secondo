@@ -75,9 +75,8 @@ tuple of the subrelation.
 #ifndef ALGEBRAS_NESTEDRELATION2_OPERATORS_UNNEST_H_
 #define ALGEBRAS_NESTEDRELATION2_OPERATORS_UNNEST_H_
 
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 
-using namespace std;
 namespace nr2a {
 
 class Unnest
@@ -115,7 +114,7 @@ class Unnest
     static void TupleSetValuesOfSubRel(Tuple * tupleOut,
         const Tuple * const tupleSubRel, const int attributeIndex);
     static ListExpr BuildResultingType(const ListExpr attributesTypes,
-        const string attributeUnnestName);
+        const std::string attributeUnnestName);
 };
 
 } /* namespace nr2a*/

@@ -53,7 +53,7 @@ sets (streams) A and B.
 
 #include "JoinState.h" // -> Timer;
                        // -> ... -> InputStream
-                       //   -> "Algebras/Stream/Stream.h",
+                       //   -> "Stream.h",
                        //   -> "Algebras/CRel/TBlock.h"
 #include "Operator.h"
 #include "QueryProcessor.h"

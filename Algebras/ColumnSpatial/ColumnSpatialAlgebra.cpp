@@ -50,7 +50,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Spatial/SpatialAlgebra.h"    // spatial types and operators
 #include "Algebras/Spatial/RegionTools.h"       // cycles and region building
 #include "Algebras/Relation-C++/RelationAlgebra.h"  // use of tuples
-#include "Algebras/Stream/Stream.h"    // wrapper for secondo streams
+#include "Stream.h"    // wrapper for secondo streams
 #include "Algebras/CRel/Ints.h"                     // type for id result list
 #include "Algebras/CRel/TypeConstructors/LongIntsTC.h"
 #include <ctime>

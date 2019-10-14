@@ -81,12 +81,11 @@ Nesting is the inverse operation to unnesting.
 #ifndef ALGEBRAS_NESTEDRELATION2_OPERATORS_NEST_H_
 #define ALGEBRAS_NESTEDRELATION2_OPERATORS_NEST_H_
 
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 
 #include "Nr2aLocalInfo.h"
 #include "LinearProgressEstimator.h"
 
-using namespace std;
 namespace nr2a {
 
 class Nest

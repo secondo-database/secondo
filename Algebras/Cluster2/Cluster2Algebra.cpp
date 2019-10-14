@@ -55,7 +55,7 @@ in the Eps-range to one of the points in the cluster, this point
 #include "StandardTypes.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"
 #include "LogMsg.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/TupleIdentifier/TupleIdentifier.h"
 
 #include "MMRTree.h"

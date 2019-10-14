@@ -41,7 +41,7 @@ This file contains the implementation of the OpticsAlgebra.
 #include "QueryProcessor.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "LogMsg.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "StandardTypes.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"
 #include "Algebras/SymbolicTrajectory/Algorithms.h"

@@ -48,7 +48,7 @@ This header file essentially contains the definition of the classes ~OsmAlgebra~
 #include <libxml/xmlmemory.h>
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Algebras/Standard-C++/LongInt.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"
 #include <string>
 

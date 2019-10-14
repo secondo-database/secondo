@@ -50,7 +50,7 @@ data. The template arguments are
 #include <Algebras/RTree/RTreeAlgebra.h>
 #include <LogMsg.h>
 #include <Algebras/FText/FTextAlgebra.h>
-#include <Algebras/Stream/Stream.h>
+#include <Stream.h>
 
 #include "grid2.h"
 #include "Defines.h"

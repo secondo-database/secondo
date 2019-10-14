@@ -115,7 +115,7 @@ xxii) ~removelyrics~ - remove a lyrics into an MP3.
 
 
 #include "GenericTC.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "NList.h"
 #include "FVector.h"
 

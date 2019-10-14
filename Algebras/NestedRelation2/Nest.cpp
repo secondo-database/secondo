@@ -24,6 +24,7 @@
 
 #include "Include.h"
 
+using namespace std;
 using namespace nr2a;
 
 Nest::LocalInfo::LocalInfo(int groupedAttributesCount,

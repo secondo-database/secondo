@@ -28,7 +28,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include "Algebra.h"
 
-using namespace std;
 
 namespace nr2a {
 
@@ -47,11 +46,11 @@ class Nr2aHelper
 
     static bool IsNestedRelation(const ListExpr definition);
     static bool IsNumericRepresentationOf(const ListExpr list,
-        const string typeName);
+        const std::string typeName);
 
     static int DefaultSelect(const ListExpr type);
 
-    static string IntToString(const int num);
+    static std::string IntToString(const int num);
 
     static double MillisecondsElapsedSince(clock_t previousClock);
 
@@ -69,10 +68,10 @@ class ListBuilder
   public:
     ListBuilder();
     void Append(const ListExpr newElement);
-    void AppendAttribute(const string attributeName,
+    void AppendAttribute(const std::string attributeName,
         const ListExpr type);
-    void AppendAttribute(const string attributeName,
-        const string typeName);
+    void AppendAttribute(const std::string attributeName,
+        const std::string typeName);
 
     ListExpr GetList() const;
     ListExpr GetTuple() const;

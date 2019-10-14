@@ -33,7 +33,7 @@ Todo:
 #include "OrderSeeds.h"
 #include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "DistFunction.h"
 
 

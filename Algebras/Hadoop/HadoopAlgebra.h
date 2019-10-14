@@ -51,7 +51,7 @@ Select different collect option.
 
 #include "Algebras/HadoopParallel/HadoopParallelAlgebra.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 
 typedef std::vector<std::pair<std::string, fList*> > Para_FList;
 bool isFListStreamDescription(const NList& typeInfo);

@@ -32,7 +32,7 @@ SECONDO includes
 #include "Operator.h"
 #include "QueryProcessor.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 
 /*
 TileAlgebra includes

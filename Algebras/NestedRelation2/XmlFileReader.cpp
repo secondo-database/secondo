@@ -393,9 +393,9 @@ void XmlFileReader::errorHandler(void *ctx, const char *msg, ...)
 Returns the error messages received so far.
 
 */
-string XmlFileReader::getErrorMessages()
+std::string XmlFileReader::getErrorMessages()
 {
-  string result = "\n" + m_errorString;
+  std::string result = "\n" + m_errorString;
 
   if (m_errorCounter >= c_maxErrorLines)
   {

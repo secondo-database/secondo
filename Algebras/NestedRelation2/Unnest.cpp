@@ -78,7 +78,7 @@ Unnest::~Unnest()
   {
     return nl->TypeError();
   }
-  string attributeUnnestName = "";
+  std::string attributeUnnestName = "";
   if (listutils::isSymbol(attributeToUnnest))
   {
     ListExpr type = nl->Empty();
@@ -132,7 +132,7 @@ Unnest::~Unnest()
       ListExpr attributesTypesIn = nl->Second(
             nl->Second(qp->GetSupplierTypeExpr(qp->GetSon(s, 0))));
       ListExpr attributeType_unused;
-      string subRelName = nl->SymbolValue(
+      std::string subRelName = nl->SymbolValue(
           qp->GetSupplierTypeExpr(qp->GetSon(s, 1)));
       ListExpr tupleTypeOut = nl->Second(qp->GetSupplierTypeExpr(s));
 
@@ -295,7 +295,7 @@ Unnest::~Unnest()
 }
 
 /*static*/ListExpr Unnest::BuildResultingType
-    (const ListExpr attributesTypes, const string attributeUnnestName)
+    (const ListExpr attributesTypes, const std::string attributeUnnestName)
 {
   ListBuilder attributesTypesOut;
   listForeach(attributesTypes, current)

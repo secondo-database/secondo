@@ -239,7 +239,7 @@ definitions of our four classes: ~CcInt~, ~CcReal~, ~CcBool~, ~CcString~.
 #include "AlmostEqual.h"
 #include "Progress.h"
 #include "Symbols.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 
 #include <iostream>
 #include <string>

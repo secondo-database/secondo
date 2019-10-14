@@ -50,7 +50,7 @@ data into groups.
 #include "StandardTypes.h"
 #include "Symbols.h"
 #include "StandardTypes.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include <utility>
 #include <sstream>
 #include <string>

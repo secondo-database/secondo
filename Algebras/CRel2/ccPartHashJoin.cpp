@@ -54,7 +54,7 @@ If stream S is ~not~ fully loaded, then the operator iterates over all remaining
 #include "QueryProcessor.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "StandardTypes.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include <string>
 #include "Algebras/CRel/TBlock.h"
 #include "Algebras/CRel/TypeConstructors/TBlockTC.h"

@@ -41,7 +41,7 @@ own type of exception.
 #include "NRel.h"
 
 #include "Algebras/Relation-C++/RelationAlgebra.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 
 #include "Nr2aException.h"
 #include "NestedRelation2Algebra.h"

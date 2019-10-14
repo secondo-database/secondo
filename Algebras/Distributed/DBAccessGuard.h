@@ -52,7 +52,7 @@ typedef ZThread:Mutex MyMutex;
 #endif
 
 #include "Algebras/Relation-C++/RelationAlgebra.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "NestedList.h"
 #include "zthread/Guard.h"
 

@@ -60,11 +60,11 @@ class DblpImport
 
   private:
     DblpImport(); // Declared, but not defined => Linker error on usage
-    static void ReadStopwords(const string & stopwordsFilename,
+    static void ReadStopwords(const std::string & stopwordsFilename,
         std::set<std::string> *stopwords);
     static std::ifstream::pos_type GetFilesize(const char* filename);
-    static string GetXmlFilePath(const string xmlFilename);
-    static string GetWorkingDirectory();
+    static std::string GetXmlFilePath(const std::string xmlFilename);
+    static std::string GetWorkingDirectory();
 };
 
 } /* namespace nr2a*/

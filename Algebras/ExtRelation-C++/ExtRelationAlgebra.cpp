@@ -120,7 +120,7 @@ tuples into a relation schema.
 #include "ListUtils.h"
 #include "Outerjoin.h"
 #include "DateTime.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/FText/FTextAlgebra.h"
 #include "SecondoCatalog.h"
 #include "Algebras/Standard-C++/LongInt.h"

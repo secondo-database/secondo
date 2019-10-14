@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "MMMTree.h"
 #include "Algebras/MMRTree/TupleStore1.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "TupleInfo.h"
 
 

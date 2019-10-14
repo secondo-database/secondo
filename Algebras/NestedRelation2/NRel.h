@@ -109,7 +109,7 @@ class NRel
     static Word Clone(const ListExpr typeInfo, const Word& w);
     static bool CheckType(ListExpr type, ListExpr& errorInfo);
     static int SizeOfObj();
-    static const string BasicType();
+    static const std::string BasicType();
 
     void Clear();
     // Tuple is untouched, but Tuple::WriteToBinStr is not const

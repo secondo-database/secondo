@@ -33,7 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/FText/FTextAlgebra.h"
 #include "Symbols.h"            // predefined strings
 #include "ListUtils.h"          // useful functions for nested lists
-#include "Algebras/Stream/Stream.h"  // wrapper for secondo streams
+#include "Stream.h"  // wrapper for secondo streams
 
 #include "LogMsg.h"             // send error messages
 

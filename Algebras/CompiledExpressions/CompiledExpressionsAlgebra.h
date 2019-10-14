@@ -82,7 +82,7 @@ if the complete query could be compiled by this algebra.
 
 #include "CECompiler.h"
 
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 
 extern AlgebraManager* am;

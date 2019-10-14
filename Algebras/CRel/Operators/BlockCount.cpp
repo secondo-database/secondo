@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "LogMsg.h"
 #include "OperatorUtils.h"
 #include "QueryProcessor.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include <string>
 #include "../TBlock.h"
 #include "../TypeConstructors/TBlockTC.h"

@@ -57,7 +57,7 @@
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Attribute.h"
 #include "Algebras/FText/FTextAlgebra.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Progress.h"
 #include "Profiles.h"
 #include "Algebras/Spatial/RegionTools.h"

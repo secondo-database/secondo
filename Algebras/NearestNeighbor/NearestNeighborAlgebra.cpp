@@ -70,7 +70,7 @@ in a R-Tree. A new datatype is not given but there are some operators:
 #include "Algebras/BTree/BTreeAlgebra.h"
 #include "Algebras/TBTree/TBTree.h"
 #include "ListUtils.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "CoverInterval.h"
 #include "AlmostEqual.h"
 #include "Symbols.h"

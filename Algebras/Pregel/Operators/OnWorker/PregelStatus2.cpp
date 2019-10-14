@@ -40,7 +40,7 @@ This file contains definitions of the members of class PregelStatus2
 
 #include <ListUtils.h>
 #include <regex>
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include <StandardTypes.h>
 #include "PregelStatus2.h"

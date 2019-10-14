@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define _Partitioner_h_
 
 #include "Algebras/Collection/CollectionAlgebra.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "DRelHelpers.h"
 #include "DRel.h"
 #include "Algebras/Distributed2/CommandLogger.h"

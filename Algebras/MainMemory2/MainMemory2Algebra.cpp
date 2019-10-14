@@ -44,7 +44,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Algebras/OrderedRelation/OrderedRelationAlgebra.h"
 //#include "GraphAlgebra.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "MMRTree.h"
 #include "MMMTree.h"
 #include "Algebras/FText/FTextAlgebra.h"

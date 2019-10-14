@@ -85,7 +85,7 @@ relation which bounding boxes of the indexed attribute intersect the window
 #include "ListUtils.h"
 #include "AlmostEqual.h"
 #include "Symbols.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "LRU.h"
 
 extern NestedList* nl;

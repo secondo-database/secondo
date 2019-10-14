@@ -33,7 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <sstream>
 #include "NestedList.h"
 #include "QueryProcessor.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "ListUtils.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Algebras/Rectangle/RectangleAlgebra.h"

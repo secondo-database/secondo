@@ -41,7 +41,7 @@
 #include "Algebras/FText/FTextAlgebra.h"
 #include "Symbols.h"            // predefined strings
 #include "ListUtils.h"          // useful functions for nested lists
-#include "Algebras/Stream/Stream.h"  // wrapper for secondo streams
+#include "Stream.h"  // wrapper for secondo streams
 
 //#include "GenericTC.h"          // use of generic type constructors
 

@@ -50,7 +50,7 @@ OrderedRelation.h header file.
 #include "Algebras/BTree/BTreeAlgebra.h"
 #include "Symbols.h"
 #include "Algebras/Standard-C++/LongInt.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "AlgebraTypes.h"
 
 //#define DEBUG_OREL

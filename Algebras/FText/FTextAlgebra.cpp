@@ -105,7 +105,7 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include <time.h>
 #include <sys/timeb.h>
 #include <limits>
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/Standard-C++/LongInt.h"
 #include "PinyinTable.h"
 #include "DisplayTTY.h"

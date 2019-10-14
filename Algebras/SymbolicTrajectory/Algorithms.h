@@ -43,7 +43,7 @@ This is the implementation of the Symbolic Trajectory Algebra.
 #include "Algebras/TemporalExt/TemporalExtAlgebra.h"
 #include "DateTime.h"
 #include "CharTransform.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "SecParser.h"
 #include "NestedList.h"
 #include "ListUtils.h"

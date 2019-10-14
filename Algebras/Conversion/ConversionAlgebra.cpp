@@ -84,7 +84,7 @@ This file contains the implementation import / export operators.
 #include "DbVersion.h"
 #include "Algebras/Spatial/RegionTools.h"
 #include "Algebras/IMEX/NMEAImporter.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 
 
 extern NestedList* nl;

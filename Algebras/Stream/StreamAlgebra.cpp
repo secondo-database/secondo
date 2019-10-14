@@ -140,7 +140,7 @@ This file contains the implementation of the stream operators.
 #include "ListUtils.h"
 #include "Progress.h"
 #include "AlmostEqual.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "Algebras/Standard-C++/LongInt.h"
 
 extern NestedList* nl;

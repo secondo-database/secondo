@@ -49,7 +49,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/FText/FTextAlgebra.h"
 #include "QueryProcessor.h"
 #include "ListUtils.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 
 #include "TupleDescr.h"
 #include "VTuple.h"

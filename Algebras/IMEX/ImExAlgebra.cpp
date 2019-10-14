@@ -84,7 +84,7 @@ This file contains the implementation import / export operators.
 #include "DbVersion.h"
 #include "Algebras/Spatial/RegionTools.h"
 #include "NMEAImporter.h"
-#include "Algebras/Stream/Stream.h"
+#include "Stream.h"
 #include "aisdecode.h"
 #include "Base64.h"
 
