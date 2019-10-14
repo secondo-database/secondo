@@ -214,7 +214,7 @@ int runSubscriberConsuming() {
 
     delete conf;
 
-    std::cout << "% Created consumer " << consumer->name() << std::endl;
+    LOG(INFO) << "% Created consumer " << consumer->name() << std::endl;
 
     /*
     * Subscribe to topics
@@ -226,11 +226,11 @@ int runSubscriberConsuming() {
         exit(1);
     }
 
-    std::cout << "Subscribed to topics" << std::endl;
+    LOG(INFO) << "Subscribed to topics" << std::endl;
 
     std::vector<RdKafka::TopicPartition *> partitions;
     consumer->assignment(partitions);
-    std::cout << "Partitions:" << partitions.size() << std::endl;
+    LOG(INFO) << "Partitions:" << partitions.size() << std::endl;
 
     /*
      * Consume messages
@@ -249,7 +249,7 @@ int runSubscriberConsuming() {
     consumer->close();
     delete consumer;
 
-    std::cerr << "% Consumed " << msg_cnt << " messages ("
+    LOG(INFO) << "% Consumed " << msg_cnt << " messages ("
               << msg_bytes << " bytes)" << std::endl;
 
     /*

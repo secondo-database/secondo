@@ -3,7 +3,12 @@ project(readfromkafka)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(readfromkafka main.cpp startpartition.cpp subscriber.cpp easylogging++.cc)
+add_executable(readfromkafka
+        main.cpp
+        startpartition.cpp
+        subscriber.cpp
+        easylogging++.cc
+        )
 
 #ADD_LIBRARY(rdkafka++)
 target_link_libraries(readfromkafka rdkafka++)
