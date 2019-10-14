@@ -52,5 +52,11 @@ operator validateAttr alias VALIDATEATTR pattern _ op
 operator feedNth alias FEEDNTH pattern _ op[_,_]
 operator clear alias CLEAR pattern _ op
 
+operator ifthenelse2 alias IFTHENELSE2 pattern op( _, _, _ )
+operator relcount alias RELCOUNT pattern _ op
+operator relcount2 alias RELCOUNT2 pattern _ op
+
+
+
 
 

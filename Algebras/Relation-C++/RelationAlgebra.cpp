@@ -4628,6 +4628,230 @@ Operator clearOp(
 );
 
 
+/*
+4.2 ~ifthenelse2~ operator
+
+Type mapping for ~ifthenelse2~ is
+
+----    (bool x T x T)) -> T , T in REL
+----
+
+*/
+
+ListExpr ifthenelse2Type(ListExpr args)
+{
+  ListExpr arg1, arg2, arg3;
+
+  if ( nl->ListLength( args ) == 3 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    arg3 = nl->Third( args );
+
+    if (nl->Equal(arg2, arg3) && listutils::isSymbol(arg1,CcBool::BasicType()))
+    {
+      if ( IsRelDescription(arg2) || IsRelDescription(arg2, true) )
+        return arg2;
+    }
+  }
+  ErrorReporter::ReportError("Incorrect input for operator ifthenelse.");
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
+}
+
+
+
+int
+ifthenelse2Fun(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+    Word res(Address(0));
+
+    qp->Request(args[0].addr, res);
+    CcBool* arg1 = static_cast<CcBool*>( res.addr );
+
+    int index = ((arg1->IsDefined() &&  arg1->GetBoolval()) ? 1 : 2 );
+    qp->Request(args[index].addr, res);
+
+    qp->DeleteResultStorage(s);
+
+    if ( qp->IsOperatorNode(qp->GetSon(s, index))
+     && !qp->IsFunctionNode(qp->GetSon(s, index)) )
+    {
+      qp->ChangeResultStorage(s, res);
+      qp->ReInitResultStorage(qp->GetSon(s,index));
+    }
+    else
+    {
+      Relation* r = static_cast<Relation*>( res.addr );
+      qp->ChangeResultStorage(s, SetWord(r->Clone()) );
+    }
+    result = qp->ResultStorage(s);
+    return 0;
+}
+
+const string CCSpecIfthenelse2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                            "\"Example\" )"
+                             "( <text>(bool x T x T) ->  T </text--->"
+             "<text>ifthenelse2(P, R1, R2)</text--->"
+             "<text>Evalutes and returns the second argument R1, if the "
+             "boolean value expression, given as a first argument P, can be "
+             "evaluated to TRUE. If P evaluates to FALSE or it is undefined, "
+             "the third argument "
+             "R2 is evaluated and returned.  "
+             "NOTE: The second and the third argument must be of the "
+             "same type T.</text--->"
+             "<text>query ifthenelse2(3 < 5, ten,"
+                "thousand feed consume) count</text--->"
+             ") )";
+
+Operator ccopifthenelse2( "ifthenelse2", CCSpecIfthenelse2, ifthenelse2Fun,
+                         Operator::SimpleSelect, ifthenelse2Type );
+
+
+
+/*
+4.3 relcount operators
+
+*/
+
+/*
+4.2.11 Type mapping function for the ~relcount~ operator:
+
+string ---> int.
+
+*/
+
+static ListExpr relcountTM( ListExpr args ) {
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("invalid number of arguments");
+  }
+  if(!CcString::checkType(nl->First(args))){
+    return listutils::typeError("string expected");
+  }
+  return listutils::basicSymbol<CcInt>();
+}
+
+/*
+4.20 Value mapping function of operator ~relcount~
+
+*/
+
+static int
+RelcountFun( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  ListExpr resultType, queryList;
+  QueryProcessor* qpp = 0;
+  OpTree tree;
+  string relname;
+  bool correct      = false;
+  bool evaluable    = false;
+  bool defined      = false;
+  bool isFunction   = false;
+
+  result = qp->ResultStorage( s );
+  // initialize result to be undefined
+  ((CcInt *)result.addr)->Set( false, 0 );
+
+  if ( ((CcString*)args[0].addr)->IsDefined() )
+  {
+    // create the query list (count (feed <relname>))
+    relname = ((CcString*)args[0].addr)->GetValue();
+    string querystring = "(count " + relname + ")";
+    nl->ReadFromString(querystring, queryList);
+
+    // construct the operator tree within a new query processor instance
+    // NOTE: variable name for this instance must differ from qp
+    qpp = new QueryProcessor( nl, SecondoSystem::GetAlgebraManager() );
+    try{
+    qpp->Construct( queryList, correct,
+                    evaluable, defined, isFunction, tree, resultType );
+    if ( defined && correct  && evaluable )
+    {
+        // evaluate the operator tree
+          Word tmpresult;
+          qpp->EvalS( tree, tmpresult, 1 );
+
+          // create the result list ( type, value )
+          CcInt* TmpResult = (CcInt*) tmpresult.addr;
+          if(TmpResult->IsDefined()){
+             int count = TmpResult->GetValue();
+             ((CcInt*) result.addr)->Set(true,count);
+          }
+    }
+    if(correct){
+       qpp->Destroy( tree, true );
+    }
+    } catch(...){}
+    delete qpp;
+  }
+  return (0);
+}
+
+/*
+4.21 Value mapping function of operator ~relcount2~
+
+*/
+
+static int
+RelcountFun2( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  char* relname;
+  string querystring;
+  Word resultword;
+  string errorMessage = "";
+
+  result = qp->ResultStorage( s );
+
+  if ( ((CcString*)args[0].addr)->IsDefined() )
+  {
+    // create the query list (count (feed <relname>))
+    relname = (char*)(((CcString*)args[0].addr)->GetStringval());
+    querystring = "(count(feed " + (string)relname + "))";
+
+    // the if statement can be simply reduced to:
+    // if ( QueryProcessor::ExecuteQuery(querystring, result) )
+    if ( QueryProcessor::ExecuteQuery(querystring, resultword) )
+    {
+      ((CcInt *)result.addr)->Set( true,
+      ((CcInt*)resultword.addr)->GetIntval() );
+      ((CcInt*)resultword.addr)->DeleteIfAllowed();
+    }
+    else cout << "Error in executing operator query: "<< errorMessage << endl;
+  }
+  else
+  {
+    ((CcInt *)result.addr)->Set( false, 0 );
+  }
+  return (0);
+}
+const string CCSpecRelcount  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                        "\"Example\" )"
+                        "( <text>string -> int</text--->"
+                        "<text>_ relcount</text--->"
+                        "<text>Counts the number of tuples of a relation, "
+                        "which is specified by its objectname"
+                        " of type string.</text--->"
+                        "<text>query \"Staedte\" relcount</text--->"
+                        ") )";
+
+const string CCSpecRelcount2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                            "\"Example\" )"
+                             "( <text>string -> int</text--->"
+             "<text>_ relcount2</text--->"
+             "<text>Counts the number of tuples of a relation, "
+             "which is specified by its objectname"
+             " of type string. Uses static method ExecuteQuery"
+             " from class QueryProcessor.</text--->"
+             "<text>query \"Orte\" relcount2</text--->"
+             ") )";
+
+ValueMapping ccoprelcountmap[] = { RelcountFun };
+ValueMapping ccoprelcountmap2[] = { RelcountFun2 };
+
+Operator ccoprelcount( "relcount", CCSpecRelcount, 1, ccoprelcountmap,
+                       Operator::SimpleSelect, relcountTM );
+
+Operator ccoprelcount2( "relcount2", CCSpecRelcount2, 1, ccoprelcountmap2,
+                        Operator::SimpleSelect, relcountTM );
 
 /*
 
@@ -4722,6 +4946,10 @@ class RelationAlgebra : public Algebra
     cpptrel.AssociateKind( Kind::REL() );
 
     AddOperator(&clearOp);
+    AddOperator( &ccopifthenelse2 );
+    ccopifthenelse2.SetRequestsArguments();
+    AddOperator( &ccoprelcount );
+    AddOperator( &ccoprelcount2 );
 
 
 /*

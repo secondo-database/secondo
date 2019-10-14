@@ -236,3 +236,30 @@ Number   : 1
 Signature : rel(tuple(X)) -> bool
 Example   : query ten feed consume clear
 Result    : TRUE
+
+Operator : ifthenelse2
+Number   : 1 
+Signature: (bool x rel x rel) ->  rel 
+Example  : query ifthenelse2(3 < 5,ten feed consume,thousand feed consume) count
+Result   : 10
+
+Operator : ifthenelse2
+Number   : 2 
+Signature: (bool x trel x trel) ->  trel
+Example  : query ifthenelse2(3 > 5,ten feed tconsume,thousand feed tconsume) count
+Result   : 1000
+
+Operator : relcount
+Number   : 1
+Signature: string -> int
+Example  : query "ten" relcount
+Result   : 10
+
+
+Operator : relcount2
+Number   : 1
+Signature: string -> int
+Example  : query "ten" relcount2
+Result   : 10
+
+

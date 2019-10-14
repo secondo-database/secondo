@@ -53,9 +53,6 @@ operator minus alias SET_MINUS pattern _ infixop _
 
 operator setoption alias SETOPTION pattern op (_, _)
 
-operator relcount alias RELCOUNT pattern _ op
-operator relcount2 alias RELCOUNT2 pattern _ op
-
 operator keywords alias KEYWORD pattern _ op
 operator elapsedtime alias ELAPSEDTIME pattern _ op
 operator between alias BETWEEN pattern _ op [ _, _]
@@ -99,7 +96,6 @@ operator logB alias LOGB pattern op ( _ , _ )
 operator pow alias POW pattern op ( _ , _ )
 operator dms2deg alias DMS2DEG pattern op ( _ , _ , _ , _ )
 
-operator ifthenelse2 alias IFTHENELSE2 pattern op( _, _, _ )
 operator length alias LENGTH pattern op( _ )
 operator randmax alias RANDMAX pattern op( _ )
 operator seqinit alias SEQINIT pattern op( _ )
