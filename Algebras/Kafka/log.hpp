@@ -27,8 +27,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define LOG_H
 
 #include <iostream>
+#include <sys/time.h>
 
 enum typelog {
+    TRACE,
     DEBUG,
     INFO,
     WARN,
@@ -36,11 +38,13 @@ enum typelog {
 };
 
 struct structlog {
-    bool headers = false;
-    typelog level = INFO;
+    bool headers = true;
+    typelog level = DEBUG;
 };
 
 extern structlog LOGCFG;
+extern timeval oldTime;
+
 
 class LOG {
 public:
@@ -50,7 +54,8 @@ public:
     LOG(typelog type) {
         msglevel = type;
         if (LOGCFG.headers) {
-            operator<<("[" + getLabel(type) + "]");
+            operator<<("[" + getLabel(type) + "]") << getDiff() << " "
+                                                   << getFormattedTime() << " ";
         }
     }
 
@@ -74,9 +79,69 @@ private:
     bool opened = false;
     typelog msglevel = DEBUG;
 
+    static std::string getFormattedTime() {
+        timeval curTime{};
+        gettimeofday(&curTime, NULL);
+        int milli = curTime.tv_usec / 1000;
+
+        char buffer[80];
+        strftime(buffer, 80, "%Y-%m-%d %H:%M:%S", localtime(&curTime.tv_sec));
+
+        char currentTime[84] = "";
+        sprintf(currentTime, "%s:%d", buffer, milli);
+        return std::string(currentTime);
+    }
+
+    static std::string formatDiff(const timeval &curTime) {
+        char buffer[80];
+        strftime(buffer, 80, "%H:%M:%S", gmtime(&curTime.tv_sec));
+
+        char currentTime[100] = "";
+        sprintf(currentTime, "[Δ %s:%06ld]", buffer, curTime.tv_usec);
+        return std::string(currentTime);
+    }
+
+    std::string getDiff() {
+        if (oldTime.tv_sec == 0 && oldTime.tv_usec == 0)
+            gettimeofday(&oldTime, NULL);
+
+        timeval curTime{};
+        gettimeofday(&curTime, NULL);
+
+        timeval diff{};
+        timeval_subtract(&diff, &curTime, &oldTime);
+        oldTime = curTime;
+
+        return formatDiff(diff);
+    }
+
+    static void timeval_subtract(struct timeval *result, struct timeval *x,
+                                 struct timeval *y) {
+        /* Perform the carry for the later subtraction by updating y. */
+        if (x->tv_usec < y->tv_usec) {
+            int nsec = (y->tv_usec - x->tv_usec) / 1000000 + 1;
+            y->tv_usec -= 1000000 * nsec;
+            y->tv_sec += nsec;
+        }
+        if (x->tv_usec - y->tv_usec > 1000000) {
+            int nsec = (x->tv_usec - y->tv_usec) / 1000000;
+            y->tv_usec += 1000000 * nsec;
+            y->tv_sec -= nsec;
+        }
+
+        /* Compute the time remaining to wait.
+           tv_usec is certainly positive. */
+        result->tv_sec = x->tv_sec - y->tv_sec;
+        result->tv_usec = x->tv_usec - y->tv_usec;
+    }
+
+
     inline std::string getLabel(typelog type) {
         std::string label;
         switch (type) {
+            case TRACE:
+                label = "TRACE";
+                break;
             case DEBUG:
                 label = "DEBUG";
                 break;

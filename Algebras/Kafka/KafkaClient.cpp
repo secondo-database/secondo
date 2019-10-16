@@ -52,7 +52,7 @@ namespace kafka {
     }
 
     void KafkaProducerClient::Write(std::string line) {
-        LOG(DEBUG) << "KafkaProducerClient::Write line: " << line;
+        LOG(TRACE) << "KafkaProducerClient::Write line: " << line;
         this->Write(const_cast<char *>(line.c_str()), line.size());
     }
 
@@ -185,7 +185,7 @@ namespace kafka {
 
         delete conf;
 
-        std::cout << "Created consumer " << consumer->name() << std::endl;
+        LOG(INFO) << "Created consumer " << consumer->name();
 
         /*
         * Subscribe to topics
@@ -203,17 +203,17 @@ namespace kafka {
         std::string *result = NULL;
         bool run = true;
         while (run) {
-            LOG(DEBUG) << "Starting consuming next message from kafka";
+            LOG(TRACE) << "Starting consuming next message from kafka";
             RdKafka::Message *msg = consumer->consume(1000);
             KafkaMessage *message = msg_consume(msg,
                                                 ex_rebalance_cb->partition_cnt);
             run = message->run && message->payload == NULL;
             if (message->payload) {
                 char *payload = static_cast<char *>(message->payload);
-                LOG(DEBUG) << "KafkaReaderClient::ReadSting res:  " << payload;
+                LOG(TRACE) << "KafkaReaderClient::ReadSting res:  " << payload;
                 result = new std::string(payload, message->len);
             } else {
-                LOG(DEBUG)
+                LOG(TRACE)
                         << "KafkaReaderClient::ReadSting res: payload is NULL ";
             }
             delete msg;
@@ -238,7 +238,7 @@ namespace kafka {
                 /* Real message */
                 msg_cnt++;
                 msg_bytes += message->len();
-                LOG(DEBUG) << "Read msg at offset " << message->offset();
+                LOG(TRACE) << "Read msg at offset " << message->offset();
 //                result->key = message->key();
                 result->len = message->len();
                 result->payload = message->payload();

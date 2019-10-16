@@ -171,12 +171,8 @@ namespace kafka {
             ListExpr resultType = GetTupleResultType(s);
             TupleType *tupleType = new TupleType(nl->Second(resultType));
             Tuple *res = new Tuple(tupleType);
-            LOG(DEBUG) << "tuple created";
-            LOG(DEBUG) << "Try to read " << *source;
             res->ReadFromBinStr(0, *source);
-            LOG(DEBUG) << "Tuple readFromBinStr finished";
             delete source;
-            LOG(DEBUG) << "KafkaSourceLI.getNext before return";
             return res;
         }
 
@@ -205,7 +201,7 @@ namespace kafka {
                 );
                 return 0;
             case REQUEST:
-                LOG(DEBUG) << "KafkaSourceVM request";
+                LOG(TRACE) << "KafkaSourceVM request";
                 if (li) {
                     result.addr = li->getNext(s);
                     if (li->isContinuous())
