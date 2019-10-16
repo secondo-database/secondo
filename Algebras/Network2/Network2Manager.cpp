@@ -38,7 +38,6 @@ Defines, includes, and constants
 #include "Tools/Flob/DbArray.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"
-#include "Algebras/Spatial/Geoid.h"
 #include "Network2Algebra.h"
 #include "Network2Manager.h"
 

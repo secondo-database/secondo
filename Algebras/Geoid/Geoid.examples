@@ -1,0 +1,84 @@
+Database : berlintest
+Restore  : NO
+
+
+Operator : create_geoid
+Number   : 1  
+Signature: string [x {real|int} x {real|int}] -> geoid
+Example  : query create_geoid("UnitSphere")
+Result   : (geoid ("UnitSphere" 1.0 0.0))
+Tolerance: 0.00000001
+
+Operator : create_geoid
+Number   : 2  
+Signature: string [x {real|int} x {real|int}] -> geoid
+Example  : query create_geoid("Test1", 10.0, 0.5) 
+Result   : (geoid ("Test1" 10.0 0.5))
+Tolerance: 0.00000001
+
+Operator : create_geoid
+Number   : 3  
+Signature: string [x {real|int} x {real|int}] -> geoid
+Example  : query create_geoid("Test2", 10.0, 1)
+Result   : (geoid ("Test2" 10.0 1.0))
+Tolerance: 0.00000001
+
+Operator : create_geoid
+Number   : 4  
+Signature: string [x {real|int} x {real|int}] -> geoid
+Example  : query create_geoid("Test3", 20, 0.03)
+Result   : (geoid ("Test3" 20.0 0.03))
+Tolerance: 0.00000001
+
+Operator : create_geoid
+Number   : 5  
+Signature: string [x {real|int} x {real|int}] -> geoid
+Example  : query create_geoid("Test4", 100, 0)
+Result   : (geoid ("Test4" 100.0 0.0))
+Tolerance: 0.00000001
+
+Operator : create_geoid
+Number   : 6
+Signature: string [x {real|int} x {real|int}] -> geoid
+Example  : query create_geoid("Test4", 0, 0)
+Result   : (geoid UNDEF)
+
+Operator : create_geoid
+Number   : 7
+Signature: string [x {real|int} x {real|int}] -> geoid
+Example  : query create_geoid("Test4", 10.0, -0.000001)
+Result   : (geoid UNDEF)
+
+Operator : create_geoid
+Number   : 8
+Signature: string [x {real|int} x {real|int}] -> geoid
+Example  : query create_geoid("Test4")
+Result   : (geoid UNDEF)
+
+Operator : getRadius
+Number   : 1
+Signature: geoid -> real
+Example  : query getRadius(create_geoid("UnitSphere"))
+Result   : (real 1.0)
+Tolerance: 0.00000001
+
+Operator : getRadius
+Number   : 2
+Signature: geoid -> real
+Example  : query getRadius(create_geoid("bla"))
+Result   : (real undefined)
+
+Operator : getFlattening
+Number   : 1
+Signature: geoid -> real
+Example  : query getFlattening(create_geoid("UnitSphere"))
+Result   : (real 0.0)
+Tolerance: 0.00000001
+
+Operator : getFlattening
+Number   : 2
+Signature: geoid -> real
+Example  : query getFlattening(create_geoid("bla"))
+Result   : (real undefined)
+
+

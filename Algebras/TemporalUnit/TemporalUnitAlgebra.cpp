@@ -248,7 +248,7 @@ helping operators for indexing instant values in R-trees.
 #include "Algebra.h"
 #include "StandardTypes.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"
-#include "Algebras/Spatial/Geoid.h"
+#include "Algebras/Geoid/Geoid.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Algebras/Temporal/TemporalAlgebra.h"
 #include "Algebras/TemporalExt/TemporalExtAlgebra.h"

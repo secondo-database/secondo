@@ -44,7 +44,7 @@ inclusion of header files concerning Secondo.
 #include "DateTime.h"
 #include "TemporalExtAlgebra.h"
 #include "Algebras/Temporal/RefinementStream.h"
-#include "Algebras/Spatial/Geoid.h"
+#include "Algebras/Geoid/Geoid.h"
 #include "Algebras/SymbolicTrajectory/Algorithms.h"
 
 extern NestedList* nl;

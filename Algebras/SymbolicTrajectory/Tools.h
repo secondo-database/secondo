@@ -41,7 +41,7 @@ Started July 2014, Fabio Vald\'{e}s
 #include "BasicTypes.h"
 #include "Algebras/Trie/InvertedFile.h"
 #include "Algebras/Standard-C++/LongInt.h"
-#include "Algebras/Spatial/Geoid.h"
+#include "Algebras/Geoid/Geoid.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"
 #include "Algebras/OrderedRelation/OrderedRelationAlgebra.h"
 

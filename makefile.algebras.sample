@@ -138,6 +138,9 @@ ALGEBRAS     += RTreeAlgebra
 ALGEBRA_DIRS += TBTree
 ALGEBRAS     += TBTreeAlgebra
 
+ALGEBRA_DIRS += Geoid 
+ALGEBRAS     += GeoidAlgebra
+
 ALGEBRA_DIRS += Rectangle
 ALGEBRAS     += RectangleAlgebra
 

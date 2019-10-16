@@ -67,7 +67,6 @@ Including header-files
 #include "QueryProcessor.h"
 #include "Symbols.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
-#include "Algebras/Spatial/Geoid.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"
 #include "Algebras/FText/FTextAlgebra.h"
 #include "ShpFileReader.h"

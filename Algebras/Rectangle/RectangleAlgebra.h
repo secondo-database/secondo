@@ -55,8 +55,7 @@ dimension. A rectangle in such a way can be represented by four, six or eight
 #include <iostream>
 #include "stdarg.h"
 #include "Attribute.h"
-#include "Messages.h"
-#include "Algebras/Spatial/Geoid.h"
+#include "Algebras/Geoid/Geoid.h"
 #include "ListUtils.h"
 
 #include <stdio.h>

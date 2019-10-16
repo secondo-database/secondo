@@ -23,7 +23,7 @@ than the right one.
 #include "Coord.h"
 #include "Point.h"
 #include "AttrType.h"
-#include "Geoid.h"
+#include "Algebras/Geoid/Geoid.h"
 
 /*
 5.13 Auxiliary Functions

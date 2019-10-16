@@ -113,7 +113,7 @@ file.
 #include "AlmostEqual.h"
 #include "ListUtils.h"
 #include "Symbols.h"
-#include "Algebras/Spatial/Geoid.h"
+#include "Algebras/Geoid/Geoid.h"
 #include "Algebras/MovingRegion/MovingRegionAlgebra.h"
 #include "RefinementStream.h"
 #include "Algebras/TemporalUnit/TemporalUnitAlgebra.h"

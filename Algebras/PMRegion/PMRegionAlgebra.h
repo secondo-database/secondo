@@ -49,7 +49,6 @@ This header file contains the definition of the class ~PMRegion~
 #include "stdarg.h"
 #include "Attribute.h"
 #include "Messages.h"
-#include "Algebras/Spatial/Geoid.h"
 #include "ListUtils.h"
 #include "Algebra.h"
 
@@ -58,7 +57,6 @@ This header file contains the definition of the class ~PMRegion~
 
 #include <stdio.h>
 
-using namespace pmr;
 
 /*
 3 Conversion functions
@@ -66,8 +64,8 @@ using namespace pmr;
 These functions convert between Secondo NestedLists and libpmregion RLists.
  
 */
-ListExpr RList2NL (RList r);
-RList NL2RList (ListExpr l);
+ListExpr RList2NL (pmr::RList r);
+pmr::RList NL2RList (ListExpr l);
 
 namespace pmregion {
 
@@ -95,7 +93,7 @@ public:
         return listutils::isSymbol(list, BasicType());
     } 
     
-    ::PMRegion *pmr; // The native libpmregion PMRegion object
+    pmr::PMRegion *pmr; // The native libpmregion PMRegion object
 private:
 };
 

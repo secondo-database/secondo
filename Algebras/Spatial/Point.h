@@ -14,7 +14,7 @@ of a point data type.
 #include <sstream>
 #include "AlmostEqual.h"
 #include "Coord.h"
-#include "Geoid.h"
+#include "Algebras/Geoid/Geoid.h"
 #include "Algebras/Rectangle/RectangleAlgebra.h"
 
 class Point;

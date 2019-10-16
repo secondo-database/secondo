@@ -40,7 +40,7 @@ February 2008 -  Simone Jandt
 #include <string>
 #include "NestedList.h"
 #include "QueryProcessor.h"
-#include "Algebras/Spatial/Geoid.h"
+#include "Algebras/Geoid/Geoid.h"
 #include "Algebras/Network/NetworkAlgebra.h"
 #include "Algebras/Temporal/TemporalAlgebra.h"
 

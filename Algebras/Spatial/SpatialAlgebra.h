@@ -73,7 +73,7 @@ shows examples of these spatial data types.
 
 #include "HalfSegment.h"
 #include "Coord.h"
-#include "Geoid.h"
+#include "Algebras/Geoid/Geoid.h"
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "Berlin2WGS.h"

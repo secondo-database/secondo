@@ -42,6 +42,7 @@ In this way one can leverage all the existing operators working on tuple streams
 
 #include <set>
 #include "Stream.h"
+#include "Algebras/Spatial/Point.h"
 
 using namespace pointcloud2;
 

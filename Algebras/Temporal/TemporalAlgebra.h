@@ -95,7 +95,7 @@ The type system of the Temporal Algebra can be seen below.
 #include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "DateTime.h"
 #include "AlmostEqual.h"
-#include "Algebras/Spatial/Geoid.h"
+#include "Algebras/Geoid/Geoid.h"
 #include "ListUtils.h"
 #include "CharTransform.h"
 
