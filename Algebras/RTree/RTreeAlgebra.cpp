@@ -81,6 +81,7 @@ relation which bounding boxes of the indexed attribute intersect the window
 #include "Algebras/TupleIdentifier/TupleIdentifier.h"
 #include "Messages.h"
 #include "Progress.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "Algebras/FText/FTextAlgebra.h"
 #include "ListUtils.h"
 #include "AlmostEqual.h"

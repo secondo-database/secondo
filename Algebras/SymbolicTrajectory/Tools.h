@@ -35,6 +35,7 @@ Started July 2014, Fabio Vald\'{e}s
 #include "Algebras/TemporalUnit/TemporalUnitAlgebra.h"
 #include "Algebras/MovingRegion/MovingRegionAlgebra.h"
 #include "SecParser.h"
+#include "Algebras/BTree/BTreeAlgebra.h"
 #include "Algebras/RTree/RTreeAlgebra.h"
 #include "Algebras/FText/FTextAlgebra.h"
 #include "BasicTypes.h"

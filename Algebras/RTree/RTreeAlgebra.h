@@ -63,21 +63,11 @@ dimensions. The desired dimensions are passed as a parameter to the template.
 #include <vector>
 #include <queue>
 
-
-
-#include "Algebras/Spatial/SpatialAlgebra.h"
-#include "Algebras/Relation-C++/RelationAlgebra.h"
-#include "Algebra.h"
 #include "NestedList.h"
-#include "QueryProcessor.h"
 #include "Algebras/Rectangle/RectangleAlgebra.h"
-#include "StandardTypes.h"
-#include "Algebras/BTree/BTreeAlgebra.h"
-#include "Algebras/Temporal/TemporalAlgebra.h"
-#include "AlmostEqual.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
 extern NestedList* nl;
-extern QueryProcessor* qp;
 
 #define BBox Rectangle
 #define BBoxSet RectangleSet

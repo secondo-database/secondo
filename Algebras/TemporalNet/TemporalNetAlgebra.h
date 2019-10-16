@@ -40,8 +40,9 @@ February 2008 -  Simone Jandt
 #include <string>
 #include "NestedList.h"
 #include "QueryProcessor.h"
-#include "../Spatial/Geoid.h"
-#include "../Network/NetworkAlgebra.h"
+#include "Algebras/Spatial/Geoid.h"
+#include "Algebras/Network/NetworkAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 
 #ifndef __NETWORK_ALGEBRA_H__
 #error NetworkAlgebra.h is needed by TemporalNetAlgebra.h. \
