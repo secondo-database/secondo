@@ -40,6 +40,7 @@ is open in y direction.
 #include "Attribute.h"
 #include "NestedList.h"
 #include "Algebras/Rectangle/RectangleAlgebra.h"
+#include "Algebras/Spatial/Point.h"
 #include "ListUtils.h"
 
 

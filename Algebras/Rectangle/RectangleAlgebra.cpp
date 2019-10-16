@@ -45,12 +45,12 @@ struct ~Rectangle~, and the definitions of the type constructur
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
-#include "Algebras/Spatial/SpatialAlgebra.h"
 #include "RectangleAlgebra.h"
 #include "StandardTypes.h"
-#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "ListUtils.h"
 #include "Symbols.h"
+
+
 #include "Algebras/Temporal/CellGrid.h"
 #include "Algebras/Spatial/Point.h"
 #include "Algebras/Spatial/Berlin2WGS.h"

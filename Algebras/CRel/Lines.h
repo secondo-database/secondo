@@ -28,7 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Attribute.h"
 #include <cstdint>
 #include <cstring>
-#include "Algebras/Constraint/ConstraintAlgebra.h"
+//#include "Algebras/Constraint/ConstraintAlgebra.h"
+#include "AlmostEqual.h"
 #include "Algebras/Spatial/GeoDist.h"
 #include "Algebras/Spatial/HalfSegment.h"
 #include <limits>
@@ -348,20 +349,20 @@ namespace CRelAlgebra
     }
 
   private:
-    class SimplePoint : public Constraint::Point2D
+    class SimplePoint 
     {
     public:
       SimplePoint()
       {
       }
 
-      SimplePoint(double x, double y) :
-        Constraint::Point2D(x, y)
+      SimplePoint(double _x, double _y) :
+        x(_x),y(_y)
       {
       }
 
       SimplePoint(const Point &point) :
-        Constraint::Point2D(point.GetX(), point.GetY())
+        x(point.GetX()), y(point.GetY())
       {
       }
 
@@ -401,24 +402,24 @@ namespace CRelAlgebra
 
       bool operator == (const SimplePoint &other) const
       {
-        return Constraint::AlmostEqual(x, other.x) &&
-               Constraint::AlmostEqual(y, other.y);
+        return AlmostEqual(x, other.x) &&
+               AlmostEqual(y, other.y);
       }
 
       bool operator != (const SimplePoint &other) const
       {
-        return !Constraint::AlmostEqual(x, other.x) ||
-               !Constraint::AlmostEqual(y, other.y);
+        return !AlmostEqual(x, other.x) ||
+               !AlmostEqual(y, other.y);
       }
 
       bool operator < (const SimplePoint &other) const
       {
-        if (!Constraint::AlmostEqual(x, other.x))
+        if (!AlmostEqual(x, other.x))
         {
           return x < other.x;
         }
 
-        if (!Constraint::AlmostEqual(y, other.y))
+        if (!AlmostEqual(y, other.y))
         {
           return y < other.y;
         }
@@ -428,12 +429,12 @@ namespace CRelAlgebra
 
       bool operator <= (const SimplePoint &other) const
       {
-        if (!Constraint::AlmostEqual(x, other.x))
+        if (!AlmostEqual(x, other.x))
         {
           return x < other.x;
         }
 
-        if (!Constraint::AlmostEqual(y, other.y))
+        if (!AlmostEqual(y, other.y))
         {
           return y < other.y;
         }
@@ -443,12 +444,12 @@ namespace CRelAlgebra
 
       bool operator > (const SimplePoint &other) const
       {
-        if (!Constraint::AlmostEqual(x, other.x))
+        if (!AlmostEqual(x, other.x))
         {
           return x > other.x;
         }
 
-        if (!Constraint::AlmostEqual(y, other.y))
+        if (!AlmostEqual(y, other.y))
         {
           return y > other.y;
         }
@@ -458,12 +459,12 @@ namespace CRelAlgebra
 
       bool operator >= (const SimplePoint &other) const
       {
-        if (!Constraint::AlmostEqual(x, other.x))
+        if (!AlmostEqual(x, other.x))
         {
           return x > other.x;
         }
 
-        if (!Constraint::AlmostEqual(y, other.y))
+        if (!AlmostEqual(y, other.y))
         {
           return y > other.y;
         }
@@ -475,6 +476,10 @@ namespace CRelAlgebra
       {
         return Point(true, x, y);
       }
+
+      double x;
+      double y; 
+
     };
 
     class SimpleHalfSegment
@@ -532,18 +537,18 @@ namespace CRelAlgebra
         }
         else
         {
-          const bool vA = Constraint::AlmostEqual(lp.x, rp.x),
-            vB = Constraint::AlmostEqual(other.lp.x, other.rp.x);
+          const bool vA = AlmostEqual(lp.x, rp.x),
+            vB = AlmostEqual(other.lp.x, other.rp.x);
 
           if (vA) // is a vertical?
           {
             if (vB) // are both vertical?
             {
-              if (!Constraint::AlmostEqual(spA.y, dpA.y))
+              if (!AlmostEqual(spA.y, dpA.y))
               {
                 if (spA.y > dpA.y)
                 {
-                  if (!Constraint::AlmostEqual(spB.y, dpB.y) && spB.y > dpB.y)
+                  if (!AlmostEqual(spB.y, dpB.y) && spB.y > dpB.y)
                   {
                     return spA == spB ? 0 : spA < spB ? -1 : 1;
                   }
@@ -551,7 +556,7 @@ namespace CRelAlgebra
                   return ldp ? 1 : -1;
                 }
 
-                if (!Constraint::AlmostEqual(spB.y, dpB.y) && spB.y < dpB.y)
+                if (!AlmostEqual(spB.y, dpB.y) && spB.y < dpB.y)
                 {
                   return spA == spB ? 0 : spA < spB ? -1 : 1;
                 }
@@ -560,14 +565,14 @@ namespace CRelAlgebra
               return ldp ? -1 : 1;
             }
 
-            if (!Constraint::AlmostEqual(spA.y, dpA.y))
+            if (!AlmostEqual(spA.y, dpA.y))
             {
               return spA.y > dpA.y ? (ldp ? 1 : -1) : (ldp ? -1 : 1);
             }
           }
           else if (vB) // is only b vertical?
           {
-            if (!Constraint::AlmostEqual(spB.y, dpB.y))
+            if (!AlmostEqual(spB.y, dpB.y))
             {
               return spB.y > dpB.y ? (ldp ? -1 : 1) : (ldp ? 1 : -1);
             }
@@ -576,7 +581,7 @@ namespace CRelAlgebra
           const double kA = (dpA.y - spA.y) / (dpA.x - spA.x),
             kB = (dpB.y - spB.y) / (dpB.x - spB.x);
 
-          if (!Constraint::AlmostEqual(kA, kB))
+          if (!AlmostEqual(kA, kB))
           {
             return kA > kB ? 1 : -1;
           }
@@ -636,16 +641,16 @@ namespace CRelAlgebra
           Xr = other.rp.x,
           Yr = other.rp.y;
 
-        const bool vA = Constraint::AlmostEqual(xl, xr),
-          vB = Constraint::AlmostEqual(Xl, Xr);
+        const bool vA = AlmostEqual(xl, xr),
+          vB = AlmostEqual(Xl, Xr);
 
         if (vA && vB) // are both vertical?
         {
-          return (Constraint::AlmostEqual(xl, Xl) &&
-                  (Constraint::AlmostEqual(yl, Yl) ||
-                   Constraint::AlmostEqual(yl, Yr) ||
-                   Constraint::AlmostEqual(yr, Yl) ||
-                   Constraint::AlmostEqual(yr, Yr) ||
+          return (AlmostEqual(xl, Xl) &&
+                  (AlmostEqual(yl, Yl) ||
+                   AlmostEqual(yl, Yr) ||
+                   AlmostEqual(yr, Yl) ||
+                   AlmostEqual(yr, Yr) ||
                    (yl > Yl && yl < Yr) || (yr > Yl && yr < Yr) ||
                    (Yl > yl && Yl < yr) || (Yr > yl && Yr < yr)));
         }
@@ -659,12 +664,12 @@ namespace CRelAlgebra
           {
             const double y0 = k * Xl + a;
 
-            return (Xl > xl || Constraint::AlmostEqual(Xl, xl)) &&
-                   (Xl < xr || Constraint::AlmostEqual(Xl, xr)) &&
-                   (((y0 > Yl || Constraint::AlmostEqual(y0, Yl)) &&
-                     (y0 < Yr || Constraint::AlmostEqual(y0, Yr))) ||
-                    ((y0 > Yr || Constraint::AlmostEqual(y0, Yr)) &&
-                     (y0 < Yl || Constraint::AlmostEqual(y0, Yl))));
+            return (Xl > xl || AlmostEqual(Xl, xl)) &&
+                   (Xl < xr || AlmostEqual(Xl, xr)) &&
+                   (((y0 > Yl || AlmostEqual(y0, Yl)) &&
+                     (y0 < Yr || AlmostEqual(y0, Yr))) ||
+                    ((y0 > Yr || AlmostEqual(y0, Yr)) &&
+                     (y0 < Yl || AlmostEqual(y0, Yl))));
           }
         }
 
