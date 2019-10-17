@@ -1,0 +1,12 @@
+create index on Authordoc columns Name;
+create index on Authordoc columns Lclastname;
+create index on Authordoc columns Docid;
+
+create index on Document columns Docid;
+create index on Document columns Booktitle;
+create index on Document columns Journal;
+
+create index on Keyword columns Docid;
+create index on Keyword columns Word;
+
+
