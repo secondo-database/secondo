@@ -53,7 +53,7 @@ public:
 
     LOG(typelog type) {
         msglevel = type;
-        if (LOGCFG.headers) {
+        if (LOGCFG.headers && (msglevel >= LOGCFG.level)) {
             operator<<("[" + getLabel(type) + "]") << getDiff() << " "
                                                    << getFormattedTime() << " ";
         }

@@ -192,6 +192,7 @@ namespace kafka {
         KafkaSourceLI *li = (KafkaSourceLI *) local.addr;
         switch (message) {
             case OPEN :
+                LOG(DEBUG) << "KafkaSourceVM open";
                 if (li) {
                     delete li;
                 }
@@ -199,6 +200,7 @@ namespace kafka {
                                                (CcString *) args[1].addr,
                                                (CcBool *) args[2].addr
                 );
+                LOG(DEBUG) << "KafkaSourceVM opened";
                 return 0;
             case REQUEST:
                 LOG(TRACE) << "KafkaSourceVM request";

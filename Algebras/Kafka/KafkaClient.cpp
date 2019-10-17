@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace kafka {
 
     void KafkaProducerClient::Open(std::string brokers, std::string topic_str) {
-        LOG(DEBUG) << "KafkaClient::Open";
+        LOG(DEBUG) << "KafkaProducerClient::Open called";
 
         this->topic_str = topic_str;
         this->brokers = brokers;
@@ -48,7 +48,8 @@ namespace kafka {
             exit(1);
         }
 
-        LOG(DEBUG) << "% Created producer " << producer->name();
+        LOG(DEBUG) << "KafkaProducerClient::Open finished. Created producer "
+                   << producer->name();
     }
 
     void KafkaProducerClient::Write(std::string line) {
@@ -137,7 +138,7 @@ namespace kafka {
     };
 
     void KafkaReaderClient::Open(std::string brokers, std::string topic_str) {
-        LOG(DEBUG) << "KafkaClient::Open";
+        LOG(DEBUG) << "KafkaReaderClient::Open";
 
         this->topic_str = topic_str;
         this->brokers = brokers;
@@ -185,7 +186,8 @@ namespace kafka {
 
         delete conf;
 
-        LOG(INFO) << "Created consumer " << consumer->name();
+        LOG(INFO) << "KafkaReaderClient::Open. Created consumer "
+                  << consumer->name();
 
         /*
         * Subscribe to topics
@@ -248,7 +250,7 @@ namespace kafka {
                 /* Last message */
                 if (exit_eof && ++eof_cnt == partition_cnt) {
                     LOG(DEBUG) << "EOF reached for all " << partition_cnt <<
-                              " partition(s)";
+                               " partition(s)";
                     eof_cnt = 0;
                     result->run = false;
                 }
