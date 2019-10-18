@@ -111,7 +111,7 @@ public void addMessageListener(MessageListener ml);
   **/
  public String sendToOptimizer(String cmd);
   
-
+ public boolean optimizerAvailable();
 
 
 

@@ -3868,6 +3868,10 @@ public boolean execCommand(String cmd, IntByReference errorCode,ListExpr resultL
      return ComPanel.execCommand(cmd,errorCode,resultList,errorMessage);
 }
 
+public boolean optimizerAvailable(){
+   return ComPanel.useOptimizer();
+}
+
 public String sendToOptimizer(String cmd){
    return ComPanel.sendToOptimizer(cmd);
 }
