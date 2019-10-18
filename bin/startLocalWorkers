@@ -1,0 +1,116 @@
+#!/bin/bash
+
+
+if [ "$1" = "stop" ];then
+  if [ -f runningMonitors ]; then
+   while read line; do
+     kill $line
+   done < runningMonitors
+  fi 
+  rm runningMonitors
+  exit
+fi
+
+rm -f runningMonitors
+
+if [ -z "$2" ]; then
+  echo "usage: startLocalWorkers [-c <ConfigFile>]  [-f <relationfile] <FirstPort> <NumberOfWorkers> "
+  echo "This scriptt will start a series of <NumberOfWorkers> SecondoMonitors"
+  echo "The first monitor will listen at port <FirstPort>, the second monitor"
+  echo "will listen on port <FirstPort> + 1 and so on"
+  echo "The database directories will be:"
+  echo '  $HOME/workerDB/worker-<i>'
+  echo 'where <i> is the number of the worker (conunting starts with 1)'
+  exit
+fi
+
+
+
+# set standard configuration file
+
+config=$SECONDO_CONFIG
+if [ -z "$config" ];then
+  config="SecondoConfig.ini"
+fi
+
+
+# read optional arguments (config file and worker relation)
+
+while getopts c:f: opt
+do
+   case $opt in
+     c) config=$OPTARG;;
+     f) relfile=$OPTARG;;
+   esac
+done
+shift $(($OPTIND - 1))
+
+
+startPort="$1"
+numWorkers="$2"
+
+echo "Configuration file : $config"
+echo "worker relation    : $relfile"
+echo "start port         : $startPort"
+echo "number of workers : $numWorkers" 
+
+# check whether port number and number of slots are numbers 
+
+SPOK=$(expr "$startPort" : '[0-9]\+$' >/dev/null && echo OK || echo NOK)
+NWOK=$(expr "$numWorkers" : '[0-9]\+$' >/dev/null && echo OK || echo NOK)
+
+
+if [ "$SPOK" = "NOK" ];then
+  echo "The first argument (start port) is not an integer"
+  exit
+fi
+
+if [ "$NWOK" = "NOK" ];then
+  echo "The second  argument (number of workers) is not an integer"
+  exit
+fi
+
+echo "Starting Secondomonitors"
+
+for i in $(seq 1 $numWorkers); do
+  port=$[$startPort+"$i"]
+  port=$[$port-1]
+  echo "start worker number $i on port $port"
+  cmd="SecondoMonitor -c $config -d $HOME/workerDB/worker-$i  -p $port -s"
+  $cmd >log_worker_$i 2>&1 &
+  echo $! >>runningMonitors
+done 
+
+if [ -z  "$relfile" ]; then
+  exit
+fi
+
+
+
+
+
+
+echo "create worker relation in $relfile"
+echo "(OBJECT Workers" >$relfile
+echo "   ()" >>$relfile
+echo "   (rel " >> $relfile
+echo "      (tuple" >>$relfile
+echo "         (" >> $relfile
+echo "                (Host string) " >>$relfile
+echo "                (Port int)  " >> $relfile
+echo "                (Config string)))) " >>$relfile
+echo "    (" >>$relfile
+
+for i in $(seq 1 $numWorkers); do
+   port=$[$startPort+"$i"]
+   port=$[$port-1]
+   echo "(\"localhost\" $port \"SecondoConfig.ini\")" >>$relfile
+done
+echo "   ))" >>$relfile
+
+
+
+
+
+
+
