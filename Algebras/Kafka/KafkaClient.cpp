@@ -58,33 +58,36 @@ namespace kafka {
     }
 
     void KafkaProducerClient::Write(void *payload, size_t len) {
-
-        producer->poll(0);
-
-        /*
-        * Produce message
-        */
-        RdKafka::ErrorCode resp =
-                producer->produce(topic_str, RdKafka::Topic::PARTITION_UA,
-                                  RdKafka::Producer::RK_MSG_COPY,
-                        /* Value */
-                                  payload, len,
-                        /* Key */
-                                  NULL, 0,
-                        /* Timestamp (defaults to now) */
-                                  0,
-                        /* Per-message opaque value passed to
-                         * delivery report */
-                                  NULL);
-        if (resp != RdKafka::ERR_NO_ERROR) {
-            std::cerr << "% Produce failed: " <<
-                      RdKafka::err2str(resp) << std::endl;
-        } else {
+        RdKafka::ErrorCode resp;
+        do {
+            producer->poll(0);
+            resp =
+                    producer->produce(topic_str, RdKafka::Topic::PARTITION_UA,
+                                      RdKafka::Producer::RK_MSG_COPY,
+                            /* Value */
+                                      payload, len,
+                            /* Key */
+                                      NULL, 0,
+                            /* Timestamp (defaults to now) */
+                                      0,
+                            /* Per-message opaque value passed to
+                             * delivery report */
+                                      NULL);
+            if (resp == RdKafka::ERR__QUEUE_FULL) {
+                kafka::sleepMS(500);
+            } else if (resp != RdKafka::ERR_NO_ERROR) {
+                std::cerr << "% Produce failed: " <<
+                          RdKafka::err2str(resp) << std::endl;
+            } else {
 //            std::cerr << "% Produced message (" << len << " bytes)" <<
 //                      std::endl;
-        }
-
-        producer->poll(0);
+            }
+            producer->poll(0);
+        } while (resp == RdKafka::ERR__QUEUE_FULL);
+        written_count++;
+        if ((LOG_PROGRESS_INTERVAL > 0)
+            && (written_count % LOG_PROGRESS_INTERVAL == 0))
+            std::cout << "." << std::flush;
     }
 
 

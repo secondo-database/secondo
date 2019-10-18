@@ -1,4 +1,3 @@
-- Open points/ TODOs
 
 - Installing librdkafka - the Apache Kafka C/C++ client library
     https://github.com/edenhill/librdkafka

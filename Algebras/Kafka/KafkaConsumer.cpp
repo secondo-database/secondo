@@ -141,21 +141,25 @@ namespace kafka {
         KafkaKonsumerLI *li = (KafkaKonsumerLI *) local.addr;
         switch (message) {
             case OPEN :
+                LOG(DEBUG) << "kafkaConsumerVM open";
                 if (li) {
                     delete li;
                 }
                 local.addr = new KafkaKonsumerLI(args[0],
                                                  (CcString *) args[1].addr,
                                                  (CcString *) args[2].addr);
+                LOG(DEBUG) << "kafkaConsumerVM opened";
                 return 0;
             case REQUEST :
                 result.addr = li ? li->getNext() : 0;
                 return result.addr ? YIELD : CANCEL;
             case CLOSE :
+                LOG(DEBUG) << "kafkaConsumerVM closing";
                 if (li) {
                     delete li;
                     local.addr = 0;
                 }
+                LOG(DEBUG) << "kafkaConsumerVM closed";
                 return 0;
         }
         return 0;

@@ -87,14 +87,22 @@ std::string getDiff() {
     return formatDiff(diff);
 }
 
+#define LOG_PROGRESS_INTERVAL 1000
 int main() {
-    std::cout << getDiff() << std::endl;
-    std::cout << "Hello, World!" << std::endl;
-    std::cout << getDiff() << std::endl;
-    std::cout << getFormattedTime() << std::endl;
-    std::cout << getDiff() << std::endl;
-    std::cout << getFormattedTime() << std::endl;
-    std::cout << getDiff() << std::endl;
 
+    for (int i = 1; i < 3000 ; i++ ) {
+        if ( LOG_PROGRESS_INTERVAL > 0 && i % LOG_PROGRESS_INTERVAL == 0)
+            std::cout << ".";
+    }
+
+
+//    std::cout << getDiff() << std::endl;
+//    std::cout << "Hello, World!" << std::endl;
+//    std::cout << getDiff() << std::endl;
+//    std::cout << getFormattedTime() << std::endl;
+//    std::cout << getDiff() << std::endl;
+//    std::cout << getFormattedTime() << std::endl;
+//    std::cout << getDiff() << std::endl;
+//
     return 0;
 }

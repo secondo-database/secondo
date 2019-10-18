@@ -31,11 +31,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace kafka {
 
+#define LOG_PROGRESS_INTERVAL 10000
+
     class KafkaProducerClient {
     private:
         std::string brokers;
         std::string topic_str;
         RdKafka::Producer *producer;
+        unsigned long written_count = 0;
     public:
         void Open(std::string brokers, std::string topic_str);
 

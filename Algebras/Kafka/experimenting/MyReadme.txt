@@ -1,3 +1,14 @@
+- Open points/ TODOs
+ -- Connect delay probably because of version
+ https://github.com/edenhill/librdkafka/issues/1597
+ check version :
+ apt-cache policy librdkafka-dev
+ apt list librdkafka-dev
+ Solution: https://github.com/edenhill/librdkafka/blob/master/INTRODUCTION.md#broker-version-compatibility
+
+ -- DbEnv: BDB2055 Lock table is out of available lock entries
+
+ -- Implement progress request
 
 - Working with db
 
@@ -66,25 +77,8 @@
 - Other Instance
     export SECONDO_CONFIG=${HOME}/work/thirdInstance/SecondoConfig.ini
 
+- Big data
+ query Roads feed kafka["localhost","roads2"] count;
+ query Roads feed head[10000] kafka["localhost","roads2"] count;
+ bin/kafka-run-class.sh kafka.tools.GetOffsetShell --broker-list localhost:9092 --topic roads2
 
- - For analyses:
- Secondo => query kafkastream("localhost", "test1", FALSE) count;
- command
- 'query kafkastream("localhost", "test1", FALSE) count'
- started at: Wed Oct 16 18:07:12 2019
-
- [DEBUG][Δ 00:00:28:288634] 2019-10-16 18:07:12:99 readTypeString started. topic:test1
- [DEBUG][Δ 00:00:00:000010] 2019-10-16 18:07:12:99 KafkaClient::Open
- Created consumer kafka secondo client#consumer-4
- [DEBUG][Δ 00:00:05:131503] 2019-10-16 18:07:17:257 readTypeString:(stream (tuple ((PLZ int) (Ort string))))
- [DEBUG][Δ 00:00:00:000037] 2019-10-16 18:07:17:257 topicTypeString: (stream (tuple ((PLZ int) (Ort string))))
- noMemoryOperators = 0
- perOperator = 0
- [DEBUG][Δ 00:00:00:000358] 2019-10-16 18:07:17:257 KafkaClient::Open
- Created consumer kafka secondo client#consumer-5
- [DEBUG][Δ 00:00:00:000004] 2019-10-16 18:07:18:412 EOF reached for all 1 partition(s)
- [DEBUG][Δ 00:00:00:000005] 2019-10-16 18:07:18:412 KafkaSourceVM closing
- [DEBUG][Δ 00:00:05:107946] 2019-10-16 18:07:23:520 KafkaSourceVM closed
- Total runtime ...   Times (elapsed / cpu): 11.4213sec / 1.18sec = 9.67908
-
- 41267

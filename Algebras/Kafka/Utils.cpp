@@ -51,4 +51,15 @@ namespace kafka {
         return uuid;
     }
 
+    #define MILLI_SECOND_MULTIPLIER  1000000
+
+    void sleepMS(int milliseconds) {
+        // 1 millisecond = 1,000,000 Nanoseconds
+        const long INTERVAL_MS = milliseconds * MILLI_SECOND_MULTIPLIER;
+        timespec sleepValue = {0};
+
+        sleepValue.tv_nsec = INTERVAL_MS;
+        nanosleep(&sleepValue, NULL);
+    }
+
 }

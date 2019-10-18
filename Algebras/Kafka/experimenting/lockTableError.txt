@@ -1,0 +1,59 @@
+Secondo => query Roads feed kafka["localhost","roads7"] count;
+command
+'query Roads feed kafka["localhost","roads7"] count'
+started at: Fri Oct 18 23:09:18 2019
+
+typeString: (stream (tuple ((Osm_id string) (Code int) (Fclass string) (Name text) (Ref string) (Oneway string) (Maxspeed int) (Layer int) (Bridge string) (Tunnel string) (GeoData line))))
+[DEBUG][Δ 00:00:00:000000] 2019-10-18 23:09:18:889 readTypeString started. topic:roads7
+[DEBUG][Δ 00:00:00:000024] 2019-10-18 23:09:18:889 KafkaReaderClient::Open
+[INFO ][Δ 00:00:00:020459] 2019-10-18 23:09:18:909 KafkaReaderClient::Open. Created consumer kafka secondo client#consumer-1
+[DEBUG][Δ 00:00:01:000209] 2019-10-18 23:09:19:910 Consume failed(timeout): Local: Timed out
+[DEBUG][Δ 00:00:01:001262] 2019-10-18 23:09:20:911 Consume failed(timeout): Local: Timed out
+[DEBUG][Δ 00:00:00:256483] 2019-10-18 23:09:21:167 EOF reached for all 1 partition(s)
+[DEBUG][Δ 00:00:00:000032] 2019-10-18 23:09:21:167 readTypeString is null
+topicTypeString:
+[INFO ][Δ 00:00:00:000009] 2019-10-18 23:09:21:167 Writing Type Sting: (stream (tuple ((Osm_id string) (Code int) (Fclass string) (Name text) (Ref string) (Oneway string) (Maxspeed int) (Layer int) (Bridge string) (Tunnel string) (GeoData line)))) to topic roads7
+[DEBUG][Δ 00:00:00:000010] 2019-10-18 23:09:21:167 KafkaProducerClient::Open called
+[DEBUG][Δ 00:00:00:000156] 2019-10-18 23:09:21:168 KafkaProducerClient::Open finished. Created producer rdkafka#producer-2
+[DEBUG][Δ 00:00:00:000024] 2019-10-18 23:09:21:168 Waiting for 1
+[DEBUG][Δ 00:00:01:103518] 2019-10-18 23:09:22:271 Writing Type Sting done
+noMemoryOperators = 0
+perOperator = 0
+[DEBUG][Δ 00:00:00:005054] 2019-10-18 23:09:22:276 kafkaConsumerVM open
+[DEBUG][Δ 00:00:00:000257] 2019-10-18 23:09:22:276 KafkaProducerClient::Open called
+[DEBUG][Δ 00:00:00:000613] 2019-10-18 23:09:22:277 KafkaProducerClient::Open finished. Created producer rdkafka#producer-3
+[DEBUG][Δ 00:00:00:000154] 2019-10-18 23:09:22:277 kafkaConsumerVM opened
+.. ................................................................................................................................................................................DbEnv: BDB2055 Lock table is out of available lock entries
+[DEBUG][Δ 00:04:27:469916] 2019-10-18 23:13:49:747 kafkaConsumerVM closing
+[DEBUG][Δ 00:00:00:000491] 2019-10-18 23:13:49:748 Waiting for 98884
+[DEBUG][Δ 00:00:01:000138] 2019-10-18 23:13:50:748 Waiting for 92775
+[DEBUG][Δ 00:00:01:000248] 2019-10-18 23:13:51:748 Waiting for 86634
+[DEBUG][Δ 00:00:01:000108] 2019-10-18 23:13:52:748 Waiting for 76838
+[DEBUG][Δ 00:00:01:000204] 2019-10-18 23:13:53:748 Waiting for 69353
+[DEBUG][Δ 00:00:01:000178] 2019-10-18 23:13:54:749 Waiting for 62043
+[DEBUG][Δ 00:00:01:000172] 2019-10-18 23:13:55:749 Waiting for 54591
+[DEBUG][Δ 00:00:01:000139] 2019-10-18 23:13:56:749 Waiting for 46514
+[DEBUG][Δ 00:00:01:000177] 2019-10-18 23:13:57:749 Waiting for 36527
+[DEBUG][Δ 00:00:01:000120] 2019-10-18 23:13:58:749 Waiting for 28987
+[DEBUG][Δ 00:00:01:000170] 2019-10-18 23:13:59:749 Waiting for 19514
+[DEBUG][Δ 00:00:01:000103] 2019-10-18 23:14:00:749 Waiting for 9525
+[DEBUG][Δ 00:00:01:000221] 2019-10-18 23:14:01:750 Waiting for 3453
+[DEBUG][Δ 00:00:01:161863] 2019-10-18 23:14:02:912 kafkaConsumerVM closed
+DbEnv: BDB2055 Lock table is out of available lock entries
+Total runtime ...   Times (elapsed / cpu): 4:44min (284.151sec) /239.21sec = 1.18787
+Error: The error list has not the expected format!
+Received list:
+
+(int 1788606)
+
+---------------------------
+  Secondo-SMI Error Stack
+---------------------------
+E_SMI_BDBCannot allocate memory -> [bdbFile.cpp:1622]
+E_SMI_BDBCannot allocate memory -> [bdbKeyedFile.cpp:170]
+
+
+
+Secondo: Unexpected fatal system error.
+=> []
+Secondo =>
