@@ -95,7 +95,19 @@ if [ "$1" = "-m" ]; then
   shift
 fi
 
-find $ALGDIR -type f -name "*.dep" -exec cat {} \; | grep -v ":" |  sed "s/[ \t][ \t]*/\n/g" | grep -v -e '^[[:space:]]*$'  | grep -v "[\]" | sed "s#.*#realpath &#" | sh | sort | uniq | grep Algebras | sed "s#"$SECONDO_BUILD_DIR"/Algebras/##"  | sed "s/.*/dirname &/" | sh | sort | uniq | grep -vw $1 | join - $DIR/DirAlg.secondo | awk '{print $2}' | sed "s/Initialize//" 
+
+processDepFile() {
+  dep=$1
+  dir=$(dirname $1)
+		cat "$dep" | grep -v ":" | sed "s/[ \t][ \t]*/\n/g" | grep -v -e '^[[:space:]]*$' | grep -v "[\]" | sed "s#^[^/]#$dir/&#" | sed "s#.*#realpath &#"  | sh
+}
+
+
+
+
+for f in $(find $ALGDIR -type f -name "*.dep" ); do
+   processDepFile "$f"
+done | sort | uniq | grep Algebras | sed "s#"$SECONDO_BUILD_DIR"/Algebras/##"  | sed "s/.*/dirname &/"     | sh | sort | uniq | grep -vw $1 | join - $DIR/DirAlg.secondo | awk '{print $2}' | sed "s/Initialize//" 
 
 cd $DIR
 
