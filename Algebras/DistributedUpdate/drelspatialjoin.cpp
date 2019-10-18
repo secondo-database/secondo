@@ -155,13 +155,13 @@ ListExpr drelspatialjoinTM(ListExpr args){
     bool allowedType2d_1, allowedType3d_1;
     bool allowedType2d_2, allowedType3d_2;
     
-    allowedType2d_1 = DistTypeSpatial<temporalalgebra::CellGrid2D>::
+    allowedType2d_1 = DistTypeSpatial<CellGrid2D>::
                                             allowedAttrType2d( ftype1 );
-    allowedType3d_1 = DistTypeSpatial<temporalalgebra::CellGrid<3> >::
+    allowedType3d_1 = DistTypeSpatial<CellGrid<3> >::
                                             allowedAttrType3d( ftype1 );
-    allowedType2d_2 = DistTypeSpatial<temporalalgebra::CellGrid2D>::
+    allowedType2d_2 = DistTypeSpatial<CellGrid2D>::
                                             allowedAttrType2d( ftype2 );
-    allowedType3d_2 = DistTypeSpatial<temporalalgebra::CellGrid<3> >::
+    allowedType3d_2 = DistTypeSpatial<CellGrid<3> >::
                                             allowedAttrType3d( ftype2 );
                                             
     if( !allowedType2d_1  &&  !allowedType3d_1 ){
@@ -510,10 +510,10 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
     bool gridType_2d = ( (CcBool*) args[8].addr )->GetBoolval();
     
     if( gridType_2d ) {
-        drelspatialjoinVMT<R1, R2, temporalalgebra::CellGrid2D>
+        drelspatialjoinVMT<R1, R2, CellGrid2D>
                 ( args, result, message, local, s );
     } else {
-        drelspatialjoinVMT<R1, R2, temporalalgebra::CellGrid<3> >
+        drelspatialjoinVMT<R1, R2, CellGrid<3> >
                 ( args, result, message, local, s );
     }
 

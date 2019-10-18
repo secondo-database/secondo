@@ -51,7 +51,7 @@ struct ~Rectangle~, and the definitions of the type constructur
 #include "Symbols.h"
 
 
-#include "Algebras/Temporal/CellGrid.h"
+#include "CellGrid.h"
 #include "Algebras/Spatial/Point.h"
 #include "Algebras/Spatial/Berlin2WGS.h"
 
@@ -63,7 +63,6 @@ struct ~Rectangle~, and the definitions of the type constructur
 
 
 using namespace std;
-using namespace temporalalgebra;
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

@@ -52,7 +52,7 @@ RectangleAlgebra
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "ListUtils.h"
 #include "Symbols.h"
-#include "Algebras/Temporal/CellGrid.h"
+#include "Algebras/Rectangle/CellGrid.h"
 #include "Algebras/MMRTree/MMRTreeAlgebra.h"
 #include "MMRTree.h"
 
@@ -67,7 +67,6 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 using namespace std;
-using namespace temporalalgebra;
 
 
 /*

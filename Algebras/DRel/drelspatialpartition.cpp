@@ -121,18 +121,18 @@ Expect a d[f]rel and an attribute name to repartition the given d[f]rel.
 
         distributionType targetType;
         ListExpr cellgridtype;
-        if( DistTypeSpatial<temporalalgebra::CellGrid2D>::allowedAttrType2d( 
+        if( DistTypeSpatial<CellGrid2D>::allowedAttrType2d( 
                 attrType ) ) {
 
             cellgridtype = listutils::
-                basicSymbol<temporalalgebra::CellGrid2D>( );
+                basicSymbol<CellGrid2D>( );
              targetType = spatial2d;
         }
-        else if( DistTypeSpatial<temporalalgebra::CellGrid<3>>::
+        else if( DistTypeSpatial<CellGrid<3>>::
             allowedAttrType2d( attrType ) ) {
 
             cellgridtype = listutils::
-                basicSymbol<temporalalgebra::CellGrid<3>>( );
+                basicSymbol<CellGrid<3>>( );
              targetType = spatial3d;
         }
         else {
@@ -167,10 +167,10 @@ Expect a d[f]rel and an attribute name to repartition the given d[f]rel.
         else {
             griddef = nl->HasLength( args, 3 ) && ( 
                 ( targetType == spatial2d
-                && temporalalgebra::CellGrid2D::checkType( 
+                && CellGrid2D::checkType( 
                                     nl->Third( args ) ) )
                 || ( targetType == spatial3d
-                && temporalalgebra::CellGrid<3>::checkType( 
+                && CellGrid<3>::checkType( 
                                     nl->Third( args ) ) )
                 );
         }
@@ -331,11 +331,11 @@ attribute.
 
         // start partitioner
         if( dType == spatial2d ) {
-            drelspatialpartitionVMT<R, T, x, temporalalgebra::CellGrid2D>
+            drelspatialpartitionVMT<R, T, x, CellGrid2D>
                 ( args, result, message, local, s );
         }
         else {
-            drelspatialpartitionVMT<R, T, x, temporalalgebra::CellGrid<3>>
+            drelspatialpartitionVMT<R, T, x, CellGrid<3>>
                 ( args, result, message, local, s );
         }
 

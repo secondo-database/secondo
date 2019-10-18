@@ -73,10 +73,10 @@ Get a rectangle of demension 2 or 3 and an integer.
         }
 
         if( Rectangle<2>::checkType( nl->First( args ) ) ) {
-            return listutils::basicSymbol<temporalalgebra::CellGrid2D>( );
+            return listutils::basicSymbol<CellGrid2D>( );
         }
         else if( Rectangle<3>::checkType( nl->First( args ) ) ) {
-            return listutils::basicSymbol<temporalalgebra::CellGrid<3>>( );
+            return listutils::basicSymbol<CellGrid<3>>( );
         }
         
         return listutils::typeError( err +
@@ -99,8 +99,8 @@ Creates a cellgrid2d or a cellgrid3d.
         double cellSize2 = ( rec->MaxD( 1 ) - rec->MinD( 1 ) ) / size;
 
         result = qp->ResultStorage( s );
-        temporalalgebra::CellGrid2D* grid = 
-            ( temporalalgebra::CellGrid2D* )result.addr;
+        CellGrid2D* grid = 
+            ( CellGrid2D* )result.addr;
 
         grid->set( rec->MinD( 0 ), rec->MinD( 1 ), cellSize1, cellSize2, size );
 
@@ -182,7 +182,7 @@ Creates a cellgrid2d or a cellgrid3d.
 */
     ValueMapping rect2cellgridVM[ ] = {
         rect2cellgrid2dVM,
-        rect2cellgridVMT<Rectangle<3>, temporalalgebra::CellGrid<3>>
+        rect2cellgridVMT<Rectangle<3>, CellGrid<3>>
     };
 
 /*

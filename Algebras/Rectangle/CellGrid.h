@@ -45,7 +45,6 @@ is open in y direction.
 
 
 
-namespace temporalalgebra {
 /*
 3.8 Grid structures
 
@@ -902,4 +901,3 @@ bool CellGrid<dim>::ReadFrom(const ListExpr value,const ListExpr typeInfo){
   return true;
 }
 
-} 

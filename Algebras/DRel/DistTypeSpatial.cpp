@@ -360,7 +360,7 @@ Reads the grid object from a nested list.
         return grid;
     }
 
-    template class DistTypeSpatial<temporalalgebra::CellGrid2D>;
-    template class DistTypeSpatial<temporalalgebra::CellGrid<3>>;
+    template class DistTypeSpatial<CellGrid2D>;
+    template class DistTypeSpatial<CellGrid<3>>;
 
 } // end of namespace drel

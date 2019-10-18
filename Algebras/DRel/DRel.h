@@ -475,8 +475,8 @@ list has an error.
 
         if( type == spatial2d ) {
 
-            temporalalgebra::CellGrid2D* grid =
-                DistTypeSpatial<temporalalgebra::CellGrid2D>::ReadFrom(
+            CellGrid2D* grid =
+                DistTypeSpatial<CellGrid2D>::ReadFrom(
                     nl->Fourth( typeInfo ),
                     nl->Fourth( list ) );
 
@@ -484,14 +484,14 @@ list has an error.
                 return 0;
             }
 
-            return new DistTypeSpatial<temporalalgebra::CellGrid2D>(
+            return new DistTypeSpatial<CellGrid2D>(
                 type, attrPos, key, grid );
         }
         
         if( type == spatial3d ) {
 
-            temporalalgebra::CellGrid<3>* grid =
-                DistTypeSpatial<temporalalgebra::CellGrid<3>>::ReadFrom(
+            CellGrid<3>* grid =
+                DistTypeSpatial<CellGrid<3>>::ReadFrom(
                     nl->Fourth( typeInfo ),
                     nl->Fourth( list ) );
 
@@ -499,7 +499,7 @@ list has an error.
                 return 0;
             }
 
-            return new DistTypeSpatial<temporalalgebra::CellGrid<3>>(
+            return new DistTypeSpatial<CellGrid<3>>(
                 type, attrPos, key, grid );
         }
 
@@ -669,12 +669,12 @@ Checks the type in the NestedList.
         }
 
         if( type == spatial2d ) {
-            return temporalalgebra::CellGrid2D::checkType( 
+            return CellGrid2D::checkType( 
                 nl->Fourth( list ) );
         }
         
         if( type == spatial3d ) {
-            return temporalalgebra::CellGrid<3>::checkType( 
+            return CellGrid<3>::checkType( 
                 nl->Fourth( list ) );
         }
 
@@ -935,8 +935,8 @@ Secondo Open function.
         
         if( type == spatial2d ) {
 
-            temporalalgebra::CellGrid2D* grid = 
-                static_cast< temporalalgebra::CellGrid2D* >( 
+            CellGrid2D* grid = 
+                static_cast< CellGrid2D* >( 
                     Attribute::Open( valueRecord, offset, 
                         nl->Fourth( distTypeInfo ) ) );
 
@@ -947,7 +947,7 @@ Secondo Open function.
             #endif
 
             rel->setDistType( 
-                new DistTypeSpatial<temporalalgebra::CellGrid2D>( 
+                new DistTypeSpatial<CellGrid2D>( 
                     type, attr, key, grid ) );
 
             return true;
@@ -955,8 +955,8 @@ Secondo Open function.
         
         if( type == spatial3d ) {
 
-            temporalalgebra::CellGrid<3>* grid =
-                static_cast< temporalalgebra::CellGrid<3>* >(
+            CellGrid<3>* grid =
+                static_cast< CellGrid<3>* >(
                     Attribute::Open( valueRecord, offset,
                         nl->Fourth( distTypeInfo ) ) );
 
@@ -967,7 +967,7 @@ Secondo Open function.
             #endif
 
             rel->setDistType( 
-                new DistTypeSpatial<temporalalgebra::CellGrid<3>>( 
+                new DistTypeSpatial<CellGrid<3>>( 
                     type, attr, key, grid ) );
 
             return true;

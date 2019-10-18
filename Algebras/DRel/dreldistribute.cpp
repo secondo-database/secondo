@@ -643,7 +643,7 @@ Type mapping for the distribute operators.
             // create result type and append list for spatial2d distribution
             else if( requestedDistType == spatial2d ) {
 
-                if( !DistTypeSpatial<temporalalgebra::CellGrid2D>
+                if( !DistTypeSpatial<CellGrid2D>
                     ::allowedAttrType2d( attrType ) ) {
                     return listutils::typeError( err + ": attribute type "
                         "is not supported for spatial2d distribution" );
@@ -683,7 +683,7 @@ Type mapping for the distribute operators.
                         nl->IntAtom( pos - 1 ),
                         nl->IntAtom( rand( ) ),
                         nl->SymbolAtom( 
-                            temporalalgebra::CellGrid2D::BasicType( ) ) ) );
+                            CellGrid2D::BasicType( ) ) ) );
 
                 appendList = nl->SixElemList(
                     nl->First( nl->Second( result ) ),
@@ -696,7 +696,7 @@ Type mapping for the distribute operators.
             // create result type and append list for spatial3d distribution
             else if( requestedDistType == spatial3d ) {
 
-                if( !DistTypeSpatial<temporalalgebra::CellGrid<3>>
+                if( !DistTypeSpatial<CellGrid<3>>
                     ::allowedAttrType3d( attrType ) ) {
                     return listutils::typeError( err + ": attribute type "
                         "is not supported for spatial3d distribution" );
@@ -736,7 +736,7 @@ Type mapping for the distribute operators.
                         nl->IntAtom( pos - 1 ),
                         nl->IntAtom( rand( ) ),
                         nl->SymbolAtom(
-                            temporalalgebra::CellGrid<3>::BasicType( ) ) ) );
+                            CellGrid<3>::BasicType( ) ) ) );
 
                 appendList = nl->SixElemList(
                     nl->First( nl->Second( result ) ),
@@ -1184,21 +1184,21 @@ Value mapping of the distribute operator for spatial distribution.
         distributeVMTrange<DFRel, DFArray, FRelCopy, FText, CcString>,
         distributeVMTrange<DFRel, DFArray, FRelCopy, FText, FText>,
         distributeVMTspatial<DFRel, DFArray, FRelCopy, CcString, CcString,
-            temporalalgebra::CellGrid2D, spatial2d>,
+            CellGrid2D, spatial2d>,
         distributeVMTspatial<DFRel, DFArray, FRelCopy, CcString, FText,
-            temporalalgebra::CellGrid2D, spatial2d>,
+            CellGrid2D, spatial2d>,
         distributeVMTspatial<DFRel, DFArray, FRelCopy, FText, CcString,
-            temporalalgebra::CellGrid2D, spatial2d>,
+            CellGrid2D, spatial2d>,
         distributeVMTspatial<DFRel, DFArray, FRelCopy, FText, FText,
-            temporalalgebra::CellGrid2D, spatial2d>,
+            CellGrid2D, spatial2d>,
         distributeVMTspatial<DFRel, DFArray, FRelCopy, CcString, CcString,
-            temporalalgebra::CellGrid<3>, spatial3d>,
+            CellGrid<3>, spatial3d>,
         distributeVMTspatial<DFRel, DFArray, FRelCopy, CcString, FText,
-            temporalalgebra::CellGrid<3>, spatial3d>,
+            CellGrid<3>, spatial3d>,
         distributeVMTspatial<DFRel, DFArray, FRelCopy, FText, CcString,
-            temporalalgebra::CellGrid<3>, spatial3d>,
+            CellGrid<3>, spatial3d>,
         distributeVMTspatial<DFRel, DFArray, FRelCopy, FText, FText,
-            temporalalgebra::CellGrid<3>, spatial3d>,
+            CellGrid<3>, spatial3d>,
         distributeVMTreplicated<DFRel, DFArray, FRelCopy, CcString, CcString>,
         distributeVMTreplicated<DFRel, DFArray, FRelCopy, CcString, FText>,
         distributeVMTreplicated<DFRel, DFArray, FRelCopy, FText, CcString>,
@@ -1275,21 +1275,21 @@ Value mapping of the distribute operator for spatial distribution.
         distributeVMTrange<DRel, DArray, RelFileRestorer, FText, CcString>,
         distributeVMTrange<DRel, DArray, RelFileRestorer, FText, FText>,
         distributeVMTspatial<DRel, DArray, RelFileRestorer, CcString, CcString,
-            temporalalgebra::CellGrid2D, spatial2d>,
+            CellGrid2D, spatial2d>,
         distributeVMTspatial<DRel, DArray, RelFileRestorer, CcString, FText,
-            temporalalgebra::CellGrid2D, spatial2d>,
+            CellGrid2D, spatial2d>,
         distributeVMTspatial<DRel, DArray, RelFileRestorer, FText, CcString,
-            temporalalgebra::CellGrid2D, spatial2d>,
+            CellGrid2D, spatial2d>,
         distributeVMTspatial<DRel, DArray, RelFileRestorer, FText, FText,
-            temporalalgebra::CellGrid2D, spatial2d>,
+            CellGrid2D, spatial2d>,
         distributeVMTspatial<DRel, DArray, RelFileRestorer, CcString, CcString,
-            temporalalgebra::CellGrid<3>, spatial3d>,
+            CellGrid<3>, spatial3d>,
         distributeVMTspatial<DRel, DArray, RelFileRestorer, CcString, FText,
-            temporalalgebra::CellGrid<3>, spatial3d>,
+            CellGrid<3>, spatial3d>,
         distributeVMTspatial<DRel, DArray, RelFileRestorer, FText, CcString,
-            temporalalgebra::CellGrid<3>, spatial3d>,
+            CellGrid<3>, spatial3d>,
         distributeVMTspatial<DRel, DArray, RelFileRestorer, FText, FText,
-            temporalalgebra::CellGrid<3>, spatial3d>,
+            CellGrid<3>, spatial3d>,
         distributeVMTreplicated<DRel, DArray, RelFileRestorer, CcString, 
                                 CcString>,
         distributeVMTreplicated<DRel, DArray, RelFileRestorer, CcString, 

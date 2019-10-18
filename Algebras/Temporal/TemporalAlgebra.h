@@ -86,10 +86,9 @@ The type system of the Temporal Algebra can be seen below.
 #include "StandardTypes.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"
 #include "NestedList.h"
-//#include "DBArray.h"
 #include "../../Tools/Flob/DbArray.h"
 #include "Progress.h"
-#include "Algebras/Temporal/CellGrid.h"
+#include "Algebras/Rectangle/CellGrid.h"
 
 
 #include "Algebras/Rectangle/RectangleAlgebra.h"
