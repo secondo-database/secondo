@@ -238,11 +238,14 @@ public class RelViewer extends SecondoViewer{
    String assign = ":=";
    String assign2 = "=";
    
-   String eingabe = JOptionPane.showInputDialog(null,"Confirm update of the selected relation by typing in its name and pressing OK.\nOtherwise the update will not take place.",
-                                                             "Relation Update",
-                                                             JOptionPane.PLAIN_MESSAGE);
+   String eingabe = JOptionPane.showInputDialog(null,
+                          "Confirm update of the selected relation " +
+                          "by typing in its name and pressing OK.\n " +
+                          "Otherwise the update will not take place.",
+                          "Relation Update",
+                          JOptionPane.PLAIN_MESSAGE);
    
-  String ins2 = eingabe; 
+   String ins2 = eingabe; 
    
   ListExpr updaterel = ListExpr.fourElemList(ListExpr.symbolAtom(update), ListExpr.symbolAtom(eingabe), ListExpr.symbolAtom(assign), objList);
   ListExpr letrel = ListExpr.fourElemList(ListExpr.symbolAtom(let), ListExpr.symbolAtom(noitalerpmet), ListExpr.symbolAtom(assign2), objList);
@@ -263,43 +266,30 @@ public class RelViewer extends SecondoViewer{
    
    
    
-   
-   if (choice == 1)  
-    {   
+   boolean ok = false; 
+   if (choice == 1)  {   
      VC.addObject(obj2);
      this.addObject(obj2);
      int rval = VC.execCommand(text2);
      int rval4 = VC.execCommand(ins);
      int rval3 = VC.execCommand(del);
    
-      if ( (rval==0) && (rval4==0) && (rval4==0))
-      {
-       return true;   
-      }
-    }
-   
-   else { 
-   
-          VC.addObject(obj);
-          this.addObject(obj);
-          int rval2 = VC.execCommand(text);
-          if (rval2==0)
-          {
-           return true;   
-          }
-   
-        }  
-   
-   
-   
-  
-   
-   
-   
-   
-   
-  Reporter.showInfo("Insert or update failure - Secondo error");
-  return false;
+     ok = (rval==0) && (rval4==0) && (rval4==0);
+   } else { 
+      VC.addObject(obj);
+      this.addObject(obj);
+      int rval2 = VC.execCommand(text);
+      ok = rval2==0;
+   }  
+   if(!ok){
+      Reporter.showInfo("Insert or update failure - Secondo error");
+   } else if(VC.optimizerAvailable()){
+     String r = VC.sendToOptimizer("updateRel("+ins2+")");
+     if(r==null){
+        Reporter.showInfo("Problem in updating the optimizer's knowledge base about relation " + ins2);
+     }
+   }
+   return ok;
    
  }
  
