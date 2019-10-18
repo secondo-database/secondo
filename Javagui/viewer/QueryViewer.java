@@ -411,6 +411,25 @@ public void addMessageListener(MessageListener msg){
   }
 }
 
+public boolean optimizerAvailable(){
+  if(VC!=null){
+     return VC.optimizerAvailable();
+  } else {
+    return false;
+  }
+}
+
+public String sendToOptimizer(String cmd){
+  if(VC!=null){
+     return VC.sendToOptimizer(cmd);
+  } else {
+    return null;
+  }
+}
+
+
+
+
 
 private Vector SubViewers = new Vector();
 private MenuVector MenuExtension;
