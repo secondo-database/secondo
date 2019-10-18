@@ -1096,8 +1096,8 @@ private void updateRelationList(){
 	      Rel.addActionListener(new ActionListener(){
 	         public void actionPerformed(ActionEvent evt){
 	            String RelName = ((JMenuItem)evt.getSource()).getText().toLowerCase();
-		    String res = ComPanel.sendToOptimizer("updateRel "+RelName);
-		    ComPanel.appendText("\n optimizer updateRel "+RelName+"   ");
+		    String res = ComPanel.sendToOptimizer("updateRel("+RelName+")");
+		    ComPanel.appendText("\n optimizer updateRel("+RelName+")   ");
 		    if(res ==null)
 		       ComPanel.appendText("...failed");
 		    else
