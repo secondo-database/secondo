@@ -105,5 +105,15 @@ public boolean execCommand(String cmd, IntByReference errorCode, ListExpr result
 /** Adds a new MessageListener **/
 public void addMessageListener(MessageListener ml);
 
+
+/** Sends a command to the optimizer.
+  * @return null in case of an error, the result otherwise
+  **/
+ public String sendToOptimizer(String cmd);
+  
+
+
+
+
 }
 
