@@ -28,9 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Attribute.h"
 #include <cstdint>
 #include <cstring>
-//#include "Algebras/Constraint/ConstraintAlgebra.h"
 #include "AlmostEqual.h"
-#include "Algebras/Spatial/GeoDist.h"
+#include "Algebras/Geoid/GeoDist.h"
 #include "Algebras/Spatial/HalfSegment.h"
 #include <limits>
 #include <cmath>
@@ -788,7 +787,8 @@ namespace CRelAlgebra
           return std::min(point.GetDistance(lp), point.GetDistance(rp));
         }
 
-        return geodist::getDist(ToHalfSegment(), point.ToPoint(), geoid);
+        return geodist::getDist(lp.x,lp.y,rp.x,rp.y,point.x,point.y,geoid);
+
       }
 
       double GetDistance(const SimpleHalfSegment& other,

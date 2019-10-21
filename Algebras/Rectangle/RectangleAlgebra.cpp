@@ -52,8 +52,7 @@ struct ~Rectangle~, and the definitions of the type constructur
 
 
 #include "CellGrid.h"
-#include "Algebras/Spatial/Point.h"
-#include "Algebras/Spatial/HalfSegment.h"
+#include "Algebras/Geoid/GeoDist.h"
 
 #include <math.h>
 
@@ -122,36 +121,34 @@ double geoDistance(const Rectangle<2>& r1, const Rectangle<2>& r2,
        }
      }
 
+
+
      if(Q==5){ // found intersection
         return 0;
      }
      bool valid;
      if(Q==1 || Q == 3){ // above but not direct
-        HalfSegment hs(true, Point(true, xmin1, ymax1), 
-                             Point(true, xmax1, ymax1));
-        double d1 = hs.Distance(Point(true,xmin2, ymin2), geoid);
-        double d2 = hs.Distance(Point(true,xmax2, ymin2), geoid);
+        double d1 = geodist::getDist(xmin1, ymax1, xmax1, ymax1, 
+                                     xmin2, ymin2,geoid);         
+        double d2 = geodist::getDist(xmin1, ymax1, xmax1, ymax1,
+                                     xmax2, ymin2, geoid);
         return std::min(d1,d2);
      }
      if(Q==7 || Q==9){ // below but not direct
-        HalfSegment hs(true, Point(true,xmin2,ymax2), 
-                             Point(true,xmax2, ymax2));
-        double d1 = hs.Distance(Point(true,xmin1, ymin1), geoid);
-        double d2 = hs.Distance(Point(true,xmax1, ymin1), geoid);
+        double d1 = geodist::getDist(xmin2,ymax2, xmax2, ymax2,
+                                     xmin1, ymin1, geoid);
+        double d2 = geodist::getDist(xmin2,ymax2, xmax2, ymax2,
+                                     xmax1, ymin1, geoid);
         return std::min(d1,d2);
      }
 
      if(Q==2){ // direct above
-       Point p1(true,xmin2, ymax1); 
-       Point p2(true,xmin2, ymin2);
-       double d = p1.DistanceOrthodrome(p2,*geoid, valid);
+       double d = geoid->DistanceOrthodrome(xmin2, ymax1,xmin2, ymin2,valid);
        if(!valid) return -1;
        return d;
      }
      if(Q==8){ // direct above
-       Point p1(true,xmin2, ymin1);
-       Point p2(true,xmin2, ymax2);
-       double d =  p1.DistanceOrthodrome(p2,*geoid, valid);
+       double d =  geoid->DistanceOrthodrome(xmin2, ymin1,xmin2, ymax2, valid);
        if(!valid){ return -1; }
        return d;
      }
@@ -169,25 +166,19 @@ double geoDistance(const Rectangle<2>& r1, const Rectangle<2>& r2,
 
 
      if(Q==4){
-       double d1 = (Point(true,xmax2,y)).DistanceOrthodrome(Point(true,xmin1,y),
-                                                        *geoid, valid);
+       double d1 = geoid->DistanceOrthodrome(xmax2,y,xmin1,y, valid);
        if(!valid) return -1;
-       double d2 = (Point(true,xmin2,y)).DistanceOrthodrome(Point(true,xmax1,y),
-                                                        *geoid, valid);
+       double d2 = geoid->DistanceOrthodrome(xmin2,y, xmax1,y, valid);
        if(!valid) return -1;
        return std::min(d1,d2);
      }  
      if(Q==6){
-        Point p1(true,xmax1, y);
-        Point p2(true,xmin2, y);
-
-        double d1 = p1.DistanceOrthodrome(p2, *geoid, valid);
+        double d1 = geoid->DistanceOrthodrome(xmax1, y, xmin2, y, valid);
         if(!valid) return -1;
 
-        Point p3(true,xmin1,y);
-        Point p4(true,xmax2,y);
-        double d2 = p3.DistanceOrthodrome(p4, *geoid, valid);
+        double d2 = geoid->DistanceOrthodrome(xmin1,y, xmax2,y, valid);
         if(!valid) return -1;
+
         return std::min(d1,d2);
      }  
      assert(false); // forgetten case

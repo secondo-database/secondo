@@ -24,9 +24,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include "Algebras/Geoid/Geoid.h"
-#include "Point.h"
-#include "SpatialAlgebra.h"
-#include "HalfSegment.h"
 
 
 namespace geodist{
@@ -154,19 +151,19 @@ namespace geodist{
     }
 
 
-    double getDist(const HalfSegment& hs, const Point& p, const Geoid* geoid){
-       double p1[] = {hs.GetLeftPoint().GetY(), hs.GetLeftPoint().GetX()};
-       double p2[] = {hs.GetRightPoint().GetY(), hs.GetRightPoint().GetX()};
-       double p3[] = {p.GetY(), p.GetX()};
+  double getDist( const double sx1, const double sy1,
+                  const double sx2, const double sy2,
+                  const double x, const double y,
+                  const Geoid* geoid) {
+       double p1[] = {sy1, sx1};
+       double p2[] = {sy2, sx2};
+       double p3[] = {y,x};
        double np[2];
        nearestPointSegment(p1,p2,p3,np,geoid);
 
-       cout << "nearest point is computed as" << np[0] << ", " << np[1] << endl;
-       Point npp(true,np[1], np[0]);
-
        //return HaversineInM(p3[0],p3[1],np[0], np[1], geoid);
        bool valid;
-       return p.DistanceOrthodrome(npp, *geoid, valid);
+       return geoid->DistanceOrthodrome(x,y,np[1], np[0], valid);
     } 
 
 

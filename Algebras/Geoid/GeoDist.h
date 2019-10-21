@@ -24,19 +24,25 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-class HalfSegment;
-class Point;
 class Geoid;
 
 namespace geodist{
   
-
+  /*
+   Computes the distance between two points on a geoid.
+  */
   double HaversineInM(const double lat1, const double long1, 
                       const double lat2, const double long2, 
                       const Geoid* geoid);
 
-  
-  double getDist(const HalfSegment& hs, const Point& p, const Geoid* geoid);
+  /*
+    Computes the distance between an segment and a point
+    on a geoid.
+  */  
+  double getDist( const double sx1, const double sy1,
+                  const double sx2, const double sy2,
+                  const double x, const double y,
+                  const Geoid* geoid);
 
 }
 

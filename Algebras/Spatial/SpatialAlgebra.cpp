@@ -101,7 +101,7 @@ For more detailed information see SpatialAlgebra.h.
 #include "Disc.h"
 #include "Stack.h"
 
-#include "GeoDist.h"
+#include "Algebras/Geoid/GeoDist.h"
 
 
 using namespace std;
@@ -3052,7 +3052,12 @@ double HalfSegment::Distance( const Point& p,
     return result;
   }
 
-  return geodist::getDist(*this, p, geoid);
+  Point p1 = GetLeftPoint();
+  Point p2 = GetRightPoint();
+  return geodist::getDist(p1.GetX(), p1.GetY(),
+                          p2.GetX(), p2.GetY(),
+                          p.GetX(), p.GetY(),
+                          geoid);
 
   /*
   // else: spherical geometry
