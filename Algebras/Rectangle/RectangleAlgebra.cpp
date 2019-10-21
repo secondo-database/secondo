@@ -54,7 +54,6 @@ struct ~Rectangle~, and the definitions of the type constructur
 #include "CellGrid.h"
 #include "Algebras/Spatial/Point.h"
 #include "Algebras/Spatial/HalfSegment.h"
-//#include "Algebras/Spatial/Berlin2WGS.h"
 
 #include <math.h>
 
@@ -1388,37 +1387,9 @@ GridCell2Rect_TM( ListExpr args )
   return l.typeError("gridcell2rect: Unknown typemapproblem.");
 }
 
-/*
-4.1.21 Type Mapping for operator ~center~
-
-The operator has following signatures:
-
-----
-rect --> point
-----
-
-*/
-ListExpr
-RectangleCenter_TM( ListExpr args )
-{
-  NList l(args);
-  int len = l.length();
-  if(len != 1){
-    return l.typeError("center expects exactly 1 argument.");
-  }
-
-if( !l.elem(1).isSymbol(Rectangle<2>::BasicType()) ){
-    return l.typeError("center expects a 'rect' as argument.");
-  }
-  return NList(Point::BasicType()).listExpr();
-}
-
 
 
 //4.1.22 Type mapping for operator ~report~
-
-
-
 
 ListExpr
 reportTM(ListExpr args )
@@ -2828,26 +2799,6 @@ int gridcell2rect_vm(Word* args, Word& result,
   return 0;
 }
 
-/*
-1.1.1 Value Mapping for operator ~center~
-
-*/
-
-int RectangleCenter_vm(Word* args, Word& result,
-                       int message, Word& local, Supplier s) {
-  result = qp->ResultStorage( s );
-  Rectangle<2>* r = static_cast<Rectangle<2>*>(args[0].addr);
-  Point*        p =  static_cast<Point*>(result.addr);
-  if(!r->IsDefined()) {
-    p->SetDefined(false);
-  } else {
-    double x = r->MinD(0) + (r->MaxD(0) - r->MinD(0)) / 2;
-    double y = r->MinD(1) + (r->MaxD(1) - r->MinD(1)) / 2;
-    p->SetDefined(true);
-    p->Set(x, y);
-  }
-  return 0;
-}
 
 /*
 4.5 Definition of operators
@@ -3521,21 +3472,6 @@ Operator gridcell2rect(  GridCell2Rect_INFO,
 );
 
 
-OperatorInfo RectangleCenter_INFO(
-    "center",
-    "rect -> point",
-    "center( r )",
-    "Given a 2D rectanglem the operator returns the rectanble's center point.",
-    "");
-
-Operator rectanglecenter( RectangleCenter_INFO,
-                          RectangleCenter_vm,
-                          RectangleCenter_TM
-);
-
-
-
-
 struct report_Info : OperatorInfo {
 
   report_Info() : OperatorInfo()
@@ -4128,7 +4064,6 @@ class RectangleAlgebra : public Algebra
     AddOperator(cellnumber_Info(), cellNumberVM, cellNumberTM);
     AddOperator(gridintersects_Info(), gridIntersectsVM, gridIntersectsTM);
     AddOperator( &gridcell2rect);
-    AddOperator( &rectanglecenter);
     AddOperator( &partitionRect);
     AddOperator( &extendGeoOp);
     AddOperator( &perimeterOp);

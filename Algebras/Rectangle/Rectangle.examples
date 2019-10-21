@@ -265,13 +265,6 @@ Signature: int x llgrid2d -> rect
 Example  : query gridcell2rect(11, createCellGrid2D(0.0, 0.0, 1000.0, 1000.0, 10))
 Result   : (rect (0.0 1000.0 1000.0 2000.0))
 
-
-Operator : center
-Number   : 1
-Signature: (rect) -> point
-Example  : query center([const rect value (0.0 1.0 2.0 3.0)])
-Result   : (point (0.5 2.5))
-
 Operator : partitionRect
 Number   : 1
 Signature: rect x int x int -> stream(rect)

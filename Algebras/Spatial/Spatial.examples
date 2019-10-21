@@ -734,6 +734,14 @@ Signature: points -> point
 Example  : query center( [const points value ((0 0)(10 10))])
 Result   : (point (5.0 5.0))
 
+Operator : center
+Number   : 2 
+Signature: rect -> point
+Example  : query center([const rect value (0.0 1.0 2.0 3.0)])
+Result   : (point (0.5 2.5))
+
+
+
 Operator : convexhull
 Number   : 1
 Signature: points -> region

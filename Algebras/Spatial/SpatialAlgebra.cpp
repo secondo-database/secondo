@@ -6795,12 +6795,14 @@ The signature is points -> point.
 */
 
 ListExpr SpatialCenterMap(ListExpr args){
-
-  if( (nl->ListLength(args)==1) &&
-      (nl->IsEqual(nl->First(args),Points::BasicType())) ){
-      return nl->SymbolAtom(Point::BasicType());
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("One argument expected");
   }
-  return listutils::typeError("points expected");
+  ListExpr a1 = nl->First(args);
+  if(Points::checkType(a1) || Rectangle<2>::checkType(a1)){
+     return listutils::basicSymbol<Point>();
+  }
+  return listutils::typeError("points or rect expected");
 }
 
 
@@ -9135,7 +9137,7 @@ Operator spatialscale (
 
 
 
-int SpatialCenter( Word* args, Word& result, int message,
+int SpatialCenter_points( Word* args, Word& result, int message,
                    Word& local, Supplier s ){
    result = qp->ResultStorage(s);
    Points* ps = static_cast<Points*>(args[0].addr);
@@ -9143,6 +9145,37 @@ int SpatialCenter( Word* args, Word& result, int message,
    *res = ps->theCenter();
    return 0;
 }
+
+int SpatialCenter_rect(Word* args, Word& result,
+                       int message, Word& local, Supplier s) { 
+  result = qp->ResultStorage( s ); 
+  Rectangle<2>* r = static_cast<Rectangle<2>*>(args[0].addr);
+  Point*        p =  static_cast<Point*>(result.addr);
+  if(!r->IsDefined()) {
+    p->SetDefined(false);
+  } else {
+    double x = r->MinD(0) + (r->MaxD(0) - r->MinD(0)) / 2; 
+    double y = r->MinD(1) + (r->MaxD(1) - r->MinD(1)) / 2; 
+    p->SetDefined(true);
+    p->Set(x, y);
+  }
+  return 0;
+}
+
+int SpatialCenter_Select(ListExpr args){
+  ListExpr a1 = nl->First(args);
+  if(Points::checkType(a1)) return 0;
+  if(Rectangle<2>::checkType(a1)) return 1;
+  return -1;
+}
+
+ValueMapping SpatialCenter[] = {
+   SpatialCenter_points,
+   SpatialCenter_rect
+};
+
+
+
 
 int SpatialConvexhull( Word* args, Word& result, int message,
                    Word& local, Supplier s ){
@@ -11435,9 +11468,9 @@ const string SpatialSpecCommonborder  =
 
 const string SpatialSpecCenter  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text> points -> point </text--->"
+  "( <text> {points,rect} -> point </text--->"
   "<text> center( _ ) </text--->"
-  "<text> computes the center of the points value</text--->"
+  "<text> computes the center of the argument</text--->"
   "<text> query center(vertices(tiergarten))</text--->"
   ") )";
 
@@ -12005,8 +12038,9 @@ Operator spatialcommonborder (
 Operator spatialcenter (
   "center",
   SpatialSpecCenter,
+  2,
   SpatialCenter,
-  Operator::SimpleSelect,
+  SpatialCenter_Select,
   SpatialCenterMap );
 
 Operator spatialconvexhull (
