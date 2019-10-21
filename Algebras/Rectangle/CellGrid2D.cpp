@@ -173,14 +173,6 @@ int32_t CellGrid2D::getCellNo(const double &x, const double &y) const {
       }
     }
 
-int32_t CellGrid2D::getCellNo(const Point &p) const {
-      if(IsDefined() && p.IsDefined()){
-        return getCellNo(p.GetX(),p.GetY());
-      } else {
-        return getInvalidCellNo();
-      }
-    }
-
 int32_t CellGrid2D::getXIndex(const double &x) const {
       if(IsDefined()) {
         return static_cast<int32_t>(floor((x - x0) / wx));

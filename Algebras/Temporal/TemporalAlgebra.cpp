@@ -3017,7 +3017,9 @@ void UPoint::GetGridCellSequence(CellGrid2D &g, std::vector<GridCellSeq> &res){
       midtime = *last + ((*curr - *last)/2);
       Point midpoint(true);
       TemporalFunction(midtime, midpoint, true);
-      int32_t cellno = g.getCellNo(midpoint);
+      int32_t cellno = midpoint.IsDefined()? g.getCellNo(midpoint.GetX(),
+                                                         midpoint.GetY())
+                                           : g.getInvalidCellNo();
       if(g.isValidCellNo(cellno)){
         GridCellSeq event( *last, *curr, cellno);
         res.push_back(event);

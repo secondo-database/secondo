@@ -39,8 +39,7 @@ is open in y direction.
 #include <limits>
 #include "Attribute.h"
 #include "NestedList.h"
-#include "Algebras/Rectangle/RectangleAlgebra.h"
-#include "Algebras/Spatial/Point.h"
+#include "RectangleAlgebra.h"
 #include "ListUtils.h"
 
 
@@ -120,7 +119,6 @@ class CellGrid2D: public Attribute{
       // Only positive cell numbers are valid. Negative result indicates
       // that (x,y) is not located on the grid.
 
-    int32_t getCellNo(const Point &p) const;
     int32_t getXIndex(const double &x) const;
     int32_t getYIndex(const double &y) const;
     Rectangle<2> getMBR() const;
