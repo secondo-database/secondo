@@ -218,6 +218,21 @@ Functions required for using ~GenericTC.h~
   ListExpr ToListExpr(const ListExpr typeInfo ) const;
   bool ReadFrom(const ListExpr instance, const ListExpr typeInfo);
 
+
+/*
+The functions checkGeographicCoord checks whether the point
+defined by x,y is valid within a geographic coordinate system.
+
+*/
+  static bool checkGeographicCoord(const double x, const double y);
+
+
+  double DistanceOrthodrome(double x1, double y1, 
+                            double x2, double y2,
+                            bool& valid) const;
+
+
+
   private:
     double radius;        // Equatorial axis (m)
     double flattening;    // Flattenig

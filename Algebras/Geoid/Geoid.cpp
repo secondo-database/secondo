@@ -420,3 +420,76 @@ ostream& operator<<( ostream& o, const Geoid& g ){
   return o;
 }
 
+bool Geoid::checkGeographicCoord(const double x, const double y){
+  return   (x >= -180) && (x <= 180)  // x <-> Longitude (Laenge)
+        && (y >= -90 ) && (y <= 90);
+}
+
+
+double Geoid::DistanceOrthodrome(double x1, double y1, 
+                                 double x2, double y2,
+                                 bool& valid) const {
+
+  valid =  checkGeographicCoord(x1,y1) && checkGeographicCoord(x2,y2);
+  if(!valid){
+    return 0.0;
+  }
+  double a = getR(); // sphere's equatorical radius (from geoid)
+  double f = getF(); // sphere's flattening (from geoid)
+
+  double b1 = y1;
+  double l1 = x1;
+  double b2 = y2;
+  double l2 = x2;
+
+  if(AlmostEqual(x1,x2) && AlmostEqual(y1,y2)){
+    return 0.0;
+  }
+  // convert coordinates from degrees to radiant
+
+  double F = (b1 + b2) * M_PI / 360.0;
+  double G = (b1 - b2) * M_PI / 360.0;
+  double l = (l1 - l2) * M_PI / 360.0;
+
+  // compute approximate distance
+  double coslsq = cos(l) * cos(l);
+  double sinlsq = sin(l) * sin(l);
+  double sinG = sin(G);
+  double cosG = cos(G);
+  double cosF = cos(F);
+  double sinF = sin(F);
+  double sinGsq = sinG*sinG;
+  double cosGsq = cosG*cosG;
+  double sinFsq = sinF*sinF;
+  double cosFsq = cosF*cosF;
+
+  double S = sinGsq*coslsq + cosFsq*sinlsq;
+  double C = cosGsq*coslsq + sinFsq*sinlsq;
+
+  errno = 0;
+  double SoverC = S/C;
+  assert( errno == 0 );
+  assert( SoverC >= 0 );
+  double w = atan(sqrt(SoverC));
+  assert( errno == 0 );
+  double D = 2*w*a;
+
+  // correct the distance
+  double R = sqrt(S*C)/w;
+  assert( errno == 0 );
+  double H1 = (3*R-1)/(2*C);
+  assert( errno == 0 );
+  double H2 = (3*R+1)/(2*S);
+  assert( errno == 0 );
+  double s = D*( 1 + f*H1*sinFsq*cosGsq - f*H2*cosFsq*sinGsq );
+  assert( errno == 0 );
+  assert( s >= 0 );
+  return s;
+}
+
+
+
+
+
+
+
