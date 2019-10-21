@@ -16990,18 +16990,22 @@ ListExpr berlin2wgsTM(ListExpr args) {
   if (!nl->HasLength(args, 1)) {
     return listutils::typeError("Exactly one argument expected.");
   }
-  if (Point::checkType(nl->First(args)) || Points::checkType(nl->First(args)) ||
-      Line::checkType(nl->First(args)) || Region::checkType(nl->First(args))) {
-    return nl->First(args);
+  ListExpr arg = nl->First(args);
+  if(Point::checkType(arg) || Points::checkType(arg) ||
+     Line::checkType(arg) || Region::checkType(arg)  ||
+     Rectangle<2>::checkType(arg)){
+    return arg;
   }
   return listutils::typeError("Type point, points, line, or region expected.");
 }
 
 int berlin2wgsSelect(ListExpr args) {
-  if (Point::checkType(nl->First(args)))  return 0;
-  if (Points::checkType(nl->First(args))) return 1;
-  if (Line::checkType(nl->First(args)))   return 2;
-  if (Region::checkType(nl->First(args))) return 3;
+  ListExpr a1 = nl->First(args);
+  if (Point::checkType(a1))  return 0;
+  if (Points::checkType(a1)) return 1;
+  if (Line::checkType(a1))   return 2;
+  if (Region::checkType(a1)) return 3;
+  if (Rectangle<2>::checkType(a1)) return 4;
   return -1;
 }
 
@@ -17021,7 +17025,7 @@ int berlin2wgsVM(Word* args, Word& result, int message, Word& local,Supplier s){
 }
 
 OperatorSpec berlin2wgsSpec(
-  " T -> T, where T in {point, points, line, region}",
+  " T -> T, where T in {point, points, line, region, rect}",
   " berlin2wgs( _ )",
   " Converts coordinates from bbbike/BerlinMOD format into WGS84 coordinates.",
   " query berlin2wgs([const point value (13132, 10876)])"
@@ -17031,7 +17035,8 @@ ValueMapping berlin2wgsVMs[] = {
   berlin2wgsVM<Point>,
   berlin2wgsVM<Points>,
   berlin2wgsVM<Line>,
-  berlin2wgsVM<Region>
+  berlin2wgsVM<Region>,
+  berlin2wgsVM<Rectangle<2> >
 };
 
 /*
