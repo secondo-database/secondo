@@ -1439,6 +1439,15 @@ bool isSqlCommand(string& cmd){
       cmd = "sql " + cmd;
       return true;
    }
+   if(first == "union"){
+      cmd = "sql " + cmd;
+      return true;
+   }
+   if(first == "intersection"){
+      cmd = "sql " + cmd;
+      return true;
+   }
+
    // next token required
    if(!st.hasNextToken()){
       return false;
