@@ -6886,7 +6886,7 @@ class someInfo{
 
      void init(){
        T* tup;
-       while( (tup = stream.request()) > 0){
+       while( (tup = stream.request()) != nullptr){
           count++;
           insert(tup);
        }
