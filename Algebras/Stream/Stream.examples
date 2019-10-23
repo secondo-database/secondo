@@ -386,5 +386,12 @@ Signature : stream(X) x X -> bool, X in DATA
 Example   : query intstream(1,23) contains 10
 Result    : TRUE
 
+Operator  : some 
+Number    : 1
+Signature : stream(tuple) x x -> stream(tuple)
+Example   : query plz feed some[200] count
+Result    : 200
+
+
 
 

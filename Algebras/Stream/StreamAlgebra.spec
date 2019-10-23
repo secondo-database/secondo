@@ -67,3 +67,5 @@ operator delayS alias DELAYS pattern _ op[_,_]
 operator sync alias SYNC pattern _ op[fun,_,_] implicit parameter streamelem type STREAMELEM
 operator printStreamMessages alias PRINTSTREAMMESSAGES pattern _ op
 operator contains alias CONTAINS pattern _ infixop _
+operator some alias SOME pattern _ op[_]
+

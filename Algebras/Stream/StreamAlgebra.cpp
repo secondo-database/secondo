@@ -6829,6 +6829,148 @@ Operator containsOp(
   containsTM
 );
 
+
+/*
+Operator ~some~
+
+*/
+ListExpr someTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("two arguments required");
+  }
+  if(!Stream<Tuple>::checkType(nl->First(args))
+     && !Stream<Attribute>::checkType(nl->First(args))){
+    return listutils::typeError("the first argument is not a tuple stream"
+                         " and not a stream of DATA");
+  }
+  if(!CcInt::checkType(nl->Second(args))){
+    return listutils::typeError("the second argument ist not an int");
+  }
+  return nl->First(args);
+}
+
+
+template<class T>
+class someInfo{
+  public:  
+    someInfo(Word _stream, size_t bs): stream(_stream), bufferSize(bs), 
+                                       count(0),currentOut(-1){
+       stream.open();
+       init();
+    }
+    ~someInfo(){
+      for(size_t i=currentOut+1; i< buffer.size(); i++){
+         buffer[i]->DeleteIfAllowed();
+      }
+      stream.close();
+    }
+
+    T* next(){
+       currentOut++;
+       if(currentOut >= (int)buffer.size()){
+          return 0;
+       }
+       T* res = buffer[currentOut];
+       buffer[currentOut] = 0;
+       return res;
+    }
+
+
+  private:
+     Stream<T> stream;
+     size_t bufferSize;
+     size_t count;
+     int currentOut;
+     std::vector<T*> buffer;
+
+
+     void init(){
+       T* tup;
+       while( (tup = stream.request()) > 0){
+          count++;
+          insert(tup);
+       }
+     }
+
+     void insert(T* tup){
+        if(buffer.size() < bufferSize){
+           buffer.push_back(tup);
+           return;
+        }
+        // create a random number between 0 and count-1
+        // note, count contains already the current tuple
+        size_t rnd = std::rand()/((RAND_MAX + 1u)/count);
+        if(rnd < buffer.size()){
+            buffer[rnd]->DeleteIfAllowed();
+            buffer[rnd]=tup;
+        } else {
+           tup->DeleteIfAllowed();
+        }
+     }
+};
+
+template<class T>
+int someVMT(Word* args, Word& result,
+           int message, Word& local, Supplier s){
+
+  someInfo<T>* li = (someInfo<T>*) local.addr;
+  switch(message){
+    case OPEN: {
+                   if(li) {
+                     delete li;
+                     local.addr =0;
+                   }
+                   CcInt* bs = (CcInt*) args[1].addr;
+                   if(bs->IsDefined()){
+                      int s = bs->GetValue();
+                      if(s>0) {
+                        local.addr = new someInfo<T>(args[0], s);
+                      }
+                   }
+                   return 0;
+                } 
+      case REQUEST : result.addr = li?li->next():0;
+                     return result.addr?YIELD:CANCEL;
+      case CLOSE : {
+                      if(li){
+                        delete li;
+                        local.addr = 0;
+                       }
+                       return 0;
+                   }
+
+  }
+  return -1;
+}
+
+ValueMapping someVM[] = { 
+              someVMT<Tuple>,
+              someVMT<Attribute>
+            };
+
+int someSelect(ListExpr args){
+   return Stream<Attribute>::checkType(nl->First(args))?1:0;
+}
+
+
+OperatorSpec someSpec(
+   "stream(X)  x int -> stream(X) , X in {TUPLE, DATA}",
+   "_ some [_] ",
+   "Creates a random selection from the stream of a given size "
+   "using reservoir sampling.",
+   "query plz feed some[200] count"
+);
+
+Operator someOp(
+  "some",
+  someSpec.getStr(),
+  2,
+  someVM,
+  someSelect,
+  someTM
+);
+
+
 /*
 7 Creating the Algebra
 
@@ -6886,6 +7028,7 @@ public:
     AddOperator(&syncOp);
     AddOperator(&printStreamMessagesOp);
     AddOperator(&containsOp);
+    AddOperator(&someOp);
 
 #ifdef USE_PROGRESS
     streamcount.EnableProgress();
@@ -6897,6 +7040,9 @@ public:
     nthOp.EnableProgress();
     printStreamMessagesOp.EnableProgress();
 #endif
+
+    std::srand(std::time(nullptr));
+
   }
 
   ~StreamAlgebra() {};
