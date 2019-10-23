@@ -14227,7 +14227,6 @@ inspection of dead ends more than once.
       HalfSegment hs;
       // mark the locked halfsegments as usuable
       // find out the index of the leftmost point within the path
-      vector<int>::iterator it;
       size_t outerPathStarts = cycleStarts.back();
       int smallestIndex = cycleStarts.back();
       Point smallestDomPoint(true);
