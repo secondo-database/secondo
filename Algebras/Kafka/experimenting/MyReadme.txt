@@ -10,6 +10,10 @@
 
  -- Implement progress request
 
+ -- Rename
+  kafka -> writetokafka
+  kafkastream -> readfromkafka
+
 - Working with db
 
     Build
