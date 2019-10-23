@@ -1,5 +1,5 @@
 #include <string.h>
-#include <triangulate.h>
+#include "triangulate.h"
 #include <math.h>
 #include <assert.h>
 #include <stdbool.h>

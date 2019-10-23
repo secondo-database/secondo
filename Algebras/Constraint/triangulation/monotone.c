@@ -1,5 +1,5 @@
 #include <string.h>
-#include <triangulate.h>
+#include "triangulate.h"
 #include <math.h>
 
 #define CROSS_SINE(v0, v1) ((v0).x * (v1).y - (v1).x * (v0).y)

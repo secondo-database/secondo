@@ -1,7 +1,6 @@
 
-INC := .
 
-CC := gcc
+include ../../../makefile.env
 
 CFLAGS := -UDEBUG -UCLOCK -I$(INC) -g -fPIC
 
@@ -21,7 +20,7 @@ OBJECTS := construct.o misc.o monotone.o tri.o
 .PHONY: all
 all: $(OBJECTS) 
 
-$(OBJECTS): $(INC)/triangulate.h
+$(OBJECTS): triangulate.h
 
 
 .PHONY: clean 

@@ -1,4 +1,4 @@
-#include <triangulate.h>
+#include "triangulate.h"
 #include <sys/time.h>
 #include <math.h>
 
