@@ -6736,6 +6736,7 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 :- op(987, xfx,  usemacro).
 :- op(986, xfx,  first).
 :- op(986, xfx,  last).
+:- op(986, xfx,  some).
 :- op(980, xfx,  orderby).
 :- op(970, xfx,  groupby).
 :- op(960, xfx,  from).
@@ -6754,14 +6755,14 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 :- op(940,  fx,  all).
 :- op(940, xfx,  columns).
 :- op(935,  fx,  nonempty).
-%:- op(930, xfx,  as).
-:- op(930, xfy,  as). % NVK MODIFIED NR, compare testquery 571 (test.pl)
+:- op(930, xfy,  as). 
 :- op(930, xf ,  asc).
 :- op(930, xf ,  desc).
 :- op(930,  fx,  insert).% for update, insert
 :- op(930, xfx,  indextype).
 :- op(800,  fx,  union).
-:- op(800,  xfx, union).
+:- op(984,  xfx, union).
+:- op(984,  xfx, minus).
 :- op(800,  fx,  intersection).
 
 % Section:Start:opPrologSyntax_3_e
@@ -7020,6 +7021,17 @@ lookup(Query first N, Query2 first N) :-
 
 lookup(Query last N, Query2 last N) :-
   lookup(Query, Query2).
+
+lookup(Query some N, Query2 some N) :-
+  lookup(Query, Query2).
+
+lookup(Query1 union Query2, Query1a union Query2a) :-
+  lookup(Query1, Query1a),
+  lookup(Query2, Query2a).
+
+lookup(Query1 minus Query2, Query1a minus Query2a) :-
+  lookup(Query1, Query1a),
+  lookup(Query2, Query2a).
 
 % Section:Start:lookup_2_e
 % Section:End:lookup_2_e
@@ -9144,6 +9156,7 @@ countQuery(Query groupby _) :- countQuery(Query).
 countQuery(Query orderby _) :- countQuery(Query).
 countQuery(Query first _)   :- countQuery(Query).
 countQuery(Query last _)   :- countQuery(Query).
+countQuery(Query some _)   :- countQuery(Query).
 
 /*
 ----    aggrQuery(+Query, -Op, -Query1, -AggrAttr)
@@ -9191,6 +9204,8 @@ aggrQuery(Query orderby Order, AggrOp, Query1 orderby Order, AggrExpr) :-
 aggrQuery(Query first N, AggrOp, Query1 first N, AggrExpr)   :-
   aggrQuery(Query, AggrOp, Query1, AggrExpr), !.
 aggrQuery(Query last N, AggrOp, Query1 last N, AggrExpr)   :-
+  aggrQuery(Query, AggrOp, Query1, AggrExpr), !.
+aggrQuery(Query some N, AggrOp, Query1 some N, AggrExpr)   :-
   aggrQuery(Query, AggrOp, Query1, AggrExpr), !.
 
 
@@ -9275,6 +9290,7 @@ updateQuery(Query groupby _) :- updateQuery(Query).
 updateQuery(Query orderby _) :- updateQuery(Query).
 updateQuery(Query first _)   :- updateQuery(Query).
 updateQuery(Query last _)   :- updateQuery(Query).
+updateQuery(Query some _)   :- updateQuery(Query).
 
 /*
 
@@ -9304,6 +9320,25 @@ queryToStream(Query first N, head(Stream, N), Cost) :-
 queryToStream(Query last N, tail(Stream, N), Cost) :-
   queryToStream(Query, Stream, Cost),
   !.
+
+queryToStream(Query some N, some(Stream, N), Cost) :-
+  queryToStream(Query, Stream, Cost),
+  !.
+
+queryToStream(Query1 union Query2, 
+    rdup(sort(concat(Stream1, Stream2))), Cost1 + Cost2) :-
+  queryToStream(Query1, Stream1, Cost1),
+  queryToStream(Query2, Stream2, Cost2),
+  !.
+
+queryToStream(Query1 minus Query2, 
+	mergediff(rdup(sort(Stream1)), rdup(sort(Stream2))), Cost1 + Cost2) :-
+  queryToStream(Query1, Stream1, Cost1),
+  queryToStream(Query2, Stream2, Cost2),
+  !.
+
+
+
 
 % NVK ADDED MA
 /*
