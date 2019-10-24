@@ -1,0 +1,65 @@
+Polyhedral Moving Region Algebra (PMRegion)
+===========================================
+
+based on the paper "A polyhedra-based model for moving regions in databases"
+https://www.tandfonline.com/eprint/MNTtxvte8V9XsR4xYgcv/full
+
+Author: Florian Heinz <fh@sysv.de>
+
+Prerequisites: CGAL Library (with dependencies gmp/mpfr/boost)
+
+Debian/Ubuntu: sudo apt install libcgal-dev
+
+CentOS/Redhat: sudo yum install CGAL-devel
+
+In the directory "pmregion" the source code for the libpmregion library can be
+found, which is integrated in secondo. There is also a command line program
+"pmregcli", which allows stand-alone usage of some important operations using
+textfiles as input/output.
+
+Three examples can be found in pmregion/examples:
+
+pmreg1, pmreg2 - polyhedral moving regions
+mpoint - a moving point
+
+Examples:
+
+# First, restore the objects into a (already opened) database
+
+restore pmreg1 from '<HOME>/secondo/Algebras/PMRegion/pmregion/examples/pmreg1'
+restore pmreg2 from '<HOME>/secondo/Algebras/PMRegion/pmregion/examples/pmreg2'
+restore mpoint from '<HOME>/secondo/Algebras/PMRegion/pmregion/examples/mpoint'
+
+# Build the union, intersection and differences of the two polyhedral moving
+# regions
+
+let pmreg3 = pmreg1 union pmreg2
+let pmreg4 = intersection(pmreg1, pmreg2)
+let pmreg5 = pmreg1 minus pmreg2
+let pmreg6 = pmreg2 minus pmreg1
+
+# Query the unified moving regions for two instants
+
+query pmreg3 atinstant instant("1970-01-04-00:00:00")
+query pmreg3 atinstant instant("1970-01-05-00:00:00")
+
+# Query the times, where an mpoint is inside the unified moving regions
+
+query mpoint inside pmreg3
+
+# Query the intervals, during which the two moving regions intersect
+
+query pmreg1 intersects pmreg2
+
+# query the perimeter and area of the unified moving regions
+
+query perimeter(pmreg3)
+query area(pmreg3)
+
+# Convert the unified polyhedral moving region into a unit-based moving
+# region
+
+query pmreg2mreg(pmreg3)
+
+
+
