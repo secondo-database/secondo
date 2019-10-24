@@ -158,6 +158,7 @@ MReal PMRegion::perimeter () {
             // ... calculate the intersections with a cutting plane
             Arrangement a1 = zplanecut(polyhedron, prev+EPSILON);
             Arrangement a2 = zplanecut(polyhedron, cur-EPSILON);
+	    Kernel::FT deltat = (cur - prev)/86400000;
 
             // ... calculate the perimeter lengths
             Kernel::FT a1perimeter = getPerimeterFromArrangement(a1);
@@ -165,7 +166,7 @@ MReal PMRegion::perimeter () {
             Kernel::FT diff = a2perimeter - a1perimeter;
 
             // create a mreal representing the perimeter development
-            mreal.append(prev, cur, 0, diff, a1perimeter);
+            mreal.append(prev, cur, 0, diff/deltat, a1perimeter);
         } else
             first = false;
         prev = *it;
@@ -206,13 +207,14 @@ MReal PMRegion::area () {
             Arrangement a1 = zplanecut(polyhedron, prev+EPSILON);
             Arrangement a2 = zplanecut(polyhedron, cur-EPSILON);
 
+	    Kernel::FT deltat = (cur - prev)/86400000;
             // ... calculate the areas
             Kernel::FT a1area = getAreaFromArrangement(a1);
             Kernel::FT a2area = getAreaFromArrangement(a2);
             Kernel::FT diff = a2area - a1area;
 
             // create a mreal representing the area development
-            mreal.append(prev, cur, diff, 0, a1area);
+            mreal.append(prev, cur, diff/deltat/deltat, 0, a1area);
         } else
             first = false;
         prev = *it;
