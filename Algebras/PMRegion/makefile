@@ -39,13 +39,13 @@ ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
 
+OBJECTS += pmregion/pmregcli.o pmregion/PMRegion_conversions.o pmregion/PMRegion_coverduration.o pmregion/PMRegion_helpers.o pmregion/PMRegion_operations.o pmregion/RList.o
+
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
-	make -C pmregion -f Makefile
-	$(create-lib) pmregion/*.o
+	$(create-lib)
 
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	make -C pmregion -f makefile clean

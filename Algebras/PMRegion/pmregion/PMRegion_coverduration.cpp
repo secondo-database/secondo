@@ -11,7 +11,7 @@
 */
 
 
-#include "PMRegion.h"
+#include "PMRegion_internal.h"
 
 #include <CGAL/Surface_sweep_2_algorithms.h>
 

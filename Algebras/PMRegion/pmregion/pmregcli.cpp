@@ -14,7 +14,7 @@
 #include <fstream>
 #include <cstdlib>
 #include <map>
-#include "PMRegion.h"
+#include "PMRegion_internal.h"
 
 using namespace std;
 using namespace pmr;
