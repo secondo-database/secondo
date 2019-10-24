@@ -4,25 +4,35 @@ Polyhedral Moving Region Algebra (PMRegion)
 based on the paper "A polyhedra-based model for moving regions in databases"
 https://www.tandfonline.com/eprint/MNTtxvte8V9XsR4xYgcv/full
 
-Author: Florian Heinz <fh@sysv.de>
+Author: Florian Heinz <fh@sysv.de> - Ralf Hartmut Güting <rhg@fernuni-hagen.de>
+
+
 
 Prerequisites: CGAL Library (with dependencies gmp/mpfr/boost)
+==============
 
 Debian/Ubuntu: sudo apt install libcgal-dev
 
 CentOS/Redhat: sudo yum install CGAL-devel
+
+
+
 
 In the directory "pmregion" the source code for the libpmregion library can be
 found, which is integrated in secondo. There is also a command line program
 "pmregcli", which allows stand-alone usage of some important operations using
 textfiles as input/output.
 
-Three examples can be found in pmregion/examples:
+Three example objects can be found in pmregion/examples:
 
 pmreg1, pmreg2 - polyhedral moving regions
 mpoint - a moving point
 
-Examples:
+
+
+Example: Performing some operations on polyhedral moving regions
+========
+
 
 # First, restore the objects into a (already opened) database
 
@@ -55,6 +65,14 @@ query pmreg1 intersects pmreg2
 
 query perimeter(pmreg3)
 query area(pmreg3)
+
+# Determine the traversed area of the unified moving regions
+
+query traversedarea(pmreg3)
+
+# Translate the moving region by (300, 1000) and one day (86400000 ms)
+
+query pmreg3 translate [300.0, 1000.0, 86400000.0]
 
 # Convert the unified polyhedral moving region into a unit-based moving
 # region
