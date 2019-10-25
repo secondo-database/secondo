@@ -39,6 +39,9 @@ ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
 
+.PHONY: deps
+deps: $(DEP_FILES)
+
 OBJECTS += pmregion/pmregcli.o pmregion/PMRegion_conversions.o pmregion/PMRegion_coverduration.o pmregion/PMRegion_helpers.o pmregion/PMRegion_operations.o pmregion/RList.o
 
 # generic rule for creating a library

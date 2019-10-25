@@ -32,8 +32,6 @@ ALGEBRA_DEPENDENCIES += CRelAlgebra
 
 # expand compile flags if necessary
 CCFLAGS += -Werror
-CCFLAGS += $(ALG_INC_DIRS)
-CCFLAGS += -std=c++11
 CCFLAGS += -O1 -finline-functions
 
 # create objects and algebra library. The values for the variables
@@ -45,6 +43,10 @@ all: $(OBJECTS) $(LIBOBJ)
 ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
+
+.PHONY: deps
+deps: $(DEP_FILES)
+
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)

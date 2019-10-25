@@ -35,7 +35,6 @@ ALGEBRA_DEPENDENCIES += FTextAlgebra
 include ../../makefile.env
 
 # expand compile flags if necessary
-CCFLAGS += -std=c++11
 CCFLAGS += -Werror
 
 
@@ -52,6 +51,10 @@ check_dependencies:
 ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
+
+.PHONY: deps
+deps: $(DEP_FILES)
+
 
 SOURCES := $(shell find $(SRCDIR) -name "*.cpp")
 OBJECTS := $(patsubst %.cpp, %.o, $(SOURCES))

@@ -36,11 +36,7 @@ ALGEBRA_DEPENDENCIES += OrderedRelationAlgebra
 ALGEBRA_DEPENDENCIES += TrajectoryAnnotationAlgebra
 
 # expand compile flags if necessary
-CCFLAGS += -Werror -std=c++11
-
-#ifneq ($(platform),mac_osx)
-#  CCFLAGS += -std=c++0x
-#endif
+CCFLAGS += -Werror 
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
@@ -54,6 +50,9 @@ check_dependencies:
 ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
+
+.PHONY: deps
+deps: $(DEP_FILES)
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)

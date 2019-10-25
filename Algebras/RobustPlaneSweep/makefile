@@ -28,7 +28,7 @@ ALGEBRA_DEPENDENCIES += TemporalAlgebra
 include ../../makefile.env
 
 # expand compile flags if necessary
-CCFLAGS += -std=c++0x -I Helper  -Werror
+CCFLAGS += -I Helper  -Werror
 
 OBJECTS = RobustPlaneSweepAlgebra.o Algorithm/BentleyOttmann.o Algorithm/Hobby.o Algorithm/IntersectionAlgorithm.o Helper/InternalGeometries.o Helper/Utility.o
 
@@ -46,6 +46,8 @@ ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
 
+.PHONY: deps
+deps: $(DEP_FILES)
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)

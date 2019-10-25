@@ -26,8 +26,6 @@
 # inlcude global definitions
 include ../../makefile.env
 
-CXX=g++
-CC=g++
 CXXFLAGS=-g -std=c++11 -Wall -Werror -pedantic
 LDFLAGS += -ljpeg
 
@@ -39,8 +37,6 @@ ALGEBRA_DEPENDENCIES := GeneralTree
 ifeq ($(platform),android)
 CCFLAGS += -I$(HOME)/jpeg-6b/
 endif
-
-CCFLAGS += -std=c++11
 
 # expand compile flags if necessary
 CCFLAGS += -Werror
@@ -56,6 +52,10 @@ all: $(OBJECTS) $(LIBOBJ)
 ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
+
+.PHONY: deps
+deps: $(DEP_FILES)
+
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)

@@ -37,5 +37,9 @@ clean:
 
 include $(DEP_FILES)
 
+.PHONY: deps
+deps: $(DEP_FILES)
+
+
 $(LIBOBJ): $(OBJECTS)
 	$(create-lib)

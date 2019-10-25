@@ -84,15 +84,27 @@ if [ "$1" = "--onlylist" ]; then
 fi
 
 
+if [ "$1" = "-m" ]; then
+  makedeps=true 
+  shift
+else 
+  makedpes=false
+fi
+
 ALGDIR=$SECONDO_BUILD_DIR/Algebras/$1
 DIR=$PWD
 
 cd $ALGDIR
 # go into the specified algebra directory
 
-if [ "$1" = "-m" ]; then
-  make
-  shift
+if [ "$makedeps" = "true" ]; then
+  make --silent deps >&2
+  success=$?
+  if [ "$success" != "0" ]; then
+    echo "Creating algebra dependenciey in directory $ALGDIR  failed" >&2
+    cd $DIR
+    exit 
+  fi 
 fi
 
 

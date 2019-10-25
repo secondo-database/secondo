@@ -28,12 +28,7 @@ include ../../makefile.env
 
 # expand compile flags if necessary
 CCFLAGS += -Werror 
-#CCFLAGS += -g #Undo LATER !!!
 
-
-CCFLAGS += -std=c++0x 
-
-CCFLAGS += -Werror 
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
@@ -44,6 +39,9 @@ all: $(OBJECTS) $(LIBOBJ)
 ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
+
+.PHONY: deps
+deps: $(DEP_FILES)
 
 
 # generic rule for creating a library

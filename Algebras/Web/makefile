@@ -61,6 +61,8 @@ ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
 
+.PHONY: deps
+deps: $(DEP_FILES)
 
 # The rule below creates a library file. Maybe as shared or as static
 # object. In case of a shared object all dependencies to other libraries

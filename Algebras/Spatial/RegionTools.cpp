@@ -33,7 +33,7 @@ This file contains functions handling with regions.
 #include "AVLSegment.h"
 #include "RegionT.h"
 #include "RegionTools.h"
-#include "../TopOps/TopOpsAlgebra.h"
+#include "Algebras/TopOps/TopOpsAlgebra.h"
 #include <vector>
 
 using namespace std;

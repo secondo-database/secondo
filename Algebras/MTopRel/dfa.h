@@ -35,11 +35,11 @@ This class is the implementation of a finite automaton.
 #include <string>
 #include <algorithm>
 
-#include "../../Tools/Flob/DbArray.h"
+#include "Tools/Flob/DbArray.h"
 #include "Attribute.h"
 #include "TopRel.h"
 #include "NestedList.h" 
-#include "IntNfa.h"
+#include "Algebras/FText/IntNfa.h"
 #include "GenericTC.h"
 #include "StringUtils.h"
 

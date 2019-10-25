@@ -50,6 +50,10 @@ ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
 
+.PHONY: deps
+deps: $(DEP_FILES)
+
+
 .PHONY: TRIA
 TRIA:
 	make -C triangulation 

@@ -29,7 +29,7 @@ MODNAME = TopRelAlgebra
 
 # Use the mace CCFLAGS to add special compiler flags if needed.
 # In this case the defaults are sufficient
-CCFLAGS = $(DEFAULTCCFLAGS) -I../FText -I../Rectangle
+CCFLAGS = $(DEFAULTCCFLAGS) 
 
 CCFLAGS +=  -Werror
 
@@ -62,6 +62,9 @@ OBJECTS += Scanner.o RegExParser.o
 ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
+
+.PHONY: deps
+deps: $(DEP_FILES)
 
 
 # The rule below creates a library file. Maybe as shared or as static

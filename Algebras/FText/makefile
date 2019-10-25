@@ -57,6 +57,10 @@ ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
 
+.PHONY: deps
+deps: $(DEP_FILES)
+
+
 RegExScanner.o: RegExScanner.c
 	$(CC) -fPIC -c  -I../../include -o RegExScanner.o RegExScanner.c
 

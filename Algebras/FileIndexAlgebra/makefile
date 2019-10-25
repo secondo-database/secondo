@@ -43,6 +43,10 @@ ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
 
+.PHONY: deps
+deps: $(DEP_FILES)
+
+
 BPTREEDEP = $(patsubst %.cpp, %.dep, $(wildcard BPTree/*.cpp))
 BPTREEOBJECTS = $(patsubst %.dep, %.$(OBJEXT), $(BPTREEDEP))
 CACHEDEP = $(patsubst %.cpp, %.dep, $(wildcard Cache/*.cpp))

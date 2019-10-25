@@ -55,6 +55,9 @@ ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
 
+.PHONY: deps
+deps: $(DEP_FILES)
+
 
 # Generic rule for creating a library.
 $(LIBOBJ): $(OBJECTS)

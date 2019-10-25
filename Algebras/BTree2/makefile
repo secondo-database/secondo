@@ -39,6 +39,10 @@ ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
 
+.PHONY: deps
+deps:
+
+
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
 	$(create-lib)

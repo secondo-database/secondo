@@ -62,6 +62,10 @@ ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
 
+.PHONY: deps
+deps: $(DEP_FILES)
+
+
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS) $(TCPOBJECTS) $(GENERICOBJECTS) $(LOOPSTRATEGYOBJECTS) $(JOINSTRATEGYOBJECTS)
 	$(create-lib)

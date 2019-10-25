@@ -37,6 +37,9 @@ all: $(OBJECTS) $(LIBOBJ)
 # include pre-computed dependencies
 include $(DEP_FILES)
 
+.PHONY: deps
+deps: $(DEP_FILES)
+
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
 	$(create-lib)

@@ -51,6 +51,10 @@ ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
 
+.PHONY: deps
+deps: $(DEP_FILES)
+
+
 $(LIBOBJ): $(OBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object

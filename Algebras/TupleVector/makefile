@@ -32,7 +32,7 @@ ALGEBRA_DEPENDENCIES += RelationAlgebra
 
 
 # expand compile flags if necessary
-CCFLAGS += -Werror -std=c++11 -O3
+CCFLAGS += -Werror  -O3
 
 
 # create objects and algebra library. The values for the variables
@@ -48,6 +48,9 @@ check_dependencies:
 ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
+
+.PHONY: deps
+deps: $(DEP_FILES)
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
