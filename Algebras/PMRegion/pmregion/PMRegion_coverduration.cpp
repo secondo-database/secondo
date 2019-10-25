@@ -10,8 +10,10 @@
  
 */
 
-
 #include "PMRegion_internal.h"
+// We can only compile with CGAL 4.14 and later
+#if CGAL_VERSION_NR >= 1041400000
+
 
 #include <CGAL/Surface_sweep_2_algorithms.h>
 
@@ -313,3 +315,4 @@ Kernel::FT ScalarField::value(Point2d point) {
 
 
 }
+#endif

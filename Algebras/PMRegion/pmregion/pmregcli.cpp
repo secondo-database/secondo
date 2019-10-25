@@ -28,8 +28,10 @@ static void usage (void) {
         << "             perimeter     <pmregfile>" << endl
         << "             area          <pmregfile>" << endl
         << "             traversedarea <pmregfile>" << endl
+#if CGAL_VERSION_NR >= 1041400000
         << "             coverduration <pmregfile>" << endl
         << "             coverlength   <scalarfile> <px> <py>" << endl
+#endif
         << "             mpointinside  <pmregfile> <mpointfile>" << endl
         << "             intersection  <pmregfile> <pmregfile>" << endl
         << "             union         <pmregfile> <pmregfile>" << endl
@@ -58,6 +60,7 @@ static void atinstant(char **param) {
     cout << pmreg.atinstant(instant).ToString() << endl;
 }
 
+#if CGAL_VERSION_NR >= 1041400000
 static void coverduration(char **param) {
     RList rl = file2rlist(param[0]);
     PMRegion pmreg = PMRegion::fromRList(rl);
@@ -71,7 +74,7 @@ static void coverlength(char **param) {
     double y = strtod(param[2], NULL);
     cout << field.value(Point2d(x, y)) << endl;
 }
-
+#endif
 
 static void perimeter(char **param) {
     RList rl = file2rlist(param[0]);
@@ -202,10 +205,12 @@ int main (int argc, char **argv) {
         pmreg2off(param);
     } else if (!strcmp(cmd, "atinstant") && nrparam == 2) {
         atinstant(param);
+#if CGAL_VERSION_NR >= 1041400000
     } else if (!strcmp(cmd, "coverduration") && nrparam == 1) {
         coverduration(param);
     } else if (!strcmp(cmd, "coverlength") && nrparam == 3) {
         coverlength(param);
+#endif
     } else if (!strcmp(cmd, "perimeter") && nrparam == 1) {
         perimeter(param);
     } else if (!strcmp(cmd, "area") && nrparam == 1) {

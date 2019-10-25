@@ -571,6 +571,7 @@ Operator traversedarea("traversedarea",
         traversedareatypemap
         );
 
+#if CGAL_VERSION_NR >= 1041400000
 /*
    3.4 ~coverduration~
 
@@ -632,6 +633,7 @@ Operator coverduration("coverduration",
         coverdurationtypemap
         );
 
+#endif
 
 /*
    3.5 ~inside~
@@ -1218,7 +1220,6 @@ PMRegionAlgebra::PMRegionAlgebra() : Algebra() {
     AddOperator(&perimeter);
     AddOperator(&area);
     AddOperator(&traversedarea);
-    AddOperator(&coverduration);
     AddOperator(&mpointinside);
     AddOperator(&do_union);
     AddOperator(&do_minus);
@@ -1226,6 +1227,9 @@ PMRegionAlgebra::PMRegionAlgebra() : Algebra() {
     AddOperator(&intersects);
     AddOperator(&pmreg2mreg);
     AddOperator(&mreg2pmreg);
+#if CGAL_VERSION_NR >= 1041400000
+    AddOperator(&coverduration);
+#endif
 }
 
 extern "C"
