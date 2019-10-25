@@ -155,12 +155,6 @@ Result   : crashes
 Remark   : After that query the berkeley db is in a unnormal state
 
 
-Operator : cyclicbulkload
-Number  : 1
-Signature: "((stream (tuple([a1:d1, ..., {aj:mpoint, aj:upoint}, ..., an:dn, id:tid]))) x rect x int int x aj) -> rtree3"
-Example  : query UnitTrains feed sortby[UTrip asc] addid cyclicbulkload[ rectangle2(-4000.0, 26000.0, 1200.0, 22000.0), 4096, 300000, UTrip] windowintersectsS[bbox(train7)] count
-Result   : 8584
-
 Operator  : dspatialJoin
 Number:   : 1
 Signature : rtree1 x rel1(tuple(X)) x  rtree2 x rel2(tuple(Y)) [x rename] -> stream(tuple(X,Y@ren))

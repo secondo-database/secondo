@@ -66,6 +66,7 @@ dimensions. The desired dimensions are passed as a parameter to the template.
 #include "NestedList.h"
 #include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Attribute.h"
 
 extern NestedList* nl;
 

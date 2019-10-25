@@ -5806,6 +5806,508 @@ Operator splitatspeed(
     splitatspeedTM);
 
 
+
+
+/*
+
+5.15 Operator ~cyclicbulkload~
+
+5.15.1. Data structures
+
+5.15.1.1 GridArea
+
+The GridArea structure defines the boundary of a 2D-grid.
+
+*/
+
+struct GridArea
+{
+  GridArea(){}
+  GridArea( double X1, double Y1, double X2, double Y2 ):
+            x1( X1 ), y1( Y1 ), x2( X2 ), y2( Y2 ){}
+  double x1;
+  double y1;
+  double x2;
+  double y2;
+};
+
+/*
+
+5.15.1.2 Unit
+
+Unit structure constists of a TupleId and an UPoint.
+
+*/
+struct Unit
+{
+  TupleId tupId;
+  temporalalgebra::UPoint  up;
+};
+
+/*
+
+5.15.1.2 Cell
+
+Every Cell stores a map container for Units.
+
+*/
+
+struct Cell
+{
+  GridArea area;
+  multimap<double,Unit> units;
+};
+
+/*
+
+5.15.1.3 Grid (2D-Cell-Array)
+
+The grid is represented by a 2D-Cell-Array
+
+*/
+
+const int maxSplits = 64;
+Cell* cells[maxSplits][maxSplits];
+
+/*
+
+5.15.2 Auxiliary methods
+
+5.15.2.1 ModifyArea
+
+Modifies the given area. x1/x2 and y1/y2 will be swapped if necessary.
+
+*/
+
+GridArea ModifyArea(GridArea AREA)
+{
+  double tempX = 0;
+  double tempY = 0;
+
+  if (AREA.x1 > AREA.x2)
+  {
+    tempX   = AREA.x2;
+    AREA.x2 = AREA.x1;
+    AREA.x1 = tempX;
+  }
+  if (AREA.y1 > AREA.y2)
+  {
+    tempY   = AREA.y2;
+    AREA.y2 = AREA.y1;
+    AREA.y1 = tempY;
+  }
+  AREA.x1 = AREA.x1 - 0.00001;
+  AREA.y1 = AREA.y1 - 0.00001;
+  AREA.x2 = AREA.x2 + 0.00001;
+  AREA.y2 = AREA.y2 + 0.00001;
+  return AREA;
+}
+
+/*
+
+5.15.2.2 ComputeLine
+
+Identifies a column or a row in a grid in dependence of a given position.
+
+*/
+
+int ComputeLine(double BORDER1 ,double BORDER2, int SPLITS, double POS)
+{
+  double len = abs(BORDER1-BORDER2) / SPLITS;
+  int i = 0;
+
+  while ((BORDER1 + (i*len)) <= POS) i++;
+
+  return i-1;
+}
+
+/*
+
+5.15.2.3 InsertUnits
+
+Creates bounding boxes for the units and inserts them in Z-Order by bulk load
+into the RTree.
+
+*/
+
+void InsertUnits (int SQUARES, int RIGHTCOL, int TOPROW,
+                  R_Tree<3, TupleId>* RTREE)
+{
+  if (SQUARES > 4)
+  {
+    InsertUnits( (SQUARES/4), (RIGHTCOL-((int)sqrt(SQUARES)/2)),
+                             (TOPROW-((int)sqrt(SQUARES)/2)), RTREE);
+    InsertUnits( (SQUARES/4), (RIGHTCOL-((int)sqrt(SQUARES)/2)),TOPROW,RTREE);
+    InsertUnits( (SQUARES/4), RIGHTCOL, (TOPROW-((int)sqrt(SQUARES)/2)),RTREE);
+    InsertUnits( (SQUARES/4), RIGHTCOL, TOPROW, RTREE );
+  }
+  else
+  {
+    for (int i = 0; i < 4; i++)
+    {
+      int col = RIGHTCOL-1;
+      int row = TOPROW-1;
+
+      // Select cell
+      if ( i == 0 ) { col = col-1; row = row-1; } // leftBottomCell
+      if ( i == 1 ) { col = col-1;              } // leftTopCell
+      if ( i == 2 ) {              row = row-1; } // rightBottomCell
+
+      map<double,Unit>::iterator it;
+
+      for ( it = cells[col][row]->units.begin();
+            it != cells[col][row]->units.end(); )
+      {
+        // Get all UPoints from cell
+        double x1 = it->second.up.p0.GetX();
+        double x2 = it->second.up.p1.GetX();
+        double y1 = it->second.up.p0.GetY();
+        double y2 = it->second.up.p1.GetY();
+        if (x1 > x2)
+        {
+          x1 = it->second.up.p1.GetX();
+          x2 = it->second.up.p0.GetX();
+        }
+        if (y1 > y2)
+        {
+          y1 = it->second.up.p1.GetY();
+          y2 = it->second.up.p0.GetY();
+        }
+
+        // Create bounding box
+        const double tol = 0.00001;
+        double start = it->second.up.timeInterval.start.ToDouble();
+        double end   = it->second.up.timeInterval.end.ToDouble();
+        if ( start < end )
+        {
+          double minMax[] = { x1-tol, x2+tol, y1-tol, y2+tol, start, end};
+          Rectangle<3>* box = new Rectangle<3>(true,minMax);
+          // Insert entry into RTree
+          R_TreeLeafEntry<3, TupleId> e(*box, it->second.tupId);
+          RTREE->InsertBulkLoad(e);
+          delete box;
+        }
+        cells[col][row]->units.erase(it++);
+      }
+    }
+  }
+}
+
+/*
+
+5.15.3 TypeMapping for operator ~cyclicbulkload~
+
+*/
+
+
+ListExpr CyclicBulkloadTM(ListExpr args)
+{
+  NList typeList(args);
+  if ( !typeList.hasLength(5) )
+  {
+   return listutils::typeError("Expecting five arguments.");
+  }
+
+  // Check first argument
+  ListExpr stream = nl->First(args);
+  if(!listutils::isTupleStream(stream))
+  {
+     return listutils::typeError("First arg is not a tuple stream!");
+  }
+
+  // Check grid size
+  if ( !nl->IsEqual(nl->Second(args), Rectangle<2>::BasicType()) )
+  {
+    return NList::typeError( "Rectangle for second argument expected!" );
+  }
+
+  // Check number of partitions
+  if ( !nl->IsEqual(nl->Third(args), CcInt::BasicType()) )
+  {
+    return NList::typeError( "Integer for third argument expected!" );
+  }
+
+  // Check cycle time
+  if ( !nl->IsEqual(nl->Fourth(args), CcInt::BasicType()) )
+  {
+    return NList::typeError( "Integer for fourth argument expected!" );
+  }
+
+  // Check for index attribute
+  ListExpr fifth = nl->Fifth(args);
+  if(nl->AtomType(fifth)!=SymbolType)
+  {
+    return listutils::typeError("Fifth argument is not a valid attr name!");
+  }
+
+  string attrName = nl->SymbolValue(fifth);
+  ListExpr attrList = nl->Second(nl->Second(stream));
+  ListExpr attrType;
+  int attrIndex = listutils::findAttribute(attrList, attrName, attrType);
+  if(attrIndex <= 0){
+    return listutils::typeError("Expecting the attribute for fifth argument.");
+  }
+
+  if ( nl->SymbolValue(attrType) != MPoint::BasicType() &&
+       nl->SymbolValue(attrType) != UPoint::BasicType() )
+  {
+    return NList::typeError("Attribute type is not of type mpoint or upoint.");
+  }
+
+  bool isMPoint = MPoint::checkType(attrType);
+
+  ListExpr first, rest, 
+           newAttrList=nl->TheEmptyList(), 
+           lastNewAttrList=nl->TheEmptyList();
+  int tidIndex = 0;
+  string type;
+  bool firstcall = true;
+
+  rest = attrList;
+  int j = 1;
+  while (!nl->IsEmpty(rest))
+  {
+    first = nl->First(rest);
+    rest = nl->Rest(rest);
+
+    type = nl->SymbolValue(nl->Second(first));
+    if (type == TupleIdentifier::BasicType())
+    {
+      if( tidIndex != 0 ){
+        return listutils::typeError("Expecting exactly one attribute of type "
+                                    "'tid' in the 1st argument.");
+      }
+      tidIndex = j;
+    }
+    else
+    {
+      if (firstcall)
+      {
+        firstcall = false;
+        newAttrList = nl->OneElemList(first);
+        lastNewAttrList = newAttrList;
+      }
+      else
+      {
+        lastNewAttrList = nl->Append(lastNewAttrList, first);
+      }
+    }
+    j++;
+  }
+  if( tidIndex == 0 )
+  {
+    return listutils::typeError("Expecting exactly one attribute of type "
+                                "'tid' in the 1st argument.");
+  }
+
+  return
+    nl->ThreeElemList(
+      nl->SymbolAtom(Symbol::APPEND()),
+      nl->ThreeElemList(
+          nl->IntAtom(attrIndex),
+          nl->IntAtom(tidIndex),
+          nl->BoolAtom(isMPoint)),
+  nl->FourElemList(
+      nl->SymbolAtom(RTree3TID::BasicType()),
+      nl->TwoElemList(
+          nl->SymbolAtom(Tuple::BasicType()),
+          newAttrList),
+      attrType,
+      nl->BoolAtom(false)));
+}
+
+
+
+/*
+
+ValueMapping for operator ~cyclicbulkload~
+
+*/
+
+
+int CyclicBulkloadVM(Word* args, Word& result, int message,
+                                    Word& local, Supplier s)
+{
+  Rectangle<2>* rect  = static_cast<Rectangle<2>*>(args[1].addr);
+  int       numCells  = static_cast<CcInt*>(args[2].addr)->GetValue();
+  int       cycleTime = static_cast<CcInt*>(args[3].addr)->GetValue();
+  int       entries = 0;
+
+  // Create new RTree
+  R_Tree<3, TupleId>* rtree = (R_Tree<3, TupleId>*)qp->ResultStorage(s).addr;
+  result.setAddr( rtree );
+
+  // Initialize RTree for bulk load
+  int BulkLoadInitialized = rtree->InitializeBulkLoad();
+  assert(BulkLoadInitialized);
+
+  // Create grid area
+  double x1(rect->MinD(0));
+  double x2(rect->MaxD(0));
+  double y1(rect->MinD(1));
+  double y2(rect->MaxD(1));
+  GridArea area(x1,y1,x2,y2);
+  area = ModifyArea(area);
+
+  // Check number of cells
+  if ( !( numCells == 16   ||
+          numCells == 64   ||
+          numCells == 256  ||
+          numCells == 4096 )) numCells = 4;
+  const int splits = (int)sqrt(numCells);
+
+  // Check cycle time
+  if ( cycleTime < 1000 ) cycleTime = 1000;
+
+  // Calculate x/y cell length
+  double areaLenX = abs(area.x2 - area.x1);
+  double areaLenY = abs(area.y2 - area.y1);
+  double cellLenX = areaLenX / splits;
+  double cellLenY = areaLenY / splits;
+
+  GridArea partition(0,0,0,0);
+  for (int i = 0; i < splits; i++)
+  {
+    for (int j = 0; j < splits; j++)
+    {
+      partition.x1 = area.x1 + (cellLenX * j);
+      partition.x2 = partition.x1 + cellLenX;
+      partition.y1 = area.y1 + (cellLenY * i);
+      partition.y2 = partition.y1 + cellLenY;
+      cells[j][i] = new Cell();
+      cells[j][i]->area = partition;
+    }
+  }
+
+  // Create an instant object for systemTime
+  Instant systemTime(0,0,datetime::instanttype);
+  systemTime.Now();
+  int32_t startTime = systemTime.GetAllMilliSeconds();
+
+  Word wTuple;
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, wTuple);
+
+  int attrIndex = ((CcInt*)args[5].addr)->GetIntval() - 1;
+  int tidIndex = ((CcInt*)args[6].addr)->GetIntval() - 1;
+  bool isMPoint = ((CcBool*)args[7].addr)->GetBoolval();
+  while (qp->Received(args[0].addr))
+  {
+    Tuple*  tuple = (Tuple*)wTuple.addr;
+
+    systemTime.Now();
+    if ( systemTime.GetAllMilliSeconds() > (startTime + cycleTime))
+    {
+      // Insert units into RTree (Z-Order)
+      InsertUnits(numCells, splits, splits, rtree);
+
+      // Start time for the next slice
+      startTime += cycleTime;
+
+      // Clear grid
+      for (int i = 0; i < splits; i++)
+      {
+        for (int j = 0; j < splits; j++)
+        {
+          cells[j][i]->units.clear();
+        }
+      }
+    }
+
+    if ( isMPoint )
+    {
+      // Attribute type is mpoint
+      MPoint* mp = static_cast<MPoint*>(tuple->GetAttribute(attrIndex));
+      int i = 0;
+      while ( i < mp->GetNoComponents() )
+      {
+
+        Unit u;
+        u.tupId = ((TupleIdentifier *)tuple->GetAttribute(tidIndex))->GetTid();
+        mp->Get(i, u.up);
+
+        // Insert upoint into cell, sorted by start time
+        systemTime.Now();
+        if ( u.up.timeInterval.end < systemTime &&
+             u.up.p0.GetX() > area.x1 && u.up.p0.GetX() < area.x2 &&
+             u.up.p1.GetX() > area.x1 && u.up.p1.GetX() < area.x2 &&
+             u.up.p0.GetY() > area.y1 && u.up.p0.GetY() < area.y2 &&
+             u.up.p1.GetY() > area.y1 && u.up.p1.GetY() < area.y2 )
+        {
+          int col = ComputeLine(area.x1, area.x2, splits, u.up.p0.GetX());
+          int row = ComputeLine(area.y1, area.y2, splits, u.up.p0.GetY());
+
+          cells[col][row]->
+               units.insert(make_pair(u.up.timeInterval.start.ToDouble(),u));
+        }
+        i++;
+        entries++;
+      }
+    }
+    else
+    {
+      // Attribute type is upoint
+      UPoint* up = static_cast<UPoint*>(tuple->GetAttribute(attrIndex));
+      Unit u;
+      u.tupId = ((TupleIdentifier *)tuple->GetAttribute(tidIndex))->GetTid();
+      u.up = *up;
+
+      // Insert upoint into cell, sorted by start time
+      systemTime.Now();
+      if ( u.up.timeInterval.end < systemTime &&
+           u.up.p0.GetX() > area.x1 && u.up.p0.GetX() < area.x2 &&
+           u.up.p1.GetX() > area.x1 && u.up.p1.GetX() < area.x2 &&
+           u.up.p0.GetY() > area.y1 && u.up.p0.GetY() < area.y2 &&
+           u.up.p1.GetY() > area.y1 && u.up.p1.GetY() < area.y2 )
+      {
+        int col = ComputeLine(area.x1, area.x2, splits, u.up.p0.GetX());
+        int row = ComputeLine(area.y1, area.y2, splits, u.up.p0.GetY());
+
+        cells[col][row]->
+             units.insert(make_pair(u.up.timeInterval.start.ToDouble(),u));
+        entries++;
+      }
+    }
+    delete tuple;
+    qp->Request(args[0].addr, wTuple);
+  }
+  qp->Close(args[0].addr);
+  // Insert the last entries into the RTree
+  InsertUnits(numCells, splits, splits, rtree);
+
+  // Insert dummy if the rtree is empty
+  if (entries == 0)
+  {  double minMax[] ={0.0,1.0,0.0,1.0,0.0,1.0 };
+     Rectangle<3>* box = new Rectangle<3>(true,minMax);
+     R_TreeLeafEntry<3, TupleId> e(*box,0);
+     rtree->InsertBulkLoad(e);
+  }
+
+  // Finalize bulk load
+  int FinalizedBulkLoad = rtree->FinalizeBulkLoad();
+  assert(FinalizedBulkLoad);
+  return 0;
+}
+
+/*
+
+Specification for operator ~cyclicbulkload~
+
+*/
+
+struct CyclicBulkloadInfo : OperatorInfo {
+  CyclicBulkloadInfo()
+  {
+    name      = "cyclicbulkload";
+    signature = "((stream (tuple([a1:d1, ..., {aj:mpoint, aj:upoint}, ...,"
+                " an:dn, id:tid]))) x rect x int int x aj) -> rtree3";
+    syntax    = "_ cyclicbulkload [ _, _, _, _ ]";
+    meaning   = "Cyclic bulkload method for moving points.";
+  }
+};
+
+
+
 class TemporalExtAlgebra : public Algebra
 {
   public:
@@ -5872,6 +6374,8 @@ class TemporalExtAlgebra : public Algebra
         AddOperator(&berlin2wgs_lifted);
         AddOperator(&splitatgaps);
         AddOperator(&splitatspeed);
+
+        AddOperator(CyclicBulkloadInfo(), CyclicBulkloadVM, CyclicBulkloadTM);
 
     }
     ~TemporalExtAlgebra() {}
