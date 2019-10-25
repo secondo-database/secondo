@@ -56,9 +56,11 @@ echo "number of workers : $numWorkers"
 
 # check whether port number and number of slots are numbers 
 
-SPOK=$(expr "$startPort" : '[0-9]\+$' >/dev/null && echo OK || echo NOK)
-NWOK=$(expr "$numWorkers" : '[0-9]\+$' >/dev/null && echo OK || echo NOK)
-
+# the next command does not work in the OS-X bash crutch
+#SPOK=$(expr "$startPort" : '[0-9]\+$' >/dev/null && echo OK || echo NOK)
+#NWOK=$(expr "$numWorkers" : '[0-9]\+$' >/dev/null && echo OK || echo NOK)
+SPOK=OK
+NWOK=OK
 
 if [ "$SPOK" = "NOK" ];then
   echo "The first argument (start port) is not an integer"
@@ -73,7 +75,7 @@ fi
 echo "Starting Secondomonitors"
 
 for i in $(seq 1 $numWorkers); do
-  port=$[$startPort+"$i"]
+  port=$[$startPort + $i]
   port=$[$port-1]
   echo "start worker number $i on port $port"
   cmd="SecondoMonitor -c $config -d $HOME/workerDB/worker-$i  -p $port -s"
@@ -102,7 +104,7 @@ echo "                (Config string)))) " >>$relfile
 echo "    (" >>$relfile
 
 for i in $(seq 1 $numWorkers); do
-   port=$[$startPort+"$i"]
+   port=$[$startPort+$i]
    port=$[$port-1]
    echo "(\"localhost\" $port \"SecondoConfig.ini\")" >>$relfile
 done
