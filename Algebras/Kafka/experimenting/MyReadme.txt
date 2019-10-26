@@ -8,11 +8,6 @@
 
  -- DbEnv: BDB2055 Lock table is out of available lock entries
 
- -- Implement progress request
-
- -- Rename
-  kafka -> writetokafka
-  kafkastream -> readfromkafka
 
 - Working with db
 
@@ -82,7 +77,7 @@
     export SECONDO_CONFIG=${HOME}/work/thirdInstance/SecondoConfig.ini
 
 - Big data
- query Roads feed kafka["localhost","roads2"] count;
- query Roads feed head[10000] kafka["localhost","roads2"] count;
+ query Roads feed writetokafka["localhost","roads1"] count;
+ query Roads feed head[10000] writetokafka["localhost","roads2"] count;
  bin/kafka-run-class.sh kafka.tools.GetOffsetShell --broker-list localhost:9092 --topic roads2
 

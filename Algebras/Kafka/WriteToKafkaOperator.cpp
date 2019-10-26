@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#include <include/Base64.h>
 #include "WriteToKafkaOperator.h"
 #include "ReadFromKafkaOperator.h"
 #include "KafkaClient.h"
@@ -125,7 +126,50 @@ namespace kafka {
         void writeToKafka(Tuple *k) {
             if (def) {
                 kafkaProducerClient.Write(k->WriteToBinStr());
+//                WriteToBinStr(k);
+//                k->WriteToBinStr();
+//                writeTuple(k);
+
             }
+        }
+
+// From GuideAlgebra.cpp
+
+        void writeTuple(Tuple *tuple) {
+            size_t coreSize;
+            size_t extensionSize;
+            size_t flobSize;
+            size_t blocksize = tuple->GetBlockSize(coreSize, extensionSize,
+                                                   flobSize);
+            // allocate buffer and write flob into it
+            char *buffer = new char[blocksize];
+            tuple->WriteToBin(buffer, coreSize, extensionSize, flobSize);
+//            uint32_t tsize = blocksize;
+//            out.write((char*) &tsize, sizeof(uint32_t));
+//            out.write(buffer, tsize);
+            delete[] buffer;
+        }
+
+
+        // From Algebras/Relation-C++/RelationPersistent.cpp
+        string WriteToBinStr(Tuple *k) {
+            size_t coreSize = 0;
+            size_t extensionSize = 0;
+            size_t flobSize = 0;
+            size_t blockSize = k->GetBlockSize(coreSize, extensionSize,
+                                               flobSize);
+
+            //The tuple block need two values to indicate the whole block size
+            //and only the tuple's core and extension length.
+            //blockSize += sizeof(blockSize) + sizeof(u_int16_t);
+            char data[blockSize];
+            k->WriteToBin(data, coreSize, extensionSize, flobSize);
+
+            Base64 b64;
+            string binStr;
+            b64.encode(data, blockSize, binStr);
+
+            return stringutils::replaceAll(binStr, "\n", "");
         }
 
     private :
