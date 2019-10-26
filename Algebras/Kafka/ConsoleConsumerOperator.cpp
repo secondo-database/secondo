@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "ConsoleConsumer.h"
+#include "ConsoleConsumerOperator.h"
 
 #include "Attribute.h" // implementation of attribute types
 #include "NestedList.h" // required at many places

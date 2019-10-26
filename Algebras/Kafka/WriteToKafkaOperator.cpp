@@ -23,8 +23,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "KafkaConsumer.h"
-#include "KafkaSource.h"
+#include "WriteToKafkaOperator.h"
+#include "ReadFromKafkaOperator.h"
 #include "KafkaClient.h"
 #include "log.hpp"
 
@@ -32,10 +32,10 @@ using namespace std;
 
 namespace kafka {
 
-    void writeTypeString(std::string brokersParam, string typeString,
-                         string string1);
+    void writeTypeString(std::string brokersParam, string topic,
+                         string typeString);
 
-    ListExpr kafkaConsumerTM(ListExpr args) {
+    ListExpr writeToKafkaTM(ListExpr args) {
         if (!nl->HasLength(args, 3)) {
             return listutils::typeError(" wrong number of args ");
         }
@@ -136,49 +136,49 @@ namespace kafka {
     };
 
 
-    int kafkaConsumerVM(Word *args, Word &result, int message,
-                        Word &local, Supplier s) {
+    int writeToKafkaVM(Word *args, Word &result, int message,
+                       Word &local, Supplier s) {
         KafkaKonsumerLI *li = (KafkaKonsumerLI *) local.addr;
         switch (message) {
             case OPEN :
-                LOG(DEBUG) << "kafkaConsumerVM open";
+                LOG(DEBUG) << "writeToKafkaVM open";
                 if (li) {
                     delete li;
                 }
                 local.addr = new KafkaKonsumerLI(args[0],
                                                  (CcString *) args[1].addr,
                                                  (CcString *) args[2].addr);
-                LOG(DEBUG) << "kafkaConsumerVM opened";
+                LOG(DEBUG) << "writeToKafkaVM opened";
                 return 0;
             case REQUEST :
                 result.addr = li ? li->getNext() : 0;
                 return result.addr ? YIELD : CANCEL;
             case CLOSE :
-                LOG(DEBUG) << "kafkaConsumerVM closing";
+                LOG(DEBUG) << "writeToKafkaVM closing";
                 if (li) {
                     delete li;
                     local.addr = 0;
                 }
-                LOG(DEBUG) << "kafkaConsumerVM closed";
+                LOG(DEBUG) << "writeToKafkaVM closed";
                 return 0;
         }
         return 0;
     }
 
 
-    OperatorSpec kafkaConsumerSpec(
+    OperatorSpec writeToKafkaOpSpec(
             " stream ( Tuple ) x Brokers x KafkaTopic -> stream ( Topic ) ",
-            " _ kafka[_,_]",
+            " _ writetokafka[_,_]",
             " All tuples in the stream are written out to Kafka topic ",
-            " query plz feed kafka(\"localhost\",\"KT\") count "
+            " query plz feed writetokafka(\"localhost\",\"KT\") count "
     );
 
-    Operator kafkaConsumerOp(
-            "kafka",
-            kafkaConsumerSpec.getStr(),
-            kafkaConsumerVM,
+    Operator writeToKafkaOp(
+            "writetokafka",
+            writeToKafkaOpSpec.getStr(),
+            writeToKafkaVM,
             Operator::SimpleSelect,
-            kafkaConsumerTM
+            writeToKafkaTM
     );
 
 

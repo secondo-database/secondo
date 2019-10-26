@@ -23,10 +23,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "KafkaConsumer.h"
-#include "KafkaSource.h"
+#include "WriteToKafkaOperator.h"
+#include "ReadFromKafkaOperator.h"
 #include "StreamStopping.h"
-#include "ConsoleConsumer.h"
+#include "ConsoleConsumerOperator.h"
 
 
 extern NestedList *nl;
@@ -41,10 +41,10 @@ namespace kafka {
     class KafkaAlgebra : public Algebra {
     public:
         KafkaAlgebra() : Algebra() {
-            AddOperator(&kafkaConsumerOp);
-            kafkaConsumerOp.SetUsesArgsInTypeMapping();
-            AddOperator(&kafkaSourceOp);
-            kafkaSourceOp.SetUsesArgsInTypeMapping();
+            AddOperator(&writeToKafkaOp);
+            writeToKafkaOp.SetUsesArgsInTypeMapping();
+            AddOperator(&readFromKafkaOp);
+            readFromKafkaOp.SetUsesArgsInTypeMapping();
 
             AddOperator(&finishStreamOp);
             AddOperator(&signalFinishOp);

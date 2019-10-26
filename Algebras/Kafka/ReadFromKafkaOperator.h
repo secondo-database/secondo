@@ -23,9 +23,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef KAFKA_KAFKACONSUMER_H
-#define KAFKA_KAFKACONSUMER_H
 
+#ifndef KAFKA_READFROMKAFKAOPERATOR_H
+#define KAFKA_READFROMKAFKAOPERATOR_H
 
 #include "Attribute.h" // implementation of attribute types
 #include "Algebra.h" // definition of the algebra
@@ -55,8 +55,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace kafka {
 
-    extern Operator kafkaConsumerOp;
+    extern Operator readFromKafkaOp;
+
+    std::string readTypeString(std::string broker, std::string topic);
+
+    ListExpr validateTopicArg(ListExpr arg);
+
+    ListExpr validateBrokerArg(ListExpr arg);
+
+    ListExpr validateBooleanArg(ListExpr arg);
 
 }
 
-#endif //KAFKA_KAFKACONSUMER_H
+
+#endif //KAFKA_READFROMKAFKAOPERATOR_H

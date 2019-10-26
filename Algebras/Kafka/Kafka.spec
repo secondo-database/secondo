@@ -1,9 +1,9 @@
 
 # postfix operator with an parameter
-operator kafka alias KAFKA pattern _ op [_ ]
+operator writetokafka alias WRITETOKAFKA pattern _ op [_ ]
 
 #simple prefix operator
-operator kafkastream alias KAFKASTREAM pattern op(_)
+operator readfromkafka alias READFROMKAFKA pattern op(_)
 
 # postfix operator with an parameter
 operator finishStream alias FINISHSTREAM pattern _ op [_ ]

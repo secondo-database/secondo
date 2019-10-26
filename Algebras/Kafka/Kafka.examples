@@ -1,22 +1,22 @@
 Database: berlintest
 Restore: No
 
-Operator : kafka
+Operator : readfromkafka
 Number   : 2
 Signature   : stream(tuple) x KafkaHost x KafkaTopic -> stream(tuple)
-Example  : query plz feed kafka["localhost","test"] count
+Example  : query plz feed readfromkafka["localhost","test"] count
 Result   : 40
 
-Operator : kafkastream
+Operator : readfromkafka
 Number   : 1
 Signature: KafkaHost x KafkaTopic x ContinuousReading -> stream(tuple)
-Example  : query kafkastream("localhost", "test", FALSE) count
+Example  : query readfromkafka("localhost", "test", FALSE) count
 Result   : 7
 
 Operator : finishStream
 Number   : 2
 Signature: stream(tuple) x Port -> stream(tuple)
-Example  : query kafkastream("localhost", "test", TRUE) finishStream[8080] consoleConsumer count
+Example  : query readfromkafka("localhost", "test", TRUE) finishStream[8080] consoleConsumer count
 Result   : 7
 
 Operator : signalFinish

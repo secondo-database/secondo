@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "KafkaSource.h"
+#include "ReadFromKafkaOperator.h"
 #include "KafkaClient.h"
 #include "log.hpp"
 
@@ -31,7 +31,7 @@ using namespace std;
 
 namespace kafka {
 
-    ListExpr KafkaSourceTM(ListExpr args) {
+    ListExpr ReadFromKafkaTM(ListExpr args) {
         // check number of arguments
         if (!nl->HasLength(args, 3)) {
             return listutils::typeError("wrong number of arguments");
@@ -187,12 +187,12 @@ namespace kafka {
         bool continuous;
     };
 
-    int KafkaSourceVM(Word *args, Word &result, int message,
-                      Word &local, Supplier s) {
+    int ReadFromKafkaVM(Word *args, Word &result, int message,
+                        Word &local, Supplier s) {
         KafkaSourceLI *li = (KafkaSourceLI *) local.addr;
         switch (message) {
             case OPEN :
-                LOG(DEBUG) << "KafkaSourceVM open";
+                LOG(DEBUG) << "ReadFromKafkaVM open";
                 if (li) {
                     delete li;
                 }
@@ -200,10 +200,10 @@ namespace kafka {
                                                (CcString *) args[1].addr,
                                                (CcBool *) args[2].addr
                 );
-                LOG(DEBUG) << "KafkaSourceVM opened";
+                LOG(DEBUG) << "ReadFromKafkaVM opened";
                 return 0;
             case REQUEST:
-                LOG(TRACE) << "KafkaSourceVM request";
+                LOG(TRACE) << "ReadFromKafkaVM request";
                 if (li) {
                     result.addr = li->getNext(s);
                     if (li->isContinuous())
@@ -214,30 +214,30 @@ namespace kafka {
                     return CANCEL;
                 }
             case CLOSE:
-                LOG(DEBUG) << "KafkaSourceVM closing";
+                LOG(DEBUG) << "ReadFromKafkaVM closing";
                 if (li) {
                     delete li;
                     local.addr = 0;
                 }
-                LOG(DEBUG) << "KafkaSourceVM closed";
+                LOG(DEBUG) << "ReadFromKafkaVM closed";
                 return 0;
         }
         return 0;
     }
 
-    OperatorSpec KafkaSourceSpec(
+    OperatorSpec ReadFromKafkaOpSpec(
             " string,string,boolean -> stream(string)",
-            " kafkastream(_,_,_) ",
+            " readfromkafka(_,_,_) ",
             " Reads steam of tuples from kafka topic ",
-            " query  kafkastream(\"localhost\", \"KM\", false) count"
+            " query  readfromkafka(\"localhost\", \"KM\", false) count"
     );
 
-    Operator kafkaSourceOp(
-            "kafkastream",
-            KafkaSourceSpec.getStr(),
-            KafkaSourceVM,
+    Operator readFromKafkaOp(
+            "readfromkafka",
+            ReadFromKafkaOpSpec.getStr(),
+            ReadFromKafkaVM,
             Operator::SimpleSelect,
-            KafkaSourceTM
+            ReadFromKafkaTM
     );
 
 

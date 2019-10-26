@@ -23,9 +23,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#ifndef KAFKA_WRITETOKAFKAOPERATOR_H
+#define KAFKA_WRITETOKAFKAOPERATOR_H
 
-#ifndef KAFKA_KAFKASOURCE_H
-#define KAFKA_KAFKASOURCE_H
 
 #include "Attribute.h" // implementation of attribute types
 #include "Algebra.h" // definition of the algebra
@@ -55,17 +55,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace kafka {
 
-    extern Operator kafkaSourceOp;
-
-    std::string readTypeString(std::string broker, std::string topic);
-
-    ListExpr validateTopicArg(ListExpr arg);
-
-    ListExpr validateBrokerArg(ListExpr arg);
-
-    ListExpr validateBooleanArg(ListExpr arg);
+    extern Operator writeToKafkaOp;
 
 }
 
-
-#endif //KAFKA_KAFKASOURCE_H
+#endif //KAFKA_WRITETOKAFKAOPERATOR_H

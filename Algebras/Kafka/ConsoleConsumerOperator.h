@@ -23,8 +23,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef KAFKA_CONSOLECONSUMER_H
-#define KAFKA_CONSOLECONSUMER_H
+#ifndef KAFKA_CONSOLECONSUMEROPERATOR_H
+#define KAFKA_CONSOLECONSUMEROPERATOR_H
 
 #include "Algebra.h"
 
@@ -34,4 +34,4 @@ namespace kafka {
 
 }
 
-#endif //KAFKA_CONSOLECONSUMER_H
+#endif //KAFKA_CONSOLECONSUMEROPERATOR_H

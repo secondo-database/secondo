@@ -13,15 +13,15 @@ add_executable(Kafka
         KafkaAlgebra.cpp
         KafkaClient.cpp
         KafkaClient.h
-        KafkaConsumer.cpp
-        KafkaConsumer.h
-        KafkaSource.cpp
-        KafkaSource.h
+        WriteToKafkaOperator.cpp
+        WriteToKafkaOperator.h
+        ReadFromKafkaOperator.cpp
+        ReadFromKafkaOperator.h
         StreamStopping.cpp
         StreamStopping.h
         SignalingSockets.h
-        ConsoleConsumer.cpp
-        ConsoleConsumer.h
+        ConsoleConsumerOperator.cpp
+        ConsoleConsumerOperator.h
         log.cpp
         log.hpp
         Utils.cpp
