@@ -33,7 +33,7 @@ namespace kafka {
 
 #define LOG_PROGRESS_INTERVAL 10000
 
-    class KafkaProducerClient {
+    class KafkaWriterClient {
     private:
         std::string brokers;
         std::string topic_str;
@@ -70,6 +70,7 @@ namespace kafka {
         ExampleRebalanceCb *ex_rebalance_cb;
         int eof_cnt = 0;
         bool exit_on_timeout = false;
+        unsigned long read_count = 0;
     public:
         void Open(std::string brokers, std::string topic_str);
 

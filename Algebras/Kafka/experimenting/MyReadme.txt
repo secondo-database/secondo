@@ -6,8 +6,6 @@
  apt list librdkafka-dev
  Solution: https://github.com/edenhill/librdkafka/blob/master/INTRODUCTION.md#broker-version-compatibility
 
- -- DbEnv: BDB2055 Lock table is out of available lock entries
-
 
 - Working with db
 
@@ -31,16 +29,16 @@
 
      query plz feed kafka["localhost","test"] count;
 
-     query kafkastream("localhost", "test", FALSE) count;
-     % query kafkastream("localhost", "test", TRUE) count;
+     query readfromkafka("localhost", "test", FALSE) count;
+     % query readfromkafka("localhost", "test", TRUE) count;
 
-     query kafkastream("localhost", "test", TRUE) finishStream[8080] consume;
+     query readfromkafka("localhost", "test", TRUE) finishStream[8080] consume;
      query signalFinish("localhost", 8080);
 
     query plz feed consoleConsumer count;
 
-    query kafkastream("localhost", "test", TRUE) finishStream[8080] consoleConsumer consume;
-    query kafkastream("localhost", "test", TRUE) finishStream[8080] consoleConsumer count;
+    query readfromkafka("localhost", "test", TRUE) finishStream[8080] consoleConsumer consume;
+    query readfromkafka("localhost", "test", TRUE) finishStream[8080] consoleConsumer count;
 
     query plz feed filter [.Ort="Karlsruhe"] kafka["localhost","test"] consume;
     query plz feed filter [.PLZ=76189] kafka["localhost","test"] consume;
@@ -77,7 +75,13 @@
     export SECONDO_CONFIG=${HOME}/work/thirdInstance/SecondoConfig.ini
 
 - Big data
+ - Config /home/grisha/work/repository/secondo/bin/SecondoConfig.ini:
+    MaxLocks=3000000
+    MaxLockObjects=3000000
+
  query Roads feed writetokafka["localhost","roads1"] count;
  query Roads feed head[10000] writetokafka["localhost","roads2"] count;
  bin/kafka-run-class.sh kafka.tools.GetOffsetShell --broker-list localhost:9092 --topic roads2
+
+ query readfromkafka("localhost", "roads1", FALSE) count;
 

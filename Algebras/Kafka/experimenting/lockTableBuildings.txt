@@ -14,15 +14,15 @@ typeString: (stream (tuple ((Osm_id string) (Code int) (Fclass string) (Name tex
 [DEBUG][Δ 00:00:00:000059] 2019-10-18 23:28:58:557 readTypeString is null
 topicTypeString:
 [INFO ][Δ 00:00:00:000054] 2019-10-18 23:28:58:557 Writing Type Sting: (stream (tuple ((Osm_id string) (Code int) (Fclass string) (Name text) (Type string) (GeoData region)))) to topic b1
-[DEBUG][Δ 00:00:00:000013] 2019-10-18 23:28:58:557 KafkaProducerClient::Open called
-[DEBUG][Δ 00:00:00:000353] 2019-10-18 23:28:58:557 KafkaProducerClient::Open finished. Created producer rdkafka#producer-8
+[DEBUG][Δ 00:00:00:000013] 2019-10-18 23:28:58:557 KafkaWriterClient::Open called
+[DEBUG][Δ 00:00:00:000353] 2019-10-18 23:28:58:557 KafkaWriterClient::Open finished. Created producer rdkafka#producer-8
 [DEBUG][Δ 00:00:00:000038] 2019-10-18 23:28:58:557 Waiting for 1
 [DEBUG][Δ 00:00:01:105756] 2019-10-18 23:28:59:663 Writing Type Sting done
 noMemoryOperators = 0
 perOperator = 0
 [DEBUG][Δ 00:00:00:000745] 2019-10-18 23:28:59:664 kafkaConsumerVM open
-[DEBUG][Δ 00:00:00:000019] 2019-10-18 23:28:59:664 KafkaProducerClient::Open called
-[DEBUG][Δ 00:00:00:000119] 2019-10-18 23:28:59:664 KafkaProducerClient::Open finished. Created producer rdkafka#producer-9
+[DEBUG][Δ 00:00:00:000019] 2019-10-18 23:28:59:664 KafkaWriterClient::Open called
+[DEBUG][Δ 00:00:00:000119] 2019-10-18 23:28:59:664 KafkaWriterClient::Open finished. Created producer rdkafka#producer-9
 [DEBUG][Δ 00:00:00:000019] 2019-10-18 23:28:59:664 kafkaConsumerVM opened
 ....................................................................................................................................................................DbEnv: BDB2055 Lock table is out of available lock entries
 [DEBUG][Δ 00:04:58:896615] 2019-10-18 23:33:58:560 kafkaConsumerVM closing

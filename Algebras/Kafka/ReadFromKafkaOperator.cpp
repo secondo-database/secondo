@@ -121,16 +121,18 @@ namespace kafka {
 
     std::string readTypeString(string broker, string topic) {
         LOG(DEBUG) << "readTypeString started. topic:" << topic;
+
         KafkaReaderClient kafkaReaderClient;
         kafkaReaderClient.Open(broker, topic);
         std::string *source = kafkaReaderClient.ReadSting();
+        kafkaReaderClient.Close();
+
         if (source == nullptr) {
             LOG(DEBUG) << "readTypeString is null";
             return "";
         }
         std::string result = *source;
         delete source;
-        kafkaReaderClient.Close();
         LOG(DEBUG) << "readTypeString:" << result;
         return result;
     }

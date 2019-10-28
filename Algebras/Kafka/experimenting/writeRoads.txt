@@ -1,0 +1,86 @@
+Secondo => open database NRW
+Secondo ->
+command
+'open database NRW'
+started at: Mon Oct 28 11:15:10 2019
+
+Total runtime ...   Times (elapsed / cpu): 0.028122sec / 0.01sec = 2.8122
+
+=> []
+Secondo => query Roads feed writetokafka["localhost","roads1"] count;
+command
+'query Roads feed writetokafka["localhost","roads1"] count'
+started at: Mon Oct 28 11:15:16 2019
+
+typeString: (stream (tuple ((Osm_id string) (Code int) (Fclass string) (Name text) (Ref string) (Oneway string) (Maxspeed int) (Layer int) (Bridge string) (Tunnel string) (GeoData line))))
+[DEBUG][Δ 00:00:00:000000] 2019-10-28 11:15:16:223 readTypeString started. topic:roads1
+[DEBUG][Δ 00:00:00:000024] 2019-10-28 11:15:16:223 KafkaReaderClient::Open
+[INFO ][Δ 00:00:00:016955] 2019-10-28 11:15:16:240 KafkaReaderClient::Open. Created consumer kafka secondo client#consumer-1
+[DEBUG][Δ 00:00:01:000988] 2019-10-28 11:15:17:241 Consume failed(timeout): Local: Timed out
+[DEBUG][Δ 00:00:01:000265] 2019-10-28 11:15:18:242 Consume failed(timeout): Local: Timed out
+[DEBUG][Δ 00:00:01:000583] 2019-10-28 11:15:19:242 Consume failed(timeout): Local: Timed out
+[DEBUG][Δ 00:00:01:000247] 2019-10-28 11:15:20:242 Consume failed(timeout): Local: Timed out
+[DEBUG][Δ 00:00:00:354310] 2019-10-28 11:15:20:597 EOF reached for all 1 partition(s)
+[DEBUG][Δ 00:00:00:000048] 2019-10-28 11:15:20:597 readTypeString is null
+topicTypeString:
+[INFO ][Δ 00:00:00:000016] 2019-10-28 11:15:20:597 Writing Type Sting: (stream (tuple ((Osm_id string) (Code int) (Fclass string) (Name text) (Ref string) (Oneway string) (Maxspeed int) (Layer int) (Bridge string) (Tunnel string) (GeoData line)))) to topic roads1
+[DEBUG][Δ 00:00:00:000025] 2019-10-28 11:15:20:597 KafkaProducerClient::Open called
+[DEBUG][Δ 00:00:00:001196] 2019-10-28 11:15:20:598 KafkaProducerClient::Open finished. Created producer rdkafka#producer-2
+[DEBUG][Δ 00:00:00:000047] 2019-10-28 11:15:20:598 Waiting for 1
+[DEBUG][Δ 00:00:01:103066] 2019-10-28 11:15:21:701 Writing Type Sting done
+noMemoryOperators = 0
+perOperator = 0
+[DEBUG][Δ 00:00:00:001514] 2019-10-28 11:15:21:703 writeToKafkaVM open
+[DEBUG][Δ 00:00:00:000044] 2019-10-28 11:15:21:703 KafkaProducerClient::Open called
+[DEBUG][Δ 00:00:00:000165] 2019-10-28 11:15:21:703 KafkaProducerClient::Open finished. Created producer rdkafka#producer-3
+[DEBUG][Δ 00:00:00:000034] 2019-10-28 11:15:21:703 writeToKafkaVM opened
+............................................................................................................................................................................................[DEBUG][Δ 00:04:36:339631] 2019-10-28 11:19:58:43 writeToKafkaVM closing
+[DEBUG][Δ 00:00:00:000045] 2019-10-28 11:19:58:43 Waiting for 97306
+[DEBUG][Δ 00:00:01:000112] 2019-10-28 11:19:59:43 Waiting for 88952
+[DEBUG][Δ 00:00:01:000150] 2019-10-28 11:20:00:43 Waiting for 81869
+[DEBUG][Δ 00:00:01:000104] 2019-10-28 11:20:01:43 Waiting for 73884
+[DEBUG][Δ 00:00:01:000092] 2019-10-28 11:20:02:43 Waiting for 65225
+[DEBUG][Δ 00:00:01:000132] 2019-10-28 11:20:03:43 Waiting for 58002
+[DEBUG][Δ 00:00:01:000137] 2019-10-28 11:20:04:43 Waiting for 49306
+[DEBUG][Δ 00:00:01:000129] 2019-10-28 11:20:05:43 Waiting for 39396
+[DEBUG][Δ 00:00:01:000094] 2019-10-28 11:20:06:44 Waiting for 30604
+[DEBUG][Δ 00:00:01:000172] 2019-10-28 11:20:07:44 Waiting for 20667
+[DEBUG][Δ 00:00:01:000123] 2019-10-28 11:20:08:44 Waiting for 13682
+[DEBUG][Δ 00:00:01:000087] 2019-10-28 11:20:09:44 Waiting for 5762
+[DEBUG][Δ 00:00:01:127420] 2019-10-28 11:20:10:171 writeToKafkaVM closed
+Total runtime ...   Times (elapsed / cpu): 4:54min (294.277sec) /241.66sec = 1.21773
+
+1881484
+Secondo =>
+
+
+
+grisha@grisha-VirtualBox:~/work/kafka/kafka_2.12-2.2.0$ bin/kafka-run-class.sh kafka.tools.GetOffsetShell --broker-list localhost:9092 --topic roads1
+roads1:0:1881485
+
+
+Secondo => query readfromkafka("localhost", "roads1", FALSE) count;
+command
+'query readfromkafka("localhost", "roads1", FALSE) count'
+started at: Mon Oct 28 11:24:04 2019
+
+[DEBUG][Δ 00:03:53:925678] 2019-10-28 11:24:04:97 readTypeString started. topic:roads1
+[DEBUG][Δ 00:00:00:000022] 2019-10-28 11:24:04:97 KafkaReaderClient::Open
+[INFO ][Δ 00:00:00:000197] 2019-10-28 11:24:04:97 KafkaReaderClient::Open. Created consumer kafka secondo client#consumer-4
+[DEBUG][Δ 00:00:05:157130] 2019-10-28 11:24:09:254 readTypeString:(stream (tuple ((Osm_id string) (Code int) (Fclass string) (Name text) (Ref string) (Oneway string) (Maxspeed int) (Layer int) (Bridge string) (Tunnel string) (GeoData line))))
+[DEBUG][Δ 00:00:00:000095] 2019-10-28 11:24:09:254 topicTypeString: (stream (tuple ((Osm_id string) (Code int) (Fclass string) (Name text) (Ref string) (Oneway string) (Maxspeed int) (Layer int) (Bridge string) (Tunnel string) (GeoData line))))
+noMemoryOperators = 0
+perOperator = 0
+[DEBUG][Δ 00:00:00:003025] 2019-10-28 11:24:09:257 ReadFromKafkaVM open
+[DEBUG][Δ 00:00:00:000045] 2019-10-28 11:24:09:258 KafkaReaderClient::Open
+[INFO ][Δ 00:00:00:000760] 2019-10-28 11:24:09:258 KafkaReaderClient::Open. Created consumer kafka secondo client#consumer-5
+[DEBUG][Δ 00:00:00:020373] 2019-10-28 11:24:09:279 ReadFromKafkaVM opened
+%3|1572258320.273|FAIL|kafka secondo client#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Receive failed: Disconnected
+%3|1572258320.273|ERROR|kafka secondo client#consumer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Receive failed: Disconnected
+[DEBUG][Δ 00:06:49:612359] 2019-10-28 11:30:58:891 EOF reached for all 1 partition(s)
+[DEBUG][Δ 00:00:00:000053] 2019-10-28 11:30:58:891 ReadFromKafkaVM closing
+[DEBUG][Δ 00:00:05:195846] 2019-10-28 11:31:04:87 ReadFromKafkaVM closed
+Total runtime ...   Times (elapsed / cpu): 7:00min (420.004sec) /410.04sec = 1.0243
+
+1881484
+Secondo =>

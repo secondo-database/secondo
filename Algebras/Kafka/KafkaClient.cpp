@@ -31,8 +31,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace kafka {
 
-    void KafkaProducerClient::Open(std::string brokers, std::string topic_str) {
-        LOG(DEBUG) << "KafkaProducerClient::Open called";
+    void KafkaWriterClient::Open(std::string brokers, std::string topic_str) {
+        LOG(DEBUG) << "KafkaWriterClient::Open called";
 
         this->topic_str = topic_str;
         this->brokers = brokers;
@@ -48,16 +48,16 @@ namespace kafka {
             exit(1);
         }
 
-        LOG(DEBUG) << "KafkaProducerClient::Open finished. Created producer "
+        LOG(DEBUG) << "KafkaWriterClient::Open finished. Created producer "
                    << producer->name();
     }
 
-    void KafkaProducerClient::Write(std::string line) {
-        LOG(TRACE) << "KafkaProducerClient::Write line: " << line;
+    void KafkaWriterClient::Write(std::string line) {
+        LOG(TRACE) << "KafkaWriterClient::Write line: " << line;
         this->Write(const_cast<char *>(line.c_str()), line.size());
     }
 
-    void KafkaProducerClient::Write(void *payload, size_t len) {
+    void KafkaWriterClient::Write(void *payload, size_t len) {
         RdKafka::ErrorCode resp;
         do {
             producer->poll(0);
@@ -91,7 +91,7 @@ namespace kafka {
     }
 
 
-    void KafkaProducerClient::Close() {
+    void KafkaWriterClient::Close() {
 
         while (producer->outq_len() > 0) {
             LOG(DEBUG) << "Waiting for " << producer->outq_len();
@@ -223,6 +223,11 @@ namespace kafka {
             }
             delete msg;
         }
+        read_count++;
+        if ((LOG_PROGRESS_INTERVAL > 0)
+            && (read_count % LOG_PROGRESS_INTERVAL == 0))
+            std::cout << "." << std::flush;
+
         return result;
     }
 
@@ -274,6 +279,7 @@ namespace kafka {
 
 
     void KafkaReaderClient::Close() {
+        consumer->unsubscribe()
         consumer->close();
         delete consumer;
         delete ex_rebalance_cb;
