@@ -8,3 +8,10 @@ Example  : query ten feed predcounts [ A: .No<4 , B: .No>7 , C:.No=10 ] tconsume
 Result   : ( (trel (tuple ( (Atom int) (Count int) ))) ( (7 0) (6 1) (5 0) (4 0) (3 0) (2 2) (1 3) (0 4) ))
 
 
+Operator  : eval
+Number    : 1
+Signature : X1,...,Xn x text -> Z, whre text contains a fun: X1,...,Xn) -> Z
+Example   : query eval(21,'fun(a : int) a + 21')
+Result    : 42
+
+

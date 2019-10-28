@@ -40,7 +40,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ConstructorTemplates.h"
 #include "StandardTypes.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "ListUtils.h"
+#include "SecParser.h"
+#include "StringUtils.h"
+
 
 
 /*
@@ -73,10 +77,9 @@ four different types defined in namespace ~symbols~: ~INT~ and ~REAL~, ~BOOL~ an
 
 #include "TypeMapUtils.h"
 #include "Symbols.h"
+#include <string>
 
 using namespace mappings;
-
-#include <string>
 using namespace std;
 
 /*
@@ -86,6 +89,42 @@ a namespace ~prt~ in order to avoid name conflicts with other modules.
 */
 
 namespace optaux {
+
+ListExpr renameFunArgs(ListExpr fun, const std::string post){
+   if(nl->HasMinLength(fun,2) && nl->IsEqual(nl->First(fun),"fun")){
+      // list is a function
+      // step 1. collect the argunnet names
+      std::map<std::string, ListExpr> rep;
+      ListExpr rest = nl->Rest(fun);
+      while(!nl->HasLength(rest,1)){ // last elem is the definition
+        ListExpr first = nl->First(rest);
+        rest = nl->Rest(rest);
+        assert(nl->HasLength(first,2));  // (name type)
+        ListExpr n = nl->First(first);
+        assert(nl->AtomType(n)==SymbolType);
+        std::string name = nl->SymbolValue(n);
+        rep[name] = nl->SymbolAtom(name + post);
+      }
+      fun = listutils::replaceSymbols(fun,rep);
+   }
+   if(nl->AtomType(fun) != NoAtom){
+      return fun;
+   }
+   if(nl->IsEmpty(fun)){
+      return fun;
+   }
+   // for no atoms, call renameFunArgs recursively
+   ListExpr res = nl->OneElemList( renameFunArgs(nl->First(fun), post));
+   ListExpr last = res;
+   ListExpr rest = nl->Rest(fun);
+   while(!nl->IsEmpty(rest)){
+     last = nl->Append(last, renameFunArgs(nl->First(rest), post));
+     rest = nl->Rest(rest);
+   }
+   return res;
+}
+
+
 
 /*
 5 Creating Operators
@@ -654,6 +693,148 @@ struct predcountsInfo : OperatorInfo {
    // returns strange error messages
 
 
+ListExpr evalTM(ListExpr args){
+  if(!nl->HasMinLength(args,1)){
+     return  listutils::typeError("At least one argument expected");
+  }
+  if(!listutils::checkUsesArgsInTypeMapping(args)){
+    return listutils::typeError("internal error");
+  }
+  ListExpr arglist = nl->TheEmptyList();
+  ListExpr last = nl->TheEmptyList();
+  bool first = true;
+  while(!nl->HasLength(args,1)){
+    if(first){
+       arglist = nl->OneElemList(nl->First(nl->First(args)));
+       last = arglist;
+       first = false;
+    } else {
+       last = nl->Append(last, nl->First(nl->First(args)));
+    }
+    args = nl->Rest(args);
+  }
+  ListExpr ft = nl->First(args);
+  if(!FText::checkType(nl->First(ft))){
+    return listutils::typeError("Last argument must be of type text");
+  }
+  ft = nl->Second(ft);
+  if(nl->AtomType(ft)!=TextType){
+    return listutils::typeError("Last argument must be a constant text");
+  }
+  std::string funtext = nl->TextValue(ft);
+  SecParser mySecParser;
+  std::string nlfuntext;
+  std::string querytext = "query " + funtext;
+  if(mySecParser.Text2List( querytext , nlfuntext)!=0){
+    return listutils::typeError("the last argument cannot be parsed "
+                                "by the Secondo parser");
+  }
+  ListExpr funList;
+  if(!nl->ReadFromString(nlfuntext,funList)){
+    return listutils::typeError("the parsed funtion text cannot be "
+                                 "converted into a nested list");
+  }
+
+
+
+  funList = nl->Second(funList); // remove query
+
+  funList = renameFunArgs(funList, "eval");
+
+  QueryProcessor qp2( nl, am ); 
+  bool correct        = false;
+  bool evaluable      = false;
+  bool defined        = false;
+  bool isFunction     = false;
+  OpTree tree = 0;
+  ListExpr resultType = nl->TheEmptyList();
+
+  try{
+    qp2.Construct( funList, correct, evaluable, defined, 
+                    isFunction, tree, resultType );
+  } catch(...){
+    correct = false;
+  }
+
+  // we are only interested at the result type
+  if(tree){
+     qp2.Destroy(tree, true);
+  }
+  if(!correct){
+     return listutils::typeError("function test is invalid");
+  }
+  if(!isFunction){
+     return listutils::typeError("last argument does not represent a function");
+  } 
+  const int numArgs = nl->ListLength(arglist);
+  if(!nl->HasLength(resultType,numArgs+2)){
+    return listutils::typeError("last argument is not a function having "
+                                + stringutils::int2str(numArgs)
+                                + " arguments");
+  }
+ 
+  // check whether arguments of this operator and function arguments fit
+  ListExpr al = arglist;
+  ListExpr fa = nl->Rest(resultType);
+
+  while(!nl->IsEmpty(al)){
+    if(!nl->Equal(nl->First(al), nl->First(fa))){
+      return listutils::typeError("arguments of this operator and "
+                                  "function arguments differ");
+    }
+    al = nl->Rest(al);
+    fa = nl->Rest(fa);
+  }
+  ListExpr funRes = nl->First(fa);
+  if(!Attribute::checkType(funRes)){
+     return listutils::typeError("Function result is not in kind DATA");
+  }
+
+  ListExpr ret =  nl->ThreeElemList(
+            nl->SymbolAtom(Symbols::APPEND()),
+            nl->OneElemList(funList),
+            funRes); 
+
+  return ret; 
+}
+
+
+int evalVM(Word* args, Word& result, int message,
+              Word& local, Supplier s)
+{
+  int noSons = qp->GetNoSons(s);
+  Supplier fun = args[noSons-1].addr;
+  ArgVectorPointer fa = qp->Argument(fun);
+  for(int i=0;i<noSons-2;i++){
+    (*fa)[i] = args[i];
+  }
+  Word funres;
+  qp->Request(fun,funres);
+
+
+  Attribute* far = (Attribute*) funres.addr;
+  result = qp->ResultStorage(s);
+  Attribute* resultA = (Attribute*) result.addr;
+  resultA->CopyFrom(far); 
+  return 0;
+}
+
+OperatorSpec evalSpec(
+  " X1 x X2,..,Xn x text -> Z , where text is a function (X1.---Xn -> Z)",
+  " eval (_,_,_) ",
+  " Evaluates a function that is given as a text using the given arguments",
+  " query eval(23, 'fun(a : int) a + 16')"
+);
+
+Operator evalOp(
+  "eval",
+  evalSpec.getStr(),
+  evalVM,
+  Operator::SimpleSelect,
+  evalTM
+);
+
+
 
 /*
 
@@ -673,6 +854,9 @@ class OptAuxAlgebra : public Algebra
 */
 
     AddOperator( predcountsInfo(), predcounts_vm, predcounts_tm );
+
+    AddOperator(&evalOp);
+    evalOp.SetUsesArgsInTypeMapping();
 
   }
   ~OptAuxAlgebra() {};
