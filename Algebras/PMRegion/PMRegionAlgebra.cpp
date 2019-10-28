@@ -73,8 +73,7 @@ namespace temporalalgebra {
 		    const int errorPos,
 		    ListExpr& errorInfo,
 		    bool& correct);
-    ListExpr OutMRegion(const ListExpr typeInfo,
-		    const Word instance);
+    ListExpr OutMRegion(ListExpr typeInfo, Word instance);
 }
 
 namespace pmregion {
