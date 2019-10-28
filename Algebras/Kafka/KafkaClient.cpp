@@ -29,6 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #define KAFKA_CLIENT_PRINT_DEBUG_INFO 0
 
+#define KAFKA_VERSION_REQUEST_FIX 1
+
 namespace kafka {
 
     void KafkaWriterClient::Open(std::string brokers, std::string topic_str) {
@@ -148,6 +150,17 @@ namespace kafka {
 
         std::string errstr;
         RdKafka::Conf *conf = RdKafka::Conf::create(RdKafka::Conf::CONF_GLOBAL);
+
+        if (KAFKA_VERSION_REQUEST_FIX) {
+            if (conf->set("api.version.request", "true", errstr) !=
+                RdKafka::Conf::CONF_OK) {
+                std::cerr << errstr << std::endl;
+            }
+            if (conf->set("api.version.fallback.ms", "0", errstr) !=
+                RdKafka::Conf::CONF_OK) {
+                std::cerr << errstr << std::endl;
+            }
+        }
 
         ex_rebalance_cb = new ExampleRebalanceCb();
         conf->set("rebalance_cb", ex_rebalance_cb, errstr);
