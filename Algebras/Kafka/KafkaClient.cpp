@@ -279,7 +279,6 @@ namespace kafka {
 
 
     void KafkaReaderClient::Close() {
-        consumer->unsubscribe()
         consumer->close();
         delete consumer;
         delete ex_rebalance_cb;

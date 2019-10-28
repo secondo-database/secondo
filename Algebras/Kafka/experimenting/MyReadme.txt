@@ -27,7 +27,7 @@
      query Staedte;
 
 
-     query plz feed kafka["localhost","test"] count;
+     query plz feed writetokafka["localhost","test"] count;
 
      query readfromkafka("localhost", "test", FALSE) count;
      % query readfromkafka("localhost", "test", TRUE) count;
@@ -40,8 +40,8 @@
     query readfromkafka("localhost", "test", TRUE) finishStream[8080] consoleConsumer consume;
     query readfromkafka("localhost", "test", TRUE) finishStream[8080] consoleConsumer count;
 
-    query plz feed filter [.Ort="Karlsruhe"] kafka["localhost","test"] consume;
-    query plz feed filter [.PLZ=76189] kafka["localhost","test"] consume;
+    query plz feed filter [.Ort="Karlsruhe"] writetokafka["localhost","test"] consume;
+    query plz feed filter [.PLZ=76189] writetokafka["localhost","test"] consume;
 
  - Running kafka service
 
