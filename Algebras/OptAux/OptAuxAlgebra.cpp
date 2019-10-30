@@ -761,7 +761,7 @@ ListExpr evalTM(ListExpr args){
      qp2.Destroy(tree, true);
   }
   if(!correct){
-     return listutils::typeError("function test is invalid");
+     return listutils::typeError("function text is invalid");
   }
   if(!isFunction){
      return listutils::typeError("last argument does not represent a function");
@@ -790,9 +790,11 @@ ListExpr evalTM(ListExpr args){
      if(!listutils::isStream(funRes)){
         return listutils::typeError("The result is not a stream");
      }
-  } else if(!Attribute::checkType(funRes)){
-     return listutils::typeError("Function result is not in kind DATA");
-  }
+  } 
+
+  //else if(!Attribute::checkType(funRes)){
+  //   return listutils::typeError("Function result is not in kind DATA");
+  //}
 
   ListExpr ret =  nl->ThreeElemList(
             nl->SymbolAtom(Symbols::APPEND()),
@@ -815,11 +817,14 @@ int evalVM(Word* args, Word& result, int message,
   Word funres;
   qp->Request(fun,funres);
 
-
-  Attribute* far = (Attribute*) funres.addr;
-  result = qp->ResultStorage(s);
-  Attribute* resultA = (Attribute*) result.addr;
-  resultA->CopyFrom(far); 
+  if(qp->IsOperatorNode(fun)){
+     qp->ReInitResultStorage(fun);
+     qp->DeleteResultStorage(s);
+     qp->ResultStorage(s) = funres;
+  } else {
+    assert(false); // currently not supported
+  }
+  result= qp->ResultStorage(s);
   return 0;
 }
 
