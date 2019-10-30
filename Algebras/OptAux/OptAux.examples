@@ -10,8 +10,13 @@ Result   : ( (trel (tuple ( (Atom int) (Count int) ))) ( (7 0) (6 1) (5 0) (4 0)
 
 Operator  : eval
 Number    : 1
-Signature : X1,...,Xn x text -> Z, whre text contains a fun: X1,...,Xn) -> Z
+Signature : X1,...,Xn x text -> Z, where text contains a fun: X1,...,Xn) -> Z, Z in DATA
 Example   : query eval(21,'fun(a : int) a + 21')
 Result    : 42
 
+Operator  : evalS
+Number    : 1
+Signature : X1,...,Xn x text -> stream(Z), where text contains a fun: X1,...,Xn) -> stream(Z)
+Example   : query evalS(42,'fun(a : int) intstream(1,a)') count
+Result    : 42
 

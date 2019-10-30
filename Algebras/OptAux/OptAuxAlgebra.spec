@@ -19,4 +19,5 @@
 
 operator predcounts alias PREDCOUNTS pattern _ op [ funlist ] implicit parameter tuple type TUPLE
 operator eval alias EVAL pattern op(_,_,_)
+operator evalS alias EVALS pattern op(_,_,_)
 

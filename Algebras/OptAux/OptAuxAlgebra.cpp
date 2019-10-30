@@ -692,7 +692,7 @@ struct predcountsInfo : OperatorInfo {
 }; // Don't forget the semicolon here. Otherwise the compiler
    // returns strange error messages
 
-
+template<bool stream>
 ListExpr evalTM(ListExpr args){
   if(!nl->HasMinLength(args,1)){
      return  listutils::typeError("At least one argument expected");
@@ -786,7 +786,11 @@ ListExpr evalTM(ListExpr args){
     fa = nl->Rest(fa);
   }
   ListExpr funRes = nl->First(fa);
-  if(!Attribute::checkType(funRes)){
+  if(stream){
+     if(!listutils::isStream(funRes)){
+        return listutils::typeError("The result is not a stream");
+     }
+  } else if(!Attribute::checkType(funRes)){
      return listutils::typeError("Function result is not in kind DATA");
   }
 
@@ -820,7 +824,8 @@ int evalVM(Word* args, Word& result, int message,
 }
 
 OperatorSpec evalSpec(
-  " X1 x X2,..,Xn x text -> Z , where text is a function (X1.---Xn -> Z)",
+  " X1 x X2,..,Xn x text -> Z , where text is a function (X1.---Xn -> Z)"
+  " Z in DATA",
   " eval (_,_,_) ",
   " Evaluates a function that is given as a text using the given arguments",
   " query eval(23, 'fun(a : int) a + 16')"
@@ -831,10 +836,82 @@ Operator evalOp(
   evalSpec.getStr(),
   evalVM,
   Operator::SimpleSelect,
-  evalTM
+  evalTM<false>
 );
 
 
+class evalSInfo{  
+  public:
+    evalSInfo(Supplier _fun): fun(_fun){
+       qp->Open(fun);
+    }
+    ~evalSInfo(){
+       qp->Close(fun);
+    }
+
+    bool next(Word& result){
+       qp->Request(fun,result);
+       return qp->Received(fun);
+    }
+
+ private:
+    Supplier fun;
+
+};
+
+
+int evalSVM(Word* args, Word& result, int message,
+              Word& local, Supplier s)
+{
+  evalSInfo* li = (evalSInfo*) local.addr;
+
+  switch(message){
+     case OPEN: {
+            if(li) {
+              delete li;
+            }
+            int noSons = qp->GetNoSons(s);
+            Supplier fun = args[noSons-1].addr;
+            ArgVectorPointer fa = qp->Argument(fun);
+            for(int i=0;i<noSons-2;i++){
+                (*fa)[i] = args[i];
+            }
+            local.addr = new evalSInfo(fun);
+            return 0;
+          }
+     case REQUEST: {
+             bool rec = false;
+             if(li){
+                rec = li->next(result);
+             }
+             return rec?YIELD:CANCEL;
+          }
+     case CLOSE: 
+              if(li){
+                delete li;
+                local.addr=0;
+              }
+              return 0;
+
+  }
+  return -1;
+}
+
+OperatorSpec evalSSpec(
+  " X1 x X2,..,Xn x text -> stream(Z) , "
+  "where text is a function (X1.---Xn -> stream(Z))",
+  " eval (_,_,_) ",
+  " Evaluates a function that is given as a text using the given arguments",
+  " query eval(23, 'fun(a : int) intstream(a)') count"
+);
+
+Operator evalSOp(
+  "evalS",
+  evalSSpec.getStr(),
+  evalSVM,
+  Operator::SimpleSelect,
+  evalTM<true>
+);
 
 /*
 
@@ -857,6 +934,8 @@ class OptAuxAlgebra : public Algebra
 
     AddOperator(&evalOp);
     evalOp.SetUsesArgsInTypeMapping();
+    AddOperator(&evalSOp);
+    evalSOp.SetUsesArgsInTypeMapping();
 
   }
   ~OptAuxAlgebra() {};
