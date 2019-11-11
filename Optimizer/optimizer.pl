@@ -6739,6 +6739,7 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 :- op(986, xfx,  some).
 :- op(980, xfx,  orderby).
 :- op(970, xfx,  groupby).
+:- op(968, xfx,  having).
 :- op(960, xfx,  from).
 :- op(960, xfx,  set).   % for update, insert
 :- op(950,  fx,  select).
@@ -7010,7 +7011,13 @@ lookup(Query orderby Attrs, Query2 orderby Attrs3) :-
   lookup(Query, Query2),
   makeList(Attrs, Attrs2),
   lookupAttrs(Attrs2, Attrs3).
-
+  
+lookup(Query groupby Attrs having Pred, Query2 groupby Attrs3 having Pred) :-
+  lookup(Query, Query2),
+  makeList(Attrs, Attrs2),
+  lookupAttrs(Attrs2, Attrs3),
+  !.
+  
 lookup(Query groupby Attrs, Query2 groupby Attrs3) :-
   lookup(Query, Query2),
   makeList(Attrs, Attrs2),
@@ -8089,6 +8096,23 @@ translate1(Query, Stream2, Select2, Update, Cost) :-
     % Hook for CSE substitution
   !.
 
+
+
+
+lookupAttrHaving(T, GroupAttrs, T2) :-
+  compound(T),
+  T =.. [Op, Expr],
+  lookupAttrHaving(Expr, GroupAttrs, Expr2),
+  T2 =.. [Op, Expr2],
+  !.
+
+lookupAttrHaving(Name, GroupAttrs, attr(Name, 0, u)) :-
+  member(attr(Name, 0, u), GroupAttrs),
+  !.
+
+
+
+
 %    the main predicate which does the translation of a query
 %    translate(+Query, -Stream, -SelectClause, -UpdateClause, -Cost).
 %  This version of the predicate is only used while the optimizer option
@@ -8112,6 +8136,24 @@ translate(Query groupby Attrs,
   attrnamesSort(Project, AttrNamesSort),
   delExtends(Select2,Select3),
   !.
+
+
+
+
+
+
+translate(Query groupby Attrs having Pred,
+  		Stream, select Select, Update, Cost) :-
+  translate(Query groupby Attrs, Stream2, select Select, Update, Cost),
+  Stream2 = filter(Stream, Pred2),
+  lookupAttrHaving(Pred, Select, Pred2),
+  !.
+  
+
+
+
+
+
 
 % the main predicate which does the translation of a query
 %   translate(+Query, -Stream, -SelectClause, -Cost)
