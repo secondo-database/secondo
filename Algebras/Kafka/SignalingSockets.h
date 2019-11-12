@@ -227,7 +227,7 @@ public:
             return ERROR_CLI_CONNECTION_FAILED;
         }
         send(sock, message, strlen(message), 0);
-        printf("Hello message sent\n");
+        printf("Signaling message sent\n");
 
         char buffer[1024] = {0};
         read(sock, buffer, 1024);
