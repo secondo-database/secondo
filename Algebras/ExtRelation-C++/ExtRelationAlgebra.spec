@@ -121,3 +121,5 @@ operator addModCounter alias ADDMODCOUNTER pattern _ op[_,_,fun,fun] implicit pa
 operator swap alias SWAP pattern _ op[_,_]
 
 operator hashvalue alias HASHVALUE pattern op(_,_)
+
+operator exist alias EXIST pattern _ op

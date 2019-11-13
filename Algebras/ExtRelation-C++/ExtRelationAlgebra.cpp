@@ -14190,8 +14190,89 @@ const string nthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
          nthType                      // type mapping
 );
 
+ /*
+ 2.120 Operator ~exist~
 
+ The operator checks whether at least one element is present in a tuple stream.
 
+ 2.120.1 Type mapping function of operator ~exist~
+
+ Type mapping for ~exist~ is
+
+ ----  stream(tuple) -> bool
+
+ */
+ ListExpr ExistTypeMap( ListExpr args )
+ {
+
+   if(nl->ListLength(args)!=1){
+     return listutils::typeError("one argument expected");
+   }
+
+   string err = "stream(tuple) expected";
+
+   ListExpr stream = nl->First(args);
+
+   if( !Stream<Tuple>::checkType(stream) ) {
+     return listutils::typeError(err);
+   }
+
+   return listutils::basicSymbol<CcBool>();
+ }
+ /*
+ 2.120.3 Value mapping function of operator ~exist~
+
+ */
+
+ int Exist(Word* args, Word& result, int message, Word& local, Supplier s) {
+	 Word tupleWord;
+
+	 if ( message <= CLOSE ) {
+		result = qp->ResultStorage(s);
+		CcBool* b = static_cast<CcBool*>( result.addr );
+
+		qp->Open(args[0].addr);
+		qp->Request(args[0].addr, tupleWord);
+		if(qp->Received(args[0].addr)) {
+			 b ->Set(true,true);
+		} else {
+			b ->Set(true,false);
+		}
+
+		qp->Close(args[0].addr);
+	 }
+
+	 return 0;
+ }
+
+ /*
+ 2.120.4 Specification of operator ~exist~
+
+ */
+ const string ExistSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          "\"Example\" ) "
+                          "( "
+                          "<text>stream(tuple) -> bool"
+                          "</text--->"
+                          "<text>_ exist</text--->"
+                          "<text>Returns true, if the stream "
+                          "contains at least one tuple"
+		 	 	 	 	  "</text--->"
+                          "<text>query Kinos feed exist"
+                          "</text--->"
+                           ") )";
+
+ /*
+ 2.120.5 Definition of operator ~exist~
+
+ */
+ Operator extrelexist (
+          "exist",                 	// name
+          ExistSpec,               	// specification
+          Exist,                  	// value mapping
+          Operator::SimpleSelect, 	// trivial selection function
+          ExistTypeMap             	// type mapping
+ );
 
 /*
 Operator ~obojoin~
@@ -15539,6 +15620,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&swapOp);
     AddOperator(&hashvalueOp);
     AddOperator(&AGGRTYPEOp);
+    AddOperator(&extrelexist);
      
 #ifdef USE_PROGRESS
 // support for progress queries
