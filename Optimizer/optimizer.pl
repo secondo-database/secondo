@@ -9822,7 +9822,7 @@ sqlToPlan(QueryText, ResultText, Costs) :-
            ( ( Exc = error_SQL(ErrorTerm),
                ( ErrorTerm=(_::ErrorCode::Message) ; ErrorTerm=(_::Message) )
              ) %% Problems with the SQL query itself:
-             -> my_concat_atom(['SQL ERROR (usually a user error):\n',
+             -> my_concat_atom(['SQL ERROR (usually a user error): \n',
                        Message],'', MessageToSend)
              ;  ( ( Exc = error_Internal(ErrorTerm),
                     (   ErrorTerm = (_::ErrorCode::Message)
