@@ -28,8 +28,8 @@ int main (int argc, char **argv) {
     cerr << "Usage:   rip <regfile> <time> <regfile> <time> ... [args]\n"
          << "          timeformat:  YYYY-MM-DD hh:mm:ss\n"
          << "Example: rip box1 \"2014-01-01 00:00\" "
-         << "box2 \"2014-01-02 12:00\" box3 \"2014-01-03 11:00\" Overlap:30\n";
-         << "\n"
+         << "box2 \"2014-01-02 12:00\" box3 \"2014-01-03 11:00\" Overlap:30\n"
+         << "\n";
       exit(1);
    }
    int nrregs = (argc - 1) / 2;
